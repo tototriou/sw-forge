@@ -14,20 +14,10 @@ Pages :
 - **Siège** — équipes de 3 (leader + lead auto déduit de la leader skill, ticks de vitesse).
 - **Arène** — à venir.
 
-## Données SWARFARM (sans CORS)
+## Données
 
-L'API [SWARFARM](https://swarfarm.com) refuse les appels faits depuis un navigateur (CORS). La parade :
-
-1. Une **GitHub Action** (`update-data.yml`) appelle l'API **depuis le CI Node** (pas de navigateur =
-   pas de CORS), écrit le résultat dans `public/data/monsters.json` et le committe (cron hebdo + manuel).
-2. Ce commit déclenche automatiquement un **déploiement Vercel**.
-3. Le site (React) ne fait plus qu'un `fetch()` vers son **propre domaine** (`/data/monsters.json`) —
-   plus aucun souci de CORS.
-
-```
-Navigateur → sw-forge.vercel.app/data/monsters.json   ✅ same-origin, toujours OK
-CI (Node)  → swarfarm.com/api/...                     ✅ pas de navigateur, pas de CORS
-```
+Les données de monstres proviennent de [SWARFARM](https://swarfarm.com). Elles sont récupérées côté CI
+par `update-data.yml`, écrites dans `public/data/monsters.json` et consommées par le site.
 
 ## Déploiement (Vercel)
 
@@ -55,16 +45,6 @@ npm run dev          # http://localhost:5173
 ├── public/{elements,runes}/          icônes officielles (SWARFARM)
 └── .github/workflows/update-data.yml cron hebdo + manuel : actualise les données
 ```
-
-## Import d'un compte (page RTA)
-
-La page RTA peut importer un export **SWEX** (`.json`) — traité **100% dans le navigateur, rien n'est
-envoyé**. Elle repère tes monstres « utilisés souvent » (favoris World Arena :
-`favorite_unit_list` ou `world_arena_favorite_unit_id_list`) et calcule leur vitesse à partir des
-**runes RTA** (`world_arena_rune_equip_list`, set Swift inclus).
-
-> ⚠️ Les exports de compte contiennent des données personnelles : ils sont ignorés par git
-> (voir `.gitignore`) et ne doivent jamais être committés.
 
 ## Limites connues
 

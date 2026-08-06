@@ -36,6 +36,38 @@ function runeSpeed(rune: any): number {
   return s;
 }
 
+// Aplati récursivement une structure d'ids (gère les groupes imbriqués
+// [[...],[...]]) et renvoie les nombres valides.
+function flattenIds(value: any, out: Set<number>) {
+  if (Array.isArray(value)) {
+    for (const v of value) flattenIds(v, out);
+  } else {
+    const n = Number(value);
+    if (Number.isFinite(n)) out.add(n);
+  }
+}
+
+// Collecte les unit_id des monstres « utilisés souvent » (favoris), en gérant
+// les deux formats d'export connus :
+//  - récent : favorite_unit_list = [{ type, unit_id_list }, …] (on privilégie type 1)
+//  - ancien : world_arena_favorite_unit_id_list = [[…],[…]]
+function collectFavoriteUnitIds(data: any): Set<number> {
+  const ids = new Set<number>();
+
+  const favList = data?.favorite_unit_list;
+  if (Array.isArray(favList) && favList.length > 0) {
+    const type1 = favList.filter((f) => Number(f?.type) === 1);
+    const source = type1.length > 0 ? type1 : favList;
+    for (const f of source) flattenIds(f?.unit_id_list, ids);
+    if (ids.size > 0) return ids;
+  }
+
+  if (Array.isArray(data?.world_arena_favorite_unit_id_list)) {
+    flattenIds(data.world_arena_favorite_unit_id_list, ids);
+  }
+  return ids;
+}
+
 // Localise la liste des runes de preset RTA, quelle que soit la variante de nom.
 function findRtaEquipList(data: any): any[] | null {
   if (Array.isArray(data?.world_arena_rune_equip_list)) return data.world_arena_rune_equip_list;
@@ -89,16 +121,8 @@ export function parseAccountJson(text: string): ParseResult {
     if (Number.isFinite(uid)) unitById.set(uid, u);
   }
 
-  const rtaList = findRtaEquipList(data);
-  if (!rtaList || rtaList.length === 0) {
-    return {
-      units: [],
-      error:
-        "Aucun preset RTA trouvé dans ce fichier (world_arena_rune_equip_list). Vérifie que l'export contient bien tes runes de World Arena.",
-    };
-  }
-
   // Regroupe les runes RTA par monstre (occupied_id = unit_id équipé en RTA).
+  const rtaList = findRtaEquipList(data) ?? [];
   const runesByUnit = new Map<number, any[]>();
   for (const e of rtaList) {
     const uid = Number(e?.occupied_id);
@@ -110,12 +134,26 @@ export function parseAccountJson(text: string): ParseResult {
     runesByUnit.get(uid)!.push(rune);
   }
 
+  // Monstres « utilisés souvent » = favoris mémorisés par le jeu.
+  const favIds = collectFavoriteUnitIds(data);
+
+  // Cible : les favoris si présents, sinon repli sur tous les monstres runés RTA.
+  const targetUnitIds = favIds.size > 0 ? Array.from(favIds) : Array.from(runesByUnit.keys());
+  if (targetUnitIds.length === 0) {
+    return {
+      units: [],
+      error:
+        "Aucun monstre favori RTA ni preset de runes RTA trouvé dans ce fichier (world_arena_favorite_unit_id_list / world_arena_rune_equip_list).",
+    };
+  }
+
   const units: ImportedUnit[] = [];
-  for (const [uid, runes] of runesByUnit) {
+  for (const uid of targetUnitIds) {
     const unit = unitById.get(uid);
     if (!unit) continue;
     const com2usId = Number(unit?.unit_master_id);
     if (!Number.isFinite(com2usId)) continue;
+    const runes = runesByUnit.get(uid) ?? [];
     let flatRuneSpeed = 0;
     let swiftCount = 0;
     for (const r of runes) {

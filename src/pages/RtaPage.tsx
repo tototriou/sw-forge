@@ -71,13 +71,23 @@ export default function RtaPage({ monsters, loadState }: Props) {
     }
     const items = Array.from(best, ([monsterId, runeSpeed]) => ({ monsterId, runeSpeed }));
     if (items.length === 0) {
-      setImportMsg({ ok: false, text: 'Aucun monstre de ta box RTA reconnu dans ce fichier.' });
+      setImportMsg({ ok: false, text: 'Aucun monstre favori RTA reconnu dans ce fichier.' });
       return;
+    }
+    // Si une prépa existe déjà, proposer de repartir de zéro plutôt que d'empiler
+    // (évite de mélanger avec de vieux imports).
+    if (Object.keys(rta.state.entries).length > 0) {
+      const replace = confirm(
+        `${items.length} monstres favoris RTA trouvés.\n\n` +
+          'OK  = remplacer la prépa actuelle par cet import\n' +
+          'Annuler = fusionner avec la prépa existante'
+      );
+      if (replace) rta.clearAll();
     }
     rta.importEntries(items);
     setImportMsg({
       ok: true,
-      text: `${items.length} monstres de ta box RTA importés dans « Non classé » avec leurs vitesses de runes RTA.`,
+      text: `${items.length} monstres « utilisés souvent » (favoris RTA) importés dans « Non classé » avec leurs vitesses de runes RTA.`,
     });
   }
 

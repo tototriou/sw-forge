@@ -10,13 +10,14 @@ permissions:
   pages: write
   id-token: write
 
-concurrency:
-  group: pages
-  cancel-in-progress: true
-
 jobs:
   build:
     runs-on: ubuntu-latest
+    # Les builds redondants (commits rapprochés) s'annulent entre eux : seul le
+    # plus récent produit l'artefact. Annuler un build est sans danger.
+    concurrency:
+      group: pages-build
+      cancel-in-progress: true
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -46,6 +47,13 @@ jobs:
   deploy:
     needs: build
     runs-on: ubuntu-latest
+    # IMPORTANT : on n'annule JAMAIS un déploiement en cours (cancel-in-progress:
+    # false). Annuler un déploiement Pages en plein vol laisse le backend coincé
+    # et fait patiner tous les déploiements suivants. Les déploiements
+    # s'enchaînent donc proprement, un à la fois.
+    concurrency:
+      group: pages-deploy
+      cancel-in-progress: false
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
@@ -53,3 +61,5 @@ jobs:
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v4
+        with:
+          timeout: 1200000 # 20 min : tolère un backend Pages lent sans échouer

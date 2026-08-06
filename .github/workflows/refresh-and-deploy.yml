@@ -15,13 +15,13 @@ permissions:
   pages: write      # déployer sur Pages
   id-token: write   # OIDC requis par deploy-pages
 
-concurrency:
-  group: pages
-  cancel-in-progress: true
-
 jobs:
   update-data:
     runs-on: ubuntu-latest
+    # Une seule actualisation de données à la fois.
+    concurrency:
+      group: refresh-data
+      cancel-in-progress: false
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -49,6 +49,10 @@ jobs:
   build:
     needs: update-data
     runs-on: ubuntu-latest
+    # Même groupe que deploy.yml : builds redondants annulés (sans danger).
+    concurrency:
+      group: pages-build
+      cancel-in-progress: true
     steps:
       - name: Checkout (dernier état de main, avec les données fraîches)
         uses: actions/checkout@v4
@@ -80,6 +84,11 @@ jobs:
   deploy:
     needs: build
     runs-on: ubuntu-latest
+    # Même groupe que deploy.yml : les déploiements ne s'annulent jamais en
+    # plein vol et s'enchaînent un à la fois (évite le backend Pages coincé).
+    concurrency:
+      group: pages-deploy
+      cancel-in-progress: false
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
@@ -87,3 +96,5 @@ jobs:
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v4
+        with:
+          timeout: 1200000 # 20 min : tolère un backend Pages lent sans échouer

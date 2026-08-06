@@ -82,7 +82,6 @@ export default function SiegePage({ monsters, loadState }: Props) {
               onPickMonster={siege.setSlotMonster}
               onClearSlot={siege.clearSlot}
               onSlotRune={siege.setSlotRune}
-              onLead={siege.setLead}
               onTick={siege.setTick}
               onSwap={siege.swapSlots}
             />

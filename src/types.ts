@@ -11,6 +11,14 @@ export interface MonsterStats {
   accuracy: number | null;
 }
 
+// Leader skill d'un monstre. `element = null` => s'applique à toutes les cibles.
+export interface LeaderSkill {
+  stat: string | null; // ex. "Attack Speed", "Attack Power"…
+  amount: number; // en %
+  area: string; // General | Element | Arena | Guild | Dungeon
+  element: ElementKey | null;
+}
+
 export interface Monster {
   id: number | string;
   name: string;
@@ -18,6 +26,7 @@ export interface Monster {
   stars: number | null;
   image: string | null;
   stats: MonsterStats;
+  leaderSkill: LeaderSkill | null;
 }
 
 export interface ElementDef {

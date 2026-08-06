@@ -55,6 +55,20 @@ function normalizeStats(raw) {
   };
 }
 
+// Leader skill : { stat, amount, area, element }. element=null => toutes cibles.
+function normalizeLeaderSkill(raw) {
+  const ls = raw && raw.leader_skill;
+  if (!ls || typeof ls !== 'object') return null;
+  const amount = num(ls.amount);
+  if (amount === null) return null;
+  return {
+    stat: ls.attribute ?? null,
+    amount,
+    area: ls.area ?? 'General',
+    element: ls.element ? normalizeElement(ls.element) : null,
+  };
+}
+
 function normalizeMonster(raw, idx) {
   const stars = raw.base_stars ?? raw.natural_stars ?? raw.stars ?? raw.grade ?? null;
   return {
@@ -64,6 +78,7 @@ function normalizeMonster(raw, idx) {
     stars: typeof stars === 'number' ? stars : null,
     image: buildImageUrl(raw),
     stats: normalizeStats(raw),
+    leaderSkill: normalizeLeaderSkill(raw),
   };
 }
 
@@ -100,12 +115,20 @@ function buildDemoData() {
         // Vitesses de base variées (~90–120) pour rendre l'outil RTA testable
         // en mode démo. Déterministe (pas de Math.random) pour un JSON stable.
         const speed = 90 + ((id * 7 + star * 3 + i * 11) % 31);
+        // Quelques leads de vitesse variés pour tester le siège en mode démo.
+        const demoLeads = [
+          null,
+          { stat: 'Speed', amount: 33, area: 'General', element: null },
+          { stat: 'Speed', amount: 30, area: 'Element', element: el },
+          { stat: 'Speed', amount: 24, area: 'Arena', element: null },
+        ];
         out.push({
           id: id++,
           name: `${demoNames[(id + star) % demoNames.length]} ${star}★`,
           element: el,
           stars: star,
           image: null,
+          leaderSkill: demoLeads[id % demoLeads.length],
           stats: {
             hp: 6000 + ((id * 137) % 6000),
             attack: 500 + ((id * 31) % 500),

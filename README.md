@@ -1,5 +1,7 @@
 # SW Forge — Outils Summoners War
 
+**Démo en ligne : https://sw-forge.vercel.app**
+
 Application web (React + Vite) déployée sur **Vercel**, sans jamais rencontrer de blocage CORS.
 
 Pages :
@@ -23,8 +25,8 @@ L'API [SWARFARM](https://swarfarm.com) refuse les appels faits depuis un navigat
    plus aucun souci de CORS.
 
 ```
-Navigateur → <app>.vercel.app/data/monsters.json   ✅ same-origin, toujours OK
-CI (Node)  → swarfarm.com/api/...                   ✅ pas de navigateur, pas de CORS
+Navigateur → sw-forge.vercel.app/data/monsters.json   ✅ same-origin, toujours OK
+CI (Node)  → swarfarm.com/api/...                     ✅ pas de navigateur, pas de CORS
 ```
 
 ## Déploiement (Vercel)

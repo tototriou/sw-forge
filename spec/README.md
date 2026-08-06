@@ -36,15 +36,14 @@ Concepts partagés par plusieurs pages, documentés une seule fois :
 
 - **Persistance navigateur** : chaque page à état (RTA, Siège) sauvegarde tout
   dans `localStorage`. Rien n'est envoyé à un serveur. Aucune authentification.
-- **Données 100 % locales** : le footer (présent sur toutes les pages) rappelle
-  que toutes les données restent en local et propose un bouton **« Supprimer mes
-  données »** — efface les clés `localStorage` `sw-forge*` / `sky-arena*` (prépa
-  RTA, équipes de siège, monstres perso) puis recharge. Voir [App.tsx](src/App.tsx).
-- **Import de compte global** : un seul bouton « Importer mon compte » dans la
-  barre de nav remplit RTA + siège défense + offense d'un coup. Le fichier est
-  gardé en mémoire pour la session (contexte
-  [useAccount.tsx](src/hooks/useAccount.tsx), non persisté). Les états RTA/siège
-  sont remontés dans [App.tsx](src/App.tsx). Voir
+- **Données 100 % locales** : le footer rappelle que toutes les données restent
+  en local. Un lien **« Supprimer mes données »** (dans la barre de nav, à côté de
+  l'import) efface les clés `localStorage` `sw-forge*` / `sky-arena*` (prépa RTA,
+  équipes de siège, monstres perso) puis recharge. Voir [App.tsx](src/App.tsx).
+- **Import de compte global** : un seul bouton invariant « Importer mon compte »
+  dans la barre de nav remplit RTA + siège défense + offense d'un coup. Chaque
+  import remplace le précédent ; rien n'est persisté sur le disque. Les états
+  RTA/siège sont remontés dans [App.tsx](src/App.tsx). Voir
   [shared/import-compte.md](shared/import-compte.md).
 - **Pas de titre/intro sur les pages outils** : RTA, Siège, Arène et Bestiaire
   démarrent directement sur leur contenu (pas d'en-tête `<h1>` + paragraphe).
@@ -69,9 +68,9 @@ Le cadre commun (nav, routing par hash, footer) vit dans
 
 - Routing par `window.location.hash` (`routeFromHash()`), pas de router externe.
 - Nav desktop (pilules) + nav mobile (hamburger qui se referme à la navigation),
-  avec le bouton d'import global à droite / dans le menu.
+  avec le bouton d'import global + lien « Supprimer mes données » à droite / dans le menu.
 - Fusion `monstres officiels + monstres perso` (`allMonsters`) passée à RTA & Siège.
 - États RTA & siège (défense/offense) **instanciés ici** puis passés en prop, pour
-  qu'un import global les alimente tous. `importAccount(text)` orchestre les 3.
-- Footer : rappel données locales + bouton « Supprimer mes données » ; crédit
-  Com2uS / source SWARFARM.
+  qu'un import global les alimente tous. `importAccount(text)` orchestre les 3 ;
+  `clearAllData()` efface tout.
+- Footer : rappel « données 100 % locales » ; crédit Com2uS / source SWARFARM.

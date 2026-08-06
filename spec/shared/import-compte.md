@@ -13,10 +13,12 @@ Fichiers : [importAccount.ts](src/lib/importAccount.ts) (parseurs) ·
 [AccountImportControl.tsx](src/components/AccountImportControl.tsx) (bouton nav) ·
 [App.tsx](src/App.tsx) (orchestration `importAccount`).
 
-## Un seul bouton d'import (barre de nav)
+## Un seul bouton d'import invariant (barre de nav)
 
 Le bouton **« Importer mon compte »** vit dans la barre de navigation (desktop à
-droite des onglets ; mobile dans le menu). Un import :
+droite des onglets ; mobile dans le menu). Il est **toujours identique** : chaque
+clic ouvre le sélecteur de fichier ; le fichier choisi **remplace le précédent**
+et est appliqué. Un import :
 
 1. **traite la page courante** (affichage immédiat), et
 2. **remplit les autres en arrière-plan** — RTA, défense **et** offense sont
@@ -24,17 +26,16 @@ droite des onglets ; mobile dans le menu). Un import :
 
 Pour rendre ça possible, les états sont **remontés dans [App.tsx](src/App.tsx)**
 (`useRtaState`, `useSiegeState('defense')`, `useSiegeState('offense')`), et
-`importAccount(text)` applique les trois.
+`importAccount(text)` applique les trois. Le fichier n'est **pas mémorisé** : pas
+besoin, un import couvre déjà toutes les pages. Rien n'est persisté sur le disque.
 
-**Compte mémorisé pour la session** : contexte
-[useAccount.tsx](src/hooks/useAccount.tsx), texte brut gardé **en mémoire** (jamais
-en `localStorage` — plusieurs Mo + données perso). Après un 1er chargement, le
-bouton **ré-applique en 1 clic** (label « Réimporter mon compte » + lien
-« charger un autre fichier »). Non conservé après rechargement de la page.
+À côté du bouton : un lien **« Supprimer mes données »** (efface prépa RTA,
+équipes de siège, monstres perso puis recharge).
 
 **Une seule confirmation** : si des données existent déjà (RTA/défense/offense),
 un unique `confirm` « remplacer / fusionner » s'applique aux trois cibles. Message
-global récapitulatif : « Import : N monstres RTA · N défenses · N attaques ».
+global récapitulatif **éphémère** (disparaît seul ~5 s ; ~9 s pour une erreur) :
+« Import : N monstres RTA · N défenses · N attaques ».
 
 Helpers partagés par les deux parseurs : `runeSpeed` (SPD d'une rune : mainstat +
 prefix + substats avec meule), `indexRunes` (index rune_id → rune, inventaire +

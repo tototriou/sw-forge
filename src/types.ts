@@ -116,3 +116,24 @@ export interface RtaState {
   sections: string[]; // sections runes visibles (hors « Non classé »)
   entries: Record<string, RtaEntry>; // indexé par monsterId
 }
+
+/* --------------------------------------------------------------------------
+ * Siège — équipes de 3 monstres (défense / offense)
+ * ----------------------------------------------------------------------- */
+
+export interface SiegeSlot {
+  monsterId: string | null;
+  runeSpeed: number | null;
+}
+
+export interface SiegeTeam {
+  id: string;
+  slots: SiegeSlot[]; // toujours 3 slots ; le slot 0 est le leader
+  lead: number; // lead SPD du leader (0 = aucun)
+  tick: number; // vitesse de combat cible (0 = aucun tick)
+}
+
+export interface SiegeState {
+  teams: SiegeTeam[];
+}
+

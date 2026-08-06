@@ -3,6 +3,7 @@ import { RefreshCw, Swords, BookOpen, Home, Castle, Trophy } from 'lucide-react'
 import HomePage from './pages/HomePage';
 import BestiaryPage from './pages/BestiaryPage';
 import RtaPage from './pages/RtaPage';
+import SiegePage from './pages/SiegePage';
 import ComingSoon from './pages/ComingSoon';
 import { useMonsters, LoadState } from './hooks/useMonsters';
 
@@ -79,11 +80,7 @@ export default function App() {
       ) : route === 'bestiary' ? (
         <BestiaryPage monsters={data.monsters} loadState={data.loadState} />
       ) : route === 'siege' ? (
-        <ComingSoon
-          title="Siège"
-          icon={Castle}
-          description="Préparation et gestion des défenses de guerre de guilde."
-        />
+        <SiegePage monsters={data.monsters} loadState={data.loadState} />
       ) : route === 'arene' ? (
         <ComingSoon
           title="Arène"

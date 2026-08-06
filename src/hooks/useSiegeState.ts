@@ -1,0 +1,148 @@
+import { useCallback, useEffect, useState } from 'react';
+import { SiegeState, SiegeTeam, SiegeSlot } from '../types';
+
+const STORAGE_KEY = 'sw-forge-siege-v1';
+
+function newId(): string {
+  const c = globalThis.crypto as Crypto | undefined;
+  if (c && typeof c.randomUUID === 'function') return c.randomUUID();
+  return `t_${Date.now()}_${Math.floor(Math.random() * 1e6)}`;
+}
+
+function emptySlot(): SiegeSlot {
+  return { monsterId: null, runeSpeed: null };
+}
+
+function newTeam(): SiegeTeam {
+  return { id: newId(), slots: [emptySlot(), emptySlot(), emptySlot()], lead: 0, tick: 0 };
+}
+
+function load(): SiegeState {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (!raw) return { teams: [] };
+    const parsed = JSON.parse(raw) as Partial<SiegeState>;
+    if (!Array.isArray(parsed.teams)) return { teams: [] };
+    const teams: SiegeTeam[] = parsed.teams.map((t) => {
+      const slots: SiegeSlot[] = [0, 1, 2].map((i) => {
+        const s = t?.slots?.[i];
+        return {
+          monsterId: s && typeof s.monsterId === 'string' ? s.monsterId : null,
+          runeSpeed: s && typeof s.runeSpeed === 'number' ? s.runeSpeed : null,
+        };
+      });
+      return {
+        id: typeof t?.id === 'string' ? t.id : newId(),
+        slots,
+        lead: typeof t?.lead === 'number' ? t.lead : 0,
+        tick: typeof t?.tick === 'number' ? t.tick : 0,
+      };
+    });
+    return { teams };
+  } catch {
+    return { teams: [] };
+  }
+}
+
+export interface UseSiegeState {
+  state: SiegeState;
+  addTeam: () => void;
+  removeTeam: (teamId: string) => void;
+  setSlotMonster: (teamId: string, idx: number, monsterId: string) => void;
+  clearSlot: (teamId: string, idx: number) => void;
+  setSlotRune: (teamId: string, idx: number, value: number | null) => void;
+  setLead: (teamId: string, lead: number) => void;
+  setTick: (teamId: string, tick: number) => void;
+  swapSlots: (teamId: string, from: number, to: number) => void;
+  clearAll: () => void;
+}
+
+export function useSiegeState(): UseSiegeState {
+  const [state, setState] = useState<SiegeState>(load);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+    } catch {
+      /* stockage indisponible : on ignore */
+    }
+  }, [state]);
+
+  // Applique une modification à une équipe donnée.
+  const updateTeam = useCallback((teamId: string, fn: (t: SiegeTeam) => SiegeTeam) => {
+    setState((s) => ({
+      ...s,
+      teams: s.teams.map((t) => (t.id === teamId ? fn(t) : t)),
+    }));
+  }, []);
+
+  const updateSlot = useCallback(
+    (teamId: string, idx: number, fn: (sl: SiegeSlot) => SiegeSlot) => {
+      updateTeam(teamId, (t) => ({
+        ...t,
+        slots: t.slots.map((sl, i) => (i === idx ? fn(sl) : sl)),
+      }));
+    },
+    [updateTeam]
+  );
+
+  const addTeam = useCallback(() => setState((s) => ({ ...s, teams: [...s.teams, newTeam()] })), []);
+
+  const removeTeam = useCallback(
+    (teamId: string) => setState((s) => ({ ...s, teams: s.teams.filter((t) => t.id !== teamId) })),
+    []
+  );
+
+  const setSlotMonster = useCallback(
+    (teamId: string, idx: number, monsterId: string) =>
+      updateSlot(teamId, idx, (sl) => ({ ...sl, monsterId })),
+    [updateSlot]
+  );
+
+  const clearSlot = useCallback(
+    (teamId: string, idx: number) => updateSlot(teamId, idx, () => emptySlot()),
+    [updateSlot]
+  );
+
+  const setSlotRune = useCallback(
+    (teamId: string, idx: number, value: number | null) =>
+      updateSlot(teamId, idx, (sl) => ({ ...sl, runeSpeed: value })),
+    [updateSlot]
+  );
+
+  const setLead = useCallback(
+    (teamId: string, lead: number) => updateTeam(teamId, (t) => ({ ...t, lead })),
+    [updateTeam]
+  );
+
+  const setTick = useCallback(
+    (teamId: string, tick: number) => updateTeam(teamId, (t) => ({ ...t, tick })),
+    [updateTeam]
+  );
+
+  const swapSlots = useCallback(
+    (teamId: string, from: number, to: number) =>
+      updateTeam(teamId, (t) => {
+        if (from === to) return t;
+        const slots = [...t.slots];
+        [slots[from], slots[to]] = [slots[to], slots[from]];
+        return { ...t, slots };
+      }),
+    [updateTeam]
+  );
+
+  const clearAll = useCallback(() => setState({ teams: [] }), []);
+
+  return {
+    state,
+    addTeam,
+    removeTeam,
+    setSlotMonster,
+    clearSlot,
+    setSlotRune,
+    setLead,
+    setTick,
+    swapSlots,
+    clearAll,
+  };
+}

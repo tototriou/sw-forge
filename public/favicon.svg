@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <defs>
+    <linearGradient id="hex" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#7c8ae0" />
+      <stop offset="1" stop-color="#a15fe0" />
+    </linearGradient>
+  </defs>
+  <rect width="64" height="64" rx="14" fill="#12162B" />
+  <polygon points="32,4 57,17.5 57,46.5 32,60 7,46.5 7,17.5" fill="url(#hex)" />
+  <polygon points="32,12 50,22 50,42 32,52 14,42 14,22" fill="#12162B" opacity="0.35" />
+  <text x="32" y="40" text-anchor="middle" font-family="Georgia, 'Times New Roman', serif" font-weight="700" font-size="22" fill="#ffffff">SW</text>
+</svg>

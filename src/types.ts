@@ -134,13 +134,13 @@ export interface RtaState {
 export interface SiegeSlot {
   monsterId: string | null;
   runeSpeed: number | null;
+  tick: number; // vitesse de combat cible pour CE monstre (0 = aucun tick)
 }
 
 export interface SiegeTeam {
   id: string;
   slots: SiegeSlot[]; // toujours 3 slots ; le slot 0 est le leader
   lead: number; // lead SPD du leader (0 = aucun)
-  tick: number; // vitesse de combat cible (0 = aucun tick)
 }
 
 export interface SiegeState {

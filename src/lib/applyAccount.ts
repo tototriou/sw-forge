@@ -2,8 +2,11 @@
 // vers les structures attendues par les états RTA & Siège. Partagé par l'import
 // global (App) pour alimenter toutes les pages d'un coup.
 
-import { Monster, SiegeSlot } from '../types';
+import { Monster } from '../types';
 import { ImportedUnit, SiegeImportedDeck } from './importAccount';
+
+// Slot mappé (le champ `tick` est ajouté par useSiegeState.importTeams).
+type MappedSlot = { monsterId: string | null; runeSpeed: number | null };
 
 // Vitesse de runes finale = SPD plate + bonus Swift (25% de la base) si set complet.
 function runeSpeedOf(flatRuneSpeed: number, swift: boolean, base: number): number {
@@ -31,10 +34,10 @@ export function mapRtaItems(
 export function mapSiegeTeams(
   decks: SiegeImportedDeck[],
   byCom2us: Map<number, Monster>
-): { teams: { slots: SiegeSlot[] }[]; missing: number } {
+): { teams: { slots: MappedSlot[] }[]; missing: number } {
   let missing = 0;
   const teams = decks.map((dk) => ({
-    slots: dk.slots.map((slot): SiegeSlot => {
+    slots: dk.slots.map((slot): MappedSlot => {
       if (!slot) return { monsterId: null, runeSpeed: null };
       const mon = byCom2us.get(slot.com2usId);
       if (!mon) {

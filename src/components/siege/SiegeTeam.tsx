@@ -66,7 +66,7 @@ interface Props {
   onPickMonster: (teamId: string, idx: number, monsterId: string) => void;
   onClearSlot: (teamId: string, idx: number) => void;
   onSlotRune: (teamId: string, idx: number, value: number | null) => void;
-  onTick: (teamId: string, tick: number) => void;
+  onSlotTick: (teamId: string, idx: number, tick: number) => void;
   onSwap: (teamId: string, from: number, to: number) => void;
 }
 
@@ -79,7 +79,7 @@ export default function SiegeTeam({
   onPickMonster,
   onClearSlot,
   onSlotRune,
-  onTick,
+  onSlotTick,
   onSwap,
 }: Props) {
   const [dragFrom, setDragFrom] = useState<number | null>(null);
@@ -139,12 +139,12 @@ export default function SiegeTeam({
                 idx={idx}
                 isLeader={idx === 0}
                 leadInfo={leadInfo}
-                tick={team.tick}
                 monsters={monsters}
                 usedIds={usedIds}
                 onPick={(id) => onPickMonster(team.id, idx, id)}
                 onClear={() => onClearSlot(team.id, idx)}
                 onRune={(v) => onSlotRune(team.id, idx, v)}
+                onTick={(t) => onSlotTick(team.id, idx, t)}
                 onMoveTo={(to) => onSwap(team.id, idx, to)}
                 onDragStart={() => setDragFrom(idx)}
                 onDragEnd={() => setDragFrom(null)}
@@ -152,20 +152,6 @@ export default function SiegeTeam({
             </div>
           );
         })}
-      </div>
-
-      {/* Boutons de tick, sous les slots */}
-      <div className="flex items-center gap-1.5 mt-3 flex-wrap">
-        <span className="font-mono text-[10px] uppercase tracking-[0.1em] text-ink-dim mr-0.5">Tick</span>
-        <TickBtn active={team.tick === 0} onClick={() => onTick(team.id, 0)} label="Off" />
-        {SIEGE_TICKS.map((t) => (
-          <TickBtn
-            key={t.key}
-            active={team.tick === t.value}
-            onClick={() => onTick(team.id, t.value)}
-            label={`${t.label} ${t.value}`}
-          />
-        ))}
       </div>
     </section>
   );
@@ -189,16 +175,16 @@ function TickBtn({ active, onClick, label }: { active: boolean; onClick: () => v
 
 interface SlotProps {
   monster: Monster | null;
-  slot: { monsterId: string | null; runeSpeed: number | null };
+  slot: { monsterId: string | null; runeSpeed: number | null; tick: number };
   idx: number;
   isLeader: boolean;
   leadInfo: LeadInfo | null;
-  tick: number;
   monsters: Monster[];
   usedIds: Set<string>;
   onPick: (id: string) => void;
   onClear: () => void;
   onRune: (v: number | null) => void;
+  onTick: (tick: number) => void;
   onMoveTo: (to: number) => void;
   onDragStart: () => void;
   onDragEnd: () => void;
@@ -210,12 +196,12 @@ function SlotContent({
   idx,
   isLeader,
   leadInfo,
-  tick,
   monsters,
   usedIds,
   onPick,
   onClear,
   onRune,
+  onTick,
   onMoveTo,
   onDragStart,
   onDragEnd,
@@ -245,6 +231,7 @@ function SlotContent({
   const lead = siegeLeadFor(leadInfo, monster.element);
   const combat = combatSpeed(base, slot.runeSpeed, lead);
   const pill = isLeader ? leaderSkillPill(monster.leaderSkill) : null;
+  const tick = slot.tick;
 
   // Écart au tick : négatif = il manque de la vitesse, positif = surplus.
   const diff = tick > 0 && combat !== null ? combat - tick : null;
@@ -327,6 +314,19 @@ function SlotContent({
                        outline-none focus:border-[#5b63b8]"
           />
         </label>
+      </div>
+
+      {/* Tick cible, propre à ce monstre */}
+      <div className="flex items-center gap-1.5 mt-2 flex-wrap">
+        <TickBtn active={tick === 0} onClick={() => onTick(0)} label="Off" />
+        {SIEGE_TICKS.map((t) => (
+          <TickBtn
+            key={t.key}
+            active={tick === t.value}
+            onClick={() => onTick(t.value)}
+            label={`${t.label} ${t.value}`}
+          />
+        ))}
       </div>
 
       {/* Retour tick : manque / surplus */}

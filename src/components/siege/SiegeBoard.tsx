@@ -97,7 +97,7 @@ export default function SiegeBoard({
               onPickMonster={siege.setSlotMonster}
               onClearSlot={siege.clearSlot}
               onSlotRune={siege.setSlotRune}
-              onTick={siege.setTick}
+              onSlotTick={siege.setSlotTick}
               onSwap={siege.swapSlots}
             />
           ))}

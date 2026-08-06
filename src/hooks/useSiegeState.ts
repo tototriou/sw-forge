@@ -14,11 +14,11 @@ function newId(): string {
 }
 
 function emptySlot(): SiegeSlot {
-  return { monsterId: null, runeSpeed: null };
+  return { monsterId: null, runeSpeed: null, tick: 0 };
 }
 
 function newTeam(): SiegeTeam {
-  return { id: newId(), slots: [emptySlot(), emptySlot(), emptySlot()], lead: 0, tick: 0 };
+  return { id: newId(), slots: [emptySlot(), emptySlot(), emptySlot()], lead: 0 };
 }
 
 function load(side: SiegeSide): SiegeState {
@@ -30,18 +30,20 @@ function load(side: SiegeSide): SiegeState {
     const parsed = JSON.parse(raw) as Partial<SiegeState>;
     if (!Array.isArray(parsed.teams)) return { teams: [] };
     const teams: SiegeTeam[] = parsed.teams.map((t) => {
+      // Migration : ancien tick d'équipe → tick par défaut de chaque slot.
+      const legacyTick = typeof (t as { tick?: number })?.tick === 'number' ? (t as { tick?: number }).tick! : 0;
       const slots: SiegeSlot[] = [0, 1, 2].map((i) => {
         const s = t?.slots?.[i];
         return {
           monsterId: s && typeof s.monsterId === 'string' ? s.monsterId : null,
           runeSpeed: s && typeof s.runeSpeed === 'number' ? s.runeSpeed : null,
+          tick: s && typeof s.tick === 'number' ? s.tick : legacyTick,
         };
       });
       return {
         id: typeof t?.id === 'string' ? t.id : newId(),
         slots,
         lead: typeof t?.lead === 'number' ? t.lead : 0,
-        tick: typeof t?.tick === 'number' ? t.tick : 0,
       };
     });
     return { teams };
@@ -58,9 +60,12 @@ export interface UseSiegeState {
   clearSlot: (teamId: string, idx: number) => void;
   setSlotRune: (teamId: string, idx: number, value: number | null) => void;
   setLead: (teamId: string, lead: number) => void;
-  setTick: (teamId: string, tick: number) => void;
+  setSlotTick: (teamId: string, idx: number, tick: number) => void;
   swapSlots: (teamId: string, from: number, to: number) => void;
-  importTeams: (teams: { slots: SiegeSlot[] }[], replace: boolean) => void;
+  importTeams: (
+    teams: { slots: { monsterId: string | null; runeSpeed: number | null }[] }[],
+    replace: boolean
+  ) => void;
   clearAll: () => void;
 }
 
@@ -122,9 +127,10 @@ export function useSiegeState(side: SiegeSide): UseSiegeState {
     [updateTeam]
   );
 
-  const setTick = useCallback(
-    (teamId: string, tick: number) => updateTeam(teamId, (t) => ({ ...t, tick })),
-    [updateTeam]
+  const setSlotTick = useCallback(
+    (teamId: string, idx: number, tick: number) =>
+      updateSlot(teamId, idx, (sl) => ({ ...sl, tick })),
+    [updateSlot]
   );
 
   const swapSlots = useCallback(
@@ -141,21 +147,28 @@ export function useSiegeState(side: SiegeSide): UseSiegeState {
   // Import de decks (depuis un export de compte) : chaque deck devient une
   // équipe de 3 slots (slot 0 = leader). `replace` remplace les équipes
   // existantes, sinon on ajoute à la suite.
-  const importTeams = useCallback((teams: { slots: SiegeSlot[] }[], replace: boolean) => {
-    setState((s) => {
-      const built: SiegeTeam[] = teams.map((t) => {
-        const slots: SiegeSlot[] = [0, 1, 2].map((i) => {
-          const sl = t.slots[i];
-          return {
-            monsterId: sl && typeof sl.monsterId === 'string' ? sl.monsterId : null,
-            runeSpeed: sl && typeof sl.runeSpeed === 'number' ? sl.runeSpeed : null,
-          };
+  const importTeams = useCallback(
+    (
+      teams: { slots: { monsterId: string | null; runeSpeed: number | null }[] }[],
+      replace: boolean
+    ) => {
+      setState((s) => {
+        const built: SiegeTeam[] = teams.map((t) => {
+          const slots: SiegeSlot[] = [0, 1, 2].map((i) => {
+            const sl = t.slots[i];
+            return {
+              monsterId: sl && typeof sl.monsterId === 'string' ? sl.monsterId : null,
+              runeSpeed: sl && typeof sl.runeSpeed === 'number' ? sl.runeSpeed : null,
+              tick: 0,
+            };
+          });
+          return { id: newId(), slots, lead: 0 };
         });
-        return { id: newId(), slots, lead: 0, tick: 0 };
+        return { teams: replace ? built : [...s.teams, ...built] };
       });
-      return { teams: replace ? built : [...s.teams, ...built] };
-    });
-  }, []);
+    },
+    []
+  );
 
   const clearAll = useCallback(() => setState({ teams: [] }), []);
 
@@ -167,7 +180,7 @@ export function useSiegeState(side: SiegeSide): UseSiegeState {
     clearSlot,
     setSlotRune,
     setLead,
-    setTick,
+    setSlotTick,
     swapSlots,
     importTeams,
     clearAll,

@@ -1,17 +1,22 @@
 import { useEffect, useState } from 'react';
-import { RefreshCw, Swords, BookOpen } from 'lucide-react';
+import { RefreshCw, Swords, BookOpen, Home } from 'lucide-react';
+import HomePage from './pages/HomePage';
 import BestiaryPage from './pages/BestiaryPage';
 import RtaPage from './pages/RtaPage';
 import { useMonsters, LoadState } from './hooks/useMonsters';
 
-type Route = 'bestiary' | 'rta';
+type Route = 'home' | 'bestiary' | 'rta';
 
 function routeFromHash(): Route {
-  return window.location.hash.replace(/^#\/?/, '') === 'rta' ? 'rta' : 'bestiary';
+  const h = window.location.hash.replace(/^#\/?/, '');
+  if (h === 'rta') return 'rta';
+  if (h === 'bestiary') return 'bestiary';
+  return 'home';
 }
 
 const NAV: { key: Route; label: string; icon: typeof BookOpen; hash: string }[] = [
-  { key: 'bestiary', label: 'Bestiaire', icon: BookOpen, hash: '#/' },
+  { key: 'home', label: 'Accueil', icon: Home, hash: '#/' },
+  { key: 'bestiary', label: 'Bestiaire', icon: BookOpen, hash: '#/bestiary' },
   { key: 'rta', label: 'RTA', icon: Swords, hash: '#/rta' },
 ];
 
@@ -28,9 +33,6 @@ export default function App() {
   return (
     <div className="max-w-[1180px] mx-auto px-5 py-6 pb-16">
       <div className="flex items-center gap-4 flex-wrap mb-2">
-        <p className="font-mono text-[11px] tracking-[0.18em] uppercase text-ink-dim">
-          // Sky Arena
-        </p>
         <nav className="flex items-center gap-1.5 bg-panel border border-border rounded-xl p-1">
           {NAV.map((item) => {
             const active = route === item.key;
@@ -69,8 +71,10 @@ export default function App() {
 
       {route === 'rta' ? (
         <RtaPage monsters={data.monsters} loadState={data.loadState} />
-      ) : (
+      ) : route === 'bestiary' ? (
         <BestiaryPage monsters={data.monsters} loadState={data.loadState} />
+      ) : (
+        <HomePage />
       )}
 
       <footer className="mt-16 text-center font-mono text-xs text-ink-dim">

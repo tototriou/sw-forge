@@ -20,10 +20,10 @@ function routeFromHash(): Route {
 
 const NAV: { key: Route; label: string; icon: typeof BookOpen; hash: string }[] = [
   { key: 'home', label: 'Accueil', icon: Home, hash: '#/' },
-  { key: 'bestiary', label: 'Bestiaire', icon: BookOpen, hash: '#/bestiary' },
   { key: 'rta', label: 'RTA', icon: Swords, hash: '#/rta' },
   { key: 'siege', label: 'Siège', icon: Castle, hash: '#/siege' },
   { key: 'arene', label: 'Arène', icon: Trophy, hash: '#/arene' },
+  { key: 'bestiary', label: 'Bestiaire', icon: BookOpen, hash: '#/bestiary' },
 ];
 
 export default function App() {

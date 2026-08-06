@@ -107,7 +107,7 @@ export default function RtaCard({
             {monster.name}
           </span>
           <span className="flex-none font-mono text-[12px] text-star font-bold">
-            {total !== null ? `⚡${total}` : '—'}
+            {total !== null ? total : '—'}
           </span>
         </div>
         <div className="mt-0.5 text-[11px] text-ink-dim font-mono">SPD base {base ?? '—'}</div>

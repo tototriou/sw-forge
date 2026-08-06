@@ -117,7 +117,7 @@ export default function TurnOrder({ items, onRuneSpeed }: Props) {
           Ajoute des monstres pour visualiser l'ordre de tour.
         </div>
       ) : (
-        <div className="flex gap-2.5 overflow-x-auto pb-3">
+        <div className="flex flex-wrap gap-2.5 pb-3">
           {ordered.map((it, i) => {
             const eff = effective(it, lead);
             const m = it.monster;
@@ -128,7 +128,7 @@ export default function TurnOrder({ items, onRuneSpeed }: Props) {
               >
                 <div className="flex items-center justify-between mb-1.5">
                   <span className="font-mono text-[10px] text-ink-dim">#{i + 1}</span>
-                  <span className="font-mono text-[13px] font-bold text-star">⚡{eff ?? '—'}</span>
+                  <span className="font-mono text-[13px] font-bold text-star">{eff ?? '—'}</span>
                 </div>
                 <div className="relative w-[46px] mx-auto mb-1.5">
                   <div

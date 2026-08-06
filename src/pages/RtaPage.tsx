@@ -71,13 +71,13 @@ export default function RtaPage({ monsters, loadState }: Props) {
     }
     const items = Array.from(best, ([monsterId, runeSpeed]) => ({ monsterId, runeSpeed }));
     if (items.length === 0) {
-      setImportMsg({ ok: false, text: 'Aucun monstre reconnu dans ce fichier.' });
+      setImportMsg({ ok: false, text: 'Aucun monstre de ta box RTA reconnu dans ce fichier.' });
       return;
     }
     rta.importEntries(items);
     setImportMsg({
       ok: true,
-      text: `${items.length} monstres importés dans « Non classé » (sur ${units.length} unités du compte).`,
+      text: `${items.length} monstres de ta box RTA importés dans « Non classé » avec leurs vitesses de runes RTA.`,
     });
   }
 

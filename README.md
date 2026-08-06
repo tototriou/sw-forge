@@ -8,11 +8,12 @@ hébergeable gratuitement sur **GitHub Pages**, sans jamais rencontrer de blocag
 Le problème initial : l'API de [SWARFARM](https://swarfarm.com) refuse les appels faits
 directement depuis un navigateur (CORS). La solution retenue ici :
 
-1. Une **GitHub Action planifiée** (`update-data.yml`) appelle l'API **depuis le serveur de CI**
-   (pas de navigateur = pas de CORS possible) et écrit le résultat dans
-   `public/data/monsters.json`, puis le committe dans le repo.
+1. Une **GitHub Action** (`refresh-and-deploy.yml`) appelle l'API **depuis le serveur de CI**
+   (pas de navigateur = pas de CORS possible), écrit le résultat dans
+   `public/data/monsters.json`, le committe, puis **rebuild et redéploie** le site dans la
+   foulée. Lançable à la main (`Run workflow`) ou automatiquement chaque lundi.
 2. Une **seconde Action** (`deploy.yml`) build le site avec Vite et le déploie sur GitHub Pages
-   chaque fois que le code change *ou* que les données sont actualisées.
+   à chaque changement de code (push sur `main`).
 3. Le site (React) ne fait donc plus qu'un `fetch()` vers son **propre domaine**
    (`./data/monsters.json`) — plus aucun souci de CORS, jamais.
 
@@ -40,13 +41,10 @@ CI (Node)  → swarfarm.com/api/...           ✅ pas de navigateur, pas de CORS
    `Settings → Actions → General → Workflow permissions` → cocher
    **"Read and write permissions"**.
 
-4. **Lance le premier fetch de données** :
-   `Actions → Actualiser les données (SWARFARM) → Run workflow`
+4. **Lance le premier fetch + déploiement** :
+   `Actions → Actualiser les données puis déployer → Run workflow`
    (sinon il faudra attendre le lundi suivant, ou le site restera en mode démo).
-
-5. Le déploiement se lance automatiquement à la suite (ou lance-le manuellement dans
-   `Actions → Build & Deploy`). Ton site est en ligne sur
-   `https://<toi>.github.io/<ton-repo>/`.
+   Ton site est ensuite en ligne sur `https://<toi>.github.io/<ton-repo>/`.
 
 ## Développement local
 
@@ -63,8 +61,8 @@ npm run dev           # http://localhost:5173
 ├── scripts/fetch-monsters.mjs   Récupération des données côté serveur
 ├── public/data/monsters.json    Données consommées par le site (générées)
 └── .github/workflows/
-    ├── update-data.yml      Cron hebdo + déclenchement manuel : actualise les données
-    └── deploy.yml           Build Vite + déploiement GitHub Pages
+    ├── refresh-and-deploy.yml   Manuel + cron hebdo : actualise les données PUIS redéploie
+    └── deploy.yml               Build Vite + déploiement GitHub Pages (sur push de code)
 ```
 
 ## Limites connues

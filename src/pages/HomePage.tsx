@@ -63,18 +63,6 @@ export default function HomePage() {
       {/* Cartes des outils */}
       <div className="grid md:grid-cols-2 gap-5 mt-8">
         <ToolCard
-          href="#/bestiary"
-          icon={BookOpen}
-          accent="#2FA0E0"
-          title="Bestiaire"
-          desc="Recherche par nom, filtre par élément et par étoiles naturelles. Toutes les stats de base à portée de main."
-          features={[
-            { icon: Filter, label: 'Filtres élément & étoiles' },
-            { icon: Zap, label: 'Stats de base (vitesse…)' },
-          ]}
-          cta="Ouvrir le bestiaire"
-        />
-        <ToolCard
           href="#/rta"
           icon={Swords}
           accent="#A15FE0"
@@ -91,10 +79,10 @@ export default function HomePage() {
           icon={Castle}
           accent="#E4463A"
           title="Siège"
-          desc="Compose tes équipes de 3 pour la guerre de guilde. Le leader donne son lead de vitesse automatiquement, et les ticks t'indiquent la vitesse de combat à viser."
+          desc="Compose tes équipes, offense et défense, et vérifie les speed tune de tes équipes."
           features={[
             { icon: Users, label: 'Équipes défense & offense' },
-            { icon: Zap, label: 'Lead auto + ticks 239 / 286' },
+            { icon: Zap, label: 'Vérif des SPD & ticks 239 / 286' },
           ]}
           cta="Préparer mes équipes de siège"
         />
@@ -107,6 +95,18 @@ export default function HomePage() {
           features={[{ icon: Swords, label: 'Offense & défense classique' }]}
           cta="Bientôt disponible"
           soon
+        />
+        <ToolCard
+          href="#/bestiary"
+          icon={BookOpen}
+          accent="#2FA0E0"
+          title="Bestiaire"
+          desc="Recherche par nom, filtre par élément et par étoiles naturelles. Toutes les stats de base à portée de main."
+          features={[
+            { icon: Filter, label: 'Filtres élément & étoiles' },
+            { icon: Zap, label: 'Stats de base (vitesse…)' },
+          ]}
+          cta="Ouvrir le bestiaire"
         />
       </div>
     </motion.div>

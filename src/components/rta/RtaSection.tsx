@@ -82,7 +82,7 @@ export default function RtaSection({
           Glisse des monstres ici
         </div>
       ) : (
-        <div className="grid grid-cols-[repeat(auto-fill,minmax(210px,1fr))] gap-2.5">{children}</div>
+        <div className="grid grid-cols-[repeat(auto-fill,minmax(min(100%,210px),1fr))] gap-2.5">{children}</div>
       )}
     </section>
   );

@@ -11,6 +11,8 @@ body {
     radial-gradient(ellipse 80% 50% at 50% -10%, #1a2050 0%, transparent 60%),
     #0a0d1c;
   min-height: 100vh;
+  /* Garde-fou : aucun débordement horizontal sur mobile. */
+  overflow-x: hidden;
 }
 
 ::-webkit-scrollbar {

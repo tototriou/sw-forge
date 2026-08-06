@@ -270,7 +270,7 @@ export default function RtaPage({ monsters, loadState }: Props) {
 
       {/* Ordre de tour global, trié par vitesse totale */}
       <section className="mt-10">
-        <div className="flex items-center gap-3 pb-2.5 mb-4 border-b border-border">
+        <div className="flex items-baseline gap-x-3 gap-y-1 flex-wrap pb-2.5 mb-4 border-b border-border">
           <h2 className="font-display text-[19px] tracking-wide">Ordre de tour</h2>
           <span className="font-mono text-ink-dim text-xs">
             par vitesse totale · le plus rapide à gauche

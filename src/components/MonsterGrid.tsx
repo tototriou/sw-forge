@@ -20,7 +20,7 @@ export default function MonsterGrid({ elementDef, monsters }: Props) {
           {monsters.length} monstre{monsters.length > 1 ? 's' : ''}
         </span>
       </div>
-      <div className="grid grid-cols-[repeat(auto-fill,minmax(148px,1fr))] gap-4">
+      <div className="grid grid-cols-[repeat(auto-fill,minmax(min(100%,148px),1fr))] gap-3 sm:gap-4">
         <AnimatePresence mode="popLayout">
           {monsters.map((m) => (
             <MonsterCard key={m.id} monster={m} />

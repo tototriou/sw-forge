@@ -286,12 +286,10 @@ function SlotContent({
           <div className="font-mono text-[26px] font-black text-star leading-none">
             {combat ?? '—'}
           </div>
-          <div className="font-mono text-[10px] text-ink-dim mt-1">
-            vitesse combat · base {base ?? '—'}
-          </div>
+          <div className="font-mono text-[10px] text-ink-dim mt-1">base {base ?? '—'}</div>
         </div>
-        <label className="flex flex-col items-end gap-1">
-          <span className="font-mono text-[9px] uppercase tracking-[0.1em] text-ink-dim">+runes</span>
+        <label className="flex items-center gap-1.5">
+          <span className="font-mono text-[11px] uppercase text-ink-dim">SPD :</span>
           <input
             type="number"
             inputMode="numeric"

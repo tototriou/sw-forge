@@ -101,7 +101,7 @@ export default function RtaCard({ monster, entry, onRuneSpeed, onRemove, onDragS
         </div>
         <div className="mt-0.5 text-[11px] text-ink-dim font-mono">SPD base {base ?? '—'}</div>
         <div className="flex items-center gap-1.5 mt-1">
-          <span className="font-mono text-[10px] uppercase text-ink-dim">+runes</span>
+          <span className="font-mono text-[11px] uppercase text-ink-dim">SPD :</span>
           <input
             type="number"
             inputMode="numeric"

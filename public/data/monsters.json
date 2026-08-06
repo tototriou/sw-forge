@@ -1,0 +1,464 @@
+{
+  "meta": {
+    "generated_at": "2026-08-06T07:50:56.091Z",
+    "source": "demo",
+    "count": 65
+  },
+  "monsters": [
+    {
+      "id": 1,
+      "name": "Éclat 1★",
+      "element": "fire",
+      "stars": 1,
+      "image": null
+    },
+    {
+      "id": 2,
+      "name": "Vagabond 1★",
+      "element": "fire",
+      "stars": 1,
+      "image": null
+    },
+    {
+      "id": 3,
+      "name": "Sentinelle 1★",
+      "element": "fire",
+      "stars": 1,
+      "image": null
+    },
+    {
+      "id": 4,
+      "name": "Fragment 2★",
+      "element": "fire",
+      "stars": 2,
+      "image": null
+    },
+    {
+      "id": 5,
+      "name": "Voyageur 2★",
+      "element": "fire",
+      "stars": 2,
+      "image": null
+    },
+    {
+      "id": 6,
+      "name": "Gardien 2★",
+      "element": "fire",
+      "stars": 2,
+      "image": null
+    },
+    {
+      "id": 7,
+      "name": "Éclat 3★",
+      "element": "fire",
+      "stars": 3,
+      "image": null
+    },
+    {
+      "id": 8,
+      "name": "Vagabond 3★",
+      "element": "fire",
+      "stars": 3,
+      "image": null
+    },
+    {
+      "id": 9,
+      "name": "Sentinelle 3★",
+      "element": "fire",
+      "stars": 3,
+      "image": null
+    },
+    {
+      "id": 10,
+      "name": "Fragment 4★",
+      "element": "fire",
+      "stars": 4,
+      "image": null
+    },
+    {
+      "id": 11,
+      "name": "Voyageur 4★",
+      "element": "fire",
+      "stars": 4,
+      "image": null
+    },
+    {
+      "id": 12,
+      "name": "Murmure 5★",
+      "element": "fire",
+      "stars": 5,
+      "image": null
+    },
+    {
+      "id": 13,
+      "name": "Éclat 5★",
+      "element": "fire",
+      "stars": 5,
+      "image": null
+    },
+    {
+      "id": 14,
+      "name": "Voyageur 1★",
+      "element": "water",
+      "stars": 1,
+      "image": null
+    },
+    {
+      "id": 15,
+      "name": "Gardien 1★",
+      "element": "water",
+      "stars": 1,
+      "image": null
+    },
+    {
+      "id": 16,
+      "name": "Murmure 1★",
+      "element": "water",
+      "stars": 1,
+      "image": null
+    },
+    {
+      "id": 17,
+      "name": "Vagabond 2★",
+      "element": "water",
+      "stars": 2,
+      "image": null
+    },
+    {
+      "id": 18,
+      "name": "Sentinelle 2★",
+      "element": "water",
+      "stars": 2,
+      "image": null
+    },
+    {
+      "id": 19,
+      "name": "Écho 2★",
+      "element": "water",
+      "stars": 2,
+      "image": null
+    },
+    {
+      "id": 20,
+      "name": "Voyageur 3★",
+      "element": "water",
+      "stars": 3,
+      "image": null
+    },
+    {
+      "id": 21,
+      "name": "Gardien 3★",
+      "element": "water",
+      "stars": 3,
+      "image": null
+    },
+    {
+      "id": 22,
+      "name": "Murmure 3★",
+      "element": "water",
+      "stars": 3,
+      "image": null
+    },
+    {
+      "id": 23,
+      "name": "Vagabond 4★",
+      "element": "water",
+      "stars": 4,
+      "image": null
+    },
+    {
+      "id": 24,
+      "name": "Sentinelle 4★",
+      "element": "water",
+      "stars": 4,
+      "image": null
+    },
+    {
+      "id": 25,
+      "name": "Fragment 5★",
+      "element": "water",
+      "stars": 5,
+      "image": null
+    },
+    {
+      "id": 26,
+      "name": "Voyageur 5★",
+      "element": "water",
+      "stars": 5,
+      "image": null
+    },
+    {
+      "id": 27,
+      "name": "Sentinelle 1★",
+      "element": "wind",
+      "stars": 1,
+      "image": null
+    },
+    {
+      "id": 28,
+      "name": "Écho 1★",
+      "element": "wind",
+      "stars": 1,
+      "image": null
+    },
+    {
+      "id": 29,
+      "name": "Fragment 1★",
+      "element": "wind",
+      "stars": 1,
+      "image": null
+    },
+    {
+      "id": 30,
+      "name": "Gardien 2★",
+      "element": "wind",
+      "stars": 2,
+      "image": null
+    },
+    {
+      "id": 31,
+      "name": "Murmure 2★",
+      "element": "wind",
+      "stars": 2,
+      "image": null
+    },
+    {
+      "id": 32,
+      "name": "Éclat 2★",
+      "element": "wind",
+      "stars": 2,
+      "image": null
+    },
+    {
+      "id": 33,
+      "name": "Sentinelle 3★",
+      "element": "wind",
+      "stars": 3,
+      "image": null
+    },
+    {
+      "id": 34,
+      "name": "Écho 3★",
+      "element": "wind",
+      "stars": 3,
+      "image": null
+    },
+    {
+      "id": 35,
+      "name": "Fragment 3★",
+      "element": "wind",
+      "stars": 3,
+      "image": null
+    },
+    {
+      "id": 36,
+      "name": "Gardien 4★",
+      "element": "wind",
+      "stars": 4,
+      "image": null
+    },
+    {
+      "id": 37,
+      "name": "Murmure 4★",
+      "element": "wind",
+      "stars": 4,
+      "image": null
+    },
+    {
+      "id": 38,
+      "name": "Vagabond 5★",
+      "element": "wind",
+      "stars": 5,
+      "image": null
+    },
+    {
+      "id": 39,
+      "name": "Sentinelle 5★",
+      "element": "wind",
+      "stars": 5,
+      "image": null
+    },
+    {
+      "id": 40,
+      "name": "Murmure 1★",
+      "element": "light",
+      "stars": 1,
+      "image": null
+    },
+    {
+      "id": 41,
+      "name": "Éclat 1★",
+      "element": "light",
+      "stars": 1,
+      "image": null
+    },
+    {
+      "id": 42,
+      "name": "Vagabond 1★",
+      "element": "light",
+      "stars": 1,
+      "image": null
+    },
+    {
+      "id": 43,
+      "name": "Écho 2★",
+      "element": "light",
+      "stars": 2,
+      "image": null
+    },
+    {
+      "id": 44,
+      "name": "Fragment 2★",
+      "element": "light",
+      "stars": 2,
+      "image": null
+    },
+    {
+      "id": 45,
+      "name": "Voyageur 2★",
+      "element": "light",
+      "stars": 2,
+      "image": null
+    },
+    {
+      "id": 46,
+      "name": "Murmure 3★",
+      "element": "light",
+      "stars": 3,
+      "image": null
+    },
+    {
+      "id": 47,
+      "name": "Éclat 3★",
+      "element": "light",
+      "stars": 3,
+      "image": null
+    },
+    {
+      "id": 48,
+      "name": "Vagabond 3★",
+      "element": "light",
+      "stars": 3,
+      "image": null
+    },
+    {
+      "id": 49,
+      "name": "Écho 4★",
+      "element": "light",
+      "stars": 4,
+      "image": null
+    },
+    {
+      "id": 50,
+      "name": "Fragment 4★",
+      "element": "light",
+      "stars": 4,
+      "image": null
+    },
+    {
+      "id": 51,
+      "name": "Gardien 5★",
+      "element": "light",
+      "stars": 5,
+      "image": null
+    },
+    {
+      "id": 52,
+      "name": "Murmure 5★",
+      "element": "light",
+      "stars": 5,
+      "image": null
+    },
+    {
+      "id": 53,
+      "name": "Fragment 1★",
+      "element": "dark",
+      "stars": 1,
+      "image": null
+    },
+    {
+      "id": 54,
+      "name": "Voyageur 1★",
+      "element": "dark",
+      "stars": 1,
+      "image": null
+    },
+    {
+      "id": 55,
+      "name": "Gardien 1★",
+      "element": "dark",
+      "stars": 1,
+      "image": null
+    },
+    {
+      "id": 56,
+      "name": "Éclat 2★",
+      "element": "dark",
+      "stars": 2,
+      "image": null
+    },
+    {
+      "id": 57,
+      "name": "Vagabond 2★",
+      "element": "dark",
+      "stars": 2,
+      "image": null
+    },
+    {
+      "id": 58,
+      "name": "Sentinelle 2★",
+      "element": "dark",
+      "stars": 2,
+      "image": null
+    },
+    {
+      "id": 59,
+      "name": "Fragment 3★",
+      "element": "dark",
+      "stars": 3,
+      "image": null
+    },
+    {
+      "id": 60,
+      "name": "Voyageur 3★",
+      "element": "dark",
+      "stars": 3,
+      "image": null
+    },
+    {
+      "id": 61,
+      "name": "Gardien 3★",
+      "element": "dark",
+      "stars": 3,
+      "image": null
+    },
+    {
+      "id": 62,
+      "name": "Éclat 4★",
+      "element": "dark",
+      "stars": 4,
+      "image": null
+    },
+    {
+      "id": 63,
+      "name": "Vagabond 4★",
+      "element": "dark",
+      "stars": 4,
+      "image": null
+    },
+    {
+      "id": 64,
+      "name": "Écho 5★",
+      "element": "dark",
+      "stars": 5,
+      "image": null
+    },
+    {
+      "id": 65,
+      "name": "Fragment 5★",
+      "element": "dark",
+      "stars": 5,
+      "image": null
+    }
+  ]
+}

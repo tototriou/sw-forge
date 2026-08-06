@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { motion } from 'framer-motion';
 import { Monster } from '../types';
+import ElementIcon from './ElementIcon';
 
 const BORDER: Record<string, string> = {
   fire: 'hover:border-fire hover:shadow-lg hover:shadow-fire-glow/40',
@@ -54,32 +55,36 @@ export default function MonsterCard({ monster }: { monster: Monster }) {
       className={`group relative rounded-2xl border border-border bg-panel px-2.5 pt-3.5 pb-3 text-center
         transition-colors shadow-none ${BORDER[monster.element]}`}
     >
-      <div
-        className={`hex-frame w-[84px] h-[84px] mx-auto mb-2.5 p-[3px] bg-gradient-to-br ${GRADIENT[monster.element]}`}
-      >
-        <div className="hex-frame w-full h-full bg-panel2 flex items-center justify-center overflow-hidden">
-          {showImage ? (
-            <img
-              src={monster.image!}
-              alt={monster.name}
-              onError={() => setImgFailed(true)}
-              className="w-full h-full object-cover"
-            />
-          ) : (
-            <span className={`font-display font-bold text-2xl ${TEXT[monster.element]}`}>
-              {initials(monster.name)}
-            </span>
-          )}
+      <div className="relative w-[84px] mx-auto mb-2.5">
+        <div
+          className={`hex-frame w-[84px] h-[84px] p-[3px] bg-gradient-to-br ${GRADIENT[monster.element]}`}
+        >
+          <div className="hex-frame w-full h-full bg-panel2 flex items-center justify-center overflow-hidden">
+            {showImage ? (
+              <img
+                src={monster.image!}
+                alt={monster.name}
+                onError={() => setImgFailed(true)}
+                className="w-full h-full object-cover"
+              />
+            ) : (
+              <span className={`font-display font-bold text-2xl ${TEXT[monster.element]}`}>
+                {initials(monster.name)}
+              </span>
+            )}
+          </div>
         </div>
+        <ElementIcon
+          element={monster.element}
+          size={22}
+          className="absolute -top-1 -right-1 drop-shadow-[0_1px_2px_rgba(0,0,0,0.7)]"
+        />
       </div>
 
       <div className="text-star text-[11px] tracking-[-1px] mb-1.5">
         {monster.stars ? '★'.repeat(monster.stars) : '—'}
       </div>
-      <div className="text-[13px] font-semibold leading-tight mb-0.5">{monster.name}</div>
-      <div className={`font-mono text-[10px] tracking-[0.08em] uppercase ${TEXT[monster.element]}`}>
-        {monster.element}
-      </div>
+      <div className="text-[13px] font-semibold leading-tight">{monster.name}</div>
     </motion.div>
   );
 }

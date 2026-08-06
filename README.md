@@ -1,7 +1,13 @@
-# Bestiaire — Sky Arena
+# Sky Arena — Outils Summoners War
 
-Interface de recherche et filtrage du bestiaire Summoners War (élément, étoiles naturelles),
-hébergeable gratuitement sur **GitHub Pages**, sans jamais rencontrer de blocage CORS.
+Application web multi-pages, hébergeable gratuitement sur **GitHub Pages** sans jamais
+rencontrer de blocage CORS. Deux pages :
+
+- **Bestiaire** — recherche et filtrage des monstres (élément, étoiles naturelles).
+- **RTA** — préparation Real Time Arena : sélection des monstres à runer, classement par set
+  de runes (Swift / Violent / Despair / Autre + sections personnalisables) en **drag & drop**,
+  saisie de la vitesse apportée par les runes et **ordre de tour** recalculé en direct par
+  vitesse totale. La prépa est sauvegardée dans le navigateur (localStorage).
 
 ## Comment ça marche
 
@@ -67,11 +73,10 @@ npm run dev           # http://localhost:5173
 
 ## Limites connues
 
-- Le schéma exact des champs de l'API SWARFARM (`element`, `base_stars`, `image_filename`…)
-  n'a pas pu être vérifié en conditions réelles depuis cet environnement (accès réseau sortant
-  désactivé côté génération). Le script `fetch-monsters.mjs` normalise plusieurs noms de champs
-  possibles par précaution — **vérifie le premier run réel** (`Actions → logs`) et ajuste
-  `normalizeElement` / `normalizeMonster` si un champ ne correspond pas.
+- Le script `fetch-monsters.mjs` récupère aussi les **stats de base** (vitesse, HP, ATK, DEF,
+  crit, résistance, précision) nécessaires à la page RTA. La vitesse (`speed`) ne dépend ni du
+  niveau ni des étoiles dans SW : c'est bien la valeur de base attendue. Les noms de champs sont
+  normalisés avec plusieurs fallbacks par précaution ; ajuste `normalizeStats` si l'API évolue.
 - Si l'API SWARFARM change de forme ou est indisponible, le site bascule automatiquement sur un
   jeu de démonstration (noms fictifs, clairement indiqué dans le bandeau de statut) plutôt que de
   planter.

@@ -1,4 +1,5 @@
 import { ELEMENTS, STAR_OPTIONS, ElementKey } from '../types';
+import ElementIcon from './ElementIcon';
 
 const ELEMENT_STYLES: Record<ElementKey, string> = {
   fire: 'border-fire text-fire data-[active=true]:bg-gradient-to-br data-[active=true]:from-fire data-[active=true]:to-fire-glow',
@@ -7,15 +8,6 @@ const ELEMENT_STYLES: Record<ElementKey, string> = {
   light: 'border-light text-light data-[active=true]:bg-gradient-to-br data-[active=true]:from-light data-[active=true]:to-light-glow',
   dark: 'border-dark text-dark data-[active=true]:bg-gradient-to-br data-[active=true]:from-dark data-[active=true]:to-dark-glow',
   unknown: 'border-unknown text-unknown data-[active=true]:bg-gradient-to-br data-[active=true]:from-unknown data-[active=true]:to-unknown-glow',
-};
-
-const DOT_COLOR: Record<ElementKey, string> = {
-  fire: 'bg-fire',
-  water: 'bg-water',
-  wind: 'bg-wind',
-  light: 'bg-light',
-  dark: 'bg-dark',
-  unknown: 'bg-unknown',
 };
 
 interface Props {
@@ -52,7 +44,7 @@ export default function FilterBar({
                 transition select-none ${ELEMENT_STYLES[el.key]}
                 ${active ? 'text-bg shadow-lg' : 'hover:text-ink'}`}
             >
-              <span className={`w-2 h-2 rounded-full ${active ? 'bg-bg' : DOT_COLOR[el.key]}`} />
+              <ElementIcon element={el.key} size={16} />
               {el.label}
             </button>
           );

@@ -1,15 +1,7 @@
 import { AnimatePresence } from 'framer-motion';
 import { ElementDef, Monster } from '../types';
 import MonsterCard from './MonsterCard';
-
-const DOT: Record<string, string> = {
-  fire: 'bg-fire',
-  water: 'bg-water',
-  wind: 'bg-wind',
-  light: 'bg-light',
-  dark: 'bg-dark',
-  unknown: 'bg-unknown',
-};
+import ElementIcon from './ElementIcon';
 
 interface Props {
   elementDef: ElementDef;
@@ -22,9 +14,7 @@ export default function MonsterGrid({ elementDef, monsters }: Props) {
   return (
     <section className="mt-9">
       <div className="flex items-center gap-3 pb-2.5 mb-4 border-b border-border">
-        <span
-          className={`w-3.5 h-3.5 rounded-[4px] rotate-45 ${DOT[elementDef.key]}`}
-        />
+        <ElementIcon element={elementDef.key} size={22} />
         <h2 className="font-display text-[19px] tracking-wide">{elementDef.label}</h2>
         <span className="font-mono text-ink-dim text-xs ml-auto">
           {monsters.length} monstre{monsters.length > 1 ? 's' : ''}

@@ -30,6 +30,31 @@ function buildImageUrl(raw) {
   return null;
 }
 
+// Normalise un nombre (accepte number ou string numérique), sinon null.
+function num(...candidates) {
+  for (const c of candidates) {
+    if (typeof c === 'number' && Number.isFinite(c)) return c;
+    if (typeof c === 'string' && c.trim() !== '' && Number.isFinite(Number(c))) {
+      return Number(c);
+    }
+  }
+  return null;
+}
+
+function normalizeStats(raw) {
+  return {
+    hp: num(raw.base_hp, raw.hp, raw.max_lvl_hp),
+    attack: num(raw.base_attack, raw.attack, raw.max_lvl_attack),
+    defense: num(raw.base_defense, raw.defense, raw.max_lvl_defense),
+    // La vitesse ne dépend pas du niveau/étoiles dans SW : elle est fixe.
+    speed: num(raw.speed, raw.base_speed, raw.spd),
+    critRate: num(raw.crit_rate, raw.critical_rate, raw.cri_rate),
+    critDamage: num(raw.crit_damage, raw.critical_damage, raw.cri_dmg),
+    resistance: num(raw.resistance, raw.res),
+    accuracy: num(raw.accuracy, raw.acc),
+  };
+}
+
 function normalizeMonster(raw, idx) {
   const stars = raw.base_stars ?? raw.natural_stars ?? raw.stars ?? raw.grade ?? null;
   return {
@@ -38,6 +63,7 @@ function normalizeMonster(raw, idx) {
     element: normalizeElement(raw.element),
     stars: typeof stars === 'number' ? stars : null,
     image: buildImageUrl(raw),
+    stats: normalizeStats(raw),
   };
 }
 
@@ -71,12 +97,25 @@ function buildDemoData() {
     for (let star = 1; star <= 5; star++) {
       const count = star >= 4 ? 2 : 3;
       for (let i = 0; i < count; i++) {
+        // Vitesses de base variées (~90–120) pour rendre l'outil RTA testable
+        // en mode démo. Déterministe (pas de Math.random) pour un JSON stable.
+        const speed = 90 + ((id * 7 + star * 3 + i * 11) % 31);
         out.push({
           id: id++,
           name: `${demoNames[(id + star) % demoNames.length]} ${star}★`,
           element: el,
           stars: star,
           image: null,
+          stats: {
+            hp: 6000 + ((id * 137) % 6000),
+            attack: 500 + ((id * 31) % 500),
+            defense: 400 + ((id * 29) % 400),
+            speed,
+            critRate: 15 + ((id * 3) % 25),
+            critDamage: 50 + ((id * 5) % 40),
+            resistance: 15 + ((id * 7) % 40),
+            accuracy: (id * 11) % 40,
+          },
         });
       }
     }

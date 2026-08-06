@@ -130,13 +130,18 @@ export default function RtaPage({ monsters, loadState }: Props) {
     setDraggingId(null);
   }
 
+  // Destinations proposées dans le sélecteur des cartes (repli tactile du drag).
+  const moveTargets = [RTA_UNASSIGNED, ...rta.state.sections];
+
   function renderCards(items: TurnItem[]) {
     return items.map((it) => (
       <RtaCard
         key={it.monster.id}
         monster={it.monster}
         entry={it.entry}
+        sectionKeys={moveTargets}
         onRuneSpeed={rta.setRuneSpeed}
+        onMove={rta.moveMonster}
         onRemove={rta.removeMonster}
         onDragStart={setDraggingId}
         onDragEnd={() => setDraggingId(null)}

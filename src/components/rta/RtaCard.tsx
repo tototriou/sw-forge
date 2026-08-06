@@ -1,6 +1,6 @@
 import { useRef } from 'react';
 import { GripVertical, X } from 'lucide-react';
-import { Monster, RtaEntry } from '../../types';
+import { Monster, RtaEntry, sectionLabel } from '../../types';
 import ElementIcon from '../ElementIcon';
 
 const TEXT: Record<string, string> = {
@@ -33,13 +33,24 @@ function initials(name: string) {
 interface Props {
   monster: Monster;
   entry: RtaEntry;
+  sectionKeys: string[]; // destinations possibles (Non classé + sections runes)
   onRuneSpeed: (id: string, value: number | null) => void;
+  onMove: (id: string, section: string) => void;
   onRemove: (id: string) => void;
   onDragStart: (id: string) => void;
   onDragEnd: () => void;
 }
 
-export default function RtaCard({ monster, entry, onRuneSpeed, onRemove, onDragStart, onDragEnd }: Props) {
+export default function RtaCard({
+  monster,
+  entry,
+  sectionKeys,
+  onRuneSpeed,
+  onMove,
+  onRemove,
+  onDragStart,
+  onDragEnd,
+}: Props) {
   const cardRef = useRef<HTMLDivElement>(null);
   const base = monster.stats.speed;
   const rune = entry.runeSpeed;
@@ -115,6 +126,19 @@ export default function RtaCard({ monster, entry, onRuneSpeed, onRemove, onDragS
                        outline-none focus:border-[#5b63b8]"
           />
         </div>
+        <select
+          value={entry.section}
+          onChange={(e) => onMove(String(monster.id), e.target.value)}
+          title="Déplacer vers une section"
+          className="mt-1.5 w-full bg-panel border border-border rounded-md px-1.5 py-1 text-[11px]
+                     text-ink-dim outline-none focus:border-[#5b63b8]"
+        >
+          {sectionKeys.map((k) => (
+            <option key={k} value={k}>
+              {sectionLabel(k)}
+            </option>
+          ))}
+        </select>
       </div>
 
       <button

@@ -118,6 +118,7 @@ export default function SiegeTeam({
               <SlotContent
                 monster={monster}
                 slot={slot}
+                idx={idx}
                 isLeader={idx === 0}
                 leadInfo={leadInfo}
                 tick={team.tick}
@@ -126,6 +127,7 @@ export default function SiegeTeam({
                 onPick={(id) => onPickMonster(team.id, idx, id)}
                 onClear={() => onClearSlot(team.id, idx)}
                 onRune={(v) => onSlotRune(team.id, idx, v)}
+                onMoveTo={(to) => onSwap(team.id, idx, to)}
                 onDragStart={() => setDragFrom(idx)}
                 onDragEnd={() => setDragFrom(null)}
               />
@@ -170,6 +172,7 @@ function TickBtn({ active, onClick, label }: { active: boolean; onClick: () => v
 interface SlotProps {
   monster: Monster | null;
   slot: { monsterId: string | null; runeSpeed: number | null };
+  idx: number;
   isLeader: boolean;
   leadInfo: LeadInfo | null;
   tick: number;
@@ -178,6 +181,7 @@ interface SlotProps {
   onPick: (id: string) => void;
   onClear: () => void;
   onRune: (v: number | null) => void;
+  onMoveTo: (to: number) => void;
   onDragStart: () => void;
   onDragEnd: () => void;
 }
@@ -185,6 +189,7 @@ interface SlotProps {
 function SlotContent({
   monster,
   slot,
+  idx,
   isLeader,
   leadInfo,
   tick,
@@ -193,6 +198,7 @@ function SlotContent({
   onPick,
   onClear,
   onRune,
+  onMoveTo,
   onDragStart,
   onDragEnd,
 }: SlotProps) {
@@ -323,6 +329,22 @@ function SlotContent({
           )}
         </div>
       )}
+
+      {/* Position dans l'équipe (repli tactile du drag & drop) */}
+      <div className="flex items-center gap-1.5 mt-2 pt-2 border-t border-border/60">
+        <span className="font-mono text-[10px] uppercase tracking-[0.08em] text-ink-dim">Position</span>
+        <select
+          value={idx}
+          onChange={(e) => onMoveTo(Number(e.target.value))}
+          title="Changer la position (intervertir les monstres)"
+          className="bg-panel border border-border rounded-md px-1.5 py-0.5 text-[11px] text-ink-dim
+                     outline-none focus:border-[#5b63b8]"
+        >
+          <option value={0}>1 · Leader</option>
+          <option value={1}>2</option>
+          <option value={2}>3</option>
+        </select>
+      </div>
     </div>
   );
 }

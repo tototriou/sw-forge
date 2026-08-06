@@ -46,11 +46,11 @@ function rawTotal(it: TurnItem): number | null {
   return b !== null || r !== null ? (b ?? 0) + (r ?? 0) : null;
 }
 
-// Bonus en % appliqué à la vitesse de BASE (totem + lead), tronqué comme en jeu.
+// Bonus en % appliqué à la vitesse de BASE (totem + lead), arrondi au supérieur.
 function pctBonus(it: TurnItem, lead: number): number {
   const base = it.monster.stats.speed;
   if (base === null) return 0;
-  return Math.floor((base * (TOTEM + lead)) / 100);
+  return Math.ceil((base * (TOTEM + lead)) / 100);
 }
 
 // Bonus du set Swift : +25% de vitesse de base, arrondi à l'entier supérieur.

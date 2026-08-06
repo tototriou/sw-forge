@@ -1,5 +1,5 @@
 import { motion } from 'framer-motion';
-import { BookOpen, Swords, ArrowRight, Zap, Filter, Layers } from 'lucide-react';
+import { BookOpen, Swords, ArrowRight, Zap, Filter, Layers, Castle, Trophy, Users } from 'lucide-react';
 import { ElementKey } from '../types';
 import ElementIcon from '../components/ElementIcon';
 
@@ -79,12 +79,34 @@ export default function HomePage() {
           icon={Swords}
           accent="#A15FE0"
           title="RTA — Préparation"
-          desc="Sélectionne tes monstres, classe-les par set de runes en drag & drop, et lis l'ordre de tour recalculé selon les leads de vitesse."
+          desc="Sélectionne tes monstres, classe-les par set de runes en drag & drop, et lis l'ordre de tour recalculé selon les leads de vitesse. Importe même ta box depuis un export de compte."
           features={[
             { icon: Layers, label: 'Sections de runes en drag & drop' },
-            { icon: Zap, label: 'Ordre de tour & leads SPD' },
+            { icon: Zap, label: 'Ordre de tour, leads SPD & import' },
           ]}
           cta="Préparer mes équipes"
+        />
+        <ToolCard
+          href="#/siege"
+          icon={Castle}
+          accent="#E4463A"
+          title="Siège"
+          desc="Compose tes équipes de 3 pour la guerre de guilde. Le leader donne son lead de vitesse automatiquement, et les ticks t'indiquent la vitesse de combat à viser."
+          features={[
+            { icon: Users, label: 'Équipes défense & offense' },
+            { icon: Zap, label: 'Lead auto + ticks 239 / 286' },
+          ]}
+          cta="Préparer mes équipes de siège"
+        />
+        <ToolCard
+          href="#/arene"
+          icon={Trophy}
+          accent="#F2C24C"
+          title="Arène"
+          desc="Préparation des équipes d'arène classique (offense et défense)."
+          features={[{ icon: Swords, label: 'Offense & défense classique' }]}
+          cta="Bientôt disponible"
+          soon
         />
       </div>
     </motion.div>
@@ -99,16 +121,19 @@ interface ToolCardProps {
   desc: string;
   features: { icon: typeof BookOpen; label: string }[];
   cta: string;
+  soon?: boolean;
 }
 
-function ToolCard({ href, icon: Icon, accent, title, desc, features, cta }: ToolCardProps) {
+function ToolCard({ href, icon: Icon, accent, title, desc, features, cta, soon }: ToolCardProps) {
   return (
     <motion.a
       href={href}
       variants={item}
       whileHover={{ y: -6 }}
       transition={{ type: 'spring', stiffness: 300, damping: 22 }}
-      className="group relative overflow-hidden rounded-2xl border border-border bg-panel p-6 flex flex-col"
+      className={`group relative overflow-hidden rounded-2xl border border-border bg-panel p-6 flex flex-col ${
+        soon ? 'opacity-80' : ''
+      }`}
       style={{ minHeight: 260 }}
     >
       {/* Halo d'accent */}
@@ -116,6 +141,12 @@ function ToolCard({ href, icon: Icon, accent, title, desc, features, cta }: Tool
         className="pointer-events-none absolute -top-16 -right-16 w-48 h-48 rounded-full opacity-20 blur-2xl transition-opacity group-hover:opacity-40"
         style={{ background: accent }}
       />
+
+      {soon && (
+        <span className="absolute top-4 right-4 rounded-full border border-border bg-panel2 px-2.5 py-1 font-mono text-[10px] uppercase tracking-[0.14em] text-ink-dim">
+          Bientôt
+        </span>
+      )}
 
       <div
         className="flex items-center justify-center w-14 h-14 rounded-xl mb-4"

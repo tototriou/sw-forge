@@ -1,11 +1,11 @@
 import { useEffect, useMemo, useState } from 'react';
-import { RefreshCw, Swords, BookOpen, Home, Castle, Trophy, Menu, X } from 'lucide-react';
+import { Swords, BookOpen, Home, Castle, Trophy, Menu, X } from 'lucide-react';
 import HomePage from './pages/HomePage';
 import BestiaryPage from './pages/BestiaryPage';
 import RtaPage from './pages/RtaPage';
 import SiegePage from './pages/SiegePage';
 import ComingSoon from './pages/ComingSoon';
-import { useMonsters, LoadState } from './hooks/useMonsters';
+import { useMonsters } from './hooks/useMonsters';
 import { useCustomMonsters } from './hooks/useCustomMonsters';
 
 type Route = 'home' | 'bestiary' | 'rta' | 'siege' | 'arene';
@@ -84,24 +84,11 @@ export default function App() {
                 </a>
               );
             })}
-            <div className="flex items-center gap-2.5 px-3 py-2.5 mt-1 border-t border-border text-[13px]">
-              <StatusDot state={data.loadState} />
-              <span className="text-ink-dim">
-                <StatusText state={data.loadState} generatedAt={data.generatedAt} count={data.monsters.length} />
-              </span>
-              <button
-                onClick={data.reload}
-                className="ml-auto flex items-center text-ink-dim hover:text-ink transition"
-                title="Recharger les données"
-              >
-                <RefreshCw size={16} />
-              </button>
-            </div>
           </nav>
         )}
       </div>
 
-      {/* ---- Barre desktop : onglets + statut ---- */}
+      {/* ---- Barre desktop : onglets ---- */}
       <div className="hidden sm:flex items-center gap-3 flex-wrap mb-3">
         <nav className="flex flex-wrap items-center gap-1 bg-panel border border-border rounded-xl p-1 max-w-full">
           {NAV.map((item) => {
@@ -123,20 +110,6 @@ export default function App() {
             );
           })}
         </nav>
-
-        <div className="ml-auto flex items-center gap-2.5 bg-panel border border-border rounded-[10px] px-3 py-1.5 text-[12.5px]">
-          <StatusDot state={data.loadState} />
-          <span className="text-ink-dim">
-            <StatusText state={data.loadState} generatedAt={data.generatedAt} count={data.monsters.length} />
-          </span>
-          <button
-            onClick={data.reload}
-            className="flex items-center gap-1.5 text-ink-dim hover:text-ink transition ml-1"
-            title="Recharger les données"
-          >
-            <RefreshCw size={13} />
-          </button>
-        </div>
       </div>
 
       {route === 'rta' ? (
@@ -174,37 +147,5 @@ export default function App() {
         </a>
       </footer>
     </div>
-  );
-}
-
-function StatusDot({ state }: { state: LoadState }) {
-  const color =
-    state === 'live'
-      ? 'bg-wind-glow shadow-[0_0_8px_#5EDB8F]'
-      : state === 'demo'
-      ? 'bg-light-glow shadow-[0_0_8px_#FFE07A]'
-      : state === 'error'
-      ? 'bg-fire-glow shadow-[0_0_8px_#FF7A52]'
-      : 'bg-water-glow shadow-[0_0_8px_#5CC2FF] animate-pulse';
-  return <span className={`w-2 h-2 rounded-full flex-none ${color}`} />;
-}
-
-function StatusText({
-  state,
-  generatedAt,
-  count,
-}: {
-  state: LoadState;
-  generatedAt: string | null;
-  count: number;
-}) {
-  if (state === 'loading') return <>Chargement…</>;
-  if (state === 'error') return <>Données indisponibles</>;
-  const when = generatedAt ? new Date(generatedAt).toLocaleDateString('fr-FR') : null;
-  return (
-    <>
-      <b className="text-ink">{count}</b> monstres{state === 'demo' && ' · démo'}
-      {when && ` · ${when}`}
-    </>
   );
 }

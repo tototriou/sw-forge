@@ -1,6 +1,6 @@
 import { useRef, useState } from 'react';
 import { Crown, X, GripVertical, Trash2 } from 'lucide-react';
-import { Monster, SiegeTeam as SiegeTeamType, ELEMENTS, ElementKey } from '../../types';
+import { Monster, SiegeTeam as SiegeTeamType, ELEMENTS, ElementKey, LeaderSkill } from '../../types';
 import { SIEGE_TICKS, combatSpeed, speedLeadOf, siegeLeadFor, LeadInfo } from '../../lib/speed';
 import MonsterPicker from '../MonsterPicker';
 import ElementIcon from '../ElementIcon';
@@ -30,13 +30,31 @@ function elementLabel(el: ElementKey | null): string {
   return ELEMENTS.find((e) => e.key === el)?.label ?? '—';
 }
 
-// Texte court de la pastille de lead, à côté du nom du leader.
-function leadPill(info: LeadInfo | null): { text: string; active: boolean } | null {
-  if (!info) return null;
-  if (info.area === 'General' || info.area === 'Guild') return { text: `Lead +${info.amount}%`, active: true };
-  if (info.area === 'Element')
-    return { text: `Lead +${info.amount}% ${elementLabel(info.element)}`, active: true };
-  return { text: `Lead +${info.amount}% (${info.area}, inactif)`, active: false };
+// Libellés courts des stats de leader skill.
+const STAT_LABEL: Record<string, string> = {
+  'Attack Speed': 'SPD',
+  'Attack Power': 'ATQ',
+  HP: 'PV',
+  Defense: 'DEF',
+  'Critical Rate': 'Taux crit',
+  'Critical DMG': 'DMG crit',
+  Accuracy: 'Précision',
+  Resistance: 'Résistance',
+};
+
+// Pastille affichant le lead du leader (n'importe quel type de stat).
+// `active` = lead de vitesse effectif en siège (mis en avant, alimente le tick).
+function leaderSkillPill(ls: LeaderSkill | null): { text: string; active: boolean } | null {
+  if (!ls) return null;
+  const stat = STAT_LABEL[ls.stat ?? ''] ?? ls.stat ?? '';
+  let scope = '';
+  if (ls.area === 'Element') scope = ` ${elementLabel(ls.element)}`;
+  else if (ls.area === 'Arena') scope = ' (arène)';
+  else if (ls.area === 'Dungeon') scope = ' (donjon)';
+  const active =
+    ls.stat === 'Attack Speed' &&
+    (ls.area === 'General' || ls.area === 'Guild' || ls.area === 'Element');
+  return { text: `Lead +${ls.amount}% ${stat}${scope}`, active };
 }
 
 interface Props {
@@ -226,7 +244,7 @@ function SlotContent({
   const base = monster.stats.speed;
   const lead = siegeLeadFor(leadInfo, monster.element);
   const combat = combatSpeed(base, slot.runeSpeed, lead);
-  const pill = isLeader ? leadPill(leadInfo) : null;
+  const pill = isLeader ? leaderSkillPill(monster.leaderSkill) : null;
 
   // Écart au tick : négatif = il manque de la vitesse, positif = surplus.
   const diff = tick > 0 && combat !== null ? combat - tick : null;

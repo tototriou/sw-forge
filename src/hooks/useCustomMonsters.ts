@@ -9,7 +9,18 @@ function newId(): string {
   return `custom-${Date.now()}-${Math.floor(Math.random() * 1e6)}`;
 }
 
-function makeMonster(name: string, element: ElementKey, speed: number): Monster {
+export interface CustomLead {
+  stat: string; // "Attack Speed", "Attack Power", "HP"…
+  amount: number;
+  area: 'General' | 'Element'; // toutes cibles, ou allié du même élément
+}
+
+function makeMonster(
+  name: string,
+  element: ElementKey,
+  speed: number,
+  lead?: CustomLead | null
+): Monster {
   return {
     id: newId(),
     com2usId: null,
@@ -27,7 +38,15 @@ function makeMonster(name: string, element: ElementKey, speed: number): Monster 
       resistance: null,
       accuracy: null,
     },
-    leaderSkill: null,
+    leaderSkill:
+      lead && lead.amount > 0 && lead.stat
+        ? {
+            stat: lead.stat,
+            amount: lead.amount,
+            area: lead.area,
+            element: lead.area === 'Element' ? element : null,
+          }
+        : null,
   };
 }
 
@@ -48,7 +67,12 @@ function load(): Monster[] {
 
 export interface UseCustomMonsters {
   customMonsters: Monster[];
-  addCustomMonster: (name: string, element: ElementKey, speed: number) => Monster;
+  addCustomMonster: (
+    name: string,
+    element: ElementKey,
+    speed: number,
+    lead?: CustomLead | null
+  ) => Monster;
   removeCustomMonster: (id: string) => void;
 }
 
@@ -65,11 +89,14 @@ export function useCustomMonsters(): UseCustomMonsters {
     }
   }, [customMonsters]);
 
-  const addCustomMonster = useCallback((name: string, element: ElementKey, speed: number) => {
-    const mon = makeMonster(name, element, speed);
-    setCustomMonsters((list) => [...list, mon]);
-    return mon;
-  }, []);
+  const addCustomMonster = useCallback(
+    (name: string, element: ElementKey, speed: number, lead?: CustomLead | null) => {
+      const mon = makeMonster(name, element, speed, lead);
+      setCustomMonsters((list) => [...list, mon]);
+      return mon;
+    },
+    []
+  );
 
   const removeCustomMonster = useCallback((id: string) => {
     setCustomMonsters((list) => list.filter((m) => String(m.id) !== String(id)));

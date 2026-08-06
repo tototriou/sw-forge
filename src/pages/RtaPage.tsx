@@ -17,11 +17,12 @@ import RtaSection from '../components/rta/RtaSection';
 import RtaCard from '../components/rta/RtaCard';
 import TurnOrder, { TurnItem } from '../components/rta/TurnOrder';
 import CreateMonster from '../components/CreateMonster';
+import { CustomLead } from '../hooks/useCustomMonsters';
 
 interface Props {
   monsters: Monster[];
   loadState: LoadState;
-  onCreateMonster: (name: string, element: ElementKey, speed: number) => Monster;
+  onCreateMonster: (name: string, element: ElementKey, speed: number, lead?: CustomLead | null) => Monster;
   customMonsters: Monster[];
   onDeleteMonster: (id: string) => void;
 }
@@ -161,8 +162,13 @@ export default function RtaPage({
   }
 
   // Crée un monstre perso et l'ajoute directement en « Non classé ».
-  function handleCreateMonster(name: string, element: ElementKey, speed: number) {
-    const mon = onCreateMonster(name, element, speed);
+  function handleCreateMonster(
+    name: string,
+    element: ElementKey,
+    speed: number,
+    lead: CustomLead | null
+  ) {
+    const mon = onCreateMonster(name, element, speed, lead);
     rta.addMonster(String(mon.id));
   }
 

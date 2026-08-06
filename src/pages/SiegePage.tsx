@@ -5,11 +5,12 @@ import { LoadState } from '../hooks/useMonsters';
 import { useSiegeState } from '../hooks/useSiegeState';
 import SiegeTeam from '../components/siege/SiegeTeam';
 import CreateMonster from '../components/CreateMonster';
+import { CustomLead } from '../hooks/useCustomMonsters';
 
 interface Props {
   monsters: Monster[];
   loadState: LoadState;
-  onCreateMonster: (name: string, element: ElementKey, speed: number) => Monster;
+  onCreateMonster: (name: string, element: ElementKey, speed: number, lead?: CustomLead | null) => Monster;
   customMonsters: Monster[];
   onDeleteMonster: (id: string) => void;
 }

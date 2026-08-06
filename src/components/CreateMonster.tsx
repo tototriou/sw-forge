@@ -1,12 +1,25 @@
 import { useEffect, useRef, useState } from 'react';
 import { Plus, X, Wand2 } from 'lucide-react';
 import { ELEMENTS, ElementKey, Monster } from '../types';
+import { CustomLead } from '../hooks/useCustomMonsters';
 import ElementIcon from './ElementIcon';
 
 const ELEMENT_CHOICES = ELEMENTS.filter((e) => e.key !== 'unknown');
 
+// Types de leader skill (valeurs = libellés SWARFARM).
+const LEAD_STATS = [
+  { value: 'Attack Speed', label: 'Vitesse' },
+  { value: 'Attack Power', label: 'Attaque' },
+  { value: 'HP', label: 'PV' },
+  { value: 'Defense', label: 'Défense' },
+  { value: 'Critical Rate', label: 'Taux crit' },
+  { value: 'Critical DMG', label: 'Dégâts crit' },
+  { value: 'Accuracy', label: 'Précision' },
+  { value: 'Resistance', label: 'Résistance' },
+];
+
 interface Props {
-  onCreate: (name: string, element: ElementKey, speed: number) => void;
+  onCreate: (name: string, element: ElementKey, speed: number, lead: CustomLead | null) => void;
   customMonsters: Monster[];
   onDelete: (id: string) => void;
 }
@@ -17,6 +30,9 @@ export default function CreateMonster({ onCreate, customMonsters, onDelete }: Pr
   const [name, setName] = useState('');
   const [element, setElement] = useState<ElementKey>('fire');
   const [speed, setSpeed] = useState('');
+  const [leadStat, setLeadStat] = useState('');
+  const [lead, setLead] = useState('');
+  const [scope, setScope] = useState<'General' | 'Element'>('General');
   const ref = useRef<HTMLDivElement>(null);
 
   // Ferme la popup au clic à l'extérieur ou sur Échap.
@@ -41,9 +57,16 @@ export default function CreateMonster({ onCreate, customMonsters, onDelete }: Pr
 
   function submit() {
     if (!valid) return;
-    onCreate(name, element, speedNum);
+    const leadNum = Number(lead);
+    const leadObj: CustomLead | null =
+      leadStat !== '' && lead !== '' && Number.isFinite(leadNum) && leadNum > 0
+        ? { stat: leadStat, amount: leadNum, area: scope }
+        : null;
+    onCreate(name, element, speedNum, leadObj);
     setName('');
     setSpeed('');
+    setLeadStat('');
+    setLead('');
   }
 
   return (
@@ -98,6 +121,44 @@ export default function CreateMonster({ onCreate, customMonsters, onDelete }: Pr
                          placeholder:text-ink-dim outline-none focus:border-[#5b63b8]"
             />
           </div>
+
+          {/* Lead (optionnel). Affiché en Siège ; seul un lead de vitesse alimente le tick. */}
+          <select
+            value={leadStat}
+            onChange={(e) => setLeadStat(e.target.value)}
+            title="Type de lead (optionnel)"
+            className="w-full bg-panel2 border border-border rounded-lg px-2.5 py-2 text-[13px] text-ink outline-none mb-2.5"
+          >
+            <option value="">Lead : aucun</option>
+            {LEAD_STATS.map((s) => (
+              <option key={s.value} value={s.value}>
+                Lead {s.label}
+              </option>
+            ))}
+          </select>
+
+          {leadStat !== '' && (
+            <div className="flex gap-2 mb-2.5">
+              <input
+                type="number"
+                inputMode="numeric"
+                value={lead}
+                onChange={(e) => setLead(e.target.value)}
+                placeholder="Lead %"
+                className="w-24 bg-panel2 border border-border rounded-lg px-2.5 py-2 text-[13px] text-ink
+                           placeholder:text-ink-dim outline-none focus:border-[#5b63b8]"
+              />
+              <select
+                value={scope}
+                onChange={(e) => setScope(e.target.value as 'General' | 'Element')}
+                title="Portée du lead"
+                className="flex-1 bg-panel2 border border-border rounded-lg px-2.5 py-2 text-[13px] text-ink outline-none"
+              >
+                <option value="General">Toutes cibles</option>
+                <option value="Element">Même élément</option>
+              </select>
+            </div>
+          )}
 
           <button
             onClick={submit}

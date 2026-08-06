@@ -30,6 +30,16 @@ export default function RtaSearch({ monsters, addedIds, onAdd }: Props) {
 
   const open = focused && query.trim().length > 0;
 
+  function handleKeyDown(e: React.KeyboardEvent<HTMLInputElement>) {
+    if (e.key !== 'Enter') return;
+    // Ajoute le premier monstre de la liste non encore ajouté, puis vide le champ.
+    const first = results.find((m) => !addedIds.has(String(m.id)));
+    if (first) {
+      onAdd(String(first.id));
+      setQuery('');
+    }
+  }
+
   return (
     <div className="relative">
       <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-[18px] h-[18px] text-ink-dim" />
@@ -37,6 +47,7 @@ export default function RtaSearch({ monsters, addedIds, onAdd }: Props) {
         type="text"
         value={query}
         onChange={(e) => setQuery(e.target.value)}
+        onKeyDown={handleKeyDown}
         onFocus={() => setFocused(true)}
         onBlur={() => setTimeout(() => setFocused(false), 150)}
         placeholder="Rechercher un monstre à ajouter à ta prépa RTA…"

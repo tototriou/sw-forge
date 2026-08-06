@@ -1,16 +1,19 @@
 import { useEffect, useState } from 'react';
-import { RefreshCw, Swords, BookOpen, Home } from 'lucide-react';
+import { RefreshCw, Swords, BookOpen, Home, Castle, Trophy } from 'lucide-react';
 import HomePage from './pages/HomePage';
 import BestiaryPage from './pages/BestiaryPage';
 import RtaPage from './pages/RtaPage';
+import ComingSoon from './pages/ComingSoon';
 import { useMonsters, LoadState } from './hooks/useMonsters';
 
-type Route = 'home' | 'bestiary' | 'rta';
+type Route = 'home' | 'bestiary' | 'rta' | 'siege' | 'arene';
 
 function routeFromHash(): Route {
   const h = window.location.hash.replace(/^#\/?/, '');
   if (h === 'rta') return 'rta';
   if (h === 'bestiary') return 'bestiary';
+  if (h === 'siege') return 'siege';
+  if (h === 'arene') return 'arene';
   return 'home';
 }
 
@@ -18,6 +21,8 @@ const NAV: { key: Route; label: string; icon: typeof BookOpen; hash: string }[] 
   { key: 'home', label: 'Accueil', icon: Home, hash: '#/' },
   { key: 'bestiary', label: 'Bestiaire', icon: BookOpen, hash: '#/bestiary' },
   { key: 'rta', label: 'RTA', icon: Swords, hash: '#/rta' },
+  { key: 'siege', label: 'Siège', icon: Castle, hash: '#/siege' },
+  { key: 'arene', label: 'Arène', icon: Trophy, hash: '#/arene' },
 ];
 
 export default function App() {
@@ -73,6 +78,18 @@ export default function App() {
         <RtaPage monsters={data.monsters} loadState={data.loadState} />
       ) : route === 'bestiary' ? (
         <BestiaryPage monsters={data.monsters} loadState={data.loadState} />
+      ) : route === 'siege' ? (
+        <ComingSoon
+          title="Siège"
+          icon={Castle}
+          description="Préparation et gestion des défenses de guerre de guilde."
+        />
+      ) : route === 'arene' ? (
+        <ComingSoon
+          title="Arène"
+          icon={Trophy}
+          description="Préparation des équipes d'arène classique (offense et défense)."
+        />
       ) : (
         <HomePage />
       )}

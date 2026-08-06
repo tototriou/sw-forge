@@ -1,6 +1,5 @@
-import { useMemo, useRef, useState } from 'react';
-import { Plus, Trash2, Upload } from 'lucide-react';
-import { parseAccountJson } from '../lib/importAccount';
+import { useMemo, useState } from 'react';
+import { Plus, Trash2 } from 'lucide-react';
 import {
   Monster,
   ElementKey,
@@ -11,7 +10,7 @@ import {
   sectionAccent,
 } from '../types';
 import { LoadState } from '../hooks/useMonsters';
-import { useRtaState } from '../hooks/useRtaState';
+import { UseRtaState } from '../hooks/useRtaState';
 import RtaSearch from '../components/rta/RtaSearch';
 import RtaSection from '../components/rta/RtaSection';
 import RtaCard from '../components/rta/RtaCard';
@@ -20,6 +19,7 @@ import CreateMonster from '../components/CreateMonster';
 import { CustomLead } from '../hooks/useCustomMonsters';
 
 interface Props {
+  rta: UseRtaState;
   monsters: Monster[];
   loadState: LoadState;
   onCreateMonster: (name: string, element: ElementKey, speed: number, lead?: CustomLead | null) => Monster;
@@ -34,74 +34,21 @@ function totalSpeed(it: TurnItem): number | null {
 }
 
 export default function RtaPage({
+  rta,
   monsters,
   loadState,
   onCreateMonster,
   customMonsters,
   onDeleteMonster,
 }: Props) {
-  const rta = useRtaState();
   const [draggingId, setDraggingId] = useState<string | null>(null);
   const [newSection, setNewSection] = useState('');
-  const fileInput = useRef<HTMLInputElement>(null);
-  const [importMsg, setImportMsg] = useState<{ ok: boolean; text: string } | null>(null);
 
   const monsterById = useMemo(() => {
     const m = new Map<string, Monster>();
     for (const mon of monsters) m.set(String(mon.id), mon);
     return m;
   }, [monsters]);
-
-  // Index com2usId → monstre, pour mapper les unités d'un export de compte.
-  const monsterByCom2us = useMemo(() => {
-    const m = new Map<number, Monster>();
-    for (const mon of monsters) if (mon.com2usId != null) m.set(mon.com2usId, mon);
-    return m;
-  }, [monsters]);
-
-  async function handleImportFile(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0];
-    e.target.value = ''; // permet de réimporter le même fichier
-    if (!file) return;
-    const text = await file.text();
-    const { units, error } = parseAccountJson(text);
-    if (error) {
-      setImportMsg({ ok: false, text: error });
-      return;
-    }
-    // Mappe les unités → monstres, calcule la vitesse de runes (+ Swift),
-    // et déduplique par monstre en gardant le meilleur build (SPD max).
-    const best = new Map<string, number>();
-    for (const u of units) {
-      const mon = monsterByCom2us.get(u.com2usId);
-      if (!mon) continue;
-      const base = mon.stats.speed ?? 0;
-      const runeSpeed = u.flatRuneSpeed + (u.swift ? Math.round((base * 25) / 100) : 0);
-      const id = String(mon.id);
-      const prev = best.get(id);
-      if (prev === undefined || runeSpeed > prev) best.set(id, runeSpeed);
-    }
-    const items = Array.from(best, ([monsterId, runeSpeed]) => ({ monsterId, runeSpeed }));
-    if (items.length === 0) {
-      setImportMsg({ ok: false, text: 'Aucun monstre favori RTA reconnu dans ce fichier.' });
-      return;
-    }
-    // Si une prépa existe déjà, proposer de repartir de zéro plutôt que d'empiler
-    // (évite de mélanger avec de vieux imports).
-    if (Object.keys(rta.state.entries).length > 0) {
-      const replace = confirm(
-        `${items.length} monstres favoris RTA trouvés.\n\n` +
-          'OK  = remplacer la prépa actuelle par cet import\n' +
-          'Annuler = fusionner avec la prépa existante'
-      );
-      if (replace) rta.clearAll();
-    }
-    rta.importEntries(items);
-    setImportMsg({
-      ok: true,
-      text: `${items.length} monstres « utilisés souvent » (favoris RTA) importés dans « Non classé » avec leurs vitesses de runes RTA.`,
-    });
-  }
 
   // Regroupe les entrées par section + construit la liste globale pour l'ordre de tour.
   const { groups, allItems } = useMemo(() => {
@@ -176,17 +123,6 @@ export default function RtaPage({
 
   return (
     <div>
-      <header className="mt-4">
-        <h1 className="font-display font-black text-[clamp(28px,4vw,42px)] title-gradient mb-1.5">
-          RTA — Préparation
-        </h1>
-        <p className="text-ink-dim text-[14.5px] leading-relaxed max-w-2xl">
-          Sélectionne les monstres que tu veux runer, glisse-les dans les sections selon le set de
-          runes visé, et renseigne la vitesse apportée par tes runes. L'ordre de tour se recalcule
-          automatiquement. Tout est sauvegardé dans ton navigateur.
-        </p>
-      </header>
-
       <div className="mt-6">
         <RtaSearch monsters={monsters} addedIds={addedIds} onAdd={rta.addMonster} />
       </div>
@@ -195,22 +131,6 @@ export default function RtaPage({
         <span className="font-mono text-[12px] text-ink-dim">
           {addedIds.size} monstre{addedIds.size > 1 ? 's' : ''} en prépa
         </span>
-
-        <input
-          ref={fileInput}
-          type="file"
-          accept=".json,application/json"
-          onChange={handleImportFile}
-          className="hidden"
-        />
-        <button
-          onClick={() => fileInput.current?.click()}
-          className="flex items-center gap-1.5 rounded-lg border border-border bg-panel px-3 py-1.5 text-[12.5px]
-                     text-ink-dim hover:text-ink hover:border-[#4a52a0] transition"
-          title="Importer un export de compte SWEX (traité localement, rien n'est envoyé)"
-        >
-          <Upload size={13} /> Importer un compte
-        </button>
 
         <CreateMonster
           onCreate={handleCreateMonster}
@@ -229,17 +149,6 @@ export default function RtaPage({
           </button>
         )}
       </div>
-
-      <p className="mt-2 text-[12px] text-ink-dim">
-        Les tout derniers monstres sortis peuvent manquer dans les données — crée-les à la main avec
-        « Créer un monstre ».
-      </p>
-
-      {importMsg && (
-        <p className={`mt-2 text-[12.5px] ${importMsg.ok ? 'text-wind' : 'text-fire'}`}>
-          {importMsg.text}
-        </p>
-      )}
 
       {loadState === 'loading' && monsters.length === 0 && (
         <p className="mt-4 text-ink-dim text-[13px]">Chargement des monstres…</p>

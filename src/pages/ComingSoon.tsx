@@ -11,15 +11,6 @@ interface Props {
 export default function ComingSoon({ title, icon: Icon, description }: Props) {
   return (
     <div className="mt-4">
-      <header>
-        <h1 className="font-display font-black text-[clamp(28px,4vw,42px)] title-gradient mb-1.5">
-          {title}
-        </h1>
-        {description && (
-          <p className="text-ink-dim text-[14.5px] leading-relaxed max-w-xl">{description}</p>
-        )}
-      </header>
-
       <motion.div
         initial={{ opacity: 0, y: 16 }}
         animate={{ opacity: 1, y: 0 }}

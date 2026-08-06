@@ -65,15 +65,6 @@ export default function BestiaryPage({ monsters }: Props) {
 
   return (
     <div>
-      <header className="mt-4">
-        <h1 className="font-display font-black text-[clamp(28px,4vw,42px)] title-gradient mb-1.5">
-          Bestiaire
-        </h1>
-        <p className="text-ink-dim text-[14.5px] leading-relaxed max-w-xl">
-          Recherche, filtre par élément et par nombre d'étoiles naturelles (à l'invocation).
-        </p>
-      </header>
-
       <div className="mt-6">
         <SearchBar value={query} onChange={setQuery} />
         <FilterBar

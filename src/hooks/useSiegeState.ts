@@ -1,7 +1,11 @@
 import { useCallback, useEffect, useState } from 'react';
 import { SiegeState, SiegeTeam, SiegeSlot } from '../types';
 
-const STORAGE_KEY = 'sw-forge-siege-v1';
+// Défense et offense de siège = deux listes d'équipes indépendantes.
+export type SiegeSide = 'offense' | 'defense';
+
+const OLD_STORAGE_KEY = 'sw-forge-siege-v1'; // ancienne clé unique (→ migrée vers défense)
+const storageKey = (side: SiegeSide) => `sw-forge-siege-${side}-v1`;
 
 function newId(): string {
   const c = globalThis.crypto as Crypto | undefined;
@@ -17,9 +21,11 @@ function newTeam(): SiegeTeam {
   return { id: newId(), slots: [emptySlot(), emptySlot(), emptySlot()], lead: 0, tick: 0 };
 }
 
-function load(): SiegeState {
+function load(side: SiegeSide): SiegeState {
   try {
-    const raw = localStorage.getItem(STORAGE_KEY);
+    let raw = localStorage.getItem(storageKey(side));
+    // Migration : l'ancien état unique devient la DÉFENSE.
+    if (raw === null && side === 'defense') raw = localStorage.getItem(OLD_STORAGE_KEY);
     if (!raw) return { teams: [] };
     const parsed = JSON.parse(raw) as Partial<SiegeState>;
     if (!Array.isArray(parsed.teams)) return { teams: [] };
@@ -54,19 +60,20 @@ export interface UseSiegeState {
   setLead: (teamId: string, lead: number) => void;
   setTick: (teamId: string, tick: number) => void;
   swapSlots: (teamId: string, from: number, to: number) => void;
+  importTeams: (teams: { slots: SiegeSlot[] }[], replace: boolean) => void;
   clearAll: () => void;
 }
 
-export function useSiegeState(): UseSiegeState {
-  const [state, setState] = useState<SiegeState>(load);
+export function useSiegeState(side: SiegeSide): UseSiegeState {
+  const [state, setState] = useState<SiegeState>(() => load(side));
 
   useEffect(() => {
     try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+      localStorage.setItem(storageKey(side), JSON.stringify(state));
     } catch {
       /* stockage indisponible : on ignore */
     }
-  }, [state]);
+  }, [state, side]);
 
   // Applique une modification à une équipe donnée.
   const updateTeam = useCallback((teamId: string, fn: (t: SiegeTeam) => SiegeTeam) => {
@@ -131,6 +138,25 @@ export function useSiegeState(): UseSiegeState {
     [updateTeam]
   );
 
+  // Import de decks (depuis un export de compte) : chaque deck devient une
+  // équipe de 3 slots (slot 0 = leader). `replace` remplace les équipes
+  // existantes, sinon on ajoute à la suite.
+  const importTeams = useCallback((teams: { slots: SiegeSlot[] }[], replace: boolean) => {
+    setState((s) => {
+      const built: SiegeTeam[] = teams.map((t) => {
+        const slots: SiegeSlot[] = [0, 1, 2].map((i) => {
+          const sl = t.slots[i];
+          return {
+            monsterId: sl && typeof sl.monsterId === 'string' ? sl.monsterId : null,
+            runeSpeed: sl && typeof sl.runeSpeed === 'number' ? sl.runeSpeed : null,
+          };
+        });
+        return { id: newId(), slots, lead: 0, tick: 0 };
+      });
+      return { teams: replace ? built : [...s.teams, ...built] };
+    });
+  }, []);
+
   const clearAll = useCallback(() => setState({ teams: [] }), []);
 
   return {
@@ -143,6 +169,7 @@ export function useSiegeState(): UseSiegeState {
     setLead,
     setTick,
     swapSlots,
+    importTeams,
     clearAll,
   };
 }

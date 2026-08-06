@@ -1,22 +1,17 @@
 // Parse un export de compte Summoners War (format SWEX) — 100% côté navigateur.
-// On cible la BOX RTA (World Arena) : en RTA, chaque monstre a son propre preset
-// de runes, stocké à part dans `world_arena_rune_equip_list` (et NON dans les
-// runes équipées classiques de `unit_list[].runes`). On en déduit, pour chaque
-// monstre présent dans ce preset, sa vitesse de runes RTA (+ set Swift).
+//
+// Deux imports distincts sont exposés :
+//  - parseAccountJson : la BOX RTA (World Arena) — favoris RTA + vitesse des
+//    runes RTA (chaque monstre a son propre preset de runes World Arena).
+//  - parseSiegeDefense : les DÉFENSES de combat de guilde (siège) — jusqu'à 6
+//    decks de 3 monstres, avec les runes propres à chaque défense de siège.
 
 const RUNE_EFF_SPEED = 8; // type d'effet « Vitesse » dans les données com2us
 const RUNE_SET_SWIFT = 3; // set_id du set Swift
 
-export interface ImportedUnit {
-  com2usId: number;
-  flatRuneSpeed: number; // SPD plate cumulée des runes RTA
-  swift: boolean; // set Swift complet (4 runes) équipé en RTA
-}
-
-export interface ParseResult {
-  units: ImportedUnit[];
-  error?: string;
-}
+/* --------------------------------------------------------------------------
+ * Helpers partagés
+ * ----------------------------------------------------------------------- */
 
 // Somme des SPD apportées par une rune (mainstat + prefix + substats avec meule).
 function runeSpeed(rune: any): number {
@@ -36,6 +31,49 @@ function runeSpeed(rune: any): number {
   return s;
 }
 
+// Index de TOUTES les runes par rune_id : inventaire (top-level `runes`) +
+// runes équipées dans les unités. Un preset (RTA ou siège) peut réutiliser n'importe laquelle.
+function indexRunes(data: any): Map<number, any> {
+  const runeById = new Map<number, any>();
+  const add = (r: any) => {
+    const id = Number(r?.rune_id);
+    if (Number.isFinite(id)) runeById.set(id, r);
+  };
+  if (Array.isArray(data?.runes)) data.runes.forEach(add);
+  if (Array.isArray(data?.unit_list)) {
+    for (const u of data.unit_list) if (Array.isArray(u?.runes)) u.runes.forEach(add);
+  }
+  return runeById;
+}
+
+// Index des unités possédées par unit_id.
+function indexUnits(data: any): Map<number, any> {
+  const unitById = new Map<number, any>();
+  if (Array.isArray(data?.unit_list)) {
+    for (const u of data.unit_list) {
+      const uid = Number(u?.unit_id);
+      if (Number.isFinite(uid)) unitById.set(uid, u);
+    }
+  }
+  return unitById;
+}
+
+// SPD des runes + comptage Swift pour un lot de rune_id donné.
+function speedFromRuneIds(runeIds: any[], runeById: Map<number, any>): {
+  flatRuneSpeed: number;
+  swift: boolean;
+} {
+  let flatRuneSpeed = 0;
+  let swiftCount = 0;
+  for (const rid of runeIds) {
+    const rune = runeById.get(Number(rid));
+    if (!rune) continue;
+    if (Number(rune?.set_id) === RUNE_SET_SWIFT) swiftCount++;
+    flatRuneSpeed += runeSpeed(rune);
+  }
+  return { flatRuneSpeed, swift: swiftCount >= 4 };
+}
+
 // Aplati récursivement une structure d'ids (gère les groupes imbriqués
 // [[...],[...]]) et renvoie les nombres valides.
 function flattenIds(value: any, out: Set<number>) {
@@ -45,6 +83,21 @@ function flattenIds(value: any, out: Set<number>) {
     const n = Number(value);
     if (Number.isFinite(n)) out.add(n);
   }
+}
+
+/* --------------------------------------------------------------------------
+ * Import BOX RTA
+ * ----------------------------------------------------------------------- */
+
+export interface ImportedUnit {
+  com2usId: number;
+  flatRuneSpeed: number; // SPD plate cumulée des runes RTA
+  swift: boolean; // set Swift complet (4 runes) équipé en RTA
+}
+
+export interface ParseResult {
+  units: ImportedUnit[];
+  error?: string;
 }
 
 // Collecte les unit_id des monstres « utilisés souvent » (favoris), en gérant
@@ -104,22 +157,8 @@ export function parseAccountJson(text: string): ParseResult {
     };
   }
 
-  // Index de TOUTES les runes par rune_id : équipées (dans les unités) + en
-  // inventaire (top-level `runes`). Un preset RTA peut réutiliser n'importe laquelle.
-  const runeById = new Map<number, any>();
-  const addRune = (r: any) => {
-    const id = Number(r?.rune_id);
-    if (Number.isFinite(id)) runeById.set(id, r);
-  };
-  if (Array.isArray(data.runes)) data.runes.forEach(addRune);
-  for (const u of unitList) if (Array.isArray(u?.runes)) u.runes.forEach(addRune);
-
-  // Index des unités par unit_id (instance possédée).
-  const unitById = new Map<number, any>();
-  for (const u of unitList) {
-    const uid = Number(u?.unit_id);
-    if (Number.isFinite(uid)) unitById.set(uid, u);
-  }
+  const runeById = indexRunes(data);
+  const unitById = indexUnits(data);
 
   // Regroupe les runes RTA par monstre (occupied_id = unit_id équipé en RTA).
   const rtaList = findRtaEquipList(data) ?? [];
@@ -153,15 +192,183 @@ export function parseAccountJson(text: string): ParseResult {
     if (!unit) continue;
     const com2usId = Number(unit?.unit_master_id);
     if (!Number.isFinite(com2usId)) continue;
-    const runes = runesByUnit.get(uid) ?? [];
-    let flatRuneSpeed = 0;
-    let swiftCount = 0;
-    for (const r of runes) {
-      if (Number(r?.set_id) === RUNE_SET_SWIFT) swiftCount++;
-      flatRuneSpeed += runeSpeed(r);
-    }
-    units.push({ com2usId, flatRuneSpeed, swift: swiftCount >= 4 });
+    const runeIds = (runesByUnit.get(uid) ?? []).map((r) => r.rune_id);
+    const { flatRuneSpeed, swift } = speedFromRuneIds(runeIds, runeById);
+    units.push({ com2usId, flatRuneSpeed, swift });
   }
 
   return { units };
+}
+
+/* --------------------------------------------------------------------------
+ * Import ÉQUIPES DE SIÈGE (combat de guilde) — défense & offense
+ *
+ * Les deux côtés partagent la même forme : des decks de 3 monstres (index 0 =
+ * leader) où chaque monstre a son propre preset de runes de siège.
+ *  - Défense : guildsiege_defense_deck_unit_list (+ …_equip_list). Le leader est
+ *    le 1ᵉʳ de unit_id_list ; unit_id = 0 => slot vide.
+ *  - Offense : deck_list filtré sur deck_type = 22 (équipes d'attaque
+ *    sauvegardées). Le leader est donné par leader_unit_id ; runes dans dk.equip.
+ * ----------------------------------------------------------------------- */
+
+// deck_type des équipes d'attaque de siège sauvegardées (dans deck_list).
+// Identifié sur des exports réels : 3 monstres/deck avec presets de runes.
+const SIEGE_OFFENSE_DECK_TYPE = 22;
+
+// Un slot importé, ou null pour un slot vide (unit_id = 0).
+export interface SiegeImportedSlot {
+  com2usId: number;
+  flatRuneSpeed: number; // SPD plate des runes de ce build de siège
+  swift: boolean; // set Swift complet équipé sur ce build de siège
+}
+
+// Un deck = 3 slots ordonnés (index 0 = leader).
+export interface SiegeImportedDeck {
+  deckId: number | string;
+  slots: (SiegeImportedSlot | null)[]; // longueur 3, null = slot vide
+}
+
+export interface SiegeParseResult {
+  decks: SiegeImportedDeck[];
+  error?: string;
+}
+
+// Convertit un tableau `equip` ([{ unit_id, rune_id_list }, …]) en Map unit_id → rune_id_list.
+function equipArrayToMap(equip: any): Map<number, any[]> {
+  const map = new Map<number, any[]>();
+  if (!Array.isArray(equip)) return map;
+  for (const e of equip) {
+    const uid = Number(e?.unit_id);
+    if (!Number.isFinite(uid)) continue;
+    map.set(uid, Array.isArray(e?.rune_id_list) ? e.rune_id_list : []);
+  }
+  return map;
+}
+
+// Définition brute d'un deck avant résolution en monstres/vitesses.
+interface DeckDef {
+  deckId: number | string;
+  unitIds: any[]; // 3 slots ordonnés, leader en tête ; 0 = vide
+  runeIdsByUnit: Map<number, any[]>;
+}
+
+// Résout des DeckDef en SiegeImportedDeck (mapping unité → monstre + vitesses).
+function buildSiegeDecks(
+  defs: DeckDef[],
+  runeById: Map<number, any>,
+  unitById: Map<number, any>
+): SiegeImportedDeck[] {
+  const decks: SiegeImportedDeck[] = [];
+  for (const def of defs) {
+    const slots: (SiegeImportedSlot | null)[] = [0, 1, 2].map((i) => {
+      const uid = Number(def.unitIds[i]);
+      if (!Number.isFinite(uid) || uid === 0) return null;
+      const unit = unitById.get(uid);
+      if (!unit) return null;
+      const com2usId = Number(unit?.unit_master_id);
+      if (!Number.isFinite(com2usId)) return null;
+      const runeIds = def.runeIdsByUnit.get(uid) ?? [];
+      const { flatRuneSpeed, swift } = speedFromRuneIds(runeIds, runeById);
+      return { com2usId, flatRuneSpeed, swift };
+    });
+    // On ignore les decks totalement vides (jamais configurés).
+    if (slots.some((s) => s !== null)) decks.push({ deckId: def.deckId, slots });
+  }
+  return decks;
+}
+
+// Import des DÉFENSES de siège.
+export function parseSiegeDefense(text: string): SiegeParseResult {
+  let data: any;
+  try {
+    data = JSON.parse(text);
+  } catch {
+    return { decks: [], error: 'Fichier JSON illisible.' };
+  }
+  if (!Array.isArray(data?.unit_list)) {
+    return {
+      decks: [],
+      error: "Ce fichier ne contient pas de 'unit_list' — un export de compte SWEX est attendu.",
+    };
+  }
+
+  const deckList = data?.guildsiege_defense_deck_unit_list;
+  if (!Array.isArray(deckList) || deckList.length === 0) {
+    return {
+      decks: [],
+      error:
+        "Aucune défense de siège trouvée (guildsiege_defense_deck_unit_list). Enregistre tes défenses de combat de guilde en jeu avant d'exporter.",
+    };
+  }
+
+  const runeById = indexRunes(data);
+  const unitById = indexUnits(data);
+  const equipList = data?.guildsiege_defense_deck_equip_list;
+
+  const defs: DeckDef[] = deckList.map((dk: any, i: number) => {
+    const entry = equipList?.[String(dk?.deck_id)] ?? equipList?.[dk?.deck_id];
+    return {
+      deckId: dk?.deck_id ?? i,
+      // Positions conservées : le 1ᵉʳ slot est le leader ; 0 = vide.
+      unitIds: Array.isArray(dk?.unit_id_list) ? dk.unit_id_list : [],
+      runeIdsByUnit: equipArrayToMap(entry?.equip),
+    };
+  });
+
+  const decks = buildSiegeDecks(defs, runeById, unitById);
+  if (decks.length === 0) {
+    return { decks: [], error: 'Aucune défense de siège configurée dans ce fichier.' };
+  }
+  return { decks };
+}
+
+// Import des ÉQUIPES D'ATTAQUE de siège (offense).
+export function parseSiegeOffense(text: string): SiegeParseResult {
+  let data: any;
+  try {
+    data = JSON.parse(text);
+  } catch {
+    return { decks: [], error: 'Fichier JSON illisible.' };
+  }
+  if (!Array.isArray(data?.unit_list)) {
+    return {
+      decks: [],
+      error: "Ce fichier ne contient pas de 'unit_list' — un export de compte SWEX est attendu.",
+    };
+  }
+
+  const deckList = Array.isArray(data?.deck_list) ? data.deck_list : [];
+  const offense = deckList.filter((dk: any) => Number(dk?.deck_type) === SIEGE_OFFENSE_DECK_TYPE);
+  if (offense.length === 0) {
+    return {
+      decks: [],
+      error:
+        "Aucune équipe d'attaque de siège trouvée (deck_list). Sauvegarde tes équipes d'attaque de combat de guilde en jeu avant d'exporter.",
+    };
+  }
+
+  const runeById = indexRunes(data);
+  const unitById = indexUnits(data);
+
+  const defs: DeckDef[] = offense.map((dk: any, i: number) => {
+    // Leader en tête (leader_unit_id), puis les autres unités non nulles.
+    const ids = (Array.isArray(dk?.unit_id_list) ? dk.unit_id_list : [])
+      .map(Number)
+      .filter((x: number) => Number.isFinite(x) && x !== 0);
+    const lead = Number(dk?.leader_unit_id);
+    const ordered = Number.isFinite(lead)
+      ? [lead, ...ids.filter((x: number) => x !== lead)]
+      : ids;
+    return {
+      deckId: dk?.deck_seq ?? i,
+      unitIds: [ordered[0] ?? 0, ordered[1] ?? 0, ordered[2] ?? 0],
+      runeIdsByUnit: equipArrayToMap(dk?.equip),
+    };
+  });
+
+  const decks = buildSiegeDecks(defs, runeById, unitById);
+  if (decks.length === 0) {
+    return { decks: [], error: "Aucune équipe d'attaque de siège configurée dans ce fichier." };
+  }
+  return { decks };
 }

@@ -53,18 +53,11 @@ function pctBonus(it: TurnItem, lead: number): number {
   return Math.ceil((base * (TOTEM + lead)) / 100);
 }
 
-// Bonus du set Swift : +25% de vitesse de base, arrondi à l'entier supérieur.
-function swiftBonus(it: TurnItem): number {
-  const base = it.monster.stats.speed;
-  if (base === null || it.entry.section !== 'swift') return 0;
-  return Math.ceil((base * 25) / 100);
-}
-
-// Vitesse effective = total (base + runes) + bonus % sur la base + set Swift.
+// Vitesse effective = total (base + runes) + bonus % sur la base (totem + lead).
 function effective(it: TurnItem, lead: number): number | null {
   const raw = rawTotal(it);
   if (raw === null) return null;
-  return raw + pctBonus(it, lead) + swiftBonus(it);
+  return raw + pctBonus(it, lead);
 }
 
 export default function TurnOrder({ items, onRuneSpeed }: Props) {

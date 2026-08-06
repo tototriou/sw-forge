@@ -21,6 +21,7 @@ export interface LeaderSkill {
 
 export interface Monster {
   id: number | string;
+  com2usId: number | null; // identifiant com2us (= unit_master_id dans les exports SWEX)
   name: string;
   element: ElementKey;
   stars: number | null;

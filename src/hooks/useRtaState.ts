@@ -40,6 +40,7 @@ export interface UseRtaState {
   setRuneSpeed: (id: string, value: number | null) => void;
   addSection: (key: string) => void;
   removeSection: (key: string) => void;
+  importEntries: (items: { monsterId: string; runeSpeed: number | null }[]) => void;
   clearAll: () => void;
 }
 
@@ -114,7 +115,42 @@ export function useRtaState(): UseRtaState {
     });
   }, []);
 
+  // Import en masse (depuis un compte) : ajoute les nouveaux monstres en
+  // « Non classé » avec leur vitesse de runes ; met à jour la vitesse des
+  // monstres déjà présents (sans changer leur section).
+  const importEntries = useCallback(
+    (items: { monsterId: string; runeSpeed: number | null }[]) => {
+      setState((s) => {
+        const entries = { ...s.entries };
+        for (const it of items) {
+          const existing = entries[it.monsterId];
+          if (existing) {
+            entries[it.monsterId] = { ...existing, runeSpeed: it.runeSpeed };
+          } else {
+            entries[it.monsterId] = {
+              monsterId: it.monsterId,
+              section: RTA_UNASSIGNED,
+              runeSpeed: it.runeSpeed,
+            };
+          }
+        }
+        return { ...s, entries };
+      });
+    },
+    []
+  );
+
   const clearAll = useCallback(() => setState(defaultState()), []);
 
-  return { state, addMonster, removeMonster, moveMonster, setRuneSpeed, addSection, removeSection, clearAll };
+  return {
+    state,
+    addMonster,
+    removeMonster,
+    moveMonster,
+    setRuneSpeed,
+    addSection,
+    removeSection,
+    importEntries,
+    clearAll,
+  };
 }

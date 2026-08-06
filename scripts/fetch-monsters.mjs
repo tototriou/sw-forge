@@ -73,6 +73,7 @@ function normalizeMonster(raw, idx) {
   const stars = raw.base_stars ?? raw.natural_stars ?? raw.stars ?? raw.grade ?? null;
   return {
     id: raw.id ?? raw.com2us_id ?? idx,
+    com2usId: num(raw.com2us_id),
     name: raw.name ?? raw.title ?? 'Inconnu',
     element: normalizeElement(raw.element),
     stars: typeof stars === 'number' ? stars : null,
@@ -124,6 +125,7 @@ function buildDemoData() {
         ];
         out.push({
           id: id++,
+          com2usId: null,
           name: `${demoNames[(id + star) % demoNames.length]} ${star}★`,
           element: el,
           stars: star,

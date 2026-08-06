@@ -1,5 +1,6 @@
-import { useMemo, useState } from 'react';
-import { Plus, Trash2 } from 'lucide-react';
+import { useMemo, useRef, useState } from 'react';
+import { Plus, Trash2, Upload } from 'lucide-react';
+import { parseAccountJson } from '../lib/importAccount';
 import {
   Monster,
   RUNE_SETS,
@@ -30,12 +31,55 @@ export default function RtaPage({ monsters, loadState }: Props) {
   const rta = useRtaState();
   const [draggingId, setDraggingId] = useState<string | null>(null);
   const [newSection, setNewSection] = useState('');
+  const fileInput = useRef<HTMLInputElement>(null);
+  const [importMsg, setImportMsg] = useState<{ ok: boolean; text: string } | null>(null);
 
   const monsterById = useMemo(() => {
     const m = new Map<string, Monster>();
     for (const mon of monsters) m.set(String(mon.id), mon);
     return m;
   }, [monsters]);
+
+  // Index com2usId → monstre, pour mapper les unités d'un export de compte.
+  const monsterByCom2us = useMemo(() => {
+    const m = new Map<number, Monster>();
+    for (const mon of monsters) if (mon.com2usId != null) m.set(mon.com2usId, mon);
+    return m;
+  }, [monsters]);
+
+  async function handleImportFile(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    e.target.value = ''; // permet de réimporter le même fichier
+    if (!file) return;
+    const text = await file.text();
+    const { units, error } = parseAccountJson(text);
+    if (error) {
+      setImportMsg({ ok: false, text: error });
+      return;
+    }
+    // Mappe les unités → monstres, calcule la vitesse de runes (+ Swift),
+    // et déduplique par monstre en gardant le meilleur build (SPD max).
+    const best = new Map<string, number>();
+    for (const u of units) {
+      const mon = monsterByCom2us.get(u.com2usId);
+      if (!mon) continue;
+      const base = mon.stats.speed ?? 0;
+      const runeSpeed = u.flatRuneSpeed + (u.swift ? Math.round((base * 25) / 100) : 0);
+      const id = String(mon.id);
+      const prev = best.get(id);
+      if (prev === undefined || runeSpeed > prev) best.set(id, runeSpeed);
+    }
+    const items = Array.from(best, ([monsterId, runeSpeed]) => ({ monsterId, runeSpeed }));
+    if (items.length === 0) {
+      setImportMsg({ ok: false, text: 'Aucun monstre reconnu dans ce fichier.' });
+      return;
+    }
+    rta.importEntries(items);
+    setImportMsg({
+      ok: true,
+      text: `${items.length} monstres importés dans « Non classé » (sur ${units.length} unités du compte).`,
+    });
+  }
 
   // Regroupe les entrées par section + construit la liste globale pour l'ordre de tour.
   const { groups, allItems } = useMemo(() => {
@@ -109,10 +153,27 @@ export default function RtaPage({ monsters, loadState }: Props) {
         <RtaSearch monsters={monsters} addedIds={addedIds} onAdd={rta.addMonster} />
       </div>
 
-      <div className="flex items-center gap-3 mt-4">
+      <div className="flex items-center gap-3 mt-4 flex-wrap">
         <span className="font-mono text-[12px] text-ink-dim">
           {addedIds.size} monstre{addedIds.size > 1 ? 's' : ''} en prépa
         </span>
+
+        <input
+          ref={fileInput}
+          type="file"
+          accept=".json,application/json"
+          onChange={handleImportFile}
+          className="hidden"
+        />
+        <button
+          onClick={() => fileInput.current?.click()}
+          className="flex items-center gap-1.5 rounded-lg border border-border bg-panel px-3 py-1.5 text-[12.5px]
+                     text-ink-dim hover:text-ink hover:border-[#4a52a0] transition"
+          title="Importer un export de compte SWEX (traité localement, rien n'est envoyé)"
+        >
+          <Upload size={13} /> Importer un compte
+        </button>
+
         {addedIds.size > 0 && (
           <button
             onClick={() => {
@@ -124,6 +185,12 @@ export default function RtaPage({ monsters, loadState }: Props) {
           </button>
         )}
       </div>
+
+      {importMsg && (
+        <p className={`mt-2 text-[12.5px] ${importMsg.ok ? 'text-wind' : 'text-fire'}`}>
+          {importMsg.text}
+        </p>
+      )}
 
       {loadState === 'loading' && monsters.length === 0 && (
         <p className="mt-4 text-ink-dim text-[13px]">Chargement des monstres…</p>

@@ -91,9 +91,16 @@ export default function RtaCard({ monster, entry, onRuneSpeed, onRemove, onDragS
       </div>
 
       <div className="min-w-0 flex-1">
-        <div className="text-[13px] font-semibold leading-tight truncate">{monster.name}</div>
+        <div className="flex items-baseline gap-1.5">
+          <span className="text-[13px] font-semibold leading-tight truncate flex-1">
+            {monster.name}
+          </span>
+          <span className="flex-none font-mono text-[12px] text-star font-bold">
+            {total !== null ? `⚡${total}` : '—'}
+          </span>
+        </div>
         <div className="mt-0.5 text-[11px] text-ink-dim font-mono">SPD base {base ?? '—'}</div>
-        <div className="flex items-center gap-1.5 mt-1.5">
+        <div className="flex items-center gap-1.5 mt-1">
           <span className="font-mono text-[10px] uppercase text-ink-dim">+runes</span>
           <input
             type="number"
@@ -104,12 +111,9 @@ export default function RtaCard({ monster, entry, onRuneSpeed, onRemove, onDragS
               const v = e.target.value;
               onRuneSpeed(String(monster.id), v === '' ? null : Number(v));
             }}
-            className="w-14 bg-panel border border-border rounded-md px-1.5 py-0.5 text-[12px] text-ink
+            className="w-16 bg-panel border border-border rounded-md px-1.5 py-0.5 text-[12px] text-ink
                        outline-none focus:border-[#5b63b8]"
           />
-          <span className="ml-auto font-mono text-[12px] text-star font-bold">
-            {total !== null ? `⚡${total}` : '—'}
-          </span>
         </div>
       </div>
 

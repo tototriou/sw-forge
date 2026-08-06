@@ -1,16 +1,26 @@
 import { useMemo } from 'react';
 import { Plus, Castle, Trash2 } from 'lucide-react';
-import { Monster } from '../types';
+import { Monster, ElementKey } from '../types';
 import { LoadState } from '../hooks/useMonsters';
 import { useSiegeState } from '../hooks/useSiegeState';
 import SiegeTeam from '../components/siege/SiegeTeam';
+import CreateMonster from '../components/CreateMonster';
 
 interface Props {
   monsters: Monster[];
   loadState: LoadState;
+  onCreateMonster: (name: string, element: ElementKey, speed: number) => Monster;
+  customMonsters: Monster[];
+  onDeleteMonster: (id: string) => void;
 }
 
-export default function SiegePage({ monsters, loadState }: Props) {
+export default function SiegePage({
+  monsters,
+  loadState,
+  onCreateMonster,
+  customMonsters,
+  onDeleteMonster,
+}: Props) {
   const siege = useSiegeState();
 
   const monsterById = useMemo(() => {
@@ -40,6 +50,13 @@ export default function SiegePage({ monsters, loadState }: Props) {
         >
           <Plus size={15} /> Ajouter une équipe
         </button>
+
+        <CreateMonster
+          onCreate={onCreateMonster}
+          customMonsters={customMonsters}
+          onDelete={onDeleteMonster}
+        />
+
         <span className="font-mono text-[12px] text-ink-dim">
           {siege.state.teams.length} équipe{siege.state.teams.length > 1 ? 's' : ''}
         </span>
@@ -54,6 +71,11 @@ export default function SiegePage({ monsters, loadState }: Props) {
           </button>
         )}
       </div>
+
+      <p className="mt-2 text-[12px] text-ink-dim">
+        Les tout derniers monstres sortis peuvent manquer dans les données — crée-les à la main avec
+        « Créer un monstre ».
+      </p>
 
       {loadState === 'loading' && monsters.length === 0 && (
         <p className="mt-4 text-ink-dim text-[13px]">Chargement des monstres…</p>

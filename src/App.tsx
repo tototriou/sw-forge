@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { RefreshCw, Swords, BookOpen, Home, Castle, Trophy, Menu, X } from 'lucide-react';
 import HomePage from './pages/HomePage';
 import BestiaryPage from './pages/BestiaryPage';
@@ -6,6 +6,7 @@ import RtaPage from './pages/RtaPage';
 import SiegePage from './pages/SiegePage';
 import ComingSoon from './pages/ComingSoon';
 import { useMonsters, LoadState } from './hooks/useMonsters';
+import { useCustomMonsters } from './hooks/useCustomMonsters';
 
 type Route = 'home' | 'bestiary' | 'rta' | 'siege' | 'arene';
 
@@ -28,8 +29,15 @@ const NAV: { key: Route; label: string; icon: typeof BookOpen; hash: string }[] 
 
 export default function App() {
   const data = useMonsters();
+  const custom = useCustomMonsters();
   const [route, setRoute] = useState<Route>(routeFromHash);
   const [menuOpen, setMenuOpen] = useState(false);
+
+  // Monstres officiels + monstres créés à la main (RTA & Siège).
+  const allMonsters = useMemo(
+    () => [...data.monsters, ...custom.customMonsters],
+    [data.monsters, custom.customMonsters]
+  );
 
   useEffect(() => {
     const onHash = () => {
@@ -132,11 +140,23 @@ export default function App() {
       </div>
 
       {route === 'rta' ? (
-        <RtaPage monsters={data.monsters} loadState={data.loadState} />
+        <RtaPage
+          monsters={allMonsters}
+          loadState={data.loadState}
+          onCreateMonster={custom.addCustomMonster}
+          customMonsters={custom.customMonsters}
+          onDeleteMonster={custom.removeCustomMonster}
+        />
       ) : route === 'bestiary' ? (
         <BestiaryPage monsters={data.monsters} loadState={data.loadState} />
       ) : route === 'siege' ? (
-        <SiegePage monsters={data.monsters} loadState={data.loadState} />
+        <SiegePage
+          monsters={allMonsters}
+          loadState={data.loadState}
+          onCreateMonster={custom.addCustomMonster}
+          customMonsters={custom.customMonsters}
+          onDeleteMonster={custom.removeCustomMonster}
+        />
       ) : route === 'arene' ? (
         <ComingSoon
           title="Arène"

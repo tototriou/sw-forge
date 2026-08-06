@@ -3,6 +3,7 @@ import { Plus, Trash2, Upload } from 'lucide-react';
 import { parseAccountJson } from '../lib/importAccount';
 import {
   Monster,
+  ElementKey,
   RUNE_SETS,
   RTA_UNASSIGNED,
   RTA_OTHER,
@@ -15,10 +16,14 @@ import RtaSearch from '../components/rta/RtaSearch';
 import RtaSection from '../components/rta/RtaSection';
 import RtaCard from '../components/rta/RtaCard';
 import TurnOrder, { TurnItem } from '../components/rta/TurnOrder';
+import CreateMonster from '../components/CreateMonster';
 
 interface Props {
   monsters: Monster[];
   loadState: LoadState;
+  onCreateMonster: (name: string, element: ElementKey, speed: number) => Monster;
+  customMonsters: Monster[];
+  onDeleteMonster: (id: string) => void;
 }
 
 function totalSpeed(it: TurnItem): number | null {
@@ -27,7 +32,13 @@ function totalSpeed(it: TurnItem): number | null {
   return b !== null || r !== null ? (b ?? 0) + (r ?? 0) : null;
 }
 
-export default function RtaPage({ monsters, loadState }: Props) {
+export default function RtaPage({
+  monsters,
+  loadState,
+  onCreateMonster,
+  customMonsters,
+  onDeleteMonster,
+}: Props) {
   const rta = useRtaState();
   const [draggingId, setDraggingId] = useState<string | null>(null);
   const [newSection, setNewSection] = useState('');
@@ -149,6 +160,12 @@ export default function RtaPage({ monsters, loadState }: Props) {
     ));
   }
 
+  // Crée un monstre perso et l'ajoute directement en « Non classé ».
+  function handleCreateMonster(name: string, element: ElementKey, speed: number) {
+    const mon = onCreateMonster(name, element, speed);
+    rta.addMonster(String(mon.id));
+  }
+
   const runeSections = rta.state.sections;
 
   return (
@@ -189,6 +206,12 @@ export default function RtaPage({ monsters, loadState }: Props) {
           <Upload size={13} /> Importer un compte
         </button>
 
+        <CreateMonster
+          onCreate={handleCreateMonster}
+          customMonsters={customMonsters}
+          onDelete={onDeleteMonster}
+        />
+
         {addedIds.size > 0 && (
           <button
             onClick={() => {
@@ -200,6 +223,11 @@ export default function RtaPage({ monsters, loadState }: Props) {
           </button>
         )}
       </div>
+
+      <p className="mt-2 text-[12px] text-ink-dim">
+        Les tout derniers monstres sortis peuvent manquer dans les données — crée-les à la main avec
+        « Créer un monstre ».
+      </p>
 
       {importMsg && (
         <p className={`mt-2 text-[12.5px] ${importMsg.ok ? 'text-wind' : 'text-fire'}`}>

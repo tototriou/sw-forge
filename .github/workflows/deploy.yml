@@ -61,5 +61,4 @@ jobs:
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v4
-        with:
-          timeout: 1200000 # 20 min : tolère un backend Pages lent sans échouer
+        # (timeout par défaut = 600000 ms / 10 min, maximum autorisé par l'action)

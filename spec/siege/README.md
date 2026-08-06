@@ -43,13 +43,14 @@ d'attaque sauvegardées).
 ## Modèle d'état
 
 ```ts
-interface SiegeSlot { monsterId: string | null; runeSpeed: number | null }
-interface SiegeTeam { id: string; slots: SiegeSlot[]; lead: number; tick: number }
+interface SiegeSlot { monsterId: string | null; runeSpeed: number | null; tick: number }
+interface SiegeTeam { id: string; slots: SiegeSlot[]; lead: number }
 interface SiegeState { teams: SiegeTeam[] }
 ```
 
 - Chaque équipe a **toujours 3 slots** ; **le slot 0 est le leader**.
-- `tick` : vitesse de combat cible (0 = aucun tick actif).
+- `slot.tick` : vitesse de combat cible **par monstre** (0 = aucun tick actif) →
+  ticks mixables au sein d'une équipe (ex. 2 rapides + 1 lent).
 - `lead` : champ présent dans le modèle mais **le lead effectif est déduit
   automatiquement du leader** (voir [speed-tick.md](speed-tick.md)) ; le lead
   manuel n'est pas exposé dans l'UI actuelle.

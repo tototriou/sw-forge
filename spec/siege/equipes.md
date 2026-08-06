@@ -11,7 +11,8 @@ Fichiers : [SiegeTeam.tsx](src/components/siege/SiegeTeam.tsx) ·
 - En-tête : « Équipe N » + **Supprimer** (retire l'équipe).
 - **3 slots** en ligne (`grid`, 1 col mobile / 3 cols ≥ sm). **Slot 0 = Leader**
   (couronne `Crown` + libellé « Leader »).
-- Sous les slots : **boutons de tick** (voir [speed-tick.md](speed-tick.md)).
+- Dans **chaque slot** : **boutons de tick** propres au monstre (voir
+  [speed-tick.md](speed-tick.md)).
 
 ## Slot vide
 

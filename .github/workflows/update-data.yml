@@ -1,0 +1,45 @@
+name: Actualiser les données (SWARFARM)
+
+# Récupère les données SWARFARM (côté CI, pas de navigateur => pas de CORS) et
+# committe public/data/monsters.json s'il a changé. Le commit déclenche
+# automatiquement un déploiement Vercel — pas besoin d'étape de déploiement ici.
+
+on:
+  workflow_dispatch: {}
+  schedule:
+    # Tous les lundis à 6h00 UTC
+    - cron: '0 6 * * 1'
+
+permissions:
+  contents: write # committer public/data/monsters.json
+
+concurrency:
+  group: update-data
+  cancel-in-progress: false
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Récupérer les données SWARFARM
+        run: node scripts/fetch-monsters.mjs
+
+      - name: Commit si changement
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          if git diff --quiet -- public/data/monsters.json; then
+            echo "Aucun changement, rien à committer."
+          else
+            git add public/data/monsters.json
+            git commit -m "chore: actualisation automatique des données monstres"
+            git push
+          fi

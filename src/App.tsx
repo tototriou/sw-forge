@@ -1,9 +1,10 @@
-import { useEffect, useMemo, useState } from 'react';
-import { Swords, BookOpen, Home, Castle, Trophy, Menu, X } from 'lucide-react';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { Swords, BookOpen, Home, Castle, Trophy, Menu, X, Calculator, Library, ChevronDown } from 'lucide-react';
 import HomePage from './pages/HomePage';
 import BestiaryPage from './pages/BestiaryPage';
 import RtaPage from './pages/RtaPage';
 import SiegePage from './pages/SiegePage';
+import MechanicsPage from './pages/MechanicsPage';
 import ComingSoon from './pages/ComingSoon';
 import AccountImportControl from './components/AccountImportControl';
 import { Monster } from './types';
@@ -14,7 +15,7 @@ import { useSiegeState, SiegeSide } from './hooks/useSiegeState';
 import { parseAccountJson, parseSiegeDefense, parseSiegeOffense } from './lib/importAccount';
 import { mapRtaItems, mapSiegeTeams } from './lib/applyAccount';
 
-type Route = 'home' | 'bestiary' | 'rta' | 'siege' | 'arene';
+type Route = 'home' | 'bestiary' | 'rta' | 'siege' | 'arene' | 'mecaniques';
 
 // Route + sous-route de siège (offense/défense) déduites du hash.
 function parseHash(): { route: Route; siegeSide: SiegeSide } {
@@ -22,18 +23,27 @@ function parseHash(): { route: Route; siegeSide: SiegeSide } {
   if (h === 'rta') return { route: 'rta', siegeSide: 'defense' };
   if (h === 'bestiary') return { route: 'bestiary', siegeSide: 'defense' };
   if (h === 'arene') return { route: 'arene', siegeSide: 'defense' };
+  if (h === 'mecaniques') return { route: 'mecaniques', siegeSide: 'defense' };
   if (h === 'siege' || h.startsWith('siege/')) {
     return { route: 'siege', siegeSide: h === 'siege/offense' ? 'offense' : 'defense' };
   }
   return { route: 'home', siegeSide: 'defense' };
 }
 
-const NAV: { key: Route; label: string; icon: typeof BookOpen; hash: string }[] = [
+type NavItem = { key: Route; label: string; icon: typeof BookOpen; hash: string };
+
+// Onglets principaux (outils).
+const NAV: NavItem[] = [
   { key: 'home', label: 'Accueil', icon: Home, hash: '#/' },
   { key: 'rta', label: 'RTA', icon: Swords, hash: '#/rta' },
   { key: 'siege', label: 'Siège', icon: Castle, hash: '#/siege/defense' },
   { key: 'arene', label: 'Arène', icon: Trophy, hash: '#/arene' },
+];
+
+// Regroupées sous « Ressources ».
+const RESOURCES: NavItem[] = [
   { key: 'bestiary', label: 'Bestiaire', icon: BookOpen, hash: '#/bestiary' },
+  { key: 'mecaniques', label: 'Mécaniques', icon: Calculator, hash: '#/mecaniques' },
 ];
 
 export default function App() {
@@ -48,7 +58,11 @@ export default function App() {
 
   const [{ route, siegeSide }, setNav] = useState(parseHash);
   const [menuOpen, setMenuOpen] = useState(false);
+  const [resourcesOpen, setResourcesOpen] = useState(false);
+  const resourcesRef = useRef<HTMLDivElement>(null);
   const [importMsg, setImportMsg] = useState<{ ok: boolean; text: string } | null>(null);
+
+  const resourcesActive = RESOURCES.some((r) => r.key === route);
 
   // Monstres officiels + monstres créés à la main (RTA & Siège).
   const allMonsters = useMemo(
@@ -139,10 +153,23 @@ export default function App() {
     const onHash = () => {
       setNav(parseHash());
       setMenuOpen(false); // referme le menu mobile à chaque navigation
+      setResourcesOpen(false); // referme le dropdown Ressources
     };
     window.addEventListener('hashchange', onHash);
     return () => window.removeEventListener('hashchange', onHash);
   }, []);
+
+  // Ferme le dropdown Ressources au clic à l'extérieur.
+  useEffect(() => {
+    if (!resourcesOpen) return;
+    const onDown = (e: MouseEvent) => {
+      if (resourcesRef.current && !resourcesRef.current.contains(e.target as Node)) {
+        setResourcesOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', onDown);
+    return () => document.removeEventListener('mousedown', onDown);
+  }, [resourcesOpen]);
 
   // Message d'import éphémère : il disparaît tout seul (un peu plus long pour une erreur).
   useEffect(() => {
@@ -187,6 +214,29 @@ export default function App() {
                   </a>
                 );
               })}
+
+              {/* Ressources */}
+              <div className="mt-1 pt-2 border-t border-border">
+                <div className="px-3 pb-1 font-mono text-[10px] uppercase tracking-[0.14em] text-ink-dim">
+                  Ressources
+                </div>
+                {RESOURCES.map((item) => {
+                  const active = route === item.key;
+                  const Icon = item.icon;
+                  return (
+                    <a
+                      key={item.key}
+                      href={item.hash}
+                      onClick={() => setMenuOpen(false)}
+                      className={`flex items-center gap-3 rounded-lg px-3 py-3 text-[16px] font-semibold transition
+                        ${active ? 'bg-gradient-to-br from-[#3a4270] to-[#272e52] text-ink' : 'text-ink-dim'}`}
+                    >
+                      <Icon size={18} /> {item.label}
+                    </a>
+                  );
+                })}
+              </div>
+
               {/* Import unique, sous les liens de navigation */}
               <div className="mt-1 pt-2 border-t border-border">
                 <AccountImportControl
@@ -220,6 +270,42 @@ export default function App() {
                 </a>
               );
             })}
+
+            {/* Ressources (Bestiaire + Mécaniques) */}
+            <div className="relative" ref={resourcesRef}>
+              <button
+                onClick={() => setResourcesOpen((o) => !o)}
+                aria-expanded={resourcesOpen}
+                className={`flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-[13px] font-semibold transition flex-none whitespace-nowrap
+                  ${
+                    resourcesActive
+                      ? 'bg-gradient-to-br from-[#3a4270] to-[#272e52] text-ink shadow'
+                      : 'text-ink-dim hover:text-ink'
+                  }`}
+              >
+                <Library size={14} /> Ressources
+                <ChevronDown size={12} className={`transition-transform ${resourcesOpen ? 'rotate-180' : ''}`} />
+              </button>
+              {resourcesOpen && (
+                <div className="absolute z-30 left-0 mt-1.5 min-w-[168px] rounded-xl border border-border bg-panel p-1 shadow-glow shadow-black/60">
+                  {RESOURCES.map((item) => {
+                    const active = route === item.key;
+                    const Icon = item.icon;
+                    return (
+                      <a
+                        key={item.key}
+                        href={item.hash}
+                        onClick={() => setResourcesOpen(false)}
+                        className={`flex items-center gap-2 rounded-lg px-2.5 py-2 text-[13px] font-semibold transition
+                          ${active ? 'bg-panel2 text-ink' : 'text-ink-dim hover:text-ink hover:bg-panel2'}`}
+                      >
+                        <Icon size={14} /> {item.label}
+                      </a>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
           </nav>
           <div className="ml-auto">
             <AccountImportControl
@@ -264,6 +350,8 @@ export default function App() {
             icon={Trophy}
             description="Préparation des équipes d'arène classique (offense et défense)."
           />
+        ) : route === 'mecaniques' ? (
+          <MechanicsPage />
         ) : (
           <HomePage />
         )}

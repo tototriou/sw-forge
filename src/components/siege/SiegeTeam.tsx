@@ -7,6 +7,7 @@ import { SIEGE_TICKS, combatSpeed, speedLeadOf, siegeLeadFor, tickDanger, LeadIn
 import MonsterPicker from '../MonsterPicker';
 import ElementIcon from '../ElementIcon';
 import RuneIcon from '../RuneIcon';
+import MonsterGear from '../MonsterGear';
 
 const GRADIENT: Record<string, string> = {
   fire: 'from-fire to-panel2',
@@ -90,6 +91,7 @@ export default function SiegeTeam({
   const [dragFrom, setDragFrom] = useState<number | null>(null);
   const [overIdx, setOverIdx] = useState<number | null>(null);
   const [expanded, setExpanded] = useState(false); // replié par défaut (vue compacte)
+  const [detailIdx, setDetailIdx] = useState<number | null>(null); // slot dont on montre le détail
 
   const usedIds = new Set(
     team.slots.map((s) => s.monsterId).filter((id): id is string => id !== null)
@@ -149,9 +151,12 @@ export default function SiegeTeam({
     <section className={`rounded-2xl border p-4 transition-colors ${sectionClass}`}>
       <div className="flex items-center gap-2 mb-3 flex-wrap">
         <button
-          onClick={() => setExpanded((e) => !e)}
+          onClick={() => {
+            setExpanded((e) => !e);
+            setDetailIdx(null);
+          }}
           className="flex items-center gap-1.5 text-ink hover:text-ink-dim transition"
-          title={expanded ? 'Réduire' : 'Voir le détail'}
+          title={expanded ? 'Réduire' : 'Modifier les monstres'}
           aria-expanded={expanded}
         >
           {expanded ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
@@ -226,19 +231,31 @@ export default function SiegeTeam({
           {slotInfos.map(({ monster, combat }, idx) => {
             const danger = status === 'red' ? slotDangers[idx] : null;
             const sets = team.slots[idx].sets ?? [];
+            const slotGear = team.slots[idx].gear;
+            const canDetail = !!slotGear && slotGear.runes.length > 0;
+            const active = detailIdx === idx;
             return (
               <button
                 key={idx}
-                onClick={() => setExpanded(true)}
+                onClick={() => {
+                  if (canDetail) setDetailIdx((d) => (d === idx ? null : idx));
+                  else setExpanded(true);
+                }}
                 title={
                   danger
                     ? danger.kind === 'below'
                       ? `À ${danger.diff} sous le tick ${danger.tick}`
                       : `${danger.diff} au-dessus du tick ${danger.tick} (overshoot)`
-                    : 'Voir le détail'
+                    : canDetail
+                      ? 'Voir le détail des runes'
+                      : 'Modifier'
                 }
                 className={`flex-1 min-w-0 flex items-center gap-2 rounded-lg border px-2 py-1.5 text-left transition hover:border-[#4a52a0] ${
-                  danger ? 'border-fire/70 ring-1 ring-fire/50 bg-fire/5' : 'border-border bg-panel2/60'
+                  active
+                    ? 'border-[#5b63b8] ring-1 ring-[#5b63b8]/50 bg-panel2'
+                    : danger
+                      ? 'border-fire/70 ring-1 ring-fire/50 bg-fire/5'
+                      : 'border-border bg-panel2/60'
                 }`}
               >
                 {monster ? (
@@ -293,6 +310,32 @@ export default function SiegeTeam({
               </button>
             );
           })}
+        </div>
+      )}
+
+      {/* Détail runes/artéfacts/relique du monstre cliqué (vue compacte) */}
+      {!expanded && detailIdx !== null && team.slots[detailIdx]?.gear && (
+        <div className="mt-2 rounded-xl border border-border bg-panel/40 p-3">
+          <div className="flex items-center gap-2 mb-2">
+            {(() => {
+              const mId = team.slots[detailIdx].monsterId;
+              const m = mId ? monsterById.get(mId) ?? null : null;
+              return (
+                <span className="text-[13px] font-semibold text-ink">
+                  {m?.name ?? 'Monstre'}
+                </span>
+              );
+            })()}
+            <button
+              onClick={() => setDetailIdx(null)}
+              className="ml-auto text-ink-dim hover:text-fire transition"
+              title="Fermer le détail"
+              aria-label="Fermer"
+            >
+              <X size={14} />
+            </button>
+          </div>
+          <MonsterGear gear={team.slots[detailIdx].gear!} />
         </div>
       )}
 

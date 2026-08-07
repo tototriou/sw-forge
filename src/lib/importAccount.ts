@@ -6,6 +6,8 @@
 //  - parseSiegeDefense : les DÉFENSES de combat de guilde (siège) — jusqu'à 6
 //    decks de 3 monstres, avec les runes propres à chaque défense de siège.
 
+import { ArtifactDetail, BaseStats, EffectLine, ElementKey, GearSet, RelicDetail, RuneDetail } from '../types';
+
 const RUNE_EFF_SPEED = 8; // type d'effet « Vitesse » dans les données com2us
 const RUNE_SET_SWIFT = 3; // set_id du set Swift
 
@@ -134,6 +136,135 @@ function activeSetsFromRuneIds(runeIds: any[], runeById: Map<number, any>): stri
   return out;
 }
 
+/* --------------------------------------------------------------------------
+ * Extraction du DÉTAIL de l'équipement (runes / artéfacts / relique)
+ * Sert à afficher les stats calculées d'un monstre (base + bonus) au clic.
+ * ----------------------------------------------------------------------- */
+
+// attribute d'artéfact d'élément → ElementKey (1 eau, 2 feu, 3 vent, 4 lum, 5 tén).
+const ELEMENT_BY_ATTR: Record<number, ElementKey> = {
+  1: 'water', 2: 'fire', 3: 'wind', 4: 'light', 5: 'dark',
+};
+// unit_style d'artéfact d'archétype → clé.
+const ARCHETYPE_BY_STYLE: Record<number, 'attack' | 'defense' | 'hp' | 'support'> = {
+  1: 'attack', 2: 'defense', 3: 'hp', 4: 'support',
+};
+
+// Ligne d'effet simple [type, valeur, …] → EffectLine (undefined si type 0/absent).
+function effLine(eff: any): EffectLine | undefined {
+  if (!Array.isArray(eff) || !Number(eff[0])) return undefined;
+  return { code: Number(eff[0]), value: Number(eff[1]) || 0 };
+}
+
+// Substat de rune [type, valeur, enchant, meule] → EffectLine (valeur + meule).
+function subEffLine(eff: any): EffectLine {
+  const grind = Number(eff?.[3]) || 0;
+  return {
+    code: Number(eff?.[0]) || 0,
+    value: (Number(eff?.[1]) || 0) + (grind > 0 ? grind : 0),
+    grind,
+    enchant: !!Number(eff?.[2]),
+  };
+}
+
+function runeToDetail(rune: any): RuneDetail {
+  const subs = Array.isArray(rune?.sec_eff)
+    ? rune.sec_eff.filter((e: any) => Number(e?.[0])).map(subEffLine)
+    : [];
+  const rar = Number(rune?.extra) || 0; // rareté com2us (champ `extra`, +10 si antique)
+  return {
+    slot: Number(rune?.slot_no) || 0,
+    set: SET_ID_KEY[Number(rune?.set_id)] ?? 'unknown',
+    rank: Number(rune?.class) || 0,
+    rarity: rar > 10 ? rar - 10 : rar,
+    level: Number(rune?.upgrade_curr) || 0,
+    main: effLine(rune?.pri_eff) ?? { code: 0, value: 0 },
+    innate: effLine(rune?.prefix_eff),
+    subs,
+  };
+}
+
+function artifactToDetail(a: any): ArtifactDetail {
+  const main = effLine(a?.pri_effect) ?? { code: 0, value: 0 };
+  const subs: EffectLine[] = Array.isArray(a?.sec_effects)
+    ? a.sec_effects
+        .filter((e: any) => Number(e?.[0]))
+        .map((e: any) => ({ code: Number(e[0]), value: Number(e[1]) || 0 }))
+    : [];
+  const level = Number(a?.level) || 0;
+  if (Number(a?.type) === 1) {
+    return { kind: 'element', element: ELEMENT_BY_ATTR[Number(a?.attribute)] ?? 'unknown', level, main, subs };
+  }
+  return { kind: 'archetype', archetype: ARCHETYPE_BY_STYLE[Number(a?.unit_style)], level, main, subs };
+}
+
+function relicToDetail(r: any): RelicDetail | undefined {
+  const main = effLine(r?.pri_effect);
+  if (!main) return undefined;
+  const sec = r?.sec_effect;
+  const sub = Array.isArray(sec) && Number(sec[0]) ? { code: Number(sec[0]), value: Number(sec[1]) || 0 } : undefined;
+  return { main, sub };
+}
+
+// Stats de base de l'unité (naked, sans runes) : con×15 pour les PV.
+function baseStatsOf(unit: any): BaseStats {
+  return {
+    hp: (Number(unit?.con) || 0) * 15,
+    atk: Number(unit?.atk) || 0,
+    def: Number(unit?.def) || 0,
+    spd: Number(unit?.spd) || 0,
+    cr: Number(unit?.critical_rate) || 0,
+    cd: Number(unit?.critical_damage) || 0,
+    res: Number(unit?.resist) || 0,
+    acc: Number(unit?.accuracy) || 0,
+  };
+}
+
+// Assemble le GearSet d'un monstre dans un contexte donné : runes du preset,
+// artéfacts fournis (RTA ou box), relique de l'unité, stats de base.
+function buildGear(unit: any, runeIds: any[], artifactObjs: any[], runeById: Map<number, any>): GearSet {
+  const runes = runeIds
+    .map((rid) => runeById.get(Number(rid)))
+    .filter(Boolean)
+    .map(runeToDetail)
+    .sort((a, b) => a.slot - b.slot);
+  const artifacts = (artifactObjs || []).filter(Boolean).map(artifactToDetail);
+  const relic = relicToDetail((Array.isArray(unit?.relics) ? unit.relics : [])[0]);
+  return { base: baseStatsOf(unit), runes, artifacts, relic };
+}
+
+// Index de TOUS les artéfacts par rid : inventaire (top-level `artifacts`) +
+// artéfacts embarqués dans les unités. Les presets (RTA/siège) peuvent
+// référencer l'un ou l'autre — comme pour les runes, il faut fusionner.
+function indexArtifacts(data: any): Map<number, any> {
+  const m = new Map<number, any>();
+  const add = (a: any) => {
+    const id = Number(a?.rid);
+    if (Number.isFinite(id)) m.set(id, a);
+  };
+  if (Array.isArray(data?.artifacts)) data.artifacts.forEach(add);
+  if (Array.isArray(data?.unit_list)) {
+    for (const u of data.unit_list) if (Array.isArray(u?.artifacts)) u.artifacts.forEach(add);
+  }
+  return m;
+}
+
+// Artéfacts RTA équipés par monstre (world_arena_artifact_equip_list).
+function rtaArtifactsByUnit(data: any, artById: Map<number, any>): Map<number, any[]> {
+  const m = new Map<number, any[]>();
+  const list = data?.world_arena_artifact_equip_list;
+  if (Array.isArray(list)) {
+    for (const e of list) {
+      const uid = Number(e?.occupied_id);
+      const a = artById.get(Number(e?.artifact_id));
+      if (!Number.isFinite(uid) || !a) continue;
+      if (!m.has(uid)) m.set(uid, []);
+      m.get(uid)!.push(a);
+    }
+  }
+  return m;
+}
+
 // Aplati récursivement une structure d'ids (gère les groupes imbriqués
 // [[...],[...]]) et renvoie les nombres valides.
 function flattenIds(value: any, out: Set<number>) {
@@ -155,6 +286,7 @@ export interface ImportedUnit {
   swift: boolean; // set Swift complet (4 runes) équipé en RTA
   sets: string[]; // sets de runes actifs RTA (clés RUNE_SETS)
   runeCount: number; // nombre de runes RTA équipées (build complet = 6)
+  gear?: GearSet; // détail runes/artéfacts/relique du preset RTA
 }
 
 export interface ParseResult {
@@ -221,6 +353,8 @@ export function parseAccountJson(text: string): ParseResult {
 
   const runeById = indexRunes(data);
   const unitById = indexUnits(data);
+  const artById = indexArtifacts(data);
+  const rtaArts = rtaArtifactsByUnit(data, artById);
 
   // Regroupe les runes RTA par monstre (occupied_id = unit_id équipé en RTA).
   const rtaList = findRtaEquipList(data) ?? [];
@@ -257,7 +391,10 @@ export function parseAccountJson(text: string): ParseResult {
     const runeIds = (runesByUnit.get(uid) ?? []).map((r) => r.rune_id);
     const { flatRuneSpeed, swift } = speedFromRuneIds(runeIds, runeById);
     const sets = activeSetsFromRuneIds(runeIds, runeById);
-    units.push({ com2usId, flatRuneSpeed, swift, sets, runeCount: runeIds.length });
+    // Artéfacts RTA si disponibles, sinon les artéfacts actuellement équipés.
+    const artifactObjs = rtaArts.get(uid) ?? (Array.isArray(unit?.artifacts) ? unit.artifacts : []);
+    const gear = buildGear(unit, runeIds, artifactObjs, runeById);
+    units.push({ com2usId, flatRuneSpeed, swift, sets, runeCount: runeIds.length, gear });
   }
 
   return { units };
@@ -284,6 +421,7 @@ export interface SiegeImportedSlot {
   flatRuneSpeed: number; // SPD plate des runes de ce build de siège
   swift: boolean; // set Swift complet équipé sur ce build de siège
   sets: string[]; // sets de runes actifs (clés RUNE_SETS), ex. ['swift','will']
+  gear?: GearSet; // détail runes/artéfacts/relique de ce build
 }
 
 // Un deck = 3 slots ordonnés (index 0 = leader).
@@ -309,18 +447,34 @@ function equipArrayToMap(equip: any): Map<number, any[]> {
   return map;
 }
 
+// Map unit_id → artifact_id_list depuis un tableau `equip` de deck de siège.
+// Les artéfacts de siège sont un preset propre au deck (comme les runes), et
+// non les artéfacts actuellement équipés sur l'unité.
+function equipArtifactMap(equip: any): Map<number, any[]> {
+  const map = new Map<number, any[]>();
+  if (!Array.isArray(equip)) return map;
+  for (const e of equip) {
+    const uid = Number(e?.unit_id);
+    if (!Number.isFinite(uid)) continue;
+    map.set(uid, Array.isArray(e?.artifact_id_list) ? e.artifact_id_list : []);
+  }
+  return map;
+}
+
 // Définition brute d'un deck avant résolution en monstres/vitesses.
 interface DeckDef {
   deckId: number | string;
   unitIds: any[]; // 3 slots ordonnés, leader en tête ; 0 = vide
   runeIdsByUnit: Map<number, any[]>;
+  artifactIdsByUnit: Map<number, any[]>;
 }
 
 // Résout des DeckDef en SiegeImportedDeck (mapping unité → monstre + vitesses).
 function buildSiegeDecks(
   defs: DeckDef[],
   runeById: Map<number, any>,
-  unitById: Map<number, any>
+  unitById: Map<number, any>,
+  artById: Map<number, any>
 ): SiegeImportedDeck[] {
   const decks: SiegeImportedDeck[] = [];
   for (const def of defs) {
@@ -334,7 +488,11 @@ function buildSiegeDecks(
       const runeIds = def.runeIdsByUnit.get(uid) ?? [];
       const { flatRuneSpeed, swift } = speedFromRuneIds(runeIds, runeById);
       const sets = activeSetsFromRuneIds(runeIds, runeById);
-      return { com2usId, flatRuneSpeed, swift, sets };
+      // Artéfacts du preset de siège (artifact_id_list du deck), résolus via l'index global.
+      const artIds = def.artifactIdsByUnit.get(uid) ?? [];
+      const artifactObjs = artIds.map((aid) => artById.get(Number(aid))).filter(Boolean);
+      const gear = buildGear(unit, runeIds, artifactObjs, runeById);
+      return { com2usId, flatRuneSpeed, swift, sets, gear };
     });
     // On ignore les decks totalement vides (jamais configurés).
     if (slots.some((s) => s !== null)) decks.push({ deckId: def.deckId, slots });
@@ -368,6 +526,7 @@ export function parseSiegeDefense(text: string): SiegeParseResult {
 
   const runeById = indexRunes(data);
   const unitById = indexUnits(data);
+  const artById = indexArtifacts(data);
   const equipList = data?.guildsiege_defense_deck_equip_list;
 
   const defs: DeckDef[] = deckList.map((dk: any, i: number) => {
@@ -377,10 +536,11 @@ export function parseSiegeDefense(text: string): SiegeParseResult {
       // Positions conservées : le 1ᵉʳ slot est le leader ; 0 = vide.
       unitIds: Array.isArray(dk?.unit_id_list) ? dk.unit_id_list : [],
       runeIdsByUnit: equipArrayToMap(entry?.equip),
+      artifactIdsByUnit: equipArtifactMap(entry?.equip),
     };
   });
 
-  const decks = buildSiegeDecks(defs, runeById, unitById);
+  const decks = buildSiegeDecks(defs, runeById, unitById, artById);
   if (decks.length === 0) {
     return { decks: [], error: 'Aucune défense de siège configurée dans ce fichier.' };
   }
@@ -414,6 +574,7 @@ export function parseSiegeOffense(text: string): SiegeParseResult {
 
   const runeById = indexRunes(data);
   const unitById = indexUnits(data);
+  const artById = indexArtifacts(data);
 
   const defs: DeckDef[] = offense.map((dk: any, i: number) => {
     // Leader en tête (leader_unit_id), puis les autres unités non nulles.
@@ -428,10 +589,11 @@ export function parseSiegeOffense(text: string): SiegeParseResult {
       deckId: dk?.deck_seq ?? i,
       unitIds: [ordered[0] ?? 0, ordered[1] ?? 0, ordered[2] ?? 0],
       runeIdsByUnit: equipArrayToMap(dk?.equip),
+      artifactIdsByUnit: equipArtifactMap(dk?.equip),
     };
   });
 
-  const decks = buildSiegeDecks(defs, runeById, unitById);
+  const decks = buildSiegeDecks(defs, runeById, unitById, artById);
   if (decks.length === 0) {
     return { decks: [], error: "Aucune équipe d'attaque de siège configurée dans ce fichier." };
   }

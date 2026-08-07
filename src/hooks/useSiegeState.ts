@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import { SiegeState, SiegeTeam, SiegeSlot } from '../types';
+import { SiegeState, SiegeTeam, SiegeSlot, GearSet } from '../types';
 
 // Défense et offense de siège = deux listes d'équipes indépendantes.
 export type SiegeSide = 'offense' | 'defense';
@@ -39,6 +39,7 @@ function load(side: SiegeSide): SiegeState {
           runeSpeed: s && typeof s.runeSpeed === 'number' ? s.runeSpeed : null,
           tick: s && typeof s.tick === 'number' ? s.tick : legacyTick,
           sets: s && Array.isArray(s.sets) ? s.sets.filter((x): x is string => typeof x === 'string') : [],
+          gear: s && (s as { gear?: unknown }).gear && typeof (s as { gear?: unknown }).gear === 'object' ? ((s as { gear?: GearSet }).gear) : undefined,
         };
       });
       return {
@@ -66,7 +67,7 @@ export interface UseSiegeState {
   dismissTickAlert: (teamId: string, dismissed: boolean) => void;
   swapSlots: (teamId: string, from: number, to: number) => void;
   importTeams: (
-    teams: { slots: { monsterId: string | null; runeSpeed: number | null; sets?: string[]; tick?: number }[] }[],
+    teams: { slots: { monsterId: string | null; runeSpeed: number | null; sets?: string[]; tick?: number; gear?: GearSet }[] }[],
     replace: boolean
   ) => void;
   clearAll: () => void;
@@ -161,7 +162,7 @@ export function useSiegeState(side: SiegeSide): UseSiegeState {
   // existantes, sinon on ajoute à la suite.
   const importTeams = useCallback(
     (
-      teams: { slots: { monsterId: string | null; runeSpeed: number | null; sets?: string[]; tick?: number }[] }[],
+      teams: { slots: { monsterId: string | null; runeSpeed: number | null; sets?: string[]; tick?: number; gear?: GearSet }[] }[],
       replace: boolean
     ) => {
       setState((s) => {
@@ -173,6 +174,7 @@ export function useSiegeState(side: SiegeSide): UseSiegeState {
               runeSpeed: sl && typeof sl.runeSpeed === 'number' ? sl.runeSpeed : null,
               tick: sl && typeof sl.tick === 'number' ? sl.tick : 0,
               sets: sl && Array.isArray(sl.sets) ? sl.sets : [],
+              gear: sl && sl.gear && typeof sl.gear === 'object' ? sl.gear : undefined,
             };
           });
           return { id: newId(), slots, lead: 0, tickAlertDismissed: false };

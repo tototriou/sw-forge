@@ -2,7 +2,7 @@
 // vers les structures attendues par les états RTA & Siège. Partagé par l'import
 // global (App) pour alimenter toutes les pages d'un coup.
 
-import { Monster, RTA_OTHER, RTA_UNASSIGNED } from '../types';
+import { GearSet, Monster, RTA_OTHER, RTA_UNASSIGNED } from '../types';
 import { ImportedUnit, SiegeImportedDeck } from './importAccount';
 import { SIEGE_TICKS, combatSpeed, siegeLeadFor, speedLeadOf } from './speed';
 
@@ -13,7 +13,7 @@ function primarySection(sets: string[]): string {
   return RTA_OTHER;
 }
 
-type MappedSlot = { monsterId: string | null; runeSpeed: number | null; sets?: string[]; tick?: number };
+type MappedSlot = { monsterId: string | null; runeSpeed: number | null; sets?: string[]; tick?: number; gear?: GearSet };
 
 // Vitesse de runes finale = SPD plate + bonus Swift (25% de la base) si set complet.
 function runeSpeedOf(flatRuneSpeed: number, swift: boolean, base: number): number {
@@ -40,8 +40,8 @@ function nearestTick(combat: number | null): number {
 export function mapRtaItems(
   units: ImportedUnit[],
   byCom2us: Map<number, Monster>
-): { monsterId: string; runeSpeed: number; section: string; sets: string[] }[] {
-  const best = new Map<string, { runeSpeed: number; sets: string[]; runeCount: number }>();
+): { monsterId: string; runeSpeed: number; section: string; sets: string[]; gear?: GearSet }[] {
+  const best = new Map<string, { runeSpeed: number; sets: string[]; runeCount: number; gear?: GearSet }>();
   for (const u of units) {
     const mon = byCom2us.get(u.com2usId);
     if (!mon) continue;
@@ -49,13 +49,14 @@ export function mapRtaItems(
     const id = String(mon.id);
     const prev = best.get(id);
     if (!prev || rs > prev.runeSpeed) {
-      best.set(id, { runeSpeed: rs, sets: u.sets ?? [], runeCount: u.runeCount ?? 0 });
+      best.set(id, { runeSpeed: rs, sets: u.sets ?? [], runeCount: u.runeCount ?? 0, gear: u.gear });
     }
   }
   return Array.from(best, ([monsterId, v]) => ({
     monsterId,
     runeSpeed: v.runeSpeed,
     sets: v.sets,
+    gear: v.gear,
     // Build incomplet (< 6 runes) → on laisse en « Non classé ».
     section: v.runeCount >= 6 ? primarySection(v.sets) : RTA_UNASSIGNED,
   }));
@@ -90,6 +91,7 @@ export function mapSiegeTeams(
           runeSpeed,
           sets: slot.sets,
           tick: noTick ? 0 : nearestTick(combat),
+          gear: slot.gear,
         };
       }),
     };

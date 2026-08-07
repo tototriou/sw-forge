@@ -1,8 +1,9 @@
-import { useRef } from 'react';
-import { GripVertical, X } from 'lucide-react';
+import { useRef, useState } from 'react';
+import { GripVertical, X, ChevronDown } from 'lucide-react';
 import { Monster, RtaEntry, sectionLabel } from '../../types';
 import ElementIcon from '../ElementIcon';
 import RuneIcon from '../RuneIcon';
+import MonsterGear from '../MonsterGear';
 
 const SPD_ICON = `${import.meta.env.BASE_URL}stats/spd.png`;
 
@@ -55,9 +56,11 @@ export default function RtaCard({
   onDragEnd,
 }: Props) {
   const cardRef = useRef<HTMLDivElement>(null);
+  const [expanded, setExpanded] = useState(false);
   const base = monster.stats.speed;
   const rune = entry.runeSpeed;
   const total = base !== null || rune !== null ? (base ?? 0) + (rune ?? 0) : null;
+  const hasGear = !!entry.gear && entry.gear.runes.length > 0;
 
   function handleDragStart(e: React.DragEvent) {
     e.dataTransfer.setData('text/plain', String(monster.id));
@@ -69,8 +72,11 @@ export default function RtaCard({
   return (
     <div
       ref={cardRef}
-      className="group relative flex items-center gap-2 rounded-lg border border-border bg-panel2 p-1.5"
+      className={`group relative rounded-lg border bg-panel2 ${
+        expanded ? 'col-span-full border-[#4a52a0]' : 'border-border'
+      }`}
     >
+      <div className="flex items-center gap-2 p-1.5">
       {/* Poignée de drag : seule zone qui déclenche le glisser-déposer */}
       <button
         draggable
@@ -83,7 +89,10 @@ export default function RtaCard({
         <GripVertical size={14} />
       </button>
 
-      <div className="relative flex-none">
+      <div
+        className={`relative flex-none ${hasGear ? 'cursor-pointer' : ''}`}
+        onClick={hasGear ? () => setExpanded((e) => !e) : undefined}
+      >
         <div
           className={`hex-frame w-[50px] h-[50px] p-[2px] bg-gradient-to-br ${GRADIENT[monster.element]}`}
         >
@@ -105,7 +114,11 @@ export default function RtaCard({
       </div>
 
       <div className="min-w-0 flex-1">
-        <div className="flex items-center gap-1">
+        <div
+          className={`flex items-center gap-1 ${hasGear ? 'cursor-pointer' : ''}`}
+          onClick={hasGear ? () => setExpanded((e) => !e) : undefined}
+          title={hasGear ? 'Voir le détail des runes' : undefined}
+        >
           <span className="text-[12px] font-semibold leading-tight truncate flex-1">
             {monster.name}
           </span>
@@ -116,6 +129,12 @@ export default function RtaCard({
           {(entry.sets ?? []).slice(0, 3).map((s, i) => (
             <RuneIcon key={i} setKey={s} size={18} className="flex-none" />
           ))}
+          {hasGear && (
+            <ChevronDown
+              size={14}
+              className={`flex-none text-ink-dim transition-transform ${expanded ? 'rotate-180' : ''}`}
+            />
+          )}
         </div>
         <select
           value={entry.section}
@@ -141,6 +160,13 @@ export default function RtaCard({
       >
         <X size={12} />
       </button>
+      </div>
+
+      {expanded && entry.gear && (
+        <div className="border-t border-border/60 p-2">
+          <MonsterGear gear={entry.gear} />
+        </div>
+      )}
     </div>
   );
 }

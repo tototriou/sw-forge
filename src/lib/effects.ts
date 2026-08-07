@@ -1,0 +1,121 @@
+// Mapping des codes d'effets com2us (runes, artéfacts, reliques) → libellés.
+// Aligné sur sw-exporter (app/mapping.js) et vérifié sur des exports réels.
+
+import { EffectLine } from '../types';
+
+export type StatKey = 'hp' | 'atk' | 'def' | 'spd' | 'cr' | 'cd' | 'res' | 'acc';
+
+// Effet de rune (pri_eff / prefix_eff / sec_eff) → stat visée + affichage.
+interface RuneEff {
+  label: string; // libellé court (colonnes de stats)
+  stat: StatKey;
+  pct: boolean; // true → valeur en % qui s'applique à la base (PV/ATQ/DEF)
+  suffix: string; // suffixe d'affichage ('%' ou '')
+}
+
+export const RUNE_EFFECT: Record<number, RuneEff> = {
+  1: { label: 'PV', stat: 'hp', pct: false, suffix: '' },
+  2: { label: 'PV%', stat: 'hp', pct: true, suffix: '%' },
+  3: { label: 'ATQ', stat: 'atk', pct: false, suffix: '' },
+  4: { label: 'ATQ%', stat: 'atk', pct: true, suffix: '%' },
+  5: { label: 'DEF', stat: 'def', pct: false, suffix: '' },
+  6: { label: 'DEF%', stat: 'def', pct: true, suffix: '%' },
+  8: { label: 'VIT', stat: 'spd', pct: false, suffix: '' },
+  9: { label: 'Taux Crit', stat: 'cr', pct: false, suffix: '%' },
+  10: { label: 'Dmg Crit', stat: 'cd', pct: false, suffix: '%' },
+  11: { label: 'RES', stat: 'res', pct: false, suffix: '%' },
+  12: { label: 'Précision', stat: 'acc', pct: false, suffix: '%' },
+};
+
+// Stat principale d'artéfact (pri_effect) : PV / ATQ / DEF plats.
+export const ARTIFACT_MAIN: Record<number, { label: string; stat: StatKey }> = {
+  100: { label: 'PV', stat: 'hp' },
+  101: { label: 'ATQ', stat: 'atk' },
+  102: { label: 'DEF', stat: 'def' },
+};
+
+// Substats d'artéfacts (sec_effects). Effets conditionnels/situationnels :
+// ils portent une valeur mais n'entrent pas dans les 8 stats de base.
+export const ARTIFACT_SUB: Record<number, (v: number) => string> = {
+  200: (v) => `ATQ + selon PV perdus, jusqu'à +${v}%`,
+  201: (v) => `DEF + selon PV perdus, jusqu'à +${v}%`,
+  202: (v) => `VIT + selon PV perdus, jusqu'à +${v}%`,
+  203: (v) => `VIT sous effet d'incapacité +${v}%`,
+  204: (v) => `Effet d'augmentation d'ATQ +${v}%`,
+  205: (v) => `Effet d'augmentation de DEF +${v}%`,
+  206: (v) => `Effet d'augmentation de VIT +${v}%`,
+  207: (v) => `Effet d'augmentation du taux crit +${v}%`,
+  208: (v) => `Dégâts de contre-attaque +${v}%`,
+  209: (v) => `Dégâts d'attaque conjointe +${v}%`,
+  210: (v) => `Dégâts de bombe +${v}%`,
+  211: (v) => `Dégâts de réflexion +${v}%`,
+  212: (v) => `Dégâts de coup dévastateur +${v}%`,
+  213: (v) => `Dégâts reçus sous incapacité -${v}%`,
+  214: (v) => `Dégâts crit reçus -${v}%`,
+  215: (v) => `Vol de vie +${v}%`,
+  216: (v) => `PV à la résurrection +${v}%`,
+  217: (v) => `Barre d'action à la résurrection +${v}%`,
+  218: (v) => `Dégâts add. par ${v}% des PV`,
+  219: (v) => `Dégâts add. par ${v}% de l'ATQ`,
+  220: (v) => `Dégâts add. par ${v}% de la DEF`,
+  221: (v) => `Dégâts add. par ${v}% de la VIT`,
+  222: (v) => `Dmg crit +${v}% si PV ennemi élevés`,
+  223: (v) => `Dmg crit +${v}% si PV ennemi bas`,
+  224: (v) => `Dmg crit mono-cible +${v}% à ton tour`,
+  225: (v) => `Dégâts contre/attaque conjointe +${v}%`,
+  226: (v) => `Effet Buff ATQ/DEF +${v}%`,
+  300: (v) => `Dégâts sur le Feu +${v}%`,
+  301: (v) => `Dégâts sur l'Eau +${v}%`,
+  302: (v) => `Dégâts sur le Vent +${v}%`,
+  303: (v) => `Dégâts sur la Lumière +${v}%`,
+  304: (v) => `Dégâts sur les Ténèbres +${v}%`,
+  305: (v) => `Dégâts reçus du Feu -${v}%`,
+  306: (v) => `Dégâts reçus de l'Eau -${v}%`,
+  307: (v) => `Dégâts reçus du Vent -${v}%`,
+  308: (v) => `Dégâts reçus de la Lumière -${v}%`,
+  309: (v) => `Dégâts reçus des Ténèbres -${v}%`,
+  400: (v) => `Dmg crit Compétence 1 +${v}%`,
+  401: (v) => `Dmg crit Compétence 2 +${v}%`,
+  402: (v) => `Dmg crit Compétence 3 +${v}%`,
+  403: (v) => `Dmg crit Compétence 4 +${v}%`,
+  404: (v) => `Récupération Compétence 1 +${v}%`,
+  405: (v) => `Récupération Compétence 2 +${v}%`,
+  406: (v) => `Récupération Compétence 3 +${v}%`,
+  407: (v) => `Précision Compétence 1 +${v}%`,
+  408: (v) => `Précision Compétence 2 +${v}%`,
+  409: (v) => `Précision Compétence 3 +${v}%`,
+  410: (v) => `Dmg crit Compétence 3/4 +${v}%`,
+  411: (v) => `Dmg crit 1ʳᵉ attaque +${v}%`,
+};
+
+// Stat principale de relique (pri_effect) : PV% / ATQ% / DEF%.
+export const RELIC_MAIN: Record<number, { label: string; stat: StatKey }> = {
+  100: { label: 'PV%', stat: 'hp' },
+  101: { label: 'ATQ%', stat: 'atk' },
+  102: { label: 'DEF%', stat: 'def' },
+};
+
+// Affichage d'un effet de rune (« ATQ +160 », « VIT +23 », « Dmg Crit +7% »).
+export function formatRuneEffect(e: EffectLine): string {
+  const def = RUNE_EFFECT[e.code];
+  if (!def) return `#${e.code} +${e.value}`;
+  return `${def.label} +${e.value}${def.suffix}`;
+}
+
+// Affichage de la stat principale d'un artéfact (plat).
+export function formatArtifactMain(e: EffectLine): string {
+  const def = ARTIFACT_MAIN[e.code];
+  return def ? `${def.label} +${e.value}` : `#${e.code} +${e.value}`;
+}
+
+// Affichage d'un substat d'artéfact (conditionnel).
+export function formatArtifactSub(e: EffectLine): string {
+  const fn = ARTIFACT_SUB[e.code];
+  return fn ? fn(e.value) : `#${e.code} +${e.value}`;
+}
+
+// Affichage de la stat principale d'une relique (en %).
+export function formatRelicMain(e: EffectLine): string {
+  const def = RELIC_MAIN[e.code];
+  return def ? `${def.label} +${e.value}%` : `#${e.code} +${e.value}`;
+}

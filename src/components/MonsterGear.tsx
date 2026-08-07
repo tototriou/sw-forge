@@ -1,0 +1,298 @@
+import { useState } from 'react';
+import { ArtifactDetail, GearSet, RelicDetail, RuneDetail } from '../types';
+import { computeStats } from '../lib/stats';
+import {
+  formatRuneEffect,
+  formatArtifactMain,
+  formatArtifactSub,
+  formatRelicMain,
+} from '../lib/effects';
+import RuneIcon from './RuneIcon';
+import ArtifactIcon from './ArtifactIcon';
+
+// Nombres compacts (39051 → « 39 051 »).
+function fmt(n: number): string {
+  return n.toLocaleString('fr-FR');
+}
+
+// Colorisation du symbole de set selon la rareté de la rune (filtre CSS sur l'image).
+// Base sépia+saturation (teinte ~orange), puis hue-rotate par rareté.
+const SET_SHADOW = 'drop-shadow(rgba(10, 6, 3, 0.95) 0px 1px 1px)';
+const RARITY_FILTER: Record<number, string> = {
+  5: `sepia(1) saturate(7.5) hue-rotate(330deg) brightness(0.9) contrast(1.18) ${SET_SHADOW}`, // Légendaire → orange
+  4: `sepia(1) saturate(7.5) hue-rotate(235deg) brightness(0.9) contrast(1.18) ${SET_SHADOW}`, // Héroïque → violet
+  3: `sepia(1) saturate(7.5) hue-rotate(80deg) brightness(0.9) contrast(1.18) ${SET_SHADOW}`, // Rare → vert
+  2: `sepia(1) saturate(7.5) hue-rotate(175deg) brightness(0.9) contrast(1.18) ${SET_SHADOW}`, // Magique → bleu
+  1: `saturate(0) brightness(1.7) contrast(1.05) ${SET_SHADOW}`, // Normal → blanc
+};
+
+// Images du jeu (servies en local) : fond de roue + cadre de rune + cadre d'artéfact.
+const WHEEL_IMG = `${import.meta.env.BASE_URL}rune-wheel.png`;
+const RUNE_FRAME = `${import.meta.env.BASE_URL}rune-blank.png`;
+const ARTIFACT_FRAME = `${import.meta.env.BASE_URL}artifact-blank.png`;
+
+// Taille du conteneur de la roue (ratio de l'image 219×249) et du cadre de rune.
+const WHEEL_W = 208;
+const WHEEL_H = Math.round((WHEEL_W * 249) / 219); // conserve le ratio de l'image
+const FW = 50; // largeur du cadre de rune posé dans un slot
+const FH = 63; // hauteur du cadre de rune
+
+// Centre de chaque slot sur l'image de la roue (mesuré sur rune-wheel.png, en %).
+// 1 haut, 2 haut-droite, 3 bas-droite, 4 bas, 5 bas-gauche, 6 haut-gauche.
+const WHEEL_POS: Record<number, { left: string; top: string }> = {
+  1: { left: '49.9%', top: '23.5%' },
+  2: { left: '74.8%', top: '36.3%' },
+  3: { left: '75.1%', top: '61.7%' },
+  4: { left: '49.2%', top: '74.8%' },
+  5: { left: '24.6%', top: '61.8%' },
+  6: { left: '24.6%', top: '36.2%' },
+};
+
+// Petit décalage de position du cadre par slot (px), pour bien l'asseoir dans
+// son pétale. Le slot 1 est déjà calé. x>0 = vers la droite, y>0 = vers le bas.
+const FRAME_NUDGE: Record<number, { x: number; y: number }> = {
+  1: { x: 0, y: 0 },
+  2: { x: 3, y: 0 }, // vers la droite
+  3: { x: 2, y: 2 }, // dans le sens de sa rotation (bas-droite)
+  4: { x: 2, y: 3 }, // descend + un peu à droite
+  5: { x: -2, y: 2 }, // dans le sens de sa rotation (bas-gauche)
+  6: { x: -2, y: 1 }, // légèrement à gauche
+};
+
+// Décalage de l'icône de set vers le CENTRE de la roue (px), pour qu'elle
+// paraisse glissée dans le pétale plutôt que posée dessus. Direction = vers le
+// centre selon l'angle de chaque slot (magnitude ~8 px).
+const SET_OFFSET: Record<number, { x: number; y: number }> = {
+  1: { x: 0, y: 8 },
+  2: { x: -7, y: 4 },
+  3: { x: -7, y: -4 },
+  4: { x: 0, y: -8 },
+  5: { x: 7, y: -4 },
+  6: { x: 7, y: 4 },
+};
+
+type Selected =
+  | { kind: 'rune'; i: number }
+  | { kind: 'artifact'; i: number }
+  | { kind: 'relic' }
+  | null;
+
+// Détail d'une rune : stat principale, innée, substats.
+function RuneDetailBox({ rune }: { rune: RuneDetail }) {
+  return (
+    <div className="rounded-lg border border-border bg-panel/70 p-2.5">
+      <div className="flex items-center gap-1.5 mb-1.5">
+        <RuneIcon setKey={rune.set} size={22} className="flex-none" />
+        <span className="font-mono text-[10px] text-ink-dim">Slot {rune.slot}</span>
+        <span className="ml-auto font-mono text-[10px] font-bold text-star">+{rune.level}</span>
+      </div>
+      <div className="text-[12px] font-bold text-ink leading-tight">{formatRuneEffect(rune.main)}</div>
+      {rune.innate && (
+        <div className="text-[11px] text-amber-300/90 leading-tight">{formatRuneEffect(rune.innate)}</div>
+      )}
+      <div className="mt-1 space-y-0.5">
+        {rune.subs.map((s, i) => (
+          <div key={i} className="text-[11px] text-ink-dim leading-tight">
+            {formatRuneEffect(s)}
+            {s.grind ? <span className="text-emerald-400/70"> · meule</span> : null}
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function ArtifactDetailBox({ artifact }: { artifact: ArtifactDetail }) {
+  return (
+    <div className="rounded-lg border border-border bg-panel/70 p-2.5">
+      <div className="flex items-center gap-1.5 mb-1.5">
+        <ArtifactIcon artifact={artifact} size={22} className="flex-none" />
+        <span className="text-[12px] font-bold text-ink">{formatArtifactMain(artifact.main)}</span>
+      </div>
+      <div className="space-y-0.5">
+        {artifact.subs.map((s, j) => (
+          <div key={j} className="text-[11px] text-ink-dim leading-tight">
+            {formatArtifactSub(s)}
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function RelicDetailBox({ relic }: { relic: RelicDetail }) {
+  return (
+    <div className="rounded-lg border border-border bg-panel/70 p-2.5">
+      <div className="text-[12px] font-bold text-ink">{formatRelicMain(relic.main)}</div>
+      {relic.sub && (
+        <div className="text-[11px] text-ink-dim mt-0.5">Effet secondaire · {relic.sub.value}</div>
+      )}
+    </div>
+  );
+}
+
+interface Props {
+  gear: GearSet;
+}
+
+export default function MonsterGear({ gear }: Props) {
+  const stats = computeStats(gear);
+  const [sel, setSel] = useState<Selected>(null);
+
+  const isSel = (s: Selected) =>
+    !!sel &&
+    !!s &&
+    sel.kind === s.kind &&
+    (sel.kind === 'relic' || (s as { i: number }).i === (sel as { i: number }).i);
+  const toggle = (s: Exclude<Selected, null>) => setSel((cur) => (isSel(s) ? null : s));
+
+  return (
+    <div className="grid grid-cols-1 lg:grid-cols-[auto_minmax(0,1fr)] gap-4">
+      {/* Colonne gauche : stats (base blanche / bonus vert) */}
+      <div className="rounded-lg border border-border bg-panel/50 p-3 self-start w-fit">
+        <table className="text-[12px]">
+          <tbody>
+            {stats.map((row) => (
+              <tr key={row.key} className="border-b border-border/40 last:border-0">
+                <td className="py-1 pr-2 text-ink-dim">{row.label}</td>
+                <td className="py-1 pr-3 text-right font-mono font-semibold text-ink tabular-nums">
+                  {fmt(row.base)}
+                  {row.suffix}
+                </td>
+                <td className="py-1 text-right font-mono font-semibold text-emerald-400 tabular-nums">
+                  {row.bonus > 0 ? `+${fmt(row.bonus)}${row.suffix}` : '—'}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+
+      {/* Colonne droite : loadout (artéfacts à gauche · roue de runes · relique) */}
+      <div>
+        <div className="flex items-center justify-center gap-3 flex-wrap">
+          {/* Artéfacts empilés à gauche */}
+          {gear.artifacts.length > 0 && (
+            <div className="flex flex-col gap-2 self-center">
+              {gear.artifacts.map((a, i) => {
+                const selected = isSel({ kind: 'artifact', i });
+                return (
+                  <button
+                    key={i}
+                    onClick={() => toggle({ kind: 'artifact', i })}
+                    title="Voir l'artéfact"
+                    className="relative inline-flex items-center justify-center rounded transition"
+                    style={{ width: 58, height: 58 }}
+                  >
+                    <img
+                      src={ARTIFACT_FRAME}
+                      className={`absolute inset-0 w-full h-full transition ${
+                        selected ? 'brightness-150 drop-shadow-[0_0_6px_rgba(232,196,74,0.9)]' : ''
+                      }`}
+                      draggable={false}
+                    />
+                    <ArtifactIcon
+                      artifact={a}
+                      size={26}
+                      className="relative drop-shadow-[0_1px_2px_rgba(0,0,0,0.8)]"
+                    />
+                  </button>
+                );
+              })}
+            </div>
+          )}
+
+          {/* Roue : (1) image de la roue en fond · (2) cadre de rune tourné par slot · (3) icône de set */}
+          {gear.runes.length > 0 && (
+            <div
+              className="relative flex-none bg-no-repeat bg-center bg-contain"
+              style={{ width: WHEEL_W, height: WHEEL_H, backgroundImage: `url(${WHEEL_IMG})` }}
+            >
+              {gear.runes.map((r, i) => {
+                const pos = WHEEL_POS[r.slot] ?? { left: '50%', top: '50%' };
+                const rot = ((r.slot - 1) % 6) * 60; // cadre orienté pour le slot 1 → +60°/slot
+                const selected = isSel({ kind: 'rune', i });
+                const ancient = r.rank > 10; // runes antiques (class > 10)
+                return (
+                  <button
+                    key={i}
+                    onClick={() => toggle({ kind: 'rune', i })}
+                    title={`Slot ${r.slot}${ancient ? ' · antique' : ''} · voir le détail`}
+                    className="absolute"
+                    style={{
+                      left: pos.left,
+                      top: pos.top,
+                      width: FW,
+                      height: FH,
+                      transform: `translate(calc(-50% + ${(FRAME_NUDGE[r.slot] ?? { x: 0, y: 0 }).x}px), calc(-50% + ${
+                        (FRAME_NUDGE[r.slot] ?? { x: 0, y: 0 }).y
+                      }px))`,
+                    }}
+                  >
+                    {/* (2) cadre de rune, tourné pour épouser le slot.
+                        Runes antiques → halo blanc épousant la forme du losange (drop-shadow). */}
+                    <img
+                      src={RUNE_FRAME}
+                      draggable={false}
+                      className="absolute inset-0 w-full h-full transition"
+                      style={{
+                        transform: `rotate(${rot}deg)`,
+                        filter:
+                          [
+                            ancient
+                              ? 'drop-shadow(0 0 1px rgba(255,255,255,1)) drop-shadow(0 0 2px rgba(255,255,255,0.9))'
+                              : '',
+                            selected ? 'brightness(1.5) drop-shadow(0 0 6px rgba(245,130,20,0.95))' : '',
+                          ]
+                            .filter(Boolean)
+                            .join(' ') || undefined,
+                      }}
+                    />
+                    {/* (3) icône de set, droite, décalée vers le centre (glissée dans le pétale) */}
+                    <span
+                      className="absolute inset-0 flex items-center justify-center"
+                      style={{
+                        transform: `translate(${(SET_OFFSET[r.slot] ?? { x: 0, y: 0 }).x}px, ${
+                          (SET_OFFSET[r.slot] ?? { x: 0, y: 0 }).y
+                        }px)`,
+                      }}
+                    >
+                      <RuneIcon setKey={r.set} size={30} filter={RARITY_FILTER[r.rarity] ?? RARITY_FILTER[1]} />
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+          )}
+
+          {/* Relique à droite */}
+          {gear.relic && (
+            <button
+              onClick={() => toggle({ kind: 'relic' })}
+              title="Voir la relique"
+              className={`self-center rounded-lg border px-2.5 py-2 text-center transition ${
+                isSel({ kind: 'relic' })
+                  ? 'border-star ring-1 ring-star/50 bg-star/10'
+                  : 'border-border bg-panel/60 hover:border-[#4a52a0]'
+              }`}
+            >
+              <div className="font-mono text-[9px] uppercase tracking-[0.1em] text-ink-dim">Relique</div>
+              <div className="text-[12px] font-bold text-ink mt-0.5">{formatRelicMain(gear.relic.main)}</div>
+            </button>
+          )}
+        </div>
+
+        {/* Détail de la pièce sélectionnée */}
+        {sel && (
+          <div className="mt-3 max-w-[280px] mx-auto">
+            {sel.kind === 'rune' && gear.runes[sel.i] && <RuneDetailBox rune={gear.runes[sel.i]} />}
+            {sel.kind === 'artifact' && gear.artifacts[sel.i] && (
+              <ArtifactDetailBox artifact={gear.artifacts[sel.i]} />
+            )}
+            {sel.kind === 'relic' && gear.relic && <RelicDetailBox relic={gear.relic} />}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}

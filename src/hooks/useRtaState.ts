@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import { RtaState, RtaEntry, RTA_UNASSIGNED, RTA_OTHER, RTA_DEFAULT_SECTIONS, RUNE_SETS } from '../types';
+import { RtaState, RtaEntry, GearSet, RTA_UNASSIGNED, RTA_OTHER, RTA_DEFAULT_SECTIONS, RUNE_SETS } from '../types';
 
 const RUNE_SET_KEYS = new Set(RUNE_SETS.map((s) => s.key));
 
@@ -26,6 +26,7 @@ function load(): RtaState {
           section: typeof e.section === 'string' ? e.section : RTA_UNASSIGNED,
           runeSpeed: typeof e.runeSpeed === 'number' ? e.runeSpeed : null,
           sets: Array.isArray(e.sets) ? e.sets.filter((x): x is string => typeof x === 'string') : [],
+          gear: e.gear && typeof e.gear === 'object' ? (e.gear as GearSet) : undefined,
         };
       }
     }
@@ -44,7 +45,7 @@ export interface UseRtaState {
   addSection: (key: string) => void;
   removeSection: (key: string) => void;
   importEntries: (
-    items: { monsterId: string; runeSpeed: number | null; section?: string; sets?: string[] }[]
+    items: { monsterId: string; runeSpeed: number | null; section?: string; sets?: string[]; gear?: GearSet }[]
   ) => void;
   clearAll: () => void;
 }
@@ -125,7 +126,7 @@ export function useRtaState(): UseRtaState {
   // de runes et leurs sets. Les monstres déjà présents gardent leur section
   // (on met juste à jour vitesse + sets) pour respecter un classement manuel.
   const importEntries = useCallback(
-    (items: { monsterId: string; runeSpeed: number | null; section?: string; sets?: string[] }[]) => {
+    (items: { monsterId: string; runeSpeed: number | null; section?: string; sets?: string[]; gear?: GearSet }[]) => {
       setState((s) => {
         const sections = [...s.sections];
         const entries = { ...s.entries };
@@ -145,6 +146,7 @@ export function useRtaState(): UseRtaState {
               ...existing,
               runeSpeed: it.runeSpeed,
               sets: it.sets ?? existing.sets,
+              gear: it.gear ?? existing.gear,
             };
           } else {
             ensureSection(section);
@@ -153,6 +155,7 @@ export function useRtaState(): UseRtaState {
               section,
               runeSpeed: it.runeSpeed,
               sets: it.sets ?? [],
+              gear: it.gear,
             };
           }
         }

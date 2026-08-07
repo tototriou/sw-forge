@@ -58,6 +58,65 @@ export interface MonstersPayload {
 }
 
 /* --------------------------------------------------------------------------
+ * Équipement détaillé d'un monstre (runes / artéfacts / relique)
+ * Extrait à l'import d'un compte, propre au contexte (preset RTA ou deck de
+ * siège). Sert à afficher le détail au clic sur un monstre.
+ * ----------------------------------------------------------------------- */
+
+// Une ligne d'effet brute. `code` = type d'effet com2us (voir lib/effects.ts).
+// Pour un substat de rune, `value` inclut déjà la meule ; `grind` la rappelle.
+export interface EffectLine {
+  code: number;
+  value: number;
+  grind?: number;
+  enchant?: boolean;
+}
+
+export interface RuneDetail {
+  slot: number; // 1..6
+  set: string; // clé RUNE_SETS
+  rank: number; // classe com2us (étoiles ; > 10 = antique)
+  rarity: number; // rareté 1..5 (1 Commun, 2 Magique, 3 Rare, 4 Héroïque, 5 Légendaire)
+  level: number; // niveau d'amélioration (+X)
+  main: EffectLine;
+  innate?: EffectLine; // stat innée (prefix)
+  subs: EffectLine[]; // substats
+}
+
+export interface ArtifactDetail {
+  kind: 'element' | 'archetype';
+  element?: ElementKey; // si kind === 'element'
+  archetype?: 'attack' | 'defense' | 'hp' | 'support'; // si kind === 'archetype'
+  level: number;
+  main: EffectLine; // code 100/101/102 → PV/ATQ/DEF plat
+  subs: EffectLine[]; // effets conditionnels
+}
+
+export interface RelicDetail {
+  main: EffectLine; // code 100/101/102 → PV%/ATQ%/DEF%
+  sub?: EffectLine;
+}
+
+// Stats de base du monstre (lues sur l'unité à l'import : con×15, atk, def…).
+export interface BaseStats {
+  hp: number;
+  atk: number;
+  def: number;
+  spd: number;
+  cr: number; // taux critique
+  cd: number; // dégâts critiques
+  res: number;
+  acc: number; // précision
+}
+
+export interface GearSet {
+  base: BaseStats;
+  runes: RuneDetail[];
+  artifacts: ArtifactDetail[];
+  relic?: RelicDetail;
+}
+
+/* --------------------------------------------------------------------------
  * RTA (Real Time Arena) — préparation des builds runes
  * ----------------------------------------------------------------------- */
 
@@ -121,6 +180,7 @@ export interface RtaEntry {
   section: string; // clé de section (RTA_UNASSIGNED, RTA_OTHER, ou un set)
   runeSpeed: number | null;
   sets?: string[]; // sets de runes actifs (clés RUNE_SETS), renseignés à l'import
+  gear?: GearSet; // détail runes/artéfacts/relique (preset RTA), renseigné à l'import
 }
 
 export interface RtaState {
@@ -137,6 +197,7 @@ export interface SiegeSlot {
   runeSpeed: number | null;
   tick: number; // vitesse de combat cible pour CE monstre (0 = aucun tick)
   sets?: string[]; // sets de runes actifs (clés RUNE_SETS), renseignés à l'import
+  gear?: GearSet; // détail runes/artéfacts/relique (deck de siège), renseigné à l'import
 }
 
 export interface SiegeTeam {

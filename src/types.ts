@@ -135,12 +135,14 @@ export interface SiegeSlot {
   monsterId: string | null;
   runeSpeed: number | null;
   tick: number; // vitesse de combat cible pour CE monstre (0 = aucun tick)
+  sets?: string[]; // sets de runes actifs (clés RUNE_SETS), renseignés à l'import
 }
 
 export interface SiegeTeam {
   id: string;
   slots: SiegeSlot[]; // toujours 3 slots ; le slot 0 est le leader
   lead: number; // lead SPD du leader (0 = aucun)
+  tickAlertDismissed: boolean; // l'utilisateur a masqué l'alerte de vitesse (aura rouge)
 }
 
 export interface SiegeState {

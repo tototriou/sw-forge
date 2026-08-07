@@ -98,6 +98,7 @@ export default function SiegeBoard({
               onClearSlot={siege.clearSlot}
               onSlotRune={siege.setSlotRune}
               onSlotTick={siege.setSlotTick}
+              onDismissAlert={siege.dismissTickAlert}
               onSwap={siege.swapSlots}
             />
           ))}

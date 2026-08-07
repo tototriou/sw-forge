@@ -14,6 +14,37 @@ export const SIEGE_TICKS: { key: string; label: string; value: number }[] = [
   { key: 'slow', label: 'Lent', value: 239 },
 ];
 
+// Zone de danger d'un tick : raté de peu (juste en dessous), ou dépassé de trop
+// (overshoot = vitesse gâchée). Un tune propre = pile sur un tick, ou 0–15 au-dessus.
+export const TICK_BELOW_MARGIN = 10; // combat entre tick-10 et tick-1 → il manque peu
+export const TICK_ABOVE_MARGIN = 15; // dépasser le tick de PLUS de 15 → trop (danger)
+
+// Détecte si une vitesse de combat est mal calée par rapport aux ticks :
+//  - « below » : à ≤10 sous un tick (on l'a raté de peu),
+//  - « above » : on a franchi un tick mais on le dépasse de >15 (overshoot).
+// Renvoie le tick concerné + le sens + l'écart, ou null si le tune est propre.
+export function tickDanger(
+  combat: number | null
+): { tick: number; kind: 'below' | 'above'; diff: number } | null {
+  if (combat === null) return null;
+  const ticks = SIEGE_TICKS.map((t) => t.value).sort((a, b) => a - b);
+
+  // Raté de peu : un tick juste au-dessus, à 1..10 près.
+  for (const t of ticks) {
+    const below = t - combat;
+    if (below >= 1 && below <= TICK_BELOW_MARGIN) return { tick: t, kind: 'below', diff: below };
+  }
+
+  // Overshoot : on dépasse le tick franchi le plus haut de plus de 15.
+  const passed = ticks.filter((t) => t <= combat);
+  if (passed.length > 0) {
+    const t = passed[passed.length - 1];
+    const over = combat - t;
+    if (over > TICK_ABOVE_MARGIN) return { tick: t, kind: 'above', diff: over };
+  }
+  return null;
+}
+
 // Bonus en % appliqué à la vitesse de BASE (totem + lead), arrondi au supérieur.
 export function pctSpeedBonus(base: number, lead: number): number {
   return Math.ceil((base * (TOTEM_SPEED + lead)) / 100);

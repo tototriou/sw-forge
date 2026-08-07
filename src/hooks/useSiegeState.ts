@@ -14,11 +14,11 @@ function newId(): string {
 }
 
 function emptySlot(): SiegeSlot {
-  return { monsterId: null, runeSpeed: null, tick: 0 };
+  return { monsterId: null, runeSpeed: null, tick: 0, sets: [] };
 }
 
 function newTeam(): SiegeTeam {
-  return { id: newId(), slots: [emptySlot(), emptySlot(), emptySlot()], lead: 0 };
+  return { id: newId(), slots: [emptySlot(), emptySlot(), emptySlot()], lead: 0, tickAlertDismissed: false };
 }
 
 function load(side: SiegeSide): SiegeState {
@@ -38,12 +38,14 @@ function load(side: SiegeSide): SiegeState {
           monsterId: s && typeof s.monsterId === 'string' ? s.monsterId : null,
           runeSpeed: s && typeof s.runeSpeed === 'number' ? s.runeSpeed : null,
           tick: s && typeof s.tick === 'number' ? s.tick : legacyTick,
+          sets: s && Array.isArray(s.sets) ? s.sets.filter((x): x is string => typeof x === 'string') : [],
         };
       });
       return {
         id: typeof t?.id === 'string' ? t.id : newId(),
         slots,
         lead: typeof t?.lead === 'number' ? t.lead : 0,
+        tickAlertDismissed: (t as { tickAlertDismissed?: boolean })?.tickAlertDismissed === true,
       };
     });
     return { teams };
@@ -61,9 +63,10 @@ export interface UseSiegeState {
   setSlotRune: (teamId: string, idx: number, value: number | null) => void;
   setLead: (teamId: string, lead: number) => void;
   setSlotTick: (teamId: string, idx: number, tick: number) => void;
+  dismissTickAlert: (teamId: string, dismissed: boolean) => void;
   swapSlots: (teamId: string, from: number, to: number) => void;
   importTeams: (
-    teams: { slots: { monsterId: string | null; runeSpeed: number | null }[] }[],
+    teams: { slots: { monsterId: string | null; runeSpeed: number | null; sets?: string[]; tick?: number }[] }[],
     replace: boolean
   ) => void;
   clearAll: () => void;
@@ -92,6 +95,8 @@ export function useSiegeState(side: SiegeSide): UseSiegeState {
     (teamId: string, idx: number, fn: (sl: SiegeSlot) => SiegeSlot) => {
       updateTeam(teamId, (t) => ({
         ...t,
+        // Toute modif d'un slot réactive l'alerte (nouveau contexte à re-vérifier).
+        tickAlertDismissed: false,
         slots: t.slots.map((sl, i) => (i === idx ? fn(sl) : sl)),
       }));
     },
@@ -139,8 +144,15 @@ export function useSiegeState(side: SiegeSide): UseSiegeState {
         if (from === to) return t;
         const slots = [...t.slots];
         [slots[from], slots[to]] = [slots[to], slots[from]];
-        return { ...t, slots };
+        return { ...t, tickAlertDismissed: false, slots };
       }),
+    [updateTeam]
+  );
+
+  // Masque (ou réaffiche) l'aura d'alerte de vitesse d'une équipe.
+  const dismissTickAlert = useCallback(
+    (teamId: string, dismissed: boolean) =>
+      updateTeam(teamId, (t) => ({ ...t, tickAlertDismissed: dismissed })),
     [updateTeam]
   );
 
@@ -149,7 +161,7 @@ export function useSiegeState(side: SiegeSide): UseSiegeState {
   // existantes, sinon on ajoute à la suite.
   const importTeams = useCallback(
     (
-      teams: { slots: { monsterId: string | null; runeSpeed: number | null }[] }[],
+      teams: { slots: { monsterId: string | null; runeSpeed: number | null; sets?: string[]; tick?: number }[] }[],
       replace: boolean
     ) => {
       setState((s) => {
@@ -159,10 +171,11 @@ export function useSiegeState(side: SiegeSide): UseSiegeState {
             return {
               monsterId: sl && typeof sl.monsterId === 'string' ? sl.monsterId : null,
               runeSpeed: sl && typeof sl.runeSpeed === 'number' ? sl.runeSpeed : null,
-              tick: 0,
+              tick: sl && typeof sl.tick === 'number' ? sl.tick : 0,
+              sets: sl && Array.isArray(sl.sets) ? sl.sets : [],
             };
           });
-          return { id: newId(), slots, lead: 0 };
+          return { id: newId(), slots, lead: 0, tickAlertDismissed: false };
         });
         return { teams: replace ? built : [...s.teams, ...built] };
       });
@@ -181,6 +194,7 @@ export function useSiegeState(side: SiegeSide): UseSiegeState {
     setSlotRune,
     setLead,
     setSlotTick,
+    dismissTickAlert,
     swapSlots,
     importTeams,
     clearAll,

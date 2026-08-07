@@ -1,5 +1,5 @@
 import { useRef } from 'react';
-import { Upload, Trash2 } from 'lucide-react';
+import { Import, Trash2 } from 'lucide-react';
 
 interface Props {
   // Applique un export (RTA + siège défense + offense d'un coup).
@@ -44,7 +44,7 @@ export default function AccountImportControl({ onImport, onClearData, variant }:
             : 'flex items-center gap-1.5 rounded-lg border border-border bg-panel px-2.5 py-1.5 text-[13px] font-semibold text-ink-dim hover:text-ink hover:border-[#4a52a0] transition whitespace-nowrap'
         }
       >
-        <Upload size={isMobile ? 18 : 14} /> Importer mon compte
+        <Import size={isMobile ? 18 : 14} /> Importer un JSON
       </button>
 
       <button

@@ -74,6 +74,57 @@ function speedFromRuneIds(runeIds: any[], runeById: Map<number, any>): {
   return { flatRuneSpeed, swift: swiftCount >= 4 };
 }
 
+// set_id com2us → clé de RUNE_SETS + nombre de runes requis pour activer le set.
+const SET_ID_KEY: Record<number, string> = {
+  1: 'energy', 2: 'guard', 3: 'swift', 4: 'blade', 5: 'rage', 6: 'focus', 7: 'endure',
+  8: 'fatal', 10: 'despair', 11: 'vampire', 13: 'violent', 14: 'nemesis', 15: 'will',
+  16: 'shield', 17: 'revenge', 18: 'destroy', 19: 'fight', 20: 'determination',
+  21: 'enhance', 22: 'accuracy', 23: 'tolerance', 24: 'seal', 25: 'intangible',
+};
+const SET_PIECES: Record<number, number> = {
+  // Seuls sets 4 pièces : Swift, Rage, Fatal, Despair, Vampire, Violent.
+  // (tous les autres, dont Destroy, sont 2 pièces → valeur par défaut)
+  3: 4, 5: 4, 8: 4, 10: 4, 11: 4, 13: 4,
+};
+const RUNE_SET_INTANGIBLE = 25; // rune « joker » : complète n'importe quel set
+
+// Sets de runes ACTIFS d'un build (ex. ['swift','will']). Un set 4 pièces
+// s'active à 4 runes, les autres à 2. Une rune Intangible sert de joker et
+// complète le set le plus proche d'être plein.
+function activeSetsFromRuneIds(runeIds: any[], runeById: Map<number, any>): string[] {
+  const count = new Map<number, number>();
+  let jokers = 0; // runes Intangible disponibles
+  for (const rid of runeIds) {
+    const rune = runeById.get(Number(rid));
+    if (!rune) continue;
+    const sid = Number(rune?.set_id);
+    if (!Number.isFinite(sid)) continue;
+    if (sid === RUNE_SET_INTANGIBLE) jokers++;
+    else count.set(sid, (count.get(sid) ?? 0) + 1);
+  }
+
+  const out: string[] = [];
+  const partial: { key: string; missing: number }[] = [];
+  for (const [sid, n] of count) {
+    const key = SET_ID_KEY[sid];
+    if (!key) continue;
+    const req = SET_PIECES[sid] ?? 2;
+    for (let i = 0; i < Math.floor(n / req); i++) out.push(key);
+    const rem = n % req;
+    if (rem > 0) partial.push({ key, missing: req - rem });
+  }
+
+  // L'Intangible complète en priorité le set auquel il manque le moins.
+  partial.sort((a, b) => a.missing - b.missing);
+  for (const p of partial) {
+    if (jokers >= p.missing) {
+      out.push(p.key);
+      jokers -= p.missing;
+    }
+  }
+  return out;
+}
+
 // Aplati récursivement une structure d'ids (gère les groupes imbriqués
 // [[...],[...]]) et renvoie les nombres valides.
 function flattenIds(value: any, out: Set<number>) {
@@ -220,6 +271,7 @@ export interface SiegeImportedSlot {
   com2usId: number;
   flatRuneSpeed: number; // SPD plate des runes de ce build de siège
   swift: boolean; // set Swift complet équipé sur ce build de siège
+  sets: string[]; // sets de runes actifs (clés RUNE_SETS), ex. ['swift','will']
 }
 
 // Un deck = 3 slots ordonnés (index 0 = leader).
@@ -269,7 +321,8 @@ function buildSiegeDecks(
       if (!Number.isFinite(com2usId)) return null;
       const runeIds = def.runeIdsByUnit.get(uid) ?? [];
       const { flatRuneSpeed, swift } = speedFromRuneIds(runeIds, runeById);
-      return { com2usId, flatRuneSpeed, swift };
+      const sets = activeSetsFromRuneIds(runeIds, runeById);
+      return { com2usId, flatRuneSpeed, swift, sets };
     });
     // On ignore les decks totalement vides (jamais configurés).
     if (slots.some((s) => s !== null)) decks.push({ deckId: def.deckId, slots });

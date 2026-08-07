@@ -147,7 +147,7 @@ export default function MonsterGear({ gear }: Props) {
   const toggle = (s: Exclude<Selected, null>) => setSel((cur) => (isSel(s) ? null : s));
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-[auto_minmax(0,1fr)] gap-4">
+    <div className="flex flex-wrap items-center justify-center gap-2">
       {/* Colonne gauche : stats (base blanche / bonus vert) */}
       <div className="rounded-lg border border-border bg-panel/50 p-3 self-start w-fit">
         <table className="text-[12px]">
@@ -159,7 +159,7 @@ export default function MonsterGear({ gear }: Props) {
                   {fmt(row.base)}
                   {row.suffix}
                 </td>
-                <td className="py-1 text-right font-mono font-semibold text-emerald-400 tabular-nums">
+                <td className="py-1 text-left font-mono font-semibold text-emerald-400 tabular-nums">
                   {row.bonus > 0 ? `+${fmt(row.bonus)}${row.suffix}` : '—'}
                 </td>
               </tr>
@@ -168,12 +168,9 @@ export default function MonsterGear({ gear }: Props) {
         </table>
       </div>
 
-      {/* Colonne droite : loadout (artéfacts à gauche · roue de runes · relique) */}
-      <div>
-        <div className="flex items-center justify-center gap-3 flex-wrap">
-          {/* Artéfacts empilés à gauche */}
-          {gear.artifacts.length > 0 && (
-            <div className="flex flex-col gap-2 self-center">
+      {/* Artéfacts · roue · relique — chaque pièce passe à la ligne seulement si pas la place */}
+      {gear.artifacts.length > 0 && (
+        <div className="flex flex-col gap-1.5">
               {gear.artifacts.map((a, i) => {
                 const selected = isSel({ kind: 'artifact', i });
                 return (
@@ -270,7 +267,7 @@ export default function MonsterGear({ gear }: Props) {
             <button
               onClick={() => toggle({ kind: 'relic' })}
               title="Voir la relique"
-              className={`self-center rounded-lg border px-2.5 py-2 text-center transition ${
+              className={`rounded-lg border px-2.5 py-2 text-center transition ${
                 isSel({ kind: 'relic' })
                   ? 'border-star ring-1 ring-star/50 bg-star/10'
                   : 'border-border bg-panel/60 hover:border-[#4a52a0]'
@@ -280,11 +277,9 @@ export default function MonsterGear({ gear }: Props) {
               <div className="text-[12px] font-bold text-ink mt-0.5">{formatRelicMain(gear.relic.main)}</div>
             </button>
           )}
-        </div>
-
-        {/* Détail de la pièce sélectionnée */}
+        {/* Détail de la pièce sélectionnée, sur sa propre ligne */}
         {sel && (
-          <div className="mt-3 max-w-[280px] mx-auto">
+          <div className="w-full max-w-[280px] mx-auto">
             {sel.kind === 'rune' && gear.runes[sel.i] && <RuneDetailBox rune={gear.runes[sel.i]} />}
             {sel.kind === 'artifact' && gear.artifacts[sel.i] && (
               <ArtifactDetailBox artifact={gear.artifacts[sel.i]} />
@@ -292,7 +287,6 @@ export default function MonsterGear({ gear }: Props) {
             {sel.kind === 'relic' && gear.relic && <RelicDetailBox relic={gear.relic} />}
           </div>
         )}
-      </div>
     </div>
   );
 }

@@ -1,5 +1,5 @@
 import { useRef, useState } from 'react';
-import { Crown, X, GripVertical, Trash2, AlertTriangle, ChevronRight, ChevronDown } from 'lucide-react';
+import { Crown, X, GripVertical, Trash2, AlertTriangle, Pencil } from 'lucide-react';
 
 const SPD_ICON = `${import.meta.env.BASE_URL}stats/spd.png`; // icône vitesse du jeu (SWARFARM)
 import { Monster, SiegeTeam as SiegeTeamType, ELEMENTS, ElementKey, LeaderSkill } from '../../types';
@@ -150,23 +150,27 @@ export default function SiegeTeam({
   return (
     <section className={`rounded-2xl border p-4 transition-colors ${sectionClass}`}>
       <div className="flex items-center gap-2 mb-3 flex-wrap">
+        <h3 className="font-display text-[17px] tracking-wide">Équipe {index + 1}</h3>
+        {dotClass && <span className={`w-2 h-2 rounded-full ${dotClass}`} />}
+
         <button
           onClick={() => {
             setExpanded((e) => !e);
             setDetailIdx(null);
           }}
-          className="flex items-center gap-1.5 text-ink hover:text-ink-dim transition"
-          title={expanded ? 'Réduire' : 'Modifier les monstres'}
+          className={`ml-auto flex items-center gap-1.5 rounded-md border px-2.5 py-1 text-[12px] font-semibold transition ${
+            expanded
+              ? 'border-[#5b63b8] bg-panel2 text-ink'
+              : 'border-border bg-panel text-ink hover:border-[#4a52a0]'
+          }`}
           aria-expanded={expanded}
+          title={expanded ? "Terminer l'édition" : "Éditer l'équipe"}
         >
-          {expanded ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
-          <h3 className="font-display text-[17px] tracking-wide">Équipe {index + 1}</h3>
+          <Pencil size={13} /> {expanded ? 'Terminer' : 'Éditer'}
         </button>
-        {dotClass && <span className={`w-2 h-2 rounded-full ${dotClass}`} />}
-
         <button
           onClick={() => onRemoveTeam(team.id)}
-          className="ml-auto flex items-center gap-1.5 text-[12px] text-ink-dim hover:text-fire transition"
+          className="flex items-center gap-1.5 text-[12px] text-ink-dim hover:text-fire transition"
           title="Supprimer l'équipe"
         >
           <Trash2 size={13} /> Supprimer
@@ -226,7 +230,7 @@ export default function SiegeTeam({
         })}
       </div>
       ) : (
-        /* Vue compacte : juste les 3 monstres, clic = déplier le détail */
+        /* Vue compacte : cards des 3 monstres, clic = déplier le détail dessous */
         <div className="flex flex-col sm:flex-row gap-1.5">
           {slotInfos.map(({ monster, combat }, idx) => {
             const danger = status === 'red' ? slotDangers[idx] : null;
@@ -313,28 +317,9 @@ export default function SiegeTeam({
         </div>
       )}
 
-      {/* Détail runes/artéfacts/relique du monstre cliqué (vue compacte) */}
+      {/* Panneau de détail du monstre sélectionné (vue compacte) */}
       {!expanded && detailIdx !== null && team.slots[detailIdx]?.gear && (
         <div className="mt-2 rounded-xl border border-border bg-panel/40 p-3">
-          <div className="flex items-center gap-2 mb-2">
-            {(() => {
-              const mId = team.slots[detailIdx].monsterId;
-              const m = mId ? monsterById.get(mId) ?? null : null;
-              return (
-                <span className="text-[13px] font-semibold text-ink">
-                  {m?.name ?? 'Monstre'}
-                </span>
-              );
-            })()}
-            <button
-              onClick={() => setDetailIdx(null)}
-              className="ml-auto text-ink-dim hover:text-fire transition"
-              title="Fermer le détail"
-              aria-label="Fermer"
-            >
-              <X size={14} />
-            </button>
-          </div>
           <MonsterGear gear={team.slots[detailIdx].gear!} />
         </div>
       )}

@@ -147,6 +147,11 @@ Dans [applyAccount.ts](src/lib/applyAccount.ts), réutilisé par `importAccount`
   vide + compteur `missing`.
 - **SPD runes** (les deux) = `flatRuneSpeed + (swift ? round(base × 25 / 100) : 0)`
   (Swift ajouté car on part des runes brutes).
+- **Sets de runes** (`slot.sets`) : extraits des runes du deck
+  (`activeSetsFromRuneIds`) — sets 4 pièces (**Swift, Rage, Fatal, Despair,
+  Vampire, Violent**) actifs à 4 runes, tous les autres (dont **Destroy**) à 2.
+  Une rune **Intangible** joue le joker et complète le set le plus proche d'être
+  plein. Affichés en icônes dans la vue compacte du siège.
 
 Puis `importAccount` applique : `rta.importEntries` (après `clearAll` si remplace),
 `siegeDef.importTeams(_, replace)`, `siegeOff.importTeams(_, replace)`. `lead`/`tick`

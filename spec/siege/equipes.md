@@ -8,11 +8,26 @@ Fichiers : [SiegeTeam.tsx](src/components/siege/SiegeTeam.tsx) ·
 
 ## Structure d'une équipe
 
-- En-tête : « Équipe N » + **Supprimer** (retire l'équipe).
-- **3 slots** en ligne (`grid`, 1 col mobile / 3 cols ≥ sm). **Slot 0 = Leader**
-  (couronne `Crown` + libellé « Leader »).
+- En-tête : **chevron déplier/replier** + « Équipe N » + (point rouge si alerte
+  vitesse) + **Supprimer**.
+- **Repliée par défaut** (vue compacte). État `expanded` local au composant.
+
+### Vue compacte (repliée)
+Une ligne par équipe, très basse : les **3 monstres** côte à côte, chacun =
+portrait hexagonal + **icône d'élément** + (couronne si leader) · à droite le
+**nom**, une rangée d'**icônes de sets de runes** (`RuneIcon`) et la **vitesse de
+combat**. Cliquer un monstre (ou le chevron) **déplie** le détail. Les slots en
+danger (voir [speed-tick.md](speed-tick.md)) ont un anneau rouge et la vitesse en
+rouge. Idéale avec beaucoup d'équipes (import offense ~50).
+
+### Vue détaillée (dépliée)
+- **3 slots** (`grid`, 1 col mobile / 3 cols ≥ sm). **Slot 0 = Leader** (couronne).
 - Dans **chaque slot** : **boutons de tick** propres au monstre (voir
   [speed-tick.md](speed-tick.md)).
+
+> Les **sets de runes** (`slot.sets`, clés `RUNE_SETS`) sont renseignés à
+> **l'import** de compte (extraits des runes du deck) ; vides pour un monstre
+> ajouté à la main. Voir [../shared/import-compte.md](../shared/import-compte.md).
 
 ## Slot vide
 

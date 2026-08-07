@@ -35,11 +35,47 @@ combat = base + runes + ceil( base × (15 + lead) / 100 )
 - Boutons dans **chaque slot** : **Off**, **Rapide 286**, **Lent 239**
   (`SIEGE_TICKS`). Un tick **par monstre** (`slot.tick`, 0 = Off), pas par équipe
   → on peut viser 2 monstres en tick rapide et 1 en tick lent dans la même équipe.
+- **Par défaut à l'import** : chaque monstre reçoit le **tick le plus proche** de sa
+  vitesse de combat (`nearestTick` dans [applyAccount.ts](src/lib/applyAccount.ts)),
+  **sauf** si l'équipe contient **au moins un Swift** (équipe speed → pas de tick)
+  ou **Leo** → tick 0. Un monstre ajouté à la main démarre à Off.
 - **But : informer**, pas modifier. Le tick ne change aucune vitesse ; il sert de
   cible pour le retour manque/surplus de **ce** monstre.
 - Réglé via `setSlotTick(teamId, idx, tick)` ([useSiegeState.ts](src/hooks/useSiegeState.ts)).
 - Migration : l'ancien tick d'équipe est repris comme tick par défaut de chaque
   slot au chargement.
+
+## Aura de statut automatique (au tick / à corriger)
+
+Détection « mal calé sur un tick » par monstre, via `tickDanger(combat)`
+([speed.ts](src/lib/speed.ts)) :
+
+- **« below »** : combat à **1–10 sous** un tick (raté de peu). Ex. 278 → 8 sous 286.
+- **« above »** : combat qui **dépasse de plus de 15** le tick franchi le plus haut
+  (overshoot / dead-zone). Ex. 302 → 16 au-dessus de 286 ; 260 → 21 au-dessus de 239.
+- Tune propre = **pile sur un tick ou 0–15 au-dessus**, ou volontairement **sous
+  tous les ticks** → pas d'alerte.
+
+Chaque équipe a un **statut coloré** (aura = bordure + halo, + point dans l'en-tête) :
+
+**Tous les sets doivent viser un tick, SAUF si l'équipe contient au moins un
+Swift** (équipe speed) — dans ce cas toute l'équipe est exemptée (orange). Statut
+par équipe (aura = bordure + halo, + point dans l'en-tête) :
+
+| Statut | Couleur | Condition | Message sous les monstres |
+|--------|---------|-----------|---------------------------|
+| Orange | `amber` | Équipe avec **≥1 Swift** (pas de tick à viser) | « Vérifier le speed tuning » |
+| Rouge | `fire` | (Sans Swift) un monstre **pas au tick** (anneau rouge sur le slot fautif) | « Ton équipe n'est pas au tick. » |
+| Vert | `emerald` | (Sans Swift) **tous au tick**, **ou** équipe validée | — |
+| — | neutre | Équipe vide **ou avec Leo** | — |
+
+**Bouton « Valider l'équipe »** (sur orange/rouge) → `dismissTickAlert(teamId, true)` :
+l'équipe passe au **vert** (validée, `SiegeTeam.tickAlertDismissed`). Validation
+**réinitialisée automatiquement** dès qu'un slot change (rune, monstre, position…).
+Une équipe validée affiche un lien « ✓ validée · annuler ».
+
+Sets déterminés depuis `slot.sets` (renseigné à l'import).
+Marges : `TICK_BELOW_MARGIN = 10`, `TICK_ABOVE_MARGIN = 15`.
 
 ### Retour par slot (si le tick du slot est actif)
 `diff = combat − slot.tick` :

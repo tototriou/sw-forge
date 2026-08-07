@@ -43,8 +43,8 @@ d'attaque sauvegardées).
 ## Modèle d'état
 
 ```ts
-interface SiegeSlot { monsterId: string | null; runeSpeed: number | null; tick: number }
-interface SiegeTeam { id: string; slots: SiegeSlot[]; lead: number }
+interface SiegeSlot { monsterId: string | null; runeSpeed: number | null; tick: number; sets?: string[] }
+interface SiegeTeam { id: string; slots: SiegeSlot[]; lead: number; tickAlertDismissed: boolean }
 interface SiegeState { teams: SiegeTeam[] }
 ```
 

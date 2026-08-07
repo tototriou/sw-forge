@@ -10,6 +10,7 @@ import {
   RARITY_META,
   SET_BONUS,
   RUNE_EFFECT,
+  runeEfficiency,
 } from '../lib/effects';
 import RuneIcon from './RuneIcon';
 import ArtifactIcon from './ArtifactIcon';
@@ -106,15 +107,18 @@ function RuneDetailBox({ rune }: { rune: RuneDetail }) {
   const ancient = rune.rank > 10;
   return (
     <div className="rounded-lg border border-[#6d5a37] bg-gradient-to-b from-[#2a2417] to-[#191510] p-3">
-      {/* badge de rareté (marque « A » antique intégrée dans la bannière) */}
-      <div className="flex mb-1.5">
+      {/* badge de rareté (marque « A » antique intégrée) + efficience dessous */}
+      <div className="flex flex-col items-end mb-1.5">
         <span
-          className="ml-auto inline-flex items-center gap-1 rounded px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide border"
-          style={{ background: rarity.bg, color: rarity.color, borderColor: rarity.color }}
+          className="inline-flex items-center gap-1 rounded px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide"
+          style={{ background: rarity.bg, color: rarity.color }}
           title={ancient ? 'Rune antique' : undefined}
         >
           {ancient && <AncientMark size={12} color={rarity.color} />}
           {rarity.label}
+        </span>
+        <span className="mt-0.5 font-mono text-[11px] text-ink-dim">
+          Efficience <b className="text-star">{runeEfficiency(rune).toFixed(1)}%</b>
         </span>
       </div>
       {/* stat principale + innée */}
@@ -180,8 +184,8 @@ function ArtifactDetailBox({ artifact }: { artifact: ArtifactDetail }) {
       {/* badge de rareté */}
       <div className="flex mb-1.5">
         <span
-          className="ml-auto rounded px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide border"
-          style={{ background: rarity.bg, color: rarity.color, borderColor: rarity.color }}
+          className="ml-auto rounded px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide"
+          style={{ background: rarity.bg, color: rarity.color }}
         >
           {rarity.label}
         </span>

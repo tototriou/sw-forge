@@ -1,7 +1,7 @@
 // Mapping des codes d'effets com2us (runes, artéfacts, reliques) → libellés.
 // Aligné sur sw-exporter (app/mapping.js) et vérifié sur des exports réels.
 
-import { EffectLine } from '../types';
+import { EffectLine, RuneDetail } from '../types';
 
 export type StatKey = 'hp' | 'atk' | 'def' | 'spd' | 'cr' | 'cd' | 'res' | 'acc';
 
@@ -131,6 +131,33 @@ export const SET_BONUS: Record<string, { pieces: number; label: string }> = {
   seal: { pieces: 2, label: "Réduit les PV max de l'ennemi vaincu" },
   intangible: { pieces: 1, label: 'Joker (complète un set)' },
 };
+
+// Valeurs max (rune 6★, non antique) — pour l'efficience. Source sw-exporter.
+export const MAINSTAT_MAX: Record<number, number> = {
+  1: 2448, 2: 63, 3: 160, 4: 63, 5: 160, 6: 63, 8: 42, 9: 58, 10: 80, 11: 64, 12: 64,
+};
+// N.B. substats plats (PV/ATQ/DEF) : max « doublés » façon scoringsw
+// (PV 3750, ATQ/DEF 200) → cohérent avec les efficiences observées.
+export const SUBSTAT_MAX: Record<number, number> = {
+  1: 3750, 2: 40, 3: 200, 4: 40, 5: 200, 6: 40, 8: 30, 9: 30, 10: 35, 11: 40, 12: 40,
+};
+
+// Efficience d'une rune (%) : (main plafonné à 1 + Σ substats/max + innée/max) / 2.8.
+// Meule incluse (déjà dans value). Max non antiques → antiques > 100%.
+export function runeEfficiency(rune: RuneDetail): number {
+  let ratio = 0;
+  const mm = MAINSTAT_MAX[rune.main.code];
+  if (mm) ratio += Math.min(rune.main.value / mm, 1);
+  for (const s of rune.subs) {
+    const m = SUBSTAT_MAX[s.code];
+    if (m) ratio += s.value / m;
+  }
+  if (rune.innate) {
+    const m = SUBSTAT_MAX[rune.innate.code];
+    if (m) ratio += rune.innate.value / m;
+  }
+  return (ratio / 2.8) * 100;
+}
 
 // Affichage d'un effet de rune (« ATQ +160 », « VIT +23 », « Dmg Crit +7% »).
 export function formatRuneEffect(e: EffectLine): string {

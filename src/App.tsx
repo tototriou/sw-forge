@@ -1,10 +1,11 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Swords, BookOpen, Home, Castle, Trophy, Menu, X, Calculator, Library, ChevronDown } from 'lucide-react';
+import { Swords, BookOpen, Home, Castle, Trophy, Menu, X, Calculator, Library, ChevronDown, Boxes } from 'lucide-react';
 import HomePage from './pages/HomePage';
 import BestiaryPage from './pages/BestiaryPage';
 import RtaPage from './pages/RtaPage';
 import SiegePage from './pages/SiegePage';
 import MechanicsPage from './pages/MechanicsPage';
+import AccountPage from './pages/AccountPage';
 import ComingSoon from './pages/ComingSoon';
 import AccountImportControl from './components/AccountImportControl';
 import { Monster } from './types';
@@ -12,10 +13,10 @@ import { useMonsters } from './hooks/useMonsters';
 import { useCustomMonsters } from './hooks/useCustomMonsters';
 import { useRtaState } from './hooks/useRtaState';
 import { useSiegeState, SiegeSide } from './hooks/useSiegeState';
-import { parseAccountJson, parseSiegeDefense, parseSiegeOffense } from './lib/importAccount';
-import { mapRtaItems, mapSiegeTeams } from './lib/applyAccount';
+import { parseAccountJson, parseSiegeDefense, parseSiegeOffense, parseAccountBox } from './lib/importAccount';
+import { mapRtaItems, mapSiegeTeams, mapBoxMonsters, BoxItem } from './lib/applyAccount';
 
-type Route = 'home' | 'bestiary' | 'rta' | 'siege' | 'arene' | 'mecaniques';
+type Route = 'home' | 'bestiary' | 'rta' | 'siege' | 'arene' | 'mecaniques' | 'compte';
 
 // Route + sous-route de siège (offense/défense) déduites du hash.
 function parseHash(): { route: Route; siegeSide: SiegeSide } {
@@ -23,6 +24,7 @@ function parseHash(): { route: Route; siegeSide: SiegeSide } {
   if (h === 'rta') return { route: 'rta', siegeSide: 'defense' };
   if (h === 'bestiary') return { route: 'bestiary', siegeSide: 'defense' };
   if (h === 'arene') return { route: 'arene', siegeSide: 'defense' };
+  if (h === 'compte') return { route: 'compte', siegeSide: 'defense' };
   if (h === 'mecaniques') return { route: 'mecaniques', siegeSide: 'defense' };
   if (h === 'siege' || h.startsWith('siege/')) {
     return { route: 'siege', siegeSide: h === 'siege/offense' ? 'offense' : 'defense' };
@@ -38,6 +40,7 @@ const NAV: NavItem[] = [
   { key: 'rta', label: 'RTA', icon: Swords, hash: '#/rta' },
   { key: 'siege', label: 'Siège', icon: Castle, hash: '#/siege/defense' },
   { key: 'arene', label: 'Arène', icon: Trophy, hash: '#/arene' },
+  { key: 'compte', label: 'Mon compte', icon: Boxes, hash: '#/compte' },
 ];
 
 // Regroupées sous « Ressources ».
@@ -55,6 +58,9 @@ export default function App() {
   const rta = useRtaState();
   const siegeDef = useSiegeState('defense');
   const siegeOff = useSiegeState('offense');
+
+  // Box de compte : en mémoire uniquement (ré-import à chaque session).
+  const [box, setBox] = useState<BoxItem[]>([]);
 
   const [{ route, siegeSide }, setNav] = useState(parseHash);
   const [menuOpen, setMenuOpen] = useState(false);
@@ -82,15 +88,23 @@ export default function App() {
     const rtaRes = parseAccountJson(text);
     const defRes = parseSiegeDefense(text);
     const offRes = parseSiegeOffense(text);
+    const boxRes = parseAccountBox(text);
 
     const rtaItems = rtaRes.units ? mapRtaItems(rtaRes.units, monsterByCom2us) : [];
     const def = mapSiegeTeams(defRes.decks ?? [], monsterByCom2us);
     const off = mapSiegeTeams(offRes.decks ?? [], monsterByCom2us);
+    const boxItems = mapBoxMonsters(boxRes.monsters ?? [], monsterByCom2us);
 
-    if (rtaItems.length === 0 && def.teams.length === 0 && off.teams.length === 0) {
+    if (
+      rtaItems.length === 0 &&
+      def.teams.length === 0 &&
+      off.teams.length === 0 &&
+      boxItems.length === 0
+    ) {
       setImportMsg({
         ok: false,
-        text: rtaRes.error || defRes.error || offRes.error || 'Rien à importer depuis ce fichier.',
+        text:
+          rtaRes.error || defRes.error || offRes.error || boxRes.error || 'Rien à importer depuis ce fichier.',
       });
       return;
     }
@@ -115,8 +129,11 @@ export default function App() {
     }
     if (def.teams.length) siegeDef.importTeams(def.teams, replace);
     if (off.teams.length) siegeOff.importTeams(off.teams, replace);
+    // La box est en mémoire : on la remplace toujours par le dernier import.
+    setBox(boxItems);
 
     const parts: string[] = [];
+    if (boxItems.length) parts.push(`${boxItems.length} monstres 6★`);
     if (rtaItems.length) parts.push(`${rtaItems.length} monstres RTA`);
     if (def.teams.length) parts.push(`${def.teams.length} défenses`);
     if (off.teams.length) parts.push(`${off.teams.length} attaques`);
@@ -350,6 +367,8 @@ export default function App() {
             icon={Trophy}
             description="Préparation des équipes d'arène classique (offense et défense)."
           />
+        ) : route === 'compte' ? (
+          <AccountPage box={box} loadState={data.loadState} />
         ) : route === 'mecaniques' ? (
           <MechanicsPage />
         ) : (

@@ -24,7 +24,9 @@ export interface Monster {
   com2usId: number | null; // identifiant com2us (= unit_master_id dans les exports SWEX)
   name: string;
   element: ElementKey;
-  stars: number | null;
+  stars: number | null; // grade obtenable (base_stars) — utilisé par le Bestiaire
+  naturalStars: number | null; // rareté naturelle réelle (nat 1..5)
+  secondAwaken: boolean; // monstre à second éveil (double éveil / 2A)
   image: string | null;
   stats: MonsterStats;
   leaderSkill: LeaderSkill | null;

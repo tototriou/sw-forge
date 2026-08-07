@@ -70,13 +70,19 @@ function normalizeLeaderSkill(raw) {
 }
 
 function normalizeMonster(raw, idx) {
+  // `stars` = grade obtenable (base_stars) — conservé tel quel pour le Bestiaire.
   const stars = raw.base_stars ?? raw.natural_stars ?? raw.stars ?? raw.grade ?? null;
+  // `naturalStars` = rareté naturelle réelle (nat 1..5), distincte de base_stars
+  // pour les monstres à second éveil (ex. Tractor nat3 → base_stars 6).
+  const natural = raw.natural_stars ?? raw.base_stars ?? null;
   return {
     id: raw.id ?? raw.com2us_id ?? idx,
     com2usId: num(raw.com2us_id),
     name: raw.name ?? raw.title ?? 'Inconnu',
     element: normalizeElement(raw.element),
     stars: typeof stars === 'number' ? stars : null,
+    naturalStars: typeof natural === 'number' ? natural : null,
+    secondAwaken: Number(raw.awaken_level) >= 2, // 2ᵉ éveil (double éveil)
     image: buildImageUrl(raw),
     stats: normalizeStats(raw),
     leaderSkill: normalizeLeaderSkill(raw),
@@ -129,6 +135,8 @@ function buildDemoData() {
           name: `${demoNames[(id + star) % demoNames.length]} ${star}★`,
           element: el,
           stars: star,
+          naturalStars: star,
+          secondAwaken: false,
           image: null,
           leaderSkill: demoLeads[id % demoLeads.length],
           stats: {

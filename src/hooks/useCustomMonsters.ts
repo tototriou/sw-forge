@@ -27,6 +27,8 @@ function makeMonster(
     name: name.trim() || 'Monstre perso',
     element,
     stars: null,
+    naturalStars: null,
+    secondAwaken: false,
     image: null,
     stats: {
       hp: null,

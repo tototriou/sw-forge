@@ -406,6 +406,61 @@ export function parseAccountJson(text: string): ParseResult {
 }
 
 /* --------------------------------------------------------------------------
+ * Import BOX de monstres (section « Mon compte »)
+ * Tous les monstres montés 6★ possédés, avec leur équipement actuellement
+ * équipé (runes / artéfacts / relique embarqués dans l'unité).
+ * ----------------------------------------------------------------------- */
+
+export interface BoxMonster {
+  unitId: number;
+  com2usId: number;
+  stars: number; // grade actuel (class) — filtré à 6
+  level: number; // niveau de l'unité
+  gear?: GearSet; // détail des runes/artéfacts/relique actuellement équipés
+}
+
+export interface BoxParseResult {
+  monsters: BoxMonster[];
+  error?: string;
+}
+
+// Extrait toute la box 6★. L'équipement vient de l'unité elle-même (runes et
+// artéfacts embarqués) : c'est le build actuellement équipé en jeu.
+export function parseAccountBox(text: string): BoxParseResult {
+  let data: any;
+  try {
+    data = JSON.parse(text);
+  } catch {
+    return { monsters: [], error: 'Fichier JSON illisible.' };
+  }
+  const unitList = data?.unit_list;
+  if (!Array.isArray(unitList)) {
+    return {
+      monsters: [],
+      error: "Ce fichier ne contient pas de 'unit_list' — un export de compte SWEX est attendu.",
+    };
+  }
+
+  const runeById = indexRunes(data);
+  const monsters: BoxMonster[] = [];
+  for (const u of unitList) {
+    if (Number(u?.class) !== 6) continue; // seuls les monstres montés 6★
+    const com2usId = Number(u?.unit_master_id);
+    const unitId = Number(u?.unit_id);
+    if (!Number.isFinite(com2usId)) continue;
+    const runeIds = Array.isArray(u?.runes) ? u.runes.map((r: any) => r?.rune_id) : [];
+    const artifactObjs = Array.isArray(u?.artifacts) ? u.artifacts : [];
+    const gear = buildGear(u, runeIds, artifactObjs, runeById);
+    monsters.push({ unitId, com2usId, stars: 6, level: Number(u?.unit_level) || 0, gear });
+  }
+
+  if (monsters.length === 0) {
+    return { monsters: [], error: 'Aucun monstre monté 6★ trouvé dans ce fichier.' };
+  }
+  return { monsters };
+}
+
+/* --------------------------------------------------------------------------
  * Import ÉQUIPES DE SIÈGE (combat de guilde) — défense & offense
  *
  * Les deux côtés partagent la même forme : des decks de 3 monstres (index 0 =

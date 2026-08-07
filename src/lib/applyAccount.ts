@@ -3,7 +3,7 @@
 // global (App) pour alimenter toutes les pages d'un coup.
 
 import { GearSet, Monster, RTA_OTHER, RTA_UNASSIGNED } from '../types';
-import { ImportedUnit, SiegeImportedDeck } from './importAccount';
+import { BoxMonster, ImportedUnit, SiegeImportedDeck } from './importAccount';
 import { SIEGE_TICKS, combatSpeed, siegeLeadFor, speedLeadOf } from './speed';
 
 // Set principal pour pré-classer un monstre en RTA (4 pièces prioritaires).
@@ -60,6 +60,27 @@ export function mapRtaItems(
     // Build incomplet (< 6 runes) → on laisse en « Non classé ».
     section: v.runeCount >= 6 ? primarySection(v.sets) : RTA_UNASSIGNED,
   }));
+}
+
+// Un monstre de la box, résolu vers son Monster (nom/image/élément) + gear.
+export interface BoxItem {
+  key: string; // unique (unitId) pour le rendu
+  monster: Monster;
+  stars: number;
+  level: number;
+  gear?: GearSet;
+}
+
+// Box importée → liste de monstres affichables (on ignore ceux dont le
+// com2usId n'est pas dans les données de monstres chargées).
+export function mapBoxMonsters(box: BoxMonster[], byCom2us: Map<number, Monster>): BoxItem[] {
+  const out: BoxItem[] = [];
+  for (const b of box) {
+    const monster = byCom2us.get(b.com2usId);
+    if (!monster) continue;
+    out.push({ key: String(b.unitId), monster, stars: b.stars, level: b.level, gear: b.gear });
+  }
+  return out;
 }
 
 // Decks de siège → équipes { slots }. `missing` = monstres non trouvés (slots laissés vides).

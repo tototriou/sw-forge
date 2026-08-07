@@ -95,6 +95,43 @@ export const RELIC_MAIN: Record<number, { label: string; stat: StatKey }> = {
   102: { label: 'DEF%', stat: 'def' },
 };
 
+// Rareté → libellé + couleur du texte/bordure (vive) + fond (dégradé sombre),
+// façon bannière du jeu (ex. Légendaire = orange sur bordeaux).
+export const RARITY_META: Record<number, { label: string; color: string; bg: string }> = {
+  5: { label: 'Légendaire', color: '#f8b24a', bg: 'linear-gradient(180deg,#7a2a1c,#431310)' },
+  4: { label: 'Héroïque', color: '#c88cff', bg: 'linear-gradient(180deg,#3f2270,#241145)' },
+  3: { label: 'Rare', color: '#7cf0a6', bg: 'linear-gradient(180deg,#1f5a39,#0f3121)' },
+  2: { label: 'Magique', color: '#8fd4ff', bg: 'linear-gradient(180deg,#1f4a72,#0f2942)' },
+  1: { label: 'Commun', color: '#e6e6e6', bg: 'linear-gradient(180deg,#4a4a4a,#2a2a2a)' },
+};
+
+// Bonus de set (nombre de pièces + effet), pour la ligne « X Set : … ».
+export const SET_BONUS: Record<string, { pieces: number; label: string }> = {
+  swift: { pieces: 4, label: 'VIT +25%' },
+  violent: { pieces: 4, label: 'Chance de tour supplémentaire 22%' },
+  despair: { pieces: 4, label: "Chance d'étourdissement 25%" },
+  rage: { pieces: 4, label: 'Dégâts critiques +40%' },
+  fatal: { pieces: 4, label: 'ATQ +35%' },
+  vampire: { pieces: 4, label: 'Vol de vie 35%' },
+  energy: { pieces: 2, label: 'PV +15%' },
+  guard: { pieces: 2, label: 'DEF +15%' },
+  blade: { pieces: 2, label: 'Taux critique +12%' },
+  focus: { pieces: 2, label: 'Précision +20%' },
+  endure: { pieces: 2, label: 'Résistance +20%' },
+  will: { pieces: 2, label: 'Immunité 1 tour' },
+  nemesis: { pieces: 2, label: "Barre d'action +4% par 7% de PV perdus" },
+  shield: { pieces: 2, label: 'Bouclier 3 tours (15% PV)' },
+  revenge: { pieces: 2, label: 'Chance de contre-attaque +15%' },
+  destroy: { pieces: 2, label: 'Détruit 4% des PV max ennemi' },
+  fight: { pieces: 2, label: 'ATQ alliés +8%' },
+  determination: { pieces: 2, label: 'DEF alliés +8%' },
+  enhance: { pieces: 2, label: 'PV alliés +8%' },
+  accuracy: { pieces: 2, label: 'Précision alliés +10%' },
+  tolerance: { pieces: 2, label: 'Résistance alliés +10%' },
+  seal: { pieces: 2, label: "Réduit les PV max de l'ennemi vaincu" },
+  intangible: { pieces: 1, label: 'Joker (complète un set)' },
+};
+
 // Affichage d'un effet de rune (« ATQ +160 », « VIT +23 », « Dmg Crit +7% »).
 export function formatRuneEffect(e: EffectLine): string {
   const def = RUNE_EFFECT[e.code];

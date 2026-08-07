@@ -88,6 +88,7 @@ export interface ArtifactDetail {
   element?: ElementKey; // si kind === 'element'
   archetype?: 'attack' | 'defense' | 'hp' | 'support'; // si kind === 'archetype'
   level: number;
+  rarity: number; // rareté 1..5
   main: EffectLine; // code 100/101/102 → PV/ATQ/DEF plat
   subs: EffectLine[]; // effets conditionnels
 }

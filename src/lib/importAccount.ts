@@ -186,16 +186,21 @@ function runeToDetail(rune: any): RuneDetail {
 
 function artifactToDetail(a: any): ArtifactDetail {
   const main = effLine(a?.pri_effect) ?? { code: 0, value: 0 };
+  // sec_effect = [type, value, i2, i3, i4]. Le substat « rollé » (amélioré/
+  // converti) est celui dont i4 > 0.
   const subs: EffectLine[] = Array.isArray(a?.sec_effects)
     ? a.sec_effects
         .filter((e: any) => Number(e?.[0]))
-        .map((e: any) => ({ code: Number(e[0]), value: Number(e[1]) || 0 }))
+        .map((e: any) => ({ code: Number(e[0]), value: Number(e[1]) || 0, enchant: Number(e[4]) > 0 }))
     : [];
   const level = Number(a?.level) || 0;
+  // Rareté = natural_rank (le champ `rank` vaut toujours 5, inutilisable).
+  const rr = Number(a?.natural_rank) || 0;
+  const rarity = rr > 10 ? rr - 10 : rr;
   if (Number(a?.type) === 1) {
-    return { kind: 'element', element: ELEMENT_BY_ATTR[Number(a?.attribute)] ?? 'unknown', level, main, subs };
+    return { kind: 'element', element: ELEMENT_BY_ATTR[Number(a?.attribute)] ?? 'unknown', level, rarity, main, subs };
   }
-  return { kind: 'archetype', archetype: ARCHETYPE_BY_STYLE[Number(a?.unit_style)], level, main, subs };
+  return { kind: 'archetype', archetype: ARCHETYPE_BY_STYLE[Number(a?.unit_style)], level, rarity, main, subs };
 }
 
 function relicToDetail(r: any): RelicDetail | undefined {

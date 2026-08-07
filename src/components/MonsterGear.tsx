@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { RotateCw } from 'lucide-react';
 import { ArtifactDetail, GearSet, RelicDetail, RuneDetail } from '../types';
 import { computeStats } from '../lib/stats';
 import {
@@ -6,6 +7,9 @@ import {
   formatArtifactMain,
   formatArtifactSub,
   formatRelicMain,
+  RARITY_META,
+  SET_BONUS,
+  RUNE_EFFECT,
 } from '../lib/effects';
 import RuneIcon from './RuneIcon';
 import ArtifactIcon from './ArtifactIcon';
@@ -77,44 +81,125 @@ type Selected =
   | { kind: 'relic' }
   | null;
 
-// Détail d'une rune : stat principale, innée, substats.
-function RuneDetailBox({ rune }: { rune: RuneDetail }) {
+// Marque « Antique » : A droit, pieds plats, barre centrale = triangle plein
+// qui ne touche pas les bords. Intégrée dans la bannière de rareté.
+function AncientMark({ size = 12, color = 'currentColor' }: { size?: number; color?: string }) {
   return (
-    <div className="rounded-lg border border-border bg-panel/70 p-2.5">
-      <div className="flex items-center gap-1.5 mb-1.5">
-        <RuneIcon setKey={rune.set} size={22} className="flex-none" />
-        <span className="font-mono text-[10px] text-ink-dim">Slot {rune.slot}</span>
-        <span className="ml-auto font-mono text-[10px] font-bold text-star">+{rune.level}</span>
+    <svg viewBox="0 0 24 24" width={size} height={size} className="flex-none" aria-hidden="true">
+      <g stroke={color} strokeWidth="2.2" strokeLinecap="butt" strokeLinejoin="miter" fill="none">
+        <path d="M12 3.5 L4.5 20.5" />
+        <path d="M12 3.5 L19.5 20.5" />
+        <path d="M8 14.5 H16" />
+        <path d="M2.6 20.5 H7" />
+        <path d="M17 20.5 H21.4" />
+      </g>
+      {/* triangle plein central, détaché des bords */}
+      <path d="M12 8.8 L14.4 13.4 L9.6 13.4 Z" fill={color} />
+    </svg>
+  );
+}
+
+// Détail d'une rune, façon jeu : stat principale (gros), innée, substats, set.
+function RuneDetailBox({ rune }: { rune: RuneDetail }) {
+  const rarity = RARITY_META[rune.rarity] ?? RARITY_META[1];
+  const bonus = SET_BONUS[rune.set];
+  const ancient = rune.rank > 10;
+  return (
+    <div className="rounded-lg border border-[#6d5a37] bg-gradient-to-b from-[#2a2417] to-[#191510] p-3">
+      {/* badge de rareté (marque « A » antique intégrée dans la bannière) */}
+      <div className="flex mb-1.5">
+        <span
+          className="ml-auto inline-flex items-center gap-1 rounded px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide border"
+          style={{ background: rarity.bg, color: rarity.color, borderColor: rarity.color }}
+          title={ancient ? 'Rune antique' : undefined}
+        >
+          {ancient && <AncientMark size={12} color={rarity.color} />}
+          {rarity.label}
+        </span>
       </div>
-      <div className="text-[12px] font-bold text-ink leading-tight">{formatRuneEffect(rune.main)}</div>
+      {/* stat principale + innée */}
+      <div className="text-[15px] font-black text-ink leading-tight">{formatRuneEffect(rune.main)}</div>
       {rune.innate && (
-        <div className="text-[11px] text-amber-300/90 leading-tight">{formatRuneEffect(rune.innate)}</div>
+        <div className="text-[13px] font-semibold text-sky-300 leading-tight">
+          {formatRuneEffect(rune.innate)}
+        </div>
       )}
-      <div className="mt-1 space-y-0.5">
-        {rune.subs.map((s, i) => (
-          <div key={i} className="text-[11px] text-ink-dim leading-tight">
-            {formatRuneEffect(s)}
-            {s.grind ? <span className="text-emerald-400/70"> · meule</span> : null}
-          </div>
-        ))}
+      {/* substats : base (blanc) + meule (orange) + ↻ si gemme */}
+      <div className="mt-2 pt-2 border-t border-border/40 space-y-1">
+        {rune.subs.map((s, i) => {
+          const def = RUNE_EFFECT[s.code];
+          const label = def ? (def.label.endsWith('%') ? def.label.slice(0, -1) : def.label) : `#${s.code}`;
+          const suffix = def?.suffix ?? '';
+          const grind = s.grind ?? 0;
+          const base = s.value - grind;
+          return (
+            <div key={i} className="flex items-center gap-1 text-[12.5px] leading-tight">
+              <span className="text-ink">
+                {label} {base}
+                {suffix}
+              </span>
+              {grind > 0 && (
+                <span className="text-orange-400 font-semibold">
+                  +{grind}
+                  {suffix}
+                </span>
+              )}
+              {s.enchant && <RotateCw size={11} className="text-orange-400" />}
+            </div>
+          );
+        })}
       </div>
+      {/* bonus de set */}
+      {bonus && (
+        <div className="mt-2 pt-2 border-t border-border/40 text-[12px] text-emerald-300">
+          {bonus.pieces} Set : {bonus.label}
+        </div>
+      )}
     </div>
   );
 }
 
+// Libellé du type d'artéfact (élément ou archétype), pour la ligne du bas.
+const ELEMENT_FR: Record<string, string> = {
+  fire: 'Feu', water: 'Eau', wind: 'Vent', light: 'Lumière', dark: 'Ténèbres', unknown: '—',
+};
+const ARCHETYPE_FR: Record<string, string> = {
+  attack: 'Attaque', defense: 'Défense', hp: 'PV', support: 'Support',
+};
+function artifactTypeLabel(a: ArtifactDetail): string {
+  return a.kind === 'element'
+    ? `Élément · ${ELEMENT_FR[a.element ?? 'unknown'] ?? '—'}`
+    : `Archétype · ${ARCHETYPE_FR[a.archetype ?? ''] ?? '—'}`;
+}
+
+// Détail d'un artéfact, façon jeu : stat principale (gros) + substats + type.
 function ArtifactDetailBox({ artifact }: { artifact: ArtifactDetail }) {
+  const rarity = RARITY_META[artifact.rarity] ?? RARITY_META[1];
   return (
-    <div className="rounded-lg border border-border bg-panel/70 p-2.5">
-      <div className="flex items-center gap-1.5 mb-1.5">
-        <ArtifactIcon artifact={artifact} size={22} className="flex-none" />
-        <span className="text-[12px] font-bold text-ink">{formatArtifactMain(artifact.main)}</span>
+    <div className="rounded-lg border border-[#6d5a37] bg-gradient-to-b from-[#2a2417] to-[#191510] p-3">
+      {/* badge de rareté */}
+      <div className="flex mb-1.5">
+        <span
+          className="ml-auto rounded px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide border"
+          style={{ background: rarity.bg, color: rarity.color, borderColor: rarity.color }}
+        >
+          {rarity.label}
+        </span>
       </div>
-      <div className="space-y-0.5">
+      {/* stat principale */}
+      <div className="text-[15px] font-black text-ink leading-tight">{formatArtifactMain(artifact.main)}</div>
+      {/* substats (effets conditionnels) : blanc + ↻ orange si modifiée */}
+      <div className="mt-2 pt-2 border-t border-border/40 space-y-1">
         {artifact.subs.map((s, j) => (
-          <div key={j} className="text-[11px] text-ink-dim leading-tight">
-            {formatArtifactSub(s)}
+          <div key={j} className="flex items-start gap-1 text-[12px] text-ink leading-snug">
+            <span>{formatArtifactSub(s)}</span>
+            {s.enchant && <RotateCw size={11} className="text-orange-400 mt-0.5 flex-none" />}
           </div>
         ))}
+      </div>
+      {/* type */}
+      <div className="mt-2 pt-2 border-t border-border/40 text-[12px] text-emerald-300">
+        {artifactTypeLabel(artifact)}
       </div>
     </div>
   );

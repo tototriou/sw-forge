@@ -16,6 +16,7 @@ ce qu'il peut faire, et les règles de calcul appliquées.
 | Siège (Défense / Offense) | `#/siege/defense`, `#/siege/offense` | Live | [siege/README.md](siege/README.md) |
 | Arène | `#/arene` | À venir | [arene.md](arene.md) |
 | Bestiaire | `#/bestiary` | Live | [bestiaire.md](bestiaire.md) |
+| Mécaniques | `#/mecaniques` | Live | [mecaniques.md](mecaniques.md) |
 
 Ordre d'importance (nav & cartes d'accueil) : **Accueil → RTA → Siège → Arène → Bestiaire**.
 Le Bestiaire est délibérément en dernier (le moins central de l'outil).
@@ -47,7 +48,7 @@ Concepts partagés par plusieurs pages, documentés une seule fois :
   [shared/import-compte.md](shared/import-compte.md).
 - **Pas de titre/intro sur les pages outils** : RTA, Siège, Arène et Bestiaire
   démarrent directement sur leur contenu (pas d'en-tête `<h1>` + paragraphe).
-  Seul l'Accueil garde son hero.
+  L'Accueil garde son hero ; la page **Mécaniques** garde son titre (c'est une doc).
 - **Éléments & couleurs** : Feu = rouge, Eau = bleu, Vent = jaune, Lumière =
   blanc, Ténèbres = violet. Icônes officielles servies en local depuis
   `public/elements/`. Voir [ElementIcon.tsx](src/components/ElementIcon.tsx).
@@ -69,6 +70,8 @@ Le cadre commun (nav, routing par hash, footer) vit dans
 - Routing par `window.location.hash` (`routeFromHash()`), pas de router externe.
 - Nav desktop (pilules) + nav mobile (hamburger qui se referme à la navigation),
   avec le bouton d'import global + lien « Supprimer mes données » à droite / dans le menu.
+- **Bestiaire** et **Mécaniques** sont regroupés sous un menu **« Ressources »**
+  (dropdown en desktop, section dans le menu mobile).
 - Fusion `monstres officiels + monstres perso` (`allMonsters`) passée à RTA & Siège.
 - États RTA & siège (défense/offense) **instanciés ici** puis passés en prop, pour
   qu'un import global les alimente tous. `importAccount(text)` orchestre les 3 ;

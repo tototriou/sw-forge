@@ -2,6 +2,9 @@ import { useRef } from 'react';
 import { GripVertical, X } from 'lucide-react';
 import { Monster, RtaEntry, sectionLabel } from '../../types';
 import ElementIcon from '../ElementIcon';
+import RuneIcon from '../RuneIcon';
+
+const SPD_ICON = `${import.meta.env.BASE_URL}stats/spd.png`;
 
 const TEXT: Record<string, string> = {
   fire: 'text-fire',
@@ -66,7 +69,7 @@ export default function RtaCard({
   return (
     <div
       ref={cardRef}
-      className="group relative flex items-center gap-2.5 rounded-xl border border-border bg-panel2 p-2 pr-2.5"
+      className="group relative flex items-center gap-2 rounded-lg border border-border bg-panel2 p-1.5"
     >
       {/* Poignée de drag : seule zone qui déclenche le glisser-déposer */}
       <button
@@ -77,12 +80,12 @@ export default function RtaCard({
         title="Glisser vers une section"
         aria-label="Déplacer"
       >
-        <GripVertical size={16} />
+        <GripVertical size={14} />
       </button>
 
       <div className="relative flex-none">
         <div
-          className={`hex-frame w-[42px] h-[42px] p-[2px] bg-gradient-to-br ${GRADIENT[monster.element]}`}
+          className={`hex-frame w-[50px] h-[50px] p-[2px] bg-gradient-to-br ${GRADIENT[monster.element]}`}
         >
           <div className="hex-frame w-full h-full bg-panel flex items-center justify-center overflow-hidden">
             {monster.image ? (
@@ -102,35 +105,23 @@ export default function RtaCard({
       </div>
 
       <div className="min-w-0 flex-1">
-        <div className="flex items-baseline gap-1.5">
-          <span className="text-[13px] font-semibold leading-tight truncate flex-1">
+        <div className="flex items-center gap-1">
+          <span className="text-[12px] font-semibold leading-tight truncate flex-1">
             {monster.name}
           </span>
-          <span className="flex-none font-mono text-[12px] text-star font-bold">
+          <img src={SPD_ICON} alt="SPD" width={15} height={15} className="flex-none" />
+          <span className="font-mono text-[14px] font-black text-ink leading-none">
             {total !== null ? total : '—'}
           </span>
-        </div>
-        <div className="mt-0.5 text-[11px] text-ink-dim font-mono">SPD base {base ?? '—'}</div>
-        <div className="flex items-center gap-1.5 mt-1">
-          <span className="font-mono text-[11px] uppercase text-ink-dim">SPD :</span>
-          <input
-            type="number"
-            inputMode="numeric"
-            value={rune ?? ''}
-            placeholder="0"
-            onChange={(e) => {
-              const v = e.target.value;
-              onRuneSpeed(String(monster.id), v === '' ? null : Number(v));
-            }}
-            className="w-16 bg-panel border border-border rounded-md px-1.5 py-0.5 text-[12px] text-ink
-                       outline-none focus:border-[#5b63b8]"
-          />
+          {(entry.sets ?? []).slice(0, 3).map((s, i) => (
+            <RuneIcon key={i} setKey={s} size={18} className="flex-none" />
+          ))}
         </div>
         <select
           value={entry.section}
           onChange={(e) => onMove(String(monster.id), e.target.value)}
           title="Déplacer vers une section"
-          className="mt-1.5 w-full bg-panel border border-border rounded-md px-1.5 py-1 text-[11px]
+          className="mt-1 w-full bg-panel border border-border rounded px-1.5 py-0.5 text-[10px]
                      text-ink-dim outline-none focus:border-[#5b63b8]"
         >
           {sectionKeys.map((k) => (

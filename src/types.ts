@@ -120,6 +120,7 @@ export interface RtaEntry {
   monsterId: string;
   section: string; // clé de section (RTA_UNASSIGNED, RTA_OTHER, ou un set)
   runeSpeed: number | null;
+  sets?: string[]; // sets de runes actifs (clés RUNE_SETS), renseignés à l'import
 }
 
 export interface RtaState {

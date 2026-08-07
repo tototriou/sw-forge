@@ -88,6 +88,13 @@ const SET_PIECES: Record<number, number> = {
 };
 const RUNE_SET_INTANGIBLE = 25; // rune « joker » : complète n'importe quel set
 
+// Clés des sets 4 pièces (pour afficher le set principal en premier).
+const FOUR_PIECE_KEYS = new Set(
+  Object.entries(SET_PIECES)
+    .filter(([, n]) => n === 4)
+    .map(([sid]) => SET_ID_KEY[Number(sid)])
+);
+
 // Sets de runes ACTIFS d'un build (ex. ['swift','will']). Un set 4 pièces
 // s'active à 4 runes, les autres à 2. Une rune Intangible sert de joker et
 // complète le set le plus proche d'être plein.
@@ -122,6 +129,8 @@ function activeSetsFromRuneIds(runeIds: any[], runeById: Map<number, any>): stri
       jokers -= p.missing;
     }
   }
+  // Affichage : set 4 pièces d'abord, puis le(s) set(s) 2 pièces.
+  out.sort((a, b) => (FOUR_PIECE_KEYS.has(a) ? 0 : 1) - (FOUR_PIECE_KEYS.has(b) ? 0 : 1));
   return out;
 }
 
@@ -144,6 +153,8 @@ export interface ImportedUnit {
   com2usId: number;
   flatRuneSpeed: number; // SPD plate cumulée des runes RTA
   swift: boolean; // set Swift complet (4 runes) équipé en RTA
+  sets: string[]; // sets de runes actifs RTA (clés RUNE_SETS)
+  runeCount: number; // nombre de runes RTA équipées (build complet = 6)
 }
 
 export interface ParseResult {
@@ -245,7 +256,8 @@ export function parseAccountJson(text: string): ParseResult {
     if (!Number.isFinite(com2usId)) continue;
     const runeIds = (runesByUnit.get(uid) ?? []).map((r) => r.rune_id);
     const { flatRuneSpeed, swift } = speedFromRuneIds(runeIds, runeById);
-    units.push({ com2usId, flatRuneSpeed, swift });
+    const sets = activeSetsFromRuneIds(runeIds, runeById);
+    units.push({ com2usId, flatRuneSpeed, swift, sets, runeCount: runeIds.length });
   }
 
   return { units };

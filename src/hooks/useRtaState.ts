@@ -1,5 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
-import { RtaState, RtaEntry, RTA_UNASSIGNED, RTA_OTHER, RTA_DEFAULT_SECTIONS } from '../types';
+import { RtaState, RtaEntry, RTA_UNASSIGNED, RTA_OTHER, RTA_DEFAULT_SECTIONS, RUNE_SETS } from '../types';
+
+const RUNE_SET_KEYS = new Set(RUNE_SETS.map((s) => s.key));
 
 const STORAGE_KEY = 'sky-arena-rta-v1';
 
@@ -23,6 +25,7 @@ function load(): RtaState {
           monsterId: id,
           section: typeof e.section === 'string' ? e.section : RTA_UNASSIGNED,
           runeSpeed: typeof e.runeSpeed === 'number' ? e.runeSpeed : null,
+          sets: Array.isArray(e.sets) ? e.sets.filter((x): x is string => typeof x === 'string') : [],
         };
       }
     }
@@ -40,7 +43,9 @@ export interface UseRtaState {
   setRuneSpeed: (id: string, value: number | null) => void;
   addSection: (key: string) => void;
   removeSection: (key: string) => void;
-  importEntries: (items: { monsterId: string; runeSpeed: number | null }[]) => void;
+  importEntries: (
+    items: { monsterId: string; runeSpeed: number | null; section?: string; sets?: string[] }[]
+  ) => void;
   clearAll: () => void;
 }
 
@@ -115,26 +120,43 @@ export function useRtaState(): UseRtaState {
     });
   }, []);
 
-  // Import en masse (depuis un compte) : ajoute les nouveaux monstres en
-  // « Non classé » avec leur vitesse de runes ; met à jour la vitesse des
-  // monstres déjà présents (sans changer leur section).
+  // Import en masse (depuis un compte) : pré-classe les nouveaux monstres dans
+  // la section de leur set (créée au besoin, avant « Autre ») avec leur vitesse
+  // de runes et leurs sets. Les monstres déjà présents gardent leur section
+  // (on met juste à jour vitesse + sets) pour respecter un classement manuel.
   const importEntries = useCallback(
-    (items: { monsterId: string; runeSpeed: number | null }[]) => {
+    (items: { monsterId: string; runeSpeed: number | null; section?: string; sets?: string[] }[]) => {
       setState((s) => {
+        const sections = [...s.sections];
         const entries = { ...s.entries };
+
+        const ensureSection = (key: string) => {
+          if (!RUNE_SET_KEYS.has(key) || sections.includes(key)) return;
+          const idx = sections.indexOf(RTA_OTHER); // toujours avant « Autre »
+          if (idx === -1) sections.push(key);
+          else sections.splice(idx, 0, key);
+        };
+
         for (const it of items) {
+          const section = it.section ?? RTA_UNASSIGNED;
           const existing = entries[it.monsterId];
           if (existing) {
-            entries[it.monsterId] = { ...existing, runeSpeed: it.runeSpeed };
+            entries[it.monsterId] = {
+              ...existing,
+              runeSpeed: it.runeSpeed,
+              sets: it.sets ?? existing.sets,
+            };
           } else {
+            ensureSection(section);
             entries[it.monsterId] = {
               monsterId: it.monsterId,
-              section: RTA_UNASSIGNED,
+              section,
               runeSpeed: it.runeSpeed,
+              sets: it.sets ?? [],
             };
           }
         }
-        return { ...s, entries };
+        return { ...s, sections, entries };
       });
     },
     []

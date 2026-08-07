@@ -2,9 +2,16 @@
 // vers les structures attendues par les états RTA & Siège. Partagé par l'import
 // global (App) pour alimenter toutes les pages d'un coup.
 
-import { Monster } from '../types';
+import { Monster, RTA_OTHER, RTA_UNASSIGNED } from '../types';
 import { ImportedUnit, SiegeImportedDeck } from './importAccount';
 import { SIEGE_TICKS, combatSpeed, siegeLeadFor, speedLeadOf } from './speed';
+
+// Set principal pour pré-classer un monstre en RTA (4 pièces prioritaires).
+const RTA_SET_PRIORITY = ['violent', 'swift', 'despair', 'rage', 'fatal', 'vampire'];
+function primarySection(sets: string[]): string {
+  for (const key of RTA_SET_PRIORITY) if (sets.includes(key)) return key;
+  return RTA_OTHER;
+}
 
 type MappedSlot = { monsterId: string | null; runeSpeed: number | null; sets?: string[]; tick?: number };
 
@@ -28,21 +35,30 @@ function nearestTick(combat: number | null): number {
   return best;
 }
 
-// Box RTA → entrées { monsterId, runeSpeed }, dédupliquées au meilleur build (SPD max).
+// Box RTA → entrées { monsterId, runeSpeed, section, sets }, dédupliquées au
+// meilleur build (SPD max). La section est pré-classée selon le set principal.
 export function mapRtaItems(
   units: ImportedUnit[],
   byCom2us: Map<number, Monster>
-): { monsterId: string; runeSpeed: number }[] {
-  const best = new Map<string, number>();
+): { monsterId: string; runeSpeed: number; section: string; sets: string[] }[] {
+  const best = new Map<string, { runeSpeed: number; sets: string[]; runeCount: number }>();
   for (const u of units) {
     const mon = byCom2us.get(u.com2usId);
     if (!mon) continue;
     const rs = runeSpeedOf(u.flatRuneSpeed, u.swift, mon.stats.speed ?? 0);
     const id = String(mon.id);
     const prev = best.get(id);
-    if (prev === undefined || rs > prev) best.set(id, rs);
+    if (!prev || rs > prev.runeSpeed) {
+      best.set(id, { runeSpeed: rs, sets: u.sets ?? [], runeCount: u.runeCount ?? 0 });
+    }
   }
-  return Array.from(best, ([monsterId, runeSpeed]) => ({ monsterId, runeSpeed }));
+  return Array.from(best, ([monsterId, v]) => ({
+    monsterId,
+    runeSpeed: v.runeSpeed,
+    sets: v.sets,
+    // Build incomplet (< 6 runes) → on laisse en « Non classé ».
+    section: v.runeCount >= 6 ? primarySection(v.sets) : RTA_UNASSIGNED,
+  }));
 }
 
 // Decks de siège → équipes { slots }. `missing` = monstres non trouvés (slots laissés vides).

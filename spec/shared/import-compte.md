@@ -89,8 +89,13 @@ Dans `handleImportFile` de [RtaPage.tsx](src/pages/RtaPage.tsx) :
   → Ici, comme on part des **runes brutes**, on **rajoute** le +25 % Swift sur la
   base (contrairement à la saisie manuelle, voir
   [calcul-vitesse.md](calcul-vitesse.md)).
-- **Déduplication** par monstre : on garde le **meilleur build** (SPD max).
-- Les monstres sont ajoutés en section **« Non classé »** avec leur SPD runes.
+- **Déduplication** par monstre : on garde le **meilleur build** (SPD max) ; ses
+  **sets** et son **nombre de runes** sont conservés.
+- **Pré-classement par set** (`mapRtaItems`) : un monstre avec **6 runes** va dans
+  la section de son **set principal** (`primarySection` : Violent/Swift/Despair/
+  Rage/Fatal/Vampire, sinon « Autre ») ; **< 6 runes → « Non classé »**. Les sets
+  actifs (`activeSetsFromRuneIds`, 4 pièces en premier) sont stockés sur l'entrée
+  pour l'affichage.
 - Si une prépa existe déjà : `confirm` → **remplacer** (`clearAll`) ou **fusionner**.
 - Messages : succès (`n monstres favoris importés`) ou erreur (aucun favori/preset
   reconnu, JSON illisible…).

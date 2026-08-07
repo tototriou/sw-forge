@@ -28,15 +28,24 @@ Fichiers : [RtaSection.tsx](src/components/rta/RtaSection.tsx) ·
 
 ## Carte monstre — `RtaCard`
 
+Rendu **compact** et uniforme avec le siège :
 - Poignée de drag (`GripVertical`) : **seule** zone qui déclenche le glisser.
-- Cadre hexagonal + image (fallback initiales) + badge élément.
-- **Vitesse totale** affichée (`base + runes`, ou `—`), couleur `star`.
-- « SPD base X » en indication.
-- Champ **« SPD : »** = vitesse apportée par les runes (Swift déjà inclus →
-  saisie telle quelle). Vide = `null`.
-- **Sélecteur de section** (repli tactile du drag) : liste = `Non classé` + tous
-  les sets visibles → `onMove`.
+- Portrait hexagonal agrandi + image (fallback initiales) + badge élément.
+- Ligne 1 : nom · **icône vitesse + vitesse totale (blanc)** · **icônes de sets**
+  (4 pièces en premier).
+- Ligne 2 : **sélecteur de section** compact (repli tactile du drag) : `Non classé`
+  + sets visibles → `onMove`.
+- **Pas de champ de saisie de vitesse ici** (l'édition SPD runes se fait dans
+  l'ordre de tour) ; « base » retiré.
 - Croix de retrait (survol) → `removeMonster`.
+
+## Pré-classement à l'import
+
+À l'import d'un compte, chaque monstre **avec un build complet (6 runes)** est
+placé dans la section de son **set principal** (4 pièces prioritaire ; sinon
+« Autre ») ; les sections manquantes sont **créées automatiquement** (avant
+« Autre »). Les monstres à **moins de 6 runes** restent en **« Non classé »**.
+Voir [../shared/import-compte.md](../shared/import-compte.md).
 
 ## Ajouter une section
 

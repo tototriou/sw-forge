@@ -17,7 +17,10 @@ Vérifier si l'ordre de passage change selon le lead de vitesse appliqué en jeu
   (classiques + arène), **du plus gros au plus petit**, + bouton **« Sans lead »**.
 - Le lead choisi est **appliqué à tous** les monstres (simulation), toggle
   (re-cliquer désactive).
-- Rappel affiché : « totem +15 % inclus ».
+- **Interrupteur « Surligner les changements »** : quand il est actif ET qu'un
+  lead est sélectionné, les monstres dont la **position change** par rapport à
+  l'ordre sans lead sont mis en **surbrillance** (bordure/halo dorés). Comparaison
+  via un `baselineRank` (ordre à lead 0).
 
 ## Calcul (identique au modèle partagé)
 
@@ -41,11 +44,13 @@ vitesse_effective = (base + runes) + ceil( base × (15 + lead) / 100 )
 
 ## Rendu des cartes
 
-- Disposition **multi-lignes** (`flex flex-wrap`), cartes de largeur fixe (~128 px).
-- Chaque carte : rang `#i`, **vitesse effective** en gros (couleur `star`), cadre
-  hexagonal + image/initiales + badge élément, nom, « base X », et un champ SPD
-  runes éditable (placeholder « +runes »).
-- **Pas d'icône éclair** (⚡) — retirée partout à la demande de l'utilisateur.
+- Disposition **multi-lignes** (`flex flex-wrap`), cartes **horizontales** (~168 px),
+  style uniforme avec le siège.
+- Chaque carte : **badge de rang superposé** en haut à gauche, portrait hexagonal
+  + badge élément, nom, puis **icône vitesse + vitesse effective (blanc)** et les
+  **icônes de sets de runes** (4 pièces en premier). Champ SPD runes éditable **en
+  bas** (placeholder « + runes »).
+- Pas d'icône éclair ; « base X » retiré pour épurer.
 
 ## Attendus
 

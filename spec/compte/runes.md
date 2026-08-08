@@ -8,9 +8,9 @@ Explorer et analyser **tout l'inventaire de runes**. Composant conteneur :
 |--------|-----------|------|
 | Résumé | `RunesSummary` | Vue d'ensemble chiffrée de tout l'inventaire |
 | Liste | `RunesList` | Toutes les runes, filtrables/triables |
-| Courbes | `RunesCurve` | Courbes d'efficience (actuelle + potentiels) |
+| Courbes | `RunesCurve` | Courbes de qualité (actuelle + potentiels) |
 | Comparaison | `RunesCompare` | Export/import & superposition de courbes entre amis |
-| Optimisation | `RunesOptim` | Ce qu'il faut grinder/gemmer pour gagner en efficience |
+| Optimisation | `RunesOptim` | Ce qu'il faut grinder/gemmer pour gagner en qualité |
 
 **Persistance** : les tris/filtres de chaque onglet (et l'onglet actif) sont
 conservés à la navigation via `useStickyState` ([useStickyState.ts](src/hooks/useStickyState.ts))
@@ -21,6 +21,45 @@ la précédente).
 > 📐 **Toutes les formules, tables (efficience, grind max, gemme max) et le
 > décodage SWEX** sont détaillés, valeurs comprises, dans
 > [calcul-runes.md](calcul-runes.md) — référence auto-suffisante.
+
+## Choix de la mesure — **Efficience** ou **Score SW**
+
+La qualité d'une rune peut s'afficher de deux façons, au choix :
+
+| Mesure | Ce que c'est |
+|--------|--------------|
+| **Efficience** (défaut) | convention communautaire — stat principale incluse, `/2,8` |
+| **Score SW** | le score **affiché dans le jeu** — stats secondaires uniquement |
+
+Formules et écart entre les deux : [calcul-runes.md §3 et §3 bis](calcul-runes.md).
+
+- ⚠️ **C'est un RÉGLAGE GLOBAL de l'application**, pas un filtre de page : il se
+  pose **une fois** dans le menu **⚙** (tout à droite de la barre de nav, voir
+  [../README.md](../README.md)). Aucun sélecteur n'est répété dans les pages.
+- **Persisté** dans `localStorage` (`sw-forge-rune-metric-v1`) : un réglage
+  d'application survit au rechargement, contrairement aux filtres et tris qui
+  sont des préférences de vue jetables. Effacé par « Supprimer mes données ».
+- Implémenté par un **store externe** (`useSyncExternalStore`,
+  [useRuneMetric.ts](src/hooks/useRuneMetric.ts)) et **non** par `useStickyState` :
+  ce dernier ne relit son cache **qu'au montage**, il ne synchroniserait pas les
+  vues déjà affichées au moment du changement.
+- **Même couleur** dans les deux cas (`text-star` dans le détail, couleur de
+  rareté sur les tuiles) : c'est la même information, seule l'unité change.
+- Les deux valeurs sont calculées **une fois par import** → bascule instantanée.
+- **Portée** : **Liste**, **Courbes**, **Comparaison** et **Optimisation** suivent
+  le réglage, ainsi que le détail d'équipement en RTA/siège. Seul le **Résumé**
+  reste en efficience (ses paliers et agrégats sont calibrés dessus).
+- ⚠️ Dans l'**Optimisation** et les **Courbes de potentiel**, ce n'est pas un
+  simple changement d'unité : `runePotential` **refait le calcul** dans la mesure
+  demandée. Les stats plates ne pesant pas pareil dans les deux tables, la
+  **meilleure gemme peut différer** (typiquement entre un ATQ plat et un ATQ %).
+  Voir `OptimMetric` dans [runeOptim.ts](src/lib/runeOptim.ts).
+- **Arrondi** : en mode score, potentiels et gains sont des **entiers**
+  (`round(… × 100)`, comme la formule du jeu). L'arrondi n'intervient qu'**en
+  sortie** — les comparaisons internes du choix de gemme travaillent en pleine
+  précision, sinon deux gemmes séparées d'un centième seraient à égalité et le
+  choix deviendrait arbitraire. Les **gains** sont calculés sur les valeurs déjà
+  arrondies, pour que « gain = potentiel − actuel » soit vrai **à l'écran**.
 
 ## Efficience d'une rune
 
@@ -70,13 +109,19 @@ Blocs, dans l'ordre :
   selon le slot** ((slot−1)×60°) avec l'**icône du set dedans** colorisée par
   rareté ([RuneSlotIcon.tsx](src/components/RuneSlotIcon.tsx), halo blanc si
   antique ; petit décalage de l'icône le long de l'axe d'orientation par slot) ;
-  à côté la **stat principale** ; en dessous l'**efficience** (teintée par rareté).
+  à côté la **stat principale** ; en dessous la **valeur** dans la mesure choisie
+  (teintée par rareté).
 - **Détail au clic** : carte récap façon jeu (`RuneDetailBox`) en **popover
   flottant** à **placement automatique** ([DetailPopover.tsx](src/components/account/DetailPopover.tsx)) —
   s'ouvre vers la gauche/haut près d'un bord, jamais coupée, ne décale pas la grille.
+  Le détail affiche la **mesure choisie** (voir ci-dessus), dans la même couleur
+  quelle qu'elle soit.
 - **Filtres** : **sets** (multi-sélection, chips icône + libellé), **slot** (1-6),
   **antiques**.
-- **Tri** : Efficience ↓ (défaut) · Efficience ↑ · Niveau ↓ · Slot ↑.
+- La **mesure** (réglage global, voir plus haut) pilote la valeur des tuiles, le
+  tri « valeur » et le repère « meilleur… » de l'en-tête.
+- **Tri** : ↓ décroissant (défaut) · ↑ croissant — **sur la mesure choisie** —
+  · Niveau ↓ · Slot ↑.
 - **Pagination** (`Pager`) : 60 tuiles/page → DOM borné (fluide même à ~2000 runes).
 - **Rotation animée** : les tuiles utilisent une **clé positionnelle** (et non
   l'id de la rune), donc elles sont **réutilisées** d'une page/d'un filtre/d'un
@@ -87,8 +132,9 @@ Blocs, dans l'ordre :
 
 ## Onglet Courbes — `RunesCurve`
 
-Trois courbes, chacune **triée par efficience décroissante** (ordonnée =
-efficience %, abscisse = nombre de runes) :
+Trois courbes, chacune **triée par valeur décroissante** (ordonnée = la **mesure
+choisie** — efficience % ou score SW, l'axe et l'infobulle s'adaptent ; abscisse =
+nombre de runes) :
 
 - **Actuelle** (bleu, avec aire) — l'efficience des runes aujourd'hui.
 - **Potentiel Héro** (violet) / **Potentiel Légend** (orange) — l'efficience si
@@ -115,15 +161,15 @@ Détails :
 Se comparer entre amis en superposant plusieurs courbes (efficience **actuelle**).
 
 - **Exporter** (icône **Upload ↑**) : demande un nom, produit un **JSON lisible**
-  (`format: "sw-forge/courbe-runes"`, voir
+  (`format: "sw-forge/courbe-runes"`, **version 2**, voir
   [runeCurveShare.ts](src/lib/runeCurveShare.ts)) — **téléchargé** en
-  `swforge-runes-<nom>.json` **et copié** au presse-papier. Même convention que
-  les recommandations de siège : un seul format, inspectable et éditable.
+  `swforge-runes-<nom>.json` **et copié** au presse-papier.
+  - ⚠️ Le fichier porte **LES DEUX séries** : `efficiences` **et** `scores`.
+    Celui qui l'importe la lit donc dans **sa** mesure, sans dépendre du réglage
+    de l'expéditeur. Idem pour une courbe extraite d'un JSON de compte.
 - **Importer une courbe** (icône **Download ↓**) : charge le fichier d'un ami.
-  ⚠️ L'ancien **code compact** (`SWF-RUNES-1:`, base64 en `.txt`) reste **accepté
-  à la lecture** : la fonctionnalité était déjà déployée, des fichiers circulent
-  chez les joueurs et ne doivent pas devenir illisibles. Il n'est simplement plus
-  produit.
+  **JSON uniquement** — l'ancien code compact `SWF-RUNES-1:` n'est plus ni
+  produit ni lu.
 - **Importer un JSON** (icône FileJson) : charge le **JSON de compte SWEX brut**
   d'un ami (s'il n'a pas l'outil) ; runes extraites à la volée (`parseAccountInventory`).
   **100 % local.**

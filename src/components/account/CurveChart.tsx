@@ -62,7 +62,16 @@ function downsample(effs: number[], toX: (i: number) => number, toY: (e: number)
   return out;
 }
 
-export default function CurveChart({ series }: { series: CurveSeries[] }) {
+// `yLabel` / `unit` : le graphe sert aussi bien à l'efficience qu'au score SW.
+export default function CurveChart({
+  series,
+  yLabel = 'Efficience (%)',
+  unit = '%',
+}: {
+  series: CurveSeries[];
+  yLabel?: string;
+  unit?: string; // suffixe des valeurs (graduations et infobulle)
+}) {
   const svgRef = useRef<SVGSVGElement>(null);
   const [hover, setHover] = useState<number | null>(null);
 
@@ -148,7 +157,7 @@ export default function CurveChart({ series }: { series: CurveSeries[] }) {
               strokeDasharray={v === lo ? '' : '3 5'}
             />
             <text x={PAD_L - 8} y={y(v) + 4} textAnchor="end" fontSize="11" fill="#7c85b8" fontFamily="monospace">
-              {Math.round(v)}%
+              {Math.round(v)}{unit}
             </text>
           </g>
         ))}
@@ -207,7 +216,7 @@ export default function CurveChart({ series }: { series: CurveSeries[] }) {
           fontFamily="monospace"
           transform={`rotate(-90 15 ${PAD_T + IH / 2})`}
         >
-          Efficience (%)
+          {yLabel}
         </text>
 
         {/* Survol : ligne verticale + points + infobulle */}
@@ -242,7 +251,8 @@ export default function CurveChart({ series }: { series: CurveSeries[] }) {
                   <g key={s.name}>
                     <circle cx={bx + 11} cy={by + 29 + k * 14 - 3.5} r="3" fill={s.color} />
                     <text x={bx + 19} y={by + 29 + k * 14} fontSize="11" fill="#ffffff" fontFamily="monospace">
-                      {val.toFixed(1)}%
+                      {unit === '%' ? val.toFixed(1) : Math.round(val)}
+                      {unit}
                     </text>
                   </g>
                 ))}

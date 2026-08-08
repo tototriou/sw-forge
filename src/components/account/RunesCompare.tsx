@@ -1,10 +1,11 @@
 import { useMemo, useRef, useState } from 'react';
 import { Download, Upload, FileJson, X } from 'lucide-react';
 import { RuneDetail } from '../../types';
-import { runeEfficiency } from '../../lib/effects';
+import { runeEfficiency, runeScore } from '../../lib/effects';
 import { encodeCurveJson, decodeCurve } from '../../lib/runeCurveShare';
 import { parseAccountInventory } from '../../lib/importAccount';
 import { useStickyState } from '../../hooks/useStickyState';
+import { useRuneMetric, formatRuneMetric } from '../../hooks/useRuneMetric';
 import CurveChart, { CurveSeries, OWN_COLOR } from './CurveChart';
 
 interface Props {
@@ -14,9 +15,12 @@ interface Props {
 const DEFAULT_LIMIT = 400;
 const OVERLAY_COLORS = ['#5cc2ff', '#7cf0a6', '#ff7a9c', '#c88cff', '#ffd166', '#8fd4ff'];
 
+// Une courbe importée porte LES DEUX séries : on affiche celle qui correspond
+// au réglage global, sans dépendre de la mesure choisie par l'expéditeur.
 interface Overlay {
   name: string;
   effs: number[];
+  scores: number[];
   color: string;
 }
 
@@ -40,7 +44,12 @@ export default function RunesCompare({ runes }: Props) {
   const curveRef = useRef<HTMLInputElement>(null);
   const jsonRef = useRef<HTMLInputElement>(null);
 
-  const myEffs = useMemo(() => runes.map((r) => runeEfficiency(r)).sort((a, b) => b - a), [runes]);
+  const metric = useRuneMetric();
+  const desc = (a: number, b: number) => b - a;
+  const myEffs = useMemo(() => runes.map((r) => runeEfficiency(r)).sort(desc), [runes]);
+  const myScores = useMemo(() => runes.map((r) => runeScore(r)).sort(desc), [runes]);
+  // Série affichée pour MOI, selon la mesure choisie.
+  const mine = metric === 'eff' ? myEffs : myScores;
 
   const flash = (ok: boolean, text: string) => setMsg({ ok, text });
 
@@ -49,13 +58,13 @@ export default function RunesCompare({ runes }: Props) {
     const name = (prompt('Nom de ta courbe (visible par tes amis) :', 'Moi') || '').trim() || 'Moi';
     // JSON : téléchargé en fichier ET copié au presse-papier (pièce jointe ou
     // copier/coller, au choix).
-    const json = encodeCurveJson(name, myEffs);
+    const json = encodeCurveJson(name, myEffs, myScores);
     navigator.clipboard?.writeText(json).catch(() => {});
     download(`swforge-runes-${name.replace(/\s+/g, '_')}.json`, json);
     flash(true, 'Courbe exportée : fichier .json téléchargé et contenu copié.');
   }
 
-  function addOverlay(payload: { name: string; effs: number[] } | null) {
+  function addOverlay(payload: { name: string; effs: number[]; scores: number[] } | null) {
     if (!payload) return flash(false, 'Courbe invalide.');
     setOverlays((prev) => {
       const color = OVERLAY_COLORS[prev.length % OVERLAY_COLORS.length];
@@ -63,7 +72,7 @@ export default function RunesCompare({ runes }: Props) {
       const taken = new Set(prev.map((s) => s.name));
       let k = 2;
       while (taken.has(name)) name = `${payload.name} (${k++})`;
-      return [...prev, { name, effs: payload.effs, color }];
+      return [...prev, { name, effs: payload.effs, scores: payload.scores, color }];
     });
     flash(true, `Courbe « ${payload.name} » importée.`);
   }
@@ -90,18 +99,28 @@ export default function RunesCompare({ runes }: Props) {
       if (res.error || res.runes.length === 0) {
         return flash(false, res.error || 'Aucune rune trouvée dans ce JSON de compte.');
       }
-      const effs = res.runes.map((r) => runeEfficiency(r)).sort((a, b) => b - a);
+      // Les DEUX mesures sont calculées : la courbe reste lisible quel que soit
+      // le réglage choisi ensuite.
+      const effs = res.runes.map((r) => runeEfficiency(r)).sort(desc);
+      const scores = res.runes.map((r) => runeScore(r)).sort(desc);
       const name = (prompt('Nom de cette courbe :', fallbackName) || fallbackName).trim() || fallbackName;
-      addOverlay({ name, effs });
+      addOverlay({ name, effs, scores });
     };
     reader.onerror = () => flash(false, 'Lecture du fichier impossible.');
     reader.readAsText(file);
   }
 
   const limit = (arr: number[]) => (showAll ? arr : arr.slice(0, DEFAULT_LIMIT));
+  // Chaque courbe est tracée dans la mesure choisie globalement.
+  const seriesOf = (o: Overlay) => (metric === 'eff' ? o.effs : o.scores);
   const series: CurveSeries[] = [
-    { name: 'Moi', effs: limit(myEffs), color: OWN_COLOR, own: true },
-    ...overlays.map((o) => ({ name: o.name, effs: limit(o.effs), color: o.color, own: false })),
+    { name: 'Moi', effs: limit(mine), color: OWN_COLOR, own: true },
+    ...overlays.map((o) => ({
+      name: o.name,
+      effs: limit(seriesOf(o)),
+      color: o.color,
+      own: false,
+    })),
   ];
   // Séries réellement tracées (on retire celles masquées via la légende).
   const visible = series.filter((s) => !hidden.has(s.name));
@@ -137,17 +156,16 @@ export default function RunesCompare({ runes }: Props) {
         >
           <FileJson size={14} /> Importer un JSON
         </button>
-        {/* `.txt` encore accepté : les anciens exports (code compact) circulent. */}
         <input
           ref={curveRef}
           type="file"
-          accept=".json,application/json,.txt,text/plain"
+          accept=".json,application/json"
           onChange={handleCurveFile}
           className="hidden"
         />
         <input ref={jsonRef} type="file" accept=".json,application/json" onChange={handleJsonFile} className="hidden" />
 
-        {myEffs.length > DEFAULT_LIMIT && (
+        {mine.length > DEFAULT_LIMIT && (
           <div className="ml-auto flex items-center gap-1 bg-panel border border-border rounded-lg p-0.5">
             {[
               { all: false, label: `Top ${DEFAULT_LIMIT}` },
@@ -188,7 +206,8 @@ export default function RunesCompare({ runes }: Props) {
                 </span>
                 {s.effs.length > 0 && !off && (
                   <span className="text-ink-dim">
-                    · max {s.effs[0].toFixed(1)}% · méd. {median(s.effs).toFixed(1)}% · {s.effs.length}
+                    · max {formatRuneMetric(s.effs[0], metric)} · méd.{' '}
+                    {formatRuneMetric(median(s.effs), metric)} · {s.effs.length}
                   </span>
                 )}
               </button>
@@ -206,7 +225,11 @@ export default function RunesCompare({ runes }: Props) {
         })}
       </div>
 
-      <CurveChart series={visible} />
+      <CurveChart
+        series={visible}
+        yLabel={metric === 'eff' ? 'Efficience (%)' : 'Score SW'}
+        unit={metric === 'eff' ? '%' : ''}
+      />
 
       <p className="mt-3 font-mono text-[11px] text-ink-dim">
         Exporte ta courbe pour la partager, ou importe celle d'un ami (fichier exporté, ou son JSON

@@ -1,38 +1,45 @@
 import { memo, useCallback, useMemo, useRef, useState } from 'react';
 import { RuneDetail, RUNE_SETS } from '../../types';
-import { formatRuneEffect, RARITY_META, runeEfficiency } from '../../lib/effects';
+import { formatRuneEffect, RARITY_META, runeEfficiency, runeScore } from '../../lib/effects';
 import RuneIcon from '../RuneIcon';
 import RuneSlotIcon from '../RuneSlotIcon';
 import { RuneDetailBox } from '../MonsterGear';
 import Pager from './Pager';
 import DetailPopover from './DetailPopover';
 import { useStickyState } from '../../hooks/useStickyState';
+import { RuneMetric, useRuneMetric, formatRuneMetric, runeMetricLabel } from '../../hooks/useRuneMetric';
 
 interface Props {
   runes: RuneDetail[];
 }
 
-// Une rune enrichie de son efficience (calculée une fois).
+// Une rune enrichie de ses deux mesures (calculées une fois).
 interface RuneRow {
   rune: RuneDetail;
-  eff: number;
+  eff: number; // efficience (%)
+  score: number; // score SW (celui du jeu)
   id: number;
 }
 
-type SortMode = 'eff_desc' | 'eff_asc' | 'level_desc' | 'slot_asc';
+type SortMode = 'val_desc' | 'val_asc' | 'level_desc' | 'slot_asc';
 
 const SORTS: { key: SortMode; label: string }[] = [
-  { key: 'eff_desc', label: 'Efficience ↓' },
-  { key: 'eff_asc', label: 'Efficience ↑' },
+  { key: 'val_desc', label: '↓ décroissant' },
+  { key: 'val_asc', label: '↑ croissant' },
   { key: 'level_desc', label: 'Niveau ↓' },
   { key: 'slot_asc', label: 'Slot ↑' },
 ];
 
-const SORT_FN: Record<SortMode, (a: RuneRow, b: RuneRow) => number> = {
-  eff_desc: (a, b) => b.eff - a.eff,
-  eff_asc: (a, b) => a.eff - b.eff,
-  level_desc: (a, b) => b.rune.level - a.rune.level || b.eff - a.eff,
-  slot_asc: (a, b) => a.rune.slot - b.rune.slot || b.eff - a.eff,
+// Le tri « valeur » suit la mesure choisie.
+const sortFn = (mode: SortMode, m: RuneMetric) => {
+  const v = (r: RuneRow) => (m === 'eff' ? r.eff : r.score);
+  const table: Record<SortMode, (a: RuneRow, b: RuneRow) => number> = {
+    val_desc: (a, b) => v(b) - v(a),
+    val_asc: (a, b) => v(a) - v(b),
+    level_desc: (a, b) => b.rune.level - a.rune.level || v(b) - v(a),
+    slot_asc: (a, b) => a.rune.slot - b.rune.slot || v(b) - v(a),
+  };
+  return table[mode];
 };
 
 const PAGE = 60; // tuiles par page (DOM borné pour rester fluide)
@@ -41,7 +48,8 @@ export default function RunesList({ runes }: Props) {
   const [sets, setSets] = useStickyState<Set<string>>('runesList.sets', new Set());
   const [slots, setSlots] = useStickyState<Set<number>>('runesList.slots', new Set());
   const [ancientOnly, setAncientOnly] = useStickyState('runesList.ancient', false);
-  const [sort, setSort] = useStickyState<SortMode>('runesList.sort', 'eff_desc');
+  const [sort, setSort] = useStickyState<SortMode>('runesList.sort', 'val_desc');
+  const metric = useRuneMetric(); // choix PARTAGÉ avec les autres vues
   const [page, setPage] = useState(0);
   const [openId, setOpenId] = useState<number | null>(null);
   const toggleOpen = useCallback((id: number) => setOpenId((c) => (c === id ? null : id)), []);
@@ -53,9 +61,12 @@ export default function RunesList({ runes }: Props) {
     setPage(0);
   }
 
-  // Efficience calculée : une seule fois par import.
+  // Les deux mesures calculées une seule fois par import (bascule instantanée).
   const rows = useMemo(
-    () => runes.map((rune, id): RuneRow => ({ rune, id, eff: runeEfficiency(rune) })),
+    () =>
+      runes.map(
+        (rune, id): RuneRow => ({ rune, id, eff: runeEfficiency(rune), score: runeScore(rune) })
+      ),
     [runes]
   );
 
@@ -76,8 +87,11 @@ export default function RunesList({ runes }: Props) {
   }, [rows, sets, slots, ancientOnly]);
 
   // Tri appliqué après filtrage (copie pour ne pas muter `filtered`).
-  const sorted = useMemo(() => [...filtered].sort(SORT_FN[sort]), [filtered, sort]);
-  const bestEff = useMemo(() => filtered.reduce((m, r) => Math.max(m, r.eff), 0), [filtered]);
+  const sorted = useMemo(() => [...filtered].sort(sortFn(sort, metric)), [filtered, sort, metric]);
+  const best = useMemo(
+    () => filtered.reduce((m, r) => Math.max(m, metric === 'eff' ? r.eff : r.score), 0),
+    [filtered, metric]
+  );
 
   const pageCount = Math.max(1, Math.ceil(sorted.length / PAGE));
   const safePage = Math.min(page, pageCount - 1);
@@ -157,9 +171,12 @@ export default function RunesList({ runes }: Props) {
           </button>
         </div>
 
-        {/* Tri */}
-        <div className="flex items-center gap-2">
-          <span className="font-mono text-[11px] tracking-[0.1em] uppercase text-ink-dim mr-1">Trier par</span>
+        {/* Tri. La MESURE (efficience / score) est un réglage global, dans la
+            barre de nav — pas un filtre de page. */}
+        <div className="flex items-center gap-2 flex-wrap">
+          <span className="font-mono text-[11px] tracking-[0.1em] uppercase text-ink-dim mr-1">
+            Trier par
+          </span>
           <select
             value={sort}
             onChange={(e) => {
@@ -182,7 +199,11 @@ export default function RunesList({ runes }: Props) {
           {filtered.length} rune{filtered.length > 1 ? 's' : ''}
           {filtered.length !== runes.length && ` sur ${runes.length}`}
           {filtered.length > 0 && (
-            <> · meilleure efficience <b className="text-star">{bestEff.toFixed(1)}%</b></>
+            <>
+              {' '}
+              · meilleur{metric === 'eff' ? 'e efficience' : ' score'}{' '}
+              <b className="text-star">{metric === 'eff' ? `${best.toFixed(1)}%` : best}</b>
+            </>
           )}
         </p>
         <Pager page={safePage} pageCount={pageCount} onChange={setPage} />
@@ -194,7 +215,7 @@ export default function RunesList({ runes }: Props) {
           lieu d'être remonté d'un coup. Voir SPIN dans RuneSlotIcon. */}
       <div className="grid grid-cols-[repeat(auto-fill,minmax(150px,1fr))] gap-2 items-start">
         {shown.map((row, i) => (
-          <RuneTile key={i} row={row} open={openId === row.id} onToggle={toggleOpen} />
+          <RuneTile key={i} row={row} metric={metric} open={openId === row.id} onToggle={toggleOpen} />
         ))}
       </div>
 
@@ -212,15 +233,17 @@ export default function RunesList({ runes }: Props) {
 // Mémoïsée : ne se re-rend pas quand seuls les filtres/la page changent ailleurs.
 const RuneTile = memo(function RuneTile({
   row,
+  metric,
   open,
   onToggle,
 }: {
   row: RuneRow;
+  metric: RuneMetric;
   open: boolean;
   onToggle: (id: number) => void;
 }) {
   const ref = useRef<HTMLDivElement>(null);
-  const { rune, eff } = row;
+  const { rune } = row;
   const meta = RARITY_META[rune.rarity] ?? RARITY_META[1];
   const ancient = rune.rank > 10;
 
@@ -236,7 +259,10 @@ const RuneTile = memo(function RuneTile({
             {formatRuneEffect(rune.main)}
           </div>
           <div className="mt-0.5 font-mono text-[11px] text-ink-dim leading-tight">
-            Eff. <b style={{ color: meta.color }}>{eff.toFixed(1)}%</b>
+            {runeMetricLabel(metric)}{' '}
+            <b style={{ color: meta.color }}>
+              {formatRuneMetric(metric === 'eff' ? row.eff : row.score, metric)}
+            </b>
           </div>
         </div>
       </button>

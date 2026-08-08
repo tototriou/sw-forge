@@ -6,7 +6,13 @@
 // Worker pour les traitements lourds à venir.
 
 import { EffectLine, RuneDetail } from '../types';
-import { MAINSTAT_MAX, SUBSTAT_MAX, runeEfficiency } from './effects';
+import { MAINSTAT_MAX, SUBSTAT_MAX, SCORE_MAX, runeEfficiency, runeScore } from './effects';
+
+// Le potentiel se calcule dans la MESURE choisie (efficience ou score SW).
+// Ce n'est pas qu'un changement d'unité : les stats plates n'ont pas le même
+// poids dans les deux tables, donc la **meilleure gemme peut différer** — par
+// exemple entre un ATQ plat et un ATQ%.
+export type OptimMetric = 'eff' | 'score';
 
 type Tbl = Record<number, number>;
 
@@ -26,29 +32,48 @@ const GEM_LEGEND_ANC: Tbl = { 2: 15, 4: 15, 6: 15, 8: 11, 1: 640, 3: 44, 5: 44 }
 const GEM_STATS = [2, 4, 6, 8, 1, 3, 5];
 
 export interface RunePotential {
-  eff: number; // efficience actuelle
-  heroEff: number; // efficience max (gemme+grind) en héroïque
-  legendEff: number; // efficience max (gemme+grind) en légendaire
+  eff: number; // valeur actuelle, dans la mesure demandée
+  heroEff: number; // valeur max (gemme+grind) en héroïque
+  legendEff: number; // valeur max (gemme+grind) en légendaire
   heroGain: number;
   legendGain: number;
   heroGem: number | null; // code de la stat à gemmer (null = pas de gemme conseillée)
   legendGem: number | null;
 }
 
-// Efficience à partir des substats modifiés (main + innée inchangés).
-function effOf(main: EffectLine, innate: EffectLine | undefined, subs: { code: number; total: number }[]): number {
+// Valeur d'une rune (substats modifiés, main + innée inchangés), dans la mesure
+// demandée. Le score ne compte QUE les stats secondaires et ne divise pas par
+// 2,8 ; l'efficience ajoute la principale plafonnée à 1. Voir effects.ts.
+function valueOf(
+  main: EffectLine,
+  innate: EffectLine | undefined,
+  subs: { code: number; total: number }[],
+  metric: OptimMetric
+): number {
+  const table = metric === 'eff' ? SUBSTAT_MAX : SCORE_MAX;
   let ratio = 0;
-  const mm = MAINSTAT_MAX[main.code];
-  if (mm) ratio += Math.min(main.value / mm, 1);
   for (const s of subs) {
-    const m = SUBSTAT_MAX[s.code];
+    const m = table[s.code];
     if (m) ratio += s.total / m;
   }
   if (innate) {
-    const m = SUBSTAT_MAX[innate.code];
+    const m = table[innate.code];
     if (m) ratio += innate.value / m;
   }
-  return (ratio / 2.8) * 100;
+  if (metric === 'score') return ratio * 100;
+  const mm = MAINSTAT_MAX[main.code];
+  return (((mm ? Math.min(main.value / mm, 1) : 0) + ratio) / 2.8) * 100;
+}
+
+// Mise à l'échelle finale d'une valeur, selon la formule de la mesure :
+//  - **score** → `round(… × 100)`, c'est un ENTIER (voir effects.ts) ;
+//  - **efficience** → pourcentage, on garde la précision (affichée au dixième).
+//
+// L'arrondi n'intervient qu'ICI, en sortie : les comparaisons internes de
+// `best()` travaillent en pleine précision, sinon deux gemmes séparées par un
+// centième donneraient une égalité et le choix deviendrait arbitraire.
+function out(value: number, metric: OptimMetric): number {
+  return metric === 'score' ? Math.round(value) : value;
 }
 
 interface Best {
@@ -57,10 +82,10 @@ interface Best {
   gemCode: number | null; // nouvelle stat gemmée
 }
 
-// Meilleure efficience atteignable pour un scénario (table grind G, table gemme M).
+// Meilleure valeur atteignable pour un scénario (table grind G, table gemme M).
 // `withGem` = false → grind seul (on garde les stats actuelles, pas de gemme).
 // Renvoie aussi le choix gagnant (slot + stat) pour reconstruire le plan.
-function best(rune: RuneDetail, G: Tbl, M: Tbl, withGem: boolean): Best {
+function best(rune: RuneDetail, G: Tbl, M: Tbl, withGem: boolean, metric: OptimMetric): Best {
   const subs = rune.subs.map((s) => ({
     code: s.code,
     base: s.value - (s.grind ?? 0), // base « sans grind »
@@ -69,10 +94,11 @@ function best(rune: RuneDetail, G: Tbl, M: Tbl, withGem: boolean): Best {
   const gtotal = (code: number, base: number) => base + (G[code] ?? 0);
 
   // Scénario de référence : grind seul, aucune gemme.
-  let bestEff = effOf(
+  let bestEff = valueOf(
     rune.main,
     rune.innate,
-    subs.map((s) => ({ code: s.code, total: gtotal(s.code, s.base) }))
+    subs.map((s) => ({ code: s.code, total: gtotal(s.code, s.base) })),
+    metric
   );
   let bestSlot = -1;
   let bestCode: number | null = null;
@@ -94,7 +120,7 @@ function best(rune: RuneDetail, G: Tbl, M: Tbl, withGem: boolean): Best {
           ? { code, total: newBase + (G[code] ?? 0) }
           : { code: s.code, total: gtotal(s.code, s.base) }
       );
-      const e = effOf(rune.main, rune.innate, newSubs);
+      const e = valueOf(rune.main, rune.innate, newSubs, metric);
       if (e > bestEff) {
         bestEff = e;
         bestSlot = gemmedIdx;
@@ -136,7 +162,7 @@ function best(rune: RuneDetail, G: Tbl, M: Tbl, withGem: boolean): Best {
           ? { code: Y, total: M[Y] + (G[Y] ?? 0) } // gemme (base max) + grind max
           : { code: s.code, total: gtotal(s.code, s.base) }
       );
-      const e = effOf(rune.main, rune.innate, newSubs);
+      const e = valueOf(rune.main, rune.innate, newSubs, metric);
       if (e > bestEff) {
         bestEff = e;
         bestSlot = slot;
@@ -147,17 +173,31 @@ function best(rune: RuneDetail, G: Tbl, M: Tbl, withGem: boolean): Best {
   return { eff: bestEff, gemSlot: bestSlot, gemCode: bestCode };
 }
 
-export function runePotential(rune: RuneDetail, withGem = true): RunePotential {
+export function runePotential(
+  rune: RuneDetail,
+  withGem = true,
+  metric: OptimMetric = 'eff'
+): RunePotential {
   const anc = rune.rank > 10;
-  const eff = runeEfficiency(rune);
-  const h = best(rune, anc ? GRIND_HERO_ANC : GRIND_HERO, anc ? GEM_HERO_ANC : GEM_HERO, withGem);
-  const l = best(rune, anc ? GRIND_LEGEND_ANC : GRIND_LEGEND, anc ? GEM_LEGEND_ANC : GEM_LEGEND, withGem);
+  const eff = metric === 'eff' ? runeEfficiency(rune) : runeScore(rune);
+  const h = best(rune, anc ? GRIND_HERO_ANC : GRIND_HERO, anc ? GEM_HERO_ANC : GEM_HERO, withGem, metric);
+  const l = best(
+    rune,
+    anc ? GRIND_LEGEND_ANC : GRIND_LEGEND,
+    anc ? GEM_LEGEND_ANC : GEM_LEGEND,
+    withGem,
+    metric
+  );
+  // Arrondi en sortie, puis gains calculés SUR LES VALEURS ARRONDIES : le gain
+  // affiché est ainsi toujours exactement « potentiel − actuel » à l'écran.
+  const heroEff = out(h.eff, metric);
+  const legendEff = out(l.eff, metric);
   return {
     eff,
-    heroEff: h.eff,
-    legendEff: l.eff,
-    heroGain: h.eff - eff,
-    legendGain: l.eff - eff,
+    heroEff,
+    legendEff,
+    heroGain: heroEff - eff,
+    legendGain: legendEff - eff,
     heroGem: h.gemCode,
     legendGem: l.gemCode,
   };
@@ -181,20 +221,25 @@ export interface PlanSub {
 
 export interface RunePlan {
   scenario: 'hero' | 'legend';
-  eff: number; // efficience actuelle
-  targetEff: number; // efficience après plan
+  eff: number; // valeur actuelle (dans la mesure demandée)
+  targetEff: number; // valeur après plan
   gemCode: number | null; // stat à gemmer (null = pas de gemme)
   subs: PlanSub[]; // aligné sur rune.subs (par index)
 }
 
 // Reconstruit le plan concret (gemme + grinds) pour un scénario donné.
-export function runePlan(rune: RuneDetail, scenario: 'hero' | 'legend', withGem = true): RunePlan {
+export function runePlan(
+  rune: RuneDetail,
+  scenario: 'hero' | 'legend',
+  withGem = true,
+  metric: OptimMetric = 'eff'
+): RunePlan {
   const anc = rune.rank > 10;
   const G =
     scenario === 'hero' ? (anc ? GRIND_HERO_ANC : GRIND_HERO) : anc ? GRIND_LEGEND_ANC : GRIND_LEGEND;
   const M = scenario === 'hero' ? (anc ? GEM_HERO_ANC : GEM_HERO) : anc ? GEM_LEGEND_ANC : GEM_LEGEND;
 
-  const b = best(rune, G, M, withGem);
+  const b = best(rune, G, M, withGem, metric);
   const subs: PlanSub[] = rune.subs.map((s, j) => {
     const curGrind = s.grind ?? 0;
     const curBase = s.value - curGrind;
@@ -233,8 +278,8 @@ export function runePlan(rune: RuneDetail, scenario: 'hero' | 'legend', withGem 
 
   return {
     scenario,
-    eff: runeEfficiency(rune),
-    targetEff: b.eff,
+    eff: metric === 'eff' ? runeEfficiency(rune) : runeScore(rune),
+    targetEff: out(b.eff, metric),
     gemCode: b.gemCode,
     subs,
   };

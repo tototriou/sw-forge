@@ -1,25 +1,20 @@
-// Partage d'une courbe d'efficience de runes, pour se comparer entre amis.
+// Partage d'une courbe de runes, pour se comparer entre amis.
 // 100 % local : aucun envoi réseau, le contenu est copié/collé ou téléchargé.
 //
-// **Export : JSON** (clés en clair, inspectable, éditable) — même convention que
-// les recommandations de siège (voir recoShare.ts).
-// **Import : JSON *et* ancien code compact `SWF-RUNES-1:`**, qui a été diffusé
-// avant ce changement — des fichiers `.txt` circulent chez les joueurs, on ne
-// peut pas les rendre illisibles.
+// **Un seul format : le JSON** (clés en clair, inspectable, éditable) — même
+// convention que les recommandations de siège (voir recoShare.ts). L'ancien code
+// compact `SWF-RUNES-1:` n'est plus ni produit ni lu.
 
+// Une courbe partagée porte LES DEUX mesures : celui qui l'importe la lit dans
+// celle qu'il a choisie, sans dépendre du réglage de l'expéditeur.
 export interface CurvePayload {
   name: string;
   effs: number[]; // efficiences (%), triées décroissant
+  scores: number[]; // scores SW, triés décroissant
 }
 
 export const CURVE_FORMAT = 'sw-forge/courbe-runes';
-export const CURVE_VERSION = 1;
-
-const LEGACY_PREFIX = 'SWF-RUNES-1:';
-
-function fromB64(s: string): string {
-  return decodeURIComponent(escape(atob(s)));
-}
+export const CURVE_VERSION = 2; // v2 : porte les deux mesures
 
 // Efficiences normalisées : nombres finis, au dixième, triés décroissant.
 function cleanEffs(raw: unknown[]): number[] {
@@ -31,7 +26,7 @@ function cleanEffs(raw: unknown[]): number[] {
 }
 
 // Encode une courbe en JSON lisible (efficiences au dixième).
-export function encodeCurveJson(name: string, effs: number[]): string {
+export function encodeCurveJson(name: string, effs: number[], scores: number[]): string {
   return JSON.stringify(
     {
       format: CURVE_FORMAT,
@@ -39,6 +34,7 @@ export function encodeCurveJson(name: string, effs: number[]): string {
       exporte_le: new Date().toISOString(),
       nom: name.slice(0, 40),
       efficiences: effs.map((x) => Math.round(x * 10) / 10),
+      scores: scores.map((x) => Math.round(x)),
     },
     null,
     2
@@ -56,42 +52,20 @@ function decodeCurveJson(text: string): CurvePayload | null {
     if (!raw) return null;
     const effs = cleanEffs(raw);
     if (effs.length === 0) return null;
+    const rawScores = Array.isArray(obj.scores) ? obj.scores : [];
     const nom = obj.nom ?? obj.name;
-    return { name: (typeof nom === 'string' ? nom : 'Ami').slice(0, 40), effs };
+    return {
+      name: (typeof nom === 'string' ? nom : 'Ami').slice(0, 40),
+      effs,
+      scores: cleanEffs(rawScores),
+    };
   } catch {
     return null;
   }
 }
 
-// Décode l'ANCIEN code compact (base64), toujours accepté à l'import.
-function decodeCurveLegacy(text: string): CurvePayload | null {
-  try {
-    let t = text.trim();
-    const i = t.indexOf(LEGACY_PREFIX);
-    if (i >= 0) t = t.slice(i + LEGACY_PREFIX.length);
-    t = t.replace(/\s+/g, '');
-    if (!t) return null;
-    const obj = JSON.parse(fromB64(t));
-    // Ancien format : `e` = efficiences × 10 (entiers).
-    const raw = Array.isArray(obj?.e)
-      ? (obj.e as unknown[]).map((x) => Number(x) / 10)
-      : Array.isArray(obj?.effs)
-        ? (obj.effs as unknown[])
-        : null;
-    if (!raw) return null;
-    const effs = cleanEffs(raw);
-    if (effs.length === 0) return null;
-    const name =
-      typeof obj?.n === 'string' ? obj.n : typeof obj?.name === 'string' ? obj.name : 'Ami';
-    return { name: name.slice(0, 40), effs };
-  } catch {
-    return null;
-  }
-}
-
-// Point d'entrée unique : l'utilisateur n'a pas à savoir de quel format il part.
+// Point d'entrée de l'import : JSON uniquement.
 export function decodeCurve(text: string): CurvePayload | null {
   const t = text.trim();
-  if (!t) return null;
-  return t.startsWith('{') ? decodeCurveJson(t) : decodeCurveLegacy(t) ?? decodeCurveJson(t);
+  return t ? decodeCurveJson(t) : null;
 }

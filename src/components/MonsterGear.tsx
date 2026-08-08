@@ -11,11 +11,13 @@ import {
   SET_BONUS,
   RUNE_EFFECT,
   runeEfficiency,
+  runeScore,
   RARITY_FILTER,
 } from '../lib/effects';
 import RuneIcon from './RuneIcon';
 import ArtifactIcon from './ArtifactIcon';
 import { SPIN } from './RuneSlotIcon';
+import { RUNE_METRICS, formatRuneMetric, useRuneMetric } from '../hooks/useRuneMetric';
 
 // Nombres compacts (39051 → « 39 051 »).
 function fmt(n: number): string {
@@ -96,6 +98,8 @@ export function RuneDetailBox({ rune }: { rune: RuneDetail }) {
   const rarity = RARITY_META[rune.rarity] ?? RARITY_META[1];
   const bonus = SET_BONUS[rune.set];
   const ancient = rune.rank > 10;
+  const metric = useRuneMetric();
+  const metricHint = RUNE_METRICS.find((m) => m.key === metric)?.hint;
   return (
     <div className="rounded-lg border border-[#6d5a37] bg-gradient-to-b from-[#2a2417] to-[#191510] p-3">
       {/* badge de rareté (marque « A » antique intégrée) + efficience dessous */}
@@ -108,8 +112,13 @@ export function RuneDetailBox({ rune }: { rune: RuneDetail }) {
           {ancient && <AncientMark size={12} color={rarity.color} />}
           {rarity.label}
         </span>
-        <span className="mt-0.5 font-mono text-[11px] text-ink-dim">
-          Efficience <b className="text-star">{runeEfficiency(rune).toFixed(1)}%</b>
+        {/* Mesure choisie globalement (sélecteur dans la liste des runes et en
+            pied de ce panneau) — même couleur dans les deux cas. */}
+        <span className="mt-0.5 font-mono text-[11px] text-ink-dim" title={metricHint}>
+          {metric === 'eff' ? 'Efficience' : 'Score SW'}{' '}
+          <b className="text-star">
+            {formatRuneMetric(metric === 'eff' ? runeEfficiency(rune) : runeScore(rune), metric)}
+          </b>
         </span>
       </div>
       {/* stat principale + innée */}

@@ -3,6 +3,7 @@ import { RotateCw, AlertTriangle, HelpCircle } from 'lucide-react';
 import { RuneDetail } from '../../types';
 import { formatRuneEffect, RARITY_META, RUNE_EFFECT } from '../../lib/effects';
 import { runePotential, RunePotential, runePlan } from '../../lib/runeOptim';
+import { useRuneMetric, formatRuneMetric } from '../../hooks/useRuneMetric';
 import { useStickyState } from '../../hooks/useStickyState';
 import RuneSlotIcon from '../RuneSlotIcon';
 import Pager from './Pager';
@@ -22,7 +23,7 @@ type SortMode = 'gainLegend' | 'gainHero' | 'effCur' | 'potHero' | 'potLegend';
 const PAGE = 60;
 
 const SORTS: { key: SortMode; label: string }[] = [
-  { key: 'effCur', label: 'Efficience actuelle' },
+  { key: 'effCur', label: 'Valeur actuelle' },
   { key: 'potHero', label: 'Potentiel héroïque' },
   { key: 'potLegend', label: 'Potentiel légendaire' },
   { key: 'gainHero', label: 'Gain héroïque' },
@@ -41,8 +42,9 @@ const SORT_VAL: Record<SortMode, (p: RunePotential) => number> = {
 const scenarioOf = (s: SortMode): 'hero' | 'legend' =>
   s === 'gainHero' || s === 'potHero' ? 'hero' : 'legend';
 
-// Gain signé (« +2.3 » / « -1.4 »).
-const signed = (g: number) => (g >= 0 ? '+' : '') + g.toFixed(1);
+// Gain signé (« +2.3 » / « -1.4 »), à la précision de la mesure (score = entier).
+const signed = (g: number, metric: 'eff' | 'score') =>
+  (g >= 0 ? '+' : '') + (metric === 'eff' ? g.toFixed(1) : String(Math.round(g)));
 
 // Couleur d'une efficience potentielle vs l'actuelle : vert au-dessus, rouge en dessous.
 const effColor = (e: number, base: number) =>
@@ -50,6 +52,7 @@ const effColor = (e: number, base: number) =>
 
 export default function RunesOptim({ runes }: Props) {
   const [threshold, setThreshold] = useStickyState('optim.threshold', 100);
+  const metric = useRuneMetric(); // réglage global : efficience ou score SW
   const [sort, setSort] = useStickyState<SortMode>('optim.sort', 'effCur');
   const [gemMode, setGemMode] = useStickyState<'gem' | 'grind'>('optim.gemMode', 'gem');
   const [page, setPage] = useState(0);
@@ -70,8 +73,8 @@ export default function RunesOptim({ runes }: Props) {
 
   // Potentiel calculé une fois par import (linéaire, mémoïsé).
   const rows = useMemo(
-    () => runes.map((rune, id): Row => ({ rune, id, pot: runePotential(rune, withGem) })),
-    [runes, withGem]
+    () => runes.map((rune, id): Row => ({ rune, id, pot: runePotential(rune, withGem, metric) })),
+    [runes, withGem, metric]
   );
 
   // Runes dont l'efficience actuelle dépasse le palier, triées selon le mode choisi.
@@ -97,7 +100,7 @@ export default function RunesOptim({ runes }: Props) {
       {/* Contrôles */}
       <div className="flex items-center gap-4 flex-wrap mb-4">
         <div className="flex items-center gap-2">
-          <span className="font-mono text-[11px] tracking-[0.1em] uppercase text-ink-dim">Palier eff.</span>
+          <span className="font-mono text-[11px] tracking-[0.1em] uppercase text-ink-dim">Palier</span>
           <input
             type="number"
             min={0}
@@ -109,7 +112,7 @@ export default function RunesOptim({ runes }: Props) {
             }}
             className="w-20 bg-panel border border-border text-ink rounded-lg px-2 py-1 text-[13px] outline-none focus:border-[#5b63b8] tabular-nums"
           />
-          <span className="font-mono text-[12px] text-ink-dim">%</span>
+          <span className="font-mono text-[12px] text-ink-dim">{metric === 'eff' ? '%' : 'pts'}</span>
         </div>
 
         <div className="flex items-center gap-2">
@@ -209,7 +212,8 @@ export default function RunesOptim({ runes }: Props) {
 
       <div className="flex items-center justify-between gap-3 mb-3 flex-wrap">
         <p className="font-mono text-[12px] text-ink-dim">
-          {filtered.length} rune{filtered.length > 1 ? 's' : ''} ≥ {threshold}%
+          {filtered.length} rune{filtered.length > 1 ? 's' : ''} ≥ {threshold}
+          {metric === 'eff' ? '%' : ''}
         </p>
         <Pager page={safePage} pageCount={pageCount} onChange={setPage} />
       </div>
@@ -231,7 +235,7 @@ export default function RunesOptim({ runes }: Props) {
 
       {filtered.length === 0 && (
         <p className="text-ink-dim text-[13px]">
-          Aucune rune ≥ {threshold}%. Baisse le palier pour en voir plus.
+          Aucune rune ≥ {threshold}{metric === 'eff' ? '%' : ''}. Baisse le palier pour en voir plus.
         </p>
       )}
 
@@ -261,6 +265,8 @@ const OptimTile = memo(function OptimTile({
   const { rune, pot } = row;
   const meta = RARITY_META[rune.rarity] ?? RARITY_META[1];
   const ancient = rune.rank > 10;
+  const metric = useRuneMetric();
+  const fmt = (v: number) => formatRuneMetric(v, metric);
 
   return (
     <div
@@ -274,16 +280,16 @@ const OptimTile = memo(function OptimTile({
             {formatRuneEffect(rune.main)}
           </div>
           <div className="font-mono text-[12px] text-ink leading-tight">
-            actuelle <b style={{ color: meta.color }}>{pot.eff.toFixed(1)}%</b>
+            actuelle <b style={{ color: meta.color }}>{fmt(pot.eff)}</b>
           </div>
           <div className="font-mono text-[11px] leading-tight text-[#c79bff]">
-            Héro {signed(pot.heroGain)}{' '}
-            <span className={effColor(pot.heroEff, pot.eff)}>→ {pot.heroEff.toFixed(1)}%</span>
+            Héro {signed(pot.heroGain, metric)}{' '}
+            <span className={effColor(pot.heroEff, pot.eff)}>→ {fmt(pot.heroEff)}</span>
           </div>
           <div className="font-mono text-[11px] leading-tight font-bold text-star">
-            Légend {signed(pot.legendGain)}{' '}
+            Légend {signed(pot.legendGain, metric)}{' '}
             <span className={`font-normal ${effColor(pot.legendEff, pot.eff)}`}>
-              → {pot.legendEff.toFixed(1)}%
+              → {fmt(pot.legendEff)}
             </span>
           </div>
         </div>
@@ -358,7 +364,8 @@ function OptimPlanBox({
   scenario: 'hero' | 'legend';
   withGem: boolean;
 }) {
-  const plan = runePlan(rune, scenario, withGem);
+  const metric = useRuneMetric();
+  const plan = runePlan(rune, scenario, withGem, metric);
   const gain = plan.targetEff - plan.eff;
 
   return (
@@ -368,11 +375,9 @@ function OptimPlanBox({
           {scenario === 'legend' ? 'Légendaire' : 'Héroïque'}
         </span>
         <span className="font-mono text-ink-dim text-[11px]">
-          {plan.eff.toFixed(1)} → <b className="text-star">{plan.targetEff.toFixed(1)}%</b>{' '}
-          <span className={gain >= 0 ? 'text-emerald-400' : 'text-fire'}>
-            ({gain >= 0 ? '+' : ''}
-            {gain.toFixed(1)})
-          </span>
+          {formatRuneMetric(plan.eff, metric)} →{' '}
+          <b className="text-star">{formatRuneMetric(plan.targetEff, metric)}</b>{' '}
+          <span className={gain >= 0 ? 'text-emerald-400' : 'text-fire'}>({signed(gain, metric)})</span>
         </span>
       </div>
 

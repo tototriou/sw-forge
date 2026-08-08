@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { HelpCircle } from 'lucide-react';
 import { RuneDetail, RUNE_SETS } from '../../types';
 import { runePotential } from '../../lib/runeOptim';
+import { useRuneMetric, formatRuneMetric } from '../../hooks/useRuneMetric';
 import { useStickyState } from '../../hooks/useStickyState';
 import RuneIcon from '../RuneIcon';
 import CurveChart, { CurveSeries, OWN_COLOR } from './CurveChart';
@@ -29,6 +30,7 @@ export default function RunesCurve({ runes }: Props) {
   const [limit, setLimit] = useStickyState('runesCurve.limit', DEFAULT_LIMIT);
   const [hidden, setHidden] = useStickyState<Set<string>>('runesCurve.hidden', new Set());
   const [gemMode, setGemMode] = useStickyState<'gem' | 'grind'>('runesCurve.gemMode', 'gem');
+  const metric = useRuneMetric(); // réglage global : efficience ou score SW
   const [showHelp, setShowHelp] = useState(false);
   const helpRef = useRef<HTMLDivElement>(null);
   const withGem = gemMode === 'gem';
@@ -69,14 +71,14 @@ export default function RunesCurve({ runes }: Props) {
       if (ancientOnly && !(r.rank > 10)) return false;
       return true;
     });
-    const pots = filtered.map((r) => runePotential(r, withGem));
+    const pots = filtered.map((r) => runePotential(r, withGem, metric));
     const desc = (a: number, b: number) => b - a;
     return {
       cur: pots.map((p) => p.eff).sort(desc),
       hero: pots.map((p) => p.heroEff).sort(desc),
       legend: pots.map((p) => p.legendEff).sort(desc),
     };
-  }, [runes, sets, slots, ancientOnly, withGem]);
+  }, [runes, sets, slots, ancientOnly, withGem, metric]);
 
   const total = cur.length;
   const cap = Math.max(1, limit);
@@ -257,7 +259,11 @@ export default function RunesCurve({ runes }: Props) {
           )}
         </div>
 
-        <CurveChart series={visible} />
+        <CurveChart
+          series={visible}
+          yLabel={metric === 'eff' ? 'Efficience (%)' : 'Score SW'}
+          unit={metric === 'eff' ? '%' : ''}
+        />
       </div>
 
       {/* Légende — sous le graphe ; cliquer un nom masque/affiche sa courbe */}
@@ -280,7 +286,8 @@ export default function RunesCurve({ runes }: Props) {
               </span>
               {s.effs.length > 0 && !off && (
                 <span className="text-ink-dim">
-                  · max {maxOf(s.effs).toFixed(1)}% · méd. {median(s.effs).toFixed(1)}%
+                  · max {formatRuneMetric(maxOf(s.effs), metric)} · méd.{' '}
+                  {formatRuneMetric(median(s.effs), metric)}
                 </span>
               )}
             </button>

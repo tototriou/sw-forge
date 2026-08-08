@@ -15,9 +15,10 @@ function primarySection(sets: string[]): string {
 
 type MappedSlot = { monsterId: string | null; runeSpeed: number | null; sets?: string[]; tick?: number; gear?: GearSet };
 
-// Vitesse de runes finale = SPD plate + bonus Swift (25% de la base) si set complet.
+// Vitesse de runes finale = SPD plate + bonus Swift (25 % de la base) si set
+// complet. Arrondi au SUPÉRIEUR, comme tous les bonus en % de l'app.
 function runeSpeedOf(flatRuneSpeed: number, swift: boolean, base: number): number {
-  return flatRuneSpeed + (swift ? Math.round((base * 25) / 100) : 0);
+  return flatRuneSpeed + (swift ? Math.ceil((base * 25) / 100) : 0);
 }
 
 // Tick de siège le plus proche d'une vitesse de combat (0 si inconnue).

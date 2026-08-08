@@ -7,6 +7,7 @@
 //    decks de 3 monstres, avec les runes propres à chaque défense de siège.
 
 import { ArtifactDetail, BaseStats, EffectLine, ElementKey, GearSet, RelicDetail, RuneDetail } from '../types';
+import { activeSets } from './effects';
 
 const RUNE_EFF_SPEED = 8; // type d'effet « Vitesse » dans les données com2us
 const RUNE_SET_SWIFT = 3; // set_id du set Swift
@@ -76,64 +77,27 @@ function speedFromRuneIds(runeIds: any[], runeById: Map<number, any>): {
   return { flatRuneSpeed, swift: swiftCount >= 4 };
 }
 
-// set_id com2us → clé de RUNE_SETS + nombre de runes requis pour activer le set.
+// set_id com2us → clé de RUNE_SETS. Le nombre de pièces requis et le joker
+// Intangible sont gérés par `activeSets` (voir effects.ts).
 const SET_ID_KEY: Record<number, string> = {
   1: 'energy', 2: 'guard', 3: 'swift', 4: 'blade', 5: 'rage', 6: 'focus', 7: 'endure',
   8: 'fatal', 10: 'despair', 11: 'vampire', 13: 'violent', 14: 'nemesis', 15: 'will',
   16: 'shield', 17: 'revenge', 18: 'destroy', 19: 'fight', 20: 'determination',
   21: 'enhance', 22: 'accuracy', 23: 'tolerance', 24: 'seal', 25: 'intangible',
 };
-const SET_PIECES: Record<number, number> = {
-  // Seuls sets 4 pièces : Swift, Rage, Fatal, Despair, Vampire, Violent.
-  // (tous les autres, dont Destroy, sont 2 pièces → valeur par défaut)
-  3: 4, 5: 4, 8: 4, 10: 4, 11: 4, 13: 4,
-};
-const RUNE_SET_INTANGIBLE = 25; // rune « joker » : complète n'importe quel set
-
-// Clés des sets 4 pièces (pour afficher le set principal en premier).
-const FOUR_PIECE_KEYS = new Set(
-  Object.entries(SET_PIECES)
-    .filter(([, n]) => n === 4)
-    .map(([sid]) => SET_ID_KEY[Number(sid)])
-);
 
 // Sets de runes ACTIFS d'un build (ex. ['swift','will']). Un set 4 pièces
 // s'active à 4 runes, les autres à 2. Une rune Intangible sert de joker et
 // complète le set le plus proche d'être plein.
 function activeSetsFromRuneIds(runeIds: any[], runeById: Map<number, any>): string[] {
-  const count = new Map<number, number>();
-  let jokers = 0; // runes Intangible disponibles
+  const keys: string[] = [];
   for (const rid of runeIds) {
     const rune = runeById.get(Number(rid));
     if (!rune) continue;
-    const sid = Number(rune?.set_id);
-    if (!Number.isFinite(sid)) continue;
-    if (sid === RUNE_SET_INTANGIBLE) jokers++;
-    else count.set(sid, (count.get(sid) ?? 0) + 1);
+    const key = SET_ID_KEY[Number(rune?.set_id)];
+    if (key) keys.push(key);
   }
-
-  const out: string[] = [];
-  const partial: { key: string; missing: number }[] = [];
-  for (const [sid, n] of count) {
-    const key = SET_ID_KEY[sid];
-    if (!key) continue;
-    const req = SET_PIECES[sid] ?? 2;
-    for (let i = 0; i < Math.floor(n / req); i++) out.push(key);
-    const rem = n % req;
-    if (rem > 0) partial.push({ key, missing: req - rem });
-  }
-
-  // L'Intangible complète en priorité le set auquel il manque le moins.
-  partial.sort((a, b) => a.missing - b.missing);
-  for (const p of partial) {
-    if (jokers >= p.missing) {
-      out.push(p.key);
-      jokers -= p.missing;
-    }
-  }
-  // Affichage : set 4 pièces d'abord, puis le(s) set(s) 2 pièces.
-  out.sort((a, b) => (FOUR_PIECE_KEYS.has(a) ? 0 : 1) - (FOUR_PIECE_KEYS.has(b) ? 0 : 1));
-  return out;
+  return activeSets(keys); // règles d'activation partagées (voir effects.ts)
 }
 
 /* --------------------------------------------------------------------------

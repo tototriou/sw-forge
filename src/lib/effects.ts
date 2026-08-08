@@ -143,6 +143,92 @@ export const SET_BONUS: Record<string, { pieces: number; label: string }> = {
   intangible: { pieces: 1, label: 'Joker (complète un set)' },
 };
 
+/* --------------------------------------------------------------------------
+ * Sets de runes : activation
+ * ----------------------------------------------------------------------- */
+
+// Sets à 4 pièces. Tous les autres (dont Destroy) s'activent à 2 runes.
+export const FOUR_PIECE_SETS = new Set(['swift', 'rage', 'fatal', 'despair', 'vampire', 'violent']);
+export const INTANGIBLE_SET = 'intangible'; // rune joker : complète n'importe quel set
+
+// Nombre de runes nécessaires pour activer un set.
+export function setPieces(key: string): number {
+  return FOUR_PIECE_SETS.has(key) ? 4 : 2;
+}
+
+// Un monstre porte 6 runes : une combinaison de sets ne peut pas coûter plus.
+export const MAX_SET_PIECES = 6;
+
+// Coût en runes d'une combinaison de sets.
+export function setsCost(sets: string[]): number {
+  return sets.reduce((n, k) => n + setPieces(k), 0);
+}
+
+// Peut-on encore ajouter ce set ? Combinaisons possibles sur 6 runes :
+// 4+2 · 2+2+2 · 4 seul · 2+2 · 2 seul · aucun. Un seul set 4 pièces (4+4 = 8 > 6).
+export function canAddSet(sets: string[], key: string): boolean {
+  return setsCost(sets) + setPieces(key) <= MAX_SET_PIECES;
+}
+
+// Sets ACTIFS d'un build, à partir des sets de ses runes.
+// Un set 2 pièces peut être actif PLUSIEURS fois (ex. 6 runes Fight → 3× Fight),
+// d'où une liste (avec répétitions) et non un ensemble. Une rune Intangible sert
+// de joker et complète le set auquel il manque le moins de pièces.
+// Tri d'affichage : sets 4 pièces d'abord.
+export function activeSets(keys: string[]): string[] {
+  const count = new Map<string, number>();
+  let jokers = 0;
+  for (const key of keys) {
+    if (!key) continue;
+    if (key === INTANGIBLE_SET) jokers++;
+    else count.set(key, (count.get(key) ?? 0) + 1);
+  }
+
+  const out: string[] = [];
+  const partial: { key: string; missing: number }[] = [];
+  for (const [key, n] of count) {
+    const req = setPieces(key);
+    for (let i = 0; i < Math.floor(n / req); i++) out.push(key);
+    const rem = n % req;
+    if (rem > 0) partial.push({ key, missing: req - rem });
+  }
+
+  partial.sort((a, b) => a.missing - b.missing);
+  for (const p of partial) {
+    if (jokers >= p.missing) {
+      out.push(p.key);
+      jokers -= p.missing;
+    }
+  }
+  out.sort((a, b) => (FOUR_PIECE_SETS.has(a) ? 0 : 1) - (FOUR_PIECE_SETS.has(b) ? 0 : 1));
+  return out;
+}
+
+/* --------------------------------------------------------------------------
+ * Bonus de set appliqués aux STATS du monstre
+ * ----------------------------------------------------------------------- */
+
+// Deux natures de bonus, à ne pas confondre :
+//  - `pct`  : pourcentage de la stat de BASE (Swift +25 % de la VIT de base) ;
+//  - `flat` : points ajoutés directement (Blade +12 POINTS de taux crit, et non
+//             12 % des 15 % de base).
+//
+// ⚠️ Les sets « d'alliés » (Fight, Determination, Enhance, Accuracy, Tolerance)
+// ne sont PAS ici : dans SW ils buffent l'équipe en combat et n'apparaissent pas
+// sur la fiche de stats du monstre. Les autres sets (Violent, Despair, Vampire,
+// Will, Nemesis, Shield, Revenge, Destroy, Seal, Intangible) n'ont aucun effet
+// sur les stats.
+export const SET_STAT_BONUS: Record<string, { stat: StatKey; pct?: number; flat?: number }> = {
+  energy: { stat: 'hp', pct: 15 },
+  guard: { stat: 'def', pct: 15 },
+  swift: { stat: 'spd', pct: 25 },
+  fatal: { stat: 'atk', pct: 35 },
+  blade: { stat: 'cr', flat: 12 },
+  rage: { stat: 'cd', flat: 40 },
+  focus: { stat: 'acc', flat: 20 },
+  endure: { stat: 'res', flat: 20 },
+};
+
 // Valeurs max (rune 6★, non antique) — pour l'efficience. Source sw-exporter.
 export const MAINSTAT_MAX: Record<number, number> = {
   1: 2448, 2: 63, 3: 160, 4: 63, 5: 160, 6: 63, 8: 42, 9: 58, 10: 80, 11: 64, 12: 64,

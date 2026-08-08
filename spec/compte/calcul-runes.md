@@ -83,7 +83,9 @@ Violent(13). Tous les autres : 2 pièces. Intangible(25) = joker.
 ### Données monstre (SWARFARM, pas SWEX)
 
 `stars` = `base_stars` (grade obtenable) ; `naturalStars` = `natural_stars` (vraie
-rareté nat 1..5) ; `secondAwaken` = `awaken_level ≥ 2`. Voir
+rareté nat 1..5) ; `secondAwaken` = `awaken_level ≥ 2`. **PV/ATQ/DEF = `max_lvl_*`**
+(monstre **6★ nu**, cohérent avec le `con × 15` ci-dessus) — surtout pas `base_*`,
+qui vaut au grade d'invocation. Voir
 [../shared/donnees-monstres.md](../shared/donnees-monstres.md).
 
 ## 3. Efficience d'une rune
@@ -181,11 +183,69 @@ rune déjà grindée légendaire, en scénario héroïque).
 `max(base, gemMax)` pour un re-proc de la même stat). Affichage : seul **ce qui
 change** est mis en évidence (grind posé ou gemme).
 
-## 5. Stats totales d'un monstre (info)
+## 5. Stats totales d'un monstre
 
-[stats.ts](src/lib/stats.ts) : `total = floor(base × (1 + Σ%/100) + Σplat)` pour
-PV/ATQ/DEF ; additif pour VIT/TC/DCC/RES/PRE. Runes (main+innée+subs) + artéfacts
-(main plate) + relique (main %).
+### 5.0 Règle d'arrondi — **transverse à toute l'app**
+
+⚠️ **Dès qu'un calcul produit une décimale, on arrondit immédiatement à l'entier
+SUPÉRIEUR** (`Math.ceil`). Jamais de `floor` ni de `round`, et jamais d'arrondi
+repoussé en fin de chaîne. C'est la règle déjà posée pour la vitesse (voir
+[../shared/calcul-vitesse.md](../shared/calcul-vitesse.md)) ; elle vaut pour
+**tous** les bonus en % de l'application.
+
+```
+stat = base + ceil(base × Σ% / 100) + Σplat
+```
+
+Les pourcentages d'une même stat sont **d'abord sommés** (runes + relique + sets),
+puis **un seul `ceil`** est appliqué — exactement comme
+`ceil(base × (totem + lead) / 100)`. Exemples : 45 % de 10 050 PV = 4 522,5 →
+**4 523** ; 25 % de 107 VIT = 26,75 → **27** ; 63 % de 10 050 = 6 331,5 → **6 332**.
+
+Sites concernés : [stats.ts](src/lib/stats.ts) (stats totales),
+[speed.ts](src/lib/speed.ts) (totem + lead), [applyAccount.ts](src/lib/applyAccount.ts)
+(bonus Swift à l'import). Un résultat déjà entier n'est **pas** réarrondi ailleurs
+(pas de double arrondi).
+
+### 5.1 Contributions
+
+Runes (main + innée + substats, meule incluse) + **bonus de set** + artéfacts
+(main plate) + relique (main %). Les stats sans % (crit, RES, précision) sont
+purement additives.
+
+### 5.2 Bonus de set — **à ne pas oublier**
+
+⚠️ Un build ne vaut pas que la somme de ses runes : les **sets actifs** ajoutent
+leur effet aux stats (`SET_STAT_BONUS` dans [effects.ts](src/lib/effects.ts)).
+Deux natures, à ne pas confondre :
+
+| Set | Effet | Nature |
+|-----|-------|--------|
+| Energy (2) | PV **+15 %** | % de la **base** |
+| Guard (2) | DEF **+15 %** | % de la base |
+| Swift (4) | VIT **+25 %** | % de la base |
+| Fatal (4) | ATQ **+35 %** | % de la base |
+| Blade (2) | Taux crit **+12** | **points** (15 → 27), pas 12 % de 15 |
+| Rage (4) | Dégâts crit **+40** | points |
+| Focus (2) | Précision **+20** | points |
+| Endure (2) | Résistance **+20** | points |
+
+- Les **répétitions comptent** : 6 runes Energy = **3×** le set 2 pièces = +45 %
+  PV. C'est `activeSets` (§2.1) qui renvoie les occurrences, joker **Intangible**
+  compris.
+- Les % PV/ATQ/DEF entrent dans le `Σ%` (un seul `ceil`, voir §5.0) ; la VIT est
+  ajoutée à plat, `ceil(base × 25 / 100)` — **même arrondi qu'à l'import Swift**
+  (voir [../shared/import-compte.md](../shared/import-compte.md)), les deux
+  chemins concordent.
+- **Exclus volontairement** : les sets **d'alliés** (Fight, Determination,
+  Enhance, Accuracy, Tolerance) — dans SW ils buffent l'équipe en combat et
+  n'apparaissent pas sur la fiche de stats du monstre. Les autres sets (Violent,
+  Despair, Vampire, Will, Nemesis, Shield, Revenge, Destroy, Seal, Intangible)
+  n'ont aucun effet de stat.
+
+Vaut pour **tous** les usages de `computeStats` : détail d'équipement (RTA/siège),
+pré-remplissage d'une recommandation depuis un deck d'offense, et confrontation
+d'une recommandation aux builds du joueur.
 
 ## 6. Perf (contrainte forte, à respecter)
 

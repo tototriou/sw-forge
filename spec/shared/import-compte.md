@@ -88,7 +88,7 @@ Points clés découverts (à ne pas régresser) :
 Dans `handleImportFile` de [RtaPage.tsx](src/pages/RtaPage.tsx) :
 
 - Mapping `com2usId → Monster` ; les unités inconnues sont ignorées.
-- **SPD runes importée** = `flatRuneSpeed + (swift ? round(base × 25 / 100) : 0)`.
+- **SPD runes importée** = `flatRuneSpeed + (swift ? ceil(base × 25 / 100) : 0)`.
   → Ici, comme on part des **runes brutes**, on **rajoute** le +25 % Swift sur la
   base (contrairement à la saisie manuelle, voir
   [calcul-vitesse.md](calcul-vitesse.md)).
@@ -153,7 +153,7 @@ Dans [applyAccount.ts](src/lib/applyAccount.ts), réutilisé par `importAccount`
 - `mapRtaItems(units, byCom2us)` → entrées RTA (dédup au meilleur build, SPD max).
 - `mapSiegeTeams(decks, byCom2us)` → `{ teams, missing }` ; unité inconnue → slot
   vide + compteur `missing`.
-- **SPD runes** (les deux) = `flatRuneSpeed + (swift ? round(base × 25 / 100) : 0)`
+- **SPD runes** (les deux) = `flatRuneSpeed + (swift ? ceil(base × 25 / 100) : 0)`
   (Swift ajouté car on part des runes brutes).
 - **Sets de runes** (`slot.sets`) : extraits des runes du deck
   (`activeSetsFromRuneIds`) — sets 4 pièces (**Swift, Rage, Fatal, Despair,

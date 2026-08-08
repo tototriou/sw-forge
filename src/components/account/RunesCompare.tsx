@@ -2,7 +2,7 @@ import { useMemo, useRef, useState } from 'react';
 import { Download, Upload, FileJson, X } from 'lucide-react';
 import { RuneDetail } from '../../types';
 import { runeEfficiency } from '../../lib/effects';
-import { encodeCurve, decodeCurve } from '../../lib/runeCurveShare';
+import { encodeCurveJson, decodeCurve } from '../../lib/runeCurveShare';
 import { parseAccountInventory } from '../../lib/importAccount';
 import { useStickyState } from '../../hooks/useStickyState';
 import CurveChart, { CurveSeries, OWN_COLOR } from './CurveChart';
@@ -23,7 +23,7 @@ interface Overlay {
 const median = (sorted: number[]) => (sorted.length ? sorted[Math.floor(sorted.length / 2)] : 0);
 
 function download(filename: string, text: string) {
-  const blob = new Blob([text], { type: 'text/plain' });
+  const blob = new Blob([text], { type: 'application/json;charset=utf-8' });
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
   a.href = url;
@@ -47,10 +47,12 @@ export default function RunesCompare({ runes }: Props) {
   function handleExport() {
     if (myEffs.length === 0) return flash(false, 'Aucune rune à exporter.');
     const name = (prompt('Nom de ta courbe (visible par tes amis) :', 'Moi') || '').trim() || 'Moi';
-    const code = encodeCurve(name, myEffs);
-    navigator.clipboard?.writeText(code).catch(() => {});
-    download(`swforge-runes-${name.replace(/\s+/g, '_')}.txt`, code);
-    flash(true, 'Courbe exportée : code copié + fichier téléchargé.');
+    // JSON : téléchargé en fichier ET copié au presse-papier (pièce jointe ou
+    // copier/coller, au choix).
+    const json = encodeCurveJson(name, myEffs);
+    navigator.clipboard?.writeText(json).catch(() => {});
+    download(`swforge-runes-${name.replace(/\s+/g, '_')}.json`, json);
+    flash(true, 'Courbe exportée : fichier .json téléchargé et contenu copié.');
   }
 
   function addOverlay(payload: { name: string; effs: number[] } | null) {
@@ -135,7 +137,14 @@ export default function RunesCompare({ runes }: Props) {
         >
           <FileJson size={14} /> Importer un JSON
         </button>
-        <input ref={curveRef} type="file" accept=".txt,text/plain" onChange={handleCurveFile} className="hidden" />
+        {/* `.txt` encore accepté : les anciens exports (code compact) circulent. */}
+        <input
+          ref={curveRef}
+          type="file"
+          accept=".json,application/json,.txt,text/plain"
+          onChange={handleCurveFile}
+          className="hidden"
+        />
         <input ref={jsonRef} type="file" accept=".json,application/json" onChange={handleJsonFile} className="hidden" />
 
         {myEffs.length > DEFAULT_LIMIT && (

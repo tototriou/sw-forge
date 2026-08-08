@@ -114,11 +114,16 @@ Détails :
 
 Se comparer entre amis en superposant plusieurs courbes (efficience **actuelle**).
 
-- **Exporter** (icône **Upload ↑**) : demande un nom, génère un **code compact**
-  (base64, voir [runeCurveShare.ts](src/lib/runeCurveShare.ts)), **copie** au
-  presse-papier **et télécharge** `swforge-runes-<nom>.txt` (encode toutes les
-  efficiences).
-- **Importer une courbe** (icône **Download ↓**) : charge le `.txt` d'un ami.
+- **Exporter** (icône **Upload ↑**) : demande un nom, produit un **JSON lisible**
+  (`format: "sw-forge/courbe-runes"`, voir
+  [runeCurveShare.ts](src/lib/runeCurveShare.ts)) — **téléchargé** en
+  `swforge-runes-<nom>.json` **et copié** au presse-papier. Même convention que
+  les recommandations de siège : un seul format, inspectable et éditable.
+- **Importer une courbe** (icône **Download ↓**) : charge le fichier d'un ami.
+  ⚠️ L'ancien **code compact** (`SWF-RUNES-1:`, base64 en `.txt`) reste **accepté
+  à la lecture** : la fonctionnalité était déjà déployée, des fichiers circulent
+  chez les joueurs et ne doivent pas devenir illisibles. Il n'est simplement plus
+  produit.
 - **Importer un JSON** (icône FileJson) : charge le **JSON de compte SWEX brut**
   d'un ami (s'il n'a pas l'outil) ; runes extraites à la volée (`parseAccountInventory`).
   **100 % local.**

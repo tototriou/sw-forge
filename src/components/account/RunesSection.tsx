@@ -1,6 +1,7 @@
-import { List, LineChart, GitCompare, Wand2 } from 'lucide-react';
+import { List, LineChart, GitCompare, Wand2, Gauge } from 'lucide-react';
 import { RuneDetail } from '../../types';
 import { useStickyState } from '../../hooks/useStickyState';
+import RunesSummary from './RunesSummary';
 import RunesList from './RunesList';
 import RunesCurve from './RunesCurve';
 import RunesCompare from './RunesCompare';
@@ -10,9 +11,10 @@ interface Props {
   runes: RuneDetail[];
 }
 
-type View = 'liste' | 'courbes' | 'comparaison' | 'optimisation';
+type View = 'resume' | 'liste' | 'courbes' | 'comparaison' | 'optimisation';
 
 const VIEWS: { key: View; label: string; icon: typeof List }[] = [
+  { key: 'resume', label: 'Résumé', icon: Gauge },
   { key: 'liste', label: 'Liste', icon: List },
   { key: 'courbes', label: 'Courbes', icon: LineChart },
   { key: 'comparaison', label: 'Comparaison', icon: GitCompare },
@@ -20,7 +22,7 @@ const VIEWS: { key: View; label: string; icon: typeof List }[] = [
 ];
 
 export default function RunesSection({ runes }: Props) {
-  const [view, setView] = useStickyState<View>('runes.view', 'liste');
+  const [view, setView] = useStickyState<View>('runes.view', 'resume');
 
   return (
     <div>
@@ -42,6 +44,7 @@ export default function RunesSection({ runes }: Props) {
         })}
       </div>
 
+      {view === 'resume' && <RunesSummary runes={runes} />}
       {view === 'liste' && <RunesList runes={runes} />}
       {view === 'courbes' && <RunesCurve runes={runes} />}
       {view === 'comparaison' && <RunesCompare runes={runes} />}

@@ -2,10 +2,11 @@
 
 Explorer et analyser **tout l'inventaire de runes**. Composant conteneur :
 `RunesSection` ([RunesSection.tsx](src/components/account/RunesSection.tsx)), avec
-**4 onglets internes** :
+**5 onglets internes** (« Résumé » en premier, **vue par défaut**) :
 
 | Onglet | Composant | Rôle |
 |--------|-----------|------|
+| Résumé | `RunesSummary` | Vue d'ensemble chiffrée de tout l'inventaire |
 | Liste | `RunesList` | Toutes les runes, filtrables/triables |
 | Courbes | `RunesCurve` | Courbes d'efficience (actuelle + potentiels) |
 | Comparaison | `RunesCompare` | Export/import & superposition de courbes entre amis |
@@ -32,6 +33,36 @@ eff = (min(main/mainMax, 1) + Σ(substat/subMax) + innée/subMax) / 2.8 × 100
 
 Substats = **valeur meule incluse**. Maxes 6★ **non antiques** → une rune antique
 peut dépasser 100 %.
+
+## Onglet Résumé — `RunesSummary`
+
+Vue d'ensemble **chiffrée** de l'inventaire : où en est le compte d'un coup d'œil,
+sans parcourir les runes. **Aucun filtre** (volontairement global), **aucune
+pagination** (rien n'est rendu par rune → un seul passage mémoïsé sur l'inventaire,
+fluide à ~2000 runes). Fichier :
+[RunesSummary.tsx](src/components/account/RunesSummary.tsx).
+
+Blocs, dans l'ordre :
+
+1. **Chiffres clés** (6 tuiles) : nombre de runes (+ nb au **+15**) · **efficience
+   moyenne** (+ médiane) · **moyenne du top 100** (+ top 10) · **meilleure**
+   (+ nb ≥ 110 %) · **nb ≥ 100 %** (+ part) · **antiques** (+ part).
+2. **Distribution d'efficience** : barres par palier **≥ 110 · 100–110 · 90–100 ·
+   80–90 · 70–80 · < 70 %**, avec effectif et part du stock.
+3. **Qualité du stock** : barres *montées au +15* · *4 substats révélés* ·
+   *gemmées* (≥ 1 substat `enchant`) · *antiques* ; puis une **barre empilée des
+   raretés** aux couleurs du jeu (`RARITY_META`) + légende chiffrée.
+4. **Par emplacement** : une tuile par slot 1→6 (effectif, efficience moyenne,
+   meilleure).
+5. **Stats principales (slots 2 · 4 · 6)** : répartition des mainstats, triée par
+   volume. Les slots **impairs sont exclus** (mainstat figée : 1 ATQ, 3 DEF, 5 PV).
+6. **Marge de progression** : efficience moyenne actuelle vs **potentiel moyen
+   légendaire** (gemme + meule) avec le delta en points · **meules à poser**
+   (runes dont le potentiel *meule seule* dépasse l'actuel) · **gemmes à poser**
+   (runes non gemmées). Réutilise `runePotential` de
+   [runeOptim.ts](src/lib/runeOptim.ts) → cohérent avec l'onglet Optimisation.
+7. **Par set** : une tuile par set **présent** dans l'inventaire (icône + accent de
+   la couleur du set), effectif, efficience moyenne et max, **triée par volume**.
 
 ## Onglet Liste — `RunesList`
 

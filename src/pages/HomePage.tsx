@@ -1,5 +1,19 @@
 import { motion } from 'framer-motion';
-import { BookOpen, Swords, ArrowRight, Zap, Filter, Layers, Castle, Trophy, Users } from 'lucide-react';
+import {
+  BookOpen,
+  Swords,
+  ArrowRight,
+  Zap,
+  Filter,
+  Layers,
+  Castle,
+  Trophy,
+  Users,
+  UserRound,
+  Boxes,
+  Gauge,
+  Calculator,
+} from 'lucide-react';
 import { ElementKey } from '../types';
 import ElementIcon from '../components/ElementIcon';
 
@@ -97,6 +111,18 @@ export default function HomePage() {
           soon
         />
         <ToolCard
+          href="#/compte"
+          icon={UserRound}
+          accent="#5EDB8F"
+          title="Mon compte"
+          desc="Explore tout ton compte importé : ta box de monstres 6★, ton inventaire de runes et d'artéfacts, avec le résumé chiffré et l'analyse d'efficience."
+          features={[
+            { icon: Boxes, label: 'Box 6★, runes & artéfacts' },
+            { icon: Gauge, label: 'Résumé, efficience & optimisation' },
+          ]}
+          cta="Explorer mon compte"
+        />
+        <ToolCard
           href="#/bestiary"
           icon={BookOpen}
           accent="#2FA0E0"
@@ -107,6 +133,18 @@ export default function HomePage() {
             { icon: Zap, label: 'Stats de base (vitesse…)' },
           ]}
           cta="Ouvrir le bestiaire"
+        />
+        <ToolCard
+          href="#/mecaniques"
+          icon={Calculator}
+          accent="#8890B8"
+          title="Mécaniques"
+          desc="La documentation des mécaniques de jeu : vitesse de combat, barre d'action, équation des dégâts, facteur de défense et variance."
+          features={[
+            { icon: Zap, label: "Vitesse, barre d'action & ticks" },
+            { icon: Swords, label: 'Dégâts, crit & facteur de défense' },
+          ]}
+          cta="Consulter les mécaniques"
         />
       </div>
     </motion.div>

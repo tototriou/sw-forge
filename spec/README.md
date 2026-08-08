@@ -22,6 +22,11 @@ ce qu'il peut faire, et les règles de calcul appliquées.
 Ordre d'importance (nav & cartes d'accueil) : **Accueil → RTA → Siège → Arène → Mon compte**.
 Bestiaire et Mécaniques sont regroupés sous « Ressources » (les moins centraux de l'outil).
 
+> ⚠️ **Règle permanente** : toute page ou section **ajoutée, renommée ou
+> supprimée** doit être répercutée sur **l'accueil** ([accueil.md](accueil.md) —
+> carte + ordre) **et** dans la nav de [App.tsx](src/App.tsx), **dans le même
+> commit** que la fonctionnalité.
+
 ## Briques transverses
 
 Concepts partagés par plusieurs pages, documentés une seule fois :

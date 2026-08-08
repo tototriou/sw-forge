@@ -53,5 +53,5 @@ Popup partagée RTA/Siège. Détail complet dans
 
 - Un monstre déjà en prépa ne peut pas être réajouté (idempotent).
 - L'import ne duplique pas : dédup par monstre, meilleur build conservé, choix
-  remplacer/fusionner si une prépa existe déjà.
+  confirmation unique (importer / ne rien faire) si une prépa existe déjà ; l'import remplace.
 - Réimporter le même fichier est possible (l'input est reset après lecture).

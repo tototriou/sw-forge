@@ -176,26 +176,32 @@ export default function App() {
       return;
     }
 
-    // Une seule confirmation pour les trois cibles si des données existent déjà.
+    // Une seule confirmation si des données existent déjà.
+    // ⚠️ « Annuler » ANNULE L'IMPORT — il ne doit surtout pas déclencher une
+    // fusion : c'était le cas, et fusionner des équipes de siège les DÉDOUBLAIT
+    // (un compte à 50 attaques repartait à 100). Un import de compte est un
+    // rafraîchissement de l'état du jeu, jamais un ajout.
     const hasExisting =
       Object.keys(rta.state.entries).length > 0 ||
       siegeDef.state.teams.length > 0 ||
       siegeOff.state.teams.length > 0;
-    let replace = true;
-    if (hasExisting) {
-      replace = confirm(
-        'Importer ton compte va remplir RTA, défense et offense.\n\n' +
-          'OK = remplacer les données existantes\n' +
-          'Annuler = fusionner / ajouter'
-      );
+    if (
+      hasExisting &&
+      !confirm(
+        'Importer ton compte va REMPLACER ta prépa RTA et tes équipes de siège\n' +
+          "par celles de l'export.\n\n" +
+          "OK = importer · Annuler = ne rien faire"
+      )
+    ) {
+      return; // rien touché
     }
 
     if (rtaItems.length) {
-      if (replace) rta.clearAll();
+      rta.clearAll();
       rta.importEntries(rtaItems);
     }
-    if (def.teams.length) siegeDef.importTeams(def.teams, replace);
-    if (off.teams.length) siegeOff.importTeams(off.teams, replace);
+    if (def.teams.length) siegeDef.importTeams(def.teams);
+    if (off.teams.length) siegeOff.importTeams(off.teams);
     // Box + inventaire en mémoire : toujours remplacés par le dernier import.
     setBox(boxItems);
     setRunes(invRes.runes ?? []);

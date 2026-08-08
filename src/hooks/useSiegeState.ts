@@ -66,9 +66,9 @@ export interface UseSiegeState {
   setSlotTick: (teamId: string, idx: number, tick: number) => void;
   dismissTickAlert: (teamId: string, dismissed: boolean) => void;
   swapSlots: (teamId: string, from: number, to: number) => void;
+  // Remplace toujours les équipes existantes (voir l'implémentation).
   importTeams: (
-    teams: { slots: { monsterId: string | null; runeSpeed: number | null; sets?: string[]; tick?: number; gear?: GearSet }[] }[],
-    replace: boolean
+    teams: { slots: { monsterId: string | null; runeSpeed: number | null; sets?: string[]; tick?: number; gear?: GearSet }[] }[]
   ) => void;
   clearAll: () => void;
 }
@@ -158,12 +158,15 @@ export function useSiegeState(side: SiegeSide): UseSiegeState {
   );
 
   // Import de decks (depuis un export de compte) : chaque deck devient une
-  // équipe de 3 slots (slot 0 = leader). `replace` remplace les équipes
-  // existantes, sinon on ajoute à la suite.
+  // équipe de 3 slots (slot 0 = leader).
+  //
+  // ⚠️ REMPLACE toujours les équipes existantes. Une variante « ajouter à la
+  // suite » a existé : elle DÉDOUBLAIT tout le siège quand l'utilisateur croyait
+  // annuler l'import. Un export de compte est un instantané du jeu, on ne le
+  // cumule pas avec le précédent.
   const importTeams = useCallback(
     (
-      teams: { slots: { monsterId: string | null; runeSpeed: number | null; sets?: string[]; tick?: number; gear?: GearSet }[] }[],
-      replace: boolean
+      teams: { slots: { monsterId: string | null; runeSpeed: number | null; sets?: string[]; tick?: number; gear?: GearSet }[] }[]
     ) => {
       setState((s) => {
         const built: SiegeTeam[] = teams.map((t) => {
@@ -179,7 +182,7 @@ export function useSiegeState(side: SiegeSide): UseSiegeState {
           });
           return { id: newId(), slots, lead: 0, tickAlertDismissed: false };
         });
-        return { teams: replace ? built : [...s.teams, ...built] };
+        return { teams: built };
       });
     },
     []

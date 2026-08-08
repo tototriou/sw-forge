@@ -35,8 +35,18 @@ besoin, un import couvre déjà toutes les pages. Rien n'est persisté sur le di
 équipes de siège, monstres perso puis recharge).
 
 **Une seule confirmation** : si des données existent déjà (RTA/défense/offense),
-un unique `confirm` « remplacer / fusionner » s'applique aux trois cibles. La box
-« Mon compte » (en mémoire) est **toujours remplacée** par le dernier import.
+un unique `confirm` demande d'aller ou non au bout — **« OK = importer · Annuler
+= ne rien faire »**. Un import **remplace** toujours la prépa RTA et les équipes
+de siège. La box « Mon compte » (en mémoire) est elle aussi remplacée.
+
+> ⚠️ **Ne jamais proposer de « fusionner » ici.** L'ancien dialogue disait
+> « OK = remplacer · Annuler = fusionner » : celui qui voulait **annuler** son
+> import cliquait Annuler… et **dédoublait tout son siège** (50 attaques → 100).
+> Un export de compte est un **instantané du jeu**, il ne se cumule pas avec le
+> précédent. Le chemin « ajouter à la suite » a été **retiré de `importTeams`**
+> pour qu'il ne puisse pas être rebranché. Voir aussi la règle générale dans
+> [siege/recommandations.md](../siege/recommandations.md).
+
 Message global récapitulatif **éphémère** (disparaît seul ~5 s ; ~9 s pour une
 erreur) : « Import : N monstres 6★ · N monstres RTA · N défenses · N attaques ».
 
@@ -99,7 +109,7 @@ Dans `handleImportFile` de [RtaPage.tsx](src/pages/RtaPage.tsx) :
   Rage/Fatal/Vampire, sinon « Autre ») ; **< 6 runes → « Non classé »**. Les sets
   actifs (`activeSetsFromRuneIds`, 4 pièces en premier) sont stockés sur l'entrée
   pour l'affichage.
-- Si une prépa existe déjà : `confirm` → **remplacer** (`clearAll`) ou **fusionner**.
+- Si une prépa existe déjà : `confirm` unique (importer / ne rien faire) ; l'import **remplace** (`clearAll` puis `importEntries`).
 - Messages : succès (`n monstres favoris importés`) ou erreur (aucun favori/preset
   reconnu, JSON illisible…).
 
@@ -161,8 +171,8 @@ Dans [applyAccount.ts](src/lib/applyAccount.ts), réutilisé par `importAccount`
   Une rune **Intangible** joue le joker et complète le set le plus proche d'être
   plein. Affichés en icônes dans la vue compacte du siège.
 
-Puis `importAccount` applique : `rta.importEntries` (après `clearAll` si remplace),
-`siegeDef.importTeams(_, replace)`, `siegeOff.importTeams(_, replace)`. `lead`/`tick`
+Puis `importAccount` applique : `rta.importEntries` (après `clearAll`),
+`siegeDef.importTeams(_)`, `siegeOff.importTeams(_)` — qui **remplacent**. `lead`/`tick`
 des équipes à 0 ; le lead est ensuite **déduit automatiquement** du leader (slot 0).
 Seules les cibles qui ont des données sont touchées (un compte sans favoris RTA ne
 vide pas la prépa RTA).

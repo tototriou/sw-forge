@@ -17,7 +17,7 @@ import {
 import HomePage from './pages/HomePage';
 import BestiaryPage from './pages/BestiaryPage';
 import RtaPage from './pages/RtaPage';
-import SiegePage from './pages/SiegePage';
+import SiegePage, { SiegeTab } from './pages/SiegePage';
 import MechanicsPage from './pages/MechanicsPage';
 import AccountPage from './pages/AccountPage';
 import ComingSoon from './pages/ComingSoon';
@@ -26,7 +26,9 @@ import { ArtifactDetail, Monster, RuneDetail } from './types';
 import { useMonsters } from './hooks/useMonsters';
 import { useCustomMonsters } from './hooks/useCustomMonsters';
 import { useRtaState } from './hooks/useRtaState';
-import { useSiegeState, SiegeSide } from './hooks/useSiegeState';
+import { useSiegeState } from './hooks/useSiegeState';
+import { useSiegeRecos } from './hooks/useSiegeRecos';
+import { collectOwnedBuilds, collectOwnedTeams } from './lib/ownedBuilds';
 import {
   parseAccountJson,
   parseSiegeDefense,
@@ -41,20 +43,22 @@ export type AccountSub = 'monstres' | 'runes' | 'artefacts';
 
 // Route + sous-route de siège (offense/défense) + sous-section « Mon compte »
 // déduites du hash.
-function parseHash(): { route: Route; siegeSide: SiegeSide; accountSub: AccountSub } {
+function parseHash(): { route: Route; siegeTab: SiegeTab; accountSub: AccountSub } {
   const h = window.location.hash.replace(/^#\/?/, '');
-  const base = { siegeSide: 'defense' as SiegeSide, accountSub: 'monstres' as AccountSub };
+  const base = { siegeTab: 'defense' as SiegeTab, accountSub: 'monstres' as AccountSub };
   if (h === 'rta') return { route: 'rta', ...base };
   if (h === 'bestiary') return { route: 'bestiary', ...base };
   if (h === 'arene') return { route: 'arene', ...base };
   if (h === 'compte' || h.startsWith('compte/')) {
     const accountSub: AccountSub =
       h === 'compte/runes' ? 'runes' : h === 'compte/artefacts' ? 'artefacts' : 'monstres';
-    return { route: 'compte', siegeSide: 'defense', accountSub };
+    return { route: 'compte', siegeTab: 'defense', accountSub };
   }
   if (h === 'mecaniques') return { route: 'mecaniques', ...base };
   if (h === 'siege' || h.startsWith('siege/')) {
-    return { route: 'siege', siegeSide: h === 'siege/offense' ? 'offense' : 'defense', accountSub: 'monstres' };
+    const siegeTab: SiegeTab =
+      h === 'siege/offense' ? 'offense' : h === 'siege/recommandations' ? 'recos' : 'defense';
+    return { route: 'siege', siegeTab, accountSub: 'monstres' };
   }
   return { route: 'home', ...base };
 }
@@ -91,13 +95,14 @@ export default function App() {
   const rta = useRtaState();
   const siegeDef = useSiegeState('defense');
   const siegeOff = useSiegeState('offense');
+  const recos = useSiegeRecos();
 
   // Compte (box + inventaire runes/artéfacts) : en mémoire uniquement (ré-import à chaque session).
   const [box, setBox] = useState<BoxItem[]>([]);
   const [runes, setRunes] = useState<RuneDetail[]>([]);
   const [artifacts, setArtifacts] = useState<ArtifactDetail[]>([]);
 
-  const [{ route, siegeSide, accountSub }, setNav] = useState(parseHash);
+  const [{ route, siegeTab, accountSub }, setNav] = useState(parseHash);
   const [menuOpen, setMenuOpen] = useState(false);
   const [resourcesOpen, setResourcesOpen] = useState(false);
   const resourcesRef = useRef<HTMLDivElement>(null);
@@ -119,6 +124,30 @@ export default function App() {
     for (const mon of allMonsters) if (mon.com2usId != null) m.set(mon.com2usId, mon);
     return m;
   }, [allMonsters]);
+
+  // Tous les BUILDS connus du joueur : box (équipement porté) + preset RTA +
+  // presets de siège. Un monstre a un build par contexte — s'en tenir à la box
+  // ferait échouer la confrontation d'un deck de siège pourtant possédé.
+  // + les ÉQUIPES réellement composées, pour distinguer « j'ai ces monstres »
+  // de « j'ai un deck qui les réunit » (voir siege/recommandations.md).
+  const { ownedBuilds, ownedTeams } = useMemo(() => {
+    const byId = new Map<string, Monster>();
+    for (const mon of allMonsters) byId.set(String(mon.id), mon);
+    return {
+      ownedBuilds: collectOwnedBuilds({
+        box,
+        rta: Object.values(rta.state.entries),
+        defense: siegeDef.state.teams,
+        offense: siegeOff.state.teams,
+        monsterById: byId,
+      }),
+      ownedTeams: collectOwnedTeams({
+        defense: siegeDef.state.teams,
+        offense: siegeOff.state.teams,
+        monsterById: byId,
+      }),
+    };
+  }, [box, rta.state.entries, siegeDef.state.teams, siegeOff.state.teams, allMonsters]);
 
   // Import GLOBAL : un seul fichier alimente RTA + siège défense + siège offense.
   function importAccount(text: string) {
@@ -187,12 +216,13 @@ export default function App() {
     });
   }
 
-  // Efface toutes les données locales (prépa RTA, équipes de siège, monstres
-  // perso). Le compte importé n'est déjà qu'en mémoire → le reload le vide aussi.
+  // Efface toutes les données locales (prépa RTA, équipes de siège,
+  // recommandations, monstres perso). Le compte importé n'est déjà qu'en
+  // mémoire → le reload le vide aussi.
   function clearAllData() {
     if (
       !confirm(
-        'Supprimer toutes tes données locales (prépa RTA, équipes de siège, monstres perso) ?\n\nCette action est irréversible.'
+        'Supprimer toutes tes données locales (prépa RTA, équipes de siège, recommandations, monstres perso) ?\n\nCette action est irréversible.'
       )
     )
       return;
@@ -452,8 +482,12 @@ export default function App() {
           <BestiaryPage monsters={data.monsters} loadState={data.loadState} />
         ) : route === 'siege' ? (
           <SiegePage
-            side={siegeSide}
-            siege={siegeSide === 'offense' ? siegeOff : siegeDef}
+            tab={siegeTab}
+            siege={siegeTab === 'offense' ? siegeOff : siegeDef}
+            offense={siegeOff}
+            recos={recos}
+            builds={ownedBuilds}
+            teams={ownedTeams}
             monsters={allMonsters}
             loadState={data.loadState}
             onCreateMonster={custom.addCustomMonster}

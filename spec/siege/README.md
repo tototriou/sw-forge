@@ -1,12 +1,14 @@
-# Siège (`#/siege/defense`, `#/siege/offense`)
+# Siège (`#/siege/defense`, `#/siege/offense`, `#/siege/recommandations`)
 
 Composer des équipes de **3 monstres** de combat de guilde, avec lead de vitesse
 **automatique** et vérification des **speed tune** (ticks). La page est découpée en
-**deux sous-onglets** : **Défense** et **Offense**.
+**trois sous-onglets** : **Défense**, **Offense** et **Recommandations**.
 
 Fichiers :
 - [SiegePage.tsx](src/pages/SiegePage.tsx) — shell : titre + sous-onglets, choisit
-  le côté selon la route (`#/siege/defense` par défaut, `#/siege/offense`).
+  l'onglet selon la route (`#/siege/defense` par défaut, `#/siege/offense`,
+  `#/siege/recommandations`). Type `SiegeTab = 'defense' | 'offense' | 'recos'`
+  (distinct de `SiegeSide`, qui ne pilote que le stockage des deux côtés jouables).
 - [SiegeBoard.tsx](src/components/siege/SiegeBoard.tsx) — le board réutilisable,
   paramétré par `side` ('defense' | 'offense'). Monté avec `key={side}` pour
   réinitialiser au changement d'onglet.
@@ -14,16 +16,24 @@ Fichiers :
   par côté**, `localStorage` `sw-forge-siege-defense-v1` / `sw-forge-siege-offense-v1`
   (migration : l'ancienne clé unique `sw-forge-siege-v1` → défense).
 
-Les deux côtés partagent **exactement la même mécanique** (composition, lead auto,
-ticks) — voir [equipes.md](equipes.md) et [speed-tick.md](speed-tick.md). Seules
-diffèrent les données d'import (voir ci-dessous).
+Les deux côtés **jouables** (défense/offense) partagent **exactement la même
+mécanique** (composition, lead auto, ticks) — voir [equipes.md](equipes.md) et
+[speed-tick.md](speed-tick.md). Seules diffèrent les données d'import (voir
+ci-dessous). L'onglet **Recommandations** a son propre modèle et sa propre
+persistance : voir [recommandations.md](recommandations.md).
 
 ## Vue d'ensemble
 
 1. **En-tête** : titre « Siège » + intro dépendant du côté.
 2. **Sous-onglets** : Défense / Offense.
-3. **Barre d'actions** : **Ajouter une équipe**, **Créer un monstre**,
-   **Vérifier mes tick ATB**, compteur d'équipes, **Tout effacer**.
+3. **Barre d'actions**, dans cet ordre : **Ajouter une équipe** → **Vérifier mes
+   tick ATB** → **Créer un monstre** → compteur d'équipes → **Tout effacer**
+   (poussé à droite).
+   - « Créer un monstre » est **en dernier des actions** : c'est le geste le plus
+     rare.
+   - Tous les boutons d'action partagent le **même gabarit**
+     (`px-3.5 py-2`, 13 px, icône 15) — y compris `CreateMonster`, qui était plus
+     petit et paraissait rabougri à côté des autres.
 4. **Liste d'équipes** (ou état vide incitant à ajouter/importer).
 
 ### Disposition de la liste — 2 équipes par ligne
@@ -78,6 +88,7 @@ d'attaque sauvegardées).
 |--------------|------|
 | Composition d'équipe, slots, leader, drag & drop | [equipes.md](equipes.md) |
 | Vitesse de combat, lead auto, ticks & retour manque/surplus | [speed-tick.md](speed-tick.md) |
+| Recommandations : lots de decks (création, partage, confrontation à la box) | [recommandations.md](recommandations.md) |
 
 ## Modèle d'état
 

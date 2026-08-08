@@ -214,3 +214,74 @@ export interface SiegeState {
   teams: SiegeTeam[];
 }
 
+/* --------------------------------------------------------------------------
+ * Siège — recommandations de decks (partageables entre joueurs)
+ * ----------------------------------------------------------------------- */
+
+// Stats sur lesquelles une recommandation peut poser un minimum (mêmes clés que
+// lib/effects.ts → StatKey, et mêmes lignes que le calcul de stats totales).
+export type RecoStatKey = 'hp' | 'atk' | 'def' | 'spd' | 'cr' | 'cd' | 'res' | 'acc';
+
+export const RECO_STATS: { key: RecoStatKey; label: string; suffix: string }[] = [
+  { key: 'hp', label: 'PV', suffix: '' },
+  { key: 'atk', label: 'ATQ', suffix: '' },
+  { key: 'def', label: 'DEF', suffix: '' },
+  { key: 'spd', label: 'VIT', suffix: '' },
+  { key: 'cr', label: 'Taux Crit', suffix: '%' },
+  { key: 'cd', label: 'Dmg Crit', suffix: '%' },
+  { key: 'res', label: 'RES', suffix: '%' },
+  { key: 'acc', label: 'Précision', suffix: '%' },
+];
+
+// Un monstre d'une recommandation. On stocke le **com2usId** (et non l'id local)
+// : c'est la seule clé stable d'un compte/joueur à l'autre — même clé de
+// jointure que les imports SWEX. `name` sert de repli d'affichage si le monstre
+// est absent des données chargées chez celui qui importe.
+export interface RecoSlot {
+  com2usId: number | null; // null = slot vide
+  name: string;
+  stats: Partial<Record<RecoStatKey, number>>; // minimums recommandés (absent = non exigé)
+  // Sets de runes recommandés (clés RUNE_SETS), avec RÉPÉTITIONS possibles :
+  // un set 2 pièces peut être demandé plusieurs fois (ex. 3× Fight = 6 runes).
+  // Combinaisons valides sur 6 runes : 4+2 · 2+2+2 · 4 · 2+2 · 2 · aucun.
+  sets: string[];
+}
+
+// Un deck recommandé : 3 monstres, index 0 = leader (comme une équipe de siège).
+export interface RecoDeck {
+  name: string; // « Def 1 » (facultatif → « Deck N »)
+  note: string; // consignes propres à CE deck (multi-lignes)
+  slots: RecoSlot[]; // toujours 3 ; index 0 = leader
+}
+
+// D'où vient une recommandation. Purement LOCAL : jamais transporté dans un
+// export (ce qui est « à moi » chez l'auteur devient « importé » chez l'autre).
+export type RecoOrigin = 'mine' | 'imported';
+
+// Une recommandation = un ENSEMBLE de decks partagé d'un bloc (ex. « Mes 6
+// défenses de siège »), pas un deck isolé.
+export interface Reco {
+  id: string;
+  origin: RecoOrigin;
+  name: string; // « Défenses de guilde — Thomas »
+  author: string; // auteur de la recommandation (facultatif)
+  note: string; // consignes globales, valables pour tous les decks (multi-lignes)
+  decks: RecoDeck[];
+}
+
+// Contenu transportable d'une recommandation : ni l'id (régénéré), ni l'origine
+// (attribuée par celui qui importe).
+export type RecoPayload = Omit<Reco, 'id' | 'origin'>;
+
+export interface RecoState {
+  recos: Reco[];
+}
+
+export function emptyRecoSlot(): RecoSlot {
+  return { com2usId: null, name: '', stats: {}, sets: [] };
+}
+
+export function emptyRecoDeck(): RecoDeck {
+  return { name: '', note: '', slots: [emptyRecoSlot(), emptyRecoSlot(), emptyRecoSlot()] };
+}
+

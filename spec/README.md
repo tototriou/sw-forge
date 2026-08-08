@@ -13,7 +13,7 @@ ce qu'il peut faire, et les règles de calcul appliquées.
 |------|-------|--------|------|
 | Accueil | `#/` | Live | [accueil.md](accueil.md) |
 | RTA — Préparation | `#/rta` | Live | [rta/README.md](rta/README.md) |
-| Siège (Défense / Offense) | `#/siege/defense`, `#/siege/offense` | Live | [siege/README.md](siege/README.md) |
+| Siège (Défense / Offense / Recommandations) | `#/siege/defense`, `#/siege/offense`, `#/siege/recommandations` | Live | [siege/README.md](siege/README.md) |
 | Arène | `#/arene` | À venir | [arene.md](arene.md) |
 | Mon compte | `#/compte`, `#/compte/runes`, `#/compte/artefacts` | Live | [compte/README.md](compte/README.md) |
 | Bestiaire | `#/bestiary` | Live | [bestiaire.md](bestiaire.md) |

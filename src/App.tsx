@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import {
   Swords,
   BookOpen,
@@ -110,6 +110,16 @@ export default function App() {
   const [accountOpen, setAccountOpen] = useState(false);
   const accountRef = useRef<HTMLDivElement>(null);
   const [importMsg, setImportMsg] = useState<{ ok: boolean; text: string } | null>(null);
+
+  // Barre du haut : si la rangée complète (onglets + import + réglages) ne tient
+  // pas sur UNE ligne, on bascule sur le menu hamburger plutôt que de laisser
+  // les boutons passer à la ligne. Mesuré, pas fixé à un breakpoint : le nombre
+  // d'onglets change à chaque nouvelle section, un seuil en dur serait périmé.
+  const barRef = useRef<HTMLDivElement>(null);
+  const navRef = useRef<HTMLElement>(null);
+  const toolsRef = useRef<HTMLDivElement>(null);
+  const neededRef = useRef(0); // largeur d'une ligne complète, dernière mesure
+  const [compactNav, setCompactNav] = useState(false);
 
   const resourcesActive = RESOURCES.some((r) => r.key === route);
 
@@ -266,6 +276,31 @@ export default function App() {
     return () => document.removeEventListener('mousedown', onDown);
   }, [resourcesOpen, accountOpen]);
 
+  // Mesure de la barre du haut. En mode complet on RETIENT la largeur nécessaire
+  // (`neededRef`) : une fois replié, la rangée ne contient plus la nav et ne
+  // peut donc plus la mesurer — sans cette mémoire on ne saurait jamais quand
+  // redéployer. `useLayoutEffect` : le repli est décidé avant peinture, donc
+  // aucune image de barre débordante.
+  useLayoutEffect(() => {
+    const bar = barRef.current;
+    if (!bar) return;
+    const measure = () => {
+      if (navRef.current && toolsRef.current) {
+        // +12 : le `gap-3` entre la nav et le bloc import/réglages.
+        neededRef.current = navRef.current.offsetWidth + toolsRef.current.offsetWidth + 12;
+      }
+      // clientWidth 0 = barre masquée (mobile) : c'est le hamburger natif qui joue.
+      setCompactNav(bar.clientWidth > 0 && bar.clientWidth < neededRef.current);
+    };
+    measure();
+    const ro = new ResizeObserver(measure);
+    ro.observe(bar);
+    // La nav aussi : la largeur de la barre ne bouge pas quand c'est son
+    // CONTENU qui s'élargit (police chargée après coup, libellé plus long).
+    if (navRef.current) ro.observe(navRef.current);
+    return () => ro.disconnect();
+  }, [compactNav]);
+
   // Message d'import éphémère : il disparaît tout seul (un peu plus long pour une erreur).
   useEffect(() => {
     if (!importMsg) return;
@@ -275,21 +310,28 @@ export default function App() {
 
   return (
     <div className="max-w-[1180px] mx-auto px-4 sm:px-5 py-5 sm:py-6 pb-16">
-        {/* ---- Barre mobile : logo + menu hamburger ---- */}
-        <div className="sm:hidden mb-4">
+        {/* ---- Barre repliée : logo + menu hamburger ----
+            Sur mobile par CSS, et sur desktop dès que la rangée complète ne
+            tient plus sur une ligne (`compactNav`). */}
+        <div className={`mb-4 ${compactNav ? '' : 'sm:hidden'}`}>
           <div className="flex items-center justify-between">
             <a href="#/" className="flex items-center gap-2">
               <img src={`${import.meta.env.BASE_URL}favicon.svg`} alt="" className="w-7 h-7" />
               <span className="font-display text-[18px] tracking-wide">SW Forge</span>
             </a>
-            <button
-              onClick={() => setMenuOpen((o) => !o)}
-              aria-label="Menu"
-              aria-expanded={menuOpen}
-              className="flex items-center justify-center w-11 h-11 rounded-lg border border-border bg-panel text-ink"
-            >
-              {menuOpen ? <X size={22} /> : <Menu size={22} />}
-            </button>
+            {/* Les réglages restent EN DEHORS du menu : accessibles en un geste
+                quelle que soit la largeur, jamais enfouis derrière le hamburger. */}
+            <div className="flex items-center gap-1.5">
+              <SettingsMenu variant="bar" />
+              <button
+                onClick={() => setMenuOpen((o) => !o)}
+                aria-label="Menu"
+                aria-expanded={menuOpen}
+                className="flex items-center justify-center w-11 h-11 rounded-lg border border-border bg-panel text-ink"
+              >
+                {menuOpen ? <X size={22} /> : <Menu size={22} />}
+              </button>
+            </div>
           </div>
 
           {menuOpen && (
@@ -354,10 +396,7 @@ export default function App() {
                 })}
               </div>
 
-              {/* Réglages globaux */}
-              <div className="mt-1 pt-2 border-t border-border">
-                <SettingsMenu variant="mobile" />
-              </div>
+              {/* Pas de section « Réglages » ici : le ⚙ est resté dans la barre. */}
 
               {/* Import unique, sous les liens de navigation */}
               <div className="mt-1 pt-2 border-t border-border">
@@ -371,9 +410,21 @@ export default function App() {
           )}
         </div>
 
-        {/* ---- Barre desktop : onglets + import ---- */}
-        <div className="hidden sm:flex items-center gap-3 flex-wrap mb-3">
-          <nav className="flex flex-wrap items-center gap-1 bg-panel border border-border rounded-xl p-1 max-w-full">
+        {/* ---- Barre desktop : onglets + import ----
+            Reste MONTÉE même repliée (hauteur nulle) : c'est elle qui mesure la
+            largeur disponible, donc qui sait quand redéployer. */}
+        <div
+          ref={barRef}
+          className={`hidden sm:flex items-center gap-3 flex-wrap ${compactNav ? '' : 'mb-3'}`}
+        >
+          {!compactNav && (
+            <>
+          {/* `flex-nowrap` : la nav ne doit JAMAIS passer à la ligne toute
+              seule — c'est son débordement qui déclenche le hamburger. */}
+          <nav
+            ref={navRef}
+            className="flex flex-nowrap items-center gap-1 bg-panel border border-border rounded-xl p-1"
+          >
             {NAV.map((item) => {
               const active = route === item.key;
               const Icon = item.icon;
@@ -466,7 +517,7 @@ export default function App() {
             </div>
           </nav>
           {/* Réglages tout à droite, après l'import : c'est le geste le plus rare. */}
-          <div className="ml-auto flex items-center gap-1">
+          <div ref={toolsRef} className="ml-auto flex items-center gap-1">
             <AccountImportControl
               onImport={importAccount}
               onClearData={clearAllData}
@@ -474,6 +525,8 @@ export default function App() {
             />
             <SettingsMenu />
           </div>
+            </>
+          )}
         </div>
 
         {/* Message d'import global */}

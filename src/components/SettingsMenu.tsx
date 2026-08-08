@@ -73,7 +73,10 @@ function SettingsList() {
   );
 }
 
-export default function SettingsMenu({ variant = 'desktop' }: { variant?: 'desktop' | 'mobile' }) {
+// `bar` = à côté du hamburger, quand la nav est repliée : les réglages doivent
+// rester accessibles en UN geste, donc jamais enfouis dans le menu. Même gabarit
+// que le bouton hamburger (44 px, encadré) pour former une paire.
+export default function SettingsMenu({ variant = 'desktop' }: { variant?: 'desktop' | 'bar' }) {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
 
@@ -91,17 +94,10 @@ export default function SettingsMenu({ variant = 'desktop' }: { variant?: 'deskt
     };
   }, [open]);
 
-  // Mobile : pas de dropdown, la section est posée à plat dans le menu.
-  if (variant === 'mobile') {
-    return (
-      <div className="px-3">
-        <div className="font-mono text-[10px] uppercase tracking-[0.14em] text-ink-dim mb-1">
-          Réglages
-        </div>
-        <SettingsList />
-      </div>
-    );
-  }
+  const btnClass =
+    variant === 'bar'
+      ? `w-11 h-11 rounded-lg border border-border ${open ? 'bg-panel2' : 'bg-panel'} text-ink`
+      : `w-9 h-9 rounded-lg ${open ? 'bg-panel2 text-ink' : 'text-ink-dim hover:text-ink hover:bg-panel2'}`;
 
   return (
     <div className="relative" ref={ref}>
@@ -110,11 +106,9 @@ export default function SettingsMenu({ variant = 'desktop' }: { variant?: 'deskt
         aria-expanded={open}
         aria-label="Réglages"
         title="Réglages"
-        className={`flex items-center justify-center w-9 h-9 rounded-lg transition ${
-          open ? 'bg-panel2 text-ink' : 'text-ink-dim hover:text-ink hover:bg-panel2'
-        }`}
+        className={`flex items-center justify-center transition ${btnClass}`}
       >
-        <Settings size={16} />
+        <Settings size={variant === 'bar' ? 20 : 16} />
       </button>
       {open && (
         <div className="absolute z-30 right-0 mt-1.5 w-fit min-w-[260px] rounded-xl border border-border bg-panel px-3 py-2 shadow-glow shadow-black/60">

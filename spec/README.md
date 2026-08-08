@@ -49,8 +49,10 @@ Concepts partagés par plusieurs pages, documentés une seule fois :
   l'import) efface les clés `localStorage` `sw-forge*` / `sky-arena*` (prépa RTA,
   équipes de siège, monstres perso) puis recharge. Voir [App.tsx](src/App.tsx).
 - **Réglages globaux** — menu **⚙** [SettingsMenu.tsx](src/components/SettingsMenu.tsx),
-  **tout à droite** de la barre de nav (après le bouton d'import) ; sur mobile,
-  une section « Réglages » dans le menu hamburger.
+  **tout à droite** de la barre de nav (après le bouton d'import). ⚠️ **Toujours
+  visible** : barre repliée, il passe **à côté du hamburger** (variante `bar`,
+  même gabarit 44 px pour former une paire) et **jamais dans le menu** — un
+  réglage global doit rester à un geste, quelle que soit la largeur.
   - Règle : un réglage qui s'applique à **plusieurs pages** va ici, **jamais**
     dupliqué en sélecteur sur chaque page.
   - **Persistés** dans `localStorage` (effacés par « Supprimer mes données »),
@@ -82,7 +84,8 @@ Concepts partagés par plusieurs pages, documentés une seule fois :
   [shared/donnees-monstres.md](shared/donnees-monstres.md).
 - **Titre de page** : `font-display` en dégradé (`title-gradient`), taille
   `clamp(28px,4vw,42px)`, suivi d'un paragraphe d'intro `text-ink-dim`.
-- **Responsive** : nav desktop en pilules ; sur mobile (`< sm`), menu hamburger.
+- **Responsive** : nav desktop en pilules ; menu hamburger sur mobile (`< sm`)
+  **et dès que la barre ne tient plus sur une ligne** (voir « Shell applicatif »).
   Le drag & drop natif ne fonctionne pas au tactile → chaque zone drag propose
   un **sélecteur de repli** (déplacer une carte / changer une position).
 - **Langue** : interface 100 % française.
@@ -93,8 +96,22 @@ Le cadre commun (nav, routing par hash, footer) vit dans
 [App.tsx](src/App.tsx) :
 
 - Routing par `window.location.hash` (`routeFromHash()`), pas de router externe.
-- Nav desktop (pilules) + nav mobile (hamburger qui se referme à la navigation),
+- Nav desktop (pilules) + nav repliée (hamburger qui se referme à la navigation),
   avec le bouton d'import global + lien « Supprimer mes données » à droite / dans le menu.
+- **Repli de la barre du haut — mesuré, pas fixé à un breakpoint.** ⚠️ La barre
+  ne doit **jamais passer à deux lignes** : si les onglets + import + réglages ne
+  tiennent pas sur une ligne, on bascule sur le **hamburger**, à n'importe quelle
+  largeur d'écran. Un seuil en dur serait périmé au prochain onglet ajouté — or
+  on en ajoute à chaque section.
+  - La nav est en **`flex-nowrap`** : c'est son débordement qui doit déclencher
+    le repli, pas un retour à la ligne silencieux.
+  - La rangée desktop **reste montée même repliée** (hauteur nulle) : c'est elle
+    qui mesure la largeur disponible. La largeur nécessaire est **mémorisée**
+    (`neededRef`) pendant qu'on est déplié — une fois replié, la nav n'est plus
+    là pour être mesurée, et sans cette mémoire on ne saurait jamais redéployer.
+  - Mesure en **`useLayoutEffect` + `ResizeObserver`** (sur la rangée *et* sur la
+    nav, dont le contenu peut s'élargir sans que la rangée bouge : police chargée
+    après coup). Décidé avant peinture → pas d'image de barre débordante.
 - **Bestiaire** et **Mécaniques** sont regroupés sous un menu **« Ressources »**
   (dropdown en desktop, section dans le menu mobile).
 - **« Mon compte »** est lui aussi un **dropdown de nav** (mêmes mécaniques que

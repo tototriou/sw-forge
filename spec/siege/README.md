@@ -22,9 +22,48 @@ diffèrent les données d'import (voir ci-dessous).
 
 1. **En-tête** : titre « Siège » + intro dépendant du côté.
 2. **Sous-onglets** : Défense / Offense.
-3. **Barre d'actions** : **Ajouter une équipe**, **Créer un monstre**, compteur
-   d'équipes, **Tout effacer**.
+3. **Barre d'actions** : **Ajouter une équipe**, **Créer un monstre**,
+   **Vérifier mes tick ATB**, compteur d'équipes, **Tout effacer**.
 4. **Liste d'équipes** (ou état vide incitant à ajouter/importer).
+
+### Disposition de la liste — 2 équipes par ligne
+
+- **1 colonne** jusqu'à `lg`, **2 colonnes à partir de `xl`** (≥ 1280 px) pour ne
+  pas gâcher la largeur sur grand écran (le conteneur de l'app est plafonné à
+  1180 px → ~575 px par équipe, assez pour les 3 monstres côte à côte).
+- **Une équipe en cours d'édition reprend toute la largeur**
+  (`xl:col-span-2`) : les 3 slots détaillés (picker, SPD, ticks, position)
+  seraient trop à l'étroit sur une demi-colonne.
+- Pour ça, l'état « équipe dépliée » est **remonté dans
+  [SiegeBoard.tsx](src/components/siege/SiegeBoard.tsx)** (`expandedIds`, un
+  `Set`) et passé en prop ; **plusieurs équipes peuvent rester dépliées** en même
+  temps, comme avant.
+- `items-start` : une équipe dépliée n'étire pas la carte compacte d'à côté.
+
+### Ajouter une équipe → scroll automatique
+
+Cliquer **Ajouter une équipe** ajoute l'équipe **en fin de liste** et **scrolle
+automatiquement** jusqu'à elle (`scrollIntoView`, `behavior: 'smooth'`,
+`block: 'center'`) — indispensable avec ~50 équipes importées, sinon la nouvelle
+équipe naît hors écran. Implémenté dans
+[SiegeBoard.tsx](src/components/siege/SiegeBoard.tsx) : la **dernière** équipe
+rendue porte une `ref`, et un flag `scrollToLast` déclenche le scroll au rendu
+suivant.
+
+### Bouton « Vérifier mes tick ATB »
+
+Interrupteur de la barre d'actions (icône jauge) qui **active les auras de
+couleur** des équipes (vert / orange / rouge, voir [speed-tick.md](speed-tick.md)).
+
+- **Désactivé par défaut** : les équipes sont affichées **telles quelles**, en
+  neutre — aucune aura, aucun point de statut, aucun anneau rouge sur les slots,
+  aucun message « pas au tick » / « Valider l'équipe ».
+- **Activé** : tous les statuts sont calculés et affichés normalement.
+- **Par côté** (défense / offense indépendants) et **non persisté sur disque** :
+  `useStickyState` — l'état survit à la navigation, se remet à `false` au reload.
+- Le bouton n'apparaît que s'il y a **au moins une équipe**.
+- Les **boutons de tick** de chaque monstre restent disponibles dans les deux
+  cas : c'est un réglage, pas un affichage de statut.
 
 L'**import est global** (bouton « Importer mon compte » dans la barre de nav) :
 il remplit défense **et** offense **et** RTA d'un coup — pas de bouton d'import

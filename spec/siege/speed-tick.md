@@ -45,7 +45,13 @@ combat = base + runes + ceil( base × (15 + lead) / 100 )
 - Migration : l'ancien tick d'équipe est repris comme tick par défaut de chaque
   slot au chargement.
 
-## Aura de statut automatique (au tick / à corriger)
+## Aura de statut (au tick / à corriger)
+
+> ⚠️ **Conditionnée au mode « Vérifier mes tick ATB »** (bouton de la barre
+> d'actions, voir [README.md](README.md)). Tant qu'il est **désactivé** — l'état
+> par défaut — le statut de **toute** équipe est forcé à `neutral` : pas d'aura,
+> pas de point, pas d'anneau rouge, pas de message. Tout ce qui suit ne
+> s'applique donc qu'en mode vérification.
 
 Détection « mal calé sur un tick » par monstre, via `tickDanger(combat)`
 ([speed.ts](src/lib/speed.ts)) :
@@ -67,7 +73,7 @@ par équipe (aura = bordure + halo, + point dans l'en-tête) :
 | Orange | `amber` | Équipe avec **≥1 Swift** (pas de tick à viser) | « Vérifier le speed tuning » |
 | Rouge | `fire` | (Sans Swift) un monstre **pas au tick** (anneau rouge sur le slot fautif) | « Ton équipe n'est pas au tick. » |
 | Vert | `emerald` | (Sans Swift) **tous au tick**, **ou** équipe validée | — |
-| — | neutre | Équipe vide **ou avec Leo** | — |
+| — | neutre | **Mode vérification désactivé**, équipe vide **ou avec Leo** | — |
 
 **Bouton « Valider l'équipe »** (sur orange/rouge) → `dismissTickAlert(teamId, true)` :
 l'équipe passe au **vert** (validée, `SiegeTeam.tickAlertDismissed`). Validation

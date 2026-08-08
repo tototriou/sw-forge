@@ -66,6 +66,9 @@ interface Props {
   index: number;
   monsters: Monster[];
   monsterById: Map<string, Monster>;
+  checkTicks: boolean; // mode « Vérifier mes tick ATB » : sans lui, aucune aura de couleur
+  expanded: boolean; // vue détaillée (édition) — piloté par le board (pleine largeur)
+  onToggleExpand: (teamId: string) => void;
   onRemoveTeam: (id: string) => void;
   onPickMonster: (teamId: string, idx: number, monsterId: string) => void;
   onClearSlot: (teamId: string, idx: number) => void;
@@ -80,6 +83,9 @@ export default function SiegeTeam({
   index,
   monsters,
   monsterById,
+  checkTicks,
+  expanded,
+  onToggleExpand,
   onRemoveTeam,
   onPickMonster,
   onClearSlot,
@@ -90,7 +96,6 @@ export default function SiegeTeam({
 }: Props) {
   const [dragFrom, setDragFrom] = useState<number | null>(null);
   const [overIdx, setOverIdx] = useState<number | null>(null);
-  const [expanded, setExpanded] = useState(false); // replié par défaut (vue compacte)
   const [detailIdx, setDetailIdx] = useState<number | null>(null); // slot dont on montre le détail
 
   const usedIds = new Set(
@@ -102,7 +107,8 @@ export default function SiegeTeam({
   const leaderMonster = leaderId ? monsterById.get(leaderId) ?? null : null;
   const leadInfo = speedLeadOf(leaderMonster);
 
-  // Statut de l'équipe vis-à-vis des ticks :
+  // Statut de l'équipe vis-à-vis des ticks — calculé seulement en mode
+  // « Vérifier mes tick ATB » (sinon `neutral` : équipes affichées telles quelles) :
   //  - vert   : au tick (aucun monstre mal calé) OU équipe validée par l'utilisateur
   //  - orange : pas au tick mais les monstres hors-tick sont en Swift (on veut du speed)
   //  - rouge  : pas au tick et pas en Swift → à corriger
@@ -120,7 +126,7 @@ export default function SiegeTeam({
   const anyOffTick = slotDangers.some(Boolean);
   const validated = team.tickAlertDismissed;
   const status: 'neutral' | 'green' | 'orange' | 'red' =
-    !hasMonsters || hasLeo
+    !checkTicks || !hasMonsters || hasLeo
       ? 'neutral'
       : validated
         ? 'green'
@@ -155,7 +161,7 @@ export default function SiegeTeam({
 
         <button
           onClick={() => {
-            setExpanded((e) => !e);
+            onToggleExpand(team.id);
             setDetailIdx(null);
           }}
           className={`ml-auto flex items-center gap-1.5 rounded-md border px-2.5 py-1 text-[12px] font-semibold transition ${
@@ -243,7 +249,7 @@ export default function SiegeTeam({
                 key={idx}
                 onClick={() => {
                   if (canDetail) setDetailIdx((d) => (d === idx ? null : idx));
-                  else setExpanded(true);
+                  else onToggleExpand(team.id);
                 }}
                 title={
                   danger

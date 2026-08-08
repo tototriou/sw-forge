@@ -10,7 +10,10 @@ Fichiers : [SiegeTeam.tsx](src/components/siege/SiegeTeam.tsx) ·
 
 - En-tête : **chevron déplier/replier** + « Équipe N » + (point rouge si alerte
   vitesse) + **Supprimer**.
-- **Repliée par défaut** (vue compacte). État `expanded` local au composant.
+- **Repliée par défaut** (vue compacte). L'état `expanded` est **remonté dans
+  [SiegeBoard.tsx](src/components/siege/SiegeBoard.tsx)** (pour donner la pleine
+  largeur à l'équipe en édition — voir [README.md](README.md)) ; le composant le
+  reçoit en prop et remonte le clic (`onToggleExpand`).
 
 ### Vue compacte (repliée)
 Une ligne par équipe, très basse : les **3 monstres** côte à côte, chacun =

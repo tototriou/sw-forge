@@ -1,5 +1,19 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Swords, BookOpen, Home, Castle, Trophy, Menu, X, Calculator, Library, ChevronDown, Boxes } from 'lucide-react';
+import {
+  Swords,
+  BookOpen,
+  Home,
+  Castle,
+  Trophy,
+  Menu,
+  X,
+  Calculator,
+  Library,
+  ChevronDown,
+  Boxes,
+  Disc3,
+  Gem,
+} from 'lucide-react';
 import HomePage from './pages/HomePage';
 import BestiaryPage from './pages/BestiaryPage';
 import RtaPage from './pages/RtaPage';
@@ -8,28 +22,41 @@ import MechanicsPage from './pages/MechanicsPage';
 import AccountPage from './pages/AccountPage';
 import ComingSoon from './pages/ComingSoon';
 import AccountImportControl from './components/AccountImportControl';
-import { Monster } from './types';
+import { ArtifactDetail, Monster, RuneDetail } from './types';
 import { useMonsters } from './hooks/useMonsters';
 import { useCustomMonsters } from './hooks/useCustomMonsters';
 import { useRtaState } from './hooks/useRtaState';
 import { useSiegeState, SiegeSide } from './hooks/useSiegeState';
-import { parseAccountJson, parseSiegeDefense, parseSiegeOffense, parseAccountBox } from './lib/importAccount';
+import {
+  parseAccountJson,
+  parseSiegeDefense,
+  parseSiegeOffense,
+  parseAccountBox,
+  parseAccountInventory,
+} from './lib/importAccount';
 import { mapRtaItems, mapSiegeTeams, mapBoxMonsters, BoxItem } from './lib/applyAccount';
 
 type Route = 'home' | 'bestiary' | 'rta' | 'siege' | 'arene' | 'mecaniques' | 'compte';
+export type AccountSub = 'monstres' | 'runes' | 'artefacts';
 
-// Route + sous-route de siège (offense/défense) déduites du hash.
-function parseHash(): { route: Route; siegeSide: SiegeSide } {
+// Route + sous-route de siège (offense/défense) + sous-section « Mon compte »
+// déduites du hash.
+function parseHash(): { route: Route; siegeSide: SiegeSide; accountSub: AccountSub } {
   const h = window.location.hash.replace(/^#\/?/, '');
-  if (h === 'rta') return { route: 'rta', siegeSide: 'defense' };
-  if (h === 'bestiary') return { route: 'bestiary', siegeSide: 'defense' };
-  if (h === 'arene') return { route: 'arene', siegeSide: 'defense' };
-  if (h === 'compte') return { route: 'compte', siegeSide: 'defense' };
-  if (h === 'mecaniques') return { route: 'mecaniques', siegeSide: 'defense' };
-  if (h === 'siege' || h.startsWith('siege/')) {
-    return { route: 'siege', siegeSide: h === 'siege/offense' ? 'offense' : 'defense' };
+  const base = { siegeSide: 'defense' as SiegeSide, accountSub: 'monstres' as AccountSub };
+  if (h === 'rta') return { route: 'rta', ...base };
+  if (h === 'bestiary') return { route: 'bestiary', ...base };
+  if (h === 'arene') return { route: 'arene', ...base };
+  if (h === 'compte' || h.startsWith('compte/')) {
+    const accountSub: AccountSub =
+      h === 'compte/runes' ? 'runes' : h === 'compte/artefacts' ? 'artefacts' : 'monstres';
+    return { route: 'compte', siegeSide: 'defense', accountSub };
   }
-  return { route: 'home', siegeSide: 'defense' };
+  if (h === 'mecaniques') return { route: 'mecaniques', ...base };
+  if (h === 'siege' || h.startsWith('siege/')) {
+    return { route: 'siege', siegeSide: h === 'siege/offense' ? 'offense' : 'defense', accountSub: 'monstres' };
+  }
+  return { route: 'home', ...base };
 }
 
 type NavItem = { key: Route; label: string; icon: typeof BookOpen; hash: string };
@@ -40,7 +67,13 @@ const NAV: NavItem[] = [
   { key: 'rta', label: 'RTA', icon: Swords, hash: '#/rta' },
   { key: 'siege', label: 'Siège', icon: Castle, hash: '#/siege/defense' },
   { key: 'arene', label: 'Arène', icon: Trophy, hash: '#/arene' },
-  { key: 'compte', label: 'Mon compte', icon: Boxes, hash: '#/compte' },
+];
+
+// Sous-sections de « Mon compte » (dropdown de nav).
+const ACCOUNT_SUBS: { sub: AccountSub; label: string; icon: typeof BookOpen; hash: string }[] = [
+  { sub: 'monstres', label: 'Monstres', icon: Boxes, hash: '#/compte' },
+  { sub: 'runes', label: 'Runes', icon: Disc3, hash: '#/compte/runes' },
+  { sub: 'artefacts', label: 'Artéfacts', icon: Gem, hash: '#/compte/artefacts' },
 ];
 
 // Regroupées sous « Ressources ».
@@ -59,13 +92,17 @@ export default function App() {
   const siegeDef = useSiegeState('defense');
   const siegeOff = useSiegeState('offense');
 
-  // Box de compte : en mémoire uniquement (ré-import à chaque session).
+  // Compte (box + inventaire runes/artéfacts) : en mémoire uniquement (ré-import à chaque session).
   const [box, setBox] = useState<BoxItem[]>([]);
+  const [runes, setRunes] = useState<RuneDetail[]>([]);
+  const [artifacts, setArtifacts] = useState<ArtifactDetail[]>([]);
 
-  const [{ route, siegeSide }, setNav] = useState(parseHash);
+  const [{ route, siegeSide, accountSub }, setNav] = useState(parseHash);
   const [menuOpen, setMenuOpen] = useState(false);
   const [resourcesOpen, setResourcesOpen] = useState(false);
   const resourcesRef = useRef<HTMLDivElement>(null);
+  const [accountOpen, setAccountOpen] = useState(false);
+  const accountRef = useRef<HTMLDivElement>(null);
   const [importMsg, setImportMsg] = useState<{ ok: boolean; text: string } | null>(null);
 
   const resourcesActive = RESOURCES.some((r) => r.key === route);
@@ -89,6 +126,7 @@ export default function App() {
     const defRes = parseSiegeDefense(text);
     const offRes = parseSiegeOffense(text);
     const boxRes = parseAccountBox(text);
+    const invRes = parseAccountInventory(text);
 
     const rtaItems = rtaRes.units ? mapRtaItems(rtaRes.units, monsterByCom2us) : [];
     const def = mapSiegeTeams(defRes.decks ?? [], monsterByCom2us);
@@ -129,8 +167,10 @@ export default function App() {
     }
     if (def.teams.length) siegeDef.importTeams(def.teams, replace);
     if (off.teams.length) siegeOff.importTeams(off.teams, replace);
-    // La box est en mémoire : on la remplace toujours par le dernier import.
+    // Box + inventaire en mémoire : toujours remplacés par le dernier import.
     setBox(boxItems);
+    setRunes(invRes.runes ?? []);
+    setArtifacts(invRes.artifacts ?? []);
 
     const parts: string[] = [];
     if (boxItems.length) parts.push(`${boxItems.length} monstres 6★`);
@@ -171,22 +211,23 @@ export default function App() {
       setNav(parseHash());
       setMenuOpen(false); // referme le menu mobile à chaque navigation
       setResourcesOpen(false); // referme le dropdown Ressources
+      setAccountOpen(false); // referme le dropdown Mon compte
     };
     window.addEventListener('hashchange', onHash);
     return () => window.removeEventListener('hashchange', onHash);
   }, []);
 
-  // Ferme le dropdown Ressources au clic à l'extérieur.
+  // Ferme les dropdowns (Ressources / Mon compte) au clic à l'extérieur.
   useEffect(() => {
-    if (!resourcesOpen) return;
+    if (!resourcesOpen && !accountOpen) return;
     const onDown = (e: MouseEvent) => {
-      if (resourcesRef.current && !resourcesRef.current.contains(e.target as Node)) {
-        setResourcesOpen(false);
-      }
+      const t = e.target as Node;
+      if (resourcesRef.current && !resourcesRef.current.contains(t)) setResourcesOpen(false);
+      if (accountRef.current && !accountRef.current.contains(t)) setAccountOpen(false);
     };
     document.addEventListener('mousedown', onDown);
     return () => document.removeEventListener('mousedown', onDown);
-  }, [resourcesOpen]);
+  }, [resourcesOpen, accountOpen]);
 
   // Message d'import éphémère : il disparaît tout seul (un peu plus long pour une erreur).
   useEffect(() => {
@@ -231,6 +272,28 @@ export default function App() {
                   </a>
                 );
               })}
+
+              {/* Mon compte */}
+              <div className="mt-1 pt-2 border-t border-border">
+                <div className="px-3 pb-1 font-mono text-[10px] uppercase tracking-[0.14em] text-ink-dim">
+                  Mon compte
+                </div>
+                {ACCOUNT_SUBS.map((item) => {
+                  const active = route === 'compte' && accountSub === item.sub;
+                  const Icon = item.icon;
+                  return (
+                    <a
+                      key={item.sub}
+                      href={item.hash}
+                      onClick={() => setMenuOpen(false)}
+                      className={`flex items-center gap-3 rounded-lg px-3 py-3 text-[16px] font-semibold transition
+                        ${active ? 'bg-gradient-to-br from-[#3a4270] to-[#272e52] text-ink' : 'text-ink-dim'}`}
+                    >
+                      <Icon size={18} /> {item.label}
+                    </a>
+                  );
+                })}
+              </div>
 
               {/* Ressources */}
               <div className="mt-1 pt-2 border-t border-border">
@@ -287,6 +350,42 @@ export default function App() {
                 </a>
               );
             })}
+
+            {/* Mon compte (Monstres + Runes + Artéfacts) */}
+            <div className="relative" ref={accountRef}>
+              <button
+                onClick={() => setAccountOpen((o) => !o)}
+                aria-expanded={accountOpen}
+                className={`flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-[13px] font-semibold transition flex-none whitespace-nowrap
+                  ${
+                    route === 'compte'
+                      ? 'bg-gradient-to-br from-[#3a4270] to-[#272e52] text-ink shadow'
+                      : 'text-ink-dim hover:text-ink'
+                  }`}
+              >
+                <Boxes size={14} /> Mon compte
+                <ChevronDown size={12} className={`transition-transform ${accountOpen ? 'rotate-180' : ''}`} />
+              </button>
+              {accountOpen && (
+                <div className="absolute z-30 left-0 mt-1.5 min-w-[168px] rounded-xl border border-border bg-panel p-1 shadow-glow shadow-black/60">
+                  {ACCOUNT_SUBS.map((item) => {
+                    const active = route === 'compte' && accountSub === item.sub;
+                    const Icon = item.icon;
+                    return (
+                      <a
+                        key={item.sub}
+                        href={item.hash}
+                        onClick={() => setAccountOpen(false)}
+                        className={`flex items-center gap-2 rounded-lg px-2.5 py-2 text-[13px] font-semibold transition
+                          ${active ? 'bg-panel2 text-ink' : 'text-ink-dim hover:text-ink hover:bg-panel2'}`}
+                      >
+                        <Icon size={14} /> {item.label}
+                      </a>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
 
             {/* Ressources (Bestiaire + Mécaniques) */}
             <div className="relative" ref={resourcesRef}>
@@ -368,7 +467,13 @@ export default function App() {
             description="Préparation des équipes d'arène classique (offense et défense)."
           />
         ) : route === 'compte' ? (
-          <AccountPage box={box} loadState={data.loadState} />
+          <AccountPage
+            sub={accountSub}
+            box={box}
+            runes={runes}
+            artifacts={artifacts}
+            loadState={data.loadState}
+          />
         ) : route === 'mecaniques' ? (
           <MechanicsPage />
         ) : (

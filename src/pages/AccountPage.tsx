@@ -1,12 +1,19 @@
-import { useMemo, useState } from 'react';
+import { memo, useMemo, useState } from 'react';
 import { Search, Boxes, Copy, Star } from 'lucide-react';
 import { BoxItem } from '../lib/applyAccount';
-import { ELEMENTS, ElementKey, Monster } from '../types';
+import { ELEMENTS, ElementKey, Monster, RuneDetail, ArtifactDetail } from '../types';
 import { LoadState } from '../hooks/useMonsters';
 import ElementIcon from '../components/ElementIcon';
+import RunesSection from '../components/account/RunesSection';
+import ArtifactsSection from '../components/account/ArtifactsSection';
+
+type Sub = 'monstres' | 'runes' | 'artefacts';
 
 interface Props {
+  sub: Sub; // sous-section pilotée par le dropdown de nav (« Mon compte »)
   box: BoxItem[];
+  runes: RuneDetail[];
+  artifacts: ArtifactDetail[];
   loadState: LoadState;
 }
 
@@ -53,8 +60,8 @@ interface BoxEntry {
   count: number;
 }
 
-// Une carte de la box : portrait + nom + étoiles, avec une bulle ×N si doublons.
-function BoxCard({ entry }: { entry: BoxEntry }) {
+// Une carte de la box : portrait + nom, avec une bulle ×N si doublons.
+const BoxCard = memo(function BoxCard({ entry }: { entry: BoxEntry }) {
   const m = entry.monster;
   return (
     <div className="relative rounded-xl border border-border bg-panel px-2 pt-3 pb-2.5 text-center">
@@ -89,9 +96,10 @@ function BoxCard({ entry }: { entry: BoxEntry }) {
       <div className="text-[12px] font-semibold leading-tight line-clamp-2">{m.name}</div>
     </div>
   );
-}
+});
 
-export default function AccountPage({ box, loadState }: Props) {
+// Sous-section « Box de monstres » (tous les 6★, dédupliqués, filtrables).
+function MonsterBoxSection({ box }: { box: BoxItem[] }) {
   const [query, setQuery] = useState('');
   const [activeElements, setActiveElements] = useState<Set<ElementKey>>(new Set());
   const [activeStars, setActiveStars] = useState<Set<number>>(new Set());
@@ -151,29 +159,12 @@ export default function AccountPage({ box, loadState }: Props) {
     });
   }, [entries, query, activeElements, activeStars, dupesOnly, secondOnly]);
 
-  if (box.length === 0) {
-    return (
-      <div className="mt-10 flex flex-col items-center text-center text-ink-dim">
-        <Boxes size={40} className="mb-3 opacity-60" />
-        <p className="text-[15px] font-semibold text-ink">Aucune box chargée</p>
-        <p className="mt-1 text-[13px] max-w-sm">
-          Importe ton compte (bouton en haut à droite) pour afficher tous tes monstres montés 6★.
-          Les données restent en mémoire et sont à ré-importer à chaque session.
-        </p>
-        {loadState === 'loading' && <p className="mt-3 text-[12px]">Chargement des monstres…</p>}
-      </div>
-    );
-  }
-
   return (
-    <div className="mt-6">
-      <div className="flex items-center gap-x-3 gap-y-1 flex-wrap pb-2.5 mb-4 border-b border-border">
-        <h2 className="font-display text-[19px] tracking-wide">Box de monstres</h2>
-        <span className="font-mono text-ink-dim text-xs">
-          {entries.length} monstre{entries.length > 1 ? 's' : ''} différent{entries.length > 1 ? 's' : ''}
-          {box.length !== entries.length && ` · ${box.length} au total`} · 6★
-        </span>
-      </div>
+    <div>
+      <p className="font-mono text-ink-dim text-xs mb-4">
+        {entries.length} monstre{entries.length > 1 ? 's' : ''} différent{entries.length > 1 ? 's' : ''}
+        {box.length !== entries.length && ` · ${box.length} au total`} · 6★
+      </p>
 
       <div className="flex flex-col gap-3 mb-4">
         <div className="relative max-w-xs">
@@ -189,9 +180,7 @@ export default function AccountPage({ box, loadState }: Props) {
 
         {/* Filtre élément */}
         <div className="flex flex-wrap items-center gap-2">
-          <span className="font-mono text-[11px] tracking-[0.1em] uppercase text-ink-dim mr-1">
-            Élément
-          </span>
+          <span className="font-mono text-[11px] tracking-[0.1em] uppercase text-ink-dim mr-1">Élément</span>
           {ELEMENTS.filter((el) => el.key !== 'unknown').map((el) => {
             const active = activeElements.has(el.key);
             return (
@@ -209,11 +198,9 @@ export default function AccountPage({ box, loadState }: Props) {
           })}
         </div>
 
-        {/* Filtre rareté naturelle + doublons */}
+        {/* Filtre rareté naturelle + doublons + 2A */}
         <div className="flex flex-wrap items-center gap-2">
-          <span className="font-mono text-[11px] tracking-[0.1em] uppercase text-ink-dim mr-1">
-            Nat
-          </span>
+          <span className="font-mono text-[11px] tracking-[0.1em] uppercase text-ink-dim mr-1">Nat</span>
           {[5, 4, 3, 2].map((s) => {
             const active = activeStars.has(s);
             return (
@@ -258,7 +245,7 @@ export default function AccountPage({ box, loadState }: Props) {
       </div>
 
       {filtered.length === 0 ? (
-        <p className="text-ink-dim text-[13px]">Aucun monstre ne correspond à « {query} ».</p>
+        <p className="text-ink-dim text-[13px]">Aucun monstre ne correspond aux filtres.</p>
       ) : (
         <div className="grid grid-cols-[repeat(auto-fill,minmax(104px,1fr))] gap-2 items-start">
           {filtered.map((e) => (
@@ -266,6 +253,32 @@ export default function AccountPage({ box, loadState }: Props) {
           ))}
         </div>
       )}
+    </div>
+  );
+}
+
+export default function AccountPage({ sub, box, runes, artifacts, loadState }: Props) {
+  const empty = box.length === 0 && runes.length === 0 && artifacts.length === 0;
+
+  if (empty) {
+    return (
+      <div className="mt-10 flex flex-col items-center text-center text-ink-dim">
+        <Boxes size={40} className="mb-3 opacity-60" />
+        <p className="text-[15px] font-semibold text-ink">Aucune donnée de compte chargée</p>
+        <p className="mt-1 text-[13px] max-w-sm">
+          Importe ton compte (bouton en haut à droite) pour afficher tes monstres 6★, tes runes et
+          tes artéfacts. Les données restent en mémoire et sont à ré-importer à chaque session.
+        </p>
+        {loadState === 'loading' && <p className="mt-3 text-[12px]">Chargement des monstres…</p>}
+      </div>
+    );
+  }
+
+  return (
+    <div className="mt-6">
+      {sub === 'monstres' && <MonsterBoxSection box={box} />}
+      {sub === 'runes' && <RunesSection runes={runes} />}
+      {sub === 'artefacts' && <ArtifactsSection artifacts={artifacts} />}
     </div>
   );
 }

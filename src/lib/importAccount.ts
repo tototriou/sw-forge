@@ -461,6 +461,43 @@ export function parseAccountBox(text: string): BoxParseResult {
 }
 
 /* --------------------------------------------------------------------------
+ * Import INVENTAIRE complet (sous-sections « Runes » & « Artéfacts »)
+ * Toutes les runes et tous les artéfacts possédés (inventaire + équipés).
+ * ----------------------------------------------------------------------- */
+
+export interface InventoryParseResult {
+  runes: RuneDetail[];
+  artifacts: ArtifactDetail[];
+  error?: string;
+}
+
+export function parseAccountInventory(text: string): InventoryParseResult {
+  let data: any;
+  try {
+    data = JSON.parse(text);
+  } catch {
+    return { runes: [], artifacts: [], error: 'Fichier JSON illisible.' };
+  }
+  if (!Array.isArray(data?.unit_list)) {
+    return {
+      runes: [],
+      artifacts: [],
+      error: "Ce fichier ne contient pas de 'unit_list' — un export de compte SWEX est attendu.",
+    };
+  }
+
+  // indexRunes / indexArtifacts fusionnent déjà inventaire + équipés (dédup par id).
+  const runes = Array.from(indexRunes(data).values())
+    .map(runeToDetail)
+    .filter((r) => r.main.code !== 0);
+  const artifacts = Array.from(indexArtifacts(data).values())
+    .map(artifactToDetail)
+    .filter((a) => a.main.code !== 0);
+
+  return { runes, artifacts };
+}
+
+/* --------------------------------------------------------------------------
  * Import ÉQUIPES DE SIÈGE (combat de guilde) — défense & offense
  *
  * Les deux côtés partagent la même forme : des decks de 3 monstres (index 0 =

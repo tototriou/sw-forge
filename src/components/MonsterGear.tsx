@@ -11,6 +11,7 @@ import {
   SET_BONUS,
   RUNE_EFFECT,
   runeEfficiency,
+  RARITY_FILTER,
 } from '../lib/effects';
 import RuneIcon from './RuneIcon';
 import ArtifactIcon from './ArtifactIcon';
@@ -19,17 +20,6 @@ import ArtifactIcon from './ArtifactIcon';
 function fmt(n: number): string {
   return n.toLocaleString('fr-FR');
 }
-
-// Colorisation du symbole de set selon la rareté de la rune (filtre CSS sur l'image).
-// Base sépia+saturation (teinte ~orange), puis hue-rotate par rareté.
-const SET_SHADOW = 'drop-shadow(rgba(10, 6, 3, 0.95) 0px 1px 1px)';
-const RARITY_FILTER: Record<number, string> = {
-  5: `sepia(1) saturate(7.5) hue-rotate(330deg) brightness(0.9) contrast(1.18) ${SET_SHADOW}`, // Légendaire → orange
-  4: `sepia(1) saturate(7.5) hue-rotate(235deg) brightness(0.9) contrast(1.18) ${SET_SHADOW}`, // Héroïque → violet
-  3: `sepia(1) saturate(7.5) hue-rotate(80deg) brightness(0.9) contrast(1.18) ${SET_SHADOW}`, // Rare → vert
-  2: `sepia(1) saturate(7.5) hue-rotate(175deg) brightness(0.9) contrast(1.18) ${SET_SHADOW}`, // Magique → bleu
-  1: `saturate(0) brightness(1.7) contrast(1.05) ${SET_SHADOW}`, // Normal → blanc
-};
 
 // Images du jeu (servies en local) : fond de roue + cadre de rune + cadre d'artéfact.
 const WHEEL_IMG = `${import.meta.env.BASE_URL}rune-wheel.png`;
@@ -101,7 +91,7 @@ function AncientMark({ size = 12, color = 'currentColor' }: { size?: number; col
 }
 
 // Détail d'une rune, façon jeu : stat principale (gros), innée, substats, set.
-function RuneDetailBox({ rune }: { rune: RuneDetail }) {
+export function RuneDetailBox({ rune }: { rune: RuneDetail }) {
   const rarity = RARITY_META[rune.rarity] ?? RARITY_META[1];
   const bonus = SET_BONUS[rune.set];
   const ancient = rune.rank > 10;
@@ -177,7 +167,7 @@ function artifactTypeLabel(a: ArtifactDetail): string {
 }
 
 // Détail d'un artéfact, façon jeu : stat principale (gros) + substats + type.
-function ArtifactDetailBox({ artifact }: { artifact: ArtifactDetail }) {
+export function ArtifactDetailBox({ artifact }: { artifact: ArtifactDetail }) {
   const rarity = RARITY_META[artifact.rarity] ?? RARITY_META[1];
   return (
     <div className="rounded-lg border border-[#6d5a37] bg-gradient-to-b from-[#2a2417] to-[#191510] p-3">

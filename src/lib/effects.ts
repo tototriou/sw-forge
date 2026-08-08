@@ -105,6 +105,17 @@ export const RARITY_META: Record<number, { label: string; color: string; bg: str
   1: { label: 'Commun', color: '#e6e6e6', bg: 'linear-gradient(180deg,#4a4a4a,#2a2a2a)' },
 };
 
+// Colorisation du symbole de set selon la rareté de la rune (filtre CSS sur l'image).
+// Base sépia+saturation (teinte ~orange), puis hue-rotate par rareté.
+const SET_SHADOW = 'drop-shadow(rgba(10, 6, 3, 0.95) 0px 1px 1px)';
+export const RARITY_FILTER: Record<number, string> = {
+  5: `sepia(1) saturate(7.5) hue-rotate(330deg) brightness(0.9) contrast(1.18) ${SET_SHADOW}`, // Légendaire → orange
+  4: `sepia(1) saturate(7.5) hue-rotate(235deg) brightness(0.9) contrast(1.18) ${SET_SHADOW}`, // Héroïque → violet
+  3: `sepia(1) saturate(7.5) hue-rotate(80deg) brightness(0.9) contrast(1.18) ${SET_SHADOW}`, // Rare → vert
+  2: `sepia(1) saturate(7.5) hue-rotate(175deg) brightness(0.9) contrast(1.18) ${SET_SHADOW}`, // Magique → bleu
+  1: `saturate(0) brightness(1.7) contrast(1.05) ${SET_SHADOW}`, // Normal → blanc
+};
+
 // Bonus de set (nombre de pièces + effet), pour la ligne « X Set : … ».
 export const SET_BONUS: Record<string, { pieces: number; label: string }> = {
   swift: { pieces: 4, label: 'VIT +25%' },

@@ -25,6 +25,7 @@ import { UseRecoState } from '../../hooks/useSiegeRecos';
 import ElementIcon from '../ElementIcon';
 import RuneIcon from '../RuneIcon';
 import MonsterPicker from '../MonsterPicker';
+import LeadPill from './LeadPill';
 
 const GRADIENT: Record<string, string> = {
   fire: 'from-fire to-panel2',
@@ -641,6 +642,9 @@ function DeckBlock({
   );
   const status = match?.status ?? 'unknown';
   const empty = deck.slots.every((s) => s.com2usId == null);
+  // Lead porté par le slot 0 du deck recommandé.
+  const leaderId = deck.slots[0]?.com2usId;
+  const leaderLead = leaderId != null ? monsterByCom2us.get(leaderId)?.leaderSkill ?? null : null;
 
   return (
     <div className={`rounded-xl border p-2.5 ${DECK_AURA[empty ? 'unknown' : status]}`}>
@@ -675,6 +679,8 @@ function DeckBlock({
           </button>
         )}
         {!editing && match && !empty && <DeckBadge match={match} />}
+        {/* Lead du leader (slot 0) — même pastille qu'en siège. */}
+        {leaderLead && <LeadPill ls={leaderLead} />}
 
         {/* Replié : aperçu des 3 monstres en icônes, pour s'y retrouver */}
         {folded && (

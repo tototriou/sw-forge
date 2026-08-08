@@ -65,6 +65,25 @@ Normalisations notables dans le script :
   2A base_stars 6 mais nat 3) ; `secondAwaken` = `awaken_level ≥ 2`. Ces deux
   derniers alimentent les filtres **Nat** et **2A** de la box « Mon compte ».
 
+## Icônes de leader skill
+
+Servies **en local** depuis `public/leader-skills/` (comme les icônes
+d'éléments/runes/stats : jamais de hotlink vers SWARFARM). Ce sont les images
+officielles du jeu, récupérées une fois depuis
+`swarfarm.com/static/herders/images/skills/leader/`.
+
+Nom de fichier : `leader_skill_{Attribut}[_{Portée}].png`, l'attribut avec des
+`_` à la place des espaces (`Attack_Speed`, `Critical_Rate`…). Deux règles à
+connaître, sinon on tombe sur des 404 :
+- la portée **n'est suffixée que pour `Arena` / `Dungeon` / `Guild`** ; en
+  portée **`General`** l'icône n'a **aucun suffixe** (`leader_skill_Attack_Speed.png`) ;
+- **`Critical DMG`** et la portée **`Element`** n'ont **pas** de déclinaison :
+  ils réutilisent l'icône de base de l'attribut.
+
+29 fichiers couvrent les **29 combinaisons** réellement présentes dans
+`monsters.json` (aucune manquante, aucune inutilisée). La résolution du nom vit
+dans [LeadPill.tsx](src/components/siege/LeadPill.tsx) (`leadIconUrl`).
+
 ## Chargement côté app
 
 [useMonsters.ts](src/hooks/useMonsters.ts) : `fetch` de

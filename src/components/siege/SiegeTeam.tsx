@@ -2,12 +2,13 @@ import { useRef, useState } from 'react';
 import { Crown, X, GripVertical, Trash2, AlertTriangle, Pencil } from 'lucide-react';
 
 const SPD_ICON = `${import.meta.env.BASE_URL}stats/spd.png`; // icône vitesse du jeu (SWARFARM)
-import { Monster, SiegeTeam as SiegeTeamType, ELEMENTS, ElementKey, LeaderSkill } from '../../types';
+import { Monster, SiegeTeam as SiegeTeamType } from '../../types';
 import { SIEGE_TICKS, combatSpeed, speedLeadOf, siegeLeadFor, tickDanger, LeadInfo } from '../../lib/speed';
 import MonsterPicker from '../MonsterPicker';
 import ElementIcon from '../ElementIcon';
 import RuneIcon from '../RuneIcon';
 import MonsterGear from '../MonsterGear';
+import LeadPill from './LeadPill';
 
 const GRADIENT: Record<string, string> = {
   fire: 'from-fire to-panel2',
@@ -28,37 +29,6 @@ const TEXT: Record<string, string> = {
 
 function initials(name: string) {
   return name.trim().split(/\s+/).slice(0, 2).map((w) => w[0]).join('').toUpperCase();
-}
-
-function elementLabel(el: ElementKey | null): string {
-  return ELEMENTS.find((e) => e.key === el)?.label ?? '—';
-}
-
-// Libellés courts des stats de leader skill.
-const STAT_LABEL: Record<string, string> = {
-  'Attack Speed': 'SPD',
-  'Attack Power': 'ATQ',
-  HP: 'PV',
-  Defense: 'DEF',
-  'Critical Rate': 'Taux crit',
-  'Critical DMG': 'DMG crit',
-  Accuracy: 'Précision',
-  Resistance: 'Résistance',
-};
-
-// Pastille affichant le lead du leader (n'importe quel type de stat).
-// `active` = lead de vitesse effectif en siège (mis en avant, alimente le tick).
-function leaderSkillPill(ls: LeaderSkill | null): { text: string; active: boolean } | null {
-  if (!ls) return null;
-  const stat = STAT_LABEL[ls.stat ?? ''] ?? ls.stat ?? '';
-  let scope = '';
-  if (ls.area === 'Element') scope = ` ${elementLabel(ls.element)}`;
-  else if (ls.area === 'Arena') scope = ' (arène)';
-  else if (ls.area === 'Dungeon') scope = ' (donjon)';
-  const active =
-    ls.stat === 'Attack Speed' &&
-    (ls.area === 'General' || ls.area === 'Guild' || ls.area === 'Element');
-  return { text: `Lead +${ls.amount}% ${stat}${scope}`, active };
 }
 
 interface Props {
@@ -158,6 +128,9 @@ export default function SiegeTeam({
       <div className="flex items-center gap-2 mb-3 flex-wrap">
         <h3 className="font-display text-[17px] tracking-wide">Équipe {index + 1}</h3>
         {dotClass && <span className={`w-2 h-2 rounded-full ${dotClass}`} />}
+        {/* Lead du leader : dans l'EN-TÊTE, donc visible aussi en vue compacte —
+            c'est une propriété de l'équipe entière, pas du seul slot 0. */}
+        {leaderMonster?.leaderSkill && <LeadPill ls={leaderMonster.leaderSkill} />}
 
         <button
           onClick={() => {
@@ -444,7 +417,6 @@ function SlotContent({
   const base = monster.stats.speed;
   const lead = siegeLeadFor(leadInfo, monster.element);
   const combat = combatSpeed(base, slot.runeSpeed, lead);
-  const pill = isLeader ? leaderSkillPill(monster.leaderSkill) : null;
   const tick = slot.tick;
 
   // Écart au tick : négatif = il manque de la vitesse, positif = surplus.
@@ -495,14 +467,6 @@ function SlotContent({
               </span>
             )}
           </div>
-          {pill && (
-            <span
-              className={`inline-block mt-0.5 rounded-full px-1.5 py-[1px] text-[10px] font-mono font-semibold
-                ${pill.active ? 'bg-star/15 text-star' : 'bg-panel border border-border text-ink-dim'}`}
-            >
-              {pill.text}
-            </span>
-          )}
         </div>
         <button
           onClick={onClear}

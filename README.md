@@ -1,59 +1,153 @@
-# SW Forge — Outils Summoners War
+# SW Forge
 
-**Démo en ligne : https://sw-forge.vercel.app**
+Une boîte à outils pour Summoners War.
 
-Application web (React + Vite) déployée sur **Vercel**, sans jamais rencontrer de blocage CORS.
+**En ligne : https://sw-forge.vercel.app**
 
-Pages :
+SW Forge aide à préparer ses contenus compétitifs : composer ses équipes de
+siège et vérifier leur speed tuning, classer ses monstres pour la RTA, analyser
+ses runes et son compte, partager des recommandations de decks avec sa guilde.
 
-- **Accueil** — landing.
-- **Bestiaire** — recherche et filtre des monstres (élément, étoiles naturelles).
-- **RTA** — préparation Real Time Arena : sélection des monstres, classement par set de runes en
-  **drag & drop**, saisie des vitesses, **ordre de tour** recalculé avec les leads SPD, et
-  **import d'un export de compte SWEX** pour préremplir tes favoris RTA.
-- **Siège** — équipes de 3 (leader + lead auto déduit de la leader skill, ticks de vitesse).
-- **Arène** — à venir.
+**Tout reste dans ton navigateur.** Il n'y a pas de serveur, pas de compte, pas
+d'authentification : les données que tu importes vivent dans le `localStorage`
+et ne sont jamais envoyées nulle part. Un bouton « Supprimer mes données »
+efface tout.
 
-## Données
+## Ce qu'on y trouve
 
-Les données de monstres proviennent de [SWARFARM](https://swarfarm.com). Elles sont récupérées côté CI
-par `update-data.yml`, écrites dans `public/data/monsters.json` et consommées par le site.
+- **Siège** — équipes de 3, leader et lead déduits automatiquement de la leader
+  skill, **vérification des ticks ATB** (vitesse de combat cible), défense et
+  offense séparées.
+- **Recommandations de siège** — un auteur décrit ses decks (monstres, sets,
+  stats minimales, consignes), les exporte en JSON ; les autres joueurs les
+  importent et **confrontent leur compte** : monstres manquants, deck à
+  composer, stats qui ne suivent pas.
+- **RTA** — préparation Real Time Arena : classement des monstres par section en
+  **glisser-déposer**, saisie des vitesses, **ordre de tour** recalculé avec les
+  leads.
+- **Mon compte** — résumé global, box de monstres, **runes** (efficience ou
+  score SW officiel, optimisation gemme/meule, courbes de potentiel) et
+  artéfacts, alimentés par un export de compte.
+- **Bestiaire** — recherche et filtres sur les données de monstres.
+- **Mécaniques** — aide-mémoire des règles de jeu.
 
-## Déploiement (Vercel)
+## Import de compte
 
-Le repo est importé sur Vercel (preset **Vite**, output `dist`) : déploiement automatique à chaque push
-sur `main`, et preview par branche/PR. Rien à configurer côté hébergeur.
+L'application lit les exports JSON produits par
+[SW Exporter](https://github.com/Xzandro/sw-exporter). Le fichier est lu **en
+local, dans la page** : il n'est pas téléversé. La jointure avec les données de
+monstres se fait sur `com2us_id`.
 
-## Développement local
+
+## Données de monstres
+
+Elles proviennent de [SWARFARM](https://swarfarm.com), via son API publique
+`/api/v2/`. Elles sont récupérées **côté CI** (Node, donc pas de CORS) par
+`scripts/fetch-monsters.mjs`, écrites dans `public/data/monsters.json`, puis
+servies avec le site. Un workflow GitHub Actions (`update-data.yml`) les
+rafraîchit chaque semaine et commite le résultat.
+
+Si l'API est indisponible au moment du build, un jeu de démonstration
+déterministe est généré à la place, et le bandeau de statut le dit clairement —
+le site reste déployable et testable.
+
+Les icônes (éléments, runes, stats, artéfacts, leader skills) sont **servies en
+local** depuis `public/` : aucun lien direct vers les serveurs de SWARFARM.
+
+## Développement
 
 ```bash
 npm install
-npm run fetch-data   # génère public/data/monsters.json (mode démo si l'API est indisponible)
+npm run fetch-data   # génère public/data/monsters.json (mode démo si l'API est KO)
 npm run dev          # http://localhost:5173
 ```
 
-## Structure
+Avant d'ouvrir une PR :
+
+```bash
+npx tsc --noEmit     # le projet est en TypeScript strict
+npm run build
+```
+
+### Structure
 
 ```
+├── spec/                  LA référence : ce que fait l'app et pourquoi
 ├── src/
-│   ├── pages/        Accueil, Bestiaire, RTA, Siège, ComingSoon
-│   ├── components/   cartes, filtres, icônes, composants RTA & Siège
-│   ├── hooks/        useMonsters, useRtaState, useSiegeState
-│   └── lib/          speed.ts (calcul de vitesse), importAccount.ts (import SWEX)
-├── scripts/fetch-monsters.mjs        récupération des données côté serveur (CI)
-├── public/data/monsters.json         données consommées par le site (générées)
-├── public/{elements,runes}/          icônes officielles (SWARFARM)
-└── .github/workflows/update-data.yml cron hebdo + manuel : actualise les données
+│   ├── pages/             Accueil, Bestiaire, RTA, Siège, Mon compte, Mécaniques
+│   ├── components/        cartes, filtres, icônes, composants RTA & Siège
+│   ├── hooks/             état persisté (RTA, siège, recos, réglages globaux)
+│   └── lib/               calculs purs : vitesse, stats, runes, import, matching
+├── scripts/fetch-monsters.mjs         récupération des données (CI)
+├── public/data/monsters.json          données consommées par le site (générées)
+└── .github/workflows/update-data.yml  cron hebdo + manuel
 ```
 
-## Limites connues
+### Lis la spec d'abord
 
-- Le script normalise plusieurs noms de champs SWARFARM par précaution (stats de base, leader skills,
-  `com2us_id`). Ajuste `normalizeStats` / `normalizeLeaderSkill` si l'API évolue.
-- Si l'API SWARFARM est indisponible, un jeu de démonstration est généré à la place (clairement
-  labellisé dans le bandeau de statut).
+Le dossier [`spec/`](spec/) n'est pas de la documentation d'après-coup : c'est la
+**source de vérité fonctionnelle**. Il explique non seulement ce que fait chaque
+écran, mais **pourquoi** — y compris les pièges déjà rencontrés et les décisions
+qu'il ne faut pas défaire. Quelques exemples de ce qu'on n'a pas envie de
+redécouvrir à ses dépens :
 
-## Crédits
+- [`shared/calcul-vitesse.md`](spec/shared/calcul-vitesse.md) — le totem et le
+  lead s'appliquent **séparément et chacun arrondi**, pas en somme de
+  pourcentages. Cas de contrôle à l'appui.
+- [`shared/donnees-monstres.md`](spec/shared/donnees-monstres.md) — les stats de
+  base viennent de `max_lvl_*`, **jamais** de `base_*` (qui est le grade
+  d'invocation). Et le nom d'un monstre **ne l'identifie pas** : plusieurs
+  entrées partagent nom et élément.
+- [`compte/calcul-runes.md`](spec/compte/calcul-runes.md) — efficience, score SW
+  officiel, optimisation gemme/meule.
 
-Données de jeu et images © Com2uS, exposées publiquement par
-[SWARFARM](https://github.com/swarfarm/swarfarm).
+Toute modification de comportement met la spec à jour dans le même commit.
+
+### Conventions
+
+- Interface, spec et messages de commit **en français**.
+- Commits conventionnels : `feat(scope): …`, `fix(scope): …`, `docs(spec): …`.
+- Les calculs de jeu vivent dans `src/lib/` en **fonctions pures**, sans React :
+  ils sont vérifiables isolément.
+- Toute nouvelle section est ajoutée **aussi sur la page d'accueil**, dans le
+  même commit.
+
+## Contribuer
+
+Pas besoin de coder pour aider. Un bug, une donnée fausse, une formule qui ne
+correspond pas à ce que le jeu affiche, une idée d'écran : ouvre une **issue**.
+Pour un désaccord de calcul, le plus utile est un **cas concret** — le monstre,
+ses valeurs, et ce que le jeu affiche. C'est comme ça que la formule de vitesse
+a été corrigée.
+
+Les pull requests sont bienvenues ; pour un changement de fond, ouvre d'abord
+une issue pour qu'on en discute.
+
+## Contact
+
+Une question, un retour ou une demande particulière : **Discord `tototriou15`**.
+
+## Construit avec
+
+- [React](https://react.dev) + [TypeScript](https://www.typescriptlang.org)
+- [Vite](https://vitejs.dev) — build et serveur de dev
+- [Tailwind CSS](https://tailwindcss.com) — styles
+- [lucide-react](https://lucide.dev) — icônes d'interface
+- [framer-motion](https://www.framer.com/motion/) — animations
+- Déployé sur [Vercel](https://vercel.com) (preset Vite, sortie `dist`) :
+  déploiement automatique sur `main`, preview par branche.
+
+## Auteur
+
+**Thomas** — [github.com/tototriou](https://github.com/tototriou) · Discord
+`tototriou15`
+
+## Remerciements
+
+- [SWARFARM](https://github.com/swarfarm/swarfarm) — les données de monstres et
+  les icônes du jeu, exposées publiquement.
+- [SW Exporter](https://github.com/Xzandro/sw-exporter) — le format d'export de
+  compte qui rend l'import possible.
+
+Données de jeu et images © Com2uS. Projet non officiel, sans affiliation avec
+Com2uS.

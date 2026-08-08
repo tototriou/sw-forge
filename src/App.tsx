@@ -13,6 +13,8 @@ import {
   Boxes,
   Disc3,
   Gem,
+  Github,
+  MessageCircle,
 } from 'lucide-react';
 import HomePage from './pages/HomePage';
 import BestiaryPage from './pages/BestiaryPage';
@@ -582,6 +584,23 @@ export default function App() {
         )}
 
         <footer className="mt-16 text-center font-mono text-xs text-ink-dim space-y-2">
+          {/* Signature : projet perso, code ouvert, et un contact direct pour les
+              questions ou les demandes particulières. */}
+          <p className="flex items-center justify-center gap-x-4 gap-y-1 flex-wrap">
+            <a
+              href="https://github.com/tototriou/sw-forge"
+              target="_blank"
+              rel="noreferrer"
+              className="inline-flex items-center gap-1.5 text-[#8b92e0] hover:text-ink transition"
+              title="Le code de SW Forge sur GitHub"
+            >
+              <Github size={13} /> github.com/tototriou
+            </a>
+            <span className="inline-flex items-center gap-1.5" title="Questions, retours, demandes particulières">
+              <MessageCircle size={13} /> Discord <span className="text-ink">tototriou15</span>
+            </span>
+          </p>
+          <p>Une question ou une demande particulière ? Écris-moi sur Discord.</p>
           <p>Toutes tes données restent en local dans ton navigateur.</p>
           <p>
             Données et images © Com2uS · Source :{' '}

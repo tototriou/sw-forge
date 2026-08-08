@@ -44,6 +44,13 @@ Concepts partagés par plusieurs pages, documentés une seule fois :
 
 - **Persistance navigateur** : chaque page à état (RTA, Siège) sauvegarde tout
   dans `localStorage`. Rien n'est envoyé à un serveur. Aucune authentification.
+- **Footer** — trois informations, dans cet ordre :
+  1. **Signature** : lien vers le dépôt GitHub (`github.com/tototriou/sw-forge`)
+     et **contact Discord `tototriou15`** pour les questions et demandes
+     particulières. Le pseudo Discord n'est pas un lien (ce n'est pas une
+     invitation) : il est affiché en clair pour être copié.
+  2. Rappel que les données restent locales.
+  3. Crédit Com2uS / SWARFARM.
 - **Données 100 % locales** : le footer rappelle que toutes les données restent
   en local. Un lien **« Supprimer mes données »** (dans la barre de nav, à côté de
   l'import) efface les clés `localStorage` `sw-forge*` / `sky-arena*` (prépa RTA,

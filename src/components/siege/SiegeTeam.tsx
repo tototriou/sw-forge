@@ -290,24 +290,30 @@ export default function SiegeTeam({
                         className="absolute -top-1 -right-1 drop-shadow-[0_1px_2px_rgba(0,0,0,0.7)]"
                       />
                     </div>
+                    {/* Le nom occupe SA ligne : nom, vitesse et sets se
+                        disputaient la même, et le gros chiffre (non réductible)
+                        finissait sous les icônes de set. Ligne 2 = vitesse à
+                        gauche, sets poussés à droite. */}
                     <div className="min-w-0 flex-1">
                       <div className="text-[12px] font-semibold leading-tight truncate">{monster.name}</div>
-                      <div className="flex items-center gap-1 mt-0.5">
-                        <img src={SPD_ICON} alt="SPD" width={16} height={16} className="flex-none" />
+                      <div className="mt-0.5 flex items-center gap-1">
+                        <img src={SPD_ICON} alt="SPD" width={14} height={14} className="flex-none" />
                         <span
-                          className={`font-mono text-[17px] font-black leading-none ${danger ? 'text-fire' : 'text-ink'}`}
+                          className={`font-mono text-[16px] font-black leading-none flex-none ${
+                            danger ? 'text-fire' : 'text-ink'
+                          }`}
                         >
                           {combat ?? '—'}
                         </span>
+                        {sets.length > 0 && (
+                          <span className="ml-auto flex items-center gap-0.5 flex-none">
+                            {sets.slice(0, 3).map((s, i) => (
+                              <RuneIcon key={i} setKey={s} size={17} className="flex-none" />
+                            ))}
+                          </span>
+                        )}
                       </div>
                     </div>
-                    {sets.length > 0 && (
-                      <div className="flex items-center gap-1 flex-none">
-                        {sets.slice(0, 3).map((s, i) => (
-                          <RuneIcon key={i} setKey={s} size={24} className="flex-none" />
-                        ))}
-                      </div>
-                    )}
                   </>
                 ) : (
                   <div className="flex items-center gap-2 text-ink-dim">

@@ -16,12 +16,28 @@ Fichiers : [SiegeTeam.tsx](src/components/siege/SiegeTeam.tsx) ·
   reçoit en prop et remonte le clic (`onToggleExpand`).
 
 ### Vue compacte (repliée)
-Une ligne par équipe, très basse : les **3 monstres** côte à côte, chacun =
-portrait hexagonal + **icône d'élément** + (couronne si leader) · à droite le
-**nom**, une rangée d'**icônes de sets de runes** (`RuneIcon`) et la **vitesse de
-combat**. Cliquer un monstre (ou le chevron) **déplie** le détail. Les slots en
-danger (voir [speed-tick.md](speed-tick.md)) ont un anneau rouge et la vitesse en
-rouge. Idéale avec beaucoup d'équipes (import offense ~50).
+Une ligne par équipe, très basse : les **3 monstres** côte à côte. Chaque monstre
+= portrait hexagonal + **icône d'élément** + (couronne si leader), puis un bloc
+texte **sur deux lignes** :
+
+```
+[hex]  Nom du monstre
+       ⚡ 307        ◆ ◆ ◆
+```
+
+- **Ligne 1** : le **nom**, seul, sur toute la largeur disponible (`truncate`).
+- **Ligne 2** : **vitesse de combat** à gauche, **icônes de sets** poussées à
+  droite (`ml-auto`, 17 px, 3 max).
+
+⚠️ **Ne pas remettre nom + vitesse + sets sur une seule ligne.** C'est ce qui
+existait, et à 2 colonnes avec 3 sets ça débordait : la carte fait ~157 px
+utiles, la disposition en demandait ~175 → le gros chiffre de vitesse (non
+réductible) passait **sous les icônes de set**. En deux lignes, la ligne la plus
+chargée demande ~106 px pour ~113 disponibles.
+
+Cliquer un monstre (ou le chevron) **déplie** le détail. Les slots en danger
+(voir [speed-tick.md](speed-tick.md)) ont un anneau rouge et la vitesse en rouge.
+Idéale avec beaucoup d'équipes (import offense ~50).
 
 ### Vue détaillée (dépliée)
 - **3 slots** (`grid`, 1 col mobile / 3 cols ≥ sm). **Slot 0 = Leader** (couronne).

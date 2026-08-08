@@ -7,6 +7,8 @@ côté navigateur** — aucun fichier n'est envoyé. Un **seul import global** r
 - **Box RTA** → prépa RTA (`parseAccountJson`).
 - **Défenses de siège** → équipes de défense (`parseSiegeDefense`).
 - **Offense de siège** → équipes d'attaque sauvegardées (`parseSiegeOffense`).
+- **Box 6★** → page « Mon compte » (`parseAccountBox`).
+- **Inventaire runes/artéfacts** → page « Mon compte » (`parseAccountInventory`).
 
 Fichiers : [importAccount.ts](src/lib/importAccount.ts) (parseurs) ·
 [applyAccount.ts](src/lib/applyAccount.ts) (mapping monstres + vitesses) ·
@@ -33,9 +35,10 @@ besoin, un import couvre déjà toutes les pages. Rien n'est persisté sur le di
 équipes de siège, monstres perso puis recharge).
 
 **Une seule confirmation** : si des données existent déjà (RTA/défense/offense),
-un unique `confirm` « remplacer / fusionner » s'applique aux trois cibles. Message
-global récapitulatif **éphémère** (disparaît seul ~5 s ; ~9 s pour une erreur) :
-« Import : N monstres RTA · N défenses · N attaques ».
+un unique `confirm` « remplacer / fusionner » s'applique aux trois cibles. La box
+« Mon compte » (en mémoire) est **toujours remplacée** par le dernier import.
+Message global récapitulatif **éphémère** (disparaît seul ~5 s ; ~9 s pour une
+erreur) : « Import : N monstres 6★ · N monstres RTA · N défenses · N attaques ».
 
 Helpers partagés par les deux parseurs : `runeSpeed` (SPD d'une rune : mainstat +
 prefix + substats avec meule), `indexRunes` (index rune_id → rune, inventaire +
@@ -164,8 +167,36 @@ des équipes à 0 ; le lead est ensuite **déduit automatiquement** du leader (s
 Seules les cibles qui ont des données sont touchées (un compte sans favoris RTA ne
 vide pas la prépa RTA).
 
+## Import « Mon compte » — box 6★ & inventaire
+
+Contrairement à RTA/siège (persistés en `localStorage`), les données de « Mon
+compte » restent **en mémoire dans [App.tsx](src/App.tsx)** (`useState` : `box`,
+`runes`, `artifacts`) → **ré-import nécessaire à chaque session**. Choix assumé de
+sobriété : un gros compte (des milliers de runes) ne remplit pas le stockage.
+
+### Box 6★ — `parseAccountBox`
+
+- Parcourt `unit_list`, ne garde que les unités **montées 6★** (`class === 6`).
+- Pour chacune : `com2usId` (`unit_master_id`), `unit_level`, et un `GearSet`
+  construit depuis l'équipement **actuellement équipé** (runes/artéfacts embarqués
+  dans l'unité + relique).
+- `mapBoxMonsters` résout `com2usId → Monster` ; les unités inconnues des données
+  sont ignorées. Renvoie `{ key, monster, stars, level, gear }` (key = `unit_id`).
+
+### Inventaire — `parseAccountInventory`
+
+- **Toutes** les runes et **tous** les artéfacts possédés (inventaire + équipés,
+  dédupliqués par id via `indexRunes` / `indexArtifacts`).
+- Chaque rune → `RuneDetail` (slot, set, rareté = `extra`, antique = `class > 10`,
+  niveau, main/innée/substats meule incluse) ; chaque artéfact → `ArtifactDetail`
+  (type élément/archétype, rareté = `natural_rank`, main, substats, `enchant`).
+- Utilisé par les sous-sections **Runes** et **Artéfacts** (voir
+  [compte/runes.md](../compte/runes.md), [compte/artefacts.md](../compte/artefacts.md)).
+
 ## Confidentialité
 
 - Traitement local uniquement ; le fichier n'est jamais poussé/envoyé.
+- Vaut aussi pour le **JSON d'un ami** importé dans la comparaison de courbes
+  (voir [compte/runes.md](../compte/runes.md)) : lu en mémoire, jamais envoyé.
 - Les exports de compte sont **gitignorés** (`*account*.json`, `tototriou-*.json`,
   etc.) — ne jamais committer un export réel.

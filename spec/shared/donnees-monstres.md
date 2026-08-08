@@ -13,7 +13,9 @@ interface Monster {
   com2usId: number | null;  // = unit_master_id des exports SWEX (clé d'import)
   name: string;
   element: ElementKey;      // fire | water | wind | light | dark | unknown
-  stars: number | null;    // étoiles naturelles
+  stars: number | null;        // grade obtenable (base_stars) — utilisé par le Bestiaire
+  naturalStars: number | null; // rareté naturelle réelle (nat 1..5), SWARFARM natural_stars
+  secondAwaken: boolean;       // monstre à second éveil (awaken_level ≥ 2)
   image: string | null;
   stats: MonsterStats;      // hp, attack, defense, speed, critRate, critDamage, resistance, accuracy
   leaderSkill: LeaderSkill | null;
@@ -45,6 +47,10 @@ Normalisations notables dans le script :
 - `element` mappé vers les 5 éléments (sinon `unknown`).
 - `com2usId` extrait de `com2us_id` (clé de jointure avec les exports de compte).
 - `leaderSkill.element = null` s'il n'y a pas d'élément (→ toutes cibles).
+- `stars` = `base_stars` (grade obtenable) ; **`naturalStars` = `natural_stars`**
+  (vraie rareté naturelle, distincte : ex. Racuni base_stars 4 mais nat 3, Tractor
+  2A base_stars 6 mais nat 3) ; `secondAwaken` = `awaken_level ≥ 2`. Ces deux
+  derniers alimentent les filtres **Nat** et **2A** de la box « Mon compte ».
 
 ## Chargement côté app
 
@@ -75,5 +81,8 @@ peut donc **créer un monstre** utilisable comme les autres, en **RTA et en Siè
 
 ## Distinction d'affichage
 
-- **Bestiaire** : monstres **officiels uniquement**.
+- **Bestiaire** : monstres **officiels uniquement** ; filtre étoiles sur `stars`
+  (grade obtenable).
 - **RTA / Siège** : officiels **+** perso (`allMonsters`).
+- **Mon compte** (box) : monstres du compte importé (6★) ; filtres sur
+  `naturalStars` (Nat) et `secondAwaken` (2A).

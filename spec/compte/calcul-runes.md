@@ -100,7 +100,7 @@ eff(%) = ( min(main/MAINSTAT_MAX[main.code], 1)
 
 ### MAINSTAT_MAX (rune 6★, non antique)
 
-| Code | 1 | 2 | 3 | 4 | 5 | 6 | 8 | 9 | 10 | 11 | 12 |
+| Code (stat) | 1 PV | 2 PV% | 3 ATQ | 4 ATQ% | 5 DEF | 6 DEF% | 8 VIT | 9 TC% | 10 DCC% | 11 RES% | 12 PRE% |
 |------|---|---|---|---|---|---|---|---|----|----|----|
 | Max | 2448 | 63 | 160 | 63 | 160 | 63 | 42 | 58 | 80 | 64 | 64 |
 
@@ -110,7 +110,7 @@ eff(%) = ( min(main/MAINSTAT_MAX[main.code], 1)
 scoringsw) — c'est calibré : meilleure rune du compte de réf = 140,18 %,
 moyenne top-10 = 125,80 %.
 
-| Code | 1 (PV) | 2 | 3 (ATQ) | 4 | 5 (DEF) | 6 | 8 | 9 | 10 | 11 | 12 |
+| Code (stat) | 1 PV | 2 PV% | 3 ATQ | 4 ATQ% | 5 DEF | 6 DEF% | 8 VIT | 9 TC% | 10 DCC% | 11 RES% | 12 PRE% |
 |------|--------|---|---------|---|---------|---|---|---|----|----|----|
 | Max | 3750 | 40 | 200 | 40 | 200 | 40 | 30 | 30 | 35 | 40 | 40 |
 
@@ -155,9 +155,11 @@ Total d'une stat gemmée = **`gemMax + grindMax`** (même code).
    du max cible est **ramenée** au max (delta négatif possible en héroïque).
 2. Si mode **« Meule seule »** → renvoyer cette efficience (pas de gemme).
 3. **Gemme** :
-   - Rune **déjà gemmée** (un substat a `enchant`) : la stat est **figée**. Seule
-     option = **proc max** : base du gemmé = `max(base actuelle, gemMax[code])`,
-     puis grind. Garder si l'efficience augmente (sinon = base).
+   - Rune **déjà gemmée** (un substat a `enchant`) : la stat est **figée** (on ne
+     peut pas en gemmer une autre). Seule option = **proc max** : base du gemmé =
+     `max(base actuelle, gemMax[code])`, puis grind. On garde si l'efficience
+     augmente ; **si la gemme est déjà à sa base max, aucun gain gemme** (on reste
+     sur le grind seul).
    - Rune **non gemmée** : pour chaque substat *slot* et chaque stat candidate `Y` :
      - exclure `Y` déjà présente (principale, innée, autres substats) et `Y` = stat
        du slot (la gemme **remplace** par une autre stat) ;

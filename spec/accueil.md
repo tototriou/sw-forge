@@ -23,7 +23,7 @@ features, et un CTA fléché. Halo d'accent en fond, léger soulèvement au surv
 | Carte | Route | Accent | CTA | Particularité |
 |-------|-------|--------|-----|---------------|
 | RTA — Préparation | `#/rta` | `#A15FE0` (violet) | Préparer mes équipes | — |
-| Siège | `#/siege` | `#E4463A` (rouge) | Préparer mes équipes de siège | — |
+| Siège | `#/siege` | `#E4463A` (rouge) | Préparer mes équipes de siège | 3 puces (dont recommandations) |
 | Arène | `#/arene` | `#F2C24C` (or) | Bientôt disponible | `soon` : badge « Bientôt », opacité réduite |
 | Mon compte | `#/compte` | `#5EDB8F` (vert) | Explorer mon compte | Box 6★, runes & artéfacts |
 | Bestiaire | `#/bestiary` | `#2FA0E0` (bleu) | Ouvrir le bestiaire | Ressource |

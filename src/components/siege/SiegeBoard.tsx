@@ -75,12 +75,6 @@ export default function SiegeBoard({
           <Plus size={15} /> Ajouter une équipe
         </button>
 
-        <CreateMonster
-          onCreate={onCreateMonster}
-          customMonsters={customMonsters}
-          onDelete={onDeleteMonster}
-        />
-
         {siege.state.teams.length > 0 && (
           <button
             onClick={() => setCheckTicks((v) => !v)}
@@ -99,6 +93,13 @@ export default function SiegeBoard({
             <Gauge size={15} /> Vérifier mes tick ATB
           </button>
         )}
+
+        {/* En dernier des actions : c'est le geste le plus rare. */}
+        <CreateMonster
+          onCreate={onCreateMonster}
+          customMonsters={customMonsters}
+          onDelete={onDeleteMonster}
+        />
 
         <span className="font-mono text-[12px] text-ink-dim">
           {siege.state.teams.length} équipe{siege.state.teams.length > 1 ? 's' : ''}

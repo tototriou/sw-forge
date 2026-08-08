@@ -13,6 +13,7 @@ import {
   Boxes,
   Gauge,
   Calculator,
+  Lightbulb,
 } from 'lucide-react';
 import { ElementKey } from '../types';
 import ElementIcon from '../components/ElementIcon';
@@ -97,6 +98,7 @@ export default function HomePage() {
           features={[
             { icon: Users, label: 'Équipes défense & offense' },
             { icon: Zap, label: 'Vérif des SPD & ticks 239 / 286' },
+            { icon: Lightbulb, label: 'Recommandations de decks à partager' },
           ]}
           cta="Préparer mes équipes de siège"
         />

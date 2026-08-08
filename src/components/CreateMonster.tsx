@@ -71,12 +71,14 @@ export default function CreateMonster({ onCreate, customMonsters, onDelete }: Pr
 
   return (
     <div className="relative" ref={ref}>
+      {/* Même gabarit que les autres boutons d'action (RTA & siège) :
+          px-3.5 py-2 / 13px, sinon il paraît rabougri à côté d'eux. */}
       <button
         onClick={() => setOpen((o) => !o)}
-        className="flex items-center gap-1.5 rounded-lg border border-border bg-panel px-3 py-1.5 text-[12.5px]
+        className="flex items-center gap-1.5 rounded-lg border border-border bg-panel px-3.5 py-2 text-[13px]
                    text-ink-dim hover:text-ink hover:border-[#4a52a0] transition"
       >
-        <Wand2 size={13} /> Créer un monstre
+        <Wand2 size={15} /> Créer un monstre
       </button>
 
       {open && (

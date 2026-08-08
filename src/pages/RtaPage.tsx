@@ -14,6 +14,7 @@ import { UseRtaState } from '../hooks/useRtaState';
 import RtaSearch from '../components/rta/RtaSearch';
 import RtaSection from '../components/rta/RtaSection';
 import RtaCard from '../components/rta/RtaCard';
+import MonsterGear from '../components/MonsterGear';
 import TurnOrder, { TurnItem } from '../components/rta/TurnOrder';
 import CreateMonster from '../components/CreateMonster';
 import { CustomLead } from '../hooks/useCustomMonsters';
@@ -43,6 +44,9 @@ export default function RtaPage({
 }: Props) {
   const [draggingId, setDraggingId] = useState<string | null>(null);
   const [newSection, setNewSection] = useState('');
+  // Un seul détail de runes ouvert à la fois, toutes sections confondues.
+  const [openId, setOpenId] = useState<string | null>(null);
+  const toggleDetail = (id: string) => setOpenId((cur) => (cur === id ? null : id));
 
   const monsterById = useMemo(() => {
     const m = new Map<string, Monster>();
@@ -99,13 +103,30 @@ export default function RtaPage({
         monster={it.monster}
         entry={it.entry}
         sectionKeys={moveTargets}
-        onRuneSpeed={rta.setRuneSpeed}
+        open={openId === String(it.monster.id)}
+        onToggleDetail={toggleDetail}
         onMove={rta.moveMonster}
         onRemove={rta.removeMonster}
         onDragStart={setDraggingId}
         onDragEnd={() => setDraggingId(null)}
       />
     ));
+  }
+
+  // Détail du monstre ouvert dans CETTE section (sinon rien) : position de la
+  // carte + panneau, que la grille insère sous la ligne concernée.
+  function detailOf(items: TurnItem[]) {
+    const openIndex = openId ? items.findIndex((it) => String(it.monster.id) === openId) : -1;
+    const gear = openIndex >= 0 ? items[openIndex].entry.gear : undefined;
+    if (openIndex < 0 || !gear) return { openIndex: -1, detail: undefined };
+    return {
+      openIndex,
+      detail: (
+        <div className="rounded-xl border border-[#4a52a0] bg-panel/60 p-3">
+          <MonsterGear gear={gear} />
+        </div>
+      ),
+    };
   }
 
   // Crée un monstre perso et l'ajoute directement en « Non classé ».
@@ -162,6 +183,7 @@ export default function RtaPage({
           accent={sectionAccent(RTA_UNASSIGNED)}
           count={groups[RTA_UNASSIGNED]?.length ?? 0}
           onDropMonster={handleDrop}
+          {...detailOf(groups[RTA_UNASSIGNED] ?? [])}
         >
           {renderCards(groups[RTA_UNASSIGNED] ?? [])}
         </RtaSection>
@@ -179,6 +201,7 @@ export default function RtaPage({
             removable={key !== RTA_OTHER}
             onRemoveSection={rta.removeSection}
             onDropMonster={handleDrop}
+            {...detailOf(groups[key] ?? [])}
           >
             {renderCards(groups[key] ?? [])}
           </RtaSection>

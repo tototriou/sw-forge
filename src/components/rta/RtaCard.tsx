@@ -1,9 +1,8 @@
-import { useRef, useState } from 'react';
+import { useRef } from 'react';
 import { GripVertical, X, ChevronDown } from 'lucide-react';
 import { Monster, RtaEntry, sectionLabel } from '../../types';
 import ElementIcon from '../ElementIcon';
 import RuneIcon from '../RuneIcon';
-import MonsterGear from '../MonsterGear';
 
 const SPD_ICON = `${import.meta.env.BASE_URL}stats/spd.png`;
 
@@ -38,7 +37,8 @@ interface Props {
   monster: Monster;
   entry: RtaEntry;
   sectionKeys: string[]; // destinations possibles (Non classé + sections runes)
-  onRuneSpeed: (id: string, value: number | null) => void;
+  open: boolean; // le détail de CETTE carte est ouvert (panneau rendu par la grille)
+  onToggleDetail: (id: string) => void;
   onMove: (id: string, section: string) => void;
   onRemove: (id: string) => void;
   onDragStart: (id: string) => void;
@@ -49,14 +49,14 @@ export default function RtaCard({
   monster,
   entry,
   sectionKeys,
-  onRuneSpeed,
+  open,
+  onToggleDetail,
   onMove,
   onRemove,
   onDragStart,
   onDragEnd,
 }: Props) {
   const cardRef = useRef<HTMLDivElement>(null);
-  const [expanded, setExpanded] = useState(false);
   const base = monster.stats.speed;
   const rune = entry.runeSpeed;
   const total = base !== null || rune !== null ? (base ?? 0) + (rune ?? 0) : null;
@@ -69,11 +69,13 @@ export default function RtaCard({
     onDragStart(String(monster.id));
   }
 
+  const toggle = hasGear ? () => onToggleDetail(String(monster.id)) : undefined;
+
   return (
     <div
       ref={cardRef}
-      className={`group relative rounded-lg border bg-panel2 ${
-        expanded ? 'col-span-full border-[#4a52a0]' : 'border-border'
+      className={`group relative rounded-lg border bg-panel2 transition-colors ${
+        open ? 'border-[#5b63b8] ring-1 ring-[#5b63b8]/50' : 'border-border'
       }`}
     >
       <div className="flex items-center gap-2 p-1.5">
@@ -89,10 +91,7 @@ export default function RtaCard({
         <GripVertical size={14} />
       </button>
 
-      <div
-        className={`relative flex-none ${hasGear ? 'cursor-pointer' : ''}`}
-        onClick={hasGear ? () => setExpanded((e) => !e) : undefined}
-      >
+      <div className={`relative flex-none ${hasGear ? 'cursor-pointer' : ''}`} onClick={toggle}>
         <div
           className={`hex-frame w-[50px] h-[50px] p-[2px] bg-gradient-to-br ${GRADIENT[monster.element]}`}
         >
@@ -116,7 +115,7 @@ export default function RtaCard({
       <div className="min-w-0 flex-1">
         <div
           className={`flex items-center gap-1 ${hasGear ? 'cursor-pointer' : ''}`}
-          onClick={hasGear ? () => setExpanded((e) => !e) : undefined}
+          onClick={toggle}
           title={hasGear ? 'Voir le détail des runes' : undefined}
         >
           <span className="text-[12px] font-semibold leading-tight truncate flex-1">
@@ -132,7 +131,7 @@ export default function RtaCard({
           {hasGear && (
             <ChevronDown
               size={14}
-              className={`flex-none text-ink-dim transition-transform ${expanded ? 'rotate-180' : ''}`}
+              className={`flex-none text-ink-dim transition-transform ${open ? 'rotate-180' : ''}`}
             />
           )}
         </div>
@@ -161,12 +160,6 @@ export default function RtaCard({
         <X size={12} />
       </button>
       </div>
-
-      {expanded && entry.gear && (
-        <div className="border-t border-border/60 p-2">
-          <MonsterGear gear={entry.gear} />
-        </div>
-      )}
     </div>
   );
 }

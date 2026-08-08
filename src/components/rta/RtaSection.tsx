@@ -2,6 +2,7 @@ import { ReactNode, useRef, useState } from 'react';
 import { X } from 'lucide-react';
 import { RTA_OTHER, RTA_UNASSIGNED } from '../../types';
 import RuneIcon from '../RuneIcon';
+import AccordionGrid from '../AccordionGrid';
 
 interface Props {
   sectionKey: string;
@@ -11,6 +12,8 @@ interface Props {
   removable?: boolean;
   onRemoveSection?: (key: string) => void;
   onDropMonster: (section: string, id: string) => void;
+  openIndex?: number; // index de la carte dont le détail est ouvert (-1 = aucune)
+  detail?: ReactNode; // panneau de détail, inséré sous la ligne de cette carte
   children: ReactNode;
 }
 
@@ -22,6 +25,8 @@ export default function RtaSection({
   removable,
   onRemoveSection,
   onDropMonster,
+  openIndex = -1,
+  detail,
   children,
 }: Props) {
   const [over, setOver] = useState(false);
@@ -82,7 +87,13 @@ export default function RtaSection({
           Glisse des monstres ici
         </div>
       ) : (
-        <div className="grid grid-cols-[repeat(auto-fill,minmax(min(100%,210px),1fr))] gap-2.5">{children}</div>
+        <AccordionGrid
+          className="grid grid-cols-[repeat(auto-fill,minmax(min(100%,210px),1fr))] gap-2.5"
+          openIndex={openIndex}
+          detail={detail}
+        >
+          {children}
+        </AccordionGrid>
       )}
     </section>
   );

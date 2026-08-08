@@ -5,6 +5,7 @@ de leurs runes.
 
 Fichiers : [RtaSection.tsx](src/components/rta/RtaSection.tsx) ·
 [RtaCard.tsx](src/components/rta/RtaCard.tsx) ·
+[AccordionGrid.tsx](src/components/AccordionGrid.tsx) ·
 [RtaPage.tsx](src/pages/RtaPage.tsx)
 
 ## Zones
@@ -38,6 +39,28 @@ Rendu **compact** et uniforme avec le siège :
 - **Pas de champ de saisie de vitesse ici** (l'édition SPD runes se fait dans
   l'ordre de tour) ; « base » retiré.
 - Croix de retrait (survol) → `removeMonster`.
+- **Clic sur le portrait ou la ligne du nom** (si le monstre a des runes
+  importées) → ouvre le **détail du gear**, chevron pivoté, carte surlignée
+  (`#5b63b8` + anneau). La carte elle-même ne s'agrandit pas.
+
+## Détail du gear — accordéon « façon Google Images »
+
+Comme en **vue compacte du siège**, le panneau de détail (`MonsterGear`) s'ouvre
+**sous la ligne** de la carte cliquée, jamais à la place de la carte :
+
+- Les cartes de la **même ligne ne bougent pas** ; seules les **lignes suivantes**
+  sont poussées vers le bas.
+- Mécanique : [AccordionGrid.tsx](src/components/AccordionGrid.tsx) — brique
+  générique qui lit le **nombre de colonnes réellement résolu** par la grille
+  (`gridTemplateColumns`, grille en `auto-fill`), le recalcule via un
+  `ResizeObserver`, et insère le panneau (`grid-column: 1 / -1`) **après la
+  dernière carte de la ligne ouverte**. Sur 1 colonne (mobile), le panneau tombe
+  donc juste sous la carte.
+- **Un seul détail ouvert à la fois**, toutes sections confondues : l'état
+  `openId` vit dans [RtaPage.tsx](src/pages/RtaPage.tsx) (ouvrir une carte ferme
+  la précédente, même dans une autre section). `RtaSection` reçoit `openIndex` +
+  `detail` et les passe à la grille.
+- Une carte **sans runes importées** n'est pas cliquable (pas de chevron).
 
 ## Pré-classement à l'import
 

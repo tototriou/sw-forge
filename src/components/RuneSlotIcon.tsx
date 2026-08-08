@@ -26,6 +26,11 @@ interface Props {
 
 const AMP = -4.5; // amplitude du décalage de l'icône le long de l'axe (slots 2/3/5/6)
 
+// Rotation animée : quand la même tuile passe d'une rune à une autre (pagination,
+// filtre, tri), le cadre pivote vers l'orientation de son nouveau slot au lieu de
+// sauter. Même effet que la roue de MonsterGear quand on passe d'un monstre au suivant.
+export const SPIN = 'transition-transform duration-300 ease-out';
+
 // Cadre de rune (image du jeu) orienté selon le slot, avec l'icône de set
 // centrée dedans et colorisée par rareté. Même rendu que la roue de MonsterGear.
 export default function RuneSlotIcon({
@@ -50,7 +55,7 @@ export default function RuneSlotIcon({
       <img
         src={RUNE_FRAME}
         draggable={false}
-        className="absolute inset-0 w-full h-full"
+        className={`absolute inset-0 w-full h-full ${SPIN}`}
         style={{
           transform: `rotate(${rot}deg)`,
           filter: ancient
@@ -59,7 +64,7 @@ export default function RuneSlotIcon({
         }}
       />
       <span
-        className="absolute inset-0 flex items-center justify-center"
+        className={`absolute inset-0 flex items-center justify-center ${SPIN}`}
         style={{ transform: `translate(${nudge.x * k}px, ${nudge.y * k}px)` }}
       >
         <RuneIcon setKey={setKey} size={iconSize} filter={RARITY_FILTER[rarity] ?? RARITY_FILTER[1]} />

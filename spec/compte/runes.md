@@ -78,6 +78,12 @@ Blocs, dans l'ordre :
   **antiques**.
 - **Tri** : Efficience ↓ (défaut) · Efficience ↑ · Niveau ↓ · Slot ↑.
 - **Pagination** (`Pager`) : 60 tuiles/page → DOM borné (fluide même à ~2000 runes).
+- **Rotation animée** : les tuiles utilisent une **clé positionnelle** (et non
+  l'id de la rune), donc elles sont **réutilisées** d'une page/d'un filtre/d'un
+  tri à l'autre → le cadre **pivote** vers l'orientation de son nouveau slot au
+  lieu de sauter. Constante `SPIN` dans
+  [RuneSlotIcon.tsx](src/components/RuneSlotIcon.tsx) (300 ms, `ease-out`),
+  partagée avec la roue de [MonsterGear.tsx](src/components/MonsterGear.tsx).
 
 ## Onglet Courbes — `RunesCurve`
 
@@ -172,6 +178,8 @@ classiques/antiques, héro/légend) et l'**algorithme complet** `best()` sont da
 - **Tuiles** : efficience **actuelle**, puis **Héro** et **Légend** avec leur gain
   et l'efficience cible colorée **vert** (au-dessus de l'actuelle) / **rouge** (en
   dessous). Pagination 60/page.
+- **Rotation animée** des cadres, même mécanique que l'onglet Liste (clé
+  positionnelle + `SPIN`).
 - **Détail au clic** : plan **« Actuel | Optimisé »** (`OptimPlanBox`) — substats
   actuels à gauche (base blanche + meule orange), optimisés à droite avec **seul ce
   qui change en violet** (grind posé ou 💎 gemme/proc max).

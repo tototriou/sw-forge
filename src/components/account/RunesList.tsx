@@ -188,10 +188,13 @@ export default function RunesList({ runes }: Props) {
         <Pager page={safePage} pageCount={pageCount} onChange={setPage} />
       </div>
 
-      {/* Grille de runes (page courante uniquement) */}
+      {/* Grille de runes (page courante uniquement).
+          Clé POSITIONNELLE (et non `row.id`) : la tuile est réutilisée quand la
+          page/le filtre change, donc le cadre pivote vers son nouveau slot au
+          lieu d'être remonté d'un coup. Voir SPIN dans RuneSlotIcon. */}
       <div className="grid grid-cols-[repeat(auto-fill,minmax(150px,1fr))] gap-2 items-start">
-        {shown.map((row) => (
-          <RuneTile key={row.id} row={row} open={openId === row.id} onToggle={toggleOpen} />
+        {shown.map((row, i) => (
+          <RuneTile key={i} row={row} open={openId === row.id} onToggle={toggleOpen} />
         ))}
       </div>
 

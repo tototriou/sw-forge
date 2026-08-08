@@ -15,6 +15,7 @@ import {
 } from '../lib/effects';
 import RuneIcon from './RuneIcon';
 import ArtifactIcon from './ArtifactIcon';
+import { SPIN } from './RuneSlotIcon';
 
 // Nombres compacts (39051 → « 39 051 »).
 function fmt(n: number): string {
@@ -310,7 +311,7 @@ export default function MonsterGear({ gear }: Props) {
                     <img
                       src={RUNE_FRAME}
                       draggable={false}
-                      className="absolute inset-0 w-full h-full transition"
+                      className={`absolute inset-0 w-full h-full transition duration-300 ease-out`}
                       style={{
                         transform: `rotate(${rot}deg)`,
                         filter:
@@ -326,7 +327,7 @@ export default function MonsterGear({ gear }: Props) {
                     />
                     {/* (3) icône de set, droite, décalée vers le centre (glissée dans le pétale) */}
                     <span
-                      className="absolute inset-0 flex items-center justify-center"
+                      className={`absolute inset-0 flex items-center justify-center ${SPIN}`}
                       style={{
                         transform: `translate(${(SET_OFFSET[r.slot] ?? { x: 0, y: 0 }).x}px, ${
                           (SET_OFFSET[r.slot] ?? { x: 0, y: 0 }).y

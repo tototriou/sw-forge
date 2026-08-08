@@ -1,10 +1,11 @@
-import { memo, useMemo, useRef, useState } from 'react';
+import { memo, useCallback, useMemo, useRef, useState } from 'react';
 import { ArtifactDetail, ElementKey } from '../../types';
 import { formatArtifactMain, RARITY_META } from '../../lib/effects';
 import ArtifactIcon from '../ArtifactIcon';
 import { ArtifactDetailBox } from '../MonsterGear';
 import Pager from './Pager';
 import DetailPopover from './DetailPopover';
+import { useStickyState } from '../../hooks/useStickyState';
 
 interface Props {
   artifacts: ArtifactDetail[];
@@ -35,11 +36,13 @@ const ARCHETYPES: { key: Archetype; label: string }[] = [
 ];
 
 export default function ArtifactsSection({ artifacts }: Props) {
-  const [kind, setKind] = useState<'all' | 'element' | 'archetype'>('all');
-  const [element, setElement] = useState<ElementKey | ''>('');
-  const [archetype, setArchetype] = useState<Archetype | ''>('');
-  const [rarities, setRarities] = useState<Set<number>>(new Set());
+  const [kind, setKind] = useStickyState<'all' | 'element' | 'archetype'>('artefacts.kind', 'all');
+  const [element, setElement] = useStickyState<ElementKey | ''>('artefacts.element', '');
+  const [archetype, setArchetype] = useStickyState<Archetype | ''>('artefacts.archetype', '');
+  const [rarities, setRarities] = useStickyState<Set<number>>('artefacts.rarities', new Set());
   const [page, setPage] = useState(0);
+  const [openId, setOpenId] = useState<number | null>(null);
+  const toggleOpen = useCallback((id: number) => setOpenId((c) => (c === id ? null : id)), []);
 
   function toggleRarity(v: number) {
     const next = new Set(rarities);
@@ -171,7 +174,13 @@ export default function ArtifactsSection({ artifacts }: Props) {
 
       <div className="grid grid-cols-[repeat(auto-fill,minmax(190px,1fr))] gap-2 items-start">
         {shown.map((row) => (
-          <ArtTile key={row.id} art={row.art} />
+          <ArtTile
+            key={row.id}
+            id={row.id}
+            art={row.art}
+            open={openId === row.id}
+            onToggle={toggleOpen}
+          />
         ))}
       </div>
 
@@ -184,8 +193,17 @@ export default function ArtifactsSection({ artifacts }: Props) {
   );
 }
 
-const ArtTile = memo(function ArtTile({ art }: { art: ArtifactDetail }) {
-  const [open, setOpen] = useState(false);
+const ArtTile = memo(function ArtTile({
+  id,
+  art,
+  open,
+  onToggle,
+}: {
+  id: number;
+  art: ArtifactDetail;
+  open: boolean;
+  onToggle: (id: number) => void;
+}) {
   const ref = useRef<HTMLDivElement>(null);
   const meta = RARITY_META[art.rarity] ?? RARITY_META[1];
 
@@ -195,7 +213,7 @@ const ArtTile = memo(function ArtTile({ art }: { art: ArtifactDetail }) {
       className={`relative rounded-lg border bg-panel ${open ? 'z-20 border-[#4a52a0]' : 'border-border'}`}
     >
       <button
-        onClick={() => setOpen((o) => !o)}
+        onClick={() => onToggle(id)}
         className="w-full flex items-center gap-2 p-2 text-left"
         style={{ borderLeft: `3px solid ${meta.color}` }}
       >

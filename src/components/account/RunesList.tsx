@@ -1,4 +1,4 @@
-import { memo, useMemo, useRef, useState } from 'react';
+import { memo, useCallback, useMemo, useRef, useState } from 'react';
 import { RuneDetail, RUNE_SETS } from '../../types';
 import { formatRuneEffect, RARITY_META, runeEfficiency } from '../../lib/effects';
 import RuneIcon from '../RuneIcon';
@@ -6,6 +6,7 @@ import RuneSlotIcon from '../RuneSlotIcon';
 import { RuneDetailBox } from '../MonsterGear';
 import Pager from './Pager';
 import DetailPopover from './DetailPopover';
+import { useStickyState } from '../../hooks/useStickyState';
 
 interface Props {
   runes: RuneDetail[];
@@ -37,11 +38,13 @@ const SORT_FN: Record<SortMode, (a: RuneRow, b: RuneRow) => number> = {
 const PAGE = 60; // tuiles par page (DOM borné pour rester fluide)
 
 export default function RunesList({ runes }: Props) {
-  const [sets, setSets] = useState<Set<string>>(new Set());
-  const [slots, setSlots] = useState<Set<number>>(new Set());
-  const [ancientOnly, setAncientOnly] = useState(false);
-  const [sort, setSort] = useState<SortMode>('eff_desc');
+  const [sets, setSets] = useStickyState<Set<string>>('runesList.sets', new Set());
+  const [slots, setSlots] = useStickyState<Set<number>>('runesList.slots', new Set());
+  const [ancientOnly, setAncientOnly] = useStickyState('runesList.ancient', false);
+  const [sort, setSort] = useStickyState<SortMode>('runesList.sort', 'eff_desc');
   const [page, setPage] = useState(0);
+  const [openId, setOpenId] = useState<number | null>(null);
+  const toggleOpen = useCallback((id: number) => setOpenId((c) => (c === id ? null : id)), []);
 
   function toggle<T>(set: Set<T>, v: T, upd: (s: Set<T>) => void) {
     const next = new Set(set);
@@ -188,7 +191,7 @@ export default function RunesList({ runes }: Props) {
       {/* Grille de runes (page courante uniquement) */}
       <div className="grid grid-cols-[repeat(auto-fill,minmax(150px,1fr))] gap-2 items-start">
         {shown.map((row) => (
-          <RuneTile key={row.id} row={row} />
+          <RuneTile key={row.id} row={row} open={openId === row.id} onToggle={toggleOpen} />
         ))}
       </div>
 
@@ -204,8 +207,15 @@ export default function RunesList({ runes }: Props) {
 // Tuile uniforme cliquable : cadre de rune (orienté par slot, icône de set
 // dedans) à gauche · stat principale à côté · efficience en dessous.
 // Mémoïsée : ne se re-rend pas quand seuls les filtres/la page changent ailleurs.
-const RuneTile = memo(function RuneTile({ row }: { row: RuneRow }) {
-  const [open, setOpen] = useState(false);
+const RuneTile = memo(function RuneTile({
+  row,
+  open,
+  onToggle,
+}: {
+  row: RuneRow;
+  open: boolean;
+  onToggle: (id: number) => void;
+}) {
   const ref = useRef<HTMLDivElement>(null);
   const { rune, eff } = row;
   const meta = RARITY_META[rune.rarity] ?? RARITY_META[1];
@@ -216,7 +226,7 @@ const RuneTile = memo(function RuneTile({ row }: { row: RuneRow }) {
       ref={ref}
       className={`relative rounded-lg border bg-panel ${open ? 'z-20 border-[#4a52a0]' : 'border-border'}`}
     >
-      <button onClick={() => setOpen((o) => !o)} className="w-full flex items-center gap-2.5 p-2 text-left">
+      <button onClick={() => onToggle(row.id)} className="w-full flex items-center gap-2.5 p-2 text-left">
         <RuneSlotIcon slot={rune.slot} setKey={rune.set} rarity={rune.rarity} ancient={ancient} height={46} />
         <div className="min-w-0 flex-1">
           <div className="text-[13px] font-bold text-ink leading-tight truncate">

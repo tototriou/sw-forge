@@ -1,4 +1,4 @@
-import { memo, useMemo, useState } from 'react';
+import { memo, useMemo } from 'react';
 import { Search, Boxes, Copy, Star } from 'lucide-react';
 import { BoxItem } from '../lib/applyAccount';
 import { ELEMENTS, ElementKey, Monster, RuneDetail, ArtifactDetail } from '../types';
@@ -6,6 +6,7 @@ import { LoadState } from '../hooks/useMonsters';
 import ElementIcon from '../components/ElementIcon';
 import RunesSection from '../components/account/RunesSection';
 import ArtifactsSection from '../components/account/ArtifactsSection';
+import { useStickyState } from '../hooks/useStickyState';
 
 type Sub = 'monstres' | 'runes' | 'artefacts';
 
@@ -100,11 +101,11 @@ const BoxCard = memo(function BoxCard({ entry }: { entry: BoxEntry }) {
 
 // Sous-section « Box de monstres » (tous les 6★, dédupliqués, filtrables).
 function MonsterBoxSection({ box }: { box: BoxItem[] }) {
-  const [query, setQuery] = useState('');
-  const [activeElements, setActiveElements] = useState<Set<ElementKey>>(new Set());
-  const [activeStars, setActiveStars] = useState<Set<number>>(new Set());
-  const [dupesOnly, setDupesOnly] = useState(false);
-  const [secondOnly, setSecondOnly] = useState(false);
+  const [query, setQuery] = useStickyState('box.query', '');
+  const [activeElements, setActiveElements] = useStickyState<Set<ElementKey>>('box.elements', new Set());
+  const [activeStars, setActiveStars] = useStickyState<Set<number>>('box.stars', new Set());
+  const [dupesOnly, setDupesOnly] = useStickyState('box.dupes', false);
+  const [secondOnly, setSecondOnly] = useStickyState('box.second', false);
 
   function toggleElement(k: ElementKey) {
     setActiveElements((prev) => {

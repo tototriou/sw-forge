@@ -2,6 +2,8 @@
 // Ordonnée = efficience (%), abscisse = nombre de runes (rang cumulé).
 // Réutilisé par « Courbes » (une série) et « Comparaison » (plusieurs séries).
 
+import { useRef, useState } from 'react';
+
 export interface CurveSeries {
   name: string;
   effs: number[]; // efficiences (%), triées décroissant, déjà limitées à l'affichage
@@ -18,7 +20,7 @@ const PAD_B = 42;
 const IW = W - PAD_L - PAD_R;
 const IH = H - PAD_T - PAD_B;
 
-export const OWN_COLOR = '#ffb347';
+export const OWN_COLOR = '#5cc2ff'; // « Actuelle » / « Moi » → bleu
 
 interface Pt {
   x: number;
@@ -61,6 +63,9 @@ function downsample(effs: number[], toX: (i: number) => number, toY: (e: number)
 }
 
 export default function CurveChart({ series }: { series: CurveSeries[] }) {
+  const svgRef = useRef<SVGSVGElement>(null);
+  const [hover, setHover] = useState<number | null>(null);
+
   const active = series.filter((s) => s.effs.length > 0);
   if (active.length === 0) {
     return <p className="text-ink-dim text-[13px]">Aucune rune à afficher.</p>;
@@ -92,9 +97,37 @@ export default function CurveChart({ series }: { series: CurveSeries[] }) {
 
   const me = active.find((s) => s.own);
 
+  // Survol : convertit la position pointeur en index de rune (X).
+  function onMove(e: React.PointerEvent<SVGSVGElement>) {
+    const svg = svgRef.current;
+    if (!svg) return;
+    const rect = svg.getBoundingClientRect();
+    if (!rect.width) return;
+    const px = ((e.clientX - rect.left) / rect.width) * W;
+    const frac = maxLen <= 1 ? 0 : (px - PAD_L) / IW;
+    setHover(Math.max(0, Math.min(maxLen - 1, Math.round(frac * (maxLen - 1)))));
+  }
+
+  // Séries disposant d'une valeur au point survolé, ordonnées comme les courbes
+  // (la plus haute en premier) au point X.
+  const hoverSeries =
+    hover != null
+      ? active
+          .filter((s) => hover < s.effs.length)
+          .map((s) => ({ s, val: s.effs[hover] }))
+          .sort((a, b) => b.val - a.val)
+      : [];
+
   return (
     <div className="rounded-xl border border-border bg-panel/50 p-2">
-      <svg viewBox={`0 0 ${W} ${H}`} className="w-full h-auto" preserveAspectRatio="xMidYMid meet">
+      <svg
+        ref={svgRef}
+        viewBox={`0 0 ${W} ${H}`}
+        className="w-full h-auto"
+        preserveAspectRatio="xMidYMid meet"
+        onPointerMove={onMove}
+        onPointerLeave={() => setHover(null)}
+      >
         <defs>
           <linearGradient id="rcFill" x1="0" y1="0" x2="0" y2="1">
             <stop offset="0%" stopColor={OWN_COLOR} stopOpacity="0.14" />
@@ -154,8 +187,8 @@ export default function CurveChart({ series }: { series: CurveSeries[] }) {
               d={smoothPath(downsample(s.effs, x, y))}
               fill="none"
               stroke={s.color}
-              strokeWidth={s.own ? 2 : 1.6}
-              strokeOpacity={s.own ? 1 : 0.8}
+              strokeWidth={s.own ? 1.4 : 1.2}
+              strokeOpacity={s.own ? 1 : 0.9}
               strokeLinecap="round"
               strokeLinejoin="round"
             />
@@ -176,6 +209,49 @@ export default function CurveChart({ series }: { series: CurveSeries[] }) {
         >
           Efficience (%)
         </text>
+
+        {/* Survol : ligne verticale + points + infobulle */}
+        {hover != null &&
+          hoverSeries.length > 0 &&
+          (() => {
+            const hx = x(hover);
+            const boxW = 92;
+            const boxH = 20 + hoverSeries.length * 14 + 4;
+            const left = hx > PAD_L + IW * 0.6;
+            const bx = left ? hx - boxW - 8 : hx + 8;
+            const by = PAD_T + 4;
+            return (
+              <g pointerEvents="none">
+                <line
+                  x1={hx}
+                  y1={PAD_T}
+                  x2={hx}
+                  y2={PAD_T + IH}
+                  stroke="#5b63b8"
+                  strokeWidth="1"
+                  strokeDasharray="3 3"
+                />
+                {hoverSeries.map(({ s, val }) => (
+                  <circle key={s.name} cx={hx} cy={y(val)} r="3.2" fill={s.color} stroke="#0d1022" strokeWidth="1.2" />
+                ))}
+                <rect x={bx} y={by} width={boxW} height={boxH} rx="6" fill="#0d1022" stroke="#2b3055" opacity="0.96" />
+                <text x={bx + 8} y={by + 14} fontSize="11" fill="#9aa2d0" fontFamily="monospace">
+                  {hover + 1} runes
+                </text>
+                {hoverSeries.map(({ s, val }, k) => (
+                  <g key={s.name}>
+                    <circle cx={bx + 11} cy={by + 29 + k * 14 - 3.5} r="3" fill={s.color} />
+                    <text x={bx + 19} y={by + 29 + k * 14} fontSize="11" fill="#ffffff" fontFamily="monospace">
+                      {val.toFixed(1)}%
+                    </text>
+                  </g>
+                ))}
+              </g>
+            );
+          })()}
+
+        {/* Zone de capture du pointeur (transparente, au-dessus) */}
+        <rect x={0} y={0} width={W} height={H} fill="transparent" />
       </svg>
     </div>
   );

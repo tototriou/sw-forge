@@ -1,6 +1,8 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { HelpCircle } from 'lucide-react';
 import { RuneDetail, RUNE_SETS } from '../../types';
-import { runeEfficiency } from '../../lib/effects';
+import { runePotential } from '../../lib/runeOptim';
+import { useStickyState } from '../../hooks/useStickyState';
 import RuneIcon from '../RuneIcon';
 import CurveChart, { CurveSeries, OWN_COLOR } from './CurveChart';
 
@@ -9,43 +11,83 @@ interface Props {
 }
 
 const DEFAULT_LIMIT = 400; // nb de runes affichées par défaut
+const HERO_COLOR = '#c88cff'; // Potentiel héroïque → violet
+const LEGEND_COLOR = '#f8b24a'; // Potentiel légendaire → orange
 
-const median = (sorted: number[]) => (sorted.length ? sorted[Math.floor(sorted.length / 2)] : 0);
+// Médiane & max indépendants de l'ordre (les séries « Par rune » ne sont pas triées).
+const median = (arr: number[]) => {
+  if (!arr.length) return 0;
+  const s = [...arr].sort((a, b) => a - b);
+  return s[Math.floor(s.length / 2)];
+};
+const maxOf = (arr: number[]) => arr.reduce((m, v) => (v > m ? v : m), -Infinity);
 
 export default function RunesCurve({ runes }: Props) {
-  const [sets, setSets] = useState<Set<string>>(new Set());
-  const [slots, setSlots] = useState<Set<number>>(new Set());
-  const [ancientOnly, setAncientOnly] = useState(false);
-  const [limit, setLimit] = useState(DEFAULT_LIMIT);
+  const [sets, setSets] = useStickyState<Set<string>>('runesCurve.sets', new Set());
+  const [slots, setSlots] = useStickyState<Set<number>>('runesCurve.slots', new Set());
+  const [ancientOnly, setAncientOnly] = useStickyState('runesCurve.ancient', false);
+  const [limit, setLimit] = useStickyState('runesCurve.limit', DEFAULT_LIMIT);
+  const [hidden, setHidden] = useStickyState<Set<string>>('runesCurve.hidden', new Set());
+  const [gemMode, setGemMode] = useStickyState<'gem' | 'grind'>('runesCurve.gemMode', 'gem');
+  const [showHelp, setShowHelp] = useState(false);
+  const helpRef = useRef<HTMLDivElement>(null);
+  const withGem = gemMode === 'gem';
+
+  // Ferme la popup d'aide au clic à l'extérieur.
+  useEffect(() => {
+    if (!showHelp) return;
+    const onDown = (e: MouseEvent) => {
+      if (helpRef.current && !helpRef.current.contains(e.target as Node)) setShowHelp(false);
+    };
+    document.addEventListener('mousedown', onDown);
+    return () => document.removeEventListener('mousedown', onDown);
+  }, [showHelp]);
 
   function toggle<T>(set: Set<T>, v: T, upd: (s: Set<T>) => void) {
     const next = new Set(set);
     next.has(v) ? next.delete(v) : next.add(v);
     upd(next);
   }
+  function toggleHidden(name: string) {
+    setHidden((prev) => {
+      const next = new Set(prev);
+      next.has(name) ? next.delete(name) : next.add(name);
+      return next;
+    });
+  }
 
-  // Sets réellement présents dans l'inventaire (pour les chips).
   const presentSets = useMemo(() => {
     const s = new Set(runes.map((r) => r.set));
     return RUNE_SETS.filter((rs) => s.has(rs.key));
   }, [runes]);
 
-  // Efficiences filtrées, triées décroissant.
-  const effsAll = useMemo(() => {
-    return runes
-      .filter((r) => {
-        if (sets.size && !sets.has(r.set)) return false;
-        if (slots.size && !slots.has(r.slot)) return false;
-        if (ancientOnly && !(r.rank > 10)) return false;
-        return true;
-      })
-      .map((r) => runeEfficiency(r))
-      .sort((a, b) => b - a);
-  }, [runes, sets, slots, ancientOnly]);
+  // Potentiels calculés sur les runes filtrées, puis 3 distributions triées ↓.
+  const { cur, hero, legend } = useMemo(() => {
+    const filtered = runes.filter((r) => {
+      if (sets.size && !sets.has(r.set)) return false;
+      if (slots.size && !slots.has(r.slot)) return false;
+      if (ancientOnly && !(r.rank > 10)) return false;
+      return true;
+    });
+    const pots = filtered.map((r) => runePotential(r, withGem));
+    const desc = (a: number, b: number) => b - a;
+    return {
+      cur: pots.map((p) => p.eff).sort(desc),
+      hero: pots.map((p) => p.heroEff).sort(desc),
+      legend: pots.map((p) => p.legendEff).sort(desc),
+    };
+  }, [runes, sets, slots, ancientOnly, withGem]);
 
-  const total = effsAll.length;
-  const effs = effsAll.slice(0, Math.max(1, limit));
-  const series: CurveSeries[] = [{ name: 'Moi', effs, color: OWN_COLOR, own: true }];
+  const total = cur.length;
+  const cap = Math.max(1, limit);
+  const lim = (arr: number[]) => arr.slice(0, cap);
+
+  const allSeries: CurveSeries[] = [
+    { name: 'Actuelle', effs: lim(cur), color: OWN_COLOR, own: true },
+    { name: 'Potentiel Héro', effs: lim(hero), color: HERO_COLOR, own: false },
+    { name: 'Potentiel Légend', effs: lim(legend), color: LEGEND_COLOR, own: false },
+  ];
+  const visible = allSeries.filter((s) => !hidden.has(s.name));
 
   return (
     <div>
@@ -116,20 +158,34 @@ export default function RunesCurve({ runes }: Props) {
         </div>
       </div>
 
-      {/* Stats + nombre de runes affichées */}
+      {/* Mode gemme + nombre de runes */}
       <div className="flex items-center justify-between gap-3 flex-wrap mb-3">
-        <p className="font-mono text-[12px] text-ink-dim">
-          top {effs.length}
-          {total > effs.length && ` sur ${total}`}
-          {effs.length > 0 && (
-            <>
-              {' '}
-              · max <b className="text-star">{effs[0].toFixed(1)}%</b> · médiane{' '}
-              <b className="text-ink">{median(effs).toFixed(1)}%</b>
-            </>
-          )}
-        </p>
-
+        <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1 bg-panel border border-border rounded-lg p-0.5">
+            {[
+              { key: 'gem' as const, label: 'Gemme + meule' },
+              { key: 'grind' as const, label: 'Meule seule' },
+            ].map((o) => (
+              <button
+                key={o.key}
+                onClick={() => setGemMode(o.key)}
+                title={
+                  o.key === 'gem'
+                    ? 'Potentiel avec la gemme optimale + les meules'
+                    : 'Potentiel en gardant les stats actuelles (meules seulement)'
+                }
+                className={`rounded-md px-2.5 py-1 text-[12px] font-semibold transition
+                  ${gemMode === o.key ? 'bg-gradient-to-br from-[#3a4270] to-[#272e52] text-ink' : 'text-ink-dim hover:text-ink'}`}
+              >
+                {o.label}
+              </button>
+            ))}
+          </div>
+          <span className="font-mono text-[12px] text-ink-dim">
+            top {Math.min(cap, total)}
+            {total > cap && ` sur ${total}`}
+          </span>
+        </div>
         <div className="flex items-center gap-2">
           <span className="font-mono text-[11px] tracking-[0.1em] uppercase text-ink-dim">Nb de runes</span>
           <input
@@ -149,7 +205,88 @@ export default function RunesCurve({ runes }: Props) {
         </div>
       </div>
 
-      <CurveChart series={series} />
+      {/* Graphe + bouton d'aide superposé (popup fermable au clic extérieur) */}
+      <div className="relative">
+        <div ref={helpRef} className="absolute top-2 right-2 z-20">
+          <button
+            onClick={() => setShowHelp((v) => !v)}
+            aria-expanded={showHelp}
+            aria-label="Comment lire ce graphe ?"
+            title="Comment lire ce graphe ?"
+            className={`flex items-center justify-center w-9 h-9 rounded-full border transition
+              ${showHelp ? 'bg-[#2b3170] border-[#4a52a0] text-ink' : 'bg-panel/80 border-border text-ink-dim hover:text-ink hover:border-[#4a52a0]'}`}
+          >
+            <HelpCircle size={20} />
+          </button>
+          {showHelp && (
+            <div className="absolute right-0 mt-1.5 w-[340px] max-w-[88vw] rounded-lg border border-[#4a52a0] bg-panel p-3 text-[12.5px] text-ink-dim leading-relaxed shadow-xl shadow-black/50">
+              <p className="text-ink font-semibold mb-1">À quoi sert ce graphe ?</p>
+              <p>
+                Il classe toutes tes runes, de la meilleure à la moins bonne :{' '}
+                <b className="text-ink">l'efficience (%)</b> en hauteur, le{' '}
+                <b className="text-ink">nombre de runes</b> en largeur. Plus les courbes sont{' '}
+                <i>hautes et étalées</i>, meilleure est ta box.
+              </p>
+              <ul className="mt-2 space-y-1.5">
+                <li>
+                  <span style={{ color: OWN_COLOR }}>●</span> <b className="text-ink">Actuelle</b> —
+                  l'efficience de tes runes aujourd'hui.
+                </li>
+                <li>
+                  <span style={{ color: HERO_COLOR }}>●</span> <b className="text-ink">Potentiel Héro</b> — ce
+                  que deviendrait ta box si chaque rune recevait sa <b className="text-ink">gemme et ses meules
+                  héroïques optimales</b> <span className="text-ink-dim">(tri « Potentiel héroïque » de l'onglet Optimisation)</span>.
+                </li>
+                <li>
+                  <span style={{ color: LEGEND_COLOR }}>●</span> <b className="text-ink">Potentiel Légend</b> —
+                  la même chose, en <b className="text-ink">légendaire</b>{' '}
+                  <span className="text-ink-dim">(tri « Potentiel légendaire »)</span>.
+                </li>
+              </ul>
+              <p className="mt-2">
+                Le sélecteur <b className="text-ink">Gemme + meule / Meule seule</b> change les courbes de
+                potentiel : <b className="text-ink">Gemme + meule</b> = gemme optimale puis meules au max ;{' '}
+                <b className="text-ink">Meule seule</b> = on garde les stats actuelles, seules les meules sont
+                poussées.
+              </p>
+              <p className="mt-2">
+                👉 Va dans l'onglet <b className="text-ink">Optimisation</b> pour voir{' '}
+                <b className="text-ink">quelles runes améliorer</b> et augmenter ton efficience.
+              </p>
+            </div>
+          )}
+        </div>
+
+        <CurveChart series={visible} />
+      </div>
+
+      {/* Légende — sous le graphe ; cliquer un nom masque/affiche sa courbe */}
+      <div className="flex items-center justify-center gap-4 flex-wrap mt-3">
+        {allSeries.map((s) => {
+          const off = hidden.has(s.name);
+          return (
+            <button
+              key={s.name}
+              onClick={() => toggleHidden(s.name)}
+              title={off ? 'Afficher' : 'Masquer'}
+              className="flex items-center gap-1.5 font-mono text-[12px]"
+            >
+              <span
+                className="inline-block w-3 h-1.5 rounded-full transition"
+                style={{ background: s.color, opacity: off ? 0.3 : 1 }}
+              />
+              <span className={`font-semibold transition ${off ? 'text-ink-dim line-through' : 'text-ink'}`}>
+                {s.name}
+              </span>
+              {s.effs.length > 0 && !off && (
+                <span className="text-ink-dim">
+                  · max {maxOf(s.effs).toFixed(1)}% · méd. {median(s.effs).toFixed(1)}%
+                </span>
+              )}
+            </button>
+          );
+        })}
+      </div>
     </div>
   );
 }

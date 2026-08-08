@@ -1,9 +1,10 @@
-import { useState } from 'react';
 import { List, LineChart, GitCompare, Wand2 } from 'lucide-react';
 import { RuneDetail } from '../../types';
+import { useStickyState } from '../../hooks/useStickyState';
 import RunesList from './RunesList';
 import RunesCurve from './RunesCurve';
 import RunesCompare from './RunesCompare';
+import RunesOptim from './RunesOptim';
 
 interface Props {
   runes: RuneDetail[];
@@ -19,7 +20,7 @@ const VIEWS: { key: View; label: string; icon: typeof List }[] = [
 ];
 
 export default function RunesSection({ runes }: Props) {
-  const [view, setView] = useState<View>('liste');
+  const [view, setView] = useStickyState<View>('runes.view', 'liste');
 
   return (
     <div>
@@ -44,16 +45,7 @@ export default function RunesSection({ runes }: Props) {
       {view === 'liste' && <RunesList runes={runes} />}
       {view === 'courbes' && <RunesCurve runes={runes} />}
       {view === 'comparaison' && <RunesCompare runes={runes} />}
-      {view === 'optimisation' && (
-        <div className="mt-8 flex flex-col items-center text-center text-ink-dim">
-          <Wand2 size={36} className="mb-3 opacity-60" />
-          <p className="text-[15px] font-semibold text-ink">Optimisation — à venir</p>
-          <p className="mt-1 text-[13px] max-w-sm">
-            Cette section proposera des recommandations d'optimisation de runes. On la construira
-            juste après.
-          </p>
-        </div>
-      )}
+      {view === 'optimisation' && <RunesOptim runes={runes} />}
     </div>
   );
 }

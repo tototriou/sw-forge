@@ -4,6 +4,7 @@ import { RuneDetail } from '../../types';
 import { runeEfficiency } from '../../lib/effects';
 import { encodeCurve, decodeCurve } from '../../lib/runeCurveShare';
 import { parseAccountInventory } from '../../lib/importAccount';
+import { useStickyState } from '../../hooks/useStickyState';
 import CurveChart, { CurveSeries, OWN_COLOR } from './CurveChart';
 
 interface Props {
@@ -32,9 +33,9 @@ function download(filename: string, text: string) {
 }
 
 export default function RunesCompare({ runes }: Props) {
-  const [showAll, setShowAll] = useState(false);
-  const [overlays, setOverlays] = useState<Overlay[]>([]);
-  const [hidden, setHidden] = useState<Set<string>>(new Set());
+  const [showAll, setShowAll] = useStickyState('runesCompare.showAll', false);
+  const [overlays, setOverlays] = useStickyState<Overlay[]>('runesCompare.overlays', []);
+  const [hidden, setHidden] = useStickyState<Set<string>>('runesCompare.hidden', new Set());
   const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null);
   const curveRef = useRef<HTMLInputElement>(null);
   const jsonRef = useRef<HTMLInputElement>(null);

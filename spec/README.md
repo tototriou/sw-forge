@@ -48,6 +48,22 @@ Concepts partagés par plusieurs pages, documentés une seule fois :
   en local. Un lien **« Supprimer mes données »** (dans la barre de nav, à côté de
   l'import) efface les clés `localStorage` `sw-forge*` / `sky-arena*` (prépa RTA,
   équipes de siège, monstres perso) puis recharge. Voir [App.tsx](src/App.tsx).
+- **Réglages globaux** — menu **⚙** [SettingsMenu.tsx](src/components/SettingsMenu.tsx),
+  **tout à droite** de la barre de nav (après le bouton d'import) ; sur mobile,
+  une section « Réglages » dans le menu hamburger.
+  - Règle : un réglage qui s'applique à **plusieurs pages** va ici, **jamais**
+    dupliqué en sélecteur sur chaque page.
+  - **Persistés** dans `localStorage` (effacés par « Supprimer mes données »),
+    contrairement aux filtres et tris de page qui sont jetables.
+  - **Structure pensée pour grossir** : un réglage = un `<Setting>` (intitulé à
+    gauche, contrôle à droite), avec des contrôles génériques réutilisables
+    (`<Segmented>` pour un choix unique). Ajouter un paramètre = ajouter un
+    `<Setting>`, rien d'autre.
+  - **Pas de légende** quand l'intitulé et les options se suffisent : le panneau
+    reste une liste de lignes courtes. Le `hint` d'un `<Setting>` est facultatif,
+    réservé à un futur réglage réellement ambigu.
+  - Contenu actuel : **Score** → `Efficience` / `Score SW` (voir
+    [compte/runes.md](compte/runes.md)).
 - **Import de compte global** : un seul bouton invariant « Importer mon compte »
   dans la barre de nav remplit RTA + siège défense + offense **+ « Mon compte »**
   (box 6★ et inventaire runes/artéfacts) d'un coup. Chaque import remplace le

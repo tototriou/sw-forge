@@ -22,6 +22,7 @@ import MechanicsPage from './pages/MechanicsPage';
 import AccountPage from './pages/AccountPage';
 import ComingSoon from './pages/ComingSoon';
 import AccountImportControl from './components/AccountImportControl';
+import SettingsMenu from './components/SettingsMenu';
 import { ArtifactDetail, Monster, RuneDetail } from './types';
 import { useMonsters } from './hooks/useMonsters';
 import { useCustomMonsters } from './hooks/useCustomMonsters';
@@ -353,6 +354,11 @@ export default function App() {
                 })}
               </div>
 
+              {/* Réglages globaux */}
+              <div className="mt-1 pt-2 border-t border-border">
+                <SettingsMenu variant="mobile" />
+              </div>
+
               {/* Import unique, sous les liens de navigation */}
               <div className="mt-1 pt-2 border-t border-border">
                 <AccountImportControl
@@ -459,12 +465,14 @@ export default function App() {
               )}
             </div>
           </nav>
-          <div className="ml-auto">
+          {/* Réglages tout à droite, après l'import : c'est le geste le plus rare. */}
+          <div className="ml-auto flex items-center gap-1">
             <AccountImportControl
               onImport={importAccount}
               onClearData={clearAllData}
               variant="desktop"
             />
+            <SettingsMenu />
           </div>
         </div>
 

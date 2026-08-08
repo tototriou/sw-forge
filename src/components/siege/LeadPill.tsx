@@ -42,13 +42,45 @@ function elementLabel(el: ElementKey | null): string {
   return ELEMENTS.find((e) => e.key === el)?.label ?? '—';
 }
 
-// Un lead est-il EFFECTIF en siège ? Seule la vitesse alimente les ticks, et les
-// portées Arène/Donjon ne s'appliquent pas au contenu de guilde.
-// Voir ../../spec/shared/calcul-vitesse.md.
+// Un lead s'applique-t-il en siège ? C'est une question de PORTÉE, pas de stat :
+// tout lead global / de guilde / élémentaire profite à l'équipe, quelle que soit
+// la stat (un lead PV ou DEF compte autant qu'un lead VIT). Seules les portées
+// Arène et Donjon ne concernent pas le contenu de guilde.
+// (Le calcul des ticks, lui, ne retient que la vitesse — voir
+// ../../spec/shared/calcul-vitesse.md.)
 export function leadIsActive(ls: LeaderSkill): boolean {
+  return ls.area === 'General' || ls.area === 'Guild' || ls.area === 'Element';
+}
+
+// Infobulle commune à la pastille et au badge.
+function leadTitle(ls: LeaderSkill): string {
+  const stat = STAT_LABEL[ls.stat ?? ''] ?? ls.stat ?? '';
+  const scope = ls.area === 'Arena' ? ' (arène)' : ls.area === 'Dungeon' ? ' (donjon)' : '';
+  return leadIsActive(ls)
+    ? `Lead du leader : +${ls.amount}% ${stat}${
+        ls.area === 'Element' ? ` — alliés ${elementLabel(ls.element)} uniquement` : ''
+      }`
+    : `Lead +${ls.amount}% ${stat}${scope} — sans effet en siège`;
+}
+
+// Badge posé SUR le portrait du leader (coin bas-gauche), là où la place manque
+// pour la pastille complète (vue compacte). Il remplace la couronne : l'icône du
+// jeu marque déjà le leader ET dit quel est son lead. Le montant reste dans
+// l'infobulle. Voir ../../spec/siege/equipes.md.
+export function LeadBadge({ ls, size = 22 }: { ls: LeaderSkill; size?: number }) {
+  const icon = leadIconUrl(ls);
+  if (!icon) return null;
   return (
-    ls.stat === 'Attack Speed' &&
-    (ls.area === 'General' || ls.area === 'Guild' || ls.area === 'Element')
+    <img
+      src={icon}
+      alt=""
+      width={size}
+      height={size}
+      title={leadTitle(ls)}
+      aria-hidden
+      className={`absolute -bottom-1.5 -left-1.5 rounded-full bg-bg/80 p-[1px]
+        drop-shadow-[0_1px_3px_rgba(0,0,0,0.9)] ${leadIsActive(ls) ? 'ring-1 ring-star/60' : 'opacity-70 grayscale'}`}
+    />
   );
 }
 
@@ -58,35 +90,28 @@ export function leadIsActive(ls: LeaderSkill): boolean {
 // seulement si le lead compte vraiment en siège ; sinon neutre.
 export default function LeadPill({ ls }: { ls: LeaderSkill }) {
   const active = leadIsActive(ls);
-  const stat = STAT_LABEL[ls.stat ?? ''] ?? ls.stat ?? '';
   const scope = ls.area === 'Arena' ? ' (arène)' : ls.area === 'Dungeon' ? ' (donjon)' : '';
   const icon = leadIconUrl(ls);
 
   return (
     <span
-      title={
-        active
-          ? `Lead du leader : +${ls.amount}% ${stat}${
-              ls.area === 'Element' ? ` — alliés ${elementLabel(ls.element)} uniquement` : ''
-            }`
-          : `Lead +${ls.amount}% ${stat}${scope} — sans effet en siège`
-      }
-      className={`inline-flex items-center gap-1 rounded-full py-0.5 pl-0.5 pr-2 text-[11px] font-semibold
+      title={leadTitle(ls)}
+      className={`inline-flex items-center gap-1 rounded-full py-0.5 pl-0.5 pr-2 text-[12px] font-bold leading-none
         ${active ? 'bg-star/15 text-star' : 'bg-panel border border-border text-ink-dim'}`}
     >
       {icon && (
         <img
           src={icon}
           alt=""
-          width={16}
-          height={16}
+          width={22}
+          height={22}
           className={`flex-none ${active ? '' : 'opacity-60 grayscale'}`}
           aria-hidden
         />
       )}
       +{ls.amount}%
       {ls.area === 'Element' && ls.element && (
-        <ElementIcon element={ls.element} size={13} className="flex-none" />
+        <ElementIcon element={ls.element} size={14} className="flex-none" />
       )}
       {scope}
     </span>

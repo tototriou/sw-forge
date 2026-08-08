@@ -8,7 +8,7 @@ import MonsterPicker from '../MonsterPicker';
 import ElementIcon from '../ElementIcon';
 import RuneIcon from '../RuneIcon';
 import MonsterGear from '../MonsterGear';
-import LeadPill from './LeadPill';
+import LeadPill, { LeadBadge } from './LeadPill';
 
 const GRADIENT: Record<string, string> = {
   fire: 'from-fire to-panel2',
@@ -128,9 +128,8 @@ export default function SiegeTeam({
       <div className="flex items-center gap-2 mb-3 flex-wrap">
         <h3 className="font-display text-[17px] tracking-wide">Équipe {index + 1}</h3>
         {dotClass && <span className={`w-2 h-2 rounded-full ${dotClass}`} />}
-        {/* Lead du leader : dans l'EN-TÊTE, donc visible aussi en vue compacte —
-            c'est une propriété de l'équipe entière, pas du seul slot 0. */}
-        {leaderMonster?.leaderSkill && <LeadPill ls={leaderMonster.leaderSkill} />}
+        {/* Pas de lead dans l'en-tête : il est affiché SUR le leader (slot 0),
+            pour qu'on voie tout de suite de quel monstre il vient. */}
 
         <button
           onClick={() => {
@@ -262,6 +261,10 @@ export default function SiegeTeam({
                         size={13}
                         className="absolute -top-1 -right-1 drop-shadow-[0_1px_2px_rgba(0,0,0,0.7)]"
                       />
+                      {/* Lead sur le portrait du leader : la carte compacte n'a
+                          pas la place d'une pastille (voir spec), et le badge
+                          dit à la fois « c'est lui le leader » et quel lead. */}
+                      {idx === 0 && monster.leaderSkill && <LeadBadge ls={monster.leaderSkill} />}
                     </div>
                     {/* Le nom occupe SA ligne : nom, vitesse et sets se
                         disputaient la même, et le gros chiffre (non réductible)
@@ -442,19 +445,22 @@ function SlotContent({
         >
           <GripVertical size={15} />
         </button>
-        {isLeader && <Crown size={13} className="text-star flex-none" />}
-        <div
-          className={`hex-frame w-[38px] h-[38px] flex-none p-[2px] bg-gradient-to-br ${GRADIENT[monster.element]}`}
-        >
-          <div className="hex-frame w-full h-full bg-panel flex items-center justify-center overflow-hidden">
-            {monster.image ? (
-              <img src={monster.image} alt={monster.name} className="w-full h-full object-cover" />
-            ) : (
-              <span className={`font-display font-bold text-xs ${TEXT[monster.element]}`}>
-                {initials(monster.name)}
-              </span>
-            )}
+        {isLeader && !monster.leaderSkill && <Crown size={13} className="text-star flex-none" />}
+        <div className="relative flex-none">
+          <div
+            className={`hex-frame w-[38px] h-[38px] p-[2px] bg-gradient-to-br ${GRADIENT[monster.element]}`}
+          >
+            <div className="hex-frame w-full h-full bg-panel flex items-center justify-center overflow-hidden">
+              {monster.image ? (
+                <img src={monster.image} alt={monster.name} className="w-full h-full object-cover" />
+              ) : (
+                <span className={`font-display font-bold text-xs ${TEXT[monster.element]}`}>
+                  {initials(monster.name)}
+                </span>
+              )}
+            </div>
           </div>
+          {isLeader && monster.leaderSkill && <LeadBadge ls={monster.leaderSkill} />}
         </div>
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-1.5">
@@ -467,6 +473,13 @@ function SlotContent({
               </span>
             )}
           </div>
+          {/* Pastille complète (icône + montant) sous le nom du leader : ici il
+              y a la place, donc on montre le chiffre, pas seulement le badge. */}
+          {isLeader && monster.leaderSkill && (
+            <div className="mt-1">
+              <LeadPill ls={monster.leaderSkill} />
+            </div>
+          )}
         </div>
         <button
           onClick={onClear}

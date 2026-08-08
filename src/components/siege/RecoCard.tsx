@@ -16,7 +16,7 @@ import {
   Gauge,
 } from 'lucide-react';
 import { useEffect, useState } from 'react';
-import { Monster, Reco, RecoDeck, RECO_STATS, RecoSlot, RecoStatKey, RUNE_SETS, SiegeTeam } from '../../types';
+import { LeaderSkill, Monster, Reco, RecoDeck, RECO_STATS, RecoSlot, RecoStatKey, RUNE_SETS, SiegeTeam } from '../../types';
 import { DeckMatch, RecoMatch, SlotMatch, fmtStat } from '../../lib/recoMatch';
 import { NOTE_MAX, DECK_NOTE_MAX } from '../../lib/recoShare';
 import { deckFromSiegeTeam } from '../../lib/recoFromSiege';
@@ -25,7 +25,7 @@ import { UseRecoState } from '../../hooks/useSiegeRecos';
 import ElementIcon from '../ElementIcon';
 import RuneIcon from '../RuneIcon';
 import MonsterPicker from '../MonsterPicker';
-import LeadPill from './LeadPill';
+import LeadPill, { LeadBadge } from './LeadPill';
 
 const GRADIENT: Record<string, string> = {
   fire: 'from-fire to-panel2',
@@ -679,8 +679,8 @@ function DeckBlock({
           </button>
         )}
         {!editing && match && !empty && <DeckBadge match={match} />}
-        {/* Lead du leader (slot 0) — même pastille qu'en siège. */}
-        {leaderLead && <LeadPill ls={leaderLead} />}
+        {/* Le lead n'est pas dans l'en-tête : il est posé sur le leader lui-même
+            (aperçu replié ci-dessous, ou slot 0 déplié) — comme en siège. */}
 
         {/* Replié : aperçu des 3 monstres en icônes, pour s'y retrouver */}
         {folded && (
@@ -695,6 +695,7 @@ function DeckBlock({
                 monster={sl.com2usId != null ? monsterByCom2us.get(sl.com2usId) ?? null : null}
                 fallback={sl.name}
                 size={26}
+                lead={i === 0 ? leaderLead : null}
               />
             ))}
           </button>
@@ -814,17 +815,27 @@ function DeckBlock({
                           className="absolute -top-1 -right-1 drop-shadow-[0_1px_2px_rgba(0,0,0,0.7)]"
                         />
                       )}
-                      {idx === 0 && (
-                        <Crown
-                          size={13}
-                          className="absolute -top-2 -left-1 text-star drop-shadow-[0_1px_2px_rgba(0,0,0,0.8)]"
-                        />
-                      )}
+                      {idx === 0 &&
+                        (leaderLead ? (
+                          <LeadBadge ls={leaderLead} size={20} />
+                        ) : (
+                          <Crown
+                            size={13}
+                            className="absolute -top-2 -left-1 text-star drop-shadow-[0_1px_2px_rgba(0,0,0,0.8)]"
+                          />
+                        ))}
                     </div>
                     <div className="min-w-0 flex-1">
                       <div className="text-[12.5px] font-semibold leading-tight truncate">
                         {monster?.name ?? slot.name ?? '—'}
                       </div>
+                      {/* Pastille complète sous le nom du leader : ici on a la
+                          place de montrer le montant, pas juste le badge. */}
+                      {idx === 0 && leaderLead && (
+                        <div className="mt-1">
+                          <LeadPill ls={leaderLead} />
+                        </div>
+                      )}
                       {sm && <SlotBadge sm={sm} />}
                       {!monster && <div className="font-mono text-[10px] text-ink-dim">monstre inconnu</div>}
                     </div>
@@ -883,10 +894,12 @@ function MiniMonster({
   monster,
   fallback,
   size,
+  lead,
 }: {
   monster: Monster | null;
   fallback?: string;
   size: number;
+  lead?: LeaderSkill | null;
 }) {
   const nom = monster?.name || fallback || '?';
   return (
@@ -916,6 +929,7 @@ function MiniMonster({
           className="absolute -top-1 -right-1 drop-shadow-[0_1px_2px_rgba(0,0,0,0.7)]"
         />
       )}
+      {lead && <LeadBadge ls={lead} size={Math.round(size * 0.62)} />}
     </span>
   );
 }

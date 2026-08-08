@@ -474,10 +474,11 @@ Indépendamment du repli de la carte, **chaque deck a son propre chevron**.
 - ⚠️ **Les decks sont repliés par défaut** : déplier une recommandation montre la
   **liste de ses decks**, pas leur contenu. On ouvre ensuite celui qui intéresse.
   Sans ça, une reco de 6 decks déroulait tout l'écran d'un coup.
-- **Lead du leader** : l'en-tête de chaque deck porte la **même pastille qu'en
-  siège** ([LeadPill.tsx](src/components/siege/LeadPill.tsx)) pour le monstre en
-  slot 0 — couronne + icône de vitesse si c'est un lead SPD + icône d'élément si
-  la portée est élémentaire. Voir [equipes.md](equipes.md).
+- **Lead du leader** : affiché **sur le monstre** en slot 0, comme en siège et
+  avec les mêmes composants ([LeadPill.tsx](src/components/siege/LeadPill.tsx)) —
+  `LeadBadge` sur son portrait dans l'aperçu replié, `LeadPill` (icône +
+  montant) sous son nom dans le deck déplié. **Pas** dans l'en-tête du deck :
+  on doit voir de quel monstre vient le lead. Voir [equipes.md](equipes.md).
 - **Deck replié** : chevron + nom (cliquable) + **les 3 monstres en icônes**
   (portrait hexagonal + badge d'élément, **sans nom**) pour s'y retrouver d'un
   coup d'œil, + le badge de statut et le bouton **Éditer**.

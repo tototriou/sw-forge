@@ -67,10 +67,16 @@ Idéale avec beaucoup d'équipes (import offense ~50).
 ## Leader & pastille de lead
 
 - Le **slot 0 est le leader** : son lead alimente le calcul (voir spec vitesse).
-- La **pastille** ([LeadPill.tsx](src/components/siege/LeadPill.tsx)) est dans
-  l'**en-tête de l'équipe**, donc visible **aussi en vue compacte** : le lead est
-  une propriété de l'équipe entière, pas du seul slot 0. Elle n'est pas répétée
-  dans le slot du leader (doublon dans une même carte).
+- Le lead est affiché **sur le monstre leader**, jamais dans l'en-tête de
+  l'équipe : on doit voir d'un coup d'œil **de quel monstre** il vient.
+  [LeadPill.tsx](src/components/siege/LeadPill.tsx) exporte pour ça deux rendus :
+  - **`LeadBadge`** — icône seule (22 px par défaut) posée en **bas-gauche du
+    portrait**, montant dans l'infobulle. Utilisé quand la place manque : vue
+    **compacte** du siège et aperçu replié des decks de reco. Il **remplace la
+    couronne** — l'icône du jeu marque déjà le leader *et* dit quel est le lead
+    (la couronne ne revient que si le monstre n'a aucun lead) ;
+  - **`LeadPill`** (défaut) — icône 22 px **+ le montant** (« +33 % »), placée
+    **sous le nom** du leader dans la vue dépliée, où la place existe.
 - Elle affiche **n'importe quel type** de lead (SPD, ATQ, PV, DEF, crit,
   précision, résistance) avec l'**icône officielle du jeu**, puis le montant
   (« +33 % ») :
@@ -78,15 +84,20 @@ Idéale avec beaucoup d'équipes (import offense ~50).
     (voir [../shared/donnees-monstres.md](../shared/donnees-monstres.md)).
     ⚠️ **Rien de custom** : pas de couronne + icône de stat recomposées.
     L'icône encode déjà **la stat ET la portée**, donc on n'écrit pas le libellé
-    de stat à côté (il reste dans l'infobulle) ;
+    de stat à côté (il reste dans l'infobulle). Elle est volontairement
+    **grande (22 px)** : à 16 px les pictogrammes du jeu sont illisibles ;
   - **icône d'élément** en plus quand la portée est élémentaire — c'est la seule
     information que l'icône du jeu ne distingue pas ;
   - suffixe « (arène) » / « (donjon) » quand la portée exclut le siège ;
   - icône **désaturée** quand le lead ne compte pas en siège.
-- Elle est **mise en avant** (doré, `star`) uniquement si le lead est **effectif
-  en siège** : `Attack Speed` + portée `General`/`Guild`/`Element`
-  (`leadIsActive`). Sinon pastille neutre, avec l'infobulle « sans effet en
-  siège » — on comprend pourquoi elle ne compte pas.
+- Elle est **mise en avant** (doré, `star`) dès que le lead **s'applique en
+  siège**. C'est une question de **portée, pas de stat** (`leadIsActive`) :
+  `General` / `Guild` / `Element` → actif, **quelle que soit la stat** (un lead
+  PV ou DEF compte autant qu'un lead VIT). ⚠️ Ne pas restreindre à
+  `Attack Speed` : c'est le **calcul des ticks** qui ne retient que la vitesse
+  (voir [../shared/calcul-vitesse.md](../shared/calcul-vitesse.md)), pas
+  l'affichage. Seules les portées `Arena` / `Dungeon` sont neutres/désaturées,
+  avec l'infobulle « sans effet en siège ».
 - **Même pastille** dans les decks de
   [recommandation](recommandations.md), pour le monstre en slot 0.
 

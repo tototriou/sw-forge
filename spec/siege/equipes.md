@@ -52,7 +52,7 @@ Idéale avec beaucoup d'équipes (import offense ~50).
 
 - Marqué « Leader » (slot 0) ou « Slot », avec un **`MonsterPicker`** :
   recherche par nom (max 25), exclut les monstres déjà utilisés dans l'équipe
-  (`usedIds`), affiche icône élément + nom + SPD. Sélection → remplit le slot.
+  (`usedIds`), affiche **portrait** + nom + SPD. Sélection → remplit le slot.
 
 ## Slot rempli
 

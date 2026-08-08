@@ -65,6 +65,19 @@ Normalisations notables dans le script :
   2A base_stars 6 mais nat 3) ; `secondAwaken` = `awaken_level ≥ 2`. Ces deux
   derniers alimentent les filtres **Nat** et **2A** de la box « Mon compte ».
 
+## Portrait d'un monstre — `MonsterAvatar`
+
+[MonsterAvatar.tsx](src/components/MonsterAvatar.tsx) : hexagone dégradé selon
+l'élément + image `monster.image` (repli sur les **initiales** si le monstre n'a
+pas d'image — cas des monstres perso), pastille d'élément en haut à droite, et
+un `children` pour poser d'autres badges dessus (lead, couronne…).
+
+⚠️ **Toute liste où l'on sélectionne un monstre doit afficher son portrait** :
+le **nom ne suffit pas à l'identifier**. Plusieurs entrées partagent nom *et*
+élément (formes 2A, variantes) — chercher « Tarq » en renvoie trois. Sans le
+portrait, on ne peut pas choisir la bonne. C'est le cas du `MonsterPicker`
+(siège, recos) et de `RtaSearch`.
+
 ## Icônes de leader skill
 
 Servies **en local** depuis `public/leader-skills/` (comme les icônes

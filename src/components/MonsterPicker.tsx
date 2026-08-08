@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react';
 import { Search, Plus } from 'lucide-react';
 import { Monster } from '../types';
-import ElementIcon from './ElementIcon';
+import MonsterAvatar from './MonsterAvatar';
 
 interface Props {
   monsters: Monster[];
@@ -70,9 +70,11 @@ export default function MonsterPicker({ monsters, onPick, excludeIds, placeholde
                   e.preventDefault();
                   pick(String(m.id));
                 }}
-                className="flex w-full items-center gap-2 px-3 py-1.5 text-left hover:bg-panel2 transition"
+                className="flex w-full items-center gap-2.5 px-3 py-1.5 text-left hover:bg-panel2 transition"
               >
-                <ElementIcon element={m.element} size={16} className="flex-none" />
+                {/* Portrait : le nom ne suffit pas à distinguer les formes d'un
+                    même monstre (voir MonsterAvatar). */}
+                <MonsterAvatar monster={m} size={28} />
                 <span className="text-[13px] font-medium truncate flex-1">{m.name}</span>
                 <span className="font-mono text-[11px] text-ink-dim">SPD {m.stats.speed ?? '—'}</span>
                 <Plus size={14} className="text-ink-dim flex-none" />

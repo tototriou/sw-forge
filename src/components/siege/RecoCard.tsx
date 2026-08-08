@@ -22,28 +22,12 @@ import { NOTE_MAX, DECK_NOTE_MAX } from '../../lib/recoShare';
 import { deckFromSiegeTeam } from '../../lib/recoFromSiege';
 import { setPieces, setsCost, canAddSet, MAX_SET_PIECES } from '../../lib/effects';
 import { UseRecoState } from '../../hooks/useSiegeRecos';
-import ElementIcon from '../ElementIcon';
 import RuneIcon from '../RuneIcon';
 import MonsterPicker from '../MonsterPicker';
+import MonsterAvatar from '../MonsterAvatar';
 import LeadPill, { LeadBadge } from './LeadPill';
 import { LeadInfo, pctSpeedBonus, siegeLeadFor, speedLeadOf } from '../../lib/speed';
 
-const GRADIENT: Record<string, string> = {
-  fire: 'from-fire to-panel2',
-  water: 'from-water to-panel2',
-  wind: 'from-wind to-panel2',
-  light: 'from-light to-panel2',
-  dark: 'from-dark to-panel2',
-  unknown: 'from-unknown to-panel2',
-};
-const TEXT: Record<string, string> = {
-  fire: 'text-fire',
-  water: 'text-water',
-  wind: 'text-wind',
-  light: 'text-light',
-  dark: 'text-dark',
-  unknown: 'text-unknown',
-};
 
 // ⚠️ La VIT stockée dans une reco est la vitesse du BUILD (base + runes), et
 // c'est bien elle qui sert de minimum et qui s'édite. Le bonus en % du siège
@@ -61,9 +45,6 @@ function spdLeadBonus(monster: Monster | null, lead: LeadInfo | null): number {
   return pctSpeedBonus(base, siegeLeadFor(lead, monster!.element));
 }
 
-function initials(name: string) {
-  return name.trim().split(/\s+/).slice(0, 2).map((w) => w[0]).join('').toUpperCase();
-}
 
 // Nom AUTOMATIQUE d'un deck : les noms de ses monstres séparés par un tiret
 // (« Trevor - Bella - Loren »), sinon « Deck N » tant qu'il est vide. On se rabat
@@ -809,31 +790,7 @@ function DeckBlock({
               ) : (
                 <>
                   <div className="flex items-center gap-2">
-                    <div className="relative flex-none">
-                      <div
-                        className={`hex-frame w-[40px] h-[40px] p-[2px] bg-gradient-to-br ${
-                          GRADIENT[monster?.element ?? 'unknown']
-                        }`}
-                      >
-                        <div className="hex-frame w-full h-full bg-panel flex items-center justify-center overflow-hidden">
-                          {monster?.image ? (
-                            <img src={monster.image} alt={monster.name} className="w-full h-full object-cover" />
-                          ) : (
-                            <span
-                              className={`font-display font-bold text-[10px] ${TEXT[monster?.element ?? 'unknown']}`}
-                            >
-                              {initials(monster?.name || slot.name || '?')}
-                            </span>
-                          )}
-                        </div>
-                      </div>
-                      {monster && (
-                        <ElementIcon
-                          element={monster.element}
-                          size={14}
-                          className="absolute -top-1 -right-1 drop-shadow-[0_1px_2px_rgba(0,0,0,0.7)]"
-                        />
-                      )}
+                    <MonsterAvatar monster={monster} fallback={slot.name} size={40}>
                       {idx === 0 &&
                         (leaderLead ? (
                           <LeadBadge ls={leaderLead} size={20} />
@@ -843,7 +800,7 @@ function DeckBlock({
                             className="absolute -top-2 -left-1 text-star drop-shadow-[0_1px_2px_rgba(0,0,0,0.8)]"
                           />
                         ))}
-                    </div>
+                    </MonsterAvatar>
                     <div className="min-w-0 flex-1">
                       <div className="text-[12.5px] font-semibold leading-tight truncate">
                         {monster?.name ?? slot.name ?? '—'}
@@ -914,7 +871,8 @@ function DeckBlock({
   );
 }
 
-// Petit portrait hexagonal, sans nom — pour les aperçus compacts.
+// Petit portrait hexagonal, sans nom — pour les aperçus compacts. Le portrait
+// lui-même vient du composant partagé ; on n'ajoute ici que le badge de lead.
 function MiniMonster({
   monster,
   fallback,
@@ -926,36 +884,10 @@ function MiniMonster({
   size: number;
   lead?: LeaderSkill | null;
 }) {
-  const nom = monster?.name || fallback || '?';
   return (
-    <span className="relative flex-none" style={{ width: size, height: size }} title={nom}>
-      <span
-        className={`hex-frame block w-full h-full p-[2px] bg-gradient-to-br ${
-          GRADIENT[monster?.element ?? 'unknown']
-        }`}
-      >
-        <span className="hex-frame w-full h-full bg-panel flex items-center justify-center overflow-hidden">
-          {monster?.image ? (
-            <img src={monster.image} alt={nom} className="w-full h-full object-cover" />
-          ) : (
-            <span
-              className={`font-display font-bold ${TEXT[monster?.element ?? 'unknown']}`}
-              style={{ fontSize: Math.max(7, size * 0.3) }}
-            >
-              {initials(nom)}
-            </span>
-          )}
-        </span>
-      </span>
-      {monster && (
-        <ElementIcon
-          element={monster.element}
-          size={Math.round(size * 0.4)}
-          className="absolute -top-1 -right-1 drop-shadow-[0_1px_2px_rgba(0,0,0,0.7)]"
-        />
-      )}
+    <MonsterAvatar monster={monster} fallback={fallback} size={size}>
       {lead && <LeadBadge ls={lead} size={Math.round(size * 0.62)} />}
-    </span>
+    </MonsterAvatar>
   );
 }
 

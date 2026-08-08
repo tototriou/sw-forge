@@ -11,8 +11,9 @@ Fichiers : [RtaPage.tsx](src/pages/RtaPage.tsx) ·
 
 - Champ « Rechercher un monstre à ajouter à ta prépa RTA… ».
 - Filtre par nom (`includes`, insensible à la casse), **max 25 résultats**.
-- Dropdown de suggestions : icône élément, nom, étoiles, SPD de base, état
-  (déjà ajouté = ✓ grisé, sinon +).
+- Dropdown de suggestions : **portrait du monstre**
+  ([MonsterAvatar](src/components/MonsterAvatar.tsx), 30 px, pastille d'élément
+  incluse), nom, étoiles, SPD de base, état (déjà ajouté = ✓ grisé, sinon +).
 - **Entrée** = ajoute le **premier résultat non encore ajouté** puis vide le champ.
 - Clic sur une suggestion (`onMouseDown` pour devancer le blur) = ajoute.
 - Ajout → le monstre entre en **« Non classé »** (`addMonster`), une seule carte

@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react';
 import { Search, Plus, Check } from 'lucide-react';
 import { Monster } from '../../types';
-import ElementIcon from '../ElementIcon';
+import MonsterAvatar from '../MonsterAvatar';
 
 interface Props {
   monsters: Monster[];
@@ -78,7 +78,9 @@ export default function RtaSearch({ monsters, addedIds, onAdd }: Props) {
                   className={`flex w-full items-center gap-2.5 px-3.5 py-2 text-left transition
                     ${added ? 'opacity-50 cursor-default' : 'hover:bg-panel2'}`}
                 >
-                  <ElementIcon element={m.element} size={18} className="flex-none" />
+                  {/* Portrait : le nom ne suffit pas à distinguer les formes
+                      d'un même monstre (voir MonsterAvatar). */}
+                  <MonsterAvatar monster={m} size={30} />
                   <span className="text-[13.5px] font-medium truncate flex-1">{m.name}</span>
                   {m.stars ? (
                     <span className="font-mono text-[11px] text-star">{m.stars}★</span>

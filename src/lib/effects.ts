@@ -239,21 +239,58 @@ export const SUBSTAT_MAX: Record<number, number> = {
   1: 3750, 2: 40, 3: 200, 4: 40, 5: 200, 6: 40, 8: 30, 9: 30, 10: 35, 11: 40, 12: 40,
 };
 
-// Efficience d'une rune (%) : (main plafonné à 1 + Σ substats/max + innée/max) / 2.8.
-// Meule incluse (déjà dans value). Max non antiques → antiques > 100%.
-export function runeEfficiency(rune: RuneDetail): number {
+// Dénominateurs du **SCORE SW** (celui affiché dans le jeu). Identiques à ceux
+// de l'efficience pour les % / VIT / crit ; SEULES LES STATS PLATES DIFFÈRENT :
+// le jeu les pondère à **0,35** (PV /1875 × 0,35, ATQ et DEF /100 × 0,35) là où
+// l'efficience utilise la convention « doublée » de scoringsw.
+//   → PV plat  : /5357,14 (score) contre /3750 (efficience)
+//   → ATQ/DEF  : /285,71  (score) contre /200  (efficience)
+// Une stat plate pèse donc ~1,43× moins dans le score que dans l'efficience.
+const SCORE_FLAT_WEIGHT = 0.35;
+export const SCORE_MAX: Record<number, number> = {
+  1: 1875 / SCORE_FLAT_WEIGHT, // PV plat
+  2: 40,
+  3: 100 / SCORE_FLAT_WEIGHT, // ATQ plat
+  4: 40,
+  5: 100 / SCORE_FLAT_WEIGHT, // DEF plat
+  6: 40,
+  8: 30,
+  9: 30,
+  10: 35,
+  11: 40,
+  12: 40,
+};
+
+// Somme des ratios des stats SECONDAIRES (innée + substats, meule incluse),
+// selon la table de dénominateurs fournie.
+function subsRatio(rune: RuneDetail, table: Record<number, number>): number {
   let ratio = 0;
-  const mm = MAINSTAT_MAX[rune.main.code];
-  if (mm) ratio += Math.min(rune.main.value / mm, 1);
   for (const s of rune.subs) {
-    const m = SUBSTAT_MAX[s.code];
+    const m = table[s.code];
     if (m) ratio += s.value / m;
   }
   if (rune.innate) {
-    const m = SUBSTAT_MAX[rune.innate.code];
+    const m = table[rune.innate.code];
     if (m) ratio += rune.innate.value / m;
   }
-  return (ratio / 2.8) * 100;
+  return ratio;
+}
+
+// **Score SW** — celui affiché dans le jeu. Ne compte QUE les stats secondaires
+// (la principale n'entre pas), en centièmes, arrondi :
+//
+//   score = round( ( PV%+ATQ%+DEF%+PRÉ%+RES% )/40 + (VIT+TC)/30 + DCC/35
+//                  + PV/1875×0,35 + (ATQ+DEF)/100×0,35 ) × 100 )
+export function runeScore(rune: RuneDetail): number {
+  return Math.round(subsRatio(rune, SCORE_MAX) * 100);
+}
+
+// Efficience d'une rune (%) : (main plafonné à 1 + Σ substats/max + innée/max) / 2.8.
+// Meule incluse (déjà dans value). Max non antiques → antiques > 100%.
+export function runeEfficiency(rune: RuneDetail): number {
+  const mm = MAINSTAT_MAX[rune.main.code];
+  const main = mm ? Math.min(rune.main.value / mm, 1) : 0;
+  return ((main + subsRatio(rune, SUBSTAT_MAX)) / 2.8) * 100;
 }
 
 // Affichage d'un effet de rune (« ATQ +160 », « VIT +23 », « Dmg Crit +7% »).

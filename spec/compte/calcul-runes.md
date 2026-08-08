@@ -119,6 +119,37 @@ moyenne top-10 = 125,80 %.
 Ces mêmes maxes (non antiques) servent **toujours** de dénominateur, y compris
 pour une rune antique (⇒ potentiels/efficiences > 100 % normaux).
 
+## 3 bis. Score SW (celui affiché dans le jeu)
+
+Deuxième mesure, proposée **au choix** à côté de l'efficience (voir
+[runes.md](runes.md)). Deux différences avec l'efficience :
+
+1. **La stat principale ne compte pas** — le score ne mesure que les stats
+   **secondaires** (innée + substats, meule incluse) ;
+2. **pas de division par 2,8** : on exprime la somme en centièmes.
+
+```
+score = round( ( (PV%+ATQ%+DEF%+PRÉ%+RES%)/40 + (VIT+TC)/30 + DCC/35
+                 + PV/1875 × 0,35 + (ATQ+DEF)/100 × 0,35 ) × 100 )
+```
+
+### La seule vraie divergence : le poids des stats PLATES
+
+Les dénominateurs des % / VIT / crit sont **identiques** dans les deux formules.
+Seules les stats plates changent, le jeu les pondérant à **0,35** :
+
+| Stat plate | Score (jeu) | Efficience (scoringsw) |
+|------------|-------------|------------------------|
+| PV | `/1875 × 0,35` ⇔ **/5357,14** | **/3750** |
+| ATQ, DEF | `/100 × 0,35` ⇔ **/285,71** | **/200** |
+
+Une stat plate pèse donc **~1,43× moins** dans le score que dans notre
+efficience. Table `SCORE_MAX` dans [effects.ts](src/lib/effects.ts) ; l'efficience
+garde `SUBSTAT_MAX` inchangée.
+
+Repères de contrôle (une seule stat secondaire) : `PV% 40` → **100** ·
+`DCC 35` → **100** · `PV plat 1875` → **35** · `ATQ plat 100` → **35**.
+
 ## 4. Potentiel d'optimisation (gemme + grind)
 
 Objectif : efficience **maximale atteignable** d'une rune, et le **plan** pour y

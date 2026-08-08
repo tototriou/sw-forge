@@ -156,6 +156,32 @@ PV        10 050  +24 950    35 000   28 400 (−6 600)  ← rouge : écart affi
 La colonne **« toi » n'apparaît qu'après une analyse** (sinon la table s'arrête à
 `total`), cohérent avec le fait que rien n'est confronté par défaut.
 
+#### ⚠️ VIT : le lead entre dans le TOTAL, pas dans le bonus
+
+En siège, la vitesse gagne un bonus en % de la **base** : **totem de guilde
+(+15 %)** et **lead de vitesse du leader du deck** (slot 0). C'est ce qui donne
+la vitesse de combat lue sur les cartes d'équipe, et donc la seule valeur qu'on
+puisse rapprocher d'une consigne (« Trevor 352 »).
+
+Ce bonus est appliqué **uniquement à l'affichage du total** (et de « toi »),
+jamais à la base ni au bonus saisi — **base et bonus restent les valeurs
+visibles du build** :
+
+```
+Stat        base    bonus      total
+VIT          101  + [ 208 ]      352      ← 309 de build + 43 (totem 15 % + lead 28 %)
+```
+
+- Le lead vient du **slot 0 du deck** (`speedLeadOf`), filtré par élément s'il
+  est élémentaire (`siegeLeadFor`) — il ne profite alors qu'aux monstres du bon
+  élément, donc le bonus est **par monstre**, pas par deck.
+- **Rien ne change dans les données ni dans la comparaison** : `RecoSlot.stats`
+  stocke toujours la vitesse du build, et l'analyse confronte build à build. Le
+  bonus étant identique des deux côtés (même deck, même leader), l'ajouter
+  n'aurait fait que déplacer les deux valeurs.
+- La ligne VIT porte un `*` renvoyant à une note de bas de table, affichée
+  seulement quand le bonus est non nul.
+
 Le champ de saisie du bonus est un **`type="text"` + `inputMode="numeric"`**, et
 non un `type="number"` : les boutons `+/-` du navigateur mangeaient la largeur
 d'une colonne déjà étroite. La frappe non numérique est ignorée ; vider le champ

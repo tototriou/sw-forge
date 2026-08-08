@@ -45,9 +45,25 @@ export function tickDanger(
   return null;
 }
 
-// Bonus en % appliqué à la vitesse de BASE (totem + lead), arrondi au supérieur.
+// Bonus en % appliqué à la vitesse de BASE (totem + lead).
+//
+// ⚠️ **Exception à la règle d'arrondi de l'app** (`Math.ceil` partout ailleurs,
+// voir stats.ts) : le jeu applique les deux bonus **séparément** et **arrondit
+// chacun** (au plus proche). Ni somme des pourcentages, ni arrondi au supérieur.
+//
+// Deux cas réels qui départagent toutes les variantes — équipe Susano (lead
+// +30 % VIT eau) / Tarq / Chilling, tous eau :
+//
+//   Chilling, base 101 → round(15,15) + round(30,30) = 15 + 30 = 45
+//   Susano,   base 107 → round(16,05) + round(32,10) = 16 + 32 = 48
+//   Tarq,     base 115 → round(17,25) + round(34,50) = 17 + 35 = 52  ← 385 en jeu
+//
+// Tarq est le seul dont un bonus tombe **pile sur la demie** (34,5) : c'est lui
+// qui prouve l'arrondi. `floor` y donnerait 51 (384, un point de trop bas) alors
+// que les deux autres resteraient justes — exactement le symptôme observé.
+// Sommer puis `ceil` donnerait 46 / 49 / 52 : les trois faux sauf Tarq.
 export function pctSpeedBonus(base: number, lead: number): number {
-  return Math.ceil((base * (TOTEM_SPEED + lead)) / 100);
+  return Math.round((base * TOTEM_SPEED) / 100) + Math.round((base * lead) / 100);
 }
 
 // Vitesse de combat = base + runes + totem + lead (bonus % sur la base).

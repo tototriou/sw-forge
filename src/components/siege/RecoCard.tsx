@@ -26,6 +26,7 @@ import ElementIcon from '../ElementIcon';
 import RuneIcon from '../RuneIcon';
 import MonsterPicker from '../MonsterPicker';
 import LeadPill, { LeadBadge } from './LeadPill';
+import { LeadInfo, pctSpeedBonus, siegeLeadFor, speedLeadOf } from '../../lib/speed';
 
 const GRADIENT: Record<string, string> = {
   fire: 'from-fire to-panel2',
@@ -43,6 +44,22 @@ const TEXT: Record<string, string> = {
   dark: 'text-dark',
   unknown: 'text-unknown',
 };
+
+// ⚠️ La VIT stockée dans une reco est la vitesse du BUILD (base + runes), et
+// c'est bien elle qui sert de minimum et qui s'édite. Le bonus en % du siège
+// — totem de guilde + lead du slot 0 — n'entre QUE dans la colonne « total »,
+// pour qu'on y lise la vitesse de combat affichée sur les cartes d'équipe.
+// Ne pas l'injecter dans la base ni dans le bonus saisi : ce sont les valeurs
+// visibles du build. Voir ../../spec/siege/recommandations.md.
+const SPD_HINT = 'Total = VIT de combat en siège : totem de guilde (+15 %) et lead du deck inclus';
+
+// Points de vitesse apportés par le siège à CE monstre : totem + lead du deck,
+// nul si le lead est élémentaire et ne le concerne pas.
+function spdLeadBonus(monster: Monster | null, lead: LeadInfo | null): number {
+  const base = monster?.stats.speed;
+  if (base == null) return 0; // base inconnue → on ne peut rien ajouter
+  return pctSpeedBonus(base, siegeLeadFor(lead, monster!.element));
+}
 
 function initials(name: string) {
   return name.trim().split(/\s+/).slice(0, 2).map((w) => w[0]).join('').toUpperCase();
@@ -645,6 +662,8 @@ function DeckBlock({
   // Lead porté par le slot 0 du deck recommandé.
   const leaderId = deck.slots[0]?.com2usId;
   const leaderLead = leaderId != null ? monsterByCom2us.get(leaderId)?.leaderSkill ?? null : null;
+  // Lead de VITESSE du deck (slot 0), pour le total de VIT des monstres.
+  const leadInfo = leaderId != null ? speedLeadOf(monsterByCom2us.get(leaderId)) : null;
 
   return (
     <div className={`rounded-xl border p-2.5 ${DECK_AURA[empty ? 'unknown' : status]}`}>
@@ -869,12 +888,18 @@ function DeckBlock({
                       <StatEditor
                         slot={slot}
                         monster={monster}
+                        spdLead={spdLeadBonus(monster, leadInfo)}
                         onSet={(key, total) =>
                           recos.setSlotStat(reco.id, deckIndex, idx, key, total)
                         }
                       />
                     ) : (
-                      <StatList slot={slot} monster={monster} sm={sm} />
+                      <StatList
+                        slot={slot}
+                        monster={monster}
+                        sm={sm}
+                        spdLead={spdLeadBonus(monster, leadInfo)}
+                      />
                     )}
                   </div>
                 </>
@@ -963,10 +988,12 @@ function baseFor(key: RecoStatKey, monster: Monster | null): number | null {
 function StatEditor({
   slot,
   monster,
+  spdLead,
   onSet,
 }: {
   slot: RecoSlot;
   monster: Monster | null;
+  spdLead: number; // points de VIT ajoutés par le siège, au TOTAL seulement
   onSet: (key: RecoStatKey, total: number | null) => void;
 }) {
   return (
@@ -989,7 +1016,13 @@ function StatEditor({
           const bonus = total != null ? total - base : null;
           return (
             <tr key={st.key} className="border-b border-border/40 last:border-0">
-              <td className="py-0.5 pr-2 text-ink-dim">{st.label}</td>
+              <td
+                className="py-0.5 pr-2 text-ink-dim"
+                title={st.key === 'spd' && spdLead > 0 ? SPD_HINT : undefined}
+              >
+                {st.label}
+                {st.key === 'spd' && spdLead > 0 && <span className="text-ink-dim/60"> *</span>}
+              </td>
               <td className="py-0.5 pr-2 text-right font-mono text-ink-dim tabular-nums">
                 {known != null ? fmtStat(known) : '—'}
               </td>
@@ -1020,12 +1053,23 @@ function StatEditor({
                   total != null ? 'font-semibold text-ink' : 'text-ink-dim'
                 }`}
               >
-                {total != null ? `${fmtStat(total)}${st.suffix}` : '—'}
+                {total != null
+                  ? `${fmtStat(total + (st.key === 'spd' ? spdLead : 0))}${st.suffix}`
+                  : '—'}
               </td>
             </tr>
           );
         })}
       </tbody>
+      {spdLead > 0 && (
+        <tfoot>
+          <tr>
+            <td colSpan={4} className="pt-1.5 text-[10px] leading-snug text-ink-dim">
+              * +{spdLead} — {SPD_HINT}
+            </td>
+          </tr>
+        </tfoot>
+      )}
     </table>
   );
 }
@@ -1287,10 +1331,12 @@ function StatList({
   slot,
   monster,
   sm,
+  spdLead,
 }: {
   slot: RecoSlot;
   monster: Monster | null;
   sm: SlotMatch | null;
+  spdLead: number; // points de VIT ajoutés par le siège, au TOTAL seulement
 }) {
   const entries = RECO_STATS.filter((st) => (slot.stats[st.key] ?? 0) > 0);
   if (entries.length === 0) {
@@ -1322,13 +1368,20 @@ function StatList({
           // Stat non respectée → ligne mise en évidence (fond rouge léger), pour
           // qu'on voie d'un coup CE qui bloque sans lire les chiffres.
           const rate = analyse && c && c.actual !== null && !c.ok;
+          // Le bonus du siege (totem + lead) n'entre que dans les TOTAUX : la base
+          // et le bonus affiches restent les valeurs visibles du build.
+          const add = st.key === 'spd' ? spdLead : 0;
           return (
             <tr
               key={st.key}
               className={`border-b border-border/40 last:border-0 ${rate ? 'bg-fire/10' : ''}`}
             >
-              <td className={`py-0.5 pr-1.5 ${rate ? 'text-fire font-semibold' : 'text-ink-dim'}`}>
+              <td
+                className={`py-0.5 pr-1.5 ${rate ? 'text-fire font-semibold' : 'text-ink-dim'}`}
+                title={add > 0 ? SPD_HINT : undefined}
+              >
                 {st.label}
+                {add > 0 && <span className="text-ink-dim/60"> *</span>}
               </td>
               <td className="py-0.5 pr-1.5 text-right font-mono text-ink-dim tabular-nums">
                 {known != null ? fmtStat(known) : '—'}
@@ -1337,7 +1390,7 @@ function StatList({
                 {bonus != null ? `+${fmtStat(bonus)}` : '—'}
               </td>
               <td className="py-0.5 text-right font-mono font-semibold text-ink tabular-nums">
-                {fmtStat(req)}
+                {fmtStat(req + add)}
                 {st.suffix}
               </td>
               {analyse && (
@@ -1353,7 +1406,7 @@ function StatList({
                 >
                   {c && c.actual !== null ? (
                     <>
-                      {fmtStat(c.actual)}
+                      {fmtStat(c.actual + add)}
                       {st.suffix}
                       {!c.ok && <span className="text-fire/70"> (−{fmtStat(-c.diff)})</span>}
                     </>
@@ -1366,6 +1419,15 @@ function StatList({
           );
         })}
       </tbody>
+      {spdLead > 0 && entries.some((st) => st.key === 'spd') && (
+        <tfoot>
+          <tr>
+            <td colSpan={analyse ? 5 : 4} className="pt-1.5 text-[10px] leading-snug text-ink-dim">
+              * +{spdLead} — {SPD_HINT}
+            </td>
+          </tr>
+        </tfoot>
+      )}
     </table>
   );
 }

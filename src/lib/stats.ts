@@ -2,8 +2,11 @@
 //
 // ⚠️ RÈGLE D'ARRONDI (toute l'app) : **dès qu'un calcul produit une décimale, on
 // arrondit immédiatement à l'entier SUPÉRIEUR** (`Math.ceil`) — jamais un
-// `floor`/`round` en fin de chaîne. C'est la règle déjà appliquée à la vitesse
-// (`pctSpeedBonus`, voir speed.ts) ; elle vaut ici pour tous les bonus en %.
+// `floor`/`round` en fin de chaîne. Elle vaut ici pour tous les bonus en %.
+//
+// Seule exception connue : le bonus % de VITESSE (totem + lead), où le jeu
+// applique et **arrondit au plus proche** chaque bonus séparément — voir
+// `pctSpeedBonus` dans speed.ts, cas de contrôle à l'appui.
 //
 //   stat = base + ceil(base × Σ% / 100) + Σplat
 //
@@ -89,8 +92,9 @@ export function computeStats(gear: GearSet): StatRow[] {
       if (bonus.stat === 'hp' || bonus.stat === 'atk' || bonus.stat === 'def') {
         pct[bonus.stat] += bonus.pct; // entre dans le × (1 + Σ%)
       } else {
-        // VIT : % de la base, ajouté à plat — arrondi au supérieur, comme le
-        // bonus de vitesse du totem/lead et comme l'import Swift.
+        // VIT : % de la base, ajouté à plat — arrondi au supérieur, comme à
+        // l'import Swift (`applyAccount`). À vérifier en jeu : le totem/lead,
+        // lui, arrondit au plus proche (voir `pctSpeedBonus`).
         flat[bonus.stat] += Math.ceil((baseVal[bonus.stat] * bonus.pct) / 100);
       }
     }

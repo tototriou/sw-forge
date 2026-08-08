@@ -17,16 +17,21 @@ conservés à la navigation via `useStickyState` ([useStickyState.ts](src/hooks/
 **Un seul détail (popover) ouvert à la fois** par section (ouvrir une rune ferme
 la précédente).
 
+> 📐 **Toutes les formules, tables (efficience, grind max, gemme max) et le
+> décodage SWEX** sont détaillés, valeurs comprises, dans
+> [calcul-runes.md](calcul-runes.md) — référence auto-suffisante.
+
 ## Efficience d'une rune
 
-`runeEfficiency(rune)` dans [effects.ts](src/lib/effects.ts) — formule validée :
+Formule validée (détail + tables `MAINSTAT_MAX` / `SUBSTAT_MAX` dans
+[calcul-runes.md](calcul-runes.md)) :
 
 ```
 eff = (min(main/mainMax, 1) + Σ(substat/subMax) + innée/subMax) / 2.8 × 100
 ```
 
 Substats = **valeur meule incluse**. Maxes 6★ **non antiques** → une rune antique
-peut dépasser 100 %. Détail des maxes dans [effects.ts](src/lib/effects.ts).
+peut dépasser 100 %.
 
 ## Onglet Liste — `RunesList`
 
@@ -116,8 +121,9 @@ distinctes**) :
     gemme au max si elle n'y est pas déjà). Rien si déjà au max.
   - total de la stat gemmée = `gemMax + grindMax`.
 
-Tables de valeurs (grind max & base max de gemme, classiques/antiques, héro/légend)
-fournies par l'utilisateur, codées dans [runeOptim.ts](src/lib/runeOptim.ts).
+**Toutes les tables de valeurs** (grind max & base max de gemme,
+classiques/antiques, héro/légend) et l'**algorithme complet** `best()` sont dans
+[calcul-runes.md §4](calcul-runes.md).
 
 ### Modes
 

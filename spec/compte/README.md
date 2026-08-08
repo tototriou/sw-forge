@@ -18,6 +18,9 @@ prop depuis [App.tsx](src/App.tsx) : `box` (6★), `runes`, `artifacts`.
 | Runes | `#/compte/runes` | [runes.md](runes.md) |
 | Artéfacts | `#/compte/artefacts` | [artefacts.md](artefacts.md) |
 
+**Référence de calcul** (auto-suffisante : formules, tables, décodage SWEX,
+algorithme d'optimisation) : [calcul-runes.md](calcul-runes.md).
+
 La sous-section courante est déduite du hash (`parseHash` dans
 [App.tsx](src/App.tsx)) et passée en prop `sub` ; `AccountPage` rend la section
 correspondante. Le bouton de nav reste **actif** sur n'importe quelle

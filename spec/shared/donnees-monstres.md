@@ -37,13 +37,26 @@ RTA et Siège.
 - Récupérées côté CI (Node, pas de navigateur → **pas de CORS**) par
   [fetch-monsters.mjs](scripts/fetch-monsters.mjs) depuis l'API SWARFARM
   (`/api/v2/monsters/`), paginée.
-- Écrites dans `public/data/monsters.json` (`{ meta, monsters }`).
+- Écrites dans `public/data/monsters.json` (`{ meta, monsters }`). Le chemin de
+  sortie passe par `fileURLToPath` : sous **Windows**, `URL.pathname` donne
+  `/C:/…` et `mkdir` fabriquait un `C:\C:\…` — le script se lance donc aussi en
+  local, pas seulement en CI Linux.
 - **Fallback démo** : si l'API échoue, un jeu de démo déterministe est généré
   (labellisé `source: 'demo'`) pour que le site reste déployable et testable.
 - Rafraîchissement planifié via GitHub Actions (cron hebdo + manuel) → commit du
   JSON → redéploiement Vercel.
 
 Normalisations notables dans le script :
+- ⚠️ **PV / ATQ / DEF = `max_lvl_*`**, c'est-à-dire les stats du monstre **6★
+  niveau max, nu**. Le champ `base_*` de SWARFARM est la valeur au **grade
+  d'invocation** et **ne doit pas** être utilisé : ex. Trevor (nat 4, base 5) →
+  `base_hp` 7 380 (en 5★) contre `max_lvl_hp` **10 050** (en 6★). Pour un
+  monstre déjà base★6 (Bella, Leo), les deux champs sont identiques. Ces valeurs
+  **coïncident avec le `con × 15`** lu dans les exports SWEX, ce qui rend les
+  deux sources cohérentes (indispensable pour les stats recommandées du siège,
+  voir [siege/recommandations.md](../siege/recommandations.md)).
+- **VIT / taux crit / dégâts crit / RES / précision** ne dépendent ni du niveau
+  ni des étoiles dans SW : les champs directs font foi.
 - `element` mappé vers les 5 éléments (sinon `unknown`).
 - `com2usId` extrait de `com2us_id` (clé de jointure avec les exports de compte).
 - `leaderSkill.element = null` s'il n'y a pas d'élément (→ toutes cibles).
@@ -66,7 +79,9 @@ peut donc **créer un monstre** utilisable comme les autres, en **RTA et en Siè
 - Hook : [useCustomMonsters.ts](src/hooks/useCustomMonsters.ts) — persiste dans
   `localStorage` (`sw-forge-custom-monsters-v1`), fusionné aux monstres officiels
   dans [App.tsx](src/App.tsx) (`allMonsters`).
-- Formulaire : [CreateMonster.tsx](src/components/CreateMonster.tsx).
+- Formulaire : [CreateMonster.tsx](src/components/CreateMonster.tsx). Son bouton
+  déclencheur suit le **gabarit commun** des boutons d'action (`px-3.5 py-2`,
+  13 px, icône 15), pour ne pas détonner à côté de ceux de RTA et du siège.
   - Champs : **nom**, **élément**, **SPD base** (obligatoires) ; **lead optionnel**.
   - Lead : n'importe quel type de stat (Vitesse/Attaque/PV/Déf/crit/Précision/
     Résistance) + montant % + portée (Toutes cibles = `General` / Même élément =

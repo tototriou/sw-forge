@@ -5,9 +5,12 @@
 
 import { writeFile, mkdir } from 'node:fs/promises';
 import { dirname } from 'node:path';
+import { fileURLToPath } from 'node:url';
 
 const API_BASE = 'https://swarfarm.com/api/v2/monsters/?limit=200';
-const OUTPUT_PATH = new URL('../public/data/monsters.json', import.meta.url);
+// `fileURLToPath` (et non `.pathname`) : sous Windows, `.pathname` donne
+// « /C:/… » que `mkdir` interprète en « C:\C:\… ».
+const OUTPUT_PATH = fileURLToPath(new URL('../public/data/monsters.json', import.meta.url));
 const MAX_PAGES = 30;
 
 function normalizeElement(raw) {
@@ -41,11 +44,17 @@ function num(...candidates) {
   return null;
 }
 
+// ⚠️ PV/ATQ/DEF : on prend `max_lvl_*`, c'est-à-dire la valeur du monstre
+// **6★ niveau max, nu**. `base_*` est la valeur à son GRADE D'INVOCATION
+// (ex. Trevor nat4/base5 : base_hp 7380 en 5★ contre max_lvl_hp 10050 en 6★) —
+// inutilisable comme base de calcul. Pour un monstre déjà base★6, les deux
+// champs sont identiques. Ces valeurs correspondent au `con × 15` des exports
+// SWEX, ce qui rend les deux sources cohérentes.
 function normalizeStats(raw) {
   return {
-    hp: num(raw.base_hp, raw.hp, raw.max_lvl_hp),
-    attack: num(raw.base_attack, raw.attack, raw.max_lvl_attack),
-    defense: num(raw.base_defense, raw.defense, raw.max_lvl_defense),
+    hp: num(raw.max_lvl_hp, raw.base_hp, raw.hp),
+    attack: num(raw.max_lvl_attack, raw.base_attack, raw.attack),
+    defense: num(raw.max_lvl_defense, raw.base_defense, raw.defense),
     // La vitesse ne dépend pas du niveau/étoiles dans SW : elle est fixe.
     speed: num(raw.speed, raw.base_speed, raw.spd),
     critRate: num(raw.crit_rate, raw.critical_rate, raw.cri_rate),
@@ -178,9 +187,9 @@ async function main() {
     monsters,
   };
 
-  await mkdir(dirname(OUTPUT_PATH.pathname), { recursive: true });
+  await mkdir(dirname(OUTPUT_PATH), { recursive: true });
   await writeFile(OUTPUT_PATH, JSON.stringify(payload, null, 2), 'utf-8');
-  console.log(`📝 Écrit dans ${OUTPUT_PATH.pathname}`);
+  console.log(`📝 Écrit dans ${OUTPUT_PATH}`);
 }
 
 main().catch((err) => {

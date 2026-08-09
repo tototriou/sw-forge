@@ -43,6 +43,8 @@ import {
 } from './lib/importAccount';
 import { mapRtaItems, mapSiegeTeams, mapBoxMonsters, BoxItem } from './lib/applyAccount';
 
+const DISCORD_INVITE = 'https://discord.gg/R2Fe4GJZET';
+
 type Route = 'home' | 'bestiary' | 'rta' | 'siege' | 'arene' | 'mecaniques' | 'compte' | 'releases';
 export type AccountSub = 'monstres' | 'runes' | 'artefacts';
 
@@ -609,11 +611,19 @@ export default function App() {
             >
               <Tag size={13} /> v{__APP_VERSION__}
             </a>
-            <span className="inline-flex items-center gap-1.5" title="Questions, retours, demandes particulières">
-              <MessageCircle size={13} /> Discord <span className="text-ink">tototriou15</span>
-            </span>
+            {/* Lien vers le SERVEUR plutôt qu'un pseudo : un pseudo se recopie
+                à la main et ne mène nulle part au clic. */}
+            <a
+              href={DISCORD_INVITE}
+              target="_blank"
+              rel="noreferrer"
+              className="inline-flex items-center gap-1.5 text-[#8b92e0] hover:text-ink transition"
+              title="Rejoindre le serveur Discord de SW Forge"
+            >
+              <MessageCircle size={13} /> Rejoindre le Discord
+            </a>
           </p>
-          <p>Une question ou une demande particulière ? Écris-moi sur Discord.</p>
+          <p>Une question, un retour, une demande ? Viens en parler sur le Discord.</p>
           <p>Toutes tes données restent en local dans ton navigateur.</p>
           <p>
             Données et images © Com2uS · Source :{' '}

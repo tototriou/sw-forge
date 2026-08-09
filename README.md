@@ -171,7 +171,8 @@ une issue pour qu'on en discute.
 
 ## Contact
 
-Une question, un retour ou une demande particulière : **Discord `tototriou15`**.
+Une question, un retour ou une demande particulière :
+[**rejoins le Discord**](https://discord.gg/R2Fe4GJZET).
 
 ## Construit avec
 
@@ -185,8 +186,8 @@ Une question, un retour ou une demande particulière : **Discord `tototriou15`**
 
 ## Auteur
 
-**Thomas** — [github.com/tototriou](https://github.com/tototriou) · Discord
-`tototriou15`
+**Thomas** — [github.com/tototriou](https://github.com/tototriou) ·
+[Discord](https://discord.gg/R2Fe4GJZET)
 
 ## Remerciements
 

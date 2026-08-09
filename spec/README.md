@@ -58,9 +58,9 @@ Concepts partagés par plusieurs pages, documentés une seule fois :
 - **Footer** — quatre informations, dans cet ordre :
   0. **Version** `vX.Y.Z` (depuis `package.json`), **cliquable** vers `#/releases`.
   1. **Signature** : lien vers le dépôt GitHub (`github.com/tototriou/sw-forge`)
-     et **contact Discord `tototriou15`** pour les questions et demandes
-     particulières. Le pseudo Discord n'est pas un lien (ce n'est pas une
-     invitation) : il est affiché en clair pour être copié.
+     et **lien vers le serveur Discord** (`discord.gg/R2Fe4GJZET`) pour les
+     questions et demandes. ⚠️ Un **lien vers le serveur**, pas un pseudo : un
+     pseudo se recopie à la main et ne mène nulle part au clic.
   2. Rappel que les données restent locales.
   3. Crédit Com2uS / SWARFARM.
 - **Données 100 % locales** : le footer rappelle que toutes les données restent

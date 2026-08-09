@@ -142,7 +142,18 @@ Blocs, dans l'ordre :
   tri « valeur » et le repère « meilleur… » de l'en-tête.
 - **Tri** : ↓ décroissant (défaut) · ↑ croissant — **sur la mesure choisie** —
   · Niveau ↓ · Slot ↑.
-- **Pagination** (`Pager`) : 60 tuiles/page → DOM borné (fluide même à ~2000 runes).
+- **Pagination** ([Pager.tsx](src/components/account/Pager.tsx)) : 60 tuiles/page
+  → DOM borné (fluide même à ~2000 runes). Composant **partagé par toutes les
+  listes paginées** de l'app.
+  - Trois éléments : flèche précédente, **champ de saisie de la page**, flèche
+    suivante. Les flèches sont de simples icônes ; c'est le champ qui compte.
+  - ⚠️ **Le champ est indispensable** : à ~2000 runes on dépasse 30 pages, et
+    avancer d'une flèche à la fois est intenable. Une liste de numéros ne
+    tiendrait pas sur une ligne à ce volume.
+  - La saisie est **séparée de la page réelle** : on doit pouvoir vider le champ
+    ou taper « 12 » **sans sauter à la page 1** au premier chiffre. Elle est
+    validée à **Entrée** ou à la **perte de focus**, bornée à `[1, N]`, annulée
+    par **Échap**, et resynchronisée quand la page change ailleurs (filtre, tri).
 - **Rotation animée** : les tuiles utilisent une **clé positionnelle** (et non
   l'id de la rune), donc elles sont **réutilisées** d'une page/d'un filtre/d'un
   tri à l'autre → le cadre **pivote** vers l'orientation de son nouveau slot au

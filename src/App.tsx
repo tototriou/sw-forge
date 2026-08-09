@@ -10,9 +10,7 @@ import {
   Calculator,
   Library,
   ChevronDown,
-  Boxes,
-  Disc3,
-  Gem,
+  CircleUserRound,
   Github,
   MessageCircle,
   Tag,
@@ -27,6 +25,7 @@ import AccountPage from './pages/AccountPage';
 import ComingSoon from './pages/ComingSoon';
 import AccountImportControl from './components/AccountImportControl';
 import SettingsMenu from './components/SettingsMenu';
+import GameIcon, { GameIconKey } from './components/GameIcon';
 import { ArtifactDetail, Monster, RuneDetail } from './types';
 import { useMonsters } from './hooks/useMonsters';
 import { useCustomMonsters } from './hooks/useCustomMonsters';
@@ -82,10 +81,12 @@ const NAV: NavItem[] = [
 ];
 
 // Sous-sections de « Mon compte » (dropdown de nav).
-const ACCOUNT_SUBS: { sub: AccountSub; label: string; icon: typeof BookOpen; hash: string }[] = [
-  { sub: 'monstres', label: 'Monstres', icon: Boxes, hash: '#/compte' },
-  { sub: 'runes', label: 'Runes', icon: Disc3, hash: '#/compte/runes' },
-  { sub: 'artefacts', label: 'Artéfacts', icon: Gem, hash: '#/compte/artefacts' },
+// ⚠️ Icônes DU JEU (voir GameIcon), pas des pictogrammes de bibliothèque : un
+// joueur reconnaît ses trois inventaires instantanément à celles-ci.
+const ACCOUNT_SUBS: { sub: AccountSub; label: string; icon: GameIconKey; hash: string }[] = [
+  { sub: 'monstres', label: 'Monstres', icon: 'monster', hash: '#/compte' },
+  { sub: 'runes', label: 'Runes', icon: 'rune', hash: '#/compte/runes' },
+  { sub: 'artefacts', label: 'Artéfacts', icon: 'artifact', hash: '#/compte/artefacts' },
 ];
 
 // Regroupées sous « Ressources ».
@@ -367,7 +368,6 @@ export default function App() {
                 </div>
                 {ACCOUNT_SUBS.map((item) => {
                   const active = route === 'compte' && accountSub === item.sub;
-                  const Icon = item.icon;
                   return (
                     <a
                       key={item.sub}
@@ -376,7 +376,7 @@ export default function App() {
                       className={`flex items-center gap-3 rounded-lg px-3 py-3 text-[16px] font-semibold transition
                         ${active ? 'bg-gradient-to-br from-[#3a4270] to-[#272e52] text-ink' : 'text-ink-dim'}`}
                     >
-                      <Icon size={18} /> {item.label}
+                      <GameIcon name={item.icon} size={20} /> {item.label}
                     </a>
                   );
                 })}
@@ -460,14 +460,15 @@ export default function App() {
                       : 'text-ink-dim hover:text-ink'
                   }`}
               >
-                <Boxes size={14} /> Mon compte
+                {/* Le bouton ouvre le compte entier, pas un inventaire : une icône
+                    de profil, et les icônes du jeu restent sur les trois sous-onglets. */}
+                <CircleUserRound size={16} /> Mon compte
                 <ChevronDown size={12} className={`transition-transform ${accountOpen ? 'rotate-180' : ''}`} />
               </button>
               {accountOpen && (
                 <div className="absolute z-30 left-0 mt-1.5 min-w-[168px] rounded-xl border border-border bg-panel p-1 shadow-glow shadow-black/60">
                   {ACCOUNT_SUBS.map((item) => {
                     const active = route === 'compte' && accountSub === item.sub;
-                    const Icon = item.icon;
                     return (
                       <a
                         key={item.sub}
@@ -476,7 +477,7 @@ export default function App() {
                         className={`flex items-center gap-2 rounded-lg px-2.5 py-2 text-[13px] font-semibold transition
                           ${active ? 'bg-panel2 text-ink' : 'text-ink-dim hover:text-ink hover:bg-panel2'}`}
                       >
-                        <Icon size={14} /> {item.label}
+                        <GameIcon name={item.icon} size={17} /> {item.label}
                       </a>
                     );
                   })}

@@ -38,6 +38,42 @@ export const CHANGE_META: Record<ChangeKind, { label: string; color: string }> =
 // Si une ligne dépasse ~15 mots, c'est qu'elle raconte l'implémentation.
 export const RELEASES: Release[] = [
   {
+    version: '1.1.2',
+    date: '2026-08-09',
+    title: 'Comparaison de courbes de runes remaniée',
+    highlights: [
+      'Deux onglets : comparer des courbes, ou comparer des comptes',
+      'Bouton pour tout retirer d’un coup',
+    ],
+    changes: [
+      {
+        kind: 'feat',
+        scope: 'Mon compte',
+        text: 'La comparaison sépare les courbes partagées des fichiers de compte.',
+      },
+      {
+        kind: 'feat',
+        scope: 'Mon compte',
+        text: 'Filtres par set, slot et rareté sur la comparaison de comptes.',
+      },
+      {
+        kind: 'feat',
+        scope: 'Mon compte',
+        text: 'Bouton « Tout retirer » : il ne touche ni ton compte, ni tes recommandations.',
+      },
+      {
+        kind: 'feat',
+        scope: 'Mon compte',
+        text: 'Le nom de chaque courbe s’affiche dans l’infobulle du graphe.',
+      },
+      {
+        kind: 'feat',
+        scope: 'Mon compte',
+        text: 'Icônes du jeu sur les onglets Monstres, Runes et Artéfacts.',
+      },
+    ],
+  },
+  {
     version: '1.1.1',
     date: '2026-08-09',
     title: 'Nouvelle page d’accueil et repères de vitesse en RTA',

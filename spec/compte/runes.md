@@ -178,8 +178,15 @@ Détails :
   (Catmull-Rom → Bézier), aire discrète sous « Actuelle », grille, graduations,
   titres d'axes, axe Y ajusté aux données, sous-échantillonnage ~240 points.
 - **Interactif** : au survol, ligne verticale + points sur chaque courbe +
-  **infobulle** (nombre de runes + efficience par série, ordonnées de la plus haute
-  à la plus basse au point survolé).
+  **infobulle**, ordonnée de la plus haute à la plus basse valeur au point
+  survolé. Chaque ligne = **pastille de couleur · NOM de la courbe · valeur**,
+  valeurs **alignées à droite** pour se comparer d'un coup d'œil.
+  - ⚠️ **Le nom est indispensable** : à trois courbes superposées, une pastille
+    de couleur seule obligeait à faire l'aller-retour avec la légende pour savoir
+    qui valait quoi.
+  - Le nom est **borné à 16 caractères** (le complet reste dans la légende) et la
+    **largeur de la boîte est mesurée sur le contenu réel** : en dur, les noms
+    débordaient.
 - **Légende sous le graphe** : cliquer un nom **masque/affiche** sa courbe.
 - **Filtres** : sets (`SetFilter`), slot (`SlotFilter`), antiques.
 - **Nombre de runes** : champ libre (défaut **400**) + **Tout**.
@@ -189,7 +196,37 @@ Détails :
 
 ## Onglet Comparaison — `RunesCompare`
 
-Se comparer entre amis en superposant plusieurs courbes (efficience **actuelle**).
+Se comparer entre amis en superposant plusieurs courbes.
+
+### ⚠️ DEUX sous-onglets, parce que les deux formats ne portent pas la même chose
+
+| Sous-onglet | Ce qu'il AFFICHE | Filtres disponibles |
+|---|---|---|
+| **Courbes partagées** | **tout l'importé** : courbes partagées **et** fichiers de compte | **nombre de runes** seulement |
+| **Fichiers de compte** | **les fichiers de compte seulement** | **sets · slot · antiques · nombre de runes** |
+
+⚠️ **L'inclusion ne va que dans un sens.** Un fichier de compte se réduit
+toujours à des points, donc il a sa place dans l'onglet Courbes. L'inverse est
+impossible : une courbe partagée n'a pas les runes sur lesquelles les filtres de
+l'onglet Comptes s'appliquent. « Courbes » est donc la **vue d'ensemble**,
+« Comptes » la **vue filtrable**.
+
+Pourquoi cette séparation plutôt qu'un onglet unique :
+
+- Un **export de courbe ne contient que les points**, et c'est **volontaire** —
+  il ne doit transporter **aucune donnée de compte**. Les sets, l'emplacement et
+  la rareté n'y sont donc pas : un filtre par set y est **impossible**, pas
+  seulement « pas encore fait ».
+- Pire, l'appliquer à ma seule courbe **fausserait la comparaison** : on
+  opposerait *mon top Violent* à *tout le stock* de l'autre.
+- Avec un **fichier de compte**, les runes sont là : le **même filtre est
+  appliqué à tout le monde**, donc la comparaison reste honnête.
+- Un onglet unique aux filtres actifs une fois sur deux se lirait comme un bug.
+
+Le sous-onglet « Courbes partagées » **explique l'absence** des autres filtres,
+sinon on la prend pour un oubli.
+
+### Courbes partagées
 
 - **Exporter** (icône **Upload ↑**) : demande un nom, produit un **JSON lisible**
   (`format: "sw-forge/courbe-runes"`, **version 2**, voir
@@ -197,18 +234,63 @@ Se comparer entre amis en superposant plusieurs courbes (efficience **actuelle**
   `swforge-runes-<nom>.json` **et copié** au presse-papier.
   - ⚠️ Le fichier porte **LES DEUX séries** : `efficiences` **et** `scores`.
     Celui qui l'importe la lit donc dans **sa** mesure, sans dépendre du réglage
-    de l'expéditeur. Idem pour une courbe extraite d'un JSON de compte.
+    de l'expéditeur.
 - **Importer une courbe** (icône **Download ↓**) : charge le fichier d'un ami.
   **JSON uniquement** — l'ancien code compact `SWF-RUNES-1:` n'est plus ni
   produit ni lu.
-- **Importer un JSON** (icône FileJson) : charge le **JSON de compte SWEX brut**
-  d'un ami (s'il n'a pas l'outil) ; runes extraites à la volée (`parseAccountInventory`).
-  **100 % local.**
+
+### Fichiers de compte
+
+- **Importer un fichier de compte** : l'export SWEX brut d'un ami, runes
+  extraites à la volée (`parseAccountInventory`). **Lu dans la page, jamais
+  envoyé.**
+- Filtres identiques à l'onglet **Courbes** (`SetFilter`, `SlotFilter`,
+  « Antiques », nombre de runes), **appliqués à toutes les courbes à la fois**.
+- ⚠️ Le filtre de sets propose les sets présents **chez moi OU chez un ami** :
+  sinon on ne pourrait pas filtrer sur un set qu'on ne possède pas encore.
+- Pas de « gemme + meule / meule seule » : la comparaison porte sur l'**état
+  actuel** des runes, pas sur un potentiel — et un potentiel comparé entre deux
+  comptes n'aurait pas de sens tant que chacun n'a pas posé ses meules.
+
+### ⚠️ RIEN de ce qui est importé ici n'est conservé
+
+Courbes partagées **et** fichiers de compte vivent **en mémoire seulement**
+(`useStickyState` — un cache par clé, **pas** `localStorage`). Ils survivent à la
+navigation entre onglets et **disparaissent au rechargement**.
+
+C'est délibéré : ce sont les données **de quelqu'un d'autre**. Elles n'ont rien à
+faire sur le disque de celui qui les consulte, et il ne doit pas avoir à y penser.
+⚠️ **Ne pas** basculer cet état vers `localStorage` « pour le confort » — c'est la
+seule partie de l'app où de la donnée tierce transite.
+
+### « Tout retirer » — vider la comparaison
+
+Bouton en haut à droite, **affiché seulement s'il y a quelque chose à retirer**,
+avec le compte de ce qui partira, et une **confirmation**.
+
+⚠️ Il ne touche **QUE ce qui a été importé ici** — les deux sous-onglets à la
+fois. **Pas** le compte du joueur (box, runes, artéfacts), **pas** ses
+recommandations, **pas** sa prépa RTA ni ses équipes. Le message de confirmation
+**le dit explicitement** : sans ça, on n'ose pas cliquer, de peur d'effacer son
+propre import.
+
+> Pour tout effacer, c'est « Tout supprimer » dans le menu ⚙ — action distincte,
+> à un autre endroit, et c'est voulu.
+
+Les listes importées vivent donc dans `RunesCompare`, pas dans chaque
+sous-onglet : c'est ce qui permet un bouton unique qui les vide toutes les deux.
+
+### Communs aux deux sous-onglets
+
 - **Superposition** : ma courbe (« Moi ») en bleu, les amis en couleurs vives
   (palette cyclique). Bornes recalculées sur les courbes **visibles**.
 - **Légende** : pastille + nom + (max · médiane · nb) ; **cliquer le nom
   masque/affiche** ; la croix (✕) **retire** une courbe importée.
-- **Nombre de runes** : bascule **Top 400 / Tout**.
+- Deux courbes homonymes sont **renommées** (« Ami (2) »), **en tenant compte des
+  deux listes à la fois** puisqu'elles cohabitent dans l'onglet Courbes : sinon
+  la légende serait illisible et la croix ambiguë.
+- ⚠️ Le retrait est **attaché à chaque ligne**, pas déduit d'un index : l'onglet
+  Courbes mélange deux listes, un index n'y désignerait plus rien de fiable.
 
 > Convention d'icônes : **Exporter = Upload ↑**, **Importer = Download ↓**.
 

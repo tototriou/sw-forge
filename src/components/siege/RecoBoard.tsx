@@ -51,8 +51,6 @@ export default function RecoBoard({ recos, monsters, builds, teams, offense }: P
       next.has(id) ? next.delete(id) : next.add(id);
       return next;
     });
-  const [pasteOpen, setPasteOpen] = useState(false);
-  const [pasted, setPasted] = useState('');
   const fileRef = useRef<HTMLInputElement>(null);
 
   // Scroll vers la recommandation qu'on vient de créer (comme les équipes).
@@ -140,18 +138,18 @@ export default function RecoBoard({ recos, monsters, builds, teams, offense }: P
       (n, r) => n + r.decks.filter((d) => d.slots.some((s) => s.com2usId != null)).length,
       0
     );
-    // Un seul format : le JSON. Téléchargé en fichier ET copié au presse-papier,
-    // pour qu'on puisse aussi bien envoyer la pièce jointe que coller le contenu.
+    // Un seul format ET un seul support : le fichier .json. Plus de copie au
+    // presse-papier — l'import ne lit que des fichiers, un contenu collé
+    // n'aurait nulle part où aller.
     const what = `${usable.length} recommandation(s) · ${decks} deck(s)`;
-    const json = encodeRecosJson(usable);
-    download(`swforge-reco-${slugify(label)}.json`, json);
-    navigator.clipboard?.writeText(json).then(
-      () => setMsg({ text: `${what} · fichier .json téléchargé et contenu copié au presse-papier.` }),
-      () => setMsg({ text: `${what} · fichier .json téléchargé.` })
-    );
+    download(`swforge-reco-${slugify(label)}.json`, encodeRecosJson(usable));
+    setMsg({ text: `${what} · fichier .json téléchargé.` });
   }
 
-  // JSON uniquement (fichier .json ou contenu collé). Le contenu est VALIDÉ :
+  // JSON uniquement, et **par fichier uniquement** : pas de zone de collage.
+  // Une recommandation se transmet comme une pièce jointe ; un champ de texte
+  // libre n'apportait qu'une seconde voie à valider et à expliquer.
+  // Le contenu est VALIDÉ :
   // rien n'est importé en cas d'erreur bloquante, et les corrections appliquées
   // sont remontées à l'utilisateur.
   function applyImport(text: string) {
@@ -184,8 +182,6 @@ export default function RecoBoard({ recos, monsters, builds, teams, offense }: P
     setMsg({
       text: `${n} recommandation(s) · ${rep.counts.decks} deck(s) · ${rep.counts.monstres} monstre(s) importés.`,
     });
-    setPasteOpen(false);
-    setPasted('');
     // Ne pas cacher ce qu'on vient d'importer si le filtre montrait « mes recos ».
     if (filter === 'mine') setFilter('all');
   }
@@ -216,10 +212,10 @@ export default function RecoBoard({ recos, monsters, builds, teams, offense }: P
         </button>
 
         <button
-          onClick={() => setPasteOpen((v) => !v)}
+          onClick={() => fileRef.current?.click()}
           className="flex items-center gap-1.5 rounded-lg border border-border bg-panel px-3.5 py-2 text-[13px]
                      text-ink-dim hover:text-ink hover:border-[#4a52a0] transition"
-          title="Charger un fichier .json reçu d'un ami, ou en coller le contenu"
+          title="Charger un fichier .json reçu d'un ami"
         >
           <Download size={15} /> Importer
         </button>
@@ -273,49 +269,20 @@ export default function RecoBoard({ recos, monsters, builds, teams, offense }: P
         </div>
       )}
 
-      {/* Zone d'import : coller un code ou choisir un fichier .txt */}
-      {pasteOpen && (
-        <div className="mt-3 rounded-xl border border-border bg-panel/60 p-3">
-          <textarea
-            value={pasted}
-            onChange={(e) => setPasted(e.target.value)}
-            placeholder='Colle ici le JSON reçu (il commence par { "format": "sw-forge/recommandations" … })'
-            rows={3}
-            className="w-full bg-panel border border-border rounded-lg px-2.5 py-2 text-[12px] font-mono
-                       text-ink outline-none focus:border-[#5b63b8] resize-y"
-          />
-          <div className="mt-2 flex items-center gap-2 flex-wrap">
-            <button
-              onClick={() => applyImport(pasted)}
-              disabled={!pasted.trim()}
-              className="rounded-lg border border-border bg-panel px-3 py-1.5 text-[12.5px] text-ink
-                         hover:border-[#4a52a0] transition disabled:opacity-40 disabled:cursor-not-allowed"
-            >
-              Importer le JSON collé
-            </button>
-            <button
-              onClick={() => fileRef.current?.click()}
-              className="rounded-lg border border-border bg-panel px-3 py-1.5 text-[12.5px] text-ink-dim
-                         hover:text-ink hover:border-[#4a52a0] transition"
-            >
-              …ou charger un fichier .json
-            </button>
-            <input
-              ref={fileRef}
-              type="file"
-              accept=".json,application/json"
-              className="hidden"
-              onChange={(e) => {
-                const f = e.target.files?.[0];
-                e.target.value = ''; // permet de recharger le même fichier
-                if (!f) return;
-                f.text().then(applyImport);
-              }}
-            />
-            <span className="font-mono text-[11px] text-ink-dim">100 % local, rien n'est envoyé.</span>
-          </div>
-        </div>
-      )}
+      {/* Import : un seul chemin, le fichier .json (input déclenché par le
+          bouton « Importer » ci-dessus). */}
+      <input
+        ref={fileRef}
+        type="file"
+        accept=".json,application/json"
+        className="hidden"
+        onChange={(e) => {
+          const f = e.target.files?.[0];
+          e.target.value = ''; // permet de recharger le même fichier
+          if (!f) return;
+          f.text().then(applyImport);
+        }}
+      />
 
       {msg && (
         <p className={`mt-3 text-[12.5px] ${msg.error ? 'text-fire' : 'text-emerald-400'}`}>{msg.text}</p>

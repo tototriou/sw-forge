@@ -260,12 +260,14 @@ que personne ne peut relire ni corriger.
 Clés **en français** comme l'interface ; les clés **anglaises du modèle**
 (`name`, `note`, `slots`…) sont aussi acceptées en lecture.
 
-**Export** : le JSON est **téléchargé en `.json`** *et* **copié au presse-papier**
-— pièce jointe ou copier/coller, au choix.
+**Export** : le JSON est **téléchargé en `.json`**. Rien d'autre — pas de copie au
+presse-papier.
 
-**Import** : fichier `.json` ou contenu collé, **rien d'autre**. Un contenu qui ne
-commence pas par `{` est refusé avec un message explicite, plutôt qu'une erreur de
-parseur incompréhensible.
+**Import** : **fichier `.json` uniquement**. ⚠️ **Pas de zone de collage** : une
+recommandation se transmet comme une pièce jointe, et un champ de texte libre
+n'apportait qu'une seconde voie à valider, à expliquer et à maintenir. Un contenu
+qui ne commence pas par `{` est refusé avec un message explicite, plutôt qu'une
+erreur de parseur incompréhensible.
 
 La **migration `localStorage`** reste en place : un enregistrement à l'ancienne
 forme (`reco.slots`, du temps où une reco = un deck) est relu comme une
@@ -308,13 +310,13 @@ a été retenu. Contrairement au message de succès, il **n'est pas éphémère*
 y a quelque chose à lire — et se ferme par une croix.
 
 - **Exporter** (icône **Upload ↑**) : une recommandation **avec tous ses decks**,
-  **ou** « Tout exporter ». Produit le **fichier `.json`**, dont le contenu est
-  aussi **copié au presse-papier**. Une recommandation dont **aucun deck** n'a de
-  monstre n'est pas exportable ; le message récapitule
+  **ou** « Tout exporter ». Produit le **fichier `.json`**. Une recommandation
+  dont **aucun deck** n'a de monstre n'est pas exportable ; le message récapitule
   « N recommandation(s) · M deck(s) ».
-- **Importer** (icône **Download ↓**) : zone dépliable où **charger un fichier
-  `.json`** ou **coller son contenu**. Le contenu passe par le validateur (voir
-  ci-dessous) ; espaces et retours ligne autour du JSON tolérés.
+- **Importer** (icône **Download ↓**) : ouvre **directement le sélecteur de
+  fichier** `.json` — pas d'écran intermédiaire, pas de zone de collage. Le
+  contenu passe par le validateur (voir ci-dessous) ; espaces et retours ligne
+  autour du JSON tolérés.
 - ⚠️ **Un import AJOUTE toujours à la suite. Il ne remplace jamais.**
   - Aucune option, aucune confirmation : l'import ne peut pas détruire de
     données, donc il n'a rien à demander.

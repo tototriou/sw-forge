@@ -189,7 +189,31 @@ Détails :
 
 ## Onglet Comparaison — `RunesCompare`
 
-Se comparer entre amis en superposant plusieurs courbes (efficience **actuelle**).
+Se comparer entre amis en superposant plusieurs courbes.
+
+### ⚠️ DEUX sous-onglets, parce que les deux formats ne portent pas la même chose
+
+| Sous-onglet | Ce qu'on importe | Filtres disponibles |
+|---|---|---|
+| **Courbes partagées** | un export de courbe (**des points, rien d'autre**) | **nombre de runes** seulement |
+| **Fichiers de compte** | l'export SWEX complet d'un ami (**les runes**) | **sets · slot · antiques · nombre de runes** |
+
+Pourquoi cette séparation plutôt qu'un onglet unique :
+
+- Un **export de courbe ne contient que les points**, et c'est **volontaire** —
+  il ne doit transporter **aucune donnée de compte**. Les sets, l'emplacement et
+  la rareté n'y sont donc pas : un filtre par set y est **impossible**, pas
+  seulement « pas encore fait ».
+- Pire, l'appliquer à ma seule courbe **fausserait la comparaison** : on
+  opposerait *mon top Violent* à *tout le stock* de l'autre.
+- Avec un **fichier de compte**, les runes sont là : le **même filtre est
+  appliqué à tout le monde**, donc la comparaison reste honnête.
+- Un onglet unique aux filtres actifs une fois sur deux se lirait comme un bug.
+
+Le sous-onglet « Courbes partagées » **explique l'absence** des autres filtres,
+sinon on la prend pour un oubli.
+
+### Courbes partagées
 
 - **Exporter** (icône **Upload ↑**) : demande un nom, produit un **JSON lisible**
   (`format: "sw-forge/courbe-runes"`, **version 2**, voir
@@ -197,18 +221,33 @@ Se comparer entre amis en superposant plusieurs courbes (efficience **actuelle**
   `swforge-runes-<nom>.json` **et copié** au presse-papier.
   - ⚠️ Le fichier porte **LES DEUX séries** : `efficiences` **et** `scores`.
     Celui qui l'importe la lit donc dans **sa** mesure, sans dépendre du réglage
-    de l'expéditeur. Idem pour une courbe extraite d'un JSON de compte.
+    de l'expéditeur.
 - **Importer une courbe** (icône **Download ↓**) : charge le fichier d'un ami.
   **JSON uniquement** — l'ancien code compact `SWF-RUNES-1:` n'est plus ni
   produit ni lu.
-- **Importer un JSON** (icône FileJson) : charge le **JSON de compte SWEX brut**
-  d'un ami (s'il n'a pas l'outil) ; runes extraites à la volée (`parseAccountInventory`).
-  **100 % local.**
+
+### Fichiers de compte
+
+- **Importer un fichier de compte** : l'export SWEX brut d'un ami, runes
+  extraites à la volée (`parseAccountInventory`). **Lu dans la page, jamais
+  envoyé**, et conservé **en mémoire seulement** (`useStickyState`) : les runes
+  d'un tiers ne touchent jamais le disque.
+- Filtres identiques à l'onglet **Courbes** (`SetFilter`, `SlotFilter`,
+  « Antiques », nombre de runes), **appliqués à toutes les courbes à la fois**.
+- ⚠️ Le filtre de sets propose les sets présents **chez moi OU chez un ami** :
+  sinon on ne pourrait pas filtrer sur un set qu'on ne possède pas encore.
+- Pas de « gemme + meule / meule seule » : la comparaison porte sur l'**état
+  actuel** des runes, pas sur un potentiel — et un potentiel comparé entre deux
+  comptes n'aurait pas de sens tant que chacun n'a pas posé ses meules.
+
+### Communs aux deux sous-onglets
+
 - **Superposition** : ma courbe (« Moi ») en bleu, les amis en couleurs vives
   (palette cyclique). Bornes recalculées sur les courbes **visibles**.
 - **Légende** : pastille + nom + (max · médiane · nb) ; **cliquer le nom
   masque/affiche** ; la croix (✕) **retire** une courbe importée.
-- **Nombre de runes** : bascule **Top 400 / Tout**.
+- Deux courbes homonymes sont **renommées** (« Ami (2) ») : sinon la légende
+  serait illisible et la croix ambiguë.
 
 > Convention d'icônes : **Exporter = Upload ↑**, **Importer = Download ↓**.
 

@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Plus, Trash2 } from 'lucide-react';
 import {
   Monster,
@@ -13,6 +13,8 @@ import { LoadState } from '../hooks/useMonsters';
 import { UseRtaState } from '../hooks/useRtaState';
 import RtaSearch from '../components/rta/RtaSearch';
 import RtaSection from '../components/rta/RtaSection';
+import CategoryBar from '../components/rta/CategoryBar';
+import { useRtaCategories } from '../hooks/useRtaCategories';
 import RtaCard from '../components/rta/RtaCard';
 import MonsterGear from '../components/MonsterGear';
 import TurnOrder, { TurnItem } from '../components/rta/TurnOrder';
@@ -82,6 +84,21 @@ export default function RtaPage({
 
   const addedIds = useMemo(() => new Set(Object.keys(rta.state.entries)), [rta.state.entries]);
 
+  // Catégories libres (« Striper », « Lead SPD »…) : lecture transversale de la
+  // box, en plus du classement par set. Voir ../../spec/rta/categories.md.
+  const cats = useRtaCategories();
+  // Monstres réellement présents dans la prépa : ce sont eux qu'on propose dans
+  // le panneau d'affectation.
+  const pageMonsters = useMemo(
+    () => allItems.map((it) => it.monster),
+    [allItems]
+  );
+  // « Lead SPD » proposée d'office à la première prépa non vide : c'est le
+  // classement que tout le monde fait de tête en RTA.
+  useEffect(() => {
+    cats.ensureDefault(pageMonsters);
+  }, [cats, pageMonsters]);
+
   const availableSets = useMemo(
     () => RUNE_SETS.filter((s) => !rta.state.sections.includes(s.key)),
     [rta.state.sections]
@@ -102,6 +119,8 @@ export default function RtaPage({
         key={it.monster.id}
         monster={it.monster}
         entry={it.entry}
+        categoryColors={cats.visible ? cats.categoriesOf(String(it.monster.id)).map((c) => c.color) : []}
+        categoryLabels={cats.categoriesOf(String(it.monster.id)).map((c) => c.label)}
         sectionKeys={moveTargets}
         open={openId === String(it.monster.id)}
         onToggleDetail={toggleDetail}
@@ -170,6 +189,8 @@ export default function RtaPage({
           </button>
         )}
       </div>
+
+      <CategoryBar cats={cats} monsters={pageMonsters} />
 
       {loadState === 'loading' && monsters.length === 0 && (
         <p className="mt-4 text-ink-dim text-[13px]">Chargement des monstres…</p>
@@ -247,7 +268,7 @@ export default function RtaPage({
             par vitesse totale · le plus rapide à gauche
           </span>
         </div>
-        <TurnOrder items={allItems} onRuneSpeed={rta.setRuneSpeed} />
+        <TurnOrder items={allItems} onRuneSpeed={rta.setRuneSpeed} categories={cats.visible ? cats.categories : []} />
       </section>
     </div>
   );

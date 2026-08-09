@@ -71,6 +71,12 @@ export const RELEASES: Release[] = [
         text: 'Efficience ou score SW officiel, au choix, partout sur le site.',
       },
       { kind: 'feat', scope: 'Interface', text: 'Portrait du monstre dans les listes de choix.' },
+      {
+        kind: 'feat',
+        scope: 'RTA',
+        text: 'Catégories de couleur (« Striper », « Lead SPD »…) à poser sur tes monstres.',
+      },
+      { kind: 'feat', scope: 'Nouveautés', text: 'Cette page : le journal des versions du site.' },
       { kind: 'fix', scope: 'Vitesse', text: 'Les vitesses de combat collent enfin à celles du jeu.' },
       { kind: 'fix', scope: 'Import', text: 'Le Swift complété par une rune Intangible est reconnu.' },
       { kind: 'fix', scope: 'Import', text: 'Annuler un import ne dédouble plus les données.' },

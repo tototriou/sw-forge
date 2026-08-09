@@ -1,6 +1,8 @@
 import { useMemo, useState } from 'react';
 import { Monster, RtaEntry } from '../../types';
 import ElementIcon from '../ElementIcon';
+import CategoryRing from './CategoryRing';
+import { RtaCategory } from '../../hooks/useRtaCategories';
 import RuneIcon from '../RuneIcon';
 
 const SPD_ICON = `${import.meta.env.BASE_URL}stats/spd.png`;
@@ -40,6 +42,10 @@ export interface TurnItem {
 interface Props {
   items: TurnItem[];
   onRuneSpeed: (id: string, value: number | null) => void;
+  // Catégories de la prépa : l'ordre de tour doit porter les MÊMES couleurs que
+  // les cartes, sinon on perd le repère au moment où il sert le plus (voir
+  // ../../spec/rta/categories.md).
+  categories?: RtaCategory[];
 }
 
 // Vitesse totale hors lead (base + runes).
@@ -75,8 +81,12 @@ function sortByLead(items: TurnItem[], lead: number): TurnItem[] {
   });
 }
 
-export default function TurnOrder({ items, onRuneSpeed }: Props) {
+export default function TurnOrder({ items, onRuneSpeed, categories = [] }: Props) {
   const [lead, setLead] = useState(0);
+  const catsOf = (monsterId: string) => categories.filter((c) => c.members.includes(monsterId));
+  // Légende : uniquement les catégories réellement représentées ici, sinon on
+  // rappellerait des couleurs qu'on ne voit nulle part à l'écran.
+  const legende = categories.filter((c) => items.some((it) => c.members.includes(String(it.monster.id))));
   const [highlightMovers, setHighlightMovers] = useState(false);
 
   const ordered = useMemo(() => sortByLead(items, lead), [items, lead]);
@@ -146,6 +156,22 @@ export default function TurnOrder({ items, onRuneSpeed }: Props) {
         </button>
       </div>
 
+      {/* Rappel des couleurs : sans légende, un anneau coloré ne veut rien dire
+          pour qui n'a pas la barre de catégories sous les yeux. */}
+      {legende.length > 0 && (
+        <div className="mb-2 flex flex-wrap items-center gap-x-3 gap-y-1">
+          {legende.map((c) => (
+            <span key={c.id} className="inline-flex items-center gap-1.5 text-[11px] text-ink-dim">
+              <span
+                className="w-2.5 h-2.5 rounded-full flex-none"
+                style={{ backgroundColor: c.color }}
+              />
+              {c.label}
+            </span>
+          ))}
+        </div>
+      )}
+
       {ordered.length === 0 ? (
         <div className="rounded-xl border border-dashed border-border/70 py-8 text-center text-ink-dim text-[13px]">
           Ajoute des monstres pour visualiser l'ordre de tour.
@@ -161,9 +187,17 @@ export default function TurnOrder({ items, onRuneSpeed }: Props) {
             return (
               <div
                 key={m.id}
+                title={
+                  catsOf(String(m.id)).length > 0
+                    ? catsOf(String(m.id))
+                        .map((c) => c.label)
+                        .join(' · ')
+                    : undefined
+                }
                 className={`relative flex-none w-[168px] rounded-xl border p-2 flex flex-col gap-1.5 transition-colors
                   ${moved ? 'border-star bg-star/10 ring-1 ring-star/50' : 'border-border bg-panel2'}`}
               >
+                <CategoryRing colors={catsOf(String(m.id)).map((c) => c.color)} radius="rounded-xl" />
                 {/* numéro d'ordre superposé en haut à gauche */}
                 <span
                   className="absolute -top-2 -left-2 z-10 flex items-center justify-center min-w-[20px] h-5 px-1

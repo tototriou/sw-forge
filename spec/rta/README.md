@@ -25,6 +25,7 @@ Fichier racine : [RtaPage.tsx](src/pages/RtaPage.tsx) · État :
 | Recherche, import de compte, création de monstre, actions globales | [recherche-import.md](recherche-import.md) |
 | Zones de classement drag & drop (Non classé + sets de runes) | [sections-runes.md](sections-runes.md) |
 | Ordre de tour & simulation de leads | [ordre-de-tour.md](ordre-de-tour.md) |
+| Catégories libres (couleur + titre) et anneau des cartes | [categories.md](categories.md) |
 
 ## Modèle d'état (`RtaState`)
 

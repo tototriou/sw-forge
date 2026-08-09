@@ -3,6 +3,7 @@ import { GripVertical, X, ChevronDown } from 'lucide-react';
 import { Monster, RtaEntry, sectionLabel } from '../../types';
 import ElementIcon from '../ElementIcon';
 import RuneIcon from '../RuneIcon';
+import CategoryRing from './CategoryRing';
 
 const SPD_ICON = `${import.meta.env.BASE_URL}stats/spd.png`;
 
@@ -43,6 +44,8 @@ interface Props {
   onRemove: (id: string) => void;
   onDragStart: (id: string) => void;
   onDragEnd: () => void;
+  categoryColors?: string[]; // anneau des catégories du monstre (0 à 4)
+  categoryLabels?: string[]; // pour l'infobulle
 }
 
 export default function RtaCard({
@@ -55,6 +58,8 @@ export default function RtaCard({
   onRemove,
   onDragStart,
   onDragEnd,
+  categoryColors = [],
+  categoryLabels = [],
 }: Props) {
   const cardRef = useRef<HTMLDivElement>(null);
   const base = monster.stats.speed;
@@ -74,10 +79,13 @@ export default function RtaCard({
   return (
     <div
       ref={cardRef}
+      title={categoryLabels.length > 0 ? categoryLabels.join(' · ') : undefined}
       className={`group relative rounded-lg border bg-panel2 transition-colors ${
         open ? 'border-[#5b63b8] ring-1 ring-[#5b63b8]/50' : 'border-border'
       }`}
     >
+      {/* Anneau des catégories, par-dessus la bordure (voir CategoryRing). */}
+      <CategoryRing colors={categoryColors} />
       <div className="flex items-center gap-2 p-1.5">
       {/* Poignée de drag : seule zone qui déclenche le glisser-déposer */}
       <button

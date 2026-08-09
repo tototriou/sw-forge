@@ -1,5 +1,5 @@
-import { useMemo, useRef, useState } from 'react';
-import { Download, Upload, FileJson, X, LineChart, Boxes } from 'lucide-react';
+import { Dispatch, SetStateAction, useMemo, useRef, useState } from 'react';
+import { Download, Upload, FileJson, X, LineChart, Boxes, Trash2 } from 'lucide-react';
 import { RuneDetail } from '../../types';
 import { runeEfficiency, runeScore, isAncient } from '../../lib/effects';
 import { encodeCurveJson, decodeCurve } from '../../lib/runeCurveShare';
@@ -68,39 +68,106 @@ export default function RunesCompare({ runes }: Props) {
   const metric = useRuneMetric();
   const flash = (ok: boolean, text: string) => setMsg({ ok, text });
 
+  // Les listes importées vivent ICI, pas dans les sous-onglets : c'est ce qui
+  // permet un « Tout retirer » unique, qui vide les deux d'un coup.
+  const [courbes, setCourbes] = useStickyState<CurveOverlay[]>('runesCompare.overlays', []);
+  const [comptes, setComptes] = useStickyState<AccountOverlay[]>('runesCompare.accounts', []);
+  const [hidden, setHidden] = useStickyState<Set<string>>('runesCompare.hidden', new Set());
+  const importes = courbes.length + comptes.length;
+  // Unicité des noms sur les DEUX listes : elles cohabitent dans l'onglet
+  // Courbes, deux homonymes y seraient impossibles à distinguer.
+  const noms = [...courbes, ...comptes].map((o) => o.name);
+
+  // ⚠️ Ne touche QUE ce qui a été importé dans cet onglet. Ni le compte du
+  // joueur (box, runes, artéfacts), ni ses recommandations, ni sa prépa RTA ou
+  // ses équipes de siège — d'où un message qui le dit explicitement, pour qu'on
+  // n'hésite pas à cliquer.
+  function toutRetirer() {
+    const quoi = [
+      courbes.length > 0 && `${courbes.length} courbe${courbes.length > 1 ? 's' : ''}`,
+      comptes.length > 0 && `${comptes.length} compte${comptes.length > 1 ? 's' : ''}`,
+    ]
+      .filter(Boolean)
+      .join(' et ');
+    const ok = confirm(
+      `Retirer ${quoi} de la comparaison ?
+
+` +
+        'Ton propre compte, tes recommandations et tes équipes ne sont pas touchés.'
+    );
+    if (!ok) return;
+    setCourbes([]);
+    setComptes([]);
+    setHidden(new Set());
+    flash(true, 'Comparaison remise à zéro.');
+  }
+
   return (
     <div>
-      <div className="mb-3 flex items-center gap-1 bg-panel border border-border rounded-lg p-0.5 w-fit">
-        {[
-          { key: 'courbes' as const, icon: LineChart, label: 'Courbes partagées' },
-          { key: 'comptes' as const, icon: Boxes, label: 'Fichiers de compte' },
-        ].map((o) => {
-          const Icon = o.icon;
-          return (
-            <button
-              key={o.key}
-              onClick={() => {
-                setOnglet(o.key);
-                setMsg(null);
-              }}
-              className={`flex items-center gap-1.5 rounded-md px-2.5 py-1 text-[12px] font-semibold transition ${
-                onglet === o.key
-                  ? 'bg-gradient-to-br from-[#3a4270] to-[#272e52] text-ink'
-                  : 'text-ink-dim hover:text-ink'
-              }`}
-            >
-              <Icon size={13} /> {o.label}
-            </button>
-          );
-        })}
+      <div className="mb-3 flex items-center gap-2 flex-wrap">
+        <div className="flex items-center gap-1 bg-panel border border-border rounded-lg p-0.5 w-fit">
+          {[
+            { key: 'courbes' as const, icon: LineChart, label: 'Courbes partagées' },
+            { key: 'comptes' as const, icon: Boxes, label: 'Fichiers de compte' },
+          ].map((o) => {
+            const Icon = o.icon;
+            return (
+              <button
+                key={o.key}
+                onClick={() => {
+                  setOnglet(o.key);
+                  setMsg(null);
+                }}
+                className={`flex items-center gap-1.5 rounded-md px-2.5 py-1 text-[12px] font-semibold transition ${
+                  onglet === o.key
+                    ? 'bg-gradient-to-br from-[#3a4270] to-[#272e52] text-ink'
+                    : 'text-ink-dim hover:text-ink'
+                }`}
+              >
+                <Icon size={13} /> {o.label}
+              </button>
+            );
+          })}
+        </div>
+
+        {importes > 0 && (
+          <button
+            onClick={toutRetirer}
+            title="Retire uniquement ce qui a été importé ici"
+            className="ml-auto flex items-center gap-1.5 rounded-lg border border-border bg-panel px-3 py-1.5
+                       text-[12.5px] font-semibold text-ink-dim transition hover:border-fire/60 hover:text-fire"
+          >
+            <Trash2 size={14} /> Tout retirer ({importes})
+          </button>
+        )}
       </div>
 
       {msg && <p className={`text-[12px] mb-3 ${msg.ok ? 'text-wind' : 'text-fire'}`}>{msg.text}</p>}
 
       {onglet === 'courbes' ? (
-        <OngletCourbes runes={runes} metric={metric} flash={flash} />
+        <OngletCourbes
+          runes={runes}
+          metric={metric}
+          flash={flash}
+          overlays={courbes}
+          setOverlays={setCourbes}
+          comptes={comptes}
+          setComptes={setComptes}
+          noms={noms}
+          hidden={hidden}
+          setHidden={setHidden}
+        />
       ) : (
-        <OngletComptes runes={runes} metric={metric} flash={flash} />
+        <OngletComptes
+          runes={runes}
+          metric={metric}
+          flash={flash}
+          overlays={comptes}
+          setOverlays={setComptes}
+          noms={noms}
+          hidden={hidden}
+          setHidden={setHidden}
+        />
       )}
     </div>
   );
@@ -112,13 +179,25 @@ function OngletCourbes({
   runes,
   metric,
   flash,
+  overlays,
+  setOverlays,
+  comptes,
+  setComptes,
+  noms,
+  hidden,
+  setHidden,
 }: {
   runes: RuneDetail[];
   metric: 'eff' | 'score';
   flash: (ok: boolean, text: string) => void;
+  overlays: CurveOverlay[];
+  setOverlays: Dispatch<SetStateAction<CurveOverlay[]>>;
+  comptes: AccountOverlay[];
+  setComptes: Dispatch<SetStateAction<AccountOverlay[]>>;
+  noms: string[];
+  hidden: Set<string>;
+  setHidden: Dispatch<SetStateAction<Set<string>>>;
 }) {
-  const [overlays, setOverlays] = useStickyState<CurveOverlay[]>('runesCompare.overlays', []);
-  const [hidden, setHidden] = useStickyState<Set<string>>('runesCompare.hidden', new Set());
   const [limit, setLimit] = useStickyState('runesCompare.limit', DEFAULT_LIMIT);
   const curveRef = useRef<HTMLInputElement>(null);
 
@@ -149,7 +228,7 @@ function OngletCourbes({
         ...prev,
         {
           ...payload,
-          name: nomLibre(payload.name, prev.map((o) => o.name)),
+          name: nomLibre(payload.name, noms),
           color: OVERLAY_COLORS[prev.length % OVERLAY_COLORS.length],
         },
       ]);
@@ -160,13 +239,31 @@ function OngletCourbes({
   }
 
   const cap = (arr: number[]) => arr.slice(0, Math.max(1, limit));
-  const series: CurveSeries[] = [
-    { name: 'Moi', effs: cap(mine), color: OWN_COLOR, own: true },
-    ...overlays.map((o) => ({
-      name: o.name,
-      effs: cap(metric === 'eff' ? o.effs : o.scores),
-      color: o.color,
-      own: false,
+  // ⚠️ Cet onglet montre TOUT ce qui est importé : les courbes partagées **et**
+  // les fichiers de compte, ramenés à leurs points. L'inverse n'est pas vrai —
+  // l'onglet Comptes ne peut pas afficher une courbe partagée, faute de runes
+  // sur lesquelles appliquer ses filtres.
+  const lignes: Ligne[] = [
+    { series: { name: 'Moi', effs: cap(mine), color: OWN_COLOR, own: true } },
+    ...overlays.map((o, i) => ({
+      series: {
+        name: o.name,
+        effs: cap(metric === 'eff' ? o.effs : o.scores),
+        color: o.color,
+        own: false,
+      },
+      remove: () => setOverlays((prev) => prev.filter((_, j) => j !== i)),
+    })),
+    ...comptes.map((o, i) => ({
+      series: {
+        name: o.name,
+        effs: cap(
+          o.runes.map((r) => (metric === 'eff' ? runeEfficiency(r) : runeScore(r))).sort(desc)
+        ),
+        color: o.color,
+        own: false,
+      },
+      remove: () => setComptes((prev) => prev.filter((_, j) => j !== i)),
     })),
   ];
 
@@ -196,19 +293,15 @@ function OngletCourbes({
 
       {/* ⚠️ Explique l'ABSENCE des autres filtres, sinon on la prend pour un oubli. */}
       <p className="mb-3 text-[12px] leading-relaxed text-ink-dim">
-        Une courbe partagée ne contient que des <b className="text-ink">points</b>, pas les runes —
-        c'est ce qui lui évite de transporter la moindre donnée de compte. Les filtres par set,
-        emplacement ou antiques ont donc besoin de l'onglet{' '}
+        Cet onglet montre <b className="text-ink">tout ce que tu as importé</b>, courbes partagées
+        comme fichiers de compte. Une courbe partagée ne contient que des{' '}
+        <b className="text-ink">points</b>, pas les runes — c'est ce qui lui évite de transporter la
+        moindre donnée de compte, mais aussi ce qui rend les filtres par set, emplacement ou
+        antiques impossibles ici : ils vivent dans l'onglet{' '}
         <b className="text-ink">Fichiers de compte</b>.
       </p>
 
-      <Graphe
-        series={series}
-        metric={metric}
-        hidden={hidden}
-        setHidden={setHidden}
-        onRemove={(i) => setOverlays((prev) => prev.filter((_, j) => j !== i))}
-      />
+      <Graphe lignes={lignes} metric={metric} hidden={hidden} setHidden={setHidden} />
     </>
   );
 }
@@ -219,13 +312,21 @@ function OngletComptes({
   runes,
   metric,
   flash,
+  overlays,
+  setOverlays,
+  noms,
+  hidden,
+  setHidden,
 }: {
   runes: RuneDetail[];
   metric: 'eff' | 'score';
   flash: (ok: boolean, text: string) => void;
+  overlays: AccountOverlay[];
+  setOverlays: Dispatch<SetStateAction<AccountOverlay[]>>;
+  noms: string[];
+  hidden: Set<string>;
+  setHidden: Dispatch<SetStateAction<Set<string>>>;
 }) {
-  const [overlays, setOverlays] = useStickyState<AccountOverlay[]>('runesCompare.accounts', []);
-  const [hidden, setHidden] = useStickyState<Set<string>>('runesCompare.accountsHidden', new Set());
   const [sets, setSets] = useStickyState<Set<string>>('runesCompare.sets', new Set());
   const [slots, setSlots] = useStickyState<Set<number>>('runesCompare.slots', new Set());
   const [ancientOnly, setAncientOnly] = useStickyState('runesCompare.ancient', false);
@@ -247,7 +348,7 @@ function OngletComptes({
       setOverlays((prev) => [
         ...prev,
         {
-          name: nomLibre(nom, prev.map((o) => o.name)),
+          name: nomLibre(nom, noms),
           runes: res.runes,
           color: OVERLAY_COLORS[prev.length % OVERLAY_COLORS.length],
         },
@@ -274,9 +375,12 @@ function OngletComptes({
       .sort(desc)
       .slice(0, Math.max(1, limit));
 
-  const series: CurveSeries[] = [
-    { name: 'Moi', effs: valeurs(runes), color: OWN_COLOR, own: true },
-    ...overlays.map((o) => ({ name: o.name, effs: valeurs(o.runes), color: o.color, own: false })),
+  const lignes: Ligne[] = [
+    { series: { name: 'Moi', effs: valeurs(runes), color: OWN_COLOR, own: true } },
+    ...overlays.map((o, i) => ({
+      series: { name: o.name, effs: valeurs(o.runes), color: o.color, own: false },
+      remove: () => setOverlays((prev) => prev.filter((_, j) => j !== i)),
+    })),
   ];
 
   // Sets proposés au filtre : ceux présents chez MOI **ou** chez un ami — sinon
@@ -331,17 +435,13 @@ function OngletComptes({
         <p className="mb-3 text-[12px] leading-relaxed text-ink-dim">
           Importe le fichier de compte d'un ami pour le comparer au tien.{' '}
           <b className="text-ink">Les filtres s'appliquent à tout le monde de la même façon</b> — ton
-          top Violent face au sien, et non face à l'ensemble de son stock.
+          top Violent face au sien, et non face à l'ensemble de son stock. Seuls les fichiers de
+          compte apparaissent ici : une courbe partagée n'a pas les runes qu'il faudrait pour être
+          filtrée.
         </p>
       )}
 
-      <Graphe
-        series={series}
-        metric={metric}
-        hidden={hidden}
-        setHidden={setHidden}
-        onRemove={(i) => setOverlays((prev) => prev.filter((_, j) => j !== i))}
-      />
+      <Graphe lignes={lignes} metric={metric} hidden={hidden} setHidden={setHidden} />
     </>
   );
 }
@@ -361,19 +461,25 @@ function nomLibre(souhaite: string, pris: string[]): string {
   return nom;
 }
 
+// Une ligne du graphe = une série + son éventuel retrait. On attache le retrait
+// à la ligne plutôt que de le déduire d'un index : l'onglet Courbes mélange deux
+// listes (courbes et comptes), un index n'y désignerait plus rien de fiable.
+export interface Ligne {
+  series: CurveSeries;
+  remove?: () => void;
+}
+
 // Légende cliquable (masquer/afficher) + graphe, partagés par les deux onglets.
 function Graphe({
-  series,
+  lignes,
   metric,
   hidden,
   setHidden,
-  onRemove,
 }: {
-  series: CurveSeries[];
+  lignes: Ligne[];
   metric: 'eff' | 'score';
   hidden: Set<string>;
-  setHidden: (fn: (prev: Set<string>) => Set<string>) => void;
-  onRemove: (index: number) => void;
+  setHidden: Dispatch<SetStateAction<Set<string>>>;
 }) {
   const toggle = (name: string) =>
     setHidden((prev) => {
@@ -385,7 +491,7 @@ function Graphe({
   return (
     <>
       <div className="flex items-center gap-3 flex-wrap mb-3">
-        {series.map((s, i) => {
+        {lignes.map(({ series: s, remove }) => {
           const off = hidden.has(s.name);
           return (
             <span key={s.name} className="flex items-center gap-1.5 font-mono text-[12px]">
@@ -408,9 +514,9 @@ function Graphe({
                   </span>
                 )}
               </button>
-              {!s.own && (
+              {remove && (
                 <button
-                  onClick={() => onRemove(i - 1)}
+                  onClick={remove}
                   className="text-ink-dim hover:text-fire transition"
                   title="Retirer cette courbe"
                 >
@@ -423,7 +529,7 @@ function Graphe({
       </div>
 
       <CurveChart
-        series={series.filter((s) => !hidden.has(s.name))}
+        series={lignes.map((l) => l.series).filter((s) => !hidden.has(s.name))}
         yLabel={metric === 'eff' ? 'Efficience (%)' : 'Score SW'}
         unit={metric === 'eff' ? '%' : ''}
       />

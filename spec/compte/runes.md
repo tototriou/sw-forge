@@ -193,10 +193,16 @@ Se comparer entre amis en superposant plusieurs courbes.
 
 ### ⚠️ DEUX sous-onglets, parce que les deux formats ne portent pas la même chose
 
-| Sous-onglet | Ce qu'on importe | Filtres disponibles |
+| Sous-onglet | Ce qu'il AFFICHE | Filtres disponibles |
 |---|---|---|
-| **Courbes partagées** | un export de courbe (**des points, rien d'autre**) | **nombre de runes** seulement |
-| **Fichiers de compte** | l'export SWEX complet d'un ami (**les runes**) | **sets · slot · antiques · nombre de runes** |
+| **Courbes partagées** | **tout l'importé** : courbes partagées **et** fichiers de compte | **nombre de runes** seulement |
+| **Fichiers de compte** | **les fichiers de compte seulement** | **sets · slot · antiques · nombre de runes** |
+
+⚠️ **L'inclusion ne va que dans un sens.** Un fichier de compte se réduit
+toujours à des points, donc il a sa place dans l'onglet Courbes. L'inverse est
+impossible : une courbe partagée n'a pas les runes sur lesquelles les filtres de
+l'onglet Comptes s'appliquent. « Courbes » est donc la **vue d'ensemble**,
+« Comptes » la **vue filtrable**.
 
 Pourquoi cette séparation plutôt qu'un onglet unique :
 
@@ -230,8 +236,7 @@ sinon on la prend pour un oubli.
 
 - **Importer un fichier de compte** : l'export SWEX brut d'un ami, runes
   extraites à la volée (`parseAccountInventory`). **Lu dans la page, jamais
-  envoyé**, et conservé **en mémoire seulement** (`useStickyState`) : les runes
-  d'un tiers ne touchent jamais le disque.
+  envoyé.**
 - Filtres identiques à l'onglet **Courbes** (`SetFilter`, `SlotFilter`,
   « Antiques », nombre de runes), **appliqués à toutes les courbes à la fois**.
 - ⚠️ Le filtre de sets propose les sets présents **chez moi OU chez un ami** :
@@ -240,14 +245,45 @@ sinon on la prend pour un oubli.
   actuel** des runes, pas sur un potentiel — et un potentiel comparé entre deux
   comptes n'aurait pas de sens tant que chacun n'a pas posé ses meules.
 
+### ⚠️ RIEN de ce qui est importé ici n'est conservé
+
+Courbes partagées **et** fichiers de compte vivent **en mémoire seulement**
+(`useStickyState` — un cache par clé, **pas** `localStorage`). Ils survivent à la
+navigation entre onglets et **disparaissent au rechargement**.
+
+C'est délibéré : ce sont les données **de quelqu'un d'autre**. Elles n'ont rien à
+faire sur le disque de celui qui les consulte, et il ne doit pas avoir à y penser.
+⚠️ **Ne pas** basculer cet état vers `localStorage` « pour le confort » — c'est la
+seule partie de l'app où de la donnée tierce transite.
+
+### « Tout retirer » — vider la comparaison
+
+Bouton en haut à droite, **affiché seulement s'il y a quelque chose à retirer**,
+avec le compte de ce qui partira, et une **confirmation**.
+
+⚠️ Il ne touche **QUE ce qui a été importé ici** — les deux sous-onglets à la
+fois. **Pas** le compte du joueur (box, runes, artéfacts), **pas** ses
+recommandations, **pas** sa prépa RTA ni ses équipes. Le message de confirmation
+**le dit explicitement** : sans ça, on n'ose pas cliquer, de peur d'effacer son
+propre import.
+
+> Pour tout effacer, c'est « Tout supprimer » dans le menu ⚙ — action distincte,
+> à un autre endroit, et c'est voulu.
+
+Les listes importées vivent donc dans `RunesCompare`, pas dans chaque
+sous-onglet : c'est ce qui permet un bouton unique qui les vide toutes les deux.
+
 ### Communs aux deux sous-onglets
 
 - **Superposition** : ma courbe (« Moi ») en bleu, les amis en couleurs vives
   (palette cyclique). Bornes recalculées sur les courbes **visibles**.
 - **Légende** : pastille + nom + (max · médiane · nb) ; **cliquer le nom
   masque/affiche** ; la croix (✕) **retire** une courbe importée.
-- Deux courbes homonymes sont **renommées** (« Ami (2) ») : sinon la légende
-  serait illisible et la croix ambiguë.
+- Deux courbes homonymes sont **renommées** (« Ami (2) »), **en tenant compte des
+  deux listes à la fois** puisqu'elles cohabitent dans l'onglet Courbes : sinon
+  la légende serait illisible et la croix ambiguë.
+- ⚠️ Le retrait est **attaché à chaque ligne**, pas déduit d'un index : l'onglet
+  Courbes mélange deux listes, un index n'y désignerait plus rien de fiable.
 
 > Convention d'icônes : **Exporter = Upload ↑**, **Importer = Download ↓**.
 

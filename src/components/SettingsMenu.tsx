@@ -1,5 +1,5 @@
 import { ReactNode, useEffect, useRef, useState } from 'react';
-import { Settings } from 'lucide-react';
+import { Settings, Trash2 } from 'lucide-react';
 import { RUNE_METRICS, setRuneMetric, useRuneMetric } from '../hooks/useRuneMetric';
 
 /* --------------------------------------------------------------------------
@@ -62,13 +62,30 @@ function Segmented<T extends string>({
 // Réglages GLOBAUX de l'application : on les pose une fois, ils valent partout.
 // Règle (voir spec/README.md) : un réglage qui concerne plusieurs pages vient
 // ICI, jamais dupliqué en sélecteur sur chaque page.
-function SettingsList() {
+function SettingsList({ onClearData }: { onClearData?: () => void }) {
   const metric = useRuneMetric();
   return (
     <div>
       <Setting title="Score">
         <Segmented options={RUNE_METRICS} value={metric} onChange={setRuneMetric} />
       </Setting>
+
+      {/* ⚠️ La suppression vit ICI, pas à côté du bouton d'import : une action
+          destructrice collée au bouton le plus utilisé finit par être cliquée de
+          travers. Dans un menu qu'on ouvre exprès, le geste est délibéré. */}
+      {onClearData && (
+        <Setting title="Mes données">
+          <button
+            onClick={onClearData}
+            title="Efface la prépa RTA, les équipes de siège, les recommandations et les monstres perso"
+            className="flex flex-none items-center gap-1.5 rounded-lg border border-border bg-panel2
+                       px-2.5 py-1 text-[11.5px] font-semibold text-ink-dim transition
+                       hover:border-fire/60 hover:text-fire"
+          >
+            <Trash2 size={12} /> Tout supprimer
+          </button>
+        </Setting>
+      )}
     </div>
   );
 }
@@ -76,7 +93,13 @@ function SettingsList() {
 // `bar` = à côté du hamburger, quand la nav est repliée : les réglages doivent
 // rester accessibles en UN geste, donc jamais enfouis dans le menu. Même gabarit
 // que le bouton hamburger (44 px, encadré) pour former une paire.
-export default function SettingsMenu({ variant = 'desktop' }: { variant?: 'desktop' | 'bar' }) {
+export default function SettingsMenu({
+  variant = 'desktop',
+  onClearData,
+}: {
+  variant?: 'desktop' | 'bar';
+  onClearData?: () => void;
+}) {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
 
@@ -115,7 +138,7 @@ export default function SettingsMenu({ variant = 'desktop' }: { variant?: 'deskt
           <div className="font-mono text-[10px] uppercase tracking-[0.14em] text-ink-dim pb-1.5 border-b border-border">
             Réglages
           </div>
-          <SettingsList />
+          <SettingsList onClearData={onClearData} />
         </div>
       )}
     </div>

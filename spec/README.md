@@ -55,7 +55,7 @@ Concepts partagés par plusieurs pages, documentés une seule fois :
   **et** l'entrée du journal ([releases.md](releases.md)). Processus détaillé
   dans le [README](README.md). ⚠️ **Un changement de calcul se note toujours**
   dans le journal : c'est ce qu'un joueur remarque en premier.
-- **Footer** — quatre informations, dans cet ordre :
+- **Footer** — trois informations, dans cet ordre :
   0. **Version** `vX.Y.Z` (depuis `package.json`), **cliquable** vers `#/releases`.
   1. **Signature** : lien vers le dépôt GitHub (`github.com/tototriou/sw-forge`)
      et **lien vers le serveur Discord** (`discord.gg/R2Fe4GJZET`) pour les
@@ -64,9 +64,15 @@ Concepts partagés par plusieurs pages, documentés une seule fois :
   2. Rappel que les données restent locales.
   3. Crédit Com2uS / SWARFARM.
 - **Données 100 % locales** : le footer rappelle que toutes les données restent
-  en local. Un lien **« Supprimer mes données »** (dans la barre de nav, à côté de
-  l'import) efface les clés `localStorage` `sw-forge*` / `sky-arena*` (prépa RTA,
-  équipes de siège, monstres perso) puis recharge. Voir [App.tsx](src/App.tsx).
+  en local. **« Tout supprimer »** efface les clés `localStorage` `sw-forge*` /
+  `sky-arena*` (prépa RTA, équipes de siège, recommandations, catégories,
+  monstres perso) puis recharge. Voir [App.tsx](src/App.tsx).
+  - ⚠️ Cette action vit **dans le menu ⚙**, pas à côté du bouton d'import : une
+    action destructrice collée au bouton le plus utilisé finit par être cliquée
+    de travers. Dans un menu qu'on ouvre exprès, le geste est délibéré.
+- **Import de compte** : le bouton de la nav est **masqué sur l'accueil**, où la
+  zone de dépôt occupe déjà le centre de l'écran — deux points d'entrée pour le
+  même geste sèment le doute sur celui qui « compte vraiment ».
 - **Réglages globaux** — menu **⚙** [SettingsMenu.tsx](src/components/SettingsMenu.tsx),
   **tout à droite** de la barre de nav (après le bouton d'import). ⚠️ **Toujours
   visible** : barre repliée, il passe **à côté du hamburger** (variante `bar`,

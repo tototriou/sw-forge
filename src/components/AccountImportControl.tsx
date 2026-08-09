@@ -1,19 +1,20 @@
 import { useRef } from 'react';
-import { Import, Trash2 } from 'lucide-react';
+import { Import } from 'lucide-react';
 
 interface Props {
   // Applique un export (RTA + siège défense + offense d'un coup).
   onImport: (text: string) => void;
-  // Efface toutes les données locales.
-  onClearData: () => void;
   variant: 'desktop' | 'mobile';
 }
 
 // Bouton d'import unique et invariant, dans la barre de navigation (desktop) et
 // le menu (mobile). Chaque import ouvre le sélecteur de fichier ; le fichier
-// choisi remplace le précédent et alimente toutes les pages. À côté : un lien
-// « Supprimer mes données ».
-export default function AccountImportControl({ onImport, onClearData, variant }: Props) {
+// choisi remplace le précédent et alimente toutes les pages.
+//
+// ⚠️ « Supprimer mes données » n'est plus ici mais dans le menu ⚙ : une action
+// destructrice collée au bouton qu'on utilise le plus souvent finit par être
+// cliquée de travers.
+export default function AccountImportControl({ onImport, variant }: Props) {
   const fileInput = useRef<HTMLInputElement>(null);
 
   async function handleFile(e: React.ChangeEvent<HTMLInputElement>) {
@@ -47,17 +48,6 @@ export default function AccountImportControl({ onImport, onClearData, variant }:
         <Import size={isMobile ? 18 : 14} /> Importer un JSON
       </button>
 
-      <button
-        onClick={onClearData}
-        title="Efface la prépa RTA, les équipes de siège et les monstres perso (stockés en local)"
-        className={
-          isMobile
-            ? 'flex items-center gap-2 text-left px-3 py-1 text-[12px] text-ink-dim hover:text-fire transition'
-            : 'flex items-center gap-1 font-mono text-[11px] text-ink-dim hover:text-fire transition whitespace-nowrap'
-        }
-      >
-        <Trash2 size={isMobile ? 14 : 12} /> Supprimer mes données
-      </button>
     </div>
   );
 }

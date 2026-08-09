@@ -11,6 +11,7 @@
     "fetch-data": "node scripts/fetch-monsters.mjs"
   },
   "dependencies": {
+    "@vercel/analytics": "^2.0.1",
     "framer-motion": "^11.3.19",
     "lucide-react": "^0.407.0",
     "react": "^18.3.1",

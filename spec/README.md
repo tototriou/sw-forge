@@ -45,6 +45,11 @@ Concepts partagés par plusieurs pages, documentés une seule fois :
 
 - **Persistance navigateur** : chaque page à état (RTA, Siège) sauvegarde tout
   dans `localStorage`. Rien n'est envoyé à un serveur. Aucune authentification.
+- **Statistiques de fréquentation** : **Vercel Web Analytics**
+  ([Analytics.tsx](src/components/Analytics.tsx)), sans cookie, limité aux pages
+  visitées. ⚠️ Le routage étant **par hash**, un `beforeSend` réécrit l'URL pour
+  que la route devienne le chemin — sinon toutes les visites seraient comptées
+  sur « / ».
 - **Versions & releases** — `main` reste **stable et déployée** ; on développe
   dans une branche **`release/x.y.z`**, qui porte l'incrément de `package.json`
   **et** l'entrée du journal ([releases.md](releases.md)). Processus détaillé

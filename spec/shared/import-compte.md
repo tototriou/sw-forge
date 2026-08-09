@@ -83,7 +83,24 @@ Points clés découverts (à ne pas régresser) :
 7. Pour chaque unité cible → `ImportedUnit { com2usId, flatRuneSpeed, swift }` :
    - `flatRuneSpeed` = somme des SPD (effet type **8**) sur mainstat + prefix +
      substats (**valeur + meule/gemme**).
-   - `swift` = **4 runes du set Swift** (`set_id === 3`) équipées en RTA.
+   - `swift` = **`sets.includes('swift')`** (`swiftActive`), et rien d'autre.
+
+> ### ⚠️ Une seule source de vérité pour le Swift : les **sets actifs**
+>
+> Ne **jamais** recompter les runes Swift à côté (`swiftCount >= 4`). C'est ce
+> qu'on faisait, et ça divergeait de `activeSets` dès qu'une rune **Intangible**
+> servait de joker : **3 Swift + 1 Intangible** → `activeSets` renvoie bien
+> `swift`, le comptage disait non.
+>
+> Conséquence observée : le bonus de +25 % n'était pas intégré à la « SPD runes »
+> alors que l'affichage de la vitesse de combat, lui, le **retirait** (voir
+> `swiftFlat` dans [calcul-vitesse.md](calcul-vitesse.md)) → **26 points de
+> vitesse en moins** sur un monstre à 101 de base, et **lui seul dans son
+> équipe**. C'est ce « un seul monstre faux » qui a mis sur la piste.
+>
+> Cas réel de contrôle (compte de l'auteur) : *Chilling* (base 101, brut 195,
+> Swift complété par une Intangible) sous lead **+30 %** → **367** en jeu ;
+> l'import en donnait 341.
 
 ## Constantes SW
 
@@ -164,7 +181,8 @@ Dans [applyAccount.ts](src/lib/applyAccount.ts), réutilisé par `importAccount`
 - `mapSiegeTeams(decks, byCom2us)` → `{ teams, missing }` ; unité inconnue → slot
   vide + compteur `missing`.
 - **SPD runes** (les deux) = `flatRuneSpeed + (swift ? ceil(base × 25 / 100) : 0)`
-  (Swift ajouté car on part des runes brutes).
+  (Swift ajouté car on part des runes brutes), avec `swift` **déduit des sets
+  actifs** — voir l'encadré « une seule source de vérité » plus haut.
 - **Sets de runes** (`slot.sets`) : extraits des runes du deck
   (`activeSetsFromRuneIds`) — sets 4 pièces (**Swift, Rage, Fatal, Despair,
   Vampire, Violent**) actifs à 4 runes, tous les autres (dont **Destroy**) à 2.

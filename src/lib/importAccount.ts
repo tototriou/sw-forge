@@ -61,20 +61,18 @@ function indexUnits(data: any): Map<number, any> {
   return unitById;
 }
 
-// SPD des runes + comptage Swift pour un lot de rune_id donné.
-function speedFromRuneIds(runeIds: any[], runeById: Map<number, any>): {
-  flatRuneSpeed: number;
-  swift: boolean;
-} {
+// SPD plate des runes pour un lot de rune_id donné.
+//
+// ⚠️ Ne décide PAS si le Swift est actif : c'est `activeSetsFromRuneIds` qui
+// fait foi (voir `swiftActive`). Compter les runes Swift ici donnait un
+// désaccord avec les sets affichés — bug réel, détaillé sous `swiftActive`.
+function speedFromRuneIds(runeIds: any[], runeById: Map<number, any>): number {
   let flatRuneSpeed = 0;
-  let swiftCount = 0;
   for (const rid of runeIds) {
     const rune = runeById.get(Number(rid));
-    if (!rune) continue;
-    if (Number(rune?.set_id) === RUNE_SET_SWIFT) swiftCount++;
-    flatRuneSpeed += runeSpeed(rune);
+    if (rune) flatRuneSpeed += runeSpeed(rune);
   }
-  return { flatRuneSpeed, swift: swiftCount >= 4 };
+  return flatRuneSpeed;
 }
 
 // set_id com2us → clé de RUNE_SETS. Le nombre de pièces requis et le joker
@@ -98,6 +96,18 @@ function activeSetsFromRuneIds(runeIds: any[], runeById: Map<number, any>): stri
     if (key) keys.push(key);
   }
   return activeSets(keys); // règles d'activation partagées (voir effects.ts)
+}
+
+// Le set Swift est-il actif ? **Une seule source de vérité : les sets actifs.**
+//
+// ⚠️ Ne surtout pas recompter les runes Swift à côté. On le faisait
+// (`swiftCount >= 4`), et ça divergeait dès qu'une rune **Intangible** servait
+// de joker : 3 Swift + 1 Intangible → `activeSets` renvoie bien `swift`, mais
+// le comptage disait non. Le bonus de vitesse n'était alors pas intégré à la
+// « SPD runes » alors que l'affichage, lui, le retirait — soit **26 points de
+// vitesse en moins** sur un monstre à 101 de base, et lui seul dans son équipe.
+function swiftActive(sets: string[]): boolean {
+  return sets.includes('swift');
 }
 
 /* --------------------------------------------------------------------------
@@ -358,8 +368,9 @@ export function parseAccountJson(text: string): ParseResult {
     const com2usId = Number(unit?.unit_master_id);
     if (!Number.isFinite(com2usId)) continue;
     const runeIds = (runesByUnit.get(uid) ?? []).map((r) => r.rune_id);
-    const { flatRuneSpeed, swift } = speedFromRuneIds(runeIds, runeById);
+    const flatRuneSpeed = speedFromRuneIds(runeIds, runeById);
     const sets = activeSetsFromRuneIds(runeIds, runeById);
+    const swift = swiftActive(sets);
     // Artéfacts RTA si disponibles, sinon les artéfacts actuellement équipés.
     const artifactObjs = rtaArts.get(uid) ?? (Array.isArray(unit?.artifacts) ? unit.artifacts : []);
     const gear = buildGear(unit, runeIds, artifactObjs, runeById);
@@ -547,8 +558,9 @@ function buildSiegeDecks(
       const com2usId = Number(unit?.unit_master_id);
       if (!Number.isFinite(com2usId)) return null;
       const runeIds = def.runeIdsByUnit.get(uid) ?? [];
-      const { flatRuneSpeed, swift } = speedFromRuneIds(runeIds, runeById);
+      const flatRuneSpeed = speedFromRuneIds(runeIds, runeById);
       const sets = activeSetsFromRuneIds(runeIds, runeById);
+      const swift = swiftActive(sets);
       // Artéfacts du preset de siège (artifact_id_list du deck), résolus via l'index global.
       const artIds = def.artifactIdsByUnit.get(uid) ?? [];
       const artifactObjs = artIds.map((aid) => artById.get(Number(aid))).filter(Boolean);

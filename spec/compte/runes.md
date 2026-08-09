@@ -192,6 +192,15 @@ quel joueur, alors qu'une rangée de libellés fait un mur de texte et réduit l
 nombre de sets visibles sans défilement. Le nom reste en `title` et en
 `aria-label`, donc rien n'est perdu pour l'accessibilité.
 
+- ⚠️ **Symboles colorisés en OR.** Les icônes du jeu sont multicolores :
+  alignées par vingt-cinq elles font une rangée bruyante où rien ne ressort.
+  Ramenées à une seule teinte, la barre se lit comme une frise et **seul l'état
+  actif se détache** (or plus clair).
+  - ⚠️ **Par un FILTRE CSS, pas par un masque.** Masquer l'alpha du PNG
+    (`tintColor` de [RuneIcon](src/components/RuneIcon.tsx)) remplit le glyphe
+    d'aplat : tout le relief interne disparaît et l'icône **paraît floue** à
+    18 px. Le filtre conserve la luminance d'origine, donc le dessin reste net.
+    Même technique que `RARITY_FILTER` ([effects.ts](src/lib/effects.ts)).
 - Rendu en **une seule barre continue** (conteneur bordé, icônes serrées),
   et non en boutons détachés : les symboles se lisent comme une rangée
   d'icônes du jeu, et l'ensemble tient sur une ligne même avec 25 sets. Seul

@@ -15,12 +15,14 @@ import {
   Gem,
   Github,
   MessageCircle,
+  Tag,
 } from 'lucide-react';
 import HomePage from './pages/HomePage';
 import BestiaryPage from './pages/BestiaryPage';
 import RtaPage from './pages/RtaPage';
 import SiegePage, { SiegeTab } from './pages/SiegePage';
 import MechanicsPage from './pages/MechanicsPage';
+import ReleasesPage from './pages/ReleasesPage';
 import AccountPage from './pages/AccountPage';
 import ComingSoon from './pages/ComingSoon';
 import AccountImportControl from './components/AccountImportControl';
@@ -41,7 +43,7 @@ import {
 } from './lib/importAccount';
 import { mapRtaItems, mapSiegeTeams, mapBoxMonsters, BoxItem } from './lib/applyAccount';
 
-type Route = 'home' | 'bestiary' | 'rta' | 'siege' | 'arene' | 'mecaniques' | 'compte';
+type Route = 'home' | 'bestiary' | 'rta' | 'siege' | 'arene' | 'mecaniques' | 'compte' | 'releases';
 export type AccountSub = 'monstres' | 'runes' | 'artefacts';
 
 // Route + sous-route de siège (offense/défense) + sous-section « Mon compte »
@@ -58,6 +60,7 @@ function parseHash(): { route: Route; siegeTab: SiegeTab; accountSub: AccountSub
     return { route: 'compte', siegeTab: 'defense', accountSub };
   }
   if (h === 'mecaniques') return { route: 'mecaniques', ...base };
+  if (h === 'releases') return { route: 'releases', ...base };
   if (h === 'siege' || h.startsWith('siege/')) {
     const siegeTab: SiegeTab =
       h === 'siege/offense' ? 'offense' : h === 'siege/recommandations' ? 'recos' : 'defense';
@@ -87,6 +90,7 @@ const ACCOUNT_SUBS: { sub: AccountSub; label: string; icon: typeof BookOpen; has
 const RESOURCES: NavItem[] = [
   { key: 'bestiary', label: 'Bestiaire', icon: BookOpen, hash: '#/bestiary' },
   { key: 'mecaniques', label: 'Mécaniques', icon: Calculator, hash: '#/mecaniques' },
+  { key: 'releases', label: 'Nouveautés', icon: Tag, hash: '#/releases' },
 ];
 
 export default function App() {
@@ -577,6 +581,8 @@ export default function App() {
             artifacts={artifacts}
             loadState={data.loadState}
           />
+        ) : route === 'releases' ? (
+          <ReleasesPage />
         ) : route === 'mecaniques' ? (
           <MechanicsPage />
         ) : (
@@ -595,6 +601,13 @@ export default function App() {
               title="Le code de SW Forge sur GitHub"
             >
               <Github size={13} /> github.com/tototriou
+            </a>
+            <a
+              href="#/releases"
+              className="inline-flex items-center gap-1.5 text-[#8b92e0] hover:text-ink transition"
+              title="Voir les nouveautés de cette version"
+            >
+              <Tag size={13} /> v{__APP_VERSION__}
             </a>
             <span className="inline-flex items-center gap-1.5" title="Questions, retours, demandes particulières">
               <MessageCircle size={13} /> Discord <span className="text-ink">tototriou15</span>

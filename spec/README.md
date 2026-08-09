@@ -18,9 +18,10 @@ ce qu'il peut faire, et les règles de calcul appliquées.
 | Mon compte | `#/compte`, `#/compte/runes`, `#/compte/artefacts` | Live | [compte/README.md](compte/README.md) |
 | Bestiaire | `#/bestiary` | Live | [bestiaire.md](bestiaire.md) |
 | Mécaniques | `#/mecaniques` | Live | [mecaniques.md](mecaniques.md) |
+| Nouveautés | `#/releases` | Live | [releases.md](releases.md) |
 
 Ordre d'importance (nav & cartes d'accueil) : **Accueil → RTA → Siège → Arène → Mon compte**.
-Bestiaire et Mécaniques sont regroupés sous « Ressources » (les moins centraux de l'outil).
+Bestiaire, Mécaniques et Nouveautés sont regroupés sous « Ressources » (les moins centraux de l'outil).
 
 > ⚠️ **Règle permanente** : toute page ou section **ajoutée, renommée ou
 > supprimée** doit être répercutée sur **l'accueil** ([accueil.md](accueil.md) —
@@ -44,7 +45,13 @@ Concepts partagés par plusieurs pages, documentés une seule fois :
 
 - **Persistance navigateur** : chaque page à état (RTA, Siège) sauvegarde tout
   dans `localStorage`. Rien n'est envoyé à un serveur. Aucune authentification.
-- **Footer** — trois informations, dans cet ordre :
+- **Versions & releases** — `main` reste **stable et déployée** ; on développe
+  dans une branche **`release/x.y.z`**, qui porte l'incrément de `package.json`
+  **et** l'entrée du journal ([releases.md](releases.md)). Processus détaillé
+  dans le [README](README.md). ⚠️ **Un changement de calcul se note toujours**
+  dans le journal : c'est ce qu'un joueur remarque en premier.
+- **Footer** — quatre informations, dans cet ordre :
+  0. **Version** `vX.Y.Z` (depuis `package.json`), **cliquable** vers `#/releases`.
   1. **Signature** : lien vers le dépôt GitHub (`github.com/tototriou/sw-forge`)
      et **contact Discord `tototriou15`** pour les questions et demandes
      particulières. Le pseudo Discord n'est pas un lien (ce n'est pas une
@@ -119,7 +126,7 @@ Le cadre commun (nav, routing par hash, footer) vit dans
   - Mesure en **`useLayoutEffect` + `ResizeObserver`** (sur la rangée *et* sur la
     nav, dont le contenu peut s'élargir sans que la rangée bouge : police chargée
     après coup). Décidé avant peinture → pas d'image de barre débordante.
-- **Bestiaire** et **Mécaniques** sont regroupés sous un menu **« Ressources »**
+- **Bestiaire**, **Mécaniques** et **Nouveautés** sont regroupés sous un menu **« Ressources »**
   (dropdown en desktop, section dans le menu mobile).
 - **« Mon compte »** est lui aussi un **dropdown de nav** (mêmes mécaniques que
   Ressources) : sous-liens **Monstres / Runes / Artéfacts** → routes `#/compte`,

@@ -30,6 +30,7 @@ efface tout.
   artéfacts, alimentés par un export de compte.
 - **Bestiaire** — recherche et filtres sur les données de monstres.
 - **Mécaniques** — aide-mémoire des règles de jeu.
+- **Nouveautés** — journal des versions : ce qui change à chaque release.
 
 ## Import de compte
 
@@ -53,6 +54,51 @@ le site reste déployable et testable.
 
 Les icônes (éléments, runes, stats, artéfacts, leader skills) sont **servies en
 local** depuis `public/` : aucun lien direct vers les serveurs de SWARFARM.
+
+## Versions & releases
+
+`main` est **toujours la version stable en ligne**. On n'y développe pas
+directement.
+
+```
+main ──●────────────────────●──────────────► (stable, déployée sur Vercel)
+        \                  /
+         └── release/1.2.0 ┘   (développement d'une version)
+```
+
+1. **Créer la branche** de la prochaine version :
+   `git switch -c release/1.2.0`
+2. **Développer dessus**, commits conventionnels (`feat(scope):`, `fix(scope):`,
+   `docs(spec):`).
+3. **Avant de fermer la version**, dans la même branche :
+   - incrémenter `version` dans [`package.json`](package.json) ;
+   - ajouter l'entrée correspondante **en tête** de
+     [`src/data/releases.ts`](src/data/releases.ts) — c'est ce que les joueurs
+     liront sur la page **Nouveautés** ;
+   - vérifier `npx tsc --noEmit` et `npm run build`.
+4. **Fusionner dans `main`**, puis **taguer et publier la release** :
+   ```bash
+   git switch main && git merge --no-ff release/1.2.0
+   git tag -a v1.2.0 -m "…" && git push origin main --tags
+   gh release create v1.2.0 --title "v1.2.0 — …" --notes "…"
+   ```
+
+**Numérotation** (semver, lue du point de vue du joueur) :
+
+| Incrément | Quand |
+|---|---|
+| **majeure** `2.0.0` | refonte, ou changement qui casse un format d'export |
+| **mineure** `1.2.0` | nouvelle section, nouvelle fonctionnalité |
+| **corrective** `1.1.1` | correction seule, aucune nouveauté |
+
+⚠️ **`package.json`, l'entrée de `releases.ts` et le tag portent le même
+numéro.** Le pied de page affiche la version de `package.json` et pointe vers la
+page Nouveautés : trois valeurs désalignées, et le joueur lit un journal qui ne
+correspond pas à ce qu'il utilise.
+
+⚠️ **Un changement de calcul se note toujours** dans `releases.ts`, même minime.
+C'est ce qu'un joueur remarque en premier (« ma vitesse a changé ») et ce qu'il
+ne peut deviner nulle part ailleurs.
 
 ## Développement
 

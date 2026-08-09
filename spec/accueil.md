@@ -15,7 +15,8 @@ Fichier : [HomePage.tsx](src/pages/HomePage.tsx)
 
 ### Cartes des outils (grille, 2 colonnes ≥ md)
 Une `ToolCard` par page, dans **l'ordre d'importance** (celui de la nav) :
-**RTA, Siège, Arène, Mon compte**, puis les ressources : **Bestiaire, Mécaniques**.
+**RTA, Siège, Arène, Mon compte**, puis les ressources : **Bestiaire, Mécaniques,
+Nouveautés**.
 
 Chaque carte porte : icône + couleur d'accent, titre, description, 2 puces de
 features, et un CTA fléché. Halo d'accent en fond, léger soulèvement au survol.
@@ -27,7 +28,8 @@ features, et un CTA fléché. Halo d'accent en fond, léger soulèvement au surv
 | Arène | `#/arene` | `#F2C24C` (or) | Bientôt disponible | `soon` : badge « Bientôt », opacité réduite |
 | Mon compte | `#/compte` | `#5EDB8F` (vert) | Explorer mon compte | Box 6★, runes & artéfacts |
 | Bestiaire | `#/bestiary` | `#2FA0E0` (bleu) | Ouvrir le bestiaire | Ressource |
-| Mécaniques | `#/mecaniques` | `#8890B8` (gris) | Consulter les mécaniques | Ressource (doc), la moins centrale |
+| Mécaniques | `#/mecaniques` | `#8890B8` (gris) | Consulter les mécaniques | Ressource (doc) |
+| Nouveautés | `#/releases` | `#C79BFF` (mauve) | Voir les nouveautés | Journal des versions ([releases.md](releases.md)) |
 
 ## Règles / attendus
 

@@ -14,6 +14,9 @@ import {
   Gauge,
   Calculator,
   Lightbulb,
+  Tag,
+  Sparkles,
+  Wrench,
 } from 'lucide-react';
 import { ElementKey } from '../types';
 import ElementIcon from '../components/ElementIcon';
@@ -147,6 +150,18 @@ export default function HomePage() {
             { icon: Swords, label: 'Dégâts, crit & facteur de défense' },
           ]}
           cta="Consulter les mécaniques"
+        />
+        <ToolCard
+          href="#/releases"
+          icon={Tag}
+          accent="#C79BFF"
+          title="Nouveautés"
+          desc="Ce qui a changé à chaque version : nouveautés, corrections et détail des mises à jour du site."
+          features={[
+            { icon: Sparkles, label: 'Journal des versions' },
+            { icon: Wrench, label: 'Corrections et calculs revus' },
+          ]}
+          cta="Voir les nouveautés"
         />
       </div>
     </motion.div>

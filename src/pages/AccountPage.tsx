@@ -1,5 +1,6 @@
 import { memo, useMemo } from 'react';
-import { Search, Boxes, Copy, Star } from 'lucide-react';
+import { Search, Copy, Star } from 'lucide-react';
+import GameIcon from '../components/GameIcon';
 import { BoxItem } from '../lib/applyAccount';
 import { ELEMENTS, ElementKey, Monster, RuneDetail, ArtifactDetail } from '../types';
 import { LoadState } from '../hooks/useMonsters';
@@ -264,7 +265,12 @@ export default function AccountPage({ sub, box, runes, artifacts, loadState }: P
   if (empty) {
     return (
       <div className="mt-10 flex flex-col items-center text-center text-ink-dim">
-        <Boxes size={40} className="mb-3 opacity-60" />
+        {/* Les trois icônes du jeu : l'écran vide annonce ce qu'on va y trouver. */}
+        <div className="mb-3 flex items-center gap-3 opacity-70">
+          <GameIcon name="monster" size={34} />
+          <GameIcon name="rune" size={34} />
+          <GameIcon name="artifact" size={34} />
+        </div>
         <p className="text-[15px] font-semibold text-ink">Aucune donnée de compte chargée</p>
         <p className="mt-1 text-[13px] max-w-sm">
           Importe ton compte (bouton en haut à droite) pour afficher tes monstres 6★, tes runes et

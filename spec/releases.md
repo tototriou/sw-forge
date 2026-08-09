@@ -36,6 +36,10 @@ interface Release {
 
 - **La plus récente en premier** — c'est l'ordre d'affichage, et la première est
   mise en avant (cadre coloré + pastille « Version actuelle »).
+- ⚠️ **Style : une phrase courte, lisible par un joueur.** Ce qui change **pour
+  lui**, jamais comment c'est fait. Pas de nom de fonction, pas de formule, pas
+  de détail d'implémentation — tout ça vit dans les commits et dans `spec/`.
+  Repère : au-delà d'une quinzaine de mots, la ligne raconte l'implémentation.
 - `scope` en **français**, comme l'interface (« Siège », « Mon compte »…).
 - Les changements sont triés **nouveautés → corrections → doc** à l'affichage,
   quel que soit l'ordre de saisie.

@@ -3,6 +3,18 @@ import { X } from 'lucide-react';
 import { RuneDetail, RUNE_SETS } from '../../types';
 import RuneIcon from '../RuneIcon';
 
+// Colorisation DORÉE des symboles de set dans les barres de filtre. Les PNG du
+// jeu sont multicolores : alignés par vingt-cinq ils font une rangée bruyante où
+// rien ne ressort. Ramenés à une seule teinte, la barre se lit comme une frise
+// et seul l'état actif se détache.
+//
+// ⚠️ **Un FILTRE CSS, pas un masque.** Masquer l'alpha du PNG remplit le glyphe
+// d'aplat : on perd tout le relief interne et l'icône paraît floue à 18 px. Le
+// filtre, lui, conserve la luminance d'origine — donc le dessin reste net.
+// Même technique que `RARITY_FILTER` (voir lib/effects.ts).
+const OR = (clair: boolean) =>
+  `sepia(1) saturate(3.2) hue-rotate(-12deg) brightness(${clair ? 1.15 : 0.95}) contrast(1.05)`;
+
 // Filtre multi-sélection par set de runes, **icônes seules**.
 //
 // Règle d'interface (voir ../../spec/compte/runes.md) : partout où l'on filtre
@@ -57,7 +69,7 @@ export default function SetFilter({
                     : 'border-transparent opacity-50 hover:opacity-100 hover:bg-panel2'
                 }`}
             >
-              <RuneIcon setKey={s.key} size={18} />
+              <RuneIcon setKey={s.key} size={18} filter={OR(active)} />
             </button>
           );
         })}

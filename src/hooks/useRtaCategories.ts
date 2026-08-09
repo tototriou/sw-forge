@@ -46,6 +46,19 @@ export interface UseRtaCategories {
 const DEFAULT_LABEL = 'Lead SPD';
 const DEFAULT_COLOR = '#4ad8d8';
 
+// ⚠️ Un lead ne compte ici que s'il s'applique EN RTA, sans condition :
+// portée **General** (partout) ou **Arena**. Sont donc exclus les leads de
+// **guilde** et de **donjon** (mauvais contenu), mais aussi les leads
+// **élémentaires** — ils ne profitent qu'aux alliés du bon élément, donc les
+// ranger avec les leads inconditionnels induirait en erreur au moment de
+// composer une équipe.
+const RTA_LEAD_AREAS = new Set(['General', 'Arena']);
+
+function hasRtaSpeedLead(m: Monster): boolean {
+  const lead = speedLeadOf(m);
+  return !!lead && RTA_LEAD_AREAS.has(lead.area);
+}
+
 const uid = () => Math.random().toString(36).slice(2, 10);
 
 interface Stored {
@@ -121,9 +134,7 @@ export function useRtaCategories(): UseRtaCategories {
   const ensureDefault = useCallback((monsters: Monster[]) => {
     setState((st) => {
       if (st.seeded || monsters.length === 0) return st;
-      const membres = monsters
-        .filter((m) => speedLeadOf(m) !== null)
-        .map((m) => String(m.id));
+      const membres = monsters.filter(hasRtaSpeedLead).map((m) => String(m.id));
       if (membres.length === 0) return st; // rien à y mettre : on réessaiera
       return {
         ...st,

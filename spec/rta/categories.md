@@ -18,8 +18,19 @@ coexistent : un monstre reste dans sa section et porte ses couleurs.
 ## Catégorie « Lead SPD » proposée d'office
 
 À la **première prépa non vide**, une catégorie **« Lead SPD »** est créée et
-pré-remplie avec les monstres qui ont un lead de vitesse (`speedLeadOf`). C'est
-le classement que tout le monde fait de tête en RTA : autant le donner déjà fait.
+pré-remplie. C'est le classement que tout le monde fait de tête en RTA : autant
+le donner déjà fait.
+
+⚠️ **Seuls comptent les leads de vitesse qui s'appliquent en RTA sans condition**
+— portée **`General`** ou **`Arena`**. Sont exclus :
+
+| Portée | Pourquoi |
+|---|---|
+| `Guild`, `Dungeon` | mauvais contenu, le lead ne s'applique pas en RTA |
+| `Element` | il ne profite qu'aux alliés du **bon élément** : le ranger avec les leads inconditionnels induirait en erreur au moment de composer une équipe |
+
+Sur les données actuelles : **114 monstres retenus sur 183** qui ont un lead de
+vitesse.
 
 - ⚠️ **Pas au tout premier chargement** : la prépa y est souvent vide (compte pas
   encore importé), et une catégorie créée à ce moment-là resterait éternellement
@@ -137,6 +148,15 @@ Les cartes de l'**ordre de tour** ([TurnOrder.tsx](src/components/rta/TurnOrder.
 portent **le même anneau** que les cartes de sections. C'est là que le repère
 sert le plus — on lit la séquence des tours en cherchant « qui strip en
 premier ? » — et un code couleur qui s'arrête en route ne sert à rien.
+
+L'**interrupteur des couleurs est répété** dans l'en-tête de l'ordre de tour :
+il est en bas de page, et remonter tout en haut juste pour couper les anneaux
+serait absurde.
+
+⚠️ La mise en avant des **changements de place** (lead actif) se fait par le
+**fond orange de la carte, et rien d'autre**. Repeindre la bordure entrait en
+concurrence avec l'anneau de catégories : deux informations au même endroit, on
+ne lisait plus ni l'une ni l'autre.
 
 Une **légende** est affichée au-dessus : pastille de couleur + libellé, pour
 **les seules catégories réellement représentées** dans l'ordre de tour. Sans

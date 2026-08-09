@@ -268,7 +268,13 @@ export default function RtaPage({
             par vitesse totale · le plus rapide à gauche
           </span>
         </div>
-        <TurnOrder items={allItems} onRuneSpeed={rta.setRuneSpeed} categories={cats.visible ? cats.categories : []} />
+        <TurnOrder
+          items={allItems}
+          onRuneSpeed={rta.setRuneSpeed}
+          categories={cats.visible ? cats.categories : []}
+          categoriesVisible={cats.visible}
+          onToggleCategories={cats.categories.length > 0 ? cats.setVisible : undefined}
+        />
       </section>
     </div>
   );

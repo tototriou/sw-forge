@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react';
+import { Eye, EyeOff } from 'lucide-react';
 import { Monster, RtaEntry } from '../../types';
 import ElementIcon from '../ElementIcon';
 import CategoryRing from './CategoryRing';
@@ -46,6 +47,10 @@ interface Props {
   // les cartes, sinon on perd le repère au moment où il sert le plus (voir
   // ../../spec/rta/categories.md).
   categories?: RtaCategory[];
+  // Interrupteur des couleurs, RÉPÉTÉ ici : l'ordre de tour est en bas de page,
+  // et remonter tout en haut juste pour couper les anneaux est absurde.
+  categoriesVisible?: boolean;
+  onToggleCategories?: (v: boolean) => void;
 }
 
 // Vitesse totale hors lead (base + runes).
@@ -81,7 +86,13 @@ function sortByLead(items: TurnItem[], lead: number): TurnItem[] {
   });
 }
 
-export default function TurnOrder({ items, onRuneSpeed, categories = [] }: Props) {
+export default function TurnOrder({
+  items,
+  onRuneSpeed,
+  categories = [],
+  categoriesVisible = true,
+  onToggleCategories,
+}: Props) {
   const [lead, setLead] = useState(0);
   const catsOf = (monsterId: string) => categories.filter((c) => c.members.includes(monsterId));
   // Légende : uniquement les catégories réellement représentées ici, sinon on
@@ -133,6 +144,26 @@ export default function TurnOrder({ items, onRuneSpeed, categories = [] }: Props
         >
           Sans lead
         </button>
+
+        {onToggleCategories && (
+          <button
+            onClick={() => onToggleCategories(!categoriesVisible)}
+            aria-pressed={categoriesVisible}
+            title={
+              categoriesVisible
+                ? 'Masquer les couleurs de catégories'
+                : 'Réafficher les couleurs de catégories'
+            }
+            className={`flex h-7 items-center gap-1.5 rounded-full border px-2.5 text-[12px] transition ${
+              categoriesVisible
+                ? 'border-border bg-panel text-ink-dim hover:text-ink hover:border-[#4a52a0]'
+                : 'border-[#5b63b8] bg-panel2 text-ink'
+            }`}
+          >
+            {categoriesVisible ? <Eye size={12} /> : <EyeOff size={12} />}
+            Catégories
+          </button>
+        )}
 
         <button
           onClick={() => setHighlightMovers((v) => !v)}
@@ -194,8 +225,12 @@ export default function TurnOrder({ items, onRuneSpeed, categories = [] }: Props
                         .join(' · ')
                     : undefined
                 }
-                className={`relative flex-none w-[168px] rounded-xl border p-2 flex flex-col gap-1.5 transition-colors
-                  ${moved ? 'border-star bg-star/10 ring-1 ring-star/50' : 'border-border bg-panel2'}`}
+                // ⚠️ Un monstre qui change de place se signale par son FOND
+                // orange, et rien d'autre. Repeindre la bordure entrait en
+                // concurrence avec l'anneau de catégories : deux informations
+                // au même endroit, on ne lisait plus ni l'une ni l'autre.
+                className={`relative flex-none w-[168px] rounded-xl border border-border p-2 flex flex-col gap-1.5 transition-colors
+                  ${moved ? 'bg-amber-500/20' : 'bg-panel2'}`}
               >
                 <CategoryRing colors={catsOf(String(m.id)).map((c) => c.color)} radius="rounded-xl" />
                 {/* numéro d'ordre superposé en haut à gauche */}

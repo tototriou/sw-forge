@@ -224,7 +224,27 @@ export default function CurveChart({
           hoverSeries.length > 0 &&
           (() => {
             const hx = x(hover);
-            const boxW = 92;
+            // ⚠️ L'infobulle porte le NOM de chaque courbe, pas seulement sa
+            // valeur : à trois courbes superposées, une pastille de couleur ne
+            // suffit pas — il fallait faire l'aller-retour avec la légende pour
+            // savoir qui valait quoi.
+            const fmt = (v: number) => (unit === '%' ? v.toFixed(1) : String(Math.round(v))) + unit;
+            // Nom borné : un libellé long étirerait l'infobulle jusqu'à sortir
+            // du graphe. Le nom complet reste lisible dans la légende.
+            const court = (n: string) => (n.length > 16 ? `${n.slice(0, 15)}…` : n);
+            const lignes = hoverSeries.map(({ s, val }) => ({
+              s,
+              nom: court(s.name),
+              valeur: fmt(val),
+              val,
+            }));
+            // Largeur mesurée sur le contenu réel (police mono ≈ 6,7 px/car.) :
+            // en dur, les noms débordaient de la boîte.
+            const CAR = 6.7;
+            const boxW = Math.max(
+              104,
+              ...lignes.map((l) => 19 + l.nom.length * CAR + 12 + l.valeur.length * CAR + 8)
+            );
             const boxH = 20 + hoverSeries.length * 14 + 4;
             const left = hx > PAD_L + IW * 0.6;
             const bx = left ? hx - boxW - 8 : hx + 8;
@@ -247,12 +267,23 @@ export default function CurveChart({
                 <text x={bx + 8} y={by + 14} fontSize="11" fill="#9aa2d0" fontFamily="monospace">
                   {hover + 1} runes
                 </text>
-                {hoverSeries.map(({ s, val }, k) => (
-                  <g key={s.name}>
-                    <circle cx={bx + 11} cy={by + 29 + k * 14 - 3.5} r="3" fill={s.color} />
-                    <text x={bx + 19} y={by + 29 + k * 14} fontSize="11" fill="#ffffff" fontFamily="monospace">
-                      {unit === '%' ? val.toFixed(1) : Math.round(val)}
-                      {unit}
+                {lignes.map((l, k) => (
+                  <g key={l.s.name}>
+                    <circle cx={bx + 11} cy={by + 29 + k * 14 - 3.5} r="3" fill={l.s.color} />
+                    <text x={bx + 19} y={by + 29 + k * 14} fontSize="11" fill="#9aa2d0" fontFamily="monospace">
+                      {l.nom}
+                    </text>
+                    {/* Valeurs alignées à droite : en colonne, elles se
+                        comparent d'un coup d'œil. */}
+                    <text
+                      x={bx + boxW - 8}
+                      y={by + 29 + k * 14}
+                      fontSize="11"
+                      fill="#ffffff"
+                      fontFamily="monospace"
+                      textAnchor="end"
+                    >
+                      {l.valeur}
                     </text>
                   </g>
                 ))}

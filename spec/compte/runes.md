@@ -178,8 +178,15 @@ Détails :
   (Catmull-Rom → Bézier), aire discrète sous « Actuelle », grille, graduations,
   titres d'axes, axe Y ajusté aux données, sous-échantillonnage ~240 points.
 - **Interactif** : au survol, ligne verticale + points sur chaque courbe +
-  **infobulle** (nombre de runes + efficience par série, ordonnées de la plus haute
-  à la plus basse au point survolé).
+  **infobulle**, ordonnée de la plus haute à la plus basse valeur au point
+  survolé. Chaque ligne = **pastille de couleur · NOM de la courbe · valeur**,
+  valeurs **alignées à droite** pour se comparer d'un coup d'œil.
+  - ⚠️ **Le nom est indispensable** : à trois courbes superposées, une pastille
+    de couleur seule obligeait à faire l'aller-retour avec la légende pour savoir
+    qui valait quoi.
+  - Le nom est **borné à 16 caractères** (le complet reste dans la légende) et la
+    **largeur de la boîte est mesurée sur le contenu réel** : en dur, les noms
+    débordaient.
 - **Légende sous le graphe** : cliquer un nom **masque/affiche** sa courbe.
 - **Filtres** : sets (`SetFilter`), slot (`SlotFilter`), antiques.
 - **Nombre de runes** : champ libre (défaut **400**) + **Tout**.

@@ -38,6 +38,41 @@ export const CHANGE_META: Record<ChangeKind, { label: string; color: string }> =
 // Si une ligne dépasse ~15 mots, c'est qu'elle raconte l'implémentation.
 export const RELEASES: Release[] = [
   {
+    version: '1.1.1',
+    date: '2026-08-09',
+    title: 'Nouvelle page d’accueil et repères de vitesse en RTA',
+    highlights: [
+      'Dépose ton export directement sur l’accueil',
+      'Alerte quand tes runes ne suivent plus la vitesse saisie',
+      'Moyennes d’efficience calculées sur ton top 400',
+    ],
+    changes: [
+      {
+        kind: 'feat',
+        scope: 'Accueil',
+        text: 'Page refaite : dépose ton fichier dessus, et retrouve tes équipes en un clic.',
+      },
+      {
+        kind: 'feat',
+        scope: 'RTA',
+        text: 'Alerte sur les monstres dont les runes ne suivent plus la vitesse saisie.',
+      },
+      {
+        kind: 'feat',
+        scope: 'RTA',
+        text: 'Boutons pour masquer les vitesses, les catégories ou les monstres modifiés.',
+      },
+      {
+        kind: 'feat',
+        scope: 'Mon compte',
+        text: 'Les moyennes d’efficience portent sur ton top 400, pas sur tout l’inventaire.',
+      },
+      { kind: 'feat', scope: 'Navigation', text: 'Champ pour aller directement à une page dans les listes.' },
+      { kind: 'feat', scope: 'Interface', text: 'Champs numériques avec boutons − et +.' },
+      { kind: 'feat', scope: 'Contact', text: 'Lien vers le serveur Discord dans le pied de page.' },
+    ],
+  },
+  {
     version: '1.1.0',
     date: '2026-08-09',
     title: 'Recommandations de siège, score SW et vitesses corrigées',

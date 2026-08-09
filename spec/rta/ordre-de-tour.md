@@ -7,6 +7,49 @@ Fichier : [TurnOrder.tsx](src/components/rta/TurnOrder.tsx) ·
 monté par [RtaPage.tsx](src/pages/RtaPage.tsx) (`allItems` = toutes sections
 confondues).
 
+## ⚠️ Vitesse modifiée à la main → détail désynchronisé
+
+Le champ « SPD runes » de l'ordre de tour est **modifiable**, alors que le détail
+d'équipement affiché sous la carte reste **celui de l'import**. Dès que les deux
+divergent, le panneau montre des runes qui ne produisent plus la vitesse
+annoncée.
+
+Un **triangle orange** apparaît donc **sur la carte** et **dans la fiche**, et le
+message s'ouvre **AU CLIC** ([DesyncBadge.tsx](src/components/rta/DesyncBadge.tsx)) :
+
+> ⚠️ Une infobulle native ne s'ouvre qu'après un temps d'arrêt, disparaît dès
+> qu'on bouge, et **n'existe pas au tactile**. Or le message compte : il dit que
+> les runes affichées ne correspondent plus à la vitesse demandée, et renvoie à
+> la valeur en rouge de la fiche.
+
+Le panneau passe par **`DetailPopover`** (placement automatique) : les cartes
+vont jusqu'au bord droit de la page, et un panneau ancré en dur **sortait de
+l'écran**.
+
+Dans la fiche, la **ligne VIT** porte une **flèche rouge suivie de la vitesse
+demandée** (`spdCible` de [MonsterGear.tsx](src/components/MonsterGear.tsx)), à
+côté du `+X` réellement apporté par les runes. Signaler l'écart **sans donner la
+cible** obligerait à faire le calcul soi-même.
+
+Le **nom et la vitesse** du monstre passent aussi **en orange** sur sa carte de
+classement — bouton **« Modifiés »** ([categories.md](categories.md)) pour couper
+ce signalement.
+
+**Une seule source de vitesse.** Le champ de l'ordre de tour écrit dans
+`rta.state.entries`, exactement là où les cartes de classement lisent : modifier
+une vitesse en bas met donc **immédiatement** à jour la carte correspondante.
+Rien à synchroniser, rien à dupliquer.
+
+> Rappel : la carte affiche `base + runes`, l'ordre de tour y ajoute le **totem**
+> (et le lead simulé). Les deux nombres diffèrent donc volontairement.
+
+- Détection par **recalcul**, pas par un drapeau « modifié » stocké
+  ([gearSync.ts](src/lib/gearSync.ts)) : on compare la saisie à la vitesse que
+  donneraient les runes. L'avertissement reste donc juste après un rechargement
+  ou un réimport, et **s'efface tout seul** si le joueur remet la valeur d'origine.
+- La vitesse déduite des runes **inclut le bonus de set** (Swift), comme le champ
+  lui-même — voir [../shared/calcul-vitesse.md](../shared/calcul-vitesse.md).
+
 ## Objectif
 
 Vérifier si l'ordre de passage change selon le lead de vitesse appliqué en jeu.

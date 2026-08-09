@@ -83,9 +83,27 @@ fluide à ~2000 runes). Fichier :
 
 Blocs, dans l'ordre :
 
-1. **Chiffres clés** (6 tuiles) : nombre de runes (+ nb au **+15**) · **efficience
-   moyenne** (+ médiane) · **moyenne du top 100** (+ top 10) · **meilleure**
+1. **Chiffres clés** (6 tuiles) : nombre de runes (+ nb au **+15**) ·
+   **efficience moyenne du top 400** (+ médiane du même top) ·
+   **efficience moyenne du top 100** (+ `top 10 : X %`) · **meilleure**
    (+ nb ≥ 110 %) · **nb ≥ 100 %** (+ part) · **antiques** (+ part).
+
+   > ### ⚠️ Les moyennes portent sur un TOP, jamais sur l'inventaire entier
+   >
+   > Une moyenne sur **toutes** les runes mesure surtout la **quantité de déchet
+   > stocké** : farmer sans jeter la fait baisser, jeter la fait monter — alors
+   > que le compte n'a pas bougé d'un point. Elle ne dit rien de la qualité, et
+   > n'est donc **plus affichée du tout**.
+   >
+   > `TOP_N = 400` ≈ ce qu'un compte mûr **équipe réellement** (6 runes × ~65
+   > monstres joués). En dessous de 400 runes, le top vaut l'inventaire entier —
+   > la valeur reste juste, seul le libellé perd son « top 400 ».
+   >
+   > La **médiane suit le même périmètre** que la moyenne affichée : mélanger
+   > moyenne du top et médiane globale donnerait deux nombres incomparables.
+   >
+   > ⚠️ Le sous-titre du top 100 s'écrit **« top 10 : X % »**, deux-points
+   > compris : sans lui, « top 10 126.1 % » se lit comme un seul nombre.
 2. **Distribution d'efficience** : barres par palier **≥ 110 · 100–110 · 90–100 ·
    80–90 · 70–80 · < 70 %**, avec effectif et part du stock.
 3. **Qualité du stock** : barres *montées au +15* · *4 substats révélés* ·
@@ -96,7 +114,9 @@ Blocs, dans l'ordre :
 5. **Stats principales (slots 2 · 4 · 6)** : répartition des mainstats, triée par
    volume. Les slots **impairs sont exclus** (mainstat figée : 1 ATQ, 3 DEF, 5 PV).
 6. **Marge de progression** : efficience moyenne actuelle vs **potentiel moyen
-   légendaire** (gemme + meule) avec le delta en points · **meules à poser**
+   légendaire** (gemme + meule) avec le delta en points, **sur les mêmes 400
+   meilleures runes des deux côtés** — comparer le top 400 actuel au potentiel de
+   tout l'inventaire n'aurait aucun sens · **meules à poser**
    (runes dont le potentiel *meule seule* dépasse l'actuel) · **gemmes à poser**
    (runes non gemmées). Réutilise `runePotential` de
    [runeOptim.ts](src/lib/runeOptim.ts) → cohérent avec l'onglet Optimisation.
@@ -122,7 +142,18 @@ Blocs, dans l'ordre :
   tri « valeur » et le repère « meilleur… » de l'en-tête.
 - **Tri** : ↓ décroissant (défaut) · ↑ croissant — **sur la mesure choisie** —
   · Niveau ↓ · Slot ↑.
-- **Pagination** (`Pager`) : 60 tuiles/page → DOM borné (fluide même à ~2000 runes).
+- **Pagination** ([Pager.tsx](src/components/account/Pager.tsx)) : 60 tuiles/page
+  → DOM borné (fluide même à ~2000 runes). Composant **partagé par toutes les
+  listes paginées** de l'app.
+  - Trois éléments : flèche précédente, **champ de saisie de la page**, flèche
+    suivante. Les flèches sont de simples icônes ; c'est le champ qui compte.
+  - ⚠️ **Le champ est indispensable** : à ~2000 runes on dépasse 30 pages, et
+    avancer d'une flèche à la fois est intenable. Une liste de numéros ne
+    tiendrait pas sur une ligne à ce volume.
+  - La saisie est **séparée de la page réelle** : on doit pouvoir vider le champ
+    ou taper « 12 » **sans sauter à la page 1** au premier chiffre. Elle est
+    validée à **Entrée** ou à la **perte de focus**, bornée à `[1, N]`, annulée
+    par **Échap**, et resynchronisée quand la page change ailleurs (filtre, tri).
 - **Rotation animée** : les tuiles utilisent une **clé positionnelle** (et non
   l'id de la rune), donc elles sont **réutilisées** d'une page/d'un filtre/d'un
   tri à l'autre → le cadre **pivote** vers l'orientation de son nouveau slot au

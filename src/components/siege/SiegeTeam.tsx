@@ -8,6 +8,7 @@ import MonsterPicker from '../MonsterPicker';
 import ElementIcon from '../ElementIcon';
 import RuneIcon from '../RuneIcon';
 import MonsterGear from '../MonsterGear';
+import NumberField from '../NumberField';
 import LeadPill, { LeadBadge } from './LeadPill';
 
 const GRADIENT: Record<string, string> = {
@@ -508,17 +509,13 @@ function SlotContent({
         </div>
         <label className="flex items-center gap-1.5">
           <span className="font-mono text-[11px] uppercase text-ink-dim">SPD :</span>
-          <input
-            type="number"
-            inputMode="numeric"
-            value={slot.runeSpeed ?? ''}
-            placeholder="0"
-            onChange={(e) => {
-              const v = e.target.value;
-              onRune(v === '' ? null : Number(v));
-            }}
-            className="w-16 bg-panel border border-border rounded-md px-1.5 py-1 text-[13px] text-center text-ink
-                       outline-none focus:border-[#5b63b8]"
+          <NumberField
+            value={slot.runeSpeed}
+            allowEmpty
+            min={0}
+            width="w-12"
+            ariaLabel="SPD des runes"
+            onChange={onRune}
           />
         </label>
       </div>

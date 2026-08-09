@@ -43,6 +43,8 @@ import {
 } from './lib/importAccount';
 import { mapRtaItems, mapSiegeTeams, mapBoxMonsters, BoxItem } from './lib/applyAccount';
 
+const DISCORD_INVITE = 'https://discord.gg/R2Fe4GJZET';
+
 type Route = 'home' | 'bestiary' | 'rta' | 'siege' | 'arene' | 'mecaniques' | 'compte' | 'releases';
 export type AccountSub = 'monstres' | 'runes' | 'artefacts';
 
@@ -328,7 +330,7 @@ export default function App() {
             {/* Les réglages restent EN DEHORS du menu : accessibles en un geste
                 quelle que soit la largeur, jamais enfouis derrière le hamburger. */}
             <div className="flex items-center gap-1.5">
-              <SettingsMenu variant="bar" />
+              <SettingsMenu variant="bar" onClearData={clearAllData} />
               <button
                 onClick={() => setMenuOpen((o) => !o)}
                 aria-label="Menu"
@@ -406,11 +408,7 @@ export default function App() {
 
               {/* Import unique, sous les liens de navigation */}
               <div className="mt-1 pt-2 border-t border-border">
-                <AccountImportControl
-                  onImport={importAccount}
-                  onClearData={clearAllData}
-                  variant="mobile"
-                />
+                <AccountImportControl onImport={importAccount} variant="mobile" />
               </div>
             </nav>
           )}
@@ -524,12 +522,13 @@ export default function App() {
           </nav>
           {/* Réglages tout à droite, après l'import : c'est le geste le plus rare. */}
           <div ref={toolsRef} className="ml-auto flex items-center gap-1">
-            <AccountImportControl
-              onImport={importAccount}
-              onClearData={clearAllData}
-              variant="desktop"
-            />
-            <SettingsMenu />
+            {/* ⚠️ Masqué sur l'ACCUEIL : la zone de dépôt y est déjà au centre
+                de l'écran, deux points d'entrée pour le même geste sèment le
+                doute sur celui qui « compte vraiment ». */}
+            {route !== 'home' && (
+              <AccountImportControl onImport={importAccount} variant="desktop" />
+            )}
+            <SettingsMenu onClearData={clearAllData} />
           </div>
             </>
           )}
@@ -586,7 +585,18 @@ export default function App() {
         ) : route === 'mecaniques' ? (
           <MechanicsPage />
         ) : (
-          <HomePage />
+          <HomePage
+            stats={{
+              rta: Object.keys(rta.state.entries).length,
+              // Une équipe « vide » (créée puis abandonnée) ne compte pas :
+              // afficher 12 équipes dont 9 sans monstre serait mensonger.
+              defense: siegeDef.state.teams.filter((t) => t.slots.some((s) => s.monsterId)).length,
+              offense: siegeOff.state.teams.filter((t) => t.slots.some((s) => s.monsterId)).length,
+              recos: recos.state.recos.length,
+              accountLoaded: box.length > 0 || runes.length > 0,
+            }}
+            onImport={importAccount}
+          />
         )}
 
         <footer className="mt-16 text-center font-mono text-xs text-ink-dim space-y-2">
@@ -609,11 +619,18 @@ export default function App() {
             >
               <Tag size={13} /> v{__APP_VERSION__}
             </a>
-            <span className="inline-flex items-center gap-1.5" title="Questions, retours, demandes particulières">
-              <MessageCircle size={13} /> Discord <span className="text-ink">tototriou15</span>
-            </span>
+            {/* Lien vers le SERVEUR plutôt qu'un pseudo : un pseudo se recopie
+                à la main et ne mène nulle part au clic. */}
+            <a
+              href={DISCORD_INVITE}
+              target="_blank"
+              rel="noreferrer"
+              className="inline-flex items-center gap-1.5 text-[#8b92e0] hover:text-ink transition"
+              title="Rejoindre le serveur Discord de SW Forge"
+            >
+              <MessageCircle size={13} /> Rejoindre le Discord
+            </a>
           </p>
-          <p>Une question ou une demande particulière ? Écris-moi sur Discord.</p>
           <p>Toutes tes données restent en local dans ton navigateur.</p>
           <p>
             Données et images © Com2uS · Source :{' '}

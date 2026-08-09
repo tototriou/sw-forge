@@ -4,6 +4,7 @@ import { Monster, RtaEntry, sectionLabel } from '../../types';
 import ElementIcon from '../ElementIcon';
 import RuneIcon from '../RuneIcon';
 import CategoryRing from './CategoryRing';
+import DesyncBadge from './DesyncBadge';
 
 const SPD_ICON = `${import.meta.env.BASE_URL}stats/spd.png`;
 
@@ -46,6 +47,10 @@ interface Props {
   onDragEnd: () => void;
   categoryColors?: string[]; // anneau des catégories du monstre (0 à 4)
   categoryLabels?: string[]; // pour l'infobulle
+  // Vitesse saisie ≠ vitesse des runes importées → triangle d'alerte.
+  desync?: { attendu: number; saisi: number } | null;
+  showSpeed?: boolean; // afficher la vitesse sur la carte (voir la barre de catégories)
+  markDesync?: boolean; // écrire le nom en orange quand les runes ne suivent plus
 }
 
 export default function RtaCard({
@@ -60,6 +65,9 @@ export default function RtaCard({
   onDragEnd,
   categoryColors = [],
   categoryLabels = [],
+  desync = null,
+  showSpeed = true,
+  markDesync = true,
 }: Props) {
   const cardRef = useRef<HTMLDivElement>(null);
   const base = monster.stats.speed;
@@ -126,13 +134,28 @@ export default function RtaCard({
           onClick={toggle}
           title={hasGear ? 'Voir le détail des runes' : undefined}
         >
-          <span className="text-[12px] font-semibold leading-tight truncate flex-1">
+          {/* Nom en orange quand les runes ne suivent plus la vitesse demandée :
+              on repère les monstres à re-runer sans ouvrir chaque fiche. */}
+          <span
+            className={`text-[12px] font-semibold leading-tight truncate flex-1 ${
+              desync && markDesync ? 'text-amber-400' : ''
+            }`}
+          >
             {monster.name}
           </span>
-          <img src={SPD_ICON} alt="SPD" width={15} height={15} className="flex-none" />
-          <span className="font-mono text-[14px] font-black text-ink leading-none">
-            {total !== null ? total : '—'}
-          </span>
+          {showSpeed && (
+            <>
+              <img src={SPD_ICON} alt="SPD" width={15} height={15} className="flex-none" />
+              <span
+                className={`font-mono text-[14px] font-black leading-none ${
+                  desync && markDesync ? 'text-amber-400' : 'text-ink'
+                }`}
+              >
+                {total !== null ? total : '—'}
+              </span>
+            </>
+          )}
+          {desync && <DesyncBadge ecart={desync} size={13} />}
           {(entry.sets ?? []).slice(0, 3).map((s, i) => (
             <RuneIcon key={i} setKey={s} size={18} className="flex-none" />
           ))}

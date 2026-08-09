@@ -5,6 +5,7 @@ import { runePotential } from '../../lib/runeOptim';
 import { useRuneMetric, formatRuneMetric } from '../../hooks/useRuneMetric';
 import { useStickyState } from '../../hooks/useStickyState';
 import SetFilter from './SetFilter';
+import NumberField from '../NumberField';
 import SlotFilter from './SlotFilter';
 import CurveChart, { CurveSeries, OWN_COLOR } from './CurveChart';
 
@@ -135,13 +136,14 @@ export default function RunesCurve({ runes }: Props) {
         </div>
         <div className="flex items-center gap-2">
           <span className="font-mono text-[11px] tracking-[0.1em] uppercase text-ink-dim">Nb de runes</span>
-          <input
-            type="number"
+          <NumberField
+            value={limit}
             min={1}
             max={total || 1}
-            value={limit}
-            onChange={(e) => setLimit(Math.max(1, Number(e.target.value) || 1))}
-            className="w-20 bg-panel border border-border text-ink rounded-lg px-2 py-1 text-[13px] outline-none focus:border-[#5b63b8] tabular-nums"
+            step={10}
+            width="w-14"
+            ariaLabel="Nombre de runes"
+            onChange={(v) => setLimit(Math.max(1, v ?? 1))}
           />
           <button
             onClick={() => setLimit(total || 1)}

@@ -9,6 +9,7 @@ import RuneSlotIcon from '../RuneSlotIcon';
 import Pager from './Pager';
 import SetFilter from './SetFilter';
 import SlotFilter from './SlotFilter';
+import NumberField from '../NumberField';
 import DetailPopover from './DetailPopover';
 
 interface Props {
@@ -146,16 +147,16 @@ export default function RunesOptim({ runes }: Props) {
 
         <div className="flex items-center gap-2">
           <span className="font-mono text-[11px] tracking-[0.1em] uppercase text-ink-dim">Palier</span>
-          <input
-            type="number"
+          <NumberField
+            value={threshold}
             min={0}
             step={5}
-            value={threshold}
-            onChange={(e) => {
-              setThreshold(Math.max(0, Number(e.target.value) || 0));
+            width="w-14"
+            ariaLabel="Palier"
+            onChange={(v) => {
+              setThreshold(Math.max(0, v ?? 0));
               setPage(0);
             }}
-            className="w-20 bg-panel border border-border text-ink rounded-lg px-2 py-1 text-[13px] outline-none focus:border-[#5b63b8] tabular-nums"
           />
           <span className="font-mono text-[12px] text-ink-dim">{metric === 'eff' ? '%' : 'pts'}</span>
         </div>

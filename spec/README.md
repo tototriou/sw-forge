@@ -45,23 +45,34 @@ Concepts partagés par plusieurs pages, documentés une seule fois :
 
 - **Persistance navigateur** : chaque page à état (RTA, Siège) sauvegarde tout
   dans `localStorage`. Rien n'est envoyé à un serveur. Aucune authentification.
+- **Statistiques de fréquentation** : **Vercel Web Analytics**
+  ([Analytics.tsx](src/components/Analytics.tsx)), sans cookie, limité aux pages
+  visitées. ⚠️ Le routage étant **par hash**, un `beforeSend` réécrit l'URL pour
+  que la route devienne le chemin — sinon toutes les visites seraient comptées
+  sur « / ».
 - **Versions & releases** — `main` reste **stable et déployée** ; on développe
   dans une branche **`release/x.y.z`**, qui porte l'incrément de `package.json`
   **et** l'entrée du journal ([releases.md](releases.md)). Processus détaillé
   dans le [README](README.md). ⚠️ **Un changement de calcul se note toujours**
   dans le journal : c'est ce qu'un joueur remarque en premier.
-- **Footer** — quatre informations, dans cet ordre :
+- **Footer** — trois informations, dans cet ordre :
   0. **Version** `vX.Y.Z` (depuis `package.json`), **cliquable** vers `#/releases`.
   1. **Signature** : lien vers le dépôt GitHub (`github.com/tototriou/sw-forge`)
-     et **contact Discord `tototriou15`** pour les questions et demandes
-     particulières. Le pseudo Discord n'est pas un lien (ce n'est pas une
-     invitation) : il est affiché en clair pour être copié.
+     et **lien vers le serveur Discord** (`discord.gg/R2Fe4GJZET`) pour les
+     questions et demandes. ⚠️ Un **lien vers le serveur**, pas un pseudo : un
+     pseudo se recopie à la main et ne mène nulle part au clic.
   2. Rappel que les données restent locales.
   3. Crédit Com2uS / SWARFARM.
 - **Données 100 % locales** : le footer rappelle que toutes les données restent
-  en local. Un lien **« Supprimer mes données »** (dans la barre de nav, à côté de
-  l'import) efface les clés `localStorage` `sw-forge*` / `sky-arena*` (prépa RTA,
-  équipes de siège, monstres perso) puis recharge. Voir [App.tsx](src/App.tsx).
+  en local. **« Tout supprimer »** efface les clés `localStorage` `sw-forge*` /
+  `sky-arena*` (prépa RTA, équipes de siège, recommandations, catégories,
+  monstres perso) puis recharge. Voir [App.tsx](src/App.tsx).
+  - ⚠️ Cette action vit **dans le menu ⚙**, pas à côté du bouton d'import : une
+    action destructrice collée au bouton le plus utilisé finit par être cliquée
+    de travers. Dans un menu qu'on ouvre exprès, le geste est délibéré.
+- **Import de compte** : le bouton de la nav est **masqué sur l'accueil**, où la
+  zone de dépôt occupe déjà le centre de l'écran — deux points d'entrée pour le
+  même geste sèment le doute sur celui qui « compte vraiment ».
 - **Réglages globaux** — menu **⚙** [SettingsMenu.tsx](src/components/SettingsMenu.tsx),
   **tout à droite** de la barre de nav (après le bouton d'import). ⚠️ **Toujours
   visible** : barre repliée, il passe **à côté du hamburger** (variante `bar`,
@@ -96,6 +107,14 @@ Concepts partagés par plusieurs pages, documentés une seule fois :
 - **Monstres perso** : sur RTA et Siège, l'utilisateur peut créer un monstre
   absent des données (nom, élément, SPD base, lead optionnel). Voir
   [shared/donnees-monstres.md](shared/donnees-monstres.md).
+- **Champs numériques** — [NumberField.tsx](src/components/NumberField.tsx),
+  **partout dans l'app**. ⚠️ **Jamais `type="number"`** : les flèches natives du
+  navigateur sont deux triangles gris minuscules, hors charte, impossibles à
+  styler et pénibles à viser (surtout au tactile). Le composant dessine ses
+  propres boutons **− à gauche, + à droite**, autour d'un `type="text"` +
+  `inputMode="numeric"` (qui fait remonter le pavé numérique sur mobile). La
+  frappe non numérique est **ignorée** : plus prévisible qu'un champ qui se vide
+  ou se corrige pendant qu'on tape.
 - **Titre de page** : `font-display` en dégradé (`title-gradient`), taille
   `clamp(28px,4vw,42px)`, suivi d'un paragraphe d'intro `text-ink-dim`.
 - **Responsive** : nav desktop en pilules ; menu hamburger sur mobile (`< sm`)

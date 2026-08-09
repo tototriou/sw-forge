@@ -1,7 +1,7 @@
 {
   "name": "sw-forge",
   "private": true,
-  "version": "1.1.0",
+  "version": "1.1.1",
   "type": "module",
   "description": "SW Forge — boîte à outils Summoners War : siège, RTA, runes et analyse de compte. 100 % local, aucune donnée envoyée.",
   "scripts": {
@@ -11,6 +11,7 @@
     "fetch-data": "node scripts/fetch-monsters.mjs"
   },
   "dependencies": {
+    "@vercel/analytics": "^2.0.1",
     "framer-motion": "^11.3.19",
     "lucide-react": "^0.407.0",
     "react": "^18.3.1",

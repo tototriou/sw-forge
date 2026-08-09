@@ -3,6 +3,7 @@ import { Eye, EyeOff } from 'lucide-react';
 import { Monster, RtaEntry } from '../../types';
 import ElementIcon from '../ElementIcon';
 import CategoryRing from './CategoryRing';
+import NumberField from '../NumberField';
 import { RtaCategory } from '../../hooks/useRtaCategories';
 import RuneIcon from '../RuneIcon';
 
@@ -280,18 +281,17 @@ export default function TurnOrder({
                 </div>
 
                 {/* saisie vitesse des runes */}
-                <input
-                  type="number"
-                  inputMode="numeric"
-                  value={it.entry.runeSpeed ?? ''}
-                  placeholder="+ runes"
-                  onChange={(e) => {
-                    const v = e.target.value;
-                    onRuneSpeed(String(m.id), v === '' ? null : Number(v));
-                  }}
-                  className="w-full bg-panel border border-border rounded-md px-1.5 py-1 text-[12px] text-center
-                             text-ink outline-none focus:border-[#5b63b8]"
-                />
+                <div className="flex justify-center">
+                  <NumberField
+                    value={it.entry.runeSpeed}
+                    allowEmpty
+                    min={0}
+                    placeholder="+ runes"
+                    width="w-14"
+                    ariaLabel={`SPD des runes de ${m.name}`}
+                    onChange={(v) => onRuneSpeed(String(m.id), v)}
+                  />
+                </div>
               </div>
             );
           })}

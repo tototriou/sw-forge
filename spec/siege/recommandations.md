@@ -24,7 +24,7 @@ interface RecoSlot {
   com2usId: number | null;                    // null = slot vide
   name: string;                               // repli d'affichage
   stats: Partial<Record<RecoStatKey, number>>;// minimums (absent = non exigé)
-  sets: string[];                             // sets recommandés, répétitions possibles
+  setOptions: string[][];                     // POSSIBILITÉS de runage, une seule suffit
 }
 interface RecoDeck { name: string; note: string; slots: RecoSlot[] } // 3 slots, index 0 = leader
 interface Reco { id: string; origin: 'mine'|'imported'; name: string; author: string; note: string; decks: RecoDeck[] }
@@ -223,6 +223,24 @@ D'où les **combinaisons possibles**, toutes gérées :
 - **Répétitions autorisées** : un set 2 pièces peut être demandé **plusieurs
   fois** (ex. **3× Fight** = 6 runes Fight, bonus cumulé) — d'où une **liste**
   et non un ensemble, et un **retrait par position** (pas par clé).
+#### Plusieurs runages au choix — **une seule possibilité suffit**
+
+Un monstre se joue rarement d'une seule façon : « **Violent/Némésis OU
+Violent/Vengeance** ». `RecoSlot.setOptions` est donc une **liste de
+combinaisons**, jamais une seule.
+
+- Il y a **toujours au moins une possibilité** (éventuellement vide = « aucun
+  set exigé ») ; supprimer la dernière la vide au lieu de la retirer.
+- ⚠️ **La confrontation est satisfaite dès qu'UNE SEULE possibilité l'est.**
+- L'analyse retient la **meilleure** possibilité (le moins de sets manquants) et
+  ne marque ✓/✗ **qu'elle** (`SlotMatch.matchedOption`) : annoncer « il te manque
+  X » sur un runage que le joueur n'a pas choisi n'aiderait pas.
+- Les doublons sont écartés à la lecture : deux fois la même combinaison
+  n'apporte rien et brouillerait l'affichage « A ou B ».
+- En édition, chaque possibilité est un bloc avec ses chips, son compteur
+  `N/6 runes` et son bouton **« + Set »** ; **« + Possibilité »** en ajoute une,
+  et les blocs sont séparés par un **« ou »**.
+
 #### Choix d'un set — **par icônes, pas par menu déroulant**
 
 Un bouton **« + Set »** ouvre une **grille des symboles de sets du jeu** ; un
@@ -290,6 +308,19 @@ Clés **en français** comme l'interface ; les clés **anglaises du modèle**
 
 **Export** : le JSON est **téléchargé en `.json`**. Rien d'autre — pas de copie au
 presse-papier.
+
+**Versions du format** (`JSON_VERSION`) :
+
+| Version | Changement |
+|---------|-----------|
+| 3 | `sets` d'un monstre devient une **liste de possibilités** (`[["violent","nemesis"],["violent","revenge"]]`) |
+| 2 | JSON lisible, clés en français |
+
+⚠️ **Rétrocompatibilité garantie en lecture** : un `sets` qui est une simple
+liste de clés (v1/v2) est repris comme **possibilité unique**, sans perte. Mais
+l'import **le signale** — « Fichier au format v2 (actuel : v3) […] réexporte-le
+pour le mettre à jour » — sinon un fichier ancien circule indéfiniment dans la
+guilde et personne ne sait qu'un format plus riche existe.
 
 **Import** : **fichier `.json` uniquement**. ⚠️ **Pas de zone de collage** : une
 recommandation se transmet comme une pièce jointe, et un champ de texte libre

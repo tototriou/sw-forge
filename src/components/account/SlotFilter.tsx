@@ -28,24 +28,26 @@ export default function SlotFilter({
   return (
     <div className="flex flex-wrap items-center gap-1">
       <span className="font-mono text-[11px] tracking-[0.1em] uppercase text-ink-dim mr-1">{label}</span>
-      {SLOTS.map((n) => {
-        const active = value.has(n);
-        return (
-          <button
-            key={n}
-            onClick={() => toggle(n)}
-            aria-pressed={active}
-            className={`w-8 h-8 rounded-md border text-[12.5px] font-mono font-semibold transition select-none
-              ${
-                active
-                  ? 'bg-[#2b3170] border-[#4a52a0] text-ink shadow'
-                  : 'bg-panel border-border text-ink-dim hover:text-ink hover:border-[#4a52a0]'
-              }`}
-          >
-            {n}
-          </button>
-        );
-      })}
+      <div className="flex flex-wrap items-center gap-0.5 rounded-lg border border-border bg-panel p-1">
+        {SLOTS.map((n) => {
+          const active = value.has(n);
+          return (
+            <button
+              key={n}
+              onClick={() => toggle(n)}
+              aria-pressed={active}
+              className={`w-7 h-7 rounded-md border text-[12.5px] font-mono font-semibold transition select-none
+                ${
+                  active
+                    ? 'bg-[#2b3170] border-[#5b63b8] text-ink shadow'
+                    : 'border-transparent text-ink-dim hover:text-ink hover:bg-panel2'
+                }`}
+            >
+              {n}
+            </button>
+          );
+        })}
+      </div>
       {value.size > 0 && (
         <button
           onClick={() => onChange(new Set())}

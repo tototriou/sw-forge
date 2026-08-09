@@ -241,10 +241,16 @@ export interface RecoSlot {
   com2usId: number | null; // null = slot vide
   name: string;
   stats: Partial<Record<RecoStatKey, number>>; // minimums recommandés (absent = non exigé)
-  // Sets de runes recommandés (clés RUNE_SETS), avec RÉPÉTITIONS possibles :
-  // un set 2 pièces peut être demandé plusieurs fois (ex. 3× Fight = 6 runes).
+  // Runages recommandés, en **PLUSIEURS POSSIBILITÉS au choix** : un monstre se
+  // joue souvent « Violent/Némésis OU Violent/Vengeance ». Chaque possibilité
+  // est une combinaison de sets (clés RUNE_SETS) avec RÉPÉTITIONS possibles —
+  // un set 2 pièces peut être demandé plusieurs fois (3× Fight = 6 runes).
   // Combinaisons valides sur 6 runes : 4+2 · 2+2+2 · 4 · 2+2 · 2 · aucun.
-  sets: string[];
+  //
+  // ⚠️ La liste contient **toujours au moins une possibilité** (éventuellement
+  // vide = « aucun set exigé »), et la confrontation est satisfaite dès qu'**UNE
+  // SEULE** l'est. Voir ../spec/siege/recommandations.md.
+  setOptions: string[][];
 }
 
 // Un deck recommandé : 3 monstres, index 0 = leader (comme une équipe de siège).
@@ -278,7 +284,7 @@ export interface RecoState {
 }
 
 export function emptyRecoSlot(): RecoSlot {
-  return { com2usId: null, name: '', stats: {}, sets: [] };
+  return { com2usId: null, name: '', stats: {}, setOptions: [[]] };
 }
 
 export function emptyRecoDeck(): RecoDeck {

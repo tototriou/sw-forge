@@ -6,7 +6,16 @@
 // été retiré — deux formats pour la même chose, c'est deux fois plus de surface
 // à valider pour aucun gain, et un contenu opaque que personne ne peut relire.
 
-import { Reco, RecoDeck, RecoPayload, RecoSlot, RecoStatKey, RECO_STATS, RUNE_SETS } from '../types';
+import {
+  Reco,
+  RecoDeck,
+  RecoPayload,
+  RecoSlot,
+  RecoStatKey,
+  RECO_STATS,
+  RUNE_SETS,
+  emptyRecoSlot,
+} from '../types';
 import { canAddSet } from './effects';
 
 const STAT_KEYS = new Set<string>(RECO_STATS.map((s) => s.key));
@@ -54,6 +63,32 @@ function cleanStats(raw: unknown, ctx: Issues, where: string): Partial<Record<Re
   return out;
 }
 
+// Possibilités de runage : une LISTE de combinaisons, dont **une seule** suffit
+// à satisfaire le slot. Deux formes acceptées en lecture :
+//   - `["violent","nemesis"]`        → ancienne forme, une seule possibilité ;
+//   - `[["violent","nemesis"], […]]` → forme actuelle, plusieurs possibilités.
+// On renvoie toujours **au moins une** possibilité (éventuellement vide).
+export function cleanSetOptions(raw: unknown, ctx: Issues, where: string): string[][] {
+  if (raw == null) return [[]];
+  if (!Array.isArray(raw)) {
+    warn(ctx, `${where} : « sets » n'est pas une liste — ignoré.`);
+    return [[]];
+  }
+  // Forme historique : une liste de clés → une seule possibilité.
+  if (raw.every((x) => typeof x === 'string')) return [cleanSets(raw, ctx, where)];
+
+  const out: string[][] = [];
+  for (const opt of raw) {
+    const combi = cleanSets(opt, ctx, where);
+    // Doublons écartés : deux fois la même possibilité n'apporte rien et
+    // brouillerait l'affichage « A ou B ».
+    if (!out.some((o) => o.length === combi.length && o.every((k, i) => k === combi[i]))) {
+      out.push(combi);
+    }
+  }
+  return out.length > 0 ? out : [[]];
+}
+
 // Sets : seules les clés connues, et une combinaison qui tient dans 6 runes
 // (un fichier JSON édité à la main pourrait demander 4+4).
 function cleanSets(raw: unknown, ctx: Issues, where: string): string[] {
@@ -92,7 +127,12 @@ function cleanText(raw: unknown, max: number, ctx: Issues, where: string): strin
  * ----------------------------------------------------------------------- */
 
 export const JSON_FORMAT = 'sw-forge/recommandations';
-export const JSON_VERSION = 2;
+// v3 : `sets` d'un monstre devient une LISTE DE POSSIBILITÉS (« Violent/Némésis
+// OU Violent/Vengeance »). Les fichiers v1/v2 restent lus sans perte — leur
+// liste de clés est reprise comme possibilité unique — mais on le SIGNALE à
+// l'import pour inviter à réexporter, sinon un fichier ancien circule
+// indéfiniment et personne ne sait qu'un format plus riche existe.
+export const JSON_VERSION = 3;
 
 // Clés en clair (français, comme l'interface) pour qu'un joueur puisse ouvrir
 // le fichier, le relire et le corriger sans décodeur.
@@ -113,7 +153,7 @@ function recoToJson(r: Reco) {
             : {
                 com2usId: sl.com2usId,
                 nom: sl.name.slice(0, 40),
-                sets: cleanSets(sl.sets, out, ''),
+                sets: cleanSetOptions(sl.setOptions, out, ''),
                 stats: cleanStats(sl.stats, out, ''),
               }
         ),
@@ -140,10 +180,10 @@ export function encodeRecosJson(recos: Reco[]): string {
 // modèle interne) sont acceptées en plus des françaises : un fichier bricolé à
 // partir des types passe quand même.
 function jsonToSlot(raw: unknown, ctx: Issues, where: string): RecoSlot {
-  if (raw == null) return { com2usId: null, name: '', stats: {}, sets: [] };
+  if (raw == null) return emptyRecoSlot();
   if (typeof raw !== 'object') {
     warn(ctx, `${where} : entrée invalide — slot laissé vide.`);
-    return { com2usId: null, name: '', stats: {}, sets: [] };
+    return emptyRecoSlot();
   }
   const o = raw as Record<string, unknown>;
   const nom = o.nom ?? o.name;
@@ -157,7 +197,7 @@ function jsonToSlot(raw: unknown, ctx: Issues, where: string): RecoSlot {
     com2usId: valide ? Math.round(id) : null,
     name: typeof nom === 'string' ? nom.slice(0, 40) : '',
     stats: cleanStats(o.stats, ctx, where),
-    sets: cleanSets(o.sets, ctx, where),
+    setOptions: cleanSetOptions(o.sets, ctx, where),
   };
 }
 
@@ -196,6 +236,15 @@ export function decodeRecosJson(text: string, ctx: Issues = noIssues()): RecoPay
   }
   if (typeof obj.format === 'string' && obj.format !== JSON_FORMAT) {
     warn(ctx, `Format déclaré « ${obj.format} » (attendu « ${JSON_FORMAT} ») — lecture tentée quand même.`);
+  }
+  // Fichier d'une version antérieure : lu sans perte, mais on le dit.
+  const version = Number(obj.version);
+  if (Number.isFinite(version) && version < JSON_VERSION) {
+    warn(
+      ctx,
+      `Fichier au format v${version} (actuel : v${JSON_VERSION}). Il a été lu sans perte — ` +
+        `réexporte-le depuis SW Forge pour le mettre à jour.`
+    );
   }
   const list = (
     Array.isArray(obj.recommandations) ? obj.recommandations : Array.isArray(obj.recos) ? obj.recos : null

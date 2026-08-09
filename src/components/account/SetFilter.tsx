@@ -37,26 +37,31 @@ export default function SetFilter({
   return (
     <div className="flex flex-wrap items-center gap-1">
       <span className="font-mono text-[11px] tracking-[0.1em] uppercase text-ink-dim mr-1">{label}</span>
-      {present.map((s) => {
-        const active = value.has(s.key);
-        return (
-          <button
-            key={s.key}
-            onClick={() => toggle(s.key)}
-            title={s.label}
-            aria-label={s.label}
-            aria-pressed={active}
-            className={`flex items-center justify-center w-8 h-8 rounded-md border transition select-none
-              ${
-                active
-                  ? 'bg-[#2b3170] border-[#4a52a0] shadow'
-                  : 'bg-panel border-border opacity-55 hover:opacity-100 hover:border-[#4a52a0]'
-              }`}
-          >
-            <RuneIcon setKey={s.key} size={18} />
-          </button>
-        );
-      })}
+      {/* Une SEULE barre continue plutôt que des boutons détachés : les symboles
+          se lisent comme une rangée d'icônes du jeu, et l'ensemble tient sur une
+          ligne même avec 25 sets. Seul l'état actif porte un cadre. */}
+      <div className="flex flex-wrap items-center gap-0.5 rounded-lg border border-border bg-panel p-1">
+        {present.map((s) => {
+          const active = value.has(s.key);
+          return (
+            <button
+              key={s.key}
+              onClick={() => toggle(s.key)}
+              title={s.label}
+              aria-label={s.label}
+              aria-pressed={active}
+              className={`flex items-center justify-center w-7 h-7 rounded-md border transition select-none
+                ${
+                  active
+                    ? 'bg-[#2b3170] border-[#5b63b8] shadow'
+                    : 'border-transparent opacity-50 hover:opacity-100 hover:bg-panel2'
+                }`}
+            >
+              <RuneIcon setKey={s.key} size={18} />
+            </button>
+          );
+        })}
+      </div>
       {/* Réinitialisation : même gabarit que les pastilles de set (32 px, même
           rayon, même bordure) pour ne pas casser la rangée, mais sans fond actif
           et virant au rouge au survol — c'est une action, pas un set de plus. */}

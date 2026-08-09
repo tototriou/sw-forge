@@ -842,12 +842,16 @@ function DeckBlock({
                   <div className="mt-2 pt-2 border-t border-border/50">
                     {editing ? (
                       <SetEditor
-                        sets={slot.sets}
-                        onAdd={(k) => recos.addSlotSet(reco.id, deckIndex, idx, k)}
-                        onRemove={(pos) => recos.removeSlotSet(reco.id, deckIndex, idx, pos)}
+                        options={slot.setOptions}
+                        onAdd={(opt, k) => recos.addSlotSet(reco.id, deckIndex, idx, opt, k)}
+                        onRemove={(opt, pos) =>
+                          recos.removeSlotSet(reco.id, deckIndex, idx, opt, pos)
+                        }
+                        onAddOption={() => recos.addSetOption(reco.id, deckIndex, idx)}
+                        onRemoveOption={(opt) => recos.removeSetOption(reco.id, deckIndex, idx, opt)}
                       />
                     ) : (
-                      <SetList sets={slot.sets} sm={sm} />
+                      <SetList options={slot.setOptions} sm={sm} />
                     )}
                   </div>
 
@@ -857,7 +861,7 @@ function DeckBlock({
                       <StatEditor
                         slot={slot}
                         monster={monster}
-                        spdLead={spdLeadBonus(monster, leadInfo, slot.sets)}
+                        spdLead={spdLeadBonus(monster, leadInfo, slot.setOptions[0])}
                         onSet={(key, total) =>
                           recos.setSlotStat(reco.id, deckIndex, idx, key, total)
                         }
@@ -867,7 +871,7 @@ function DeckBlock({
                         slot={slot}
                         monster={monster}
                         sm={sm}
-                        spdLead={spdLeadBonus(monster, leadInfo, slot.sets)}
+                        spdLead={spdLeadBonus(monster, leadInfo, slot.setOptions[0])}
                       />
                     )}
                   </div>
@@ -1077,19 +1081,35 @@ function NoteBlock({ text, label, compact }: { text: string; label: string; comp
 
 /* ---- Sets de runes recommandés ----------------------------------------- */
 
-// Édition : chips des sets choisis (retrait par position, un set peut être
-// répété) + sélecteur limité à ce qui tient encore dans les 6 runes.
+// Édition des runages recommandés : **plusieurs possibilités au choix**
+// (« Violent/Némésis | Violent/Vengeance »). La confrontation n'en exige
+// qu'UNE, d'où le séparateur « | » entre les combinaisons.
+//
+// Les sets ajoutés vont toujours dans la DERNIÈRE possibilité : on construit
+// une combinaison, on clique « + Possibilité », et les clics suivants
+// alimentent la nouvelle. Pas de notion de « possibilité sélectionnée » à gérer.
 function SetEditor({
-  sets,
+  options,
   onAdd,
   onRemove,
+  onAddOption,
 }: {
-  sets: string[];
-  onAdd: (key: string) => void;
-  onRemove: (position: number) => void;
+  options: string[][];
+  onAdd: (option: number, key: string) => void;
+  onRemove: (option: number, position: number) => void;
+  onAddOption: () => void;
+  onRemoveOption: (option: number) => void;
 }) {
-  const used = setsCost(sets);
-  const full = !RUNE_SETS.some((s) => canAddSet(sets, s.key)); // plus rien ne rentre
+  // Possibilité VISÉE par les ajouts. Par défaut la dernière — on construit la
+  // combinaison en cours. Cliquer une chip d'une autre possibilité la vise, ce
+  // qui permet de revenir compléter une combinaison laissée incomplète
+  // (« Violent » seul à côté d'un « Violent | Will » terminé).
+  const [focus, setFocus] = useState<number | null>(null);
+  const last = options.length - 1;
+  const target = focus != null && focus <= last ? focus : last;
+  const current = options[target] ?? [];
+  const used = setsCost(current);
+  const full = !RUNE_SETS.some((st) => canAddSet(current, st.key)); // plus rien ne rentre
   const [open, setOpen] = useState(false);
 
   // Le panneau se referme dès qu'il n'y a plus de set possible, sinon on
@@ -1100,65 +1120,121 @@ function SetEditor({
 
   return (
     <div>
-      <div className="flex items-center justify-between mb-1">
-        <span className="font-mono text-[10px] uppercase tracking-[0.1em] text-ink-dim">Sets</span>
+      <div className="flex items-center justify-between mb-1 gap-2">
+        <span className="font-mono text-[10px] uppercase tracking-[0.1em] text-ink-dim">
+          Runage{options.length > 1 ? ` · ${options.length} possibilités` : ''}
+        </span>
         <span className="font-mono text-[10px] text-ink-dim">
           {used}/{MAX_SET_PIECES} runes
         </span>
       </div>
 
-      {sets.length > 0 && (
-        <div className="flex flex-wrap gap-1 mb-1">
-          {sets.map((key, pos) => (
-            <span
-              key={pos}
-              className="inline-flex items-center gap-1 rounded-full border border-border bg-panel px-1.5 py-0.5"
-            >
-              <RuneIcon setKey={key} size={14} />
-              <span className="text-[10.5px] text-ink">×{setPieces(key)}</span>
-              <button
-                onClick={() => onRemove(pos)}
-                className="text-ink-dim hover:text-fire transition"
-                title="Retirer ce set"
-              >
-                <X size={10} />
-              </button>
-            </span>
-          ))}
+      {options.some((o) => o.length > 0) && (
+        <div className="flex flex-wrap items-center gap-1 mb-1">
+          {options.map((sets, oi) => {
+            const vise = oi === target && options.length > 1;
+            return (
+              <span key={oi} className="flex flex-wrap items-center gap-1">
+                {oi > 0 && <span className="px-0.5 font-mono text-[12px] text-ink-dim">|</span>}
+                <span
+                  className={`flex flex-wrap items-center gap-1 rounded-md ${
+                    vise ? 'ring-1 ring-[#5b63b8] px-1 py-0.5' : ''
+                  }`}
+                >
+                  {sets.length === 0 ? (
+                    <span className="font-mono text-[10px] text-ink-dim italic">vide</span>
+                  ) : (
+                    sets.map((key, pos) => (
+                      <span
+                        key={pos}
+                        className="inline-flex items-center gap-1 rounded-full border border-border bg-panel pl-1 pr-1.5 py-0.5"
+                      >
+                        {/* Cliquer la chip VISE sa possibilité : c'est ainsi
+                            qu'on revient compléter une combinaison laissée
+                            incomplète. Bouton distinct du ✕ (pas de bouton
+                            imbriqué). */}
+                        <button
+                          onClick={() => setFocus(oi)}
+                          title={
+                            oi === target
+                              ? 'Les sets ajoutés vont dans cette possibilité'
+                              : 'Éditer cette possibilité'
+                          }
+                          className="inline-flex items-center gap-1"
+                        >
+                          <RuneIcon setKey={key} size={14} />
+                          <span className="text-[10.5px] text-ink">×{setPieces(key)}</span>
+                        </button>
+                        <button
+                          onClick={() => onRemove(oi, pos)}
+                          className="text-ink-dim hover:text-fire transition"
+                          title="Retirer ce set"
+                        >
+                          <X size={10} />
+                        </button>
+                      </span>
+                    ))
+                  )}
+                </span>
+              </span>
+            );
+          })}
         </div>
       )}
+
+      {/* Les deux actions sur la MÊME ligne : ajouter un set à la combinaison en
+          cours, ou en ouvrir une nouvelle. */}
+      <div className="flex items-center gap-1">
+        <button
+          onClick={() => setOpen((o) => !o)}
+          disabled={full}
+          aria-expanded={open}
+          className="flex-1 flex items-center justify-center gap-1 rounded border border-border bg-panel
+                     px-1.5 py-1 text-[11px] font-semibold text-ink-dim transition
+                     hover:text-ink hover:border-[#4a52a0] disabled:opacity-40 disabled:cursor-not-allowed"
+        >
+          {full ? 'Plus de place (6 runes)' : '+ Set'}
+        </button>
+        <button
+          onClick={() => {
+            onAddOption();
+            setFocus(null); // la nouvelle possibilité (la dernière) devient la cible
+            setOpen(true); // on enchaîne directement sur le choix des sets
+          }}
+          disabled={(options[last] ?? []).length === 0}
+          title={
+            (options[last] ?? []).length === 0
+              ? 'Complète la combinaison en cours avant d’en proposer une autre'
+              : 'Proposer un autre runage possible — un seul suffira'
+          }
+          className="flex items-center justify-center gap-0.5 rounded border border-border bg-panel
+                     px-2 py-1 text-[11px] font-semibold text-ink-dim transition
+                     hover:text-ink hover:border-[#4a52a0] disabled:opacity-40 disabled:cursor-not-allowed"
+        >
+          <Plus size={11} /> Possibilité
+        </button>
+      </div>
 
       {/* Choix par ICÔNES plutôt que par menu déroulant : on reconnaît un set du
           jeu à son symbole, pas à son nom dans une liste. Le panneau reste
           ouvert pour enchaîner les ajouts, et se referme tout seul dès que les
           6 runes sont prises — il n'y a alors plus rien à cliquer. */}
-      <button
-        onClick={() => setOpen((o) => !o)}
-        disabled={full}
-        aria-expanded={open}
-        className="w-full flex items-center justify-center gap-1 rounded border border-border bg-panel
-                   px-1.5 py-1 text-[11px] font-semibold text-ink-dim transition
-                   hover:text-ink hover:border-[#4a52a0] disabled:opacity-40 disabled:cursor-not-allowed"
-      >
-        {full ? 'Plus de place (6 runes)' : <>+ Set</>}
-      </button>
-
       {open && !full && (
         <div className="mt-1 rounded-lg border border-border bg-panel p-1.5">
           <div className="flex flex-wrap gap-1">
-            {RUNE_SETS.map((s) => {
-              const fits = canAddSet(sets, s.key);
+            {RUNE_SETS.map((st) => {
+              const fits = canAddSet(current, st.key);
               return (
                 <button
-                  key={s.key}
-                  onClick={() => onAdd(s.key)}
+                  key={st.key}
+                  onClick={() => onAdd(target, st.key)}
                   disabled={!fits}
                   title={
                     fits
-                      ? `${s.label} — ${setPieces(s.key)} runes`
-                      : `${s.label} — ${setPieces(s.key)} runes : il ne reste pas la place`
+                      ? `${st.label} — ${setPieces(st.key)} runes`
+                      : `${st.label} — ${setPieces(st.key)} runes : il ne reste pas la place`
                   }
-                  aria-label={s.label}
+                  aria-label={st.label}
                   className={`flex items-center justify-center w-8 h-8 rounded-md border transition
                     ${
                       fits
@@ -1166,7 +1242,7 @@ function SetEditor({
                         : 'bg-panel border-border opacity-25 cursor-not-allowed'
                     }`}
                 >
-                  <RuneIcon setKey={s.key} size={20} />
+                  <RuneIcon setKey={st.key} size={20} />
                 </button>
               );
             })}
@@ -1177,47 +1253,65 @@ function SetEditor({
   );
 }
 
-// Vue : les sets recommandés, marqués ✓ (porté) ou ✗ (manquant) si un compte
-// est chargé. Comparaison en multi-ensemble → un set demandé 2× reste rouge s'il
-// n'est actif qu'une fois.
-function SetList({ sets, sm }: { sets: string[]; sm: SlotMatch | null }) {
-  if (!sets || sets.length === 0) {
+// Vue : les runages recommandés. Plusieurs possibilités sont séparées par
+// « ou » — **une seule suffit**. Après analyse, seule la possibilité RETENUE
+// (`matchedOption`, la plus proche d'être satisfaite) est marquée ✓/✗ ; les
+// autres restent neutres, sinon on afficherait des manques sur un runage que le
+// joueur n'a pas choisi.
+function SetList({ options, sm }: { options: string[][]; sm: SlotMatch | null }) {
+  const opts = options?.length ? options : [[]];
+  if (opts.every((o) => o.length === 0)) {
     return <p className="font-mono text-[10.5px] text-ink-dim">Aucun set recommandé</p>;
   }
-  // On consomme la liste des manquants pour marquer les bonnes occurrences.
-  const pool = [...(sm?.missingSets ?? [])];
-  const marks = sets.map((key) => {
-    if (!sm || sm.status === 'empty') return null;
-    const i = pool.indexOf(key);
-    if (i >= 0) {
-      pool.splice(i, 1);
-      return false; // manquant
-    }
-    return true; // porté
-  });
+  const analysed = !!sm && sm.status !== 'empty';
+  const retenue = sm?.matchedOption ?? 0;
 
   return (
-    <div className="flex flex-wrap gap-1">
-      {sets.map((key, i) => {
-        const ok = marks[i];
+    <div className="flex flex-wrap items-center gap-1">
+      {opts.map((sets, oi) => {
+        // On consomme la liste des manquants pour marquer les bonnes occurrences.
+        const pool = analysed && oi === retenue ? [...(sm?.missingSets ?? [])] : null;
         return (
-          <span
-            key={i}
-            title={ok === null ? undefined : ok ? 'Set porté' : `Set ${key} manquant sur ton exemplaire`}
-            className={`inline-flex items-center gap-1 rounded-full border px-1.5 py-0.5 ${
-              ok === null
-                ? 'border-border bg-panel'
-                : ok
-                  ? 'border-emerald-500/50 bg-emerald-500/10'
-                  : 'border-fire/50 bg-fire/10'
-            }`}
-          >
-            <RuneIcon setKey={key} size={14} />
-            <span className={`text-[10.5px] ${ok === false ? 'text-fire' : 'text-ink'}`}>
-              ×{setPieces(key)}
-            </span>
-            {ok === true && <Check size={10} className="text-emerald-400" />}
-            {ok === false && <X size={10} className="text-fire" />}
+          <span key={oi} className="flex flex-wrap items-center gap-1">
+            {oi > 0 && <span className="px-0.5 font-mono text-[12px] text-ink-dim">|</span>}
+            {sets.length === 0 ? (
+              <span className="font-mono text-[10.5px] text-ink-dim italic">aucun set</span>
+            ) : (
+              <span className="flex flex-wrap items-center gap-1">
+                {sets.map((key, i) => {
+                  let ok: boolean | null = null;
+                  if (pool) {
+                    const j = pool.indexOf(key);
+                    if (j >= 0) {
+                      pool.splice(j, 1);
+                      ok = false; // manquant
+                    } else ok = true; // porté
+                  }
+                  return (
+                    <span
+                      key={i}
+                      title={
+                        ok === null ? undefined : ok ? 'Set porté' : `Set ${key} manquant sur ton exemplaire`
+                      }
+                      className={`inline-flex items-center gap-1 rounded-full border px-1.5 py-0.5 ${
+                        ok === null
+                          ? 'border-border bg-panel'
+                          : ok
+                            ? 'border-emerald-500/50 bg-emerald-500/10'
+                            : 'border-fire/50 bg-fire/10'
+                      }`}
+                    >
+                      <RuneIcon setKey={key} size={14} />
+                      <span className={`text-[10.5px] ${ok === false ? 'text-fire' : 'text-ink'}`}>
+                        ×{setPieces(key)}
+                      </span>
+                      {ok === true && <Check size={10} className="text-emerald-400" />}
+                      {ok === false && <X size={10} className="text-fire" />}
+                    </span>
+                  );
+                })}
+              </span>
+            )}
           </span>
         );
       })}

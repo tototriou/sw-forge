@@ -192,6 +192,10 @@ quel joueur, alors qu'une rangée de libellés fait un mur de texte et réduit l
 nombre de sets visibles sans défilement. Le nom reste en `title` et en
 `aria-label`, donc rien n'est perdu pour l'accessibilité.
 
+- Rendu en **une seule barre continue** (conteneur bordé, icônes serrées),
+  et non en boutons détachés : les symboles se lisent comme une rangée
+  d'icônes du jeu, et l'ensemble tient sur une ligne même avec 25 sets. Seul
+  l'**état actif** porte un cadre ; l'inactif est simplement atténué.
 - Multi-sélection ; aucun set coché = aucun filtre.
 - **Seuls les sets réellement présents** dans l'inventaire sont proposés : un
   filtre qui ne peut rien renvoyer n'aide personne.

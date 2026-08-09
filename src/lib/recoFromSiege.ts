@@ -45,7 +45,8 @@ export function deckFromSiegeTeam(team: SiegeTeam, monsterById: Map<string, Mons
       com2usId: monster.com2usId,
       name: monster.name,
       stats: statsFromGear(slot),
-      sets: setsFromSlot(slot),
+      // Une seule possibilité au départ : l'auteur en ajoute s'il veut.
+      setOptions: [setsFromSlot(slot)],
     };
   });
   return { name: '', note: '', slots };

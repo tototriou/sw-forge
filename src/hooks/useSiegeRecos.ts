@@ -10,6 +10,7 @@ import {
   emptyRecoDeck,
 } from '../types';
 import { canAddSet } from '../lib/effects';
+import { cleanSetOptions } from '../lib/recoShare';
 
 const SET_KEYS = new Set(RUNE_SETS.map((s) => s.key));
 
@@ -39,18 +40,16 @@ function loadSlot(raw: unknown): RecoSlot {
       if (Number.isFinite(n) && n > 0) stats[k as RecoStatKey] = Math.ceil(n);
     }
   }
-  // Sets : on rejoue la contrainte de coût (≤ 6 runes) au chargement.
-  const sets: string[] = [];
-  if (Array.isArray(s.sets)) {
-    for (const k of s.sets) {
-      if (typeof k === 'string' && SET_KEYS.has(k) && canAddSet(sets, k)) sets.push(k);
-    }
-  }
+  // Possibilités de runage : contrainte de coût (≤ 6 runes) rejouée au
+  // chargement, et lecture de l'ancienne forme `sets: string[]` (une seule
+  // possibilité) via le même normaliseur que l'import.
+  const brut = s as { setOptions?: unknown; sets?: unknown };
+  const setOptions = cleanSetOptions(brut.setOptions ?? brut.sets, { errors: [], warnings: [] }, '');
   return {
     com2usId: typeof s.com2usId === 'number' ? s.com2usId : null,
     name: typeof s.name === 'string' ? s.name : '',
     stats,
-    sets,
+    setOptions,
   };
 }
 
@@ -106,8 +105,10 @@ export interface UseRecoState {
   setDeckMeta: (id: string, deck: number, patch: Partial<Pick<RecoDeck, 'name' | 'note'>>) => void;
   setSlotMonster: (id: string, deck: number, idx: number, com2usId: number | null, name: string) => void;
   setSlotStat: (id: string, deck: number, idx: number, stat: RecoStatKey, value: number | null) => void;
-  addSlotSet: (id: string, deck: number, idx: number, setKey: string) => void;
-  removeSlotSet: (id: string, deck: number, idx: number, position: number) => void;
+  addSlotSet: (id: string, deck: number, idx: number, option: number, setKey: string) => void;
+  removeSlotSet: (id: string, deck: number, idx: number, option: number, position: number) => void;
+  addSetOption: (id: string, deck: number, idx: number) => void;
+  removeSetOption: (id: string, deck: number, idx: number, option: number) => void;
   swapSlots: (id: string, deck: number, from: number, to: number) => void;
   importRecos: (recos: RecoPayload[]) => number; // AJOUTE toujours (jamais de remplacement)
   clearAll: () => void;
@@ -191,7 +192,7 @@ export function useSiegeRecos(): UseRecoState {
   // pour le monstre auquel ils étaient destinés.
   const setSlotMonster = useCallback(
     (id: string, deck: number, idx: number, com2usId: number | null, name: string) =>
-      updateSlot(id, deck, idx, () => ({ com2usId, name, stats: {}, sets: [] })),
+      updateSlot(id, deck, idx, () => ({ com2usId, name, stats: {}, setOptions: [[]] })),
     [updateSlot]
   );
 
@@ -206,24 +207,57 @@ export function useSiegeRecos(): UseRecoState {
     [updateSlot]
   );
 
-  // Ajoute un set recommandé si la place le permet (4+2 · 2+2+2 · 4 · 2+2 · 2).
+  // Remplace UNE possibilité de runage, les autres inchangées.
+  const mapOption = (
+    sl: RecoSlot,
+    option: number,
+    fn: (sets: string[]) => string[]
+  ): RecoSlot => ({
+    ...sl,
+    setOptions: sl.setOptions.map((o, i) => (i === option ? fn(o) : o)),
+  });
+
+  // Ajoute un set à une possibilité, si la place le permet (4+2 · 2+2+2 · 4 · 2+2 · 2).
   const addSlotSet = useCallback(
-    (id: string, deck: number, idx: number, setKey: string) =>
+    (id: string, deck: number, idx: number, option: number, setKey: string) =>
       updateSlot(id, deck, idx, (sl) =>
-        SET_KEYS.has(setKey) && canAddSet(sl.sets, setKey)
-          ? { ...sl, sets: [...sl.sets, setKey] }
+        SET_KEYS.has(setKey) && canAddSet(sl.setOptions[option] ?? [], setKey)
+          ? mapOption(sl, option, (o) => [...o, setKey])
           : sl
       ),
     [updateSlot]
   );
 
   // Retrait PAR POSITION (et non par clé) : un même set peut figurer plusieurs fois.
+  // Vider une possibilité la SUPPRIME (sauf si c'est la seule) : une entrée vide
+  // au milieu d'un « A | B » n'a pas de sens et alourdirait l'affichage.
   const removeSlotSet = useCallback(
-    (id: string, deck: number, idx: number, position: number) =>
-      updateSlot(id, deck, idx, (sl) => ({
-        ...sl,
-        sets: sl.sets.filter((_, i) => i !== position),
-      })),
+    (id: string, deck: number, idx: number, option: number, position: number) =>
+      updateSlot(id, deck, idx, (sl) => {
+        const next = mapOption(sl, option, (o) => o.filter((_, i) => i !== position));
+        if (next.setOptions.length > 1 && next.setOptions[option].length === 0) {
+          return { ...next, setOptions: next.setOptions.filter((_, i) => i !== option) };
+        }
+        return next;
+      }),
+    [updateSlot]
+  );
+
+  // Une possibilité de plus (« Violent/Némésis OU Violent/Vengeance »).
+  const addSetOption = useCallback(
+    (id: string, deck: number, idx: number) =>
+      updateSlot(id, deck, idx, (sl) => ({ ...sl, setOptions: [...sl.setOptions, []] })),
+    [updateSlot]
+  );
+
+  // Retrait d'une possibilité. Il en reste TOUJOURS au moins une : supprimer la
+  // dernière la vide au lieu de laisser un slot sans aucune entrée.
+  const removeSetOption = useCallback(
+    (id: string, deck: number, idx: number, option: number) =>
+      updateSlot(id, deck, idx, (sl) => {
+        const rest = sl.setOptions.filter((_, i) => i !== option);
+        return { ...sl, setOptions: rest.length > 0 ? rest : [[]] };
+      }),
     [updateSlot]
   );
 
@@ -265,6 +299,8 @@ export function useSiegeRecos(): UseRecoState {
     setSlotStat,
     addSlotSet,
     removeSlotSet,
+    addSetOption,
+    removeSetOption,
     swapSlots,
     importRecos,
     clearAll,

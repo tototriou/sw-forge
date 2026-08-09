@@ -50,7 +50,8 @@ export interface SlotMatch {
   copies: number; // nombre de builds connus (exemplaires × presets)
   checks: StatCheck[];
   ownedSets: string[]; // sets actifs du build retenu
-  missingSets: string[]; // sets recommandés non portés par ce build
+  missingSets: string[]; // sets manquants de la MEILLEURE possibilité
+  matchedOption?: number; // index de cette possibilité dans `slot.setOptions`
 }
 
 export type RecoStatus = 'unknown' | 'ok' | 'partial' | 'missing';
@@ -111,7 +112,7 @@ function checksFor(
 
 // Confronte un slot au build qu'il a DANS une équipe donnée (ou à rien).
 function checkSlot(slot: RecoSlot, build: OwnedBuild | null, copies: number): SlotMatch {
-  const wanted = slot.sets ?? [];
+  const options = slot.setOptions?.length ? slot.setOptions : [[]];
   // Slot sans monstre : rien à confronter (ne surtout pas le dire « absent »).
   if (slot.com2usId == null) {
     return { status: 'empty', owned: null, copies: 0, checks: [], ownedSets: [], missingSets: [] };
@@ -123,19 +124,28 @@ function checkSlot(slot: RecoSlot, build: OwnedBuild | null, copies: number): Sl
       copies,
       checks: checksFor(slot.stats, null),
       ownedSets: [],
-      missingSets: wanted,
+      // Monstre non confronté : on montre les manques de la 1re possibilité.
+      missingSets: options[0],
     };
   }
   const checks = checksFor(slot.stats, totalsOf(build));
   const sets = activeSets(build.gear.runes.map((r) => r.set));
-  const missing = missingSets(wanted, sets);
+  // ⚠️ Plusieurs runages peuvent être recommandés (« Violent/Némésis OU
+  // Violent/Vengeance ») : le slot est satisfait dès qu'**UNE SEULE**
+  // possibilité l'est. On retient la MEILLEURE (le moins de sets manquants),
+  // qui est aussi celle qu'on affiche — annoncer « il te manque X » sur une
+  // possibilité que le joueur n'a pas prise n'aiderait pas.
+  const best = options
+    .map((opt, i) => ({ option: i, missing: missingSets(opt, sets) }))
+    .sort((a, b) => a.missing.length - b.missing.length)[0];
   return {
-    status: checks.every((c) => c.ok) && missing.length === 0 ? 'ok' : 'ko',
+    status: checks.every((c) => c.ok) && best.missing.length === 0 ? 'ok' : 'ko',
     owned: build,
     copies,
     checks,
     ownedSets: sets,
-    missingSets: missing,
+    missingSets: best.missing,
+    matchedOption: best.option,
   };
 }
 

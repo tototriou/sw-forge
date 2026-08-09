@@ -1,7 +1,8 @@
 import { memo, useCallback, useMemo, useRef, useState } from 'react';
-import { RuneDetail, RUNE_SETS } from '../../types';
+import { RuneDetail } from '../../types';
 import { formatRuneEffect, RARITY_META, runeEfficiency, runeScore } from '../../lib/effects';
-import RuneIcon from '../RuneIcon';
+import SetFilter from './SetFilter';
+import SlotFilter from './SlotFilter';
 import RuneSlotIcon from '../RuneSlotIcon';
 import { RuneDetailBox } from '../MonsterGear';
 import Pager from './Pager';
@@ -54,13 +55,6 @@ export default function RunesList({ runes }: Props) {
   const [openId, setOpenId] = useState<number | null>(null);
   const toggleOpen = useCallback((id: number) => setOpenId((c) => (c === id ? null : id)), []);
 
-  function toggle<T>(set: Set<T>, v: T, upd: (s: Set<T>) => void) {
-    const next = new Set(set);
-    next.has(v) ? next.delete(v) : next.add(v);
-    upd(next);
-    setPage(0);
-  }
-
   // Les deux mesures calculées une seule fois par import (bascule instantanée).
   const rows = useMemo(
     () =>
@@ -69,12 +63,6 @@ export default function RunesList({ runes }: Props) {
       ),
     [runes]
   );
-
-  // Sets réellement présents dans l'inventaire (pour les chips).
-  const presentSets = useMemo(() => {
-    const s = new Set(runes.map((r) => r.set));
-    return RUNE_SETS.filter((rs) => s.has(rs.key));
-  }, [runes]);
 
   const filtered = useMemo(() => {
     return rows.filter((row) => {
@@ -101,60 +89,25 @@ export default function RunesList({ runes }: Props) {
     <div>
       {/* Filtres */}
       <div className="flex flex-col gap-3 mb-4">
-        {/* Sets : multi-sélection */}
-        <div className="flex flex-wrap items-center gap-1.5">
-          <span className="font-mono text-[11px] tracking-[0.1em] uppercase text-ink-dim mr-1">Sets</span>
-          {presentSets.map((s) => {
-            const active = sets.has(s.key);
-            return (
-              <button
-                key={s.key}
-                onClick={() => toggle(sets, s.key, setSets)}
-                className={`flex items-center gap-1 rounded-full border px-2 py-1 text-[12px] font-semibold transition select-none
-                  ${
-                    active
-                      ? 'bg-[#2b3170] border-[#4a52a0] text-ink shadow'
-                      : 'bg-panel border-border text-ink-dim hover:text-ink hover:border-[#4a52a0]'
-                  }`}
-              >
-                <RuneIcon setKey={s.key} size={15} className={active ? '' : 'opacity-70'} />
-                {s.label}
-              </button>
-            );
-          })}
-          {sets.size > 0 && (
-            <button
-              onClick={() => {
-                setSets(new Set());
-                setPage(0);
-              }}
-              className="ml-1 text-[11px] text-ink-dim hover:text-fire transition underline"
-            >
-              tout
-            </button>
-          )}
-        </div>
+        {/* Sets : multi-sélection, icônes seules (voir SetFilter) */}
+        <SetFilter
+          runes={runes}
+          value={sets}
+          onChange={(next) => {
+            setSets(next);
+            setPage(0);
+          }}
+        />
 
         {/* Slot + antiques */}
         <div className="flex flex-wrap items-center gap-2">
-          <span className="font-mono text-[11px] tracking-[0.1em] uppercase text-ink-dim mr-1">Slot</span>
-          {[1, 2, 3, 4, 5, 6].map((n) => {
-            const active = slots.has(n);
-            return (
-              <button
-                key={n}
-                onClick={() => toggle(slots, n, setSlots)}
-                className={`w-8 h-7 rounded-full border text-[12.5px] font-mono font-semibold transition select-none
-                  ${
-                    active
-                      ? 'bg-[#2b3170] border-[#4a52a0] text-ink shadow'
-                      : 'bg-panel border-border text-ink-dim hover:text-ink hover:border-[#4a52a0]'
-                  }`}
-              >
-                {n}
-              </button>
-            );
-          })}
+          <SlotFilter
+            value={slots}
+            onChange={(next) => {
+              setSlots(next);
+              setPage(0);
+            }}
+          />
           <button
             onClick={() => {
               setAncientOnly((v) => !v);

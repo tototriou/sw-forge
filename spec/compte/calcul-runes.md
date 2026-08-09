@@ -37,6 +37,23 @@ substats d'artéfact = effets conditionnels, codes 200+, hors périmètre effici
 | `set_id` | id du set (voir table §2.1) |
 | `class` | nombre d'étoiles ; **> 10 ⇒ rune antique** (`rank` dans le modèle = `class`) |
 | `extra` | **rareté** (1 Commun … 5 Légendaire) ; **+10 si antique** ⇒ `rarity = extra > 10 ? extra-10 : extra` |
+
+⚠️ **Couleurs de rareté** (`RARITY_META` / `RARITY_FILTER` dans
+[effects.ts](src/lib/effects.ts)) — l'ordre du jeu est **Commun blanc →
+Magique VERT → Rare BLEU → Héroïque violet → Légendaire orange**. Le vert et le
+bleu ont déjà été intervertis une fois : Magique est la rareté *inférieure* à
+Rare, donc la plus terne des deux.
+
+Le **rare** a pour teinte de référence **#154c79** — un bleu posé,
+volontairement **pas électrique**. Elle sert de **fond** ; la couleur de
+**texte** en reprend la teinte éclaircie, #154c79 étant trop sombre pour rester
+lisible sur le panneau. La colorisation des icônes de set (`RARITY_FILTER`)
+descend à `saturate(4.5)` sur cette rareté pour s'y accorder — à 7,5 le bleu
+virait au néon.
+
+L'**héroïque garde son violet** : un magenta profond (#691d42) a été essayé et
+écarté, le rendu ne passait pas.
+
 | `upgrade_curr` | niveau d'amélioration (+0..+15) |
 | `pri_eff` | `[code, valeur]` — stat principale |
 | `prefix_eff` | `[code, valeur]` — stat innée (immuable : ni grind ni gemme) |

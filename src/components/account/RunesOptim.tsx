@@ -1,12 +1,14 @@
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { RotateCw, AlertTriangle, HelpCircle } from 'lucide-react';
 import { RuneDetail } from '../../types';
-import { formatRuneEffect, RARITY_META, RUNE_EFFECT } from '../../lib/effects';
+import { formatRuneEffect, isAncient, RARITY_META, RUNE_EFFECT } from '../../lib/effects';
 import { runePotential, RunePotential, runePlan } from '../../lib/runeOptim';
 import { useRuneMetric, formatRuneMetric } from '../../hooks/useRuneMetric';
 import { useStickyState } from '../../hooks/useStickyState';
 import RuneSlotIcon from '../RuneSlotIcon';
 import Pager from './Pager';
+import SetFilter from './SetFilter';
+import SlotFilter from './SlotFilter';
 import DetailPopover from './DetailPopover';
 
 interface Props {
@@ -46,6 +48,18 @@ const scenarioOf = (s: SortMode): 'hero' | 'legend' =>
 const signed = (g: number, metric: 'eff' | 'score') =>
   (g >= 0 ? '+' : '') + (metric === 'eff' ? g.toFixed(1) : String(Math.round(g)));
 
+// Filtre antiques : les garder toutes, les écarter, ou n'afficher qu'elles.
+type AncientFilter = 'all' | 'without' | 'only';
+const ANCIENTS: { key: AncientFilter; label: string; hint: string }[] = [
+  { key: 'all', label: 'Toutes', hint: 'Runes normales et antiques' },
+  { key: 'only', label: 'Antiques uniquement', hint: 'Uniquement les runes antiques' },
+  { key: 'without', label: 'Aucune antique', hint: 'Masquer les runes antiques' },
+];
+function keepAncient(rune: RuneDetail, filter: AncientFilter): boolean {
+  if (filter === 'all') return true;
+  return isAncient(rune) === (filter === 'only');
+}
+
 // Couleur d'une efficience potentielle vs l'actuelle : vert au-dessus, rouge en dessous.
 const effColor = (e: number, base: number) =>
   e > base + 0.05 ? 'text-emerald-400' : e < base - 0.05 ? 'text-fire' : 'text-ink-dim';
@@ -55,6 +69,12 @@ export default function RunesOptim({ runes }: Props) {
   const metric = useRuneMetric(); // réglage global : efficience ou score SW
   const [sort, setSort] = useStickyState<SortMode>('optim.sort', 'effCur');
   const [gemMode, setGemMode] = useStickyState<'gem' | 'grind'>('optim.gemMode', 'gem');
+  // Antiques : elles ont leurs propres tables de max, donc un potentiel qui ne
+  // se compare pas aux runes normales — pouvoir les écarter (ou n'avoir qu'elles)
+  // évite de mélanger deux échelles dans un même classement.
+  const [ancient, setAncient] = useStickyState<AncientFilter>('optim.ancient', 'all');
+  const [sets, setSets] = useStickyState<Set<string>>('optim.sets', new Set());
+  const [slots, setSlots] = useStickyState<Set<number>>('optim.slots', new Set());
   const [page, setPage] = useState(0);
   const [openId, setOpenId] = useState<number | null>(null);
   const toggleOpen = useCallback((id: number) => setOpenId((c) => (c === id ? null : id)), []);
@@ -80,8 +100,16 @@ export default function RunesOptim({ runes }: Props) {
   // Runes dont l'efficience actuelle dépasse le palier, triées selon le mode choisi.
   const filtered = useMemo(() => {
     const val = SORT_VAL[sort];
-    return rows.filter((r) => r.pot.eff >= threshold).sort((a, b) => val(b.pot) - val(a.pot));
-  }, [rows, threshold, sort]);
+    return rows
+      .filter(
+        (r) =>
+          r.pot.eff >= threshold &&
+          keepAncient(r.rune, ancient) &&
+          (sets.size === 0 || sets.has(r.rune.set)) &&
+          (slots.size === 0 || slots.has(r.rune.slot))
+      )
+      .sort((a, b) => val(b.pot) - val(a.pot));
+  }, [rows, threshold, sort, ancient, sets, slots]);
 
   const pageCount = Math.max(1, Math.ceil(filtered.length / PAGE));
   const safePage = Math.min(page, pageCount - 1);
@@ -99,6 +127,23 @@ export default function RunesOptim({ runes }: Props) {
 
       {/* Contrôles */}
       <div className="flex items-center gap-4 flex-wrap mb-4">
+        <SetFilter
+          runes={runes}
+          value={sets}
+          onChange={(next) => {
+            setSets(next);
+            setPage(0);
+          }}
+        />
+
+        <SlotFilter
+          value={slots}
+          onChange={(next) => {
+            setSlots(next);
+            setPage(0);
+          }}
+        />
+
         <div className="flex items-center gap-2">
           <span className="font-mono text-[11px] tracking-[0.1em] uppercase text-ink-dim">Palier</span>
           <input
@@ -155,6 +200,27 @@ export default function RunesOptim({ runes }: Props) {
               {o.label}
             </button>
           ))}
+        </div>
+
+        <div className="flex items-center gap-2">
+          <span className="font-mono text-[11px] tracking-[0.1em] uppercase text-ink-dim">Runes</span>
+          <div className="flex items-center gap-1 bg-panel border border-border rounded-lg p-0.5">
+            {ANCIENTS.map((o) => (
+              <button
+                key={o.key}
+                onClick={() => {
+                  setAncient(o.key);
+                  setPage(0);
+                }}
+                title={o.hint}
+                aria-pressed={ancient === o.key}
+                className={`rounded-md px-2.5 py-1 text-[12px] font-semibold transition
+                  ${ancient === o.key ? 'bg-gradient-to-br from-[#3a4270] to-[#272e52] text-ink' : 'text-ink-dim hover:text-ink'}`}
+              >
+                {o.label}
+              </button>
+            ))}
+          </div>
         </div>
 
         {/* Aide : « ? » sur la même ligne, à droite */}
@@ -214,6 +280,8 @@ export default function RunesOptim({ runes }: Props) {
         <p className="font-mono text-[12px] text-ink-dim">
           {filtered.length} rune{filtered.length > 1 ? 's' : ''} ≥ {threshold}
           {metric === 'eff' ? '%' : ''}
+          {ancient === 'without' && ' · hors antiques'}
+          {ancient === 'only' && ' · antiques seules'}
         </p>
         <Pager page={safePage} pageCount={pageCount} onChange={setPage} />
       </div>
@@ -235,7 +303,10 @@ export default function RunesOptim({ runes }: Props) {
 
       {filtered.length === 0 && (
         <p className="text-ink-dim text-[13px]">
-          Aucune rune ≥ {threshold}{metric === 'eff' ? '%' : ''}. Baisse le palier pour en voir plus.
+          Aucune rune ≥ {threshold}
+          {metric === 'eff' ? '%' : ''}
+          {ancient !== 'all' && (ancient === 'without' ? ' hors antiques' : ' parmi les antiques')}. Baisse le
+          palier{ancient !== 'all' ? ' ou repasse sur « Toutes »' : ''} pour en voir plus.
         </p>
       )}
 

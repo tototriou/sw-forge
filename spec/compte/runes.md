@@ -116,8 +116,8 @@ Blocs, dans l'ordre :
   s'ouvre vers la gauche/haut près d'un bord, jamais coupée, ne décale pas la grille.
   Le détail affiche la **mesure choisie** (voir ci-dessus), dans la même couleur
   quelle qu'elle soit.
-- **Filtres** : **sets** (multi-sélection, chips icône + libellé), **slot** (1-6),
-  **antiques**.
+- **Filtres** : **sets** (`SetFilter`) et **slot** (`SlotFilter`) — voir
+  ci-dessous — plus **antiques**.
 - La **mesure** (réglage global, voir plus haut) pilote la valeur des tuiles, le
   tri « valeur » et le repère « meilleur… » de l'en-tête.
 - **Tri** : ↓ décroissant (défaut) · ↑ croissant — **sur la mesure choisie** —
@@ -150,7 +150,7 @@ Détails :
   **infobulle** (nombre de runes + efficience par série, ordonnées de la plus haute
   à la plus basse au point survolé).
 - **Légende sous le graphe** : cliquer un nom **masque/affiche** sa courbe.
-- **Filtres** : sets (icônes compactes), slot, antiques.
+- **Filtres** : sets (`SetFilter`), slot (`SlotFilter`), antiques.
 - **Nombre de runes** : champ libre (défaut **400**) + **Tout**.
 - **Mode** : **Gemme + meule** / **Meule seule** (voir Optimisation).
 - **Aide « ? »** superposée en coin du graphe (popup fermable au clic extérieur)
@@ -180,6 +180,35 @@ Se comparer entre amis en superposant plusieurs courbes (efficience **actuelle**
 - **Nombre de runes** : bascule **Top 400 / Tout**.
 
 > Convention d'icônes : **Exporter = Upload ↑**, **Importer = Download ↓**.
+
+## Filtrer par set — `SetFilter`
+
+[SetFilter.tsx](src/components/account/SetFilter.tsx), partagé par **Liste**,
+**Courbes** et **Optimisation**.
+
+⚠️ **Règle d'interface : un filtre de set affiche l'icône du jeu, SANS le nom.**
+Partout dans l'appli. Les icônes sont reconnues d'un coup d'œil par n'importe
+quel joueur, alors qu'une rangée de libellés fait un mur de texte et réduit le
+nombre de sets visibles sans défilement. Le nom reste en `title` et en
+`aria-label`, donc rien n'est perdu pour l'accessibilité.
+
+- Multi-sélection ; aucun set coché = aucun filtre.
+- **Seuls les sets réellement présents** dans l'inventaire sont proposés : un
+  filtre qui ne peut rien renvoyer n'aide personne.
+- Bouton **« ✕ tout »** pour tout décocher, affiché seulement s'il y a une
+  sélection. **Même gabarit que les pastilles de set** (32 px, même rayon,
+  même bordure) pour ne pas casser la rangée, mais sans fond actif et virant
+  au rouge au survol : c'est une action, pas un set de plus.
+
+### Filtrer par slot — `SlotFilter`
+
+[SlotFilter.tsx](src/components/account/SlotFilter.tsx), même grammaire visuelle
+que `SetFilter` (hauteur 32 px, même bordure, même bouton « ✕ tout ») pour que
+les deux se lisent comme une seule barre.
+
+Différence assumée : les **six slots sont toujours proposés**, alors que les sets
+se limitent à ceux présents. Un slot sans rune reste une information utile
+(« je n'ai rien en 2 »), là où un set absent n'est qu'un bouton mort.
 
 ## Onglet Optimisation — `RunesOptim`
 
@@ -226,6 +255,18 @@ classiques/antiques, héro/légend) et l'**algorithme complet** `best()` sont da
   efficience actuelle.
 - **Palier** : champ % — n'affiche que les runes dont l'efficience actuelle ≥ palier
   (défaut 100 %).
+- **Sets** (`SetFilter`) et **slot** (`SlotFilter`) : mêmes composants que les
+  autres onglets.
+- **Runes** (segmenté) : **Toutes** (défaut) · **Antiques uniquement** ·
+  **Aucune antique**.
+  Pourquoi les trois et pas seulement un filtre « antiques » comme dans les
+  autres onglets : les antiques ont leurs **propres tables de max**, donc un
+  potentiel qui **ne se compare pas** à celui d'une rune normale. Les mélanger
+  dans un même classement fausse la lecture des tris « potentiel » et « gain » —
+  on veut pouvoir **écarter** les antiques autant que les isoler.
+  Le compteur et le message de liste vide rappellent le filtre actif
+  (« hors antiques » / « antiques seules »), pour qu'un résultat vide ne passe
+  pas pour une absence de runes.
 - **Tuiles** : efficience **actuelle**, puis **Héro** et **Légend** avec leur gain
   et l'efficience cible colorée **vert** (au-dessus de l'actuelle) / **rouge** (en
   dessous). Pagination 60/page.

@@ -5,6 +5,13 @@ import { EffectLine, RuneDetail } from '../types';
 
 export type StatKey = 'hp' | 'atk' | 'def' | 'spd' | 'cr' | 'cd' | 'res' | 'acc';
 
+// Rune ANTIQUE : com2us encode sa classe au-delà de 10 (6★ antique = 16).
+// Elles ont leurs propres tables de valeurs max, donc leur efficience et leur
+// potentiel ne se comparent pas à ceux d'une rune normale.
+export function isAncient(rune: { rank: number }): boolean {
+  return rune.rank > 10;
+}
+
 // Effet de rune (pri_eff / prefix_eff / sec_eff) → stat visée + affichage.
 interface RuneEff {
   label: string; // libellé court (colonnes de stats)
@@ -99,9 +106,16 @@ export const RELIC_MAIN: Record<number, { label: string; stat: StatKey }> = {
 // façon bannière du jeu (ex. Légendaire = orange sur bordeaux).
 export const RARITY_META: Record<number, { label: string; color: string; bg: string }> = {
   5: { label: 'Légendaire', color: '#f8b24a', bg: 'linear-gradient(180deg,#7a2a1c,#431310)' },
+  // ⚠️ Ordre du jeu : Commun (blanc) → Magique (VERT) → Rare (BLEU) → Héroïque
+  // → Légendaire (orange). Vert et bleu étaient intervertis ici.
+  //
+  // Le RARE prend #154c79 comme teinte de référence : un bleu posé, pas
+  // électrique. Il sert de FOND ; la couleur de texte en reprend la teinte
+  // éclaircie, #154c79 étant trop sombre pour rester lisible sur le panneau.
+  // L'héroïque garde son violet : essayé en #691d42, le rendu ne passait pas.
   4: { label: 'Héroïque', color: '#c88cff', bg: 'linear-gradient(180deg,#3f2270,#241145)' },
-  3: { label: 'Rare', color: '#7cf0a6', bg: 'linear-gradient(180deg,#1f5a39,#0f3121)' },
-  2: { label: 'Magique', color: '#8fd4ff', bg: 'linear-gradient(180deg,#1f4a72,#0f2942)' },
+  3: { label: 'Rare', color: '#6fa3cf', bg: 'linear-gradient(180deg,#154c79,#0d2c47)' },
+  2: { label: 'Magique', color: '#7cf0a6', bg: 'linear-gradient(180deg,#1f5a39,#0f3121)' },
   1: { label: 'Commun', color: '#e6e6e6', bg: 'linear-gradient(180deg,#4a4a4a,#2a2a2a)' },
 };
 
@@ -111,8 +125,10 @@ const SET_SHADOW = 'drop-shadow(rgba(10, 6, 3, 0.95) 0px 1px 1px)';
 export const RARITY_FILTER: Record<number, string> = {
   5: `sepia(1) saturate(7.5) hue-rotate(330deg) brightness(0.9) contrast(1.18) ${SET_SHADOW}`, // Légendaire → orange
   4: `sepia(1) saturate(7.5) hue-rotate(235deg) brightness(0.9) contrast(1.18) ${SET_SHADOW}`, // Héroïque → violet
-  3: `sepia(1) saturate(7.5) hue-rotate(80deg) brightness(0.9) contrast(1.18) ${SET_SHADOW}`, // Rare → vert
-  2: `sepia(1) saturate(7.5) hue-rotate(175deg) brightness(0.9) contrast(1.18) ${SET_SHADOW}`, // Magique → bleu
+  // Rare : saturation abaissée (7.5 → 4.5) pour s'accorder au #154c79 posé de
+  // `RARITY_META` — à 7.5 le bleu virait au néon.
+  3: `sepia(1) saturate(4.5) hue-rotate(180deg) brightness(0.95) contrast(1.15) ${SET_SHADOW}`, // Rare → bleu
+  2: `sepia(1) saturate(7.5) hue-rotate(80deg) brightness(0.9) contrast(1.18) ${SET_SHADOW}`, // Magique → vert
   1: `saturate(0) brightness(1.7) contrast(1.05) ${SET_SHADOW}`, // Normal → blanc
 };
 

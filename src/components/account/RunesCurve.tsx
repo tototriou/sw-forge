@@ -1,10 +1,11 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { HelpCircle } from 'lucide-react';
-import { RuneDetail, RUNE_SETS } from '../../types';
+import { RuneDetail } from '../../types';
 import { runePotential } from '../../lib/runeOptim';
 import { useRuneMetric, formatRuneMetric } from '../../hooks/useRuneMetric';
 import { useStickyState } from '../../hooks/useStickyState';
-import RuneIcon from '../RuneIcon';
+import SetFilter from './SetFilter';
+import SlotFilter from './SlotFilter';
 import CurveChart, { CurveSeries, OWN_COLOR } from './CurveChart';
 
 interface Props {
@@ -45,11 +46,6 @@ export default function RunesCurve({ runes }: Props) {
     return () => document.removeEventListener('mousedown', onDown);
   }, [showHelp]);
 
-  function toggle<T>(set: Set<T>, v: T, upd: (s: Set<T>) => void) {
-    const next = new Set(set);
-    next.has(v) ? next.delete(v) : next.add(v);
-    upd(next);
-  }
   function toggleHidden(name: string) {
     setHidden((prev) => {
       const next = new Set(prev);
@@ -57,11 +53,6 @@ export default function RunesCurve({ runes }: Props) {
       return next;
     });
   }
-
-  const presentSets = useMemo(() => {
-    const s = new Set(runes.map((r) => r.set));
-    return RUNE_SETS.filter((rs) => s.has(rs.key));
-  }, [runes]);
 
   // Potentiels calculés sur les runes filtrées, puis 3 distributions triées ↓.
   const { cur, hero, legend } = useMemo(() => {
@@ -95,57 +86,11 @@ export default function RunesCurve({ runes }: Props) {
     <div>
       {/* Filtres de la courbe */}
       <div className="flex flex-col gap-3 mb-4">
-        <div className="flex flex-wrap items-center gap-1">
-          <span className="font-mono text-[11px] tracking-[0.1em] uppercase text-ink-dim mr-1">Sets</span>
-          {presentSets.map((s) => {
-            const active = sets.has(s.key);
-            return (
-              <button
-                key={s.key}
-                onClick={() => toggle(sets, s.key, setSets)}
-                title={s.label}
-                aria-label={s.label}
-                aria-pressed={active}
-                className={`flex items-center justify-center w-8 h-8 rounded-md border transition select-none
-                  ${
-                    active
-                      ? 'bg-[#2b3170] border-[#4a52a0] shadow'
-                      : 'bg-panel border-border opacity-55 hover:opacity-100 hover:border-[#4a52a0]'
-                  }`}
-              >
-                <RuneIcon setKey={s.key} size={18} />
-              </button>
-            );
-          })}
-          {sets.size > 0 && (
-            <button
-              onClick={() => setSets(new Set())}
-              className="ml-1 text-[11px] text-ink-dim hover:text-fire transition underline"
-            >
-              tout
-            </button>
-          )}
-        </div>
+        {/* Sets : icônes seules (voir SetFilter) */}
+        <SetFilter runes={runes} value={sets} onChange={setSets} />
 
         <div className="flex flex-wrap items-center gap-2">
-          <span className="font-mono text-[11px] tracking-[0.1em] uppercase text-ink-dim mr-1">Slot</span>
-          {[1, 2, 3, 4, 5, 6].map((n) => {
-            const active = slots.has(n);
-            return (
-              <button
-                key={n}
-                onClick={() => toggle(slots, n, setSlots)}
-                className={`w-8 h-7 rounded-full border text-[12.5px] font-mono font-semibold transition select-none
-                  ${
-                    active
-                      ? 'bg-[#2b3170] border-[#4a52a0] text-ink shadow'
-                      : 'bg-panel border-border text-ink-dim hover:text-ink hover:border-[#4a52a0]'
-                  }`}
-              >
-                {n}
-              </button>
-            );
-          })}
+          <SlotFilter value={slots} onChange={setSlots} />
           <button
             onClick={() => setAncientOnly((v) => !v)}
             className={`ml-1 rounded-full border px-3 py-1 text-[12.5px] font-semibold transition select-none

@@ -35,6 +35,10 @@ const push = (a: Agg, eff: number) => {
 };
 const avg = (a: Agg) => (a.n ? a.sum / a.n : 0);
 
+// Taille du « top » sur lequel portent les moyennes mises en avant. 400 ≈ ce
+// qu'un compte mûr équipe réellement (6 runes × ~65 monstres joués).
+const TOP_N = 400;
+
 const pct = (n: number, total: number) => (total ? (n / total) * 100 : 0);
 const fmt = (v: number) => v.toFixed(1);
 
@@ -42,6 +46,7 @@ export default function RunesSummary({ runes }: Props) {
   // Tout le résumé est calculé en un seul passage, mémoïsé par import.
   const s = useMemo(() => {
     const effs: number[] = [];
+    const paires: { eff: number; pot: number }[] = []; // pour les moyennes du top N
     const bySlot = new Map<number, Agg>();
     const bySet = new Map<string, Agg>();
     const byRarity = new Map<number, number>();
@@ -54,7 +59,6 @@ export default function RunesSummary({ runes }: Props) {
     let fourSubs = 0; // 4 substats révélés
 
     // Potentiel (scénario légendaire) : gemme + meule, puis meule seule.
-    let potSum = 0;
     let grindTodo = 0; // runes où il reste de la meule à poser
     let gemTodo = 0; // runes non gemmées (une gemme reste à poser)
 
@@ -80,15 +84,25 @@ export default function RunesSummary({ runes }: Props) {
       if (isGemmed) gemmed += 1;
       else gemTodo += 1;
 
-      const pot = runePotential(r, true);
-      potSum += pot.legendEff;
+      paires.push({ eff, pot: runePotential(r, true).legendEff });
       if (runePotential(r, false).legendGain > 0.05) grindTodo += 1;
     }
 
     const total = runes.length;
     const sorted = [...effs].sort((a, b) => b - a);
-    const mean = total ? effs.reduce((x, y) => x + y, 0) / total : 0;
-    const median = total ? sorted[Math.floor((total - 1) / 2)] : 0;
+
+    // ⚠️ La moyenne mise en avant porte sur le **TOP N**, pas sur l'inventaire
+    // entier. Une moyenne globale mesure surtout la quantité de déchet stocké :
+    // farmer sans jeter la fait baisser, jeter la fait monter, alors que le
+    // compte n'a pas bougé. N = 400 ≈ ce qu'un compte mûr équipe réellement
+    // (6 runes × ~65 monstres joués).
+    const topPaires = [...paires].sort((a, b) => b.eff - a.eff).slice(0, Math.min(TOP_N, total));
+    const moyenneDe = (xs: number[]) => (xs.length ? xs.reduce((x, y) => x + y, 0) / xs.length : 0);
+    const topMean = moyenneDe(topPaires.map((x) => x.eff));
+    const topPot = moyenneDe(topPaires.map((x) => x.pot));
+    // Médiane sur le MÊME périmètre que la moyenne affichée : mélanger les deux
+    // (moyenne du top, médiane de tout) ne se compare pas.
+    const topMedian = topPaires.length ? topPaires[Math.floor((topPaires.length - 1) / 2)].eff : 0;
     const topAvg = (k: number) => {
       const slice = sorted.slice(0, Math.min(k, total));
       return slice.length ? slice.reduce((x, y) => x + y, 0) / slice.length : 0;
@@ -96,8 +110,10 @@ export default function RunesSummary({ runes }: Props) {
 
     return {
       total,
-      mean,
-      median,
+      topMean,
+      topPot,
+      topN: topPaires.length,
+      topMedian,
       best: sorted[0] ?? 0,
       top10: topAvg(10),
       top100: topAvg(100),
@@ -108,7 +124,6 @@ export default function RunesSummary({ runes }: Props) {
       gemmed,
       fourSubs,
       buckets,
-      potAvg: total ? potSum / total : 0,
       grindTodo,
       gemTodo,
       slots: [1, 2, 3, 4, 5, 6].map((n) => ({ slot: n, agg: bySlot.get(n) ?? emptyAgg() })),
@@ -137,8 +152,20 @@ export default function RunesSummary({ runes }: Props) {
       {/* ---- Chiffres clés ---------------------------------------------- */}
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2">
         <Kpi label="Runes" value={s.total.toLocaleString('fr-FR')} sub={`${s.maxed} au +15`} />
-        <Kpi label="Eff. moyenne" value={`${fmt(s.mean)} %`} sub={`médiane ${fmt(s.median)} %`} tone="#8fd4ff" />
-        <Kpi label="Top 100" value={`${fmt(s.top100)} %`} sub={`top 10 ${fmt(s.top10)} %`} tone="#7cf0a6" />
+        <Kpi
+          label={s.topN < TOP_N ? 'Eff. moyenne' : `Eff. moyenne · top ${TOP_N}`}
+          value={`${fmt(s.topMean)} %`}
+          sub={`médiane ${fmt(s.topMedian)} %`}
+          tone="#8fd4ff"
+        />
+        <Kpi
+          label="Eff. moyenne · top 100"
+          value={`${fmt(s.top100)} %`}
+          /* Deux-points obligatoires : « top 10 126.1 % » se lisait comme un
+             seul nombre, « top 10126.1 % ». */
+          sub={`top 10 : ${fmt(s.top10)} %`}
+          tone="#7cf0a6"
+        />
         <Kpi label="Meilleure" value={`${fmt(s.best)} %`} sub={`${s.over110} rune(s) ≥ 110 %`} tone="#F2C24C" />
         <Kpi
           label="≥ 100 %"
@@ -250,14 +277,16 @@ export default function RunesSummary({ runes }: Props) {
         <Panel title="Marge de progression">
           <p className="mb-3 text-[12px] text-ink-dim leading-relaxed">
             Si chaque rune recevait sa gemme optimale puis sa meule au max, en scénario{' '}
-            <b className="text-ink">légendaire</b>.
+            <b className="text-ink">légendaire</b>. Sur{' '}
+            <b className="text-ink">tes {s.topN} meilleures runes</b> — mêmes runes des deux côtés,
+            sinon la comparaison ne voudrait rien dire.
           </p>
           <div className="grid grid-cols-2 gap-2">
-            <Kpi label="Eff. moyenne" value={`${fmt(s.mean)} %`} sub="aujourd'hui" />
+            <Kpi label="Eff. moyenne" value={`${fmt(s.topMean)} %`} sub="aujourd'hui" />
             <Kpi
               label="Potentiel moyen"
-              value={`${fmt(s.potAvg)} %`}
-              sub={`+${fmt(s.potAvg - s.mean)} pts`}
+              value={`${fmt(s.topPot)} %`}
+              sub={`+${fmt(s.topPot - s.topMean)} pts`}
               tone="#7cf0a6"
             />
             <Kpi

@@ -153,6 +153,21 @@ VIT          107     +105       212       220          ← vert : atteint
 PV        10 050  +24 950    35 000   28 400 (−6 600)  ← rouge : écart affiché
 ```
 
+#### ⚠️ Les tables de stats ne se compriment jamais
+
+Sur écran étroit, les colonnes se refermaient jusqu'à **masquer la valeur saisie**
+dans le champ de bonus, et les cartes de slot finissaient par se chevaucher.
+Trois garde-fous, à conserver ensemble :
+
+- le **champ de bonus** a un plancher de **`min-w-[5ch]`** — cinq chiffres
+  visibles, la taille de la plupart des stats (PV ~35 000) ;
+- chaque table porte une **largeur minimale** (`min-w-[236px]`) et défile
+  **horizontalement dans sa propre carte** (`overflow-x-auto`) au lieu d'écraser
+  ses colonnes ;
+- les cartes de slot sont en **`min-w-0`** : sans ça une cellule de grille refuse
+  de descendre sous la largeur de son contenu et **déborde sur sa voisine**
+  plutôt que de laisser la table défiler.
+
 La colonne **« toi » n'apparaît qu'après une analyse** (sinon la table s'arrête à
 `total`), cohérent avec le fait que rien n'est confronté par défaut.
 
@@ -208,8 +223,21 @@ D'où les **combinaisons possibles**, toutes gérées :
 - **Répétitions autorisées** : un set 2 pièces peut être demandé **plusieurs
   fois** (ex. **3× Fight** = 6 runes Fight, bonus cumulé) — d'où une **liste**
   et non un ensemble, et un **retrait par position** (pas par clé).
-- Le sélecteur d'édition ne propose que les sets qui **tiennent encore**, et
-  affiche le compteur `N/6 runes` ; à saturation il indique « Plus de place ».
+#### Choix d'un set — **par icônes, pas par menu déroulant**
+
+Un bouton **« + Set »** ouvre une **grille des symboles de sets du jeu** ; un
+clic ajoute la chip correspondante. On reconnaît un set à son symbole, pas à son
+nom dans une liste — même règle que les filtres de runes (voir
+[../compte/runes.md](../compte/runes.md)).
+
+- Le panneau **reste ouvert** pour enchaîner les ajouts (2 + 2 + 2 se pose en
+  trois clics sans rouvrir).
+- **Tous** les sets sont affichés ; ceux qui **ne tiennent plus** dans les
+  6 runes sont **grisés et non cliquables** plutôt que retirés — on voit ce qui
+  existe et pourquoi c'est refusé.
+- Compteur `N/6 runes` en permanence ; à saturation le bouton devient
+  « Plus de place (6 runes) » et **le panneau se referme tout seul**, sinon on
+  laisserait une grille entièrement grisée à l'écran.
 - Helpers purs : `setsCost`, `canAddSet`, `missingSets`
   ([recoMatch.ts](src/lib/recoMatch.ts)). La contrainte est **rejouée au
   chargement** du `localStorage` (données potentiellement bricolées à la main).

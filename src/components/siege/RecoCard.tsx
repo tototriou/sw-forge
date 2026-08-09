@@ -765,7 +765,10 @@ function DeckBlock({
           return (
             <div
               key={idx}
-              className={`rounded-xl border p-2.5 ${
+              // `min-w-0` : sans lui une cellule de grille refuse de descendre
+              // sous la largeur de son contenu, et la carte déborde sur sa
+              // voisine au lieu de laisser la table défiler à l'intérieur.
+              className={`min-w-0 rounded-xl border p-2.5 ${
                 // Indisponible ET stats insuffisantes sont tous deux bloquants → rouge.
                 sm?.status === 'absent' || sm?.status === 'ko'
                   ? 'border-fire/70 ring-1 ring-fire/40 bg-fire/5'
@@ -937,8 +940,12 @@ function StatEditor({
   spdLead: number; // points de VIT ajoutés par le siège, au TOTAL seulement
   onSet: (key: RecoStatKey, total: number | null) => void;
 }) {
+  // ⚠️ La table ne doit JAMAIS se comprimer : en dessous de sa largeur mini elle
+  // fait défiler DANS la carte, au lieu d'écraser les colonnes (le champ de
+  // bonus finissait masqué) ou de déborder sur la carte voisine.
   return (
-    <table className="w-full text-[11.5px]">
+    <div className="overflow-x-auto">
+    <table className="w-full min-w-[236px] text-[11.5px]">
       <thead>
         <tr className="font-mono text-[9.5px] uppercase tracking-[0.08em] text-ink-dim">
           <th className="pb-1 pr-2 text-left font-normal">Stat</th>
@@ -971,7 +978,10 @@ function StatEditor({
                   <span className="font-mono text-[10px] text-emerald-400/70">+</span>
                   {/* Champ texte (et non `type=number`) : pas de boutons +/- à
                       droite, qui mangent la largeur d'une colonne déjà étroite.
-                      `inputMode=numeric` garde le pavé numérique sur mobile. */}
+                      `inputMode=numeric` garde le pavé numérique sur mobile.
+                      `min-w-[5ch]` : 5 chiffres visibles au minimum — la plupart
+                      des stats en ont autant (PV ~35 000), et sans ce plancher la
+                      colonne se refermait jusqu'à masquer la valeur saisie. */}
                   <input
                     type="text"
                     inputMode="numeric"
@@ -983,8 +993,9 @@ function StatEditor({
                       onSet(st.key, base + Number(raw));
                     }}
                     placeholder="—"
-                    className="w-full min-w-0 bg-panel border border-border rounded px-1 py-0.5
-                               text-[11px] font-mono text-emerald-400 outline-none focus:border-[#5b63b8]"
+                    className="w-full min-w-[5ch] bg-panel border border-border rounded px-1 py-0.5
+                               text-[11px] font-mono tabular-nums text-emerald-400
+                               outline-none focus:border-[#5b63b8]"
                   />
                 </div>
               </td>
@@ -1002,6 +1013,7 @@ function StatEditor({
         })}
       </tbody>
     </table>
+    </div>
   );
 }
 
@@ -1077,7 +1089,14 @@ function SetEditor({
   onRemove: (position: number) => void;
 }) {
   const used = setsCost(sets);
-  const available = RUNE_SETS.filter((s) => canAddSet(sets, s.key));
+  const full = !RUNE_SETS.some((s) => canAddSet(sets, s.key)); // plus rien ne rentre
+  const [open, setOpen] = useState(false);
+
+  // Le panneau se referme dès qu'il n'y a plus de set possible, sinon on
+  // laisserait une grille entièrement grisée à l'écran.
+  useEffect(() => {
+    if (full) setOpen(false);
+  }, [full]);
 
   return (
     <div>
@@ -1109,24 +1128,51 @@ function SetEditor({
         </div>
       )}
 
-      <select
-        value=""
-        onChange={(e) => {
-          if (e.target.value) onAdd(e.target.value);
-        }}
-        disabled={available.length === 0}
-        className="w-full bg-panel border border-border rounded px-1.5 py-0.5 text-[11px] text-ink-dim
-                   outline-none focus:border-[#5b63b8] disabled:opacity-40"
+      {/* Choix par ICÔNES plutôt que par menu déroulant : on reconnaît un set du
+          jeu à son symbole, pas à son nom dans une liste. Le panneau reste
+          ouvert pour enchaîner les ajouts, et se referme tout seul dès que les
+          6 runes sont prises — il n'y a alors plus rien à cliquer. */}
+      <button
+        onClick={() => setOpen((o) => !o)}
+        disabled={full}
+        aria-expanded={open}
+        className="w-full flex items-center justify-center gap-1 rounded border border-border bg-panel
+                   px-1.5 py-1 text-[11px] font-semibold text-ink-dim transition
+                   hover:text-ink hover:border-[#4a52a0] disabled:opacity-40 disabled:cursor-not-allowed"
       >
-        <option value="">
-          {available.length === 0 ? 'Plus de place (6 runes)' : '+ Ajouter un set…'}
-        </option>
-        {available.map((s) => (
-          <option key={s.key} value={s.key}>
-            {s.label} ({setPieces(s.key)})
-          </option>
-        ))}
-      </select>
+        {full ? 'Plus de place (6 runes)' : <>+ Set</>}
+      </button>
+
+      {open && !full && (
+        <div className="mt-1 rounded-lg border border-border bg-panel p-1.5">
+          <div className="flex flex-wrap gap-1">
+            {RUNE_SETS.map((s) => {
+              const fits = canAddSet(sets, s.key);
+              return (
+                <button
+                  key={s.key}
+                  onClick={() => onAdd(s.key)}
+                  disabled={!fits}
+                  title={
+                    fits
+                      ? `${s.label} — ${setPieces(s.key)} runes`
+                      : `${s.label} — ${setPieces(s.key)} runes : il ne reste pas la place`
+                  }
+                  aria-label={s.label}
+                  className={`flex items-center justify-center w-8 h-8 rounded-md border transition
+                    ${
+                      fits
+                        ? 'bg-panel2 border-border hover:border-[#4a52a0]'
+                        : 'bg-panel border-border opacity-25 cursor-not-allowed'
+                    }`}
+                >
+                  <RuneIcon setKey={s.key} size={20} />
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -1278,7 +1324,8 @@ function StatList({
   const analyse = !!sm && sm.checks.some((c) => c.actual !== null);
 
   return (
-    <table className="w-full text-[11px]">
+    <div className="overflow-x-auto">
+    <table className="w-full min-w-[236px] text-[11px]">
       <thead>
         <tr className="font-mono text-[9.5px] uppercase tracking-[0.08em] text-ink-dim">
           <th className="pb-1 pr-1.5 text-left font-normal">Stat</th>
@@ -1350,5 +1397,6 @@ function StatList({
         })}
       </tbody>
     </table>
+    </div>
   );
 }

@@ -26,7 +26,7 @@ import RuneIcon from '../RuneIcon';
 import MonsterPicker from '../MonsterPicker';
 import MonsterAvatar from '../MonsterAvatar';
 import LeadPill, { LeadBadge } from './LeadPill';
-import { LeadInfo, pctSpeedBonus, siegeLeadFor, speedLeadOf } from '../../lib/speed';
+import { LeadInfo, pctSpeedBonus, siegeLeadFor, speedLeadOf, swiftFlat } from '../../lib/speed';
 
 
 // ⚠️ La VIT stockée dans une reco est la vitesse du BUILD (base + runes), et
@@ -35,14 +35,23 @@ import { LeadInfo, pctSpeedBonus, siegeLeadFor, speedLeadOf } from '../../lib/sp
 // pour qu'on y lise la vitesse de combat affichée sur les cartes d'équipe.
 // Ne pas l'injecter dans la base ni dans le bonus saisi : ce sont les valeurs
 // visibles du build. Voir ../../spec/siege/recommandations.md.
+// En infobulle seulement : pas de note de bas de table, elle alourdissait la
+// carte pour une précision qu'on ne lit qu'une fois.
 const SPD_HINT = 'Total = VIT de combat en siège : totem de guilde (+15 %) et lead du deck inclus';
 
 // Points de vitesse apportés par le siège à CE monstre : totem + lead du deck,
 // nul si le lead est élémentaire et ne le concerne pas.
-function spdLeadBonus(monster: Monster | null, lead: LeadInfo | null): number {
+function spdLeadBonus(
+  monster: Monster | null,
+  lead: LeadInfo | null,
+  sets: string[] = []
+): number {
   const base = monster?.stats.speed;
   if (base == null) return 0; // base inconnue → on ne peut rien ajouter
-  return pctSpeedBonus(base, siegeLeadFor(lead, monster!.element));
+  // Le Swift est déjà compté à plat dans la VIT stockée : on le retire pour le
+  // remettre dans la somme des % (voir `swiftFlat` dans speed.ts).
+  const swift = sets.includes('swift');
+  return pctSpeedBonus(base, siegeLeadFor(lead, monster!.element), swift) - (swift ? swiftFlat(base) : 0);
 }
 
 
@@ -845,7 +854,7 @@ function DeckBlock({
                       <StatEditor
                         slot={slot}
                         monster={monster}
-                        spdLead={spdLeadBonus(monster, leadInfo)}
+                        spdLead={spdLeadBonus(monster, leadInfo, slot.sets)}
                         onSet={(key, total) =>
                           recos.setSlotStat(reco.id, deckIndex, idx, key, total)
                         }
@@ -855,7 +864,7 @@ function DeckBlock({
                         slot={slot}
                         monster={monster}
                         sm={sm}
-                        spdLead={spdLeadBonus(monster, leadInfo)}
+                        spdLead={spdLeadBonus(monster, leadInfo, slot.sets)}
                       />
                     )}
                   </div>
@@ -953,7 +962,6 @@ function StatEditor({
                 title={st.key === 'spd' && spdLead > 0 ? SPD_HINT : undefined}
               >
                 {st.label}
-                {st.key === 'spd' && spdLead > 0 && <span className="text-ink-dim/60"> *</span>}
               </td>
               <td className="py-0.5 pr-2 text-right font-mono text-ink-dim tabular-nums">
                 {known != null ? fmtStat(known) : '—'}
@@ -993,15 +1001,6 @@ function StatEditor({
           );
         })}
       </tbody>
-      {spdLead > 0 && (
-        <tfoot>
-          <tr>
-            <td colSpan={4} className="pt-1.5 text-[10px] leading-snug text-ink-dim">
-              * +{spdLead} — {SPD_HINT}
-            </td>
-          </tr>
-        </tfoot>
-      )}
     </table>
   );
 }
@@ -1313,7 +1312,6 @@ function StatList({
                 title={add > 0 ? SPD_HINT : undefined}
               >
                 {st.label}
-                {add > 0 && <span className="text-ink-dim/60"> *</span>}
               </td>
               <td className="py-0.5 pr-1.5 text-right font-mono text-ink-dim tabular-nums">
                 {known != null ? fmtStat(known) : '—'}
@@ -1351,15 +1349,6 @@ function StatList({
           );
         })}
       </tbody>
-      {spdLead > 0 && entries.some((st) => st.key === 'spd') && (
-        <tfoot>
-          <tr>
-            <td colSpan={analyse ? 5 : 4} className="pt-1.5 text-[10px] leading-snug text-ink-dim">
-              * +{spdLead} — {SPD_HINT}
-            </td>
-          </tr>
-        </tfoot>
-      )}
     </table>
   );
 }

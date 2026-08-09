@@ -107,7 +107,12 @@ export function mapSiegeTeams(
           return { monsterId: null, runeSpeed: null, sets: [], tick: 0 };
         }
         const runeSpeed = runeSpeedOf(slot.flatRuneSpeed, slot.swift, mon.stats.speed ?? 0);
-        const combat = combatSpeed(mon.stats.speed, runeSpeed, siegeLeadFor(leadInfo, mon.element));
+        const combat = combatSpeed(
+          mon.stats.speed,
+          runeSpeed,
+          siegeLeadFor(leadInfo, mon.element),
+          slot.swift
+        );
         return {
           monsterId: String(mon.id),
           runeSpeed,

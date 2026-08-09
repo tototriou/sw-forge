@@ -70,17 +70,38 @@ function leadTitle(ls: LeaderSkill): string {
 export function LeadBadge({ ls, size = 22 }: { ls: LeaderSkill; size?: number }) {
   const icon = leadIconUrl(ls);
   if (!icon) return null;
+  const actif = leadIsActive(ls);
   return (
-    <img
-      src={icon}
-      alt=""
-      width={size}
-      height={size}
+    <span
+      className="absolute -bottom-1.5 -left-1.5 inline-flex items-center"
       title={leadTitle(ls)}
-      aria-hidden
-      className={`absolute -bottom-1.5 -left-1.5 rounded-full bg-bg/80 p-[1px]
-        drop-shadow-[0_1px_3px_rgba(0,0,0,0.9)] ${leadIsActive(ls) ? 'ring-1 ring-star/60' : 'opacity-70 grayscale'}`}
-    />
+    >
+      <img
+        src={icon}
+        alt=""
+        width={size}
+        height={size}
+        aria-hidden
+        // Icône NUE, carrée, comme dans le jeu : ni pastille ronde, ni fond, ni
+        // anneau — le jeu ne l'encadre pas. Seule l'ombre portée reste, pour
+        // qu'elle se détache du portrait.
+        className={`flex-none drop-shadow-[0_1px_3px_rgba(0,0,0,0.9)] ${
+          actif ? '' : 'opacity-70 grayscale'
+        }`}
+      />
+      {/* Lead ÉLÉMENTAIRE : l'icône du jeu ne dit pas QUEL élément, alors qu'il
+          décide qui en profite. Sans elle, un lead eau et un lead feu sont
+          indiscernables. */}
+      {ls.area === 'Element' && ls.element && (
+        <ElementIcon
+          element={ls.element}
+          size={Math.max(10, Math.round(size * 0.55))}
+          className={`-ml-1 flex-none drop-shadow-[0_1px_3px_rgba(0,0,0,0.9)] ${
+            actif ? '' : 'opacity-70 grayscale'
+          }`}
+        />
+      )}
+    </span>
   );
 }
 

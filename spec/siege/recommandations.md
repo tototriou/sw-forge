@@ -179,8 +179,8 @@ VIT          101  + [ 208 ]      352      ← 309 de build + 43 (totem 15 % + le
   stocke toujours la vitesse du build, et l'analyse confronte build à build. Le
   bonus étant identique des deux côtés (même deck, même leader), l'ajouter
   n'aurait fait que déplacer les deux valeurs.
-- La ligne VIT porte un `*` renvoyant à une note de bas de table, affichée
-  seulement quand le bonus est non nul.
+- La précision reste **en infobulle** sur le libellé VIT. Pas de note de bas de
+  table : elle alourdissait la carte pour un détail qu'on ne lit qu'une fois.
 
 Le champ de saisie du bonus est un **`type="text"` + `inputMode="numeric"`**, et
 non un `type="number"` : les boutons `+/-` du navigateur mangeaient la largeur

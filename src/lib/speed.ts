@@ -45,41 +45,66 @@ export function tickDanger(
   return null;
 }
 
-// Bonus en % appliqué à la vitesse de BASE (totem + lead).
+// Bonus du set Swift : +25 % de la vitesse de BASE.
+export const SWIFT_SPEED = 25;
+
+// Bonus en % appliqué à la vitesse de BASE.
 //
-// ⚠️ **Exception à la règle d'arrondi de l'app** (`Math.ceil` partout ailleurs,
-// voir stats.ts) : le jeu applique les deux bonus **séparément** et **arrondit
-// chacun** (au plus proche). Ni somme des pourcentages, ni arrondi au supérieur.
+// ⚠️ **Tous les pourcentages qui portent sur la base sont SOMMÉS, puis arrondis
+// EN UNE SEULE FOIS à l'entier supérieur.** Totem, lead et Swift entrent dans la
+// même somme. Ne jamais arrondir bonus par bonus : c'est l'erreur qui a produit
+// tous les écarts d'un point observés.
 //
-// Deux cas réels qui départagent toutes les variantes — équipe Susano (lead
-// +30 % VIT eau) / Tarq / Chilling, tous eau :
+// Cas réels de contrôle, tous vérifiés en jeu :
 //
-//   Chilling, base 101 → round(15,15) + round(30,30) = 15 + 30 = 45
-//   Susano,   base 107 → round(16,05) + round(32,10) = 16 + 32 = 48
-//   Tarq,     base 115 → round(17,25) + round(34,50) = 17 + 35 = 52  ← 385 en jeu
+//   sans lead ni Swift — trois monstres calés sur le tick 286
+//     base  96 + 175 de runes → ceil(96 × 15 %)  = ceil(14,40) = 15 → 286 ✅
+//     base  99 + 172          → ceil(99 × 15 %)  = ceil(14,85) = 15 → 286 ✅
+//     base 105 + 165          → ceil(105 × 15 %) = ceil(15,75) = 16 → 286 ✅
+//       (`round` donnerait 14 sur le premier, `floor` 14 sur les deux premiers)
 //
-// Tarq est le seul dont un bonus tombe **pile sur la demie** (34,5) : c'est lui
-// qui prouve l'arrondi. `floor` y donnerait 51 (384, un point de trop bas) alors
-// que les deux autres resteraient justes — exactement le symptôme observé.
-// Sommer puis `ceil` donnerait 46 / 49 / 52 : les trois faux sauf Tarq.
-export function pctSpeedBonus(base: number, lead: number): number {
-  return Math.round((base * TOTEM_SPEED) / 100) + Math.round((base * lead) / 100);
+//   avec lead +30 % et Swift — équipe Susano / Tarq / Chilling, tous eau
+//     somme = 15 + 30 + 25 = 70 %
+//     Chilling, base 101 → ceil(70,70) = 71
+//     Susano,   base 107 → ceil(74,90) = 75
+//     Tarq,     base 115 → ceil(80,50) = 81  ← 385 en jeu
+//       Arrondir séparément donnait 80 sur Tarq (384) et tombait juste sur les
+//       deux autres par hasard : exactement le symptôme observé.
+export function pctSpeedBonus(base: number, lead: number, swift = false): number {
+  return Math.ceil((base * (TOTEM_SPEED + lead + (swift ? SWIFT_SPEED : 0))) / 100);
 }
 
-// Vitesse de combat = base + runes + totem + lead (bonus % sur la base).
+// Le Swift déjà compté À PLAT dans la « SPD runes ».
+//
+// Convention de l'app (voir ../../spec/shared/calcul-vitesse.md) : le champ
+// « SPD : » — saisi ou reconstitué à l'import — contient déjà le bonus Swift.
+// Or le Swift doit entrer dans la SOMME des pourcentages, pas s'ajouter à côté.
+// On le retire donc avant de le réinjecter, sinon il compterait deux fois.
+// Avantage : les états déjà enregistrés restent valides, aucune réimportation.
+export function swiftFlat(base: number): number {
+  return Math.ceil((base * SWIFT_SPEED) / 100);
+}
+
+// Vitesse de combat = base + runes + bonus % (totem + lead + Swift).
 export function combatSpeed(
   base: number | null,
   rune: number | null,
-  lead: number
+  lead: number,
+  swift = false
 ): number | null {
   if (base === null) return null;
-  return base + (rune ?? 0) + pctSpeedBonus(base, lead);
+  return base + (rune ?? 0) + pctSpeedBonus(base, lead, swift) - (swift ? swiftFlat(base) : 0);
 }
 
 // Vitesse de runes nécessaire pour atteindre une vitesse de combat cible (tick).
-export function runeSpeedForTarget(base: number | null, lead: number, target: number): number | null {
+export function runeSpeedForTarget(
+  base: number | null,
+  lead: number,
+  target: number,
+  swift = false
+): number | null {
   if (base === null) return null;
-  return target - base - pctSpeedBonus(base, lead);
+  return target - base - pctSpeedBonus(base, lead, swift) + (swift ? swiftFlat(base) : 0);
 }
 
 /* --- Leads de vitesse déduits automatiquement de la leader skill --- */

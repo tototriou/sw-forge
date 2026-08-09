@@ -67,16 +67,24 @@ Idéale avec beaucoup d'équipes (import offense ~50).
 ## Leader & pastille de lead
 
 - Le **slot 0 est le leader** : son lead alimente le calcul (voir spec vitesse).
-- Le lead est affiché **sur le monstre leader**, jamais dans l'en-tête de
-  l'équipe : on doit voir d'un coup d'œil **de quel monstre** il vient.
+- Le lead est affiché **à deux endroits, qui répondent à deux questions
+  différentes** — ce n'est pas un doublon :
+  - **sur le portrait du monstre leader** → *de quel monstre vient le lead ?* ;
+  - **à côté du nom de l'équipe** (« Équipe N ») → *quelle est sa valeur ?*,
+    lisible **sans déplier**, comme dans les decks de recommandation.
+
   [LeadPill.tsx](src/components/siege/LeadPill.tsx) exporte pour ça deux rendus :
   - **`LeadBadge`** — icône seule (22 px par défaut) posée en **bas-gauche du
     portrait**, montant dans l'infobulle. Utilisé quand la place manque : vue
     **compacte** du siège et aperçu replié des decks de reco. Il **remplace la
     couronne** — l'icône du jeu marque déjà le leader *et* dit quel est le lead
-    (la couronne ne revient que si le monstre n'a aucun lead) ;
-  - **`LeadPill`** (défaut) — icône 22 px **+ le montant** (« +33 % »), placée
-    **sous le nom** du leader dans la vue dépliée, où la place existe.
+    (la couronne ne revient que si le monstre n'a aucun lead).
+    ⚠️ **Icône nue et carrée, comme dans le jeu** : pas de pastille ronde, pas
+    de fond, pas d'anneau. Seule l'ombre portée reste, pour la détacher du
+    portrait ;
+  - **`LeadPill`** (défaut) — icône 22 px **+ le montant** (« +33 % »), dans
+    l'**en-tête de l'équipe** (donc visible aussi en vue compacte) et **sous le
+    nom** du leader dans la vue dépliée.
 - Elle affiche **n'importe quel type** de lead (SPD, ATQ, PV, DEF, crit,
   précision, résistance) avec l'**icône officielle du jeu**, puis le montant
   (« +33 % ») :

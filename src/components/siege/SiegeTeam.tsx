@@ -84,7 +84,11 @@ export default function SiegeTeam({
   //  - rouge  : pas au tick et pas en Swift → à corriger
   const slotInfos = team.slots.map((slot) => {
     const m = slot.monsterId ? monsterById.get(slot.monsterId) ?? null : null;
-    const combat = m ? combatSpeed(m.stats.speed, slot.runeSpeed, siegeLeadFor(leadInfo, m.element)) : null;
+    // Le Swift entre dans la SOMME des %, il ne s'ajoute pas à côté (voir speed.ts).
+    const swift = (slot.sets ?? []).includes('swift');
+    const combat = m
+      ? combatSpeed(m.stats.speed, slot.runeSpeed, siegeLeadFor(leadInfo, m.element), swift)
+      : null;
     return { monster: m, combat };
   });
   const slotDangers = slotInfos.map(({ combat }) => tickDanger(combat));
@@ -128,8 +132,11 @@ export default function SiegeTeam({
       <div className="flex items-center gap-2 mb-3 flex-wrap">
         <h3 className="font-display text-[17px] tracking-wide">Équipe {index + 1}</h3>
         {dotClass && <span className={`w-2 h-2 rounded-full ${dotClass}`} />}
-        {/* Pas de lead dans l'en-tête : il est affiché SUR le leader (slot 0),
-            pour qu'on voie tout de suite de quel monstre il vient. */}
+        {/* Lead à côté du nom de l'équipe : la VALEUR doit être lisible sans
+            déplier. Le badge posé sur le portrait du leader reste, lui : il dit
+            de quel monstre vient le lead — les deux répondent à deux questions
+            différentes, ce n'est pas un doublon. */}
+        {leaderMonster?.leaderSkill && <LeadPill ls={leaderMonster.leaderSkill} />}
 
         <button
           onClick={() => {
@@ -419,7 +426,7 @@ function SlotContent({
 
   const base = monster.stats.speed;
   const lead = siegeLeadFor(leadInfo, monster.element);
-  const combat = combatSpeed(base, slot.runeSpeed, lead);
+  const combat = combatSpeed(base, slot.runeSpeed, lead, (slot.sets ?? []).includes('swift'));
   const tick = slot.tick;
 
   // Écart au tick : négatif = il manque de la vitesse, positif = surplus.

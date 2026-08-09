@@ -137,28 +137,66 @@ export default function CategoryBar({ cats, monsters }: Props) {
           )}
         </div>
 
-        {/* Interrupteur d'affichage : avec plusieurs catégories, les anneaux
-            chargent vite l'écran. On les coupe sans rien perdre — les
-            catégories restent, seules les couleurs disparaissent. */}
-        {cats.categories.length > 0 && (
-          <button
-            onClick={() => cats.setVisible(!cats.visible)}
-            aria-pressed={cats.visible}
-            title={
-              cats.visible
-                ? 'Masquer les couleurs sur les cartes et l’ordre de tour'
-                : 'Réafficher les couleurs'
-            }
-            className={`ml-auto flex h-7 items-center gap-1.5 rounded-full border px-2.5 text-[12px] transition ${
-              cats.visible
-                ? 'border-border bg-panel text-ink-dim hover:text-ink hover:border-[#4a52a0]'
-                : 'border-[#5b63b8] bg-panel2 text-ink'
-            }`}
-          >
-            {cats.visible ? <Eye size={12} /> : <EyeOff size={12} />}
-            {cats.visible ? 'Couleurs affichées' : 'Couleurs masquées'}
-          </button>
-        )}
+        {/* Interrupteurs d'affichage, poussés à droite. On coupe le bruit sans
+            rien perdre : les catégories et les vitesses restent, seul le rendu
+            disparaît. */}
+        <button
+          onClick={() => cats.setShowSpeeds(!cats.showSpeeds)}
+          aria-pressed={cats.showSpeeds}
+          title={
+            cats.showSpeeds
+              ? 'Masquer les vitesses sur les cartes'
+              : 'Réafficher les vitesses sur les cartes'
+          }
+          className={`ml-auto flex h-7 items-center gap-1.5 rounded-full border px-2.5 text-[12px] transition ${
+            cats.showSpeeds
+              ? 'border-border bg-panel text-ink-dim hover:text-ink hover:border-[#4a52a0]'
+              : 'border-[#5b63b8] bg-panel2 text-ink'
+          }`}
+        >
+          {cats.showSpeeds ? <Eye size={12} /> : <EyeOff size={12} />}
+          Vitesses
+        </button>
+
+        <button
+          onClick={() => cats.setMarkDesync(!cats.markDesync)}
+          aria-pressed={cats.markDesync}
+          title={
+            cats.markDesync
+              ? 'Ne plus signaler les monstres dont les runes ne suivent plus la vitesse demandée'
+              : 'Signaler en orange les monstres dont les runes ne suivent plus'
+          }
+          className={`flex h-7 items-center gap-1.5 rounded-full border px-2.5 text-[12px] transition ${
+            cats.markDesync
+              ? 'border-border bg-panel text-ink-dim hover:text-ink hover:border-[#4a52a0]'
+              : 'border-[#5b63b8] bg-panel2 text-ink'
+          }`}
+        >
+          {cats.markDesync ? <Eye size={12} /> : <EyeOff size={12} />}
+          Modifiés
+        </button>
+
+        {/* ⚠️ Toujours affiché, même sans aucune catégorie : les trois
+            interrupteurs forment un groupe fixe. Un bouton qui apparaît et
+            disparaît fait sauter la rangée et donne l'impression d'un réglage
+            qu'on aurait perdu. */}
+        <button
+          onClick={() => cats.setVisible(!cats.visible)}
+          aria-pressed={cats.visible}
+          title={
+            cats.visible
+              ? 'Masquer les couleurs sur les cartes et l’ordre de tour'
+              : 'Réafficher les couleurs'
+          }
+          className={`flex h-7 items-center gap-1.5 rounded-full border px-2.5 text-[12px] transition ${
+            cats.visible
+              ? 'border-border bg-panel text-ink-dim hover:text-ink hover:border-[#4a52a0]'
+              : 'border-[#5b63b8] bg-panel2 text-ink'
+          }`}
+        >
+          {cats.visible ? <Eye size={12} /> : <EyeOff size={12} />}
+          Catégories
+        </button>
       </div>
 
       {/* Panneau d'affectation : tous les monstres de la page. */}

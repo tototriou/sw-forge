@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { RotateCw } from 'lucide-react';
+import { RotateCw, ArrowRight } from 'lucide-react';
 import { ArtifactDetail, GearSet, RelicDetail, RuneDetail } from '../types';
 import { computeStats } from '../lib/stats';
 import {
@@ -222,9 +222,13 @@ function RelicDetailBox({ relic }: { relic: RelicDetail }) {
 
 interface Props {
   gear: GearSet;
+  // Vitesse de runes VISÉE, quand elle a été saisie à la main et ne correspond
+  // plus à cet équipement : on l'affiche en rouge sur la ligne VIT, pour donner
+  // directement la valeur à atteindre. `null` quand tout concorde.
+  spdCible?: number | null;
 }
 
-export default function MonsterGear({ gear }: Props) {
+export default function MonsterGear({ gear, spdCible = null }: Props) {
   const stats = computeStats(gear);
   const [sel, setSel] = useState<Selected>(null);
 
@@ -250,6 +254,17 @@ export default function MonsterGear({ gear }: Props) {
                 </td>
                 <td className="py-1 text-left font-mono font-semibold text-emerald-400 tabular-nums">
                   {row.bonus > 0 ? `+${fmt(row.bonus)}${row.suffix}` : '—'}
+                  {/* Objectif de vitesse : ce que les runes doivent donner pour
+                      coller à la valeur saisie dans l'ordre de tour. */}
+                  {row.key === 'spd' && spdCible != null && spdCible !== row.bonus && (
+                    <span
+                      className="ml-1.5 inline-flex items-center gap-0.5 text-fire"
+                      title={`Il faut ${fmt(spdCible)} de SPD sur les runes pour coller à l'ordre de tour`}
+                    >
+                      <ArrowRight size={11} className="flex-none" />
+                      {fmt(spdCible)}
+                    </span>
+                  )}
                 </td>
               </tr>
             ))}

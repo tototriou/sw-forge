@@ -43,13 +43,31 @@ vitesse.
 - Ensuite elle **vit sa vie** : renommée, vidée ou supprimée comme les autres.
   Elle n'est pas recréée.
 
-## Interrupteur d'affichage
+## Interrupteurs d'affichage
 
-Un bouton **« Couleurs affichées / masquées »** coupe les anneaux **sans rien
-perdre** : les catégories, leurs membres et leurs couleurs restent, seul le rendu
-disparaît (cartes, ordre de tour et légende). Avec plusieurs catégories, l'écran
-se charge vite — il faut pouvoir revenir à une lecture nette en un clic. L'état
-est **persisté** avec les catégories.
+Trois boutons, poussés à droite de la barre : **Vitesses**, **Modifiés** et
+**Catégories**. Ils coupent le bruit **sans rien perdre** — les données restent,
+seul le rendu disparaît. Les trois états sont **persistés**.
+
+- ⚠️ **Les trois sont TOUJOURS affichés**, même quand ils ne servent à rien (pas
+  encore de catégorie, aucun monstre modifié) : ils forment un groupe fixe. Un
+  bouton qui apparaît et disparaît fait sauter la rangée et donne l'impression
+  d'un réglage qu'on aurait perdu.
+- Le libellé nomme **ce qu'on affiche**, pas l'état du réglage — « Couleurs
+  masquées » obligeait à relire le bouton pour savoir ce qu'il pilote. C'est
+  l'**icône œil barré** qui porte l'état.
+- **Vitesses** — masque la vitesse sur les cartes de classement. Utile quand on
+  range sa box par rôle et que les chiffres n'apportent rien à ce moment-là.
+- **Modifiés** — écrit en **orange le nom ET la vitesse** des monstres dont les
+  runes ne suivent plus la vitesse demandée dans l'ordre de tour (voir
+  [ordre-de-tour.md](ordre-de-tour.md)). On repère ainsi ceux à re-runer **sans
+  ouvrir chaque fiche**.
+- **Catégories** — masque les anneaux de couleur.
+
+Le bouton **Catégories** coupe les anneaux **sans rien perdre** : les catégories,
+leurs membres et leurs couleurs restent, seul le rendu disparaît (cartes, ordre
+de tour et légende). Avec plusieurs catégories, l'écran se charge vite — il faut
+pouvoir revenir à une lecture nette en un clic.
 
 ## Modèle & persistance
 

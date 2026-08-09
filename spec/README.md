@@ -101,6 +101,14 @@ Concepts partagés par plusieurs pages, documentés une seule fois :
 - **Monstres perso** : sur RTA et Siège, l'utilisateur peut créer un monstre
   absent des données (nom, élément, SPD base, lead optionnel). Voir
   [shared/donnees-monstres.md](shared/donnees-monstres.md).
+- **Champs numériques** — [NumberField.tsx](src/components/NumberField.tsx),
+  **partout dans l'app**. ⚠️ **Jamais `type="number"`** : les flèches natives du
+  navigateur sont deux triangles gris minuscules, hors charte, impossibles à
+  styler et pénibles à viser (surtout au tactile). Le composant dessine ses
+  propres boutons **− à gauche, + à droite**, autour d'un `type="text"` +
+  `inputMode="numeric"` (qui fait remonter le pavé numérique sur mobile). La
+  frappe non numérique est **ignorée** : plus prévisible qu'un champ qui se vide
+  ou se corrige pendant qu'on tape.
 - **Titre de page** : `font-display` en dégradé (`title-gradient`), taille
   `clamp(28px,4vw,42px)`, suivi d'un paragraphe d'intro `text-ink-dim`.
 - **Responsive** : nav desktop en pilules ; menu hamburger sur mobile (`< sm`)

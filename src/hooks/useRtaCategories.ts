@@ -28,6 +28,10 @@ export interface UseRtaCategories {
   categories: RtaCategory[];
   visible: boolean; // les anneaux sont-ils affichés ?
   setVisible: (v: boolean) => void;
+  showSpeeds: boolean; // les vitesses sont-elles affichées sur les cartes ?
+  setShowSpeeds: (v: boolean) => void;
+  markDesync: boolean; // signaler en orange les monstres dont les runes ne suivent plus
+  setMarkDesync: (v: boolean) => void;
   add: (label: string, color: string) => void;
   rename: (id: string, label: string, color: string) => void;
   remove: (id: string) => void;
@@ -65,6 +69,8 @@ interface Stored {
   categories: RtaCategory[];
   seeded: boolean; // la catégorie par défaut a déjà été proposée
   visible: boolean;
+  showSpeeds: boolean;
+  markDesync: boolean;
 }
 
 function cleanCategory(c: unknown): RtaCategory | null {
@@ -82,7 +88,13 @@ function cleanCategory(c: unknown): RtaCategory | null {
 }
 
 function load(): Stored {
-  const vide: Stored = { categories: [], seeded: false, visible: true };
+  const vide: Stored = {
+    categories: [],
+    seeded: false,
+    visible: true,
+    showSpeeds: true,
+    markDesync: true,
+  };
   try {
     const raw = localStorage.getItem(KEY);
     if (!raw) return vide;
@@ -102,6 +114,8 @@ function load(): Stored {
         : [],
       seeded: o.seeded === true,
       visible: o.visible !== false, // affiché par défaut
+      showSpeeds: o.showSpeeds !== false,
+      markDesync: o.markDesync !== false,
     };
   } catch {
     return vide;
@@ -110,7 +124,7 @@ function load(): Stored {
 
 export function useRtaCategories(): UseRtaCategories {
   const [state, setState] = useState<Stored>(load);
-  const { categories, visible } = state;
+  const { categories, visible, showSpeeds, markDesync } = state;
   const setCategories = useCallback(
     (fn: (cs: RtaCategory[]) => RtaCategory[]) =>
       setState((st) => ({ ...st, categories: fn(st.categories) })),
@@ -126,6 +140,14 @@ export function useRtaCategories(): UseRtaCategories {
   }, [state]);
 
   const setVisible = useCallback((v: boolean) => setState((st) => ({ ...st, visible: v })), []);
+  const setShowSpeeds = useCallback(
+    (v: boolean) => setState((st) => ({ ...st, showSpeeds: v })),
+    []
+  );
+  const setMarkDesync = useCallback(
+    (v: boolean) => setState((st) => ({ ...st, markDesync: v })),
+    []
+  );
 
   // Amorçage UNE SEULE FOIS, à la première prépa non vide : au tout premier
   // chargement la prépa est souvent vide (compte pas encore importé), une
@@ -210,6 +232,10 @@ export function useRtaCategories(): UseRtaCategories {
     categories,
     visible,
     setVisible,
+    showSpeeds,
+    setShowSpeeds,
+    markDesync,
+    setMarkDesync,
     add,
     rename,
     remove,

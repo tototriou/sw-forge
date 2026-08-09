@@ -3,6 +3,7 @@ import { Plus, X, Wand2 } from 'lucide-react';
 import { ELEMENTS, ElementKey, Monster } from '../types';
 import { CustomLead } from '../hooks/useCustomMonsters';
 import ElementIcon from './ElementIcon';
+import NumberField from './NumberField';
 
 const ELEMENT_CHOICES = ELEMENTS.filter((e) => e.key !== 'unknown');
 
@@ -113,14 +114,16 @@ export default function CreateMonster({ onCreate, customMonsters, onDelete }: Pr
                 </option>
               ))}
             </select>
-            <input
-              type="number"
-              inputMode="numeric"
-              value={speed}
-              onChange={(e) => setSpeed(e.target.value)}
-              placeholder="SPD base"
-              className="w-24 bg-panel2 border border-border rounded-lg px-2.5 py-2 text-[13px] text-ink
-                         placeholder:text-ink-dim outline-none focus:border-[#5b63b8]"
+            {/* La valeur est stockée en TEXTE ici (champ libre du formulaire) :
+                on convertit aux bornes du composant. */}
+            <NumberField
+              value={speed === '' ? null : Number(speed)}
+              allowEmpty
+              min={0}
+              width="w-16"
+              placeholder="SPD"
+              ariaLabel="Vitesse de base"
+              onChange={(v) => setSpeed(v == null ? '' : String(v))}
             />
           </div>
 
@@ -141,14 +144,15 @@ export default function CreateMonster({ onCreate, customMonsters, onDelete }: Pr
 
           {leadStat !== '' && (
             <div className="flex gap-2 mb-2.5">
-              <input
-                type="number"
-                inputMode="numeric"
-                value={lead}
-                onChange={(e) => setLead(e.target.value)}
-                placeholder="Lead %"
-                className="w-24 bg-panel2 border border-border rounded-lg px-2.5 py-2 text-[13px] text-ink
-                           placeholder:text-ink-dim outline-none focus:border-[#5b63b8]"
+              <NumberField
+                value={lead === '' ? null : Number(lead)}
+                allowEmpty
+                min={0}
+                max={100}
+                width="w-14"
+                placeholder="%"
+                ariaLabel="Valeur du lead en %"
+                onChange={(v) => setLead(v == null ? '' : String(v))}
               />
               <select
                 value={scope}

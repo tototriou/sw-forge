@@ -15,6 +15,8 @@ import RtaSearch from '../components/rta/RtaSearch';
 import RtaSection from '../components/rta/RtaSection';
 import CategoryBar from '../components/rta/CategoryBar';
 import { useRtaCategories } from '../hooks/useRtaCategories';
+import { gearSpeedMismatch } from '../lib/gearSync';
+import DesyncBadge from '../components/rta/DesyncBadge';
 import RtaCard from '../components/rta/RtaCard';
 import MonsterGear from '../components/MonsterGear';
 import TurnOrder, { TurnItem } from '../components/rta/TurnOrder';
@@ -119,6 +121,9 @@ export default function RtaPage({
         key={it.monster.id}
         monster={it.monster}
         entry={it.entry}
+        desync={gearSpeedMismatch(it.entry.gear, it.entry.runeSpeed)}
+        showSpeed={cats.showSpeeds}
+        markDesync={cats.markDesync}
         categoryColors={cats.visible ? cats.categoriesOf(String(it.monster.id)).map((c) => c.color) : []}
         categoryLabels={cats.categoriesOf(String(it.monster.id)).map((c) => c.label)}
         sectionKeys={moveTargets}
@@ -136,13 +141,22 @@ export default function RtaPage({
   // carte + panneau, que la grille insère sous la ligne concernée.
   function detailOf(items: TurnItem[]) {
     const openIndex = openId ? items.findIndex((it) => String(it.monster.id) === openId) : -1;
-    const gear = openIndex >= 0 ? items[openIndex].entry.gear : undefined;
+    const entry = openIndex >= 0 ? items[openIndex].entry : undefined;
+    const gear = entry?.gear;
     if (openIndex < 0 || !gear) return { openIndex: -1, detail: undefined };
+    // Vitesse saisie à la main ≠ vitesse des runes importées : le détail
+    // ci-dessous ne correspond plus à la vitesse annoncée, on le signale.
+    const ecart = gearSpeedMismatch(gear, entry?.runeSpeed ?? null);
     return {
       openIndex,
       detail: (
         <div className="rounded-xl border border-[#4a52a0] bg-panel/60 p-3">
-          <MonsterGear gear={gear} />
+          {ecart && (
+            <div className="mb-2">
+              <DesyncBadge ecart={ecart} size={16} />
+            </div>
+          )}
+          <MonsterGear gear={gear} spdCible={ecart ? ecart.saisi : null} />
         </div>
       ),
     };
@@ -273,7 +287,7 @@ export default function RtaPage({
           onRuneSpeed={rta.setRuneSpeed}
           categories={cats.visible ? cats.categories : []}
           categoriesVisible={cats.visible}
-          onToggleCategories={cats.categories.length > 0 ? cats.setVisible : undefined}
+          onToggleCategories={cats.setVisible}
         />
       </section>
     </div>

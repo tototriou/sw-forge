@@ -27,9 +27,10 @@ import AccountImportControl from './components/AccountImportControl';
 import SettingsMenu from './components/SettingsMenu';
 import { loadAccount, saveAccount } from './lib/accountStore';
 import {
-  persistenceChoisie,
+  dialogueMasque,
   persistenceEnabled,
   purgeDonneesConservees,
+  setDialogueMasque,
   setPersistence,
   storageAvailable,
 } from './hooks/usePersistence';
@@ -279,8 +280,11 @@ export default function App() {
       setImporting(false);
     }
     // La question de la conservation se pose ICI, une fois les données à l'écran
-    // — pas dans un menu que personne n'ouvre (voir useKeepAccount).
-    if (!persistenceChoisie() && storageAvailable()) setAskKeep(true);
+    // — pas dans un menu que personne n'ouvre (voir usePersistence). Elle revient
+    // à CHAQUE import tant que « ne plus me montrer » n'est pas coché : le
+    // contexte peut changer entre deux fichiers (poste partagé, ordinateur d'un
+    // ami), et un choix pris une fois pour toutes ne le rattraperait jamais.
+    if (!dialogueMasque() && storageAvailable()) setAskKeep(true);
   }
 
   async function appliquerImport(text: string) {
@@ -363,9 +367,24 @@ export default function App() {
 
   // Réponse à la fenêtre de choix. `null` = fermée sans répondre : on
   // n'enregistre rien et on redemandera, plutôt que d'interpréter un silence.
-  function repondreConservation(keep: boolean | null) {
+  function repondreConservation(keep: boolean | null, nePlusMontrer = false) {
     setAskKeep(false);
-    if (keep === null) return;
+    if (keep === null) return; // fermée sans répondre : on ne décide rien
+
+    // ⚠️ Refuser alors qu'on conservait déjà **efface tout l'existant** — prépa
+    // RTA, équipes, recommandations. La fenêtre revenant à chaque import, un clic
+    // machinal ne doit pas coûter des mois de travail. Le défaut de cette
+    // confirmation est donc de NE RIEN PERDRE : « Annuler » garde tout.
+    if (!keep && persistenceEnabled()) {
+      const ok = confirm(
+        'Ne plus rien garder effacera ce qui est déjà enregistré sur cet appareil :\n' +
+          'prépa RTA, équipes de siège, recommandations et compte importé.\n\n' +
+          'OK = tout effacer · Annuler = continuer à conserver'
+      );
+      if (!ok) return; // on ne touche à rien, pas même à la case cochée
+    }
+
+    setDialogueMasque(nePlusMontrer);
     setPersistence(keep, persistCurrentAccount);
   }
 
@@ -787,7 +806,7 @@ export default function App() {
         {importing && <ImportSpinner />}
         {askKeep && !importing && (
           <KeepAccountDialog
-            onChoose={(keep) => repondreConservation(keep)}
+            onChoose={(keep, nePlusMontrer) => repondreConservation(keep, nePlusMontrer)}
             onDismiss={() => repondreConservation(null)}
           />
         )}

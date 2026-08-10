@@ -1,4 +1,5 @@
-import { HardDriveDownload, Loader2, ShieldCheck } from 'lucide-react';
+import { useState } from 'react';
+import { Check, HardDriveDownload, Loader2, ShieldCheck } from 'lucide-react';
 
 /* --------------------------------------------------------------------------
  * Attente pendant le traitement de l'export
@@ -52,13 +53,21 @@ export function ImportSpinner() {
 // ⚠️ Aucune des deux réponses ne détruit quoi que ce soit : refuser garde le
 // compte pour la session en cours. Fermer sans répondre n'enregistre RIEN — on
 // redemandera au prochain import plutôt que d'interpréter un silence.
+//
+// ⚠️ **La question revient à chaque import**, sauf case cochée — et la case ne
+// vaut que pour la **session en cours**. Un choix pris une fois pour toutes
+// vieillit mal : on accepte la conservation chez soi, puis on ouvre le site sur
+// un poste partagé sans que rien ne le rappelle. La case évite d'être resollicité
+// quand on enchaîne plusieurs fichiers, sans faire taire la question pour
+// toujours : la garantie est « au moins une fois par session ».
 export function KeepAccountDialog({
   onChoose,
   onDismiss,
 }: {
-  onChoose: (keep: boolean) => void;
+  onChoose: (keep: boolean, nePlusMontrer: boolean) => void;
   onDismiss: () => void;
 }) {
+  const [nePlusMontrer, setNePlusMontrer] = useState(false);
   return (
     <div
       className="fixed inset-0 z-50 flex items-center justify-center bg-bg/80 p-4 backdrop-blur-sm"
@@ -98,16 +107,33 @@ export function KeepAccountDialog({
           </span>
         </p>
 
-        <div className="mt-4 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+        {/* La case s'applique aux DEUX réponses, et seulement à cette session. */}
+        <label className="mt-3.5 flex cursor-pointer select-none items-center gap-2 text-[11.5px] text-ink-dim">
+          <span
+            className={`flex h-[15px] w-[15px] flex-none items-center justify-center rounded border transition
+              ${nePlusMontrer ? 'border-star bg-star text-bg' : 'border-border bg-panel2'}`}
+          >
+            {nePlusMontrer && <Check size={11} strokeWidth={3} />}
+          </span>
+          <input
+            type="checkbox"
+            className="sr-only"
+            checked={nePlusMontrer}
+            onChange={(e) => setNePlusMontrer(e.target.checked)}
+          />
+          Ne plus me montrer pendant cette session
+        </label>
+
+        <div className="mt-3 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
           <button
-            onClick={() => onChoose(false)}
+            onClick={() => onChoose(false, nePlusMontrer)}
             className="rounded-lg border border-border bg-panel2 px-3.5 py-2 text-[12.5px] font-semibold
                        text-ink-dim transition hover:text-ink"
           >
             Non, ne rien garder de mes informations
           </button>
           <button
-            onClick={() => onChoose(true)}
+            onClick={() => onChoose(true, nePlusMontrer)}
             autoFocus
             className="rounded-lg bg-gradient-to-br from-[#3a4270] to-[#272e52] px-3.5 py-2 text-[12.5px]
                        font-semibold text-ink shadow transition hover:brightness-110"

@@ -146,11 +146,25 @@ export function persistenceEnabled(): boolean {
   return current;
 }
 
-// L'utilisateur a-t-il déjà répondu ? Sert à ne poser la question qu'une fois.
-// ⚠️ Fermer la fenêtre sans répondre ne compte PAS comme un choix : on
-// redemandera au prochain import plutôt que d'interpréter un silence.
-export function persistenceChoisie(): boolean {
-  return choisi;
+// ⚠️ **La question est reposée à CHAQUE import**, tant que l'utilisateur n'a pas
+// coché « ne plus me montrer ». Un choix fait une fois pour toutes vieillit mal :
+// on accepte la conservation sur son ordinateur, puis on ouvre le site chez un
+// ami ou sur un poste partagé sans que rien ne le rappelle. Reposer la question
+// au moment du dépôt, c'est la reposer là où le contexte a pu changer.
+//
+// ⚠️ **La case cochée vaut pour la SESSION en cours, et rien de plus** — d'où une
+// variable en mémoire plutôt qu'une clé de stockage. Elle sert à ne pas être
+// resollicité quand on enchaîne plusieurs fichiers d'affilée, pas à faire taire
+// la question pour toujours : au rechargement suivant, elle est reposée. La
+// garantie tenue est donc « **au moins une fois par session** ».
+let dialogueMasqueSession = false;
+
+export function dialogueMasque(): boolean {
+  return dialogueMasqueSession;
+}
+
+export function setDialogueMasque(masque: boolean) {
+  dialogueMasqueSession = masque;
 }
 
 // Le stockage est-il seulement utilisable ? Sert à griser le réglage plutôt qu'à

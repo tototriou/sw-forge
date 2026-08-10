@@ -65,6 +65,9 @@ interface Props {
 export default function HomePage({ stats, onImport }: Props) {
   const derniere = RELEASES[0];
   const aDesDonnees = stats.rta > 0 || stats.defense > 0 || stats.offense > 0 || stats.recos > 0;
+  // Le bouton du dernier appel ouvre le sélecteur de fichier, comme la zone de
+  // dépôt du héros — même `onImport`, donc un seul chemin d'import.
+  const ctaRef = useRef<HTMLInputElement>(null);
 
   return (
     <motion.div variants={container} initial="hidden" animate="show" className="pt-4">
@@ -186,14 +189,29 @@ export default function HomePage({ stats, onImport }: Props) {
           Importe ton fichier SWEX et retrouve ta box, tes runes, ta prépa RTA et tes équipes de siège
           en quelques secondes.
         </p>
-        <a
-          href="#depot"
+        {/* ⚠️ Il ouvre le sélecteur de fichier, il ne renvoie PAS à la zone de
+            dépôt. C'était un lien `#depot` : avec le routage par hash il ne
+            faisait rien de visible, et un bouton d'appel à l'action qui ne
+            déclenche rien est pire que pas de bouton du tout. */}
+        <button
+          onClick={() => ctaRef.current?.click()}
           className="mt-4 inline-flex items-center gap-2 rounded-lg bg-gradient-to-br from-[#3a4270] to-[#272e52]
                      border border-[#4a52a0] px-4 py-2.5 text-[14px] font-semibold text-ink
                      transition hover:border-[#5b63b8]"
         >
           <Upload size={15} /> Importer mon compte
-        </a>
+        </button>
+        <input
+          ref={ctaRef}
+          type="file"
+          accept=".json,application/json"
+          className="hidden"
+          onChange={(e) => {
+            const f = e.target.files?.[0];
+            e.target.value = ''; // permet de recharger le même fichier
+            if (f) f.text().then(onImport);
+          }}
+        />
       </motion.section>
 
       {/* ---- Quoi de neuf : la raison de revenir ---------------------------- */}

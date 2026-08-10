@@ -38,6 +38,33 @@ export const CHANGE_META: Record<ChangeKind, { label: string; color: string }> =
 // Si une ligne dépasse ~15 mots, c'est qu'elle raconte l'implémentation.
 export const RELEASES: Release[] = [
   {
+    version: '1.2.1',
+    date: '2026-08-10',
+    title: 'Le choix de conservation est reposé à chaque import',
+    changes: [
+      {
+        kind: 'fix',
+        scope: 'Import',
+        text: 'La question « garder mes données ? » revient à chaque import.',
+      },
+      {
+        kind: 'feat',
+        scope: 'Import',
+        text: 'Case pour ne plus voir le message jusqu’à la fin de ta session.',
+      },
+      {
+        kind: 'fix',
+        scope: 'Import',
+        text: 'Confirmation avant d’effacer des données déjà conservées.',
+      },
+      {
+        kind: 'fix',
+        scope: 'Accueil',
+        text: 'Le bouton « Importer mon compte » en bas de page fonctionne enfin.',
+      },
+    ],
+  },
+  {
     version: '1.2.0',
     date: '2026-08-10',
     title: 'Tes données restent d’une visite à l’autre',

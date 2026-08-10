@@ -324,9 +324,27 @@ Trois éléments du texte à ne jamais retirer :
 3. **« tu pourras changer d'avis »** — sans ça la question devient un engagement,
    et on répond non par prudence.
 
-⚠️ **Aucune des deux réponses ne détruit quoi que ce soit** : refuser garde le
-compte pour la session en cours. **Fermer sans répondre n'enregistre rien** — on
-redemandera au prochain import plutôt que d'interpréter un silence.
+⚠️ **Fermer sans répondre n'enregistre rien** — on redemandera plutôt que
+d'interpréter un silence.
+
+### ⚠️ La question revient à CHAQUE import — au moins une fois par session
+
+Sauf si l'utilisateur coche **« Ne plus me montrer pendant cette session »**. Un
+choix pris une fois pour toutes vieillit mal : on accepte la conservation chez
+soi, puis on ouvre le site sur le poste d'un ami sans que rien ne le rappelle.
+Reposer la question au dépôt du fichier, c'est la reposer là où le contexte a pu
+changer.
+
+⚠️ **La case vit en mémoire, jamais sur le disque.** Elle évite d'être
+resollicité quand on enchaîne plusieurs fichiers d'affilée ; elle ne fait pas
+taire la question pour toujours. Au rechargement suivant, elle est reposée — la
+garantie tenue est « **au moins une fois par session** ». Elle s'applique aux
+**deux** réponses.
+
+> ⚠️ **Refuser alors qu'on conservait déjà efface l'existant** — prépa RTA,
+> équipes, recommandations, compte. La fenêtre revenant à chaque import, un clic
+> machinal coûterait des mois de travail : une confirmation s'interpose, dont le
+> défaut est **de ne rien perdre** (« Annuler = continuer à conserver »).
 
 Le réglage ⚙ reste le point de changement d'avis :
 

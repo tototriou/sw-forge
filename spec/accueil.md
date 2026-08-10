@@ -93,8 +93,14 @@ page hors de l'écran : à 7 entrées, la moitié des sections n'était jamais v
 
 ### 6. Dernier appel + quoi de neuf
 
-Le **seul bouton** de la page (« Importer mon compte », qui remonte à la zone de
-dépôt) : en bas, après avoir tout lu, c'est là qu'il sert.
+Le **seul bouton** de la page (« Importer mon compte ») : en bas, après avoir
+tout lu, c'est là qu'il sert.
+
+⚠️ Il **ouvre le sélecteur de fichier**, il ne renvoie pas à la zone de dépôt.
+C'était un lien `#depot` : avec le routage par hash il ne faisait rien de
+visible. Un appel à l'action qui ne déclenche rien est pire que pas de bouton du
+tout. Il appelle le **même `onImport`** que la zone de dépôt et que la nav — un
+seul chemin d'import.
 
 Un rappel du bouton d'import, puis un bandeau **version + titre de la dernière
 release** ([Nouveautés](releases.md)), tiré de `RELEASES[0]` — **rien à maintenir

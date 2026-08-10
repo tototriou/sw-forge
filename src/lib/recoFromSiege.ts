@@ -3,9 +3,19 @@
 // chaque monstre : on peut donc pré-remplir les stats RÉELLES du build, que
 // l'auteur ajuste ensuite. Calcul pur.
 
-import { Monster, RecoDeck, RecoSlot, RecoStatKey, SiegeTeam, emptyRecoSlot } from '../types';
+import {
+  ArtifactKind,
+  MAX_ARTIFACT_SUBS,
+  Monster,
+  RecoDeck,
+  RecoSlot,
+  RecoStatKey,
+  SiegeTeam,
+  emptyRecoArtifacts,
+  emptyRecoSlot,
+} from '../types';
 import { computeStats } from './stats';
-import { canAddSet } from './effects';
+import { canAddSet, isArtifactSub } from './effects';
 
 // Stats totales d'un gear → minimums recommandés. On ne garde que les valeurs
 // > 0 (une stat à 0, comme la précision d'un build sans précision, n'a rien à
@@ -31,6 +41,22 @@ function setsFromSlot(slot: SiegeTeam['slots'][number]): string[] {
   return out;
 }
 
+// Propriétés secondaires réellement portées par les artéfacts du build de
+// siège. Comme les stats, elles sont reprises TELLES QUELLES : l'auteur retire
+// ensuite ce qui n'est pas déterminant. Pré-remplir puis élaguer demande moins
+// de travail que retrouver huit lignes dans une liste de 45.
+function artifactsFromSlot(slot: SiegeTeam['slots'][number]): Record<ArtifactKind, number[]> {
+  const out = emptyRecoArtifacts();
+  for (const art of slot.gear?.artifacts ?? []) {
+    for (const sub of art.subs) {
+      if (!isArtifactSub(sub.code) || out[art.kind].includes(sub.code)) continue;
+      if (out[art.kind].length >= MAX_ARTIFACT_SUBS) break;
+      out[art.kind].push(sub.code);
+    }
+  }
+  return out;
+}
+
 // Une équipe de siège → un deck de recommandation (mêmes positions, slot 0 =
 // leader). Un monstre absent des données chargées ou sans `com2usId` (monstre
 // perso, non partageable) laisse le slot vide.
@@ -47,6 +73,7 @@ export function deckFromSiegeTeam(team: SiegeTeam, monsterById: Map<string, Mons
       stats: statsFromGear(slot),
       // Une seule possibilité au départ : l'auteur en ajoute s'il veut.
       setOptions: [setsFromSlot(slot)],
+      artifacts: artifactsFromSlot(slot),
     };
   });
   return { name: '', note: '', slots };

@@ -18,6 +18,7 @@ import RuneIcon from '../RuneIcon';
 import MonsterGear from '../MonsterGear';
 import NumberField from '../NumberField';
 import LeadPill, { LeadBadge } from './LeadPill';
+import { ConfirmDialog } from '../Dialogs';
 
 const GRADIENT: Record<string, string> = {
   fire: 'from-fire to-panel2',
@@ -76,6 +77,7 @@ export default function SiegeTeam({
   const [dragFrom, setDragFrom] = useState<number | null>(null);
   const [overIdx, setOverIdx] = useState<number | null>(null);
   const [detailIdx, setDetailIdx] = useState<number | null>(null); // slot dont on montre le détail
+  const [suppressionAConfirmer, setSuppressionAConfirmer] = useState(false);
 
   const usedIds = new Set(
     team.slots.map((s) => s.monsterId).filter((id): id is string => id !== null)
@@ -112,7 +114,9 @@ export default function SiegeTeam({
 
   // Message d'alerte, construit dans speed.ts : c'est de la logique de tick, pas
   // de l'affichage — et elle mérite d'être vérifiable.
-  const messageTick = tickTeamMessage(slotDangers);
+  const messageTick = tickTeamMessage(
+    slotInfos.map(({ monster }, i) => ({ nom: monster?.name ?? 'Ce monstre', danger: slotDangers[i] }))
+  );
 
   const status: 'neutral' | 'green' | 'orange' | 'red' =
     !checkTicks || !hasMonsters || hasLeo
@@ -130,6 +134,10 @@ export default function SiegeTeam({
     setDragFrom(null);
     setOverIdx(null);
   }
+
+  // Nommer ce qui va partir : « supprimer l'équipe 3 » ne dit rien, la liste
+  // des monstres si.
+  const monstresDeLEquipe = slotInfos.map(({ monster }) => monster?.name).filter(Boolean) as string[];
 
   const sectionClass =
     status === 'red'
@@ -169,13 +177,35 @@ export default function SiegeTeam({
           <Pencil size={13} /> {expanded ? 'Terminer' : 'Éditer'}
         </button>
         <button
-          onClick={() => onRemoveTeam(team.id)}
+          onClick={() => setSuppressionAConfirmer(true)}
           className="flex items-center gap-1.5 text-[12px] text-ink-dim hover:text-fire transition"
           title="Supprimer l'équipe"
         >
           <Trash2 size={13} /> Supprimer
         </button>
       </div>
+
+      {/* ⚠️ Une équipe se supprime en un clic, juste à côté du bouton « Éditer »
+          qu'on utilise sans arrêt — et rien ne permet de la retrouver ensuite :
+          ni annulation, ni corbeille. Trois monstres et leurs vitesses partent
+          avec elle. */}
+      {suppressionAConfirmer && (
+        <ConfirmDialog
+          titre={`Supprimer l'équipe ${index + 1} ?`}
+          message={
+            monstresDeLEquipe.length > 0
+              ? `${monstresDeLEquipe.join(', ')} — ainsi que leurs vitesses saisies. Les autres équipes ne sont pas touchées.`
+              : 'Cette équipe est vide. Les autres ne sont pas touchées.'
+          }
+          libelleAction="Supprimer"
+          destructif
+          onCancel={() => setSuppressionAConfirmer(false)}
+          onConfirm={() => {
+            setSuppressionAConfirmer(false);
+            onRemoveTeam(team.id);
+          }}
+        />
+      )}
 
       {expanded ? (
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">

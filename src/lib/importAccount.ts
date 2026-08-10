@@ -6,7 +6,17 @@
 //  - parseSiegeDefense : les DÉFENSES de combat de guilde (siège) — jusqu'à 6
 //    decks de 3 monstres, avec les runes propres à chaque défense de siège.
 
-import { ArtifactDetail, BaseStats, EffectLine, ElementKey, GearSet, RelicDetail, RuneDetail } from '../types';
+import {
+  ArtifactDetail,
+  BaseStats,
+  CraftKind,
+  CraftLine,
+  EffectLine,
+  ElementKey,
+  GearSet,
+  RelicDetail,
+  RuneDetail,
+} from '../types';
 import { activeSets } from './effects';
 
 const RUNE_EFF_SPEED = 8; // type d'effet « Vitesse » dans les données com2us
@@ -183,11 +193,11 @@ function swiftActive(sets: string[]): boolean {
  * Sert à afficher les stats calculées d'un monstre (base + bonus) au clic.
  * ----------------------------------------------------------------------- */
 
-// attribute d'artéfact d'élément → ElementKey (1 eau, 2 feu, 3 vent, 4 lum, 5 tén).
+// attribute d'artéfact d'attribut (element) → ElementKey (1 eau, 2 feu, 3 vent, 4 lum, 5 tén).
 const ELEMENT_BY_ATTR: Record<number, ElementKey> = {
   1: 'water', 2: 'fire', 3: 'wind', 4: 'light', 5: 'dark',
 };
-// unit_style d'artéfact d'archétype → clé.
+// unit_style d'artéfact de type (archetype) → clé.
 const ARCHETYPE_BY_STYLE: Record<number, 'attack' | 'defense' | 'hp' | 'support'> = {
   1: 'attack', 2: 'defense', 3: 'hp', 4: 'support',
 };
@@ -215,6 +225,7 @@ function runeToDetail(rune: any): RuneDetail {
     : [];
   const rar = Number(rune?.extra) || 0; // rareté com2us (champ `extra`, +10 si antique)
   return {
+    id: Number(rune?.rune_id) || 0,
     slot: Number(rune?.slot_no) || 0,
     set: SET_ID_KEY[Number(rune?.set_id)] ?? 'unknown',
     rank: Number(rune?.class) || 0,
@@ -503,16 +514,18 @@ export function parseAccountBox(src: AccountSource): BoxParseResult {
 export interface InventoryParseResult {
   runes: RuneDetail[];
   artifacts: ArtifactDetail[];
+  crafts: CraftLine[];
   error?: string;
 }
 
 export function parseAccountInventory(src: AccountSource): InventoryParseResult {
   const data = parseAccountSource(src);
-  if (!data) return { runes: [], artifacts: [], error: 'Fichier JSON illisible.' };
+  if (!data) return { runes: [], artifacts: [], crafts: [], error: 'Fichier JSON illisible.' };
   if (!Array.isArray(data?.unit_list)) {
     return {
       runes: [],
       artifacts: [],
+      crafts: [],
       error: "Ce fichier ne contient pas de 'unit_list' — un export de compte SWEX est attendu.",
     };
   }
@@ -525,7 +538,72 @@ export function parseAccountInventory(src: AccountSource): InventoryParseResult 
     .map(artifactToDetail)
     .filter((a) => a.main.code !== 0);
 
-  return { runes, artifacts };
+  return { runes, artifacts, crafts: parseCrafts(data) };
+}
+
+/* --------------------------------------------------------------------------
+ * Meules & gemmes en réserve (`rune_craft_item_list`)
+ * ----------------------------------------------------------------------- */
+
+// `craft_type` : impair = gemme, pair = meule. Trois familles se suivent —
+// **normal** (1/2), **immémorial** (3/4, utilisable sur n'importe quel set),
+// **antique** (5/6, réservé aux runes antiques).
+//
+// ⚠️ Relevé sur les 1 161 lots d'un compte réel : les types pairs ne portent que
+// des stats meulables (PV/ATQ/DEF plats et %, VIT), les impairs portent aussi
+// TC/DCC/RES/Précision — ce qui est exactement la différence entre une meule et
+// une gemme. C'est ce qui identifie les deux familles, pas une table devinée.
+const CRAFT_FAMILY: Record<number, { kind: CraftKind; immemorial: boolean; ancient: boolean }> = {
+  1: { kind: 'gem', immemorial: false, ancient: false },
+  2: { kind: 'grind', immemorial: false, ancient: false },
+  3: { kind: 'gem', immemorial: true, ancient: false },
+  4: { kind: 'grind', immemorial: true, ancient: false },
+  5: { kind: 'gem', immemorial: false, ancient: true },
+  6: { kind: 'grind', immemorial: false, ancient: true },
+};
+
+// `craft_type_id` empile trois nombres à position fixe : `<set><stat><grade>`,
+// les deux derniers sur deux chiffres. 251204 → set 25, stat 12, grade 04.
+//
+// ⚠️ Le grade des consommables ANTIQUES est décalé de 10 (13/14/15), exactement
+// comme le `rank` d'une rune antique — d'où le `- 10`, et non une seconde
+// échelle de raretés.
+function decodeCraftTypeId(id: number): { set: number; stat: number; grade: number } | null {
+  const s = String(id);
+  if (s.length < 5) return null;
+  const set = Number(s.slice(0, -4));
+  const stat = Number(s.slice(-4, -2));
+  const grade = Number(s.slice(-2));
+  if (!Number.isFinite(set) || !Number.isFinite(stat) || !Number.isFinite(grade)) return null;
+  return { set, stat, grade: grade > 10 ? grade - 10 : grade };
+}
+
+// Les lots vides (`amount` 0) sont écartés : un consommable qu'on ne possède
+// plus ne doit pas faire croire qu'un plan est réalisable.
+export function parseCrafts(src: AccountSource): CraftLine[] {
+  const data = parseAccountSource(src);
+  const list = data?.rune_craft_item_list;
+  if (!Array.isArray(list)) return [];
+  const out: CraftLine[] = [];
+  for (const c of list) {
+    const famille = CRAFT_FAMILY[Number(c?.craft_type)];
+    if (!famille) continue;
+    const dec = decodeCraftTypeId(Number(c?.craft_type_id));
+    if (!dec) continue;
+    const amount = Number(c?.amount) || 0;
+    if (amount <= 0) continue;
+    const setKey = famille.immemorial ? null : SET_ID_KEY[dec.set];
+    if (setKey === undefined) continue; // set inconnu (nouveau set non encore mappé)
+    out.push({
+      kind: famille.kind,
+      setKey,
+      stat: dec.stat,
+      grade: dec.grade,
+      ancient: famille.ancient,
+      amount,
+    });
+  }
+  return out;
 }
 
 /* --------------------------------------------------------------------------

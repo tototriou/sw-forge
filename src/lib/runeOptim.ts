@@ -14,6 +14,15 @@ import { MAINSTAT_MAX, SUBSTAT_MAX, SCORE_MAX, runeEfficiency, runeScore } from 
 // exemple entre un ATQ plat et un ATQ%.
 export type OptimMetric = 'eff' | 'score';
 
+// « Ai-je ce consommable sous la main ? » — injecté par l'appelant qui connaît
+// la réserve (voir lib/crafts.ts). Absent = on raisonne sans contrainte.
+//
+// ⚠️ **Une stat dont le consommable manque n'est pas poussée**, au lieu de faire
+// échouer la rune entière. Exiger le plan complet écartait une rune dont trois
+// substats sur quatre étaient meulables tout de suite — le joueur voyait
+// disparaître un chantier qu'il pouvait parfaitement mener.
+export type CraftDispo = (kind: 'grind' | 'gem', stat: number) => boolean;
+
 type Tbl = Record<number, number>;
 
 // Grind max (valeur ajoutée) par code de substat. RES/Préci/TC/DCC non grindables.
@@ -85,19 +94,46 @@ interface Best {
 // Meilleure valeur atteignable pour un scénario (table grind G, table gemme M).
 // `withGem` = false → grind seul (on garde les stats actuelles, pas de gemme).
 // Renvoie aussi le choix gagnant (slot + stat) pour reconstruire le plan.
-function best(rune: RuneDetail, G: Tbl, M: Tbl, withGem: boolean, metric: OptimMetric): Best {
+// ⚠️ `noDowngrade` : ne JAMAIS reprendre à la baisse une meule déjà posée.
+//
+// Les deux lectures sont légitimes et répondent à des questions différentes :
+//  - **sans** (défaut) — « que vaudrait cette rune si elle était née héroïque » :
+//    une rune meulée en légendaire y perd, et ce gain négatif est l'information
+//    (l'héroïque ne lui apporte rien) ;
+//  - **avec** — « qu'est-ce que je peux encore lui ajouter, avec ce grade » :
+//    on ne propose que les stats pas encore au max, donc aucun gain négatif.
+//
+// La seconde est celle du filtre « Faisable avec ma réserve » : on y regarde ce
+// qu'on va **réellement poser**, et on ne pose jamais une meule qui dégrade.
+function best(
+  rune: RuneDetail,
+  G: Tbl,
+  M: Tbl,
+  withGem: boolean,
+  metric: OptimMetric,
+  noDowngrade = false,
+  dispo?: CraftDispo
+): Best {
   const subs = rune.subs.map((s) => ({
     code: s.code,
     base: s.value - (s.grind ?? 0), // base « sans grind »
+    grind: s.grind ?? 0, // meule DÉJÀ posée, jamais reprise à la baisse
     enchant: !!s.enchant,
   }));
-  const gtotal = (code: number, base: number) => base + (G[code] ?? 0);
+  const gtotal = (code: number, base: number, actuel: number) => {
+    // Meule absente de la réserve → la stat reste où elle est.
+    const cible = dispo && !dispo('grind', code) ? 0 : G[code] ?? 0;
+    return base + (noDowngrade ? Math.max(actuel, cible) : cible);
+  };
+  // Meule du slot gemmé : le slot repart de zéro, donc sans la meule en réserve
+  // il n'y a rien à ajouter derrière la gemme.
+  const gGem = (code: number) => (dispo && !dispo('grind', code) ? 0 : G[code] ?? 0);
 
   // Scénario de référence : grind seul, aucune gemme.
   let bestEff = valueOf(
     rune.main,
     rune.innate,
-    subs.map((s) => ({ code: s.code, total: gtotal(s.code, s.base) })),
+    subs.map((s) => ({ code: s.code, total: gtotal(s.code, s.base, s.grind) })),
     metric
   );
   let bestSlot = -1;
@@ -113,12 +149,14 @@ function best(rune: RuneDetail, G: Tbl, M: Tbl, withGem: boolean, metric: OptimM
   if (gemmedIdx >= 0) {
     const code = subs[gemmedIdx].code;
     const gmax = M[code];
-    if (gmax != null) {
+    if (gmax != null && (!dispo || dispo('gem', code))) {
       const newBase = Math.max(subs[gemmedIdx].base, gmax); // jamais de downgrade
       const newSubs = subs.map((s, j) =>
         j === gemmedIdx
-          ? { code, total: newBase + (G[code] ?? 0) }
-          : { code: s.code, total: gtotal(s.code, s.base) }
+          ? // Le slot regemmé repart d'une meule à zéro : pas de `max` ici, la
+            // meule précédente est perdue avec l'ancienne valeur.
+            { code, total: newBase + gGem(code) }
+          : { code: s.code, total: gtotal(s.code, s.base, s.grind) }
       );
       const e = valueOf(rune.main, rune.innate, newSubs, metric);
       if (e > bestEff) {
@@ -144,6 +182,7 @@ function best(rune: RuneDetail, G: Tbl, M: Tbl, withGem: boolean, metric: OptimM
   for (let slot = 0; slot < subs.length; slot++) {
     for (const Y of GEM_STATS) {
       if (M[Y] == null) continue;
+      if (dispo && !dispo('gem', Y)) continue; // gemme absente de la réserve
       if (forbidden.has(Y)) continue; // interdit sur cet emplacement
       if (Y === subs[slot].code) continue; // gemme = remplacer par une AUTRE stat
       if (Y === rune.main.code) continue;
@@ -159,8 +198,8 @@ function best(rune: RuneDetail, G: Tbl, M: Tbl, withGem: boolean, metric: OptimM
 
       const newSubs = subs.map((s, j) =>
         j === slot
-          ? { code: Y, total: M[Y] + (G[Y] ?? 0) } // gemme (base max) + grind max
-          : { code: s.code, total: gtotal(s.code, s.base) }
+          ? { code: Y, total: M[Y] + gGem(Y) } // gemme (base max) + grind max
+          : { code: s.code, total: gtotal(s.code, s.base, s.grind) }
       );
       const e = valueOf(rune.main, rune.innate, newSubs, metric);
       if (e > bestEff) {
@@ -176,17 +215,29 @@ function best(rune: RuneDetail, G: Tbl, M: Tbl, withGem: boolean, metric: OptimM
 export function runePotential(
   rune: RuneDetail,
   withGem = true,
-  metric: OptimMetric = 'eff'
+  metric: OptimMetric = 'eff',
+  noDowngrade = false,
+  dispo?: CraftDispo
 ): RunePotential {
   const anc = rune.rank > 10;
   const eff = metric === 'eff' ? runeEfficiency(rune) : runeScore(rune);
-  const h = best(rune, anc ? GRIND_HERO_ANC : GRIND_HERO, anc ? GEM_HERO_ANC : GEM_HERO, withGem, metric);
+  const h = best(
+    rune,
+    anc ? GRIND_HERO_ANC : GRIND_HERO,
+    anc ? GEM_HERO_ANC : GEM_HERO,
+    withGem,
+    metric,
+    noDowngrade,
+    dispo
+  );
   const l = best(
     rune,
     anc ? GRIND_LEGEND_ANC : GRIND_LEGEND,
     anc ? GEM_LEGEND_ANC : GEM_LEGEND,
     withGem,
-    metric
+    metric,
+    noDowngrade,
+    dispo
   );
   // Arrondi en sortie, puis gains calculés SUR LES VALEURS ARRONDIES : le gain
   // affiché est ainsi toujours exactement « potentiel − actuel » à l'écran.
@@ -232,14 +283,17 @@ export function runePlan(
   rune: RuneDetail,
   scenario: 'hero' | 'legend',
   withGem = true,
-  metric: OptimMetric = 'eff'
+  metric: OptimMetric = 'eff',
+  noDowngrade = false,
+  dispo?: CraftDispo
 ): RunePlan {
   const anc = rune.rank > 10;
   const G =
     scenario === 'hero' ? (anc ? GRIND_HERO_ANC : GRIND_HERO) : anc ? GRIND_LEGEND_ANC : GRIND_LEGEND;
   const M = scenario === 'hero' ? (anc ? GEM_HERO_ANC : GEM_HERO) : anc ? GEM_LEGEND_ANC : GEM_LEGEND;
 
-  const b = best(rune, G, M, withGem, metric);
+  const gGemPlan = (code: number) => (dispo && !dispo('grind', code) ? 0 : G[code] ?? 0);
+  const b = best(rune, G, M, withGem, metric, noDowngrade, dispo);
   const subs: PlanSub[] = rune.subs.map((s, j) => {
     const curGrind = s.grind ?? 0;
     const curBase = s.value - curGrind;
@@ -248,7 +302,7 @@ export function runePlan(
       // Re-proc de la MÊME stat (rune déjà gemmée) → base = max(base actuelle, gemMax) ;
       // nouvelle gemme (stat différente) → base = gemMax.
       const base = b.gemCode === s.code ? Math.max(curBase, gmax) : gmax;
-      const grind = G[b.gemCode] ?? 0;
+      const grind = gGemPlan(b.gemCode);
       return {
         code: b.gemCode,
         fromCode: s.code,
@@ -261,8 +315,11 @@ export function runePlan(
         grindable: true,
       };
     }
-    const grindable = G[s.code] != null;
-    const grind = grindable ? G[s.code] : curGrind;
+    // Même règle que `best`, sinon le plan affiché ne correspondrait pas au
+    // potentiel annoncé au-dessus.
+    const grindable = G[s.code] != null && (!dispo || dispo('grind', s.code));
+    const cible = grindable ? G[s.code] : curGrind;
+    const grind = noDowngrade ? Math.max(curGrind, cible) : cible;
     return {
       code: s.code,
       fromCode: s.code,
@@ -283,4 +340,26 @@ export function runePlan(
     gemCode: b.gemCode,
     subs,
   };
+}
+
+// Consommables qu'un plan réclame — la liste à confronter à la réserve du
+// compte (voir crafts.ts). Un plan sans changement ne réclame rien.
+//
+// ⚠️ Le slot GEMMÉ réclame aussi sa meule. Poser une gemme remet la meule du
+// slot à zéro : le plan vise `base + grind max`, il faut donc regrinder derrière.
+// Le comparer au grind ACTUEL laisserait croire qu'une rune déjà bien meulée sur
+// ce slot n'a plus besoin de rien.
+//
+// ⚠️ Une seule entrée par stat gemmée/meulée, jamais de quantité : on applique
+// une gemme par rune et une meule par substat. La question posée est
+// « ai-je le bon consommable », pas « combien m'en faut-il ».
+export function planNeeds(plan: RunePlan): { kind: 'grind' | 'gem'; stat: number }[] {
+  const out: { kind: 'grind' | 'gem'; stat: number }[] = [];
+  if (plan.gemCode != null) out.push({ kind: 'gem', stat: plan.gemCode });
+  for (const s of plan.subs) {
+    if (!s.grindable) continue;
+    const depart = s.isGem ? 0 : s.curGrind;
+    if (s.grind > depart) out.push({ kind: 'grind', stat: s.code });
+  }
+  return out;
 }

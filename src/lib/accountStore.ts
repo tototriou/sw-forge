@@ -21,7 +21,7 @@
 // pourcentage du disque, et **structured clone** — on stocke les objets tels
 // quels, sans `JSON.stringify` à l'écriture ni re-parse à la lecture.
 
-import { ArtifactDetail, RuneDetail } from '../types';
+import { ArtifactDetail, CraftLine, RuneDetail } from '../types';
 import { BoxMonster } from './importAccount';
 
 /* --------------------------------------------------------------------------
@@ -44,6 +44,7 @@ export interface StoredAccount {
   box: BoxMonster[];
   runes: RuneDetail[];
   artifacts: ArtifactDetail[];
+  crafts: CraftLine[]; // meules & gemmes en réserve
 }
 
 // À incrémenter dès qu'un extracteur produit un champ de plus : un compte
@@ -51,7 +52,7 @@ export interface StoredAccount {
 // faux en silence. À la lecture, un schéma différent est **ignoré** — l'app
 // retombe sur « aucun compte » et invite à réimporter, comme pour les vieux
 // fichiers de recommandation.
-export const ACCOUNT_SCHEMA = 2;
+export const ACCOUNT_SCHEMA = 3;
 
 const DB_NAME = 'sw-forge';
 const DB_VERSION = 1;
@@ -156,6 +157,7 @@ export function loadAccount(): Promise<StoredAccount | null> {
     if (!rec || typeof rec !== 'object') return null;
     if (rec.schema !== ACCOUNT_SCHEMA) return null;
     if (!Array.isArray(rec.box) || !Array.isArray(rec.runes) || !Array.isArray(rec.artifacts)) return null;
+    if (!Array.isArray(rec.crafts)) return null;
     return rec;
   });
 }
@@ -163,7 +165,7 @@ export function loadAccount(): Promise<StoredAccount | null> {
 // `false` = non enregistré (stockage indisponible ou plein). L'import reste
 // valide en mémoire : on ne casse jamais l'usage courant pour un échec d'écriture.
 export function saveAccount(
-  data: Pick<StoredAccount, 'box' | 'runes' | 'artifacts' | 'exportedAt'>
+  data: Pick<StoredAccount, 'box' | 'runes' | 'artifacts' | 'crafts' | 'exportedAt'>
 ): Promise<boolean> {
   return enqueue(async () => {
     const rec: StoredAccount = {
@@ -173,6 +175,7 @@ export function saveAccount(
       box: data.box,
       runes: data.runes,
       artifacts: data.artifacts,
+      crafts: data.crafts,
     };
     // `put` sur une clé fixe : un nouvel import remplace, il ne s'ajoute pas.
     const res = await tx<IDBValidKey>('readwrite', (s) => s.put(rec, KEY));

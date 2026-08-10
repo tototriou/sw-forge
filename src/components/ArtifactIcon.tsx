@@ -1,7 +1,8 @@
 import { ArtifactDetail } from '../types';
 
 // Icônes officielles d'artéfacts (SWARFARM, servies en local).
-// Élément → fire/water/wind/light/dark · Archétype → attack/defense/hp/support.
+// Attribut (`element`) → fire/water/wind/light/dark ·
+// Type (`archetype`) → attack/defense/hp/support.
 interface Props {
   artifact: ArtifactDetail;
   size?: number;
@@ -16,6 +17,22 @@ export default function ArtifactIcon({ artifact, size = 22, className = '' }: Pr
         : null
       : artifact.archetype ?? null;
   if (!name) return null;
+  return <ArtifactGlyph name={name} size={size} className={className} />;
+}
+
+// L'image seule, sans artéfact autour : les **filtres** doivent afficher la
+// même icône que les tuiles alors qu'ils ne désignent qu'une valeur, pas un
+// exemplaire. Fabriquer un `ArtifactDetail` factice juste pour ça donnerait un
+// objet qui ne correspond à rien.
+export function ArtifactGlyph({
+  name,
+  size = 18,
+  className = '',
+}: {
+  name: string;
+  size?: number;
+  className?: string;
+}) {
   return (
     <img
       src={`${import.meta.env.BASE_URL}artifacts/${name}.png`}

@@ -236,10 +236,12 @@ sobriété : un gros compte (des milliers de runes) ne remplit pas le stockage.
 ### Inventaire — `parseAccountInventory`
 
 - **Toutes** les runes et **tous** les artéfacts possédés (inventaire + équipés,
-  dédupliqués par id via `indexRunes` / `indexArtifacts`).
+  dédupliqués par id via `indexRunes` / `indexArtifacts`), plus la **réserve de
+  meules et de gemmes** (`rune_craft_item_list` → `CraftLine[]`, voir
+  [compte/runes.md](../compte/runes.md), onglet Meules).
 - Chaque rune → `RuneDetail` (slot, set, rareté = `extra`, antique = `class > 10`,
   niveau, main/innée/substats meule incluse) ; chaque artéfact → `ArtifactDetail`
-  (type élément/archétype, rareté = `natural_rank`, main, substats, `enchant`).
+  (catégorie attribut/type, rareté = `natural_rank`, main, substats, `enchant`).
 - Utilisé par les sous-sections **Runes** et **Artéfacts** (voir
   [compte/runes.md](../compte/runes.md), [compte/artefacts.md](../compte/artefacts.md)).
 
@@ -266,7 +268,7 @@ IndexedDB n'a aucun de ces défauts, et son **structured clone** évite le
 ### Ce qu'on stocke
 
 Une base `sw-forge`, un store `account`, **une clé fixe** `current` :
-`{ schema, savedAt, box, runes, artifacts }`.
+`{ schema, savedAt, box, runes, artifacts, crafts }`.
 
 - ⚠️ **La sortie des extracteurs (`BoxMonster[]`), jamais l'état affiché
   (`BoxItem[]`).** Un `BoxItem` embarque l'objet `Monster` complet : ça duplique
@@ -276,8 +278,8 @@ Une base `sw-forge`, un store `account`, **une clé fixe** `current` :
   jour.
 - ⚠️ **Le compte du joueur, et lui seul.** Les JSON d'autres joueurs importés
   dans la comparaison restent en mémoire, comme les courbes partagées.
-- `schema` (`ACCOUNT_SCHEMA`) est à **incrémenter dès qu'un extracteur produit un
-  champ de plus** : un enregistrement d'un autre schéma est ignoré à la lecture,
+- `schema` (`ACCOUNT_SCHEMA`, **3** depuis l'ajout de `crafts`) est à
+  **incrémenter dès qu'un extracteur produit un champ de plus** : un enregistrement d'un autre schéma est ignoré à la lecture,
   et l'app invite à réimporter — sinon elle affiche des chiffres incomplets en
   silence.
 - `exportedAt` est la date **de l'export** (`tvalue`), pas de l'enregistrement —

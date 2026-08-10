@@ -7,12 +7,19 @@
 import { bilan } from './outils';
 import testImport from './import.test';
 import testPersistance from './persistance.test';
+import testMeules, { testPalier, testRegistre, testSansDowngrade } from './meules.test';
+import testReco from './reco.test';
 import testStockage from './stockage.test';
 import testVitesse from './vitesse.test';
 
 async function main() {
   testVitesse();
   testImport();
+  testReco();
+  testMeules();
+  testRegistre();
+  testSansDowngrade();
+  testPalier();
   await testStockage();
   await testPersistance();
 

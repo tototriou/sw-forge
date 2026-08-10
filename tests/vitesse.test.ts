@@ -51,36 +51,33 @@ export default function testVitesse() {
   egal(tickDanger(269)?.kind, 'above', 'tick lent dépassé de 30 → trop rapide');
   egal(tickDanger(250), null, 'entre les deux ticks, dans les marges → rien à signaler');
 
-  // ⚠️ Le message doit dire dans QUEL SENS corriger. « Pas au tick » décrivait le
-  // symptôme sans indiquer s'il faut accélérer ou libérer de la vitesse.
-  const msg = (vitesses: number[]) => tickTeamMessage(vitesses.map(tickDanger));
+  // ⚠️ Le message doit dire dans QUEL SENS corriger, et NOMMER chaque monstre
+  // fautif. Un message d'équipe ne pouvait pas décrire trois situations
+  // différentes : il en laissait un dans l'ombre.
+  const msg = (couples: [string, number][]) =>
+    tickTeamMessage(couples.map(([nom, v]) => ({ nom, danger: tickDanger(v) })));
 
-  egal(msg([286, 239]), null, 'équipe calée → aucun message');
+  egal(msg([['Tesarion', 286], ['Camille', 239]]), null, 'équipe calée → aucun message');
   egal(
-    msg([283, 286]),
-    'Ton équipe est trop lente pour le tick 286.',
-    'trop lente : le tick à atteindre est nommé'
-  );
-  // ⚠️ Dépasser 239 sans atteindre 286, c'est être trop rapide POUR L'UN et trop
-  // lent POUR L'AUTRE. Ne citer que le tick franchi ferait ralentir à tort.
-  egal(
-    msg([265, 270]),
-    'Ton équipe est trop rapide par rapport au tick 239, ou trop lente pour le tick 286.',
-    'au-dessus de 239 : les deux repères sont nommés'
+    msg([['Tesarion', 283], ['Camille', 286]]),
+    "Tesarion n'atteint pas le tick 286.",
+    'un seul fautif : lui seul est nommé'
   );
   egal(
-    msg([305, 330]),
-    'Ton équipe est trop rapide par rapport au tick 286.',
+    msg([['Tesarion', 283], ['Camille', 305], ['Riley', 281]]),
+    "Tesarion n'atteint pas le tick 286, Camille dépasse le tick 286 et Riley n'atteint pas le tick 286.",
+    'LES TROIS sont nommés, chacun avec son défaut'
+  );
+  // ⚠️ Dépasser 239 sans atteindre 286, c'est être trop rapide pour l'un et trop
+  // lent pour l'autre. Ne citer que le tick franchi ferait ralentir à tort.
+  egal(
+    msg([['Camille', 265]]),
+    'Camille dépasse le tick 239 sans atteindre le 286.',
+    'entre deux ticks : les deux repères sont nommés'
+  );
+  egal(
+    msg([['Camille', 305]]),
+    'Camille dépasse le tick 286.',
     'au-dessus du tick le plus haut : pas de tick suivant à viser'
-  );
-  egal(
-    msg([265, 305]),
-    'Ton équipe est trop rapide par rapport aux ticks.',
-    'deux ticks différents dépassés : aucune valeur citée'
-  );
-  egal(
-    msg([283, 305]),
-    "Ton équipe n'est pas au tick : un monstre est en dessous, un autre au-dessus.",
-    'un au-dessus, un en dessous : aucune consigne d’équipe ne vaudrait'
   );
 }

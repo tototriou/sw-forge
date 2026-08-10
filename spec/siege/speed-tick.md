@@ -71,7 +71,7 @@ par équipe (aura = bordure + halo, + point dans l'en-tête) :
 | Statut | Couleur | Condition | Message sous les monstres |
 |--------|---------|-----------|---------------------------|
 | Orange | `amber` | Équipe avec **≥1 Swift** (pas de tick à viser) | « Vérifier le speed tuning » |
-| Rouge | `fire` | (Sans Swift) un monstre **pas au tick** (anneau rouge sur le slot fautif) | « Ton équipe n'est pas au tick. », ou le message de dépassement ci-dessous |
+| Rouge | `fire` | (Sans Swift) un monstre **pas au tick** (anneau rouge sur le slot fautif) | une phrase par monstre fautif, voir ci-dessous |
 | Vert | `emerald` | (Sans Swift) **tous au tick**, **ou** recommandation ignorée | — |
 | — | neutre | **Mode vérification désactivé**, équipe vide **ou avec Leo** | — |
 
@@ -88,35 +88,38 @@ monstre, position…) : le conseil écarté portait sur l'ancienne composition.
 > responsabilité. Le vert qui suit ne dit pas « c'est juste », il dit « tu as
 > tranché ».
 
-### ⚠️ Le message dit dans quel SENS corriger
+### ⚠️ Le message NOMME chaque monstre fautif
 
 `tickTeamMessage` ([speed.ts](src/lib/speed.ts)) — logique de tick, pas
 d'affichage, et vérifiée à ce titre dans [tests/](tests/vitesse.test.ts).
 
 « Ton équipe n'est pas au tick » décrivait le symptôme sans dire s'il faut
-**accélérer** ou **libérer de la vitesse** pour la mettre ailleurs. Les deux
-situations se réparent à l'opposé l'une de l'autre.
+**accélérer** ou **libérer de la vitesse**, ni **qui** est en cause. Pire : un
+message d'équipe ne pouvait pas décrire trois situations différentes — il disait
+« un monstre est en dessous, un autre au-dessus » et **laissait le troisième dans
+l'ombre**.
 
-| Situation des monstres fautifs | Message |
+Une phrase par monstre fautif, énumérées naturellement :
+
+> Tesarion n'atteint pas le tick 286, Camille dépasse le tick 286 et Riley
+> n'atteint pas le tick 286.
+
+| Situation du monstre | Formulation |
 |---|---|
-| Tous **sous** un même tick | « Ton équipe est trop lente pour le tick 286. » |
-| Tous **au-dessus** de 239 | « Ton équipe est trop rapide par rapport au tick 239, ou trop lente pour le tick 286. » |
-| Tous au-dessus de **286** (le plus haut) | « Ton équipe est trop rapide par rapport au tick 286. » |
-| Au-dessus de **ticks différents** | « Ton équipe est trop rapide par rapport aux ticks. » |
-| Un dessous **et** un dessus | « Ton équipe n'est pas au tick : un monstre est en dessous, un autre au-dessus. » |
+| Sous un tick | « X n'atteint pas le tick 286 » |
+| Au-dessus d'un tick, avec un tick plus haut | « X dépasse le tick 239 sans atteindre le 286 » |
+| Au-dessus du tick le plus haut | « X dépasse le tick 286 » |
 
-> ⚠️ **Nommer les deux ticks n'est pas du bavardage.** Ne citer que le tick
-> franchi laisse croire qu'il faut ralentir, alors qu'**accélérer jusqu'au tick
-> du dessus** est souvent le bon geste. L'app ne peut pas trancher à la place du
-> joueur : elle lui donne les bornes.
+> ⚠️ **Formulations sans accord de genre** — « n'atteint pas », « dépasse ». Les
+> noms de monstres sont de tous genres et l'information n'existe pas dans les
+> données : « Camille est trop lent » serait fautif une fois sur deux.
+>
+> ⚠️ **Nommer les deux ticks** quand le monstre est entre les deux n'est pas du
+> bavardage : ne citer que le tick franchi laisse croire qu'il faut ralentir,
+> alors qu'**accélérer jusqu'au tick du dessus** est souvent le bon geste.
 >
 > ⚠️ **Aucun décompte de points manquants** : le détail par monstre est déjà
-> lisible sur les cartes, et une phrase courte se lit d'un coup d'œil.
->
-> ⚠️ **Aucun nom de monstre** : le slot fautif porte déjà un anneau rouge.
->
-> Quand **plusieurs ticks** sont en cause, aucune valeur n'est citée — elle
-> désignerait le mauvais repère pour une partie de l'équipe.
+> lisible sur les cartes, et la phrase doit se lire d'un coup d'œil.
 
 Sets déterminés depuis `slot.sets` (renseigné à l'import).
 Marges : `TICK_BELOW_MARGIN = 10`, `TICK_ABOVE_MARGIN = 15`.

@@ -37,7 +37,7 @@ import {
 } from './hooks/usePersistence';
 import { ConfirmDialog, KeepAccountDialog } from './components/Dialogs';
 import GameIcon, { GameIconKey } from './components/GameIcon';
-import { ArtifactDetail, Monster, RuneDetail } from './types';
+import { ArtifactDetail, CraftLine, Monster, RuneDetail } from './types';
 import { useMonsters } from './hooks/useMonsters';
 import { useCustomMonsters } from './hooks/useCustomMonsters';
 import { useRtaState } from './hooks/useRtaState';
@@ -127,6 +127,7 @@ export default function App() {
   const [box, setBox] = useState<BoxItem[]>([]);
   const [runes, setRunes] = useState<RuneDetail[]>([]);
   const [artifacts, setArtifacts] = useState<ArtifactDetail[]>([]);
+  const [crafts, setCrafts] = useState<CraftLine[]>([]);
 
   // Box telle que sortie de l'extracteur, avant résolution en monstres. C'est
   // ELLE qu'on enregistre : un `BoxItem` embarque l'objet `Monster` et figerait
@@ -212,6 +213,7 @@ export default function App() {
         setBox(mapBoxMonsters(rec.box, monsterByCom2us));
         setRunes(rec.runes);
         setArtifacts(rec.artifacts);
+        setCrafts(rec.crafts);
         setAccountExportedAt(rec.exportedAt);
       }
       setAccountHydrating(false);
@@ -318,6 +320,7 @@ export default function App() {
     setBox(boxItems);
     setRunes(invRes.runes ?? []);
     setArtifacts(invRes.artifacts ?? []);
+    setCrafts(invRes.crafts ?? []);
 
     // Enregistrement **après** la mise à jour de l'affichage et sans attendre :
     // une écriture de 2 Mo ne doit pas retarder l'apparition du compte. Un échec
@@ -328,6 +331,7 @@ export default function App() {
         box: rawBoxRef.current,
         runes: invRes.runes ?? [],
         artifacts: invRes.artifacts ?? [],
+        crafts: invRes.crafts ?? [],
         exportedAt: exporte,
       });
     }
@@ -399,7 +403,7 @@ export default function App() {
   // en mémoire, sinon il faudrait réimporter le même fichier pour rien.
   function persistCurrentAccount() {
     if (rawBoxRef.current.length === 0 && runes.length === 0 && artifacts.length === 0) return;
-    void saveAccount({ box: rawBoxRef.current, runes, artifacts, exportedAt: accountExportedAt });
+    void saveAccount({ box: rawBoxRef.current, runes, artifacts, crafts, exportedAt: accountExportedAt });
   }
 
   useEffect(() => {
@@ -732,6 +736,7 @@ export default function App() {
             box={box}
             runes={runes}
             artifacts={artifacts}
+            crafts={crafts}
             loadState={data.loadState}
             hydrating={accountHydrating}
           />

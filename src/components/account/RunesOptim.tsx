@@ -1,9 +1,10 @@
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { RotateCw, AlertTriangle, HelpCircle } from 'lucide-react';
-import { RuneDetail } from '../../types';
+import { RotateCw, AlertTriangle, HelpCircle, PackageCheck, Hammer, Gem } from 'lucide-react';
+import { CraftLine, RuneDetail } from '../../types';
 import { formatRuneEffect, isAncient, RARITY_META, RUNE_EFFECT } from '../../lib/effects';
-import { runePotential, RunePotential, runePlan } from '../../lib/runeOptim';
-import { useRuneMetric, formatRuneMetric } from '../../hooks/useRuneMetric';
+import { runePotential, RunePotential, runePlan, planNeeds } from '../../lib/runeOptim';
+import { CraftStock, EMPTY_STOCK, GRADE_SCENARIO, buildCraftStock, ownsCraft } from '../../lib/crafts';
+import { useRuneMetric, formatRuneMetric, convertirPalier, runeMetricValue } from '../../hooks/useRuneMetric';
 import { useStickyState } from '../../hooks/useStickyState';
 import RuneSlotIcon from '../RuneSlotIcon';
 import Pager from './Pager';
@@ -14,9 +15,12 @@ import DetailPopover from './DetailPopover';
 
 interface Props {
   runes: RuneDetail[];
+  crafts: CraftLine[];
 }
 
-interface Row {
+// Exporté : la section « Meules » réutilise la même tuile, pour qu'une rune se
+// présente pareil d'un onglet à l'autre.
+export interface OptimRow {
   rune: RuneDetail;
   pot: RunePotential;
   id: number;
@@ -46,26 +50,26 @@ const scenarioOf = (s: SortMode): 'hero' | 'legend' =>
   s === 'gainHero' || s === 'potHero' ? 'hero' : 'legend';
 
 // Gain signé (« +2.3 » / « -1.4 »), à la précision de la mesure (score = entier).
-const signed = (g: number, metric: 'eff' | 'score') =>
+export const signed = (g: number, metric: 'eff' | 'score') =>
   (g >= 0 ? '+' : '') + (metric === 'eff' ? g.toFixed(1) : String(Math.round(g)));
 
 // Filtre antiques : les garder toutes, les écarter, ou n'afficher qu'elles.
-type AncientFilter = 'all' | 'without' | 'only';
-const ANCIENTS: { key: AncientFilter; label: string; hint: string }[] = [
+export type AncientFilter = 'all' | 'without' | 'only';
+export const ANCIENTS: { key: AncientFilter; label: string; hint: string }[] = [
   { key: 'all', label: 'Toutes', hint: 'Runes normales et antiques' },
   { key: 'only', label: 'Antiques uniquement', hint: 'Uniquement les runes antiques' },
   { key: 'without', label: 'Aucune antique', hint: 'Masquer les runes antiques' },
 ];
-function keepAncient(rune: RuneDetail, filter: AncientFilter): boolean {
+export function keepAncient(rune: RuneDetail, filter: AncientFilter): boolean {
   if (filter === 'all') return true;
   return isAncient(rune) === (filter === 'only');
 }
 
 // Couleur d'une efficience potentielle vs l'actuelle : vert au-dessus, rouge en dessous.
-const effColor = (e: number, base: number) =>
+export const effColor = (e: number, base: number) =>
   e > base + 0.05 ? 'text-emerald-400' : e < base - 0.05 ? 'text-fire' : 'text-ink-dim';
 
-export default function RunesOptim({ runes }: Props) {
+export default function RunesOptim({ runes, crafts }: Props) {
   const [threshold, setThreshold] = useStickyState('optim.threshold', 100);
   const metric = useRuneMetric(); // réglage global : efficience ou score SW
   const [sort, setSort] = useStickyState<SortMode>('optim.sort', 'effCur');
@@ -92,11 +96,63 @@ export default function RunesOptim({ runes }: Props) {
     return () => document.removeEventListener('mousedown', onDown);
   }, [showHelp]);
 
+  const stock = useMemo(() => (crafts.length ? buildCraftStock(crafts) : EMPTY_STOCK), [crafts]);
+  const stockDispo = stock.total > 0;
+  // ⚠️ **Un filtre de plus, pas un onglet de plus.** « Ce que je peux faire
+  // maintenant » est la même liste, restreinte : le potentiel héroïque, le
+  // potentiel légendaire et les deux gains restent affichés et triables. En
+  // faire une vue séparée obligeait à y réimplémenter tout ça.
+  const [checkStock, setCheckStock] = useStickyState('optim.checkStock', false);
+  const verifie = checkStock && stockDispo;
+  const scenario = scenarioOf(sort);
+
   // Potentiel calculé une fois par import (linéaire, mémoïsé).
-  const rows = useMemo(
-    () => runes.map((rune, id): Row => ({ rune, id, pot: runePotential(rune, withGem, metric) })),
-    [runes, withGem, metric]
+  //
+  // ⚠️ Sous le filtre, le calcul change deux fois :
+  //  - `noDowngrade` : on ne redescend jamais une meule déjà posée ;
+  //  - `dispo` : **seules les stats dont le consommable est en réserve** sont
+  //    poussées.
+  //
+  // Exiger le plan COMPLET écartait des runes parfaitement travaillables : une
+  // Swift dont trois substats sur quatre étaient meulables disparaissait parce
+  // qu'il manquait la meule VIT. Le gain affiché est donc celui qu'on peut
+  // vraiment aller chercher aujourd'hui, ni plus ni moins.
+  const dispoPour = useCallback(
+    (rune: RuneDetail) => (kind: 'grind' | 'gem', stat: number) =>
+      ownsCraft(stock, {
+        kind,
+        setKey: rune.set,
+        stat,
+        grade: GRADE_SCENARIO[scenario],
+        ancient: rune.rank > 10,
+      }),
+    [stock, scenario]
   );
+
+  const rows = useMemo(
+    () =>
+      runes.map(
+        (rune, id): OptimRow => ({
+          rune,
+          id,
+          pot: runePotential(rune, withGem, metric, verifie, verifie ? dispoPour(rune) : undefined),
+        })
+      ),
+    [runes, withGem, metric, verifie, dispoPour]
+  );
+
+  // Une rune est retenue si le plan **restreint à la réserve** apporte encore
+  // quelque chose. Plus de confrontation à faire : le plan ne contient déjà que
+  // du réalisable.
+  const faisable = useMemo(() => {
+    if (!verifie) return null;
+    const ok = new Set<number>();
+    for (const r of rows) {
+      const plan = runePlan(r.rune, scenario, withGem, metric, true, dispoPour(r.rune));
+      if (planNeeds(plan).length > 0 && plan.targetEff > plan.eff) ok.add(r.id);
+    }
+    return ok;
+  }, [verifie, rows, scenario, withGem, metric, dispoPour]);
 
   // Runes dont l'efficience actuelle dépasse le palier, triées selon le mode choisi.
   const filtered = useMemo(() => {
@@ -107,10 +163,35 @@ export default function RunesOptim({ runes }: Props) {
           r.pot.eff >= threshold &&
           keepAncient(r.rune, ancient) &&
           (sets.size === 0 || sets.has(r.rune.set)) &&
-          (slots.size === 0 || slots.has(r.rune.slot))
+          (slots.size === 0 || slots.has(r.rune.slot)) &&
+          (!faisable || faisable.has(r.id))
       )
       .sort((a, b) => val(b.pot) - val(a.pot));
-  }, [rows, threshold, sort, ancient, sets, slots]);
+  }, [rows, threshold, sort, ancient, sets, slots, faisable]);
+
+  // ⚠️ Le palier est exprimé DANS la mesure courante : « 100 » ne veut pas dire
+  // la même chose en efficience et en score. Changer de mesure sans convertir
+  // laissait un palier qui coupe ailleurs sans prévenir — souvent une liste
+  // vide, prise pour un bug.
+  //
+  // La conversion préserve la SÉLECTION (voir `convertirPalier`), la seule
+  // question que le palier pose. Elle ne s'exécute qu'au **changement** de
+  // mesure : la recalculer en continu écraserait la valeur qu'on est en train
+  // de taper.
+  const mesurePrecedente = useRef(metric);
+  useEffect(() => {
+    const avant = mesurePrecedente.current;
+    if (avant === metric) return;
+    mesurePrecedente.current = metric;
+    if (runes.length === 0) return;
+    setThreshold(
+      convertirPalier(
+        runes.map((r) => ({ avant: runeMetricValue(r, avant), apres: runeMetricValue(r, metric) })),
+        threshold
+      )
+    );
+    setPage(0);
+  }, [metric, runes, threshold, setThreshold]);
 
   const pageCount = Math.max(1, Math.ceil(filtered.length / PAGE));
   const safePage = Math.min(page, pageCount - 1);
@@ -224,6 +305,34 @@ export default function RunesOptim({ runes }: Props) {
           </div>
         </div>
 
+        {/* ⚠️ Un potentiel de +20 ne vaut rien si la meule qui l'apporte n'est
+            pas dans le sac. Ce bouton restreint la liste à ce qui est
+            applicable **ce soir**, sans rien retirer des colonnes.
+            Désactivé sans réserve connue (compte importé avant cette version) :
+            un bouton qui viderait la liste sans explication vaut moins qu'un
+            bouton grisé qui dit pourquoi. */}
+        <button
+          onClick={() => {
+            setCheckStock((v) => !v);
+            setPage(0);
+          }}
+          disabled={!stockDispo}
+          aria-pressed={verifie}
+          title={
+            stockDispo
+              ? `Ne garder que les runes applicables avec tes ${stock.total} meules et gemmes en réserve`
+              : 'Aucune meule ni gemme dans les données chargées — réimporte ton compte'
+          }
+          className={`flex items-center gap-1.5 rounded-lg border px-2.5 py-1.5 text-[12px] font-semibold transition
+            ${
+              verifie
+                ? 'bg-gradient-to-br from-[#3a4270] to-[#272e52] border-[#4a52a0] text-ink'
+                : 'bg-panel border-border text-ink-dim hover:text-ink hover:border-[#4a52a0]'
+            } disabled:opacity-40 disabled:cursor-not-allowed`}
+        >
+          <PackageCheck size={14} /> Faisable avec ma réserve
+        </button>
+
         {/* Aide : « ? » sur la même ligne, à droite */}
         <div ref={helpRef} className="relative ml-auto">
           <button
@@ -265,12 +374,57 @@ export default function RunesOptim({ runes }: Props) {
                 que la rune gagnerait. Sur chaque carte, il est affiché en{' '}
                 <span className="text-emerald-400">vert</span> si le potentiel est au-dessus de l'actuelle, en{' '}
                 <span className="text-fire">rouge</span> s'il est en dessous (ex. une rune déjà grindée
-                légendaire « perd » en héroïque).
+                légendaire « perd » en héroïque — ce cas disparaît sous « Faisable avec ma réserve »).
               </p>
               <p className="mt-2">
-                <b className="text-ink">Tri</b> : efficience actuelle, potentiel ou gain. Le{' '}
-                <b className="text-ink">palier</b> n'affiche que les runes ≥ X %. Clique une rune pour voir le
-                plan <b className="text-ink">avant / après</b>.
+                <b className="text-ink">Tri</b> : efficience actuelle, potentiel ou gain. Clique une rune pour
+                voir le plan <b className="text-ink">avant / après</b>.
+              </p>
+
+              <p className="mt-2">
+                <span className="text-ink font-semibold">Palier</span> : n'affiche que les runes dont la{' '}
+                <b className="text-ink">valeur actuelle</b> atteint ce seuil — pas le potentiel, ni le gain.
+                Une rune médiocre a souvent le plus gros gain relatif, sans devenir bonne pour autant.
+              </p>
+              <p className="mt-1.5">
+                Il est exprimé <b className="text-ink">dans la mesure affichée</b> (100 en efficience n'est pas
+                100 en score SW). En changeant de mesure dans ⚙, il est{' '}
+                <b className="text-ink">reconverti pour garder exactement la même sélection</b> : le nombre de
+                runes affichées ne bouge pas, seul le nombre écrit change. Il n'existe pas de facteur entre les
+                deux mesures — le rapport varie du simple au double selon la rune — donc la conversion se fait
+                par rang, pas par multiplication.
+              </p>
+
+              <p className="mt-2">
+                <span className="text-ink font-semibold">
+                  <Hammer size={12} className="inline mb-0.5" /> et{' '}
+                  <Gem size={12} className="inline mb-0.5" /> dans le plan
+                </span>{' '}
+                : chaque ligne à travailler porte l'icône de ce qu'elle réclame — un marteau pour une{' '}
+                <b className="text-ink">meule</b>, une gemme pour une <b className="text-ink">gemme</b>.
+              </p>
+              <ul className="mt-1.5 space-y-1">
+                <li>
+                  <Hammer size={12} className="inline mb-0.5 text-emerald-400" />{' '}
+                  <b className="text-emerald-400">vert</b> — tu l'as en réserve, du bon set et au bon grade :
+                  c'est posable maintenant.
+                </li>
+                <li>
+                  <Hammer size={12} className="inline mb-0.5 text-ink-dim opacity-40" />{' '}
+                  <b className="text-ink">grisé</b> — il te manque, cette ligne est à farmer.
+                </li>
+              </ul>
+              <p className="mt-1.5">
+                Les <b className="text-ink">immémoriaux</b> comptent pour tous les sets ; les consommables{' '}
+                <b className="text-ink">antiques</b> ne servent qu'aux runes antiques, et inversement.
+              </p>
+
+              <p className="mt-2">
+                <span className="text-ink font-semibold">Faisable avec ma réserve</span> : ne garde que les
+                runes que tu peux améliorer <b className="text-ink">tout de suite</b>. Le calcul change alors —
+                il ne pousse que les stats dont tu as le consommable, et ne redescend jamais une meule déjà
+                posée. Le gain affiché est donc <b className="text-ink">celui que tu peux réellement aller
+                chercher aujourd'hui</b>, pas le potentiel théorique.
               </p>
             </div>
           )}
@@ -283,6 +437,7 @@ export default function RunesOptim({ runes }: Props) {
           {metric === 'eff' ? '%' : ''}
           {ancient === 'without' && ' · hors antiques'}
           {ancient === 'only' && ' · antiques seules'}
+          {verifie && ' · faisables avec ma réserve'}
         </p>
         <Pager page={safePage} pageCount={pageCount} onChange={setPage} />
       </div>
@@ -294,8 +449,11 @@ export default function RunesOptim({ runes }: Props) {
           <OptimTile
             key={i}
             row={row}
-            scenario={scenarioOf(sort)}
+            scenario={scenario}
             withGem={withGem}
+            noDowngrade={verifie}
+            restreint={verifie}
+            stock={stockDispo ? stock : null}
             open={openId === row.id}
             onToggle={toggleOpen}
           />
@@ -320,16 +478,22 @@ export default function RunesOptim({ runes }: Props) {
   );
 }
 
-const OptimTile = memo(function OptimTile({
+export const OptimTile = memo(function OptimTile({
   row,
   scenario,
   withGem,
+  noDowngrade,
+  restreint,
+  stock,
   open,
   onToggle,
 }: {
-  row: Row;
+  row: OptimRow;
   scenario: 'hero' | 'legend';
   withGem: boolean;
+  noDowngrade: boolean;
+  restreint: boolean; // le plan se limite à ce que la réserve permet
+  stock: CraftStock | null;
   open: boolean;
   onToggle: (id: number) => void;
 }) {
@@ -368,7 +532,14 @@ const OptimTile = memo(function OptimTile({
       </button>
 
       <DetailPopover open={open} anchorRef={ref} height={300} width={340}>
-        <OptimPlanBox rune={rune} scenario={scenario} withGem={withGem} />
+        <OptimPlanBox
+          rune={rune}
+          scenario={scenario}
+          withGem={withGem}
+          noDowngrade={noDowngrade}
+          restreint={restreint}
+          stock={stock}
+        />
       </DetailPopover>
     </div>
   );
@@ -385,6 +556,7 @@ function SubLine({
   enchant,
   baseViolet,
   grindViolet,
+  enReserve,
 }: {
   code: number;
   base: number;
@@ -392,6 +564,8 @@ function SubLine({
   enchant?: boolean;
   baseViolet?: boolean;
   grindViolet?: boolean;
+  // `null` = rien à poser sur cette ligne, ou réserve inconnue → aucun marquage.
+  enReserve?: { kind: 'grind' | 'gem'; ok: boolean } | null;
 }) {
   const def = RUNE_EFFECT[code];
   const label = def ? (def.label.endsWith('%') ? def.label.slice(0, -1) : def.label) : `#${code}`;
@@ -421,23 +595,54 @@ function SubLine({
           style={baseViolet ? { color: VIOLET } : undefined}
         />
       )}
+      {/* ⚠️ La ligne qu'on peut poser TOUT DE SUITE est marquée. L'icône dit de
+          quel consommable il s'agit, la couleur dit s'il est en réserve : vert
+          = disponible, grisé = à farmer. Sans ce repère, il fallait aller
+          compter ses meules ailleurs pour savoir par où commencer. */}
+      {enReserve &&
+        (enReserve.kind === 'grind' ? (
+          <Hammer
+            size={10}
+            className={`ml-auto flex-none ${enReserve.ok ? 'text-emerald-400' : 'text-ink-dim opacity-40'}`}
+          />
+        ) : (
+          <Gem
+            size={10}
+            className={`ml-auto flex-none ${enReserve.ok ? 'text-emerald-400' : 'text-ink-dim opacity-40'}`}
+          />
+        ))}
     </div>
   );
 }
 
 // Détail « Actuel | Optimisé » : la rune telle quelle à gauche, sa version
 // optimisée à droite avec le(s) changement(s) (gemme/grind) en violet.
-function OptimPlanBox({
+export function OptimPlanBox({
   rune,
   scenario,
   withGem,
+  noDowngrade = false,
+  restreint = false,
+  stock = null,
 }: {
   rune: RuneDetail;
   scenario: 'hero' | 'legend';
   withGem: boolean;
+  noDowngrade?: boolean;
+  restreint?: boolean;
+  stock?: CraftStock | null;
 }) {
   const metric = useRuneMetric();
-  const plan = runePlan(rune, scenario, withGem, metric);
+  // ⚠️ **Quelle ligne puis-je poser MAINTENANT.** Le plan dit quoi faire, la
+  // réserve dit ce qui est à portée : sans le croisement, il faut aller compter
+  // ses meules ailleurs pour savoir par où commencer.
+  const grade = GRADE_SCENARIO[scenario];
+  const dispo = (kind: 'grind' | 'gem', stat: number) =>
+    !!stock && ownsCraft(stock, { kind, setKey: rune.set, stat, grade, ancient: rune.rank > 10 });
+
+  // Le plan affiché doit être CELUI du chiffre affiché : sous le filtre, il se
+  // limite lui aussi à ce que la réserve permet.
+  const plan = runePlan(rune, scenario, withGem, metric, noDowngrade, restreint ? dispo : undefined);
   const gain = plan.targetEff - plan.eff;
 
   return (
@@ -478,19 +683,36 @@ function OptimPlanBox({
 
         {/* Colonne droite : substats optimisés (seul ce qui change en violet) */}
         <div className="space-y-1">
-          {plan.subs.map((s, i) => (
-            <SubLine
-              key={i}
-              code={s.code}
-              base={s.base}
-              grind={s.grind}
-              enchant={s.isGem || rune.subs[i]?.enchant}
-              baseViolet={s.isGem} // la stat/base ne change qu'à la gemme
-              grindViolet={s.isGem || s.grind !== s.curGrind}
-            />
-          ))}
+          {plan.subs.map((s, i) => {
+            // Une seule marque par ligne : la gemme prime, c'est elle qui
+            // conditionne le reste (elle remet la meule du slot à zéro).
+            const marque = s.isGem
+              ? { kind: 'gem' as const, ok: dispo('gem', s.code) }
+              : s.grindable && s.grind > s.curGrind
+                ? { kind: 'grind' as const, ok: dispo('grind', s.code) }
+                : null;
+            return (
+              <SubLine
+                key={i}
+                code={s.code}
+                base={s.base}
+                grind={s.grind}
+                enchant={s.isGem || rune.subs[i]?.enchant}
+                baseViolet={s.isGem} // la stat/base ne change qu'à la gemme
+                grindViolet={s.isGem || s.grind !== s.curGrind}
+                enReserve={stock ? marque : null}
+              />
+            );
+          })}
         </div>
       </div>
+
+      {/* ⚠️ **Déclarer ce qu'on vient de faire en jeu**, sans réexporter son
+          compte. Un export est une photo : dès qu'on meule, la réserve affichée
+          est fausse et l'app propose des runes qu'on n'a plus de quoi traiter.
+          Ce bouton retire les consommables du stock **et** la rune de la liste.
+          Réversible : « Annuler » remet tout, une ligne cliquée par erreur ne
+          doit pas obliger à réimporter. */}
     </div>
   );
 }

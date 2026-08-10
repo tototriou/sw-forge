@@ -163,7 +163,9 @@ export function RuneDetailBox({ rune }: { rune: RuneDetail }) {
   );
 }
 
-// Libellé du type d'artéfact (élément ou archétype), pour la ligne du bas.
+// Libellé de la catégorie d'artéfact, pour la ligne du bas. Les noms du JEU :
+// **Attribut** et **Type** — `element` / `archetype` ne sont que les clés des
+// données com2us et ne doivent pas remonter à l'écran.
 const ELEMENT_FR: Record<string, string> = {
   fire: 'Feu', water: 'Eau', wind: 'Vent', light: 'Lumière', dark: 'Ténèbres', unknown: '—',
 };
@@ -172,8 +174,8 @@ const ARCHETYPE_FR: Record<string, string> = {
 };
 function artifactTypeLabel(a: ArtifactDetail): string {
   return a.kind === 'element'
-    ? `Élément · ${ELEMENT_FR[a.element ?? 'unknown'] ?? '—'}`
-    : `Archétype · ${ARCHETYPE_FR[a.archetype ?? ''] ?? '—'}`;
+    ? `Attribut · ${ELEMENT_FR[a.element ?? 'unknown'] ?? '—'}`
+    : `Type · ${ARCHETYPE_FR[a.archetype ?? ''] ?? '—'}`;
 }
 
 // Détail d'un artéfact, façon jeu : stat principale (gros) + substats + type.

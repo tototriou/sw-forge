@@ -10,3 +10,6 @@ tototriou-*.json
 *account*.json
 *export*.json
 sw-account*.json
+
+# Skills installés localement (outillage personnel, pas du code du projet).
+.claude/skills/

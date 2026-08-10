@@ -2,7 +2,7 @@ import { memo, useMemo } from 'react';
 import { Search, Copy, Star } from 'lucide-react';
 import GameIcon from '../components/GameIcon';
 import { BoxItem } from '../lib/applyAccount';
-import { ELEMENTS, ElementKey, Monster, RuneDetail, ArtifactDetail } from '../types';
+import { ELEMENTS, ElementKey, Monster, RuneDetail, ArtifactDetail, CraftLine } from '../types';
 import { LoadState } from '../hooks/useMonsters';
 import ElementIcon from '../components/ElementIcon';
 import { ELEMENT_FILTER_STYLES } from '../components/elementStyles';
@@ -17,6 +17,7 @@ interface Props {
   box: BoxItem[];
   runes: RuneDetail[];
   artifacts: ArtifactDetail[];
+  crafts: CraftLine[];
   loadState: LoadState;
   // Relecture du compte conservé en cours : on n'annonce pas « aucune donnée »
   // tant qu'on n'a pas fini de regarder.
@@ -261,7 +262,7 @@ function MonsterBoxSection({ box }: { box: BoxItem[] }) {
   );
 }
 
-export default function AccountPage({ sub, box, runes, artifacts, loadState, hydrating }: Props) {
+export default function AccountPage({ sub, box, runes, artifacts, crafts, loadState, hydrating }: Props) {
   const empty = box.length === 0 && runes.length === 0 && artifacts.length === 0;
 
   if (empty && hydrating) {
@@ -300,7 +301,7 @@ export default function AccountPage({ sub, box, runes, artifacts, loadState, hyd
   return (
     <div className="mt-6">
       {sub === 'monstres' && <MonsterBoxSection box={box} />}
-      {sub === 'runes' && <RunesSection runes={runes} />}
+      {sub === 'runes' && <RunesSection runes={runes} crafts={crafts} />}
       {sub === 'artefacts' && <ArtifactsSection artifacts={artifacts} />}
     </div>
   );

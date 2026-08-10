@@ -1,17 +1,19 @@
-import { List, LineChart, GitCompare, Wand2, Gauge } from 'lucide-react';
-import { RuneDetail } from '../../types';
+import { List, LineChart, GitCompare, Wand2, Gauge, Hammer, Gem } from 'lucide-react';
+import { CraftLine, RuneDetail } from '../../types';
 import { useStickyState } from '../../hooks/useStickyState';
 import RunesSummary from './RunesSummary';
 import RunesList from './RunesList';
 import RunesCurve from './RunesCurve';
 import RunesCompare from './RunesCompare';
 import RunesOptim from './RunesOptim';
+import ComingSoon from '../../pages/ComingSoon';
 
 interface Props {
   runes: RuneDetail[];
+  crafts: CraftLine[];
 }
 
-type View = 'resume' | 'liste' | 'courbes' | 'comparaison' | 'optimisation';
+type View = 'resume' | 'liste' | 'courbes' | 'comparaison' | 'optimisation' | 'meules' | 'gemmes';
 
 const VIEWS: { key: View; label: string; icon: typeof List }[] = [
   { key: 'resume', label: 'Résumé', icon: Gauge },
@@ -19,9 +21,15 @@ const VIEWS: { key: View; label: string; icon: typeof List }[] = [
   { key: 'courbes', label: 'Courbes', icon: LineChart },
   { key: 'comparaison', label: 'Comparaison', icon: GitCompare },
   { key: 'optimisation', label: 'Optimisation', icon: Wand2 },
+  // ⚠️ Ces deux-là ne refont pas l'Optimisation : « quelles runes puis-je
+  // améliorer avec ce que j'ai » y est un simple FILTRE, sans quoi il faudrait
+  // y réimplémenter potentiels et gains. Ils porteront la question inverse —
+  // ce qui MANQUE, et où aller le chercher.
+  { key: 'meules', label: 'Meules', icon: Hammer },
+  { key: 'gemmes', label: 'Gemmes', icon: Gem },
 ];
 
-export default function RunesSection({ runes }: Props) {
+export default function RunesSection({ runes, crafts }: Props) {
   const [view, setView] = useStickyState<View>('runes.view', 'resume');
 
   return (
@@ -48,7 +56,9 @@ export default function RunesSection({ runes }: Props) {
       {view === 'liste' && <RunesList runes={runes} />}
       {view === 'courbes' && <RunesCurve runes={runes} />}
       {view === 'comparaison' && <RunesCompare runes={runes} />}
-      {view === 'optimisation' && <RunesOptim runes={runes} />}
+      {view === 'optimisation' && <RunesOptim runes={runes} crafts={crafts} />}
+      {view === 'meules' && <ComingSoon title="Meules" icon={Hammer} />}
+      {view === 'gemmes' && <ComingSoon title="Gemmes" icon={Gem} />}
     </div>
   );
 }

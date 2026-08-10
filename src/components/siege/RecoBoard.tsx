@@ -312,8 +312,8 @@ export default function RecoBoard({ recos, monsters, builds, teams, offense }: P
           </div>
           <p className="text-ink-dim text-[14px] max-w-md">
             Aucune recommandation. <b className="text-ink">Crée-en une</b> pour proposer un{' '}
-            <b className="text-ink">ensemble de decks</b> avec les sets et les stats à viser sur chaque
-            monstre, ou <b className="text-ink">importe</b> celle d'un autre joueur pour vérifier
+            <b className="text-ink">ensemble de decks</b> avec les sets, les artéfacts et les stats à
+            viser sur chaque monstre, ou <b className="text-ink">importe</b> celle d'un autre joueur pour vérifier
             lesquels de ses decks tu peux jouer.
           </p>
         </div>

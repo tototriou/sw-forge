@@ -2,8 +2,8 @@
 
 Troisième sous-onglet du siège. Permet à un joueur de composer une
 **recommandation = un ENSEMBLE de decks** (ex. « mes 6 défenses de guilde »),
-chaque deck portant 3 monstres avec les **sets** et les **stats à viser** sur
-chacun ; de **l'exporter** d'un bloc pour la partager ; et à un autre joueur de
+chaque deck portant 3 monstres avec les **sets**, les **propriétés d'artéfact**
+et les **stats à viser** sur chacun ; de **l'exporter** d'un bloc pour la partager ; et à un autre joueur de
 **l'importer** puis de voir **immédiatement quels decks il peut jouer**.
 
 Fichiers :
@@ -25,6 +25,7 @@ interface RecoSlot {
   name: string;                               // repli d'affichage
   stats: Partial<Record<RecoStatKey, number>>;// minimums (absent = non exigé)
   setOptions: string[][];                     // POSSIBILITÉS de runage, une seule suffit
+  artifacts: Record<'element'|'archetype', number[]>; // propriétés d'artéfact exigées, 4 max chacune
 }
 interface RecoDeck { name: string; note: string; slots: RecoSlot[] } // 3 slots, index 0 = leader
 interface Reco { id: string; origin: 'mine'|'imported'; name: string; author: string; note: string; decks: RecoDeck[] }
@@ -276,6 +277,75 @@ le set auquel il manque le moins de pièces.
 La confrontation compare en **multi-ensemble** : demander 2× Fight exige bien
 deux fois le set actif.
 
+## Propriétés d'artéfact recommandées
+
+Un monstre porte **deux artéfacts** : celui d'**attribut** (lié à son élément) et
+celui de **type** (lié à son archétype). Chacun a **4 emplacements** de propriété
+secondaire — d'où **4 + 4 exigences possibles par monstre**
+(`MAX_ARTIFACT_SUBS`).
+
+`RecoSlot.artifacts` stocke des **codes** (`ARTIFACT_SUB` d'[effects.ts](src/lib/effects.ts)),
+pas des libellés : c'est ce que porte l'export du compte, donc la confrontation
+est exacte, et renommer un libellé ne casse pas les recommandations déjà
+partagées.
+
+### ⚠️ Aucune valeur minimale — la PRÉSENCE seule est exigée
+
+Contrairement aux stats, une propriété d'artéfact ne porte **pas de seuil**. Ces
+substats sont conditionnels (« dégâts sur le Feu », « VIT sous effet
+d'incapacité ») : exiger un chiffre sur un effet qui ne s'applique qu'en
+situation donnerait une fausse précision, alors que ce qui se joue en pratique
+est **« as-tu la bonne ligne »**.
+
+### ⚠️ Quelle propriété sur quelle sorte d'artéfact
+
+Les codes com2us sont rangés par **plages**, et `artifactSubKinds` s'en sert :
+
+| Plage | Sorte | Exemples |
+|-------|-------|----------|
+| 200–299 | les deux | vol de vie, dégâts de contre-attaque |
+| 300–399 | **attribut** seul | dégâts sur le Feu, dégâts reçus de l'Eau |
+| 400–499 | **type** seul | dmg crit Compétence 2, récupération Compétence 3 |
+
+Vérifié sur les **2 120 artéfacts** d'un compte réel : aucune plage ne débordait.
+Les propriétés impossibles ne sont **jamais proposées** dans la liste, et sont
+**écartées à l'import** — exiger « Dégâts sur le Feu » sur un artéfact de type
+donnerait un critère que rien ne pourrait jamais satisfaire.
+
+### Choix — **par liste déroulante**, contrairement aux sets
+
+Une quarantaine de propriétés, toutes textuelles, **aucune n'a de symbole dans le
+jeu** : une grille d'icônes comme celle des sets serait un mur de texte. Un
+`<select>` natif se filtre au clavier et se manipule au doigt.
+
+- Une liste **par sorte d'artéfact**, avec son compteur `N/4`.
+- Les propriétés **déjà exigées** disparaissent du menu ; à 4, le menu se
+  désactive et annonce « Les 4 propriétés sont prises ».
+- Le menu reste sur `value=""` : il sert à **ajouter**, il ne porte pas de
+  sélection courante. Chaque exigence devient une **chip avec ×**.
+- En lecture, le bloc **disparaît si rien n'est exigé** — la plupart des
+  recommandations ne portent que sur les runes et les stats.
+- Le bloc est **le dernier du slot**, sous la table de stats : c'est le critère
+  le plus rarement renseigné, et la table reste ainsi à la même hauteur d'un slot
+  à l'autre.
+
+> L'ordre d'AFFICHAGE (sets → stats → artéfacts) est celui de la lecture ;
+> l'ordre des **causes de rejet** (sets → artéfacts → stats) est celui du geste à
+> faire. Les deux n'ont pas à coïncider.
+
+### Confrontation
+
+`artifactChecksFor` ([recoMatch.ts](src/lib/recoMatch.ts)) compare les codes
+exigés aux `subs` de l'artéfact **de la même sorte** dans le build retenu.
+
+⚠️ **Artéfact absent = propriété absente.** Un monstre sans artéfact de type ne
+satisfait aucune exigence de type ; le traiter comme « rien à vérifier » l'aurait
+fait passer pour conforme.
+
+Les propriétés satisfaites comptent aussi dans le **départage entre équipes
+candidates** : les ignorer ferait retenir une équipe moins bonne quand seuls les
+artéfacts les séparent.
+
 ## Persistance
 
 `localStorage` `sw-forge-siege-recos-v1` — contrairement à la box (en mémoire),
@@ -292,19 +362,31 @@ base64 (`SWF-RECO-1:`) a coexisté un temps ; il a été **retiré** — deux fo
 pour la même chose, c'est deux fois plus de surface à valider, pour un contenu
 que personne ne peut relire ni corriger.
 
-### Fichier JSON (`format: "sw-forge/recommandations"`, `version: 2`)
+### Fichier JSON (`format: "sw-forge/recommandations"`, `version: 4`)
 
 ```json
-{ "format": "sw-forge/recommandations", "version": 2, "exporte_le": "…",
+{ "format": "sw-forge/recommandations", "version": 4, "exporte_le": "…",
   "recommandations": [
     { "nom": "…", "auteur": "…", "consignes": "…",
       "decks": [ { "nom": "Def 1", "consignes": "…",
         "monstres": [ { "com2usId": 15214, "nom": "Trevor",
-                        "sets": ["violent","will"], "stats": { "spd": 212 } }, null, null ] } ] } ] }
+                        "sets": [["violent","will"]],
+                        "artefacts": {
+                          "attribut": [ { "code": 300, "propriete": "Dégâts sur le Feu +X%" } ],
+                          "type":     [ { "code": 401, "propriete": "Dmg crit Compétence 2 +X%" } ] },
+                        "stats": { "spd": 212 } }, null, null ] } ] } ] }
 ```
 
 Clés **en français** comme l'interface ; les clés **anglaises du modèle**
 (`name`, `note`, `slots`…) sont aussi acceptées en lecture.
+
+⚠️ **Chaque propriété d'artéfact porte son code ET son libellé.** Le code seul
+(`300`) ne se relit pas, or le fichier est censé s'ouvrir et se corriger à la
+main. **Seul le code est lu** à l'import : un libellé modifié à la main est
+ignoré, il ne fait pas foi. Le code nu (`[300, 301]`) reste accepté en lecture.
+
+Les sortes d'artéfact **vides sont omises** : un monstre qui n'exige rien ne
+traîne pas deux listes vides dans le fichier.
 
 **Export** : le JSON est **téléchargé en `.json`**. Rien d'autre — pas de copie au
 presse-papier.
@@ -313,11 +395,13 @@ presse-papier.
 
 | Version | Changement |
 |---------|-----------|
+| 4 | `artefacts` : **propriétés secondaires d'artéfact exigées** (attribut / type) |
 | 3 | `sets` d'un monstre devient une **liste de possibilités** (`[["violent","nemesis"],["violent","revenge"]]`) |
 | 2 | JSON lisible, clés en français |
 
 ⚠️ **Rétrocompatibilité garantie en lecture** : un `sets` qui est une simple
-liste de clés (v1/v2) est repris comme **possibilité unique**, sans perte. Mais
+liste de clés (v1/v2) est repris comme **possibilité unique**, et un monstre sans
+clé `artefacts` (≤ v3) n'exige simplement rien — sans perte. Mais
 l'import **le signale** — « Fichier au format v2 (actuel : v3) […] réexporte-le
 pour le mettre à jour » — sinon un fichier ancien circule indéfiniment dans la
 guilde et personne ne sait qu'un format plus riche existe.
@@ -426,7 +510,8 @@ Un **encart de synthèse** sous l'en-tête, visible **même recommandation repli
   - `Trevor - Bella - Tarq` · **aucun deck avec ces monstres — tu peux le composer**
     (pas de détail : sans équipe, il n'y a aucun build à confronter)
   - `Def 2` · **monstre indisponible — deck impossible** → `Tarq — monstre indisponible`
-  - `Def 3` · **stats non respectées** → `Bella — VIT 117 au lieu de 212 · set violent manquant`
+  - `Def 3` · **runage, artéfacts et stats à revoir** →
+    `Bella — set Violent manquant · artéfact d'attribut : Dégâts sur l'Eau +X% absent · VIT 117 au lieu de 212`
 - aucun deck rempli → « Rien à analyser ».
 
 Une fois analysée, la carte reprend tout le langage visuel décrit plus bas (aura,
@@ -502,14 +587,42 @@ build de cette équipe-là**, pas au meilleur build tous contextes confondus.
 | Statut | Couleur | Condition | Badge |
 |--------|---------|-----------|-------|
 | `missing` | `fire` | au moins un monstre **non possédé** | « monstre indisponible — deck impossible » |
-| `ko` | `fire` | l'équipe existe mais **stats/sets insuffisants** | « stats non respectées · Offense 3 » |
+| `ko` | `fire` | l'équipe existe mais **stats/sets insuffisants** | selon la cause, voir ci-dessous |
 | `nodeck` | `amber` | monstres possédés, **aucune équipe ne les réunit** | « aucun deck avec ces monstres — à composer » |
 | `ok` | `emerald` | l'équipe existe et tout est au niveau | « jouable · Offense 3 » |
 | `unknown` | neutre | deck **vide** | — |
 
 Statut **par slot** : `absent` (rouge, « monstre indisponible ») · `ko` (rouge,
-« stats insuffisantes ») · `ok` (vert, « au niveau ») · `unknown` (neutre,
+libellé selon la cause) · `ok` (vert, « au niveau ») · `unknown` (neutre,
 « possédé » — rien à confronter faute d'équipe) · `empty` (slot vide).
+
+### ⚠️ Un `ko` dit LAQUELLE des causes
+
+`slotFaults` / `deckFaults` ([recoMatch.ts](src/lib/recoMatch.ts)) séparent trois
+défauts qui ne se réparent pas du tout pareil :
+
+| Cause | Ce qui cloche | Badge du slot | Nom côté deck |
+|-------|---------------|---------------|---------------|
+| `sets` | pas le **runage demandé** → à reruner | « mauvais set de runes » | runage |
+| `artifacts` | pas les **propriétés d'artéfact** demandées → à changer d'artéfact | « mauvaise statistique » | artéfacts |
+| `stats` | le reste est bon, les **minimums** ne sont pas atteints → à améliorer | « stats insuffisantes » | stats |
+
+Tout afficher sous « stats insuffisantes » envoyait le joueur optimiser des
+sous-stats alors que le set lui-même n'était pas le bon — et, symétriquement, un
+monstre bien runé mais trop lent se lisait comme un problème de runage.
+
+⚠️ **Une LISTE de causes, pas une cause unique.** Les trois peuvent coexister ;
+n'en annoncer qu'une masquerait le reste du travail. Le slot les joint par
+` · ` ; le **deck** prend l'union de celles de ses slots.
+
+⚠️ Côté deck, la formule est **« … à revoir »** et non « … non respectés » :
+elle est **invariable**, donc elle se combine sans accord — « runage et stats à
+revoir », « runage, artéfacts et stats à revoir » se construisent tout seuls quel
+que soit le nombre de causes.
+
+L'ordre est celui du **geste à faire** — runage, artéfacts, puis stats : reruner
+change les stats, l'inverse n'est pas vrai. Même ordre dans le détail par
+monstre.
 
 **Mise en évidence** : dans un slot `ko`, les **lignes de stats non respectées**
 sont surlignées (fond rouge léger, libellé rouge) — on voit ce qui bloque sans
@@ -586,7 +699,7 @@ Indépendamment du repli de la carte, **chaque deck a son propre chevron**.
 | Bouton | Où | Ce qu'il ouvre |
 |--------|----|----------------|
 | ✏️ (en-tête de la carte) | recommandation | **nom, auteur, consignes générales** + **Ajouter un deck vide** / **Importer un deck d'offense** |
-| ✏️ (en-tête de chaque deck) | deck | **nom du deck, ses consignes, ses monstres, sets et stats** + 🗑 **Supprimer ce deck** |
+| ✏️ (en-tête de chaque deck) | deck | **nom du deck, ses consignes, ses monstres, sets, artéfacts et stats** + 🗑 **Supprimer ce deck** |
 
 **Icônes nues partout** dans les en-têtes — carrés de 24 px, **sans cadre ni
 fond**, groupés et resserrés (`gap-0.5`) à droite de la ligne :
@@ -635,11 +748,12 @@ Conversion — [recoFromSiege.ts](src/lib/recoFromSiege.ts), calcul pur :
 |---------|--------|-------|
 | Monstres | `SiegeSlot.monsterId` → `Monster` | mêmes positions (slot 0 = leader) |
 | Sets | `SiegeSlot.sets` | ce sont déjà les **sets actifs** calculés à l'import ; recopiés, bornés à 6 runes par sécurité |
+| Artéfacts | `SiegeSlot.gear.artifacts` | les **propriétés réellement portées**, 4 max par sorte. Pré-remplir puis élaguer demande moins de travail que retrouver huit lignes dans une liste de 45 |
 | Stats | `computeStats(SiegeSlot.gear)` | **valeurs réelles du build** posées comme minimums ; les stats à **0 sont omises** (ex. précision d'un build sans précision) |
 | Nom du deck | — | **laissé vide** → prend les noms des monstres (« Trevor - Bella - Loren ») |
 
-- C'est un **point de départ éditable** : l'auteur ajuste ou vide les stats
-  qu'il ne veut pas exiger.
+- C'est un **point de départ éditable** : l'auteur ajuste ou vide les stats et
+  les propriétés d'artéfact qu'il ne veut pas exiger.
 - Un slot dont le monstre n'a **pas de `gear`** (ajouté à la main) arrive **sans
   stats** ; un **monstre perso** (`com2usId = null`, non partageable) laisse le
   **slot vide**.

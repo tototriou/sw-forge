@@ -50,50 +50,49 @@ export function tickDanger(
   return null;
 }
 
-// Message d'alerte d'une équipe, à partir des écarts de ses monstres.
+// Message d'alerte d'une équipe, monstre par monstre.
 //
 // ⚠️ **« Ton équipe n'est pas au tick » ne suffit pas** : ça décrit le symptôme
-// sans dire dans quel sens corriger. Or les deux cas se réparent à l'opposé l'un
-// de l'autre — accélérer, ou libérer de la vitesse pour la mettre ailleurs.
+// sans dire dans quel sens corriger, ni qui est en cause. Les deux défauts se
+// réparent à l'opposé l'un de l'autre — accélérer, ou libérer de la vitesse pour
+// la mettre ailleurs.
 //
-// ⚠️ Quand l'équipe **dépasse un tick sans atteindre le suivant**, on nomme les
-// DEUX repères. Ne citer que le tick franchi laisserait croire qu'il faut
-// ralentir, alors qu'accélérer jusqu'au tick du dessus est souvent le bon geste.
-// L'app ne peut pas trancher à la place du joueur : elle lui donne les bornes.
+// ⚠️ **Chaque monstre fautif est nommé.** Un message d'équipe ne pouvait pas
+// décrire trois situations différentes : il disait « un monstre est en dessous,
+// un autre au-dessus » et laissait le troisième dans l'ombre.
 //
-// Les valeurs suffisent, on ne nomme pas les monstres : le slot fautif porte
-// déjà un anneau rouge, répéter son nom alourdirait la phrase pour rien.
-export function tickTeamMessage(dangers: ReturnType<typeof tickDanger>[]): string | null {
-  const actifs = dangers.filter(Boolean) as NonNullable<ReturnType<typeof tickDanger>>[];
-  if (actifs.length === 0) return null;
+// ⚠️ **Formulations sans accord de genre** — « n'atteint pas », « dépasse ».
+// Les noms de monstres sont de tous genres et l'information n'existe pas dans
+// les données : « Camille est trop lent » serait fautif une fois sur deux.
+export interface TickFaute {
+  nom: string;
+  danger: ReturnType<typeof tickDanger>;
+}
 
-  const ticks = [...new Set(actifs.map((d) => d.tick))];
-  // Plusieurs ticks en cause → citer une valeur désignerait le mauvais repère
-  // pour une partie de l'équipe.
-  const tick = ticks.length === 1 ? ticks[0] : null;
-  const tousAuDessus = actifs.every((d) => d.kind === 'above');
-  const tousEnDessous = actifs.every((d) => d.kind === 'below');
+function fautePhrase(nom: string, d: NonNullable<ReturnType<typeof tickDanger>>): string {
+  if (d.kind === 'below') return `${nom} n'atteint pas le tick ${d.tick}`;
+  const suivant = SIEGE_TICKS.map((t) => t.value)
+    .sort((a, b) => a - b)
+    .find((v) => v > d.tick);
+  // ⚠️ Dépasser un tick sans atteindre le suivant, c'est être trop rapide pour
+  // l'un et trop lent pour l'autre. Ne citer que le tick franchi laisserait
+  // croire qu'il faut ralentir, alors qu'accélérer est souvent le bon geste.
+  return suivant
+    ? `${nom} dépasse le tick ${d.tick} sans atteindre le ${suivant}`
+    : `${nom} dépasse le tick ${d.tick}`;
+}
 
-  if (tousEnDessous) {
-    if (tick === null) return "Ton équipe n'atteint pas ses ticks.";
-    // Pas de décompte des points manquants : le détail par monstre est déjà
-    // lisible sur les cartes, et une phrase courte se lit d'un coup d'œil.
-    return `Ton équipe est trop lente pour le tick ${tick}.`;
-  }
+// « A n'atteint pas le tick 286, B dépasse le tick 286 et C n'atteint pas le
+// tick 239. » — la virgule sépare, « et » ferme, comme à l'oral.
+function enumerer(morceaux: string[]): string {
+  if (morceaux.length <= 1) return morceaux[0] ?? '';
+  return `${morceaux.slice(0, -1).join(', ')} et ${morceaux[morceaux.length - 1]}`;
+}
 
-  if (tousAuDessus) {
-    if (tick === null) return 'Ton équipe est trop rapide par rapport aux ticks.';
-    const suivant = SIEGE_TICKS.map((t) => t.value)
-      .sort((a, b) => a - b)
-      .find((v) => v > tick);
-    return suivant
-      ? `Ton équipe est trop rapide par rapport au tick ${tick}, ou trop lente pour le tick ${suivant}.`
-      : `Ton équipe est trop rapide par rapport au tick ${tick}.`;
-  }
-
-  // Les deux à la fois : chaque monstre doit être regardé séparément, aucune
-  // consigne d'équipe n'aurait de sens.
-  return "Ton équipe n'est pas au tick : un monstre est en dessous, un autre au-dessus.";
+export function tickTeamMessage(fautes: TickFaute[]): string | null {
+  const actives = fautes.filter((f) => f.danger) as { nom: string; danger: NonNullable<ReturnType<typeof tickDanger>> }[];
+  if (actives.length === 0) return null;
+  return `${enumerer(actives.map((f) => fautePhrase(f.nom, f.danger)))}.`;
 }
 
 // Bonus du set Swift : +25 % de la vitesse de BASE.

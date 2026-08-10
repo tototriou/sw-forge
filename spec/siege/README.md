@@ -60,6 +60,19 @@ automatiquement** jusqu'à elle (`scrollIntoView`, `behavior: 'smooth'`,
 rendue porte une `ref`, et un flag `scrollToLast` déclenche le scroll au rendu
 suivant.
 
+### ⚠️ Supprimer une équipe demande confirmation
+
+Le bouton **Supprimer** est juste à côté d'**Éditer**, qu'on utilise sans arrêt,
+et rien ne permet de revenir en arrière : ni annulation, ni corbeille. Trois
+monstres et leurs vitesses saisies partent avec l'équipe.
+
+La modale **nomme les monstres concernés** — « Supprimer l'équipe 3 ? » ne dit
+rien, « Chilling, Susano, Tarq » si — et rappelle que les autres équipes ne sont
+pas touchées. Voir la convention des modales dans le [README](README.md).
+
+Même règle pour les **decks de recommandation** et les recommandations
+elles-mêmes (voir [recommandations.md](recommandations.md)).
+
 ### Bouton « Vérifier mes tick ATB »
 
 Interrupteur de la barre d'actions (icône jauge) qui **active les auras de

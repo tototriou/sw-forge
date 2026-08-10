@@ -2,7 +2,7 @@
 
 Explorer et analyser **tout l'inventaire de runes**. Composant conteneur :
 `RunesSection` ([RunesSection.tsx](src/components/account/RunesSection.tsx)), avec
-**5 onglets internes** (« Résumé » en premier, **vue par défaut**) :
+**7 onglets internes** (« Résumé » en premier, **vue par défaut**) :
 
 | Onglet | Composant | Rôle |
 |--------|-----------|------|
@@ -11,6 +11,8 @@ Explorer et analyser **tout l'inventaire de runes**. Composant conteneur :
 | Courbes | `RunesCurve` | Courbes de qualité (actuelle + potentiels) |
 | Comparaison | `RunesCompare` | Export/import & superposition de courbes entre amis |
 | Optimisation | `RunesOptim` | Ce qu'il faut grinder/gemmer pour gagner en qualité |
+| Meules | `ComingSoon` | **En construction** — ce qui manque en meules, et où le farmer |
+| Gemmes | `ComingSoon` | **En construction** — ce qui manque en gemmes, et où le farmer |
 
 **Persistance** : les tris/filtres de chaque onglet (et l'onglet actif) sont
 conservés à la navigation via `useStickyState` ([useStickyState.ts](src/hooks/useStickyState.ts))
@@ -384,6 +386,20 @@ classiques/antiques, héro/légend) et l'**algorithme complet** `best()` sont da
   efficience actuelle.
 - **Palier** : champ % — n'affiche que les runes dont l'efficience actuelle ≥ palier
   (défaut 100 %).
+  - ⚠️ **Converti au changement de mesure** (`convertirPalier` dans
+    [useRuneMetric.ts](src/hooks/useRuneMetric.ts)) : « 100 » ne veut pas dire la
+    même chose en efficience et en score, et garder la valeur brute déplaçait la
+    coupe sans prévenir — souvent une liste vide, prise pour un bug.
+  - ⚠️ **Pas de facteur de conversion, il n'en existe pas.** Sur un compte réel
+    de 3 163 runes, le rapport score/efficience s'étale de **0,98 à 2,37** : la
+    principale compte dans l'une et pas dans l'autre, et les tables de max
+    diffèrent. Le ratio médian appliqué à un palier de 110 % laisserait passer
+    **457 runes au lieu de 139**.
+  - La conversion se fait donc **par rang** : on compte ce qui passait, on prend
+    la valeur de la n-ième meilleure dans la nouvelle mesure. Exact pour la seule
+    question que le palier pose — *où je coupe*.
+  - Un palier qui ne gardait **rien** reste au-dessus du maximum : sans ça, la
+    liste se remplirait toute seule au changement d'unité.
 - **Sets** (`SetFilter`) et **slot** (`SlotFilter`) : mêmes composants que les
   autres onglets.
 - **Runes** (segmenté) : **Toutes** (défaut) · **Antiques uniquement** ·
@@ -398,10 +414,107 @@ classiques/antiques, héro/légend) et l'**algorithme complet** `best()` sont da
   pas pour une absence de runes.
 - **Tuiles** : efficience **actuelle**, puis **Héro** et **Légend** avec leur gain
   et l'efficience cible colorée **vert** (au-dessus de l'actuelle) / **rouge** (en
-  dessous). Pagination 60/page.
+  dessous — seulement hors filtre de réserve, voir `noDowngrade`).
+  Pagination 60/page.
 - **Rotation animée** des cadres, même mécanique que l'onglet Liste (clé
   positionnelle + `SPIN`).
 - **Détail au clic** : plan **« Actuel | Optimisé »** (`OptimPlanBox`) — substats
   actuels à gauche (base blanche + meule orange), optimisés à droite avec **seul ce
   qui change en violet** (grind posé ou 💎 gemme/proc max).
 - **Aide « ? »** sur la ligne des filtres (popup fermable au clic extérieur).
+  Elle détaille les deux modes, le choix de la gemme, le gain, **le palier** (ce
+  qu'il mesure et sa reconversion), **les icônes marteau/gemme** du plan, et le
+  filtre de réserve.
+
+### « Faisable avec ma réserve » — le filtre qui regarde le sac
+
+Un potentiel de +20 d'efficience ne vaut rien si la meule qui l'apporte n'est pas
+dans le sac. Ce bouton restreint la liste aux runes dont **le plan complet est
+couvert** par la réserve de meules et de gemmes du compte.
+
+⚠️ **Un filtre, pas un onglet.** C'est la même liste, restreinte : potentiel
+héroïque, potentiel légendaire, les deux gains et le tri restent là. En faire une
+vue séparée obligeait à tout y réimplémenter.
+
+- Le **scénario suit le tri** (gain/potentiel héroïque → grade 4, sinon 5) :
+  trier par gain héroïque tout en filtrant sur du légendaire n'aurait aucun sens.
+- Les plans ne sont calculés **que si le filtre est actif** — c'est plus lourd
+  qu'un potentiel, et inutile tant qu'on ne le demande pas.
+- Une rune **sans rien à appliquer** est écartée : la question posée est « que
+  puis-je améliorer », pas « qu'est-ce qui ne bloque pas ».
+- **Désactivé sans réserve connue** (compte enregistré avant `ACCOUNT_SCHEMA` 3),
+  avec l'explication en infobulle : un bouton qui viderait la liste sans raison
+  vaut moins qu'un bouton grisé qui dit pourquoi.
+- Le compteur rappelle le filtre actif (« · faisables avec ma réserve »), pour
+  qu'une liste courte ne passe pas pour une absence de runes.
+
+⚠️ **Le plan est RESTREINT à la réserve, il n'est pas exigé en entier.** Une stat
+dont le consommable manque n'est simplement pas poussée (`CraftDispo` dans
+[runeOptim.ts](src/lib/runeOptim.ts)). Exiger le plan complet écartait des runes
+parfaitement travaillables : une Swift dont trois substats sur quatre étaient
+meulables disparaissait faute d'une seule meule VIT. Le gain affiché est donc
+**celui qu'on peut aller chercher aujourd'hui**, ni plus ni moins — et le plan du
+détail applique la même restriction, sans quoi il contredirait le chiffre.
+
+**Marquage ligne par ligne** dans le plan (`SubLine`) : chaque substat à
+travailler porte l'icône de son consommable — **marteau** pour une meule,
+**gemme** pour une gemme — en **vert s'il est en réserve**, grisé sinon. Le plan
+dit quoi faire, la réserve dit ce qui est à portée ; sans le croisement il
+fallait aller compter ses meules ailleurs pour savoir par où commencer.
+⚠️ Une seule marque par ligne, la **gemme prime** : c'est elle qui conditionne le
+reste, puisqu'elle remet le meulage du slot à zéro. Le marquage s'affiche dès
+qu'une réserve est connue, filtre actif ou non.
+
+Règles de disponibilité (grade ≥ scénario, immémoriaux valables sur tous les
+sets, antique et normal étanches) : [crafts.ts](src/lib/crafts.ts).
+
+⚠️ **Sans réserver le stock.** Deux runes qui réclament la même unique meule VIT
+sont toutes deux annoncées faisables — ce qui est vrai de chacune. Compter les
+quantités répondrait à une autre question (« que farmer pour toutes les faire »),
+et c'est le sujet des onglets Meules et Gemmes.
+
+#### ⚠️ Le filtre change AUSSI le calcul — `noDowngrade`
+
+Deux questions légitimes, deux calculs :
+
+| Mode | Question posée | Conséquence |
+|------|----------------|-------------|
+| défaut | « que vaudrait cette rune si elle était **née** héroïque ? » | une rune meulée légendaire y **perd** — et ce gain négatif est l'information : l'héroïque ne lui apporte rien |
+| filtre actif | « qu'est-ce que je peux **encore lui poser** ? » | seules les stats **pas encore au max** bougent, donc **aucun gain négatif** |
+
+⚠️ Les mélanger affiche une contradiction sur la même ligne : une rune annoncée
+« faisable » avec un gain négatif. Sous le filtre on regarde ce qu'on va
+**réellement poser**, et on ne pose jamais une meule qui dégrade ce qui est là.
+
+Mesuré sur un compte réel (3 163 runes) : **424 gains héroïques négatifs** en
+mode par défaut, **0** sous le filtre.
+
+Le **plan affiché suit la même règle** (`runePlan(..., noDowngrade)`), sinon il
+contredirait le chiffre annoncé au-dessus. Sur une rune sans meule, les deux
+lectures coïncident — l'option ne change rien là où il n'y a rien à préserver.
+
+## Onglets Meules & Gemmes — **en construction**
+
+⚠️ **Ces onglets ne refont pas l'Optimisation.** « Quelles runes puis-je
+améliorer avec ce que j'ai » est un **filtre**, pas une vue : il vit dans
+l'Optimisation (bouton « Faisable avec ma réserve », voir plus haut). L'en
+extraire obligerait à y réimplémenter potentiel héroïque, potentiel légendaire
+et les deux gains — tout ce qui fait l'intérêt de la liste.
+
+Ils porteront la question **inverse**, que rien ne couvre aujourd'hui :
+
+- ce qui **manque** en meules / en gemmes pour un **top paramétrable** (10, 50,
+  100…) classé par potentiel ou par gain ;
+- et donc **où aller le chercher** : quelle faille élémentaire, quel raid.
+
+⚠️ Le second point demande une table **set de rune → donjon qui le fait tomber**,
+qui **n'est pas dans l'export** et qui ne doit pas être devinée : envoyer
+quelqu'un farmer le mauvais donjon est une erreur silencieuse et coûteuse. La
+source reste à choisir avant d'implémenter.
+
+Placeholder : [ComingSoon.tsx](src/pages/ComingSoon.tsx), le même que les pages
+d'outils à venir.
+
+> La lecture de la réserve, elle, est **déjà en place** : `parseCrafts`,
+> `CraftLine`, la persistance (`ACCOUNT_SCHEMA` 3) et
+> [crafts.ts](src/lib/crafts.ts) servent déjà le filtre de l'Optimisation.

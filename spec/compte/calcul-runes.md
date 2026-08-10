@@ -80,9 +80,29 @@ Violent(13). Tous les autres : 2 pièces. Intangible(25) = joker.
 | `pri_effect` | `[code, valeur]` — 100 PV / 101 ATQ / 102 DEF (plats) |
 | `sec_effects` | liste `[code, valeur, i2, i3, i4]` ; substat **modifié** ⇔ **`i4 > 0`** |
 | `natural_rank` | **rareté** (3..5) — ⚠️ le champ `rank` vaut toujours 5, inutilisable |
-| `type` | `1` = artéfact **d'élément**, `2` = **d'archétype** |
+| `type` | `1` = artéfact **d'attribut** (`element` en interne), `2` = **de type** (`archetype`) |
 | `attribute` (si type 1) | 1 eau · 2 feu · 3 vent · 4 lumière · 5 ténèbres |
 | `unit_style` (si type 2) | 1 attaque · 2 défense · 3 PV · 4 support |
+
+### Meules & gemmes (`data.rune_craft_item_list`)
+
+| Champ | Sens |
+|-------|------|
+| `craft_type` | 1/2 gemme/meule · 3/4 **immémoriale** (tous sets) · 5/6 **antique** |
+| `craft_type_id` | `<set><stat><grade>` — deux chiffres chacun pour stat et grade |
+| `amount` | quantité possédée (les lots à 0 sont écartés) |
+
+`251204` → set 25 (Intangible), stat 12 (Précision), grade 4 (Héroïque). Le set
+`99` des immémoriaux ne correspond à aucun set réel : il vaut « n'importe
+lequel ».
+
+⚠️ **Grade des consommables antiques décalé de 10** (13/14/15), exactement comme
+le `rank` d'une rune antique — ramené sur l'échelle 1-5 à la lecture.
+
+⚠️ **Impair = gemme, pair = meule.** Vérifié sur les 1 161 lots d'un compte
+réel : les types pairs ne portent que des stats **meulables**
+(1/2/3/4/5/6/8), les impairs portent en plus 9/10/11/12 (TC, DCC, RES,
+Précision) — soit exactement la différence entre les deux objets du jeu.
 
 ### Relique (`unit.relics[0]`)
 

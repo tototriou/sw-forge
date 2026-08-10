@@ -75,6 +75,10 @@ export interface EffectLine {
 }
 
 export interface RuneDetail {
+  // Identifiant com2us de l'exemplaire (`rune_id`). Stable d'un export à
+  // l'autre, contrairement à l'index dans le tableau : c'est lui qui permet de
+  // désigner UNE rune précise (ex. « ce plan, je l'ai appliqué »).
+  id: number;
   slot: number; // 1..6
   set: string; // clé RUNE_SETS
   rank: number; // classe com2us (étoiles ; > 10 = antique)
@@ -85,8 +89,39 @@ export interface RuneDetail {
   subs: EffectLine[]; // substats
 }
 
+/* --------------------------------------------------------------------------
+ * Meules et gemmes en réserve (rune_craft_item_list)
+ * ----------------------------------------------------------------------- */
+
+// `grind` = meule (pierre de meulage), `gem` = gemme d'enchantement.
+export type CraftKind = 'grind' | 'gem';
+
+// Un lot de consommables identiques. Ce qu'il faut pour savoir si on peut
+// appliquer un plan d'optimisation **tout de suite**.
+export interface CraftLine {
+  kind: CraftKind;
+  // Clé de `RUNE_SETS`, ou **`null` = immémorial** : utilisable sur n'importe
+  // quel set. Une meule Violent ne va que sur une rune Violent.
+  setKey: string | null;
+  stat: number; // code d'effet (voir lib/effects.ts) : 8 = VIT, 4 = ATQ%…
+  grade: number; // 1 Commun … 5 Légendaire (échelle des raretés de runes)
+  ancient: boolean; // consommable ANTIQUE, réservé aux runes antiques
+  amount: number; // quantité possédée
+}
+
+// Un monstre porte au plus DEUX artéfacts, un de chaque sorte : celui
+// d'**attribut** (lié à son élément) et celui de **type** (lié à son archétype).
+// Le jeu les nomme ainsi ; `element`/`archetype` sont les clés des données
+// com2us (`type` 1 / 2).
+export type ArtifactKind = 'element' | 'archetype';
+
+export const ARTIFACT_KINDS: { key: ArtifactKind; label: string }[] = [
+  { key: 'element', label: 'Attribut' },
+  { key: 'archetype', label: 'Type' },
+];
+
 export interface ArtifactDetail {
-  kind: 'element' | 'archetype';
+  kind: ArtifactKind;
   element?: ElementKey; // si kind === 'element'
   archetype?: 'attack' | 'defense' | 'hp' | 'support'; // si kind === 'archetype'
   level: number;
@@ -251,7 +286,24 @@ export interface RecoSlot {
   // vide = « aucun set exigé »), et la confrontation est satisfaite dès qu'**UNE
   // SEULE** l'est. Voir ../spec/siege/recommandations.md.
   setOptions: string[][];
+  // Propriétés secondaires d'artéfact exigées, **par sorte d'artéfact** : jusqu'à
+  // 4 sur celui d'attribut et 4 sur celui de type (les 4 emplacements du jeu).
+  //
+  // ⚠️ On stocke les **codes** (`ARTIFACT_SUB` de lib/effects.ts), pas des
+  // libellés : c'est ce que porte l'export du compte, donc la confrontation est
+  // exacte, et un renommage de libellé ne casse pas les recommandations
+  // partagées.
+  //
+  // ⚠️ Aucune VALEUR minimale : une recommandation d'artéfact porte sur la
+  // **présence** de la propriété. Les substats d'artéfacts sont conditionnels
+  // (« dégâts sur le Feu », « VIT sous incapacité ») ; exiger un seuil chiffré
+  // sur des effets qui ne s'appliquent qu'en situation donnerait une fausse
+  // précision, alors que ce qui se joue en pratique est « as-tu la bonne ligne ».
+  artifacts: Record<ArtifactKind, number[]>;
 }
+
+// 4 emplacements de propriété secondaire par artéfact, comme dans le jeu.
+export const MAX_ARTIFACT_SUBS = 4;
 
 // Un deck recommandé : 3 monstres, index 0 = leader (comme une équipe de siège).
 export interface RecoDeck {
@@ -284,7 +336,11 @@ export interface RecoState {
 }
 
 export function emptyRecoSlot(): RecoSlot {
-  return { com2usId: null, name: '', stats: {}, setOptions: [[]] };
+  return { com2usId: null, name: '', stats: {}, setOptions: [[]], artifacts: emptyRecoArtifacts() };
+}
+
+export function emptyRecoArtifacts(): Record<ArtifactKind, number[]> {
+  return { element: [], archetype: [] };
 }
 
 export function emptyRecoDeck(): RecoDeck {

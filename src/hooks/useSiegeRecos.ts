@@ -1,5 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import {
+  ArtifactKind,
+  MAX_ARTIFACT_SUBS,
   Reco,
   RecoDeck,
   RecoSlot,
@@ -7,10 +9,11 @@ import {
   RecoState,
   RecoStatKey,
   RUNE_SETS,
+  emptyRecoArtifacts,
   emptyRecoDeck,
 } from '../types';
-import { canAddSet } from '../lib/effects';
-import { cleanSetOptions } from '../lib/recoShare';
+import { artifactSubKinds, canAddSet, isArtifactSub } from '../lib/effects';
+import { cleanArtifacts, cleanSetOptions } from '../lib/recoShare';
 import { saveLocal, usePersistence } from './usePersistence';
 
 const SET_KEYS = new Set(RUNE_SETS.map((s) => s.key));
@@ -44,13 +47,17 @@ function loadSlot(raw: unknown): RecoSlot {
   // Possibilités de runage : contrainte de coût (≤ 6 runes) rejouée au
   // chargement, et lecture de l'ancienne forme `sets: string[]` (une seule
   // possibilité) via le même normaliseur que l'import.
-  const brut = s as { setOptions?: unknown; sets?: unknown };
-  const setOptions = cleanSetOptions(brut.setOptions ?? brut.sets, { errors: [], warnings: [] }, '');
+  const brut = s as { setOptions?: unknown; sets?: unknown; artifacts?: unknown };
+  const rien = { errors: [], warnings: [] };
+  const setOptions = cleanSetOptions(brut.setOptions ?? brut.sets, rien, '');
   return {
     com2usId: typeof s.com2usId === 'number' ? s.com2usId : null,
     name: typeof s.name === 'string' ? s.name : '',
     stats,
     setOptions,
+    // Recommandations enregistrées avant les artéfacts : la clé est absente,
+    // le normaliseur rend deux listes vides — rien n'est exigé, rien ne casse.
+    artifacts: cleanArtifacts(brut.artifacts, rien, ''),
   };
 }
 
@@ -106,6 +113,8 @@ export interface UseRecoState {
   setDeckMeta: (id: string, deck: number, patch: Partial<Pick<RecoDeck, 'name' | 'note'>>) => void;
   setSlotMonster: (id: string, deck: number, idx: number, com2usId: number | null, name: string) => void;
   setSlotStat: (id: string, deck: number, idx: number, stat: RecoStatKey, value: number | null) => void;
+  addSlotArtifact: (id: string, deck: number, idx: number, kind: ArtifactKind, code: number) => void;
+  removeSlotArtifact: (id: string, deck: number, idx: number, kind: ArtifactKind, code: number) => void;
   addSlotSet: (id: string, deck: number, idx: number, option: number, setKey: string) => void;
   removeSlotSet: (id: string, deck: number, idx: number, option: number, position: number) => void;
   addSetOption: (id: string, deck: number, idx: number) => void;
@@ -186,11 +195,48 @@ export function useSiegeRecos(): UseRecoState {
     [updateDeck]
   );
 
-  // Changer de monstre remet stats ET sets à zéro : ils n'avaient de sens que
-  // pour le monstre auquel ils étaient destinés.
+  // Changer de monstre remet stats, sets ET artéfacts à zéro : ils n'avaient de
+  // sens que pour le monstre auquel ils étaient destinés — et un artéfact
+  // d'attribut suit l'élément du monstre, donc encore moins transposable.
   const setSlotMonster = useCallback(
     (id: string, deck: number, idx: number, com2usId: number | null, name: string) =>
-      updateSlot(id, deck, idx, () => ({ com2usId, name, stats: {}, setOptions: [[]] })),
+      updateSlot(id, deck, idx, () => ({
+        com2usId,
+        name,
+        stats: {},
+        setOptions: [[]],
+        artifacts: emptyRecoArtifacts(),
+      })),
+    [updateSlot]
+  );
+
+  // Ajoute une propriété exigée sur un artéfact. Refusée si la propriété
+  // n'existe pas sur cette sorte d'artéfact, si elle y figure déjà, ou si les 4
+  // emplacements sont pris — la liste déroulante ne devrait pas le permettre,
+  // mais l'état ne dépend pas de l'écran qui l'édite.
+  const addSlotArtifact = useCallback(
+    (id: string, deck: number, idx: number, kind: ArtifactKind, code: number) =>
+      updateSlot(id, deck, idx, (sl) => {
+        const actuels = sl.artifacts[kind] ?? [];
+        if (
+          !isArtifactSub(code) ||
+          !artifactSubKinds(code).includes(kind) ||
+          actuels.includes(code) ||
+          actuels.length >= MAX_ARTIFACT_SUBS
+        ) {
+          return sl;
+        }
+        return { ...sl, artifacts: { ...sl.artifacts, [kind]: [...actuels, code] } };
+      }),
+    [updateSlot]
+  );
+
+  const removeSlotArtifact = useCallback(
+    (id: string, deck: number, idx: number, kind: ArtifactKind, code: number) =>
+      updateSlot(id, deck, idx, (sl) => ({
+        ...sl,
+        artifacts: { ...sl.artifacts, [kind]: (sl.artifacts[kind] ?? []).filter((c) => c !== code) },
+      })),
     [updateSlot]
   );
 
@@ -295,6 +341,8 @@ export function useSiegeRecos(): UseRecoState {
     setDeckMeta,
     setSlotMonster,
     setSlotStat,
+    addSlotArtifact,
+    removeSlotArtifact,
     addSlotSet,
     removeSlotSet,
     addSetOption,

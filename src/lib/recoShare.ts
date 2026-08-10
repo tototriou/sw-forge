@@ -7,6 +7,9 @@
 // à valider pour aucun gain, et un contenu opaque que personne ne peut relire.
 
 import {
+  ARTIFACT_KINDS,
+  ArtifactKind,
+  MAX_ARTIFACT_SUBS,
   Reco,
   RecoDeck,
   RecoPayload,
@@ -14,12 +17,18 @@ import {
   RecoStatKey,
   RECO_STATS,
   RUNE_SETS,
+  emptyRecoArtifacts,
   emptyRecoSlot,
 } from '../types';
-import { canAddSet } from './effects';
+import { artifactSubKinds, artifactSubLabel, canAddSet, isArtifactSub } from './effects';
 
 const STAT_KEYS = new Set<string>(RECO_STATS.map((s) => s.key));
 const SET_KEYS = new Set<string>(RUNE_SETS.map((s) => s.key));
+
+// Clés du fichier partagé → sorte d'artéfact. En français comme le reste du
+// format, et invariables : ce sont les noms du jeu.
+const KIND_PAR_CLE: Record<string, ArtifactKind> = { attribut: 'element', type: 'archetype' };
+const CLE_PAR_KIND: Record<ArtifactKind, string> = { element: 'attribut', archetype: 'type' };
 
 // Longueurs max des consignes (le texte est encodé dans le code partagé).
 export const NOTE_MAX = 600; // consignes globales de la recommandation
@@ -112,6 +121,83 @@ function cleanSets(raw: unknown, ctx: Issues, where: string): string[] {
   return out;
 }
 
+// Propriétés d'artéfact exigées : `{ attribut: [codes], type: [codes] }`.
+// Trois garde-fous, tous silencieux côté écriture (les données viennent de
+// l'app) mais signalés côté lecture :
+//  - **code inconnu** → ignoré (table d'effets d'une version antérieure) ;
+//  - **code sur la mauvaise sorte** → ignoré : « Dégâts sur le Feu » sur un
+//    artéfact de type ne pourra JAMAIS être satisfait, autant le dire ;
+//  - **au-delà de 4** → tronqué, un artéfact n'a que 4 emplacements.
+// Les doublons sont écartés : deux fois la même ligne n'est pas plus exigeant.
+export function cleanArtifacts(
+  raw: unknown,
+  ctx: Issues,
+  where: string
+): Record<ArtifactKind, number[]> {
+  const out = emptyRecoArtifacts();
+  if (raw == null) return out;
+  if (typeof raw !== 'object') {
+    warn(ctx, `${where} : « artefacts » n'est pas un objet — ignoré.`);
+    return out;
+  }
+  for (const [cle, valeur] of Object.entries(raw as Record<string, unknown>)) {
+    // Clés françaises du fichier, ou clés internes pour un fichier bricolé.
+    const kind = KIND_PAR_CLE[cle] ?? (cle === 'element' || cle === 'archetype' ? (cle as ArtifactKind) : null);
+    if (!kind) {
+      warn(ctx, `${where} : sorte d'artéfact inconnue « ${cle} » ignorée.`);
+      continue;
+    }
+    if (!Array.isArray(valeur)) {
+      warn(ctx, `${where} : « artefacts.${cle} » n'est pas une liste — ignoré.`);
+      continue;
+    }
+    for (const v of valeur) {
+      // Deux formes acceptées : le code nu (`300`) ou l'entrée écrite par
+      // l'export (`{ code: 300, propriete: "…" }`). Le libellé n'est jamais lu :
+      // il peut avoir été modifié à la main, le code fait seul autorité.
+      const code = Number(v && typeof v === 'object' ? (v as Record<string, unknown>).code : v);
+      if (!isArtifactSub(code)) {
+        warn(ctx, `${where} : propriété d'artéfact inconnue « ${String(v)} » ignorée.`);
+        continue;
+      }
+      if (!artifactSubKinds(code).includes(kind)) {
+        warn(
+          ctx,
+          `${where} : « ${artifactSubLabel(code)} » n'existe pas sur un artéfact de ${cle} — ignorée.`
+        );
+        continue;
+      }
+      if (out[kind].includes(code)) continue;
+      if (out[kind].length >= MAX_ARTIFACT_SUBS) {
+        warn(ctx, `${where} : plus de ${MAX_ARTIFACT_SUBS} propriétés sur l'artéfact de ${cle} — surplus ignoré.`);
+        break;
+      }
+      out[kind].push(code);
+    }
+  }
+  return out;
+}
+
+// Écriture des propriétés d'artéfact. Le code seul (`300`) ne se relit pas : le
+// fichier est censé s'ouvrir et se corriger à la main, donc chaque entrée porte
+// **le code ET son libellé**. Seul le code est lu à l'import — le libellé est là
+// pour l'humain, et ne fait pas foi.
+//
+// Les sortes vides sont omises : un monstre qui n'exige aucun artéfact ne doit
+// pas traîner deux listes vides dans le fichier.
+function artifactsToJson(
+  artifacts: Record<ArtifactKind, number[]> | undefined
+): Record<string, { code: number; propriete: string }[]> | undefined {
+  const out: Record<string, { code: number; propriete: string }[]> = {};
+  for (const { key } of ARTIFACT_KINDS) {
+    const codes = (artifacts?.[key] ?? []).filter(isArtifactSub).slice(0, MAX_ARTIFACT_SUBS);
+    if (codes.length) {
+      out[CLE_PAR_KIND[key]] = codes.map((code) => ({ code, propriete: artifactSubLabel(code) }));
+    }
+  }
+  return Object.keys(out).length ? out : undefined;
+}
+
 // Texte borné, en signalant la troncature.
 function cleanText(raw: unknown, max: number, ctx: Issues, where: string): string {
   if (typeof raw !== 'string') return '';
@@ -132,7 +218,10 @@ export const JSON_FORMAT = 'sw-forge/recommandations';
 // liste de clés est reprise comme possibilité unique — mais on le SIGNALE à
 // l'import pour inviter à réexporter, sinon un fichier ancien circule
 // indéfiniment et personne ne sait qu'un format plus riche existe.
-export const JSON_VERSION = 3;
+// v4 : un monstre peut exiger des **propriétés secondaires d'artéfact**
+// (`artefacts: { attribut: [...], type: [...] }`). Les fichiers v3 restent lus
+// sans perte — un monstre sans clé `artefacts` n'exige simplement rien.
+export const JSON_VERSION = 4;
 
 // Clés en clair (français, comme l'interface) pour qu'un joueur puisse ouvrir
 // le fichier, le relire et le corriger sans décodeur.
@@ -154,6 +243,7 @@ function recoToJson(r: Reco) {
                 com2usId: sl.com2usId,
                 nom: sl.name.slice(0, 40),
                 sets: cleanSetOptions(sl.setOptions, out, ''),
+                artefacts: artifactsToJson(sl.artifacts),
                 stats: cleanStats(sl.stats, out, ''),
               }
         ),
@@ -198,6 +288,7 @@ function jsonToSlot(raw: unknown, ctx: Issues, where: string): RecoSlot {
     name: typeof nom === 'string' ? nom.slice(0, 40) : '',
     stats: cleanStats(o.stats, ctx, where),
     setOptions: cleanSetOptions(o.sets, ctx, where),
+    artifacts: cleanArtifacts(o.artefacts ?? o.artifacts, ctx, where),
   };
 }
 

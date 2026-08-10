@@ -6,10 +6,10 @@
 // contexte, et un build de siège ne se voit pas dans l'équipement porté.
 // Calcul pur — aucune dépendance React.
 
-import { Reco, RecoDeck, RecoSlot, RecoStatKey, RECO_STATS } from '../types';
+import { ARTIFACT_KINDS, ArtifactKind, Reco, RecoDeck, RecoSlot, RecoStatKey, RECO_STATS } from '../types';
 import { OwnedBuild, OwnedTeam } from './ownedBuilds';
 import { computeStats } from './stats';
-import { activeSets } from './effects';
+import { activeSets, artifactSubLabel } from './effects';
 
 // Les règles de composition de sets (coût, combinaisons possibles) vivent dans
 // effects.ts, avec le reste des règles de sets — voir `canAddSet` / `setsCost`.
@@ -44,14 +44,61 @@ export type SlotStatus =
   | 'ok' // au niveau
   | 'unknown'; // monstre possédé, mais aucun deck à confronter
 
+// Une propriété secondaire d'artéfact exigée, confrontée à l'artéfact
+// correspondant du build. `ok` est faux aussi bien si la propriété manque que si
+// l'artéfact n'est pas équipé du tout — dans les deux cas la ligne demandée
+// n'est pas là.
+export interface ArtifactCheck {
+  kind: ArtifactKind;
+  code: number;
+  label: string;
+  ok: boolean;
+}
+
 export interface SlotMatch {
   status: SlotStatus;
   owned: OwnedBuild | null; // build retenu (celui du deck correspondant)
   copies: number; // nombre de builds connus (exemplaires × presets)
   checks: StatCheck[];
+  artifactChecks: ArtifactCheck[]; // propriétés d'artéfact exigées
   ownedSets: string[]; // sets actifs du build retenu
   missingSets: string[]; // sets manquants de la MEILLEURE possibilité
   matchedOption?: number; // index de cette possibilité dans `slot.setOptions`
+}
+
+// Un slot `ko` peut l'être pour trois raisons **indépendantes**, qui ne se
+// réparent pas du tout pareil :
+//  - `sets`      : pas le runage demandé → il faut **reruner** ;
+//  - `artifacts` : pas les propriétés d'artéfact demandées → il faut **changer
+//    d'artéfact** (aucun réglage de runes n'y changera rien) ;
+//  - `stats`     : le reste est bon mais les minimums ne sont pas atteints → il
+//    faut **améliorer les runes** en place.
+//
+// ⚠️ Les confondre sous « stats insuffisantes » envoyait le joueur optimiser des
+// sous-stats alors que le set lui-même n'était pas le bon (et inversement, un
+// monstre au bon set mais trop lent se lisait comme un problème de runage).
+//
+// ⚠️ Une LISTE de causes, pas une cause unique : les trois peuvent coexister, et
+// n'en annoncer qu'une masquerait le reste du travail. L'ordre est celui du
+// geste à faire — reruner change les stats, l'inverse n'est pas vrai.
+export type FaultCause = 'sets' | 'artifacts' | 'stats';
+
+const ORDRE_CAUSES: FaultCause[] = ['sets', 'artifacts', 'stats'];
+
+export function slotFaults(sm: SlotMatch): FaultCause[] {
+  if (sm.status !== 'ko') return [];
+  const causes: FaultCause[] = [];
+  if (sm.missingSets.length > 0) causes.push('sets');
+  if (sm.artifactChecks.some((c) => !c.ok)) causes.push('artifacts');
+  if (sm.checks.some((c) => !c.ok)) causes.push('stats');
+  return causes;
+}
+
+// Causes d'un deck : l'union de celles de ses slots. Deux monstres aux défauts
+// différents doivent produire les deux causes.
+export function deckFaults(slots: SlotMatch[]): FaultCause[] {
+  const vues = new Set(slots.flatMap(slotFaults));
+  return ORDRE_CAUSES.filter((c) => vues.has(c));
 }
 
 export type RecoStatus = 'unknown' | 'ok' | 'partial' | 'missing';
@@ -110,12 +157,45 @@ function checksFor(
   return out;
 }
 
+// Propriétés secondaires réellement portées par l'artéfact d'une sorte donnée.
+// `null` = artéfact absent du build ; une propriété exigée ne peut alors être
+// que manquante.
+function subsPortes(build: OwnedBuild, kind: ArtifactKind): Set<number> | null {
+  const art = build.gear.artifacts.find((a) => a.kind === kind);
+  return art ? new Set(art.subs.map((s) => s.code)) : null;
+}
+
+// Confronte les propriétés d'artéfact exigées par le slot. Sans build, tout est
+// simplement listé comme non satisfait : l'affichage montre alors ce qui est
+// demandé, sans prétendre l'avoir vérifié (le slot n'est de toute façon pas
+// `ko` dans ce cas, voir `slotFaults`).
+function artifactChecksFor(slot: RecoSlot, build: OwnedBuild | null): ArtifactCheck[] {
+  const out: ArtifactCheck[] = [];
+  for (const { key } of ARTIFACT_KINDS) {
+    const codes = slot.artifacts?.[key] ?? [];
+    if (codes.length === 0) continue;
+    const portes = build ? subsPortes(build, key) : null;
+    for (const code of codes) {
+      out.push({ kind: key, code, label: artifactSubLabel(code), ok: portes?.has(code) ?? false });
+    }
+  }
+  return out;
+}
+
 // Confronte un slot au build qu'il a DANS une équipe donnée (ou à rien).
 function checkSlot(slot: RecoSlot, build: OwnedBuild | null, copies: number): SlotMatch {
   const options = slot.setOptions?.length ? slot.setOptions : [[]];
   // Slot sans monstre : rien à confronter (ne surtout pas le dire « absent »).
   if (slot.com2usId == null) {
-    return { status: 'empty', owned: null, copies: 0, checks: [], ownedSets: [], missingSets: [] };
+    return {
+      status: 'empty',
+      owned: null,
+      copies: 0,
+      checks: [],
+      artifactChecks: [],
+      ownedSets: [],
+      missingSets: [],
+    };
   }
   if (!build) {
     return {
@@ -123,12 +203,14 @@ function checkSlot(slot: RecoSlot, build: OwnedBuild | null, copies: number): Sl
       owned: null,
       copies,
       checks: checksFor(slot.stats, null),
+      artifactChecks: artifactChecksFor(slot, null),
       ownedSets: [],
       // Monstre non confronté : on montre les manques de la 1re possibilité.
       missingSets: options[0],
     };
   }
   const checks = checksFor(slot.stats, totalsOf(build));
+  const artifactChecks = artifactChecksFor(slot, build);
   const sets = activeSets(build.gear.runes.map((r) => r.set));
   // ⚠️ Plusieurs runages peuvent être recommandés (« Violent/Némésis OU
   // Violent/Vengeance ») : le slot est satisfait dès qu'**UNE SEULE**
@@ -139,10 +221,14 @@ function checkSlot(slot: RecoSlot, build: OwnedBuild | null, copies: number): Sl
     .map((opt, i) => ({ option: i, missing: missingSets(opt, sets) }))
     .sort((a, b) => a.missing.length - b.missing.length)[0];
   return {
-    status: checks.every((c) => c.ok) && best.missing.length === 0 ? 'ok' : 'ko',
+    status:
+      checks.every((c) => c.ok) && artifactChecks.every((c) => c.ok) && best.missing.length === 0
+        ? 'ok'
+        : 'ko',
     owned: build,
     copies,
     checks,
+    artifactChecks,
     ownedSets: sets,
     missingSets: best.missing,
     matchedOption: best.option,
@@ -192,8 +278,15 @@ export function matchDeck(deck: RecoDeck, ctx: MatchContext): DeckMatch {
       checkSlot(s, s.com2usId != null ? team.builds.get(s.com2usId) ?? null : null, copiesOf(s.com2usId))
     );
     const okCount = slots.filter((x) => x.status === 'ok').length;
-    // Départage fin : nombre de stats atteintes, tous slots confondus.
-    const score = okCount * 100 + slots.reduce((n, x) => n + x.checks.filter((c) => c.ok).length, 0);
+    // Départage fin : nombre de critères atteints (stats ET propriétés
+    // d'artéfact), tous slots confondus. Ignorer les artéfacts ferait retenir
+    // une équipe moins bonne quand seuls eux départagent.
+    const score =
+      okCount * 100 +
+      slots.reduce(
+        (n, x) => n + x.checks.filter((c) => c.ok).length + x.artifactChecks.filter((c) => c.ok).length,
+        0
+      );
     if (!best || score > best.score) best = { slots, okCount, team: team.label, score };
   }
 

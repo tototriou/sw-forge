@@ -3,6 +3,7 @@ import { Settings, Trash2 } from 'lucide-react';
 import { RUNE_METRICS, setRuneMetric, useRuneMetric } from '../hooks/useRuneMetric';
 import { setPersistence, storageAvailable, usePersistence } from '../hooks/usePersistence';
 import AccountFreshness from './AccountFreshness';
+import Segmented from './Segmented';
 
 /* --------------------------------------------------------------------------
  * Briques de réglage — ajouter un paramètre = ajouter un <Setting>, rien d'autre
@@ -19,40 +20,6 @@ function Setting({ title, hint, children }: { title: string; hint?: string; chil
         {children}
       </div>
       {hint && <p className="mt-1 text-[11px] text-ink-dim leading-snug">{hint}</p>}
-    </div>
-  );
-}
-
-// Contrôle générique à choix unique, réutilisable par les futurs réglages.
-function Segmented<T extends string>({
-  options,
-  value,
-  onChange,
-}: {
-  options: { key: T; label: string; hint?: string }[];
-  value: T;
-  onChange: (v: T) => void;
-}) {
-  return (
-    <div className="flex items-center gap-0.5 bg-panel2 border border-border rounded-lg p-0.5 flex-none">
-      {options.map((o) => {
-        const active = value === o.key;
-        return (
-          <button
-            key={o.key}
-            onClick={() => onChange(o.key)}
-            title={o.hint}
-            aria-pressed={active}
-            className={`rounded-md px-2 py-1 text-[11.5px] font-semibold transition whitespace-nowrap ${
-              active
-                ? 'bg-gradient-to-br from-[#3a4270] to-[#272e52] text-ink shadow'
-                : 'text-ink-dim hover:text-ink'
-            }`}
-          >
-            {o.label}
-          </button>
-        );
-      })}
     </div>
   );
 }

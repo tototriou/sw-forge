@@ -1,7 +1,7 @@
 // Mapping des codes d'effets com2us (runes, artéfacts, reliques) → libellés.
 // Aligné sur sw-exporter (app/mapping.js) et vérifié sur des exports réels.
 
-import { EffectLine, RuneDetail } from '../types';
+import { ArtifactKind, EffectLine, RuneDetail } from '../types';
 
 export type StatKey = 'hp' | 'atk' | 'def' | 'spd' | 'cr' | 'cd' | 'res' | 'acc';
 
@@ -326,6 +326,47 @@ export function formatArtifactMain(e: EffectLine): string {
 export function formatArtifactSub(e: EffectLine): string {
   const fn = ARTIFACT_SUB[e.code];
   return fn ? fn(e.value) : `#${e.code} +${e.value}`;
+}
+
+/* ---- Propriétés secondaires d'artéfact, hors de tout exemplaire ----------
+ * Une recommandation désigne une propriété SANS valeur (voir `RecoSlot.artifacts`)
+ * : il faut donc pouvoir la nommer et savoir sur quelle sorte d'artéfact elle
+ * peut tomber, sans avoir d'artéfact sous la main.
+ * ---------------------------------------------------------------------- */
+
+// Les formateurs ci-dessus intègrent la valeur ; on leur passe un JOKER plutôt
+// que de dupliquer 45 libellés dans une seconde table qui dériverait.
+//
+// ⚠️ Le « +X% » est GARDÉ tel quel. Le retirer par expression régulière cassait
+// les libellés qui portent la valeur au milieu (« Dégâts add. par X% des PV »)
+// ou qui l'annoncent (« …, jusqu'à +X% » → « …, jusqu'à »).
+export function artifactSubLabel(code: number): string {
+  const fn = ARTIFACT_SUB[code];
+  return fn ? fn('X' as unknown as number) : `#${code}`;
+}
+
+export function isArtifactSub(code: number): boolean {
+  return Number.isFinite(code) && ARTIFACT_SUB[code] != null;
+}
+
+// Sur quelle sorte d'artéfact une propriété peut-elle apparaître ? Les codes
+// sont rangés par PLAGES dans les données com2us :
+//   200-299 → les deux · 300-399 → attribut seul · 400-499 → type seul.
+// Vérifié sur 2 120 artéfacts d'un compte réel : aucune plage ne débordait.
+export function artifactSubKinds(code: number): ArtifactKind[] {
+  if (code >= 300 && code < 400) return ['element'];
+  if (code >= 400 && code < 500) return ['archetype'];
+  return ['element', 'archetype'];
+}
+
+// Propriétés proposables pour une sorte d'artéfact, dans l'ordre des codes
+// (celui du jeu : effets généraux, puis élémentaires ou par compétence).
+export function artifactSubsFor(kind: ArtifactKind): { code: number; label: string }[] {
+  return Object.keys(ARTIFACT_SUB)
+    .map(Number)
+    .filter((c) => artifactSubKinds(c).includes(kind))
+    .sort((a, b) => a - b)
+    .map((code) => ({ code, label: artifactSubLabel(code) }));
 }
 
 // Affichage de la stat principale d'une relique (en %).

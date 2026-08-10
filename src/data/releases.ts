@@ -38,6 +38,63 @@ export const CHANGE_META: Record<ChangeKind, { label: string; color: string }> =
 // Si une ligne dépasse ~15 mots, c'est qu'elle raconte l'implémentation.
 export const RELEASES: Release[] = [
   {
+    version: '1.2.4',
+    date: '2026-08-10',
+    title: 'Ta réserve de meules entre dans l’optimisation',
+    highlights: [
+      'Ne voir que les runes améliorables avec tes meules et gemmes actuelles',
+      'Les recommandations de siège acceptent des propriétés d’artéfacts',
+      'Chaque monstre fautif est nommé dans l’alerte de tick',
+    ],
+    changes: [
+      {
+        kind: 'feat',
+        scope: 'Mon compte',
+        text: 'Un bouton ne garde que les runes que tu peux améliorer tout de suite.',
+      },
+      {
+        kind: 'feat',
+        scope: 'Mon compte',
+        text: 'Chaque ligne du plan indique si tu as la meule ou la gemme qu’elle demande.',
+      },
+      {
+        kind: 'fix',
+        scope: 'Mon compte',
+        text: 'Le palier se reconvertit quand tu passes de l’efficience au score SW.',
+      },
+      {
+        kind: 'fix',
+        scope: 'Mon compte',
+        text: 'Une rune déjà meulée ne se voit plus proposer de perdre son meulage.',
+      },
+      {
+        kind: 'feat',
+        scope: 'Siège',
+        text: 'Une recommandation peut exiger des propriétés d’artéfacts, vérifiées à l’analyse.',
+      },
+      {
+        kind: 'fix',
+        scope: 'Siège',
+        text: 'L’analyse distingue un mauvais runage, un mauvais artéfact et des stats trop basses.',
+      },
+      {
+        kind: 'fix',
+        scope: 'Siège',
+        text: 'L’alerte de tick nomme chaque monstre fautif, plus seulement deux.',
+      },
+      {
+        kind: 'fix',
+        scope: 'Siège',
+        text: 'Supprimer une équipe demande confirmation.',
+      },
+      {
+        kind: 'fix',
+        scope: 'Mon compte',
+        text: 'Les artéfacts s’appellent « Attribut » et « Type », comme dans le jeu.',
+      },
+    ],
+  },
+  {
     version: '1.2.3',
     date: '2026-08-10',
     title: 'Des repères plus clairs en siège et en RTA',

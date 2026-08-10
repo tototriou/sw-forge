@@ -109,6 +109,11 @@ Concepts partagés par plusieurs pages, documentés une seule fois :
     (`<Segmented>` pour un choix unique, `<Switch>` pour un oui/non — un réglage
     binaire se lit d'un coup d'œil sur un interrupteur, sans lire les libellés).
     Ajouter un paramètre = ajouter un `<Setting>`, rien d'autre.
+  - ⚠️ `<Segmented>` a été **remonté** dans
+    [Segmented.tsx](src/components/Segmented.tsx) à son deuxième usage (filtre de
+    catégorie des artéfacts) plutôt que recopié. Il sert partout où des choix
+    **s'excluent** : une rangée de pastilles séparées se lit comme des filtres
+    cumulables, le cadre commun dit l'exclusivité sans un mot.
   - **Pas de légende** quand l'intitulé et les options se suffisent : le panneau
     reste une liste de lignes courtes. Le `hint` d'un `<Setting>` sert quand le
     réglage a une **conséquence non évidente** — « Garder mon compte » en a une
@@ -184,6 +189,12 @@ Concepts partagés par plusieurs pages, documentés une seule fois :
   **et dès que la barre ne tient plus sur une ligne** (voir « Shell applicatif »).
   Le drag & drop natif ne fonctionne pas au tactile → chaque zone drag propose
   un **sélecteur de repli** (déplacer une carte / changer une position).
+  - ⚠️ **Chantier connu, assumé** : sur petit écran, les barres de filtres et les
+    tables denses (inventaires, recommandations) tiennent mal. Une passe UI/UX
+    dédiée au responsive est prévue ; d'ici là un
+    [bandeau](src/components/MobileNotice.tsx) prévient que l'app est pensée pour
+    un grand écran. Ne pas bricoler écran par écran en attendant — les rustines
+    locales seraient à défaire.
 - **Langue** : interface 100 % française.
 
 ## Shell applicatif

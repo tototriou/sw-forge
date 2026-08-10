@@ -21,12 +21,7 @@ export default function ComingSoon({ title, icon: Icon, description }: Props) {
           <Icon size={28} className="text-ink-dim" />
         </div>
         <h2 className="font-display text-[22px] tracking-wide mb-2">Bientôt disponible</h2>
-        <p className="text-ink-dim text-[14px] max-w-md leading-relaxed">
-          Cet outil est en cours de forge. Reviens bientôt — on le remplira ensemble.
-        </p>
-        <span className="mt-6 inline-flex items-center gap-2 font-mono text-[11px] tracking-[0.18em] uppercase text-ink-dim">
-          <Hammer size={13} /> En construction
-        </span>
+        <p className="text-ink-dim text-[14px] max-w-md leading-relaxed">Cet outil est en cours de construction.</p>
       </motion.div>
     </div>
   );

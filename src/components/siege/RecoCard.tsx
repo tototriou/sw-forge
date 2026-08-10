@@ -16,12 +16,32 @@ import {
   Gauge,
 } from 'lucide-react';
 import { useEffect, useState } from 'react';
-import { LeaderSkill, Monster, Reco, RecoDeck, RECO_STATS, RecoSlot, RecoStatKey, RUNE_SETS, SiegeTeam } from '../../types';
-import { DeckMatch, RecoMatch, SlotMatch, fmtStat } from '../../lib/recoMatch';
+import {
+  ARTIFACT_KINDS,
+  ArtifactKind,
+  LeaderSkill,
+  MAX_ARTIFACT_SUBS,
+  Monster,
+  Reco,
+  RecoDeck,
+  RECO_STATS,
+  RecoSlot,
+  RecoStatKey,
+  RUNE_SETS,
+  SiegeTeam,
+} from '../../types';
+import { DeckMatch, FaultCause, RecoMatch, SlotMatch, deckFaults, fmtStat, slotFaults } from '../../lib/recoMatch';
 import { ConfirmDialog } from '../Dialogs';
 import { NOTE_MAX, DECK_NOTE_MAX } from '../../lib/recoShare';
 import { deckFromSiegeTeam } from '../../lib/recoFromSiege';
-import { setPieces, setsCost, canAddSet, MAX_SET_PIECES } from '../../lib/effects';
+import {
+  artifactSubLabel,
+  artifactSubsFor,
+  setPieces,
+  setsCost,
+  canAddSet,
+  MAX_SET_PIECES,
+} from '../../lib/effects';
 import { UseRecoState } from '../../hooks/useSiegeRecos';
 import RuneIcon from '../RuneIcon';
 import MonsterPicker from '../MonsterPicker';
@@ -407,7 +427,7 @@ export default function RecoCard({
               title={
                 offenseTeams.length === 0
                   ? "Aucune équipe d'offense : importe ton compte (barre du haut) après avoir sauvegardé tes attaques en jeu."
-                  : "Partir d'une de tes équipes d'offense (monstres, sets et stats réelles pré-remplis)"
+                  : "Partir d'une de tes équipes d'offense (monstres, sets, artéfacts et stats réels pré-remplis)"
               }
               className={`flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-[12.5px] transition
                 disabled:opacity-40 disabled:cursor-not-allowed ${
@@ -479,6 +499,9 @@ export default function RecoCard({
   );
 }
 
+// Nom de chaque sorte d'artéfact, tel que le jeu les appelle.
+const LIBELLE_KIND: Record<ArtifactKind, string> = { element: "d'attribut", archetype: 'de type' };
+
 /* ---- Rapport d'analyse -------------------------------------------------- */
 
 // Pourquoi un slot ne passe pas, en une ligne lisible.
@@ -492,22 +515,29 @@ function slotProblem(
   if (sm.status === 'absent') return `${nom} — monstre indisponible`;
 
   const bouts: string[] = [];
+  // Le runage d'abord : reruner change les stats, l'inverse n'est pas vrai.
+  if (sm.missingSets.length) bouts.push(`set ${sm.missingSets.join(' + ')} manquant`);
+  for (const c of sm.artifactChecks) {
+    if (!c.ok) bouts.push(`artéfact ${LIBELLE_KIND[c.kind]} : ${c.label} absent`);
+  }
   for (const c of sm.checks) {
     if (!c.ok && c.actual !== null) {
       bouts.push(`${c.label} ${fmtStat(c.actual)}${c.suffix} au lieu de ${fmtStat(c.required)}${c.suffix}`);
     }
   }
-  if (sm.missingSets.length) bouts.push(`set ${sm.missingSets.join(' + ')} manquant`);
   return `${nom} — ${bouts.join(' · ')}`;
 }
 
 // Verdict d'un deck qui ne passe pas. On dit toujours si c'est **faisable** ou
 // non : « à composer » (tu as les monstres) vs « impossible » (il t'en manque).
-const DECK_PROBLEM: Record<string, string> = {
-  missing: 'monstre indisponible — deck impossible',
-  nodeck: 'aucun deck avec ces monstres — tu peux le composer',
-  ko: 'stats non respectées',
-};
+// ⚠️ `ko` n'a pas de libellé fixe : la cause dépend du deck (runage, stats, ou
+// les deux) — voir `deckFault`.
+function deckProblem(dm: DeckMatch): string {
+  if (dm.status === 'missing') return 'monstre indisponible — deck impossible';
+  if (dm.status === 'nodeck') return 'aucun deck avec ces monstres — tu peux le composer';
+  if (dm.status === 'ko') return libelleCausesDeck(deckFaults(dm.slots)) || 'critères non respectés';
+  return '';
+}
 
 // Synthèse après « Analyser » : combien de decks passent, et le détail de ceux
 // qui ne passent pas. C'est le livrable de l'analyse — il reste visible même
@@ -582,7 +612,7 @@ function AnalysisSummary({
                   dm.status === 'nodeck' ? 'text-amber-400' : 'text-fire'
                 }`}
               >
-                {DECK_PROBLEM[dm.status] ?? ''}
+                {deckProblem(dm)}
               </span>
             </div>
             {/* « nodeck » : le détail par monstre n'apporte rien, il n'y a pas
@@ -903,6 +933,32 @@ function DeckBlock({
                       />
                     )}
                   </div>
+
+                  {/* Propriétés d'artéfact recommandées, EN DERNIER : c'est le
+                      critère le plus rarement renseigné, et la table de stats
+                      reste ainsi à la même hauteur d'un slot à l'autre.
+                      En lecture, le bloc disparaît si rien n'est exigé — en
+                      édition il reste, sinon il n'y aurait aucun moyen d'en
+                      ajouter. */}
+                  {editing ? (
+                    <div className="mt-2 pt-2 border-t border-border/50">
+                      <ArtifactEditor
+                        artifacts={slot.artifacts}
+                        onAdd={(kind, code) =>
+                          recos.addSlotArtifact(reco.id, deckIndex, idx, kind, code)
+                        }
+                        onRemove={(kind, code) =>
+                          recos.removeSlotArtifact(reco.id, deckIndex, idx, kind, code)
+                        }
+                      />
+                    </div>
+                  ) : (
+                    ARTIFACT_KINDS.some(({ key }) => (slot.artifacts?.[key] ?? []).length > 0) && (
+                      <div className="mt-2 pt-2 border-t border-border/50">
+                        <ArtifactList artifacts={slot.artifacts} sm={sm} />
+                      </div>
+                    )
+                  )}
                 </>
               )}
             </div>
@@ -1281,6 +1337,156 @@ function SetEditor({
   );
 }
 
+/* ---- Artéfacts ---------------------------------------------------------- */
+
+// Édition des propriétés secondaires exigées, **une liste par sorte
+// d'artéfact** (attribut, type), 4 au plus chacune — les 4 emplacements du jeu.
+//
+// ⚠️ Liste DÉROULANTE et non grille d'icônes comme les sets : il y a une
+// quarantaine de propriétés, toutes textuelles, et aucune n'a de symbole dans
+// le jeu. Une grille serait un mur de texte ; un `<select>` natif se filtre au
+// clavier et se manipule au doigt.
+//
+// ⚠️ Les propriétés déjà exigées sont retirées de la liste, et celles qui
+// n'existent pas sur cette sorte d'artéfact n'y ont jamais figuré
+// (`artifactSubsFor`) : on ne propose pas « Dégâts sur le Feu » sur un artéfact
+// de type, où il ne pourrait jamais être satisfait.
+function ArtifactEditor({
+  artifacts,
+  onAdd,
+  onRemove,
+}: {
+  artifacts: Record<ArtifactKind, number[]>;
+  onAdd: (kind: ArtifactKind, code: number) => void;
+  onRemove: (kind: ArtifactKind, code: number) => void;
+}) {
+  return (
+    <div className="space-y-1.5">
+      <span className="font-mono text-[10px] uppercase tracking-[0.1em] text-ink-dim">Artéfacts</span>
+      {ARTIFACT_KINDS.map(({ key, label }) => {
+        const choisis = artifacts?.[key] ?? [];
+        const plein = choisis.length >= MAX_ARTIFACT_SUBS;
+        const dispo = artifactSubsFor(key).filter((o) => !choisis.includes(o.code));
+        return (
+          <div key={key}>
+            <div className="flex items-center justify-between gap-2">
+              <span className="font-mono text-[10px] text-ink-dim">{label}</span>
+              <span className="font-mono text-[10px] text-ink-dim">
+                {choisis.length}/{MAX_ARTIFACT_SUBS}
+              </span>
+            </div>
+
+            {choisis.length > 0 && (
+              <div className="flex flex-wrap items-center gap-1 my-1">
+                {choisis.map((code) => (
+                  <span
+                    key={code}
+                    className="inline-flex items-center gap-1 rounded-full border border-border bg-panel pl-1.5 pr-1 py-0.5"
+                  >
+                    <span className="text-[10.5px] text-ink">{artifactSubLabel(code)}</span>
+                    <button
+                      onClick={() => onRemove(key, code)}
+                      className="text-ink-dim hover:text-fire transition"
+                      title="Retirer cette propriété"
+                    >
+                      <X size={10} />
+                    </button>
+                  </span>
+                ))}
+              </div>
+            )}
+
+            {/* `value=""` en permanence : le menu sert à AJOUTER, pas à porter
+                une sélection courante — sinon le dernier ajout resterait
+                affiché comme s'il était encore modifiable là. */}
+            <select
+              value=""
+              disabled={plein || dispo.length === 0}
+              onChange={(e) => {
+                const code = Number(e.target.value);
+                if (code) onAdd(key, code);
+              }}
+              className="mt-0.5 w-full rounded border border-border bg-panel px-1.5 py-1 text-[11px]
+                         text-ink-dim transition hover:text-ink hover:border-[#4a52a0]
+                         disabled:opacity-40 disabled:cursor-not-allowed"
+            >
+              <option value="">
+                {plein ? `Les ${MAX_ARTIFACT_SUBS} propriétés sont prises` : '+ Propriété…'}
+              </option>
+              {dispo.map((o) => (
+                <option key={o.code} value={o.code}>
+                  {o.label}
+                </option>
+              ))}
+            </select>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+// Vue : les propriétés d'artéfact exigées, marquées ✓/✗ après analyse. Rien
+// n'est affiché si aucune n'est exigée — la majorité des recommandations ne
+// portent que sur les runes et les stats, ce bloc ne doit pas les alourdir.
+function ArtifactList({
+  artifacts,
+  sm,
+}: {
+  artifacts: Record<ArtifactKind, number[]>;
+  sm: SlotMatch | null;
+}) {
+  const rien = ARTIFACT_KINDS.every(({ key }) => (artifacts?.[key] ?? []).length === 0);
+  if (rien) return null;
+  // Après analyse seulement : sans build confronté, un ✗ sur chaque ligne
+  // ferait croire à un manque alors que rien n'a été vérifié.
+  const analyse = !!sm && sm.status !== 'empty' && sm.status !== 'unknown' && !!sm.owned;
+  const etat = new Map(sm?.artifactChecks.map((c) => [`${c.kind}:${c.code}`, c.ok]) ?? []);
+
+  return (
+    <div className="space-y-1">
+      <span className="font-mono text-[10px] uppercase tracking-[0.1em] text-ink-dim">Artéfacts</span>
+      {ARTIFACT_KINDS.map(({ key, label }) => {
+        const codes = artifacts?.[key] ?? [];
+        if (codes.length === 0) return null;
+        return (
+          <div key={key} className="flex flex-wrap items-center gap-1">
+            <span className="font-mono text-[10px] text-ink-dim">{label}</span>
+            {codes.map((code) => {
+              const ok = analyse ? etat.get(`${key}:${code}`) ?? false : null;
+              return (
+                <span
+                  key={code}
+                  title={
+                    ok === null
+                      ? undefined
+                      : ok
+                        ? 'Propriété présente sur son artéfact'
+                        : `Propriété absente de l'artéfact ${LIBELLE_KIND[key]} de ton exemplaire`
+                  }
+                  className={`inline-flex items-center gap-1 rounded-full border px-1.5 py-0.5 ${
+                    ok === null
+                      ? 'border-border bg-panel'
+                      : ok
+                        ? 'border-emerald-500/50 bg-emerald-500/10'
+                        : 'border-fire/50 bg-fire/10'
+                  }`}
+                >
+                  <span className={`text-[10.5px] ${ok === false ? 'text-fire' : 'text-ink'}`}>
+                    {artifactSubLabel(code)}
+                  </span>
+                  {ok === true && <Check size={10} className="text-emerald-400" />}
+                  {ok === false && <X size={10} className="text-fire" />}
+                </span>
+              );
+            })}
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
 // Vue : les runages recommandés. Plusieurs possibilités sont séparées par
 // « ou » — **une seule suffit**. Après analyse, seule la possibilité RETENUE
 // (`matchedOption`, la plus proche d'être satisfaite) est marquée ✓/✗ ; les
@@ -1392,13 +1598,45 @@ function DeckBadge({ match }: { match: DeckMatch }) {
     nodeck: { cls: 'text-amber-400', text: 'aucun deck avec ces monstres — à composer' },
     ko: {
       cls: 'text-fire',
-      text: `stats non respectées${match.team ? ` · ${match.team}` : ''}`,
+      text: `${libelleCausesDeck(deckFaults(match.slots)) || 'critères non respectés'}${match.team ? ` · ${match.team}` : ''}`,
     },
     missing: { cls: 'text-fire', text: 'monstre indisponible — deck impossible' },
   };
   const m = map[match.status];
   if (!m) return null;
   return <span className={`font-mono text-[10.5px] ${m.cls}`}>· {m.text}</span>;
+}
+
+// Libellés courts d'une cause de rejet — voir `slotFaults` dans recoMatch.ts.
+// Les causes sont déjà rendues dans l'ordre du geste à faire (runage, artéfacts,
+// puis stats) ; il n'y a plus qu'à les joindre.
+const LIBELLE_CAUSE_SLOT: Record<FaultCause, string> = {
+  sets: 'mauvais set de runes',
+  artifacts: 'mauvaise statistique',
+  stats: 'stats insuffisantes',
+};
+
+// ⚠️ Côté deck, un NOM suivi de « à revoir » plutôt que « non respecté(e)s » :
+// la formule est invariable, donc elle se combine sans accord — « runage,
+// artéfacts et stats à revoir » se construit tout seul, quel que soit le
+// nombre de causes.
+const NOM_CAUSE_DECK: Record<FaultCause, string> = {
+  sets: 'runage',
+  artifacts: 'artéfacts',
+  stats: 'stats',
+};
+
+function enumerer(morceaux: string[]): string {
+  if (morceaux.length <= 1) return morceaux[0] ?? '';
+  return `${morceaux.slice(0, -1).join(', ')} et ${morceaux[morceaux.length - 1]}`;
+}
+
+function libelleCausesSlot(causes: FaultCause[]): string {
+  return causes.map((c) => LIBELLE_CAUSE_SLOT[c]).join(' · ');
+}
+
+function libelleCausesDeck(causes: FaultCause[]): string {
+  return causes.length ? `${enumerer(causes.map((c) => NOM_CAUSE_DECK[c]))} à revoir` : '';
 }
 
 // Badge sous le nom du monstre : possédé ? au niveau ? et d'après quel build
@@ -1418,7 +1656,7 @@ function SlotBadge({ sm }: { sm: SlotMatch }) {
   if (sm.status === 'ko')
     return (
       <div className="font-mono text-[10px] text-fire" title={`Deck retenu : ${sm.owned?.label}`}>
-        stats insuffisantes
+        {libelleCausesSlot(slotFaults(sm)) || 'critères non respectés'}
       </div>
     );
   return null;

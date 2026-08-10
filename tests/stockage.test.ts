@@ -16,7 +16,13 @@ export default async function testStockage() {
   const data = parseAccountSource(exportSynthetique())!;
   const box = parseAccountBox(data).monsters;
   const inv = parseAccountInventory(data);
-  const compte = { box, runes: inv.runes, artifacts: inv.artifacts, exportedAt: 1786261890000 };
+  const compte = {
+    box,
+    runes: inv.runes,
+    artifacts: inv.artifacts,
+    crafts: inv.crafts,
+    exportedAt: 1786261890000,
+  };
 
   egal(await loadAccount(), null, 'base vide → rien à charger');
 
@@ -78,7 +84,7 @@ export default async function testStockage() {
   // ⚠️ Sans ce rejet, un compte enregistré sous un ancien schéma donnerait des
   // chiffres incomplets EN SILENCE — le pire mode de défaillance pour un outil
   // de calcul.
-  await ecrireBrut({ schema: 99, savedAt: 1, exportedAt: null, box: [], runes: [], artifacts: [] });
+  await ecrireBrut({ schema: 99, savedAt: 1, exportedAt: null, box: [], runes: [], artifacts: [], crafts: [] });
   egal(await loadAccount(), null, 'schéma périmé → ignoré');
 
   await ecrireBrut({ schema: ACCOUNT_SCHEMA, savedAt: 1, box: 'pas un tableau' });

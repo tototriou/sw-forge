@@ -6,6 +6,7 @@ import { SiegeSide, UseSiegeState } from '../../hooks/useSiegeState';
 import { useStickyState } from '../../hooks/useStickyState';
 import SiegeTeam from './SiegeTeam';
 import CreateMonster from '../CreateMonster';
+import { ConfirmDialog } from '../Dialogs';
 import { CustomLead } from '../../hooks/useCustomMonsters';
 
 interface Props {
@@ -48,6 +49,7 @@ export default function SiegeBoard({
 
   // Scroll automatique vers l'équipe qu'on vient d'ajouter (rendue en dernier).
   const [scrollToLast, setScrollToLast] = useState(false);
+  const [effacementAConfirmer, setEffacementAConfirmer] = useState(false);
   const lastTeamRef = useRef<HTMLDivElement>(null);
   useEffect(() => {
     if (!scrollToLast) return;
@@ -106,15 +108,27 @@ export default function SiegeBoard({
         </span>
         {siege.state.teams.length > 0 && (
           <button
-            onClick={() => {
-              if (confirm(`Effacer toutes les équipes d'${noun} de siège ?`)) siege.clearAll();
-            }}
+            onClick={() => setEffacementAConfirmer(true)}
             className="ml-auto flex items-center gap-1.5 text-[12px] text-ink-dim hover:text-fire transition"
           >
             <Trash2 size={13} /> Tout effacer
           </button>
         )}
       </div>
+
+      {effacementAConfirmer && (
+        <ConfirmDialog
+          titre={`Effacer toutes les équipes d'${noun} ?`}
+          message="Toutes les équipes de ce côté seront supprimées, avec leurs monstres et leurs vitesses. L'autre côté n'est pas touché."
+          libelleAction="Tout effacer"
+          destructif
+          onCancel={() => setEffacementAConfirmer(false)}
+          onConfirm={() => {
+            setEffacementAConfirmer(false);
+            siege.clearAll();
+          }}
+        />
+      )}
 
       {loadState === 'loading' && monsters.length === 0 && (
         <p className="mt-4 text-ink-dim text-[13px]">Chargement des monstres…</p>

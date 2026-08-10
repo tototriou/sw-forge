@@ -38,8 +38,8 @@ besoin, un import couvre déjà toutes les pages. Rien n'est persisté sur le di
 **« L'import va remplacer toutes les données présentes. Es-tu sûr ? »** Un import
 **remplace** toujours la prépa RTA, les équipes de siège et la box.
 
-⚠️ Elle est posée **avant** l'écran d'attente : une boîte native par-dessus un
-spinner donne l'impression que le traitement a planté.
+Un import complet prend une vingtaine de millisecondes depuis le passage au parse
+unique : **pas d'écran d'attente**, il n'aurait fait que clignoter.
 
 > ⚠️ **Ne jamais proposer de « fusionner » ici.** L'ancien dialogue disait
 > « OK = remplacer · Annuler = fusionner » : celui qui voulait **annuler** son
@@ -310,7 +310,7 @@ des clics). Deux conséquences voulues :
 > n'ouvre.
 
 La question est donc posée **à la fin du premier import**
-([ImportOverlay.tsx](src/components/ImportOverlay.tsx) → `KeepAccountDialog`),
+([Dialogs.tsx](src/components/Dialogs.tsx) → `KeepAccountDialog`),
 quand l'utilisateur vient de voir ses données arriver.
 
 Trois éléments du texte à ne jamais retirer :
@@ -355,16 +355,6 @@ Le réglage ⚙ reste le point de changement d'avis :
   le compte sur le disque serait un mensonge.
 - Stockage indisponible → l'interrupteur est **grisé**, il dit pourquoi, et la
   question n'est pas posée à l'import.
-
-### Attente pendant le traitement
-
-⚠️ Un export de 5 à 8 Mo **bloque le thread principal** le temps du parse et du
-mapping. Sans repère visuel l'app paraît figée, on reclique, et tout repart.
-`ImportSpinner` couvre l'écran pendant l'opération.
-
-L'import est `async` **uniquement pour ça** : sans une respiration de deux frames
-avant le travail, React n'a jamais l'occasion de peindre l'attente. Une seule
-frame ne suffit pas — le DOM peut être commité sans être peint.
 
 ### Cycle de vie dans [App.tsx](src/App.tsx)
 

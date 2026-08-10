@@ -5,6 +5,7 @@ import { BoxItem } from '../lib/applyAccount';
 import { ELEMENTS, ElementKey, Monster, RuneDetail, ArtifactDetail } from '../types';
 import { LoadState } from '../hooks/useMonsters';
 import ElementIcon from '../components/ElementIcon';
+import { ELEMENT_FILTER_STYLES } from '../components/elementStyles';
 import RunesSection from '../components/account/RunesSection';
 import ArtifactsSection from '../components/account/ArtifactsSection';
 import { useStickyState } from '../hooks/useStickyState';
@@ -23,14 +24,6 @@ interface Props {
 }
 
 // Styles de chips d'élément (repris de FilterBar pour rester cohérent).
-const ELEMENT_STYLES: Record<ElementKey, string> = {
-  fire: 'border-fire text-fire',
-  water: 'border-water text-water',
-  wind: 'border-wind text-wind',
-  light: 'border-light text-light',
-  dark: 'border-dark text-dark',
-  unknown: 'border-unknown text-unknown',
-};
 
 const TEXT: Record<string, string> = {
   fire: 'text-fire',
@@ -191,10 +184,11 @@ function MonsterBoxSection({ box }: { box: BoxItem[] }) {
             return (
               <button
                 key={el.key}
+                data-active={active}
                 onClick={() => toggleElement(el.key)}
                 className={`flex items-center gap-1.5 rounded-full border bg-panel px-3 py-1 text-[12.5px] font-semibold
-                  transition select-none ${ELEMENT_STYLES[el.key]}
-                  ${active ? 'bg-panel2 shadow' : 'opacity-70 hover:opacity-100'}`}
+                  transition select-none ${ELEMENT_FILTER_STYLES[el.key]}
+                  ${active ? 'shadow' : 'opacity-70 hover:opacity-100'}`}
               >
                 <ElementIcon element={el.key} size={15} />
                 {el.label}
@@ -203,7 +197,12 @@ function MonsterBoxSection({ box }: { box: BoxItem[] }) {
           })}
         </div>
 
-        {/* Filtre rareté naturelle + doublons + 2A */}
+        {/* Filtre rareté naturelle + doublons + 2A.
+            ⚠️ **Un seul style actif pour toute la rangée** — le jaune des
+            étoiles. Chaque bouton avait le sien (bleu-violet pour Doublons,
+            doré sombre pour 2A) : trois surbrillances différentes dans une même
+            rangée se lisent comme trois natures de filtre différentes, alors
+            qu'ils font tous la même chose. */}
         <div className="flex flex-wrap items-center gap-2">
           <span className="font-mono text-[11px] tracking-[0.1em] uppercase text-ink-dim mr-1">Nat</span>
           {[5, 4, 3, 2].map((s) => {
@@ -228,7 +227,7 @@ function MonsterBoxSection({ box }: { box: BoxItem[] }) {
             className={`ml-1 flex items-center gap-1.5 rounded-full border px-3 py-1 text-[12.5px] font-semibold transition select-none
               ${
                 dupesOnly
-                  ? 'bg-[#2b3170] border-[#4a52a0] text-ink shadow'
+                  ? 'bg-gradient-to-br from-star to-yellow-200 text-bg border-star shadow'
                   : 'bg-panel border-border text-ink-dim hover:text-ink hover:border-[#4a52a0]'
               }`}
           >
@@ -239,7 +238,7 @@ function MonsterBoxSection({ box }: { box: BoxItem[] }) {
             className={`flex items-center gap-1.5 rounded-full border px-3 py-1 text-[12.5px] font-semibold transition select-none
               ${
                 secondOnly
-                  ? 'bg-[#5a3a12] border-star text-star shadow'
+                  ? 'bg-gradient-to-br from-star to-yellow-200 text-bg border-star shadow'
                   : 'bg-panel border-border text-ink-dim hover:text-ink hover:border-[#4a52a0]'
               }`}
             title="Monstres à second éveil (double éveil)"

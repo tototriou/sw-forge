@@ -1,14 +1,7 @@
 import { ELEMENTS, STAR_OPTIONS, ElementKey } from '../types';
 import ElementIcon from './ElementIcon';
+import { ELEMENT_FILTER_STYLES } from './elementStyles';
 
-const ELEMENT_STYLES: Record<ElementKey, string> = {
-  fire: 'border-fire text-fire data-[active=true]:bg-gradient-to-br data-[active=true]:from-fire data-[active=true]:to-fire-glow',
-  water: 'border-water text-water data-[active=true]:bg-gradient-to-br data-[active=true]:from-water data-[active=true]:to-water-glow',
-  wind: 'border-wind text-wind data-[active=true]:bg-gradient-to-br data-[active=true]:from-wind data-[active=true]:to-wind-glow',
-  light: 'border-light text-light data-[active=true]:bg-gradient-to-br data-[active=true]:from-light data-[active=true]:to-light-glow',
-  dark: 'border-dark text-dark data-[active=true]:bg-gradient-to-br data-[active=true]:from-dark data-[active=true]:to-dark-glow',
-  unknown: 'border-unknown text-unknown data-[active=true]:bg-gradient-to-br data-[active=true]:from-unknown data-[active=true]:to-unknown-glow',
-};
 
 interface Props {
   activeElements: Set<ElementKey>;
@@ -41,8 +34,8 @@ export default function FilterBar({
               data-active={active}
               onClick={() => toggleElement(el.key)}
               className={`flex items-center gap-1.5 rounded-full border bg-panel px-3.5 py-1.5 text-[13px] font-semibold
-                transition select-none ${ELEMENT_STYLES[el.key]}
-                ${active ? 'text-bg shadow-lg' : 'hover:text-ink'}`}
+                transition select-none ${ELEMENT_FILTER_STYLES[el.key]}
+                ${active ? 'shadow' : 'opacity-70 hover:opacity-100'}`}
             >
               <ElementIcon element={el.key} size={16} />
               {el.label}

@@ -24,7 +24,7 @@ Fichiers : [RtaPage.tsx](src/pages/RtaPage.tsx) ·
 - **Compteur** : « N monstre(s) en prépa ».
 - **Créer un monstre** : composant `CreateMonster` (voir ci-dessous). Le monstre
   créé est **ajouté directement en « Non classé »** (`handleCreateMonster`).
-- **Tout effacer** (si ≥ 1 monstre) : `confirm` → `clearAll()` (réinitialise
+- **Tout effacer** (si ≥ 1 monstre) : modale de confirmation → `clearAll()` (réinitialise
   sections + entrées).
 
 > L'**import de compte n'est plus sur la page RTA** : il est global (barre de
@@ -54,5 +54,5 @@ Popup partagée RTA/Siège. Détail complet dans
 
 - Un monstre déjà en prépa ne peut pas être réajouté (idempotent).
 - L'import ne duplique pas : dédup par monstre, meilleur build conservé, choix
-  confirmation unique (importer / ne rien faire) si une prépa existe déjà ; l'import remplace.
+  confirmation unique (modale de la page) si une prépa existe déjà ; l'import remplace.
 - Réimporter le même fichier est possible (l'input est reset après lecture).

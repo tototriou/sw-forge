@@ -7,6 +7,7 @@ import { useStickyState } from '../../hooks/useStickyState';
 import { teamSummary, isTeamUsable } from '../../lib/recoFromSiege';
 import { encodeRecosJson, validateRecosImport, ImportReport, slugify } from '../../lib/recoShare';
 import { matchReco, RecoMatch } from '../../lib/recoMatch';
+import { ConfirmDialog } from '../Dialogs';
 import { OwnedBuild, OwnedTeam, indexBuildsByCom2us } from '../../lib/ownedBuilds';
 import RecoCard from './RecoCard';
 
@@ -55,6 +56,7 @@ export default function RecoBoard({ recos, monsters, builds, teams, offense }: P
 
   // Scroll vers la recommandation qu'on vient de créer (comme les équipes).
   const [scrollToLast, setScrollToLast] = useState(false);
+  const [effacementAConfirmer, setEffacementAConfirmer] = useState(false);
   const lastRef = useRef<HTMLDivElement>(null);
   useEffect(() => {
     if (!scrollToLast) return;
@@ -237,16 +239,27 @@ export default function RecoBoard({ recos, monsters, builds, teams, offense }: P
 
         {all.length > 0 && (
           <button
-            onClick={() => {
-              if (confirm('Effacer TOUTES les recommandations (les tiennes et les importées) ?'))
-                recos.clearAll();
-            }}
+            onClick={() => setEffacementAConfirmer(true)}
             className="ml-auto flex items-center gap-1.5 text-[12px] text-ink-dim hover:text-fire transition"
           >
             <Trash2 size={13} /> Tout effacer
           </button>
         )}
       </div>
+
+      {effacementAConfirmer && (
+        <ConfirmDialog
+          titre="Effacer toutes les recommandations ?"
+          message="Les tiennes comme celles que tu as importées seront supprimées, avec tous leurs decks. Tes équipes de siège ne sont pas touchées."
+          libelleAction="Tout effacer"
+          destructif
+          onCancel={() => setEffacementAConfirmer(false)}
+          onConfirm={() => {
+            setEffacementAConfirmer(false);
+            recos.clearAll();
+          }}
+        />
+      )}
 
       {/* Filtre d'origine : n'apparaît que s'il y a quelque chose à trier */}
       {all.length > 0 && (

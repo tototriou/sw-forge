@@ -25,6 +25,7 @@ import AccountPage from './pages/AccountPage';
 import ComingSoon from './pages/ComingSoon';
 import AccountImportControl from './components/AccountImportControl';
 import SettingsMenu from './components/SettingsMenu';
+import MobileNotice from './components/MobileNotice';
 import { loadAccount, saveAccount } from './lib/accountStore';
 import {
   dialogueMasque,
@@ -34,7 +35,7 @@ import {
   setPersistence,
   storageAvailable,
 } from './hooks/usePersistence';
-import { ImportSpinner, KeepAccountDialog } from './components/ImportOverlay';
+import { ConfirmDialog, KeepAccountDialog } from './components/Dialogs';
 import GameIcon, { GameIconKey } from './components/GameIcon';
 import { ArtifactDetail, Monster, RuneDetail } from './types';
 import { useMonsters } from './hooks/useMonsters';
@@ -56,15 +57,6 @@ import {
 import { mapRtaItems, mapSiegeTeams, mapBoxMonsters, BoxItem } from './lib/applyAccount';
 
 const DISCORD_INVITE = 'https://discord.gg/R2Fe4GJZET';
-
-// Deux frames : la première monte le spinner, la seconde garantit qu'il est
-// PEINT avant qu'on bloque le thread. Une seule ne suffit pas — React peut
-// encore n'avoir que commité le DOM.
-function deuxFrames(): Promise<void> {
-  return new Promise((resolve) =>
-    requestAnimationFrame(() => requestAnimationFrame(() => resolve()))
-  );
-}
 
 type Route = 'home' | 'bestiary' | 'rta' | 'siege' | 'arene' | 'mecaniques' | 'compte' | 'releases';
 export type AccountSub = 'monstres' | 'runes' | 'artefacts';
@@ -164,8 +156,13 @@ export default function App() {
   const [accountOpen, setAccountOpen] = useState(false);
   const accountRef = useRef<HTMLDivElement>(null);
   const [importMsg, setImportMsg] = useState<{ ok: boolean; text: string } | null>(null);
-  const [importing, setImporting] = useState(false);
   const [askKeep, setAskKeep] = useState(false);
+  // Fichier déposé, en attente de confirmation de remplacement.
+  const [importEnAttente, setImportEnAttente] = useState<string | null>(null);
+  // Confirmations à l'écran : purge globale (⚙), et refus de conservation alors
+  // qu'on conservait déjà (la valeur portée est « ne plus me montrer »).
+  const [purgeGlobale, setPurgeGlobale] = useState(false);
+  const [purgeApresRefus, setPurgeApresRefus] = useState<boolean | null>(null);
 
   // Barre du haut : si la rangée complète (onglets + import + réglages) ne tient
   // pas sur UNE ligne, on bascule sur le menu hamburger plutôt que de laisser
@@ -250,44 +247,28 @@ export default function App() {
 
   // Import GLOBAL : un seul fichier alimente RTA + siège défense + siège offense.
   //
-  // ⚠️ **Asynchrone uniquement pour laisser le spinner s'afficher.** Le parse et
-  // le mapping d'un export de 8 Mo bloquent le thread principal : sans une
-  // respiration avant, React n'a jamais l'occasion de peindre l'attente et l'app
-  // paraît figée — on reclique, et tout repart.
-  async function importAccount(text: string) {
-    // ⚠️ La confirmation vient AVANT le spinner : une boîte native par-dessus un
-    // écran d'attente donne l'impression que le traitement a planté.
-    //
-    // ⚠️ « Annuler » ANNULE L'IMPORT — il ne doit surtout pas déclencher une
-    // fusion : c'était le cas, et fusionner des équipes de siège les DÉDOUBLAIT
-    // (un compte à 50 attaques repartait à 100). Un import de compte est un
-    // rafraîchissement de l'état du jeu, jamais un ajout.
+  // ⚠️ Si des données existent déjà, on demande confirmation AVANT d'appliquer
+  // quoi que ce soit — dans une modale de la page (`ReplaceImportDialog`), pas
+  // dans un `confirm()` du navigateur. Le fichier attend dans `importEnAttente`
+  // le temps de la réponse.
+  //
+  // ⚠️ « Annuler » ANNULE L'IMPORT — il ne doit surtout pas déclencher une
+  // fusion : c'était le cas, et fusionner des équipes de siège les DÉDOUBLAIT
+  // (un compte à 50 attaques repartait à 100). Un import de compte est un
+  // rafraîchissement de l'état du jeu, jamais un ajout.
+  function importAccount(text: string) {
     const aDejaDesDonnees =
       Object.keys(rta.state.entries).length > 0 ||
       siegeDef.state.teams.length > 0 ||
       siegeOff.state.teams.length > 0;
-    if (
-      aDejaDesDonnees &&
-      !confirm("L'import va remplacer toutes les données présentes.\n\nEs-tu sûr ?")
-    )
+    if (aDejaDesDonnees) {
+      setImportEnAttente(text);
       return;
-
-    setImporting(true);
-    await deuxFrames();
-    try {
-      await appliquerImport(text);
-    } finally {
-      setImporting(false);
     }
-    // La question de la conservation se pose ICI, une fois les données à l'écran
-    // — pas dans un menu que personne n'ouvre (voir usePersistence). Elle revient
-    // à CHAQUE import tant que « ne plus me montrer » n'est pas coché : le
-    // contexte peut changer entre deux fichiers (poste partagé, ordinateur d'un
-    // ami), et un choix pris une fois pour toutes ne le rattraperait jamais.
-    if (!dialogueMasque() && storageAvailable()) setAskKeep(true);
+    appliquerImport(text);
   }
 
-  async function appliquerImport(text: string) {
+  function appliquerImport(text: string) {
     // ⚠️ Parser UNE fois et passer l'objet aux cinq extracteurs : chacun
     // reparsait le fichier de son côté, soit cinq JSON.parse d'un export de
     // 8 Mo. Les index internes (runes, unités, artéfacts) sont mémoïsés sur cet
@@ -297,6 +278,7 @@ export default function App() {
       setImportMsg({ ok: false, text: 'Fichier JSON illisible.' });
       return;
     }
+
     const exporte = parseAccountExportDate(data);
     const rtaRes = parseAccountJson(data);
     const defRes = parseSiegeDefense(data);
@@ -363,6 +345,16 @@ export default function App() {
         (missing > 0 ? ` · ${missing} monstre(s) introuvable(s), à créer à la main` : '') +
         '.',
     });
+
+    // La question de la conservation se pose ICI, une fois les données à l'écran
+    // — pas dans un menu que personne n'ouvre (voir usePersistence). Elle revient
+    // à CHAQUE import tant que « ne plus me montrer » n'est pas coché : le
+    // contexte peut changer entre deux fichiers (poste partagé, ordinateur d'un
+    // ami), et un choix pris une fois pour toutes ne le rattraperait jamais.
+    //
+    // ⚠️ **Après le succès seulement.** Proposer de conserver des données
+    // qu'on vient d'échouer à lire n'aurait aucun sens.
+    if (!dialogueMasque() && storageAvailable()) setAskKeep(true);
   }
 
   // Réponse à la fenêtre de choix. `null` = fermée sans répondre : on
@@ -373,19 +365,22 @@ export default function App() {
 
     // ⚠️ Refuser alors qu'on conservait déjà **efface tout l'existant** — prépa
     // RTA, équipes, recommandations. La fenêtre revenant à chaque import, un clic
-    // machinal ne doit pas coûter des mois de travail. Le défaut de cette
-    // confirmation est donc de NE RIEN PERDRE : « Annuler » garde tout.
+    // machinal ne doit pas coûter des mois de travail : on repasse par une
+    // confirmation, dont le défaut est de NE RIEN PERDRE.
     if (!keep && persistenceEnabled()) {
-      const ok = confirm(
-        'Ne plus rien garder effacera ce qui est déjà enregistré sur cet appareil :\n' +
-          'prépa RTA, équipes de siège, recommandations et compte importé.\n\n' +
-          'OK = tout effacer · Annuler = continuer à conserver'
-      );
-      if (!ok) return; // on ne touche à rien, pas même à la case cochée
+      setPurgeApresRefus(nePlusMontrer);
+      return;
     }
 
     setDialogueMasque(nePlusMontrer);
     setPersistence(keep, persistCurrentAccount);
+  }
+
+  // Refus confirmé : on efface pour de bon.
+  function confirmerRefusConservation(nePlusMontrer: boolean) {
+    setPurgeApresRefus(null);
+    setDialogueMasque(nePlusMontrer);
+    setPersistence(false, persistCurrentAccount);
   }
 
   // Efface toutes les données locales (prépa RTA, équipes de siège,
@@ -395,12 +390,7 @@ export default function App() {
   // Sans l'attente, la page repart pendant la transaction et le compte pourrait
   // survivre à une action annoncée comme irréversible.
   async function clearAllData() {
-    if (
-      !confirm(
-        'Supprimer toutes tes données locales (prépa RTA, équipes de siège, recommandations, monstres perso) ?\n\nLe compte conservé sur cet appareil est effacé lui aussi.\n\nCette action est irréversible.'
-      )
-    )
-      return;
+    setPurgeGlobale(false);
     await purgeDonneesConservees();
     location.reload();
   }
@@ -483,7 +473,7 @@ export default function App() {
             <div className="flex items-center gap-1.5">
               <SettingsMenu
                 variant="bar"
-                onClearData={clearAllData}
+                onClearData={() => setPurgeGlobale(true)}
                 onKeepAccount={persistCurrentAccount}
                 accountExportedAt={accountExportedAt}
               />
@@ -685,7 +675,7 @@ export default function App() {
               <AccountImportControl onImport={importAccount} variant="desktop" />
             )}
             <SettingsMenu
-              onClearData={clearAllData}
+              onClearData={() => setPurgeGlobale(true)}
               onKeepAccount={persistCurrentAccount}
               accountExportedAt={accountExportedAt}
             />
@@ -693,6 +683,10 @@ export default function App() {
             </>
           )}
         </div>
+
+        {/* Avertissement petit écran : au-dessus du contenu, avant qu'on se soit
+            fait une idée sur un affichage à l'étroit. */}
+        <MobileNotice />
 
         {/* Message d'import global */}
         {importMsg && (
@@ -800,11 +794,46 @@ export default function App() {
           </p>
         </footer>
 
-        {/* Attente pendant le traitement, puis la question de la conservation.
-            Les deux sont modales : l'une parce que rien d'autre n'est possible,
-            l'autre parce que la réponse conditionne ce qui sera gardé. */}
-        {importing && <ImportSpinner />}
-        {askKeep && !importing && (
+        {importEnAttente !== null && (
+          <ConfirmDialog
+            titre="Remplacer les données présentes ?"
+            message="Cet import va remplacer ta prépa RTA, tes équipes de siège et ta box par le contenu du fichier. Tes recommandations enregistrées ne sont pas touchées."
+            libelleAction="Remplacer"
+            destructif
+            onCancel={() => setImportEnAttente(null)}
+            onConfirm={() => {
+              const texte = importEnAttente;
+              setImportEnAttente(null);
+              appliquerImport(texte);
+            }}
+          />
+        )}
+
+        {purgeGlobale && (
+          <ConfirmDialog
+            titre="Supprimer toutes tes données ?"
+            message="Prépa RTA, équipes de siège, recommandations, monstres perso et compte importé seront effacés de cet appareil. Cette action est irréversible."
+            libelleAction="Tout supprimer"
+            destructif
+            onCancel={() => setPurgeGlobale(false)}
+            onConfirm={clearAllData}
+          />
+        )}
+
+        {purgeApresRefus !== null && (
+          <ConfirmDialog
+            titre="Ne plus rien garder ?"
+            message="Ce qui est déjà enregistré sur cet appareil sera effacé : prépa RTA, équipes de siège, recommandations et compte importé."
+            libelleAction="Tout effacer"
+            destructif
+            onCancel={() => setPurgeApresRefus(null)}
+            onConfirm={() => confirmerRefusConservation(purgeApresRefus)}
+          />
+        )}
+
+        {/* La question de la conservation, modale : la réponse conditionne ce
+            qui sera gardé. */}
+        {askKeep && !importEnAttente && (
           <KeepAccountDialog
             onChoose={(keep, nePlusMontrer) => repondreConservation(keep, nePlusMontrer)}
             onDismiss={() => repondreConservation(null)}

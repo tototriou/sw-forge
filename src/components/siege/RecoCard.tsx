@@ -18,6 +18,7 @@ import {
 import { useEffect, useState } from 'react';
 import { LeaderSkill, Monster, Reco, RecoDeck, RECO_STATS, RecoSlot, RecoStatKey, RUNE_SETS, SiegeTeam } from '../../types';
 import { DeckMatch, RecoMatch, SlotMatch, fmtStat } from '../../lib/recoMatch';
+import { ConfirmDialog } from '../Dialogs';
 import { NOTE_MAX, DECK_NOTE_MAX } from '../../lib/recoShare';
 import { deckFromSiegeTeam } from '../../lib/recoFromSiege';
 import { setPieces, setsCost, canAddSet, MAX_SET_PIECES } from '../../lib/effects';
@@ -157,6 +158,7 @@ export default function RecoCard({
   // celui qui nous intéresse. Réinitialisé si le nombre de decks change (les
   // index se décalent à l'ajout/suppression).
   const [openDecks, setOpenDecks] = useState<Set<number>>(new Set());
+  const [suppressionAConfirmer, setSuppressionAConfirmer] = useState(false);
   const deckCount = reco.decks.length;
   useEffect(() => {
     setOpenDecks(new Set());
@@ -263,9 +265,7 @@ export default function RecoCard({
             {editing ? <Check size={14} /> : <Pencil size={13} />}
           </button>
           <button
-            onClick={() => {
-              if (confirm('Supprimer cette recommandation et tous ses decks ?')) recos.removeReco(reco.id);
-            }}
+            onClick={() => setSuppressionAConfirmer(true)}
             className="flex items-center justify-center w-6 h-6 text-ink-dim hover:text-fire transition"
             title="Supprimer cette recommandation"
             aria-label="Supprimer cette recommandation"
@@ -274,6 +274,20 @@ export default function RecoCard({
           </button>
         </div>
       </div>
+
+      {suppressionAConfirmer && (
+        <ConfirmDialog
+          titre="Supprimer cette recommandation ?"
+          message="Elle sera retirée avec tous ses decks et ses consignes."
+          libelleAction="Supprimer"
+          destructif
+          onCancel={() => setSuppressionAConfirmer(false)}
+          onConfirm={() => {
+            setSuppressionAConfirmer(false);
+            recos.removeReco(reco.id);
+          }}
+        />
+      )}
 
       {editing && (
         <div className="flex flex-col gap-2 mb-3">
@@ -639,6 +653,8 @@ function DeckBlock({
   onToggleFold: () => void;
   recos: UseRecoState;
 }) {
+  const [deckAConfirmer, setDeckAConfirmer] = useState(false);
+
   // Un monstre ne peut pas occuper deux slots du MÊME deck (il peut revenir
   // dans un autre deck de la recommandation).
   const usedIds = new Set(
@@ -726,9 +742,7 @@ function DeckBlock({
           </button>
           {editing && (
             <button
-              onClick={() => {
-                if (confirm('Supprimer ce deck ?')) recos.removeDeck(reco.id, deckIndex);
-              }}
+              onClick={() => setDeckAConfirmer(true)}
               className="flex items-center justify-center w-6 h-6 text-ink-dim hover:text-fire transition"
               title="Supprimer ce deck"
               aria-label="Supprimer ce deck"
@@ -738,6 +752,20 @@ function DeckBlock({
           )}
         </div>
       </div>
+
+      {deckAConfirmer && (
+        <ConfirmDialog
+          titre="Supprimer ce deck ?"
+          message="Ses trois slots et ses consignes seront perdus. Les autres decks de la recommandation restent en place."
+          libelleAction="Supprimer"
+          destructif
+          onCancel={() => setDeckAConfirmer(false)}
+          onConfirm={() => {
+            setDeckAConfirmer(false);
+            recos.removeDeck(reco.id, deckIndex);
+          }}
+        />
+      )}
 
       {!folded && (
       <>

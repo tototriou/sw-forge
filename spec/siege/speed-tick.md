@@ -71,14 +71,52 @@ par équipe (aura = bordure + halo, + point dans l'en-tête) :
 | Statut | Couleur | Condition | Message sous les monstres |
 |--------|---------|-----------|---------------------------|
 | Orange | `amber` | Équipe avec **≥1 Swift** (pas de tick à viser) | « Vérifier le speed tuning » |
-| Rouge | `fire` | (Sans Swift) un monstre **pas au tick** (anneau rouge sur le slot fautif) | « Ton équipe n'est pas au tick. » |
-| Vert | `emerald` | (Sans Swift) **tous au tick**, **ou** équipe validée | — |
+| Rouge | `fire` | (Sans Swift) un monstre **pas au tick** (anneau rouge sur le slot fautif) | « Ton équipe n'est pas au tick. », ou le message de dépassement ci-dessous |
+| Vert | `emerald` | (Sans Swift) **tous au tick**, **ou** recommandation ignorée | — |
 | — | neutre | **Mode vérification désactivé**, équipe vide **ou avec Leo** | — |
 
-**Bouton « Valider l'équipe »** (sur orange/rouge) → `dismissTickAlert(teamId, true)` :
-l'équipe passe au **vert** (validée, `SiegeTeam.tickAlertDismissed`). Validation
-**réinitialisée automatiquement** dès qu'un slot change (rune, monstre, position…).
-Une équipe validée affiche un lien « ✓ validée · annuler ».
+**Bouton « Ignorer la recommandation »** (sur orange/rouge) →
+`dismissTickAlert(teamId, true)` : l'équipe passe au **vert**
+(`SiegeTeam.tickAlertDismissed`), et affiche « ✓ Recommandation ignorée ·
+rétablir ». **Réinitialisé automatiquement** dès qu'un slot change (rune,
+monstre, position…) : le conseil écarté portait sur l'ancienne composition.
+
+> ⚠️ **Le libellé dit « ignorer », pas « valider ».** L'app n'a aucun moyen de
+> savoir si un tune est bon — elle constate seulement qu'il s'écarte des ticks
+> connus. « Valider l'équipe » laissait croire à une approbation de l'outil,
+> alors que c'est l'utilisateur qui écarte un conseil et en assume la
+> responsabilité. Le vert qui suit ne dit pas « c'est juste », il dit « tu as
+> tranché ».
+
+### ⚠️ Le message dit dans quel SENS corriger
+
+`tickTeamMessage` ([speed.ts](src/lib/speed.ts)) — logique de tick, pas
+d'affichage, et vérifiée à ce titre dans [tests/](tests/vitesse.test.ts).
+
+« Ton équipe n'est pas au tick » décrivait le symptôme sans dire s'il faut
+**accélérer** ou **libérer de la vitesse** pour la mettre ailleurs. Les deux
+situations se réparent à l'opposé l'une de l'autre.
+
+| Situation des monstres fautifs | Message |
+|---|---|
+| Tous **sous** un même tick | « Ton équipe est trop lente pour le tick 286. » |
+| Tous **au-dessus** de 239 | « Ton équipe est trop rapide par rapport au tick 239, ou trop lente pour le tick 286. » |
+| Tous au-dessus de **286** (le plus haut) | « Ton équipe est trop rapide par rapport au tick 286. » |
+| Au-dessus de **ticks différents** | « Ton équipe est trop rapide par rapport aux ticks. » |
+| Un dessous **et** un dessus | « Ton équipe n'est pas au tick : un monstre est en dessous, un autre au-dessus. » |
+
+> ⚠️ **Nommer les deux ticks n'est pas du bavardage.** Ne citer que le tick
+> franchi laisse croire qu'il faut ralentir, alors qu'**accélérer jusqu'au tick
+> du dessus** est souvent le bon geste. L'app ne peut pas trancher à la place du
+> joueur : elle lui donne les bornes.
+>
+> ⚠️ **Aucun décompte de points manquants** : le détail par monstre est déjà
+> lisible sur les cartes, et une phrase courte se lit d'un coup d'œil.
+>
+> ⚠️ **Aucun nom de monstre** : le slot fautif porte déjà un anneau rouge.
+>
+> Quand **plusieurs ticks** sont en cause, aucune valeur n'est citée — elle
+> désignerait le mauvais repère pour une partie de l'équipe.
 
 Sets déterminés depuis `slot.sets` (renseigné à l'import).
 Marges : `TICK_BELOW_MARGIN = 10`, `TICK_ABOVE_MARGIN = 15`.

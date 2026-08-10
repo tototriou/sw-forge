@@ -1,11 +1,13 @@
 import { useMemo, useState } from 'react';
-import { Eye, EyeOff } from 'lucide-react';
+import { Eye, EyeOff, X } from 'lucide-react';
 import { Monster, RtaEntry } from '../../types';
 import ElementIcon from '../ElementIcon';
 import CategoryRing from './CategoryRing';
 import NumberField from '../NumberField';
 import { RtaCategory } from '../../hooks/useRtaCategories';
 import RuneIcon from '../RuneIcon';
+import { SPEED_LEADS, speedLeadOf } from '../../lib/speed';
+import { useStickyState } from '../../hooks/useStickyState';
 
 const SPD_ICON = `${import.meta.env.BASE_URL}stats/spd.png`;
 
@@ -26,8 +28,25 @@ const TEXT: Record<string, string> = {
   unknown: 'text-unknown',
 };
 
-// Leader skills de vitesse, du plus fort au plus faible.
-const LEADS = [33, 30, 28, 24, 23, 19];
+// ⚠️ **Les boutons de lead viennent de la PRÉPA, pas d'une liste figée.**
+// Simuler un +33 % quand aucun monstre de sa box ne le porte n'apprend rien ; à
+// l'inverse, une liste en dur oublie les leads des sorties récentes. On propose
+// donc les leads réellement disponibles, complétés à la main au besoin.
+//
+// ⚠️ Seuls comptent les leads qui s'appliquent **en RTA sans condition** : un
+// lead d'élément ne profite qu'aux alliés du bon élément, or la simulation
+// applique la valeur à TOUT le monde — le proposer induirait en erreur. Même
+// règle que pour la catégorie « Lead SPD » (voir ../../spec/rta/categories.md).
+const AIRES_RTA = new Set(['General', 'Arena']);
+
+function leadsDeLaPrepa(items: TurnItem[]): number[] {
+  const trouves = new Set<number>();
+  for (const { monster } of items) {
+    const lead = speedLeadOf(monster);
+    if (lead && AIRES_RTA.has(lead.area)) trouves.add(lead.amount);
+  }
+  return [...trouves];
+}
 
 // Totem de vitesse de guilde : +15% de vitesse de base pour tous, toujours actif.
 const TOTEM = 15;
@@ -95,11 +114,43 @@ export default function TurnOrder({
   onToggleCategories,
 }: Props) {
   const [lead, setLead] = useState(0);
+
+  // Leads ajoutés à la main, et leads proposés que l'utilisateur a retirés.
+  // ⚠️ Deux listes plutôt qu'une liste modifiable : la prépa change (import,
+  // ajout d'un monstre) et les boutons doivent suivre — sans effacer les choix
+  // déjà faits, ni faire réapparaître ce qu'on avait retiré.
+  const [leadsAjoutes, setLeadsAjoutes] = useStickyState<number[]>('turnOrder.leadsAjoutes', []);
+  const [leadsRetires, setLeadsRetires] = useStickyState<number[]>('turnOrder.leadsRetires', []);
+  const [saisie, setSaisie] = useState<number | null>(null);
   const catsOf = (monsterId: string) => categories.filter((c) => c.members.includes(monsterId));
   // Légende : uniquement les catégories réellement représentées ici, sinon on
   // rappellerait des couleurs qu'on ne voit nulle part à l'écran.
   const legende = categories.filter((c) => items.some((it) => c.members.includes(String(it.monster.id))));
   const [highlightMovers, setHighlightMovers] = useState(false);
+
+  const leads = useMemo(() => {
+    const proposes = leadsDeLaPrepa(items);
+    // Prépa vide ou sans lead VIT : on retombe sur les valeurs classiques, sinon
+    // la rangée serait vide et l'outil inutilisable avant tout import.
+    const base = proposes.length > 0 ? proposes : [...SPEED_LEADS];
+    return [...new Set([...base, ...leadsAjoutes])]
+      .filter((v) => !leadsRetires.includes(v))
+      .sort((a, b) => b - a);
+  }, [items, leadsAjoutes, leadsRetires]);
+
+  function retirerLead(pct: number) {
+    if (lead === pct) setLead(0); // ne pas laisser actif un lead sans bouton
+    setLeadsAjoutes((l) => l.filter((v) => v !== pct));
+    setLeadsRetires((l) => (l.includes(pct) ? l : [...l, pct]));
+  }
+
+  function ajouterLead() {
+    if (saisie === null || saisie <= 0) return;
+    setLeadsRetires((l) => l.filter((v) => v !== saisie)); // réafficher un retiré
+    setLeadsAjoutes((l) => (l.includes(saisie) ? l : [...l, saisie]));
+    setLead(saisie); // ce qu'on vient d'ajouter, on veut le voir appliqué
+    setSaisie(null);
+  }
 
   const ordered = useMemo(() => sortByLead(items, lead), [items, lead]);
 
@@ -117,21 +168,37 @@ export default function TurnOrder({
         <span className="font-mono text-[10px] tracking-[0.1em] uppercase text-ink-dim mr-1">
           Lead SPD
         </span>
-        {LEADS.map((pct) => {
+        {leads.map((pct) => {
           const active = lead === pct;
           return (
-            <button
+            <span
               key={pct}
-              onClick={() => setLead(active ? 0 : pct)}
-              className={`rounded-full border px-3 py-1 text-[12.5px] font-mono font-semibold transition select-none
+              className={`group inline-flex items-center rounded-full border transition select-none
                 ${
                   active
                     ? 'bg-gradient-to-br from-star to-yellow-200 text-bg border-star shadow'
                     : 'bg-panel border-border text-ink-dim hover:text-ink hover:border-[#4a52a0]'
                 }`}
             >
-              +{pct}%
-            </button>
+              <button
+                onClick={() => setLead(active ? 0 : pct)}
+                className="pl-3 pr-1 py-1 text-[12.5px] font-mono font-semibold"
+              >
+                +{pct}%
+              </button>
+              {/* ⚠️ Le × reste VISIBLE. Ne l'afficher qu'au survol laissait un
+                  vide à droite du pourcentage, qu'on lit comme un défaut
+                  d'alignement — et un bouton qui apparaît sous le curseur se
+                  clique par accident. */}
+              <button
+                onClick={() => retirerLead(pct)}
+                aria-label={`Retirer le lead +${pct}%`}
+                title={`Retirer le lead +${pct}%`}
+                className="pr-2 pl-0.5 py-1 opacity-50 transition hover:opacity-100 hover:text-fire"
+              >
+                <X size={11} strokeWidth={3} />
+              </button>
+            </span>
           );
         })}
         <button
@@ -145,6 +212,31 @@ export default function TurnOrder({
         >
           Sans lead
         </button>
+
+        {/* Ajout d'un lead absent de la prépa : il REJOINT la rangée au lieu de
+            vivre dans un champ à part — une fois ajouté, il se clique comme les
+            autres et se retire pareil. */}
+        <span className="flex items-center gap-1">
+          <NumberField
+            value={saisie}
+            onChange={setSaisie}
+            min={1}
+            max={99}
+            width="w-11"
+            placeholder="%"
+            allowEmpty
+            ariaLabel="Lead de vitesse à ajouter, en pourcentage"
+          />
+          <button
+            onClick={ajouterLead}
+            disabled={saisie === null || saisie <= 0}
+            className="px-1 py-0.5 text-[11.5px] font-semibold text-ink-dim underline-offset-2 transition
+                       hover:text-ink hover:underline disabled:opacity-40 disabled:hover:text-ink-dim
+                       disabled:hover:no-underline"
+          >
+            Ajouter
+          </button>
+        </span>
 
         {onToggleCategories && (
           <button

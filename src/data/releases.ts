@@ -38,6 +38,48 @@ export const CHANGE_META: Record<ChangeKind, { label: string; color: string }> =
 // Si une ligne dépasse ~15 mots, c'est qu'elle raconte l'implémentation.
 export const RELEASES: Release[] = [
   {
+    version: '1.2.3',
+    date: '2026-08-10',
+    title: 'Des repères plus clairs en siège et en RTA',
+    highlights: [
+      'Le siège dit dans quel sens corriger ton speed tuning',
+      'Les leads de l’ordre de tour sont ceux de ta prépa',
+      'Fenêtres de confirmation intégrées au site',
+    ],
+    changes: [
+      {
+        kind: 'feat',
+        scope: 'Siège',
+        text: 'Le message précise si ton équipe est trop lente ou trop rapide, et pour quel tick.',
+      },
+      {
+        kind: 'feat',
+        scope: 'Siège',
+        text: '« Ignorer la recommandation » remplace « Valider l’équipe ».',
+      },
+      {
+        kind: 'feat',
+        scope: 'RTA',
+        text: 'Les boutons de lead sont ceux portés par tes monstres, et tu peux en ajouter.',
+      },
+      {
+        kind: 'feat',
+        scope: 'Interface',
+        text: 'Les confirmations s’affichent dans le site, plus dans une boîte du navigateur.',
+      },
+      {
+        kind: 'feat',
+        scope: 'Interface',
+        text: 'Un mot sur petit écran : le site se manipule mieux sur ordinateur.',
+      },
+      {
+        kind: 'fix',
+        scope: 'Mon compte',
+        text: 'Couleurs des filtres de monstres harmonisées.',
+      },
+    ],
+  },
+  {
     version: '1.2.2',
     date: '2026-08-10',
     title: 'Fiabilité : les calculs sensibles sont désormais vérifiés',

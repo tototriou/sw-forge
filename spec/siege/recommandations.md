@@ -79,7 +79,7 @@ Garde-fous pour ne jamais « perdre » ce qu'on vient de faire :
 Effet du filtre sur les actions :
 - **Export global** : exporte **ce qui est affiché**. Le bouton s'intitule
   « Tout exporter » sans filtre, « Exporter l'affichage » avec un filtre actif.
-- **Tout effacer** : efface **tout**, filtre ou non (le `confirm` le dit
+- **Tout effacer** : efface **tout**, filtre ou non (la modale le dit
   explicitement).
 - Filtre sans résultat → message dédié + lien « Voir toutes les recommandations »
   (l'écran d'invite initial n'apparaît que si le stock réel est vide).
@@ -383,10 +383,10 @@ y a quelque chose à lire — et se ferme par une croix.
     export de compte : un import ne doit pas pouvoir les effacer.
   - Pour repartir de zéro, **« Tout effacer »** existe — geste explicite, séparé,
     avec confirmation.
-  - **Historique à ne pas répéter** : un `confirm` posait
+  - **Historique à ne pas répéter** : une confirmation posait
     `OK = remplacer · Annuler = ajouter`. Sur un import, le réflexe est de
     cliquer OK — des recommandations ont été **définitivement perdues**. Un
-    `confirm` sert à confirmer une intention déjà exprimée, **jamais** à choisir
+    une confirmation sert à confirmer une intention déjà exprimée, **jamais** à choisir
     entre deux options dont l'une détruit.
 - Message de succès **éphémère** (~5 s) ; le **rapport de validation** reste
   affiché jusqu'à fermeture.
@@ -621,7 +621,7 @@ fond**, groupés et resserrés (`gap-0.5`) à droite de la ligne :
   par ligne) — elles contiennent plusieurs decks de 3 monstres, une mise en
   2 colonnes serait illisible. À l'intérieur, les decks sont empilés et chaque
   deck affiche ses 3 slots en ligne (1 colonne sous `sm`).
-- **Supprimer** une recommandation (avec `confirm`) · **Tout effacer**.
+- **Supprimer** une recommandation (avec confirmation) · **Tout effacer**.
 
 ## Partir d'une équipe d'offense existante
 

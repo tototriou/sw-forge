@@ -29,6 +29,21 @@ Affiche **tous les monstres montés 6★** du compte importé. Composant :
 
 Les filtres se combinent avec la recherche.
 
+> ⚠️ **Une chip active se reconnaît à sa couleur, sans lire son libellé.**
+>
+> - **Élément** : fond **teinté de l'élément à 25 %** (rouge pour Feu, bleu pour
+>   Eau…), texte dans sa version claire. Style partagé avec le Bestiaire —
+>   [elementStyles.ts](src/components/elementStyles.ts). Les deux écrans en
+>   avaient une copie chacun, et elles avaient divergé.
+>   ⚠️ **Une teinte, pas un aplat plein** : sur des chips de 12 px, du texte
+>   sombre sur rouge ou violet vif devient illisible. Ce sont la bordure et le
+>   texte colorés qui portent l'information, le fond ne fait que la confirmer.
+> - **Nat, Doublons, 2A** : **un seul** style actif, le jaune plein des étoiles.
+>   Chaque bouton avait le sien — bleu-violet pour Doublons, doré sombre pour 2A
+>   — et trois surbrillances différentes côte à côte se lisent comme trois
+>   **natures** de filtre différentes, alors qu'ils font tous la même chose. Le
+>   plein tient ici : ces filtres n'ont pas de couleur propre à respecter.
+
 ## Données sous-jacentes
 
 - Champs `naturalStars` et `secondAwaken` ajoutés au modèle `Monster` et remplis

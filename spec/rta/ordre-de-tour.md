@@ -56,8 +56,40 @@ Vérifier si l'ordre de passage change selon le lead de vitesse appliqué en jeu
 
 ## Boutons de lead
 
-- Un bouton par lead possible : **+33 %, +30 %, +28 %, +24 %, +23 %, +19 %**
-  (classiques + arène), **du plus gros au plus petit**, + bouton **« Sans lead »**.
+### ⚠️ Les boutons viennent de la PRÉPA, pas d'une liste figée
+
+Un bouton par lead de vitesse **réellement porté par un monstre de la prépa**, du
+plus gros au plus petit, + **« Sans lead »**.
+
+Simuler un +33 % quand aucun monstre de sa box ne le porte n'apprend rien ; à
+l'inverse, une liste en dur oublie les leads des sorties récentes. Sur un compte
+réel de 40 monstres en prépa, on passe de **6 boutons figés** à **3 boutons
+utiles** (+33 % Vanessa, +28 % Megumi, +24 % Moore/Chandra/Xing Zhe).
+
+⚠️ **Seuls les leads inconditionnels en RTA** (`General`, `Arena`). Un lead
+d'élément ne profite qu'aux alliés du bon élément, or la simulation applique la
+valeur à **tout le monde** : le proposer induirait en erreur. Même règle que pour
+la catégorie « Lead SPD » (voir [categories.md](categories.md)).
+
+**Repli** : prépa vide ou sans lead VIT → les valeurs classiques (`SPEED_LEADS`
+dans [speed.ts](src/lib/speed.ts)), sinon la rangée serait vide et l'outil
+inutilisable avant tout import.
+
+### Ajouter, retirer
+
+- **Champ + « Ajouter »** : la valeur **rejoint la rangée** au lieu de vivre dans
+  un champ à part — une fois ajoutée, elle se clique comme les autres et se
+  retire pareil. Elle est appliquée aussitôt : on ne l'a pas saisie pour rien.
+- **×** sur chaque pilule, **toujours visible** (atténué, net au survol).
+  ⚠️ Ne l'afficher qu'au survol laissait un **vide à droite du pourcentage**,
+  qu'on lit comme un défaut d'alignement — et un bouton qui apparaît sous le
+  curseur se clique par accident. Retirer le lead actif remet « Sans lead » :
+  laisser un lead appliqué sans bouton pour l'annuler serait un piège.
+- ⚠️ **Deux listes** (`leadsAjoutes`, `leadsRetires`) plutôt qu'une liste
+  modifiable : la prépa change (import, ajout d'un monstre) et les boutons
+  doivent suivre — sans effacer les ajouts, ni faire réapparaître ce qui a été
+  retiré. Mémoire de session (`useStickyState`), comme les autres préférences de
+  vue.
 - Le lead choisi est **appliqué à tous** les monstres (simulation), toggle
   (re-cliquer désactive).
 - **Interrupteur « Surligner les changements »** : quand il est actif ET qu'un
@@ -76,8 +108,9 @@ vitesse_effective = (base + runes) + ceil( base × (15 + lead) / 100 )
 - Le bonus % (**totem 15 % + lead**) porte **uniquement sur la base**, arrondi
   **au supérieur**.
 - « Sans lead » = lead 0 → le totem +15 % reste appliqué.
-- Constantes locales au composant : `LEADS = [33,30,28,24,23,19]`, `TOTEM = 15`
-  (cohérentes avec `speed.ts`).
+- `TOTEM = 15` local au composant, cohérent avec `speed.ts`. La liste de leads,
+  elle, n'est plus dupliquée ici : elle est **déduite de la prépa** (voir plus
+  haut), avec `SPEED_LEADS` en repli.
 
 ## Tri
 

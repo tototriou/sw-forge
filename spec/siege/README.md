@@ -67,7 +67,7 @@ couleur** des équipes (vert / orange / rouge, voir [speed-tick.md](speed-tick.m
 
 - **Désactivé par défaut** : les équipes sont affichées **telles quelles**, en
   neutre — aucune aura, aucun point de statut, aucun anneau rouge sur les slots,
-  aucun message « pas au tick » / « Valider l'équipe ».
+  aucun message « pas au tick » / « Ignorer la recommandation ».
 - **Activé** : tous les statuts sont calculés et affichés normalement.
 - **Par côté** (défense / offense indépendants) et **non persisté sur disque** :
   `useStickyState` — l'état survit à la navigation, se remet à `false` au reload.

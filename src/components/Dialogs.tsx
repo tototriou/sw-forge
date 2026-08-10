@@ -1,29 +1,170 @@
-import { useState } from 'react';
-import { Check, HardDriveDownload, Loader2, ShieldCheck } from 'lucide-react';
+import { ReactNode, useEffect, useRef, useState } from 'react';
+import { AlertTriangle, Check, HardDriveDownload, ShieldCheck } from 'lucide-react';
 
 /* --------------------------------------------------------------------------
- * Attente pendant le traitement de l'export
- * ----------------------------------------------------------------------- */
+ * Fenêtres modales de l'application
+ * -----------------------------------------------------------------------
+ *
+ * ⚠️ **Aucun `confirm()` ni `prompt()` du navigateur.** La boîte native
+ * s'affiche hors de la page, sans sa typographie ni ses couleurs, colle le nom
+ * du site en titre, et rien n'y est habillable — au moment précis où il faut
+ * distinguer clairement une action destructrice d'une action anodine. Sa
+ * variante `prompt` est pire encore, surtout au tactile.
+ *
+ * ⚠️ **Le défaut ne perd jamais rien** : « Annuler » est le bouton mis en
+ * avant et reçoit le focus, Échap et le clic à côté annulent, et l'action
+ * destructrice porte la couleur d'alerte. Voir la règle générale dans
+ * ../../spec/README.md.
+ */
 
-// ⚠️ Un export pèse 5 à 8 Mo : entre le dépôt du fichier et l'affichage, le
-// navigateur est **bloqué** le temps du parse et du mapping. Sans repère visuel,
-// l'app paraît figée et on reclique — ce qui relance tout.
-//
-// L'overlay est **modal et non fermable** : il ne dure qu'un instant, et rien
-// d'utile ne peut être fait pendant.
-export function ImportSpinner() {
+// Coquille commune : fond, centrage, fermeture au clic extérieur et à Échap.
+function Modale({
+  onClose,
+  labelledBy,
+  children,
+}: {
+  onClose: () => void;
+  labelledBy: string;
+  children: ReactNode;
+}) {
+  useEffect(() => {
+    const onEsc = (e: KeyboardEvent) => e.key === 'Escape' && onClose();
+    document.addEventListener('keydown', onEsc);
+    return () => document.removeEventListener('keydown', onEsc);
+  }, [onClose]);
+
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-bg/80 backdrop-blur-sm"
-      role="status"
-      aria-live="polite"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-bg/80 p-4"
+      onClick={onClose}
+      role="presentation"
     >
-      <div className="flex flex-col items-center gap-3 rounded-2xl border border-border bg-panel px-8 py-6 shadow-glow shadow-black/60">
-        <Loader2 size={28} className="animate-spin text-star" />
-        <p className="text-[13.5px] font-semibold text-ink">Analyse de ton compte…</p>
-        <p className="text-[11.5px] text-ink-dim">Tout se passe dans ton navigateur.</p>
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby={labelledBy}
+        onClick={(e) => e.stopPropagation()}
+        className="w-full max-w-[400px] rounded-2xl border border-border bg-panel p-5 shadow-glow shadow-black/60"
+      >
+        {children}
       </div>
     </div>
+  );
+}
+
+const BOUTON_NEUTRE =
+  'rounded-lg bg-gradient-to-br from-[#3a4270] to-[#272e52] px-3.5 py-2 text-[12.5px] font-semibold text-ink shadow transition hover:brightness-110';
+const BOUTON_DESTRUCTIF =
+  'rounded-lg border border-fire/50 bg-fire/10 px-3.5 py-2 text-[12.5px] font-semibold text-fire transition hover:bg-fire/20';
+const BOUTON_SECONDAIRE =
+  'rounded-lg border border-border bg-panel2 px-3.5 py-2 text-[12.5px] font-semibold text-ink-dim transition hover:text-ink';
+
+// Confirmation générique. `destructif` change la couleur du bouton d'action ET
+// l'ordre d'insistance : quand l'action détruit, c'est « Annuler » qui est mis en
+// avant, pas l'inverse.
+export function ConfirmDialog({
+  titre,
+  message,
+  libelleAction = 'Confirmer',
+  destructif = false,
+  onConfirm,
+  onCancel,
+}: {
+  titre: string;
+  message: ReactNode;
+  libelleAction?: string;
+  destructif?: boolean;
+  onConfirm: () => void;
+  onCancel: () => void;
+}) {
+  return (
+    <Modale onClose={onCancel} labelledBy="modale-titre">
+      <div className="flex items-start gap-3">
+        <span
+          className={`mt-0.5 flex-none rounded-lg p-2 ${
+            destructif ? 'bg-fire/15 text-fire' : 'bg-amber-500/15 text-amber-400'
+          }`}
+        >
+          <AlertTriangle size={18} />
+        </span>
+        <div>
+          <h2 id="modale-titre" className="text-[15px] font-bold text-ink">
+            {titre}
+          </h2>
+          <p className="mt-1.5 text-[12.5px] leading-relaxed text-ink-dim">{message}</p>
+        </div>
+      </div>
+
+      <div className="mt-4 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+        <button onClick={onConfirm} className={destructif ? BOUTON_DESTRUCTIF : BOUTON_SECONDAIRE}>
+          {libelleAction}
+        </button>
+        <button onClick={onCancel} autoFocus className={BOUTON_NEUTRE}>
+          Annuler
+        </button>
+      </div>
+    </Modale>
+  );
+}
+
+// Saisie d'une valeur. Entrée valide, Échap annule — les deux réflexes qu'on a
+// devant un champ, et que la boîte native était seule à offrir jusqu'ici.
+export function PromptDialog({
+  titre,
+  message,
+  valeurInitiale = '',
+  placeholder,
+  libelleAction = 'Valider',
+  onValider,
+  onCancel,
+}: {
+  titre: string;
+  message?: ReactNode;
+  valeurInitiale?: string;
+  placeholder?: string;
+  libelleAction?: string;
+  onValider: (valeur: string) => void;
+  onCancel: () => void;
+}) {
+  const [valeur, setValeur] = useState(valeurInitiale);
+  const ref = useRef<HTMLInputElement>(null);
+
+  // Sélectionner le texte proposé : on le remplace neuf fois sur dix.
+  useEffect(() => {
+    ref.current?.select();
+  }, []);
+
+  return (
+    <Modale onClose={onCancel} labelledBy="modale-titre">
+      <h2 id="modale-titre" className="text-[15px] font-bold text-ink">
+        {titre}
+      </h2>
+      {message && <p className="mt-1.5 text-[12.5px] leading-relaxed text-ink-dim">{message}</p>}
+      <form
+        onSubmit={(e) => {
+          e.preventDefault();
+          onValider(valeur);
+        }}
+      >
+        <input
+          ref={ref}
+          value={valeur}
+          onChange={(e) => setValeur(e.target.value)}
+          placeholder={placeholder}
+          autoFocus
+          className="mt-3 w-full rounded-lg border border-border bg-panel2 px-3 py-2 text-[13px] text-ink
+                     outline-none focus:border-[#5b63b8]"
+        />
+        <div className="mt-4 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+          <button type="button" onClick={onCancel} className={BOUTON_SECONDAIRE}>
+            Annuler
+          </button>
+          <button type="submit" className={BOUTON_NEUTRE}>
+            {libelleAction}
+          </button>
+        </div>
+      </form>
+    </Modale>
   );
 }
 

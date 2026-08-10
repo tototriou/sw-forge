@@ -3,6 +3,7 @@ import { Plus, Pencil, Trash2, Check, X, Eye, EyeOff } from 'lucide-react';
 import { Monster } from '../../types';
 import MonsterAvatar from '../MonsterAvatar';
 import { RtaCategory, UseRtaCategories, MAX_CATEGORIES_PER_MONSTER } from '../../hooks/useRtaCategories';
+import { ConfirmDialog } from '../Dialogs';
 
 // Palette FERMÉE plutôt qu'un sélecteur de couleur libre : le contrôle natif
 // (`<input type="color">`) est un composant du système, hors charte, et un choix
@@ -36,6 +37,7 @@ export default function CategoryBar({ cats, monsters }: Props) {
   const [openId, setOpenId] = useState<string | null>(null); // catégorie dépliée
   const [editId, setEditId] = useState<string | null>(null); // catégorie en édition
   const [creating, setCreating] = useState(false);
+  const [aSupprimer, setASupprimer] = useState<{ id: string; label: string } | null>(null);
 
   const open = cats.categories.find((c) => c.id === openId) ?? null;
   // Effectif AFFICHÉ = membres réellement présents dans la prépa. Un monstre
@@ -88,12 +90,7 @@ export default function CategoryBar({ cats, monsters }: Props) {
                 <Pencil size={11} />
               </button>
               <button
-                onClick={() => {
-                  if (confirm(`Supprimer la catégorie « ${c.label} » ?`)) {
-                    cats.remove(c.id);
-                    if (openId === c.id) setOpenId(null);
-                  }
-                }}
+                onClick={() => setASupprimer({ id: c.id, label: c.label })}
                 title="Supprimer la catégorie"
                 aria-label={`Supprimer ${c.label}`}
                 className="flex items-center justify-center w-5 h-5 rounded-full text-ink-dim transition hover:text-fire hover:bg-black/25"
@@ -296,6 +293,21 @@ export default function CategoryBar({ cats, monsters }: Props) {
             </div>
           )}
         </div>
+      )}
+
+      {aSupprimer && (
+        <ConfirmDialog
+          titre={`Supprimer la catégorie « ${aSupprimer.label} » ?`}
+          message="Elle disparaît de la barre et des anneaux de couleur. Les monstres qui la portaient ne sont pas retirés de ta prépa."
+          libelleAction="Supprimer"
+          destructif
+          onCancel={() => setASupprimer(null)}
+          onConfirm={() => {
+            cats.remove(aSupprimer.id);
+            if (openId === aSupprimer.id) setOpenId(null);
+            setASupprimer(null);
+          }}
+        />
       )}
     </div>
   );

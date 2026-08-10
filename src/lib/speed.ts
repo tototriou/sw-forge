@@ -5,8 +5,13 @@ import { ElementKey, Monster } from '../types';
 // Totem de vitesse de guilde : +15% de vitesse de base, toujours actif.
 export const TOTEM_SPEED = 15;
 
-// Leader skills de vitesse, du plus fort au plus faible.
-export const SPEED_LEADS = [33, 30, 28, 24, 23, 19];
+// Leader skills de vitesse **classiques**, du plus fort au plus faible.
+//
+// ⚠️ Ce sont des raccourcis, pas la liste exhaustive : le jeu en compte d'autres
+// (30 %, 23 %…), et les proposer tous ferait une rangée de boutons qu'on ne lit
+// plus. On garde les valeurs les plus courantes, et **un champ libre** prend le
+// relais pour le reste (voir TurnOrder).
+export const SPEED_LEADS = [33, 28, 24, 21, 19];
 
 // Ticks de vitesse de siège (vitesse de combat cible).
 export const SIEGE_TICKS: { key: string; label: string; value: number }[] = [
@@ -43,6 +48,52 @@ export function tickDanger(
     if (over > TICK_ABOVE_MARGIN) return { tick: t, kind: 'above', diff: over };
   }
   return null;
+}
+
+// Message d'alerte d'une équipe, à partir des écarts de ses monstres.
+//
+// ⚠️ **« Ton équipe n'est pas au tick » ne suffit pas** : ça décrit le symptôme
+// sans dire dans quel sens corriger. Or les deux cas se réparent à l'opposé l'un
+// de l'autre — accélérer, ou libérer de la vitesse pour la mettre ailleurs.
+//
+// ⚠️ Quand l'équipe **dépasse un tick sans atteindre le suivant**, on nomme les
+// DEUX repères. Ne citer que le tick franchi laisserait croire qu'il faut
+// ralentir, alors qu'accélérer jusqu'au tick du dessus est souvent le bon geste.
+// L'app ne peut pas trancher à la place du joueur : elle lui donne les bornes.
+//
+// Les valeurs suffisent, on ne nomme pas les monstres : le slot fautif porte
+// déjà un anneau rouge, répéter son nom alourdirait la phrase pour rien.
+export function tickTeamMessage(dangers: ReturnType<typeof tickDanger>[]): string | null {
+  const actifs = dangers.filter(Boolean) as NonNullable<ReturnType<typeof tickDanger>>[];
+  if (actifs.length === 0) return null;
+
+  const ticks = [...new Set(actifs.map((d) => d.tick))];
+  // Plusieurs ticks en cause → citer une valeur désignerait le mauvais repère
+  // pour une partie de l'équipe.
+  const tick = ticks.length === 1 ? ticks[0] : null;
+  const tousAuDessus = actifs.every((d) => d.kind === 'above');
+  const tousEnDessous = actifs.every((d) => d.kind === 'below');
+
+  if (tousEnDessous) {
+    if (tick === null) return "Ton équipe n'atteint pas ses ticks.";
+    // Pas de décompte des points manquants : le détail par monstre est déjà
+    // lisible sur les cartes, et une phrase courte se lit d'un coup d'œil.
+    return `Ton équipe est trop lente pour le tick ${tick}.`;
+  }
+
+  if (tousAuDessus) {
+    if (tick === null) return 'Ton équipe est trop rapide par rapport aux ticks.';
+    const suivant = SIEGE_TICKS.map((t) => t.value)
+      .sort((a, b) => a - b)
+      .find((v) => v > tick);
+    return suivant
+      ? `Ton équipe est trop rapide par rapport au tick ${tick}, ou trop lente pour le tick ${suivant}.`
+      : `Ton équipe est trop rapide par rapport au tick ${tick}.`;
+  }
+
+  // Les deux à la fois : chaque monstre doit être regardé séparément, aucune
+  // consigne d'équipe n'aurait de sens.
+  return "Ton équipe n'est pas au tick : un monstre est en dessous, un autre au-dessus.";
 }
 
 // Bonus du set Swift : +25 % de la vitesse de BASE.

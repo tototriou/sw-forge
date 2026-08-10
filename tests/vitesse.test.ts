@@ -3,7 +3,7 @@
 // est faux. Elle a été corrigée trois fois avant d'arriver à la bonne règle
 // (voir spec/shared/calcul-vitesse.md).
 
-import { combatSpeed, pctSpeedBonus, swiftFlat } from '../src/lib/speed';
+import { combatSpeed, pctSpeedBonus, swiftFlat, tickDanger, tickTeamMessage } from '../src/lib/speed';
 import { egal, ok, titre } from './outils';
 
 export default function testVitesse() {
@@ -38,4 +38,49 @@ export default function testVitesse() {
   // déjà le bonus Swift, on le retire avant de le réintégrer dans la somme.
   egal(swiftFlat(101), 26, 'Swift sur base 101 → 26 points');
   ok(combatSpeed(null as any, 100, 0, false) === null, 'base inconnue → aucun calcul, pas une valeur fausse');
+
+  // ⚠️ « Pas au tick » recouvre deux situations OPPOSÉES, qui se corrigent en
+  // sens contraires : il manque quelques points, ou on dépasse largement. C'est
+  // `kind` qui décide du message affiché en siège — s'inverser reviendrait à
+  // envoyer le joueur chercher du mauvais côté.
+  egal(tickDanger(286), null, 'pile au tick rapide → rien à signaler');
+  egal(tickDanger(301), null, 'tick dépassé de 15 → dans la marge tolérée');
+  egal(tickDanger(302)?.kind, 'above', 'tick dépassé de 16 → trop rapide');
+  egal(tickDanger(302)?.tick, 286, 'trop rapide : le tick cité est celui franchi');
+  egal(tickDanger(283)?.kind, 'below', 'à 3 sous le tick → raté de peu');
+  egal(tickDanger(269)?.kind, 'above', 'tick lent dépassé de 30 → trop rapide');
+  egal(tickDanger(250), null, 'entre les deux ticks, dans les marges → rien à signaler');
+
+  // ⚠️ Le message doit dire dans QUEL SENS corriger. « Pas au tick » décrivait le
+  // symptôme sans indiquer s'il faut accélérer ou libérer de la vitesse.
+  const msg = (vitesses: number[]) => tickTeamMessage(vitesses.map(tickDanger));
+
+  egal(msg([286, 239]), null, 'équipe calée → aucun message');
+  egal(
+    msg([283, 286]),
+    'Ton équipe est trop lente pour le tick 286.',
+    'trop lente : le tick à atteindre est nommé'
+  );
+  // ⚠️ Dépasser 239 sans atteindre 286, c'est être trop rapide POUR L'UN et trop
+  // lent POUR L'AUTRE. Ne citer que le tick franchi ferait ralentir à tort.
+  egal(
+    msg([265, 270]),
+    'Ton équipe est trop rapide par rapport au tick 239, ou trop lente pour le tick 286.',
+    'au-dessus de 239 : les deux repères sont nommés'
+  );
+  egal(
+    msg([305, 330]),
+    'Ton équipe est trop rapide par rapport au tick 286.',
+    'au-dessus du tick le plus haut : pas de tick suivant à viser'
+  );
+  egal(
+    msg([265, 305]),
+    'Ton équipe est trop rapide par rapport aux ticks.',
+    'deux ticks différents dépassés : aucune valeur citée'
+  );
+  egal(
+    msg([283, 305]),
+    "Ton équipe n'est pas au tick : un monstre est en dessous, un autre au-dessus.",
+    'un au-dessus, un en dessous : aucune consigne d’équipe ne vaudrait'
+  );
 }

@@ -3,7 +3,15 @@ import { Crown, X, GripVertical, Trash2, AlertTriangle, Pencil } from 'lucide-re
 
 const SPD_ICON = `${import.meta.env.BASE_URL}stats/spd.png`; // icône vitesse du jeu (SWARFARM)
 import { Monster, SiegeTeam as SiegeTeamType } from '../../types';
-import { SIEGE_TICKS, combatSpeed, speedLeadOf, siegeLeadFor, tickDanger, LeadInfo } from '../../lib/speed';
+import {
+  SIEGE_TICKS,
+  combatSpeed,
+  speedLeadOf,
+  siegeLeadFor,
+  tickDanger,
+  tickTeamMessage,
+  LeadInfo,
+} from '../../lib/speed';
 import MonsterPicker from '../MonsterPicker';
 import ElementIcon from '../ElementIcon';
 import RuneIcon from '../RuneIcon';
@@ -80,7 +88,7 @@ export default function SiegeTeam({
 
   // Statut de l'équipe vis-à-vis des ticks — calculé seulement en mode
   // « Vérifier mes tick ATB » (sinon `neutral` : équipes affichées telles quelles) :
-  //  - vert   : au tick (aucun monstre mal calé) OU équipe validée par l'utilisateur
+  //  - vert   : au tick (aucun monstre mal calé) OU recommandation ignorée
   //  - orange : pas au tick mais les monstres hors-tick sont en Swift (on veut du speed)
   //  - rouge  : pas au tick et pas en Swift → à corriger
   const slotInfos = team.slots.map((slot) => {
@@ -99,7 +107,13 @@ export default function SiegeTeam({
   const teamHasSwift = team.slots.some((s) => (s.sets ?? []).includes('swift'));
   const hasLeo = slotInfos.some(({ monster }) => monster?.name === 'Leo');
   const anyOffTick = slotDangers.some(Boolean);
-  const validated = team.tickAlertDismissed;
+
+  const validated = team.tickAlertDismissed; // recommandation écartée par l'utilisateur
+
+  // Message d'alerte, construit dans speed.ts : c'est de la logique de tick, pas
+  // de l'affichage — et elle mérite d'être vérifiable.
+  const messageTick = tickTeamMessage(slotDangers);
+
   const status: 'neutral' | 'green' | 'orange' | 'red' =
     !checkTicks || !hasMonsters || hasLeo
       ? 'neutral'
@@ -320,7 +334,12 @@ export default function SiegeTeam({
         </div>
       )}
 
-      {/* Message sous les monstres : équipe pas au tick → à valider */}
+      {/* Message sous les monstres : l'équipe n'est pas au tick.
+          ⚠️ Le bouton dit « Ignorer la recommandation », et non « Valider
+          l'équipe » : l'app n'a aucun moyen de savoir si le tune est bon, elle
+          constate seulement qu'il s'écarte des ticks. « Valider » laissait
+          croire à une approbation de l'outil, alors que c'est l'utilisateur qui
+          écarte un conseil dont il assume la responsabilité. */}
       {(status === 'orange' || status === 'red') && (
         <div
           className={`mt-3 flex items-center gap-2 rounded-lg border px-3 py-2 ${
@@ -332,13 +351,15 @@ export default function SiegeTeam({
             className={`flex-none ${status === 'red' ? 'text-fire' : 'text-amber-400'}`}
           />
           <span className={`text-[12px] flex-1 ${status === 'red' ? 'text-fire' : 'text-amber-300'}`}>
-            {status === 'red' ? "Ton équipe n'est pas au tick." : 'Vérifier le speed tuning'}
+            {status === 'red'
+              ? messageTick ?? "Ton équipe n'est pas au tick."
+              : 'Vérifier le speed tuning'}
           </span>
           <button
             onClick={() => onDismissAlert(team.id, true)}
             className="flex-none rounded-md bg-panel border border-border px-2.5 py-1 text-[11px] font-semibold text-ink hover:border-[#4a52a0] transition"
           >
-            Valider l'équipe
+            Ignorer la recommandation
           </button>
         </div>
       )}
@@ -346,9 +367,9 @@ export default function SiegeTeam({
         <button
           onClick={() => onDismissAlert(team.id, false)}
           className="mt-3 text-[11px] text-emerald-400 hover:text-ink transition"
-          title="Annuler la validation"
+          title="Réafficher la recommandation"
         >
-          ✓ Équipe validée · annuler
+          ✓ Recommandation ignorée · rétablir
         </button>
       )}
     </section>

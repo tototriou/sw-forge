@@ -14,6 +14,7 @@ import { UseRtaState } from '../hooks/useRtaState';
 import RtaSearch from '../components/rta/RtaSearch';
 import RtaSection from '../components/rta/RtaSection';
 import CategoryBar from '../components/rta/CategoryBar';
+import { ConfirmDialog } from '../components/Dialogs';
 import { useRtaCategories } from '../hooks/useRtaCategories';
 import { gearSpeedMismatch } from '../lib/gearSync';
 import DesyncBadge from '../components/rta/DesyncBadge';
@@ -50,6 +51,7 @@ export default function RtaPage({
   const [newSection, setNewSection] = useState('');
   // Un seul détail de runes ouvert à la fois, toutes sections confondues.
   const [openId, setOpenId] = useState<string | null>(null);
+  const [effacementAConfirmer, setEffacementAConfirmer] = useState(false);
   const toggleDetail = (id: string) => setOpenId((cur) => (cur === id ? null : id));
 
   const monsterById = useMemo(() => {
@@ -194,15 +196,27 @@ export default function RtaPage({
 
         {addedIds.size > 0 && (
           <button
-            onClick={() => {
-              if (confirm('Effacer toute la prépa RTA ?')) rta.clearAll();
-            }}
+            onClick={() => setEffacementAConfirmer(true)}
             className="ml-auto flex items-center gap-1.5 text-[12px] text-ink-dim hover:text-fire transition"
           >
             <Trash2 size={13} /> Tout effacer
           </button>
         )}
       </div>
+
+      {effacementAConfirmer && (
+        <ConfirmDialog
+          titre="Effacer toute la prépa RTA ?"
+          message="Tous les monstres ajoutés, leurs vitesses et leurs sections seront retirés. Tes catégories de couleur sont conservées."
+          libelleAction="Tout effacer"
+          destructif
+          onCancel={() => setEffacementAConfirmer(false)}
+          onConfirm={() => {
+            setEffacementAConfirmer(false);
+            rta.clearAll();
+          }}
+        />
+      )}
 
       <CategoryBar cats={cats} monsters={pageMonsters} />
 

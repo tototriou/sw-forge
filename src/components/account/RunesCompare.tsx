@@ -4,6 +4,7 @@ import { RuneDetail } from '../../types';
 import { runeEfficiency, runeScore, isAncient } from '../../lib/effects';
 import { encodeCurveJson, decodeCurve } from '../../lib/runeCurveShare';
 import { parseAccountInventory } from '../../lib/importAccount';
+import { ConfirmDialog, PromptDialog } from '../Dialogs';
 import { useStickyState } from '../../hooks/useStickyState';
 import { useRuneMetric, formatRuneMetric } from '../../hooks/useRuneMetric';
 import CurveChart, { CurveSeries, OWN_COLOR } from './CurveChart';
@@ -73,6 +74,7 @@ export default function RunesCompare({ runes }: Props) {
   const [courbes, setCourbes] = useStickyState<CurveOverlay[]>('runesCompare.overlays', []);
   const [comptes, setComptes] = useStickyState<AccountOverlay[]>('runesCompare.accounts', []);
   const [hidden, setHidden] = useStickyState<Set<string>>('runesCompare.hidden', new Set());
+  const [retraitAConfirmer, setRetraitAConfirmer] = useState(false);
   const importes = courbes.length + comptes.length;
   // Unicité des noms sur les DEUX listes : elles cohabitent dans l'onglet
   // Courbes, deux homonymes y seraient impossibles à distinguer.
@@ -82,20 +84,16 @@ export default function RunesCompare({ runes }: Props) {
   // joueur (box, runes, artéfacts), ni ses recommandations, ni sa prépa RTA ou
   // ses équipes de siège — d'où un message qui le dit explicitement, pour qu'on
   // n'hésite pas à cliquer.
-  function toutRetirer() {
-    const quoi = [
-      courbes.length > 0 && `${courbes.length} courbe${courbes.length > 1 ? 's' : ''}`,
-      comptes.length > 0 && `${comptes.length} compte${comptes.length > 1 ? 's' : ''}`,
-    ]
-      .filter(Boolean)
-      .join(' et ');
-    const ok = confirm(
-      `Retirer ${quoi} de la comparaison ?
+  // Ce qui va être retiré, en toutes lettres : « 2 courbes et 1 compte ».
+  const resumeRetrait = [
+    courbes.length > 0 && `${courbes.length} courbe${courbes.length > 1 ? 's' : ''}`,
+    comptes.length > 0 && `${comptes.length} compte${comptes.length > 1 ? 's' : ''}`,
+  ]
+    .filter(Boolean)
+    .join(' et ');
 
-` +
-        'Ton propre compte, tes recommandations et tes équipes ne sont pas touchés.'
-    );
-    if (!ok) return;
+  function toutRetirer() {
+    setRetraitAConfirmer(false);
     setCourbes([]);
     setComptes([]);
     setHidden(new Set());
@@ -132,7 +130,7 @@ export default function RunesCompare({ runes }: Props) {
 
         {importes > 0 && (
           <button
-            onClick={toutRetirer}
+            onClick={() => setRetraitAConfirmer(true)}
             title="Retire uniquement ce qui a été importé ici"
             className="ml-auto flex items-center gap-1.5 rounded-lg border border-border bg-panel px-3 py-1.5
                        text-[12.5px] font-semibold text-ink-dim transition hover:border-fire/60 hover:text-fire"
@@ -169,6 +167,17 @@ export default function RunesCompare({ runes }: Props) {
           setHidden={setHidden}
         />
       )}
+
+      {retraitAConfirmer && (
+        <ConfirmDialog
+          titre={`Retirer ${resumeRetrait} de la comparaison ?`}
+          message="Ton propre compte, tes recommandations et tes équipes ne sont pas touchés."
+          libelleAction="Tout retirer"
+          destructif
+          onCancel={() => setRetraitAConfirmer(false)}
+          onConfirm={toutRetirer}
+        />
+      )}
     </div>
   );
 }
@@ -201,13 +210,19 @@ function OngletCourbes({
   const [limit, setLimit] = useStickyState('runesCompare.limit', DEFAULT_LIMIT);
   const curveRef = useRef<HTMLInputElement>(null);
 
+  const [nomExportDemande, setNomExportDemande] = useState(false);
   const myEffs = useMemo(() => runes.map((r) => runeEfficiency(r)).sort(desc), [runes]);
   const myScores = useMemo(() => runes.map((r) => runeScore(r)).sort(desc), [runes]);
   const mine = metric === 'eff' ? myEffs : myScores;
 
   function handleExport() {
     if (myEffs.length === 0) return flash(false, 'Aucune rune à exporter.');
-    const name = (prompt('Nom de ta courbe (visible par tes amis) :', 'Moi') || '').trim() || 'Moi';
+    setNomExportDemande(true);
+  }
+
+  function exporterSous(saisi: string) {
+    setNomExportDemande(false);
+    const name = saisi.trim() || 'Moi';
     // ⚠️ On n'exporte QUE les points, jamais les runes : une courbe partagée ne
     // doit transporter aucune donnée de compte.
     const json = encodeCurveJson(name, myEffs, myScores);
@@ -302,6 +317,17 @@ function OngletCourbes({
       </p>
 
       <Graphe lignes={lignes} metric={metric} hidden={hidden} setHidden={setHidden} />
+
+      {nomExportDemande && (
+        <PromptDialog
+          titre="Nom de ta courbe"
+          message="Il sera visible par ceux à qui tu partages le fichier."
+          valeurInitiale="Moi"
+          libelleAction="Exporter"
+          onCancel={() => setNomExportDemande(false)}
+          onValider={exporterSous}
+        />
+      )}
     </>
   );
 }
@@ -332,6 +358,25 @@ function OngletComptes({
   const [ancientOnly, setAncientOnly] = useStickyState('runesCompare.ancient', false);
   const [limit, setLimit] = useStickyState('runesCompare.accountsLimit', DEFAULT_LIMIT);
   const jsonRef = useRef<HTMLInputElement>(null);
+  // Runes lues, en attente du nom sous lequel les afficher.
+  const [compteEnAttente, setCompteEnAttente] = useState<{ runes: RuneDetail[]; repli: string } | null>(
+    null
+  );
+
+  function ajouterCompte(saisi: string) {
+    if (!compteEnAttente) return;
+    const nom = saisi.trim() || compteEnAttente.repli;
+    setOverlays((prev) => [
+      ...prev,
+      {
+        name: nomLibre(nom, noms),
+        runes: compteEnAttente.runes,
+        color: OVERLAY_COLORS[prev.length % OVERLAY_COLORS.length],
+      },
+    ]);
+    flash(true, `${compteEnAttente.runes.length} runes importées pour « ${nom} ».`);
+    setCompteEnAttente(null);
+  }
 
   function handleFile(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
@@ -344,16 +389,9 @@ function OngletComptes({
       if (res.error || res.runes.length === 0) {
         return flash(false, res.error || 'Aucune rune trouvée dans ce fichier de compte.');
       }
-      const nom = (prompt('Nom de ce compte :', repli) || repli).trim() || repli;
-      setOverlays((prev) => [
-        ...prev,
-        {
-          name: nomLibre(nom, noms),
-          runes: res.runes,
-          color: OVERLAY_COLORS[prev.length % OVERLAY_COLORS.length],
-        },
-      ]);
-      flash(true, `${res.runes.length} runes importées pour « ${nom} ».`);
+      // On demande le nom APRÈS avoir lu le fichier : inutile de faire saisir
+      // quoi que ce soit pour un fichier qui n'aurait rien d'exploitable.
+      setCompteEnAttente({ runes: res.runes, repli });
     };
     reader.onerror = () => flash(false, 'Lecture du fichier impossible.');
     reader.readAsText(file);
@@ -442,6 +480,17 @@ function OngletComptes({
       )}
 
       <Graphe lignes={lignes} metric={metric} hidden={hidden} setHidden={setHidden} />
+
+      {compteEnAttente && (
+        <PromptDialog
+          titre="Nom de ce compte"
+          message="Il sert d'étiquette sur le graphe, rien de plus."
+          valeurInitiale={compteEnAttente.repli}
+          libelleAction="Ajouter"
+          onCancel={() => setCompteEnAttente(null)}
+          onValider={ajouterCompte}
+        />
+      )}
     </>
   );
 }

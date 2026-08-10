@@ -1,6 +1,8 @@
 import { ReactNode, useEffect, useRef, useState } from 'react';
 import { Settings, Trash2 } from 'lucide-react';
 import { RUNE_METRICS, setRuneMetric, useRuneMetric } from '../hooks/useRuneMetric';
+import { setPersistence, storageAvailable, usePersistence } from '../hooks/usePersistence';
+import AccountFreshness from './AccountFreshness';
 
 /* --------------------------------------------------------------------------
  * Briques de réglage — ajouter un paramètre = ajouter un <Setting>, rien d'autre
@@ -55,6 +57,39 @@ function Segmented<T extends string>({
   );
 }
 
+// Interrupteur générique oui/non, pour les réglages qui n'ont que deux états.
+// Un `<Segmented>` à deux options ferait le travail, mais un réglage binaire se
+// lit mieux d'un coup d'œil sur un interrupteur : on voit l'état sans lire.
+function Switch({
+  checked,
+  onChange,
+  label,
+  disabled = false,
+}: {
+  checked: boolean;
+  onChange: (v: boolean) => void;
+  label: string;
+  disabled?: boolean;
+}) {
+  return (
+    <button
+      role="switch"
+      aria-checked={checked}
+      aria-label={label}
+      disabled={disabled}
+      onClick={() => onChange(!checked)}
+      className={`relative h-[22px] w-[40px] flex-none rounded-full border transition
+        ${disabled ? 'cursor-not-allowed opacity-40' : ''}
+        ${checked ? 'border-star/70 bg-star/30' : 'border-border bg-panel2'}`}
+    >
+      <span
+        className={`absolute top-[2px] h-[16px] w-[16px] rounded-full transition-all
+          ${checked ? 'left-[20px] bg-star' : 'left-[2px] bg-ink-dim'}`}
+      />
+    </button>
+  );
+}
+
 /* --------------------------------------------------------------------------
  * Le menu
  * ----------------------------------------------------------------------- */
@@ -62,13 +97,44 @@ function Segmented<T extends string>({
 // Réglages GLOBAUX de l'application : on les pose une fois, ils valent partout.
 // Règle (voir spec/README.md) : un réglage qui concerne plusieurs pages vient
 // ICI, jamais dupliqué en sélecteur sur chaque page.
-function SettingsList({ onClearData }: { onClearData?: () => void }) {
+function SettingsList({
+  onClearData,
+  onKeepAccount,
+  accountExportedAt,
+}: {
+  onClearData?: () => void;
+  onKeepAccount?: () => void;
+  accountExportedAt?: number | null;
+}) {
   const metric = useRuneMetric();
+  const keep = usePersistence();
+  const storageOk = storageAvailable();
   return (
     <div>
       <Setting title="Score">
         <Segmented options={RUNE_METRICS} value={metric} onChange={setRuneMetric} />
       </Setting>
+
+      <Setting
+        title="Garder mes données"
+        hint={
+          storageOk
+            ? 'Recommandé : sans ça, tout est perdu en fermant l’onglet — prépa RTA, équipes de siège, recommandations et compte. Tout reste dans ton navigateur, sur cet appareil : à éviter sur un ordinateur partagé.'
+            : "Ton navigateur n'autorise pas le stockage (navigation privée ?). L'import reste valable le temps de la session."
+        }
+      >
+        <Switch
+          checked={keep && storageOk}
+          disabled={!storageOk}
+          onChange={(v) => setPersistence(v, onKeepAccount)}
+          label="Garder mes données sur cet appareil"
+        />
+      </Setting>
+
+      {/* L'âge des données vit ICI, à côté du réglage qui décide de leur
+          conservation : c'est là qu'on se pose la question, et ça n'encombre
+          aucune page. */}
+      <AccountFreshness exportedAt={accountExportedAt ?? null} className="pb-2.5" />
 
       {/* ⚠️ La suppression vit ICI, pas à côté du bouton d'import : une action
           destructrice collée au bouton le plus utilisé finit par être cliquée de
@@ -77,7 +143,7 @@ function SettingsList({ onClearData }: { onClearData?: () => void }) {
         <Setting title="Mes données">
           <button
             onClick={onClearData}
-            title="Efface la prépa RTA, les équipes de siège, les recommandations et les monstres perso"
+            title="Efface la prépa RTA, les équipes de siège, les recommandations, les monstres perso et le compte importé"
             className="flex flex-none items-center gap-1.5 rounded-lg border border-border bg-panel2
                        px-2.5 py-1 text-[11.5px] font-semibold text-ink-dim transition
                        hover:border-fire/60 hover:text-fire"
@@ -96,9 +162,13 @@ function SettingsList({ onClearData }: { onClearData?: () => void }) {
 export default function SettingsMenu({
   variant = 'desktop',
   onClearData,
+  onKeepAccount,
+  accountExportedAt,
 }: {
   variant?: 'desktop' | 'bar';
   onClearData?: () => void;
+  onKeepAccount?: () => void;
+  accountExportedAt?: number | null;
 }) {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
@@ -138,7 +208,11 @@ export default function SettingsMenu({
           <div className="font-mono text-[10px] uppercase tracking-[0.14em] text-ink-dim pb-1.5 border-b border-border">
             Réglages
           </div>
-          <SettingsList onClearData={onClearData} />
+          <SettingsList
+            onClearData={onClearData}
+            onKeepAccount={onKeepAccount}
+            accountExportedAt={accountExportedAt}
+          />
         </div>
       )}
     </div>

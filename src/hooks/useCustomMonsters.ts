@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { ElementKey, Monster } from '../types';
+import { saveLocal, usePersistence } from './usePersistence';
 
 const STORAGE_KEY = 'sw-forge-custom-monsters-v1';
 
@@ -83,13 +84,10 @@ export interface UseCustomMonsters {
 export function useCustomMonsters(): UseCustomMonsters {
   const [customMonsters, setCustomMonsters] = useState<Monster[]>(load);
 
+  const persist = usePersistence();
   useEffect(() => {
-    try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(customMonsters));
-    } catch {
-      /* stockage indisponible : on ignore */
-    }
-  }, [customMonsters]);
+    saveLocal(STORAGE_KEY, JSON.stringify(customMonsters));
+  }, [customMonsters, persist]);
 
   const addCustomMonster = useCallback(
     (name: string, element: ElementKey, speed: number, lead?: CustomLead | null) => {

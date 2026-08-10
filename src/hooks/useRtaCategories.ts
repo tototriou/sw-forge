@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { Monster } from '../types';
 import { speedLeadOf } from '../lib/speed';
+import { saveLocal, usePersistence } from './usePersistence';
 
 // Catégories libres de la prépa RTA : l'utilisateur crée ses propres étiquettes
 // (« Striper », « Lead SPD », « AoE »…) avec une couleur, et les applique à ses
@@ -131,13 +132,10 @@ export function useRtaCategories(): UseRtaCategories {
     []
   );
 
+  const persist = usePersistence();
   useEffect(() => {
-    try {
-      localStorage.setItem(KEY, JSON.stringify(state));
-    } catch {
-      /* quota plein : on ne casse pas la page pour autant */
-    }
-  }, [state]);
+    saveLocal(KEY, JSON.stringify(state));
+  }, [state, persist]);
 
   const setVisible = useCallback((v: boolean) => setState((st) => ({ ...st, visible: v })), []);
   const setShowSpeeds = useCallback(

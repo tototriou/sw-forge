@@ -11,6 +11,7 @@ import {
 } from '../types';
 import { canAddSet } from '../lib/effects';
 import { cleanSetOptions } from '../lib/recoShare';
+import { saveLocal, usePersistence } from './usePersistence';
 
 const SET_KEYS = new Set(RUNE_SETS.map((s) => s.key));
 
@@ -117,13 +118,10 @@ export interface UseRecoState {
 export function useSiegeRecos(): UseRecoState {
   const [state, setState] = useState<RecoState>(load);
 
+  const persist = usePersistence();
   useEffect(() => {
-    try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
-    } catch {
-      /* stockage indisponible : on ignore */
-    }
-  }, [state]);
+    saveLocal(STORAGE_KEY, JSON.stringify(state));
+  }, [state, persist]);
 
   const update = useCallback((id: string, fn: (r: Reco) => Reco) => {
     setState((s) => ({ recos: s.recos.map((r) => (r.id === id ? fn(r) : r)) }));

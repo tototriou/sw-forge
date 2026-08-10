@@ -56,5 +56,9 @@ c'est le même geste, dans la même branche de release.
 ## Voir aussi
 
 Le **modèle de branches et le processus de release** (branche `release/x.y.z`,
-`main` stable, tag, release GitHub) sont décrits dans le
-[README](README.md), section « Versions & releases ».
+`main` stable, **fusion en squash**, tag, release GitHub, **suppression de la
+branche**) sont décrits dans le [README](README.md), section « Versions &
+releases ».
+
+⚠️ `main` porte **un commit par version** : le détail du travail vit dans les
+commits de la branche, et le point de retour est le **tag**.

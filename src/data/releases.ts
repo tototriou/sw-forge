@@ -38,6 +38,44 @@ export const CHANGE_META: Record<ChangeKind, { label: string; color: string }> =
 // Si une ligne dépasse ~15 mots, c'est qu'elle raconte l'implémentation.
 export const RELEASES: Release[] = [
   {
+    version: '1.2.0',
+    date: '2026-08-10',
+    title: 'Tes données restent d’une visite à l’autre',
+    highlights: [
+      'Ton compte aussi est conservé, plus besoin de le redéposer',
+      'Tu choisis : tout garder, ou ne rien garder',
+      'Import nettement plus rapide',
+    ],
+    changes: [
+      {
+        kind: 'feat',
+        scope: 'Mon compte',
+        text: 'Ton compte importé est conservé entre deux visites, comme le reste.',
+      },
+      {
+        kind: 'feat',
+        scope: 'Interface',
+        text: 'Après un import, tu choisis de garder ou non tes données sur cet appareil.',
+      },
+      {
+        kind: 'feat',
+        scope: 'Réglages',
+        text: 'Un seul bouton pour tout conserver ou tout effacer, modifiable à tout moment.',
+      },
+      {
+        kind: 'feat',
+        scope: 'Réglages',
+        text: 'La date de ton dernier export est affichée, avec un rappel si elle date.',
+      },
+      {
+        kind: 'feat',
+        scope: 'Interface',
+        text: 'Une attente s’affiche pendant la lecture de ton fichier.',
+      },
+      { kind: 'fix', scope: 'Import', text: 'Import de compte quatre fois plus rapide.' },
+    ],
+  },
+  {
     version: '1.1.2',
     date: '2026-08-09',
     title: 'Comparaison de courbes de runes remaniée',

@@ -260,6 +260,9 @@ navigation entre onglets et **disparaissent au rechargement**.
 
 C'est délibéré : ce sont les données **de quelqu'un d'autre**. Elles n'ont rien à
 faire sur le disque de celui qui les consulte, et il ne doit pas avoir à y penser.
+
+⚠️ Le réglage « Garder mon compte » (menu ⚙) **ne change rien ici** : il ne
+conserve que le compte **du joueur**. On ne stocke jamais le compte d'un tiers.
 ⚠️ **Ne pas** basculer cet état vers `localStorage` « pour le confort » — c'est la
 seule partie de l'app où de la donnée tierce transite.
 

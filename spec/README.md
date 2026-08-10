@@ -43,8 +43,24 @@ Concepts partagés par plusieurs pages, documentés une seule fois :
 
 ## Conventions communes (toutes les pages)
 
-- **Persistance navigateur** : chaque page à état (RTA, Siège) sauvegarde tout
-  dans `localStorage`. Rien n'est envoyé à un serveur. Aucune authentification.
+- **Persistance navigateur — un SEUL interrupteur pour toute l'app**
+  ([usePersistence.ts](src/hooks/usePersistence.ts)). Prépa RTA, équipes de
+  siège, recommandations, catégories, monstres perso **et** compte importé sont
+  conservés **si et seulement si** l'utilisateur l'a accepté. Rien n'est envoyé à
+  un serveur. Aucune authentification.
+  - ⚠️ **Un seul régime de mémoire.** RTA et siège étaient persistés d'office
+    pendant que le compte disparaissait au rechargement : on revenait avec ses
+    équipes mais sans ses runes, sans explication. Deux régimes dans le même
+    outil, c'est un bug de conception.
+  - ⚠️ **Aucun hook n'appelle `localStorage.setItem` directement** : tout passe
+    par `saveLocal`. C'est ce qui garantit qu'un refus vaut pour l'app entière, et
+    qu'un futur état persistant n'ouvrira pas une fuite.
+  - **Exception** : les clés de **réglage** (choix de conservation, mesure de
+    score) restent écrites. Ce ne sont pas les données de l'utilisateur, et le
+    refus lui-même doit être mémorisé pour ne pas reposer la question.
+  - ⚠️ **Utilisateur déjà installé** : des données déjà présentes sur le disque
+    valent **consentement**. Sans cette reprise, la mise à jour retirerait en
+    silence une conservation dont il dispose depuis toujours.
 - **Statistiques de fréquentation** : **Vercel Web Analytics**
   ([Analytics.tsx](src/components/Analytics.tsx)), sans cookie, limité aux pages
   visitées. ⚠️ Le routage étant **par hash**, un `beforeSend` réécrit l'URL pour
@@ -84,19 +100,30 @@ Concepts partagés par plusieurs pages, documentés une seule fois :
     contrairement aux filtres et tris de page qui sont jetables.
   - **Structure pensée pour grossir** : un réglage = un `<Setting>` (intitulé à
     gauche, contrôle à droite), avec des contrôles génériques réutilisables
-    (`<Segmented>` pour un choix unique). Ajouter un paramètre = ajouter un
-    `<Setting>`, rien d'autre.
+    (`<Segmented>` pour un choix unique, `<Switch>` pour un oui/non — un réglage
+    binaire se lit d'un coup d'œil sur un interrupteur, sans lire les libellés).
+    Ajouter un paramètre = ajouter un `<Setting>`, rien d'autre.
   - **Pas de légende** quand l'intitulé et les options se suffisent : le panneau
-    reste une liste de lignes courtes. Le `hint` d'un `<Setting>` est facultatif,
-    réservé à un futur réglage réellement ambigu.
-  - Contenu actuel : **Score** → `Efficience` / `Score SW` (voir
-    [compte/runes.md](compte/runes.md)).
+    reste une liste de lignes courtes. Le `hint` d'un `<Setting>` sert quand le
+    réglage a une **conséquence non évidente** — « Garder mon compte » en a une
+    (le compte reste sur la machine), il porte donc un `hint`.
+  - Contenu actuel :
+    - **Score** → `Efficience` / `Score SW` (voir [compte/runes.md](compte/runes.md)) ;
+    - **Garder mon compte** → conservation de l'import entre deux sessions,
+      **désactivée par défaut** (voir [shared/import-compte.md](shared/import-compte.md)) ;
+    - **Date de l'export chargé**, sous le réglage — c'est là qu'on se pose la
+      question de la fraîcheur des données ;
+    - **Mes données** → « Tout supprimer ».
 - **Import de compte global** : un seul bouton invariant « Importer mon compte »
   dans la barre de nav remplit RTA + siège défense + offense **+ « Mon compte »**
   (box 6★ et inventaire runes/artéfacts) d'un coup. Chaque import remplace le
-  précédent ; rien n'est persisté sur le disque. RTA/siège sont dans
-  `localStorage` ; **« Mon compte » reste en mémoire** (ré-import à chaque
-  session). Les états sont remontés dans [App.tsx](src/App.tsx). Voir
+  précédent. RTA/siège sont dans `localStorage` ; **« Mon compte » reste en
+  mémoire par défaut** (ré-import à chaque session), sauf si l'utilisateur active
+  **« Garder mon compte »** dans le menu ⚙ — le compte est alors conservé dans
+  **IndexedDB**, pas dans `localStorage` (2,2 Mo pour un quota de 5 Mo partagé
+  avec des données irremplaçables). Réglage **désactivé par défaut** : sur un
+  ordinateur partagé, l'oubli au rechargement est une propriété. Les états sont
+  remontés dans [App.tsx](src/App.tsx). Voir
   [shared/import-compte.md](shared/import-compte.md).
 - **Pas de titre/intro sur les pages outils** : RTA, Siège, Arène et Bestiaire
   démarrent directement sur leur contenu (pas d'en-tête `<h1>` + paragraphe).

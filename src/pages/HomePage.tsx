@@ -40,7 +40,6 @@ export interface HomeStats {
   defense: number; // équipes de siège en défense
   offense: number; // équipes de siège en offense
   recos: number; // recommandations enregistrées
-  accountLoaded: boolean; // un export de compte est chargé dans CETTE session
 }
 
 interface Props {
@@ -129,16 +128,6 @@ export default function HomePage({ stats, onImport }: Props) {
             <Resume href="#/siege/offense" icon={Swords} accent="#F2884C" value={stats.offense} unit={stats.offense > 1 ? 'équipes' : 'équipe'} label="Offense de siège" />
             <Resume href="#/siege/recommandations" icon={Lightbulb} accent="#5EDB8F" value={stats.recos} unit={stats.recos > 1 ? 'recos' : 'reco'} label="Recommandations" />
           </div>
-
-          {/* Le compte n'est PAS persisté (voir shared/import-compte.md) : sans
-              ce rappel, on croit à une perte de données au retour sur le site. */}
-          {!stats.accountLoaded && (
-            <p className="mt-2.5 text-[12.5px] leading-relaxed text-ink-dim">
-              Ton compte n'est pas chargé dans cette session — <b className="text-ink">réimporte ton
-              export</b> pour retrouver ta box, tes runes et le détail d'équipement. Tes équipes et tes
-              recommandations, elles, sont conservées.
-            </p>
-          )}
         </motion.section>
       )}
 

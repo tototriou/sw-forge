@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { RtaState, RtaEntry, GearSet, RTA_UNASSIGNED, RTA_OTHER, RTA_DEFAULT_SECTIONS, RUNE_SETS } from '../types';
+import { saveLocal, usePersistence } from './usePersistence';
 
 const RUNE_SET_KEYS = new Set(RUNE_SETS.map((s) => s.key));
 
@@ -53,14 +54,13 @@ export interface UseRtaState {
 export function useRtaState(): UseRtaState {
   const [state, setState] = useState<RtaState>(load);
 
-  // Persistance : tout changement est sauvegardé dans le navigateur.
+  // Conservation : tout changement est enregistré — SI l'utilisateur l'a
+  // accepté (voir usePersistence). `persist` est dans les dépendances pour que
+  // l'activation du réglage écrive aussitôt ce qui est déjà en mémoire.
+  const persist = usePersistence();
   useEffect(() => {
-    try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
-    } catch {
-      /* quota plein ou stockage indisponible : on ignore silencieusement */
-    }
-  }, [state]);
+    saveLocal(STORAGE_KEY, JSON.stringify(state));
+  }, [state, persist]);
 
   const addMonster = useCallback((id: string) => {
     setState((s) => {

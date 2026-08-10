@@ -57,10 +57,11 @@ recommandations.
 - Une valeur à 0 est **atténuée, pas masquée** — sinon la rangée saute.
 - Une **équipe vide** (créée puis abandonnée) **n'est pas comptée** : annoncer
   12 équipes dont 9 sans monstre serait mensonger.
-- ⚠️ Le **compte n'est pas persisté** (voir
-  [../shared/import-compte.md](../shared/import-compte.md)) : quand il manque
-  alors qu'il y a des données locales, on le **dit explicitement**, sinon on
-  croit à une perte de données au retour sur le site.
+- ⚠️ **Aucun message sur l'état du compte ici.** Il y en avait un (« ton compte
+  n'est pas chargé dans cette session… ») : il expliquait une incohérence au lieu
+  de la corriger. La question de la conservation est désormais **posée à la fin
+  de l'import** (voir [shared/import-compte.md](shared/import-compte.md)), et
+  l'âge du compte vit dans le menu ⚙, à côté du réglage qui le gouverne.
 
 ### 4. Comment ça marche
 

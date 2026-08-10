@@ -25,6 +25,15 @@ import AccountPage from './pages/AccountPage';
 import ComingSoon from './pages/ComingSoon';
 import AccountImportControl from './components/AccountImportControl';
 import SettingsMenu from './components/SettingsMenu';
+import { loadAccount, saveAccount } from './lib/accountStore';
+import {
+  persistenceChoisie,
+  persistenceEnabled,
+  purgeDonneesConservees,
+  setPersistence,
+  storageAvailable,
+} from './hooks/usePersistence';
+import { ImportSpinner, KeepAccountDialog } from './components/ImportOverlay';
 import GameIcon, { GameIconKey } from './components/GameIcon';
 import { ArtifactDetail, Monster, RuneDetail } from './types';
 import { useMonsters } from './hooks/useMonsters';
@@ -34,7 +43,10 @@ import { useSiegeState } from './hooks/useSiegeState';
 import { useSiegeRecos } from './hooks/useSiegeRecos';
 import { collectOwnedBuilds, collectOwnedTeams } from './lib/ownedBuilds';
 import {
+  BoxMonster,
   parseAccountJson,
+  parseAccountExportDate,
+  parseAccountSource,
   parseSiegeDefense,
   parseSiegeOffense,
   parseAccountBox,
@@ -43,6 +55,15 @@ import {
 import { mapRtaItems, mapSiegeTeams, mapBoxMonsters, BoxItem } from './lib/applyAccount';
 
 const DISCORD_INVITE = 'https://discord.gg/R2Fe4GJZET';
+
+// Deux frames : la première monte le spinner, la seconde garantit qu'il est
+// PEINT avant qu'on bloque le thread. Une seule ne suffit pas — React peut
+// encore n'avoir que commité le DOM.
+function deuxFrames(): Promise<void> {
+  return new Promise((resolve) =>
+    requestAnimationFrame(() => requestAnimationFrame(() => resolve()))
+  );
+}
 
 type Route = 'home' | 'bestiary' | 'rta' | 'siege' | 'arene' | 'mecaniques' | 'compte' | 'releases';
 export type AccountSub = 'monstres' | 'runes' | 'artefacts';
@@ -107,10 +128,33 @@ export default function App() {
   const siegeOff = useSiegeState('offense');
   const recos = useSiegeRecos();
 
-  // Compte (box + inventaire runes/artéfacts) : en mémoire uniquement (ré-import à chaque session).
+  // Compte (box + inventaire runes/artéfacts). En mémoire, et **conservé sur
+  // l'appareil** si l'utilisateur l'a demandé dans le menu ⚙ (voir
+  // spec/shared/import-compte.md).
   const [box, setBox] = useState<BoxItem[]>([]);
   const [runes, setRunes] = useState<RuneDetail[]>([]);
   const [artifacts, setArtifacts] = useState<ArtifactDetail[]>([]);
+
+  // Box telle que sortie de l'extracteur, avant résolution en monstres. C'est
+  // ELLE qu'on enregistre : un `BoxItem` embarque l'objet `Monster` et figerait
+  // la correspondance com2usId → monstre au moment de l'import.
+  const rawBoxRef = useRef<BoxMonster[]>([]);
+
+  // Vrai tant qu'on relit le compte conservé. ⚠️ Sans cet état, l'accueil
+  // afficherait « ton compte n'est pas chargé » pendant les quelques dizaines de
+  // millisecondes de lecture, puis tout apparaîtrait : on croit à une perte de
+  // données, puis à un miracle.
+  const [accountHydrating, setAccountHydrating] = useState(
+    () => persistenceEnabled() && storageAvailable()
+  );
+  // Un import manuel pendant l'hydratation doit gagner : la lecture en cours ne
+  // doit pas écraser le fichier que l'utilisateur vient de déposer.
+  const importedManuallyRef = useRef(false);
+
+  // Date de l'EXPORT chargé (`tvalue`), affichée dans le menu ⚙. Vaut aussi pour
+  // un compte simplement en mémoire : elle dit l'âge des DONNÉES, pas celui de
+  // l'enregistrement.
+  const [accountExportedAt, setAccountExportedAt] = useState<number | null>(null);
 
   const [{ route, siegeTab, accountSub }, setNav] = useState(parseHash);
   const [menuOpen, setMenuOpen] = useState(false);
@@ -119,6 +163,8 @@ export default function App() {
   const [accountOpen, setAccountOpen] = useState(false);
   const accountRef = useRef<HTMLDivElement>(null);
   const [importMsg, setImportMsg] = useState<{ ok: boolean; text: string } | null>(null);
+  const [importing, setImporting] = useState(false);
+  const [askKeep, setAskKeep] = useState(false);
 
   // Barre du haut : si la rangée complète (onglets + import + réglages) ne tient
   // pas sur UNE ligne, on bascule sur le menu hamburger plutôt que de laisser
@@ -145,6 +191,38 @@ export default function App() {
     return m;
   }, [allMonsters]);
 
+  // Relecture du compte conservé, au démarrage.
+  //
+  // ⚠️ Attendre `data.monsters` : la box stockée n'est qu'une liste de
+  // `com2usId`, elle a besoin de l'index pour redevenir des monstres. Lancer la
+  // lecture trop tôt donnerait une box vide, sans erreur.
+  useEffect(() => {
+    if (!accountHydrating) return;
+    // Données de monstres en échec : on abandonne la relecture plutôt que de
+    // laisser « Chargement de ton compte… » tourner indéfiniment.
+    if (data.loadState === 'error') {
+      setAccountHydrating(false);
+      return;
+    }
+    if (allMonsters.length === 0) return;
+    let annule = false;
+    loadAccount().then((rec) => {
+      if (annule) return;
+      // L'utilisateur a déposé un fichier pendant la lecture : son geste prime.
+      if (rec && !importedManuallyRef.current) {
+        rawBoxRef.current = rec.box;
+        setBox(mapBoxMonsters(rec.box, monsterByCom2us));
+        setRunes(rec.runes);
+        setArtifacts(rec.artifacts);
+        setAccountExportedAt(rec.exportedAt);
+      }
+      setAccountHydrating(false);
+    });
+    return () => {
+      annule = true;
+    };
+  }, [accountHydrating, allMonsters.length, monsterByCom2us, data.loadState]);
+
   // Tous les BUILDS connus du joueur : box (équipement porté) + preset RTA +
   // presets de siège. Un monstre a un build par contexte — s'en tenir à la box
   // ferait échouer la confrontation d'un deck de siège pourtant possédé.
@@ -170,12 +248,57 @@ export default function App() {
   }, [box, rta.state.entries, siegeDef.state.teams, siegeOff.state.teams, allMonsters]);
 
   // Import GLOBAL : un seul fichier alimente RTA + siège défense + siège offense.
-  function importAccount(text: string) {
-    const rtaRes = parseAccountJson(text);
-    const defRes = parseSiegeDefense(text);
-    const offRes = parseSiegeOffense(text);
-    const boxRes = parseAccountBox(text);
-    const invRes = parseAccountInventory(text);
+  //
+  // ⚠️ **Asynchrone uniquement pour laisser le spinner s'afficher.** Le parse et
+  // le mapping d'un export de 8 Mo bloquent le thread principal : sans une
+  // respiration avant, React n'a jamais l'occasion de peindre l'attente et l'app
+  // paraît figée — on reclique, et tout repart.
+  async function importAccount(text: string) {
+    // ⚠️ La confirmation vient AVANT le spinner : une boîte native par-dessus un
+    // écran d'attente donne l'impression que le traitement a planté.
+    //
+    // ⚠️ « Annuler » ANNULE L'IMPORT — il ne doit surtout pas déclencher une
+    // fusion : c'était le cas, et fusionner des équipes de siège les DÉDOUBLAIT
+    // (un compte à 50 attaques repartait à 100). Un import de compte est un
+    // rafraîchissement de l'état du jeu, jamais un ajout.
+    const aDejaDesDonnees =
+      Object.keys(rta.state.entries).length > 0 ||
+      siegeDef.state.teams.length > 0 ||
+      siegeOff.state.teams.length > 0;
+    if (
+      aDejaDesDonnees &&
+      !confirm("L'import va remplacer toutes les données présentes.\n\nEs-tu sûr ?")
+    )
+      return;
+
+    setImporting(true);
+    await deuxFrames();
+    try {
+      await appliquerImport(text);
+    } finally {
+      setImporting(false);
+    }
+    // La question de la conservation se pose ICI, une fois les données à l'écran
+    // — pas dans un menu que personne n'ouvre (voir useKeepAccount).
+    if (!persistenceChoisie() && storageAvailable()) setAskKeep(true);
+  }
+
+  async function appliquerImport(text: string) {
+    // ⚠️ Parser UNE fois et passer l'objet aux cinq extracteurs : chacun
+    // reparsait le fichier de son côté, soit cinq JSON.parse d'un export de
+    // 8 Mo. Les index internes (runes, unités, artéfacts) sont mémoïsés sur cet
+    // objet, donc partagés eux aussi.
+    const data = parseAccountSource(text);
+    if (!data) {
+      setImportMsg({ ok: false, text: 'Fichier JSON illisible.' });
+      return;
+    }
+    const exporte = parseAccountExportDate(data);
+    const rtaRes = parseAccountJson(data);
+    const defRes = parseSiegeDefense(data);
+    const offRes = parseSiegeOffense(data);
+    const boxRes = parseAccountBox(data);
+    const invRes = parseAccountInventory(data);
 
     const rtaItems = rtaRes.units ? mapRtaItems(rtaRes.units, monsterByCom2us) : [];
     const def = mapSiegeTeams(defRes.decks ?? [], monsterByCom2us);
@@ -196,36 +319,32 @@ export default function App() {
       return;
     }
 
-    // Une seule confirmation si des données existent déjà.
-    // ⚠️ « Annuler » ANNULE L'IMPORT — il ne doit surtout pas déclencher une
-    // fusion : c'était le cas, et fusionner des équipes de siège les DÉDOUBLAIT
-    // (un compte à 50 attaques repartait à 100). Un import de compte est un
-    // rafraîchissement de l'état du jeu, jamais un ajout.
-    const hasExisting =
-      Object.keys(rta.state.entries).length > 0 ||
-      siegeDef.state.teams.length > 0 ||
-      siegeOff.state.teams.length > 0;
-    if (
-      hasExisting &&
-      !confirm(
-        'Importer ton compte va REMPLACER ta prépa RTA et tes équipes de siège\n' +
-          "par celles de l'export.\n\n" +
-          "OK = importer · Annuler = ne rien faire"
-      )
-    ) {
-      return; // rien touché
-    }
-
     if (rtaItems.length) {
       rta.clearAll();
       rta.importEntries(rtaItems);
     }
     if (def.teams.length) siegeDef.importTeams(def.teams);
     if (off.teams.length) siegeOff.importTeams(off.teams);
-    // Box + inventaire en mémoire : toujours remplacés par le dernier import.
+    // Box + inventaire : toujours remplacés par le dernier import.
+    importedManuallyRef.current = true;
+    rawBoxRef.current = boxRes.monsters ?? [];
+    setAccountExportedAt(exporte);
     setBox(boxItems);
     setRunes(invRes.runes ?? []);
     setArtifacts(invRes.artifacts ?? []);
+
+    // Enregistrement **après** la mise à jour de l'affichage et sans attendre :
+    // une écriture de 2 Mo ne doit pas retarder l'apparition du compte. Un échec
+    // (stockage plein, refusé) laisse l'import parfaitement utilisable pour la
+    // session — on ne casse pas l'usage courant pour un problème de confort.
+    if (persistenceEnabled()) {
+      void saveAccount({
+        box: rawBoxRef.current,
+        runes: invRes.runes ?? [],
+        artifacts: invRes.artifacts ?? [],
+        exportedAt: exporte,
+      });
+    }
 
     const parts: string[] = [];
     if (boxItems.length) parts.push(`${boxItems.length} monstres 6★`);
@@ -242,24 +361,36 @@ export default function App() {
     });
   }
 
+  // Réponse à la fenêtre de choix. `null` = fermée sans répondre : on
+  // n'enregistre rien et on redemandera, plutôt que d'interpréter un silence.
+  function repondreConservation(keep: boolean | null) {
+    setAskKeep(false);
+    if (keep === null) return;
+    setPersistence(keep, persistCurrentAccount);
+  }
+
   // Efface toutes les données locales (prépa RTA, équipes de siège,
-  // recommandations, monstres perso). Le compte importé n'est déjà qu'en
-  // mémoire → le reload le vide aussi.
-  function clearAllData() {
+  // recommandations, monstres perso) **et le compte conservé**.
+  //
+  // ⚠️ L'effacement du compte est asynchrone et doit finir AVANT le rechargement.
+  // Sans l'attente, la page repart pendant la transaction et le compte pourrait
+  // survivre à une action annoncée comme irréversible.
+  async function clearAllData() {
     if (
       !confirm(
-        'Supprimer toutes tes données locales (prépa RTA, équipes de siège, recommandations, monstres perso) ?\n\nCette action est irréversible.'
+        'Supprimer toutes tes données locales (prépa RTA, équipes de siège, recommandations, monstres perso) ?\n\nLe compte conservé sur cet appareil est effacé lui aussi.\n\nCette action est irréversible.'
       )
     )
       return;
-    try {
-      Object.keys(localStorage)
-        .filter((k) => k.startsWith('sw-forge') || k.startsWith('sky-arena'))
-        .forEach((k) => localStorage.removeItem(k));
-    } catch {
-      /* stockage indisponible : on ignore */
-    }
+    await purgeDonneesConservees();
     location.reload();
+  }
+
+  // Activation du réglage « Garder mon compte » : on enregistre ce qui est déjà
+  // en mémoire, sinon il faudrait réimporter le même fichier pour rien.
+  function persistCurrentAccount() {
+    if (rawBoxRef.current.length === 0 && runes.length === 0 && artifacts.length === 0) return;
+    void saveAccount({ box: rawBoxRef.current, runes, artifacts, exportedAt: accountExportedAt });
   }
 
   useEffect(() => {
@@ -331,7 +462,12 @@ export default function App() {
             {/* Les réglages restent EN DEHORS du menu : accessibles en un geste
                 quelle que soit la largeur, jamais enfouis derrière le hamburger. */}
             <div className="flex items-center gap-1.5">
-              <SettingsMenu variant="bar" onClearData={clearAllData} />
+              <SettingsMenu
+                variant="bar"
+                onClearData={clearAllData}
+                onKeepAccount={persistCurrentAccount}
+                accountExportedAt={accountExportedAt}
+              />
               <button
                 onClick={() => setMenuOpen((o) => !o)}
                 aria-label="Menu"
@@ -529,7 +665,11 @@ export default function App() {
             {route !== 'home' && (
               <AccountImportControl onImport={importAccount} variant="desktop" />
             )}
-            <SettingsMenu onClearData={clearAllData} />
+            <SettingsMenu
+              onClearData={clearAllData}
+              onKeepAccount={persistCurrentAccount}
+              accountExportedAt={accountExportedAt}
+            />
           </div>
             </>
           )}
@@ -580,6 +720,7 @@ export default function App() {
             runes={runes}
             artifacts={artifacts}
             loadState={data.loadState}
+            hydrating={accountHydrating}
           />
         ) : route === 'releases' ? (
           <ReleasesPage />
@@ -594,7 +735,6 @@ export default function App() {
               defense: siegeDef.state.teams.filter((t) => t.slots.some((s) => s.monsterId)).length,
               offense: siegeOff.state.teams.filter((t) => t.slots.some((s) => s.monsterId)).length,
               recos: recos.state.recos.length,
-              accountLoaded: box.length > 0 || runes.length > 0,
             }}
             onImport={importAccount}
           />
@@ -640,6 +780,17 @@ export default function App() {
             </a>
           </p>
         </footer>
+
+        {/* Attente pendant le traitement, puis la question de la conservation.
+            Les deux sont modales : l'une parce que rien d'autre n'est possible,
+            l'autre parce que la réponse conditionne ce qui sera gardé. */}
+        {importing && <ImportSpinner />}
+        {askKeep && !importing && (
+          <KeepAccountDialog
+            onChoose={(keep) => repondreConservation(keep)}
+            onDismiss={() => repondreConservation(null)}
+          />
+        )}
       </div>
   );
 }

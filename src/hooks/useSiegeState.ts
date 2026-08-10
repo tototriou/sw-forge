@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { SiegeState, SiegeTeam, SiegeSlot, GearSet } from '../types';
+import { saveLocal, usePersistence } from './usePersistence';
 
 // Défense et offense de siège = deux listes d'équipes indépendantes.
 export type SiegeSide = 'offense' | 'defense';
@@ -76,13 +77,10 @@ export interface UseSiegeState {
 export function useSiegeState(side: SiegeSide): UseSiegeState {
   const [state, setState] = useState<SiegeState>(() => load(side));
 
+  const persist = usePersistence();
   useEffect(() => {
-    try {
-      localStorage.setItem(storageKey(side), JSON.stringify(state));
-    } catch {
-      /* stockage indisponible : on ignore */
-    }
-  }, [state, side]);
+    saveLocal(storageKey(side), JSON.stringify(state));
+  }, [state, side, persist]);
 
   // Applique une modification à une équipe donnée.
   const updateTeam = useCallback((teamId: string, fn: (t: SiegeTeam) => SiegeTeam) => {

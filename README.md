@@ -76,12 +76,19 @@ main ──●────────────────────●─
      [`src/data/releases.ts`](src/data/releases.ts) — c'est ce que les joueurs
      liront sur la page **Nouveautés** ;
    - vérifier `npx tsc --noEmit` et `npm run build`.
-4. **Fusionner dans `main`**, puis **taguer et publier la release** :
+4. **Fusionner dans `main` en SQUASH**, taguer, publier, puis **supprimer la
+   branche** :
    ```bash
-   git switch main && git merge --no-ff release/1.2.0
+   git switch main && git merge --squash release/1.2.0
+   git commit -m "release: v1.2.0 — …"
    git tag -a v1.2.0 -m "…" && git push origin main --tags
    gh release create v1.2.0 --title "v1.2.0 — …" --notes "…"
+   git branch -d release/1.2.0 && git push origin :release/1.2.0
    ```
+   ⚠️ **Squash, pas `--no-ff`** : `main` porte **un commit par version**, ce qui en
+   fait un historique lisible à l'échelle des releases. Le détail du travail est
+   dans la branche — et celle-ci est **supprimée juste après**, une fois la
+   release publiée : le tag est le point de retour, la branche ne sert plus.
 
 **Numérotation** (semver, lue du point de vue du joueur) :
 

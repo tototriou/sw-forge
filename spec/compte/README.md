@@ -28,10 +28,15 @@ sous-section.
 
 ## État & persistance
 
-- **En mémoire uniquement** (`useState` dans [App.tsx](src/App.tsx)). Aucun
-  `localStorage` : il faut **ré-importer** son compte à chaque session.
+- **En mémoire** (`useState` dans [App.tsx](src/App.tsx)), donc ré-import à
+  chaque session — **sauf** si l'utilisateur active « Garder mon compte » dans le
+  menu ⚙ : le compte est alors relu au démarrage depuis IndexedDB. Jamais
+  `localStorage`. Voir [shared/import-compte.md](../shared/import-compte.md).
 - Si rien n'est chargé (les trois vides) : écran d'invite « Aucune donnée de compte
   chargée — importe ton compte… ».
+- ⚠️ Pendant la relecture, l'écran affiche **« Chargement de ton compte… »**, pas
+  l'invite d'import : annoncer « aucune donnée » une fraction de seconde avant
+  que tout apparaisse fait croire à une perte.
 
 ## Périmètre
 

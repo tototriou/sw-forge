@@ -13,6 +13,74 @@ const RUNE_EFF_SPEED = 8; // type d'effet « Vitesse » dans les données com2us
 const RUNE_SET_SWIFT = 3; // set_id du set Swift
 
 /* --------------------------------------------------------------------------
+ * Source d'un export — texte OU objet déjà parsé
+ * ----------------------------------------------------------------------- */
+
+// Un import de compte enchaîne CINQ extracteurs (RTA, box, inventaire, siège
+// défense, siège attaque) sur le même fichier. Chacun recevait le texte brut et
+// le reparsait : cinq `JSON.parse` d'un export de 8 Mo, ~80 ms jetés, et bien
+// plus sur téléphone. Les extracteurs acceptent donc aussi l'objet **déjà
+// parsé** — l'appelant parse une fois avec `parseAccountSource` et passe le
+// résultat à tous. Le texte reste accepté pour les appels isolés.
+export type AccountSource = string | Record<string, any>;
+
+// Parse une fois pour toutes. `null` = fichier illisible (l'appelant produit
+// alors son propre message, chaque extracteur ayant sa forme de résultat).
+export function parseAccountSource(src: AccountSource): Record<string, any> | null {
+  if (typeof src !== 'string') return src ?? null;
+  try {
+    const data = JSON.parse(src);
+    return data && typeof data === 'object' ? data : null;
+  } catch {
+    return null;
+  }
+}
+
+// Date de l'EXPORT lui-même (epoch ms), depuis `tvalue` — l'heure serveur au
+// moment où SWEX a récupéré le compte.
+//
+// ⚠️ **C'est cette date qu'il faut afficher, pas celle de l'import.** Réimporter
+// un fichier de trois semaines afficherait sinon « aujourd'hui » sur des données
+// périmées, ce qui est exactement le mensonge qu'on cherche à éviter. Vérifié sur
+// des exports réels : `tvalue` colle à la seconde près à la création du fichier,
+// et reste bien antérieur à sa date quand il a été recopié depuis.
+//
+// ⚠️ Ne pas confondre avec `tvaluelocal`, décalé de l'heure du serveur de jeu.
+export function parseAccountExportDate(src: AccountSource): number | null {
+  const data = parseAccountSource(src);
+  const t = Number(data?.tvalue);
+  if (!Number.isFinite(t) || t <= 0) return null;
+  const ms = t * 1000;
+  // Garde-fou : un champ absent ou dans une autre unité donnerait une date
+  // absurde, affichée telle quelle. Le jeu est sorti en 2014.
+  if (ms < Date.UTC(2014, 0, 1) || ms > Date.now() + 86_400_000) return null;
+  return ms;
+}
+
+// Mémoïse un index dérivé de `data` : les extracteurs reconstruisent sinon les
+// mêmes Maps (runes ×4, artéfacts ×3, unités ×2) sur des milliers d'entrées.
+// Clé faible sur l'objet parsé → libéré avec lui, et jamais partagé entre deux
+// imports différents.
+//
+// ⚠️ **Contrat : l'index renvoyé est partagé, donc en LECTURE SEULE.** Avant la
+// mémoïsation chaque extracteur avait sa copie ; désormais un `.set()` sur
+// l'index en corromprait quatre autres — et le bug n'apparaîtrait que dans un
+// extracteur voisin, à des centaines de lignes de la faute. D'où le type
+// `ReadonlyMap` en sortie : le compilateur refuse la mutation. Un extracteur qui
+// a besoin d'un index à lui en fait une copie explicite (`new Map(index)`).
+function memoByData<T>(build: (data: any) => T): (data: any) => T {
+  const cache = new WeakMap<object, T>();
+  return (data: any) => {
+    if (!data || typeof data !== 'object') return build(data);
+    const hit = cache.get(data);
+    if (hit !== undefined) return hit;
+    const made = build(data);
+    cache.set(data, made);
+    return made;
+  };
+}
+
+/* --------------------------------------------------------------------------
  * Helpers partagés
  * ----------------------------------------------------------------------- */
 
@@ -36,7 +104,7 @@ function runeSpeed(rune: any): number {
 
 // Index de TOUTES les runes par rune_id : inventaire (top-level `runes`) +
 // runes équipées dans les unités. Un preset (RTA ou siège) peut réutiliser n'importe laquelle.
-function indexRunes(data: any): Map<number, any> {
+const indexRunes = memoByData((data: any): ReadonlyMap<number, any> => {
   const runeById = new Map<number, any>();
   const add = (r: any) => {
     const id = Number(r?.rune_id);
@@ -47,10 +115,10 @@ function indexRunes(data: any): Map<number, any> {
     for (const u of data.unit_list) if (Array.isArray(u?.runes)) u.runes.forEach(add);
   }
   return runeById;
-}
+});
 
 // Index des unités possédées par unit_id.
-function indexUnits(data: any): Map<number, any> {
+const indexUnits = memoByData((data: any): ReadonlyMap<number, any> => {
   const unitById = new Map<number, any>();
   if (Array.isArray(data?.unit_list)) {
     for (const u of data.unit_list) {
@@ -59,14 +127,14 @@ function indexUnits(data: any): Map<number, any> {
     }
   }
   return unitById;
-}
+});
 
 // SPD plate des runes pour un lot de rune_id donné.
 //
 // ⚠️ Ne décide PAS si le Swift est actif : c'est `activeSetsFromRuneIds` qui
 // fait foi (voir `swiftActive`). Compter les runes Swift ici donnait un
 // désaccord avec les sets affichés — bug réel, détaillé sous `swiftActive`.
-function speedFromRuneIds(runeIds: any[], runeById: Map<number, any>): number {
+function speedFromRuneIds(runeIds: any[], runeById: ReadonlyMap<number, any>): number {
   let flatRuneSpeed = 0;
   for (const rid of runeIds) {
     const rune = runeById.get(Number(rid));
@@ -87,7 +155,7 @@ const SET_ID_KEY: Record<number, string> = {
 // Sets de runes ACTIFS d'un build (ex. ['swift','will']). Un set 4 pièces
 // s'active à 4 runes, les autres à 2. Une rune Intangible sert de joker et
 // complète le set le plus proche d'être plein.
-function activeSetsFromRuneIds(runeIds: any[], runeById: Map<number, any>): string[] {
+function activeSetsFromRuneIds(runeIds: any[], runeById: ReadonlyMap<number, any>): string[] {
   const keys: string[] = [];
   for (const rid of runeIds) {
     const rune = runeById.get(Number(rid));
@@ -201,7 +269,7 @@ function baseStatsOf(unit: any): BaseStats {
 
 // Assemble le GearSet d'un monstre dans un contexte donné : runes du preset,
 // artéfacts fournis (RTA ou box), relique de l'unité, stats de base.
-function buildGear(unit: any, runeIds: any[], artifactObjs: any[], runeById: Map<number, any>): GearSet {
+function buildGear(unit: any, runeIds: any[], artifactObjs: any[], runeById: ReadonlyMap<number, any>): GearSet {
   const runes = runeIds
     .map((rid) => runeById.get(Number(rid)))
     .filter(Boolean)
@@ -215,7 +283,7 @@ function buildGear(unit: any, runeIds: any[], artifactObjs: any[], runeById: Map
 // Index de TOUS les artéfacts par rid : inventaire (top-level `artifacts`) +
 // artéfacts embarqués dans les unités. Les presets (RTA/siège) peuvent
 // référencer l'un ou l'autre — comme pour les runes, il faut fusionner.
-function indexArtifacts(data: any): Map<number, any> {
+const indexArtifacts = memoByData((data: any): ReadonlyMap<number, any> => {
   const m = new Map<number, any>();
   const add = (a: any) => {
     const id = Number(a?.rid);
@@ -226,10 +294,10 @@ function indexArtifacts(data: any): Map<number, any> {
     for (const u of data.unit_list) if (Array.isArray(u?.artifacts)) u.artifacts.forEach(add);
   }
   return m;
-}
+});
 
 // Artéfacts RTA équipés par monstre (world_arena_artifact_equip_list).
-function rtaArtifactsByUnit(data: any, artById: Map<number, any>): Map<number, any[]> {
+function rtaArtifactsByUnit(data: any, artById: ReadonlyMap<number, any>): Map<number, any[]> {
   const m = new Map<number, any[]>();
   const list = data?.world_arena_artifact_equip_list;
   if (Array.isArray(list)) {
@@ -314,13 +382,9 @@ function findRtaEquipList(data: any): any[] | null {
   return null;
 }
 
-export function parseAccountJson(text: string): ParseResult {
-  let data: any;
-  try {
-    data = JSON.parse(text);
-  } catch {
-    return { units: [], error: 'Fichier JSON illisible.' };
-  }
+export function parseAccountJson(src: AccountSource): ParseResult {
+  const data = parseAccountSource(src);
+  if (!data) return { units: [], error: 'Fichier JSON illisible.' };
 
   const unitList = data?.unit_list;
   if (!Array.isArray(unitList)) {
@@ -401,13 +465,9 @@ export interface BoxParseResult {
 
 // Extrait toute la box 6★. L'équipement vient de l'unité elle-même (runes et
 // artéfacts embarqués) : c'est le build actuellement équipé en jeu.
-export function parseAccountBox(text: string): BoxParseResult {
-  let data: any;
-  try {
-    data = JSON.parse(text);
-  } catch {
-    return { monsters: [], error: 'Fichier JSON illisible.' };
-  }
+export function parseAccountBox(src: AccountSource): BoxParseResult {
+  const data = parseAccountSource(src);
+  if (!data) return { monsters: [], error: 'Fichier JSON illisible.' };
   const unitList = data?.unit_list;
   if (!Array.isArray(unitList)) {
     return {
@@ -446,13 +506,9 @@ export interface InventoryParseResult {
   error?: string;
 }
 
-export function parseAccountInventory(text: string): InventoryParseResult {
-  let data: any;
-  try {
-    data = JSON.parse(text);
-  } catch {
-    return { runes: [], artifacts: [], error: 'Fichier JSON illisible.' };
-  }
+export function parseAccountInventory(src: AccountSource): InventoryParseResult {
+  const data = parseAccountSource(src);
+  if (!data) return { runes: [], artifacts: [], error: 'Fichier JSON illisible.' };
   if (!Array.isArray(data?.unit_list)) {
     return {
       runes: [],
@@ -544,9 +600,9 @@ interface DeckDef {
 // Résout des DeckDef en SiegeImportedDeck (mapping unité → monstre + vitesses).
 function buildSiegeDecks(
   defs: DeckDef[],
-  runeById: Map<number, any>,
-  unitById: Map<number, any>,
-  artById: Map<number, any>
+  runeById: ReadonlyMap<number, any>,
+  unitById: ReadonlyMap<number, any>,
+  artById: ReadonlyMap<number, any>
 ): SiegeImportedDeck[] {
   const decks: SiegeImportedDeck[] = [];
   for (const def of defs) {
@@ -574,13 +630,9 @@ function buildSiegeDecks(
 }
 
 // Import des DÉFENSES de siège.
-export function parseSiegeDefense(text: string): SiegeParseResult {
-  let data: any;
-  try {
-    data = JSON.parse(text);
-  } catch {
-    return { decks: [], error: 'Fichier JSON illisible.' };
-  }
+export function parseSiegeDefense(src: AccountSource): SiegeParseResult {
+  const data = parseAccountSource(src);
+  if (!data) return { decks: [], error: 'Fichier JSON illisible.' };
   if (!Array.isArray(data?.unit_list)) {
     return {
       decks: [],
@@ -621,13 +673,9 @@ export function parseSiegeDefense(text: string): SiegeParseResult {
 }
 
 // Import des ÉQUIPES D'ATTAQUE de siège (offense).
-export function parseSiegeOffense(text: string): SiegeParseResult {
-  let data: any;
-  try {
-    data = JSON.parse(text);
-  } catch {
-    return { decks: [], error: 'Fichier JSON illisible.' };
-  }
+export function parseSiegeOffense(src: AccountSource): SiegeParseResult {
+  const data = parseAccountSource(src);
+  if (!data) return { decks: [], error: 'Fichier JSON illisible.' };
   if (!Array.isArray(data?.unit_list)) {
     return {
       decks: [],

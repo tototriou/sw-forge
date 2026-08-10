@@ -17,6 +17,9 @@ interface Props {
   runes: RuneDetail[];
   artifacts: ArtifactDetail[];
   loadState: LoadState;
+  // Relecture du compte conservé en cours : on n'annonce pas « aucune donnée »
+  // tant qu'on n'a pas fini de regarder.
+  hydrating?: boolean;
 }
 
 // Styles de chips d'élément (repris de FilterBar pour rester cohérent).
@@ -259,8 +262,21 @@ function MonsterBoxSection({ box }: { box: BoxItem[] }) {
   );
 }
 
-export default function AccountPage({ sub, box, runes, artifacts, loadState }: Props) {
+export default function AccountPage({ sub, box, runes, artifacts, loadState, hydrating }: Props) {
   const empty = box.length === 0 && runes.length === 0 && artifacts.length === 0;
+
+  if (empty && hydrating) {
+    return (
+      <div className="mt-10 flex flex-col items-center text-center text-ink-dim">
+        <div className="mb-3 flex items-center gap-3 opacity-40">
+          <GameIcon name="monster" size={34} />
+          <GameIcon name="rune" size={34} />
+          <GameIcon name="artifact" size={34} />
+        </div>
+        <p className="text-[13px]">Chargement de ton compte…</p>
+      </div>
+    );
+  }
 
   if (empty) {
     return (
@@ -274,7 +290,8 @@ export default function AccountPage({ sub, box, runes, artifacts, loadState }: P
         <p className="text-[15px] font-semibold text-ink">Aucune donnée de compte chargée</p>
         <p className="mt-1 text-[13px] max-w-sm">
           Importe ton compte (bouton en haut à droite) pour afficher tes monstres 6★, tes runes et
-          tes artéfacts. Les données restent en mémoire et sont à ré-importer à chaque session.
+          tes artéfacts. Active « Garder mon compte » dans le menu ⚙ pour ne pas avoir à le
+          redéposer à chaque visite.
         </p>
         {loadState === 'loading' && <p className="mt-3 text-[12px]">Chargement des monstres…</p>}
       </div>

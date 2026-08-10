@@ -35,22 +35,37 @@ function clesDeDonnees(): string[] {
   }
 }
 
+// Règle de reprise, **isolée et pure** pour être vérifiable telle quelle : c'est
+// la décision la plus lourde de conséquences du module, et elle ne s'observe
+// qu'au tout premier chargement.
+export function etatDepuisStockage(entrees: Record<string, string>): {
+  actif: boolean;
+  choisi: boolean;
+} {
+  const brut = entrees[STORAGE_KEY];
+  if (brut !== undefined) return { actif: brut === '1', choisi: true };
+
+  // Reprise de l'ancien réglage, qui ne portait que sur le compte.
+  const ancien = entrees[ANCIENNE_CLE];
+  if (ancien !== undefined) return { actif: ancien === '1', choisi: true };
+
+  // ⚠️ **Utilisateur déjà installé** : RTA et siège étaient persistés d'office
+  // avant ce réglage. Le mettre à « non » lui ferait perdre en silence une
+  // conservation dont il dispose depuis toujours — des données déjà sur le
+  // disque valent donc consentement.
+  if (Object.keys(entrees).some(estUneCleDeDonnees)) return { actif: true, choisi: true };
+
+  return { actif: false, choisi: false };
+}
+
 function load(): { actif: boolean; choisi: boolean } {
   try {
-    const brut = localStorage.getItem(STORAGE_KEY);
-    if (brut !== null) return { actif: brut === '1', choisi: true };
-
-    // Reprise de l'ancien réglage, qui ne portait que sur le compte.
-    const ancien = localStorage.getItem(ANCIENNE_CLE);
-    if (ancien !== null) return { actif: ancien === '1', choisi: true };
-
-    // ⚠️ **Utilisateur déjà installé** : RTA et siège étaient persistés d'office
-    // avant ce réglage. Le mettre à « non » lui ferait perdre en silence une
-    // conservation dont il dispose depuis toujours — on considère donc que des
-    // données déjà sur le disque valent consentement.
-    if (clesDeDonnees().length > 0) return { actif: true, choisi: true };
-
-    return { actif: false, choisi: false };
+    const entrees: Record<string, string> = {};
+    for (const k of Object.keys(localStorage)) {
+      const v = localStorage.getItem(k);
+      if (v !== null) entrees[k] = v;
+    }
+    return etatDepuisStockage(entrees);
   } catch {
     return { actif: false, choisi: false };
   }

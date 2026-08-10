@@ -1,0 +1,225 @@
+{
+  "_lisezmoi": "Export SWEX MINIATURE, écrit à la main pour les tests. Il ne contient aucune donnée réelle : trois unités, six runes, deux artéfacts. Il n'a pas vocation à être réaliste, mais à exercer chaque chemin des extracteurs — box 6★, inventaire, favoris RTA avec preset de runes, défense de siège, attaque de siège. Les com2usId (unit_master_id) sont ceux de monstres réels pour que le mapping vers monsters.json aboutisse.",
+  "tvalue": 1786261890,
+  "tvaluelocal": 1786236690,
+  "wizard_info": { "wizard_id": 1, "wizard_name": "Testeur" },
+
+  "unit_list": [
+    {
+      "unit_id": 101,
+      "unit_master_id": 15105,
+      "class": 6,
+      "unit_level": 40,
+      "con": 100,
+      "atk": 700,
+      "def": 500,
+      "spd": 101,
+      "critical_rate": 15,
+      "critical_damage": 50,
+      "resist": 15,
+      "accuracy": 0,
+      "runes": [
+        {
+          "rune_id": 1001,
+          "slot_no": 2,
+          "set_id": 3,
+          "class": 6,
+          "extra": 5,
+          "upgrade_curr": 15,
+          "pri_eff": [8, 22],
+          "prefix_eff": [8, 5],
+          "sec_eff": [[8, 6, 0, 3], [12, 7, 0, 0]]
+        },
+        {
+          "rune_id": 1002,
+          "slot_no": 4,
+          "set_id": 3,
+          "class": 6,
+          "extra": 4,
+          "upgrade_curr": 12,
+          "pri_eff": [10, 63],
+          "sec_eff": [[8, 9, 0, 0]]
+        },
+        {
+          "rune_id": 1003,
+          "slot_no": 6,
+          "set_id": 3,
+          "class": 12,
+          "extra": 15,
+          "upgrade_curr": 15,
+          "pri_eff": [11, 63],
+          "sec_eff": [[8, 5, 0, 0]]
+        },
+        {
+          "rune_id": 1004,
+          "slot_no": 1,
+          "set_id": 25,
+          "class": 6,
+          "extra": 3,
+          "upgrade_curr": 15,
+          "pri_eff": [3, 160],
+          "sec_eff": [[8, 4, 0, 0]]
+        }
+      ],
+      "artifacts": [
+        {
+          "rid": 5001,
+          "type": 1,
+          "attribute": 2,
+          "unit_style": 0,
+          "natural_rank": 5,
+          "rank": 5,
+          "level": 15,
+          "pri_effect": [100, 15],
+          "sec_effects": [[201, 6, 0, 0, 0], [202, 5, 0, 0, 1]]
+        }
+      ],
+      "relics": []
+    },
+    {
+      "unit_id": 102,
+      "unit_master_id": 14314,
+      "class": 6,
+      "unit_level": 40,
+      "con": 120,
+      "atk": 600,
+      "def": 600,
+      "spd": 107,
+      "critical_rate": 15,
+      "critical_damage": 50,
+      "resist": 40,
+      "accuracy": 0,
+      "runes": [
+        {
+          "rune_id": 2001,
+          "slot_no": 2,
+          "set_id": 13,
+          "class": 6,
+          "extra": 5,
+          "upgrade_curr": 15,
+          "pri_eff": [8, 22],
+          "sec_eff": [[8, 11, 0, 5]]
+        },
+        {
+          "rune_id": 2002,
+          "slot_no": 4,
+          "set_id": 15,
+          "class": 6,
+          "extra": 2,
+          "upgrade_curr": 9,
+          "pri_eff": [10, 40],
+          "sec_eff": []
+        }
+      ],
+      "artifacts": [
+        {
+          "rid": 5002,
+          "type": 2,
+          "attribute": 0,
+          "unit_style": 3,
+          "natural_rank": 4,
+          "rank": 5,
+          "level": 12,
+          "pri_effect": [101, 12],
+          "sec_effects": [[203, 4, 0, 0, 0]]
+        }
+      ],
+      "relics": []
+    },
+    {
+      "unit_id": 103,
+      "unit_master_id": 19315,
+      "class": 5,
+      "unit_level": 35,
+      "con": 90,
+      "atk": 500,
+      "def": 400,
+      "spd": 96,
+      "critical_rate": 15,
+      "critical_damage": 50,
+      "resist": 15,
+      "accuracy": 0,
+      "runes": [],
+      "artifacts": [],
+      "relics": []
+    }
+  ],
+
+  "runes": [
+    {
+      "rune_id": 9001,
+      "slot_no": 3,
+      "set_id": 14,
+      "class": 6,
+      "extra": 5,
+      "upgrade_curr": 15,
+      "pri_eff": [4, 160],
+      "sec_eff": [[8, 12, 0, 0]]
+    },
+    {
+      "rune_id": 9002,
+      "slot_no": 5,
+      "set_id": 3,
+      "class": 11,
+      "extra": 14,
+      "upgrade_curr": 0,
+      "pri_eff": [1, 2088],
+      "sec_eff": []
+    }
+  ],
+
+  "artifacts": [
+    {
+      "rid": 8001,
+      "type": 1,
+      "attribute": 3,
+      "unit_style": 0,
+      "natural_rank": 3,
+      "rank": 5,
+      "level": 6,
+      "pri_effect": [100, 8],
+      "sec_effects": [[204, 3, 0, 0, 0]]
+    }
+  ],
+
+  "favorite_unit_list": [{ "type": 1, "unit_id_list": [101, 102] }],
+
+  "world_arena_rune_equip_list": [
+    { "rune_id": 1001, "occupied_id": 101 },
+    { "rune_id": 1002, "occupied_id": 101 },
+    { "rune_id": 1003, "occupied_id": 101 },
+    { "rune_id": 9002, "occupied_id": 101 },
+    { "rune_id": 2001, "occupied_id": 102 },
+    { "rune_id": 2002, "occupied_id": 102 }
+  ],
+
+  "world_arena_artifact_equip_list": [{ "artifact_id": 5001, "occupied_id": 101 }],
+
+  "guildsiege_defense_deck_unit_list": [
+    { "deck_id": 1, "unit_id_list": [101, 102, 0] },
+    { "deck_id": 2, "unit_id_list": [102, 0, 0] }
+  ],
+
+  "guildsiege_defense_deck_equip_list": {
+    "1": {
+      "equip": [
+        { "unit_id": 101, "rune_id_list": [1001, 1002, 1003], "artifact_id_list": [5001] },
+        { "unit_id": 102, "rune_id_list": [2001, 2002], "artifact_id_list": [5002] }
+      ]
+    }
+  },
+
+  "deck_list": [
+    {
+      "deck_seq": 7,
+      "deck_type": 22,
+      "leader_unit_id": 102,
+      "unit_id_list": [101, 102],
+      "equip": [
+        { "unit_id": 101, "rune_id_list": [1001, 1004], "artifact_id_list": [] },
+        { "unit_id": 102, "rune_id_list": [2001], "artifact_id_list": [] }
+      ]
+    },
+    { "deck_seq": 8, "deck_type": 1, "leader_unit_id": 101, "unit_id_list": [101] }
+  ]
+}

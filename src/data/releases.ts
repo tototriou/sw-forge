@@ -38,6 +38,18 @@ export const CHANGE_META: Record<ChangeKind, { label: string; color: string }> =
 // Si une ligne dépasse ~15 mots, c'est qu'elle raconte l'implémentation.
 export const RELEASES: Release[] = [
   {
+    version: '1.2.2',
+    date: '2026-08-10',
+    title: 'Fiabilité : les calculs sensibles sont désormais vérifiés',
+    changes: [
+      {
+        kind: 'docs',
+        scope: 'Fiabilité',
+        text: 'Vérifications automatiques sur les vitesses, l’import et la conservation.',
+      },
+    ],
+  },
+  {
     version: '1.2.1',
     date: '2026-08-10',
     title: 'Le choix de conservation est reposé à chaque import',

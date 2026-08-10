@@ -66,6 +66,12 @@ Concepts partagés par plusieurs pages, documentés une seule fois :
   visitées. ⚠️ Le routage étant **par hash**, un `beforeSend` réécrit l'URL pour
   que la route devienne le chemin — sinon toutes les visites seraient comptées
   sur « / ».
+- **Vérifications automatiques** — `npm test`
+  ([tests/README.md](tests/README.md)). Volontairement limitées aux endroits où
+  une erreur serait **grave et invisible** : vitesse de combat, lecture d'un
+  export, stockage du compte, conservation des données. ⚠️ **Pas de test
+  d'interface** : elle se vérifie à l'œil, et des tests d'affichage se
+  contenteraient de figer le rendu du jour.
 - **Versions & releases** — `main` reste **stable et déployée** ; on développe
   dans une branche **`release/x.y.z`**, qui porte l'incrément de `package.json`
   **et** l'entrée du journal ([releases.md](releases.md)). Processus détaillé

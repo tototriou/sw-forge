@@ -75,7 +75,7 @@ main ──●────────────────────●─
    - ajouter l'entrée correspondante **en tête** de
      [`src/data/releases.ts`](src/data/releases.ts) — c'est ce que les joueurs
      liront sur la page **Nouveautés** ;
-   - vérifier `npx tsc --noEmit` et `npm run build`.
+   - vérifier `npx tsc --noEmit`, `npm test` et `npm run build`.
 4. **Fusionner dans `main` en SQUASH**, taguer, publier, puis **supprimer la
    branche** :
    ```bash
@@ -119,13 +119,20 @@ Avant d'ouvrir une PR :
 
 ```bash
 npx tsc --noEmit     # le projet est en TypeScript strict
+npm test             # vérifications sur les calculs et la conservation
 npm run build
 ```
+
+`npm test` ne couvre **pas** l'interface, volontairement : elle se vérifie à
+l'œil. Il cible les quatre endroits où une erreur serait à la fois grave et
+invisible — vitesse de combat, lecture d'un export, stockage du compte,
+conservation des données. Voir [tests/README.md](tests/README.md).
 
 ### Structure
 
 ```
 ├── spec/                  LA référence : ce que fait l'app et pourquoi
+├── tests/                 vérifications des calculs et de la conservation
 ├── src/
 │   ├── pages/             Accueil, Bestiaire, RTA, Siège, Mon compte, Mécaniques
 │   ├── components/        cartes, filtres, icônes, composants RTA & Siège

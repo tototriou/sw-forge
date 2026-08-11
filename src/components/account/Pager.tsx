@@ -36,7 +36,7 @@ export default function Pager({
 
   const arrow =
     'flex items-center justify-center w-7 h-7 rounded-lg border border-border bg-panel ' +
-    'hover:text-ink hover:border-[#4a52a0] transition disabled:opacity-30 disabled:cursor-not-allowed';
+    'hoverable:text-ink hoverable:border-accent transition disabled:opacity-30 disabled:cursor-not-allowed';
 
   return (
     <div className="flex items-center gap-1.5 font-mono text-[12px] text-ink-dim">
@@ -66,7 +66,7 @@ export default function Pager({
         aria-label="Aller à la page"
         title="Aller à la page"
         className="w-9 h-7 rounded-lg border border-border bg-panel text-center tabular-nums text-ink
-                   outline-none transition focus:border-[#5b63b8]"
+                   outline-none transition focus:border-accent"
       />
       <span className="tabular-nums">/ {pageCount}</span>
 

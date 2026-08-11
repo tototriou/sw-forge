@@ -2,17 +2,326 @@
 @tailwind components;
 @tailwind utilities;
 
+/* ==========================================================================
+   Système visuel — deux thèmes : Forge (sombre) et Atelier (clair).
+   Source de vérité : spec/shared/design.md
+   ==========================================================================
+
+   ⚠️ Les tokens de COULEUR sont déclarés en CANAUX RGB (« 12 11 15 »), pas en
+   hexadécimal. C'est ce qui permet à Tailwind de composer l'opacité :
+   `bg-panel/50` devient `rgb(var(--panel) / 0.5)`. Déclarés en `#16141b`, ces
+   144 classes de l'app ne produisaient RIEN — voile de modale absent, détail de
+   rune transparent. Voir tailwind.config.js.
+
+   Le thème s'applique par `data-theme` sur <html>, posé AVANT la première
+   peinture par le script inline d'index.html. Trois cas :
+     1. `:root`                        → Atelier (clair), le défaut ;
+     2. media dark SANS data-theme     → Forge, quand on suit son OS ;
+     3. `[data-theme="dark"]`          → Forge forcé depuis le menu ⚙.
+   Le cas 2 est gardé par `:not([data-theme="light"])` pour qu'un choix
+   explicite « Clair » l'emporte sur un OS en sombre. */
+
+:root {
+  /* ---- Atelier (clair) — le défaut ----
+     ⚠️ Valeurs MESURÉES au contraste WCAG, pas choisies à l'œil. Seuils :
+     4.5 pour le texte, 3.0 pour les bordures et éléments d'interface.
+     Voir spec/shared/design.md § Contraste. */
+  /* ⚠️ Les trois surfaces doivent se distinguer DEUX À DEUX : `panel2` sert
+     aussi bien de fond enfoncé sur `panel` (détail de rune, piste de barre) que
+     de surface posée sur `bg`. À 243 245 250 il se confondait avec `panel` ;
+     trop foncé, il se confondait avec `bg`. `bg` est donc descendu pour laisser
+     la place aux deux écarts. */
+  --bg: 223 227 237;
+  --panel: 255 255 255;
+  --panel2: 239 242 248;
+  /* Bordures assombries : à 211 216 228 elles tombaient à 1.43 sur panel —
+     une carte sans contour perceptible. */
+  --border: 166 175 197;
+  --border-soft: 197 205 221;
+  --ink: 26 30 43;
+  --ink-dim: 88 95 117;
+  /* `ink-dimmer` échouait partout (2.65 sur bg) : assombri pour passer 4.5
+     sur les TROIS surfaces, `bg` comprise — c'est la plus exigeante. */
+  --ink-dimmer: 102 109 131;
+
+  --accent: 43 54 165;
+  --accent-soft: 226 229 247;
+  --good: 20 106 65;
+  /* `warn` et `star` portent des CHIFFRES qu'on lit (max d'efficience). */
+  --warn: 138 87 12;
+  --bad: 176 28 28;
+
+  /* Éléments — teinte conservée, SATURATION poussée.
+     ⚠️ Le ratio WCAG mesure la luminance, pas la présence d'une couleur : à
+     `133 107 10` le vent passait 5.12 tout en restant pâle et invisible sur
+     blanc. On sature au maximum compatible avec le seuil, plutôt que de se
+     contenter de l'assombrir vers le gris.
+     ⚠️ La TEINTE reste reconnaissable : le vent est ocre, jamais vert ; la
+     lumière est dorée, jamais grise. Un joueur repère ses monstres à la volée
+     dans une liste dense. Voir spec/shared/design.md. */
+  --el-fire: 196 28 16;
+  --el-water: 0 106 166;
+  /* ⚠️ Vent et Lumière : ARBITRAGE ASSUMÉ entre teinte et ratio.
+     Un jaune reste jaune tant qu'il est clair ; l'assombrir jusqu'à 4.5 sur
+     `bg` le fait virer au kaki, et un joueur ne reconnaît plus son élément.
+     On tient donc 4.5 sur `panel` — la surface des cartes et des listes, là où
+     ces libellés apparaissent réellement — et on accepte ~3.9 sur `bg`, qui ne
+     porte quasiment aucun texte d'élément.
+     Ce sont des LIBELLÉS courts et gras, pas du texte courant.
+     Voir spec/shared/design.md § Contraste. */
+  --el-wind: 148 111 0;
+  --el-light: 134 103 24;
+  --el-dark: 118 36 190;
+  --el-unknown: 86 95 122;
+
+  --star: 138 87 12;
+
+  /* Palette du résumé de compte (paliers d'efficience, qualité du stock).
+     ⚠️ MÊMES TEINTES que le thème sombre, assombries pour tenir sur blanc.
+     Les valeurs sombres (or, violet, vert d'eau, bleu ciel…) sont pensées pour
+     un fond profond : sur blanc elles tombaient entre 1.22 et 3.12 de contraste
+     — cinq des six étaient invisibles.
+     Chaque barre porte son libellé ET sa valeur en clair : l'identité ne repose
+     jamais sur la couleur seule. Voir spec/shared/design.md § Dataviz. */
+  --pal-1: 150 112 10; /* or       — ≥ 110 % */
+  --pal-2: 122 61 158; /* violet   — 100-110 % */
+  --pal-3: 28 122 74; /* vert     — 90-100 % */
+  --pal-4: 15 110 148; /* bleu     — 80-90 % */
+  --pal-5: 90 99 140; /* gris-bleu — 70-80 % */
+  --pal-6: 107 114 128; /* gris     — < 70 % */
+
+  /* Raretés — couleur de TEXTE seulement (la bannière garde le dégradé du jeu,
+     identique dans les deux thèmes). Voir RARITY_META dans lib/effects.ts. */
+  --rarity-5: 166 88 12;
+  --rarity-4: 118 51 176;
+  --rarity-3: 21 88 140;
+  --rarity-2: 20 110 66;
+  --rarity-1: 90 96 112;
+
+  --radius: 5px;
+  --radius-lg: 7px;
+
+  --page-veil: radial-gradient(ellipse 80% 50% at 50% -10%, #dfe3f5 0%, transparent 60%);
+}
+
+/* ---- Forge (sombre) : les valeurs, définies UNE SEULE FOIS ----
+   ⚠️ Volontairement plus clair que la maquette d'origine (#0c0b0f) : sur une
+   app entière, un quasi-noir écrase tout et fatigue. On garde la profondeur du
+   bleu nuit historique, réchauffée vers l'accent cuivre.
+
+   ⚠️ Ces `--forge-*` ne sont JAMAIS consommés directement par un composant :
+   ils alimentent les tokens réels dans les deux déclencheurs ci-dessous. Le
+   bloc était dupliqué (media query + attribut) et les copies ont divergé — le
+   thème forcé gardait des couleurs sous le seuil de contraste pendant que
+   l'autre était corrigé. */
+:root {
+  --forge-bg: 18 19 28;
+  --forge-panel: 25 26 38;
+  --forge-panel2: 33 35 50;
+  --forge-border: 58 62 86;
+  --forge-border-soft: 45 48 68;
+  --forge-ink: 233 231 240;
+  --forge-ink-dim: 148 148 170;
+  /* Remonté : à 106 106 128 il tombait à 2.95 sur panel2. */
+  --forge-ink-dimmer: 130 131 152;
+
+  --forge-accent: 210 122 66;
+  --forge-accent-soft: 48 38 34;
+  --forge-good: 127 190 127;
+  --forge-warn: 217 164 65;
+  /* Éclairci : `bad` passait sous 4.0 sur panel2, or il porte les alertes. */
+  --forge-bad: 226 116 104;
+
+  --forge-el-fire: 232 92 80;
+  --forge-el-water: 47 160 224;
+  --forge-el-wind: 231 194 46;
+  --forge-el-light: 234 235 240;
+  --forge-el-dark: 176 118 232;
+  /* Remonté : 2.88 sur panel — un élément inconnu restait illisible. */
+  --forge-el-unknown: 134 141 168;
+
+  --forge-star: 242 194 76;
+
+  /* Palette du résumé en sombre : les couleurs D'ORIGINE, inchangées.
+     Elles fonctionnaient — c'est uniquement sur fond clair qu'elles tombaient
+     sous le seuil, d'où la variante assombrie ci-dessus. */
+  --forge-pal-1: 248 178 74; /* #f8b24a — or */
+  --forge-pal-2: 200 140 255; /* #c88cff — violet */
+  --forge-pal-3: 124 240 166; /* #7cf0a6 — vert */
+  --forge-pal-4: 143 212 255; /* #8fd4ff — bleu ciel */
+  --forge-pal-5: 136 144 184; /* #8890B8 — gris-bleu */
+  /* Legerement remonte : #5B6280 d'origine tombait a 2.89 sur le panneau. */
+  --forge-pal-6: 106 113 145;
+
+  /* Raretés en sombre : les couleurs vives du jeu, telles quelles. */
+  --forge-rarity-5: 248 178 74;
+  --forge-rarity-4: 200 140 255;
+  --forge-rarity-3: 111 163 207;
+  --forge-rarity-2: 124 240 166;
+  --forge-rarity-1: 230 230 230;
+
+  --forge-veil: radial-gradient(ellipse 80% 50% at 50% -10%, #241d2e 0%, transparent 60%);
+}
+
+/* Le bloc appliqué par les deux déclencheurs. Une seule liste à maintenir. */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme='light']) {
+    --bg: var(--forge-bg);
+    --panel: var(--forge-panel);
+    --panel2: var(--forge-panel2);
+    --border: var(--forge-border);
+    --border-soft: var(--forge-border-soft);
+    --ink: var(--forge-ink);
+    --ink-dim: var(--forge-ink-dim);
+    --ink-dimmer: var(--forge-ink-dimmer);
+    --accent: var(--forge-accent);
+    --accent-soft: var(--forge-accent-soft);
+    --good: var(--forge-good);
+    --warn: var(--forge-warn);
+    --bad: var(--forge-bad);
+    --el-fire: var(--forge-el-fire);
+    --el-water: var(--forge-el-water);
+    --el-wind: var(--forge-el-wind);
+    --el-light: var(--forge-el-light);
+    --el-dark: var(--forge-el-dark);
+    --el-unknown: var(--forge-el-unknown);
+    --star: var(--forge-star);
+    --pal-1: var(--forge-pal-1);
+  --pal-2: var(--forge-pal-2);
+  --pal-3: var(--forge-pal-3);
+  --pal-4: var(--forge-pal-4);
+  --pal-5: var(--forge-pal-5);
+  --pal-6: var(--forge-pal-6);
+  --rarity-5: var(--forge-rarity-5);
+    --rarity-4: var(--forge-rarity-4);
+    --rarity-3: var(--forge-rarity-3);
+    --rarity-2: var(--forge-rarity-2);
+    --rarity-1: var(--forge-rarity-1);
+    --radius: 4px;
+    --radius-lg: 6px;
+    --page-veil: var(--forge-veil);
+  }
+}
+
+/* Thème forcé depuis le menu ⚙ — mêmes affectations, autre déclencheur.
+   ⚠️ La liste est identique à celle ci-dessus PAR CONSTRUCTION : les valeurs
+   vivent toutes dans `--forge-*`, ces deux blocs ne font que les brancher. Si
+   tu ajoutes un token, ajoute-le AUX DEUX. Une divergence est déjà survenue :
+   le thème forcé gardait des couleurs sous le seuil de contraste. */
+:root[data-theme='dark'] {
+  --bg: var(--forge-bg);
+  --panel: var(--forge-panel);
+  --panel2: var(--forge-panel2);
+  --border: var(--forge-border);
+  --border-soft: var(--forge-border-soft);
+  --ink: var(--forge-ink);
+  --ink-dim: var(--forge-ink-dim);
+  --ink-dimmer: var(--forge-ink-dimmer);
+  --accent: var(--forge-accent);
+  --accent-soft: var(--forge-accent-soft);
+  --good: var(--forge-good);
+  --warn: var(--forge-warn);
+  --bad: var(--forge-bad);
+  --el-fire: var(--forge-el-fire);
+  --el-water: var(--forge-el-water);
+  --el-wind: var(--forge-el-wind);
+  --el-light: var(--forge-el-light);
+  --el-dark: var(--forge-el-dark);
+  --el-unknown: var(--forge-el-unknown);
+  --star: var(--forge-star);
+  --pal-1: var(--forge-pal-1);
+  --pal-2: var(--forge-pal-2);
+  --pal-3: var(--forge-pal-3);
+  --pal-4: var(--forge-pal-4);
+  --pal-5: var(--forge-pal-5);
+  --pal-6: var(--forge-pal-6);
+  --rarity-5: var(--forge-rarity-5);
+  --rarity-4: var(--forge-rarity-4);
+  --rarity-3: var(--forge-rarity-3);
+  --rarity-2: var(--forge-rarity-2);
+  --rarity-1: var(--forge-rarity-1);
+  --radius: 4px;
+  --radius-lg: 6px;
+  --page-veil: var(--forge-veil);
+}
+
+
+/* ---- Courbes ------------------------------------------------------------ */
+/* ⚠️ Jamais `ease-in` sur un élément d'interface : il démarre lentement, à
+   l'instant où l'utilisateur regarde. Voir spec/shared/design.md. */
+:root {
+  --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+  --ease-in-out: cubic-bezier(0.77, 0, 0.175, 1);
+}
+
+/* ==========================================================================
+   Base
+   ========================================================================== */
+
 html {
-  background: #0a0d1c;
+  background: rgb(var(--bg));
+  /* Formulaires natifs (scrollbar, sélection) rendus dans le bon thème. */
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  html:not([data-theme='light']) {
+    color-scheme: dark;
+  }
+}
+html[data-theme='dark'] {
+  color-scheme: dark;
 }
 
 body {
-  background:
-    radial-gradient(ellipse 80% 50% at 50% -10%, #1a2050 0%, transparent 60%),
-    #0a0d1c;
+  background: var(--page-veil), rgb(var(--bg));
+  color: rgb(var(--ink));
   min-height: 100vh;
   /* Garde-fou : aucun débordement horizontal sur mobile. */
   overflow-x: hidden;
+}
+
+/* ---- Focus : UNE règle globale ----------------------------------------- */
+/* ⚠️ Remplace 24 `outline-none` sans marqueur : en tabulant, on ne savait
+   jamais où on était. Un composant peut redéfinir l'anneau, jamais le
+   supprimer. Voir spec/shared/design.md. */
+:focus-visible {
+  outline: 2px solid rgb(var(--accent));
+  outline-offset: 2px;
+  border-radius: 3px;
+}
+
+/* ---- Pression au clic --------------------------------------------------- */
+/* ⚠️ Posée GLOBALEMENT plutôt que classe par classe sur ~200 boutons : un
+   bouton qui ne bouge pas au clic laisse un doute d'un dixième de seconde
+   (« est-ce que ça a pris ? »). Voir spec/shared/design.md.
+
+   Exclusions volontaires :
+   - `[draggable]` : la poignée de glisser-déposer a son `cursor-grabbing`, et
+     un `scale` pendant un drag décale l'image fantôme ;
+   - `[role='switch']` : l'interrupteur anime déjà son curseur ;
+   - `:disabled` : un bouton inactif ne doit rien accuser. */
+button,
+[role='button'] {
+  transition: transform 150ms var(--ease-out);
+}
+button:not(:disabled):not([draggable]):not([role='switch']):active,
+[role='button']:not([aria-disabled='true']):not([draggable]):active {
+  transform: scale(0.97);
+}
+
+/* ---- Entrée d'un popover ------------------------------------------------ */
+/* ⚠️ Jamais depuis `scale(0)` : rien dans le monde réel n'apparaît de nulle
+   part. On part de 0.96 avec une opacité nulle, et l'origine est posée sur
+   l'ancre par le composant. Voir spec/shared/design.md. */
+@keyframes popover {
+  from {
+    opacity: 0;
+    transform: scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
 }
 
 ::-webkit-scrollbar {
@@ -20,18 +329,72 @@ body {
   height: 10px;
 }
 ::-webkit-scrollbar-track {
-  background: #0a0d1c;
+  background: rgb(var(--bg));
 }
 ::-webkit-scrollbar-thumb {
-  background: #272e52;
+  background: rgb(var(--border));
   border-radius: 6px;
 }
-::-webkit-scrollbar-thumb:hover {
-  background: #3a4270;
+@media (hover: hover) and (pointer: fine) {
+  ::-webkit-scrollbar-thumb:hover {
+    background: rgb(var(--ink-dimmer));
+  }
+}
+
+/* ---- Mouvement réduit --------------------------------------------------- */
+/* ⚠️ On coupe les DÉPLACEMENTS et les boucles infinies, on garde les fondus :
+   un mouvement réduit reste un mouvement, pas une absence de retour. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* ==========================================================================
+   Utilitaires maison
+   ========================================================================== */
+
+/* ---- Chiffres ------------------------------------------------------------ */
+/* La mono ne sert qu'aux CHIFFRES : ils doivent s'aligner en colonnes d'une
+   ligne à l'autre. `tabular-nums` est donc posé d'office plutôt que répété au
+   cas par cas — sans lui, un « 1 » plus étroit décale toute une colonne
+   d'efficiences. Voir spec/shared/design.md.
+   ⚠️ Dans `@layer utilities` pour que la règle vive dans la même couche que
+   l'utilitaire Tailwind qu'elle complète, et ne dépende pas de l'ordre du
+   fichier. */
+@layer utilities {
+  .font-mono {
+    font-variant-numeric: tabular-nums;
+  }
+}
+
+/* ---- Libellé en capitales ------------------------------------------------ */
+/* Le motif `font-mono text-[11px] tracking-[0.1em] uppercase text-ink-dim` était
+   répété 55 fois. Il devient une classe, et il change de police au passage.
+   ⚠️ INTER et non la mono : en 11 px, une mono en capitales espacées est large
+   et molle — c'est ce qui donnait cette impression de flou dans les zones
+   denses. Inter en demi-gras est plus net et plus compact à taille égale.
+   La mono reste réservée aux CHIFFRES, qui doivent s'aligner.
+   Voir spec/shared/design.md. */
+@layer components {
+  .label {
+    font-family: 'Inter', sans-serif;
+    font-size: 11px;
+    font-weight: 600;
+    line-height: 1.4;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: rgb(var(--ink-dim));
+  }
 }
 
 .title-gradient {
-  background: linear-gradient(135deg, #fff 0%, #b9c2ff 60%, #7c8ae0 100%);
+  background: linear-gradient(135deg, rgb(var(--ink)) 0%, rgb(var(--accent)) 100%);
   -webkit-background-clip: text;
   background-clip: text;
   color: transparent;

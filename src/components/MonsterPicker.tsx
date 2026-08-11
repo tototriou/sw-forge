@@ -55,7 +55,7 @@ export default function MonsterPicker({ monsters, onPick, excludeIds, placeholde
         placeholder={placeholder ?? 'Rechercher…'}
         className="w-full bg-panel border border-border rounded-lg py-2 pl-9 pr-3 text-[13px]
                    text-ink placeholder:text-ink-dim outline-none transition
-                   focus:border-[#5b63b8] focus:shadow-[0_0_0_3px_rgba(91,99,184,0.2)]"
+                   focus:border-accent focus:shadow-[0_0_0_3px_rgb(var(--accent)/0.25)]"
       />
 
       {open && (
@@ -70,7 +70,7 @@ export default function MonsterPicker({ monsters, onPick, excludeIds, placeholde
                   e.preventDefault();
                   pick(String(m.id));
                 }}
-                className="flex w-full items-center gap-2.5 px-3 py-1.5 text-left hover:bg-panel2 transition"
+                className="flex w-full items-center gap-2.5 px-3 py-1.5 text-left hoverable:bg-panel2 transition"
               >
                 {/* Portrait : le nom ne suffit pas à distinguer les formes d'un
                     même monstre (voir MonsterAvatar). */}

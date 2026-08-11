@@ -152,7 +152,7 @@ export default function RtaPage({
     return {
       openIndex,
       detail: (
-        <div className="rounded-xl border border-[#4a52a0] bg-panel/60 p-3">
+        <div className="rounded-xl border border-accent bg-panel/60 p-3">
           {ecart && (
             <div className="mb-2">
               <DesyncBadge ecart={ecart} size={16} />
@@ -197,7 +197,7 @@ export default function RtaPage({
         {addedIds.size > 0 && (
           <button
             onClick={() => setEffacementAConfirmer(true)}
-            className="ml-auto flex items-center gap-1.5 text-[12px] text-ink-dim hover:text-fire transition"
+            className="ml-auto flex items-center gap-1.5 text-[12px] text-ink-dim hoverable:text-fire transition"
           >
             <Trash2 size={13} /> Tout effacer
           </button>
@@ -259,7 +259,7 @@ export default function RtaPage({
 
       {/* Ajout d'une nouvelle section par set de runes */}
       <div className="mt-4 flex items-center gap-2.5 flex-wrap">
-        <span className="font-mono text-[11px] tracking-[0.1em] uppercase text-ink-dim">
+        <span className="label">
           Ajouter une section
         </span>
         <select
@@ -281,7 +281,7 @@ export default function RtaPage({
             setNewSection('');
           }}
           className="flex items-center gap-1.5 rounded-lg border border-border bg-panel px-3 py-1.5 text-[13px]
-                     text-ink-dim hover:text-ink hover:border-[#4a52a0] transition
+                     text-ink-dim hoverable:text-ink hoverable:border-accent transition
                      disabled:opacity-40 disabled:cursor-not-allowed"
         >
           <Plus size={14} /> Créer

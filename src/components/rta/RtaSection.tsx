@@ -74,7 +74,7 @@ export default function RtaSection({
         {removable && onRemoveSection && (
           <button
             onClick={() => onRemoveSection(sectionKey)}
-            className="ml-auto flex items-center gap-1 text-ink-dim hover:text-fire text-[11px] transition"
+            className="ml-auto flex items-center gap-1 text-ink-dim hoverable:text-fire text-[11px] transition"
             title="Supprimer la section (les monstres reviennent en Non classé)"
           >
             <X size={13} />

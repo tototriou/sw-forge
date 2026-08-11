@@ -503,7 +503,7 @@ export default function App() {
                     href={item.hash}
                     onClick={() => setMenuOpen(false)}
                     className={`flex items-center gap-3 rounded-lg px-3 py-3 text-[16px] font-semibold transition
-                      ${active ? 'bg-gradient-to-br from-[#3a4270] to-[#272e52] text-ink' : 'text-ink-dim'}`}
+                      ${active ? 'bg-accent-soft text-ink' : 'text-ink-dim'}`}
                   >
                     <Icon size={18} /> {item.label}
                   </a>
@@ -512,7 +512,7 @@ export default function App() {
 
               {/* Mon compte */}
               <div className="mt-1 pt-2 border-t border-border">
-                <div className="px-3 pb-1 font-mono text-[10px] uppercase tracking-[0.14em] text-ink-dim">
+                <div className="px-3 pb-1 label">
                   Mon compte
                 </div>
                 {ACCOUNT_SUBS.map((item) => {
@@ -523,7 +523,7 @@ export default function App() {
                       href={item.hash}
                       onClick={() => setMenuOpen(false)}
                       className={`flex items-center gap-3 rounded-lg px-3 py-3 text-[16px] font-semibold transition
-                        ${active ? 'bg-gradient-to-br from-[#3a4270] to-[#272e52] text-ink' : 'text-ink-dim'}`}
+                        ${active ? 'bg-accent-soft text-ink' : 'text-ink-dim'}`}
                     >
                       <GameIcon name={item.icon} size={20} /> {item.label}
                     </a>
@@ -533,7 +533,7 @@ export default function App() {
 
               {/* Ressources */}
               <div className="mt-1 pt-2 border-t border-border">
-                <div className="px-3 pb-1 font-mono text-[10px] uppercase tracking-[0.14em] text-ink-dim">
+                <div className="px-3 pb-1 label">
                   Ressources
                 </div>
                 {RESOURCES.map((item) => {
@@ -545,7 +545,7 @@ export default function App() {
                       href={item.hash}
                       onClick={() => setMenuOpen(false)}
                       className={`flex items-center gap-3 rounded-lg px-3 py-3 text-[16px] font-semibold transition
-                        ${active ? 'bg-gradient-to-br from-[#3a4270] to-[#272e52] text-ink' : 'text-ink-dim'}`}
+                        ${active ? 'bg-accent-soft text-ink' : 'text-ink-dim'}`}
                     >
                       <Icon size={18} /> {item.label}
                     </a>
@@ -588,8 +588,8 @@ export default function App() {
                   className={`flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-[13px] font-semibold transition flex-none whitespace-nowrap
                     ${
                       active
-                        ? 'bg-gradient-to-br from-[#3a4270] to-[#272e52] text-ink shadow'
-                        : 'text-ink-dim hover:text-ink'
+                        ? 'bg-accent-soft text-ink shadow'
+                        : 'text-ink-dim hoverable:text-ink'
                     }`}
                 >
                   <Icon size={14} /> {item.label}
@@ -605,8 +605,8 @@ export default function App() {
                 className={`flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-[13px] font-semibold transition flex-none whitespace-nowrap
                   ${
                     route === 'compte'
-                      ? 'bg-gradient-to-br from-[#3a4270] to-[#272e52] text-ink shadow'
-                      : 'text-ink-dim hover:text-ink'
+                      ? 'bg-accent-soft text-ink shadow'
+                      : 'text-ink-dim hoverable:text-ink'
                   }`}
               >
                 {/* Le bouton ouvre le compte entier, pas un inventaire : une icône
@@ -624,7 +624,7 @@ export default function App() {
                         href={item.hash}
                         onClick={() => setAccountOpen(false)}
                         className={`flex items-center gap-2 rounded-lg px-2.5 py-2 text-[13px] font-semibold transition
-                          ${active ? 'bg-panel2 text-ink' : 'text-ink-dim hover:text-ink hover:bg-panel2'}`}
+                          ${active ? 'bg-panel2 text-ink' : 'text-ink-dim hoverable:text-ink hoverable:bg-panel2'}`}
                       >
                         <GameIcon name={item.icon} size={17} /> {item.label}
                       </a>
@@ -642,8 +642,8 @@ export default function App() {
                 className={`flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-[13px] font-semibold transition flex-none whitespace-nowrap
                   ${
                     resourcesActive
-                      ? 'bg-gradient-to-br from-[#3a4270] to-[#272e52] text-ink shadow'
-                      : 'text-ink-dim hover:text-ink'
+                      ? 'bg-accent-soft text-ink shadow'
+                      : 'text-ink-dim hoverable:text-ink'
                   }`}
               >
                 <Library size={14} /> Ressources
@@ -660,7 +660,7 @@ export default function App() {
                         href={item.hash}
                         onClick={() => setResourcesOpen(false)}
                         className={`flex items-center gap-2 rounded-lg px-2.5 py-2 text-[13px] font-semibold transition
-                          ${active ? 'bg-panel2 text-ink' : 'text-ink-dim hover:text-ink hover:bg-panel2'}`}
+                          ${active ? 'bg-panel2 text-ink' : 'text-ink-dim hoverable:text-ink hoverable:bg-panel2'}`}
                       >
                         <Icon size={14} /> {item.label}
                       </a>
@@ -692,12 +692,18 @@ export default function App() {
             fait une idée sur un affichage à l'étroit. */}
         <MobileNotice />
 
-        {/* Message d'import global */}
-        {importMsg && (
-          <p className={`mb-3 text-[12.5px] ${importMsg.ok ? 'text-wind' : 'text-fire'}`}>
-            {importMsg.text}
-          </p>
-        )}
+        {/* Message d'import global.
+            ⚠️ `role="status"` : c'est le compte rendu de l'action structurante
+            de l'app (« 312 monstres 6★ · 84 défenses »). Sans lui, un lecteur
+            d'écran ne l'annonce jamais — il est seulement affiché.
+            `aria-live` est implicite en `polite` sur `status`. */}
+        <div role="status">
+          {importMsg && (
+            <p className={`mb-3 text-[12.5px] ${importMsg.ok ? 'text-good' : 'text-bad'}`}>
+              {importMsg.text}
+            </p>
+          )}
+        </div>
 
         {route === 'rta' ? (
           <RtaPage
@@ -766,14 +772,14 @@ export default function App() {
               href="https://github.com/tototriou/sw-forge"
               target="_blank"
               rel="noreferrer"
-              className="inline-flex items-center gap-1.5 text-[#8b92e0] hover:text-ink transition"
+              className="inline-flex items-center gap-1.5 text-accent hoverable:text-ink transition"
               title="Le code de SW Forge sur GitHub"
             >
               <Github size={13} /> github.com/tototriou
             </a>
             <a
               href="#/releases"
-              className="inline-flex items-center gap-1.5 text-[#8b92e0] hover:text-ink transition"
+              className="inline-flex items-center gap-1.5 text-accent hoverable:text-ink transition"
               title="Voir les nouveautés de cette version"
             >
               <Tag size={13} /> v{__APP_VERSION__}
@@ -784,7 +790,7 @@ export default function App() {
               href={DISCORD_INVITE}
               target="_blank"
               rel="noreferrer"
-              className="inline-flex items-center gap-1.5 text-[#8b92e0] hover:text-ink transition"
+              className="inline-flex items-center gap-1.5 text-accent hoverable:text-ink transition"
               title="Rejoindre le serveur Discord de SW Forge"
             >
               <MessageCircle size={13} /> Rejoindre le Discord
@@ -793,7 +799,7 @@ export default function App() {
           <p>Toutes tes données restent en local dans ton navigateur.</p>
           <p>
             Données et images © Com2uS · Source :{' '}
-            <a href="https://swarfarm.com" target="_blank" rel="noreferrer" className="text-[#8b92e0]">
+            <a href="https://swarfarm.com" target="_blank" rel="noreferrer" className="text-accent">
               swarfarm.com
             </a>
           </p>

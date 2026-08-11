@@ -208,7 +208,7 @@ export default function RecoBoard({ recos, monsters, builds, teams, offense }: P
             if (filter === 'imported') setFilter('mine');
           }}
           className="flex items-center gap-1.5 rounded-lg border border-border bg-panel px-3.5 py-2 text-[13px]
-                     text-ink hover:border-[#4a52a0] transition"
+                     text-ink hoverable:border-accent transition"
         >
           <Plus size={15} /> Créer une recommandation
         </button>
@@ -216,7 +216,7 @@ export default function RecoBoard({ recos, monsters, builds, teams, offense }: P
         <button
           onClick={() => fileRef.current?.click()}
           className="flex items-center gap-1.5 rounded-lg border border-border bg-panel px-3.5 py-2 text-[13px]
-                     text-ink-dim hover:text-ink hover:border-[#4a52a0] transition"
+                     text-ink-dim hoverable:text-ink hoverable:border-accent transition"
           title="Charger un fichier .json reçu d'un ami"
         >
           <Download size={15} /> Importer
@@ -226,7 +226,7 @@ export default function RecoBoard({ recos, monsters, builds, teams, offense }: P
           <button
             onClick={() => handleExport(list, filter === 'all' ? 'toutes' : filter)}
             className="flex items-center gap-1.5 rounded-lg border border-border bg-panel px-3.5 py-2 text-[13px]
-                       text-ink-dim hover:text-ink hover:border-[#4a52a0] transition"
+                       text-ink-dim hoverable:text-ink hoverable:border-accent transition"
             title={
               filter === 'all'
                 ? 'Exporter toutes les recommandations en un seul fichier'
@@ -240,7 +240,7 @@ export default function RecoBoard({ recos, monsters, builds, teams, offense }: P
         {all.length > 0 && (
           <button
             onClick={() => setEffacementAConfirmer(true)}
-            className="ml-auto flex items-center gap-1.5 text-[12px] text-ink-dim hover:text-fire transition"
+            className="ml-auto flex items-center gap-1.5 text-[12px] text-ink-dim hoverable:text-fire transition"
           >
             <Trash2 size={13} /> Tout effacer
           </button>
@@ -272,7 +272,7 @@ export default function RecoBoard({ recos, monsters, builds, teams, offense }: P
                 key={f.key}
                 onClick={() => setFilter(f.key)}
                 className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-[12.5px] font-semibold transition
-                  ${active ? 'bg-gradient-to-br from-[#3a4270] to-[#272e52] text-ink shadow' : 'text-ink-dim hover:text-ink'}`}
+                  ${active ? 'bg-accent-soft text-ink shadow' : 'text-ink-dim hoverable:text-ink'}`}
               >
                 {f.label}
                 <span className={`font-mono text-[11px] ${active ? 'text-ink-dim' : 'opacity-70'}`}>{n}</span>
@@ -298,7 +298,7 @@ export default function RecoBoard({ recos, monsters, builds, teams, offense }: P
       />
 
       {msg && (
-        <p className={`mt-3 text-[12.5px] ${msg.error ? 'text-fire' : 'text-emerald-400'}`}>{msg.text}</p>
+        <p className={`mt-3 text-[12.5px] ${msg.error ? 'text-fire' : 'text-good'}`}>{msg.text}</p>
       )}
 
       {report && (report.errors.length > 0 || report.warnings.length > 0) && (
@@ -324,7 +324,7 @@ export default function RecoBoard({ recos, monsters, builds, teams, offense }: P
             {filter === 'mine'
               ? "Tu n'as créé aucune recommandation pour l'instant."
               : "Tu n'as importé aucune recommandation pour l'instant."}{' '}
-            <button onClick={() => setFilter('all')} className="text-ink underline hover:text-star transition">
+            <button onClick={() => setFilter('all')} className="text-ink underline hoverable:text-star transition">
               Voir toutes les recommandations
             </button>
           </p>
@@ -368,23 +368,23 @@ function ValidationReport({ report, onClose }: { report: ImportReport; onClose: 
   return (
     <div
       className={`mt-3 rounded-xl border px-3 py-2.5 ${
-        bloque ? 'border-fire/50 bg-fire/5' : 'border-amber-500/40 bg-amber-500/5'
+        bloque ? 'border-fire/50 bg-fire/5' : 'border-warn/40 bg-warn/5'
       }`}
     >
       <div className="flex items-center gap-2 mb-1.5">
         {bloque ? (
           <XCircle size={15} className="flex-none text-fire" />
         ) : (
-          <AlertTriangle size={15} className="flex-none text-amber-400" />
+          <AlertTriangle size={15} className="flex-none text-warn" />
         )}
-        <span className={`text-[12.5px] font-semibold ${bloque ? 'text-fire' : 'text-amber-300'}`}>
+        <span className={`text-[12.5px] font-semibold ${bloque ? 'text-fire' : 'text-warn'}`}>
           {bloque
             ? "Import refusé — le contenu n'est pas valide"
             : `Import effectué avec ${report.warnings.length} correction${report.warnings.length > 1 ? 's' : ''}`}
         </span>
         <button
           onClick={onClose}
-          className="ml-auto text-ink-dim hover:text-ink transition"
+          className="ml-auto text-ink-dim hoverable:text-ink transition"
           title="Fermer le rapport"
         >
           <X size={14} />
@@ -398,7 +398,7 @@ function ValidationReport({ report, onClose }: { report: ImportReport; onClose: 
           </li>
         ))}
         {report.warnings.map((w, i) => (
-          <li key={`w${i}`} className="text-[12px] text-amber-300/90 leading-snug">
+          <li key={`w${i}`} className="text-[12px] text-warn/90 leading-snug">
             • {w}
           </li>
         ))}

@@ -84,7 +84,7 @@ const BoxCard = memo(function BoxCard({ entry }: { entry: BoxEntry }) {
         {entry.count > 1 && (
           <span
             className="absolute -bottom-1 -right-1 min-w-[20px] h-5 px-1 flex items-center justify-center
-                       rounded-full bg-[#2b3170] border border-[#4a52a0] text-ink font-mono text-[11px] font-bold
+                       rounded-full bg-accent-soft border border-accent text-ink font-mono text-[11px] font-bold
                        shadow-[0_1px_3px_rgba(0,0,0,0.6)]"
             title={`${entry.count} exemplaires`}
           >
@@ -173,13 +173,13 @@ function MonsterBoxSection({ box }: { box: BoxItem[] }) {
             onChange={(e) => setQuery(e.target.value)}
             placeholder="Rechercher un monstre…"
             className="w-full bg-panel border border-border rounded-lg pl-8 pr-3 py-1.5 text-[13px]
-                       text-ink outline-none focus:border-[#5b63b8]"
+                       text-ink outline-none focus:border-accent"
           />
         </div>
 
         {/* Filtre élément */}
         <div className="flex flex-wrap items-center gap-2">
-          <span className="font-mono text-[11px] tracking-[0.1em] uppercase text-ink-dim mr-1">Élément</span>
+          <span className="label mr-1">Élément</span>
           {ELEMENTS.filter((el) => el.key !== 'unknown').map((el) => {
             const active = activeElements.has(el.key);
             return (
@@ -189,7 +189,7 @@ function MonsterBoxSection({ box }: { box: BoxItem[] }) {
                 onClick={() => toggleElement(el.key)}
                 className={`flex items-center gap-1.5 rounded-full border bg-panel px-3 py-1 text-[12.5px] font-semibold
                   transition select-none ${ELEMENT_FILTER_STYLES[el.key]}
-                  ${active ? 'shadow' : 'opacity-70 hover:opacity-100'}`}
+                  ${active ? 'shadow' : 'opacity-70 hoverable:opacity-100'}`}
               >
                 <ElementIcon element={el.key} size={15} />
                 {el.label}
@@ -205,7 +205,7 @@ function MonsterBoxSection({ box }: { box: BoxItem[] }) {
             rangée se lisent comme trois natures de filtre différentes, alors
             qu'ils font tous la même chose. */}
         <div className="flex flex-wrap items-center gap-2">
-          <span className="font-mono text-[11px] tracking-[0.1em] uppercase text-ink-dim mr-1">Nat</span>
+          <span className="label mr-1">Nat</span>
           {[5, 4, 3, 2].map((s) => {
             const active = activeStars.has(s);
             return (
@@ -216,7 +216,7 @@ function MonsterBoxSection({ box }: { box: BoxItem[] }) {
                   ${
                     active
                       ? 'bg-gradient-to-br from-star to-yellow-200 text-bg border-star shadow'
-                      : 'bg-panel border-border text-ink-dim hover:text-ink hover:border-[#4a52a0]'
+                      : 'bg-panel border-border text-ink-dim hoverable:text-ink hoverable:border-accent'
                   }`}
               >
                 {s}★
@@ -229,7 +229,7 @@ function MonsterBoxSection({ box }: { box: BoxItem[] }) {
               ${
                 dupesOnly
                   ? 'bg-gradient-to-br from-star to-yellow-200 text-bg border-star shadow'
-                  : 'bg-panel border-border text-ink-dim hover:text-ink hover:border-[#4a52a0]'
+                  : 'bg-panel border-border text-ink-dim hoverable:text-ink hoverable:border-accent'
               }`}
           >
             <Copy size={13} /> Doublons
@@ -240,7 +240,7 @@ function MonsterBoxSection({ box }: { box: BoxItem[] }) {
               ${
                 secondOnly
                   ? 'bg-gradient-to-br from-star to-yellow-200 text-bg border-star shadow'
-                  : 'bg-panel border-border text-ink-dim hover:text-ink hover:border-[#4a52a0]'
+                  : 'bg-panel border-border text-ink-dim hoverable:text-ink hoverable:border-accent'
               }`}
             title="Monstres à second éveil (double éveil)"
           >

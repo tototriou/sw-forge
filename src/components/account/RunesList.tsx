@@ -116,8 +116,8 @@ export default function RunesList({ runes }: Props) {
             className={`ml-1 rounded-full border px-3 py-1 text-[12.5px] font-semibold transition select-none
               ${
                 ancientOnly
-                  ? 'bg-[#3a2a55] border-[#a074d0] text-[#c79bff] shadow'
-                  : 'bg-panel border-border text-ink-dim hover:text-ink hover:border-[#4a52a0]'
+                  ? 'bg-accent-soft border-accent text-accent shadow'
+                  : 'bg-panel border-border text-ink-dim hoverable:text-ink hoverable:border-accent'
               }`}
           >
             Antiques
@@ -127,7 +127,7 @@ export default function RunesList({ runes }: Props) {
         {/* Tri. La MESURE (efficience / score) est un réglage global, dans la
             barre de nav — pas un filtre de page. */}
         <div className="flex items-center gap-2 flex-wrap">
-          <span className="font-mono text-[11px] tracking-[0.1em] uppercase text-ink-dim mr-1">
+          <span className="label mr-1">
             Trier par
           </span>
           <select
@@ -203,7 +203,7 @@ const RuneTile = memo(function RuneTile({
   return (
     <div
       ref={ref}
-      className={`relative rounded-lg border bg-panel ${open ? 'z-20 border-[#4a52a0]' : 'border-border'}`}
+      className={`relative rounded-lg border bg-panel ${open ? 'z-20 border-accent' : 'border-border'}`}
     >
       <button onClick={() => onToggle(row.id)} className="w-full flex items-center gap-2.5 p-2 text-left">
         <RuneSlotIcon slot={rune.slot} setKey={rune.set} rarity={rune.rarity} ancient={ancient} height={46} />
@@ -213,7 +213,10 @@ const RuneTile = memo(function RuneTile({
           </div>
           <div className="mt-0.5 font-mono text-[11px] text-ink-dim leading-tight">
             {runeMetricLabel(metric)}{' '}
-            <b style={{ color: meta.color }}>
+            {/* `meta.ink` et non `meta.color` : c'est du TEXTE sur un panneau,
+                pas la bannière de rareté. Les couleurs vives du jeu sont
+                illisibles sur fond clair. Voir RARITY_META. */}
+            <b style={{ color: meta.ink }}>
               {formatRuneMetric(metric === 'eff' ? row.eff : row.score, metric)}
             </b>
           </div>

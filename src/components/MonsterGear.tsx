@@ -101,7 +101,10 @@ export function RuneDetailBox({ rune }: { rune: RuneDetail }) {
   const metric = useRuneMetric();
   const metricHint = RUNE_METRICS.find((m) => m.key === metric)?.hint;
   return (
-    <div className="rounded-lg border border-[#6d5a37] bg-gradient-to-b from-[#2a2417] to-[#191510] p-3">
+    // ⚠️ Fond OPAQUE : cette carte s'affiche dans un popover flottant au-dessus
+    // de la grille de runes. Un fond translucide laissait voir les tuiles
+    // derrière et rendait le détail illisible.
+    <div className="rounded-lg border border-border bg-panel2 p-3">
       {/* badge de rareté (marque « A » antique intégrée) + efficience dessous */}
       <div className="flex flex-col items-end mb-1.5">
         <span
@@ -124,7 +127,7 @@ export function RuneDetailBox({ rune }: { rune: RuneDetail }) {
       {/* stat principale + innée */}
       <div className="text-[15px] font-black text-ink leading-tight">{formatRuneEffect(rune.main)}</div>
       {rune.innate && (
-        <div className="text-[13px] font-semibold text-sky-300 leading-tight">
+        <div className="text-[13px] font-semibold text-water leading-tight">
           {formatRuneEffect(rune.innate)}
         </div>
       )}
@@ -155,7 +158,7 @@ export function RuneDetailBox({ rune }: { rune: RuneDetail }) {
       </div>
       {/* bonus de set */}
       {bonus && (
-        <div className="mt-2 pt-2 border-t border-border/40 text-[12px] text-emerald-300">
+        <div className="mt-2 pt-2 border-t border-border/40 text-[12px] text-good">
           {bonus.pieces} Set : {bonus.label}
         </div>
       )}
@@ -182,7 +185,8 @@ function artifactTypeLabel(a: ArtifactDetail): string {
 export function ArtifactDetailBox({ artifact }: { artifact: ArtifactDetail }) {
   const rarity = RARITY_META[artifact.rarity] ?? RARITY_META[1];
   return (
-    <div className="rounded-lg border border-[#6d5a37] bg-gradient-to-b from-[#2a2417] to-[#191510] p-3">
+    // Fond opaque : carte affichée en popover, au-dessus de la grille.
+    <div className="rounded-lg border border-border bg-panel2 p-3">
       {/* badge de rareté */}
       <div className="flex mb-1.5">
         <span
@@ -204,7 +208,7 @@ export function ArtifactDetailBox({ artifact }: { artifact: ArtifactDetail }) {
         ))}
       </div>
       {/* type */}
-      <div className="mt-2 pt-2 border-t border-border/40 text-[12px] text-emerald-300">
+      <div className="mt-2 pt-2 border-t border-border/40 text-[12px] text-good">
         {artifactTypeLabel(artifact)}
       </div>
     </div>
@@ -254,7 +258,7 @@ export default function MonsterGear({ gear, spdCible = null }: Props) {
                   {fmt(row.base)}
                   {row.suffix}
                 </td>
-                <td className="py-1 text-left font-mono font-semibold text-emerald-400 tabular-nums">
+                <td className="py-1 text-left font-mono font-semibold text-good tabular-nums">
                   {row.bonus > 0 ? `+${fmt(row.bonus)}${row.suffix}` : '—'}
                   {/* Objectif de vitesse : ce que les runes doivent donner pour
                       coller à la valeur saisie dans l'ordre de tour. */}
@@ -376,10 +380,10 @@ export default function MonsterGear({ gear, spdCible = null }: Props) {
               className={`rounded-lg border px-2.5 py-2 text-center transition ${
                 isSel({ kind: 'relic' })
                   ? 'border-star ring-1 ring-star/50 bg-star/10'
-                  : 'border-border bg-panel/60 hover:border-[#4a52a0]'
+                  : 'border-border bg-panel/60 hoverable:border-accent'
               }`}
             >
-              <div className="font-mono text-[9px] uppercase tracking-[0.1em] text-ink-dim">Relique</div>
+              <div className="label">Relique</div>
               <div className="text-[12px] font-bold text-ink mt-0.5">{formatRelicMain(gear.relic.main)}</div>
             </button>
           )}

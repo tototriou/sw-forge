@@ -46,7 +46,7 @@ export default function AccountFreshness({
   return (
     <p
       className={`flex items-center gap-1.5 text-[12px] leading-snug ${
-        vieux ? 'text-amber-400' : 'text-ink-dim'
+        vieux ? 'text-warn' : 'text-ink-dim'
       } ${className}`}
     >
       <CalendarClock size={13} className="flex-none" />

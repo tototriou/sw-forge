@@ -2,6 +2,7 @@ import { ReactNode, useEffect, useRef, useState } from 'react';
 import { Settings, Trash2 } from 'lucide-react';
 import { RUNE_METRICS, setRuneMetric, useRuneMetric } from '../hooks/useRuneMetric';
 import { setPersistence, storageAvailable, usePersistence } from '../hooks/usePersistence';
+import { THEME_CHOICES, setTheme, useTheme } from '../hooks/useTheme';
 import AccountFreshness from './AccountFreshness';
 import Segmented from './Segmented';
 
@@ -76,8 +77,18 @@ function SettingsList({
   const metric = useRuneMetric();
   const keep = usePersistence();
   const storageOk = storageAvailable();
+  const theme = useTheme();
   return (
     <div>
+      {/* Le réglage le plus global de tous : il change l'app entière, il vient
+          donc en premier. ⚠️ TROIS options, pas un interrupteur — « Auto » doit
+          rester un choix explicite, sinon quelqu'un dont le système bascule le
+          soir perd ce comportement sans l'avoir demandé.
+          Voir spec/shared/design.md. */}
+      <Setting title="Thème">
+        <Segmented options={THEME_CHOICES} value={theme} onChange={setTheme} />
+      </Setting>
+
       <Setting title="Score">
         <Segmented options={RUNE_METRICS} value={metric} onChange={setRuneMetric} />
       </Setting>
@@ -113,7 +124,7 @@ function SettingsList({
             title="Efface la prépa RTA, les équipes de siège, les recommandations, les monstres perso et le compte importé"
             className="flex flex-none items-center gap-1.5 rounded-lg border border-border bg-panel2
                        px-2.5 py-1 text-[11.5px] font-semibold text-ink-dim transition
-                       hover:border-fire/60 hover:text-fire"
+                       hoverable:border-fire/60 hoverable:text-fire"
           >
             <Trash2 size={12} /> Tout supprimer
           </button>
@@ -157,7 +168,7 @@ export default function SettingsMenu({
   const btnClass =
     variant === 'bar'
       ? `w-11 h-11 rounded-lg border border-border ${open ? 'bg-panel2' : 'bg-panel'} text-ink`
-      : `w-9 h-9 rounded-lg ${open ? 'bg-panel2 text-ink' : 'text-ink-dim hover:text-ink hover:bg-panel2'}`;
+      : `w-9 h-9 rounded-lg ${open ? 'bg-panel2 text-ink' : 'text-ink-dim hoverable:text-ink hoverable:bg-panel2'}`;
 
   return (
     <div className="relative" ref={ref}>
@@ -172,7 +183,7 @@ export default function SettingsMenu({
       </button>
       {open && (
         <div className="absolute z-30 right-0 mt-1.5 w-fit min-w-[260px] rounded-xl border border-border bg-panel px-3 py-2 shadow-glow shadow-black/60">
-          <div className="font-mono text-[10px] uppercase tracking-[0.14em] text-ink-dim pb-1.5 border-b border-border">
+          <div className="label pb-1.5 border-b border-border">
             Réglages
           </div>
           <SettingsList

@@ -89,7 +89,7 @@ export default function RtaCard({
       ref={cardRef}
       title={categoryLabels.length > 0 ? categoryLabels.join(' · ') : undefined}
       className={`group relative rounded-lg border bg-panel2 transition-colors ${
-        open ? 'border-[#5b63b8] ring-1 ring-[#5b63b8]/50' : 'border-border'
+        open ? 'border-accent ring-1 ring-accent/50' : 'border-border'
       }`}
     >
       {/* Anneau des catégories, par-dessus la bordure (voir CategoryRing). */}
@@ -100,7 +100,7 @@ export default function RtaCard({
         draggable
         onDragStart={handleDragStart}
         onDragEnd={onDragEnd}
-        className="flex-none cursor-grab active:cursor-grabbing text-ink-dim hover:text-ink touch-none"
+        className="flex-none cursor-grab active:cursor-grabbing text-ink-dim hoverable:text-ink touch-none"
         title="Glisser vers une section"
         aria-label="Déplacer"
       >
@@ -138,7 +138,7 @@ export default function RtaCard({
               on repère les monstres à re-runer sans ouvrir chaque fiche. */}
           <span
             className={`text-[12px] font-semibold leading-tight truncate flex-1 ${
-              desync && markDesync ? 'text-amber-400' : ''
+              desync && markDesync ? 'text-warn' : ''
             }`}
           >
             {monster.name}
@@ -148,7 +148,7 @@ export default function RtaCard({
               <img src={SPD_ICON} alt="SPD" width={15} height={15} className="flex-none" />
               <span
                 className={`font-mono text-[14px] font-black leading-none ${
-                  desync && markDesync ? 'text-amber-400' : 'text-ink'
+                  desync && markDesync ? 'text-warn' : 'text-ink'
                 }`}
               >
                 {total !== null ? total : '—'}
@@ -171,7 +171,7 @@ export default function RtaCard({
           onChange={(e) => onMove(String(monster.id), e.target.value)}
           title="Déplacer vers une section"
           className="mt-1 w-full bg-panel border border-border rounded px-1.5 py-0.5 text-[10px]
-                     text-ink-dim outline-none focus:border-[#5b63b8]"
+                     text-ink-dim outline-none focus:border-accent"
         >
           {sectionKeys.map((k) => (
             <option key={k} value={k}>
@@ -181,12 +181,19 @@ export default function RtaCard({
         </select>
       </div>
 
+      {/* ⚠️ JAMAIS `hidden group-hover:flex` : l'élément sortait du flux, donc
+          il n'était ni focusable au clavier, ni atteignable au doigt — on ne
+          pouvait pas retirer un monstre sur téléphone. On joue sur l'opacité
+          (l'élément reste dans le DOM) et on le laisse visible là où il n'y a
+          pas de survol. Voir spec/shared/design.md. */}
       <button
         onClick={() => onRemove(String(monster.id))}
-        className="absolute -top-1.5 -right-1.5 hidden group-hover:flex items-center justify-center
-                   w-5 h-5 rounded-full bg-fire text-white shadow"
+        className="absolute -top-1.5 -right-1.5 flex items-center justify-center
+                   w-5 h-5 rounded-full bg-fire text-white shadow
+                   opacity-0 no-hover:opacity-100 group-hoverable:opacity-100
+                   focus-visible:opacity-100 transition-opacity duration-150 ease-out"
         title="Retirer"
-        aria-label="Retirer"
+        aria-label={`Retirer ${monster.name}`}
       >
         <X size={12} />
       </button>

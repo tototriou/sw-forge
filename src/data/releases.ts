@@ -25,8 +25,8 @@ export interface Release {
 }
 
 export const CHANGE_META: Record<ChangeKind, { label: string; color: string }> = {
-  feat: { label: 'Nouveau', color: 'text-emerald-400' },
-  fix: { label: 'Correction', color: 'text-amber-400' },
+  feat: { label: 'Nouveau', color: 'text-good' },
+  fix: { label: 'Correction', color: 'text-warn' },
   docs: { label: 'Doc', color: 'text-ink-dim' },
 };
 
@@ -37,6 +37,82 @@ export const CHANGE_META: Record<ChangeKind, { label: string; color: string }> =
 // détail d'implémentation — tout ça vit dans les commits et dans `spec/`.
 // Si une ligne dépasse ~15 mots, c'est qu'elle raconte l'implémentation.
 export const RELEASES: Release[] = [
+  {
+    version: '1.3.0',
+    date: '2026-08-11',
+    title: 'Un thème clair, et l’app se pilote enfin au clavier',
+    highlights: [
+      'SW Forge suit le thème de ton navigateur, clair ou sombre',
+      'Tout est atteignable au clavier et au doigt',
+    ],
+    changes: [
+      {
+        kind: 'feat',
+        scope: 'Apparence',
+        text: 'Un thème clair complet, en plus du sombre.',
+      },
+      {
+        kind: 'feat',
+        scope: 'Apparence',
+        text: 'Le thème suit ton navigateur, et bascule avec lui en cours de route.',
+      },
+      {
+        kind: 'feat',
+        scope: 'Réglages',
+        text: 'Nouveau réglage « Thème » : Auto, Clair ou Sombre.',
+      },
+      {
+        kind: 'fix',
+        scope: 'RTA',
+        text: 'Le bouton pour retirer un monstre est atteignable au doigt et au clavier.',
+      },
+      {
+        kind: 'fix',
+        scope: 'Général',
+        text: 'On voit où l’on est en naviguant au clavier.',
+      },
+      {
+        kind: 'fix',
+        scope: 'Général',
+        text: 'Les boutons s’enfoncent au clic : on sait que le geste a été pris.',
+      },
+      {
+        kind: 'fix',
+        scope: 'Général',
+        text: 'Sur mobile, les boutons ne restent plus allumés après un appui.',
+      },
+      {
+        kind: 'fix',
+        scope: 'Général',
+        text: 'Dans une fenêtre de confirmation, le clavier ne s’échappe plus derrière.',
+      },
+      {
+        kind: 'fix',
+        scope: 'Import',
+        text: 'Le résultat d’un import est annoncé aux lecteurs d’écran.',
+      },
+      {
+        kind: 'fix',
+        scope: 'Accessibilité',
+        text: 'Les animations de l’accueil se coupent si tu limites les animations.',
+      },
+      {
+        kind: 'fix',
+        scope: 'Siège',
+        text: 'La vérification des ticks ATB se lit correctement en thème clair.',
+      },
+      {
+        kind: 'fix',
+        scope: 'Mon compte',
+        text: 'Les couleurs du résumé de runes tiennent sur fond clair.',
+      },
+      {
+        kind: 'fix',
+        scope: 'Interface',
+        text: 'Les chiffres passent dans une police plus lisible en petite taille.',
+      },
+    ],
+  },
   {
     version: '1.2.4',
     date: '2026-08-10',

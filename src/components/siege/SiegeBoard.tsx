@@ -72,7 +72,7 @@ export default function SiegeBoard({
             setScrollToLast(true);
           }}
           className="flex items-center gap-1.5 rounded-lg border border-border bg-panel px-3.5 py-2 text-[13px]
-                     text-ink hover:border-[#4a52a0] transition"
+                     text-ink hoverable:border-accent transition"
         >
           <Plus size={15} /> Ajouter une équipe
         </button>
@@ -88,8 +88,8 @@ export default function SiegeBoard({
             }
             className={`flex items-center gap-1.5 rounded-lg border px-3.5 py-2 text-[13px] font-semibold transition ${
               checkTicks
-                ? 'border-[#5b63b8] bg-panel2 text-ink shadow'
-                : 'border-border bg-panel text-ink-dim hover:text-ink hover:border-[#4a52a0]'
+                ? 'border-accent bg-panel2 text-ink shadow'
+                : 'border-border bg-panel text-ink-dim hoverable:text-ink hoverable:border-accent'
             }`}
           >
             <Gauge size={15} /> Vérifier mes tick ATB
@@ -109,7 +109,7 @@ export default function SiegeBoard({
         {siege.state.teams.length > 0 && (
           <button
             onClick={() => setEffacementAConfirmer(true)}
-            className="ml-auto flex items-center gap-1.5 text-[12px] text-ink-dim hover:text-fire transition"
+            className="ml-auto flex items-center gap-1.5 text-[12px] text-ink-dim hoverable:text-fire transition"
           >
             <Trash2 size={13} /> Tout effacer
           </button>

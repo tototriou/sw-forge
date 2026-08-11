@@ -56,13 +56,13 @@ export default function MechanicsPage() {
 
       {/* Sommaire */}
       <nav className="mt-5 rounded-2xl border border-border bg-panel p-4">
-        <div className="font-mono text-[11px] uppercase tracking-[0.14em] text-ink-dim mb-2">
+        <div className="label mb-2">
           Sommaire
         </div>
         <ol className="grid sm:grid-cols-2 gap-x-6 gap-y-1 list-decimal list-inside">
           {TOC.map((t) => (
             <li key={t.id} className="text-[13.5px] text-ink-dim">
-              <button onClick={() => goTo(t.id)} className="text-left hover:text-ink transition">
+              <button onClick={() => goTo(t.id)} className="text-left hoverable:text-ink transition">
                 {t.label}
               </button>
             </li>

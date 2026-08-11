@@ -165,7 +165,7 @@ export default function TurnOrder({
     <div>
       {/* Boutons de lead SPD : du plus gros au plus petit */}
       <div className="flex flex-wrap items-center gap-2 mb-4">
-        <span className="font-mono text-[10px] tracking-[0.1em] uppercase text-ink-dim mr-1">
+        <span className="label mr-1">
           Lead SPD
         </span>
         {leads.map((pct) => {
@@ -177,7 +177,7 @@ export default function TurnOrder({
                 ${
                   active
                     ? 'bg-gradient-to-br from-star to-yellow-200 text-bg border-star shadow'
-                    : 'bg-panel border-border text-ink-dim hover:text-ink hover:border-[#4a52a0]'
+                    : 'bg-panel border-border text-ink-dim hoverable:text-ink hoverable:border-accent'
                 }`}
             >
               <button
@@ -194,7 +194,7 @@ export default function TurnOrder({
                 onClick={() => retirerLead(pct)}
                 aria-label={`Retirer le lead +${pct}%`}
                 title={`Retirer le lead +${pct}%`}
-                className="pr-2 pl-0.5 py-1 opacity-50 transition hover:opacity-100 hover:text-fire"
+                className="pr-2 pl-0.5 py-1 opacity-50 transition hoverable:opacity-100 hoverable:text-fire"
               >
                 <X size={11} strokeWidth={3} />
               </button>
@@ -206,8 +206,8 @@ export default function TurnOrder({
           className={`rounded-full border px-3 py-1 text-[12.5px] font-semibold transition select-none
             ${
               lead === 0
-                ? 'bg-panel2 border-[#4a52a0] text-ink shadow'
-                : 'bg-panel border-border text-ink-dim hover:text-ink'
+                ? 'bg-panel2 border-accent text-ink shadow'
+                : 'bg-panel border-border text-ink-dim hoverable:text-ink'
             }`}
         >
           Sans lead
@@ -231,7 +231,7 @@ export default function TurnOrder({
             onClick={ajouterLead}
             disabled={saisie === null || saisie <= 0}
             className="px-1 py-0.5 text-[11.5px] font-semibold text-ink-dim underline-offset-2 transition
-                       hover:text-ink hover:underline disabled:opacity-40 disabled:hover:text-ink-dim
+                       hoverable:text-ink hoverable:underline disabled:opacity-40 disabled:hover:text-ink-dim
                        disabled:hover:no-underline"
           >
             Ajouter
@@ -249,8 +249,8 @@ export default function TurnOrder({
             }
             className={`flex h-7 items-center gap-1.5 rounded-full border px-2.5 text-[12px] transition ${
               categoriesVisible
-                ? 'border-border bg-panel text-ink-dim hover:text-ink hover:border-[#4a52a0]'
-                : 'border-[#5b63b8] bg-panel2 text-ink'
+                ? 'border-border bg-panel text-ink-dim hoverable:text-ink hoverable:border-accent'
+                : 'border-accent bg-panel2 text-ink'
             }`}
           >
             {categoriesVisible ? <Eye size={12} /> : <EyeOff size={12} />}
@@ -323,13 +323,13 @@ export default function TurnOrder({
                 // concurrence avec l'anneau de catégories : deux informations
                 // au même endroit, on ne lisait plus ni l'une ni l'autre.
                 className={`relative flex-none w-[168px] rounded-xl border border-border p-2 flex flex-col gap-1.5 transition-colors
-                  ${moved ? 'bg-amber-500/20' : 'bg-panel2'}`}
+                  ${moved ? 'bg-warn/20' : 'bg-panel2'}`}
               >
                 <CategoryRing colors={catsOf(String(m.id)).map((c) => c.color)} radius="rounded-xl" />
                 {/* numéro d'ordre superposé en haut à gauche */}
                 <span
                   className="absolute -top-2 -left-2 z-10 flex items-center justify-center min-w-[20px] h-5 px-1
-                             rounded-full bg-gradient-to-br from-[#3a4270] to-[#272e52] border border-border
+                             rounded-full bg-accent-soft border border-border
                              font-mono text-[10px] font-bold text-ink shadow"
                 >
                   {i + 1}

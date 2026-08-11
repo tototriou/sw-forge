@@ -40,6 +40,11 @@ Concepts partagés par plusieurs pages, documentés une seule fois :
 - [shared/import-compte.md](shared/import-compte.md) — extraction depuis un export
   de compte SWEX : box RTA, équipes de siège, **et** box 6★ + inventaire
   runes/artéfacts (page « Mon compte »).
+- [shared/design.md](shared/design.md) — le **système visuel** : les deux thèmes
+  (Forge sombre / Atelier clair), les tokens de couleur, l'échelle typographique,
+  les règles de focus, de survol et de mouvement. **Source de vérité** pour toute
+  décision d'apparence : une valeur qui n'y est pas n'a pas à être écrite en dur
+  dans un composant.
 
 ## Conventions communes (toutes les pages)
 

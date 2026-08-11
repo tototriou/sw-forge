@@ -97,8 +97,8 @@ export default function RunesCurve({ runes }: Props) {
             className={`ml-1 rounded-full border px-3 py-1 text-[12.5px] font-semibold transition select-none
               ${
                 ancientOnly
-                  ? 'bg-[#3a2a55] border-[#a074d0] text-[#c79bff] shadow'
-                  : 'bg-panel border-border text-ink-dim hover:text-ink hover:border-[#4a52a0]'
+                  ? 'bg-accent-soft border-accent text-accent shadow'
+                  : 'bg-panel border-border text-ink-dim hoverable:text-ink hoverable:border-accent'
               }`}
           >
             Antiques
@@ -123,7 +123,7 @@ export default function RunesCurve({ runes }: Props) {
                     : 'Potentiel en gardant les stats actuelles (meules seulement)'
                 }
                 className={`rounded-md px-2.5 py-1 text-[12px] font-semibold transition
-                  ${gemMode === o.key ? 'bg-gradient-to-br from-[#3a4270] to-[#272e52] text-ink' : 'text-ink-dim hover:text-ink'}`}
+                  ${gemMode === o.key ? 'bg-accent-soft text-ink' : 'text-ink-dim hoverable:text-ink'}`}
               >
                 {o.label}
               </button>
@@ -135,7 +135,7 @@ export default function RunesCurve({ runes }: Props) {
           </span>
         </div>
         <div className="flex items-center gap-2">
-          <span className="font-mono text-[11px] tracking-[0.1em] uppercase text-ink-dim">Nb de runes</span>
+          <span className="label">Nb de runes</span>
           <NumberField
             value={limit}
             min={1}
@@ -147,7 +147,7 @@ export default function RunesCurve({ runes }: Props) {
           />
           <button
             onClick={() => setLimit(total || 1)}
-            className="rounded-lg border border-border bg-panel px-2.5 py-1 text-[12px] font-semibold text-ink-dim hover:text-ink hover:border-[#4a52a0] transition"
+            className="rounded-lg border border-border bg-panel px-2.5 py-1 text-[12px] font-semibold text-ink-dim hoverable:text-ink hoverable:border-accent transition"
           >
             Tout
           </button>
@@ -163,12 +163,12 @@ export default function RunesCurve({ runes }: Props) {
             aria-label="Comment lire ce graphe ?"
             title="Comment lire ce graphe ?"
             className={`flex items-center justify-center w-9 h-9 rounded-full border transition
-              ${showHelp ? 'bg-[#2b3170] border-[#4a52a0] text-ink' : 'bg-panel/80 border-border text-ink-dim hover:text-ink hover:border-[#4a52a0]'}`}
+              ${showHelp ? 'bg-accent-soft border-accent text-ink' : 'bg-panel/80 border-border text-ink-dim hoverable:text-ink hoverable:border-accent'}`}
           >
             <HelpCircle size={20} />
           </button>
           {showHelp && (
-            <div className="absolute right-0 mt-1.5 w-[340px] max-w-[88vw] rounded-lg border border-[#4a52a0] bg-panel p-3 text-[12.5px] text-ink-dim leading-relaxed shadow-xl shadow-black/50">
+            <div className="absolute right-0 mt-1.5 w-[340px] max-w-[88vw] rounded-lg border border-accent bg-panel p-3 text-[12.5px] text-ink-dim leading-relaxed shadow-xl shadow-black/50">
               <p className="text-ink font-semibold mb-1">À quoi sert ce graphe ?</p>
               <p>
                 Il classe toutes tes runes, de la meilleure à la moins bonne :{' '}

@@ -118,8 +118,8 @@ export default function RunesCompare({ runes }: Props) {
                 }}
                 className={`flex items-center gap-1.5 rounded-md px-2.5 py-1 text-[12px] font-semibold transition ${
                   onglet === o.key
-                    ? 'bg-gradient-to-br from-[#3a4270] to-[#272e52] text-ink'
-                    : 'text-ink-dim hover:text-ink'
+                    ? 'bg-accent-soft text-ink'
+                    : 'text-ink-dim hoverable:text-ink'
                 }`}
               >
                 <Icon size={13} /> {o.label}
@@ -133,7 +133,7 @@ export default function RunesCompare({ runes }: Props) {
             onClick={() => setRetraitAConfirmer(true)}
             title="Retire uniquement ce qui a été importé ici"
             className="ml-auto flex items-center gap-1.5 rounded-lg border border-border bg-panel px-3 py-1.5
-                       text-[12.5px] font-semibold text-ink-dim transition hover:border-fire/60 hover:text-fire"
+                       text-[12.5px] font-semibold text-ink-dim transition hoverable:border-fire/60 hoverable:text-fire"
           >
             <Trash2 size={14} /> Tout retirer ({importes})
           </button>
@@ -294,7 +294,7 @@ function OngletCourbes({
         <input ref={curveRef} type="file" accept=".json,application/json" onChange={handleFile} className="hidden" />
 
         <div className="ml-auto flex items-center gap-2">
-          <span className="font-mono text-[11px] tracking-[0.1em] uppercase text-ink-dim">Nb de runes</span>
+          <span className="label">Nb de runes</span>
           <NumberField
             value={limit}
             min={1}
@@ -449,14 +449,14 @@ function OngletComptes({
             className={`rounded-full border px-3 py-1 text-[12.5px] font-semibold transition select-none
               ${
                 ancientOnly
-                  ? 'bg-[#3a2a55] border-[#a074d0] text-[#c79bff] shadow'
-                  : 'bg-panel border-border text-ink-dim hover:text-ink hover:border-[#4a52a0]'
+                  ? 'bg-accent-soft border-accent text-accent shadow'
+                  : 'bg-panel border-border text-ink-dim hoverable:text-ink hoverable:border-accent'
               }`}
           >
             Antiques
           </button>
           <div className="ml-auto flex items-center gap-2">
-            <span className="font-mono text-[11px] tracking-[0.1em] uppercase text-ink-dim">Nb de runes</span>
+            <span className="label">Nb de runes</span>
             <NumberField
               value={limit}
               min={1}
@@ -499,7 +499,7 @@ function OngletComptes({
 
 const btn =
   'flex items-center gap-1.5 rounded-lg border border-border bg-panel px-3 py-1.5 text-[12.5px] ' +
-  'font-semibold text-ink-dim hover:text-ink hover:border-[#4a52a0] transition';
+  'font-semibold text-ink-dim hoverable:text-ink hoverable:border-accent transition';
 
 // Deux courbes homonymes seraient impossibles à distinguer dans la légende.
 function nomLibre(souhaite: string, pris: string[]): string {
@@ -566,7 +566,7 @@ function Graphe({
               {remove && (
                 <button
                   onClick={remove}
-                  className="text-ink-dim hover:text-fire transition"
+                  className="text-ink-dim hoverable:text-fire transition"
                   title="Retirer cette courbe"
                 >
                   <X size={13} />

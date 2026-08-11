@@ -44,7 +44,7 @@ export default function RunesSection({ runes, crafts }: Props) {
               key={v.key}
               onClick={() => setView(v.key)}
               className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-[13px] font-semibold transition
-                ${active ? 'bg-gradient-to-br from-[#3a4270] to-[#272e52] text-ink shadow' : 'text-ink-dim hover:text-ink'}`}
+                ${active ? 'bg-accent-soft text-ink shadow' : 'text-ink-dim hoverable:text-ink'}`}
             >
               <Icon size={14} /> {v.label}
             </button>

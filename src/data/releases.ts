@@ -46,9 +46,6 @@ export const RELEASES: Release[] = [
     version: '1.4.0',
     date: '2026-08-11',
     title: 'Ta prépa RTA se sauvegarde et se partage',
-    // ⚠️ En préparation : le tag n'existera qu'à la fusion dans `main`.
-    // À repasser à `true` (ou à retirer) au moment de publier.
-    tag: false,
     highlights: [
       'Pose un point de sauvegarde, remanie ta prépa, reviens en arrière si besoin',
       'Consulte la prépa d’un ami et regarde comment il rune chaque monstre',

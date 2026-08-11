@@ -251,6 +251,7 @@ export default function RtaPage({
         backup={backup}
         monsters={monsters}
         onConsulter={setVueAmi}
+        onCreateMonster={onCreateMonster}
       />
 
       {/* ⚠️ La prépa consultée s'affiche AVANT la sienne, et encadrée : c'est ce
@@ -332,14 +333,15 @@ export default function RtaPage({
       <section className="mt-10">
         <div className="flex items-baseline gap-x-3 gap-y-1 flex-wrap pb-2.5 mb-4 border-b border-border">
           <h2 className="font-display text-[19px] tracking-wide">Ordre de tour</h2>
-          <span className="font-mono text-ink-dim text-xs">
-            par vitesse totale · le plus rapide à gauche
-          </span>
+          <span className="font-mono text-ink-dim text-xs">par vitesse combat totale</span>
         </div>
+        {/* ⚠️ Les catégories sont passées ENTIÈRES, le masquage est le rôle de
+            `categoriesVisible`. Les filtrer ici les retirait du composant, dont
+            l'interrupteur ne pouvait alors plus rien réafficher. */}
         <TurnOrder
           items={allItems}
           onRuneSpeed={rta.setRuneSpeed}
-          categories={cats.visible ? cats.categories : []}
+          categories={cats.categories}
           categoriesVisible={cats.visible}
           onToggleCategories={cats.setVisible}
         />

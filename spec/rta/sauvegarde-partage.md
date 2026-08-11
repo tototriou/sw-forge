@@ -60,9 +60,27 @@ Si cette traduction dérape, **rien ne plante** : les monstres arrivent rangés 
 les mauvaises cartes et les anneaux se posent à côté. C'est le « grave et
 invisible » que couvrent les tests.
 
-Conséquence assumée : un **monstre perso** (`com2usId = null`) n'est pas
-partageable. Il est **écarté de l'export, et le message le dit** — un fichier
-silencieusement incomplet se découvrirait chez l'ami, trop tard.
+#### ⚠️ Les monstres perso partent AUSSI — décrits en entier
+
+Un **monstre perso** (`com2usId = null`) ne peut pas être *retrouvé* chez le
+lecteur. Mais il se **décrit** entièrement — nom, élément, vitesse de base,
+lead — et c'est tout ce qu'il faut pour l'**afficher**.
+
+Une première version les écartait purement et simplement : une prépa contenant
+une sortie récente arrivait **amputée**, et son ordre de tour était faux d'un
+monstre. Chaque entrée porte donc soit un `com2usId`, soit un objet `perso`.
+
+Conséquences :
+
+- ils s'affichent **sans portrait** chez le lecteur (aucune image ne leur
+  correspond) — le message d'export le dit ;
+- leur appartenance aux **catégories** passe par leur **position** dans
+  `monstres` (`membresPerso`), faute d'identifiant ;
+- la **déduplication** ne porte que sur les monstres identifiés : deux perso ont
+  tous deux `com2usId: null` sans être le même monstre ;
+- à l'**import** (et non à la consultation), ils sont **recréés** dans la liste
+  de monstres perso du lecteur — la confirmation l'annonce, et la création n'a
+  lieu **qu'à la validation** : annuler ne laisse rien derrière soi.
 
 ### ⚠️ Deux boutons, parce que ce sont deux intentions
 
@@ -135,66 +153,113 @@ possède**, et tout le monde ne veut pas l'exposer.
 
 D'où une **question posée à l'export**, et non une règle imposée :
 
-| Niveau | Le fichier contient | Ordre de tour chez le lecteur |
-|--------|---------------------|-------------------------------|
-| **Tout** | classement, vitesses, sets, **équipement complet** | calculé |
-| **Vitesses seules** | classement et **vitesses** — ni sets ni équipement | calculé |
-| **Classement seul** | classement **seul** — ni vitesses, ni sets, ni équipement | impossible, et annoncé |
+⚠️ **Un niveau ORDONNÉ, pas des cases à cocher.** Chaque palier retire une couche
+de plus, et chaque couche retirée l'est parce qu'elle **révèle le runage**.
+Des drapeaux indépendants laisseraient composer « runes sans vitesses », qui n'a
+aucun sens : les runes *portent* la vitesse.
 
-⚠️ **Trois niveaux et non deux cases à cocher.** « Vitesses sans les runes » est
-un cas réel (partager son speed tune sans exposer ses substats), tandis que
-« runes sans vitesses » n'a aucun sens — les runes *portent* la vitesse. Une
-paire de cases laisserait composer cette combinaison absurde.
+| Niveau | Le fichier contient | Chez le lecteur |
+|--------|---------------------|-----------------|
+| **Tout** | sections, catégories, vitesses, sets, **équipement** | prépa complète + ordre de tour calculé |
+| **Vitesses finales seules** | **vitesses** — ni sections, ni sets, ni équipement | ordre de tour calculé, rien d'autre |
+| **Ordre de tour seul** | le **rang** de chaque monstre, et rien d'autre | vignettes numérotées seules |
 
-#### ⚠️ Cacher les runes cache AUSSI les vitesses
+#### ⚠️ Ce qui révèle le runage, et qui n'en a pas l'air
 
-C'est le point de confidentialité qui a motivé le troisième niveau. **La vitesse
-de base d'un monstre est publique** (données SWARFARM) : donner sa vitesse
-totale, c'est donner l'écart — donc **exactement** la vitesse apportée par ses
-runes.
+Trois fuites, corrigées ensemble parce qu'elles disent toutes la même chose :
 
-Une version antérieure exportait « sans les runes » tout en gardant les
-vitesses : elle ne cachait rien du tout. Le défaut protège donc — `avecVitesses`
-suit `avecEquipement` sauf mention explicite — et c'est vérifié par un test qui
-sait échouer.
+| Donnée | Ce qu'elle révèle |
+|--------|-------------------|
+| **Vitesse totale** | la vitesse de base est **publique** (SWARFARM) : l'écart donne **exactement** la vitesse des runes |
+| **Section** | une section **EST un set** : ranger un monstre dans « Swift » annonce qu'il est runé Swift |
+| **Catégorie** | libre, mais souvent nommée d'après le runage (« Swift lead », « Violent ») |
 
-Sont retirés ensemble : l'équipement, les **sets actifs** (ils trahissent le
-runage) et les **vitesses**. Vérifié en **relisant le JSON produit**, pas par une
-recherche de chaîne dans un texte indenté — celle-ci n'aurait jamais pu échouer.
+Une version antérieure exportait « sans les runes » en gardant vitesses et
+sections : elle ne cachait rien. Les trois partent donc **avec** les sets, et
+c'est vérifié par des tests qui savent échouer.
+
+Vérifié en **relisant le JSON produit**, jamais par une recherche de chaîne dans
+un texte indenté — celle-ci n'aurait jamais pu échouer.
+
+#### Le rang est calculé à l'export
+
+Au niveau « ordre de tour seul », le lecteur **ne peut pas** recalculer le
+classement : il n'a pas les vitesses, et c'est précisément ce que l'auteur
+refuse de donner. Le **rang** (1 = le plus rapide) est donc calculé à l'export et
+transmis tel quel.
+
+C'est la seule exception à la règle « l'ordre de tour est recalculé » — et elle
+est assumée : sans elle, le niveau n'aurait rien à montrer.
 
 L'option « Tout » est **désactivée sans compte importé** (rien à joindre), et le
 dialogue l'explique plutôt que de laisser un bouton inerte.
 
-### ⚠️ L'ordre de tour est RECALCULÉ, jamais transporté
+#### ⚠️ Le nom du fichier dit ce qu'il contient
 
-Il se déduit entièrement des vitesses et du lead simulé. Le mettre dans le
-fichier aurait figé un classement qui ne suivrait plus les boutons de lead, et
-qu'il faudrait tenir à jour à chaque modification.
+`swforge-prepa-rta-<niveau>-<AAAA-MM-JJ>.json`, où `<niveau>` vaut `complet`,
+`vitesses` ou `ordre-de-tour`.
+
+C'est le **seul repère avant d'ouvrir le fichier** : dans un dossier de
+téléchargements, ou quand on en reçoit un d'un ami, un nom générique ne dit pas
+si les runes y sont. Le nom est **repris dans le message de confirmation**, pour
+qu'on sache quoi chercher.
+
+### L'ordre de tour est RECALCULÉ — sauf au dernier niveau
+
+Aux niveaux **Tout** et **Vitesses seules**, il se déduit des vitesses et du lead
+simulé. Le transporter aurait figé un classement qui ne suivrait plus les boutons
+de lead, et qu'il faudrait tenir à jour à chaque modification.
 
 La consultation réutilise **le composant de sa propre prépa**
 ([TurnOrder](src/components/rta/TurnOrder.tsx)), sans `onRuneSpeed` — ce qui
 retire les champs de saisie et le rend lisible seul. Une seconde implémentation
-pour la consultation aurait divergé au premier changement de règle de tri.
+aurait divergé au premier changement de règle de tri.
 
-**Sans vitesses partagées, il n'est pas affiché** : un ordre fondé sur les seules
-vitesses de base serait **faux**. Mieux vaut ne rien classer que classer de
-travers — le panneau explique pourquoi. Pour la même raison, les cartes affichent
-« — » plutôt que la vitesse de base : un « 107 » se lirait comme la vitesse du
-monstre chez l'auteur, alors que c'est celle du monstre nu.
+Au niveau **Ordre de tour seul**, le rang vient du fichier (voir ci-dessus) et
+s'affiche en **vignettes numérotées**, celles-là mêmes qu'on lit sur sa propre
+prépa — aucun repère nouveau à apprendre. Pas de boutons de lead : les simuler
+exigerait les vitesses.
+
+#### Options d'affichage, dans la barre de l'ordre de tour
+
+Deux interrupteurs — **Vitesses** et **Catégories** — vivent avec les boutons de
+lead, au contact des vignettes qu'ils modifient, et non en tête de panneau où
+l'on ne ferait pas le lien.
+
+Ils ne dévoilent **jamais** rien de plus que ce que le fichier porte : ils
+masquent, ils ne révèlent pas. « Catégories » n'apparaît que s'il y en a — un
+interrupteur sans effet se clique et laisse croire à un bug.
+
+⚠️ **Masquer les vitesses retire l'ICÔNE avec le chiffre.** Ne masquer que la
+valeur laissait une icône de vitesse orpheline suivie d'un tiret : on cherche le
+chiffre manquant en croyant à un défaut d'affichage.
+
+⚠️ **Masquer les vitesses ne masque pas l'ordre de tour** : le tri continue de
+les utiliser, le classement reste juste et lisible sans les chiffres.
+
+#### ⚠️ `categoriesVisible` agit DANS `TurnOrder`, pas chez l'appelant
+
+Le drapeau ne pilotait que l'apparence du bouton ; le masquage se faisait en
+amont (`categories={visible ? cats : []}`). Une fois masquées, les catégories
+n'arrivaient donc plus au composant et **son propre interrupteur ne pouvait plus
+rien réafficher**. Les catégories lui sont désormais passées entières.
 
 ### Format (`format: "sw-forge/prepa-rta"`, `version: 2`)
 
 ```json
 { "format": "sw-forge/prepa-rta", "version": 2, "exporte_le": "…",
-  "nom": "", "auteur": "", "avec_equipement": true, "avec_vitesses": true,
+  "nom": "", "auteur": "", "niveau": "complet",
   "sections": ["swift", "violent", "other"],
   "monstres": [
     { "com2usId": 15214, "nom": "Trevor", "section": "swift", "vitesse": 120,
       "sets": ["swift", "will"],
-      "equipement": { "base": {…}, "runes": […], "artifacts": […] } }
+      "equipement": { "base": {…}, "runes": […], "artifacts": […] } },
+    { "nom": "Sortie récente", "section": "swift", "vitesse": 118,
+      "perso": { "nom": "Sortie récente", "element": "fire", "vitesse": 110,
+                 "lead": { "stat": "Attack Speed", "amount": 33, "area": "General" } } }
   ],
   "categories": [
-    { "label": "Striper", "color": "#4ad8d8", "membres": [15214] }
+    { "label": "Striper", "color": "#4ad8d8", "membres": [15214], "membresPerso": [1] }
   ] }
 ```
 
@@ -211,14 +276,14 @@ runes — mais **c'est signalé**, pour que son auteur sache qu'il peut le
 réexporter plus riche. Sans ça un fichier ancien circule indéfiniment dans la
 guilde et personne ne sait qu'un format plus complet existe.
 
-⚠️ `avecEquipement` et `avecVitesses` sont déduits de **ce qui a réellement été
-lu**, pas de ce que le fichier déclare : un `avec_equipement: true` sans la
-moindre rune afficherait « runes incluses » sur une prépa qui n'en montre aucune.
-Les clés `avec_*` du fichier sont donc **informatives** — elles renseignent un
-humain qui l'ouvre, elles ne font pas foi.
+⚠️ Le niveau est déduit de **ce qui a réellement été lu**, jamais de la clé
+`niveau` : un `"complet"` sans la moindre rune afficherait « runes incluses » sur
+une prépa qui n'en montre aucune. La clé du fichier est donc **informative** —
+elle renseigne un humain qui l'ouvre, elle ne fait pas foi.
 
 Une vitesse masquée est **absente** du JSON (`undefined`), et non `null` : une
-clé vide se lirait comme « vitesse non saisie » et non « vitesse retirée ».
+clé vide se lirait comme « vitesse non saisie » et non « vitesse retirée ». Même
+règle pour `rang`, présent au seul niveau « ordre ».
 
 ### ⚠️ Un fichier d'un autre type est REFUSÉ, pas lu de travers
 
@@ -243,8 +308,9 @@ Un équipement **entièrement vide n'est pas retenu** : il ouvrirait un chevron
 
 | Cas | Traitement |
 |-----|-----------|
-| `com2usId` invalide | monstre ignoré |
-| Même monstre deux fois | seule la première entrée est gardée |
+| Ni `com2usId` valide ni description `perso` | monstre ignoré |
+| `perso` sans nom ou sans vitesse > 0 | description ignorée (il fausserait l'ordre de tour) |
+| Même monstre **identifié** deux fois | seule la première entrée est gardée |
 | Section inconnue | rangé en « Non classé » plutôt que perdu |
 | Vitesse négative / non numérique | laissée vide, le monstre est gardé |
 | Section utilisée mais absente de `sections` | **recréée** — sinon le monstre serait invisible |

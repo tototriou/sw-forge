@@ -108,24 +108,37 @@ export default function testRtaPartage() {
 
   const snap = toSnapshot(state, categories, parId(chezMoi));
 
-  egal(snap.entries.length, 2, 'le monstre perso (com2usId absent) n’est PAS exporté');
+  egal(snap.entries.length, 3, 'TOUS les monstres partent, monstre perso compris');
   egal(
-    snap.entries.map((e) => e.com2usId).sort(),
+    snap.entries.filter((e) => e.com2usId != null).map((e) => e.com2usId),
     [15214, 19315],
-    'les entrées portent le com2usId, jamais l’id local'
+    'les monstres du bestiaire portent leur com2usId, jamais l’id local'
   );
   egal(
     comptePartageable(state, parId(chezMoi)),
-    { partageables: 2, perso: 1 },
-    'le décompte annonce le monstre perso écarté — l’export le dit à l’utilisateur'
+    { partageables: 3, perso: 1 },
+    'le décompte annonce les monstres perso — ils s’afficheront sans portrait'
   );
+
+  // ⚠️ Un monstre perso n'a pas de com2usId : il emporte sa DESCRIPTION, seule
+  // façon de l'afficher chez quelqu'un qui ne l'a pas créé.
+  const persoExporte = snap.entries.find((e) => e.com2usId == null);
+  egal(persoExporte?.perso?.nom, 'Mon monstre perso', 'le monstre perso emporte son nom');
+  egal(persoExporte?.perso?.vitesse, 100, 'et sa vitesse de base');
+  egal(persoExporte?.perso?.element, 'fire', 'et son élément');
+
   egal(
     snap.categories[0].membres,
     [15214],
-    'l’appartenance aux catégories est traduite en com2usId, le perso en est retiré'
+    'l’appartenance aux catégories passe par le com2usId…'
+  );
+  egal(
+    snap.categories[0].membresPerso,
+    [2],
+    '…et par la POSITION pour un monstre perso, qui n’a pas d’identifiant'
   );
 
-  ok(snap.avecEquipement, 'l’équipement est joint par défaut — c’est ce qu’on vient consulter');
+  egal(snap.niveau, 'complet', 'l’équipement est joint par défaut — c’est ce qu’on vient consulter');
   egal(
     snap.entries.find((e) => e.com2usId === 15214)?.gear?.runes.length,
     1,
@@ -142,9 +155,21 @@ export default function testRtaPartage() {
   const vue = versVueAmi(rapport.snapshot!, parCom2us(chezLui));
 
   egal(
-    vue.entries.map((e) => String(e.monster.id)).sort(),
+    vue.entries.filter((e) => e.monster.com2usId != null).map((e) => String(e.monster.id)).sort(),
     ['900', '901'],
-    'les monstres sont résolus sur les ids LOCAUX du lecteur, pas ceux de l’auteur'
+    'les monstres du bestiaire sont résolus sur les ids LOCAUX du lecteur'
+  );
+
+  // ⚠️ Le monstre perso est RECONSTITUÉ depuis le fichier : il n'existe pas chez
+  // le lecteur, mais il s'affiche — sinon la prépa arriverait amputée et son
+  // ordre de tour serait faux d'un monstre.
+  const persoRecu = vue.entries.find((e) => e.monster.com2usId == null);
+  egal(persoRecu?.monster.name, 'Mon monstre perso', 'le monstre perso est reconstitué');
+  egal(persoRecu?.monster.stats.speed, 100, 'avec sa vitesse');
+  egal(persoRecu?.monster.element, 'fire', 'et son élément');
+  ok(
+    [...vue.categories[0].members].includes(String(persoRecu?.monster.id)),
+    'et il retrouve sa catégorie, via sa position'
   );
 
   const trevor = vue.entries.find((e) => e.monster.com2usId === 15214)!;
@@ -153,9 +178,8 @@ export default function testRtaPartage() {
   egal(trevor.entry.runeSpeed, 120, 'la vitesse de runes suit');
   egal(bella.entry.runeSpeed, null, 'une vitesse non saisie reste vide (et non 0)');
   egal(trevor.entry.sets, ['swift', 'will'], 'les sets actifs suivent');
-  egal(
-    [...vue.categories[0].members],
-    ['900'],
+  ok(
+    [...vue.categories[0].members].includes('900'),
     'les catégories se reposent sur les bons monstres'
   );
 
@@ -167,88 +191,110 @@ export default function testRtaPartage() {
   egal(trevor.entry.gear?.runes[0].subs[0].grind, 5, 'la meule d’un substat n’est pas perdue');
   egal(trevor.entry.gear?.artifacts.length, 1, 'les artéfacts aussi');
   egal(trevor.entry.gear?.base.spd, 107, 'les stats de base de l’auteur suivent');
-  ok(vue.avecEquipement, 'la vue sait qu’elle a des runes à montrer');
+  egal(vue.niveau, 'complet', 'la vue sait qu’elle a des runes à montrer');
 
-  /* ---- « Classement seul » : rien du runage ne doit filtrer -------------- */
+  /* ---- Niveau « ordre » : SEUL le rang doit sortir ----------------------- */
 
   // ⚠️ Ce que l'utilisateur a demandé de cacher doit VRAIMENT être absent du
   // fichier — pas seulement masqué à l'affichage.
-  const classementSeul = toSnapshot(state, categories, parId(chezMoi), {
-    avecEquipement: false,
-    avecVitesses: false,
-  });
-  const jsonClassement = encodeSnapshot(classementSeul);
+  const ordreSeul = toSnapshot(state, categories, parId(chezMoi), { niveau: 'ordre' });
+  const jsonOrdre = encodeSnapshot(ordreSeul);
 
-  ok(!jsonClassement.includes('"equipement"'), 'aucun équipement dans le fichier');
-  ok(!jsonClassement.includes('"runes"'), 'aucune rune, pas même une clé vide');
+  ok(!jsonOrdre.includes('"equipement"'), 'aucun équipement dans le fichier');
+  ok(!jsonOrdre.includes('"runes"'), 'aucune rune, pas même une clé vide');
   // ⚠️ Relu depuis le JSON, pas cherché à la ficelle dans le texte : le fichier
   // est indenté, donc un `includes('"swift","will"')` ne peut JAMAIS échouer —
   // il rassurerait à tort pendant que les sets fuient.
-  const relu = JSON.parse(jsonClassement) as {
-    monstres: { sets?: string[]; equipement?: unknown; vitesse?: number }[];
+  const relu = JSON.parse(jsonOrdre) as {
+    sections: string[];
+    categories?: unknown[];
+    monstres: { sets?: string[]; equipement?: unknown; vitesse?: number; section?: string; rang?: number }[];
   };
   ok(
     relu.monstres.every((m) => m.sets === undefined),
-    'les SETS ne filtrent pas — ils trahiraient le runage'
+    'les SETS ne filtrent pas non plus à ce niveau'
   );
   ok(
     relu.monstres.every((m) => m.equipement === undefined),
     'ni l’équipement, sur aucun monstre'
   );
-  // ⚠️ LE point de confidentialité : la vitesse de base étant publique, donner
-  // la vitesse totale revient à donner exactement la vitesse des runes.
+  // ⚠️ La vitesse de base étant publique, donner la vitesse totale revient à
+  // donner exactement la vitesse des runes.
   ok(
     relu.monstres.every((m) => m.vitesse === undefined),
     'ni les VITESSES — les donner reviendrait à donner la vitesse des runes'
   );
-  ok(jsonClassement.includes('"section"'), 'mais le classement, lui, est bien partagé');
-
-  const vueClassement = versVueAmi(validateRtaImport(jsonClassement).snapshot!, parCom2us(chezLui));
-  ok(!vueClassement.avecEquipement, 'la consultation annonce qu’il n’y a pas de runes à voir');
-  ok(!vueClassement.avecVitesses, 'ni de vitesses — donc pas d’ordre de tour calculable');
-  egal(
-    vueClassement.entries.find((e) => e.monster.com2usId === 15214)?.entry.gear,
-    undefined,
-    'et aucun équipement n’arrive chez le lecteur'
+  // ⚠️ ET LES SECTIONS : une section EST un set. Ranger un monstre dans
+  // « Swift » annonce son runage aussi sûrement que l'icône.
+  ok(
+    relu.monstres.every((m) => m.section === RTA_UNASSIGNED),
+    'ni les SECTIONS — une section est un set de runes'
   );
-  egal(vueClassement.entries.length, 2, 'le classement, lui, reste entièrement consultable');
+  egal(relu.sections, [], 'la liste des sections est vide elle aussi');
+  egal(relu.categories, undefined, 'ni les catégories — souvent nommées d’après le runage');
 
-  /* ---- Niveau intermédiaire : vitesses SANS le détail des runes ---------- */
+  // Ce qui reste : le rang, et lui seul.
+  const rangs = relu.monstres.map((m) => m.rang).sort();
+  egal(rangs, [1, 2, 3], 'seul le RANG dans l’ordre de tour est transmis');
 
-  // Cas réel : partager son speed tune sans exposer ses substats.
-  const vitessesSeules = toSnapshot(state, categories, parId(chezMoi), {
-    avecEquipement: false,
-    avecVitesses: true,
-  });
-  const jsonVitesses = encodeSnapshot(vitessesSeules);
+  const vueOrdre = versVueAmi(validateRtaImport(jsonOrdre).snapshot!, parCom2us(chezLui));
+  egal(vueOrdre.niveau, 'ordre', 'la consultation sait qu’elle n’a que l’ordre');
+  egal(vueOrdre.sections, [RTA_OTHER], 'aucune section de runes à afficher');
+  egal(
+    vueOrdre.entries.find((e) => e.monster.com2usId === 15214)?.rang,
+    1,
+    'Trevor (le plus rapide) arrive en premier'
+  );
+
+  /* ---- Niveau « vitesses » : l'ordre de tour, vitesses ET sets ----------- */
+
+  // Cas réel : partager son speed tune. C'est exactement ce que MONTRE l'ordre
+  // de tour — vitesse finale + icônes de set — sans le détail des runes.
+  const ordreEtSets = toSnapshot(state, categories, parId(chezMoi), { niveau: 'vitesses' });
+  const jsonVitesses = encodeSnapshot(ordreEtSets);
   const reluVitesses = JSON.parse(jsonVitesses) as {
-    monstres: { sets?: string[]; equipement?: unknown; vitesse?: number }[];
+    sections: string[];
+    monstres: { sets?: string[]; equipement?: unknown; vitesse?: number; section?: string }[];
   };
 
   ok(
     reluVitesses.monstres.some((m) => m.vitesse === 120),
-    'les vitesses sont partagées'
+    'les vitesses finales sont partagées'
   );
+  egal(
+    reluVitesses.monstres.find((m) => m.vitesse === 120)?.sets,
+    ['swift', 'will'],
+    'les SETS aussi — sans eux, « Trevor à 227 » n’apprend pas grand-chose'
+  );
+  // ⚠️ Le DÉTAIL des runes, lui, reste réservé au niveau complet.
   ok(
-    reluVitesses.monstres.every((m) => m.equipement === undefined && m.sets === undefined),
-    'mais ni les runes ni les sets'
+    reluVitesses.monstres.every((m) => m.equipement === undefined),
+    'mais pas le détail des runes (substats, meules)'
   );
+  // ⚠️ Le classement par section trahit le runage aussi sûrement que les icônes,
+  // mais il en dit PLUS : il révèle l'intention de runage, monstre par monstre.
+  ok(
+    reluVitesses.monstres.every((m) => m.section === RTA_UNASSIGNED),
+    'ni les sections — l’ordre de tour n’en a pas besoin'
+  );
+  egal(reluVitesses.sections, [], 'et aucune section n’est déclarée');
 
   const vueVitesses = versVueAmi(validateRtaImport(jsonVitesses).snapshot!, parCom2us(chezLui));
-  ok(vueVitesses.avecVitesses, 'l’ordre de tour reste calculable');
-  ok(!vueVitesses.avecEquipement, 'sans montrer le runage');
-
-  // ⚠️ Le DÉFAUT protège : sans dire explicitement qu'on veut les vitesses,
-  // retirer l'équipement les retire aussi. L'inverse laisserait fuir le runage
-  // à qui coche « sans mes runes » en croyant tout cacher.
-  const defautSansRunes = toSnapshot(state, categories, parId(chezMoi), { avecEquipement: false });
-  ok(
-    !defautSansRunes.avecVitesses,
-    'par défaut, cacher les runes cache aussi les vitesses'
+  egal(vueVitesses.niveau, 'vitesses', 'l’ordre de tour est calculable');
+  egal(
+    vueVitesses.entries.find((e) => e.monster.com2usId === 15214)?.entry.sets,
+    ['swift', 'will'],
+    'et les sets arrivent bien chez le lecteur, pour s’afficher sur les vignettes'
   );
-  ok(
-    defautSansRunes.entries.every((e) => e.runeSpeed === null),
-    'et aucune vitesse ne subsiste dans les entrées'
+
+  /* ---- Le défaut protège ------------------------------------------------- */
+
+  // Sans niveau explicite, on partage tout : c'est le cas d'usage principal
+  // (montrer son runage à un ami). Le reste est un choix délibéré.
+  egal(
+    toSnapshot(state, categories, parId(chezMoi)).niveau,
+    'complet',
+    'sans précision, l’export est complet'
   );
 
   /* ---- Reprendre une prépa à soi (archive, autre navigateur) ------------- */
@@ -298,7 +344,15 @@ export default function testRtaPartage() {
 
   const partiel = versVueAmi(rapport.snapshot!, parCom2us([chezLui[0]]));
   egal(partiel.inconnus, [19315], 'un monstre absent des données est remonté, pas avalé en silence');
-  egal(partiel.entries.length, 1, 'et il n’est pas affiché');
+  egal(
+    partiel.entries.filter((e) => e.monster.com2usId != null).length,
+    1,
+    'et il n’est pas affiché'
+  );
+  ok(
+    partiel.entries.some((e) => e.monster.com2usId == null),
+    'le monstre perso, lui, ne dépend pas des données chargées : il s’affiche toujours'
+  );
 
   titre('Partage d’une prépa RTA · fichiers douteux');
 
@@ -408,7 +462,7 @@ export default function testRtaPartage() {
     'un équipement entièrement vide n’est pas retenu — il ouvrirait un détail vide'
   );
   ok(
-    !gearVide.snapshot!.avecEquipement,
+    gearVide.snapshot!.niveau !== 'complet',
     'et la prépa n’annonce pas des runes qu’elle n’a pas'
   );
 

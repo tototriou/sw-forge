@@ -73,7 +73,12 @@ export const RELEASES: Release[] = [
       {
         kind: 'feat',
         scope: 'RTA',
-        text: 'À l’export, trois niveaux : tout, vitesses seules, ou classement seul.',
+        text: 'À l’export, trois niveaux : tout, vitesses finales seules, ou ordre de tour seul.',
+      },
+      {
+        kind: 'feat',
+        scope: 'RTA',
+        text: 'Tes monstres créés à la main partent avec ta prépa, avec leur vitesse et leur lead.',
       },
       {
         kind: 'feat',
@@ -107,6 +112,11 @@ export const RELEASES: Release[] = [
       },
       {
         kind: 'fix',
+        scope: 'RTA',
+        text: 'Le bouton « Catégories » de l’ordre de tour les masque et les réaffiche vraiment.',
+      },
+      {
+        kind: 'fix',
         scope: 'Nouveautés',
         text: 'Le lien GitHub de la version 1.0.0 ne mène plus vers une page introuvable.',
       },
@@ -118,7 +128,7 @@ export const RELEASES: Release[] = [
       {
         kind: 'docs',
         scope: 'RTA',
-        text: 'Partager sans tes runes retire aussi tes vitesses : elles révéleraient ton runage.',
+        text: 'Masquer tes runes retire aussi tes vitesses et tes sections : elles révéleraient ton runage.',
       },
     ],
   },

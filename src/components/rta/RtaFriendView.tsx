@@ -73,13 +73,9 @@ function CarteAmi({
   avecVitesses: boolean;
 }) {
   const base = monster.stats.speed;
-  // ⚠️ Vitesses masquées → on n'affiche RIEN, pas la vitesse de base. Un « 107 »
-  // à la place d'un « 227 » se lit comme la vitesse du monstre chez l'auteur,
-  // alors que c'est celle du monstre nu : un chiffre faux vaut moins qu'un tiret.
-  const total =
-    avecVitesses && (base !== null || entry.runeSpeed !== null)
-      ? (base ?? 0) + (entry.runeSpeed ?? 0)
-      : null;
+  const total = base !== null || entry.runeSpeed !== null ? (base ?? 0) + (entry.runeSpeed ?? 0) : null;
+  // ⚠️ Le chevron de détail n'apparaît QUE s'il y a un équipement à montrer :
+  // sinon on ouvre un panneau vide.
   const hasGear = !!entry.gear && entry.gear.runes.length > 0;
 
   return (
@@ -123,10 +119,17 @@ function CarteAmi({
             <span className="text-[12px] font-semibold leading-tight truncate flex-1">
               {monster.name}
             </span>
-            <img src={SPD_ICON} alt="SPD" width={15} height={15} className="flex-none" />
-            <span className="font-mono text-[14px] font-black leading-none text-ink">
-              {total !== null ? total : '—'}
-            </span>
+            {/* ⚠️ L'ICÔNE part avec le chiffre. Ne masquer que la valeur laissait
+                une icône de vitesse orpheline suivie d'un tiret — on cherche le
+                chiffre manquant en croyant à un bug d'affichage. */}
+            {avecVitesses && (
+              <>
+                <img src={SPD_ICON} alt="SPD" width={15} height={15} className="flex-none" />
+                <span className="font-mono text-[14px] font-black leading-none text-ink">
+                  {total !== null ? total : '—'}
+                </span>
+              </>
+            )}
             {hasGear && (
               <ChevronDown
                 size={14}
@@ -150,6 +153,21 @@ export default function RtaFriendView({ vue, onClose }: { vue: RtaVueAmi; onClos
   // sont deux listes distinctes à l'écran).
   const [openId, setOpenId] = useState<string | null>(null);
 
+  // ⚠️ Ce que le FICHIER contient (`vue.niveau`) et ce que le lecteur CHOISIT
+  // d'afficher sont deux choses distinctes. Les bascules ci-dessous ne
+  // dévoilent jamais rien de plus : elles masquent, elles ne révèlent pas.
+  const [montrerVitesses, setMontrerVitesses] = useState(true);
+  const [montrerCategories, setMontrerCategories] = useState(true);
+
+  const aDesVitesses = vue.niveau !== 'ordre';
+  const aDesCategories = vue.categories.length > 0;
+  // Une bascule ne peut que RESTREINDRE ce que le fichier porte.
+  const avecVitesses = aDesVitesses && montrerVitesses;
+  // ⚠️ Au niveau `ordre`, il n'y a **pas de sections** : les afficher reviendrait
+  // à annoncer le runage (une section EST un set). L'écran se réduit alors aux
+  // vignettes numérotées de l'ordre de tour.
+  const avecSections = vue.niveau === 'complet';
+
   // Regroupement par section, et tri par vitesse totale — mêmes règles que la
   // prépa, pour qu'on lise les deux écrans de la même façon.
   const groupes = useMemo(() => {
@@ -162,10 +180,7 @@ export default function RtaFriendView({ vue, onClose }: { vue: RtaVueAmi; onClos
       return b !== null || r !== null ? (b ?? 0) + (r ?? 0) : null;
     };
     for (const liste of Object.values(g)) {
-      // Sans vitesses partagées, le tri par vitesse rangerait tout le monde à
-      // égalité : on retombe sur l'ordre alphabétique, lisible et stable.
       liste.sort((a, b) => {
-        if (!vue.avecVitesses) return a.monster.name.localeCompare(b.monster.name);
         const ta = total(a);
         const tb = total(b);
         if (ta === null && tb === null) return a.monster.name.localeCompare(b.monster.name);
@@ -194,7 +209,19 @@ export default function RtaFriendView({ vue, onClose }: { vue: RtaVueAmi; onClos
 
   // Sections affichées : « Non classé » d'abord (si peuplée), puis celles de
   // l'auteur. Une section vide chez lui n'apporte rien à lire.
-  const aAfficher = [RTA_UNASSIGNED, ...vue.sections].filter((k) => (groupes[k]?.length ?? 0) > 0);
+  const aAfficher = avecSections
+    ? [RTA_UNASSIGNED, ...vue.sections].filter((k) => (groupes[k]?.length ?? 0) > 0)
+    : [];
+
+  // Ordre transmis par l'auteur (niveau `ordre` uniquement) : le lecteur ne peut
+  // pas le recalculer, faute de vitesses.
+  const ordreTransmis = useMemo(
+    () =>
+      [...vue.entries]
+        .filter((e) => e.rang !== undefined)
+        .sort((a, b) => (a.rang ?? 0) - (b.rang ?? 0)),
+    [vue.entries]
+  );
 
   const titre = vue.nom || (vue.auteur ? `Prépa de ${vue.auteur}` : "Prépa d'un ami");
 
@@ -231,7 +258,7 @@ export default function RtaFriendView({ vue, onClose }: { vue: RtaVueAmi; onClos
         >
           {items.map((it) => {
             const id = String(it.monster.id);
-            const cats = categoriesDe(id);
+            const cats = montrerCategories ? categoriesDe(id) : [];
             return (
               <CarteAmi
                 key={id}
@@ -241,7 +268,7 @@ export default function RtaFriendView({ vue, onClose }: { vue: RtaVueAmi; onClos
                 libelles={cats.map((c) => c.label)}
                 open={openId === id}
                 onToggle={() => setOpenId((cur) => (cur === id ? null : id))}
-                avecVitesses={vue.avecVitesses}
+                avecVitesses={avecVitesses}
               />
             );
           })}
@@ -278,27 +305,25 @@ export default function RtaFriendView({ vue, onClose }: { vue: RtaVueAmi; onClos
       <p className="mb-4 text-[12.5px] leading-relaxed text-ink-dim">
         Tu regardes la prépa de quelqu'un d'autre. <b className="text-ink">Ta prépa n'a pas bougé</b>{' '}
         et rien n'est comparé à tes monstres.
-        {vue.avecEquipement ? (
-          <> Clique un monstre pour voir ses runes et ses artéfacts.</>
-        ) : (
-          <> Son équipement n'est pas joint.</>
-        )}
+        {vue.niveau === 'complet' && <> Clique un monstre pour voir ses runes et ses artéfacts.</>}
       </p>
 
-      {!vue.avecEquipement && (
+      {/* Dire CE QUI a été partagé, et non seulement ce qui manque : sans ça on
+          cherche des runes absentes en croyant à un bug. */}
+      {vue.niveau !== 'complet' && (
         <p className="mb-4 flex items-start gap-2 rounded-lg border border-border bg-panel px-3 py-2 text-[11.5px] leading-relaxed text-ink-dim">
           <EyeOff size={14} className="mt-[1px] flex-none text-ink-dim" />
-          <span>
-            L'auteur a partagé son classement <b className="text-ink">sans ses runes</b>.{' '}
-            {vue.avecVitesses ? (
-              <>Tu vois ses sections et les vitesses qu'il vise, pas comment il les atteint.</>
-            ) : (
-              <>
-                Ni ses vitesses : tu vois <b className="text-ink">quels monstres il rune et dans
-                quel set</b>, rien de plus.
-              </>
-            )}
-          </span>
+          {vue.niveau === 'vitesses' ? (
+            <span>
+              L'auteur a partagé <b className="text-ink">son ordre de tour</b> : la vitesse et les
+              sets de chaque monstre, sans le détail de ses runes ni son classement par section.
+            </span>
+          ) : (
+            <span>
+              L'auteur a partagé <b className="text-ink">son ordre de tour seul</b>. Ni vitesses, ni
+              sets, ni sections : tu vois qui passe avant qui, rien de plus.
+            </span>
+          )}
         </p>
       )}
 
@@ -309,37 +334,110 @@ export default function RtaFriendView({ vue, onClose }: { vue: RtaVueAmi; onClos
         </p>
       )}
 
-      <div className="flex flex-col gap-4">{aAfficher.map(rendreSection)}</div>
 
-      {/* ⚠️ L'ordre de tour est **recalculé**, jamais transporté : il se déduit
-          entièrement des vitesses et du lead simulé. Le transporter aurait figé
-          un classement qui ne suivrait plus les boutons de lead — et il aurait
-          fallu le tenir à jour dans le fichier.
-          Même composant que sa propre prépa, en LECTURE (pas de `onRuneSpeed`) :
-          une seconde implémentation aurait divergé au premier changement de
-          règle de tri. */}
-      <section className="mt-8">
+      {/* Sections : niveau complet uniquement. Une section EST un set de runes,
+          donc les afficher annoncerait le runage que l'auteur a voulu cacher. */}
+      {avecSections && <div className="flex flex-col gap-4">{aAfficher.map(rendreSection)}</div>}
+
+      <section className={avecSections ? 'mt-8' : ''}>
         <div className="flex items-baseline gap-x-3 gap-y-1 flex-wrap pb-2.5 mb-4 border-b border-border">
           <h3 className="font-display text-[17px] tracking-wide">Son ordre de tour</h3>
-          <span className="font-mono text-ink-dim text-xs">
-            par vitesse totale · le plus rapide à gauche
-          </span>
+          <span className="font-mono text-ink-dim text-xs">par vitesse combat totale</span>
         </div>
 
-        {vue.avecVitesses ? (
-          <TurnOrder items={vue.entries} categories={catsPourOrdre} categoriesVisible />
+        {/* ⚠️ La condition porte sur `aDesVitesses` (ce que le FICHIER contient)
+            et non sur la bascule : masquer les chiffres ne doit pas faire
+            disparaître le classement, qui reste juste et lisible sans eux. */}
+        {aDesVitesses ? (
+          // ⚠️ **Recalculé**, jamais transporté : il se déduit des vitesses et du
+          // lead simulé. Le transporter aurait figé un classement qui ne suivrait
+          // plus les boutons de lead. Même composant que sa propre prépa, en
+          // LECTURE (pas de `onRuneSpeed`) — une seconde implémentation aurait
+          // divergé au premier changement de règle de tri.
+          // Les interrupteurs d'affichage vivent DANS sa barre, avec les boutons
+          // de lead : c'est là qu'on les cherche, au contact des vignettes.
+          // `onToggleCategories` n'est passé que s'il y a des catégories à
+          // masquer — un interrupteur sans effet se clique et laisse croire à
+          // un bug.
+          <TurnOrder
+            items={vue.entries}
+            categories={catsPourOrdre}
+            categoriesVisible={montrerCategories}
+            onToggleCategories={aDesCategories ? setMontrerCategories : undefined}
+            showSpeed={montrerVitesses}
+            onToggleSpeed={setMontrerVitesses}
+          />
         ) : (
-          // Sans vitesses, un ordre fondé sur les seules vitesses de base serait
-          // FAUX. Mieux vaut ne rien classer que classer de travers.
-          <p className="flex items-start gap-2 rounded-xl border border-dashed border-border bg-panel/40 px-3 py-4 text-[12.5px] leading-relaxed text-ink-dim">
-            <EyeOff size={14} className="mt-[2px] flex-none" />
-            <span>
-              L'auteur n'a pas partagé ses vitesses de runes : l'ordre de tour ne peut pas être
-              calculé. Le classer sur les seules vitesses de base donnerait un ordre faux.
-            </span>
-          </p>
+          // ⚠️ Niveau `ordre` : le rang vient du FICHIER, faute de vitesses pour
+          // le recalculer. Pas de boutons de lead ici — les simuler exigerait
+          // les vitesses, précisément ce que l'auteur n'a pas donné.
+          <OrdreTransmis items={ordreTransmis} />
         )}
       </section>
     </section>
+  );
+}
+
+// Ordre de tour figé, tel que l'auteur l'a exporté. Reprend les **vignettes
+// numérotées** de l'ordre de tour habituel : c'est le repère qu'on lit déjà sur
+// sa propre prépa, on ne réapprend rien.
+function OrdreTransmis({ items }: { items: { monster: Monster; rang?: number }[] }) {
+  if (items.length === 0) {
+    return (
+      <p className="rounded-xl border border-dashed border-border bg-panel/40 px-3 py-4 text-center text-[12.5px] text-ink-dim">
+        Ce fichier ne contient pas d'ordre de tour.
+      </p>
+    );
+  }
+
+  return (
+    <div className="flex flex-wrap gap-2.5 pb-3">
+      {items.map((it, i) => {
+        const m = it.monster;
+        return (
+          <div
+            key={String(m.id)}
+            className="relative flex-none w-[124px] rounded-xl border border-border bg-panel2 p-2"
+          >
+            <span
+              className="absolute -top-2 -left-2 z-10 flex items-center justify-center min-w-[20px] h-5 px-1
+                         rounded-full bg-accent-soft border border-border
+                         font-mono text-[10px] font-bold text-ink shadow"
+            >
+              {it.rang ?? i + 1}
+            </span>
+
+            <div className="flex flex-col items-center gap-1.5">
+              <div className="relative">
+                <div
+                  className={`hex-frame w-[46px] h-[46px] p-[2px] bg-gradient-to-br ${GRADIENT[m.element]}`}
+                >
+                  <div className="hex-frame w-full h-full bg-panel flex items-center justify-center overflow-hidden">
+                    {m.image ? (
+                      <img src={m.image} alt={m.name} className="w-full h-full object-cover" />
+                    ) : (
+                      <span className={`font-display font-bold text-sm ${TEXT[m.element]}`}>
+                        {initials(m.name)}
+                      </span>
+                    )}
+                  </div>
+                </div>
+                <ElementIcon
+                  element={m.element}
+                  size={15}
+                  className="absolute -top-1 -right-1 drop-shadow-[0_1px_2px_rgba(0,0,0,0.7)]"
+                />
+              </div>
+              <span
+                className="w-full text-center text-[11.5px] font-semibold leading-tight truncate"
+                title={m.name}
+              >
+                {m.name}
+              </span>
+            </div>
+          </div>
+        );
+      })}
+    </div>
   );
 }

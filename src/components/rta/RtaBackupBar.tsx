@@ -12,7 +12,8 @@ import {
   EyeOff,
   Gauge,
 } from 'lucide-react';
-import { Monster, RtaState } from '../../types';
+import { ElementKey, Monster, RtaState } from '../../types';
+import { CustomLead } from '../../hooks/useCustomMonsters';
 import { UseRtaState } from '../../hooks/useRtaState';
 import { UseRtaCategories } from '../../hooks/useRtaCategories';
 import { UseRtaBackup } from '../../hooks/useRtaBackup';
@@ -21,8 +22,9 @@ import {
   comptePartageable,
   encodeSnapshot,
   ImportReport,
+  NiveauPartage,
+  RtaSnapshot,
   RtaVueAmi,
-  slugify,
   toSnapshot,
   validateRtaImport,
   versVueAmi,
@@ -50,12 +52,6 @@ import { ConfirmDialog } from '../Dialogs';
  * ../Dialogs.tsx.
  */
 
-// Ce que l'auteur laisse voir de son runage. Trois niveaux et non deux cases à
-// cocher : « vitesses sans les runes » est un cas réel (on partage son speed
-// tune sans exposer ses substats), et une paire de cases laisserait choisir
-// « runes sans vitesses », qui n'a pas de sens — les runes portent la vitesse.
-export type NiveauPartage = 'complet' | 'vitesses' | 'classement';
-
 interface Props {
   rta: UseRtaState;
   cats: UseRtaCategories;
@@ -63,6 +59,17 @@ interface Props {
   monsters: Monster[];
   /** Remonte la prépa consultée : elle s'affiche sous la page, pas ici. */
   onConsulter: (vue: RtaVueAmi) => void;
+  /**
+   * Recrée un monstre perso à la reprise d'une prépa. ⚠️ Utilisé par « Importer »
+   * seulement : la consultation, elle, se contente d'afficher ceux du fichier
+   * sans rien créer chez le lecteur.
+   */
+  onCreateMonster: (
+    name: string,
+    element: ElementKey,
+    speed: number,
+    lead?: CustomLead | null
+  ) => Monster;
 }
 
 // Télécharge un texte en fichier (aucun envoi réseau).
@@ -96,7 +103,14 @@ const BOUTON =
   'text-ink-dim hoverable:text-ink hoverable:border-accent transition ' +
   'disabled:opacity-40 disabled:cursor-not-allowed';
 
-export default function RtaBackupBar({ rta, cats, backup, monsters, onConsulter }: Props) {
+export default function RtaBackupBar({
+  rta,
+  cats,
+  backup,
+  monsters,
+  onConsulter,
+  onCreateMonster,
+}: Props) {
   const [msg, setMsg] = useState<{ text: string; error?: boolean } | null>(null);
   // Rapport de validation : NON éphémère, il y a quelque chose à lire.
   const [report, setReport] = useState<ImportReport | null>(null);
@@ -106,9 +120,9 @@ export default function RtaBackupBar({ rta, cats, backup, monsters, onConsulter 
   const [exportAChoisir, setExportAChoisir] = useState(false);
   // Import en attente de confirmation : l'appliquer écraserait la prépa en cours.
   const [aConfirmer, setAConfirmer] = useState<{
-    state: RtaState;
-    categories: { label: string; color: string; members: string[] }[];
+    snapshot: RtaSnapshot;
     resume: string;
+    perso: number; // monstres perso qui seront recréés
   } | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
   // ⚠️ Le MÊME fichier se lit de deux façons : consulté ou repris. L'intention
@@ -163,33 +177,35 @@ export default function RtaBackupBar({ rta, cats, backup, monsters, onConsulter 
   function exporter(niveau: NiveauPartage) {
     const { partageables, perso } = comptePartageable(rta.state, monsterById);
     if (partageables === 0) {
-      setMsg({
-        text: perso > 0
-          ? "Rien à exporter : tes monstres perso n'existent que dans ton navigateur, ils ne peuvent pas être partagés."
-          : 'Rien à exporter : ta prépa est vide.',
-        error: true,
-      });
+      setMsg({ text: 'Rien à exporter : ta prépa est vide.', error: true });
       return;
     }
-    const snap = toSnapshot(rta.state, cats.categories, monsterById, {
-      avecEquipement: niveau === 'complet',
-      avecVitesses: niveau !== 'classement',
-    });
-    download(
-      `swforge-prepa-rta-${slugify(new Date().toISOString().slice(0, 10))}.json`,
-      encodeSnapshot(snap)
-    );
-    const dit: Record<NiveauPartage, string> = {
-      complet: 'avec les runes, artéfacts et vitesses',
-      vitesses: 'avec les vitesses, sans le détail des runes',
-      classement: 'classement seul, sans les runes ni les vitesses',
+    const snap = toSnapshot(rta.state, cats.categories, monsterById, { niveau });
+    // ⚠️ **Le nom du fichier dit ce qu'il contient.** C'est le seul repère
+    // avant de l'ouvrir — et quand on en a plusieurs dans son dossier de
+    // téléchargements, ou qu'on en reçoit un d'un ami, « swforge-prepa-rta.json »
+    // ne permet pas de savoir si les runes y sont.
+    const suffixe: Record<NiveauPartage, string> = {
+      complet: 'complet',
+      vitesses: 'ordre-et-sets',
+      ordre: 'ordre-seul',
     };
-    // ⚠️ Les monstres perso écartés sont ANNONCÉS : un fichier silencieusement
-    // incomplet se découvrirait chez l'ami, trop tard.
+    const jour = new Date().toISOString().slice(0, 10); // déjà « 2026-08-11 »
+    const fichier = `swforge-prepa-rta-${suffixe[niveau]}-${jour}.json`;
+    download(fichier, encodeSnapshot(snap));
+    const dit: Record<NiveauPartage, string> = {
+      complet: 'avec les runes et artéfacts',
+      vitesses: 'ordre de tour, vitesses et sets',
+      ordre: 'ordre de tour seul',
+    };
+    // ⚠️ Le nom du fichier est REPRIS dans le message : c'est lui qu'on ira
+    // chercher dans ses téléchargements. Les monstres perso PARTENT désormais
+    // (décrits en entier), mais on le dit : ils s'afficheront sans portrait chez
+    // le lecteur, qui ne les a pas dans ses données.
     setMsg({
       text:
-        `${partageables} monstre(s) exporté(s) ${dit[niveau]} · fichier .json téléchargé.` +
-        (perso > 0 ? ` ${perso} monstre(s) perso non partageable(s) : non inclus.` : ''),
+        `${partageables} monstre(s) exporté(s) ${dit[niveau]} · ${fichier}` +
+        (perso > 0 ? ` · dont ${perso} monstre(s) perso, affiché(s) sans portrait.` : ''),
     });
   }
 
@@ -201,6 +217,9 @@ export default function RtaBackupBar({ rta, cats, backup, monsters, onConsulter 
     setReport(rep);
     if (!rep.snapshot) return; // erreurs bloquantes : rien à faire
 
+    // ⚠️ Compté SANS `creerPerso` : appeler `appliquer` ici puis à la
+    // confirmation créerait chaque monstre perso deux fois. La création est
+    // différée au moment où l'utilisateur valide.
     const inconnus =
       mode === 'consulter'
         ? versVueAmi(rep.snapshot, monsterByCom2us).inconnus
@@ -230,9 +249,14 @@ export default function RtaBackupBar({ rta, cats, backup, monsters, onConsulter 
       }
       onConsulter(vue);
       const auteur = vue.auteur ? ` de ${vue.auteur}` : '';
+      const contenu: Record<NiveauPartage, string> = {
+        complet: ', runes incluses',
+        vitesses: ', ordre de tour et sets',
+        ordre: ', ordre de tour seul',
+      };
       setMsg({
         text: `Prépa${auteur} ouverte en consultation · ${vue.entries.length} monstre(s)${
-          vue.avecEquipement ? ', runes incluses' : ', sans les runes'
+          contenu[vue.niveau]
         }. Ta prépa n'a pas bougé.`,
       });
       return;
@@ -240,13 +264,21 @@ export default function RtaBackupBar({ rta, cats, backup, monsters, onConsulter 
 
     // Reprise d'une prépa : elle REMPLACE la sienne (il n'y en a qu'une), donc
     // elle passe par une confirmation qui énonce ce qu'on perd.
-    const { state, categories } = appliquer(rep.snapshot, monsterByCom2us, rta.state);
-    const retenus = Object.keys(state.entries).length;
+    // ⚠️ On garde l'INSTANTANÉ, pas l'état calculé : recréer les monstres perso
+    // n'a lieu qu'à la validation, sinon annuler laisserait derrière soi des
+    // monstres créés pour rien.
+    const { state } = appliquer(rep.snapshot, monsterByCom2us, rta.state);
+    const perso = rep.snapshot.entries.filter((e) => e.com2usId == null && e.perso).length;
+    const retenus = Object.keys(state.entries).length + perso;
     if (retenus === 0) {
       setMsg({ text: "Aucun monstre de ce fichier n'existe dans les données chargées.", error: true });
       return;
     }
-    setAConfirmer({ state, categories, resume: `${retenus} monstre(s)` });
+    setAConfirmer({
+      snapshot: rep.snapshot,
+      resume: `${retenus} monstre(s)`,
+      perso,
+    });
   }
 
   function ouvrirFichier(mode: 'consulter' | 'importer') {
@@ -412,6 +444,13 @@ export default function RtaBackupBar({ rta, cats, backup, monsters, onConsulter 
                 </>
               )}{' '}
               Les runes de tes propres monstres ne changent pas.
+              {aConfirmer.perso > 0 && (
+                <>
+                  {' '}
+                  {aConfirmer.perso} monstre(s) perso du fichier seront{' '}
+                  <b className="text-ink">recréés</b> dans ta liste.
+                </>
+              )}
               {/* Si l'intention était de regarder la prépa d'un ami, ce dialogue
                   est le dernier endroit où le dire — après, c'est remplacé. */}
               <br />
@@ -425,8 +464,28 @@ export default function RtaBackupBar({ rta, cats, backup, monsters, onConsulter 
           destructif
           onCancel={() => setAConfirmer(null)}
           onConfirm={() => {
-            rta.replaceAll(aConfirmer.state);
-            cats.replaceAll(aConfirmer.categories);
+            // ⚠️ C'est ICI que les monstres perso sont recréés — pas avant :
+            // annuler ne doit rien laisser derrière soi.
+            const { state, categories } = appliquer(
+              aConfirmer.snapshot,
+              monsterByCom2us,
+              rta.state,
+              (p) =>
+                onCreateMonster(
+                  p.nom,
+                  p.element,
+                  p.vitesse,
+                  p.lead
+                    ? {
+                        stat: p.lead.stat,
+                        amount: p.lead.amount,
+                        area: p.lead.area === 'Element' ? 'Element' : 'General',
+                      }
+                    : null
+                )
+            );
+            rta.replaceAll(state);
+            cats.replaceAll(categories);
             setMsg({ text: `Prépa reprise · ${aConfirmer.resume}.` });
             setAConfirmer(null);
           }}
@@ -481,24 +540,25 @@ function ChoixExport({
     {
       cle: 'complet',
       icone: Eye,
-      titre: 'Tout : runes, artéfacts et vitesses',
-      detail: 'Il voit comment tu runes chaque monstre, et son ordre de tour est calculé.',
+      titre: 'Tout : ta prépa, tes runes et tes artéfacts',
+      detail:
+        'Il voit ton classement par section et le détail de chaque rune, substats compris.',
       compte: avecRunes,
       desactive: avecRunes === 0,
     },
     {
       cle: 'vitesses',
       icone: Gauge,
-      titre: 'Vitesses seules, sans le détail des runes',
+      titre: 'Ordre de tour : vitesses et sets',
       detail:
-        "Il voit tes sections et tes vitesses — donc ton ordre de tour — mais pas tes sets ni tes substats.",
+        "Il voit ton ordre de tour avec la vitesse et les sets de chaque monstre, mais pas le détail de tes runes ni ton classement par section.",
     },
     {
-      cle: 'classement',
+      cle: 'ordre',
       icone: EyeOff,
-      titre: 'Classement seul',
+      titre: 'Ordre de tour seul',
       detail:
-        "Il voit quels monstres tu runes et dans quelle section, rien d'autre. Pas d'ordre de tour.",
+        "Il voit seulement qui passe avant qui, en vignettes numérotées. Pas de vitesses, pas de sets, pas de sections.",
     },
   ];
 
@@ -559,12 +619,14 @@ function ChoixExport({
           })}
         </div>
 
-        {/* ⚠️ Explique POURQUOI cacher les runes cache aussi les vitesses.
-            Sans cette phrase, l'option « classement seul » passe pour une
-            restriction gratuite, alors qu'elle ferme la seule vraie fuite. */}
+        {/* ⚠️ Explique POURQUOI chaque palier retire ce qu'il retire. Sans ces
+            phrases, les restrictions passent pour arbitraires alors que chacune
+            ferme une fuite réelle. */}
         <p className="mt-3 text-[11px] leading-relaxed text-ink-dim">
-          La vitesse de base d'un monstre est publique : donner sa vitesse totale revient à donner
-          la vitesse de ses runes. C'est pourquoi « classement seul » les retire aussi.
+          Le <b className="text-ink">classement par section</b> part avec le détail des runes :
+          ranger un monstre dans « Swift » en dit autant que l'icône. Et la vitesse de base étant
+          publique, donner la vitesse totale revient à donner celle des runes — c'est pourquoi le
+          dernier niveau ne transmet que l'ordre.
         </p>
 
         <button

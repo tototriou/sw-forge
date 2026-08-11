@@ -19,6 +19,8 @@ import {
   RUNE_SETS,
   RTA_OTHER,
   RTA_UNASSIGNED,
+  ELEMENTS,
+  ElementKey,
   Monster,
   GearSet,
 } from '../types';
@@ -40,11 +42,35 @@ export const AUTEUR_MAX = 40;
 // stable d'un joueur à l'autre (même règle que les recommandations, voir
 // ../../spec/siege/recommandations.md). Le `nom` sert de repli d'affichage si le
 // monstre est absent des données chargées chez celui qui importe.
+// Un monstre PERSO, décrit en entier dans le fichier.
+//
+// ⚠️ Il n'a pas de `com2usId` : rien ne permet de le RETROUVER chez le lecteur.
+// Mais il se décrit entièrement — nom, élément, vitesse de base, lead — et c'est
+// tout ce qu'il faut pour l'AFFICHER. Une première version l'écartait purement
+// et simplement : une prépa contenant une sortie récente arrivait amputée, et
+// son ordre de tour était faux d'un monstre.
+export interface RtaSharePerso {
+  nom: string;
+  element: ElementKey;
+  vitesse: number;
+  lead?: { stat: string; amount: number; area: string };
+}
+
 export interface RtaShareEntry {
-  com2usId: number;
+  /** `null` pour un monstre perso, qui est alors décrit par `perso`. */
+  com2usId: number | null;
+  /** Description complète, pour les monstres absents du bestiaire. */
+  perso?: RtaSharePerso;
   nom: string;
   section: string;
   runeSpeed: number | null;
+  /**
+   * Position dans l'ordre de tour (1 = le plus rapide). Présent **uniquement au
+   * niveau `ordre`**, où les vitesses ne sont pas transmises : le lecteur ne
+   * pourrait pas le recalculer, et c'est justement le seul renseignement que
+   * l'auteur accepte de donner.
+   */
+  rang?: number;
   sets?: string[]; // sets actifs, tels que calculés à l'import de compte
   // ⚠️ Présent SEULEMENT si l'auteur a choisi de partager son équipement.
   // C'est tout l'intérêt de consulter la prépa d'un ami : voir COMMENT il rune,
@@ -58,40 +84,55 @@ export interface RtaShareCategory {
   label: string;
   color: string;
   membres: number[]; // com2usId
+  /** Positions (index dans `monstres`) des membres PERSO, qui n'ont pas d'id. */
+  membresPerso?: number[];
 }
 
 // ⚠️ **L'équipement se partage, mais sur DÉCISION de l'auteur.** Consulter la
 // prépa d'un ami sans voir comment il rune n'a pas grand intérêt — c'est
 // justement ce qu'on vient y chercher. Mais son équipement dit aussi ce qu'il
 // possède : certains ne veulent pas l'exposer. D'où un choix explicite à
-// l'export (`avecEquipement`), et non une règle imposée dans un sens ou l'autre.
+// l'export (`niveau`), et non une règle imposée dans un sens ou l'autre.
 //
 // ⚠️ Ce qui est reçu n'est JAMAIS mélangé à ce qu'on possède : une prépa
-// importée s'ouvre **en consultation**, à côté de la sienne (voir
+// consultée s'ouvre à côté de la sienne (voir
 // ../../spec/rta/sauvegarde-partage.md). Elle ne remplace rien et ne se compare
 // à rien.
+// ⚠️ **Un NIVEAU ordonné, pas des drapeaux indépendants.** Chaque palier retire
+// une couche de plus, et chaque couche retirée l'est parce qu'elle **révèle le
+// runage** — pas par principe :
+//
+// | Niveau | Ce qui part | Ce qui reste caché |
+// |--------|-------------|--------------------|
+// | `complet` | équipement, sets, vitesses, sections, catégories | rien |
+// | `vitesses` | vitesses **et sets** — de quoi lire l'ordre de tour | le **détail** des runes, les sections, les catégories |
+// | `ordre` | l'ordre des monstres | tout le reste, vitesses et sets compris |
+//
+// ⚠️ Le niveau `vitesses` correspond exactement à ce qu'affiche l'ordre de tour :
+// vitesse finale + icônes de set. On voit COMMENT l'autre joue (« Trevor Swift à
+// 227 ») sans voir ses substats — c'est le partage de speed tune, le cas le plus
+// courant entre amis.
+//
+// Deux booléens indépendants auraient laissé composer « runes sans vitesses »,
+// qui n'a aucun sens : les runes PORTENT la vitesse.
+export type NiveauPartage = 'complet' | 'vitesses' | 'ordre';
+
 export interface RtaSnapshot {
   nom: string;
   auteur: string;
   sections: string[];
   entries: RtaShareEntry[];
   categories: RtaShareCategory[];
-  /** L'auteur a-t-il joint son équipement ? Sert à l'annoncer en consultation. */
-  avecEquipement: boolean;
-  /**
-   * A-t-il joint ses vitesses de runes ? Sans elles, l'ordre de tour n'est pas
-   * calculable et le panneau le dit, plutôt que d'afficher un classement faux
-   * fondé sur les seules vitesses de base.
-   */
-  avecVitesses: boolean;
+  /** Ce que l'auteur a choisi de laisser voir. Annoncé en consultation. */
+  niveau: NiveauPartage;
 }
 
 /* --------------------------------------------------------------------------
  * Conversion depuis / vers l'état de l'application
  * ----------------------------------------------------------------------- */
 
-// Combien de monstres de la prépa sont réellement partageables ? Sert à prévenir
-// AVANT l'export plutôt qu'à laisser découvrir un fichier incomplet.
+// Combien de monstres partent, et combien sont des monstres perso ? Le second
+// chiffre sert à l'annoncer : le lecteur les verra sans portrait.
 export function comptePartageable(
   state: RtaState,
   monsterById: Map<string, Monster>
@@ -100,8 +141,9 @@ export function comptePartageable(
   let perso = 0;
   for (const id of Object.keys(state.entries)) {
     const m = monsterById.get(id);
-    if (m && m.com2usId != null) partageables++;
-    else perso++;
+    if (!m) continue; // absent des données chargées : rien à décrire
+    partageables++;
+    if (m.com2usId == null) perso++;
   }
   return { partageables, perso };
 }
@@ -115,34 +157,90 @@ export function toSnapshot(
   state: RtaState,
   categories: RtaCategory[],
   monsterById: Map<string, Monster>,
-  meta: { nom?: string; auteur?: string; avecEquipement?: boolean; avecVitesses?: boolean } = {}
+  meta: { nom?: string; auteur?: string; niveau?: NiveauPartage } = {}
 ): RtaSnapshot {
-  const avecEquipement = meta.avecEquipement !== false; // équipement joint par défaut
-  // ⚠️ Sans équipement, les vitesses ne partent pas non plus PAR DÉFAUT.
-  // La vitesse de base d'un monstre est publique : donner sa vitesse totale,
-  // c'est donner l'écart, donc **exactement** la vitesse apportée par ses
-  // runes. Cacher les runes en gardant les vitesses ne cachait rien du tout.
-  // L'auteur peut tout de même les inclure explicitement (`avecVitesses`).
-  const avecVitesses = meta.avecVitesses ?? avecEquipement;
+  const niveau = meta.niveau ?? 'complet';
+  const avecEquipement = niveau === 'complet';
+  // ⚠️ Les SETS partent dès le niveau `vitesses` : c'est ce que montre l'ordre
+  // de tour (icônes de set sur chaque vignette), et ce qui rend le partage utile
+  // — « Trevor Swift à 227 » se lit, « Trevor à 227 » beaucoup moins. Le DÉTAIL
+  // des runes (substats, meules) reste, lui, réservé au niveau complet.
+  const avecSets = niveau !== 'ordre';
+  // ⚠️ La vitesse de BASE d'un monstre est publique : donner sa vitesse totale,
+  // c'est donner l'écart, donc **exactement** la vitesse apportée par ses runes.
+  // Au niveau `ordre`, elles ne partent donc pas — seul le RANG est transmis.
+  const avecVitesses = niveau !== 'ordre';
+
+  // ⚠️ **Les SECTIONS partent avec les sets.** Une section EST un set de runes :
+  // ranger un monstre dans « Swift » annonce qu'il est runé Swift, aussi
+  // sûrement que l'icône. Les retirer des sets en gardant le classement par
+  // section n'aurait rien caché du tout.
+  const avecSections = niveau === 'complet';
+
   const entries: RtaShareEntry[] = [];
   // id local → com2usId, pour traduire l'appartenance aux catégories.
   const com2usParId = new Map<string, number>();
+  // id local → position dans `entries`, seule clé possible pour un monstre perso.
+  const indexParId = new Map<string, number>();
+
+  // Au niveau `ordre`, ce qui est transmis est le RANG et rien d'autre. Il est
+  // calculé ici, à l'export : le lecteur ne peut pas le recalculer sans les
+  // vitesses, et l'auteur ne veut justement pas les donner.
+  const rangs = new Map<string, number>();
+  if (niveau === 'ordre') {
+    const tri = Object.values(state.entries)
+      .map((e) => {
+        const m = monsterById.get(e.monsterId);
+        const base = m?.stats.speed ?? null;
+        const total = base !== null || e.runeSpeed !== null ? (base ?? 0) + (e.runeSpeed ?? 0) : null;
+        return { e, m, total };
+      })
+      .filter((x) => x.m)
+      .sort((a, b) => {
+        if (a.total === null && b.total === null) return a.m!.name.localeCompare(b.m!.name);
+        if (a.total === null) return 1;
+        if (b.total === null) return -1;
+        return b.total - a.total || a.m!.name.localeCompare(b.m!.name);
+      });
+    tri.forEach((x, i) => rangs.set(x.e.monsterId, i + 1));
+  }
 
   for (const e of Object.values(state.entries)) {
     const m = monsterById.get(e.monsterId);
-    if (!m || m.com2usId == null) continue; // perso ou inconnu : non partageable
-    com2usParId.set(e.monsterId, m.com2usId);
+    if (!m) continue; // absent des données chargées : rien à décrire
+    if (m.com2usId != null) com2usParId.set(e.monsterId, m.com2usId);
+    else indexParId.set(e.monsterId, entries.length);
     entries.push({
       com2usId: m.com2usId,
+      // Un monstre perso emporte sa description : c'est la seule façon de
+      // l'afficher chez quelqu'un qui ne l'a pas créé.
+      perso:
+        m.com2usId == null
+          ? {
+              nom: m.name.slice(0, 40),
+              element: m.element,
+              vitesse: m.stats.speed ?? 0,
+              ...(m.leaderSkill && m.leaderSkill.stat
+                ? {
+                    lead: {
+                      stat: m.leaderSkill.stat,
+                      amount: m.leaderSkill.amount,
+                      area: m.leaderSkill.area,
+                    },
+                  }
+                : {}),
+            }
+          : undefined,
       nom: m.name.slice(0, 40),
-      section: isSectionKey(e.section) ? e.section : RTA_UNASSIGNED,
+      // Sans sections partagées, tout le monde arrive en « Non classé » : la
+      // consultation n'affiche alors que l'ordre de tour.
+      section: avecSections && isSectionKey(e.section) ? e.section : RTA_UNASSIGNED,
       runeSpeed:
         avecVitesses && typeof e.runeSpeed === 'number' && Number.isFinite(e.runeSpeed)
           ? e.runeSpeed
           : null,
-      // ⚠️ Sans équipement, les SETS ne partent pas non plus : ce sont eux qui
-      // trahissent le runage.
-      sets: avecEquipement ? e.sets : undefined,
+      rang: rangs.get(e.monsterId),
+      sets: avecSets ? e.sets : undefined,
       gear: avecEquipement ? e.gear : undefined,
     });
   }
@@ -150,17 +248,25 @@ export function toSnapshot(
   return {
     nom: (meta.nom ?? '').slice(0, NOM_MAX),
     auteur: (meta.auteur ?? '').slice(0, AUTEUR_MAX),
-    sections: state.sections.filter(isSectionKey),
+    sections: avecSections ? state.sections.filter(isSectionKey) : [],
     entries,
-    avecEquipement,
-    avecVitesses,
+    niveau,
+    // ⚠️ Les CATÉGORIES ne partent qu'au niveau complet : elles sont libres, et
+    // le joueur les nomme souvent d'après son runage (« Swift lead »,
+    // « Violent »). Les transmettre rendrait vaine la dissimulation des sets.
     // Une catégorie dont aucun membre n'est partageable est conservée quand même
     // (libellé + couleur ont une valeur en soi), mais vidée de fait.
-    categories: categories.map((c) => ({
+    categories: (avecEquipement ? categories : []).map((c) => ({
       label: c.label.slice(0, LABEL_MAX),
       color: c.color,
       membres: c.members
         .map((id) => com2usParId.get(id))
+        .filter((v): v is number => typeof v === 'number'),
+      // ⚠️ Les monstres PERSO n'ont pas de `com2usId` : leur appartenance passe
+      // par leur POSITION dans `monstres`. Sans ça, une catégorie appliquée à un
+      // monstre perso se perdait à l'export.
+      membresPerso: c.members
+        .map((id) => indexParId.get(id))
         .filter((v): v is number => typeof v === 'number'),
     })),
   };
@@ -177,12 +283,14 @@ export function toSnapshot(
 export interface RtaVueAmi {
   nom: string;
   auteur: string;
-  avecEquipement: boolean;
-  /** Sans vitesses, l'ordre de tour n'est pas calculable — il n'est pas affiché. */
-  avecVitesses: boolean;
+  niveau: NiveauPartage;
   sections: string[];
-  /** Monstres résolus dans le bestiaire local (le portrait, le nom, les stats). */
-  entries: { monster: Monster; entry: RtaEntry }[];
+  /**
+   * Monstres résolus dans le bestiaire local (le portrait, le nom, les stats).
+   * `rang` n'est renseigné qu'au niveau `ordre` : ailleurs, l'ordre de tour est
+   * recalculé depuis les vitesses, comme sur sa propre prépa.
+   */
+  entries: { monster: Monster; entry: RtaEntry; rang?: number }[];
   categories: { label: string; color: string; members: Set<string> }[];
   /** `com2usId` absents des données chargées : annoncés, jamais avalés. */
   inconnus: number[];
@@ -200,10 +308,15 @@ export interface RtaVueAmi {
 // de MON import de compte : c'est l'état réel de mes runes aujourd'hui, plus
 // juste que celui figé dans un fichier ancien. L'équipement du fichier ne sert
 // qu'à combler les monstres que je n'ai pas encore.
+// ⚠️ `creerPerso` **recrée** les monstres perso du fichier chez le lecteur : ils
+// n'existent nulle part ailleurs, donc reprendre une sauvegarde sans eux
+// amputerait la prépa. L'appelant fournit la fabrique (le hook des monstres
+// perso), ce module restant sans dépendance à React.
 export function appliquer(
   snap: RtaSnapshot,
   monsterByCom2us: Map<number, Monster>,
-  actuel: RtaState
+  actuel: RtaState,
+  creerPerso?: (p: RtaSharePerso) => Monster
 ): {
   state: RtaState;
   categories: { label: string; color: string; members: string[] }[];
@@ -211,16 +324,27 @@ export function appliquer(
 } {
   const entries: Record<string, RtaEntry> = {};
   const idParCom2us = new Map<number, string>();
+  const idParIndex = new Map<number, string>();
   const inconnus: number[] = [];
 
-  for (const e of snap.entries) {
-    const m = monsterByCom2us.get(e.com2usId);
-    if (!m) {
-      if (!inconnus.includes(e.com2usId)) inconnus.push(e.com2usId);
-      continue;
+  snap.entries.forEach((e, index) => {
+    let id: string;
+
+    if (e.com2usId != null) {
+      const m = monsterByCom2us.get(e.com2usId);
+      if (!m) {
+        if (!inconnus.includes(e.com2usId)) inconnus.push(e.com2usId);
+        return;
+      }
+      id = String(m.id);
+      idParCom2us.set(e.com2usId, id);
+    } else if (e.perso && creerPerso) {
+      id = String(creerPerso(e.perso).id);
+      idParIndex.set(index, id);
+    } else {
+      return; // pas de fabrique fournie : on n'invente pas de monstre
     }
-    const id = String(m.id);
-    idParCom2us.set(e.com2usId, id);
+
     const precedent = actuel.entries[id];
     entries[id] = {
       monsterId: id,
@@ -229,7 +353,7 @@ export function appliquer(
       sets: precedent?.sets ?? e.sets,
       gear: precedent?.gear ?? e.gear,
     };
-  }
+  });
 
   const sections = [...snap.sections];
   if (!sections.includes(RTA_OTHER)) sections.push(RTA_OTHER); // « Autre » est permanente
@@ -239,9 +363,10 @@ export function appliquer(
     categories: snap.categories.map((c) => ({
       label: c.label,
       color: c.color,
-      members: c.membres
-        .map((cid) => idParCom2us.get(cid))
-        .filter((v): v is string => typeof v === 'string'),
+      members: [
+        ...c.membres.map((cid) => idParCom2us.get(cid)),
+        ...(c.membresPerso ?? []).map((i) => idParIndex.get(i)),
+      ].filter((v): v is string => typeof v === 'string'),
     })),
     inconnus,
   };
@@ -250,20 +375,65 @@ export function appliquer(
 // Instantané → vue consultable. Les entrées portent les runes de L'AUTEUR : ce
 // sont des données d'affichage, elles n'entrent jamais dans l'état de l'app.
 export function versVueAmi(snap: RtaSnapshot, monsterByCom2us: Map<number, Monster>): RtaVueAmi {
-  const entries: { monster: Monster; entry: RtaEntry }[] = [];
+  const entries: { monster: Monster; entry: RtaEntry; rang?: number }[] = [];
   const idParCom2us = new Map<number, string>();
+  // Position dans `snap.entries` → id d'affichage, pour les catégories des perso.
+  const idParIndex = new Map<number, string>();
   const inconnus: number[] = [];
 
-  for (const e of snap.entries) {
-    const m = monsterByCom2us.get(e.com2usId);
-    if (!m) {
-      if (!inconnus.includes(e.com2usId)) inconnus.push(e.com2usId);
-      continue; // monstre absent des données : rien à afficher
+  snap.entries.forEach((e, index) => {
+    let m: Monster | undefined;
+    let id: string;
+
+    if (e.com2usId != null) {
+      m = monsterByCom2us.get(e.com2usId);
+      if (!m) {
+        if (!inconnus.includes(e.com2usId)) inconnus.push(e.com2usId);
+        return; // monstre absent des données : rien à afficher
+      }
+      id = String(m.id);
+      idParCom2us.set(e.com2usId, id);
+    } else if (e.perso) {
+      // ⚠️ Monstre PERSO reconstitué depuis le fichier. Son id est **local à
+      // cette consultation** (`ami-perso-N`) : il ne désigne rien chez le
+      // lecteur et n'a pas à le faire — il ne sert qu'à câbler l'affichage.
+      id = `ami-perso-${index}`;
+      m = {
+        id,
+        com2usId: null,
+        name: e.perso.nom || 'Monstre perso',
+        element: e.perso.element,
+        stars: null,
+        naturalStars: null,
+        secondAwaken: false,
+        image: null,
+        stats: {
+          hp: null,
+          attack: null,
+          defense: null,
+          speed: e.perso.vitesse,
+          critRate: null,
+          critDamage: null,
+          resistance: null,
+          accuracy: null,
+        },
+        leaderSkill: e.perso.lead
+          ? {
+              stat: e.perso.lead.stat,
+              amount: e.perso.lead.amount,
+              area: e.perso.lead.area,
+              element: e.perso.lead.area === 'Element' ? e.perso.element : null,
+            }
+          : null,
+      };
+      idParIndex.set(index, id);
+    } else {
+      return; // ni id ni description : rien à afficher
     }
-    const id = String(m.id);
-    idParCom2us.set(e.com2usId, id);
+
     entries.push({
       monster: m,
+      rang: e.rang,
       entry: {
         monsterId: id,
         section: e.section,
@@ -272,7 +442,7 @@ export function versVueAmi(snap: RtaSnapshot, monsterByCom2us: Map<number, Monst
         gear: e.gear,
       },
     });
-  }
+  });
 
   const sections = [...snap.sections];
   if (!sections.includes(RTA_OTHER)) sections.push(RTA_OTHER); // « Autre » est permanente
@@ -280,15 +450,18 @@ export function versVueAmi(snap: RtaSnapshot, monsterByCom2us: Map<number, Monst
   return {
     nom: snap.nom,
     auteur: snap.auteur,
-    avecEquipement: snap.avecEquipement,
-    avecVitesses: snap.avecVitesses,
+    niveau: snap.niveau,
     sections,
     entries,
     categories: snap.categories.map((c) => ({
       label: c.label,
       color: c.color,
       members: new Set(
-        c.membres.map((cid) => idParCom2us.get(cid)).filter((v): v is string => typeof v === 'string')
+        [
+          ...c.membres.map((cid) => idParCom2us.get(cid)),
+          // Les perso sont désignés par leur position, faute d'identifiant.
+          ...(c.membresPerso ?? []).map((i) => idParIndex.get(i)),
+        ].filter((v): v is string => typeof v === 'string')
       ),
     })),
     inconnus,
@@ -419,6 +592,37 @@ function cleanGear(raw: unknown): GearSet | undefined {
   } as GearSet;
 }
 
+const ELEMENT_KEYS = new Set<string>(ELEMENTS.map((e) => e.key));
+
+// Description d'un monstre perso reçue d'un tiers. Un nom et une vitesse
+// suffisent : le reste a des valeurs de repli raisonnables. Sans vitesse, le
+// monstre fausserait l'ordre de tour — on préfère alors l'ignorer.
+function cleanPerso(raw: unknown): RtaSharePerso | undefined {
+  if (!raw || typeof raw !== 'object') return undefined;
+  const o = raw as Record<string, unknown>;
+  const nom = typeof o.nom === 'string' ? o.nom.trim().slice(0, 40) : '';
+  const vitesse = Number(o.vitesse);
+  if (!nom || !Number.isFinite(vitesse) || vitesse <= 0) return undefined;
+
+  const element =
+    typeof o.element === 'string' && ELEMENT_KEYS.has(o.element)
+      ? (o.element as ElementKey)
+      : 'unknown';
+
+  const l = o.lead as Record<string, unknown> | undefined;
+  const montant = Number(l?.amount);
+  const lead =
+    l && typeof l.stat === 'string' && Number.isFinite(montant) && montant > 0
+      ? {
+          stat: l.stat.slice(0, 40),
+          amount: montant,
+          area: typeof l.area === 'string' ? l.area.slice(0, 20) : 'General',
+        }
+      : undefined;
+
+  return { nom, element, vitesse: Math.round(vitesse), ...(lead ? { lead } : {}) };
+}
+
 function cleanEntry(raw: unknown, ctx: Issues, where: string): RtaShareEntry | null {
   if (!raw || typeof raw !== 'object') {
     warn(ctx, `${where} : entrée invalide — ignorée.`);
@@ -426,8 +630,16 @@ function cleanEntry(raw: unknown, ctx: Issues, where: string): RtaShareEntry | n
   }
   const o = raw as Record<string, unknown>;
   const id = Number(o.com2usId);
-  if (!Number.isFinite(id) || id <= 0) {
-    warn(ctx, `${where} : « com2usId » invalide (${String(o.com2usId)}) — monstre ignoré.`);
+  const aUnId = Number.isFinite(id) && id > 0;
+
+  // Monstre PERSO : pas d'identifiant, mais une description complète. Les deux
+  // sont acceptés ; ce qui n'a NI l'un NI l'autre est ignoré.
+  const perso = cleanPerso(o.perso);
+  if (!aUnId && !perso) {
+    warn(
+      ctx,
+      `${where} : ni « com2usId » valide (${String(o.com2usId)}) ni description de monstre perso — ignoré.`
+    );
     return null;
   }
 
@@ -456,11 +668,17 @@ function cleanEntry(raw: unknown, ctx: Issues, where: string): RtaShareEntry | n
     (s): s is string => typeof s === 'string' && SET_KEYS.has(s)
   );
 
+  // Rang dans l'ordre de tour, transmis quand les vitesses ne le sont pas.
+  const brutRang = Number(o.rang);
+  const rang = Number.isFinite(brutRang) && brutRang > 0 ? Math.round(brutRang) : undefined;
+
   return {
-    com2usId: Math.round(id),
-    nom: typeof nom === 'string' ? nom.slice(0, 40) : '',
+    com2usId: aUnId ? Math.round(id) : null,
+    ...(perso ? { perso } : {}),
+    nom: typeof nom === 'string' ? nom.slice(0, 40) : perso?.nom ?? '',
     section,
     runeSpeed,
+    ...(rang !== undefined ? { rang } : {}),
     ...(sets.length ? { sets } : {}),
     ...(() => {
       const gear = cleanGear(o.equipement ?? o.gear);
@@ -489,7 +707,20 @@ function cleanCategory(raw: unknown, ctx: Issues, where: string): RtaShareCatego
       if (Number.isFinite(n) && n > 0 && !membres.includes(Math.round(n))) membres.push(Math.round(n));
     }
   }
-  return { label, color, membres };
+
+  // Membres PERSO, désignés par leur position dans `monstres` — donc `0` est un
+  // index légitime, contrairement aux `com2usId` ci-dessus.
+  const membresPerso: number[] = [];
+  if (Array.isArray(o.membresPerso)) {
+    for (const v of o.membresPerso) {
+      const n = Number(v);
+      if (Number.isFinite(n) && n >= 0 && !membresPerso.includes(Math.round(n))) {
+        membresPerso.push(Math.round(n));
+      }
+    }
+  }
+
+  return { label, color, membres, ...(membresPerso.length ? { membresPerso } : {}) };
 }
 
 /* --------------------------------------------------------------------------
@@ -515,22 +746,32 @@ export function encodeSnapshot(snap: RtaSnapshot): string {
       auteur: snap.auteur,
       // Annoncé dans le fichier : le lecteur sait si l'absence de runes est un
       // choix de l'auteur ou un fichier d'une version antérieure.
-      avec_equipement: snap.avecEquipement,
-      avec_vitesses: snap.avecVitesses,
+      // Informatif : la consultation déduit le niveau de ce qu'elle lit
+      // réellement, jamais de cette clé (voir `validateRtaImport`).
+      niveau: snap.niveau,
       sections: snap.sections,
       monstres: snap.entries.map((e) => ({
-        com2usId: e.com2usId,
+        com2usId: e.com2usId ?? undefined,
+        // Description complète d'un monstre perso : sans elle, il serait
+        // impossible de l'afficher chez qui ne l'a pas créé.
+        perso: e.perso,
         nom: e.nom,
         section: e.section,
         // `undefined` disparaît du JSON ; `null` y resterait comme une clé vide,
         // qui se lit comme « vitesse non saisie » et non « vitesse masquée ».
         vitesse: e.runeSpeed ?? undefined,
+        rang: e.rang,
         sets: e.sets?.length ? e.sets : undefined,
         equipement: e.gear,
       })),
       // Omises si vides : une prépa sans catégorie ne traîne pas une liste vide.
       categories: snap.categories.length
-        ? snap.categories.map((c) => ({ label: c.label, color: c.color, membres: c.membres }))
+        ? snap.categories.map((c) => ({
+            label: c.label,
+            color: c.color,
+            membres: c.membres,
+            membresPerso: c.membresPerso?.length ? c.membresPerso : undefined,
+          }))
         : undefined,
     },
     null,
@@ -620,11 +861,19 @@ export function validateRtaImport(text: string): ImportReport {
     const e = cleanEntry(raw, ctx, `Monstre ${i + 1}`);
     if (!e) return;
     // Une seule carte par monstre, comme dans l'app : le doublon est écarté.
-    if (vus.has(e.com2usId)) {
-      warn(ctx, `« ${e.nom || e.com2usId} » apparaît plusieurs fois — seule la première entrée est gardée.`);
-      return;
+    // ⚠️ La dédup ne porte QUE sur les monstres identifiés : deux monstres perso
+    // ont tous deux `com2usId: null` sans être le même monstre, et les traiter
+    // comme des doublons n'en aurait laissé passer qu'un seul.
+    if (e.com2usId != null) {
+      if (vus.has(e.com2usId)) {
+        warn(
+          ctx,
+          `« ${e.nom || e.com2usId} » apparaît plusieurs fois — seule la première entrée est gardée.`
+        );
+        return;
+      }
+      vus.add(e.com2usId);
     }
-    vus.add(e.com2usId);
     entries.push(e);
   });
 
@@ -656,15 +905,18 @@ export function validateRtaImport(text: string): ImportReport {
   const nom = typeof obj.nom === 'string' ? obj.nom.slice(0, NOM_MAX) : '';
   const auteur = typeof obj.auteur === 'string' ? obj.auteur.slice(0, AUTEUR_MAX) : '';
 
-  // ⚠️ Ce qu'on a RÉELLEMENT lu prime sur ce que le fichier déclare : un
-  // `avec_equipement: true` sans la moindre rune afficherait « runes incluses »
-  // sur une prépa qui n'en montre aucune.
-  const avecEquipement = entries.some((e) => e.gear);
-  const avecVitesses = entries.some((e) => e.runeSpeed !== null);
+  // ⚠️ Le niveau est déduit de **ce qu'on a RÉELLEMENT lu**, jamais de la clé
+  // `niveau` du fichier : un `"complet"` sans la moindre rune afficherait
+  // « runes incluses » sur une prépa qui n'en montre aucune.
+  const niveau: NiveauPartage = entries.some((e) => e.gear)
+    ? 'complet'
+    : entries.some((e) => e.runeSpeed !== null)
+      ? 'vitesses'
+      : 'ordre';
 
   return {
     ...ctx,
-    snapshot: { nom, auteur, sections, entries, categories, avecEquipement, avecVitesses },
+    snapshot: { nom, auteur, sections, entries, categories, niveau },
     counts: {
       monstres: entries.length,
       sections: sections.length,
@@ -672,17 +924,4 @@ export function validateRtaImport(text: string): ImportReport {
       avecRunes: entries.filter((e) => e.gear).length,
     },
   };
-}
-
-// Nom de fichier propre pour le téléchargement.
-export function slugify(s: string): string {
-  return (
-    s
-      .normalize('NFD')
-      .replace(/[̀-ͯ]/g, '') // marques diacritiques laissées par NFD
-      .toLowerCase()
-      .replace(/[^a-z0-9]+/g, '-')
-      .replace(/^-+|-+$/g, '')
-      .slice(0, 40) || 'prepa'
-  );
 }

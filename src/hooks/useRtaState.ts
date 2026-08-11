@@ -48,6 +48,8 @@ export interface UseRtaState {
   importEntries: (
     items: { monsterId: string; runeSpeed: number | null; section?: string; sets?: string[]; gear?: GearSet }[]
   ) => void;
+  /** Remplace TOUTE la prépa (restauration d'un point, import d'un fichier). */
+  replaceAll: (next: RtaState) => void;
   clearAll: () => void;
 }
 
@@ -165,6 +167,19 @@ export function useRtaState(): UseRtaState {
     []
   );
 
+  // Remplacement en bloc — restauration d'un point de sauvegarde, ou import
+  // d'une prépa reçue. Contrairement à `importEntries` (qui fusionne pour
+  // préserver un classement manuel), ceci SUBSTITUE : c'est justement ce qu'on
+  // demande quand on revient à un état antérieur.
+  //
+  // ⚠️ « Autre » est garantie présente, comme au chargement : elle est
+  // permanente, et un instantané ancien pourrait ne pas la porter.
+  const replaceAll = useCallback((next: RtaState) => {
+    const sections = [...next.sections];
+    if (!sections.includes(RTA_OTHER)) sections.push(RTA_OTHER);
+    setState({ sections, entries: { ...next.entries } });
+  }, []);
+
   const clearAll = useCallback(() => setState(defaultState()), []);
 
   return {
@@ -176,6 +191,7 @@ export function useRtaState(): UseRtaState {
     addSection,
     removeSection,
     importEntries,
+    replaceAll,
     clearAll,
   };
 }

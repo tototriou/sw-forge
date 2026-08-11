@@ -52,15 +52,21 @@ export default function ReleasesPage() {
                 </span>
               )}
               <span className="font-mono text-[11px] text-ink-dim">{formatDate(r.date)}</span>
-              <a
-                href={`${REPO}/releases/tag/v${r.version}`}
-                target="_blank"
-                rel="noreferrer"
-                className="ml-auto font-mono text-[11px] text-ink-dim hoverable:text-ink transition"
-                title={`Release v${r.version} sur GitHub`}
-              >
-                GitHub ↗
-              </a>
+              {/* ⚠️ Le lien n'apparaît QUE si un tag Git correspond. Il était
+                  écrit inconditionnellement : la 1.0.0, publiée avant que le
+                  dépôt existe, menait à un 404. Un lien mort est pire que pas
+                  de lien — voir `tag` dans data/releases.ts. */}
+              {r.tag !== false && (
+                <a
+                  href={`${REPO}/releases/tag/v${r.version}`}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="ml-auto font-mono text-[11px] text-ink-dim hoverable:text-ink transition"
+                  title={`Release v${r.version} sur GitHub`}
+                >
+                  GitHub ↗
+                </a>
+              )}
             </div>
 
             <p className="text-[14px] text-ink mb-2">{r.title}</p>

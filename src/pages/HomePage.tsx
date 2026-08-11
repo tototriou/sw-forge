@@ -174,7 +174,7 @@ export default function HomePage({ stats, onImport }: Props) {
       <motion.section variants={item} id="features" className="py-12">
         <h2 className="font-display text-[26px] tracking-wide mb-6">Fonctionnalités</h2>
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5">
-          <Feature href="#/rta" icon={Swords} accent="#A15FE0" kicker="RTA" title="Préparation RTA" body="Classe ta box par set en glisser-déposer et lis l'ordre de tour recalculé selon les leads." />
+          <Feature href="#/rta" icon={Swords} accent="#A15FE0" kicker="RTA" title="Préparation RTA" body="Classe ta box par set en glisser-déposer, lis l'ordre de tour recalculé selon les leads, et consulte la prépa de tes amis." />
           <Feature href="#/siege/defense" icon={Castle} accent="#E4463A" kicker="Siège" title="Défenses et offenses" body="Compose tes équipes et vérifie tes speed tune sur les ticks 239 et 286." />
           <Feature href="#/siege/recommandations" icon={Lightbulb} accent="#5EDB8F" kicker="Partage" title="Recommandations" body="Décris tes decks, partage-les en JSON, et vois ce que ton compte peut jouer." />
           <Feature href="#/compte/runes" icon={UserRound} accent="#4AD8D8" kicker="Compte" title="Analyse de runes" body="Résumé chiffré, efficience ou score SW, courbes, et ce que tes meules et gemmes en réserve permettent d'améliorer dès maintenant." />

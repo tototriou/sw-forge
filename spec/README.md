@@ -40,6 +40,11 @@ Concepts partagés par plusieurs pages, documentés une seule fois :
 - [shared/import-compte.md](shared/import-compte.md) — extraction depuis un export
   de compte SWEX : box RTA, équipes de siège, **et** box 6★ + inventaire
   runes/artéfacts (page « Mon compte »).
+- [shared/recherche-clavier.md](shared/recherche-clavier.md) — la navigation au
+  clavier des **barres de recherche à suggestions** (↑/↓, Entrée sur l'élément
+  surligné, Échap). Implémentation unique dans
+  [useComboboxNav.ts](src/hooks/useComboboxNav.ts), partagée par tous les champs
+  de recherche.
 - [shared/design.md](shared/design.md) — le **système visuel** : les deux thèmes
   (Forge sombre / Atelier clair), les tokens de couleur, l'échelle typographique,
   les règles de focus, de survol et de mouvement. **Source de vérité** pour toute

@@ -62,7 +62,11 @@ export interface TurnItem {
 
 interface Props {
   items: TurnItem[];
-  onRuneSpeed: (id: string, value: number | null) => void;
+  // Absent = **lecture seule** : les champs de saisie disparaissent. C'est le
+  // cas de la prépa d'un ami, qu'on ne modifie pas. ⚠️ L'ordre de tour lui-même
+  // est calculé ICI et nulle part ailleurs : une seconde implémentation pour la
+  // consultation aurait divergé au premier changement de règle.
+  onRuneSpeed?: (id: string, value: number | null) => void;
   // Catégories de la prépa : l'ordre de tour doit porter les MÊMES couleurs que
   // les cartes, sinon on perd le repère au moment où il sert le plus (voir
   // ../../spec/rta/categories.md).
@@ -71,6 +75,13 @@ interface Props {
   // et remonter tout en haut juste pour couper les anneaux est absurde.
   categoriesVisible?: boolean;
   onToggleCategories?: (v: boolean) => void;
+  // Masquer le chiffre de vitesse SANS toucher au classement : le tri continue
+  // d'utiliser les vitesses, sinon l'ordre affiché serait faux.
+  showSpeed?: boolean;
+  // Présent = un interrupteur « Vitesses » rejoint la barre, à côté de celui des
+  // catégories. Absent = pas d'interrupteur (sa propre prépa, où l'on saisit les
+  // vitesses juste en dessous : les masquer n'aurait pas de sens).
+  onToggleSpeed?: (v: boolean) => void;
 }
 
 // Vitesse totale hors lead (base + runes).
@@ -112,6 +123,8 @@ export default function TurnOrder({
   categories = [],
   categoriesVisible = true,
   onToggleCategories,
+  showSpeed = true,
+  onToggleSpeed,
 }: Props) {
   const [lead, setLead] = useState(0);
 
@@ -122,10 +135,18 @@ export default function TurnOrder({
   const [leadsAjoutes, setLeadsAjoutes] = useStickyState<number[]>('turnOrder.leadsAjoutes', []);
   const [leadsRetires, setLeadsRetires] = useStickyState<number[]>('turnOrder.leadsRetires', []);
   const [saisie, setSaisie] = useState<number | null>(null);
-  const catsOf = (monsterId: string) => categories.filter((c) => c.members.includes(monsterId));
+  // ⚠️ **C'est ICI que `categoriesVisible` agit**, et non chez l'appelant.
+  // Il ne pilotait que l'apparence du bouton : le masquage se faisait en amont
+  // (`categories={visible ? cats : []}`), si bien qu'une fois masquées, les
+  // catégories n'arrivaient plus au composant et son propre interrupteur ne
+  // pouvait plus rien réafficher.
+  const catsOf = (monsterId: string) =>
+    categoriesVisible ? categories.filter((c) => c.members.includes(monsterId)) : [];
   // Légende : uniquement les catégories réellement représentées ici, sinon on
   // rappellerait des couleurs qu'on ne voit nulle part à l'écran.
-  const legende = categories.filter((c) => items.some((it) => c.members.includes(String(it.monster.id))));
+  const legende = categoriesVisible
+    ? categories.filter((c) => items.some((it) => c.members.includes(String(it.monster.id))))
+    : [];
   const [highlightMovers, setHighlightMovers] = useState(false);
 
   const leads = useMemo(() => {
@@ -237,6 +258,28 @@ export default function TurnOrder({
             Ajouter
           </button>
         </span>
+
+        {/* Interrupteurs d'AFFICHAGE, au contact des vignettes qu'ils modifient
+            — et non en tête de panneau, où l'on ne fait pas le lien. */}
+        {onToggleSpeed && (
+          <button
+            onClick={() => onToggleSpeed(!showSpeed)}
+            aria-pressed={showSpeed}
+            title={
+              showSpeed
+                ? "Masquer les vitesses (l'ordre reste le même)"
+                : 'Réafficher les vitesses'
+            }
+            className={`flex h-7 items-center gap-1.5 rounded-full border px-2.5 text-[12px] transition ${
+              showSpeed
+                ? 'border-border bg-panel text-ink-dim hoverable:text-ink hoverable:border-accent'
+                : 'border-accent bg-panel2 text-ink'
+            }`}
+          >
+            {showSpeed ? <Eye size={12} /> : <EyeOff size={12} />}
+            Vitesses
+          </button>
+        )}
 
         {onToggleCategories && (
           <button
@@ -363,8 +406,14 @@ export default function TurnOrder({
                       {m.name}
                     </div>
                     <div className="flex items-center gap-1 mt-1">
-                      <img src={SPD_ICON} alt="SPD" width={15} height={15} className="flex-none" />
-                      <span className="font-mono text-[16px] font-black text-ink leading-none">{eff ?? '—'}</span>
+                      {showSpeed && (
+                        <>
+                          <img src={SPD_ICON} alt="SPD" width={15} height={15} className="flex-none" />
+                          <span className="font-mono text-[16px] font-black text-ink leading-none">
+                            {eff ?? '—'}
+                          </span>
+                        </>
+                      )}
                       {(it.entry.sets ?? []).slice(0, 3).map((s, si) => (
                         <RuneIcon key={si} setKey={s} size={16} className="flex-none" />
                       ))}
@@ -372,18 +421,20 @@ export default function TurnOrder({
                   </div>
                 </div>
 
-                {/* saisie vitesse des runes */}
-                <div className="flex justify-center">
-                  <NumberField
-                    value={it.entry.runeSpeed}
-                    allowEmpty
-                    min={0}
-                    placeholder="+ runes"
-                    width="w-14"
-                    ariaLabel={`SPD des runes de ${m.name}`}
-                    onChange={(v) => onRuneSpeed(String(m.id), v)}
-                  />
-                </div>
+                {/* Saisie de la vitesse des runes — seulement sur SA prépa. */}
+                {onRuneSpeed && (
+                  <div className="flex justify-center">
+                    <NumberField
+                      value={it.entry.runeSpeed}
+                      allowEmpty
+                      min={0}
+                      placeholder="+ runes"
+                      width="w-14"
+                      ariaLabel={`SPD des runes de ${m.name}`}
+                      onChange={(v) => onRuneSpeed(String(m.id), v)}
+                    />
+                  </div>
+                )}
               </div>
             );
           })}

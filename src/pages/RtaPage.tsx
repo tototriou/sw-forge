@@ -14,8 +14,12 @@ import { UseRtaState } from '../hooks/useRtaState';
 import RtaSearch from '../components/rta/RtaSearch';
 import RtaSection from '../components/rta/RtaSection';
 import CategoryBar from '../components/rta/CategoryBar';
+import RtaBackupBar from '../components/rta/RtaBackupBar';
+import RtaFriendView from '../components/rta/RtaFriendView';
+import { RtaVueAmi } from '../lib/rtaShare';
 import { ConfirmDialog } from '../components/Dialogs';
 import { useRtaCategories } from '../hooks/useRtaCategories';
+import { useRtaBackup } from '../hooks/useRtaBackup';
 import { gearSpeedMismatch } from '../lib/gearSync';
 import DesyncBadge from '../components/rta/DesyncBadge';
 import RtaCard from '../components/rta/RtaCard';
@@ -91,6 +95,14 @@ export default function RtaPage({
   // Catégories libres (« Striper », « Lead SPD »…) : lecture transversale de la
   // box, en plus du classement par set. Voir ../../spec/rta/categories.md.
   const cats = useRtaCategories();
+  // Point de restauration manuel (« Sauvegarder » / « Reprendre »), distinct de
+  // la conservation automatique. Voir hooks/useRtaBackup.ts.
+  const backup = useRtaBackup();
+  // Prépa d'un ami ouverte en consultation. ⚠️ Volontairement en état LOCAL et
+  // non persisté : c'est une lecture de passage, pas une donnée de l'utilisateur.
+  // La conserver d'une session à l'autre laisserait la prépa de quelqu'un
+  // d'autre à l'écran sans qu'on sache d'où elle vient.
+  const [vueAmi, setVueAmi] = useState<RtaVueAmi | null>(null);
   // Monstres réellement présents dans la prépa : ce sont eux qu'on propose dans
   // le panneau d'affectation.
   const pageMonsters = useMemo(
@@ -207,7 +219,22 @@ export default function RtaPage({
       {effacementAConfirmer && (
         <ConfirmDialog
           titre="Effacer toute la prépa RTA ?"
-          message="Tous les monstres ajoutés, leurs vitesses et leurs sections seront retirés. Tes catégories de couleur sont conservées."
+          message={
+            <>
+              Tous les monstres ajoutés, leurs vitesses et leurs sections seront retirés. Tes
+              catégories de couleur sont conservées.
+              {/* ⚠️ Le point de sauvegarde SURVIT volontairement : c'est ce qui
+                  permet de revenir sur un effacement. L'effacer aussi ferait de
+                  ce bouton une perte sans retour. */}
+              {backup.backup && (
+                <>
+                  {' '}
+                  Ton point de sauvegarde n'est pas touché :{' '}
+                  <b className="text-ink">« Reprendre » te ramènera à ta prépa.</b>
+                </>
+              )}
+            </>
+          }
           libelleAction="Tout effacer"
           destructif
           onCancel={() => setEffacementAConfirmer(false)}
@@ -217,6 +244,20 @@ export default function RtaPage({
           }}
         />
       )}
+
+      <RtaBackupBar
+        rta={rta}
+        cats={cats}
+        backup={backup}
+        monsters={monsters}
+        onConsulter={setVueAmi}
+        onCreateMonster={onCreateMonster}
+      />
+
+      {/* ⚠️ La prépa consultée s'affiche AVANT la sienne, et encadrée : c'est ce
+          qu'on vient d'ouvrir, on doit la voir sans chercher. Elle se ferme d'un
+          bouton et ne laisse aucune trace. */}
+      {vueAmi && <RtaFriendView vue={vueAmi} onClose={() => setVueAmi(null)} />}
 
       <CategoryBar cats={cats} monsters={pageMonsters} />
 
@@ -292,14 +333,15 @@ export default function RtaPage({
       <section className="mt-10">
         <div className="flex items-baseline gap-x-3 gap-y-1 flex-wrap pb-2.5 mb-4 border-b border-border">
           <h2 className="font-display text-[19px] tracking-wide">Ordre de tour</h2>
-          <span className="font-mono text-ink-dim text-xs">
-            par vitesse totale · le plus rapide à gauche
-          </span>
+          <span className="font-mono text-ink-dim text-xs">par vitesse combat totale</span>
         </div>
+        {/* ⚠️ Les catégories sont passées ENTIÈRES, le masquage est le rôle de
+            `categoriesVisible`. Les filtrer ici les retirait du composant, dont
+            l'interrupteur ne pouvait alors plus rien réafficher. */}
         <TurnOrder
           items={allItems}
           onRuneSpeed={rta.setRuneSpeed}
-          categories={cats.visible ? cats.categories : []}
+          categories={cats.categories}
           categoriesVisible={cats.visible}
           onToggleCategories={cats.setVisible}
         />

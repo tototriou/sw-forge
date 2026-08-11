@@ -22,6 +22,11 @@ export interface Release {
   title: string; // résumé en une ligne
   highlights?: string[]; // 1 à 3 points mis en avant
   changes: ReleaseChange[];
+  // ⚠️ `false` quand AUCUN tag Git ne correspond : le lien « GitHub ↗ » est
+  // alors masqué au lieu de mener à un 404. C'est le cas de la 1.0.0, publiée
+  // avant que le dépôt existe. Une version en cours de préparation (déjà au
+  // journal, pas encore taguée) prend `false` jusqu'à sa publication.
+  tag?: boolean;
 }
 
 export const CHANGE_META: Record<ChangeKind, { label: string; color: string }> = {
@@ -37,6 +42,93 @@ export const CHANGE_META: Record<ChangeKind, { label: string; color: string }> =
 // détail d'implémentation — tout ça vit dans les commits et dans `spec/`.
 // Si une ligne dépasse ~15 mots, c'est qu'elle raconte l'implémentation.
 export const RELEASES: Release[] = [
+  {
+    version: '1.4.0',
+    date: '2026-08-11',
+    title: 'Ta prépa RTA se sauvegarde et se partage',
+    highlights: [
+      'Pose un point de sauvegarde, remanie ta prépa, reviens en arrière si besoin',
+      'Consulte la prépa d’un ami et regarde comment il rune chaque monstre',
+      'Tape un nom, flèches, Entrée — et le champ est prêt pour le suivant',
+    ],
+    changes: [
+      {
+        kind: 'feat',
+        scope: 'RTA',
+        text: 'Un point de sauvegarde permet d’essayer un autre classement et de revenir en arrière.',
+      },
+      {
+        kind: 'feat',
+        scope: 'RTA',
+        text: 'Consulte la prépa d’un ami, avec ses runes et ses artéfacts, sans toucher à la tienne.',
+      },
+      {
+        kind: 'feat',
+        scope: 'RTA',
+        text: 'L’ordre de tour de ton ami est calculé aussi, avec les mêmes boutons de lead.',
+      },
+      {
+        kind: 'feat',
+        scope: 'RTA',
+        text: 'À l’export, trois niveaux : tout, vitesses finales seules, ou ordre de tour seul.',
+      },
+      {
+        kind: 'feat',
+        scope: 'RTA',
+        text: 'Tes monstres créés à la main partent avec ta prépa, avec leur vitesse et leur lead.',
+      },
+      {
+        kind: 'feat',
+        scope: 'RTA',
+        text: 'Reprends une prépa exportée : une archive, ou celle d’un autre navigateur.',
+      },
+      {
+        kind: 'feat',
+        scope: 'Interface',
+        text: 'Les flèches ↑ et ↓ parcourent les résultats de toutes les recherches.',
+      },
+      {
+        kind: 'feat',
+        scope: 'Interface',
+        text: 'Entrée valide le monstre surligné, vide le champ et attend le suivant.',
+      },
+      {
+        kind: 'fix',
+        scope: 'Interface',
+        text: 'On voit quel monstre sera choisi avant d’appuyer sur Entrée.',
+      },
+      {
+        kind: 'fix',
+        scope: 'Interface',
+        text: 'Échap ferme la liste de résultats, une seconde fois vide le champ.',
+      },
+      {
+        kind: 'fix',
+        scope: 'Siège',
+        text: 'La recherche de monstre d’une équipe se pilote comme celle de la RTA.',
+      },
+      {
+        kind: 'fix',
+        scope: 'RTA',
+        text: 'Le bouton « Catégories » de l’ordre de tour les masque et les réaffiche vraiment.',
+      },
+      {
+        kind: 'fix',
+        scope: 'Nouveautés',
+        text: 'Le lien GitHub de la version 1.0.0 ne mène plus vers une page introuvable.',
+      },
+      {
+        kind: 'docs',
+        scope: 'RTA',
+        text: 'La prépa d’un ami s’ouvre en lecture : rien n’est comparé à tes monstres, rien n’est modifié.',
+      },
+      {
+        kind: 'docs',
+        scope: 'RTA',
+        text: 'Masquer tes runes retire aussi tes vitesses et tes sections : elles révéleraient ton runage.',
+      },
+    ],
+  },
   {
     version: '1.3.0',
     date: '2026-08-11',
@@ -411,6 +503,8 @@ export const RELEASES: Release[] = [
     version: '1.0.0',
     date: '2026-07-20',
     title: 'Première version publique',
+    // Publiée avant l'existence du dépôt : aucun tag Git ne lui correspond.
+    tag: false,
     highlights: ['Bestiaire, RTA et Siège', 'Import de compte 100 % local'],
     changes: [
       { kind: 'feat', scope: 'Bestiaire', text: 'Recherche et filtres par élément et par étoiles.' },

@@ -68,7 +68,12 @@ export const RELEASES: Release[] = [
       {
         kind: 'feat',
         scope: 'RTA',
-        text: 'À l’export, choisis de partager ta prépa avec ou sans tes runes.',
+        text: 'L’ordre de tour de ton ami est calculé aussi, avec les mêmes boutons de lead.',
+      },
+      {
+        kind: 'feat',
+        scope: 'RTA',
+        text: 'À l’export, trois niveaux : tout, vitesses seules, ou classement seul.',
       },
       {
         kind: 'feat',
@@ -109,6 +114,11 @@ export const RELEASES: Release[] = [
         kind: 'docs',
         scope: 'RTA',
         text: 'La prépa d’un ami s’ouvre en lecture : rien n’est comparé à tes monstres, rien n’est modifié.',
+      },
+      {
+        kind: 'docs',
+        scope: 'RTA',
+        text: 'Partager sans tes runes retire aussi tes vitesses : elles révéleraient ton runage.',
       },
     ],
   },

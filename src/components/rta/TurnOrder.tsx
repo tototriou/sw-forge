@@ -62,7 +62,11 @@ export interface TurnItem {
 
 interface Props {
   items: TurnItem[];
-  onRuneSpeed: (id: string, value: number | null) => void;
+  // Absent = **lecture seule** : les champs de saisie disparaissent. C'est le
+  // cas de la prépa d'un ami, qu'on ne modifie pas. ⚠️ L'ordre de tour lui-même
+  // est calculé ICI et nulle part ailleurs : une seconde implémentation pour la
+  // consultation aurait divergé au premier changement de règle.
+  onRuneSpeed?: (id: string, value: number | null) => void;
   // Catégories de la prépa : l'ordre de tour doit porter les MÊMES couleurs que
   // les cartes, sinon on perd le repère au moment où il sert le plus (voir
   // ../../spec/rta/categories.md).
@@ -372,18 +376,20 @@ export default function TurnOrder({
                   </div>
                 </div>
 
-                {/* saisie vitesse des runes */}
-                <div className="flex justify-center">
-                  <NumberField
-                    value={it.entry.runeSpeed}
-                    allowEmpty
-                    min={0}
-                    placeholder="+ runes"
-                    width="w-14"
-                    ariaLabel={`SPD des runes de ${m.name}`}
-                    onChange={(v) => onRuneSpeed(String(m.id), v)}
-                  />
-                </div>
+                {/* Saisie de la vitesse des runes — seulement sur SA prépa. */}
+                {onRuneSpeed && (
+                  <div className="flex justify-center">
+                    <NumberField
+                      value={it.entry.runeSpeed}
+                      allowEmpty
+                      min={0}
+                      placeholder="+ runes"
+                      width="w-14"
+                      ariaLabel={`SPD des runes de ${m.name}`}
+                      onChange={(v) => onRuneSpeed(String(m.id), v)}
+                    />
+                  </div>
+                )}
               </div>
             );
           })}

@@ -127,7 +127,7 @@ Ici, on regarde la prépa d'un ami **comme on regarderait son écran par-dessus 
 comparé à tes monstres ») : sans ça, on cherche un verdict qui n'existe pas sur
 cet écran, et on se demande si sa propre prépa a bougé.
 
-### L'équipement se partage — sur décision de l'auteur
+### Trois niveaux de partage, choisis à l'export
 
 Consulter une prépa **sans voir les runes** n'a pas grand intérêt : c'est
 justement ce qu'on vient y chercher. Mais l'équipement dit aussi **ce qu'on
@@ -135,23 +135,58 @@ possède**, et tout le monde ne veut pas l'exposer.
 
 D'où une **question posée à l'export**, et non une règle imposée :
 
-| Choix | Ce que le fichier contient |
-|-------|----------------------------|
-| **Avec mes runes et artéfacts** | classement, vitesses, **sets actifs et équipement complet** |
-| **Classement seul** | classement et vitesses visées — **ni équipement, ni sets** |
+| Niveau | Le fichier contient | Ordre de tour chez le lecteur |
+|--------|---------------------|-------------------------------|
+| **Tout** | classement, vitesses, sets, **équipement complet** | calculé |
+| **Vitesses seules** | classement et **vitesses** — ni sets ni équipement | calculé |
+| **Classement seul** | classement **seul** — ni vitesses, ni sets, ni équipement | impossible, et annoncé |
 
-⚠️ **Sans équipement, les sets ne partent pas non plus** : ce sont eux qui
-trahissent le runage. « Partager sans montrer mes runes » doit vouloir dire
-exactement ça — c'est vérifié par un test, en relisant le JSON produit.
+⚠️ **Trois niveaux et non deux cases à cocher.** « Vitesses sans les runes » est
+un cas réel (partager son speed tune sans exposer ses substats), tandis que
+« runes sans vitesses » n'a aucun sens — les runes *portent* la vitesse. Une
+paire de cases laisserait composer cette combinaison absurde.
 
-L'option « avec » est **désactivée sans compte importé** (rien à joindre), et le
+#### ⚠️ Cacher les runes cache AUSSI les vitesses
+
+C'est le point de confidentialité qui a motivé le troisième niveau. **La vitesse
+de base d'un monstre est publique** (données SWARFARM) : donner sa vitesse
+totale, c'est donner l'écart — donc **exactement** la vitesse apportée par ses
+runes.
+
+Une version antérieure exportait « sans les runes » tout en gardant les
+vitesses : elle ne cachait rien du tout. Le défaut protège donc — `avecVitesses`
+suit `avecEquipement` sauf mention explicite — et c'est vérifié par un test qui
+sait échouer.
+
+Sont retirés ensemble : l'équipement, les **sets actifs** (ils trahissent le
+runage) et les **vitesses**. Vérifié en **relisant le JSON produit**, pas par une
+recherche de chaîne dans un texte indenté — celle-ci n'aurait jamais pu échouer.
+
+L'option « Tout » est **désactivée sans compte importé** (rien à joindre), et le
 dialogue l'explique plutôt que de laisser un bouton inerte.
+
+### ⚠️ L'ordre de tour est RECALCULÉ, jamais transporté
+
+Il se déduit entièrement des vitesses et du lead simulé. Le mettre dans le
+fichier aurait figé un classement qui ne suivrait plus les boutons de lead, et
+qu'il faudrait tenir à jour à chaque modification.
+
+La consultation réutilise **le composant de sa propre prépa**
+([TurnOrder](src/components/rta/TurnOrder.tsx)), sans `onRuneSpeed` — ce qui
+retire les champs de saisie et le rend lisible seul. Une seconde implémentation
+pour la consultation aurait divergé au premier changement de règle de tri.
+
+**Sans vitesses partagées, il n'est pas affiché** : un ordre fondé sur les seules
+vitesses de base serait **faux**. Mieux vaut ne rien classer que classer de
+travers — le panneau explique pourquoi. Pour la même raison, les cartes affichent
+« — » plutôt que la vitesse de base : un « 107 » se lirait comme la vitesse du
+monstre chez l'auteur, alors que c'est celle du monstre nu.
 
 ### Format (`format: "sw-forge/prepa-rta"`, `version: 2`)
 
 ```json
 { "format": "sw-forge/prepa-rta", "version": 2, "exporte_le": "…",
-  "nom": "", "auteur": "", "avec_equipement": true,
+  "nom": "", "auteur": "", "avec_equipement": true, "avec_vitesses": true,
   "sections": ["swift", "violent", "other"],
   "monstres": [
     { "com2usId": 15214, "nom": "Trevor", "section": "swift", "vitesse": 120,
@@ -176,9 +211,14 @@ runes — mais **c'est signalé**, pour que son auteur sache qu'il peut le
 réexporter plus riche. Sans ça un fichier ancien circule indéfiniment dans la
 guilde et personne ne sait qu'un format plus complet existe.
 
-⚠️ `avecEquipement` est déduit de **ce qui a réellement été lu**, pas de ce que
-le fichier déclare : un `avec_equipement: true` sans la moindre rune afficherait
-« runes incluses » sur une prépa qui n'en montre aucune.
+⚠️ `avecEquipement` et `avecVitesses` sont déduits de **ce qui a réellement été
+lu**, pas de ce que le fichier déclare : un `avec_equipement: true` sans la
+moindre rune afficherait « runes incluses » sur une prépa qui n'en montre aucune.
+Les clés `avec_*` du fichier sont donc **informatives** — elles renseignent un
+humain qui l'ouvre, elles ne font pas foi.
+
+Une vitesse masquée est **absente** du JSON (`undefined`), et non `null` : une
+clé vide se lirait comme « vitesse non saisie » et non « vitesse retirée ».
 
 ### ⚠️ Un fichier d'un autre type est REFUSÉ, pas lu de travers
 

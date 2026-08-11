@@ -169,37 +169,87 @@ export default function testRtaPartage() {
   egal(trevor.entry.gear?.base.spd, 107, 'les stats de base de l’auteur suivent');
   ok(vue.avecEquipement, 'la vue sait qu’elle a des runes à montrer');
 
-  /* ---- Export SANS équipement : rien ne doit filtrer -------------------- */
+  /* ---- « Classement seul » : rien du runage ne doit filtrer -------------- */
 
   // ⚠️ Ce que l'utilisateur a demandé de cacher doit VRAIMENT être absent du
   // fichier — pas seulement masqué à l'affichage.
-  const sansRunes = toSnapshot(state, categories, parId(chezMoi), { avecEquipement: false });
-  const jsonSansRunes = encodeSnapshot(sansRunes);
+  const classementSeul = toSnapshot(state, categories, parId(chezMoi), {
+    avecEquipement: false,
+    avecVitesses: false,
+  });
+  const jsonClassement = encodeSnapshot(classementSeul);
 
-  ok(!jsonSansRunes.includes('"equipement"'), 'aucun équipement dans le fichier');
-  ok(!jsonSansRunes.includes('"runes"'), 'aucune rune, pas même une clé vide');
+  ok(!jsonClassement.includes('"equipement"'), 'aucun équipement dans le fichier');
+  ok(!jsonClassement.includes('"runes"'), 'aucune rune, pas même une clé vide');
   // ⚠️ Relu depuis le JSON, pas cherché à la ficelle dans le texte : le fichier
   // est indenté, donc un `includes('"swift","will"')` ne peut JAMAIS échouer —
   // il rassurerait à tort pendant que les sets fuient.
-  const relu = JSON.parse(jsonSansRunes) as { monstres: { sets?: string[]; equipement?: unknown }[] };
+  const relu = JSON.parse(jsonClassement) as {
+    monstres: { sets?: string[]; equipement?: unknown; vitesse?: number }[];
+  };
   ok(
     relu.monstres.every((m) => m.sets === undefined),
-    'les SETS ne filtrent pas non plus — ils trahiraient le runage'
+    'les SETS ne filtrent pas — ils trahiraient le runage'
   );
   ok(
     relu.monstres.every((m) => m.equipement === undefined),
     'ni l’équipement, sur aucun monstre'
   );
-  ok(jsonSansRunes.includes('"vitesse": 120'), 'mais la vitesse visée, elle, est bien partagée');
+  // ⚠️ LE point de confidentialité : la vitesse de base étant publique, donner
+  // la vitesse totale revient à donner exactement la vitesse des runes.
+  ok(
+    relu.monstres.every((m) => m.vitesse === undefined),
+    'ni les VITESSES — les donner reviendrait à donner la vitesse des runes'
+  );
+  ok(jsonClassement.includes('"section"'), 'mais le classement, lui, est bien partagé');
 
-  const vueSansRunes = versVueAmi(validateRtaImport(jsonSansRunes).snapshot!, parCom2us(chezLui));
-  ok(!vueSansRunes.avecEquipement, 'la consultation annonce qu’il n’y a pas de runes à voir');
+  const vueClassement = versVueAmi(validateRtaImport(jsonClassement).snapshot!, parCom2us(chezLui));
+  ok(!vueClassement.avecEquipement, 'la consultation annonce qu’il n’y a pas de runes à voir');
+  ok(!vueClassement.avecVitesses, 'ni de vitesses — donc pas d’ordre de tour calculable');
   egal(
-    vueSansRunes.entries.find((e) => e.monster.com2usId === 15214)?.entry.gear,
+    vueClassement.entries.find((e) => e.monster.com2usId === 15214)?.entry.gear,
     undefined,
     'et aucun équipement n’arrive chez le lecteur'
   );
-  egal(vueSansRunes.entries.length, 2, 'le classement, lui, reste entièrement consultable');
+  egal(vueClassement.entries.length, 2, 'le classement, lui, reste entièrement consultable');
+
+  /* ---- Niveau intermédiaire : vitesses SANS le détail des runes ---------- */
+
+  // Cas réel : partager son speed tune sans exposer ses substats.
+  const vitessesSeules = toSnapshot(state, categories, parId(chezMoi), {
+    avecEquipement: false,
+    avecVitesses: true,
+  });
+  const jsonVitesses = encodeSnapshot(vitessesSeules);
+  const reluVitesses = JSON.parse(jsonVitesses) as {
+    monstres: { sets?: string[]; equipement?: unknown; vitesse?: number }[];
+  };
+
+  ok(
+    reluVitesses.monstres.some((m) => m.vitesse === 120),
+    'les vitesses sont partagées'
+  );
+  ok(
+    reluVitesses.monstres.every((m) => m.equipement === undefined && m.sets === undefined),
+    'mais ni les runes ni les sets'
+  );
+
+  const vueVitesses = versVueAmi(validateRtaImport(jsonVitesses).snapshot!, parCom2us(chezLui));
+  ok(vueVitesses.avecVitesses, 'l’ordre de tour reste calculable');
+  ok(!vueVitesses.avecEquipement, 'sans montrer le runage');
+
+  // ⚠️ Le DÉFAUT protège : sans dire explicitement qu'on veut les vitesses,
+  // retirer l'équipement les retire aussi. L'inverse laisserait fuir le runage
+  // à qui coche « sans mes runes » en croyant tout cacher.
+  const defautSansRunes = toSnapshot(state, categories, parId(chezMoi), { avecEquipement: false });
+  ok(
+    !defautSansRunes.avecVitesses,
+    'par défaut, cacher les runes cache aussi les vitesses'
+  );
+  ok(
+    defautSansRunes.entries.every((e) => e.runeSpeed === null),
+    'et aucune vitesse ne subsiste dans les entrées'
+  );
 
   /* ---- Reprendre une prépa à soi (archive, autre navigateur) ------------- */
 

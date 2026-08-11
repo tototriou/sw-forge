@@ -7,6 +7,7 @@ import RuneIcon from '../RuneIcon';
 import MonsterGear from '../MonsterGear';
 import AccordionGrid from '../AccordionGrid';
 import CategoryRing from './CategoryRing';
+import TurnOrder from './TurnOrder';
 
 /* --------------------------------------------------------------------------
  * Consultation de la prépa d'un ami
@@ -61,6 +62,7 @@ function CarteAmi({
   libelles,
   open,
   onToggle,
+  avecVitesses,
 }: {
   monster: Monster;
   entry: RtaEntry;
@@ -68,9 +70,16 @@ function CarteAmi({
   libelles: string[];
   open: boolean;
   onToggle: () => void;
+  avecVitesses: boolean;
 }) {
   const base = monster.stats.speed;
-  const total = base !== null || entry.runeSpeed !== null ? (base ?? 0) + (entry.runeSpeed ?? 0) : null;
+  // ⚠️ Vitesses masquées → on n'affiche RIEN, pas la vitesse de base. Un « 107 »
+  // à la place d'un « 227 » se lit comme la vitesse du monstre chez l'auteur,
+  // alors que c'est celle du monstre nu : un chiffre faux vaut moins qu'un tiret.
+  const total =
+    avecVitesses && (base !== null || entry.runeSpeed !== null)
+      ? (base ?? 0) + (entry.runeSpeed ?? 0)
+      : null;
   const hasGear = !!entry.gear && entry.gear.runes.length > 0;
 
   return (
@@ -153,7 +162,10 @@ export default function RtaFriendView({ vue, onClose }: { vue: RtaVueAmi; onClos
       return b !== null || r !== null ? (b ?? 0) + (r ?? 0) : null;
     };
     for (const liste of Object.values(g)) {
+      // Sans vitesses partagées, le tri par vitesse rangerait tout le monde à
+      // égalité : on retombe sur l'ordre alphabétique, lisible et stable.
       liste.sort((a, b) => {
+        if (!vue.avecVitesses) return a.monster.name.localeCompare(b.monster.name);
         const ta = total(a);
         const tb = total(b);
         if (ta === null && tb === null) return a.monster.name.localeCompare(b.monster.name);
@@ -166,6 +178,19 @@ export default function RtaFriendView({ vue, onClose }: { vue: RtaVueAmi; onClos
   }, [vue]);
 
   const categoriesDe = (id: string) => vue.categories.filter((c) => c.members.has(id));
+
+  // Catégories au format attendu par TurnOrder (qui les lit en tableau). Les
+  // ids sont synthétiques : ils ne servent qu'à distinguer les lignes de légende.
+  const catsPourOrdre = useMemo(
+    () =>
+      vue.categories.map((c, i) => ({
+        id: `ami-${i}`,
+        label: c.label,
+        color: c.color,
+        members: [...c.members],
+      })),
+    [vue.categories]
+  );
 
   // Sections affichées : « Non classé » d'abord (si peuplée), puis celles de
   // l'auteur. Une section vide chez lui n'apporte rien à lire.
@@ -216,6 +241,7 @@ export default function RtaFriendView({ vue, onClose }: { vue: RtaVueAmi; onClos
                 libelles={cats.map((c) => c.label)}
                 open={openId === id}
                 onToggle={() => setOpenId((cur) => (cur === id ? null : id))}
+                avecVitesses={vue.avecVitesses}
               />
             );
           })}
@@ -263,8 +289,15 @@ export default function RtaFriendView({ vue, onClose }: { vue: RtaVueAmi; onClos
         <p className="mb-4 flex items-start gap-2 rounded-lg border border-border bg-panel px-3 py-2 text-[11.5px] leading-relaxed text-ink-dim">
           <EyeOff size={14} className="mt-[1px] flex-none text-ink-dim" />
           <span>
-            L'auteur a partagé son classement <b className="text-ink">sans ses runes</b>. Tu vois ses
-            sections et les vitesses qu'il vise, pas comment il les atteint.
+            L'auteur a partagé son classement <b className="text-ink">sans ses runes</b>.{' '}
+            {vue.avecVitesses ? (
+              <>Tu vois ses sections et les vitesses qu'il vise, pas comment il les atteint.</>
+            ) : (
+              <>
+                Ni ses vitesses : tu vois <b className="text-ink">quels monstres il rune et dans
+                quel set</b>, rien de plus.
+              </>
+            )}
           </span>
         </p>
       )}
@@ -277,6 +310,36 @@ export default function RtaFriendView({ vue, onClose }: { vue: RtaVueAmi; onClos
       )}
 
       <div className="flex flex-col gap-4">{aAfficher.map(rendreSection)}</div>
+
+      {/* ⚠️ L'ordre de tour est **recalculé**, jamais transporté : il se déduit
+          entièrement des vitesses et du lead simulé. Le transporter aurait figé
+          un classement qui ne suivrait plus les boutons de lead — et il aurait
+          fallu le tenir à jour dans le fichier.
+          Même composant que sa propre prépa, en LECTURE (pas de `onRuneSpeed`) :
+          une seconde implémentation aurait divergé au premier changement de
+          règle de tri. */}
+      <section className="mt-8">
+        <div className="flex items-baseline gap-x-3 gap-y-1 flex-wrap pb-2.5 mb-4 border-b border-border">
+          <h3 className="font-display text-[17px] tracking-wide">Son ordre de tour</h3>
+          <span className="font-mono text-ink-dim text-xs">
+            par vitesse totale · le plus rapide à gauche
+          </span>
+        </div>
+
+        {vue.avecVitesses ? (
+          <TurnOrder items={vue.entries} categories={catsPourOrdre} categoriesVisible />
+        ) : (
+          // Sans vitesses, un ordre fondé sur les seules vitesses de base serait
+          // FAUX. Mieux vaut ne rien classer que classer de travers.
+          <p className="flex items-start gap-2 rounded-xl border border-dashed border-border bg-panel/40 px-3 py-4 text-[12.5px] leading-relaxed text-ink-dim">
+            <EyeOff size={14} className="mt-[2px] flex-none" />
+            <span>
+              L'auteur n'a pas partagé ses vitesses de runes : l'ordre de tour ne peut pas être
+              calculé. Le classer sur les seules vitesses de base donnerait un ordre faux.
+            </span>
+          </p>
+        )}
+      </section>
     </section>
   );
 }

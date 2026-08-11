@@ -10,6 +10,7 @@ import {
   X,
   Eye,
   EyeOff,
+  Gauge,
 } from 'lucide-react';
 import { Monster, RtaState } from '../../types';
 import { UseRtaState } from '../../hooks/useRtaState';
@@ -27,7 +28,6 @@ import {
   versVueAmi,
 } from '../../lib/rtaShare';
 import { ConfirmDialog } from '../Dialogs';
-import { BOUTON_PRIMAIRE, BOUTON_SECONDAIRE } from '../buttonStyles';
 
 /* --------------------------------------------------------------------------
  * Sauvegarder · Reprendre · Exporter · Importer
@@ -49,6 +49,12 @@ import { BOUTON_PRIMAIRE, BOUTON_SECONDAIRE } from '../buttonStyles';
  * « Annuler » est le défaut, l'action portée en couleur d'alerte. Voir
  * ../Dialogs.tsx.
  */
+
+// Ce que l'auteur laisse voir de son runage. Trois niveaux et non deux cases à
+// cocher : « vitesses sans les runes » est un cas réel (on partage son speed
+// tune sans exposer ses substats), et une paire de cases laisserait choisir
+// « runes sans vitesses », qui n'a pas de sens — les runes portent la vitesse.
+export type NiveauPartage = 'complet' | 'vitesses' | 'classement';
 
 interface Props {
   rta: UseRtaState;
@@ -154,7 +160,7 @@ export default function RtaBackupBar({ rta, cats, backup, monsters, onConsulter 
     [rta.state.entries]
   );
 
-  function exporter(avecEquipement: boolean) {
+  function exporter(niveau: NiveauPartage) {
     const { partageables, perso } = comptePartageable(rta.state, monsterById);
     if (partageables === 0) {
       setMsg({
@@ -165,18 +171,24 @@ export default function RtaBackupBar({ rta, cats, backup, monsters, onConsulter 
       });
       return;
     }
-    const snap = toSnapshot(rta.state, cats.categories, monsterById, { avecEquipement });
+    const snap = toSnapshot(rta.state, cats.categories, monsterById, {
+      avecEquipement: niveau === 'complet',
+      avecVitesses: niveau !== 'classement',
+    });
     download(
       `swforge-prepa-rta-${slugify(new Date().toISOString().slice(0, 10))}.json`,
       encodeSnapshot(snap)
     );
+    const dit: Record<NiveauPartage, string> = {
+      complet: 'avec les runes, artéfacts et vitesses',
+      vitesses: 'avec les vitesses, sans le détail des runes',
+      classement: 'classement seul, sans les runes ni les vitesses',
+    };
     // ⚠️ Les monstres perso écartés sont ANNONCÉS : un fichier silencieusement
     // incomplet se découvrirait chez l'ami, trop tard.
     setMsg({
       text:
-        `${partageables} monstre(s) exporté(s) ${
-          avecEquipement ? 'avec les runes et artéfacts' : 'sans les runes'
-        } · fichier .json téléchargé.` +
+        `${partageables} monstre(s) exporté(s) ${dit[niveau]} · fichier .json téléchargé.` +
         (perso > 0 ? ` ${perso} monstre(s) perso non partageable(s) : non inclus.` : ''),
     });
   }
@@ -425,9 +437,9 @@ export default function RtaBackupBar({ rta, cats, backup, monsters, onConsulter 
         <ChoixExport
           avecRunes={avecRunes}
           onAnnuler={() => setExportAChoisir(false)}
-          onChoisir={(avecEquipement) => {
+          onChoisir={(niveau) => {
             setExportAChoisir(false);
-            exporter(avecEquipement);
+            exporter(niveau);
           }}
         />
       )}
@@ -455,9 +467,41 @@ function ChoixExport({
   onAnnuler,
 }: {
   avecRunes: number;
-  onChoisir: (avecEquipement: boolean) => void;
+  onChoisir: (niveau: NiveauPartage) => void;
   onAnnuler: () => void;
 }) {
+  const options: {
+    cle: NiveauPartage;
+    icone: typeof Eye;
+    titre: string;
+    detail: string;
+    compte?: number;
+    desactive?: boolean;
+  }[] = [
+    {
+      cle: 'complet',
+      icone: Eye,
+      titre: 'Tout : runes, artéfacts et vitesses',
+      detail: 'Il voit comment tu runes chaque monstre, et son ordre de tour est calculé.',
+      compte: avecRunes,
+      desactive: avecRunes === 0,
+    },
+    {
+      cle: 'vitesses',
+      icone: Gauge,
+      titre: 'Vitesses seules, sans le détail des runes',
+      detail:
+        "Il voit tes sections et tes vitesses — donc ton ordre de tour — mais pas tes sets ni tes substats.",
+    },
+    {
+      cle: 'classement',
+      icone: EyeOff,
+      titre: 'Classement seul',
+      detail:
+        "Il voit quels monstres tu runes et dans quelle section, rien d'autre. Pas d'ordre de tour.",
+    },
+  ];
+
   return (
     <div
       className="fixed inset-0 z-50 flex items-center justify-center bg-bg/80 p-4"
@@ -469,45 +513,58 @@ function ChoixExport({
         aria-modal="true"
         aria-labelledby="export-rta-titre"
         onClick={(e) => e.stopPropagation()}
-        className="w-full max-w-[420px] rounded-2xl border border-border bg-panel p-5 shadow-glow shadow-black/60"
+        className="w-full max-w-[460px] rounded-2xl border border-border bg-panel p-5 shadow-glow shadow-black/60"
       >
         <h2 id="export-rta-titre" className="text-[15px] font-bold text-ink">
-          Partager tes runes avec ta prépa ?
+          Que veux-tu partager ?
         </h2>
         <p className="mt-1.5 text-[12.5px] leading-relaxed text-ink-dim">
-          Ton classement, tes sections et les vitesses que tu vises sont toujours inclus. La question
-          ne porte que sur <b className="text-ink">le détail de ton équipement</b>.
+          Tes sections et tes catégories sont toujours incluses. La question porte sur ce que tu
+          laisses voir de <b className="text-ink">ton runage</b>.
         </p>
 
         {avecRunes === 0 && (
           <p className="mt-3 rounded-lg border border-border bg-panel2 px-3 py-2 text-[11.5px] leading-relaxed text-ink-dim">
             Aucun de tes monstres ne porte de runes connues — importe ton compte pour pouvoir les
-            partager. Le fichier contiendra ton classement seul.
+            partager.
           </p>
         )}
 
         <div className="mt-4 flex flex-col gap-2">
-          <button
-            onClick={() => onChoisir(true)}
-            autoFocus
-            disabled={avecRunes === 0}
-            className={`${BOUTON_PRIMAIRE} flex items-center justify-center gap-2 disabled:opacity-40 disabled:cursor-not-allowed`}
-          >
-            <Eye size={15} />
-            Avec mes runes et artéfacts
-            {avecRunes > 0 && <span className="font-mono text-[11px] opacity-70">{avecRunes}</span>}
-          </button>
-          <button
-            onClick={() => onChoisir(false)}
-            className={`${BOUTON_SECONDAIRE} flex items-center justify-center gap-2`}
-          >
-            <EyeOff size={15} /> Classement seul, sans mes runes
-          </button>
+          {options.map((o, i) => {
+            const Icone = o.icone;
+            return (
+              <button
+                key={o.cle}
+                onClick={() => onChoisir(o.cle)}
+                autoFocus={i === 0}
+                disabled={o.desactive}
+                className="flex items-start gap-2.5 rounded-xl border border-border bg-panel2 px-3 py-2.5 text-left
+                           transition hoverable:border-accent disabled:opacity-40 disabled:cursor-not-allowed"
+              >
+                <Icone size={16} className="mt-[2px] flex-none text-ink-dim" />
+                <span className="min-w-0">
+                  <span className="flex items-center gap-1.5 text-[12.5px] font-semibold text-ink">
+                    {o.titre}
+                    {o.compte ? (
+                      <span className="font-mono text-[11px] text-ink-dim">{o.compte}</span>
+                    ) : null}
+                  </span>
+                  <span className="mt-0.5 block text-[11.5px] leading-relaxed text-ink-dim">
+                    {o.detail}
+                  </span>
+                </span>
+              </button>
+            );
+          })}
         </div>
 
+        {/* ⚠️ Explique POURQUOI cacher les runes cache aussi les vitesses.
+            Sans cette phrase, l'option « classement seul » passe pour une
+            restriction gratuite, alors qu'elle ferme la seule vraie fuite. */}
         <p className="mt-3 text-[11px] leading-relaxed text-ink-dim">
-          Avec l'équipement, ton ami voit <b className="text-ink">comment tu runes</b> chaque
-          monstre. Sans, il ne voit que les sets visés et tes vitesses.
+          La vitesse de base d'un monstre est publique : donner sa vitesse totale revient à donner
+          la vitesse de ses runes. C'est pourquoi « classement seul » les retire aussi.
         </p>
 
         <button

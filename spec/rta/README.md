@@ -17,7 +17,7 @@ Fichier racine : [RtaPage.tsx](src/pages/RtaPage.tsx) · État :
    ami** — point de restauration manuel et partage. Voir
    [sauvegarde-partage.md](sauvegarde-partage.md).
 3ter. **Prépa consultée** (si ouverte) : la prépa d'un ami, en lecture seule,
-   au-dessus de la sienne.
+   au-dessus de la sienne — **avec son propre ordre de tour**, recalculé.
 4. **« Non classé »** : zone tampon où atterrissent les monstres ajoutés.
 5. **Sections par set de runes** (Swift / Violent / Despair / Autre + ajoutables).
 6. **Ajouter une section** (choix d'un set de runes).

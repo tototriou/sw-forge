@@ -78,6 +78,12 @@ export interface RtaSnapshot {
   categories: RtaShareCategory[];
   /** L'auteur a-t-il joint son équipement ? Sert à l'annoncer en consultation. */
   avecEquipement: boolean;
+  /**
+   * A-t-il joint ses vitesses de runes ? Sans elles, l'ordre de tour n'est pas
+   * calculable et le panneau le dit, plutôt que d'afficher un classement faux
+   * fondé sur les seules vitesses de base.
+   */
+  avecVitesses: boolean;
 }
 
 /* --------------------------------------------------------------------------
@@ -109,9 +115,15 @@ export function toSnapshot(
   state: RtaState,
   categories: RtaCategory[],
   monsterById: Map<string, Monster>,
-  meta: { nom?: string; auteur?: string; avecEquipement?: boolean } = {}
+  meta: { nom?: string; auteur?: string; avecEquipement?: boolean; avecVitesses?: boolean } = {}
 ): RtaSnapshot {
   const avecEquipement = meta.avecEquipement !== false; // équipement joint par défaut
+  // ⚠️ Sans équipement, les vitesses ne partent pas non plus PAR DÉFAUT.
+  // La vitesse de base d'un monstre est publique : donner sa vitesse totale,
+  // c'est donner l'écart, donc **exactement** la vitesse apportée par ses
+  // runes. Cacher les runes en gardant les vitesses ne cachait rien du tout.
+  // L'auteur peut tout de même les inclure explicitement (`avecVitesses`).
+  const avecVitesses = meta.avecVitesses ?? avecEquipement;
   const entries: RtaShareEntry[] = [];
   // id local → com2usId, pour traduire l'appartenance aux catégories.
   const com2usParId = new Map<string, number>();
@@ -124,10 +136,12 @@ export function toSnapshot(
       com2usId: m.com2usId,
       nom: m.name.slice(0, 40),
       section: isSectionKey(e.section) ? e.section : RTA_UNASSIGNED,
-      runeSpeed: typeof e.runeSpeed === 'number' && Number.isFinite(e.runeSpeed) ? e.runeSpeed : null,
+      runeSpeed:
+        avecVitesses && typeof e.runeSpeed === 'number' && Number.isFinite(e.runeSpeed)
+          ? e.runeSpeed
+          : null,
       // ⚠️ Sans équipement, les SETS ne partent pas non plus : ce sont eux qui
-      // trahissent le runage. Ne garder que la vitesse visée, c'est bien le
-      // sens de « partager sans montrer mes runes ».
+      // trahissent le runage.
       sets: avecEquipement ? e.sets : undefined,
       gear: avecEquipement ? e.gear : undefined,
     });
@@ -139,6 +153,7 @@ export function toSnapshot(
     sections: state.sections.filter(isSectionKey),
     entries,
     avecEquipement,
+    avecVitesses,
     // Une catégorie dont aucun membre n'est partageable est conservée quand même
     // (libellé + couleur ont une valeur en soi), mais vidée de fait.
     categories: categories.map((c) => ({
@@ -163,6 +178,8 @@ export interface RtaVueAmi {
   nom: string;
   auteur: string;
   avecEquipement: boolean;
+  /** Sans vitesses, l'ordre de tour n'est pas calculable — il n'est pas affiché. */
+  avecVitesses: boolean;
   sections: string[];
   /** Monstres résolus dans le bestiaire local (le portrait, le nom, les stats). */
   entries: { monster: Monster; entry: RtaEntry }[];
@@ -264,6 +281,7 @@ export function versVueAmi(snap: RtaSnapshot, monsterByCom2us: Map<number, Monst
     nom: snap.nom,
     auteur: snap.auteur,
     avecEquipement: snap.avecEquipement,
+    avecVitesses: snap.avecVitesses,
     sections,
     entries,
     categories: snap.categories.map((c) => ({
@@ -498,12 +516,15 @@ export function encodeSnapshot(snap: RtaSnapshot): string {
       // Annoncé dans le fichier : le lecteur sait si l'absence de runes est un
       // choix de l'auteur ou un fichier d'une version antérieure.
       avec_equipement: snap.avecEquipement,
+      avec_vitesses: snap.avecVitesses,
       sections: snap.sections,
       monstres: snap.entries.map((e) => ({
         com2usId: e.com2usId,
         nom: e.nom,
         section: e.section,
-        vitesse: e.runeSpeed,
+        // `undefined` disparaît du JSON ; `null` y resterait comme une clé vide,
+        // qui se lit comme « vitesse non saisie » et non « vitesse masquée ».
+        vitesse: e.runeSpeed ?? undefined,
         sets: e.sets?.length ? e.sets : undefined,
         equipement: e.gear,
       })),
@@ -639,10 +660,11 @@ export function validateRtaImport(text: string): ImportReport {
   // `avec_equipement: true` sans la moindre rune afficherait « runes incluses »
   // sur une prépa qui n'en montre aucune.
   const avecEquipement = entries.some((e) => e.gear);
+  const avecVitesses = entries.some((e) => e.runeSpeed !== null);
 
   return {
     ...ctx,
-    snapshot: { nom, auteur, sections, entries, categories, avecEquipement },
+    snapshot: { nom, auteur, sections, entries, categories, avecEquipement, avecVitesses },
     counts: {
       monstres: entries.length,
       sections: sections.length,

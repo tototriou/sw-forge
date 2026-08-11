@@ -14,8 +14,10 @@ import { UseRtaState } from '../hooks/useRtaState';
 import RtaSearch from '../components/rta/RtaSearch';
 import RtaSection from '../components/rta/RtaSection';
 import CategoryBar from '../components/rta/CategoryBar';
+import RtaBackupBar from '../components/rta/RtaBackupBar';
 import { ConfirmDialog } from '../components/Dialogs';
 import { useRtaCategories } from '../hooks/useRtaCategories';
+import { useRtaBackup } from '../hooks/useRtaBackup';
 import { gearSpeedMismatch } from '../lib/gearSync';
 import DesyncBadge from '../components/rta/DesyncBadge';
 import RtaCard from '../components/rta/RtaCard';
@@ -91,6 +93,9 @@ export default function RtaPage({
   // Catégories libres (« Striper », « Lead SPD »…) : lecture transversale de la
   // box, en plus du classement par set. Voir ../../spec/rta/categories.md.
   const cats = useRtaCategories();
+  // Point de restauration manuel (« Sauvegarder » / « Reprendre »), distinct de
+  // la conservation automatique. Voir hooks/useRtaBackup.ts.
+  const backup = useRtaBackup();
   // Monstres réellement présents dans la prépa : ce sont eux qu'on propose dans
   // le panneau d'affectation.
   const pageMonsters = useMemo(
@@ -207,7 +212,22 @@ export default function RtaPage({
       {effacementAConfirmer && (
         <ConfirmDialog
           titre="Effacer toute la prépa RTA ?"
-          message="Tous les monstres ajoutés, leurs vitesses et leurs sections seront retirés. Tes catégories de couleur sont conservées."
+          message={
+            <>
+              Tous les monstres ajoutés, leurs vitesses et leurs sections seront retirés. Tes
+              catégories de couleur sont conservées.
+              {/* ⚠️ Le point de sauvegarde SURVIT volontairement : c'est ce qui
+                  permet de revenir sur un effacement. L'effacer aussi ferait de
+                  ce bouton une perte sans retour. */}
+              {backup.backup && (
+                <>
+                  {' '}
+                  Ton point de sauvegarde n'est pas touché :{' '}
+                  <b className="text-ink">« Reprendre » te ramènera à ta prépa.</b>
+                </>
+              )}
+            </>
+          }
           libelleAction="Tout effacer"
           destructif
           onCancel={() => setEffacementAConfirmer(false)}
@@ -217,6 +237,8 @@ export default function RtaPage({
           }}
         />
       )}
+
+      <RtaBackupBar rta={rta} cats={cats} backup={backup} monsters={monsters} />
 
       <CategoryBar cats={cats} monsters={pageMonsters} />
 

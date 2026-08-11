@@ -44,6 +44,8 @@ export interface UseRtaCategories {
   canAssign: (monsterId: string) => boolean;
   // Amorce la catégorie « Lead SPD » à la première prépa non vide.
   ensureDefault: (monsters: Monster[]) => void;
+  // Remplace TOUTES les catégories (restauration d'un point, import d'une prépa).
+  replaceAll: (cats: { label: string; color: string; members: string[] }[]) => void;
 }
 
 // Catégorie proposée d'office : c'est le classement que tout le monde fait de
@@ -167,6 +169,23 @@ export function useRtaCategories(): UseRtaCategories {
     });
   }, []);
 
+  // Remplacement en bloc — restauration d'un point de sauvegarde, ou import
+  // d'une prépa reçue. Les ids sont RÉGÉNÉRÉS : ils n'ont de sens que localement
+  // et ne voyagent pas dans un fichier partagé.
+  //
+  // ⚠️ `seeded` passe à VRAI : sans ça, « Lead SPD » se réamorcerait par-dessus
+  // ce qu'on vient de restaurer, et réapparaîtrait précisément chez qui l'avait
+  // supprimée avant de sauvegarder.
+  const replaceAll = useCallback((cats: { label: string; color: string; members: string[] }[]) => {
+    setState((st) => ({
+      ...st,
+      seeded: true,
+      categories: cats
+        .map((c) => cleanCategory({ ...c, id: uid() }))
+        .filter((c): c is RtaCategory => !!c),
+    }));
+  }, []);
+
   const add = useCallback((label: string, color: string) => {
     const clean = label.trim().slice(0, 24);
     if (!clean) return;
@@ -242,5 +261,6 @@ export function useRtaCategories(): UseRtaCategories {
     categoriesOf,
     canAssign,
     ensureDefault,
+    replaceAll,
   };
 }

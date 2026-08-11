@@ -13,6 +13,8 @@ Fichier racine : [RtaPage.tsx](src/pages/RtaPage.tsx) · État :
 2. **Barre de recherche** pour ajouter un monstre à la prépa.
 3. **Barre d'actions** : compteur, **Importer un compte**, **Créer un monstre**,
    **Tout effacer** ; + disclaimer monstres récents / message d'import.
+3bis. **Sauvegarder · Reprendre · Exporter · Importer** — point de restauration
+   manuel et partage de prépa. Voir [sauvegarde-partage.md](sauvegarde-partage.md).
 4. **« Non classé »** : zone tampon où atterrissent les monstres ajoutés.
 5. **Sections par set de runes** (Swift / Violent / Despair / Autre + ajoutables).
 6. **Ajouter une section** (choix d'un set de runes).
@@ -26,6 +28,7 @@ Fichier racine : [RtaPage.tsx](src/pages/RtaPage.tsx) · État :
 | Zones de classement drag & drop (Non classé + sets de runes) | [sections-runes.md](sections-runes.md) |
 | Ordre de tour & simulation de leads | [ordre-de-tour.md](ordre-de-tour.md) |
 | Catégories libres (couleur + titre) et anneau des cartes | [categories.md](categories.md) |
+| Point de sauvegarde, export & import de prépa | [sauvegarde-partage.md](sauvegarde-partage.md) |
 
 ## Modèle d'état (`RtaState`)
 
@@ -46,7 +49,12 @@ interface RtaState { sections: string[]; entries: Record<string, RtaEntry> }
 
 ## Persistance & robustesse
 
-- Tout changement est sauvegardé dans `localStorage` (échec silencieux si quota).
+- Tout changement est sauvegardé dans `localStorage` (échec silencieux si quota)
+  — **automatiquement**, sans geste de l'utilisateur. Le bouton « Sauvegarder »
+  ne sert donc pas à enregistrer mais à poser un **point de retour** ; voir
+  [sauvegarde-partage.md](sauvegarde-partage.md).
+- Clés : `sky-arena-rta-v1` (la prépa), `sw-forge-rta-categories-v1` (les
+  catégories), `sw-forge-rta-backup-v1` (le point de sauvegarde).
 - Au chargement, l'état est validé/réparé (types, garantie de « Autre »).
 - Un monstre présent dans `entries` mais **absent des données chargées** est
   simplement ignoré à l'affichage (pas d'erreur).

@@ -43,14 +43,33 @@ export const CHANGE_META: Record<ChangeKind, { label: string; color: string }> =
 // Si une ligne dépasse ~15 mots, c'est qu'elle raconte l'implémentation.
 export const RELEASES: Release[] = [
   {
-    version: '1.3.1',
+    version: '1.4.0',
     date: '2026-08-11',
-    title: 'Les recherches se pilotent au clavier',
+    title: 'Ta prépa RTA se sauvegarde et se partage',
     // ⚠️ En préparation : le tag n'existera qu'à la fusion dans `main`.
     // À repasser à `true` (ou à retirer) au moment de publier.
     tag: false,
-    highlights: ['Tape un nom, flèches, Entrée — et le champ est prêt pour le suivant'],
+    highlights: [
+      'Pose un point de sauvegarde, remanie ta prépa, reviens en arrière si besoin',
+      'Envoie ta prépa RTA à un ami en un fichier',
+      'Tape un nom, flèches, Entrée — et le champ est prêt pour le suivant',
+    ],
     changes: [
+      {
+        kind: 'feat',
+        scope: 'RTA',
+        text: 'Un point de sauvegarde permet d’essayer un autre classement et de revenir en arrière.',
+      },
+      {
+        kind: 'feat',
+        scope: 'RTA',
+        text: 'Exporte ta prépa en fichier pour la partager avec tes amis.',
+      },
+      {
+        kind: 'feat',
+        scope: 'RTA',
+        text: 'Importe la prépa d’un ami : ses sections, ses vitesses et ses catégories.',
+      },
       {
         kind: 'feat',
         scope: 'Interface',
@@ -80,6 +99,11 @@ export const RELEASES: Release[] = [
         kind: 'fix',
         scope: 'Nouveautés',
         text: 'Le lien GitHub de la version 1.0.0 ne mène plus vers une page introuvable.',
+      },
+      {
+        kind: 'docs',
+        scope: 'RTA',
+        text: 'Une prépa importée ne touche pas à tes runes : elle dit quoi viser, pas ce que tu possèdes.',
       },
     ],
   },

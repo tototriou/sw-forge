@@ -76,6 +76,20 @@
 
   --star: 138 87 12;
 
+  /* Palette du résumé de compte (paliers d'efficience, qualité du stock).
+     ⚠️ MÊMES TEINTES que le thème sombre, assombries pour tenir sur blanc.
+     Les valeurs sombres (or, violet, vert d'eau, bleu ciel…) sont pensées pour
+     un fond profond : sur blanc elles tombaient entre 1.22 et 3.12 de contraste
+     — cinq des six étaient invisibles.
+     Chaque barre porte son libellé ET sa valeur en clair : l'identité ne repose
+     jamais sur la couleur seule. Voir spec/shared/design.md § Dataviz. */
+  --pal-1: 150 112 10; /* or       — ≥ 110 % */
+  --pal-2: 122 61 158; /* violet   — 100-110 % */
+  --pal-3: 28 122 74; /* vert     — 90-100 % */
+  --pal-4: 15 110 148; /* bleu     — 80-90 % */
+  --pal-5: 90 99 140; /* gris-bleu — 70-80 % */
+  --pal-6: 107 114 128; /* gris     — < 70 % */
+
   /* Raretés — couleur de TEXTE seulement (la bannière garde le dégradé du jeu,
      identique dans les deux thèmes). Voir RARITY_META dans lib/effects.ts. */
   --rarity-5: 166 88 12;
@@ -128,6 +142,17 @@
 
   --forge-star: 242 194 76;
 
+  /* Palette du résumé en sombre : les couleurs D'ORIGINE, inchangées.
+     Elles fonctionnaient — c'est uniquement sur fond clair qu'elles tombaient
+     sous le seuil, d'où la variante assombrie ci-dessus. */
+  --forge-pal-1: 248 178 74; /* #f8b24a — or */
+  --forge-pal-2: 200 140 255; /* #c88cff — violet */
+  --forge-pal-3: 124 240 166; /* #7cf0a6 — vert */
+  --forge-pal-4: 143 212 255; /* #8fd4ff — bleu ciel */
+  --forge-pal-5: 136 144 184; /* #8890B8 — gris-bleu */
+  /* Legerement remonte : #5B6280 d'origine tombait a 2.89 sur le panneau. */
+  --forge-pal-6: 106 113 145;
+
   /* Raretés en sombre : les couleurs vives du jeu, telles quelles. */
   --forge-rarity-5: 248 178 74;
   --forge-rarity-4: 200 140 255;
@@ -161,7 +186,13 @@
     --el-dark: var(--forge-el-dark);
     --el-unknown: var(--forge-el-unknown);
     --star: var(--forge-star);
-    --rarity-5: var(--forge-rarity-5);
+    --pal-1: var(--forge-pal-1);
+  --pal-2: var(--forge-pal-2);
+  --pal-3: var(--forge-pal-3);
+  --pal-4: var(--forge-pal-4);
+  --pal-5: var(--forge-pal-5);
+  --pal-6: var(--forge-pal-6);
+  --rarity-5: var(--forge-rarity-5);
     --rarity-4: var(--forge-rarity-4);
     --rarity-3: var(--forge-rarity-3);
     --rarity-2: var(--forge-rarity-2);
@@ -198,6 +229,12 @@
   --el-dark: var(--forge-el-dark);
   --el-unknown: var(--forge-el-unknown);
   --star: var(--forge-star);
+  --pal-1: var(--forge-pal-1);
+  --pal-2: var(--forge-pal-2);
+  --pal-3: var(--forge-pal-3);
+  --pal-4: var(--forge-pal-4);
+  --pal-5: var(--forge-pal-5);
+  --pal-6: var(--forge-pal-6);
   --rarity-5: var(--forge-rarity-5);
   --rarity-4: var(--forge-rarity-4);
   --rarity-3: var(--forge-rarity-3);

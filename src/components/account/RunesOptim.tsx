@@ -199,7 +199,7 @@ export default function RunesOptim({ runes, crafts }: Props) {
 
   return (
     <div>
-      <div className="mb-4 flex items-start gap-2 rounded-lg border border-[#6d5a37] bg-[#2a2417]/50 px-3 py-2 text-[12px] text-[#e0c48a]">
+      <div className="mb-4 flex items-start gap-2 rounded-lg border border-warn/50 bg-warn/10 px-3 py-2 text-[12px] text-warn">
         <AlertTriangle size={15} className="flex-none mt-0.5" />
         <span>
           Ceci est une optimisation d'<b>efficience</b> : ce n'est pas toujours la bonne solution pour tes
@@ -227,7 +227,7 @@ export default function RunesOptim({ runes, crafts }: Props) {
         />
 
         <div className="flex items-center gap-2">
-          <span className="font-mono text-[11px] tracking-[0.1em] uppercase text-ink-dim">Palier</span>
+          <span className="label">Palier</span>
           <NumberField
             value={threshold}
             min={0}
@@ -243,7 +243,7 @@ export default function RunesOptim({ runes, crafts }: Props) {
         </div>
 
         <div className="flex items-center gap-2">
-          <span className="font-mono text-[11px] tracking-[0.1em] uppercase text-ink-dim">Trier par</span>
+          <span className="label">Trier par</span>
           <select
             value={sort}
             onChange={(e) => {
@@ -277,7 +277,7 @@ export default function RunesOptim({ runes, crafts }: Props) {
                   : 'Potentiel en gardant les stats actuelles (meules seulement)'
               }
               className={`rounded-md px-2.5 py-1 text-[12px] font-semibold transition
-                ${gemMode === o.key ? 'bg-gradient-to-br from-[#3a4270] to-[#272e52] text-ink' : 'text-ink-dim hover:text-ink'}`}
+                ${gemMode === o.key ? 'bg-accent-soft text-ink' : 'text-ink-dim hoverable:text-ink'}`}
             >
               {o.label}
             </button>
@@ -285,7 +285,7 @@ export default function RunesOptim({ runes, crafts }: Props) {
         </div>
 
         <div className="flex items-center gap-2">
-          <span className="font-mono text-[11px] tracking-[0.1em] uppercase text-ink-dim">Runes</span>
+          <span className="label">Runes</span>
           <div className="flex items-center gap-1 bg-panel border border-border rounded-lg p-0.5">
             {ANCIENTS.map((o) => (
               <button
@@ -297,7 +297,7 @@ export default function RunesOptim({ runes, crafts }: Props) {
                 title={o.hint}
                 aria-pressed={ancient === o.key}
                 className={`rounded-md px-2.5 py-1 text-[12px] font-semibold transition
-                  ${ancient === o.key ? 'bg-gradient-to-br from-[#3a4270] to-[#272e52] text-ink' : 'text-ink-dim hover:text-ink'}`}
+                  ${ancient === o.key ? 'bg-accent-soft text-ink' : 'text-ink-dim hoverable:text-ink'}`}
               >
                 {o.label}
               </button>
@@ -326,8 +326,8 @@ export default function RunesOptim({ runes, crafts }: Props) {
           className={`flex items-center gap-1.5 rounded-lg border px-2.5 py-1.5 text-[12px] font-semibold transition
             ${
               verifie
-                ? 'bg-gradient-to-br from-[#3a4270] to-[#272e52] border-[#4a52a0] text-ink'
-                : 'bg-panel border-border text-ink-dim hover:text-ink hover:border-[#4a52a0]'
+                ? 'bg-accent-soft border-accent text-ink'
+                : 'bg-panel border-border text-ink-dim hoverable:text-ink hoverable:border-accent'
             } disabled:opacity-40 disabled:cursor-not-allowed`}
         >
           <PackageCheck size={14} /> Faisable avec ma réserve
@@ -341,12 +341,12 @@ export default function RunesOptim({ runes, crafts }: Props) {
             aria-label="Comment est-ce calculé ?"
             title="Comment est-ce calculé ?"
             className={`flex items-center justify-center w-8 h-8 rounded-full border transition
-              ${showHelp ? 'bg-[#2b3170] border-[#4a52a0] text-ink' : 'bg-panel border-border text-ink-dim hover:text-ink hover:border-[#4a52a0]'}`}
+              ${showHelp ? 'bg-accent-soft border-accent text-ink' : 'bg-panel border-border text-ink-dim hoverable:text-ink hoverable:border-accent'}`}
           >
             <HelpCircle size={18} />
           </button>
           {showHelp && (
-            <div className="absolute right-0 z-30 mt-1.5 w-[360px] max-w-[88vw] rounded-lg border border-[#4a52a0] bg-panel p-3 text-[12.5px] text-ink-dim leading-relaxed shadow-xl shadow-black/50">
+            <div className="absolute right-0 z-30 mt-1.5 w-[360px] max-w-[88vw] rounded-lg border border-accent bg-panel p-3 text-[12.5px] text-ink-dim leading-relaxed shadow-xl shadow-black/50">
               <p className="text-ink font-semibold mb-1">Comment est-ce calculé ?</p>
               <p>
                 Pour chaque rune on calcule son <b className="text-ink">efficience actuelle</b> puis son{' '}
@@ -507,7 +507,7 @@ export const OptimTile = memo(function OptimTile({
   return (
     <div
       ref={ref}
-      className={`relative rounded-lg border bg-panel ${open ? 'z-20 border-[#4a52a0]' : 'border-border'}`}
+      className={`relative rounded-lg border bg-panel ${open ? 'z-20 border-accent' : 'border-border'}`}
     >
       <button onClick={() => onToggle(row.id)} className="w-full flex items-center gap-2.5 p-2 text-left">
         <RuneSlotIcon slot={rune.slot} setKey={rune.set} rarity={rune.rarity} ancient={ancient} height={46} />
@@ -516,9 +516,10 @@ export const OptimTile = memo(function OptimTile({
             {formatRuneEffect(rune.main)}
           </div>
           <div className="font-mono text-[12px] text-ink leading-tight">
-            actuelle <b style={{ color: meta.color }}>{fmt(pot.eff)}</b>
+            {/* Texte, donc `meta.ink` — voir RARITY_META. */}
+            actuelle <b style={{ color: meta.ink }}>{fmt(pot.eff)}</b>
           </div>
-          <div className="font-mono text-[11px] leading-tight text-[#c79bff]">
+          <div className="font-mono text-[11px] leading-tight" style={{ color: 'rgb(var(--rarity-4))' }}>
             Héro {signed(pot.heroGain, metric)}{' '}
             <span className={effColor(pot.heroEff, pot.eff)}>→ {fmt(pot.heroEff)}</span>
           </div>
@@ -545,7 +546,10 @@ export const OptimTile = memo(function OptimTile({
   );
 });
 
-const VIOLET = '#c79bff';
+// Le violet qui signale « ce qui change » dans un plan d'optimisation. Même
+// teinte que l'héroïque, donc même token : il suit le thème et reste lisible
+// sur fond clair. Voir spec/shared/design.md.
+const VIOLET = 'rgb(var(--rarity-4))';
 
 // Ligne de substat façon carte de jeu : base + grind + ↻. Chaque partie peut
 // être mise en violet indépendamment (seul ce qui change passe en violet).
@@ -646,7 +650,7 @@ export function OptimPlanBox({
   const gain = plan.targetEff - plan.eff;
 
   return (
-    <div className="rounded-lg border border-[#6d5a37] bg-gradient-to-b from-[#2a2417] to-[#191510] p-3 text-[12px]">
+    <div className="rounded-lg border border-border bg-panel2 p-3 text-[12px]">
       <div className="flex items-center justify-between mb-2 gap-2">
         <span className="font-bold text-ink uppercase tracking-wide text-[11px]">
           {scenario === 'legend' ? 'Légendaire' : 'Héroïque'}
@@ -665,8 +669,8 @@ export function OptimPlanBox({
       )}
 
       <div className="mt-2 pt-2 border-t border-border/40 grid grid-cols-2 gap-x-4">
-        <div className="font-mono text-[10px] uppercase tracking-[0.12em] text-ink-dim mb-1">Actuel</div>
-        <div className="font-mono text-[10px] uppercase tracking-[0.12em] text-ink-dim mb-1">Optimisé</div>
+        <div className="label mb-1">Actuel</div>
+        <div className="label mb-1">Optimisé</div>
 
         {/* Colonne gauche : substats actuels */}
         <div className="space-y-1">

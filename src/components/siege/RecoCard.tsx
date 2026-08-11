@@ -201,7 +201,7 @@ export default function RecoCard({
             onChange={(e) => recos.setMeta(reco.id, { name: e.target.value })}
             placeholder={`Recommandation ${index + 1}`}
             className="flex-1 min-w-[160px] bg-panel border border-border rounded-lg px-2.5 py-1 text-[15px]
-                       font-semibold text-ink outline-none focus:border-[#5b63b8]"
+                       font-semibold text-ink outline-none focus:border-accent"
           />
         ) : (
           <h3 className="font-display text-[17px] tracking-wide">
@@ -211,8 +211,8 @@ export default function RecoCard({
 
         {reco.origin === 'imported' && (
           <span
-            className="inline-flex items-center gap-1 rounded-full border border-[#4a52a0] bg-panel2 px-2 py-0.5
-                       font-mono text-[10px] uppercase tracking-[0.08em] text-ink-dim"
+            className="inline-flex items-center gap-1 rounded-full border border-accent bg-panel2 px-2 py-0.5
+                       label"
             title="Recommandation reçue d'un autre joueur"
           >
             <Download size={10} /> Importée
@@ -236,7 +236,7 @@ export default function RecoCard({
                 : 'Importe ton compte pour analyser'
             }
             className="flex items-center gap-1.5 rounded-md border border-border bg-panel px-2.5 py-1
-                       text-[12px] font-semibold text-ink-dim hover:text-ink hover:border-[#4a52a0]
+                       text-[12px] font-semibold text-ink-dim hoverable:text-ink hoverable:border-accent
                        transition disabled:opacity-40 disabled:cursor-not-allowed"
           >
             <Gauge size={13} /> {match ? 'Réanalyser mes decks' : 'Analyser mes decks'}
@@ -250,8 +250,8 @@ export default function RecoCard({
             aria-expanded={expanded}
             className={`ml-auto flex items-center gap-1.5 rounded-md border px-2.5 py-1 text-[12px] font-semibold transition ${
               open
-                ? 'border-[#5b63b8] bg-panel2 text-ink'
-                : 'border-border bg-panel text-ink hover:border-[#4a52a0]'
+                ? 'border-accent bg-panel2 text-ink'
+                : 'border-border bg-panel text-ink hoverable:border-accent'
             }`}
             title={open ? 'Replier' : `Voir les ${reco.decks.length} deck(s)`}
           >
@@ -267,7 +267,7 @@ export default function RecoCard({
         <div className={`${editing ? 'ml-auto ' : ''}flex items-center gap-0.5 -mr-1`}>
           <button
             onClick={() => onExport(reco)}
-            className="flex items-center justify-center w-6 h-6 text-ink-dim hover:text-ink transition"
+            className="flex items-center justify-center w-6 h-6 text-ink-dim hoverable:text-ink transition"
             title="Exporter cette recommandation (tous ses decks)"
             aria-label="Exporter cette recommandation"
           >
@@ -276,7 +276,7 @@ export default function RecoCard({
           <button
             onClick={() => onToggleEdit(reco.id)}
             className={`flex items-center justify-center w-6 h-6 transition ${
-              editing ? 'text-star' : 'text-ink-dim hover:text-ink'
+              editing ? 'text-star' : 'text-ink-dim hoverable:text-ink'
             }`}
             title={editing ? "Terminer l'édition" : 'Éditer la recommandation'}
             aria-label={editing ? "Terminer l'édition" : 'Éditer la recommandation'}
@@ -286,7 +286,7 @@ export default function RecoCard({
           </button>
           <button
             onClick={() => setSuppressionAConfirmer(true)}
-            className="flex items-center justify-center w-6 h-6 text-ink-dim hover:text-fire transition"
+            className="flex items-center justify-center w-6 h-6 text-ink-dim hoverable:text-fire transition"
             title="Supprimer cette recommandation"
             aria-label="Supprimer cette recommandation"
           >
@@ -316,7 +316,7 @@ export default function RecoCard({
             onChange={(e) => recos.setMeta(reco.id, { author: e.target.value })}
             placeholder="Ton pseudo (auteur)"
             className="bg-panel border border-border rounded-lg px-2.5 py-1.5 text-[12.5px] text-ink
-                       outline-none focus:border-[#5b63b8]"
+                       outline-none focus:border-accent"
           />
           <NoteEditor
             value={reco.note}
@@ -381,7 +381,7 @@ export default function RecoCard({
                     s.size === reco.decks.length ? new Set() : new Set(reco.decks.map((_, i) => i))
                   )
                 }
-                className="font-mono text-[11px] text-ink-dim hover:text-ink transition underline"
+                className="font-mono text-[11px] text-ink-dim hoverable:text-ink transition underline"
               >
                 {openDecks.size === reco.decks.length ? 'Replier tous les decks' : 'Déplier tous les decks'}
               </button>
@@ -417,7 +417,7 @@ export default function RecoCard({
                 setEditingDeck(reco.decks.length); // le nouveau deck s'ouvre en édition
               }}
               className="flex items-center gap-1.5 rounded-lg border border-dashed border-border bg-panel/50
-                         px-3 py-1.5 text-[12.5px] text-ink-dim hover:text-ink hover:border-[#4a52a0] transition"
+                         px-3 py-1.5 text-[12.5px] text-ink-dim hoverable:text-ink hoverable:border-accent transition"
             >
               <Plus size={14} /> Ajouter un deck vide
             </button>
@@ -432,8 +432,8 @@ export default function RecoCard({
               className={`flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-[12.5px] transition
                 disabled:opacity-40 disabled:cursor-not-allowed ${
                   pickOffense
-                    ? 'border-[#5b63b8] bg-panel2 text-ink'
-                    : 'border-dashed border-border bg-panel/50 text-ink-dim hover:text-ink hover:border-[#4a52a0]'
+                    ? 'border-accent bg-panel2 text-ink'
+                    : 'border-dashed border-border bg-panel/50 text-ink-dim hoverable:text-ink hoverable:border-accent'
                 }`}
             >
               <Swords size={14} /> Importer un deck d'offense
@@ -443,7 +443,7 @@ export default function RecoCard({
 
           {pickOffense && offenseTeams.length > 0 && (
             <div className="mt-2 rounded-xl border border-border bg-panel/60 p-2">
-              <p className="font-mono text-[10.5px] uppercase tracking-[0.1em] text-ink-dim mb-1.5">
+              <p className="label mb-1.5">
                 Tes équipes d'offense — les stats du build sont reprises comme minimums
               </p>
 
@@ -459,7 +459,7 @@ export default function RecoCard({
                   onChange={(e) => setOffenseQuery(e.target.value)}
                   placeholder="Filtrer par monstre…"
                   className="w-full bg-panel border border-border rounded-lg pl-7 pr-2 py-1 text-[12px]
-                             text-ink placeholder:text-ink-dim outline-none focus:border-[#5b63b8]"
+                             text-ink placeholder:text-ink-dim outline-none focus:border-accent"
                 />
               </div>
 
@@ -476,7 +476,7 @@ export default function RecoCard({
                     }}
                     title={summary}
                     className="flex items-center gap-2 rounded-lg border border-border bg-panel px-2.5 py-1.5
-                               hover:border-[#4a52a0] transition"
+                               hoverable:border-accent transition"
                   >
                     <span className="font-mono text-[11px] text-ink-dim flex-none">#{index + 1}</span>
                     <span className="flex items-center gap-1.5 flex-1">
@@ -561,7 +561,7 @@ function AnalysisSummary({
   const closeBtn = (
     <button
       onClick={onClear}
-      className="ml-auto flex-none text-ink-dim hover:text-ink transition"
+      className="ml-auto flex-none text-ink-dim hoverable:text-ink transition"
       title="Masquer le résultat de l'analyse"
       aria-label="Masquer le résultat de l'analyse"
     >
@@ -708,7 +708,7 @@ function DeckBlock({
         <button
           onClick={onToggleFold}
           aria-expanded={!folded}
-          className="flex-none text-ink-dim hover:text-ink transition"
+          className="flex-none text-ink-dim hoverable:text-ink transition"
           title={folded ? 'Déplier ce deck' : 'Replier ce deck'}
         >
           <ChevronDown size={14} className={`transition-transform ${folded ? '-rotate-90' : ''}`} />
@@ -723,12 +723,12 @@ function DeckBlock({
             placeholder={autoDeckName(deck, monsterByCom2us, deckIndex)}
             title="Laisse vide pour reprendre les noms des monstres"
             className="min-w-[180px] flex-1 bg-panel border border-border rounded px-2 py-0.5 text-[12px]
-                       text-ink outline-none focus:border-[#5b63b8]"
+                       text-ink outline-none focus:border-accent"
           />
         ) : (
           <button
             onClick={onToggleFold}
-            className="font-mono text-[11px] uppercase tracking-[0.1em] text-ink-dim hover:text-ink transition text-left"
+            className="label hoverable:text-ink transition text-left"
           >
             {deckLabel(deck, monsterByCom2us, deckIndex)}
           </button>
@@ -762,7 +762,7 @@ function DeckBlock({
           <button
             onClick={onToggleEdit}
             className={`flex items-center justify-center w-6 h-6 transition ${
-              editing ? 'text-star' : 'text-ink-dim hover:text-ink'
+              editing ? 'text-star' : 'text-ink-dim hoverable:text-ink'
             }`}
             title={editing ? "Terminer l'édition de ce deck" : 'Éditer ce deck'}
             aria-label={editing ? "Terminer l'édition de ce deck" : 'Éditer ce deck'}
@@ -773,7 +773,7 @@ function DeckBlock({
           {editing && (
             <button
               onClick={() => setDeckAConfirmer(true)}
-              className="flex items-center justify-center w-6 h-6 text-ink-dim hover:text-fire transition"
+              className="flex items-center justify-center w-6 h-6 text-ink-dim hoverable:text-fire transition"
               title="Supprimer ce deck"
               aria-label="Supprimer ce deck"
             >
@@ -838,7 +838,7 @@ function DeckBlock({
               {slot.com2usId == null ? (
                 editing ? (
                   <div>
-                    <div className="font-mono text-[10px] uppercase tracking-[0.1em] text-ink-dim mb-1.5">
+                    <div className="label mb-1.5">
                       {idx === 0 ? 'Leader' : `Slot ${idx + 1}`}
                     </div>
                     <MonsterPicker
@@ -888,7 +888,7 @@ function DeckBlock({
                     {editing && (
                       <button
                         onClick={() => recos.setSlotMonster(reco.id, deckIndex, idx, null, '')}
-                        className="flex-none text-ink-dim hover:text-fire transition"
+                        className="flex-none text-ink-dim hoverable:text-fire transition"
                         title="Vider le slot"
                       >
                         <X size={14} />
@@ -1035,7 +1035,7 @@ function StatEditor({
     <div className="overflow-x-auto">
     <table className="w-full min-w-[236px] text-[11.5px]">
       <thead>
-        <tr className="font-mono text-[9.5px] uppercase tracking-[0.08em] text-ink-dim">
+        <tr className="label">
           <th className="pb-1 pr-2 text-left font-normal">Stat</th>
           <th className="pb-1 pr-2 text-right font-normal" title="Stat du monstre 6★ nu, sans runes">
             base
@@ -1083,7 +1083,7 @@ function StatEditor({
                     placeholder="—"
                     className="w-full min-w-[5ch] bg-panel border border-border rounded px-1 py-0.5
                                text-[11px] font-mono tabular-nums text-emerald-400
-                               outline-none focus:border-[#5b63b8]"
+                               outline-none focus:border-accent"
                   />
                 </div>
               </td>
@@ -1128,7 +1128,7 @@ function NoteEditor({
   return (
     <div>
       <div className="flex items-center justify-between mb-0.5">
-        <span className="font-mono text-[10px] uppercase tracking-[0.1em] text-ink-dim">{label}</span>
+        <span className="label">{label}</span>
         {left < max / 4 && (
           <span className={`font-mono text-[10px] ${left <= 0 ? 'text-fire' : 'text-ink-dim'}`}>
             {left} car.
@@ -1142,7 +1142,7 @@ function NoteEditor({
         onChange={(e) => onChange(e.target.value)}
         placeholder={placeholder}
         className="w-full bg-panel border border-border rounded-lg px-2.5 py-1.5 text-[12.5px] text-ink
-                   outline-none focus:border-[#5b63b8] resize-y"
+                   outline-none focus:border-accent resize-y"
       />
     </div>
   );
@@ -1156,7 +1156,7 @@ function NoteBlock({ text, label, compact }: { text: string; label: string; comp
     >
       <div className="flex items-center gap-1.5 mb-0.5">
         <StickyNote size={11} className="flex-none text-star" />
-        <span className="font-mono text-[10px] uppercase tracking-[0.1em] text-ink-dim">{label}</span>
+        <span className="label">{label}</span>
       </div>
       <p className="text-[12.5px] text-ink leading-relaxed whitespace-pre-line">{text}</p>
     </div>
@@ -1205,7 +1205,7 @@ function SetEditor({
   return (
     <div>
       <div className="flex items-center justify-between mb-1 gap-2">
-        <span className="font-mono text-[10px] uppercase tracking-[0.1em] text-ink-dim">
+        <span className="label">
           Runage{options.length > 1 ? ` · ${options.length} possibilités` : ''}
         </span>
         <span className="font-mono text-[10px] text-ink-dim">
@@ -1222,7 +1222,7 @@ function SetEditor({
                 {oi > 0 && <span className="px-0.5 font-mono text-[12px] text-ink-dim">|</span>}
                 <span
                   className={`flex flex-wrap items-center gap-1 rounded-md ${
-                    vise ? 'ring-1 ring-[#5b63b8] px-1 py-0.5' : ''
+                    vise ? 'ring-1 ring-accent px-1 py-0.5' : ''
                   }`}
                 >
                   {sets.length === 0 ? (
@@ -1251,7 +1251,7 @@ function SetEditor({
                         </button>
                         <button
                           onClick={() => onRemove(oi, pos)}
-                          className="text-ink-dim hover:text-fire transition"
+                          className="text-ink-dim hoverable:text-fire transition"
                           title="Retirer ce set"
                         >
                           <X size={10} />
@@ -1275,7 +1275,7 @@ function SetEditor({
           aria-expanded={open}
           className="flex-1 flex items-center justify-center gap-1 rounded border border-border bg-panel
                      px-1.5 py-1 text-[11px] font-semibold text-ink-dim transition
-                     hover:text-ink hover:border-[#4a52a0] disabled:opacity-40 disabled:cursor-not-allowed"
+                     hoverable:text-ink hoverable:border-accent disabled:opacity-40 disabled:cursor-not-allowed"
         >
           {full ? 'Plus de place (6 runes)' : '+ Set'}
         </button>
@@ -1293,7 +1293,7 @@ function SetEditor({
           }
           className="flex items-center justify-center gap-0.5 rounded border border-border bg-panel
                      px-2 py-1 text-[11px] font-semibold text-ink-dim transition
-                     hover:text-ink hover:border-[#4a52a0] disabled:opacity-40 disabled:cursor-not-allowed"
+                     hoverable:text-ink hoverable:border-accent disabled:opacity-40 disabled:cursor-not-allowed"
         >
           <Plus size={11} /> Possibilité
         </button>
@@ -1322,7 +1322,7 @@ function SetEditor({
                   className={`flex items-center justify-center w-8 h-8 rounded-md border transition
                     ${
                       fits
-                        ? 'bg-panel2 border-border hover:border-[#4a52a0]'
+                        ? 'bg-panel2 border-border hoverable:border-accent'
                         : 'bg-panel border-border opacity-25 cursor-not-allowed'
                     }`}
                 >
@@ -1362,7 +1362,7 @@ function ArtifactEditor({
 }) {
   return (
     <div className="space-y-1.5">
-      <span className="font-mono text-[10px] uppercase tracking-[0.1em] text-ink-dim">Artéfacts</span>
+      <span className="label">Artéfacts</span>
       {ARTIFACT_KINDS.map(({ key, label }) => {
         const choisis = artifacts?.[key] ?? [];
         const plein = choisis.length >= MAX_ARTIFACT_SUBS;
@@ -1386,7 +1386,7 @@ function ArtifactEditor({
                     <span className="text-[10.5px] text-ink">{artifactSubLabel(code)}</span>
                     <button
                       onClick={() => onRemove(key, code)}
-                      className="text-ink-dim hover:text-fire transition"
+                      className="text-ink-dim hoverable:text-fire transition"
                       title="Retirer cette propriété"
                     >
                       <X size={10} />
@@ -1407,7 +1407,7 @@ function ArtifactEditor({
                 if (code) onAdd(key, code);
               }}
               className="mt-0.5 w-full rounded border border-border bg-panel px-1.5 py-1 text-[11px]
-                         text-ink-dim transition hover:text-ink hover:border-[#4a52a0]
+                         text-ink-dim transition hoverable:text-ink hoverable:border-accent
                          disabled:opacity-40 disabled:cursor-not-allowed"
             >
               <option value="">
@@ -1445,7 +1445,7 @@ function ArtifactList({
 
   return (
     <div className="space-y-1">
-      <span className="font-mono text-[10px] uppercase tracking-[0.1em] text-ink-dim">Artéfacts</span>
+      <span className="label">Artéfacts</span>
       {ARTIFACT_KINDS.map(({ key, label }) => {
         const codes = artifacts?.[key] ?? [];
         if (codes.length === 0) return null;
@@ -1581,7 +1581,7 @@ function StatusPill({ match, onClear }: { match: RecoMatch; onClear: () => void 
       <Icon size={11} /> {map.text}
       <button
         onClick={onClear}
-        className="ml-0.5 flex items-center justify-center w-4 h-4 rounded-full opacity-60 hover:opacity-100 transition"
+        className="ml-0.5 flex items-center justify-center w-4 h-4 rounded-full opacity-60 hoverable:opacity-100 transition"
         title="Masquer le résultat de l'analyse"
         aria-label="Masquer le résultat de l'analyse"
       >
@@ -1687,7 +1687,7 @@ function StatList({
     <div className="overflow-x-auto">
     <table className="w-full min-w-[236px] text-[11px]">
       <thead>
-        <tr className="font-mono text-[9.5px] uppercase tracking-[0.08em] text-ink-dim">
+        <tr className="label">
           <th className="pb-1 pr-1.5 text-left font-normal">Stat</th>
           <th className="pb-1 pr-1.5 text-right font-normal" title="Stat du monstre 6★ nu">
             base

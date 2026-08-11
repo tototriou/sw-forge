@@ -28,10 +28,31 @@
     <meta name="twitter:image" content="https://sw-forge.vercel.app/og-image.png" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <!-- ⚠️ JetBrains Mono remplace Space Mono pour les CHIFFRES : efficiences,
+         vitesses, ticks, compteurs. Space Mono a des chiffres larges et mous,
+         illisibles en 11 px — or c'est la taille à laquelle on lit une
+         efficience dans une liste de 60 tuiles. JetBrains Mono est dessinée
+         pour le petit corps : hauteur d'x haute, zéro barré, 1 à empattement.
+         Voir spec/shared/design.md. -->
     <link
-      href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;700;900&family=Inter:wght@400;500;600;700&family=Space+Mono:wght@400;700&display=swap"
+      href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;700;900&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap"
       rel="stylesheet"
     />
+    <!-- Thème : posé AVANT la première peinture.
+         ⚠️ Inline et synchrone, volontairement : chargé en module, le script
+         s'exécuterait après le premier rendu et la page apparaîtrait dans le
+         mauvais thème le temps d'un frame. En `auto` on ne pose RIEN — c'est la
+         media query de index.css qui tranche. Voir spec/shared/design.md. -->
+    <script>
+      (function () {
+        try {
+          var c = localStorage.getItem('sw-forge-theme-v1');
+          if (c === 'light' || c === 'dark') document.documentElement.setAttribute('data-theme', c);
+        } catch (e) {
+          /* stockage indisponible : on suit le navigateur */
+        }
+      })();
+    </script>
   </head>
   <body class="bg-bg text-ink font-body">
     <div id="root"></div>

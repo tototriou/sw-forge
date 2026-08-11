@@ -27,7 +27,7 @@ export default function SlotFilter({
 
   return (
     <div className="flex flex-wrap items-center gap-1">
-      <span className="font-mono text-[11px] tracking-[0.1em] uppercase text-ink-dim mr-1">{label}</span>
+      <span className="label mr-1">{label}</span>
       <div className="flex flex-wrap items-center gap-0.5 rounded-lg border border-border bg-panel p-1">
         {SLOTS.map((n) => {
           const active = value.has(n);
@@ -39,8 +39,8 @@ export default function SlotFilter({
               className={`w-7 h-7 rounded-md border text-[12.5px] font-mono font-semibold transition select-none
                 ${
                   active
-                    ? 'bg-[#2b3170] border-[#5b63b8] text-ink shadow'
-                    : 'border-transparent text-ink-dim hover:text-ink hover:bg-panel2'
+                    ? 'bg-accent-soft border-accent text-ink shadow'
+                    : 'border-transparent text-ink-dim hoverable:text-ink hoverable:bg-panel2'
                 }`}
             >
               {n}
@@ -54,7 +54,7 @@ export default function SlotFilter({
           title="Effacer le filtre de slots"
           className="ml-1 flex h-8 items-center gap-1 rounded-md border border-border bg-panel px-2.5
                      text-[11px] font-semibold text-ink-dim transition
-                     hover:border-fire/60 hover:text-fire"
+                     hoverable:border-fire/60 hoverable:text-fire"
         >
           <X size={12} className="flex-none" /> tout
         </button>

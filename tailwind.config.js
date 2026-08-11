@@ -1,3 +1,5 @@
+import plugin from 'tailwindcss/plugin';
+
 /** @type {import('tailwindcss').Config} */
 export default {
   content: ['./index.html', './src/**/*.{ts,tsx}'],
@@ -6,27 +8,85 @@ export default {
       fontFamily: {
         display: ['Cinzel', 'serif'],
         body: ['Inter', 'sans-serif'],
-        mono: ['"Space Mono"', 'monospace'],
+        // ⚠️ Réservée aux CHIFFRES (efficiences, vitesses, ticks, compteurs) :
+        // c'est ce qui doit s'aligner en colonnes. Les libellés en capitales
+        // sont en Inter — voir `label` ci-dessous.
+        mono: ['"JetBrains Mono"', 'ui-monospace', 'monospace'],
       },
+
+      // ⚠️ Toutes les couleurs pointent vers les variables CSS de index.css,
+      // déclarées en CANAUX RGB et consommées avec `<alpha-value>`. C'est ce qui
+      // fait marcher `bg-panel/50`, `bg-bg/80`, `border-fire/60` — 144 classes
+      // dans l'app. Écrites `var(--panel)` en hexadécimal, Tailwind ne pouvait
+      // pas composer l'opacité et n'émettait AUCUNE règle : voile de modale
+      // absent, détail de rune transparent.
+      // Source de vérité : spec/shared/design.md
       colors: {
-        bg: '#0A0D1C',
-        panel: '#12162B',
-        panel2: '#171C38',
-        border: '#272E52',
-        ink: '#E9E7F0',
-        'ink-dim': '#8B92B8',
-        fire: { DEFAULT: '#E4463A', glow: '#FF6A52' },
-        water: { DEFAULT: '#2FA0E0', glow: '#5CC2FF' },
-        wind: { DEFAULT: '#E7C22E', glow: '#FFDE4D' },
-        light: { DEFAULT: '#EAEBF0', glow: '#FFFFFF' },
-        dark: { DEFAULT: '#A15FE0', glow: '#C48CFF' },
-        unknown: { DEFAULT: '#5B6280', glow: '#8890B8' },
-        star: '#F2C24C',
+        bg: 'rgb(var(--bg) / <alpha-value>)',
+        panel: 'rgb(var(--panel) / <alpha-value>)',
+        panel2: 'rgb(var(--panel2) / <alpha-value>)',
+        border: 'rgb(var(--border) / <alpha-value>)',
+        'border-soft': 'rgb(var(--border-soft) / <alpha-value>)',
+        ink: 'rgb(var(--ink) / <alpha-value>)',
+        'ink-dim': 'rgb(var(--ink-dim) / <alpha-value>)',
+        'ink-dimmer': 'rgb(var(--ink-dimmer) / <alpha-value>)',
+
+        // Accent UNIQUE : actif, focus, lien. Distinct de la sémantique.
+        accent: 'rgb(var(--accent) / <alpha-value>)',
+        'accent-soft': 'rgb(var(--accent-soft) / <alpha-value>)',
+
+        // Sémantique : un état des DONNÉES, jamais « ceci est sélectionné ».
+        good: 'rgb(var(--good) / <alpha-value>)',
+        warn: 'rgb(var(--warn) / <alpha-value>)',
+        bad: 'rgb(var(--bad) / <alpha-value>)',
+
+        // Éléments — vocabulaire Summoners War. Deux valeurs par élément
+        // (voir design.md) : le Vent et la Lumière sont illisibles sur clair.
+        fire: 'rgb(var(--el-fire) / <alpha-value>)',
+        water: 'rgb(var(--el-water) / <alpha-value>)',
+        wind: 'rgb(var(--el-wind) / <alpha-value>)',
+        light: 'rgb(var(--el-light) / <alpha-value>)',
+        dark: 'rgb(var(--el-dark) / <alpha-value>)',
+        unknown: 'rgb(var(--el-unknown) / <alpha-value>)',
+
+        star: 'rgb(var(--star) / <alpha-value>)',
       },
+
+      // Six paliers, plancher à 11 px. ⚠️ Ni demi-pixel, ni valeur en dessous
+      // de 11 px : l'écart ne crée pas de hiérarchie, il crée du flou.
+      fontSize: {
+        micro: ['11px', { lineHeight: '1.45' }],
+        xs: ['12px', { lineHeight: '1.5' }],
+        sm: ['13px', { lineHeight: '1.5' }],
+        base: ['15px', { lineHeight: '1.6' }],
+        lg: ['17px', { lineHeight: '1.4' }],
+        xl: ['clamp(22px, 3vw, 30px)', { lineHeight: '1.15' }],
+      },
+
+      borderRadius: {
+        DEFAULT: 'var(--radius)',
+        lg: 'var(--radius-lg)',
+      },
+
+      transitionTimingFunction: {
+        out: 'var(--ease-out)',
+        'in-out': 'var(--ease-in-out)',
+      },
+
       boxShadow: {
         glow: '0 8px 24px -8px var(--tw-shadow-color)',
       },
     },
   },
-  plugins: [],
+  plugins: [
+    plugin(function ({ addVariant }) {
+      // ⚠️ `hoverable:` remplace `hover:` sur tout ce qui est cliquable.
+      // Un `hover:` nu reste allumé après un tap au tactile : on croit avoir
+      // sélectionné quelque chose. Voir spec/shared/design.md.
+      addVariant('hoverable', '@media (hover: hover) and (pointer: fine) { &:hover }');
+      addVariant('group-hoverable', '@media (hover: hover) and (pointer: fine) { :merge(.group):hover & }');
+      // Complément : ce qui doit rester visible quand il n'y a pas de survol.
+      addVariant('no-hover', '@media (hover: none)');
+    }),
+  ],
 };

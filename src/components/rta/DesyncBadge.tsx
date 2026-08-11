@@ -46,7 +46,7 @@ export default function DesyncBadge({
         }}
         aria-expanded={open}
         aria-label="Vitesse modifiée à la main"
-        className="flex items-center justify-center text-amber-400 transition hover:text-amber-300"
+        className="flex items-center justify-center text-amber-400 transition hoverable:text-amber-300"
       >
         <AlertTriangle size={size} />
       </button>

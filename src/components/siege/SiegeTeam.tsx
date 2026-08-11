@@ -168,8 +168,8 @@ export default function SiegeTeam({
           }}
           className={`ml-auto flex items-center gap-1.5 rounded-md border px-2.5 py-1 text-[12px] font-semibold transition ${
             expanded
-              ? 'border-[#5b63b8] bg-panel2 text-ink'
-              : 'border-border bg-panel text-ink hover:border-[#4a52a0]'
+              ? 'border-accent bg-panel2 text-ink'
+              : 'border-border bg-panel text-ink hoverable:border-accent'
           }`}
           aria-expanded={expanded}
           title={expanded ? "Terminer l'édition" : "Éditer l'équipe"}
@@ -178,7 +178,7 @@ export default function SiegeTeam({
         </button>
         <button
           onClick={() => setSuppressionAConfirmer(true)}
-          className="flex items-center gap-1.5 text-[12px] text-ink-dim hover:text-fire transition"
+          className="flex items-center gap-1.5 text-[12px] text-ink-dim hoverable:text-fire transition"
           title="Supprimer l'équipe"
         >
           <Trash2 size={13} /> Supprimer
@@ -226,7 +226,7 @@ export default function SiegeTeam({
               }}
               className={`rounded-xl border transition-colors ${
                 overIdx === idx
-                  ? 'border-[#5b63b8] bg-panel2'
+                  ? 'border-accent bg-panel2'
                   : slotDanger
                     ? 'border-fire/70 ring-1 ring-fire/50 bg-fire/5'
                     : 'border-border bg-panel2/60'
@@ -284,9 +284,9 @@ export default function SiegeTeam({
                       ? 'Voir le détail des runes'
                       : 'Modifier'
                 }
-                className={`flex-1 min-w-0 flex items-center gap-2 rounded-lg border px-2 py-1.5 text-left transition hover:border-[#4a52a0] ${
+                className={`flex-1 min-w-0 flex items-center gap-2 rounded-lg border px-2 py-1.5 text-left transition hoverable:border-accent ${
                   active
-                    ? 'border-[#5b63b8] ring-1 ring-[#5b63b8]/50 bg-panel2'
+                    ? 'border-accent ring-1 ring-accent/50 bg-panel2'
                     : danger
                       ? 'border-fire/70 ring-1 ring-fire/50 bg-fire/5'
                       : 'border-border bg-panel2/60'
@@ -387,7 +387,7 @@ export default function SiegeTeam({
           </span>
           <button
             onClick={() => onDismissAlert(team.id, true)}
-            className="flex-none rounded-md bg-panel border border-border px-2.5 py-1 text-[11px] font-semibold text-ink hover:border-[#4a52a0] transition"
+            className="flex-none rounded-md bg-panel border border-border px-2.5 py-1 text-[11px] font-semibold text-ink hoverable:border-accent transition"
           >
             Ignorer la recommandation
           </button>
@@ -396,7 +396,7 @@ export default function SiegeTeam({
       {status === 'green' && validated && (
         <button
           onClick={() => onDismissAlert(team.id, false)}
-          className="mt-3 text-[11px] text-emerald-400 hover:text-ink transition"
+          className="mt-3 text-[11px] text-emerald-400 hoverable:text-ink transition"
           title="Réafficher la recommandation"
         >
           ✓ Recommandation ignorée · rétablir
@@ -414,7 +414,7 @@ function TickBtn({ active, onClick, label }: { active: boolean; onClick: () => v
         ${
           active
             ? 'bg-gradient-to-br from-star to-yellow-200 text-bg border-star'
-            : 'bg-panel border-border text-ink-dim hover:text-ink hover:border-[#4a52a0]'
+            : 'bg-panel border-border text-ink-dim hoverable:text-ink hoverable:border-accent'
         }`}
     >
       {label}
@@ -462,7 +462,7 @@ function SlotContent({
       <div className="p-3 min-h-[150px] flex flex-col justify-center">
         <div className="flex items-center gap-1.5 mb-2">
           {isLeader && <Crown size={13} className="text-star" />}
-          <span className="font-mono text-[10px] uppercase tracking-[0.1em] text-ink-dim">
+          <span className="label">
             {isLeader ? 'Leader' : 'Slot'}
           </span>
         </div>
@@ -498,7 +498,7 @@ function SlotContent({
           draggable
           onDragStart={handleDragStart}
           onDragEnd={onDragEnd}
-          className="cursor-grab active:cursor-grabbing text-ink-dim hover:text-ink touch-none"
+          className="cursor-grab active:cursor-grabbing text-ink-dim hoverable:text-ink touch-none"
           title="Glisser pour intervertir"
           aria-label="Déplacer"
         >
@@ -542,7 +542,7 @@ function SlotContent({
         </div>
         <button
           onClick={onClear}
-          className="text-ink-dim hover:text-fire transition flex-none self-start"
+          className="text-ink-dim hoverable:text-fire transition flex-none self-start"
           title="Retirer"
           aria-label="Retirer"
         >
@@ -559,7 +559,7 @@ function SlotContent({
           <div className="font-mono text-[10px] text-ink-dim mt-1">base {base ?? '—'}</div>
         </div>
         <label className="flex items-center gap-1.5">
-          <span className="font-mono text-[11px] uppercase text-ink-dim">SPD :</span>
+          <span className="label">SPD :</span>
           <NumberField
             value={slot.runeSpeed}
             allowEmpty
@@ -605,13 +605,13 @@ function SlotContent({
 
       {/* Position dans l'équipe (repli tactile du drag & drop) */}
       <div className="flex items-center gap-1.5 mt-2 pt-2 border-t border-border/60">
-        <span className="font-mono text-[10px] uppercase tracking-[0.08em] text-ink-dim">Position</span>
+        <span className="label">Position</span>
         <select
           value={idx}
           onChange={(e) => onMoveTo(Number(e.target.value))}
           title="Changer la position (intervertir les monstres)"
           className="bg-panel border border-border rounded-md px-1.5 py-0.5 text-[11px] text-ink-dim
-                     outline-none focus:border-[#5b63b8]"
+                     outline-none focus:border-accent"
         >
           <option value={0}>1 · Leader</option>
           <option value={1}>2</option>

@@ -48,7 +48,7 @@ export default function SetFilter({
 
   return (
     <div className="flex flex-wrap items-center gap-1">
-      <span className="font-mono text-[11px] tracking-[0.1em] uppercase text-ink-dim mr-1">{label}</span>
+      <span className="label mr-1">{label}</span>
       {/* Une SEULE barre continue plutôt que des boutons détachés : les symboles
           se lisent comme une rangée d'icônes du jeu, et l'ensemble tient sur une
           ligne même avec 25 sets. Seul l'état actif porte un cadre. */}
@@ -65,8 +65,8 @@ export default function SetFilter({
               className={`flex items-center justify-center w-7 h-7 rounded-md border transition select-none
                 ${
                   active
-                    ? 'bg-[#2b3170] border-[#5b63b8] shadow'
-                    : 'border-transparent opacity-50 hover:opacity-100 hover:bg-panel2'
+                    ? 'bg-accent-soft border-accent shadow'
+                    : 'border-transparent opacity-50 hoverable:opacity-100 hoverable:bg-panel2'
                 }`}
             >
               <RuneIcon setKey={s.key} size={18} filter={OR(active)} />
@@ -83,7 +83,7 @@ export default function SetFilter({
           title="Effacer le filtre de sets"
           className="ml-1 flex h-8 items-center gap-1 rounded-md border border-border bg-panel px-2.5
                      text-[11px] font-semibold text-ink-dim transition
-                     hover:border-fire/60 hover:text-fire"
+                     hoverable:border-fire/60 hoverable:text-fire"
         >
           <X size={12} className="flex-none" /> tout
         </button>

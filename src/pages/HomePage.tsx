@@ -143,7 +143,10 @@ export default function HomePage({ stats, onImport }: Props) {
           <Etape
             n="01"
             icon={Download}
-            accent="#8b92e0"
+            /* ⚠️ Une couleur PROPRE, pas `var(--accent)` : les trois étapes
+               forment une séquence, elles doivent se lire comme trois pairs.
+               L'accent du thème singularisait la première sans raison. */
+            accent="#5B9DE0"
             title="Exporte ton compte"
             desc="Génère un fichier .json de ton compte avec SW Exporter, en lançant le jeu une fois."
             lien={{ href: SW_EXPORTER, label: 'SW Exporter' }}
@@ -195,9 +198,9 @@ export default function HomePage({ stats, onImport }: Props) {
             déclenche rien est pire que pas de bouton du tout. */}
         <button
           onClick={() => ctaRef.current?.click()}
-          className="mt-4 inline-flex items-center gap-2 rounded-lg bg-gradient-to-br from-[#3a4270] to-[#272e52]
-                     border border-[#4a52a0] px-4 py-2.5 text-[14px] font-semibold text-ink
-                     transition hover:border-[#5b63b8]"
+          className="mt-4 inline-flex items-center gap-2 rounded-lg bg-accent-soft
+                     border border-accent px-4 py-2.5 text-[14px] font-semibold text-ink
+                     transition hoverable:border-accent"
         >
           <Upload size={15} /> Importer mon compte
         </button>
@@ -219,9 +222,9 @@ export default function HomePage({ stats, onImport }: Props) {
         variants={item}
         href="#/releases"
         className="mb-4 flex flex-wrap items-center gap-x-3 gap-y-1.5 rounded-xl border border-border
-                   bg-panel/50 px-4 py-3 transition hover:border-[#4a52a0]"
+                   bg-panel/50 px-4 py-3 transition hoverable:border-accent"
       >
-        <span className="rounded-full bg-star/15 px-2 py-0.5 font-mono text-[10px] uppercase tracking-[0.08em] text-star">
+        <span className="rounded-full bg-star/15 px-2 py-0.5 label text-star">
           v{derniere.version}
         </span>
         <span className="text-[13.5px] text-ink">{derniere.title}</span>
@@ -269,16 +272,16 @@ function Dropzone({ onImport }: { onImport: (text: string) => void }) {
       className={`flex min-h-[260px] cursor-pointer flex-col items-center justify-center gap-2.5
                   rounded-2xl border border-dashed p-8 text-center transition ${
                     survol
-                      ? 'border-[#5b63b8] bg-panel2'
-                      : 'border-border bg-panel hover:border-[#4a52a0] hover:bg-panel2/60'
+                      ? 'border-accent bg-panel2'
+                      : 'border-border bg-panel hoverable:border-accent hoverable:bg-panel2/60'
                   }`}
     >
-      <Upload size={30} className="text-[#8b92e0]" />
+      <Upload size={30} className="text-accent" />
       <div className="font-display text-[16px] tracking-wide text-ink">
         Dépose ton fichier .json ici
       </div>
       <div className="text-[13px] text-ink-dim">ou clique pour parcourir</div>
-      <span className="mt-1 rounded-full border border-border bg-panel2 px-2.5 py-1 font-mono text-[10.5px] uppercase tracking-[0.1em] text-ink-dim">
+      <span className="mt-1 rounded-full border border-border bg-panel2 px-2.5 py-1 label">
         Export SWEX (.json)
       </span>
       <span className="mt-1 inline-flex items-center gap-1.5 text-[11.5px] text-ink-dim">
@@ -334,13 +337,13 @@ function Resume({
       href={href}
       whileHover={{ y: -3 }}
       transition={{ type: 'spring', stiffness: 300, damping: 22 }}
-      className={`rounded-xl border border-border bg-panel p-3 transition hover:border-[#4a52a0] ${
+      className={`rounded-xl border border-border bg-panel p-3 transition hoverable:border-accent ${
         value === 0 ? 'opacity-60' : ''
       }`}
     >
       <div className="flex items-center gap-1.5 mb-1">
         <Icon size={13} style={{ color: accent }} />
-        <span className="font-mono text-[10px] uppercase tracking-[0.1em] text-ink-dim">{label}</span>
+        <span className="label">{label}</span>
       </div>
       <div className="flex items-baseline gap-1.5">
         <span className="font-mono text-[24px] font-black leading-none text-ink">{value}</span>
@@ -375,9 +378,17 @@ function Etape({
         style={{ background: accent }}
       />
       <div className="flex items-center gap-2.5">
+        {/* ⚠️ `color-mix` et non un suffixe hexa (`${accent}44`) : `accent` peut
+            être une variable CSS (`var(--accent)`), et « var(--accent)44 » est
+            invalide — le cadre disparaissait purement et simplement sur l'étape
+            qui l'utilisait. `color-mix` marche avec les deux formes. */}
         <span
-          className="flex h-8 w-8 flex-none items-center justify-center rounded-lg font-mono text-[12px] font-bold text-ink"
-          style={{ background: `linear-gradient(135deg, ${accent}44, transparent)`, border: `1px solid ${accent}66` }}
+          className="flex h-8 w-8 flex-none items-center justify-center rounded-lg font-mono text-[13px] font-bold"
+          style={{
+            background: `linear-gradient(135deg, color-mix(in srgb, ${accent} 22%, transparent), transparent)`,
+            border: `1px solid color-mix(in srgb, ${accent} 45%, transparent)`,
+            color: accent,
+          }}
         >
           {n}
         </span>
@@ -390,7 +401,7 @@ function Etape({
           href={lien.href}
           target="_blank"
           rel="noreferrer"
-          className="mt-1.5 inline-flex items-center gap-1 text-[13px] text-[#8b92e0] transition hover:text-ink"
+          className="mt-1.5 inline-flex items-center gap-1 text-[13px] text-accent transition hoverable:text-ink"
         >
           {lien.label} <ExternalLink size={11} />
         </a>
@@ -424,14 +435,14 @@ function Feature({
       whileHover={{ y: -4 }}
       transition={{ type: 'spring', stiffness: 300, damping: 22 }}
       className={`group relative overflow-hidden rounded-xl border border-border bg-panel p-4
-                  transition hover:border-[#4a52a0] ${soon ? 'opacity-70' : ''}`}
+                  transition hoverable:border-accent ${soon ? 'opacity-70' : ''}`}
     >
       <div
         className="pointer-events-none absolute -top-10 -right-10 w-28 h-28 rounded-full opacity-15 blur-2xl transition-opacity group-hover:opacity-30"
         style={{ background: accent }}
       />
       <Icon size={20} style={{ color: accent }} />
-      <div className="mt-2.5 font-mono text-[10px] uppercase tracking-[0.12em] text-ink-dim">
+      <div className="mt-2.5 label">
         {kicker}
         {soon && ' · bientôt'}
       </div>

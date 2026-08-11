@@ -49,7 +49,7 @@ export default function CategoryBar({ cats, monsters }: Props) {
   return (
     <div className="mt-4">
       <div className="flex items-center gap-1.5 flex-wrap">
-        <span className="font-mono text-[11px] tracking-[0.1em] uppercase text-ink-dim mr-1">
+        <span className="label mr-1">
           Catégories
         </span>
 
@@ -65,8 +65,8 @@ export default function CategoryBar({ cats, monsters }: Props) {
             <div
               className={`inline-flex h-7 items-center gap-1.5 rounded-full border pl-2.5 pr-1 transition ${
                 openId === c.id
-                  ? 'border-[#5b63b8] bg-panel2'
-                  : 'border-border bg-panel hover:border-[#4a52a0]'
+                  ? 'border-accent bg-panel2'
+                  : 'border-border bg-panel hoverable:border-accent'
               }`}
             >
               <button
@@ -85,7 +85,7 @@ export default function CategoryBar({ cats, monsters }: Props) {
                 onClick={() => setEditId((e) => (e === c.id ? null : c.id))}
                 title="Renommer / changer la couleur"
                 aria-label={`Éditer ${c.label}`}
-                className="flex items-center justify-center w-5 h-5 rounded-full text-ink-dim transition hover:text-ink hover:bg-black/25"
+                className="flex items-center justify-center w-5 h-5 rounded-full text-ink-dim transition hoverable:text-ink hoverable:bg-black/25"
               >
                 <Pencil size={11} />
               </button>
@@ -93,7 +93,7 @@ export default function CategoryBar({ cats, monsters }: Props) {
                 onClick={() => setASupprimer({ id: c.id, label: c.label })}
                 title="Supprimer la catégorie"
                 aria-label={`Supprimer ${c.label}`}
-                className="flex items-center justify-center w-5 h-5 rounded-full text-ink-dim transition hover:text-fire hover:bg-black/25"
+                className="flex items-center justify-center w-5 h-5 rounded-full text-ink-dim transition hoverable:text-fire hoverable:bg-black/25"
               >
                 <Trash2 size={11} />
               </button>
@@ -118,7 +118,7 @@ export default function CategoryBar({ cats, monsters }: Props) {
             aria-expanded={creating}
             className="flex h-7 items-center gap-1 rounded-full border border-dashed border-border
                        bg-transparent px-2.5 text-[12px] text-ink-dim transition
-                       hover:text-ink hover:border-[#5b63b8] hover:bg-panel2"
+                       hoverable:text-ink hoverable:border-accent hoverable:bg-panel2"
           >
             <Plus size={12} /> Catégorie
           </button>
@@ -147,8 +147,8 @@ export default function CategoryBar({ cats, monsters }: Props) {
           }
           className={`ml-auto flex h-7 items-center gap-1.5 rounded-full border px-2.5 text-[12px] transition ${
             cats.showSpeeds
-              ? 'border-border bg-panel text-ink-dim hover:text-ink hover:border-[#4a52a0]'
-              : 'border-[#5b63b8] bg-panel2 text-ink'
+              ? 'border-border bg-panel text-ink-dim hoverable:text-ink hoverable:border-accent'
+              : 'border-accent bg-panel2 text-ink'
           }`}
         >
           {cats.showSpeeds ? <Eye size={12} /> : <EyeOff size={12} />}
@@ -165,8 +165,8 @@ export default function CategoryBar({ cats, monsters }: Props) {
           }
           className={`flex h-7 items-center gap-1.5 rounded-full border px-2.5 text-[12px] transition ${
             cats.markDesync
-              ? 'border-border bg-panel text-ink-dim hover:text-ink hover:border-[#4a52a0]'
-              : 'border-[#5b63b8] bg-panel2 text-ink'
+              ? 'border-border bg-panel text-ink-dim hoverable:text-ink hoverable:border-accent'
+              : 'border-accent bg-panel2 text-ink'
           }`}
         >
           {cats.markDesync ? <Eye size={12} /> : <EyeOff size={12} />}
@@ -187,8 +187,8 @@ export default function CategoryBar({ cats, monsters }: Props) {
           }
           className={`flex h-7 items-center gap-1.5 rounded-full border px-2.5 text-[12px] transition ${
             cats.visible
-              ? 'border-border bg-panel text-ink-dim hover:text-ink hover:border-[#4a52a0]'
-              : 'border-[#5b63b8] bg-panel2 text-ink'
+              ? 'border-border bg-panel text-ink-dim hoverable:text-ink hoverable:border-accent'
+              : 'border-accent bg-panel2 text-ink'
           }`}
         >
           {cats.visible ? <Eye size={12} /> : <EyeOff size={12} />}
@@ -217,7 +217,7 @@ export default function CategoryBar({ cats, monsters }: Props) {
               <button
                 onClick={() => cats.clearMembers(open.id)}
                 className="ml-auto flex h-6 items-center gap-1 rounded-full border border-border bg-panel
-                           px-2 text-[11px] text-ink-dim transition hover:border-fire/60 hover:text-fire"
+                           px-2 text-[11px] text-ink-dim transition hoverable:border-fire/60 hoverable:text-fire"
                 title="Retirer tous les monstres de cette catégorie"
               >
                 <X size={11} /> Tout décocher
@@ -225,7 +225,7 @@ export default function CategoryBar({ cats, monsters }: Props) {
             )}
             <button
               onClick={() => setOpenId(null)}
-              className={`${countOf(open) > 0 ? '' : 'ml-auto '}text-ink-dim hover:text-ink transition`}
+              className={`${countOf(open) > 0 ? '' : 'ml-auto '}text-ink-dim hoverable:text-ink transition`}
               title="Fermer"
               aria-label="Fermer"
             >
@@ -263,7 +263,7 @@ export default function CategoryBar({ cats, monsters }: Props) {
                         ? 'opacity-25 cursor-not-allowed'
                         : dedans
                           ? ''
-                          : 'opacity-70 hover:opacity-100 hover:bg-panel2'
+                          : 'opacity-70 hoverable:opacity-100 hoverable:bg-panel2'
                     }`}
                     style={
                       dedans
@@ -368,7 +368,7 @@ function CategoryPopover({
           placeholder="Striper, Lead SPD…"
           maxLength={24}
           className="min-w-0 flex-1 bg-panel2 border border-border rounded-md px-2 py-1 text-[12px] text-ink
-                     outline-none focus:border-[#5b63b8] placeholder:text-ink-dim"
+                     outline-none focus:border-accent placeholder:text-ink-dim"
         />
       </div>
 
@@ -385,7 +385,7 @@ function CategoryPopover({
               className={`flex items-center justify-center h-6 rounded-md transition ${
                 actif
                   ? 'ring-2 ring-ink ring-offset-2 ring-offset-panel'
-                  : 'opacity-80 hover:opacity-100 hover:-translate-y-px'
+                  : 'opacity-80 hoverable:opacity-100 hoverable:-translate-y-px'
               }`}
               style={{ backgroundColor: c }}
             >
@@ -399,7 +399,7 @@ function CategoryPopover({
         <button
           type="submit"
           disabled={!label.trim()}
-          className="flex-1 rounded-md bg-gradient-to-br from-[#3a4270] to-[#272e52] px-2 py-1
+          className="flex-1 rounded-md bg-accent-soft px-2 py-1
                      text-[12px] font-semibold text-ink transition disabled:opacity-40"
         >
           Valider
@@ -408,7 +408,7 @@ function CategoryPopover({
           type="button"
           onClick={onClose}
           className="rounded-md border border-border px-2 py-1 text-[12px] text-ink-dim
-                     transition hover:text-ink hover:border-[#4a52a0]"
+                     transition hoverable:text-ink hoverable:border-accent"
         >
           Annuler
         </button>

@@ -256,7 +256,7 @@ export default function CurveChart({
                   y1={PAD_T}
                   x2={hx}
                   y2={PAD_T + IH}
-                  stroke="#5b63b8"
+                  stroke="var(--accent)"
                   strokeWidth="1"
                   strokeDasharray="3 3"
                 />

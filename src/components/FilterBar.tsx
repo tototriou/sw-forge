@@ -23,7 +23,7 @@ export default function FilterBar({
   return (
     <div className="flex flex-col gap-3.5 mt-5">
       <div className="flex flex-wrap items-center gap-2">
-        <span className="font-mono text-[11px] tracking-[0.1em] uppercase text-ink-dim mr-1.5">
+        <span className="label mr-1.5">
           Élément
         </span>
         {ELEMENTS.map((el) => {
@@ -35,7 +35,7 @@ export default function FilterBar({
               onClick={() => toggleElement(el.key)}
               className={`flex items-center gap-1.5 rounded-full border bg-panel px-3.5 py-1.5 text-[13px] font-semibold
                 transition select-none ${ELEMENT_FILTER_STYLES[el.key]}
-                ${active ? 'shadow' : 'opacity-70 hover:opacity-100'}`}
+                ${active ? 'shadow' : 'opacity-70 hoverable:opacity-100'}`}
             >
               <ElementIcon element={el.key} size={16} />
               {el.label}
@@ -45,7 +45,7 @@ export default function FilterBar({
       </div>
 
       <div className="flex flex-wrap items-center gap-2">
-        <span className="font-mono text-[11px] tracking-[0.1em] uppercase text-ink-dim mr-1.5">
+        <span className="label mr-1.5">
           Étoiles
         </span>
         {STAR_OPTIONS.map((s) => {
@@ -58,7 +58,7 @@ export default function FilterBar({
                 ${
                   active
                     ? 'bg-gradient-to-br from-star to-yellow-200 text-bg border-star shadow-lg'
-                    : 'bg-panel border-border text-ink-dim hover:text-ink hover:border-[#4a52a0]'
+                    : 'bg-panel border-border text-ink-dim hoverable:text-ink hoverable:border-accent'
                 }`}
             >
               {s}★
@@ -68,7 +68,7 @@ export default function FilterBar({
       </div>
 
       <div className="flex items-center gap-2.5">
-        <span className="font-mono text-[11px] tracking-[0.1em] uppercase text-ink-dim">
+        <span className="label">
           Tri interne
         </span>
         <select

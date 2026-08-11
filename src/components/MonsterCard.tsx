@@ -4,12 +4,12 @@ import { Monster } from '../types';
 import ElementIcon from './ElementIcon';
 
 const BORDER: Record<string, string> = {
-  fire: 'hover:border-fire hover:shadow-lg hover:shadow-fire-glow/40',
-  water: 'hover:border-water hover:shadow-lg hover:shadow-water-glow/40',
-  wind: 'hover:border-wind hover:shadow-lg hover:shadow-wind-glow/40',
-  light: 'hover:border-light hover:shadow-lg hover:shadow-light-glow/40',
-  dark: 'hover:border-dark hover:shadow-lg hover:shadow-dark-glow/40',
-  unknown: 'hover:border-unknown hover:shadow-lg hover:shadow-unknown-glow/40',
+  fire: 'hoverable:border-fire hoverable:shadow-lg hoverable:shadow-fire-glow/40',
+  water: 'hoverable:border-water hoverable:shadow-lg hoverable:shadow-water-glow/40',
+  wind: 'hoverable:border-wind hoverable:shadow-lg hoverable:shadow-wind-glow/40',
+  light: 'hoverable:border-light hoverable:shadow-lg hoverable:shadow-light-glow/40',
+  dark: 'hoverable:border-dark hoverable:shadow-lg hoverable:shadow-dark-glow/40',
+  unknown: 'hoverable:border-unknown hoverable:shadow-lg hoverable:shadow-unknown-glow/40',
 };
 
 const TEXT: Record<string, string> = {

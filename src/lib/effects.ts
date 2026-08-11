@@ -102,10 +102,27 @@ export const RELIC_MAIN: Record<number, { label: string; stat: StatKey }> = {
   102: { label: 'DEF%', stat: 'def' },
 };
 
-// Rareté → libellé + couleur du texte/bordure (vive) + fond (dégradé sombre),
+// Rareté → libellé + couleur de texte + fond de bannière (dégradé sombre),
 // façon bannière du jeu (ex. Légendaire = orange sur bordeaux).
-export const RARITY_META: Record<number, { label: string; color: string; bg: string }> = {
-  5: { label: 'Légendaire', color: '#f8b24a', bg: 'linear-gradient(180deg,#7a2a1c,#431310)' },
+//
+// ⚠️ `color` sert à DEUX usages qui n'ont pas les mêmes contraintes :
+//   - sur la BANNIÈRE, où le fond est le dégradé sombre `bg` dans les deux
+//     thèmes — la couleur vive du jeu y est parfaite ;
+//   - comme couleur de TEXTE sur un panneau (liste des runes, légende du
+//     résumé), où elle doit suivre le thème. En clair, `#7cf0a6` sur blanc est
+//     illisible.
+// D'où `color` (bannière, fixe) et `ink` (texte, variable de thème). Les valeurs
+// claires vivent dans index.css. Voir spec/shared/design.md.
+export const RARITY_META: Record<
+  number,
+  { label: string; color: string; bg: string; ink: string }
+> = {
+  5: {
+    label: 'Légendaire',
+    color: '#f8b24a',
+    bg: 'linear-gradient(180deg,#7a2a1c,#431310)',
+    ink: 'rgb(var(--rarity-5))',
+  },
   // ⚠️ Ordre du jeu : Commun (blanc) → Magique (VERT) → Rare (BLEU) → Héroïque
   // → Légendaire (orange). Vert et bleu étaient intervertis ici.
   //
@@ -113,10 +130,30 @@ export const RARITY_META: Record<number, { label: string; color: string; bg: str
   // électrique. Il sert de FOND ; la couleur de texte en reprend la teinte
   // éclaircie, #154c79 étant trop sombre pour rester lisible sur le panneau.
   // L'héroïque garde son violet : essayé en #691d42, le rendu ne passait pas.
-  4: { label: 'Héroïque', color: '#c88cff', bg: 'linear-gradient(180deg,#3f2270,#241145)' },
-  3: { label: 'Rare', color: '#6fa3cf', bg: 'linear-gradient(180deg,#154c79,#0d2c47)' },
-  2: { label: 'Magique', color: '#7cf0a6', bg: 'linear-gradient(180deg,#1f5a39,#0f3121)' },
-  1: { label: 'Commun', color: '#e6e6e6', bg: 'linear-gradient(180deg,#4a4a4a,#2a2a2a)' },
+  4: {
+    label: 'Héroïque',
+    color: '#c88cff',
+    bg: 'linear-gradient(180deg,#3f2270,#241145)',
+    ink: 'rgb(var(--rarity-4))',
+  },
+  3: {
+    label: 'Rare',
+    color: '#6fa3cf',
+    bg: 'linear-gradient(180deg,#154c79,#0d2c47)',
+    ink: 'rgb(var(--rarity-3))',
+  },
+  2: {
+    label: 'Magique',
+    color: '#7cf0a6',
+    bg: 'linear-gradient(180deg,#1f5a39,#0f3121)',
+    ink: 'rgb(var(--rarity-2))',
+  },
+  1: {
+    label: 'Commun',
+    color: '#e6e6e6',
+    bg: 'linear-gradient(180deg,#4a4a4a,#2a2a2a)',
+    ink: 'rgb(var(--rarity-1))',
+  },
 };
 
 // Colorisation du symbole de set selon la rareté de la rune (filtre CSS sur l'image).

@@ -1,5 +1,6 @@
 import { ReactNode, useEffect, useRef, useState } from 'react';
 import { AlertTriangle, Check, HardDriveDownload, ShieldCheck } from 'lucide-react';
+import { BOUTON_DESTRUCTIF, BOUTON_PRIMAIRE, BOUTON_SECONDAIRE } from './buttonStyles';
 
 /* --------------------------------------------------------------------------
  * Fenêtres modales de l'application
@@ -27,10 +28,54 @@ function Modale({
   labelledBy: string;
   children: ReactNode;
 }) {
+  const boite = useRef<HTMLDivElement>(null);
+
+  // ⚠️ Trois manques corrigés ICI, dans la coquille : les quatre dialogues en
+  // héritent d'un coup.
+  //  1. le focus REVIENT à l'élément qui a ouvert la modale — sans ça, on
+  //     repartait du haut du document après avoir confirmé un effacement ;
+  //  2. Tab BOUCLE dans la modale — sinon on tabulait dans la page derrière,
+  //     invisible et toujours cliquable ;
+  //  3. la page derrière ne DÉFILE plus.
   useEffect(() => {
-    const onEsc = (e: KeyboardEvent) => e.key === 'Escape' && onClose();
-    document.addEventListener('keydown', onEsc);
-    return () => document.removeEventListener('keydown', onEsc);
+    const ouvreur = document.activeElement as HTMLElement | null;
+    const scrollAvant = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+
+    const focusables = () =>
+      Array.from(
+        boite.current?.querySelectorAll<HTMLElement>(
+          'button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])'
+        ) ?? []
+      );
+
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        onClose();
+        return;
+      }
+      if (e.key !== 'Tab') return;
+      const cibles = focusables();
+      if (cibles.length === 0) return;
+      const premier = cibles[0];
+      const dernier = cibles[cibles.length - 1];
+      // `activeElement` peut être hors de la boîte (premier Tab après ouverture).
+      const actif = document.activeElement;
+      if (e.shiftKey && (actif === premier || !boite.current?.contains(actif))) {
+        e.preventDefault();
+        dernier.focus();
+      } else if (!e.shiftKey && actif === dernier) {
+        e.preventDefault();
+        premier.focus();
+      }
+    };
+
+    document.addEventListener('keydown', onKey);
+    return () => {
+      document.removeEventListener('keydown', onKey);
+      document.body.style.overflow = scrollAvant;
+      ouvreur?.focus?.();
+    };
   }, [onClose]);
 
   return (
@@ -40,6 +85,7 @@ function Modale({
       role="presentation"
     >
       <div
+        ref={boite}
         role="dialog"
         aria-modal="true"
         aria-labelledby={labelledBy}
@@ -52,12 +98,9 @@ function Modale({
   );
 }
 
-const BOUTON_NEUTRE =
-  'rounded-lg bg-gradient-to-br from-[#3a4270] to-[#272e52] px-3.5 py-2 text-[12.5px] font-semibold text-ink shadow transition hover:brightness-110';
-const BOUTON_DESTRUCTIF =
-  'rounded-lg border border-fire/50 bg-fire/10 px-3.5 py-2 text-[12.5px] font-semibold text-fire transition hover:bg-fire/20';
-const BOUTON_SECONDAIRE =
-  'rounded-lg border border-border bg-panel2 px-3.5 py-2 text-[12.5px] font-semibold text-ink-dim transition hover:text-ink';
+// ⚠️ Ces trois classes ont été REMONTÉES dans buttonStyles.ts au deuxième
+// usage plutôt que recopiées ailleurs. C'est là que vit la pression au clic.
+const BOUTON_NEUTRE = BOUTON_PRIMAIRE;
 
 // Confirmation générique. `destructif` change la couleur du bouton d'action ET
 // l'ordre d'insistance : quand l'action détruit, c'est « Annuler » qui est mis en
@@ -153,7 +196,7 @@ export function PromptDialog({
           placeholder={placeholder}
           autoFocus
           className="mt-3 w-full rounded-lg border border-border bg-panel2 px-3 py-2 text-[13px] text-ink
-                     outline-none focus:border-[#5b63b8]"
+                     outline-none focus:border-accent"
         />
         <div className="mt-4 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
           <button type="button" onClick={onCancel} className={BOUTON_SECONDAIRE}>
@@ -269,15 +312,15 @@ export function KeepAccountDialog({
           <button
             onClick={() => onChoose(false, nePlusMontrer)}
             className="rounded-lg border border-border bg-panel2 px-3.5 py-2 text-[12.5px] font-semibold
-                       text-ink-dim transition hover:text-ink"
+                       text-ink-dim transition hoverable:text-ink"
           >
             Non, ne rien garder de mes informations
           </button>
           <button
             onClick={() => onChoose(true, nePlusMontrer)}
             autoFocus
-            className="rounded-lg bg-gradient-to-br from-[#3a4270] to-[#272e52] px-3.5 py-2 text-[12.5px]
-                       font-semibold text-ink shadow transition hover:brightness-110"
+            className="rounded-lg bg-accent-soft px-3.5 py-2 text-[12.5px]
+                       font-semibold text-ink shadow transition hoverable:brightness-110"
           >
             Garder mes données (recommandé)
           </button>

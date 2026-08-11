@@ -46,12 +46,12 @@ export default function NumberField({
   const bouger = (delta: number) => onChange(borne((value ?? 0) + delta));
 
   const btn =
-    'flex h-7 w-6 flex-none items-center justify-center text-ink-dim transition hover:text-ink hover:bg-panel2 disabled:opacity-30';
+    'flex h-7 w-6 flex-none items-center justify-center text-ink-dim transition hoverable:text-ink hoverable:bg-panel2 disabled:opacity-30';
 
   return (
     <div
       className="inline-flex h-7 items-center overflow-hidden rounded-lg border border-border bg-panel
-                 focus-within:border-[#5b63b8]"
+                 focus-within:border-accent"
       title={title}
     >
       <button

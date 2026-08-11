@@ -36,8 +36,8 @@ export default function Segmented<T extends string>({
             className={`flex items-center gap-1.5 rounded-md px-2 py-1 text-[11.5px] font-semibold
                         transition whitespace-nowrap ${
                           active
-                            ? 'bg-gradient-to-br from-[#3a4270] to-[#272e52] text-ink shadow'
-                            : 'text-ink-dim hover:text-ink'
+                            ? 'bg-accent-soft text-ink shadow'
+                            : 'text-ink-dim hoverable:text-ink'
                         }`}
           >
             {o.icon}

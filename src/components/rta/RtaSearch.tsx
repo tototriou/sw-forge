@@ -53,7 +53,7 @@ export default function RtaSearch({ monsters, addedIds, onAdd }: Props) {
         placeholder="Rechercher un monstre à ajouter à ta prépa RTA…"
         className="w-full bg-panel border border-border rounded-xl py-3.5 pl-11 pr-4 text-[15px]
                    text-ink placeholder:text-ink-dim outline-none transition
-                   focus:border-[#5b63b8] focus:shadow-[0_0_0_3px_rgba(91,99,184,0.2)]"
+                   focus:border-accent focus:shadow-[0_0_0_3px_rgba(91,99,184,0.2)]"
       />
 
       {open && (
@@ -76,7 +76,7 @@ export default function RtaSearch({ monsters, addedIds, onAdd }: Props) {
                   }}
                   disabled={added}
                   className={`flex w-full items-center gap-2.5 px-3.5 py-2 text-left transition
-                    ${added ? 'opacity-50 cursor-default' : 'hover:bg-panel2'}`}
+                    ${added ? 'opacity-50 cursor-default' : 'hoverable:bg-panel2'}`}
                 >
                   {/* Portrait : le nom ne suffit pas à distinguer les formes
                       d'un même monstre (voir MonsterAvatar). */}

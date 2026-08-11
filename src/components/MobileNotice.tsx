@@ -20,8 +20,8 @@ export default function MobileNotice() {
   if (ferme) return null;
 
   return (
-    <div className="md:hidden mb-4 flex items-start gap-2.5 rounded-xl border border-[#4a52a0] bg-panel2/60 px-3 py-2.5">
-      <Monitor size={16} className="mt-0.5 flex-none text-[#8b92e0]" />
+    <div className="md:hidden mb-4 flex items-start gap-2.5 rounded-xl border border-accent bg-panel2/60 px-3 py-2.5">
+      <Monitor size={16} className="mt-0.5 flex-none text-accent" />
       <p className="flex-1 text-[12px] leading-relaxed text-ink-dim">
         <b className="text-ink">SW Forge est pensé pour un grand écran.</b> Tout fonctionne sur
         téléphone, mais les listes de runes et les équipes de siège se lisent bien plus
@@ -30,7 +30,7 @@ export default function MobileNotice() {
       <button
         onClick={() => setFerme(true)}
         aria-label="Masquer cet avertissement"
-        className="flex-none rounded-md p-1 text-ink-dim transition hover:text-ink"
+        className="flex-none rounded-md p-1 text-ink-dim transition hoverable:text-ink"
       >
         <X size={14} />
       </button>

@@ -208,7 +208,7 @@ export default function RunesSummary({ runes }: Props) {
           </div>
 
           <div className="mt-3 border-t border-border pt-3 flex flex-col gap-1.5">
-            <p className="font-mono text-[11px] tracking-[0.1em] uppercase text-ink-dim">Raretés</p>
+            <p className="label">Raretés</p>
             <div className="flex h-2.5 w-full overflow-hidden rounded-full bg-panel2">
               {s.rarities.map(
                 (r) =>
@@ -224,8 +224,11 @@ export default function RunesSummary({ runes }: Props) {
             <div className="flex flex-wrap gap-x-3 gap-y-1 font-mono text-[11px] text-ink-dim">
               {s.rarities.map((r) => (
                 <span key={r.rarity} className="flex items-center gap-1">
+                  {/* La PASTILLE garde la couleur vive du jeu (elle a sa propre
+                      surface) ; c'est le texte qui suivrait mal en thème clair,
+                      et lui reste en `text-ink-dim` hérité. */}
                   <span
-                    className="inline-block w-2 h-2 rounded-full"
+                    className="inline-block w-2 h-2 rounded-full ring-1 ring-inset ring-black/20"
                     style={{ background: RARITY_META[r.rarity].color }}
                   />
                   {RARITY_META[r.rarity].label} <b className="text-ink">{r.n}</b>
@@ -242,7 +245,7 @@ export default function RunesSummary({ runes }: Props) {
           {s.slots.map(({ slot, agg }) => (
             <div key={slot} className="rounded-lg border border-border bg-panel2 px-3 py-2">
               <div className="flex items-baseline justify-between">
-                <span className="font-mono text-[11px] uppercase tracking-[0.1em] text-ink-dim">Slot {slot}</span>
+                <span className="label">Slot {slot}</span>
                 <span className="font-mono text-[12px] text-ink">{agg.n}</span>
               </div>
               <div className="mt-1 font-mono text-[12px] text-ink-dim">
@@ -339,7 +342,7 @@ export default function RunesSummary({ runes }: Props) {
 function Kpi({ label, value, sub, tone }: { label: string; value: string; sub?: string; tone?: string }) {
   return (
     <div className="rounded-xl border border-border bg-panel px-3 py-2.5">
-      <p className="font-mono text-[10.5px] tracking-[0.1em] uppercase text-ink-dim">{label}</p>
+      <p className="label">{label}</p>
       <p className="mt-0.5 text-[22px] font-bold leading-none tabular-nums" style={{ color: tone ?? '#E9E7F0' }}>
         {value}
       </p>
@@ -352,7 +355,7 @@ function Kpi({ label, value, sub, tone }: { label: string; value: string; sub?: 
 function Panel({ title, children }: { title: string; children: React.ReactNode }) {
   return (
     <section className="rounded-xl border border-border bg-panel p-4">
-      <h3 className="mb-3 font-mono text-[11px] tracking-[0.14em] uppercase text-ink-dim">{title}</h3>
+      <h3 className="mb-3 label">{title}</h3>
       {children}
     </section>
   );

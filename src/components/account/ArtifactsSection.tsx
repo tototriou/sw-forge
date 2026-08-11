@@ -92,7 +92,7 @@ export default function ArtifactsSection({ artifacts }: Props) {
             jeu, un en-tête « Type » au-dessus d'un bouton « Type » se lirait
             comme un doublon. */}
         <div className="flex flex-wrap items-center gap-2">
-          <span className="w-[86px] flex-none font-mono text-[11px] tracking-[0.1em] uppercase text-ink-dim">
+          <span className="w-[86px] flex-none label">
             Catégorie
           </span>
           {/* ⚠️ Un contrôle **à cran** (`Segmented`) et non trois pastilles :
@@ -122,7 +122,7 @@ export default function ArtifactsSection({ artifacts }: Props) {
             largeur : on ne voyait plus où finissait un filtre et où commençait
             le suivant. */}
         <div className="flex flex-wrap items-center gap-2">
-          <span className="w-[86px] flex-none font-mono text-[11px] tracking-[0.1em] uppercase text-ink-dim">
+          <span className="w-[86px] flex-none label">
             Attribut
           </span>
 
@@ -161,7 +161,7 @@ export default function ArtifactsSection({ artifacts }: Props) {
                 }}
                 className={`flex items-center gap-1.5 rounded-full border bg-panel px-3 py-1 text-[12.5px] font-semibold
                   transition select-none ${ELEMENT_FILTER_STYLES[e.key]}
-                  ${hs ? 'opacity-25 cursor-not-allowed' : active ? 'shadow' : 'opacity-70 hover:opacity-100'}`}
+                  ${hs ? 'opacity-25 cursor-not-allowed' : active ? 'shadow' : 'opacity-70 hoverable:opacity-100'}`}
               >
                 <ElementIcon element={e.key} size={15} />
                 {e.label}
@@ -171,7 +171,7 @@ export default function ArtifactsSection({ artifacts }: Props) {
         </div>
 
         <div className="flex flex-wrap items-center gap-2">
-          <span className="w-[86px] flex-none font-mono text-[11px] tracking-[0.1em] uppercase text-ink-dim">
+          <span className="w-[86px] flex-none label">
             Type
           </span>
           {/* ⚠️ Les types restent **neutres**, sans couleur propre. Les quatre
@@ -194,8 +194,8 @@ export default function ArtifactsSection({ artifacts }: Props) {
                 className={`flex items-center gap-1.5 rounded-full border px-3 py-1 text-[12.5px] font-semibold
                   transition select-none ${
                     active
-                      ? 'bg-panel2 border-[#4a52a0] text-ink shadow'
-                      : 'bg-panel border-border text-ink-dim hover:text-ink hover:border-[#4a52a0]'
+                      ? 'bg-panel2 border-accent text-ink shadow'
+                      : 'bg-panel border-border text-ink-dim hoverable:text-ink hoverable:border-accent'
                   } ${hs ? 'opacity-25 cursor-not-allowed' : ''}`}
               >
                 <ArtifactGlyph name={a.key} size={15} />
@@ -207,7 +207,7 @@ export default function ArtifactsSection({ artifacts }: Props) {
 
         {/* Rareté */}
         <div className="flex flex-wrap items-center gap-2">
-          <span className="w-[86px] flex-none font-mono text-[11px] tracking-[0.1em] uppercase text-ink-dim">Rareté</span>
+          <span className="w-[86px] flex-none label">Rareté</span>
           {RARITY_ORDER.map((r) => {
             const meta = RARITY_META[r];
             const active = rarities.has(r);
@@ -281,7 +281,7 @@ const ArtTile = memo(function ArtTile({
   return (
     <div
       ref={ref}
-      className={`relative rounded-lg border bg-panel ${open ? 'z-20 border-[#4a52a0]' : 'border-border'}`}
+      className={`relative rounded-lg border bg-panel ${open ? 'z-20 border-accent' : 'border-border'}`}
     >
       <button
         onClick={() => onToggle(id)}

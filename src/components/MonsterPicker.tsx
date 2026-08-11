@@ -1,7 +1,8 @@
-import { useMemo, useState } from 'react';
+import { useId, useMemo, useState } from 'react';
 import { Search, Plus } from 'lucide-react';
 import { Monster } from '../types';
 import MonsterAvatar from './MonsterAvatar';
+import { useComboboxNav } from '../hooks/useComboboxNav';
 
 interface Props {
   monsters: Monster[];
@@ -13,9 +14,17 @@ interface Props {
 const MAX_RESULTS = 25;
 
 // Recherche de monstre par nom → sélection (dropdown de suggestions).
+//
+// La navigation au clavier vit dans
+// [useComboboxNav](src/hooks/useComboboxNav.ts), partagé avec
+// [RtaSearch](src/components/rta/RtaSearch.tsx) : ↑/↓, Entrée sur l'élément
+// surligné, Échap pour fermer.
 export default function MonsterPicker({ monsters, onPick, excludeIds, placeholder }: Props) {
   const [query, setQuery] = useState('');
-  const [focused, setFocused] = useState(false);
+  // ⚠️ Plusieurs pickers coexistent (un par slot d'équipe de siège) : les `id`
+  // ARIA doivent être uniques, sinon `aria-activedescendant` désigne l'option
+  // d'un autre champ.
+  const idBase = useId();
 
   const results = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -31,55 +40,62 @@ export default function MonsterPicker({ monsters, onPick, excludeIds, placeholde
     return out;
   }, [monsters, query, excludeIds]);
 
-  const open = focused && query.trim().length > 0;
-
-  function pick(id: string) {
-    onPick(id);
-    setQuery('');
-    setFocused(false);
-  }
+  const nav = useComboboxNav<Monster>({
+    results,
+    query,
+    setQuery,
+    idBase,
+    // Les monstres déjà pris sont filtrés en amont (`excludeIds`) : tout ce qui
+    // est affiché est sélectionnable.
+    onValider: (m) => onPick(String(m.id)),
+  });
 
   return (
     <div className="relative">
       <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-ink-dim" />
       <input
+        {...nav.inputProps}
         type="text"
         value={query}
         onChange={(e) => setQuery(e.target.value)}
-        onKeyDown={(e) => {
-          if (e.key !== 'Enter') return;
-          if (results[0]) pick(String(results[0].id));
-        }}
-        onFocus={() => setFocused(true)}
-        onBlur={() => setTimeout(() => setFocused(false), 150)}
         placeholder={placeholder ?? 'Rechercher…'}
         className="w-full bg-panel border border-border rounded-lg py-2 pl-9 pr-3 text-[13px]
                    text-ink placeholder:text-ink-dim outline-none transition
                    focus:border-accent focus:shadow-[0_0_0_3px_rgb(var(--accent)/0.25)]"
       />
 
-      {open && (
-        <div className="absolute z-30 mt-1.5 w-full max-h-[300px] overflow-y-auto rounded-lg border border-border bg-panel shadow-glow shadow-black/60">
+      {nav.open && (
+        <div
+          {...nav.listProps}
+          aria-label="Résultats de la recherche"
+          className="absolute z-30 mt-1.5 w-full max-h-[300px] overflow-y-auto rounded-lg border border-border bg-panel shadow-glow shadow-black/60"
+        >
           {results.length === 0 ? (
             <div className="px-3 py-2 text-ink-dim text-[12.5px]">Aucun monstre trouvé.</div>
           ) : (
-            results.map((m) => (
-              <button
-                key={m.id}
-                onMouseDown={(e) => {
-                  e.preventDefault();
-                  pick(String(m.id));
-                }}
-                className="flex w-full items-center gap-2.5 px-3 py-1.5 text-left hoverable:bg-panel2 transition"
-              >
-                {/* Portrait : le nom ne suffit pas à distinguer les formes d'un
-                    même monstre (voir MonsterAvatar). */}
-                <MonsterAvatar monster={m} size={28} />
-                <span className="text-[13px] font-medium truncate flex-1">{m.name}</span>
-                <span className="font-mono text-[11px] text-ink-dim">SPD {m.stats.speed ?? '—'}</span>
-                <Plus size={14} className="text-ink-dim flex-none" />
-              </button>
-            ))
+            results.map((m, i) => {
+              const estActif = i === nav.actif;
+              return (
+                <div
+                  key={m.id}
+                  {...nav.optionProps(i)}
+                  onMouseDown={(e) => {
+                    e.preventDefault();
+                    onPick(String(m.id));
+                    nav.reinitialiser();
+                  }}
+                  className={`flex w-full cursor-pointer items-center gap-2.5 px-3 py-1.5 text-left transition
+                    ${estActif ? 'bg-accent-soft' : ''}`}
+                >
+                  {/* Portrait : le nom ne suffit pas à distinguer les formes d'un
+                      même monstre (voir MonsterAvatar). */}
+                  <MonsterAvatar monster={m} size={28} />
+                  <span className="text-[13px] font-medium truncate flex-1">{m.name}</span>
+                  <span className="font-mono text-[11px] text-ink-dim">SPD {m.stats.speed ?? '—'}</span>
+                  <Plus size={14} className={`flex-none ${estActif ? 'text-accent' : 'text-ink-dim'}`} />
+                </div>
+              );
+            })
           )}
         </div>
       )}

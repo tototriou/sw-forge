@@ -14,10 +14,19 @@ Fichiers : [RtaPage.tsx](src/pages/RtaPage.tsx) ·
 - Dropdown de suggestions : **portrait du monstre**
   ([MonsterAvatar](src/components/MonsterAvatar.tsx), 30 px, pastille d'élément
   incluse), nom, étoiles, SPD de base, état (déjà ajouté = ✓ grisé, sinon +).
-- **Entrée** = ajoute le **premier résultat non encore ajouté** puis vide le champ.
 - Clic sur une suggestion (`onMouseDown` pour devancer le blur) = ajoute.
 - Ajout → le monstre entre en **« Non classé »** (`addMonster`), une seule carte
   par monstre.
+
+### Navigation au clavier
+
+Assurée par [useComboboxNav](src/hooks/useComboboxNav.ts), **partagé avec toutes
+les barres de recherche à suggestions**. Voir
+[shared/recherche-clavier.md](../shared/recherche-clavier.md) pour les règles.
+
+Spécificité RTA : un monstre déjà en prépa reste **affiché** (l'information est
+utile) mais n'est pas sélectionnable — la sélection l'évite, et Entrée dessus
+avance au suivant disponible.
 
 ## Barre d'actions
 

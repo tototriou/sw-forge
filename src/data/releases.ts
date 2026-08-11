@@ -38,6 +38,39 @@ export const CHANGE_META: Record<ChangeKind, { label: string; color: string }> =
 // Si une ligne dépasse ~15 mots, c'est qu'elle raconte l'implémentation.
 export const RELEASES: Release[] = [
   {
+    version: '1.3.1',
+    date: '2026-08-11',
+    title: 'Les recherches se pilotent au clavier',
+    highlights: ['Tape un nom, flèches, Entrée — et le champ est prêt pour le suivant'],
+    changes: [
+      {
+        kind: 'feat',
+        scope: 'Interface',
+        text: 'Les flèches ↑ et ↓ parcourent les résultats de toutes les recherches.',
+      },
+      {
+        kind: 'feat',
+        scope: 'Interface',
+        text: 'Entrée valide le monstre surligné, vide le champ et attend le suivant.',
+      },
+      {
+        kind: 'fix',
+        scope: 'Interface',
+        text: 'On voit quel monstre sera choisi avant d’appuyer sur Entrée.',
+      },
+      {
+        kind: 'fix',
+        scope: 'Interface',
+        text: 'Échap ferme la liste de résultats, une seconde fois vide le champ.',
+      },
+      {
+        kind: 'fix',
+        scope: 'Siège',
+        text: 'La recherche de monstre d’une équipe se pilote comme celle de la RTA.',
+      },
+    ],
+  },
+  {
     version: '1.3.0',
     date: '2026-08-11',
     title: 'Un thème clair, et l’app se pilote enfin au clavier',

@@ -298,7 +298,7 @@ export default function RecoBoard({ recos, monsters, builds, teams, offense }: P
       />
 
       {msg && (
-        <p className={`mt-3 text-[12.5px] ${msg.error ? 'text-fire' : 'text-emerald-400'}`}>{msg.text}</p>
+        <p className={`mt-3 text-[12.5px] ${msg.error ? 'text-fire' : 'text-good'}`}>{msg.text}</p>
       )}
 
       {report && (report.errors.length > 0 || report.warnings.length > 0) && (
@@ -368,16 +368,16 @@ function ValidationReport({ report, onClose }: { report: ImportReport; onClose: 
   return (
     <div
       className={`mt-3 rounded-xl border px-3 py-2.5 ${
-        bloque ? 'border-fire/50 bg-fire/5' : 'border-amber-500/40 bg-amber-500/5'
+        bloque ? 'border-fire/50 bg-fire/5' : 'border-warn/40 bg-warn/5'
       }`}
     >
       <div className="flex items-center gap-2 mb-1.5">
         {bloque ? (
           <XCircle size={15} className="flex-none text-fire" />
         ) : (
-          <AlertTriangle size={15} className="flex-none text-amber-400" />
+          <AlertTriangle size={15} className="flex-none text-warn" />
         )}
-        <span className={`text-[12.5px] font-semibold ${bloque ? 'text-fire' : 'text-amber-300'}`}>
+        <span className={`text-[12.5px] font-semibold ${bloque ? 'text-fire' : 'text-warn'}`}>
           {bloque
             ? "Import refusé — le contenu n'est pas valide"
             : `Import effectué avec ${report.warnings.length} correction${report.warnings.length > 1 ? 's' : ''}`}
@@ -398,7 +398,7 @@ function ValidationReport({ report, onClose }: { report: ImportReport; onClose: 
           </li>
         ))}
         {report.warnings.map((w, i) => (
-          <li key={`w${i}`} className="text-[12px] text-amber-300/90 leading-snug">
+          <li key={`w${i}`} className="text-[12px] text-warn/90 leading-snug">
             • {w}
           </li>
         ))}

@@ -127,7 +127,7 @@ export function RuneDetailBox({ rune }: { rune: RuneDetail }) {
       {/* stat principale + innée */}
       <div className="text-[15px] font-black text-ink leading-tight">{formatRuneEffect(rune.main)}</div>
       {rune.innate && (
-        <div className="text-[13px] font-semibold text-sky-300 leading-tight">
+        <div className="text-[13px] font-semibold text-water leading-tight">
           {formatRuneEffect(rune.innate)}
         </div>
       )}
@@ -158,7 +158,7 @@ export function RuneDetailBox({ rune }: { rune: RuneDetail }) {
       </div>
       {/* bonus de set */}
       {bonus && (
-        <div className="mt-2 pt-2 border-t border-border/40 text-[12px] text-emerald-300">
+        <div className="mt-2 pt-2 border-t border-border/40 text-[12px] text-good">
           {bonus.pieces} Set : {bonus.label}
         </div>
       )}
@@ -208,7 +208,7 @@ export function ArtifactDetailBox({ artifact }: { artifact: ArtifactDetail }) {
         ))}
       </div>
       {/* type */}
-      <div className="mt-2 pt-2 border-t border-border/40 text-[12px] text-emerald-300">
+      <div className="mt-2 pt-2 border-t border-border/40 text-[12px] text-good">
         {artifactTypeLabel(artifact)}
       </div>
     </div>
@@ -258,7 +258,7 @@ export default function MonsterGear({ gear, spdCible = null }: Props) {
                   {fmt(row.base)}
                   {row.suffix}
                 </td>
-                <td className="py-1 text-left font-mono font-semibold text-emerald-400 tabular-nums">
+                <td className="py-1 text-left font-mono font-semibold text-good tabular-nums">
                   {row.bonus > 0 ? `+${fmt(row.bonus)}${row.suffix}` : '—'}
                   {/* Objectif de vitesse : ce que les runes doivent donner pour
                       coller à la valeur saisie dans l'ordre de tour. */}

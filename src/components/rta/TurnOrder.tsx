@@ -323,7 +323,7 @@ export default function TurnOrder({
                 // concurrence avec l'anneau de catégories : deux informations
                 // au même endroit, on ne lisait plus ni l'une ni l'autre.
                 className={`relative flex-none w-[168px] rounded-xl border border-border p-2 flex flex-col gap-1.5 transition-colors
-                  ${moved ? 'bg-amber-500/20' : 'bg-panel2'}`}
+                  ${moved ? 'bg-warn/20' : 'bg-panel2'}`}
               >
                 <CategoryRing colors={catsOf(String(m.id)).map((c) => c.color)} radius="rounded-xl" />
                 {/* numéro d'ordre superposé en haut à gauche */}

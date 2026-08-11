@@ -261,6 +261,34 @@ selon la façon dont on l'a activé est un bug indétectable à la lecture.
 
 ## Règles transverses
 
+### Aucune couleur Tailwind native
+
+⚠️ **`amber-400`, `emerald-500`, `sky-300` sont interdits.** Ce sont des valeurs
+figées : elles ne suivent pas le thème, exactement comme un hexadécimal. La
+vérification des ticks ATB était illisible en clair pour cette raison — un
+`text-amber-300` sur fond blanc.
+
+| Interdit | À utiliser | Sens |
+|----------|-----------|------|
+| `amber-*` | `warn` | Avertissement |
+| `emerald-*` | `good` | Succès, gain, au tick |
+| `sky-*` | `water` | Information |
+| `rose-*`, `red-*` | `bad` | Erreur, hors tick |
+
+Les nuances 300/400/500 se réduisent à **un seul token** : la variation de
+luminosité est déjà portée par le thème (`--warn` vaut `217 164 65` en sombre,
+`138 87 12` en clair). Garder trois nuances reproduirait le problème.
+
+⚠️ **Les aplats sémantiques sont à /10, jamais à /5.** Sur fond clair, un aplat à
+5 % ne se distingue pas du panneau — l'aura d'une équipe hors tick disparaissait.
+
+⚠️ **Pas de halo en `rgba()` figé.** Un `shadow-[0_0_20px_rgba(245,158,11,.65)]`
+est un halo orange vif : correct sur fond sombre, criard sur fond clair. Utiliser
+la bordure et l'anneau, qui passent par les tokens.
+
+*Exception* : les `rgba()` noirs ou blancs sur les **icônes du jeu**
+(`drop-shadow`) restent — ils fonctionnent dans les deux thèmes.
+
 ### Focus — une règle globale, pas 24 exceptions
 
 ```css

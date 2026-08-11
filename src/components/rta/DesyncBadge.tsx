@@ -46,7 +46,7 @@ export default function DesyncBadge({
         }}
         aria-expanded={open}
         aria-label="Vitesse modifiée à la main"
-        className="flex items-center justify-center text-amber-400 transition hoverable:text-amber-300"
+        className="flex items-center justify-center text-warn transition hoverable:text-warn"
       >
         <AlertTriangle size={size} />
       </button>
@@ -56,11 +56,11 @@ export default function DesyncBadge({
           vers la gauche ou vers le haut selon la place disponible. */}
       <DetailPopover open={open} anchorRef={ref} width={230} height={130}>
         <div
-          className="rounded-lg border border-amber-500/50 bg-panel p-2.5 text-left text-[11.5px]
+          className="rounded-lg border border-warn/50 bg-panel p-2.5 text-left text-[11.5px]
                      leading-relaxed text-ink-dim"
           onClick={(e) => e.stopPropagation()}
         >
-          <span className="mb-1 block font-semibold text-amber-400">Runes plus à jour</span>
+          <span className="mb-1 block font-semibold text-warn">Runes plus à jour</span>
           Les runes affichées ne correspondent plus à la vitesse demandée dans l'ordre de tour : elles
           donnent <b className="text-ink">{ecart.attendu}</b> de SPD, alors qu'il en faut{' '}
           <b className="text-fire">{ecart.saisi}</b>. Cette vitesse demandée apparaît{' '}

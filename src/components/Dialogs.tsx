@@ -125,7 +125,7 @@ export function ConfirmDialog({
       <div className="flex items-start gap-3">
         <span
           className={`mt-0.5 flex-none rounded-lg p-2 ${
-            destructif ? 'bg-fire/15 text-fire' : 'bg-amber-500/15 text-amber-400'
+            destructif ? 'bg-fire/15 text-fire' : 'bg-warn/15 text-warn'
           }`}
         >
           <AlertTriangle size={18} />
@@ -284,7 +284,7 @@ export function KeepAccountDialog({
         </div>
 
         <p className="mt-3 flex items-start gap-2 rounded-lg border border-border bg-panel2 px-3 py-2 text-[11.5px] leading-relaxed text-ink-dim">
-          <ShieldCheck size={14} className="mt-[1px] flex-none text-emerald-400" />
+          <ShieldCheck size={14} className="mt-[1px] flex-none text-good" />
           <span>
             Tout reste <b className="text-ink">dans ton navigateur</b>, sur cet ordinateur. Rien
             n'est envoyé nulle part, et rien n'est partagé.

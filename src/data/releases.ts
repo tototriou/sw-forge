@@ -25,8 +25,8 @@ export interface Release {
 }
 
 export const CHANGE_META: Record<ChangeKind, { label: string; color: string }> = {
-  feat: { label: 'Nouveau', color: 'text-emerald-400' },
-  fix: { label: 'Correction', color: 'text-amber-400' },
+  feat: { label: 'Nouveau', color: 'text-good' },
+  fix: { label: 'Correction', color: 'text-warn' },
   docs: { label: 'Doc', color: 'text-ink-dim' },
 };
 

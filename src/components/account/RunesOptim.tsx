@@ -67,7 +67,7 @@ export function keepAncient(rune: RuneDetail, filter: AncientFilter): boolean {
 
 // Couleur d'une efficience potentielle vs l'actuelle : vert au-dessus, rouge en dessous.
 export const effColor = (e: number, base: number) =>
-  e > base + 0.05 ? 'text-emerald-400' : e < base - 0.05 ? 'text-fire' : 'text-ink-dim';
+  e > base + 0.05 ? 'text-good' : e < base - 0.05 ? 'text-fire' : 'text-ink-dim';
 
 export default function RunesOptim({ runes, crafts }: Props) {
   const [threshold, setThreshold] = useStickyState('optim.threshold', 100);
@@ -372,7 +372,7 @@ export default function RunesOptim({ runes, crafts }: Props) {
               <p className="mt-2">
                 <span className="text-ink font-semibold">Gain</span> = potentiel − efficience actuelle : ce
                 que la rune gagnerait. Sur chaque carte, il est affiché en{' '}
-                <span className="text-emerald-400">vert</span> si le potentiel est au-dessus de l'actuelle, en{' '}
+                <span className="text-good">vert</span> si le potentiel est au-dessus de l'actuelle, en{' '}
                 <span className="text-fire">rouge</span> s'il est en dessous (ex. une rune déjà grindée
                 légendaire « perd » en héroïque — ce cas disparaît sous « Faisable avec ma réserve »).
               </p>
@@ -405,8 +405,8 @@ export default function RunesOptim({ runes, crafts }: Props) {
               </p>
               <ul className="mt-1.5 space-y-1">
                 <li>
-                  <Hammer size={12} className="inline mb-0.5 text-emerald-400" />{' '}
-                  <b className="text-emerald-400">vert</b> — tu l'as en réserve, du bon set et au bon grade :
+                  <Hammer size={12} className="inline mb-0.5 text-good" />{' '}
+                  <b className="text-good">vert</b> — tu l'as en réserve, du bon set et au bon grade :
                   c'est posable maintenant.
                 </li>
                 <li>
@@ -607,12 +607,12 @@ function SubLine({
         (enReserve.kind === 'grind' ? (
           <Hammer
             size={10}
-            className={`ml-auto flex-none ${enReserve.ok ? 'text-emerald-400' : 'text-ink-dim opacity-40'}`}
+            className={`ml-auto flex-none ${enReserve.ok ? 'text-good' : 'text-ink-dim opacity-40'}`}
           />
         ) : (
           <Gem
             size={10}
-            className={`ml-auto flex-none ${enReserve.ok ? 'text-emerald-400' : 'text-ink-dim opacity-40'}`}
+            className={`ml-auto flex-none ${enReserve.ok ? 'text-good' : 'text-ink-dim opacity-40'}`}
           />
         ))}
     </div>
@@ -658,14 +658,14 @@ export function OptimPlanBox({
         <span className="font-mono text-ink-dim text-[11px]">
           {formatRuneMetric(plan.eff, metric)} →{' '}
           <b className="text-star">{formatRuneMetric(plan.targetEff, metric)}</b>{' '}
-          <span className={gain >= 0 ? 'text-emerald-400' : 'text-fire'}>({signed(gain, metric)})</span>
+          <span className={gain >= 0 ? 'text-good' : 'text-fire'}>({signed(gain, metric)})</span>
         </span>
       </div>
 
       {/* stat principale + innée (communes aux deux colonnes) */}
       <div className="text-[14px] font-black text-ink leading-tight">{formatRuneEffect(rune.main)}</div>
       {rune.innate && (
-        <div className="text-[12px] font-semibold text-sky-300 leading-tight">{formatRuneEffect(rune.innate)}</div>
+        <div className="text-[12px] font-semibold text-water leading-tight">{formatRuneEffect(rune.innate)}</div>
       )}
 
       <div className="mt-2 pt-2 border-t border-border/40 grid grid-cols-2 gap-x-4">

@@ -139,16 +139,20 @@ export default function SiegeTeam({
   // des monstres si.
   const monstresDeLEquipe = slotInfos.map(({ monster }) => monster?.name).filter(Boolean) as string[];
 
+  // ⚠️ Les halos passent par `shadow-<token>` + `shadow-color` plutôt que par un
+  // `rgba()` figé : un halo orange vif sur fond clair était criard et ne suivait
+  // pas le thème. Le fond monte à /10 en compensation — sur clair, un /5 ne se
+  // voit pas.
   const sectionClass =
     status === 'red'
-      ? 'border-fire bg-fire/5 ring-2 ring-fire/60 shadow-[0_0_22px_-6px_rgba(232,93,61,0.7)]'
+      ? 'border-fire bg-fire/10 ring-2 ring-fire/50'
       : status === 'orange'
-        ? 'border-amber-500 bg-amber-500/5 ring-2 ring-amber-500/60 shadow-[0_0_20px_-6px_rgba(245,158,11,0.65)]'
+        ? 'border-warn bg-warn/10 ring-2 ring-warn/50'
         : status === 'green'
-          ? 'border-emerald-500/70 bg-emerald-500/[0.05] ring-1 ring-emerald-500/40'
+          ? 'border-good/70 bg-good/10 ring-1 ring-good/40'
           : 'border-border bg-panel/50';
   const dotClass =
-    status === 'red' ? 'bg-fire' : status === 'orange' ? 'bg-amber-500' : status === 'green' ? 'bg-emerald-500' : '';
+    status === 'red' ? 'bg-fire' : status === 'orange' ? 'bg-warn' : status === 'green' ? 'bg-good' : '';
 
   return (
     <section className={`rounded-2xl border p-4 transition-colors ${sectionClass}`}>
@@ -373,14 +377,14 @@ export default function SiegeTeam({
       {(status === 'orange' || status === 'red') && (
         <div
           className={`mt-3 flex items-center gap-2 rounded-lg border px-3 py-2 ${
-            status === 'red' ? 'border-fire/40 bg-fire/10' : 'border-amber-500/40 bg-amber-500/10'
+            status === 'red' ? 'border-fire/40 bg-fire/10' : 'border-warn/40 bg-warn/10'
           }`}
         >
           <AlertTriangle
             size={15}
-            className={`flex-none ${status === 'red' ? 'text-fire' : 'text-amber-400'}`}
+            className={`flex-none ${status === 'red' ? 'text-fire' : 'text-warn'}`}
           />
-          <span className={`text-[12px] flex-1 ${status === 'red' ? 'text-fire' : 'text-amber-300'}`}>
+          <span className={`text-[12px] flex-1 ${status === 'red' ? 'text-fire' : 'text-warn'}`}>
             {status === 'red'
               ? messageTick ?? "Ton équipe n'est pas au tick."
               : 'Vérifier le speed tuning'}
@@ -396,7 +400,7 @@ export default function SiegeTeam({
       {status === 'green' && validated && (
         <button
           onClick={() => onDismissAlert(team.id, false)}
-          className="mt-3 text-[11px] text-emerald-400 hoverable:text-ink transition"
+          className="mt-3 text-[11px] text-good hoverable:text-ink transition"
           title="Réafficher la recommandation"
         >
           ✓ Recommandation ignorée · rétablir

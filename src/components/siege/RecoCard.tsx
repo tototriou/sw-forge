@@ -121,10 +121,12 @@ interface Props {
 
 // Aura selon la confrontation avec la box (même langage visuel que les équipes
 // de siège) : vert = OK, orange = partiel, rouge = bloqué, neutre = pas de compte.
+// ⚠️ Fonds à /10 et non /5 : sur fond clair, un aplat à 5 % ne se distingue pas
+// du panneau. Même langage visuel que SiegeTeam.
 const AURA: Record<string, string> = {
-  ok: 'border-emerald-500/70 bg-emerald-500/[0.05] ring-1 ring-emerald-500/40',
-  partial: 'border-amber-500 bg-amber-500/5 ring-2 ring-amber-500/60',
-  missing: 'border-fire bg-fire/5 ring-2 ring-fire/60',
+  ok: 'border-good/70 bg-good/10 ring-1 ring-good/40',
+  partial: 'border-warn bg-warn/10 ring-2 ring-warn/50',
+  missing: 'border-fire bg-fire/10 ring-2 ring-fire/50',
   unknown: 'border-border bg-panel/50',
 };
 
@@ -580,9 +582,9 @@ function AnalysisSummary({
 
   if (rates.length === 0) {
     return (
-      <div className="mb-3 flex items-center gap-2 rounded-lg border border-emerald-500/40 bg-emerald-500/10 px-3 py-2">
-        <Check size={15} className="flex-none text-emerald-400" />
-        <p className="text-[12.5px] text-emerald-300">
+      <div className="mb-3 flex items-center gap-2 rounded-lg border border-good/40 bg-good/10 px-3 py-2">
+        <Check size={15} className="flex-none text-good" />
+        <p className="text-[12.5px] text-good">
           Tout est respecté : les <b>{match.totalDecks}</b> deck(s) sont jouables avec tes monstres.
         </p>
         {closeBtn}
@@ -591,10 +593,10 @@ function AnalysisSummary({
   }
 
   return (
-    <div className="mb-3 rounded-lg border border-amber-500/40 bg-amber-500/5 px-3 py-2">
+    <div className="mb-3 rounded-lg border border-warn/40 bg-warn/5 px-3 py-2">
       <div className="flex items-center gap-2 mb-1.5">
-        <AlertTriangle size={15} className="flex-none text-amber-400" />
-        <p className="text-[12.5px] font-semibold text-amber-300">
+        <AlertTriangle size={15} className="flex-none text-warn" />
+        <p className="text-[12.5px] font-semibold text-warn">
           {match.okDecks}/{match.totalDecks} deck(s) au niveau · {rates.length} à corriger
         </p>
         {closeBtn}
@@ -609,7 +611,7 @@ function AnalysisSummary({
               </span>
               <span
                 className={`font-mono text-[10.5px] ${
-                  dm.status === 'nodeck' ? 'text-amber-400' : 'text-fire'
+                  dm.status === 'nodeck' ? 'text-warn' : 'text-fire'
                 }`}
               >
                 {deckProblem(dm)}
@@ -641,20 +643,20 @@ function AnalysisSummary({
 // Pastille de statut d'un deck dans l'aperçu replié.
 // `nodeck` = orange (à composer) ; `ko` et `missing` = rouge (bloquant).
 const DOT: Record<string, string> = {
-  ok: 'bg-emerald-500',
-  nodeck: 'bg-amber-500',
+  ok: 'bg-good',
+  nodeck: 'bg-warn',
   ko: 'bg-fire',
   missing: 'bg-fire',
-  partial: 'bg-amber-500',
+  partial: 'bg-warn',
   unknown: 'bg-unknown',
 };
 
 const DECK_AURA: Record<string, string> = {
-  ok: 'border-emerald-500/40 bg-emerald-500/[0.04]',
-  nodeck: 'border-amber-500/50 bg-amber-500/[0.04]',
+  ok: 'border-good/40 bg-good/[0.04]',
+  nodeck: 'border-warn/50 bg-warn/[0.04]',
   ko: 'border-fire/50 bg-fire/[0.04]',
   missing: 'border-fire/50 bg-fire/[0.04]',
-  partial: 'border-amber-500/50 bg-amber-500/[0.04]',
+  partial: 'border-warn/50 bg-warn/[0.04]',
   unknown: 'border-border bg-panel2/40',
 };
 
@@ -831,7 +833,7 @@ function DeckBlock({
                 sm?.status === 'absent' || sm?.status === 'ko'
                   ? 'border-fire/70 ring-1 ring-fire/40 bg-fire/5'
                   : sm?.status === 'ok'
-                    ? 'border-emerald-500/50 bg-emerald-500/[0.04]'
+                    ? 'border-good/50 bg-good/[0.04]'
                     : 'border-border bg-panel2/60'
               }`}
             >
@@ -1063,7 +1065,7 @@ function StatEditor({
               </td>
               <td className="py-0.5 pr-2">
                 <div className="flex items-center gap-1">
-                  <span className="font-mono text-[10px] text-emerald-400/70">+</span>
+                  <span className="font-mono text-[10px] text-good/70">+</span>
                   {/* Champ texte (et non `type=number`) : pas de boutons +/- à
                       droite, qui mangent la largeur d'une colonne déjà étroite.
                       `inputMode=numeric` garde le pavé numérique sur mobile.
@@ -1082,7 +1084,7 @@ function StatEditor({
                     }}
                     placeholder="—"
                     className="w-full min-w-[5ch] bg-panel border border-border rounded px-1 py-0.5
-                               text-[11px] font-mono tabular-nums text-emerald-400
+                               text-[11px] font-mono tabular-nums text-good
                                outline-none focus:border-accent"
                   />
                 </div>
@@ -1468,14 +1470,14 @@ function ArtifactList({
                     ok === null
                       ? 'border-border bg-panel'
                       : ok
-                        ? 'border-emerald-500/50 bg-emerald-500/10'
+                        ? 'border-good/50 bg-good/10'
                         : 'border-fire/50 bg-fire/10'
                   }`}
                 >
                   <span className={`text-[10.5px] ${ok === false ? 'text-fire' : 'text-ink'}`}>
                     {artifactSubLabel(code)}
                   </span>
-                  {ok === true && <Check size={10} className="text-emerald-400" />}
+                  {ok === true && <Check size={10} className="text-good" />}
                   {ok === false && <X size={10} className="text-fire" />}
                 </span>
               );
@@ -1531,7 +1533,7 @@ function SetList({ options, sm }: { options: string[][]; sm: SlotMatch | null })
                         ok === null
                           ? 'border-border bg-panel'
                           : ok
-                            ? 'border-emerald-500/50 bg-emerald-500/10'
+                            ? 'border-good/50 bg-good/10'
                             : 'border-fire/50 bg-fire/10'
                       }`}
                     >
@@ -1539,7 +1541,7 @@ function SetList({ options, sm }: { options: string[][]; sm: SlotMatch | null })
                       <span className={`text-[10.5px] ${ok === false ? 'text-fire' : 'text-ink'}`}>
                         ×{setPieces(key)}
                       </span>
-                      {ok === true && <Check size={10} className="text-emerald-400" />}
+                      {ok === true && <Check size={10} className="text-good" />}
                       {ok === false && <X size={10} className="text-fire" />}
                     </span>
                   );
@@ -1562,12 +1564,12 @@ function StatusPill({ match, onClear }: { match: RecoMatch; onClear: () => void 
   const map = {
     ok: {
       text: `${match.totalDecks} deck${match.totalDecks > 1 ? 's' : ''} jouable${match.totalDecks > 1 ? 's' : ''}`,
-      cls: 'border-emerald-500/50 text-emerald-300 bg-emerald-500/10',
+      cls: 'border-good/50 text-good bg-good/10',
       Icon: Check,
     },
     partial: {
       text: `${match.okDecks}/${match.totalDecks} deck${match.totalDecks > 1 ? 's' : ''} au niveau`,
-      cls: 'border-amber-500/50 text-amber-300 bg-amber-500/10',
+      cls: 'border-warn/50 text-warn bg-warn/10',
       Icon: AlertTriangle,
     },
     missing: { text: 'Aucun deck jouable', cls: 'border-fire/50 text-fire bg-fire/10', Icon: X },
@@ -1594,8 +1596,8 @@ function StatusPill({ match, onClear }: { match: RecoMatch; onClear: () => void 
 // Badge d'un deck : le verdict en trois mots, + l'équipe retenue si trouvée.
 function DeckBadge({ match }: { match: DeckMatch }) {
   const map: Record<string, { cls: string; text: string }> = {
-    ok: { cls: 'text-emerald-400', text: `jouable${match.team ? ` · ${match.team}` : ''}` },
-    nodeck: { cls: 'text-amber-400', text: 'aucun deck avec ces monstres — à composer' },
+    ok: { cls: 'text-good', text: `jouable${match.team ? ` · ${match.team}` : ''}` },
+    nodeck: { cls: 'text-warn', text: 'aucun deck avec ces monstres — à composer' },
     ko: {
       cls: 'text-fire',
       text: `${libelleCausesDeck(deckFaults(match.slots)) || 'critères non respectés'}${match.team ? ` · ${match.team}` : ''}`,
@@ -1649,7 +1651,7 @@ function SlotBadge({ sm }: { sm: SlotMatch }) {
     return <div className="font-mono text-[10px] text-ink-dim">possédé</div>;
   if (sm.status === 'ok')
     return (
-      <div className="font-mono text-[10px] text-emerald-400" title={`Deck retenu : ${sm.owned?.label}`}>
+      <div className="font-mono text-[10px] text-good" title={`Deck retenu : ${sm.owned?.label}`}>
         au niveau
       </div>
     );
@@ -1723,7 +1725,7 @@ function StatList({
               <td className="py-0.5 pr-1.5 text-right font-mono text-ink-dim tabular-nums">
                 {known != null ? fmtStat(known) : '—'}
               </td>
-              <td className="py-0.5 pr-1.5 text-right font-mono text-emerald-400 tabular-nums">
+              <td className="py-0.5 pr-1.5 text-right font-mono text-good tabular-nums">
                 {bonus != null ? `+${fmtStat(bonus)}` : '—'}
               </td>
               <td className="py-0.5 text-right font-mono font-semibold text-ink tabular-nums">
@@ -1733,7 +1735,7 @@ function StatList({
               {analyse && (
                 <td
                   className={`py-0.5 pl-1.5 text-right font-mono font-semibold tabular-nums ${
-                    c ? (c.ok ? 'text-emerald-400' : 'text-fire') : 'text-ink-dim'
+                    c ? (c.ok ? 'text-good' : 'text-fire') : 'text-ink-dim'
                   }`}
                   title={
                     c && c.actual !== null && !c.ok

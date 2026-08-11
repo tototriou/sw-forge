@@ -138,7 +138,7 @@ export default function RtaCard({
               on repère les monstres à re-runer sans ouvrir chaque fiche. */}
           <span
             className={`text-[12px] font-semibold leading-tight truncate flex-1 ${
-              desync && markDesync ? 'text-amber-400' : ''
+              desync && markDesync ? 'text-warn' : ''
             }`}
           >
             {monster.name}
@@ -148,7 +148,7 @@ export default function RtaCard({
               <img src={SPD_ICON} alt="SPD" width={15} height={15} className="flex-none" />
               <span
                 className={`font-mono text-[14px] font-black leading-none ${
-                  desync && markDesync ? 'text-amber-400' : 'text-ink'
+                  desync && markDesync ? 'text-warn' : 'text-ink'
                 }`}
               >
                 {total !== null ? total : '—'}

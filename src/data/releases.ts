@@ -96,6 +96,21 @@ export const RELEASES: Release[] = [
         scope: 'Accessibilité',
         text: 'Les animations de l’accueil se coupent si tu limites les animations.',
       },
+      {
+        kind: 'fix',
+        scope: 'Siège',
+        text: 'La vérification des ticks ATB se lit correctement en thème clair.',
+      },
+      {
+        kind: 'fix',
+        scope: 'Mon compte',
+        text: 'Les couleurs du résumé de runes tiennent sur fond clair.',
+      },
+      {
+        kind: 'fix',
+        scope: 'Interface',
+        text: 'Les chiffres passent dans une police plus lisible en petite taille.',
+      },
     ],
   },
   {

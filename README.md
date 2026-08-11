@@ -78,21 +78,25 @@ main ──●────────────────────●─
      elle porte **`tag: false`** : sans tag Git, le lien « GitHub ↗ » de la page
      Nouveautés mènerait à un **404** ;
    - vérifier `npx tsc --noEmit`, `npm test` et `npm run build`.
-4. **Fusionner dans `main` en SQUASH**, taguer, publier, puis **supprimer la
-   branche** :
+4. **Fusionner dans `main` en SQUASH**, taguer, publier :
    ```bash
    git switch main && git merge --squash release/1.2.0
    git commit -m "release: v1.2.0 — …"
    git tag -a v1.2.0 -m "…" && git push origin main --tags
    gh release create v1.2.0 --title "v1.2.0 — …" --notes "…"
-   git branch -d release/1.2.0 && git push origin :release/1.2.0
    ```
    ⚠️ **Retirer le `tag: false`** de l'entrée qu'on publie : le tag existe
    désormais, le lien doit apparaître.
    ⚠️ **Squash, pas `--no-ff`** : `main` porte **un commit par version**, ce qui en
-   fait un historique lisible à l'échelle des releases. Le détail du travail est
-   dans la branche — et celle-ci est **supprimée juste après**, une fois la
-   release publiée : le tag est le point de retour, la branche ne sert plus.
+   fait un historique lisible à l'échelle des releases. Le détail du travail
+   reste dans la branche.
+   ⚠️ **Le numéro peut changer en route** : une version commencée en corrective
+   devient mineure dès qu'on y ajoute une fonctionnalité. Renommer la branche
+   (`git branch -m release/1.4.0`) évite qu'elle contredise ce qu'elle contient.
+
+   **Les branches de release sont conservées** — elles montrent d'un coup d'œil
+   ce qui a été livré, version par version, et le détail des commits reste
+   accessible sans dérouler l'historique de `main`.
 
 **Numérotation** (semver, lue du point de vue du joueur) :
 

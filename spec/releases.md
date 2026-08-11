@@ -77,9 +77,10 @@ c'est le même geste, dans la même branche de release.
 ## Voir aussi
 
 Le **modèle de branches et le processus de release** (branche `release/x.y.z`,
-`main` stable, **fusion en squash**, tag, release GitHub) sont décrits dans le
+`main` stable, **fusion `--no-ff`**, tag, release GitHub) sont décrits dans le
 [README](README.md), section « Versions & releases ».
 
-⚠️ `main` porte **un commit par version** : le détail du travail vit dans les
-commits de la branche, **conservée** après publication, et le point de retour
-est le **tag**.
+⚠️ **`--no-ff`, jamais `--squash`** : un squash recopie le contenu sans
+enregistrer la parenté, si bien qu'une branche publiée reste indistinguable
+d'une branche oubliée (`git branch --merged` ne la voit pas). Les branches sont
+**conservées** après publication, et le point de retour est le **tag**.

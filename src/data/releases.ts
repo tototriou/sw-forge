@@ -22,6 +22,11 @@ export interface Release {
   title: string; // résumé en une ligne
   highlights?: string[]; // 1 à 3 points mis en avant
   changes: ReleaseChange[];
+  // ⚠️ `false` quand AUCUN tag Git ne correspond : le lien « GitHub ↗ » est
+  // alors masqué au lieu de mener à un 404. C'est le cas de la 1.0.0, publiée
+  // avant que le dépôt existe. Une version en cours de préparation (déjà au
+  // journal, pas encore taguée) prend `false` jusqu'à sa publication.
+  tag?: boolean;
 }
 
 export const CHANGE_META: Record<ChangeKind, { label: string; color: string }> = {
@@ -41,6 +46,9 @@ export const RELEASES: Release[] = [
     version: '1.3.1',
     date: '2026-08-11',
     title: 'Les recherches se pilotent au clavier',
+    // ⚠️ En préparation : le tag n'existera qu'à la fusion dans `main`.
+    // À repasser à `true` (ou à retirer) au moment de publier.
+    tag: false,
     highlights: ['Tape un nom, flèches, Entrée — et le champ est prêt pour le suivant'],
     changes: [
       {
@@ -67,6 +75,11 @@ export const RELEASES: Release[] = [
         kind: 'fix',
         scope: 'Siège',
         text: 'La recherche de monstre d’une équipe se pilote comme celle de la RTA.',
+      },
+      {
+        kind: 'fix',
+        scope: 'Nouveautés',
+        text: 'Le lien GitHub de la version 1.0.0 ne mène plus vers une page introuvable.',
       },
     ],
   },
@@ -444,6 +457,8 @@ export const RELEASES: Release[] = [
     version: '1.0.0',
     date: '2026-07-20',
     title: 'Première version publique',
+    // Publiée avant l'existence du dépôt : aucun tag Git ne lui correspond.
+    tag: false,
     highlights: ['Bestiaire, RTA et Siège', 'Import de compte 100 % local'],
     changes: [
       { kind: 'feat', scope: 'Bestiaire', text: 'Recherche et filtres par élément et par étoiles.' },

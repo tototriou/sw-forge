@@ -74,7 +74,9 @@ main ──●────────────────────●─
    - incrémenter `version` dans [`package.json`](package.json) ;
    - ajouter l'entrée correspondante **en tête** de
      [`src/data/releases.ts`](src/data/releases.ts) — c'est ce que les joueurs
-     liront sur la page **Nouveautés** ;
+     liront sur la page **Nouveautés**. Tant que la version n'est pas publiée,
+     elle porte **`tag: false`** : sans tag Git, le lien « GitHub ↗ » de la page
+     Nouveautés mènerait à un **404** ;
    - vérifier `npx tsc --noEmit`, `npm test` et `npm run build`.
 4. **Fusionner dans `main` en SQUASH**, taguer, publier, puis **supprimer la
    branche** :
@@ -85,6 +87,8 @@ main ──●────────────────────●─
    gh release create v1.2.0 --title "v1.2.0 — …" --notes "…"
    git branch -d release/1.2.0 && git push origin :release/1.2.0
    ```
+   ⚠️ **Retirer le `tag: false`** de l'entrée qu'on publie : le tag existe
+   désormais, le lien doit apparaître.
    ⚠️ **Squash, pas `--no-ff`** : `main` porte **un commit par version**, ce qui en
    fait un historique lisible à l'échelle des releases. Le détail du travail est
    dans la branche — et celle-ci est **supprimée juste après**, une fois la

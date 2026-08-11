@@ -31,8 +31,29 @@ interface Release {
   title: string;          // résumé en une ligne
   highlights?: string[];  // 1 à 3 points mis en avant
   changes: { kind: 'feat'|'fix'|'docs'; scope: string; text: string }[];
+  tag?: boolean;          // false = aucun tag Git → lien GitHub masqué
 }
 ```
+
+### ⚠️ Le lien « GitHub ↗ » n'est pas systématique
+
+Chaque entrée affiche un lien vers `/releases/tag/vX.Y.Z`. Il était écrit
+**inconditionnellement** : la **1.0.0**, publiée avant que le dépôt existe, n'a
+jamais eu de tag — le lien menait à un **404**.
+
+`tag: false` masque le lien. Deux cas l'exigent :
+
+| Cas | Pourquoi |
+|-----|----------|
+| Version antérieure au dépôt | Aucun tag ne lui correspondra jamais (1.0.0) |
+| Version **en préparation** | Déjà au journal, taguée seulement à la fusion dans `main` |
+
+**Au moment de publier**, retirer le `tag: false` de la version qu'on sort — le
+tag existe désormais. C'est une étape du processus de release, au même titre que
+l'incrément de `package.json`.
+
+Un lien mort est pire que pas de lien : il donne l'impression que le site est
+cassé, sur la page même qui sert à montrer qu'il est entretenu.
 
 - **La plus récente en premier** — c'est l'ordre d'affichage, et la première est
   mise en avant (cadre coloré + pastille « Version actuelle »).

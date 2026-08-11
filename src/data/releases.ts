@@ -51,7 +51,7 @@ export const RELEASES: Release[] = [
     tag: false,
     highlights: [
       'Pose un point de sauvegarde, remanie ta prépa, reviens en arrière si besoin',
-      'Envoie ta prépa RTA à un ami en un fichier',
+      'Consulte la prépa d’un ami et regarde comment il rune chaque monstre',
       'Tape un nom, flèches, Entrée — et le champ est prêt pour le suivant',
     ],
     changes: [
@@ -63,12 +63,17 @@ export const RELEASES: Release[] = [
       {
         kind: 'feat',
         scope: 'RTA',
-        text: 'Exporte ta prépa en fichier pour la partager avec tes amis.',
+        text: 'Consulte la prépa d’un ami, avec ses runes et ses artéfacts, sans toucher à la tienne.',
       },
       {
         kind: 'feat',
         scope: 'RTA',
-        text: 'Importe la prépa d’un ami : ses sections, ses vitesses et ses catégories.',
+        text: 'À l’export, choisis de partager ta prépa avec ou sans tes runes.',
+      },
+      {
+        kind: 'feat',
+        scope: 'RTA',
+        text: 'Reprends une prépa exportée : une archive, ou celle d’un autre navigateur.',
       },
       {
         kind: 'feat',
@@ -103,7 +108,7 @@ export const RELEASES: Release[] = [
       {
         kind: 'docs',
         scope: 'RTA',
-        text: 'Une prépa importée ne touche pas à tes runes : elle dit quoi viser, pas ce que tu possèdes.',
+        text: 'La prépa d’un ami s’ouvre en lecture : rien n’est comparé à tes monstres, rien n’est modifié.',
       },
     ],
   },

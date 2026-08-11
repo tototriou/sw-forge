@@ -15,6 +15,8 @@ import RtaSearch from '../components/rta/RtaSearch';
 import RtaSection from '../components/rta/RtaSection';
 import CategoryBar from '../components/rta/CategoryBar';
 import RtaBackupBar from '../components/rta/RtaBackupBar';
+import RtaFriendView from '../components/rta/RtaFriendView';
+import { RtaVueAmi } from '../lib/rtaShare';
 import { ConfirmDialog } from '../components/Dialogs';
 import { useRtaCategories } from '../hooks/useRtaCategories';
 import { useRtaBackup } from '../hooks/useRtaBackup';
@@ -96,6 +98,11 @@ export default function RtaPage({
   // Point de restauration manuel (« Sauvegarder » / « Reprendre »), distinct de
   // la conservation automatique. Voir hooks/useRtaBackup.ts.
   const backup = useRtaBackup();
+  // Prépa d'un ami ouverte en consultation. ⚠️ Volontairement en état LOCAL et
+  // non persisté : c'est une lecture de passage, pas une donnée de l'utilisateur.
+  // La conserver d'une session à l'autre laisserait la prépa de quelqu'un
+  // d'autre à l'écran sans qu'on sache d'où elle vient.
+  const [vueAmi, setVueAmi] = useState<RtaVueAmi | null>(null);
   // Monstres réellement présents dans la prépa : ce sont eux qu'on propose dans
   // le panneau d'affectation.
   const pageMonsters = useMemo(
@@ -238,7 +245,18 @@ export default function RtaPage({
         />
       )}
 
-      <RtaBackupBar rta={rta} cats={cats} backup={backup} monsters={monsters} />
+      <RtaBackupBar
+        rta={rta}
+        cats={cats}
+        backup={backup}
+        monsters={monsters}
+        onConsulter={setVueAmi}
+      />
+
+      {/* ⚠️ La prépa consultée s'affiche AVANT la sienne, et encadrée : c'est ce
+          qu'on vient d'ouvrir, on doit la voir sans chercher. Elle se ferme d'un
+          bouton et ne laisse aucune trace. */}
+      {vueAmi && <RtaFriendView vue={vueAmi} onClose={() => setVueAmi(null)} />}
 
       <CategoryBar cats={cats} monsters={pageMonsters} />
 

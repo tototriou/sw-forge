@@ -1,13 +1,17 @@
-// Partage d'une prépa RTA : aller-retour export → import, et surtout la
+// Partage d'une prépa RTA : aller-retour export → consultation, et surtout la
 // **traduction d'identifiants**.
 //
 // Pourquoi ces vérifications-là : une prépa se range par `monsterId` **local**,
 // qui ne veut rien dire d'un joueur à l'autre. L'export traduit en `com2usId`,
-// l'import retraduit dans les ids du destinataire. Si cette traduction dérape,
-// rien ne plante : les monstres arrivent simplement **rangés sur les mauvaises
+// la consultation retraduit dans les ids du lecteur. Si cette traduction dérape,
+// rien ne plante : les monstres s'affichent simplement **sur les mauvaises
 // cartes**, les anneaux de catégorie se posent à côté, et personne ne sait dire
 // pourquoi. C'est exactement le « grave et invisible » que ces tests couvrent
 // (voir tests/README.md).
+//
+// Le second enjeu est le **choix d'export** : « sans mes runes » doit vraiment
+// ne rien laisser filtrer de l'équipement — un oubli exposerait ce que
+// l'utilisateur a explicitement demandé de cacher.
 
 import {
   appliquer,
@@ -15,6 +19,7 @@ import {
   encodeSnapshot,
   toSnapshot,
   validateRtaImport,
+  versVueAmi,
 } from '../src/lib/rtaShare';
 import { Monster, RtaState, RTA_OTHER, RTA_UNASSIGNED } from '../src/types';
 import { RtaCategory } from '../src/hooks/useRtaCategories';
@@ -53,10 +58,44 @@ const parCom2us = (l: Monster[]) =>
 export default function testRtaPartage() {
   titre('Partage d’une prépa RTA · traduction des identifiants');
 
+  // Un équipement minimal mais COMPLET du point de vue du validateur : une rune
+  // valide (slot, set, stat principale) survit à l'aller-retour, le reste non.
+  const gearDeTrevor = {
+    base: { hp: 10000, atk: 700, def: 600, spd: 107, cr: 15, cd: 50, res: 15, acc: 0 },
+    runes: [
+      {
+        id: 42,
+        slot: 2,
+        set: 'swift',
+        rank: 6,
+        rarity: 5,
+        level: 15,
+        main: { code: 8, value: 40 },
+        subs: [{ code: 8, value: 20, grind: 5 }],
+      },
+    ],
+    artifacts: [
+      {
+        kind: 'element' as const,
+        element: 'fire' as const,
+        level: 12,
+        rarity: 5,
+        main: { code: 100, value: 300 },
+        subs: [{ code: 300, value: 10 }],
+      },
+    ],
+  };
+
   const state: RtaState = {
     sections: ['swift', 'violent', RTA_OTHER],
     entries: {
-      '1': { monsterId: '1', section: 'swift', runeSpeed: 120, gear: { base: {} } as any },
+      '1': {
+        monsterId: '1',
+        section: 'swift',
+        runeSpeed: 120,
+        sets: ['swift', 'will'],
+        gear: gearDeTrevor as any,
+      },
       '2': { monsterId: '2', section: 'violent', runeSpeed: null },
       '3': { monsterId: '3', section: 'swift', runeSpeed: 90 },
     },
@@ -86,55 +125,137 @@ export default function testRtaPartage() {
     'l’appartenance aux catégories est traduite en com2usId, le perso en est retiré'
   );
 
+  ok(snap.avecEquipement, 'l’équipement est joint par défaut — c’est ce qu’on vient consulter');
+  egal(
+    snap.entries.find((e) => e.com2usId === 15214)?.gear?.runes.length,
+    1,
+    'les runes de l’auteur partent avec sa prépa'
+  );
+
+  /* ---- Consultation chez QUELQU'UN D'AUTRE ------------------------------ */
+
   const json = encodeSnapshot(snap);
-  ok(!json.includes('"gear"'), "l’équipement n’est jamais transporté (ce sont les runes de l’auteur)");
-
-  /* ---- Import chez QUELQU'UN D'AUTRE ------------------------------------ */
-
   const rapport = validateRtaImport(json);
   ok(rapport.snapshot !== null, 'un export de SW Forge se relit sans erreur bloquante');
   egal(rapport.errors, [], 'aucune erreur sur un fichier produit par l’app');
 
-  const recu = appliquer(rapport.snapshot!, parCom2us(chezLui), { sections: [], entries: {} });
+  const vue = versVueAmi(rapport.snapshot!, parCom2us(chezLui));
 
   egal(
-    Object.keys(recu.state.entries).sort(),
+    vue.entries.map((e) => String(e.monster.id)).sort(),
     ['900', '901'],
-    'les monstres sont rangés sur les ids LOCAUX du destinataire, pas ceux de l’auteur'
+    'les monstres sont résolus sur les ids LOCAUX du lecteur, pas ceux de l’auteur'
   );
-  egal(recu.state.entries['900'].section, 'swift', 'chacun retrouve sa section');
-  egal(recu.state.entries['900'].runeSpeed, 120, 'la vitesse de runes suit');
-  egal(recu.state.entries['901'].runeSpeed, null, 'une vitesse non saisie reste vide (et non 0)');
-  egal(recu.categories[0].members, ['900'], 'les catégories se reposent sur les bons monstres');
 
-  /* ---- Ce qui appartient au destinataire n'est pas écrasé ---------------- */
+  const trevor = vue.entries.find((e) => e.monster.com2usId === 15214)!;
+  const bella = vue.entries.find((e) => e.monster.com2usId === 19315)!;
+  egal(trevor.entry.section, 'swift', 'chacun retrouve sa section');
+  egal(trevor.entry.runeSpeed, 120, 'la vitesse de runes suit');
+  egal(bella.entry.runeSpeed, null, 'une vitesse non saisie reste vide (et non 0)');
+  egal(trevor.entry.sets, ['swift', 'will'], 'les sets actifs suivent');
+  egal(
+    [...vue.categories[0].members],
+    ['900'],
+    'les catégories se reposent sur les bons monstres'
+  );
 
-  const avecMesRunes: RtaState = {
+  /* ---- L'équipement traverse le fichier intact -------------------------- */
+
+  egal(trevor.entry.gear?.runes.length, 1, 'la rune de l’auteur est bien lue à l’arrivée');
+  egal(trevor.entry.gear?.runes[0].set, 'swift', 'avec son set');
+  egal(trevor.entry.gear?.runes[0].main, { code: 8, value: 40 }, 'et sa stat principale');
+  egal(trevor.entry.gear?.runes[0].subs[0].grind, 5, 'la meule d’un substat n’est pas perdue');
+  egal(trevor.entry.gear?.artifacts.length, 1, 'les artéfacts aussi');
+  egal(trevor.entry.gear?.base.spd, 107, 'les stats de base de l’auteur suivent');
+  ok(vue.avecEquipement, 'la vue sait qu’elle a des runes à montrer');
+
+  /* ---- Export SANS équipement : rien ne doit filtrer -------------------- */
+
+  // ⚠️ Ce que l'utilisateur a demandé de cacher doit VRAIMENT être absent du
+  // fichier — pas seulement masqué à l'affichage.
+  const sansRunes = toSnapshot(state, categories, parId(chezMoi), { avecEquipement: false });
+  const jsonSansRunes = encodeSnapshot(sansRunes);
+
+  ok(!jsonSansRunes.includes('"equipement"'), 'aucun équipement dans le fichier');
+  ok(!jsonSansRunes.includes('"runes"'), 'aucune rune, pas même une clé vide');
+  // ⚠️ Relu depuis le JSON, pas cherché à la ficelle dans le texte : le fichier
+  // est indenté, donc un `includes('"swift","will"')` ne peut JAMAIS échouer —
+  // il rassurerait à tort pendant que les sets fuient.
+  const relu = JSON.parse(jsonSansRunes) as { monstres: { sets?: string[]; equipement?: unknown }[] };
+  ok(
+    relu.monstres.every((m) => m.sets === undefined),
+    'les SETS ne filtrent pas non plus — ils trahiraient le runage'
+  );
+  ok(
+    relu.monstres.every((m) => m.equipement === undefined),
+    'ni l’équipement, sur aucun monstre'
+  );
+  ok(jsonSansRunes.includes('"vitesse": 120'), 'mais la vitesse visée, elle, est bien partagée');
+
+  const vueSansRunes = versVueAmi(validateRtaImport(jsonSansRunes).snapshot!, parCom2us(chezLui));
+  ok(!vueSansRunes.avecEquipement, 'la consultation annonce qu’il n’y a pas de runes à voir');
+  egal(
+    vueSansRunes.entries.find((e) => e.monster.com2usId === 15214)?.entry.gear,
+    undefined,
+    'et aucun équipement n’arrive chez le lecteur'
+  );
+  egal(vueSansRunes.entries.length, 2, 'le classement, lui, reste entièrement consultable');
+
+  /* ---- Reprendre une prépa à soi (archive, autre navigateur) ------------- */
+
+  // Même fichier, autre intention : `appliquer` en fait un état utilisable,
+  // là où `versVueAmi` se contente de l'afficher.
+  const repris = appliquer(rapport.snapshot!, parCom2us(chezLui), { sections: [], entries: {} });
+  egal(
+    Object.keys(repris.state.entries).sort(),
+    ['900', '901'],
+    'la prépa reprise est rangée sur MES ids locaux'
+  );
+  egal(repris.state.entries['900'].section, 'swift', 'avec ses sections');
+  egal(repris.categories[0].members, ['900'], 'et ses catégories');
+  egal(
+    repris.state.entries['900'].gear?.runes.length,
+    1,
+    'un monstre que je n’ai pas encore reçoit l’équipement du fichier'
+  );
+
+  // ⚠️ Le point qui compte pour une VIEILLE sauvegarde : mes runes
+  // d'aujourd'hui sont plus justes que celles figées dans le fichier.
+  const mesRunesActuelles: RtaState = {
     sections: [],
     entries: {
-      '900': { monsterId: '900', section: RTA_UNASSIGNED, runeSpeed: 55, gear: { base: 'à moi' } as any },
+      '900': {
+        monsterId: '900',
+        section: RTA_UNASSIGNED,
+        runeSpeed: 55,
+        gear: { base: { spd: 999 }, runes: [], artifacts: [] } as any,
+      },
     },
   };
-  const fusion = appliquer(rapport.snapshot!, parCom2us(chezLui), avecMesRunes);
+  const fusion = appliquer(rapport.snapshot!, parCom2us(chezLui), mesRunesActuelles);
   egal(
-    (fusion.state.entries['900'].gear as any)?.base,
-    'à moi',
-    'mon équipement importé de MON compte survit à une prépa reçue'
+    fusion.state.entries['900'].gear?.base.spd,
+    999,
+    'mon équipement actuel prime sur celui figé dans une vieille sauvegarde'
   );
-  egal(fusion.state.entries['900'].section, 'swift', 'mais le classement reçu, lui, s’applique bien');
+  egal(
+    fusion.state.entries['900'].section,
+    'swift',
+    'mais le classement du fichier, lui, s’applique bien — c’est ce qu’on vient reprendre'
+  );
 
-  /* ---- Monstre inconnu du destinataire ---------------------------------- */
+  /* ---- Monstre inconnu du lecteur --------------------------------------- */
 
-  const partiel = appliquer(rapport.snapshot!, parCom2us([chezLui[0]]), { sections: [], entries: {} });
+  const partiel = versVueAmi(rapport.snapshot!, parCom2us([chezLui[0]]));
   egal(partiel.inconnus, [19315], 'un monstre absent des données est remonté, pas avalé en silence');
-  egal(Object.keys(partiel.state.entries), ['900'], 'et il n’entre pas dans la prépa');
+  egal(partiel.entries.length, 1, 'et il n’est pas affiché');
 
   titre('Partage d’une prépa RTA · fichiers douteux');
 
   /* ---- Refus d'un fichier d'un AUTRE type -------------------------------- */
 
-  // ⚠️ Bloquant, et non simple avertissement : importer une prépa REMPLACE
-  // celle en cours. Se tromper de fichier coûterait le classement en place.
+  // ⚠️ Bloquant, et non simple avertissement : lire un fichier d'un autre type
+  // « au mieux » afficherait une prépa vide sans dire pourquoi.
   const autreExport = JSON.stringify({
     format: 'sw-forge/recommandations',
     version: 4,
@@ -183,6 +304,62 @@ export default function testRtaPartage() {
   ok(
     bricole.snapshot!.sections.includes(RTA_OTHER),
     '« Autre » est garantie présente, comme partout ailleurs dans l’app'
+  );
+
+  /* ---- Équipement bricolé : trié, jamais avalé tel quel ------------------ */
+
+  // L'équipement vient d'un tiers et sert à DESSINER une roue de runes : une
+  // rune sans slot valide ou sans stat principale ferait un trou à l'affichage.
+  const gearDouteux = validateRtaImport(
+    JSON.stringify({
+      format: 'sw-forge/prepa-rta',
+      version: 2,
+      monstres: [
+        {
+          com2usId: 15214,
+          nom: 'Trevor',
+          section: 'swift',
+          vitesse: 120,
+          equipement: {
+            base: { spd: 107 },
+            runes: [
+              { slot: 2, set: 'swift', main: { code: 8, value: 40 }, subs: [] }, // valide
+              { slot: 9, set: 'swift', main: { code: 8, value: 40 } }, // slot hors 1..6
+              { slot: 3, set: 'pas_un_set', main: { code: 8, value: 40 } }, // set inconnu
+              { slot: 4, set: 'swift' }, // sans stat principale
+            ],
+            artifacts: [],
+          },
+        },
+      ],
+    })
+  );
+
+  const runesLues = gearDouteux.snapshot!.entries[0].gear?.runes;
+  egal(runesLues?.length, 1, 'seule la rune valide est gardée — les trois autres sont écartées');
+  egal(runesLues?.[0].slot, 2, 'et c’est bien la bonne');
+  egal(
+    gearDouteux.snapshot!.entries[0].gear?.base.atk,
+    0,
+    'une stat de base absente vaut 0, elle ne rend pas tout l’équipement illisible'
+  );
+
+  const gearVide = validateRtaImport(
+    JSON.stringify({
+      format: 'sw-forge/prepa-rta',
+      monstres: [
+        { com2usId: 15214, nom: 'Trevor', section: 'swift', equipement: { runes: [], artifacts: [] } },
+      ],
+    })
+  );
+  egal(
+    gearVide.snapshot!.entries[0].gear,
+    undefined,
+    'un équipement entièrement vide n’est pas retenu — il ouvrirait un détail vide'
+  );
+  ok(
+    !gearVide.snapshot!.avecEquipement,
+    'et la prépa n’annonce pas des runes qu’elle n’a pas'
   );
 
   /* ---- Une section utilisée est toujours affichable ---------------------- */

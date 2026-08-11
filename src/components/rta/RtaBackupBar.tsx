@@ -1,5 +1,16 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Save, RotateCcw, Upload, Download, AlertTriangle, XCircle, X } from 'lucide-react';
+import {
+  Save,
+  RotateCcw,
+  Upload,
+  Download,
+  Users,
+  AlertTriangle,
+  XCircle,
+  X,
+  Eye,
+  EyeOff,
+} from 'lucide-react';
 import { Monster, RtaState } from '../../types';
 import { UseRtaState } from '../../hooks/useRtaState';
 import { UseRtaCategories } from '../../hooks/useRtaCategories';
@@ -9,11 +20,14 @@ import {
   comptePartageable,
   encodeSnapshot,
   ImportReport,
+  RtaVueAmi,
   slugify,
   toSnapshot,
   validateRtaImport,
+  versVueAmi,
 } from '../../lib/rtaShare';
 import { ConfirmDialog } from '../Dialogs';
+import { BOUTON_PRIMAIRE, BOUTON_SECONDAIRE } from '../buttonStyles';
 
 /* --------------------------------------------------------------------------
  * Sauvegarder · Reprendre · Exporter · Importer
@@ -25,10 +39,15 @@ import { ConfirmDialog } from '../Dialogs';
  * classement sans risquer celui qui marchait. Le libellé et l'infobulle le
  * disent, sinon on croit que sans lui tout est perdu, ce qui est faux.
  *
- * ⚠️ **Trois gestes remplacent la prépa en cours** (Reprendre, Importer, et
- * l'écrasement d'un point existant) : les trois confirment, et jamais avec un
- * OK destructeur — « Annuler » est le défaut, l'action portée en couleur
- * d'alerte. Voir ../Dialogs.tsx.
+ * ⚠️ **Consulter n'est pas importer.** La prépa d'un ami s'ouvre EN LECTURE, à
+ * côté de la sienne : elle ne remplace rien, ne se compare à rien, et n'entre
+ * jamais dans l'état local. C'est ce qui permet de l'ouvrir sans confirmation —
+ * il n'y a rien à perdre. Voir RtaFriendView.tsx.
+ *
+ * ⚠️ **Deux gestes seulement modifient la prépa** (Reprendre, et l'écrasement
+ * d'un point existant) : les deux confirment, et jamais avec un OK destructeur —
+ * « Annuler » est le défaut, l'action portée en couleur d'alerte. Voir
+ * ../Dialogs.tsx.
  */
 
 interface Props {
@@ -36,6 +55,8 @@ interface Props {
   cats: UseRtaCategories;
   backup: UseRtaBackup;
   monsters: Monster[];
+  /** Remonte la prépa consultée : elle s'affiche sous la page, pas ici. */
+  onConsulter: (vue: RtaVueAmi) => void;
 }
 
 // Télécharge un texte en fichier (aucun envoi réseau).
@@ -69,20 +90,25 @@ const BOUTON =
   'text-ink-dim hoverable:text-ink hoverable:border-accent transition ' +
   'disabled:opacity-40 disabled:cursor-not-allowed';
 
-export default function RtaBackupBar({ rta, cats, backup, monsters }: Props) {
+export default function RtaBackupBar({ rta, cats, backup, monsters, onConsulter }: Props) {
   const [msg, setMsg] = useState<{ text: string; error?: boolean } | null>(null);
   // Rapport de validation : NON éphémère, il y a quelque chose à lire.
   const [report, setReport] = useState<ImportReport | null>(null);
-  // Ce qu'un import a produit, en attente de confirmation : l'appliquer
-  // écraserait la prépa en cours.
+  const [reprendreAConfirmer, setReprendreAConfirmer] = useState(false);
+  const [ecraserAConfirmer, setEcraserAConfirmer] = useState(false);
+  // Choix « avec / sans équipement », posé au moment d'exporter.
+  const [exportAChoisir, setExportAChoisir] = useState(false);
+  // Import en attente de confirmation : l'appliquer écraserait la prépa en cours.
   const [aConfirmer, setAConfirmer] = useState<{
     state: RtaState;
     categories: { label: string; color: string; members: string[] }[];
     resume: string;
   } | null>(null);
-  const [reprendreAConfirmer, setReprendreAConfirmer] = useState(false);
-  const [ecraserAConfirmer, setEcraserAConfirmer] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
+  // ⚠️ Le MÊME fichier se lit de deux façons : consulté ou repris. L'intention
+  // ne se devine pas, elle est déclarée par le bouton cliqué — mémorisée ici le
+  // temps que le sélecteur de fichier rende la main.
+  const modeRef = useRef<'consulter' | 'importer'>('consulter');
 
   // Message éphémère (même convention que l'import de compte).
   useEffect(() => {
@@ -121,7 +147,14 @@ export default function RtaBackupBar({ rta, cats, backup, monsters }: Props) {
     setMsg({ text: 'Prépa restaurée au dernier point de sauvegarde.' });
   }
 
-  function exporter() {
+  // Combien de monstres emporteraient réellement leur équipement ? Sert à ne pas
+  // proposer « avec mes runes » à quelqu'un qui n'a pas importé de compte.
+  const avecRunes = useMemo(
+    () => Object.values(rta.state.entries).filter((e) => e.gear && e.gear.runes.length > 0).length,
+    [rta.state.entries]
+  );
+
+  function exporter(avecEquipement: boolean) {
     const { partageables, perso } = comptePartageable(rta.state, monsterById);
     if (partageables === 0) {
       setMsg({
@@ -132,48 +165,81 @@ export default function RtaBackupBar({ rta, cats, backup, monsters }: Props) {
       });
       return;
     }
-    const snap = toSnapshot(rta.state, cats.categories, monsterById);
-    download(`swforge-prepa-rta-${slugify(new Date().toISOString().slice(0, 10))}.json`, encodeSnapshot(snap));
+    const snap = toSnapshot(rta.state, cats.categories, monsterById, { avecEquipement });
+    download(
+      `swforge-prepa-rta-${slugify(new Date().toISOString().slice(0, 10))}.json`,
+      encodeSnapshot(snap)
+    );
     // ⚠️ Les monstres perso écartés sont ANNONCÉS : un fichier silencieusement
     // incomplet se découvrirait chez l'ami, trop tard.
     setMsg({
       text:
-        `${partageables} monstre(s) exporté(s) · fichier .json téléchargé.` +
+        `${partageables} monstre(s) exporté(s) ${
+          avecEquipement ? 'avec les runes et artéfacts' : 'sans les runes'
+        } · fichier .json téléchargé.` +
         (perso > 0 ? ` ${perso} monstre(s) perso non partageable(s) : non inclus.` : ''),
     });
   }
 
+  // Un seul lecteur de fichier pour les deux boutons — même format, même
+  // validation. Seul diffère ce qu'on fait du résultat.
   function lireFichier(text: string) {
+    const mode = modeRef.current;
     const rep = validateRtaImport(text);
     setReport(rep);
-    if (!rep.snapshot) return; // erreurs bloquantes : rien n'est importé
+    if (!rep.snapshot) return; // erreurs bloquantes : rien à faire
 
-    const { state, categories, inconnus } = appliquer(rep.snapshot, monsterByCom2us, rta.state);
+    const inconnus =
+      mode === 'consulter'
+        ? versVueAmi(rep.snapshot, monsterByCom2us).inconnus
+        : appliquer(rep.snapshot, monsterByCom2us, rta.state).inconnus;
 
     if (inconnus.length > 0) {
       rep.warnings.push(
         `${inconnus.length} monstre(s) absent(s) des données chargées (id ${inconnus
           .slice(0, 5)
-          .join(', ')}${inconnus.length > 5 ? '…' : ''}) : non importés.`
+          .join(', ')}${inconnus.length > 5 ? '…' : ''}) : ${
+          mode === 'consulter' ? 'non affichés' : 'non repris'
+        }.`
       );
       setReport({ ...rep });
     }
 
+    if (mode === 'consulter') {
+      // ⚠️ Rien n'entre dans la prépa locale : il n'y a rien à perdre, donc rien
+      // à confirmer.
+      const vue = versVueAmi(rep.snapshot, monsterByCom2us);
+      if (vue.entries.length === 0) {
+        setMsg({
+          text: "Aucun monstre de ce fichier n'existe dans les données chargées.",
+          error: true,
+        });
+        return;
+      }
+      onConsulter(vue);
+      const auteur = vue.auteur ? ` de ${vue.auteur}` : '';
+      setMsg({
+        text: `Prépa${auteur} ouverte en consultation · ${vue.entries.length} monstre(s)${
+          vue.avecEquipement ? ', runes incluses' : ', sans les runes'
+        }. Ta prépa n'a pas bougé.`,
+      });
+      return;
+    }
+
+    // Reprise d'une prépa : elle REMPLACE la sienne (il n'y en a qu'une), donc
+    // elle passe par une confirmation qui énonce ce qu'on perd.
+    const { state, categories } = appliquer(rep.snapshot, monsterByCom2us, rta.state);
     const retenus = Object.keys(state.entries).length;
     if (retenus === 0) {
       setMsg({ text: "Aucun monstre de ce fichier n'existe dans les données chargées.", error: true });
       return;
     }
+    setAConfirmer({ state, categories, resume: `${retenus} monstre(s)` });
+  }
 
-    const auteur = rep.snapshot.auteur ? ` de ${rep.snapshot.auteur}` : '';
-    // ⚠️ Contrairement aux recommandations (qui s'ajoutent), une prépa importée
-    // REMPLACE : il n'y a qu'une prépa RTA, deux classements ne peuvent pas
-    // coexister. D'où la confirmation — et le fait qu'elle dise ce qu'on perd.
-    setAConfirmer({
-      state,
-      categories,
-      resume: `${retenus} monstre(s)${auteur}`,
-    });
+  function ouvrirFichier(mode: 'consulter' | 'importer') {
+    modeRef.current = mode;
+    fileRef.current?.click();
   }
 
   const dateBackup = backup.backup ? depuis(backup.backup.date) : '';
@@ -210,7 +276,7 @@ export default function RtaBackupBar({ rta, cats, backup, monsters }: Props) {
         <span className="w-px h-5 bg-border" aria-hidden />
 
         <button
-          onClick={exporter}
+          onClick={() => setExportAChoisir(true)}
           disabled={vide}
           className={BOUTON}
           title="Télécharger ta prépa en fichier .json, pour la partager ou la garder de côté"
@@ -218,12 +284,25 @@ export default function RtaBackupBar({ rta, cats, backup, monsters }: Props) {
           <Upload size={14} /> Exporter
         </button>
 
+        {/* ⚠️ DEUX boutons pour un même format de fichier, parce que ce sont
+            deux intentions : reprendre une prépa à soi (elle remplace), ou
+            regarder celle d'un ami (elle ne touche à rien). Un seul bouton
+            obligerait à demander « et maintenant, j'en fais quoi ? » après coup,
+            alors que l'utilisateur le sait déjà en cliquant. */}
         <button
-          onClick={() => fileRef.current?.click()}
+          onClick={() => ouvrirFichier('importer')}
           className={BOUTON}
-          title="Charger une prépa reçue d'un ami (fichier .json)"
+          title="Reprendre une prépa exportée : une archive, ou celle d'un autre navigateur. Elle remplacera la tienne."
         >
           <Download size={14} /> Importer
+        </button>
+
+        <button
+          onClick={() => ouvrirFichier('consulter')}
+          className={BOUTON}
+          title="Ouvrir la prépa d'un ami en lecture (fichier .json). Ta prépa n'est pas touchée."
+        >
+          <Users size={14} /> Consulter celle d'un ami
         </button>
       </div>
 
@@ -302,11 +381,11 @@ export default function RtaBackupBar({ rta, cats, backup, monsters }: Props) {
 
       {aConfirmer && (
         <ConfirmDialog
-          titre="Remplacer ta prépa par celle-ci ?"
+          titre="Remplacer ta prépa par ce fichier ?"
           message={
             <>
-              La prépa importée ({aConfirmer.resume}) remplacera la tienne ({nbMonstres} monstre(s))
-              et ses catégories.{' '}
+              La prépa du fichier ({aConfirmer.resume}) remplacera la tienne ({nbMonstres}{' '}
+              monstre(s)) et ses catégories.{' '}
               {backup.backup ? (
                 <>
                   Ton point de sauvegarde n'est pas touché : tu pourras revenir en arrière avec
@@ -320,7 +399,14 @@ export default function RtaBackupBar({ rta, cats, backup, monsters }: Props) {
                   Annule et clique « Sauvegarder » d'abord si tu veux pouvoir y revenir.
                 </>
               )}{' '}
-              Tes runes importées ne changent pas.
+              Les runes de tes propres monstres ne changent pas.
+              {/* Si l'intention était de regarder la prépa d'un ami, ce dialogue
+                  est le dernier endroit où le dire — après, c'est remplacé. */}
+              <br />
+              <span className="text-ink-dim">
+                Pour seulement la regarder sans rien changer, annule et utilise « Consulter celle
+                d'un ami ».
+              </span>
             </>
           }
           libelleAction="Remplacer ma prépa"
@@ -329,11 +415,108 @@ export default function RtaBackupBar({ rta, cats, backup, monsters }: Props) {
           onConfirm={() => {
             rta.replaceAll(aConfirmer.state);
             cats.replaceAll(aConfirmer.categories);
-            setMsg({ text: `Prépa importée · ${aConfirmer.resume}.` });
+            setMsg({ text: `Prépa reprise · ${aConfirmer.resume}.` });
             setAConfirmer(null);
           }}
         />
       )}
+
+      {exportAChoisir && (
+        <ChoixExport
+          avecRunes={avecRunes}
+          onAnnuler={() => setExportAChoisir(false)}
+          onChoisir={(avecEquipement) => {
+            setExportAChoisir(false);
+            exporter(avecEquipement);
+          }}
+        />
+      )}
+    </div>
+  );
+}
+
+/* --------------------------------------------------------------------------
+ * Choix d'export : avec ou sans l'équipement
+ * -----------------------------------------------------------------------
+ *
+ * ⚠️ **Une question, pas une case à cocher enfouie.** Ce que le fichier contient
+ * n'est pas un détail : partager ses runes, c'est montrer ce qu'on possède.
+ * Certains le veulent (c'est tout l'intérêt de consulter la prépa d'un ami),
+ * d'autres non. Le choix est donc posé à voix haute, au moment d'exporter, avec
+ * ce que chaque option donne à voir.
+ *
+ * ⚠️ Aucune des deux réponses ne détruit quoi que ce soit : les deux
+ * téléchargent un fichier. « Avec » est mis en avant parce que c'est ce qui rend
+ * la consultation utile, pas parce que l'autre serait un mauvais choix.
+ */
+function ChoixExport({
+  avecRunes,
+  onChoisir,
+  onAnnuler,
+}: {
+  avecRunes: number;
+  onChoisir: (avecEquipement: boolean) => void;
+  onAnnuler: () => void;
+}) {
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-bg/80 p-4"
+      onClick={onAnnuler}
+      role="presentation"
+    >
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="export-rta-titre"
+        onClick={(e) => e.stopPropagation()}
+        className="w-full max-w-[420px] rounded-2xl border border-border bg-panel p-5 shadow-glow shadow-black/60"
+      >
+        <h2 id="export-rta-titre" className="text-[15px] font-bold text-ink">
+          Partager tes runes avec ta prépa ?
+        </h2>
+        <p className="mt-1.5 text-[12.5px] leading-relaxed text-ink-dim">
+          Ton classement, tes sections et les vitesses que tu vises sont toujours inclus. La question
+          ne porte que sur <b className="text-ink">le détail de ton équipement</b>.
+        </p>
+
+        {avecRunes === 0 && (
+          <p className="mt-3 rounded-lg border border-border bg-panel2 px-3 py-2 text-[11.5px] leading-relaxed text-ink-dim">
+            Aucun de tes monstres ne porte de runes connues — importe ton compte pour pouvoir les
+            partager. Le fichier contiendra ton classement seul.
+          </p>
+        )}
+
+        <div className="mt-4 flex flex-col gap-2">
+          <button
+            onClick={() => onChoisir(true)}
+            autoFocus
+            disabled={avecRunes === 0}
+            className={`${BOUTON_PRIMAIRE} flex items-center justify-center gap-2 disabled:opacity-40 disabled:cursor-not-allowed`}
+          >
+            <Eye size={15} />
+            Avec mes runes et artéfacts
+            {avecRunes > 0 && <span className="font-mono text-[11px] opacity-70">{avecRunes}</span>}
+          </button>
+          <button
+            onClick={() => onChoisir(false)}
+            className={`${BOUTON_SECONDAIRE} flex items-center justify-center gap-2`}
+          >
+            <EyeOff size={15} /> Classement seul, sans mes runes
+          </button>
+        </div>
+
+        <p className="mt-3 text-[11px] leading-relaxed text-ink-dim">
+          Avec l'équipement, ton ami voit <b className="text-ink">comment tu runes</b> chaque
+          monstre. Sans, il ne voit que les sets visés et tes vitesses.
+        </p>
+
+        <button
+          onClick={onAnnuler}
+          className="mt-3 w-full text-center text-[12px] text-ink-dim hoverable:text-ink transition"
+        >
+          Annuler
+        </button>
+      </div>
     </div>
   );
 }
@@ -383,7 +566,7 @@ function ValidationReport({ report, onClose }: { report: ImportReport; onClose: 
 
       {!bloque && (
         <p className="mt-1.5 font-mono text-[11px] text-ink-dim">
-          {report.counts.monstres} monstre(s) · {report.counts.sections} section(s) ·{' '}
+          {report.counts.monstres} monstre(s) · {report.counts.avecRunes} avec runes ·{' '}
           {report.counts.categories} catégorie(s) lus.
         </p>
       )}

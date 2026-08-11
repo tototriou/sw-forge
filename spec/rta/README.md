@@ -13,8 +13,11 @@ Fichier racine : [RtaPage.tsx](src/pages/RtaPage.tsx) · État :
 2. **Barre de recherche** pour ajouter un monstre à la prépa.
 3. **Barre d'actions** : compteur, **Importer un compte**, **Créer un monstre**,
    **Tout effacer** ; + disclaimer monstres récents / message d'import.
-3bis. **Sauvegarder · Reprendre · Exporter · Importer** — point de restauration
-   manuel et partage de prépa. Voir [sauvegarde-partage.md](sauvegarde-partage.md).
+3bis. **Sauvegarder · Reprendre · Exporter · Importer · Consulter celle d'un
+   ami** — point de restauration manuel et partage. Voir
+   [sauvegarde-partage.md](sauvegarde-partage.md).
+3ter. **Prépa consultée** (si ouverte) : la prépa d'un ami, en lecture seule,
+   au-dessus de la sienne.
 4. **« Non classé »** : zone tampon où atterrissent les monstres ajoutés.
 5. **Sections par set de runes** (Swift / Violent / Despair / Autre + ajoutables).
 6. **Ajouter une section** (choix d'un set de runes).

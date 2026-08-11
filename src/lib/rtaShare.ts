@@ -13,7 +13,15 @@
 // corrections au lieu de les taire, un seul format (JSON), un seul support
 // (fichier `.json`).
 
-import { RtaState, RtaEntry, RUNE_SETS, RTA_OTHER, RTA_UNASSIGNED, Monster } from '../types';
+import {
+  RtaState,
+  RtaEntry,
+  RUNE_SETS,
+  RTA_OTHER,
+  RTA_UNASSIGNED,
+  Monster,
+  GearSet,
+} from '../types';
 import { RtaCategory } from '../hooks/useRtaCategories';
 
 const SET_KEYS = new Set<string>(RUNE_SETS.map((s) => s.key));
@@ -37,6 +45,11 @@ export interface RtaShareEntry {
   nom: string;
   section: string;
   runeSpeed: number | null;
+  sets?: string[]; // sets actifs, tels que calculés à l'import de compte
+  // ⚠️ Présent SEULEMENT si l'auteur a choisi de partager son équipement.
+  // C'est tout l'intérêt de consulter la prépa d'un ami : voir COMMENT il rune,
+  // pas seulement quelle vitesse il vise.
+  gear?: GearSet;
 }
 
 // Une catégorie partagée : l'appartenance est exprimée en `com2usId`, jamais en
@@ -47,17 +60,24 @@ export interface RtaShareCategory {
   membres: number[]; // com2usId
 }
 
-// ⚠️ **Le `gear` n'est PAS transporté.** C'est l'équipement lu dans l'export de
-// compte de l'auteur : le partager afficherait chez le destinataire des runes
-// qu'il ne possède pas, sous ses propres monstres. La prépa partage un
-// **classement** (qui runer, en quel set, à quelle vitesse viser), pas un
-// inventaire. Le `gear` local est donc préservé à l'import (voir `appliquer`).
+// ⚠️ **L'équipement se partage, mais sur DÉCISION de l'auteur.** Consulter la
+// prépa d'un ami sans voir comment il rune n'a pas grand intérêt — c'est
+// justement ce qu'on vient y chercher. Mais son équipement dit aussi ce qu'il
+// possède : certains ne veulent pas l'exposer. D'où un choix explicite à
+// l'export (`avecEquipement`), et non une règle imposée dans un sens ou l'autre.
+//
+// ⚠️ Ce qui est reçu n'est JAMAIS mélangé à ce qu'on possède : une prépa
+// importée s'ouvre **en consultation**, à côté de la sienne (voir
+// ../../spec/rta/sauvegarde-partage.md). Elle ne remplace rien et ne se compare
+// à rien.
 export interface RtaSnapshot {
   nom: string;
   auteur: string;
   sections: string[];
   entries: RtaShareEntry[];
   categories: RtaShareCategory[];
+  /** L'auteur a-t-il joint son équipement ? Sert à l'annoncer en consultation. */
+  avecEquipement: boolean;
 }
 
 /* --------------------------------------------------------------------------
@@ -89,8 +109,9 @@ export function toSnapshot(
   state: RtaState,
   categories: RtaCategory[],
   monsterById: Map<string, Monster>,
-  meta: { nom?: string; auteur?: string } = {}
+  meta: { nom?: string; auteur?: string; avecEquipement?: boolean } = {}
 ): RtaSnapshot {
+  const avecEquipement = meta.avecEquipement !== false; // équipement joint par défaut
   const entries: RtaShareEntry[] = [];
   // id local → com2usId, pour traduire l'appartenance aux catégories.
   const com2usParId = new Map<string, number>();
@@ -104,6 +125,11 @@ export function toSnapshot(
       nom: m.name.slice(0, 40),
       section: isSectionKey(e.section) ? e.section : RTA_UNASSIGNED,
       runeSpeed: typeof e.runeSpeed === 'number' && Number.isFinite(e.runeSpeed) ? e.runeSpeed : null,
+      // ⚠️ Sans équipement, les SETS ne partent pas non plus : ce sont eux qui
+      // trahissent le runage. Ne garder que la vitesse visée, c'est bien le
+      // sens de « partager sans montrer mes runes ».
+      sets: avecEquipement ? e.sets : undefined,
+      gear: avecEquipement ? e.gear : undefined,
     });
   }
 
@@ -112,6 +138,7 @@ export function toSnapshot(
     auteur: (meta.auteur ?? '').slice(0, AUTEUR_MAX),
     sections: state.sections.filter(isSectionKey),
     entries,
+    avecEquipement,
     // Une catégorie dont aucun membre n'est partageable est conservée quand même
     // (libellé + couleur ont une valeur en soi), mais vidée de fait.
     categories: categories.map((c) => ({
@@ -124,16 +151,47 @@ export function toSnapshot(
   };
 }
 
-// Instantané → état de l'app, chez CELUI QUI REÇOIT.
+// Une prépa reçue, prête à être AFFICHÉE — jamais fusionnée avec la sienne.
 //
-// ⚠️ **Le `gear` local est préservé.** Un monstre déjà présent garde l'équipement
-// venu de SON import de compte : la prépa reçue dit quoi runer et à quelle
-// vitesse viser, elle ne prétend pas décrire les runes du destinataire.
+// ⚠️ **Rien n'est comparé à ce que je possède.** Les monstres et les runes
+// affichés sont ceux de l'auteur, tels quels. Confronter à ma box répondrait à
+// une autre question (« puis-je jouer ça ? ») — c'est le rôle des
+// [recommandations de siège](../../spec/siege/recommandations.md), qui existent
+// précisément pour ça. Ici on regarde la prépa d'un ami comme on regarderait
+// son écran par-dessus son épaule.
+export interface RtaVueAmi {
+  nom: string;
+  auteur: string;
+  avecEquipement: boolean;
+  sections: string[];
+  /** Monstres résolus dans le bestiaire local (le portrait, le nom, les stats). */
+  entries: { monster: Monster; entry: RtaEntry }[];
+  categories: { label: string; color: string; members: Set<string> }[];
+  /** `com2usId` absents des données chargées : annoncés, jamais avalés. */
+  inconnus: number[];
+}
+
+// Instantané → état de l'app, pour REPRENDRE une prépa à soi (archive, autre
+// navigateur, sauvegarde d'il y a six mois).
+//
+// ⚠️ **Deux lectures d'un même fichier, deux fonctions.** `versVueAmi` affiche
+// la prépa de quelqu'un d'autre sans y toucher ; `appliquer` la fait sienne. Le
+// fichier est le même — c'est l'INTENTION qui diffère, et elle ne se devine pas :
+// l'utilisateur la déclare en choisissant son bouton.
+//
+// ⚠️ **Le `gear` local prime.** Un monstre déjà présent garde l'équipement venu
+// de MON import de compte : c'est l'état réel de mes runes aujourd'hui, plus
+// juste que celui figé dans un fichier ancien. L'équipement du fichier ne sert
+// qu'à combler les monstres que je n'ai pas encore.
 export function appliquer(
   snap: RtaSnapshot,
   monsterByCom2us: Map<number, Monster>,
   actuel: RtaState
-): { state: RtaState; categories: { label: string; color: string; members: string[] }[]; inconnus: number[] } {
+): {
+  state: RtaState;
+  categories: { label: string; color: string; members: string[] }[];
+  inconnus: number[];
+} {
   const entries: Record<string, RtaEntry> = {};
   const idParCom2us = new Map<number, string>();
   const inconnus: number[] = [];
@@ -142,7 +200,7 @@ export function appliquer(
     const m = monsterByCom2us.get(e.com2usId);
     if (!m) {
       if (!inconnus.includes(e.com2usId)) inconnus.push(e.com2usId);
-      continue; // monstre absent des données : rien à afficher, on l'ignore
+      continue;
     }
     const id = String(m.id);
     idParCom2us.set(e.com2usId, id);
@@ -151,9 +209,8 @@ export function appliquer(
       monsterId: id,
       section: e.section,
       runeSpeed: e.runeSpeed,
-      // Ce qui appartient au destinataire et non à la prépa reçue.
-      sets: precedent?.sets,
-      gear: precedent?.gear,
+      sets: precedent?.sets ?? e.sets,
+      gear: precedent?.gear ?? e.gear,
     };
   }
 
@@ -173,6 +230,53 @@ export function appliquer(
   };
 }
 
+// Instantané → vue consultable. Les entrées portent les runes de L'AUTEUR : ce
+// sont des données d'affichage, elles n'entrent jamais dans l'état de l'app.
+export function versVueAmi(snap: RtaSnapshot, monsterByCom2us: Map<number, Monster>): RtaVueAmi {
+  const entries: { monster: Monster; entry: RtaEntry }[] = [];
+  const idParCom2us = new Map<number, string>();
+  const inconnus: number[] = [];
+
+  for (const e of snap.entries) {
+    const m = monsterByCom2us.get(e.com2usId);
+    if (!m) {
+      if (!inconnus.includes(e.com2usId)) inconnus.push(e.com2usId);
+      continue; // monstre absent des données : rien à afficher
+    }
+    const id = String(m.id);
+    idParCom2us.set(e.com2usId, id);
+    entries.push({
+      monster: m,
+      entry: {
+        monsterId: id,
+        section: e.section,
+        runeSpeed: e.runeSpeed,
+        sets: e.sets ?? [],
+        gear: e.gear,
+      },
+    });
+  }
+
+  const sections = [...snap.sections];
+  if (!sections.includes(RTA_OTHER)) sections.push(RTA_OTHER); // « Autre » est permanente
+
+  return {
+    nom: snap.nom,
+    auteur: snap.auteur,
+    avecEquipement: snap.avecEquipement,
+    sections,
+    entries,
+    categories: snap.categories.map((c) => ({
+      label: c.label,
+      color: c.color,
+      members: new Set(
+        c.membres.map((cid) => idParCom2us.get(cid)).filter((v): v is string => typeof v === 'string')
+      ),
+    })),
+    inconnus,
+  };
+}
+
 /* --------------------------------------------------------------------------
  * Validation — le contenu vient d'un tiers, on ne lui fait pas confiance
  * ----------------------------------------------------------------------- */
@@ -187,6 +291,114 @@ const noIssues = (): Issues => ({ errors: [], warnings: [] });
 // Une même correction peut se répéter sur 80 monstres : on ne l'écrit qu'une fois.
 function warn(ctx: Issues, msg: string) {
   if (!ctx.warnings.includes(msg)) ctx.warnings.push(msg);
+}
+
+// L'équipement reçu d'un tiers. Il n'est utilisé QU'À L'AFFICHAGE (roue de
+// runes, stats totales de l'auteur) : il n'entre jamais dans la prépa locale, ne
+// se compare à rien et n'est jamais réexporté comme s'il était à nous.
+//
+// ⚠️ Validation structurelle seulement — types et bornes. On ne juge pas la
+// **plausibilité** des valeurs : un socle de rune inhabituel peut venir d'une
+// nouveauté du jeu que cette version ne connaît pas encore, et refuser
+// l'affichage serait pire que montrer un chiffre surprenant.
+function cleanEffect(raw: unknown): { code: number; value: number; grind?: number; enchant?: boolean } | null {
+  if (!raw || typeof raw !== 'object') return null;
+  const o = raw as Record<string, unknown>;
+  const code = Number(o.code);
+  const value = Number(o.value);
+  if (!Number.isFinite(code) || !Number.isFinite(value)) return null;
+  const grind = Number(o.grind);
+  return {
+    code,
+    value,
+    ...(Number.isFinite(grind) && grind !== 0 ? { grind } : {}),
+    ...(o.enchant === true ? { enchant: true } : {}),
+  };
+}
+
+const nombre = (v: unknown, defaut = 0): number => {
+  const n = Number(v);
+  return Number.isFinite(n) ? n : defaut;
+};
+
+function cleanGear(raw: unknown): GearSet | undefined {
+  if (!raw || typeof raw !== 'object') return undefined;
+  const o = raw as Record<string, unknown>;
+
+  const b = (o.base ?? {}) as Record<string, unknown>;
+  const base = {
+    hp: nombre(b.hp),
+    atk: nombre(b.atk),
+    def: nombre(b.def),
+    spd: nombre(b.spd),
+    cr: nombre(b.cr),
+    cd: nombre(b.cd),
+    res: nombre(b.res),
+    acc: nombre(b.acc),
+  };
+
+  const runes = (Array.isArray(o.runes) ? o.runes : [])
+    .map((r) => {
+      if (!r || typeof r !== 'object') return null;
+      const ro = r as Record<string, unknown>;
+      const main = cleanEffect(ro.main);
+      if (!main) return null; // une rune sans stat principale n'est pas affichable
+      const slot = nombre(ro.slot);
+      const set = typeof ro.set === 'string' && SET_KEYS.has(ro.set) ? ro.set : null;
+      if (slot < 1 || slot > 6 || !set) return null;
+      const innate = cleanEffect(ro.innate);
+      return {
+        id: nombre(ro.id),
+        slot: Math.round(slot),
+        set,
+        rank: nombre(ro.rank),
+        rarity: nombre(ro.rarity, 1),
+        level: nombre(ro.level),
+        main,
+        ...(innate ? { innate } : {}),
+        subs: (Array.isArray(ro.subs) ? ro.subs : [])
+          .map(cleanEffect)
+          .filter((s): s is NonNullable<ReturnType<typeof cleanEffect>> => !!s),
+      };
+    })
+    .filter((r): r is NonNullable<typeof r> => !!r);
+
+  const artifacts = (Array.isArray(o.artifacts) ? o.artifacts : [])
+    .map((a) => {
+      if (!a || typeof a !== 'object') return null;
+      const ao = a as Record<string, unknown>;
+      const main = cleanEffect(ao.main);
+      const kind = ao.kind === 'element' || ao.kind === 'archetype' ? ao.kind : null;
+      if (!main || !kind) return null;
+      return {
+        kind,
+        ...(typeof ao.element === 'string' ? { element: ao.element as GearSet['artifacts'][number]['element'] } : {}),
+        ...(typeof ao.archetype === 'string'
+          ? { archetype: ao.archetype as GearSet['artifacts'][number]['archetype'] }
+          : {}),
+        level: nombre(ao.level),
+        rarity: nombre(ao.rarity, 1),
+        main,
+        subs: (Array.isArray(ao.subs) ? ao.subs : [])
+          .map(cleanEffect)
+          .filter((s): s is NonNullable<ReturnType<typeof cleanEffect>> => !!s),
+      };
+    })
+    .filter((a): a is NonNullable<typeof a> => !!a);
+
+  const relicMain = cleanEffect((o.relic as Record<string, unknown>)?.main);
+  const relicSub = cleanEffect((o.relic as Record<string, unknown>)?.sub);
+
+  // Un équipement entièrement vide ne vaut pas la peine d'être transporté :
+  // il ferait apparaître un chevron « voir le détail » qui n'ouvre rien.
+  if (runes.length === 0 && artifacts.length === 0 && !relicMain) return undefined;
+
+  return {
+    base,
+    runes,
+    artifacts,
+    ...(relicMain ? { relic: { main: relicMain, ...(relicSub ? { sub: relicSub } : {}) } } : {}),
+  } as GearSet;
 }
 
 function cleanEntry(raw: unknown, ctx: Issues, where: string): RtaShareEntry | null {
@@ -222,11 +434,20 @@ function cleanEntry(raw: unknown, ctx: Issues, where: string): RtaShareEntry | n
     }
   }
 
+  const sets = (Array.isArray(o.sets) ? o.sets : []).filter(
+    (s): s is string => typeof s === 'string' && SET_KEYS.has(s)
+  );
+
   return {
     com2usId: Math.round(id),
     nom: typeof nom === 'string' ? nom.slice(0, 40) : '',
     section,
     runeSpeed,
+    ...(sets.length ? { sets } : {}),
+    ...(() => {
+      const gear = cleanGear(o.equipement ?? o.gear);
+      return gear ? { gear } : {};
+    })(),
   };
 }
 
@@ -258,7 +479,11 @@ function cleanCategory(raw: unknown, ctx: Issues, where: string): RtaShareCatego
  * ----------------------------------------------------------------------- */
 
 export const JSON_FORMAT = 'sw-forge/prepa-rta';
-export const JSON_VERSION = 1;
+// v2 : l'**équipement** (runes, artéfacts, relique) peut accompagner chaque
+// monstre — c'est ce qu'on vient voir dans la prépa d'un ami. Il reste
+// facultatif : l'auteur choisit à l'export. Un fichier v1 se lit sans perte, il
+// n'a simplement rien à montrer côté runes.
+export const JSON_VERSION = 2;
 
 // Clés en clair (français, comme l'interface) : un joueur peut ouvrir le
 // fichier, le relire et le corriger sans décodeur.
@@ -270,12 +495,17 @@ export function encodeSnapshot(snap: RtaSnapshot): string {
       exporte_le: new Date().toISOString(),
       nom: snap.nom,
       auteur: snap.auteur,
+      // Annoncé dans le fichier : le lecteur sait si l'absence de runes est un
+      // choix de l'auteur ou un fichier d'une version antérieure.
+      avec_equipement: snap.avecEquipement,
       sections: snap.sections,
       monstres: snap.entries.map((e) => ({
         com2usId: e.com2usId,
         nom: e.nom,
         section: e.section,
         vitesse: e.runeSpeed,
+        sets: e.sets?.length ? e.sets : undefined,
+        equipement: e.gear,
       })),
       // Omises si vides : une prépa sans catégorie ne traîne pas une liste vide.
       categories: snap.categories.length
@@ -289,7 +519,7 @@ export function encodeSnapshot(snap: RtaSnapshot): string {
 
 export interface ImportReport extends Issues {
   snapshot: RtaSnapshot | null; // null = rien d'importable
-  counts: { monstres: number; sections: number; categories: number };
+  counts: { monstres: number; sections: number; categories: number; avecRunes: number };
 }
 
 // **Validateur d'import** — JSON uniquement. Rend compte de ce qu'il a lu :
@@ -299,7 +529,7 @@ export function validateRtaImport(text: string): ImportReport {
   const vide: ImportReport = {
     ...ctx,
     snapshot: null,
-    counts: { monstres: 0, sections: 0, categories: 0 },
+    counts: { monstres: 0, sections: 0, categories: 0, avecRunes: 0 },
   };
 
   const t = text.trim();
@@ -341,6 +571,15 @@ export function validateRtaImport(text: string): ImportReport {
       ctx,
       `Fichier au format v${version}, plus récent que cette version de SW Forge (v${JSON_VERSION}) — ` +
         `ce qui n'est pas reconnu a été ignoré.`
+    );
+  } else if (Number.isFinite(version) && version < JSON_VERSION) {
+    // Lu sans perte, mais signalé : sinon un fichier ancien circule
+    // indéfiniment dans la guilde et personne ne sait qu'il peut désormais
+    // porter les runes (même raisonnement que pour les recommandations).
+    warn(
+      ctx,
+      `Fichier au format v${version} (actuel : v${JSON_VERSION}) : il ne contient pas les runes. ` +
+        `Demande à son auteur de le réexporter pour les voir.`
     );
   }
 
@@ -396,10 +635,20 @@ export function validateRtaImport(text: string): ImportReport {
   const nom = typeof obj.nom === 'string' ? obj.nom.slice(0, NOM_MAX) : '';
   const auteur = typeof obj.auteur === 'string' ? obj.auteur.slice(0, AUTEUR_MAX) : '';
 
+  // ⚠️ Ce qu'on a RÉELLEMENT lu prime sur ce que le fichier déclare : un
+  // `avec_equipement: true` sans la moindre rune afficherait « runes incluses »
+  // sur une prépa qui n'en montre aucune.
+  const avecEquipement = entries.some((e) => e.gear);
+
   return {
     ...ctx,
-    snapshot: { nom, auteur, sections, entries, categories },
-    counts: { monstres: entries.length, sections: sections.length, categories: categories.length },
+    snapshot: { nom, auteur, sections, entries, categories, avecEquipement },
+    counts: {
+      monstres: entries.length,
+      sections: sections.length,
+      categories: categories.length,
+      avecRunes: entries.filter((e) => e.gear).length,
+    },
   };
 }
 

@@ -11,5 +11,10 @@ tototriou-*.json
 *export*.json
 sw-account*.json
 
-# Skills installés localement (outillage personnel, pas du code du projet).
-.claude/skills/
+# Outillage Claude Code : personnel à chaque machine, pas du code du projet.
+# ⚠️ `settings.local.json` porte les permissions de l'utilisateur et
+# `settings.json` les plugins qu'il a installés — le premier n'est PAS ignoré
+# d'office par git, seul son nom suggère qu'il est local. Sans cette règle, un
+# `git add -A` les embarque, et le collaborateur hérite de réglages qui ne sont
+# pas les siens.
+.claude/

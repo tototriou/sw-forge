@@ -93,6 +93,61 @@ export default function testRuneOptim() {
     ok(res.candidates.length === 1, 'minimum de VIT atteignable (base 100 + 6×VIT plat 10) → 1 combinaison');
   }
 
+  // ⚠️ Cas soulevé en revue : le meet-in-the-middle scinde les 6 slots en
+  // deux moitiés de 3 (slots 1-3 / 4-6) — si les DEUX sets demandés sont
+  // répartis à cheval sur les deux moitiés (aucune des deux ne porte, à elle
+  // seule, assez de pièces d'AUCUN des deux sets), le moteur doit quand même
+  // trouver la combinaison en additionnant les comptes des deux côtés au
+  // moment de les apparier (voir `satisfiesSets` dans runeBuildOptim.ts).
+  // Une implémentation qui vérifierait chaque moitié indépendamment, sans
+  // combiner les comptes, manquerait ce cas.
+  {
+    const pool = [
+      // Moitié A (slots 1-3) : 2 Violent + 1 Will — ni 4 Violent, ni 2 Will à elle seule.
+      rune(1, 1, 'violent'),
+      rune(2, 2, 'will'),
+      rune(3, 3, 'violent'),
+      // Moitié B (slots 4-6) : 2 Violent + 1 Will — même chose, isolément insuffisant.
+      rune(4, 4, 'violent'),
+      rune(5, 5, 'violent'),
+      rune(6, 6, 'will'),
+    ];
+    const res = searchBuilds({
+      base: ZERO_BASE,
+      artifacts: [],
+      pool,
+      requirement: { sets: ['violent', 'will'], minStats: {} },
+      metric: 'eff',
+    });
+    egal(
+      res.candidates.length,
+      1,
+      'Violent(4)+Will(2) réparti à cheval sur les deux moitiés (2+1 de chaque côté) → trouvé quand même'
+    );
+  }
+
+  // Variante : la somme des deux moitiés N'ATTEINT PAS le compte requis
+  // (3 Violent au lieu de 4) → aucune combinaison, même si chaque moitié
+  // « a l'air » de contribuer.
+  {
+    const pool = [
+      rune(1, 1, 'violent'),
+      rune(2, 2, 'will'),
+      rune(3, 3, 'violent'),
+      rune(4, 4, 'violent'),
+      rune(5, 5, 'shield'), // au lieu d'un 2e Violent : le total tombe à 3
+      rune(6, 6, 'will'),
+    ];
+    const res = searchBuilds({
+      base: ZERO_BASE,
+      artifacts: [],
+      pool,
+      requirement: { sets: ['violent', 'will'], minStats: {} },
+      metric: 'eff',
+    });
+    egal(res.candidates.length, 0, 'somme des deux moitiés = 3 Violent (4 exigés) → aucune combinaison');
+  }
+
   titre('Optimizer · exclusion des runes portées ailleurs');
 
   const gearWith = (runes: RuneDetail[]) => ({ base: ZERO_BASE, runes, artifacts: [] });
@@ -130,5 +185,99 @@ export default function testRuneOptim() {
       metric: 'eff',
     });
     egal(resNonFiltre.candidates.length, 1, 'sans exclusion (« explorer tout l\'inventaire »), la combinaison revient');
+  }
+
+  titre('Optimizer · statistique principale imposée (slots 2/4/6)');
+
+  // Deux candidats possibles sur le slot 2 : l'un en ATQ% (code 4), l'autre
+  // en DEF% (code 6) — même set, mêmes autres slots inchangés.
+  function poolSlot2Choice(): RuneDetail[] {
+    return [
+      rune(1, 1, 'violent'),
+      rune(2, 2, 'violent', 4, 20), // ATQ%
+      rune(20, 2, 'violent', 6, 20), // DEF% — même slot, mainstat différente
+      rune(3, 3, 'violent'),
+      rune(4, 4, 'violent'),
+      rune(5, 5, 'will'),
+      rune(6, 6, 'will'),
+    ];
+  }
+
+  {
+    const res = searchBuilds({
+      base: ZERO_BASE,
+      artifacts: [],
+      pool: poolSlot2Choice(),
+      requirement: { sets: ['violent', 'will'], minStats: {}, mainStats: { 2: [4] } },
+      metric: 'eff',
+    });
+    egal(res.candidates.length, 1, 'mainStats {2:[ATQ%]} → une seule combinaison possible');
+    ok(
+      res.candidates[0]?.runeIds.includes(2) && !res.candidates[0]?.runeIds.includes(20),
+      'la rune DEF% du slot 2 (id 20) est écartée, celle en ATQ% (id 2) retenue'
+    );
+  }
+
+  {
+    const res = searchBuilds({
+      base: ZERO_BASE,
+      artifacts: [],
+      pool: poolSlot2Choice(),
+      requirement: { sets: ['violent', 'will'], minStats: {}, mainStats: { 2: [6] } },
+      metric: 'eff',
+    });
+    ok(
+      !!res.candidates[0]?.runeIds.includes(20) && !res.candidates[0]?.runeIds.includes(2),
+      'mainStats {2:[DEF%]} → bascule sur la rune DEF% (id 20), la ATQ% (id 2) écartée'
+    );
+  }
+
+  {
+    // Aucune rune du slot 2 n'est en Taux Crit (code 9) dans ce pool.
+    const res = searchBuilds({
+      base: ZERO_BASE,
+      artifacts: [],
+      pool: poolSlot2Choice(),
+      requirement: { sets: ['violent', 'will'], minStats: {}, mainStats: { 2: [9] } },
+      metric: 'eff',
+    });
+    egal(res.candidates.length, 0, 'mainStats exigeant une stat absente du slot → aucune combinaison');
+  }
+
+  titre('Optimizer · conditions maximum');
+
+  {
+    // Base 100 VIT + 6 runes à +10 VIT plat chacune (voir `rune()`) = 160.
+    const res = searchBuilds({
+      base: ZERO_BASE,
+      artifacts: [],
+      pool: poolViolentWill(),
+      requirement: { sets: ['violent', 'will'], minStats: {}, maxStats: { spd: 150 } },
+      metric: 'eff',
+    });
+    egal(res.candidates.length, 0, 'total réel (160) au-delà du maximum demandé (150) → rejeté');
+  }
+
+  {
+    const res = searchBuilds({
+      base: ZERO_BASE,
+      artifacts: [],
+      pool: poolViolentWill(),
+      requirement: { sets: ['violent', 'will'], minStats: {}, maxStats: { spd: 200 } },
+      metric: 'eff',
+    });
+    egal(res.candidates.length, 1, 'total réel (160) sous le maximum demandé (200) → accepté');
+  }
+
+  {
+    // Minimum ET maximum encadrant exactement la valeur réelle (160).
+    const res = searchBuilds({
+      base: ZERO_BASE,
+      artifacts: [],
+      pool: poolViolentWill(),
+      requirement: { sets: ['violent', 'will'], minStats: { spd: 160 }, maxStats: { spd: 160 } },
+      metric: 'eff',
+    });
+    egal(res.candidates.length, 1, 'minimum = maximum = valeur réelle exacte → toujours accepté');
   }
 }

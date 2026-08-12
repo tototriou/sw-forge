@@ -1,6 +1,7 @@
 // Optimiseur de build : cherche, dans un pool de runes possédées, la (les)
 // meilleure(s) combinaison(s) de 6 pour un monstre donné, sous contrainte
-// d'un combo de sets et de minimums de stats.
+// d'un combo de sets, de statistiques principales imposées (slots 2/4/6) et
+// de minimums/maximums de stats.
 //
 // Anticipé dans spec/compte/calcul-runes.md §6 (Perf) : « jamais de
 // brute-force → Web Worker, tableaux typés, branch-and-bound + pré-filtrage
@@ -12,12 +13,22 @@
 // qu'au bout des 6 choix (le test `missingSets` n'a de sens que sur les 6
 // runes réunies) : il gaspille énormément de branches à explorer des débuts
 // de combinaison qui ne pourront jamais aboutir. Ici, les 6 slots sont
-// scindés en deux MOITIÉS de 3, chacune entièrement énumérée depuis le pool
-// déjà pré-filtré par slot ; les moitiés sont regroupées par le compte EXACT
-// de pièces de chaque set demandé qu'elles apportent (+ jokers Intangible) —
+// scindés en deux MOITIÉS de 3, chacune énumérée depuis le pool déjà
+// pré-filtré par slot ; les moitiés sont regroupées par le compte EXACT de
+// pièces de chaque set demandé qu'elles apportent (+ jokers Intangible) —
 // deux moitiés dont les comptes s'additionnent pour satisfaire le combo
 // peuvent être appariées SANS jamais énumérer le produit complet des runes
-// individuelles. Voir spec/outils/optimizer.md pour le résumé fonctionnel, et
+// individuelles.
+//
+// ⚠️ **Compartiments EN FLUX, bornés en mémoire.** Une première version
+// construisait un tableau complet de `cap³` combinaisons par moitié avant de
+// les regrouper : sur un vrai compte (des centaines de runes par slot), ça
+// pouvait épuiser plusieurs Go de mémoire et planter — voir
+// spec/outils/optimizer.md, « Validation grandeur nature ». Chaque
+// combinaison est maintenant évaluée puis, selon son mérite, retenue ou
+// **immédiatement jetée** : la mémoire dépend du nombre de compartiments ×
+// leur taille max (`BUCKET_CAP`), plus jamais du cube du pré-filtrage par
+// slot. Voir spec/outils/optimizer.md pour le résumé fonctionnel, et
 // .claude/skills/algo-verify/SKILL.md pour la discipline de vérification
 // (référence brute-force + test différentiel dans
 // tests/rune-optim-differential.test.ts).
@@ -37,6 +48,16 @@ import { computeStats, StatRow } from './stats';
 import { missingSets } from './recoMatch';
 import { OptimMetric } from './runeOptim';
 
+// Statistiques principales possibles, par emplacement — RÈGLES DU JEU. Les
+// slots 1/3/5 ont une principale FIXE (ATQ plat / DEF plat / PV plat) : pas
+// de choix, donc pas d'entrée ici. Codes : voir RUNE_EFFECT (2=PV%, 4=ATQ%,
+// 6=DEF%, 8=VIT, 9=Taux Crit, 10=Dmg Crit, 11=RES, 12=Précision).
+export const SLOT_MAIN_OPTIONS: Record<2 | 4 | 6, number[]> = {
+  2: [2, 4, 6, 8],
+  4: [2, 4, 6, 9, 10],
+  6: [2, 4, 6, 11, 12],
+};
+
 export interface BuildRequirement {
   // Multiset de clés RUNE_SETS, **au format `activeSets`** (une entrée par
   // activation : ['violent','will'] = Violent 4p + Will 2p ; ['fight','fight']
@@ -44,6 +65,11 @@ export interface BuildRequirement {
   sets: string[];
   // Minimums exigés sur le TOTAL final (comme RecoSlot.stats). Absent = non exigé.
   minStats: Partial<Record<StatKey, number>>;
+  // Maximums exigés sur le TOTAL final. Absent = non plafonné.
+  maxStats?: Partial<Record<StatKey, number>>;
+  // Statistiques principales AUTORISÉES sur les slots 2/4/6 (codes RUNE_EFFECT,
+  // voir SLOT_MAIN_OPTIONS). Absent/vide pour un slot = pas de contrainte.
+  mainStats?: Partial<Record<2 | 4 | 6, number[]>>;
 }
 
 export interface BuildCandidate {
@@ -61,6 +87,8 @@ export interface SearchParams {
   metric: OptimMetric;
   maxNodes?: number; // budget de PAIRES (moitié+moitié) évaluées, pas de nœuds d'arbre
   maxCollected?: number; // plafond de candidats retenus avant arrêt (défaut MAX_COLLECTED)
+  maxMs?: number; // budget de TEMPS écoulé, en ms (défaut DEFAULT_MAX_MS)
+  slotFilterCap?: number; // candidats retenus par slot et par paquet (défaut MAX_PER_SLOT_MATCH/FILL)
 }
 
 export interface SearchResult {
@@ -78,6 +106,12 @@ const DEFAULT_MAX_NODES = 400_000;
 // « le message de troncature devient rare » et « la recherche reste rapide ».
 // Surchargeable via SearchParams.maxCollected.
 const MAX_COLLECTED = 2000;
+// Filet de sécurité indépendant de maxNodes/maxCollected : sur les scénarios
+// mesurés (500 à 5000 runes, scripts/benchmark-optim.ts), le pire cas était
+// sous ~4 s — 15 s laisse une marge large avant de considérer qu'une
+// recherche est anormalement lente, sans jamais bloquer l'interface
+// puisqu'elle tourne dans un Worker. Surchargeable via SearchParams.maxMs.
+const DEFAULT_MAX_MS = 15_000;
 // Deux paquets par slot : les runes du (ou des) set(s) demandé(s) — pour
 // garantir qu'une combinaison satisfaisant le combo reste atteignable même
 // après filtrage — et les meilleures runes toutes provenances, pour la
@@ -93,6 +127,17 @@ const MAX_PER_SLOT_FILL = 40;
 // après coup (voir OptimizerSection.tsx) ne peut être honnête que si le pool
 // pré-filtré garde une chance à chacun des 9 critères de tri proposés.
 const PER_STAT_KEEP = 6;
+// Combinaisons retenues par COMPARTIMENT (pas par slot) — voir l'en-tête du
+// fichier. Borne la mémoire indépendamment de `slotFilterCap` : même à un
+// pré-filtrage large, un compartiment ne grossit jamais au-delà de ça.
+// ⚠️ Calibré sur un vrai compte (voir spec/outils/optimizer.md, « Validation
+// grandeur nature ») : à 300, un compartiment très peuplé (le combo de sets
+// « évident » d'un build réel) pouvait perdre la bonne combinaison — les 6
+// runes survivaient au pré-filtrage par slot, mais leur PAIRE de moitiés,
+// noyée parmi des dizaines de milliers de rivales du même compartiment, ne
+// l'était pas. Mesuré : 300 → jamais trouvé ; 3000 → trouvé en ~50 s (bien
+// plus qu'il n'en faut) ; 600 → trouvé en ~16 s. Retenu comme compromis.
+const BUCKET_CAP = 600;
 
 const ALL_STAT_KEYS: StatKey[] = ['hp', 'atk', 'def', 'spd', 'cr', 'cd', 'res', 'acc'];
 
@@ -136,7 +181,12 @@ function relevance(rune: RuneDetail, requirement: BuildRequirement): number {
   return score;
 }
 
-function filterSlot(candidates: RuneDetail[], requirement: BuildRequirement): RuneDetail[] {
+export function filterSlot(
+  candidates: RuneDetail[],
+  requirement: BuildRequirement,
+  matchCap = MAX_PER_SLOT_MATCH,
+  fillCap = MAX_PER_SLOT_FILL
+): RuneDetail[] {
   const requiredKeys = new Set(requirement.sets);
   const scored = candidates
     .map((r) => ({ r, s: relevance(r, requirement) }))
@@ -145,8 +195,8 @@ function filterSlot(candidates: RuneDetail[], requirement: BuildRequirement): Ru
   const kept = new Map<number, RuneDetail>();
 
   const matches = scored.filter(({ r }) => requiredKeys.has(r.set) || r.set === 'intangible');
-  for (const { r } of matches.slice(0, MAX_PER_SLOT_MATCH)) kept.set(r.id, r);
-  for (const { r } of scored.slice(0, MAX_PER_SLOT_FILL)) kept.set(r.id, r);
+  for (const { r } of matches.slice(0, matchCap)) kept.set(r.id, r);
+  for (const { r } of scored.slice(0, fillCap)) kept.set(r.id, r);
 
   // Le meilleur d'un slot sur chaque stat individuellement — voir PER_STAT_KEEP.
   for (const k of ALL_STAT_KEYS) {
@@ -210,26 +260,57 @@ function relicPctBonus(relic?: RelicDetail): Record<string, number> {
 }
 
 /* --------------------------------------------------------------------------
- * Meet-in-the-middle : moitiés de 3 slots
+ * Meet-in-the-middle : moitiés de 3 slots, compartiments EN FLUX
  * ----------------------------------------------------------------------- */
 
 interface HalfCombo {
   runes: [RuneDetail, RuneDetail, RuneDetail];
   counts: number[]; // aligné sur `distinctKeys` : nb de pièces de chaque set demandé
   jokers: number; // nb de runes Intangible dans cette moitié
-  pct: Record<string, number>; // contribution cumulée, par stat DEMANDÉE (minEntries) seulement
+  pct: Record<string, number>; // contribution cumulée, par stat CONTRAINTE (min OU max) seulement
   flat: Record<string, number>;
   relevanceScore: number;
 }
 
-function enumerateHalf(
+interface Bucket {
+  counts: number[];
+  jokers: number;
+  combos: HalfCombo[]; // borné à BUCKET_CAP, trié décroissant par relevanceScore
+  maxPct: Record<string, number>; // borne SÛRE (jamais sous-estimée) par stat contrainte
+  maxFlat: Record<string, number>;
+}
+
+function bucketKeyOf(counts: number[], jokers: number): string {
+  return `${counts.join(',')}|${jokers}`;
+}
+
+// Insertion triée bornée : ce qui ne rentre plus est jeté IMMÉDIATEMENT,
+// jamais accumulé puis élagué après coup — c'est ce qui borne la mémoire,
+// pas seulement le temps. Repli rapide (O(1)) pour l'écrasante majorité des
+// combinaisons générées une fois un compartiment plein : elles ne battent pas
+// la pire déjà gardée, donc un seul test suffit à les écarter.
+function insertBounded(list: HalfCombo[], combo: HalfCombo): void {
+  if (list.length >= BUCKET_CAP && combo.relevanceScore <= list[list.length - 1].relevanceScore) {
+    return;
+  }
+  let i = 0;
+  while (i < list.length && list[i].relevanceScore >= combo.relevanceScore) i++;
+  list.splice(i, 0, combo);
+  if (list.length > BUCKET_CAP) list.pop();
+}
+
+// Construit les compartiments d'une moitié EN FLUX : chaque combinaison
+// (r0,r1,r2) est évaluée une fois, jamais matérialisée dans un tableau
+// intermédiaire de `cap³` éléments. Voir l'en-tête du fichier.
+function buildBuckets(
   slotIdxs: readonly [number, number, number],
   filtered: RuneDetail[][],
   distinctKeys: string[],
-  minEntries: { k: StatKey; min: number }[]
-): HalfCombo[] {
+  constrainedKeys: StatKey[]
+): Bucket[] {
   const [i0, i1, i2] = slotIdxs;
-  const out: HalfCombo[] = [];
+  const buckets = new Map<string, Bucket>();
+
   for (const r0 of filtered[i0]) {
     for (const r1 of filtered[i1]) {
       for (const r2 of filtered[i2]) {
@@ -239,7 +320,7 @@ function enumerateHalf(
         const pct: Record<string, number> = {};
         const flat: Record<string, number> = {};
         let score = (runeEfficiency(r0) + runeEfficiency(r1) + runeEfficiency(r2)) / 1000;
-        for (const { k, min } of minEntries) {
+        for (const k of constrainedKeys) {
           let p = 0;
           let f = 0;
           for (const r of runes) {
@@ -249,51 +330,29 @@ function enumerateHalf(
           }
           pct[k] = p;
           flat[k] = f;
-          score += (p + f) / min;
         }
-        out.push({ runes, counts, jokers, pct, flat, relevanceScore: score });
+
+        const key = bucketKeyOf(counts, jokers);
+        let b = buckets.get(key);
+        if (!b) {
+          b = { counts, jokers, combos: [], maxPct: {}, maxFlat: {} };
+          buckets.set(key, b);
+        }
+        // ⚠️ Les bornes s'étendent avec CHAQUE combinaison vue, y compris
+        // celles qu'on ne retient pas au final : une combinaison écartée
+        // (pas assez pertinente sur l'ensemble) peut quand même repousser le
+        // maximum atteignable sur une stat en particulier. Rester large ici
+        // ne coûte rien et ne peut jamais écarter une paire à tort — voir
+        // `pairFeasible`.
+        for (const k of constrainedKeys) {
+          if (pct[k] > (b.maxPct[k] ?? 0)) b.maxPct[k] = pct[k];
+          if (flat[k] > (b.maxFlat[k] ?? 0)) b.maxFlat[k] = flat[k];
+        }
+        insertBounded(b.combos, { runes, counts, jokers, pct, flat, relevanceScore: score });
       }
     }
   }
-  return out;
-}
-
-interface Bucket {
-  counts: number[];
-  jokers: number;
-  combos: HalfCombo[];
-  maxPct: Record<string, number>; // borne SÛRE (jamais sous-estimée) par stat demandée
-  maxFlat: Record<string, number>;
-}
-
-function bucketize(combos: HalfCombo[], minEntries: { k: StatKey; min: number }[]): Bucket[] {
-  const key = (counts: number[], jokers: number) => `${counts.join(',')}|${jokers}`;
-  const map = new Map<string, Bucket>();
-  for (const c of combos) {
-    const k = key(c.counts, c.jokers);
-    let b = map.get(k);
-    if (!b) {
-      b = { counts: c.counts, jokers: c.jokers, combos: [], maxPct: {}, maxFlat: {} };
-      map.set(k, b);
-    }
-    b.combos.push(c);
-  }
-  for (const b of map.values()) {
-    // Trié par pertinence décroissante : les combinaisons finales prometteuses
-    // sont évaluées en premier, utile si le budget de paires est atteint.
-    b.combos.sort((x, y) => y.relevanceScore - x.relevanceScore);
-    for (const { k } of minEntries) {
-      let mp = 0;
-      let mf = 0;
-      for (const c of b.combos) {
-        if (c.pct[k] > mp) mp = c.pct[k];
-        if (c.flat[k] > mf) mf = c.flat[k];
-      }
-      b.maxPct[k] = mp;
-      b.maxFlat[k] = mf;
-    }
-  }
-  return Array.from(map.values());
+  return Array.from(buckets.values());
 }
 
 // ⚠️ Vérifie si deux moitiés PEUVENT ensemble satisfaire le combo de sets, à
@@ -329,23 +388,66 @@ function satisfiesSets(
 /* --------------------------------------------------------------------------
  * Recherche
  * ----------------------------------------------------------------------- */
-export function searchBuilds(params: SearchParams): SearchResult {
+
+// Étape intermédiaire : ce qu'on a trouvé JUSQU'ICI, pas encore le résultat
+// final (`truncated` n'a pas de sens tant que la recherche n'est pas arrêtée
+// — voir SearchResult). Sert à l'arrêt manuel (bouton « Arrêter ») : on
+// ressort ce dernier point de passage, converti en résultat définitif.
+export interface SearchProgress {
+  candidates: BuildCandidate[];
+  explored: number;
+}
+
+// Fréquence des points de passage (`yield`) : assez souvent pour qu'un temps
+// limite ou un arrêt manuel réagissent vite (quelques centaines de ms au
+// pire, voir scripts/benchmark-optim.ts), assez rare pour ne pas payer le
+// coût d'un `yield` de générateur à chaque paire évaluée.
+const CHECKPOINT_EVERY = 500;
+
+/**
+ * Cœur du moteur, sous forme de GÉNÉRATEUR : produit un {@link SearchProgress}
+ * à intervalles réguliers plutôt que de tourner jusqu'au bout d'un seul bloc.
+ * ⚠️ Ce n'est pas une seconde implémentation à maintenir en double :
+ * `searchBuilds` (l'API historique, utilisée par les tests/le benchmark) ne
+ * fait que DRAINER ce générateur jusqu'à son `return`. Le Worker, lui,
+ * pilote le générateur pas à pas, ce qui permet de rendre la main entre deux
+ * points de passage — condition nécessaire pour recevoir un message
+ * d'arrêt pendant que la recherche tourne (voir
+ * src/workers/runeBuildOptim.worker.ts).
+ */
+export function* searchBuildsSteps(params: SearchParams): Generator<SearchProgress, SearchResult, void> {
   const { base, artifacts, relic, pool, requirement, metric } = params;
   const maxNodes = params.maxNodes ?? DEFAULT_MAX_NODES;
   const maxCollected = params.maxCollected ?? MAX_COLLECTED;
+  const maxMs = params.maxMs ?? DEFAULT_MAX_MS;
+  const slotCap = params.slotFilterCap ?? MAX_PER_SLOT_MATCH;
+  const startedAt = Date.now();
 
   const bySlot: RuneDetail[][] = [[], [], [], [], [], []];
   for (const r of pool) {
-    if (r.slot >= 1 && r.slot <= 6) bySlot[r.slot - 1].push(r);
+    if (r.slot < 1 || r.slot > 6) continue;
+    // ⚠️ Contrainte de statistique principale (slots 2/4/6 seulement — les
+    // autres n'ont pas d'entrée dans `mainStats`, donc `allowed` reste
+    // `undefined` et rien n'est filtré). Appliquée AVANT le pré-filtrage par
+    // pertinence : elle réduit le pool réel dès le départ, ce qui atténue
+    // aussi le coût mémoire/temps de tout ce qui suit.
+    const allowed = requirement.mainStats?.[r.slot as 2 | 4 | 6];
+    if (allowed && allowed.length > 0 && !allowed.includes(r.main.code)) continue;
+    bySlot[r.slot - 1].push(r);
   }
-  const filtered = bySlot.map((list) => filterSlot(list, requirement));
+  const filtered = bySlot.map((list) => filterSlot(list, requirement, slotCap, slotCap));
   if (filtered.some((list) => list.length === 0)) {
     return { candidates: [], explored: 0, truncated: false };
   }
+  const overBudget = () => Date.now() - startedAt > maxMs;
 
   const minEntries = ALL_STAT_KEYS
     .map((k) => ({ k, min: requirement.minStats[k] }))
     .filter((e): e is { k: StatKey; min: number } => e.min != null && e.min > 0);
+  const maxEntries = ALL_STAT_KEYS
+    .map((k) => ({ k, max: requirement.maxStats?.[k] }))
+    .filter((e): e is { k: StatKey; max: number } => e.max != null && e.max > 0);
+  const constrainedKeys = Array.from(new Set([...minEntries.map((e) => e.k), ...maxEntries.map((e) => e.k)]));
 
   const distinctKeys = Array.from(new Set(requirement.sets));
 
@@ -354,21 +456,22 @@ export function searchBuilds(params: SearchParams): SearchResult {
   const relPct = relicPctBonus(relic);
   const baseRec = base as unknown as Record<string, number>;
 
-  const halfA = enumerateHalf([0, 1, 2], filtered, distinctKeys, minEntries);
-  const halfB = enumerateHalf([3, 4, 5], filtered, distinctKeys, minEntries);
-  const bucketsA = bucketize(halfA, minEntries);
-  const bucketsB = bucketize(halfB, minEntries);
+  const bucketsA = buildBuckets([0, 1, 2], filtered, distinctKeys, constrainedKeys);
+  const bucketsB = buildBuckets([3, 4, 5], filtered, distinctKeys, constrainedKeys);
 
-  // Borne optimiste (sûre) pour les minimums, à partir des bornes de deux
+  function totalOf(k: StatKey, pct: number, flat: number): number {
+    const b = baseRec[k] ?? 0;
+    return k === 'hp' || k === 'atk' || k === 'def' ? b + Math.ceil((b * pct) / 100) + flat : b + flat;
+  }
+
+  // Borne optimiste (sûre) pour les MINIMUMS, à partir des bornes de deux
   // compartiments — même principe que dans l'ancien moteur slot-par-slot,
   // appliqué ici au niveau d'une paire de compartiments de 3 runes.
-  function pairFeasible(bA: { maxPct: Record<string, number>; maxFlat: Record<string, number> }, bB: typeof bA): boolean {
+  function pairFeasibleMin(bA: { maxPct: Record<string, number>; maxFlat: Record<string, number> }, bB: typeof bA): boolean {
     for (const { k, min } of minEntries) {
       const optPct = (bA.maxPct[k] ?? 0) + (bB.maxPct[k] ?? 0) + (guaranteed.pct[k] ?? 0) + (relPct[k] ?? 0);
       const optFlat = (bA.maxFlat[k] ?? 0) + (bB.maxFlat[k] ?? 0) + (guaranteed.flat[k] ?? 0) + (artFlat[k] ?? 0);
-      const b = baseRec[k] ?? 0;
-      const total = k === 'hp' || k === 'atk' || k === 'def' ? b + Math.ceil((b * optPct) / 100) + optFlat : b + optFlat;
-      if (total < min) return false;
+      if (totalOf(k, optPct, optFlat) < min) return false;
     }
     return true;
   }
@@ -380,19 +483,31 @@ export function searchBuilds(params: SearchParams): SearchResult {
   outer: for (const bA of bucketsA) {
     for (const bB of bucketsB) {
       if (!satisfiesSets(bA.counts, bA.jokers, bB.counts, bB.jokers, distinctKeys, requirement)) continue;
-      if (!pairFeasible(bA, bB)) continue;
+      if (!pairFeasibleMin(bA, bB)) continue;
 
       for (const comboA of bA.combos) {
-        // Repli rapide : même avec le meilleur de B, ce comboA peut-il
-        // encore atteindre chaque minimum ? Évite d'ouvrir la boucle B en
-        // entier pour un comboA déjà hors de portée.
+        // Repli rapide côté MINIMUM : même avec le meilleur de B, ce comboA
+        // peut-il encore atteindre chaque minimum ? Évite d'ouvrir la boucle
+        // B en entier pour un comboA déjà hors de portée.
         let comboAOk = true;
         for (const { k, min } of minEntries) {
           const p = (comboA.pct[k] ?? 0) + (bB.maxPct[k] ?? 0) + (guaranteed.pct[k] ?? 0) + (relPct[k] ?? 0);
           const f = (comboA.flat[k] ?? 0) + (bB.maxFlat[k] ?? 0) + (guaranteed.flat[k] ?? 0) + (artFlat[k] ?? 0);
-          const b = baseRec[k] ?? 0;
-          const total = k === 'hp' || k === 'atk' || k === 'def' ? b + Math.ceil((b * p) / 100) + f : b + f;
-          if (total < min) {
+          if (totalOf(k, p, f) < min) {
+            comboAOk = false;
+            break;
+          }
+        }
+        if (!comboAOk) continue;
+
+        // Repli rapide côté MAXIMUM : un comboB ne peut qu'AJOUTER (jamais
+        // retirer) — si comboA seul (avec le contexte fixe) dépasse déjà un
+        // maximum, aucun comboB ne repassera sous la barre. Pas besoin d'une
+        // borne de compartiment ici : c'est comboA lui-même qui suffit.
+        for (const { k, max } of maxEntries) {
+          const p = (comboA.pct[k] ?? 0) + (guaranteed.pct[k] ?? 0) + (relPct[k] ?? 0);
+          const f = (comboA.flat[k] ?? 0) + (guaranteed.flat[k] ?? 0) + (artFlat[k] ?? 0);
+          if (totalOf(k, p, f) > max) {
             comboAOk = false;
             break;
           }
@@ -401,7 +516,10 @@ export function searchBuilds(params: SearchParams): SearchResult {
 
         for (const comboB of bB.combos) {
           explored++;
-          if (explored > maxNodes) {
+          if (explored % CHECKPOINT_EVERY === 0) {
+            yield { candidates, explored };
+          }
+          if (explored > maxNodes || overBudget()) {
             truncated = true;
             break outer;
           }
@@ -423,6 +541,15 @@ export function searchBuilds(params: SearchParams): SearchResult {
               break;
             }
           }
+          if (ok) {
+            for (const { k, max } of maxEntries) {
+              const row = stats.find((r) => r.key === k);
+              if (row && row.total > max) {
+                ok = false;
+                break;
+              }
+            }
+          }
           if (!ok) continue;
 
           const effTotal = runes.reduce((sum, r) => sum + valueOf(r, metric), 0);
@@ -437,6 +564,18 @@ export function searchBuilds(params: SearchParams): SearchResult {
   }
 
   return { candidates, explored, truncated };
+}
+
+// API historique : drainer le générateur jusqu'au bout en un seul appel
+// synchrone. C'est ce que testent tests/rune-optim.test.ts,
+// tests/rune-optim-differential.test.ts et scripts/benchmark-optim.ts — le
+// comportement est identique à avant la restructuration en générateur, seuls
+// les points de passage internes ont changé.
+export function searchBuilds(params: SearchParams): SearchResult {
+  const gen = searchBuildsSteps(params);
+  let step = gen.next();
+  while (!step.done) step = gen.next();
+  return step.value;
 }
 
 /* --------------------------------------------------------------------------

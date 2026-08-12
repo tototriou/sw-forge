@@ -5,27 +5,30 @@ export type BuildOptimStatus = 'idle' | 'running' | 'done' | 'error';
 
 // Cycle de vie du Worker de recherche de builds.
 //
-// ⚠️ « Annulable » veut dire ici qu'on TERMINE le worker en cours plutôt que
-// de tenter une annulation coopérative : le volume de calcul (quelques
-// centaines de milliers de nœuds) ne justifie pas un protocole de message
-// d'arrêt. `run()` termine tout worker déjà en vol avant d'en lancer un
-// nouveau — une recherche qui change de paramètres ne doit pas laisser une
-// ancienne réponse écraser la nouvelle.
+// Deux façons d'interrompre, pas interchangeables :
+//  - `stop()` — arrêt COOPÉRATIF : poste un message que le Worker traite à
+//    son prochain point de passage (voir runeBuildOptim.worker.ts) et
+//    ressort ce qu'il a trouvé jusque-là (`truncated: true`). C'est celui du
+//    bouton « Arrêter » de l'UI : on veut le résultat partiel, pas le perdre.
+//  - `cancel()` — arrêt SEC (`terminate()`) : rien n'est récupéré. Utilisé au
+//    démontage et par `run()` lui-même avant de lancer une nouvelle
+//    recherche, pour qu'une réponse tardive de l'ancien Worker n'écrase
+//    jamais les paramètres qu'on vient de changer.
 export function useBuildOptimSearch() {
   const workerRef = useRef<Worker | null>(null);
   const [status, setStatus] = useState<BuildOptimStatus>('idle');
   const [result, setResult] = useState<SearchResult | null>(null);
 
-  const terminate = useCallback(() => {
+  const cancel = useCallback(() => {
     workerRef.current?.terminate();
     workerRef.current = null;
   }, []);
 
-  useEffect(() => terminate, [terminate]);
+  useEffect(() => cancel, [cancel]);
 
   const run = useCallback(
     (params: SearchParams) => {
-      terminate();
+      cancel();
       setStatus('running');
       setResult(null);
       const worker = new Worker(new URL('../workers/runeBuildOptim.worker.ts', import.meta.url), {
@@ -39,8 +42,12 @@ export function useBuildOptimSearch() {
       worker.onerror = () => setStatus('error');
       worker.postMessage(params);
     },
-    [terminate]
+    [cancel]
   );
 
-  return { status, result, run, cancel: terminate };
+  const stop = useCallback(() => {
+    workerRef.current?.postMessage({ stop: true });
+  }, []);
+
+  return { status, result, run, stop, cancel };
 }

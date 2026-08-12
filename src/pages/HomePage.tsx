@@ -19,7 +19,7 @@ import {
 } from 'lucide-react';
 import ElementIcon from '../components/ElementIcon';
 import { ElementKey } from '../types';
-import { RELEASES } from '../data/releases';
+import { RELEASES, libelleVersion } from '../data/releases';
 
 const ELEMENT_ORDER: ElementKey[] = ['fire', 'water', 'wind', 'light', 'dark'];
 const SW_EXPORTER = 'https://github.com/Xzandro/sw-exporter';
@@ -63,7 +63,10 @@ interface Props {
 // Puis « comment ça marche », les fonctionnalités et un dernier appel. Le
 // bandeau de version en fin de page donne la raison de revenir.
 export default function HomePage({ stats, onImport }: Props) {
-  const derniere = RELEASES[0];
+  // ⚠️ La dernière version PUBLIÉE, pas `RELEASES[0]` : une version en
+  // préparation est en tête du journal sans être en ligne. L'annoncer ici
+  // promettrait au visiteur des nouveautés qu'il ne trouvera pas dans l'app.
+  const derniere = RELEASES.find((r) => r.version !== null) ?? RELEASES[0];
   const aDesDonnees = stats.rta > 0 || stats.defense > 0 || stats.offense > 0 || stats.recos > 0;
   // Le bouton du dernier appel ouvre le sélecteur de fichier, comme la zone de
   // dépôt du héros — même `onImport`, donc un seul chemin d'import.
@@ -225,7 +228,7 @@ export default function HomePage({ stats, onImport }: Props) {
                    bg-panel/50 px-4 py-3 transition hoverable:border-accent"
       >
         <span className="rounded-full bg-star/15 px-2 py-0.5 label text-star">
-          v{derniere.version}
+          {libelleVersion(derniere.version)}
         </span>
         <span className="text-[13.5px] text-ink">{derniere.title}</span>
         <span className="ml-auto inline-flex items-center gap-1 text-[12.5px] text-ink-dim">

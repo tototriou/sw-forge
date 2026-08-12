@@ -1,5 +1,5 @@
 import { Tag, ExternalLink } from 'lucide-react';
-import { RELEASES, CHANGE_META, ChangeKind } from '../data/releases';
+import { RELEASES, CHANGE_META, ChangeKind, libelleVersion } from '../data/releases';
 
 const REPO = 'https://github.com/tototriou/sw-forge';
 
@@ -36,7 +36,7 @@ export default function ReleasesPage() {
       <div className="space-y-4">
         {RELEASES.map((r, i) => (
           <section
-            key={r.version}
+            key={r.version ?? 'en-preparation'}
             className={`rounded-2xl border p-4 ${
               // La dernière version est mise en avant : c'est celle qui tourne.
               i === 0 ? 'border-accent bg-panel2/50' : 'border-border bg-panel/50'
@@ -44,19 +44,29 @@ export default function ReleasesPage() {
           >
             <div className="flex items-baseline gap-2.5 flex-wrap mb-1">
               <h2 className="font-display text-[20px] tracking-wide flex items-center gap-1.5">
-                <Tag size={15} className={i === 0 ? 'text-star' : 'text-ink-dim'} />v{r.version}
+                <Tag size={15} className={i === 0 ? 'text-star' : 'text-ink-dim'} />
+                {libelleVersion(r.version)}
               </h2>
-              {i === 0 && (
+              {/* ⚠️ « Version actuelle » désigne celle qui TOURNE. Une version
+                  en préparation est en tête de liste sans être déployée : la
+                  dire actuelle ferait croire au joueur qu'il l'utilise déjà. */}
+              {i === 0 && r.version !== null && (
                 <span className="rounded-full bg-star/15 px-2 py-0.5 label text-star">
                   Version actuelle
+                </span>
+              )}
+              {r.version === null && (
+                <span className="rounded-full bg-ink-dim/15 px-2 py-0.5 label text-ink-dim">
+                  Pas encore publiée
                 </span>
               )}
               <span className="font-mono text-[11px] text-ink-dim">{formatDate(r.date)}</span>
               {/* ⚠️ Le lien n'apparaît QUE si un tag Git correspond. Il était
                   écrit inconditionnellement : la 1.0.0, publiée avant que le
                   dépôt existe, menait à un 404. Un lien mort est pire que pas
-                  de lien — voir `tag` dans data/releases.ts. */}
-              {r.tag !== false && (
+                  de lien — voir `tag` dans data/releases.ts. Sans numéro, il
+                  n'y a pas d'URL de tag à construire : même masquage. */}
+              {r.tag !== false && r.version !== null && (
                 <a
                   href={`${REPO}/releases/tag/v${r.version}`}
                   target="_blank"

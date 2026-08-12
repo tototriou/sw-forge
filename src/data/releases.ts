@@ -3,7 +3,7 @@
 // ⚠️ **Source de vérité du contenu des releases.** Il est tenu À LA MAIN, et
 // non dérivé de l'API GitHub : le site est statique et doit rester lisible hors
 // ligne, sans dépendre d'un service tiers ni de ses quotas. Une release = une
-// entrée ici, ajoutée dans la branche `release/x.y.z` (voir README).
+// entrée ici, ajoutée dans la branche `forge/<sujet>` (voir README).
 //
 // La version affichée dans le pied de page vient, elle, de `package.json`
 // (`__APP_VERSION__`, injecté par Vite) : les deux doivent rester alignées.
@@ -17,16 +17,31 @@ export interface ReleaseChange {
 }
 
 export interface Release {
-  version: string; // « 1.1.0 »
+  // ⚠️ `null` tant que le numéro n'est PAS DÉCIDÉ. Une version se développe
+  // sans savoir si elle sortira en corrective ou en mineure — c'est ce qu'elle
+  // contient à la fin qui tranche. Écrire un numéro d'avance oblige à le
+  // corriger en route ; `null` dit simplement « pas encore fixé », et la page
+  // affiche « En préparation ». Le numéro s'écrit ici au moment de publier.
+  version: string | null; // « 1.1.0 »
   date: string; // ISO court, « 2026-08-09 »
   title: string; // résumé en une ligne
   highlights?: string[]; // 1 à 3 points mis en avant
   changes: ReleaseChange[];
   // ⚠️ `false` quand AUCUN tag Git ne correspond : le lien « GitHub ↗ » est
   // alors masqué au lieu de mener à un 404. C'est le cas de la 1.0.0, publiée
-  // avant que le dépôt existe. Une version en cours de préparation (déjà au
-  // journal, pas encore taguée) prend `false` jusqu'à sa publication.
+  // avant que le dépôt existe. Une version en préparation (`version: null`) n'a
+  // pas de tag non plus : le lien est masqué sans avoir à le préciser.
   tag?: boolean;
+}
+
+// Ce qu'on affiche à la place du numéro tant qu'il n'est pas tranché.
+export const VERSION_EN_PREPARATION = 'En préparation';
+
+// Libellé d'une version pour l'interface : « v1.4.0 », ou « En préparation ».
+// ⚠️ Le « v » est porté ICI et non par l'appelant : préfixé en dur, il donnait
+// « vEn préparation ».
+export function libelleVersion(version: string | null): string {
+  return version === null ? VERSION_EN_PREPARATION : `v${version}`;
 }
 
 export const CHANGE_META: Record<ChangeKind, { label: string; color: string }> = {
@@ -42,6 +57,15 @@ export const CHANGE_META: Record<ChangeKind, { label: string; color: string }> =
 // détail d'implémentation — tout ça vit dans les commits et dans `spec/`.
 // Si une ligne dépasse ~15 mots, c'est qu'elle raconte l'implémentation.
 export const RELEASES: Release[] = [
+  // ⚠️ Version EN PRÉPARATION (`version: null`) : le numéro se décide à la
+  // fusion, d'après ce que la branche contient au final. Remplacer `null` par
+  // le numéro au moment de publier, en même temps que `package.json` et le tag.
+  {
+    version: null,
+    date: '2026-08-12',
+    title: 'Les artéfacts',
+    changes: [],
+  },
   {
     version: '1.4.0',
     date: '2026-08-11',

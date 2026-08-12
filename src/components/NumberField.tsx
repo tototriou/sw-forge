@@ -73,9 +73,20 @@ export default function NumberField({
         aria-label={ariaLabel}
         onChange={(e) => {
           const brut = e.target.value.trim();
-          if (brut === '') return onChange(allowEmpty ? null : borne(0));
+          if (brut === '') return onChange(allowEmpty ? null : 0);
           if (!/^-?\d+$/.test(brut)) return; // frappe invalide ignorée
-          onChange(borne(Number(brut)));
+          // ⚠️ PAS de `borne()` ici : borner CHAQUE frappe casse la saisie dès
+          // qu'un `min` positif dépasse un chiffre isolé. Exemple vécu : min 15,
+          // max 100 — taper « 5 » saute à 15, puis « 0 » (lu comme « 150 »)
+          // saute à 100. On ne peut alors plus jamais écrire « 50 ». La borne
+          // s'applique donc seulement en sortie de champ (`onBlur`) et sur les
+          // boutons ± (des pas discrets, pas de composition de chiffres).
+          onChange(Number(brut));
+        }}
+        onBlur={() => {
+          if (value == null) return; // vide autorisé : rien à borner
+          const b = borne(value);
+          if (b !== value) onChange(b);
         }}
         className={`${width} min-w-0 bg-transparent px-1 text-center font-mono text-[13px] text-ink
                     outline-none placeholder:text-ink-dim`}

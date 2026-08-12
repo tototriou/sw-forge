@@ -25,7 +25,9 @@ Identiques pour main / innée / substats de rune.
 | 12 | Précision % | oui |
 
 (7 = inutilisé. Artéfacts : `pri_effect` 100 = PV, 101 = ATQ, 102 = DEF plats ;
-substats d'artéfact = effets conditionnels, codes 200+, hors périmètre efficience.)
+substats d'artéfact = effets conditionnels, codes 200+ — ils ont **leur propre
+mesure de qualité**, voir [calcul-artefacts.md](calcul-artefacts.md), et n'entrent
+pas dans l'efficience de rune.)
 
 ## 2. Décodage d'un export SWEX (gear)
 

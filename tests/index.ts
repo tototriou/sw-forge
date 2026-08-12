@@ -8,6 +8,7 @@ import { bilan } from './outils';
 import testImport from './import.test';
 import testPersistance from './persistance.test';
 import testMeules, { testPalier, testRegistre, testSansDowngrade } from './meules.test';
+import testArtefacts from './artefacts.test';
 import testReco from './reco.test';
 import testRtaPartage from './rta-partage.test';
 import testStockage from './stockage.test';
@@ -19,6 +20,7 @@ async function main() {
   testReco();
   testRtaPartage();
   testMeules();
+  testArtefacts();
   testRegistre();
   testSansDowngrade();
   testPalier();

@@ -178,6 +178,7 @@ export default function HomePage({ stats, onImport }: Props) {
           <Feature href="#/siege/defense" icon={Castle} accent="#E4463A" kicker="Siège" title="Défenses et offenses" body="Compose tes équipes et vérifie tes speed tune sur les ticks 239 et 286." />
           <Feature href="#/siege/recommandations" icon={Lightbulb} accent="#5EDB8F" kicker="Partage" title="Recommandations" body="Décris tes decks, partage-les en JSON, et vois ce que ton compte peut jouer." />
           <Feature href="#/compte/runes" icon={UserRound} accent="#4AD8D8" kicker="Compte" title="Analyse de runes" body="Résumé chiffré, efficience ou score SW, courbes, et ce que tes meules et gemmes en réserve permettent d'améliorer dès maintenant." />
+          <Feature href="#/outils/optimizer" icon={Sparkles} accent="#FFA94D" kicker="Outils" title="Optimiseur de runes" body="Cherche, parmi les runes que tu possèdes déjà, la meilleure combinaison de 6 pour un monstre, un set et des minimums donnés." />
           <Feature href="#/bestiary" icon={BookOpen} accent="#2FA0E0" kicker="Données" title="Bestiaire" body="Recherche et filtres par élément et étoiles naturelles, stats de base à portée de main." />
           <Feature href="#/mecaniques" icon={Calculator} accent="#8890B8" kicker="Doc" title="Mécaniques" body="Vitesse de combat, barre d'action, équation des dégâts et facteur de défense." />
           <Feature href="#/releases" icon={Tag} accent="#C79BFF" kicker="Suivi" title="Nouveautés" body="Ce qui change à chaque version : ajouts, corrections et calculs revus." />

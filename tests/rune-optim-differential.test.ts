@@ -1,0 +1,198 @@
+// Test différentiel du moteur de recherche de builds (Outils · Optimizer) :
+// compare le moteur meet-in-the-middle à une référence NAIVE et EXHAUSTIVE,
+// sur des jeux de données aléatoires mais DÉTERMINISTES (seed fixe).
+//
+// Discipline imposée par .claude/skills/algo-verify/SKILL.md : une
+// divergence ici serait une combinaison annoncée valide mais fausse, ou une
+// combinaison valide jamais trouvée — le genre d'erreur « grave et
+// invisible » que ce dépôt teste systématiquement (voir tests/README.md).
+// Complète tests/rune-optim.test.ts (cas écrits à la main) sans les
+// remplacer : l'un couvre des scénarios précis et lisibles, l'autre balaie
+// large sans biais de l'auteur du test.
+//
+// ⚠️ La référence réutilise `computeStats`/`activeSets`/`missingSets` — déjà
+// couverts ailleurs (reco.test.ts, vitesse.test.ts). Ce qui est neuf et donc
+// à risque ici, c'est le découpage en deux moitiés et le groupage par compte
+// de pièces : la référence, elle, énumère VRAIMENT les 6 slots sans
+// pré-filtrage ni regroupement, pour ne rien devoir à l'algorithme testé.
+
+import { BaseStats, EffectLine, RuneDetail } from '../src/types';
+import { activeSets, runeEfficiency } from '../src/lib/effects';
+import { computeStats } from '../src/lib/stats';
+import { missingSets } from '../src/lib/recoMatch';
+import { BuildRequirement, searchBuilds } from '../src/lib/runeBuildOptim';
+import { egal, ok, titre } from './outils';
+
+// PRNG déterministe (mulberry32) — pas de dépendance, seed fixe pour des
+// scénarios reproductibles d'une exécution à l'autre.
+function mulberry32(seed: number) {
+  let a = seed;
+  return () => {
+    a |= 0;
+    a = (a + 0x6d2b79f5) | 0;
+    let t = Math.imul(a ^ (a >>> 15), 1 | a);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+
+// Deux sets 4 pièces, deux sets 2 pièces, et Intangible (joker) — assez varié
+// pour exercer le groupage par compte, y compris la concurrence de jokers
+// avec un set HORS combo demandé (ex. Shield isolé).
+const SET_KEYS = ['violent', 'swift', 'will', 'shield', 'fight', 'intangible'];
+const STAT_CODES = [1, 2, 3, 4, 5, 6, 8, 9, 10, 11, 12];
+
+function randomRune(id: number, slot: number, rng: () => number): RuneDetail {
+  const set = SET_KEYS[Math.floor(rng() * SET_KEYS.length)];
+  const mainCode = STAT_CODES[Math.floor(rng() * STAT_CODES.length)];
+  const used = new Set([mainCode]);
+  const subs: EffectLine[] = [];
+  for (let i = 0; i < 4; i++) {
+    let code = STAT_CODES[Math.floor(rng() * STAT_CODES.length)];
+    let tries = 0;
+    while (used.has(code) && tries < 10) {
+      code = STAT_CODES[Math.floor(rng() * STAT_CODES.length)];
+      tries++;
+    }
+    used.add(code);
+    subs.push({ code, value: 5 + Math.floor(rng() * 40) });
+  }
+  return {
+    id,
+    slot,
+    set,
+    rank: 6,
+    rarity: 5,
+    level: 15,
+    main: { code: mainCode, value: 10 + Math.floor(rng() * 100) },
+    subs,
+  };
+}
+
+function randomPool(rng: () => number, perSlot: number): RuneDetail[] {
+  const out: RuneDetail[] = [];
+  let id = 1;
+  for (let slot = 1; slot <= 6; slot++) {
+    for (let i = 0; i < perSlot; i++) out.push(randomRune(id++, slot, rng));
+  }
+  return out;
+}
+
+// Référence NAIVE : énumère VRAIMENT tout le produit 6 slots × N runes/slot,
+// sans pré-filtrage ni élagage. Valable uniquement à petite échelle — c'est
+// tout son intérêt : elle sert de vérité de référence, pas de moteur de
+// production (voir .claude/skills/algo-verify/SKILL.md).
+function bruteForce(
+  pool: RuneDetail[],
+  base: BaseStats,
+  requirement: BuildRequirement
+): { count: number; best: number } {
+  const bySlot: RuneDetail[][] = [[], [], [], [], [], []];
+  for (const r of pool) bySlot[r.slot - 1].push(r);
+
+  let count = 0;
+  let best = -Infinity;
+  for (const r0 of bySlot[0])
+    for (const r1 of bySlot[1])
+      for (const r2 of bySlot[2])
+        for (const r3 of bySlot[3])
+          for (const r4 of bySlot[4])
+            for (const r5 of bySlot[5]) {
+              const runes = [r0, r1, r2, r3, r4, r5];
+              const active = activeSets(runes.map((r) => r.set));
+              if (missingSets(requirement.sets, active).length > 0) continue;
+              const stats = computeStats({ base, runes, artifacts: [] });
+              let valide = true;
+              for (const [key, min] of Object.entries(requirement.minStats)) {
+                if (min == null) continue;
+                const row = stats.find((s) => s.key === key);
+                if (!row || row.total < min) {
+                  valide = false;
+                  break;
+                }
+              }
+              if (!valide) continue;
+              count++;
+              const eff = runes.reduce((s, r) => s + runeEfficiency(r), 0);
+              if (eff > best) best = eff;
+            }
+  return { count, best };
+}
+
+const BASE: BaseStats = { hp: 8000, atk: 500, def: 400, spd: 100, cr: 15, cd: 50, res: 15, acc: 0 };
+
+export default function testRuneOptimDifferential() {
+  titre('Optimizer · test différentiel (meet-in-the-middle vs brute-force)');
+
+  const SCENARIOS = 15;
+  for (let s = 0; s < SCENARIOS; s++) {
+    const rng = mulberry32(1000 + s);
+    // 3 runes/slot → 3^6 = 729 combinaisons en brute-force : rapide, et
+    // largement sous les plafonds de pré-filtrage (40+40+48) — le moteur
+    // testé voit donc ici la totalité du pool, sans perte due au
+    // pré-filtrage heuristique (une limite séparée, déjà documentée). Assez
+    // petit pour que la plupart des scénarios restent sous le plafond de 500
+    // candidats collectés, et permettent une vérification d'optimalité EXACTE
+    // (voir le garde-fou `!res.truncated` plus bas).
+    const pool = randomPool(rng, 3);
+
+    const wantSets = rng() < 0.7;
+    const sets = wantSets
+      ? [SET_KEYS[Math.floor(rng() * (SET_KEYS.length - 1))], SET_KEYS[Math.floor(rng() * (SET_KEYS.length - 1))]]
+      : [];
+    const minStats: BuildRequirement['minStats'] = {};
+    if (rng() < 0.5) minStats.spd = 100 + Math.floor(rng() * 60);
+    if (rng() < 0.3) minStats.hp = 8000 + Math.floor(rng() * 2000);
+    if (rng() < 0.2) minStats.cr = 15 + Math.floor(rng() * 40);
+
+    const requirement: BuildRequirement = { sets, minStats };
+    const ref = bruteForce(pool, BASE, requirement);
+    const res = searchBuilds({ base: BASE, artifacts: [], pool, requirement, metric: 'eff' });
+
+    egal(
+      res.candidates.length > 0,
+      ref.count > 0,
+      `scénario ${s} (sets=${JSON.stringify(sets)}, minStats=${JSON.stringify(minStats)}) : ` +
+        `faisabilité identique (référence ${ref.count} combo(s), moteur ${res.candidates.length})`
+    );
+
+    // ⚠️ L'optimum EXACT n'est comparable que si le moteur n'a pas été
+    // tronqué (`truncated`) : au-delà de son plafond de collecte, il renvoie
+    // « le meilleur trouvé », pas une garantie d'optimalité globale — c'est
+    // documenté (spec/outils/optimizer.md), pas un bug. Le comparer quand
+    // même ferait échouer le test sur un comportement voulu.
+    if (res.candidates.length > 0 && ref.count > 0 && !res.truncated) {
+      const bestFound = Math.max(...res.candidates.map((c) => c.effTotal));
+      ok(
+        Math.abs(bestFound - ref.best) < 1e-6,
+        `scénario ${s} : meilleure valeur trouvée par le moteur (${bestFound.toFixed(2)}) = référence (${ref.best.toFixed(2)})`
+      );
+    }
+
+    // Aucun faux positif : chaque candidat renvoyé est recalculé et revérifié
+    // indépendamment, sans rien supposer de l'état interne du moteur.
+    if (res.candidates.length > 0) {
+      const byId = new Map(pool.map((r) => [r.id, r]));
+      let toutesValides = true;
+      for (const c of res.candidates) {
+        const runes = c.runeIds.map((id) => byId.get(id)!);
+        const active = activeSets(runes.map((r) => r.set));
+        if (missingSets(requirement.sets, active).length > 0) {
+          toutesValides = false;
+          break;
+        }
+        const stats = computeStats({ base: BASE, runes, artifacts: [] });
+        for (const [key, min] of Object.entries(requirement.minStats)) {
+          if (min == null) continue;
+          const row = stats.find((r) => r.key === key);
+          if (!row || row.total < min) {
+            toutesValides = false;
+            break;
+          }
+        }
+        if (!toutesValides) break;
+      }
+      ok(toutesValides, `scénario ${s} : tous les candidats renvoyés sont réellement valides (aucun faux positif)`);
+    }
+  }
+}

@@ -16,11 +16,12 @@ ce qu'il peut faire, et les règles de calcul appliquées.
 | Siège (Défense / Offense / Recommandations) | `#/siege/defense`, `#/siege/offense`, `#/siege/recommandations` | Live | [siege/README.md](siege/README.md) |
 | Arène | `#/arene` | À venir | [arene.md](arene.md) |
 | Mon compte | `#/compte`, `#/compte/runes`, `#/compte/artefacts` | Live | [compte/README.md](compte/README.md) |
+| Outils | `#/outils/optimizer` | Live | [outils/README.md](outils/README.md) |
 | Bestiaire | `#/bestiary` | Live | [bestiaire.md](bestiaire.md) |
 | Mécaniques | `#/mecaniques` | Live | [mecaniques.md](mecaniques.md) |
 | Nouveautés | `#/releases` | Live | [releases.md](releases.md) |
 
-Ordre d'importance (nav & cartes d'accueil) : **Accueil → RTA → Siège → Arène → Mon compte**.
+Ordre d'importance (nav & cartes d'accueil) : **Accueil → RTA → Siège → Arène → Mon compte → Outils**.
 Bestiaire, Mécaniques et Nouveautés sont regroupés sous « Ressources » (les moins centraux de l'outil).
 
 > ⚠️ **Règle permanente** : toute page ou section **ajoutée, renommée ou
@@ -40,6 +41,9 @@ Concepts partagés par plusieurs pages, documentés une seule fois :
 - [shared/import-compte.md](shared/import-compte.md) — extraction depuis un export
   de compte SWEX : box RTA, équipes de siège, **et** box 6★ + inventaire
   runes/artéfacts (page « Mon compte »).
+- [compte/calcul-runes.md](compte/calcul-runes.md) §6 — anticipait déjà le
+  moteur de recherche de builds (branch-and-bound, Web Worker) qu'utilise
+  [outils/optimizer.md](outils/optimizer.md).
 - [shared/recherche-clavier.md](shared/recherche-clavier.md) — la navigation au
   clavier des **barres de recherche à suggestions** (↑/↓, Entrée sur l'élément
   surligné, Échap). Implémentation unique dans
@@ -193,6 +197,14 @@ Concepts partagés par plusieurs pages, documentés une seule fois :
   `inputMode="numeric"` (qui fait remonter le pavé numérique sur mobile). La
   frappe non numérique est **ignorée** : plus prévisible qu'un champ qui se vide
   ou se corrige pendant qu'on tape.
+  - ⚠️ **`min`/`max` ne sont appliqués qu'à la SORTIE du champ** (`onBlur`) et
+    sur les boutons ± — jamais à chaque frappe. Border chaque frappe casse la
+    saisie dès qu'un `min` positif dépasse un chiffre isolé : avec `min={15}`
+    `max={100}`, taper « 5 » sautait à 15, puis « 0 » (lu comme « 150 »)
+    sautait à 100 — impossible d'écrire 50. Repéré sur les conditions minimum
+    de l'Optimizer (voir [outils/optimizer.md](outils/optimizer.md)), premier
+    endroit de l'app à passer un `min` positif non trivial (tous les usages
+    précédents étaient à 0 ou 1, jamais heurtés par ce piège).
 - **Titre de page** : `font-display` en dégradé (`title-gradient`), taille
   `clamp(28px,4vw,42px)`, suivi d'un paragraphe d'intro `text-ink-dim`.
 - **Responsive** : nav desktop en pilules ; menu hamburger sur mobile (`< sm`)

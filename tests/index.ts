@@ -10,6 +10,8 @@ import testPersistance from './persistance.test';
 import testMeules, { testPalier, testRegistre, testSansDowngrade } from './meules.test';
 import testReco from './reco.test';
 import testRtaPartage from './rta-partage.test';
+import testRuneOptim from './rune-optim.test';
+import testRuneOptimDifferential from './rune-optim-differential.test';
 import testStockage from './stockage.test';
 import testVitesse from './vitesse.test';
 
@@ -18,6 +20,8 @@ async function main() {
   testImport();
   testReco();
   testRtaPartage();
+  testRuneOptim();
+  testRuneOptimDifferential();
   testMeules();
   testRegistre();
   testSansDowngrade();

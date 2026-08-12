@@ -9,7 +9,8 @@
     "build": "vite build",
     "preview": "vite preview",
     "fetch-data": "node scripts/fetch-monsters.mjs",
-    "test": "node tests/run.mjs"
+    "test": "node tests/run.mjs",
+    "benchmark:optim": "node scripts/benchmark-optim.mjs"
   },
   "dependencies": {
     "@vercel/analytics": "^2.0.1",

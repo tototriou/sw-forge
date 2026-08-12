@@ -1415,6 +1415,8 @@ function ArtifactEditor({
               <option value="">
                 {plein ? `Les ${MAX_ARTIFACT_SUBS} propriétés sont prises` : '+ Propriété…'}
               </option>
+              {/* `artifactSubsFor` les rend déjà dans l'ordre du JEU — le même
+                  que le filtre de l'inventaire d'artéfacts. */}
               {dispo.map((o) => (
                 <option key={o.code} value={o.code}>
                   {o.label}

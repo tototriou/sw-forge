@@ -1,11 +1,11 @@
 import { useState } from 'react';
-import { RotateCw, ArrowRight } from 'lucide-react';
+import { RotateCw, ArrowRight, Gauge } from 'lucide-react';
 import { ArtifactDetail, GearSet, RelicDetail, RuneDetail } from '../types';
 import { computeStats } from '../lib/stats';
 import {
   formatRuneEffect,
   formatArtifactMain,
-  formatArtifactSub,
+  splitArtifactSub,
   formatRelicMain,
   RARITY_META,
   SET_BONUS,
@@ -14,8 +14,9 @@ import {
   runeScore,
   RARITY_FILTER,
 } from '../lib/effects';
+import { artifactScore, artifactEfficiency } from '../lib/artifacts';
 import RuneIcon from './RuneIcon';
-import ArtifactIcon from './ArtifactIcon';
+import ArtifactFrameIcon from './ArtifactFrameIcon';
 import { SPIN } from './RuneSlotIcon';
 import { RUNE_METRICS, formatRuneMetric, useRuneMetric } from '../hooks/useRuneMetric';
 
@@ -24,10 +25,10 @@ function fmt(n: number): string {
   return n.toLocaleString('fr-FR');
 }
 
-// Images du jeu (servies en local) : fond de roue + cadre de rune + cadre d'artéfact.
+// Images du jeu (servies en local) : fond de roue + cadre de rune. Le cadre
+// d'artéfact vit dans ArtifactFrameIcon, partagé avec la liste d'artéfacts.
 const WHEEL_IMG = `${import.meta.env.BASE_URL}rune-wheel.png`;
 const RUNE_FRAME = `${import.meta.env.BASE_URL}rune-blank.png`;
-const ARTIFACT_FRAME = `${import.meta.env.BASE_URL}artifact-blank.png`;
 
 // Taille du conteneur de la roue (ratio de l'image 219×249) et du cadre de rune.
 const WHEEL_W = 208;
@@ -182,30 +183,78 @@ function artifactTypeLabel(a: ArtifactDetail): string {
 }
 
 // Détail d'un artéfact, façon jeu : stat principale (gros) + substats + type.
-export function ArtifactDetailBox({ artifact }: { artifact: ArtifactDetail }) {
+// ⚠️ Plus exportée : la liste d'artéfacts l'affichait en popover, mais ses
+// tuiles portent désormais les substats et leurs procs en clair — le détail n'y
+// ajoutait plus rien. Elle reste utile ICI, où la roue montre les artéfacts en
+// petit, sans leurs lignes.
+function ArtifactDetailBox({ artifact }: { artifact: ArtifactDetail }) {
   const rarity = RARITY_META[artifact.rarity] ?? RARITY_META[1];
+  // Réglage global (menu ⚙), partagé avec les runes — pas un état local.
+  const metric = useRuneMetric();
   return (
     // Fond opaque : carte affichée en popover, au-dessus de la grille.
     <div className="rounded-lg border border-border bg-panel2 p-3">
-      {/* badge de rareté */}
-      <div className="flex mb-1.5">
+      {/* badge de rareté + SCORE, disposés comme sur la fiche du jeu : la
+          rareté, et le score juste en dessous. */}
+      <div className="flex flex-col items-end mb-1.5 gap-1">
         <span
-          className="ml-auto rounded px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide"
+          className="rounded px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide"
           style={{ background: rarity.bg, color: rarity.color }}
         >
           {rarity.label}
         </span>
+        {/* La mesure choisie dans le menu ⚙ — la même que sur les tuiles et que
+            pour les runes. L'autre reste en infobulle : les deux sont la même
+            somme à un facteur près (spec/compte/calcul-artefacts.md §3). */}
+        <span
+          className="font-mono text-[11px] text-ink-dim tabular-nums"
+          title={`Score ${artifactScore(artifact)} · efficience ${artifactEfficiency(artifact).toFixed(1)} %`}
+        >
+          <Gauge size={10} className="inline-block mr-0.5 -mt-0.5" />
+          <b className="text-star">
+            {metric === 'eff'
+              ? `${artifactEfficiency(artifact).toFixed(1)} %`
+              : artifactScore(artifact)}
+          </b>
+        </span>
       </div>
       {/* stat principale */}
       <div className="text-[15px] font-black text-ink leading-tight">{formatArtifactMain(artifact.main)}</div>
-      {/* substats (effets conditionnels) : blanc + ↻ orange si modifiée */}
+      {/* Substats, disposés comme dans le JEU : le nombre de PROCS dans une
+          pastille à GAUCHE, puis le libellé dont la **valeur est teintée**
+          différemment du texte qui l'entoure.
+          ⚠️ Les procs sont ce qui sépare un bon artéfact d'un mauvais — deux
+          pièces aux mêmes lignes ne valent pas pareil selon où les
+          améliorations sont tombées. Sans eux, la fiche n'expliquait pas le
+          score affiché juste au-dessus. */}
       <div className="mt-2 pt-2 border-t border-border/40 space-y-1">
-        {artifact.subs.map((s, j) => (
-          <div key={j} className="flex items-start gap-1 text-[12px] text-ink leading-snug">
-            <span>{formatArtifactSub(s)}</span>
-            {s.enchant && <RotateCw size={11} className="text-orange-400 mt-0.5 flex-none" />}
-          </div>
-        ))}
+        {artifact.subs.map((s, j) => {
+          const procs = s.rolls ?? 0;
+          const { avant, valeur, apres } = splitArtifactSub(s);
+          return (
+            <div key={j} className="flex items-start gap-1.5 text-[12px] leading-snug">
+              {/* Pastille de procs : verte dès qu'une amélioration est tombée,
+                  neutre à zéro — on repère les lignes travaillées d'un coup
+                  d'œil, sans lire les chiffres. */}
+              <span
+                className={`mt-px flex-none rounded px-1 font-mono text-[10.5px] font-bold tabular-nums ${
+                  procs > 0 ? 'bg-good/20 text-good' : 'bg-ink-dim/15 text-ink-dim'
+                }`}
+                title={`${procs} amélioration${procs > 1 ? 's' : ''} sur cette ligne`}
+              >
+                {procs}
+              </span>
+              <span className="flex-1 text-ink-dim">
+                {avant}
+                {/* La VALEUR se détache du libellé : c'est elle qu'on compare
+                    d'un artéfact à l'autre, le texte ne fait que la nommer. */}
+                <b className="text-ink">{valeur}</b>
+                {apres}
+              </span>
+              {s.enchant && <RotateCw size={11} className="text-orange-400 mt-0.5 flex-none" />}
+            </div>
+          );
+        })}
       </div>
       {/* type */}
       <div className="mt-2 pt-2 border-t border-border/40 text-[12px] text-good">
@@ -288,21 +337,9 @@ export default function MonsterGear({ gear, spdCible = null }: Props) {
                     key={i}
                     onClick={() => toggle({ kind: 'artifact', i })}
                     title="Voir l'artéfact"
-                    className="relative inline-flex items-center justify-center rounded transition"
-                    style={{ width: 58, height: 58 }}
+                    className="rounded transition"
                   >
-                    <img
-                      src={ARTIFACT_FRAME}
-                      className={`absolute inset-0 w-full h-full transition ${
-                        selected ? 'brightness-150 drop-shadow-[0_0_6px_rgba(232,196,74,0.9)]' : ''
-                      }`}
-                      draggable={false}
-                    />
-                    <ArtifactIcon
-                      artifact={a}
-                      size={26}
-                      className="relative drop-shadow-[0_1px_2px_rgba(0,0,0,0.8)]"
-                    />
+                    <ArtifactFrameIcon artifact={a} size={58} glow={selected} />
                   </button>
                 );
               })}

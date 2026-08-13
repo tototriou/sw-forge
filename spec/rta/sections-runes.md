@@ -90,6 +90,19 @@ Comme en **vue compacte du siège**, le panneau de détail (`MonsterGear`) s'ouv
     ci-dessus reste basée sur le total RÉEL, pas sur la valeur bornée montrée
     — sinon désactiver l'overcap masquerait aussi le signal rouge qu'il est
     censé rendre plus lisible.
+- ⚠️ **La roue, le panneau de stats et les emplacements d'artéfacts ont été
+  remontés** dans [RuneWheel.tsx](src/components/RuneWheel.tsx),
+  [StatPanel.tsx](src/components/StatPanel.tsx) et
+  [ArtifactSlots.tsx](src/components/ArtifactSlots.tsx) à leur deuxième usage
+  (les cartes de résultat de l'Optimizer, en réduit — voir
+  [outils/optimizer.md](../outils/optimizer.md)) plutôt que recopiés, même
+  principe que `<Segmented>`/`<Switch>` (voir [README.md](../README.md)).
+  Chacun paramétré par `scale` (1 = taille historique, inchangée ici) ;
+  `MonsterGear` ne porte plus que le reste de la fiche (état `Selected`,
+  détail affiché en ligne sous la roue). `StatPanel` a une **largeur fixe**
+  (`w-[200px]`, pas `w-fit`) : sans elle, la bascule base+bonus ↔ total
+  changeait la largeur de l'encadré et poussait la roue/les artéfacts/la
+  relique voisins d'un côté à l'autre au clic.
 
 ## Pré-classement à l'import
 

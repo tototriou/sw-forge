@@ -16,7 +16,12 @@ Worker) · [useOptimizerState.ts](src/hooks/useOptimizerState.ts) (toute la
 saisie de l'écran, remontée dans App.tsx) ·
 [MonsterGearPicker.tsx](src/components/outils/MonsterGearPicker.tsx) ·
 [SetComboPicker.tsx](src/components/outils/SetComboPicker.tsx) ·
-[BuildCandidateCard.tsx](src/components/outils/BuildCandidateCard.tsx).
+[BuildCandidateCard.tsx](src/components/outils/BuildCandidateCard.tsx) ·
+[StatPanel.tsx](src/components/StatPanel.tsx) ·
+[ArtifactSlots.tsx](src/components/ArtifactSlots.tsx) ·
+[RuneWheel.tsx](src/components/RuneWheel.tsx) — ces trois derniers
+partagés avec `MonsterGear.tsx` (RTA/Siège/« Équipement actuel »), voir
+[README.md](../README.md).
 
 ⚠️ **Survit à un changement d'onglet.** Comme les autres pages de l'app,
 `OutilsPage` (et donc `OptimizerSection`) est **démontée** à chaque
@@ -207,16 +212,35 @@ retour.
     progressivement** (pas une roue qui tourne), avec le nombre de
     combinaisons déjà examinées et déjà trouvées. Voir « Interruption » pour
     comment le pourcentage est estimé.
-12. **Résultats** — jusqu'à 20 combinaisons affichées, chacune : rang, les 6
-    runes (cadres orientés par slot, comme l'onglet Liste des runes,
-    **cliquables** — voir plus bas), les sets obtenus, la table de stats
-    résultante (`StatTable.tsx` — sa colonne TOTAL suit elle aussi le réglage
-    global « Overcap Taux Crit/RES/Précision » du menu ⚙, voir
-    [README.md](../README.md) : désactivé, elle s'arrête à 100 % pour ces
-    trois stats même si le total brut du build le dépasse), la valeur
-    **moyenne par rune** dans la mesure choisie —
-    comparer des builds dans la même unité que la carte d'une rune
-    individuelle, plutôt qu'un total qui ne se lit pas d'un coup d'œil.
+12. **Résultats** — jusqu'à 20 combinaisons affichées, chacune : rang, les
+    sets obtenus, puis une **ligne** : le **panneau de stats** à **gauche** —
+    **`StatPanel.tsx`, le même composant** que dans « Équipement actuel »
+    (extrait de `MonsterGear.tsx` à son deuxième usage, voir
+    [README.md](../README.md)) : mêmes couleurs, même bascule **base+bonus ↔
+    total au clic**, sa colonne TOTAL suivant elle aussi le réglage global
+    « Overcap Taux Crit/RES/Précision » du menu ⚙ (désactivé, elle s'arrête à
+    100 % pour ces trois stats même si le total brut du build le dépasse) —
+    et à **droite**, les **artéfacts** (fixes, voir « Algorithme ») et les 6
+    runes sur une **roue** (`ArtifactSlots.tsx`/`RuneWheel.tsx`) — la **même
+    forme** que l'affichage de l'équipement actuellement équipé (RTA/Siège/
+    « Équipement actuel » ci-dessus), mais à une **échelle réduite**
+    (`scale=0,45`, contre `1` en pleine taille) et **côte à côte avec les
+    stats plutôt qu'empilés au-dessus**, pour tenir dans une carte de résultat
+    compacte sans l'alourdir ; **cliquables** (voir plus bas). Puis la valeur
+    **moyenne par rune** dans la mesure choisie — comparer des builds dans la
+    même unité que la carte d'une rune individuelle, plutôt qu'un total qui
+    ne se lit pas d'un coup d'œil.
+    ⚠️ **Deux cartes par ligne**, calibré exprès (`scale=0,45`, largeur de
+    grille `minmax(360px, …)`) : à cette taille, deux cartes de 360px + le
+    creux entre elles (12px) tiennent tout juste sous les 768px du conteneur
+    (`max-w-3xl` de `OptimizerSection.tsx`) — un résultat plus compact et plus
+    rapide à comparer d'un coup d'œil qu'une seule carte pleine largeur par
+    ligne.
+    ⚠️ **La bascule base+bonus ↔ total ne déplace jamais les artéfacts, la
+    roue ou la relique voisins** : `StatPanel` a une **largeur fixe**
+    (`w-[200px]`), pas `w-fit` — en mode Total, une seule colonne remplace les
+    deux colonnes base+bonus, et sans largeur fixe l'encadré changeait de
+    taille au clic et poussait ses voisins d'un côté à l'autre.
     ⚠️ **Recalculée à l'affichage** (`candidateMetricTotal` dans
     [runeBuildOptim.ts](src/lib/runeBuildOptim.ts), à partir des VRAIES
     runes) plutôt que lue depuis `BuildCandidate.effTotal` : ce champ est
@@ -245,16 +269,37 @@ retour.
       dans Mon compte → Runes (`DetailPopover` + `RuneDetailBox`, ancré sur
       la rune cliquée) — les runes d'un candidat sont de vraies runes du
       compte, autant pouvoir les inspecter sans aller les rechercher
-      ailleurs. La rune dont le popover est ouvert porte un **liseré
-      d'accent** (`ring-accent`) directement sur son cadre, pour la
-      retrouver d'un coup d'œil parmi les 6. Une seule rune ouverte à la
-      fois, **parmi TOUS les résultats affichés** (pas seulement dans la
-      même carte) : cliquer une autre rune ferme celle déjà ouverte,
-      exactement comme dans Mon compte → Runes → Optimisation. ⚠️ L'identité
-      d'une rune ouverte (et donc du liseré) combine le candidat ET
+      ailleurs. La rune dont le popover est ouvert porte le **même halo
+      orange** que la sélection dans MonsterGear (`brightness` + `drop-shadow`
+      sur son cadre, voir `RuneWheel.tsx`) — pas un style à part, la roue de
+      résultat se comporte comme n'importe quelle roue de l'app. Une seule
+      rune ouverte à la fois, **parmi TOUS les résultats affichés** (pas
+      seulement dans la même carte) : cliquer une autre rune ferme celle déjà
+      ouverte, exactement comme dans Mon compte → Runes → Optimisation.
+      ⚠️ L'identité d'une rune ouverte (et donc du halo) combine le candidat ET
       le slot (`BuildCandidateCard.tsx`), pas seulement l'id de la rune : la
       même rune peut apparaître dans plusieurs candidats affichés à la fois,
       et ne doit ouvrir qu'UNE instance à la fois.
+      ⚠️ **`RuneWheel`/`ArtifactSlots` gèrent le détail de deux façons
+      différentes selon l'appelant** : MonsterGear l'affiche EN LIGNE sous la
+      roue (pas de `renderOverlay`, juste `onSelectRune`/`isSelected`) ;
+      `BuildCandidateCard` passe un `renderOverlay` qui ancre un
+      `DetailPopover` flottant sur CHAQUE rune/artéfact — une carte de
+      résultat, dans une grille compacte, n'a pas la place de pousser son
+      contenu vers le bas comme le fait la fiche pleine page.
+      ⚠️ **Le popover passe toujours au premier plan, quel que soit son
+      voisinage** : sans z-index, deux éléments `position:absolute` frères
+      s'empilent par simple **ordre du DOM**, pas par position à l'écran — le
+      popover d'une rune pouvait donc se retrouver visuellement recouvert par
+      le cadre d'une autre rune de la même roue rendue plus tard, ou par une
+      carte de résultat voisine plus loin dans la grille, même sans
+      chevauchement apparent. Corrigé en promouvant, UNIQUEMENT tant qu'un
+      popover y est ouvert : le wrapper de la rune/l'artéfact concerné
+      (`z-10`, dans `RuneWheel.tsx`/`ArtifactSlots.tsx`) **et** la carte de
+      résultat entière qui le contient (`relative z-10`, dans
+      `BuildCandidateCard.tsx`) — deux niveaux, parce qu'un popover doit
+      gagner à la fois contre ses voisins immédiats (autres runes/artéfacts de
+      la même carte) et contre les autres cartes de la grille.
 
 ⚠️ **Rien n'est appliqué au compte.** L'outil est en lecture seule et
 purement indicatif, comme le reste de SW Forge (aucune écriture vers le

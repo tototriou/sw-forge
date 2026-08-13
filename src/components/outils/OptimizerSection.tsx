@@ -580,13 +580,20 @@ export default function OptimizerSection({ box, runes, optimizer }: Props) {
             </p>
           )}
 
-          <div className="grid grid-cols-[repeat(auto-fill,minmax(260px,1fr))] gap-3">
+          {/* ⚠️ minmax calibré à 360px pour que DEUX cartes tiennent par
+              ligne dans le conteneur `max-w-3xl` (768px, voir plus haut) :
+              2×360 + le gap (12px) = 732px, sous les 768px disponibles. Les
+              cartes affichent stats + artéfacts + roue sur une seule LIGNE
+              (voir BuildCandidateCard.tsx), calibrées pour tenir dans cette
+              largeur (`WHEEL_SCALE`/`ARTIFACT_SCALE` = 0,45). */}
+          <div className="grid grid-cols-[repeat(auto-fill,minmax(360px,1fr))] gap-3">
             {sortedCandidates.map((c, i) => (
               <BuildCandidateCard
                 key={c.runeIds.join('-')}
                 rank={i + 1}
                 candidate={c}
                 runeById={runeById}
+                artifacts={selected?.gear.artifacts ?? []}
                 metric={metric}
                 openRuneKey={openRuneKey}
                 onToggleRune={(key) => setOpenRuneKey((cur) => (cur === key ? null : key))}

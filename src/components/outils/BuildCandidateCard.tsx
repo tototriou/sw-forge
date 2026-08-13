@@ -1,17 +1,24 @@
-import { useRef } from 'react';
-import { RuneDetail, RUNE_SETS } from '../../types';
+import { useState } from 'react';
+import { ArtifactDetail, RuneDetail, RUNE_SETS } from '../../types';
 import { BuildCandidate, candidateMetricTotal } from '../../lib/runeBuildOptim';
-import { activeSets, isAncient } from '../../lib/effects';
+import { activeSets } from '../../lib/effects';
 import { RuneMetric, formatRuneMetric } from '../../hooks/useRuneMetric';
-import { RuneDetailBox } from '../MonsterGear';
-import RuneSlotIcon from '../RuneSlotIcon';
+import { ArtifactDetailBox, RuneDetailBox } from '../MonsterGear';
+import RuneWheel from '../RuneWheel';
+import ArtifactSlots from '../ArtifactSlots';
+import StatPanel from '../StatPanel';
 import DetailPopover from '../account/DetailPopover';
-import StatTable from './StatTable';
 
 interface Props {
   rank: number;
   candidate: BuildCandidate;
   runeById: Map<number, RuneDetail>;
+  // Artéfacts ACTUELLEMENT équipés sur le monstre optimisé — fixes, jamais
+  // modifiés par la recherche (voir spec/outils/optimizer.md « Algorithme »).
+  // Identiques d'une carte de résultat à l'autre : affichés pour la même
+  // raison que « Équipement actuel » les affiche déjà, pas parce qu'ils
+  // varient selon le candidat.
+  artifacts: ArtifactDetail[];
   metric: RuneMetric;
   // Identité de la rune actuellement ouverte, PARTAGÉE entre tous les
   // résultats affichés (pas locale à cette carte) — voir
@@ -21,10 +28,28 @@ interface Props {
   onToggleRune: (key: string) => void;
 }
 
-// Une combinaison trouvée : les 6 runes (cadres orientés par slot), les sets
-// obtenus, la table de stats résultante et la valeur totale dans la mesure
+// ⚠️ Même FORME que l'affichage de l'équipement actuellement équipé (RTA/
+// Siège/« Équipement actuel » de l'Optimizer) — roue de RuneWheel.tsx et
+// emplacements d'ArtifactSlots.tsx, pas une rangée de cadres à plat — mais à
+// une échelle réduite pour tenir dans une carte de résultat sans l'alourdir.
+// ⚠️ Calibrée pour que DEUX cartes tiennent par ligne dans le conteneur
+// `max-w-3xl` (768px) de OptimizerSection.tsx — voir le `minmax` du grid.
+const WHEEL_SCALE = 0.45;
+const ARTIFACT_SCALE = 0.45;
+
+// Une combinaison trouvée : les artéfacts (fixes) et les 6 runes (sur la
+// roue, façon jeu), les sets obtenus, le panneau de stats (base+bonus ↔
+// total, comme la fiche pleine page) et la valeur totale dans la mesure
 // choisie (Efficience ou Score SW — réglage global, voir compte/runes.md).
-export default function BuildCandidateCard({ rank, candidate, runeById, metric, openRuneKey, onToggleRune }: Props) {
+export default function BuildCandidateCard({
+  rank,
+  candidate,
+  runeById,
+  artifacts,
+  metric,
+  openRuneKey,
+  onToggleRune,
+}: Props) {
   const runes = candidate.runeIds.map((id) => runeById.get(id)).filter((r): r is RuneDetail => !!r);
   const sets = activeSets(runes.map((r) => r.set));
   // ⚠️ Une même rune peut apparaître dans PLUSIEURS candidats affichés (une
@@ -38,27 +63,29 @@ export default function BuildCandidateCard({ rank, candidate, runeById, metric, 
   // coup sans relancer — voir runeBuildOptim.ts.
   const liveTotal = candidateMetricTotal(candidate, runeById, metric);
 
+  // Les artéfacts sont IDENTIQUES d'une carte à l'autre (fixes) : contrairement
+  // aux runes, pas besoin d'un état PARTAGÉ entre cartes pour éviter un doublon
+  // de popover — un état local par carte suffit.
+  const [openArtifactKind, setOpenArtifactKind] = useState<string | null>(null);
+  const runeOpenHere = openRuneKey?.startsWith(`${candidateKey}-`) ?? false;
+
   return (
-    <div className="rounded-xl border border-border bg-panel p-3">
+    <div
+      // ⚠️ `relative` + `z-10` UNIQUEMENT quand cette carte a un popover
+      // ouvert (rune ou artéfact) : sans ça, son popover flottant pouvait se
+      // retrouver visuellement recouvert par une carte VOISINE de la grille
+      // de résultats, plus tard dans l'ordre du DOM — même sans chevauchement
+      // apparent, l'empilement par défaut suit l'ordre du DOM, pas la
+      // position à l'écran.
+      className={`rounded-xl border border-border bg-panel p-2.5 ${
+        runeOpenHere || openArtifactKind ? 'relative z-10' : ''
+      }`}
+    >
       <div className="flex items-center justify-between mb-2">
         <span className="font-mono text-[12px] font-bold text-star">#{rank}</span>
         <span className="font-mono text-[12px] text-ink-dim">
           {formatRuneMetric(liveTotal / 6, metric)} en moyenne
         </span>
-      </div>
-
-      <div className="flex items-center gap-1.5 mb-2 flex-wrap">
-        {runes.map((r) => {
-          const runeKey = `${candidateKey}-${r.slot}`;
-          return (
-            <ClickableRune
-              key={r.slot}
-              rune={r}
-              open={openRuneKey === runeKey}
-              onToggle={() => onToggleRune(runeKey)}
-            />
-          );
-        })}
       </div>
 
       {sets.length > 0 && (
@@ -69,35 +96,37 @@ export default function BuildCandidateCard({ rank, candidate, runeById, metric, 
         </p>
       )}
 
-      <StatTable stats={candidate.stats} />
-    </div>
-  );
-}
-
-// Clic pour visualiser une rune du build, exactement comme dans Mon compte →
-// Runes (même popover ancré, même carte de détail) — un candidat n'est
-// composé que des vraies runes du compte, autant pouvoir les inspecter sans
-// aller les rechercher ailleurs. `open`/`onToggle` viennent du parent : une
-// seule rune ouverte à la fois parmi TOUS les résultats affichés, pas un état
-// local par rune (sinon cliquer une autre rune n'en fermerait aucune).
-function ClickableRune({ rune, open, onToggle }: { rune: RuneDetail; open: boolean; onToggle: () => void }) {
-  const ref = useRef<HTMLDivElement>(null);
-  return (
-    <div ref={ref} className="relative">
-      <button
-        type="button"
-        onClick={onToggle}
-        aria-pressed={open}
-        className={`block rounded-lg transition hoverable:brightness-110 ${
-          open ? 'ring-2 ring-accent ring-offset-1 ring-offset-panel' : ''
-        }`}
-        aria-label={`Voir le détail de cette rune (slot ${rune.slot})`}
-      >
-        <RuneSlotIcon slot={rune.slot} setKey={rune.set} rarity={rune.rarity} ancient={isAncient(rune)} height={38} />
-      </button>
-      <DetailPopover open={open} anchorRef={ref} width={260} height={320}>
-        <RuneDetailBox rune={rune} />
-      </DetailPopover>
+      {/* ⚠️ Panneau de stats à GAUCHE, artéfacts + roue à DROITE — carte
+          compacte, en ligne plutôt qu'empilée verticalement (demande
+          explicite : « les runes et les artefacts affichés à droite de la
+          fiche de statistiques »). */}
+      <div className="flex items-center justify-center gap-2">
+        <StatPanel stats={candidate.stats} />
+        <div className="flex items-center gap-1 flex-none">
+          <ArtifactSlots
+            artifacts={artifacts}
+            scale={ARTIFACT_SCALE}
+            isSelected={(a) => openArtifactKind === a.kind}
+            onSelectArtifact={(a) => setOpenArtifactKind((cur) => (cur === a.kind ? null : a.kind))}
+            renderOverlay={(a, _i, anchorRef) => (
+              <DetailPopover open={openArtifactKind === a.kind} anchorRef={anchorRef} width={240} height={260}>
+                <ArtifactDetailBox artifact={a} />
+              </DetailPopover>
+            )}
+          />
+          <RuneWheel
+            runes={runes}
+            scale={WHEEL_SCALE}
+            isSelected={(r) => openRuneKey === `${candidateKey}-${r.slot}`}
+            onSelectRune={(r) => onToggleRune(`${candidateKey}-${r.slot}`)}
+            renderOverlay={(r, _i, anchorRef) => (
+              <DetailPopover open={openRuneKey === `${candidateKey}-${r.slot}`} anchorRef={anchorRef} width={260} height={320}>
+                <RuneDetailBox rune={r} />
+              </DetailPopover>
+            )}
+          />
+        </div>
+      </div>
     </div>
   );
 }

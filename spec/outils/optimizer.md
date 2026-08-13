@@ -140,7 +140,37 @@ retour.
    (voir « Algorithme »), pour qu'elles aient une vraie chance de survivre
    avant même que la recherche ne démarre — **et** il fixe le tri par défaut
    des résultats (peut être changé après coup, voir section Résultats).
-6. **Conditions** — les 8 stats (`RECO_STATS`) : PV, ATQ, DEF, VIT, Taux
+6. **Artéfacts** — interrupteur **« Ignorer les statistiques des
+   artéfacts »** (même `<Switch>` que « Stats de base exclues », voir plus
+   bas), **décoché par défaut** (comportement historique inchangé : les
+   artéfacts réellement équipés comptent). Décoché, deux listes déroulantes
+   apparaissent — une par emplacement (**Attribut**, **Type**, voir
+   `ARTIFACT_KINDS`) — proposant : **« Comme équipé »** (défaut, reprend
+   l'artéfact réellement porté à cet emplacement **du build de BASE**, voir
+   « Sélecteur de monstre » ci-dessus), **ATQ +100**, **DEF +100**,
+   **PV +1500** (les trois valeurs de statistique principale d'artéfact
+   possibles en jeu — la valeur elle-même n'est jamais un choix libre, seule
+   la stat l'est), ou **« Aucun »** (retire cet emplacement même s'il est
+   réellement équipé).
+   ⚠️ **Un même monstre peut porter des artéfacts DIFFÉRENTS selon le
+   contexte** (build de base, RTA, un deck d'offense ou de défense de
+   siège — des presets de runage/artéfacts séparés, pas une seule vérité par
+   monstre). Le sélecteur de monstre de l'Optimizer n'expose QUE le build de
+   base — `« Comme équipé »` par défaut n'est donc qu'une hypothèse
+   implicite (« le build de base »), pas une garantie de correspondre au
+   build qu'on cherche réellement à reproduire. Choisir une statistique
+   explicite permet d'hypothéquer l'artéfact d'un AUTRE contexte (RTA, un
+   deck de siège) sans avoir besoin de changer de monstre affiché ni de le
+   posséder pour de vrai.
+   ⚠️ **Ces stats deviennent le PLANCHER des conditions ci-dessous**, pas
+   une valeur qui s'ajoute silencieusement : voir « Conditions » →
+   « Interrupteur Stats de base exclues » pour le détail exact du calcul.
+   Les cartes de résultats affichent les artéfacts **effectivement utilisés
+   par la recherche** (réels, hypothétiques ou aucun selon ces réglages), pas
+   forcément les vrais — pour rester cohérentes avec les stats calculées ;
+   « Équipement actuel » plus haut continue lui de montrer les vrais
+   artéfacts, jamais modifié par ces réglages.
+7. **Conditions** — les 8 stats (`RECO_STATS`) : PV, ATQ, DEF, VIT, Taux
    Crit, Dmg Crit, RES, Précision. Chaque stat porte **deux champs, minimum
    et maximum**, tous deux facultatifs — **champ vide = pas de contrainte**
    sur ce côté (pas de case à cocher séparée : la présence d'une valeur EST
@@ -150,25 +180,38 @@ retour.
      [Switch.tsx](src/components/Switch.tsx), voir [README.md](../README.md))
      au-dessus de la grille, **activé par défaut** : n'affecte **que** PV,
      ATQ, DEF et VIT — ces 4 stats ont une base qui grandit avec le
-     niveau/l'éveil et que les runes viennent gonfler en % ou en plat, donc
+     niveau/l'éveil et que l'équipement vient gonfler en % ou en plat, donc
      raisonner « bonus apporté par l'équipement » a un sens. Activé, le champ
-     porte sur ce que l'équipement doit apporter **au-dessus de la base
-     nue** du monstre choisi ; désactivé, il porte sur le **total**.
+     porte sur ce que l'**équipement** (runes **et** artéfacts comptés, voir
+     « Artéfacts » ci-dessus) doit apporter **au-dessus de la base nue** du
+     monstre choisi — comme en jeu : un monstre sans la moindre rune mais
+     avec deux artéfacts ATQ +100 affiche déjà +200 de bonus ATQ, pas 0.
+     Désactivé, il porte sur le **total**.
      ⚠️ **Taux Crit, Dmg Crit, RES et Précision restent TOUJOURS en total**,
      quel que soit ce réglage — elles partent d'une petite valeur d'éveil
      fixe plutôt que d'une base qui grandit, donc « bonus vs total » n'a pas
      le même sens pour elles ; leur champ **évolue selon la valeur d'éveil
      du monstre** (repère affiché en `placeholder`), pas selon ce réglage.
    - ⚠️ **La valeur stockée ne change jamais de nature** : c'est une lecture
-     dérivée (`total − base`) qui est recalculée à l'affichage, pas une
+     dérivée (`total − base`, `base` = la base NUE du monstre, jamais les
+     artéfacts — voir plus bas) qui est recalculée à l'affichage, pas une
      conversion appliquée une fois puis oubliée. Désactiver l'interrupteur
      change donc immédiatement les 4 champs concernés (sans perte), et
      **saisir** une valeur pendant qu'il est activé l'enregistre convertie en
-     total (`base + valeur saisie`).
+     total (`base + valeur saisie`) — la valeur saisie représente donc le
+     bonus **équipement complet** (runes et artéfacts additionnés), pas les
+     runes seules : soustraire aussi les artéfacts aurait mélangé deux
+     référentiels différents (`base` reste la base nue dans la conversion,
+     seul le PLANCHER affiché ci-dessous change selon les artéfacts comptés).
    - Sans monstre sélectionné, la base vaut 0 : les deux lectures coïncident.
-   - ⚠️ **En lecture Total, aucun champ ne descend sous la base nue du
-     monstre choisi** : même sans la moindre rune, le total vaut déjà au
-     moins ça. En lecture « bonus », aucun ne descend sous 0.
+   - ⚠️ **Aucun champ ne descend sous ce qu'on a déjà GARANTI sans la moindre
+     rune** — le plancher, pas la valeur de conversion ci-dessus : en lecture
+     Total, la base nue du monstre **plus** les artéfacts effectivement
+     comptés (0 si `ignoreArtifacts` ou aucun artéfact choisi sur cette
+     stat) ; en lecture « bonus », les artéfacts effectivement comptés SEULS
+     (0 si aucun) — cohérent avec le fait qu'en bonus, la base nue est déjà
+     soustraite par la conversion elle-même. Affiché en `placeholder` tant
+     que rien n'est saisi.
    - ⚠️ **Taux Crit, RES et Précision sont plafonnés à 100 %** sur les deux
      champs — leur effet en jeu ne va jamais au-delà, même si la somme brute
      des runes dépasse. **Dmg Crit n'a pas ce plafond** (200 %+ courant), les
@@ -192,13 +235,13 @@ retour.
      toucher à « Stats de base exclues » ni aux autres réglages de l'écran
      (set, statistique principale, objectif…) — seules les VALEURS saisies
      sont concernées.
-7. **« Explorer tout l'inventaire »** — case à cocher, **décochée par
+8. **« Explorer tout l'inventaire »** — case à cocher, **décochée par
    défaut** (voir « Exclusion des runes » ci-dessous).
-8. **« Options avancées »** (repliées par défaut) : **pré-filtrage par
+9. **« Options avancées »** (repliées par défaut) : **pré-filtrage par
    emplacement**, en **presets** (`<Segmented>`) plutôt qu'un curseur libre —
    défaut **Moyen**. Voir « Interruption » pour ce que chaque niveau change
    concrètement. Pas de réglage de temps limite : voir « Interruption ».
-9. **Estimation du nombre de builds** — dès qu'un monstre et un set sont
+10. **Estimation du nombre de builds** — dès qu'un monstre et un set sont
    choisis, une ligne affiche le produit des pools filtrés par emplacement
    (`estimateSearchSpace` dans
    [runeBuildOptim.ts](src/lib/runeBuildOptim.ts)), recalculée en direct à
@@ -207,13 +250,13 @@ retour.
    en entier (voir « Algorithme ») — c'est un repère pour juger si les
    critères actuels sont trop larges ou trop stricts, pas une promesse de
    temps de calcul.
-10. **« Rechercher »** — lance le calcul. Changer un des critères ci-dessus
+11. **« Rechercher »** — lance le calcul. Changer un des critères ci-dessus
     ne relance **rien automatiquement** : il faut recliquer, comme
     « (Ré)analyser mes decks » dans les recommandations de siège (« rien
     n'est confronté par défaut »). Un bouton **« Arrêter »** apparaît à côté
     pendant le calcul — il interrompt la recherche et garde le **meilleur
     trouvé jusque-là**, plutôt que de tout perdre (voir « Interruption »).
-11. **Barre de progression** — pendant le calcul, une barre qui se **remplit
+12. **Barre de progression** — pendant le calcul, une barre qui se **remplit
     progressivement** (pas une roue qui tourne), avec le nombre de
     combinaisons déjà examinées et déjà trouvées. Voir « Interruption » pour
     comment le pourcentage est estimé.

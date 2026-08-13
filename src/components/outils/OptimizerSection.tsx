@@ -1,8 +1,8 @@
 import { Fragment, useMemo } from 'react';
 import { Search, Boxes, Square, Settings2, HelpCircle, RotateCcw, FlaskConical } from 'lucide-react';
-import { RECO_STATS, RuneDetail } from '../../types';
+import { ArtifactDetail, ARTIFACT_KINDS, RECO_STATS, RuneDetail } from '../../types';
 import { BoxItem } from '../../lib/applyAccount';
-import { CAPPED_STATS, RUNE_EFFECT, StatKey, runeEfficiency } from '../../lib/effects';
+import { ARTIFACT_MAIN, CAPPED_STATS, RUNE_EFFECT, StatKey, runeEfficiency } from '../../lib/effects';
 import {
   BuildRequirement,
   SLOT_MAIN_OPTIONS,
@@ -13,7 +13,7 @@ import {
   candidateMetricTotal,
   OBJECTIVE_LABELS,
 } from '../../lib/runeBuildOptim';
-import { OptimizerState, OptimizerSortKey } from '../../hooks/useOptimizerState';
+import { ArtifactMainChoice, OptimizerState, OptimizerSortKey } from '../../hooks/useOptimizerState';
 import { useRuneMetric } from '../../hooks/useRuneMetric';
 import NumberField from '../NumberField';
 import MonsterAvatar from '../MonsterAvatar';
@@ -49,6 +49,16 @@ const CAPPED_100 = CAPPED_STATS;
 const BASE_TOGGLE_STATS = new Set<StatKey>(['hp', 'atk', 'def', 'spd']);
 
 const CONFIGURABLE_SLOTS: (2 | 4 | 6)[] = [2, 4, 6];
+
+// Les trois valeurs de statistique principale d'artéfact possibles en jeu
+// (voir ARTIFACT_MAIN dans effects.ts pour les codes 100/101/102) — la
+// valeur elle-même n'est jamais un choix libre, seule la STAT l'est.
+const ARTIFACT_MAIN_VALUE: Record<100 | 101 | 102, number> = { 100: 1500, 101: 100, 102: 100 };
+const ARTIFACT_MAIN_OPTIONS: { code: 100 | 101 | 102; label: string }[] = [
+  { code: 101, label: 'ATQ +100' },
+  { code: 102, label: 'DEF +100' },
+  { code: 100, label: 'PV +1500' },
+];
 
 // Pré-filtrage par emplacement, en PRESETS plutôt qu'un curseur libre —
 // calibré par mesure sur un vrai compte (voir spec/outils/optimizer.md,
@@ -90,6 +100,10 @@ export default function OptimizerSection({ box, runes, optimizer }: Props) {
     setMaxStats,
     excludeBase,
     setExcludeBase,
+    ignoreArtifacts,
+    setIgnoreArtifacts,
+    artifactMainByKind,
+    setArtifactMainByKind,
     mainStatsBySlot,
     setMainStatsBySlot,
     objective,
@@ -164,6 +178,39 @@ export default function OptimizerSection({ box, runes, optimizer }: Props) {
     return excluded.size === 0 ? runes : runes.filter((r) => !excluded.has(r.id));
   }, [selected, exploreAll, box, runes]);
 
+  // Artéfacts RÉELLEMENT transmis au moteur — indépendants de ceux affichés
+  // dans « Équipement actuel » (toujours les VRAIS, une photo de l'existant,
+  // jamais modifiée par ces réglages). `ignoreArtifacts` coché = aucun
+  // artéfact compté. Sinon, chaque emplacement (Attribut/Type, voir
+  // ARTIFACT_KINDS) suit son propre choix : `'equipped'` (défaut) reprend
+  // l'artéfact réellement porté à cet emplacement DU BUILD DE BASE —
+  // comportement historique inchangé tant que rien n'est touché — un code
+  // de stat HYPOTHÈQUE un artéfact différent (même sans le posséder),
+  // `'none'` retire cet emplacement même s'il est réellement équipé.
+  // ⚠️ **`selected.gear` est TOUJOURS le build de base** (voir
+  // `gearedMonsters`, dérivé de `box`) — jamais celui de RTA ni d'un deck de
+  // siège, qui peuvent porter des artéfacts DIFFÉRENTS pour le MÊME monstre
+  // (presets de runage/artéfacts séparés, pas une seule vérité par monstre).
+  // `'equipped'` par défaut est donc une hypothèse implicite (« le build de
+  // base »), pas une garantie que ça matche le build qu'un joueur cherche
+  // réellement à reproduire — d'où l'intérêt des deux autres choix pour
+  // hypothéquer un artéfact différent sans avoir à changer de monstre.
+  const searchArtifacts = useMemo<ArtifactDetail[]>(() => {
+    if (!selected || ignoreArtifacts) return [];
+    const out: ArtifactDetail[] = [];
+    for (const { key } of ARTIFACT_KINDS) {
+      const choice = artifactMainByKind[key] ?? 'equipped';
+      if (choice === 'none') continue;
+      if (choice === 'equipped') {
+        const real = selected.gear.artifacts.find((a) => a.kind === key);
+        if (real) out.push(real);
+        continue;
+      }
+      out.push({ kind: key, level: 1, rarity: 5, main: { code: choice, value: ARTIFACT_MAIN_VALUE[choice] }, subs: [] });
+    }
+    return out;
+  }, [selected, ignoreArtifacts, artifactMainByKind]);
+
   // Ce que le moteur reçoit réellement — partagé entre la recherche et
   // l'estimation affichée avant de lancer quoi que ce soit (voir plus bas) :
   // les deux doivent voir EXACTEMENT la même exigence.
@@ -197,7 +244,7 @@ export default function OptimizerSection({ box, runes, optimizer }: Props) {
     setSortBy(objective);
     run({
       base: selected.gear.base,
-      artifacts: selected.gear.artifacts,
+      artifacts: searchArtifacts,
       relic: selected.gear.relic,
       pool,
       requirement,
@@ -228,9 +275,29 @@ export default function OptimizerSection({ box, runes, optimizer }: Props) {
   }, [result, sortBy, runeById, metric]);
 
   // Base « nue » du monstre choisi pour une stat — 0 tant qu'aucun monstre
-  // n'est sélectionné.
+  // n'est sélectionné. ⚠️ N'inclut PAS les artéfacts : en jeu, le mode
+  // « bonus » (stats de base exclues) désigne tout ce qui n'est PAS la base
+  // pure du monstre — runes ET artéfacts ensemble — un monstre sans la
+  // moindre rune mais avec deux artéfacts ATQ+100 affiche déjà +200 ATQ en
+  // bonus. La conversion affichage↔stockage doit donc rester bâtie sur la
+  // seule base brute ; c'est `artifactBonusOf` ci-dessous qui sert de
+  // PLANCHER visible dans le champ, séparément.
   function baseOf(key: StatKey): number {
     return selected ? (selected.gear.base as unknown as Record<StatKey, number>)[key] : 0;
+  }
+
+  // Contribution des artéfacts EFFECTIVEMENT comptés (voir searchArtifacts)
+  // à une stat donnée — 0 si `ignoreArtifacts` ou si aucun artéfact n'est
+  // supposé sur cette stat. Sert de PLANCHER pour les conditions ci-dessous :
+  // avec zéro rune, un monstre a déjà AU MOINS ce bonus en jeu (voir
+  // `baseOf`) — le champ ne doit jamais laisser demander moins. N'affecte
+  // que PV/ATQ/DEF (ARTIFACT_MAIN ne couvre que ces trois stats — VIT/TC/
+  // DCC/RES/Précision ne reçoivent jamais rien d'un artéfact).
+  function artifactBonusOf(key: StatKey): number {
+    return searchArtifacts.reduce((sum, a) => {
+      const def = ARTIFACT_MAIN[a.main.code];
+      return def?.stat === key ? sum + a.main.value : sum;
+    }, 0);
   }
 
   return (
@@ -342,11 +409,61 @@ export default function OptimizerSection({ box, runes, optimizer }: Props) {
 
       <div>
         <div className="flex items-center justify-between mb-1 flex-wrap gap-2">
+          <p className="label">Artéfacts</p>
+          <div className="flex items-center gap-1.5">
+            <span className="text-[12px] font-semibold text-ink-dim">Ignorer les statistiques des artéfacts</span>
+            <span title="Activé, la recherche ne compte AUCUNE statistique d'artéfact (comme si le monstre n'en portait pas). Désactivé, choisis la statistique principale à supposer pour chaque emplacement ci-dessous.">
+              <HelpCircle size={13} className="text-ink-dim" />
+            </span>
+            <Switch
+              checked={ignoreArtifacts}
+              onChange={setIgnoreArtifacts}
+              label="Ignorer les statistiques des artéfacts"
+            />
+          </div>
+        </div>
+        {!ignoreArtifacts && (
+          <div className="flex flex-wrap gap-3">
+            {ARTIFACT_KINDS.map(({ key, label }) => (
+              <div key={key} className="flex items-center gap-1.5">
+                <span className="text-[12.5px] text-ink w-14">{label}</span>
+                <select
+                  value={String(artifactMainByKind[key] ?? 'equipped')}
+                  onChange={(e) => {
+                    const raw = e.target.value;
+                    const next: ArtifactMainChoice = raw === 'equipped' || raw === 'none' ? raw : (Number(raw) as 100 | 101 | 102);
+                    setArtifactMainByKind((prev) => ({ ...prev, [key]: next }));
+                  }}
+                  className="bg-panel border border-border text-ink rounded-lg px-2.5 py-1.5 text-[13px] outline-none"
+                >
+                  <option value="equipped">Comme équipé</option>
+                  {ARTIFACT_MAIN_OPTIONS.map((o) => (
+                    <option key={o.code} value={o.code}>
+                      {o.label}
+                    </option>
+                  ))}
+                  <option value="none">Aucun</option>
+                </select>
+              </div>
+            ))}
+          </div>
+        )}
+        <p className="mt-1 text-[11px] text-ink-dim">
+          « Comme équipé » reprend l'artéfact du build de base (celui affiché ci-dessus) porté à cet
+          emplacement. Choisir une statistique l'hypothèque pour la recherche sans avoir besoin de le
+          posséder — utile si ce monstre porte des artéfacts différents en RTA ou dans un deck de siège,
+          puisque ce build de base n'est pas forcément celui que tu cherches à reproduire ; « Aucun »
+          retire l'emplacement même s'il est réellement équipé.
+        </p>
+      </div>
+
+      <div>
+        <div className="flex items-center justify-between mb-1 flex-wrap gap-2">
           <p className="label">Conditions</p>
           <div className="flex items-center gap-1.5">
             <span className="text-[12px] font-semibold text-ink-dim">Stats de base exclues</span>
             <span
-              title="PV/ATQ/DEF/VIT : activé, la valeur est ce que l'équipement doit apporter au-dessus de la base du monstre. Désactivé, elle porte sur le total. Taux Crit/Dgts Crit/RES/Précision restent toujours en total, quel que soit ce réglage — ils partent de la valeur d'éveil du monstre."
+              title="PV/ATQ/DEF/VIT : activé, la valeur est ce que l'équipement (runes ET artéfacts comptés) doit apporter au-dessus de la base du monstre. Désactivé, elle porte sur le total. Taux Crit/Dgts Crit/RES/Précision restent toujours en total, quel que soit ce réglage — ils partent de la valeur d'éveil du monstre."
             >
               <HelpCircle size={13} className="text-ink-dim" />
             </span>
@@ -366,9 +483,18 @@ export default function OptimizerSection({ box, runes, optimizer }: Props) {
           {RECO_STATS.map((st) => {
             const affectedByToggle = BASE_TOGGLE_STATS.has(st.key);
             const base = baseOf(st.key);
+            const artBonus = artifactBonusOf(st.key);
             const capped = CAPPED_100.has(st.key);
             const bonusMode = affectedByToggle && excludeBase;
             const ceiling = capped ? (bonusMode ? 100 - base : 100) : undefined;
+            // ⚠️ Plancher affiché/autorisé, PAS la même chose que `base` (qui
+            // sert à la conversion affichage↔stockage, voir `baseOf`) : avec
+            // zéro rune, un monstre a déjà AU MOINS ce bonus/total en jeu
+            // (base nue + artéfacts éventuellement comptés) — voir
+            // `artifactBonusOf`. En mode bonus, seul l'artéfact compte (la
+            // base nue est déjà soustraite par la conversion elle-même) ; en
+            // mode total, base ET artéfact s'additionnent.
+            const floor = bonusMode ? artBonus : base + artBonus;
 
             const minTotal = minStats[st.key] ?? null;
             const minDisplayed = minTotal == null ? null : bonusMode ? minTotal - base : minTotal;
@@ -390,11 +516,13 @@ export default function OptimizerSection({ box, runes, optimizer }: Props) {
                       })
                     }
                     allowEmpty
-                    // ⚠️ En total, le total ne descend jamais sous la base nue
-                    // du monstre (même sans la moindre rune, elle y est déjà).
-                    min={bonusMode ? 0 : base}
+                    // ⚠️ Le total (ou le bonus, artéfacts comptés) ne descend
+                    // jamais sous ce plancher — même sans la moindre rune, il
+                    // est déjà garanti (base nue en mode total, artéfacts en
+                    // mode bonus).
+                    min={floor}
                     max={ceiling}
-                    placeholder={bonusMode ? '0' : String(base)}
+                    placeholder={String(floor)}
                     suffix={st.suffix || undefined}
                     boxWidth="w-24"
                     ariaLabel={`${st.label} minimum`}
@@ -414,7 +542,7 @@ export default function OptimizerSection({ box, runes, optimizer }: Props) {
                       })
                     }
                     allowEmpty
-                    min={bonusMode ? 0 : base}
+                    min={floor}
                     max={ceiling}
                     placeholder={capped ? String(ceiling) : '—'}
                     suffix={st.suffix || undefined}
@@ -632,7 +760,13 @@ export default function OptimizerSection({ box, runes, optimizer }: Props) {
                 rank={i + 1}
                 candidate={c}
                 runeById={runeById}
-                artifacts={selected?.gear.artifacts ?? []}
+                // ⚠️ `searchArtifacts`, PAS `selected.gear.artifacts` : les
+                // stats affichées sur chaque carte (candidate.stats) ont été
+                // calculées avec CES artéfacts (réels, hypothétiques ou
+                // aucun selon les réglages ci-dessus) — montrer les VRAIS
+                // artéfacts ici serait incohérent dès qu'ils diffèrent
+                // (`ignoreArtifacts`, ou une hypothèse choisie).
+                artifacts={searchArtifacts}
                 metric={metric}
                 openRuneKey={openRuneKey}
                 onToggleRune={(key) => setOpenRuneKey((cur) => (cur === key ? null : key))}

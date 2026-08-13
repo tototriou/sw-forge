@@ -1,10 +1,18 @@
 import { Dispatch, SetStateAction, useState } from 'react';
 import { StatKey } from '../lib/effects';
 import { Objective } from '../lib/runeBuildOptim';
+import { ArtifactKind } from '../types';
 import { useBuildOptimSearch } from './useBuildOptimSearch';
 
 export type SlotFilterPresetKey = 'bas' | 'moyen' | 'haut' | 'extreme';
 export type OptimizerSortKey = StatKey | Objective;
+// Choix de statistique principale d'artéfact pour la recherche : les trois
+// valeurs de jeu standard (voir ARTIFACT_MAIN dans effects.ts — 100=PV,
+// 101=ATQ, 102=DEF), plus deux cas hors de cette table : `'equipped'`
+// (défaut — reprend l'artéfact RÉELLEMENT équipé de ce type, comportement
+// historique inchangé) et `'none'` (aucun artéfact supposé dans cet
+// emplacement, même si un est réellement équipé).
+export type ArtifactMainChoice = 'equipped' | 'none' | 100 | 101 | 102;
 
 // Toute la SAISIE de l'écran Outils → Optimizer, remontée ici (instancié dans
 // App.tsx, jamais démonté) pour survivre à un changement d'onglet : comme les
@@ -27,6 +35,22 @@ export interface OptimizerState {
   setMaxStats: Dispatch<SetStateAction<Partial<Record<StatKey, number>>>>;
   excludeBase: boolean;
   setExcludeBase: Dispatch<SetStateAction<boolean>>;
+  // Même principe qu'`excludeBase`, un étage plus tôt : ignorer entièrement
+  // la contribution des artéfacts (PV/ATQ/DEF plats, voir ARTIFACT_MAIN dans
+  // effects.ts) dans le calcul — pas seulement dans son AFFICHAGE. Décoché
+  // par défaut : comportement historique inchangé (les artéfacts RÉELLEMENT
+  // équipés comptent toujours, comme avant l'ajout de cette bascule).
+  ignoreArtifacts: boolean;
+  setIgnoreArtifacts: Dispatch<SetStateAction<boolean>>;
+  // Statistique principale supposée pour chacun des deux emplacements
+  // d'artéfact (Attribut/Type, voir ARTIFACT_KINDS dans types.ts) — n'a
+  // d'effet que si `ignoreArtifacts` est décoché. Clé absente = `'equipped'`
+  // (défaut, voir ArtifactMainChoice) : permet d'hypothéquer un artéfact
+  // différent de celui réellement possédé, SANS avoir à le posséder pour de
+  // vrai (ex. « et si j'avais un artéfact PV+1500 au lieu de mon DEF+100
+  // actuel ? »).
+  artifactMainByKind: Partial<Record<ArtifactKind, ArtifactMainChoice>>;
+  setArtifactMainByKind: Dispatch<SetStateAction<Partial<Record<ArtifactKind, ArtifactMainChoice>>>>;
   mainStatsBySlot: Partial<Record<2 | 4 | 6, number[]>>;
   setMainStatsBySlot: Dispatch<SetStateAction<Partial<Record<2 | 4 | 6, number[]>>>>;
   objective: Objective;
@@ -59,6 +83,8 @@ export function useOptimizerState(): OptimizerState {
   // ⚠️ Coché par défaut : demande reconfirmée après un premier aller-retour
   // (décoché par défaut, puis revenu sur cochée) — voir spec/outils/optimizer.md.
   const [excludeBase, setExcludeBase] = useState(true);
+  const [ignoreArtifacts, setIgnoreArtifacts] = useState(false);
+  const [artifactMainByKind, setArtifactMainByKind] = useState<Partial<Record<ArtifactKind, ArtifactMainChoice>>>({});
   const [mainStatsBySlot, setMainStatsBySlot] = useState<Partial<Record<2 | 4 | 6, number[]>>>({});
   const [objective, setObjective] = useState<Objective>('efficience');
   const [exploreAll, setExploreAll] = useState(false);
@@ -82,6 +108,10 @@ export function useOptimizerState(): OptimizerState {
     setMaxStats,
     excludeBase,
     setExcludeBase,
+    ignoreArtifacts,
+    setIgnoreArtifacts,
+    artifactMainByKind,
+    setArtifactMainByKind,
     mainStatsBySlot,
     setMainStatsBySlot,
     objective,

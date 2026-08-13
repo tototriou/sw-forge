@@ -412,6 +412,77 @@ export default function testRuneOptim() {
     );
   }
 
+  titre('Optimizer · élagage sûr — faisabilité de set (précoce, avec joker)');
+
+  // Violent (4 pièces) demandé. Slot par slot :
+  //  - slots 1, 2 : une rune Violent chacun → la moitié A (slots 1-3) peut au
+  //    mieux apporter 2 pièces réelles ;
+  //  - slot 3     : Intangible (le joker) ;
+  //  - slot 4     : une rune Violent → la moitié B (slots 4-6) peut au mieux
+  //    apporter 1 pièce réelle ;
+  //  - slots 5, 6 : Fight (2 pièces), une chacune → 1 activation Fight
+  //    COMPLÈTE, sans reste — sans ça, un second set incomplet empêcherait le
+  //    joker d'aider Violent (règle du jeu, voir effects.ts « activeSets »).
+  // Total Violent réel possédé = 3 (2 côté A + 1 côté B), PILE 1 en dessous
+  // des 4 exigés : seul le joker peut combler ce dernier manque.
+  // ⚠️ Sans le crédit de joker dans l'élagage précoce sur les sets
+  // (`buildBuckets`), la moitié A serait coupée dès le choix du premier slot
+  // — 2 (son propre maximum) + 1 (maximum de l'autre moitié) = 3 < 4 exigés,
+  // sans savoir qu'un joker existe ailleurs dans le pool — avant même que la
+  // vérification finale sur les runes réelles n'ait sa chance. Ce test
+  // échouerait silencieusement (0 combinaison au lieu de 1) si ce crédit
+  // n'était pas correctement appliqué.
+  {
+    const pool = [
+      rune(1, 1, 'violent'),
+      rune(2, 2, 'violent'),
+      rune(3, 3, 'intangible'),
+      rune(4, 4, 'violent'),
+      rune(5, 5, 'fight'),
+      rune(6, 6, 'fight'),
+    ];
+    const res = searchBuilds({
+      base: ZERO_BASE,
+      artifacts: [],
+      pool,
+      requirement: { sets: ['violent'], minStats: {} },
+      metric: 'eff',
+    });
+    egal(
+      res.candidates.length,
+      1,
+      '3 pièces Violent réelles + 1 joker (seul set incomplet) → le joker comble la 4e, combinaison trouvée'
+    );
+  }
+
+  // Variante « sans issue » : même pool, mais un DEUXIÈME set incomplet
+  // apparaît (Fight à 1 pièce au lieu de 2) — le joker ne peut plus aider
+  // Violent (règle du jeu : deux sets incomplets ou plus → le joker n'aide
+  // personne). L'élagage précoce reste sûr (il ne coupe jamais à tort), mais
+  // la vérification finale doit quand même rejeter cette combinaison.
+  {
+    const pool = [
+      rune(1, 1, 'violent'),
+      rune(2, 2, 'violent'),
+      rune(3, 3, 'intangible'),
+      rune(4, 4, 'violent'),
+      rune(5, 5, 'fight'),
+      rune(6, 6, 'shield'), // au lieu d'un 2e Fight : Fight ET Shield restent incomplets
+    ];
+    const res = searchBuilds({
+      base: ZERO_BASE,
+      artifacts: [],
+      pool,
+      requirement: { sets: ['violent'], minStats: {} },
+      metric: 'eff',
+    });
+    egal(
+      res.candidates.length,
+      0,
+      'deux sets incomplets en plus de Violent (Fight, Shield) → le joker n\'aide plus personne, aucune combinaison'
+    );
+  }
+
   titre('Optimizer · élagage sûr — efficacité mesurée (pas seulement sûr)');
 
   // 20 candidats sur le slot 1 (VIT 1 à 20), seuls les 3 meilleurs (VIT 18,

@@ -631,11 +631,33 @@ plus haut.
   grandeur nature »). Les bornes d'élagage (`maxPct`/`maxFlat` par
   compartiment) s'étendent à partir de **toute** combinaison rencontrée, même
   celles finalement jetées — rester large ici ne coûte rien et ne peut jamais
-  écarter une paire à tort. ⚠️ **Rétention via un tas binaire** (`heapPush`),
-  pas une liste triée par insertion (`splice`, O(taille) par insertion — un
-  vrai coût mesuré à `bucketCap` élevé, voir « Suite — bucketCap paramétrable
-  et tas binaire ») : O(log `bucketCap`) par insertion/éviction, un seul tri
-  final par compartiment pour retrouver le même ordre décroissant qu'avant.
+  écarter une paire à tort. ⚠️ **Rétention via des tas binaires** (`heapPush`,
+  généralisé pour accepter un score explicite par tas), pas une liste triée
+  par insertion (`splice`, O(taille) par insertion — un vrai coût mesuré à
+  `bucketCap` élevé, voir « Suite — bucketCap paramétrable et tas binaire ») :
+  O(log cap) par insertion/éviction. ⚠️ **Plusieurs tas EN PARALLÈLE par
+  compartiment, pas un seul** — un générique (`relevanceScore`), une tranche
+  combinée si des minimums sont posés, et une par stat à protéger
+  (`retentionKeys`) — fusionnés (dédupliqués) et triés UNE SEULE fois par
+  compartiment à la fin. Voir « Suite — rétention par tranches » : un score
+  scalaire unique écartait des builds spécialisés valides, confirmé sur un
+  vrai compte.
+- **Compartiments (pas seulement leurs demi-builds) triés par potentiel
+  décroissant** avant l'appariement — le meilleur `relevanceScore` que
+  chacun contient. Remplace l'ordre d'arrivée (arbitraire, celui de la
+  première combinaison de sets rencontrée en balayant les triples) : les
+  paires les plus prometteuses sont désormais explorées EN PREMIER, ce qui
+  compte dès que `maxCollected`/`maxNodes` interrompt la recherche avant
+  d'avoir tout exploré — le cas courant en pratique (voir « Suite — ordre
+  d'exploration des paires… »).
+- **Élagage de FAISABILITÉ DE SET, précoce** (pendant la génération d'une
+  moitié, pas seulement à l'appariement des compartiments) : pour chaque set
+  demandé, si le meilleur cas — reste de cette moitié + meilleur de l'autre
+  moitié + un crédit de joker volontairement généreux — ne peut plus
+  atteindre le compte requis, la branche est coupée avant même de choisir le
+  3ᵉ slot. Complémentaire du « Groupage par compte de pièces » ci-dessous
+  (qui, lui, agit à l'appariement, une fois les demi-builds déjà tous
+  générés) — voir « Suite — ordre d'exploration des paires… ».
 - **Groupage par compte de pièces sûr, jamais approximatif dans le sens
   dangereux** : le regroupement ne connaît que des comptes agrégés (pas les
   runes réelles), ce qui l'empêche de voir qu'un joker pourrait, dans la
@@ -755,6 +777,305 @@ argument, plus de nom de monstre en dur) rejouent la « Validation grandeur
 nature » ci-dessus sur n'importe quel compte réel, pour des ordres de
 grandeur qu'un pool synthétique ne reproduit pas forcément.
 
+### Suite — ordre d'exploration des paires, et élagage précoce sur les sets
+
+Deux correctifs supplémentaires, motivés directement par la mesure du budget
+de recherche ci-dessus : sur le scénario qui s'améliorait avec un
+`maxCollected` plus large, le meilleur build n'apparaissait qu'après avoir
+collecté plus de 100 000 candidats — signe que l'ORDRE d'exploration, pas
+seulement le budget, avait un vrai defaut.
+
+- **Compartiments triés par potentiel avant l'appariement** (`buildBuckets`
+  trie désormais son résultat par le meilleur `relevanceScore` qu'il contient,
+  décroissant) : auparavant, `bucketsA`/`bucketsB` restaient dans l'ordre
+  d'arrivée (celui de la première combinaison de sets rencontrée en balayant
+  les triples), qui ne voulait rien dire. Effet mesuré, avant/après, au
+  budget de production (`slotFilterCap=80`) : les 4 scénarios trouvent
+  désormais leur meilleur résultat **dès `maxCollected=5000`** (le plus petit
+  niveau testé), contre certains qui ne l'atteignaient qu'à 100 000+ ou
+  jamais avant ce correctif — un gain plus important que le simple relevé du
+  budget de collecte.
+- **Élagage précoce sur les sets, pendant la génération d'une moitié**
+  (`buildBuckets`, avant même d'ouvrir la boucle du 3ᵉ slot) : pour chaque set
+  demandé, si même le meilleur cas — le reste de CETTE moitié au mieux + le
+  meilleur de L'AUTRE moitié + un crédit de joker VOLONTAIREMENT généreux
+  (0 ou 1, jamais plus précis) — ne peut plus atteindre le compte requis, la
+  branche est coupée immédiatement, avant de payer le coût d'énumérer le
+  3ᵉ slot pour rien. ⚠️ **Le crédit de joker est délibérément trop généreux**
+  (accordé indépendamment à chaque set testé, alors qu'un seul joker ne peut
+  jamais en aider deux à la fois) — c'est précisément ce qui le rend SÛR :
+  plus généreux que la réalité ne peut jamais écarter à tort une combinaison
+  valide, seulement échouer à couper une branche qui s'avérera de toute façon
+  infaisable à la vérification finale sur les runes réelles
+  (`activeSets`/`missingSets`, inchangée). Couvert par deux scénarios dédiés
+  dans [tests/rune-optim.test.ts](tests/rune-optim.test.ts) : un où le crédit
+  de joker est nécessaire pour ne PAS couper une branche réellement valide,
+  et un où deux sets incomplets simultanés (le joker n'aide alors personne,
+  voir compte/calcul-runes.md §5.2) confirment que l'élagage précoce reste
+  sûr sans devenir permissif à tort.
+
+⚠️ **Nouvelle mesure de `bucketCap` après ces deux correctifs** — rejouée
+avec [scripts/benchmark-bucket-retention.ts](scripts/benchmark-bucket-retention.ts) :
+au budget de production, `bucketCap=100` (le plus petit testé) donne
+désormais le meilleur résultat sur 3 des 4 scénarios, `bucketCap` plus élevé
+n'aidant plus et pouvant même très légèrement reculer — cohérent avec le
+tri par potentiel : un compartiment plus petit laisse la recherche visiter
+DAVANTAGE de paires différentes pour le même budget, plutôt que d'épuiser
+ce budget dans un seul compartiment déjà bon. **Non appliqué à l'époque** :
+abaisser `BUCKET_CAP` en dur referait le même genre de changement de
+comportement de production que celui qui avait motivé la « Validation
+grandeur nature » initiale (retrouver un runage réel) — à revalider sur ce
+même scénario réel avant d'y toucher, pas seulement sur des pools
+synthétiques.
+⚠️ **Mesure dépassée depuis** (voir plus bas, « BUCKET_CAP relevé ») : cette
+observation date d'AVANT que `maxNodes` ne soit relevé dans la même
+proportion que `bucketCap` — une fois les deux montés ensemble, le
+désavantage d'un `bucketCap` plus élevé sur ces mêmes 4 scénarios disparaît
+entièrement (100 % du plafond atteint à chaque palier, aucune perte).
+
+⚠️ **Confirmé sur un vrai compte, en conditions réelles** (Lushen, decks
+d'offense 10 et 11, recherche restreinte à ATQ/Taux Crit/Dmg Crit
+uniquement) : le compartiment `combos` limitait bel et bien ce qui pouvait
+être retrouvé quand le build cible est fortement spécialisé sur peu de
+stats — le demi-build réel du deck 10 se classait #11 854 sur 342 654 dans
+son compartiment (par `relevanceScore`, l'efficience agrégée), largement hors
+de portée de `BUCKET_CAP=600` **et** d'un budget de recherche généreux
+(20 000/compartiment, 50 millions de paires explorées, toujours tronqué sans
+le retrouver). Confirme concrètement, sur des données réelles et pas
+seulement des scénarios synthétiques, le risque déjà identifié en
+discussion : un score de rétention aveugle à l'objectif recherché peut
+écarter un build par ailleurs valide.
+
+### Correctif — rétention par tranches
+
+`relevanceScore` (efficience agrégée) reste le repère PAR DÉFAUT, mais
+n'est plus le SEUL critère qui décide ce qui survit à `bucketCap`. Chaque
+compartiment (`buildBuckets`, `runeBuildOptim.ts`) maintient désormais
+PLUSIEURS tas bornés en parallèle, fusionnés (dédupliqués) à la fin — même
+principe que `PER_STAT_KEEP`/`PER_STAT_KEEP_OBJECTIVE` dans `filterSlot`
+(réserver une tranche par critère plutôt qu'un tri global unique), appliqué
+ici aux demi-builds plutôt qu'aux runes individuelles :
+
+- **Tranche générique** (`relevanceScore`) — la moitié du budget, comportement
+  historique inchangé quand rien de plus n'est demandé.
+- **Tranche combinée**, si des minimums sont posés — triée par la somme des
+  contributions rapportées à leur propre seuil (`Σ (pct+flat)/min`, même
+  heuristique que `relevance()` dans `filterSlot`). Protège un demi-build qui
+  satisfait PLUSIEURS minimums À LA FOIS sans être le meilleur sur AUCUN pris
+  isolément — exactement le cas du deck 10 (ATQ+Taux Crit+Dmg Crit demandés
+  ensemble) : rang #227/314 730 par ce score combiné, contre #9 521 par la
+  seule efficience générique.
+- **Une tranche par stat de `retentionKeys`** (les minimums demandés, PLUS
+  les stats propres à l'objectif choisi — JAMAIS les maximums : sur une stat
+  plafonnée, « plus » n'est pas sûrement « meilleur » pour un tri après coup,
+  même piège que la dominance directionnelle abandonnée plus haut dans ce
+  document) — triée par sa propre contribution seule.
+
+Le reste du budget (après la tranche générique) est réparti à parts égales
+entre tranche combinée et tranches par stat, au moins 1 place chacune.
+`heapPush` a été généralisé pour accepter un score EXPLICITE par tas (pas
+seulement `relevanceScore`), sans dupliquer ni muter les demi-builds — un
+même objet peut survivre dans plusieurs tranches à la fois, dédupliqué par
+identité à la fusion finale.
+
+**Vérifié sur les deux mêmes decks réels** : deck 11 (combo 4+2) retrouvé
+EXACTEMENT au budget de **production par défaut** (`bucketCap=600`, aucune
+surcharge), là où l'ancienne rétention avait besoin de `bucketCap=2 000`.
+Deck 10 (un seul set 4 pièces, le cas le plus dur mesuré) retrouvé
+EXACTEMENT avec un budget relevé (`bucketCap=8 000`, `maxNodes=50 000 000`,
+~83 s) — un budget qui, avec l'ANCIENNE rétention à score unique, ne
+suffisait déjà plus même à `bucketCap=20 000`. Aucune régression sur le
+harnais différentiel ni les scénarios écrits à la main. Reproductible via
+[scripts/monster-search-validate.ts](scripts/monster-search-validate.ts)
+(recherche restreinte à un sous-ensemble de stats, budget ajustable) et
+[scripts/monster-search-rank-diag.ts](scripts/monster-search-rank-diag.ts)
+(rang exact d'un demi-build réel dans chaque tranche de rétention, sans
+payer une recherche complète) — deux outils dans la famille
+`scripts/monster-*.ts`, génériques comme les autres.
+
+### Suite — ordonnancement conscient des tranches, et Taux Crit hors de l'objectif Dégâts
+
+Trois correctifs supplémentaires, dans le prolongement direct du précédent :
+
+- **`OBJECTIVE_RELEVANT_STATS['degats']` ne contient plus `cr`** (reste
+  `['atk', 'cd']`) : ATQ et Dmg Crit se maximisent (jamais de plafond utile),
+  mais le Taux Crit est plafonné à 100 % en jeu — le pousser plus haut
+  n'apporte rien (`objectiveScore` l'écrête déjà). Pour l'objectif Dégâts, TC
+  se comporte comme une CONDITION à satisfaire (l'utilisateur pose
+  typiquement un minimum, souvent 100 % ou une valeur pensée pour se
+  compléter avec un buff en jeu), pas comme une cible à maximiser plus loin —
+  sa protection passe entièrement par `minEntries` (la tranche combinée),
+  jamais par la liste des stats de l'objectif.
+- **Ordonnancement des compartiments conscient des tranches** : `buildBuckets`
+  triait encore les compartiments par leur seul `relevanceScore` (efficience
+  générique) avant l'appariement, même après l'ajout des tranches
+  combinée/par-stat. Il compare désormais, pour chaque compartiment, un score
+  de potentiel NORMALISÉ — le meilleur score de CHAQUE tranche, rapporté au
+  maximum atteint par N'IMPORTE QUEL compartiment sur cette même tranche (les
+  tranches ne sont pas sur la même échelle : `relevanceScore` ~0-1, score
+  combiné en unités de seuil, score par stat en valeur brute — les comparer
+  directement mélangerait des grandeurs incomparables).
+- **Budget réparti à PARTS ÉGALES entre toutes les tranches**, générique
+  comprise — plus la moitié réservée d'office à la générique. Mesuré sur le
+  deck 10 : elle n'était la tranche la plus prédictive pour AUCUNE des deux
+  moitiés (la combinée l'était pour la première — #227/314 730 — la tranche
+  ATQ seule pour la seconde — #583/61 216) ; lui garder la moitié du budget
+  sous-dotait systématiquement celles qui comptaient réellement.
+
+**Résultat, honnête** : ces trois correctifs ramènent le budget nécessaire
+pour retrouver le deck 10 de `bucketCap=8 000` à **`bucketCap=3 000`**
+(`maxNodes` toujours élargi, ~24 s) — une réduction réelle et mesurée,
+cohérente avec le calcul à la main (au moins 583×5 ≈ 2 915 nécessaires à
+répartition égale sur 5 tranches, pour que la tranche ATQ seule de la
+seconde moitié atteigne son rang). **Mais ça ne suffit toujours pas au
+`bucketCap=600` de production, sans aucune surcharge** — testé et confirmé
+négatif, recherche exhaustive (1,4 million de paires, aucune troncature),
+donc ce n'est plus une question d'ordre d'exploration : à ce budget, la
+CAPACITÉ de rétention elle-même reste trop courte pour ce cas précis (un
+seul set 4 pièces sur un compte de plus de 3 000 runes, avec un build cible
+très spécialisé). Le seul levier qui reste, non actionné ici faute de
+validation séparée : relever `BUCKET_CAP` lui-même — un changement de
+comportement de production qui affecterait TOUTES les recherches, pas
+seulement ce cas, à décider et mesurer indépendamment (même prudence que
+pour le `slotFilterCap`/`BUCKET_CAP` initiaux). Le deck 11, structurellement
+moins exigeant, reste trouvé au budget par défaut sans changement.
+
+### Suite — BUCKET_CAP relevé : ce type de recherche est un cas à résoudre, pas une exception
+
+⚠️ **Position produit explicite** : un build très spécialisé sur un gros
+compte réel (le cas du deck 10) n'est **pas** un cas à part qu'on laisse de
+côté — l'Optimizer doit pouvoir le résoudre, quitte à prendre 1 à 2 minutes.
+Ça change le calcul du paragraphe précédent : la question n'est plus
+« combien de temps est-ce acceptable ? » (déjà répondu : jusqu'à 1-2 min) —
+c'est « ce budget de temps suffit-il, et à quel prix sur les recherches
+courantes ? ».
+
+**`BUCKET_CAP` relevé de 600 à 5000**, avec `DEFAULT_MAX_NODES` relevé DANS
+LA MÊME FOULÉE (4 000 000 → 20 000 000, ×5) — **les deux doivent grandir
+ensemble**. Mesuré, pas supposé : relever `BUCKET_CAP` seul (à
+`bucketCap=5000` avec `maxNodes` resté à 4M) fait au contraire RECULER un
+résultat déjà trouvé (retrouvé à `bucketCap=3000`/4M, plus retrouvé à
+`bucketCap=5000`/4M) — chaque paire de compartiments coûte plus cher à
+parcourir à `bucketCap` élevé, donc sans plus de budget de paires, la
+recherche épuise son budget sur MOINS de paires de compartiments explorées,
+pas plus. Les deux plafonds relevés ensemble : deck 10 retrouvé EXACTEMENT
+en **48 s**, deck 11 en **59 s**, tous deux au budget de production **strict,
+sans aucune surcharge** — le critère de validation posé au tour précédent
+est maintenant atteint.
+
+**Vérifié sans régression** sur les 4 scénarios synthétiques
+(`scripts/benchmark-search-budget.ts`, `bucketCap`/`maxNodes` de production
+fixés à leurs nouvelles valeurs) : les 4 scénarios trouvent 100 % de leur
+plafond testé à CHAQUE palier de `maxCollected`, temps toujours sous ~3,2 s —
+aucune perte de qualité ni de vitesse sur l'usage courant, contrairement à
+la première tentative (relever `bucketCap` seul) qui aurait coûté sans rien
+apporter.
+
+**Accélération GPU — évaluée, pas retenue pour l'instant.** La question a
+été posée directement (d'autres outils similaires explorent au GPU, plusieurs
+milliards de combinaisons). Le CPU, une fois `BUCKET_CAP`/`maxNodes` réglés
+ensemble plutôt que l'un sans l'autre, suffit à résoudre le cas le plus dur
+mesuré dans le budget de temps jugé acceptable (moins d'une minute, pas
+besoin des « 1 à 2 minutes » approuvées) — le goulot n'était pas un manque de
+débit de calcul brut, c'était une capacité de rétention mal calibrée. Une
+implémentation GPU (WebGPU dans un navigateur, support encore inégal, aucun
+repli possible sur les navigateurs non supportés) est un chantier
+nettement plus lourd et plus risqué que régler deux constantes déjà
+paramétrées — pas justifié tant que le CPU suffit. Reste une piste pour un
+compte encore plus gros que celui mesuré ici (~4400 runes), si un jour ce
+budget CPU ne suffit plus non plus — à re-mesurer avant, pas à anticiper.
+
+### Suite — ordre D'EXPLORATION à l'intérieur d'un compartiment
+
+⚠️ **Signalé en usage réel** (recherche « Dégâts » sur un vrai compte, set
+Rage, conditions ATQ/Taux Crit/Dmg Crit) : sur plusieurs millions de paires
+explorées, les bons résultats n'apparaissaient qu'à la toute fin. Trois
+niveaux d'ordre avaient été corrigés cette session — quels demi-builds
+survivent à `bucketCap` (les tranches), quel COMPARTIMENT est exploré en
+premier (`out.sort`) — mais pas un troisième, plus profond : `Bucket.combos`
+(la liste que parcourt la boucle d'appariement `for comboA of bA.combos`
+dans `searchBuildsSteps`) restait triée par le seul `relevanceScore`
+(efficience générique), même pour un demi-build qui n'avait survécu à
+`bucketCap` que grâce à la tranche combinée ou une tranche par stat — donc
+correctement RETENU, mais exploré en DERNIER dans son propre compartiment,
+après des milliers de demi-builds génériquement bons mais hors sujet. Un
+vrai risque, pas seulement une perte de temps : si la recherche s'était
+interrompue un peu plus tôt (budget de paires ou de temps atteint avant la
+fin), ces bons résultats auraient pu être MANQUÉS, pas seulement trouvés en
+retard.
+
+**Corrigé** : une seconde passe, une fois le meilleur score global de chaque
+tranche connu (`globalBestBySlice`, déjà calculé pour l'ordre des
+compartiments), retrie maintenant CHAQUE demi-build DANS son compartiment
+par le même principe — son propre meilleur score normalisé, toutes tranches
+confondues, pas seulement `relevanceScore`. Nécessite de recalculer, pour
+chaque demi-build retenu, son score dans chaque tranche à partir de ses
+`pct`/`flat` déjà stockés (`combinedRetentionScore`/`retentionScore`,
+réutilisées telles quelles) — peu coûteux, borné par `bucketCap` demi-builds
+par compartiment. Vérifié sans régression sur le harnais différentiel, les
+scénarios écrits à la main, et les deux decks réels (deck 10 et deck 11,
+toujours retrouvés exactement aux défauts de production).
+
+### Suite — pourquoi ce correctif d'ordre n'a rien changé en usage réel
+
+⚠️ **Signalé en usage réel, après le correctif ci-dessus** : toujours ~18
+millions de paires explorées avant d'obtenir le Lushen du deck 10, en
+conditions réelles (Pré-filtrage « Moyen », `slotFilterCap=80`). Deux failles
+de méthodologie ont d'abord été trouvées dans les scripts de mesure de cette
+session : `monster-search-validate.ts`/`monster-search-pipeline-diag.ts`
+codaient en dur `slotFilterCap=300` (« Extrême »), jamais 80 (« Moyen », le
+vrai défaut de l'écran) ; et aucun des scripts diagnostiques ne passait
+`objective` aux fonctions du moteur, alors que la recherche réelle avait
+« Dégâts » sélectionné — les mesures « deck 10 retrouvé en 48 s » de la
+section précédente ne reflétaient donc pas fidèlement les réglages réels de
+l'utilisateur. Les deux scripts ont été corrigés pour prendre `slotFilterCap`
+et `objective` en paramètres, défauts alignés sur l'écran (80, « Dégâts »).
+
+**Mesure directe, une fois ces deux failles corrigées** (`monster-search-
+validate.ts`, deck 10, aux défauts de production `bucketCap=5000`,
+`maxNodes=20 000 000`) : le Lushen réel est retrouvé dans les QUATRE
+combinaisons testées (`slotFilterCap` 80 et 300, `objective` posé ou non) —
+mais **`explored` vaut exactement `20 000 001` (= `maxNodes`+1) dans les
+quatre cas**, jamais moins. La recherche ne s'arrête JAMAIS avant d'avoir
+épuisé tout le budget de paires, quel que soit l'ordre d'exploration : avec
+un set exact + 3 minimums serrés + statistique principale imposée sur 3
+emplacements à la fois, un seul candidat au total satisfait toutes les
+contraintes en même temps (`candidates.length === 1`) — bien loin de
+`maxCollected=100 000`, la seule autre condition d'arrêt anticipé. La
+recherche tourne donc TOUJOURS jusqu'à `maxNodes`, qu'elle trouve le bon
+candidat tôt ou tard dans son parcours.
+
+**Conséquence directe** : l'ordre d'exploration (tranches, compartiments,
+demi-builds DANS un compartiment) ne peut changer ni le temps total de la
+recherche, ni le nombre final de paires explorées, dans ce régime précis — il
+ne peut avancer QUE le moment où le candidat apparaît dans le flux de
+progression pendant que la recherche tourne. Instrumentation directe de
+`buildBuckets` (nouveau script `monster-search-buildbuckets-diag.ts`,
+reproduit exactement les paramètres de `searchBuildsSteps`, y compris
+`objective`) : le compartiment réel du deck 10 se classe 4ᵉ/10 (moitié A) et
+5ᵉ/9 (moitié B) dans l'ordre d'exploration des compartiments — pas en tête —
+et, À L'INTÉRIEUR de ce compartiment, le demi-build réel se classe
+~2278ᵉ/4290 et ~2026ᵉ/4147 après le tri par potentiel normalisé — loin d'être
+le meilleur sur les tranches mesurées (générique, combinée, ATQ/TC/DCC
+isolés). Ce n'est pas une régression du correctif précédent : d'AUTRES
+demi-builds sont légitimement jugés plus prometteurs sur chacune de ces
+tranches, alors que le build réel n'est exceptionnel sur AUCUNE d'elles prise
+isolément — il ne fait que satisfaire les trois conditions À LA FOIS, ce
+qu'aucune tranche à un seul axe ne peut anticiper sans déjà connaître la
+réponse.
+
+**Ce n'est donc pas un bug à corriger, mais le coût réel d'une aiguille dans
+une botte de foin** : avec `atk`+`tc`+`dcc` demandés ensemble près de leurs
+seuils, sur 3163 runes réelles, très peu de builds satisfont tout à la fois —
+la recherche DOIT explorer une grande partie de l'espace atteignable pour
+être sûre de le trouver, quel que soit l'ordre. Les ~30-47 s mesurées à
+chaque essai (toujours dans la fourchette « 1-2 minutes » jugée acceptable)
+SONT la réponse du système à ce cas, pas un signe qu'il reste à optimiser par
+un meilleur tri. Le levier qui compte reste celui déjà actionné :
+`bucketCap`/`maxNodes` assez grands pour que le budget total de paires
+couvre bien la paire de compartiments cible — vérifié ici (le build réel est
+systématiquement retrouvé, dans les quatre configurations testées).
+
 ## Limites connues
 
 - **Pré-filtrage heuristique par emplacement ET par compartiment** : pas de
@@ -788,11 +1109,16 @@ grandeur qu'un pool synthétique ne reproduit pas forcément.
   sur les runes.
 - L'exclusion v1 ne connaît que la **box** (6★ équipés) ; RTA, Siège et
   l'exclusion ciblée par monstre/rune sont prévus mais pas construits.
-- **L'ordre dans lequel les paires de compartiments sont explorées reste
-  arbitraire** : rien ne garantit que les meilleures combinaisons soient
-  collectées en priorité plutôt que les premières rencontrées. Trier les
-  paires par potentiel optimiste avant de les explorer reste un chantier
-  ouvert.
+- ~~L'ordre dans lequel les paires de compartiments sont explorées reste
+  arbitraire~~ **Corrigé** (voir « Suite — ordre d'exploration des paires… »
+  ci-dessus) : les compartiments sont désormais triés par le meilleur
+  `relevanceScore` qu'ils contiennent avant l'appariement. ⚠️ Reste une
+  heuristique, pas un tri exact des PAIRES elles-mêmes (chaque moitié est
+  triée indépendamment, pas le produit des deux) — un ordre encore plus fin,
+  fondé sur le potentiel de l'OBJECTIF choisi plutôt que sur l'efficience
+  agrégée seule, reste un chantier ouvert (voir aussi « bound-and-order au
+  niveau des paires », discuté mais non construit — dépend d'un mode
+  produit « objectif unique, arrêt précoce » qui n'existe pas encore).
 - Seul le preset de `slotFilterCap` est un réglage utilisateur
   (« Options avancées ») ; `maxMs` (fixe, 10 min) et
   `maxCollected`/`maxNodes`/`BUCKET_CAP` restent des paramètres du moteur non

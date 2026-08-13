@@ -26,6 +26,20 @@ export type WorkerRequest = SearchParams | { stop: true };
 // efficace) — throttlé au temps écoulé plutôt qu'au nombre de points de
 // passage, pour rester fluide quel que soit le rythme réel de la recherche.
 const PROGRESS_THROTTLE_MS = 150;
+// ⚠️ Rendre la main À CHAQUE point de passage (tous les 500 nœuds, voir
+// CHECKPOINT_EVERY dans runeBuildOptim.ts) coûte bien plus cher qu'il n'y
+// paraît : les navigateurs plafonnent `setTimeout(fn, 0)` appelé en boucle à
+// ~4 ms (throttling standard, y compris dans un Worker) — sur une recherche à
+// `maxNodes=20 000 000`, ça fait 40 000 rendus de main, soit jusqu'à ~160 s
+// de pur overhead de planification, largement au-dessus du temps de calcul
+// réel (~30-47 s mesurés en dehors du Worker, voir spec/outils/optimizer.md).
+// Confirmé être la cause d'un écart mesuré en usage réel (recherche « Dégâts »
+// sur un vrai compte : ~30-47 s hors Worker contre 3 min 40 dans le
+// navigateur, pour la MÊME recherche). Throttlé au temps écoulé, comme la
+// progression ci-dessus, mais plus fréquemment (le bouton « Arrêter » doit
+// rester réactif) — un ordre de grandeur sous le seuil de perceptibilité
+// humaine, largement suffisant.
+const YIELD_THROTTLE_MS = 50;
 
 export interface WorkerProgressMessage {
   type: 'progress';
@@ -63,6 +77,7 @@ self.onmessage = async (e: MessageEvent<WorkerRequest>) => {
   const startedAt = Date.now();
   let lastProgressPost = 0;
 
+  let lastYield = startedAt;
   const gen = searchBuildsSteps(params);
   let step = gen.next();
   while (!step.done) {
@@ -92,10 +107,16 @@ self.onmessage = async (e: MessageEvent<WorkerRequest>) => {
       };
       (self as unknown as Worker).postMessage(message);
     }
-    // Rend la main à la boucle d'évènements : sans ce point de passage
-    // explicite, le message « stop » resterait en attente jusqu'à la fin de
-    // la recherche, ce qui viderait le bouton Arrêter de son sens.
-    await new Promise((resolve) => setTimeout(resolve, 0));
+    // Rend la main à la boucle d'évènements, mais throttlé (voir
+    // YIELD_THROTTLE_MS) : sans au moins CE rendu de main occasionnel, le
+    // message « stop » resterait en attente jusqu'à la fin de la recherche,
+    // ce qui viderait le bouton Arrêter de son sens — mais le faire à CHAQUE
+    // point de passage (tous les 500 nœuds) coûte bien plus cher que la
+    // recherche elle-même, voir le commentaire de la constante.
+    if (now - lastYield > YIELD_THROTTLE_MS) {
+      lastYield = now;
+      await new Promise((resolve) => setTimeout(resolve, 0));
+    }
     step = gen.next();
   }
   const result: WorkerResultMessage = { type: 'result', ...step.value };

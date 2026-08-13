@@ -8,7 +8,8 @@
 // achète réellement en qualité de résultat ?
 //
 // bucketCap et slotFilterCap restent FIXES aux valeurs de production
-// (600 et 80, le preset « Moyen ») — seul le budget de collecte
+// (5000 et 80, le preset « Moyen » — bucketCap relevé une seconde fois
+// depuis, voir spec/outils/optimizer.md) — seul le budget de collecte
 // (`maxCollected`/`maxNodes`) varie, avec un temps de mur mesuré à chaque
 // palier pour vérifier qu'on reste bien dans l'ordre de grandeur annoncé.
 //
@@ -95,7 +96,7 @@ const SCENARIOS: Scenario[] = [
 // bucketCap et slotFilterCap FIXES aux valeurs de production — seul le budget
 // de collecte change ici. maxNodes suit largement au-dessus de maxCollected
 // à chaque palier pour ne jamais devenir le facteur limitant à sa place.
-const PRODUCTION_BUCKET_CAP = 600;
+const PRODUCTION_BUCKET_CAP = 5000; // valeur de production réelle (BUCKET_CAP)
 // ⚠️ Testé aux DEUX presets réels, pas seulement « Moyen » : à 300/slot
 // (« Extrême »), la construction des compartiments (O(slotFilterCap³), fixe
 // quel que soit `maxCollected`) domine largement le temps total — 20 à 55 s

@@ -43,7 +43,7 @@
 // valable) plutôt que maximalement serrées.
 
 import { ArtifactDetail, BaseStats, GearSet, RelicDetail, RuneDetail } from '../types';
-import { RUNE_EFFECT, SET_STAT_BONUS, StatKey, activeSets, runeEfficiency, runeScore } from './effects';
+import { RUNE_EFFECT, SET_STAT_BONUS, StatKey, activeSets, runeEfficiency, runeScore, setPieces } from './effects';
 import { computeStats, StatRow } from './stats';
 import { missingSets } from './recoMatch';
 import { OptimMetric } from './runeOptim';
@@ -130,14 +130,24 @@ export const OBJECTIVE_LABELS: { key: Objective; label: string }[] = [
 ];
 
 // Stats individuellement pertinentes pour chaque objectif — sert à élargir
-// leur budget de rétention dans `filterSlot`, pour que le pré-filtrage ne
-// laisse pas passer à côté des runes utiles à l'objectif choisi avant même
-// que la recherche complète ne démarre. « Efficience » n'en a pas : c'est
-// déjà la lentille par défaut du pré-filtrage (voir `relevance`), aucun
-// biais de plus à lui donner.
-const OBJECTIVE_RELEVANT_STATS: Record<Objective, StatKey[]> = {
+// leur budget de rétention dans `filterSlot`, et à choisir quelles stats
+// obtiennent leur propre tranche de rétention dans `buildBuckets`
+// (`retentionKeys`). « Efficience » n'en a pas : c'est déjà la lentille par
+// défaut du pré-filtrage (voir `relevance`), aucun biais de plus à lui
+// donner.
+// ⚠️ **Dégâts n'inclut PAS le Taux Crit.** ATQ et Dmg Crit se maximisent
+// (jamais de plafond utile), mais le Taux Crit est plafonné à 100 % en jeu —
+// le pousser au-delà n'apporte rien (voir `objectiveScore`, qui l'écrête
+// déjà dans le calcul). Pour cet objectif, TC se comporte comme une
+// CONDITION à satisfaire (l'utilisateur pose typiquement un minimum, souvent
+// 100 % ou une valeur pensée pour se compléter avec un buff en jeu), pas
+// comme une cible à maximiser plus loin — sa protection passe entièrement
+// par `minEntries` (la tranche combinée par conditions), jamais par cette
+// liste. Le mettre ici pousserait la rétention à privilégier des demi-builds
+// pour un potentiel TC qui ne sert à rien une fois le plafond atteint.
+export const OBJECTIVE_RELEVANT_STATS: Record<Objective, StatKey[]> = {
   efficience: [],
-  degats: ['atk', 'cr', 'cd'],
+  degats: ['atk', 'cd'],
   ehp: ['hp', 'def'],
   vitesse: ['spd'],
 };
@@ -202,7 +212,17 @@ export function candidateMetricTotal(
 
 // Exportés (au lieu de rester locaux) : le Worker en a besoin pour estimer
 // une progression (`explored`/`maxNodes`, etc.) sans dupliquer ces valeurs.
-export const DEFAULT_MAX_NODES = 4_000_000;
+// ⚠️ Relevé à 20 000 000 (×5) en même temps que `BUCKET_CAP` — les deux
+// doivent grandir ENSEMBLE (voir le commentaire de `BUCKET_CAP` plus bas) :
+// relever seulement `BUCKET_CAP` peut faire RECULER un résultat déjà trouvé,
+// pas seulement le laisser inchangé — mesuré directement (deck 10 Lushen,
+// `bucketCap=5000` avec ce plafond resté à 4M → 0 résultat, tronqué avant
+// d'atteindre la bonne paire ; avec ce plafond relevé à 20M → retrouvé en
+// 46 s). Chaque paire de compartiments coûte plus cher à parcourir à
+// `bucketCap` élevé (plus de candidats de chaque côté) — sans plus de budget
+// de paires, la recherche épuise son budget sur MOINS de paires de
+// compartiments explorées, pas plus.
+export const DEFAULT_MAX_NODES = 20_000_000;
 // ⚠️ Relevé de 5000 à 100 000 (×20) — demande explicite : trouver le
 // meilleur build importe plus que la vitesse, une recherche allant jusqu'à
 // ~1 minute est acceptable. Mesuré avant de relever
@@ -249,14 +269,23 @@ const PER_STAT_KEEP_OBJECTIVE = 24;
 // Combinaisons retenues par COMPARTIMENT (pas par slot) — voir l'en-tête du
 // fichier. Borne la mémoire indépendamment de `slotFilterCap` : même à un
 // pré-filtrage large, un compartiment ne grossit jamais au-delà de ça.
-// ⚠️ Calibré sur un vrai compte (voir spec/outils/optimizer.md, « Validation
-// grandeur nature ») : à 300, un compartiment très peuplé (le combo de sets
-// « évident » d'un build réel) pouvait perdre la bonne combinaison — les 6
-// runes survivaient au pré-filtrage par slot, mais leur PAIRE de moitiés,
-// noyée parmi des dizaines de milliers de rivales du même compartiment, ne
-// l'était pas. Mesuré : 300 → jamais trouvé ; 3000 → trouvé en ~50 s (bien
-// plus qu'il n'en faut) ; 600 → trouvé en ~16 s. Retenu comme compromis.
-const BUCKET_CAP = 600;
+// ⚠️ Relevé une seconde fois, de 600 à 5000 (×8,3) — demande explicite après
+// le premier calibrage (voir plus bas) : « ce genre de problème est celui
+// que l'Optimizer doit pouvoir résoudre », jusqu'à 1-2 minutes de recherche
+// jugées acceptables. Mesuré, pas deviné (deck 10 Lushen, un vrai compte de
+// 3163 runes, recherche restreinte à ATQ/Taux Crit/Dmg Crit) : le demi-build
+// réel avait besoin d'au moins ~2900-3000 places dans sa tranche de
+// rétention la plus favorable pour survivre — confirmé à `bucketCap=3000`
+// (24 s), `5000` retenu avec une marge raisonnable. `DEFAULT_MAX_NODES` a dû
+// être relevé DANS LA MÊME FOULÉE (voir son propre commentaire) : sans ça,
+// relever seulement ce plafond peut faire RECULER un résultat déjà trouvé.
+// Vérifié sans régression sur 4 scénarios synthétiques représentatifs de
+// l'usage courant (scripts/benchmark-search-budget.ts) : à budget de paires
+// proportionnellement relevé, aucune perte de qualité, temps toujours sous
+// ~3 s. Ancien calibrage (300 → jamais trouvé ; 3000 → ~50 s ; 600 → ~16 s,
+// retenu alors comme compromis) : voir « Validation grandeur nature » dans
+// spec/outils/optimizer.md pour l'historique complet des deux calibrages.
+const BUCKET_CAP = 5000;
 
 const ALL_STAT_KEYS: StatKey[] = ['hp', 'atk', 'def', 'spd', 'cr', 'cd', 'res', 'acc'];
 
@@ -415,7 +444,7 @@ function isDominated(a: RuneDetail, b: RuneDetail, requiredKeys: Set<string>, ma
 // gain marginal. Au-delà, on renonce à cet élagage plutôt que de ralentir.
 const DOMINANCE_MAX_POOL = 2000;
 
-function pruneDominated(list: RuneDetail[], requiredKeys: Set<string>, maxKeys: Set<StatKey>): RuneDetail[] {
+export function pruneDominated(list: RuneDetail[], requiredKeys: Set<string>, maxKeys: Set<StatKey>): RuneDetail[] {
   if (list.length > DOMINANCE_MAX_POOL) return list;
   return list.filter((a) => !list.some((b) => isDominated(a, b, requiredKeys, maxKeys)));
 }
@@ -454,7 +483,7 @@ function computeSlotMaxBounds(
   });
 }
 
-function eliminateInfeasible(
+export function eliminateInfeasible(
   bySlot: RuneDetail[][],
   minEntries: { k: StatKey; min: number }[],
   maxEntries: { k: StatKey; max: number }[],
@@ -508,7 +537,7 @@ function eliminateInfeasible(
  * valide, puisqu'un build valide satisfait `requirement.sets` par
  * construction) — ajouté une fois comme base des accumulateurs.
  * ----------------------------------------------------------------------- */
-function guaranteedSetBonus(requirement: BuildRequirement, base: BaseStats): { pct: Record<string, number>; flat: Record<string, number> } {
+export function guaranteedSetBonus(requirement: BuildRequirement, base: BaseStats): { pct: Record<string, number>; flat: Record<string, number> } {
   const pct: Record<string, number> = {};
   const flat: Record<string, number> = {};
   for (const key of requirement.sets) {
@@ -528,7 +557,7 @@ function guaranteedSetBonus(requirement: BuildRequirement, base: BaseStats): { p
   return { pct, flat };
 }
 
-function artifactFlatBonus(artifacts: ArtifactDetail[]): Record<string, number> {
+export function artifactFlatBonus(artifacts: ArtifactDetail[]): Record<string, number> {
   const flat: Record<string, number> = {};
   // Les artéfacts utilisent des codes distincts (100/101/102) : PV/ATQ/DEF plats.
   for (const a of artifacts) {
@@ -539,7 +568,7 @@ function artifactFlatBonus(artifacts: ArtifactDetail[]): Record<string, number> 
   return flat;
 }
 
-function relicPctBonus(relic?: RelicDetail): Record<string, number> {
+export function relicPctBonus(relic?: RelicDetail): Record<string, number> {
   const pct: Record<string, number> = {};
   if (!relic) return pct;
   // 100 PV% / 101 ATQ% / 102 DEF%
@@ -553,19 +582,22 @@ function relicPctBonus(relic?: RelicDetail): Record<string, number> {
  * Meet-in-the-middle : moitiés de 3 slots, compartiments EN FLUX
  * ----------------------------------------------------------------------- */
 
-interface HalfCombo {
+export interface HalfCombo {
   runes: [RuneDetail, RuneDetail, RuneDetail];
   counts: number[]; // aligné sur `distinctKeys` : nb de pièces de chaque set demandé
   jokers: number; // nb de runes Intangible dans cette moitié
-  pct: Record<string, number>; // contribution cumulée, par stat CONTRAINTE (min OU max) seulement
+  // Contribution cumulée, par stat CONTRAINTE (min OU max) OU utile à la
+  // rétention (`retentionKeys` — voir buildBuckets) — l'union des deux, pas
+  // seulement les stats contraintes.
+  pct: Record<string, number>;
   flat: Record<string, number>;
-  relevanceScore: number;
+  relevanceScore: number; // efficience agrégée des 3 runes — UN critère de tri parmi d'autres, voir buildBuckets
 }
 
-interface Bucket {
+export interface Bucket {
   counts: number[];
   jokers: number;
-  combos: HalfCombo[]; // borné à BUCKET_CAP, trié décroissant par relevanceScore
+  combos: HalfCombo[]; // fusion dédupliquée des tranches de rétention, triée par potentiel NORMALISÉ décroissant (toutes tranches confondues, pas seulement relevanceScore — voir buildBuckets)
   maxPct: Record<string, number>; // borne SÛRE (jamais sous-estimée) par stat contrainte
   maxFlat: Record<string, number>;
 }
@@ -574,63 +606,196 @@ function bucketKeyOf(counts: number[], jokers: number): string {
   return `${counts.join(',')}|${jokers}`;
 }
 
-// Insertion bornée dans un TAS BINAIRE MIN (par relevanceScore) : ce qui ne
-// rentre plus est jeté IMMÉDIATEMENT, jamais accumulé puis élagué après
-// coup — c'est ce qui borne la mémoire, pas seulement le temps. Repli rapide
-// (O(1)) pour l'écrasante majorité des combinaisons générées une fois un
-// compartiment plein : elles ne battent pas la pire déjà gardée (la racine du
-// tas), donc un seul test suffit à les écarter.
+// Une entrée de tas : l'élément gardé, et le SCORE selon lequel CE tas
+// précis trie — un même demi-build peut être poussé dans plusieurs tas avec
+// des scores différents (voir « Rétention par tranches » plus bas), sans
+// dupliquer ni muter l'objet `HalfCombo` lui-même.
+interface ScoredEntry<T> {
+  item: T;
+  score: number;
+}
+
+// Insertion bornée dans un TAS BINAIRE MIN (par `score`) : ce qui ne rentre
+// plus est jeté IMMÉDIATEMENT, jamais accumulé puis élagué après coup —
+// c'est ce qui borne la mémoire, pas seulement le temps. Repli rapide (O(1))
+// pour l'écrasante majorité des entrées une fois le tas plein : elles ne
+// battent pas la pire déjà gardée (la racine du tas), donc un seul test
+// suffit à les écarter.
 //
 // ⚠️ Remplace une ancienne version à liste triée (`splice`), en O(taille) par
-// insertion — mesuré comme un vrai goulot à `bucketCap` élevé (voir
+// insertion — mesuré comme un vrai goulot à capacité élevée (voir
 // scripts/benchmark-bucket-retention.ts) : un tas à capacité fixe ramène
-// chaque insertion/éviction à O(log cap), la mémoire ne dépendant toujours
-// que du plafond. ⚠️ `heap` n'est PAS trié pendant la construction — voir
-// `sortDescending` ci-dessous, appelée UNE SEULE FOIS par compartiment une
-// fois le flux terminé, pour retrouver le même contrat qu'avant (`combos`
-// trié décroissant) sans payer le tri à chaque insertion.
-function heapPush(heap: HalfCombo[], combo: HalfCombo, cap: number): void {
+// chaque insertion/éviction à O(log cap). ⚠️ Le tas n'est PAS trié pendant la
+// construction — le tri final se fait une seule fois, après coup (voir
+// `buildBuckets`), pour ne jamais payer un tri à chaque insertion.
+function heapPush<T>(heap: ScoredEntry<T>[], entry: ScoredEntry<T>, cap: number): void {
   if (heap.length < cap) {
-    heap.push(combo);
+    heap.push(entry);
     let i = heap.length - 1;
     while (i > 0) {
       const parent = (i - 1) >> 1;
-      if (heap[parent].relevanceScore <= heap[i].relevanceScore) break;
+      if (heap[parent].score <= heap[i].score) break;
       [heap[parent], heap[i]] = [heap[i], heap[parent]];
       i = parent;
     }
     return;
   }
-  if (heap.length === 0 || combo.relevanceScore <= heap[0].relevanceScore) return;
-  heap[0] = combo;
+  if (heap.length === 0 || entry.score <= heap[0].score) return;
+  heap[0] = entry;
   let i = 0;
   for (;;) {
     const l = 2 * i + 1;
     const r = 2 * i + 2;
     let smallest = i;
-    if (l < heap.length && heap[l].relevanceScore < heap[smallest].relevanceScore) smallest = l;
-    if (r < heap.length && heap[r].relevanceScore < heap[smallest].relevanceScore) smallest = r;
+    if (l < heap.length && heap[l].score < heap[smallest].score) smallest = l;
+    if (r < heap.length && heap[r].score < heap[smallest].score) smallest = r;
     if (smallest === i) break;
     [heap[smallest], heap[i]] = [heap[i], heap[smallest]];
     i = smallest;
   }
 }
 
+/* --------------------------------------------------------------------------
+ * Élagage SÛR n°3 — FAISABILITÉ DE SET, précoce (pendant la génération d'une
+ * moitié, pas seulement à l'appariement des compartiments — voir
+ * `satisfiesSets` plus haut, qui ne voit que des comptes déjà agrégés).
+ * ----------------------------------------------------------------------- */
+
+// Pour chaque set demandé, le nombre de slots (parmi `slotIdxs`) dont le pool
+// contient AU MOINS une rune de ce set — borne SÛRE (jamais sous-estimée) du
+// nombre de pièces que ces emplacements peuvent au mieux apporter : un slot
+// ne fournit jamais plus d'UNE rune, donc « en avoir au moins une » suffit à
+// compter 1, quel que soit le nombre réel de candidats de ce set dans ce
+// slot. Même principe que `computeSlotMaxBounds` pour les stats, appliqué
+// aux comptes de sets.
+export function maxSetCountsForSlots(filtered: RuneDetail[][], slotIdxs: readonly number[], distinctKeys: string[]): number[] {
+  return distinctKeys.map((key) => slotIdxs.reduce((n, i) => n + (filtered[i].some((r) => r.set === key) ? 1 : 0), 0));
+}
+
+// ⚠️ Crédit de joker VOLONTAIREMENT généreux (0 ou 1, jamais plus précis) :
+// pas de tentative de savoir SI ce joker aiderait réellement ce set précis
+// (ça dépend de combien d'AUTRES sets sont incomplets par ailleurs — voir la
+// règle du jeu dans effects.ts, `activeSets`) — seulement s'il existe AU
+// MOINS une rune Intangible n'importe où dans le pool filtré. Accordé À
+// CHAQUE set indépendamment dans le test ci-dessous, ce qui est plus généreux
+// que la réalité (un seul joker ne peut jamais aider deux sets à la fois) —
+// mais c'est précisément ce qui rend l'élagage SÛR : plus généreux que la
+// réalité ne peut jamais écarter à tort une combinaison réellement valide,
+// seulement échouer à couper une branche qui, elle, s'avérera infaisable un
+// peu plus tard (à la vérification réelle sur les runes, voir `activeSets`
+// dans searchBuildsSteps). Même principe de sûreté que `satisfiesSets`.
+export function anyJokerAvailable(filtered: RuneDetail[][]): boolean {
+  return filtered.some((slot) => slot.some((r) => r.set === 'intangible'));
+}
+
 // Construit les compartiments d'une moitié EN FLUX : chaque combinaison
 // (r0,r1,r2) est évaluée une fois, jamais matérialisée dans un tableau
 // intermédiaire de `cap³` éléments. Voir l'en-tête du fichier.
-function buildBuckets(
+//
+// ⚠️ `otherHalfMaxSets`/`jokerCredit`/`requiredPieces` : élagage précoce SÛR,
+// avant même de choisir r1/r2 — si, même dans le MEILLEUR cas (le reste de
+// CETTE moitié au mieux + le meilleur de L'AUTRE moitié + le joker généreux),
+// un set demandé reste hors de portée, la branche est coupée immédiatement.
+// Ne retire jamais une combinaison réellement valide (voir les commentaires
+// des deux fonctions ci-dessus) — seulement du travail qui n'aurait de toute
+// façon jamais abouti.
+// ⚠️ RÉTENTION PAR TRANCHES, pas un score scalaire unique. `relevanceScore`
+// (l'efficience agrégée des 3 runes) ne reflète PAS ce que la recherche
+// demande réellement : un demi-build fortement spécialisé sur les stats
+// recherchées, au prix des autres, peut avoir une efficience GLOBALE basse
+// et se faire évincer de `bucketCap` par des demi-builds « équilibrés » mais
+// hors sujet — confirmé sur un vrai compte (Lushen, deck 10 : le demi-build
+// réel classé 11 854ᵉ sur 342 654 dans son compartiment, hors de portée même
+// à `bucketCap` très relevé). Chaque compartiment maintient donc PLUSIEURS
+// tas bornés en parallèle — un générique (par `relevanceScore`, le
+// comportement historique) et un par stat de `retentionKeys` (par sa propre
+// contribution) — puis les fusionne à la fin. Même principe que
+// `PER_STAT_KEEP`/`PER_STAT_KEEP_OBJECTIVE` dans `filterSlot` (réserver une
+// tranche par critère plutôt qu'un seul tri global), appliqué ici aux
+// demi-builds plutôt qu'aux runes individuelles.
+function retentionScore(pct: Record<string, number>, flat: Record<string, number>, key: StatKey): number {
+  // Somme pct+flat comme repère de classement, PAS une valeur totale exacte
+  // (mélanger les deux échelles serait faux pour un total réel — voir
+  // `totalOf` — mais suffit à trier des demi-builds entre eux sur cette même
+  // stat). Même heuristique que `relevance()` dans `filterSlot`.
+  return (pct[key] ?? 0) + (flat[key] ?? 0);
+}
+
+// ⚠️ Score COMBINÉ, normalisé par le seuil de chaque minimum — pas la simple
+// somme des tranches par stat individuelle. Un demi-build qui satisfait
+// PLUSIEURS minimums À LA FOIS sans être le meilleur sur AUCUN pris isolément
+// (cas réel : Lushen deck 10, ATQ+Taux Crit+Dmg Crit demandés ensemble)
+// n'aurait sa place dans AUCUNE tranche par stat seule — cette tranche
+// supplémentaire, triée par la somme des contributions rapportées à leur
+// propre seuil, le protège. Même heuristique que `relevance()` dans
+// `filterSlot`, appliquée ici aux demi-builds.
+function combinedRetentionScore(pct: Record<string, number>, flat: Record<string, number>, minEntries: { k: StatKey; min: number }[]): number {
+  let score = 0;
+  for (const { k, min } of minEntries) {
+    if (min <= 0) continue;
+    score += ((pct[k] ?? 0) + (flat[k] ?? 0)) / min;
+  }
+  return score;
+}
+
+export function buildBuckets(
   slotIdxs: readonly [number, number, number],
   filtered: RuneDetail[][],
   distinctKeys: string[],
   constrainedKeys: StatKey[],
-  bucketCap: number
+  retentionKeys: StatKey[],
+  minEntries: { k: StatKey; min: number }[],
+  bucketCap: number,
+  otherHalfMaxSets: number[],
+  jokerCredit: number,
+  requiredPieces: number[]
 ): Bucket[] {
   const [i0, i1, i2] = slotIdxs;
   const buckets = new Map<string, Bucket>();
+  // Tas de construction, PAS le contrat final (`Bucket.combos`) : une entrée
+  // par compartiment, [tranche générique, tranche combinée éventuelle, une
+  // tranche par retentionKey…].
+  const slices = new Map<string, ScoredEntry<HalfCombo>[][]>();
+  const trackedKeys = Array.from(new Set<StatKey>([...constrainedKeys, ...retentionKeys]));
+  const hasCombined = minEntries.length > 0;
+
+  // Budget partagé À PARTS ÉGALES entre TOUTES les tranches, générique
+  // comprise — pas la moitié réservée d'office à la générique. Rien ne
+  // justifie de la privilégier : mesuré sur un vrai compte (Lushen, deck 10),
+  // elle n'était PAS la tranche la plus prédictive pour ni l'une ni l'autre
+  // moitié (la combinée l'était pour la première, la tranche ATQ seule pour
+  // la seconde) — lui réserver la moitié du budget revenait à sous-doter
+  // systématiquement les tranches qui comptaient réellement. Au moins 1
+  // place chacune, jamais 0, même avec beaucoup de stats à la fois. Sans
+  // retentionKeys ni minEntries (aucun min posé, objectif « Efficience »),
+  // tout le budget reste générique — comportement historique inchangé,
+  // puisqu'elle est alors la SEULE tranche.
+  const sliceCountForCap = 1 + (hasCombined ? 1 : 0) + retentionKeys.length;
+  const genericCap = Math.max(1, Math.floor(bucketCap / sliceCountForCap));
+  const perOtherSliceCap = genericCap;
+
+  // Meilleur cas atteignable par CHAQUE slot de cette moitié, pour chaque set
+  // demandé — calculé une fois, réutilisé à chaque étape du triple flux.
+  const slotHasKey = [i0, i1, i2].map((i) => distinctKeys.map((key) => filtered[i].some((r) => r.set === key)));
+
+  // Vrai si, comptes réels `have` (déjà choisis) + le meilleur restant de
+  // cette moitié (`remainingSlotIdxs`, indices dans `slotHasKey`) + l'autre
+  // moitié + le joker, chaque set demandé reste atteignable.
+  function stillFeasible(have: number[], remainingSlotIdxs: number[]): boolean {
+    for (let k = 0; k < distinctKeys.length; k++) {
+      let remain = 0;
+      for (const si of remainingSlotIdxs) if (slotHasKey[si][k]) remain++;
+      if (have[k] + remain + otherHalfMaxSets[k] + jokerCredit < requiredPieces[k]) return false;
+    }
+    return true;
+  }
 
   for (const r0 of filtered[i0]) {
+    const haveR0 = distinctKeys.map((key) => (r0.set === key ? 1 : 0));
+    if (distinctKeys.length > 0 && !stillFeasible(haveR0, [1, 2])) continue;
     for (const r1 of filtered[i1]) {
+      const haveR01 = distinctKeys.map((key, k) => haveR0[k] + (r1.set === key ? 1 : 0));
+      if (distinctKeys.length > 0 && !stillFeasible(haveR01, [2])) continue;
       for (const r2 of filtered[i2]) {
         const runes: [RuneDetail, RuneDetail, RuneDetail] = [r0, r1, r2];
         const counts = distinctKeys.map((key) => runes.filter((r) => r.set === key).length);
@@ -638,7 +803,7 @@ function buildBuckets(
         const pct: Record<string, number> = {};
         const flat: Record<string, number> = {};
         let score = (runeEfficiency(r0) + runeEfficiency(r1) + runeEfficiency(r2)) / 1000;
-        for (const k of constrainedKeys) {
+        for (const k of trackedKeys) {
           let p = 0;
           let f = 0;
           for (const r of runes) {
@@ -652,9 +817,14 @@ function buildBuckets(
 
         const key = bucketKeyOf(counts, jokers);
         let b = buckets.get(key);
+        let bucketSlices = slices.get(key);
         if (!b) {
           b = { counts, jokers, combos: [], maxPct: {}, maxFlat: {} };
           buckets.set(key, b);
+          // [générique, combinée éventuelle, une par retentionKey…] — même
+          // ordre que la boucle d'insertion ci-dessous.
+          bucketSlices = [[], ...(hasCombined ? [[]] : []), ...retentionKeys.map(() => [])];
+          slices.set(key, bucketSlices);
         }
         // ⚠️ Les bornes s'étendent avec CHAQUE combinaison vue, y compris
         // celles qu'on ne retient pas au final : une combinaison écartée
@@ -666,16 +836,117 @@ function buildBuckets(
           if (pct[k] > (b.maxPct[k] ?? 0)) b.maxPct[k] = pct[k];
           if (flat[k] > (b.maxFlat[k] ?? 0)) b.maxFlat[k] = flat[k];
         }
-        heapPush(b.combos, { runes, counts, jokers, pct, flat, relevanceScore: score }, bucketCap);
+        const combo: HalfCombo = { runes, counts, jokers, pct, flat, relevanceScore: score };
+        heapPush(bucketSlices![0], { item: combo, score }, genericCap);
+        const retentionOffset = hasCombined ? 2 : 1;
+        if (hasCombined) {
+          heapPush(bucketSlices![1], { item: combo, score: combinedRetentionScore(pct, flat, minEntries) }, perOtherSliceCap);
+        }
+        for (let i = 0; i < retentionKeys.length; i++) {
+          heapPush(bucketSlices![retentionOffset + i], { item: combo, score: retentionScore(pct, flat, retentionKeys[i]) }, perOtherSliceCap);
+        }
       }
     }
   }
-  // Un seul tri par compartiment, une fois le flux terminé : `combos` doit
-  // rester trié DÉCROISSANT (contrat inchangé, voir Bucket ci-dessus et
-  // l'exploration par comboA/comboB dans searchBuildsSteps), mais le tas
-  // lui-même ne l'est jamais pendant la construction.
-  for (const b of buckets.values()) b.combos.sort((x, y) => y.relevanceScore - x.relevanceScore);
-  return Array.from(buckets.values());
+  // Fusion des tranches, une fois le flux terminé : `combos` doit rester une
+  // liste DÉDUPLIQUÉE (un même demi-build peut survivre dans PLUSIEURS
+  // tranches — générique ET une ou plusieurs stats — sans qu'on veuille le
+  // compter deux fois). La déduplication se fait par IDENTITÉ d'objet : un
+  // même `combo` est réutilisé (jamais copié) d'une tranche à l'autre, seul
+  // le `score` de l'entrée de tas diffère.
+  //
+  // ⚠️ Au passage, le MEILLEUR score de CHAQUE tranche est retenu par
+  // compartiment (`bestBySlice`), pour l'ordonnancement ci-dessous — les tas
+  // sont des tas MIN (la racine `slice[0]` est la PIRE entrée gardée, pas la
+  // meilleure), donc il faut bien parcourir chaque tranche pour trouver son
+  // maximum, pas juste lire son premier élément.
+  const out = Array.from(buckets.values());
+  const sliceCount = 1 + (hasCombined ? 1 : 0) + retentionKeys.length;
+  const bucketBestBySlice = new Map<string, number[]>();
+  const bucketSeen = new Map<string, HalfCombo[]>();
+  const globalBestBySlice = new Array(sliceCount).fill(-Infinity);
+  for (const b of out) {
+    const key = bucketKeyOf(b.counts, b.jokers);
+    const bucketSlices = slices.get(key)!;
+    const seen = new Set<HalfCombo>();
+    const bestBySlice = new Array(sliceCount).fill(-Infinity);
+    for (let s = 0; s < bucketSlices.length; s++) {
+      for (const entry of bucketSlices[s]) {
+        seen.add(entry.item);
+        if (entry.score > bestBySlice[s]) bestBySlice[s] = entry.score;
+      }
+      if (bestBySlice[s] > globalBestBySlice[s]) globalBestBySlice[s] = bestBySlice[s];
+    }
+    bucketBestBySlice.set(key, bestBySlice);
+    bucketSeen.set(key, Array.from(seen));
+  }
+  // ⚠️ Deuxième passe, UNE FOIS `globalBestBySlice` COMPLET (le maximum de
+  // chaque tranche, tous compartiments confondus) : trie maintenant CHAQUE
+  // demi-build DANS son compartiment par le même principe que l'ordre des
+  // compartiments plus bas — son propre meilleur score NORMALISÉ, toutes
+  // tranches confondues, pas seulement `relevanceScore`. Sans cette seconde
+  // passe, `combos` restait trié par la seule efficience générique : un
+  // demi-build qui n'a survécu à `bucketCap` que grâce à la tranche combinée
+  // ou une tranche par stat (pas grâce à son efficience — précisément le cas
+  // d'un build spécialisé sur des stats non meulables, voir « Suite —
+  // ordonnancement conscient des tranches » dans spec/outils/optimizer.md)
+  // se retrouvait trié vers la FIN de la liste — la boucle d'appariement
+  // (`for comboA of bA.combos` dans searchBuildsSteps) ne l'atteignait donc
+  // qu'après des milliers de demi-builds génériquement bons mais hors sujet,
+  // avec un vrai risque de ne jamais l'atteindre si la recherche
+  // s'interrompait avant la fin — confirmé en usage réel (recherche « Dégâts »
+  // sur un vrai compte : les bons résultats n'apparaissaient qu'à la toute
+  // fin de plusieurs millions de paires explorées).
+  for (const b of out) {
+    const key = bucketKeyOf(b.counts, b.jokers);
+    const combos = bucketSeen.get(key)!;
+    const scored = combos.map((combo) => {
+      const sliceScores: number[] = [combo.relevanceScore];
+      if (hasCombined) sliceScores.push(combinedRetentionScore(combo.pct, combo.flat, minEntries));
+      for (const k of retentionKeys) sliceScores.push(retentionScore(combo.pct, combo.flat, k));
+      let potential = -Infinity;
+      for (let s = 0; s < sliceCount; s++) {
+        const g = globalBestBySlice[s];
+        const normalized = g > 0 ? sliceScores[s] / g : sliceScores[s];
+        if (normalized > potential) potential = normalized;
+      }
+      return { combo, potential };
+    });
+    scored.sort((x, y) => y.potential - x.potential);
+    b.combos = scored.map((s) => s.combo);
+  }
+  // ⚠️ Compartiments triés par POTENTIEL décroissant — le meilleur score
+  // NORMALISÉ (rapporté au maximum atteint par N'IMPORTE QUEL compartiment
+  // sur CETTE MÊME tranche) parmi TOUTES les tranches, pas seulement la
+  // générique. Les tranches ne sont PAS sur la même échelle (`relevanceScore`
+  // ~0-1, le score combiné en unités de seuil, un score par stat en valeur
+  // brute pct+flat, potentiellement des centaines pour une stat plate) — les
+  // comparer directement mélangerait des grandeurs incomparables. Normaliser
+  // chacune par son propre maximum GLOBAL les ramène à un repère commun
+  // avant de prendre le meilleur. Remplace l'ancien tri par seul
+  // `relevanceScore` : un compartiment plein de demi-builds structurellement
+  // désavantagés en efficience générique (le biais meulable/non-meulable —
+  // une stat plafonnée type Taux Crit/Dmg Crit n'est jamais poussée vers son
+  // max via une meule, contrairement à PV/ATQ/DEF) mais forts sur une stat
+  // protégée par une tranche dédiée n'est plus exploré en dernier par
+  // défaut, dès que `maxCollected`/`maxNodes` interrompt la recherche avant
+  // de tout explorer (le cas courant, voir « Suite — augmenter le budget de
+  // recherche » dans spec/outils/optimizer.md).
+  out.sort((x, y) => {
+    const bx = bucketBestBySlice.get(bucketKeyOf(x.counts, x.jokers))!;
+    const by = bucketBestBySlice.get(bucketKeyOf(y.counts, y.jokers))!;
+    let potX = -Infinity;
+    let potY = -Infinity;
+    for (let s = 0; s < sliceCount; s++) {
+      const g = globalBestBySlice[s];
+      const nx = g > 0 ? bx[s] / g : bx[s];
+      const ny = g > 0 ? by[s] / g : by[s];
+      if (nx > potX) potX = nx;
+      if (ny > potY) potY = ny;
+    }
+    return potY - potX;
+  });
+  return out;
 }
 
 // ⚠️ Vérifie si deux moitiés PEUVENT ensemble satisfaire le combo de sets, à
@@ -712,7 +983,7 @@ function satisfiesSets(
 // encore le pré-filtrage heuristique. Factorisé pour être réutilisé tel quel
 // par `searchBuildsSteps` (qui y ajoute ensuite dominance + faisabilité,
 // voir plus bas) et par `estimateSearchSpace`.
-function mainStatFilteredBySlot(pool: RuneDetail[], requirement: BuildRequirement): RuneDetail[][] {
+export function mainStatFilteredBySlot(pool: RuneDetail[], requirement: BuildRequirement): RuneDetail[][] {
   const bySlot: RuneDetail[][] = [[], [], [], [], [], []];
   for (const r of pool) {
     if (r.slot < 1 || r.slot > 6) continue;
@@ -804,6 +1075,18 @@ export function* searchBuildsSteps(params: SearchParams): Generator<SearchProgre
     .map((k) => ({ k, max: requirement.maxStats?.[k] }))
     .filter((e): e is { k: StatKey; max: number } => e.max != null && e.max > 0);
   const constrainedKeys = Array.from(new Set([...minEntries.map((e) => e.k), ...maxEntries.map((e) => e.k)]));
+  // ⚠️ Dimensions protégées à la RÉTENTION par compartiment (voir
+  // buildBuckets) : les minimums demandés, PLUS les stats propres à
+  // l'objectif choisi. JAMAIS les maximums — sur une stat plafonnée, « plus »
+  // n'est pas sûrement « meilleur » pour un tri après coup (le même piège
+  // que la dominance directionnelle abandonnée cette session, voir
+  // spec/outils/optimizer.md) : un utilisateur qui pose un maximum peut
+  // vouloir ensuite trier PAR cette stat pour voir les valeurs les plus
+  // proches du plafond, pas les plus basses. Se limiter aux minimums garde
+  // la protection strictement sûre.
+  const retentionKeys = Array.from(
+    new Set<StatKey>([...minEntries.map((e) => e.k), ...(params.objective ? OBJECTIVE_RELEVANT_STATS[params.objective] : [])])
+  );
 
   const distinctKeys = Array.from(new Set(requirement.sets));
   const requiredKeys = new Set(requirement.sets);
@@ -840,9 +1123,21 @@ export function* searchBuildsSteps(params: SearchParams): Generator<SearchProgre
   }
   const overBudget = () => Date.now() - startedAt > maxMs;
 
+  // ⚠️ Nombre RÉEL de pièces exigées par set demandé (pas simplement
+  // `setPieces(key)` : `requirement.sets` peut répéter une clé — ex.
+  // `['fight','fight']` = 2× Fight = 4 pièces au total, pas 2).
+  const requiredPieces = distinctKeys.map((key) => setPieces(key) * requirement.sets.filter((s) => s === key).length);
+  const jokerCredit = anyJokerAvailable(filtered) ? 1 : 0;
+  const maxSetsForA = maxSetCountsForSlots(filtered, [3, 4, 5], distinctKeys);
+  const maxSetsForB = maxSetCountsForSlots(filtered, [0, 1, 2], distinctKeys);
+
   const bucketCap = params.bucketCap ?? BUCKET_CAP;
-  const bucketsA = buildBuckets([0, 1, 2], filtered, distinctKeys, constrainedKeys, bucketCap);
-  const bucketsB = buildBuckets([3, 4, 5], filtered, distinctKeys, constrainedKeys, bucketCap);
+  const bucketsA = buildBuckets(
+    [0, 1, 2], filtered, distinctKeys, constrainedKeys, retentionKeys, minEntries, bucketCap, maxSetsForA, jokerCredit, requiredPieces
+  );
+  const bucketsB = buildBuckets(
+    [3, 4, 5], filtered, distinctKeys, constrainedKeys, retentionKeys, minEntries, bucketCap, maxSetsForB, jokerCredit, requiredPieces
+  );
 
   // Borne optimiste (sûre) pour les MINIMUMS, à partir des bornes de deux
   // compartiments — même principe que dans l'ancien moteur slot-par-slot,

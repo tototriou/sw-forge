@@ -472,6 +472,57 @@ Lushen posée — ATQ% en 2, Dmg Crit en 4, ATQ% en 6) :
 **Retenu : `BUCKET_CAP = 600`** — le plus bas des trois qui retrouve le
 runage exact, pour un temps de recherche qui reste raisonnable.
 
+### Suite — bucketCap paramétrable et tas binaire (mesure de suivi)
+
+`SearchParams.bucketCap` (surcharge optionnelle de `BUCKET_CAP`, défaut
+inchangé) a été ajouté **uniquement pour la mesure** — jamais exposé dans
+l'UI — afin de rejouer le moteur réel, déjà vérifié, à différents plafonds
+sans reconstruire une seconde implémentation qui risquerait de diverger.
+[scripts/benchmark-bucket-retention.ts](scripts/benchmark-bucket-retention.ts)
+(`npm run benchmark:bucket-retention`) fait varier `bucketCap` sur des pools
+synthétiques de 80 runes/slot (la taille réelle après le preset « Moyen »,
+défaut de l'app), à budget de recherche identique par ailleurs.
+
+⚠️ **Résultat inattendu** : sous les plafonds de production D'ALORS
+(`maxCollected` = 5000, `maxNodes` = 400 000 — depuis relevés à 100 000 /
+4 000 000, voir plus bas « Suite — augmenter le budget de recherche »), le
+meilleur candidat trouvé est **rigoureusement identique**
+quel que soit `bucketCap` testé (100 à 6000), sur les 4 profils mesurés —
+`maxCollected` (5000 candidats valides) est systématiquement atteint **avant**
+qu'un compartiment n'approche même le plus petit plafond testé (100). Le seul
+effet observé de relever `bucketCap` est un ralentissement (jusqu'à ~5-6× plus
+lent à 6000 qu'à 100, pour un résultat identique). À budget de recherche
+volontairement DESSERRÉ (pour isoler `bucketCap` seul), relever le plafond
+au-delà de 100-300 fait même parfois légèrement **reculer** le meilleur
+trouvé — parce que des compartiments plus gros consomment le budget de PAIRES
+explorées plus vite, au prix d'explorer MOINS de compartiments différents
+pour le même budget, alors que **l'ordre d'exploration des compartiments
+reste arbitraire** (limite déjà connue, voir plus bas).
+⚠️ **Ne pas sur-interpréter** : mesuré à `slotFilterCap = 80` (preset
+« Moyen »), pas dans les conditions exactes de la « Validation grandeur
+nature » ci-dessus (un vrai gros compte, où c'était `slotFilterCap` qui posait
+initialement problème, pas `BUCKET_CAP`) — cette mesure ne remet donc pas en
+cause `BUCKET_CAP = 600` en l'état, elle indique seulement qu'à cette échelle,
+la rétention par compartiment n'est plus le facteur limitant observé — ce
+n'est pas une preuve que ça resterait vrai sur un compte exceptionnellement
+gros ou un profil de recherche non testé ici.
+
+Cette même mesure a aussi révélé un vrai goulot de PERFORMANCE (indépendant de
+la question de rétention) : la construction des compartiments à `bucketCap`
+élevé (l'ancienne insertion triée, `splice`, en O(taille) par insertion) a
+pris **~80 s** à `bucketCap = 50 000`, bien avant même que la recherche ne
+commence — `maxMs` n'étant vérifié que dans la boucle d'appariement, jamais
+pendant la construction des compartiments. **Corrigé** : les compartiments
+sont maintenant construits via un **tas binaire à capacité fixe** (`heapPush`
+dans [runeBuildOptim.ts](src/lib/runeBuildOptim.ts)), en O(log `bucketCap`)
+par insertion/éviction au lieu de O(taille) — un seul tri final par
+compartiment restitue le même contrat qu'avant (`combos` trié décroissant).
+Même scénario, après correctif : **~4 s** à `bucketCap = 50 000`, contre
+~80 s avant. `BUCKET_CAP = 600` (le défaut réel) n'était pas dans la zone
+pathologique, donc ce correctif n'a **aucun** effet observable en usage
+normal aujourd'hui — mais il retire un vrai risque si `bucketCap` devait un
+jour être relevé.
+
 ### Conclusion générale
 
 - Le choix de l'algorithme (meet-in-the-middle) était déjà le bon —
@@ -572,13 +623,19 @@ plus haut.
   donc toujours le même pool ; l'estimation ne peut pas mentir par
   divergence avec ce que la recherche fera réellement.
 - **Compartiments construits EN FLUX, bornés en mémoire** (`BUCKET_CAP`,
-  600) : chaque combinaison d'une moitié est évaluée puis, selon son mérite,
-  retenue ou **immédiatement jetée** — jamais de tableau intermédiaire de
-  `cap³` éléments. C'est ce qui a remplacé un risque de plantage mémoire par
-  un coût borné et prévisible (voir « Validation grandeur nature »). Les
-  bornes d'élagage (`maxPct`/`maxFlat` par compartiment) s'étendent à partir
-  de **toute** combinaison rencontrée, même celles finalement jetées — rester
-  large ici ne coûte rien et ne peut jamais écarter une paire à tort.
+  600, surchargeable via `SearchParams.bucketCap` — mesure uniquement, jamais
+  exposé dans l'UI) : chaque combinaison d'une moitié est évaluée puis, selon
+  son mérite, retenue ou **immédiatement jetée** — jamais de tableau
+  intermédiaire de `cap³` éléments. C'est ce qui a remplacé un risque de
+  plantage mémoire par un coût borné et prévisible (voir « Validation
+  grandeur nature »). Les bornes d'élagage (`maxPct`/`maxFlat` par
+  compartiment) s'étendent à partir de **toute** combinaison rencontrée, même
+  celles finalement jetées — rester large ici ne coûte rien et ne peut jamais
+  écarter une paire à tort. ⚠️ **Rétention via un tas binaire** (`heapPush`),
+  pas une liste triée par insertion (`splice`, O(taille) par insertion — un
+  vrai coût mesuré à `bucketCap` élevé, voir « Suite — bucketCap paramétrable
+  et tas binaire ») : O(log `bucketCap`) par insertion/éviction, un seul tri
+  final par compartiment pour retrouver le même ordre décroissant qu'avant.
 - **Groupage par compte de pièces sûr, jamais approximatif dans le sens
   dangereux** : le regroupement ne connaît que des comptes agrégés (pas les
   runes réelles), ce qui l'empêche de voir qu'un joker pourrait, dans la
@@ -601,8 +658,8 @@ plus haut.
   jeu.
 - **Élagage de faisabilité MIN et MAX, pas d'optimisation vers un seul
   critère** : la recherche collecte un ensemble large mais borné de
-  combinaisons valides (jusqu'à `MAX_COLLECTED`, 5000 — relevé depuis 2000
-  après mesure, voir « Vérification »), pour permettre le tri après coup sur
+  combinaisons valides (jusqu'à `MAX_COLLECTED`, 100 000 — relevé depuis 2000
+  puis 5000 après mesure, voir « Vérification »), pour permettre le tri après coup sur
   n'importe quel critère sans recalcul. Le maximum se prête à un
   élagage plus simple que le minimum : une combinaison ne peut qu'AJOUTER en
   complétant les 6 runes (jamais retirer), donc dès qu'un maximum est déjà
@@ -662,10 +719,36 @@ benchmark:optim`, hors `npm test`) calibre les constantes sur des pools
 synthétiques de 500 à 5000 runes — la troncature au plafond de collecte est
 SYSTÉMATIQUE (le budget de paires n'est jamais le facteur limitant) sur les
 4 scénarios testés, ce qui a d'abord fixé `MAX_COLLECTED = 2000`, puis motivé
-son relevé à **5000** après une plainte directe (le message de troncature
-revenait trop souvent en usage réel) : le pire cas mesuré AVEC ce nouveau
-plafond (pool 5000, scénario le plus serré) reste sous ~2,9 s — largement
-dans le filet de 10 minutes du Worker (voir « Interruption »).
+son relevé à 5000 après une plainte directe (le message de troncature
+revenait trop souvent en usage réel).
+
+⚠️ **Relevé une seconde fois, à 100 000** (`DEFAULT_MAX_NODES` à
+4 000 000, ×10) — demande explicite : trouver le meilleur build importe plus
+que la vitesse, une recherche allant jusqu'à ~1 minute est acceptable.
+Mesuré avant de relever, pas deviné —
+[scripts/benchmark-search-budget.ts](scripts/benchmark-search-budget.ts)
+(`npm run benchmark:search-budget`), `bucketCap`/`slotFilterCap` fixés aux
+valeurs de production (600 / preset testé) et seul `maxCollected` variant :
+- Au preset **« Moyen »** (`slotFilterCap = 80`, le défaut réel de l'app) :
+  relever `maxCollected` de 5000 à 100 000 a fait passer un scénario à
+  contrainte maximum de 95,2 % à 100 % du meilleur trouvé, pour un coût de
+  temps négligeable (< 1 s de plus, sur un total < 2 s sur les 4 scénarios
+  testés).
+- Au preset **« Extrême »** (`slotFilterCap = 300`) : aucun effet mesuré, ni
+  sur la qualité ni sur le temps (~22 à 55 s, quel que soit `maxCollected`) —
+  à cette échelle, c'est la **construction des compartiments**
+  (O(slotFilterCap³), un coût FIXE indépendant de `maxCollected`) qui domine
+  largement le temps total, pas le budget de collecte. `maxCollected`
+  n'y était déjà pas le facteur limitant, donc le relever n'y coûte
+  quasiment rien de plus (le temps total reste dans l'ordre de grandeur déjà
+  documenté pour ce preset — « peut prendre plusieurs dizaines de
+  secondes »).
+Le pire cas mesuré (pool 5000 synthétique, scénario le plus serré, AVEC ce
+nouveau plafond) reste largement dans le filet de 10 minutes du Worker (voir
+« Interruption ») — `maxMs`/`HARD_TIMEOUT_MS` (déjà 10 min côté UI) n'a pas
+eu besoin de changer : c'était `maxCollected`, pas le temps, qui coupait la
+recherche court.
+
 [scripts/monster-search-cap-sweep.ts](scripts/monster-search-cap-sweep.ts) et
 les autres `scripts/monster-*.ts` (généralisés — prennent monstre/deck en
 argument, plus de nom de monstre en dur) rejouent la « Validation grandeur

@@ -98,6 +98,12 @@ export interface SearchParams {
   maxCollected?: number; // plafond de candidats retenus avant arrêt (défaut MAX_COLLECTED)
   maxMs?: number; // budget de TEMPS écoulé, en ms (défaut DEFAULT_MAX_MS)
   slotFilterCap?: number; // candidats retenus par slot et par paquet (défaut MAX_PER_SLOT_MATCH/FILL)
+  // ⚠️ Surcharge de BUCKET_CAP (défaut 600) — n'existe QUE pour la mesure
+  // (scripts/benchmark-bucket-retention.ts) : élargir ce plafond pour
+  // comparer la qualité trouvée à différents niveaux, en réutilisant le
+  // moteur réel déjà vérifié plutôt qu'une réimplémentation séparée risquant
+  // de diverger. Jamais exposé dans l'UI — voir spec/outils/optimizer.md.
+  bucketCap?: number;
   // Choix fait AVANT de lancer la recherche (voir OptimizerSection.tsx) :
   // oriente le PRÉ-FILTRAGE par slot vers les stats utiles à cet objectif,
   // en plus de servir de tri par défaut des résultats. Absent = aucun biais
@@ -196,16 +202,23 @@ export function candidateMetricTotal(
 
 // Exportés (au lieu de rester locaux) : le Worker en a besoin pour estimer
 // une progression (`explored`/`maxNodes`, etc.) sans dupliquer ces valeurs.
-export const DEFAULT_MAX_NODES = 400_000;
-// ⚠️ Calibré par mesure, pas au jugé (scripts/benchmark-optim.ts, voir
-// spec/outils/optimizer.md) : sur des pools synthétiques de 500 à 5000
-// runes, la troncature au plafond de collecte est SYSTÉMATIQUE (le budget de
-// paires n'est jamais le facteur limitant). Relevé de 2000 à 5000 après
-// mesure — plainte directe : le message de troncature revenait trop souvent
-// en usage réel — le pire cas mesuré (pool 5000, scénario le plus serré,
-// AVEC ce plafond à 5000) reste sous ~2,9 s, largement dans le filet de 10
-// min du Worker. Surchargeable via SearchParams.maxCollected.
-export const MAX_COLLECTED = 5000;
+export const DEFAULT_MAX_NODES = 4_000_000;
+// ⚠️ Relevé de 5000 à 100 000 (×20) — demande explicite : trouver le
+// meilleur build importe plus que la vitesse, une recherche allant jusqu'à
+// ~1 minute est acceptable. Mesuré avant de relever
+// (scripts/benchmark-search-budget.ts, voir spec/outils/optimizer.md) plutôt
+// que deviné : au preset « Moyen » (slotFilterCap=80, le défaut réel),
+// relever `maxCollected` de 5000 à 100 000 a fait passer un scénario serré
+// (maximum posé) de 95,2 % à 100 % du meilleur trouvé, pour un coût de temps
+// négligeable (< 1 s de plus, sur un total < 2 s). Au preset « Extrême »
+// (slotFilterCap=300), aucun effet mesuré sur la qualité NI sur le temps
+// (~22-55 s, dominés par la construction des compartiments — un coût FIXE
+// de `slotFilterCap`, indépendant de `maxCollected`) : ce plafond n'y était
+// déjà pas le facteur limitant, donc le relever n'y coûte quasiment rien de
+// plus. `DEFAULT_MAX_NODES` relevé dans la même proportion (×10, plus
+// prudent) pour ne jamais redevenir, lui, le facteur limitant à la place.
+// Surchargeable via SearchParams.maxCollected.
+export const MAX_COLLECTED = 100_000;
 // Filet de sécurité indépendant de maxNodes/maxCollected : sur les scénarios
 // mesurés (500 à 5000 runes, scripts/benchmark-optim.ts), le pire cas était
 // sous ~4 s — 15 s laisse une marge large avant de considérer qu'une
@@ -561,19 +574,46 @@ function bucketKeyOf(counts: number[], jokers: number): string {
   return `${counts.join(',')}|${jokers}`;
 }
 
-// Insertion triée bornée : ce qui ne rentre plus est jeté IMMÉDIATEMENT,
-// jamais accumulé puis élagué après coup — c'est ce qui borne la mémoire,
-// pas seulement le temps. Repli rapide (O(1)) pour l'écrasante majorité des
-// combinaisons générées une fois un compartiment plein : elles ne battent pas
-// la pire déjà gardée, donc un seul test suffit à les écarter.
-function insertBounded(list: HalfCombo[], combo: HalfCombo): void {
-  if (list.length >= BUCKET_CAP && combo.relevanceScore <= list[list.length - 1].relevanceScore) {
+// Insertion bornée dans un TAS BINAIRE MIN (par relevanceScore) : ce qui ne
+// rentre plus est jeté IMMÉDIATEMENT, jamais accumulé puis élagué après
+// coup — c'est ce qui borne la mémoire, pas seulement le temps. Repli rapide
+// (O(1)) pour l'écrasante majorité des combinaisons générées une fois un
+// compartiment plein : elles ne battent pas la pire déjà gardée (la racine du
+// tas), donc un seul test suffit à les écarter.
+//
+// ⚠️ Remplace une ancienne version à liste triée (`splice`), en O(taille) par
+// insertion — mesuré comme un vrai goulot à `bucketCap` élevé (voir
+// scripts/benchmark-bucket-retention.ts) : un tas à capacité fixe ramène
+// chaque insertion/éviction à O(log cap), la mémoire ne dépendant toujours
+// que du plafond. ⚠️ `heap` n'est PAS trié pendant la construction — voir
+// `sortDescending` ci-dessous, appelée UNE SEULE FOIS par compartiment une
+// fois le flux terminé, pour retrouver le même contrat qu'avant (`combos`
+// trié décroissant) sans payer le tri à chaque insertion.
+function heapPush(heap: HalfCombo[], combo: HalfCombo, cap: number): void {
+  if (heap.length < cap) {
+    heap.push(combo);
+    let i = heap.length - 1;
+    while (i > 0) {
+      const parent = (i - 1) >> 1;
+      if (heap[parent].relevanceScore <= heap[i].relevanceScore) break;
+      [heap[parent], heap[i]] = [heap[i], heap[parent]];
+      i = parent;
+    }
     return;
   }
+  if (heap.length === 0 || combo.relevanceScore <= heap[0].relevanceScore) return;
+  heap[0] = combo;
   let i = 0;
-  while (i < list.length && list[i].relevanceScore >= combo.relevanceScore) i++;
-  list.splice(i, 0, combo);
-  if (list.length > BUCKET_CAP) list.pop();
+  for (;;) {
+    const l = 2 * i + 1;
+    const r = 2 * i + 2;
+    let smallest = i;
+    if (l < heap.length && heap[l].relevanceScore < heap[smallest].relevanceScore) smallest = l;
+    if (r < heap.length && heap[r].relevanceScore < heap[smallest].relevanceScore) smallest = r;
+    if (smallest === i) break;
+    [heap[smallest], heap[i]] = [heap[i], heap[smallest]];
+    i = smallest;
+  }
 }
 
 // Construit les compartiments d'une moitié EN FLUX : chaque combinaison
@@ -583,7 +623,8 @@ function buildBuckets(
   slotIdxs: readonly [number, number, number],
   filtered: RuneDetail[][],
   distinctKeys: string[],
-  constrainedKeys: StatKey[]
+  constrainedKeys: StatKey[],
+  bucketCap: number
 ): Bucket[] {
   const [i0, i1, i2] = slotIdxs;
   const buckets = new Map<string, Bucket>();
@@ -625,10 +666,15 @@ function buildBuckets(
           if (pct[k] > (b.maxPct[k] ?? 0)) b.maxPct[k] = pct[k];
           if (flat[k] > (b.maxFlat[k] ?? 0)) b.maxFlat[k] = flat[k];
         }
-        insertBounded(b.combos, { runes, counts, jokers, pct, flat, relevanceScore: score });
+        heapPush(b.combos, { runes, counts, jokers, pct, flat, relevanceScore: score }, bucketCap);
       }
     }
   }
+  // Un seul tri par compartiment, une fois le flux terminé : `combos` doit
+  // rester trié DÉCROISSANT (contrat inchangé, voir Bucket ci-dessus et
+  // l'exploration par comboA/comboB dans searchBuildsSteps), mais le tas
+  // lui-même ne l'est jamais pendant la construction.
+  for (const b of buckets.values()) b.combos.sort((x, y) => y.relevanceScore - x.relevanceScore);
   return Array.from(buckets.values());
 }
 
@@ -794,8 +840,9 @@ export function* searchBuildsSteps(params: SearchParams): Generator<SearchProgre
   }
   const overBudget = () => Date.now() - startedAt > maxMs;
 
-  const bucketsA = buildBuckets([0, 1, 2], filtered, distinctKeys, constrainedKeys);
-  const bucketsB = buildBuckets([3, 4, 5], filtered, distinctKeys, constrainedKeys);
+  const bucketCap = params.bucketCap ?? BUCKET_CAP;
+  const bucketsA = buildBuckets([0, 1, 2], filtered, distinctKeys, constrainedKeys, bucketCap);
+  const bucketsB = buildBuckets([3, 4, 5], filtered, distinctKeys, constrainedKeys, bucketCap);
 
   // Borne optimiste (sûre) pour les MINIMUMS, à partir des bornes de deux
   // compartiments — même principe que dans l'ancien moteur slot-par-slot,

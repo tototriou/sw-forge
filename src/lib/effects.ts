@@ -5,6 +5,13 @@ import { ArtifactKind, EffectLine, RuneDetail } from '../types';
 
 export type StatKey = 'hp' | 'atk' | 'def' | 'spd' | 'cr' | 'cd' | 'res' | 'acc';
 
+// Taux Crit, RES et Précision sont PLAFONNÉS à 100 % dans le jeu — leur effet
+// ne va jamais au-delà, même si le total brut dépasse. Dmg Crit n'a pas ce
+// plafond (200 %+ courant), ni les autres stats. Partagé entre la saisie de
+// conditions (Outils → Optimizer) et l'affichage d'une fiche de monstre
+// (MonsterGear.tsx) : même fait de jeu, une seule source de vérité.
+export const CAPPED_STATS: ReadonlySet<StatKey> = new Set(['cr', 'res', 'acc']);
+
 // Rune ANTIQUE : com2us encode sa classe au-delà de 10 (6★ antique = 16).
 // Elles ont leurs propres tables de valeurs max, donc leur efficience et leur
 // potentiel ne se comparent pas à ceux d'une rune normale.

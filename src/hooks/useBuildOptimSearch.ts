@@ -1,7 +1,18 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { SearchParams, SearchResult } from '../lib/runeBuildOptim';
+import { WorkerResponse } from '../workers/runeBuildOptim.worker';
 
 export type BuildOptimStatus = 'idle' | 'running' | 'done' | 'error';
+
+// Point de passage le plus récent reçu pendant une recherche EN COURS — sert
+// à la barre de progression (voir OptimizerSection.tsx). `null` en dehors
+// d'une recherche active : ni avant, ni une fois `result` posé (le résultat
+// final remplace la progression, pas l'inverse).
+export interface BuildOptimProgress {
+  explored: number;
+  found: number;
+  pct: number;
+}
 
 // Cycle de vie du Worker de recherche de builds.
 //
@@ -18,6 +29,7 @@ export function useBuildOptimSearch() {
   const workerRef = useRef<Worker | null>(null);
   const [status, setStatus] = useState<BuildOptimStatus>('idle');
   const [result, setResult] = useState<SearchResult | null>(null);
+  const [progress, setProgress] = useState<BuildOptimProgress | null>(null);
 
   const cancel = useCallback(() => {
     workerRef.current?.terminate();
@@ -31,12 +43,19 @@ export function useBuildOptimSearch() {
       cancel();
       setStatus('running');
       setResult(null);
+      setProgress(null);
       const worker = new Worker(new URL('../workers/runeBuildOptim.worker.ts', import.meta.url), {
         type: 'module',
       });
       workerRef.current = worker;
-      worker.onmessage = (e: MessageEvent<SearchResult>) => {
-        setResult(e.data);
+      worker.onmessage = (e: MessageEvent<WorkerResponse>) => {
+        if (e.data.type === 'progress') {
+          setProgress({ explored: e.data.explored, found: e.data.found, pct: e.data.pct });
+          return;
+        }
+        const { type: _type, ...res } = e.data;
+        setResult(res);
+        setProgress(null);
         setStatus('done');
       };
       worker.onerror = () => setStatus('error');
@@ -49,5 +68,5 @@ export function useBuildOptimSearch() {
     workerRef.current?.postMessage({ stop: true });
   }, []);
 
-  return { status, result, run, stop, cancel };
+  return { status, result, progress, run, stop, cancel };
 }

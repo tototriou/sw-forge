@@ -46,6 +46,7 @@ import { useCustomMonsters } from './hooks/useCustomMonsters';
 import { useRtaState } from './hooks/useRtaState';
 import { useSiegeState } from './hooks/useSiegeState';
 import { useSiegeRecos } from './hooks/useSiegeRecos';
+import { useOptimizerState } from './hooks/useOptimizerState';
 import { collectOwnedBuilds, collectOwnedTeams } from './lib/ownedBuilds';
 import {
   BoxMonster,
@@ -111,13 +112,15 @@ function parseHash(): {
 
 type NavItem = { key: Route; label: string; icon: typeof BookOpen; hash: string };
 
-// Onglets principaux (outils).
+// Onglets principaux (outils). Arène est à part (voir ARENE_ITEM) : elle se
+// positionne entre les dropdowns Outils et Ressources, pas dans ce groupe.
 const NAV: NavItem[] = [
   { key: 'home', label: 'Accueil', icon: Home, hash: '#/' },
   { key: 'rta', label: 'RTA', icon: Swords, hash: '#/rta' },
   { key: 'siege', label: 'Siège', icon: Castle, hash: '#/siege/defense' },
-  { key: 'arene', label: 'Arène', icon: Trophy, hash: '#/arene' },
 ];
+
+const ARENE_ITEM: NavItem = { key: 'arene', label: 'Arène', icon: Trophy, hash: '#/arene' };
 
 // Sous-sections de « Mon compte » (dropdown de nav).
 // ⚠️ Icônes DU JEU (voir GameIcon), pas des pictogrammes de bibliothèque : un
@@ -151,6 +154,7 @@ export default function App() {
   const siegeDef = useSiegeState('defense');
   const siegeOff = useSiegeState('offense');
   const recos = useSiegeRecos();
+  const optimizer = useOptimizerState();
 
   // Compte (box + inventaire runes/artéfacts). En mémoire, et **conservé sur
   // l'appareil** si l'utilisateur l'a demandé dans le menu ⚙ (voir
@@ -588,6 +592,16 @@ export default function App() {
                 })}
               </div>
 
+              {/* Arène — entre Outils et Ressources, voir la nav desktop plus bas. */}
+              <a
+                href={ARENE_ITEM.hash}
+                onClick={() => setMenuOpen(false)}
+                className={`mt-1 pt-2 border-t border-border flex items-center gap-3 rounded-lg px-3 py-3 text-[16px] font-semibold transition
+                  ${route === 'arene' ? 'bg-accent-soft text-ink' : 'text-ink-dim'}`}
+              >
+                <Trophy size={18} /> {ARENE_ITEM.label}
+              </a>
+
               {/* Ressources */}
               <div className="mt-1 pt-2 border-t border-border">
                 <div className="px-3 pb-1 label">
@@ -727,6 +741,15 @@ export default function App() {
               )}
             </div>
 
+            {/* Arène — entre Outils et Ressources. */}
+            <a
+              href={ARENE_ITEM.hash}
+              className={`flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-[13px] font-semibold transition flex-none whitespace-nowrap
+                ${route === 'arene' ? 'bg-accent-soft text-ink shadow' : 'text-ink-dim hoverable:text-ink'}`}
+            >
+              <Trophy size={14} /> {ARENE_ITEM.label}
+            </a>
+
             {/* Ressources (Bestiaire + Mécaniques) */}
             <div className="relative" ref={resourcesRef}>
               <button
@@ -846,6 +869,7 @@ export default function App() {
             runes={runes}
             loadState={data.loadState}
             hydrating={accountHydrating}
+            optimizer={optimizer}
           />
         ) : route === 'releases' ? (
           <ReleasesPage />

@@ -1,75 +1,114 @@
-import { useMemo, useState } from 'react';
-import { Search, Boxes, Loader2, Square, Settings2 } from 'lucide-react';
+import { Fragment, useMemo } from 'react';
+import { Search, Boxes, Square, Settings2, HelpCircle, RotateCcw } from 'lucide-react';
 import { RECO_STATS, RuneDetail } from '../../types';
 import { BoxItem } from '../../lib/applyAccount';
-import { computeStats, StatRow } from '../../lib/stats';
-import { RUNE_EFFECT, StatKey, runeEfficiency } from '../../lib/effects';
-import { BuildRequirement, SLOT_MAIN_OPTIONS, excludedRuneIds } from '../../lib/runeBuildOptim';
-import { useBuildOptimSearch } from '../../hooks/useBuildOptimSearch';
+import { CAPPED_STATS, RUNE_EFFECT, StatKey, runeEfficiency } from '../../lib/effects';
+import {
+  BuildRequirement,
+  SLOT_MAIN_OPTIONS,
+  excludedRuneIds,
+  estimateSearchSpace,
+  statTotal,
+  objectiveScore,
+  candidateMetricTotal,
+  OBJECTIVE_LABELS,
+} from '../../lib/runeBuildOptim';
+import { OptimizerState, OptimizerSortKey } from '../../hooks/useOptimizerState';
 import { useRuneMetric } from '../../hooks/useRuneMetric';
 import NumberField from '../NumberField';
 import MonsterAvatar from '../MonsterAvatar';
+import MonsterGear from '../MonsterGear';
 import Segmented from '../Segmented';
+import Switch from '../Switch';
 import MonsterGearPicker, { GearedMonster } from './MonsterGearPicker';
 import SetComboPicker from './SetComboPicker';
 import BuildCandidateCard from './BuildCandidateCard';
-import StatTable from './StatTable';
 
 interface Props {
   box: BoxItem[];
   runes: RuneDetail[];
+  // Remontée dans App.tsx (voir useOptimizerState) : la page est démontée à
+  // chaque changement d'onglet, comme les autres pages de l'app — sans cette
+  // remontée, toute la saisie (monstre, conditions, résultats…) serait
+  // perdue au moindre aller-retour vers un autre onglet.
+  optimizer: OptimizerState;
 }
 
-// Taux Crit, RES et Précision sont plafonnés à 100 % **dans le jeu** (leur
-// effet ne va jamais au-delà, même si la somme brute des runes dépasse). Dmg
-// Crit n'a pas ce plafond (200 %+ courant). ⚠️ Le plafond ne s'applique QU'À
-// la saisie d'une condition (minimum ou maximum) : la RECHERCHE, elle, ne
-// doit surtout pas exclure un build dont la somme brute dépasse 100 % — c'est
-// un résultat légitime, seule la demande d'un seuil > 100 % n'a pas de sens.
-const CAPPED_100 = new Set<StatKey>(['cr', 'res', 'acc']);
+// ⚠️ Le plafond de CAPPED_STATS (voir lib/effects.ts) ne s'applique QU'À la
+// saisie d'une condition (minimum ou maximum) : la RECHERCHE, elle, ne doit
+// surtout pas exclure un build dont la somme brute dépasse 100 % — c'est un
+// résultat légitime, seule la demande d'un seuil > 100 % n'a pas de sens.
+const CAPPED_100 = CAPPED_STATS;
+
+// « Stats de base exclues » n'affecte QUE ces 4 stats (PV/ATQ/DEF/VIT) : elles
+// ont une base qui grandit avec le niveau/l'éveil et que les runes viennent
+// gonfler en % ou en plat. Taux Crit/Dgts Crit/RES/Précision partent d'une
+// petite valeur d'éveil fixe et restent TOUJOURS en TOTAL, quel que soit ce
+// réglage — demandé explicitement : elles « évoluent suivant la valeur
+// d'éveil des monstres », pas selon un mode bonus/total.
+const BASE_TOGGLE_STATS = new Set<StatKey>(['hp', 'atk', 'def', 'spd']);
 
 const CONFIGURABLE_SLOTS: (2 | 4 | 6)[] = [2, 4, 6];
 
-// Objectifs composites : combinent plusieurs stats en un seul critère de tri,
-// en plus des 8 stats brutes et de l'efficience déjà proposées.
-type Objective = 'degats-assure' | 'degats-non-crit' | 'degats-moyenne' | 'ehp';
-type SortKey = StatKey | 'eff' | Objective;
-
-function statTotal(stats: StatRow[], key: StatKey): number {
-  return stats.find((s) => s.key === key)?.total ?? 0;
-}
-
-// Dégâts espérés — trois hypothèses de coup critique, au choix (aucune n'est
-// « la » bonne réponse : ça dépend du monstre et du contexte de jeu visé).
-//  - assuré  : le coup critique est garanti (TC effectif = 100 %).
-//  - non-crit: le coup critique n'arrive jamais (TC effectif = 0 %).
-//  - moyenne : espérance sur le taux de critique réellement atteint.
-function objectiveScore(stats: StatRow[], objective: Objective): number {
-  const atk = statTotal(stats, 'atk');
-  if (objective === 'degats-assure') return atk * (1 + statTotal(stats, 'cd') / 100);
-  if (objective === 'degats-non-crit') return atk;
-  if (objective === 'degats-moyenne') {
-    return atk * (1 + (statTotal(stats, 'cr') / 100) * (statTotal(stats, 'cd') / 100));
-  }
-  // PV effectifs : réutilise le facteur de défense déjà documenté dans
-  // spec/mecaniques.md (1000 / (1140 + 3,5 × DEF)), pas une formule maison.
-  const hp = statTotal(stats, 'hp');
-  const def = statTotal(stats, 'def');
-  return (hp * (1140 + 3.5 * def)) / 1000;
-}
-
-const OBJECTIVE_LABELS: { key: Objective; label: string }[] = [
-  { key: 'degats-assure', label: 'Dégâts (coup critique assuré)' },
-  { key: 'degats-non-crit', label: 'Dégâts (non critique)' },
-  { key: 'degats-moyenne', label: 'Dégâts (moyenne)' },
-  { key: 'ehp', label: 'PV effectifs' },
+// Pré-filtrage par emplacement, en PRESETS plutôt qu'un curseur libre —
+// calibré par mesure sur un vrai compte (voir spec/outils/optimizer.md,
+// « Validation grandeur nature ») : 40 est le défaut historique, 300 est la
+// valeur qui a permis de retrouver un build réel sur un très gros compte.
+const SLOT_FILTER_PRESETS: { key: 'bas' | 'moyen' | 'haut' | 'extreme'; label: string; cap: number; hint: string }[] = [
+  { key: 'bas', label: 'Bas', cap: 40, hint: 'Rapide — suffit la plupart du temps.' },
+  { key: 'moyen', label: 'Moyen', cap: 80, hint: 'Un peu plus large, coût encore modéré.' },
+  { key: 'haut', label: 'Haut', cap: 150, hint: 'Nettement plus de runes considérées — recherche plus lente.' },
+  {
+    key: 'extreme',
+    label: 'Extrême',
+    cap: 300,
+    hint: 'Valeur mesurée nécessaire pour retrouver un vrai build sur un très gros compte — peut prendre plusieurs dizaines de secondes.',
+  },
 ];
+
+function formatBig(n: number): string {
+  if (!Number.isFinite(n)) return '—';
+  if (n < 1_000_000_000) return Math.round(n).toLocaleString('fr-FR');
+  return n.toExponential(1);
+}
 
 // Outil « Optimizer » : cherche, parmi les runes du compte, la (les)
 // meilleure(s) combinaison(s) de 6 pour un monstre, un combo de sets et des
 // minimums de stats donnés. Voir spec/outils/optimizer.md.
-export default function OptimizerSection({ box, runes }: Props) {
+export default function OptimizerSection({ box, runes, optimizer }: Props) {
   const metric = useRuneMetric();
+  const {
+    selectedId,
+    setSelectedId,
+    comboSets,
+    setComboSets,
+    setPickerInvalid,
+    setSetPickerInvalid,
+    minStats,
+    setMinStats,
+    maxStats,
+    setMaxStats,
+    excludeBase,
+    setExcludeBase,
+    mainStatsBySlot,
+    setMainStatsBySlot,
+    objective,
+    setObjective,
+    exploreAll,
+    setExploreAll,
+    sortBy,
+    setSortBy,
+    showAdvanced,
+    setShowAdvanced,
+    slotFilterPreset,
+    setSlotFilterPreset,
+    stoppedManually,
+    setStoppedManually,
+    openRuneKey,
+    setOpenRuneKey,
+    search,
+  } = optimizer;
+  const { status, result, progress, run, stop } = search;
 
   // TOUS les monstres 6★ de la box importée (avec ou sans runes actuellement
   // équipées — voir « Mon compte » → Monstres), dédupliqués par monstre : on
@@ -87,26 +126,12 @@ export default function OptimizerSection({ box, runes }: Props) {
     return Array.from(best.values()).map((item) => ({ monster: item.monster, gear: item.gear! }));
   }, [box]);
 
-  const [selectedId, setSelectedId] = useState<string | null>(null);
   const selected = gearedMonsters.find((g) => String(g.monster.id) === selectedId) ?? null;
 
-  const [comboSets, setComboSets] = useState<string[]>([]);
-  // ⚠️ Stocké en TOTAL, toujours — c'est ce qu'attend le moteur de recherche
-  // (comme RecoSlot.stats). Le mode « Bonus » n'est qu'une LECTURE dérivée
-  // (valeur − base du monstre choisi) : le champ affiché change avec le mode
-  // ou le monstre, mais la contrainte réellement posée ne bouge jamais sous
-  // le pied de l'utilisateur.
-  const [minStats, setMinStats] = useState<Partial<Record<StatKey, number>>>({});
-  const [maxStats, setMaxStats] = useState<Partial<Record<StatKey, number>>>({});
-  const [statMode, setStatMode] = useState<'bonus' | 'total'>('total');
   // Statistiques principales autorisées sur les slots 2/4/6 — vide = libre.
   // Voir spec/outils/optimizer.md : pour un Lushen, ATQ% en 2, Dmg Crit en 4,
   // ATQ% en 6 — sans cette contrainte, ces slots partent dans n'importe quel
   // sens et noient le pré-filtrage sous des runes hors sujet.
-  const [mainStatsBySlot, setMainStatsBySlot] = useState<Partial<Record<2 | 4 | 6, number[]>>>({});
-  const [exploreAll, setExploreAll] = useState(false);
-  const [sortBy, setSortBy] = useState<SortKey>('eff');
-
   function toggleMainStat(slot: 2 | 4 | 6, code: number) {
     setMainStatsBySlot((prev) => {
       const cur = prev[slot] ?? [];
@@ -115,48 +140,61 @@ export default function OptimizerSection({ box, runes }: Props) {
     });
   }
 
-  // ⚠️ Réglages avancés, volontairement PAS masqués derrière une valeur
-  // magique choisie une fois pour toutes : sur un gros compte (des centaines
-  // de runes par slot), le plafond de pré-filtrage par défaut peut écarter
-  // des runes qui compteraient — voir spec/outils/optimizer.md. Les élargir
-  // aide, mais a un coût réel (mémoire ET temps, pas seulement temps) : le
-  // moteur matérialise tous les combos d'une moitié d'un coup, donc un
-  // plafond trop haut peut faire planter l'onglet plutôt que juste ralentir.
-  // D'où l'avertissement affiché, pas un simple curseur libre.
-  const [showAdvanced, setShowAdvanced] = useState(false);
-  const [maxSeconds, setMaxSeconds] = useState<number | null>(15);
-  const [slotFilterCap, setSlotFilterCap] = useState<number | null>(null);
-
-  const { status, result, run, stop } = useBuildOptimSearch();
-  // Distingue « arrêtée par l'utilisateur » de « tronquée par un plafond » :
-  // le message affiché (voir plus bas) n'a pas à dire « resserre tes
-  // critères » quand c'est un choix délibéré, pas une limite subie.
-  const [stoppedManually, setStoppedManually] = useState(false);
+  const slotFilterCap = SLOT_FILTER_PRESETS.find((p) => p.key === slotFilterPreset)!.cap;
+  // Filet de sécurité fixe, large, PAS un réglage utilisateur : le bouton
+  // « Arrêter » reste le vrai moyen de reprendre la main. 10 min, pas 15 s :
+  // une recherche légitimement longue (preset Extrême sur un gros compte,
+  // voir « Validation grandeur nature ») ne doit pas être coupée avant
+  // d'avoir eu sa chance d'aboutir.
+  const HARD_TIMEOUT_MS = 10 * 60 * 1000;
 
   const runeById = useMemo(() => new Map(runes.map((r) => [r.id, r])), [runes]);
 
-  function handleSearch() {
-    if (!selected) return;
-    setStoppedManually(false);
-    // ⚠️ Exclusion par défaut : ne propose que des combos réellement montables
-    // sans dérunir un autre monstre de la box. « Explorer tout l'inventaire »
-    // lève la contrainte. Voir spec/outils/optimizer.md.
+  // ⚠️ Exclusion par défaut : ne propose que des combos réellement montables
+  // sans dérunir un autre monstre de la box. « Explorer tout l'inventaire »
+  // lève la contrainte. Voir spec/outils/optimizer.md.
+  const pool = useMemo(() => {
+    if (!selected) return runes;
     const excluded = exploreAll
       ? new Set<number>()
       : excludedRuneIds(
           box.map((b) => ({ unitKey: b.key, com2usId: b.monster.com2usId, gear: b.gear })),
           selected.monster.com2usId
         );
-    const pool = excluded.size === 0 ? runes : runes.filter((r) => !excluded.has(r.id));
-    // Slots sans aucune stat cochée → pas de contrainte transmise (un tableau
-    // vide se lirait comme « aucune stat principale possible », ce qui
-    // écarterait tout le slot au lieu de le laisser libre).
-    const mainStats: BuildRequirement['mainStats'] = {};
+    return excluded.size === 0 ? runes : runes.filter((r) => !excluded.has(r.id));
+  }, [selected, exploreAll, box, runes]);
+
+  // Ce que le moteur reçoit réellement — partagé entre la recherche et
+  // l'estimation affichée avant de lancer quoi que ce soit (voir plus bas) :
+  // les deux doivent voir EXACTEMENT la même exigence.
+  const requirement = useMemo<BuildRequirement>(() => {
+    const mainStatsReq: NonNullable<BuildRequirement['mainStats']> = {};
     for (const slot of CONFIGURABLE_SLOTS) {
       const codes = mainStatsBySlot[slot];
-      if (codes && codes.length > 0) mainStats[slot] = codes;
+      if (codes && codes.length > 0) mainStatsReq[slot] = codes;
     }
-    const requirement: BuildRequirement = { sets: comboSets, minStats, maxStats, mainStats };
+    return { sets: comboSets, minStats, maxStats, mainStats: mainStatsReq };
+  }, [comboSets, minStats, maxStats, mainStatsBySlot]);
+
+  // Indication du nombre de builds qui vont être testés — un ORDRE DE
+  // GRANDEUR (le produit des pools filtrés par emplacement), pas le nombre
+  // réellement exploré : le meet-in-the-middle n'énumère jamais ce produit en
+  // entier. Utile pour juger si les critères actuels sont trop larges ou trop
+  // stricts avant d'attendre un résultat.
+  const estimate = useMemo(() => {
+    if (!selected || comboSets.length === 0) return null;
+    return estimateSearchSpace(pool, requirement, slotFilterCap, objective);
+  }, [selected, comboSets, pool, requirement, slotFilterCap, objective]);
+
+  function handleSearch() {
+    if (!selected) return;
+    if (comboSets.length === 0) {
+      setSetPickerInvalid(true);
+      return;
+    }
+    setSetPickerInvalid(false);
+    setStoppedManually(false);
+    setSortBy(objective);
     run({
       base: selected.gear.base,
       artifacts: selected.gear.artifacts,
@@ -164,13 +202,9 @@ export default function OptimizerSection({ box, runes }: Props) {
       pool,
       requirement,
       metric,
-      // `null` (champ vidé) → pas de limite automatique, le bouton Arrêter
-      // reste le seul recours. ⚠️ `Infinity`, pas `undefined` : le moteur
-      // retombe sur son défaut (15 s) via `??` si on lui passe `undefined`.
-      // `Infinity` se transmet très bien par `postMessage` (structured
-      // clone), contrairement à `JSON.stringify` qui l'aurait perdu.
-      maxMs: maxSeconds == null ? Infinity : maxSeconds * 1000,
-      ...(slotFilterCap != null ? { slotFilterCap } : {}),
+      maxMs: HARD_TIMEOUT_MS,
+      slotFilterCap,
+      objective,
     });
   }
 
@@ -179,20 +213,22 @@ export default function OptimizerSection({ box, runes }: Props) {
   const sortedCandidates = useMemo(() => {
     if (!result) return [];
     const list = result.candidates.slice();
-    if (sortBy === 'eff') {
-      list.sort((a, b) => b.effTotal - a.effTotal);
-    } else if (sortBy === 'degats-assure' || sortBy === 'degats-non-crit' || sortBy === 'degats-moyenne' || sortBy === 'ehp') {
-      list.sort((a, b) => objectiveScore(b.stats, sortBy) - objectiveScore(a.stats, sortBy));
+    if (sortBy === 'efficience') {
+      // ⚠️ PAS `objectiveScore`/`effTotal` ici : ce champ est figé dans la
+      // mesure active AU MOMENT DE LA RECHERCHE, et deviendrait incohérent
+      // avec le popover d'une rune (recalculé en direct) si l'utilisateur
+      // bascule Efficience ↔ Score après coup sans relancer.
+      list.sort((a, b) => candidateMetricTotal(b, runeById, metric) - candidateMetricTotal(a, runeById, metric));
+    } else if (sortBy === 'degats' || sortBy === 'ehp' || sortBy === 'vitesse') {
+      list.sort((a, b) => objectiveScore(b, sortBy) - objectiveScore(a, sortBy));
     } else {
       list.sort((a, b) => statTotal(b.stats, sortBy) - statTotal(a.stats, sortBy));
     }
     return list.slice(0, 20);
-  }, [result, sortBy]);
-
-  const currentStats = selected ? computeStats(selected.gear) : null;
+  }, [result, sortBy, runeById, metric]);
 
   // Base « nue » du monstre choisi pour une stat — 0 tant qu'aucun monstre
-  // n'est sélectionné (le mode « Bonus » coïncide alors avec « Total »).
+  // n'est sélectionné.
   function baseOf(key: StatKey): number {
     return selected ? (selected.gear.base as unknown as Record<StatKey, number>)[key] : 0;
   }
@@ -209,20 +245,43 @@ export default function OptimizerSection({ box, runes }: Props) {
         <MonsterGearPicker items={gearedMonsters} onPick={setSelectedId} />
       </div>
 
-      {selected && currentStats && (
-        <div className="rounded-xl border border-border bg-panel p-3">
+      {selected && (
+        <div className="rounded-xl border border-accent bg-panel/60 p-3">
           <div className="flex items-center gap-2 mb-2">
             <MonsterAvatar monster={selected.monster} size={32} />
             <span className="font-semibold text-[14px]">{selected.monster.name}</span>
           </div>
-          <p className="label mb-1.5">Stats actuelles</p>
-          <StatTable stats={currentStats} />
+          {/* ⚠️ Même composant que RTA/Siège quand on clique un monstre — pas
+              une réimplémentation : stats base/bonus, artéfacts, roue de
+              runes et relique tels qu'ACTUELLEMENT équipés, chacun cliquable
+              pour son détail complet (RuneDetailBox/ArtifactDetailBox/
+              RelicDetailBox), inline sous la roue. Ce que l'Optimizer part
+              d'optimiser, visible d'un coup d'œil avant de lancer quoi que
+              ce soit. */}
+          <MonsterGear gear={selected.gear} />
         </div>
       )}
 
-      <div>
+      <div
+        className={
+          setPickerInvalid
+            ? 'rounded-lg border-2 border-red-500 bg-red-500/15 ring-4 ring-red-500/50 p-2 -m-2 transition'
+            : 'transition'
+        }
+      >
         <p className="label mb-1.5">Set de runes recherché</p>
-        <SetComboPicker sets={comboSets} onChange={setComboSets} />
+        <SetComboPicker
+          sets={comboSets}
+          onChange={(next) => {
+            setComboSets(next);
+            if (next.length > 0) setSetPickerInvalid(false);
+          }}
+        />
+        {setPickerInvalid && (
+          <p className="mt-1.5 text-[11.5px] font-semibold text-red-500">
+            Sélectionne au moins un set avant de lancer la recherche.
+          </p>
+        )}
       </div>
 
       <div>
@@ -259,87 +318,114 @@ export default function OptimizerSection({ box, runes }: Props) {
       </div>
 
       <div>
-        <div className="flex items-center justify-between mb-1.5">
+        <p className="label mb-1.5">Objectif de recherche</p>
+        <Segmented options={OBJECTIVE_LABELS} value={objective} onChange={setObjective} size="lg" />
+        <p className="mt-1 text-[11px] text-ink-dim">
+          Oriente le type de rune étudié dès le pré-filtrage, avant même de lancer la recherche — pas
+          seulement l'ordre des résultats. Dégâts considère ATQ, Taux Crit et Dgts Crit ensemble
+          (espérance moyenne).
+        </p>
+      </div>
+
+      <div>
+        <div className="flex items-center justify-between mb-1 flex-wrap gap-2">
           <p className="label">Conditions</p>
-          <Segmented
-            options={[
-              {
-                key: 'total',
-                label: 'Total',
-                hint: 'Minimum/maximum sur la stat totale (base + runes + sets + artéfacts)',
-              },
-              {
-                key: 'bonus',
-                label: 'Bonus',
-                hint: "Minimum/maximum sur ce que l'équipement doit apporter, au-dessus de la base du monstre choisi",
-              },
-            ]}
-            value={statMode}
-            onChange={setStatMode}
-          />
+          <div className="flex items-center gap-1.5">
+            <span className="text-[12px] font-semibold text-ink-dim">Stats de base exclues</span>
+            <span
+              title="PV/ATQ/DEF/VIT : activé, la valeur est ce que l'équipement doit apporter au-dessus de la base du monstre. Désactivé, elle porte sur le total. Taux Crit/Dgts Crit/RES/Précision restent toujours en total, quel que soit ce réglage — ils partent de la valeur d'éveil du monstre."
+            >
+              <HelpCircle size={13} className="text-ink-dim" />
+            </span>
+            <Switch
+              checked={excludeBase}
+              onChange={setExcludeBase}
+              label="Stats de base exclues des conditions PV/ATQ/DEF/VIT"
+            />
+          </div>
         </div>
-        <div className="flex flex-wrap gap-2">
+        {/* ⚠️ `boxWidth` fixe sur CHAQUE NumberField ci-dessous (voir
+            NumberField.tsx) : sans ça, un champ avec suffixe « % » serait
+            TOUJOURS plus large qu'un champ sans suffixe à largeur de texte
+            égale (le suffixe prend de la place en plus), et les colonnes
+            Min/Max ne s'aligneraient pas d'une stat à l'autre. */}
+        <div className="grid grid-cols-[minmax(90px,auto)_auto_auto] gap-y-1.5 gap-x-4 items-center">
           {RECO_STATS.map((st) => {
+            const affectedByToggle = BASE_TOGGLE_STATS.has(st.key);
             const base = baseOf(st.key);
             const capped = CAPPED_100.has(st.key);
-            const ceiling = capped ? (statMode === 'total' ? 100 : 100 - base) : undefined;
+            const bonusMode = affectedByToggle && excludeBase;
+            const ceiling = capped ? (bonusMode ? 100 - base : 100) : undefined;
 
             const minTotal = minStats[st.key] ?? null;
-            const minDisplayed = minTotal == null ? null : statMode === 'total' ? minTotal : minTotal - base;
+            const minDisplayed = minTotal == null ? null : bonusMode ? minTotal - base : minTotal;
             const maxTotalVal = maxStats[st.key] ?? null;
-            const maxDisplayed = maxTotalVal == null ? null : statMode === 'total' ? maxTotalVal : maxTotalVal - base;
+            const maxDisplayed = maxTotalVal == null ? null : bonusMode ? maxTotalVal - base : maxTotalVal;
 
             return (
-              <div
-                key={st.key}
-                className="flex items-center gap-1.5 rounded-lg border border-border bg-panel px-2 py-1"
-              >
-                <span className="text-[11.5px] text-ink-dim w-[70px]">{st.label}</span>
-                <NumberField
-                  value={minDisplayed}
-                  onChange={(v) =>
-                    setMinStats((prev) => {
-                      const next = { ...prev };
-                      if (v == null) delete next[st.key];
-                      else next[st.key] = statMode === 'total' ? v : v + base;
-                      return next;
-                    })
-                  }
-                  allowEmpty
-                  // ⚠️ En mode Total, le total ne descend jamais sous la base
-                  // nue du monstre (même sans la moindre rune, elle y est
-                  // déjà) : demander moins n'a pas de sens, donc ce n'est pas
-                  // saisissable. En mode Bonus, un bonus négatif n'en a pas
-                  // davantage.
-                  min={statMode === 'total' ? base : 0}
-                  max={ceiling}
-                  placeholder={statMode === 'total' ? String(base) : '0'}
-                  width="w-16"
-                  ariaLabel={`${st.label} minimum`}
-                  title="Minimum"
-                />
-                <span className="text-ink-dim text-[11px]">à</span>
-                <NumberField
-                  value={maxDisplayed}
-                  onChange={(v) =>
-                    setMaxStats((prev) => {
-                      const next = { ...prev };
-                      if (v == null) delete next[st.key];
-                      else next[st.key] = statMode === 'total' ? v : v + base;
-                      return next;
-                    })
-                  }
-                  allowEmpty
-                  min={statMode === 'total' ? base : 0}
-                  max={ceiling}
-                  placeholder={capped ? String(ceiling) : '—'}
-                  width="w-16"
-                  ariaLabel={`${st.label} maximum`}
-                  title="Maximum"
-                />
-              </div>
+              <Fragment key={st.key}>
+                <span className="text-[12.5px] text-ink">{st.label}</span>
+                <div className="flex items-center gap-1.5">
+                  <NumberField
+                    value={minDisplayed}
+                    onChange={(v) =>
+                      setMinStats((prev) => {
+                        const next = { ...prev };
+                        if (v == null) delete next[st.key];
+                        else next[st.key] = bonusMode ? v + base : v;
+                        return next;
+                      })
+                    }
+                    allowEmpty
+                    // ⚠️ En total, le total ne descend jamais sous la base nue
+                    // du monstre (même sans la moindre rune, elle y est déjà).
+                    min={bonusMode ? 0 : base}
+                    max={ceiling}
+                    placeholder={bonusMode ? '0' : String(base)}
+                    suffix={st.suffix || undefined}
+                    boxWidth="w-24"
+                    ariaLabel={`${st.label} minimum`}
+                    title="Minimum"
+                  />
+                  <span className="text-ink-dim text-[11px]">Min</span>
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <NumberField
+                    value={maxDisplayed}
+                    onChange={(v) =>
+                      setMaxStats((prev) => {
+                        const next = { ...prev };
+                        if (v == null) delete next[st.key];
+                        else next[st.key] = bonusMode ? v + base : v;
+                        return next;
+                      })
+                    }
+                    allowEmpty
+                    min={bonusMode ? 0 : base}
+                    max={ceiling}
+                    placeholder={capped ? String(ceiling) : '—'}
+                    suffix={st.suffix || undefined}
+                    boxWidth="w-24"
+                    ariaLabel={`${st.label} maximum`}
+                    title="Maximum"
+                  />
+                  <span className="text-ink-dim text-[11px]">Max</span>
+                </div>
+              </Fragment>
             );
           })}
+        </div>
+        <div className="flex justify-end mt-1.5">
+          <button
+            type="button"
+            onClick={() => {
+              setMinStats({});
+              setMaxStats({});
+            }}
+            className="flex items-center gap-1.5 text-[12px] font-semibold text-ink-dim transition hoverable:text-bad"
+          >
+            <RotateCcw size={13} /> Réinitialiser les conditions
+          </button>
         </div>
       </div>
 
@@ -353,44 +439,38 @@ export default function OptimizerSection({ box, runes }: Props) {
           <Settings2 size={13} /> Options avancées
         </button>
         {showAdvanced && (
-          <div className="mt-2 flex flex-wrap items-start gap-4 rounded-lg border border-border bg-panel p-3">
-            <div>
-              <p className="text-[11.5px] text-ink-dim mb-1">Temps limite (secondes)</p>
-              <NumberField
-                value={maxSeconds}
-                onChange={setMaxSeconds}
-                allowEmpty
-                min={5}
-                placeholder="15"
-                width="w-16"
-                ariaLabel="Temps limite de recherche en secondes"
-              />
-              <p className="mt-1 text-[11px] text-ink-dim max-w-[220px]">
-                Champ vide = pas de limite automatique — utilise « Arrêter » pour reprendre la main
-                toi-même.
-              </p>
+          <div className="mt-2 rounded-lg border border-border bg-panel p-3">
+            <p className="text-[11.5px] text-ink-dim mb-1">Pré-filtrage par emplacement</p>
+            <div className="flex items-center gap-1 bg-panel2 border border-border rounded-lg p-0.5 w-fit">
+              {SLOT_FILTER_PRESETS.map((p) => (
+                <button
+                  key={p.key}
+                  type="button"
+                  onClick={() => setSlotFilterPreset(p.key)}
+                  title={p.hint}
+                  aria-pressed={slotFilterPreset === p.key}
+                  className={`rounded-md px-2.5 py-1 text-[12px] font-semibold transition ${
+                    slotFilterPreset === p.key ? 'bg-accent-soft text-ink' : 'text-ink-dim hoverable:text-ink'
+                  }`}
+                >
+                  {p.label}
+                </button>
+              ))}
             </div>
-            <div>
-              <p className="text-[11.5px] text-ink-dim mb-1">Pré-filtrage par emplacement</p>
-              <NumberField
-                value={slotFilterCap}
-                onChange={setSlotFilterCap}
-                allowEmpty
-                min={20}
-                max={80}
-                placeholder="40 (défaut)"
-                width="w-20"
-                ariaLabel="Nombre de runes candidates conservées par emplacement"
-              />
-              <p className="mt-1 text-[11.5px] text-warn max-w-[260px]">
-                ⚠️ Plus haut = plus de runes considérées par emplacement, mais un coût qui grandit
-                très vite (mémoire ET temps) sur un gros compte — au-delà d'un certain point, la
-                recherche peut planter plutôt que simplement ralentir. À monter progressivement.
-              </p>
-            </div>
+            <p className="mt-1 text-[11.5px] text-warn max-w-[280px]">
+              ⚠️ {SLOT_FILTER_PRESETS.find((p) => p.key === slotFilterPreset)?.hint}
+            </p>
           </div>
         )}
       </div>
+
+      {estimate && (
+        <p className="font-mono text-[11.5px] text-ink-dim">
+          ≈ {formatBig(estimate.product)} combinaisons brutes après filtrage (pool par emplacement :{' '}
+          {estimate.perSlot.join(' × ')}) — un ordre de grandeur, pas le nombre réellement exploré par
+          l'algorithme.
+        </p>
+      )}
 
       <div className="flex flex-wrap items-center gap-2">
         <button
@@ -418,11 +498,7 @@ export default function OptimizerSection({ box, runes }: Props) {
           className="flex items-center gap-1.5 rounded-lg border border-accent bg-accent-soft px-3.5 py-2 text-[13px] font-semibold
                      text-ink transition hoverable:shadow disabled:opacity-40 disabled:cursor-not-allowed"
         >
-          {status === 'running' ? (
-            <Loader2 size={15} className="animate-spin" />
-          ) : (
-            <Search size={15} />
-          )}
+          <Search size={15} />
           {status === 'running' ? 'Recherche…' : 'Rechercher'}
         </button>
 
@@ -442,6 +518,21 @@ export default function OptimizerSection({ box, runes }: Props) {
         )}
       </div>
 
+      {status === 'running' && (
+        <div>
+          <div className="h-2 w-full overflow-hidden rounded-full border border-border bg-panel2">
+            <div
+              className="h-full bg-accent transition-[width] duration-150 ease-out"
+              style={{ width: `${Math.round((progress?.pct ?? 0) * 100)}%` }}
+            />
+          </div>
+          <p className="mt-1 font-mono text-[11px] text-ink-dim">
+            {(progress?.explored ?? 0).toLocaleString('fr-FR')} combinaisons examinées ·{' '}
+            {(progress?.found ?? 0).toLocaleString('fr-FR')} trouvée(s)
+          </p>
+        </div>
+      )}
+
       {status === 'error' && (
         <p className="text-[12.5px] text-bad">La recherche a échoué. Réessaie avec des critères moins stricts.</p>
       )}
@@ -459,12 +550,11 @@ export default function OptimizerSection({ box, runes }: Props) {
             {result.candidates.length > 0 && (
               <select
                 value={sortBy}
-                onChange={(e) => setSortBy(e.target.value as SortKey)}
+                onChange={(e) => setSortBy(e.target.value as OptimizerSortKey)}
                 className="bg-panel border border-border rounded-lg px-2 py-1 text-[12px] text-ink outline-none
                            focus:border-accent"
               >
                 <optgroup label="Stats">
-                  <option value="eff">Trier par efficience</option>
                   {RECO_STATS.map((st) => (
                     <option key={st.key} value={st.key}>
                       Trier par {st.label}
@@ -498,6 +588,8 @@ export default function OptimizerSection({ box, runes }: Props) {
                 candidate={c}
                 runeById={runeById}
                 metric={metric}
+                openRuneKey={openRuneKey}
+                onToggleRune={(key) => setOpenRuneKey((cur) => (cur === key ? null : key))}
               />
             ))}
           </div>

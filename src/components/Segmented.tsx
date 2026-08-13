@@ -15,34 +15,49 @@ export default function Segmented<T extends string>({
   value,
   onChange,
   className = '',
+  size = 'sm',
 }: {
   options: { key: T; label: string; hint?: string; icon?: React.ReactNode }[];
   value: T;
   onChange: (v: T) => void;
   className?: string;
+  // 'lg' : chaque option se partage la largeur à égalité, sur une seule
+  // ligne bien visible — pour un choix structurant (peu d'options, chacune
+  // méritant d'être lue d'un coup d'œil), pas un réglage secondaire.
+  size?: 'sm' | 'lg';
 }) {
   return (
     <div
-      className={`flex items-center gap-0.5 bg-panel2 border border-border rounded-lg p-0.5 flex-none ${className}`}
+      className={`flex items-center ${size === 'lg' ? 'w-full gap-0' : 'gap-0.5 flex-none'} bg-panel2 border border-border rounded-lg p-0.5 ${className}`}
     >
-      {options.map((o) => {
+      {options.map((o, i) => {
         const active = value === o.key;
         return (
-          <button
-            key={o.key}
-            onClick={() => onChange(o.key)}
-            title={o.hint}
-            aria-pressed={active}
-            className={`flex items-center gap-1.5 rounded-md px-2 py-1 text-[11.5px] font-semibold
-                        transition whitespace-nowrap ${
-                          active
-                            ? 'bg-accent-soft text-ink shadow'
-                            : 'text-ink-dim hoverable:text-ink'
-                        }`}
-          >
-            {o.icon}
-            {o.label}
-          </button>
+          <div key={o.key} className={`flex items-stretch ${size === 'lg' ? 'flex-1' : 'flex-none'}`}>
+            {/* ⚠️ Élément à part, PAS un `border-l` posé sur le bouton
+                arrondi : un `border-l` sur un `rounded-md` se courbe aux
+                coins au lieu de rester droit. Un trait dédié, sans rayon,
+                reste rigoureusement vertical sur toute la hauteur
+                (`self-stretch`). Toujours dessiné, même entre deux cases
+                adjacentes dont l'une est sélectionnée. */}
+            {size === 'lg' && i > 0 && <span className="w-px self-stretch bg-border" />}
+            <button
+              onClick={() => onChange(o.key)}
+              title={o.hint}
+              aria-pressed={active}
+              className={`flex flex-1 items-center justify-center gap-1.5 rounded-md font-semibold
+                          transition whitespace-nowrap ${
+                            size === 'lg' ? 'px-2 py-1.5 text-[12px]' : 'px-2 py-1 text-[11.5px]'
+                          } ${
+                            active
+                              ? `bg-accent-soft text-ink shadow ${size === 'lg' ? 'border border-accent' : ''}`
+                              : 'text-ink-dim hoverable:text-ink'
+                          }`}
+            >
+              {o.icon}
+              {o.label}
+            </button>
+          </div>
         );
       })}
     </div>

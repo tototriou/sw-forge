@@ -1,6 +1,6 @@
 import { useState } from 'react';
-import { RotateCw, ArrowRight } from 'lucide-react';
-import { ArtifactDetail, GearSet, RelicDetail, RuneDetail } from '../types';
+import { RotateCw, ArrowRight, Ban } from 'lucide-react';
+import { ARTIFACT_KINDS, ArtifactDetail, GearSet, RelicDetail, RuneDetail } from '../types';
 import { computeStats } from '../lib/stats';
 import {
   formatRuneEffect,
@@ -13,11 +13,13 @@ import {
   runeEfficiency,
   runeScore,
   RARITY_FILTER,
+  CAPPED_STATS,
 } from '../lib/effects';
 import RuneIcon from './RuneIcon';
 import ArtifactIcon from './ArtifactIcon';
 import { SPIN } from './RuneSlotIcon';
 import { RUNE_METRICS, formatRuneMetric, useRuneMetric } from '../hooks/useRuneMetric';
+import { displayedTotal, useOvercapDisplay } from '../hooks/useOvercapDisplay';
 
 // Nombres compacts (39051 → « 39 051 »).
 function fmt(n: number): string {
@@ -237,6 +239,10 @@ interface Props {
 export default function MonsterGear({ gear, spdCible = null }: Props) {
   const stats = computeStats(gear);
   const [sel, setSel] = useState<Selected>(null);
+  // ⚠️ Bascule base+bonus ↔ total, sur un clic n'importe où dans l'encadré
+  // de stats (pas un bouton séparé — l'encadré ENTIER est l'affordance).
+  const [showTotal, setShowTotal] = useState(false);
+  const showOvercap = useOvercapDisplay();
 
   const isSel = (s: Selected) =>
     !!sel &&
@@ -247,67 +253,119 @@ export default function MonsterGear({ gear, spdCible = null }: Props) {
 
   return (
     <div className="flex flex-wrap items-center justify-center gap-2">
-      {/* Colonne gauche : stats (base blanche / bonus vert) */}
-      <div className="rounded-lg border border-border bg-panel/50 p-3 self-start w-fit">
+      {/* Colonne gauche : stats — base+bonus (bonus en vert) par défaut, ou
+          total (même vert, sauf Taux Crit/RES/Précision au plafond de 100 %
+          → rouge) au clic. L'encadré entier est cliquable, pas un bouton à
+          part : c'est l'un ou l'autre affichage du même bloc, pas une action
+          annexe. */}
+      <div
+        role="button"
+        tabIndex={0}
+        onClick={() => setShowTotal((v) => !v)}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            setShowTotal((v) => !v);
+          }
+        }}
+        title={showTotal ? 'Afficher base + bonus' : 'Afficher le total'}
+        aria-pressed={showTotal}
+        className="rounded-lg border border-border bg-panel/50 p-3 self-start w-fit cursor-pointer
+                   transition hoverable:border-accent"
+      >
         <table className="text-[12px]">
           <tbody>
-            {stats.map((row) => (
-              <tr key={row.key} className="border-b border-border/40 last:border-0">
-                <td className="py-1 pr-2 text-ink-dim">{row.label}</td>
-                <td className="py-1 pr-3 text-right font-mono font-semibold text-ink tabular-nums">
-                  {fmt(row.base)}
-                  {row.suffix}
-                </td>
-                <td className="py-1 text-left font-mono font-semibold text-good tabular-nums">
-                  {row.bonus > 0 ? `+${fmt(row.bonus)}${row.suffix}` : '—'}
-                  {/* Objectif de vitesse : ce que les runes doivent donner pour
-                      coller à la valeur saisie dans l'ordre de tour. */}
-                  {row.key === 'spd' && spdCible != null && spdCible !== row.bonus && (
-                    <span
-                      className="ml-1.5 inline-flex items-center gap-0.5 text-fire"
-                      title={`Il faut ${fmt(spdCible)} de SPD sur les runes pour coller à l'ordre de tour`}
+            {stats.map((row) => {
+              // ⚠️ Le plafond de 100 % (Taux Crit/RES/Précision) n'a de sens
+              // à signaler QUE sur le total : un bonus de +30 % n'est pas
+              // « au plafond » en soi, c'est la somme avec la base qui peut
+              // l'être.
+              const atCap = CAPPED_STATS.has(row.key) && row.total >= 100;
+              const greenOrRed = atCap ? 'text-red-500' : 'text-good';
+              return (
+                <tr key={row.key} className="border-b border-border/40 last:border-0">
+                  <td className="py-1 pr-2 text-ink-dim">{row.label}</td>
+                  {showTotal ? (
+                    <td
+                      colSpan={2}
+                      className={`py-1 text-right font-mono font-semibold tabular-nums ${greenOrRed}`}
                     >
-                      <ArrowRight size={11} className="flex-none" />
-                      {fmt(spdCible)}
-                    </span>
+                      {fmt(displayedTotal(row.key, row.total, showOvercap))}
+                      {row.suffix}
+                    </td>
+                  ) : (
+                    <>
+                      <td className="py-1 pr-3 text-right font-mono font-semibold text-ink tabular-nums">
+                        {fmt(row.base)}
+                        {row.suffix}
+                      </td>
+                      <td className="py-1 text-left font-mono font-semibold text-good tabular-nums">
+                        {row.bonus > 0 ? `+${fmt(row.bonus)}${row.suffix}` : '—'}
+                        {/* Objectif de vitesse : ce que les runes doivent donner
+                            pour coller à la valeur saisie dans l'ordre de tour. */}
+                        {row.key === 'spd' && spdCible != null && spdCible !== row.bonus && (
+                          <span
+                            className="ml-1.5 inline-flex items-center gap-0.5 text-fire"
+                            title={`Il faut ${fmt(spdCible)} de SPD sur les runes pour coller à l'ordre de tour`}
+                          >
+                            <ArrowRight size={11} className="flex-none" />
+                            {fmt(spdCible)}
+                          </span>
+                        )}
+                      </td>
+                    </>
                   )}
-                </td>
-              </tr>
-            ))}
+                </tr>
+              );
+            })}
           </tbody>
         </table>
       </div>
 
-      {/* Artéfacts · roue · relique — chaque pièce passe à la ligne seulement si pas la place */}
-      {gear.artifacts.length > 0 && (
-        <div className="flex flex-col gap-1.5">
-              {gear.artifacts.map((a, i) => {
-                const selected = isSel({ kind: 'artifact', i });
-                return (
-                  <button
-                    key={i}
-                    onClick={() => toggle({ kind: 'artifact', i })}
-                    title="Voir l'artéfact"
-                    className="relative inline-flex items-center justify-center rounded transition"
-                    style={{ width: 58, height: 58 }}
-                  >
-                    <img
-                      src={ARTIFACT_FRAME}
-                      className={`absolute inset-0 w-full h-full transition ${
-                        selected ? 'brightness-150 drop-shadow-[0_0_6px_rgba(232,196,74,0.9)]' : ''
-                      }`}
-                      draggable={false}
-                    />
-                    <ArtifactIcon
-                      artifact={a}
-                      size={26}
-                      className="relative drop-shadow-[0_1px_2px_rgba(0,0,0,0.8)]"
-                    />
-                  </button>
-                );
-              })}
-            </div>
-          )}
+      {/* Artéfacts · roue · relique — TOUJOURS 2 emplacements (Attribut puis
+          Type, voir ARTIFACT_KINDS), même quand le monstre n'en porte qu'un
+          seul ou aucun : l'emplacement vide est montré comme tel (cadre grisé
+          + icône « Ban »), façon jeu (voir la capture de référence), plutôt
+          que de simplement disparaître — sinon un monstre à un seul artéfact
+          se lit comme « n'a qu'UN emplacement », pas « un des deux est vide ». */}
+      <div className="flex flex-col gap-1.5">
+        {ARTIFACT_KINDS.map(({ key, label }) => {
+          const i = gear.artifacts.findIndex((a) => a.kind === key);
+          const a = i >= 0 ? gear.artifacts[i] : null;
+          if (!a) {
+            return (
+              <div
+                key={key}
+                title={`Aucun artéfact ${label.toLowerCase()} équipé`}
+                className="relative inline-flex items-center justify-center rounded opacity-40"
+                style={{ width: 58, height: 58 }}
+              >
+                <img src={ARTIFACT_FRAME} className="absolute inset-0 w-full h-full grayscale" draggable={false} />
+                <Ban size={22} className="relative text-ink-dim" />
+              </div>
+            );
+          }
+          const selected = isSel({ kind: 'artifact', i });
+          return (
+            <button
+              key={key}
+              onClick={() => toggle({ kind: 'artifact', i })}
+              title={`Voir l'artéfact ${label.toLowerCase()}`}
+              className="relative inline-flex items-center justify-center rounded transition"
+              style={{ width: 58, height: 58 }}
+            >
+              <img
+                src={ARTIFACT_FRAME}
+                className={`absolute inset-0 w-full h-full transition ${
+                  selected ? 'brightness-150 drop-shadow-[0_0_6px_rgba(232,196,74,0.9)]' : ''
+                }`}
+                draggable={false}
+              />
+              <ArtifactIcon artifact={a} size={26} className="relative drop-shadow-[0_1px_2px_rgba(0,0,0,0.8)]" />
+            </button>
+          );
+        })}
+      </div>
 
           {/* Roue : (1) image de la roue en fond · (2) cadre de rune tourné par slot · (3) icône de set */}
           {gear.runes.length > 0 && (

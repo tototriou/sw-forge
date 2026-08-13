@@ -1,4 +1,5 @@
 import { StatRow } from '../../lib/stats';
+import { displayedTotal, useOvercapDisplay } from '../../hooks/useOvercapDisplay';
 
 // Table de stats en LECTURE SEULE (base / bonus / total), même grammaire que
 // MonsterGear.tsx et le tableau de lecture des recommandations de siège —
@@ -7,6 +8,7 @@ import { StatRow } from '../../lib/stats';
 // localement à l'Optimizer.
 export default function StatTable({ stats }: { stats: StatRow[] }) {
   const fmt = (n: number) => n.toLocaleString('fr-FR');
+  const showOvercap = useOvercapDisplay();
   return (
     <div className="overflow-x-auto">
       <table className="w-full min-w-[236px] text-[11.5px]">
@@ -30,7 +32,7 @@ export default function StatTable({ stats }: { stats: StatRow[] }) {
                 {row.bonus > 0 ? `+${fmt(row.bonus)}${row.suffix}` : '—'}
               </td>
               <td className="py-0.5 text-right font-mono font-semibold text-ink tabular-nums">
-                {fmt(row.total)}
+                {fmt(displayedTotal(row.key, row.total, showOvercap))}
                 {row.suffix}
               </td>
             </tr>

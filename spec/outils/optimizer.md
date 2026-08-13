@@ -3,7 +3,8 @@
 Cherche, parmi les runes **réellement possédées**, la (les) meilleure(s)
 combinaison(s) de 6 pour un monstre donné, sous contrainte d'un **combo de
 sets**, de **statistiques principales imposées** (slots 2/4/6) et de
-**minimums/maximums de stats**. Anticipé dans
+**minimums/maximums de stats**, orientée par un **objectif de recherche**
+choisi d'avance. Anticipé dans
 [compte/calcul-runes.md §6](../compte/calcul-runes.md) (« Futur optimiseur
 de builds »).
 
@@ -11,9 +12,27 @@ Fichiers : [OptimizerSection.tsx](src/components/outils/OptimizerSection.tsx) ·
 [runeBuildOptim.ts](src/lib/runeBuildOptim.ts) (moteur pur) ·
 [runeBuildOptim.worker.ts](src/workers/runeBuildOptim.worker.ts) (Worker) ·
 [useBuildOptimSearch.ts](src/hooks/useBuildOptimSearch.ts) (cycle de vie du
-Worker) · [MonsterGearPicker.tsx](src/components/outils/MonsterGearPicker.tsx) ·
+Worker) · [useOptimizerState.ts](src/hooks/useOptimizerState.ts) (toute la
+saisie de l'écran, remontée dans App.tsx) ·
+[MonsterGearPicker.tsx](src/components/outils/MonsterGearPicker.tsx) ·
 [SetComboPicker.tsx](src/components/outils/SetComboPicker.tsx) ·
 [BuildCandidateCard.tsx](src/components/outils/BuildCandidateCard.tsx).
+
+⚠️ **Survit à un changement d'onglet.** Comme les autres pages de l'app,
+`OutilsPage` (et donc `OptimizerSection`) est **démontée** à chaque
+navigation — un simple `useState` local y perdrait tout (monstre choisi,
+conditions saisies, résultats…) au moindre aller-retour vers RTA ou une autre
+page. `useOptimizerState` centralise donc cette saisie et est instancié
+**dans `App.tsx`**, qui ne se démonte jamais tant que l'onglet du navigateur
+reste ouvert — même principe que `useRtaState`/`useSiegeState` pour la prépa
+RTA et les équipes de siège. ⚠️ **Sans écriture disque**, à la différence de
+ces deux-là : cette saisie n'a rien à voir avec le compte importé ni le
+système de conservation (voir [usePersistence](src/hooks/usePersistence.ts))
+— fermer l'onglet ou recharger la page la perd, seule la navigation ENTRE
+onglets de la session en cours la préserve. Le Worker de recherche lui-même
+suit ce cycle de vie : une recherche en cours **continue de tourner** en
+arrière-plan si on change d'onglet, et son résultat est toujours là au
+retour.
 
 ## Écran (de haut en bas)
 
@@ -25,14 +44,41 @@ Worker) · [MonsterGearPicker.tsx](src/components/outils/MonsterGearPicker.tsx) 
    l'exemplaire au meilleur équipement (somme d'efficience la plus haute,
    0 pour un monstre nu) pour les stats/artéfacts affichés. **Tous** les
    exemplaires comptent comme « à soi » pour l'exclusion (voir plus bas).
-2. **Stats actuelles** — `computeStats(gear)` du monstre choisi, même
-   grammaire `base/bonus/total` que [MonsterGear.tsx](src/components/MonsterGear.tsx)
-   et le tableau de lecture des recommandations de siège.
+2. **Équipement actuel** — **le composant `MonsterGear`, réutilisé tel quel**
+   (pas réimplémenté), le même qu'en RTA/Siège quand on clique un monstre :
+   stats base/bonus, artéfacts, roue de runes et relique **tels
+   qu'ACTUELLEMENT équipés** sur le monstre choisi, chacun **cliquable**
+   pour ouvrir son détail complet (`RuneDetailBox`/`ArtifactDetailBox`/
+   `RelicDetailBox`, tous dans [MonsterGear.tsx](src/components/MonsterGear.tsx)),
+   affiché **en ligne sous la roue** (pas un popover flottant — c'est le
+   comportement propre à `MonsterGear`, pas celui de `DetailPopover` utilisé
+   ailleurs dans l'outil pour les résultats). Ce que l'outil part optimiser,
+   visible d'un coup d'œil avant de lancer quoi que ce soit — y compris les
+   artéfacts et la relique, qui ne sont eux jamais modifiés par la recherche
+   (voir « Algorithme »). ⚠️ **Artéfacts : toujours 2 emplacements affichés**
+   (Attribut puis Type), même si le monstre choisi n'en porte qu'un seul ou
+   aucun — un emplacement vide est montré grisé (icône `Ban`) plutôt que
+   simplement absent. ⚠️ **L'encadré de stats bascule base+bonus ↔ total au
+   clic** (bonus et total dans le même vert ; Taux Crit/RES/Précision en
+   rouge dès que leur TOTAL atteint 100 %). Les deux sont des comportements
+   de `MonsterGear` lui-même, donc partagés avec RTA et Siège (voir
+   [rta/sections-runes.md](../rta/sections-runes.md) pour le détail).
 3. **Set de runes recherché** — **un seul combo** (contrairement aux
    recommandations de siège, qui proposent plusieurs possibilités au choix) :
    grille d'icônes de sets, jamais un menu déroulant (`SetComboPicker.tsx`,
    même comportement que le picker de `RecoCard.tsx` réécrit en plus simple).
    Compteur `N/6 runes`, sets qui ne rentrent plus grisés.
+   ⚠️ **Obligatoire** : tenter de lancer une recherche sans set sélectionné
+   met cette zone en **surbrillance rouge marquée** (bordure épaisse + fond
+   teinté + halo large) au lieu de silencieusement ne rien faire — on montre
+   OÙ agir, pas seulement qu'il faut agir. ⚠️ **Rouge Tailwind `red-500`
+   littéral, pas le jeton sémantique `bad`** du thème : `bad` (voir
+   [shared/design.md](../shared/design.md)) est volontairement une teinte corail douce
+   en thème sombre, pensée pour un état des DONNÉES — trop proche du fond du
+   contrôle pour se voir comme un vrai signal d'alerte. Ce cas précis en avait
+   besoin, demandé explicitement après deux essais d'intensification du jeton
+   `bad` jugés encore insuffisants. Elle repasse normale dès
+   qu'un set est ajouté.
 4. **Statistique principale imposée (slots pairs)** — pour chacun des slots
    **2, 4 et 6** (les seuls dont la statistique principale n'est **pas**
    fixée par les règles du jeu — 1/3/5 sont toujours ATQ/DEF/PV plats), une
@@ -48,73 +94,167 @@ Worker) · [MonsterGearPicker.tsx](src/components/outils/MonsterGearPicker.tsx) 
    réellement considérés **dès le départ**, ce qui aide aussi, en pratique, à
    éviter la troncature sur un gros compte (voir « Validation grandeur
    nature »).
-5. **Conditions** — les 8 stats (`RECO_STATS`) : PV, ATQ, DEF, VIT, Taux
+5. **Objectif de recherche** — **un bouton à choix unique** sur une seule
+   ligne (`<Segmented size="lg">`, [Segmented.tsx](src/components/Segmented.tsx)),
+   chaque option se partageant la largeur à égalité, séparées par un **liseré
+   vertical constant** entre chaque paire d'options adjacentes, y compris
+   quand l'une des deux est sélectionnée.
+   ⚠️ Le liseré est un **élément à part** (un `<span>` dédié, sans rayon de
+   bordure), pas une bordure posée sur le bouton arrondi lui-même : une
+   bordure `border-l` sur un bouton `rounded` se courbe aux coins au lieu de
+   rester parfaitement droite sur toute la hauteur.
+   L'option choisie est **surlignée sur toute sa case** — fond, ombre **et
+   bordure de la couleur d'accent**, pas juste un fond légèrement teinté (le
+   ton « accent-soft » du thème sombre est trop proche du fond du contrôle
+   pour se voir tout seul). Choisi **avant** de lancer la recherche, pas
+   seulement un tri après coup :
+   - **Efficience** (par défaut) — pas de biais particulier, la mesure
+     choisie globalement (Efficience ou Score SW, voir
+     [compte/runes.md](../compte/runes.md)).
+   - **Dégâts** — considère ATQ, Taux Crit et Dmg Crit **ensemble** (une
+     seule formule d'espérance, pas un choix entre plusieurs hypothèses de
+     critique) : `ATQ × (1 + (Taux Crit/100) × (Dgts Crit/100))`. ⚠️ **Taux
+     Crit plafonné à 100 % DANS la formule** (`Math.min(cr, 100)`), même si le
+     total brut d'un build le dépasse (voir Conditions — `computeStats`
+     n'écrête jamais le total lui-même) : au-delà de 100 %, le surplus ne
+     rapporte plus rien en jeu, donc pas plus de dégâts espérés dans ce
+     calcul non plus. Sans ce plafond, un build à 110 % de Taux Crit brut
+     ressortirait avec PLUS de dégâts espérés qu'un build à 100 % pile,
+     alors que les deux critiquent en réalité aussi souvent l'un que
+     l'autre — couvert par un test dédié
+     ([tests/rune-optim.test.ts](tests/rune-optim.test.ts)).
+   - **PV effectifs** — considère PV et DEF ensemble.
+   - **Vitesse** — VIT seule.
+   ⚠️ Le choix influence **deux choses**, pas une seule : il élargit le
+   budget de rétention du pré-filtrage sur les stats propres à l'objectif
+   (voir « Algorithme »), pour qu'elles aient une vraie chance de survivre
+   avant même que la recherche ne démarre — **et** il fixe le tri par défaut
+   des résultats (peut être changé après coup, voir section Résultats).
+6. **Conditions** — les 8 stats (`RECO_STATS`) : PV, ATQ, DEF, VIT, Taux
    Crit, Dmg Crit, RES, Précision. Chaque stat porte **deux champs, minimum
-   et maximum**, tous deux facultatifs (absent = pas de contrainte de ce
-   côté).
-   - **Toggle Bonus / Total** (`<Segmented>`, [Segmented.tsx](src/components/Segmented.tsx))
-     au-dessus de la grille, vaut pour les deux champs : la contrainte
-     réellement posée au moteur est **toujours le total** (comme
-     `RecoSlot.stats`), mais l'affichage peut se lire en **bonus** — ce que
-     l'équipement doit apporter au-dessus de la **base nue** du monstre
-     choisi (même sens que la colonne `bonus` du tableau de stats, voir
-     [StatTable.tsx](src/components/outils/StatTable.tsx)).
+   et maximum**, tous deux facultatifs — **champ vide = pas de contrainte**
+   sur ce côté (pas de case à cocher séparée : la présence d'une valeur EST
+   la décision).
+   - **Interrupteur « Stats de base exclues »** (`<Switch>`, même composant
+     que « Garder mes données » du menu ⚙ — remonté dans
+     [Switch.tsx](src/components/Switch.tsx), voir [README.md](../README.md))
+     au-dessus de la grille, **activé par défaut** : n'affecte **que** PV,
+     ATQ, DEF et VIT — ces 4 stats ont une base qui grandit avec le
+     niveau/l'éveil et que les runes viennent gonfler en % ou en plat, donc
+     raisonner « bonus apporté par l'équipement » a un sens. Activé, le champ
+     porte sur ce que l'équipement doit apporter **au-dessus de la base
+     nue** du monstre choisi ; désactivé, il porte sur le **total**.
+     ⚠️ **Taux Crit, Dmg Crit, RES et Précision restent TOUJOURS en total**,
+     quel que soit ce réglage — elles partent d'une petite valeur d'éveil
+     fixe plutôt que d'une base qui grandit, donc « bonus vs total » n'a pas
+     le même sens pour elles ; leur champ **évolue selon la valeur d'éveil
+     du monstre** (repère affiché en `placeholder`), pas selon ce réglage.
    - ⚠️ **La valeur stockée ne change jamais de nature** : c'est une lecture
      dérivée (`total − base`) qui est recalculée à l'affichage, pas une
-     conversion appliquée une fois puis oubliée. Basculer le toggle change
-     donc immédiatement les chiffres affichés (sans perte), et **saisir**
-     une valeur en mode Bonus l'enregistre convertie en total
-     (`base + valeur saisie`).
-   - Sans monstre sélectionné, la base vaut 0 : les deux modes coïncident.
-   - ⚠️ **En mode Total, aucun des deux champs ne descend sous la base nue du
+     conversion appliquée une fois puis oubliée. Désactiver l'interrupteur
+     change donc immédiatement les 4 champs concernés (sans perte), et
+     **saisir** une valeur pendant qu'il est activé l'enregistre convertie en
+     total (`base + valeur saisie`).
+   - Sans monstre sélectionné, la base vaut 0 : les deux lectures coïncident.
+   - ⚠️ **En lecture Total, aucun champ ne descend sous la base nue du
      monstre choisi** : même sans la moindre rune, le total vaut déjà au
-     moins ça. En mode Bonus, aucun des deux ne descend sous 0. Le champ
-     minimum vide affiche la base en **repère** (`placeholder`), pas « 0 »,
-     qui laisserait croire qu'un total de 0 est une contrainte atteignable.
+     moins ça. En lecture « bonus », aucun ne descend sous 0.
    - ⚠️ **Taux Crit, RES et Précision sont plafonnés à 100 %** sur les deux
      champs — leur effet en jeu ne va jamais au-delà, même si la somme brute
      des runes dépasse. **Dmg Crit n'a pas ce plafond** (200 %+ courant), les
-     autres stats non plus.
-     Ce plafond ne concerne **que la saisie** : la **recherche**, elle, ne
-     doit surtout pas exclure un build dont la somme brute dépasse 100 % —
-     c'est un résultat légitime (une marge de sécurité contre la
-     précision/résistance adverse, par exemple). `computeStats` n'écrête
-     jamais rien ; seuls les champs de saisie sont bornés.
-6. **« Explorer tout l'inventaire »** — case à cocher, **décochée par
+     autres stats non plus. Ce plafond ne concerne **que la saisie** : la
+     **recherche**, elle, ne doit surtout pas exclure un build dont la somme
+     brute dépasse 100 % — c'est un résultat légitime (une marge de sécurité
+     contre la précision/résistance adverse, par exemple). `computeStats`
+     n'écrête jamais rien ; seuls les champs de saisie sont bornés.
+   - **Largeur des champs alignée pixel pour pixel** entre les 8 stats, via
+     `NumberField`, prop `boxWidth` (`w-24` sur les 16 champs de la grille) :
+     la largeur **totale** du contrôle (boutons + champ + suffixe compris)
+     est fixée d'avance, et c'est le champ texte lui-même qui devient
+     flexible (`flex-1`) pour absorber la différence quand un suffixe `%`
+     est présent. ⚠️ Une simple réduction de la largeur du champ texte
+     (essayée d'abord) ne suffisait **pas** : le suffixe prend de la place
+     EN PLUS dans le contrôle, donc à largeur de texte égale un champ avec
+     `%` reste toujours plus large qu'un champ sans — seule une largeur
+     totale fixée en amont garantit l'alignement.
+   - **« Réinitialiser les conditions »** en bas à droite de la grille : vide
+     en un clic les 16 champs (les 8 minimums et les 8 maximums), sans
+     toucher à « Stats de base exclues » ni aux autres réglages de l'écran
+     (set, statistique principale, objectif…) — seules les VALEURS saisies
+     sont concernées.
+7. **« Explorer tout l'inventaire »** — case à cocher, **décochée par
    défaut** (voir « Exclusion des runes » ci-dessous).
-7. **« Options avancées »** (repliées par défaut) — temps limite en secondes
-   et étendue du pré-filtrage par emplacement, tous deux des réglages
-   utilisateur. Voir « Interruption » plus bas pour ce que chacun change
-   concrètement, et pourquoi le second porte un avertissement.
-8. **« Rechercher »** — lance le calcul. Changer un des critères ci-dessus
-   ne relance **rien automatiquement** : il faut recliquer, comme
-   « (Ré)analyser mes decks » dans les recommandations de siège (« rien
-   n'est confronté par défaut »). Pendant le calcul, le bouton affiche une
-   icône de chargement (rotation) et se désactive ; un bouton **« Arrêter »**
-   apparaît à côté — il interrompt la recherche et garde le **meilleur trouvé
-   jusque-là**, plutôt que de tout perdre (voir « Interruption » plus bas).
-9. **Résultats** — jusqu'à 20 combinaisons affichées, chacune : rang, les 6
-   runes (cadres orientés par slot, comme l'onglet Liste des runes), les sets
-   obtenus, la table de stats résultante, la valeur totale dans la **mesure
-   choisie** (Efficience ou Score SW — réglage global, voir
-   [compte/runes.md](../compte/runes.md)). Un sélecteur **« Trier par »**
-   re-trie **côté client, instantanément**, sans relancer la recherche : le
-   moteur a déjà calculé les stats complètes de chaque combinaison retenue.
-   Deux groupes d'options :
-   - **Stats** : les 8 stats brutes + Efficience/Score.
-   - **Objectifs** — critères composites, calculés à l'affichage depuis les
-     stats déjà connues du candidat (`objectiveScore` dans
-     `OptimizerSection.tsx`), pas dans le moteur :
-     - **Dégâts (coup critique assuré)** : `ATQ × (1 + DCC/100)`.
-     - **Dégâts (non critique)** : `ATQ`.
-     - **Dégâts (moyenne)** : `ATQ × (1 + (TC/100) × (DCC/100))` — espérance
-       sur le taux de critique réellement atteint.
-     - **PV effectifs** : `PV × (1140 + 3,5 × DEF) / 1000` — réutilise
-       **exactement** le facteur de défense déjà documenté dans
-       [mecaniques.md](../mecaniques.md), pas une formule maison.
-     ⚠️ Aucune des trois hypothèses de critique n'est « la bonne réponse » —
-     ça dépend du monstre et de l'usage visé (RTA, siège…) ; les trois sont
-     donc proposées côte à côte plutôt qu'un seul choix arbitraire.
+8. **« Options avancées »** (repliées par défaut) : **pré-filtrage par
+   emplacement**, en **presets** (`<Segmented>`) plutôt qu'un curseur libre —
+   défaut **Moyen**. Voir « Interruption » pour ce que chaque niveau change
+   concrètement. Pas de réglage de temps limite : voir « Interruption ».
+9. **Estimation du nombre de builds** — dès qu'un monstre et un set sont
+   choisis, une ligne affiche le produit des pools filtrés par emplacement
+   (`estimateSearchSpace` dans
+   [runeBuildOptim.ts](src/lib/runeBuildOptim.ts)), recalculée en direct à
+   chaque changement de critère. ⚠️ **Un ordre de grandeur, pas le nombre
+   réellement exploré** : le meet-in-the-middle n'énumère jamais ce produit
+   en entier (voir « Algorithme ») — c'est un repère pour juger si les
+   critères actuels sont trop larges ou trop stricts, pas une promesse de
+   temps de calcul.
+10. **« Rechercher »** — lance le calcul. Changer un des critères ci-dessus
+    ne relance **rien automatiquement** : il faut recliquer, comme
+    « (Ré)analyser mes decks » dans les recommandations de siège (« rien
+    n'est confronté par défaut »). Un bouton **« Arrêter »** apparaît à côté
+    pendant le calcul — il interrompt la recherche et garde le **meilleur
+    trouvé jusque-là**, plutôt que de tout perdre (voir « Interruption »).
+11. **Barre de progression** — pendant le calcul, une barre qui se **remplit
+    progressivement** (pas une roue qui tourne), avec le nombre de
+    combinaisons déjà examinées et déjà trouvées. Voir « Interruption » pour
+    comment le pourcentage est estimé.
+12. **Résultats** — jusqu'à 20 combinaisons affichées, chacune : rang, les 6
+    runes (cadres orientés par slot, comme l'onglet Liste des runes,
+    **cliquables** — voir plus bas), les sets obtenus, la table de stats
+    résultante (`StatTable.tsx` — sa colonne TOTAL suit elle aussi le réglage
+    global « Overcap Taux Crit/RES/Précision » du menu ⚙, voir
+    [README.md](../README.md) : désactivé, elle s'arrête à 100 % pour ces
+    trois stats même si le total brut du build le dépasse), la valeur
+    **moyenne par rune** dans la mesure choisie —
+    comparer des builds dans la même unité que la carte d'une rune
+    individuelle, plutôt qu'un total qui ne se lit pas d'un coup d'œil.
+    ⚠️ **Recalculée à l'affichage** (`candidateMetricTotal` dans
+    [runeBuildOptim.ts](src/lib/runeBuildOptim.ts), à partir des VRAIES
+    runes) plutôt que lue depuis `BuildCandidate.effTotal` : ce champ est
+    figé dans la mesure Efficience/Score active AU MOMENT DE LA RECHERCHE
+    (voir `SearchParams.metric`) — si l'utilisateur bascule le réglage (menu
+    ⚙) APRÈS avoir cherché, sans relancer, `effTotal` reste dans l'ancienne
+    mesure alors que le popover d'une rune individuelle, lui, se recalcule
+    toujours en direct. Un affichage qui aurait continué à lire `effTotal`
+    tel quel se serait retrouvé incohérent avec les runes qu'il prétend
+    résumer — bug signalé, corrigé, et couvert par un test dédié
+    ([tests/rune-optim.test.ts](tests/rune-optim.test.ts) : la fonction ne
+    doit JAMAIS lire `effTotal`, vérifié avec un `effTotal` délibérément
+    faux dans le candidat de test). Même correctif appliqué au tri « Trier
+    par efficience » (voir plus bas). Un sélecteur
+    **« Trier par »** re-trie **côté client, instantanément**, sans relancer
+    la recherche : le moteur a déjà calculé les stats complètes de chaque
+    combinaison retenue. Initialisé sur l'objectif choisi avant la
+    recherche, il reste ensuite libre. Deux groupes d'options :
+    - **Stats** : les 8 stats brutes.
+    - **Objectifs** : les 4 mêmes choix qu'à l'étape 5 (Efficience, Dégâts,
+      PV effectifs, Vitesse) — calculés à l'affichage depuis le candidat déjà
+      connu (`objectiveScore` dans
+      [runeBuildOptim.ts](src/lib/runeBuildOptim.ts)), pas recalculés par le
+      moteur.
+    - **Cliquer sur une rune** d'un résultat ouvre le **même popover** que
+      dans Mon compte → Runes (`DetailPopover` + `RuneDetailBox`, ancré sur
+      la rune cliquée) — les runes d'un candidat sont de vraies runes du
+      compte, autant pouvoir les inspecter sans aller les rechercher
+      ailleurs. La rune dont le popover est ouvert porte un **liseré
+      d'accent** (`ring-accent`) directement sur son cadre, pour la
+      retrouver d'un coup d'œil parmi les 6. Une seule rune ouverte à la
+      fois, **parmi TOUS les résultats affichés** (pas seulement dans la
+      même carte) : cliquer une autre rune ferme celle déjà ouverte,
+      exactement comme dans Mon compte → Runes → Optimisation. ⚠️ L'identité
+      d'une rune ouverte (et donc du liseré) combine le candidat ET
+      le slot (`BuildCandidateCard.tsx`), pas seulement l'id de la rune : la
+      même rune peut apparaître dans plusieurs candidats affichés à la fois,
+      et ne doit ouvrir qu'UNE instance à la fois.
 
 ⚠️ **Rien n'est appliqué au compte.** L'outil est en lecture seule et
 purement indicatif, comme le reste de SW Forge (aucune écriture vers le
@@ -147,20 +287,32 @@ qu'un autre appelant construise le sien.
 > (pool + exclusion calculée par l'appelant) ne s'y oppose pas, mais rien de
 > tout ça n'est implémenté pour l'instant.
 
-## Interruption — temps limite et arrêt manuel
+## Interruption — filet de temps, pré-filtrage et arrêt manuel
 
 Trois façons dont une recherche s'arrête **avant** d'avoir tout exploré, en
 plus du plafond de candidats collectés :
 
-- **Temps limite** (`maxMs`, 15 s par défaut) — **réglage utilisateur**
-  (« Options avancées » de l'écran, champ en secondes). Champ vidé = pas de
-  limite automatique, seul le bouton « Arrêter » reste un recours.
-- **Pré-filtrage par emplacement** (`slotFilterCap`, 40 par défaut) —
-  également un réglage utilisateur, borné à 80 dans l'UI et accompagné d'un
-  avertissement explicite : le relever aide à retenir plus de runes
-  candidates, au prix d'un temps de recherche qui grandit vite sur un gros
-  compte. Voir « Validation grandeur nature » pour ce que ce réglage change
-  concrètement, et ses limites.
+- **Filet de temps** (`maxMs`) — **fixe, non réglable** : 10 minutes
+  (`HARD_TIMEOUT_MS` dans `OptimizerSection.tsx`). ⚠️ Ce n'est pas pensé
+  comme un réglage à ajuster : c'est une garde-fou en cas de recherche
+  anormalement longue, assez large pour ne jamais couper une recherche
+  légitime au preset Extrême sur un gros compte (voir « Validation grandeur
+  nature »). Le vrai moyen de reprendre la main **avant** ces 10 minutes
+  reste le bouton « Arrêter », pas un réglage de durée.
+- **Pré-filtrage par emplacement** (`slotFilterCap`) — **presets**, pas un
+  nombre libre, calibrés par mesure sur un vrai compte (voir « Validation
+  grandeur nature ») :
+
+  | Preset | `slotFilterCap` | Coût |
+  |---|---|---|
+  | Bas | 40 | Rapide — suffit la plupart du temps |
+  | Moyen (défaut) | 80 | Un peu plus large, coût encore modéré |
+  | Haut | 150 | Nettement plus de runes considérées, recherche plus lente |
+  | Extrême | 300 | La valeur mesurée nécessaire pour retrouver un build réel sur un très gros compte — peut prendre plusieurs dizaines de secondes |
+
+  ⚠️ Défaut passé de Bas à **Moyen** : Bas (40) s'est montré trop juste sur
+  un vrai gros compte (voir « Validation grandeur nature », premier tour).
+
 - **Bouton « Arrêter »** — l'utilisateur reprend la main quand il l'estime
   suffisant, sans attendre un plafond. Contrairement à un simple
   `worker.terminate()` (qui perdrait tout le travail déjà fait),
@@ -176,6 +328,29 @@ Les cas de troncature se distinguent dans le message affiché : un arrêt
 manuel dit « voici le meilleur trouvé jusque-là » (un choix assumé), un
 plafond atteint dit « resserre tes critères » (une limite subie) — voir la
 section Résultats plus haut.
+
+### Barre de progression
+
+Le Worker ([runeBuildOptim.worker.ts](src/workers/runeBuildOptim.worker.ts))
+poste des messages de progression **entre** les points de passage du
+générateur, **throttlés au temps écoulé** (au plus un tous les 150 ms) pour
+ne jamais flooder le fil principal même quand l'élagage va très vite. Chaque
+message porte `explored`, `found` et un `pct` **approximatif** : le plus
+avancé des trois budgets qui peuvent chacun déclencher la fin de la
+recherche —
+
+```
+pct = max(explored / maxNodes, found / maxCollected, tempsÉcoulé / maxMs)
+```
+
+⚠️ **Approximatif par construction**, pas une mesure exacte d'avancement :
+le meet-in-the-middle ne consomme pas ces trois budgets à un rythme
+constant d'une recherche à l'autre (ça dépend de combien de paires de
+compartiments passent le pré-filtre de faisabilité), donc la barre peut
+accélérer ou ralentir en cours de route plutôt que progresser
+régulièrement. C'est délibérément le budget de **candidats collectés**
+(`maxCollected`) qui domine le plus souvent en pratique — voir
+« Vérification ».
 
 ## Validation grandeur nature — ce qu'un vrai compte a révélé
 
@@ -259,7 +434,7 @@ runage exact, pour un temps de recherche qui reste raisonnable.
 - Le vrai obstacle avait **deux couches**, découvertes l'une après l'autre en
   mesurant plutôt qu'en devinant : d'abord le pré-filtrage **par slot**, puis
   — une fois celui-ci desserré — le regroupement **par compartiment**. Les
-  deux sont maintenant réglables (`slotFilterCap`) ou recalibrés
+  deux sont maintenant réglables (`slotFilterCap`, en presets) ou recalibrés
   (`BUCKET_CAP`), et le moteur ne risque plus de plantage mémoire en
   poussant l'un des deux.
 - La **contrainte de statistique principale** (slots 2/4/6) aide aussi
@@ -292,14 +467,65 @@ plus haut.
 - **Statistique principale imposée (slots 2/4/6)** : appliquée **avant**
   tout le reste, dans la construction même du pool par slot — un candidat
   dont la mainstat n'est pas dans la liste autorisée n'entre jamais en jeu.
-- **Pré-filtrage par emplacement**, ensuite : chaque slot ne garde qu'un
-  nombre borné de runes candidates (`slotFilterCap`) — celles du (ou des)
-  set(s) recherché(s), les meilleures par pertinence vis-à-vis des minimums
-  demandés, **et** le meilleur du slot sur **chacune des 8 stats
-  individuellement**, même sans minimum demandé dessus (pour que le tri
-  après coup reste honnête sur un critère non contraint).
-  ⚠️ **Heuristique** : au-delà de ce pré-filtrage, le résultat est « le
-  meilleur trouvé parmi le pool retenu ».
+- **Deux élagages SÛRS, ensuite — jamais un faux rejet, contrairement au
+  pré-filtrage heuristique qui suit** (`pruneDominated` puis
+  `eliminateInfeasible`, avant même `filterSlot`) :
+  - **Dominance** : une rune strictement moins bonne qu'une autre du MÊME
+    slot ne sert jamais à rien — si B égale ou dépasse A sur pct **et** flat
+    de chaque stat (avantage strict quelque part), tout build valide utilisant
+    A resterait valide, et au moins aussi bon, en remplaçant A par B.
+    Comparaison limitée aux runes de **même set** (ou toutes deux hors du
+    combo demandé) : comparer des sets différents pertinents pour le combo
+    ferait perdre une pièce essentielle au profit d'une rune aux stats
+    brutes meilleures mais inutile pour le combo. ⚠️ **Sur une stat
+    PLAFONNÉE** (un maximum est demandé dessus), le sens s'inverse : plus
+    n'est PAS toujours sans risque (ça peut faire dépasser le plafond), donc
+    seule l'égalité stricte y est sûre à comparer — un piège identifié et
+    corrigé en cours de route (voir `isDominated` dans
+    [runeBuildOptim.ts](src/lib/runeBuildOptim.ts)), non couvert par le test
+    différentiel existant (qui n'exerce pas `maxStats`) mais couvert par un
+    cas écrit à la main depuis. Comparaison bornée à `DOMINANCE_MAX_POOL`
+    (2000) par slot : O(n²), négligeable aux tailles réelles, mais sans
+    borne un `exploreAll` sur un très gros compte pourrait coûter cher pour
+    un gain marginal — au-delà, on renonce à cet élagage plutôt que de
+    ralentir.
+  - **Faisabilité** : une rune ne peut jamais entrer dans un build valide si,
+    même avec le **meilleur trouvé dans le pool RÉELLEMENT possédé** (pas une
+    borne théorique du jeu) de chacun des 5 autres emplacements, un minimum
+    demandé reste hors de portée — ou si elle dépasse déjà, À ELLE SEULE, un
+    maximum demandé (les autres emplacements ne peuvent qu'AJOUTER, jamais
+    retirer). C'est la réponse directe à un exemple concret remonté :
+    « le maximum de VIT sur une rune est ~37-42, ça devrait déjà éliminer des
+    runes mathématiquement incapables d'atteindre le minimum demandé ». Plutôt
+    que coder cette borne théorique du jeu en dur, `eliminateInfeasible`
+    calcule le MEILLEUR RÉELLEMENT POSSÉDÉ par slot (`computeSlotMaxBounds`) —
+    plus étroit que la borne théorique, donc plus efficace, et tout aussi sûr
+    puisque c'est un maximum OBSERVÉ, pas estimé.
+- **Pré-filtrage heuristique par emplacement**, ensuite (`filterSlot`) :
+  chaque slot ne garde qu'un nombre borné de runes candidates
+  (`slotFilterCap`) — celles du (ou des) set(s) recherché(s) (`matches`), les
+  meilleures toutes provenances par pertinence vis-à-vis des minimums
+  demandés (`scored.slice(fillCap)`), **une tranche garantie de runes HORS du
+  set demandé** (`offSet`, même taille que la précédente — voir « Limites
+  connues » pour l'incident qui l'a motivée), **et** le meilleur du slot sur
+  **chacune des 8 stats individuellement** (`PER_STAT_KEEP`), même sans
+  minimum demandé dessus (pour que le tri après coup reste honnête sur un
+  critère non contraint).
+  ⚠️ **Budget élargi pour l'objectif choisi** (`PER_STAT_KEEP_OBJECTIVE`,
+  24 au lieu de 6) : les stats propres à l'objectif de recherche (ATQ/Taux
+  Crit/Dmg Crit pour Dégâts, PV/DEF pour PV effectifs, VIT pour Vitesse — «
+  Efficience » n'en a aucune, c'est déjà la lentille par défaut) reçoivent un
+  budget de rétention nettement plus large que les autres, pour qu'elles
+  aient une vraie chance de survivre au pré-filtrage. C'est ce choix, fait
+  **avant** de lancer la recherche, qui « oriente le type de rune étudié ».
+  ⚠️ **Heuristique** malgré tout : au-delà de ce pré-filtrage, le résultat
+  est « le meilleur trouvé parmi le pool retenu ».
+- **`estimateSearchSpace`** (exporté) réutilise EXACTEMENT le même
+  pré-filtrage (`buildFilteredBySlot`, factorisé pour être partagé) pour
+  calculer, avant de lancer la recherche, le produit des tailles de pool par
+  slot — l'estimation affichée dans l'UI (voir « Écran »). Les deux voient
+  donc toujours le même pool ; l'estimation ne peut pas mentir par
+  divergence avec ce que la recherche fera réellement.
 - **Compartiments construits EN FLUX, bornés en mémoire** (`BUCKET_CAP`,
   600) : chaque combinaison d'une moitié est évaluée puis, selon son mérite,
   retenue ou **immédiatement jetée** — jamais de tableau intermédiaire de
@@ -319,13 +545,14 @@ plus haut.
   réelles** (`activeSets`/`missingSets`) avant d'être retenu.
 - **Élagage de faisabilité MIN et MAX, pas d'optimisation vers un seul
   critère** : la recherche collecte un ensemble large mais borné de
-  combinaisons valides (jusqu'à 2000, mesuré), pour permettre le tri après
-  coup sur n'importe quel critère sans recalcul. Le maximum se prête à un
+  combinaisons valides (jusqu'à `MAX_COLLECTED`, 5000 — relevé depuis 2000
+  après mesure, voir « Vérification »), pour permettre le tri après coup sur
+  n'importe quel critère sans recalcul. Le maximum se prête à un
   élagage plus simple que le minimum : une combinaison ne peut qu'AJOUTER en
   complétant les 6 runes (jamais retirer), donc dès qu'un maximum est déjà
   dépassé par la première moitié seule (plus le contexte fixe), aucune
   seconde moitié ne peut plus repasser sous la barre — branche coupée sans
-  even ouvrir la boucle de la moitié B.
+  même ouvrir la boucle de la moitié B.
 - **Artéfacts et relique restent fixes** (ceux actuellement équipés) :
   l'outil optimise **uniquement les 6 runes**.
 - Toutes les valeurs sont recalculées avec [stats.ts](src/lib/stats.ts)
@@ -333,7 +560,9 @@ plus haut.
 - **Écrit comme un générateur** (`searchBuildsSteps`), pas une seule boucle
   qui tourne jusqu'au bout : il rend un point de passage tous les 500 paires
   évaluées. `searchBuilds` (l'API historique, utilisée par les tests et le
-  benchmark) ne fait que le drainer d'un bloc.
+  benchmark) ne fait que le drainer d'un bloc. Le Worker, lui, pilote le
+  générateur pas à pas et poste des messages de progression **throttlés au
+  temps** entre deux points de passage — voir « Interruption ».
 
 ### Vérification
 
@@ -343,17 +572,49 @@ Discipline imposée par
 compare le moteur à une référence **naïve et exhaustive** sur des jeux de
 runes aléatoires mais déterministes (seed fixe) — même verdict de
 faisabilité, aucun faux positif, même optimum exact sur les scénarios non
-tronqués. [tests/rune-optim.test.ts](tests/rune-optim.test.ts) couvre en
-plus, à la main, la statistique principale imposée (une rune écartée quand
-sa mainstat ne correspond pas, une autre retenue) et les conditions maximum
-(rejet au-delà, acceptation en-deçà, encadrement exact).
+tronqués. ⚠️ Cette référence a servi de garde-fou lors de l'ajout de la
+dominance et de la faisabilité par rune : les 15 scénarios (dont certains
+avec `minStats`) sont restés verts après coup, preuve qu'aucun des deux
+élagages ne rejette à tort une combinaison réellement valide — un scénario
+a même vu le moteur renvoyer MOINS de candidats que la référence brute-force
+(285 contre 307) tout en retrouvant EXACTEMENT le même optimum : la
+dominance élimine légitimement des combinaisons redondantes (une rune
+strictement moins bonne qu'une autre), sans jamais perdre la meilleure.
+
+[tests/rune-optim.test.ts](tests/rune-optim.test.ts) couvre en plus, à la
+main, la statistique principale imposée (une rune écartée quand sa mainstat
+ne correspond pas, une autre retenue), les conditions maximum (rejet
+au-delà, acceptation en-deçà, encadrement exact), et — ajoutés avec les deux
+nouveaux élagages — quatre scénarios ciblés : une rune dominée jamais
+retenue quand une alternative strictement meilleure existe ; une rune tout
+juste hors de portée d'un minimum (frontière exacte : le meilleur cas
+possible passe, un cran au-dessus échoue) ; le symétrique côté maximum (une
+rune dont la seule contribution dépasse déjà le plafond, écartée même si le
+reste du build resterait dessous) ; et un test qui mesure — pas seulement
+vérifie l'absence de faux rejet — que l'élagage réduit RÉELLEMENT le travail
+exploré (`explored` vaut exactement le nombre de candidats mathématiquement
+capables d'atteindre le minimum, pas la taille brute du pool). Ce dernier a
+d'ailleurs révélé en cours d'écriture que la dominance et la faisabilité
+peuvent se chevaucher sur un même jeu de données mal choisi (deux runes qui
+ne diffèrent QUE sur la stat contrainte se dominent l'une l'autre avant même
+d'atteindre l'élagage de faisabilité) — les fixtures ont été corrigées pour
+isoler chaque mécanisme (une stat annexe, non contrainte, qui varie en sens
+opposé empêche la dominance de s'appliquer).
 
 [scripts/benchmark-optim.ts](scripts/benchmark-optim.ts) (`npm run
 benchmark:optim`, hors `npm test`) calibre les constantes sur des pools
-synthétiques de 500 à 5000 runes — c'est ce qui a fixé `MAX_COLLECTED = 2000`.
-La « Validation grandeur nature » ci-dessus complète ce calibrage sur un vrai
-compte, pour des ordres de grandeur (nombre de runes par slot, poids d'un
-compartiment) qu'un pool synthétique ne reproduit pas forcément.
+synthétiques de 500 à 5000 runes — la troncature au plafond de collecte est
+SYSTÉMATIQUE (le budget de paires n'est jamais le facteur limitant) sur les
+4 scénarios testés, ce qui a d'abord fixé `MAX_COLLECTED = 2000`, puis motivé
+son relevé à **5000** après une plainte directe (le message de troncature
+revenait trop souvent en usage réel) : le pire cas mesuré AVEC ce nouveau
+plafond (pool 5000, scénario le plus serré) reste sous ~2,9 s — largement
+dans le filet de 10 minutes du Worker (voir « Interruption »).
+[scripts/monster-search-cap-sweep.ts](scripts/monster-search-cap-sweep.ts) et
+les autres `scripts/monster-*.ts` (généralisés — prennent monstre/deck en
+argument, plus de nom de monstre en dur) rejouent la « Validation grandeur
+nature » ci-dessus sur n'importe quel compte réel, pour des ordres de
+grandeur qu'un pool synthétique ne reproduit pas forcément.
 
 ## Limites connues
 
@@ -361,7 +622,29 @@ compartiment) qu'un pool synthétique ne reproduit pas forcément.
   garantie d'optimalité globale absolue au-delà de ce que ces deux étages
   retiennent. `slotFilterCap` et `BUCKET_CAP` sont mesurés sur un compte réel
   (voir « Validation grandeur nature »), pas prouvés exhaustifs dans
-  l'absolu.
+  l'absolu. ⚠️ Les deux élagages SÛRS qui le précèdent (dominance,
+  faisabilité — voir « Algorithme ») ne changent rien à cette limite : ils ne
+  retirent QUE des runes prouvées inutiles, jamais une qui pourrait compter —
+  c'est le pré-filtrage heuristique, en aval, qui reste sans garantie.
+- **Un set demandé pouvait saturer le pré-filtrage sur TOUS les emplacements,
+  pas seulement ceux qui en ont besoin.** Exemple concret remonté : demander
+  Rapide seul (4 pièces) sur un compte qui en possède beaucoup pouvait
+  renvoyer des builds à 6 pièces Rapide plutôt que 4 Rapide + 2 runes d'un
+  autre set performant — parce que `filterSlot` réservait une place
+  « prioritaire » aux runes du set demandé sur les **6** emplacements
+  (`matchCap`), alors que 4 suffiraient et les 2 autres auraient dû rester
+  ouverts à toute alternative. **Corrigé** : `filterSlot` réserve désormais
+  aussi une tranche garantie de runes **hors** du set demandé
+  (`offSet`, taille `fillCap`, symétrique de `matches`) — sans elle, quand
+  les meilleures runes toutes provenances du joueur sont justement du set
+  demandé (courant : c'est souvent LE set qu'il a optimisé), `matches` ET la
+  tranche générique se recouvraient presque entièrement, et aucune
+  alternative d'un autre set n'avait jamais sa propre place garantie. Testé
+  sur un vrai compte : nette amélioration confirmée par l'utilisateur.
+  ⚠️ Reste néanmoins un correctif du PRÉ-FILTRAGE, pas une garantie : si les
+  meilleures runes du joueur pour l'objectif choisi sont réellement toutes du
+  set demandé, un résultat « tout-un-set » peut être la bonne réponse
+  mathématique, pas un bug résiduel.
 - Artéfacts et relique du monstre restent fixes ; l'outil ne travaille que
   sur les runes.
 - L'exclusion v1 ne connaît que la **box** (6★ équipés) ; RTA, Siège et
@@ -371,9 +654,14 @@ compartiment) qu'un pool synthétique ne reproduit pas forcément.
   collectées en priorité plutôt que les premières rencontrées. Trier les
   paires par potentiel optimiste avant de les explorer reste un chantier
   ouvert.
-- `maxMs` et `slotFilterCap` sont des réglages utilisateur (« Options
-  avancées ») ; `maxCollected`/`maxNodes`/`BUCKET_CAP` restent des paramètres
-  du moteur non exposés dans l'UI.
-- Les objectifs de tri (Dégâts, PV effectifs) sont des **formules
-  communautaires prédictives**, comme celles de la page Mécaniques — pas une
-  simulation de combat réel.
+- Seul le preset de `slotFilterCap` est un réglage utilisateur
+  (« Options avancées ») ; `maxMs` (fixe, 10 min) et
+  `maxCollected`/`maxNodes`/`BUCKET_CAP` restent des paramètres du moteur non
+  exposés dans l'UI.
+- **L'estimation du nombre de builds** (`estimateSearchSpace`) est un ordre
+  de grandeur (le produit des pools filtrés par slot), pas le nombre
+  réellement exploré par le meet-in-the-middle — et **la barre de
+  progression** est elle-même approximative (voir « Interruption »), pas une
+  mesure exacte d'avancement.
+- L'objectif « Dégâts » est une **formule communautaire prédictive**, comme
+  celles de la page Mécaniques — pas une simulation de combat réel.

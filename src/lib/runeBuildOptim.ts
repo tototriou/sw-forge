@@ -75,7 +75,16 @@ export interface BuildRequirement {
 export interface BuildCandidate {
   runeIds: number[]; // 6 ids, alignés slot 1..6
   stats: StatRow[]; // computeStats(base + ces 6 runes + artefacts/relique fixes)
-  effTotal: number; // somme des 6 valeurs individuelles, dans la mesure demandée
+  // ⚠️ Somme des 6 valeurs individuelles, dans la mesure ACTIVE AU MOMENT DE
+  // LA RECHERCHE (`SearchParams.metric`), figée dans le candidat. Le réglage
+  // global Efficience/Score (menu ⚙) peut changer APRÈS coup sans relancer
+  // de recherche — ce champ ne le sait pas et devient alors incohérent avec
+  // le popover d'une rune individuelle (qui, lui, se recalcule en direct).
+  // ⚠️ Ne JAMAIS afficher ce champ tel quel dans l'UI : utiliser
+  // `candidateMetricTotal(candidate, runeById, metric)` (recalculé à partir
+  // des VRAIES runes, dans la mesure COURANTE) pour tout affichage ou tri
+  // qui doit rester juste si l'utilisateur change de mesure sans relancer.
+  effTotal: number;
 }
 
 export interface SearchParams {
@@ -89,6 +98,11 @@ export interface SearchParams {
   maxCollected?: number; // plafond de candidats retenus avant arrêt (défaut MAX_COLLECTED)
   maxMs?: number; // budget de TEMPS écoulé, en ms (défaut DEFAULT_MAX_MS)
   slotFilterCap?: number; // candidats retenus par slot et par paquet (défaut MAX_PER_SLOT_MATCH/FILL)
+  // Choix fait AVANT de lancer la recherche (voir OptimizerSection.tsx) :
+  // oriente le PRÉ-FILTRAGE par slot vers les stats utiles à cet objectif,
+  // en plus de servir de tri par défaut des résultats. Absent = aucun biais
+  // (le pré-filtrage ne suit que minStats/maxStats/l'efficience générale).
+  objective?: Objective;
 }
 
 export interface SearchResult {
@@ -97,21 +111,107 @@ export interface SearchResult {
   truncated: boolean;
 }
 
-const DEFAULT_MAX_NODES = 400_000;
+// Objectifs : choisis AVANT de lancer la recherche (OptimizerSection.tsx),
+// un grand bouton à choix unique — pour orienter le type de rune étudié dès
+// le pré-filtrage, pas seulement trier les résultats après coup.
+export type Objective = 'efficience' | 'degats' | 'ehp' | 'vitesse';
+
+export const OBJECTIVE_LABELS: { key: Objective; label: string }[] = [
+  { key: 'efficience', label: 'Efficience' },
+  { key: 'degats', label: 'Dégâts' },
+  { key: 'ehp', label: 'PV effectifs' },
+  { key: 'vitesse', label: 'Vitesse' },
+];
+
+// Stats individuellement pertinentes pour chaque objectif — sert à élargir
+// leur budget de rétention dans `filterSlot`, pour que le pré-filtrage ne
+// laisse pas passer à côté des runes utiles à l'objectif choisi avant même
+// que la recherche complète ne démarre. « Efficience » n'en a pas : c'est
+// déjà la lentille par défaut du pré-filtrage (voir `relevance`), aucun
+// biais de plus à lui donner.
+const OBJECTIVE_RELEVANT_STATS: Record<Objective, StatKey[]> = {
+  efficience: [],
+  degats: ['atk', 'cr', 'cd'],
+  ehp: ['hp', 'def'],
+  vitesse: ['spd'],
+};
+
+export function statTotal(stats: StatRow[], key: StatKey): number {
+  return stats.find((s) => s.key === key)?.total ?? 0;
+}
+
+// Score d'un candidat DÉJÀ CALCULÉ, selon l'objectif choisi. Prend le
+// candidat entier (pas seulement ses stats) : « Efficience » lit `effTotal`
+// (la mesure choisie globalement — voir compte/runes.md), pas une stat.
+// ⚠️ La branche « efficience » hérite donc de la mesure FIGÉE au moment de la
+// recherche (voir `BuildCandidate.effTotal`) — pour un tri ou un affichage
+// qui doit rester juste si l'utilisateur change de mesure après coup SANS
+// relancer, utiliser `candidateMetricTotal` à la place (voir plus bas),
+// jamais cette fonction pour « efficience » spécifiquement.
+//  - dégâts : espérance sur le taux de critique réellement atteint — ni
+//    « toujours critique » ni « jamais », ce que le joueur observe en
+//    moyenne sur beaucoup de coups.
+//  - PV effectifs : réutilise le facteur de défense déjà documenté dans
+//    spec/mecaniques.md (1000 / (1140 + 3,5 × DEF)), pas une formule maison.
+export function objectiveScore(candidate: BuildCandidate, objective: Objective): number {
+  if (objective === 'efficience') return candidate.effTotal;
+  const { stats } = candidate;
+  if (objective === 'vitesse') return statTotal(stats, 'spd');
+  if (objective === 'degats') {
+    const atk = statTotal(stats, 'atk');
+    // ⚠️ Le Taux Crit est PLAFONNÉ à 100 % dans le jeu — passer 100 % ne
+    // rapporte plus rien (la formule utiliserait sinon une chance de critique
+    // > 100 %, gonflant les dégâts espérés d'un build dont le total brut
+    // dépasse 100 % au-delà de ce qu'il apporte réellement en jeu). `computeStats`
+    // n'écrête jamais rien lui-même (voir Conditions) : c'est ICI, au moment
+    // de transformer une stat en dégâts, que le plafond compte.
+    const cr = Math.min(statTotal(stats, 'cr'), 100);
+    return atk * (1 + (cr / 100) * (statTotal(stats, 'cd') / 100));
+  }
+  const hp = statTotal(stats, 'hp');
+  const def = statTotal(stats, 'def');
+  return (hp * (1140 + 3.5 * def)) / 1000;
+}
+
+// Efficience/Score total d'un candidat, recalculé À LA DEMANDE à partir des
+// VRAIES runes, dans la mesure COURANTE — contrairement à `BuildCandidate.
+// effTotal`, figé dans la mesure active au moment de la recherche. À utiliser
+// pour tout affichage ou tri qui doit rester cohérent avec le popover d'une
+// rune individuelle (lui-même toujours recalculé en direct) même si
+// l'utilisateur bascule Efficience ↔ Score (menu ⚙) après avoir lancé la
+// recherche, sans la relancer.
+export function candidateMetricTotal(
+  candidate: BuildCandidate,
+  runeById: Map<number, RuneDetail>,
+  metric: OptimMetric
+): number {
+  let sum = 0;
+  for (const id of candidate.runeIds) {
+    const r = runeById.get(id);
+    if (!r) continue;
+    sum += metric === 'eff' ? runeEfficiency(r) : runeScore(r);
+  }
+  return sum;
+}
+
+// Exportés (au lieu de rester locaux) : le Worker en a besoin pour estimer
+// une progression (`explored`/`maxNodes`, etc.) sans dupliquer ces valeurs.
+export const DEFAULT_MAX_NODES = 400_000;
 // ⚠️ Calibré par mesure, pas au jugé (scripts/benchmark-optim.ts, voir
 // spec/outils/optimizer.md) : sur des pools synthétiques de 500 à 5000
 // runes, la troncature au plafond de collecte est SYSTÉMATIQUE (le budget de
-// paires n'est jamais le facteur limitant), et le passer à 5000 restait sous
-// ~4 s dans le pire scénario testé. 2000 est un compromis mesuré entre
-// « le message de troncature devient rare » et « la recherche reste rapide ».
-// Surchargeable via SearchParams.maxCollected.
-const MAX_COLLECTED = 2000;
+// paires n'est jamais le facteur limitant). Relevé de 2000 à 5000 après
+// mesure — plainte directe : le message de troncature revenait trop souvent
+// en usage réel — le pire cas mesuré (pool 5000, scénario le plus serré,
+// AVEC ce plafond à 5000) reste sous ~2,9 s, largement dans le filet de 10
+// min du Worker. Surchargeable via SearchParams.maxCollected.
+export const MAX_COLLECTED = 5000;
 // Filet de sécurité indépendant de maxNodes/maxCollected : sur les scénarios
 // mesurés (500 à 5000 runes, scripts/benchmark-optim.ts), le pire cas était
 // sous ~4 s — 15 s laisse une marge large avant de considérer qu'une
 // recherche est anormalement lente, sans jamais bloquer l'interface
 // puisqu'elle tourne dans un Worker. Surchargeable via SearchParams.maxMs.
-const DEFAULT_MAX_MS = 15_000;
+export const DEFAULT_MAX_MS = 15_000;
 // Deux paquets par slot : les runes du (ou des) set(s) demandé(s) — pour
 // garantir qu'une combinaison satisfaisant le combo reste atteignable même
 // après filtrage — et les meilleures runes toutes provenances, pour la
@@ -127,6 +227,12 @@ const MAX_PER_SLOT_FILL = 40;
 // après coup (voir OptimizerSection.tsx) ne peut être honnête que si le pool
 // pré-filtré garde une chance à chacun des 9 critères de tri proposés.
 const PER_STAT_KEEP = 6;
+// Budget élargi pour les stats de l'OBJECTIF choisi (voir OBJECTIVE_RELEVANT_
+// STATS) : l'utilisateur a explicitement dit « je cherche des dégâts » (ou
+// « des PV effectifs ») avant même de lancer la recherche — le pré-filtrage
+// doit lui laisser une vraie chance d'en trouver, pas juste une place parmi
+// six comme les autres stats.
+const PER_STAT_KEEP_OBJECTIVE = 24;
 // Combinaisons retenues par COMPARTIMENT (pas par slot) — voir l'en-tête du
 // fichier. Borne la mémoire indépendamment de `slotFilterCap` : même à un
 // pré-filtrage large, un compartiment ne grossit jamais au-delà de ça.
@@ -185,7 +291,8 @@ export function filterSlot(
   candidates: RuneDetail[],
   requirement: BuildRequirement,
   matchCap = MAX_PER_SLOT_MATCH,
-  fillCap = MAX_PER_SLOT_FILL
+  fillCap = MAX_PER_SLOT_FILL,
+  objective?: Objective
 ): RuneDetail[] {
   const requiredKeys = new Set(requirement.sets);
   const scored = candidates
@@ -198,19 +305,189 @@ export function filterSlot(
   for (const { r } of matches.slice(0, matchCap)) kept.set(r.id, r);
   for (const { r } of scored.slice(0, fillCap)) kept.set(r.id, r);
 
-  // Le meilleur d'un slot sur chaque stat individuellement — voir PER_STAT_KEEP.
+  // ⚠️ Réserve GARANTIE de runes HORS du set demandé, symétrique de `matches`.
+  // Sans elle : quand les meilleures runes toutes provenances du joueur sont
+  // justement du set demandé (courant — c'est souvent LE set qu'il a
+  // optimisé), `matches` ET `scored.slice(fillCap)` se recouvrent presque
+  // entièrement, et aucune alternative d'un AUTRE set n'a jamais sa propre
+  // place garantie — la recherche ne peut alors proposer que des builds
+  // tout-un-set, même quand le combo demandé n'en réclame qu'une partie des
+  // pièces (ex. un set 4 pièces sur 6 emplacements). Signalé sur un compte
+  // réel (voir spec/outils/optimizer.md, « Limites connues »).
+  const offSet = scored.filter(({ r }) => !requiredKeys.has(r.set) && r.set !== 'intangible');
+  for (const { r } of offSet.slice(0, fillCap)) kept.set(r.id, r);
+
+  // Le meilleur d'un slot sur chaque stat individuellement — voir
+  // PER_STAT_KEEP. Budget élargi (PER_STAT_KEEP_OBJECTIVE) pour les stats de
+  // l'objectif choisi, s'il y en a un.
+  const objectiveKeys = objective ? OBJECTIVE_RELEVANT_STATS[objective] : [];
   for (const k of ALL_STAT_KEYS) {
+    const keepN = objectiveKeys.includes(k) ? PER_STAT_KEEP_OBJECTIVE : PER_STAT_KEEP;
     const top = candidates
       .map((r) => {
         const c = runeContribution(r, k);
         return { r, v: c.pct + c.flat };
       })
       .sort((a, b) => b.v - a.v)
-      .slice(0, PER_STAT_KEEP);
+      .slice(0, keepN);
     for (const { r } of top) kept.set(r.id, r);
   }
 
   return Array.from(kept.values());
+}
+
+/* --------------------------------------------------------------------------
+ * Élagage SÛR n°1 — DOMINANCE. Une rune strictement moins bonne qu'une autre
+ * du même slot ne sert jamais à rien : si B égale ou dépasse A sur pct ET
+ * flat de CHAQUE stat, avec un avantage strict quelque part (ou une valeur
+ * identique en tout point, départagée par l'id pour ne garder qu'un seul
+ * exemplaire), alors tout build valide utilisant A resterait valide — et au
+ * moins aussi bon — en remplaçant A par B. C'est vrai pour n'importe quel
+ * critère de tri après coup, puisqu'aucune stat ne recule.
+ * ----------------------------------------------------------------------- */
+
+// ⚠️ Comparer deux runes de sets DIFFÉRENTS n'est sûr que si leur set est
+// ÉQUIVALENT du point de vue de la satisfaction du combo demandé — sinon une
+// rune moins bonne en stats brutes mais seule à apporter une pièce de set
+// manquante serait écartée à tort. Deux cas sûrs : même set (interchangeables
+// pièce pour pièce, y compris deux jokers) ; ou aucun des deux sets ne compte
+// pour le combo demandé (ni l'un ni l'autre n'apporte de pièce, donc le set
+// n'entre pas en ligne de compte).
+function isSetIrrelevant(setKey: string, requiredKeys: Set<string>): boolean {
+  return setKey !== 'intangible' && !requiredKeys.has(setKey);
+}
+function isSetComparable(a: RuneDetail, b: RuneDetail, requiredKeys: Set<string>): boolean {
+  if (a.set === b.set) return true;
+  return isSetIrrelevant(a.set, requiredKeys) && isSetIrrelevant(b.set, requiredKeys);
+}
+
+// ⚠️ **Un maximum INVERSE le sens de « mieux ».** Sur une stat SANS plafond,
+// plus est toujours sans risque : B qui égale ou dépasse A partout domine A.
+// Mais sur une stat PLAFONNÉE (`maxKeys`), plus peut faire DÉPASSER le
+// maximum — une rune qui en apporte davantage n'est pas « au moins aussi
+// bonne », elle est plus dangereuse. Sur ces stats-là, seule l'ÉGALITÉ
+// stricte (ni plus, ni moins) reste sûre à comparer : on ne sait pas, sans
+// connaître le reste du build, si « plus » ou « moins » serait le bon choix.
+function isDominated(a: RuneDetail, b: RuneDetail, requiredKeys: Set<string>, maxKeys: Set<StatKey>): boolean {
+  if (a.id === b.id || !isSetComparable(a, b, requiredKeys)) return false;
+  let strictlyBetter = false;
+  for (const k of ALL_STAT_KEYS) {
+    const ca = runeContribution(a, k);
+    const cb = runeContribution(b, k);
+    if (maxKeys.has(k)) {
+      // Stat plafonnée : seule l'égalité est sûre dans les deux sens.
+      if (cb.pct !== ca.pct || cb.flat !== ca.flat) return false;
+    } else {
+      // pct et flat comparés SÉPARÉMENT : additionner les deux avant de
+      // comparer mélangerait deux échelles différentes (un pct s'applique à
+      // la base, un flat s'ajoute tel quel) — voir `totalOf`.
+      if (cb.pct < ca.pct || cb.flat < ca.flat) return false;
+      if (cb.pct > ca.pct || cb.flat > ca.flat) strictlyBetter = true;
+    }
+  }
+  const effA = runeEfficiency(a);
+  const effB = runeEfficiency(b);
+  if (effB < effA) return false;
+  if (effB > effA) strictlyBetter = true;
+  // Égalité totale (clone exact niveau stats) : un seul exemplaire retenu,
+  // celui du plus petit id — repère arbitraire mais déterministe, sinon A et
+  // B se domineraient mutuellement et disparaîtraient tous les deux.
+  return strictlyBetter || b.id < a.id;
+}
+
+// Garde-fou de performance : la comparaison est O(n²) — négligeable sur les
+// tailles réelles d'un slot (quelques centaines à ~1000 runes, voir
+// spec/outils/optimizer.md), mais sans borne un pool démesuré (« Explorer
+// tout l'inventaire » sur un très gros compte) pourrait coûter cher pour un
+// gain marginal. Au-delà, on renonce à cet élagage plutôt que de ralentir.
+const DOMINANCE_MAX_POOL = 2000;
+
+function pruneDominated(list: RuneDetail[], requiredKeys: Set<string>, maxKeys: Set<StatKey>): RuneDetail[] {
+  if (list.length > DOMINANCE_MAX_POOL) return list;
+  return list.filter((a) => !list.some((b) => isDominated(a, b, requiredKeys, maxKeys)));
+}
+
+/* --------------------------------------------------------------------------
+ * Élagage SÛR n°2 — FAISABILITÉ. Une rune ne peut jamais entrer dans un
+ * build valide si, même dans le MEILLEUR des cas pour les 5 autres
+ * emplacements (le meilleur trouvé dans le pool RÉELLEMENT possédé de chaque
+ * autre emplacement, pas une borne théorique du jeu), un minimum demandé
+ * reste hors de portée — ou si elle dépasse déjà, À ELLE SEULE, un maximum
+ * demandé (les autres emplacements ne peuvent qu'AJOUTER, jamais retirer).
+ * Symétrique de l'élagage déjà appliqué au niveau des PAIRES de compartiments
+ * (`pairFeasibleMin` / le repli MAXIMUM dans `searchBuildsSteps`), mais bien
+ * plus tôt : par rune, avant même le pré-filtrage heuristique — l'exemple
+ * qui a motivé cet ajout : une rune dont le VIT ne peut mathématiquement pas,
+ * même complétée par les 5 meilleures runes VIT du reste du compte, atteindre
+ * le minimum de vitesse demandé.
+ * ----------------------------------------------------------------------- */
+function computeSlotMaxBounds(
+  bySlot: RuneDetail[][],
+  keys: StatKey[]
+): Record<string, { pct: number; flat: number }>[] {
+  return bySlot.map((list) => {
+    const out: Record<string, { pct: number; flat: number }> = {};
+    for (const k of keys) {
+      let pct = 0;
+      let flat = 0;
+      for (const r of list) {
+        const c = runeContribution(r, k);
+        if (c.pct > pct) pct = c.pct;
+        if (c.flat > flat) flat = c.flat;
+      }
+      out[k] = { pct, flat };
+    }
+    return out;
+  });
+}
+
+function eliminateInfeasible(
+  bySlot: RuneDetail[][],
+  minEntries: { k: StatKey; min: number }[],
+  maxEntries: { k: StatKey; max: number }[],
+  constrainedKeys: StatKey[],
+  guaranteed: { pct: Record<string, number>; flat: Record<string, number> },
+  artFlat: Record<string, number>,
+  relPct: Record<string, number>,
+  totalOf: (k: StatKey, pct: number, flat: number) => number
+): RuneDetail[][] {
+  if (minEntries.length === 0 && maxEntries.length === 0) return bySlot;
+
+  // Borne SÛRE par slot : le meilleur trouvé dans le pool réellement possédé
+  // de CE slot, jamais une borne théorique du jeu — plus étroite, donc plus
+  // efficace, et tout aussi sûre : aucun rune de ce slot ne dépasse jamais ce
+  // maximum, par construction (c'est le max OBSERVÉ, pas estimé).
+  const slotMax = computeSlotMaxBounds(bySlot, constrainedKeys);
+  const totalMaxPct: Record<string, number> = {};
+  const totalMaxFlat: Record<string, number> = {};
+  for (const k of constrainedKeys) {
+    totalMaxPct[k] = slotMax.reduce((s, b) => s + (b[k]?.pct ?? 0), 0);
+    totalMaxFlat[k] = slotMax.reduce((s, b) => s + (b[k]?.flat ?? 0), 0);
+  }
+
+  return bySlot.map((list, i) =>
+    list.filter((r) => {
+      for (const { k, min } of minEntries) {
+        const c = runeContribution(r, k);
+        // Les 5 AUTRES emplacements à leur propre maximum observé — celui de
+        // CE slot est exclu du total (r le remplace).
+        const otherPct = totalMaxPct[k] - (slotMax[i][k]?.pct ?? 0);
+        const otherFlat = totalMaxFlat[k] - (slotMax[i][k]?.flat ?? 0);
+        const bestPct = c.pct + otherPct + (guaranteed.pct[k] ?? 0) + (relPct[k] ?? 0);
+        const bestFlat = c.flat + otherFlat + (guaranteed.flat[k] ?? 0) + (artFlat[k] ?? 0);
+        if (totalOf(k, bestPct, bestFlat) < min) return false;
+      }
+      for (const { k, max } of maxEntries) {
+        const c = runeContribution(r, k);
+        // Pire cas pour un MAXIMUM : les autres emplacements à zéro (toujours
+        // atteignable — rien n'oblige un slot à contribuer à cette stat).
+        const worstPct = c.pct + (guaranteed.pct[k] ?? 0) + (relPct[k] ?? 0);
+        const worstFlat = c.flat + (guaranteed.flat[k] ?? 0) + (artFlat[k] ?? 0);
+        if (totalOf(k, worstPct, worstFlat) > max) return false;
+      }
+      return true;
+    })
+  );
 }
 
 /* --------------------------------------------------------------------------
@@ -385,6 +662,57 @@ function satisfiesSets(
   return missingSets(requirement.sets, activeSets(synthetic)).length === 0;
 }
 
+// Pool par slot, après la SEULE contrainte de statistique principale — pas
+// encore le pré-filtrage heuristique. Factorisé pour être réutilisé tel quel
+// par `searchBuildsSteps` (qui y ajoute ensuite dominance + faisabilité,
+// voir plus bas) et par `estimateSearchSpace`.
+function mainStatFilteredBySlot(pool: RuneDetail[], requirement: BuildRequirement): RuneDetail[][] {
+  const bySlot: RuneDetail[][] = [[], [], [], [], [], []];
+  for (const r of pool) {
+    if (r.slot < 1 || r.slot > 6) continue;
+    const allowed = requirement.mainStats?.[r.slot as 2 | 4 | 6];
+    if (allowed && allowed.length > 0 && !allowed.includes(r.main.code)) continue;
+    bySlot[r.slot - 1].push(r);
+  }
+  return bySlot;
+}
+
+// Pool par slot, après la contrainte de statistique principale PUIS le
+// pré-filtrage par pertinence — factorisé pour être réutilisé tel quel par
+// `estimateSearchSpace` (l'indication du nombre de builds affichée AVANT de
+// lancer la recherche, voir OptimizerSection.tsx). ⚠️ `searchBuildsSteps`
+// n'appelle PLUS cette fonction : elle intercale dominance + faisabilité
+// entre les deux étapes (voir plus bas) — l'estimation, elle, reste au niveau
+// heuristique seul, un ordre de grandeur légèrement PLUS LARGE que ce que la
+// recherche explore réellement, jamais trompeur dans le sens dangereux.
+function buildFilteredBySlot(
+  pool: RuneDetail[],
+  requirement: BuildRequirement,
+  slotCap: number,
+  objective?: Objective
+): RuneDetail[][] {
+  const bySlot = mainStatFilteredBySlot(pool, requirement);
+  return bySlot.map((list) => filterSlot(list, requirement, slotCap, slotCap, objective));
+}
+
+// Estimation, AVANT de lancer la recherche, du nombre de combinaisons brutes
+// que le pré-filtrage laisse en jeu — un ordre de grandeur, pas le nombre
+// réellement exploré (le meet-in-the-middle n'énumère jamais ce produit en
+// entier, voir l'en-tête du fichier), mais un repère utile pour savoir si les
+// critères actuels sont trop larges ou trop stricts avant d'attendre un
+// résultat.
+export function estimateSearchSpace(
+  pool: RuneDetail[],
+  requirement: BuildRequirement,
+  slotCap: number,
+  objective?: Objective
+): { perSlot: number[]; product: number } {
+  const filtered = buildFilteredBySlot(pool, requirement, slotCap, objective);
+  const perSlot = filtered.map((l) => l.length);
+  const product = perSlot.reduce((a, b) => a * b, 1);
+  return { perSlot, product };
+}
+
 /* --------------------------------------------------------------------------
  * Recherche
  * ----------------------------------------------------------------------- */
@@ -423,24 +751,6 @@ export function* searchBuildsSteps(params: SearchParams): Generator<SearchProgre
   const slotCap = params.slotFilterCap ?? MAX_PER_SLOT_MATCH;
   const startedAt = Date.now();
 
-  const bySlot: RuneDetail[][] = [[], [], [], [], [], []];
-  for (const r of pool) {
-    if (r.slot < 1 || r.slot > 6) continue;
-    // ⚠️ Contrainte de statistique principale (slots 2/4/6 seulement — les
-    // autres n'ont pas d'entrée dans `mainStats`, donc `allowed` reste
-    // `undefined` et rien n'est filtré). Appliquée AVANT le pré-filtrage par
-    // pertinence : elle réduit le pool réel dès le départ, ce qui atténue
-    // aussi le coût mémoire/temps de tout ce qui suit.
-    const allowed = requirement.mainStats?.[r.slot as 2 | 4 | 6];
-    if (allowed && allowed.length > 0 && !allowed.includes(r.main.code)) continue;
-    bySlot[r.slot - 1].push(r);
-  }
-  const filtered = bySlot.map((list) => filterSlot(list, requirement, slotCap, slotCap));
-  if (filtered.some((list) => list.length === 0)) {
-    return { candidates: [], explored: 0, truncated: false };
-  }
-  const overBudget = () => Date.now() - startedAt > maxMs;
-
   const minEntries = ALL_STAT_KEYS
     .map((k) => ({ k, min: requirement.minStats[k] }))
     .filter((e): e is { k: StatKey; min: number } => e.min != null && e.min > 0);
@@ -450,19 +760,42 @@ export function* searchBuildsSteps(params: SearchParams): Generator<SearchProgre
   const constrainedKeys = Array.from(new Set([...minEntries.map((e) => e.k), ...maxEntries.map((e) => e.k)]));
 
   const distinctKeys = Array.from(new Set(requirement.sets));
+  const requiredKeys = new Set(requirement.sets);
 
   const guaranteed = guaranteedSetBonus(requirement, base);
   const artFlat = artifactFlatBonus(artifacts);
   const relPct = relicPctBonus(relic);
   const baseRec = base as unknown as Record<string, number>;
 
-  const bucketsA = buildBuckets([0, 1, 2], filtered, distinctKeys, constrainedKeys);
-  const bucketsB = buildBuckets([3, 4, 5], filtered, distinctKeys, constrainedKeys);
-
   function totalOf(k: StatKey, pct: number, flat: number): number {
     const b = baseRec[k] ?? 0;
     return k === 'hp' || k === 'atk' || k === 'def' ? b + Math.ceil((b * pct) / 100) + flat : b + flat;
   }
+
+  // ⚠️ Contrainte de statistique principale (slots 2/4/6 seulement), PUIS
+  // deux élagages SÛRS (jamais un faux rejet — voir leurs en-têtes plus haut
+  // dans le fichier) avant même le pré-filtrage heuristique : dominance
+  // (une rune strictement moins bonne qu'une autre du même slot ne sert
+  // jamais à rien) puis faisabilité (une rune dont même le meilleur des 5
+  // autres emplacements, pris dans le pool réellement possédé, ne suffirait
+  // pas à atteindre un minimum demandé — ou qui dépasse déjà seule un
+  // maximum — ne peut jamais entrer dans un build valide). Enfin le
+  // pré-filtrage heuristique par pertinence, orienté par l'objectif choisi
+  // le cas échéant. Cet ordre réduit le pool réel dès le départ, ce qui
+  // atténue aussi le coût mémoire/temps de tout ce qui suit — voir
+  // spec/outils/optimizer.md.
+  const maxKeys = new Set(maxEntries.map((e) => e.k));
+  let bySlot = mainStatFilteredBySlot(pool, requirement);
+  bySlot = bySlot.map((list) => pruneDominated(list, requiredKeys, maxKeys));
+  bySlot = eliminateInfeasible(bySlot, minEntries, maxEntries, constrainedKeys, guaranteed, artFlat, relPct, totalOf);
+  const filtered = bySlot.map((list) => filterSlot(list, requirement, slotCap, slotCap, params.objective));
+  if (filtered.some((list) => list.length === 0)) {
+    return { candidates: [], explored: 0, truncated: false };
+  }
+  const overBudget = () => Date.now() - startedAt > maxMs;
+
+  const bucketsA = buildBuckets([0, 1, 2], filtered, distinctKeys, constrainedKeys);
+  const bucketsB = buildBuckets([3, 4, 5], filtered, distinctKeys, constrainedKeys);
 
   // Borne optimiste (sûre) pour les MINIMUMS, à partir des bornes de deux
   // compartiments — même principe que dans l'ancien moteur slot-par-slot,

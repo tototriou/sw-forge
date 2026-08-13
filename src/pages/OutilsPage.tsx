@@ -2,6 +2,7 @@ import { Wrench } from 'lucide-react';
 import { RuneDetail } from '../types';
 import { BoxItem } from '../lib/applyAccount';
 import { LoadState } from '../hooks/useMonsters';
+import { OptimizerState } from '../hooks/useOptimizerState';
 import { ToolSub } from '../App';
 import OptimizerSection from '../components/outils/OptimizerSection';
 
@@ -11,12 +12,13 @@ interface Props {
   runes: RuneDetail[];
   loadState: LoadState;
   hydrating?: boolean;
+  optimizer: OptimizerState;
 }
 
 // Shell fin, miroir d'AccountPage.tsx : un seul outil aujourd'hui
 // (Optimizer), structuré pour en accueillir d'autres sans retoucher la nav
 // ni ce fichier (ajouter une branche = ajouter un outil).
-export default function OutilsPage({ sub, box, runes, loadState, hydrating }: Props) {
+export default function OutilsPage({ sub, box, runes, loadState, hydrating, optimizer }: Props) {
   const empty = box.length === 0;
 
   if (empty && hydrating) {
@@ -42,5 +44,9 @@ export default function OutilsPage({ sub, box, runes, loadState, hydrating }: Pr
     );
   }
 
-  return <div className="mt-6">{sub === 'optimizer' && <OptimizerSection box={box} runes={runes} />}</div>;
+  return (
+    <div className="mt-6">
+      {sub === 'optimizer' && <OptimizerSection box={box} runes={runes} optimizer={optimizer} />}
+    </div>
+  );
 }

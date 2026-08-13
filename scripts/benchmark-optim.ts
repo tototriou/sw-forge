@@ -93,8 +93,8 @@ interface Config {
 }
 
 const CONFIGS: Config[] = [
-  { label: 'défaut (500 collectés / 400k paires)', params: {} },
-  { label: 'plafond relevé (5000 collectés / 2M paires)', params: { maxCollected: 5000, maxNodes: 2_000_000 } },
+  { label: 'défaut (5000 collectés / 400k paires)', params: {} },
+  { label: 'plafond relevé (10000 collectés / 2M paires)', params: { maxCollected: 10_000, maxNodes: 2_000_000 } },
 ];
 
 function fmt(n: number): string {

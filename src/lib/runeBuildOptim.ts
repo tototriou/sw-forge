@@ -210,19 +210,15 @@ export function candidateMetricTotal(
   return sum;
 }
 
-// Exportés (au lieu de rester locaux) : le Worker en a besoin pour estimer
-// une progression (`explored`/`maxNodes`, etc.) sans dupliquer ces valeurs.
-// ⚠️ Relevé à 20 000 000 (×5) en même temps que `BUCKET_CAP` — les deux
-// doivent grandir ENSEMBLE (voir le commentaire de `BUCKET_CAP` plus bas) :
-// relever seulement `BUCKET_CAP` peut faire RECULER un résultat déjà trouvé,
-// pas seulement le laisser inchangé — mesuré directement (deck 10 Lushen,
-// `bucketCap=5000` avec ce plafond resté à 4M → 0 résultat, tronqué avant
-// d'atteindre la bonne paire ; avec ce plafond relevé à 20M → retrouvé en
-// 46 s). Chaque paire de compartiments coûte plus cher à parcourir à
-// `bucketCap` élevé (plus de candidats de chaque côté) — sans plus de budget
-// de paires, la recherche épuise son budget sur MOINS de paires de
-// compartiments explorées, pas plus.
-export const DEFAULT_MAX_NODES = 20_000_000;
+// ⚠️ Historique du budget de paires par défaut, avant qu'il ne devienne
+// ADAPTATIF (voir `adaptiveMaxNodes` plus bas, qui remplace ce qui était ici
+// une constante fixe `DEFAULT_MAX_NODES`) : 4 000 000 → 20 000 000 (×5, en
+// même temps que `BUCKET_CAP` — les deux doivent grandir ENSEMBLE, voir son
+// commentaire ; relever seulement `BUCKET_CAP` peut faire RECULER un
+// résultat déjà trouvé, mesuré sur deck 10 Lushen) → 20 000 000 →
+// 32 000 000 (×1,6, Sonia deck 14, 4 minimums à la fois). Cette dernière
+// valeur (32 000 000) sert maintenant d'ANCRE au calcul adaptatif, pas de
+// plafond fixe universel — voir `adaptiveMaxNodes`.
 // ⚠️ Relevé de 5000 à 100 000 (×20) — demande explicite : trouver le
 // meilleur build importe plus que la vitesse, une recherche allant jusqu'à
 // ~1 minute est acceptable. Mesuré avant de relever
@@ -266,26 +262,53 @@ const PER_STAT_KEEP = 6;
 // doit lui laisser une vraie chance d'en trouver, pas juste une place parmi
 // six comme les autres stats.
 const PER_STAT_KEEP_OBJECTIVE = 24;
-// Combinaisons retenues par COMPARTIMENT (pas par slot) — voir l'en-tête du
-// fichier. Borne la mémoire indépendamment de `slotFilterCap` : même à un
-// pré-filtrage large, un compartiment ne grossit jamais au-delà de ça.
-// ⚠️ Relevé une seconde fois, de 600 à 5000 (×8,3) — demande explicite après
-// le premier calibrage (voir plus bas) : « ce genre de problème est celui
-// que l'Optimizer doit pouvoir résoudre », jusqu'à 1-2 minutes de recherche
-// jugées acceptables. Mesuré, pas deviné (deck 10 Lushen, un vrai compte de
-// 3163 runes, recherche restreinte à ATQ/Taux Crit/Dmg Crit) : le demi-build
-// réel avait besoin d'au moins ~2900-3000 places dans sa tranche de
-// rétention la plus favorable pour survivre — confirmé à `bucketCap=3000`
-// (24 s), `5000` retenu avec une marge raisonnable. `DEFAULT_MAX_NODES` a dû
-// être relevé DANS LA MÊME FOULÉE (voir son propre commentaire) : sans ça,
-// relever seulement ce plafond peut faire RECULER un résultat déjà trouvé.
-// Vérifié sans régression sur 4 scénarios synthétiques représentatifs de
-// l'usage courant (scripts/benchmark-search-budget.ts) : à budget de paires
-// proportionnellement relevé, aucune perte de qualité, temps toujours sous
-// ~3 s. Ancien calibrage (300 → jamais trouvé ; 3000 → ~50 s ; 600 → ~16 s,
-// retenu alors comme compromis) : voir « Validation grandeur nature » dans
-// spec/outils/optimizer.md pour l'historique complet des deux calibrages.
-const BUCKET_CAP = 5000;
+// Combinaisons retenues PAR TRANCHE, DANS un compartiment (pas par slot,
+// voir l'en-tête du fichier) — depuis la 3ᵉ recalibration ci-dessous, CHAQUE
+// tranche (générique, combinée, une par stat de `retentionKeys`) reçoit ce
+// nombre de places EN PROPRE (voir `buildBuckets`, `genericCap`), pas un
+// total partagé divisé par le nombre de tranches. Borne la mémoire
+// indépendamment de `slotFilterCap` : même à un pré-filtrage large, une
+// tranche ne grossit jamais au-delà de ça.
+// ⚠️ Historique des deux premiers calibrages, quand cette constante
+// représentait encore un budget TOTAL partagé (pas un budget par tranche) :
+// 600 → 5000 (×8,3, deck 10 Lushen, ATQ/Taux Crit/Dmg Crit : le demi-build
+// réel avait besoin d'au moins ~2900-3000 places dans sa tranche la plus
+// favorable) ; 5000 → 8000 (×1,6, Sonia deck 14, 4 minimums à la fois :
+// besoin du rang #1212 sur sa meilleure tranche, mais 6 tranches à
+// `bucketCap=5000` ÷ 6 ne lui laissaient que 833 places). Chaque fois,
+// `DEFAULT_MAX_NODES` a dû être relevé DANS LA MÊME FOULÉE (voir son propre
+// commentaire) : relever seulement ce plafond peut faire RECULER un résultat
+// déjà trouvé (chaque paire de compartiments coûte plus cher à parcourir à
+// `bucketCap` élevé, donc sans plus de budget de paires, la recherche épuise
+// son budget sur MOINS de paires explorées, pas plus).
+//
+// ⚠️ **Partage à parts égales ABANDONNÉ après le second calibrage** :
+// diviser le budget total par le nombre de tranches dilue CHAQUE tranche à
+// mesure qu'on pose PLUS de conditions à la fois — un plafond qui recule
+// structurellement, jamais « assez grand pour de bon » : même `bucketCap
+// (total)=8000` échouait encore sur un cas synthétique à 8 conditions
+// simultanées (vérifié directement, pas supposé). Passé à une réservation
+// FIXE par tranche : la mémoire d'un compartiment grandit maintenant avec le
+// nombre de conditions posées (logique, c'est justement là qu'il en faut le
+// plus), sans jamais dégrader une tranche existante en ajoutant une autre.
+// Recalibré à la baisse dans la foulée (8000 → 1500 PAR TRANCHE, pas un
+// retour en arrière : la sémantique a changé) — mesuré sur les TROIS cas
+// réels connus (rang le plus défavorable observé : #1212, Sonia deck 14) et
+// sur un test de stress à 5 conditions simultanées inventé pour cette
+// recalibration : les quatre retrouvent leur build exact, entre 35 et 107 s,
+// toujours sous la barre des 2 minutes. `bucketCap (par tranche)=2000`
+// testé aussi : plus de marge sur le rang, mais un compartiment plus gros
+// épuise `maxNodes` sur MOINS de paires de compartiments explorées (même
+// piège que d'habitude) — a fait RECULER deck 10 Lushen (retrouvé à 1500,
+// plus retrouvé à 2000 avec le même `maxNodes`), écarté pour cette raison.
+// ⚠️ Un cas encore plus extrême (8 conditions à la fois) échoue toujours,
+// mais pour une raison DIFFÉRENTE et hors de portée de cette constante : une
+// des runes réelles ne survit déjà plus à `filterSlot` (le pré-filtrage PAR
+// SLOT, pas la rétention par compartiment) — dilution analogue, mais un
+// autre étage du pipeline. Documenté comme limite connue plutôt que corrigé
+// ici : demander 8 conditions à la fois est un usage extrême, jamais observé
+// en pratique contrairement aux cas à 3-5 qui ont motivé cette recalibration.
+const BUCKET_CAP = 1500;
 
 const ALL_STAT_KEYS: StatKey[] = ['hp', 'atk', 'def', 'spd', 'cr', 'cd', 'res', 'acc'];
 
@@ -294,7 +317,7 @@ const ALL_STAT_KEYS: StatKey[] = ['hp', 'atk', 'def', 'spd', 'cr', 'cd', 'res', 
  * table que computeStats — mais rune par rune, pour l'accumulation
  * incrémentale du pré-filtrage et des bornes d'élagage.
  * ----------------------------------------------------------------------- */
-function runeContribution(rune: RuneDetail, key: StatKey): { pct: number; flat: number } {
+export function runeContribution(rune: RuneDetail, key: StatKey): { pct: number; flat: number } {
   let pct = 0;
   let flat = 0;
   const add = (code: number, value: number) => {
@@ -316,7 +339,7 @@ function valueOf(rune: RuneDetail, metric: OptimMetric): number {
 /* --------------------------------------------------------------------------
  * Pré-filtrage par slot
  * ----------------------------------------------------------------------- */
-function relevance(rune: RuneDetail, requirement: BuildRequirement): number {
+export function relevance(rune: RuneDetail, requirement: BuildRequirement): number {
   let score = 0;
   for (const [key, min] of Object.entries(requirement.minStats)) {
     if (min == null || min <= 0) continue;
@@ -328,6 +351,25 @@ function relevance(rune: RuneDetail, requirement: BuildRequirement): number {
   score += runeEfficiency(rune) / 1000;
   return score;
 }
+
+// ⚠️ Au-delà de ce nombre de conditions (`minStats`) posées À LA FOIS,
+// `matchCap`/`fillCap` sont ÉLARGIS — jamais réduits en dessous de ce que
+// l'appelant a demandé. `relevance()` (juste au-dessus) SOMME une
+// contribution normalisée par condition : une rune qui n'aide que sur UNE
+// PARTIE des conditions (la norme — une rune n'a que 6 emplacements de
+// contribution au total, jamais assez pour peser sur 7-8 stats à la fois)
+// se classe d'autant plus mal sur ce score combiné qu'il y a de conditions
+// en concurrence, même si elle reste indispensable au build final. Mesuré
+// sur un vrai compte (Eivor Feu, 7 conditions à la fois — PV/ATQ/DEF/Vitesse/
+// Taux Crit/Dmg Crit/RES) : une rune du set demandé, décente sur 3-4 stats
+// mais nulle sur les autres, se classait #111 parmi seulement 183 candidates
+// DU MÊME SET — hors de portée de `matchCap=80`. Jamais nécessaire en
+// dessous de 5 conditions (vérifié sans régression jusqu'à 6, Sonia deck 14)
+// — le seuil est choisi avec marge sous ce repère. Même principe que le
+// budget par tranche de `buildBuckets` (voir son commentaire), un étage plus
+// tôt dans le pipeline.
+const FILTER_SLOT_WIDENING_THRESHOLD = 4;
+const FILTER_SLOT_WIDENING_PER_CONDITION = 20;
 
 export function filterSlot(
   candidates: RuneDetail[],
@@ -341,11 +383,16 @@ export function filterSlot(
     .map((r) => ({ r, s: relevance(r, requirement) }))
     .sort((a, b) => b.s - a.s);
 
+  const conditionCount = Object.values(requirement.minStats).filter((v) => v != null && v > 0).length;
+  const extraCap = Math.max(0, conditionCount - FILTER_SLOT_WIDENING_THRESHOLD) * FILTER_SLOT_WIDENING_PER_CONDITION;
+  const effectiveMatchCap = matchCap + extraCap;
+  const effectiveFillCap = fillCap + extraCap;
+
   const kept = new Map<number, RuneDetail>();
 
   const matches = scored.filter(({ r }) => requiredKeys.has(r.set) || r.set === 'intangible');
-  for (const { r } of matches.slice(0, matchCap)) kept.set(r.id, r);
-  for (const { r } of scored.slice(0, fillCap)) kept.set(r.id, r);
+  for (const { r } of matches.slice(0, effectiveMatchCap)) kept.set(r.id, r);
+  for (const { r } of scored.slice(0, effectiveFillCap)) kept.set(r.id, r);
 
   // ⚠️ Réserve GARANTIE de runes HORS du set demandé, symétrique de `matches`.
   // Sans elle : quand les meilleures runes toutes provenances du joueur sont
@@ -357,7 +404,7 @@ export function filterSlot(
   // pièces (ex. un set 4 pièces sur 6 emplacements). Signalé sur un compte
   // réel (voir spec/outils/optimizer.md, « Limites connues »).
   const offSet = scored.filter(({ r }) => !requiredKeys.has(r.set) && r.set !== 'intangible');
-  for (const { r } of offSet.slice(0, fillCap)) kept.set(r.id, r);
+  for (const { r } of offSet.slice(0, effectiveFillCap)) kept.set(r.id, r);
 
   // Le meilleur d'un slot sur chaque stat individuellement — voir
   // PER_STAT_KEEP. Budget élargi (PER_STAT_KEEP_OBJECTIVE) pour les stats de
@@ -738,7 +785,19 @@ function combinedRetentionScore(pct: Record<string, number>, flat: Record<string
   return score;
 }
 
-export function buildBuckets(
+// ⚠️ GÉNÉRATEUR, comme `searchBuildsSteps` — la construction d'un
+// compartiment (triple boucle sur les pools filtrés) peut à elle seule
+// prendre plusieurs dizaines de secondes sur un compte réel avec beaucoup de
+// conditions à la fois (plus de tranches à alimenter, voir le commentaire de
+// `BUCKET_CAP`), et se produit ENTIÈREMENT AVANT que la boucle d'appariement
+// (le seul endroit qui rendait la main jusqu'ici) n'ait la moindre chance de
+// tourner — sans point de passage ICI, ni la barre de progression ni le
+// bouton Arrêter ne réagissaient pendant cette phase (voir
+// spec/outils/optimizer.md, « Suite — la phase de préparation restait
+// muette »). `half` sert uniquement à étiqueter la progression émise (A ou
+// B), aucun effet sur le calcul lui-même.
+export function* buildBuckets(
+  half: 'A' | 'B',
   slotIdxs: readonly [number, number, number],
   filtered: RuneDetail[][],
   distinctKeys: string[],
@@ -749,7 +808,7 @@ export function buildBuckets(
   otherHalfMaxSets: number[],
   jokerCredit: number,
   requiredPieces: number[]
-): Bucket[] {
+): Generator<BuildingProgress, Bucket[], void> {
   const [i0, i1, i2] = slotIdxs;
   const buckets = new Map<string, Bucket>();
   // Tas de construction, PAS le contrat final (`Bucket.combos`) : une entrée
@@ -759,19 +818,27 @@ export function buildBuckets(
   const trackedKeys = Array.from(new Set<StatKey>([...constrainedKeys, ...retentionKeys]));
   const hasCombined = minEntries.length > 0;
 
-  // Budget partagé À PARTS ÉGALES entre TOUTES les tranches, générique
-  // comprise — pas la moitié réservée d'office à la générique. Rien ne
-  // justifie de la privilégier : mesuré sur un vrai compte (Lushen, deck 10),
-  // elle n'était PAS la tranche la plus prédictive pour ni l'une ni l'autre
-  // moitié (la combinée l'était pour la première, la tranche ATQ seule pour
-  // la seconde) — lui réserver la moitié du budget revenait à sous-doter
-  // systématiquement les tranches qui comptaient réellement. Au moins 1
-  // place chacune, jamais 0, même avec beaucoup de stats à la fois. Sans
-  // retentionKeys ni minEntries (aucun min posé, objectif « Efficience »),
-  // tout le budget reste générique — comportement historique inchangé,
-  // puisqu'elle est alors la SEULE tranche.
-  const sliceCountForCap = 1 + (hasCombined ? 1 : 0) + retentionKeys.length;
-  const genericCap = Math.max(1, Math.floor(bucketCap / sliceCountForCap));
+  // Chaque tranche reçoit `bucketCap` places EN PROPRE — pas un budget total
+  // partagé, divisé par le nombre de tranches. Le partage à parts égales
+  // (l'implémentation d'origine) semblait naturel, mais DILUE chaque tranche
+  // à mesure que l'utilisateur pose PLUS de conditions à la fois : signalé
+  // sur un vrai compte (Sonia, deck 14, 4 minimums en même temps — ATQ/Taux
+  // Crit/Dmg Crit/Vitesse — soit 6 tranches ; le demi-build réel, classé
+  // #1212 sur sa MEILLEURE tranche, était hors de portée avec bucketCap/6).
+  // Pire : ce plafond effectif recule structurellement à mesure qu'on ajoute
+  // des conditions, donc AUCUNE valeur de `bucketCap` n'est jamais « assez
+  // grande pour de bon » — vérifié directement, même `bucketCap=8000` (le
+  // calibrage qui couvrait tout juste le cas à 4 conditions) échoue encore
+  // sur un cas synthétique à 8 conditions à la fois (un futur utilisateur
+  // aurait fini par recréer le même mur, un cran plus loin). Avec CHAQUE
+  // tranche gardant sa propre réservation pleine, la mémoire d'un
+  // compartiment grandit avec le nombre de conditions posées — logique,
+  // c'est justement quand il y en a le plus qu'il en faut le plus — sans
+  // jamais dégrader une tranche existante quand on en ajoute une autre. Sans
+  // retentionKeys ni minEntries (objectif « Efficience », aucun minimum
+  // posé) : comportement historique inchangé, une seule tranche à
+  // `bucketCap` places, comme avant.
+  const genericCap = bucketCap;
   const perOtherSliceCap = genericCap;
 
   // Meilleur cas atteignable par CHAQUE slot de cette moitié, pour chaque set
@@ -790,7 +857,11 @@ export function buildBuckets(
     return true;
   }
 
+  const totalR0 = filtered[i0].length;
+  let scannedR0 = 0;
   for (const r0 of filtered[i0]) {
+    scannedR0++;
+    yield { phase: 'building', half, scanned: scannedR0, total: totalR0 };
     const haveR0 = distinctKeys.map((key) => (r0.set === key ? 1 : 0));
     if (distinctKeys.length > 0 && !stillFeasible(haveR0, [1, 2])) continue;
     for (const r1 of filtered[i1]) {
@@ -1038,10 +1109,27 @@ export function estimateSearchSpace(
 // final (`truncated` n'a pas de sens tant que la recherche n'est pas arrêtée
 // — voir SearchResult). Sert à l'arrêt manuel (bouton « Arrêter ») : on
 // ressort ce dernier point de passage, converti en résultat définitif.
-export interface SearchProgress {
+// ⚠️ Deux PHASES distinctes, pas une seule forme : la construction des
+// compartiments (`buildBucketsSteps`, avant même de savoir combien de paires
+// il y aura à explorer) peut à elle seule prendre de quelques secondes à
+// ~1 minute sur un compte réel avec beaucoup de conditions à la fois (voir
+// spec/outils/optimizer.md, « Suite — la phase de préparation restait
+// muette ») — sans un point de passage PENDANT cette phase, l'utilisateur
+// n'avait aucune information et le bouton Arrêter ne réagissait pas avant la
+// toute première paire évaluée. `phase: 'pairing'` est l'ancien
+// comportement (inchangé) ; `phase: 'building'` est nouveau.
+export interface BuildingProgress {
+  phase: 'building';
+  half: 'A' | 'B';
+  scanned: number;
+  total: number;
+}
+export interface PairingProgress {
+  phase: 'pairing';
   candidates: BuildCandidate[];
   explored: number;
 }
+export type SearchProgress = BuildingProgress | PairingProgress;
 
 // Fréquence des points de passage (`yield`) : assez souvent pour qu'un temps
 // limite ou un arrêt manuel réagissent vite (quelques centaines de ms au
@@ -1060,9 +1148,48 @@ const CHECKPOINT_EVERY = 500;
  * d'arrêt pendant que la recherche tourne (voir
  * src/workers/runeBuildOptim.worker.ts).
  */
+// ⚠️ Budget de paires ADAPTATIF, plus une constante fixe dimensionnée pour le
+// pire cas — sans ça, TOUTE recherche paie le coût du cas le plus exigeant,
+// même une recherche LÂCHE (peu de conditions) qui trouve déjà des milliers
+// de bons candidats en quelques millions de paires (vérifié : un seul
+// minimum posé, ~2500-3500 candidats trouvés dès 4-12M paires, sans que ça
+// change quoi que ce soit d'y consacrer les 32M par défaut — pur gaspillage
+// de temps, signalé en usage réel après le calibrage précédent). Ancré sur
+// `sliceCount` (même quantité que `buildBuckets`, voir son commentaire) :
+// PROPORTIONNEL, avec un plancher bas (recherches lâches) et pas de plafond
+// haut (continue de croître au-delà de l'ancre, plutôt que de rester bloqué
+// à une valeur qui s'est déjà montrée insuffisante pour un cas encore plus
+// exigeant — voir « Limites connues » pour le cas à 7 conditions où même
+// cette croissance ne suffit pas encore). Ancre choisie sur MESURE, pas
+// devinée : deck 10 Lushen (3 minimums, 5 tranches) a besoin d'AU MOINS
+// ~28M paires pour être retrouvé exactement (échoue à 24M) — 32M à
+// `sliceCount=5` garde une marge raisonnable, cohérent avec le calibrage
+// validé pour Sonia deck 14 (4 minimums, 6 tranches, MOINS que ce que la
+// proportionnalité donnerait ici : 38,4M contre 32M testés — marge
+// supplémentaire, pas un recul).
+// ⚠️ Exportée (pas juste locale à `searchBuildsSteps`) : le Worker en a
+// besoin pour estimer une progression cohérente (`explored`/`maxNodes`) sans
+// deviner une constante fixe qui ne correspondrait plus à la vraie valeur
+// utilisée par CETTE recherche précise — voir `estimatePct` dans
+// runeBuildOptim.worker.ts.
+export function adaptiveMaxNodes(params: SearchParams): number {
+  if (params.maxNodes != null) return params.maxNodes;
+  const minEntries = ALL_STAT_KEYS
+    .map((k) => ({ k, min: params.requirement.minStats[k] }))
+    .filter((e): e is { k: StatKey; min: number } => e.min != null && e.min > 0);
+  const retentionKeys = Array.from(
+    new Set<StatKey>([...minEntries.map((e) => e.k), ...(params.objective ? OBJECTIVE_RELEVANT_STATS[params.objective] : [])])
+  );
+  const sliceCount = 1 + (minEntries.length > 0 ? 1 : 0) + retentionKeys.length;
+  const ADAPTIVE_ANCHOR_SLICE_COUNT = 5;
+  const ADAPTIVE_ANCHOR_MAX_NODES = 32_000_000;
+  const ADAPTIVE_MIN_MAX_NODES = 8_000_000;
+  return Math.max(ADAPTIVE_MIN_MAX_NODES, Math.round((ADAPTIVE_ANCHOR_MAX_NODES * sliceCount) / ADAPTIVE_ANCHOR_SLICE_COUNT));
+}
+
 export function* searchBuildsSteps(params: SearchParams): Generator<SearchProgress, SearchResult, void> {
   const { base, artifacts, relic, pool, requirement, metric } = params;
-  const maxNodes = params.maxNodes ?? DEFAULT_MAX_NODES;
+  const maxNodes = adaptiveMaxNodes(params);
   const maxCollected = params.maxCollected ?? MAX_COLLECTED;
   const maxMs = params.maxMs ?? DEFAULT_MAX_MS;
   const slotCap = params.slotFilterCap ?? MAX_PER_SLOT_MATCH;
@@ -1132,11 +1259,11 @@ export function* searchBuildsSteps(params: SearchParams): Generator<SearchProgre
   const maxSetsForB = maxSetCountsForSlots(filtered, [0, 1, 2], distinctKeys);
 
   const bucketCap = params.bucketCap ?? BUCKET_CAP;
-  const bucketsA = buildBuckets(
-    [0, 1, 2], filtered, distinctKeys, constrainedKeys, retentionKeys, minEntries, bucketCap, maxSetsForA, jokerCredit, requiredPieces
+  const bucketsA = yield* buildBuckets(
+    'A', [0, 1, 2], filtered, distinctKeys, constrainedKeys, retentionKeys, minEntries, bucketCap, maxSetsForA, jokerCredit, requiredPieces
   );
-  const bucketsB = buildBuckets(
-    [3, 4, 5], filtered, distinctKeys, constrainedKeys, retentionKeys, minEntries, bucketCap, maxSetsForB, jokerCredit, requiredPieces
+  const bucketsB = yield* buildBuckets(
+    'B', [3, 4, 5], filtered, distinctKeys, constrainedKeys, retentionKeys, minEntries, bucketCap, maxSetsForB, jokerCredit, requiredPieces
   );
 
   // Borne optimiste (sûre) pour les MINIMUMS, à partir des bornes de deux
@@ -1200,7 +1327,7 @@ export function* searchBuildsSteps(params: SearchParams): Generator<SearchProgre
         for (const comboB of bB.combos) {
           explored++;
           if (explored % CHECKPOINT_EVERY === 0) {
-            yield { candidates, explored };
+            yield { phase: 'pairing', candidates, explored };
           }
           if (explored > maxNodes || overBudget()) {
             truncated = true;

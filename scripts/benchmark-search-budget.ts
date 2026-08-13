@@ -96,7 +96,7 @@ const SCENARIOS: Scenario[] = [
 // bucketCap et slotFilterCap FIXES aux valeurs de production — seul le budget
 // de collecte change ici. maxNodes suit largement au-dessus de maxCollected
 // à chaque palier pour ne jamais devenir le facteur limitant à sa place.
-const PRODUCTION_BUCKET_CAP = 5000; // valeur de production réelle (BUCKET_CAP)
+const PRODUCTION_BUCKET_CAP = 1500; // valeur de production réelle (BUCKET_CAP, par tranche depuis la 3e recalibration)
 // ⚠️ Testé aux DEUX presets réels, pas seulement « Moyen » : à 300/slot
 // (« Extrême »), la construction des compartiments (O(slotFilterCap³), fixe
 // quel que soit `maxCollected`) domine largement le temps total — 20 à 55 s

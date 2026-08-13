@@ -8,11 +8,16 @@ export type BuildOptimStatus = 'idle' | 'running' | 'done' | 'error';
 // à la barre de progression (voir OptimizerSection.tsx). `null` en dehors
 // d'une recherche active : ni avant, ni une fois `result` posé (le résultat
 // final remplace la progression, pas l'inverse).
-export interface BuildOptimProgress {
-  explored: number;
-  found: number;
-  pct: number;
-}
+// ⚠️ Deux phases distinctes, pas juste `explored`/`found` : la construction
+// des compartiments (`building`) précède la boucle d'appariement (`pairing`,
+// l'ancien comportement) et peut à elle seule durer jusqu'à environ une
+// minute sur un compte réel avec beaucoup de conditions — sans cette
+// distinction, l'UI n'avait AUCUNE information pendant cette phase (voir
+// spec/outils/optimizer.md, « Suite — la phase de préparation restait
+// muette »).
+export type BuildOptimProgress =
+  | { phase: 'building'; half: 'A' | 'B'; scanned: number; total: number; pct: number }
+  | { phase: 'pairing'; explored: number; found: number; pct: number };
 
 // Cycle de vie du Worker de recherche de builds.
 //
@@ -50,7 +55,8 @@ export function useBuildOptimSearch() {
       workerRef.current = worker;
       worker.onmessage = (e: MessageEvent<WorkerResponse>) => {
         if (e.data.type === 'progress') {
-          setProgress({ explored: e.data.explored, found: e.data.found, pct: e.data.pct });
+          const { type: _type, ...prog } = e.data;
+          setProgress(prog);
           return;
         }
         const { type: _type, ...res } = e.data;

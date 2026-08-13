@@ -8,7 +8,7 @@
 // la boucle d'appariement doit-elle visiter AVANT d'atteindre la paire
 // cible, dans SON compartiment ?
 //
-// Usage : monster-search-buildbuckets-diag.ts <export.json> <deckId> <nomMonstre> [statKeys=atk,cr,cd] [objective=degats] [slotFilterCap=80] [bucketCap=5000]
+// Usage : monster-search-buildbuckets-diag.ts <export.json> <deckId> <nomMonstre> [--defense] [statKeys=atk,cr,cd] [objective=degats] [slotFilterCap=80] [bucketCap=1500]
 
 import { activeSets, setPieces, StatKey } from '../src/lib/effects';
 import { computeStats } from '../src/lib/stats';
@@ -26,19 +26,20 @@ import {
   anyJokerAvailable,
   OBJECTIVE_RELEVANT_STATS,
   Objective,
+  Bucket,
 } from '../src/lib/runeBuildOptim';
 import { BaseStats } from '../src/types';
 import { loadDeckMonster, parseDeckMonsterArgs } from './lib/deckMonster';
 
 const USAGE =
-  'Usage: monster-search-buildbuckets-diag.ts <export.json> <deckId> <nomMonstre> [statKeys=atk,cr,cd] [objective=degats] [slotFilterCap=80] [bucketCap=5000]';
+  'Usage: monster-search-buildbuckets-diag.ts <export.json> <deckId> <nomMonstre> [--defense] [statKeys=atk,cr,cd] [objective=degats] [slotFilterCap=80] [bucketCap=1500]';
 const args = parseDeckMonsterArgs(process.argv.slice(2), USAGE);
-const statKeysArg = process.argv[5] ?? 'atk,cr,cd';
+const statKeysArg = args.rest[0] ?? 'atk,cr,cd';
 const statKeys = statKeysArg.split(',').map((s) => s.trim()) as StatKey[];
-const objectiveArg = process.argv[6] ?? 'degats';
+const objectiveArg = args.rest[1] ?? 'degats';
 const objective = (objectiveArg === 'none' ? undefined : objectiveArg) as Objective | undefined;
-const slotFilterCap = process.argv[7] ? Number(process.argv[7]) : 80;
-const bucketCap = process.argv[8] ? Number(process.argv[8]) : 5000;
+const slotFilterCap = args.rest[2] ? Number(args.rest[2]) : 80;
+const bucketCap = args.rest[3] ? Number(args.rest[3]) : 1500;
 
 const { gear, allRunes } = loadDeckMonster(args);
 
@@ -93,10 +94,19 @@ const jokerCredit = anyJokerAvailable(filtered) ? 1 : 0;
 const maxSetsForA = maxSetCountsForSlots(filtered, [3, 4, 5], distinctKeys);
 const maxSetsForB = maxSetCountsForSlots(filtered, [0, 1, 2], distinctKeys);
 
-const bucketsA = buildBuckets([0, 1, 2], filtered, distinctKeys, constrainedKeys, retentionKeys, minEntries, bucketCap, maxSetsForA, jokerCredit, requiredPieces);
-const bucketsB = buildBuckets([3, 4, 5], filtered, distinctKeys, constrainedKeys, retentionKeys, minEntries, bucketCap, maxSetsForB, jokerCredit, requiredPieces);
+// buildBuckets est un GÉNÉRATEUR depuis le correctif « phase de préparation
+// muette » (voir spec/outils/optimizer.md) — le drainer jusqu'au bout donne
+// le Bucket[] final via sa valeur de retour, exactement comme searchBuilds
+// draine searchBuildsSteps.
+function drain<T>(gen: Generator<unknown, T, void>): T {
+  let step = gen.next();
+  while (!step.done) step = gen.next();
+  return step.value;
+}
+const bucketsA = drain(buildBuckets('A', [0, 1, 2], filtered, distinctKeys, constrainedKeys, retentionKeys, minEntries, bucketCap, maxSetsForA, jokerCredit, requiredPieces));
+const bucketsB = drain(buildBuckets('B', [3, 4, 5], filtered, distinctKeys, constrainedKeys, retentionKeys, minEntries, bucketCap, maxSetsForB, jokerCredit, requiredPieces));
 
-function analyze(label: string, buckets: ReturnType<typeof buildBuckets>, targetIds: number[]) {
+function analyze(label: string, buckets: Bucket[], targetIds: number[]) {
   console.log(`\n${label} :`);
   console.log(`  ${buckets.length} compartiment(s), tailles = [${buckets.map((b) => b.combos.length).join(', ')}]`);
   let bucketRank = -1;

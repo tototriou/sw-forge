@@ -5,7 +5,7 @@
 // tranche protège ce demi-build, et à quelle taille ? » sans payer le coût
 // d'une recherche complète à chaque essai.
 //
-// Usage : monster-search-rank-diag.ts <export.json> <deckId> <nomMonstre> [statKeys=atk,cr,cd] [slotFilterCap=80]
+// Usage : monster-search-rank-diag.ts <export.json> <deckId> <nomMonstre> [--defense] [statKeys=atk,cr,cd] [objective=degats] [slotFilterCap=80]
 
 import { activeSets, runeEfficiency, RUNE_EFFECT, StatKey } from '../src/lib/effects';
 import { computeStats } from '../src/lib/stats';
@@ -18,18 +18,22 @@ import {
   artifactFlatBonus,
   relicPctBonus,
   filterSlot,
+  Objective,
 } from '../src/lib/runeBuildOptim';
 import { BaseStats, RuneDetail } from '../src/types';
 import { loadDeckMonster, parseDeckMonsterArgs } from './lib/deckMonster';
 
-const USAGE = 'Usage: monster-search-rank-diag.ts <export.json> <deckId> <nomMonstre> [statKeys=atk,cr,cd] [slotFilterCap=80]';
+const USAGE =
+  'Usage: monster-search-rank-diag.ts <export.json> <deckId> <nomMonstre> [--defense] [statKeys=atk,cr,cd] [objective=degats] [slotFilterCap=80]';
 const args = parseDeckMonsterArgs(process.argv.slice(2), USAGE);
-const statKeysArg = process.argv[5] ?? 'atk,cr,cd';
+const statKeysArg = args.rest[0] ?? 'atk,cr,cd';
 const statKeys = statKeysArg.split(',').map((s) => s.trim()) as StatKey[];
+const objectiveArg = args.rest[1] ?? 'degats';
+const objective = (objectiveArg === 'none' ? undefined : objectiveArg) as Objective | undefined;
 // ⚠️ Défaut à 80 (preset « Moyen », le vrai défaut de l'app) — PAS 300
 // (« Extrême ») comme les premières versions de ce script : un utilisateur
 // réel qui n'a pas touché au pré-filtrage tourne à 80, pas 300.
-const slotFilterCap = process.argv[6] ? Number(process.argv[6]) : 80;
+const slotFilterCap = args.rest[2] ? Number(args.rest[2]) : 80;
 
 const { gear, allRunes } = loadDeckMonster(args);
 
@@ -59,9 +63,9 @@ function totalOf(k: StatKey, pct: number, flat: number): number {
 }
 const minEntries = statKeys.map((k) => ({ k, min: minStats[k]! })).filter((e) => e.min > 0);
 const step3 = eliminateInfeasible(step2, minEntries, [], statKeys, guaranteed, artFlat, relPct, totalOf);
-const filtered = step3.map((l) => filterSlot(l, requirement, slotFilterCap, slotFilterCap));
+const filtered = step3.map((l) => filterSlot(l, requirement, slotFilterCap, slotFilterCap, objective));
 
-console.log(`slotFilterCap = ${slotFilterCap}`);
+console.log(`objective = ${objective ?? '(aucun)'} · slotFilterCap = ${slotFilterCap}`);
 console.log('Tailles après pipeline complet :', filtered.map((l) => l.length));
 console.log('minStats utilisés :', minStats);
 

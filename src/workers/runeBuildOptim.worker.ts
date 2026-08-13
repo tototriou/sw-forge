@@ -14,7 +14,7 @@ import {
   searchBuildsSteps,
   SearchParams,
   SearchResult,
-  DEFAULT_MAX_NODES,
+  adaptiveMaxNodes,
   DEFAULT_MAX_MS,
   MAX_COLLECTED,
 } from '../lib/runeBuildOptim';
@@ -41,12 +41,28 @@ const PROGRESS_THROTTLE_MS = 150;
 // humaine, largement suffisant.
 const YIELD_THROTTLE_MS = 50;
 
-export interface WorkerProgressMessage {
+// ⚠️ Deux formes, comme `SearchProgress` côté moteur (voir son commentaire) :
+// la construction des compartiments (`phase: 'building'`) peut à elle seule
+// prendre jusqu'à environ une minute sur un compte réel avec beaucoup de
+// conditions à la fois, ENTIÈREMENT AVANT que `phase: 'pairing'` (l'ancien
+// comportement, inchangé) ne commence — sans cette distinction, l'UI n'avait
+// aucune information pendant cette phase (voir spec/outils/optimizer.md).
+export interface WorkerBuildingMessage {
   type: 'progress';
+  phase: 'building';
+  half: 'A' | 'B';
+  scanned: number;
+  total: number;
+  pct: number; // 0..1, approximatif — voir `estimatePct`
+}
+export interface WorkerPairingMessage {
+  type: 'progress';
+  phase: 'pairing';
   explored: number;
   found: number;
   pct: number; // 0..1, approximatif — voir `estimatePct`
 }
+export type WorkerProgressMessage = WorkerBuildingMessage | WorkerPairingMessage;
 export type WorkerResultMessage = { type: 'result' } & SearchResult;
 export type WorkerResponse = WorkerProgressMessage | WorkerResultMessage;
 
@@ -58,7 +74,12 @@ export type WorkerResponse = WorkerProgressMessage | WorkerResultMessage;
 // recherche à l'autre, donc la barre peut accélérer ou ralentir en cours de
 // route plutôt que progresser régulièrement.
 function estimatePct(params: SearchParams, explored: number, found: number, elapsedMs: number): number {
-  const maxNodes = params.maxNodes ?? DEFAULT_MAX_NODES;
+  // ⚠️ `adaptiveMaxNodes`, pas une constante fixe : depuis le budget de
+  // paires adaptatif (voir son commentaire dans runeBuildOptim.ts), la vraie
+  // valeur utilisée par CETTE recherche dépend du nombre de conditions
+  // posées — une constante fixe ici ferait dériver la barre de progression
+  // (elle finirait à un pourcentage arbitraire au lieu de 100 %).
+  const maxNodes = adaptiveMaxNodes(params);
   const maxCollected = params.maxCollected ?? MAX_COLLECTED;
   const maxMs = params.maxMs ?? DEFAULT_MAX_MS;
   const ratios = [explored / maxNodes, found / maxCollected, Number.isFinite(maxMs) ? elapsedMs / maxMs : 0];
@@ -84,14 +105,16 @@ self.onmessage = async (e: MessageEvent<WorkerRequest>) => {
     if (stopped) {
       // Arrêt manuel : on ressort le dernier point de passage tel quel, en
       // le requalifiant « tronqué » — c'est un résultat partiel assumé, pas
-      // une recherche allée au bout de son budget.
+      // une recherche allée au bout de son budget. Pendant `phase:'building'`
+      // (avant même la première paire), il n'y a RIEN à ressortir : aucun
+      // candidat n'a encore pu être trouvé — un résultat vide, tronqué, est
+      // le seul choix honnête (sans ce cas, `progress.candidates` n'existe
+      // même pas sur cette forme du point de passage).
       const progress = step.value;
-      const message: WorkerResultMessage = {
-        type: 'result',
-        candidates: progress.candidates,
-        explored: progress.explored,
-        truncated: true,
-      };
+      const message: WorkerResultMessage =
+        progress.phase === 'pairing'
+          ? { type: 'result', candidates: progress.candidates, explored: progress.explored, truncated: true }
+          : { type: 'result', candidates: [], explored: 0, truncated: true };
       (self as unknown as Worker).postMessage(message);
       return;
     }
@@ -99,12 +122,23 @@ self.onmessage = async (e: MessageEvent<WorkerRequest>) => {
     if (now - lastProgressPost > PROGRESS_THROTTLE_MS) {
       lastProgressPost = now;
       const progress = step.value;
-      const message: WorkerProgressMessage = {
-        type: 'progress',
-        explored: progress.explored,
-        found: progress.candidates.length,
-        pct: estimatePct(params, progress.explored, progress.candidates.length, now - startedAt),
-      };
+      const message: WorkerProgressMessage =
+        progress.phase === 'pairing'
+          ? {
+              type: 'progress',
+              phase: 'pairing',
+              explored: progress.explored,
+              found: progress.candidates.length,
+              pct: estimatePct(params, progress.explored, progress.candidates.length, now - startedAt),
+            }
+          : {
+              type: 'progress',
+              phase: 'building',
+              half: progress.half,
+              scanned: progress.scanned,
+              total: progress.total,
+              pct: progress.total > 0 ? progress.scanned / progress.total : 0,
+            };
       (self as unknown as Worker).postMessage(message);
     }
     // Rend la main à la boucle d'évènements, mais throttlé (voir

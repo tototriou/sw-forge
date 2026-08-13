@@ -1081,6 +1081,189 @@ un meilleur tri. Le levier qui compte reste celui déjà actionné :
 couvre bien la paire de compartiments cible — vérifié ici (le build réel est
 systématiquement retrouvé, dans les quatre configurations testées).
 
+⚠️ Le vrai coupable de la lenteur perçue en usage réel (3-4 minutes dans le
+navigateur pour ce même deck 10, contre 30-47 s hors Worker) n'était
+finalement PAS ici : c'est le Worker qui rendait la main à la boucle
+d'événements à CHAQUE point de passage (`await setTimeout(resolve, 0)` tous
+les 500 nœuds, soit 40 000 fois à `maxNodes=20 000 000`) — les navigateurs
+plafonnent `setTimeout(fn, 0)` appelé en boucle à ~4 ms, ajoutant jusqu'à
+~160 s de pur overhead de planification. Corrigé en throttlant ce rendu de
+main au temps écoulé (50 ms), voir [runeBuildOptim.worker.ts](src/workers/runeBuildOptim.worker.ts).
+
+### Suite — BUCKET_CAP relevé une troisième fois : plus de conditions à la fois dilue chaque tranche
+
+⚠️ **Signalé sur un autre vrai compte** (Sonia, deck 14 : set Swift + 4
+minimums À LA FOIS — ATQ/Taux Crit/Dmg Crit/Vitesse — sur les trois
+objectifs de recherche essayés par l'utilisateur, Dégâts/Efficience/Vitesse).
+Le build réel n'était retrouvé dans AUCUN des trois. Diagnostic direct
+(`monster-search-buildbuckets-diag.ts`) : le demi-build réel d'une des deux
+moitiés était **ABSENT de tout compartiment retenu**, quel que soit
+l'objectif — pas un problème d'ordre cette fois, un problème de RÉTENTION.
+Cause : le budget de rétention par compartiment (`bucketCap`) est **partagé
+à parts égales entre TOUTES les tranches** (voir `buildBuckets`,
+`sliceCountForCap`) — avec 4 minimums simultanés, ça fait 6 tranches
+(générique + combinée + 4 stats), donc `bucketCap=5000` ÷ 6 ≈ 833 places par
+tranche. Le demi-build réel se classait #1212 sur sa MEILLEURE tranche (la
+combinée) — juste hors de portée, alors que le deck 10 (3 minimums, 5
+tranches, 1000 places chacune) passait grâce à une combinaison différente de
+facteurs (une tranche différente le protégeait, à un rang différent). Plus
+une recherche pose de conditions à la fois, plus ce partage égal dilue
+chaque tranche — un piège qui n'était pas visible avec seulement 3 minimums
+en test.
+
+**`BUCKET_CAP` relevé de 5000 à 8000** (1333 places/tranche à 6 tranches,
+marge d'environ 10 % sur le rang #1212 mesuré), **`DEFAULT_MAX_NODES`
+relevé DANS LA MÊME FOULÉE** (20 000 000 → 32 000 000, ×1,6) — même risque de
+régression que les deux fois précédentes, reconfirmé PAR LA MESURE : relever
+`bucketCap` seul (8000, `maxNodes` resté à 20M) retrouve bien Sonia deck 14
+(63,7 s) mais fait RECULER un résultat déjà acquis (deck 10 Lushen, retrouvé
+à 5000/20M, plus retrouvé à 8000/20M — 0 candidat). Les deux plafonds relevés
+ensemble : Sonia deck 14, deck 10 Lushen et deck 11 Lushen tous les trois
+retrouvés EXACTEMENT aux défauts de production stricts (71,8 s / 57,0 s /
+34,2 s). Aucune régression sur les 4 scénarios synthétiques
+(`scripts/benchmark-search-budget.ts`, `PRODUCTION_BUCKET_CAP` mis à jour) :
+même plafond atteint, temps toujours sous ~3 s.
+
+### Suite — le partage à parts égales lui-même abandonné, au profit d'un budget FIXE par tranche
+
+⚠️ **Question posée directement après le calibrage précédent** : `8000`
+suffit pour 4 conditions à la fois, mais est-ce « assez » pour de bon, ou
+juste le prochain mur ? Vérifié par la mesure plutôt que supposé : un cas
+synthétique à 8 conditions simultanées (les 8 stats du jeu comme minimum en
+même temps) reste ABSENT de toute rétention, même à `bucketCap=8000` — la
+réponse est non, ce n'est PAS assez pour de bon. Le partage à parts égales
+recule structurellement à mesure qu'on ajoute des conditions
+(`bucketCap ÷ sliceCount` par tranche) : aucune valeur fixe de `bucketCap`
+ne peut jamais couvrir « n'importe combien » de conditions à la fois, chaque
+recalibration ne fait que reculer le mur d'un cran, au prix d'un temps de
+recherche croissant (`maxNodes` doit suivre à chaque fois).
+
+**Le partage à parts égales est abandonné.** Chaque tranche reçoit
+maintenant `bucketCap` places EN PROPRE, indépendamment du nombre d'autres
+tranches actives (voir `buildBuckets`, `genericCap`/`perOtherSliceCap`) — la
+mémoire d'un compartiment grandit avec le nombre de conditions posées à la
+fois (logique : c'est justement là qu'il en faut le plus), sans jamais
+dégrader une tranche existante en ajoutant une autre. `BUCKET_CAP` change
+donc de SENS (total partagé → budget par tranche) : recalibré à la baisse en
+conséquence, pas juste laissé à son ancienne valeur — `8000` par tranche
+aurait fait exploser la taille des compartiments (jusqu'à ×6 sur le cas
+Sonia) et, confirmé par la mesure, fait RECULER des résultats déjà acquis
+avec `maxNodes` inchangé (même piège habituel, à un autre niveau).
+
+**Recalibré à `bucketCap=1500` par tranche** (`DEFAULT_MAX_NODES` laissé à
+32 000 000, déjà large) — mesuré sur les TROIS cas réels connus plus un
+test de stress à 5 conditions simultanées inventé pour l'occasion (Sonia +
+un cinquième minimum, PV) : les quatre retrouvent leur build exact aux
+défauts de production stricts, entre 33 et 107 s (Sonia 4 conditions 81 s,
+deck 10 57 s, deck 11 33 s, Sonia 5 conditions 92-107 s selon l'essai) —
+toujours sous la barre des 2 minutes. `bucketCap=2000` testé aussi (plus de
+marge sur le rang) mais écarté : fait RECULER deck 10 Lushen (retrouvé à
+1500, plus à 2000, `maxNodes` inchangé) — même compromis rétention/budget-de-
+paires qu'à chaque recalibration précédente. Aucune régression sur les 4
+scénarios synthétiques (`PRODUCTION_BUCKET_CAP` remis à jour).
+
+⚠️ **Limite encore ouverte, mais hors de portée de cette recalibration** : le
+cas à 8 conditions simultanées échoue TOUJOURS, mais pour une raison
+différente — une des runes réelles ne survit plus à `filterSlot` (le
+pré-filtrage PAR SLOT, en amont de `buildBuckets`), pas à la rétention par
+compartiment. Dilution analogue, un autre étage du pipeline. Documenté comme
+limite connue plutôt que corrigé : demander 8 conditions à la fois est un
+usage extrême jamais rencontré en pratique, contrairement aux cas à 3-5 qui
+ont motivé cette recalibration.
+
+### Suite — la phase de préparation restait muette (aucune progression, Arrêter sans effet)
+
+⚠️ **Signalé en usage réel** : avant même la première paire évaluée, une
+phase de préparation (pré-filtrage par slot ×6, puis `buildBuckets` ×2)
+pouvait durer de quelques secondes à environ une minute, PENDANT laquelle
+l'utilisateur n'avait aucune information (barre à 0 %, « 0 combinaisons
+examinées ») et le bouton Arrêter ne réagissait pas. Cause directe :
+`buildBuckets` était une fonction ordinaire, pas un générateur — elle
+s'exécutait entièrement d'un bloc, sans jamais rendre la main au Worker (le
+seul point de passage existant était DANS la boucle d'appariement, qui ne
+commence qu'une fois les DEUX moitiés entièrement construites). Aggravé par
+la recalibration `bucketCap` par tranche (voir plus haut) : plus de
+conditions ou de statistiques principales par slot élargissent le pool
+pré-filtré ET le nombre de tranches à alimenter, donc CETTE phase précise
+grandit avec la même complexité qui rend une recherche difficile — c'est
+justement là qu'un utilisateur a le plus besoin de savoir que ça travaille.
+
+**Corrigé** : `buildBuckets` est maintenant un GÉNÉRATEUR, comme
+`searchBuildsSteps` — il rend la main à chaque rune de la première boucle
+(`r0`), avec un point de passage dédié (`SearchProgress` devient une union :
+`{phase:'building', half, scanned, total}` pendant la construction,
+`{phase:'pairing', candidates, explored}` pendant l'appariement, l'ancien
+comportement inchangé). Le Worker distingue les deux phases pour ses
+messages de progression ET pour l'arrêt manuel (rien à ressortir pendant
+`building` : aucun candidat n'a encore pu être trouvé, un résultat vide
+tronqué est la seule réponse honnête). Côté écran, une barre dédiée affiche
+« Préparation — moitié A/B : X / Y runes » pendant cette phase, remplacée
+par l'ancienne barre détaillée une fois l'appariement commencé. Vérifié sans
+régression de temps (yield à ~100-300 reprises par moitié seulement, coût
+négligeable face au O(pool³) de la construction elle-même) ni de résultat
+sur les cas réels connus.
+
+### Suite — filterSlot élargi lui aussi, et budget de paires devenu ADAPTATIF
+
+⚠️ **Trois signalements groupés, sur un même vrai compte** (Eivor Feu, deck 2
+de DÉFENSE de siège — 7 conditions à la fois : PV/ATQ/DEF/Vitesse/Taux
+Crit/Dmg Crit/RES) :
+
+1. Le build réel restait introuvable, même après les corrections
+   précédentes. Diagnostic (`monster-search-pipeline-diag.ts`, corrigé pour
+   lire aussi les défenses de siège via un nouveau flag `--defense`, voir
+   [deckMonster.ts](scripts/lib/deckMonster.ts)) : une rune du set demandé
+   (« violent ») ne survivait plus à `filterSlot` — PAS à la rétention par
+   compartiment (déjà corrigée), un étage plus tôt. Cause identique, un
+   niveau plus haut dans le pipeline : `relevance()` (le score combiné qui
+   pilote `matchCap`/`fillCap`) somme une contribution normalisée par
+   condition — une rune qui n'aide que sur 3-4 stats sur 7 (la norme : une
+   rune n'a que 6 emplacements de contribution au total, jamais assez pour
+   peser sur 7-8 stats à la fois) se classe d'autant plus mal que les
+   conditions sont nombreuses, même si elle reste indispensable. Mesuré :
+   rang #111 parmi seulement 183 candidates DU MÊME SET, hors de portée de
+   `matchCap=80`.
+2. Le temps de recherche avait augmenté d'environ 50 % pour toute recherche,
+   pas seulement les cas difficiles — attendu : `DEFAULT_MAX_NODES` avait
+   été relevé à 32M pour couvrir Sonia deck 14 (4 conditions), un budget FIXE
+   payé par TOUTE recherche même sans en avoir besoin. Mesuré : une recherche
+   LÂCHE (un seul minimum posé) trouve déjà 2500-3500 bons candidats en
+   4-12M paires — les 32M par défaut ne changent rien à la qualité, pur
+   gaspillage de temps pour ce genre de recherche, largement le cas courant.
+3. La phase de préparation ne donnait aucune information et le bouton
+   Arrêter n'avait aucun effet pendant qu'elle tournait — voir la section
+   juste au-dessus, déjà corrigée au moment de ces trois signalements.
+
+**Corrigé (1) — `filterSlot` élargi au-delà de 4 conditions simultanées** :
+`matchCap`/`fillCap` grandissent maintenant avec le nombre de conditions
+posées (`+20` places par condition au-delà de 4), jamais en dessous de ce
+que l'appelant demande — comportement strictement inchangé jusqu'à 4
+conditions (aucune régression possible sur les cas déjà validés), élargi
+seulement au-delà. Vérifié : les 6 runes réelles d'Eivor survivent
+maintenant à `filterSlot` (`filterSlot=331/218/338/184/315/156` contre un
+échec au slot 3 avant correctif).
+
+**Corrigé (2) — budget de paires (`maxNodes`) devenu ADAPTATIF**, ancré sur
+`sliceCount` (la même quantité que `buildBuckets`, voir son commentaire) :
+`adaptiveMaxNodes(params)`, exportée et réutilisée par le Worker pour que la
+barre de progression reste cohérente (elle lisait encore la constante fixe
+`DEFAULT_MAX_NODES`, maintenant retirée). PROPORTIONNEL, ancré sur deck 10
+Lushen (3 minimums, 5 tranches, besoin mesuré d'AU MOINS ~28M paires — échoue
+à 24M, retrouvé à 28M) : `32M × sliceCount ÷ 5`, plancher à 8M pour les
+recherches très lâches, PAS de plafond haut (continue de croître au-delà de
+l'ancre). Résultat pour les cas déjà connus, TOUS à budget désormais
+adaptatif (sans overrides manuels) : deck 10 (`sliceCount=5` → 32M, 66 s),
+deck 11 (idem, 36 s), Sonia deck 14 (`sliceCount=6` → 38,4M, 89 s — PLUS de
+marge qu'avant, pas moins), Sonia + 5 conditions (`sliceCount=7` → 44,8M,
+90 s) — tous retrouvés exactement. Côté lâche : une recherche à 1 condition
+passe de ~32M à 19,2M paires (`sliceCount=3`), une recherche PURE efficience
+(aucun minimum) tombe au plancher et finit généralement en quelques
+secondes (`maxCollected` devient alors le facteur limitant, pas `maxNodes`).
+
+⚠️ **Le cas à 7 conditions d'Eivor Feu reste un cas à part, documenté, pas
+silencieusement "résolu"** — malgré les deux correctifs ci-dessus : voir
+« Limites connues ».
+
 ## Limites connues
 
 - **Pré-filtrage heuristique par emplacement ET par compartiment** : pas de
@@ -1091,6 +1274,28 @@ systématiquement retrouvé, dans les quatre configurations testées).
   faisabilité — voir « Algorithme ») ne changent rien à cette limite : ils ne
   retirent QUE des runes prouvées inutiles, jamais une qui pourrait compter —
   c'est le pré-filtrage heuristique, en aval, qui reste sans garantie.
+  ⚠️ Beaucoup de conditions à la fois (`minStats`) pouvaient diluer le
+  pré-filtrage PAR SLOT (`filterSlot`, en amont de `buildBuckets`) de la même
+  façon que la rétention par compartiment — **corrigé pour les cas courants**
+  (jusqu'à 5-6 conditions à la fois, vérifié sans régression), voir « Suite —
+  filterSlot élargi lui aussi » plus bas.
+  ⚠️ **Reste insuffisant à 7 conditions simultanées, confirmé sur un vrai
+  compte** (Eivor Feu, deck 2 de défense de siège — PV/ATQ/DEF/Vitesse/Taux
+  Crit/Dmg Crit/RES à la fois) : `filterSlot` élargi ET `maxNodes` adaptatif
+  (57,6M à `sliceCount=9`) appliqués ensemble, budget de temps large
+  (243,6 s, largement sous le filet de sécurité à 10 min de l'écran) — le
+  build réel reste introuvable (0/6 runes en commun avec le meilleur
+  candidat trouvé). Documenté comme limite plutôt que forcé par une nouvelle
+  recalibration : les deux correctifs précédents ont chacun été calibrés sur
+  des cas mesurés (jusqu'à 5 conditions pour `filterSlot`, jusqu'à 5-6 pour
+  `buildBuckets`/`maxNodes`) — extrapoler encore plus loin sans nouvelle
+  mesure reviendrait à deviner, ce que cette session a précisément évité
+  jusqu'ici. 7 conditions à la fois est un usage rare mais RÉEL (contrairement
+  au cas synthétique à 8 conditions plus haut) : à reprendre si signalé à
+  nouveau, probablement avec une approche différente (l'espace combinatoire
+  semble croître plus vite que ce qu'un simple relèvement de budget peut
+  suivre dans un temps raisonnable) plutôt qu'un quatrième calibrage des
+  mêmes leviers.
 - **Un set demandé pouvait saturer le pré-filtrage sur TOUS les emplacements,
   pas seulement ceux qui en ont besoin.** Exemple concret remonté : demander
   Rapide seul (4 pièces) sur un compte qui en possède beaucoup pouvait

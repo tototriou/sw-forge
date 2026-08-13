@@ -531,7 +531,32 @@ export default function OptimizerSection({ box, runes, optimizer }: Props) {
         )}
       </div>
 
-      {status === 'running' && (
+      {/* ⚠️ Deux phases distinctes affichées différemment, pas une seule
+          barre continue : `building` (construction des compartiments, avant
+          même de savoir combien de paires il y aura à explorer) et `pairing`
+          (l'ancienne barre, inchangée) ne partagent pas la même notion de
+          progression — les mélanger sous un seul repère aurait été plus
+          trompeur qu'utile (la barre aurait pu reculer en changeant de
+          phase). Avant ce correctif, `progress` restait `null` pendant toute
+          la phase `building` (jusqu'à ~1 minute sur un compte réel à
+          beaucoup de conditions) : la barre affichait 0 % sans bouger et le
+          texte « 0 combinaisons examinées », sans dire qu'un TRAVAIL était
+          en cours — voir spec/outils/optimizer.md. */}
+      {status === 'running' && progress?.phase === 'building' && (
+        <div>
+          <div className="h-2 w-full overflow-hidden rounded-full border border-border bg-panel2">
+            <div
+              className="h-full bg-accent/60 transition-[width] duration-150 ease-out"
+              style={{ width: `${Math.round(progress.pct * 100)}%` }}
+            />
+          </div>
+          <p className="mt-1 font-mono text-[11px] text-ink-dim">
+            Préparation — moitié {progress.half} : {progress.scanned.toLocaleString('fr-FR')} /{' '}
+            {progress.total.toLocaleString('fr-FR')} runes
+          </p>
+        </div>
+      )}
+      {status === 'running' && (progress === null || progress.phase === 'pairing') && (
         <div>
           <div className="h-2 w-full overflow-hidden rounded-full border border-border bg-panel2">
             <div
@@ -540,8 +565,9 @@ export default function OptimizerSection({ box, runes, optimizer }: Props) {
             />
           </div>
           <p className="mt-1 font-mono text-[11px] text-ink-dim">
-            {(progress?.explored ?? 0).toLocaleString('fr-FR')} combinaisons examinées ·{' '}
-            {(progress?.found ?? 0).toLocaleString('fr-FR')} trouvée(s)
+            {progress === null
+              ? 'Préparation…'
+              : `${progress.explored.toLocaleString('fr-FR')} combinaisons examinées · ${progress.found.toLocaleString('fr-FR')} trouvée(s)`}
           </p>
         </div>
       )}

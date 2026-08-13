@@ -7,7 +7,7 @@
 // plusieurs stratégies d'algorithme, ce qui n'est PAS le but ici. Générique :
 // monstre/deck/stats viennent des arguments, rien n'est en dur.
 //
-// Usage : monster-search-validate.ts <export.json> <deckId> <nomMonstre> [statKeys=atk,cr,cd] [objective=degats] [slotFilterCap=80] [bucketCap] [maxNodes]
+// Usage : monster-search-validate.ts <export.json> <deckId> <nomMonstre> [--defense] [statKeys=atk,cr,cd] [objective=degats] [slotFilterCap=80] [bucketCap] [maxNodes] [maxMs=180000]
 
 import { computeStats } from '../src/lib/stats';
 import { activeSets, StatKey } from '../src/lib/effects';
@@ -16,17 +16,17 @@ import { ArtifactDetail, BaseStats, RelicDetail } from '../src/types';
 import { loadDeckMonster, parseDeckMonsterArgs } from './lib/deckMonster';
 
 const USAGE =
-  'Usage: monster-search-validate.ts <export.json> <deckId> <nomMonstre> [statKeys=atk,cr,cd] [objective=degats] [slotFilterCap=80] [bucketCap] [maxNodes]';
+  'Usage: monster-search-validate.ts <export.json> <deckId> <nomMonstre> [--defense] [statKeys=atk,cr,cd] [objective=degats] [slotFilterCap=80] [bucketCap] [maxNodes] [maxMs=180000]';
 const args = parseDeckMonsterArgs(process.argv.slice(2), USAGE);
-const statKeysArg = process.argv[5] ?? 'atk,cr,cd';
+const statKeysArg = args.rest[0] ?? 'atk,cr,cd';
 const statKeys = statKeysArg.split(',').map((s) => s.trim()) as StatKey[];
-const objectiveArg = process.argv[6] ?? 'degats';
+const objectiveArg = args.rest[1] ?? 'degats';
 const objective = (objectiveArg === 'none' ? undefined : objectiveArg) as Objective | undefined;
 // ⚠️ Défaut à 80 (preset « Moyen », le vrai défaut de l'app) — PAS 300
 // (« Extrême ») comme les premières versions de ce script : un utilisateur
 // réel qui n'a pas touché au pré-filtrage tourne à 80, pas 300, et NE
 // choisit PAS non plus de laisser l'objectif vide.
-const slotFilterCap = process.argv[7] ? Number(process.argv[7]) : 80;
+const slotFilterCap = args.rest[2] ? Number(args.rest[2]) : 80;
 
 const { gear, allRunes } = loadDeckMonster(args);
 
@@ -70,9 +70,9 @@ const params: SearchParams = {
   metric: 'eff',
   objective,
   slotFilterCap,
-  maxMs: 180_000,
-  bucketCap: process.argv[8] ? Number(process.argv[8]) : undefined,
-  maxNodes: process.argv[9] ? Number(process.argv[9]) : undefined,
+  maxMs: args.rest[5] ? Number(args.rest[5]) : 180_000,
+  bucketCap: args.rest[3] ? Number(args.rest[3]) : undefined,
+  maxNodes: args.rest[4] ? Number(args.rest[4]) : undefined,
 };
 
 console.log('\nRecherche en cours (peut prendre jusqu\'à quelques dizaines de secondes)...');

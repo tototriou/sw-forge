@@ -1,21 +1,30 @@
 // Aide partagée par les scripts scripts/monster-*.ts : retrouve un monstre
-// précis (par nom) dans un deck d'offense de siège d'un export de compte réel,
-// et expose son gear + l'inventaire complet de runes du compte. Générique —
-// aucun nom de monstre ni deck n'est en dur ici, ils viennent des arguments
-// CLI de l'appelant.
+// précis (par nom) dans un deck de siège (offense OU défense) d'un export de
+// compte réel, et expose son gear + l'inventaire complet de runes du compte.
+// Générique — aucun nom de monstre ni deck n'est en dur ici, ils viennent des
+// arguments CLI de l'appelant.
 
 import { readFileSync } from 'fs';
-import { parseAccountSource, parseAccountInventory, parseSiegeOffense } from '../../src/lib/importAccount';
+import { parseAccountSource, parseAccountInventory, parseSiegeOffense, parseSiegeDefense } from '../../src/lib/importAccount';
 import { GearSet } from '../../src/types';
 
 export interface DeckMonsterArgs {
   exportPath: string;
   deckId: number;
   monsterName: string;
+  defense: boolean;
+  // Reste des arguments CLI, dans leur ordre d'origine, une fois les 3
+  // positionnels ci-dessus ET `--defense` (peut apparaître n'importe où)
+  // retirés — pour que chaque script continue d'indexer ses propres options
+  // (statKeys, objective, slotFilterCap…) SANS que leur position ne bouge
+  // selon que `--defense` a été passé ou non.
+  rest: string[];
 }
 
 export function parseDeckMonsterArgs(argv: string[], usage: string): DeckMonsterArgs {
-  const [exportPath, deckIdRaw, monsterName] = argv;
+  const defense = argv.includes('--defense');
+  const positional = argv.filter((a) => a !== '--defense');
+  const [exportPath, deckIdRaw, monsterName, ...rest] = positional;
   if (!exportPath || !deckIdRaw || !monsterName) {
     console.error(usage);
     process.exit(1);
@@ -25,10 +34,10 @@ export function parseDeckMonsterArgs(argv: string[], usage: string): DeckMonster
     console.error(`deckId invalide : ${deckIdRaw}`);
     process.exit(1);
   }
-  return { exportPath, deckId, monsterName };
+  return { exportPath, deckId, monsterName, defense, rest };
 }
 
-export function loadDeckMonster({ exportPath, deckId, monsterName }: DeckMonsterArgs) {
+export function loadDeckMonster({ exportPath, deckId, monsterName, defense }: DeckMonsterArgs) {
   const raw = readFileSync(exportPath, 'utf8');
   const data = parseAccountSource(raw)!;
 
@@ -36,7 +45,7 @@ export function loadDeckMonster({ exportPath, deckId, monsterName }: DeckMonster
   const monstersList = Array.isArray(monstersRaw) ? monstersRaw : monstersRaw.monsters;
   const nameByCom2us = new Map<number, string>(monstersList.map((m: any) => [m.com2usId, m.name]));
 
-  const { decks, error } = parseSiegeOffense(data);
+  const { decks, error } = defense ? parseSiegeDefense(data) : parseSiegeOffense(data);
   if (error) console.error('Erreur parse siège :', error);
 
   const deck = decks.find((d) => d.deckId === deckId);

@@ -41,6 +41,11 @@ retour.
 
 ## Écran (de haut en bas)
 
+0. **Bandeau bêta** — permanent, pas refermable (contrairement à
+   `MobileNotice` : ce n'est pas un avertissement ponctuel mais un statut qui
+   reste vrai tant que l'outil est en rodage). Rappelle que le moteur de
+   recherche peut être lent sur des critères serrés ou manquer un build sur
+   un cas inhabituel, et qu'il faut vérifier le résultat avant de re-runer.
 1. **Sélecteur de monstre** — recherche parmi **tous** les monstres 6★ de la
    box importée (même liste que « Mon compte » → Monstres), **avec ou sans
    runes actuellement équipées** : un monstre nu se recherche tout aussi bien

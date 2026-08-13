@@ -1,5 +1,5 @@
 import { Fragment, useMemo } from 'react';
-import { Search, Boxes, Square, Settings2, HelpCircle, RotateCcw } from 'lucide-react';
+import { Search, Boxes, Square, Settings2, HelpCircle, RotateCcw, FlaskConical } from 'lucide-react';
 import { RECO_STATS, RuneDetail } from '../../types';
 import { BoxItem } from '../../lib/applyAccount';
 import { CAPPED_STATS, RUNE_EFFECT, StatKey, runeEfficiency } from '../../lib/effects';
@@ -235,6 +235,19 @@ export default function OptimizerSection({ box, runes, optimizer }: Props) {
 
   return (
     <div className="max-w-3xl space-y-5">
+      {/* ⚠️ Pas de `useStickyState`/case à fermer, contrairement à
+          MobileNotice : ce n'est pas un avertissement ponctuel mais un statut
+          qui reste vrai tant que l'outil est en rodage — il doit rester
+          visible à chaque visite, pas disparaître après un premier clic. */}
+      <div className="flex items-start gap-2.5 rounded-xl border border-warn/60 bg-warn/10 px-3 py-2.5">
+        <FlaskConical size={16} className="mt-0.5 flex-none text-warn" />
+        <p className="flex-1 text-[12px] leading-relaxed text-ink-dim">
+          <b className="text-ink">Optimizer en bêta.</b> L'outil est encore en rodage : le moteur de
+          recherche peut mettre du temps sur des critères serrés ou manquer un build sur un cas
+          inhabituel — vérifie toujours le résultat avant de re-runer.
+        </p>
+      </div>
+
       <p className="text-[13px] text-ink-dim">
         Recherche parmi tes runes possédées ; rien n'est appliqué à ton compte, l'outil est purement
         indicatif — c'est à toi de re-runer dans le jeu.

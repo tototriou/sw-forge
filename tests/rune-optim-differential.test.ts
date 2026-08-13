@@ -99,6 +99,12 @@ function bruteForce(
           for (const r4 of bySlot[4])
             for (const r5 of bySlot[5]) {
               const runes = [r0, r1, r2, r3, r4, r5];
+              // ⚠️ Une seule rune Intangible par monstre (règle du jeu) —
+              // sans ce garde-fou, la référence compterait comme valides des
+              // combinaisons que le moteur testé rejette désormais à raison
+              // (voir searchBuildsSteps dans runeBuildOptim.ts), créant un
+              // faux écart différentiel plutôt qu'une vraie divergence.
+              if (runes.filter((r) => r.set === 'intangible').length > 1) continue;
               const active = activeSets(runes.map((r) => r.set));
               if (missingSets(requirement.sets, active).length > 0) continue;
               const stats = computeStats({ base, runes, artifacts: [] });

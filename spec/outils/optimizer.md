@@ -588,6 +588,17 @@ plus haut.
   s'il écarte une paire, la vraie combinaison échouerait forcément aussi.
   Chaque candidat qu'il laisse passer est ensuite **revérifié sur les runes
   réelles** (`activeSets`/`missingSets`) avant d'être retenu.
+- **Au plus 1 rune Intangible par proposition** : le jeu n'autorise à en
+  sertir qu'une seule par monstre (voir
+  [compte/calcul-runes.md §5.2](../compte/calcul-runes.md)) — une paire de
+  compartiments dont les jokers additionnés dépassent 1 (1+1 réparti sur les
+  deux moitiés, ou plusieurs dans une seule) est écartée **avant** d'ouvrir la
+  boucle des combinaisons, via `bA.jokers + bB.jokers`, un compte EXACT
+  attaché à chaque compartiment (voir `bucketKeyOf`) — jamais un faux rejet.
+  Sans ce garde-fou, une combinaison utilisant deux runes Intangible aurait pu
+  être proposée : ses stats calculées seraient correctes (`activeSets`
+  plafonne lui-même l'effet à 1 joker), mais elle resterait inéquipable en
+  jeu.
 - **Élagage de faisabilité MIN et MAX, pas d'optimisation vers un seul
   critère** : la recherche collecte un ensemble large mais borné de
   combinaisons valides (jusqu'à `MAX_COLLECTED`, 5000 — relevé depuis 2000

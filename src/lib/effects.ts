@@ -232,9 +232,27 @@ export function canAddSet(sets: string[], key: string): boolean {
 
 // Sets ACTIFS d'un build, à partir des sets de ses runes.
 // Un set 2 pièces peut être actif PLUSIEURS fois (ex. 6 runes Fight → 3× Fight),
-// d'où une liste (avec répétitions) et non un ensemble. Une rune Intangible sert
-// de joker et complète le set auquel il manque le moins de pièces.
+// d'où une liste (avec répétitions) et non un ensemble.
 // Tri d'affichage : sets 4 pièces d'abord.
+//
+// ⚠️ Règle du jeu pour Intangible (texte en jeu) : « Seule 1 de ces runes peut
+// être sertie par monstre. Quand une rune Intangible est sertie, elle remplace
+// automatiquement une rune manquante pour l'activation d'un set de runes
+// incomplet. Elle ne peut compléter qu'un seul set de rune et ne fonctionne pas
+// quand il y a deux sets incomplets ou plus. » Deux conséquences, TOUTES DEUX
+// nécessaires (un résultat annoncé actif à tort serait une stat affichée
+// fausse, pas qu'un détail cosmétique) :
+//  1. Un seul joker compte jamais — au-delà, les runes Intangible en trop ne
+//     font rien (le jeu empêche d'en équiper deux sur le même monstre, mais
+//     rien n'empêche cette fonction de recevoir des données qui en comptent
+//     plusieurs, ex. une proposition de l'Optimizer avant son propre garde-fou
+//     — voir runeBuildOptim.ts).
+//  2. Le joker ne complète RIEN dès que DEUX sets ou plus sont incomplets
+//     PARMI LES RUNES RÉELLEMENT PORTÉES — même celui qui ne lui manque
+//     qu'UNE seule pièce. Avant ce correctif, la fonction complétait
+//     silencieusement le set le plus proche de l'activation sans regarder si
+//     un AUTRE set (même non demandé par l'utilisateur) était lui aussi
+//     incomplet — un set annoncé actif alors qu'il ne l'est pas en jeu.
 export function activeSets(keys: string[]): string[] {
   const count = new Map<string, number>();
   let jokers = 0;
@@ -243,6 +261,7 @@ export function activeSets(keys: string[]): string[] {
     if (key === INTANGIBLE_SET) jokers++;
     else count.set(key, (count.get(key) ?? 0) + 1);
   }
+  jokers = Math.min(jokers, 1);
 
   const out: string[] = [];
   const partial: { key: string; missing: number }[] = [];
@@ -253,13 +272,12 @@ export function activeSets(keys: string[]): string[] {
     if (rem > 0) partial.push({ key, missing: req - rem });
   }
 
-  partial.sort((a, b) => a.missing - b.missing);
-  for (const p of partial) {
-    if (jokers >= p.missing) {
-      out.push(p.key);
-      jokers -= p.missing;
-    }
+  // Un seul joker, un seul set incomplet : sinon il ne sait pas lequel aider,
+  // donc il n'aide personne (voir le commentaire de règle ci-dessus).
+  if (jokers === 1 && partial.length === 1 && jokers >= partial[0].missing) {
+    out.push(partial[0].key);
   }
+
   out.sort((a, b) => (FOUR_PIECE_SETS.has(a) ? 0 : 1) - (FOUR_PIECE_SETS.has(b) ? 0 : 1));
   return out;
 }

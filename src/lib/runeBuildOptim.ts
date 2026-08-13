@@ -816,6 +816,14 @@ export function* searchBuildsSteps(params: SearchParams): Generator<SearchProgre
   outer: for (const bA of bucketsA) {
     for (const bB of bucketsB) {
       if (!satisfiesSets(bA.counts, bA.jokers, bB.counts, bB.jokers, distinctKeys, requirement)) continue;
+      // ⚠️ Une seule rune Intangible peut être sertie par monstre (règle du
+      // jeu, voir activeSets dans effects.ts) : deux jokers répartis entre
+      // les deux moitiés (1+1, ou 2 dans une seule) ne pourraient jamais être
+      // équipés ensemble en jeu, même si `activeSets` calculerait quand même
+      // des stats (il plafonne lui-même à 1 joker effectif). `bA.jokers`/
+      // `bB.jokers` sont des comptes EXACTS (définissent le compartiment,
+      // voir bucketKeyOf) : ce test ne peut jamais écarter une paire à tort.
+      if (bA.jokers + bB.jokers > 1) continue;
       if (!pairFeasibleMin(bA, bB)) continue;
 
       for (const comboA of bA.combos) {

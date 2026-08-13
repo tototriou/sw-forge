@@ -533,4 +533,66 @@ export default function testRuneOptim() {
       'efficience et score restent deux mesures distinctes, pas interchangeables'
     );
   }
+
+  titre('Optimizer · règle du joker Intangible');
+
+  // ⚠️ Reproduit le bug signalé : « Swift » annoncé actif alors qu'un second
+  // ET un troisième set, ni l'un ni l'autre demandés, sont eux aussi
+  // incomplets parmi les 6 runes réellement choisies — activeSets (voir
+  // effects.ts) ne doit alors compléter AUCUN des trois. Le pool n'offre
+  // qu'UNE seule rune par slot : une seule combinaison possible, ce test
+  // vérifie donc directement si LE moteur l'accepte ou la rejette.
+  {
+    const pool = [
+      rune(1, 1, 'swift'),
+      rune(2, 2, 'swift'),
+      rune(3, 3, 'swift'),
+      rune(4, 4, 'intangible'),
+      rune(5, 5, 'blade'), // 1 pièce d'un set 2 pièces → lui aussi incomplet
+      rune(6, 6, 'shield'), // idem — DEUX sets incomplets en plus de Swift
+    ];
+    const res = searchBuilds({
+      base: ZERO_BASE,
+      artifacts: [],
+      pool,
+      requirement: { sets: ['swift'], minStats: {} },
+      metric: 'eff',
+    });
+    egal(
+      res.candidates.length,
+      0,
+      'Swift manque 1 pièce, mais DEUX autres sets sont aussi incomplets → le joker n\'aide personne, aucune combinaison'
+    );
+  }
+
+  // ⚠️ Seule 1 rune Intangible peut être sertie par monstre (règle du jeu) :
+  // une proposition qui en utiliserait plusieurs n'est pas équipable, même si
+  // `activeSets` calculerait quand même des stats correctes (il plafonne lui-
+  // même à 1 joker effectif). Pool à un seul candidat par slot, 3 runes
+  // Intangible réparties sur la seconde moitié (slots 4-6) : la seule
+  // combinaison possible doit être rejetée par ce garde-fou, pas seulement
+  // par la règle « deux sets incomplets » ci-dessus (ici Swift est le SEUL
+  // set incomplet, donc un unique joker suffirait à l'activer).
+  {
+    const pool = [
+      rune(1, 1, 'violent'),
+      rune(2, 2, 'violent'),
+      rune(3, 3, 'violent'),
+      rune(4, 4, 'intangible'),
+      rune(5, 5, 'intangible'),
+      rune(6, 6, 'intangible'),
+    ];
+    const res = searchBuilds({
+      base: ZERO_BASE,
+      artifacts: [],
+      pool,
+      requirement: { sets: ['violent'], minStats: {} },
+      metric: 'eff',
+    });
+    egal(
+      res.candidates.length,
+      0,
+      '3 runes Intangible dans la seule combinaison possible → rejetée (une seule sertie par monstre en jeu)'
+    );
+  }
 }

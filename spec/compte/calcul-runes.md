@@ -301,6 +301,23 @@ Deux natures, à ne pas confondre :
 - Les **répétitions comptent** : 6 runes Energy = **3×** le set 2 pièces = +45 %
   PV. C'est `activeSets` (§2.1) qui renvoie les occurrences, joker **Intangible**
   compris.
+- ⚠️ **Règle du joker Intangible, texte du jeu** : « Seule 1 de ces runes peut
+  être sertie par monstre. Quand une rune Intangible est sertie, elle remplace
+  automatiquement une rune manquante pour l'activation d'un set de runes
+  incomplet. Elle ne peut compléter qu'un seul set de rune et ne fonctionne pas
+  quand il y a deux sets incomplets ou plus. » `activeSets` applique donc DEUX
+  conditions, pas une seule : (1) un seul joker compte jamais, même si la
+  fonction en reçoit plusieurs (le jeu empêche d'en équiper deux sur le même
+  monstre, mais l'Optimizer peut proposer une combinaison qui en utiliserait
+  plusieurs avant son propre garde-fou — voir
+  [outils/optimizer.md](../outils/optimizer.md)) ; (2) le joker ne complète
+  RIEN dès que **deux sets ou plus** sont incomplets parmi les runes
+  RÉELLEMENT portées — **même un set non demandé par l'utilisateur compte**.
+  Bug corrigé : la fonction complétait auparavant silencieusement le set le
+  plus proche de l'activation sans regarder si un autre set, même hors du
+  combo recherché, était lui aussi incomplet — un set annoncé actif (et sa
+  stat bonus affichée) alors qu'il ne l'est pas réellement en jeu. Couvert par
+  [tests/sets-intangible.test.ts](tests/sets-intangible.test.ts).
 - Les % PV/ATQ/DEF entrent dans le `Σ%` (un seul `ceil`, voir §5.0) ; la VIT est
   ajoutée à plat, `ceil(base × 25 / 100)` — **même arrondi qu'à l'import Swift**
   (voir [../shared/import-compte.md](../shared/import-compte.md)), les deux

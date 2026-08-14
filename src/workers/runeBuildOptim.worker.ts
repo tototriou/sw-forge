@@ -88,16 +88,17 @@ export type WorkerResponse = WorkerProgressMessage | WorkerResultMessage;
 // meet-in-the-middle ne consomme pas ces budgets à un rythme constant d'une
 // recherche à l'autre, donc la barre peut accélérer ou ralentir en cours de
 // route plutôt que progresser régulièrement.
-// ⚠️ `nodeBudgetMax` VIVANT (pas `prepared.maxNodes`, figé) — voir « Suite —
-// escalade automatique du budget de nœuds » : quand le plafond est relevé en
-// cours de recherche, le ratio explored/maxNodes doit refléter le NOUVEAU
-// plafond, sinon la barre resterait bloquée à 100 % (ou au-delà) pendant
-// qu'un plafond périmé continuerait d'être affiché. Un recul visible de la
-// barre au moment d'une escalade est attendu et acceptable — bien moins
-// trompeur qu'un 100 % qui ne correspond plus à rien.
-function estimatePct(prepared: PreparedSearch, nodeBudgetMax: number, explored: number, found: number, elapsedMs: number): number {
+// ⚠️ Contre `totalPairs` (l'espace RÉEL à épuiser, voir `totalPairCount`),
+// PAS `nodeBudget.max` (le plafond de nœuds, qui grandit avec l'escalade et
+// n'a plus grand-chose à voir avec la taille réelle du travail restant —
+// voir « Suite — espace de recherche affiché en direct »). Affiché à
+// l'écran comme `X / totalPairs`, cohérent avec la ligne « Espace de
+// recherche à épuiser » juste en dessous : les DEUX doivent montrer le
+// MÊME dénominateur, sous peine de désaccord visible entre deux lignes
+// voisines du même écran.
+function estimatePct(prepared: PreparedSearch, totalPairs: number, explored: number, found: number, elapsedMs: number): number {
   const ratios = [
-    explored / nodeBudgetMax,
+    totalPairs > 0 ? explored / totalPairs : 0,
     found / prepared.maxCollected,
     Number.isFinite(prepared.maxMs) ? elapsedMs / prepared.maxMs : 0,
   ];
@@ -253,7 +254,7 @@ self.onmessage = async (e: MessageEvent<WorkerRequest>) => {
   // ça, seule l'estimation brute pré-recherche, `estimateSearchSpace`,
   // existe). Coût négligeable : O(compartiments A × compartiments B), une
   // poignée de compartiments de chaque côté, jamais les combos eux-mêmes.
-  const totalPairs = totalPairCount(bucketsA, bucketsB, prepared.distinctKeys, prepared.requirement);
+  const totalPairs = totalPairCount(prepared, bucketsA, bucketsB);
 
   let lastYield = Date.now();
   const gen = pairBuckets(prepared, bucketsA, bucketsB, nodeBudget);
@@ -284,7 +285,7 @@ self.onmessage = async (e: MessageEvent<WorkerRequest>) => {
         phase: 'pairing',
         explored: progress.explored,
         found: progress.candidates.length,
-        pct: estimatePct(prepared, nodeBudget.max, progress.explored, progress.candidates.length, now - startedAt),
+        pct: estimatePct(prepared, totalPairs, progress.explored, progress.candidates.length, now - startedAt),
         nodeBudgetMax: nodeBudget.max,
         totalPairs,
       };

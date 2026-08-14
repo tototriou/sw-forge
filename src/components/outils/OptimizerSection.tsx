@@ -1,4 +1,4 @@
-import { Fragment, useMemo } from 'react';
+import { Fragment, useMemo, useRef } from 'react';
 import { Search, Boxes, Square, Settings2, HelpCircle, RotateCcw, FlaskConical } from 'lucide-react';
 import { ArtifactDetail, ARTIFACT_KINDS, RECO_STATS, RuneDetail } from '../../types';
 import { BoxItem } from '../../lib/applyAccount';
@@ -170,6 +170,13 @@ export default function OptimizerSection({ box, runes, optimizer }: Props) {
 
   const runeById = useMemo(() => new Map(runes.map((r) => [r.id, r])), [runes]);
 
+  // Sert à ramener l'écran sur « Set de runes recherché » quand une
+  // recherche est tentée sans set choisi (voir `handleSearch`) — sans ça, le
+  // cadre rouge pouvait rester hors champ (page longue, écran petit), auquel
+  // cas rien ne signalait visuellement à l'utilisateur POURQUOI le clic sur
+  // « Rechercher » ne s'est rien passé.
+  const setPickerSectionRef = useRef<HTMLDivElement>(null);
+
   // ⚠️ « Utiliser tout l'inventaire » COCHÉE PAR DÉFAUT (revu — l'exclusion
   // décochée par défaut pouvait surprendre : un demi-build qui semblait
   // manquer alors que ses runes étaient simplement rattachées ailleurs dans
@@ -274,6 +281,7 @@ export default function OptimizerSection({ box, runes, optimizer }: Props) {
     if (!selected) return;
     if (comboSets.length === 0) {
       setSetPickerInvalid(true);
+      setPickerSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
       return;
     }
     setSetPickerInvalid(false);
@@ -380,6 +388,7 @@ export default function OptimizerSection({ box, runes, optimizer }: Props) {
       )}
 
       <div
+        ref={setPickerSectionRef}
         className={
           setPickerInvalid
             ? 'rounded-lg border-2 border-red-500 bg-red-500/15 ring-4 ring-red-500/50 p-2 -m-2 transition'
@@ -683,12 +692,24 @@ export default function OptimizerSection({ box, runes, optimizer }: Props) {
           <Boxes size={15} /> Utiliser tout l'inventaire
         </button>
 
+        {/* ⚠️ `comboSets.length === 0` reste HORS de `disabled` — un bouton
+            HTML natif `disabled` ne déclenche JAMAIS `onClick` (règle du
+            DOM, pas un oubli), ce qui aurait rendu le défilement vers « Set
+            de runes recherché » ci-dessous inatteignable : plus aucun clic
+            ne pouvait jamais arriver jusqu'à `handleSearch`. Grisé
+            visuellement à la place (mêmes classes que `disabled:*`,
+            appliquées manuellement) tout en restant cliquable, pour que le
+            clic sur un set manquant décale toujours vers la section fautive
+            plutôt que de ne rien faire silencieusement. */}
         <button
           type="button"
           onClick={handleSearch}
           disabled={!selected || status === 'running'}
-          className="flex items-center gap-1.5 rounded-lg border border-accent bg-accent-soft px-3.5 py-2 text-[13px] font-semibold
-                     text-ink transition hoverable:shadow disabled:opacity-40 disabled:cursor-not-allowed"
+          title={selected && status !== 'running' && comboSets.length === 0 ? 'Choisis d\'abord un set de runes recherché' : undefined}
+          className={`flex items-center gap-1.5 rounded-lg border border-accent bg-accent-soft px-3.5 py-2 text-[13px] font-semibold
+                     text-ink transition hoverable:shadow disabled:opacity-40 disabled:cursor-not-allowed ${
+                       comboSets.length === 0 ? 'opacity-40 cursor-not-allowed' : ''
+                     }`}
         >
           <Search size={15} />
           {status === 'running' ? 'Recherche…' : 'Rechercher'}
@@ -755,19 +776,19 @@ export default function OptimizerSection({ box, runes, optimizer }: Props) {
               style={{ width: `${Math.round((progress?.pct ?? 0) * 100)}%` }}
             />
           </div>
+          {/* ⚠️ Le dénominateur ici est `totalPairs` (voir `totalPairCount`),
+              PAS `nodeBudgetMax` (le plafond de nœuds, qui grandit avec
+              l'escalade — voir « Suite — escalade automatique du budget de
+              nœuds ») : les deux racontent des choses différentes, et
+              afficher `nodeBudgetMax` ici créait un désaccord visible avec
+              la ligne « Espace de recherche à épuiser » juste en dessous,
+              qui montre TOUJOURS `totalPairs`. Les deux lignes partagent
+              maintenant le même chiffre. */}
           <p className="mt-1 font-mono text-[11px] text-ink-dim">
             {progress === null
               ? 'Préparation…'
-              : `${progress.explored.toLocaleString('fr-FR')} / ${progress.nodeBudgetMax.toLocaleString('fr-FR')} combinaisons examinées · ${progress.found.toLocaleString('fr-FR')} trouvée(s)`}
+              : `${progress.explored.toLocaleString('fr-FR')} / ${progress.totalPairs.toLocaleString('fr-FR')} combinaisons examinées · ${progress.found.toLocaleString('fr-FR')} trouvée(s)`}
           </p>
-          {/* ⚠️ `totalPairs` (voir `totalPairCount`) N'EST PAS le budget de
-              nœuds (`nodeBudgetMax`, ci-dessus, qui grandit) : c'est la
-              taille RÉELLE de l'espace à épuiser une fois les deux moitiés
-              construites — une borne SUPÉRIEURE (paires de compartiments
-              compatibles), pas le nombre de paires réellement visitées en
-              pratique (presque toujours bien moins, l'algorithme élague
-              encore par la suite). Affichée séparément pour ne pas la
-              confondre avec le budget courant. */}
           {progress !== null && (
             <p className="mt-0.5 font-mono text-[11px] text-ink-dimmer">
               Espace de recherche à épuiser (au pire) : {progress.totalPairs.toLocaleString('fr-FR')} combinaisons

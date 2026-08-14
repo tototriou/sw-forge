@@ -1764,6 +1764,71 @@ reste un cas à part, voir plus haut) — mais répond directement au cas où le
 budget de nœuds s'épuise bien avant le budget-temps, ce qui semble être la
 situation la plus courante sur un compte avec beaucoup de runes.
 
+### Suite — espace de recherche affiché en direct, puis affiné en DEUX passes
+
+Ajouté dans la foulée : l'écran affiche désormais, pendant la phase
+d'appariement, le plafond de nœuds VIVANT (`nodeBudgetMax`, qui grandit avec
+l'escalade ci-dessus) et la taille RÉELLE de l'espace de recherche à épuiser
+(`totalPairCount` — le nombre de paires (comboA, comboB) que l'algorithme
+visiterait au pire, calculé une fois les deux moitiés construites, PAS
+l'estimation brute pré-recherche déjà existante).
+
+**Première version trop large, corrigée en DEUX temps sur le MÊME
+signalement réel** (Sonia, deck 6) — les deux versions intermédiaires ont
+été vérifiées directement sur ce cas via les scripts de diagnostic
+(`monster-search-focused-diag.ts`) avant d'être retenues, pas seulement
+supposées correctes :
+
+1. **v1 (sets/joker seuls)** : espace annoncé à 652M, recherche EXHAUSTIVE
+   (pas tronquée) arrêtée à ~87M — l'écran laissait croire à tort qu'il
+   restait ~85 % du travail.
+2. **v2 (+ `pairFeasibleMin`)** — le filtre qui élimine toute une paire de
+   compartiments dont même le MEILLEUR cas combiné (bornes `maxPct`/
+   `maxFlat` du COMPARTIMENT) ne peut pas atteindre les minimums. **Mesurée
+   AVANT d'être présentée comme LA correction : 652M → 638M seulement.**
+   Cette borne, agrégée au niveau du compartiment entier, est trop
+   optimiste pour rejeter grand-chose sur un pool large et varié — chaque
+   stat individuelle atteint son maximum QUELQUE PART dans le compartiment,
+   même si aucun VRAI demi-build ne les atteint toutes à la fois. Le vrai
+   écart (638M → ~87M) était ailleurs.
+3. **v3 (+ `comboAOk`)** — le filtre qui élimine un comboA PRÉCIS (pas une
+   borne de compartiment agrégée) apparié au MEILLEUR cas de la moitié B.
+   Vérifiée directement sur le cas Sonia AVANT d'être retenue : `638M` →
+   **86 818 232**, identique AU NŒUD PRÈS au nombre réellement exploré par
+   la recherche exhaustive sur ce cas précis.
+
+Les deux filtres sont désormais factorisés (`bucketPairFeasibleMin`,
+`comboAFeasible`) pour que `pairBuckets` (l'appariement réel) et
+`totalPairCount` (l'estimation) appliquent EXACTEMENT les mêmes filtres —
+aucun risque de désaccord entre ce qui est annoncé et ce qui est réellement
+visité, puisque ce n'est plus deux implémentations séparées. Coût
+additionnel : O(Σ comboA par paire de compartiments compatible) — jamais la
+boucle B (comboB), donc toujours bien moins cher que la recherche
+elle-même (143 099 comboA vérifiés sur le cas Sonia, contre 86,8M paires
+que la vraie recherche visite).
+
+⚠️ Reste, en toute rigueur, une borne SUPÉRIEURE et non le compte exact
+garanti dans TOUS les cas — `quickOk` (l'ultime repli EXACT par PAIRE,
+DANS la boucle B elle-même) pourrait en théorie réduire encore, et le
+reproduire ici referait tout le travail de la boucle. En pratique, sur le
+cas réel mesuré, `pairFeasibleMin` + `comboAOk` suffisaient à retomber
+EXACTEMENT sur le compte réel — documenté à l'écran comme « au pire »,
+prudence qui reste justifiée même si l'écart observé est souvent nul.
+
+**Vérifié** : sur les 15 scénarios aléatoires du harnais différentiel
+(sets/minStats variés, plusieurs compartiments — contrairement au pool
+synthétique à un seul compartiment utilisé pour vérifier l'escalade), la
+propriété `totalPairCount ≥ paires réellement explorées` (recherche
+exhaustive) est vérifiée systématiquement — la plupart des scénarios
+tombent EXACTS, comme sur le cas réel. 361 vérifications passent au total,
+`tsc --noEmit` propre.
+
+⚠️ **Leçon retenue** : la première mesure (v2, `pairFeasibleMin` seul) a
+été prise APRÈS avoir présenté la correction comme faite, pas avant — elle
+a révélé que l'hypothèse initiale (« c'est `pairFeasibleMin` qui manque »)
+était incomplète. Mesurer sur le cas réel AVANT d'annoncer un correctif
+comme résolu (pas seulement après) reste la discipline à suivre.
+
 ## Limites connues
 
 - ~~Un set NON demandé qui s'activerait par accident via les emplacements
@@ -1827,6 +1892,35 @@ situation la plus courante sur un compte avec beaucoup de runes.
   meilleures runes du joueur pour l'objectif choisi sont réellement toutes du
   set demandé, un résultat « tout-un-set » peut être la bonne réponse
   mathématique, pas un bug résiduel.
+- **Relâcher un set demandé peut, à l'inverse, faire DISPARAÎTRE un build
+  pourtant déjà trouvable avec le set complet demandé** — pas un problème de
+  temps (contrairement à ce qu'on pourrait attendre : « ça devrait juste
+  prendre plus longtemps »), un problème de RÉTENTION. Signalé sur un vrai
+  compte (`ß☆Enzo-6399149.json`, Lushen deck 15 offense, ATQ/Taux Crit/Dmg
+  Crit exacts) : demander Rage(4p)+Blade(2p) retrouve le build réel ; demander
+  Rage(4p) SEUL (une contrainte strictement plus large — tout build valide
+  pour la première l'est aussi pour la seconde) ne le retrouve PAS.
+  Diagnostiqué précisément (`scripts/set-relax-diag.ts`) : les 6 runes réelles
+  (Blade comprises) survivent parfaitement au pré-filtrage par emplacement
+  dans LES DEUX cas — la perte a lieu à la rétention par compartiment
+  (`buildBuckets`, `bucketCap`). Les compartiments sont partitionnés par
+  compte de pièces des SEULS sets demandés : avec Rage+Blade, un compartiment
+  « 2 Rage + 1 Blade » est étroit, le bon demi-build y a peu de concurrence ;
+  avec Rage seul, ce même demi-build tombe dans un compartiment « 2 Rage +
+  n'importe quelle 3ᵉ rune » bien plus large et hétérogène (toutes les autres
+  provenances possibles de la 3ᵉ rune s'y retrouvent mélangées), diluant sa
+  place dans les `bucketCap=1500` places par tranche. Mesuré :
+  `totalPairCount` passe de 39,7M (Rage+Blade) à 107,5M (Rage seul) — presque
+  ×3, confirmant que l'espace réellement explorable grandit bien comme
+  attendu — mais le demi-build B cible devient totalement ABSENT de tout
+  compartiment retenu, pas seulement classé plus bas. Confirmé en relevant
+  `bucketCap` à 8000 à titre de test : le demi-build réapparaît (rang
+  #4293/26105), preuve que c'est bien la rétention, pas une élimination
+  prouvée à tort, qui est en cause. Non corrigé : relever `bucketCap` par
+  défaut referait l'historique déjà documenté plus haut (« BUCKET_CAP relevé
+  une troisième fois… ») — chaque relèvement recule le mur d'un cran sans
+  jamais le résoudre pour de bon, et une contrainte relâchée peut toujours
+  diluer davantage qu'un relèvement ponctuel ne peut couvrir.
 - Artéfacts et relique du monstre restent fixes ; l'outil ne travaille que
   sur les runes.
 - L'exclusion v1 ne connaît que la **box** (6★ équipés) ; RTA, Siège et

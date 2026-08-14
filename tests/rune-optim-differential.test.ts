@@ -20,7 +20,7 @@ import { BaseStats, EffectLine, RuneDetail } from '../src/types';
 import { activeSets, runeEfficiency } from '../src/lib/effects';
 import { computeStats } from '../src/lib/stats';
 import { missingSets } from '../src/lib/recoMatch';
-import { BuildRequirement, searchBuilds } from '../src/lib/runeBuildOptim';
+import { BuildRequirement, buildBuckets, prepareSearch, searchBuilds, totalPairCount } from '../src/lib/runeBuildOptim';
 import { egal, ok, titre } from './outils';
 
 // PRNG déterministe (mulberry32) — pas de dépendance, seed fixe pour des
@@ -199,6 +199,34 @@ export default function testRuneOptimDifferential() {
         if (!toutesValides) break;
       }
       ok(toutesValides, `scénario ${s} : tous les candidats renvoyés sont réellement valides (aucun faux positif)`);
+    }
+
+    // ⚠️ `totalPairCount` (affiché à l'écran comme « espace de recherche à
+    // épuiser ») doit rester une borne SÛRE : jamais en dessous du nombre de
+    // paires RÉELLEMENT visitées par une recherche exhaustive (`!truncated`)
+    // sur ce même scénario, sous peine d'annoncer moins de travail qu'il n'y
+    // en a en réalité — voir spec/outils/optimizer.md, « Suite — espace de
+    // recherche affiné (pairFeasibleMin) ». Balayé sur les 15 scénarios
+    // aléatoires (sets et minStats variés, contrairement au pool synthétique
+    // à un seul compartiment de tests/rune-optim.test.ts) plutôt que sur un
+    // seul cas choisi à la main.
+    if (!res.truncated) {
+      const prepared = prepareSearch({ base: BASE, artifacts: [], pool, requirement, metric: 'eff' });
+      if (prepared) {
+        function drain<T>(gen: Generator<unknown, T, void>): T {
+          let step = gen.next();
+          while (!step.done) step = gen.next();
+          return step.value;
+        }
+        const bucketsA = drain(
+          buildBuckets('A', [0, 1, 2], prepared.filtered, prepared.distinctKeys, prepared.constrainedKeys, prepared.retentionKeys, prepared.minEntries, prepared.bucketCap, prepared.maxSetsForA, prepared.jokerCredit, prepared.requiredPieces)
+        );
+        const bucketsB = drain(
+          buildBuckets('B', [3, 4, 5], prepared.filtered, prepared.distinctKeys, prepared.constrainedKeys, prepared.retentionKeys, prepared.minEntries, prepared.bucketCap, prepared.maxSetsForB, prepared.jokerCredit, prepared.requiredPieces)
+        );
+        const total = totalPairCount(prepared, bucketsA, bucketsB);
+        ok(total >= res.explored, `scénario ${s} : totalPairCount (${total}) reste une borne sûre — jamais en dessous des paires réellement explorées par une recherche exhaustive (${res.explored})`);
+      }
     }
   }
 

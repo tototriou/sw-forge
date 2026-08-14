@@ -946,7 +946,7 @@ export default function testRuneOptim() {
       // que `satisfiesSets`/le joker) l'espace annoncé doit être EXACT, pas
       // juste une borne large — une occasion rare de vérifier l'égalité
       // stricte plutôt que « au moins autant que ».
-      const total = totalPairCount(bucketsA, bucketsB, prepared.distinctKeys, requirement);
+      const total = totalPairCount(prepared, bucketsA, bucketsB);
       egal(total, resultFull.explored, "totalPairCount : sur un pool sans minimum ni set demandé (aucun élagage combo par combo au-delà de satisfiesSets), l'espace annoncé correspond EXACTEMENT au nombre de paires réellement explorées par une recherche exhaustive");
     }
   }

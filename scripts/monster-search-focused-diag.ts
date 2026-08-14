@@ -11,7 +11,7 @@
 
 import { computeStats } from '../src/lib/stats';
 import { activeSets } from '../src/lib/effects';
-import { searchBuilds, excludedRuneIds, BuildRequirement, SearchParams, adaptiveMaxNodes, Objective } from '../src/lib/runeBuildOptim';
+import { searchBuilds, excludedRuneIds, BuildRequirement, SearchParams, adaptiveMaxNodes, Objective, prepareSearch, buildBuckets, totalPairCount } from '../src/lib/runeBuildOptim';
 import { parseAccountSource, parseAccountBox, parseSiegeDefense, parseSiegeOffense } from '../src/lib/importAccount';
 import { BaseStats } from '../src/types';
 import { loadDeckMonster, parseDeckMonsterArgs } from './lib/deckMonster';
@@ -96,6 +96,28 @@ const params: SearchParams = {
 };
 console.log(`objective=${objective ?? '(aucun)'} slotFilterCap=${slotFilterCap}`);
 console.log('maxNodes adaptatif utilisé :', adaptiveMaxNodes(params).toLocaleString('fr-FR'));
+
+// ⚠️ totalPairCount, calculé À PART de searchBuilds (qui ne l'expose pas) —
+// même prepareSearch/buildBuckets que la vraie recherche, pour comparer
+// directement l'estimation affichée à l'écran au nombre réellement explore.
+function drain<T>(gen: Generator<unknown, T, void>): T {
+  let step = gen.next();
+  while (!step.done) step = gen.next();
+  return step.value;
+}
+const preparedForEstimate = prepareSearch(params);
+if (preparedForEstimate) {
+  const bucketsA = drain(
+    buildBuckets('A', [0, 1, 2], preparedForEstimate.filtered, preparedForEstimate.distinctKeys, preparedForEstimate.constrainedKeys, preparedForEstimate.retentionKeys, preparedForEstimate.minEntries, preparedForEstimate.bucketCap, preparedForEstimate.maxSetsForA, preparedForEstimate.jokerCredit, preparedForEstimate.requiredPieces)
+  );
+  const bucketsB = drain(
+    buildBuckets('B', [3, 4, 5], preparedForEstimate.filtered, preparedForEstimate.distinctKeys, preparedForEstimate.constrainedKeys, preparedForEstimate.retentionKeys, preparedForEstimate.minEntries, preparedForEstimate.bucketCap, preparedForEstimate.maxSetsForB, preparedForEstimate.jokerCredit, preparedForEstimate.requiredPieces)
+  );
+  const total = totalPairCount(preparedForEstimate, bucketsA, bucketsB);
+  console.log(`totalPairCount (pairFeasibleMin + comboAOk) : ${total.toLocaleString('fr-FR')}`);
+  console.log(`bucketsA : ${bucketsA.length} compartiment(s), tailles = [${bucketsA.map((b) => b.combos.length).join(', ')}]`);
+  console.log(`bucketsB : ${bucketsB.length} compartiment(s), tailles = [${bucketsB.map((b) => b.combos.length).join(', ')}]`);
+}
 
 const t0 = performance.now();
 const res = searchBuilds(params);

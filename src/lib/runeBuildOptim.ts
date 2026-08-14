@@ -1223,13 +1223,93 @@ function satisfiesSets(
 // cette fonction : ce que l'algorithme visiterait AU PIRE, pas ce qu'il
 // visite RÉELLEMENT en pratique (presque toujours bien moins, voir le
 // budget de nœuds qui suffit largement dans les cas mesurés).
-export function totalPairCount(bucketsA: Bucket[], bucketsB: Bucket[], distinctKeys: string[], requirement: BuildRequirement): number {
+// Borne optimiste (sûre) pour les MINIMUMS, à partir des bornes de deux
+// compartiments — factorisée pour être réutilisée à l'IDENTIQUE par
+// `pairBuckets` (élagage réel pendant l'appariement) ET `totalPairCount`
+// (estimation de la taille de l'espace, voir plus bas) : les deux doivent
+// appliquer EXACTEMENT le même filtre, sous peine de désaccord entre ce qui
+// est annoncé et ce qui est réellement visité.
+function bucketPairFeasibleMin(
+  bA: { maxPct: Record<string, number>; maxFlat: Record<string, number> },
+  bB: { maxPct: Record<string, number>; maxFlat: Record<string, number> },
+  minEntries: { k: StatKey; min: number }[],
+  guaranteedMin: { pct: Record<string, number>; flat: Record<string, number> },
+  relPct: Record<string, number>,
+  artFlat: Record<string, number>,
+  totalOf: (k: StatKey, pct: number, flat: number) => number
+): boolean {
+  for (const { k, min } of minEntries) {
+    const optPct = (bA.maxPct[k] ?? 0) + (bB.maxPct[k] ?? 0) + (guaranteedMin.pct[k] ?? 0) + (relPct[k] ?? 0);
+    const optFlat = (bA.maxFlat[k] ?? 0) + (bB.maxFlat[k] ?? 0) + (guaranteedMin.flat[k] ?? 0) + (artFlat[k] ?? 0);
+    if (totalOf(k, optPct, optFlat) < min) return false;
+  }
+  return true;
+}
+
+// Repli rapide côté MINIMUM ET MAXIMUM pour un comboA précis, une fois
+// apparié à une moitié B DONNÉE — factorisé pour être réutilisé à
+// l'IDENTIQUE par `pairBuckets` (élagage réel) ET `totalPairCount`
+// (estimation), même raison que `bucketPairFeasibleMin` juste au-dessus.
+// MINIMUM : même comboA + le MEILLEUR cas de bB (ses bornes de compartiment)
+// suffit-il encore ? MAXIMUM : comboA seul (le contexte fixe) dépasse-t-il
+// déjà — un comboB ne peut jamais RETIRER, donc B n'a pas besoin d'être
+// consulté ici.
+function comboAFeasible(
+  comboA: HalfCombo,
+  bB: { maxPct: Record<string, number>; maxFlat: Record<string, number> },
+  minEntries: { k: StatKey; min: number }[],
+  maxEntries: { k: StatKey; max: number }[],
+  guaranteed: { pct: Record<string, number>; flat: Record<string, number> },
+  guaranteedMin: { pct: Record<string, number>; flat: Record<string, number> },
+  relPct: Record<string, number>,
+  artFlat: Record<string, number>,
+  totalOf: (k: StatKey, pct: number, flat: number) => number
+): boolean {
+  for (const { k, min } of minEntries) {
+    const p = (comboA.pct[k] ?? 0) + (bB.maxPct[k] ?? 0) + (guaranteedMin.pct[k] ?? 0) + (relPct[k] ?? 0);
+    const f = (comboA.flat[k] ?? 0) + (bB.maxFlat[k] ?? 0) + (guaranteedMin.flat[k] ?? 0) + (artFlat[k] ?? 0);
+    if (totalOf(k, p, f) < min) return false;
+  }
+  for (const { k, max } of maxEntries) {
+    const p = (comboA.pct[k] ?? 0) + (guaranteed.pct[k] ?? 0) + (relPct[k] ?? 0);
+    const f = (comboA.flat[k] ?? 0) + (guaranteed.flat[k] ?? 0) + (artFlat[k] ?? 0);
+    if (totalOf(k, p, f) > max) return false;
+  }
+  return true;
+}
+
+// ⚠️ Suite — affine l'estimation pour qu'elle reste HONNÊTE, en DEUX temps.
+// La première version ne filtrait que sur les sets/joker (bon marché, mais
+// bien plus large que ce que l'algorithme visite réellement) : signalé en
+// usage réel (Sonia, deck 6 offense) — « espace total » annoncé à 652M,
+// recherche achevée EXHAUSTIVEMENT (pas tronquée) à ~87M, laissant croire à
+// tort qu'il restait ~85 % du travail alors qu'il n'y avait plus rien à
+// visiter. `pairFeasibleMin` AJOUTÉ D'ABORD (élimine toute une paire de
+// compartiments dont même le meilleur cas combiné ne peut pas atteindre les
+// minimums) — mesuré sur ce même cas réel : 652M → 638M SEULEMENT, cette
+// borne au niveau BUCKET est trop optimiste pour rejeter grand-chose sur un
+// pool large et varié (chaque stat atteint son maximum quelque part, même
+// si aucun VRAI demi-build ne les atteint tous à la fois). Le vrai écart
+// venait d'ailleurs : `comboAOk` (voir `pairBuckets`), qui élimine un comboA
+// PRÉCIS (pas une borne de compartiment agrégée) — AJOUTÉ ENSUITE, vérifié
+// directement sur le cas Sonia : les deux filtres combinés donnent
+// EXACTEMENT 86 818 232, identique au nombre RÉELLEMENT exploré par la
+// recherche exhaustive sur ce cas. Coût : O(Σ comboA par paire de
+// compartiments compatible) — jamais la boucle B, donc toujours bien moins
+// cher que la recherche elle-même (143 099 comboA vérifiés sur ce cas,
+// contre 86,8M paires que la vraie recherche visite).
+export function totalPairCount(prepared: PreparedSearch, bucketsA: Bucket[], bucketsB: Bucket[]): number {
+  const { distinctKeys, requirement, minEntries, maxEntries, guaranteed, guaranteedMin, relPct, artFlat, totalOf } = prepared;
   let total = 0;
   for (const bA of bucketsA) {
     for (const bB of bucketsB) {
       if (bA.jokers + bB.jokers > 1) continue;
       if (!satisfiesSets(bA.counts, bA.jokers, bB.counts, bB.jokers, distinctKeys, requirement)) continue;
-      total += bA.combos.length * bB.combos.length;
+      if (!bucketPairFeasibleMin(bA, bB, minEntries, guaranteedMin, relPct, artFlat, totalOf)) continue;
+      for (const comboA of bA.combos) {
+        if (!comboAFeasible(comboA, bB, minEntries, maxEntries, guaranteed, guaranteedMin, relPct, artFlat, totalOf)) continue;
+        total += bB.combos.length;
+      }
     }
   }
   return total;
@@ -1718,12 +1798,7 @@ export function* pairBuckets(
   // compartiments — même principe que dans l'ancien moteur slot-par-slot,
   // appliqué ici au niveau d'une paire de compartiments de 3 runes.
   function pairFeasibleMin(bA: { maxPct: Record<string, number>; maxFlat: Record<string, number> }, bB: typeof bA): boolean {
-    for (const { k, min } of minEntries) {
-      const optPct = (bA.maxPct[k] ?? 0) + (bB.maxPct[k] ?? 0) + (guaranteedMin.pct[k] ?? 0) + (relPct[k] ?? 0);
-      const optFlat = (bA.maxFlat[k] ?? 0) + (bB.maxFlat[k] ?? 0) + (guaranteedMin.flat[k] ?? 0) + (artFlat[k] ?? 0);
-      if (totalOf(k, optPct, optFlat) < min) return false;
-    }
-    return true;
+    return bucketPairFeasibleMin(bA, bB, minEntries, guaranteedMin, relPct, artFlat, totalOf);
   }
 
   const candidates: BuildCandidate[] = [];
@@ -1744,33 +1819,10 @@ export function* pairBuckets(
       if (!pairFeasibleMin(bA, bB)) continue;
 
       for (const comboA of bA.combos) {
-        // Repli rapide côté MINIMUM : même avec le meilleur de B, ce comboA
-        // peut-il encore atteindre chaque minimum ? Évite d'ouvrir la boucle
-        // B en entier pour un comboA déjà hors de portée.
-        let comboAOk = true;
-        for (const { k, min } of minEntries) {
-          const p = (comboA.pct[k] ?? 0) + (bB.maxPct[k] ?? 0) + (guaranteedMin.pct[k] ?? 0) + (relPct[k] ?? 0);
-          const f = (comboA.flat[k] ?? 0) + (bB.maxFlat[k] ?? 0) + (guaranteedMin.flat[k] ?? 0) + (artFlat[k] ?? 0);
-          if (totalOf(k, p, f) < min) {
-            comboAOk = false;
-            break;
-          }
-        }
-        if (!comboAOk) continue;
-
-        // Repli rapide côté MAXIMUM : un comboB ne peut qu'AJOUTER (jamais
-        // retirer) — si comboA seul (avec le contexte fixe) dépasse déjà un
-        // maximum, aucun comboB ne repassera sous la barre. Pas besoin d'une
-        // borne de compartiment ici : c'est comboA lui-même qui suffit.
-        for (const { k, max } of maxEntries) {
-          const p = (comboA.pct[k] ?? 0) + (guaranteed.pct[k] ?? 0) + (relPct[k] ?? 0);
-          const f = (comboA.flat[k] ?? 0) + (guaranteed.flat[k] ?? 0) + (artFlat[k] ?? 0);
-          if (totalOf(k, p, f) > max) {
-            comboAOk = false;
-            break;
-          }
-        }
-        if (!comboAOk) continue;
+        // Repli rapide côté MINIMUM ET MAXIMUM pour ce comboA précis, avant
+        // d'ouvrir la boucle B en entier — voir `comboAFeasible` (factorisée
+        // pour être réutilisée à l'identique par `totalPairCount`).
+        if (!comboAFeasible(comboA, bB, minEntries, maxEntries, guaranteed, guaranteedMin, relPct, artFlat, totalOf)) continue;
 
         for (const comboB of bB.combos) {
           explored++;

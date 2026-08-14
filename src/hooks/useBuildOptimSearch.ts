@@ -31,13 +31,16 @@ export interface HalfBuildProgress {
 // gros).
 export type BuildOptimProgress =
   | { phase: 'building'; halves: { A: HalfBuildProgress | null; B: HalfBuildProgress | null } }
-  // `nodeBudgetMax` : le plafond de nœuds ACTUEL, voir « Suite — escalade
-  // automatique du budget de nœuds » — peut avoir doublé plusieurs fois
-  // depuis le début de la recherche, affiché tel quel pour que l'écran
-  // montre où en est VRAIMENT la recherche, pas seulement son point de
-  // départ. `totalPairs` : la taille RÉELLE de l'espace à épuiser (voir
-  // `totalPairCount`), constante pour toute la phase — contrairement à
-  // `nodeBudgetMax` qui grandit.
+  // `totalPairs` : la taille RÉELLE de l'espace à épuiser (voir
+  // `totalPairCount`), constante pour toute la phase — c'est CE
+  // dénominateur que l'écran affiche (`X / totalPairs`), pas
+  // `nodeBudgetMax` (le plafond de nœuds ACTUEL, qui grandit avec
+  // l'escalade — voir « Suite — escalade automatique du budget de
+  // nœuds ») : les deux racontent des choses différentes, et seul
+  // `totalPairs` correspond à la ligne « Espace de recherche à épuiser »
+  // affichée juste en dessous. `nodeBudgetMax` reste transmis (utile pour
+  // du débogage/une évolution future), simplement plus affiché tel quel
+  // dans cette ligne.
   | { phase: 'pairing'; explored: number; found: number; pct: number; nodeBudgetMax: number; totalPairs: number };
 
 // Cycle de vie du Worker de recherche de builds.

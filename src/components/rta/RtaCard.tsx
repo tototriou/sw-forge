@@ -43,10 +43,8 @@ interface Props {
   onToggleDetail: (id: string) => void;
   onMove: (id: string, section: string) => void;
   onRemove: (id: string) => void;
-  // Saisie par APPUI LONG sur la carte entière, ou immédiate sur la poignée ≡
-  // (voir useDragLong). Remplace le drag HTML5, qui n'existait pas au doigt.
-  onPointerDownDrag: (id: string, e: React.PointerEvent, immediat?: boolean) => void;
-  dragging: boolean; // cette carte est celle qu'on déplace
+  onDragStart: (id: string) => void;
+  onDragEnd: () => void;
   categoryColors?: string[]; // anneau des catégories du monstre (0 à 4)
   categoryLabels?: string[]; // pour l'infobulle
   // Vitesse saisie ≠ vitesse des runes importées → triangle d'alerte.
@@ -63,8 +61,8 @@ export default function RtaCard({
   onToggleDetail,
   onMove,
   onRemove,
-  onPointerDownDrag,
-  dragging,
+  onDragStart,
+  onDragEnd,
   categoryColors = [],
   categoryLabels = [],
   desync = null,
@@ -77,24 +75,11 @@ export default function RtaCard({
   const total = base !== null || rune !== null ? (base ?? 0) + (rune ?? 0) : null;
   const hasGear = !!entry.gear && entry.gear.runes.length > 0;
 
-  // Appui long n'importe où sur la carte.
-  //
-  // ⚠️ Seul le `<select>` est exclu. Il s'ouvre au maintien et le pointeur
-  // glisse ensuite sur ses options : le geste lui appartient entièrement, une
-  // carte qui se mettrait à suivre le curseur par-dessus une liste déroulée
-  // n'aurait aucun sens.
-  //
-  // ⚠️ Les BOUTONS restent saisissables, et c'est le cœur du réglage. La carte
-  // est presque entièrement couverte d'éléments cliquables — portrait, nom,
-  // vitesse, croix de retrait. Les exclure comme le faisait la version
-  // précédente ne laissait saisissables que quelques pixels de padding entre
-  // eux : le clic long semblait ne marcher que sur la poignée.
-  // Leur `click` part au RELÂCHEMENT, alors que la saisie part au bout de
-  // 400 ms de maintien : les deux gestes ne se disputent rien, et le clic
-  // parasite qui suivrait un dépôt est déjà supprimé par le hook.
-  function handlePointerDown(e: React.PointerEvent) {
-    if ((e.target as HTMLElement).closest('select')) return;
-    onPointerDownDrag(String(monster.id), e);
+  function handleDragStart(e: React.DragEvent) {
+    e.dataTransfer.setData('text/plain', String(monster.id));
+    e.dataTransfer.effectAllowed = 'move';
+    if (cardRef.current) e.dataTransfer.setDragImage(cardRef.current, 24, 24);
+    onDragStart(String(monster.id));
   }
 
   const toggle = hasGear ? () => onToggleDetail(String(monster.id)) : undefined;
@@ -103,54 +88,24 @@ export default function RtaCard({
     <div
       ref={cardRef}
       title={categoryLabels.length > 0 ? categoryLabels.join(' · ') : undefined}
-      onPointerDown={handlePointerDown}
-      // ⚠️ Menu contextuel bloqué sur la zone saisissable. Sur mobile, l'appui
-      // long ouvre « Copier / Rechercher » PENDANT les 400 ms d'attente —
-      // `select-none` ne l'en empêche pas, et le conditionner à une saisie déjà
-      // active serait trop tard. Les contrôles gardent le leur : un clic droit
-      // sur le sélecteur de section reste utile.
-      onContextMenu={(e) => {
-        if (!(e.target as HTMLElement).closest('select')) e.preventDefault();
-      }}
-      // ⚠️ `touch-none` : sans lui, le navigateur s'approprie le geste pour
-      // faire défiler la page avant que `pointermove` puisse l'en empêcher, et
-      // la carte reste collée au doigt sans jamais suivre.
-      // ⚠️ `select-none` : maintenir le doigt ou le bouton, c'est AUSSI le geste
-      // qui sélectionne du texte. Sans lui, l'appui long surlignait le nom du
-      // monstre en bleu au lieu de saisir la carte — et au tactile, il ouvrait
-      // la bulle « Copier / Rechercher ». Rien ici n'est à sélectionner : la
-      // carte est un objet qu'on déplace, pas du texte qu'on lit.
-      // La carte saisie s'efface (elle est doublée par la carte fantôme) et
-      // reste EN PLACE : la retirer du flux ferait s'effondrer la grille sous
-      // le doigt, et on perdrait de vue l'endroit d'où l'on part.
-      // ⚠️ La bordure SEULE quand le détail est ouvert. Elle était doublée d'un
-      // `ring-1 ring-accent/50` : deux traits d'accent concentriques autour de
-      // la même carte, en permanence. Superposés, ils ne se lisent pas comme
-      // deux informations mais comme un contour flou et sale.
-      // Voir spec/shared/design.md.
-      className={`group relative rounded-lg border bg-panel2 touch-none select-none transition-colors ${
+      // ⚠️ La bordure SEULE quand le détail est ouvert : elle était doublée d'un
+      // `ring-1 ring-accent/50`, soit deux traits d'accent concentriques autour
+      // de la même carte. Superposés, ils ne se lisent pas comme deux
+      // informations mais comme un contour flou. Voir spec/shared/design.md.
+      className={`group relative rounded-lg border bg-panel2 transition-colors ${
         open ? 'border-accent' : 'border-border'
-      } ${dragging ? 'opacity-40' : ''}`}
+      }`}
     >
       {/* Anneau des catégories, par-dessus la bordure (voir CategoryRing). */}
       <CategoryRing colors={categoryColors} />
       <div className="flex items-center gap-2 p-1.5">
-      {/* Poignée : saisie IMMÉDIATE, sans attendre l'appui long.
-          ⚠️ Elle reste alors que toute la carte est saisissable — c'est le seul
-          repère visuel qui annonce qu'une carte se déplace. Sans elle, il
-          faudrait découvrir le geste en maintenant le doigt au hasard. Elle ne
-          sert qu'à ça, donc aucun clic à préserver : pas de délai. */}
+      {/* Poignée de drag : seule zone qui déclenche le glisser-déposer */}
       <button
-        // ⚠️ `stopPropagation` : sans lui, l'événement remonte au `div` de la
-        // carte, dont le handler relancerait une saisie AVEC délai par-dessus
-        // celle qu'on vient de démarrer sans délai — la poignée perdrait son
-        // seul intérêt.
-        onPointerDown={(e) => {
-          e.stopPropagation();
-          onPointerDownDrag(String(monster.id), e, true);
-        }}
+        draggable
+        onDragStart={handleDragStart}
+        onDragEnd={onDragEnd}
         className="flex-none cursor-grab active:cursor-grabbing text-ink-dim hoverable:text-ink touch-none"
-        title="Glisser vers une section (ou appui long sur la carte)"
+        title="Glisser vers une section"
         aria-label="Déplacer"
       >
         <GripVertical size={14} />

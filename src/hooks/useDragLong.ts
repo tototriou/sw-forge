@@ -18,12 +18,17 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 // plus long, on croit que ça ne répond pas.
 const DELAI_APPUI = 400;
 
-// Tolérance de bougé pendant l'attente. En dessous, c'est une main qui tremble ;
-// au-delà, l'intention est de faire défiler la page, et on annule.
+// Tolérance de bougé pendant l'attente, en pixels.
 //
-// ⚠️ Sans cette annulation, tout défilement commencé sur une carte se
-// transformait en saisie au bout de 400 ms.
-const TOLERANCE = 10;
+// ⚠️ DEUX seuils, et c'est indispensable. Au doigt, un bougé franc veut dire
+// « je fais défiler la page » et doit annuler la saisie — sans quoi tout
+// défilement commencé sur une carte devenait un déplacement au bout de 400 ms.
+// À la souris, la main n'est jamais immobile : le pointeur dérive de plusieurs
+// pixels pendant les 400 ms d'attente, et un seuil serré annulait la saisie
+// avant qu'elle ne démarre. C'était le bug : le clic long ne prenait que sur la
+// poignée (qui saisit sans attendre), jamais sur le reste de la carte.
+const TOLERANCE_TACTILE = 10;
+const TOLERANCE_SOURIS = 40;
 
 export interface DragLong {
   // Id en cours de déplacement, `null` si aucun. Sert à griser la carte source.
@@ -53,7 +58,12 @@ export function useDragLong(onDrop: (zone: string, id: string) => void): DragLon
   const zones = useRef(new Map<string, HTMLElement>());
   const timer = useRef<number | null>(null);
   const départ = useRef<{ x: number; y: number } | null>(null);
+  // Dernière position vue du pointeur, suivie même pendant l'attente : c'est
+  // elle qui place le fantôme au déclenchement (le curseur a dérivé depuis).
+  const dernier = useRef<{ x: number; y: number } | null>(null);
   const enAttente = useRef<string | null>(null);
+  // Type de pointeur de l'appui en cours : il décide de la tolérance de bougé.
+  const tactile = useRef(false);
   const actif = useRef<string | null>(null);
   const survolée = useRef<string | null>(null);
   const onDropRef = useRef(onDrop);
@@ -97,13 +107,19 @@ export function useDragLong(onDrop: (zone: string, id: string) => void): DragLon
       }
 
       départ.current = { x: e.clientX, y: e.clientY };
+      dernier.current = { x: e.clientX, y: e.clientY };
       enAttente.current = id;
+      tactile.current = e.pointerType !== 'mouse';
       timer.current = window.setTimeout(() => {
         timer.current = null;
         if (enAttente.current !== id) return;
         actif.current = id;
         setDragId(id);
-        setPos(départ.current);
+        // ⚠️ La DERNIÈRE position connue, pas celle du `pointerdown` : pendant
+        // les 400 ms d'attente le curseur a dérivé, et poser le fantôme au
+        // point de départ le faisait apparaître à côté du pointeur avant de
+        // le rejoindre d'un bond au premier mouvement.
+        setPos(dernier.current);
         // Retour haptique là où il existe : c'est ce qui dit « c'est saisi »
         // au doigt, où il n'y a pas de curseur pour le montrer.
         navigator.vibrate?.(15);
@@ -116,10 +132,13 @@ export function useDragLong(onDrop: (zone: string, id: string) => void): DragLon
   // pendant un déplacement, des écouteurs locaux perdraient le geste.
   useEffect(() => {
     function onMove(e: PointerEvent) {
+      // Suivi permanent, y compris pendant l'attente : le fantôme doit
+      // apparaître sous le pointeur là où il est, pas où l'appui a commencé.
+      dernier.current = { x: e.clientX, y: e.clientY };
       // Phase d'attente : un bougé franc annule (c'est un défilement).
       if (enAttente.current && départ.current && !actif.current) {
         const d = Math.hypot(e.clientX - départ.current.x, e.clientY - départ.current.y);
-        if (d > TOLERANCE) annulerAttente();
+        if (d > (tactile.current ? TOLERANCE_TACTILE : TOLERANCE_SOURIS)) annulerAttente();
         return;
       }
       if (!actif.current) return;

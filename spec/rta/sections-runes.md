@@ -70,9 +70,16 @@ Pointer Events couvrent souris, doigt et stylet avec un seul code.
   maintenir le doigt dessus doit les actionner. Un `select` ouvert qui se met à
   suivre le pointeur est incompréhensible. Le portrait et le nom, eux, restent
   saisissables — leur clic part au relâchement, les deux gestes cohabitent.
-- ⚠️ **Un bougé de plus de 10 px pendant l'attente annule** : c'est un
-  défilement. Sans ça, tout scroll commencé sur une carte se transformait en
-  saisie au bout de 400 ms.
+- ⚠️ **Un bougé franc pendant l'attente annule** : c'est un défilement. Sans ça,
+  tout scroll commencé sur une carte se transformait en saisie au bout de 400 ms.
+  - ⚠️ **Deux seuils, un par type de pointeur** : 10 px au doigt, **40 px à la
+    souris**. La main n'est jamais immobile, et le curseur dérive de plusieurs
+    pixels pendant les 400 ms — un seuil serré annulait la saisie avant qu'elle
+    ne démarre, et le clic long ne prenait **que sur la poignée** (qui, elle,
+    saisit sans attendre).
+- ⚠️ Le fantôme apparaît à la **dernière position connue** du pointeur, pas à
+  celle du `pointerdown` : après 400 ms le curseur a bougé, et partir du point
+  d'appui le faisait surgir à côté avant de rejoindre le pointeur d'un bond.
 - ⚠️ **`touch-none` sur la carte** : sans lui, le navigateur s'approprie le
   geste avant que `pointermove` puisse l'en empêcher.
 - ⚠️ **`select-none` sur la carte** : maintenir, c'est aussi le geste qui

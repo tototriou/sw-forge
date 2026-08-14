@@ -66,10 +66,19 @@ Pointer Events couvrent souris, doigt et stylet avec un seul code.
   croit que ça ne répond pas.
 - **La poignée saisit sans délai** : elle ne sert qu'à ça, il n'y a aucun clic à
   lui préserver.
-- ⚠️ **L'appui long est ignoré sur les vrais contrôles** (croix, sélecteur) :
-  maintenir le doigt dessus doit les actionner. Un `select` ouvert qui se met à
-  suivre le pointeur est incompréhensible. Le portrait et le nom, eux, restent
-  saisissables — leur clic part au relâchement, les deux gestes cohabitent.
+- ⚠️ **Seul le `<select>` est exclu.** Il s'ouvre au maintien et le pointeur
+  glisse ensuite sur ses options : le geste lui appartient entièrement.
+  - ⚠️ **Les boutons restent saisissables**, et c'est le cœur du réglage. La
+    carte est presque entièrement couverte d'éléments cliquables — portrait,
+    nom, vitesse, croix. Les exclure ne laissait saisissables que **quelques
+    pixels de padding** entre eux : le clic long semblait ne fonctionner que sur
+    la poignée.
+  - Les deux gestes ne se disputent rien : le `click` d'un bouton part au
+    **relâchement**, la saisie au bout de **400 ms de maintien**. Et le clic
+    parasite qui suivrait un dépôt est déjà supprimé par le hook.
+  - La poignée coupe la propagation (`stopPropagation`) : sinon l'événement
+    remonte au conteneur, qui relancerait une saisie **avec** délai par-dessus
+    celle qu'elle vient de démarrer sans délai.
 - ⚠️ **Un bougé franc pendant l'attente annule** : c'est un défilement. Sans ça,
   tout scroll commencé sur une carte se transformait en saisie au bout de 400 ms.
   - ⚠️ **Deux seuils, un par type de pointeur** : 10 px au doigt, **40 px à la

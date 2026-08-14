@@ -79,13 +79,21 @@ export default function RtaCard({
 
   // Appui long n'importe où sur la carte.
   //
-  // ⚠️ Sauf sur les VRAIS contrôles : la croix de retrait et le sélecteur de
-  // section. Maintenir le doigt dessus doit les actionner, pas saisir la carte
-  // — un `select` ouvert qui se met à suivre le pointeur est incompréhensible.
-  // Le portrait et le nom, eux, restent saisissables : leur clic (ouvrir le
-  // détail) se déclenche au relâchement, donc les deux gestes cohabitent.
+  // ⚠️ Seul le `<select>` est exclu. Il s'ouvre au maintien et le pointeur
+  // glisse ensuite sur ses options : le geste lui appartient entièrement, une
+  // carte qui se mettrait à suivre le curseur par-dessus une liste déroulée
+  // n'aurait aucun sens.
+  //
+  // ⚠️ Les BOUTONS restent saisissables, et c'est le cœur du réglage. La carte
+  // est presque entièrement couverte d'éléments cliquables — portrait, nom,
+  // vitesse, croix de retrait. Les exclure comme le faisait la version
+  // précédente ne laissait saisissables que quelques pixels de padding entre
+  // eux : le clic long semblait ne marcher que sur la poignée.
+  // Leur `click` part au RELÂCHEMENT, alors que la saisie part au bout de
+  // 400 ms de maintien : les deux gestes ne se disputent rien, et le clic
+  // parasite qui suivrait un dépôt est déjà supprimé par le hook.
   function handlePointerDown(e: React.PointerEvent) {
-    if ((e.target as HTMLElement).closest('button, select')) return;
+    if ((e.target as HTMLElement).closest('select')) return;
     onPointerDownDrag(String(monster.id), e);
   }
 
@@ -102,7 +110,7 @@ export default function RtaCard({
       // active serait trop tard. Les contrôles gardent le leur : un clic droit
       // sur le sélecteur de section reste utile.
       onContextMenu={(e) => {
-        if (!(e.target as HTMLElement).closest('button, select')) e.preventDefault();
+        if (!(e.target as HTMLElement).closest('select')) e.preventDefault();
       }}
       // ⚠️ `touch-none` : sans lui, le navigateur s'approprie le geste pour
       // faire défiler la page avant que `pointermove` puisse l'en empêcher, et
@@ -133,7 +141,14 @@ export default function RtaCard({
           faudrait découvrir le geste en maintenant le doigt au hasard. Elle ne
           sert qu'à ça, donc aucun clic à préserver : pas de délai. */}
       <button
-        onPointerDown={(e) => onPointerDownDrag(String(monster.id), e, true)}
+        // ⚠️ `stopPropagation` : sans lui, l'événement remonte au `div` de la
+        // carte, dont le handler relancerait une saisie AVEC délai par-dessus
+        // celle qu'on vient de démarrer sans délai — la poignée perdrait son
+        // seul intérêt.
+        onPointerDown={(e) => {
+          e.stopPropagation();
+          onPointerDownDrag(String(monster.id), e, true);
+        }}
         className="flex-none cursor-grab active:cursor-grabbing text-ink-dim hoverable:text-ink touch-none"
         title="Glisser vers une section (ou appui long sur la carte)"
         aria-label="Déplacer"

@@ -1507,6 +1507,47 @@ export function* searchBuildsSteps(params: SearchParams): Generator<SearchProgre
             break outer;
           }
 
+          // ⚠️ Repli EXACT, pas juste une borne optimiste comme `comboAOk`/
+          // `pairFeasibleMin` plus haut — AVANT les deux opérations les plus
+          // chères de cette boucle (`activeSets` + `computeStats`, l'une et
+          // l'autre appelées à CHAQUE paire jusqu'ici, même celles vouées à
+          // échouer). `comboA.pct[k] + comboB.pct[k]` (+ `flat`) est
+          // EXACTEMENT ce que `computeStats` calculerait pour cette stat —
+          // même formule (`totalOf`), mêmes 6 runes, `pct`/`flat` déjà
+          // accumulés par moitié sur les mêmes clés (`trackedKeys` ⊇
+          // `constrainedKeys`, voir `buildBuckets`). Sur une recherche serrée
+          // (le cas qui prend 1-2 minutes), l'écrasante majorité des paires
+          // explorées échouent déjà CE test — leur épargner l'allocation du
+          // tableau de runes, `activeSets` et `computeStats` est le principal
+          // gain mesuré. ⚠️ Ne remplace PAS la revérification finale sur les
+          // VRAIES stats plus bas : `guaranteed` (le bonus de set) suppose
+          // TOUJOURS que seuls les sets de `requirement.sets` sont actifs —
+          // un cas marginal où les emplacements « libres » d'un combo
+          // formeraient EUX-MÊMES un bonus de set non demandé échapperait à
+          // CE repli (comme il échappait déjà à `comboAOk`, inchangé ici,
+          // voir spec/outils/optimizer.md « Limites connues ») ; seule la
+          // revérification via `computeStats` reste la décision finale.
+          let quickOk = true;
+          for (const { k, min } of minEntries) {
+            const p = (comboA.pct[k] ?? 0) + (comboB.pct[k] ?? 0) + (guaranteed.pct[k] ?? 0) + (relPct[k] ?? 0);
+            const f = (comboA.flat[k] ?? 0) + (comboB.flat[k] ?? 0) + (guaranteed.flat[k] ?? 0) + (artFlat[k] ?? 0);
+            if (totalOf(k, p, f) < min) {
+              quickOk = false;
+              break;
+            }
+          }
+          if (quickOk) {
+            for (const { k, max } of maxEntries) {
+              const p = (comboA.pct[k] ?? 0) + (comboB.pct[k] ?? 0) + (guaranteed.pct[k] ?? 0) + (relPct[k] ?? 0);
+              const f = (comboA.flat[k] ?? 0) + (comboB.flat[k] ?? 0) + (guaranteed.flat[k] ?? 0) + (artFlat[k] ?? 0);
+              if (totalOf(k, p, f) > max) {
+                quickOk = false;
+                break;
+              }
+            }
+          }
+          if (!quickOk) continue;
+
           const runes: RuneDetail[] = [...comboA.runes, ...comboB.runes];
           // ⚠️ Vérification AUTHENTIQUE sur les runes réelles — le groupage
           // par compte est un pré-filtre sûr mais optimiste (voir

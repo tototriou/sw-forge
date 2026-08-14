@@ -6,6 +6,8 @@ import { BaseStats, EffectLine, RuneDetail } from '../src/types';
 import {
   BuildCandidate,
   candidateMetricTotal,
+  diagnoseFeasibility,
+  rankBlockingConditions,
   excludedRuneIds,
   objectiveScore,
   searchBuilds,
@@ -410,6 +412,119 @@ export default function testRuneOptim() {
       !!res.candidates[0]?.runeIds.includes(11) && !res.candidates[0]?.runeIds.includes(1),
       'la combinaison retenue utilise la rune sûre (id 11), jamais la risquée (id 1)'
     );
+  }
+
+  titre('Optimizer · diagnostic de faisabilité (diagnoseFeasibility)');
+
+  // Même pool que « faisabilité (minimum) » ci-dessus : meilleur cas atteignable
+  // sur VIT = 180 (100 base + 50 des 5 autres emplacements fixes + 30 de la
+  // rune forte). ⚠️ Prouve une IMPOSSIBILITÉ, ne prouve jamais une possibilité
+  // — `satisfiable=true` à 180 ne garantit pas qu'une recherche complète
+  // trouve un candidat, seulement qu'aucune preuve mathématique ne l'exclut.
+  {
+    const diag = diagnoseFeasibility({
+      base: ZERO_BASE,
+      artifacts: [],
+      pool: poolFeasibilityMin(),
+      requirement: { sets: ['violent', 'will'], minStats: { spd: 181 } },
+      metric: 'eff',
+    });
+    egal(diag.length, 1, 'une seule condition posée → un seul verdict');
+    egal(diag[0]?.key, 'spd', 'porte sur la bonne stat');
+    egal(diag[0]?.kind, 'min', 'condition minimum');
+    egal(diag[0]?.bound, 180, 'meilleur cas atteignable = 180 (identique au calcul de recherche)');
+    egal(diag[0]?.satisfiable, false, '181 > 180 → preuve d’impossibilité');
+  }
+  {
+    const diag = diagnoseFeasibility({
+      base: ZERO_BASE,
+      artifacts: [],
+      pool: poolFeasibilityMin(),
+      requirement: { sets: ['violent', 'will'], minStats: { spd: 180 } },
+      metric: 'eff',
+    });
+    egal(diag[0]?.satisfiable, true, 'exactement au meilleur cas → pas de preuve d’impossibilité (frontière exacte)');
+  }
+
+  // Symétrique côté maximum : ZERO_BASE a 15 de Taux Crit de base, aucune
+  // rune ne peut jamais RETIRER — le plancher incompressible (aucune
+  // contribution de rune) vaut donc 15, quel que soit le pool.
+  {
+    const diag = diagnoseFeasibility({
+      base: ZERO_BASE,
+      artifacts: [],
+      pool: poolViolentWill(),
+      requirement: { sets: ['violent', 'will'], minStats: {}, maxStats: { cr: 10 } },
+      metric: 'eff',
+    });
+    egal(diag[0]?.kind, 'max', 'condition maximum');
+    egal(diag[0]?.bound, 15, 'plancher incompressible = la base nue (aucune rune ne contribue au Taux Crit ici)');
+    egal(diag[0]?.satisfiable, false, 'le plancher (15) dépasse déjà le maximum demandé (10) → impossible même sans rune');
+  }
+  {
+    const diag = diagnoseFeasibility({
+      base: ZERO_BASE,
+      artifacts: [],
+      pool: poolViolentWill(),
+      requirement: { sets: ['violent', 'will'], minStats: {}, maxStats: { cr: 20 } },
+      metric: 'eff',
+    });
+    egal(diag[0]?.satisfiable, true, 'le plancher (15) reste sous le maximum demandé (20) → pas de preuve d’impossibilité');
+  }
+
+  // Aucune condition posée → aucun verdict à afficher (pas une liste de
+  // huit stats toutes « satisfaisables », un tableau vide).
+  {
+    const diag = diagnoseFeasibility({
+      base: ZERO_BASE,
+      artifacts: [],
+      pool: poolViolentWill(),
+      requirement: { sets: ['violent', 'will'], minStats: {} },
+      metric: 'eff',
+    });
+    egal(diag.length, 0, 'sans minStats ni maxStats posés, rien à diagnostiquer');
+  }
+
+  titre('Optimizer · palier 2 — condition la plus bloquante (rankBlockingConditions)');
+
+  // `poolViolentWill()` : 1 rune/slot, VIT 10 chacune (défaut de `rune()`) —
+  // maximum TOTAL de VIT atteignable = 100 (base) + 6×10 = 160. Poser
+  // spd=175 rend la condition GLOBALEMENT hors de portée (voir
+  // `diagnoseFeasibility` plus haut pour ce type de preuve) : TOUS les slots
+  // se vident, pas seulement un. atk=50 reste TOUJOURS trivialement
+  // satisfait (base ATQ = 100 ≥ 50 sans la moindre contribution de rune) —
+  // jamais bloquant, quel que soit le pool.
+  {
+    const diag = rankBlockingConditions({
+      base: ZERO_BASE,
+      artifacts: [],
+      pool: poolViolentWill(),
+      requirement: { sets: ['violent', 'will'], minStats: { spd: 175, atk: 50 } },
+      metric: 'eff',
+    });
+    egal(diag.baselineMinSlot, 0, 'spd=175 dépasse le maximum total atteignable (160) → tous les slots vidés');
+    egal(diag.impacts.length, 2, 'deux conditions posées → deux verdicts');
+    egal(diag.impacts[0]?.key, 'spd', 'retirer VIT est le plus impactant → classé en premier');
+    egal(diag.impacts[0]?.poolMinSlotWithout, 1, 'sans la contrainte VIT, le pool complet (1 rune/slot) redevient valide');
+    egal(diag.impacts[1]?.key, 'atk', 'retirer ATQ est classé en second, jamais devant un vrai gain');
+    egal(
+      diag.impacts[1]?.poolMinSlotWithout,
+      0,
+      'ATQ n’était déjà pas bloquant (base 100 ≥ 50 sans la moindre rune) → aucun gain à le retirer'
+    );
+  }
+
+  // Sans condition posée, rien à classer — un tableau vide, pas une liste
+  // dégénérée.
+  {
+    const diag = rankBlockingConditions({
+      base: ZERO_BASE,
+      artifacts: [],
+      pool: poolViolentWill(),
+      requirement: { sets: ['violent', 'will'], minStats: {} },
+      metric: 'eff',
+    });
+    egal(diag.impacts.length, 0, 'sans condition posée, rien à classer');
   }
 
   titre('Optimizer · élagage sûr — faisabilité de set (précoce, avec joker)');

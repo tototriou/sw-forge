@@ -510,7 +510,7 @@ export function pruneDominated(list: RuneDetail[], requiredKeys: Set<string>, ma
  * même complétée par les 5 meilleures runes VIT du reste du compte, atteindre
  * le minimum de vitesse demandé.
  * ----------------------------------------------------------------------- */
-function computeSlotMaxBounds(
+export function computeSlotMaxBounds(
   bySlot: RuneDetail[][],
   keys: StatKey[]
 ): Record<string, { pct: number; flat: number }>[] {
@@ -1101,6 +1101,196 @@ export function estimateSearchSpace(
   return { perSlot, product };
 }
 
+// Regroupe ce que `diagnoseFeasibility`, `rankBlockingConditions` ET
+// `searchBuildsSteps` calculent CHACUN à partir de `minStats`/`maxStats` —
+// factorisé ici pour ne plus le tripler (c'était déjà dupliqué entre les
+// deux premiers avant ce correctif). Pur : ne dépend que de `base`/
+// `artifacts`/`relic`/`requirement`, jamais de `pool` (le pool est traité à
+// part par chaque appelant, sur SA propre étape du pipeline).
+interface MinMaxContext {
+  minEntries: { k: StatKey; min: number }[];
+  maxEntries: { k: StatKey; max: number }[];
+  constrainedKeys: StatKey[];
+  requiredKeys: Set<string>;
+  maxKeys: Set<StatKey>;
+  guaranteed: { pct: Record<string, number>; flat: Record<string, number> };
+  artFlat: Record<string, number>;
+  relPct: Record<string, number>;
+  totalOf: (k: StatKey, pct: number, flat: number) => number;
+}
+
+function deriveMinMaxContext(
+  base: BaseStats,
+  artifacts: ArtifactDetail[],
+  relic: RelicDetail | undefined,
+  requirement: BuildRequirement
+): MinMaxContext {
+  const minEntries = ALL_STAT_KEYS
+    .map((k) => ({ k, min: requirement.minStats[k] }))
+    .filter((e): e is { k: StatKey; min: number } => e.min != null && e.min > 0);
+  const maxEntries = ALL_STAT_KEYS
+    .map((k) => ({ k, max: requirement.maxStats?.[k] }))
+    .filter((e): e is { k: StatKey; max: number } => e.max != null && e.max > 0);
+  const constrainedKeys = Array.from(new Set([...minEntries.map((e) => e.k), ...maxEntries.map((e) => e.k)]));
+  const requiredKeys = new Set(requirement.sets);
+  const maxKeys = new Set(maxEntries.map((e) => e.k));
+  const guaranteed = guaranteedSetBonus(requirement, base);
+  const artFlat = artifactFlatBonus(artifacts);
+  const relPct = relicPctBonus(relic);
+  const baseRec = base as unknown as Record<string, number>;
+  function totalOf(k: StatKey, pct: number, flat: number): number {
+    const b = baseRec[k] ?? 0;
+    return k === 'hp' || k === 'atk' || k === 'def' ? b + Math.ceil((b * pct) / 100) + flat : b + flat;
+  }
+  return { minEntries, maxEntries, constrainedKeys, requiredKeys, maxKeys, guaranteed, artFlat, relPct, totalOf };
+}
+
+// Verdict de faisabilité, PAR STAT PRISE ISOLÉMENT — pour une condition (min
+// ou max), calcule le meilleur cas STRICTEMENT ATTEIGNABLE avec le pool
+// réellement possédé (même borne que `computeSlotMaxBounds`/
+// `eliminateInfeasible`, ici agrégée sur les 6 emplacements plutôt
+// qu'appliquée rune par rune), et compare au seuil demandé.
+export interface StatFeasibility {
+  key: StatKey;
+  kind: 'min' | 'max';
+  requested: number;
+  // Minimum : meilleur TOTAL atteignable (plafond). Maximum : plancher
+  // INCOMPRESSIBLE, atteignable même en choisissant des runes qui
+  // n'apportent RIEN à cette stat (les runes ne peuvent jamais RETIRER).
+  bound: number;
+  // `true` = rien ne prouve que ce soit impossible en isolant CETTE stat
+  // (n'importe pas dire qu'un build existe : les autres contraintes, prises
+  // ensemble, peuvent encore être infaisables — voir le commentaire de
+  // `diagnoseFeasibility`). `false` = preuve mathématique d'impossibilité,
+  // aucune recherche ne pourra jamais satisfaire cette condition seule.
+  satisfiable: boolean;
+}
+
+// ⚠️ Prouve une IMPOSSIBILITÉ, ne prouve JAMAIS une possibilité — dissymétrie
+// volontaire. Chaque borne est calculée en ISOLANT sa propre stat (le
+// meilleur emplacement par slot pour CETTE stat, potentiellement une rune
+// DIFFÉRENTE de celle qui serait la meilleure pour une autre stat en même
+// temps) : si le seuil demandé dépasse cette borne optimiste, AUCUNE
+// combinaison de 6 runes ne peut jamais l'atteindre — une preuve, pas une
+// heuristique (même raisonnement que `eliminateInfeasible`, qui l'applique
+// déjà rune par rune ; ici agrégé pour un diagnostic lisible). Mais
+// l'inverse n'est PAS garanti : `satisfiable=true` sur CHAQUE stat prise
+// isolément ne prouve pas qu'un build satisfaisant TOUTES à la fois existe
+// — c'est exactement le piège documenté dans spec/outils/optimizer.md
+// (« l'aiguille dans une botte de foin » du deck 10 Lushen) : chaque
+// contrainte était individuellement large, leur CONJONCTION était rare.
+// Sert de premier palier de diagnostic quand une recherche ne trouve rien
+// (voir OptimizerSection.tsx) : gratuit (une passe O(pool), pas une
+// recherche), et permet de distinguer au moins UN cas sans ambiguïté —
+// « cette stat précise est mathématiquement hors de portée » — du reste,
+// où l'absence de résultat peut venir de la conjonction des contraintes ou
+// d'une troncature heuristique (`filterSlot`/`buildBuckets`), indiscernables
+// sans recherche complète.
+export function diagnoseFeasibility(params: SearchParams): StatFeasibility[] {
+  const { base, artifacts, relic, pool, requirement } = params;
+  const ctx = deriveMinMaxContext(base, artifacts, relic, requirement);
+  if (ctx.minEntries.length === 0 && ctx.maxEntries.length === 0) return [];
+
+  const bySlot = mainStatFilteredBySlot(pool, requirement);
+  const slotMax = computeSlotMaxBounds(bySlot, ctx.constrainedKeys);
+
+  const out: StatFeasibility[] = [];
+  for (const { k, min } of ctx.minEntries) {
+    const bestPct = slotMax.reduce((s, b) => s + (b[k]?.pct ?? 0), 0) + (ctx.guaranteed.pct[k] ?? 0) + (ctx.relPct[k] ?? 0);
+    const bestFlat = slotMax.reduce((s, b) => s + (b[k]?.flat ?? 0), 0) + (ctx.guaranteed.flat[k] ?? 0) + (ctx.artFlat[k] ?? 0);
+    const bound = ctx.totalOf(k, bestPct, bestFlat);
+    out.push({ key: k, kind: 'min', requested: min, bound, satisfiable: bound >= min });
+  }
+  for (const { k, max } of ctx.maxEntries) {
+    // Plancher incompressible : AUCUNE rune ne contribue à cette stat (le
+    // pire cas le plus favorable pour un maximum) — base, bonus de set
+    // garanti, artéfacts et relique restent, eux, incontournables.
+    const floorPct = (ctx.guaranteed.pct[k] ?? 0) + (ctx.relPct[k] ?? 0);
+    const floorFlat = (ctx.guaranteed.flat[k] ?? 0) + (ctx.artFlat[k] ?? 0);
+    const bound = ctx.totalOf(k, floorPct, floorFlat);
+    out.push({ key: k, kind: 'max', requested: max, bound, satisfiable: bound <= max });
+  }
+  return out;
+}
+
+// Palier 2 du diagnostic (voir `diagnoseFeasibility` pour le palier 1,
+// gratuit mais limité à une preuve d'impossibilité PAR STAT ISOLÉE) : quand
+// AUCUNE stat n'est individuellement hors de portée mais que la recherche
+// trouve quand même 0 résultat, identifie laquelle des conditions posées
+// libère le PLUS de candidats si on la retire — un indice, pas une preuve
+// (voir plus bas). ⚠️ **Jamais une recherche complète** — proposé par un
+// avis externe comme « retirer une condition et recompter » ; retenu sous
+// cette forme précise pour rester bon marché : on ne relance QUE le
+// pré-filtrage SÛR (`mainStatFilteredBySlot` → `pruneDominated` →
+// `eliminateInfeasible`), jamais `filterSlot`/`buildBuckets`/l'appariement
+// (le vrai coût combinatoire) — coût O(N × pool), N = nombre de conditions
+// posées, jamais O(pool³). Coûte donc un ordre de grandeur de plus que le
+// palier 1 (N passes au lieu d'une seule), mais reste sans commune mesure
+// avec une recherche — d'où le réglage dédié dans l'écran (« Options
+// avancées ») pour le rendre optionnel plutôt que systématique.
+// ⚠️ **Un INDICE, pas une preuve** : contrairement à `diagnoseFeasibility`,
+// ce palier ne s'appuie que sur le pré-filtrage SÛR, pas sur une recherche —
+// une condition qui libère peu de candidats ICI peut quand même être, une
+// fois combinée aux autres via `filterSlot`/`buildBuckets`, la vraie
+// responsable (ou l'inverse). Un signal utile pour orienter où desserrer en
+// premier, pas un verdict définitif.
+export interface BlockingConditionImpact {
+  key: StatKey;
+  kind: 'min' | 'max';
+  requested: number;
+  // Taille du pool le plus restreint (le minimum des 6 tailles de slot,
+  // après pré-filtrage SÛR) EN RETIRANT UNIQUEMENT cette condition — toutes
+  // les autres conditions posées restent en place.
+  poolMinSlotWithout: number;
+}
+export interface BlockingConditionsDiagnosis {
+  // Même mesure, avec TOUTES les conditions actuellement posées — le repère
+  // auquel chaque `poolMinSlotWithout` doit être comparé.
+  baselineMinSlot: number;
+  // Triés par IMPACT décroissant (`poolMinSlotWithout`) — la condition dont
+  // le retrait libère le plus de candidats apparaît en premier.
+  impacts: BlockingConditionImpact[];
+}
+export function rankBlockingConditions(params: SearchParams): BlockingConditionsDiagnosis {
+  const { base, artifacts, relic, pool, requirement } = params;
+  const ctx = deriveMinMaxContext(base, artifacts, relic, requirement);
+  if (ctx.minEntries.length === 0 && ctx.maxEntries.length === 0) return { baselineMinSlot: 0, impacts: [] };
+
+  function poolMinSlot(req: BuildRequirement): number {
+    const reqCtx = deriveMinMaxContext(base, artifacts, relic, req);
+    let bySlot = mainStatFilteredBySlot(pool, req);
+    bySlot = bySlot.map((list) => pruneDominated(list, reqCtx.requiredKeys, reqCtx.maxKeys));
+    bySlot = eliminateInfeasible(
+      bySlot,
+      reqCtx.minEntries,
+      reqCtx.maxEntries,
+      reqCtx.constrainedKeys,
+      reqCtx.guaranteed,
+      reqCtx.artFlat,
+      reqCtx.relPct,
+      reqCtx.totalOf
+    );
+    return Math.min(...bySlot.map((l) => l.length));
+  }
+
+  const baselineMinSlot = poolMinSlot(requirement);
+  const impacts: BlockingConditionImpact[] = [];
+  for (const { k, min } of ctx.minEntries) {
+    const nextMinStats = { ...requirement.minStats };
+    delete nextMinStats[k];
+    const poolMinSlotWithout = poolMinSlot({ ...requirement, minStats: nextMinStats });
+    impacts.push({ key: k, kind: 'min', requested: min, poolMinSlotWithout });
+  }
+  for (const { k, max } of ctx.maxEntries) {
+    const nextMaxStats = { ...requirement.maxStats };
+    delete nextMaxStats[k];
+    const poolMinSlotWithout = poolMinSlot({ ...requirement, maxStats: nextMaxStats });
+    impacts.push({ key: k, kind: 'max', requested: max, poolMinSlotWithout });
+  }
+  impacts.sort((a, b) => b.poolMinSlotWithout - a.poolMinSlotWithout);
+  return { baselineMinSlot, impacts };
+}
+
 /* --------------------------------------------------------------------------
  * Recherche
  * ----------------------------------------------------------------------- */
@@ -1195,13 +1385,8 @@ export function* searchBuildsSteps(params: SearchParams): Generator<SearchProgre
   const slotCap = params.slotFilterCap ?? MAX_PER_SLOT_MATCH;
   const startedAt = Date.now();
 
-  const minEntries = ALL_STAT_KEYS
-    .map((k) => ({ k, min: requirement.minStats[k] }))
-    .filter((e): e is { k: StatKey; min: number } => e.min != null && e.min > 0);
-  const maxEntries = ALL_STAT_KEYS
-    .map((k) => ({ k, max: requirement.maxStats?.[k] }))
-    .filter((e): e is { k: StatKey; max: number } => e.max != null && e.max > 0);
-  const constrainedKeys = Array.from(new Set([...minEntries.map((e) => e.k), ...maxEntries.map((e) => e.k)]));
+  const ctx = deriveMinMaxContext(base, artifacts, relic, requirement);
+  const { minEntries, maxEntries, constrainedKeys, requiredKeys, maxKeys, guaranteed, artFlat, relPct, totalOf } = ctx;
   // ⚠️ Dimensions protégées à la RÉTENTION par compartiment (voir
   // buildBuckets) : les minimums demandés, PLUS les stats propres à
   // l'objectif choisi. JAMAIS les maximums — sur une stat plafonnée, « plus »
@@ -1216,17 +1401,6 @@ export function* searchBuildsSteps(params: SearchParams): Generator<SearchProgre
   );
 
   const distinctKeys = Array.from(new Set(requirement.sets));
-  const requiredKeys = new Set(requirement.sets);
-
-  const guaranteed = guaranteedSetBonus(requirement, base);
-  const artFlat = artifactFlatBonus(artifacts);
-  const relPct = relicPctBonus(relic);
-  const baseRec = base as unknown as Record<string, number>;
-
-  function totalOf(k: StatKey, pct: number, flat: number): number {
-    const b = baseRec[k] ?? 0;
-    return k === 'hp' || k === 'atk' || k === 'def' ? b + Math.ceil((b * pct) / 100) + flat : b + flat;
-  }
 
   // ⚠️ Contrainte de statistique principale (slots 2/4/6 seulement), PUIS
   // deux élagages SÛRS (jamais un faux rejet — voir leurs en-têtes plus haut
@@ -1240,7 +1414,6 @@ export function* searchBuildsSteps(params: SearchParams): Generator<SearchProgre
   // le cas échéant. Cet ordre réduit le pool réel dès le départ, ce qui
   // atténue aussi le coût mémoire/temps de tout ce qui suit — voir
   // spec/outils/optimizer.md.
-  const maxKeys = new Set(maxEntries.map((e) => e.k));
   let bySlot = mainStatFilteredBySlot(pool, requirement);
   bySlot = bySlot.map((list) => pruneDominated(list, requiredKeys, maxKeys));
   bySlot = eliminateInfeasible(bySlot, minEntries, maxEntries, constrainedKeys, guaranteed, artFlat, relPct, totalOf);

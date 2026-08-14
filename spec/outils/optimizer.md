@@ -241,6 +241,10 @@ retour.
    emplacement**, en **presets** (`<Segmented>`) plutôt qu'un curseur libre —
    défaut **Moyen**. Voir « Interruption » pour ce que chaque niveau change
    concrètement. Pas de réglage de temps limite : voir « Interruption ».
+   Sous ce réglage, un second interrupteur **« Diagnostic approfondi sur 0
+   résultat »**, **décoché par défaut** — voir « Suite — palier 2 du
+   diagnostic » plus bas pour ce qu'il calcule et pourquoi il n'est pas
+   activé d'office (plus coûteux que le palier 1, toujours actif lui).
 10. **Estimation du nombre de builds** — dès qu'un monstre et un set sont
    choisis, une ligne affiche le produit des pools filtrés par emplacement
    (`estimateSearchSpace` dans
@@ -278,6 +282,12 @@ retour.
     **moyenne par rune** dans la mesure choisie — comparer des builds dans la
     même unité que la carte d'une rune individuelle, plutôt qu'un total qui
     ne se lit pas d'un coup d'œil.
+    ⚠️ **Sur 0 résultat**, un encadré diagnostic apparaît sous le titre « Aucune
+    combinaison ne répond à ces critères » — voir « Suite — diagnostic de
+    faisabilité sur 0 résultat » : soit une liste PROUVÉE de conditions
+    mathématiquement hors de portée (avec leur borne exacte), soit un message
+    neutre orientant vers la conjonction des contraintes ou un pré-filtrage
+    plus large si aucune ne l'est individuellement.
     ⚠️ **Deux cartes par ligne**, calibré exprès (`scale=0,45`, largeur de
     grille `minmax(360px, …)`) : à cette taille, deux cartes de 360px + le
     creux entre elles (12px) tiennent tout juste sous les 768px du conteneur
@@ -1306,6 +1316,117 @@ secondes (`maxCollected` devient alors le facteur limitant, pas `maxNodes`).
 ⚠️ **Le cas à 7 conditions d'Eivor Feu reste un cas à part, documenté, pas
 silencieusement "résolu"** — malgré les deux correctifs ci-dessus : voir
 « Limites connues ».
+
+### Suite — diagnostic de faisabilité sur 0 résultat (`diagnoseFeasibility`)
+
+Question posée directement après la « Suite » précédente : entre « le build
+n'existe pas » et « le moteur l'a éliminé avant de le trouver », l'écran
+renvoyait le même message dans les deux cas — aucun moyen de savoir lequel.
+Deux avis externes soumis en réaction, l'un proposant un diagnostic
+incrémental (retirer une condition à la fois et recompter), l'autre un
+remplacement par un solveur de contraintes (CP-SAT/OR-Tools). Le second est
+écarté : cette app n'a **aucun backend** (tout tourne en local, dans un
+Worker, principe déjà central à toute l'app — voir l'en-tête de ce document)
+et un solveur compilé en WASM (bundle lourd, support navigateur inégal)
+contredirait cette conception sans bénéfice démontré sur CE problème précis
+(le meet-in-the-middle exploite déjà la structure du problème — deux
+moitiés indépendantes — qu'un solveur généraliste ne redécouvre pas
+forcément). Le premier avis, en revanche, pointait juste : cette ambiguïté
+EXISTE réellement, et une bonne part du diagnostic était déjà calculée en
+interne sans jamais remonter à l'écran.
+
+**Construit** : `diagnoseFeasibility` (exportée dans `runeBuildOptim.ts`)
+réutilise `computeSlotMaxBounds` — la même borne SÛRE que `eliminateInfeasible`
+calcule déjà, rune par rune, mais ici **agrégée** sur les 6 emplacements pour
+un diagnostic lisible. Pour chaque condition posée, ISOLÉE des autres :
+- **Minimum** : le meilleur TOTAL atteignable (somme du meilleur pct/flat
+  réellement possédé par slot pour cette stat, + bonus de set garanti +
+  artéfacts effectivement comptés + relique). Si le seuil demandé dépasse
+  cette borne, **aucune** combinaison de 6 runes ne peut jamais l'atteindre —
+  une preuve mathématique, pas une supposition.
+- **Maximum** : le plancher INCOMPRESSIBLE — ce qu'on a même en choisissant
+  des runes qui n'apportent RIEN à cette stat (les runes ne peuvent jamais
+  retirer). Si ce plancher dépasse déjà le maximum demandé, même seul, c'est
+  également une preuve.
+
+⚠️ **Dissymétrie volontaire et fondamentale : ça prouve une IMPOSSIBILITÉ,
+ça ne prouve JAMAIS une possibilité.** `satisfiable=true` sur CHAQUE
+condition prise isolément ne garantit PAS qu'un build satisfaisant TOUTES à
+la fois existe — c'est exactement le piège déjà documenté plus haut (« Suite
+— pourquoi ce correctif d'ordre n'a rien changé en usage réel » : le deck 10
+Lushen, chaque condition individuellement large, leur CONJONCTION rare).
+Distinguer CE cas-là (conjonction rare mais chaque condition atteignable) de
+la troncature heuristique (`filterSlot`/`buildBuckets` qui a réellement
+perdu un build valide) resterait indiscernable sans une recherche complète —
+non tenté ici, le gain (un seul cas sans ambiguïté, gratuit) valait mieux
+qu'une réponse partielle prétendant couvrir tous les cas.
+
+**Affiché** (`OptimizerSection.tsx`) uniquement quand une recherche renvoie 0
+candidat : liste rouge des conditions PROUVÉES hors de portée avec leur
+borne exacte, ou — si aucune ne l'est individuellement — un message neutre
+orientant vers la conjonction des contraintes ou un pré-filtrage plus large,
+plutôt que de laisser deviner. Coût négligeable (une passe O(pool), pas une
+recherche : recalculé à chaque rendu, jamais un problème même quand jamais
+affiché). Couvert par
+[tests/rune-optim.test.ts](tests/rune-optim.test.ts) : la borne minimum
+exacte (frontière — un cran au-dessus échoue, pile dessus passe), le
+plancher maximum (base nue incompressible), et l'absence de condition posée
+(tableau vide, pas huit verdicts « satisfaisables »).
+
+### Suite — palier 2 du diagnostic : quelle condition est la plus bloquante (`rankBlockingConditions`)
+
+Prolongement direct du palier 1 ci-dessus, pour le cas qu'il ne couvre pas :
+0 résultat, mais AUCUNE stat n'est individuellement prouvée hors de portée
+(le message neutre du palier 1). L'avis externe qui avait suggéré ce
+diagnostic proposait de retirer une condition à la fois et de relancer une
+recherche complète pour recompter les résultats — écarté tel quel : au
+budget adaptatif actuel (voir plus haut), une recherche complète coûte déjà
+jusqu'à ~1-2 minutes, et il faudrait en relancer une PAR condition posée —
+inacceptable pour un simple diagnostic.
+
+**Retenu à la place** : ne relancer QUE le pré-filtrage SÛR
+(`mainStatFilteredBySlot` → `pruneDominated` → `eliminateInfeasible`, jamais
+`filterSlot`/`buildBuckets`/l'appariement — le vrai coût combinatoire), une
+fois par condition retirée tour à tour, en gardant toutes les autres posées.
+Mesure retenue : la taille du pool le plus restreint parmi les 6 emplacements
+(`Math.min` des 6 tailles) — comparée à la même mesure avec TOUTES les
+conditions actuelles. Coût O(N × pool), N = nombre de conditions posées, un
+ordre de grandeur au-dessus du palier 1 (une seule passe) mais toujours sans
+commune mesure avec une recherche complète.
+
+⚠️ **Un INDICE, pas une preuve** — contrairement au palier 1. Le pré-filtrage
+sûr ne voit que des runes prises isolément, jamais des combinaisons de 6 : une
+condition qui libère peu de candidats à CE stade peut quand même être, une
+fois combinée aux autres via `filterSlot`/`buildBuckets`, la vraie
+responsable du 0 résultat (ou l'inverse). Un signal pour orienter où
+desserrer en premier, pas un verdict définitif — d'où le nom « diagnostic
+approfondi », pas « la vraie raison ».
+
+⚠️ **Décoché par défaut, dans « Options avancées »** — demande explicite :
+même si son coût réel reste loin d'une recherche complète, il s'ajoute
+CONCRÈTEMENT après un échec (« ça va rajouter du temps après un test
+échoué »), donc rendu optionnel plutôt que systématique comme le palier 1.
+Calculé UNIQUEMENT quand il sera réellement affiché (activé ET une recherche
+vient de renvoyer 0 résultat), jamais à chaque frappe.
+
+**Affiché** (`OptimizerSection.tsx`), quand activé et 0 résultat : la taille
+du pool le plus restreint actuellement, puis chaque condition posée avec la
+taille qu'aurait ce même pool sans elle, triées par gain décroissant — la
+plus prometteuse à desserrer en premier apparaît en tête. Quand désactivé,
+une simple invitation discrète à l'activer, pour ne pas laisser deviner que
+l'option existe. Couvert par
+[tests/rune-optim.test.ts](tests/rune-optim.test.ts) : deux conditions dont
+une seule est réellement bloquante (l'autre déjà triviale, sans le moindre
+gain à la retirer) — vérifie le classement ET les tailles exactes, pas
+seulement l'ordre.
+
+⚠️ **Factorisation au passage** : `diagnoseFeasibility`, `rankBlockingConditions`
+ET `searchBuildsSteps` calculaient chacun séparément `minEntries`/
+`maxEntries`/`constrainedKeys`/`guaranteed`/`artFlat`/`relPct`/`totalOf` à
+partir de `minStats`/`maxStats` — trois implémentations qui auraient pu
+diverger. Regroupé dans `deriveMinMaxContext` (interne à `runeBuildOptim.ts`),
+réutilisée par les trois. Vérifié sans régression sur l'intégralité du
+harnais existant (recherche réelle inchangée, refactor pur).
 
 ## Limites connues
 

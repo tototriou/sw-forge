@@ -8,6 +8,10 @@ import {
   SLOT_MAIN_OPTIONS,
   excludedRuneIds,
   estimateSearchSpace,
+  diagnoseFeasibility,
+  StatFeasibility,
+  rankBlockingConditions,
+  BlockingConditionsDiagnosis,
   statTotal,
   objectiveScore,
   candidateMetricTotal,
@@ -116,6 +120,8 @@ export default function OptimizerSection({ box, runes, optimizer }: Props) {
     setShowAdvanced,
     slotFilterPreset,
     setSlotFilterPreset,
+    diagnoseBlockingEnabled,
+    setDiagnoseBlockingEnabled,
     stoppedManually,
     setStoppedManually,
     openRuneKey,
@@ -232,6 +238,33 @@ export default function OptimizerSection({ box, runes, optimizer }: Props) {
     if (!selected || comboSets.length === 0) return null;
     return estimateSearchSpace(pool, requirement, slotFilterCap, objective);
   }, [selected, comboSets, pool, requirement, slotFilterCap, objective]);
+
+  // Diagnostic affiché UNIQUEMENT si une recherche aboutit à 0 résultat (voir
+  // le rendu plus bas) : pour chaque condition posée, le meilleur cas
+  // MATHÉMATIQUEMENT atteignable en l'isolant des autres — permet de
+  // distinguer, au moins pour certaines stats, une preuve d'impossibilité
+  // d'un simple échec de la recherche à trouver ce qui existe pourtant. Coût
+  // négligeable (une passe O(pool), pas une recherche) : calculée à chaque
+  // rendu plutôt que seulement sur clic, elle reste bon marché même si
+  // jamais affichée. Voir `diagnoseFeasibility` dans runeBuildOptim.ts pour
+  // ce que « satisfiable » garantit et ne garantit PAS.
+  const feasibilityDiagnosis = useMemo<StatFeasibility[]>(() => {
+    if (!selected) return [];
+    return diagnoseFeasibility({ base: selected.gear.base, artifacts: searchArtifacts, relic: selected.gear.relic, pool, requirement, metric });
+  }, [selected, searchArtifacts, pool, requirement, metric]);
+  const impossibleFeasibility = useMemo(() => feasibilityDiagnosis.filter((f) => !f.satisfiable), [feasibilityDiagnosis]);
+
+  // Palier 2 (voir `rankBlockingConditions` dans runeBuildOptim.ts) — bien
+  // plus coûteux que le palier 1 ci-dessus (N passes de pré-filtrage, N =
+  // nombre de conditions posées, contre une seule) : calculé UNIQUEMENT
+  // quand il sera réellement affiché — activé (`diagnoseBlockingEnabled`,
+  // « Options avancées ») ET une recherche vient de renvoyer 0 résultat —
+  // jamais à chaque frappe comme le palier 1.
+  const blockingDiagnosis = useMemo<BlockingConditionsDiagnosis | null>(() => {
+    if (!selected || !diagnoseBlockingEnabled) return null;
+    if (!result || result.candidates.length > 0) return null;
+    return rankBlockingConditions({ base: selected.gear.base, artifacts: searchArtifacts, relic: selected.gear.relic, pool, requirement, metric });
+  }, [selected, diagnoseBlockingEnabled, result, searchArtifacts, pool, requirement, metric]);
 
   function handleSearch() {
     if (!selected) return;
@@ -601,6 +634,20 @@ export default function OptimizerSection({ box, runes, optimizer }: Props) {
             <p className="mt-1 text-[11.5px] text-warn max-w-[280px]">
               ⚠️ {SLOT_FILTER_PRESETS.find((p) => p.key === slotFilterPreset)?.hint}
             </p>
+
+            <div className="mt-3 flex items-center justify-between gap-2 border-t border-border pt-3">
+              <div className="flex items-center gap-1.5">
+                <span className="text-[11.5px] text-ink-dim">Diagnostic approfondi sur 0 résultat</span>
+                <span title="Après une recherche à 0 résultat, identifie quelle condition posée libère le plus de candidats si on la retire — un indice, pas une preuve. Coûte plusieurs passes de pré-filtrage au lieu d'une seule, jamais une recherche complète.">
+                  <HelpCircle size={13} className="text-ink-dim" />
+                </span>
+              </div>
+              <Switch
+                checked={diagnoseBlockingEnabled}
+                onChange={setDiagnoseBlockingEnabled}
+                label="Diagnostic approfondi sur 0 résultat"
+              />
+            </div>
           </div>
         )}
       </div>
@@ -738,6 +785,86 @@ export default function OptimizerSection({ box, runes, optimizer }: Props) {
               </select>
             )}
           </div>
+
+          {/* ⚠️ Diagnostic affiché UNIQUEMENT sur 0 résultat — voir
+              `diagnoseFeasibility` dans runeBuildOptim.ts pour ce qu'il
+              prouve exactement. Deux cas : au moins une condition
+              PROUVÉE hors de portée (rouge, liste précise) ; ou aucune ne
+              l'est individuellement (message neutre — le blocage vient de
+              leur combinaison ou de la recherche elle-même, pas d'une seule
+              stat identifiable). */}
+          {result.candidates.length === 0 && feasibilityDiagnosis.length > 0 && (
+            <div className="mb-3 rounded-lg border border-border bg-panel p-3">
+              {impossibleFeasibility.length > 0 ? (
+                <>
+                  <p className="mb-1.5 text-[12px] font-semibold text-bad">
+                    {impossibleFeasibility.length === 1
+                      ? 'Une condition est'
+                      : `${impossibleFeasibility.length} conditions sont`}{' '}
+                    mathématiquement hors de portée, quel que soit le runage choisi :
+                  </p>
+                  <ul className="space-y-1">
+                    {impossibleFeasibility.map((f) => {
+                      const st = RECO_STATS.find((s) => s.key === f.key)!;
+                      return (
+                        <li key={`${f.key}-${f.kind}`} className="text-[12px] text-ink-dim">
+                          <span className="font-semibold text-ink">{st.label}</span>{' '}
+                          {f.kind === 'min'
+                            ? `minimum demandé ${f.requested}${st.suffix} — maximum atteignable ${f.bound}${st.suffix} avec ce pool, ce set et ces statistiques principales.`
+                            : `maximum demandé ${f.requested}${st.suffix} — ${f.bound}${st.suffix} déjà garanti sans la moindre rune (base, artéfacts, bonus de set).`}
+                        </li>
+                      );
+                    })}
+                  </ul>
+                </>
+              ) : (
+                <p className="text-[12px] text-ink-dim">
+                  Aucune condition n'est, à elle seule, mathématiquement hors de portée — le blocage
+                  vient probablement de leur <b className="text-ink">combinaison</b> (rare qu'un seul
+                  build satisfasse tout à la fois), ou du pré-filtrage de la recherche elle-même. Essaie
+                  de desserrer une condition, ou un pré-filtrage plus large (Options avancées).
+                </p>
+              )}
+            </div>
+          )}
+
+          {/* ⚠️ Palier 2 — voir `rankBlockingConditions` dans
+              runeBuildOptim.ts : un INDICE (pas une preuve, contrairement au
+              palier 1 ci-dessus), désactivé par défaut (coûte plus cher).
+              Deux affichages selon l'état de la bascule : le classement s'il
+              est activé, une invitation discrète sinon. */}
+          {result.candidates.length === 0 &&
+            (blockingDiagnosis && blockingDiagnosis.impacts.length > 0 ? (
+              <div className="mb-3 rounded-lg border border-border bg-panel p-3">
+                <p className="mb-1.5 text-[12px] font-semibold text-ink">
+                  Diagnostic approfondi — pool le plus restreint : {blockingDiagnosis.baselineMinSlot} candidat(s)
+                  actuellement.
+                </p>
+                <ul className="space-y-1">
+                  {blockingDiagnosis.impacts.map((imp) => {
+                    const st = RECO_STATS.find((s) => s.key === imp.key)!;
+                    const gain = imp.poolMinSlotWithout - blockingDiagnosis.baselineMinSlot;
+                    return (
+                      <li key={`${imp.key}-${imp.kind}`} className="text-[12px] text-ink-dim">
+                        Retirer <span className="font-semibold text-ink">{st.label}</span> (
+                        {imp.kind === 'min' ? '≥' : '≤'} {imp.requested}
+                        {st.suffix}) : {imp.poolMinSlotWithout} candidat(s){gain > 0 ? ` (+${gain})` : ' (aucun gain)'}.
+                      </li>
+                    );
+                  })}
+                </ul>
+                <p className="mt-1.5 text-[11px] text-ink-dim">
+                  Un indice, pas une preuve — basé sur le pré-filtrage sûr, pas sur une recherche complète.
+                </p>
+              </div>
+            ) : (
+              !diagnoseBlockingEnabled && (
+                <p className="mb-3 text-[11px] text-ink-dim">
+                  Astuce : active le diagnostic approfondi (Options avancées) pour identifier quelle
+                  condition libère le plus de candidats.
+                </p>
+              )
+            ))}
 
           {result.truncated && (
             <p className="mb-2 text-[11.5px] text-warn">

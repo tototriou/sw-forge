@@ -63,6 +63,15 @@ export interface OptimizerState {
   setShowAdvanced: Dispatch<SetStateAction<boolean>>;
   slotFilterPreset: SlotFilterPresetKey;
   setSlotFilterPreset: Dispatch<SetStateAction<SlotFilterPresetKey>>;
+  // Palier 2 du diagnostic « 0 résultat » (voir `rankBlockingConditions` dans
+  // runeBuildOptim.ts) : identifie quelle condition posée libère le plus de
+  // candidats si on la retire seule. Décoché par défaut — coûte N passes de
+  // pré-filtrage (N = nombre de conditions posées) au lieu d'une seule pour
+  // le palier 1 (`diagnoseFeasibility`, toujours actif) : un coût réel, même
+  // s'il reste sans commune mesure avec une recherche complète, donc rendu
+  // optionnel plutôt qu'automatique.
+  diagnoseBlockingEnabled: boolean;
+  setDiagnoseBlockingEnabled: Dispatch<SetStateAction<boolean>>;
   stoppedManually: boolean;
   setStoppedManually: Dispatch<SetStateAction<boolean>>;
   // Rune actuellement ouverte dans un popover de détail, parmi TOUS les
@@ -91,6 +100,7 @@ export function useOptimizerState(): OptimizerState {
   const [sortBy, setSortBy] = useState<OptimizerSortKey>('efficience');
   const [showAdvanced, setShowAdvanced] = useState(false);
   const [slotFilterPreset, setSlotFilterPreset] = useState<SlotFilterPresetKey>('moyen');
+  const [diagnoseBlockingEnabled, setDiagnoseBlockingEnabled] = useState(false);
   const [stoppedManually, setStoppedManually] = useState(false);
   const [openRuneKey, setOpenRuneKey] = useState<string | null>(null);
   const search = useBuildOptimSearch();
@@ -124,6 +134,8 @@ export function useOptimizerState(): OptimizerState {
     setShowAdvanced,
     slotFilterPreset,
     setSlotFilterPreset,
+    diagnoseBlockingEnabled,
+    setDiagnoseBlockingEnabled,
     stoppedManually,
     setStoppedManually,
     openRuneKey,

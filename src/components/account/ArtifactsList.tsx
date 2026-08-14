@@ -7,6 +7,7 @@ import {
   artifactSubName,
   artifactSubKinds,
   artifactSubOrder,
+  ARTIFACT_MAIN,
   RARITY_META,
 } from '../../lib/effects';
 import { artifactScore, artifactEfficiency } from '../../lib/artifacts';
@@ -56,6 +57,10 @@ type Archetype = 'attack' | 'defense' | 'hp' | 'support';
 const RARITY_ORDER = [5, 4, 3, 2, 1];
 const PAGE = 60;
 
+// Stats principales, dans l'ordre du jeu (PV · ATQ · DEF), pris de la table de
+// référence : les libellés ne sont pas réécrits ici.
+const MAIN_ORDER = [100, 101, 102];
+
 const ELEMENTS: { key: ElementKey; label: string }[] = [
   { key: 'water', label: 'Eau' },
   { key: 'fire', label: 'Feu' },
@@ -75,6 +80,17 @@ export default function ArtifactsList({ artifacts }: Props) {
   const [element, setElement] = useStickyState<ElementKey | ''>('artefacts.element', '');
   const [archetype, setArchetype] = useStickyState<Archetype | ''>('artefacts.archetype', '');
   const [rarities, setRarities] = useStickyState<Set<number>>('artefacts.rarities', new Set());
+  // Stat principale retenue, `''` = toutes.
+  //
+  // ⚠️ Un SEUL choix à la fois, d'où un contrôle à cran et non des pastilles :
+  // un artéfact ne porte qu'une stat principale, et ce qu'on cherche est
+  // « montre-moi mes artéfacts de VIT » — pas une union de deux stats. Des
+  // pastilles séparées se liraient comme cumulables (voir `Segmented`).
+  //
+  // Le code est stocké en CHAÎNE : `Segmented` est générique sur `string`, et
+  // c'est aussi ce qui donne « toutes » comme valeur à part entière (`''`)
+  // plutôt qu'un vide à deviner.
+  const [main, setMain] = useStickyState<string>('artefacts.main', '');
   // Critères de recherche, dans l'ordre de priorité du tri (voir `Critere`).
   const [criteres, setCriteres] = useStickyState<Critere[]>('artefacts.criteres', []);
   // Grille dépliée à 4 cases, ou repliée à 2.
@@ -91,6 +107,12 @@ export default function ArtifactsList({ artifacts }: Props) {
     () => criteres.slice(0, cases).filter((c) => c.code > 0),
     [criteres, cases]
   );
+  // Codes recherchés, pour que la tuile sache quelle ligne mettre en avant.
+  //
+  // ⚠️ Un `Set` MÉMOÏSÉ et non un tableau reconstruit à chaque rendu : c'est une
+  // prop de `ArtTile`, qui est mémoïsée. Une nouvelle référence à chaque passage
+  // casserait le `memo` des 60 tuiles de la page à chaque frappe dans un seuil.
+  const cherches = useMemo(() => new Set(actifs.map((c) => c.code)), [actifs]);
   // Mesure affichée : le réglage GLOBAL de l'application (menu ⚙), partagé avec
   // les runes. Pas de sélecteur répété dans la page.
   const metric = useRuneMetric();
@@ -131,6 +153,7 @@ export default function ArtifactsList({ artifacts }: Props) {
       if (elementActif && art.element !== elementActif) return false;
       if (archetypeActif && art.archetype !== archetypeActif) return false;
       if (rarities.size && !rarities.has(art.rarity)) return false;
+      if (main && art.main.code !== Number(main)) return false;
       // ⚠️ ET, pas OU : on cherche l'artéfact qui porte **toutes** les
       // propriétés demandées, chacune au-dessus de son seuil. Un OU renverrait
       // des centaines de pièces dès le deuxième critère.
@@ -155,7 +178,7 @@ export default function ArtifactsList({ artifacts }: Props) {
       }
       return b.score - a.score || b.art.rarity - a.art.rarity || b.art.level - a.art.level;
     });
-  }, [rows, kind, elementActif, archetypeActif, rarities, actifs]);
+  }, [rows, kind, elementActif, archetypeActif, rarities, main, actifs]);
 
   // Propriétés proposables : celles **réellement portées** par un artéfact de
   // l'inventaire, restreintes à la catégorie choisie et privées de celles déjà
@@ -284,7 +307,7 @@ export default function ArtifactsList({ artifacts }: Props) {
                 }}
                 className={`flex items-center gap-1.5 rounded-full border bg-panel px-3 py-1 text-[12.5px] font-semibold
                   transition select-none ${ELEMENT_FILTER_STYLES[e.key]}
-                  ${hs ? 'opacity-25 cursor-not-allowed' : active ? 'shadow' : 'opacity-70 hoverable:opacity-100'}`}
+                  ${hs ? 'opacity-25 cursor-not-allowed' : active ? '' : 'opacity-70 hoverable:opacity-100'}`}
               >
                 <ElementIcon element={e.key} size={15} />
                 {e.label}
@@ -316,8 +339,12 @@ export default function ArtifactsList({ artifacts }: Props) {
                 }}
                 className={`flex items-center gap-1.5 rounded-full border px-3 py-1 text-[12.5px] font-semibold
                   transition select-none ${
+                    // ⚠️ La BORDURE seule (voir spec/shared/design.md), et non
+                    // un aplat : ces chips portent une icône de type, qu'un
+                    // fond teinté vient concurrencer. L'outline entoure la
+                    // pastille sans passer derrière le glyphe.
                     active
-                      ? 'bg-panel2 border-accent text-ink shadow'
+                      ? 'bg-panel border-accent text-ink'
                       : 'bg-panel border-border text-ink-dim hoverable:text-ink hoverable:border-accent'
                   } ${hs ? 'opacity-25 cursor-not-allowed' : ''}`}
               >
@@ -363,6 +390,39 @@ export default function ArtifactsList({ artifacts }: Props) {
               </button>
             );
           })}
+        </div>
+
+        {/* Stat principale — Toutes · PV · ATQ · DEF.
+            ⚠️ Un contrôle **à cran** (`Segmented`) et non des pastilles : on
+            n'en choisit **qu'une à la fois**. Des pastilles séparées se lisent
+            comme cumulables — c'est justement ce que sont la rareté et les
+            propriétés du dessous. Même raisonnement que la rangée Catégorie,
+            et même composant.
+            ⚠️ « Toutes » est une OPTION, pas l'absence de sélection : le cadre
+            montre toujours quel cran est posé, là où trois boutons tous éteints
+            ne diraient pas si le filtre est inactif ou juste vide.
+            Les libellés viennent d'`ARTIFACT_MAIN` : ceux du jeu. */}
+        <div className="flex flex-wrap items-center gap-2">
+          {/* ⚠️ Sur DEUX lignes, et non abrégé en « Stat princ. » : en 11 px
+              capitales espacées, « STAT PRINCIPALE » dépasse les 86 px de la
+              colonne d'intitulés. L'abréger trahirait le nom du jeu, l'élargir
+              décalerait les cinq autres rangées — le repli tient dans la
+              hauteur déjà occupée par le contrôle. */}
+          <span className="w-[86px] flex-none label leading-tight">Stat principale</span>
+          <Segmented
+            value={main}
+            onChange={(v) => {
+              setMain(v);
+              setPage(0);
+            }}
+            options={[
+              { key: '', label: 'Toutes' },
+              ...MAIN_ORDER.map((code) => ({
+                key: String(code),
+                label: ARTIFACT_MAIN[code].label,
+              })),
+            ]}
+          />
         </div>
 
         {/* Propriété secondaire — grille de critères, façon recherche
@@ -482,6 +542,7 @@ export default function ArtifactsList({ artifacts }: Props) {
             score={row.score}
             eff={row.eff}
             metric={metric}
+            cherches={cherches}
           />
         ))}
       </div>
@@ -616,6 +677,7 @@ const ArtTile = memo(function ArtTile({
   score,
   eff,
   metric,
+  cherches,
 }: {
   art: ArtifactDetail;
   // Passés en props plutôt que recalculés : ils le sont déjà une fois pour
@@ -623,6 +685,8 @@ const ArtTile = memo(function ArtTile({
   score: number;
   eff: number;
   metric: RuneMetric;
+  // Codes des propriétés RECHERCHÉES, mis en avant sur la ligne (voir plus bas).
+  cherches: Set<number>;
 }) {
   const meta = RARITY_META[art.rarity] ?? RARITY_META[1];
 
@@ -672,8 +736,30 @@ const ArtTile = memo(function ArtTile({
           {art.subs.map((s, j) => {
             const procs = s.rolls ?? 0;
             const { avant, valeur, apres } = splitArtifactSub(s);
+            // Ligne RECHERCHÉE : c'est celle qu'on est venu voir.
+            //
+            // ⚠️ Un liseré d'accent + un fond à 8 %, rien de plus. L'œil balaie
+            // 60 tuiles de 4 lignes : il faut savoir OÙ regarder sans que la
+            // ligne se mette à crier. Colorer le texte lui-même le rendrait
+            // moins lisible que les trois autres, alors que ce n'est pas un
+            // état de la donnée mais un écho du filtre — d'où l'accent, la même
+            // couleur que le critère posé au-dessus, et non `good`/`warn` qui
+            // disent quelque chose des valeurs.
+            const vise = cherches.has(s.code);
             return (
-              <div key={j} className="flex items-start gap-1.5 text-[10.5px] leading-tight">
+              <div
+                key={j}
+                // ⚠️ Marges négatives + `pl-[2px]`, et AUCUNE marge verticale :
+                // le liseré de 2 px et le fond débordent dans la gouttière de la
+                // tuile, la pastille de procs reste sur LA MÊME colonne, et les
+                // 4 lignes gardent leur `space-y-[3px]`. Toute compensation
+                // oubliée — largeur ou hauteur — décale la ligne visée par
+                // rapport aux trois autres, et c'est ce décalage qu'on voit en
+                // premier au lieu de la propriété.
+                className={`flex items-start gap-1.5 text-[10.5px] leading-tight ${
+                  vise ? '-mx-1 rounded border-l-2 border-accent bg-accent/[0.08] pl-[2px] pr-1' : ''
+                }`}
+              >
                 {/* ⚠️ Largeur FIXE : sans elle, la pastille se dimensionnait sur
                     son contenu et les libellés démarraient à deux colonnes
                     différentes selon que la ligne portait 0 ou 4 procs. */}

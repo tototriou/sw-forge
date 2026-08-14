@@ -717,18 +717,30 @@ export default function OptimizerSection({ box, runes, optimizer }: Props) {
           beaucoup de conditions) : la barre affichait 0 % sans bouger et le
           texte « 0 combinaisons examinées », sans dire qu'un TRAVAIL était
           en cours — voir spec/outils/optimizer.md. */}
+      {/* ⚠️ Deux barres empilées, une par moitié, pas une seule — depuis leur
+          construction EN PARALLÈLE (deux Workers, voir
+          runeBuildOptim.worker.ts), A et B avancent en même temps ; une seule
+          barre ne pourrait montrer que la dernière moitié à avoir posté un
+          message, faisant croire à tort que l'autre est à l'arrêt. */}
       {status === 'running' && progress?.phase === 'building' && (
-        <div>
-          <div className="h-2 w-full overflow-hidden rounded-full border border-border bg-panel2">
-            <div
-              className="h-full bg-accent/60 transition-[width] duration-150 ease-out"
-              style={{ width: `${Math.round(progress.pct * 100)}%` }}
-            />
-          </div>
-          <p className="mt-1 font-mono text-[11px] text-ink-dim">
-            Préparation — moitié {progress.half} : {progress.scanned.toLocaleString('fr-FR')} /{' '}
-            {progress.total.toLocaleString('fr-FR')} runes
-          </p>
+        <div className="space-y-2">
+          {(['A', 'B'] as const).map((half) => {
+            const h = progress.halves[half];
+            return (
+              <div key={half}>
+                <div className="h-2 w-full overflow-hidden rounded-full border border-border bg-panel2">
+                  <div
+                    className="h-full bg-accent/60 transition-[width] duration-150 ease-out"
+                    style={{ width: `${Math.round((h?.pct ?? 0) * 100)}%` }}
+                  />
+                </div>
+                <p className="mt-1 font-mono text-[11px] text-ink-dim">
+                  Préparation — moitié {half} :{' '}
+                  {h ? `${h.scanned.toLocaleString('fr-FR')} / ${h.total.toLocaleString('fr-FR')} runes` : 'en attente…'}
+                </p>
+              </div>
+            );
+          })}
         </div>
       )}
       {status === 'running' && (progress === null || progress.phase === 'pairing') && (

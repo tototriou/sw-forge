@@ -1579,6 +1579,85 @@ trouve désormais la combinaison (Taux Crit = 27, base 15 + bonus Blade
 accidentel 12, exactement la valeur attendue), sans régression sur
 l'intégralité du harnais existant (339 vérifications) ni sur `tsc --noEmit`.
 
+### Suite — parallélisation de la construction des deux moitiés (2 Workers)
+
+`buildBuckets('A', …)` et `buildBuckets('B', …)` sont deux appels
+INDÉPENDANTS (aucun ne dépend du résultat CONSTRUIT de l'autre — seulement de
+`maxSetsForA`/`maxSetsForB`, deux bornes calculées d'avance à partir du pool,
+jamais du contenu des compartiments de l'autre moitié), mais tournaient en
+série sur un seul cœur. Les lancer chacun dans son propre Worker les fait
+tourner sur deux cœurs à la fois.
+
+**Refactor préalable, comportement inchangé** : `searchBuildsSteps` (jusque-là
+un seul bloc : préparation → `buildBuckets('A')` → `buildBuckets('B')` →
+appariement) est scindé en `prepareSearch` (préparation, pure, retourne un
+contexte `PreparedSearch` partagé) et `pairBuckets` (l'appariement, inchangé,
+reçoit les deux moitiés déjà construites). `searchBuildsSteps` redevient un
+simple enchaînement des trois — utilisé tel quel par `searchBuilds`, les
+tests et les scripts, qui n'ont pas besoin de paralléliser. Vérifié IDENTIQUE
+par l'intégralité du harnais existant (comportement, pas seulement
+compilation).
+
+**Côté Worker** (`runeBuildOptim.worker.ts`) : appelle `prepareSearch`, puis
+lance A et B chacun dans un nouveau Worker dédié
+([src/workers/buildHalf.worker.ts](src/workers/buildHalf.worker.ts),
+minimal — pilote juste `buildBuckets` pas à pas), attend les deux
+(`Promise.all`), puis pilote `pairBuckets` pas à pas comme avant. Un arrêt
+manuel PENDANT la construction tue directement les deux Workers enfants
+(`terminate()`, cascade garantie par la spec HTML sur les Workers imbriqués)
+plutôt qu'un arrêt coopératif à répercuter sur deux Workers à la fois — plus
+simple et tout aussi fiable, `buildHalf.worker.ts` n'a donc besoin de gérer
+qu'un seul message (la demande initiale).
+
+**UI** ([useBuildOptimSearch.ts](src/hooks/useBuildOptimSearch.ts),
+[OptimizerSection.tsx](src/components/outils/OptimizerSection.tsx)) : deux
+barres de progression empilées pendant la phase `building` (une par moitié,
+`halves.A`/`halves.B` accumulées indépendamment dans l'état — l'ancien
+`progress` ne gardait que le DERNIER message reçu, ce qui aurait fait
+« disparaître » une moitié dès que l'autre poste un message).
+
+**Deux bugs trouvés et corrigés en usage réel** (vérification en navigateur,
+pas seulement `tsc`/tests — voir la note de bas de section « Vérification ») :
+
+1. **Message tardif d'une recherche déjà remplacée.** Relancer une recherche
+   pendant qu'une précédente tournait encore pouvait figer l'affichage avec
+   une valeur périmée : `cancel()` tue l'ancien Worker, mais un message qu'il
+   avait DÉJÀ posté juste avant peut encore être délivré après coup, et son
+   gestionnaire restait branché. Plus probable depuis ce correctif (deux
+   Workers enfants de plus par recherche, donc deux fois plus de messages en
+   vol à l'instant d'un arrêt/relance). **Corrigé** : chaque `run()`
+   incrémente un `runId` ; tout message reçu par un gestionnaire qui ne porte
+   plus le `runId` COURANT est ignoré — indépendant de la rapidité réelle de
+   `terminate()`.
+2. **La barre ne semblait jamais atteindre 100 %.** Le calcul, LUI, allait
+   bien jusqu'au bout (la boucle qui pilote `buildBuckets` dans
+   `buildHalf.worker.ts` ne saute JAMAIS une étape de `gen.next()`, seulement
+   des `postMessage` throttlés) — mais les tout derniers points de passage
+   tombaient souvent dans la même fenêtre de throttle que le précédent et
+   étaient absorbés, sans qu'aucun message final ne suive. Aggravé par un
+   second throttle, PARTAGÉ entre les deux moitiés, côté relais du Worker
+   parent (un message de A pouvait faire sauter celui de B juste après, et
+   inversement). **Corrigé** : un point de passage final GARANTI (scanned =
+   total), jamais throttlé, envoyé juste avant le résultat de chaque moitié ;
+   le relais du parent ne throttle plus (chaque enfant throttle déjà ses
+   propres messages, un double throttle partagé n'apportait rien qu'un risque
+   d'interférence entre les deux moitiés).
+
+⚠️ Aucun des deux bugs n'affectait la JUSTESSE du résultat final (les
+demi-builds manquants à l'écran l'étaient uniquement dans l'AFFICHAGE, jamais
+dans le calcul réellement utilisé par `pairBuckets`) — confirmé en relisant
+le code AVANT de corriger, pas juste supposé après coup.
+
+**Vérification** : `tsc --noEmit` et les 339 vérifications existantes après
+chaque changement (le refactor `prepareSearch`/`pairBuckets` est un
+comportement PROUVÉ identique par le harnais différentiel) ; `npm run build`
+confirme que Vite bundle correctement le Worker imbriqué (chunk
+`buildHalf.worker-*.js` séparé). Le fonctionnement RÉEL en navigateur (deux
+Workers effectivement parallèles, cohérence de l'affichage, bouton Arrêter
+pendant les deux phases) a été testé par l'utilisateur — aucun outil
+d'automatisation de navigateur n'était disponible pour le vérifier de façon
+autonome.
+
 ## Limites connues
 
 - ~~Un set NON demandé qui s'activerait par accident via les emplacements

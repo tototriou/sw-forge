@@ -4,6 +4,12 @@ import { WorkerResponse } from '../workers/runeBuildOptim.worker';
 
 export type BuildOptimStatus = 'idle' | 'running' | 'done' | 'error';
 
+export interface HalfBuildProgress {
+  scanned: number;
+  total: number;
+  pct: number;
+}
+
 // Point de passage le plus récent reçu pendant une recherche EN COURS — sert
 // à la barre de progression (voir OptimizerSection.tsx). `null` en dehors
 // d'une recherche active : ni avant, ni une fois `result` posé (le résultat
@@ -15,8 +21,16 @@ export type BuildOptimStatus = 'idle' | 'running' | 'done' | 'error';
 // distinction, l'UI n'avait AUCUNE information pendant cette phase (voir
 // spec/outils/optimizer.md, « Suite — la phase de préparation restait
 // muette »).
+// ⚠️ `building` garde les DEUX moitiés (`halves.A`/`halves.B`), pas une seule
+// — depuis leur construction en parallèle (deux Workers, voir
+// runeBuildOptim.worker.ts), les messages de progression des deux moitiés
+// s'entrelacent ; ne garder que le dernier reçu (l'ancien comportement)
+// ferait « disparaître » l'autre moitié de l'écran alors qu'elle avance en
+// même temps. `null` = cette moitié n'a pas encore reçu son premier point de
+// passage (l'autre Worker a pu démarrer un peu avant, ou son pool est plus
+// gros).
 export type BuildOptimProgress =
-  | { phase: 'building'; half: 'A' | 'B'; scanned: number; total: number; pct: number }
+  | { phase: 'building'; halves: { A: HalfBuildProgress | null; B: HalfBuildProgress | null } }
   | { phase: 'pairing'; explored: number; found: number; pct: number };
 
 // Cycle de vie du Worker de recherche de builds.
@@ -28,16 +42,38 @@ export type BuildOptimProgress =
 //    bouton « Arrêter » de l'UI : on veut le résultat partiel, pas le perdre.
 //  - `cancel()` — arrêt SEC (`terminate()`) : rien n'est récupéré. Utilisé au
 //    démontage et par `run()` lui-même avant de lancer une nouvelle
-//    recherche, pour qu'une réponse tardive de l'ancien Worker n'écrase
-//    jamais les paramètres qu'on vient de changer.
+//    recherche.
+//
+// ⚠️ `runId` (pas seulement `cancel()`+`terminate()`) protège contre un
+// message TARDIF de l'ancien Worker : `terminate()` empêche le Worker de
+// lancer de NOUVELLES étapes, mais un message qu'il avait DÉJÀ posté juste
+// avant (en file d'attente côté fil principal) peut encore être délivré
+// APRÈS que `run()` ait démarré le Worker suivant — son gestionnaire
+// `onmessage`, resté attaché à l'ANCIEN objet Worker, reste un `setState`
+// parfaitement valide (React ne l'invalide pas) et écraserait alors l'état
+// de la recherche EN COURS avec une valeur PÉRIMÉE. Confirmé en usage réel :
+// lancer/arrêter plusieurs recherches rapprochées pouvait figer une des deux
+// barres de la phase `building` (voir spec/outils/optimizer.md) — plus
+// probable depuis la parallélisation des deux moitiés (deux Workers de plus
+// à chaque recherche, donc deux fois plus de messages en vol au moment d'un
+// arrêt/relance). Chaque `run()` incrémente `runId` ; tout message reçu par
+// un gestionnaire qui ne porte plus le `runId` COURANT est silencieusement
+// ignoré — indépendant de la rapidité réelle de `terminate()`, qui n'a donc
+// plus besoin d'être instantané pour rester correct.
 export function useBuildOptimSearch() {
   const workerRef = useRef<Worker | null>(null);
+  const runIdRef = useRef(0);
   const [status, setStatus] = useState<BuildOptimStatus>('idle');
   const [result, setResult] = useState<SearchResult | null>(null);
   const [progress, setProgress] = useState<BuildOptimProgress | null>(null);
 
   const cancel = useCallback(() => {
-    workerRef.current?.terminate();
+    runIdRef.current++;
+    if (workerRef.current) {
+      workerRef.current.onmessage = null;
+      workerRef.current.onerror = null;
+      workerRef.current.terminate();
+    }
     workerRef.current = null;
   }, []);
 
@@ -46,6 +82,7 @@ export function useBuildOptimSearch() {
   const run = useCallback(
     (params: SearchParams) => {
       cancel();
+      const myRunId = runIdRef.current;
       setStatus('running');
       setResult(null);
       setProgress(null);
@@ -54,17 +91,28 @@ export function useBuildOptimSearch() {
       });
       workerRef.current = worker;
       worker.onmessage = (e: MessageEvent<WorkerResponse>) => {
-        if (e.data.type === 'progress') {
-          const { type: _type, ...prog } = e.data;
-          setProgress(prog);
+        if (runIdRef.current !== myRunId) return; // message périmé d'une recherche déjà remplacée — voir commentaire ci-dessus
+        const data = e.data;
+        if (data.type === 'progress') {
+          if (data.phase === 'building') {
+            setProgress((prev) => {
+              const halves = prev && prev.phase === 'building' ? prev.halves : { A: null, B: null };
+              return { phase: 'building', halves: { ...halves, [data.half]: { scanned: data.scanned, total: data.total, pct: data.pct } } };
+            });
+          } else {
+            setProgress({ phase: 'pairing', explored: data.explored, found: data.found, pct: data.pct });
+          }
           return;
         }
-        const { type: _type, ...res } = e.data;
+        const { type: _type, ...res } = data;
         setResult(res);
         setProgress(null);
         setStatus('done');
       };
-      worker.onerror = () => setStatus('error');
+      worker.onerror = () => {
+        if (runIdRef.current !== myRunId) return;
+        setStatus('error');
+      };
       worker.postMessage(params);
     },
     [cancel]

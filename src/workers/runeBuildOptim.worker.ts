@@ -3,21 +3,23 @@
 // lib/runeBuildOptim.ts et reste réutilisable dans les tests sans passer par
 // un Worker. Voir spec/compte/calcul-runes.md §6 (Perf).
 //
-// ⚠️ Pilote le générateur `searchBuildsSteps` PAS À PAS plutôt que d'appeler
-// `searchBuilds` d'un bloc : c'est ce qui permet de rendre la main à la
-// boucle d'évènements entre deux points de passage, condition nécessaire
-// pour qu'un message d'arrêt envoyé pendant que la recherche tourne soit
-// reçu et traité (JS reste single-threaded : un message ne peut être livré
-// que quand le code en cours d'exécution le permet).
+// ⚠️ Orchestre `prepareSearch` → `buildBuckets` (×2, EN PARALLÈLE, chacune
+// dans son propre Worker enfant — buildHalf.worker.ts) → `pairBuckets`,
+// plutôt que de piloter `searchBuildsSteps` d'un bloc comme avant : les deux
+// moitiés A et B sont indépendantes (aucune ne dépend du résultat construit
+// de l'autre, seulement de bornes calculées d'avance par `prepareSearch`),
+// donc les construire sur deux cœurs plutôt qu'un seul accélère cette phase
+// d'environ 2× — voir spec/outils/optimizer.md, « Suite — parallélisation de
+// la construction des deux moitiés ». La phase d'appariement (`pairBuckets`)
+// reste, elle, pilotée PAS À PAS dans CE Worker, exactement comme avant :
+// c'est ce qui permet de rendre la main à la boucle d'évènements entre deux
+// points de passage, condition nécessaire pour qu'un message d'arrêt envoyé
+// pendant que la recherche tourne soit reçu et traité (JS reste
+// single-threaded : un message ne peut être livré que quand le code en
+// cours d'exécution le permet).
 
-import {
-  searchBuildsSteps,
-  SearchParams,
-  SearchResult,
-  adaptiveMaxNodes,
-  DEFAULT_MAX_MS,
-  MAX_COLLECTED,
-} from '../lib/runeBuildOptim';
+import { prepareSearch, pairBuckets, PreparedSearch, SearchParams, SearchResult, Bucket } from '../lib/runeBuildOptim';
+import { BuildHalfRequest, BuildHalfResponse } from './buildHalf.worker';
 
 export type WorkerRequest = SearchParams | { stop: true };
 
@@ -73,24 +75,57 @@ export type WorkerResponse = WorkerProgressMessage | WorkerResultMessage;
 // meet-in-the-middle ne consomme pas ces budgets à un rythme constant d'une
 // recherche à l'autre, donc la barre peut accélérer ou ralentir en cours de
 // route plutôt que progresser régulièrement.
-function estimatePct(params: SearchParams, explored: number, found: number, elapsedMs: number): number {
-  // ⚠️ `adaptiveMaxNodes`, pas une constante fixe : depuis le budget de
-  // paires adaptatif (voir son commentaire dans runeBuildOptim.ts), la vraie
-  // valeur utilisée par CETTE recherche dépend du nombre de conditions
-  // posées — une constante fixe ici ferait dériver la barre de progression
-  // (elle finirait à un pourcentage arbitraire au lieu de 100 %).
-  const maxNodes = adaptiveMaxNodes(params);
-  const maxCollected = params.maxCollected ?? MAX_COLLECTED;
-  const maxMs = params.maxMs ?? DEFAULT_MAX_MS;
-  const ratios = [explored / maxNodes, found / maxCollected, Number.isFinite(maxMs) ? elapsedMs / maxMs : 0];
+function estimatePct(prepared: PreparedSearch, explored: number, found: number, elapsedMs: number): number {
+  const ratios = [
+    explored / prepared.maxNodes,
+    found / prepared.maxCollected,
+    Number.isFinite(prepared.maxMs) ? elapsedMs / prepared.maxMs : 0,
+  ];
   return Math.min(1, Math.max(0, ...ratios));
 }
 
 let stopped = false;
+// Workers enfants EN COURS (phase de construction des moitiés uniquement) —
+// vidé dès qu'on en sort, dans un sens ou dans l'autre. Un arrêt manuel
+// PENDANT cette phase les tue directement (`terminate()`, instantané) plutôt
+// que d'attendre une coopération qu'ils n'ont pas (voir buildHalf.worker.ts).
+let activeHalfWorkers: Worker[] = [];
+// Rejette la promesse qui attend les deux moitiés, pour qu'un arrêt pendant
+// cette phase fasse sortir `await` immédiatement plutôt que de rester
+// bloqué indéfiniment (les Workers tués ne posteront plus jamais de message).
+let stopBuildReject: (() => void) | null = null;
+
+function buildHalfInWorker(request: BuildHalfRequest, onProgress: (scanned: number, total: number) => void): Promise<Bucket[]> {
+  return new Promise((resolve, reject) => {
+    const worker = new Worker(new URL('./buildHalf.worker.ts', import.meta.url), { type: 'module' });
+    activeHalfWorkers.push(worker);
+    const cleanup = () => {
+      worker.terminate();
+      activeHalfWorkers = activeHalfWorkers.filter((w) => w !== worker);
+    };
+    worker.onmessage = (e: MessageEvent<BuildHalfResponse>) => {
+      const msg = e.data;
+      if (msg.type === 'progress') {
+        onProgress(msg.scanned, msg.total);
+        return;
+      }
+      cleanup();
+      resolve(msg.buckets);
+    };
+    worker.onerror = (err) => {
+      cleanup();
+      reject(err);
+    };
+    worker.postMessage(request);
+  });
+}
 
 self.onmessage = async (e: MessageEvent<WorkerRequest>) => {
   if ('stop' in e.data) {
     stopped = true;
+    for (const w of activeHalfWorkers) w.terminate();
+    activeHalfWorkers = [];
+    if (stopBuildReject) stopBuildReject();
     return;
   }
   stopped = false;
@@ -98,23 +133,83 @@ self.onmessage = async (e: MessageEvent<WorkerRequest>) => {
   const startedAt = Date.now();
   let lastProgressPost = 0;
 
-  let lastYield = startedAt;
-  const gen = searchBuildsSteps(params);
+  const prepared = prepareSearch(params);
+  if (!prepared) {
+    const result: WorkerResultMessage = { type: 'result', candidates: [], explored: 0, truncated: false };
+    (self as unknown as Worker).postMessage(result);
+    return;
+  }
+
+  // ⚠️ Deux moitiés INDÉPENDANTES (aucune ne dépend du résultat CONSTRUIT de
+  // l'autre — seulement de `maxSetsForA`/`maxSetsForB`, déjà calculés par
+  // `prepareSearch`) : construites en parallèle, chacune dans son propre
+  // Worker, pour utiliser deux cœurs plutôt qu'un seul pendant cette phase.
+  let bucketsA: Bucket[];
+  let bucketsB: Bucket[];
+  try {
+    const requestA: BuildHalfRequest = {
+      half: 'A', slotIdxs: [0, 1, 2], filtered: prepared.filtered, distinctKeys: prepared.distinctKeys,
+      constrainedKeys: prepared.constrainedKeys, retentionKeys: prepared.retentionKeys, minEntries: prepared.minEntries,
+      bucketCap: prepared.bucketCap, otherHalfMaxSets: prepared.maxSetsForA, jokerCredit: prepared.jokerCredit,
+      requiredPieces: prepared.requiredPieces,
+    };
+    const requestB: BuildHalfRequest = {
+      half: 'B', slotIdxs: [3, 4, 5], filtered: prepared.filtered, distinctKeys: prepared.distinctKeys,
+      constrainedKeys: prepared.constrainedKeys, retentionKeys: prepared.retentionKeys, minEntries: prepared.minEntries,
+      bucketCap: prepared.bucketCap, otherHalfMaxSets: prepared.maxSetsForB, jokerCredit: prepared.jokerCredit,
+      requiredPieces: prepared.requiredPieces,
+    };
+    // ⚠️ Pas de throttle ICI (contrairement à la phase d'appariement plus
+    // bas) : chacun des deux Workers enfants (buildHalf.worker.ts) throttle
+    // déjà SES PROPRES messages indépendamment — un throttle commun aux DEUX
+    // moitiés ferait courir le message de l'une contre celui de l'autre (un
+    // message de A qui arrive juste après un de B ferait sauter celui de B,
+    // et vice-versa), aggravant le risque qu'aucun des deux ne semble jamais
+    // atteindre 100 % — voir le point de passage final garanti dans
+    // buildHalf.worker.ts. Relayer sans throttle supplémentaire reste sûr :
+    // le débit combiné des deux Workers enfants (chacun ≤ ~1 message/150ms)
+    // ne peut pas flooder le fil principal.
+    const postBuildProgress = (half: 'A' | 'B', scanned: number, total: number) => {
+      const message: WorkerBuildingMessage = { type: 'progress', phase: 'building', half, scanned, total, pct: total > 0 ? scanned / total : 0 };
+      (self as unknown as Worker).postMessage(message);
+    };
+    const abortPromise = new Promise<never>((_, reject) => {
+      stopBuildReject = () => reject(new Error('stopped'));
+    });
+    [bucketsA, bucketsB] = await Promise.race([
+      Promise.all([
+        buildHalfInWorker(requestA, (scanned, total) => postBuildProgress('A', scanned, total)),
+        buildHalfInWorker(requestB, (scanned, total) => postBuildProgress('B', scanned, total)),
+      ]),
+      abortPromise,
+    ]);
+  } catch {
+    // Arrêt manuel pendant la construction : rien n'existe encore à ressortir
+    // (aucune paire n'a pu être évaluée) — un résultat vide, tronqué, est le
+    // seul choix honnête, même comportement que l'ancien code pour
+    // `phase: 'building'`.
+    const result: WorkerResultMessage = { type: 'result', candidates: [], explored: 0, truncated: true };
+    (self as unknown as Worker).postMessage(result);
+    return;
+  } finally {
+    stopBuildReject = null;
+  }
+  if (stopped) {
+    const result: WorkerResultMessage = { type: 'result', candidates: [], explored: 0, truncated: true };
+    (self as unknown as Worker).postMessage(result);
+    return;
+  }
+
+  let lastYield = Date.now();
+  const gen = pairBuckets(prepared, bucketsA, bucketsB);
   let step = gen.next();
   while (!step.done) {
     if (stopped) {
-      // Arrêt manuel : on ressort le dernier point de passage tel quel, en
-      // le requalifiant « tronqué » — c'est un résultat partiel assumé, pas
-      // une recherche allée au bout de son budget. Pendant `phase:'building'`
-      // (avant même la première paire), il n'y a RIEN à ressortir : aucun
-      // candidat n'a encore pu être trouvé — un résultat vide, tronqué, est
-      // le seul choix honnête (sans ce cas, `progress.candidates` n'existe
-      // même pas sur cette forme du point de passage).
+      // Arrêt manuel pendant l'appariement : on ressort le dernier point de
+      // passage tel quel, requalifié « tronqué » — un résultat partiel
+      // assumé, pas une recherche allée au bout de son budget.
       const progress = step.value;
-      const message: WorkerResultMessage =
-        progress.phase === 'pairing'
-          ? { type: 'result', candidates: progress.candidates, explored: progress.explored, truncated: true }
-          : { type: 'result', candidates: [], explored: 0, truncated: true };
+      const message: WorkerResultMessage = { type: 'result', candidates: progress.candidates, explored: progress.explored, truncated: true };
       (self as unknown as Worker).postMessage(message);
       return;
     }
@@ -122,23 +217,13 @@ self.onmessage = async (e: MessageEvent<WorkerRequest>) => {
     if (now - lastProgressPost > PROGRESS_THROTTLE_MS) {
       lastProgressPost = now;
       const progress = step.value;
-      const message: WorkerProgressMessage =
-        progress.phase === 'pairing'
-          ? {
-              type: 'progress',
-              phase: 'pairing',
-              explored: progress.explored,
-              found: progress.candidates.length,
-              pct: estimatePct(params, progress.explored, progress.candidates.length, now - startedAt),
-            }
-          : {
-              type: 'progress',
-              phase: 'building',
-              half: progress.half,
-              scanned: progress.scanned,
-              total: progress.total,
-              pct: progress.total > 0 ? progress.scanned / progress.total : 0,
-            };
+      const message: WorkerPairingMessage = {
+        type: 'progress',
+        phase: 'pairing',
+        explored: progress.explored,
+        found: progress.candidates.length,
+        pct: estimatePct(prepared, progress.explored, progress.candidates.length, now - startedAt),
+      };
       (self as unknown as Worker).postMessage(message);
     }
     // Rend la main à la boucle d'évènements, mais throttlé (voir

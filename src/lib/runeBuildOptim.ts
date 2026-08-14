@@ -1541,7 +1541,44 @@ export function adaptiveMaxNodes(params: SearchParams): number {
   return Math.max(ADAPTIVE_MIN_MAX_NODES, Math.round((ADAPTIVE_ANCHOR_MAX_NODES * sliceCount) / ADAPTIVE_ANCHOR_SLICE_COUNT));
 }
 
-export function* searchBuildsSteps(params: SearchParams): Generator<SearchProgress, SearchResult, void> {
+// Tout ce que `buildBuckets` (les DEUX moitiés) ET la phase d'appariement
+// (`pairBuckets`) doivent partager — factorisé pour que les deux moitiés
+// puissent être construites INDÉPENDAMMENT (en parallèle, potentiellement
+// dans deux Workers distincts, voir runeBuildOptim.worker.ts et
+// spec/outils/optimizer.md « Suite — parallélisation… ») sans dupliquer la
+// préparation (mainStatFilteredBySlot → pruneDominated → eliminateInfeasible
+// → filterSlot), qui elle reste séquentielle et bon marché en comparaison.
+// `null` en retour de `prepareSearch` = un emplacement est vide après
+// filtrage : aucune combinaison possible, inutile d'aller plus loin.
+export interface PreparedSearch {
+  base: BaseStats;
+  artifacts: ArtifactDetail[];
+  relic?: RelicDetail;
+  requirement: BuildRequirement;
+  metric: OptimMetric;
+  maxNodes: number;
+  maxCollected: number;
+  maxMs: number;
+  startedAt: number;
+  minEntries: { k: StatKey; min: number }[];
+  maxEntries: { k: StatKey; max: number }[];
+  constrainedKeys: StatKey[];
+  retentionKeys: StatKey[];
+  distinctKeys: string[];
+  guaranteed: { pct: Record<string, number>; flat: Record<string, number> };
+  guaranteedMin: { pct: Record<string, number>; flat: Record<string, number> };
+  artFlat: Record<string, number>;
+  relPct: Record<string, number>;
+  totalOf: (k: StatKey, pct: number, flat: number) => number;
+  filtered: RuneDetail[][];
+  requiredPieces: number[];
+  jokerCredit: number;
+  maxSetsForA: number[];
+  maxSetsForB: number[];
+  bucketCap: number;
+}
+
+export function prepareSearch(params: SearchParams): PreparedSearch | null {
   const { base, artifacts, relic, pool, requirement, metric } = params;
   const maxNodes = adaptiveMaxNodes(params);
   const maxCollected = params.maxCollected ?? MAX_COLLECTED;
@@ -1583,9 +1620,8 @@ export function* searchBuildsSteps(params: SearchParams): Generator<SearchProgre
   bySlot = eliminateInfeasible(bySlot, minEntries, maxEntries, constrainedKeys, guaranteed, artFlat, relPct, totalOf, guaranteedMin);
   const filtered = bySlot.map((list) => filterSlot(list, requirement, slotCap, slotCap, params.objective));
   if (filtered.some((list) => list.length === 0)) {
-    return { candidates: [], explored: 0, truncated: false };
+    return null;
   }
-  const overBudget = () => Date.now() - startedAt > maxMs;
 
   // ⚠️ Nombre RÉEL de pièces exigées par set demandé (pas simplement
   // `setPieces(key)` : `requirement.sets` peut répéter une clé — ex.
@@ -1594,14 +1630,31 @@ export function* searchBuildsSteps(params: SearchParams): Generator<SearchProgre
   const jokerCredit = anyJokerAvailable(filtered) ? 1 : 0;
   const maxSetsForA = maxSetCountsForSlots(filtered, [3, 4, 5], distinctKeys);
   const maxSetsForB = maxSetCountsForSlots(filtered, [0, 1, 2], distinctKeys);
-
   const bucketCap = params.bucketCap ?? BUCKET_CAP;
-  const bucketsA = yield* buildBuckets(
-    'A', [0, 1, 2], filtered, distinctKeys, constrainedKeys, retentionKeys, minEntries, bucketCap, maxSetsForA, jokerCredit, requiredPieces
-  );
-  const bucketsB = yield* buildBuckets(
-    'B', [3, 4, 5], filtered, distinctKeys, constrainedKeys, retentionKeys, minEntries, bucketCap, maxSetsForB, jokerCredit, requiredPieces
-  );
+
+  return {
+    base, artifacts, relic, requirement, metric,
+    maxNodes, maxCollected, maxMs, startedAt,
+    minEntries, maxEntries, constrainedKeys, retentionKeys, distinctKeys,
+    guaranteed, guaranteedMin, artFlat, relPct, totalOf,
+    filtered, requiredPieces, jokerCredit, maxSetsForA, maxSetsForB, bucketCap,
+  };
+}
+
+// Phase d'appariement : reprend EXACTEMENT le comportement historique de
+// `searchBuildsSteps`, une fois les deux moitiés déjà construites (par
+// `buildBuckets`, séquentiellement OU en parallèle — cette fonction ne sait
+// pas laquelle, et ça n'a pas d'importance pour elle). `startedAt` vient de
+// `prepared` (pas un nouveau `Date.now()` ici) : le budget de TEMPS
+// (`overBudget`) doit courir depuis le tout début de la recherche, y
+// compris le temps passé à construire les moitiés — sinon paralléliser leur
+// construction reculerait silencieusement l'échéance du filet de sécurité.
+export function* pairBuckets(prepared: PreparedSearch, bucketsA: Bucket[], bucketsB: Bucket[]): Generator<PairingProgress, SearchResult, void> {
+  const {
+    base, artifacts, relic, requirement, metric, maxNodes, maxCollected, maxMs, startedAt,
+    minEntries, maxEntries, guaranteed, guaranteedMin, artFlat, relPct, totalOf, distinctKeys,
+  } = prepared;
+  const overBudget = () => Date.now() - startedAt > maxMs;
 
   // Borne optimiste (sûre) pour les MINIMUMS, à partir des bornes de deux
   // compartiments — même principe que dans l'ancien moteur slot-par-slot,
@@ -1752,6 +1805,31 @@ export function* searchBuildsSteps(params: SearchParams): Generator<SearchProgre
   }
 
   return { candidates, explored, truncated };
+}
+
+// ⚠️ Simple ORCHESTRATION de `prepareSearch` → `buildBuckets` (×2) →
+// `pairBuckets` — plus de logique propre depuis le découpage ci-dessus.
+// Conservée telle quelle (comportement IDENTIQUE, vérifié par le harnais
+// différentiel existant) pour tout appelant qui n'a pas besoin de paralléliser
+// les deux moitiés : `searchBuilds` (tests, scripts, benchmark), et c'est
+// aussi ce que `runeBuildOptim.worker.ts` appelait avant sa propre
+// parallélisation — désormais il appelle `prepareSearch`/`buildBuckets`/
+// `pairBuckets` directement pour pouvoir construire A et B dans deux Workers
+// séparés, voir spec/outils/optimizer.md « Suite — parallélisation… ».
+export function* searchBuildsSteps(params: SearchParams): Generator<SearchProgress, SearchResult, void> {
+  const prepared = prepareSearch(params);
+  if (!prepared) {
+    return { candidates: [], explored: 0, truncated: false };
+  }
+  const bucketsA = yield* buildBuckets(
+    'A', [0, 1, 2], prepared.filtered, prepared.distinctKeys, prepared.constrainedKeys, prepared.retentionKeys,
+    prepared.minEntries, prepared.bucketCap, prepared.maxSetsForA, prepared.jokerCredit, prepared.requiredPieces
+  );
+  const bucketsB = yield* buildBuckets(
+    'B', [3, 4, 5], prepared.filtered, prepared.distinctKeys, prepared.constrainedKeys, prepared.retentionKeys,
+    prepared.minEntries, prepared.bucketCap, prepared.maxSetsForB, prepared.jokerCredit, prepared.requiredPieces
+  );
+  return yield* pairBuckets(prepared, bucketsA, bucketsB);
 }
 
 // API historique : drainer le générateur jusqu'au bout en un seul appel

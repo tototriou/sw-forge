@@ -31,7 +31,14 @@ export interface HalfBuildProgress {
 // gros).
 export type BuildOptimProgress =
   | { phase: 'building'; halves: { A: HalfBuildProgress | null; B: HalfBuildProgress | null } }
-  | { phase: 'pairing'; explored: number; found: number; pct: number };
+  // `nodeBudgetMax` : le plafond de nœuds ACTUEL, voir « Suite — escalade
+  // automatique du budget de nœuds » — peut avoir doublé plusieurs fois
+  // depuis le début de la recherche, affiché tel quel pour que l'écran
+  // montre où en est VRAIMENT la recherche, pas seulement son point de
+  // départ. `totalPairs` : la taille RÉELLE de l'espace à épuiser (voir
+  // `totalPairCount`), constante pour toute la phase — contrairement à
+  // `nodeBudgetMax` qui grandit.
+  | { phase: 'pairing'; explored: number; found: number; pct: number; nodeBudgetMax: number; totalPairs: number };
 
 // Cycle de vie du Worker de recherche de builds.
 //
@@ -100,7 +107,14 @@ export function useBuildOptimSearch() {
               return { phase: 'building', halves: { ...halves, [data.half]: { scanned: data.scanned, total: data.total, pct: data.pct } } };
             });
           } else {
-            setProgress({ phase: 'pairing', explored: data.explored, found: data.found, pct: data.pct });
+            setProgress({
+              phase: 'pairing',
+              explored: data.explored,
+              found: data.found,
+              pct: data.pct,
+              nodeBudgetMax: data.nodeBudgetMax,
+              totalPairs: data.totalPairs,
+            });
           }
           return;
         }

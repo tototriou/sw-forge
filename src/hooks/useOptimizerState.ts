@@ -96,7 +96,7 @@ export function useOptimizerState(): OptimizerState {
   const [artifactMainByKind, setArtifactMainByKind] = useState<Partial<Record<ArtifactKind, ArtifactMainChoice>>>({});
   const [mainStatsBySlot, setMainStatsBySlot] = useState<Partial<Record<2 | 4 | 6, number[]>>>({});
   const [objective, setObjective] = useState<Objective>('efficience');
-  const [exploreAll, setExploreAll] = useState(false);
+  const [exploreAll, setExploreAll] = useState(true);
   const [sortBy, setSortBy] = useState<OptimizerSortKey>('efficience');
   const [showAdvanced, setShowAdvanced] = useState(false);
   const [slotFilterPreset, setSlotFilterPreset] = useState<SlotFilterPresetKey>('moyen');

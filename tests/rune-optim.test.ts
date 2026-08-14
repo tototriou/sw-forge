@@ -5,15 +5,22 @@
 import { BaseStats, EffectLine, RuneDetail } from '../src/types';
 import {
   BuildCandidate,
+  BuildRequirement,
+  CHECKPOINT_EVERY,
   HalfCombo,
+  NodeBudget,
+  buildBuckets,
   candidateMetricTotal,
   diagnoseFeasibility,
   dominatesHalfCombo,
   insertIntoSkyline,
+  pairBuckets,
+  prepareSearch,
   rankBlockingConditions,
   excludedRuneIds,
   objectiveScore,
   searchBuilds,
+  totalPairCount,
 } from '../src/lib/runeBuildOptim';
 import { StatKey, runeEfficiency, runeScore } from '../src/lib/effects';
 import { StatRow } from '../src/lib/stats';
@@ -854,5 +861,93 @@ export default function testRuneOptim() {
     insertIntoSkyline(skyline, encoreMeilleur, ['atk', 'cr']);
     egal(skyline.length, 1, 'un nouvel arrivant qui domine TOUS les membres existants les remplace tous');
     ok(skyline.includes(encoreMeilleur), 'seul le nouvel arrivant, meilleur sur tout, reste');
+  }
+
+  {
+    // ⚠️ Escalade du budget de nœuds (`NodeBudget`) — voir spec/outils/
+    // optimizer.md « Suite — escalade automatique du budget de nœuds ». Le
+    // point à vérifier N'EST PAS « le résultat final est correct » (ça,
+    // n'importe quelle implémentation correcte, même une qui relancerait
+    // `pairBuckets` depuis le début à chaque escalade, le donnerait aussi,
+    // l'algorithme étant déterministe) : c'est que `nodeBudget.max` est LU EN
+    // DIRECT à chaque vérification, PAS figé dans une constante locale au
+    // démarrage du générateur. Pool synthétique sans contrainte (3 runes par
+    // slot, aucun set/minimum demandé) pour que bucketsA/bucketsB contiennent
+    // plusieurs combos chacun (jusqu'à 27×27 paires) — assez pour qu'un
+    // plafond initial de 2 soit largement insuffisant sans escalade.
+    function drain<T>(gen: Generator<unknown, T, void>): T {
+      let step = gen.next();
+      while (!step.done) step = gen.next();
+      return step.value;
+    }
+    // ⚠️ Codes de mainstat DIFFÉRENTS par rune (pas juste une valeur qui
+    // varie) : des runes qui ne diffèrent QUE par la valeur d'un même code
+    // seraient éliminées par `pruneDominated` (dominance au niveau rune,
+    // voir plus haut) avant même d'atteindre `buildBuckets` — s'écroulant à
+    // 1 seule rune survivante par emplacement, donc 1 seul demi-build par
+    // moitié, bien trop peu pour dépasser CHECKPOINT_EVERY (500) et
+    // solliciter la moindre escalade. Un code DIFFÉRENT par rune (chacune
+    // meilleure sur UN axe, nulle sur les autres) les rend mutuellement
+    // INCOMPARABLES : aucune n'est prunée, les 6 survivent par emplacement.
+    const MAIN_CODES = [3, 4, 5, 6, 9, 10];
+    const pool: RuneDetail[] = [];
+    let nextId = 1;
+    for (let slot = 1; slot <= 6; slot++) {
+      for (const code of MAIN_CODES) pool.push(rune(nextId++, slot, 'will', code, 20));
+    }
+    const requirement: BuildRequirement = { sets: [], minStats: {} };
+    const prepared = prepareSearch({ base: ZERO_BASE, artifacts: [], pool, requirement, metric: 'eff' });
+    ok(prepared !== null, 'escalade NodeBudget : préparation réussie sur le pool synthétique');
+    if (prepared) {
+      const bucketsA = drain(
+        buildBuckets('A', [0, 1, 2], prepared.filtered, prepared.distinctKeys, prepared.constrainedKeys, prepared.retentionKeys, prepared.minEntries, prepared.bucketCap, prepared.maxSetsForA, prepared.jokerCredit, prepared.requiredPieces)
+      );
+      const bucketsB = drain(
+        buildBuckets('B', [3, 4, 5], prepared.filtered, prepared.distinctKeys, prepared.constrainedKeys, prepared.retentionKeys, prepared.minEntries, prepared.bucketCap, prepared.maxSetsForB, prepared.jokerCredit, prepared.requiredPieces)
+      );
+
+      // Référence : plafond large dès le départ, jamais atteint → exhaustif.
+      // ⚠️ Doit dépasser le nombre RÉEL de paires possibles (6³ × 6³ =
+      // 46 656 ici, aucune contrainte ne les élague — sans contrainte,
+      // presque toutes les paires sont des candidats valides) : un plafond
+      // « à vue de nez » plus petit que ce total tronquerait la référence
+      // elle-même, et le test comparerait alors deux troncatures au lieu
+      // d'une troncature contre une recherche exhaustive.
+      const resultFull = drain(pairBuckets(prepared, bucketsA, bucketsB, { max: 200_000 }));
+      ok(!resultFull.truncated, 'escalade NodeBudget : la référence (grand plafond dès le départ) est exhaustive');
+
+      // Escalade : plafond MINUSCULE au départ, doublé entre chaque point de
+      // passage — jamais un second appel à `pairBuckets`, jamais un
+      // `explored` remis à zéro. ⚠️ Doit démarrer à AU MOINS
+      // `CHECKPOINT_EVERY` : le repli (`explored > nodeBudget.max`) est
+      // vérifié à CHAQUE paire, mais un point de passage (`yield`, seul
+      // moment où CE TEST peut intervenir) n'a lieu que tous les
+      // `CHECKPOINT_EVERY` — un plafond initial plus PETIT que cet
+      // intervalle tronquerait la recherche AVANT le tout premier point de
+      // passage, sans jamais laisser la moindre chance d'escalader (piège
+      // réel, rencontré en écrivant ce test avec un plafond initial de 2).
+      const nodeBudget: NodeBudget = { max: CHECKPOINT_EVERY };
+      const genEscalated = pairBuckets(prepared, bucketsA, bucketsB, nodeBudget);
+      let step = genEscalated.next();
+      let escalations = 0;
+      while (!step.done) {
+        nodeBudget.max *= 2;
+        escalations++;
+        step = genEscalated.next();
+      }
+      const resultEscalated = step.value;
+      ok(escalations > 1, `escalade NodeBudget : le plafond initial (${CHECKPOINT_EVERY}) a bien dû être relevé plusieurs fois (${escalations} fois)`);
+      ok(!resultEscalated.truncated, 'escalade NodeBudget : la recherche escaladée finit, elle aussi, par devenir exhaustive');
+      egal(resultEscalated.explored, resultFull.explored, "escalade NodeBudget : même nombre de paires explorées qu'avec un grand plafond dès le départ — la mutation de `nodeBudget.max` est bien lue EN DIRECT, pas figée au démarrage du générateur");
+      egal(resultEscalated.candidates.length, resultFull.candidates.length, 'escalade NodeBudget : même nombre de candidats trouvés');
+
+      // `totalPairCount` : sur CE pool précis (aucun set ni minimum demandé,
+      // donc `pairFeasibleMin`/`comboAOk`/`quickOk` n'élaguent RIEN de plus
+      // que `satisfiesSets`/le joker) l'espace annoncé doit être EXACT, pas
+      // juste une borne large — une occasion rare de vérifier l'égalité
+      // stricte plutôt que « au moins autant que ».
+      const total = totalPairCount(bucketsA, bucketsB, prepared.distinctKeys, requirement);
+      egal(total, resultFull.explored, "totalPairCount : sur un pool sans minimum ni set demandé (aucun élagage combo par combo au-delà de satisfiesSets), l'espace annoncé correspond EXACTEMENT au nombre de paires réellement explorées par une recherche exhaustive");
+    }
   }
 }

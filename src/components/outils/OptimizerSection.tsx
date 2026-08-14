@@ -170,9 +170,13 @@ export default function OptimizerSection({ box, runes, optimizer }: Props) {
 
   const runeById = useMemo(() => new Map(runes.map((r) => [r.id, r])), [runes]);
 
-  // ⚠️ Exclusion par défaut : ne propose que des combos réellement montables
-  // sans dérunir un autre monstre de la box. « Explorer tout l'inventaire »
-  // lève la contrainte. Voir spec/outils/optimizer.md.
+  // ⚠️ « Utiliser tout l'inventaire » COCHÉE PAR DÉFAUT (revu — l'exclusion
+  // décochée par défaut pouvait surprendre : un demi-build qui semblait
+  // manquer alors que ses runes étaient simplement rattachées ailleurs dans
+  // la box, sans que rien à l'écran ne le signale, voir spec/outils/
+  // optimizer.md « Suite — case cochée par défaut »). Décochée, la recherche
+  // ne propose que des combos réellement montables sans dérunir un autre
+  // monstre de la box.
   const pool = useMemo(() => {
     if (!selected) return runes;
     const excluded = exploreAll
@@ -676,7 +680,7 @@ export default function OptimizerSection({ box, runes, optimizer }: Props) {
               : 'border-border bg-panel text-ink-dim hoverable:text-ink hoverable:border-accent'
           }`}
         >
-          <Boxes size={15} /> Explorer tout l'inventaire
+          <Boxes size={15} /> Utiliser tout l'inventaire
         </button>
 
         <button
@@ -754,8 +758,26 @@ export default function OptimizerSection({ box, runes, optimizer }: Props) {
           <p className="mt-1 font-mono text-[11px] text-ink-dim">
             {progress === null
               ? 'Préparation…'
-              : `${progress.explored.toLocaleString('fr-FR')} combinaisons examinées · ${progress.found.toLocaleString('fr-FR')} trouvée(s)`}
+              : `${progress.explored.toLocaleString('fr-FR')} / ${progress.nodeBudgetMax.toLocaleString('fr-FR')} combinaisons examinées · ${progress.found.toLocaleString('fr-FR')} trouvée(s)`}
           </p>
+          {/* ⚠️ `totalPairs` (voir `totalPairCount`) N'EST PAS le budget de
+              nœuds (`nodeBudgetMax`, ci-dessus, qui grandit) : c'est la
+              taille RÉELLE de l'espace à épuiser une fois les deux moitiés
+              construites — une borne SUPÉRIEURE (paires de compartiments
+              compatibles), pas le nombre de paires réellement visitées en
+              pratique (presque toujours bien moins, l'algorithme élague
+              encore par la suite). Affichée séparément pour ne pas la
+              confondre avec le budget courant. */}
+          {progress !== null && (
+            <p className="mt-0.5 font-mono text-[11px] text-ink-dimmer">
+              Espace de recherche à épuiser (au pire) : {progress.totalPairs.toLocaleString('fr-FR')} combinaisons
+            </p>
+          )}
+          {progress !== null && (
+            <p className="mt-0.5 font-mono text-[11px] text-ink-dimmer">
+              Le budget de recherche s'élargit automatiquement tant qu'il reste du temps et rien de trouvé.
+            </p>
+          )}
         </div>
       )}
 

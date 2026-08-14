@@ -1205,6 +1205,36 @@ function satisfiesSets(
   return missingSets(requirement.sets, activeSets(synthetic)).length === 0;
 }
 
+// Taille RÉELLE de l'espace de recherche une fois les deux moitiés
+// construites — le nombre de paires (comboA, comboB) qu'il faudrait visiter
+// pour l'épuiser, PAS l'estimation brute affichée avant la recherche
+// (`estimateSearchSpace`, un simple produit des tailles de pool par
+// emplacement, calculée AVANT le meet-in-the-middle). Ne compte QUE les
+// paires de compartiments structurellement compatibles (même filtre bon
+// marché qu'au tout début de la boucle d'appariement, voir `pairBuckets` :
+// au plus un joker à eux deux, et le combo de sets demandé atteignable) —
+// une paire de compartiments incompatible ne contribue jamais une seule
+// paire de combos au total, aussi grands soient ses deux compartiments.
+// ⚠️ Reste une borne SUPÉRIEURE, pas le compte exact de paires réellement
+// visitées : `pairFeasibleMin`/`comboAOk`/`quickOk` (voir `pairBuckets`)
+// élaguent ENCORE, combo par combo, une fois DANS une paire de
+// compartiments compatible — les recalculer ici referait le travail de la
+// boucle elle-même. « Taille de l'espace à épuiser » au sens où l'entend
+// cette fonction : ce que l'algorithme visiterait AU PIRE, pas ce qu'il
+// visite RÉELLEMENT en pratique (presque toujours bien moins, voir le
+// budget de nœuds qui suffit largement dans les cas mesurés).
+export function totalPairCount(bucketsA: Bucket[], bucketsB: Bucket[], distinctKeys: string[], requirement: BuildRequirement): number {
+  let total = 0;
+  for (const bA of bucketsA) {
+    for (const bB of bucketsB) {
+      if (bA.jokers + bB.jokers > 1) continue;
+      if (!satisfiesSets(bA.counts, bA.jokers, bB.counts, bB.jokers, distinctKeys, requirement)) continue;
+      total += bA.combos.length * bB.combos.length;
+    }
+  }
+  return total;
+}
+
 // Pool par slot, après la SEULE contrainte de statistique principale — pas
 // encore le pré-filtrage heuristique. Factorisé pour être réutilisé tel quel
 // par `searchBuildsSteps` (qui y ajoute ensuite dominance + faisabilité,
@@ -1489,7 +1519,27 @@ export type SearchProgress = BuildingProgress | PairingProgress;
 // limite ou un arrêt manuel réagissent vite (quelques centaines de ms au
 // pire, voir scripts/benchmark-optim.ts), assez rare pour ne pas payer le
 // coût d'un `yield` de générateur à chaque paire évaluée.
-const CHECKPOINT_EVERY = 500;
+// ⚠️ Exportée : l'orchestrateur d'une escalade de budget (voir `NodeBudget`
+// ci-dessous et runeBuildOptim.worker.ts) doit relever `nodeBudget.max`
+// avec une marge d'AU MOINS un point de passage, pour être sûr d'agir avant
+// que la boucle ne s'arrête d'elle-même.
+export const CHECKPOINT_EVERY = 500;
+
+// ⚠️ Objet MUTABLE, pas un simple nombre — c'est ce qui permet d'ESCALADER
+// le budget de nœuds SANS relancer `pairBuckets` depuis le début. Le budget
+// « figé » historique (`prepared.maxNodes`, toujours calculé une fois par
+// `prepareSearch`/`adaptiveMaxNodes`) reste la valeur INITIALE — un appelant
+// qui n'a pas besoin d'escalade (recherche simple, tests, scripts) construit
+// un `NodeBudget` qu'il ne mute jamais, comportement STRICTEMENT identique à
+// avant. Un appelant qui PEUT surveiller la progression ENTRE deux points de
+// passage (le Worker, voir runeBuildOptim.worker.ts) peut à tout moment
+// augmenter `.max` avant que la boucle n'atteigne ce plafond — le générateur
+// continue alors EXACTEMENT là où il en était (même compartiments, mêmes
+// combos, `explored` jamais remis à zéro), sans jamais revisiter une paire
+// déjà explorée.
+export interface NodeBudget {
+  max: number;
+}
 
 /**
  * Cœur du moteur, sous forme de GÉNÉRATEUR : produit un {@link SearchProgress}
@@ -1649,9 +1699,17 @@ export function prepareSearch(params: SearchParams): PreparedSearch | null {
 // (`overBudget`) doit courir depuis le tout début de la recherche, y
 // compris le temps passé à construire les moitiés — sinon paralléliser leur
 // construction reculerait silencieusement l'échéance du filet de sécurité.
-export function* pairBuckets(prepared: PreparedSearch, bucketsA: Bucket[], bucketsB: Bucket[]): Generator<PairingProgress, SearchResult, void> {
+export function* pairBuckets(
+  prepared: PreparedSearch,
+  bucketsA: Bucket[],
+  bucketsB: Bucket[],
+  // ⚠️ Optionnel : par défaut, un budget FIGÉ à `prepared.maxNodes` — le
+  // comportement historique exact, pour tout appelant qui n'a pas besoin
+  // d'escalade (voir `NodeBudget`).
+  nodeBudget: NodeBudget = { max: prepared.maxNodes }
+): Generator<PairingProgress, SearchResult, void> {
   const {
-    base, artifacts, relic, requirement, metric, maxNodes, maxCollected, maxMs, startedAt,
+    base, artifacts, relic, requirement, metric, maxCollected, maxMs, startedAt,
     minEntries, maxEntries, guaranteed, guaranteedMin, artFlat, relPct, totalOf, distinctKeys,
   } = prepared;
   const overBudget = () => Date.now() - startedAt > maxMs;
@@ -1719,7 +1777,7 @@ export function* pairBuckets(prepared: PreparedSearch, bucketsA: Bucket[], bucke
           if (explored % CHECKPOINT_EVERY === 0) {
             yield { phase: 'pairing', candidates, explored };
           }
-          if (explored > maxNodes || overBudget()) {
+          if (explored > nodeBudget.max || overBudget()) {
             truncated = true;
             break outer;
           }

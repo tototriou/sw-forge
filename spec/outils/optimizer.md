@@ -235,8 +235,9 @@ retour.
      toucher à « Stats de base exclues » ni aux autres réglages de l'écran
      (set, statistique principale, objectif…) — seules les VALEURS saisies
      sont concernées.
-8. **« Explorer tout l'inventaire »** — case à cocher, **décochée par
-   défaut** (voir « Exclusion des runes » ci-dessous).
+8. **« Utiliser tout l'inventaire »** — case à cocher, **cochée par
+   défaut** (voir « Exclusion des runes » ci-dessous et « Suite — case
+   cochée par défaut »).
 9. **« Options avancées »** (repliées par défaut) : **pré-filtrage par
    emplacement**, en **presets** (`<Segmented>`) plutôt qu'un curseur libre —
    défaut **Moyen**. Voir « Interruption » pour ce que chaque niveau change
@@ -365,16 +366,18 @@ jeu) : c'est au joueur de re-runer dans Summoners War.
 
 ## Exclusion des runes déjà portées ailleurs
 
-Par défaut, la recherche **exclut** les runes déjà portées par un **autre**
-monstre de la box : elle ne propose que des combinaisons réellement
-montables sans dérunir quelqu'un. Les runes déjà portées par le monstre
-**choisi** (n'importe lequel de ses exemplaires) restent disponibles, elles
-sont « à soi ».
+**« Utiliser tout l'inventaire »**, cochée par défaut (voir « Suite — case
+cochée par défaut » plus bas), porte la recherche sur l'**inventaire
+entier** — y compris des runes qu'il faudrait retirer d'un autre monstre
+pour composer le build proposé.
 
-**« Explorer tout l'inventaire »** lève cette contrainte : la recherche
-porte alors sur l'**inventaire entier**, y compris des runes qu'il faudrait
-retirer d'un autre monstre pour composer le build proposé — un outil
-exploratoire (« si je pouvais réassigner librement mes runes »).
+Décochée, la recherche **exclut** les runes déjà portées par un **autre**
+monstre de la box : elle ne propose alors que des combinaisons réellement
+montables sans dérunir quelqu'un — un mode volontairement plus restrictif,
+pour qui veut une réponse directement applicable en jeu sans y réfléchir. Les
+runes déjà portées par le monstre **choisi** (n'importe lequel de ses
+exemplaires) restent TOUJOURS disponibles quel que soit ce réglage, elles
+sont « à soi ».
 
 ⚠️ **Le moteur est générique**, pas couplé à la box : `searchBuilds` ne
 connaît qu'un `pool` de runes déjà filtré. `excludedRuneIds` (dans
@@ -389,6 +392,26 @@ qu'un autre appelant construise le sien.
 > runes/monstres **ciblés** en plus de « tout » ou « rien ». L'architecture
 > (pool + exclusion calculée par l'appelant) ne s'y oppose pas, mais rien de
 > tout ça n'est implémenté pour l'instant.
+
+### Suite — case cochée par défaut, et renommée
+
+Décochée par défaut à l'origine (voir « Décisions actées » en tête de ce
+document) : le raisonnement de départ était qu'un résultat directement
+montable sans rien déséquiper est le cas d'usage le plus courant.
+
+**Revu suite à un signalement concret** : un compte de siège réel où un
+demi-build attendu semblait introuvable, alors qu'il s'agissait en réalité de
+runes légitimement portées par D'AUTRES monstres depuis un re-runage (voir
+« Limites connues » — chaque deck de siège garde son propre PRESET de
+runage, indépendant de ce qui est réellement équipé aujourd'hui). Rien à
+l'écran ne signalait que des runes avaient été silencieusement écartées pour
+cette raison — la case décochée par défaut rendait ce comportement, pourtant
+voulu, plus surprenant qu'utile pour la majorité des recherches. **Cochée
+par défaut** désormais : un joueur qui veut spécifiquement une réponse
+montable sans rien déséquiper doit la décocher explicitement, plutôt que
+l'inverse. Renommée **« Utiliser tout l'inventaire »** (plus clair que
+« Explorer », qui suggérait à tort un mode secondaire/exploratoire alors que
+c'est maintenant le comportement par défaut).
 
 ## Interruption — filet de temps, pré-filtrage et arrêt manuel
 
@@ -1657,6 +1680,89 @@ Workers effectivement parallèles, cohérence de l'affichage, bouton Arrêter
 pendant les deux phases) a été testé par l'utilisateur — aucun outil
 d'automatisation de navigateur n'était disponible pour le vérifier de façon
 autonome.
+
+### Suite — escalade automatique du budget de nœuds
+
+**Signalé sur un vrai compte** (Sonia, `tototriou-12889591.json`, deck 6
+offense — set Swift, statistique principale VIT/Taux Crit/ATQ%, objectif
+Dégâts, 4 minimums à la fois ATQ/VIT/Taux Crit/Dmg Crit exactement aux
+valeurs réelles) : introuvable malgré « Utiliser tout l'inventaire » cochée.
+Diagnostic (`monster-search-buildbuckets-diag.ts`, `half-build-rank-diag.ts`,
+scripts de mesure) : les deux demi-builds réels étaient bien présents et
+atteignables dans leurs compartiments (rang #813/7581 en A, #5717/7988 en
+B — classés loin, mais PRÉSENTS, pas éliminés), et un build équilibré sur
+les 4 stats à la fois se classe structurellement bas dans un tri qui ne
+regarde que le MEILLEUR axe pris isolément (même mécanisme documenté plus
+haut pour deck 10 Lushen, confirmé par la mesure : le `relevanceScore` du
+demi-build réel de Sonia dépassait celui des 10 mieux classés du même
+compartiment — ce n'est pas un demi-build médiocre, c'est un généraliste
+noyé parmi des spécialistes).
+
+**Le vrai obstacle n'était pas cet ordre, mais le budget.** Le plafond
+adaptatif (`adaptiveMaxNodes`) s'épuisait en 22 s (38 400 000 nœuds, 0
+résultat) — alors que le filet de TEMPS réel de l'écran est de 10 minutes
+(`HARD_TIMEOUT_MS`). Un plafond de nœuds relevé à la main (500 000 000, même
+budget-temps) retrouve le build exact en 32 s, en n'explorant que 86,8M
+nœuds — bien moins que le plafond relevé, et surtout bien moins que le
+temps disponible ne l'aurait permis. `adaptiveMaxNodes` est calibré sur
+d'anciens cas réels pour rester dans les 30-100 s (voir les calibrages
+successifs de `BUCKET_CAP`/`DEFAULT_MAX_NODES` plus haut), mais ne
+s'adapte PAS à la vitesse réelle observée sur CE compte précis : un compte
+qui va vite épuise son budget de nœuds bien avant son budget de temps, sans
+jamais s'en servir.
+
+**Corrigé par une escalade automatique, pas par un nouveau calibrage
+statique** — les calibrages précédents ne faisaient que reculer le même mur
+d'un cran (voir « Suite — BUCKET_CAP relevé une troisième fois »), et
+relever la valeur DE BASE pénaliserait tous les cas rapides en les faisant
+tourner plus longtemps pour rien. À la place :
+
+- `pairBuckets` reçoit désormais un `NodeBudget` — un objet **MUTABLE**
+  (`{ max: number }`), pas un nombre figé. Par défaut (tout appelant qui ne
+  fournit rien : `searchBuildsSteps`, `searchBuilds`, les tests, les
+  scripts) : `{ max: prepared.maxNodes }` jamais muté, comportement
+  STRICTEMENT identique à avant.
+- Le Worker ([runeBuildOptim.worker.ts](src/workers/runeBuildOptim.worker.ts))
+  construit ce `NodeBudget` lui-même et le RELÈVE (×2) entre deux points de
+  passage dès qu'il s'approche du plafond courant, tant qu'il reste du
+  budget-temps (marge de sécurité 95 % de `maxMs`) et que le plafond de
+  candidats n'est pas déjà atteint. Le générateur `pairBuckets`, DÉJÀ piloté
+  pas à pas pour la barre de progression et le bouton Arrêter, continue
+  alors EXACTEMENT où il en était (mêmes compartiments, mêmes combos,
+  `explored` jamais remis à zéro) — ni `prepareSearch`, ni `buildBuckets`
+  (les deux moitiés), ni la moindre paire déjà explorée ne sont jamais
+  recalculés. Le budget-TEMPS (`overBudget`, déjà vérifié par `pairBuckets`
+  lui-même, jamais dupliqué) reste l'arbitre final : une recherche sans
+  réponse s'arrête toujours par manque de TEMPS, plus par manque de nœuds.
+- ⚠️ **Piège rencontré en écrivant le test** (et donc un vrai risque
+  d'implémentation à retenir) : le relais ne peut intervenir qu'à un POINT
+  DE PASSAGE (`yield`, tous les `CHECKPOINT_EVERY` = 500 nœuds), alors que
+  le repli interne (`explored > nodeBudget.max`) est vérifié à CHAQUE paire.
+  Un plafond relevé avec une marge PLUS PETITE que `CHECKPOINT_EVERY`
+  arriverait trop tard — la recherche aurait déjà tronqué avant le
+  prochain point de passage. D'où la marge `<= CHECKPOINT_EVERY` (pas un
+  chiffre arbitraire) dans la condition d'escalade du Worker.
+- La barre de progression (`estimatePct`) utilise désormais le plafond
+  VIVANT (`nodeBudget.max`), pas la valeur figée d'origine — sans ça, elle
+  resterait bloquée à 100 % (ou au-delà) après une escalade. Un recul
+  visible de la barre au moment d'une escalade est attendu, et bien moins
+  trompeur qu'un 100 % qui ne correspondrait plus à rien.
+
+**Vérifié** : un test dédié
+([tests/rune-optim.test.ts](tests/rune-optim.test.ts)) pilote `pairBuckets`
+à la main avec un plafond initial minuscule, l'escalade progressivement
+(comme le Worker) et vérifie que le nombre de paires explorées et de
+candidats trouvés est EXACTEMENT identique à une recherche avec un grand
+plafond dès le départ — la garantie qui compte n'est pas seulement « le
+résultat final est correct » (un déterministe qui relancerait tout depuis le
+début le serait aussi), mais que `nodeBudget.max` est bien lu EN DIRECT à
+chaque vérification, jamais figé au démarrage du générateur. 345
+vérifications passent, `tsc --noEmit` propre, `npm run build` inchangé.
+
+⚠️ Ne règle pas nécessairement TOUS les cas difficiles (Eivor à 7 conditions
+reste un cas à part, voir plus haut) — mais répond directement au cas où le
+budget de nœuds s'épuise bien avant le budget-temps, ce qui semble être la
+situation la plus courante sur un compte avec beaucoup de runes.
 
 ## Limites connues
 

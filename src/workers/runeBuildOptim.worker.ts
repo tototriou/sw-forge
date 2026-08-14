@@ -18,7 +18,7 @@
 // single-threaded : un message ne peut être livré que quand le code en
 // cours d'exécution le permet).
 
-import { prepareSearch, pairBuckets, PreparedSearch, SearchParams, SearchResult, Bucket } from '../lib/runeBuildOptim';
+import { prepareSearch, pairBuckets, totalPairCount, PreparedSearch, SearchParams, SearchResult, Bucket, NodeBudget, CHECKPOINT_EVERY } from '../lib/runeBuildOptim';
 import { BuildHalfRequest, BuildHalfResponse } from './buildHalf.worker';
 
 export type WorkerRequest = SearchParams | { stop: true };
@@ -63,6 +63,19 @@ export interface WorkerPairingMessage {
   explored: number;
   found: number;
   pct: number; // 0..1, approximatif — voir `estimatePct`
+  // Plafond de nœuds ACTUEL (`nodeBudget.max`, voir « Suite — escalade
+  // automatique du budget de nœuds ») — pas la valeur adaptative de départ,
+  // qui peut avoir déjà doublé plusieurs fois depuis. Exposé pour que l'UI
+  // puisse montrer où en est réellement la recherche, pas juste le point de
+  // départ.
+  nodeBudgetMax: number;
+  // Taille RÉELLE de l'espace de recherche à épuiser (voir
+  // `totalPairCount`) — CONSTANTE pour toute la phase d'appariement (les
+  // deux moitiés sont déjà construites), contrairement à `nodeBudgetMax`
+  // qui grandit. Une borne SUPÉRIEURE (paires structurellement compatibles,
+  // sets/joker), pas le compte exact de paires réellement visitées — voir
+  // le commentaire de `totalPairCount`.
+  totalPairs: number;
 }
 export type WorkerProgressMessage = WorkerBuildingMessage | WorkerPairingMessage;
 export type WorkerResultMessage = { type: 'result' } & SearchResult;
@@ -75,9 +88,16 @@ export type WorkerResponse = WorkerProgressMessage | WorkerResultMessage;
 // meet-in-the-middle ne consomme pas ces budgets à un rythme constant d'une
 // recherche à l'autre, donc la barre peut accélérer ou ralentir en cours de
 // route plutôt que progresser régulièrement.
-function estimatePct(prepared: PreparedSearch, explored: number, found: number, elapsedMs: number): number {
+// ⚠️ `nodeBudgetMax` VIVANT (pas `prepared.maxNodes`, figé) — voir « Suite —
+// escalade automatique du budget de nœuds » : quand le plafond est relevé en
+// cours de recherche, le ratio explored/maxNodes doit refléter le NOUVEAU
+// plafond, sinon la barre resterait bloquée à 100 % (ou au-delà) pendant
+// qu'un plafond périmé continuerait d'être affiché. Un recul visible de la
+// barre au moment d'une escalade est attendu et acceptable — bien moins
+// trompeur qu'un 100 % qui ne correspond plus à rien.
+function estimatePct(prepared: PreparedSearch, nodeBudgetMax: number, explored: number, found: number, elapsedMs: number): number {
   const ratios = [
-    explored / prepared.maxNodes,
+    explored / nodeBudgetMax,
     found / prepared.maxCollected,
     Number.isFinite(prepared.maxMs) ? elapsedMs / prepared.maxMs : 0,
   ];
@@ -200,8 +220,43 @@ self.onmessage = async (e: MessageEvent<WorkerRequest>) => {
     return;
   }
 
+  // ⚠️ Suite — escalade automatique du budget de nœuds. `adaptiveMaxNodes`
+  // (le plafond INITIAL, dans `nodeBudget.max`) est calibré pour rester dans
+  // un temps raisonnable sur le cas TYPIQUE — mais un compte avec beaucoup de
+  // runes peut épuiser ce plafond en quelques secondes, alors que le vrai
+  // filet de temps de l'écran (10 min, voir OptimizerSection.tsx) reste très
+  // largement inutilisé. Signalé sur un vrai compte (Sonia, tototriou-
+  // 12889591.json) : plafond adaptatif épuisé en 22 s (38,4M nœuds, 0
+  // résultat), alors qu'un plafond 13× plus large retrouve le build exact en
+  // 32 s (86,8M nœuds réellement explorés) — le budget-TEMPS n'était
+  // simplement jamais sollicité. Voir spec/outils/optimizer.md.
+  //
+  // `nodeBudget` (voir runeBuildOptim.ts) est un objet MUTABLE : le relever
+  // ICI, entre deux appels à `gen.next()`, laisse le générateur CONTINUER
+  // exactement où il en était (mêmes compartiments, mêmes combos, `explored`
+  // jamais remis à zéro) — aucune paire déjà visitée n'est revisitée, aucun
+  // des deux Workers de construction n'est rappelé. Doublé à chaque fois
+  // qu'on s'approche du plafond courant, tant qu'il reste du budget-temps ET
+  // que la recherche n'a pas déjà atteint son plafond de candidats — le
+  // budget-temps (`overBudget`, DÉJÀ vérifié par `pairBuckets` lui-même)
+  // reste l'arbitre final, jamais contourné : une recherche sans réponse
+  // s'arrête toujours par manque de TEMPS, jamais par manque de nœuds.
+  const ESCALATION_FACTOR = 2;
+  // Marge de sécurité sous `maxMs` : inutile d'escalader dans les toutes
+  // dernières secondes, `overBudget()` va de toute façon arrêter la
+  // recherche au prochain point de passage.
+  const ESCALATION_TIME_SAFETY = 0.95;
+  const nodeBudget: NodeBudget = { max: prepared.maxNodes };
+
+  // Taille RÉELLE de l'espace à épuiser (voir `totalPairCount`) — calculée
+  // UNE SEULE FOIS, maintenant que les deux moitiés sont construites (avant
+  // ça, seule l'estimation brute pré-recherche, `estimateSearchSpace`,
+  // existe). Coût négligeable : O(compartiments A × compartiments B), une
+  // poignée de compartiments de chaque côté, jamais les combos eux-mêmes.
+  const totalPairs = totalPairCount(bucketsA, bucketsB, prepared.distinctKeys, prepared.requirement);
+
   let lastYield = Date.now();
-  const gen = pairBuckets(prepared, bucketsA, bucketsB);
+  const gen = pairBuckets(prepared, bucketsA, bucketsB, nodeBudget);
   let step = gen.next();
   while (!step.done) {
     if (stopped) {
@@ -214,15 +269,24 @@ self.onmessage = async (e: MessageEvent<WorkerRequest>) => {
       return;
     }
     const now = Date.now();
+    const progress = step.value;
+    if (
+      nodeBudget.max - progress.explored <= CHECKPOINT_EVERY &&
+      now - prepared.startedAt < prepared.maxMs * ESCALATION_TIME_SAFETY &&
+      progress.candidates.length < prepared.maxCollected
+    ) {
+      nodeBudget.max *= ESCALATION_FACTOR;
+    }
     if (now - lastProgressPost > PROGRESS_THROTTLE_MS) {
       lastProgressPost = now;
-      const progress = step.value;
       const message: WorkerPairingMessage = {
         type: 'progress',
         phase: 'pairing',
         explored: progress.explored,
         found: progress.candidates.length,
-        pct: estimatePct(prepared, progress.explored, progress.candidates.length, now - startedAt),
+        pct: estimatePct(prepared, nodeBudget.max, progress.explored, progress.candidates.length, now - startedAt),
+        nodeBudgetMax: nodeBudget.max,
+        totalPairs,
       };
       (self as unknown as Worker).postMessage(message);
     }

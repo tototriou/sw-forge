@@ -57,14 +57,71 @@ export const CHANGE_META: Record<ChangeKind, { label: string; color: string }> =
 // détail d'implémentation — tout ça vit dans les commits et dans `spec/`.
 // Si une ligne dépasse ~15 mots, c'est qu'elle raconte l'implémentation.
 export const RELEASES: Release[] = [
-  // ⚠️ Version EN PRÉPARATION (`version: null`) : le numéro se décide à la
-  // fusion, d'après ce que la branche contient au final. Remplacer `null` par
-  // le numéro au moment de publier, en même temps que `package.json` et le tag.
+  // ⚠️ La PROCHAINE version en préparation se pose ici, avec `version: null` :
+  // le numéro se décide à la fusion, d'après ce que la branche contient au
+  // final. On le remplace au moment de publier, en même temps que
+  // `package.json` et le tag.
   {
-    version: null,
-    date: '2026-08-12',
-    title: 'Les artéfacts',
-    changes: [],
+    version: '1.5.0',
+    date: '2026-08-15',
+    title: 'Tes artéfacts, notés et fouillables',
+    highlights: [
+      'Le score du jeu et l’efficience de chaque artéfact, calculés sur tout ton stock',
+      'Cherche par propriété comme dans le jeu : jusqu’à quatre critères, avec un minimum',
+      'Vois d’un coup où est ta réserve : raretés, attributs, types, propriétés les plus portées',
+    ],
+    changes: [
+      {
+        kind: 'feat',
+        scope: 'Mon compte',
+        text: 'Tes artéfacts ont leur page, avec le score du jeu et l’efficience de chaque pièce.',
+      },
+      {
+        kind: 'feat',
+        scope: 'Mon compte',
+        text: 'Un résumé chiffré de ta réserve : raretés, attributs, types et propriétés les plus portées.',
+      },
+      {
+        kind: 'feat',
+        scope: 'Mon compte',
+        text: 'Cherche par propriété avec un minimum exigé, jusqu’à quatre à la fois.',
+      },
+      {
+        kind: 'feat',
+        scope: 'Mon compte',
+        text: 'L’ordre des critères fait le tri : le premier classe, le second départage.',
+      },
+      {
+        kind: 'feat',
+        scope: 'Mon compte',
+        text: 'Filtre par stat principale : PV, ATQ ou DEF.',
+      },
+      {
+        kind: 'feat',
+        scope: 'Mon compte',
+        text: 'La propriété que tu cherches est mise en avant sur chaque artéfact.',
+      },
+      {
+        kind: 'feat',
+        scope: 'Mon compte',
+        text: 'Les quatre propriétés et leurs procs sont lisibles sans ouvrir la pièce.',
+      },
+      {
+        kind: 'feat',
+        scope: 'Interface',
+        text: 'Les menus, fenêtres et panneaux se posent en douceur au lieu de surgir.',
+      },
+      {
+        kind: 'fix',
+        scope: 'Mon compte',
+        text: 'Les propriétés portent les noms du jeu et son ordre de recherche.',
+      },
+      {
+        kind: 'fix',
+        scope: 'Interface',
+        text: 'Un élément sélectionné ne porte plus deux surbrillances superposées.',
+      },
+    ],
   },
   {
     version: '1.4.0',

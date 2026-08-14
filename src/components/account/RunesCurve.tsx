@@ -96,8 +96,9 @@ export default function RunesCurve({ runes }: Props) {
             onClick={() => setAncientOnly((v) => !v)}
             className={`ml-1 rounded-full border px-3 py-1 text-[12.5px] font-semibold transition select-none
               ${
+                // Bordure seule — voir spec/shared/design.md.
                 ancientOnly
-                  ? 'bg-accent-soft border-accent text-accent shadow'
+                  ? 'bg-panel border-accent text-ink'
                   : 'bg-panel border-border text-ink-dim hoverable:text-ink hoverable:border-accent'
               }`}
           >
@@ -168,7 +169,10 @@ export default function RunesCurve({ runes }: Props) {
             <HelpCircle size={20} />
           </button>
           {showHelp && (
-            <div className="absolute right-0 mt-1.5 w-[340px] max-w-[88vw] rounded-lg border border-accent bg-panel p-3 text-[12.5px] text-ink-dim leading-relaxed shadow-xl shadow-black/50">
+            <div
+              className="absolute right-0 mt-1.5 w-[340px] max-w-[88vw] rounded-lg border border-accent bg-panel p-3 text-[12.5px] text-ink-dim leading-relaxed shadow-xl shadow-black/50
+                         origin-top-right animate-[popover_150ms_var(--ease-out)]"
+            >
               <p className="text-ink font-semibold mb-1">À quoi sert ce graphe ?</p>
               <p>
                 Il classe toutes tes runes, de la meilleure à la moins bonne :{' '}

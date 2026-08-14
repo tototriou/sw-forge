@@ -39,7 +39,11 @@ export default function SlotFilter({
               className={`w-7 h-7 rounded-md border text-[12.5px] font-mono font-semibold transition select-none
                 ${
                   active
-                    ? 'bg-accent-soft border-accent text-ink shadow'
+                    ? // ⚠️ Bordure seule (voir spec/shared/design.md) : ces
+                      // numéros sont dans la MÊME rangée que le bouton
+                      // « Antiques ». Deux marqueurs différents côte à côte se
+                      // liraient comme deux natures de filtre.
+                      'bg-panel border-accent text-ink'
                     : 'border-transparent text-ink-dim hoverable:text-ink hoverable:bg-panel2'
                 }`}
             >

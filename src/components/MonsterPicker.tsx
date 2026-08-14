@@ -59,9 +59,9 @@ export default function MonsterPicker({ monsters, onPick, excludeIds, placeholde
         value={query}
         onChange={(e) => setQuery(e.target.value)}
         placeholder={placeholder ?? 'Rechercher…'}
+        // Bordure seule au focus, sans halo : voir spec/shared/design.md.
         className="w-full bg-panel border border-border rounded-lg py-2 pl-9 pr-3 text-[13px]
-                   text-ink placeholder:text-ink-dim outline-none transition
-                   focus:border-accent focus:shadow-[0_0_0_3px_rgb(var(--accent)/0.25)]"
+                   text-ink placeholder:text-ink-dim transition focus:border-accent"
       />
 
       {nav.open && (

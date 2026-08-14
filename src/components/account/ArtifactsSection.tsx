@@ -34,8 +34,10 @@ export default function ArtifactsSection({ artifacts }: Props) {
             <button
               key={v.key}
               onClick={() => setView(v.key)}
+              // Fond seul sur l'onglet courant, sans fausse élévation :
+              // voir spec/shared/design.md.
               className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-[13px] font-semibold transition
-                ${active ? 'bg-accent-soft text-ink shadow' : 'text-ink-dim hoverable:text-ink'}`}
+                ${active ? 'bg-accent-soft text-ink' : 'text-ink-dim hoverable:text-ink'}`}
             >
               <Icon size={14} /> {v.label}
             </button>

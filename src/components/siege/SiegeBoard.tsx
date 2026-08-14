@@ -87,8 +87,10 @@ export default function SiegeBoard({
                 : 'Colorer les équipes selon leur calage sur les ticks ATB'
             }
             className={`flex items-center gap-1.5 rounded-lg border px-3.5 py-2 text-[13px] font-semibold transition ${
+              // Fond seul (voir spec/shared/design.md) : ce bouton-bascule
+              // cumulait bordure d'accent + fond + ombre pour dire « activé ».
               checkTicks
-                ? 'border-accent bg-panel2 text-ink shadow'
+                ? 'border-border bg-accent-soft text-ink'
                 : 'border-border bg-panel text-ink-dim hoverable:text-ink hoverable:border-accent'
             }`}
           >

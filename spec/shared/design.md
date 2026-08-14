@@ -71,6 +71,47 @@ hexadécimal.
 données ; `accent` dit « ceci est actif ou sélectionné ». Les confondre rend un
 filtre actif indiscernable d'une alerte.
 
+### UN SEUL marqueur de sélection
+
+⚠️ **Un élément sélectionné porte UN marqueur, jamais deux.** L'app cumulait
+jusqu'à quatre signaux pour dire une seule chose — `bg-accent-soft` +
+`border-accent` + `text-accent` + `shadow`. Le résultat est une zone qui se
+surligne elle-même deux fois : on ne lit plus « c'est sélectionné », on voit un
+empilement qui bave sur ses voisins, et l'écran devient bruyant dès que trois
+filtres sont posés.
+
+**Le marqueur dépend du support** — un seul dans les deux cas :
+
+| Support | Marqueur | Pourquoi pas l'autre |
+|---------|----------|----------------------|
+| **Champ de saisie** (`select`, `input`, `textarea`) | `border-accent` | Un fond coloré passe derrière du texte qu'on doit lire, et concurrence le curseur |
+| **Pastille de filtre** (chip bordée) | `border-accent` | L'outline entoure la pastille sans passer derrière son icône ; l'aplat la faisait ressortir comme un bouton d'action |
+| **Cran d'un `Segmented`, onglet** | `bg-accent-soft` | Ils vivent dans un cadre commun où toutes les bordures sont déjà posées : seul le fond peut distinguer l'élu |
+
+⚠️ **Les pastilles voisines partagent le même marqueur.** Les numéros de
+`SlotFilter` et le bouton « Antiques » sont dans la même rangée : deux
+marqueurs différents côte à côte se lisent comme deux natures de filtre.
+
+**Corollaires :**
+
+- ⚠️ **`shadow` n'est JAMAIS un marqueur d'état.** L'ombre dit l'élévation — ce
+  qui flotte au-dessus du reste. Un filtre actif ne décolle pas de la page. Elle
+  reste donc aux popovers, menus et dialogues, et disparaît des états actifs.
+- ⚠️ **`text-accent` ne se cumule pas avec un fond.** Sur `accent-soft`, l'encre
+  d'accent perd du contraste au lieu d'en gagner : le libellé d'un élément
+  sélectionné devient moins lisible que ses voisins non sélectionnés. Le texte
+  passe à `ink` sur fond actif.
+- Le **survol** garde `hoverable:border-accent` sur les contrôles à fond : il
+  agit au repos, quand aucun marqueur n'occupe la bordure — il n'y a donc pas de
+  cumul.
+
+**Focus mis à part.** L'anneau `:focus-visible` (voir plus bas) n'est pas un
+marqueur de sélection mais la position du clavier — les deux peuvent coexister
+sur un même élément. C'est justement pour qu'ils restent distinguables que
+l'état sélectionné n'a droit qu'à un seul signal : quand la bordure d'accent
+d'un `select` posé se doublait de l'anneau d'accent à 2 px, on lisait un seul
+halo épais au lieu de deux informations.
+
 ### Éléments — deux valeurs par élément
 
 Les couleurs d'élément sont du **vocabulaire Summoners War**, pas du style : un

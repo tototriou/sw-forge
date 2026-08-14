@@ -33,9 +33,13 @@ export default function FilterBar({
               key={el.key}
               data-active={active}
               onClick={() => toggleElement(el.key)}
+              // ⚠️ L'OPACITÉ est le marqueur (70 % → 100 %) : la couleur de
+              // l'élément est déjà là au repos, c'est sa pleine intensité qui
+              // dit « posé ». L'ombre qui s'y ajoutait faisait décoller la
+              // pastille de la page. Voir spec/shared/design.md.
               className={`flex items-center gap-1.5 rounded-full border bg-panel px-3.5 py-1.5 text-[13px] font-semibold
                 transition select-none ${ELEMENT_FILTER_STYLES[el.key]}
-                ${active ? 'shadow' : 'opacity-70 hoverable:opacity-100'}`}
+                ${active ? '' : 'opacity-70 hoverable:opacity-100'}`}
             >
               <ElementIcon element={el.key} size={16} />
               {el.label}
@@ -56,8 +60,11 @@ export default function FilterBar({
               onClick={() => toggleStar(s)}
               className={`rounded-full border px-3.5 py-1.5 text-[13px] font-mono font-semibold transition select-none
                 ${
+                  // Le dégradé `star` EST le marqueur : pas de `shadow-lg` en
+                  // plus, qui faisait flotter la pastille au-dessus de sa
+                  // rangée. Voir spec/shared/design.md.
                   active
-                    ? 'bg-gradient-to-br from-star to-yellow-200 text-bg border-star shadow-lg'
+                    ? 'bg-gradient-to-br from-star to-yellow-200 text-bg border-star'
                     : 'bg-panel border-border text-ink-dim hoverable:text-ink hoverable:border-accent'
                 }`}
             >

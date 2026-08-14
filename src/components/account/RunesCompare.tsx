@@ -448,8 +448,9 @@ function OngletComptes({
             onClick={() => setAncientOnly((v) => !v)}
             className={`rounded-full border px-3 py-1 text-[12.5px] font-semibold transition select-none
               ${
+                // Bordure seule — voir spec/shared/design.md.
                 ancientOnly
-                  ? 'bg-accent-soft border-accent text-accent shadow'
+                  ? 'bg-panel border-accent text-ink'
                   : 'bg-panel border-border text-ink-dim hoverable:text-ink hoverable:border-accent'
               }`}
           >

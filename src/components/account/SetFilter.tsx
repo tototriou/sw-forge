@@ -64,8 +64,12 @@ export default function SetFilter({
               aria-pressed={active}
               className={`flex items-center justify-center w-7 h-7 rounded-md border transition select-none
                 ${
+                  // ⚠️ Fond seul (voir spec/shared/design.md). La bordure reste
+                  // TRANSPARENTE et non `border`, comme au repos : ces pastilles
+                  // n'ont pas de contour, en faire apparaître un à la sélection
+                  // ajouterait un second marqueur — c'est le fond qui parle.
                   active
-                    ? 'bg-accent-soft border-accent shadow'
+                    ? 'bg-accent-soft border-transparent'
                     : 'border-transparent opacity-50 hoverable:opacity-100 hoverable:bg-panel2'
                 }`}
             >

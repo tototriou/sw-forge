@@ -433,8 +433,9 @@ export default function RecoCard({
               }
               className={`flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-[12.5px] transition
                 disabled:opacity-40 disabled:cursor-not-allowed ${
+                  // Fond seul — voir spec/shared/design.md.
                   pickOffense
-                    ? 'border-accent bg-panel2 text-ink'
+                    ? 'border-border bg-accent-soft text-ink'
                     : 'border-dashed border-border bg-panel/50 text-ink-dim hoverable:text-ink hoverable:border-accent'
                 }`}
             >

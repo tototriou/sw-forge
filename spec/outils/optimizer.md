@@ -1879,6 +1879,185 @@ Sonia (deck 6, le cas ayant motivé le premier correctif `guaranteedMin`)
 revérifié sans régression après cette généralisation — mêmes 86 818 232
 paires, même résultat. 365 vérifications passent, `tsc --noEmit` propre.
 
+### Suite — relecture critique du pipeline, et BUCKET_CAP relevé une quatrième fois
+
+Après les deux correctifs ci-dessus (dilution Lushen documentée comme
+limite, angle mort Ciri corrigé), relecture volontairement critique de tout
+le pipeline (`filterSlot` → `buildBuckets` → `pairBuckets`) pour distinguer
+trois choses : de vrais problèmes, des constantes calibrées à la main jamais
+retestées, et des décisions prises pour un problème qui ne se pose peut-être
+plus. Constat central : **le rejet historique de `bucketCap=2000`** (voir
+« BUCKET_CAP relevé une troisième fois » plus haut) **supposait un budget de
+paires FIXE** — un compartiment plus gros coûte plus cher à parcourir, donc
+sans plus de budget, la recherche épuise son budget sur MOINS de paires,
+faisant reculer un résultat déjà trouvé. Cette hypothèse a cessé d'être
+vraie depuis l'escalade automatique du budget de nœuds (voir « Suite —
+escalade automatique du budget de nœuds » plus haut) : l'ancien raisonnement
+ne s'applique qu'à budget figé, or ce n'est plus le cas.
+
+**« Phase 0 » — remesuré, pas supposé.** Les deux scripts de mesure
+([scripts/set-relax-diag.ts](scripts/set-relax-diag.ts),
+[scripts/monster-search-validate.ts](scripts/monster-search-validate.ts))
+ont d'abord dû être corrigés pour rejouer la VRAIE escalade (identique à
+`runeBuildOptim.worker.ts` : `nodeBudget` mutable relevé entre deux appels à
+`gen.next()`) au lieu d'appeler `searchBuilds` à budget fixe — sans quoi
+`bucketCap` plus haut aurait mécaniquement reproduit le rejet historique
+sans jamais tester l'hypothèse. Batterie rejouée à `bucketCap=1500`
+(l'ancien défaut) contre `3000`, sur TOUS les cas réels connus :
+
+| Cas réel | 1500 | 3000 |
+|---|---|---|
+| Lushen deck 15, Rage+Blade (set réel) | trouvé | trouvé, 13,2 s, exhaustif |
+| **Lushen deck 15, Rage seul (cas cible)** | ❌ absent, exhaustif à 110M paires | ✅ **trouvé, 51,7 s, exhaustif (297M paires)** |
+| Lushen deck 10 (tototriou, cas du rejet historique) | trouvé, 37,0 s | trouvé, 130,1 s |
+| Lushen deck 11 (tototriou) | trouvé | trouvé, 1,7 s |
+| Sonia deck 6 (tototriou) | trouvé, 13,9 s | trouvé, 58,0 s |
+| Sonia deck 14 (4 minimums) | trouvé, 36,9 s | trouvé, 106,9 s |
+| Ciri défense équipe 3 | trouvé, < 1 s | trouvé, < 1 s |
+
+Aucune régression sur aucun cas déjà acquis — le pire temps mesuré (130 s,
+deck 10 Lushen) reste largement sous les 10 minutes réelles de l'écran
+(`HARD_TIMEOUT_MS`). Et ça résout le cas cible (Lushen deck 15, `rage`
+demandé seul) sans aucune formule de mise à l'échelle par `distinctKeys` —
+un simple relèvement de constante, validé sur toute la batterie.
+**`BUCKET_CAP` relevé 1500 → 3000** (`runeBuildOptim.ts`).
+
+⚠️ **Découverte annexe, hors périmètre de cette recalibration** : le cas
+Eivor (défense deck 2, 7 conditions à la fois — déjà documenté comme cas à
+part, voir « Suite — filterSlot élargi… ») échoue pour une raison DIFFÉRENTE
+et indépendante de `bucketCap` : `buildBuckets` (qui n'est borné par aucun
+budget de temps) prend à lui seul plus de temps que `maxMs`, donc
+`pairBuckets` démarre déjà hors budget-temps (1 seule paire explorée avant
+arrêt, mesuré). La phase de construction devrait sans doute avoir son propre
+filet de temps — non traité ici, à reprendre avec le point 4 de la todo de
+réflexion (pondération adaptative).
+
+### Suite — point 4 (pondération adaptative par tranche) : méthodologie de test AVANT implémentation
+
+**Le constat de départ** (repris de la discussion sur les stats principales,
+voir plus haut) : `buildBuckets` donne aujourd'hui le MÊME budget
+(`bucketCap`) à CHAQUE tranche par stat, qu'elle soit tendue (peu de
+demi-builds y excellent, une tranche dédiée protège quelque chose de réel)
+ou molle (presque tout demi-build déjà bon la satisfait, une tranche dédiée
+n'ajoute presque rien à ce que la tranche générique couvre déjà). Avant
+d'écrire une ligne de code dans `buildBuckets`, toute cette section construit
+l'infrastructure de mesure et vérifie que l'hypothèse tient — dans l'esprit
+déjà établi sur ce document (mesurer avant de conclure, `pairFeasibleMin`
+étant le contre-exemple cité en interne de ce qui arrive quand on ne le fait
+pas).
+
+**Philosophie retenue pour juger tout changement sur ce moteur, pas
+seulement le point 4** : deux axes, jamais un seul.
+1. **Correction** — le changement permet-il de retrouver des builds qu'on ne
+   retrouvait pas avant (sans jamais en faire perdre un déjà acquis) ?
+2. **Vitesse jusqu'à la RÉPONSE**, pas jusqu'à la fin de la recherche — le
+   temps qui compte pour l'utilisateur est celui entre le clic sur
+   « Rechercher » et l'apparition du build cible parmi les candidats, PAS le
+   moment où la recherche s'arrête (elle continue ensuite jusqu'au budget ou
+   au budget-temps, fidèle au moteur réel, mais ça n'intéresse plus
+   l'utilisateur une fois la réponse trouvée).
+
+**Infrastructure construite pour l'axe vitesse — [scripts/perf-battery.ts](scripts/perf-battery.ts)**,
+avec un historique persistant suivi par git
+([scripts/perf-baseline.json](scripts/perf-baseline.json)) pour comparer un
+changement futur à un « avant » réel, pas reconstruit de mémoire. Plusieurs
+écueils rencontrés et corrigés EN CONSTRUISANT cet outil, tous instructifs :
+- **Chaque mesure tourne dans son PROPRE processus** (répétée `--repeats`
+  fois, le minimum retenu) : enchaîner 7 cas dans un seul processus long
+  fait dériver la mesure d'un facteur ×10 à ×27 sur les cas les plus légers
+  (pression mémoire/GC accumulée par les cas précédents, pas un vrai
+  ralentissement algorithmique) — a fait échouer un cas à tort avant
+  correction.
+- **Chronométré depuis `prepareSearch`, décomposé par PHASE** (préparation /
+  construction / appariement, cette dernière encore scindée en « jusqu'au
+  build trouvé » et « reste jusqu'à épuisement ») — une première version qui
+  ne chronométrait que l'appariement (comme les scripts de la Phase 0)
+  masquait un coût de construction resté invisible dans TOUTES les mesures
+  précédentes de ce document.
+- **La construction des deux moitiés tourne en vrai parallèle**, via deux
+  `worker_threads` Node (équivalent serveur des deux Web Workers de l'app
+  réelle, voir « Suite — parallélisation… » plus haut) — une version
+  antérieure les construisait séquentiellement dans le même processus,
+  gonflant artificiellement le temps de construction mesuré.
+- **Conditions vérifiées fidèles à l'écran réel, point par point** avant
+  toute mesure jugée valable : `maxMs=HARD_TIMEOUT_MS` (10 min, pas une
+  valeur plus courte inventée), `slotFilterCap=80` (preset « Moyen », le
+  défaut réel), `bucketCap`/`maxNodes` non surchargés (défauts de
+  production), `metric='eff'` et `artifacts`/`relic` alignés sur les
+  défauts réels de l'écran.
+- **Les paramètres réellement utilisés sont enregistrés dans chaque entrée
+  de la baseline** (`bucketCap`, `slotFilterCap`, `retentionKeys`,
+  `minStats`…) — pour qu'un futur changement de constante se voie dans le
+  diff du fichier suivi par git, sans avoir à deviner sous quelles
+  conditions un ancien chiffre a été mesuré.
+
+**Signal retenu pour piloter la pondération — écarté puis trouvé.**
+`diagnoseFeasibility` (déjà dans le code, utilisé pour le diagnostic à 0
+résultat) a été essayé en premier — mesuré sur les deux scénarios mainstat
+déjà discutés (Vitesse/TC/ATQ vs ATQ/Dégâts Crit/ATQ), l'écart de marge
+(« mou ») entre le plafond théorique et le seuil demandé allait dans le bon
+sens (140 vs 103) mais restait faible, parce que cette borne est calculée en
+ISOLANT chaque stat indépendamment des autres (le meilleur emplacement par
+slot POUR CETTE STAT SEULE) — elle ne voit jamais la vraie tension, qui
+naît de la CONJONCTION de plusieurs conditions sur les MÊMES 3 runes.
+Remplacé par la **dispersion (coefficient de variation) de
+`retentionScore(pct, flat, key)`** — EXACTEMENT la métrique déjà utilisée
+par le classement réel — mesurée sur la population reconstituée de la
+tranche générique (top `bucketCap` par `relevanceScore`, voir
+[scripts/retention-dispersion-diag.ts](scripts/retention-dispersion-diag.ts)).
+Signal net et mécaniquement explicable, confirmé à la fois en synthétique et
+sur la batterie réelle : une stat couverte par une principale garantie dans
+une moitié a un CV bas (déjà satisfaite par presque tout le monde) ; une
+stat sans cette couverture a un CV nettement plus haut (différencie
+vraiment) — jusqu'à ×4 d'écart mesuré sur Lushen entre `cd` (couverte,
+CV=0,082) et `cr` (non couverte, CV=0,539) dans la même moitié.
+
+**Cas de stress synthétique — [scripts/stress-tranche-weighting-diag.ts](scripts/stress-tranche-weighting-diag.ts).**
+Une condition tendue (Précision, rare dans le pool, aucune principale ne la
+couvre) noyée parmi des conditions molles (VIT via principale garantie,
+PV/ATQ/DEF abondants en sous-stats). Deux stats initialement retenues pour
+le volet molle ont dû être écartées EN CONCEVANT ce cas — pas après coup :
+Taux Crit (un seuil dérivé automatiquement pouvait dépasser 100 %, plafond
+réel du jeu, rendant le scénario irréaliste) et RES (partage la même
+exclusivité de slot que Précision — slot 6 pour les deux — redondant avec le
+cas TC/DCC du slot 4 déjà exploré, pas un deuxième angle utile). Résultat :
+la moitié B cible reste ABSENTE de tout compartiment retenu même à
+`bucketCap` relevé UNIFORMÉMENT à 12 000 (×4 le budget de production),
+pendant que les tranches molles restent largement sous-utilisées (CV bas)
+au budget de production. **Preuve plus forte que prévu** : un relèvement
+uniforme (l'outil déjà en main depuis la Phase 0) a une limite structurelle
+— il grossit aussi les tranches qui n'en ont pas besoin, jamais assez
+sélectivement celle qui en a besoin. Seule une redistribution CIBLÉE (retirer
+aux tranches molles pour donner à la tendue, à budget total inchangé) peut
+plausiblement combler cet écart — non vérifiable avec un simple paramètre
+existant, exige l'implémentation réelle.
+
+**Deux pistes d'implémentation identifiées, ni l'une ni l'autre codée à ce
+stade** — à tester l'une contre l'autre sur `perf-battery.ts` (delta vs
+baseline) ET sur le cas de stress ci-dessus avant de choisir :
+- **A — accumulateurs vivants pendant la passe unique.** `buildBuckets`
+  scanne déjà tous les triplets ; maintenir en plus deux nombres (somme,
+  somme des carrés) par `retentionKey`, mis à jour en O(1) à chaque
+  insertion/éviction du tas générique, puis élaguer chaque tas par-stat à sa
+  taille réallouée une fois le CV connu en fin de passe. Une seule passe,
+  CV exact, mais pas d'économie de pic mémoire pendant la construction
+  elle-même (les tas grossissent avant d'être réduits).
+- **B — proxy analytique par slot, avant la triple boucle.** Mesurer, par
+  SLOT (pas par triplet, donc O(pool) et non O(pool³)), la variance déjà
+  visible dans les candidats d'un slot pour chaque stat — fixe le budget par
+  tranche AVANT de commencer, aucun gaspillage transitoire, aucune passe
+  supplémentaire. Approximation plus grossière (ignore les corrélations
+  visibles seulement une fois les triplets formés et élagués), jamais encore
+  mesurée.
+- Une troisième option (deux passes complètes, la plus fidèle) est écartée
+  d'emblée : elle doublerait le coût de la phase déjà identifiée comme la
+  plus chère pour beaucoup de cas (construction — voir le Chronographe
+  Optimizer, `scripts/perf-baseline.json`).
+
+**État à ce stade** : rien n'est encore modifié dans `buildBuckets`
+lui-même — tout ce qui précède est l'infrastructure de mesure et la preuve
+que la piste vaut la peine d'être codée, pas encore le correctif.
+
 ## Limites connues
 
 - ~~Un set NON demandé qui s'activerait par accident via les emplacements
@@ -1942,10 +2121,12 @@ paires, même résultat. 365 vérifications passent, `tsc --noEmit` propre.
   meilleures runes du joueur pour l'objectif choisi sont réellement toutes du
   set demandé, un résultat « tout-un-set » peut être la bonne réponse
   mathématique, pas un bug résiduel.
-- **Relâcher un set demandé peut, à l'inverse, faire DISPARAÎTRE un build
-  pourtant déjà trouvable avec le set complet demandé** — pas un problème de
-  temps (contrairement à ce qu'on pourrait attendre : « ça devrait juste
-  prendre plus longtemps »), un problème de RÉTENTION. Signalé sur un vrai
+- ~~Relâcher un set demandé peut, à l'inverse, faire DISPARAÎTRE un build
+  pourtant déjà trouvable avec le set complet demandé~~ **Corrigé** (voir
+  « Suite — relecture critique du pipeline, et BUCKET_CAP relevé une
+  quatrième fois » ci-dessus, `bucketCap` 1500 → 3000) — c'était un problème
+  de RÉTENTION, pas un problème de temps (contrairement à ce qu'on pourrait
+  attendre : « ça devrait juste prendre plus longtemps »). Signalé sur un vrai
   compte (`ß☆Enzo-6399149.json`, Lushen deck 15 offense, ATQ/Taux Crit/Dmg
   Crit exacts) : demander Rage(4p)+Blade(2p) retrouve le build réel ; demander
   Rage(4p) SEUL (une contrainte strictement plus large — tout build valide
@@ -1966,11 +2147,15 @@ paires, même résultat. 365 vérifications passent, `tsc --noEmit` propre.
   compartiment retenu, pas seulement classé plus bas. Confirmé en relevant
   `bucketCap` à 8000 à titre de test : le demi-build réapparaît (rang
   #4293/26105), preuve que c'est bien la rétention, pas une élimination
-  prouvée à tort, qui est en cause. Non corrigé : relever `bucketCap` par
-  défaut referait l'historique déjà documenté plus haut (« BUCKET_CAP relevé
-  une troisième fois… ») — chaque relèvement recule le mur d'un cran sans
-  jamais le résoudre pour de bon, et une contrainte relâchée peut toujours
-  diluer davantage qu'un relèvement ponctuel ne peut couvrir.
+  prouvée à tort, qui est en cause. À l'époque du signalement, relever
+  `bucketCap` par défaut aurait reproduit l'historique documenté plus haut
+  (« BUCKET_CAP relevé une troisième fois… ») : sans l'escalade automatique
+  du budget de nœuds (voir plus haut), chaque relèvement reculait le mur d'un
+  cran sans jamais le résoudre pour de bon. **Ce n'est plus le cas depuis
+  l'escalade** — remesuré (« Phase 0 », voir « Suite — relecture critique du
+  pipeline » ci-dessus) sur toute la batterie de cas réels connus, aucune
+  régression : `bucketCap` relevé 1500 → 3000, ce cas précis retrouvé
+  exhaustivement en 51,7 s.
   ⚠️ **Piste creusée pour ce cas précis : le joker (rune Intangible) n'est
   JAMAIS crédité, dans le CLASSEMENT au sein d'un compartiment, de la valeur
   qu'il débloque en complétant un set.** Vérifié précisément dans le code :

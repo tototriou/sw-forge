@@ -12,7 +12,7 @@
 // par rapport à la taille du compartiment complet ? (3) quel surcoût de
 // temps la construction avec skyline ajoute-t-elle ?
 //
-// Usage : monster-search-skyline-diag.ts <export.json> <deckId> <nomMonstre> [--defense] [statKeys=atk,cr,cd] [objective=degats] [slotFilterCap=80] [bucketCap=1500]
+// Usage : monster-search-skyline-diag.ts <export.json> <deckId> <nomMonstre> [--defense] [statKeys=atk,cr,cd] [objective=degats] [slotFilterCap=80] [bucketCap=3000]
 
 import { activeSets, setPieces, StatKey } from '../src/lib/effects';
 import { computeStats } from '../src/lib/stats';
@@ -36,14 +36,14 @@ import { BaseStats } from '../src/types';
 import { loadDeckMonster, parseDeckMonsterArgs } from './lib/deckMonster';
 
 const USAGE =
-  'Usage: monster-search-skyline-diag.ts <export.json> <deckId> <nomMonstre> [--defense] [statKeys=atk,cr,cd] [objective=degats] [slotFilterCap=80] [bucketCap=1500]';
+  'Usage: monster-search-skyline-diag.ts <export.json> <deckId> <nomMonstre> [--defense] [statKeys=atk,cr,cd] [objective=degats] [slotFilterCap=80] [bucketCap=3000]';
 const args = parseDeckMonsterArgs(process.argv.slice(2), USAGE);
 const statKeysArg = args.rest[0] ?? 'atk,cr,cd';
 const statKeys = statKeysArg.split(',').map((s) => s.trim()) as StatKey[];
 const objectiveArg = args.rest[1] ?? 'degats';
 const objective = (objectiveArg === 'none' ? undefined : objectiveArg) as Objective | undefined;
 const slotFilterCap = args.rest[2] ? Number(args.rest[2]) : 80;
-const bucketCap = args.rest[3] ? Number(args.rest[3]) : 1500;
+const bucketCap = args.rest[3] ? Number(args.rest[3]) : 3000;
 
 const { gear, allRunes } = loadDeckMonster(args);
 

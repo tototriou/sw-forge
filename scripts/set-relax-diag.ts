@@ -11,7 +11,7 @@
 
 import { computeStats } from '../src/lib/stats';
 import { activeSets } from '../src/lib/effects';
-import { searchBuilds, excludedRuneIds, BuildRequirement, SearchParams, Objective, prepareSearch, buildBuckets, totalPairCount } from '../src/lib/runeBuildOptim';
+import { excludedRuneIds, BuildRequirement, SearchParams, Objective, prepareSearch, buildBuckets, totalPairCount, pairBuckets, NodeBudget, CHECKPOINT_EVERY } from '../src/lib/runeBuildOptim';
 import { parseAccountSource, parseAccountBox, parseSiegeDefense, parseSiegeOffense } from '../src/lib/importAccount';
 import { BaseStats } from '../src/types';
 import { loadDeckMonster, parseDeckMonsterArgs } from './lib/deckMonster';
@@ -39,6 +39,12 @@ const objectiveArg = args.rest[2] ?? 'none';
 const objective = (objectiveArg === 'none' ? undefined : objectiveArg) as Objective | undefined;
 const slotFilterCap = args.rest[3] ? Number(args.rest[3]) : 80;
 const bucketCapOverride = args.rest[4] ? Number(args.rest[4]) : undefined;
+// Phase 0 (spec/outils/optimizer.md) : forcer un budget de paires généreux,
+// FIXE, pour simuler « au pire ce que l'escalade finirait par couvrir » sans
+// avoir à driver le générateur pas à pas — `searchBuilds` n'escalade pas lui
+// même (seul le Worker le fait), donc sans cette surcharge un `bucketCap`
+// plus grand reproduit à tort le rejet historique (budget fixe pénalisé).
+const maxNodesOverride = args.rest[5] ? Number(args.rest[5]) : undefined;
 
 const { gear, allRunes } = loadDeckMonster(args);
 
@@ -86,7 +92,7 @@ function drain<T>(gen: Generator<unknown, T, void>): T {
 function testWith(label: string, sets: string[]) {
   console.log(`\n=== ${label} (sets demandés = [${sets.join(',')}]) ===`);
   const requirement: BuildRequirement = { sets, minStats, mainStats };
-  const params: SearchParams = { base, artifacts: gear.artifacts, relic: gear.relic, pool, requirement, metric: 'eff', slotFilterCap, objective, maxMs: 10 * 60 * 1000, bucketCap: bucketCapOverride };
+  const params: SearchParams = { base, artifacts: gear.artifacts, relic: gear.relic, pool, requirement, metric: 'eff', slotFilterCap, objective, maxMs: 10 * 60 * 1000, bucketCap: bucketCapOverride, maxNodes: maxNodesOverride };
 
   const prepared = prepareSearch(params);
   if (!prepared) {
@@ -140,10 +146,38 @@ function testWith(label: string, sets: string[]) {
   const total = totalPairCount(prepared, bucketsA, bucketsB);
   console.log(`totalPairCount : ${total.toLocaleString('fr-FR')}`);
 
+  // ⚠️ Phase 0 (spec/outils/optimizer.md) : rejoue ICI exactement la même
+  // escalade que runeBuildOptim.worker.ts (ESCALATION_FACTOR/TIME_SAFETY,
+  // nodeBudget mutable relu en direct par pairBuckets) plutôt que d'appeler
+  // `searchBuilds` — qui repart d'un budget FIXE et ne reflète donc pas ce
+  // que l'écran ferait réellement une fois l'escalade active.
+  const ESCALATION_FACTOR = 2;
+  const ESCALATION_TIME_SAFETY = 0.95;
+  const nodeBudget: NodeBudget = { max: prepared.maxNodes };
+  console.log(`nodeBudget initial : ${nodeBudget.max.toLocaleString('fr-FR')}`);
+  let escalations = 0;
   const t0 = performance.now();
-  const res = searchBuilds(params);
+  const gen = pairBuckets(prepared, bucketsA, bucketsB, nodeBudget);
+  let step = gen.next();
+  while (!step.done) {
+    const progress = step.value;
+    const now = Date.now();
+    if (
+      nodeBudget.max - progress.explored <= CHECKPOINT_EVERY &&
+      now - prepared.startedAt < prepared.maxMs * ESCALATION_TIME_SAFETY &&
+      progress.candidates.length < prepared.maxCollected
+    ) {
+      nodeBudget.max *= ESCALATION_FACTOR;
+      escalations++;
+    }
+    step = gen.next();
+  }
   const ms = performance.now() - t0;
+  const res = step.value;
   const foundExact = res.candidates.some((c) => c.runeIds.length === 6 && c.runeIds.every((id) => targetRuneIds.has(id)));
+  console.log(
+    `escalades : ${escalations} (nodeBudget final ${nodeBudget.max.toLocaleString('fr-FR')})`
+  );
   console.log(`temps=${ms.toFixed(0)}ms explorés=${res.explored.toLocaleString('fr-FR')} trouvés=${res.candidates.length} runage EXACT retrouvé=${foundExact ? 'OUI' : 'NON'} tronqué=${res.truncated}`);
 }
 

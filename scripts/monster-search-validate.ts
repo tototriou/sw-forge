@@ -11,7 +11,7 @@
 
 import { computeStats } from '../src/lib/stats';
 import { activeSets, StatKey } from '../src/lib/effects';
-import { searchBuilds, BuildRequirement, SearchParams, Objective } from '../src/lib/runeBuildOptim';
+import { BuildRequirement, SearchParams, Objective, prepareSearch, buildBuckets, pairBuckets, totalPairCount, NodeBudget, CHECKPOINT_EVERY } from '../src/lib/runeBuildOptim';
 import { ArtifactDetail, BaseStats, RelicDetail } from '../src/types';
 import { loadDeckMonster, parseDeckMonsterArgs } from './lib/deckMonster';
 
@@ -76,9 +76,59 @@ const params: SearchParams = {
 };
 
 console.log('\nRecherche en cours (peut prendre jusqu\'à quelques dizaines de secondes)...');
+
+// ⚠️ Phase 0 (spec/outils/optimizer.md) : rejoue l'escalade automatique du
+// budget de nœuds (voir runeBuildOptim.worker.ts) plutôt que d'appeler
+// `searchBuilds` (budget FIXE) — sans quoi un `bucketCap` plus élevé
+// reproduirait à tort le rejet historique (budget fixe pénalisé par des
+// compartiments plus coûteux à parcourir), sans refléter ce que l'écran fait
+// réellement aujourd'hui.
+function drain<T>(gen: Generator<unknown, T, void>): T {
+  let step = gen.next();
+  while (!step.done) step = gen.next();
+  return step.value;
+}
+
+const prepared = prepareSearch(params);
+if (!prepared) {
+  console.log('prepareSearch = null (au moins un emplacement vide après pré-filtrage)');
+  process.exit(0);
+}
+console.log(`bucketCap utilisé : ${prepared.bucketCap}`);
+const bucketsA = drain(
+  buildBuckets('A', [0, 1, 2], prepared.filtered, prepared.distinctKeys, prepared.constrainedKeys, prepared.retentionKeys, prepared.minEntries, prepared.bucketCap, prepared.maxSetsForA, prepared.jokerCredit, prepared.requiredPieces)
+);
+const bucketsB = drain(
+  buildBuckets('B', [3, 4, 5], prepared.filtered, prepared.distinctKeys, prepared.constrainedKeys, prepared.retentionKeys, prepared.minEntries, prepared.bucketCap, prepared.maxSetsForB, prepared.jokerCredit, prepared.requiredPieces)
+);
+console.log(`bucketsA : ${bucketsA.length} compartiment(s), tailles = [${bucketsA.map((b) => b.combos.length).join(', ')}]`);
+console.log(`bucketsB : ${bucketsB.length} compartiment(s), tailles = [${bucketsB.map((b) => b.combos.length).join(', ')}]`);
+console.log(`totalPairCount : ${totalPairCount(prepared, bucketsA, bucketsB).toLocaleString('fr-FR')}`);
+
+const ESCALATION_FACTOR = 2;
+const ESCALATION_TIME_SAFETY = 0.95;
+const nodeBudget: NodeBudget = { max: prepared.maxNodes };
+console.log(`nodeBudget initial : ${nodeBudget.max.toLocaleString('fr-FR')}`);
+let escalations = 0;
 const t0 = performance.now();
-const res = searchBuilds(params);
+const gen = pairBuckets(prepared, bucketsA, bucketsB, nodeBudget);
+let step = gen.next();
+while (!step.done) {
+  const progress = step.value;
+  const now = Date.now();
+  if (
+    nodeBudget.max - progress.explored <= CHECKPOINT_EVERY &&
+    now - prepared.startedAt < prepared.maxMs * ESCALATION_TIME_SAFETY &&
+    progress.candidates.length < prepared.maxCollected
+  ) {
+    nodeBudget.max *= ESCALATION_FACTOR;
+    escalations++;
+  }
+  step = gen.next();
+}
 const ms = performance.now() - t0;
+const res = step.value;
+console.log(`escalades : ${escalations} (nodeBudget final ${nodeBudget.max.toLocaleString('fr-FR')})`);
 
 console.log(
   `\n=== Résultat (${(ms / 1000).toFixed(1)} s, ${res.explored.toLocaleString('fr-FR')} paires explorées, ` +

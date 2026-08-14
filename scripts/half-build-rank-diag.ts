@@ -6,7 +6,7 @@
 // que de le supposer. Reproduit EXACTEMENT le pipeline de
 // monster-search-buildbuckets-diag.ts.
 //
-// Usage : half-build-rank-diag.ts <export.json> <deckId> <nomMonstre> [statKeys=atk,spd,cr,cd] [objective=degats] [slotFilterCap=80] [bucketCap=1500] [top=10]
+// Usage : half-build-rank-diag.ts <export.json> <deckId> <nomMonstre> [statKeys=atk,spd,cr,cd] [objective=degats] [slotFilterCap=80] [bucketCap=3000] [top=10]
 
 import { activeSets, setPieces, StatKey } from '../src/lib/effects';
 import { computeStats } from '../src/lib/stats';
@@ -30,14 +30,14 @@ import { BaseStats } from '../src/types';
 import { loadDeckMonster, parseDeckMonsterArgs } from './lib/deckMonster';
 
 const USAGE =
-  'Usage: half-build-rank-diag.ts <export.json> <deckId> <nomMonstre> [statKeys=atk,spd,cr,cd] [objective=degats] [slotFilterCap=80] [bucketCap=1500] [top=10]';
+  'Usage: half-build-rank-diag.ts <export.json> <deckId> <nomMonstre> [statKeys=atk,spd,cr,cd] [objective=degats] [slotFilterCap=80] [bucketCap=3000] [top=10]';
 const args = parseDeckMonsterArgs(process.argv.slice(2), USAGE);
 const statKeysArg = args.rest[0] ?? 'atk,spd,cr,cd';
 const statKeys = statKeysArg.split(',').map((s) => s.trim()) as StatKey[];
 const objectiveArg = args.rest[1] ?? 'degats';
 const objective = (objectiveArg === 'none' ? undefined : objectiveArg) as Objective | undefined;
 const slotFilterCap = args.rest[2] ? Number(args.rest[2]) : 80;
-const bucketCap = args.rest[3] ? Number(args.rest[3]) : 1500;
+const bucketCap = args.rest[3] ? Number(args.rest[3]) : 3000;
 const top = args.rest[4] ? Number(args.rest[4]) : 10;
 
 const { gear, allRunes } = loadDeckMonster(args);

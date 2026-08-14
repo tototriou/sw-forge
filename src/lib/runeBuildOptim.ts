@@ -98,7 +98,8 @@ export interface SearchParams {
   maxCollected?: number; // plafond de candidats retenus avant arrêt (défaut MAX_COLLECTED)
   maxMs?: number; // budget de TEMPS écoulé, en ms (défaut DEFAULT_MAX_MS)
   slotFilterCap?: number; // candidats retenus par slot et par paquet (défaut MAX_PER_SLOT_MATCH/FILL)
-  // ⚠️ Surcharge de BUCKET_CAP (défaut 600) — n'existe QUE pour la mesure
+  // ⚠️ Surcharge de BUCKET_CAP (voir sa constante pour le défaut courant,
+  // recalibré plusieurs fois) — n'existe QUE pour la mesure
   // (scripts/benchmark-bucket-retention.ts) : élargir ce plafond pour
   // comparer la qualité trouvée à différents niveaux, en réutilisant le
   // moteur réel déjà vérifié plutôt qu'une réimplémentation séparée risquant
@@ -308,7 +309,22 @@ const PER_STAT_KEEP_OBJECTIVE = 24;
 // autre étage du pipeline. Documenté comme limite connue plutôt que corrigé
 // ici : demander 8 conditions à la fois est un usage extrême, jamais observé
 // en pratique contrairement aux cas à 3-5 qui ont motivé cette recalibration.
-const BUCKET_CAP = 1500;
+//
+// ⚠️ **Relevé une quatrième fois, 1500 → 3000, une fois l'escalade de budget
+// de nœuds en place** (voir `adaptiveMaxNodes`/`NodeBudget` plus haut) —
+// « Phase 0 » de spec/outils/optimizer.md. Le rejet de `bucketCap=2000`
+// ci-dessus supposait un budget de paires FIXE : un compartiment plus gros
+// épuise ce budget sur MOINS de paires, faisant reculer un résultat déjà
+// trouvé. Cette hypothèse ne tient plus depuis l'escalade — REMESURÉ sur
+// TOUTE la batterie de cas réels connus (deck 10 ET deck 11 Lushen, Sonia
+// deck 6, Sonia deck 14, Ciri défense équipe 3), aucune régression : chacun
+// reste trouvé EXACTEMENT, en 1,7 s à 130 s selon le cas, largement sous les
+// 10 minutes réelles de l'écran (`HARD_TIMEOUT_MS`). Et ça RÉSOUT le cas qui
+// avait motivé cette relecture (Lushen deck 15 offense, `rage` demandé seul
+// au lieu de `rage+blade` — voir « Limites connues » plus bas) : le
+// demi-build cible, totalement absent à `bucketCap=1500`, redevient présent
+// et trouvé à `bucketCap=3000`, exhaustivement, en 51,7 s (297M paires).
+const BUCKET_CAP = 3000;
 
 const ALL_STAT_KEYS: StatKey[] = ['hp', 'atk', 'def', 'spd', 'cr', 'cd', 'res', 'acc'];
 

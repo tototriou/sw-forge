@@ -22,15 +22,21 @@ Fichiers : [RtaSection.tsx](src/components/rta/RtaSection.tsx) ·
 
 - En-tête : icône/losange + label + compteur de cartes + (si supprimable) croix.
 - Vide → « Glisse des monstres ici ». Sinon grille de cartes responsive.
-- **Cible de drop** : surbrillance + halo à la couleur d'accent au survol d'un
-  drag (compteur enter/leave pour éviter le scintillement). Drop → `moveMonster`.
+- **Cible de dépôt** : surbrillance + halo à la couleur d'accent quand le
+  pointeur la survole pendant un déplacement. Dépôt → `moveMonster`.
+  - La section **s'enregistre** auprès de `useDragLong` (`enregistrerZone`) et
+    reçoit `over` : sans `dataTransfer`, c'est le hook qui teste les rectangles
+    pour savoir laquelle est sous le pointeur.
+  - ⚠️ **Désenregistrement au démontage** : une section supprimée qui resterait
+    dans la table continuerait de capter les dépôts sur son ancien rectangle.
 - **Suppression de section** : disponible pour tous les sets **sauf « Autre »**.
   Les monstres de la section supprimée **repartent en « Non classé »**.
 
 ## Carte monstre — `RtaCard`
 
 Rendu **compact** et uniforme avec le siège :
-- Poignée de drag (`GripVertical`) : **seule** zone qui déclenche le glisser.
+- **Toute la carte se saisit, par appui long** (voir ci-dessous). La poignée
+  (`GripVertical`) reste, et saisit **immédiatement**.
 - Portrait hexagonal agrandi + image (fallback initiales) + badge élément.
 - Ligne 1 : nom · **icône vitesse + vitesse totale (blanc)** · **icônes de sets**
   (4 pièces en premier).
@@ -41,7 +47,56 @@ Rendu **compact** et uniforme avec le siège :
 - Croix de retrait (survol) → `removeMonster`.
 - **Clic sur le portrait ou la ligne du nom** (si le monstre a des runes
   importées) → ouvre le **détail du gear**, chevron pivoté, carte surlignée
-  (`#5b63b8` + anneau). La carte elle-même ne s'agrandit pas.
+  d'une **bordure d'accent**. La carte elle-même ne s'agrandit pas.
+  - ⚠️ La bordure **seule** : elle était doublée d'un `ring-1 ring-accent/50`,
+    soit deux traits d'accent concentriques en permanence. Superposés, ils ne se
+    lisent pas comme deux informations mais comme un contour flou. Voir la
+    section « UN SEUL marqueur de sélection » de
+    [../shared/design.md](../shared/design.md).
+
+## Saisie par appui long — `useDragLong`
+
+⚠️ **Le glisser-déposer n'était pas du HTML5.** `draggable` + `dataTransfer` ne
+se déclenchent **jamais au toucher** : sur téléphone et tablette, le geste
+naturel n'existait pas, et le sélecteur de section était la seule issue. Les
+Pointer Events couvrent souris, doigt et stylet avec un seul code.
+
+- **Appui long de 400 ms** n'importe où sur la carte. C'est le seuil retenu par
+  iOS et Android : plus court, on saisit en voulant cliquer ; plus long, on
+  croit que ça ne répond pas.
+- **La poignée saisit sans délai** : elle ne sert qu'à ça, il n'y a aucun clic à
+  lui préserver.
+- ⚠️ **L'appui long est ignoré sur les vrais contrôles** (croix, sélecteur) :
+  maintenir le doigt dessus doit les actionner. Un `select` ouvert qui se met à
+  suivre le pointeur est incompréhensible. Le portrait et le nom, eux, restent
+  saisissables — leur clic part au relâchement, les deux gestes cohabitent.
+- ⚠️ **Un bougé de plus de 10 px pendant l'attente annule** : c'est un
+  défilement. Sans ça, tout scroll commencé sur une carte se transformait en
+  saisie au bout de 400 ms.
+- ⚠️ **`touch-none` sur la carte** : sans lui, le navigateur s'approprie le
+  geste avant que `pointermove` puisse l'en empêcher.
+- ⚠️ **`select-none` sur la carte** : maintenir, c'est aussi le geste qui
+  **sélectionne du texte**. Sans lui, l'appui long surlignait le nom du monstre
+  en bleu au lieu de saisir. Rien ici n'est à sélectionner — la carte est un
+  objet qu'on déplace, pas du texte qu'on lit.
+- ⚠️ **Menu contextuel bloqué** sur la zone saisissable : sur mobile, l'appui
+  long ouvre « Copier / Rechercher » **pendant les 400 ms d'attente**, et
+  `select-none` ne l'en empêche pas. Le conditionner à une saisie déjà active
+  serait trop tard. Les contrôles gardent le leur.
+- ⚠️ **Le `click` qui suit une saisie est supprimé.** Sans ça, déposer une carte
+  sur son propre portrait la déplaçait **et** ouvrait son détail de runes : tout
+  geste de drag finissait par un clic parasite sur ce qui se trouvait dessous.
+  L'écouteur est posé en capture puis **retiré au tick suivant** — un dépôt hors
+  de la carte de départ ne produit aucun clic, et l'écouteur resté armé
+  avalerait le prochain clic de l'utilisateur.
+- **Carte fantôme** (`DragGhost`) : les Pointer Events ne fournissent aucune
+  image de drag, contrairement au HTML5. Réduite au portrait et au nom — la
+  carte entière masquerait les zones qu'on vise — et **décalée** sous le doigt,
+  qui masque sinon ce qu'il tient.
+- La carte saisie **s'efface sans quitter le flux** (`opacity-40`) : la retirer
+  ferait s'effondrer la grille sous le doigt.
+- **Échap relâche** sans déposer, et un retour haptique (`navigator.vibrate`)
+  confirme la saisie là où il n'y a pas de curseur pour la montrer.
 
 ## Détail du gear — accordéon « façon Google Images »
 

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Plus, Trash2 } from 'lucide-react';
 import {
   Monster,
@@ -23,6 +23,8 @@ import { useRtaBackup } from '../hooks/useRtaBackup';
 import { gearSpeedMismatch } from '../lib/gearSync';
 import DesyncBadge from '../components/rta/DesyncBadge';
 import RtaCard from '../components/rta/RtaCard';
+import DragGhost from '../components/rta/DragGhost';
+import { useDragLong } from '../hooks/useDragLong';
 import MonsterGear from '../components/MonsterGear';
 import TurnOrder, { TurnItem } from '../components/rta/TurnOrder';
 import CreateMonster from '../components/CreateMonster';
@@ -51,7 +53,6 @@ export default function RtaPage({
   customMonsters,
   onDeleteMonster,
 }: Props) {
-  const [draggingId, setDraggingId] = useState<string | null>(null);
   const [newSection, setNewSection] = useState('');
   // Un seul détail de runes ouvert à la fois, toutes sections confondues.
   const [openId, setOpenId] = useState<string | null>(null);
@@ -120,11 +121,19 @@ export default function RtaPage({
     [rta.state.sections]
   );
 
-  function handleDrop(section: string, id: string) {
-    const realId = id || draggingId;
-    if (realId) rta.moveMonster(realId, section);
-    setDraggingId(null);
-  }
+  // Glisser-déposer par APPUI LONG, souris et doigt (voir useDragLong).
+  // ⚠️ `useCallback` : `handleDrop` est relu à chaque rendu par le hook, mais
+  // `enregistrerZone` doit rester stable — il est en dépendance de l'effet
+  // d'enregistrement de chaque section.
+  const handleDrop = useCallback(
+    (section: string, id: string) => {
+      if (id) rta.moveMonster(id, section);
+    },
+    [rta]
+  );
+  const drag = useDragLong(handleDrop);
+  // Le monstre tenu au bout du pointeur, pour la carte fantôme.
+  const dragMonster = drag.dragId ? monsterById.get(drag.dragId) : undefined;
 
   // Destinations proposées dans le sélecteur des cartes (repli tactile du drag).
   const moveTargets = [RTA_UNASSIGNED, ...rta.state.sections];
@@ -145,8 +154,8 @@ export default function RtaPage({
         onToggleDetail={toggleDetail}
         onMove={rta.moveMonster}
         onRemove={rta.removeMonster}
-        onDragStart={setDraggingId}
-        onDragEnd={() => setDraggingId(null)}
+        onPointerDownDrag={drag.début}
+        dragging={drag.dragId === String(it.monster.id)}
       />
     ));
   }
@@ -272,7 +281,8 @@ export default function RtaPage({
           label="Non classé"
           accent={sectionAccent(RTA_UNASSIGNED)}
           count={groups[RTA_UNASSIGNED]?.length ?? 0}
-          onDropMonster={handleDrop}
+          enregistrerZone={drag.enregistrerZone}
+          over={drag.zoneActive === RTA_UNASSIGNED}
           {...detailOf(groups[RTA_UNASSIGNED] ?? [])}
         >
           {renderCards(groups[RTA_UNASSIGNED] ?? [])}
@@ -290,7 +300,8 @@ export default function RtaPage({
             count={groups[key]?.length ?? 0}
             removable={key !== RTA_OTHER}
             onRemoveSection={rta.removeSection}
-            onDropMonster={handleDrop}
+            enregistrerZone={drag.enregistrerZone}
+            over={drag.zoneActive === key}
             {...detailOf(groups[key] ?? [])}
           >
             {renderCards(groups[key] ?? [])}
@@ -346,6 +357,13 @@ export default function RtaPage({
           onToggleCategories={cats.setVisible}
         />
       </section>
+
+      {/* La carte tenue au bout du pointeur. Les Pointer Events ne fournissent
+          aucune image de drag, contrairement au HTML5 : sans elle, on déplace
+          un monstre sans rien voir bouger. */}
+      {dragMonster && drag.pos && (
+        <DragGhost monster={dragMonster} x={drag.pos.x} y={drag.pos.y} />
+      )}
     </div>
   );
 }

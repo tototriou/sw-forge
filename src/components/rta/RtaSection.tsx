@@ -1,4 +1,4 @@
-import { ReactNode, useRef, useState } from 'react';
+import { ReactNode, useEffect, useRef } from 'react';
 import { X } from 'lucide-react';
 import { RTA_OTHER, RTA_UNASSIGNED } from '../../types';
 import RuneIcon from '../RuneIcon';
@@ -11,7 +11,10 @@ interface Props {
   count: number;
   removable?: boolean;
   onRemoveSection?: (key: string) => void;
-  onDropMonster: (section: string, id: string) => void;
+  // Enregistrement de la zone auprès de `useDragLong` : sans `dataTransfer`,
+  // c'est le hook qui décide quelle zone est sous le pointeur.
+  enregistrerZone: (clé: string, el: HTMLElement | null) => void;
+  over: boolean; // le pointeur survole CETTE zone pendant un déplacement
   openIndex?: number; // index de la carte dont le détail est ouvert (-1 = aucune)
   detail?: ReactNode; // panneau de détail, inséré sous la ligne de cette carte
   children: ReactNode;
@@ -24,40 +27,24 @@ export default function RtaSection({
   count,
   removable,
   onRemoveSection,
-  onDropMonster,
+  enregistrerZone,
+  over,
   openIndex = -1,
   detail,
   children,
 }: Props) {
-  const [over, setOver] = useState(false);
-  const depth = useRef(0); // compte enter/leave pour éviter le scintillement
+  const ref = useRef<HTMLElement>(null);
 
-  function onDragEnter(e: React.DragEvent) {
-    e.preventDefault();
-    depth.current += 1;
-    setOver(true);
-  }
-  function onDragLeave() {
-    depth.current -= 1;
-    if (depth.current <= 0) {
-      depth.current = 0;
-      setOver(false);
-    }
-  }
-  function onDrop(e: React.DragEvent) {
-    e.preventDefault();
-    depth.current = 0;
-    setOver(false);
-    const id = e.dataTransfer.getData('text/plain');
-    if (id) onDropMonster(sectionKey, id);
-  }
+  // ⚠️ Désenregistrement au démontage : une section supprimée qui resterait
+  // dans la table continuerait de capter les dépôts sur son ancien rectangle.
+  useEffect(() => {
+    enregistrerZone(sectionKey, ref.current);
+    return () => enregistrerZone(sectionKey, null);
+  }, [sectionKey, enregistrerZone]);
 
   return (
     <section
-      onDragOver={(e) => e.preventDefault()}
-      onDragEnter={onDragEnter}
-      onDragLeave={onDragLeave}
-      onDrop={onDrop}
+      ref={ref}
       className={`rounded-2xl border p-3 transition-colors ${
         over ? 'border-transparent bg-panel2/80' : 'border-border bg-panel/40'
       }`}

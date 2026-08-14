@@ -5,8 +5,11 @@
 import { BaseStats, EffectLine, RuneDetail } from '../src/types';
 import {
   BuildCandidate,
+  HalfCombo,
   candidateMetricTotal,
   diagnoseFeasibility,
+  dominatesHalfCombo,
+  insertIntoSkyline,
   rankBlockingConditions,
   excludedRuneIds,
   objectiveScore,
@@ -780,5 +783,76 @@ export default function testRuneOptim() {
       0,
       '3 runes Intangible dans la seule combinaison possible → rejetée (une seule sertie par monstre en jeu)'
     );
+  }
+
+  titre('Optimizer · dominance de demi-builds — prototype skyline (dominatesHalfCombo/insertIntoSkyline)');
+
+  // Demi-build minimal, seuls `pct`/`flat` important pour ces tests — les
+  // autres champs sont des valeurs de remplissage sans effet sur la
+  // dominance elle-même (qui ne regarde que `pct`/`flat` sur `keys`).
+  function combo(pct: Partial<Record<StatKey, number>>, flat: Partial<Record<StatKey, number>>): HalfCombo {
+    return {
+      runes: [rune(1, 1, 'violent'), rune(2, 2, 'violent'), rune(3, 3, 'violent')],
+      counts: [],
+      jokers: 0,
+      pct: pct as Record<string, number>,
+      flat: flat as Record<string, number>,
+      relevanceScore: 0,
+    };
+  }
+
+  {
+    const a = combo({}, { atk: 100, cr: 10 });
+    const b = combo({}, { atk: 150, cr: 20 });
+    ok(dominatesHalfCombo(a, b, ['atk', 'cr']), 'b ≥ a sur les deux dimensions, strictement mieux sur les deux → b domine a');
+    ok(!dominatesHalfCombo(b, a, ['atk', 'cr']), 'l’inverse est faux : a n’est jamais meilleur que b ici');
+  }
+  {
+    // Cas MIXTE : b meilleur en ATQ, moins bon en Taux Crit — ni l’un ni
+    // l’autre ne domine, exactement comme pour `isDominated` au niveau
+    // d’une rune (comparaison SÉPARÉE par dimension, jamais une somme).
+    const a = combo({}, { atk: 100, cr: 30 });
+    const b = combo({}, { atk: 150, cr: 10 });
+    ok(!dominatesHalfCombo(a, b, ['atk', 'cr']), 'mélange (b mieux en ATQ, moins bon en Taux Crit) → aucune dominance');
+    ok(!dominatesHalfCombo(b, a, ['atk', 'cr']), 'symétrique : a ne domine pas b non plus');
+  }
+  {
+    // Égalité stricte sur toutes les dimensions suivies : aucun avantage
+    // strict nulle part → pas de dominance (sinon a et b se domineraient
+    // mutuellement et disparaîtraient tous les deux).
+    const a = combo({}, { atk: 100 });
+    const b = combo({}, { atk: 100 });
+    ok(!dominatesHalfCombo(a, b, ['atk']), 'égalité stricte sur toutes les dimensions suivies → pas de dominance');
+  }
+  {
+    // pct et flat comparés SÉPARÉMENT, jamais combinés : b a plus de pct
+    // mais moins de flat sur la MÊME stat → mélange, pas de dominance —
+    // même piège que `isDominated` sur les runes individuelles.
+    const a = combo({ atk: 10 }, { atk: 100 });
+    const b = combo({ atk: 20 }, { atk: 50 });
+    ok(!dominatesHalfCombo(a, b, ['atk']), 'pct et flat en sens opposés sur la même stat → pas de dominance (comparés séparément)');
+  }
+
+  {
+    // Skyline incrémentale : un membre strictement dominé disparaît dès son
+    // arrivée (jamais ajouté) ; un nouvel arrivant qui domine un membre
+    // EXISTANT le retire à son tour ; deux demi-builds incomparables (mélange)
+    // cohabitent tous les deux.
+    const skyline: HalfCombo[] = [];
+    const fort = combo({}, { atk: 200, cr: 50 });
+    const domine = combo({}, { atk: 100, cr: 20 }); // dominé par « fort » sur les deux axes
+    const incomparable = combo({}, { atk: 300, cr: 10 }); // meilleur en ATQ, moins bon en Taux Crit
+    insertIntoSkyline(skyline, fort, ['atk', 'cr']);
+    insertIntoSkyline(skyline, domine, ['atk', 'cr']);
+    egal(skyline.length, 1, 'un demi-build strictement dominé par un membre déjà présent → jamais ajouté');
+    ok(skyline.includes(fort), 'le membre existant (fort) reste');
+
+    insertIntoSkyline(skyline, incomparable, ['atk', 'cr']);
+    egal(skyline.length, 2, 'un demi-build incomparable (mélange) au membre existant → les deux cohabitent');
+
+    const encoreMeilleur = combo({}, { atk: 400, cr: 60 }); // domine « fort » ET « incomparable »
+    insertIntoSkyline(skyline, encoreMeilleur, ['atk', 'cr']);
+    egal(skyline.length, 1, 'un nouvel arrivant qui domine TOUS les membres existants les remplace tous');
+    ok(skyline.includes(encoreMeilleur), 'seul le nouvel arrivant, meilleur sur tout, reste');
   }
 }

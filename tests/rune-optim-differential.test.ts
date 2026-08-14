@@ -201,4 +201,73 @@ export default function testRuneOptimDifferential() {
       ok(toutesValides, `scénario ${s} : tous les candidats renvoyés sont réellement valides (aucun faux positif)`);
     }
   }
+
+  // ⚠️ Scénario DÉDIÉ (pas aléatoire) — vérifie le correctif du cas limite
+  // documenté dans spec/outils/optimizer.md, « Suite — bonus de set NON
+  // demandé anticipé dès le pré-filtrage » : `guaranteedSetBonus` ne compte
+  // QUE les sets de `requirement.sets` — un set qui s'activerait par ACCIDENT
+  // via les emplacements « libres » (non requis par le combo demandé) était
+  // invisible de TOUS les élagages (`eliminateInfeasible`, `comboAOk`,
+  // `pairFeasible*`, `quickOk`), pas seulement du repli le plus récent —
+  // corrigé par `unrequestedSetBonusHeadroom`/`guaranteedMin`. Pool à un seul
+  // candidat par emplacement (aucune ambiguïté : une seule combinaison
+  // possible) — Will (2 pièces, SANS bonus de stat, voir SET_STAT_BONUS) est
+  // le set DEMANDÉ ; Blade (2 pièces, +12 Taux Crit PLAT) occupe deux
+  // emplacements « libres » SANS être demandé. Aucune rune ne porte de
+  // sub/mainstat Taux Crit (code 9) — le SEUL moyen d'atteindre
+  // `minStats.cr` est donc le bonus Blade accidentel.
+  {
+    const will = (id: number, slot: number, mainCode: number): RuneDetail => ({
+      id,
+      slot,
+      set: 'will',
+      rank: 6,
+      rarity: 5,
+      level: 15,
+      main: { code: mainCode, value: 20 },
+      subs: [{ code: 1, value: 30 }, { code: 5, value: 15 }, { code: 8, value: 5 }, { code: 11, value: 5 }],
+    });
+    const blade = (id: number, slot: number, mainCode: number): RuneDetail => ({
+      id,
+      slot,
+      set: 'blade',
+      rank: 6,
+      rarity: 5,
+      level: 15,
+      main: { code: mainCode, value: 20 },
+      subs: [{ code: 1, value: 30 }, { code: 6, value: 15 }, { code: 8, value: 5 }, { code: 12, value: 5 }],
+    });
+    const shield = (id: number, slot: number, mainCode: number): RuneDetail => ({
+      id,
+      slot,
+      set: 'shield',
+      rank: 6,
+      rarity: 5,
+      level: 15,
+      main: { code: mainCode, value: 20 },
+      subs: [{ code: 3, value: 30 }, { code: 4, value: 15 }, { code: 8, value: 5 }, { code: 11, value: 5 }],
+    });
+    const pool: RuneDetail[] = [
+      will(1, 1, 4),
+      will(2, 2, 6),
+      blade(3, 3, 3),
+      blade(4, 4, 5),
+      shield(5, 5, 1),
+      shield(6, 6, 2),
+    ];
+    const requirement: BuildRequirement = { sets: ['will'], minStats: { cr: 20 } };
+
+    const ref = bruteForce(pool, BASE, requirement);
+    egal(ref.count, 1, 'scénario dédié (set Blade accidentel) : la référence, qui évalue les VRAIES stats des 6 runes, trouve bien la combinaison (base cr=15 + bonus Blade +12 = 27 ≥ 20)');
+
+    const res = searchBuilds({ base: BASE, artifacts: [], pool, requirement, metric: 'eff' });
+    egal(res.candidates.length, 1, 'scénario dédié (set Blade accidentel) : CORRECTIF confirmé — le moteur trouve désormais la combinaison, `guaranteedMin` anticipe le bonus Blade accidentel dès `eliminateInfeasible`');
+    if (res.candidates.length > 0) {
+      const byId = new Map(pool.map((r) => [r.id, r]));
+      const runes = res.candidates[0].runeIds.map((id) => byId.get(id)!);
+      const stats = computeStats({ base: BASE, runes, artifacts: [] });
+      const cr = stats.find((r) => r.key === 'cr');
+      egal(cr?.total, 27, 'scénario dédié (set Blade accidentel) : le candidat trouvé a bien Taux Crit = base(15) + bonus Blade(12) = 27, le bonus accidentel est réellement actif, pas juste supposé');
+    }
+  }
 }

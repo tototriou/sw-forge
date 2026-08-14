@@ -43,7 +43,7 @@
 // valable) plutôt que maximalement serrées.
 
 import { ArtifactDetail, BaseStats, GearSet, RelicDetail, RuneDetail } from '../types';
-import { RUNE_EFFECT, SET_STAT_BONUS, StatKey, activeSets, runeEfficiency, runeScore, setPieces } from './effects';
+import { MAX_SET_PIECES, RUNE_EFFECT, SET_STAT_BONUS, StatKey, activeSets, runeEfficiency, runeScore, setPieces, setsCost } from './effects';
 import { computeStats, StatRow } from './stats';
 import { missingSets } from './recoMatch';
 import { OptimMetric } from './runeOptim';
@@ -538,7 +538,13 @@ export function eliminateInfeasible(
   guaranteed: { pct: Record<string, number>; flat: Record<string, number> },
   artFlat: Record<string, number>,
   relPct: Record<string, number>,
-  totalOf: (k: StatKey, pct: number, flat: number) => number
+  totalOf: (k: StatKey, pct: number, flat: number) => number,
+  // ⚠️ Réservé aux vérifications de MINIMUM (`bestPct`/`bestFlat` plus bas) —
+  // `guaranteed` seul reste utilisé pour les maximums (`worstPct`/
+  // `worstFlat`), voir `unrequestedSetBonusHeadroom`. Par défaut = `guaranteed`
+  // (comportement inchangé) pour les quelques appelants qui n'ont pas encore
+  // ce contexte (scripts de mesure).
+  guaranteedMin: { pct: Record<string, number>; flat: Record<string, number> } = guaranteed
 ): RuneDetail[][] {
   if (minEntries.length === 0 && maxEntries.length === 0) return bySlot;
 
@@ -562,8 +568,8 @@ export function eliminateInfeasible(
         // CE slot est exclu du total (r le remplace).
         const otherPct = totalMaxPct[k] - (slotMax[i][k]?.pct ?? 0);
         const otherFlat = totalMaxFlat[k] - (slotMax[i][k]?.flat ?? 0);
-        const bestPct = c.pct + otherPct + (guaranteed.pct[k] ?? 0) + (relPct[k] ?? 0);
-        const bestFlat = c.flat + otherFlat + (guaranteed.flat[k] ?? 0) + (artFlat[k] ?? 0);
+        const bestPct = c.pct + otherPct + (guaranteedMin.pct[k] ?? 0) + (relPct[k] ?? 0);
+        const bestFlat = c.flat + otherFlat + (guaranteedMin.flat[k] ?? 0) + (artFlat[k] ?? 0);
         if (totalOf(k, bestPct, bestFlat) < min) return false;
       }
       for (const { k, max } of maxEntries) {
@@ -601,6 +607,78 @@ export function guaranteedSetBonus(requirement: BuildRequirement, base: BaseStat
       flat[bonus.stat] = (flat[bonus.stat] ?? 0) + bonus.flat;
     }
   }
+  return { pct, flat };
+}
+
+/* --------------------------------------------------------------------------
+ * Bonus de set NON demandé, potentiellement en PLUS de `guaranteedSetBonus`
+ * — voir spec/outils/optimizer.md, « Limites connues ». `guaranteedSetBonus`
+ * ne compte QUE les sets de `requirement.sets` ; un set À BONUS DE STAT
+ * (`SET_STAT_BONUS`) peut s'activer PAR ACCIDENT sur les emplacements
+ * « libres » (ceux que le combo demandé ne réserve pas), et ce bonus est
+ * bien réel dans le build final — `computeStats`/`activeSets` ne
+ * distinguent JAMAIS un set « demandé » d'un set « accidentel ».
+ * ----------------------------------------------------------------------- */
+
+// Borne SÛRE mais délibérément GROSSIÈRE, réservée aux vérifications de
+// MINIMUM UNIQUEMENT — jamais de maximum : un bonus qui POURRAIT s'activer
+// ne DOIT pas s'activer (un build peut toujours écarter les runes du set en
+// question), l'inverse exact du raisonnement pour un minimum, où seul le
+// MEILLEUR cas compte. Compte GLOBALEMENT, tous emplacements confondus, sans
+// tenir compte de la répartition réelle par emplacement ni des runes déjà
+// retenues pour le combo demandé : peut donc estimer un bonus qui ne serait
+// pas RÉELLEMENT atteignable pour une paire de demi-builds précise — c'est
+// délibéré (même philosophie que `diagnoseFeasibility` : « une borne
+// optimiste par stat isolée, jamais une preuve de faisabilité conjointe »),
+// la revérification via `computeStats` en aval reste la SEULE décision
+// finale. Ne DOIT en revanche jamais SOUS-estimer ce qui est possible : la
+// raison d'être de cette fonction, voir « Limites connues ».
+export function unrequestedSetBonusHeadroom(
+  pool: RuneDetail[],
+  requirement: BuildRequirement,
+  base: BaseStats
+): { pct: Record<string, number>; flat: Record<string, number> } {
+  const pct: Record<string, number> = {};
+  const flat: Record<string, number> = {};
+  const freeSlots = MAX_SET_PIECES - setsCost(requirement.sets);
+  if (freeSlots <= 0) return { pct, flat };
+  const requested = new Set(requirement.sets);
+  const counts = new Map<string, number>();
+  for (const r of pool) counts.set(r.set, (counts.get(r.set) ?? 0) + 1);
+  for (const [setKey, bonus] of Object.entries(SET_STAT_BONUS)) {
+    if (requested.has(setKey)) continue; // déjà compté dans `guaranteedSetBonus`
+    const pieces = setPieces(setKey);
+    if (pieces > freeSlots) continue;
+    // ⚠️ `Math.min(available, freeSlots)` : le pool peut posséder BEAUCOUP
+    // plus de runes de ce set que d'emplacements libres pour les accueillir
+    // — sans ce plafond, une seule activation possible se compterait comme
+    // plusieurs (ex. 8 runes Blade dans le pool, mais seulement 2
+    // emplacements libres : 1 activation possible, pas 4).
+    const available = counts.get(setKey) ?? 0;
+    const activations = Math.floor(Math.min(available, freeSlots) / pieces);
+    if (activations <= 0) continue;
+    if (bonus.pct != null) {
+      if (bonus.stat === 'hp' || bonus.stat === 'atk' || bonus.stat === 'def') {
+        pct[bonus.stat] = (pct[bonus.stat] ?? 0) + bonus.pct * activations;
+      } else {
+        const baseVal = (base as unknown as Record<string, number>)[bonus.stat] ?? 0;
+        flat[bonus.stat] = (flat[bonus.stat] ?? 0) + Math.ceil((baseVal * bonus.pct) / 100) * activations;
+      }
+    } else if (bonus.flat != null) {
+      flat[bonus.stat] = (flat[bonus.stat] ?? 0) + bonus.flat * activations;
+    }
+  }
+  return { pct, flat };
+}
+
+function mergeBonus(
+  a: { pct: Record<string, number>; flat: Record<string, number> },
+  b: { pct: Record<string, number>; flat: Record<string, number> }
+): { pct: Record<string, number>; flat: Record<string, number> } {
+  const pct: Record<string, number> = { ...a.pct };
+  const flat: Record<string, number> = { ...a.flat };
+  for (const k of Object.keys(b.pct)) pct[k] = (pct[k] ?? 0) + b.pct[k];
+  for (const k of Object.keys(b.flat)) flat[k] = (flat[k] ?? 0) + b.flat[k];
   return { pct, flat };
 }
 
@@ -647,10 +725,69 @@ export interface Bucket {
   combos: HalfCombo[]; // fusion dédupliquée des tranches de rétention, triée par potentiel NORMALISÉ décroissant (toutes tranches confondues, pas seulement relevanceScore — voir buildBuckets)
   maxPct: Record<string, number>; // borne SÛRE (jamais sous-estimée) par stat contrainte
   maxFlat: Record<string, number>;
+  // ⚠️ PROTOTYPE EN MESURE, absent (`undefined`) sauf si `buildBuckets` reçoit
+  // `skylineKeys` — voir son commentaire. La frontière de Pareto EXACTE de ce
+  // compartiment sur `skylineKeys` (voir `insertIntoSkyline`), calculée EN
+  // PLUS des tranches habituelles, jamais à leur place : `combos` reste
+  // inchangé, ceci n'est qu'une mesure pour l'instant.
+  skyline?: HalfCombo[];
 }
 
 function bucketKeyOf(counts: number[], jokers: number): string {
   return `${counts.join(',')}|${jokers}`;
+}
+
+// ⚠️ PROTOTYPE EN MESURE — voir spec/outils/optimizer.md, « Suite —
+// dominance de demi-builds (skyline) ». Dominance de DEMI-BUILDS (3 runes),
+// un cran au-dessus de la dominance de runes individuelles (`isDominated`
+// plus haut). Même principe, même sûreté : A est dominé par B si B est AU
+// MOINS aussi bon que A sur CHAQUE dimension suivie (`keys`), pct et flat
+// comparés SÉPARÉMENT — jamais combinés en un seul score (mélanger les deux
+// échelles serait faux pour un total réel, voir `totalOf` — même piège que
+// `isDominated`) — avec un avantage strict quelque part. Un demi-build
+// dominé ne sert JAMAIS à rien POUR CES DIMENSIONS : tout appariement
+// utilisant A resterait valide, et au moins aussi bon sur elles, en
+// remplaçant A par B — une PREUVE, pas une heuristique de plus. ⚠️ Ne couvre
+// QUE `keys` (pensé pour `retentionKeys`, JAMAIS les maximums — même raison
+// que le reste de `buildBuckets` : sur une stat plafonnée, « plus » n'est
+// pas sûrement « mieux ») : ne dit rien de `relevanceScore` ni des stats
+// hors `keys`, laissées à la tranche générique existante — cette fonction
+// ne remplace PAS les tranches actuelles, elle est un filet
+// COMPLÉMENTAIRE en cours d'évaluation.
+export function dominatesHalfCombo(a: HalfCombo, b: HalfCombo, keys: StatKey[]): boolean {
+  let strictlyBetter = false;
+  for (const k of keys) {
+    const ap = a.pct[k] ?? 0;
+    const af = a.flat[k] ?? 0;
+    const bp = b.pct[k] ?? 0;
+    const bf = b.flat[k] ?? 0;
+    if (bp < ap || bf < af) return false;
+    if (bp > ap || bf > af) strictlyBetter = true;
+  }
+  return strictlyBetter;
+}
+
+// Insertion incrémentale dans une frontière de Pareto (« skyline »), EN
+// FLUX comme le reste de `buildBuckets` — jamais un recalcul global après
+// coup. Ajoute `combo` seulement s'il n'est dominé par AUCUN membre déjà
+// présent, puis retire tout membre existant que `combo` domine à son tour
+// (un nouvel arrivant peut rendre obsolètes plusieurs anciens membres à la
+// fois). ⚠️ Coût par insertion : O(taille de la skyline courante × |keys|)
+// — SANS BORNE fixe (contrairement à `heapPush`) : c'est délibéré, la
+// skyline est exacte par construction, pas un compromis mémoire/qualité.
+// Voir `scripts/monster-search-skyline-diag.ts` pour la taille RÉELLEMENT
+// observée sur des comptes réels avant d'en faire une dépendance de la
+// recherche de production — une skyline qui grossirait sans borne sur des
+// cas à beaucoup de dimensions (`retentionKeys` nombreux) coûterait cher
+// pour un bénéfice à vérifier, pas à supposer.
+export function insertIntoSkyline(skyline: HalfCombo[], combo: HalfCombo, keys: StatKey[]): void {
+  for (const existing of skyline) {
+    if (dominatesHalfCombo(combo, existing, keys)) return;
+  }
+  for (let i = skyline.length - 1; i >= 0; i--) {
+    if (dominatesHalfCombo(skyline[i], combo, keys)) skyline.splice(i, 1);
+  }
+  skyline.push(combo);
 }
 
 // Une entrée de tas : l'élément gardé, et le SCORE selon lequel CE tas
@@ -807,7 +944,15 @@ export function* buildBuckets(
   bucketCap: number,
   otherHalfMaxSets: number[],
   jokerCredit: number,
-  requiredPieces: number[]
+  requiredPieces: number[],
+  // ⚠️ PROTOTYPE EN MESURE — voir `Bucket.skyline`/`insertIntoSkyline`.
+  // `undefined` (par défaut, TOUS les appels de production actuels) : rien
+  // ne change, coût nul. Fourni : maintient EN PLUS, pour chaque
+  // compartiment, la frontière de Pareto exacte sur ces clés — jamais à la
+  // place des tranches habituelles. Réservé aux scripts de mesure
+  // (`scripts/monster-search-skyline-diag.ts`) tant que le coût réel
+  // (taille de la skyline sur un compte réel) n'est pas mesuré.
+  skylineKeys?: StatKey[]
 ): Generator<BuildingProgress, Bucket[], void> {
   const [i0, i1, i2] = slotIdxs;
   const buckets = new Map<string, Bucket>();
@@ -815,7 +960,8 @@ export function* buildBuckets(
   // par compartiment, [tranche générique, tranche combinée éventuelle, une
   // tranche par retentionKey…].
   const slices = new Map<string, ScoredEntry<HalfCombo>[][]>();
-  const trackedKeys = Array.from(new Set<StatKey>([...constrainedKeys, ...retentionKeys]));
+  const skylines = skylineKeys ? new Map<string, HalfCombo[]>() : null;
+  const trackedKeys = Array.from(new Set<StatKey>([...constrainedKeys, ...retentionKeys, ...(skylineKeys ?? [])]));
   const hasCombined = minEntries.length > 0;
 
   // Chaque tranche reçoit `bucketCap` places EN PROPRE — pas un budget total
@@ -916,6 +1062,14 @@ export function* buildBuckets(
         for (let i = 0; i < retentionKeys.length; i++) {
           heapPush(bucketSlices![retentionOffset + i], { item: combo, score: retentionScore(pct, flat, retentionKeys[i]) }, perOtherSliceCap);
         }
+        if (skylines) {
+          let skyline = skylines.get(key);
+          if (!skyline) {
+            skyline = [];
+            skylines.set(key, skyline);
+          }
+          insertIntoSkyline(skyline, combo, skylineKeys!);
+        }
       }
     }
   }
@@ -985,6 +1139,7 @@ export function* buildBuckets(
     });
     scored.sort((x, y) => y.potential - x.potential);
     b.combos = scored.map((s) => s.combo);
+    if (skylines) b.skyline = skylines.get(key) ?? [];
   }
   // ⚠️ Compartiments triés par POTENTIEL décroissant — le meilleur score
   // NORMALISÉ (rapporté au maximum atteint par N'IMPORTE QUEL compartiment
@@ -1104,9 +1259,10 @@ export function estimateSearchSpace(
 // Regroupe ce que `diagnoseFeasibility`, `rankBlockingConditions` ET
 // `searchBuildsSteps` calculent CHACUN à partir de `minStats`/`maxStats` —
 // factorisé ici pour ne plus le tripler (c'était déjà dupliqué entre les
-// deux premiers avant ce correctif). Pur : ne dépend que de `base`/
-// `artifacts`/`relic`/`requirement`, jamais de `pool` (le pool est traité à
-// part par chaque appelant, sur SA propre étape du pipeline).
+// deux premiers avant ce correctif). ⚠️ Dépend maintenant AUSSI de `pool`
+// (pour `guaranteedMin`, voir `unrequestedSetBonusHeadroom`) — seul `pool`
+// lui-même reste traité à part par chaque appelant, sur SA propre étape du
+// pipeline (pré-filtrage par emplacement, dominance, etc.).
 interface MinMaxContext {
   minEntries: { k: StatKey; min: number }[];
   maxEntries: { k: StatKey; max: number }[];
@@ -1114,6 +1270,11 @@ interface MinMaxContext {
   requiredKeys: Set<string>;
   maxKeys: Set<StatKey>;
   guaranteed: { pct: Record<string, number>; flat: Record<string, number> };
+  // Réservé aux vérifications de MINIMUM — `guaranteed` + le bonus qu'un set
+  // NON demandé pourrait apporter par accident (voir
+  // `unrequestedSetBonusHeadroom`). Ne JAMAIS utiliser pour un maximum : voir
+  // son commentaire.
+  guaranteedMin: { pct: Record<string, number>; flat: Record<string, number> };
   artFlat: Record<string, number>;
   relPct: Record<string, number>;
   totalOf: (k: StatKey, pct: number, flat: number) => number;
@@ -1123,7 +1284,8 @@ function deriveMinMaxContext(
   base: BaseStats,
   artifacts: ArtifactDetail[],
   relic: RelicDetail | undefined,
-  requirement: BuildRequirement
+  requirement: BuildRequirement,
+  pool: RuneDetail[]
 ): MinMaxContext {
   const minEntries = ALL_STAT_KEYS
     .map((k) => ({ k, min: requirement.minStats[k] }))
@@ -1135,6 +1297,7 @@ function deriveMinMaxContext(
   const requiredKeys = new Set(requirement.sets);
   const maxKeys = new Set(maxEntries.map((e) => e.k));
   const guaranteed = guaranteedSetBonus(requirement, base);
+  const guaranteedMin = mergeBonus(guaranteed, unrequestedSetBonusHeadroom(pool, requirement, base));
   const artFlat = artifactFlatBonus(artifacts);
   const relPct = relicPctBonus(relic);
   const baseRec = base as unknown as Record<string, number>;
@@ -1142,7 +1305,7 @@ function deriveMinMaxContext(
     const b = baseRec[k] ?? 0;
     return k === 'hp' || k === 'atk' || k === 'def' ? b + Math.ceil((b * pct) / 100) + flat : b + flat;
   }
-  return { minEntries, maxEntries, constrainedKeys, requiredKeys, maxKeys, guaranteed, artFlat, relPct, totalOf };
+  return { minEntries, maxEntries, constrainedKeys, requiredKeys, maxKeys, guaranteed, guaranteedMin, artFlat, relPct, totalOf };
 }
 
 // Verdict de faisabilité, PAR STAT PRISE ISOLÉMENT — pour une condition (min
@@ -1188,7 +1351,7 @@ export interface StatFeasibility {
 // sans recherche complète.
 export function diagnoseFeasibility(params: SearchParams): StatFeasibility[] {
   const { base, artifacts, relic, pool, requirement } = params;
-  const ctx = deriveMinMaxContext(base, artifacts, relic, requirement);
+  const ctx = deriveMinMaxContext(base, artifacts, relic, requirement, pool);
   if (ctx.minEntries.length === 0 && ctx.maxEntries.length === 0) return [];
 
   const bySlot = mainStatFilteredBySlot(pool, requirement);
@@ -1196,8 +1359,8 @@ export function diagnoseFeasibility(params: SearchParams): StatFeasibility[] {
 
   const out: StatFeasibility[] = [];
   for (const { k, min } of ctx.minEntries) {
-    const bestPct = slotMax.reduce((s, b) => s + (b[k]?.pct ?? 0), 0) + (ctx.guaranteed.pct[k] ?? 0) + (ctx.relPct[k] ?? 0);
-    const bestFlat = slotMax.reduce((s, b) => s + (b[k]?.flat ?? 0), 0) + (ctx.guaranteed.flat[k] ?? 0) + (ctx.artFlat[k] ?? 0);
+    const bestPct = slotMax.reduce((s, b) => s + (b[k]?.pct ?? 0), 0) + (ctx.guaranteedMin.pct[k] ?? 0) + (ctx.relPct[k] ?? 0);
+    const bestFlat = slotMax.reduce((s, b) => s + (b[k]?.flat ?? 0), 0) + (ctx.guaranteedMin.flat[k] ?? 0) + (ctx.artFlat[k] ?? 0);
     const bound = ctx.totalOf(k, bestPct, bestFlat);
     out.push({ key: k, kind: 'min', requested: min, bound, satisfiable: bound >= min });
   }
@@ -1253,11 +1416,11 @@ export interface BlockingConditionsDiagnosis {
 }
 export function rankBlockingConditions(params: SearchParams): BlockingConditionsDiagnosis {
   const { base, artifacts, relic, pool, requirement } = params;
-  const ctx = deriveMinMaxContext(base, artifacts, relic, requirement);
+  const ctx = deriveMinMaxContext(base, artifacts, relic, requirement, pool);
   if (ctx.minEntries.length === 0 && ctx.maxEntries.length === 0) return { baselineMinSlot: 0, impacts: [] };
 
   function poolMinSlot(req: BuildRequirement): number {
-    const reqCtx = deriveMinMaxContext(base, artifacts, relic, req);
+    const reqCtx = deriveMinMaxContext(base, artifacts, relic, req, pool);
     let bySlot = mainStatFilteredBySlot(pool, req);
     bySlot = bySlot.map((list) => pruneDominated(list, reqCtx.requiredKeys, reqCtx.maxKeys));
     bySlot = eliminateInfeasible(
@@ -1268,7 +1431,8 @@ export function rankBlockingConditions(params: SearchParams): BlockingConditions
       reqCtx.guaranteed,
       reqCtx.artFlat,
       reqCtx.relPct,
-      reqCtx.totalOf
+      reqCtx.totalOf,
+      reqCtx.guaranteedMin
     );
     return Math.min(...bySlot.map((l) => l.length));
   }
@@ -1385,8 +1549,8 @@ export function* searchBuildsSteps(params: SearchParams): Generator<SearchProgre
   const slotCap = params.slotFilterCap ?? MAX_PER_SLOT_MATCH;
   const startedAt = Date.now();
 
-  const ctx = deriveMinMaxContext(base, artifacts, relic, requirement);
-  const { minEntries, maxEntries, constrainedKeys, requiredKeys, maxKeys, guaranteed, artFlat, relPct, totalOf } = ctx;
+  const ctx = deriveMinMaxContext(base, artifacts, relic, requirement, pool);
+  const { minEntries, maxEntries, constrainedKeys, requiredKeys, maxKeys, guaranteed, guaranteedMin, artFlat, relPct, totalOf } = ctx;
   // ⚠️ Dimensions protégées à la RÉTENTION par compartiment (voir
   // buildBuckets) : les minimums demandés, PLUS les stats propres à
   // l'objectif choisi. JAMAIS les maximums — sur une stat plafonnée, « plus »
@@ -1416,7 +1580,7 @@ export function* searchBuildsSteps(params: SearchParams): Generator<SearchProgre
   // spec/outils/optimizer.md.
   let bySlot = mainStatFilteredBySlot(pool, requirement);
   bySlot = bySlot.map((list) => pruneDominated(list, requiredKeys, maxKeys));
-  bySlot = eliminateInfeasible(bySlot, minEntries, maxEntries, constrainedKeys, guaranteed, artFlat, relPct, totalOf);
+  bySlot = eliminateInfeasible(bySlot, minEntries, maxEntries, constrainedKeys, guaranteed, artFlat, relPct, totalOf, guaranteedMin);
   const filtered = bySlot.map((list) => filterSlot(list, requirement, slotCap, slotCap, params.objective));
   if (filtered.some((list) => list.length === 0)) {
     return { candidates: [], explored: 0, truncated: false };
@@ -1444,8 +1608,8 @@ export function* searchBuildsSteps(params: SearchParams): Generator<SearchProgre
   // appliqué ici au niveau d'une paire de compartiments de 3 runes.
   function pairFeasibleMin(bA: { maxPct: Record<string, number>; maxFlat: Record<string, number> }, bB: typeof bA): boolean {
     for (const { k, min } of minEntries) {
-      const optPct = (bA.maxPct[k] ?? 0) + (bB.maxPct[k] ?? 0) + (guaranteed.pct[k] ?? 0) + (relPct[k] ?? 0);
-      const optFlat = (bA.maxFlat[k] ?? 0) + (bB.maxFlat[k] ?? 0) + (guaranteed.flat[k] ?? 0) + (artFlat[k] ?? 0);
+      const optPct = (bA.maxPct[k] ?? 0) + (bB.maxPct[k] ?? 0) + (guaranteedMin.pct[k] ?? 0) + (relPct[k] ?? 0);
+      const optFlat = (bA.maxFlat[k] ?? 0) + (bB.maxFlat[k] ?? 0) + (guaranteedMin.flat[k] ?? 0) + (artFlat[k] ?? 0);
       if (totalOf(k, optPct, optFlat) < min) return false;
     }
     return true;
@@ -1474,8 +1638,8 @@ export function* searchBuildsSteps(params: SearchParams): Generator<SearchProgre
         // B en entier pour un comboA déjà hors de portée.
         let comboAOk = true;
         for (const { k, min } of minEntries) {
-          const p = (comboA.pct[k] ?? 0) + (bB.maxPct[k] ?? 0) + (guaranteed.pct[k] ?? 0) + (relPct[k] ?? 0);
-          const f = (comboA.flat[k] ?? 0) + (bB.maxFlat[k] ?? 0) + (guaranteed.flat[k] ?? 0) + (artFlat[k] ?? 0);
+          const p = (comboA.pct[k] ?? 0) + (bB.maxPct[k] ?? 0) + (guaranteedMin.pct[k] ?? 0) + (relPct[k] ?? 0);
+          const f = (comboA.flat[k] ?? 0) + (bB.maxFlat[k] ?? 0) + (guaranteedMin.flat[k] ?? 0) + (artFlat[k] ?? 0);
           if (totalOf(k, p, f) < min) {
             comboAOk = false;
             break;
@@ -1520,17 +1684,17 @@ export function* searchBuildsSteps(params: SearchParams): Generator<SearchProgre
           // explorées échouent déjà CE test — leur épargner l'allocation du
           // tableau de runes, `activeSets` et `computeStats` est le principal
           // gain mesuré. ⚠️ Ne remplace PAS la revérification finale sur les
-          // VRAIES stats plus bas : `guaranteed` (le bonus de set) suppose
-          // TOUJOURS que seuls les sets de `requirement.sets` sont actifs —
-          // un cas marginal où les emplacements « libres » d'un combo
-          // formeraient EUX-MÊMES un bonus de set non demandé échapperait à
-          // CE repli (comme il échappait déjà à `comboAOk`, inchangé ici,
-          // voir spec/outils/optimizer.md « Limites connues ») ; seule la
+          // VRAIES stats plus bas : `guaranteedMin` (contrairement à
+          // `guaranteed`, utilisé pour le maximum juste en dessous) inclut
+          // `unrequestedSetBonusHeadroom` — le bonus qu'un set NON demandé
+          // pourrait apporter en s'activant sur les emplacements « libres » —
+          // mais reste une borne GLOBALE, pas garantie atteignable par CETTE
+          // paire précise de demi-builds (voir son commentaire) ; seule la
           // revérification via `computeStats` reste la décision finale.
           let quickOk = true;
           for (const { k, min } of minEntries) {
-            const p = (comboA.pct[k] ?? 0) + (comboB.pct[k] ?? 0) + (guaranteed.pct[k] ?? 0) + (relPct[k] ?? 0);
-            const f = (comboA.flat[k] ?? 0) + (comboB.flat[k] ?? 0) + (guaranteed.flat[k] ?? 0) + (artFlat[k] ?? 0);
+            const p = (comboA.pct[k] ?? 0) + (comboB.pct[k] ?? 0) + (guaranteedMin.pct[k] ?? 0) + (relPct[k] ?? 0);
+            const f = (comboA.flat[k] ?? 0) + (comboB.flat[k] ?? 0) + (guaranteedMin.flat[k] ?? 0) + (artFlat[k] ?? 0);
             if (totalOf(k, p, f) < min) {
               quickOk = false;
               break;

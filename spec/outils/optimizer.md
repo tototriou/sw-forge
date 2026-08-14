@@ -1428,7 +1428,163 @@ diverger. Regroupé dans `deriveMinMaxContext` (interne à `runeBuildOptim.ts`),
 réutilisée par les trois. Vérifié sans régression sur l'intégralité du
 harnais existant (recherche réelle inchangée, refactor pur).
 
+### Suite — repli EXACT avant `activeSets`/`computeStats` dans la boucle d'appariement
+
+Avant ce correctif, CHAQUE paire explorée dans `searchBuildsSteps`
+(`for comboB of bB.combos`) allouait le tableau des 6 runes, appelait
+`activeSets` puis `computeStats`, AVANT même de vérifier si la paire pouvait
+satisfaire les minimums/maximums demandés — y compris pour l'écrasante
+majorité des paires vouées à échouer sur une recherche serrée.
+
+**Constat qui a permis le correctif** : `comboA.pct[k] + comboB.pct[k]`
+(+ `flat`) — déjà accumulés par moitié, voir `HalfCombo` — est EXACTEMENT ce
+que `computeStats` calculerait pour la stat `k` sur les 6 runes réunies :
+même formule (`totalOf`, `base + ceil(base×pct/100) + flat` pour PV/ATQ/DEF,
+`base + flat` sinon). Un repli sur pure arithmétique, EXACT (pas une borne
+optimiste comme `comboAOk`/`pairFeasibleMin` plus haut), suffit donc à
+rejeter une paire sans jamais allouer le tableau de runes ni appeler
+`activeSets`/`computeStats` — reporté à APRÈS ce repli, uniquement pour les
+paires qui le passent.
+
+⚠️ Ne remplace PAS la revérification finale sur les VRAIES stats plus bas :
+`guaranteed` (le bonus de set) suppose TOUJOURS que seuls les sets de
+`requirement.sets` sont actifs — le cas marginal où les emplacements
+« libres » d'un combo formeraient EUX-MÊMES un bonus de set non demandé
+échappait à ce repli, comme il échappait déjà à `comboAOk` — **corrigé**,
+voir « Suite — bonus de set NON demandé anticipé dès le pré-filtrage »
+ci-dessous ; `computeStats`, toujours appelé en aval, reste la décision
+finale.
+
+**Mesuré sur des comptes réels**, budget de nœuds identique avant/après (le
+correctif change la VITESSE, jamais QUELS candidats sont explorés) :
+
+| Cas | Avant | Après |
+|---|---|---|
+| Deck 10, Lushen | 57-66 s | **12,8 s** (≈×4,5) |
+| Sonia, deck 14 | 81-89 s | **24,3 s** (≈×3,5) |
+| Deck 11, Lushen | 33-36 s | **14,8 s** (≈×2,3) |
+| Eivor, deck 2 défense (7 conditions, cas non résolu ci-dessus) | 243,6 s | **104,5 s** (≈×2,3) |
+
+Confirmé sans régression sur l'intégralité du harnais existant, y compris le
+test différentiel (meet-in-the-middle vs brute-force). Le cas Eivor reste
+non résolu après ce correctif (0/6 rune en commun avec le meilleur candidat)
+— attendu : accélérer la recherche ne change pas QUELS candidats sont
+explorés, voir « Limites connues ».
+
+### Suite — dominance de demi-builds (skyline), mesurée puis écartée
+
+Piste explorée en prototype avant intégration : généraliser la dominance de
+runes individuelles (`isDominated`/`pruneDominated`, voir « Algorithme »)
+UN CRAN AU-DESSUS, sur des demi-builds de 3 runes (`HalfCombo`). Un
+demi-build A est dominé par B si B est AU MOINS aussi bon que A sur CHAQUE
+dimension suivie (pct et flat comparés SÉPARÉMENT — même piège que
+`isDominated` à éviter, mélanger les deux échelles serait faux), avec un
+avantage strict quelque part — une PREUVE, comme la dominance de runes
+individuelles, pas une heuristique de plus.
+
+Implémenté en PROTOTYPE OPT-IN dans `runeBuildOptim.ts`
+(`dominatesHalfCombo`, `insertIntoSkyline`, paramètre `skylineKeys?` de
+`buildBuckets`) : `undefined` par défaut sur TOUS les appels de production
+actuels — coût nul, comportement inchangé, vérifié sans régression sur
+l'intégralité du harnais (336 vérifications). Mesuré via
+[scripts/monster-search-skyline-diag.ts](scripts/monster-search-skyline-diag.ts)
+sur des comptes réels, à dimensionnalité croissante :
+
+| Cas | Dimensions suivies | Surcoût construction |
+|---|---|---|
+| Deck 10 | 3 (atk, cr, cd) | ×2,19 (6,4 s → 14,0 s) |
+| Sonia, deck 14 | 4 (+ spd) | ×6,96 (15,2 s → 106,1 s) |
+| Eivor, deck 2 défense | 7 (hp, atk, def, spd, cr, cd, res) | **jamais terminé** — 62 min de temps CPU continu (quasi 100 % d'un cœur), toujours pas de résultat même pour la passe DE RÉFÉRENCE (sans skyline), tâche arrêtée manuellement |
+
+**Constat** : le surcoût croît beaucoup plus vite que linéairement avec le
+nombre de dimensions suivies — une « malédiction de la dimensionnalité »
+confirmée par la mesure, pas seulement supposée en théorie. À 7 dimensions
+(le cas Eivor, précisément celui qui aurait le plus besoin d'un filet
+complémentaire), même la construction PAR TRANCHES existante (sans aucune
+skyline) devient déjà coûteuse : à 7 `retentionKeys`, `buildBuckets`
+maintient 9 tranches par compartiment (1 générique + 1 combinée + 7 par
+stat) sur des pools de plusieurs centaines de runes par emplacement.
+
+**Décision : NON intégrée à la recherche de production.** Le code reste dans
+le dépôt, testé
+([tests/rune-optim.test.ts](tests/rune-optim.test.ts), 11 vérifications) et
+zéro-coût par défaut, au cas où un usage à faible dimensionnalité (≤ 3-4
+`retentionKeys`) le justifierait plus tard — mais aucun appel de production
+ne passe `skylineKeys` aujourd'hui.
+
+⚠️ **Une variante « k-dominante » (dominé sur AU MOINS k des n dimensions,
+pas nécessairement toutes) a été envisagée puis écartée sans être
+construite** : relâcher le critère de dominance casse justement la propriété
+qui rendait la skyline stricte intéressante (une PREUVE, jamais un
+demi-build utile écarté à tort) — avec k < n, ça redevient une heuristique
+comme une autre, qui referait alors le même travail que le système de
+tranches par `retentionKey` DÉJÀ en production (garder les meilleurs par
+dimension), mais à un coût moins prévisible (comparaison contre chaque
+membre existant de la skyline, O(taille × n) par insertion) pour une taille
+de skyline toujours inconnue sans nouvelle mesure — contre un coût déjà
+borné et linéaire (`bucketCap` par tranche) pour le système existant.
+
+### Suite — bonus de set NON demandé anticipé dès le pré-filtrage (`guaranteedMin`)
+
+Correctif du cas limite ci-dessus (repéré théoriquement en amont, confirmé
+par un scénario différentiel dédié — un set demandé sans bonus de stat + un
+set Taux Crit accidentel sur les emplacements libres, seul moyen d'atteindre
+le minimum posé : le moteur éliminait à tort la totalité du pool dès
+`eliminateInfeasible`, avant même le meet-in-the-middle, alors que la
+combinaison était réellement valide).
+
+**Principe** : `guaranteedSetBonus` reste inchangé (ne compte QUE les sets de
+`requirement.sets`), mais une nouvelle fonction,
+`unrequestedSetBonusHeadroom(pool, requirement, base)`, calcule EN PLUS une
+borne SÛRE mais délibérément GROSSIÈRE du bonus qu'un set NON demandé
+pourrait apporter en s'activant sur les emplacements « libres » (`6 -
+setsCost(requirement.sets)`) : pour chaque set À BONUS DE STAT
+(`SET_STAT_BONUS` — Energy, Guard, Swift, Fatal, Blade, Rage, Focus, Endure)
+absent de `requirement.sets`, si le pool en contient assez pour remplir au
+moins une activation dans le budget d'emplacements libres, son bonus est
+ajouté. Compté GLOBALEMENT (tous emplacements confondus, sans répartition
+précise ni exclusion des runes déjà utilisées ailleurs) — même philosophie
+que `diagnoseFeasibility` (« une borne optimiste par stat isolée, jamais une
+preuve de faisabilité conjointe ») : peut surestimer ce qu'une paire de
+demi-builds précise atteint RÉELLEMENT, jamais le sous-estimer — la
+revérification via `computeStats` reste, comme toujours, la seule décision
+finale.
+
+⚠️ **Réservé aux vérifications de MINIMUM, jamais de maximum** — dissymétrie
+volontaire : un bonus qui POURRAIT s'activer ne DOIT pas s'activer (un build
+peut toujours écarter les runes du set en question), l'inverse exact du
+raisonnement pour un minimum, où seul le MEILLEUR cas compte. L'ajouter au
+plancher d'un maximum aurait réintroduit, à l'envers, le même genre de faux
+rejet que ce correctif élimine côté minimum. Le combiner à `guaranteedSetBonus`
+donne `guaranteedMin`, un nouveau champ de `MinMaxContext` (interne), utilisé
+à la place de `guaranteed` PARTOUT où un calcul isole le MEILLEUR cas
+atteignable : `eliminateInfeasible` (bestPct/bestFlat), `pairFeasibleMin`,
+`comboAOk` (repli côté minimum), `quickOk` (repli côté minimum), et le
+palier 1 du diagnostic (`diagnoseFeasibility`, bestPct/bestFlat — le même
+angle mort pouvait aussi afficher à tort « mathématiquement hors de
+portée »). `guaranteed` (sans le supplément) reste utilisé tel quel pour
+CHAQUE calcul de maximum (worstPct/worstFlat, plancher du diagnostic) —
+inchangé, toujours correct sans ce correctif.
+
+**Coût** : `unrequestedSetBonusHeadroom` est calculée UNE SEULE FOIS par
+recherche (O(taille du pool) + O(8 sets à bonus)), jamais dans la boucle
+chaude d'appariement — le surcoût est négligeable, confirmé sur un compte
+réel (recherche complète sur un monstre réel : ~16,5 s pour 5 000 001 nœuds
+explorés, cohérent avec les mesures de vitesse précédentes, aucune
+régression perceptible).
+
+Vérifié : le scénario différentiel dédié
+([tests/rune-optim-differential.test.ts](tests/rune-optim-differential.test.ts))
+trouve désormais la combinaison (Taux Crit = 27, base 15 + bonus Blade
+accidentel 12, exactement la valeur attendue), sans régression sur
+l'intégralité du harnais existant (339 vérifications) ni sur `tsc --noEmit`.
+
 ## Limites connues
+
+- ~~Un set NON demandé qui s'activerait par accident via les emplacements
+  « libres » du combo échappait à TOUS les élagages~~ **Corrigé** (voir
+  « Suite — bonus de set NON demandé anticipé dès le pré-filtrage »
+  ci-dessus).
 
 - **Pré-filtrage heuristique par emplacement ET par compartiment** : pas de
   garantie d'optimalité globale absolue au-delà de ce que ces deux étages
@@ -1459,7 +1615,14 @@ harnais existant (recherche réelle inchangée, refactor pur).
   nouveau, probablement avec une approche différente (l'espace combinatoire
   semble croître plus vite que ce qu'un simple relèvement de budget peut
   suivre dans un temps raisonnable) plutôt qu'un quatrième calibrage des
-  mêmes leviers.
+  mêmes leviers. ⚠️ Le repli exact avant `activeSets`/`computeStats`
+  (≈×2,3 sur ce même cas, voir « Suite — repli EXACT… ») accélère la
+  recherche SANS changer quels candidats sont explorés : le cas reste non
+  résolu après ce correctif. La piste de dominance de demi-builds (skyline,
+  voir « Suite — dominance de demi-builds… ») a aussi été mesurée
+  spécifiquement sur ce cas et écartée : à 7 dimensions suivies, même la
+  construction PAR TRANCHES existante (sans aucune skyline) devient déjà
+  trop coûteuse pour aboutir dans un temps raisonnable.
 - **Un set demandé pouvait saturer le pré-filtrage sur TOUS les emplacements,
   pas seulement ceux qui en ont besoin.** Exemple concret remonté : demander
   Rapide seul (4 pièces) sur un compte qui en possède beaucoup pouvait

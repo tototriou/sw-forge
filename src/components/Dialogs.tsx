@@ -80,7 +80,8 @@ function Modale({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-bg/80 p-4"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-bg/80 p-4
+                 animate-[voile_150ms_var(--ease-out)]"
       onClick={onClose}
       role="presentation"
     >
@@ -90,7 +91,11 @@ function Modale({
         aria-modal="true"
         aria-labelledby={labelledBy}
         onClick={(e) => e.stopPropagation()}
-        className="w-full max-w-[400px] rounded-2xl border border-border bg-panel p-5 shadow-glow shadow-black/60"
+        // Le voile en fondu, la boîte en fondu + 8 px de montée. Un peu plus
+        // lente que le voile (200 vs 150 ms) : la boîte finit APRÈS le fond
+        // qu'elle recouvre, sinon elle semble arriver avant lui.
+        className="w-full max-w-[400px] rounded-2xl border border-border bg-panel p-5 shadow-glow shadow-black/60
+                   animate-[dialogue_200ms_var(--ease-out)]"
       >
         {children}
       </div>
@@ -254,7 +259,8 @@ export function KeepAccountDialog({
   const [nePlusMontrer, setNePlusMontrer] = useState(false);
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-bg/80 p-4 backdrop-blur-sm"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-bg/80 p-4 backdrop-blur-sm
+                 animate-[voile_150ms_var(--ease-out)]"
       onClick={onDismiss}
       role="presentation"
     >
@@ -263,7 +269,8 @@ export function KeepAccountDialog({
         aria-modal="true"
         aria-labelledby="keep-account-titre"
         onClick={(e) => e.stopPropagation()}
-        className="w-full max-w-[420px] rounded-2xl border border-border bg-panel p-5 shadow-glow shadow-black/60"
+        className="w-full max-w-[420px] rounded-2xl border border-border bg-panel p-5 shadow-glow shadow-black/60
+                   animate-[dialogue_200ms_var(--ease-out)]"
       >
         <div className="flex items-start gap-3">
           <span className="mt-0.5 flex-none rounded-lg bg-panel2 p-2 text-star">

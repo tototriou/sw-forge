@@ -25,13 +25,20 @@ import { RELEASES, libelleVersion } from '../data/releases';
 const ELEMENT_ORDER: ElementKey[] = ['fire', 'water', 'wind', 'light', 'dark'];
 const SW_EXPORTER = 'https://github.com/Xzandro/sw-exporter';
 
+// ⚠️ La MÊME courbe que le reste de l'app (`--ease-out` de index.css), écrite
+// ici en points de Bézier : Framer ne lit pas les variables CSS dans `ease`.
+// L'`'easeOut'` natif qui était posé là est plus mou — la page d'accueil
+// démarrait sur une courbe que rien d'autre n'utilise.
+// Voir la section « Mouvement » de spec/shared/design.md.
+const EASE_OUT = [0.23, 1, 0.32, 1] as const;
+
 const container = {
   hidden: {},
   show: { transition: { staggerChildren: 0.07, delayChildren: 0.04 } },
 };
 const item = {
   hidden: { opacity: 0, y: 16 },
-  show: { opacity: 1, y: 0, transition: { duration: 0.4, ease: 'easeOut' } },
+  show: { opacity: 1, y: 0, transition: { duration: 0.4, ease: EASE_OUT } },
 };
 
 // Ce que l'accueil sait de l'état local du joueur. Tout vient de `App` : ce sont

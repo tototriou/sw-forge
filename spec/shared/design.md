@@ -206,12 +206,54 @@ Forge assume l'angle vif (le métal, la frappe) ; Atelier reste légèrement ado
 ⚠️ **Jamais `ease-in` sur un élément d'interface** : il démarre lentement, à
 l'instant précis où l'utilisateur regarde. Une même durée paraît plus lente.
 
+⚠️ **Framer Motion ne lit pas les variables CSS** dans son champ `ease`. Les
+courbes s'y écrivent donc en points de Bézier — `[0.23, 1, 0.32, 1]`, la
+constante `EASE_OUT` de l'accueil — et **jamais** en `'easeOut'` natif, qui est
+plus mou : la page démarrait sur une courbe que rien d'autre dans l'app
+n'utilise. Seule exception : `easeInOut` sur une **boucle** de va-et-vient (les
+icônes qui flottent), où l'aller-retour doit ralentir aux deux extrémités.
+
 Durées : pression 150 ms · infobulle 125 ms · popover 150 ms · modale 200 ms.
 **Rien au-dessus de 300 ms** dans l'interface.
 
 ⚠️ **`prefers-reduced-motion: reduce`** coupe les **déplacements** et les boucles
 infinies (les cinq icônes d'élément de l'accueil), **garde les fondus** — un
 mouvement réduit reste un mouvement, pas une absence de retour.
+
+#### Ce qui s'anime, et ce qui ne s'anime pas
+
+⚠️ **La fréquence décide.** Ce qu'on voit cent fois par jour ne s'anime pas :
+l'animation y ajoute une attente à chaque passage, et une interface qu'on
+connaît par cœur doit répondre instantanément. Ce qui est occasionnel peut
+s'annoncer.
+
+| Fréquence | Décision | Exemples ici |
+|-----------|----------|--------------|
+| Permanent, à chaque frappe | **Aucune animation** | Liste de résultats du `MonsterPicker`, tuiles de rune et d'artéfact, filtres |
+| Fréquent | Retour immédiat seulement | Pression au clic (150 ms), survols |
+| Occasionnel | Entrée animée | Menus, popovers, dialogues, retour d'import |
+
+Quatre keyframes, déclarés une fois dans `index.css` :
+
+| Keyframe | Mouvement | Pour |
+|----------|-----------|------|
+| `popover` | fondu + `scale(.96)` | Menus et popovers **ancrés** |
+| `voile` | fondu seul | Le fond d'un dialogue |
+| `dialogue` | fondu + 8 px + `scale(.98)` | La boîte d'un dialogue |
+| `apparition` | fondu + 4 px | Un message ou un bloc qui se pose **en place** |
+
+- ⚠️ **Un flottant ancré grandit depuis SON ANCRE**, jamais depuis son centre :
+  `origin-top-left`, ou `origin-top-right` s'il est calé à droite. Sorti du
+  centre, on cherche des yeux une origine qui ne correspond à rien.
+- ⚠️ **La boîte de dialogue fait exception** et reste centrée : elle n'a pas
+  d'ancre, elle ne sort d'aucun bouton.
+- ⚠️ **Jamais depuis `scale(0)`** : rien n'apparaît de nulle part. `.96` au
+  minimum.
+- ⚠️ **Pas de `scale` sur du texte** (`apparition`) : la mise à l'échelle
+  déforme les lettres pendant l'animation, et rien ne « grandit » — le message
+  se pose, il n'arrive pas de loin.
+- La boîte d'un dialogue est **plus lente que son voile** (200 vs 150 ms) : elle
+  doit finir après le fond qu'elle recouvre, sinon elle semble le précéder.
 
 ## Contraste — mesuré, jamais estimé
 

@@ -389,7 +389,11 @@ export default function RecoCard({
               </button>
             </div>
           )}
-          <div className="flex flex-col gap-2.5">
+          {/* Les decks se posent au dépliage plutôt que d'apparaître d'un bloc.
+              ⚠️ L'animation est sur CE conteneur, déjà présent, et non sur un
+              `<div>` ajouté autour du fragment : un wrapper de plus casserait
+              l'espacement du parent pour un simple effet. */}
+          <div className="flex flex-col gap-2.5 animate-[apparition_180ms_var(--ease-out)]">
             {reco.decks.map((deck, di) => (
               <DeckBlock
                 key={di}

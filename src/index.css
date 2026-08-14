@@ -340,6 +340,49 @@ button:not(:disabled):not([draggable]):not([role='switch']):active,
   }
 }
 
+/* ---- Entrée d'un dialogue ----------------------------------------------- */
+/* Le voile en fondu seul, la boîte en fondu + montée de 8 px.
+   ⚠️ La boîte reste `transform-origin: center` — contrairement au popover,
+   elle n'a PAS d'ancre : elle ne sort pas d'un bouton, elle se pose au centre
+   de l'écran. La faire grandir depuis un coin ferait chercher des yeux une
+   origine qui n'existe pas.
+   Les 8 px de montée suffisent à donner le sens « ça arrive par-dessus » ;
+   au-delà, on regarde la boîte voyager au lieu de lire ce qu'elle demande. */
+@keyframes voile {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+@keyframes dialogue {
+  from {
+    opacity: 0;
+    transform: translateY(8px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+/* ---- Apparition d'un message ou d'un bloc en place ----------------------- */
+/* Fondu + 4 px de montée, sans `scale` : sur une ligne de texte, une mise à
+   l'échelle déforme les lettres pendant l'animation — c'est visible et ça n'a
+   aucun sens ici (rien ne « grandit », le message se pose).
+   Sert au retour d'import et à tout bloc qui apparaît à sa place définitive. */
+@keyframes apparition {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
 ::-webkit-scrollbar {
   width: 10px;
   height: 10px;

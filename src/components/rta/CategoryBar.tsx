@@ -202,7 +202,10 @@ export default function CategoryBar({ cats, monsters }: Props) {
       {/* Panneau d'affectation : tous les monstres de la page. */}
       {open && (
         <div
-          className="mt-2 rounded-xl border p-3"
+          // Le panneau se pose au lieu de surgir : il s'ouvre SOUS la rangée de
+          // catégories et pousse le contenu, un apparaître sec fait sauter la
+          // page. Pas de `scale` — il arrive à sa taille définitive.
+          className="mt-2 rounded-xl border p-3 animate-[apparition_180ms_var(--ease-out)]"
           style={{
             borderColor: withAlpha(open.color, 0.5),
             // Le panneau reprend la teinte de la catégorie ouverte : on sait

@@ -541,7 +541,7 @@ export function eliminateInfeasible(
   totalOf: (k: StatKey, pct: number, flat: number) => number,
   // ⚠️ Réservé aux vérifications de MINIMUM (`bestPct`/`bestFlat` plus bas) —
   // `guaranteed` seul reste utilisé pour les maximums (`worstPct`/
-  // `worstFlat`), voir `unrequestedSetBonusHeadroom`. Par défaut = `guaranteed`
+  // `worstFlat`), voir `additionalSetActivationHeadroom`. Par défaut = `guaranteed`
   // (comportement inchangé) pour les quelques appelants qui n'ont pas encore
   // ce contexte (scripts de mesure).
   guaranteedMin: { pct: Record<string, number>; flat: Record<string, number> } = guaranteed
@@ -633,7 +633,20 @@ export function guaranteedSetBonus(requirement: BuildRequirement, base: BaseStat
 // la revérification via `computeStats` en aval reste la SEULE décision
 // finale. Ne DOIT en revanche jamais SOUS-estimer ce qui est possible : la
 // raison d'être de cette fonction, voir « Limites connues ».
-export function unrequestedSetBonusHeadroom(
+// ⚠️ Suite — généralisée aux sets DÉJÀ demandés qui pourraient s'activer
+// PLUS de fois que le minimum demandé, pas seulement aux sets absents de
+// `requirement.sets` — voir spec/outils/optimizer.md, cas réel Ciri (Energy
+// demandé UNE fois = 1 activation garantie par `guaranteedSetBonus`, mais le
+// pool permet une SECONDE activation d'Energy sur les emplacements
+// « libres » : `guaranteed` seul ne créditait que +15 % PV, la moitié du
+// vrai bonus — `activeSets` sur le build réel donnait bien `energy+shield+
+// energy`, deux activations). La MÊME formule couvre les deux cas : un set
+// NON demandé a 0 pièce déjà réservée par `guaranteedSetBonus` (comportement
+// inchangé, ancien nom `unrequestedSetBonusHeadroom`) ; un set DÉJÀ demandé
+// `n` fois a `n × setPieces(set)` pièces déjà réservées — seul le SURPLUS de
+// pièces disponibles AU-DELÀ de cette réserve compte comme headroom
+// supplémentaire ici.
+export function additionalSetActivationHeadroom(
   pool: RuneDetail[],
   requirement: BuildRequirement,
   base: BaseStats
@@ -642,19 +655,25 @@ export function unrequestedSetBonusHeadroom(
   const flat: Record<string, number> = {};
   const freeSlots = MAX_SET_PIECES - setsCost(requirement.sets);
   if (freeSlots <= 0) return { pct, flat };
-  const requested = new Set(requirement.sets);
+  const requestedOccurrences = new Map<string, number>();
+  for (const key of requirement.sets) requestedOccurrences.set(key, (requestedOccurrences.get(key) ?? 0) + 1);
   const counts = new Map<string, number>();
   for (const r of pool) counts.set(r.set, (counts.get(r.set) ?? 0) + 1);
   for (const [setKey, bonus] of Object.entries(SET_STAT_BONUS)) {
-    if (requested.has(setKey)) continue; // déjà compté dans `guaranteedSetBonus`
     const pieces = setPieces(setKey);
     if (pieces > freeSlots) continue;
+    // Pièces déjà « dépensées » par les activations GARANTIES de ce set
+    // (0 si le set n'est pas demandé du tout) — seul ce qui reste au-delà,
+    // dans le pool réel, peut fournir une activation SUPPLÉMENTAIRE.
+    const alreadyReserved = (requestedOccurrences.get(setKey) ?? 0) * pieces;
     // ⚠️ `Math.min(available, freeSlots)` : le pool peut posséder BEAUCOUP
-    // plus de runes de ce set que d'emplacements libres pour les accueillir
-    // — sans ce plafond, une seule activation possible se compterait comme
-    // plusieurs (ex. 8 runes Blade dans le pool, mais seulement 2
-    // emplacements libres : 1 activation possible, pas 4).
-    const available = counts.get(setKey) ?? 0;
+    // plus de runes de ce set (au-delà de la réserve garantie) que
+    // d'emplacements libres pour les accueillir — sans ce plafond, une
+    // seule activation possible se compterait comme plusieurs (ex. 8 runes
+    // Blade en surplus dans le pool, mais seulement 2 emplacements libres :
+    // 1 activation possible, pas 4).
+    const available = (counts.get(setKey) ?? 0) - alreadyReserved;
+    if (available <= 0) continue;
     const activations = Math.floor(Math.min(available, freeSlots) / pieces);
     if (activations <= 0) continue;
     if (bonus.pct != null) {
@@ -1370,9 +1389,9 @@ export function estimateSearchSpace(
 // `searchBuildsSteps` calculent CHACUN à partir de `minStats`/`maxStats` —
 // factorisé ici pour ne plus le tripler (c'était déjà dupliqué entre les
 // deux premiers avant ce correctif). ⚠️ Dépend maintenant AUSSI de `pool`
-// (pour `guaranteedMin`, voir `unrequestedSetBonusHeadroom`) — seul `pool`
-// lui-même reste traité à part par chaque appelant, sur SA propre étape du
-// pipeline (pré-filtrage par emplacement, dominance, etc.).
+// (pour `guaranteedMin`, voir `additionalSetActivationHeadroom`) — seul
+// `pool` lui-même reste traité à part par chaque appelant, sur SA propre
+// étape du pipeline (pré-filtrage par emplacement, dominance, etc.).
 interface MinMaxContext {
   minEntries: { k: StatKey; min: number }[];
   maxEntries: { k: StatKey; max: number }[];
@@ -1381,9 +1400,9 @@ interface MinMaxContext {
   maxKeys: Set<StatKey>;
   guaranteed: { pct: Record<string, number>; flat: Record<string, number> };
   // Réservé aux vérifications de MINIMUM — `guaranteed` + le bonus qu'un set
-  // NON demandé pourrait apporter par accident (voir
-  // `unrequestedSetBonusHeadroom`). Ne JAMAIS utiliser pour un maximum : voir
-  // son commentaire.
+  // NON demandé, OU DÉJÀ demandé mais activable PLUS de fois que le minimum,
+  // pourrait apporter (voir `additionalSetActivationHeadroom`). Ne JAMAIS
+  // utiliser pour un maximum : voir son commentaire.
   guaranteedMin: { pct: Record<string, number>; flat: Record<string, number> };
   artFlat: Record<string, number>;
   relPct: Record<string, number>;
@@ -1407,7 +1426,7 @@ function deriveMinMaxContext(
   const requiredKeys = new Set(requirement.sets);
   const maxKeys = new Set(maxEntries.map((e) => e.k));
   const guaranteed = guaranteedSetBonus(requirement, base);
-  const guaranteedMin = mergeBonus(guaranteed, unrequestedSetBonusHeadroom(pool, requirement, base));
+  const guaranteedMin = mergeBonus(guaranteed, additionalSetActivationHeadroom(pool, requirement, base));
   const artFlat = artifactFlatBonus(artifacts);
   const relPct = relicPctBonus(relic);
   const baseRec = base as unknown as Record<string, number>;
@@ -1849,11 +1868,13 @@ export function* pairBuckets(
           // gain mesuré. ⚠️ Ne remplace PAS la revérification finale sur les
           // VRAIES stats plus bas : `guaranteedMin` (contrairement à
           // `guaranteed`, utilisé pour le maximum juste en dessous) inclut
-          // `unrequestedSetBonusHeadroom` — le bonus qu'un set NON demandé
-          // pourrait apporter en s'activant sur les emplacements « libres » —
-          // mais reste une borne GLOBALE, pas garantie atteignable par CETTE
-          // paire précise de demi-builds (voir son commentaire) ; seule la
-          // revérification via `computeStats` reste la décision finale.
+          // `additionalSetActivationHeadroom` — le bonus qu'un set NON
+          // demandé, ou DÉJÀ demandé mais activé PLUS de fois que le
+          // minimum, pourrait apporter en s'activant sur les emplacements
+          // « libres » — mais reste une borne GLOBALE, pas garantie
+          // atteignable par CETTE paire précise de demi-builds (voir son
+          // commentaire) ; seule la revérification via `computeStats` reste
+          // la décision finale.
           let quickOk = true;
           for (const { k, min } of minEntries) {
             const p = (comboA.pct[k] ?? 0) + (comboB.pct[k] ?? 0) + (guaranteedMin.pct[k] ?? 0) + (relPct[k] ?? 0);

@@ -237,7 +237,9 @@ export default function testRuneOptimDifferential() {
   // via les emplacements « libres » (non requis par le combo demandé) était
   // invisible de TOUS les élagages (`eliminateInfeasible`, `comboAOk`,
   // `pairFeasible*`, `quickOk`), pas seulement du repli le plus récent —
-  // corrigé par `unrequestedSetBonusHeadroom`/`guaranteedMin`. Pool à un seul
+  // corrigé par `additionalSetActivationHeadroom`/`guaranteedMin` (renommée
+  // depuis, voir « Suite — activation supplémentaire d'un set DÉJÀ demandé »
+  // plus bas dans la spec). Pool à un seul
   // candidat par emplacement (aucune ambiguïté : une seule combinaison
   // possible) — Will (2 pièces, SANS bonus de stat, voir SET_STAT_BONUS) est
   // le set DEMANDÉ ; Blade (2 pièces, +12 Taux Crit PLAT) occupe deux
@@ -296,6 +298,66 @@ export default function testRuneOptimDifferential() {
       const stats = computeStats({ base: BASE, runes, artifacts: [] });
       const cr = stats.find((r) => r.key === 'cr');
       egal(cr?.total, 27, 'scénario dédié (set Blade accidentel) : le candidat trouvé a bien Taux Crit = base(15) + bonus Blade(12) = 27, le bonus accidentel est réellement actif, pas juste supposé');
+    }
+  }
+
+  // ⚠️ Scénario DÉDIÉ — vérifie le correctif « activation supplémentaire d'un
+  // set DÉJÀ demandé » (voir spec/outils/optimizer.md, cas réel Ciri :
+  // Energy demandé UNE fois — 1 activation garantie, +15 % PV — mais le
+  // build réel en active DEUX, `energy+shield+energy`, +30 % PV réels).
+  // `guaranteedSetBonus` ne comptait que l'activation MINIMALE demandée ;
+  // `additionalSetActivationHeadroom` doit désormais anticiper qu'un set
+  // DÉJÀ demandé peut s'activer PLUS de fois si le pool le permet — pas
+  // seulement un set totalement absent de la demande (cas déjà couvert
+  // ci-dessus). Energy (2 pièces, +15 % PV PAR activation) est le set
+  // DEMANDÉ une seule fois ; le pool en fournit 4 (2 activations réelles) ;
+  // Shield (2 pièces, sans bonus de stat) comble les 2 emplacements restants.
+  // Aucune rune ne porte de sub/mainstat PV (codes 1/2) — le SEUL moyen
+  // d'atteindre `minStats.hp` est la SECONDE activation d'Energy.
+  {
+    const energy = (id: number, slot: number, mainCode: number): RuneDetail => ({
+      id,
+      slot,
+      set: 'energy',
+      rank: 6,
+      rarity: 5,
+      level: 15,
+      main: { code: mainCode, value: 20 },
+      subs: [{ code: 3, value: 30 }, { code: 5, value: 15 }, { code: 8, value: 5 }, { code: 11, value: 5 }],
+    });
+    const shield2 = (id: number, slot: number, mainCode: number): RuneDetail => ({
+      id,
+      slot,
+      set: 'shield',
+      rank: 6,
+      rarity: 5,
+      level: 15,
+      main: { code: mainCode, value: 20 },
+      subs: [{ code: 3, value: 30 }, { code: 6, value: 15 }, { code: 8, value: 5 }, { code: 12, value: 5 }],
+    });
+    const pool: RuneDetail[] = [
+      energy(1, 1, 4),
+      energy(2, 2, 6),
+      energy(3, 3, 3),
+      energy(4, 4, 5),
+      shield2(5, 5, 3),
+      shield2(6, 6, 4),
+    ];
+    const requirement: BuildRequirement = { sets: ['energy'], minStats: { hp: 10000 } };
+
+    const ref = bruteForce(pool, BASE, requirement);
+    egal(ref.count, 1, 'scénario dédié (activation Energy supplémentaire) : la référence trouve bien la combinaison (base PV=8000 + 2 activations Energy à +15 % chacune = 10400 ≥ 10000)');
+
+    const res = searchBuilds({ base: BASE, artifacts: [], pool, requirement, metric: 'eff' });
+    egal(res.candidates.length, 1, "scénario dédié (activation Energy supplémentaire) : CORRECTIF confirmé — le moteur trouve désormais la combinaison, `guaranteedMin` anticipe la SECONDE activation d'Energy dès `eliminateInfeasible`");
+    if (res.candidates.length > 0) {
+      const byId = new Map(pool.map((r) => [r.id, r]));
+      const runes = res.candidates[0].runeIds.map((id) => byId.get(id)!);
+      const active = activeSets(runes.map((r) => r.set));
+      egal(active.filter((s) => s === 'energy').length, 2, 'scénario dédié (activation Energy supplémentaire) : le candidat trouvé active bien Energy DEUX fois, pas une seule');
+      const stats = computeStats({ base: BASE, runes, artifacts: [] });
+      const hp = stats.find((r) => r.key === 'hp');
+      egal(hp?.total, 10400, 'scénario dédié (activation Energy supplémentaire) : PV = base(8000) + 2×15 %(2400) = 10400, la seconde activation est réellement active, pas juste supposée');
     }
   }
 }

@@ -19,21 +19,26 @@ import { readFileSync } from 'fs';
 
 const USAGE =
   'Usage: set-relax-diag.ts <export.json> <deckId> <nomMonstre> <setsRelaches, ex: rage> [statKeys=atk,cr,cd] [objective=none] [slotFilterCap=80] [--explore-all]';
+// ⚠️ `--defense` doit rester dans le tableau passé à `parseDeckMonsterArgs`
+// (elle le retire ELLE-MÊME, où qu'il apparaisse) — le retirer ICI AVANT de
+// slicer les positionnels le ferait disparaître silencieusement s'il
+// n'est pas dans les 3 tout premiers arguments, un piège rencontré en
+// écrivant ce script (deckId défense introuvable, confondu avec un deck
+// offense de même identifiant numérique).
 const exploreAll = process.argv.includes('--explore-all');
-const positional = process.argv.slice(2).filter((a) => a !== '--explore-all');
-const args = parseDeckMonsterArgs(positional.slice(0, 3), USAGE);
-const relaxedSetsArg = positional[3];
+const args = parseDeckMonsterArgs(process.argv.slice(2).filter((a) => a !== '--explore-all'), USAGE);
+const relaxedSetsArg = args.rest[0];
 if (!relaxedSetsArg) {
   console.error(USAGE);
   process.exit(1);
 }
 const relaxedSets = relaxedSetsArg.split(',').map((s) => s.trim());
-const statKeysArg = positional[4] ?? 'atk,cr,cd';
+const statKeysArg = args.rest[1] ?? 'atk,cr,cd';
 const statKeys = statKeysArg.split(',').map((s) => s.trim());
-const objectiveArg = positional[5] ?? 'none';
+const objectiveArg = args.rest[2] ?? 'none';
 const objective = (objectiveArg === 'none' ? undefined : objectiveArg) as Objective | undefined;
-const slotFilterCap = positional[6] ? Number(positional[6]) : 80;
-const bucketCapOverride = positional[7] ? Number(positional[7]) : undefined;
+const slotFilterCap = args.rest[3] ? Number(args.rest[3]) : 80;
+const bucketCapOverride = args.rest[4] ? Number(args.rest[4]) : undefined;
 
 const { gear, allRunes } = loadDeckMonster(args);
 
@@ -89,6 +94,21 @@ function testWith(label: string, sets: string[]) {
     return;
   }
   console.log(`bucketCap utilisé : ${prepared.bucketCap}`);
+  console.log(`guaranteed (bonus de set, sets DEMANDÉS uniquement) : pct=${JSON.stringify(prepared.guaranteed.pct)} flat=${JSON.stringify(prepared.guaranteed.flat)}`);
+  console.log(`guaranteedMin (+ bonus de set NON demandé anticipé) : pct=${JSON.stringify(prepared.guaranteedMin.pct)} flat=${JSON.stringify(prepared.guaranteedMin.flat)}`);
+  const realStats = computeStats(gear);
+  console.log(`Stats RÉELLES du build cible : ${realStats.map((r) => `${r.key}=${r.total}`).join(' ')}`);
+  console.log(`Sets RÉELLEMENT actifs sur le build cible : ${activeSets(gear.runes.map((r) => r.set)).join('+')}`);
+  // ⚠️ headroom SEUL (guaranteedMin - guaranteed), pour voir précisément ce
+  // que `unrequestedSetBonusHeadroom` ajoute (ou n'ajoute pas) — sépare la
+  // question « le headroom est-il seulement mal calculé (joker ignoré) » de
+  // « le headroom est correct mais n'empêche pas la dilution de compartiment
+  // (bucketCap) de rejeter quand même le demi-build ».
+  const headroomPct: Record<string, number> = {};
+  const headroomFlat: Record<string, number> = {};
+  for (const k of Object.keys(prepared.guaranteedMin.pct)) headroomPct[k] = (prepared.guaranteedMin.pct[k] ?? 0) - (prepared.guaranteed.pct[k] ?? 0);
+  for (const k of Object.keys(prepared.guaranteedMin.flat)) headroomFlat[k] = (prepared.guaranteedMin.flat[k] ?? 0) - (prepared.guaranteed.flat[k] ?? 0);
+  console.log(`headroom SEUL (unrequestedSetBonusHeadroom) : pct=${JSON.stringify(headroomPct)} flat=${JSON.stringify(headroomFlat)}`);
   const bucketsA = drain(
     buildBuckets('A', [0, 1, 2], prepared.filtered, prepared.distinctKeys, prepared.constrainedKeys, prepared.retentionKeys, prepared.minEntries, prepared.bucketCap, prepared.maxSetsForA, prepared.jokerCredit, prepared.requiredPieces)
   );

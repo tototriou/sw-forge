@@ -1829,6 +1829,56 @@ a révélé que l'hypothèse initiale (« c'est `pairFeasibleMin` qui manque »)
 était incomplète. Mesurer sur le cas réel AVANT d'annoncer un correctif
 comme résolu (pas seulement après) reste la discipline à suivre.
 
+### Suite — activation supplémentaire d'un set DÉJÀ demandé (`additionalSetActivationHeadroom`)
+
+**Signalé sur un vrai compte** (`ß☆Enzo-6399149.json`, Ciri, défense équipe
+3 — statistique principale PV/PV/PV, objectif PV effectifs, PV/DEF/VIT/
+Précision exacts) : demander Energy(2p)+Shield(2p)+Energy(2p) retrouve le
+build réel ; relâcher à Energy+Shield SEUL (retirer une des deux occurrences
+d'Energy — une contrainte strictement plus large) ne le retrouve PAS, alors
+que les DEUX demi-builds réels restent parfaitement présents et bien classés
+dans leurs compartiments (`rang #1290/4655` et `#2/784` — PAS le mécanisme de
+dilution ci-dessus, vérifié explicitement en isolant les deux causes).
+
+**Cause distincte, confirmée par la mesure** : `guaranteedSetBonus` ne
+compte QU'UNE activation d'Energy (une seule occurrence dans
+`requirement.sets`, soit `pct.hp = 15`), alors que le build réel active
+Energy **deux fois** (`activeSets` sur le build réel : `energy+shield+
+energy`) — +30 % PV réels, pas +15 %. `eliminateInfeasible`/`pairFeasibleMin`/
+`comboAOk` sous-estiment donc le PV maximal atteignable et rejettent le
+build à tort, avant même la revérification finale. Même famille que le
+correctif « bonus de set NON demandé » plus haut, mais pour un set qui EST
+demandé — un angle mort différent, non couvert par `guaranteedMin` tel
+qu'il existait.
+
+**Corrigé en généralisant** `unrequestedSetBonusHeadroom` en
+`additionalSetActivationHeadroom` : la MÊME formule couvre maintenant les
+deux cas — un set NON demandé a 0 pièce déjà réservée par
+`guaranteedSetBonus` (comportement inchangé) ; un set DÉJÀ demandé `n` fois
+a `n × setPieces(set)` pièces déjà réservées, et seul le SURPLUS de pièces
+disponibles dans le pool AU-DELÀ de cette réserve compte comme headroom
+supplémentaire. Un seul appel, un seul filtre, à la place de deux concepts
+séparés.
+
+⚠️ **Fausse piste explicitement écartée avant ce correctif** : le joker
+(rune Intangible) présent sur le build cible n'est PAS la cause — vérifié en
+isolant le headroom (voir « Suite — dilution des compartiments » ci-dessus,
+même vérification appliquée ici) : ni la cause de ce bug-ci, ni du bug de
+dilution des compartiments. Les DEUX bugs se sont avérés indépendants, tous
+les deux confirmés par la mesure avant correction.
+
+**Vérifié** : un scénario différentiel dédié
+([tests/rune-optim-differential.test.ts](tests/rune-optim-differential.test.ts))
+— Energy demandé une fois, le pool en fournit 4 (2 activations réelles),
+Shield comble les emplacements restants, aucune rune ne porte de PV brut —
+confirme que le moteur trouve désormais la combinaison (PV = base(8000) +
+2×15 % = 10400), avec Energy réellement actif deux fois. Reproduit sur le
+compte réel : le build Ciri est retrouvé de façon exhaustive
+(`totalPairCount` = paires explorées = 5 817 892, aucune troncature).
+Sonia (deck 6, le cas ayant motivé le premier correctif `guaranteedMin`)
+revérifié sans régression après cette généralisation — mêmes 86 818 232
+paires, même résultat. 365 vérifications passent, `tsc --noEmit` propre.
+
 ## Limites connues
 
 - ~~Un set NON demandé qui s'activerait par accident via les emplacements
@@ -1921,6 +1971,31 @@ comme résolu (pas seulement après) reste la discipline à suivre.
   une troisième fois… ») — chaque relèvement recule le mur d'un cran sans
   jamais le résoudre pour de bon, et une contrainte relâchée peut toujours
   diluer davantage qu'un relèvement ponctuel ne peut couvrir.
+  ⚠️ **Piste creusée pour ce cas précis : le joker (rune Intangible) n'est
+  JAMAIS crédité, dans le CLASSEMENT au sein d'un compartiment, de la valeur
+  qu'il débloque en complétant un set.** Vérifié précisément dans le code :
+  un joker obtient bien une place RÉSERVÉE au pré-filtrage par emplacement
+  (`filterSlot`, tranche `matches`, inconditionnel — voir plus haut) et sa
+  propre dimension dans la signature d'un compartiment (`jokers` dans
+  `bucketKeyOf`, séparé du compte de pièces) — mais `retentionScore`/
+  `combinedRetentionScore` (ce qui décide QUI survit à `bucketCap` DANS un
+  compartiment) ne lisent que `pct`/`flat`, la somme des SOUS-STATS BRUTES
+  des 3 runes du demi-build — jamais le bonus de set que la présence du
+  joker pourrait débloquer, qui vit uniquement dans `guaranteed`/
+  `guaranteedMin`, une CONSTANTE GLOBALE ajoutée pareillement à tous les
+  demi-builds, invisible à ce classement. Un demi-build à joker médiocre en
+  sous-stats brutes mais qui complète un set précieux ne reçoit donc AUCUN
+  avantage de classement pour cela — même mécanisme « généraliste noyé
+  parmi des spécialistes » que documenté plus haut pour Sonia, mais
+  potentiellement aggravé pour les demi-builds à joker en particulier.
+  ⚠️ Confirmé comme une nuance RÉELLE mais DISTINCTE de la cause du cas
+  Lushen ci-dessus : `unrequestedSetBonusHeadroom` (l'estimation, pas le
+  classement) crédite déjà correctement le bonus Blade même sans tenir
+  compte du joker dans CE cas précis (assez de vraies runes Blade dans le
+  pool pour ne pas en avoir besoin) — vérifié en isolant le headroom seul.
+  Le joker n'est donc PAS l'explication du cas Lushen, mais reste une piste
+  distincte à surveiller sur un compte avec moins de runes disponibles pour
+  le set concerné.
 - Artéfacts et relique du monstre restent fixes ; l'outil ne travaille que
   sur les runes.
 - L'exclusion v1 ne connaît que la **box** (6★ équipés) ; RTA, Siège et

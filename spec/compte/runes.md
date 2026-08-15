@@ -146,12 +146,25 @@ en parcourant 2 000 runes.
   valeur poussée au bord droit de la case : « VIT +26 +5 » se lit d'un bloc, là
   où une valeur cadrée à droite oblige l'œil à traverser du vide sur chaque
   ligne. C'est le rendu du jeu.
+- ⚠️ **Un clic sur la carte bascule détail ↔ total.** « VIT +26 +5 » devient
+  « VIT +31 » : la première lecture sert à **juger** une rune (ce qu'elle valait
+  d'origine, ce que la meule a ajouté), la seconde à la **comparer** à un
+  minimum, où seul le total compte. Les deux sont utiles, d'où la bascule plutôt
+  qu'un choix.
+  - ⚠️ **Le total prend la couleur du BONUS** (orange) dès qu'une meule entre
+    dedans : le nombre n'est plus la valeur d'origine, et le laisser en blanc
+    ferait croire qu'on lit toujours la base. La couleur dit « ce nombre inclut
+    la meule ».
+  - ⚠️ Une rune **sans aucune meule n'est pas cliquable** : les deux lectures y
+    sont identiques, et un clic sans effet se lit comme un défaut.
+  - L'état est **propre à chaque carte** et n'est pas mémorisé : c'est un coup
+    d'œil, pas un réglage.
 - La ligne **recherchée** prend un **liseré d'accent + un fond à 8 %**, avec les
   compensations qui l'annulent exactement — sinon elle se décale par rapport aux
   autres, et c'est ce décalage qu'on voit en premier.
 - **Bonus de set** en pied, comme dans le jeu.
-- ⚠️ **Plus de popover au clic** : il n'aurait rien montré de plus. La tuile
-  n'est donc plus cliquable — un bouton qui ne fait rien se lit comme un défaut.
+- ⚠️ **Plus de popover au clic** : il n'aurait rien montré de plus, tout étant
+  déjà sur la tuile. Le clic sert désormais à basculer détail ↔ total.
 - Grille à **215 px** : c'est la largeur en dessous de laquelle la bannière de
   rareté passe **sous** la stat principale — chaque tuile gagne alors une ligne,
   l'inverse du but. En mode compact, la bannière perd son espacement de lettres

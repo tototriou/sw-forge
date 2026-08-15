@@ -67,11 +67,66 @@ export function RuneDetailBox({
   const ancient = rune.rank > 10;
   const metric = useRuneMetric();
   const metricHint = RUNE_METRICS.find((m) => m.key === metric)?.hint;
+
+  // ── Détail / total, au clic ─────────────────────────────────────────────
+  //
+  // Le jeu montre « VIT +26 +5 » : la valeur d'origine et ce que la meule a
+  // ajouté. C'est ce qu'il faut pour juger une rune — mais pas pour la comparer
+  // à un minimum, où seul le TOTAL compte. Un clic bascule donc entre les deux
+  // lectures, sur toute la carte.
+  //
+  // ⚠️ Le total prend la couleur du BONUS (orange), pas celle de la base : il
+  // n'est plus la valeur d'origine, et le garder en blanc laisserait croire
+  // qu'on lit toujours la base. La couleur dit « ce nombre inclut la meule ».
+  const [total, setTotal] = useState(false);
+  // Une rune sans aucune meule n'a rien à basculer : les deux lectures y sont
+  // identiques, et un clic sans effet se lit comme un défaut.
+  const aDeLaMeule = rune.subs.some((s) => (s.grind ?? 0) > 0);
+
   return (
     // ⚠️ Fond OPAQUE : cette carte s'affiche dans un popover flottant au-dessus
     // de la grille de runes. Un fond translucide laissait voir les tuiles
     // derrière et rendait le détail illisible.
-    <div className={`rounded-lg border border-border bg-panel2 ${compact ? 'p-2' : 'p-3'}`}>
+    <div
+      // ⚠️ `role="button"` sur le conteneur plutôt qu'un `<button>` autour :
+      // la carte contient déjà des éléments interactifs ailleurs (le popover
+      // l'utilise dans un contexte cliquable), et imbriquer des boutons est
+      // invalide. Ici la carte entière est la cible — c'est le geste du jeu.
+      // ⚠️ `stopPropagation` : dans un popover, la carte est posée à l'intérieur
+      // d'une zone dont le clic referme le flottant. Sans ça, basculer les
+      // valeurs fermait le détail qu'on est en train de lire.
+      onClick={
+        aDeLaMeule
+          ? (e) => {
+              e.stopPropagation();
+              setTotal((v) => !v);
+            }
+          : undefined
+      }
+      onKeyDown={
+        aDeLaMeule
+          ? (e) => {
+              if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                setTotal((v) => !v);
+              }
+            }
+          : undefined
+      }
+      role={aDeLaMeule ? 'button' : undefined}
+      tabIndex={aDeLaMeule ? 0 : undefined}
+      aria-pressed={aDeLaMeule ? total : undefined}
+      title={
+        aDeLaMeule
+          ? total
+            ? 'Voir le détail (valeur d’origine + meule)'
+            : 'Voir les valeurs totales, meule comprise'
+          : undefined
+      }
+      className={`rounded-lg border border-border bg-panel2 ${compact ? 'p-2' : 'p-3'} ${
+        aDeLaMeule ? 'cursor-pointer transition hoverable:border-accent' : ''
+      }`}
+    >
       {/* En-tête : l'image à gauche, la stat principale au centre, la rareté et
           la mesure à droite. ⚠️ Sur une seule ligne en compact : la rareté et
           l'efficience occupaient leur propre bloc en haut à droite, soit deux
@@ -148,15 +203,27 @@ export function RuneDetailBox({
                 compact ? 'text-[11.5px]' : 'text-[12.5px]'
               } ${vise ? '-mx-1 rounded border-l-2 border-accent bg-accent/[0.08] pl-[2px] pr-1' : ''}`}
             >
-              <span className="text-ink">
-                {label} {base}
-                {suffix}
-              </span>
-              {grind > 0 && (
-                <span className="text-orange-400 font-semibold">
-                  +{grind}
+              {total ? (
+                // Cumulé. ⚠️ En ORANGE (la couleur du bonus) dès qu'une meule
+                // entre dedans : le nombre n'est plus la valeur d'origine, et le
+                // laisser en blanc ferait croire qu'on lit toujours la base.
+                <span className={grind > 0 ? 'font-semibold text-orange-400' : 'text-ink'}>
+                  {label} {s.value}
                   {suffix}
                 </span>
+              ) : (
+                <>
+                  <span className="text-ink">
+                    {label} {base}
+                    {suffix}
+                  </span>
+                  {grind > 0 && (
+                    <span className="text-orange-400 font-semibold">
+                      +{grind}
+                      {suffix}
+                    </span>
+                  )}
+                </>
               )}
               {s.enchant && <RotateCw size={11} className="text-orange-400" />}
             </div>

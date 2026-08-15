@@ -344,6 +344,23 @@ selon la façon dont on l'a activé est un bug indétectable à la lecture.
 
 ## Règles transverses
 
+### ⚠️ Les tokens sont des TRIPLETS, pas des couleurs
+
+Les variables de couleur valent `43 54 165`, **pas** `#2b36a5` : c'est ce qui
+permet à Tailwind d'y appliquer une opacité (`bg-accent/10`). Elles ne sont donc
+utilisables **que** enveloppées :
+
+```
+stroke="rgb(var(--accent))"   ✅
+stroke="var(--accent)"        ❌ attribut invalide → RIEN n'est peint
+```
+
+⚠️ **L'échec est SILENCIEUX** : pas d'erreur, pas d'avertissement, le trait
+n'existe simplement pas. C'est ce qui a rendu invisibles les repères verticaux
+des courbes de runes. Le piège guette surtout les **attributs SVG**
+(`stroke`, `fill`), où l'on écrit la couleur à la main au lieu de passer par une
+classe Tailwind.
+
 ### Aucune couleur Tailwind native
 
 ⚠️ **`amber-400`, `emerald-500`, `sky-300` sont interdits.** Ce sont des valeurs

@@ -326,7 +326,7 @@ export default function CurveChart({
                   y1={PAD_T}
                   x2={hx}
                   y2={PAD_T + IH}
-                  stroke="var(--accent)"
+                  stroke="rgb(var(--accent))"
                   strokeWidth="1"
                   strokeDasharray="3 3"
                 />
@@ -366,7 +366,11 @@ export default function CurveChart({
             se lisait comme un autre objet, une graduation du graphe. Il est
             simplement plus marqué (2 px, tirets plus longs), et il SURVIT au
             départ du pointeur : c'est lui qui dit d'où sort le détail lu en
-            dessous, une fois la souris partie vers les flèches. */}
+            dessous, une fois la souris partie vers les flèches.
+            ⚠️ `rgb(var(--accent))` et NON `var(--accent)` : les tokens de
+            couleur sont des TRIPLETS (« 43 54 165 »), pas des couleurs CSS.
+            Posé nu dans un attribut SVG, le trait n'était tout simplement pas
+            peint — invisible, sans erreur. Voir spec/shared/design.md. */}
         {choisi && runesChoisies.length > 0 && (
           <g pointerEvents="none">
             <line
@@ -374,7 +378,7 @@ export default function CurveChart({
               y1={PAD_T}
               x2={x(choisi.rang)}
               y2={PAD_T + IH}
-              stroke="var(--accent)"
+              stroke="rgb(var(--accent))"
               strokeWidth="2"
               strokeDasharray="5 3"
             />
@@ -391,7 +395,7 @@ export default function CurveChart({
                 cy={y(val)}
                 r="3.6"
                 fill={serie.color}
-                stroke="var(--accent)"
+                stroke="rgb(var(--accent))"
                 strokeWidth="1.2"
               />
             ))}

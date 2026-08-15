@@ -1,7 +1,21 @@
 import { useState } from 'react';
 import { Modale } from '../Dialogs';
 import { BOUTON_PRIMAIRE, BOUTON_SECONDAIRE } from '../buttonStyles';
-import { Critere } from './CritereCase';
+
+// Un critère de recherche : une propriété et son intervalle.
+//
+// ⚠️ Les critères sont ORDONNÉS, et cet ordre est celui du **tri** : le premier
+// classe la liste, le deuxième départage les ex æquo, et ainsi de suite —
+// exactement comme la recherche détaillée du jeu. Ce n'est donc pas une simple
+// liste de cases à cocher : la position de chaque critère porte du sens.
+export interface Critere {
+  code: number;
+  min: number; // seuil bas, en unité de la propriété (%, ou points si plate)
+  // Seuil haut. ⚠️ `undefined` = pas de plafond, ce qui n'est PAS la même chose
+  // que 0 : le jeu propose un Min ET un Max par propriété, et laisser le Max
+  // vide veut dire « peu importe jusqu'où », pas « au plus zéro ».
+  max?: number;
+}
 
 // « Recherche détaillée de sous-propriétés » — la modale du JEU, reprise telle
 // quelle : toutes les propriétés listées d'un coup, chacune avec sa case à
@@ -20,6 +34,7 @@ export default function SubSearchDialog({
   options,
   criteres,
   max,
+  largeur = 'max-w-[380px]',
   onValider,
   onClose,
 }: {
@@ -27,6 +42,10 @@ export default function SubSearchDialog({
   options: { code: number; label: string }[];
   criteres: Critere[];
   max: number; // nombre de critères simultanés (4 : autant que de propriétés)
+  // ⚠️ Réglée par l'appelant : les libellés de RUNE font trois lettres (« VIT »)
+  // là où ceux d'un ARTÉFACT tiennent en une phrase (« Dégâts sur le Feu +X% »).
+  // Une largeur unique tronquerait les seconds ou noierait les premiers.
+  largeur?: string;
   onValider: (c: Critere[]) => void;
   onClose: () => void;
 }) {
@@ -76,7 +95,7 @@ export default function SubSearchDialog({
     <Modale
       onClose={onClose}
       labelledBy="sub-search-titre"
-      largeur="max-w-[380px]"
+      largeur={largeur}
       padding="p-3.5"
     >
       {/* Titre et compteur sur la MÊME ligne : le compteur est une jauge de ce

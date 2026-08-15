@@ -133,6 +133,23 @@ Blocs, dans l'ordre :
   antique ; petit décalage de l'icône le long de l'axe d'orientation par slot) ;
   à côté la **stat principale** ; en dessous la **valeur** dans la mesure choisie
   (teintée par rareté).
+- ⚠️ **Les 4 propriétés secondaires sont SUR la tuile**, sous un filet — pas
+  seulement dans le popover. C'est ce qu'on cherche en parcourant l'inventaire
+  (« qui porte de la VIT ? »), et ouvrir les runes une par une pour le savoir
+  rendait la liste inutilisable. Même règle que les tuiles d'artéfact.
+  - Chaque ligne : le **libellé**, la **valeur** (meule comprise), et la **part
+    de meule** rappelée à part en vert — c'est elle qui distingue une rune née
+    haute d'une rune poussée (voir le tri « avant meule »).
+  - La ligne **recherchée** prend un **liseré d'accent + un fond à 8 %**, avec
+    les compensations qui annulent exactement ce liseré : sans elles, la ligne
+    visée se décale par rapport aux trois autres, et c'est ce décalage qu'on voit
+    en premier au lieu de la propriété. Même écho de filtre que sur un artéfact.
+  - ⚠️ Le bloc est **toujours rendu**, même sans substat (une rune fraîche n'en
+    a aucun) : sans lui, les tuiles n'auraient pas la même hauteur et la grille
+    se déchirerait d'une ligne à l'autre.
+  - La grille passe à **200 px** de tuile (contre 150) : à 150, le libellé et sa
+    valeur se chevauchaient. Reste plus étroit que les artéfacts (240 px), dont
+    les libellés tiennent en une phrase.
 - **Détail au clic** : carte récap façon jeu (`RuneDetailBox`) en **popover
   flottant** à **placement automatique** ([DetailPopover.tsx](src/components/account/DetailPopover.tsx)) —
   s'ouvre vers la gauche/haut près d'un bord, jamais coupée, ne décale pas la grille.
@@ -246,11 +263,10 @@ Deux pièces, reprises telles quelles :
   - Un **min à 0 s'affiche vide** : zéro ne filtre rien, le champ montre donc son
     placeholder comme s'il n'était pas rempli.
 
-> L'inventaire d'**artéfacts** garde sa grille de
-> [CritereCase.tsx](src/components/account/CritereCase.tsx) (un seuil, pas de
-> plafond) : ses libellés tiennent en une phrase (« Dégâts sur le Feu +X% »), là
-> où ceux d'une rune font trois lettres — la contrainte de place qui a motivé la
-> modale ne s'y pose pas.
+> L'inventaire d'**artéfacts** utilise **le même dispositif** (voir
+> [artefacts.md](artefacts.md)) : mêmes composants, même bascule, même modale.
+> Seule la **largeur** diffère — 520 px là-bas, 380 ici : « Dgts supp. en prop.
+> de ATQ » ne tient pas dans la largeur d'un « VIT ».
 - **Pagination** ([Pager.tsx](src/components/account/Pager.tsx)) : 60 tuiles/page
   → DOM borné (fluide même à ~2000 runes). Composant **partagé par toutes les
   listes paginées** de l'app.

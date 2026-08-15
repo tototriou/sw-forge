@@ -12,7 +12,7 @@ import SlotFilter from './SlotFilter';
 import RuneSlotIcon from '../RuneSlotIcon';
 import { RuneDetailBox } from '../MonsterGear';
 import Pager from './Pager';
-import { Critere } from './CritereCase';
+import { Critere } from './SubSearchDialog';
 import SubSearchBar from './SubSearchBar';
 import DetailPopover from './DetailPopover';
 import {
@@ -67,7 +67,7 @@ export default function RunesList({ runes }: Props) {
   // `sort` lève, page blanche à la clé.
   const sort = estTriConnu(sortBrut) ? sortBrut : 'score';
   // Propriétés cherchées, dans l'ordre de priorité — même grammaire que
-  // l'inventaire d'artéfacts (voir CritereCase).
+  // l'inventaire d'artéfacts (voir SubSearchDialog).
   //
   // ⚠️ QUATRE au plus : une rune ne porte que 4 propriétés secondaires, un
   // cinquième critère ne pourrait jamais être satisfait.
@@ -75,6 +75,8 @@ export default function RunesList({ runes }: Props) {
   // La modale ne pose que des critères complets ; ce garde-fou couvre un état
   // mémorisé d'une version antérieure, où une case vide valait `{code: 0}`.
   const actifs = useMemo(() => criteres.filter((c) => c.code > 0), [criteres]);
+  // Codes recherchés : les tuiles s'en servent pour surligner la ligne visée.
+  const cherches = useMemo(() => new Set(actifs.map((c) => c.code)), [actifs]);
   const metric = useRuneMetric(); // choix PARTAGÉ avec les autres vues
   const [page, setPage] = useState(0);
   const [openId, setOpenId] = useState<number | null>(null);
@@ -169,7 +171,7 @@ export default function RunesList({ runes }: Props) {
         </div>
 
         {/* Propriété secondaire — la barre du JEU : quatre cases de rappel
-            et un « … » qui ouvre la recherche détaillée.
+            et la bascule 2 ↔ 4 à côté.
             ⚠️ Les cases sont ORDONNÉES : la 1ʳᵉ sert aussi de clé aux deux tris
             « propriété secondaire ». La position porte donc du sens. */}
         <div className="flex flex-wrap items-start gap-2">
@@ -236,9 +238,19 @@ export default function RunesList({ runes }: Props) {
           Clé POSITIONNELLE (et non `row.id`) : la tuile est réutilisée quand la
           page/le filtre change, donc le cadre pivote vers son nouveau slot au
           lieu d'être remonté d'un coup. Voir SPIN dans RuneSlotIcon. */}
-      <div className="grid grid-cols-[repeat(auto-fill,minmax(150px,1fr))] gap-2 items-start">
+      {/* ⚠️ 200 px et non 150 : la tuile porte désormais ses 4 substats, et à
+          150 px le libellé et sa valeur se chevauchaient. Reste plus étroit que
+          les artéfacts (240 px), dont les libellés tiennent en une phrase. */}
+      <div className="grid grid-cols-[repeat(auto-fill,minmax(200px,1fr))] gap-2 items-start">
         {shown.map((row, i) => (
-          <RuneTile key={i} row={row} metric={metric} open={openId === row.id} onToggle={toggleOpen} />
+          <RuneTile
+            key={i}
+            row={row}
+            metric={metric}
+            cherches={cherches}
+            open={openId === row.id}
+            onToggle={toggleOpen}
+          />
         ))}
       </div>
 
@@ -257,11 +269,13 @@ export default function RunesList({ runes }: Props) {
 const RuneTile = memo(function RuneTile({
   row,
   metric,
+  cherches,
   open,
   onToggle,
 }: {
   row: RuneRow;
   metric: RuneMetric;
+  cherches: Set<number>; // codes recherchés → la ligne est surlignée
   open: boolean;
   onToggle: (id: number) => void;
 }) {
@@ -275,21 +289,83 @@ const RuneTile = memo(function RuneTile({
       ref={ref}
       className={`relative rounded-lg border bg-panel ${open ? 'z-20 border-accent' : 'border-border'}`}
     >
-      <button onClick={() => onToggle(row.id)} className="w-full flex items-center gap-2.5 p-2 text-left">
-        <RuneSlotIcon slot={rune.slot} setKey={rune.set} rarity={rune.rarity} ancient={ancient} height={46} />
-        <div className="min-w-0 flex-1">
-          <div className="text-[13px] font-bold text-ink leading-tight truncate">
-            {formatRuneEffect(rune.main)}
+      <button onClick={() => onToggle(row.id)} className="w-full p-2 text-left">
+        <div className="flex items-center gap-2.5">
+          <RuneSlotIcon
+            slot={rune.slot}
+            setKey={rune.set}
+            rarity={rune.rarity}
+            ancient={ancient}
+            height={46}
+          />
+          <div className="min-w-0 flex-1">
+            <div className="text-[13px] font-bold text-ink leading-tight truncate">
+              {formatRuneEffect(rune.main)}
+            </div>
+            <div className="mt-0.5 font-mono text-[11px] text-ink-dim leading-tight">
+              {runeMetricLabel(metric)}{' '}
+              {/* `meta.ink` et non `meta.color` : c'est du TEXTE sur un panneau,
+                  pas la bannière de rareté. Les couleurs vives du jeu sont
+                  illisibles sur fond clair. Voir RARITY_META. */}
+              <b style={{ color: meta.ink }}>
+                {formatRuneMetric(metric === 'eff' ? row.eff : row.score, metric)}
+              </b>
+            </div>
           </div>
-          <div className="mt-0.5 font-mono text-[11px] text-ink-dim leading-tight">
-            {runeMetricLabel(metric)}{' '}
-            {/* `meta.ink` et non `meta.color` : c'est du TEXTE sur un panneau,
-                pas la bannière de rareté. Les couleurs vives du jeu sont
-                illisibles sur fond clair. Voir RARITY_META. */}
-            <b style={{ color: meta.ink }}>
-              {formatRuneMetric(metric === 'eff' ? row.eff : row.score, metric)}
-            </b>
-          </div>
+        </div>
+
+        {/* ⚠️ Les substats sont sur la TUILE, pas seulement dans le popover :
+            c'est ce qu'on cherche en parcourant l'inventaire (« qui porte de la
+            VIT ? »), et ouvrir les runes une par une pour le savoir rendait la
+            liste inutilisable. Même règle que les tuiles d'artéfact.
+            ⚠️ Le bloc est TOUJOURS rendu, même sans substat (une rune fraîche
+            n'en a aucun) : sans lui, les tuiles n'auraient pas la même hauteur
+            et la grille se déchirerait d'une ligne à l'autre. */}
+        <div className="mt-1.5 space-y-[3px] border-t border-border/40 pt-1.5">
+          {rune.subs.length === 0 && (
+            <div className="text-[10.5px] italic leading-tight text-ink-dim">
+              aucune propriété secondaire
+            </div>
+          )}
+          {rune.subs.map((s, j) => {
+            const def = RUNE_EFFECT[s.code];
+            // Ligne RECHERCHÉE : c'est celle qu'on est venu voir. Un liseré
+            // d'accent + un fond à 8 %, rien de plus — l'œil balaie 60 tuiles,
+            // il faut savoir où regarder sans que la ligne se mette à crier.
+            // Même écho de filtre que sur un artéfact.
+            const vise = cherches.has(s.code);
+            // La meule, rappelée à part : c'est elle qui distingue une rune née
+            // haute d'une rune poussée (voir le tri « avant meule »).
+            const meule = s.grind ?? 0;
+            return (
+              <div
+                key={j}
+                // Les compensations (`-mx-1`, `pl-[2px]`, `pr-1`) annulent
+                // exactement le liseré et le fond : sans elles, la ligne visée
+                // se décale par rapport aux trois autres, et c'est ce décalage
+                // qu'on voit en premier au lieu de la propriété.
+                className={`flex items-baseline gap-1.5 text-[10.5px] leading-tight ${
+                  vise ? '-mx-1 rounded border-l-2 border-accent bg-accent/[0.08] pl-[2px] pr-1' : ''
+                }`}
+              >
+                <span className="min-w-0 flex-1 truncate text-ink-dim">
+                  {def?.label ?? `#${s.code}`}
+                </span>
+                <span className="flex-none font-mono tabular-nums text-ink">
+                  +{s.value}
+                  {def?.suffix}
+                </span>
+                {meule > 0 && (
+                  <span
+                    className="flex-none font-mono text-[9.5px] tabular-nums text-good"
+                    title={`Dont ${meule} de meule`}
+                  >
+                    +{meule}
+                  </span>
+                )}
+              </div>
+            );
+          })}
         </div>
       </button>
 

@@ -17,7 +17,8 @@ import ElementIcon from '../ElementIcon';
 import Segmented from '../Segmented';
 import { ELEMENT_FILTER_STYLES } from '../elementStyles';
 import Pager from './Pager';
-import CritereCase, { Critere } from './CritereCase';
+import { Critere } from './SubSearchDialog';
+import SubSearchBar from './SubSearchBar';
 import { useStickyState } from '../../hooks/useStickyState';
 import { RuneMetric, useRuneMetric } from '../../hooks/useRuneMetric';
 
@@ -32,17 +33,9 @@ interface ArtRow {
   eff: number; // efficience, en % (même somme que le score, autre échelle)
 }
 
-// Un critère de recherche : une propriété secondaire et le minimum exigé.
-//
 // Quatre critères au plus : un artéfact ne porte que 4 propriétés (voir
 // MAX_ARTIFACT_SUBS), donc un cinquième ne pourrait jamais être satisfait.
-// La grille se replie à 2 cases quand on n'en utilise pas davantage.
-const GRILLE_REPLIEE = 2;
-
-// Pas d'incrément du seuil. 1 convient aux propriétés en %, qui sont la
-// quasi-totalité ; le 221 (« Dégâts add. par X% de la VIT ») monte à 200 mais
-// se règle tout aussi bien au clavier.
-const PAS_SEUIL = 1;
+// La bascule 2 ↔ 4 cases vit dans `SubSearchBar`.
 
 type Archetype = 'attack' | 'defense' | 'hp' | 'support';
 
@@ -85,20 +78,11 @@ export default function ArtifactsList({ artifacts }: Props) {
   const [main, setMain] = useStickyState<string>('artefacts.main', '');
   // Critères de recherche, dans l'ordre de priorité du tri (voir `Critere`).
   const [criteres, setCriteres] = useStickyState<Critere[]>('artefacts.criteres', []);
-  // Grille dépliée à 4 cases, ou repliée à 2.
-  const [depliee, setDepliee] = useStickyState<boolean>('artefacts.grilleDepliee', false);
-
-  // Cases visibles, et donc critères ACTIFS.
-  //
-  // ⚠️ Replier la grille désactive les critères 3 et 4 au lieu de les masquer
-  // en les laissant filtrer : une liste restreinte par un critère invisible se
-  // lit comme un bug. Ils sont conservés en mémoire et redeviennent actifs au
-  // dépliage — on ne perd pas sa saisie.
-  const cases = depliee ? MAX_ARTIFACT_SUBS : GRILLE_REPLIEE;
-  const actifs = useMemo(
-    () => criteres.slice(0, cases).filter((c) => c.code > 0),
-    [criteres, cases]
-  );
+  // ⚠️ Plus de « cases visibles » ici : la bascule 2/4 vit dans `SubSearchBar`,
+  // qui garantit qu'un critère posé est toujours affiché (elle force le mode 4
+  // au-delà de deux). Un critère caché qui filtrerait quand même se lisait comme
+  // un bug — c'est le même garde-fou, remonté d'un cran.
+  const actifs = useMemo(() => criteres.filter((c) => c.code > 0), [criteres]);
   // Codes recherchés, pour que la tuile sache quelle ligne mettre en avant.
   //
   // ⚠️ Un `Set` MÉMOÏSÉ et non un tableau reconstruit à chaque rendu : c'est une
@@ -149,9 +133,11 @@ export default function ArtifactsList({ artifacts }: Props) {
       // ⚠️ ET, pas OU : on cherche l'artéfact qui porte **toutes** les
       // propriétés demandées, chacune au-dessus de son seuil. Un OU renverrait
       // des centaines de pièces dès le deuxième critère.
+      // ⚠️ `max` absent = pas de plafond, ce qui n'est PAS « au plus zéro ».
       for (const c of actifs) {
         const ligne = art.subs.find((s) => s.code === c.code);
         if (!ligne || ligne.value < c.min) return false;
+        if (c.max != null && ligne.value > c.max) return false;
       }
       return true;
     });
@@ -417,76 +403,34 @@ export default function ArtifactsList({ artifacts }: Props) {
           />
         </div>
 
-        {/* Propriété secondaire — grille de critères, façon recherche
-            détaillée du jeu.
+        {/* Propriété secondaire — la barre du JEU : cases de rappel et
+            recherche détaillée en modale. Identique aux runes.
             ⚠️ Les cases sont ORDONNÉES : la 1ʳᵉ trie la liste, la 2ᵉ départage
-            les ex æquo, etc. Ce n'est pas une simple liste de cases à cocher,
-            la position porte du sens (voir `Critere`). */}
+            les ex æquo, etc. La position porte du sens (voir `Critere`). */}
         <div className="flex flex-wrap items-start gap-2">
-          {/* Même intitulé à largeur fixe que les autres rangées de filtres :
-              les cases démarrent sur la même colonne que les chips au-dessus.
-              ⚠️ Pas de second titre « Propriété secondaire » dans un cadre —
-              il répétait celui-ci et ajoutait une boîte là où les autres
-              rangées n'en ont pas. */}
-          <span className="w-[86px] flex-none label mt-1.5">Propriété</span>
-          <div className="min-w-0 flex-1">
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5">
-              {Array.from({ length: cases }, (_, i) => (
-                <CritereCase
-                  key={i}
-                  rang={i + 1}
-                  critere={criteres[i] ?? null}
-                  options={dispoSubs}
-                  nomDe={artifactSubName}
-                  pasSeuil={PAS_SEUIL}
-                  onChange={(c) => {
-                    const next = [...criteres];
-                    while (next.length < cases) next.push({ code: 0, min: 0 });
-                    next[i] = c ?? { code: 0, min: 0 };
-                    setCriteres(next);
-                    setPage(0);
-                  }}
-                />
-              ))}
-            </div>
-
-            <div className="mt-1.5 flex items-center gap-2">
-              {/* ⚠️ Le bouton dit CE QU'IL VA FAIRE, pas l'état courant :
-                  « 2 ▾ » se lisait aussi bien « je suis à 2 » que « passe à
-                  2 ». Un verbe lève l'ambiguïté. */}
-              <button
-                onClick={() => setDepliee(!depliee)}
-                className="rounded border border-border px-2 py-0.5 text-[10.5px] font-semibold
-                           text-ink-dim transition hoverable:text-ink hoverable:border-accent"
-              >
-                {depliee
-                  ? `▴ Replier à ${GRILLE_REPLIEE} propriétés`
-                  : `▾ Déplier à ${MAX_ARTIFACT_SUBS} propriétés`}
-              </button>
-
-              {actifs.length > 0 && (
-                <button
-                  onClick={() => {
-                    setCriteres([]);
-                    setPage(0);
-                  }}
-                  className="rounded border border-border px-2 py-0.5 text-[10.5px] font-semibold
-                             text-ink-dim transition hoverable:text-fire hoverable:border-fire"
-                >
-                  ✕ Réinitialiser
-                </button>
-              )}
-
-              {/* Ce que les numéros veulent dire. L'info n'était qu'en `title`,
-                  donc invisible pour qui ne survole pas — et sans elle, « 1 »
-                  et « 2 » passent pour des emplacements d'artéfact. */}
-              {actifs.length > 1 && (
-                <span className="text-[10.5px] text-ink-dim">
-                  <b className="font-mono text-accent">1</b> trie la liste,{' '}
-                  <b className="font-mono text-accent">2</b> départage les ex æquo
-                </span>
-              )}
-            </div>
+          <span className="w-[86px] flex-none label mt-1">Propriété</span>
+          <div className="min-w-0 flex-1 max-w-[520px]">
+            <SubSearchBar
+              options={dispoSubs}
+              criteres={criteres}
+              max={MAX_ARTIFACT_SUBS}
+              nomDe={artifactSubName}
+              // Plus large que pour les runes : « Dgts supp. en prop. de ATQ »
+              // ne tient pas dans 380 px à côté de ses deux bornes.
+              largeurModale="max-w-[520px]"
+              onChange={(c) => {
+                setCriteres(c);
+                setPage(0);
+              }}
+            />
+            {/* Ce que les numéros veulent dire. Sans ce rappel, « 1 » et « 2 »
+                passent pour des emplacements d'artéfact. */}
+            {actifs.length > 1 && (
+              <p className="mt-1 text-[11px] text-ink-dim">
+                <b className="font-mono text-accent">1</b> trie la liste,{' '}
+                <b className="font-mono text-accent">2</b> départage les ex æquo
+              </p>
+            )}
           </div>
         </div>
       </div>

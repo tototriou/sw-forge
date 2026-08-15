@@ -1,7 +1,6 @@
 import { useState } from 'react';
 import { Grid2x2, Rows2 } from 'lucide-react';
-import { Critere } from './CritereCase';
-import SubSearchDialog from './SubSearchDialog';
+import SubSearchDialog, { Critere } from './SubSearchDialog';
 
 // Barre « Propriété secondaire » — la grille de rappel du JEU : deux ou quatre
 // cases numérotées, chacune montrant le critère qu'elle porte
@@ -20,12 +19,15 @@ export default function SubSearchBar({
   criteres,
   max,
   nomDe,
+  largeurModale,
   onChange,
 }: {
   options: { code: number; label: string }[];
   criteres: Critere[];
   max: number;
   nomDe: (code: number) => string;
+  // Passée telle quelle à la modale — voir SubSearchDialog.
+  largeurModale?: string;
   onChange: (c: Critere[]) => void;
 }) {
   const [ouverte, setOuverte] = useState(false);
@@ -129,6 +131,7 @@ export default function SubSearchBar({
           // propriété poserait un critère invisible dans la barre. La bascule
           // vers 4 est à un clic si on en veut plus.
           max={visibles}
+          largeur={largeurModale}
           onValider={(c) => {
             onChange(c);
             setOuverte(false);

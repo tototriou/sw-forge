@@ -170,10 +170,11 @@ conservation des données. Voir [tests/README.md](tests/README.md).
 ├── spec/                  LA référence : ce que fait l'app et pourquoi
 ├── tests/                 vérifications des calculs et de la conservation
 ├── src/
-│   ├── pages/             Accueil, Bestiaire, RTA, Siège, Mon compte, Mécaniques
+│   ├── pages/             Accueil, Bestiaire, RTA, Siège, Mon compte, Outils, Mécaniques
 │   ├── components/        cartes, filtres, icônes, composants RTA & Siège
 │   ├── hooks/             état persisté (RTA, siège, recos, réglages globaux)
-│   └── lib/               calculs purs : vitesse, stats, runes, import, matching
+│   ├── lib/               calculs purs : vitesse, stats, runes, import, matching
+│   └── workers/           calculs lourds (recherche de builds), hors thread principal
 ├── scripts/fetch-monsters.mjs         récupération des données (CI)
 ├── public/data/monsters.json          données consommées par le site (générées)
 └── .github/workflows/update-data.yml  cron hebdo + manuel

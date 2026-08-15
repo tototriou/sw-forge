@@ -86,6 +86,7 @@ page hors de l'écran : à 7 entrées, la moitié des sections n'était jamais v
 | Défenses et offenses | `#/siege/defense` | `#E4463A` |
 | Recommandations | `#/siege/recommandations` | `#5EDB8F` |
 | Analyse de runes | `#/compte/runes` | `#4AD8D8` |
+| Optimiseur de runes | `#/outils/optimizer` | `#FFA94D` |
 | Bestiaire | `#/bestiary` | `#2FA0E0` |
 | Mécaniques | `#/mecaniques` | `#8890B8` |
 | Nouveautés | `#/releases` | `#C79BFF` |

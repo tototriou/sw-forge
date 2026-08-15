@@ -14,7 +14,12 @@ export default async function testPersistance() {
 
   const mem = faussLocalStorage({});
   (globalThis as any).indexedDB = null;
-  (globalThis as any).navigator = {};
+  // ⚠️ Pas une affectation directe : Node ≥ 22 expose son propre `navigator`
+  // (accesseur en lecture seule, aligné sur l'API navigateur), et
+  // `globalThis.navigator = {}` y échoue avec « has only a getter ». Le
+  // redéfinir via `defineProperty` fonctionne dans les deux cas (Node avec ou
+  // sans `navigator` natif).
+  Object.defineProperty(globalThis, 'navigator', { value: {}, configurable: true, writable: true });
   const P = await import('../src/hooks/usePersistence');
 
   ok(!P.persistenceEnabled(), 'navigateur vierge → on ne conserve rien');

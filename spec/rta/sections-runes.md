@@ -65,6 +65,48 @@ Comme en **vue compacte du siège**, le panneau de détail (`MonsterGear`) s'ouv
   la précédente, même dans une autre section). `RtaSection` reçoit `openIndex` +
   `detail` et les passe à la grille.
 - Une carte **sans runes importées** n'est pas cliquable (pas de chevron).
+- **Artéfacts : toujours 2 emplacements affichés** (Attribut puis Type — voir
+  `ARTIFACT_KINDS` dans [types.ts](src/types.ts)), même si le monstre n'en
+  porte qu'un seul ou aucun — un emplacement vide est montré grisé (icône
+  `Ban`), pas simplement absent. Comportement partagé par `MonsterGear` :
+  s'applique aussi en Siège et dans l'Optimizer (voir
+  [outils/optimizer.md](../outils/optimizer.md)).
+- **L'encadré de stats entier est cliquable** (`role="button"`, pas un bouton
+  séparé) et bascule entre deux affichages du même tableau :
+  - **Base + bonus** (par défaut) : base en blanc, bonus en **vert**
+    (`text-good`) — inchangé.
+  - **Total** (base + bonus additionnés) au clic : une seule colonne, dans le
+    **même vert** que le bonus ci-dessus — **sauf Taux Crit, RES ou
+    Précision** (`CAPPED_STATS` dans [effects.ts](src/lib/effects.ts)) qui
+    passent en **rouge** (`text-red-500`, pas le jeton `bad` — voir la
+    surbrillance du sélecteur de set dans
+    [outils/optimizer.md](../outils/optimizer.md) pour le même choix et sa
+    raison) dès que leur TOTAL atteint 100 % — leur plafond réel en jeu. Un
+    bonus de +30 % isolé n'est pas « au plafond » en soi, c'est la somme avec
+    la base qui peut l'être : le rouge n'apparaît donc qu'en mode Total,
+    jamais sur la colonne bonus seule.
+  - ⚠️ **La VALEUR du total affiché dépend du réglage global « Overcap Taux
+    Crit/RES/Précision »** (menu ⚙, voir [README.md](../README.md)) :
+    activé (par défaut), le total montré peut dépasser 100 % ; désactivé, il
+    s'arrête à 100 % pile — `displayedTotal` dans
+    [useOvercapDisplay.ts](src/hooks/useOvercapDisplay.ts). Un réglage
+    d'AFFICHAGE seulement : la vérification « atteint 100 % → rouge »
+    ci-dessus reste basée sur le total RÉEL, pas sur la valeur bornée montrée
+    — sinon désactiver l'overcap masquerait aussi le signal rouge qu'il est
+    censé rendre plus lisible.
+- ⚠️ **La roue, le panneau de stats et les emplacements d'artéfacts ont été
+  remontés** dans [RuneWheel.tsx](src/components/RuneWheel.tsx),
+  [StatPanel.tsx](src/components/StatPanel.tsx) et
+  [ArtifactSlots.tsx](src/components/ArtifactSlots.tsx) à leur deuxième usage
+  (les cartes de résultat de l'Optimizer, en réduit — voir
+  [outils/optimizer.md](../outils/optimizer.md)) plutôt que recopiés, même
+  principe que `<Segmented>`/`<Switch>` (voir [README.md](../README.md)).
+  Chacun paramétré par `scale` (1 = taille historique, inchangée ici) ;
+  `MonsterGear` ne porte plus que le reste de la fiche (état `Selected`,
+  détail affiché en ligne sous la roue). `StatPanel` a une **largeur fixe**
+  (`w-[200px]`, pas `w-fit`) : sans elle, la bascule base+bonus ↔ total
+  changeait la largeur de l'encadré et poussait la roue/les artéfacts/la
+  relique voisins d'un côté à l'autre au clic.
 
 ## Pré-classement à l'import
 

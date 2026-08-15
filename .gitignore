@@ -7,6 +7,7 @@ dist
 
 # Exports de compte Summoners War (données perso) — ne JAMAIS committer
 tototriou-*.json
+*Enzo-*.json
 *account*.json
 *export*.json
 sw-account*.json

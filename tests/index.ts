@@ -17,6 +17,9 @@ import testReco, {
   testFormesJouables,
 } from './reco.test';
 import testRtaPartage from './rta-partage.test';
+import testRuneOptim from './rune-optim.test';
+import testRuneOptimDifferential from './rune-optim-differential.test';
+import testSetsIntangible from './sets-intangible.test';
 import testStockage from './stockage.test';
 import testVitesse from './vitesse.test';
 
@@ -30,6 +33,9 @@ async function main() {
   testDecksMontables();
   testFormesJouables();
   testRtaPartage();
+  testSetsIntangible();
+  testRuneOptim();
+  testRuneOptimDifferential();
   testMeules();
   testArtefacts();
   testRegistre();

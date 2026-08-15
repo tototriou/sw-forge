@@ -14,14 +14,19 @@ ce qu'il peut faire, et les règles de calcul appliquées.
 | Accueil | `#/` | Live | [accueil.md](accueil.md) |
 | RTA — Préparation | `#/rta` | Live | [rta/README.md](rta/README.md) |
 | Siège (Défense / Offense / Recommandations) | `#/siege/defense`, `#/siege/offense`, `#/siege/recommandations` | Live | [siege/README.md](siege/README.md) |
-| Arène | `#/arene` | À venir | [arene.md](arene.md) |
 | Mon compte | `#/compte`, `#/compte/runes`, `#/compte/artefacts` | Live | [compte/README.md](compte/README.md) |
+| Outils | `#/outils/optimizer` | Live | [outils/README.md](outils/README.md) |
+| Arène | `#/arene` | À venir | [arene.md](arene.md) |
 | Bestiaire | `#/bestiary` | Live | [bestiaire.md](bestiaire.md) |
 | Mécaniques | `#/mecaniques` | Live | [mecaniques.md](mecaniques.md) |
 | Nouveautés | `#/releases` | Live | [releases.md](releases.md) |
 
-Ordre d'importance (nav & cartes d'accueil) : **Accueil → RTA → Siège → Arène → Mon compte**.
-Bestiaire, Mécaniques et Nouveautés sont regroupés sous « Ressources » (les moins centraux de l'outil).
+Ordre d'importance (nav & cartes d'accueil) : **Accueil → RTA → Siège → Mon
+compte → Outils → Arène**. Arène se positionne dans la barre entre le
+dropdown Outils et le dropdown Ressources — pas dans le groupe des onglets
+directs (Accueil/RTA/Siège), pour ne pas allonger cette rangée-là. Bestiaire,
+Mécaniques et Nouveautés sont regroupés sous « Ressources » (les moins
+centraux de l'outil).
 
 > ⚠️ **Règle permanente** : toute page ou section **ajoutée, renommée ou
 > supprimée** doit être répercutée sur **l'accueil** ([accueil.md](accueil.md) —
@@ -40,6 +45,9 @@ Concepts partagés par plusieurs pages, documentés une seule fois :
 - [shared/import-compte.md](shared/import-compte.md) — extraction depuis un export
   de compte SWEX : box RTA, équipes de siège, **et** box 6★ + inventaire
   runes/artéfacts (page « Mon compte »).
+- [compte/calcul-runes.md](compte/calcul-runes.md) §6 — anticipait déjà le
+  moteur de recherche de builds (branch-and-bound, Web Worker) qu'utilise
+  [outils/optimizer.md](outils/optimizer.md).
 - [shared/recherche-clavier.md](shared/recherche-clavier.md) — la navigation au
   clavier des **barres de recherche à suggestions** (↑/↓, Entrée sur l'élément
   surligné, Échap). Implémentation unique dans
@@ -127,6 +135,10 @@ Concepts partagés par plusieurs pages, documentés une seule fois :
     catégorie des artéfacts) plutôt que recopié. Il sert partout où des choix
     **s'excluent** : une rangée de pastilles séparées se lit comme des filtres
     cumulables, le cadre commun dit l'exclusivité sans un mot.
+  - ⚠️ `<Switch>` a été **remonté** dans [Switch.tsx](src/components/Switch.tsx)
+    à son deuxième usage (« Stats de base exclues » de l'Optimizer — voir
+    [outils/optimizer.md](outils/optimizer.md)) plutôt que recopié, même
+    principe que `<Segmented>` ci-dessus.
   - **Pas de légende** quand l'intitulé et les options se suffisent : le panneau
     reste une liste de lignes courtes. Le `hint` d'un `<Setting>` sert quand le
     réglage a une **conséquence non évidente** — « Garder mon compte » en a une
@@ -137,6 +149,17 @@ Concepts partagés par plusieurs pages, documentés une seule fois :
       **désactivée par défaut** (voir [shared/import-compte.md](shared/import-compte.md)) ;
     - **Date de l'export chargé**, sous le réglage — c'est là qu'on se pose la
       question de la fraîcheur des données ;
+    - **Overcap Taux Crit/RES/Précision** → un interrupteur (`<Switch>`),
+      **activé par défaut** (comportement historique non borné). Ces trois
+      stats sont plafonnées à 100 % dans le jeu ; désactivé, le TOTAL affiché
+      s'arrête à 100 % même si la somme brute des runes dépasse — un réglage
+      d'AFFICHAGE seulement, `computeStats` continue de renvoyer le total brut
+      (la recherche de l'Optimizer ne doit surtout pas exclure un build dont
+      le total brut dépasse 100 %, voir [outils/optimizer.md](outils/optimizer.md)).
+      Appliqué partout où un TOTAL de build est affiché (fiche de monstre en
+      RTA/Siège/Optimizer, résultats de l'Optimizer) — **pas** aux exigences
+      des recommandations de siège, qui restent un objectif à atteindre, pas
+      un total déjà calculé ;
     - **Mes données** → « Tout supprimer ».
 - **Import de compte global** : un seul bouton invariant « Importer mon compte »
   dans la barre de nav remplit RTA + siège défense + offense **+ « Mon compte »**
@@ -196,6 +219,14 @@ Concepts partagés par plusieurs pages, documentés une seule fois :
   `inputMode="numeric"` (qui fait remonter le pavé numérique sur mobile). La
   frappe non numérique est **ignorée** : plus prévisible qu'un champ qui se vide
   ou se corrige pendant qu'on tape.
+  - ⚠️ **`min`/`max` ne sont appliqués qu'à la SORTIE du champ** (`onBlur`) et
+    sur les boutons ± — jamais à chaque frappe. Border chaque frappe casse la
+    saisie dès qu'un `min` positif dépasse un chiffre isolé : avec `min={15}`
+    `max={100}`, taper « 5 » sautait à 15, puis « 0 » (lu comme « 150 »)
+    sautait à 100 — impossible d'écrire 50. Repéré sur les conditions minimum
+    de l'Optimizer (voir [outils/optimizer.md](outils/optimizer.md)), premier
+    endroit de l'app à passer un `min` positif non trivial (tous les usages
+    précédents étaient à 0 ou 1, jamais heurtés par ce piège).
 - **Titre de page** : `font-display` en dégradé (`title-gradient`), taille
   `clamp(28px,4vw,42px)`, suivi d'un paragraphe d'intro `text-ink-dim`.
 - **Responsive** : nav desktop en pilules ; menu hamburger sur mobile (`< sm`)

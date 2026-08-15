@@ -9,6 +9,8 @@ import { ELEMENT_FILTER_STYLES } from '../components/elementStyles';
 import RunesSection from '../components/account/RunesSection';
 import ArtifactsSection from '../components/account/ArtifactsSection';
 import { useStickyState } from '../hooks/useStickyState';
+import Segmented from '../components/Segmented';
+import { MonsterSortMode, comparateurMonstres } from '../lib/monsterSort';
 
 type Sub = 'monstres' | 'runes' | 'artefacts';
 
@@ -103,6 +105,10 @@ function MonsterBoxSection({ box }: { box: BoxItem[] }) {
   const [activeElements, setActiveElements] = useStickyState<Set<ElementKey>>('box.elements', new Set());
   const [activeStars, setActiveStars] = useStickyState<Set<number>>('box.stars', new Set());
   const [dupesOnly, setDupesOnly] = useStickyState('box.dupes', false);
+  // ⚠️ Défaut : l'ordre du JEU. C'est celui qu'on a en tête en parcourant sa
+  // collection ; l'alphabétique sert à retrouver UN monstre dont on connaît le
+  // nom, ce qui est déjà le rôle du champ de recherche juste à côté.
+  const [sortMode, setSortMode] = useStickyState<MonsterSortMode>('box.sort', 'jeu');
   const [secondOnly, setSecondOnly] = useStickyState('box.second', false);
 
   function toggleElement(k: ElementKey) {
@@ -120,17 +126,9 @@ function MonsterBoxSection({ box }: { box: BoxItem[] }) {
     });
   }
 
-  // Dédup par monstre (com2usId identique = même monstre) + comptage des exemplaires,
-  // puis tri par élément (Eau → Feu → Vent → Lumière → Ténèbres → Autre) et par nom.
+  // Dédup par monstre (com2usId identique = même monstre) + comptage des
+  // exemplaires, puis tri selon le mode choisi (voir lib/monsterSort.ts).
   const entries = useMemo(() => {
-    const rank: Record<ElementKey, number> = {
-      water: 0,
-      fire: 1,
-      wind: 2,
-      light: 3,
-      dark: 4,
-      unknown: 5,
-    };
     const byMonster = new Map<string, BoxEntry>();
     for (const it of box) {
       const id = String(it.monster.id);
@@ -138,12 +136,9 @@ function MonsterBoxSection({ box }: { box: BoxItem[] }) {
       if (e) e.count += 1;
       else byMonster.set(id, { monster: it.monster, count: 1 });
     }
-    return Array.from(byMonster.values()).sort(
-      (a, b) =>
-        rank[a.monster.element] - rank[b.monster.element] ||
-        a.monster.name.localeCompare(b.monster.name, 'fr')
-    );
-  }, [box]);
+    const cmp = comparateurMonstres(sortMode);
+    return Array.from(byMonster.values()).sort((a, b) => cmp(a.monster, b.monster));
+  }, [box, sortMode]);
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -166,14 +161,29 @@ function MonsterBoxSection({ box }: { box: BoxItem[] }) {
       </p>
 
       <div className="flex flex-col gap-3 mb-4">
-        <div className="relative max-w-xs">
-          <Search size={15} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-ink-dim" />
-          <input
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            placeholder="Rechercher un monstre…"
-            className="w-full bg-panel border border-border rounded-lg pl-8 pr-3 py-1.5 text-[13px]
-                       text-ink outline-none focus:border-accent"
+        <div className="flex flex-wrap items-center gap-2">
+          <div className="relative max-w-xs flex-1">
+            <Search size={15} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-ink-dim" />
+            <input
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder="Rechercher un monstre…"
+              className="w-full bg-panel border border-border rounded-lg pl-8 pr-3 py-1.5 text-[13px]
+                         text-ink outline-none focus:border-accent"
+            />
+          </div>
+
+          {/* ⚠️ Un contrôle à CRAN (`Segmented`) et non une pastille : les deux
+              ordres s'excluent. Et il est posé à côté de la RECHERCHE, pas dans
+              la rangée de filtres en dessous — trier n'est pas filtrer, le
+              mêler aux pastilles le ferait lire comme un critère de plus. */}
+          <Segmented
+            value={sortMode}
+            onChange={setSortMode}
+            options={[
+              { key: 'jeu' as const, label: 'Ordre du jeu', hint: 'Les 2A d’abord, puis les familles par ordre de sortie — comme ta collection en jeu' },
+              { key: 'alpha' as const, label: 'A → Z', hint: 'Par nom, tous éléments confondus' },
+            ]}
           />
         </div>
 

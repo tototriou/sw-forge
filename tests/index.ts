@@ -22,6 +22,7 @@ import testRuneOptim from './rune-optim.test';
 import testRuneOptimDifferential from './rune-optim-differential.test';
 import testSetsIntangible from './sets-intangible.test';
 import testRuneTri from './rune-tri.test';
+import testMonstreTri from './monstre-tri.test';
 import testStockage from './stockage.test';
 import testVitesse from './vitesse.test';
 
@@ -38,6 +39,7 @@ async function main() {
   testRtaPartage();
   testSetsIntangible();
   testRuneTri();
+  testMonstreTri();
   testRuneOptim();
   testRuneOptimDifferential();
   testMeules();

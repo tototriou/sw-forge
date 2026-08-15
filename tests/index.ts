@@ -9,7 +9,7 @@ import testImport from './import.test';
 import testPersistance from './persistance.test';
 import testMeules, { testPalier, testRegistre, testSansDowngrade } from './meules.test';
 import testArtefacts from './artefacts.test';
-import testReco from './reco.test';
+import testReco, { testDefensesVisees } from './reco.test';
 import testRtaPartage from './rta-partage.test';
 import testStockage from './stockage.test';
 import testVitesse from './vitesse.test';
@@ -18,6 +18,7 @@ async function main() {
   testVitesse();
   testImport();
   testReco();
+  testDefensesVisees();
   testRtaPartage();
   testMeules();
   testArtefacts();

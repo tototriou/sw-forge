@@ -7,8 +7,14 @@
 import { MatchContext, SlotMatch, deckFaults, matchDeck, slotFaults } from '../src/lib/recoMatch';
 import { OwnedBuild } from '../src/lib/ownedBuilds';
 import { artifactSubKinds, artifactSubLabel, artifactSubsFor, isArtifactSub } from '../src/lib/effects';
-import { cleanArtifacts } from '../src/lib/recoShare';
-import { MAX_ARTIFACT_SUBS, RecoDeck, emptyRecoSlot } from '../src/types';
+import { cleanArtifacts, decodeRecosJson, encodeRecosJson } from '../src/lib/recoShare';
+import {
+  MAX_ARTIFACT_SUBS,
+  RecoDeck,
+  emptyRecoCounter,
+  emptyRecoDeck,
+  emptyRecoSlot,
+} from '../src/types';
 import { egal, ok, titre } from './outils';
 
 // Slot minimal : seuls `status`, `checks`, `artifactChecks` et `missingSets`
@@ -216,4 +222,64 @@ export default function testReco() {
     'code inconnu ignoré'
   );
   ok(bruit.warnings.length > 0, 'les corrections sont REMONTÉES, pas tues');
+}
+
+// Défenses adverses visées par un deck (« fort contre »).
+//
+// ⚠️ Ce qui se joue ici est l'ALLER-RETOUR : ce que l'auteur pose doit arriver
+// intact chez celui qui importe, et un fichier antérieur à la fonctionnalité
+// doit continuer de se lire.
+export function testDefensesVisees() {
+  titre('Défenses adverses visées par un deck');
+
+  const deck: RecoDeck = {
+    ...emptyRecoDeck(),
+    name: 'Def 1',
+    counters: [
+      {
+        monsters: [
+          { com2usId: 15214, name: 'Trevor' },
+          { com2usId: 12312, name: 'Bella' },
+          { com2usId: 19315, name: 'Chloe' },
+        ],
+        note: 'si le Chloe est en lead',
+      },
+    ],
+  };
+  const reco = { id: 'x', origin: 'mine' as const, name: 'R', author: '', note: '', decks: [deck] };
+  // Un deck sans monstre n'est pas exporté : on en pose un pour que la reco le soit.
+  reco.decks[0].slots[0] = { ...emptyRecoSlot(), com2usId: 999, name: 'Moi' };
+
+  const relu = decodeRecosJson(encodeRecosJson([reco]));
+  const c = relu?.[0]?.decks[0]?.counters ?? [];
+  egal(c.length, 1, 'la défense visée survit à l’aller-retour');
+  egal(
+    c[0]?.monsters.map((m) => m.com2usId),
+    [15214, 12312, 19315],
+    'les 3 monstres sont transportés par leur com2usId'
+  );
+  egal(c[0]?.note, 'si le Chloe est en lead', 'la précision est transportée');
+
+  // Une défense sans aucun monstre ne dit rien : elle ne part pas.
+  const vide = { ...reco, decks: [{ ...deck, counters: [emptyRecoCounter()] }] };
+  vide.decks[0].slots = deck.slots;
+  egal(
+    decodeRecosJson(encodeRecosJson([vide]))?.[0]?.decks[0]?.counters.length,
+    0,
+    'une défense sans monstre n’est ni écrite ni relue'
+  );
+
+  // Rétrocompatibilité : un fichier ≤ v4 n'a pas la clé.
+  const v4 = JSON.stringify({
+    format: 'sw-forge/recommandations',
+    version: 4,
+    recommandations: [
+      { nom: 'R', decks: [{ nom: 'D', monstres: [{ com2usId: 999, nom: 'Moi' }, null, null] }] },
+    ],
+  });
+  egal(
+    decodeRecosJson(v4)?.[0]?.decks[0]?.counters,
+    [],
+    'fichier antérieur → aucune défense visée, rien ne casse'
+  );
 }

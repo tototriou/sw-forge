@@ -23,6 +23,7 @@ import {
   MAX_ARTIFACT_SUBS,
   Monster,
   Reco,
+  RecoCounter,
   RecoDeck,
   RECO_STATS,
   RecoSlot,
@@ -32,7 +33,7 @@ import {
 } from '../../types';
 import { DeckMatch, FaultCause, RecoMatch, SlotMatch, deckFaults, fmtStat, slotFaults } from '../../lib/recoMatch';
 import { ConfirmDialog } from '../Dialogs';
-import { NOTE_MAX, DECK_NOTE_MAX } from '../../lib/recoShare';
+import { NOTE_MAX, DECK_NOTE_MAX, COUNTER_NOTE_MAX } from '../../lib/recoShare';
 import { deckFromSiegeTeam } from '../../lib/recoFromSiege';
 import {
   artifactSubLabel,
@@ -972,8 +973,225 @@ function DeckBlock({
           );
         })}
       </div>
+
+      {/* Défenses adverses que ce deck bat. Sous les 3 monstres : c'est une
+          information sur le DECK ENTIER, pas sur un slot — et le deck garde sa
+          structure habituelle au-dessus. */}
+      <CounterBlock
+        deck={deck}
+        reco={reco}
+        deckIndex={deckIndex}
+        monsters={monsters}
+        monsterByCom2us={monsterByCom2us}
+        recos={recos}
+        editing={editing}
+      />
       </>
       )}
+    </div>
+  );
+}
+
+// « Fort contre » — les défenses adverses face auxquelles ce deck fonctionne.
+//
+// ⚠️ **Purement informatif : rien n'est confronté au compte.** L'app ne connaît
+// que MES équipes, pas celles des adversaires — il n'y a rien à quoi comparer.
+// C'est un message de l'auteur vers le lecteur, comme une consigne, et il ne
+// porte donc ni statut, ni badge, ni couleur de résultat.
+//
+// ⚠️ **En lecture, le bloc disparaît s'il est vide** : la plupart des decks n'en
+// portent aucune, et un intitulé suivi de rien se lit comme une donnée manquante.
+function CounterBlock({
+  deck,
+  reco,
+  deckIndex,
+  monsters,
+  monsterByCom2us,
+  recos,
+  editing,
+}: {
+  deck: RecoDeck;
+  reco: Reco;
+  deckIndex: number;
+  monsters: Monster[];
+  monsterByCom2us: Map<number, Monster>;
+  recos: UseRecoState;
+  editing: boolean;
+}) {
+  if (!editing && deck.counters.length === 0) return null;
+
+  return (
+    <div className="mt-2.5 pt-2.5 border-t border-border/50">
+      <div className="mb-1.5 flex items-center gap-1.5">
+        <Swords size={13} className="flex-none text-ink-dim" />
+        <span className="label">Fort contre</span>
+        {!editing && deck.counters.length > 1 && (
+          <span className="font-mono text-[10.5px] text-ink-dim">{deck.counters.length}</span>
+        )}
+      </div>
+
+      {editing && deck.counters.length === 0 && (
+        <p className="mb-1.5 text-[11.5px] text-ink-dim">
+          Les défenses que ce deck bat. Facultatif, et surtout utile à qui reçoit la
+          recommandation.
+        </p>
+      )}
+
+      <div className="flex flex-col gap-1.5">
+        {deck.counters.map((counter, ci) => (
+          <CounterRow
+            key={ci}
+            counter={counter}
+            reco={reco}
+            deckIndex={deckIndex}
+            counterIndex={ci}
+            monsters={monsters}
+            monsterByCom2us={monsterByCom2us}
+            recos={recos}
+            editing={editing}
+          />
+        ))}
+      </div>
+
+      {editing && (
+        <button
+          onClick={() => recos.addCounter(reco.id, deckIndex)}
+          className="mt-1.5 rounded border border-border px-2 py-0.5 text-[10.5px] font-semibold
+                     text-ink-dim transition hoverable:text-ink hoverable:border-accent"
+        >
+          + Défense
+        </button>
+      )}
+    </div>
+  );
+}
+
+// Une défense adverse : ses 3 monstres, et la condition éventuelle.
+function CounterRow({
+  counter,
+  reco,
+  deckIndex,
+  counterIndex,
+  monsters,
+  monsterByCom2us,
+  recos,
+  editing,
+}: {
+  counter: RecoCounter;
+  reco: Reco;
+  deckIndex: number;
+  counterIndex: number;
+  monsters: Monster[];
+  monsterByCom2us: Map<number, Monster>;
+  recos: UseRecoState;
+  editing: boolean;
+}) {
+  // Un même monstre ne peut pas occuper deux emplacements de LA MÊME défense —
+  // même règle que les slots d'un deck. Il peut revenir dans une autre défense.
+  const usedIds = new Set(
+    counter.monsters
+      .map((m) => (m.com2usId != null ? monsterByCom2us.get(m.com2usId)?.id : null))
+      .filter((id): id is string => id != null)
+      .map(String)
+  );
+
+  if (!editing) {
+    return (
+      <div className="flex flex-wrap items-center gap-x-2 gap-y-1 rounded-lg bg-panel2/50 px-2 py-1.5">
+        <div className="flex flex-none items-center gap-1">
+          {counter.monsters.map((m, i) =>
+            m.com2usId == null ? null : (
+              <MiniMonster
+                key={i}
+                monster={monsterByCom2us.get(m.com2usId) ?? null}
+                fallback={m.name}
+                size={30}
+              />
+            )
+          )}
+        </div>
+        {counter.note && (
+          <span className="min-w-0 flex-1 text-[11.5px] leading-snug text-ink-dim">
+            {counter.note}
+          </span>
+        )}
+      </div>
+    );
+  }
+
+  return (
+    <div className="rounded-lg border border-border bg-panel2/50 p-2">
+      <div className="flex items-start gap-1.5">
+        <div className="grid min-w-0 flex-1 grid-cols-1 gap-1.5 sm:grid-cols-3">
+          {counter.monsters.map((m, i) => {
+            const monster = m.com2usId != null ? monsterByCom2us.get(m.com2usId) ?? null : null;
+            return (
+              <div key={i} className="min-w-0">
+                {m.com2usId == null ? (
+                  <MonsterPicker
+                    monsters={monsters}
+                    excludeIds={usedIds}
+                    placeholder={`Monstre ${i + 1}…`}
+                    onPick={(id) => {
+                      const mon = monsters.find((x) => String(x.id) === id);
+                      // ⚠️ Même clé stable que partout : un monstre perso
+                      // (`com2usId` nul) n'est pas partageable, donc pas retenu.
+                      if (mon && mon.com2usId != null)
+                        recos.setCounterMonster(
+                          reco.id,
+                          deckIndex,
+                          counterIndex,
+                          i,
+                          mon.com2usId,
+                          mon.name
+                        );
+                    }}
+                  />
+                ) : (
+                  <div className="flex items-center gap-1.5 rounded border border-border bg-panel px-1.5 py-1">
+                    <MiniMonster monster={monster} fallback={m.name} size={26} />
+                    <span className="min-w-0 flex-1 truncate text-[11.5px] text-ink">
+                      {monster?.name ?? m.name}
+                    </span>
+                    <button
+                      onClick={() =>
+                        recos.setCounterMonster(reco.id, deckIndex, counterIndex, i, null, '')
+                      }
+                      className="flex-none text-ink-dim transition hoverable:text-fire"
+                      title="Retirer ce monstre"
+                      aria-label="Retirer ce monstre"
+                    >
+                      <X size={12} />
+                    </button>
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
+        <button
+          onClick={() => recos.removeCounter(reco.id, deckIndex, counterIndex)}
+          className="mt-1 flex-none text-ink-dim transition hoverable:text-fire"
+          title="Retirer cette défense"
+          aria-label="Retirer cette défense"
+        >
+          <Trash2 size={13} />
+        </button>
+      </div>
+
+      {/* Condition éventuelle — une ligne, pas un pavé : elle précise QUAND ça
+          marche, elle ne redit pas comment jouer (c'est la consigne du deck). */}
+      <input
+        type="text"
+        value={counter.note}
+        maxLength={COUNTER_NOTE_MAX}
+        onChange={(e) =>
+          recos.setCounterNote(reco.id, deckIndex, counterIndex, e.target.value)
+        }
+        placeholder="Précision (ex. « si le Chloe est en lead »)…"
+        className="mt-1.5 w-full rounded border border-border bg-panel px-1.5 py-1 text-[11.5px]
+                   text-ink placeholder:text-ink-dim transition focus:border-accent"
+      />
     </div>
   );
 }

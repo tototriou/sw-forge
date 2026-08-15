@@ -76,7 +76,10 @@ export function deckFromSiegeTeam(team: SiegeTeam, monsterById: Map<string, Mons
       artifacts: artifactsFromSlot(slot),
     };
   });
-  return { name: '', note: '', slots };
+  // ⚠️ Aucune défense visée : une équipe d'offense dit ce qu'on JOUE, jamais
+  // contre quoi. L'information n'existe nulle part dans l'export du jeu — c'est
+  // à l'auteur de la poser, s'il la connaît.
+  return { name: '', note: '', slots, counters: [] };
 }
 
 // Résumé d'une équipe pour le sélecteur (« Trevor · Bella · Loren »).

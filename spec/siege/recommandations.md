@@ -27,7 +27,11 @@ interface RecoSlot {
   setOptions: string[][];                     // POSSIBILITÉS de runage, une seule suffit
   artifacts: Record<'element'|'archetype', number[]>; // propriétés d'artéfact exigées, 4 max chacune
 }
-interface RecoDeck { name: string; note: string; slots: RecoSlot[] } // 3 slots, index 0 = leader
+interface RecoCounter {                        // une défense adverse que le deck bat
+  monsters: { com2usId: number|null; name: string }[]; // toujours 3
+  note: string;                                // « si le Chloe est en lead »
+}
+interface RecoDeck { name: string; note: string; slots: RecoSlot[]; counters: RecoCounter[] } // 3 slots, index 0 = leader
 interface Reco { id: string; origin: 'mine'|'imported'; name: string; author: string; note: string; decks: RecoDeck[] }
 type RecoPayload = Omit<Reco, 'id' | 'origin'>; // ce qui voyage dans un export
 ```
@@ -277,6 +281,42 @@ le set auquel il manque le moins de pièces.
 La confrontation compare en **multi-ensemble** : demander 2× Fight exige bien
 deux fois le set actif.
 
+## Défenses visées — « Fort contre »
+
+Une recommandation dit quoi jouer ; elle ne disait pas **contre quoi**. Un deck
+porte donc une liste de **défenses adverses qu'il bat** (`RecoDeck.counters`) :
+**3 monstres** et une **précision facultative** (« si le Chloe est en lead »).
+
+- **Facultatif et multiple** : un même deck bat souvent plusieurs compositions,
+  et la plupart des decks n'en portent aucune.
+- ⚠️ **Une identité, pas un build.** Ni sets, ni stats, ni propriétés
+  d'artéfact : on décrit ce qu'on **affronte**, pas comment c'est runé. Le
+  runage adverse n'est pas connaissable depuis l'app, et l'exiger transformerait
+  une information de terrain en fiche que personne ne remplirait.
+- ⚠️ **Purement informatif : jamais confronté au compte.** L'app ne connaît que
+  **mes** équipes, pas celles des adversaires — il n'y a rien à quoi comparer.
+  Ce bloc ne porte donc ni statut, ni badge, ni couleur de résultat, et
+  n'intervient pas dans « Analyser mes decks ».
+- Même clé stable que partout : le **`com2usId`**. Un monstre perso n'y entre
+  pas.
+- Un monstre ne peut pas occuper deux emplacements de **la même** défense ; il
+  peut revenir dans une autre.
+
+**Placement** : bloc dédié **sous les 3 monstres** du deck, séparé par un filet.
+C'est une information sur le **deck entier**, pas sur un slot — et le deck garde
+sa structure habituelle au-dessus. Visible **deck déplié** seulement : la ligne
+repliée porte déjà 3 monstres, y ajouter N×3 portraits adverses la rendrait
+illisible.
+
+- **Lecture** : le bloc **disparaît s'il est vide** (comme celui des artéfacts) —
+  un intitulé suivi de rien se lit comme une donnée manquante. Chaque défense est
+  une ligne : les 3 portraits, puis la précision.
+- **Édition** : « **+ Défense** » ajoute une entrée ; chacune a ses 3
+  `MonsterPicker`, son champ de précision (200 car.) et sa corbeille.
+  - ⚠️ Supprimer une défense la retire **pour de bon**, sans repli sur une entrée
+    vide — contrairement aux decks, dont une recommandation garde toujours au
+    moins un. **Zéro défense visée est l'état normal.**
+
 ## Propriétés d'artéfact recommandées
 
 Un monstre porte **deux artéfacts** : celui d'**attribut** (lié à son élément) et
@@ -362,13 +402,15 @@ base64 (`SWF-RECO-1:`) a coexisté un temps ; il a été **retiré** — deux fo
 pour la même chose, c'est deux fois plus de surface à valider, pour un contenu
 que personne ne peut relire ni corriger.
 
-### Fichier JSON (`format: "sw-forge/recommandations"`, `version: 4`)
+### Fichier JSON (`format: "sw-forge/recommandations"`, `version: 5`)
 
 ```json
-{ "format": "sw-forge/recommandations", "version": 4, "exporte_le": "…",
+{ "format": "sw-forge/recommandations", "version": 5, "exporte_le": "…",
   "recommandations": [
     { "nom": "…", "auteur": "…", "consignes": "…",
       "decks": [ { "nom": "Def 1", "consignes": "…",
+        "fort_contre": [ { "monstres": [ { "com2usId": 19315, "nom": "Chloe" }, null, null ],
+                           "note": "si le Chloe est en lead" } ],
         "monstres": [ { "com2usId": 15214, "nom": "Trevor",
                         "sets": [["violent","will"]],
                         "artefacts": {
@@ -395,16 +437,18 @@ presse-papier.
 
 | Version | Changement |
 |---------|-----------|
+| 5 | `fort_contre` : **défenses adverses** qu'un deck bat (3 monstres + précision) |
 | 4 | `artefacts` : **propriétés secondaires d'artéfact exigées** (attribut / type) |
 | 3 | `sets` d'un monstre devient une **liste de possibilités** (`[["violent","nemesis"],["violent","revenge"]]`) |
 | 2 | JSON lisible, clés en français |
 
 ⚠️ **Rétrocompatibilité garantie en lecture** : un `sets` qui est une simple
-liste de clés (v1/v2) est repris comme **possibilité unique**, et un monstre sans
-clé `artefacts` (≤ v3) n'exige simplement rien — sans perte. Mais
-l'import **le signale** — « Fichier au format v2 (actuel : v3) […] réexporte-le
-pour le mettre à jour » — sinon un fichier ancien circule indéfiniment dans la
-guilde et personne ne sait qu'un format plus riche existe.
+liste de clés (v1/v2) est repris comme **possibilité unique**, un monstre sans
+clé `artefacts` (≤ v3) n'exige rien, et un deck sans `fort_contre` (≤ v4) ne vise
+aucune défense — sans perte. Mais l'import **le signale** — « Fichier au format
+v4 (actuel : v5) […] réexporte-le pour le mettre à jour » — sinon un fichier
+ancien circule indéfiniment dans la guilde et personne ne sait qu'un format plus
+riche existe.
 
 **Import** : **fichier `.json` uniquement**. ⚠️ **Pas de zone de collage** : une
 recommandation se transmet comme une pièce jointe, et un champ de texte libre

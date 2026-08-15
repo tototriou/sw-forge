@@ -57,10 +57,21 @@ export const CHANGE_META: Record<ChangeKind, { label: string; color: string }> =
 // détail d'implémentation — tout ça vit dans les commits et dans `spec/`.
 // Si une ligne dépasse ~15 mots, c'est qu'elle raconte l'implémentation.
 export const RELEASES: Release[] = [
-  // ⚠️ La PROCHAINE version en préparation se pose ici, avec `version: null` :
-  // le numéro se décide à la fusion, d'après ce que la branche contient au
-  // final. On le remplace au moment de publier, en même temps que
-  // `package.json` et le tag.
+  // ⚠️ Version EN PRÉPARATION (`version: null`) : le numéro se décide à la
+  // fusion, d'après ce que la branche contient au final. On le remplace au
+  // moment de publier, en même temps que `package.json` et le tag.
+  {
+    version: null,
+    date: '2026-08-15',
+    title: 'Dis contre quoi tes decks sont forts',
+    changes: [
+      {
+        kind: 'feat',
+        scope: 'Recommandations',
+        text: 'Associe à chaque deck les défenses qu’il bat, avec une précision si besoin.',
+      },
+    ],
+  },
   {
     version: '1.5.0',
     date: '2026-08-15',

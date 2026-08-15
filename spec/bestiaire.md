@@ -32,6 +32,11 @@ casse, `includes`).
 - Résultats **groupés par élément** (un bloc par élément dans l'ordre `ELEMENTS`).
 - Carte : cadre hexagonal coloré selon l'élément, image (fallback = initiales),
   badge élément, rangée d'étoiles, nom.
+  - ⚠️ **Partagée avec la box du compte** — même composant, même grille. Les deux
+    écrans en avaient chacun un, et ils avaient divergé (portraits de 84 px
+    contre 64, rayons et corps de texte différents). Ce qui les distingue est
+    devenu des **options** : `showStars` (masqué dans la box, tout y est 6★) et
+    `count` (la bulle « ×N » d'exemplaires, que seule la box connaît).
 - Si un filtre ne renvoie rien : message « Aucun monstre ne correspond à ces
   filtres. »
 

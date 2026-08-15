@@ -1,10 +1,12 @@
-import { memo, useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
+import { AnimatePresence } from 'framer-motion';
 import { Search, Copy, Star } from 'lucide-react';
 import GameIcon from '../components/GameIcon';
 import { BoxItem } from '../lib/applyAccount';
 import { ELEMENTS, ElementKey, Monster, RuneDetail, ArtifactDetail, CraftLine } from '../types';
 import { LoadState } from '../hooks/useMonsters';
 import ElementIcon from '../components/ElementIcon';
+import MonsterCard from '../components/MonsterCard';
 import { ELEMENT_FILTER_STYLES } from '../components/elementStyles';
 import RunesSection from '../components/account/RunesSection';
 import ArtifactsSection from '../components/account/ArtifactsSection';
@@ -31,93 +33,11 @@ interface Props {
   allMonsters?: Monster[];
 }
 
-// Styles de chips d'élément (repris de FilterBar pour rester cohérent).
-
-const TEXT: Record<string, string> = {
-  fire: 'text-fire',
-  water: 'text-water',
-  wind: 'text-wind',
-  light: 'text-light',
-  dark: 'text-dark',
-  unknown: 'text-unknown',
-};
-const GRADIENT: Record<string, string> = {
-  fire: 'from-fire to-panel2',
-  water: 'from-water to-panel2',
-  wind: 'from-wind to-panel2',
-  light: 'from-light to-panel2',
-  dark: 'from-dark to-panel2',
-  unknown: 'from-unknown to-panel2',
-};
-
-function initials(name: string) {
-  return name
-    .trim()
-    .split(/\s+/)
-    .slice(0, 2)
-    .map((w) => w[0])
-    .join('')
-    .toUpperCase();
-}
-
 // Un monstre unique de la box + son nombre d'exemplaires possédés.
 interface BoxEntry {
   monster: Monster;
   count: number;
 }
-
-// Une carte de la box : portrait + nom, avec une bulle ×N si doublons.
-//
-// ⚠️ Cliquable : elle ouvre la fiche complète du monstre (compétences,
-// coefficients, effets). C'est un `<button>` et non un `<div onClick>` — la
-// carte doit être atteignable au clavier comme au doigt.
-const BoxCard = memo(function BoxCard({
-  entry,
-  onOpen,
-}: {
-  entry: BoxEntry;
-  onOpen: (m: Monster) => void;
-}) {
-  const m = entry.monster;
-  return (
-    <button
-      onClick={() => onOpen(m)}
-      title={`Voir la fiche de ${m.name}`}
-      className="relative w-full rounded-xl border border-border bg-panel px-2 pt-3 pb-2.5 text-center
-                 transition hoverable:border-accent"
-    >
-      <div className="relative w-[64px] mx-auto mb-1.5">
-        <div className={`hex-frame w-[64px] h-[64px] p-[2px] bg-gradient-to-br ${GRADIENT[m.element]}`}>
-          <div className="hex-frame w-full h-full bg-panel2 flex items-center justify-center overflow-hidden">
-            {m.image ? (
-              <img src={m.image} alt={m.name} loading="lazy" className="w-full h-full object-cover" />
-            ) : (
-              <span className={`font-display font-bold text-lg ${TEXT[m.element]}`}>
-                {initials(m.name)}
-              </span>
-            )}
-          </div>
-        </div>
-        <ElementIcon
-          element={m.element}
-          size={18}
-          className="absolute -top-1 -right-1 drop-shadow-[0_1px_2px_rgba(0,0,0,0.7)]"
-        />
-        {entry.count > 1 && (
-          <span
-            className="absolute -bottom-1 -right-1 min-w-[20px] h-5 px-1 flex items-center justify-center
-                       rounded-full bg-accent-soft border border-accent text-ink font-mono text-[11px] font-bold
-                       shadow-[0_1px_3px_rgba(0,0,0,0.6)]"
-            title={`${entry.count} exemplaires`}
-          >
-            ×{entry.count}
-          </span>
-        )}
-      </div>
-      <div className="text-[12px] font-semibold leading-tight line-clamp-2">{m.name}</div>
-    </button>
-  );
-});
 
 // Sous-section « Box de monstres » (tous les 6★, dédupliqués, filtrables).
 function MonsterBoxSection({ box, allMonsters = [] }: { box: BoxItem[]; allMonsters?: Monster[] }) {
@@ -306,10 +226,26 @@ function MonsterBoxSection({ box, allMonsters = [] }: { box: BoxItem[]; allMonst
       {filtered.length === 0 ? (
         <p className="text-ink-dim text-[13px]">Aucun monstre ne correspond aux filtres.</p>
       ) : (
-        <div className="grid grid-cols-[repeat(auto-fill,minmax(104px,1fr))] gap-2 items-start">
-          {filtered.map((e) => (
-            <BoxCard key={e.monster.id} entry={e} onOpen={setFiche} />
-          ))}
+        // ⚠️ La MÊME grille que le Bestiaire (`MonsterGrid`) : même largeur de
+        // colonne, même écart. Les deux écrans montrent les mêmes monstres —
+        // deux gabarits donnaient deux rendus pour une même chose.
+        <div className="grid grid-cols-[repeat(auto-fill,minmax(min(100%,148px),1fr))] gap-3 sm:gap-4">
+          {/* `AnimatePresence` comme dans MonsterGrid : sans lui, la carte
+              s'anime à l'entrée mais disparaît sèchement au filtrage — la
+              moitié d'une animation se remarque plus que pas d'animation. */}
+          <AnimatePresence mode="popLayout">
+            {filtered.map((e) => (
+              <MonsterCard
+                key={e.monster.id}
+                monster={e.monster}
+                count={e.count}
+                // Tout est 6★ dans la box : la rangée d'étoiles n'apprendrait
+                // rien et se répéterait 300 fois.
+                showStars={false}
+                onOpen={setFiche}
+              />
+            ))}
+          </AnimatePresence>
         </div>
       )}
 

@@ -8,8 +8,15 @@ Affiche **tous les monstres montés 6★** du compte importé. Composant :
 - **Déduplication par monstre** (même `com2usId`) : chaque monstre apparaît **une
   seule fois**, avec une **bulle « ×N »** en bas à droite du portrait si plusieurs
   exemplaires sont possédés.
-- **Carte** : portrait hexagonal (image SWARFARM) + icône d'élément + nom. Pas
-  d'étoiles affichées (tous 6★). Cartes mémoïsées (`React.memo`).
+- ⚠️ **La MÊME carte et la MÊME grille que le Bestiaire**
+  ([MonsterCard.tsx](src/components/MonsterCard.tsx)) : même portrait, même
+  gabarit, même largeur de colonne, même écart. Les deux écrans montrent les
+  mêmes monstres — deux composants donnaient deux rendus pour une même chose, et
+  ils avaient déjà divergé (portraits de 64 px contre 84, rayons et corps de
+  texte différents).
+  - Ce qui les distingue devient des **options** : la bulle **« ×N »**
+    d'exemplaires (box seule — le bestiaire ne sait pas ce qu'on possède) et la
+    rangée d'**étoiles**, masquée ici puisque tout est 6★.
 - En-tête : « N monstres différents · M au total · 6★ ».
 
 ## Tri

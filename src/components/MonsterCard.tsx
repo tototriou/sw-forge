@@ -40,15 +40,30 @@ function initials(name: string) {
     .toUpperCase();
 }
 
+// Carte de monstre — **la même dans le Bestiaire et dans la box du compte**.
+//
+// ⚠️ Les deux écrans en avaient chacun une, aux tailles et aux rayons
+// différents : même monstre, deux rendus. Elles ont été fondues ici, et ce qui
+// les distinguait devient des OPTIONS — les étoiles (bestiaire) et le nombre
+// d'exemplaires (box). Deux copies auraient divergé au premier ajustement,
+// comme les chips d'élément avant `elementStyles.ts`.
 export default function MonsterCard({
   monster,
   onOpen,
+  count,
+  showStars = true,
 }: {
   monster: Monster;
   // Ouvre la fiche complète. Absent = carte non cliquable (aucun appelant n'est
   // dans ce cas aujourd'hui, mais la prop reste facultative pour ne pas imposer
   // une fiche à un futur usage purement décoratif).
   onOpen?: (m: Monster) => void;
+  // Exemplaires possédés → bulle « ×N ». Absent ou 1 : rien. La box seule s'en
+  // sert ; le bestiaire ne sait pas ce qu'on possède.
+  count?: number;
+  // Rangée d'étoiles sous le portrait. ⚠️ Masquée dans la box : tout y est 6★,
+  // la répéter 300 fois n'apprend rien.
+  showStars?: boolean;
 }) {
   const [imgFailed, setImgFailed] = useState(false);
   const showImage = monster.image && !imgFailed;
@@ -105,12 +120,29 @@ export default function MonsterCard({
           size={22}
           className="absolute -top-1 -right-1 drop-shadow-[0_1px_2px_rgba(0,0,0,0.7)]"
         />
+        {/* Exemplaires possédés — la box seule le sait. En BAS à droite, à
+            l'opposé de l'icône d'élément : les deux se chevaucheraient sur un
+            portrait de cette taille. */}
+        {count != null && count > 1 && (
+          <span
+            className="absolute -bottom-1 -right-1 flex h-5 min-w-[20px] items-center justify-center
+                       rounded-full border border-accent bg-accent-soft px-1 font-mono text-[11px]
+                       font-bold text-ink shadow-[0_1px_3px_rgba(0,0,0,0.6)]"
+            title={`${count} exemplaires`}
+          >
+            ×{count}
+          </span>
+        )}
       </div>
 
-      <div className="text-star text-[11px] tracking-[-1px] mb-1.5">
-        {monster.stars ? '★'.repeat(monster.stars) : '—'}
-      </div>
-      <div className="text-[13px] font-semibold leading-tight">{monster.name}</div>
+      {showStars && (
+        <div className="text-star text-[11px] tracking-[-1px] mb-1.5">
+          {monster.stars ? '★'.repeat(monster.stars) : '—'}
+        </div>
+      )}
+      {/* `line-clamp-2` : les noms longs (« Dark Cow Girl ») tiennent sur deux
+          lignes au plus, sinon une carte s'allonge et déchire la rangée. */}
+      <div className="text-[13px] font-semibold leading-tight line-clamp-2">{monster.name}</div>
     </motion.div>
   );
 }

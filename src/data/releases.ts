@@ -61,9 +61,14 @@ export const RELEASES: Release[] = [
   // fusion, d'après ce que la branche contient au final. On le remplace au
   // moment de publier, en même temps que `package.json` et le tag.
   {
-    version: null,
+    version: '1.6.1',
     date: '2026-08-15',
     title: 'Dis contre quoi tes decks sont forts',
+    highlights: [
+      'Associe à chaque deck les défenses qu’il bat, avec une précision si besoin',
+      'Cherche jusqu’à 3 monstres : tu vois quels decks les jouent et lesquels les battent',
+      'L’analyse liste tous tes decks, les bons compris, et te mène à celui que tu veux voir',
+    ],
     changes: [
       {
         kind: 'feat',
@@ -74,6 +79,41 @@ export const RELEASES: Release[] = [
         kind: 'feat',
         scope: 'Recommandations',
         text: 'Cherche jusqu’à 3 monstres : tu vois quels decks les jouent et lesquels les battent.',
+      },
+      {
+        kind: 'feat',
+        scope: 'Recommandations',
+        text: 'L’analyse liste tous tes decks, les jouables compris, avec l’équipe qui les rend jouables.',
+      },
+      {
+        kind: 'feat',
+        scope: 'Recommandations',
+        text: 'Filtre l’analyse par verdict : bon, à composer, à revoir, monstre manquant.',
+      },
+      {
+        kind: 'feat',
+        scope: 'Recommandations',
+        text: 'Clique une ligne de l’analyse pour aller droit au deck concerné.',
+      },
+      {
+        kind: 'feat',
+        scope: 'Recommandations',
+        text: 'Chaque deck dit combien de fois tu peux le monter avec ta réserve de 6★.',
+      },
+      {
+        kind: 'feat',
+        scope: 'Recommandations',
+        text: 'Les filtres de la page sont réunis en un seul bloc, chacun avec son intitulé.',
+      },
+      {
+        kind: 'fix',
+        scope: 'Recommandations',
+        text: 'Les boutons Exporter, Éditer et Supprimer restent en haut à droite de chaque carte.',
+      },
+      {
+        kind: 'fix',
+        scope: 'Recommandations',
+        text: 'Le bouton « Tout exporter » ne change plus de nom selon le filtre actif.',
       },
     ],
   },

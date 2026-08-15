@@ -193,7 +193,11 @@ export default function SubSearchDialog({
         <button onClick={onClose} className={`${BOUTON_SECONDAIRE} ml-auto`}>
           Annuler
         </button>
-        <button onClick={() => onValider(brouillon)} className={BOUTON_PRIMAIRE} autoFocus>
+        {/* ⚠️ PAS d'`autoFocus` ici : le bouton est en bas d'une liste de 40
+            propriétés, et le navigateur défile jusqu'à l'élément focalisé —
+            la modale s'ouvrait donc tout en bas, sur ses boutons, la liste
+            invisible. Le focus initial est posé en tête (voir plus haut). */}
+        <button onClick={() => onValider(brouillon)} className={BOUTON_PRIMAIRE}>
           OK
         </button>
       </div>

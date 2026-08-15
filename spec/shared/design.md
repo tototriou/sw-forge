@@ -389,6 +389,24 @@ la bordure et l'anneau, qui passent par les tokens.
 *Exception* : les `rgba()` noirs ou blancs sur les **icônes du jeu**
 (`drop-shadow`) restent — ils fonctionnent dans les deux thèmes.
 
+### ⚠️ `autoFocus` fait DÉFILER la modale
+
+Le navigateur défile jusqu'à l'élément focalisé. Un `autoFocus` posé sur un
+bouton situé **sous une longue liste** ouvre donc la boîte **tout en bas**, sur
+ses boutons, le contenu invisible — c'est ce qui est arrivé à la recherche
+détaillée de sous-propriétés, où le bouton « OK » suit 40 lignes.
+
+La coquille `Modale` ([Dialogs.tsx](../../src/components/Dialogs.tsx)) pose donc
+le focus initial sur **la boîte elle-même** (`tabIndex={-1}` +
+`focus({ preventScroll: true })`), et remet son défilement en haut. Elle ne le
+fait **que si rien à l'intérieur n'a déjà pris le focus** : un `autoFocus`
+délibéré — le champ d'un `PromptDialog`, l'« Annuler » d'une confirmation — reste
+prioritaire.
+
+**Règle** : `autoFocus` est réservé à ce qu'on va **utiliser tout de suite** (un
+champ de saisie), et seulement dans une boîte **qui tient à l'écran sans
+défiler**.
+
 ### Focus — une règle globale, pas 24 exceptions
 
 ```css

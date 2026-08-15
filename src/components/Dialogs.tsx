@@ -54,6 +54,21 @@ export function Modale({
     const scrollAvant = document.body.style.overflow;
     document.body.style.overflow = 'hidden';
 
+    // Point de départ du clavier : la BOÎTE, sauf si un contenu a déjà pris le
+    // focus par `autoFocus` (le champ d'un `PromptDialog`, l'« Annuler » d'une
+    // confirmation) — on ne lui vole pas.
+    //
+    // ⚠️ Un `autoFocus` sur un bouton posé SOUS une longue liste est à
+    // proscrire : le navigateur défile jusqu'à l'élément focalisé, et la modale
+    // s'ouvrait tout en bas, sur ses boutons, le contenu invisible. Focaliser le
+    // conteneur donne le même point de départ sans rien faire défiler.
+    if (!boite.current?.contains(document.activeElement)) {
+      boite.current?.focus({ preventScroll: true });
+    }
+    // Le contenu défilant repart du haut : une modale rouverte gardait sinon la
+    // position de défilement de la fois précédente.
+    boite.current?.scrollTo?.({ top: 0 });
+
     const focusables = () =>
       Array.from(
         boite.current?.querySelectorAll<HTMLElement>(
@@ -102,12 +117,19 @@ export function Modale({
         role="dialog"
         aria-modal="true"
         aria-labelledby={labelledBy}
+        // Focalisable par programme seulement (`-1`) : la boîte est le point de
+        // départ du clavier, mais elle ne doit pas s'insérer dans le cycle de
+        // Tab comme un contrôle de plus.
+        tabIndex={-1}
         onClick={(e) => e.stopPropagation()}
         // Le voile en fondu, la boîte en fondu + 8 px de montée. Un peu plus
         // lente que le voile (200 vs 150 ms) : la boîte finit APRÈS le fond
         // qu'elle recouvre, sinon elle semble arriver avant lui.
+        // `focus:outline-none` : la boîte reçoit le focus initial (voir plus
+        // haut), mais elle n'est pas un contrôle — l'anneau d'accent global
+        // entourerait toute la modale à l'ouverture.
         className={`w-full ${largeur} ${padding} max-h-[90vh] overflow-y-auto rounded-2xl border
-                   border-border bg-panel shadow-glow shadow-black/60
+                   border-border bg-panel shadow-glow shadow-black/60 focus:outline-none
                    animate-[dialogue_200ms_var(--ease-out)]`}
       >
         {children}

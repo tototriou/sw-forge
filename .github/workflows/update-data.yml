@@ -27,19 +27,35 @@ jobs:
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
-          node-version: 22
+          # ⚠️ Doit rester ALIGNÉ sur `engines` de package.json et sur `.nvmrc` :
+          # développer sur une version et vérifier sur une autre laisse passer
+          # des écarts d'API. C'est déjà arrivé (`navigator` en lecture seule
+          # sous Node ≥ 22, corrigé après coup).
+          node-version: 24
 
       - name: Récupérer les données SWARFARM
         run: node scripts/fetch-monsters.mjs
+
+      # ⚠️ APRÈS les monstres : le script ne génère de fiche que pour les
+      # monstres présents dans `monsters.json`. Lancé avant, il en manquerait
+      # les nouveaux.
+      - name: Récupérer le détail des compétences
+        run: node scripts/fetch-skills.mjs
+
+      # ⚠️ APRÈS `fetch-monsters`, qui capture `family_id` / `skill_group_id` —
+      # les deux champs d'où se lit une collaboration (Satoru Gojo = Werner).
+      # Il réécrit `monsters.json` pour y poser le champ `jumeauCollab`.
+      - name: Relier les monstres de collaboration
+        run: node scripts/link-collabs.mjs
 
       - name: Commit si changement
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          if git diff --quiet -- public/data/monsters.json; then
+          if git diff --quiet -- public/data/ && [ -z "$(git status --porcelain public/data/)" ]; then
             echo "Aucun changement, rien à committer."
           else
-            git add public/data/monsters.json
-            git commit -m "chore: actualisation automatique des données monstres"
+            git add public/data/
+            git commit -m "chore: actualisation automatique des données monstres et compétences"
             git push
           fi

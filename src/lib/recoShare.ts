@@ -209,10 +209,10 @@ function counterListToJson(counters: RecoCounter[] | undefined): { fort_contre?:
     .filter((c) => c.monsters.some((m) => m.com2usId != null))
     .map((c) => ({
       monstres: c.monsters.map((m) =>
-        m.com2usId == null ? null : { com2usId: m.com2usId, nom: m.name.slice(0, 40) }
+        m.com2usId == null ? null : { com2usId: m.com2usId, nom: texteSortant(m.name, 40) }
       ),
       // La note ne part que si elle existe, comme les consignes.
-      ...(c.note.trim() ? { note: c.note.slice(0, COUNTER_NOTE_MAX) } : {}),
+      ...(c.note.trim() ? { note: texteSortant(c.note, COUNTER_NOTE_MAX) } : {}),
     }));
   return utiles.length ? { fort_contre: utiles } : {};
 }
@@ -238,7 +238,7 @@ function jsonToCounter(raw: unknown, ctx: Issues, where: string): RecoCounter | 
     const nom = m.nom ?? m.name;
     return {
       com2usId: valide ? Math.round(id) : null,
-      name: typeof nom === 'string' ? nom.slice(0, 40) : '',
+      name: typeof nom === 'string' ? nom.trim().slice(0, 40) : '',
     };
   });
   // Aucun monstre lisible → rien à montrer, on n'ajoute pas un bloc vide.
@@ -247,14 +247,27 @@ function jsonToCounter(raw: unknown, ctx: Issues, where: string): RecoCounter | 
 }
 
 // Texte borné, en signalant la troncature.
+//
+// ⚠️ **Trimé** : les espaces de tête et de queue ne veulent rien dire, et
+// voyageaient jusque dans le fichier partagé. Le trim vient AVANT la troncature,
+// sinon « …texte  » compterait ses espaces dans le maximum.
 function cleanText(raw: unknown, max: number, ctx: Issues, where: string): string {
   if (typeof raw !== 'string') return '';
-  if (raw.length > max) {
+  const t = raw.trim();
+  if (t.length > max) {
     warn(ctx, `${where} : texte tronqué à ${max} caractères.`);
-    return raw.slice(0, max);
+    return t.slice(0, max);
   }
-  return raw;
+  return t;
 }
+
+// Pendant de `cleanText` pour l'ÉCRITURE : trim puis borne, sans rapport
+// d'erreur (à l'export, la longueur est déjà garantie par la saisie).
+//
+// ⚠️ Le trim est fait ICI, à un seul endroit, plutôt que sur la douzaine
+// d'appels `.slice()` de `recosToJson` — une seule copie oubliée aurait suffi à
+// faire repartir des espaces dans un fichier partagé.
+const texteSortant = (s: string | undefined, max: number) => (s ?? '').trim().slice(0, max);
 
 /* --------------------------------------------------------------------------
  * Format JSON lisible — celui des FICHIERS échangés
@@ -281,14 +294,14 @@ export const COUNTER_NOTE_MAX = 200;
 function recoToJson(r: Reco) {
   const out = noIssues(); // à l'écriture les données viennent de l'app : rien à signaler
   return {
-    nom: r.name.slice(0, 60),
-    auteur: r.author.slice(0, 40),
-    consignes: r.note.slice(0, NOTE_MAX),
+    nom: texteSortant(r.name, 60),
+    auteur: texteSortant(r.author, 40),
+    consignes: texteSortant(r.note, NOTE_MAX),
     decks: r.decks
       .filter((d) => d.slots.some((s) => s.com2usId != null))
       .map((d) => ({
-        nom: d.name.slice(0, 40),
-        consignes: d.note.slice(0, DECK_NOTE_MAX),
+        nom: texteSortant(d.name, 40),
+        consignes: texteSortant(d.note, DECK_NOTE_MAX),
         // ⚠️ Omise quand il n'y en a pas — comme les sortes d'artéfact vides :
         // un deck sans défense visée ne traîne pas une liste vide dans le
         // fichier. La clé absente se relit comme « aucune ».
@@ -298,7 +311,7 @@ function recoToJson(r: Reco) {
             ? null
             : {
                 com2usId: sl.com2usId,
-                nom: sl.name.slice(0, 40),
+                nom: texteSortant(sl.name, 40),
                 sets: cleanSetOptions(sl.setOptions, out, ''),
                 artefacts: artifactsToJson(sl.artifacts),
                 stats: cleanStats(sl.stats, out, ''),
@@ -342,7 +355,7 @@ function jsonToSlot(raw: unknown, ctx: Issues, where: string): RecoSlot {
   }
   return {
     com2usId: valide ? Math.round(id) : null,
-    name: typeof nom === 'string' ? nom.slice(0, 40) : '',
+    name: typeof nom === 'string' ? nom.trim().slice(0, 40) : '',
     stats: cleanStats(o.stats, ctx, where),
     setOptions: cleanSetOptions(o.sets, ctx, where),
     artifacts: cleanArtifacts(o.artefacts ?? o.artifacts, ctx, where),
@@ -353,7 +366,7 @@ function jsonToDeck(raw: unknown, ctx: Issues, where: string): RecoDeck {
   const o = (raw ?? {}) as Record<string, unknown>;
   const nom = o.nom ?? o.name;
   const note = o.consignes ?? o.note;
-  const name = typeof nom === 'string' ? nom.slice(0, 40) : '';
+  const name = typeof nom === 'string' ? nom.trim().slice(0, 40) : '';
   const label = name ? `${where} « ${name} »` : where;
   const slots = (
     Array.isArray(o.monstres) ? o.monstres : Array.isArray(o.slots) ? o.slots : []
@@ -423,7 +436,7 @@ export function decodeRecosJson(text: string, ctx: Issues = noIssues()): RecoPay
     }
     const r = raw as Record<string, unknown>;
     const nom = r.nom ?? r.name;
-    const name = typeof nom === 'string' && nom.trim() ? nom.slice(0, 60) : 'Recommandation';
+    const name = typeof nom === 'string' && nom.trim() ? nom.trim().slice(0, 60) : 'Recommandation';
     const label = `« ${name} »`;
     const rawDecks = Array.isArray(r.decks) ? r.decks : [];
     if (rawDecks.length === 0) warn(ctx, `${label} : aucune liste « decks ».`);
@@ -442,7 +455,7 @@ export function decodeRecosJson(text: string, ctx: Issues = noIssues()): RecoPay
     const consignes = r.consignes ?? r.note;
     out.push({
       name,
-      author: typeof auteur === 'string' ? auteur.slice(0, 40) : '',
+      author: typeof auteur === 'string' ? auteur.trim().slice(0, 40) : '',
       note: cleanText(consignes, NOTE_MAX, ctx, label),
       decks,
     });

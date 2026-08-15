@@ -96,16 +96,22 @@ Idéale avec beaucoup d'équipes (import offense ~50).
     **grande (22 px)** : à 16 px les pictogrammes du jeu sont illisibles ;
   - **icône d'élément** en plus quand la portée est élémentaire — c'est la seule
     information que l'icône du jeu ne distingue pas ;
-  - suffixe « (arène) » / « (donjon) » quand la portée exclut le siège ;
-  - icône **désaturée** quand le lead ne compte pas en siège.
-- Elle est **mise en avant** (doré, `star`) dès que le lead **s'applique en
-  siège**. C'est une question de **portée, pas de stat** (`leadIsActive`) :
-  `General` / `Guild` / `Element` → actif, **quelle que soit la stat** (un lead
-  PV ou DEF compte autant qu'un lead VIT). ⚠️ Ne pas restreindre à
-  `Attack Speed` : c'est le **calcul des ticks** qui ne retient que la vitesse
-  (voir [../shared/calcul-vitesse.md](../shared/calcul-vitesse.md)), pas
-  l'affichage. Seules les portées `Arena` / `Dungeon` sont neutres/désaturées,
-  avec l'infobulle « sans effet en siège ».
+  - suffixe « (arène) » / « (donjon) » quand la portée exclut le siège.
+- ⚠️ **TOUS les leads sont en couleur (doré, `star`) — aucun n'est grisé.**
+  Un lead arène ou donjon a été rendu terne et désaturé parce qu'il ne compte
+  pas en siège. Mais le grisé se lit comme « inactif », voire « cassé », alors
+  que le monstre **a bel et bien ce lead** : ce qui ne s'applique pas, c'est le
+  contenu de jeu, pas la donnée.
+  - La nuance reste dans l'**infobulle** (« sans effet en siège ») et dans le
+    suffixe « (arène) » / « (donjon) » — du texte, qui peut la formuler, là où
+    une couleur ne fait que dévaloriser.
+  - `leadIsActive` **subsiste** pour ce libellé. C'est une question de
+    **portée, pas de stat** : `General` / `Guild` / `Element` s'appliquent
+    **quelle que soit la stat** (un lead PV ou DEF compte autant qu'un lead
+    VIT). ⚠️ Ne pas restreindre à `Attack Speed` : c'est le **calcul des
+    ticks** qui ne retient que la vitesse (voir
+    [../shared/calcul-vitesse.md](../shared/calcul-vitesse.md)), pas
+    l'affichage.
 - **Même pastille** dans les decks de
   [recommandation](recommandations.md), pour le monstre en slot 0.
 

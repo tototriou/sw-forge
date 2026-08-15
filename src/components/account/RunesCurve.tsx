@@ -56,6 +56,11 @@ export default function RunesCurve({ runes }: Props) {
   }
 
   // Potentiels calculés sur les runes filtrées, puis 3 distributions triées ↓.
+  //
+  // ⚠️ Chaque distribution garde SA rune à côté de sa valeur : c'est ce qui
+  // permet d'ouvrir la rune d'un point du graphe. Les trois sont triées
+  // SÉPARÉMENT — le rang N d'« Actuelle » et celui de « Potentiel Légend » ne
+  // désignent pas la même rune —, donc chacune transporte son propre ordre.
   const { cur, hero, legend } = useMemo(() => {
     const filtered = runes.filter((r) => {
       if (sets.size && !sets.has(r.set)) return false;
@@ -63,23 +68,36 @@ export default function RunesCurve({ runes }: Props) {
       if (ancientOnly && !(r.rank > 10)) return false;
       return true;
     });
-    const pots = filtered.map((r) => runePotential(r, withGem, metric));
-    const desc = (a: number, b: number) => b - a;
+    const pots = filtered.map((r) => ({ rune: r, p: runePotential(r, withGem, metric) }));
+    // Trie sur une valeur donnée et renvoie valeurs + runes alignées.
+    const classe = (val: (p: ReturnType<typeof runePotential>) => number) => {
+      const tri = [...pots].sort((a, b) => val(b.p) - val(a.p));
+      return { effs: tri.map((t) => val(t.p)), runes: tri.map((t) => t.rune) };
+    };
     return {
-      cur: pots.map((p) => p.eff).sort(desc),
-      hero: pots.map((p) => p.heroEff).sort(desc),
-      legend: pots.map((p) => p.legendEff).sort(desc),
+      cur: classe((p) => p.eff),
+      hero: classe((p) => p.heroEff),
+      legend: classe((p) => p.legendEff),
     };
   }, [runes, sets, slots, ancientOnly, withGem, metric]);
 
-  const total = cur.length;
+  const total = cur.effs.length;
   const cap = Math.max(1, limit);
-  const lim = (arr: number[]) => arr.slice(0, cap);
+  // Valeurs ET runes bornées ensemble : elles doivent rester alignées.
+  const lim = (d: { effs: number[]; runes: RuneDetail[] }) => ({
+    effs: d.effs.slice(0, cap),
+    runes: d.runes.slice(0, cap),
+  });
 
+  // ⚠️ Seule « Actuelle » transporte ses runes : les potentiels ne sont pas
+  // d'autres runes, c'est la MÊME box projetée dans une autre hypothèse. Leur
+  // donner leurs runes ouvrirait trois cartes quasi identiques pour une seule
+  // question — « quelle est cette rune ? ». (En comparaison, c'est l'inverse :
+  // chaque courbe est un compte DIFFÉRENT, donc toutes sont ouvrables.)
   const allSeries: CurveSeries[] = [
-    { name: 'Actuelle', effs: lim(cur), color: OWN_COLOR, own: true },
-    { name: 'Potentiel Héro', effs: lim(hero), color: HERO_COLOR, own: false },
-    { name: 'Potentiel Légend', effs: lim(legend), color: LEGEND_COLOR, own: false },
+    { name: 'Actuelle', ...lim(cur), color: OWN_COLOR, own: true },
+    { name: 'Potentiel Héro', effs: lim(hero).effs, color: HERO_COLOR, own: false },
+    { name: 'Potentiel Légend', effs: lim(legend).effs, color: LEGEND_COLOR, own: false },
   ];
   const visible = allSeries.filter((s) => !hidden.has(s.name));
 

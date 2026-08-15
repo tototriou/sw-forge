@@ -2,13 +2,22 @@
 // Ordonnée = efficience (%), abscisse = nombre de runes (rang cumulé).
 // Réutilisé par « Courbes » (une série) et « Comparaison » (plusieurs séries).
 
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
+import { ChevronLeft, ChevronRight, X } from 'lucide-react';
+import { RuneDetail, RUNE_SETS } from '../../types';
+import { RuneDetailBox } from '../MonsterGear';
+import RuneSlotIcon from '../RuneSlotIcon';
 
 export interface CurveSeries {
   name: string;
   effs: number[]; // efficiences (%), triées décroissant, déjà limitées à l'affichage
   color: string;
   own: boolean; // true = ma courbe (aire + trait plus épais)
+  // ⚠️ Runes ALIGNÉES sur `effs`, même index, même tri — facultatif : une courbe
+  // importée d'un ami ne transporte que des valeurs, jamais ses runes. Quand
+  // elles sont là, un clic sur le graphe ouvre celle du point visé ; sinon le
+  // graphe reste en lecture seule, sans rien annoncer de cliquable.
+  runes?: RuneDetail[];
 }
 
 const W = 820;
@@ -20,7 +29,13 @@ const PAD_B = 42;
 const IW = W - PAD_L - PAD_R;
 const IH = H - PAD_T - PAD_B;
 
-export const OWN_COLOR = '#5cc2ff'; // « Actuelle » / « Moi » → bleu
+// ⚠️ Définie dans curveColors.ts, aux côtés de la palette d'import : c'est la
+// seule place d'où l'on voit qu'elle ne doit figurer dans aucune des deux.
+// Réexportée ici parce que les appelants la lisent historiquement d'ici.
+// (Importée ET réexportée : `export … from` ne l'introduirait pas ici, or le
+// dégradé sous la courbe du joueur s'en sert juste en dessous.)
+import { OWN_COLOR } from './curveColors';
+export { OWN_COLOR };
 
 interface Pt {
   x: number;
@@ -74,6 +89,33 @@ export default function CurveChart({
 }) {
   const svgRef = useRef<SVGSVGElement>(null);
   const [hover, setHover] = useState<number | null>(null);
+  // Rang cliqué. `null` = fermé.
+  //
+  // ⚠️ On mémorise le RANG seul, jamais les runes : les séries se recalculent à
+  // chaque changement de filtre ou de mesure, et des runes figées désigneraient
+  // un point qui n'existe plus. Le rang désigne une POSITION du classement, et
+  // c'est cette position qu'on lit sur toutes les courbes à la fois.
+  const [choisi, setChoisi] = useState<{ rang: number } | null>(null);
+
+  // Échap ferme ; les flèches ← → parcourent le classement. Le clavier double
+  // les boutons plutôt que de les remplacer : on garde la main sur la souris
+  // quand on vient de cliquer un point.
+  const nbRangs = series.reduce((m, s) => (s.runes?.length ? Math.max(m, s.effs.length) : m), 0);
+  useEffect(() => {
+    if (choisi == null) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setChoisi(null);
+      else if (e.key === 'ArrowLeft')
+        setChoisi((c) => (c && c.rang > 0 ? { rang: c.rang - 1 } : c));
+      else if (e.key === 'ArrowRight')
+        setChoisi((c) => (c && c.rang < nbRangs - 1 ? { rang: c.rang + 1 } : c));
+      else return;
+      // Seulement pour les touches qu'on traite : ne pas confisquer le reste.
+      e.preventDefault();
+    };
+    document.addEventListener('keydown', onKey);
+    return () => document.removeEventListener('keydown', onKey);
+  }, [choisi, nbRangs]);
 
   const active = series.filter((s) => s.effs.length > 0);
   if (active.length === 0) {
@@ -127,15 +169,49 @@ export default function CurveChart({
           .sort((a, b) => b.val - a.val)
       : [];
 
+  // Séries qui portent leurs runes : ce sont les seules ouvrables. Une courbe
+  // PARTAGÉE n'a que des valeurs ; un fichier de compte, lui, porte ses runes.
+  const ouvrables = active.filter((s) => s.runes?.length);
+  const cliquable = ouvrables.length > 0;
+
+  // ⚠️ TOUTES les runes du rang choisi, une par courbe ouvrable — pas seulement
+  // celle de la courbe la plus proche du clic. C'est tout l'intérêt en
+  // comparaison : « à ma 12ᵉ meilleure rune, qu'ont-ils, eux ? ». N'en montrer
+  // qu'une obligeait à recliquer chaque courbe pour la même question.
+  //
+  // Ordonnées par valeur décroissante, comme les courbes au point X et comme
+  // l'infobulle de survol : la lecture est la même de haut en bas.
+  const runesChoisies =
+    choisi == null
+      ? []
+      : ouvrables
+          .filter((s) => choisi.rang < (s.runes?.length ?? 0))
+          .map((s) => ({ serie: s, rune: s.runes![choisi.rang], val: s.effs[choisi.rang] }))
+          .sort((a, b) => b.val - a.val);
+
+  // Combien de rangs on peut parcourir : la plus longue des courbes ouvrables.
+  // ⚠️ Le max et non le min : une courbe plus courte s'arrête simplement d'être
+  // affichée, elle ne doit pas brider la navigation sur les autres.
+  const rangMax = ouvrables.reduce((m, s) => Math.max(m, s.effs.length), 0);
+
+  function onClick() {
+    if (!cliquable || hover == null) return;
+    // Re-cliquer le même rang referme : le geste est son propre inverse.
+    setChoisi((cur) => (cur && cur.rang === hover ? null : { rang: hover }));
+  }
+
   return (
     <div className="rounded-xl border border-border bg-panel/50 p-2">
       <svg
         ref={svgRef}
         viewBox={`0 0 ${W} ${H}`}
-        className="w-full h-auto"
+        // Le curseur dit que le graphe répond au clic — mais seulement quand il
+        // y a réellement des runes derrière les points.
+        className={`w-full h-auto ${cliquable ? 'cursor-pointer' : ''}`}
         preserveAspectRatio="xMidYMid meet"
         onPointerMove={onMove}
         onPointerLeave={() => setHover(null)}
+        onClick={onClick}
       >
         <defs>
           <linearGradient id="rcFill" x1="0" y1="0" x2="0" y2="1">
@@ -256,7 +332,7 @@ export default function CurveChart({
                   y1={PAD_T}
                   x2={hx}
                   y2={PAD_T + IH}
-                  stroke="var(--accent)"
+                  stroke="rgb(var(--accent))"
                   strokeWidth="1"
                   strokeDasharray="3 3"
                 />
@@ -291,9 +367,165 @@ export default function CurveChart({
             );
           })()}
 
+        {/* Repère du point CHOISI. ⚠️ IDENTIQUE à celui du survol — même trait
+            tireté, mêmes points : c'est le même geste de visée, seulement figé.
+            Le marquer davantage en faisait un autre objet, une graduation du
+            graphe. Sa seule différence est qu'il SURVIT au départ du pointeur :
+            c'est lui qui dit d'où sort le détail lu en dessous, une fois la
+            souris partie vers les flèches.
+            ⚠️ `rgb(var(--accent))` et NON `var(--accent)` : les tokens de
+            couleur sont des TRIPLETS (« 43 54 165 »), pas des couleurs CSS.
+            Posé nu dans un attribut SVG, le trait n'était tout simplement pas
+            peint — invisible, sans erreur. Voir spec/shared/design.md. */}
+        {choisi && runesChoisies.length > 0 && (
+          <g pointerEvents="none">
+            <line
+              x1={x(choisi.rang)}
+              y1={PAD_T}
+              x2={x(choisi.rang)}
+              y2={PAD_T + IH}
+              stroke="rgb(var(--accent))"
+              strokeWidth="1"
+              strokeDasharray="3 3"
+              strokeOpacity="0.75"
+            />
+            {/* Un point par courbe ouvrable : ils marquent toutes les runes lues
+                en dessous, et non une seule.
+                ⚠️ Même taille qu'au survol : ces points se posent SUR la courbe,
+                un disque plus large la masque et se lit comme une donnée en soi.
+                Le liseré sombre suffit à les détacher du trait. */}
+            {runesChoisies.map(({ serie, val }) => (
+              <circle
+                key={serie.name}
+                cx={x(choisi.rang)}
+                cy={y(val)}
+                r="3.2"
+                fill={serie.color}
+                stroke="#0d1022"
+                strokeWidth="1.2"
+              />
+            ))}
+          </g>
+        )}
+
         {/* Zone de capture du pointeur (transparente, au-dessus) */}
         <rect x={0} y={0} width={W} height={H} fill="transparent" />
       </svg>
+
+      {/* Détail de la (ou des) rune(s) du point cliqué.
+          ⚠️ SOUS le graphe, dans le flux, et non en flottant : la carte d'une
+          rune fait ~300 px de haut, un popover de cette taille ancré sur un
+          point du graphe recouvrirait la courbe qu'on vient de lire. Ici on voit
+          les deux. */}
+      {choisi && runesChoisies.length > 0 && (
+        <div className="relative mt-2 border-t border-border pt-2 animate-[apparition_150ms_var(--ease-out)]">
+          {/* La croix reste calée en haut à DROITE du bloc : le détail étant
+              centré, la mettre dans son en-tête l'aurait décentré. */}
+          <button
+            onClick={() => setChoisi(null)}
+            className="absolute right-0 top-2 text-ink-dim transition hoverable:text-ink"
+            title="Fermer le détail"
+            aria-label="Fermer le détail"
+          >
+            <X size={14} />
+          </button>
+
+          {/* Navigation — les deux flèches CÔTE À CÔTE, juste sous la courbe :
+              elles font parcourir le classement, qui est l'axe du graphe
+              au-dessus, pas la carte du dessous. Encadrer la carte les
+              éloignait l'une de l'autre alors qu'on les enchaîne.
+              ⚠️ Elles bornent au lieu de boucler — le classement a un début et
+              une fin, et repasser du dernier au premier ferait croire à un saut
+              de position. Aux extrémités, la flèche est désactivée. */}
+          <div className="mb-2 flex items-center justify-center gap-1">
+            <button
+              onClick={() => setChoisi((c) => (c && c.rang > 0 ? { rang: c.rang - 1 } : c))}
+              disabled={choisi.rang === 0}
+              className="flex-none rounded-lg border border-border bg-panel p-1.5 text-ink-dim
+                         transition hoverable:border-accent hoverable:text-ink
+                         disabled:cursor-not-allowed disabled:opacity-30"
+              title="Rune précédente (mieux classée)"
+              aria-label="Rune précédente"
+            >
+              <ChevronLeft size={16} />
+            </button>
+            {/* Le rang ENTRE les deux flèches : c'est lui qu'elles font défiler,
+                et il dit où l'on en est dans le classement. Largeur fixe, sinon
+                les flèches se déplacent au passage de « 9 » à « 10 ». */}
+            <span className="w-[92px] text-center font-mono text-[11px] text-ink-dim">
+              n° {choisi.rang + 1} / {rangMax}
+            </span>
+            <button
+              onClick={() =>
+                setChoisi((c) => (c && c.rang < rangMax - 1 ? { rang: c.rang + 1 } : c))
+              }
+              disabled={choisi.rang >= rangMax - 1}
+              className="flex-none rounded-lg border border-border bg-panel p-1.5 text-ink-dim
+                         transition hoverable:border-accent hoverable:text-ink
+                         disabled:cursor-not-allowed disabled:opacity-30"
+              title="Rune suivante (moins bien classée)"
+              aria-label="Rune suivante"
+            >
+              <ChevronRight size={16} />
+            </button>
+          </div>
+
+          {/* ⚠️ UNE CARTE PAR COURBE ouvrable, à ce rang. En comparaison, c'est
+              tout l'intérêt : « à ma 12ᵉ meilleure rune, qu'ont-ils, eux ? ».
+              N'en montrer qu'une obligeait à recliquer chaque courbe pour poser
+              la même question.
+              Elles sont ordonnées par valeur décroissante, comme les courbes au
+              point X et comme l'infobulle de survol : même lecture partout. */}
+          <div className="flex flex-wrap items-start justify-center gap-3">
+            {runesChoisies.map(({ serie, rune, val }) => (
+              <div key={serie.name} className="w-[260px] max-w-full">
+                {/* En-tête : l'IMAGE de la rune (cadre du slot + symbole du set,
+                    comme dans le jeu et dans la liste de runes) puis son set et
+                    son slot. ⚠️ L'image d'abord : c'est à elle qu'on reconnaît
+                    une rune d'un coup d'œil, le texte ne fait que confirmer.
+                    Même rendu que les tuiles de l'onglet Liste. */}
+                <div className="mb-1.5 flex items-center gap-2.5">
+                  <RuneSlotIcon
+                    slot={rune.slot}
+                    setKey={rune.set}
+                    rarity={rune.rarity}
+                    ancient={rune.rank > 10}
+                    height={46}
+                  />
+                  <div className="min-w-0">
+                    <div className="truncate text-[13px] font-bold leading-tight text-ink">
+                      {RUNE_SETS.find((s) => s.key === rune.set)?.label ?? rune.set} ·{' '}
+                      <span className="text-ink-dim">slot {rune.slot}</span>
+                    </div>
+                    {/* Le rang n'est PAS répété ici : il vit dans la barre de
+                        navigation au-dessus, entre les deux flèches. */}
+                    <div className="font-mono text-[11px] text-ink-dim">
+                      {unit === '%' ? val.toFixed(1) : String(Math.round(val))}
+                      {unit}
+                    </div>
+                    {/* ⚠️ Le nom de la courbe n'apparaît QUE s'il y en a
+                        plusieurs d'ouvrables : sur l'onglet Courbes, où seule la
+                        mienne l'est, il n'apprend rien. */}
+                    {ouvrables.length > 1 && (
+                      <div className="mt-0.5 flex items-center gap-1.5 font-mono text-[11px]">
+                        <span
+                          className="inline-block h-1.5 w-3 flex-none rounded-full"
+                          style={{ background: serie.color }}
+                        />
+                        <span className="truncate text-ink">{serie.name}</span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* ⚠️ Aucun cadre ici : `RuneDetailBox` porte déjà le sien. En
+                    ajouter un donnait une carte dans une carte. */}
+                <RuneDetailBox rune={rune} />
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   );
 }

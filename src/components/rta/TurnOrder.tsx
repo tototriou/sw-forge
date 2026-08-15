@@ -75,6 +75,13 @@ interface Props {
   // et remonter tout en haut juste pour couper les anneaux est absurde.
   categoriesVisible?: boolean;
   onToggleCategories?: (v: boolean) => void;
+  // Visibilité CATÉGORIE PAR CATÉGORIE. Absent = tout visible (prépa d'un ami,
+  // où l'on ne règle rien).
+  //
+  // ⚠️ Distinct de `categoriesVisible`, qui coupe tout d'un coup : on veut
+  // pouvoir n'afficher que ses strippers sans perdre les autres étiquettes.
+  estVisible?: (id: string) => boolean;
+  onToggleCategorie?: (id: string) => void;
   // Masquer le chiffre de vitesse SANS toucher au classement : le tri continue
   // d'utiliser les vitesses, sinon l'ordre affiché serait faux.
   showSpeed?: boolean;
@@ -122,6 +129,8 @@ export default function TurnOrder({
   onRuneSpeed,
   categories = [],
   categoriesVisible = true,
+  estVisible,
+  onToggleCategorie,
   onToggleCategories,
   showSpeed = true,
   onToggleSpeed,
@@ -140,10 +149,17 @@ export default function TurnOrder({
   // (`categories={visible ? cats : []}`), si bien qu'une fois masquées, les
   // catégories n'arrivaient plus au composant et son propre interrupteur ne
   // pouvait plus rien réafficher.
+  // ⚠️ DEUX niveaux de masquage, et ils ne disent pas la même chose :
+  //   - `categoriesVisible` coupe TOUT (l'interrupteur de la barre) ;
+  //   - `estVisible(id)` éteint UNE catégorie, réglée depuis la légende.
+  const affichee = (id: string) => categoriesVisible && (estVisible?.(id) ?? true);
   const catsOf = (monsterId: string) =>
-    categoriesVisible ? categories.filter((c) => c.members.includes(monsterId)) : [];
+    categories.filter((c) => c.members.includes(monsterId) && affichee(c.id));
   // Légende : uniquement les catégories réellement représentées ici, sinon on
   // rappellerait des couleurs qu'on ne voit nulle part à l'écran.
+  //
+  // ⚠️ Une catégorie ÉTEINTE reste dans la légende — c'est là qu'on la
+  // rallume. La retirer supprimerait le seul moyen de revenir en arrière.
   const legende = categoriesVisible
     ? categories.filter((c) => items.some((it) => c.members.includes(String(it.monster.id))))
     : [];
@@ -329,18 +345,51 @@ export default function TurnOrder({
       </div>
 
       {/* Rappel des couleurs : sans légende, un anneau coloré ne veut rien dire
-          pour qui n'a pas la barre de catégories sous les yeux. */}
+          pour qui n'a pas la barre de catégories sous les yeux.
+          ⚠️ **Cliquer une entrée masque sa catégorie**, exactement comme la
+          légende des courbes de runes : on éteint ce qu'on ne veut pas voir, là
+          où on le voit. Sur six catégories, les anneaux se marchent dessus et
+          l'ordre de tour devient illisible — c'est justement là qu'on a besoin
+          de n'en garder qu'une ou deux.
+          Une entrée éteinte reste en place, barrée et estompée : c'est le seul
+          endroit où la rallumer. */}
       {legende.length > 0 && (
         <div className="mb-2 flex flex-wrap items-center gap-x-3 gap-y-1">
-          {legende.map((c) => (
-            <span key={c.id} className="inline-flex items-center gap-1.5 text-[11px] text-ink-dim">
-              <span
-                className="w-2.5 h-2.5 rounded-full flex-none"
-                style={{ backgroundColor: c.color }}
-              />
-              {c.label}
-            </span>
-          ))}
+          {legende.map((c) => {
+            const off = !affichee(c.id);
+            const cliquable = !!onToggleCategorie;
+            const contenu = (
+              <>
+                <span
+                  className="w-2.5 h-2.5 rounded-full flex-none border-2 transition"
+                  style={{
+                    borderColor: c.color,
+                    // Éteinte, la pastille devient un cercle CREUX : la couleur
+                    // reste reconnaissable, le plein dit « affichée ».
+                    backgroundColor: off ? 'transparent' : c.color,
+                  }}
+                />
+                <span className={off ? 'line-through' : ''}>{c.label}</span>
+              </>
+            );
+            return cliquable ? (
+              <button
+                key={c.id}
+                onClick={() => onToggleCategorie(c.id)}
+                aria-pressed={!off}
+                title={off ? `Réafficher « ${c.label} »` : `Masquer « ${c.label} »`}
+                className={`inline-flex items-center gap-1.5 text-[11px] transition ${
+                  off ? 'text-ink-dim opacity-60' : 'text-ink-dim hoverable:text-ink'
+                }`}
+              >
+                {contenu}
+              </button>
+            ) : (
+              <span key={c.id} className="inline-flex items-center gap-1.5 text-[11px] text-ink-dim">
+                {contenu}
+              </span>
+            );
+          })}
         </div>
       )}
 

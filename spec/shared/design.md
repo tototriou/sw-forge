@@ -344,6 +344,23 @@ selon la façon dont on l'a activé est un bug indétectable à la lecture.
 
 ## Règles transverses
 
+### ⚠️ Les tokens sont des TRIPLETS, pas des couleurs
+
+Les variables de couleur valent `43 54 165`, **pas** `#2b36a5` : c'est ce qui
+permet à Tailwind d'y appliquer une opacité (`bg-accent/10`). Elles ne sont donc
+utilisables **que** enveloppées :
+
+```
+stroke="rgb(var(--accent))"   ✅
+stroke="var(--accent)"        ❌ attribut invalide → RIEN n'est peint
+```
+
+⚠️ **L'échec est SILENCIEUX** : pas d'erreur, pas d'avertissement, le trait
+n'existe simplement pas. C'est ce qui a rendu invisibles les repères verticaux
+des courbes de runes. Le piège guette surtout les **attributs SVG**
+(`stroke`, `fill`), où l'on écrit la couleur à la main au lieu de passer par une
+classe Tailwind.
+
 ### Aucune couleur Tailwind native
 
 ⚠️ **`amber-400`, `emerald-500`, `sky-300` sont interdits.** Ce sont des valeurs
@@ -371,6 +388,51 @@ la bordure et l'anneau, qui passent par les tokens.
 
 *Exception* : les `rgba()` noirs ou blancs sur les **icônes du jeu**
 (`drop-shadow`) restent — ils fonctionnent dans les deux thèmes.
+
+### ⚠️ `autoFocus` fait DÉFILER la modale
+
+Le navigateur défile jusqu'à l'élément focalisé. Un `autoFocus` posé sur un
+bouton situé **sous une longue liste** ouvre donc la boîte **tout en bas**, sur
+ses boutons, le contenu invisible — c'est ce qui est arrivé à la recherche
+détaillée de sous-propriétés, où le bouton « OK » suit 40 lignes.
+
+La coquille `Modale` ([Dialogs.tsx](../../src/components/Dialogs.tsx)) pose donc
+le focus initial sur **la boîte elle-même** (`tabIndex={-1}` +
+`focus({ preventScroll: true })`), et remet son défilement en haut. Elle ne le
+fait **que si rien à l'intérieur n'a déjà pris le focus** : un `autoFocus`
+délibéré — le champ d'un `PromptDialog`, l'« Annuler » d'une confirmation — reste
+prioritaire.
+
+**Règle** : `autoFocus` est réservé à ce qu'on va **utiliser tout de suite** (un
+champ de saisie), et seulement dans une boîte **qui tient à l'écran sans
+défiler**.
+
+### Croix de fermeture — sur ce qu'on consulte, pas sur ce qu'on décide
+
+Une modale se ferme par **Échap** et par le **clic à côté**. Ni l'un ni l'autre
+ne se **voit** : sur une boîte qui ne fait que montrer quelque chose, rien
+n'indique par où sortir, et on cherche.
+
+`Modale` porte donc une **croix optionnelle** (`croix`), posée en coin :
+
+- ⚠️ **Sur les modales de CONSULTATION** — la fiche d'un monstre, d'une rune.
+  Elles ne demandent rien, donc elles n'ont aucun bouton, donc aucune sortie
+  visible.
+- ⚠️ **Pas sur les CONFIRMATIONS ni les boîtes de choix** : leur « Annuler »
+  **est** la sortie. Une croix à côté ferait deux portes pour une décision qui
+  n'en a qu'une, et on hésiterait sur ce qu'elle ferme — abandon, ou simple
+  fermeture ?
+- ⚠️ **Nue** — ni cadre, ni fond. Encadrée, elle se lisait comme un **bouton
+  d'action de plus**, au même rang que ce qu'on est venu consulter. Le symbole
+  se reconnaît seul et s'éclaircit au survol. Seule une **ombre portée** reste :
+  sans fond, la croix passe devant le contenu qui défile dessous, et un trait
+  fin sur du texte devient illisible.
+- ⚠️ **`sticky`, jamais `absolute`** : la boîte **défile**, et une croix absolue
+  part vers le haut dès les premières lignes d'une fiche longue — c'est-à-dire
+  exactement au moment où on la cherche. Hauteur nulle (`h-0`) et décalages
+  négatifs : elle se pose dans le padding sans pousser le contenu d'une ligne.
+- Elle vit **dans la coquille**, pas dans chaque fiche : posée au cas par cas,
+  elle aurait fini à trois endroits différents selon la modale.
 
 ### Focus — une règle globale, pas 24 exceptions
 

@@ -1,14 +1,25 @@
-import { memo, useMemo } from 'react';
+import { useMemo, useState } from 'react';
+import { AnimatePresence } from 'framer-motion';
 import { Search, Copy, Star } from 'lucide-react';
 import GameIcon from '../components/GameIcon';
 import { BoxItem } from '../lib/applyAccount';
 import { ELEMENTS, ElementKey, Monster, RuneDetail, ArtifactDetail, CraftLine } from '../types';
 import { LoadState } from '../hooks/useMonsters';
 import ElementIcon from '../components/ElementIcon';
+import MonsterCard from '../components/MonsterCard';
 import { ELEMENT_FILTER_STYLES } from '../components/elementStyles';
 import RunesSection from '../components/account/RunesSection';
 import ArtifactsSection from '../components/account/ArtifactsSection';
 import { useStickyState } from '../hooks/useStickyState';
+import Segmented from '../components/Segmented';
+import { MonsterSortMode, comparateurMonstres } from '../lib/monsterSort';
+import {
+  autreForme,
+  jumeauDeCollab,
+  sansDoublonDeCollab,
+  sansDoublonDeTransformation,
+} from '../lib/monsterForms';
+import MonsterDetailDialog from '../components/MonsterDetailDialog';
 
 type Sub = 'monstres' | 'runes' | 'artefacts';
 
@@ -22,35 +33,9 @@ interface Props {
   // Relecture du compte conservé en cours : on n'annonce pas « aucune donnée »
   // tant qu'on n'a pas fini de regarder.
   hydrating?: boolean;
-}
-
-// Styles de chips d'élément (repris de FilterBar pour rester cohérent).
-
-const TEXT: Record<string, string> = {
-  fire: 'text-fire',
-  water: 'text-water',
-  wind: 'text-wind',
-  light: 'text-light',
-  dark: 'text-dark',
-  unknown: 'text-unknown',
-};
-const GRADIENT: Record<string, string> = {
-  fire: 'from-fire to-panel2',
-  water: 'from-water to-panel2',
-  wind: 'from-wind to-panel2',
-  light: 'from-light to-panel2',
-  dark: 'from-dark to-panel2',
-  unknown: 'from-unknown to-panel2',
-};
-
-function initials(name: string) {
-  return name
-    .trim()
-    .split(/\s+/)
-    .slice(0, 2)
-    .map((w) => w[0])
-    .join('')
-    .toUpperCase();
+  // Bestiaire COMPLET. Sert à retrouver la seconde forme d'un monstre
+  // transformable, que la box ne contient pas forcément.
+  allMonsters?: Monster[];
 }
 
 // Un monstre unique de la box + son nombre d'exemplaires possédés.
@@ -59,51 +44,20 @@ interface BoxEntry {
   count: number;
 }
 
-// Une carte de la box : portrait + nom, avec une bulle ×N si doublons.
-const BoxCard = memo(function BoxCard({ entry }: { entry: BoxEntry }) {
-  const m = entry.monster;
-  return (
-    <div className="relative rounded-xl border border-border bg-panel px-2 pt-3 pb-2.5 text-center">
-      <div className="relative w-[64px] mx-auto mb-1.5">
-        <div className={`hex-frame w-[64px] h-[64px] p-[2px] bg-gradient-to-br ${GRADIENT[m.element]}`}>
-          <div className="hex-frame w-full h-full bg-panel2 flex items-center justify-center overflow-hidden">
-            {m.image ? (
-              <img src={m.image} alt={m.name} loading="lazy" className="w-full h-full object-cover" />
-            ) : (
-              <span className={`font-display font-bold text-lg ${TEXT[m.element]}`}>
-                {initials(m.name)}
-              </span>
-            )}
-          </div>
-        </div>
-        <ElementIcon
-          element={m.element}
-          size={18}
-          className="absolute -top-1 -right-1 drop-shadow-[0_1px_2px_rgba(0,0,0,0.7)]"
-        />
-        {entry.count > 1 && (
-          <span
-            className="absolute -bottom-1 -right-1 min-w-[20px] h-5 px-1 flex items-center justify-center
-                       rounded-full bg-accent-soft border border-accent text-ink font-mono text-[11px] font-bold
-                       shadow-[0_1px_3px_rgba(0,0,0,0.6)]"
-            title={`${entry.count} exemplaires`}
-          >
-            ×{entry.count}
-          </span>
-        )}
-      </div>
-      <div className="text-[12px] font-semibold leading-tight line-clamp-2">{m.name}</div>
-    </div>
-  );
-});
-
 // Sous-section « Box de monstres » (tous les 6★, dédupliqués, filtrables).
-function MonsterBoxSection({ box }: { box: BoxItem[] }) {
+function MonsterBoxSection({ box, allMonsters = [] }: { box: BoxItem[]; allMonsters?: Monster[] }) {
   const [query, setQuery] = useStickyState('box.query', '');
   const [activeElements, setActiveElements] = useStickyState<Set<ElementKey>>('box.elements', new Set());
   const [activeStars, setActiveStars] = useStickyState<Set<number>>('box.stars', new Set());
   const [dupesOnly, setDupesOnly] = useStickyState('box.dupes', false);
+  // ⚠️ Défaut : l'ordre du JEU. C'est celui qu'on a en tête en parcourant sa
+  // collection ; l'alphabétique sert à retrouver UN monstre dont on connaît le
+  // nom, ce qui est déjà le rôle du champ de recherche juste à côté.
+  const [sortMode, setSortMode] = useStickyState<MonsterSortMode>('box.sort', 'jeu');
   const [secondOnly, setSecondOnly] = useStickyState('box.second', false);
+  // Fiche ouverte. ⚠️ État LOCAL et non persisté : rouvrir la page sur une fiche
+  // qu'on avait consultée la veille serait déroutant.
+  const [fiche, setFiche] = useState<Monster | null>(null);
 
   function toggleElement(k: ElementKey) {
     setActiveElements((prev) => {
@@ -120,17 +74,9 @@ function MonsterBoxSection({ box }: { box: BoxItem[] }) {
     });
   }
 
-  // Dédup par monstre (com2usId identique = même monstre) + comptage des exemplaires,
-  // puis tri par élément (Eau → Feu → Vent → Lumière → Ténèbres → Autre) et par nom.
+  // Dédup par monstre (com2usId identique = même monstre) + comptage des
+  // exemplaires, puis tri selon le mode choisi (voir lib/monsterSort.ts).
   const entries = useMemo(() => {
-    const rank: Record<ElementKey, number> = {
-      water: 0,
-      fire: 1,
-      wind: 2,
-      light: 3,
-      dark: 4,
-      unknown: 5,
-    };
     const byMonster = new Map<string, BoxEntry>();
     for (const it of box) {
       const id = String(it.monster.id);
@@ -138,17 +84,57 @@ function MonsterBoxSection({ box }: { box: BoxItem[] }) {
       if (e) e.count += 1;
       else byMonster.set(id, { monster: it.monster, count: 1 });
     }
-    return Array.from(byMonster.values()).sort(
-      (a, b) =>
-        rank[a.monster.element] - rank[b.monster.element] ||
-        a.monster.name.localeCompare(b.monster.name, 'fr')
+    const cmp = comparateurMonstres(sortMode);
+    // ⚠️ Les formes TRANSFORMABLES sont réduites à une entrée (Bellenus…) :
+    // posséder le monstre, c'est posséder les deux formes — les compter deux
+    // fois gonflerait la box de doublons qu'on ne peut pas distinguer.
+    // ⚠️ Et les paires de COLLABORATION de même (Satoru Gojo = Werner) : elles
+    // partagent une carte, donc une seule entrée.
+    const uniques = sansDoublonDeCollab(
+      sansDoublonDeTransformation(Array.from(byMonster.values()).map((e) => e.monster))
     );
+    const gardes = new Set(uniques);
+    const entrees = Array.from(byMonster.values());
+
+    // ⚠️ **Le compte de l'écarté REVIENT à celui qu'on garde.** Posséder un
+    // Werner ET un Gojo, c'est posséder deux exemplaires du même monstre : sans
+    // ce report, l'un des deux disparaissait purement et simplement de la box,
+    // et le total ne tombait plus juste.
+    const parId = new Map(entrees.map((e) => [e.monster.com2usId, e]));
+    for (const e of entrees) {
+      if (gardes.has(e.monster)) continue;
+      const vers = e.monster.jumeauCollab != null ? parId.get(e.monster.jumeauCollab) : null;
+      if (vers && gardes.has(vers.monster)) vers.count += e.count;
+    }
+
+    return entrees
+      .filter((e) => gardes.has(e.monster))
+      .sort((a, b) => cmp(a.monster, b.monster));
+  }, [box, sortMode]);
+
+  // Les `com2usId` réellement PRÉSENTS dans la box, avant toute déduplication.
+  //
+  // ⚠️ Une paire de collaboration se recrute par un côté OU par l'autre :
+  // posséder Aragorn ne donne pas Night Fang. La carte montre les deux visages,
+  // et sans cet ensemble elle les montrait tous les deux en couleur — on croyait
+  // avoir les deux monstres alors qu'on n'en a qu'un.
+  const possedes = useMemo(() => {
+    const ids = new Set<number>();
+    for (const it of box) if (it.monster.com2usId != null) ids.add(it.monster.com2usId);
+    return ids;
   }, [box]);
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
     return entries.filter((e) => {
-      if (q && !e.monster.name.toLowerCase().includes(q)) return false;
+      // ⚠️ La recherche porte sur les DEUX noms d'une paire de collaboration :
+      // la carte s'intitule « Satoru Gojo, Werner », et chercher « Werner » ne
+      // devait pas rester sans résultat.
+      if (q) {
+        const jumeau = jumeauDeCollab(e.monster, allMonsters);
+        const noms = [e.monster.name, jumeau?.name].filter(Boolean) as string[];
+        if (!noms.some((n) => n.toLowerCase().includes(q))) return false;
+      }
       if (activeElements.size && !activeElements.has(e.monster.element)) return false;
       if (activeStars.size && !(e.monster.naturalStars != null && activeStars.has(e.monster.naturalStars)))
         return false;
@@ -156,7 +142,7 @@ function MonsterBoxSection({ box }: { box: BoxItem[] }) {
       if (secondOnly && !e.monster.secondAwaken) return false;
       return true;
     });
-  }, [entries, query, activeElements, activeStars, dupesOnly, secondOnly]);
+  }, [entries, query, activeElements, activeStars, dupesOnly, secondOnly, allMonsters]);
 
   return (
     <div>
@@ -166,14 +152,40 @@ function MonsterBoxSection({ box }: { box: BoxItem[] }) {
       </p>
 
       <div className="flex flex-col gap-3 mb-4">
-        <div className="relative max-w-xs">
-          <Search size={15} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-ink-dim" />
-          <input
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            placeholder="Rechercher un monstre…"
-            className="w-full bg-panel border border-border rounded-lg pl-8 pr-3 py-1.5 text-[13px]
-                       text-ink outline-none focus:border-accent"
+        <div className="flex flex-wrap items-center gap-2">
+          <div className="relative max-w-xs flex-1">
+            <Search size={15} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-ink-dim" />
+            <input
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder="Rechercher un monstre…"
+              className="w-full bg-panel border border-border rounded-lg pl-8 pr-3 py-1.5 text-[13px]
+                         text-ink outline-none focus:border-accent"
+            />
+          </div>
+
+          {/* ⚠️ Un contrôle à CRAN (`Segmented`) et non une pastille : les deux
+              ordres s'excluent. Et il est posé à côté de la RECHERCHE, pas dans
+              la rangée de filtres en dessous — trier n'est pas filtrer, le
+              mêler aux pastilles le ferait lire comme un critère de plus.
+              ⚠️ Les libellés disent ce qui varie — la date ou le nom — et NON
+              « ordre du jeu » : les monstres sont groupés par élément dans les
+              deux cas, donc les deux sont « l'ordre du jeu ». */}
+          <Segmented
+            value={sortMode}
+            onChange={setSortMode}
+            options={[
+              {
+                key: 'jeu' as const,
+                label: 'Sortie',
+                hint: 'Par élément, puis les 2A d’abord et les familles par date de sortie',
+              },
+              {
+                key: 'alpha' as const,
+                label: 'A → Z',
+                hint: 'Par élément, puis par nom',
+              },
+            ]}
           />
         </div>
 
@@ -253,17 +265,55 @@ function MonsterBoxSection({ box }: { box: BoxItem[] }) {
       {filtered.length === 0 ? (
         <p className="text-ink-dim text-[13px]">Aucun monstre ne correspond aux filtres.</p>
       ) : (
+        // La MÊME grille que le Bestiaire (`MonsterGrid`) : c'est ce gabarit-ci
+        // qui sert de référence aux deux, et non l'inverse.
         <div className="grid grid-cols-[repeat(auto-fill,minmax(104px,1fr))] gap-2 items-start">
-          {filtered.map((e) => (
-            <BoxCard key={e.monster.id} entry={e} />
-          ))}
+          {/* `AnimatePresence` comme dans MonsterGrid : sans lui, la carte
+              s'anime à l'entrée mais disparaît sèchement au filtrage — la
+              moitié d'une animation se remarque plus que pas d'animation. */}
+          <AnimatePresence mode="popLayout">
+            {filtered.map((e) => (
+              <MonsterCard
+                key={e.monster.id}
+                monster={e.monster}
+                jumeau={jumeauDeCollab(e.monster, allMonsters)}
+                possede={e.monster.com2usId == null || possedes.has(e.monster.com2usId)}
+                jumeauPossede={e.monster.jumeauCollab == null || possedes.has(e.monster.jumeauCollab)}
+                count={e.count}
+                // Tout est 6★ dans la box : la rangée d'étoiles n'apprendrait
+                // rien et se répéterait 300 fois.
+                showStars={false}
+                onOpen={setFiche}
+              />
+            ))}
+          </AnimatePresence>
         </div>
+      )}
+
+      {/* ⚠️  est cherché dans le bestiaire COMPLET : la box ne contient
+          que ce qu'on possède, et la seconde forme n'y est pas forcément. */}
+      {fiche && (
+        <MonsterDetailDialog
+          monster={fiche}
+          autre={autreForme(fiche, allMonsters)}
+          jumeau={jumeauDeCollab(fiche, allMonsters)}
+          onClose={() => setFiche(null)}
+        />
       )}
     </div>
   );
 }
 
-export default function AccountPage({ sub, box, runes, artifacts, crafts, loadState, hydrating }: Props) {
+export default function AccountPage({
+  sub,
+  box,
+  runes,
+  artifacts,
+  crafts,
+  loadState,
+  hydrating,
+  allMonsters,
+}: Props) {
   const empty = box.length === 0 && runes.length === 0 && artifacts.length === 0;
 
   if (empty && hydrating) {
@@ -301,7 +351,7 @@ export default function AccountPage({ sub, box, runes, artifacts, crafts, loadSt
 
   return (
     <div className="mt-6">
-      {sub === 'monstres' && <MonsterBoxSection box={box} />}
+      {sub === 'monstres' && <MonsterBoxSection box={box} allMonsters={allMonsters} />}
       {sub === 'runes' && <RunesSection runes={runes} crafts={crafts} />}
       {sub === 'artefacts' && <ArtifactsSection artifacts={artifacts} />}
     </div>

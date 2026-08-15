@@ -69,6 +69,35 @@ leurs membres et leurs couleurs restent, seul le rendu disparaît (cartes, ordre
 de tour et légende). Avec plusieurs catégories, l'écran se charge vite — il faut
 pouvoir revenir à une lecture nette en un clic.
 
+### ⚠️ Catégorie par catégorie — depuis la LÉGENDE
+
+Le bouton ci-dessus est un tout-ou-rien. Or le geste courant est « montre-moi
+seulement mes strippers » : sur six catégories, les anneaux se marchent dessus et
+l'ordre de tour devient illisible — c'est justement là qu'on veut n'en garder
+qu'une ou deux.
+
+**Cliquer une entrée de la légende masque sa catégorie**, exactement comme la
+légende des courbes de runes ([../compte/runes.md](../compte/runes.md)) : on
+éteint ce qu'on ne veut pas voir, **là où on le voit**.
+
+- ⚠️ **Dans la légende, pas un bouton de plus dans la barre.** La barre en porte
+  déjà trois ; le réglage appartient à l'endroit où la couleur apparaît.
+- ⚠️ **Une entrée éteinte reste en place**, barrée et estompée, sa pastille
+  passant du plein au **creux** (la couleur reste reconnaissable). La retirer
+  supprimerait le seul endroit où la rallumer.
+- Le masquage vaut pour les **cartes ET l'ordre de tour** : `categoriesOf` ne
+  renvoie que les catégories visibles. Le **panneau d'affectation** lit
+  `categories` directement — on doit pouvoir ranger un monstre dans une
+  catégorie qu'on a masquée.
+- **Deux niveaux qui se composent** : `visible` coupe tout, `masquees` éteint
+  l'une d'elles. Le premier reste utile pour un écran net d'un coup.
+- On stocke les **masquées** et non les visibles : une catégorie qu'on vient de
+  créer s'affiche sans qu'on ait à la cocher. Son id sort de la liste à la
+  suppression, et `replaceAll` la vide (les ids changent, les anciennes ne
+  désignent plus rien).
+- La prépa d'un **ami** ne reçoit pas ces props : rien n'y est réglable, les
+  entrées de sa légende ne sont donc pas cliquables.
+
 ## Modèle & persistance
 
 ```ts
@@ -180,6 +209,9 @@ Une **légende** est affichée au-dessus : pastille de couleur + libellé, pour
 **les seules catégories réellement représentées** dans l'ordre de tour. Sans
 elle, un anneau coloré ne veut rien dire pour qui n'a pas la barre de catégories
 sous les yeux ; et rappeler des couleurs absentes de l'écran serait du bruit.
+
+Chaque entrée est **cliquable** et masque sa catégorie — voir « Catégorie par
+catégorie » plus haut.
 
 ## Attendus
 

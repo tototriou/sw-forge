@@ -1133,6 +1133,32 @@ export function* buildBuckets(
   // demandé — calculé une fois, réutilisé à chaque étape du triple flux.
   const slotHasKey = [i0, i1, i2].map((i) => distinctKeys.map((key) => filtered[i].some((r) => r.set === key)));
 
+  // ⚠️ Précalcul PAR RUNE, une fois avant la triple boucle — voir
+  // spec/outils/optimizer.md, « Suite — relecture du pipeline, pistes
+  // d'accélération ». `runeEfficiency(r0)`/`runeContribution(r0, k)`
+  // étaient recalculés à CHAQUE itération de la double boucle r1×r2, alors
+  // que r0 est fixe pour toute cette double boucle — pur travail redondant
+  // (mesuré : ~1,5M appels à `runeEfficiency` au lieu de 240 possibles, au
+  // préréglage « Moyen »). Indexé par POSITION dans `filtered[i]`, pas par
+  // id de rune : les trois slots d'une moitié sont TOUJOURS disjoints
+  // (une rune n'appartient qu'à un seul `slot`), aucun risque de collision,
+  // et évite le coût d'une table de hachage supplémentaire.
+  function precomputeSlot(pool: RuneDetail[]): { eff: number; isJoker: boolean; contribPct: number[]; contribFlat: number[] }[] {
+    return pool.map((r) => {
+      const contribPct = new Array<number>(trackedKeys.length);
+      const contribFlat = new Array<number>(trackedKeys.length);
+      for (let j = 0; j < trackedKeys.length; j++) {
+        const c = runeContribution(r, trackedKeys[j]);
+        contribPct[j] = c.pct;
+        contribFlat[j] = c.flat;
+      }
+      return { eff: runeEfficiency(r), isJoker: r.set === 'intangible', contribPct, contribFlat };
+    });
+  }
+  const precompI0 = precomputeSlot(filtered[i0]);
+  const precompI1 = precomputeSlot(filtered[i1]);
+  const precompI2 = precomputeSlot(filtered[i2]);
+
   // Vrai si, comptes réels `have` (déjà choisis) + le meilleur restant de
   // cette moitié (`remainingSlotIdxs`, indices dans `slotHasKey`) + l'autre
   // moitié + le joker, chaque set demandé reste atteignable.
@@ -1147,31 +1173,33 @@ export function* buildBuckets(
 
   const totalR0 = filtered[i0].length;
   let scannedR0 = 0;
-  for (const r0 of filtered[i0]) {
+  for (let idx0 = 0; idx0 < filtered[i0].length; idx0++) {
+    const r0 = filtered[i0][idx0];
+    const p0 = precompI0[idx0];
     scannedR0++;
     yield { phase: 'building', half, scanned: scannedR0, total: totalR0 };
     const haveR0 = distinctKeys.map((key) => (r0.set === key ? 1 : 0));
     if (distinctKeys.length > 0 && !stillFeasible(haveR0, [1, 2])) continue;
-    for (const r1 of filtered[i1]) {
+    for (let idx1 = 0; idx1 < filtered[i1].length; idx1++) {
+      const r1 = filtered[i1][idx1];
+      const p1 = precompI1[idx1];
       const haveR01 = distinctKeys.map((key, k) => haveR0[k] + (r1.set === key ? 1 : 0));
       if (distinctKeys.length > 0 && !stillFeasible(haveR01, [2])) continue;
-      for (const r2 of filtered[i2]) {
+      for (let idx2 = 0; idx2 < filtered[i2].length; idx2++) {
+        const r2 = filtered[i2][idx2];
+        const p2 = precompI2[idx2];
         const runes: [RuneDetail, RuneDetail, RuneDetail] = [r0, r1, r2];
-        const counts = distinctKeys.map((key) => runes.filter((r) => r.set === key).length);
-        const jokers = runes.filter((r) => r.set === 'intangible').length;
+        // ⚠️ Réutilise `haveR01` (déjà accumulé pour `stillFeasible`) au
+        // lieu de recalculer via `runes.filter(...)` — même résultat, sans
+        // reparcourir les 3 runes une deuxième fois.
+        const counts = haveR01.map((c, k) => c + (r2.set === distinctKeys[k] ? 1 : 0));
+        const jokers = (p0.isJoker ? 1 : 0) + (p1.isJoker ? 1 : 0) + (p2.isJoker ? 1 : 0);
         const pct: Record<string, number> = {};
         const flat: Record<string, number> = {};
-        let score = (runeEfficiency(r0) + runeEfficiency(r1) + runeEfficiency(r2)) / 1000;
-        for (const k of trackedKeys) {
-          let p = 0;
-          let f = 0;
-          for (const r of runes) {
-            const c = runeContribution(r, k);
-            p += c.pct;
-            f += c.flat;
-          }
-          pct[k] = p;
-          flat[k] = f;
+        let score = (p0.eff + p1.eff + p2.eff) / 1000;
+        for (let j = 0; j < trackedKeys.length; j++) {
+          pct[trackedKeys[j]] = p0.contribPct[j] + p1.contribPct[j] + p2.contribPct[j];
+          flat[trackedKeys[j]] = p0.contribFlat[j] + p1.contribFlat[j] + p2.contribFlat[j];
         }
 
         const key = bucketKeyOf(counts, jokers);

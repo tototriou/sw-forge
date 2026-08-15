@@ -1,14 +1,19 @@
 {
   "name": "sw-forge",
   "private": true,
-  "version": "1.6.1",
+  "version": "1.6.3",
   "type": "module",
   "description": "SW Forge — boîte à outils Summoners War : siège, RTA, runes et analyse de compte. 100 % local, aucune donnée envoyée.",
+  "engines": {
+    "node": ">=24"
+  },
   "scripts": {
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview",
-    "fetch-data": "node scripts/fetch-monsters.mjs",
+    "fetch-data": "node scripts/fetch-monsters.mjs && node scripts/fetch-skills.mjs && node scripts/link-collabs.mjs",
+    "fetch-skills": "node scripts/fetch-skills.mjs",
+    "link-collabs": "node scripts/link-collabs.mjs",
     "test": "node tests/run.mjs",
     "benchmark:optim": "node scripts/benchmark-optim.mjs",
     "benchmark:bucket-retention": "node scripts/benchmark-bucket-retention.mjs",

@@ -98,17 +98,98 @@ page. Une seule source de version, celle qu'incrémente la release.
 ⚠️ `package.json` et l'entrée en tête de `RELEASES` doivent **rester alignés** :
 c'est le même geste, dans la même branche de release.
 
-## Voir aussi
+## Modèle de branches et processus de release
 
-Le **modèle de branches et le processus de release** (branche `forge/<sujet>`,
-`main` stable, **fusion `--no-ff`**, tag, release GitHub) sont décrits dans le
-[README](README.md), section « Versions & releases ».
+> Ce processus vivait dans le [README](README.md) ; il a été **déplacé ici**.
+> Le README s'adresse à qui **découvre** le projet — le détail d'une procédure
+> interne n'y a pas sa place, et le maintenir à deux endroits garantissait d'en
+> laisser un se périmer.
 
-⚠️ **Une branche porte un sujet, pas un numéro** (`forge/prepa-rta`) : le numéro
-n'est décidé qu'à la fusion. C'est le pendant, côté Git, du `version: null`
-ci-dessus — on ne nomme pas une version avant de savoir ce qu'elle contient.
+`main` est **toujours la version stable en ligne**. On n'y développe pas
+directement.
 
-⚠️ **`--no-ff`, jamais `--squash`** : un squash recopie le contenu sans
-enregistrer la parenté, si bien qu'une branche publiée reste indistinguable
-d'une branche oubliée (`git branch --merged` ne la voit pas). Les branches sont
-**conservées** après publication, et le point de retour est le **tag**.
+```
+main ──●─────────────────────────●──────────► (stable, déployée sur Vercel)
+        \                       /
+         └── forge/<sujet> ────┘   (développement d'une version)
+```
+
+### ⚠️ Une branche porte un SUJET, pas un numéro
+
+`release/1.3.1` devenait faux dès qu'on y ajoutait une fonctionnalité : il
+fallait renommer la branche **et** supprimer l'ancien nom sur le dépôt, sinon
+elle y figurait deux fois. On nommait la version avant de savoir ce qu'elle
+serait.
+
+Une branche s'appelle donc **`forge/<sujet>`** — ce qu'elle contient, en deux ou
+trois mots, en français : `forge/prepa-rta`, `forge/import-artefacts`,
+`forge/bestiaire-filtres`. **Le numéro se décide à la fusion**, quand on voit ce
+qu'il y a dedans. C'est le pendant, côté Git, du `version: null` ci-dessus.
+
+Si le sujet lui-même dérive au point que le nom ment (la branche « filtres »
+finit par refondre le bestiaire), renommer reste possible — mais c'est rare,
+alors qu'un numéro devenait faux au premier `feat`.
+
+### Les cinq étapes
+
+1. **Créer la branche** sur son sujet : `git switch -c forge/prepa-rta`
+2. **Développer dessus**, commits conventionnels (`feat(scope):`, `fix(scope):`,
+   `docs(spec):`).
+3. **Dès le début**, ajouter l'entrée **en tête** de
+   [`src/data/releases.ts`](src/data/releases.ts) — c'est ce que les joueurs
+   liront sur la page **Nouveautés** — avec **`version: null`** : le numéro
+   n'est pas encore tranché, la page affiche « En préparation » et masque le
+   lien « GitHub ↗ » qui mènerait à un **404**.
+4. **Avant de fermer la version**, dans la même branche :
+   - **choisir le numéro** d'après ce que contient la branche (voir la table de
+     numérotation ci-dessous) ;
+   - l'écrire dans `version` de [`package.json`](package.json) **et** dans
+     l'entrée de `releases.ts`, à la place du `null` ;
+   - vérifier `npx tsc --noEmit`, `npm test` et `npm run build`.
+5. **Fusionner dans `main` en `--no-ff`**, taguer, publier :
+   ```bash
+   git switch main && git merge --no-ff forge/prepa-rta -m "Merge forge/prepa-rta — v1.5.0 …"
+   git tag -a v1.5.0 -m "…" && git push origin main --tags
+   gh release create v1.5.0 --title "v1.5.0 — …" --notes "…"
+   git push origin forge/prepa-rta   # la branche est conservée
+   ```
+
+⚠️ **Le message de merge fait le lien** entre le sujet et le numéro : c'est la
+seule trace qui relie `forge/prepa-rta` à `v1.5.0`. Sans lui, retrouver la
+branche d'une version demande de fouiller les dates.
+
+⚠️ **`--no-ff`, jamais `--squash`.** Un squash **recopie le contenu sans
+enregistrer la parenté** : Git ignore alors que la branche a été fusionnée. Elle
+n'apparaît pas dans `git branch --merged`, et `git log main..forge/<sujet>`
+ressort ses commits comme s'ils manquaient — alors que tout est bien dans `main`.
+On ne peut plus distinguer une branche publiée d'une branche oubliée. Le merge
+classique enregistre ce lien : c'est ce qui rend l'état vérifiable.
+
+**Les branches sont conservées** — elles montrent d'un coup d'œil ce qui a été
+livré, sujet par sujet, et le détail des commits reste accessible sans dérouler
+l'historique de `main`. Le point de retour est le **tag**.
+
+Les branches `release/1.3.0`, `release/1.4.0` et `release/1.5.0` gardent leur
+ancien nom : les deux premières sont publiées et taguées, la troisième était
+commencée quand la convention a changé. La renommer n'aurait rien appris à
+personne — `forge/<sujet>` vaut pour les branches **créées ensuite**.
+
+### Numérotation
+
+SemVer, lue **du point de vue du joueur** — choisie à l'**étape 4**, une fois la
+branche terminée, en regardant ce qu'elle contient (`git log main..forge/<sujet>`) :
+
+| Incrément | Quand |
+|---|---|
+| **majeure** `2.0.0` | refonte, ou changement qui casse un format d'export |
+| **mineure** `1.2.0` | nouvelle section, nouvelle fonctionnalité |
+| **corrective** `1.1.1` | correction seule, aucune nouveauté |
+
+⚠️ **`package.json`, l'entrée de `releases.ts` et le tag portent le même
+numéro.** Le pied de page affiche la version de `package.json` et pointe vers la
+page Nouveautés : trois valeurs désalignées, et le joueur lit un journal qui ne
+correspond pas à ce qu'il utilise.
+
+⚠️ **Un changement de calcul se note toujours** dans `releases.ts`, même minime.
+C'est ce qu'un joueur remarque en premier (« ma vitesse a changé ») et ce qu'il
+ne peut deviner nulle part ailleurs.

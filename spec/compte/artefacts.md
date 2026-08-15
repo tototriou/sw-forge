@@ -119,6 +119,25 @@ démarrent ainsi sur une même colonne. Laissés à leur largeur naturelle,
     décalerait les cinq autres rangées — le repli tient dans la hauteur déjà
     occupée par le contrôle.
 
+- **Propriété** : la **barre de rappel + modale** du jeu — le **même dispositif
+  que les runes**, décrit en détail dans
+  [runes.md](runes.md#filtre-par-propriété-secondaire--%EF%B8%8F-la-modale-du-jeu) :
+  2 ou 4 cases montrant chacune son critère (« Vol de vie +8 ~ +12 »), la
+  bascule 2 ↔ 4 (`Rows2` / `Grid2x2`), et une modale listant toutes les
+  propriétés avec **Min** et **Max**.
+  - Mêmes composants ([SubSearchBar.tsx](src/components/account/SubSearchBar.tsx),
+    [SubSearchDialog.tsx](src/components/account/SubSearchDialog.tsx)) : la
+  grille de menus déroulants qui vivait ici a été **remplacée**, pas dupliquée.
+  - ⚠️ Seule la **largeur de la modale** diffère — **520 px** contre 380 pour les
+    runes : « Dgts supp. en prop. de ATQ » ne tient pas dans la largeur d'un
+    « VIT ». C'est le seul paramètre qui sépare les deux usages.
+  - ⚠️ Les critères restent **ORDONNÉS** : le premier trie la liste, le deuxième
+    départage les ex æquo. Un rappel l'écrit sous la barre dès qu'il y en a deux
+    — sans lui, « 1 » et « 2 » passent pour des emplacements d'artéfact.
+  - Les propriétés proposées sont celles **réellement portées** par un artéfact
+    de l'inventaire, restreintes à la catégorie choisie, dans l'ordre du jeu
+    (`artifactSubOrder`).
+
 ## Pagination
 
 `Pager` : 60 tuiles/page (DOM borné). En-tête : nombre filtré (« N sur M »).

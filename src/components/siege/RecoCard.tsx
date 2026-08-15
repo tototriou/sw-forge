@@ -267,6 +267,12 @@ export default function RecoCard({
           <input
             value={reco.name}
             onChange={(e) => recos.setMeta(reco.id, { name: e.target.value })}
+            // ⚠️ Trim à la SORTIE du champ, jamais à la frappe : trimer pendant
+            // qu'on tape empêche d'écrire une espace entre deux mots.
+            onBlur={(e) => {
+              const t = e.target.value.trim();
+              if (t !== reco.name) recos.setMeta(reco.id, { name: t });
+            }}
             placeholder={`Recommandation ${index + 1}`}
             className="flex-1 min-w-[160px] bg-panel border border-border rounded-lg px-2.5 py-1 text-[15px]
                        font-semibold text-ink outline-none focus:border-accent"
@@ -393,6 +399,10 @@ export default function RecoCard({
           <input
             value={reco.author}
             onChange={(e) => recos.setMeta(reco.id, { author: e.target.value })}
+            onBlur={(e) => {
+              const t = e.target.value.trim();
+              if (t !== reco.author) recos.setMeta(reco.id, { author: t });
+            }}
             placeholder="Ton pseudo (auteur)"
             className="bg-panel border border-border rounded-lg px-2.5 py-1.5 text-[12.5px] text-ink
                        outline-none focus:border-accent"
@@ -1045,6 +1055,10 @@ function DeckBlock({
           <input
             value={deck.name}
             onChange={(e) => recos.setDeckMeta(reco.id, deckIndex, { name: e.target.value })}
+            onBlur={(e) => {
+              const t = e.target.value.trim();
+              if (t !== deck.name) recos.setDeckMeta(reco.id, deckIndex, { name: t });
+            }}
             placeholder={autoDeckName(deck, monsterByCom2us, deckIndex)}
             title="Laisse vide pour reprendre les noms des monstres"
             className="min-w-[180px] flex-1 bg-panel border border-border rounded px-2 py-0.5 text-[12px]
@@ -1739,6 +1753,10 @@ function CounterRow({
         onChange={(e) =>
           recos.setCounterNote(reco.id, deckIndex, counterIndex, e.target.value)
         }
+        onBlur={(e) => {
+          const t = e.target.value.trim();
+          if (t !== counter.note) recos.setCounterNote(reco.id, deckIndex, counterIndex, t);
+        }}
         placeholder="Précision (ex. « si le Chloe est en lead »)…"
         className="mt-1.5 w-full rounded border border-border bg-panel px-1.5 py-1 text-[11.5px]
                    text-ink placeholder:text-ink-dim transition focus:border-accent"
@@ -1916,6 +1934,14 @@ function NoteEditor({
         maxLength={max}
         rows={rows}
         onChange={(e) => onChange(e.target.value)}
+        // ⚠️ Trim à la SORTIE du champ, jamais à la frappe : trimer pendant
+        // qu'on tape empêcherait d'écrire une espace ou un retour à la ligne.
+        // Les retours à la ligne INTÉRIEURS sont conservés — ils font partie de
+        // la mise en forme voulue par l'auteur (voir NoteBlock).
+        onBlur={(e) => {
+          const t = e.target.value.trim();
+          if (t !== value) onChange(t);
+        }}
         placeholder={placeholder}
         className="w-full bg-panel border border-border rounded-lg px-2.5 py-1.5 text-[12.5px] text-ink
                    outline-none focus:border-accent resize-y"

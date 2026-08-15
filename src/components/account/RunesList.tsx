@@ -1,14 +1,22 @@
-import { memo, useCallback, useMemo, useRef, useState } from 'react';
+import { memo, useMemo, useState } from 'react';
 import { RuneDetail } from '../../types';
-import { formatRuneEffect, RARITY_META, runeEfficiency, runeScore } from '../../lib/effects';
+import { RUNE_EFFECT, runeEfficiency, runeScore } from '../../lib/effects';
 import SetFilter from './SetFilter';
 import SlotFilter from './SlotFilter';
 import RuneSlotIcon from '../RuneSlotIcon';
 import { RuneDetailBox } from '../MonsterGear';
 import Pager from './Pager';
-import DetailPopover from './DetailPopover';
+import { Critere } from './SubSearchDialog';
+import SubSearchBar from './SubSearchBar';
+import {
+  RUNE_SORTS,
+  RuneSortMode,
+  comparateurRunes,
+  estTriConnu,
+  valeurSub,
+} from '../../lib/runeSort';
 import { useStickyState } from '../../hooks/useStickyState';
-import { RuneMetric, useRuneMetric, formatRuneMetric, runeMetricLabel } from '../../hooks/useRuneMetric';
+import { useRuneMetric } from '../../hooks/useRuneMetric';
 
 interface Props {
   runes: RuneDetail[];
@@ -22,38 +30,45 @@ interface RuneRow {
   id: number;
 }
 
-type SortMode = 'val_desc' | 'val_asc' | 'level_desc' | 'slot_asc';
-
-const SORTS: { key: SortMode; label: string }[] = [
-  { key: 'val_desc', label: '↓ décroissant' },
-  { key: 'val_asc', label: '↑ croissant' },
-  { key: 'level_desc', label: 'Niveau ↓' },
-  { key: 'slot_asc', label: 'Slot ↑' },
-];
-
-// Le tri « valeur » suit la mesure choisie.
-const sortFn = (mode: SortMode, m: RuneMetric) => {
-  const v = (r: RuneRow) => (m === 'eff' ? r.eff : r.score);
-  const table: Record<SortMode, (a: RuneRow, b: RuneRow) => number> = {
-    val_desc: (a, b) => v(b) - v(a),
-    val_asc: (a, b) => v(a) - v(b),
-    level_desc: (a, b) => b.rune.level - a.rune.level || v(b) - v(a),
-    slot_asc: (a, b) => a.rune.slot - b.rune.slot || v(b) - v(a),
-  };
-  return table[mode];
-};
-
 const PAGE = 60; // tuiles par page (DOM borné pour rester fluide)
+
+// Une rune ne porte que 4 propriétés secondaires : un 5ᵉ critère ne pourrait
+// jamais être satisfait. C'est aussi le nombre de cases de rappel du jeu.
+const MAX_SUBS = 4;
+
+// Propriétés secondaires proposées, dans l'ordre de la table de référence.
+// ⚠️ Toutes les lignes de `RUNE_EFFECT` peuvent être un substat SAUF la VIT
+// plate… qui l'est aussi. On garde donc la table entière : c'est exactement ce
+// qu'une rune peut porter.
+const SUBS_OPTIONS = Object.entries(RUNE_EFFECT).map(([code, def]) => ({
+  code: Number(code),
+  label: def.label,
+}));
 
 export default function RunesList({ runes }: Props) {
   const [sets, setSets] = useStickyState<Set<string>>('runesList.sets', new Set());
   const [slots, setSlots] = useStickyState<Set<number>>('runesList.slots', new Set());
   const [ancientOnly, setAncientOnly] = useStickyState('runesList.ancient', false);
-  const [sort, setSort] = useStickyState<SortMode>('runesList.sort', 'val_desc');
+  const [sortBrut, setSort] = useStickyState<RuneSortMode>('runesList.sort', 'score');
+  // ⚠️ Un tri mémorisé qui n'existe plus (les clés ont changé avec les libellés
+  // du jeu) retombe sur le défaut : sinon `sortFn` renvoie `undefined` et le
+  // `sort` lève, page blanche à la clé.
+  const sort = estTriConnu(sortBrut) ? sortBrut : 'score';
+  // Propriétés cherchées, dans l'ordre de priorité — même grammaire que
+  // l'inventaire d'artéfacts (voir SubSearchDialog).
+  //
+  // ⚠️ QUATRE au plus : une rune ne porte que 4 propriétés secondaires, un
+  // cinquième critère ne pourrait jamais être satisfait.
+  const [criteres, setCriteres] = useStickyState<Critere[]>('runesList.criteres', []);
+  // La modale ne pose que des critères complets ; ce garde-fou couvre un état
+  // mémorisé d'une version antérieure, où une case vide valait `{code: 0}`.
+  const actifs = useMemo(() => criteres.filter((c) => c.code > 0), [criteres]);
+  // Codes recherchés : les tuiles s'en servent pour surligner la ligne visée.
+  const cherches = useMemo(() => new Set(actifs.map((c) => c.code)), [actifs]);
   const metric = useRuneMetric(); // choix PARTAGÉ avec les autres vues
   const [page, setPage] = useState(0);
-  const [openId, setOpenId] = useState<number | null>(null);
-  const toggleOpen = useCallback((id: number) => setOpenId((c) => (c === id ? null : id)), []);
+  // ⚠️ Plus d'état « rune ouverte » : la tuile EST la carte de détail, il n'y a
+  // plus rien à ouvrir. Voir RuneTile.
 
   // Les deux mesures calculées une seule fois par import (bascule instantanée).
   const rows = useMemo(
@@ -70,12 +85,26 @@ export default function RunesList({ runes }: Props) {
       if (sets.size && !sets.has(r.set)) return false;
       if (slots.size && !slots.has(r.slot)) return false;
       if (ancientOnly && !(r.rank > 10)) return false;
+      // ⚠️ Les critères se cumulent en ET, bornes comprises : la rune doit
+      // porter TOUTES les propriétés cherchées, chacune dans son intervalle.
+      // Même règle que la recherche détaillée du jeu.
+      // ⚠️ `max` absent = pas de plafond, ce qui n'est PAS « au plus zéro ».
+      for (const c of actifs) {
+        const v = valeurSub(r, c.code);
+        if (v == null || v < c.min) return false;
+        if (c.max != null && v > c.max) return false;
+      }
       return true;
     });
-  }, [rows, sets, slots, ancientOnly]);
+  }, [rows, sets, slots, ancientOnly, actifs]);
 
   // Tri appliqué après filtrage (copie pour ne pas muter `filtered`).
-  const sorted = useMemo(() => [...filtered].sort(sortFn(sort, metric)), [filtered, sort, metric]);
+  // Le 1ᵉʳ critère posé sert aux deux tris « propriété secondaire ».
+  const premierCode = actifs[0]?.code ?? 0;
+  const sorted = useMemo(
+    () => [...filtered].sort(comparateurRunes(sort, metric, premierCode)),
+    [filtered, sort, metric, premierCode]
+  );
   const best = useMemo(
     () => filtered.reduce((m, r) => Math.max(m, metric === 'eff' ? r.eff : r.score), 0),
     [filtered, metric]
@@ -129,26 +158,52 @@ export default function RunesList({ runes }: Props) {
           </button>
         </div>
 
-        {/* Tri. La MESURE (efficience / score) est un réglage global, dans la
-            barre de nav — pas un filtre de page. */}
+        {/* Propriété secondaire — la barre du JEU : quatre cases de rappel
+            et la bascule 2 ↔ 4 à côté.
+            ⚠️ Les cases sont ORDONNÉES : la 1ʳᵉ sert aussi de clé aux deux tris
+            « propriété secondaire ». La position porte donc du sens. */}
+        <div className="flex flex-wrap items-start gap-2">
+          <span className="w-[86px] flex-none label mt-1">Propriété</span>
+          <div className="min-w-0 flex-1 max-w-[480px]">
+            <SubSearchBar
+              options={SUBS_OPTIONS}
+              criteres={criteres}
+              max={MAX_SUBS}
+              nomDe={(code) => RUNE_EFFECT[code]?.label ?? `#${code}`}
+              onChange={(c) => {
+                setCriteres(c);
+                setPage(0);
+              }}
+            />
+          </div>
+        </div>
+
+        {/* Tri — les entrées du JEU, dans son ordre. La MESURE (efficience /
+            score) reste un réglage global, dans la barre de nav. */}
         <div className="flex items-center gap-2 flex-wrap">
-          <span className="label mr-1">
-            Trier par
-          </span>
+          <span className="w-[86px] flex-none label">Trier par</span>
           <select
             value={sort}
             onChange={(e) => {
-              setSort(e.target.value as SortMode);
+              setSort(e.target.value as RuneSortMode);
               setPage(0);
             }}
+            title={RUNE_SORTS.find((s) => s.key === sort)?.hint}
             className="bg-panel border border-border text-ink rounded-lg px-2.5 py-1 text-[13px] outline-none"
           >
-            {SORTS.map((s) => (
-              <option key={s.key} value={s.key}>
+            {RUNE_SORTS.map((s) => (
+              <option key={s.key} value={s.key} title={s.hint}>
                 {s.label}
               </option>
             ))}
           </select>
+          {/* ⚠️ Les deux tris « propriété » n'ont rien à classer sans critère :
+              le dire ici évite de croire que le tri est cassé. */}
+          {(sort === 'sub_desc' || sort === 'sub_brut_desc') && !premierCode && (
+            <span className="text-[12px] text-warn">
+              Choisis une propriété ci-dessus pour trier dessus.
+            </span>
+          )}
         </div>
       </div>
 
@@ -171,9 +226,13 @@ export default function RunesList({ runes }: Props) {
           Clé POSITIONNELLE (et non `row.id`) : la tuile est réutilisée quand la
           page/le filtre change, donc le cadre pivote vers son nouveau slot au
           lieu d'être remonté d'un coup. Voir SPIN dans RuneSlotIcon. */}
-      <div className="grid grid-cols-[repeat(auto-fill,minmax(150px,1fr))] gap-2 items-start">
+      {/* ⚠️ 215 px : c'est la largeur en dessous de laquelle la bannière de
+          rareté passe SOUS la stat principale — chaque tuile gagne alors une
+          ligne, l'inverse du but. La bannière est resserrée en mode compact
+          justement pour descendre jusque-là (voir RuneDetailBox). */}
+      <div className="grid grid-cols-[repeat(auto-fill,minmax(215px,1fr))] gap-2 items-start">
         {shown.map((row, i) => (
-          <RuneTile key={i} row={row} metric={metric} open={openId === row.id} onToggle={toggleOpen} />
+          <RuneTile key={i} row={row} cherches={cherches} />
         ))}
       </div>
 
@@ -186,52 +245,41 @@ export default function RunesList({ runes }: Props) {
   );
 }
 
-// Tuile uniforme cliquable : cadre de rune (orienté par slot, icône de set
-// dedans) à gauche · stat principale à côté · efficience en dessous.
+// Tuile de rune — **la carte du jeu**, en rendu resserré.
+//
+// ⚠️ C'est la MÊME carte que celle qu'on ouvrait au clic (`RuneDetailBox`), pas
+// un résumé qui y mènerait. Tout ce qu'on vient chercher dans l'inventaire — la
+// stat principale, l'innée, les quatre substats avec leur part de meule, la
+// rareté, le score, le bonus de set — y est d'emblée. Un aperçu qui cachait les
+// substats obligeait à ouvrir les runes une par une pour comparer, ce qui est
+// exactement ce qu'on fait en parcourant 2 000 runes.
+//
+// ⚠️ Plus de popover au clic : il n'aurait rien montré de plus. La tuile n'est
+// donc plus cliquable — un bouton qui ne fait rien se lit comme un défaut.
+//
 // Mémoïsée : ne se re-rend pas quand seuls les filtres/la page changent ailleurs.
 const RuneTile = memo(function RuneTile({
   row,
-  metric,
-  open,
-  onToggle,
+  cherches,
 }: {
   row: RuneRow;
-  metric: RuneMetric;
-  open: boolean;
-  onToggle: (id: number) => void;
+  cherches: Set<number>; // codes recherchés → la ligne est surlignée
 }) {
-  const ref = useRef<HTMLDivElement>(null);
   const { rune } = row;
-  const meta = RARITY_META[rune.rarity] ?? RARITY_META[1];
-  const ancient = rune.rank > 10;
-
   return (
-    <div
-      ref={ref}
-      className={`relative rounded-lg border bg-panel ${open ? 'z-20 border-accent' : 'border-border'}`}
-    >
-      <button onClick={() => onToggle(row.id)} className="w-full flex items-center gap-2.5 p-2 text-left">
-        <RuneSlotIcon slot={rune.slot} setKey={rune.set} rarity={rune.rarity} ancient={ancient} height={46} />
-        <div className="min-w-0 flex-1">
-          <div className="text-[13px] font-bold text-ink leading-tight truncate">
-            {formatRuneEffect(rune.main)}
-          </div>
-          <div className="mt-0.5 font-mono text-[11px] text-ink-dim leading-tight">
-            {runeMetricLabel(metric)}{' '}
-            {/* `meta.ink` et non `meta.color` : c'est du TEXTE sur un panneau,
-                pas la bannière de rareté. Les couleurs vives du jeu sont
-                illisibles sur fond clair. Voir RARITY_META. */}
-            <b style={{ color: meta.ink }}>
-              {formatRuneMetric(metric === 'eff' ? row.eff : row.score, metric)}
-            </b>
-          </div>
-        </div>
-      </button>
-
-      {/* Détail flottant : carte récap, placement auto (gauche/haut si bord). */}
-      <DetailPopover open={open} anchorRef={ref} height={320}>
-        <RuneDetailBox rune={rune} />
-      </DetailPopover>
-    </div>
+    <RuneDetailBox
+      rune={rune}
+      compact
+      cherches={cherches}
+      icone={
+        <RuneSlotIcon
+          slot={rune.slot}
+          setKey={rune.set}
+          rarity={rune.rarity}
+          ancient={rune.rank > 10}
+          height={36}
+        />
+      }
+    />
   );
 });

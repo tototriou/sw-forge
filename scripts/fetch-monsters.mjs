@@ -95,6 +95,20 @@ function normalizeMonster(raw, idx) {
     image: buildImageUrl(raw),
     stats: normalizeStats(raw),
     leaderSkill: normalizeLeaderSkill(raw),
+    // ⚠️ Forme TRANSFORMÉE d'un monstre (Bellenus, les Sœurs…), en **id
+    // SWARFARM** — pas en `com2usId`. Le lien est **bidirectionnel** dans
+    // l'API : A pointe vers B et B vers A. C'est ce qui permet de n'afficher
+    // qu'UNE fiche par monstre au lieu de deux (voir lib/monsterForms.ts).
+    transformsTo: num(raw.transforms_to),
+    // Id SWARFARM du monstre lui-même : `transformsTo` s'y résout.
+    swarfarmId: num(raw.id),
+    // ⚠️ Famille du monstre et groupe de COMPÉTENCES, deux notions distinctes.
+    // Quand ils divergent, c'est que le monstre EMPRUNTE les compétences d'un
+    // autre — et c'est ainsi que se reconnaît une COLLABORATION : Werner
+    // (famille 30900) porte le groupe 30300, celui de Satoru Gojo. Le lien est
+    // ainsi donné par l'API, sans rien avoir à déduire.
+    familyId: num(raw.family_id),
+    skillGroupId: num(raw.skill_group_id),
   };
 }
 

@@ -61,6 +61,128 @@ export const RELEASES: Release[] = [
   // fusion, d'après ce que la branche contient au final. On le remplace au
   // moment de publier, en même temps que `package.json` et le tag.
   {
+    version: '1.6.3',
+    date: '2026-08-16',
+    title: 'Tes runes et tes monstres se lisent comme dans le jeu',
+    highlights: [
+      'Clique un monstre pour voir sa fiche complète : stats, lead et détail de ses sorts',
+      'Tes runes s’affichent comme dans le jeu, avec les tris et la recherche de propriétés',
+      'Les monstres de collaboration partagent la carte de leur équivalent : « Satoru Gojo, Werner »',
+    ],
+    changes: [
+      {
+        kind: 'feat',
+        scope: 'Mon compte',
+        text: 'Clique un point de la courbe pour ouvrir la rune correspondante, et navigue de l’une à l’autre.',
+      },
+      {
+        kind: 'feat',
+        scope: 'Mon compte',
+        text: 'Tes runes s’affichent comme dans le jeu : propriétés, meules et bonus de set sur chaque carte.',
+      },
+      {
+        kind: 'feat',
+        scope: 'Mon compte',
+        text: 'Un clic sur une rune bascule entre le détail des valeurs et leur total.',
+      },
+      {
+        kind: 'feat',
+        scope: 'Mon compte',
+        text: 'Trie tes runes avec les critères du jeu : grade, propriété, avant meule, obtention…',
+      },
+      {
+        kind: 'feat',
+        scope: 'Mon compte',
+        text: 'Cherche jusqu’à 4 propriétés secondaires à la fois, avec un minimum et un maximum.',
+      },
+      {
+        kind: 'feat',
+        scope: 'Bestiaire',
+        text: 'Clique un monstre pour voir sa fiche : ses stats, son lead et le détail de ses sorts.',
+      },
+      {
+        kind: 'feat',
+        scope: 'Bestiaire',
+        text: 'Les monstres qui se transforment n’ont plus qu’une carte, avec ses deux formes dans la fiche.',
+      },
+      {
+        kind: 'feat',
+        scope: 'Bestiaire',
+        text: 'Le bestiaire s’affiche par pages : plus de ralentissement à la recherche.',
+      },
+      {
+        kind: 'feat',
+        scope: 'Bestiaire',
+        text: 'Un monstre de collaboration partage la carte de son équivalent : « Satoru Gojo, Werner ».',
+      },
+      {
+        kind: 'feat',
+        scope: 'RTA',
+        text: 'Un bouton remet tes équipes dans l’état de l’import de compte.',
+      },
+      {
+        kind: 'feat',
+        scope: 'RTA',
+        text: 'Clique une catégorie dans la légende pour l’afficher ou la masquer.',
+      },
+      {
+        kind: 'fix',
+        scope: 'Bestiaire',
+        text: 'Les monstres sont rangés par élément, puis 2A, nat5, nat4, nat3, du plus récent au plus ancien.',
+      },
+      {
+        kind: 'fix',
+        scope: 'Interface',
+        text: 'Les cartes de monstre sont les mêmes au bestiaire et dans ta box.',
+      },
+      {
+        kind: 'fix',
+        scope: 'Mon compte',
+        text: 'Chaque courbe importée prend une couleur qui n’est encore portée par aucune autre.',
+      },
+      {
+        kind: 'fix',
+        scope: 'Bestiaire',
+        text: 'Le rechargement d’un sort montre ce qu’il devient une fois la compétence montée.',
+      },
+      {
+        kind: 'fix',
+        scope: 'Interface',
+        text: 'Tous les leads s’affichent en couleur, aucun n’est plus grisé.',
+      },
+      {
+        kind: 'fix',
+        scope: 'Interface',
+        text: 'Une croix ferme les fiches qu’on consulte.',
+      },
+      {
+        kind: 'fix',
+        scope: 'Interface',
+        text: 'Les espaces en trop dans un nom ou une consigne ne sont plus conservés.',
+      },
+      {
+        kind: 'fix',
+        scope: 'Interface',
+        text: 'Les zéros inutiles disparaissent des champs de saisie chiffrés.',
+      },
+    ],
+  },
+  {
+    version: '1.6.2',
+    date: '2026-08-16',
+    title: 'L’Optimiseur cherche plus vite',
+    highlights: [
+      'La recherche de builds va plus vite — près de deux fois plus rapide sur la construction, sans rien changer aux résultats trouvés',
+    ],
+    changes: [
+      {
+        kind: 'fix',
+        scope: 'Outils',
+        text: 'La recherche de l’Optimiseur va plus vite, sans rien changer aux résultats trouvés.',
+      },
+    ],
+  },
+  {
     version: '1.6.1',
     date: '2026-08-15',
     title: 'Dis contre quoi tes decks sont forts',

@@ -63,7 +63,10 @@ export default function CreateMonster({ onCreate, customMonsters, onDelete }: Pr
       leadStat !== '' && lead !== '' && Number.isFinite(leadNum) && leadNum > 0
         ? { stat: leadStat, amount: leadNum, area: scope }
         : null;
-    onCreate(name, element, speedNum, leadObj);
+    // ⚠️ Le nom TRIMÉ : la validation portait déjà sur `name.trim()`, mais on
+    // stockait le brut — un monstre pouvait s'appeler « Chloé  », impossible à
+    // distinguer de « Chloé » à l'écran et pourtant différent partout ailleurs.
+    onCreate(name.trim(), element, speedNum, leadObj);
     setName('');
     setSpeed('');
     setLeadStat('');

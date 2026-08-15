@@ -10,6 +10,7 @@ import testPersistance from './persistance.test';
 import testMeules, { testPalier, testRegistre, testSansDowngrade } from './meules.test';
 import testArtefacts from './artefacts.test';
 import testReco, {
+  testTrimPartage,
   testDefensesVisees,
   testRechercheMonstre,
   testRechercheMultiple,
@@ -17,9 +18,15 @@ import testReco, {
   testFormesJouables,
 } from './reco.test';
 import testRtaPartage from './rta-partage.test';
+import testCouleursCourbes from './courbe-couleurs.test';
+import testRechargement from './rechargement.test';
+import testCollabPaires from './collab-paires.test';
 import testRuneOptim from './rune-optim.test';
 import testRuneOptimDifferential from './rune-optim-differential.test';
 import testSetsIntangible from './sets-intangible.test';
+import testRuneTri from './rune-tri.test';
+import testMonstreTri from './monstre-tri.test';
+import testMonstreFormes from './monstre-formes.test';
 import testStockage from './stockage.test';
 import testVitesse from './vitesse.test';
 
@@ -28,12 +35,19 @@ async function main() {
   testImport();
   testReco();
   testDefensesVisees();
+  testTrimPartage();
   testRechercheMonstre();
   testRechercheMultiple();
   testDecksMontables();
   testFormesJouables();
   testRtaPartage();
   testSetsIntangible();
+  testRuneTri();
+  testMonstreTri();
+  testMonstreFormes();
+  testCouleursCourbes();
+  testRechargement();
+  testCollabPaires();
   testRuneOptim();
   testRuneOptimDifferential();
   testMeules();

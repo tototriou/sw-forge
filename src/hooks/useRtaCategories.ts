@@ -39,7 +39,19 @@ export interface UseRtaCategories {
   toggleMember: (id: string, monsterId: string) => void;
   clearMembers: (id: string) => void;
   // Catégories d'un monstre, dans l'ordre de création (donc stable à l'écran).
+  //
+  // ⚠️ Ne renvoie que les catégories VISIBLES : c'est ce que les cartes et
+  // l'ordre de tour affichent. Le panneau d'affectation, lui, doit voir toutes
+  // les catégories — il passe donc par `categories` directement.
   categoriesOf: (monsterId: string) => RtaCategory[];
+  /** Une catégorie est-elle affichée sur les cartes ? */
+  estVisible: (id: string) => boolean;
+  /** Affiche/masque UNE catégorie, sans toucher aux autres. */
+  toggleVisible: (id: string) => void;
+  /** Réaffiche toutes les catégories masquées. */
+  toutAfficher: () => void;
+  /** N'affiche QUE celle-ci — le geste « je veux voir mes strippers ». */
+  isoler: (id: string) => void;
   // Peut-on encore en ajouter une à ce monstre ?
   canAssign: (monsterId: string) => boolean;
   // Amorce la catégorie « Lead SPD » à la première prépa non vide.
@@ -74,6 +86,13 @@ interface Stored {
   visible: boolean;
   showSpeeds: boolean;
   markDesync: boolean;
+  // Catégories masquées, par id.
+  //
+  // ⚠️ On stocke les MASQUÉES et non les visibles : une catégorie qu'on vient de
+  // créer doit s'afficher sans qu'on ait à la cocher. Avec la liste inverse, il
+  // aurait fallu penser à l'y ajouter à chaque création — et un oubli l'aurait
+  // rendue invisible sans raison apparente.
+  masquees: string[];
 }
 
 function cleanCategory(c: unknown): RtaCategory | null {
@@ -97,6 +116,7 @@ function load(): Stored {
     visible: true,
     showSpeeds: true,
     markDesync: true,
+    masquees: [],
   };
   try {
     const raw = localStorage.getItem(KEY);
@@ -119,6 +139,9 @@ function load(): Stored {
       visible: o.visible !== false, // affiché par défaut
       showSpeeds: o.showSpeeds !== false,
       markDesync: o.markDesync !== false,
+      masquees: Array.isArray(o.masquees)
+        ? o.masquees.filter((m): m is string => typeof m === 'string')
+        : [],
     };
   } catch {
     return vide;
@@ -127,7 +150,7 @@ function load(): Stored {
 
 export function useRtaCategories(): UseRtaCategories {
   const [state, setState] = useState<Stored>(load);
-  const { categories, visible, showSpeeds, markDesync } = state;
+  const { categories, visible, showSpeeds, markDesync, masquees } = state;
   const setCategories = useCallback(
     (fn: (cs: RtaCategory[]) => RtaCategory[]) =>
       setState((st) => ({ ...st, categories: fn(st.categories) })),
@@ -183,6 +206,10 @@ export function useRtaCategories(): UseRtaCategories {
       categories: cats
         .map((c) => cleanCategory({ ...c, id: uid() }))
         .filter((c): c is RtaCategory => !!c),
+      // Les ids changent : les anciennes masquées ne désignent plus rien. On
+      // repart donc tout visible, ce qui est aussi le plus lisible après une
+      // restauration — on voit ce qu'on vient de récupérer.
+      masquees: [],
     }));
   }, []);
 
@@ -198,8 +225,16 @@ export function useRtaCategories(): UseRtaCategories {
     setCategories((cs) => cs.map((c) => (c.id === id ? { ...c, label: clean, color } : c)));
   }, []);
 
+  // ⚠️ L'id sort AUSSI des masquées : sans ça, une catégorie supprimée puis
+  // recréée sous le même id (improbable mais gratuit à couvrir) reviendrait
+  // masquée, et la liste grossirait indéfiniment d'ids morts.
   const remove = useCallback(
-    (id: string) => setCategories((cs) => cs.filter((c) => c.id !== id)),
+    (id: string) =>
+      setState((st) => ({
+        ...st,
+        categories: st.categories.filter((c) => c.id !== id),
+        masquees: st.masquees.filter((m) => m !== id),
+      })),
     []
   );
 
@@ -234,9 +269,40 @@ export function useRtaCategories(): UseRtaCategories {
     []
   );
 
+  // ⚠️ Filtre les catégories MASQUÉES : c'est ce que les cartes et l'ordre de
+  // tour affichent. Le panneau d'affectation lit `categories` directement — on
+  // doit pouvoir ranger un monstre dans une catégorie qu'on a masquée.
   const categoriesOf = useCallback(
-    (monsterId: string) => categories.filter((c) => c.members.includes(monsterId)),
-    [categories]
+    (monsterId: string) =>
+      categories.filter((c) => c.members.includes(monsterId) && !masquees.includes(c.id)),
+    [categories, masquees]
+  );
+
+  const estVisible = useCallback((id: string) => !masquees.includes(id), [masquees]);
+
+  const toggleVisible = useCallback(
+    (id: string) =>
+      setState((st) => ({
+        ...st,
+        masquees: st.masquees.includes(id)
+          ? st.masquees.filter((m) => m !== id)
+          : [...st.masquees, id],
+      })),
+    []
+  );
+
+  const toutAfficher = useCallback(() => setState((st) => ({ ...st, masquees: [] })), []);
+
+  // ⚠️ « Isoler » masque TOUTES les autres, il ne fait pas qu'afficher celle-ci :
+  // c'est le geste « montre-moi seulement mes strippers », qui demanderait
+  // sinon de masquer les cinq autres une par une.
+  const isoler = useCallback(
+    (id: string) =>
+      setState((st) => ({
+        ...st,
+        masquees: st.categories.filter((c) => c.id !== id).map((c) => c.id),
+      })),
+    []
   );
 
   const canAssign = useCallback(
@@ -259,6 +325,10 @@ export function useRtaCategories(): UseRtaCategories {
     toggleMember,
     clearMembers,
     categoriesOf,
+    estVisible,
+    toggleVisible,
+    toutAfficher,
+    isoler,
     canAssign,
     ensureDefault,
     replaceAll,

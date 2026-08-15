@@ -1,5 +1,5 @@
 import { ReactNode, useEffect, useRef, useState } from 'react';
-import { AlertTriangle, Check, HardDriveDownload, ShieldCheck } from 'lucide-react';
+import { AlertTriangle, Check, HardDriveDownload, ShieldCheck, X } from 'lucide-react';
 import { BOUTON_DESTRUCTIF, BOUTON_PRIMAIRE, BOUTON_SECONDAIRE } from './buttonStyles';
 
 /* --------------------------------------------------------------------------
@@ -19,13 +19,33 @@ import { BOUTON_DESTRUCTIF, BOUTON_PRIMAIRE, BOUTON_SECONDAIRE } from './buttonS
  */
 
 // Coquille commune : fond, centrage, fermeture au clic extérieur et à Échap.
-function Modale({
+//
+// ⚠️ **Exportée** : elle porte le piège à focus, la boucle de Tab et le blocage
+// du défilement (voir plus bas). Toute boîte modale de l'app passe par elle —
+// une coquille recopiée ailleurs perdrait ces trois-là en silence.
+export function Modale({
   onClose,
   labelledBy,
+  largeur = 'max-w-[400px]',
+  padding = 'p-5',
+  croix = false,
   children,
 }: {
   onClose: () => void;
   labelledBy: string;
+  // Croix de fermeture en coin. ⚠️ Réservée aux modales qu'on **consulte**
+  // (fiche d'un monstre, d'une rune) : Échap et le clic à côté ne se voient
+  // pas, et rien d'autre n'y indique par où sortir.
+  // ⚠️ **Pas sur les confirmations** : leur « Annuler » EST la sortie, et une
+  // croix à côté ferait deux portes pour un choix qui n'en a qu'une — on
+  // hésiterait sur ce que ferme la croix.
+  croix?: boolean;
+  // Classe de largeur — une boîte de message tient en 400 px, une liste à
+  // parcourir se règle au cas par cas.
+  largeur?: string;
+  // Une boîte de message respire ; une liste dense se serre, sinon la marge
+  // pèse plus que le contenu.
+  padding?: string;
   children: ReactNode;
 }) {
   const boite = useRef<HTMLDivElement>(null);
@@ -41,6 +61,21 @@ function Modale({
     const ouvreur = document.activeElement as HTMLElement | null;
     const scrollAvant = document.body.style.overflow;
     document.body.style.overflow = 'hidden';
+
+    // Point de départ du clavier : la BOÎTE, sauf si un contenu a déjà pris le
+    // focus par `autoFocus` (le champ d'un `PromptDialog`, l'« Annuler » d'une
+    // confirmation) — on ne lui vole pas.
+    //
+    // ⚠️ Un `autoFocus` sur un bouton posé SOUS une longue liste est à
+    // proscrire : le navigateur défile jusqu'à l'élément focalisé, et la modale
+    // s'ouvrait tout en bas, sur ses boutons, le contenu invisible. Focaliser le
+    // conteneur donne le même point de départ sans rien faire défiler.
+    if (!boite.current?.contains(document.activeElement)) {
+      boite.current?.focus({ preventScroll: true });
+    }
+    // Le contenu défilant repart du haut : une modale rouverte gardait sinon la
+    // position de défilement de la fois précédente.
+    boite.current?.scrollTo?.({ top: 0 });
 
     const focusables = () =>
       Array.from(
@@ -90,13 +125,46 @@ function Modale({
         role="dialog"
         aria-modal="true"
         aria-labelledby={labelledBy}
+        // Focalisable par programme seulement (`-1`) : la boîte est le point de
+        // départ du clavier, mais elle ne doit pas s'insérer dans le cycle de
+        // Tab comme un contrôle de plus.
+        tabIndex={-1}
         onClick={(e) => e.stopPropagation()}
         // Le voile en fondu, la boîte en fondu + 8 px de montée. Un peu plus
         // lente que le voile (200 vs 150 ms) : la boîte finit APRÈS le fond
         // qu'elle recouvre, sinon elle semble arriver avant lui.
-        className="w-full max-w-[400px] rounded-2xl border border-border bg-panel p-5 shadow-glow shadow-black/60
-                   animate-[dialogue_200ms_var(--ease-out)]"
+        // `focus:outline-none` : la boîte reçoit le focus initial (voir plus
+        // haut), mais elle n'est pas un contrôle — l'anneau d'accent global
+        // entourerait toute la modale à l'ouverture.
+        className={`w-full ${largeur} ${padding} max-h-[90vh] overflow-y-auto rounded-2xl border
+                   border-border bg-panel shadow-glow shadow-black/60 focus:outline-none
+                   animate-[dialogue_200ms_var(--ease-out)]`}
       >
+        {/* ⚠️ `sticky` et non `absolute` : la boîte DÉFILE, et une croix
+            absolue disparaîtrait vers le haut dès les premières lignes d'une
+            fiche longue — c'est-à-dire exactement quand on la cherche.
+            Hauteur nulle + décalage négatif : elle se pose dans le padding de
+            la boîte sans pousser le contenu d'une ligne. */}
+        {croix && (
+          <div className="sticky top-0 z-10 flex h-0 justify-end">
+            <button
+              type="button"
+              onClick={onClose}
+              title="Fermer"
+              aria-label="Fermer"
+              // Croix NUE : ni cadre, ni fond. Encadrée, elle se lisait comme un
+              // bouton d'action de plus, au même rang que ce qu'on est venu lire.
+              // Le symbole se reconnaît seul ; il n'a qu'à s'éclaircir au survol.
+              className="-mt-1 -mr-1 p-1.5 text-ink-dim transition-colors hoverable:hover:text-ink"
+            >
+              {/* ⚠️ Ombre portée : sans fond, la croix passe DEVANT le contenu
+                  qui défile dessous, et un trait fin sur du texte devient
+                  illisible. C'est le minimum pour l'en détacher — un fond
+                  opaque rendrait le cadre qu'on vient d'enlever. */}
+              <X size={18} className="drop-shadow-[0_1px_2px_rgba(0,0,0,0.8)]" />
+            </button>
+          </div>
+        )}
         {children}
       </div>
     </div>

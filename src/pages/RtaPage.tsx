@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Plus, Trash2 } from 'lucide-react';
 import {
   Monster,
@@ -98,6 +98,22 @@ export default function RtaPage({
   // Point de restauration manuel (« Sauvegarder » / « Reprendre »), distinct de
   // la conservation automatique. Voir hooks/useRtaBackup.ts.
   const backup = useRtaBackup();
+
+  // ⚠️ À chaque import de compte, on fige la prépa **telle que le fichier vient
+  // de la produire** : c'est le point de retour de « Réinitialiser ».
+  //
+  // Posé ici et non dans App : le point embarque les CATÉGORIES, qui vivent dans
+  // cette page. Le déclencheur est le compteur d'imports de `useRtaState` — un
+  // compteur, donc deux imports successifs posent bien deux points.
+  //
+  // ⚠️ L'état est lu APRÈS que l'import l'a modifié : l'effet se déclenche sur
+  // le rendu qui suit, `rta.state` y est déjà le nouveau.
+  const dernierImport = useRef(0);
+  useEffect(() => {
+    if (rta.importCount === 0 || rta.importCount === dernierImport.current) return;
+    dernierImport.current = rta.importCount;
+    backup.poserImport(rta.state, cats.categories);
+  }, [rta.importCount, rta.state, cats.categories, backup]);
   // Prépa d'un ami ouverte en consultation. ⚠️ Volontairement en état LOCAL et
   // non persisté : c'est une lecture de passage, pas une donnée de l'utilisateur.
   // La conserver d'une session à l'autre laisserait la prépa de quelqu'un
@@ -344,6 +360,8 @@ export default function RtaPage({
           categories={cats.categories}
           categoriesVisible={cats.visible}
           onToggleCategories={cats.setVisible}
+          estVisible={cats.estVisible}
+          onToggleCategorie={cats.toggleVisible}
         />
       </section>
     </div>

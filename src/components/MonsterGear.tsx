@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { ReactNode, useState } from 'react';
 import { RotateCw, Gauge } from 'lucide-react';
 import { ArtifactDetail, GearSet, RelicDetail, RuneDetail } from '../types';
 import { computeStats } from '../lib/stats';
@@ -44,71 +44,199 @@ function AncientMark({ size = 12, color = 'currentColor' }: { size?: number; col
 }
 
 // Détail d'une rune, façon jeu : stat principale (gros), innée, substats, set.
-export function RuneDetailBox({ rune }: { rune: RuneDetail }) {
+export function RuneDetailBox({
+  rune,
+  icone,
+  compact = false,
+  cherches,
+}: {
+  rune: RuneDetail;
+  // Image de la rune (cadre du slot + symbole du set), posée à gauche de
+  // l'en-tête. Fournie par l'appelant : la carte sert aussi dans un popover où
+  // l'image est déjà à côté, sur la tuile qui l'a ouvert.
+  icone?: ReactNode;
+  // Rendu resserré pour une TUILE de liste : corps réduits, interlignes et
+  // marges rognés. Le contenu reste le même — c'est la carte du jeu, et elle
+  // vaut d'être lue entière ; seule la place qu'elle prend change.
+  compact?: boolean;
+  // Codes recherchés → la ligne correspondante est surlignée (écho du filtre).
+  cherches?: Set<number>;
+}) {
   const rarity = RARITY_META[rune.rarity] ?? RARITY_META[1];
   const bonus = SET_BONUS[rune.set];
   const ancient = rune.rank > 10;
   const metric = useRuneMetric();
   const metricHint = RUNE_METRICS.find((m) => m.key === metric)?.hint;
+
+  // ── Détail / total, au clic ─────────────────────────────────────────────
+  //
+  // Le jeu montre « VIT +26 +5 » : la valeur d'origine et ce que la meule a
+  // ajouté. C'est ce qu'il faut pour juger une rune — mais pas pour la comparer
+  // à un minimum, où seul le TOTAL compte. Un clic bascule donc entre les deux
+  // lectures, sur toute la carte.
+  //
+  // ⚠️ Le total prend la couleur du BONUS (orange), pas celle de la base : il
+  // n'est plus la valeur d'origine, et le garder en blanc laisserait croire
+  // qu'on lit toujours la base. La couleur dit « ce nombre inclut la meule ».
+  const [total, setTotal] = useState(false);
+  // Une rune sans aucune meule n'a rien à basculer : les deux lectures y sont
+  // identiques, et un clic sans effet se lit comme un défaut.
+  const aDeLaMeule = rune.subs.some((s) => (s.grind ?? 0) > 0);
+
   return (
     // ⚠️ Fond OPAQUE : cette carte s'affiche dans un popover flottant au-dessus
     // de la grille de runes. Un fond translucide laissait voir les tuiles
     // derrière et rendait le détail illisible.
-    <div className="rounded-lg border border-border bg-panel2 p-3">
-      {/* badge de rareté (marque « A » antique intégrée) + efficience dessous */}
-      <div className="flex flex-col items-end mb-1.5">
-        <span
-          className="inline-flex items-center gap-1 rounded px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide"
-          style={{ background: rarity.bg, color: rarity.color }}
-          title={ancient ? 'Rune antique' : undefined}
-        >
-          {ancient && <AncientMark size={12} color={rarity.color} />}
-          {rarity.label}
-        </span>
-        {/* Mesure choisie globalement (sélecteur dans la liste des runes et en
-            pied de ce panneau) — même couleur dans les deux cas. */}
-        <span className="mt-0.5 font-mono text-[11px] text-ink-dim" title={metricHint}>
-          {metric === 'eff' ? 'Efficience' : 'Score SW'}{' '}
-          <b className="text-star">
-            {formatRuneMetric(metric === 'eff' ? runeEfficiency(rune) : runeScore(rune), metric)}
-          </b>
-        </span>
-      </div>
-      {/* stat principale + innée */}
-      <div className="text-[15px] font-black text-ink leading-tight">{formatRuneEffect(rune.main)}</div>
-      {rune.innate && (
-        <div className="text-[13px] font-semibold text-water leading-tight">
-          {formatRuneEffect(rune.innate)}
+    <div
+      // ⚠️ `role="button"` sur le conteneur plutôt qu'un `<button>` autour :
+      // la carte contient déjà des éléments interactifs ailleurs (le popover
+      // l'utilise dans un contexte cliquable), et imbriquer des boutons est
+      // invalide. Ici la carte entière est la cible — c'est le geste du jeu.
+      // ⚠️ `stopPropagation` : dans un popover, la carte est posée à l'intérieur
+      // d'une zone dont le clic referme le flottant. Sans ça, basculer les
+      // valeurs fermait le détail qu'on est en train de lire.
+      onClick={
+        aDeLaMeule
+          ? (e) => {
+              e.stopPropagation();
+              setTotal((v) => !v);
+            }
+          : undefined
+      }
+      onKeyDown={
+        aDeLaMeule
+          ? (e) => {
+              if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                setTotal((v) => !v);
+              }
+            }
+          : undefined
+      }
+      role={aDeLaMeule ? 'button' : undefined}
+      tabIndex={aDeLaMeule ? 0 : undefined}
+      aria-pressed={aDeLaMeule ? total : undefined}
+      title={
+        aDeLaMeule
+          ? total
+            ? 'Voir le détail (valeur d’origine + meule)'
+            : 'Voir les valeurs totales, meule comprise'
+          : undefined
+      }
+      className={`rounded-lg border border-border bg-panel2 ${compact ? 'p-2' : 'p-3'} ${
+        aDeLaMeule ? 'cursor-pointer transition hoverable:border-accent' : ''
+      }`}
+    >
+      {/* En-tête : l'image à gauche, la stat principale au centre, la rareté et
+          la mesure à droite. ⚠️ Sur une seule ligne en compact : la rareté et
+          l'efficience occupaient leur propre bloc en haut à droite, soit deux
+          lignes rien que pour elles. */}
+      <div className="flex items-start gap-2">
+        {icone}
+        <div className="min-w-0 flex-1">
+          {/* stat principale + innée */}
+          <div
+            className={`font-black text-ink leading-tight ${compact ? 'text-[13px]' : 'text-[15px]'}`}
+          >
+            {formatRuneEffect(rune.main)}
+          </div>
+          {rune.innate && (
+            <div
+              className={`font-semibold text-water leading-tight ${
+                compact ? 'text-[11px]' : 'text-[13px]'
+              }`}
+            >
+              {formatRuneEffect(rune.innate)}
+            </div>
+          )}
         </div>
-      )}
-      {/* substats : base (blanc) + meule (orange) + ↻ si gemme */}
-      <div className="mt-2 pt-2 border-t border-border/40 space-y-1">
+        <div className="flex flex-none flex-col items-end">
+          {/* ⚠️ En compact, la bannière perd son espacement de lettres et se
+              resserre : c'est ELLE qui dictait la largeur minimale de la tuile
+              (« LÉGENDAIRE » en capitales espacées), donc celle de toute la
+              grille. Les couleurs et le mot restent — c'est le vocabulaire du
+              jeu —, seule la place qu'ils prennent change. */}
+          <span
+            className={`inline-flex items-center gap-1 rounded font-bold uppercase ${
+              compact ? 'px-1.5 py-px text-[9.5px]' : 'px-2 py-0.5 text-[10px] tracking-wide'
+            }`}
+            style={{ background: rarity.bg, color: rarity.color }}
+            title={ancient ? 'Rune antique' : undefined}
+          >
+            {ancient && <AncientMark size={compact ? 10 : 12} color={rarity.color} />}
+            {rarity.label}
+          </span>
+          {/* Mesure choisie globalement (sélecteur dans la liste des runes et en
+              pied de ce panneau) — même couleur dans les deux cas. */}
+          <span className="mt-0.5 font-mono text-[11px] text-ink-dim" title={metricHint}>
+            {metric === 'eff' ? 'Efficience' : 'Score SW'}{' '}
+            <b className="text-star">
+              {formatRuneMetric(metric === 'eff' ? runeEfficiency(rune) : runeScore(rune), metric)}
+            </b>
+          </span>
+        </div>
+      </div>
+      {/* Substats : base (blanc) + meule (orange) + ↻ si gemme.
+          ⚠️ Tout ALIGNÉ À GAUCHE, valeur collée à son libellé — et non la valeur
+          poussée au bord droit de la case. C'est le rendu du jeu, et c'est le
+          bon : « VIT +26 +5 » se lit d'un bloc, là où une valeur cadrée à droite
+          oblige l'œil à traverser du vide sur chaque ligne. */}
+      <div
+        className={`border-t border-border/40 ${
+          compact ? 'mt-1.5 space-y-px pt-1.5' : 'mt-2 space-y-1 pt-2'
+        }`}
+      >
         {rune.subs.map((s, i) => {
           const def = RUNE_EFFECT[s.code];
           const label = def ? (def.label.endsWith('%') ? def.label.slice(0, -1) : def.label) : `#${s.code}`;
           const suffix = def?.suffix ?? '';
           const grind = s.grind ?? 0;
           const base = s.value - grind;
+          // Ligne recherchée : liseré d'accent + fond léger, comme sur une tuile
+          // d'artéfact. Les compensations annulent exactement le liseré, sinon
+          // la ligne visée se décale par rapport aux autres.
+          const vise = cherches?.has(s.code) ?? false;
           return (
-            <div key={i} className="flex items-center gap-1 text-[12.5px] leading-tight">
-              <span className="text-ink">
-                {label} {base}
-                {suffix}
-              </span>
-              {grind > 0 && (
-                <span className="text-orange-400 font-semibold">
-                  +{grind}
+            <div
+              key={i}
+              className={`flex items-center gap-1 leading-tight ${
+                compact ? 'text-[11.5px]' : 'text-[12.5px]'
+              } ${vise ? '-mx-1 rounded border-l-2 border-accent bg-accent/[0.08] pl-[2px] pr-1' : ''}`}
+            >
+              {total ? (
+                // Cumulé. ⚠️ En ORANGE (la couleur du bonus) dès qu'une meule
+                // entre dedans : le nombre n'est plus la valeur d'origine, et le
+                // laisser en blanc ferait croire qu'on lit toujours la base.
+                <span className={grind > 0 ? 'font-semibold text-orange-400' : 'text-ink'}>
+                  {label} {s.value}
                   {suffix}
                 </span>
+              ) : (
+                <>
+                  <span className="text-ink">
+                    {label} {base}
+                    {suffix}
+                  </span>
+                  {grind > 0 && (
+                    <span className="text-orange-400 font-semibold">
+                      +{grind}
+                      {suffix}
+                    </span>
+                  )}
+                </>
               )}
               {s.enchant && <RotateCw size={11} className="text-orange-400" />}
             </div>
           );
         })}
       </div>
-      {/* bonus de set */}
+      {/* Bonus de set — comme dans le jeu, en pied de carte. */}
       {bonus && (
-        <div className="mt-2 pt-2 border-t border-border/40 text-[12px] text-good">
+        <div
+          className={`border-t border-border/40 text-good ${
+            compact ? 'mt-1.5 pt-1.5 text-[11px] leading-tight' : 'mt-2 pt-2 text-[12px]'
+          }`}
+        >
           {bonus.pieces} Set : {bonus.label}
         </div>
       )}

@@ -17,6 +17,8 @@ import ElementIcon from '../ElementIcon';
 import Segmented from '../Segmented';
 import { ELEMENT_FILTER_STYLES } from '../elementStyles';
 import Pager from './Pager';
+import { Critere } from './SubSearchDialog';
+import SubSearchBar from './SubSearchBar';
 import { useStickyState } from '../../hooks/useStickyState';
 import { RuneMetric, useRuneMetric } from '../../hooks/useRuneMetric';
 
@@ -31,26 +33,9 @@ interface ArtRow {
   eff: number; // efficience, en % (même somme que le score, autre échelle)
 }
 
-// Un critère de recherche : une propriété secondaire et le minimum exigé.
-//
-// ⚠️ Les critères sont ORDONNÉS, et cet ordre est celui du **tri** : le premier
-// classe la liste, le deuxième départage les ex æquo, et ainsi de suite —
-// exactement comme la recherche détaillée du jeu. Ce n'est donc pas une simple
-// liste de cases à cocher : la position de chaque critère porte du sens.
-interface Critere {
-  code: number;
-  min: number; // seuil en unité de la propriété (%, ou points pour le 221)
-}
-
 // Quatre critères au plus : un artéfact ne porte que 4 propriétés (voir
 // MAX_ARTIFACT_SUBS), donc un cinquième ne pourrait jamais être satisfait.
-// La grille se replie à 2 cases quand on n'en utilise pas davantage.
-const GRILLE_REPLIEE = 2;
-
-// Pas d'incrément du seuil. 1 convient aux propriétés en %, qui sont la
-// quasi-totalité ; le 221 (« Dégâts add. par X% de la VIT ») monte à 200 mais
-// se règle tout aussi bien au clavier.
-const PAS_SEUIL = 1;
+// La bascule 2 ↔ 4 cases vit dans `SubSearchBar`.
 
 type Archetype = 'attack' | 'defense' | 'hp' | 'support';
 
@@ -93,20 +78,11 @@ export default function ArtifactsList({ artifacts }: Props) {
   const [main, setMain] = useStickyState<string>('artefacts.main', '');
   // Critères de recherche, dans l'ordre de priorité du tri (voir `Critere`).
   const [criteres, setCriteres] = useStickyState<Critere[]>('artefacts.criteres', []);
-  // Grille dépliée à 4 cases, ou repliée à 2.
-  const [depliee, setDepliee] = useStickyState<boolean>('artefacts.grilleDepliee', false);
-
-  // Cases visibles, et donc critères ACTIFS.
-  //
-  // ⚠️ Replier la grille désactive les critères 3 et 4 au lieu de les masquer
-  // en les laissant filtrer : une liste restreinte par un critère invisible se
-  // lit comme un bug. Ils sont conservés en mémoire et redeviennent actifs au
-  // dépliage — on ne perd pas sa saisie.
-  const cases = depliee ? MAX_ARTIFACT_SUBS : GRILLE_REPLIEE;
-  const actifs = useMemo(
-    () => criteres.slice(0, cases).filter((c) => c.code > 0),
-    [criteres, cases]
-  );
+  // ⚠️ Plus de « cases visibles » ici : la bascule 2/4 vit dans `SubSearchBar`,
+  // qui garantit qu'un critère posé est toujours affiché (elle force le mode 4
+  // au-delà de deux). Un critère caché qui filtrerait quand même se lisait comme
+  // un bug — c'est le même garde-fou, remonté d'un cran.
+  const actifs = useMemo(() => criteres.filter((c) => c.code > 0), [criteres]);
   // Codes recherchés, pour que la tuile sache quelle ligne mettre en avant.
   //
   // ⚠️ Un `Set` MÉMOÏSÉ et non un tableau reconstruit à chaque rendu : c'est une
@@ -157,9 +133,11 @@ export default function ArtifactsList({ artifacts }: Props) {
       // ⚠️ ET, pas OU : on cherche l'artéfact qui porte **toutes** les
       // propriétés demandées, chacune au-dessus de son seuil. Un OU renverrait
       // des centaines de pièces dès le deuxième critère.
+      // ⚠️ `max` absent = pas de plafond, ce qui n'est PAS « au plus zéro ».
       for (const c of actifs) {
         const ligne = art.subs.find((s) => s.code === c.code);
         if (!ligne || ligne.value < c.min) return false;
+        if (c.max != null && ligne.value > c.max) return false;
       }
       return true;
     });
@@ -425,74 +403,34 @@ export default function ArtifactsList({ artifacts }: Props) {
           />
         </div>
 
-        {/* Propriété secondaire — grille de critères, façon recherche
-            détaillée du jeu.
+        {/* Propriété secondaire — la barre du JEU : cases de rappel et
+            recherche détaillée en modale. Identique aux runes.
             ⚠️ Les cases sont ORDONNÉES : la 1ʳᵉ trie la liste, la 2ᵉ départage
-            les ex æquo, etc. Ce n'est pas une simple liste de cases à cocher,
-            la position porte du sens (voir `Critere`). */}
+            les ex æquo, etc. La position porte du sens (voir `Critere`). */}
         <div className="flex flex-wrap items-start gap-2">
-          {/* Même intitulé à largeur fixe que les autres rangées de filtres :
-              les cases démarrent sur la même colonne que les chips au-dessus.
-              ⚠️ Pas de second titre « Propriété secondaire » dans un cadre —
-              il répétait celui-ci et ajoutait une boîte là où les autres
-              rangées n'en ont pas. */}
-          <span className="w-[86px] flex-none label mt-1.5">Propriété</span>
-          <div className="min-w-0 flex-1">
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5">
-              {Array.from({ length: cases }, (_, i) => (
-                <CritereCase
-                  key={i}
-                  rang={i + 1}
-                  critere={criteres[i] ?? null}
-                  options={dispoSubs}
-                  onChange={(c) => {
-                    const next = [...criteres];
-                    while (next.length < cases) next.push({ code: 0, min: 0 });
-                    next[i] = c ?? { code: 0, min: 0 };
-                    setCriteres(next);
-                    setPage(0);
-                  }}
-                />
-              ))}
-            </div>
-
-            <div className="mt-1.5 flex items-center gap-2">
-              {/* ⚠️ Le bouton dit CE QU'IL VA FAIRE, pas l'état courant :
-                  « 2 ▾ » se lisait aussi bien « je suis à 2 » que « passe à
-                  2 ». Un verbe lève l'ambiguïté. */}
-              <button
-                onClick={() => setDepliee(!depliee)}
-                className="rounded border border-border px-2 py-0.5 text-[10.5px] font-semibold
-                           text-ink-dim transition hoverable:text-ink hoverable:border-accent"
-              >
-                {depliee
-                  ? `▴ Replier à ${GRILLE_REPLIEE} propriétés`
-                  : `▾ Déplier à ${MAX_ARTIFACT_SUBS} propriétés`}
-              </button>
-
-              {actifs.length > 0 && (
-                <button
-                  onClick={() => {
-                    setCriteres([]);
-                    setPage(0);
-                  }}
-                  className="rounded border border-border px-2 py-0.5 text-[10.5px] font-semibold
-                             text-ink-dim transition hoverable:text-fire hoverable:border-fire"
-                >
-                  ✕ Réinitialiser
-                </button>
-              )}
-
-              {/* Ce que les numéros veulent dire. L'info n'était qu'en `title`,
-                  donc invisible pour qui ne survole pas — et sans elle, « 1 »
-                  et « 2 » passent pour des emplacements d'artéfact. */}
-              {actifs.length > 1 && (
-                <span className="text-[10.5px] text-ink-dim">
-                  <b className="font-mono text-accent">1</b> trie la liste,{' '}
-                  <b className="font-mono text-accent">2</b> départage les ex æquo
-                </span>
-              )}
-            </div>
+          <span className="w-[86px] flex-none label mt-1">Propriété</span>
+          <div className="min-w-0 flex-1 max-w-[520px]">
+            <SubSearchBar
+              options={dispoSubs}
+              criteres={criteres}
+              max={MAX_ARTIFACT_SUBS}
+              nomDe={artifactSubName}
+              // Plus large que pour les runes : « Dgts supp. en prop. de ATQ »
+              // ne tient pas dans 380 px à côté de ses deux bornes.
+              largeurModale="max-w-[520px]"
+              onChange={(c) => {
+                setCriteres(c);
+                setPage(0);
+              }}
+            />
+            {/* Ce que les numéros veulent dire. Sans ce rappel, « 1 » et « 2 »
+                passent pour des emplacements d'artéfact. */}
+            {actifs.length > 1 && (
+              <p className="mt-1 text-[11px] text-ink-dim">
+                <b className="font-mono text-accent">1</b> trie la liste,{' '}
+                <b className="font-mono text-accent">2</b> départage les ex æquo
+              </p>
+            )}
           </div>
         </div>
       </div>
@@ -550,116 +488,6 @@ export default function ArtifactsList({ artifacts }: Props) {
       {pageCount > 1 && (
         <div className="mt-4 flex justify-center">
           <Pager page={safePage} pageCount={pageCount} onChange={setPage} />
-        </div>
-      )}
-    </div>
-  );
-}
-
-// Une case de la grille : le rang (= priorité de tri), la propriété, le seuil.
-function CritereCase({
-  rang,
-  critere,
-  options,
-  onChange,
-}: {
-  rang: number;
-  critere: Critere | null;
-  // Propriétés dans l'ordre du jeu (voir `artifactSubOrder`).
-  options: { code: number; label: string }[];
-  onChange: (c: Critere | null) => void;
-}) {
-  const pose = !!critere && critere.code > 0;
-  // ⚠️ La propriété choisie est retirée des options (elle est « prise »), il
-  // faut donc la réinjecter — sans quoi le `select` afficherait du vide sur un
-  // critère pourtant posé.
-  const manque = pose && !options.some((o) => o.code === critere!.code);
-
-  return (
-    /* ⚠️ AUCUN cadre ici : le `select` porte déjà sa propre bordure, et
-       l'envelopper dans une boîte bordée faisait « carte dans carte ». La ligne
-       n'est qu'une rangée de contrôles alignés. */
-    <div className="flex min-h-[28px] items-center gap-1.5">
-      {/* Le rang dit la PRIORITÉ DE TRI, pas un emplacement d'artéfact.
-          ⚠️ Un CHIFFRE, pas un glyphe cerclé (➊➋) : à cette taille le cercle
-          se refermait sur le chiffre et le rendait illisible. */}
-      <span
-        className={`w-3 flex-none text-center font-mono text-[12px] font-bold leading-none ${
-          pose ? 'text-accent' : 'text-ink-dim opacity-60'
-        }`}
-        title={`${rang}${rang === 1 ? 'ᵉʳ' : 'ᵉ'} critère de tri`}
-      >
-        {rang}
-      </span>
-
-      {/* C'est LUI qui porte la bordure — le seul élément encadré de la ligne.
-          Elle passe à l'accent quand un critère est posé. */}
-      <select
-        value={pose ? critere!.code : ''}
-        onChange={(e) => {
-          const code = Number(e.target.value);
-          onChange(code ? { code, min: critere?.min ?? 0 } : null);
-        }}
-        className={`min-w-0 flex-1 cursor-pointer rounded border bg-panel px-1.5 py-1 text-[11px]
-                    outline-none transition [&>option]:bg-panel [&>option]:text-ink ${
-                      pose
-                        ? 'border-accent text-ink'
-                        : 'border-border text-ink-dim hoverable:border-accent hoverable:text-ink'
-                    }`}
-      >
-        <option value="">Choisir une propriété…</option>
-        {/* La propriété posée, réinjectée en tête quand elle a été retirée des
-            options disponibles. */}
-        {manque && <option value={critere!.code}>{artifactSubName(critere!.code)}</option>}
-        {/* Dans l'ordre de la recherche détaillée du jeu (`artifactSubOrder`). */}
-        {options.map((o) => (
-          <option key={o.code} value={o.code}>
-            {o.label}
-          </option>
-        ))}
-      </select>
-
-      {/* Seuil « au moins » — n'a de sens qu'une fois la propriété choisie.
-          ⚠️ Le « ≥ » est indispensable : « 25 » seul ne dit pas si c'est un
-          minimum, un maximum ou la valeur exacte. */}
-      {pose && (
-        <div className="flex flex-none items-center gap-px">
-          <span className="mr-0.5 font-mono text-[10px] text-ink-dim">≥</span>
-          {/* Cibles de 18px : un glyphe nu était trop petit pour être visé
-              franchement, surtout au doigt. */}
-          <button
-            onClick={() => onChange({ ...critere!, min: Math.max(0, critere!.min - PAS_SEUIL) })}
-            className="h-[18px] w-[18px] rounded bg-panel2 text-[12px] leading-none text-ink-dim
-                       transition hoverable:bg-accent-soft hoverable:text-ink"
-            title="Diminuer le minimum"
-          >
-            −
-          </button>
-          <input
-            type="number"
-            value={critere!.min}
-            min={0}
-            onChange={(e) => onChange({ ...critere!, min: Math.max(0, Number(e.target.value) || 0) })}
-            className="h-[18px] w-[36px] rounded bg-panel2 text-center font-mono text-[10.5px]
-                       text-ink outline-none tabular-nums
-                       [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none"
-            title="Minimum exigé"
-          />
-          <button
-            onClick={() => onChange({ ...critere!, min: critere!.min + PAS_SEUIL })}
-            className="h-[18px] w-[18px] rounded bg-panel2 text-[12px] leading-none text-ink-dim
-                       transition hoverable:bg-accent-soft hoverable:text-ink"
-            title="Augmenter le minimum"
-          >
-            +
-          </button>
-          <button
-            onClick={() => onChange(null)}
-            className="ml-1 text-ink-dim transition hoverable:text-fire"
-            title="Retirer ce critère"
-          >
-            <X size={12} />
-          </button>
         </div>
       )}
     </div>

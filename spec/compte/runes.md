@@ -127,23 +127,165 @@ Blocs, dans l'ordre :
 
 ## Onglet Liste — `RunesList`
 
-- **Tuiles uniformes** : à gauche le **cadre de rune** (image du jeu) **orienté
-  selon le slot** ((slot−1)×60°) avec l'**icône du set dedans** colorisée par
-  rareté ([RuneSlotIcon.tsx](src/components/RuneSlotIcon.tsx), halo blanc si
-  antique ; petit décalage de l'icône le long de l'axe d'orientation par slot) ;
-  à côté la **stat principale** ; en dessous la **valeur** dans la mesure choisie
-  (teintée par rareté).
-- **Détail au clic** : carte récap façon jeu (`RuneDetailBox`) en **popover
-  flottant** à **placement automatique** ([DetailPopover.tsx](src/components/account/DetailPopover.tsx)) —
-  s'ouvre vers la gauche/haut près d'un bord, jamais coupée, ne décale pas la grille.
-  Le détail affiche la **mesure choisie** (voir ci-dessus), dans la même couleur
-  quelle qu'elle soit.
+### ⚠️ La tuile EST la carte du jeu
+
+La tuile n'est pas un aperçu qui mènerait au détail : c'est **`RuneDetailBox`
+elle-même**, en rendu resserré (`compact`). Tout ce qu'on vient chercher dans
+l'inventaire y est d'emblée — un aperçu qui cachait les substats obligeait à
+ouvrir les runes une par une pour comparer, ce qui est exactement ce qu'on fait
+en parcourant 2 000 runes.
+
+- **En-tête sur UNE ligne** : l'**image de la rune** à gauche
+  ([RuneSlotIcon.tsx](src/components/RuneSlotIcon.tsx) — cadre orienté selon le
+  slot, symbole du set colorisé par rareté, halo si antique), la **stat
+  principale** et l'**innée** au centre, la **bannière de rareté** et la **mesure
+  choisie** à droite. Ces deux dernières occupaient auparavant leur propre bloc :
+  deux lignes rien que pour elles.
+- **Substats** : base en blanc, **part de meule en orange**, ↻ si la ligne a été
+  modifiée. ⚠️ **Alignés à gauche, valeur collée à son libellé** — et non la
+  valeur poussée au bord droit de la case : « VIT +26 +5 » se lit d'un bloc, là
+  où une valeur cadrée à droite oblige l'œil à traverser du vide sur chaque
+  ligne. C'est le rendu du jeu.
+- ⚠️ **Un clic sur la carte bascule détail ↔ total.** « VIT +26 +5 » devient
+  « VIT +31 » : la première lecture sert à **juger** une rune (ce qu'elle valait
+  d'origine, ce que la meule a ajouté), la seconde à la **comparer** à un
+  minimum, où seul le total compte. Les deux sont utiles, d'où la bascule plutôt
+  qu'un choix.
+  - ⚠️ **Le total prend la couleur du BONUS** (orange) dès qu'une meule entre
+    dedans : le nombre n'est plus la valeur d'origine, et le laisser en blanc
+    ferait croire qu'on lit toujours la base. La couleur dit « ce nombre inclut
+    la meule ».
+  - ⚠️ Une rune **sans aucune meule n'est pas cliquable** : les deux lectures y
+    sont identiques, et un clic sans effet se lit comme un défaut.
+  - L'état est **propre à chaque carte** et n'est pas mémorisé : c'est un coup
+    d'œil, pas un réglage.
+- La ligne **recherchée** prend un **liseré d'accent + un fond à 8 %**, avec les
+  compensations qui l'annulent exactement — sinon elle se décale par rapport aux
+  autres, et c'est ce décalage qu'on voit en premier.
+- **Bonus de set** en pied, comme dans le jeu.
+- ⚠️ **Plus de popover au clic** : il n'aurait rien montré de plus, tout étant
+  déjà sur la tuile. Le clic sert désormais à basculer détail ↔ total.
+- Grille à **215 px** : c'est la largeur en dessous de laquelle la bannière de
+  rareté passe **sous** la stat principale — chaque tuile gagne alors une ligne,
+  l'inverse du but. En mode compact, la bannière perd son espacement de lettres
+  et se resserre **justement pour descendre jusque-là** : c'est elle qui dictait
+  la largeur minimale de toute la grille.
+> La même carte sert **en popover** ailleurs dans l'app (détail d'un monstre,
+> candidat de l'Optimizer) : elle y est rendue **sans `compact`** et sans image,
+> celle-ci étant déjà sur l'élément qui a ouvert le flottant.
+
 - **Filtres** : **sets** (`SetFilter`) et **slot** (`SlotFilter`) — voir
-  ci-dessous — plus **antiques**.
+  ci-dessous — plus **antiques**, et la **propriété secondaire** (ci-dessous).
 - La **mesure** (réglage global, voir plus haut) pilote la valeur des tuiles, le
-  tri « valeur » et le repère « meilleur… » de l'en-tête.
-- **Tri** : ↓ décroissant (défaut) · ↑ croissant — **sur la mesure choisie** —
-  · Niveau ↓ · Slot ↑.
+  départage des tris et le repère « meilleur… » de l'en-tête.
+
+### Tri — ⚠️ les entrées DU JEU, dans SON ordre
+
+Un joueur qui trie ses runes cherche l'entrée qu'il connaît, pas une
+reformulation : les libellés sont donc **ceux du jeu**, dans l'ordre de sa liste
+déroulante (règle de vocabulaire du [README](../README.md)). Calcul pur dans
+[runeSort.ts](src/lib/runeSort.ts), testé par
+[rune-tri.test.ts](tests/rune-tri.test.ts).
+
+| Entrée | Clé de tri |
+|--------|-----------|
+| **Grade** | rareté, puis étoiles |
+| **Propriété secondaire** | la valeur de la **1ʳᵉ propriété cherchée**, meule comprise |
+| **Sous-propriété avant meule** | la même, **meule déduite** (`grind`) |
+| **Nv. d'amélioration** | le `+X` |
+| **Obtenu** | les plus récentes d'abord |
+| **Total des sous-prop.** | somme des quatre propriétés |
+| **Score** | le score du jeu (défaut) |
+| *Efficience* | notre mesure (%) |
+| *Slot* | du 1 au 6 |
+
+Les deux dernières n'existent pas dans le jeu et **ferment** la liste :
+l'efficience est notre mesure, le slot sert au repérage.
+
+- ⚠️ **« Avant meule » DÉDUIT la meule**, il ne l'ignore pas : deux runes à
+  20 % ne se valent pas si l'une y est arrivée seule et l'autre à coups de
+  meules. C'est toute la raison d'être de cette entrée.
+- ⚠️ **Une rune qui ne PORTE PAS la propriété passe derrière** toutes celles qui
+  la portent, quelle que soit son efficience — et **non « à 0 »**, ce qui la
+  mêlerait aux plus faibles. Absent et nul ne sont pas la même chose.
+- Les deux tris « propriété » n'ont **rien à classer sans critère posé** : ils
+  retombent sur la mesure, et **le disent** sous le sélecteur — sans ça on croit
+  le tri cassé.
+- ⚠️ **« Obtenu » se lit sur le `rune_id`**, croissant avec le temps : l'export
+  ne porte **aucune date d'obtention**. C'est une approximation, mais elle rend
+  exactement l'ordre du jeu.
+- ⚠️ **« Total des sous-prop. » additionne des unités différentes** (PV plats et
+  %), ce qui n'a mathématiquement aucun sens — mais c'est ce que fait le jeu, et
+  c'est ce total-là que le joueur reconnaît. On le reproduit tel quel plutôt que
+  d'inventer une mesure « correcte » qu'il ne retrouverait nulle part.
+- Un tri **mémorisé qui n'existe plus** retombe sur le défaut : sans ce
+  garde-fou, le comparateur serait `undefined` et la page blanche.
+
+### Filtre par propriété secondaire — ⚠️ la MODALE du jeu
+
+Le jeu pose la question dans l'autre sens que quatre menus déroulants : au lieu
+de « quelle propriété pour la case 1 ? », il montre **toutes les propriétés** et
+on coche celles qu'on veut. On lit d'un coup ce qui est disponible, et on compare
+les bornes d'une ligne à l'autre — impossible à travers des menus qui n'en
+montrent qu'une à la fois.
+
+Deux pièces, reprises telles quelles :
+
+| Pièce | Fichier | Rôle |
+|-------|---------|------|
+| **Barre de rappel** | [SubSearchBar.tsx](src/components/account/SubSearchBar.tsx) | 2 ou 4 cases numérotées + la bascule 2 ↔ 4 |
+| **Recherche détaillée** | [SubSearchDialog.tsx](src/components/account/SubSearchDialog.tsx) | la modale : toutes les propriétés, **Min** et **Max** |
+
+- ⚠️ **Les cases sont un RAPPEL, pas un formulaire.** Elles affichent le critère
+  posé (« VIT +25 ~ +37 ») et ne servent qu'à ça. Toute la saisie vit dans la
+  modale : quatre menus déroulants occupaient toute la largeur pour n'afficher
+  que trois lettres, et un seuil unique ne savait pas dire « entre 25 et 37 ».
+- **Bascule 2 ↔ 4 cases**, par les **deux icônes du jeu** : deux barres empilées
+  (`Rows2`) pour 2 propriétés, une grille 2×2 (`Grid2x2`) pour 4. Elles disent la
+  forme de la grille qu'on obtient, sans un mot.
+  - ⚠️ L'icône montre l'état **à venir**, pas l'état courant : c'est un bouton,
+    on y lit ce qu'il va faire.
+  - ⚠️ Le mode ne fait que **cacher** des cases : les critères 3 et 4 restent
+    posés si on repasse à 2 et réapparaissent tels quels. Les effacer ferait
+    perdre une recherche en changeant simplement de vue.
+  - ⚠️ **Le mode 4 s'impose** dès qu'il y a plus de deux critères, et le bouton
+    se désactive : un critère caché filtrerait la liste sans rien montrer à
+    l'écran — on chercherait pourquoi il manque des runes.
+  - Le maximum de la **modale suit le mode** : en 2 cases, cocher une 3ᵉ
+    propriété poserait un critère invisible dans la barre.
+- ⚠️ **Min ET Max**, pas un seuil unique. « VIT entre 25 et 37 » est la recherche
+  courante quand on trie ses runes.
+  - ⚠️ Un `max` **absent** vaut « pas de plafond » — ce n'est **pas** « au plus
+    zéro ». C'est ce qui permet de ne borner que d'un côté.
+- **Cliquer une case**, vide ou pleine, ouvre la modale. ⚠️ Pas de bouton « … »
+  en plus : les cases y mènent déjà, et un second déclencheur pour le même geste
+  n'ajoutait qu'un doublon à côté de la bascule 2/4 — deux carrés voisins dont
+  un seul change la forme de la grille.
+- ⚠️ La modale travaille sur un **brouillon local**, validé par **OK** : écrire
+  directement dans l'état ferait filtrer la liste derrière à chaque frappe, et
+  « Annuler » ne voudrait plus rien dire.
+- **4 au plus** (une rune ne porte que 4 propriétés). Au-delà, les cases non
+  cochées sont **grisées et non retirées** : on voit ce qui existe et pourquoi
+  c'est refusé, plutôt qu'une liste qui rétrécit sous le curseur.
+- ⚠️ Les critères se cumulent **en ET, bornes comprises**, et la **première**
+  sert de clé aux deux tris « propriété » : la position porte du sens.
+- ⚠️ **Les bornes sont TOUJOURS affichées**, comme dans le jeu — pas seulement
+  une fois la ligne cochée. On voit d'emblée que chaque propriété se borne, et on
+  compare les intervalles d'une ligne à l'autre. Elles sont **estompées** tant
+  que la ligne est décochée, pour que la lecture reste celle des libellés.
+- ⚠️ **Saisir une borne COCHE la ligne** : taper « 25 » en face de VIT veut dire
+  qu'on cherche de la VIT. Sans ça, on remplit un champ qui ne sert à rien tant
+  qu'on n'a pas trouvé la case.
+  - **Vider les deux bornes ne décoche pas** pour autant : « cette propriété,
+    sans borne » est une recherche valide — c'est même la plus courante. On ne
+    retire une ligne que par sa case.
+  - Un **min à 0 s'affiche vide** : zéro ne filtre rien, le champ montre donc son
+    placeholder comme s'il n'était pas rempli.
+
+> L'inventaire d'**artéfacts** utilise **le même dispositif** (voir
+> [artefacts.md](artefacts.md)) : mêmes composants, même bascule, même modale.
+> Seule la **largeur** diffère — 520 px là-bas, 380 ici : « Dgts supp. en prop.
+> de ATQ » ne tient pas dans la largeur d'un « VIT ».
 - **Pagination** ([Pager.tsx](src/components/account/Pager.tsx)) : 60 tuiles/page
   → DOM borné (fluide même à ~2000 runes). Composant **partagé par toutes les
   listes paginées** de l'app.
@@ -189,6 +331,67 @@ Détails :
   - Le nom est **borné à 16 caractères** (le complet reste dans la légende) et la
     **largeur de la boîte est mesurée sur le contenu réel** : en dur, les noms
     débordaient.
+- ⚠️ **Cliquer un point ouvre la rune correspondante**, sous le graphe. On lit
+  « ma 12ᵉ meilleure rune vaut 78 % » ; la question suivante est toujours
+  « laquelle ? », et il fallait aller la chercher à la main dans la liste.
+  - Le rang cliqué est marqué d'une **verticale tiretée** avec un **point sur
+    chaque courbe ouverte** — ⚠️ **exactement le repère du survol**, ni plus
+    épais ni plus gros. C'est le même geste de visée, seulement **figé** : le
+    marquer davantage en faisait un autre objet, une graduation du graphe. Sa
+    seule différence est qu'il **survit au départ du pointeur**, ce qui est tout
+    son rôle — dire d'où sort le détail lu en dessous une fois la souris partie
+    vers les flèches.
+    - ⚠️ Les couleurs des attributs SVG s'écrivent **`rgb(var(--accent))`** :
+      posés nus, les tokens (des triplets) rendent l'attribut invalide et le
+      trait n'est **pas peint du tout**, sans la moindre erreur. Voir
+      [../shared/design.md](../shared/design.md).
+  - ⚠️ **Une carte par courbe OUVRABLE, à ce rang** — et ce que « ouvrable »
+    veut dire diffère selon l'onglet, parce que les courbes n'y disent pas la
+    même chose :
+
+    | Onglet | Ouvrables | Pourquoi |
+    |--------|-----------|----------|
+    | **Courbes** | « Actuelle » seule | Les potentiels ne sont pas d'autres runes : c'est la **même box** projetée dans une autre hypothèse. Trois cartes quasi identiques pour une seule question — « quelle est cette rune ? ». |
+    | **Comparaison** | **toutes** celles qui portent leurs runes | Chaque courbe est un **compte différent** : « à ma 12ᵉ meilleure rune, qu'ont-ils, eux ? ». N'en montrer qu'une obligeait à recliquer chaque courbe pour la même question. |
+
+    Les cartes sont ordonnées **par valeur décroissante**, comme les courbes au
+    point X et comme l'infobulle de survol : même lecture partout. Une courbe
+    **masquée** dans la légende n'apparaît pas (elle n'atteint pas le graphe).
+  - Le détail est précédé de l'**image de la rune** (cadre du slot + symbole du
+    set, `RuneSlotIcon`) puis de son **set** et de son **slot**. ⚠️ L'image
+    d'abord : c'est à elle qu'on reconnaît une rune d'un coup d'œil, le texte ne
+    fait que confirmer. **Même rendu que les tuiles de l'onglet Liste**, pour
+    retrouver la même rune sans changer de langage d'un onglet à l'autre.
+  - ⚠️ **Sous le graphe, dans le flux — pas en flottant.** La carte d'une rune
+    fait ~300 px de haut : un popover de cette taille ancré sur un point
+    recouvrirait la courbe qu'on vient de lire.
+  - Le détail est **centré**, précédé d'une **barre de navigation** : les deux
+    flèches **côte à côte, juste sous la courbe**, encadrant le rang
+    (« n° 12 / 340 »). Elles font parcourir le **classement** — l'axe du graphe
+    au-dessus —, pas la carte du dessous : les placer de part et d'autre de la
+    carte les éloignait l'une de l'autre alors qu'on les enchaîne.
+    - Le rang est à **largeur fixe**, sinon les flèches se déplacent au passage
+      de « 9 » à « 10 ». Il n'est **pas répété** dans la carte.
+    - Elles **bornent au lieu de boucler** (le classement a un début et une
+      fin ; repasser du dernier au premier ferait croire à un saut de position)
+      et sont désactivées aux extrémités. Les **touches ← →** font la même chose.
+  - Re-cliquer le même point **referme** (le geste est son propre inverse) ;
+    **Échap** et la croix ferment aussi.
+  - ⚠️ **Cliquable seulement là où la courbe porte ses runes**
+    (`CurveSeries.runes`, aligné sur `effs`, même tri). Une courbe **partagée**
+    ne porte que des valeurs : elle reste en lecture seule. Un **fichier de
+    compte**, lui, porte ses runes — ses points sont donc ouvrables, dans les
+    deux sous-onglets de Comparaison.
+  - Le **nom de la courbe** est rappelé sur chaque carte dès qu'il y a plusieurs
+    ouvrables ; masqué sinon, où il n'apprendrait rien.
+  - On mémorise le **rang seul** : c'est une **position du classement**, et
+    c'est cette position qu'on lit sur toutes les courbes à la fois. La
+    navigation porte sur le rang le plus élevé des courbes ouvrables (le
+    **max**, pas le min : une courbe plus courte cesse simplement d'être
+    affichée, elle ne bride pas les autres).
+  - On mémorise le **rang**, jamais les runes : les séries se recalculent à
+    chaque changement de filtre ou de mesure, et des runes figées désigneraient
+    un point disparu.
 - **Légende sous le graphe** : cliquer un nom **masque/affiche** sa courbe.
 - **Filtres** : sets (`SetFilter`), slot (`SlotFilter`), antiques.
 - **Nombre de runes** : champ libre (défaut **400**) + **Tout**.
@@ -287,8 +490,25 @@ sous-onglet : c'est ce qui permet un bouton unique qui les vide toutes les deux.
 
 ### Communs aux deux sous-onglets
 
-- **Superposition** : ma courbe (« Moi ») en bleu, les amis en couleurs vives
-  (palette cyclique). Bornes recalculées sur les courbes **visibles**.
+- **Superposition** : ma courbe (« Moi ») en bleu, les amis en couleurs vives.
+  Bornes recalculées sur les courbes **visibles**.
+- ⚠️ **Deux courbes ne portent jamais la même couleur** — sinon on ne les
+  distingue plus, et la légende ment puisqu'elle donne un nom à chacune.
+  `couleurLibre` ([curveColors.ts](src/components/account/curveColors.ts))
+  choisit d'après les couleurs **réellement posées**, vérifié par
+  [courbe-couleurs.test.ts](tests/courbe-couleurs.test.ts).
+  - ⚠️ **La couleur du joueur (`OWN_COLOR`) est exclue de la palette d'import.**
+    Elle l'ouvrait : la **première** courbe importée — le cas le plus courant —
+    reprenait donc exactement le bleu de « Moi ». Les deux constantes vivent
+    désormais dans le **même fichier**, seule place d'où l'on voit qu'elles ne
+    doivent pas se croiser.
+  - ⚠️ **Pas un modulo sur le NOMBRE de courbes** (`[n % palette.length]`) : le
+    compte ne dit rien de ce qui est libre. Retirer la 1re puis importer
+    redonnait la couleur de la 2e, toujours affichée.
+  - Les teintes sont **espacées** : deux bleus voisins se confondaient sur un
+    tracé de 1 px. Au-delà de la palette (8 courbes), l'unicité n'est plus
+    tenable et le cycle reprend — un doublon entre la 1re et la 9e vaut mieux
+    qu'entre deux voisines.
 - **Légende** : pastille + nom + (max · médiane · nb) ; **cliquer le nom
   masque/affiche** ; la croix (✕) **retire** une courbe importée.
 - Deux courbes homonymes sont **renommées** (« Ami (2) »), **en tenant compte des

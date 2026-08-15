@@ -226,10 +226,9 @@ function MonsterBoxSection({ box, allMonsters = [] }: { box: BoxItem[]; allMonst
       {filtered.length === 0 ? (
         <p className="text-ink-dim text-[13px]">Aucun monstre ne correspond aux filtres.</p>
       ) : (
-        // ⚠️ La MÊME grille que le Bestiaire (`MonsterGrid`) : même largeur de
-        // colonne, même écart. Les deux écrans montrent les mêmes monstres —
-        // deux gabarits donnaient deux rendus pour une même chose.
-        <div className="grid grid-cols-[repeat(auto-fill,minmax(min(100%,148px),1fr))] gap-3 sm:gap-4">
+        // La MÊME grille que le Bestiaire (`MonsterGrid`) : c'est ce gabarit-ci
+        // qui sert de référence aux deux, et non l'inverse.
+        <div className="grid grid-cols-[repeat(auto-fill,minmax(104px,1fr))] gap-2 items-start">
           {/* `AnimatePresence` comme dans MonsterGrid : sans lui, la carte
               s'anime à l'entrée mais disparaît sèchement au filtrage — la
               moitié d'une animation se remarque plus que pas d'animation. */}

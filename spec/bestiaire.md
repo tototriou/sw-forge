@@ -37,6 +37,10 @@ casse, `includes`).
     contre 64, rayons et corps de texte différents). Ce qui les distingue est
     devenu des **options** : `showStars` (masqué dans la box, tout y est 6★) et
     `count` (la bulle « ×N » d'exemplaires, que seule la box connaît).
+  - ⚠️ **C'est le gabarit de la BOX qui fait référence**, pas celui d'ici :
+    portrait **64 px**, colonnes de **104 px**, `rounded-xl`. C'est le plus dense
+    des deux — on parcourt des centaines de monstres, chaque pixel de marge coûte
+    une ligne de plus à faire défiler.
 - Si un filtre ne renvoie rien : message « Aucun monstre ne correspond à ces
   filtres. »
 

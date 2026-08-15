@@ -14,6 +14,9 @@ Affiche **tous les monstres montés 6★** du compte importé. Composant :
   mêmes monstres — deux composants donnaient deux rendus pour une même chose, et
   ils avaient déjà divergé (portraits de 64 px contre 84, rayons et corps de
   texte différents).
+  - ⚠️ **C'est CE gabarit qui fait référence** : portrait 64 px, colonnes de
+    104 px, `rounded-xl`. Le bestiaire s'y aligne, et non l'inverse — c'est le
+    plus dense des deux, et on parcourt des centaines de monstres.
   - Ce qui les distingue devient des **options** : la bulle **« ×N »**
     d'exemplaires (box seule — le bestiaire ne sait pas ce qu'on possède) et la
     rangée d'**étoiles**, masquée ici puisque tout est 6★.

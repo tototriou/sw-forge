@@ -22,7 +22,10 @@ export default function MonsterGrid({ elementDef, monsters, onOpen }: Props) {
           {monsters.length} monstre{monsters.length > 1 ? 's' : ''}
         </span>
       </div>
-      <div className="grid grid-cols-[repeat(auto-fill,minmax(min(100%,148px),1fr))] gap-3 sm:gap-4">
+      {/* ⚠️ Gabarit repris de la BOX du compte : colonnes de 104 px, écart
+          resserré. C'est la grille la plus dense des deux, et c'est la bonne
+          référence — on parcourt des centaines de monstres. */}
+      <div className="grid grid-cols-[repeat(auto-fill,minmax(104px,1fr))] gap-2 items-start">
         <AnimatePresence mode="popLayout">
           {monsters.map((m) => (
             <MonsterCard key={m.id} monster={m} onOpen={onOpen} />

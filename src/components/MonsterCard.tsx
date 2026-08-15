@@ -47,6 +47,11 @@ function initials(name: string) {
 // les distinguait devient des OPTIONS — les étoiles (bestiaire) et le nombre
 // d'exemplaires (box). Deux copies auraient divergé au premier ajustement,
 // comme les chips d'élément avant `elementStyles.ts`.
+//
+// ⚠️ C'est le gabarit de la **BOX** qui a été retenu, pas celui du bestiaire :
+// portrait 64 px, colonnes de 104. C'est le plus dense des deux, et le bon —
+// on parcourt des centaines de monstres, chaque pixel de marge coûte une ligne
+// de plus à faire défiler.
 export default function MonsterCard({
   monster,
   onOpen,
@@ -93,23 +98,28 @@ export default function MonsterCard({
       role={onOpen ? 'button' : undefined}
       tabIndex={onOpen ? 0 : undefined}
       title={onOpen ? `Voir la fiche de ${monster.name}` : undefined}
-      className={`group relative rounded-2xl border border-border bg-panel px-2.5 pt-3.5 pb-3 text-center
+      // ⚠️ Gabarit repris de la BOX du compte : portrait 64 px, `rounded-xl`,
+      // padding resserré. C'est la carte la plus dense des deux, et c'est la
+      // bonne référence — on parcourt des centaines de monstres, chaque pixel
+      // de marge coûte une ligne de plus à faire défiler.
+      className={`group relative rounded-xl border border-border bg-panel px-2 pt-3 pb-2.5 text-center
         transition-colors shadow-none ${onOpen ? 'cursor-pointer' : ''} ${BORDER[monster.element]}`}
     >
-      <div className="relative w-[84px] mx-auto mb-2.5">
+      <div className="relative w-[64px] mx-auto mb-1.5">
         <div
-          className={`hex-frame w-[84px] h-[84px] p-[3px] bg-gradient-to-br ${GRADIENT[monster.element]}`}
+          className={`hex-frame w-[64px] h-[64px] p-[2px] bg-gradient-to-br ${GRADIENT[monster.element]}`}
         >
           <div className="hex-frame w-full h-full bg-panel2 flex items-center justify-center overflow-hidden">
             {showImage ? (
               <img
                 src={monster.image!}
                 alt={monster.name}
+                loading="lazy"
                 onError={() => setImgFailed(true)}
                 className="w-full h-full object-cover"
               />
             ) : (
-              <span className={`font-display font-bold text-2xl ${TEXT[monster.element]}`}>
+              <span className={`font-display font-bold text-lg ${TEXT[monster.element]}`}>
                 {initials(monster.name)}
               </span>
             )}
@@ -117,7 +127,7 @@ export default function MonsterCard({
         </div>
         <ElementIcon
           element={monster.element}
-          size={22}
+          size={18}
           className="absolute -top-1 -right-1 drop-shadow-[0_1px_2px_rgba(0,0,0,0.7)]"
         />
         {/* Exemplaires possédés — la box seule le sait. En BAS à droite, à
@@ -136,13 +146,13 @@ export default function MonsterCard({
       </div>
 
       {showStars && (
-        <div className="text-star text-[11px] tracking-[-1px] mb-1.5">
+        <div className="text-star text-[11px] tracking-[-1px] mb-1">
           {monster.stars ? '★'.repeat(monster.stars) : '—'}
         </div>
       )}
       {/* `line-clamp-2` : les noms longs (« Dark Cow Girl ») tiennent sur deux
           lignes au plus, sinon une carte s'allonge et déchire la rangée. */}
-      <div className="text-[13px] font-semibold leading-tight line-clamp-2">{monster.name}</div>
+      <div className="text-[12px] font-semibold leading-tight line-clamp-2">{monster.name}</div>
     </motion.div>
   );
 }

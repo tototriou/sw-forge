@@ -66,9 +66,15 @@ de tag — vit dans [spec/releases.md](spec/releases.md#modèle-de-branches-et-p
 
 ## Développement
 
+**Node 24** (LTS active). La version est déclarée à trois endroits qui doivent
+rester alignés : `engines` de [package.json](package.json), [`.nvmrc`](.nvmrc) et
+la CI. Développer sur une version et vérifier sur une autre laisse passer des
+écarts d'API — c'est déjà arrivé (`navigator` en lecture seule sous Node ≥ 22).
+
 ```bash
+nvm use              # lit .nvmrc
 npm install
-npm run fetch-data   # génère public/data/monsters.json (mode démo si l'API est KO)
+npm run fetch-data   # monsters.json + le détail des compétences (mode démo si l'API est KO)
 npm run dev          # http://localhost:5173
 ```
 

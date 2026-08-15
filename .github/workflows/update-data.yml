@@ -27,7 +27,11 @@ jobs:
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
-          node-version: 22
+          # ⚠️ Doit rester ALIGNÉ sur `engines` de package.json et sur `.nvmrc` :
+          # développer sur une version et vérifier sur une autre laisse passer
+          # des écarts d'API. C'est déjà arrivé (`navigator` en lecture seule
+          # sous Node ≥ 22, corrigé après coup).
+          node-version: 24
 
       - name: Récupérer les données SWARFARM
         run: node scripts/fetch-monsters.mjs

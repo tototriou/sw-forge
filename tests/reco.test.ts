@@ -4,11 +4,27 @@
 // mauvais artéfact portaient le même message, alors que le geste à faire n'est
 // pas le même dans les trois cas.
 
-import { MatchContext, SlotMatch, deckFaults, matchDeck, slotFaults } from '../src/lib/recoMatch';
+import {
+  MatchContext,
+  SlotMatch,
+  deckCopies,
+  deckFaults,
+  matchDeck,
+  slotFaults,
+} from '../src/lib/recoMatch';
 import { OwnedBuild } from '../src/lib/ownedBuilds';
 import { artifactSubKinds, artifactSubLabel, artifactSubsFor, isArtifactSub } from '../src/lib/effects';
-import { cleanArtifacts } from '../src/lib/recoShare';
-import { MAX_ARTIFACT_SUBS, RecoDeck, emptyRecoSlot } from '../src/types';
+import { cleanArtifacts, decodeRecosJson, encodeRecosJson } from '../src/lib/recoShare';
+import { chercheMonstre } from '../src/lib/recoSearch';
+import { estEveille, formesJouables } from '../src/lib/monsterForms';
+import {
+  MAX_ARTIFACT_SUBS,
+  Monster,
+  RecoDeck,
+  emptyRecoCounter,
+  emptyRecoDeck,
+  emptyRecoSlot,
+} from '../src/types';
 import { egal, ok, titre } from './outils';
 
 // Slot minimal : seuls `status`, `checks`, `artifactChecks` et `missingSets`
@@ -216,4 +232,351 @@ export default function testReco() {
     'code inconnu ignoré'
   );
   ok(bruit.warnings.length > 0, 'les corrections sont REMONTÉES, pas tues');
+}
+
+// Défenses adverses visées par un deck (« fort contre »).
+//
+// ⚠️ Ce qui se joue ici est l'ALLER-RETOUR : ce que l'auteur pose doit arriver
+// intact chez celui qui importe, et un fichier antérieur à la fonctionnalité
+// doit continuer de se lire.
+export function testDefensesVisees() {
+  titre('Défenses adverses visées par un deck');
+
+  const deck: RecoDeck = {
+    ...emptyRecoDeck(),
+    name: 'Def 1',
+    counters: [
+      {
+        monsters: [
+          { com2usId: 15214, name: 'Trevor' },
+          { com2usId: 12312, name: 'Bella' },
+          { com2usId: 19315, name: 'Chloe' },
+        ],
+        note: 'si le Chloe est en lead',
+      },
+    ],
+  };
+  const reco = { id: 'x', origin: 'mine' as const, name: 'R', author: '', note: '', decks: [deck] };
+  // Un deck sans monstre n'est pas exporté : on en pose un pour que la reco le soit.
+  reco.decks[0].slots[0] = { ...emptyRecoSlot(), com2usId: 999, name: 'Moi' };
+
+  const relu = decodeRecosJson(encodeRecosJson([reco]));
+  const c = relu?.[0]?.decks[0]?.counters ?? [];
+  egal(c.length, 1, 'la défense visée survit à l’aller-retour');
+  egal(
+    c[0]?.monsters.map((m) => m.com2usId),
+    [15214, 12312, 19315],
+    'les 3 monstres sont transportés par leur com2usId'
+  );
+  egal(c[0]?.note, 'si le Chloe est en lead', 'la précision est transportée');
+
+  // Une défense sans aucun monstre ne dit rien : elle ne part pas.
+  const vide = { ...reco, decks: [{ ...deck, counters: [emptyRecoCounter()] }] };
+  vide.decks[0].slots = deck.slots;
+  egal(
+    decodeRecosJson(encodeRecosJson([vide]))?.[0]?.decks[0]?.counters.length,
+    0,
+    'une défense sans monstre n’est ni écrite ni relue'
+  );
+
+  // Rétrocompatibilité : un fichier ≤ v4 n'a pas la clé.
+  const v4 = JSON.stringify({
+    format: 'sw-forge/recommandations',
+    version: 4,
+    recommandations: [
+      { nom: 'R', decks: [{ nom: 'D', monstres: [{ com2usId: 999, nom: 'Moi' }, null, null] }] },
+    ],
+  });
+  egal(
+    decodeRecosJson(v4)?.[0]?.decks[0]?.counters,
+    [],
+    'fichier antérieur → aucune défense visée, rien ne casse'
+  );
+}
+
+// Recherche d'un monstre sur la page des recommandations.
+//
+// ⚠️ Le point qui compte : le mode ORDONNE, il ne restreint pas. Une reco où le
+// monstre n'apparaît que dans l'autre rôle doit rester visible — sinon on
+// cherche « Chloe », on ne la voit pas, et rien ne dit qu'elle est là.
+export function testRechercheMonstre() {
+  titre('Recherche d’un monstre dans les recommandations');
+
+  const mons = new Map<number, Monster>();
+  const reco = (id: string, deck: RecoDeck) => ({
+    id,
+    origin: 'mine' as const,
+    name: id,
+    author: '',
+    note: '',
+    decks: [deck],
+  });
+
+  // A joue Chloé ; B la subit (elle est dans une défense visée).
+  const joue = reco('A', {
+    ...emptyRecoDeck(),
+    slots: [
+      { ...emptyRecoSlot(), com2usId: 1, name: 'Chloé' },
+      emptyRecoSlot(),
+      emptyRecoSlot(),
+    ],
+  });
+  const bat = reco('B', {
+    ...emptyRecoDeck(),
+    slots: [{ ...emptyRecoSlot(), com2usId: 2, name: 'Trevor' }, emptyRecoSlot(), emptyRecoSlot()],
+    counters: [
+      {
+        monsters: [
+          { com2usId: 1, name: 'Chloé' },
+          { com2usId: null, name: '' },
+          { com2usId: null, name: '' },
+        ],
+        note: '',
+      },
+    ],
+  });
+  const liste = [joue, bat];
+
+  egal(chercheMonstre(liste, '', 'all', mons), null, 'requête vide → aucun filtrage');
+  egal(chercheMonstre(liste, 'chloe', 'all', mons)?.length, 2, 'sans accent, on trouve « Chloé »');
+  egal(
+    chercheMonstre(liste, 'CHLOÉ', 'all', mons)?.length,
+    2,
+    'la casse et les accents sont ignorés'
+  );
+  egal(chercheMonstre(liste, 'zzz', 'all', mons)?.length, 0, 'monstre absent → aucun résultat');
+
+  // ⚠️ Le mode FILTRE : ce qui relève de l'autre rôle n'est pas affiché. Un tri
+  // seul laissait à l'écran des résultats qu'on n'avait pas demandés.
+  const enDef = chercheMonstre(liste, 'chloe', 'defense', mons) ?? [];
+  egal(enDef.map((h) => h.reco.id), ['B'], 'mode « défense » : SEULE celle qui la bat');
+  egal(enDef[0]?.decks[0]?.slots, [], 'et on ne remonte aucune position de deck');
+
+  const enOff = chercheMonstre(liste, 'chloe', 'offense', mons) ?? [];
+  egal(enOff.map((h) => h.reco.id), ['A'], 'mode « offense » : SEULE celle qui la joue');
+  egal(enOff[0]?.decks[0]?.counters, [], 'et on ne remonte aucune défense visée');
+
+  // Les positions servent au surlignage.
+  const h = chercheMonstre([bat], 'chloe', 'all', mons)?.[0];
+  egal(h?.decks[0]?.counters, [0], 'la défense visée qui la contient est repérée');
+  egal(h?.decks[0]?.slots, [], 'et elle n’est pas dans les slots du deck');
+  egal(h?.enDefense, true, 'le rôle est bien « défense »');
+}
+
+// Recherche à PLUSIEURS monstres : le ET, et ce qu'il implique.
+export function testRechercheMultiple() {
+  titre('Recherche à plusieurs monstres (ET, même composition)');
+
+  const mons = new Map<number, Monster>();
+  const trio = (noms: string[]) =>
+    noms.map((n, i) => ({ ...emptyRecoSlot(), com2usId: i + 1, name: n }));
+
+  const abc = {
+    id: 'ABC',
+    origin: 'mine' as const,
+    name: 'ABC',
+    author: '',
+    note: '',
+    decks: [{ ...emptyRecoDeck(), slots: trio(['Chloé', 'Trevor', 'Bella']) }],
+  };
+  // Même monstre de tête, mais pas la même composition.
+  const axy = {
+    id: 'AXY',
+    origin: 'mine' as const,
+    name: 'AXY',
+    author: '',
+    note: '',
+    decks: [{ ...emptyRecoDeck(), slots: trio(['Chloé', 'Xiao', 'Yen']) }],
+  };
+  const liste = [abc, axy];
+
+  egal(chercheMonstre(liste, ['chloe'], 'all', mons)?.length, 2, 'un seul terme → les deux decks');
+  egal(
+    chercheMonstre(liste, ['chloe', 'trevor'], 'all', mons)?.map((h) => h.reco.id),
+    ['ABC'],
+    'deux termes → seul le deck qui réunit LES DEUX (ET, pas OU)'
+  );
+  egal(
+    chercheMonstre(liste, ['chloe', 'trevor', 'bella'], 'all', mons)?.map((h) => h.reco.id),
+    ['ABC'],
+    'trois termes → la composition exacte'
+  );
+  egal(
+    chercheMonstre(liste, ['chloe', 'zzz'], 'all', mons)?.length,
+    0,
+    'un terme introuvable suffit à écarter le deck'
+  );
+
+  // Les champs vides n'exigent rien — sinon ouvrir un champ viderait la page.
+  egal(
+    chercheMonstre(liste, ['chloe', '', ''], 'all', mons)?.length,
+    2,
+    'les champs vides sont ignorés'
+  );
+  egal(chercheMonstre(liste, ['', '', ''], 'all', mons), null, 'tout vide → aucune recherche');
+
+  // ⚠️ Deux fois le même nom exige DEUX monstres : une position déjà retenue ne
+  // compte pas une seconde fois.
+  egal(
+    chercheMonstre(liste, ['chloe', 'chloe'], 'all', mons)?.length,
+    0,
+    'le même nom deux fois exige deux monstres distincts'
+  );
+
+  // Le ET vaut par COMPOSITION : réparti entre un deck et sa défense, il ne
+  // compte pas.
+  const mixte = {
+    id: 'MIX',
+    origin: 'mine' as const,
+    name: 'MIX',
+    author: '',
+    note: '',
+    decks: [
+      {
+        ...emptyRecoDeck(),
+        slots: trio(['Chloé', 'Woosa', 'Zaiross']),
+        counters: [
+          {
+            monsters: [
+              { com2usId: 9, name: 'Trevor' },
+              { com2usId: null, name: '' },
+              { com2usId: null, name: '' },
+            ],
+            note: '',
+          },
+        ],
+      },
+    ],
+  };
+  egal(
+    chercheMonstre([mixte], ['chloe', 'trevor'], 'all', mons)?.length,
+    0,
+    'un monstre joué + un monstre battu ≠ une composition qui les réunit'
+  );
+}
+
+// Combien de fois un deck est montable en parallèle avec la réserve 6★.
+export function testDecksMontables() {
+  titre('Nombre de fois qu’un deck est montable (6★ en réserve)');
+
+  const deck = (ids: (number | null)[]): RecoDeck => ({
+    ...emptyRecoDeck(),
+    slots: ids.map((id) =>
+      id == null ? emptyRecoSlot() : { ...emptyRecoSlot(), com2usId: id, name: `M${id}` }
+    ),
+  });
+
+  // ⚠️ Le deck est limité par son monstre le PLUS RARE, pas par la moyenne ni
+  // par le total : trois exemplaires de l'un ne servent à rien si le second
+  // n'existe qu'en un seul.
+  egal(
+    deckCopies(deck([1, 2, 3]), new Map([[1, 3], [2, 1], [3, 5]])),
+    1,
+    'le monstre le plus rare fixe la limite'
+  );
+  egal(
+    deckCopies(deck([1, 2, 3]), new Map([[1, 2], [2, 2], [3, 2]])),
+    2,
+    'deux exemplaires de chacun → deux decks en parallèle'
+  );
+  egal(
+    deckCopies(deck([1, 2, 3]), new Map([[1, 4], [2, 4]])),
+    0,
+    'un monstre absent de la réserve → deck non montable'
+  );
+
+  // ⚠️ Un monstre placé DEUX FOIS dans le même deck consomme deux exemplaires.
+  egal(
+    deckCopies(deck([1, 1, 2]), new Map([[1, 2], [2, 5]])),
+    1,
+    'deux fois le même monstre → il en faut deux pour UN deck'
+  );
+  egal(
+    deckCopies(deck([1, 1, 2]), new Map([[1, 3], [2, 5]])),
+    1,
+    '3 exemplaires pour 2 requis → un seul deck complet (pas d’arrondi optimiste)'
+  );
+  egal(
+    deckCopies(deck([1, 1, 2]), new Map([[1, 4], [2, 5]])),
+    2,
+    '4 exemplaires pour 2 requis → deux decks'
+  );
+
+  // Les slots vides ne comptent pas.
+  egal(
+    deckCopies(deck([1, null, null]), new Map([[1, 3]])),
+    3,
+    'un slot vide n’exige aucun monstre'
+  );
+
+  // ⚠️ `null` et non `0` quand l'information manque : « 0 fois » affirmerait
+  // que le deck est immontable, ce qui est une tout autre chose que « je ne
+  // sais pas ».
+  egal(deckCopies(deck([1, 2, 3]), undefined), null, 'aucune box importée → on ne dit rien');
+  egal(deckCopies(deck([null, null, null]), new Map()), null, 'deck vide → rien à monter');
+}
+
+// Quelles formes d'un monstre sont proposées dans les sélecteurs.
+export function testFormesJouables() {
+  titre('Formes proposées quand on choisit un monstre');
+
+  const mon = (p: Partial<Monster> & { name: string }): Monster =>
+    ({
+      id: `${p.name}-${p.stars ?? 0}-${p.element ?? 'dark'}`,
+      com2usId: 1,
+      element: 'dark',
+      stars: null,
+      naturalStars: null,
+      secondAwaken: false,
+      image: null,
+      stats: {} as any,
+      leaderSkill: null,
+      ...p,
+    }) as Monster;
+
+  // Seren : brute (parasite), éveillée, 2A → seule la 2A doit rester.
+  const seren = [
+    mon({ name: 'Seren', stars: 1, naturalStars: 1 }),
+    mon({ name: 'Seren', stars: 4, naturalStars: 3 }),
+    mon({ name: 'Seren', stars: 6, naturalStars: 3, secondAwaken: true }),
+  ];
+  egal(
+    formesJouables(seren).map((m) => m.stars),
+    [6],
+    'un monstre à second éveil ne propose QUE sa 2A'
+  );
+
+  // Sans 2A, l'éveillée reste — et la brute part.
+  const chloe = [
+    mon({ name: 'Chloe', element: 'fire', stars: 4, naturalStars: 4 }),
+    mon({ name: 'Chloe', element: 'fire', stars: 5, naturalStars: 4 }),
+  ];
+  egal(
+    formesJouables(chloe).map((m) => m.stars),
+    [5],
+    'sans 2A, on garde l’éveillée et on écarte la forme brute'
+  );
+
+  // ⚠️ Le regroupement tient compte de l'ÉLÉMENT : deux homonymes d'éléments
+  // différents sont deux monstres, la 2A de l'un ne masque pas l'autre.
+  const homonymes = [
+    mon({ name: 'Vigor', element: 'water', stars: 6, naturalStars: 3, secondAwaken: true }),
+    mon({ name: 'Vigor', element: 'fire', stars: 4, naturalStars: 3 }),
+  ];
+  egal(
+    formesJouables(homonymes).map((m) => m.element),
+    ['water', 'fire'],
+    'la 2A d’un élément ne masque pas l’homonyme d’un autre élément'
+  );
+
+  // Monstre créé à la main : aucune étoile connue, mais il existe parce que
+  // l'utilisateur l'a saisi — il doit rester proposable.
+  egal(
+    formesJouables([mon({ name: 'Perso' })]).length,
+    1,
+    'un monstre perso (sans étoiles) reste proposable'
+  );
+
+  ok(!estEveille(mon({ name: 'X', stars: 3, naturalStars: 3 })), 'stars = nat → non éveillé');
+  ok(estEveille(mon({ name: 'X', stars: 4, naturalStars: 3 })), 'stars > nat → éveillé');
 }

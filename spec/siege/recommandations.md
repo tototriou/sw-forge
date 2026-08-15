@@ -142,16 +142,20 @@ la même réponse :
   effacer la recherche rend à la page exactement le repli qu'elle avait avant.
   Sans ça on se retrouve avec six decks ouverts sans les avoir ouverts.
 - ⚠️ **La recherche PROPOSE le dépliage, elle ne l'impose pas.** Une carte
-  ouverte par un résultat reste **refermable** : le repli manuel est mémorisé à
-  part et gagne sur l'ouverture automatique.
-  - Sans ça, « Réduire » était **inopérant** sur un résultat — le clic retirait
-    bien la carte des dépliées, mais l'ouverture automatique la réimposait
-    aussitôt. Un bouton qui ne fait rien passe pour cassé.
-  - Ces replis **ne survivent pas à un changement de recherche** : ils valaient
-    pour ces résultats-là. Gardés, une carte refermée resterait fermée alors
-    qu'elle répond désormais à une autre question.
+  ouverte par un résultat reste **refermable en un clic**.
+  - ⚠️ **UN SEUL état à trois valeurs** par carte — *absent* (l'automatique
+    décide) · *ouverte* · *fermée* — et non deux ensembles qui se corrigent
+    l'un l'autre. Avec deux ensembles (« ouvertes » + « refermées pendant la
+    recherche »), fermer une carte à la fois ouverte à la main **et** trouvée
+    par la recherche demandait **trois clics** : chaque clic n'en corrigeait
+    qu'un, l'autre rouvrait aussitôt. Un choix explicite écrase l'automatique,
+    point.
+  - Ces choix **ne survivent pas à un changement de recherche** : ils valaient
+    pour ces résultats-là. Mais l'effacement **ne s'applique que si une
+    recherche est en cours** — sinon taper puis effacer refermait les cartes
+    ouvertes à la main bien avant de chercher.
   - **Règle générale** : un filtre peut changer ce qui est montré, il ne rend
-    jamais un contrôle inopérant.
+    jamais un contrôle inopérant — ni ne demande trois clics là où un suffit.
 - ⚠️ **Le filtre porte sur les DEUX niveaux** : quelles recommandations, et
   **quels decks à l'intérieur**. Les decks qui ne répondent pas ne sont **pas
   affichés du tout**. Sans ça, une carte remontait dans les résultats en

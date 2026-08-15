@@ -79,33 +79,22 @@ export default function RecoBoard({ recos, monsters, builds, teams, offense }: P
   const [editingId, setEditingId] = useState<string | null>(null);
   // Recommandations dépliées (« Consulter ») — toutes repliées par défaut, pour
   // garder une liste lisible quand on en a beaucoup.
-  const [openIds, setOpenIds] = useState<Set<string>>(new Set());
-  // Cartes que la recherche a ouvertes et que l'utilisateur a REFERMÉES.
+  // ⚠️ UN SEUL état à trois valeurs par carte, et non deux ensembles qui se
+  // corrigent l'un l'autre :
   //
-  // ⚠️ Sans cet état, « Réduire » était inopérant sur un résultat de recherche :
-  // le clic retirait bien l'id d'`openIds`, mais l'ouverture automatique le
-  // réimposait aussitôt. Un bouton qui ne fait rien passe pour cassé.
-  // On mémorise donc le refus, au lieu de laisser la recherche gagner : elle
-  // propose un dépliage, elle ne l'impose pas.
-  const [replieesPendantRecherche, setRepliees] = useState<Set<string>>(new Set());
+  //   absent  → l'automatique décide (repliée, ou dépliée si c'est un résultat)
+  //   true    → l'utilisateur l'a ouverte
+  //   false   → l'utilisateur l'a fermée, même si c'est un résultat
+  //
+  // Deux ensembles séparés (« ouvertes » + « refermées pendant la recherche »)
+  // demandaient TROIS clics pour fermer une carte à la fois ouverte à la main et
+  // trouvée par la recherche : chaque clic n'en corrigeait qu'un des deux, et
+  // l'autre rouvrait aussitôt. Un choix explicite écrase l'automatique, point.
+  const [choixOuverture, setChoixOuverture] = useState<Map<string, boolean>>(new Map());
+  const estOuverte = (id: string) => choixOuverture.get(id) ?? hitPar.has(id);
   const toggleOpen = (id: string) => {
-    const ouverteParRecherche = hitPar.has(id) && !replieesPendantRecherche.has(id);
-    if (ouverteParRecherche) {
-      // Elle n'est ouverte que parce qu'elle est un résultat : on note le repli.
-      setRepliees((s) => new Set(s).add(id));
-      return;
-    }
-    setRepliees((s) => {
-      if (!s.has(id)) return s;
-      const next = new Set(s);
-      next.delete(id);
-      return next;
-    });
-    setOpenIds((s) => {
-      const next = new Set(s);
-      next.has(id) ? next.delete(id) : next.add(id);
-      return next;
-    });
+    const ouverte = estOuverte(id);
+    setChoixOuverture((m) => new Map(m).set(id, !ouverte));
   };
   const fileRef = useRef<HTMLInputElement>(null);
 
@@ -260,12 +249,13 @@ export default function RecoBoard({ recos, monsters, builds, teams, offense }: P
   const list = hits ? hits.map((h) => h.reco) : parOrigine;
   // Où se trouve le monstre, par recommandation — la carte s'en sert pour
   // déplier les bons decks et surligner les bons portraits.
-  // ⚠️ Les replis manuels ne survivent pas à un changement de recherche : ils
-  // valaient pour CES résultats-là. Gardés, une carte refermée hier resterait
-  // fermée alors qu'elle répond maintenant à une tout autre question.
+  // ⚠️ Changer de recherche efface les choix d’ouverture : ils valaient pour CES
+  // résultats-là. Et SEULEMENT quand une recherche est en cours — sans cette
+  // garde, taper puis effacer refermait les cartes ouvertes à la main avant.
   const cleRecherche = queries.join(' ');
   useEffect(() => {
-    setRepliees(new Set());
+    if (!cleRecherche.trim()) return;
+    setChoixOuverture(new Map());
   }, [cleRecherche]);
 
   const hitPar = useMemo(() => {
@@ -539,17 +529,11 @@ export default function RecoBoard({ recos, monsters, builds, teams, offense }: P
                 canAnalyze={builds.length > 0}
                 onAnalyze={() => analyzeReco(reco)}
                 onClearAnalysis={() => clearAnalysis(reco.id)}
-                // ⚠️ Une carte qui répond à la recherche est dépliée d'office,
-                // sans toucher à `openIds` : c'est un état de CONSULTATION, pas
-                // un choix de l'utilisateur. Effacer la recherche rend donc à la
-                // page exactement le repli qu'elle avait avant.
-                // ⚠️ La recherche PROPOSE le dépliage, elle ne l'impose pas :
-                // une carte refermée à la main le reste, même si elle est un
-                // résultat. Sans ça, « Réduire » semblait mort.
-                open={
-                  openIds.has(reco.id) ||
-                  (hitPar.has(reco.id) && !replieesPendantRecherche.has(reco.id))
-                }
+                // ⚠️ Une carte qui répond à la recherche est dépliée d’office,
+                // mais la recherche PROPOSE ce dépliage, elle ne l’impose pas :
+                // un choix explicite de l’utilisateur l’emporte toujours, dans les
+                // deux sens (voir `estOuverte`).
+                open={estOuverte(reco.id)}
                 onToggleOpen={toggleOpen}
                 hit={hitPar.get(reco.id) ?? null}
                 editing={editingId === reco.id}

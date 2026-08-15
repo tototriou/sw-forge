@@ -61,6 +61,48 @@ export const RELEASES: Release[] = [
   // fusion, d'après ce que la branche contient au final. On le remplace au
   // moment de publier, en même temps que `package.json` et le tag.
   {
+    version: null,
+    date: '2026-08-15',
+    title: 'Tes runes se lisent comme dans le jeu',
+    changes: [
+      {
+        kind: 'feat',
+        scope: 'Mon compte',
+        text: 'Clique un point de la courbe pour ouvrir la rune correspondante, et navigue de l’une à l’autre.',
+      },
+      {
+        kind: 'feat',
+        scope: 'Mon compte',
+        text: 'Tes runes s’affichent comme dans le jeu : propriétés, meules et bonus de set sur chaque carte.',
+      },
+      {
+        kind: 'feat',
+        scope: 'Mon compte',
+        text: 'Un clic sur une rune bascule entre le détail des valeurs et leur total.',
+      },
+      {
+        kind: 'feat',
+        scope: 'Mon compte',
+        text: 'Trie tes runes avec les critères du jeu : grade, propriété, avant meule, obtention…',
+      },
+      {
+        kind: 'feat',
+        scope: 'Mon compte',
+        text: 'Cherche jusqu’à 4 propriétés secondaires à la fois, avec un minimum et un maximum.',
+      },
+      {
+        kind: 'fix',
+        scope: 'Interface',
+        text: 'Les espaces en trop dans un nom ou une consigne ne sont plus conservés.',
+      },
+      {
+        kind: 'fix',
+        scope: 'Interface',
+        text: 'Les zéros inutiles disparaissent des champs de saisie chiffrés.',
+      },
+    ],
+  },
+  {
     version: '1.6.1',
     date: '2026-08-15',
     title: 'Dis contre quoi tes decks sont forts',

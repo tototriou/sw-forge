@@ -110,6 +110,15 @@ export interface SearchParams {
   // en plus de servir de tri par défaut des résultats. Absent = aucun biais
   // (le pré-filtrage ne suit que minStats/maxStats/l'efficience générale).
   objective?: Objective;
+  // Bouton « Prioriser les stats les plus difficiles » (OptimizerSection.tsx)
+  // — piste B, spec/outils/optimizer.md « Suite — piste B gatée derrière un
+  // paramètre ». `false`/absent (défaut, bouton « Rechercher » normal) :
+  // comportement inchangé, coût nul (vérifié par mesure dos-à-dos). `true` :
+  // réalloue le budget de rétention par tranche entre les stats demandées
+  // selon leur dispersion mesurée — peut retrouver un build qu'une
+  // répartition uniforme raterait, au prix d'un temps de recherche plus
+  // long (+20 % de temps de construction mesuré en moyenne).
+  adaptiveTrancheWeighting?: boolean;
 }
 
 export interface SearchResult {
@@ -343,6 +352,35 @@ export function runeContribution(rune: RuneDetail, key: StatKey): { pct: number;
     else flat += value;
   };
   add(rune.main.code, rune.main.value);
+  if (rune.innate) add(rune.innate.code, rune.innate.value);
+  for (const s of rune.subs) add(s.code, s.value);
+  return { pct, flat };
+}
+
+// ⚠️ Comme `runeContribution`, mais SANS la principale — sous-stats et
+// innée uniquement. Sert à la pondération adaptative des tranches de
+// rétention (voir « Suite — point 4 » dans spec/outils/optimizer.md, piste
+// B) : la principale d'un slot est une valeur GARANTIE et relativement
+// stable pour toute rune candidate de ce slot (surtout sur un slot à
+// principale imposée — VIT slot 2, TC/DCC slot 4, RES/PRE slot 6) — elle
+// NOIE la vraie dispersion (sous-stats, aléatoires) derrière une moyenne
+// artificiellement stable. Une rune ne peut d'ailleurs JAMAIS avoir sa
+// propre principale dupliquée en sous-stat (règle du jeu, voir la mémoire
+// sw-rune-mainstat-rules) : sur un slot dont la principale EST la stat
+// suivie, la contribution hors-principale est structurellement nulle —
+// exactement le signal recherché (ce slot n'apporte rien à la VARIABILITÉ
+// de cette stat, seulement un plancher fixe). Validé sur la piste A
+// (conservée dans scripts/patches/piste-a-tranche-weighting.patch) avant
+// d'être reprise ici.
+function runeSubOnlyContribution(rune: RuneDetail, key: StatKey): { pct: number; flat: number } {
+  let pct = 0;
+  let flat = 0;
+  const add = (code: number, value: number) => {
+    const def = RUNE_EFFECT[code];
+    if (!def || def.stat !== key) return;
+    if (def.pct) pct += value;
+    else flat += value;
+  };
   if (rune.innate) add(rune.innate.code, rune.innate.value);
   for (const s of rune.subs) add(s.code, s.value);
   return { pct, flat };
@@ -987,7 +1025,17 @@ export function* buildBuckets(
   // place des tranches habituelles. Réservé aux scripts de mesure
   // (`scripts/monster-search-skyline-diag.ts`) tant que le coût réel
   // (taille de la skyline sur un compte réel) n'est pas mesuré.
-  skylineKeys?: StatKey[]
+  skylineKeys?: StatKey[],
+  // ⚠️ PROTOTYPE EN MESURE — piste B, pondération adaptative par tranche
+  // (spec/outils/optimizer.md, « Suite — piste B »). `false`/`undefined`
+  // (par défaut, TOUS les appels de production actuels) : le bloc
+  // `reallocatedCap` ci-dessous ne s'exécute pas, chaque tranche par stat
+  // reçoit `perOtherSliceCap` exactement comme avant sa mise en place —
+  // coût nul À VÉRIFIER (voir la mesure demandée avant d'exposer un bouton
+  // dans l'UI, pas encore fait). `true` : reproduit le comportement piste B
+  // déjà validé (Sonia deck 6, cas de stress atteignable) contre un coût de
+  // construction non démontré meilleur que la piste A.
+  adaptiveTrancheWeighting = false
 ): Generator<BuildingProgress, Bucket[], void> {
   const [i0, i1, i2] = slotIdxs;
   const buckets = new Map<string, Bucket>();
@@ -1021,6 +1069,65 @@ export function* buildBuckets(
   // `bucketCap` places, comme avant.
   const genericCap = bucketCap;
   const perOtherSliceCap = genericCap;
+
+  // ⚠️ Piste B — pondération adaptative par tranche (spec/outils/
+  // optimizer.md, « Suite — piste B envisagée à la lumière de la piste A »).
+  // PROXY ANALYTIQUE calculé AVANT la triple boucle — pour chaque
+  // `retentionKey`, estime la variance du demi-build complet en sommant la
+  // variance de la contribution HORS PRINCIPALE (`runeSubOnlyContribution`,
+  // même exclusion que la piste A conservée dans
+  // scripts/patches/piste-a-tranche-weighting.patch — une principale
+  // garantie noie sinon la vraie dispersion) sur le pool DÉJÀ FILTRÉ de
+  // CHAQUE slot de cette moitié (`filtered[i0/i1/i2]`, une centaine à
+  // quelques centaines de candidats — une POPULATION STABLE, pas un
+  // échantillon de demi-builds en cours de construction comme la piste A).
+  // Hypothèse d'indépendance entre les 3 slots (variance d'une somme = somme
+  // des variances) : approximative, pas garantie exacte, mais un premier
+  // ordre défendable — à confirmer par la mesure, pas à supposer. Coût :
+  // O(taille des 3 pools filtrés), négligeable face au O(pool³) de la
+  // triple boucle qui suit. Réutilise ENSUITE la même formule de
+  // réallocation déjà validée sur la piste A (part au CARRÉ du CV, budget
+  // total inchangé = `retentionKeys.length × bucketCap`, plancher à 10 % de
+  // la part égale) — mais pour fixer la BONNE taille de chaque tas par stat
+  // DÈS LE DÉPART, sans jamais surprovisionner ni élaguer après coup : le
+  // défaut principal mesuré sur la piste A (coût de construction accru sur
+  // la majorité des cas réels, même quand la réallocation ne change rien à
+  // l'issue) ne devrait structurellement pas exister ici — à VÉRIFIER par
+  // la même batterie de mesure, pas à présumer.
+  const reallocatedCap: Record<string, number> = {};
+  if (adaptiveTrancheWeighting && retentionKeys.length > 0) {
+    const cv: Record<string, number> = {};
+    for (const k of retentionKeys) {
+      let sumMean = 0;
+      let sumVariance = 0;
+      for (const i of [i0, i1, i2]) {
+        const slotPool = filtered[i];
+        if (slotPool.length === 0) continue;
+        let sum = 0;
+        let sumSq = 0;
+        for (const r of slotPool) {
+          const c = runeSubOnlyContribution(r, k as StatKey);
+          const v = c.pct + c.flat;
+          sum += v;
+          sumSq += v * v;
+        }
+        const mean = sum / slotPool.length;
+        const variance = Math.max(0, sumSq / slotPool.length - mean * mean);
+        sumMean += mean;
+        sumVariance += variance;
+      }
+      cv[k] = sumMean > 0 ? Math.sqrt(sumVariance) / sumMean : 0;
+    }
+    const cv2: Record<string, number> = {};
+    for (const k of retentionKeys) cv2[k] = cv[k] * cv[k];
+    const totalCv2 = retentionKeys.reduce((s, k) => s + cv2[k], 0);
+    const totalBudget = retentionKeys.length * perOtherSliceCap;
+    const floorCap = Math.max(1, Math.round(perOtherSliceCap * 0.1));
+    for (const k of retentionKeys) {
+      const share = totalCv2 > 0 ? cv2[k] / totalCv2 : 1 / retentionKeys.length;
+      reallocatedCap[k] = Math.max(floorCap, Math.round(share * totalBudget));
+    }
+  }
 
   // Meilleur cas atteignable par CHAQUE slot de cette moitié, pour chaque set
   // demandé — calculé une fois, réutilisé à chaque étape du triple flux.
@@ -1095,7 +1202,8 @@ export function* buildBuckets(
           heapPush(bucketSlices![1], { item: combo, score: combinedRetentionScore(pct, flat, minEntries) }, perOtherSliceCap);
         }
         for (let i = 0; i < retentionKeys.length; i++) {
-          heapPush(bucketSlices![retentionOffset + i], { item: combo, score: retentionScore(pct, flat, retentionKeys[i]) }, perOtherSliceCap);
+          const cap = adaptiveTrancheWeighting ? reallocatedCap[retentionKeys[i]] : perOtherSliceCap;
+          heapPush(bucketSlices![retentionOffset + i], { item: combo, score: retentionScore(pct, flat, retentionKeys[i]) }, cap);
         }
         if (skylines) {
           let skyline = skylines.get(key);
@@ -1970,11 +2078,13 @@ export function* searchBuildsSteps(params: SearchParams): Generator<SearchProgre
   }
   const bucketsA = yield* buildBuckets(
     'A', [0, 1, 2], prepared.filtered, prepared.distinctKeys, prepared.constrainedKeys, prepared.retentionKeys,
-    prepared.minEntries, prepared.bucketCap, prepared.maxSetsForA, prepared.jokerCredit, prepared.requiredPieces
+    prepared.minEntries, prepared.bucketCap, prepared.maxSetsForA, prepared.jokerCredit, prepared.requiredPieces,
+    undefined, params.adaptiveTrancheWeighting
   );
   const bucketsB = yield* buildBuckets(
     'B', [3, 4, 5], prepared.filtered, prepared.distinctKeys, prepared.constrainedKeys, prepared.retentionKeys,
-    prepared.minEntries, prepared.bucketCap, prepared.maxSetsForB, prepared.jokerCredit, prepared.requiredPieces
+    prepared.minEntries, prepared.bucketCap, prepared.maxSetsForB, prepared.jokerCredit, prepared.requiredPieces,
+    undefined, params.adaptiveTrancheWeighting
   );
   return yield* pairBuckets(prepared, bucketsA, bucketsB);
 }

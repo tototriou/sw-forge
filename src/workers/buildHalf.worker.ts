@@ -30,6 +30,9 @@ export interface BuildHalfRequest {
   otherHalfMaxSets: number[];
   jokerCredit: number;
   requiredPieces: number[];
+  // Bouton « Prioriser les stats les plus difficiles » — voir SearchParams
+  // dans runeBuildOptim.ts, même paramètre relayé tel quel jusqu'ici.
+  adaptiveTrancheWeighting?: boolean;
 }
 export interface BuildHalfProgressMessage {
   type: 'progress';
@@ -50,14 +53,17 @@ export type BuildHalfResponse = BuildHalfProgressMessage | BuildHalfResultMessag
 const PROGRESS_THROTTLE_MS = 150;
 
 self.onmessage = (e: MessageEvent<BuildHalfRequest>) => {
-  const { half, slotIdxs, filtered, distinctKeys, constrainedKeys, retentionKeys, minEntries, bucketCap, otherHalfMaxSets, jokerCredit, requiredPieces } =
-    e.data;
+  const {
+    half, slotIdxs, filtered, distinctKeys, constrainedKeys, retentionKeys, minEntries, bucketCap, otherHalfMaxSets, jokerCredit, requiredPieces,
+    adaptiveTrancheWeighting,
+  } = e.data;
   // Connu D'AVANCE (indépendant du générateur) : le total réel que
   // `buildBuckets` utilisera pour CE premier emplacement de la moitié — sert
   // au message de fin garanti ci-dessous, voir son commentaire.
   const total = filtered[slotIdxs[0]].length;
   const gen = buildBuckets(
-    half, slotIdxs, filtered, distinctKeys, constrainedKeys, retentionKeys, minEntries, bucketCap, otherHalfMaxSets, jokerCredit, requiredPieces
+    half, slotIdxs, filtered, distinctKeys, constrainedKeys, retentionKeys, minEntries, bucketCap, otherHalfMaxSets, jokerCredit, requiredPieces,
+    undefined, adaptiveTrancheWeighting
   );
   let lastPost = 0;
   let step = gen.next();

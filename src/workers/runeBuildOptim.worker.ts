@@ -18,7 +18,7 @@
 // single-threaded : un message ne peut être livré que quand le code en
 // cours d'exécution le permet).
 
-import { prepareSearch, pairBuckets, totalPairCount, PreparedSearch, SearchParams, SearchResult, Bucket, NodeBudget, CHECKPOINT_EVERY } from '../lib/runeBuildOptim';
+import { prepareSearch, pairBuckets, totalPairCount, PreparedSearch, SearchParams, SearchResult, Bucket, NodeBudget, CHECKPOINT_EVERY, BuildCandidate } from '../lib/runeBuildOptim';
 import { BuildHalfRequest, BuildHalfResponse } from './buildHalf.worker';
 
 export type WorkerRequest = SearchParams | { stop: true };
@@ -76,6 +76,14 @@ export interface WorkerPairingMessage {
   // sets/joker), pas le compte exact de paires réellement visitées — voir
   // le commentaire de `totalPairCount`.
   totalPairs: number;
+  // ⚠️ Les candidats NOUVEAUX depuis le dernier message, PAS la liste
+  // entière accumulée jusqu'ici (voir « Suite — affichage des résultats en
+  // direct » dans spec/outils/optimizer.md) : `progress.candidates` peut
+  // grossir jusqu'à `maxCollected` (100 000 par défaut) sur une recherche
+  // lâche — le retransmettre EN ENTIER à chaque point de passage throttlé
+  // (~150 ms) recopierait le même préfixe des dizaines de fois pour rien.
+  // Charge à qui reçoit (useBuildOptimSearch.ts) d'accumuler ce delta.
+  newCandidates: BuildCandidate[];
 }
 export type WorkerProgressMessage = WorkerBuildingMessage | WorkerPairingMessage;
 export type WorkerResultMessage = { type: 'result' } & SearchResult;
@@ -172,13 +180,13 @@ self.onmessage = async (e: MessageEvent<WorkerRequest>) => {
       half: 'A', slotIdxs: [0, 1, 2], filtered: prepared.filtered, distinctKeys: prepared.distinctKeys,
       constrainedKeys: prepared.constrainedKeys, retentionKeys: prepared.retentionKeys, minEntries: prepared.minEntries,
       bucketCap: prepared.bucketCap, otherHalfMaxSets: prepared.maxSetsForA, jokerCredit: prepared.jokerCredit,
-      requiredPieces: prepared.requiredPieces,
+      requiredPieces: prepared.requiredPieces, adaptiveTrancheWeighting: params.adaptiveTrancheWeighting,
     };
     const requestB: BuildHalfRequest = {
       half: 'B', slotIdxs: [3, 4, 5], filtered: prepared.filtered, distinctKeys: prepared.distinctKeys,
       constrainedKeys: prepared.constrainedKeys, retentionKeys: prepared.retentionKeys, minEntries: prepared.minEntries,
       bucketCap: prepared.bucketCap, otherHalfMaxSets: prepared.maxSetsForB, jokerCredit: prepared.jokerCredit,
-      requiredPieces: prepared.requiredPieces,
+      requiredPieces: prepared.requiredPieces, adaptiveTrancheWeighting: params.adaptiveTrancheWeighting,
     };
     // ⚠️ Pas de throttle ICI (contrairement à la phase d'appariement plus
     // bas) : chacun des deux Workers enfants (buildHalf.worker.ts) throttle
@@ -257,6 +265,10 @@ self.onmessage = async (e: MessageEvent<WorkerRequest>) => {
   const totalPairs = totalPairCount(prepared, bucketsA, bucketsB);
 
   let lastYield = Date.now();
+  // Nombre déjà relayé au fil principal (voir `WorkerPairingMessage.
+  // newCandidates`) — sert à ne transmettre à chaque point de passage QUE
+  // les candidats trouvés depuis le message précédent.
+  let candidatesSent = 0;
   const gen = pairBuckets(prepared, bucketsA, bucketsB, nodeBudget);
   let step = gen.next();
   while (!step.done) {
@@ -280,6 +292,8 @@ self.onmessage = async (e: MessageEvent<WorkerRequest>) => {
     }
     if (now - lastProgressPost > PROGRESS_THROTTLE_MS) {
       lastProgressPost = now;
+      const newCandidates = progress.candidates.slice(candidatesSent);
+      candidatesSent = progress.candidates.length;
       const message: WorkerPairingMessage = {
         type: 'progress',
         phase: 'pairing',
@@ -288,6 +302,7 @@ self.onmessage = async (e: MessageEvent<WorkerRequest>) => {
         pct: estimatePct(prepared, totalPairs, progress.explored, progress.candidates.length, now - startedAt),
         nodeBudgetMax: nodeBudget.max,
         totalPairs,
+        newCandidates,
       };
       (self as unknown as Worker).postMessage(message);
     }

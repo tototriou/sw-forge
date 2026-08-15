@@ -57,6 +57,13 @@ export interface OptimizerState {
   setObjective: Dispatch<SetStateAction<Objective>>;
   exploreAll: boolean;
   setExploreAll: Dispatch<SetStateAction<boolean>>;
+  // Toggle « Prioriser les stats les plus difficiles » (piste B, voir
+  // spec/outils/optimizer.md « Suite — piste B gatée derrière un
+  // paramètre ») — désactivé par défaut, lu par `handleSearch` au moment du
+  // clic sur « Rechercher », pas un bouton séparé qui lance sa propre
+  // recherche.
+  adaptiveTrancheWeighting: boolean;
+  setAdaptiveTrancheWeighting: Dispatch<SetStateAction<boolean>>;
   sortBy: OptimizerSortKey;
   setSortBy: Dispatch<SetStateAction<OptimizerSortKey>>;
   showAdvanced: boolean;
@@ -97,6 +104,7 @@ export function useOptimizerState(): OptimizerState {
   const [mainStatsBySlot, setMainStatsBySlot] = useState<Partial<Record<2 | 4 | 6, number[]>>>({});
   const [objective, setObjective] = useState<Objective>('efficience');
   const [exploreAll, setExploreAll] = useState(true);
+  const [adaptiveTrancheWeighting, setAdaptiveTrancheWeighting] = useState(false);
   const [sortBy, setSortBy] = useState<OptimizerSortKey>('efficience');
   const [showAdvanced, setShowAdvanced] = useState(false);
   const [slotFilterPreset, setSlotFilterPreset] = useState<SlotFilterPresetKey>('moyen');
@@ -128,6 +136,8 @@ export function useOptimizerState(): OptimizerState {
     setObjective,
     exploreAll,
     setExploreAll,
+    adaptiveTrancheWeighting,
+    setAdaptiveTrancheWeighting,
     sortBy,
     setSortBy,
     showAdvanced,

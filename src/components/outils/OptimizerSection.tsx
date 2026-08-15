@@ -1,5 +1,5 @@
 import { Fragment, useMemo, useRef } from 'react';
-import { Search, Boxes, Square, Settings2, HelpCircle, RotateCcw, FlaskConical } from 'lucide-react';
+import { Search, Boxes, Square, Settings2, HelpCircle, RotateCcw, FlaskConical, Target } from 'lucide-react';
 import { ArtifactDetail, ARTIFACT_KINDS, RECO_STATS, RuneDetail } from '../../types';
 import { BoxItem } from '../../lib/applyAccount';
 import { ARTIFACT_MAIN, CAPPED_STATS, RUNE_EFFECT, StatKey, runeEfficiency } from '../../lib/effects';
@@ -24,6 +24,7 @@ import MonsterAvatar from '../MonsterAvatar';
 import MonsterGear from '../MonsterGear';
 import Segmented from '../Segmented';
 import Switch from '../Switch';
+import HelpPopover from '../HelpPopover';
 import MonsterGearPicker, { GearedMonster } from './MonsterGearPicker';
 import SetComboPicker from './SetComboPicker';
 import BuildCandidateCard from './BuildCandidateCard';
@@ -114,6 +115,8 @@ export default function OptimizerSection({ box, runes, optimizer }: Props) {
     setObjective,
     exploreAll,
     setExploreAll,
+    adaptiveTrancheWeighting,
+    setAdaptiveTrancheWeighting,
     sortBy,
     setSortBy,
     showAdvanced,
@@ -277,6 +280,15 @@ export default function OptimizerSection({ box, runes, optimizer }: Props) {
     return rankBlockingConditions({ base: selected.gear.base, artifacts: searchArtifacts, relic: selected.gear.relic, pool, requirement, metric });
   }, [selected, diagnoseBlockingEnabled, result, searchArtifacts, pool, requirement, metric]);
 
+  // `adaptiveTrancheWeighting` (toggle « Prioriser les stats les plus
+  // difficiles », voir SearchParams dans runeBuildOptim.ts) — réalloue le
+  // budget de rétention par tranche entre les stats demandées selon leur
+  // dispersion mesurée, au lieu d'un plafond uniforme. Désactivé (défaut) :
+  // comportement historique inchangé, coût nul (vérifié par mesure — voir
+  // spec/outils/optimizer.md, « Suite — piste B gatée derrière un
+  // paramètre »). Activé : recherche plus longue (+20 % de temps de
+  // construction mesuré en moyenne), pour les cas où la recherche normale
+  // ne trouve pas un build qui semble pourtant montable.
   function handleSearch() {
     if (!selected) return;
     if (comboSets.length === 0) {
@@ -297,14 +309,24 @@ export default function OptimizerSection({ box, runes, optimizer }: Props) {
       maxMs: HARD_TIMEOUT_MS,
       slotFilterCap,
       objective,
+      adaptiveTrancheWeighting,
     });
   }
+
+  // Source des candidats affichés : le résultat FINAL une fois la recherche
+  // terminée, sinon l'aperçu EN DIRECT accumulé pendant qu'elle tourne (voir
+  // useBuildOptimSearch.ts) — pour voir des builds apparaître au fur et à
+  // mesure plutôt que d'attendre l'épuisement complet de l'espace de
+  // recherche. `null` tant qu'aucun des deux n'existe (recherche jamais
+  // lancée, ou encore en phase `building` — pas de candidat possible avant
+  // que l'appariement ait commencé).
+  const candidatesSource = result ? result.candidates : status === 'running' && progress?.phase === 'pairing' ? progress.candidates : null;
 
   // Tri CLIENT, sans relancer la recherche : le moteur collecte déjà les
   // stats complètes de chaque candidat valide (voir runeBuildOptim.ts).
   const sortedCandidates = useMemo(() => {
-    if (!result) return [];
-    const list = result.candidates.slice();
+    if (!candidatesSource) return [];
+    const list = candidatesSource.slice();
     if (sortBy === 'efficience') {
       // ⚠️ PAS `objectiveScore`/`effTotal` ici : ce champ est figé dans la
       // mesure active AU MOMENT DE LA RECHERCHE, et deviendrait incohérent
@@ -317,7 +339,7 @@ export default function OptimizerSection({ box, runes, optimizer }: Props) {
       list.sort((a, b) => statTotal(b.stats, sortBy) - statTotal(a.stats, sortBy));
     }
     return list.slice(0, 20);
-  }, [result, sortBy, runeById, metric]);
+  }, [candidatesSource, sortBy, runeById, metric]);
 
   // Base « nue » du monstre choisi pour une stat — 0 tant qu'aucun monstre
   // n'est sélectionné. ⚠️ N'inclut PAS les artéfacts : en jeu, le mode
@@ -458,9 +480,11 @@ export default function OptimizerSection({ box, runes, optimizer }: Props) {
           <p className="label">Artéfacts</p>
           <div className="flex items-center gap-1.5">
             <span className="text-[12px] font-semibold text-ink-dim">Ignorer les statistiques des artéfacts</span>
-            <span title="Activé, la recherche ne compte AUCUNE statistique d'artéfact (comme si le monstre n'en portait pas). Désactivé, choisis la statistique principale à supposer pour chaque emplacement ci-dessous.">
-              <HelpCircle size={13} className="text-ink-dim" />
-            </span>
+            <HelpPopover title="Ignorer les statistiques des artéfacts">
+              Activé, la recherche ne compte <b className="text-ink">aucune</b> statistique d'artéfact (comme si le
+              monstre n'en portait pas). Désactivé, choisis la statistique principale à supposer pour chaque
+              emplacement ci-dessous.
+            </HelpPopover>
             <Switch
               checked={ignoreArtifacts}
               onChange={setIgnoreArtifacts}
@@ -508,11 +532,12 @@ export default function OptimizerSection({ box, runes, optimizer }: Props) {
           <p className="label">Conditions</p>
           <div className="flex items-center gap-1.5">
             <span className="text-[12px] font-semibold text-ink-dim">Stats de base exclues</span>
-            <span
-              title="PV/ATQ/DEF/VIT : activé, la valeur est ce que l'équipement (runes ET artéfacts comptés) doit apporter au-dessus de la base du monstre. Désactivé, elle porte sur le total. Taux Crit/Dgts Crit/RES/Précision restent toujours en total, quel que soit ce réglage — ils partent de la valeur d'éveil du monstre."
-            >
-              <HelpCircle size={13} className="text-ink-dim" />
-            </span>
+            <HelpPopover title="Stats de base exclues">
+              <b className="text-ink">PV/ATQ/DEF/VIT</b> : activé, la valeur est ce que l'équipement (runes ET
+              artéfacts comptés) doit apporter <b className="text-ink">au-dessus de la base</b> du monstre. Désactivé,
+              elle porte sur le total. <b className="text-ink">Taux Crit/Dgts Crit/RES/Précision</b> restent toujours
+              en total, quel que soit ce réglage — ils partent de la valeur d'éveil du monstre.
+            </HelpPopover>
             <Switch
               checked={excludeBase}
               onChange={setExcludeBase}
@@ -673,24 +698,40 @@ export default function OptimizerSection({ box, runes, optimizer }: Props) {
         </p>
       )}
 
-      <div className="flex flex-wrap items-center gap-2">
-        <button
-          type="button"
-          onClick={() => setExploreAll((v) => !v)}
-          aria-pressed={exploreAll}
-          title={
-            exploreAll
-              ? "Revenir aux combinaisons réellement montables sans dérunir un autre monstre"
-              : "Inclure aussi les runes déjà portées par d'autres monstres de la box"
-          }
-          className={`flex items-center gap-1.5 rounded-lg border px-3.5 py-2 text-[13px] font-semibold transition ${
-            exploreAll
-              ? 'border-accent bg-panel2 text-ink shadow'
-              : 'border-border bg-panel text-ink-dim hoverable:text-ink hoverable:border-accent'
-          }`}
-        >
-          <Boxes size={15} /> Utiliser tout l'inventaire
-        </button>
+      <div className="flex flex-wrap items-center gap-3">
+        <div className="flex items-center gap-1.5">
+          <Boxes size={15} className="text-ink-dim" />
+          <span className="text-[12.5px] font-semibold text-ink-dim">Utiliser tout l'inventaire</span>
+          <HelpPopover title="Utiliser tout l'inventaire">
+            Par défaut, la recherche ne considère que les runes réellement disponibles pour ce monstre —{' '}
+            <b className="text-ink">celles qu'aucun autre monstre de la box ne porte déjà</b> (un build réellement
+            montable sans dérunir quelqu'un). Active ce réglage pour explorer tout l'inventaire, runes déjà portées
+            ailleurs comprises.
+          </HelpPopover>
+          <Switch checked={exploreAll} onChange={setExploreAll} label="Utiliser tout l'inventaire" />
+        </div>
+
+        {/* Toggle, pas un bouton qui lance sa propre recherche : désactivé
+            par défaut, jamais suggéré (voir spec/outils/optimizer.md — pas
+            d'indicateur tant qu'aucun seuil de déclenchement fiable n'est
+            calibré), lu par `handleSearch` au moment du clic sur
+            « Rechercher » ci-dessous. */}
+        <div className="flex items-center gap-1.5">
+          <Target size={15} className="text-ink-dim" />
+          <span className="text-[12.5px] font-semibold text-ink-dim">Prioriser les stats les plus difficiles</span>
+          <HelpPopover title="Prioriser les stats les plus difficiles">
+            Par défaut, le budget de recherche est réparti également entre toutes les stats demandées en même temps.
+            Une stat rare (peu de runes candidates en apportent beaucoup) peut alors être étouffée par une stat plus
+            commune. Ce réglage réalloue davantage de budget vers{' '}
+            <b className="text-ink">les stats les plus difficiles à combiner</b> — peut retrouver un build qu'une
+            recherche normale rate, au prix d'une recherche plus longue.
+          </HelpPopover>
+          <Switch
+            checked={adaptiveTrancheWeighting}
+            onChange={setAdaptiveTrancheWeighting}
+            label="Prioriser les stats les plus difficiles"
+          />
+        </div>
 
         {/* ⚠️ `comboSets.length === 0` reste HORS de `disabled` — un bouton
             HTML natif `disabled` ne déclenche JAMAIS `onClick` (règle du
@@ -806,17 +847,28 @@ export default function OptimizerSection({ box, runes, optimizer }: Props) {
         <p className="text-[12.5px] text-bad">La recherche a échoué. Réessaie avec des critères moins stricts.</p>
       )}
 
-      {result && (
+      {/* ⚠️ S'affiche AUSSI pendant la phase d'appariement, dès qu'au moins
+          un candidat est trouvé (`sortedCandidates` vient alors de l'aperçu
+          EN DIRECT de `progress`, pas de `result` — voir `candidatesSource`
+          ci-dessus) : voir des builds apparaître au fur et à mesure plutôt
+          que d'attendre l'épuisement complet de l'espace de recherche.
+          `result === null` tant que rien n'est trouvé : rien à montrer de
+          plus utile que les barres de progression déjà affichées. */}
+      {(result || sortedCandidates.length > 0) && (
         <div>
           <div className="flex items-center justify-between mb-2 flex-wrap gap-2">
             <p className="label">
-              {result.candidates.length === 0
-                ? 'Aucune combinaison ne répond à ces critères'
-                : `${result.candidates.length} combinaison(s) trouvée(s)${
-                    result.candidates.length > 20 ? ' · 20 affichées' : ''
-                  }`}
+              {result
+                ? result.candidates.length === 0
+                  ? 'Aucune combinaison ne répond à ces critères'
+                  : `${result.candidates.length} combinaison(s) trouvée(s)${
+                      result.candidates.length > 20 ? ' · 20 affichées' : ''
+                    }`
+                : `${(progress?.phase === 'pairing' ? progress.found : sortedCandidates.length).toLocaleString(
+                    'fr-FR'
+                  )} combinaison(s) trouvée(s) pour l'instant — recherche en cours…`}
             </p>
-            {result.candidates.length > 0 && (
+            {(result ? result.candidates.length > 0 : true) && (
               <select
                 value={sortBy}
                 onChange={(e) => setSortBy(e.target.value as OptimizerSortKey)}
@@ -848,7 +900,7 @@ export default function OptimizerSection({ box, runes, optimizer }: Props) {
               l'est individuellement (message neutre — le blocage vient de
               leur combinaison ou de la recherche elle-même, pas d'une seule
               stat identifiable). */}
-          {result.candidates.length === 0 && feasibilityDiagnosis.length > 0 && (
+          {result?.candidates.length === 0 && feasibilityDiagnosis.length > 0 && (
             <div className="mb-3 rounded-lg border border-border bg-panel p-3">
               {impossibleFeasibility.length > 0 ? (
                 <>
@@ -888,7 +940,7 @@ export default function OptimizerSection({ box, runes, optimizer }: Props) {
               palier 1 ci-dessus), désactivé par défaut (coûte plus cher).
               Deux affichages selon l'état de la bascule : le classement s'il
               est activé, une invitation discrète sinon. */}
-          {result.candidates.length === 0 &&
+          {result?.candidates.length === 0 &&
             (blockingDiagnosis && blockingDiagnosis.impacts.length > 0 ? (
               <div className="mb-3 rounded-lg border border-border bg-panel p-3">
                 <p className="mb-1.5 text-[12px] font-semibold text-ink">
@@ -921,7 +973,7 @@ export default function OptimizerSection({ box, runes, optimizer }: Props) {
               )
             ))}
 
-          {result.truncated && (
+          {result?.truncated && (
             <p className="mb-2 text-[11.5px] text-warn">
               {stoppedManually
                 ? `Recherche arrêtée après examen de ${result.explored.toLocaleString('fr-FR')} combinaisons — voici le meilleur trouvé jusque-là.`

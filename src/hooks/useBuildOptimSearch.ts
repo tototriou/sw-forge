@@ -1,6 +1,15 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { SearchParams, SearchResult } from '../lib/runeBuildOptim';
+import { BuildCandidate, SearchParams, SearchResult } from '../lib/runeBuildOptim';
 import { WorkerResponse } from '../workers/runeBuildOptim.worker';
+
+// Plafond de sécurité sur la liste APERÇU accumulée pendant une recherche en
+// cours — pas `maxCollected` (100 000 par défaut, voir MAX_COLLECTED dans
+// runeBuildOptim.ts) : l'aperçu n'affiche jamais plus de 20 cartes triées
+// (voir OptimizerSection.tsx), aucune raison de trier un tableau bien plus
+// gros que ça à chaque point de passage pendant une recherche lâche. Le
+// résultat FINAL (`result.candidates`, une fois la recherche terminée),
+// lui, n'est jamais tronqué par cette limite — seul l'aperçu EN DIRECT l'est.
+const PREVIEW_CANDIDATES_CAP = 3000;
 
 export type BuildOptimStatus = 'idle' | 'running' | 'done' | 'error';
 
@@ -41,7 +50,21 @@ export type BuildOptimProgress =
   // affichée juste en dessous. `nodeBudgetMax` reste transmis (utile pour
   // du débogage/une évolution future), simplement plus affiché tel quel
   // dans cette ligne.
-  | { phase: 'pairing'; explored: number; found: number; pct: number; nodeBudgetMax: number; totalPairs: number };
+  | {
+      phase: 'pairing';
+      explored: number;
+      found: number;
+      pct: number;
+      nodeBudgetMax: number;
+      totalPairs: number;
+      // Aperçu EN DIRECT, accumulé message après message à partir des
+      // deltas envoyés par le Worker (voir `WorkerPairingMessage.
+      // newCandidates`) — plafonné à `PREVIEW_CANDIDATES_CAP`, PAS égal à
+      // `found` au-delà de ce plafond (voir son commentaire). Permet
+      // d'afficher des cartes de résultat PENDANT la recherche, sans
+      // attendre `result` (voir OptimizerSection.tsx).
+      candidates: BuildCandidate[];
+    };
 
 // Cycle de vie du Worker de recherche de builds.
 //
@@ -110,13 +133,21 @@ export function useBuildOptimSearch() {
               return { phase: 'building', halves: { ...halves, [data.half]: { scanned: data.scanned, total: data.total, pct: data.pct } } };
             });
           } else {
-            setProgress({
-              phase: 'pairing',
-              explored: data.explored,
-              found: data.found,
-              pct: data.pct,
-              nodeBudgetMax: data.nodeBudgetMax,
-              totalPairs: data.totalPairs,
+            setProgress((prev) => {
+              const prevCandidates = prev && prev.phase === 'pairing' ? prev.candidates : [];
+              const candidates =
+                prevCandidates.length >= PREVIEW_CANDIDATES_CAP
+                  ? prevCandidates
+                  : prevCandidates.concat(data.newCandidates).slice(0, PREVIEW_CANDIDATES_CAP);
+              return {
+                phase: 'pairing',
+                explored: data.explored,
+                found: data.found,
+                pct: data.pct,
+                nodeBudgetMax: data.nodeBudgetMax,
+                totalPairs: data.totalPairs,
+                candidates,
+              };
             });
           }
           return;

@@ -138,6 +138,11 @@ export const RELEASES: Release[] = [
       {
         kind: 'fix',
         scope: 'Interface',
+        text: 'Tous les leads s’affichent en couleur, aucun n’est plus grisé.',
+      },
+      {
+        kind: 'fix',
+        scope: 'Interface',
         text: 'Une croix ferme les fiches qu’on consulte.',
       },
       {

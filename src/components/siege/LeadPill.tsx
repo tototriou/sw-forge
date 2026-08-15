@@ -74,7 +74,6 @@ function leadTitle(ls: LeaderSkill): string {
 export function LeadBadge({ ls, size = 22 }: { ls: LeaderSkill; size?: number }) {
   const icon = leadIconUrl(ls);
   if (!icon) return null;
-  const actif = leadIsActive(ls);
   return (
     <span
       className="absolute -bottom-1.5 -left-1.5 inline-flex items-center"
@@ -89,9 +88,7 @@ export function LeadBadge({ ls, size = 22 }: { ls: LeaderSkill; size?: number })
         // Icône NUE, carrée, comme dans le jeu : ni pastille ronde, ni fond, ni
         // anneau — le jeu ne l'encadre pas. Seule l'ombre portée reste, pour
         // qu'elle se détache du portrait.
-        className={`flex-none drop-shadow-[0_1px_3px_rgba(0,0,0,0.9)] ${
-          actif ? '' : 'opacity-70 grayscale'
-        }`}
+        className="flex-none drop-shadow-[0_1px_3px_rgba(0,0,0,0.9)]"
       />
       {/* Lead ÉLÉMENTAIRE : l'icône du jeu ne dit pas QUEL élément, alors qu'il
           décide qui en profite. Sans elle, un lead eau et un lead feu sont
@@ -100,9 +97,7 @@ export function LeadBadge({ ls, size = 22 }: { ls: LeaderSkill; size?: number })
         <ElementIcon
           element={ls.element}
           size={Math.max(10, Math.round(size * 0.55))}
-          className={`-ml-1 flex-none drop-shadow-[0_1px_3px_rgba(0,0,0,0.9)] ${
-            actif ? '' : 'opacity-70 grayscale'
-          }`}
+          className="-ml-1 flex-none drop-shadow-[0_1px_3px_rgba(0,0,0,0.9)]"
         />
       )}
     </span>
@@ -111,8 +106,14 @@ export function LeadBadge({ ls, size = 22 }: { ls: LeaderSkill; size?: number })
 
 // Pastille de lead du leader (slot 0) : l'icône officielle du jeu (elle encode
 // déjà la stat ET la portée) + le montant. L'icône d'élément complète la portée
-// élémentaire, que l'icône du jeu ne distingue pas. Mise en avant (doré)
-// seulement si le lead compte vraiment en siège ; sinon neutre.
+// élémentaire, que l'icône du jeu ne distingue pas.
+//
+// ⚠️ **TOUS les leads sont en couleur, aucun n'est grisé.** Un lead arène ou
+// donjon était rendu terne et désaturé parce qu'il ne compte pas en siège — mais
+// le grisé se lit comme « inactif », voire « cassé », alors que le monstre a bel
+// et bien ce lead. La nuance ne tient qu'à un contenu de jeu, pas au monstre :
+// elle reste dans l'INFOBULLE (« sans effet en siège »), qui peut la formuler,
+// là où une couleur ne fait que dévaloriser.
 export default function LeadPill({
   ls,
   size = 'sm',
@@ -130,7 +131,6 @@ export default function LeadPill({
   // rien. Alignée sur les stats, la colonne redevient un bloc.
   pleineLargeur?: boolean;
 }) {
-  const active = leadIsActive(ls);
   const scope = ls.area === 'Arena' ? ' (arène)' : ls.area === 'Dungeon' ? ' (donjon)' : '';
   const icon = leadIconUrl(ls);
   const lg = size === 'lg';
@@ -141,7 +141,7 @@ export default function LeadPill({
       className={`items-center gap-1 font-bold leading-none
         ${pleineLargeur ? 'flex w-full justify-center' : 'inline-flex'}
         ${lg ? 'rounded-xl py-1.5 pl-1.5 pr-3 text-[15px]' : 'rounded-full py-0.5 pl-0.5 pr-2 text-[12px]'}
-        ${active ? 'bg-star/15 text-star' : 'bg-panel border border-border text-ink-dim'}`}
+        bg-star/15 text-star`}
     >
       {icon && (
         <img
@@ -149,7 +149,7 @@ export default function LeadPill({
           alt=""
           width={lg ? 32 : 22}
           height={lg ? 32 : 22}
-          className={`flex-none ${active ? '' : 'opacity-60 grayscale'}`}
+          className="flex-none"
           aria-hidden
         />
       )}

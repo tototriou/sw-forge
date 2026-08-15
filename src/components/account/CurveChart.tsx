@@ -361,9 +361,12 @@ export default function CurveChart({
             );
           })()}
 
-        {/* Repère du point CHOISI — trait plein, là où le survol est tireté :
-            il survit au départ du pointeur, et dit d'où sort le détail lu en
-            dessous. */}
+        {/* Repère du point CHOISI. ⚠️ TIRETÉ comme celui du survol, et non
+            plein : c'est le même geste de visée, seulement figé — un trait plein
+            se lisait comme un autre objet, une graduation du graphe. Il est
+            simplement plus marqué (2 px, tirets plus longs), et il SURVIT au
+            départ du pointeur : c'est lui qui dit d'où sort le détail lu en
+            dessous, une fois la souris partie vers les flèches. */}
         {choisi && runesChoisies.length > 0 && (
           <g pointerEvents="none">
             <line
@@ -372,19 +375,24 @@ export default function CurveChart({
               x2={x(choisi.rang)}
               y2={PAD_T + IH}
               stroke="var(--accent)"
-              strokeWidth="1.5"
+              strokeWidth="2"
+              strokeDasharray="5 3"
             />
             {/* Un point par courbe ouvrable : ils marquent toutes les runes lues
-                en dessous, et non une seule. */}
+                en dessous, et non une seule.
+                ⚠️ À peine plus gros que celui du survol (3.2) : ces points se
+                posent SUR la courbe, un disque trop large la masque et se lit
+                comme une donnée en soi. L'anneau d'accent suffit à les
+                distinguer. */}
             {runesChoisies.map(({ serie, val }) => (
               <circle
                 key={serie.name}
                 cx={x(choisi.rang)}
                 cy={y(val)}
-                r="4.5"
+                r="3.6"
                 fill={serie.color}
                 stroke="var(--accent)"
-                strokeWidth="1.5"
+                strokeWidth="1.2"
               />
             ))}
           </g>

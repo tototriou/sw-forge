@@ -282,6 +282,7 @@ function MonsterBoxSection({ box, allMonsters = [] }: { box: BoxItem[]; allMonst
         <MonsterDetailDialog
           monster={fiche}
           autre={autreForme(fiche, allMonsters)}
+          jumeau={jumeauDeCollab(fiche, allMonsters)}
           onClose={() => setFiche(null)}
         />
       )}

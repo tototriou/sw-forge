@@ -3,6 +3,7 @@ import { motion } from 'framer-motion';
 import { Monster } from '../types';
 import ElementIcon from './ElementIcon';
 import { libelleCollab } from '../lib/collabPairs';
+import CollabPortrait from './CollabPortrait';
 
 const BORDER: Record<string, string> = {
   fire: 'hoverable:border-fire hoverable:shadow-lg hoverable:shadow-fire-glow/40',
@@ -103,7 +104,11 @@ export default function MonsterCard({
       }
       role={onOpen ? 'button' : undefined}
       tabIndex={onOpen ? 0 : undefined}
-      title={onOpen ? `Voir la fiche de ${monster.name}` : undefined}
+      title={
+        onOpen
+          ? `Voir la fiche de ${jumeau ? libelleCollab(monster.name, jumeau.name) : monster.name}`
+          : undefined
+      }
       // ⚠️ Gabarit repris de la BOX du compte : portrait 64 px, `rounded-xl`,
       // padding resserré. C'est la carte la plus dense des deux, et c'est la
       // bonne référence — on parcourt des centaines de monstres, chaque pixel
@@ -118,47 +123,11 @@ export default function MonsterCard({
           <div className="hex-frame relative w-full h-full bg-panel2 flex items-center justify-center overflow-hidden">
             {showImage ? (
               <>
-                {/* ⚠️ `object-position` décalé quand la carte est PARTAGÉE :
-                    les portraits SW cadrent le visage au centre, et n'en garder
-                    que la moitié gauche le couperait en deux. En tirant le
-                    cadrage vers l'extérieur, chaque moitié montre son visage. */}
-                <img
-                  src={monster.image!}
-                  alt={monster.name}
-                  loading="lazy"
+                <CollabPortrait
+                  monster={monster}
+                  jumeau={jumeau}
                   onError={() => setImgFailed(true)}
-                  className="w-full h-full object-cover"
-                  style={jumeau?.image ? { objectPosition: '30% center' } : undefined}
                 />
-                {/* ⚠️ Portrait de COLLABORATION : les deux visages sur un seul
-                    portrait, séparés VERTICALEMENT — le monstre d'origine à
-                    gauche, son jumeau à droite. Ils sont le même monstre :
-                    deux cartes côte à côte laisseraient croire à deux
-                    recrutements possibles, alors qu'il n'y en a qu'un.
-                    La seconde image est POSÉE PAR-DESSUS et découpée
-                    (`clip-path`), plutôt que deux moitiés accolées : chaque
-                    portrait garde ainsi son cadrage d'origine, là où deux
-                    moitiés de 32 px écraseraient les visages. */}
-                {jumeau?.image && (
-                  <>
-                    <img
-                      src={jumeau.image}
-                      alt={jumeau.name}
-                      loading="lazy"
-                      className="absolute inset-0 w-full h-full object-cover"
-                      style={{
-                        clipPath: 'polygon(50% 0, 100% 0, 100% 100%, 50% 100%)',
-                        objectPosition: '70% center',
-                      }}
-                    />
-                    {/* Trait de séparation : sans lui, deux portraits sombres se
-                        fondent l'un dans l'autre et la coupe ne se lit plus. */}
-                    <span
-                      aria-hidden
-                      className="absolute inset-y-0 left-1/2 w-px -translate-x-1/2 bg-white/50"
-                    />
-                  </>
-                )}
               </>
             ) : (
               <span className={`font-display font-bold text-lg ${TEXT[monster.element]}`}>

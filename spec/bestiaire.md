@@ -109,6 +109,20 @@ d'une **virgule** (« Satoru Gojo, Werner »).
   irrésolu, et l'image le tranche exactement.
 - ⚠️ **Un groupe de trois n'apparie rien** : la signature ne suffit alors pas à
   distinguer, et on préfère ne rien affirmer plutôt qu'apparier au hasard.
+- ⚠️ **La FICHE porte les deux identités elle aussi** : même portrait partagé,
+  mêmes deux noms en titre. On vient de cliquer cette carte — la fiche qui
+  s'ouvre doit montrer la même chose, sans quoi on croirait s'être trompé.
+  - Le portrait est **un seul composant**
+    ([CollabPortrait.tsx](src/components/CollabPortrait.tsx)), partagé par la
+    carte et la fiche : un `clip-path` recopié aurait divergé au premier
+    ajustement, comme les deux cartes avant `MonsterCard`.
+  - ⚠️ **Rien à SÉLECTIONNER**, contrairement à un transformable : les deux
+    formes de celui-ci ont des compétences différentes, d'où un sélecteur ; une
+    paire de collab est le **même monstre**, donc le reste de la fiche vaut pour
+    les deux.
+  - ⚠️ Sur une **forme transformée**, les deux noms disparaissent : le jumeau ne
+    vaut que pour le monstre reçu, et l'en-tête annoncerait sinon une paire qui
+    n'existe pas.
 - ⚠️ La seconde image est **posée par-dessus et découpée** (`clip-path`), et non
   accolée en deux moitiés : chaque portrait garde son cadrage d'origine, là où
   deux moitiés de 32 px écraseraient les visages. Leur `object-position` est

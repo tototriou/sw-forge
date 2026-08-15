@@ -5,6 +5,8 @@ import { Modale } from './Dialogs';
 import ElementIcon from './ElementIcon';
 import Segmented from './Segmented';
 import LeadPill from './siege/LeadPill';
+import CollabPortrait from './CollabPortrait';
+import { libelleCollab } from '../lib/collabPairs';
 import {
   Competence,
   DetailMonstre,
@@ -35,6 +37,7 @@ const AREA_LABEL: Record<string, string> = {
 export default function MonsterDetailDialog({
   monster,
   autre,
+  jumeau,
   onClose,
 }: {
   monster: Monster;
@@ -42,6 +45,15 @@ export default function MonsterDetailDialog({
   // existe. La grille n'en montre qu'une carte — mais les deux formes n'ont pas
   // les mêmes compétences, donc la fiche doit donner accès aux deux.
   autre?: Monster | null;
+  // Équivalent SW d'un monstre de COLLABORATION (Satoru Gojo ↔ Werner).
+  //
+  // ⚠️ À ne pas confondre avec `autre` juste au-dessus : les deux formes d'un
+  // transformable ont des compétences DIFFÉRENTES, d'où un sélecteur pour
+  // passer de l'une à l'autre. Une paire de collab, elle, est le MÊME monstre —
+  // mêmes stats, mêmes compétences — donc rien à sélectionner : les deux
+  // identités cohabitent dans l'en-tête, et le reste de la fiche vaut pour les
+  // deux.
+  jumeau?: Monster | null;
   onClose: () => void;
 }) {
   // Forme affichée. ⚠️ On mémorise le MONSTRE et non un index : les deux formes
@@ -74,6 +86,11 @@ export default function MonsterDetailDialog({
   const formes = autre ? [monster, autre] : [];
   const s = forme.stats;
 
+  // ⚠️ Le jumeau ne vaut que pour le monstre REÇU, pas pour sa forme
+  // transformée : basculer de forme changerait de monstre sans changer de
+  // jumeau, et l'en-tête annoncerait une paire qui n'existe pas.
+  const jumeauAffiche = forme === monster ? jumeau : null;
+
   // 820 px : la colonne de gauche en prend 200, il en reste ~600 aux
   // compétences — la largeur qu'elles avaient seules avant la mise en colonnes.
   // Sans cet élargissement, les passer à droite les aurait rétrécies d'un tiers.
@@ -85,17 +102,19 @@ export default function MonsterDetailDialog({
       {/* En-tête : portrait, nom, élément, rareté naturelle. */}
       <div className="mb-3 flex items-start gap-3">
         {forme.image && (
-          <div className="hex-frame h-[64px] w-[64px] flex-none overflow-hidden bg-panel2">
-            <img
-              src={forme.image}
-              alt={forme.name}
-              className="h-full w-full object-cover"
-            />
+          <div className="hex-frame relative h-[64px] w-[64px] flex-none overflow-hidden bg-panel2">
+            {/* ⚠️ Le MÊME portrait partagé que sur la carte (`CollabPortrait`),
+                pas une seconde découpe : on vient de cliquer cette carte, et la
+                fiche qui s'ouvre doit montrer la même chose. */}
+            <CollabPortrait monster={forme} jumeau={jumeauAffiche} />
           </div>
         )}
         <div className="min-w-0 flex-1">
+          {/* Les DEUX noms pour une paire de collaboration, comme sur la carte.
+              ⚠️ Seulement sur la forme de BASE : sur une forme transformée, le
+              jumeau ne correspondrait plus à ce qui est affiché. */}
           <h2 id="fiche-monstre" className="font-display text-[19px] tracking-wide text-ink">
-            {forme.name}
+            {jumeauAffiche ? libelleCollab(forme.name, jumeauAffiche.name) : forme.name}
           </h2>
           <div className="mt-1 flex flex-wrap items-center gap-2 text-[12px] text-ink-dim">
             <span className="inline-flex items-center gap-1">

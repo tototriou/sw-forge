@@ -208,6 +208,7 @@ export default function BestiaryPage({ monsters }: Props) {
         <MonsterDetailDialog
           monster={fiche}
           autre={autreForme(fiche, monsters)}
+          jumeau={jumeauDeCollab(fiche, monsters)}
           onClose={() => setFiche(null)}
         />
       )}

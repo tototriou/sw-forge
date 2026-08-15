@@ -63,7 +63,7 @@ export const RELEASES: Release[] = [
   {
     version: null,
     date: '2026-08-15',
-    title: 'Tes runes se lisent comme dans le jeu',
+    title: 'Tes runes et tes monstres se lisent comme dans le jeu',
     changes: [
       {
         kind: 'feat',
@@ -89,6 +89,46 @@ export const RELEASES: Release[] = [
         kind: 'feat',
         scope: 'Mon compte',
         text: 'Cherche jusqu’à 4 propriétés secondaires à la fois, avec un minimum et un maximum.',
+      },
+      {
+        kind: 'feat',
+        scope: 'Bestiaire',
+        text: 'Clique un monstre pour voir sa fiche : ses stats, son lead et le détail de ses sorts.',
+      },
+      {
+        kind: 'feat',
+        scope: 'Bestiaire',
+        text: 'Les monstres qui se transforment n’ont plus qu’une carte, avec ses deux formes dans la fiche.',
+      },
+      {
+        kind: 'feat',
+        scope: 'Bestiaire',
+        text: 'Le bestiaire s’affiche par pages : plus de ralentissement à la recherche.',
+      },
+      {
+        kind: 'feat',
+        scope: 'RTA',
+        text: 'Un bouton remet tes équipes dans l’état de l’import de compte.',
+      },
+      {
+        kind: 'feat',
+        scope: 'RTA',
+        text: 'Clique une catégorie dans la légende pour l’afficher ou la masquer.',
+      },
+      {
+        kind: 'fix',
+        scope: 'Bestiaire',
+        text: 'Les monstres sont rangés par élément, puis 2A, nat5, nat4, nat3, du plus récent au plus ancien.',
+      },
+      {
+        kind: 'fix',
+        scope: 'Interface',
+        text: 'Les cartes de monstre sont les mêmes au bestiaire et dans ta box.',
+      },
+      {
+        kind: 'fix',
+        scope: 'Interface',
+        text: 'Une croix ferme les fiches qu’on consulte.',
       },
       {
         kind: 'fix',

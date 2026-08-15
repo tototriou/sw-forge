@@ -1,5 +1,5 @@
 import { ReactNode, useEffect, useRef, useState } from 'react';
-import { AlertTriangle, Check, HardDriveDownload, ShieldCheck } from 'lucide-react';
+import { AlertTriangle, Check, HardDriveDownload, ShieldCheck, X } from 'lucide-react';
 import { BOUTON_DESTRUCTIF, BOUTON_PRIMAIRE, BOUTON_SECONDAIRE } from './buttonStyles';
 
 /* --------------------------------------------------------------------------
@@ -28,10 +28,18 @@ export function Modale({
   labelledBy,
   largeur = 'max-w-[400px]',
   padding = 'p-5',
+  croix = false,
   children,
 }: {
   onClose: () => void;
   labelledBy: string;
+  // Croix de fermeture en coin. ⚠️ Réservée aux modales qu'on **consulte**
+  // (fiche d'un monstre, d'une rune) : Échap et le clic à côté ne se voient
+  // pas, et rien d'autre n'y indique par où sortir.
+  // ⚠️ **Pas sur les confirmations** : leur « Annuler » EST la sortie, et une
+  // croix à côté ferait deux portes pour un choix qui n'en a qu'une — on
+  // hésiterait sur ce que ferme la croix.
+  croix?: boolean;
   // Classe de largeur — une boîte de message tient en 400 px, une liste à
   // parcourir se règle au cas par cas.
   largeur?: string;
@@ -132,6 +140,25 @@ export function Modale({
                    border-border bg-panel shadow-glow shadow-black/60 focus:outline-none
                    animate-[dialogue_200ms_var(--ease-out)]`}
       >
+        {/* ⚠️ `sticky` et non `absolute` : la boîte DÉFILE, et une croix
+            absolue disparaîtrait vers le haut dès les premières lignes d'une
+            fiche longue — c'est-à-dire exactement quand on la cherche.
+            Hauteur nulle + décalage négatif : elle se pose dans le padding de
+            la boîte sans pousser le contenu d'une ligne. */}
+        {croix && (
+          <div className="sticky top-0 z-10 flex h-0 justify-end">
+            <button
+              type="button"
+              onClick={onClose}
+              title="Fermer"
+              aria-label="Fermer"
+              className="-mt-1 -mr-1 rounded-lg border border-border bg-panel p-1.5 text-ink-dim
+                         shadow-sm transition-colors hoverable:hover:border-ink-dim hoverable:hover:text-ink"
+            >
+              <X size={16} />
+            </button>
+          </div>
+        )}
         {children}
       </div>
     </div>

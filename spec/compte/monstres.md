@@ -84,6 +84,22 @@ coups, effets appliqués avec leur taux, et ce qu'apporte chaque amélioration.
   avec chacune sa formule, ses effets et ses sept niveaux d'amélioration
   repousseraient la grille de plusieurs écrans — on perdrait le monstre qu'on
   vient de cliquer.
+- ⚠️ **DEUX COLONNES** : ce que le monstre **est** à gauche (**lead**, puis
+  stats), ce qu'il **fait** à droite (compétences). Les deux se lisent ensemble —
+  on juge un coefficient à l'aune de l'ATQ du monstre — et empilés, il fallait
+  faire défiler pour passer de l'un à l'autre.
+  - Le **lead passe en premier** : c'est ce qu'on vient vérifier le plus souvent
+    (« a-t-il un lead VIT ? »), et il tient en une ligne là où les stats en
+    prennent huit.
+  - La colonne de gauche est **fixe (200 px)** : elle ne porte que des nombres
+    courts, la place gagnée revient aux descriptions de compétences. La modale
+    passe à **820 px** pour que celles-ci gardent la largeur qu'elles avaient
+    seules — sans quoi les déplacer à droite les aurait rétrécies d'un tiers.
+  - Sous `sm`, retour à la **pile** : deux colonnes de 100 px ne sont lisibles ni
+    l'une ni l'autre.
+  - ⚠️ `min-w-0` sur la colonne de droite : sans lui, une cellule flex refuse de
+    descendre sous la largeur de son contenu, et une description longue
+    déborderait sur les stats.
 - ⚠️ Les **stats sont EN COLONNE**, une par ligne, et non en grille 2×4 : les
   valeurs s'alignent alors les unes **sous** les autres, ce qui permet de les
   comparer d'un monstre à l'autre et de repérer un ordre de grandeur d'un coup
@@ -92,16 +108,22 @@ coups, effets appliqués avec leur taux, et ce qu'apporte chaque amélioration.
   - Même grammaire que la table de stats du panneau d'équipement : lignes
     séparées d'un filet, libellé terne à gauche, valeur **mono `tabular-nums`**
     alignée à droite, milliers séparés (« 10 050 »).
-- Le **lead** porte l'**icône officielle du jeu**
-  ([LeadPill.tsx](src/components/siege/LeadPill.tsx), `leadIconUrl`) — c'est à
-  elle qu'un joueur reconnaît un lead VIT d'un lead ATQ, et elle encode déjà la
-  stat **et** la portée. Même image et **même table de libellés** qu'en siège :
-  deux copies auraient divergé.
-  - ⚠️ **Aucun grisé ici**, contrairement au siège : cette fiche **décrit** le
-    monstre, elle ne juge pas si son lead sert dans un contenu donné.
-  - La portée « General » n'est **pas affichée** : c'est le cas courant, et la
-    dire ferait passer les autres pour la norme. Un lead **élémentaire** ajoute
-    l'icône de son élément — celle du jeu ne dit pas lequel.
+- Le **lead** est la **pastille des decks**, sans rien de plus
+  ([LeadPill.tsx](src/components/siege/LeadPill.tsx)) : l'icône officielle du
+  jeu, le montant, et c'est tout.
+  - ⚠️ **Aucun texte.** La fiche a d'abord épelé la stat et la portée
+    (« +33 % Attack Speed · Arène ») ; c'est l'icône du jeu qui **encode déjà
+    les deux**, et c'est à elle qu'un joueur reconnaît un lead VIT d'un lead
+    ATQ. Les mots n'apprenaient rien à qui lit l'icône et prenaient deux lignes
+    là où une suffit. Le détail reste dans l'**infobulle**.
+  - ⚠️ **Le même composant qu'en siège**, pas un rendu jumeau : deux pastilles
+    de lead auraient divergé. Ce qui diffère est devenu des **options** —
+    `size="lg"` (icône 32 px) et `pleineLargeur`.
+  - **Agrandie et alignée sur la largeur des stats** qu'elle surmonte : à taille
+    de siège elle flottait, minuscule, au-dessus d'un bloc. En siège elle reste
+    petite — il y en a une par équipe, à côté des portraits.
+  - Un lead **élémentaire** ajoute l'icône de son élément — celle du jeu ne dit
+    pas lequel.
 - ⚠️ **Le COEFFICIENT passe avant la description** : c'est la donnée qu'on vient
   chercher, celle qui décide d'un build. La description la raconte en mots.
 - Les formules sont **traduites** pour leurs noms de stats (`3.6*{ATK}` →

@@ -407,6 +407,28 @@ prioritaire.
 champ de saisie), et seulement dans une boîte **qui tient à l'écran sans
 défiler**.
 
+### Croix de fermeture — sur ce qu'on consulte, pas sur ce qu'on décide
+
+Une modale se ferme par **Échap** et par le **clic à côté**. Ni l'un ni l'autre
+ne se **voit** : sur une boîte qui ne fait que montrer quelque chose, rien
+n'indique par où sortir, et on cherche.
+
+`Modale` porte donc une **croix optionnelle** (`croix`), posée en coin :
+
+- ⚠️ **Sur les modales de CONSULTATION** — la fiche d'un monstre, d'une rune.
+  Elles ne demandent rien, donc elles n'ont aucun bouton, donc aucune sortie
+  visible.
+- ⚠️ **Pas sur les CONFIRMATIONS ni les boîtes de choix** : leur « Annuler »
+  **est** la sortie. Une croix à côté ferait deux portes pour une décision qui
+  n'en a qu'une, et on hésiterait sur ce qu'elle ferme — abandon, ou simple
+  fermeture ?
+- ⚠️ **`sticky`, jamais `absolute`** : la boîte **défile**, et une croix absolue
+  part vers le haut dès les premières lignes d'une fiche longue — c'est-à-dire
+  exactement au moment où on la cherche. Hauteur nulle (`h-0`) et décalages
+  négatifs : elle se pose dans le padding sans pousser le contenu d'une ligne.
+- Elle vit **dans la coquille**, pas dans chaque fiche : posée au cas par cas,
+  elle aurait fini à trois endroits différents selon la modale.
+
 ### Focus — une règle globale, pas 24 exceptions
 
 ```css

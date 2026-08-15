@@ -113,30 +113,49 @@ export function LeadBadge({ ls, size = 22 }: { ls: LeaderSkill; size?: number })
 // déjà la stat ET la portée) + le montant. L'icône d'élément complète la portée
 // élémentaire, que l'icône du jeu ne distingue pas. Mise en avant (doré)
 // seulement si le lead compte vraiment en siège ; sinon neutre.
-export default function LeadPill({ ls }: { ls: LeaderSkill }) {
+export default function LeadPill({
+  ls,
+  size = 'sm',
+  pleineLargeur = false,
+}: {
+  ls: LeaderSkill;
+  // `lg` : version agrandie pour la FICHE d'un monstre, où le lead n'est plus un
+  // détail au milieu d'une équipe mais l'une des deux ou trois choses qu'on vient
+  // y lire. En siège il reste petit — il y en a un par équipe, à côté des
+  // portraits, et le grossir déséquilibrerait la ligne.
+  size?: 'sm' | 'lg';
+  // Occupe toute la largeur du conteneur au lieu de se réduire à son contenu.
+  // ⚠️ Sur la fiche, la pastille surmonte la table des stats : à largeur libre
+  // elle laissait un bord flottant au milieu de la colonne, sans alignement avec
+  // rien. Alignée sur les stats, la colonne redevient un bloc.
+  pleineLargeur?: boolean;
+}) {
   const active = leadIsActive(ls);
   const scope = ls.area === 'Arena' ? ' (arène)' : ls.area === 'Dungeon' ? ' (donjon)' : '';
   const icon = leadIconUrl(ls);
+  const lg = size === 'lg';
 
   return (
     <span
       title={leadTitle(ls)}
-      className={`inline-flex items-center gap-1 rounded-full py-0.5 pl-0.5 pr-2 text-[12px] font-bold leading-none
+      className={`items-center gap-1 font-bold leading-none
+        ${pleineLargeur ? 'flex w-full justify-center' : 'inline-flex'}
+        ${lg ? 'rounded-xl py-1.5 pl-1.5 pr-3 text-[15px]' : 'rounded-full py-0.5 pl-0.5 pr-2 text-[12px]'}
         ${active ? 'bg-star/15 text-star' : 'bg-panel border border-border text-ink-dim'}`}
     >
       {icon && (
         <img
           src={icon}
           alt=""
-          width={22}
-          height={22}
+          width={lg ? 32 : 22}
+          height={lg ? 32 : 22}
           className={`flex-none ${active ? '' : 'opacity-60 grayscale'}`}
           aria-hidden
         />
       )}
       +{ls.amount}%
       {ls.area === 'Element' && ls.element && (
-        <ElementIcon element={ls.element} size={14} className="flex-none" />
+        <ElementIcon element={ls.element} size={lg ? 18 : 14} className="flex-none" />
       )}
       {scope}
     </span>

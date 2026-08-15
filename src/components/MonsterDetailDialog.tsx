@@ -4,7 +4,7 @@ import { Monster } from '../types';
 import { Modale } from './Dialogs';
 import ElementIcon from './ElementIcon';
 import Segmented from './Segmented';
-import { STAT_LABEL, leadIconUrl } from './siege/LeadPill';
+import LeadPill from './siege/LeadPill';
 import {
   Competence,
   DetailMonstre,
@@ -73,8 +73,14 @@ export default function MonsterDetailDialog({
   const formes = autre ? [monster, autre] : [];
   const s = forme.stats;
 
+  // 820 px : la colonne de gauche en prend 200, il en reste ~600 aux
+  // compétences — la largeur qu'elles avaient seules avant la mise en colonnes.
+  // Sans cet élargissement, les passer à droite les aurait rétrécies d'un tiers.
+  //
+  // ⚠️ `croix` : cette fiche se CONSULTE, elle ne demande rien. Aucun bouton
+  // n'y dit par où sortir, et Échap comme le clic à côté sont invisibles.
   return (
-    <Modale onClose={onClose} labelledBy="fiche-monstre" largeur="max-w-[720px]">
+    <Modale onClose={onClose} labelledBy="fiche-monstre" largeur="max-w-[820px]" croix>
       {/* En-tête : portrait, nom, élément, rareté naturelle. */}
       <div className="mb-3 flex items-start gap-3">
         {forme.image && (
@@ -136,77 +142,64 @@ export default function MonsterDetailDialog({
         </div>
       )}
 
-      {/* Stats du monstre 6★ nu — les mêmes que celles qui servent aux calculs
-          de l'app (voir spec/shared/donnees-monstres.md).
-          ⚠️ **UNE colonne, une stat par ligne**, et non une grille 2×4 : les
-          valeurs s'alignent alors les unes SOUS les autres, ce qui permet de les
-          comparer d'un monstre à l'autre et de repérer un ordre de grandeur d'un
-          coup d'œil. En grille, « 10 050 » et « 107 » se retrouvaient dans des
-          colonnes différentes et l'œil devait sauter.
-          Même grammaire que la table de stats du panneau d'équipement : lignes
-          séparées, libellé terne à gauche, valeur mono alignée à droite. */}
-      <div className="mb-3 rounded-lg border border-border bg-panel2 px-2.5 py-1.5">
-        <Stat label="PV" valeur={s.hp} />
-        <Stat label="ATQ" valeur={s.attack} />
-        <Stat label="DEF" valeur={s.defense} />
-        <Stat label="VIT" valeur={s.speed} />
-        <Stat label="Taux crit." valeur={s.critRate} suffixe="%" />
-        <Stat label="Dmg crit." valeur={s.critDamage} suffixe="%" />
-        <Stat label="RES" valeur={s.resistance} suffixe="%" />
-        <Stat label="Précision" valeur={s.accuracy} suffixe="%" dernier />
-      </div>
-
-      {/* Compétence de leader — ce que le monstre apporte à l'équipe.
-          ⚠️ L'ICÔNE OFFICIELLE du jeu (`leadIconUrl`), pas le nom anglais de la
-          stat : c'est à elle qu'un joueur reconnaît un lead VIT d'un lead ATQ,
-          et elle encode déjà la stat ET la portée. Même image et même table de
-          libellés qu'en siège — deux copies auraient divergé.
-          ⚠️ Aucun grisé ici, contrairement au siège : cette fiche décrit le
-          monstre, elle ne juge pas si son lead sert dans un contenu donné. */}
-      {forme.leaderSkill && (
-        <div className="mb-3 flex items-center gap-2 rounded-lg border border-accent/40 bg-accent-soft px-2.5 py-2">
-          {leadIconUrl(forme.leaderSkill) && (
-            <img
-              src={leadIconUrl(forme.leaderSkill)!}
-              alt=""
-              width={26}
-              height={26}
-              aria-hidden
-              className="flex-none"
-            />
+      {/* ⚠️ DEUX COLONNES : ce que le monstre EST à gauche (stats, lead), ce
+          qu'il FAIT à droite (compétences). Les deux se lisent ensemble — on
+          juge un coefficient à l'aune de l'ATQ du monstre — et empilés, il
+          fallait faire défiler pour passer de l'un à l'autre.
+          La colonne de gauche est FIXE (200 px) : elle ne porte que des nombres
+          courts, la place gagnée revient aux descriptions de compétences.
+          Sous `sm`, on repasse en pile — deux colonnes de 100 px ne sont
+          lisibles ni l'une ni l'autre. */}
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-start">
+        <div className="flex flex-col gap-3 sm:w-[200px] sm:flex-none">
+          {/* ⚠️ La MÊME pastille que dans les decks (`LeadPill`) : l'icône du
+              jeu, le montant, et rien d'autre. Elle encode déjà la stat ET la
+              portée — les réécrire en toutes lettres (« Attack Speed · Arène »)
+              n'apprenait rien à qui reconnaît l'icône, et faisait deux lignes
+              là où une suffit. Le détail reste dans l'infobulle.
+              Agrandie et alignée sur la LARGEUR des stats qu'elle surmonte : à
+              taille de siège elle flottait, minuscule, au-dessus d'un bloc. */}
+          {forme.leaderSkill && (
+            <LeadPill ls={forme.leaderSkill} size="lg" pleineLargeur />
           )}
-          <div className="min-w-0">
-            <span className="label">Leader</span>
-            <p className="mt-0.5 text-[12px] text-ink">
-              +{forme.leaderSkill.amount} %{' '}
-              {STAT_LABEL[forme.leaderSkill.stat ?? ''] ?? forme.leaderSkill.stat}
-              {/* Portée : « General » n'est pas dit — c'est le cas courant, et
-                  le préciser ferait passer les autres pour la norme. */}
-              {forme.leaderSkill.area && forme.leaderSkill.area !== 'General' && (
-                <span className="text-ink-dim"> · {AREA_LABEL[forme.leaderSkill.area] ?? forme.leaderSkill.area}</span>
-              )}
-            </p>
+          {/* Stats du monstre 6★ nu — les mêmes que celles qui servent aux calculs
+              de l'app (voir spec/shared/donnees-monstres.md).
+              ⚠️ **UNE colonne, une stat par ligne**, et non une grille 2×4 : les
+              valeurs s'alignent alors les unes SOUS les autres, ce qui permet de les
+              comparer d'un monstre à l'autre et de repérer un ordre de grandeur d'un
+              coup d'œil. En grille, « 10 050 » et « 107 » se retrouvaient dans des
+              colonnes différentes et l'œil devait sauter.
+              Même grammaire que la table de stats du panneau d'équipement : lignes
+              séparées, libellé terne à gauche, valeur mono alignée à droite. */}
+          <div className="rounded-lg border border-border bg-panel2 px-2.5 py-1.5">
+            <Stat label="PV" valeur={s.hp} />
+            <Stat label="ATQ" valeur={s.attack} />
+            <Stat label="DEF" valeur={s.defense} />
+            <Stat label="VIT" valeur={s.speed} />
+            <Stat label="Taux crit." valeur={s.critRate} suffixe="%" />
+            <Stat label="Dmg crit." valeur={s.critDamage} suffixe="%" />
+            <Stat label="RES" valeur={s.resistance} suffixe="%" />
+            <Stat label="Précision" valeur={s.accuracy} suffixe="%" dernier />
           </div>
-          {/* Lead ÉLÉMENTAIRE : l'icône du jeu ne dit pas QUEL élément, alors
-              qu'il décide qui en profite. Même complément qu'en siège. */}
-          {forme.leaderSkill.element && (
-            <ElementIcon element={forme.leaderSkill.element} size={16} className="flex-none" />
-          )}
-        </div>
-      )}
 
-      {chargement ? (
-        <p className="py-6 text-center text-[12px] text-ink-dim">Chargement des compétences…</p>
-      ) : detail && detail.competences.length > 0 ? (
-        <div className="flex flex-col gap-2">
-          {detail.competences.map((c) => (
-            <CompetenceBloc key={c.id} c={c} />
-          ))}
-          {detail.skillUpsToMax != null && (
-            <p className="mt-1 font-mono text-[11px] text-ink-dim">
-              {detail.skillUpsToMax} amélioration(s) pour maxer ses compétences.
-            </p>
-          )}
+        </div>
+
+        {/* Colonne des compétences — `min-w-0` obligatoire : sans lui, une
+            cellule flex refuse de descendre sous la largeur de son contenu, et
+            une description longue déborderait sur la colonne de gauche. */}
+        <div className="min-w-0 flex-1">
+          {chargement ? (
+            <p className="py-6 text-center text-[12px] text-ink-dim">Chargement des compétences…</p>
+          ) : detail && detail.competences.length > 0 ? (
+            <div className="flex flex-col gap-2">
+              {detail.competences.map((c) => (
+                <CompetenceBloc key={c.id} c={c} />
+              ))}
+              {detail.skillUpsToMax != null && (
+                <p className="mt-1 font-mono text-[11px] text-ink-dim">
+                  {detail.skillUpsToMax} amélioration(s) pour maxer ses compétences.
+                </p>
+              )}
         </div>
       ) : (
         // ⚠️ Le message dit POURQUOI c'est vide. « Aucune compétence » se lirait
@@ -218,6 +211,8 @@ export default function MonsterDetailDialog({
             : 'Le détail des compétences de ce monstre n’est pas disponible.'}
         </p>
       )}
+        </div>
+      </div>
     </Modale>
   );
 }

@@ -152,8 +152,11 @@ en parcourant 2 000 runes.
 - **Bonus de set** en pied, comme dans le jeu.
 - ⚠️ **Plus de popover au clic** : il n'aurait rien montré de plus. La tuile
   n'est donc plus cliquable — un bouton qui ne fait rien se lit comme un défaut.
-- Grille à **260 px** : plus étroit, la bannière de rareté passe sous la stat
-  principale et chaque tuile gagne une ligne — l'inverse du but.
+- Grille à **215 px** : c'est la largeur en dessous de laquelle la bannière de
+  rareté passe **sous** la stat principale — chaque tuile gagne alors une ligne,
+  l'inverse du but. En mode compact, la bannière perd son espacement de lettres
+  et se resserre **justement pour descendre jusque-là** : c'est elle qui dictait
+  la largeur minimale de toute la grille.
 > La même carte sert **en popover** ailleurs dans l'app (détail d'un monstre,
 > candidat de l'Optimizer) : elle y est rendue **sans `compact`** et sans image,
 > celle-ci étant déjà sur l'élément qui a ouvert le flottant.

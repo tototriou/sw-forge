@@ -96,12 +96,19 @@ export function RuneDetailBox({
           )}
         </div>
         <div className="flex flex-none flex-col items-end">
+          {/* ⚠️ En compact, la bannière perd son espacement de lettres et se
+              resserre : c'est ELLE qui dictait la largeur minimale de la tuile
+              (« LÉGENDAIRE » en capitales espacées), donc celle de toute la
+              grille. Les couleurs et le mot restent — c'est le vocabulaire du
+              jeu —, seule la place qu'ils prennent change. */}
           <span
-            className="inline-flex items-center gap-1 rounded px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide"
+            className={`inline-flex items-center gap-1 rounded font-bold uppercase ${
+              compact ? 'px-1.5 py-px text-[9.5px]' : 'px-2 py-0.5 text-[10px] tracking-wide'
+            }`}
             style={{ background: rarity.bg, color: rarity.color }}
             title={ancient ? 'Rune antique' : undefined}
           >
-            {ancient && <AncientMark size={12} color={rarity.color} />}
+            {ancient && <AncientMark size={compact ? 10 : 12} color={rarity.color} />}
             {rarity.label}
           </span>
           {/* Mesure choisie globalement (sélecteur dans la liste des runes et en

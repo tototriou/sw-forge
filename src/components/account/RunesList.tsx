@@ -226,10 +226,11 @@ export default function RunesList({ runes }: Props) {
           Clé POSITIONNELLE (et non `row.id`) : la tuile est réutilisée quand la
           page/le filtre change, donc le cadre pivote vers son nouveau slot au
           lieu d'être remonté d'un coup. Voir SPIN dans RuneSlotIcon. */}
-      {/* ⚠️ 260 px : l'en-tête de la carte porte l'image, la stat principale et
-          la bannière de rareté sur UNE ligne. Plus étroit, la bannière passait
-          sous la stat et chaque tuile gagnait une ligne — l'inverse du but. */}
-      <div className="grid grid-cols-[repeat(auto-fill,minmax(260px,1fr))] gap-2 items-start">
+      {/* ⚠️ 215 px : c'est la largeur en dessous de laquelle la bannière de
+          rareté passe SOUS la stat principale — chaque tuile gagne alors une
+          ligne, l'inverse du but. La bannière est resserrée en mode compact
+          justement pour descendre jusque-là (voir RuneDetailBox). */}
+      <div className="grid grid-cols-[repeat(auto-fill,minmax(215px,1fr))] gap-2 items-start">
         {shown.map((row, i) => (
           <RuneTile key={i} row={row} cherches={cherches} />
         ))}
@@ -276,7 +277,7 @@ const RuneTile = memo(function RuneTile({
           setKey={rune.set}
           rarity={rune.rarity}
           ancient={rune.rank > 10}
-          height={40}
+          height={36}
         />
       }
     />

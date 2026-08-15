@@ -152,10 +152,16 @@ export function Modale({
               onClick={onClose}
               title="Fermer"
               aria-label="Fermer"
-              className="-mt-1 -mr-1 rounded-lg border border-border bg-panel p-1.5 text-ink-dim
-                         shadow-sm transition-colors hoverable:hover:border-ink-dim hoverable:hover:text-ink"
+              // Croix NUE : ni cadre, ni fond. Encadrée, elle se lisait comme un
+              // bouton d'action de plus, au même rang que ce qu'on est venu lire.
+              // Le symbole se reconnaît seul ; il n'a qu'à s'éclaircir au survol.
+              className="-mt-1 -mr-1 p-1.5 text-ink-dim transition-colors hoverable:hover:text-ink"
             >
-              <X size={16} />
+              {/* ⚠️ Ombre portée : sans fond, la croix passe DEVANT le contenu
+                  qui défile dessous, et un trait fin sur du texte devient
+                  illisible. C'est le minimum pour l'en détacher — un fond
+                  opaque rendrait le cadre qu'on vient d'enlever. */}
+              <X size={18} className="drop-shadow-[0_1px_2px_rgba(0,0,0,0.8)]" />
             </button>
           </div>
         )}

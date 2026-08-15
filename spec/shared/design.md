@@ -422,6 +422,11 @@ n'indique par où sortir, et on cherche.
   **est** la sortie. Une croix à côté ferait deux portes pour une décision qui
   n'en a qu'une, et on hésiterait sur ce qu'elle ferme — abandon, ou simple
   fermeture ?
+- ⚠️ **Nue** — ni cadre, ni fond. Encadrée, elle se lisait comme un **bouton
+  d'action de plus**, au même rang que ce qu'on est venu consulter. Le symbole
+  se reconnaît seul et s'éclaircit au survol. Seule une **ombre portée** reste :
+  sans fond, la croix passe devant le contenu qui défile dessous, et un trait
+  fin sur du texte devient illisible.
 - ⚠️ **`sticky`, jamais `absolute`** : la boîte **défile**, et une croix absolue
   part vers le haut dès les premières lignes d'une fiche longue — c'est-à-dire
   exactement au moment où on la cherche. Hauteur nulle (`h-0`) et décalages

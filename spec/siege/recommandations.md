@@ -384,6 +384,17 @@ illisible.
   - ⚠️ Supprimer une défense la retire **pour de bon**, sans repli sur une entrée
     vide — contrairement aux decks, dont une recommandation garde toujours au
     moins un. **Zéro défense visée est l'état normal.**
+  - ⚠️ **Le bloc a son PROPRE bouton d'édition**, indépendant de celui du deck.
+    Les deux gestes n'ont ni la même fréquence ni le même poids : noter la
+    défense qu'on vient d'affronter se fait **en passant**, alors qu'éditer les
+    sets et les stats d'un deck est un **travail de fond**. Derrière le même
+    bouton, il fallait ouvrir le second pour faire le premier, et traverser tout
+    le formulaire de stats pour poser trois portraits.
+  - Le bloc reste donc **visible même vide** (en lecture, réduit à son intitulé
+    et à son crayon) : sans ça, la fonctionnalité serait invisible sur les decks
+    qui n'en portent pas encore.
+  - Il vit **dans la partie dépliée du deck** : son état d'édition se
+    réinitialise donc de lui-même au repli, sans rien à gérer.
 
 ## Propriétés d'artéfact recommandées
 
@@ -806,12 +817,17 @@ Indépendamment du repli de la carte, **chaque deck a son propre chevron**.
   vide**, **ouverte en édition** (recommandation **et** son deck), et **scroll
   automatique** jusqu'à elle (comme « Ajouter une équipe », voir
   [README.md](README.md)).
-### Deux niveaux d'édition, séparés
+### Trois niveaux d'édition, séparés
 
 | Bouton | Où | Ce qu'il ouvre |
 |--------|----|----------------|
 | ✏️ (en-tête de la carte) | recommandation | **nom, auteur, consignes générales** + **Ajouter un deck vide** / **Importer un deck d'offense** |
 | ✏️ (en-tête de chaque deck) | deck | **nom du deck, ses consignes, ses monstres, sets, artéfacts et stats** + 🗑 **Supprimer ce deck** |
+| ✏️ (en-tête « Fort contre ») | défenses visées | **les défenses que ce deck bat** — indépendant du deck |
+
+⚠️ Le troisième est **volontairement détaché** du deuxième : ajouter une défense
+qu'on vient d'affronter est un geste **de passage**, éditer les stats d'un deck
+est un **travail de fond**. Voir « Défenses visées » plus haut.
 
 **Icônes nues partout** dans les en-têtes — carrés de 24 px, **sans cadre ni
 fond**, groupés et resserrés (`gap-0.5`) à droite de la ligne :

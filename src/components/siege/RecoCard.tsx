@@ -1014,7 +1014,6 @@ function DeckBlock({
         monsters={monsters}
         monsterByCom2us={monsterByCom2us}
         recos={recos}
-        editing={editing}
         hitCounters={hit?.counters ?? []}
       />
       </>
@@ -1039,7 +1038,6 @@ function CounterBlock({
   monsters,
   monsterByCom2us,
   recos,
-  editing,
   hitCounters,
 }: {
   deck: RecoDeck;
@@ -1048,11 +1046,17 @@ function CounterBlock({
   monsters: Monster[];
   monsterByCom2us: Map<number, Monster>;
   recos: UseRecoState;
-  editing: boolean;
   // Index des défenses qui contiennent le monstre cherché.
   hitCounters: number[];
 }) {
-  if (!editing && deck.counters.length === 0) return null;
+  // ⚠️ Édition PROPRE au bloc, indépendante de celle du deck.
+  //
+  // Les deux gestes n'ont ni la même fréquence ni le même poids : noter la
+  // défense qu'on vient d'affronter se fait en passant, alors qu'éditer les
+  // sets et les stats d'un deck est un travail de fond. Les mettre derrière le
+  // même bouton obligeait à ouvrir le second pour faire le premier — et à
+  // traverser tout le formulaire de stats pour ajouter trois portraits.
+  const [editing, setEditing] = useState(false);
 
   return (
     <div className="mt-2.5 pt-2.5 border-t border-border/50">
@@ -1062,8 +1066,27 @@ function CounterBlock({
         {!editing && deck.counters.length > 1 && (
           <span className="font-mono text-[10.5px] text-ink-dim">{deck.counters.length}</span>
         )}
+
+        {/* ⚠️ Son PROPRE bouton, à droite de l'intitulé : le bloc s'ouvre sans
+            passer par l'édition du deck. Même langage que les autres en-têtes —
+            icône nue, et ✓ doré quand l'édition est en cours (voir la
+            convention d'icônes de spec/siege/recommandations.md). */}
+        <button
+          onClick={() => setEditing((v) => !v)}
+          aria-pressed={editing}
+          className={`ml-auto flex h-6 w-6 flex-none items-center justify-center rounded transition ${
+            editing ? 'text-star' : 'text-ink-dim hoverable:text-ink'
+          }`}
+          title={editing ? 'Terminer' : 'Ajouter ou modifier les défenses'}
+          aria-label={editing ? 'Terminer' : 'Ajouter ou modifier les défenses'}
+        >
+          {editing ? <Check size={14} /> : <Pencil size={13} />}
+        </button>
       </div>
 
+      {/* En lecture et sans rien à montrer, seul l'intitulé reste — il porte le
+          bouton qui permet d'en ajouter. Sans lui, la fonctionnalité serait
+          invisible sur les decks qui n'en ont pas encore. */}
       {editing && deck.counters.length === 0 && (
         <p className="mb-1.5 text-[11.5px] text-ink-dim">
           Les défenses que ce deck bat. Facultatif, et surtout utile à qui reçoit la

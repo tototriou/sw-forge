@@ -52,51 +52,66 @@ export default function testMonstreTri() {
     'un monstre simplement éveillé (suffixe 11) n’est pas un 2A'
   );
 
-  /* --- ordre du jeu : 2A d'abord ----------------------------------------- */
+  /* --- l'ÉLÉMENT groupe, dans les DEUX modes ----------------------------- */
+
+  // Ordre du jeu : Feu → Eau → Vent → Lumière → Ténèbres.
+  const cinq = [
+    mon({ name: 'Tenebres', element: 'dark' }),
+    mon({ name: 'Lumiere', element: 'light' }),
+    mon({ name: 'Vent', element: 'wind' }),
+    mon({ name: 'Eau', element: 'water' }),
+    mon({ name: 'Feu', element: 'fire' }),
+  ];
+  const attendu = ['Feu', 'Eau', 'Vent', 'Lumiere', 'Tenebres'];
+
+  egal(trie('jeu', cinq), attendu, 'tri par sortie : les éléments dans l’ordre du jeu');
+  egal(trie('alpha', cinq), attendu, 'tri A → Z : le MÊME regroupement par élément');
+
+  /* --- dans un élément : 2A → nat5 → nat4 → nat3 ------------------------- */
 
   egal(
     trie('jeu', [
-      mon({ name: 'Vieux', com2usId: 10111 }),
-      mon({ name: 'Recent2A', com2usId: 99931, secondAwaken: true }),
+      mon({ name: 'Nat3', naturalStars: 3, com2usId: 10011 }),
+      mon({ name: 'Nat5', naturalStars: 5, com2usId: 10011 }),
+      mon({ name: 'Deux A', naturalStars: 4, com2usId: 10031, secondAwaken: true }),
+      mon({ name: 'Nat4', naturalStars: 4, com2usId: 10011 }),
     ]),
-    ['Recent2A', 'Vieux'],
-    'les 2A passent devant, même si leur famille est plus récente'
+    ['Deux A', 'Nat5', 'Nat4', 'Nat3'],
+    'un 2A passe devant TOUS les autres, y compris les nat5 — puis rareté décroissante'
   );
 
-  /* --- puis par famille (ordre de sortie) -------------------------------- */
+  /* --- dans une catégorie : la date de sortie ---------------------------- */
 
   egal(
     trie('jeu', [
-      mon({ name: 'Tardif', com2usId: 50011 }),
-      mon({ name: 'Premier', com2usId: 10111 }),
-      mon({ name: 'Milieu', com2usId: 30011 }),
+      mon({ name: 'Ancien', naturalStars: 5, com2usId: 10011 }),
+      mon({ name: 'Recent', naturalStars: 5, com2usId: 50011 }),
+      mon({ name: 'Milieu', naturalStars: 5, com2usId: 30011 }),
     ]),
-    ['Premier', 'Milieu', 'Tardif'],
-    'à éveil égal, la famille croît avec l’ordre de sortie'
+    ['Recent', 'Milieu', 'Ancien'],
+    'à catégorie égale, les DERNIERS SORTIS en premier'
   );
 
-  /* --- puis par élément DANS la famille ---------------------------------- */
-
+  // ⚠️ La rareté prime sur la date : un nat5 ancien reste devant un nat4 récent.
   egal(
     trie('jeu', [
-      mon({ name: 'Sombre', com2usId: 10115, element: 'dark' }),
-      mon({ name: 'Eau', com2usId: 10111, element: 'water' }),
-      mon({ name: 'Feu', com2usId: 10112, element: 'fire' }),
+      mon({ name: 'Nat4Recent', naturalStars: 4, com2usId: 90011 }),
+      mon({ name: 'Nat5Ancien', naturalStars: 5, com2usId: 10011 }),
     ]),
-    ['Eau', 'Feu', 'Sombre'],
-    'même famille → l’ordre des éléments du jeu (Eau, Feu, Vent, Lumière, Ténèbres)'
+    ['Nat5Ancien', 'Nat4Recent'],
+    'la rareté prime sur la date : un nat5 ancien reste devant un nat4 récent'
   );
 
-  /* --- alphabétique : le nom, sans regrouper par élément ------------------ */
+  /* --- alphabétique : par nom DANS l'élément ----------------------------- */
 
   egal(
     trie('alpha', [
       mon({ name: 'Zaiross', element: 'fire' }),
-      mon({ name: 'Ariel', element: 'light' }),
-      mon({ name: 'Chloe', element: 'water' }),
+      mon({ name: 'Ariel', element: 'fire' }),
+      mon({ name: 'Chloe', element: 'fire' }),
     ]),
     ['Ariel', 'Chloe', 'Zaiross'],
-    'A → Z ignore l’élément : on cherche un nom, pas une catégorie'
+    'A → Z classe par nom à l’intérieur d’un élément'
   );
 
   egal(
@@ -105,11 +120,14 @@ export default function testMonstreTri() {
     'les accents suivent l’ordre français (É se range comme E)'
   );
 
-  /* --- un monstre sans com2usId ne casse pas le tri ---------------------- */
+  /* --- données incomplètes : rien ne casse ------------------------------- */
 
   egal(
-    trie('jeu', [mon({ name: 'Perso' }), mon({ name: 'Connu', com2usId: 10111 })]),
+    trie('jeu', [
+      mon({ name: 'Perso', naturalStars: null }),
+      mon({ name: 'Connu', naturalStars: 5, com2usId: 10011 }),
+    ]),
     ['Connu', 'Perso'],
-    'un monstre perso (sans com2usId) passe en fin de liste, sans faire échouer le tri'
+    'une rareté inconnue passe derrière les raretés connues, sans faire échouer le tri'
   );
 }

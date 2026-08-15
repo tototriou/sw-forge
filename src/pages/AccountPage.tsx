@@ -176,13 +176,24 @@ function MonsterBoxSection({ box }: { box: BoxItem[] }) {
           {/* ⚠️ Un contrôle à CRAN (`Segmented`) et non une pastille : les deux
               ordres s'excluent. Et il est posé à côté de la RECHERCHE, pas dans
               la rangée de filtres en dessous — trier n'est pas filtrer, le
-              mêler aux pastilles le ferait lire comme un critère de plus. */}
+              mêler aux pastilles le ferait lire comme un critère de plus.
+              ⚠️ Les libellés disent ce qui varie — la date ou le nom — et NON
+              « ordre du jeu » : les monstres sont groupés par élément dans les
+              deux cas, donc les deux sont « l'ordre du jeu ». */}
           <Segmented
             value={sortMode}
             onChange={setSortMode}
             options={[
-              { key: 'jeu' as const, label: 'Ordre du jeu', hint: 'Les 2A d’abord, puis les familles par ordre de sortie — comme ta collection en jeu' },
-              { key: 'alpha' as const, label: 'A → Z', hint: 'Par nom, tous éléments confondus' },
+              {
+                key: 'jeu' as const,
+                label: 'Sortie',
+                hint: 'Par élément, puis les 2A d’abord et les familles par date de sortie',
+              },
+              {
+                key: 'alpha' as const,
+                label: 'A → Z',
+                hint: 'Par élément, puis par nom',
+              },
             ]}
           />
         </div>

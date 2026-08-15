@@ -15,7 +15,7 @@ import {
   Search,
   Gauge,
 } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import {
   ARTIFACT_KINDS,
   ArtifactKind,
@@ -32,6 +32,7 @@ import {
   SiegeTeam,
 } from '../../types';
 import { DeckMatch, FaultCause, RecoMatch, SlotMatch, deckFaults, fmtStat, slotFaults } from '../../lib/recoMatch';
+import { DeckHit, RecoHit } from '../../lib/recoSearch';
 import { ConfirmDialog } from '../Dialogs';
 import { NOTE_MAX, DECK_NOTE_MAX, COUNTER_NOTE_MAX } from '../../lib/recoShare';
 import { deckFromSiegeTeam } from '../../lib/recoFromSiege';
@@ -118,6 +119,9 @@ interface Props {
   onToggleEdit: (id: string) => void;
   onExport: (reco: Reco) => void;
   recos: UseRecoState;
+  // Où le monstre cherché se trouve dans CETTE recommandation, `null` hors
+  // recherche. Sert à déplier les bons decks et à surligner les bons portraits.
+  hit?: RecoHit | null;
 }
 
 // Aura selon la confrontation avec la box (même langage visuel que les équipes
@@ -144,6 +148,7 @@ export default function RecoCard({
   onClearAnalysis,
   open,
   onToggleOpen,
+  hit,
   editing,
   onToggleEdit,
   onExport,
@@ -193,6 +198,19 @@ export default function RecoCard({
       next.has(i) ? next.delete(i) : next.add(i);
       return next;
     });
+
+  // Decks contenant le monstre cherché : dépliés d'office pendant la recherche.
+  //
+  // ⚠️ Calculé à côté de `openDecks`, jamais fusionné dedans : c'est un état de
+  // CONSULTATION, pas un choix de l'utilisateur. Effacer la recherche rend à la
+  // carte exactement le repli qu'elle avait avant — sans ça, on se retrouverait
+  // avec six decks ouverts sans les avoir ouverts.
+  const decksTrouves = useMemo(
+    () => new Set((hit?.decks ?? []).map((d) => d.deckIndex)),
+    [hit]
+  );
+  // Positions du monstre dans un deck donné, pour le surlignage.
+  const hitDeDeck = (di: number) => hit?.decks.find((d) => d.deckIndex === di) ?? null;
 
   return (
     <section className={`rounded-2xl border p-4 transition-colors ${AURA[status]}`}>
@@ -406,8 +424,9 @@ export default function RecoCard({
                 match={match?.decks[di] ?? null}
                 editing={editingDeck === di}
                 onToggleEdit={() => setEditingDeck((cur) => (cur === di ? null : di))}
-                folded={!openDecks.has(di) && editingDeck !== di}
+                folded={!openDecks.has(di) && editingDeck !== di && !decksTrouves.has(di)}
                 onToggleFold={() => toggleDeck(di)}
+                hit={hitDeDeck(di)}
                 recos={recos}
               />
             ))}
@@ -677,6 +696,7 @@ function DeckBlock({
   onToggleEdit,
   folded,
   onToggleFold,
+  hit,
   recos,
 }: {
   reco: Reco;
@@ -689,6 +709,8 @@ function DeckBlock({
   onToggleEdit: () => void;
   folded: boolean;
   onToggleFold: () => void;
+  // Positions du monstre cherché dans CE deck, `null` hors recherche.
+  hit: DeckHit | null;
   recos: UseRecoState;
 }) {
   const [deckAConfirmer, setDeckAConfirmer] = useState(false);
@@ -841,6 +863,14 @@ function DeckBlock({
                   : sm?.status === 'ok'
                     ? 'border-good/50 bg-good/[0.04]'
                     : 'border-border bg-panel2/60'
+              } ${
+                // ⚠️ Le monstre CHERCHÉ prend un fond d'accent léger, jamais une
+                // bordure : celle-ci porte déjà le résultat de l'analyse
+                // (rouge/vert), et la remplacer effacerait cette information au
+                // moment où on parcourt la page. Deux langages distincts, deux
+                // supports distincts. Même écho de filtre que les propriétés
+                // recherchées d'un artéfact — voir spec/shared/design.md.
+                hit?.slots.includes(idx) ? 'bg-accent/[0.10]' : ''
               }`}
             >
               {slot.com2usId == null ? (
@@ -985,6 +1015,7 @@ function DeckBlock({
         monsterByCom2us={monsterByCom2us}
         recos={recos}
         editing={editing}
+        hitCounters={hit?.counters ?? []}
       />
       </>
       )}
@@ -1009,6 +1040,7 @@ function CounterBlock({
   monsterByCom2us,
   recos,
   editing,
+  hitCounters,
 }: {
   deck: RecoDeck;
   reco: Reco;
@@ -1017,6 +1049,8 @@ function CounterBlock({
   monsterByCom2us: Map<number, Monster>;
   recos: UseRecoState;
   editing: boolean;
+  // Index des défenses qui contiennent le monstre cherché.
+  hitCounters: number[];
 }) {
   if (!editing && deck.counters.length === 0) return null;
 
@@ -1049,6 +1083,7 @@ function CounterBlock({
             monsterByCom2us={monsterByCom2us}
             recos={recos}
             editing={editing}
+            trouve={hitCounters.includes(ci)}
           />
         ))}
       </div>
@@ -1076,6 +1111,7 @@ function CounterRow({
   monsterByCom2us,
   recos,
   editing,
+  trouve,
 }: {
   counter: RecoCounter;
   reco: Reco;
@@ -1085,6 +1121,7 @@ function CounterRow({
   monsterByCom2us: Map<number, Monster>;
   recos: UseRecoState;
   editing: boolean;
+  trouve: boolean; // contient le monstre cherché
 }) {
   // Un même monstre ne peut pas occuper deux emplacements de LA MÊME défense —
   // même règle que les slots d'un deck. Il peut revenir dans une autre défense.
@@ -1097,7 +1134,12 @@ function CounterRow({
 
   if (!editing) {
     return (
-      <div className="flex flex-wrap items-center gap-x-2 gap-y-1 rounded-lg bg-panel2/50 px-2 py-1.5">
+      <div
+        // Même écho de recherche que sur un slot : un fond d'accent, rien de plus.
+        className={`flex flex-wrap items-center gap-x-2 gap-y-1 rounded-lg px-2 py-1.5 ${
+          trouve ? 'bg-accent/[0.10]' : 'bg-panel2/50'
+        }`}
+      >
         <div className="flex flex-none items-center gap-1">
           {counter.monsters.map((m, i) =>
             m.com2usId == null ? null : (

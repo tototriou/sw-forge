@@ -70,6 +70,11 @@ export const RELEASES: Release[] = [
         scope: 'Recommandations',
         text: 'Associe à chaque deck les défenses qu’il bat, avec une précision si besoin.',
       },
+      {
+        kind: 'feat',
+        scope: 'Recommandations',
+        text: 'Cherche un monstre : tu vois quels decks le jouent et lesquels le battent.',
+      },
     ],
   },
   {

@@ -8,8 +8,10 @@ import { MatchContext, SlotMatch, deckFaults, matchDeck, slotFaults } from '../s
 import { OwnedBuild } from '../src/lib/ownedBuilds';
 import { artifactSubKinds, artifactSubLabel, artifactSubsFor, isArtifactSub } from '../src/lib/effects';
 import { cleanArtifacts, decodeRecosJson, encodeRecosJson } from '../src/lib/recoShare';
+import { chercheMonstre } from '../src/lib/recoSearch';
 import {
   MAX_ARTIFACT_SUBS,
+  Monster,
   RecoDeck,
   emptyRecoCounter,
   emptyRecoDeck,
@@ -282,4 +284,72 @@ export function testDefensesVisees() {
     [],
     'fichier antérieur → aucune défense visée, rien ne casse'
   );
+}
+
+// Recherche d'un monstre sur la page des recommandations.
+//
+// ⚠️ Le point qui compte : le mode ORDONNE, il ne restreint pas. Une reco où le
+// monstre n'apparaît que dans l'autre rôle doit rester visible — sinon on
+// cherche « Chloe », on ne la voit pas, et rien ne dit qu'elle est là.
+export function testRechercheMonstre() {
+  titre('Recherche d’un monstre dans les recommandations');
+
+  const mons = new Map<number, Monster>();
+  const reco = (id: string, deck: RecoDeck) => ({
+    id,
+    origin: 'mine' as const,
+    name: id,
+    author: '',
+    note: '',
+    decks: [deck],
+  });
+
+  // A joue Chloé ; B la subit (elle est dans une défense visée).
+  const joue = reco('A', {
+    ...emptyRecoDeck(),
+    slots: [
+      { ...emptyRecoSlot(), com2usId: 1, name: 'Chloé' },
+      emptyRecoSlot(),
+      emptyRecoSlot(),
+    ],
+  });
+  const bat = reco('B', {
+    ...emptyRecoDeck(),
+    slots: [{ ...emptyRecoSlot(), com2usId: 2, name: 'Trevor' }, emptyRecoSlot(), emptyRecoSlot()],
+    counters: [
+      {
+        monsters: [
+          { com2usId: 1, name: 'Chloé' },
+          { com2usId: null, name: '' },
+          { com2usId: null, name: '' },
+        ],
+        note: '',
+      },
+    ],
+  });
+  const liste = [joue, bat];
+
+  egal(chercheMonstre(liste, '', 'all', mons), null, 'requête vide → aucun filtrage');
+  egal(chercheMonstre(liste, 'chloe', 'all', mons)?.length, 2, 'sans accent, on trouve « Chloé »');
+  egal(
+    chercheMonstre(liste, 'CHLOÉ', 'all', mons)?.length,
+    2,
+    'la casse et les accents sont ignorés'
+  );
+  egal(chercheMonstre(liste, 'zzz', 'all', mons)?.length, 0, 'monstre absent → aucun résultat');
+
+  // Le tri remonte le bon rôle SANS retirer l'autre.
+  const enDef = chercheMonstre(liste, 'chloe', 'defense', mons) ?? [];
+  egal(enDef.length, 2, 'mode « défense » : les deux recos restent visibles');
+  egal(enDef[0]?.reco.id, 'B', 'mode « défense » : celle qui la BAT passe devant');
+
+  const enOff = chercheMonstre(liste, 'chloe', 'offense', mons) ?? [];
+  egal(enOff.length, 2, 'mode « offense » : les deux recos restent visibles');
+  egal(enOff[0]?.reco.id, 'A', 'mode « offense » : celle qui la JOUE passe devant');
+
+  // Les positions servent au surlignage.
+  const h = chercheMonstre([bat], 'chloe', 'all', mons)?.[0];
+  egal(h?.decks[0]?.counters, [0], 'la défense visée qui la contient est repérée');
+  egal(h?.decks[0]?.slots, [], 'et elle n’est pas dans les slots du deck');
+  egal(h?.enDefense, true, 'le rôle est bien « défense »');
 }

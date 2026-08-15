@@ -14,6 +14,7 @@ Fichiers :
 - [recoMatch.ts](src/lib/recoMatch.ts) — confrontation avec le compte (calcul pur).
 - [ownedBuilds.ts](src/lib/ownedBuilds.ts) — collecte de tous les builds du joueur.
 - [recoFromSiege.ts](src/lib/recoFromSiege.ts) — deck pré-rempli depuis une équipe d'offense.
+- [recoSearch.ts](src/lib/recoSearch.ts) — recherche d'un monstre dans les recos (calcul pur).
 
 ## Modèle
 
@@ -80,6 +81,47 @@ Garde-fous pour ne jamais « perdre » ce qu'on vient de faire :
 - **créer** une recommandation depuis la vue « Importées » bascule le filtre sur
   « Mes recos » ;
 - **importer** depuis la vue « Mes recos » bascule sur « Toutes ».
+
+## Recherche par monstre — sur toute la page
+
+Une barre de recherche au-dessus du filtre d'origine, avec un sélecteur de
+**rôle** : `Partout` · `Défense à taper` · `Offense à runer`
+([recoSearch.ts](src/lib/recoSearch.ts), calcul pur).
+
+Deux questions se posent devant une liste de recommandations, et elles n'ont pas
+la même réponse :
+
+| Question | Où le monstre est trouvé |
+|----------|--------------------------|
+| « **contre quoi** ce monstre est-il joué ? » | dans une **défense visée** (`counters`) |
+| « **qui** joue ce monstre ? » | dans un **deck** (`slots`) |
+
+- ⚠️ **La recherche regarde TOUJOURS les deux ; le sélecteur ne fait que
+  classer.** Restreindre la portée au rôle choisi cachait des correspondances
+  réelles sans le dire : on cherche « Chloe », on ne la voit pas, et rien à
+  l'écran n'indique qu'elle existe juste à côté dans l'autre rôle. Ici un
+  résultat n'est jamais masqué — il est seulement plus bas.
+- Le sélecteur **n'apparaît qu'une fois quelque chose tapé** : sans requête, il
+  n'y a rien à ordonner.
+- **Casse et accents ignorés** : « chloe » trouve « Chloé », sinon la recherche
+  est inutilisable sur des noms que le jeu accentue.
+- Le nom comparé est celui du **bestiaire** s'il est chargé, sinon celui **figé
+  au partage** — même repli que partout pour un monstre absent des données.
+- ⚠️ **Une carte qui répond est dépliée d'office, sans toucher à l'état de
+  repli.** C'est un état de **consultation**, pas un choix de l'utilisateur :
+  effacer la recherche rend à la page exactement le repli qu'elle avait avant.
+  Sans ça on se retrouve avec six decks ouverts sans les avoir ouverts.
+- **Surlignage** : le slot ou la défense qui contient le monstre prend un **fond
+  d'accent léger**.
+  - ⚠️ **Un fond, jamais une bordure** : celle-ci porte déjà le résultat de
+    l'analyse (rouge/vert), la remplacer effacerait cette information au moment
+    même où on parcourt la page. Deux langages, deux supports. Même écho de
+    filtre que les propriétés recherchées d'un artéfact.
+- **Aucun résultat** → message dédié, distinct de celui du filtre : dire « tu
+  n'as créé aucune recommandation » après une recherche ferait croire à une
+  perte de données.
+- Persistée via `useStickyState` (survit à la navigation, repartie à vide au
+  reload), comme le filtre d'origine.
 
 Effet du filtre sur les actions :
 - **Export global** : exporte **ce qui est affiché**. Le bouton s'intitule

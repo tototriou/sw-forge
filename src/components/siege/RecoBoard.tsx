@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Plus, Download, Upload, Trash2, Lightbulb, AlertTriangle, XCircle, X } from 'lucide-react';
+import { Plus, Download, Upload, Trash2, Lightbulb, AlertTriangle, XCircle, X, Search } from 'lucide-react';
 import { Monster, Reco } from '../../types';
 import { UseRecoState } from '../../hooks/useSiegeRecos';
 import { UseSiegeState } from '../../hooks/useSiegeState';
@@ -7,8 +7,10 @@ import { useStickyState } from '../../hooks/useStickyState';
 import { teamSummary, isTeamUsable } from '../../lib/recoFromSiege';
 import { encodeRecosJson, validateRecosImport, ImportReport, slugify } from '../../lib/recoShare';
 import { matchReco, RecoMatch } from '../../lib/recoMatch';
+import { chercheMonstre, RecoHit, RecoSearchMode } from '../../lib/recoSearch';
 import { ConfirmDialog } from '../Dialogs';
 import { OwnedBuild, OwnedTeam, indexBuildsByCom2us } from '../../lib/ownedBuilds';
+import Segmented from '../Segmented';
 import RecoCard from './RecoCard';
 
 interface Props {
@@ -37,8 +39,28 @@ const FILTERS: { key: OriginFilter; label: string }[] = [
   { key: 'imported', label: 'Importées' },
 ];
 
+// Ce qu'on cherche quand on tape un nom de monstre. Le mode ne RESTREINT pas la
+// recherche (elle regarde toujours decks et défenses visées), il ordonne ce qui
+// remonte en premier — voir lib/recoSearch.ts.
+const SEARCH_MODES: { key: RecoSearchMode; label: string; hint: string }[] = [
+  { key: 'all', label: 'Partout', hint: 'Les decks et les défenses visées' },
+  {
+    key: 'defense',
+    label: 'Défense à taper',
+    hint: "D'abord les decks qui battent ce monstre",
+  },
+  {
+    key: 'offense',
+    label: 'Offense à runer',
+    hint: "D'abord les decks qui jouent ce monstre",
+  },
+];
+
 export default function RecoBoard({ recos, monsters, builds, teams, offense }: Props) {
   const [filter, setFilter] = useStickyState<OriginFilter>('recos.filter', 'all');
+  // Recherche par monstre, sur toute la page.
+  const [query, setQuery] = useStickyState<string>('recos.query', '');
+  const [searchMode, setSearchMode] = useStickyState<RecoSearchMode>('recos.searchMode', 'all');
   const [msg, setMsg] = useState<{ text: string; error?: boolean } | null>(null);
   // Rapport de validation du dernier import : NON éphémère (il faut pouvoir le lire).
   const [report, setReport] = useState<ImportReport | null>(null);
@@ -194,7 +216,22 @@ export default function RecoBoard({ recos, monsters, builds, teams, offense }: P
     mine: all.filter((r) => r.origin === 'mine').length,
     imported: all.filter((r) => r.origin === 'imported').length,
   };
-  const list = filter === 'all' ? all : all.filter((r) => r.origin === filter);
+  const parOrigine = filter === 'all' ? all : all.filter((r) => r.origin === filter);
+
+  // Recherche par monstre. `null` = aucune recherche en cours (état neutre de la
+  // page : rien n'est filtré, rien n'est déplié d'office).
+  const hits = useMemo(
+    () => chercheMonstre(parOrigine, query, searchMode, monsterByCom2us),
+    [parOrigine, query, searchMode, monsterByCom2us]
+  );
+  const list = hits ? hits.map((h) => h.reco) : parOrigine;
+  // Où se trouve le monstre, par recommandation — la carte s'en sert pour
+  // déplier les bons decks et surligner les bons portraits.
+  const hitPar = useMemo(() => {
+    const m = new Map<string, RecoHit>();
+    for (const h of hits ?? []) m.set(h.reco.id, h);
+    return m;
+  }, [hits]);
 
   return (
     <div>
@@ -261,6 +298,65 @@ export default function RecoBoard({ recos, monsters, builds, teams, offense }: P
         />
       )}
 
+      {/* Recherche par monstre — porte sur TOUTE la page.
+          ⚠️ N'apparaît que s'il y a des recommandations : un champ de recherche
+          au-dessus d'une page vide n'a rien à chercher, et donne l'impression
+          qu'on n'a pas trouvé alors qu'il n'y a rien. */}
+      {all.length > 0 && (
+        <div className="mt-3 flex flex-wrap items-center gap-2">
+          <div className="relative min-w-0 flex-1 sm:max-w-[340px]">
+            <Search
+              size={15}
+              className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 text-ink-dim"
+            />
+            <input
+              type="text"
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              // Échap vide le champ : le geste attendu pour sortir d'une
+              // recherche, sans aller viser la croix à la souris.
+              onKeyDown={(e) => {
+                if (e.key === 'Escape') setQuery('');
+              }}
+              placeholder="Chercher un monstre…"
+              className="w-full rounded-lg border border-border bg-panel py-1.5 pl-8 pr-8 text-[13px]
+                         text-ink placeholder:text-ink-dim transition focus:border-accent"
+            />
+            {query && (
+              <button
+                onClick={() => setQuery('')}
+                className="absolute right-2 top-1/2 -translate-y-1/2 text-ink-dim transition hoverable:text-ink"
+                title="Effacer la recherche"
+                aria-label="Effacer la recherche"
+              >
+                <X size={14} />
+              </button>
+            )}
+          </div>
+
+          {/* ⚠️ Le sélecteur ne RESTREINT pas la recherche, il classe : une reco
+              où le monstre n'apparaît que dans l'autre rôle reste visible, plus
+              bas. Masquer aurait caché des correspondances réelles sans le dire.
+              Il n'apparaît qu'une fois quelque chose tapé — sans requête, il n'y
+              a rien à ordonner. */}
+          {query && (
+            <Segmented
+              value={searchMode}
+              onChange={setSearchMode}
+              options={SEARCH_MODES.map((m) => ({ key: m.key, label: m.label, hint: m.hint }))}
+            />
+          )}
+
+          {hits && (
+            <span className="font-mono text-[11.5px] text-ink-dim">
+              {hits.length === 0
+                ? 'aucun résultat'
+                : `${hits.length} reco${hits.length > 1 ? 's' : ''}`}
+            </span>
+          )}
+        </div>
+      )}
+
       {/* Filtre d'origine : n'apparaît que s'il y a quelque chose à trier */}
       {all.length > 0 && (
         <div className="mt-3 flex items-center gap-1 bg-panel border border-border rounded-xl p-1 w-fit">
@@ -317,6 +413,22 @@ export default function RecoBoard({ recos, monsters, builds, teams, offense }: P
             lesquels de ses decks tu peux jouer.
           </p>
         </div>
+      ) : list.length === 0 && hits ? (
+        // ⚠️ La RECHERCHE ne renvoie rien — message distinct de celui du filtre.
+        // Dire « tu n'as créé aucune recommandation » alors qu'on vient de taper
+        // un nom ferait croire à une perte de données.
+        <div className="mt-6 rounded-xl border border-dashed border-border bg-panel/40 py-8 px-6 text-center">
+          <p className="text-[13px] text-ink-dim">
+            Aucun monstre ne correspond à « <b className="text-ink">{query}</b> »
+            {filter !== 'all' && ' dans ce filtre'}.{' '}
+            <button
+              onClick={() => setQuery('')}
+              className="text-ink underline transition hoverable:text-star"
+            >
+              Effacer la recherche
+            </button>
+          </p>
+        </div>
       ) : list.length === 0 ? (
         // Il y a des recommandations, mais aucune dans le filtre actif.
         <div className="mt-6 rounded-xl border border-dashed border-border bg-panel/40 py-8 px-6 text-center">
@@ -346,8 +458,13 @@ export default function RecoBoard({ recos, monsters, builds, teams, offense }: P
                 canAnalyze={builds.length > 0}
                 onAnalyze={() => analyzeReco(reco)}
                 onClearAnalysis={() => clearAnalysis(reco.id)}
-                open={openIds.has(reco.id)}
+                // ⚠️ Une carte qui répond à la recherche est dépliée d'office,
+                // sans toucher à `openIds` : c'est un état de CONSULTATION, pas
+                // un choix de l'utilisateur. Effacer la recherche rend donc à la
+                // page exactement le repli qu'elle avait avant.
+                open={openIds.has(reco.id) || hitPar.has(reco.id)}
                 onToggleOpen={toggleOpen}
+                hit={hitPar.get(reco.id) ?? null}
                 editing={editingId === reco.id}
                 onToggleEdit={(id) => setEditingId((cur) => (cur === id ? null : id))}
                 onExport={(r) => handleExport([r], r.name || `reco-${i + 1}`)}

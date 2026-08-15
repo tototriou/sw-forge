@@ -1,4 +1,4 @@
-import { memo, useMemo } from 'react';
+import { memo, useMemo, useState } from 'react';
 import { Search, Copy, Star } from 'lucide-react';
 import GameIcon from '../components/GameIcon';
 import { BoxItem } from '../lib/applyAccount';
@@ -11,6 +11,7 @@ import ArtifactsSection from '../components/account/ArtifactsSection';
 import { useStickyState } from '../hooks/useStickyState';
 import Segmented from '../components/Segmented';
 import { MonsterSortMode, comparateurMonstres } from '../lib/monsterSort';
+import MonsterDetailDialog from '../components/account/MonsterDetailDialog';
 
 type Sub = 'monstres' | 'runes' | 'artefacts';
 
@@ -62,10 +63,25 @@ interface BoxEntry {
 }
 
 // Une carte de la box : portrait + nom, avec une bulle ×N si doublons.
-const BoxCard = memo(function BoxCard({ entry }: { entry: BoxEntry }) {
+//
+// ⚠️ Cliquable : elle ouvre la fiche complète du monstre (compétences,
+// coefficients, effets). C'est un `<button>` et non un `<div onClick>` — la
+// carte doit être atteignable au clavier comme au doigt.
+const BoxCard = memo(function BoxCard({
+  entry,
+  onOpen,
+}: {
+  entry: BoxEntry;
+  onOpen: (m: Monster) => void;
+}) {
   const m = entry.monster;
   return (
-    <div className="relative rounded-xl border border-border bg-panel px-2 pt-3 pb-2.5 text-center">
+    <button
+      onClick={() => onOpen(m)}
+      title={`Voir la fiche de ${m.name}`}
+      className="relative w-full rounded-xl border border-border bg-panel px-2 pt-3 pb-2.5 text-center
+                 transition hoverable:border-accent"
+    >
       <div className="relative w-[64px] mx-auto mb-1.5">
         <div className={`hex-frame w-[64px] h-[64px] p-[2px] bg-gradient-to-br ${GRADIENT[m.element]}`}>
           <div className="hex-frame w-full h-full bg-panel2 flex items-center justify-center overflow-hidden">
@@ -95,7 +111,7 @@ const BoxCard = memo(function BoxCard({ entry }: { entry: BoxEntry }) {
         )}
       </div>
       <div className="text-[12px] font-semibold leading-tight line-clamp-2">{m.name}</div>
-    </div>
+    </button>
   );
 });
 
@@ -110,6 +126,9 @@ function MonsterBoxSection({ box }: { box: BoxItem[] }) {
   // nom, ce qui est déjà le rôle du champ de recherche juste à côté.
   const [sortMode, setSortMode] = useStickyState<MonsterSortMode>('box.sort', 'jeu');
   const [secondOnly, setSecondOnly] = useStickyState('box.second', false);
+  // Fiche ouverte. ⚠️ État LOCAL et non persisté : rouvrir la page sur une fiche
+  // qu'on avait consultée la veille serait déroutant.
+  const [fiche, setFiche] = useState<Monster | null>(null);
 
   function toggleElement(k: ElementKey) {
     setActiveElements((prev) => {
@@ -276,10 +295,12 @@ function MonsterBoxSection({ box }: { box: BoxItem[] }) {
       ) : (
         <div className="grid grid-cols-[repeat(auto-fill,minmax(104px,1fr))] gap-2 items-start">
           {filtered.map((e) => (
-            <BoxCard key={e.monster.id} entry={e} />
+            <BoxCard key={e.monster.id} entry={e} onOpen={setFiche} />
           ))}
         </div>
       )}
+
+      {fiche && <MonsterDetailDialog monster={fiche} onClose={() => setFiche(null)} />}
     </div>
   );
 }

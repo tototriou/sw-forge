@@ -63,6 +63,52 @@ Le mode ne décide donc que de ce qui se passe **à l'intérieur** d'un élémen
 - ⚠️ Les libellés disent **ce qui varie** — la date ou le nom — et non « ordre du
   jeu » : les deux modes groupent par élément, donc les deux sont l'ordre du jeu.
 
+## Fiche d'un monstre — au clic sur sa carte
+
+Une **modale** ([MonsterDetailDialog.tsx](src/components/account/MonsterDetailDialog.tsx))
+porte tout ce que SWARFARM sait du monstre : ses **stats 6★ nu**, son **lead**,
+et surtout le **détail de ses compétences** — coefficient, cooldown, nombre de
+coups, effets appliqués avec leur taux, et ce qu'apporte chaque amélioration.
+
+- ⚠️ **En modale, pas en panneau sous la grille.** Trois ou quatre compétences
+  avec chacune sa formule, ses effets et ses sept niveaux d'amélioration
+  repousseraient la grille de plusieurs écrans — on perdrait le monstre qu'on
+  vient de cliquer.
+- ⚠️ **Le COEFFICIENT passe avant la description** : c'est la donnée qu'on vient
+  chercher, celle qui décide d'un build. La description la raconte en mots.
+- Les formules sont **traduites** pour leurs noms de stats (`3.6*{ATK}` →
+  `3.6 × ATQ`) mais **pas réécrites** : « 360 % de l'ATQ » ferait perdre la forme
+  qu'on retrouve sur les sites de référence, et introduirait une source d'erreur
+  sur les formules composées.
+- Les **effets** reprennent le code couleur du jeu : buffs en vert, debuffs en
+  rouge. Les **améliorations** sont repliées — sept lignes par compétence font un
+  mur si les quatre s'ouvrent d'un coup.
+- Le message d'absence dit **pourquoi** c'est vide : « aucune compétence » se
+  lirait comme une affirmation sur le monstre, alors que c'est notre donnée qui
+  manque (un monstre perso n'a pas de fiche SWARFARM).
+
+### ⚠️ Un fichier par monstre, pré-généré
+
+[fetch-skills.mjs](scripts/fetch-skills.mjs) écrit
+`public/data/skills/<com2usId>.json` (~3 Ko chacun, ~2 980 fichiers), lus par
+l'unique point d'entrée [monsterSkills.ts](src/lib/monsterSkills.ts).
+
+| Choix | Pourquoi |
+|-------|----------|
+| **Un fichier par monstre** | le détail complet pèse ~13 Mo ; tout embarquer ferait télécharger 13 Mo à qui vient consulter **un** monstre. Découpé, on ne charge que ce qu'on ouvre. |
+| **Pré-généré en CI** | interroger SWARFARM depuis le navigateur ajouterait réseau, CORS et panne possible sur un contenu qui change une fois par patch. Même raisonnement que `monsters.json` et le journal des versions. |
+| **Un seul point d'entrée** | ces données **vivront en base** plus tard ; tout appelant qui lirait le JSON lui-même rendrait la bascule invasive. |
+
+- Le répertoire est **vidé avant écriture** : un monstre retiré de SWARFARM
+  laisserait sinon son fichier derrière lui, et l'app servirait indéfiniment des
+  données qui n'existent plus.
+- Le script tourne **après** `fetch-monsters.mjs` dans la CI : il ne génère que
+  pour les monstres présents dans `monsters.json`, donc lancé avant il manquerait
+  les nouveaux.
+- `chargerDetail` **ne lève jamais** : une fiche indisponible n'est pas une
+  erreur d'application. Les absences sont **mémorisées** aussi — sans quoi un
+  monstre sans fiche relancerait une requête vouée au 404 à chaque ouverture.
+
 ## Recherche & filtres
 
 - **Recherche** par nom (insensible à la casse).

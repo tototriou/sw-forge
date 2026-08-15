@@ -1094,7 +1094,13 @@ function CounterBlock({
         </p>
       )}
 
-      <div className="flex flex-col gap-1.5">
+      {/* ⚠️ Les défenses côte à côte, en `flex-wrap` : ce sont des vignettes de
+          3 portraits, empilées elles gaspillaient une ligne entière chacune
+          pour 90 px de contenu. On en voit maintenant plusieurs d'un coup, ce
+          qui est le point : reconnaître la composition qu'on affronte.
+          En ÉDITION en revanche, chacune reprend toute la largeur — elle porte
+          alors 3 sélecteurs et un champ de texte. */}
+      <div className={editing ? 'flex flex-col gap-1.5' : 'flex flex-wrap items-start gap-1.5'}>
         {deck.counters.map((counter, ci) => (
           <CounterRow
             key={ci}
@@ -1107,19 +1113,26 @@ function CounterBlock({
             recos={recos}
             editing={editing}
             trouve={hitCounters.includes(ci)}
+            // Une défense trouvée par la recherche s'ouvre d'office : c'est
+            // celle qu'on est venu voir, sa précision fait partie du résultat.
+            ouvertParDefaut={hitCounters.includes(ci)}
           />
         ))}
-      </div>
 
-      {editing && (
-        <button
-          onClick={() => recos.addCounter(reco.id, deckIndex)}
-          className="mt-1.5 rounded border border-border px-2 py-0.5 text-[10.5px] font-semibold
-                     text-ink-dim transition hoverable:text-ink hoverable:border-accent"
-        >
-          + Défense
-        </button>
-      )}
+        {/* Le « + » vit DANS la rangée, à la suite des défenses : c'est là
+            qu'on ajoute, et il montre où la prochaine se posera. */}
+        {editing && (
+          <button
+            onClick={() => recos.addCounter(reco.id, deckIndex)}
+            className="flex h-[44px] items-center gap-1 rounded-lg border border-dashed border-border
+                       px-2.5 text-[11.5px] font-semibold text-ink-dim transition
+                       hoverable:border-accent hoverable:text-ink"
+            title="Ajouter une défense"
+          >
+            <Plus size={14} /> Défense
+          </button>
+        )}
+      </div>
     </div>
   );
 }
@@ -1135,6 +1148,7 @@ function CounterRow({
   recos,
   editing,
   trouve,
+  ouvertParDefaut,
 }: {
   counter: RecoCounter;
   reco: Reco;
@@ -1145,7 +1159,20 @@ function CounterRow({
   recos: UseRecoState;
   editing: boolean;
   trouve: boolean; // contient le monstre cherché
+  ouvertParDefaut: boolean; // trouvé par la recherche → sa précision est visible
 }) {
+  // Précision dépliée. ⚠️ Repliée par défaut : la rangée doit rester une suite
+  // de vignettes qu'on parcourt du regard, or une note ouverte fait deux fois la
+  // hauteur d'une vignette et casse l'alignement de toute la ligne.
+  const [noteOuverte, setNoteOuverte] = useState(ouvertParDefaut);
+  // ⚠️ Une recherche lancée alors que la carte est DÉJÀ à l'écran doit ouvrir la
+  // précision de ce qu'elle trouve : en état initial seul, elle ne s'ouvrait
+  // qu'au montage, donc jamais dans le cas courant (on tape avec la liste sous
+  // les yeux). L'inverse n'est pas vrai : effacer la recherche ne referme pas
+  // ce que l'utilisateur a pu ouvrir lui-même entre-temps.
+  useEffect(() => {
+    if (ouvertParDefaut) setNoteOuverte(true);
+  }, [ouvertParDefaut]);
   // Un même monstre ne peut pas occuper deux emplacements de LA MÊME défense —
   // même règle que les slots d'un deck. Il peut revenir dans une autre défense.
   const usedIds = new Set(
@@ -1156,29 +1183,60 @@ function CounterRow({
   );
 
   if (!editing) {
+    // Une vignette sans note n'a rien à déplier : elle ne devient donc pas
+    // cliquable. Un bouton qui ne fait rien au clic se lit comme un défaut.
+    const aUneNote = counter.note.trim() !== '';
+
+    const portraits = (
+      <div className="flex flex-none items-center gap-1">
+        {counter.monsters.map((m, i) =>
+          m.com2usId == null ? null : (
+            <MiniMonster
+              key={i}
+              monster={monsterByCom2us.get(m.com2usId) ?? null}
+              fallback={m.name}
+              size={30}
+            />
+          )
+        )}
+        {/* ⚠️ Le repère de note est TOUJOURS là quand il y en a une, ouverte ou
+            non : sans lui, rien ne distingue une vignette qui cache une
+            précision d'une vignette qui n'en a pas — on cliquerait au hasard. */}
+        {aUneNote && (
+          <ChevronDown
+            size={12}
+            className={`ml-0.5 flex-none text-ink-dim transition-transform ${
+              noteOuverte ? 'rotate-180' : ''
+            }`}
+          />
+        )}
+      </div>
+    );
+
+    // Même écho de recherche que sur un slot : un fond d'accent, rien de plus.
+    const fond = trouve ? 'bg-accent/[0.10]' : 'bg-panel2/50';
+
     return (
-      <div
-        // Même écho de recherche que sur un slot : un fond d'accent, rien de plus.
-        className={`flex flex-wrap items-center gap-x-2 gap-y-1 rounded-lg px-2 py-1.5 ${
-          trouve ? 'bg-accent/[0.10]' : 'bg-panel2/50'
-        }`}
-      >
-        <div className="flex flex-none items-center gap-1">
-          {counter.monsters.map((m, i) =>
-            m.com2usId == null ? null : (
-              <MiniMonster
-                key={i}
-                monster={monsterByCom2us.get(m.com2usId) ?? null}
-                fallback={m.name}
-                size={30}
-              />
-            )
-          )}
-        </div>
-        {counter.note && (
-          <span className="min-w-0 flex-1 text-[11.5px] leading-snug text-ink-dim">
+      <div className={`min-w-0 rounded-lg ${fond}`}>
+        {aUneNote ? (
+          <button
+            onClick={() => setNoteOuverte((v) => !v)}
+            aria-expanded={noteOuverte}
+            className="flex w-full items-center rounded-lg px-2 py-1.5 transition hoverable:brightness-110"
+            title={noteOuverte ? 'Masquer la précision' : 'Voir la précision'}
+          >
+            {portraits}
+          </button>
+        ) : (
+          <div className="px-2 py-1.5">{portraits}</div>
+        )}
+
+        {/* La précision se déplie SOUS la vignette, dans sa largeur — elle
+            appartient à cette défense-là, pas à la rangée. */}
+        {aUneNote && noteOuverte && (
+          <p className="max-w-[260px] px-2 pb-1.5 text-[11.5px] leading-snug text-ink-dim">
             {counter.note}
-          </span>
+          </p>
         )}
       </div>
     );

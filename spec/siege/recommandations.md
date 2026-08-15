@@ -376,11 +376,28 @@ sa structure habituelle au-dessus. Visible **deck déplié** seulement : la lign
 repliée porte déjà 3 monstres, y ajouter N×3 portraits adverses la rendrait
 illisible.
 
-- **Lecture** : le bloc **disparaît s'il est vide** (comme celui des artéfacts) —
-  un intitulé suivi de rien se lit comme une donnée manquante. Chaque défense est
-  une ligne : les 3 portraits, puis la précision.
-- **Édition** : « **+ Défense** » ajoute une entrée ; chacune a ses 3
+- **Lecture** : les défenses sont **côte à côte** (`flex-wrap`), chacune réduite
+  à ses **3 portraits**.
+  - ⚠️ **En rangée et non empilées** : une vignette fait 90 px de contenu, une
+    par ligne gaspillait toute la largeur. Côte à côte, on en embrasse plusieurs
+    d'un coup — c'est le point, reconnaître la composition qu'on affronte.
+  - ⚠️ **La précision est repliée**, et s'ouvre **au clic sur la vignette** : une
+    note dépliée fait deux fois la hauteur d'une vignette et casserait
+    l'alignement de toute la rangée.
+  - Un **chevron** marque les vignettes qui en portent une : sans lui, rien ne
+    distingue une défense qui cache une précision d'une défense qui n'en a pas,
+    et on cliquerait au hasard. Une vignette sans note **n'est pas cliquable** —
+    un bouton qui ne fait rien se lit comme un défaut.
+  - Une défense **trouvée par la recherche ouvre sa précision** : c'est celle
+    qu'on est venu voir. Y compris si la recherche est lancée alors que la liste
+    est déjà à l'écran (cas courant), d'où une synchronisation et pas seulement
+    un état initial.
+- **En édition**, chaque défense reprend **toute la largeur** : elle porte alors
+  3 sélecteurs et un champ de texte, que la mise en rangée écraserait.
+- **Édition** : un bouton **« + Défense »** ajoute une entrée ; chacune a ses 3
   `MonsterPicker`, son champ de précision (200 car.) et sa corbeille.
+  - Le **« + » vit DANS la rangée**, à la suite des défenses existantes : c'est
+    là qu'on ajoute, et il montre où la prochaine se posera.
   - ⚠️ Supprimer une défense la retire **pour de bon**, sans repli sur une entrée
     vide — contrairement aux decks, dont une recommandation garde toujours au
     moins un. **Zéro défense visée est l'état normal.**

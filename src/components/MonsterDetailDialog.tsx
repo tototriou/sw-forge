@@ -306,7 +306,15 @@ function CompetenceBloc({ c }: { c: Competence }) {
       </div>
 
       {/* Effets appliqués : buffs en vert, debuffs en rouge — le vocabulaire du
-          jeu, où la couleur dit déjà de quel côté ça penche. */}
+          jeu, où la couleur dit déjà de quel côté ça penche.
+          ⚠️ **Le NOM de l'effet, et rien de plus.** La pastille a un temps
+          affiché « Increase ATB · 100 % » : ce pourcentage était le champ
+          `chance` (la PROBABILITÉ d'application), qu'on lisait comme la
+          quantité de barre remplie — deux nombres en pourcent, donc une
+          confusion invisible. Pire, SWARFARM écrit `chance: 0` pour un effet
+          GARANTI, qui s'affichait donc « 0 % », soit l'exact contraire.
+          Le chiffre juste est dans la description ci-dessus, telle que le jeu
+          l'écrit : c'est elle qui fait foi, et on n'en reconstitue rien. */}
       {c.effets.length > 0 && (
         <div className="mt-2 flex flex-wrap gap-1.5">
           {c.effets.map((e, i) => (
@@ -321,9 +329,6 @@ function CompetenceBloc({ c }: { c: Competence }) {
             >
               {e.icone && <img src={e.icone} alt="" className="h-3.5 w-3.5" loading="lazy" />}
               {e.nom}
-              {e.chance != null && (
-                <span className="font-mono opacity-80">{e.chance} %</span>
-              )}
               {e.surSoi && <Shield size={10} className="opacity-70" />}
             </span>
           ))}

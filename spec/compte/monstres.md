@@ -78,7 +78,7 @@ Le mode ne décide donc que de ce qui se passe **à l'intérieur** d'un élémen
 Une **modale** ([MonsterDetailDialog.tsx](src/components/MonsterDetailDialog.tsx))
 porte tout ce que SWARFARM sait du monstre : ses **stats 6★ nu**, son **lead**,
 et surtout le **détail de ses compétences** — coefficient, cooldown, nombre de
-coups, effets appliqués avec leur taux, et ce qu'apporte chaque amélioration.
+coups, effets appliqués, et ce qu’apporte chaque amélioration.
 
 - ⚠️ **En modale, pas en panneau sous la grille.** Trois ou quatre compétences
   avec chacune sa formule, ses effets et ses sept niveaux d'amélioration
@@ -133,6 +133,17 @@ coups, effets appliqués avec leur taux, et ce qu'apporte chaque amélioration.
 - Les **effets** reprennent le code couleur du jeu : buffs en vert, debuffs en
   rouge. Les **améliorations** sont repliées — sept lignes par compétence font un
   mur si les quatre s'ouvrent d'un coup.
+- ⚠️ **On n'invente aucun chiffre : la description fait foi**, telle que
+  SWARFARM l'écrit. La pastille d'effet ne porte donc que le **nom** de l'effet.
+  - Elle a un temps affiché un **taux** (« Increase ATB · 100 % ») pris au champ
+    `chance` — la **probabilité d'application**, qu'on lisait comme la quantité
+    de barre remplie. Deux nombres en pourcent : la confusion ne se voyait pas.
+  - Pire, SWARFARM écrit **`chance: 0` pour un effet GARANTI** (`quantite: 25`
+    pour +25 % de barre). Affiché tel quel, un effet certain annonçait « 0 % »,
+    soit l'exact contraire de ce qu'il fait.
+  - Seuls restent des champs lus **tels quels** : coefficient, nombre de coups,
+    rechargement. La formule est **transcrite** (`3.6*{ATK}` → `3.6 × ATQ`),
+    jamais recalculée.
 - Le message d'absence dit **pourquoi** c'est vide : « aucune compétence » se
   lirait comme une affirmation sur le monstre, alors que c'est notre donnée qui
   manque (un monstre perso n'a pas de fiche SWARFARM).

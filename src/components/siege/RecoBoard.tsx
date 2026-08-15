@@ -58,9 +58,19 @@ const SEARCH_MODES: { key: RecoSearchMode; label: string; hint: string }[] = [
 
 export default function RecoBoard({ recos, monsters, builds, teams, offense }: Props) {
   const [filter, setFilter] = useStickyState<OriginFilter>('recos.filter', 'all');
-  // Recherche par monstre, sur toute la page.
-  const [query, setQuery] = useStickyState<string>('recos.query', '');
+  // Recherche par monstre : jusqu'à TROIS, autant qu'une composition.
+  //
+  // ⚠️ Les trois se cumulent en ET (voir recoSearch.ts) : on décrit la défense
+  // qu'on affronte, monstre par monstre, et chaque ajout précise au lieu
+  // d'élargir. D'où trois champs et non un seul où l'on séparerait par des
+  // espaces — un nom du jeu en contient (« Dark Cow Girl »), la séparation
+  // serait donc ambiguë.
+  const [queries, setQueries] = useStickyState<string[]>('recos.queries', ['', '', '']);
   const [searchMode, setSearchMode] = useStickyState<RecoSearchMode>('recos.searchMode', 'all');
+  const setQueryAt = (i: number, v: string) =>
+    setQueries((cur) => cur.map((q, k) => (k === i ? v : q)));
+  const termesPoses = queries.map((q) => q.trim()).filter(Boolean);
+  const aUneRecherche = termesPoses.length > 0;
   const [msg, setMsg] = useState<{ text: string; error?: boolean } | null>(null);
   // Rapport de validation du dernier import : NON éphémère (il faut pouvoir le lire).
   const [report, setReport] = useState<ImportReport | null>(null);
@@ -221,8 +231,8 @@ export default function RecoBoard({ recos, monsters, builds, teams, offense }: P
   // Recherche par monstre. `null` = aucune recherche en cours (état neutre de la
   // page : rien n'est filtré, rien n'est déplié d'office).
   const hits = useMemo(
-    () => chercheMonstre(parOrigine, query, searchMode, monsterByCom2us),
-    [parOrigine, query, searchMode, monsterByCom2us]
+    () => chercheMonstre(parOrigine, queries, searchMode, monsterByCom2us),
+    [parOrigine, queries, searchMode, monsterByCom2us]
   );
   const list = hits ? hits.map((h) => h.reco) : parOrigine;
   // Où se trouve le monstre, par recommandation — la carte s'en sert pour
@@ -298,65 +308,6 @@ export default function RecoBoard({ recos, monsters, builds, teams, offense }: P
         />
       )}
 
-      {/* Recherche par monstre — porte sur TOUTE la page.
-          ⚠️ N'apparaît que s'il y a des recommandations : un champ de recherche
-          au-dessus d'une page vide n'a rien à chercher, et donne l'impression
-          qu'on n'a pas trouvé alors qu'il n'y a rien. */}
-      {all.length > 0 && (
-        <div className="mt-3 flex flex-wrap items-center gap-2">
-          <div className="relative min-w-0 flex-1 sm:max-w-[340px]">
-            <Search
-              size={15}
-              className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 text-ink-dim"
-            />
-            <input
-              type="text"
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-              // Échap vide le champ : le geste attendu pour sortir d'une
-              // recherche, sans aller viser la croix à la souris.
-              onKeyDown={(e) => {
-                if (e.key === 'Escape') setQuery('');
-              }}
-              placeholder="Chercher un monstre…"
-              className="w-full rounded-lg border border-border bg-panel py-1.5 pl-8 pr-8 text-[13px]
-                         text-ink placeholder:text-ink-dim transition focus:border-accent"
-            />
-            {query && (
-              <button
-                onClick={() => setQuery('')}
-                className="absolute right-2 top-1/2 -translate-y-1/2 text-ink-dim transition hoverable:text-ink"
-                title="Effacer la recherche"
-                aria-label="Effacer la recherche"
-              >
-                <X size={14} />
-              </button>
-            )}
-          </div>
-
-          {/* ⚠️ Le sélecteur ne RESTREINT pas la recherche, il classe : une reco
-              où le monstre n'apparaît que dans l'autre rôle reste visible, plus
-              bas. Masquer aurait caché des correspondances réelles sans le dire.
-              Il n'apparaît qu'une fois quelque chose tapé — sans requête, il n'y
-              a rien à ordonner. */}
-          {query && (
-            <Segmented
-              value={searchMode}
-              onChange={setSearchMode}
-              options={SEARCH_MODES.map((m) => ({ key: m.key, label: m.label, hint: m.hint }))}
-            />
-          )}
-
-          {hits && (
-            <span className="font-mono text-[11.5px] text-ink-dim">
-              {hits.length === 0
-                ? 'aucun résultat'
-                : `${hits.length} reco${hits.length > 1 ? 's' : ''}`}
-            </span>
-          )}
-        </div>
-      )}
-
       {/* Filtre d'origine : n'apparaît que s'il y a quelque chose à trier */}
       {all.length > 0 && (
         <div className="mt-3 flex items-center gap-1 bg-panel border border-border rounded-xl p-1 w-fit">
@@ -401,6 +352,72 @@ export default function RecoBoard({ recos, monsters, builds, teams, offense }: P
         <ValidationReport report={report} onClose={() => setReport(null)} />
       )}
 
+      {/* Recherche par monstre — JUSTE au-dessus des recommandations, sous les
+          filtres : c'est elle qui décide de ce que la liste montre, elle doit
+          donc être collée à ce qu'elle filtre.
+          ⚠️ N'apparaît que s'il y a des recommandations : un champ de recherche
+          au-dessus d'une page vide n'a rien à chercher, et laisse croire qu'on
+          n'a rien trouvé alors qu'il n'y a rien. */}
+      {all.length > 0 && (
+        <div className="mt-5 flex flex-wrap items-center gap-2">
+          <div className="flex min-w-0 flex-1 items-center gap-1.5 sm:max-w-[520px]">
+            <Search size={15} className="flex-none text-ink-dim" />
+            {/* ⚠️ TROIS champs distincts, et non un seul où l'on séparerait par
+                des espaces : un nom du jeu en contient (« Dark Cow Girl »), la
+                séparation serait donc ambiguë. Trois champs disent aussi
+                combien de monstres on peut poser — autant qu'une composition. */}
+            {queries.map((q, i) => (
+              <div key={i} className="relative min-w-0 flex-1">
+                <input
+                  type="text"
+                  value={q}
+                  onChange={(e) => setQueryAt(i, e.target.value)}
+                  // Échap vide le champ : le geste attendu pour sortir d'une
+                  // recherche, sans aller viser la croix à la souris.
+                  onKeyDown={(e) => {
+                    if (e.key === 'Escape') setQueryAt(i, '');
+                  }}
+                  placeholder={i === 0 ? 'Chercher un monstre…' : `Monstre ${i + 1}…`}
+                  className="w-full rounded-lg border border-border bg-panel py-1.5 pl-2.5 pr-6 text-[13px]
+                             text-ink placeholder:text-ink-dim transition focus:border-accent"
+                />
+                {q && (
+                  <button
+                    onClick={() => setQueryAt(i, '')}
+                    className="absolute right-1.5 top-1/2 -translate-y-1/2 text-ink-dim transition hoverable:text-ink"
+                    title="Effacer"
+                    aria-label={`Effacer le monstre ${i + 1}`}
+                  >
+                    <X size={13} />
+                  </button>
+                )}
+              </div>
+            ))}
+          </div>
+
+          {/* ⚠️ Le sélecteur ne RESTREINT pas la recherche, il classe : une reco
+              où le monstre n'apparaît que dans l'autre rôle reste visible, plus
+              bas. Masquer aurait caché des correspondances réelles sans le dire.
+              Il n'apparaît qu'une fois quelque chose tapé — sans requête, il n'y
+              a rien à ordonner. */}
+          {aUneRecherche && (
+            <Segmented
+              value={searchMode}
+              onChange={setSearchMode}
+              options={SEARCH_MODES.map((m) => ({ key: m.key, label: m.label, hint: m.hint }))}
+            />
+          )}
+
+          {hits && (
+            <span className="font-mono text-[11.5px] text-ink-dim">
+              {hits.length === 0
+                ? 'aucun résultat'
+                : `${hits.length} reco${hits.length > 1 ? 's' : ''}`}
+            </span>
+          )}
+        </div>
+      )}
+
       {all.length === 0 ? (
         <div className="mt-8 flex flex-col items-center justify-center text-center rounded-2xl border border-dashed border-border bg-panel/40 py-16 px-6">
           <div className="flex items-center justify-center w-14 h-14 rounded-2xl bg-panel2 border border-border mb-4">
@@ -419,10 +436,23 @@ export default function RecoBoard({ recos, monsters, builds, teams, offense }: P
         // un nom ferait croire à une perte de données.
         <div className="mt-6 rounded-xl border border-dashed border-border bg-panel/40 py-8 px-6 text-center">
           <p className="text-[13px] text-ink-dim">
-            Aucun monstre ne correspond à « <b className="text-ink">{query}</b> »
+            {/* ⚠️ Le message dit LA RÈGLE quand il y a plusieurs monstres : les
+                trois doivent être dans la MÊME composition. Sans ça, une
+                recherche à trois termes qui ne renvoie rien se lit comme un bug
+                — on voit bien chaque monstre à l'écran, séparément. */}
+            {termesPoses.length > 1 ? (
+              <>
+                Aucun deck ne réunit{' '}
+                <b className="text-ink">{termesPoses.join(' + ')}</b>
+              </>
+            ) : (
+              <>
+                Aucun monstre ne correspond à « <b className="text-ink">{termesPoses[0]}</b> »
+              </>
+            )}
             {filter !== 'all' && ' dans ce filtre'}.{' '}
             <button
-              onClick={() => setQuery('')}
+              onClick={() => setQueries(['', '', ''])}
               className="text-ink underline transition hoverable:text-star"
             >
               Effacer la recherche

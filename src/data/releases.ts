@@ -73,7 +73,7 @@ export const RELEASES: Release[] = [
       {
         kind: 'feat',
         scope: 'Recommandations',
-        text: 'Cherche un monstre : tu vois quels decks le jouent et lesquels le battent.',
+        text: 'Cherche jusqu’à 3 monstres : tu vois quels decks les jouent et lesquels les battent.',
       },
     ],
   },

@@ -353,3 +353,95 @@ export function testRechercheMonstre() {
   egal(h?.decks[0]?.slots, [], 'et elle n’est pas dans les slots du deck');
   egal(h?.enDefense, true, 'le rôle est bien « défense »');
 }
+
+// Recherche à PLUSIEURS monstres : le ET, et ce qu'il implique.
+export function testRechercheMultiple() {
+  titre('Recherche à plusieurs monstres (ET, même composition)');
+
+  const mons = new Map<number, Monster>();
+  const trio = (noms: string[]) =>
+    noms.map((n, i) => ({ ...emptyRecoSlot(), com2usId: i + 1, name: n }));
+
+  const abc = {
+    id: 'ABC',
+    origin: 'mine' as const,
+    name: 'ABC',
+    author: '',
+    note: '',
+    decks: [{ ...emptyRecoDeck(), slots: trio(['Chloé', 'Trevor', 'Bella']) }],
+  };
+  // Même monstre de tête, mais pas la même composition.
+  const axy = {
+    id: 'AXY',
+    origin: 'mine' as const,
+    name: 'AXY',
+    author: '',
+    note: '',
+    decks: [{ ...emptyRecoDeck(), slots: trio(['Chloé', 'Xiao', 'Yen']) }],
+  };
+  const liste = [abc, axy];
+
+  egal(chercheMonstre(liste, ['chloe'], 'all', mons)?.length, 2, 'un seul terme → les deux decks');
+  egal(
+    chercheMonstre(liste, ['chloe', 'trevor'], 'all', mons)?.map((h) => h.reco.id),
+    ['ABC'],
+    'deux termes → seul le deck qui réunit LES DEUX (ET, pas OU)'
+  );
+  egal(
+    chercheMonstre(liste, ['chloe', 'trevor', 'bella'], 'all', mons)?.map((h) => h.reco.id),
+    ['ABC'],
+    'trois termes → la composition exacte'
+  );
+  egal(
+    chercheMonstre(liste, ['chloe', 'zzz'], 'all', mons)?.length,
+    0,
+    'un terme introuvable suffit à écarter le deck'
+  );
+
+  // Les champs vides n'exigent rien — sinon ouvrir un champ viderait la page.
+  egal(
+    chercheMonstre(liste, ['chloe', '', ''], 'all', mons)?.length,
+    2,
+    'les champs vides sont ignorés'
+  );
+  egal(chercheMonstre(liste, ['', '', ''], 'all', mons), null, 'tout vide → aucune recherche');
+
+  // ⚠️ Deux fois le même nom exige DEUX monstres : une position déjà retenue ne
+  // compte pas une seconde fois.
+  egal(
+    chercheMonstre(liste, ['chloe', 'chloe'], 'all', mons)?.length,
+    0,
+    'le même nom deux fois exige deux monstres distincts'
+  );
+
+  // Le ET vaut par COMPOSITION : réparti entre un deck et sa défense, il ne
+  // compte pas.
+  const mixte = {
+    id: 'MIX',
+    origin: 'mine' as const,
+    name: 'MIX',
+    author: '',
+    note: '',
+    decks: [
+      {
+        ...emptyRecoDeck(),
+        slots: trio(['Chloé', 'Woosa', 'Zaiross']),
+        counters: [
+          {
+            monsters: [
+              { com2usId: 9, name: 'Trevor' },
+              { com2usId: null, name: '' },
+              { com2usId: null, name: '' },
+            ],
+            note: '',
+          },
+        ],
+      },
+    ],
+  };
+  egal(
+    chercheMonstre([mixte], ['chloe', 'trevor'], 'all', mons)?.length,
+    0,
+    'un monstre joué + un monstre battu ≠ une composition qui les réunit'
+  );
+}

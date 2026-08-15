@@ -84,9 +84,35 @@ Garde-fous pour ne jamais « perdre » ce qu'on vient de faire :
 
 ## Recherche par monstre — sur toute la page
 
-Une barre de recherche au-dessus du filtre d'origine, avec un sélecteur de
-**rôle** : `Partout` · `Défense à taper` · `Offense à runer`
+**Jusqu'à trois monstres**, avec un sélecteur de **rôle** : `Partout` ·
+`Défense à taper` · `Offense à runer`
 ([recoSearch.ts](src/lib/recoSearch.ts), calcul pur).
+
+**Placement : juste au-dessus des recommandations**, sous les filtres. C'est
+elle qui décide de ce que la liste montre, elle doit donc être collée à ce
+qu'elle filtre.
+
+### ⚠️ Plusieurs monstres se cumulent en ET, dans la MÊME composition
+
+Chaque monstre ajouté **précise** la recherche au lieu de l'élargir : c'est ce
+qui permet de retrouver une défense qu'on affronte — « Chloé + Trevor + Bella »
+sort le deck qui bat **exactement** cette composition, pas les trois listes de
+decks qui jouent l'un des trois.
+
+- Le « tous présents » vaut **par composition** : soit les 3 slots d'un deck,
+  soit une **même** défense visée. Réparti entre les deux, il ne voudrait rien
+  dire — un deck qui *joue* Chloé et qui *bat* Trevor ne réunit pas les deux.
+- ⚠️ Une position déjà retenue **ne compte pas deux fois** : chercher deux fois
+  le même nom exige **deux** monstres. Sans ça, « chloe chloe » passerait sur un
+  deck n'en portant qu'une.
+- **Un champ vide n'exige rien** : sinon ouvrir un champ viderait la page.
+- ⚠️ **Trois champs distincts**, et non un seul séparé par des espaces : un nom
+  du jeu en contient (« Dark Cow Girl »), la séparation serait ambiguë. Trois
+  champs disent aussi combien de monstres on peut poser — autant qu'une
+  composition.
+- Le message d'absence de résultat **énonce la règle** au-delà d'un terme
+  (« Aucun deck ne réunit A + B ») : sans ça, une recherche à trois qui ne
+  renvoie rien se lit comme un bug, puisqu'on voit chaque monstre à l'écran.
 
 Deux questions se posent devant une liste de recommandations, et elles n'ont pas
 la même réponse :

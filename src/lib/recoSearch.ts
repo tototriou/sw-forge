@@ -56,25 +56,54 @@ function nomDe(
   return monsterByCom2us.get(com2usId)?.name ?? fallback;
 }
 
-// Le monstre cherché est-il dans ce deck, et où ?
+// Toutes les recherches sont-elles satisfaites par cette composition, et à
+// quelles positions ?
+//
+// ⚠️ **ET, pas OU** : chaque monstre ajouté PRÉCISE la recherche au lieu de
+// l'élargir. C'est ce qui permet de retrouver une défense précise qu'on
+// affronte — « Chloé + Trevor + Bella » doit sortir le deck qui bat exactement
+// cette composition, pas les trois listes de decks qui jouent l'un des trois.
+//
+// Renvoie les positions occupées, ou `null` si un seul terme n'est pas trouvé.
+function positionsSiToutes(
+  noms: string[], // noms des monstres de la composition, dans l'ordre des positions
+  termes: string[]
+): number[] | null {
+  const positions = new Set<number>();
+  for (const t of termes) {
+    const i = noms.findIndex((n, k) => n.includes(t) && !positions.has(k));
+    // ⚠️ Une position déjà prise ne compte pas deux fois : chercher deux fois le
+    // même nom exigerait deux monstres, or une composition n'en a que trois.
+    // Sans ça, « chloe chloe » passerait sur un deck avec une seule Chloé.
+    if (i < 0) return null;
+    positions.add(i);
+  }
+  return [...positions];
+}
+
+// Les monstres cherchés sont-ils dans ce deck, et où ?
+//
+// ⚠️ Le « tous présents » vaut **par composition** : soit les trois slots du
+// deck, soit une MÊME défense visée. Réparti entre les deux, il ne voudrait rien
+// dire — un deck qui joue Chloé et qui bat Trevor ne « contient » pas
+// « Chloé + Trevor » au sens où on le cherche.
 function chercheDansDeck(
   deck: RecoDeck,
   deckIndex: number,
-  q: string,
+  termes: string[],
   monsterByCom2us: Map<number, Monster>
 ): DeckHit | null {
-  const slots: number[] = [];
-  deck.slots.forEach((sl, i) => {
-    if (sl.com2usId == null) return;
-    if (normalise(nomDe(sl.com2usId, sl.name, monsterByCom2us)).includes(q)) slots.push(i);
-  });
+  const nomsSlots = deck.slots.map((sl) =>
+    sl.com2usId == null ? '' : normalise(nomDe(sl.com2usId, sl.name, monsterByCom2us))
+  );
+  const slots = positionsSiToutes(nomsSlots, termes) ?? [];
 
   const counters: number[] = [];
   deck.counters.forEach((c, i) => {
-    const trouve = c.monsters.some(
-      (m) => m.com2usId != null && normalise(nomDe(m.com2usId, m.name, monsterByCom2us)).includes(q)
+    const noms = c.monsters.map((m) =>
+      m.com2usId == null ? '' : normalise(nomDe(m.com2usId, m.name, monsterByCom2us))
     );
-    if (trouve) counters.push(i);
+    if (positionsSiToutes(noms, termes)) counters.push(i);
   });
 
   if (!slots.length && !counters.length) return null;
@@ -87,18 +116,20 @@ function chercheDansDeck(
 // ne veut alors ni filtrer ni déplier quoi que ce soit.
 export function chercheMonstre(
   recos: Reco[],
-  query: string,
+  query: string | string[],
   mode: RecoSearchMode,
   monsterByCom2us: Map<number, Monster>
 ): RecoHit[] | null {
-  const q = normalise(query);
-  if (!q) return null;
+  // Les termes vides sont écartés : un emplacement de recherche non rempli ne
+  // doit rien exiger — sinon ajouter un champ vide viderait tous les résultats.
+  const termes = (Array.isArray(query) ? query : [query]).map(normalise).filter(Boolean);
+  if (!termes.length) return null;
 
   const hits: RecoHit[] = [];
   for (const reco of recos) {
     const decks: DeckHit[] = [];
     reco.decks.forEach((deck, di) => {
-      const h = chercheDansDeck(deck, di, q, monsterByCom2us);
+      const h = chercheDansDeck(deck, di, termes, monsterByCom2us);
       if (h) decks.push(h);
     });
     if (!decks.length) continue;

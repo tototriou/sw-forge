@@ -35,6 +35,26 @@ casse, `includes`).
 - Si un filtre ne renvoie rien : message « Aucun monstre ne correspond à ces
   filtres. »
 
+### Fiche complète — au clic sur une carte
+
+La **même modale** que dans « Mon compte »
+([MonsterDetailDialog.tsx](src/components/MonsterDetailDialog.tsx)) : stats, lead,
+et le détail des compétences — coefficients, effets, améliorations. Voir
+[compte/monstres.md](compte/monstres.md#fiche-dun-monstre--au-clic-sur-sa-carte)
+pour le détail du rendu et de la source des données.
+
+- ⚠️ **Le même composant**, pas une copie : deux fiches auraient divergé au
+  premier ajustement. Elle a d'ailleurs été **remontée** de `components/account/`
+  vers `components/` au deuxième usage.
+- C'est ici qu'elle sert le plus : le bestiaire couvre **tous** les monstres, y
+  compris ceux qu'on ne possède pas — et c'est justement avant d'invoquer qu'on
+  va lire des coefficients.
+- ⚠️ `role="button"` sur le `motion.div` de la carte plutôt qu'un `<button>`
+  autour : envelopper casserait l'animation de disposition (`layout`), qui mesure
+  cet élément. Le clavier (Entrée, Espace) est rétabli à la main.
+- Une poignée d'entrées techniques de SWARFARM (~16 « dummy ») n'ont aucune
+  compétence : la fiche le **dit** au lieu d'afficher un bloc vide.
+
 ## Règles / attendus
 
 - La **vitesse est fixe** dans SW (indépendante du niveau/étoiles) → `stats.speed`

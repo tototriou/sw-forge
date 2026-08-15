@@ -11,7 +11,7 @@ import ArtifactsSection from '../components/account/ArtifactsSection';
 import { useStickyState } from '../hooks/useStickyState';
 import Segmented from '../components/Segmented';
 import { MonsterSortMode, comparateurMonstres } from '../lib/monsterSort';
-import MonsterDetailDialog from '../components/account/MonsterDetailDialog';
+import MonsterDetailDialog from '../components/MonsterDetailDialog';
 
 type Sub = 'monstres' | 'runes' | 'artefacts';
 

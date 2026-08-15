@@ -65,7 +65,7 @@ Le mode ne décide donc que de ce qui se passe **à l'intérieur** d'un élémen
 
 ## Fiche d'un monstre — au clic sur sa carte
 
-Une **modale** ([MonsterDetailDialog.tsx](src/components/account/MonsterDetailDialog.tsx))
+Une **modale** ([MonsterDetailDialog.tsx](src/components/MonsterDetailDialog.tsx))
 porte tout ce que SWARFARM sait du monstre : ses **stats 6★ nu**, son **lead**,
 et surtout le **détail de ses compétences** — coefficient, cooldown, nombre de
 coups, effets appliqués avec leur taux, et ce qu'apporte chaque amélioration.

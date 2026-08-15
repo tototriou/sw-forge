@@ -40,7 +40,16 @@ function initials(name: string) {
     .toUpperCase();
 }
 
-export default function MonsterCard({ monster }: { monster: Monster }) {
+export default function MonsterCard({
+  monster,
+  onOpen,
+}: {
+  monster: Monster;
+  // Ouvre la fiche complète. Absent = carte non cliquable (aucun appelant n'est
+  // dans ce cas aujourd'hui, mais la prop reste facultative pour ne pas imposer
+  // une fiche à un futur usage purement décoratif).
+  onOpen?: (m: Monster) => void;
+}) {
   const [imgFailed, setImgFailed] = useState(false);
   const showImage = monster.image && !imgFailed;
 
@@ -52,8 +61,25 @@ export default function MonsterCard({ monster }: { monster: Monster }) {
       exit={{ opacity: 0, y: -8 }}
       transition={{ duration: 0.25 }}
       whileHover={{ y: -4 }}
+      // ⚠️ `role="button"` sur le `motion.div` plutôt qu'un `<button>` autour :
+      // envelopper casserait l'animation de disposition (`layout`), qui mesure
+      // CET élément. Le clavier est rétabli à la main juste en dessous.
+      onClick={onOpen ? () => onOpen(monster) : undefined}
+      onKeyDown={
+        onOpen
+          ? (e) => {
+              if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                onOpen(monster);
+              }
+            }
+          : undefined
+      }
+      role={onOpen ? 'button' : undefined}
+      tabIndex={onOpen ? 0 : undefined}
+      title={onOpen ? `Voir la fiche de ${monster.name}` : undefined}
       className={`group relative rounded-2xl border border-border bg-panel px-2.5 pt-3.5 pb-3 text-center
-        transition-colors shadow-none ${BORDER[monster.element]}`}
+        transition-colors shadow-none ${onOpen ? 'cursor-pointer' : ''} ${BORDER[monster.element]}`}
     >
       <div className="relative w-[84px] mx-auto mb-2.5">
         <div

@@ -6,9 +6,11 @@ import ElementIcon from './ElementIcon';
 interface Props {
   elementDef: ElementDef;
   monsters: Monster[];
+  /** Ouvre la fiche complète d'un monstre. */
+  onOpen?: (m: Monster) => void;
 }
 
-export default function MonsterGrid({ elementDef, monsters }: Props) {
+export default function MonsterGrid({ elementDef, monsters, onOpen }: Props) {
   if (monsters.length === 0) return null;
 
   return (
@@ -23,7 +25,7 @@ export default function MonsterGrid({ elementDef, monsters }: Props) {
       <div className="grid grid-cols-[repeat(auto-fill,minmax(min(100%,148px),1fr))] gap-3 sm:gap-4">
         <AnimatePresence mode="popLayout">
           {monsters.map((m) => (
-            <MonsterCard key={m.id} monster={m} />
+            <MonsterCard key={m.id} monster={m} onOpen={onOpen} />
           ))}
         </AnimatePresence>
       </div>

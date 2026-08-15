@@ -3,6 +3,7 @@ import { Sparkles } from 'lucide-react';
 import SearchBar from '../components/SearchBar';
 import FilterBar from '../components/FilterBar';
 import MonsterGrid from '../components/MonsterGrid';
+import MonsterDetailDialog from '../components/MonsterDetailDialog';
 import { ELEMENTS, ElementKey, Monster } from '../types';
 import { LoadState } from '../hooks/useMonsters';
 
@@ -16,6 +17,9 @@ export default function BestiaryPage({ monsters }: Props) {
   const [activeElements, setActiveElements] = useState<Set<ElementKey>>(new Set());
   const [activeStars, setActiveStars] = useState<Set<number>>(new Set());
   const [sortMode, setSortMode] = useState('stars_desc');
+  // Fiche ouverte — état local, non persisté : rouvrir la page sur une fiche
+  // consultée la veille serait déroutant.
+  const [fiche, setFiche] = useState<Monster | null>(null);
 
   function toggleElement(k: ElementKey) {
     setActiveElements((prev) => {
@@ -84,9 +88,19 @@ export default function BestiaryPage({ monsters }: Props) {
         </div>
       ) : (
         ELEMENTS.map((el) => (
-          <MonsterGrid key={el.key} elementDef={el} monsters={grouped.get(el.key) ?? []} />
+          <MonsterGrid
+            key={el.key}
+            elementDef={el}
+            monsters={grouped.get(el.key) ?? []}
+            onOpen={setFiche}
+          />
         ))
       )}
+
+      {/* La MÊME fiche que dans « Mon compte » : mêmes données, même rendu. Le
+          bestiaire couvre en plus les monstres qu'on ne possède pas — c'est
+          justement là qu'on consulte des coefficients avant d'invoquer. */}
+      {fiche && <MonsterDetailDialog monster={fiche} onClose={() => setFiche(null)} />}
     </div>
   );
 }

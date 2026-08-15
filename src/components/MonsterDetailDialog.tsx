@@ -1,14 +1,14 @@
 import { useEffect, useState } from 'react';
 import { Sword, Shield, Zap, Star } from 'lucide-react';
-import { Monster } from '../../types';
-import { Modale } from '../Dialogs';
-import ElementIcon from '../ElementIcon';
+import { Monster } from '../types';
+import { Modale } from './Dialogs';
+import ElementIcon from './ElementIcon';
 import {
   Competence,
   DetailMonstre,
   chargerDetail,
   formuleLisible,
-} from '../../lib/monsterSkills';
+} from '../lib/monsterSkills';
 
 // Fiche complète d'un monstre : ses stats de base, son lead, et le DÉTAIL de
 // ses compétences — coefficients, effets, taux, montées de niveau.

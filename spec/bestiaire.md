@@ -35,6 +35,33 @@ casse, `includes`).
 - Si un filtre ne renvoie rien : message « Aucun monstre ne correspond à ces
   filtres. »
 
+### Pagination — ⚠️ 60 cartes par page
+
+Le bestiaire porte **~3 000 monstres**, et chaque carte est un `motion.div`
+animé : tout rendre d'un coup faisait ramer le navigateur au moindre filtre,
+**chaque frappe reconstruisant 3 000 nœuds animés**.
+
+60 par page, comme les autres listes de l'app (runes, artéfacts, optimisation) —
+**même composant** [Pager.tsx](src/components/account/Pager.tsx), donc même
+sensation d'un écran à l'autre.
+
+- ⚠️ **On pagine AVANT de grouper**, et non l'inverse : paginer chaque élément
+  séparément donnerait **cinq paginations** à l'écran, et « page 2 » ne voudrait
+  plus rien dire. La page découpe la liste entière — déjà triée dans l'ordre
+  d'affichage — et les blocs d'élément se reconstituent à partir de ce qu'elle
+  contient. Un bloc peut donc être **partiel**, ou **absent** d'une page.
+- ⚠️ **Retour à la première page dès que le résultat change** (recherche, filtre,
+  tri) : rester en page 12 après une recherche qui n'en rend que deux laisserait
+  un écran vide, qu'on lirait comme « aucun résultat ».
+- **Deux pagers**, en tête et en pied : après 60 cartes on est loin du haut, et
+  remonter pour cliquer « suivant » puis redescendre décourage de parcourir.
+  - ⚠️ Seul celui du **bas** remonte en tête de liste au changement de page :
+    sinon on arrive au pied de la page suivante, donc à sa fin, et on croit que
+    rien n'a bougé. Celui du haut ne bouge rien — on y est déjà.
+- Le compteur dit **« N sur M »** quand un filtre coupe : afficher le total alors
+  qu'on en voit 60 se lit comme un bug d'affichage. Même règle que l'inventaire
+  d'artéfacts.
+
 ### Fiche complète — au clic sur une carte
 
 La **même modale** que dans « Mon compte »

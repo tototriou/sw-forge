@@ -194,16 +194,21 @@ Détails :
   « laquelle ? », et il fallait aller la chercher à la main dans la liste.
   - Le rang cliqué est marqué d'un **trait plein** (le survol est tireté) : il
     **survit au départ du pointeur** et dit d'où sort le détail lu en dessous.
-  - ⚠️ **Une carte PAR COURBE**, pas une seule. Les trois séries sont triées
-    **séparément** : le rang N d'« Actuelle » et celui de « Potentiel Légend » ne
-    désignent pas la même rune. En afficher une seule montrerait une rune qui ne
-    correspond pas à la courbe visée.
+  - ⚠️ **UNE seule rune : celle de la courbe « Actuelle ».** Les potentiels ne
+    sont pas d'autres runes — c'est la même box projetée dans une autre
+    hypothèse. En ouvrir trois côte à côte donnait trois cartes qui se
+    ressemblent pour une seule question : « quelle est cette rune ? ».
+  - Le détail est précédé de l'**image de la rune** (cadre du slot + symbole du
+    set, `RuneSlotIcon`) puis de son **set** et de son **slot**. ⚠️ L'image
+    d'abord : c'est à elle qu'on reconnaît une rune d'un coup d'œil, le texte ne
+    fait que confirmer. **Même rendu que les tuiles de l'onglet Liste**, pour
+    retrouver la même rune sans changer de langage d'un onglet à l'autre.
   - ⚠️ **Sous le graphe, dans le flux — pas en flottant.** La carte d'une rune
     fait ~300 px de haut : un popover de cette taille ancré sur un point
     recouvrirait la courbe qu'on vient de lire.
   - Re-cliquer le même rang **referme** (le geste est son propre inverse) ;
     **Échap** et la croix ferment aussi.
-  - ⚠️ **Seules les séries qui transportent leurs runes sont cliquables**
+  - ⚠️ **Cliquable seulement si MA courbe porte ses runes**
     (`CurveSeries.runes`, aligné sur `effs`, même tri). Une courbe **importée**
     d'un ami ne porte que des valeurs : le graphe reste alors en lecture seule,
     sans curseur `pointer` qui promettrait un clic sans effet.

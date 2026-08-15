@@ -4,8 +4,9 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { X } from 'lucide-react';
-import { RuneDetail } from '../../types';
+import { RuneDetail, RUNE_SETS } from '../../types';
 import { RuneDetailBox } from '../MonsterGear';
+import RuneSlotIcon from '../RuneSlotIcon';
 
 export interface CurveSeries {
   name: string;
@@ -149,21 +150,21 @@ export default function CurveChart({
           .sort((a, b) => b.val - a.val)
       : [];
 
-  // Y a-t-il quelque chose à ouvrir ? Seules les séries qui transportent leurs
-  // runes sont cliquables — une courbe d'ami n'a que des valeurs.
-  const cliquable = active.some((s) => s.runes?.length);
+  // Y a-t-il quelque chose à ouvrir ? Seule MA courbe porte ses runes — une
+  // courbe importée d'un ami n'a que des valeurs.
+  const cliquable = active.some((s) => s.own && s.runes?.length);
 
-  // Runes du rang choisi, une par série qui en porte une. ⚠️ Plusieurs séries
-  // peuvent répondre au même rang (« Actuelle » et les deux potentiels sont
-  // triées SÉPARÉMENT) : la 3ᵉ meilleure rune actuelle n'est pas la 3ᵉ meilleure
-  // en potentiel légendaire. On affiche donc chaque série avec SA rune.
-  const runesChoisies =
-    choisi == null
-      ? []
-      : active
-          .filter((s) => s.runes && choisi < s.runes.length)
-          .map((s) => ({ serie: s, rune: s.runes![choisi], val: s.effs[choisi] }))
-          .sort((a, b) => b.val - a.val);
+  // La rune du rang choisi, sur MA courbe uniquement.
+  //
+  // ⚠️ UNE SEULE rune, celle de la série `own` — pas une par courbe. Les
+  // potentiels ne sont pas d'autres runes : c'est la même box projetée dans une
+  // autre hypothèse. En ouvrir trois côte à côte donnait trois cartes qui se
+  // ressemblent pour une seule question — « quelle est cette rune ? ».
+  const serieOwn = active.find((s) => s.own && s.runes?.length);
+  const runeChoisie =
+    choisi != null && serieOwn && choisi < (serieOwn.runes?.length ?? 0)
+      ? { serie: serieOwn, rune: serieOwn.runes![choisi], val: serieOwn.effs[choisi] }
+      : null;
 
   function onClick() {
     if (!cliquable || hover == null) return;
@@ -341,7 +342,7 @@ export default function CurveChart({
         {/* Repère du point CHOISI — trait plein, là où le survol est tireté :
             il survit au départ du pointeur, et dit d'où sort le détail lu en
             dessous. */}
-        {choisi != null && runesChoisies.length > 0 && (
+        {choisi != null && runeChoisie && (
           <g pointerEvents="none">
             <line
               x1={x(choisi)}
@@ -351,17 +352,14 @@ export default function CurveChart({
               stroke="var(--accent)"
               strokeWidth="1.5"
             />
-            {runesChoisies.map(({ serie, val }) => (
-              <circle
-                key={serie.name}
-                cx={x(choisi)}
-                cy={y(val)}
-                r="4.5"
-                fill={serie.color}
-                stroke="var(--accent)"
-                strokeWidth="1.5"
-              />
-            ))}
+            <circle
+              cx={x(choisi)}
+              cy={y(runeChoisie.val)}
+              r="4.5"
+              fill={runeChoisie.serie.color}
+              stroke="var(--accent)"
+              strokeWidth="1.5"
+            />
           </g>
         )}
 
@@ -374,42 +372,51 @@ export default function CurveChart({
           rune fait ~300 px de haut, un popover de cette taille ancré sur un
           point du graphe recouvrirait la courbe qu'on vient de lire. Ici on voit
           les deux. */}
-      {choisi != null && runesChoisies.length > 0 && (
+      {choisi != null && runeChoisie && (
         <div className="mt-2 border-t border-border pt-2 animate-[apparition_150ms_var(--ease-out)]">
-          <div className="mb-1.5 flex items-center gap-2">
-            <span className="label">
-              Rune n° {choisi + 1} du classement
-            </span>
+          {/* En-tête : l'IMAGE de la rune (cadre du slot + symbole du set, comme
+              dans le jeu et dans la liste de runes) puis son set et son slot.
+              ⚠️ L'image d'abord : c'est à elle qu'on reconnaît une rune d'un
+              coup d'œil, le texte ne fait que confirmer. Même rendu que les
+              tuiles de l'onglet Liste (RuneSlotIcon), pour qu'on retrouve la
+              même rune sans changer de langage d'un onglet à l'autre. */}
+          <div className="mb-1.5 flex items-center gap-2.5">
+            <RuneSlotIcon
+              slot={runeChoisie.rune.slot}
+              setKey={runeChoisie.rune.set}
+              rarity={runeChoisie.rune.rarity}
+              ancient={runeChoisie.rune.rank > 10}
+              height={46}
+            />
+            <div className="min-w-0">
+              <div className="truncate text-[13px] font-bold leading-tight text-ink">
+                {RUNE_SETS.find((s) => s.key === runeChoisie.rune.set)?.label ??
+                  runeChoisie.rune.set}{' '}
+                ·{' '}
+                <span className="text-ink-dim">slot {runeChoisie.rune.slot}</span>
+              </div>
+              <div className="font-mono text-[11px] text-ink-dim">
+                n° {choisi + 1} du classement ·{' '}
+                {unit === '%' ? runeChoisie.val.toFixed(1) : String(Math.round(runeChoisie.val))}
+                {unit}
+              </div>
+            </div>
             <button
               onClick={() => setChoisi(null)}
-              className="ml-auto text-ink-dim transition hoverable:text-ink"
+              className="ml-auto flex-none self-start text-ink-dim transition hoverable:text-ink"
               title="Fermer le détail"
               aria-label="Fermer le détail"
             >
               <X size={14} />
             </button>
           </div>
-          {/* ⚠️ Une carte PAR SÉRIE, pas une seule : « Actuelle » et les deux
-              potentiels sont triés séparément, donc le rang N ne désigne pas la
-              même rune dans chacun. Afficher la première venue aurait montré une
-              rune qui ne correspond pas à la courbe qu'on visait. */}
-          <div className="flex flex-wrap gap-2">
-            {runesChoisies.map(({ serie, rune, val }) => (
-              <div key={serie.name} className="w-[260px] max-w-full">
-                <div className="mb-1 flex items-center gap-1.5 font-mono text-[11px] text-ink-dim">
-                  <span
-                    className="inline-block h-1.5 w-3 flex-none rounded-full"
-                    style={{ background: serie.color }}
-                  />
-                  {serie.name} ·{' '}
-                  {unit === '%' ? val.toFixed(1) : String(Math.round(val))}
-                  {unit}
-                </div>
-                <div className="rounded-lg border border-border bg-panel p-2">
-                  <RuneDetailBox rune={rune} />
-                </div>
-              </div>
-            ))}
+
+          {/* ⚠️ UNE seule rune : celle de MA courbe. Les potentiels ne sont pas
+              d'autres runes, c'est la même box projetée dans une autre
+              hypothèse — trois cartes quasi identiques pour une seule question
+              (« quelle est cette rune ? »). */}
+          <div className="w-[260px] max-w-full rounded-lg border border-border bg-panel p-2">
+            <RuneDetailBox rune={runeChoisie.rune} />
           </div>
         </div>
       )}

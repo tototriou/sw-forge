@@ -1,12 +1,6 @@
-import { memo, useCallback, useMemo, useRef, useState } from 'react';
+import { memo, useMemo, useState } from 'react';
 import { RuneDetail } from '../../types';
-import {
-  formatRuneEffect,
-  RARITY_META,
-  RUNE_EFFECT,
-  runeEfficiency,
-  runeScore,
-} from '../../lib/effects';
+import { RUNE_EFFECT, runeEfficiency, runeScore } from '../../lib/effects';
 import SetFilter from './SetFilter';
 import SlotFilter from './SlotFilter';
 import RuneSlotIcon from '../RuneSlotIcon';
@@ -14,7 +8,6 @@ import { RuneDetailBox } from '../MonsterGear';
 import Pager from './Pager';
 import { Critere } from './SubSearchDialog';
 import SubSearchBar from './SubSearchBar';
-import DetailPopover from './DetailPopover';
 import {
   RUNE_SORTS,
   RuneSortMode,
@@ -23,12 +16,7 @@ import {
   valeurSub,
 } from '../../lib/runeSort';
 import { useStickyState } from '../../hooks/useStickyState';
-import {
-  RuneMetric,
-  useRuneMetric,
-  formatRuneMetric,
-  runeMetricLabel,
-} from '../../hooks/useRuneMetric';
+import { useRuneMetric } from '../../hooks/useRuneMetric';
 
 interface Props {
   runes: RuneDetail[];
@@ -79,8 +67,8 @@ export default function RunesList({ runes }: Props) {
   const cherches = useMemo(() => new Set(actifs.map((c) => c.code)), [actifs]);
   const metric = useRuneMetric(); // choix PARTAGÉ avec les autres vues
   const [page, setPage] = useState(0);
-  const [openId, setOpenId] = useState<number | null>(null);
-  const toggleOpen = useCallback((id: number) => setOpenId((c) => (c === id ? null : id)), []);
+  // ⚠️ Plus d'état « rune ouverte » : la tuile EST la carte de détail, il n'y a
+  // plus rien à ouvrir. Voir RuneTile.
 
   // Les deux mesures calculées une seule fois par import (bascule instantanée).
   const rows = useMemo(
@@ -238,19 +226,12 @@ export default function RunesList({ runes }: Props) {
           Clé POSITIONNELLE (et non `row.id`) : la tuile est réutilisée quand la
           page/le filtre change, donc le cadre pivote vers son nouveau slot au
           lieu d'être remonté d'un coup. Voir SPIN dans RuneSlotIcon. */}
-      {/* ⚠️ 200 px et non 150 : la tuile porte désormais ses 4 substats, et à
-          150 px le libellé et sa valeur se chevauchaient. Reste plus étroit que
-          les artéfacts (240 px), dont les libellés tiennent en une phrase. */}
-      <div className="grid grid-cols-[repeat(auto-fill,minmax(200px,1fr))] gap-2 items-start">
+      {/* ⚠️ 260 px : l'en-tête de la carte porte l'image, la stat principale et
+          la bannière de rareté sur UNE ligne. Plus étroit, la bannière passait
+          sous la stat et chaque tuile gagnait une ligne — l'inverse du but. */}
+      <div className="grid grid-cols-[repeat(auto-fill,minmax(260px,1fr))] gap-2 items-start">
         {shown.map((row, i) => (
-          <RuneTile
-            key={i}
-            row={row}
-            metric={metric}
-            cherches={cherches}
-            open={openId === row.id}
-            onToggle={toggleOpen}
-          />
+          <RuneTile key={i} row={row} cherches={cherches} />
         ))}
       </div>
 
@@ -263,116 +244,41 @@ export default function RunesList({ runes }: Props) {
   );
 }
 
-// Tuile uniforme cliquable : cadre de rune (orienté par slot, icône de set
-// dedans) à gauche · stat principale à côté · efficience en dessous.
+// Tuile de rune — **la carte du jeu**, en rendu resserré.
+//
+// ⚠️ C'est la MÊME carte que celle qu'on ouvrait au clic (`RuneDetailBox`), pas
+// un résumé qui y mènerait. Tout ce qu'on vient chercher dans l'inventaire — la
+// stat principale, l'innée, les quatre substats avec leur part de meule, la
+// rareté, le score, le bonus de set — y est d'emblée. Un aperçu qui cachait les
+// substats obligeait à ouvrir les runes une par une pour comparer, ce qui est
+// exactement ce qu'on fait en parcourant 2 000 runes.
+//
+// ⚠️ Plus de popover au clic : il n'aurait rien montré de plus. La tuile n'est
+// donc plus cliquable — un bouton qui ne fait rien se lit comme un défaut.
+//
 // Mémoïsée : ne se re-rend pas quand seuls les filtres/la page changent ailleurs.
 const RuneTile = memo(function RuneTile({
   row,
-  metric,
   cherches,
-  open,
-  onToggle,
 }: {
   row: RuneRow;
-  metric: RuneMetric;
   cherches: Set<number>; // codes recherchés → la ligne est surlignée
-  open: boolean;
-  onToggle: (id: number) => void;
 }) {
-  const ref = useRef<HTMLDivElement>(null);
   const { rune } = row;
-  const meta = RARITY_META[rune.rarity] ?? RARITY_META[1];
-  const ancient = rune.rank > 10;
-
   return (
-    <div
-      ref={ref}
-      className={`relative rounded-lg border bg-panel ${open ? 'z-20 border-accent' : 'border-border'}`}
-    >
-      <button onClick={() => onToggle(row.id)} className="w-full p-2 text-left">
-        <div className="flex items-center gap-2.5">
-          <RuneSlotIcon
-            slot={rune.slot}
-            setKey={rune.set}
-            rarity={rune.rarity}
-            ancient={ancient}
-            height={46}
-          />
-          <div className="min-w-0 flex-1">
-            <div className="text-[13px] font-bold text-ink leading-tight truncate">
-              {formatRuneEffect(rune.main)}
-            </div>
-            <div className="mt-0.5 font-mono text-[11px] text-ink-dim leading-tight">
-              {runeMetricLabel(metric)}{' '}
-              {/* `meta.ink` et non `meta.color` : c'est du TEXTE sur un panneau,
-                  pas la bannière de rareté. Les couleurs vives du jeu sont
-                  illisibles sur fond clair. Voir RARITY_META. */}
-              <b style={{ color: meta.ink }}>
-                {formatRuneMetric(metric === 'eff' ? row.eff : row.score, metric)}
-              </b>
-            </div>
-          </div>
-        </div>
-
-        {/* ⚠️ Les substats sont sur la TUILE, pas seulement dans le popover :
-            c'est ce qu'on cherche en parcourant l'inventaire (« qui porte de la
-            VIT ? »), et ouvrir les runes une par une pour le savoir rendait la
-            liste inutilisable. Même règle que les tuiles d'artéfact.
-            ⚠️ Le bloc est TOUJOURS rendu, même sans substat (une rune fraîche
-            n'en a aucun) : sans lui, les tuiles n'auraient pas la même hauteur
-            et la grille se déchirerait d'une ligne à l'autre. */}
-        <div className="mt-1.5 space-y-[3px] border-t border-border/40 pt-1.5">
-          {rune.subs.length === 0 && (
-            <div className="text-[10.5px] italic leading-tight text-ink-dim">
-              aucune propriété secondaire
-            </div>
-          )}
-          {rune.subs.map((s, j) => {
-            const def = RUNE_EFFECT[s.code];
-            // Ligne RECHERCHÉE : c'est celle qu'on est venu voir. Un liseré
-            // d'accent + un fond à 8 %, rien de plus — l'œil balaie 60 tuiles,
-            // il faut savoir où regarder sans que la ligne se mette à crier.
-            // Même écho de filtre que sur un artéfact.
-            const vise = cherches.has(s.code);
-            // La meule, rappelée à part : c'est elle qui distingue une rune née
-            // haute d'une rune poussée (voir le tri « avant meule »).
-            const meule = s.grind ?? 0;
-            return (
-              <div
-                key={j}
-                // Les compensations (`-mx-1`, `pl-[2px]`, `pr-1`) annulent
-                // exactement le liseré et le fond : sans elles, la ligne visée
-                // se décale par rapport aux trois autres, et c'est ce décalage
-                // qu'on voit en premier au lieu de la propriété.
-                className={`flex items-baseline gap-1.5 text-[10.5px] leading-tight ${
-                  vise ? '-mx-1 rounded border-l-2 border-accent bg-accent/[0.08] pl-[2px] pr-1' : ''
-                }`}
-              >
-                <span className="min-w-0 flex-1 truncate text-ink-dim">
-                  {def?.label ?? `#${s.code}`}
-                </span>
-                <span className="flex-none font-mono tabular-nums text-ink">
-                  +{s.value}
-                  {def?.suffix}
-                </span>
-                {meule > 0 && (
-                  <span
-                    className="flex-none font-mono text-[9.5px] tabular-nums text-good"
-                    title={`Dont ${meule} de meule`}
-                  >
-                    +{meule}
-                  </span>
-                )}
-              </div>
-            );
-          })}
-        </div>
-      </button>
-
-      {/* Détail flottant : carte récap, placement auto (gauche/haut si bord). */}
-      <DetailPopover open={open} anchorRef={ref} height={320}>
-        <RuneDetailBox rune={rune} />
-      </DetailPopover>
-    </div>
+    <RuneDetailBox
+      rune={rune}
+      compact
+      cherches={cherches}
+      icone={
+        <RuneSlotIcon
+          slot={rune.slot}
+          setKey={rune.set}
+          rarity={rune.rarity}
+          ancient={rune.rank > 10}
+          height={40}
+        />
+      }
+    />
   );
 });

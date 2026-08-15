@@ -127,34 +127,37 @@ Blocs, dans l'ordre :
 
 ## Onglet Liste — `RunesList`
 
-- **Tuiles uniformes** : à gauche le **cadre de rune** (image du jeu) **orienté
-  selon le slot** ((slot−1)×60°) avec l'**icône du set dedans** colorisée par
-  rareté ([RuneSlotIcon.tsx](src/components/RuneSlotIcon.tsx), halo blanc si
-  antique ; petit décalage de l'icône le long de l'axe d'orientation par slot) ;
-  à côté la **stat principale** ; en dessous la **valeur** dans la mesure choisie
-  (teintée par rareté).
-- ⚠️ **Les 4 propriétés secondaires sont SUR la tuile**, sous un filet — pas
-  seulement dans le popover. C'est ce qu'on cherche en parcourant l'inventaire
-  (« qui porte de la VIT ? »), et ouvrir les runes une par une pour le savoir
-  rendait la liste inutilisable. Même règle que les tuiles d'artéfact.
-  - Chaque ligne : le **libellé**, la **valeur** (meule comprise), et la **part
-    de meule** rappelée à part en vert — c'est elle qui distingue une rune née
-    haute d'une rune poussée (voir le tri « avant meule »).
-  - La ligne **recherchée** prend un **liseré d'accent + un fond à 8 %**, avec
-    les compensations qui annulent exactement ce liseré : sans elles, la ligne
-    visée se décale par rapport aux trois autres, et c'est ce décalage qu'on voit
-    en premier au lieu de la propriété. Même écho de filtre que sur un artéfact.
-  - ⚠️ Le bloc est **toujours rendu**, même sans substat (une rune fraîche n'en
-    a aucun) : sans lui, les tuiles n'auraient pas la même hauteur et la grille
-    se déchirerait d'une ligne à l'autre.
-  - La grille passe à **200 px** de tuile (contre 150) : à 150, le libellé et sa
-    valeur se chevauchaient. Reste plus étroit que les artéfacts (240 px), dont
-    les libellés tiennent en une phrase.
-- **Détail au clic** : carte récap façon jeu (`RuneDetailBox`) en **popover
-  flottant** à **placement automatique** ([DetailPopover.tsx](src/components/account/DetailPopover.tsx)) —
-  s'ouvre vers la gauche/haut près d'un bord, jamais coupée, ne décale pas la grille.
-  Le détail affiche la **mesure choisie** (voir ci-dessus), dans la même couleur
-  quelle qu'elle soit.
+### ⚠️ La tuile EST la carte du jeu
+
+La tuile n'est pas un aperçu qui mènerait au détail : c'est **`RuneDetailBox`
+elle-même**, en rendu resserré (`compact`). Tout ce qu'on vient chercher dans
+l'inventaire y est d'emblée — un aperçu qui cachait les substats obligeait à
+ouvrir les runes une par une pour comparer, ce qui est exactement ce qu'on fait
+en parcourant 2 000 runes.
+
+- **En-tête sur UNE ligne** : l'**image de la rune** à gauche
+  ([RuneSlotIcon.tsx](src/components/RuneSlotIcon.tsx) — cadre orienté selon le
+  slot, symbole du set colorisé par rareté, halo si antique), la **stat
+  principale** et l'**innée** au centre, la **bannière de rareté** et la **mesure
+  choisie** à droite. Ces deux dernières occupaient auparavant leur propre bloc :
+  deux lignes rien que pour elles.
+- **Substats** : base en blanc, **part de meule en orange**, ↻ si la ligne a été
+  modifiée. ⚠️ **Alignés à gauche, valeur collée à son libellé** — et non la
+  valeur poussée au bord droit de la case : « VIT +26 +5 » se lit d'un bloc, là
+  où une valeur cadrée à droite oblige l'œil à traverser du vide sur chaque
+  ligne. C'est le rendu du jeu.
+- La ligne **recherchée** prend un **liseré d'accent + un fond à 8 %**, avec les
+  compensations qui l'annulent exactement — sinon elle se décale par rapport aux
+  autres, et c'est ce décalage qu'on voit en premier.
+- **Bonus de set** en pied, comme dans le jeu.
+- ⚠️ **Plus de popover au clic** : il n'aurait rien montré de plus. La tuile
+  n'est donc plus cliquable — un bouton qui ne fait rien se lit comme un défaut.
+- Grille à **260 px** : plus étroit, la bannière de rareté passe sous la stat
+  principale et chaque tuile gagne une ligne — l'inverse du but.
+> La même carte sert **en popover** ailleurs dans l'app (détail d'un monstre,
+> candidat de l'Optimizer) : elle y est rendue **sans `compact`** et sans image,
+> celle-ci étant déjà sur l'élément qui a ouvert le flottant.
+
 - **Filtres** : **sets** (`SetFilter`) et **slot** (`SlotFilter`) — voir
   ci-dessous — plus **antiques**, et la **propriété secondaire** (ci-dessous).
 - La **mesure** (réglage global, voir plus haut) pilote la valeur des tuiles, le

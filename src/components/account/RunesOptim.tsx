@@ -346,7 +346,10 @@ export default function RunesOptim({ runes, crafts }: Props) {
             <HelpCircle size={18} />
           </button>
           {showHelp && (
-            <div className="absolute right-0 z-30 mt-1.5 w-[360px] max-w-[88vw] rounded-lg border border-accent bg-panel p-3 text-[12.5px] text-ink-dim leading-relaxed shadow-xl shadow-black/50">
+            <div
+              className="absolute right-0 z-30 mt-1.5 w-[360px] max-w-[88vw] rounded-lg border border-accent bg-panel p-3 text-[12.5px] text-ink-dim leading-relaxed shadow-xl shadow-black/50
+                         origin-top-right animate-[popover_150ms_var(--ease-out)]"
+            >
               <p className="text-ink font-semibold mb-1">Comment est-ce calculé ?</p>
               <p>
                 Pour chaque rune on calcule son <b className="text-ink">efficience actuelle</b> puis son{' '}

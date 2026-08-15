@@ -658,8 +658,12 @@ export default function App() {
                   href={item.hash}
                   className={`flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-[13px] font-semibold transition flex-none whitespace-nowrap
                     ${
+                      // ⚠️ Le fond SEUL marque l'onglet courant. L'ombre qu'il
+                      // portait était une fausse élévation : une ombre dit
+                      // « ceci flotte au-dessus du reste », or un onglet actif
+                      // est dans le plan de la barre. Voir spec/shared/design.md.
                       active
-                        ? 'bg-accent-soft text-ink shadow'
+                        ? 'bg-accent-soft text-ink'
                         : 'text-ink-dim hoverable:text-ink'
                     }`}
                 >
@@ -675,8 +679,9 @@ export default function App() {
                 aria-expanded={accountOpen}
                 className={`flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-[13px] font-semibold transition flex-none whitespace-nowrap
                   ${
+                    // Fond seul, sans fausse élévation — voir design.md.
                     route === 'compte'
-                      ? 'bg-accent-soft text-ink shadow'
+                      ? 'bg-accent-soft text-ink'
                       : 'text-ink-dim hoverable:text-ink'
                   }`}
               >
@@ -686,7 +691,13 @@ export default function App() {
                 <ChevronDown size={12} className={`transition-transform ${accountOpen ? 'rotate-180' : ''}`} />
               </button>
               {accountOpen && (
-                <div className="absolute z-30 left-0 mt-1.5 min-w-[168px] rounded-xl border border-border bg-panel p-1 shadow-glow shadow-black/60">
+                <div
+                  // Le menu grandit depuis SON BOUTON (coin haut gauche), pas
+                  // depuis son centre : il sort de l'onglet qu'on vient de
+                  // cliquer. Même règle que DetailPopover.
+                  className="absolute z-30 left-0 mt-1.5 min-w-[168px] rounded-xl border border-border bg-panel p-1 shadow-glow shadow-black/60
+                             origin-top-left animate-[popover_150ms_var(--ease-out)]"
+                >
                   {ACCOUNT_SUBS.map((item) => {
                     const active = route === 'compte' && accountSub === item.sub;
                     return (
@@ -757,8 +768,9 @@ export default function App() {
                 aria-expanded={resourcesOpen}
                 className={`flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-[13px] font-semibold transition flex-none whitespace-nowrap
                   ${
+                    // Fond seul, sans fausse élévation — voir design.md.
                     resourcesActive
-                      ? 'bg-accent-soft text-ink shadow'
+                      ? 'bg-accent-soft text-ink'
                       : 'text-ink-dim hoverable:text-ink'
                   }`}
               >
@@ -766,7 +778,13 @@ export default function App() {
                 <ChevronDown size={12} className={`transition-transform ${resourcesOpen ? 'rotate-180' : ''}`} />
               </button>
               {resourcesOpen && (
-                <div className="absolute z-30 left-0 mt-1.5 min-w-[168px] rounded-xl border border-border bg-panel p-1 shadow-glow shadow-black/60">
+                <div
+                  // Le menu grandit depuis SON BOUTON (coin haut gauche), pas
+                  // depuis son centre : il sort de l'onglet qu'on vient de
+                  // cliquer. Même règle que DetailPopover.
+                  className="absolute z-30 left-0 mt-1.5 min-w-[168px] rounded-xl border border-border bg-panel p-1 shadow-glow shadow-black/60
+                             origin-top-left animate-[popover_150ms_var(--ease-out)]"
+                >
                   {RESOURCES.map((item) => {
                     const active = route === item.key;
                     const Icon = item.icon;
@@ -815,7 +833,15 @@ export default function App() {
             `aria-live` est implicite en `polite` sur `status`. */}
         <div role="status">
           {importMsg && (
-            <p className={`mb-3 text-[12.5px] ${importMsg.ok ? 'text-good' : 'text-bad'}`}>
+            // Le retour d'import se pose en fondu court plutôt que de surgir :
+            // il arrive APRÈS une action (un fichier déposé), et un texte qui
+            // apparaît d'un coup sous le curseur se lit comme une erreur de
+            // rendu. Voir spec/shared/design.md.
+            <p
+              className={`mb-3 text-[12.5px] animate-[apparition_200ms_var(--ease-out)] ${
+                importMsg.ok ? 'text-good' : 'text-bad'
+              }`}
+            >
               {importMsg.text}
             </p>
           )}

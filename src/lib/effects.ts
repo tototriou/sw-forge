@@ -50,56 +50,63 @@ export const ARTIFACT_MAIN: Record<number, { label: string; stat: StatKey }> = {
 
 // Substats d'artéfacts (sec_effects). Effets conditionnels/situationnels :
 // ils portent une valeur mais n'entrent pas dans les 8 stats de base.
+//
+// ⚠️ **Les libellés du JEU**, relevés sur la « Recherche détaillée de
+// sous-propriétés ». Ce sont ceux que le joueur lit dans son inventaire : une
+// reformulation, même plus claire à nos yeux, l'empêche de faire le
+// rapprochement (« Drain de vie » et non « Vol de vie », « Dgts supp. en prop.
+// de » et non « Dégâts add. par »). Même règle que Attribut/Type pour les
+// sortes d'artéfact — voir spec/compte/artefacts.md.
 export const ARTIFACT_SUB: Record<number, (v: number) => string> = {
   200: (v) => `ATQ + selon PV perdus, jusqu'à +${v}%`,
   201: (v) => `DEF + selon PV perdus, jusqu'à +${v}%`,
   202: (v) => `VIT + selon PV perdus, jusqu'à +${v}%`,
   203: (v) => `VIT sous effet d'incapacité +${v}%`,
-  204: (v) => `Effet d'augmentation d'ATQ +${v}%`,
-  205: (v) => `Effet d'augmentation de DEF +${v}%`,
-  206: (v) => `Effet d'augmentation de VIT +${v}%`,
-  207: (v) => `Effet d'augmentation du taux crit +${v}%`,
-  208: (v) => `Dégâts de contre-attaque +${v}%`,
-  209: (v) => `Dégâts d'attaque conjointe +${v}%`,
-  210: (v) => `Dégâts de bombe +${v}%`,
-  211: (v) => `Dégâts de réflexion +${v}%`,
-  212: (v) => `Dégâts de coup dévastateur +${v}%`,
-  213: (v) => `Dégâts reçus sous incapacité -${v}%`,
-  214: (v) => `Dégâts crit reçus -${v}%`,
-  215: (v) => `Vol de vie +${v}%`,
+  204: (v) => `Effet renforcement ATQ +${v}%`,
+  205: (v) => `Effet renforcement DEF +${v}%`,
+  206: (v) => `Effet aug. VIT +${v}%`,
+  207: (v) => `Effet aug. taux CRIT +${v}%`,
+  208: (v) => `Dgts de contre-attaque +${v}%`,
+  209: (v) => `Dgts d'attaque conjointe +${v}%`,
+  210: (v) => `Dgts de bombe +${v}%`,
+  211: (v) => `Dgts de réflexion +${v}%`,
+  212: (v) => `Dgts de coup dévastateur +${v}%`,
+  213: (v) => `Dgts reçus sous incapacité -${v}%`,
+  214: (v) => `Dgts CRIT reçus -${v}%`,
+  215: (v) => `Drain de vie +${v}%`,
   216: (v) => `PV à la résurrection +${v}%`,
   217: (v) => `Barre d'action à la résurrection +${v}%`,
-  218: (v) => `Dégâts add. par ${v}% des PV`,
-  219: (v) => `Dégâts add. par ${v}% de l'ATQ`,
-  220: (v) => `Dégâts add. par ${v}% de la DEF`,
-  221: (v) => `Dégâts add. par ${v}% de la VIT`,
-  222: (v) => `Dmg crit +${v}% si PV ennemi élevés`,
-  223: (v) => `Dmg crit +${v}% si PV ennemi bas`,
-  224: (v) => `Dmg crit mono-cible +${v}% à ton tour`,
-  225: (v) => `Dégâts contre/attaque conjointe +${v}%`,
-  226: (v) => `Effet Buff ATQ/DEF +${v}%`,
-  300: (v) => `Dégâts sur le Feu +${v}%`,
-  301: (v) => `Dégâts sur l'Eau +${v}%`,
-  302: (v) => `Dégâts sur le Vent +${v}%`,
-  303: (v) => `Dégâts sur la Lumière +${v}%`,
-  304: (v) => `Dégâts sur les Ténèbres +${v}%`,
-  305: (v) => `Dégâts reçus du Feu -${v}%`,
-  306: (v) => `Dégâts reçus de l'Eau -${v}%`,
-  307: (v) => `Dégâts reçus du Vent -${v}%`,
-  308: (v) => `Dégâts reçus de la Lumière -${v}%`,
-  309: (v) => `Dégâts reçus des Ténèbres -${v}%`,
-  400: (v) => `Dmg crit Compétence 1 +${v}%`,
-  401: (v) => `Dmg crit Compétence 2 +${v}%`,
-  402: (v) => `Dmg crit Compétence 3 +${v}%`,
-  403: (v) => `Dmg crit Compétence 4 +${v}%`,
-  404: (v) => `Récupération Compétence 1 +${v}%`,
-  405: (v) => `Récupération Compétence 2 +${v}%`,
-  406: (v) => `Récupération Compétence 3 +${v}%`,
-  407: (v) => `Précision Compétence 1 +${v}%`,
-  408: (v) => `Précision Compétence 2 +${v}%`,
-  409: (v) => `Précision Compétence 3 +${v}%`,
-  410: (v) => `Dmg crit Compétence 3/4 +${v}%`,
-  411: (v) => `Dmg crit 1ʳᵉ attaque +${v}%`,
+  218: (v) => `Dgts supp. en prop. des PV : ${v}%`,
+  219: (v) => `Dgts supp. en prop. de ATQ : ${v}%`,
+  220: (v) => `Dgts supp. en prop. de DEF : ${v}%`,
+  221: (v) => `Dgts supp. en prop. de VIT : ${v}%`,
+  222: (v) => `D.CRIT+ selon bon état PV enn. +${v}%`,
+  223: (v) => `D.CRIT+ sel. mauv. étt PV enn. +${v}%`,
+  224: (v) => `D.CRIT+ comp cib uniq pdt tour +${v}%`,
+  225: (v) => `Dgts de contre-attaque/attaque conjointe +${v}%`,
+  226: (v) => `Effet renforcement ATQ/DEF +${v}%`,
+  300: (v) => `Aug. des dgts infl. au Feu +${v}%`,
+  301: (v) => `Aug. des dgts infl. à l'Eau +${v}%`,
+  302: (v) => `Aug. des dgts infl. au Vent +${v}%`,
+  303: (v) => `Aug. des dgts infl. à Lum. +${v}%`,
+  304: (v) => `Aug. dgts infl. aux Tén. +${v}%`,
+  305: (v) => `Réd. des dgts reçus du Feu -${v}%`,
+  306: (v) => `Réd. dgts reçus de l'Eau -${v}%`,
+  307: (v) => `Réd. dgts reçus du Vent -${v}%`,
+  308: (v) => `Réd. dgts reçus de la Lum. -${v}%`,
+  309: (v) => `Réd. dgts reçus des Tén. -${v}%`,
+  400: (v) => `[Comp.1] Aug. Dgts CRIT +${v}%`,
+  401: (v) => `[Comp.2] Aug. Dgts CRIT +${v}%`,
+  402: (v) => `[Comp.3] Aug. Dgts CRIT +${v}%`,
+  403: (v) => `[Comp.4] Aug. Dgts CRIT +${v}%`,
+  404: (v) => `[Comp.1] Aug. des soins +${v}%`,
+  405: (v) => `[Comp.2] Aug. des soins +${v}%`,
+  406: (v) => `[Comp.3] Aug. des soins +${v}%`,
+  407: (v) => `[Comp.1] Aug. Précision +${v}%`,
+  408: (v) => `[Comp.2] Aug. Précision +${v}%`,
+  409: (v) => `[Comp.3] Aug. Précision +${v}%`,
+  410: (v) => `Dgts CRIT [compétence 3/4] +${v}%`,
+  411: (v) => `Dgts CRIT 1re attaque +${v}%`,
 };
 
 // Stat principale de relique (pri_effect) : PV% / ATQ% / DEF%.
@@ -390,6 +397,28 @@ export function formatArtifactSub(e: EffectLine): string {
   return fn ? fn(e.value) : `#${e.code} +${e.value}`;
 }
 
+// Le même libellé, **découpé autour de sa valeur** — pour que la fiche puisse
+// teinter le nombre différemment du texte, comme le fait le jeu.
+//
+// ⚠️ Découpage de la chaîne PRODUITE, et non seconde table de libellés : la
+// valeur ne tombe pas au même endroit d'un effet à l'autre (« Dégâts add. par
+// 9% de l'ATQ » la met au milieu, « Vol de vie +33% » à la fin). Une table
+// « libellé sans valeur » aurait dupliqué 48 lignes et divergé au premier
+// ajustement — même raison qu'`artifactSubLabel`.
+export function splitArtifactSub(e: EffectLine): { avant: string; valeur: string; apres: string } {
+  const texte = formatArtifactSub(e);
+  // La valeur telle qu'elle a été écrite (décimales comprises : « 0.3 »),
+  // avec le signe qui la précède et le % qui la suit s'il y en a un.
+  const motif = new RegExp(`[+-]?${String(e.value).replace('.', '\\.')}\\s*%?`);
+  const m = motif.exec(texte);
+  if (!m) return { avant: texte, valeur: '', apres: '' };
+  return {
+    avant: texte.slice(0, m.index),
+    valeur: m[0],
+    apres: texte.slice(m.index + m[0].length),
+  };
+}
+
 /* ---- Propriétés secondaires d'artéfact, hors de tout exemplaire ----------
  * Une recommandation désigne une propriété SANS valeur (voir `RecoSlot.artifacts`)
  * : il faut donc pouvoir la nommer et savoir sur quelle sorte d'artéfact elle
@@ -411,6 +440,26 @@ export function isArtifactSub(code: number): boolean {
   return Number.isFinite(code) && ARTIFACT_SUB[code] != null;
 }
 
+// Le NOM seul de la propriété, sans sa valeur — pour un filtre, où « +X% »
+// n'apporte rien et allonge chaque libellé.
+//
+// ⚠️ Retirer « X% » à l'aveugle laisse des tournures bancales : la valeur est
+// tantôt à la fin (« Vol de vie +X% »), tantôt annoncée par ce qui la précède
+// (« …, jusqu'à +X% »), tantôt AU MILIEU (« Dégâts add. par X% des PV » →
+// « Dégâts add. par des PV »). On nettoie donc les prépositions restées
+// orphelines, en plus de la ponctuation.
+export function artifactSubName(code: number): string {
+  const { avant, apres } = splitArtifactSub({ code, value: 'X' as unknown as number });
+  return `${avant}${apres}`
+    .replace(/,?\s*jusqu'à\s*$/i, '') // « …, jusqu'à » une fois la valeur ôtée
+    // « par des PV » / « par de l'ATQ » : la valeur était entre les deux mots.
+    .replace(/\bpar\s+(des?|du|de\s+l'|de\s+la)\s+/i, 'sur ')
+    .replace(/\s{2,}/g, ' ')
+    .replace(/\s+([.,])/g, '$1')
+    .replace(/[\s:]+$/, '')
+    .trim();
+}
+
 // Sur quelle sorte d'artéfact une propriété peut-elle apparaître ? Les codes
 // sont rangés par PLAGES dans les données com2us :
 //   200-299 → les deux · 300-399 → attribut seul · 400-499 → type seul.
@@ -421,13 +470,59 @@ export function artifactSubKinds(code: number): ArtifactKind[] {
   return ['element', 'archetype'];
 }
 
-// Propriétés proposables pour une sorte d'artéfact, dans l'ordre des codes
-// (celui du jeu : effets généraux, puis élémentaires ou par compétence).
+/* ---- Ordre d'affichage des propriétés secondaires --------------------- */
+
+// ⚠️ **L'ORDRE EXACT de la « Recherche détaillée de sous-propriétés » du jeu**,
+// relevé écran par écran. Ce n'est ni l'ordre des codes com2us, ni un ordre
+// alphabétique : c'est celui que le joueur connaît, et il vaut PARTOUT dans
+// l'application (filtre de l'inventaire, sélecteur des recommandations).
+//
+// ⚠️ **Cette liste servira à l'optimisation d'artéfacts** : elle regroupe les
+// propriétés par famille (élémentaires, par compétence, dégâts additionnels…),
+// ce qui est exactement le découpage dont un optimiseur a besoin pour raisonner
+// « quelle ligne vaut quoi pour ce monstre ». La réordonner à la légère casserait
+// donc plus qu'un affichage.
+const SUB_ORDER: number[] = [
+  // Dégâts infligés par élément
+  300, 301, 302, 303, 304,
+  // Dégâts reçus par élément
+  305, 306, 307, 308, 309,
+  // Dégâts critiques par compétence
+  400, 401, 410, 411,
+  // Soins par compétence
+  404, 405, 406,
+  // Précision par compétence
+  407, 408, 409,
+  // Renforcements
+  226, 206,
+  // Effets divers
+  210, 214, 215,
+  // Dégâts supplémentaires proportionnels
+  218, 219, 220, 221,
+  // Dégâts critiques conditionnels
+  222, 223, 224, 225,
+];
+
+// Rang d'affichage. Les propriétés hors de la liste du jeu passent en fin
+// (« Autres sous-propriétés »), dans l'ordre de leur code.
+export function artifactSubOrder(code: number): number {
+  const i = SUB_ORDER.indexOf(code);
+  return i >= 0 ? i : SUB_ORDER.length + code;
+}
+
+// Une propriété que la recherche du jeu ne liste pas nommément : elle tombe
+// sous « Autres sous-propriétés ».
+export function isAutreSousPropriete(code: number): boolean {
+  return !SUB_ORDER.includes(code);
+}
+
+// Propriétés proposables pour une sorte d'artéfact, **rangées par catégorie**
+// (voir ci-dessus).
 export function artifactSubsFor(kind: ArtifactKind): { code: number; label: string }[] {
   return Object.keys(ARTIFACT_SUB)
     .map(Number)
     .filter((c) => artifactSubKinds(c).includes(kind))
-    .sort((a, b) => a - b)
+    .sort((a, b) => artifactSubOrder(a) - artifactSubOrder(b))
     .map((code) => ({ code, label: artifactSubLabel(code) }));
 }
 

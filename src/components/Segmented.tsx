@@ -49,8 +49,14 @@ export default function Segmented<T extends string>({
                           transition whitespace-nowrap ${
                             size === 'lg' ? 'px-2 py-1.5 text-[12px]' : 'px-2 py-1 text-[11.5px]'
                           } ${
+                            // ⚠️ Le fond SEUL marque le cran posé — pas d'ombre
+                            // en plus, elle faisait décoller le bouton de son
+                            // propre cadre : deux signaux pour un seul état, et
+                            // une élévation qui ne veut rien dire ici (le cran
+                            // ne flotte pas au-dessus du contrôle qui le
+                            // contient). Voir spec/shared/design.md.
                             active
-                              ? `bg-accent-soft text-ink shadow ${size === 'lg' ? 'border border-accent' : ''}`
+                              ? 'bg-accent-soft text-ink'
                               : 'text-ink-dim hoverable:text-ink'
                           }`}
             >

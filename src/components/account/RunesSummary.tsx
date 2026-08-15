@@ -3,6 +3,7 @@ import { RuneDetail, RUNE_SETS } from '../../types';
 import { RARITY_META, RUNE_EFFECT, runeEfficiency } from '../../lib/effects';
 import { runePotential } from '../../lib/runeOptim';
 import RuneIcon from '../RuneIcon';
+import { Kpi, Panel, BarRow, pct, fmt } from './SummaryBits';
 
 interface Props {
   runes: RuneDetail[];
@@ -46,8 +47,8 @@ const avg = (a: Agg) => (a.n ? a.sum / a.n : 0);
 // qu'un compte mûr équipe réellement (6 runes × ~65 monstres joués).
 const TOP_N = 400;
 
-const pct = (n: number, total: number) => (total ? (n / total) * 100 : 0);
-const fmt = (v: number) => v.toFixed(1);
+// `pct` / `fmt` et les briques d'affichage sont partagés avec le résumé des
+// artéfacts — voir SummaryBits.tsx.
 
 export default function RunesSummary({ runes }: Props) {
   // Tout le résumé est calculé en un seul passage, mémoïsé par import.
@@ -356,62 +357,3 @@ export default function RunesSummary({ runes }: Props) {
   );
 }
 
-/* ---- Briques d'affichage ------------------------------------------------ */
-
-// Tuile de chiffre clé : libellé mono, grande valeur, sous-titre.
-function Kpi({ label, value, sub, tone }: { label: string; value: string; sub?: string; tone?: string }) {
-  return (
-    <div className="rounded-xl border border-border bg-panel px-3 py-2.5">
-      <p className="label">{label}</p>
-      <p
-        className="mt-0.5 text-[22px] font-bold leading-none tabular-nums"
-        style={{ color: tone ?? 'rgb(var(--ink))' }}
-      >
-        {value}
-      </p>
-      {sub && <p className="mt-1 font-mono text-[11px] text-ink-dim">{sub}</p>}
-    </div>
-  );
-}
-
-// Panneau titré.
-function Panel({ title, children }: { title: string; children: React.ReactNode }) {
-  return (
-    <section className="rounded-xl border border-border bg-panel p-4">
-      <h3 className="mb-3 label">{title}</h3>
-      {children}
-    </section>
-  );
-}
-
-// Ligne de barre : libellé · barre proportionnelle · effectif + part.
-function BarRow({
-  label,
-  n,
-  total,
-  max,
-  color,
-}: {
-  label: string;
-  n: number;
-  total: number;
-  max: number;
-  color: string;
-}) {
-  return (
-    <div className="flex items-center gap-2.5">
-      <span className="w-[104px] flex-none font-mono text-[11.5px] text-ink-dim truncate" title={label}>
-        {label}
-      </span>
-      <div className="h-2.5 flex-1 rounded-full bg-panel2 overflow-hidden">
-        <div
-          className="h-full rounded-full transition-all"
-          style={{ width: `${max ? (n / max) * 100 : 0}%`, background: color }}
-        />
-      </div>
-      <span className="w-[92px] flex-none text-right font-mono text-[11.5px] text-ink-dim tabular-nums">
-        <b className="text-ink">{n.toLocaleString('fr-FR')}</b> · {fmt(pct(n, total))} %
-      </span>
-    </div>
-  );
-}

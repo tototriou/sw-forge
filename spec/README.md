@@ -91,10 +91,13 @@ Concepts partagés par plusieurs pages, documentés une seule fois :
   d'interface** : elle se vérifie à l'œil, et des tests d'affichage se
   contenteraient de figer le rendu du jour.
 - **Versions & releases** — `main` reste **stable et déployée** ; on développe
-  dans une branche **`release/x.y.z`**, qui porte l'incrément de `package.json`
-  **et** l'entrée du journal ([releases.md](releases.md)). Processus détaillé
-  dans le [README](README.md). ⚠️ **Un changement de calcul se note toujours**
-  dans le journal : c'est ce qu'un joueur remarque en premier.
+  dans une branche **`forge/<sujet>`**, qui porte l'entrée du journal
+  ([releases.md](releases.md)) puis, à la fin, l'incrément de `package.json`.
+  ⚠️ **Une branche porte un sujet, pas un numéro** : le numéro se décide à la
+  fusion, quand on voit ce que la version contient — d'ici là l'entrée du
+  journal a `version: null`. Processus détaillé dans le [README](README.md).
+  ⚠️ **Un changement de calcul se note toujours** dans le journal : c'est ce
+  qu'un joueur remarque en premier.
 - **Footer** — trois informations, dans cet ordre :
   0. **Version** `vX.Y.Z` (depuis `package.json`), **cliquable** vers `#/releases`.
   1. **Signature** : lien vers le dépôt GitHub (`github.com/tototriou/sw-forge`)

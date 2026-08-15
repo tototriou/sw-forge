@@ -187,9 +187,10 @@ function MonsterBoxSection({ box }: { box: BoxItem[] }) {
                 key={el.key}
                 data-active={active}
                 onClick={() => toggleElement(el.key)}
+                // L'opacité est le marqueur, sans ombre — voir design.md.
                 className={`flex items-center gap-1.5 rounded-full border bg-panel px-3 py-1 text-[12.5px] font-semibold
                   transition select-none ${ELEMENT_FILTER_STYLES[el.key]}
-                  ${active ? 'shadow' : 'opacity-70 hoverable:opacity-100'}`}
+                  ${active ? '' : 'opacity-70 hoverable:opacity-100'}`}
               >
                 <ElementIcon element={el.key} size={15} />
                 {el.label}
@@ -215,7 +216,7 @@ function MonsterBoxSection({ box }: { box: BoxItem[] }) {
                 className={`rounded-full border px-3 py-1 text-[12.5px] font-mono font-semibold transition select-none
                   ${
                     active
-                      ? 'bg-gradient-to-br from-star to-yellow-200 text-bg border-star shadow'
+                      ? 'bg-gradient-to-br from-star to-yellow-200 text-bg border-star'
                       : 'bg-panel border-border text-ink-dim hoverable:text-ink hoverable:border-accent'
                   }`}
               >
@@ -228,7 +229,7 @@ function MonsterBoxSection({ box }: { box: BoxItem[] }) {
             className={`ml-1 flex items-center gap-1.5 rounded-full border px-3 py-1 text-[12.5px] font-semibold transition select-none
               ${
                 dupesOnly
-                  ? 'bg-gradient-to-br from-star to-yellow-200 text-bg border-star shadow'
+                  ? 'bg-gradient-to-br from-star to-yellow-200 text-bg border-star'
                   : 'bg-panel border-border text-ink-dim hoverable:text-ink hoverable:border-accent'
               }`}
           >
@@ -239,7 +240,7 @@ function MonsterBoxSection({ box }: { box: BoxItem[] }) {
             className={`flex items-center gap-1.5 rounded-full border px-3 py-1 text-[12.5px] font-semibold transition select-none
               ${
                 secondOnly
-                  ? 'bg-gradient-to-br from-star to-yellow-200 text-bg border-star shadow'
+                  ? 'bg-gradient-to-br from-star to-yellow-200 text-bg border-star'
                   : 'bg-panel border-border text-ink-dim hoverable:text-ink hoverable:border-accent'
               }`}
             title="Monstres à second éveil (double éveil)"

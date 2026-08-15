@@ -25,16 +25,35 @@ les libellés ne sont pas réécrits dans chaque écran.
   [DetailPopover.tsx](src/components/account/DetailPopover.tsx)) — stat principale,
   substats (↻ orange si modifié), type.
 - **Tri** : par **rareté décroissante** puis **niveau décroissant**.
+- **Propriété recherchée mise en avant** : sur chaque tuile, la ligne de substat
+  qui correspond à un critère posé porte un **liseré d'accent à gauche et un fond
+  d'accent à 8 %**.
+  - ⚠️ **Léger, juste de quoi attirer l'œil.** On balaie 60 tuiles de 4 lignes :
+    ce qu'il faut, c'est savoir *où* regarder, pas rendre la ligne criarde.
+  - ⚠️ **Le texte n'est pas recoloré** : il deviendrait moins lisible que les
+    trois autres lignes, alors qu'on veut justement le lire.
+  - ⚠️ **L'accent, pas `good`/`warn`** : ce n'est pas un état de la donnée mais
+    un **écho du filtre**. C'est la couleur du critère posé juste au-dessus, donc
+    le lien se fait tout seul. Le vert de la pastille de procs, lui, parle des
+    valeurs — les deux signaux ne doivent pas se confondre.
+  - ⚠️ **Aucun décalage** : marges négatives + `pl-[2px]` compensent le liseré,
+    et la ligne ne prend pas de marge verticale. Sans ça, la ligne visée se
+    décale des trois autres — et c'est ce décalage qu'on voit en premier, pas la
+    propriété. La pastille de procs reste sur la même colonne, le `space-y-[3px]`
+    est préservé.
+  - Les codes sont passés à la tuile dans un **`Set` mémoïsé** : `ArtTile` est
+    mémoïsée, une référence neuve à chaque rendu casserait le `memo` des 60
+    tuiles à chaque frappe dans un seuil.
 
 ## Filtres
 
 **Une rangée par axe**, chacune avec son intitulé : `Catégorie` · `Attribut` ·
-`Type` · `Rareté`. ⚠️ Tout sur une seule ligne, le contrôle de catégorie et les
-neuf pastilles passaient à la ligne au hasard de la largeur — on ne voyait plus
-où finissait un filtre et où commençait le suivant.
+`Type` · `Rareté` · `Stat principale` · `Propriété`. ⚠️ Tout sur une seule ligne,
+le contrôle de catégorie et les neuf pastilles passaient à la ligne au hasard de
+la largeur — on ne voyait plus où finissait un filtre et où commençait le suivant.
 
-Les quatre intitulés ont une **largeur fixe** (`w-[86px]`) : les rangées de
-boutons démarrent ainsi sur une même colonne. Laissés à leur largeur naturelle,
+Les intitulés ont une **largeur fixe** (`w-[86px]`) : les rangées de boutons
+démarrent ainsi sur une même colonne. Laissés à leur largeur naturelle,
 « TYPE » et « CATÉGORIE » décalaient leurs rangées l'une par rapport à l'autre.
 
 - **Catégorie** : `Tous` · `Attribut` · `Type`.
@@ -80,6 +99,25 @@ boutons démarrent ainsi sur une même colonne. Laissés à leur largeur naturel
     bannière du jeu — reproduite à raison dans la fiche d'artéfact, mais isolée
     dans une rangée de filtres elle se lisait comme un composant étranger collé
     là. Les **couleurs** restent : elles portent une information.
+
+- **Stat principale** : `Toutes` · `PV` · `ATQ` · `DEF`. Libellés et ordre pris
+  d'`ARTIFACT_MAIN` ([effects.ts](src/lib/effects.ts)) — pas de quatrième table
+  de libellés dans l'écran.
+  - ⚠️ **Une seule à la fois**, d'où un contrôle **à cran** (`Segmented`) et non
+    des pastilles : un artéfact ne porte qu'une stat principale, et ce qu'on
+    cherche est « montre-moi mes artéfacts de VIT », pas une union de deux
+    stats. Des pastilles séparées se liraient comme cumulables — ce que sont
+    justement la rareté au-dessus et les propriétés en dessous. Même
+    raisonnement et même composant que la rangée Catégorie.
+  - ⚠️ **« Toutes » est une option**, pas l'absence de sélection : le cadre
+    montre toujours quel cran est posé, là où trois boutons tous éteints ne
+    diraient pas si le filtre est inactif ou simplement vide. C'est aussi ce qui
+    distingue cette rangée de Rareté, où l'ensemble vide veut dire « toutes ».
+  - ⚠️ L'intitulé se replie sur **deux lignes** au lieu d'être abrégé en « Stat
+    princ. » : en 11 px capitales espacées, « STAT PRINCIPALE » dépasse les 86 px
+    de la colonne. L'abréger trahirait le nom du jeu, élargir la colonne
+    décalerait les cinq autres rangées — le repli tient dans la hauteur déjà
+    occupée par le contrôle.
 
 ## Pagination
 

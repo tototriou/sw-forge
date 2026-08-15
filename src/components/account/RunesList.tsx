@@ -115,8 +115,13 @@ export default function RunesList({ runes }: Props) {
             }}
             className={`ml-1 rounded-full border px-3 py-1 text-[12.5px] font-semibold transition select-none
               ${
+                // ⚠️ La BORDURE seule (voir spec/shared/design.md). Elle
+                // cumulait fond + bordure + encre d'accent + ombre : quatre
+                // signaux pour un seul état. L'outline est plus discret que
+                // l'aplat sur une pastille isolée en bout de rangée — le fond
+                // la faisait ressortir comme un bouton d'action.
                 ancientOnly
-                  ? 'bg-accent-soft border-accent text-accent shadow'
+                  ? 'bg-panel border-accent text-ink'
                   : 'bg-panel border-border text-ink-dim hoverable:text-ink hoverable:border-accent'
               }`}
           >

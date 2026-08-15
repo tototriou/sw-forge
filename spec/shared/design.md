@@ -71,6 +71,47 @@ hexadécimal.
 données ; `accent` dit « ceci est actif ou sélectionné ». Les confondre rend un
 filtre actif indiscernable d'une alerte.
 
+### UN SEUL marqueur de sélection
+
+⚠️ **Un élément sélectionné porte UN marqueur, jamais deux.** L'app cumulait
+jusqu'à quatre signaux pour dire une seule chose — `bg-accent-soft` +
+`border-accent` + `text-accent` + `shadow`. Le résultat est une zone qui se
+surligne elle-même deux fois : on ne lit plus « c'est sélectionné », on voit un
+empilement qui bave sur ses voisins, et l'écran devient bruyant dès que trois
+filtres sont posés.
+
+**Le marqueur dépend du support** — un seul dans les deux cas :
+
+| Support | Marqueur | Pourquoi pas l'autre |
+|---------|----------|----------------------|
+| **Champ de saisie** (`select`, `input`, `textarea`) | `border-accent` | Un fond coloré passe derrière du texte qu'on doit lire, et concurrence le curseur |
+| **Pastille de filtre** (chip bordée) | `border-accent` | L'outline entoure la pastille sans passer derrière son icône ; l'aplat la faisait ressortir comme un bouton d'action |
+| **Cran d'un `Segmented`, onglet** | `bg-accent-soft` | Ils vivent dans un cadre commun où toutes les bordures sont déjà posées : seul le fond peut distinguer l'élu |
+
+⚠️ **Les pastilles voisines partagent le même marqueur.** Les numéros de
+`SlotFilter` et le bouton « Antiques » sont dans la même rangée : deux
+marqueurs différents côte à côte se lisent comme deux natures de filtre.
+
+**Corollaires :**
+
+- ⚠️ **`shadow` n'est JAMAIS un marqueur d'état.** L'ombre dit l'élévation — ce
+  qui flotte au-dessus du reste. Un filtre actif ne décolle pas de la page. Elle
+  reste donc aux popovers, menus et dialogues, et disparaît des états actifs.
+- ⚠️ **`text-accent` ne se cumule pas avec un fond.** Sur `accent-soft`, l'encre
+  d'accent perd du contraste au lieu d'en gagner : le libellé d'un élément
+  sélectionné devient moins lisible que ses voisins non sélectionnés. Le texte
+  passe à `ink` sur fond actif.
+- Le **survol** garde `hoverable:border-accent` sur les contrôles à fond : il
+  agit au repos, quand aucun marqueur n'occupe la bordure — il n'y a donc pas de
+  cumul.
+
+**Focus mis à part.** L'anneau `:focus-visible` (voir plus bas) n'est pas un
+marqueur de sélection mais la position du clavier — les deux peuvent coexister
+sur un même élément. C'est justement pour qu'ils restent distinguables que
+l'état sélectionné n'a droit qu'à un seul signal : quand la bordure d'accent
+d'un `select` posé se doublait de l'anneau d'accent à 2 px, on lisait un seul
+halo épais au lieu de deux informations.
+
 ### Éléments — deux valeurs par élément
 
 Les couleurs d'élément sont du **vocabulaire Summoners War**, pas du style : un
@@ -165,12 +206,54 @@ Forge assume l'angle vif (le métal, la frappe) ; Atelier reste légèrement ado
 ⚠️ **Jamais `ease-in` sur un élément d'interface** : il démarre lentement, à
 l'instant précis où l'utilisateur regarde. Une même durée paraît plus lente.
 
+⚠️ **Framer Motion ne lit pas les variables CSS** dans son champ `ease`. Les
+courbes s'y écrivent donc en points de Bézier — `[0.23, 1, 0.32, 1]`, la
+constante `EASE_OUT` de l'accueil — et **jamais** en `'easeOut'` natif, qui est
+plus mou : la page démarrait sur une courbe que rien d'autre dans l'app
+n'utilise. Seule exception : `easeInOut` sur une **boucle** de va-et-vient (les
+icônes qui flottent), où l'aller-retour doit ralentir aux deux extrémités.
+
 Durées : pression 150 ms · infobulle 125 ms · popover 150 ms · modale 200 ms.
 **Rien au-dessus de 300 ms** dans l'interface.
 
 ⚠️ **`prefers-reduced-motion: reduce`** coupe les **déplacements** et les boucles
 infinies (les cinq icônes d'élément de l'accueil), **garde les fondus** — un
 mouvement réduit reste un mouvement, pas une absence de retour.
+
+#### Ce qui s'anime, et ce qui ne s'anime pas
+
+⚠️ **La fréquence décide.** Ce qu'on voit cent fois par jour ne s'anime pas :
+l'animation y ajoute une attente à chaque passage, et une interface qu'on
+connaît par cœur doit répondre instantanément. Ce qui est occasionnel peut
+s'annoncer.
+
+| Fréquence | Décision | Exemples ici |
+|-----------|----------|--------------|
+| Permanent, à chaque frappe | **Aucune animation** | Liste de résultats du `MonsterPicker`, tuiles de rune et d'artéfact, filtres |
+| Fréquent | Retour immédiat seulement | Pression au clic (150 ms), survols |
+| Occasionnel | Entrée animée | Menus, popovers, dialogues, retour d'import |
+
+Quatre keyframes, déclarés une fois dans `index.css` :
+
+| Keyframe | Mouvement | Pour |
+|----------|-----------|------|
+| `popover` | fondu + `scale(.96)` | Menus et popovers **ancrés** |
+| `voile` | fondu seul | Le fond d'un dialogue |
+| `dialogue` | fondu + 8 px + `scale(.98)` | La boîte d'un dialogue |
+| `apparition` | fondu + 4 px | Un message ou un bloc qui se pose **en place** |
+
+- ⚠️ **Un flottant ancré grandit depuis SON ANCRE**, jamais depuis son centre :
+  `origin-top-left`, ou `origin-top-right` s'il est calé à droite. Sorti du
+  centre, on cherche des yeux une origine qui ne correspond à rien.
+- ⚠️ **La boîte de dialogue fait exception** et reste centrée : elle n'a pas
+  d'ancre, elle ne sort d'aucun bouton.
+- ⚠️ **Jamais depuis `scale(0)`** : rien n'apparaît de nulle part. `.96` au
+  minimum.
+- ⚠️ **Pas de `scale` sur du texte** (`apparition`) : la mise à l'échelle
+  déforme les lettres pendant l'animation, et rien ne « grandit » — le message
+  se pose, il n'arrive pas de loin.
+- La boîte d'un dialogue est **plus lente que son voile** (200 vs 150 ms) : elle
+  doit finir après le fond qu'elle recouvre, sinon elle semble le précéder.
 
 ## Contraste — mesuré, jamais estimé
 

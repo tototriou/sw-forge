@@ -239,12 +239,22 @@ function runeToDetail(rune: any): RuneDetail {
 
 function artifactToDetail(a: any): ArtifactDetail {
   const main = effLine(a?.pri_effect) ?? { code: 0, value: 0 };
-  // sec_effect = [type, value, i2, i3, i4]. Le substat « rollé » (amélioré/
+  // sec_effect = [type, value, rolls, i3, i4]. Le substat « rollé » (amélioré/
   // converti) est celui dont i4 > 0.
+  //
+  // ⚠️ `e[2]` est le nombre d'AMÉLIORATIONS posées sur la ligne — vérifié sur
+  // 2 120 artéfacts : la somme par artéfact vaut exactement ce que sa rareté
+  // distribue au +15 (Rare 2, Héroïque 3, Légendaire 4). C'est la mesure de
+  // qualité d'un artéfact, cf. spec/compte/calcul-artefacts.md.
   const subs: EffectLine[] = Array.isArray(a?.sec_effects)
     ? a.sec_effects
         .filter((e: any) => Number(e?.[0]))
-        .map((e: any) => ({ code: Number(e[0]), value: Number(e[1]) || 0, enchant: Number(e[4]) > 0 }))
+        .map((e: any) => ({
+          code: Number(e[0]),
+          value: Number(e[1]) || 0,
+          rolls: Number(e[2]) || 0,
+          enchant: Number(e[4]) > 0,
+        }))
     : [];
   const level = Number(a?.level) || 0;
   // Rareté = natural_rank (le champ `rank` vaut toujours 5, inutilisable).

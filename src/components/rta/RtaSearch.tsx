@@ -59,9 +59,9 @@ export default function RtaSearch({ monsters, addedIds, onAdd }: Props) {
         value={query}
         onChange={(e) => setQuery(e.target.value)}
         placeholder="Rechercher un monstre à ajouter à ta prépa RTA…"
+        // Bordure seule au focus, sans halo : voir spec/shared/design.md.
         className="w-full bg-panel border border-border rounded-xl py-3.5 pl-11 pr-4 text-[15px]
-                   text-ink placeholder:text-ink-dim outline-none transition
-                   focus:border-accent focus:shadow-[0_0_0_3px_rgb(var(--accent)/0.25)]"
+                   text-ink placeholder:text-ink-dim transition focus:border-accent"
       />
 
       {nav.open && (

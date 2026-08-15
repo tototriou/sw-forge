@@ -83,7 +83,10 @@ export default function CreateMonster({ onCreate, customMonsters, onDelete }: Pr
       </button>
 
       {open && (
-        <div className="absolute z-30 mt-2 w-[300px] max-w-[calc(100vw-2rem)] rounded-xl border border-border bg-panel p-3 shadow-glow shadow-black/60">
+        <div
+          className="absolute z-30 mt-2 w-[300px] max-w-[calc(100vw-2rem)] rounded-xl border border-border bg-panel p-3 shadow-glow shadow-black/60
+                     origin-top-left animate-[popover_150ms_var(--ease-out)]"
+        >
           <div className="flex items-center justify-between mb-2.5">
             <span className="label">
               Nouveau monstre

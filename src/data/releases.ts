@@ -3,7 +3,7 @@
 // ⚠️ **Source de vérité du contenu des releases.** Il est tenu À LA MAIN, et
 // non dérivé de l'API GitHub : le site est statique et doit rester lisible hors
 // ligne, sans dépendre d'un service tiers ni de ses quotas. Une release = une
-// entrée ici, ajoutée dans la branche `release/x.y.z` (voir README).
+// entrée ici, ajoutée dans la branche `forge/<sujet>` (voir README).
 //
 // La version affichée dans le pied de page vient, elle, de `package.json`
 // (`__APP_VERSION__`, injecté par Vite) : les deux doivent rester alignées.
@@ -17,16 +17,31 @@ export interface ReleaseChange {
 }
 
 export interface Release {
-  version: string; // « 1.1.0 »
+  // ⚠️ `null` tant que le numéro n'est PAS DÉCIDÉ. Une version se développe
+  // sans savoir si elle sortira en corrective ou en mineure — c'est ce qu'elle
+  // contient à la fin qui tranche. Écrire un numéro d'avance oblige à le
+  // corriger en route ; `null` dit simplement « pas encore fixé », et la page
+  // affiche « En préparation ». Le numéro s'écrit ici au moment de publier.
+  version: string | null; // « 1.1.0 »
   date: string; // ISO court, « 2026-08-09 »
   title: string; // résumé en une ligne
   highlights?: string[]; // 1 à 3 points mis en avant
   changes: ReleaseChange[];
   // ⚠️ `false` quand AUCUN tag Git ne correspond : le lien « GitHub ↗ » est
   // alors masqué au lieu de mener à un 404. C'est le cas de la 1.0.0, publiée
-  // avant que le dépôt existe. Une version en cours de préparation (déjà au
-  // journal, pas encore taguée) prend `false` jusqu'à sa publication.
+  // avant que le dépôt existe. Une version en préparation (`version: null`) n'a
+  // pas de tag non plus : le lien est masqué sans avoir à le préciser.
   tag?: boolean;
+}
+
+// Ce qu'on affiche à la place du numéro tant qu'il n'est pas tranché.
+export const VERSION_EN_PREPARATION = 'En préparation';
+
+// Libellé d'une version pour l'interface : « v1.4.0 », ou « En préparation ».
+// ⚠️ Le « v » est porté ICI et non par l'appelant : préfixé en dur, il donnait
+// « vEn préparation ».
+export function libelleVersion(version: string | null): string {
+  return version === null ? VERSION_EN_PREPARATION : `v${version}`;
 }
 
 export const CHANGE_META: Record<ChangeKind, { label: string; color: string }> = {
@@ -42,6 +57,72 @@ export const CHANGE_META: Record<ChangeKind, { label: string; color: string }> =
 // détail d'implémentation — tout ça vit dans les commits et dans `spec/`.
 // Si une ligne dépasse ~15 mots, c'est qu'elle raconte l'implémentation.
 export const RELEASES: Release[] = [
+  // ⚠️ La PROCHAINE version en préparation se pose ici, avec `version: null` :
+  // le numéro se décide à la fusion, d'après ce que la branche contient au
+  // final. On le remplace au moment de publier, en même temps que
+  // `package.json` et le tag.
+  {
+    version: '1.5.0',
+    date: '2026-08-15',
+    title: 'Tes artéfacts, notés et fouillables',
+    highlights: [
+      'Le score du jeu et l’efficience de chaque artéfact, calculés sur tout ton stock',
+      'Cherche par propriété comme dans le jeu : jusqu’à quatre critères, avec un minimum',
+      'Vois d’un coup où est ta réserve : raretés, attributs, types, propriétés les plus portées',
+    ],
+    changes: [
+      {
+        kind: 'feat',
+        scope: 'Mon compte',
+        text: 'Tes artéfacts ont leur page, avec le score du jeu et l’efficience de chaque pièce.',
+      },
+      {
+        kind: 'feat',
+        scope: 'Mon compte',
+        text: 'Un résumé chiffré de ta réserve : raretés, attributs, types et propriétés les plus portées.',
+      },
+      {
+        kind: 'feat',
+        scope: 'Mon compte',
+        text: 'Cherche par propriété avec un minimum exigé, jusqu’à quatre à la fois.',
+      },
+      {
+        kind: 'feat',
+        scope: 'Mon compte',
+        text: 'L’ordre des critères fait le tri : le premier classe, le second départage.',
+      },
+      {
+        kind: 'feat',
+        scope: 'Mon compte',
+        text: 'Filtre par stat principale : PV, ATQ ou DEF.',
+      },
+      {
+        kind: 'feat',
+        scope: 'Mon compte',
+        text: 'La propriété que tu cherches est mise en avant sur chaque artéfact.',
+      },
+      {
+        kind: 'feat',
+        scope: 'Mon compte',
+        text: 'Les quatre propriétés et leurs procs sont lisibles sans ouvrir la pièce.',
+      },
+      {
+        kind: 'feat',
+        scope: 'Interface',
+        text: 'Les menus, fenêtres et panneaux se posent en douceur au lieu de surgir.',
+      },
+      {
+        kind: 'fix',
+        scope: 'Mon compte',
+        text: 'Les propriétés portent les noms du jeu et son ordre de recherche.',
+      },
+      {
+        kind: 'fix',
+        scope: 'Interface',
+        text: 'Un élément sélectionné ne porte plus deux surbrillances superposées.',
+      },
+    ],
+  },
   {
     version: '1.4.0',
     date: '2026-08-11',

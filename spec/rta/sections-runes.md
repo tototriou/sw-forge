@@ -41,7 +41,11 @@ Rendu **compact** et uniforme avec le siège :
 - Croix de retrait (survol) → `removeMonster`.
 - **Clic sur le portrait ou la ligne du nom** (si le monstre a des runes
   importées) → ouvre le **détail du gear**, chevron pivoté, carte surlignée
-  (`#5b63b8` + anneau). La carte elle-même ne s'agrandit pas.
+  d'une **bordure d'accent**. La carte elle-même ne s'agrandit pas.
+  - ⚠️ La bordure **seule** : elle était doublée d'un `ring-1 ring-accent/50`,
+    soit deux traits d'accent concentriques autour de la même carte. Superposés,
+    ils se lisent comme un contour flou et non comme deux informations. Voir
+    « UN SEUL marqueur de sélection » dans [../shared/design.md](../shared/design.md).
 
 ## Détail du gear — accordéon « façon Google Images »
 

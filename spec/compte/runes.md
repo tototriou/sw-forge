@@ -490,8 +490,25 @@ sous-onglet : c'est ce qui permet un bouton unique qui les vide toutes les deux.
 
 ### Communs aux deux sous-onglets
 
-- **Superposition** : ma courbe (« Moi ») en bleu, les amis en couleurs vives
-  (palette cyclique). Bornes recalculées sur les courbes **visibles**.
+- **Superposition** : ma courbe (« Moi ») en bleu, les amis en couleurs vives.
+  Bornes recalculées sur les courbes **visibles**.
+- ⚠️ **Deux courbes ne portent jamais la même couleur** — sinon on ne les
+  distingue plus, et la légende ment puisqu'elle donne un nom à chacune.
+  `couleurLibre` ([curveColors.ts](src/components/account/curveColors.ts))
+  choisit d'après les couleurs **réellement posées**, vérifié par
+  [courbe-couleurs.test.ts](tests/courbe-couleurs.test.ts).
+  - ⚠️ **La couleur du joueur (`OWN_COLOR`) est exclue de la palette d'import.**
+    Elle l'ouvrait : la **première** courbe importée — le cas le plus courant —
+    reprenait donc exactement le bleu de « Moi ». Les deux constantes vivent
+    désormais dans le **même fichier**, seule place d'où l'on voit qu'elles ne
+    doivent pas se croiser.
+  - ⚠️ **Pas un modulo sur le NOMBRE de courbes** (`[n % palette.length]`) : le
+    compte ne dit rien de ce qui est libre. Retirer la 1re puis importer
+    redonnait la couleur de la 2e, toujours affichée.
+  - Les teintes sont **espacées** : deux bleus voisins se confondaient sur un
+    tracé de 1 px. Au-delà de la palette (8 courbes), l'unicité n'est plus
+    tenable et le cycle reprend — un doublon entre la 1re et la 9e vaut mieux
+    qu'entre deux voisines.
 - **Légende** : pastille + nom + (max · médiane · nb) ; **cliquer le nom
   masque/affiche** ; la croix (✕) **retire** une courbe importée.
 - Deux courbes homonymes sont **renommées** (« Ami (2) »), **en tenant compte des

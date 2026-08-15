@@ -8,6 +8,7 @@ import { ConfirmDialog, PromptDialog } from '../Dialogs';
 import { useStickyState } from '../../hooks/useStickyState';
 import { useRuneMetric, formatRuneMetric } from '../../hooks/useRuneMetric';
 import CurveChart, { CurveSeries, OWN_COLOR } from './CurveChart';
+import { couleurLibre } from './curveColors';
 import SetFilter from './SetFilter';
 import SlotFilter from './SlotFilter';
 import NumberField from '../NumberField';
@@ -17,7 +18,6 @@ interface Props {
 }
 
 const DEFAULT_LIMIT = 400;
-const OVERLAY_COLORS = ['#5cc2ff', '#7cf0a6', '#ff7a9c', '#c88cff', '#ffd166', '#8fd4ff'];
 
 // Une courbe importée porte LES DEUX séries : on affiche celle qui correspond
 // au réglage global, sans dépendre de la mesure choisie par l'expéditeur.
@@ -243,7 +243,10 @@ function OngletCourbes({
         {
           ...payload,
           name: nomLibre(payload.name, noms),
-          color: OVERLAY_COLORS[prev.length % OVERLAY_COLORS.length],
+          // Pendant exact de `nomLibre` juste au-dessus : deux courbes ne
+        // doivent partager ni leur nom, ni leur couleur. ⚠️ On passe les
+        // couleurs DÉJÀ POSÉES, pas un compteur — voir curveColors.ts.
+        color: couleurLibre(prev.map((o) => o.color)),
         },
       ]);
       flash(true, `Courbe « ${payload.name} » importée.`);
@@ -379,7 +382,10 @@ function OngletComptes({
       {
         name: nomLibre(nom, noms),
         runes: compteEnAttente.runes,
-        color: OVERLAY_COLORS[prev.length % OVERLAY_COLORS.length],
+        // Pendant exact de `nomLibre` juste au-dessus : deux courbes ne
+        // doivent partager ni leur nom, ni leur couleur. ⚠️ On passe les
+        // couleurs DÉJÀ POSÉES, pas un compteur — voir curveColors.ts.
+        color: couleurLibre(prev.map((o) => o.color)),
       },
     ]);
     flash(true, `${compteEnAttente.runes.length} runes importées pour « ${nom} ».`);

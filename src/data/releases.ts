@@ -127,6 +127,11 @@ export const RELEASES: Release[] = [
       },
       {
         kind: 'fix',
+        scope: 'Mon compte',
+        text: 'Chaque courbe importée prend une couleur qui n’est encore portée par aucune autre.',
+      },
+      {
+        kind: 'fix',
         scope: 'Interface',
         text: 'Une croix ferme les fiches qu’on consulte.',
       },

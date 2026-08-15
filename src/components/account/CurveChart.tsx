@@ -29,7 +29,13 @@ const PAD_B = 42;
 const IW = W - PAD_L - PAD_R;
 const IH = H - PAD_T - PAD_B;
 
-export const OWN_COLOR = '#5cc2ff'; // « Actuelle » / « Moi » → bleu
+// ⚠️ Définie dans curveColors.ts, aux côtés de la palette d'import : c'est la
+// seule place d'où l'on voit qu'elle ne doit figurer dans aucune des deux.
+// Réexportée ici parce que les appelants la lisent historiquement d'ici.
+// (Importée ET réexportée : `export … from` ne l'introduirait pas ici, or le
+// dégradé sous la courbe du joueur s'en sert juste en dessous.)
+import { OWN_COLOR } from './curveColors';
+export { OWN_COLOR };
 
 interface Pt {
   x: number;

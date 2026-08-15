@@ -19,6 +19,7 @@ import testReco, {
 } from './reco.test';
 import testRtaPartage from './rta-partage.test';
 import testCouleursCourbes from './courbe-couleurs.test';
+import testRechargement from './rechargement.test';
 import testRuneOptim from './rune-optim.test';
 import testRuneOptimDifferential from './rune-optim-differential.test';
 import testSetsIntangible from './sets-intangible.test';
@@ -44,6 +45,7 @@ async function main() {
   testMonstreTri();
   testMonstreFormes();
   testCouleursCourbes();
+  testRechargement();
   testRuneOptim();
   testRuneOptimDifferential();
   testMeules();

@@ -126,6 +126,24 @@ coups, effets appliqués, et ce qu’apporte chaque amélioration.
     pas lequel.
 - ⚠️ **Le COEFFICIENT passe avant la description** : c'est la donnée qu'on vient
   chercher, celle qui décide d'un build. La description la raconte en mots.
+- ⚠️ **Le rechargement montre TOUS ses paliers** — « 6 → 5 → 4 tours », le
+  dernier en évidence. `paliersRechargement`
+  ([monsterSkills.ts](src/lib/monsterSkills.ts)), vérifié par
+  [rechargement.test.ts](tests/rechargement.test.ts).
+  - Le champ `cooldown` de SWARFARM est celui du **niveau 1**, alors qu'on joue
+    une compétence **maxée**. Affiché brut, il était faux pour **3 258
+    compétences sur 3 815** — la grande majorité.
+  - Les paliers se reconstituent en **comptant** les lignes `Cooltime Turn -1`
+    des améliorations : leur nombre varie d'une compétence à l'autre, une
+    constante aurait été fausse quelque part.
+  - ⚠️ Le libellé est comparé **après `trim()`** : 12 lignes du corpus traînent
+    un `\r`, et sans lui la réduction disparaissait en silence.
+  - ⚠️ Les lignes de rechargement **restent dans la liste des améliorations** :
+    elle retranscrit les skill-ups dans l'ordre du jeu, et en retirer fausserait
+    le compte (« 3 améliorations » quand il en faut 5). Le sablier résume, la
+    liste détaille.
+  - ⚠️ L'icône est un **SABLIER**, pas un éclair : l'éclair dit la puissance,
+    pas l'attente — on lisait « 3 tours » comme une durée d'effet.
 - Les formules sont **traduites** pour leurs noms de stats (`3.6*{ATK}` →
   `3.6 × ATQ`) mais **pas réécrites** : « 360 % de l'ATQ » ferait perdre la forme
   qu'on retrouve sur les sites de référence, et introduirait une source d'erreur

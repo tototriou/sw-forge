@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Sword, Shield, Zap, Star } from 'lucide-react';
+import { Sword, Shield, Star, Hourglass, ArrowRight } from 'lucide-react';
 import { Monster } from '../types';
 import { Modale } from './Dialogs';
 import ElementIcon from './ElementIcon';
@@ -10,6 +10,7 @@ import {
   DetailMonstre,
   chargerDetail,
   formuleLisible,
+  paliersRechargement,
 } from '../lib/monsterSkills';
 
 // Portées de lead, en français comme le reste de l'interface. « General » n'y
@@ -251,6 +252,7 @@ function Stat({
 // montées de niveau.
 function CompetenceBloc({ c }: { c: Competence }) {
   const formule = formuleLisible(c.formule);
+  const paliers = paliersRechargement(c);
   return (
     <div className="rounded-lg border border-border bg-panel2 p-2.5">
       <div className="flex items-start gap-2.5">
@@ -292,9 +294,32 @@ function CompetenceBloc({ c }: { c: Competence }) {
             {c.coups != null && c.coups > 1 && (
               <span className="text-ink-dim">×{c.coups} coups</span>
             )}
-            {c.cooldown != null && (
-              <span className="inline-flex items-center gap-1 text-ink-dim">
-                <Zap size={11} /> {c.cooldown} tours
+            {/* Rechargement. ⚠️ Le SABLIER et non l'éclair : l'éclair dit la
+                puissance, pas l'attente — on lisait « 3 tours » comme une durée
+                d'effet. Un sablier ne parle que de temps.
+                ⚠️ **Tous les paliers**, pas seulement le premier : le champ de
+                SWARFARM est le rechargement au niveau 1, alors qu'on joue une
+                compétence MAXÉE. « 6 tours » pour une compétence qui descend à
+                4 était donc simplement faux. La flèche montre où l'on arrive
+                en montant les skill-ups, et le dernier palier — celui qui
+                compte — est mis en avant. */}
+            {paliers.length > 0 && (
+              <span
+                className="inline-flex items-center gap-1 text-ink-dim"
+                title={
+                  paliers.length > 1
+                    ? `Rechargement : ${paliers[0]} tours, réduit à ${paliers[paliers.length - 1]} en montant la compétence`
+                    : `Rechargement : ${paliers[0]} tours`
+                }
+              >
+                <Hourglass size={11} />
+                {paliers.map((p, i) => (
+                  <span key={i} className="inline-flex items-center gap-1">
+                    {i > 0 && <ArrowRight size={10} className="opacity-60" />}
+                    <span className={i === paliers.length - 1 ? 'text-ink' : ''}>{p}</span>
+                  </span>
+                ))}
+                tours
               </span>
             )}
           </div>

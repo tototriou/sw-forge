@@ -132,6 +132,11 @@ export const RELEASES: Release[] = [
       },
       {
         kind: 'fix',
+        scope: 'Bestiaire',
+        text: 'Le rechargement d’un sort montre ce qu’il devient une fois la compétence montée.',
+      },
+      {
+        kind: 'fix',
         scope: 'Interface',
         text: 'Une croix ferme les fiches qu’on consulte.',
       },

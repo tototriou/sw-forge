@@ -108,3 +108,36 @@ export function formuleLisible(formule: string | null): string | null {
     .replace(/\s+/g, ' ')
     .trim();
 }
+
+// Les paliers de rechargement d'une compétence, du niveau 1 au niveau max.
+//
+// ⚠️ **Le `cooldown` de SWARFARM est celui du niveau 1**, pas celui d'une
+// compétence maxée. C'est la source d'erreur du champ : afficher « 6 tours »
+// pour Protection Field est faux dès qu'on a monté la compétence, et c'est
+// maxée qu'on la joue. Chaque `Cooltime Turn -1` des améliorations retire un
+// tour — d'où `6 → 5 → 4`.
+//
+// ⚠️ On COMPTE les lignes de réduction plutôt que d'appliquer une règle : le
+// nombre varie d'une compétence à l'autre (une réduction, deux, aucune), et
+// une constante aurait été fausse quelque part.
+//
+// Renvoie une liste vide si la compétence n'a pas de rechargement, et un seul
+// palier si rien ne le réduit — l'appelant n'a donc pas de cas particulier à
+// traiter.
+export function paliersRechargement(c: Competence): number[] {
+  if (c.cooldown == null) return [];
+  // ⚠️ `trim()` : 12 lignes du corpus traînent un `\r` et ne seraient pas
+  // reconnues autrement — la réduction passerait silencieusement à la trappe.
+  const reductions = c.ameliorations.filter((a) => /^Cooltime Turn -1$/i.test(a.trim())).length;
+
+  const paliers = [c.cooldown];
+  for (let i = 0; i < reductions; i++) {
+    const suivant = paliers[paliers.length - 1] - 1;
+    // Un rechargement descend à 1 tour au minimum : à 0 la compétence serait
+    // disponible en permanence, ce que le jeu ne fait pas. Garde-fou contre une
+    // donnée aberrante, pas un cas observé.
+    if (suivant < 1) break;
+    paliers.push(suivant);
+  }
+  return paliers;
+}

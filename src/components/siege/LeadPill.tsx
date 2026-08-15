@@ -19,15 +19,19 @@ const SCOPED_ATTRS = new Set([
 ]);
 const SCOPED_AREAS = new Set(['Arena', 'Dungeon', 'Guild']);
 
-function leadIconUrl(ls: LeaderSkill): string | null {
+export function leadIconUrl(ls: LeaderSkill): string | null {
   if (!ls.stat) return null;
   const attr = ls.stat.replace(/ /g, '_');
   const scoped = SCOPED_ATTRS.has(ls.stat) && SCOPED_AREAS.has(ls.area ?? '');
   return `${ICON_BASE}leader_skill_${attr}${scoped ? `_${ls.area}` : ''}.png`;
 }
 
-// Libellés courts des stats de leader skill (infobulle uniquement).
-const STAT_LABEL: Record<string, string> = {
+// Libellés courts des stats de leader skill.
+//
+// ⚠️ Exporté : la fiche d'un monstre les affiche aussi, et deux tables de
+// libellés auraient divergé — « Attack Speed » y serait devenu « Vitesse » d'un
+// côté et « VIT » de l'autre pour la même donnée.
+export const STAT_LABEL: Record<string, string> = {
   'Attack Speed': 'VIT',
   'Attack Power': 'ATQ',
   HP: 'PV',

@@ -4,12 +4,22 @@ import { Monster } from '../types';
 import { Modale } from './Dialogs';
 import ElementIcon from './ElementIcon';
 import Segmented from './Segmented';
+import { STAT_LABEL, leadIconUrl } from './siege/LeadPill';
 import {
   Competence,
   DetailMonstre,
   chargerDetail,
   formuleLisible,
 } from '../lib/monsterSkills';
+
+// Portées de lead, en français comme le reste de l'interface. « General » n'y
+// figure pas : c'est le cas courant, et il n'est pas affiché.
+const AREA_LABEL: Record<string, string> = {
+  Arena: 'Arène',
+  Guild: 'Guilde',
+  Dungeon: 'Donjon',
+  Element: 'Alliés du même élément',
+};
 
 // Fiche complète d'un monstre : ses stats de base, son lead, et le DÉTAIL de
 // ses compétences — coefficients, effets, taux, montées de niveau.
@@ -139,19 +149,42 @@ export default function MonsterDetailDialog({
         <Stat label="Précision" valeur={s.accuracy} suffixe="%" />
       </div>
 
-      {/* Compétence de leader — ce que le monstre apporte à l'équipe. */}
+      {/* Compétence de leader — ce que le monstre apporte à l'équipe.
+          ⚠️ L'ICÔNE OFFICIELLE du jeu (`leadIconUrl`), pas le nom anglais de la
+          stat : c'est à elle qu'un joueur reconnaît un lead VIT d'un lead ATQ,
+          et elle encode déjà la stat ET la portée. Même image et même table de
+          libellés qu'en siège — deux copies auraient divergé.
+          ⚠️ Aucun grisé ici, contrairement au siège : cette fiche décrit le
+          monstre, elle ne juge pas si son lead sert dans un contenu donné. */}
       {forme.leaderSkill && (
-        <div className="mb-3 rounded-lg border border-accent/40 bg-accent-soft px-2.5 py-2 text-[12px]">
-          <span className="label">Leader</span>
-          <p className="mt-0.5 text-ink">
-            {forme.leaderSkill.stat} +{forme.leaderSkill.amount} %
-            {forme.leaderSkill.area && forme.leaderSkill.area !== 'General' && (
-              <span className="text-ink-dim"> · {forme.leaderSkill.area}</span>
-            )}
-            {forme.leaderSkill.element && (
-              <span className="text-ink-dim"> · {forme.leaderSkill.element}</span>
-            )}
-          </p>
+        <div className="mb-3 flex items-center gap-2 rounded-lg border border-accent/40 bg-accent-soft px-2.5 py-2">
+          {leadIconUrl(forme.leaderSkill) && (
+            <img
+              src={leadIconUrl(forme.leaderSkill)!}
+              alt=""
+              width={26}
+              height={26}
+              aria-hidden
+              className="flex-none"
+            />
+          )}
+          <div className="min-w-0">
+            <span className="label">Leader</span>
+            <p className="mt-0.5 text-[12px] text-ink">
+              +{forme.leaderSkill.amount} %{' '}
+              {STAT_LABEL[forme.leaderSkill.stat ?? ''] ?? forme.leaderSkill.stat}
+              {/* Portée : « General » n'est pas dit — c'est le cas courant, et
+                  le préciser ferait passer les autres pour la norme. */}
+              {forme.leaderSkill.area && forme.leaderSkill.area !== 'General' && (
+                <span className="text-ink-dim"> · {AREA_LABEL[forme.leaderSkill.area] ?? forme.leaderSkill.area}</span>
+              )}
+            </p>
+          </div>
+          {/* Lead ÉLÉMENTAIRE : l'icône du jeu ne dit pas QUEL élément, alors
+              qu'il décide qui en profite. Même complément qu'en siège. */}
+          {forme.leaderSkill.element && (
+            <ElementIcon element={forme.leaderSkill.element} size={16} className="flex-none" />
+          )}
         </div>
       )}
 

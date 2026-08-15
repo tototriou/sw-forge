@@ -84,6 +84,16 @@ coups, effets appliqués avec leur taux, et ce qu'apporte chaque amélioration.
   avec chacune sa formule, ses effets et ses sept niveaux d'amélioration
   repousseraient la grille de plusieurs écrans — on perdrait le monstre qu'on
   vient de cliquer.
+- Le **lead** porte l'**icône officielle du jeu**
+  ([LeadPill.tsx](src/components/siege/LeadPill.tsx), `leadIconUrl`) — c'est à
+  elle qu'un joueur reconnaît un lead VIT d'un lead ATQ, et elle encode déjà la
+  stat **et** la portée. Même image et **même table de libellés** qu'en siège :
+  deux copies auraient divergé.
+  - ⚠️ **Aucun grisé ici**, contrairement au siège : cette fiche **décrit** le
+    monstre, elle ne juge pas si son lead sert dans un contenu donné.
+  - La portée « General » n'est **pas affichée** : c'est le cas courant, et la
+    dire ferait passer les autres pour la norme. Un lead **élémentaire** ajoute
+    l'icône de son élément — celle du jeu ne dit pas lequel.
 - ⚠️ **Le COEFFICIENT passe avant la description** : c'est la donnée qu'on vient
   chercher, celle qui décide d'un build. La description la raconte en mots.
 - Les formules sont **traduites** pour leurs noms de stats (`3.6*{ATK}` →

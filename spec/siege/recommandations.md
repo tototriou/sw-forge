@@ -106,14 +106,31 @@ decks qui jouent l'un des trois.
   le même nom exige **deux** monstres. Sans ça, « chloe chloe » passerait sur un
   deck n'en portant qu'une.
 - **Un champ vide n'exige rien** : sinon ouvrir un champ viderait la page.
-- ⚠️ **Trois champs distincts**, et non un seul séparé par des espaces : un nom
-  du jeu en contient (« Dark Cow Girl »), la séparation serait ambiguë. Trois
-  champs disent aussi combien de monstres on peut poser — autant qu'une
-  composition.
-- **Deux effacements, deux portées** : la **croix de chaque champ** retire un
+### Rendu — trois cases, un champ
+
+⚠️ **Trois CASES au-dessus, et non trois champs texte** : elles montrent la
+forme de ce qu'on cherche — une composition de 3 monstres — **avant même d'avoir
+tapé**, et reprennent le langage des slots de deck de la page. Une case vide
+porte un `+` en tireté.
+
+- **Un champ unique en dessous** (`MonsterPicker`, celui des slots de deck)
+  remplit la **première case libre** : on enchaîne les trois noms sans viser une
+  case entre chaque.
+- **Portrait, jamais le nom seul** : plusieurs monstres portent le même nom
+  (formes 2A) — voir [MonsterAvatar](src/components/MonsterAvatar.tsx). Repli sur
+  les initiales si le monstre est absent des données chargées.
+- ⚠️ **Les monstres posés sont retirés des suggestions** : le ET exige des
+  monstres **distincts**, en poser deux fois le même garantirait zéro résultat.
+- ⚠️ **Le champ disparaît quand les trois cases sont prises** : un champ de
+  saisie qui n'a plus où poser ce qu'on y tape se lit comme un bug. Un rappel
+  prend sa place.
+- ⚠️ **Retirer ne tasse pas les cases restantes** : chacune garde sa place,
+  sinon les portraits sautent d'une case à l'autre sous le curseur.
+- On stocke les **noms** et non des `com2usId` : la recherche compare des noms,
+  et un monstre d'une reco importée peut être absent des données chargées.
+- **Deux effacements, deux portées** : **cliquer un portrait** retire ce
   monstre (on affine), le bouton **« Vider »** abandonne la recherche entière.
-  Ce dernier n'apparaît **qu'une fois quelque chose posé**, et **Échap** en est
-  le raccourci — on sort d'une recherche, on ne la corrige pas champ par champ.
+  Ce dernier n'apparaît **qu'une fois quelque chose posé**.
 - Le message d'absence de résultat **énonce la règle** au-delà d'un terme
   (« … ne réunit A + B ») : sans ça, une recherche à trois qui ne renvoie rien
   se lit comme un bug, puisqu'on voit chaque monstre à l'écran.

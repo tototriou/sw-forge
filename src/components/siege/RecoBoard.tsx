@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Plus, Download, Upload, Trash2, Lightbulb, AlertTriangle, XCircle, X, Search } from 'lucide-react';
+import { Plus, Download, Upload, Trash2, Lightbulb, AlertTriangle, XCircle, X } from 'lucide-react';
 import { Monster, Reco } from '../../types';
 import { UseRecoState } from '../../hooks/useSiegeRecos';
 import { UseSiegeState } from '../../hooks/useSiegeState';
@@ -11,6 +11,8 @@ import { chercheMonstre, RecoHit, RecoSearchMode } from '../../lib/recoSearch';
 import { ConfirmDialog } from '../Dialogs';
 import { OwnedBuild, OwnedTeam, indexBuildsByCom2us } from '../../lib/ownedBuilds';
 import Segmented from '../Segmented';
+import MonsterAvatar from '../MonsterAvatar';
+import MonsterPicker from '../MonsterPicker';
 import RecoCard from './RecoCard';
 
 interface Props {
@@ -79,14 +81,35 @@ export default function RecoBoard({ recos, monsters, builds, teams, copies6, off
   // d'élargir. D'où trois champs et non un seul où l'on séparerait par des
   // espaces — un nom du jeu en contient (« Dark Cow Girl »), la séparation
   // serait donc ambiguë.
+  // ⚠️ On stocke les NOMS, pas des `com2usId` : la recherche compare des noms
+  // (voir recoSearch.ts), et un monstre d'une reco importée peut être absent des
+  // données chargées — il ne porterait alors aucun id local.
   const [queries, setQueries] = useStickyState<string[]>('recos.queries', ['', '', '']);
   const [searchMode, setSearchMode] = useStickyState<RecoSearchMode>('recos.searchMode', 'all');
-  const setQueryAt = (i: number, v: string) =>
-    setQueries((cur) => cur.map((q, k) => (k === i ? v : q)));
   const termesPoses = queries.map((q) => q.trim()).filter(Boolean);
   const aUneRecherche = termesPoses.length > 0;
-  // Vide les trois champs d'un coup.
+  // Vide les trois cases d'un coup.
   const effacerRecherche = () => setQueries(['', '', '']);
+  // Pose un monstre dans la PREMIÈRE case libre : un seul champ sert les trois,
+  // on enchaîne donc les noms sans avoir à viser une case avant chaque saisie.
+  const poserMonstre = (nom: string) =>
+    setQueries((cur) => {
+      const i = cur.findIndex((q) => !q.trim());
+      if (i < 0) return cur; // les trois sont prises
+      return cur.map((q, k) => (k === i ? nom : q));
+    });
+  // Retire un monstre. ⚠️ Les cases restantes ne sont PAS tassées : chacune garde
+  // sa place, sinon les portraits sautent d'une case à l'autre sous le curseur.
+  const retirerMonstre = (i: number) =>
+    setQueries((cur) => cur.map((q, k) => (k === i ? '' : q)));
+  const casesPleines = queries.every((q) => q.trim());
+  // Ids locaux des monstres déjà posés, pour les retirer des suggestions.
+  const dejaPoses = useMemo(() => {
+    const noms = new Set(queries.filter(Boolean));
+    const ids = new Set<string>();
+    for (const m of monsters) if (noms.has(m.name)) ids.add(String(m.id));
+    return ids;
+  }, [queries, monsters]);
   const [msg, setMsg] = useState<{ text: string; error?: boolean } | null>(null);
   // Rapport de validation du dernier import : NON éphémère (il faut pouvoir le lire).
   const [report, setReport] = useState<ImportReport | null>(null);
@@ -394,49 +417,91 @@ export default function RecoBoard({ recos, monsters, builds, teams, copies6, off
           au-dessus d'une page vide n'a rien à chercher, et laisse croire qu'on
           n'a rien trouvé alors qu'il n'y a rien. */}
       {all.length > 0 && (
-        <div className="mt-5 flex flex-wrap items-center gap-2">
-          <div className="flex min-w-0 flex-1 items-center gap-1.5 sm:max-w-[520px]">
-            <Search size={15} className="flex-none text-ink-dim" />
-            {/* ⚠️ TROIS champs distincts, et non un seul où l'on séparerait par
-                des espaces : un nom du jeu en contient (« Dark Cow Girl »), la
-                séparation serait donc ambiguë. Trois champs disent aussi
-                combien de monstres on peut poser — autant qu'une composition. */}
-            {queries.map((q, i) => (
-              <div key={i} className="relative min-w-0 flex-1">
-                <input
-                  type="text"
-                  value={q}
-                  onChange={(e) => setQueryAt(i, e.target.value)}
-                  // ⚠️ Échap vide TOUTE la recherche, pas seulement le champ où
-                  // l'on est : on sort d'une recherche, on ne la corrige pas
-                  // champ par champ. La croix de chaque champ reste là pour le
-                  // retrait ciblé.
-                  onKeyDown={(e) => {
-                    if (e.key === 'Escape') effacerRecherche();
-                  }}
-                  placeholder={i === 0 ? 'Chercher un monstre…' : `Monstre ${i + 1}…`}
-                  className="w-full rounded-lg border border-border bg-panel py-1.5 pl-2.5 pr-6 text-[13px]
-                             text-ink placeholder:text-ink-dim transition focus:border-accent"
-                />
-                {q && (
+        <div className="mt-5 flex flex-wrap items-start gap-x-3 gap-y-2">
+          <div className="flex min-w-0 flex-1 flex-col gap-1.5 sm:max-w-[380px]">
+            {/* ⚠️ TROIS CASES, et non trois champs texte : elles montrent la
+                forme de ce qu'on cherche — une composition de 3 monstres — avant
+                même qu'on ait tapé quoi que ce soit, et reprennent le langage
+                des slots de deck de la page. Un champ unique en dessous les
+                remplit dans l'ordre : on enchaîne les trois noms sans avoir à
+                viser une case entre chaque. */}
+            <div className="flex items-center justify-center gap-2">
+              {queries.map((nom, i) => {
+                const mon = nom ? monsters.find((m) => m.name === nom) ?? null : null;
+                if (!nom) {
+                  return (
+                    <div
+                      key={i}
+                      className="flex h-[46px] w-[46px] flex-none items-center justify-center rounded-lg
+                                 border border-dashed border-border text-ink-dim"
+                      aria-hidden
+                    >
+                      <Plus size={16} />
+                    </div>
+                  );
+                }
+                return (
                   <button
-                    onClick={() => setQueryAt(i, '')}
-                    className="absolute right-1.5 top-1/2 -translate-y-1/2 text-ink-dim transition hoverable:text-ink"
-                    title="Effacer"
-                    aria-label={`Effacer le monstre ${i + 1}`}
+                    key={i}
+                    onClick={() => retirerMonstre(i)}
+                    className="group relative flex h-[46px] w-[46px] flex-none items-center justify-center
+                               rounded-lg border border-accent bg-accent/[0.08] transition
+                               hoverable:border-fire"
+                    title={`Retirer ${nom}`}
+                    aria-label={`Retirer ${nom}`}
                   >
-                    <X size={13} />
+                    {/* Le portrait, pas le nom : plusieurs monstres portent le
+                        même nom (formes 2A) — voir MonsterAvatar. Le repli sur
+                        les initiales couvre un monstre absent des données. */}
+                    <MonsterAvatar monster={mon} fallback={nom} size={38} />
+                    <span
+                      className="absolute -right-1 -top-1 flex h-4 w-4 items-center justify-center rounded-full
+                                 bg-panel2 text-ink-dim opacity-0 transition-opacity
+                                 no-hover:opacity-100 group-hoverable:opacity-100"
+                    >
+                      <X size={10} />
+                    </span>
                   </button>
-                )}
-              </div>
-            ))}
+                );
+              })}
+            </div>
 
-            {/* Vider les trois champs d'un coup. ⚠️ N'apparaît qu'une fois
-                quelque chose posé : un bouton d'effacement toujours visible sur
-                une recherche vide n'a rien à effacer.
-                Il est DISTINCT des croix de chaque champ — celles-ci retirent un
-                monstre pour affiner, celui-ci abandonne la recherche entière. */}
-            {aUneRecherche && (
+            {/* Le champ unique. Il disparaît quand les trois cases sont prises :
+                un champ de saisie qui n'a plus où poser ce qu'on y tape se lit
+                comme un bug. */}
+            {!casesPleines ? (
+              <MonsterPicker
+                monsters={monsters}
+                // ⚠️ Les monstres déjà posés sont retirés des suggestions : le
+                // ET exige des monstres DISTINCTS (voir recoSearch.ts), poser
+                // deux fois le même garantirait zéro résultat.
+                excludeIds={dejaPoses}
+                placeholder="Nom du monstre…"
+                onPick={(id) => {
+                  const m = monsters.find((x) => String(x.id) === id);
+                  if (m) poserMonstre(m.name);
+                }}
+              />
+            ) : (
+              <p className="text-center text-[11.5px] text-ink-dim">
+                Trois monstres posés — clique un portrait pour le retirer.
+              </p>
+            )}
+          </div>
+
+          {/* ⚠️ Le sélecteur FILTRE : ce qui relève de l'autre rôle n'est pas
+              affiché (voir SEARCH_MODES). Il n'apparaît qu'une fois quelque
+              chose posé — sans monstre, il n'y a rien à filtrer. */}
+          {aUneRecherche && (
+            <div className="flex flex-wrap items-center gap-2">
+              <Segmented
+                value={searchMode}
+                onChange={setSearchMode}
+                options={SEARCH_MODES.map((m) => ({ key: m.key, label: m.label, hint: m.hint }))}
+              />
+
+              {/* Vider les trois cases d'un coup — distinct du retrait d'un seul
+                  portrait, qui sert à affiner. */}
               <button
                 onClick={effacerRecherche}
                 className="flex h-[30px] flex-none items-center gap-1 rounded-lg border border-border
@@ -447,24 +512,11 @@ export default function RecoBoard({ recos, monsters, builds, teams, copies6, off
               >
                 <X size={13} /> Vider
               </button>
-            )}
-          </div>
-
-          {/* ⚠️ Le sélecteur ne RESTREINT pas la recherche, il classe : une reco
-              où le monstre n'apparaît que dans l'autre rôle reste visible, plus
-              bas. Masquer aurait caché des correspondances réelles sans le dire.
-              Il n'apparaît qu'une fois quelque chose tapé — sans requête, il n'y
-              a rien à ordonner. */}
-          {aUneRecherche && (
-            <Segmented
-              value={searchMode}
-              onChange={setSearchMode}
-              options={SEARCH_MODES.map((m) => ({ key: m.key, label: m.label, hint: m.hint }))}
-            />
+            </div>
           )}
 
           {hits && (
-            <span className="font-mono text-[11.5px] text-ink-dim">
+            <span className="font-mono text-[11.5px] leading-[30px] text-ink-dim">
               {hits.length === 0
                 ? 'aucun résultat'
                 : `${hits.length} reco${hits.length > 1 ? 's' : ''}`}

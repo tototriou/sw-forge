@@ -2739,6 +2739,61 @@ aucun problème de compatibilité. Le GPU reste une piste réelle à
 reconsidérer SI l'échelle réellement observée (pas hypothétique) dépasse
 ce que la parallélisation CPU peut suivre — pas avant.
 
+### Suite — leçons retenues sur la méthodologie de mesure
+
+Le chantier du point 1 a fait remonter plusieurs pièges de méthodologie,
+racontés en contexte dans les sections ci-dessus — consignés ICI sous
+forme de règles réutilisables, pour ne pas les redécouvrir un par un la
+prochaine fois qu'un chiffre de `perf-battery.ts` semble décisif.
+
+1. **Un delta trop net doit se vérifier par un second dos-à-dos, pas
+   juste être cru.** ×2,4 cohérent sur les 7 cas RESSEMBLE à un vrai
+   signal — c'est exactement ce qui a caché le bug de cache : deux
+   mesures « différentes » qui donnent des chiffres IDENTIQUES au bit
+   près sont le vrai signal d'alarme (un delta réel varie légèrement
+   d'une mesure à l'autre, même bruit inclus).
+2. **Un cache de bundle doit invalider sur TOUT ce qu'il embarque, pas
+   sur le seul fichier d'entrée.** `esbuild bundle: true` inline les
+   imports (`runeBuildOptim.ts` DANS `build-half-worker.cjs`) — vérifier
+   la date d'un seul fichier laisse les dépendances transitives invisibles
+   au cache. Principe retenu : soit invalider sur un chemin PROPRE À
+   CHAQUE EXÉCUTION (ce qui a été fait — un bundle frais par lancement de
+   la batterie, jamais partagé entre deux lancements séparés), soit sur
+   le graphe de dépendances complet (plus fragile à maintenir à la main).
+3. **La date d'un commit Git n'est PAS la date d'implémentation.** Les
+   commits de cette session ont été groupés en fin de travail, des heures
+   après avoir écrit et utilisé le code — comparer des horodatages de
+   commits pour reconstituer un ordre chronologique d'événements est une
+   fausse preuve. La bonne source : l'ordre des sections « Suite — » déjà
+   écrites dans ce document au moment des faits (ou, à défaut, relire le
+   fil de la conversation directement).
+4. **La dérive machine peut friser +40 à +70 % sur 15-20 minutes**, pas
+   seulement les ~10-27 % déjà caractérisés sur une session plus longue.
+   Signal qui doit alerter : un effet dans le sens ILLOGIQUE (retirer du
+   code qui ralentit l'exécution) — dans ce cas, rejouer IMMÉDIATEMENT un
+   des deux côtés suffit à trancher : s'il affiche maintenant le même
+   retard que l'autre alors qu'il était rapide quelques minutes plus tôt,
+   c'est la machine, pas le code.
+5. **`git worktree` plutôt que `git stash`/`checkout` pour comparer deux
+   états de code** : un checkout isolé dans un répertoire séparé élimine
+   tout risque pour la branche de travail en cours — rien à restaurer
+   après coup puisque rien n'a bougé. Deux pièges pratiques rencontrés en
+   le mettant en place : `node_modules` et les fichiers de compte réels
+   (non suivis par Git) doivent être liés explicitement ; et lier des
+   fichiers en bloc par motif (`*.json`) peut écraser des fichiers SUIVIS
+   par Git (ici `tsconfig.json`/`package-lock.json`) par la version de la
+   branche courante au lieu de celle du commit visé — sans conséquence ici
+   (contenu identique, vérifié après coup), mais à lier fichier par fichier
+   la prochaine fois plutôt qu'en bloc.
+6. **Une affirmation « coût nul » sur du code gaté doit être revérifiée
+   si l'outil de mesure change après coup.** La vérification de la piste B
+   gatée a été faite avec un outil qui s'est révélé bogué APRÈS — sans
+   trace de cette dépendance, la conclusion serait restée invalidée sans
+   qu'on le sache. Réflexe à garder : quand `perf-battery.ts` change,
+   redemander « est-ce qu'une conclusion existante s'appuyait sur l'ancien
+   comportement de l'outil ? » plutôt que de supposer que ça ne concerne
+   que les mesures futures.
+
 ## Limites connues
 
 - ~~Un set NON demandé qui s'activerait par accident via les emplacements

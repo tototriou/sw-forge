@@ -1,21 +1,21 @@
 {
-  "measuredAt": "2026-08-14T19:55:24.300Z",
+  "measuredAt": "2026-08-15T05:58:29.137Z",
   "repeats": 2,
   "cases": {
     "Lushen d15 (Rage+Blade, reel)": {
       "result": {
         "found": true,
-        "foundMs": 19116.300499999998,
+        "foundMs": 19296.7477,
         "foundExplored": 42373000,
-        "totalMs": 24902.7998,
+        "totalMs": 24612.8498,
         "totalExplored": 81928513,
         "truncated": false,
-        "prepMs": 2489.304,
-        "buildAMs": 9562.5506,
-        "buildBMs": 4503.8531,
-        "buildWallMs": 10171.2769,
-        "pairingFoundMs": 6269.414799999999,
-        "pairingTotalMs": 12197.775000000001
+        "prepMs": 2377.8932999999997,
+        "buildAMs": 10788.0975,
+        "buildBMs": 6454.6497,
+        "buildWallMs": 11373.5978,
+        "pairingFoundMs": 5497.839100000001,
+        "pairingTotalMs": 10813.9401
       },
       "params": {
         "slotFilterCap": 80,
@@ -57,17 +57,17 @@
     "Lushen d15 (Rage seul, relache)": {
       "result": {
         "found": true,
-        "foundMs": 25257.055500000002,
+        "foundMs": 23681.5518,
         "foundExplored": 110566000,
-        "totalMs": 53423.0178,
+        "totalMs": 49065.0877,
         "totalExplored": 297175817,
         "truncated": false,
-        "prepMs": 2903.6368,
-        "buildAMs": 6226.715200000001,
-        "buildBMs": 4693.2365,
-        "buildWallMs": 6553.891899999999,
-        "pairingFoundMs": 15755.9412,
-        "pairingTotalMs": 43921.9024
+        "prepMs": 2780.6159,
+        "buildAMs": 5790.222999999999,
+        "buildBMs": 4466.9773,
+        "buildWallMs": 6085.275500000001,
+        "pairingFoundMs": 14712.4016,
+        "pairingTotalMs": 40149.1391
       },
       "params": {
         "slotFilterCap": 80,
@@ -107,17 +107,17 @@
     "Lushen d10 (tototriou)": {
       "result": {
         "found": true,
-        "foundMs": 26511.8595,
+        "foundMs": 25012.187,
         "foundExplored": 142028500,
-        "totalMs": 110372.2912,
+        "totalMs": 104495.8161,
         "totalExplored": 745101660,
         "truncated": false,
-        "prepMs": 1437.0198,
-        "buildAMs": 4427.8935,
-        "buildBMs": 1603.1514,
-        "buildWallMs": 4777.0087,
-        "pairingFoundMs": 19939.213,
-        "pairingTotalMs": 103664.2844
+        "prepMs": 1389.7964,
+        "buildAMs": 4105.3866,
+        "buildBMs": 1589.7713999999999,
+        "buildWallMs": 4445.5737,
+        "pairingFoundMs": 19033.4796,
+        "pairingTotalMs": 98517.1077
       },
       "params": {
         "slotFilterCap": 80,
@@ -157,17 +157,17 @@
     "Lushen d11 (tototriou)": {
       "result": {
         "found": true,
-        "foundMs": 11814.1026,
+        "foundMs": 11901.220599999999,
         "foundExplored": 1688500,
-        "totalMs": 13072.7019,
+        "totalMs": 13114.6522,
         "totalExplored": 10135489,
         "truncated": false,
-        "prepMs": 1220.4228,
-        "buildAMs": 9529.5236,
-        "buildBMs": 7009.285600000001,
-        "buildWallMs": 10234.538100000002,
-        "pairingFoundMs": 288.077299999999,
-        "pairingTotalMs": 1467.9151999999995
+        "prepMs": 1241.7955,
+        "buildAMs": 9642.821,
+        "buildBMs": 7364.8742,
+        "buildWallMs": 10369.7597,
+        "pairingFoundMs": 254.9465999999993,
+        "pairingTotalMs": 1468.3772000000008
       },
       "params": {
         "slotFilterCap": 80,
@@ -209,17 +209,17 @@
     "Sonia d6 (tototriou)": {
       "result": {
         "found": true,
-        "foundMs": 38850.463,
+        "foundMs": 36863.5661,
         "foundExplored": 181448500,
-        "totalMs": 55279.5265,
+        "totalMs": 52618.0882,
         "totalExplored": 296329889,
         "truncated": false,
-        "prepMs": 1397.1950000000002,
-        "buildAMs": 10476.5511,
-        "buildBMs": 2780.7379,
-        "buildWallMs": 11032.7096,
-        "pairingFoundMs": 26074.8294,
-        "pairingTotalMs": 42365.475600000005
+        "prepMs": 1383.63,
+        "buildAMs": 10015.5557,
+        "buildBMs": 2636.4035000000003,
+        "buildWallMs": 10508.2531,
+        "pairingFoundMs": 24750.7209,
+        "pairingTotalMs": 40505.242
       },
       "params": {
         "slotFilterCap": 80,
@@ -261,17 +261,17 @@
     "Sonia d14 (Enzo)": {
       "result": {
         "found": true,
-        "foundMs": 21149.6768,
+        "foundMs": 21794.9673,
         "foundExplored": 40507000,
-        "totalMs": 96230.4048,
+        "totalMs": 94352.06090000001,
         "totalExplored": 552424705,
         "truncated": false,
-        "prepMs": 2560.8190000000004,
-        "buildAMs": 11804.3119,
-        "buildBMs": 4970.243199999999,
-        "buildWallMs": 12271.5358,
-        "pairingFoundMs": 5895.764199999998,
-        "pairingTotalMs": 78819.39979999998
+        "prepMs": 2647.1034999999997,
+        "buildAMs": 12662.8574,
+        "buildBMs": 5281.876799999999,
+        "buildWallMs": 13135.4445,
+        "pairingFoundMs": 5841.451300000001,
+        "pairingTotalMs": 78454.17450000001
       },
       "params": {
         "slotFilterCap": 80,
@@ -313,17 +313,17 @@
     "Ciri defense eq.3 (Enzo)": {
       "result": {
         "found": true,
-        "foundMs": 11747.648200000001,
+        "foundMs": 12364.7453,
         "foundExplored": 500,
-        "totalMs": 11752.521,
+        "totalMs": 12370.1654,
         "totalExplored": 784,
         "truncated": false,
-        "prepMs": 2488.1675999999998,
-        "buildAMs": 8126.223900000001,
-        "buildBMs": 8702.794,
-        "buildWallMs": 9214.344200000001,
-        "pairingFoundMs": 1.9461999999984982,
-        "pairingTotalMs": 6.817799999998897
+        "prepMs": 2582.1818000000003,
+        "buildAMs": 8259.6065,
+        "buildBMs": 9214.3155,
+        "buildWallMs": 9718.3871,
+        "pairingFoundMs": 1.9231999999992695,
+        "pairingTotalMs": 7.263199999999415
       },
       "params": {
         "slotFilterCap": 80,

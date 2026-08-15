@@ -45,7 +45,7 @@
 //   --case=<index> : mode WORKER interne (voir plus bas) — pas un usage
 //            direct, l'orchestrateur se relance lui-même avec ce flag.
 
-import { readFileSync, writeFileSync, existsSync, mkdtempSync, rmSync } from 'fs';
+import { readFileSync, writeFileSync, existsSync, mkdirSync, statSync, rmSync } from 'fs';
 import { execSync } from 'child_process';
 import { Worker } from 'worker_threads';
 import { build } from 'esbuild';
@@ -167,25 +167,33 @@ function drain<T>(gen: Generator<unknown, T, void>): T {
   return step.value;
 }
 
-// Bundle build-half-worker.ts en .cjs UNE FOIS (un worker_threads a besoin
-// de JS pur, pas de TypeScript transpilé à la volée) — même patron que les
-// lanceurs .mjs existants (voir monster-search-validate.mjs). Le temps de
-// bundling n'entre PAS dans `buildWallMs` (mesuré séparément, avant que le
-// chrono de construction démarre).
-let workerScriptPath: string | null = null;
+// Bundle build-half-worker.ts en .cjs (un worker_threads a besoin de JS pur,
+// pas de TypeScript transpilé à la volée) — même patron que les lanceurs
+// .mjs existants (voir monster-search-validate.mjs). Mis en cache sur un
+// chemin FIXE, pas un dossier temporaire par appel : chaque cas de la
+// batterie tourne dans son propre processus Node (voir `--case=` plus bas),
+// donc un cache en mémoire de module ne survit jamais d'un cas à l'autre —
+// sans ce cache disque, CHAQUE cas payait un bundling esbuild complet, un
+// coût absent de tout segment mesuré (ni `prepMs` ni `buildWallMs`, tous
+// deux chronométrés en dehors de cette fonction) qui ne contaminait donc que
+// `totalMs`/`foundMs` d'un bruit variable — observé : +2.6s sur Sonia d14
+// entre deux baselines au code strictement identique.
+const BUILD_HALF_BUNDLE_DIR = join(tmpdir(), 'sw-forge-perf-buildhalf-cache');
+const BUILD_HALF_SRC = 'scripts/lib/build-half-worker.ts';
 async function ensureBuildHalfWorkerBundle(): Promise<string> {
-  if (workerScriptPath) return workerScriptPath;
-  const dir = mkdtempSync(join(tmpdir(), 'sw-forge-perf-buildhalf-'));
-  const outfile = join(dir, 'build-half-worker.cjs');
+  const outfile = join(BUILD_HALF_BUNDLE_DIR, 'build-half-worker.cjs');
+  if (existsSync(outfile) && statSync(outfile).mtimeMs >= statSync(BUILD_HALF_SRC).mtimeMs) {
+    return outfile;
+  }
+  mkdirSync(BUILD_HALF_BUNDLE_DIR, { recursive: true });
   await build({
-    entryPoints: ['scripts/lib/build-half-worker.ts'],
+    entryPoints: [BUILD_HALF_SRC],
     bundle: true,
     platform: 'node',
     format: 'cjs',
     outfile,
     logLevel: 'error',
   });
-  workerScriptPath = outfile;
   return outfile;
 }
 

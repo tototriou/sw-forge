@@ -414,8 +414,10 @@ export default function CurveChart({
           {/* ⚠️ UNE seule rune : celle de MA courbe. Les potentiels ne sont pas
               d'autres runes, c'est la même box projetée dans une autre
               hypothèse — trois cartes quasi identiques pour une seule question
-              (« quelle est cette rune ? »). */}
-          <div className="w-[260px] max-w-full rounded-lg border border-border bg-panel p-2">
+              (« quelle est cette rune ? »).
+              ⚠️ Aucun cadre ici : `RuneDetailBox` porte déjà le sien (bordure,
+              fond, padding). En ajouter un donnait une carte dans une carte. */}
+          <div className="w-[260px] max-w-full">
             <RuneDetailBox rune={runeChoisie.rune} />
           </div>
         </div>

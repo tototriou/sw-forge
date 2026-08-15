@@ -428,16 +428,18 @@ export default function CurveChart({
             <X size={14} />
           </button>
 
-          {/* Flèches de part et d'autre de la carte : on parcourt le classement
-              rune par rune sans revenir viser un point sur la courbe.
+          {/* Navigation — les deux flèches CÔTE À CÔTE, juste sous la courbe :
+              elles font parcourir le classement, qui est l'axe du graphe
+              au-dessus, pas la carte du dessous. Encadrer la carte les
+              éloignait l'une de l'autre alors qu'on les enchaîne.
               ⚠️ Elles bornent au lieu de boucler — le classement a un début et
               une fin, et repasser du dernier au premier ferait croire à un saut
               de position. Aux extrémités, la flèche est désactivée. */}
-          <div className="flex items-start justify-center gap-2">
+          <div className="mb-2 flex items-center justify-center gap-1">
             <button
               onClick={() => setChoisi((c) => (c && c.rang > 0 ? { ...c, rang: c.rang - 1 } : c))}
               disabled={choisi.rang === 0}
-              className="mt-16 flex-none rounded-full border border-border bg-panel p-1.5 text-ink-dim
+              className="flex-none rounded-lg border border-border bg-panel p-1.5 text-ink-dim
                          transition hoverable:border-accent hoverable:text-ink
                          disabled:cursor-not-allowed disabled:opacity-30"
               title="Rune précédente (mieux classée)"
@@ -445,7 +447,32 @@ export default function CurveChart({
             >
               <ChevronLeft size={16} />
             </button>
+            {/* Le rang ENTRE les deux flèches : c'est lui qu'elles font défiler,
+                et il dit où l'on en est dans le classement. Largeur fixe, sinon
+                les flèches se déplacent au passage de « 9 » à « 10 ». */}
+            <span className="w-[92px] text-center font-mono text-[11px] text-ink-dim">
+              n° {choisi.rang + 1} / {serieChoisie?.effs.length ?? 0}
+            </span>
+            <button
+              onClick={() =>
+                setChoisi((c) =>
+                  c && c.rang < (serieChoisie?.effs.length ?? 0) - 1
+                    ? { ...c, rang: c.rang + 1 }
+                    : c
+                )
+              }
+              disabled={choisi.rang >= (serieChoisie?.effs.length ?? 0) - 1}
+              className="flex-none rounded-lg border border-border bg-panel p-1.5 text-ink-dim
+                         transition hoverable:border-accent hoverable:text-ink
+                         disabled:cursor-not-allowed disabled:opacity-30"
+              title="Rune suivante (moins bien classée)"
+              aria-label="Rune suivante"
+            >
+              <ChevronRight size={16} />
+            </button>
+          </div>
 
+          <div className="flex justify-center">
             <div className="w-[260px] max-w-full">
               {/* En-tête : l'IMAGE de la rune (cadre du slot + symbole du set,
                   comme dans le jeu et dans la liste de runes) puis son set et
@@ -466,8 +493,9 @@ export default function CurveChart({
                       runeChoisie.rune.set}{' '}
                     · <span className="text-ink-dim">slot {runeChoisie.rune.slot}</span>
                   </div>
+                  {/* Le rang n'est PAS répété ici : il vit dans la barre de
+                      navigation juste au-dessus, entre les deux flèches. */}
                   <div className="font-mono text-[11px] text-ink-dim">
-                    n° {choisi.rang + 1} sur {serieChoisie?.effs.length ?? 0} ·{' '}
                     {unit === '%'
                       ? runeChoisie.val.toFixed(1)
                       : String(Math.round(runeChoisie.val))}
@@ -496,24 +524,6 @@ export default function CurveChart({
                   ajouter un donnait une carte dans une carte. */}
               <RuneDetailBox rune={runeChoisie.rune} />
             </div>
-
-            <button
-              onClick={() =>
-                setChoisi((c) =>
-                  c && c.rang < (serieChoisie?.effs.length ?? 0) - 1
-                    ? { ...c, rang: c.rang + 1 }
-                    : c
-                )
-              }
-              disabled={choisi.rang >= (serieChoisie?.effs.length ?? 0) - 1}
-              className="mt-16 flex-none rounded-full border border-border bg-panel p-1.5 text-ink-dim
-                         transition hoverable:border-accent hoverable:text-ink
-                         disabled:cursor-not-allowed disabled:opacity-30"
-              title="Rune suivante (moins bien classée)"
-              aria-label="Rune suivante"
-            >
-              <ChevronRight size={16} />
-            </button>
           </div>
         </div>
       )}

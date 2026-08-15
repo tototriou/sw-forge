@@ -206,11 +206,16 @@ Détails :
   - ⚠️ **Sous le graphe, dans le flux — pas en flottant.** La carte d'une rune
     fait ~300 px de haut : un popover de cette taille ancré sur un point
     recouvrirait la courbe qu'on vient de lire.
-  - Le détail est **centré**, encadré de **flèches ← →** qui parcourent le
-    classement rune par rune — sans revenir viser un point sur la courbe. Elles
-    **bornent au lieu de boucler** (le classement a un début et une fin ;
-    repasser du dernier au premier ferait croire à un saut de position) et sont
-    désactivées aux extrémités. Les **touches ← →** font la même chose.
+  - Le détail est **centré**, précédé d'une **barre de navigation** : les deux
+    flèches **côte à côte, juste sous la courbe**, encadrant le rang
+    (« n° 12 / 340 »). Elles font parcourir le **classement** — l'axe du graphe
+    au-dessus —, pas la carte du dessous : les placer de part et d'autre de la
+    carte les éloignait l'une de l'autre alors qu'on les enchaîne.
+    - Le rang est à **largeur fixe**, sinon les flèches se déplacent au passage
+      de « 9 » à « 10 ». Il n'est **pas répété** dans la carte.
+    - Elles **bornent au lieu de boucler** (le classement a un début et une
+      fin ; repasser du dernier au premier ferait croire à un saut de position)
+      et sont désactivées aux extrémités. Les **touches ← →** font la même chose.
   - Re-cliquer le même point **referme** (le geste est son propre inverse) ;
     **Échap** et la croix ferment aussi.
   - ⚠️ **Cliquable seulement là où la courbe porte ses runes**

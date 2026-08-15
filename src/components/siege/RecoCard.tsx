@@ -786,6 +786,7 @@ function DeckBlock({
           </button>
         )}
         {!editing && match && !empty && <DeckBadge match={match} />}
+        {!editing && match && !empty && <CopiesBadge copies={match.copies} />}
         {/* Le lead n'est pas dans l'en-tête : il est posé sur le leader lui-même
             (aperçu replié ci-dessous, ou slot 0 déplié) — comme en siège. */}
 
@@ -1977,6 +1978,45 @@ function DeckBadge({ match }: { match: DeckMatch }) {
   const m = map[match.status];
   if (!m) return null;
   return <span className={`font-mono text-[10.5px] ${m.cls}`}>· {m.text}</span>;
+}
+
+// Combien de fois le deck est montable EN PARALLÈLE avec la réserve 6★.
+//
+// ⚠️ Une pastille DISTINCTE du badge de statut : ce n'est pas un verdict sur le
+// deck (« jouable », « à revoir ») mais une information de stock. Les fondre
+// ferait lire « jouable ×2 » comme un degré de conformité.
+//
+// ⚠️ **6★ uniquement** — la box n'en contient pas d'autres (voir
+// `countCopiesByCom2us`). Un monstre en réserve à 5★ ne se joue pas tel quel.
+function CopiesBadge({ copies }: { copies: number | null }) {
+  // `null` = pas de compte importé, ou deck vide : on ne dit rien plutôt que
+  // d'annoncer « 0 fois », qui affirmerait quelque chose de faux.
+  if (copies === null) return null;
+
+  // ⚠️ Zéro se dit, et se dit en ROUGE : c'est l'information la plus utile de
+  // la pastille — le deck ne peut pas être monté, faute d'exemplaires 6★.
+  if (copies === 0) {
+    return (
+      <span
+        className="font-mono text-[10.5px] text-fire"
+        title="Il manque au moins un monstre 6★ en réserve pour monter ce deck"
+      >
+        · montable 0 fois
+      </span>
+    );
+  }
+  return (
+    <span
+      className="font-mono text-[10.5px] text-ink-dim"
+      title={
+        copies > 1
+          ? `Tes monstres 6★ permettent de monter ce deck ${copies} fois en parallèle`
+          : 'Tes monstres 6★ permettent de monter ce deck une seule fois'
+      }
+    >
+      · montable {copies} fois
+    </span>
+  );
 }
 
 // Libellés courts d'une cause de rejet — voir `slotFaults` dans recoMatch.ts.

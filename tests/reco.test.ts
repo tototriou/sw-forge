@@ -4,7 +4,14 @@
 // mauvais artéfact portaient le même message, alors que le geste à faire n'est
 // pas le même dans les trois cas.
 
-import { MatchContext, SlotMatch, deckFaults, matchDeck, slotFaults } from '../src/lib/recoMatch';
+import {
+  MatchContext,
+  SlotMatch,
+  deckCopies,
+  deckFaults,
+  matchDeck,
+  slotFaults,
+} from '../src/lib/recoMatch';
 import { OwnedBuild } from '../src/lib/ownedBuilds';
 import { artifactSubKinds, artifactSubLabel, artifactSubsFor, isArtifactSub } from '../src/lib/effects';
 import { cleanArtifacts, decodeRecosJson, encodeRecosJson } from '../src/lib/recoShare';
@@ -338,14 +345,15 @@ export function testRechercheMonstre() {
   );
   egal(chercheMonstre(liste, 'zzz', 'all', mons)?.length, 0, 'monstre absent → aucun résultat');
 
-  // Le tri remonte le bon rôle SANS retirer l'autre.
+  // ⚠️ Le mode FILTRE : ce qui relève de l'autre rôle n'est pas affiché. Un tri
+  // seul laissait à l'écran des résultats qu'on n'avait pas demandés.
   const enDef = chercheMonstre(liste, 'chloe', 'defense', mons) ?? [];
-  egal(enDef.length, 2, 'mode « défense » : les deux recos restent visibles');
-  egal(enDef[0]?.reco.id, 'B', 'mode « défense » : celle qui la BAT passe devant');
+  egal(enDef.map((h) => h.reco.id), ['B'], 'mode « défense » : SEULE celle qui la bat');
+  egal(enDef[0]?.decks[0]?.slots, [], 'et on ne remonte aucune position de deck');
 
   const enOff = chercheMonstre(liste, 'chloe', 'offense', mons) ?? [];
-  egal(enOff.length, 2, 'mode « offense » : les deux recos restent visibles');
-  egal(enOff[0]?.reco.id, 'A', 'mode « offense » : celle qui la JOUE passe devant');
+  egal(enOff.map((h) => h.reco.id), ['A'], 'mode « offense » : SEULE celle qui la joue');
+  egal(enOff[0]?.decks[0]?.counters, [], 'et on ne remonte aucune défense visée');
 
   // Les positions servent au surlignage.
   const h = chercheMonstre([bat], 'chloe', 'all', mons)?.[0];
@@ -444,4 +452,65 @@ export function testRechercheMultiple() {
     0,
     'un monstre joué + un monstre battu ≠ une composition qui les réunit'
   );
+}
+
+// Combien de fois un deck est montable en parallèle avec la réserve 6★.
+export function testDecksMontables() {
+  titre('Nombre de fois qu’un deck est montable (6★ en réserve)');
+
+  const deck = (ids: (number | null)[]): RecoDeck => ({
+    ...emptyRecoDeck(),
+    slots: ids.map((id) =>
+      id == null ? emptyRecoSlot() : { ...emptyRecoSlot(), com2usId: id, name: `M${id}` }
+    ),
+  });
+
+  // ⚠️ Le deck est limité par son monstre le PLUS RARE, pas par la moyenne ni
+  // par le total : trois exemplaires de l'un ne servent à rien si le second
+  // n'existe qu'en un seul.
+  egal(
+    deckCopies(deck([1, 2, 3]), new Map([[1, 3], [2, 1], [3, 5]])),
+    1,
+    'le monstre le plus rare fixe la limite'
+  );
+  egal(
+    deckCopies(deck([1, 2, 3]), new Map([[1, 2], [2, 2], [3, 2]])),
+    2,
+    'deux exemplaires de chacun → deux decks en parallèle'
+  );
+  egal(
+    deckCopies(deck([1, 2, 3]), new Map([[1, 4], [2, 4]])),
+    0,
+    'un monstre absent de la réserve → deck non montable'
+  );
+
+  // ⚠️ Un monstre placé DEUX FOIS dans le même deck consomme deux exemplaires.
+  egal(
+    deckCopies(deck([1, 1, 2]), new Map([[1, 2], [2, 5]])),
+    1,
+    'deux fois le même monstre → il en faut deux pour UN deck'
+  );
+  egal(
+    deckCopies(deck([1, 1, 2]), new Map([[1, 3], [2, 5]])),
+    1,
+    '3 exemplaires pour 2 requis → un seul deck complet (pas d’arrondi optimiste)'
+  );
+  egal(
+    deckCopies(deck([1, 1, 2]), new Map([[1, 4], [2, 5]])),
+    2,
+    '4 exemplaires pour 2 requis → deux decks'
+  );
+
+  // Les slots vides ne comptent pas.
+  egal(
+    deckCopies(deck([1, null, null]), new Map([[1, 3]])),
+    3,
+    'un slot vide n’exige aucun monstre'
+  );
+
+  // ⚠️ `null` et non `0` quand l'information manque : « 0 fois » affirmerait
+  // que le deck est immontable, ce qui est une tout autre chose que « je ne
+  // sais pas ».
+  egal(deckCopies(deck([1, 2, 3]), undefined), null, 'aucune box importée → on ne dit rien');
+  egal(deckCopies(deck([null, null, null]), new Map()), null, 'deck vide → rien à monter');
 }

@@ -13,6 +13,7 @@ import testReco, {
   testDefensesVisees,
   testRechercheMonstre,
   testRechercheMultiple,
+  testDecksMontables,
 } from './reco.test';
 import testRtaPartage from './rta-partage.test';
 import testStockage from './stockage.test';
@@ -25,6 +26,7 @@ async function main() {
   testDefensesVisees();
   testRechercheMonstre();
   testRechercheMultiple();
+  testDecksMontables();
   testRtaPartage();
   testMeules();
   testArtefacts();

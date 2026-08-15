@@ -18,6 +18,9 @@ interface Props {
   monsters: Monster[];
   builds: OwnedBuild[]; // tous les builds connus (box + RTA + siège) → « je possède ce monstre »
   teams: OwnedTeam[]; // équipes réellement composées → « j'ai un deck avec ces monstres »
+  // Exemplaires 6★ possédés, par com2usId → « combien de fois puis-je monter ce
+  // deck en parallèle ». Vient de la BOX seule (voir countCopiesByCom2us).
+  copies6: Map<number, number>;
   offense: UseSiegeState; // équipes d'attaque de siège, réutilisables comme decks
 }
 
@@ -39,24 +42,23 @@ const FILTERS: { key: OriginFilter; label: string }[] = [
   { key: 'imported', label: 'Importées' },
 ];
 
-// Ce qu'on cherche quand on tape un nom de monstre. Le mode ne RESTREINT pas la
-// recherche (elle regarde toujours decks et défenses visées), il ordonne ce qui
-// remonte en premier — voir lib/recoSearch.ts.
+// Où chercher quand on tape un nom de monstre. Le mode FILTRE : ce qui relève
+// de l'autre rôle n'est pas affiché — voir lib/recoSearch.ts.
 const SEARCH_MODES: { key: RecoSearchMode; label: string; hint: string }[] = [
-  { key: 'all', label: 'Partout', hint: 'Les decks et les défenses visées' },
+  { key: 'all', label: 'Partout', hint: 'Dans les decks et dans les défenses visées' },
   {
     key: 'defense',
     label: 'Défense à taper',
-    hint: "D'abord les decks qui battent ce monstre",
+    hint: 'Uniquement dans les défenses visées — quels decks la battent',
   },
   {
     key: 'offense',
     label: 'Offense à runer',
-    hint: "D'abord les decks qui jouent ce monstre",
+    hint: 'Uniquement dans les monstres des decks — qui joue ce monstre',
   },
 ];
 
-export default function RecoBoard({ recos, monsters, builds, teams, offense }: Props) {
+export default function RecoBoard({ recos, monsters, builds, teams, copies6, offense }: Props) {
   const [filter, setFilter] = useStickyState<OriginFilter>('recos.filter', 'all');
   // Recherche par monstre : jusqu'à TROIS, autant qu'une composition.
   //
@@ -144,8 +146,8 @@ export default function RecoBoard({ recos, monsters, builds, teams, offense }: P
   );
 
   const matchCtx = useMemo(
-    () => ({ builds: indexBuildsByCom2us(builds), teams }),
-    [builds, teams]
+    () => ({ builds: indexBuildsByCom2us(builds), teams, copies6 }),
+    [builds, teams, copies6]
   );
 
   // Confrontation À LA DEMANDE (bouton « Analyser ») et non à chaque rendu :

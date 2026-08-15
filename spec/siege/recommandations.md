@@ -126,13 +126,18 @@ la même réponse :
 | « **contre quoi** ce monstre est-il joué ? » | dans une **défense visée** (`counters`) |
 | « **qui** joue ce monstre ? » | dans un **deck** (`slots`) |
 
-- ⚠️ **La recherche regarde TOUJOURS les deux ; le sélecteur ne fait que
-  classer.** Restreindre la portée au rôle choisi cachait des correspondances
-  réelles sans le dire : on cherche « Chloe », on ne la voit pas, et rien à
-  l'écran n'indique qu'elle existe juste à côté dans l'autre rôle. Ici un
-  résultat n'est jamais masqué — il est seulement plus bas.
+- ⚠️ **Le sélecteur FILTRE** : il décide **où** l'on cherche, et ce qui relève de
+  l'autre rôle **n'est pas affiché**.
+  - `Offense à runer` ne regarde que les **monstres des decks**, `Défense à
+    taper` que les **défenses visées**, `Partout` les deux.
+  - Un mode qui se contentait de **trier** laissait à l'écran des résultats
+    qu'on n'avait pas demandés : demander « offense à runer » et voir remonter
+    des défenses n'est pas un classement, c'est du bruit. « Partout » reste là
+    pour qui veut les deux.
+  - Aucun tri n'est donc appliqué ensuite : tout ce qui reste répond au rôle
+    demandé, et l'ordre de la liste reste celui de l'utilisateur.
 - Le sélecteur **n'apparaît qu'une fois quelque chose tapé** : sans requête, il
-  n'y a rien à ordonner.
+  n'y a rien à filtrer.
 - **Casse et accents ignorés** : « chloe » trouve « Chloé », sinon la recherche
   est inutilisable sur des noms que le jeu accentue.
 - Le nom comparé est celui du **bestiaire** s'il est chargé, sinon celui **figé
@@ -687,6 +692,35 @@ Un **encart de synthèse** sous l'en-tête, visible **même recommandation repli
 
 Une fois analysée, la carte reprend tout le langage visuel décrit plus bas (aura,
 pastille, badges de deck et de monstre, comparaison stat par stat).
+
+#### Combien de fois le deck est montable — « montable N fois »
+
+Chaque deck analysé affiche combien de fois il peut être monté **en parallèle**
+avec la réserve du joueur (`deckCopies` dans
+[recoMatch.ts](src/lib/recoMatch.ts)). C'est ce qui dit si on peut poser le même
+deck sur plusieurs défenses de guilde.
+
+- ⚠️ **Les 6★ UNIQUEMENT**, et depuis la **box seule**
+  (`countCopiesByCom2us` dans [ownedBuilds.ts](src/lib/ownedBuilds.ts)) :
+  - `collectOwnedBuilds` **agrège les presets** (RTA, défense, offense) : un
+    même monstre y figure une fois par contexte. Compter dessus multiplierait
+    les exemplaires par le nombre d'usages ;
+  - la box ne retient que `class === 6` (voir
+    [../shared/import-compte.md](../shared/import-compte.md)), et chaque entrée
+    est un `unit_id` distinct — donc une unité réelle. Un monstre en réserve à
+    5★ ne se joue pas tel quel en siège.
+- ⚠️ Le deck est limité par son **monstre le plus rare** (`min`, jamais une
+  moyenne) : trois exemplaires de l'un ne servent à rien si le second n'existe
+  qu'en un seul.
+- ⚠️ Un monstre placé **deux fois dans le même deck** consomme **deux**
+  exemplaires : les occurrences sont comptées avant division.
+- ⚠️ **Rien n'est affiché** faute de compte importé ou sur un deck vide — un
+  « 0 fois » affirmerait que le deck est immontable, ce qui est tout autre chose
+  que « je ne sais pas ». **Zéro se dit en revanche**, et **en rouge** : c'est
+  l'information la plus utile de la pastille.
+- La pastille est **distincte du badge de statut** : ce n'est pas un verdict sur
+  le deck mais une information de **stock**. Les fondre ferait lire
+  « jouable ×2 » comme un degré de conformité.
 
 **Fermer le résultat** : une **croix** efface l'analyse et la carte **redevient
 neutre** — halo, pastille, badges et colonne « toi » disparaissent d'un coup.

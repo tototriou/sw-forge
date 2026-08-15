@@ -2576,6 +2576,149 @@ disponible dans cet environnement au moment de l'implémentation) —
 conditions réelles (le tri qui se met à jour en direct, le décompte qui
 avance, le passage propre au résultat final) reste à faire manuellement.
 
+✅ Vérifié en usage réel par l'utilisateur, fonctionne comme attendu.
+
+### Suite — relecture du pipeline, pistes d'accélération
+
+Relecture volontairement critique de tout `runeBuildOptim.ts` (`prepareSearch`
+→ `buildBuckets` → `pairBuckets`) pour chercher des gains de vitesse, sur
+deux axes distincts : le temps jusqu'au PREMIER résultat, et le temps
+jusqu'à ÉPUISEMENT complet de l'espace de recherche.
+
+**Constat déjà documenté, à ne pas re-découvrir** : sur un cas SERRÉ (peu
+de candidats satisfont toutes les conditions à la fois, voir « Suite —
+pourquoi ce correctif d'ordre n'a rien changé en usage réel »), la
+recherche tourne TOUJOURS jusqu'à `maxNodes`/`maxCollected` — l'ordre
+d'exploration ne peut alors changer ni le temps total ni le nombre de
+paires visitées, seulement le moment où le résultat apparaît dans la
+progression. Ça borne ce qu'un meilleur tri peut encore apporter.
+
+**Découverte nouvelle en relisant `buildBuckets` ligne à ligne** : dans la
+triple boucle (`for r0 / for r1 / for r2`), `runeEfficiency(r0)` et
+`runeContribution(r0, k)` sont recalculés à CHAQUE itération de la double
+boucle r1×r2, alors que `r0` est fixe pour toute cette double boucle — pur
+calcul redondant. Au préréglage « Moyen » (`slotFilterCap=80`,
+80³=512 000 itérations par moitié) : `runeEfficiency` est appelé ~1,5M de
+fois quand 240 suffiraient (une fois par rune par slot) ; avec 4
+`trackedKeys` typiques, `runeContribution` ~6,1M de fois quand ~960
+suffiraient. `counts` est en plus recalculé via `runes.filter(...)` alors
+que `haveR01` (déjà accumulé incrémentalement pour `stillFeasible`, juste
+au-dessus) contient déjà presque tout le nécessaire.
+
+**Priorités proposées** (voir aussi la todo de réflexion en tête de
+session) :
+1. Précalculer par rune, une fois avant la triple boucle, l'efficience et
+   la contribution à chaque `trackedKey` — élimine la redondance ci-dessus,
+   comportement strictement identique, vérifiable par le harnais
+   différentiel. Cible directement la construction (« avant
+   l'appariement »).
+2. `filterSlot` : remplacer les 8 tris complets par stat par une sélection
+   top-K via le tas déjà existant (`heapPush`) — même famille de gain, plus
+   petit (pool bien plus petit que pool³), gratuit dans la même passe.
+3. Paralléliser la boucle d'appariement elle-même (point 9 de la todo) —
+   cible « épuiser tout l'espace », l'axe que l'ordre ne peut pas
+   améliorer pour un cas serré (voir le constat ci-dessus) : seul plus de
+   cœurs en parallèle réduit ce temps-là.
+4. Tableaux typés (point 8) et WebAssembly (point 10) — repoussés après
+   1-3 : gain marginal incertain tant que la redondance du point 1 n'est
+   pas éliminée, et les deux chantiers les plus lourds/risqués du lot.
+5. Filet de temps pour `buildBuckets` (Eivor deck 2, déjà documenté plus
+   haut) — pas une optimisation de vitesse, une robustesse manquante.
+
+### Suite — point 1 implémenté et mesuré : ~1,9× sur la construction
+
+**Implémentation** : `precomputeSlot(pool)` calcule, une fois par rune de
+chaque slot d'une moitié, `{ eff, isJoker, contribPct[], contribFlat[] }`
+(tableaux alignés sur `trackedKeys`, pas d'objet à clés dynamiques dans la
+boucle chaude). La triple boucle passe d'itérateurs `for...of` à des index
+(`idx0/idx1/idx2`) pour lire ces précalculs par position — les trois pools
+d'une même moitié sont toujours disjoints (une rune n'appartient qu'à un
+seul `slot`), donc l'indexation par position est aussi sûre qu'une table
+par id, sans le coût d'une table de hachage. `counts` réutilise `haveR01`
+(déjà accumulé pour `stillFeasible`) au lieu de `runes.filter(...)`.
+Comportement strictement identique — vérifié : `tsc --noEmit` propre, 385
+vérifications passées (harnais différentiel inclus).
+
+⚠️ **Bug de méthodologie trouvé EN MESURANT, pas en écrivant le code** : la
+première comparaison dos-à-dos donnait un delta suspect (×2,4, cohérent
+d'un cas à l'autre — pas du bruit) puis, en revérifiant par acquit de
+conscience, une SECONDE comparaison (code d'origine restauré, remesuré)
+donnait des chiffres IDENTIQUES au bit près à la première — impossible si
+le code différait vraiment. Cause : `ensureBuildHalfWorkerBundle`
+(`perf-battery.ts`, voir « Suite — fix du cache de bundle esbuild »
+au-dessus) n'invalidait son cache disque que si `build-half-worker.ts`
+LUI-MÊME changeait — jamais si un fichier qu'il IMPORTE
+(`runeBuildOptim.ts`, embarqué DANS le bundle par esbuild) changeait. Les
+deux mesures tournaient donc sur le même bundle figé, ni l'une ni l'autre
+ne reflétait le code réellement testé. **Corrigé** : chemin de cache
+dérivé du PID de l'orchestrateur (`--bundle-dir=`, transmis aux enfants),
+un bundle FRAIS par exécution complète de la batterie plutôt qu'un cache
+partagé entre exécutions séparées — élimine le risque à la racine, au prix
+d'un rebundling (~1 s) une fois par exécution plutôt que jamais. Dossier
+nettoyé en fin d'exécution (`rmSync`), pas d'accumulation dans `%TEMP%`.
+
+**Mesure corrigée, dos-à-dos** (`build réel`, code d'origine → précalculé) :
+
+| Cas | Avant | Après | Facteur |
+|---|---|---|---|
+| Lushen d15 R+B | 9,1 s | 5,2 s | ×1,75 |
+| Lushen d15 R seul | 4,4 s | 2,2 s | ×2,00 |
+| Lushen d10 | 4,3 s | 2,3 s | ×1,87 |
+| Lushen d11 | 8,2 s | 4,6 s | ×1,78 |
+| Sonia d6 | 9,7 s | 5,1 s | ×1,90 |
+| Sonia d14 | 11,3 s | 5,1 s | ×2,22 |
+| Ciri d.eq3 | 6,8 s | 3,5 s | ×1,94 |
+| **Moyenne** | | | **×1,92** |
+
+Gain cohérent sur les 7 cas (1,75× à 2,22×), pas un pic isolé — confirme la
+redondance mesurée en lisant le code (voir plus haut) plutôt que de la
+supposer. Prochaine étape naturelle : le point 2 (top-K par tas dans
+`filterSlot`), moins d'impact attendu mais même famille de gain, avant de
+passer à la parallélisation de l'appariement (point 3/9).
+
+### Suite — accélération GPU envisagée pour l'appariement, puis nuancée
+
+Question posée face à des espaces de recherche déjà mesurés à ~500M paires
+(voir « Suite — relecture critique du pipeline… »), potentiellement
+plusieurs milliards à l'avenir (comptes plus gros, `bucketCap` relevé) :
+le GPU ne serait-il pas la bonne réponse pour le point 3 ci-dessus ?
+
+**Réponse nuancée : pas comme prochain levier, pour trois raisons.**
+
+1. **Divergence de branchement.** Un GPU excelle sur du travail massif ET
+   SANS branchement. La boucle d'appariement est l'inverse : une CHAÎNE de
+   filtres séquentiels à sortie anticipée (`satisfiesSets` → joker →
+   `pairFeasibleMin` → `comboAFeasible` → `quickOk` → seulement alors
+   `activeSets`+`computeStats`) — l'écrasante majorité des paires s'arrête
+   tôt. Sur un GPU, des threads voisins qui prennent des chemins
+   différents se SÉRIALISENT (divergence de warp/wavefront) : l'essentiel
+   de l'avantage théorique disparaît sur ce genre de logique.
+2. **Prérequis dur, pas encore fait.** `HalfCombo.pct`/`flat` sont des
+   `Record<string, number>` — un GPU a besoin de tableaux typés à
+   disposition FIXE connue d'avance. Le point 8 (tableaux typés) devient un
+   préalable obligatoire, pas une option indépendante.
+3. **Coût de compatibilité, dans une app 100 % cliente.** WebGPU (le seul
+   qui offre de vrais compute shaders, pas WebGL) reste incomplètement
+   supporté selon navigateur/appareil — sans serveur de repli (voir
+   README, « 100 % local, aucune donnée envoyée »), un chemin CPU complet
+   resterait nécessaire de toute façon, doublant la maintenance pour un
+   gain incertain.
+
+**Où le GPU aurait vraiment un sens, si le besoin se confirme** : pas sur
+toute la boucle, mais sur la seule étape `quickOk` (somme de
+`pct[k]+flat[k]` des deux moitiés comparée aux seuils) — purement
+arithmétique, sans branchement si écrite comme un masque plutôt qu'un
+`if`. Une architecture à deux temps serait cohérente : un noyau GPU qui
+calcule ce test en masse sur des lots de paires, puis seules les rares
+survivantes repassent au CPU pour `activeSets`/`computeStats` (trop
+complexe/branchu pour un GPU).
+
+**Décision** : mesurer d'abord la parallélisation CPU de l'appariement
+(point 9) — bien moins cher à construire, mêmes structures de données,
+aucun problème de compatibilité. Le GPU reste une piste réelle à
+reconsidérer SI l'échelle réellement observée (pas hypothétique) dépasse
+ce que la parallélisation CPU peut suivre — pas avant.
+
 ## Limites connues
 
 - ~~Un set NON demandé qui s'activerait par accident via les emplacements

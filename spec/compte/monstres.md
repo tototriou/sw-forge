@@ -87,6 +87,28 @@ coups, effets appliqués avec leur taux, et ce qu'apporte chaque amélioration.
   lirait comme une affirmation sur le monstre, alors que c'est notre donnée qui
   manque (un monstre perso n'a pas de fiche SWARFARM).
 
+### ⚠️ Un monstre transformable montre SES DEUX formes
+
+La grille n'affiche qu'une carte par monstre transformable (voir
+[bestiaire.md](../bestiaire.md#%EF%B8%8F-un-monstre-transformable-na-quune-fiche)) —
+mais **leurs compétences diffèrent** : Bellenus voit son S2 passer de
+**3.0 à 2.0 × ATQ** et son passif changer entièrement. Dédupliquer sans plus
+ferait donc perdre la moitié de l'information.
+
+La fiche porte un **contrôle à cran** — « Forme de base » / « Forme
+transformée » — qui recharge stats, lead et compétences.
+
+- Les libellés sont **« base » / « transformée »**, pas les noms : ils sont
+  **identiques** des deux côtés. C'est le rang qui distingue, comme dans le jeu
+  où l'une se transforme en l'autre.
+- ⚠️ L'autre forme est cherchée dans le **bestiaire complet**, jamais dans ce qui
+  est affiché : la grille l'a justement écartée, et la **box** ne la contient pas
+  forcément (d'où la prop `allMonsters` passée par `App`).
+- Rouvrir la fiche sur un autre monstre **remet la forme de base** : sans ça, on
+  garderait la forme transformée du monstre précédent.
+- Si l'autre forme est introuvable, **aucun sélecteur** n'apparaît — un contrôle
+  à un seul cran ne sert à rien.
+
 ### ⚠️ Un fichier par monstre, pré-généré
 
 [fetch-skills.mjs](scripts/fetch-skills.mjs) écrit

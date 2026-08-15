@@ -11,7 +11,7 @@ import ArtifactsSection from '../components/account/ArtifactsSection';
 import { useStickyState } from '../hooks/useStickyState';
 import Segmented from '../components/Segmented';
 import { MonsterSortMode, comparateurMonstres } from '../lib/monsterSort';
-import { sansDoublonDeTransformation } from '../lib/monsterForms';
+import { autreForme, sansDoublonDeTransformation } from '../lib/monsterForms';
 import MonsterDetailDialog from '../components/MonsterDetailDialog';
 
 type Sub = 'monstres' | 'runes' | 'artefacts';
@@ -26,6 +26,9 @@ interface Props {
   // Relecture du compte conservé en cours : on n'annonce pas « aucune donnée »
   // tant qu'on n'a pas fini de regarder.
   hydrating?: boolean;
+  // Bestiaire COMPLET. Sert à retrouver la seconde forme d'un monstre
+  // transformable, que la box ne contient pas forcément.
+  allMonsters?: Monster[];
 }
 
 // Styles de chips d'élément (repris de FilterBar pour rester cohérent).
@@ -117,7 +120,7 @@ const BoxCard = memo(function BoxCard({
 });
 
 // Sous-section « Box de monstres » (tous les 6★, dédupliqués, filtrables).
-function MonsterBoxSection({ box }: { box: BoxItem[] }) {
+function MonsterBoxSection({ box, allMonsters = [] }: { box: BoxItem[]; allMonsters?: Monster[] }) {
   const [query, setQuery] = useStickyState('box.query', '');
   const [activeElements, setActiveElements] = useStickyState<Set<ElementKey>>('box.elements', new Set());
   const [activeStars, setActiveStars] = useStickyState<Set<number>>('box.stars', new Set());
@@ -310,12 +313,29 @@ function MonsterBoxSection({ box }: { box: BoxItem[] }) {
         </div>
       )}
 
-      {fiche && <MonsterDetailDialog monster={fiche} onClose={() => setFiche(null)} />}
+      {/* ⚠️  est cherché dans le bestiaire COMPLET : la box ne contient
+          que ce qu'on possède, et la seconde forme n'y est pas forcément. */}
+      {fiche && (
+        <MonsterDetailDialog
+          monster={fiche}
+          autre={autreForme(fiche, allMonsters)}
+          onClose={() => setFiche(null)}
+        />
+      )}
     </div>
   );
 }
 
-export default function AccountPage({ sub, box, runes, artifacts, crafts, loadState, hydrating }: Props) {
+export default function AccountPage({
+  sub,
+  box,
+  runes,
+  artifacts,
+  crafts,
+  loadState,
+  hydrating,
+  allMonsters,
+}: Props) {
   const empty = box.length === 0 && runes.length === 0 && artifacts.length === 0;
 
   if (empty && hydrating) {
@@ -353,7 +373,7 @@ export default function AccountPage({ sub, box, runes, artifacts, crafts, loadSt
 
   return (
     <div className="mt-6">
-      {sub === 'monstres' && <MonsterBoxSection box={box} />}
+      {sub === 'monstres' && <MonsterBoxSection box={box} allMonsters={allMonsters} />}
       {sub === 'runes' && <RunesSection runes={runes} crafts={crafts} />}
       {sub === 'artefacts' && <ArtifactsSection artifacts={artifacts} />}
     </div>

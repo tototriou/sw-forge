@@ -10,7 +10,7 @@
 // changer la fiche d'un rendu à l'autre.
 
 import { Monster } from '../src/types';
-import { sansDoublonDeTransformation } from '../src/lib/monsterForms';
+import { autreForme, sansDoublonDeTransformation } from '../src/lib/monsterForms';
 import { egal, titre } from './outils';
 
 function mon(p: Partial<Monster> & { name: string; com2usId: number }): Monster {
@@ -96,5 +96,34 @@ export default function testMonstreFormes() {
     sansDoublonDeTransformation([perso]).length,
     1,
     'un monstre perso (sans com2usId) est conservé'
+  );
+
+  /* --- retrouver l'autre forme, pour la FICHE ---------------------------- */
+  //
+  // ⚠️ La grille n'affiche qu'une carte, mais les deux formes n'ont PAS les
+  // mêmes compétences — Bellenus voit son S2 passer de 3.0 à 2.0 × ATQ. La fiche
+  // doit donc pouvoir remonter à celle qui a été écartée.
+
+  const tous = [bellenusA, bellenusB, ...sansLien];
+
+  egal(
+    autreForme(bellenusA, tous)?.com2usId,
+    22312,
+    'depuis la forme de base, on retrouve la forme transformée'
+  );
+  egal(
+    autreForme(bellenusB, tous)?.com2usId,
+    22212,
+    'et réciproquement — le lien est bidirectionnel'
+  );
+  egal(
+    autreForme(sansLien[0], tous),
+    null,
+    'un monstre sans transformation n’a pas d’autre forme'
+  );
+  egal(
+    autreForme(bellenusA, [bellenusA]),
+    null,
+    'cible absente de la liste → null, la fiche n’affiche alors qu’une forme'
   );
 }

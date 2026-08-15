@@ -892,6 +892,10 @@ export default function App() {
             crafts={crafts}
             loadState={data.loadState}
             hydrating={accountHydrating}
+            // ⚠️ Le bestiaire COMPLET, pas seulement la box : la fiche d'un
+            // monstre transformable doit pouvoir montrer sa seconde forme, que
+            // la box ne contient pas forcément (voir `autreForme`).
+            allMonsters={allMonsters}
           />
         ) : route === 'outils' ? (
           <OutilsPage

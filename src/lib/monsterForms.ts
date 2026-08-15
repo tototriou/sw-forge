@@ -67,6 +67,18 @@ export function formesJouables(monsters: Monster[]): Monster[] {
 // connaît le monstre. Le choix doit surtout être **stable** : n'importe quelle
 // règle déterministe conviendrait, mais elle doit donner le même résultat à
 // chaque rendu, sinon la fiche changerait sous le curseur.
+// L'autre forme d'un monstre transformable, si elle est dans la liste.
+//
+// ⚠️ La fiche en a besoin : les deux formes n'ont PAS les mêmes compétences —
+// Bellenus voit son S2 passer de 3.0 à 2.0 × ATQ et son passif changer
+// entièrement. Les dédupliquer dans la grille était juste (deux cartes
+// indistinguables), mais masquer la seconde dans la fiche perdrait la moitié de
+// l'information.
+export function autreForme(m: Monster, monsters: Monster[]): Monster | null {
+  if (m.transformsTo == null) return null;
+  return monsters.find((x) => x.swarfarmId === m.transformsTo && x !== m) ?? null;
+}
+
 export function sansDoublonDeTransformation(monsters: Monster[]): Monster[] {
   // Index par id SWARFARM : c'est la clé que `transformsTo` référence.
   const parSwarfarm = new Map<number, Monster>();

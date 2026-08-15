@@ -3,6 +3,7 @@ import { Sword, Shield, Zap, Star } from 'lucide-react';
 import { Monster } from '../types';
 import { Modale } from './Dialogs';
 import ElementIcon from './ElementIcon';
+import Segmented from './Segmented';
 import {
   Competence,
   DetailMonstre,
@@ -22,18 +23,30 @@ import {
 // dans un fichier par monstre (~3 Ko), et on ne télécharge que ce qu'on ouvre.
 export default function MonsterDetailDialog({
   monster,
+  autre,
   onClose,
 }: {
   monster: Monster;
+  // Seconde forme d'un monstre TRANSFORMABLE (Bellenus, les Sœurs…), si elle
+  // existe. La grille n'en montre qu'une carte — mais les deux formes n'ont pas
+  // les mêmes compétences, donc la fiche doit donner accès aux deux.
+  autre?: Monster | null;
   onClose: () => void;
 }) {
+  // Forme affichée. ⚠️ On mémorise le MONSTRE et non un index : les deux formes
+  // sont deux objets distincts, et un index se lirait mal ici.
+  const [forme, setForme] = useState<Monster>(monster);
   const [detail, setDetail] = useState<DetailMonstre | null>(null);
   const [chargement, setChargement] = useState(true);
+
+  // Rouvrir la fiche sur un autre monstre remet la forme de départ : sans ça,
+  // on garderait la forme transformée du monstre précédent.
+  useEffect(() => setForme(monster), [monster]);
 
   useEffect(() => {
     let vivant = true;
     setChargement(true);
-    chargerDetail(monster.com2usId).then((d) => {
+    chargerDetail(forme.com2usId).then((d) => {
       // ⚠️ Garde de démontage : on peut fermer la fiche avant la fin du
       // chargement, et écrire dans un composant démonté lève un avertissement.
       if (!vivant) return;
@@ -43,38 +56,41 @@ export default function MonsterDetailDialog({
     return () => {
       vivant = false;
     };
-  }, [monster.com2usId]);
+  }, [forme.com2usId]);
 
-  const s = monster.stats;
+  // Les deux formes, dans l'ordre où on les lit : celle d'origine puis la
+  // transformée.
+  const formes = autre ? [monster, autre] : [];
+  const s = forme.stats;
 
   return (
     <Modale onClose={onClose} labelledBy="fiche-monstre" largeur="max-w-[720px]">
       {/* En-tête : portrait, nom, élément, rareté naturelle. */}
       <div className="mb-3 flex items-start gap-3">
-        {monster.image && (
+        {forme.image && (
           <div className="hex-frame h-[64px] w-[64px] flex-none overflow-hidden bg-panel2">
             <img
-              src={monster.image}
-              alt={monster.name}
+              src={forme.image}
+              alt={forme.name}
               className="h-full w-full object-cover"
             />
           </div>
         )}
         <div className="min-w-0 flex-1">
           <h2 id="fiche-monstre" className="font-display text-[19px] tracking-wide text-ink">
-            {monster.name}
+            {forme.name}
           </h2>
           <div className="mt-1 flex flex-wrap items-center gap-2 text-[12px] text-ink-dim">
             <span className="inline-flex items-center gap-1">
-              <ElementIcon element={monster.element} size={14} />
+              <ElementIcon element={forme.element} size={14} />
             </span>
-            {monster.naturalStars != null && (
+            {forme.naturalStars != null && (
               <span className="inline-flex items-center gap-0.5 font-mono text-star">
-                {monster.naturalStars}
+                {forme.naturalStars}
                 <Star size={11} className="fill-current" />
               </span>
             )}
-            {monster.secondAwaken && (
+            {forme.secondAwaken && (
               <span className="rounded bg-accent-soft px-1.5 py-px font-mono text-[11px] text-ink">
                 2A
               </span>
@@ -83,6 +99,32 @@ export default function MonsterDetailDialog({
           </div>
         </div>
       </div>
+
+      {/* ⚠️ Sélecteur de FORME, pour les monstres transformables. La grille n'en
+          montre qu'une carte — les deux entrées sont indistinguables — mais
+          leurs compétences DIFFÈRENT : Bellenus voit son S2 passer de 3.0 à
+          2.0 × ATQ et son passif changer entièrement. Sans ce sélecteur, la
+          déduplication ferait perdre la moitié de l'information.
+          Un contrôle à cran (`Segmented`) : les deux formes s'excluent. */}
+      {formes.length > 1 && (
+        <div className="mb-3">
+          <Segmented
+            value={String(forme.com2usId)}
+            onChange={(v) => {
+              const cible = formes.find((f) => String(f.com2usId) === v);
+              if (cible) setForme(cible);
+            }}
+            options={formes.map((f, i) => ({
+              key: String(f.com2usId),
+              // Le nom est le MÊME des deux côtés : c'est le rang qui les
+              // distingue, comme dans le jeu où l'une se transforme en l'autre.
+              label: i === 0 ? 'Forme de base' : 'Forme transformée',
+              hint: `Compétences de la ${i === 0 ? 'forme de base' : 'forme transformée'}`,
+            }))}
+            size="lg"
+          />
+        </div>
+      )}
 
       {/* Stats du monstre 6★ nu — les mêmes que celles qui servent aux calculs
           de l'app (voir spec/shared/donnees-monstres.md). */}
@@ -98,16 +140,16 @@ export default function MonsterDetailDialog({
       </div>
 
       {/* Compétence de leader — ce que le monstre apporte à l'équipe. */}
-      {monster.leaderSkill && (
+      {forme.leaderSkill && (
         <div className="mb-3 rounded-lg border border-accent/40 bg-accent-soft px-2.5 py-2 text-[12px]">
           <span className="label">Leader</span>
           <p className="mt-0.5 text-ink">
-            {monster.leaderSkill.stat} +{monster.leaderSkill.amount} %
-            {monster.leaderSkill.area && monster.leaderSkill.area !== 'General' && (
-              <span className="text-ink-dim"> · {monster.leaderSkill.area}</span>
+            {forme.leaderSkill.stat} +{forme.leaderSkill.amount} %
+            {forme.leaderSkill.area && forme.leaderSkill.area !== 'General' && (
+              <span className="text-ink-dim"> · {forme.leaderSkill.area}</span>
             )}
-            {monster.leaderSkill.element && (
-              <span className="text-ink-dim"> · {monster.leaderSkill.element}</span>
+            {forme.leaderSkill.element && (
+              <span className="text-ink-dim"> · {forme.leaderSkill.element}</span>
             )}
           </p>
         </div>
@@ -131,7 +173,7 @@ export default function MonsterDetailDialog({
         // comme une affirmation sur le monstre, alors que c'est notre donnée qui
         // manque — un monstre perso n'a pas de fiche SWARFARM.
         <p className="py-6 text-center text-[12px] text-ink-dim">
-          {monster.com2usId == null
+          {forme.com2usId == null
             ? "Ce monstre a été créé à la main : il n'a pas de fiche de compétences."
             : 'Le détail des compétences de ce monstre n’est pas disponible.'}
         </p>

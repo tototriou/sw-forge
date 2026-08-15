@@ -7,7 +7,7 @@ import MonsterDetailDialog from '../components/MonsterDetailDialog';
 import Pager from '../components/account/Pager';
 import { ELEMENTS, ElementKey, Monster } from '../types';
 import { LoadState } from '../hooks/useMonsters';
-import { sansDoublonDeTransformation } from '../lib/monsterForms';
+import { autreForme, sansDoublonDeTransformation } from '../lib/monsterForms';
 
 interface Props {
   monsters: Monster[];
@@ -184,7 +184,16 @@ export default function BestiaryPage({ monsters }: Props) {
       {/* La MÊME fiche que dans « Mon compte » : mêmes données, même rendu. Le
           bestiaire couvre en plus les monstres qu'on ne possède pas — c'est
           justement là qu'on consulte des coefficients avant d'invoquer. */}
-      {fiche && <MonsterDetailDialog monster={fiche} onClose={() => setFiche(null)} />}
+      {/* ⚠️ `autre` est cherché dans la liste COMPLÈTE (`monsters`) et non dans
+          ce qui est affiché : la grille a justement écarté la seconde forme,
+          c'est tout l'objet de la déduplication. */}
+      {fiche && (
+        <MonsterDetailDialog
+          monster={fiche}
+          autre={autreForme(fiche, monsters)}
+          onClose={() => setFiche(null)}
+        />
+      )}
     </div>
   );
 }

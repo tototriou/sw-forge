@@ -45,7 +45,7 @@
 //   --case=<index> : mode WORKER interne (voir plus bas) — pas un usage
 //            direct, l'orchestrateur se relance lui-même avec ce flag.
 
-import { readFileSync, writeFileSync, existsSync, mkdirSync, statSync, rmSync } from 'fs';
+import { readFileSync, writeFileSync, existsSync, mkdirSync, rmSync } from 'fs';
 import { execSync } from 'child_process';
 import { Worker } from 'worker_threads';
 import { build } from 'esbuild';
@@ -170,21 +170,36 @@ function drain<T>(gen: Generator<unknown, T, void>): T {
 // Bundle build-half-worker.ts en .cjs (un worker_threads a besoin de JS pur,
 // pas de TypeScript transpilé à la volée) — même patron que les lanceurs
 // .mjs existants (voir monster-search-validate.mjs). Mis en cache sur un
-// chemin FIXE, pas un dossier temporaire par appel : chaque cas de la
-// batterie tourne dans son propre processus Node (voir `--case=` plus bas),
-// donc un cache en mémoire de module ne survit jamais d'un cas à l'autre —
-// sans ce cache disque, CHAQUE cas payait un bundling esbuild complet, un
-// coût absent de tout segment mesuré (ni `prepMs` ni `buildWallMs`, tous
-// deux chronométrés en dehors de cette fonction) qui ne contaminait donc que
-// `totalMs`/`foundMs` d'un bruit variable — observé : +2.6s sur Sonia d14
-// entre deux baselines au code strictement identique.
-const BUILD_HALF_BUNDLE_DIR = join(tmpdir(), 'sw-forge-perf-buildhalf-cache');
+// chemin PROPRE À CETTE EXÉCUTION (dérivé du PID de l'orchestrateur, passé
+// aux enfants via `--bundle-dir=`), pas un chemin fixe partagé entre
+// invocations séparées : chaque cas de la batterie tourne dans son propre
+// processus Node (voir `--case=` plus bas), donc un cache en mémoire de
+// module ne survit jamais d'un cas à l'autre — sans CE cache disque, CHAQUE
+// cas payait un bundling esbuild complet, un coût absent de tout segment
+// mesuré (ni `prepMs` ni `buildWallMs`, tous deux chronométrés en dehors de
+// cette fonction) qui ne contaminait donc que `totalMs`/`foundMs` d'un bruit
+// variable — observé : +2.6s sur Sonia d14 entre deux baselines au code
+// strictement identique.
+// ⚠️ **Bug corrigé** : une première version utilisait un chemin FIXE
+// (`sw-forge-perf-buildhalf-cache`, sans le PID), invalidé seulement si
+// `build-half-worker.ts` LUI-MÊME avait changé — jamais si un fichier qu'il
+// IMPORTE (`runeBuildOptim.ts`, bundlé DEDANS par esbuild) changeait. Deux
+// mesures dos-à-dos prises pour chiffrer une optimisation de
+// `runeBuildOptim.ts` (précalcul par rune, voir « Suite — relecture du
+// pipeline ») se sont révélées IDENTIQUES au bit près — repéré en comparant
+// les dates du bundle caché (20:19) et du source modifié (20:30, APRÈS le
+// bundle) : les deux mesures tournaient sur le MÊME bundle figé, ni l'une ni
+// l'autre ne reflétait le vrai code. Un chemin par PID élimine le risque à
+// la racine (jamais réutilisé entre deux exécutions à du code différent),
+// au prix d'un rebundling une fois par exécution complète de la batterie
+// (~1 s) plutôt que jamais — un coût négligeable face au risque de mesures
+// silencieusement fausses.
+const RUN_ID = process.argv.find((a) => a.startsWith('--bundle-dir='))?.slice('--bundle-dir='.length) ?? String(process.pid);
+const BUILD_HALF_BUNDLE_DIR = join(tmpdir(), `sw-forge-perf-buildhalf-${RUN_ID}`);
 const BUILD_HALF_SRC = 'scripts/lib/build-half-worker.ts';
 async function ensureBuildHalfWorkerBundle(): Promise<string> {
   const outfile = join(BUILD_HALF_BUNDLE_DIR, 'build-half-worker.cjs');
-  if (existsSync(outfile) && statSync(outfile).mtimeMs >= statSync(BUILD_HALF_SRC).mtimeMs) {
-    return outfile;
-  }
+  if (existsSync(outfile)) return outfile;
   mkdirSync(BUILD_HALF_BUNDLE_DIR, { recursive: true });
   await build({
     entryPoints: [BUILD_HALF_SRC],
@@ -374,9 +389,12 @@ if (caseArg) {
 function runCaseIsolated(idx: number): CaseOutcome {
   const runs: CaseOutcome[] = [];
   for (let i = 0; i < REPEATS; i++) {
-    // `idx` est un entier borné par CASES.length, jamais une entrée
-    // externe — l'interpolation directe est sûre, pas d'échappement requis.
-    const out = execSync(`npx tsx scripts/perf-battery.ts --case=${idx}`, {
+    // `idx` est un entier borné par CASES.length, `RUN_ID` un PID — tous
+    // deux sûrs à interpoler directement. `--bundle-dir=` transmet le
+    // répertoire de cache DE CET ORCHESTRATEUR à l'enfant, pour qu'ils
+    // bundlent tous dans le MÊME dossier (voir `ensureBuildHalfWorkerBundle`)
+    // sans jamais retomber sur un chemin fixe partagé entre exécutions.
+    const out = execSync(`npx tsx scripts/perf-battery.ts --case=${idx} --bundle-dir=${RUN_ID}`, {
       encoding: 'utf8',
       maxBuffer: 10 * 1024 * 1024,
     });
@@ -442,3 +460,10 @@ if (SAVE) {
 } else {
   console.log(`\nBaseline précédente du ${previous.measuredAt} (${previous.repeats} répétition(s)) — relancer avec --save pour la remplacer.`);
 }
+
+// Nettoyage du dossier de bundle propre à CETTE exécution (voir
+// `ensureBuildHalfWorkerBundle`) — un chemin par PID évite toute mesure
+// silencieusement faussée, mais laisserait sinon un dossier orphelin par
+// exécution dans %TEMP% (le même genre d'accumulation déjà nettoyée une
+// fois cette session, voir « Suite — investigation de la dérive »).
+rmSync(BUILD_HALF_BUNDLE_DIR, { recursive: true, force: true });

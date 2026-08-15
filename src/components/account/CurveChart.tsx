@@ -2,13 +2,21 @@
 // Ordonnée = efficience (%), abscisse = nombre de runes (rang cumulé).
 // Réutilisé par « Courbes » (une série) et « Comparaison » (plusieurs séries).
 
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
+import { X } from 'lucide-react';
+import { RuneDetail } from '../../types';
+import { RuneDetailBox } from '../MonsterGear';
 
 export interface CurveSeries {
   name: string;
   effs: number[]; // efficiences (%), triées décroissant, déjà limitées à l'affichage
   color: string;
   own: boolean; // true = ma courbe (aire + trait plus épais)
+  // ⚠️ Runes ALIGNÉES sur `effs`, même index, même tri — facultatif : une courbe
+  // importée d'un ami ne transporte que des valeurs, jamais ses runes. Quand
+  // elles sont là, un clic sur le graphe ouvre celle du point visé ; sinon le
+  // graphe reste en lecture seule, sans rien annoncer de cliquable.
+  runes?: RuneDetail[];
 }
 
 const W = 820;
@@ -74,6 +82,20 @@ export default function CurveChart({
 }) {
   const svgRef = useRef<SVGSVGElement>(null);
   const [hover, setHover] = useState<number | null>(null);
+  // Rang cliqué : on ouvre LA (ou les) rune(s) de ce point. `null` = fermé.
+  //
+  // ⚠️ On mémorise le RANG, pas les runes : les séries se recalculent à chaque
+  // changement de filtre ou de métrique, et des runes figées désigneraient un
+  // point qui n'existe plus.
+  const [choisi, setChoisi] = useState<number | null>(null);
+
+  // Un flottant se referme à Échap — même motif que les autres popovers.
+  useEffect(() => {
+    if (choisi == null) return;
+    const onEsc = (e: KeyboardEvent) => e.key === 'Escape' && setChoisi(null);
+    document.addEventListener('keydown', onEsc);
+    return () => document.removeEventListener('keydown', onEsc);
+  }, [choisi]);
 
   const active = series.filter((s) => s.effs.length > 0);
   if (active.length === 0) {
@@ -127,15 +149,40 @@ export default function CurveChart({
           .sort((a, b) => b.val - a.val)
       : [];
 
+  // Y a-t-il quelque chose à ouvrir ? Seules les séries qui transportent leurs
+  // runes sont cliquables — une courbe d'ami n'a que des valeurs.
+  const cliquable = active.some((s) => s.runes?.length);
+
+  // Runes du rang choisi, une par série qui en porte une. ⚠️ Plusieurs séries
+  // peuvent répondre au même rang (« Actuelle » et les deux potentiels sont
+  // triées SÉPARÉMENT) : la 3ᵉ meilleure rune actuelle n'est pas la 3ᵉ meilleure
+  // en potentiel légendaire. On affiche donc chaque série avec SA rune.
+  const runesChoisies =
+    choisi == null
+      ? []
+      : active
+          .filter((s) => s.runes && choisi < s.runes.length)
+          .map((s) => ({ serie: s, rune: s.runes![choisi], val: s.effs[choisi] }))
+          .sort((a, b) => b.val - a.val);
+
+  function onClick() {
+    if (!cliquable || hover == null) return;
+    // Re-cliquer le même rang referme : le geste est son propre inverse.
+    setChoisi((cur) => (cur === hover ? null : hover));
+  }
+
   return (
     <div className="rounded-xl border border-border bg-panel/50 p-2">
       <svg
         ref={svgRef}
         viewBox={`0 0 ${W} ${H}`}
-        className="w-full h-auto"
+        // Le curseur dit que le graphe répond au clic — mais seulement quand il
+        // y a réellement des runes derrière les points.
+        className={`w-full h-auto ${cliquable ? 'cursor-pointer' : ''}`}
         preserveAspectRatio="xMidYMid meet"
         onPointerMove={onMove}
         onPointerLeave={() => setHover(null)}
+        onClick={onClick}
       >
         <defs>
           <linearGradient id="rcFill" x1="0" y1="0" x2="0" y2="1">
@@ -291,9 +338,81 @@ export default function CurveChart({
             );
           })()}
 
+        {/* Repère du point CHOISI — trait plein, là où le survol est tireté :
+            il survit au départ du pointeur, et dit d'où sort le détail lu en
+            dessous. */}
+        {choisi != null && runesChoisies.length > 0 && (
+          <g pointerEvents="none">
+            <line
+              x1={x(choisi)}
+              y1={PAD_T}
+              x2={x(choisi)}
+              y2={PAD_T + IH}
+              stroke="var(--accent)"
+              strokeWidth="1.5"
+            />
+            {runesChoisies.map(({ serie, val }) => (
+              <circle
+                key={serie.name}
+                cx={x(choisi)}
+                cy={y(val)}
+                r="4.5"
+                fill={serie.color}
+                stroke="var(--accent)"
+                strokeWidth="1.5"
+              />
+            ))}
+          </g>
+        )}
+
         {/* Zone de capture du pointeur (transparente, au-dessus) */}
         <rect x={0} y={0} width={W} height={H} fill="transparent" />
       </svg>
+
+      {/* Détail de la (ou des) rune(s) du point cliqué.
+          ⚠️ SOUS le graphe, dans le flux, et non en flottant : la carte d'une
+          rune fait ~300 px de haut, un popover de cette taille ancré sur un
+          point du graphe recouvrirait la courbe qu'on vient de lire. Ici on voit
+          les deux. */}
+      {choisi != null && runesChoisies.length > 0 && (
+        <div className="mt-2 border-t border-border pt-2 animate-[apparition_150ms_var(--ease-out)]">
+          <div className="mb-1.5 flex items-center gap-2">
+            <span className="label">
+              Rune n° {choisi + 1} du classement
+            </span>
+            <button
+              onClick={() => setChoisi(null)}
+              className="ml-auto text-ink-dim transition hoverable:text-ink"
+              title="Fermer le détail"
+              aria-label="Fermer le détail"
+            >
+              <X size={14} />
+            </button>
+          </div>
+          {/* ⚠️ Une carte PAR SÉRIE, pas une seule : « Actuelle » et les deux
+              potentiels sont triés séparément, donc le rang N ne désigne pas la
+              même rune dans chacun. Afficher la première venue aurait montré une
+              rune qui ne correspond pas à la courbe qu'on visait. */}
+          <div className="flex flex-wrap gap-2">
+            {runesChoisies.map(({ serie, rune, val }) => (
+              <div key={serie.name} className="w-[260px] max-w-full">
+                <div className="mb-1 flex items-center gap-1.5 font-mono text-[11px] text-ink-dim">
+                  <span
+                    className="inline-block h-1.5 w-3 flex-none rounded-full"
+                    style={{ background: serie.color }}
+                  />
+                  {serie.name} ·{' '}
+                  {unit === '%' ? val.toFixed(1) : String(Math.round(val))}
+                  {unit}
+                </div>
+                <div className="rounded-lg border border-border bg-panel p-2">
+                  <RuneDetailBox rune={rune} />
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   );
 }

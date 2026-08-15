@@ -189,6 +189,27 @@ Détails :
   - Le nom est **borné à 16 caractères** (le complet reste dans la légende) et la
     **largeur de la boîte est mesurée sur le contenu réel** : en dur, les noms
     débordaient.
+- ⚠️ **Cliquer un point ouvre la rune correspondante**, sous le graphe. On lit
+  « ma 12ᵉ meilleure rune vaut 78 % » ; la question suivante est toujours
+  « laquelle ? », et il fallait aller la chercher à la main dans la liste.
+  - Le rang cliqué est marqué d'un **trait plein** (le survol est tireté) : il
+    **survit au départ du pointeur** et dit d'où sort le détail lu en dessous.
+  - ⚠️ **Une carte PAR COURBE**, pas une seule. Les trois séries sont triées
+    **séparément** : le rang N d'« Actuelle » et celui de « Potentiel Légend » ne
+    désignent pas la même rune. En afficher une seule montrerait une rune qui ne
+    correspond pas à la courbe visée.
+  - ⚠️ **Sous le graphe, dans le flux — pas en flottant.** La carte d'une rune
+    fait ~300 px de haut : un popover de cette taille ancré sur un point
+    recouvrirait la courbe qu'on vient de lire.
+  - Re-cliquer le même rang **referme** (le geste est son propre inverse) ;
+    **Échap** et la croix ferment aussi.
+  - ⚠️ **Seules les séries qui transportent leurs runes sont cliquables**
+    (`CurveSeries.runes`, aligné sur `effs`, même tri). Une courbe **importée**
+    d'un ami ne porte que des valeurs : le graphe reste alors en lecture seule,
+    sans curseur `pointer` qui promettrait un clic sans effet.
+  - On mémorise le **rang**, jamais les runes : les séries se recalculent à
+    chaque changement de filtre ou de mesure, et des runes figées désigneraient
+    un point disparu.
 - **Légende sous le graphe** : cliquer un nom **masque/affiche** sa courbe.
 - **Filtres** : sets (`SetFilter`), slot (`SlotFilter`), antiques.
 - **Nombre de runes** : champ libre (défaut **400**) + **Tout**.

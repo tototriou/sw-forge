@@ -61,9 +61,14 @@ export const RELEASES: Release[] = [
   // fusion, d'après ce que la branche contient au final. On le remplace au
   // moment de publier, en même temps que `package.json` et le tag.
   {
-    version: null,
-    date: '2026-08-15',
+    version: '1.6.3',
+    date: '2026-08-16',
     title: 'Tes runes et tes monstres se lisent comme dans le jeu',
+    highlights: [
+      'Clique un monstre pour voir sa fiche complète : stats, lead et détail de ses sorts',
+      'Tes runes s’affichent comme dans le jeu, avec les tris et la recherche de propriétés',
+      'Les monstres de collaboration partagent la carte de leur équivalent : « Satoru Gojo, Werner »',
+    ],
     changes: [
       {
         kind: 'feat',
@@ -159,6 +164,21 @@ export const RELEASES: Release[] = [
         kind: 'fix',
         scope: 'Interface',
         text: 'Les zéros inutiles disparaissent des champs de saisie chiffrés.',
+      },
+    ],
+  },
+  {
+    version: '1.6.2',
+    date: '2026-08-16',
+    title: 'L’Optimiseur cherche plus vite',
+    highlights: [
+      'La recherche de builds va plus vite — près de deux fois plus rapide sur la construction, sans rien changer aux résultats trouvés',
+    ],
+    changes: [
+      {
+        kind: 'fix',
+        scope: 'Outils',
+        text: 'La recherche de l’Optimiseur va plus vite, sans rien changer aux résultats trouvés.',
       },
     ],
   },

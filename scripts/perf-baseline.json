@@ -1,0 +1,369 @@
+{
+  "measuredAt": "2026-08-15T05:58:29.137Z",
+  "repeats": 2,
+  "cases": {
+    "Lushen d15 (Rage+Blade, reel)": {
+      "result": {
+        "found": true,
+        "foundMs": 19296.7477,
+        "foundExplored": 42373000,
+        "totalMs": 24612.8498,
+        "totalExplored": 81928513,
+        "truncated": false,
+        "prepMs": 2377.8932999999997,
+        "buildAMs": 10788.0975,
+        "buildBMs": 6454.6497,
+        "buildWallMs": 11373.5978,
+        "pairingFoundMs": 5497.839100000001,
+        "pairingTotalMs": 10813.9401
+      },
+      "params": {
+        "slotFilterCap": 80,
+        "maxMsConfigured": 600000,
+        "bucketCap": 3000,
+        "maxNodesInitial": 32000000,
+        "objective": "degats",
+        "sets": [
+          "rage",
+          "blade"
+        ],
+        "minStats": {
+          "atk": 3644,
+          "cr": 100,
+          "cd": 246
+        },
+        "mainStats": {
+          "2": [
+            4
+          ],
+          "4": [
+            10
+          ],
+          "6": [
+            4
+          ]
+        },
+        "retentionKeys": [
+          "atk",
+          "cr",
+          "cd"
+        ],
+        "distinctKeys": [
+          "rage",
+          "blade"
+        ]
+      }
+    },
+    "Lushen d15 (Rage seul, relache)": {
+      "result": {
+        "found": true,
+        "foundMs": 23681.5518,
+        "foundExplored": 110566000,
+        "totalMs": 49065.0877,
+        "totalExplored": 297175817,
+        "truncated": false,
+        "prepMs": 2780.6159,
+        "buildAMs": 5790.222999999999,
+        "buildBMs": 4466.9773,
+        "buildWallMs": 6085.275500000001,
+        "pairingFoundMs": 14712.4016,
+        "pairingTotalMs": 40149.1391
+      },
+      "params": {
+        "slotFilterCap": 80,
+        "maxMsConfigured": 600000,
+        "bucketCap": 3000,
+        "maxNodesInitial": 32000000,
+        "objective": "degats",
+        "sets": [
+          "rage"
+        ],
+        "minStats": {
+          "atk": 3644,
+          "cr": 100,
+          "cd": 246
+        },
+        "mainStats": {
+          "2": [
+            4
+          ],
+          "4": [
+            10
+          ],
+          "6": [
+            4
+          ]
+        },
+        "retentionKeys": [
+          "atk",
+          "cr",
+          "cd"
+        ],
+        "distinctKeys": [
+          "rage"
+        ]
+      }
+    },
+    "Lushen d10 (tototriou)": {
+      "result": {
+        "found": true,
+        "foundMs": 25012.187,
+        "foundExplored": 142028500,
+        "totalMs": 104495.8161,
+        "totalExplored": 745101660,
+        "truncated": false,
+        "prepMs": 1389.7964,
+        "buildAMs": 4105.3866,
+        "buildBMs": 1589.7713999999999,
+        "buildWallMs": 4445.5737,
+        "pairingFoundMs": 19033.4796,
+        "pairingTotalMs": 98517.1077
+      },
+      "params": {
+        "slotFilterCap": 80,
+        "maxMsConfigured": 600000,
+        "bucketCap": 3000,
+        "maxNodesInitial": 32000000,
+        "objective": "degats",
+        "sets": [
+          "rage"
+        ],
+        "minStats": {
+          "atk": 3571,
+          "cr": 100,
+          "cd": 227
+        },
+        "mainStats": {
+          "2": [
+            4
+          ],
+          "4": [
+            10
+          ],
+          "6": [
+            4
+          ]
+        },
+        "retentionKeys": [
+          "atk",
+          "cr",
+          "cd"
+        ],
+        "distinctKeys": [
+          "rage"
+        ]
+      }
+    },
+    "Lushen d11 (tototriou)": {
+      "result": {
+        "found": true,
+        "foundMs": 11901.220599999999,
+        "foundExplored": 1688500,
+        "totalMs": 13114.6522,
+        "totalExplored": 10135489,
+        "truncated": false,
+        "prepMs": 1241.7955,
+        "buildAMs": 9642.821,
+        "buildBMs": 7364.8742,
+        "buildWallMs": 10369.7597,
+        "pairingFoundMs": 254.9465999999993,
+        "pairingTotalMs": 1468.3772000000008
+      },
+      "params": {
+        "slotFilterCap": 80,
+        "maxMsConfigured": 600000,
+        "bucketCap": 3000,
+        "maxNodesInitial": 32000000,
+        "objective": "degats",
+        "sets": [
+          "rage",
+          "blade"
+        ],
+        "minStats": {
+          "atk": 3279,
+          "cr": 104,
+          "cd": 260
+        },
+        "mainStats": {
+          "2": [
+            4
+          ],
+          "4": [
+            10
+          ],
+          "6": [
+            4
+          ]
+        },
+        "retentionKeys": [
+          "atk",
+          "cr",
+          "cd"
+        ],
+        "distinctKeys": [
+          "rage",
+          "blade"
+        ]
+      }
+    },
+    "Sonia d6 (tototriou)": {
+      "result": {
+        "found": true,
+        "foundMs": 36863.5661,
+        "foundExplored": 181448500,
+        "totalMs": 52618.0882,
+        "totalExplored": 296329889,
+        "truncated": false,
+        "prepMs": 1383.63,
+        "buildAMs": 10015.5557,
+        "buildBMs": 2636.4035000000003,
+        "buildWallMs": 10508.2531,
+        "pairingFoundMs": 24750.7209,
+        "pairingTotalMs": 40505.242
+      },
+      "params": {
+        "slotFilterCap": 80,
+        "maxMsConfigured": 600000,
+        "bucketCap": 3000,
+        "maxNodesInitial": 38400000,
+        "objective": "degats",
+        "sets": [
+          "swift"
+        ],
+        "minStats": {
+          "atk": 2963,
+          "spd": 322,
+          "cr": 112,
+          "cd": 92
+        },
+        "mainStats": {
+          "2": [
+            8
+          ],
+          "4": [
+            9
+          ],
+          "6": [
+            4
+          ]
+        },
+        "retentionKeys": [
+          "atk",
+          "spd",
+          "cr",
+          "cd"
+        ],
+        "distinctKeys": [
+          "swift"
+        ]
+      }
+    },
+    "Sonia d14 (Enzo)": {
+      "result": {
+        "found": true,
+        "foundMs": 21794.9673,
+        "foundExplored": 40507000,
+        "totalMs": 94352.06090000001,
+        "totalExplored": 552424705,
+        "truncated": false,
+        "prepMs": 2647.1034999999997,
+        "buildAMs": 12662.8574,
+        "buildBMs": 5281.876799999999,
+        "buildWallMs": 13135.4445,
+        "pairingFoundMs": 5841.451300000001,
+        "pairingTotalMs": 78454.17450000001
+      },
+      "params": {
+        "slotFilterCap": 80,
+        "maxMsConfigured": 600000,
+        "bucketCap": 3000,
+        "maxNodesInitial": 38400000,
+        "objective": "degats",
+        "sets": [
+          "swift"
+        ],
+        "minStats": {
+          "atk": 2899,
+          "cr": 103,
+          "cd": 122,
+          "spd": 313
+        },
+        "mainStats": {
+          "2": [
+            8
+          ],
+          "4": [
+            9
+          ],
+          "6": [
+            4
+          ]
+        },
+        "retentionKeys": [
+          "atk",
+          "spd",
+          "cr",
+          "cd"
+        ],
+        "distinctKeys": [
+          "swift"
+        ]
+      }
+    },
+    "Ciri defense eq.3 (Enzo)": {
+      "result": {
+        "found": true,
+        "foundMs": 12364.7453,
+        "foundExplored": 500,
+        "totalMs": 12370.1654,
+        "totalExplored": 784,
+        "truncated": false,
+        "prepMs": 2582.1818000000003,
+        "buildAMs": 8259.6065,
+        "buildBMs": 9214.3155,
+        "buildWallMs": 9718.3871,
+        "pairingFoundMs": 1.9231999999992695,
+        "pairingTotalMs": 7.263199999999415
+      },
+      "params": {
+        "slotFilterCap": 80,
+        "maxMsConfigured": 600000,
+        "bucketCap": 3000,
+        "maxNodesInitial": 38400000,
+        "objective": "ehp",
+        "sets": [
+          "energy",
+          "shield",
+          "energy"
+        ],
+        "minStats": {
+          "hp": 55529,
+          "def": 1130,
+          "spd": 171,
+          "acc": 12
+        },
+        "mainStats": {
+          "2": [
+            2
+          ],
+          "4": [
+            2
+          ],
+          "6": [
+            2
+          ]
+        },
+        "retentionKeys": [
+          "hp",
+          "def",
+          "spd",
+          "acc"
+        ],
+        "distinctKeys": [
+          "energy",
+          "shield"
+        ]
+      }
+    }
+  }
+}

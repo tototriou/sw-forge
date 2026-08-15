@@ -266,8 +266,12 @@ nom dans une liste — même règle que les filtres de runes (voir
 `activeSets(keys)` dans [effects.ts](src/lib/effects.ts) calcule les sets
 **réellement actifs** d'un build : set 4 pièces à 4 runes, les autres à 2, un set
 2 pièces pouvant être actif **plusieurs fois** (6 runes Fight → `['fight',
-'fight','fight']`), et une rune **Intangible** servant de **joker** pour compléter
-le set auquel il manque le moins de pièces.
+'fight','fight']`), et une rune **Intangible** servant de **joker** —
+⚠️ **uniquement s'il y a EXACTEMENT un set incomplet** parmi les runes
+réellement portées (règle du jeu, voir
+[compte/calcul-runes.md §5.2](../compte/calcul-runes.md)) : deux sets
+incomplets ou plus, même si l'un des deux n'est pas celui recherché, et le
+joker ne complète plus rien.
 
 > Cette fonction était auparavant privée à `importAccount.ts` (sur les `set_id`
 > com2us) ; elle a été **remontée dans `effects.ts`** et l'import la réutilise

@@ -62,6 +62,43 @@ export const RELEASES: Release[] = [
   // final. On le remplace au moment de publier, en même temps que
   // `package.json` et le tag.
   {
+    version: '1.6.0',
+    date: '2026-08-15',
+    title: 'L’Optimiseur de runes',
+    highlights: [
+      'Nouvel outil : trouve la meilleure combinaison de 6 runes parmi celles que tu possèdes déjà',
+      'Les résultats apparaissent au fur et à mesure de la recherche, sans attendre qu’elle se termine',
+      'Un réglage pour prioriser les stats les plus difficiles à combiner, si la recherche normale ne trouve rien',
+    ],
+    changes: [
+      {
+        kind: 'feat',
+        scope: 'Outils',
+        text: 'Nouvel outil Optimiseur de runes : cherche la meilleure combinaison de 6 parmi tes runes, pour un monstre, un combo de sets et des minimums donnés.',
+      },
+      {
+        kind: 'feat',
+        scope: 'Outils',
+        text: 'Par défaut, seules les runes réellement disponibles sont proposées — un réglage permet d’explorer aussi celles déjà portées par un autre monstre.',
+      },
+      {
+        kind: 'feat',
+        scope: 'Outils',
+        text: 'Les résultats trouvés s’affichent au fur et à mesure de la recherche, triables par n’importe quelle stat.',
+      },
+      {
+        kind: 'feat',
+        scope: 'Outils',
+        text: 'Un réglage priorise les stats les plus difficiles à combiner, pour les cas où la recherche normale ne trouve rien.',
+      },
+      {
+        kind: 'feat',
+        scope: 'Outils',
+        text: 'La recherche peut être arrêtée manuellement en gardant le meilleur trouvé jusque-là.',
+      },
+    ],
+  },
+  {
     version: '1.5.0',
     date: '2026-08-15',
     title: 'Tes artéfacts, notés et fouillables',

@@ -14,6 +14,8 @@ import {
   Github,
   MessageCircle,
   Tag,
+  Wrench,
+  Sparkles,
 } from 'lucide-react';
 import HomePage from './pages/HomePage';
 import BestiaryPage from './pages/BestiaryPage';
@@ -22,6 +24,7 @@ import SiegePage, { SiegeTab } from './pages/SiegePage';
 import MechanicsPage from './pages/MechanicsPage';
 import ReleasesPage from './pages/ReleasesPage';
 import AccountPage from './pages/AccountPage';
+import OutilsPage from './pages/OutilsPage';
 import ComingSoon from './pages/ComingSoon';
 import AccountImportControl from './components/AccountImportControl';
 import SettingsMenu from './components/SettingsMenu';
@@ -43,6 +46,7 @@ import { useCustomMonsters } from './hooks/useCustomMonsters';
 import { useRtaState } from './hooks/useRtaState';
 import { useSiegeState } from './hooks/useSiegeState';
 import { useSiegeRecos } from './hooks/useSiegeRecos';
+import { useOptimizerState } from './hooks/useOptimizerState';
 import { collectOwnedBuilds, collectOwnedTeams } from './lib/ownedBuilds';
 import {
   BoxMonster,
@@ -58,41 +62,65 @@ import { mapRtaItems, mapSiegeTeams, mapBoxMonsters, BoxItem } from './lib/apply
 
 const DISCORD_INVITE = 'https://discord.gg/R2Fe4GJZET';
 
-type Route = 'home' | 'bestiary' | 'rta' | 'siege' | 'arene' | 'mecaniques' | 'compte' | 'releases';
+type Route =
+  | 'home'
+  | 'bestiary'
+  | 'rta'
+  | 'siege'
+  | 'arene'
+  | 'mecaniques'
+  | 'compte'
+  | 'outils'
+  | 'releases';
 export type AccountSub = 'monstres' | 'runes' | 'artefacts';
+export type ToolSub = 'optimizer';
 
 // Route + sous-route de siège (offense/défense) + sous-section « Mon compte »
-// déduites du hash.
-function parseHash(): { route: Route; siegeTab: SiegeTab; accountSub: AccountSub } {
+// + sous-section « Outils » déduites du hash.
+function parseHash(): {
+  route: Route;
+  siegeTab: SiegeTab;
+  accountSub: AccountSub;
+  toolSub: ToolSub;
+} {
   const h = window.location.hash.replace(/^#\/?/, '');
-  const base = { siegeTab: 'defense' as SiegeTab, accountSub: 'monstres' as AccountSub };
+  const base = {
+    siegeTab: 'defense' as SiegeTab,
+    accountSub: 'monstres' as AccountSub,
+    toolSub: 'optimizer' as ToolSub,
+  };
   if (h === 'rta') return { route: 'rta', ...base };
   if (h === 'bestiary') return { route: 'bestiary', ...base };
   if (h === 'arene') return { route: 'arene', ...base };
   if (h === 'compte' || h.startsWith('compte/')) {
     const accountSub: AccountSub =
       h === 'compte/runes' ? 'runes' : h === 'compte/artefacts' ? 'artefacts' : 'monstres';
-    return { route: 'compte', siegeTab: 'defense', accountSub };
+    return { route: 'compte', siegeTab: 'defense', accountSub, toolSub: 'optimizer' };
+  }
+  if (h === 'outils' || h.startsWith('outils/')) {
+    return { route: 'outils', siegeTab: 'defense', accountSub: 'monstres', toolSub: 'optimizer' };
   }
   if (h === 'mecaniques') return { route: 'mecaniques', ...base };
   if (h === 'releases') return { route: 'releases', ...base };
   if (h === 'siege' || h.startsWith('siege/')) {
     const siegeTab: SiegeTab =
       h === 'siege/offense' ? 'offense' : h === 'siege/recommandations' ? 'recos' : 'defense';
-    return { route: 'siege', siegeTab, accountSub: 'monstres' };
+    return { route: 'siege', siegeTab, accountSub: 'monstres', toolSub: 'optimizer' };
   }
   return { route: 'home', ...base };
 }
 
 type NavItem = { key: Route; label: string; icon: typeof BookOpen; hash: string };
 
-// Onglets principaux (outils).
+// Onglets principaux (outils). Arène est à part (voir ARENE_ITEM) : elle se
+// positionne entre les dropdowns Outils et Ressources, pas dans ce groupe.
 const NAV: NavItem[] = [
   { key: 'home', label: 'Accueil', icon: Home, hash: '#/' },
   { key: 'rta', label: 'RTA', icon: Swords, hash: '#/rta' },
   { key: 'siege', label: 'Siège', icon: Castle, hash: '#/siege/defense' },
-  { key: 'arene', label: 'Arène', icon: Trophy, hash: '#/arene' },
 ];
+
+const ARENE_ITEM: NavItem = { key: 'arene', label: 'Arène', icon: Trophy, hash: '#/arene' };
 
 // Sous-sections de « Mon compte » (dropdown de nav).
 // ⚠️ Icônes DU JEU (voir GameIcon), pas des pictogrammes de bibliothèque : un
@@ -101,6 +129,12 @@ const ACCOUNT_SUBS: { sub: AccountSub; label: string; icon: GameIconKey; hash: s
   { sub: 'monstres', label: 'Monstres', icon: 'monster', hash: '#/compte' },
   { sub: 'runes', label: 'Runes', icon: 'rune', hash: '#/compte/runes' },
   { sub: 'artefacts', label: 'Artéfacts', icon: 'artifact', hash: '#/compte/artefacts' },
+];
+
+// Sous-sections d'« Outils » (dropdown de nav) — un seul outil pour l'instant,
+// structuré pour en accueillir d'autres sans retoucher la nav.
+const OUTILS_SUBS: { sub: ToolSub; label: string; icon: typeof Sparkles; hash: string }[] = [
+  { sub: 'optimizer', label: 'Optimizer', icon: Sparkles, hash: '#/outils/optimizer' },
 ];
 
 // Regroupées sous « Ressources ».
@@ -120,6 +154,7 @@ export default function App() {
   const siegeDef = useSiegeState('defense');
   const siegeOff = useSiegeState('offense');
   const recos = useSiegeRecos();
+  const optimizer = useOptimizerState();
 
   // Compte (box + inventaire runes/artéfacts). En mémoire, et **conservé sur
   // l'appareil** si l'utilisateur l'a demandé dans le menu ⚙ (voir
@@ -150,12 +185,14 @@ export default function App() {
   // l'enregistrement.
   const [accountExportedAt, setAccountExportedAt] = useState<number | null>(null);
 
-  const [{ route, siegeTab, accountSub }, setNav] = useState(parseHash);
+  const [{ route, siegeTab, accountSub, toolSub }, setNav] = useState(parseHash);
   const [menuOpen, setMenuOpen] = useState(false);
   const [resourcesOpen, setResourcesOpen] = useState(false);
   const resourcesRef = useRef<HTMLDivElement>(null);
   const [accountOpen, setAccountOpen] = useState(false);
   const accountRef = useRef<HTMLDivElement>(null);
+  const [outilsOpen, setOutilsOpen] = useState(false);
+  const outilsRef = useRef<HTMLDivElement>(null);
   const [importMsg, setImportMsg] = useState<{ ok: boolean; text: string } | null>(null);
   const [askKeep, setAskKeep] = useState(false);
   // Fichier déposé, en attente de confirmation de remplacement.
@@ -412,22 +449,24 @@ export default function App() {
       setMenuOpen(false); // referme le menu mobile à chaque navigation
       setResourcesOpen(false); // referme le dropdown Ressources
       setAccountOpen(false); // referme le dropdown Mon compte
+      setOutilsOpen(false); // referme le dropdown Outils
     };
     window.addEventListener('hashchange', onHash);
     return () => window.removeEventListener('hashchange', onHash);
   }, []);
 
-  // Ferme les dropdowns (Ressources / Mon compte) au clic à l'extérieur.
+  // Ferme les dropdowns (Ressources / Mon compte / Outils) au clic à l'extérieur.
   useEffect(() => {
-    if (!resourcesOpen && !accountOpen) return;
+    if (!resourcesOpen && !accountOpen && !outilsOpen) return;
     const onDown = (e: MouseEvent) => {
       const t = e.target as Node;
       if (resourcesRef.current && !resourcesRef.current.contains(t)) setResourcesOpen(false);
       if (accountRef.current && !accountRef.current.contains(t)) setAccountOpen(false);
+      if (outilsRef.current && !outilsRef.current.contains(t)) setOutilsOpen(false);
     };
     document.addEventListener('mousedown', onDown);
     return () => document.removeEventListener('mousedown', onDown);
-  }, [resourcesOpen, accountOpen]);
+  }, [resourcesOpen, accountOpen, outilsOpen]);
 
   // Mesure de la barre du haut. En mode complet on RETIENT la largeur nécessaire
   // (`neededRef`) : une fois replié, la rangée ne contient plus la nav et ne
@@ -530,6 +569,38 @@ export default function App() {
                   );
                 })}
               </div>
+
+              {/* Outils */}
+              <div className="mt-1 pt-2 border-t border-border">
+                <div className="px-3 pb-1 label">
+                  Outils
+                </div>
+                {OUTILS_SUBS.map((item) => {
+                  const active = route === 'outils' && toolSub === item.sub;
+                  const Icon = item.icon;
+                  return (
+                    <a
+                      key={item.sub}
+                      href={item.hash}
+                      onClick={() => setMenuOpen(false)}
+                      className={`flex items-center gap-3 rounded-lg px-3 py-3 text-[16px] font-semibold transition
+                        ${active ? 'bg-accent-soft text-ink' : 'text-ink-dim'}`}
+                    >
+                      <Icon size={18} /> {item.label}
+                    </a>
+                  );
+                })}
+              </div>
+
+              {/* Arène — entre Outils et Ressources, voir la nav desktop plus bas. */}
+              <a
+                href={ARENE_ITEM.hash}
+                onClick={() => setMenuOpen(false)}
+                className={`mt-1 pt-2 border-t border-border flex items-center gap-3 rounded-lg px-3 py-3 text-[16px] font-semibold transition
+                  ${route === 'arene' ? 'bg-accent-soft text-ink' : 'text-ink-dim'}`}
+              >
+                <Trophy size={18} /> {ARENE_ITEM.label}
+              </a>
 
               {/* Ressources */}
               <div className="mt-1 pt-2 border-t border-border">
@@ -644,6 +715,51 @@ export default function App() {
                 </div>
               )}
             </div>
+
+            {/* Outils (Optimizer) */}
+            <div className="relative" ref={outilsRef}>
+              <button
+                onClick={() => setOutilsOpen((o) => !o)}
+                aria-expanded={outilsOpen}
+                className={`flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-[13px] font-semibold transition flex-none whitespace-nowrap
+                  ${
+                    route === 'outils'
+                      ? 'bg-accent-soft text-ink shadow'
+                      : 'text-ink-dim hoverable:text-ink'
+                  }`}
+              >
+                <Wrench size={14} /> Outils
+                <ChevronDown size={12} className={`transition-transform ${outilsOpen ? 'rotate-180' : ''}`} />
+              </button>
+              {outilsOpen && (
+                <div className="absolute z-30 left-0 mt-1.5 min-w-[168px] rounded-xl border border-border bg-panel p-1 shadow-glow shadow-black/60">
+                  {OUTILS_SUBS.map((item) => {
+                    const active = route === 'outils' && toolSub === item.sub;
+                    const Icon = item.icon;
+                    return (
+                      <a
+                        key={item.sub}
+                        href={item.hash}
+                        onClick={() => setOutilsOpen(false)}
+                        className={`flex items-center gap-2 rounded-lg px-2.5 py-2 text-[13px] font-semibold transition
+                          ${active ? 'bg-panel2 text-ink' : 'text-ink-dim hoverable:text-ink hoverable:bg-panel2'}`}
+                      >
+                        <Icon size={14} /> {item.label}
+                      </a>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+
+            {/* Arène — entre Outils et Ressources. */}
+            <a
+              href={ARENE_ITEM.hash}
+              className={`flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-[13px] font-semibold transition flex-none whitespace-nowrap
+                ${route === 'arene' ? 'bg-accent-soft text-ink shadow' : 'text-ink-dim hoverable:text-ink'}`}
+            >
+              <Trophy size={14} /> {ARENE_ITEM.label}
+            </a>
 
             {/* Ressources (Bestiaire + Mécaniques) */}
             <div className="relative" ref={resourcesRef}>
@@ -771,6 +887,15 @@ export default function App() {
             crafts={crafts}
             loadState={data.loadState}
             hydrating={accountHydrating}
+          />
+        ) : route === 'outils' ? (
+          <OutilsPage
+            sub={toolSub}
+            box={box}
+            runes={runes}
+            loadState={data.loadState}
+            hydrating={accountHydrating}
+            optimizer={optimizer}
           />
         ) : route === 'releases' ? (
           <ReleasesPage />

@@ -11,6 +11,9 @@ import testMeules, { testPalier, testRegistre, testSansDowngrade } from './meule
 import testArtefacts from './artefacts.test';
 import testReco from './reco.test';
 import testRtaPartage from './rta-partage.test';
+import testRuneOptim from './rune-optim.test';
+import testRuneOptimDifferential from './rune-optim-differential.test';
+import testSetsIntangible from './sets-intangible.test';
 import testStockage from './stockage.test';
 import testVitesse from './vitesse.test';
 
@@ -19,6 +22,9 @@ async function main() {
   testImport();
   testReco();
   testRtaPartage();
+  testSetsIntangible();
+  testRuneOptim();
+  testRuneOptimDifferential();
   testMeules();
   testArtefacts();
   testRegistre();

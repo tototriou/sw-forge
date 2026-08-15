@@ -163,8 +163,8 @@ const SET_ID_KEY: Record<number, string> = {
 };
 
 // Sets de runes ACTIFS d'un build (ex. ['swift','will']). Un set 4 pièces
-// s'active à 4 runes, les autres à 2. Une rune Intangible sert de joker et
-// complète le set le plus proche d'être plein.
+// s'active à 4 runes, les autres à 2. Une rune Intangible sert de joker,
+// uniquement s'il y a exactement UN set incomplet (voir activeSets, effects.ts).
 function activeSetsFromRuneIds(runeIds: any[], runeById: ReadonlyMap<number, any>): string[] {
   const keys: string[] = [];
   for (const rid of runeIds) {

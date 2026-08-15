@@ -3,8 +3,10 @@ import { Settings, Trash2 } from 'lucide-react';
 import { RUNE_METRICS, setRuneMetric, useRuneMetric } from '../hooks/useRuneMetric';
 import { setPersistence, storageAvailable, usePersistence } from '../hooks/usePersistence';
 import { THEME_CHOICES, setTheme, useTheme } from '../hooks/useTheme';
+import { setOvercapDisplay, useOvercapDisplay } from '../hooks/useOvercapDisplay';
 import AccountFreshness from './AccountFreshness';
 import Segmented from './Segmented';
+import Switch from './Switch';
 
 /* --------------------------------------------------------------------------
  * Briques de réglage — ajouter un paramètre = ajouter un <Setting>, rien d'autre
@@ -22,39 +24,6 @@ function Setting({ title, hint, children }: { title: string; hint?: string; chil
       </div>
       {hint && <p className="mt-1 text-[11px] text-ink-dim leading-snug">{hint}</p>}
     </div>
-  );
-}
-
-// Interrupteur générique oui/non, pour les réglages qui n'ont que deux états.
-// Un `<Segmented>` à deux options ferait le travail, mais un réglage binaire se
-// lit mieux d'un coup d'œil sur un interrupteur : on voit l'état sans lire.
-function Switch({
-  checked,
-  onChange,
-  label,
-  disabled = false,
-}: {
-  checked: boolean;
-  onChange: (v: boolean) => void;
-  label: string;
-  disabled?: boolean;
-}) {
-  return (
-    <button
-      role="switch"
-      aria-checked={checked}
-      aria-label={label}
-      disabled={disabled}
-      onClick={() => onChange(!checked)}
-      className={`relative h-[22px] w-[40px] flex-none rounded-full border transition
-        ${disabled ? 'cursor-not-allowed opacity-40' : ''}
-        ${checked ? 'border-star/70 bg-star/30' : 'border-border bg-panel2'}`}
-    >
-      <span
-        className={`absolute top-[2px] h-[16px] w-[16px] rounded-full transition-all
-          ${checked ? 'left-[20px] bg-star' : 'left-[2px] bg-ink-dim'}`}
-      />
-    </button>
   );
 }
 
@@ -78,6 +47,7 @@ function SettingsList({
   const keep = usePersistence();
   const storageOk = storageAvailable();
   const theme = useTheme();
+  const overcap = useOvercapDisplay();
   return (
     <div>
       {/* Le réglage le plus global de tous : il change l'app entière, il vient
@@ -91,6 +61,17 @@ function SettingsList({
 
       <Setting title="Score">
         <Segmented options={RUNE_METRICS} value={metric} onChange={setRuneMetric} />
+      </Setting>
+
+      <Setting
+        title="Overcap Taux Crit/RES/Précision"
+        hint="Ces trois stats sont plafonnées à 100 % dans le jeu. Désactivé, leur TOTAL affiché s'arrête à 100 % même si la somme brute des runes dépasse — la donnée elle-même n'est jamais tronquée, seul l'affichage change."
+      >
+        <Switch
+          checked={overcap}
+          onChange={setOvercapDisplay}
+          label="Afficher le total au-delà de 100 % pour Taux Crit, RES et Précision"
+        />
       </Setting>
 
       <Setting

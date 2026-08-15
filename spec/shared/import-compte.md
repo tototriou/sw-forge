@@ -208,8 +208,10 @@ Dans [applyAccount.ts](src/lib/applyAccount.ts), réutilisé par `importAccount`
 - **Sets de runes** (`slot.sets`) : extraits des runes du deck
   (`activeSetsFromRuneIds`) — sets 4 pièces (**Swift, Rage, Fatal, Despair,
   Vampire, Violent**) actifs à 4 runes, tous les autres (dont **Destroy**) à 2.
-  Une rune **Intangible** joue le joker et complète le set le plus proche d'être
-  plein. Affichés en icônes dans la vue compacte du siège.
+  Une rune **Intangible** joue le joker — uniquement s'il y a exactement UN
+  set incomplet parmi les runes du deck (règle du jeu, voir
+  [compte/calcul-runes.md §5.2](../compte/calcul-runes.md)). Affichés en
+  icônes dans la vue compacte du siège.
 
 Puis `importAccount` applique : `rta.importEntries` (après `clearAll`),
 `siegeDef.importTeams(_)`, `siegeOff.importTeams(_)` — qui **remplacent**. `lead`/`tick`

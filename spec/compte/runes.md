@@ -192,17 +192,17 @@ Détails :
 - ⚠️ **Cliquer un point ouvre la rune correspondante**, sous le graphe. On lit
   « ma 12ᵉ meilleure rune vaut 78 % » ; la question suivante est toujours
   « laquelle ? », et il fallait aller la chercher à la main dans la liste.
-  - Le rang cliqué est marqué d'une **verticale tiretée**, plus marquée que
-    celle du survol (2 px, tirets plus longs), avec un **point sur chaque courbe
-    ouverte**. Elle **survit au départ du pointeur** : c'est elle qui dit d'où
-    sort le détail lu en dessous, une fois la souris partie vers les flèches.
-    - ⚠️ **Tiretée et non pleine** : c'est le même geste de visée que le survol,
-      seulement figé. Un trait plein se lisait comme un autre objet — une
-      graduation du graphe.
-    - Les points restent **à peine plus gros que ceux du survol** (3,6 contre
-      3,2) : ils se posent **sur** la courbe, et un disque trop large la masque
-      et se lit comme une donnée en soi. L'anneau d'accent suffit à les
-      distinguer.
+  - Le rang cliqué est marqué d'une **verticale tiretée** avec un **point sur
+    chaque courbe ouverte** — ⚠️ **exactement le repère du survol**, ni plus
+    épais ni plus gros. C'est le même geste de visée, seulement **figé** : le
+    marquer davantage en faisait un autre objet, une graduation du graphe. Sa
+    seule différence est qu'il **survit au départ du pointeur**, ce qui est tout
+    son rôle — dire d'où sort le détail lu en dessous une fois la souris partie
+    vers les flèches.
+    - ⚠️ Les couleurs des attributs SVG s'écrivent **`rgb(var(--accent))`** :
+      posés nus, les tokens (des triplets) rendent l'attribut invalide et le
+      trait n'est **pas peint du tout**, sans la moindre erreur. Voir
+      [../shared/design.md](../shared/design.md).
   - ⚠️ **Une carte par courbe OUVRABLE, à ce rang** — et ce que « ouvrable »
     veut dire diffère selon l'onglet, parce que les courbes n'y disent pas la
     même chose :

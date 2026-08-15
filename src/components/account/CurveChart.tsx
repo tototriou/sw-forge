@@ -361,12 +361,12 @@ export default function CurveChart({
             );
           })()}
 
-        {/* Repère du point CHOISI. ⚠️ TIRETÉ comme celui du survol, et non
-            plein : c'est le même geste de visée, seulement figé — un trait plein
-            se lisait comme un autre objet, une graduation du graphe. Il est
-            simplement plus marqué (2 px, tirets plus longs), et il SURVIT au
-            départ du pointeur : c'est lui qui dit d'où sort le détail lu en
-            dessous, une fois la souris partie vers les flèches.
+        {/* Repère du point CHOISI. ⚠️ IDENTIQUE à celui du survol — même trait
+            tireté, mêmes points : c'est le même geste de visée, seulement figé.
+            Le marquer davantage en faisait un autre objet, une graduation du
+            graphe. Sa seule différence est qu'il SURVIT au départ du pointeur :
+            c'est lui qui dit d'où sort le détail lu en dessous, une fois la
+            souris partie vers les flèches.
             ⚠️ `rgb(var(--accent))` et NON `var(--accent)` : les tokens de
             couleur sont des TRIPLETS (« 43 54 165 »), pas des couleurs CSS.
             Posé nu dans un attribut SVG, le trait n'était tout simplement pas
@@ -379,23 +379,23 @@ export default function CurveChart({
               x2={x(choisi.rang)}
               y2={PAD_T + IH}
               stroke="rgb(var(--accent))"
-              strokeWidth="2"
-              strokeDasharray="5 3"
+              strokeWidth="1"
+              strokeDasharray="3 3"
+              strokeOpacity="0.75"
             />
             {/* Un point par courbe ouvrable : ils marquent toutes les runes lues
                 en dessous, et non une seule.
-                ⚠️ À peine plus gros que celui du survol (3.2) : ces points se
-                posent SUR la courbe, un disque trop large la masque et se lit
-                comme une donnée en soi. L'anneau d'accent suffit à les
-                distinguer. */}
+                ⚠️ Même taille qu'au survol : ces points se posent SUR la courbe,
+                un disque plus large la masque et se lit comme une donnée en soi.
+                Le liseré sombre suffit à les détacher du trait. */}
             {runesChoisies.map(({ serie, val }) => (
               <circle
                 key={serie.name}
                 cx={x(choisi.rang)}
                 cy={y(val)}
-                r="3.6"
+                r="3.2"
                 fill={serie.color}
-                stroke="rgb(var(--accent))"
+                stroke="#0d1022"
                 strokeWidth="1.2"
               />
             ))}

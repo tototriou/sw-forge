@@ -31,7 +31,13 @@ export default function Pager({
   const commit = () => {
     const n = Number(draft);
     if (!Number.isFinite(n) || draft.trim() === '') return setDraft(String(page + 1));
-    onChange(Math.min(pageCount - 1, Math.max(0, Math.round(n) - 1)));
+    const cible = Math.min(pageCount - 1, Math.max(0, Math.round(n) - 1));
+    // ⚠️ Le brouillon est REMIS EN FORME ici, et pas seulement par l'effet de
+    // resynchronisation : celui-ci ne se déclenche que si la page CHANGE. Taper
+    // « 007 » en étant déjà page 7 laissait donc « 007 » affiché. Idem pour une
+    // valeur hors bornes, qu'on veut voir ramenée à ce qu'elle vaut vraiment.
+    setDraft(String(cible + 1));
+    onChange(cible);
   };
 
   const arrow =

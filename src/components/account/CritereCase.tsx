@@ -102,14 +102,26 @@ export default function CritereCase({
           >
             −
           </button>
+          {/* ⚠️ `type="text"` + `inputMode="numeric"`, jamais `type="number"` —
+              même règle que NumberField, et pour une raison de plus ici : sur un
+              champ numérique le navigateur garde le TEXTE tapé tel quel. Taper
+              « 015 » donnait bien `15` dans l'état, mais comme la valeur ne
+              changeait pas au caractère suivant, React ne réécrivait pas le DOM
+              et le « 0 » de tête restait affiché. En `text`, la valeur rendue
+              est toujours celle de l'état — le zéro disparaît à la frappe.
+              La frappe non numérique est simplement ignorée. */}
           <input
-            type="number"
+            type="text"
+            inputMode="numeric"
             value={critere!.min}
-            min={0}
-            onChange={(e) => onChange({ ...critere!, min: Math.max(0, Number(e.target.value) || 0) })}
+            onChange={(e) => {
+              const brut = e.target.value.trim();
+              if (brut === '') return onChange({ ...critere!, min: 0 });
+              if (!/^\d+$/.test(brut)) return; // frappe invalide ignorée
+              onChange({ ...critere!, min: Number(brut) });
+            }}
             className="h-[18px] w-[36px] rounded bg-panel2 text-center font-mono text-[10.5px]
-                       text-ink outline-none tabular-nums
-                       [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none"
+                       text-ink outline-none tabular-nums"
             title="Minimum exigé"
           />
           <button

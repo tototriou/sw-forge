@@ -76,9 +76,18 @@ Concepts partagés par plusieurs pages, documentés une seule fois :
     [recoShare.ts](src/lib/recoShare.ts)) : un fichier peut avoir été bricolé à
     la main, et la saisie d'une version antérieure a pu laisser passer des
     espaces.
-  - Les champs **numériques** ne sont pas concernés : ils stockent un `number`,
-    donc « 007 » vaut 7 dès la frappe (voir
-    [NumberField.tsx](src/components/NumberField.tsx)).
+  - ⚠️ **Un champ numérique s'écrit `type="text"` + `inputMode="numeric"`,
+    jamais `type="number"`.** Outre les flèches natives inutilisables (voir
+    [NumberField.tsx](src/components/NumberField.tsx)), un champ `number` garde
+    le **texte tapé tel quel** : saisir « 015 » donne bien `15` dans l'état, mais
+    la valeur ne changeant plus au caractère suivant, React ne réécrit pas le DOM
+    et le **zéro de tête reste affiché**. En `text`, la valeur rendue est
+    toujours celle de l'état, donc le zéro disparaît à la frappe.
+  - ⚠️ Un champ à **brouillon** (saisie séparée de la valeur, comme
+    [Pager.tsx](src/components/account/Pager.tsx)) doit **remettre le brouillon
+    en forme lui-même** à la validation : un effet de resynchronisation ne se
+    déclenche que si la valeur CHANGE, donc « 007 » sur la page 7 restait affiché
+    tel quel.
   - Les champs de **recherche** ne sont pas trimés à la frappe non plus —
     l'espace y est un caractère de saisie comme un autre.
 

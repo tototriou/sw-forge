@@ -1,14 +1,33 @@
 import { memo, useCallback, useMemo, useRef, useState } from 'react';
 import { RuneDetail } from '../../types';
-import { formatRuneEffect, RARITY_META, runeEfficiency, runeScore } from '../../lib/effects';
+import {
+  formatRuneEffect,
+  RARITY_META,
+  RUNE_EFFECT,
+  runeEfficiency,
+  runeScore,
+} from '../../lib/effects';
 import SetFilter from './SetFilter';
 import SlotFilter from './SlotFilter';
 import RuneSlotIcon from '../RuneSlotIcon';
 import { RuneDetailBox } from '../MonsterGear';
 import Pager from './Pager';
+import CritereCase, { Critere } from './CritereCase';
 import DetailPopover from './DetailPopover';
+import {
+  RUNE_SORTS,
+  RuneSortMode,
+  comparateurRunes,
+  estTriConnu,
+  valeurSub,
+} from '../../lib/runeSort';
 import { useStickyState } from '../../hooks/useStickyState';
-import { RuneMetric, useRuneMetric, formatRuneMetric, runeMetricLabel } from '../../hooks/useRuneMetric';
+import {
+  RuneMetric,
+  useRuneMetric,
+  formatRuneMetric,
+  runeMetricLabel,
+} from '../../hooks/useRuneMetric';
 
 interface Props {
   runes: RuneDetail[];
@@ -22,34 +41,43 @@ interface RuneRow {
   id: number;
 }
 
-type SortMode = 'val_desc' | 'val_asc' | 'level_desc' | 'slot_asc';
-
-const SORTS: { key: SortMode; label: string }[] = [
-  { key: 'val_desc', label: '↓ décroissant' },
-  { key: 'val_asc', label: '↑ croissant' },
-  { key: 'level_desc', label: 'Niveau ↓' },
-  { key: 'slot_asc', label: 'Slot ↑' },
-];
-
-// Le tri « valeur » suit la mesure choisie.
-const sortFn = (mode: SortMode, m: RuneMetric) => {
-  const v = (r: RuneRow) => (m === 'eff' ? r.eff : r.score);
-  const table: Record<SortMode, (a: RuneRow, b: RuneRow) => number> = {
-    val_desc: (a, b) => v(b) - v(a),
-    val_asc: (a, b) => v(a) - v(b),
-    level_desc: (a, b) => b.rune.level - a.rune.level || v(b) - v(a),
-    slot_asc: (a, b) => a.rune.slot - b.rune.slot || v(b) - v(a),
-  };
-  return table[mode];
-};
-
 const PAGE = 60; // tuiles par page (DOM borné pour rester fluide)
+
+// Une rune ne porte que 4 propriétés secondaires : un 5ᵉ critère ne pourrait
+// jamais être satisfait. La grille se replie à 2 tant qu'on n'en use pas plus.
+const MAX_SUBS = 4;
+const GRILLE_REPLIEE = 2;
+
+// Propriétés secondaires proposées, dans l'ordre de la table de référence.
+// ⚠️ Toutes les lignes de `RUNE_EFFECT` peuvent être un substat SAUF la VIT
+// plate… qui l'est aussi. On garde donc la table entière : c'est exactement ce
+// qu'une rune peut porter.
+const SUBS_OPTIONS = Object.entries(RUNE_EFFECT).map(([code, def]) => ({
+  code: Number(code),
+  label: def.label,
+}));
 
 export default function RunesList({ runes }: Props) {
   const [sets, setSets] = useStickyState<Set<string>>('runesList.sets', new Set());
   const [slots, setSlots] = useStickyState<Set<number>>('runesList.slots', new Set());
   const [ancientOnly, setAncientOnly] = useStickyState('runesList.ancient', false);
-  const [sort, setSort] = useStickyState<SortMode>('runesList.sort', 'val_desc');
+  const [sortBrut, setSort] = useStickyState<RuneSortMode>('runesList.sort', 'score');
+  // ⚠️ Un tri mémorisé qui n'existe plus (les clés ont changé avec les libellés
+  // du jeu) retombe sur le défaut : sinon `sortFn` renvoie `undefined` et le
+  // `sort` lève, page blanche à la clé.
+  const sort = estTriConnu(sortBrut) ? sortBrut : 'score';
+  // Propriétés cherchées, dans l'ordre de priorité — même grammaire que
+  // l'inventaire d'artéfacts (voir CritereCase).
+  //
+  // ⚠️ QUATRE au plus : une rune ne porte que 4 propriétés secondaires, un
+  // cinquième critère ne pourrait jamais être satisfait.
+  const [criteres, setCriteres] = useStickyState<Critere[]>('runesList.criteres', []);
+  const [depliee, setDepliee] = useState(false);
+  const cases = depliee ? MAX_SUBS : GRILLE_REPLIEE;
+  const actifs = useMemo(
+    () => criteres.slice(0, cases).filter((c) => c.code > 0),
+    [criteres, cases]
+  );
   const metric = useRuneMetric(); // choix PARTAGÉ avec les autres vues
   const [page, setPage] = useState(0);
   const [openId, setOpenId] = useState<number | null>(null);
@@ -70,12 +98,24 @@ export default function RunesList({ runes }: Props) {
       if (sets.size && !sets.has(r.set)) return false;
       if (slots.size && !slots.has(r.slot)) return false;
       if (ancientOnly && !(r.rank > 10)) return false;
+      // ⚠️ Les critères se cumulent en ET, seuil compris : la rune doit porter
+      // TOUTES les propriétés cherchées, chacune au moins à son minimum. Même
+      // règle que la recherche détaillée du jeu et que l'inventaire d'artéfacts.
+      for (const c of actifs) {
+        const v = valeurSub(r, c.code);
+        if (v == null || v < c.min) return false;
+      }
       return true;
     });
-  }, [rows, sets, slots, ancientOnly]);
+  }, [rows, sets, slots, ancientOnly, actifs]);
 
   // Tri appliqué après filtrage (copie pour ne pas muter `filtered`).
-  const sorted = useMemo(() => [...filtered].sort(sortFn(sort, metric)), [filtered, sort, metric]);
+  // Le 1ᵉʳ critère posé sert aux deux tris « propriété secondaire ».
+  const premierCode = actifs[0]?.code ?? 0;
+  const sorted = useMemo(
+    () => [...filtered].sort(comparateurRunes(sort, metric, premierCode)),
+    [filtered, sort, metric, premierCode]
+  );
   const best = useMemo(
     () => filtered.reduce((m, r) => Math.max(m, metric === 'eff' ? r.eff : r.score), 0),
     [filtered, metric]
@@ -129,26 +169,86 @@ export default function RunesList({ runes }: Props) {
           </button>
         </div>
 
-        {/* Tri. La MESURE (efficience / score) est un réglage global, dans la
-            barre de nav — pas un filtre de page. */}
+        {/* Propriété secondaire — grille de critères, façon recherche détaillée
+            du jeu. Même grammaire que l'inventaire d'artéfacts.
+            ⚠️ Les cases sont ORDONNÉES : la 1ʳᵉ sert aussi de clé aux deux tris
+            « propriété secondaire ». La position porte donc du sens. */}
+        <div className="flex flex-wrap items-start gap-2">
+          <span className="w-[86px] flex-none label mt-1.5">Propriété</span>
+          <div className="min-w-0 flex-1">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5">
+              {Array.from({ length: cases }, (_, i) => (
+                <CritereCase
+                  key={i}
+                  rang={i + 1}
+                  critere={criteres[i] ?? null}
+                  options={SUBS_OPTIONS}
+                  nomDe={(code) => RUNE_EFFECT[code]?.label ?? `#${code}`}
+                  onChange={(c) => {
+                    const next = [...criteres];
+                    while (next.length < cases) next.push({ code: 0, min: 0 });
+                    next[i] = c ?? { code: 0, min: 0 };
+                    setCriteres(next);
+                    setPage(0);
+                  }}
+                />
+              ))}
+            </div>
+
+            <div className="mt-1.5 flex items-center gap-2">
+              {/* ⚠️ Le bouton dit CE QU'IL VA FAIRE, pas l'état courant. */}
+              <button
+                onClick={() => setDepliee(!depliee)}
+                className="rounded border border-border px-2 py-0.5 text-[11px] font-semibold
+                           text-ink-dim transition hoverable:text-ink hoverable:border-accent"
+              >
+                {depliee
+                  ? `▴ Replier à ${GRILLE_REPLIEE} propriétés`
+                  : `▾ Déplier à ${MAX_SUBS} propriétés`}
+              </button>
+
+              {actifs.length > 0 && (
+                <button
+                  onClick={() => {
+                    setCriteres([]);
+                    setPage(0);
+                  }}
+                  className="rounded border border-border px-2 py-0.5 text-[11px] font-semibold
+                             text-ink-dim transition hoverable:text-fire hoverable:border-fire"
+                >
+                  ✕ Réinitialiser
+                </button>
+              )}
+            </div>
+          </div>
+        </div>
+
+        {/* Tri — les entrées du JEU, dans son ordre. La MESURE (efficience /
+            score) reste un réglage global, dans la barre de nav. */}
         <div className="flex items-center gap-2 flex-wrap">
-          <span className="label mr-1">
-            Trier par
-          </span>
+          <span className="w-[86px] flex-none label">Trier par</span>
           <select
             value={sort}
             onChange={(e) => {
-              setSort(e.target.value as SortMode);
+              setSort(e.target.value as RuneSortMode);
               setPage(0);
             }}
+            title={RUNE_SORTS.find((s) => s.key === sort)?.hint}
             className="bg-panel border border-border text-ink rounded-lg px-2.5 py-1 text-[13px] outline-none"
           >
-            {SORTS.map((s) => (
-              <option key={s.key} value={s.key}>
+            {RUNE_SORTS.map((s) => (
+              <option key={s.key} value={s.key} title={s.hint}>
                 {s.label}
               </option>
             ))}
           </select>
+          {/* ⚠️ Les deux tris « propriété » n'ont rien à classer sans critère :
+              le dire ici évite de croire que le tri est cassé. */}
+          {(sort === 'sub_desc' || sort === 'sub_brut_desc') && !premierCode && (
+            <span className="text-[12px] text-warn">
+              Choisis une propriété ci-dessus pour trier dessus.
+            </span>
+          )}
         </div>
       </div>
 

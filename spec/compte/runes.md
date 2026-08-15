@@ -139,11 +139,66 @@ Blocs, dans l'ordre :
   Le détail affiche la **mesure choisie** (voir ci-dessus), dans la même couleur
   quelle qu'elle soit.
 - **Filtres** : **sets** (`SetFilter`) et **slot** (`SlotFilter`) — voir
-  ci-dessous — plus **antiques**.
+  ci-dessous — plus **antiques**, et la **propriété secondaire** (ci-dessous).
 - La **mesure** (réglage global, voir plus haut) pilote la valeur des tuiles, le
-  tri « valeur » et le repère « meilleur… » de l'en-tête.
-- **Tri** : ↓ décroissant (défaut) · ↑ croissant — **sur la mesure choisie** —
-  · Niveau ↓ · Slot ↑.
+  départage des tris et le repère « meilleur… » de l'en-tête.
+
+### Tri — ⚠️ les entrées DU JEU, dans SON ordre
+
+Un joueur qui trie ses runes cherche l'entrée qu'il connaît, pas une
+reformulation : les libellés sont donc **ceux du jeu**, dans l'ordre de sa liste
+déroulante (règle de vocabulaire du [README](../README.md)). Calcul pur dans
+[runeSort.ts](src/lib/runeSort.ts), testé par
+[rune-tri.test.ts](tests/rune-tri.test.ts).
+
+| Entrée | Clé de tri |
+|--------|-----------|
+| **Grade** | rareté, puis étoiles |
+| **Propriété secondaire** | la valeur de la **1ʳᵉ propriété cherchée**, meule comprise |
+| **Sous-propriété avant meule** | la même, **meule déduite** (`grind`) |
+| **Nv. d'amélioration** | le `+X` |
+| **Obtenu** | les plus récentes d'abord |
+| **Total des sous-prop.** | somme des quatre propriétés |
+| **Score** | le score du jeu (défaut) |
+| *Efficience* | notre mesure (%) |
+| *Slot* | du 1 au 6 |
+
+Les deux dernières n'existent pas dans le jeu et **ferment** la liste :
+l'efficience est notre mesure, le slot sert au repérage.
+
+- ⚠️ **« Avant meule » DÉDUIT la meule**, il ne l'ignore pas : deux runes à
+  20 % ne se valent pas si l'une y est arrivée seule et l'autre à coups de
+  meules. C'est toute la raison d'être de cette entrée.
+- ⚠️ **Une rune qui ne PORTE PAS la propriété passe derrière** toutes celles qui
+  la portent, quelle que soit son efficience — et **non « à 0 »**, ce qui la
+  mêlerait aux plus faibles. Absent et nul ne sont pas la même chose.
+- Les deux tris « propriété » n'ont **rien à classer sans critère posé** : ils
+  retombent sur la mesure, et **le disent** sous le sélecteur — sans ça on croit
+  le tri cassé.
+- ⚠️ **« Obtenu » se lit sur le `rune_id`**, croissant avec le temps : l'export
+  ne porte **aucune date d'obtention**. C'est une approximation, mais elle rend
+  exactement l'ordre du jeu.
+- ⚠️ **« Total des sous-prop. » additionne des unités différentes** (PV plats et
+  %), ce qui n'a mathématiquement aucun sens — mais c'est ce que fait le jeu, et
+  c'est ce total-là que le joueur reconnaît. On le reproduit tel quel plutôt que
+  d'inventer une mesure « correcte » qu'il ne retrouverait nulle part.
+- Un tri **mémorisé qui n'existe plus** retombe sur le défaut : sans ce
+  garde-fou, le comparateur serait `undefined` et la page blanche.
+
+### Filtre par propriété secondaire — même grammaire que les artéfacts
+
+Une grille de **4 critères au plus** (une rune ne porte que 4 propriétés
+secondaires : un 5ᵉ ne pourrait jamais être satisfait), repliée à 2 par défaut.
+Chaque case = une **propriété** et un **seuil « au moins »**.
+
+- ⚠️ Les critères se cumulent **en ET, seuil compris** : la rune doit porter
+  **toutes** les propriétés cherchées, chacune au moins à son minimum.
+- ⚠️ Les cases sont **ORDONNÉES** : la première sert aussi de **clé aux deux
+  tris « propriété »**. La position porte donc du sens.
+- Le composant [CritereCase.tsx](src/components/account/CritereCase.tsx) est
+  **partagé avec l'inventaire d'artéfacts** — il y vivait, et a été **remonté**
+  au deuxième usage plutôt que recopié (deux copies auraient divergé). Seul le
+  **nom d'une propriété** diffère entre les deux, d'où le paramètre `nomDe`.
 - **Pagination** ([Pager.tsx](src/components/account/Pager.tsx)) : 60 tuiles/page
   → DOM borné (fluide même à ~2000 runes). Composant **partagé par toutes les
   listes paginées** de l'app.

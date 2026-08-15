@@ -17,6 +17,7 @@ import ElementIcon from '../ElementIcon';
 import Segmented from '../Segmented';
 import { ELEMENT_FILTER_STYLES } from '../elementStyles';
 import Pager from './Pager';
+import CritereCase, { Critere } from './CritereCase';
 import { useStickyState } from '../../hooks/useStickyState';
 import { RuneMetric, useRuneMetric } from '../../hooks/useRuneMetric';
 
@@ -33,15 +34,6 @@ interface ArtRow {
 
 // Un critère de recherche : une propriété secondaire et le minimum exigé.
 //
-// ⚠️ Les critères sont ORDONNÉS, et cet ordre est celui du **tri** : le premier
-// classe la liste, le deuxième départage les ex æquo, et ainsi de suite —
-// exactement comme la recherche détaillée du jeu. Ce n'est donc pas une simple
-// liste de cases à cocher : la position de chaque critère porte du sens.
-interface Critere {
-  code: number;
-  min: number; // seuil en unité de la propriété (%, ou points pour le 221)
-}
-
 // Quatre critères au plus : un artéfact ne porte que 4 propriétés (voir
 // MAX_ARTIFACT_SUBS), donc un cinquième ne pourrait jamais être satisfait.
 // La grille se replie à 2 cases quand on n'en utilise pas davantage.
@@ -445,6 +437,8 @@ export default function ArtifactsList({ artifacts }: Props) {
                   rang={i + 1}
                   critere={criteres[i] ?? null}
                   options={dispoSubs}
+                  nomDe={artifactSubName}
+                  pasSeuil={PAS_SEUIL}
                   onChange={(c) => {
                     const next = [...criteres];
                     while (next.length < cases) next.push({ code: 0, min: 0 });
@@ -550,116 +544,6 @@ export default function ArtifactsList({ artifacts }: Props) {
       {pageCount > 1 && (
         <div className="mt-4 flex justify-center">
           <Pager page={safePage} pageCount={pageCount} onChange={setPage} />
-        </div>
-      )}
-    </div>
-  );
-}
-
-// Une case de la grille : le rang (= priorité de tri), la propriété, le seuil.
-function CritereCase({
-  rang,
-  critere,
-  options,
-  onChange,
-}: {
-  rang: number;
-  critere: Critere | null;
-  // Propriétés dans l'ordre du jeu (voir `artifactSubOrder`).
-  options: { code: number; label: string }[];
-  onChange: (c: Critere | null) => void;
-}) {
-  const pose = !!critere && critere.code > 0;
-  // ⚠️ La propriété choisie est retirée des options (elle est « prise »), il
-  // faut donc la réinjecter — sans quoi le `select` afficherait du vide sur un
-  // critère pourtant posé.
-  const manque = pose && !options.some((o) => o.code === critere!.code);
-
-  return (
-    /* ⚠️ AUCUN cadre ici : le `select` porte déjà sa propre bordure, et
-       l'envelopper dans une boîte bordée faisait « carte dans carte ». La ligne
-       n'est qu'une rangée de contrôles alignés. */
-    <div className="flex min-h-[28px] items-center gap-1.5">
-      {/* Le rang dit la PRIORITÉ DE TRI, pas un emplacement d'artéfact.
-          ⚠️ Un CHIFFRE, pas un glyphe cerclé (➊➋) : à cette taille le cercle
-          se refermait sur le chiffre et le rendait illisible. */}
-      <span
-        className={`w-3 flex-none text-center font-mono text-[12px] font-bold leading-none ${
-          pose ? 'text-accent' : 'text-ink-dim opacity-60'
-        }`}
-        title={`${rang}${rang === 1 ? 'ᵉʳ' : 'ᵉ'} critère de tri`}
-      >
-        {rang}
-      </span>
-
-      {/* C'est LUI qui porte la bordure — le seul élément encadré de la ligne.
-          Elle passe à l'accent quand un critère est posé. */}
-      <select
-        value={pose ? critere!.code : ''}
-        onChange={(e) => {
-          const code = Number(e.target.value);
-          onChange(code ? { code, min: critere?.min ?? 0 } : null);
-        }}
-        className={`min-w-0 flex-1 cursor-pointer rounded border bg-panel px-1.5 py-1 text-[11px]
-                    outline-none transition [&>option]:bg-panel [&>option]:text-ink ${
-                      pose
-                        ? 'border-accent text-ink'
-                        : 'border-border text-ink-dim hoverable:border-accent hoverable:text-ink'
-                    }`}
-      >
-        <option value="">Choisir une propriété…</option>
-        {/* La propriété posée, réinjectée en tête quand elle a été retirée des
-            options disponibles. */}
-        {manque && <option value={critere!.code}>{artifactSubName(critere!.code)}</option>}
-        {/* Dans l'ordre de la recherche détaillée du jeu (`artifactSubOrder`). */}
-        {options.map((o) => (
-          <option key={o.code} value={o.code}>
-            {o.label}
-          </option>
-        ))}
-      </select>
-
-      {/* Seuil « au moins » — n'a de sens qu'une fois la propriété choisie.
-          ⚠️ Le « ≥ » est indispensable : « 25 » seul ne dit pas si c'est un
-          minimum, un maximum ou la valeur exacte. */}
-      {pose && (
-        <div className="flex flex-none items-center gap-px">
-          <span className="mr-0.5 font-mono text-[10px] text-ink-dim">≥</span>
-          {/* Cibles de 18px : un glyphe nu était trop petit pour être visé
-              franchement, surtout au doigt. */}
-          <button
-            onClick={() => onChange({ ...critere!, min: Math.max(0, critere!.min - PAS_SEUIL) })}
-            className="h-[18px] w-[18px] rounded bg-panel2 text-[12px] leading-none text-ink-dim
-                       transition hoverable:bg-accent-soft hoverable:text-ink"
-            title="Diminuer le minimum"
-          >
-            −
-          </button>
-          <input
-            type="number"
-            value={critere!.min}
-            min={0}
-            onChange={(e) => onChange({ ...critere!, min: Math.max(0, Number(e.target.value) || 0) })}
-            className="h-[18px] w-[36px] rounded bg-panel2 text-center font-mono text-[10.5px]
-                       text-ink outline-none tabular-nums
-                       [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none"
-            title="Minimum exigé"
-          />
-          <button
-            onClick={() => onChange({ ...critere!, min: critere!.min + PAS_SEUIL })}
-            className="h-[18px] w-[18px] rounded bg-panel2 text-[12px] leading-none text-ink-dim
-                       transition hoverable:bg-accent-soft hoverable:text-ink"
-            title="Augmenter le minimum"
-          >
-            +
-          </button>
-          <button
-            onClick={() => onChange(null)}
-            className="ml-1 text-ink-dim transition hoverable:text-fire"
-            title="Retirer ce critère"
-          >
-            <X size={12} />
-          </button>
         </div>
       )}
     </div>

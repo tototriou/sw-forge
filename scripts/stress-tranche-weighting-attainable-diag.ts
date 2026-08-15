@@ -1,21 +1,18 @@
-// Point 4 — cas de stress SYNTHÉTIQUE : une condition TENDUE (Précision,
-// rare dans le pool, aucune principale ne la couvre) noyée parmi des
-// conditions MOLLES — VIT couverte par principale garantie (slot 2), PV/ATQ/
-// DEF abondants en sous-stats (comme dans un compte réel), AUCUNE via
-// Taux Crit/Dégâts Crit/RES (retirés : TC/DCC sont plafonnés à 100 % en jeu,
-// un seuil dérivé automatiquement pouvait le dépasser — repéré en relisant
-// une première version de ce script ; RES partage le même mécanisme
-// d'exclusivité de slot que Précision, redondant avec le cas TC/DCC déjà
-// exploré ailleurs dans la session, pas un deuxième angle utile ici).
+// Point 4 — DEUXIÈME cas de stress synthétique, plus ATTEIGNABLE que
+// stress-tranche-weighting-diag.ts (qui reste hors de portée même à ×8 le
+// budget de production — trop poussé lors de son calibrage). Même principe
+// (une condition tendue noyée parmi des conditions molles), mais calibré en
+// mesurant D'ABORD le rang RÉEL de la cible (sans aucun plafond) avant de
+// choisir les paramètres, plutôt qu'en ajustant à l'aveugle.
 //
-// But : vérifier, AVANT d'implémenter la pondération adaptative, que (a) la
-// tranche Précision peut perdre la cible à bucketCap=3000 alors qu'elle
-// survit confortablement sur les tranches molles (preuve qu'il y a un gain
-// de CORRECTION possible) et (b) les tranches molles sont très en dessous
-// de leur plafond (preuve qu'il y a du budget à redistribuer sans leur
-// nuire).
+// Différence clé avec le premier cas : les DEUX moitiés ont ici une
+// principale imposée sur leur slot 2/4/6 (VIT/TC/RES) — le premier cas ne
+// contraignait QUE le slot 2, laissant les slots 4/5/6 totalement libres,
+// ce qui donnait à la moitié B un pool ~74× plus grand qu'à la moitié A
+// (mesuré) et la rendait structurellement hors de portée quel que soit le
+// nombre de spécialistes injectés.
 //
-// Usage : stress-tranche-weighting-diag.ts [poolPerSlot=150] [bucketCapOverride=3000] [accSpecialistPerSlot=40]
+// Usage : stress-tranche-weighting-attainable-diag.ts [poolPerSlot=150] [bucketCapOverride=3000] [accSpecialistPerSlot=5]
 
 import { EffectLine, RuneDetail, BaseStats } from '../src/types';
 import { BuildRequirement, SearchParams, prepareSearch, buildBuckets, totalPairCount, HalfCombo } from '../src/lib/runeBuildOptim';
@@ -32,9 +29,7 @@ function mulberry32(seed: number) {
 }
 
 // PV/ATQ/DEF abondants (molles, hors principale) ; TC/DCC/RES présents mais
-// jamais demandés en condition (voir en-tête) ; PRÉCISION rare (3 %) —
-// reflète la rareté réelle de cette sous-stat en jeu, pas un chiffre choisi
-// pour faire échouer le test à tout prix.
+// jamais demandés en condition ; PRÉCISION rare (3 %, rareté réelle en jeu).
 const SUB_WEIGHTS: [number, number][] = [
   [1, 0.16], [2, 0.16], [3, 0.16], [4, 0.16], [5, 0.1], [6, 0.1], [9, 0.06], [10, 0.06], [11, 0.06], [12, 0.03],
 ];
@@ -60,24 +55,28 @@ function randomSub(used: Set<number>, rng: () => number): EffectLine {
   return { code, value: 5 + Math.floor(rng() * 40) };
 }
 
-// ⚠️ SEUL le slot 2 a une principale imposée (VIT, la seule option de ce
-// slot — voir la mémoire sw-rune-mainstat-rules). Les slots 4 et 6 restent
-// LIBRES ici (pas de TC/DCC/RES demandés) : leur principale n'a pas besoin
-// d'être contrainte, elle varie comme n'importe quel autre slot.
-const FORCED_MAIN: Record<number, number> = { 2: 8 };
+// ⚠️ Principale FIXE, jamais aléatoire — règles du jeu confirmées (voir la
+// mémoire sw-rune-mainstat-rules) : slot 1 = ATQ+ toujours, slot 3 = DEF+
+// toujours, slot 5 = PV+ toujours (une erreur du premier script, qui les
+// tirait au hasard parmi les 3, corrigée ici). Slots 2/4/6 CONTRAINTS ICI
+// (contrairement au premier cas de stress) sur les 3 options exclusives du
+// jeu (VIT/TC/RES) — aucune ne recoupe les 5 stats suivies, donc ça ne
+// change rien à la mollesse/tension voulue, mais ça borne le pool des DEUX
+// moitiés à une taille comparable.
+const FORCED_MAIN: Record<number, number> = { 1: 3, 2: 8, 3: 5, 4: 9, 5: 1, 6: 11 };
 
 function randomRune(id: number, slot: number, rng: () => number): RuneDetail {
-  const mainCode = FORCED_MAIN[slot] ?? [1, 3, 5][Math.floor(rng() * 3)]; // slots libres : PV/ATQ/DEF plats, jamais TC/DCC/RES/PRE en principale (réaliste : ces 4 exigent leur slot dédié)
+  const mainCode = FORCED_MAIN[slot];
   const used = new Set([mainCode]);
   const subs = [randomSub(used, rng), randomSub(used, rng), randomSub(used, rng), randomSub(used, rng)];
-  const mainValue = mainCode === 8 ? 30 + Math.floor(rng() * 60) : 20 + Math.floor(rng() * 80); // VIT plausible (30-90) vs PV/ATQ/DEF plats
+  const mainValue = mainCode === 8 ? 30 + Math.floor(rng() * 60) : mainCode === 9 || mainCode === 11 ? 15 + Math.floor(rng() * 30) : 20 + Math.floor(rng() * 80);
   return { id, slot, set: 'violent', rank: 6, rarity: 5, level: 15, main: { code: mainCode, value: mainValue }, subs };
 }
 
 const POOL_PER_SLOT = Number(process.argv[2] ?? 150);
 const bucketCapOverride = process.argv[3] ? Number(process.argv[3]) : undefined;
-const ACC_SPECIALIST_PER_SLOT = Number(process.argv[4] ?? 40);
-const rng = mulberry32(20260814);
+const ACC_SPECIALIST_PER_SLOT = Number(process.argv[4] ?? 5);
+const rng = mulberry32(20260815);
 
 const pool: RuneDetail[] = [];
 let id = 1;
@@ -85,33 +84,38 @@ for (let slot = 1; slot <= 6; slot++) {
   for (let i = 0; i < POOL_PER_SLOT; i++) pool.push(randomRune(id++, slot, rng));
 }
 
-// ── Vague de « spécialistes Précision » : ACC élevée, reste médiocre — de
-// vrais concurrents légitimes sur LA tranche tendue spécifiquement, sans
-// gonfler la compétition sur les tranches molles (c'est le contraste qu'on
-// cherche à isoler). ────────────────────────────────────────────────────
+// ── Vague LÉGÈRE de « spécialistes Précision » — juste assez pour pousser
+// la cible hors de portée de bucketCap=3000, pas au-delà de ce qu'une
+// réallocation raisonnable peut couvrir (calibré par mesure, voir en-tête). ─
 for (let slot = 1; slot <= 6; slot++) {
   for (let i = 0; i < ACC_SPECIALIST_PER_SLOT; i++) {
-    const mainCode = FORCED_MAIN[slot] ?? [1, 3, 5][Math.floor(rng() * 3)];
+    const mainCode = FORCED_MAIN[slot];
     const used = new Set([mainCode, 12]);
     const subs: EffectLine[] = [{ code: 12, value: 25 + Math.floor(rng() * 15) }];
     for (let k = 0; k < 3; k++) subs.push(randomSub(used, rng));
-    pool.push({ id: id++, slot, set: 'violent', rank: 6, rarity: 5, level: 15, main: { code: mainCode, value: 15 + Math.floor(rng() * 50) }, subs });
+    const mainValue = mainCode === 8 ? 30 + Math.floor(rng() * 60) : mainCode === 9 || mainCode === 11 ? 15 + Math.floor(rng() * 30) : 20 + Math.floor(rng() * 80);
+    pool.push({ id: id++, slot, set: 'violent', rank: 6, rarity: 5, level: 15, main: { code: mainCode, value: mainValue }, subs });
   }
 }
 
-// ── La cible injectée : forte sur les 4 stats molles, modeste (mais réelle)
-// sur Précision — un demi-build plausible, pas gonflé pour « tricher ». ───
-function targetRune(idOverride: number, slot: number, mainCode: number, mainValue: number, subs: EffectLine[]): RuneDetail {
+// ── La cible injectée : forte sur les 4 stats molles, modeste sur
+// Précision. Principales conformes aux règles réelles du jeu. ────────────
+function targetRune(idOverride: number, slot: number, subs: EffectLine[]): RuneDetail {
+  const mainCode = FORCED_MAIN[slot];
+  const mainValue = mainCode === 8 ? 80 : mainCode === 9 || mainCode === 11 ? 35 : 100;
   return { id: idOverride, slot, set: 'violent', rank: 6, rarity: 5, level: 15, main: { code: mainCode, value: mainValue }, subs };
 }
 const T = 900000;
+// ⚠️ Slot 1 (principale ATQ+) exclut DEF (plate/%) en sous-stat ; slot 3
+// (principale DEF+) exclut ATQ (plate/%) — règles confirmées, voir la
+// mémoire sw-rune-mainstat-rules. Runes ci-dessous conformes.
 const targetRunes: RuneDetail[] = [
-  targetRune(T + 1, 1, 1, 100, [{ code: 3, value: 45 }, { code: 12, value: 16 }, { code: 5, value: 45 }, { code: 4, value: 45 }]),
-  targetRune(T + 2, 2, 8, 100, [{ code: 3, value: 45 }, { code: 12, value: 14 }, { code: 1, value: 45 }, { code: 5, value: 45 }]),
-  targetRune(T + 3, 3, 5, 100, [{ code: 3, value: 45 }, { code: 1, value: 45 }, { code: 4, value: 45 }, { code: 2, value: 40 }]),
-  targetRune(T + 4, 4, 3, 100, [{ code: 12, value: 28 }, { code: 6, value: 45 }, { code: 1, value: 45 }, { code: 5, value: 40 }]),
-  targetRune(T + 5, 5, 1, 100, [{ code: 12, value: 26 }, { code: 4, value: 45 }, { code: 5, value: 40 }, { code: 2, value: 40 }]),
-  targetRune(T + 6, 6, 5, 100, [{ code: 3, value: 45 }, { code: 1, value: 45 }, { code: 4, value: 40 }, { code: 6, value: 40 }]),
+  targetRune(T + 1, 1, [{ code: 1, value: 45 }, { code: 12, value: 16 }, { code: 2, value: 40 }, { code: 4, value: 45 }]),
+  targetRune(T + 2, 2, [{ code: 3, value: 45 }, { code: 12, value: 14 }, { code: 1, value: 45 }, { code: 5, value: 45 }]),
+  targetRune(T + 3, 3, [{ code: 1, value: 45 }, { code: 6, value: 45 }, { code: 2, value: 40 }]),
+  targetRune(T + 4, 4, [{ code: 12, value: 28 }, { code: 6, value: 45 }, { code: 1, value: 45 }]),
+  targetRune(T + 5, 5, [{ code: 12, value: 26 }, { code: 4, value: 45 }, { code: 5, value: 40 }, { code: 2, value: 40 }]),
+  targetRune(T + 6, 6, [{ code: 3, value: 45 }, { code: 1, value: 45 }, { code: 4, value: 40 }]),
 ];
 for (const r of targetRunes) pool.push(r);
 
@@ -125,9 +129,6 @@ function sumContribution(runes: RuneDetail[], code: number): number {
   }
   return total;
 }
-// 5 conditions à la fois : VIT (mainstat garantie, MOLLE) + PV/ATQ/DEF
-// (abondants, MOLLES) + Précision (rare, TENDUE). Seuils dérivés de la
-// cible elle-même (garantit la satisfiabilité), avec une marge de sécurité.
 const minStats: BuildRequirement['minStats'] = {
   spd: base.spd + sumContribution(targetRunes, 8) - 5,
   hp: base.hp + sumContribution(targetRunes, 1) - 10,
@@ -137,7 +138,7 @@ const minStats: BuildRequirement['minStats'] = {
 };
 console.log('Seuils dérivés de la cible :', minStats);
 
-const requirement: BuildRequirement = { sets: [], minStats, mainStats: { 2: [8] } };
+const requirement: BuildRequirement = { sets: [], minStats, mainStats: { 2: [8], 4: [9], 6: [11] } };
 const params: SearchParams = { base, artifacts: [], relic: undefined, pool, requirement, metric: 'eff', slotFilterCap: 80, bucketCap: bucketCapOverride };
 
 function drain<T>(gen: Generator<unknown, T, void>): T {
@@ -176,8 +177,8 @@ const rankA = findRank(combosA, targetIdsA, (c) => c.relevanceScore);
 const rankB = findRank(combosB, targetIdsB, (c) => c.relevanceScore);
 const rankAccA = findRank(combosA, targetIdsA, accScore);
 const rankAccB = findRank(combosB, targetIdsB, accScore);
-console.log(`Demi-build A cible (par relevanceScore) : ${rankA.rank ? `rang #${rankA.rank}/${rankA.total}` : `❌ ABSENT (${rankA.total} au total)`}`);
-console.log(`Demi-build B cible (par relevanceScore) : ${rankB.rank ? `rang #${rankB.rank}/${rankB.total}` : `❌ ABSENT (${rankB.total} au total)`}`);
+console.log(`Demi-build A cible (par relevanceScore) : ${rankA.rank ? `rang #${rankA.rank}/${rankA.total} (retenu)` : `❌ ABSENT (${rankA.total} au total)`}`);
+console.log(`Demi-build B cible (par relevanceScore) : ${rankB.rank ? `rang #${rankB.rank}/${rankB.total} (retenu)` : `❌ ABSENT (${rankB.total} au total)`}`);
 console.log(`Demi-build A cible (par acc SEUL) : ${rankAccA.rank ? `rang #${rankAccA.rank}/${rankAccA.total}` : `❌ ABSENT`}`);
 console.log(`Demi-build B cible (par acc SEUL) : ${rankAccB.rank ? `rang #${rankAccB.rank}/${rankAccB.total}` : `❌ ABSENT`}`);
 

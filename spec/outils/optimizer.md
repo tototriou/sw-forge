@@ -2054,9 +2054,527 @@ baseline) ET sur le cas de stress ci-dessus avant de choisir :
   plus chère pour beaucoup de cas (construction — voir le Chronographe
   Optimizer, `scripts/perf-baseline.json`).
 
-**État à ce stade** : rien n'est encore modifié dans `buildBuckets`
-lui-même — tout ce qui précède est l'infrastructure de mesure et la preuve
-que la piste vaut la peine d'être codée, pas encore le correctif.
+### Suite — piste A implémentée : cinq itérations, une seule qui tient
+
+**Mécanisme retenu.** `buildBuckets` construit chaque tranche par stat en
+SURPROVISIONNÉ (`RETENTION_OVERPROVISION_FACTOR × bucketCap` places, facteur
+3 retenu — places, pas `bucketCap`) pendant la passe, tout en maintenant un
+tas global DÉDIÉ (séparé des tas génériques par compartiment) qui
+reconstitue en direct le TOP `bucketCap` par `relevanceScore` sur TOUTE la
+moitié — la même population que celle validée par
+`scripts/retention-dispersion-diag.ts`. Deux accumulateurs (somme,
+somme-des-carrés) PAR `retentionKey`, mis à jour en O(1) à chaque
+insertion/éviction de ce tas (`HeapPushResult`, jamais besoin de
+reparcourir), donnent le CV de chaque stat une fois la triple boucle
+terminée. Chaque tranche par stat est alors ÉLAGUÉE à sa taille réallouée —
+budget total inchangé (`retentionKeys.length × bucketCap`), un plancher à
+10 % de la part égale, réparti proportionnellement au CV **au carré** (le
+linéaire s'est révélé trop timide : un écart de ×3 sur le CV n'ouvrait
+qu'environ 50 % du budget total à la tranche dominante).
+
+**Cinq versions du signal de dispersion, dans l'ordre, mesurées sur un
+vrai cas de régression (Sonia deck 6, `tototriou-12889591.json`)** :
+
+1. **CV agrégé sur les 3 runes, principale INCLUSE** (première version) —
+   régression confirmée : `atk` réduit à 320 places en moitié A, `spd` au
+   plancher, `cr` à 300 en moitié B → cible ABSENTE des deux moitiés, alors
+   qu'elle était trouvée avant (55,3 s).
+2. **Même agrégat, part au CARRÉ** (au lieu de linéaire) — toujours
+   régression, la carence venait d'ailleurs.
+3. **CV PAR SLOT individuel (3 par stat), principale INCLUSE, maximum
+   retenu** — corrige l'intuition (un slot à principale garantie ne doit pas
+   écraser la variance des 2 autres) mais introduit un bruit pire : une
+   seule rune sans la sous-stat contribue zéro, gonflant artificiellement le
+   CV d'un slot (mesuré : `cd` à CV=6,39 en moitié B, écrasant `atk`/`spd`
+   au plancher dans les deux moitiés). Toujours régression.
+4. **CV agrégé (retour à la version 1), principale EXCLUE du calcul**
+   (`runeSubOnlyContribution`, sous-stats + innée uniquement) — **corrige la
+   régression**. Root cause confirmée : une principale garantie (ex. Taux
+   Crit au slot 4 pour Sonia) contribue une valeur stable à CHAQUE candidat
+   de ce slot, noyant statistiquement la vraie dispersion des slots sans
+   cette garantie. Une rune ne pouvant JAMAIS avoir sa propre principale
+   dupliquée en sous-stat (règle du jeu, voir la mémoire
+   sw-rune-mainstat-rules), l'exclure fait tomber la contribution de ce slot
+   à EXACTEMENT zéro pour cette stat — pas juste « bas », structurellement
+   nul.
+5. **CV PAR SLOT, mais cette fois principale EXCLUE aussi** — retestée
+   spécifiquement pour vérifier si le bruit de la version 3 venait d'un
+   mélange des deux problèmes (principale qui masque + rareté par rune) ou
+   d'un SEUL. Résultat : CV STRICTEMENT IDENTIQUES à la version 3 sur Sonia
+   deck 6 (`cd`=6,39 inchangé) — aucun slot n'a Dégâts Crit en principale
+   pour ce cas précis (`mainStats={2:VIT,4:TC,6:ATQ%}`), l'exclusion n'avait
+   donc rien à retirer. Confirme que le bruit du par-slot est un problème
+   DISTINCT et INDÉPENDANT de la principale : la rareté d'une sous-stat sur
+   une seule rune (present/absent, effet de seuil) reste bruitée quelle que
+   soit la présence d'une principale liée. Toujours régression — la version
+   4 (agrégat, principale exclue) reste la seule qui tienne, précisément
+   parce que sommer 3 runes lisse déjà ce bruit par construction, sans
+   avoir besoin d'un traitement par slot séparé.
+
+**Résultat batterie complète, version 4** (`scripts/perf-battery.ts`, voir
+le Chronographe Optimizer) : 7/7 cas trouvés, aucune régression. Sonia
+deck 6 non seulement retrouvé mais **9,0 s plus rapide** qu'avant (55,3 s →
+46,2 s) ; Sonia deck 14 gagne **19,5 s** (96,2 s → 76,8 s). Les 5 autres cas
+sont légèrement plus lents (+1,7 s à +6,2 s) — coût de construction des tas
+surprovisionnés, payé même quand la réallocation ne change rien à l'issue.
+
+### Suite — deux cas de stress synthétiques pour valider la piste A
+
+**Premier cas** (`scripts/stress-tranche-weighting-diag.ts`) : une condition
+tendue (Précision, rare, aucune principale ne la couvre) noyée parmi des
+conditions molles, avec une vague de « spécialistes Précision » injectée
+pour créer une vraie compétition. Calibré par tâtonnement, il s'est avéré
+**sur-calibré** : la cible reste absente même à `bucketCap` uniforme relevé
+à 20 000 (×6,7 le budget de production) — bien au-delà de ce qu'AUCUNE
+réallocation raisonnable ne peut combler. Conservé tel quel comme cas
+extrême documenté (preuve qu'un relèvement uniforme a une limite
+structurelle — il grossit aussi les tranches qui n'en ont pas besoin), mais
+écarté comme objectif à atteindre.
+
+**Second cas** (`scripts/stress-tranche-weighting-attainable-diag.ts`),
+calibré différemment — mesurer le rang RÉEL de la cible (sans aucun
+plafond) AVANT de choisir les paramètres, plutôt qu'ajuster à l'aveugle.
+Deux corrections de méthode par rapport au premier cas :
+- Les DEUX moitiés ont une principale imposée sur leurs 3 slots à option
+  exclusive (VIT/TC/RES) — le premier cas ne contraignait que le slot 2,
+  laissant la moitié B ~74× plus grande que la moitié A (pool non filtré
+  par principale), donc structurellement hors de portée quel que soit le
+  réglage.
+- Principales des slots 1/3/5 FIXES (ATQ+/DEF+/PV+ — voir la mémoire
+  sw-rune-mainstat-rules), pas tirées au hasard parmi 3 options comme dans
+  le premier script — une erreur de modélisation qui, corrigée, a
+  elle-même fait exploser la taille du pool (moins de différenciation entre
+  candidats similaires → moins d'élagage par dominance) : le pool de base a
+  dû être réduit (150 → 40 runes/slot) pour revenir dans une plage
+  mesurable.
+
+Rang réel mesuré (sans plafond) : moitié A #3980, moitié B #1910 par
+Précision seule — la moitié A dépasse tout juste le plafond de production
+(3000). À `bucketCap=3000` avec la piste A active : la tranche `acc`
+réalloue à 9000 (moitié A) et 8269 (moitié B), les DEUX moitiés sont
+retenues. `totalPairCount` reste réaliste (170M, du même ordre qu'un vrai
+cas comme Lushen deck 10) — contrairement au premier cas, ce n'est pas un
+extrême artificiel : c'est la démonstration propre qu'on cherchait,
+un cas qui échouerait à plafond uniforme et réussit avec la réallocation.
+
+### Suite — bilan de la piste A
+
+**Avantages mesurés** :
+- Corrige une régression réelle (Sonia deck 6) tout en l'accélérant.
+- Aucune régression sur le reste de la batterie de cas réels connus.
+- Démontre un gain de CORRECTION concret sur un cas construit spécifiquement
+  pour ça (le second cas de stress), pas seulement un gain de vitesse.
+- Le mécanisme retenu (accumulateurs O(1), une seule passe, exclusion de la
+  principale) est maintenant bien compris et documenté — la root cause
+  (principale garantie qui noie la dispersion) est un principe général,
+  pas un rustine ad hoc pour Sonia seule.
+
+**Défauts mesurés** :
+- **Coût de construction accru sur la MAJORITÉ des cas** (5/7 cas plus
+  lents, +1,7 s à +6,2 s) — le surprovisionnement (×3) des tranches par
+  stat se paie même quand la réallocation ne change rien à l'issue de la
+  recherche.
+- **Il a fallu 5 itérations pour trouver un signal qui ne régresse pas** —
+  trois intuitions raisonnables a priori (CV au carré seul ; CV par slot ;
+  CV par slot + principale exclue) se sont révélées insuffisantes ou pires à
+  l'usage, seulement démasquées par la mesure sur un vrai cas — y compris la
+  découverte que le bruit du par-slot est INDÉPENDANT du problème de
+  principale (deux causes distinctes, pas une seule à corriger). Signal de
+  fragilité : rien ne garantit qu'un cas réel pas encore rencontré ne révèle
+  pas un autre angle mort du même genre.
+- **Complexité ajoutée non négligeable** : un facteur de surprovision, un
+  exposant de mise à l'échelle (carré), un plancher (10 %), un tas global
+  supplémentaire par moitié — plusieurs constantes choisies par mesure sur
+  une poignée de cas, pas dérivées d'un principe qui garantirait leur
+  généralité.
+- Le premier cas de stress (extrême) confirme une limite structurelle : au
+  DELÀ d'un certain déséquilibre, aucune réallocation à budget total
+  constant ne peut suffire — seul un budget total plus grand aiderait, ce
+  qui recrée le compromis coût/bénéfice que ce point cherchait justement à
+  éviter.
+
+**Conclusion** : la piste A tient sa promesse sur le cas qui l'a motivée et
+sur un cas construit pour la tester, sans régression mesurée — mais au prix
+d'une complexité et d'un coût de construction réels, et après plusieurs
+fausses pistes qui auraient pu passer pour des corrections valables sans la
+discipline de mesure déjà établie sur ce document. Elle est un candidat
+sérieux, pas une évidence — la comparaison avec la piste B (ci-dessous)
+reste nécessaire avant de choisir laquelle adopter, voire si les deux valent
+la peine face à leur coût.
+
+### Suite — piste B envisagée à la lumière de la piste A
+
+Le principal enseignement de la piste A à transposer : **la principale d'un
+slot doit être exclue du signal de dispersion**, quelle que soit la façon
+dont ce signal est calculé — ce n'est pas spécifique à un calcul par
+accumulateurs en direct, c'est une propriété du JEU (une rune ne peut
+jamais avoir sa propre principale dupliquée en sous-stat) qui s'applique
+également à un calcul analytique fait à l'avance.
+
+**Conception envisagée** : au lieu d'accumuler pendant la triple boucle
+(coût payé à CHAQUE recherche, y compris les surprovisionnements), calculer
+AVANT même de commencer — sur `prepared.filtered[slotIdx]`, le pool DÉJÀ
+filtré par slot (centaines de candidats, pas des millions de triplets) —
+pour chaque slot de la moitié et chaque `retentionKey`, la moyenne et la
+variance de `runeSubOnlyContribution(r, key)` (déjà écrite pour la piste A,
+directement réutilisable) sur ce pool. En additionnant les 3 variances par
+slot (en supposant une indépendance raisonnable entre slots — pas exacte,
+mais un premier ordre défendable) et leurs 3 moyennes, on obtient une
+ESTIMATION du CV du demi-build complet, calculée en O(taille du pool), pas
+O(pool³) — puis réutiliser EXACTEMENT la même formule de réallocation déjà
+validée (part au carré, budget total fixe, plancher à 10 %) pour fixer,
+DÈS LE DÉBUT de la triple boucle, la bonne taille de chaque tas par stat —
+sans jamais construire en surprovisionné, donc sans le coût de construction
+supplémentaire mesuré sur la piste A.
+
+**Pourquoi cette agrégation (somme des variances par slot) plutôt que le
+maximum essayé — et raté — en piste A** : la version 3 de la piste A
+calculait la variance sur un ÉCHANTILLON dynamique et bruité (les demi-builds
+qui survivent effectivement au tas générique, en cours de construction) —
+un rune isolé n'ayant simplement pas la sous-stat contribue zéro, gonflant
+artificiellement le signal. Ici, la variance se calcule sur le POOL FILTRÉ
+COMPLET d'un slot (une centaine à quelques centaines de candidats, une
+POPULATION stable, pas un échantillon en évolution) — le même genre de
+mesure que celle déjà validée dans `scripts/retention-dispersion-diag.ts`,
+juste à un stade plus précoce du pipeline.
+
+**Risque assumé, à mesurer plutôt que supposer** : c'est une APPROXIMATION —
+elle ne voit jamais les effets de conjonction qui n'apparaissent qu'une
+fois les triplets réellement formés et élagués par faisabilité (le piège
+déjà documenté plus haut sur ce point, « l'aiguille dans une botte de
+foin »). L'hypothèse d'indépendance entre slots (somme des variances) n'est
+pas garantie exacte non plus. Et la construction du second cas de stress
+vient de révéler un exemple concret de surprise possible : rendre les
+principales des slots 1/3/5 entièrement réalistes (fixes, pas aléatoires) a
+fait EXPLOSER la taille du pool retenu (moins de différenciation entre
+candidats → moins d'élagage par dominance) — un effet de bord non anticipé
+avant de le mesurer. Rien ne garantit que la piste B n'a pas son propre
+angle mort du même genre, encore invisible. Plan de test IDENTIQUE à celui
+de la piste A avant de conclure quoi que ce soit : `perf-battery.ts` contre
+la même baseline, et les deux cas de stress (l'extrême, pour confirmer qu'il
+reste hors de portée des deux côtés — pas un point de comparaison utile ;
+l'atteignable, pour vérifier qu'elle récupère aussi la cible, idéalement
+SANS le surcoût de construction mesuré sur la piste A).
+
+### Suite — piste B implémentée : l'hypothèse de vitesse ne se vérifie pas
+
+**Avant d'implémenter B, la piste A a été retirée du code de production**
+(pas jugée mauvaise — retirée pour tester B sur la même base propre, comme
+convenu). Son implémentation exacte reste disponible :
+[scripts/patches/piste-a-tranche-weighting.patch](scripts/patches/piste-a-tranche-weighting.patch)
+(`git apply` pour la réappliquer), doublé d'un `git stash` local — voir
+[scripts/patches/README.md](scripts/patches/README.md).
+
+**Implémentation** : `runeSubOnlyContribution` (même exclusion de la
+principale que la piste A) réutilisée telle quelle. AVANT la triple boucle,
+pour chaque `retentionKey`, calcule la moyenne et la variance de cette
+contribution sur le pool DÉJÀ FILTRÉ de chacun des 3 slots de la moitié
+(`filtered[i0/i1/i2]`), additionne les 3 variances et les 3 moyennes
+(indépendance approximative entre slots), en tire un CV — puis réutilise la
+MÊME formule de réallocation que la piste A (part au carré, budget total
+`retentionKeys.length × bucketCap` inchangé, plancher à 10 %). Chaque tas
+par stat est construit DIRECTEMENT à sa taille réallouée, sans jamais
+surprovisionner ni élaguer après coup.
+
+**Correction confirmée** : Sonia deck 6 retrouvé (comme la piste A). Les
+deux cas de stress synthétiques donnent EXACTEMENT le même verdict que la
+piste A : le cas extrême reste hors de portée (moitié B absente), le cas
+atteignable récupère les DEUX moitiés (rang #3980/#1910 par Précision
+seule, comme précédemment).
+
+**Mais l'hypothèse de vitesse ne se vérifie PAS** — résultat le plus
+important de cette comparaison :
+
+| Cas | Avant | Piste A | Piste B |
+|---|---|---|---|
+| Lushen d15 réel | 24,9 s | 30,7 s (+5,8) | 28,1 s (+3,2) |
+| Lushen d15 Rage seul | 53,4 s | 59,6 s (+6,2) | 59,2 s (+5,8) |
+| Lushen d10 | 110,4 s | 113,4 s (+3,0) | **118,9 s (+8,5)** |
+| Lushen d11 | 13,1 s | 14,8 s (+1,7) | 12,5 s (−0,6) |
+| Sonia d6 | 55,3 s | **46,2 s (−9,0)** | 50,2 s (−5,1) |
+| Sonia d14 | 96,2 s | **76,8 s (−19,5)** | **102,8 s (+6,6)** |
+| Ciri | 11,8 s | 13,5 s (+1,7) | 13,9 s (+2,2) |
+
+Sur Sonia deck 14, le temps de CONSTRUCTION est quasi identique entre A et B
+(15,5 s dans les deux cas) — le pré-calcul O(pool) de B ne coûte
+effectivement presque rien, exactement comme prévu. La différence se joue
+ailleurs : l'APPARIEMENT prend 84,7 s au total pour B contre 58,6 s pour A
+sur ce même cas (trouvé en 6,5 s contre 3,4 s, donc toujours rapide, mais
+plus long à épuiser complètement) — la répartition DIFFÉRENTE des plafonds
+entre A et B change la QUALITÉ de ce qui est retenu, pas seulement le coût
+de construction. Hypothèse non vérifiée : rien ne garantissait que
+l'estimation analytique de B (sur le pool filtré, avant combinatoire)
+produirait la MÊME réallocation que le suivi en direct de A (sur les
+demi-builds qui survivent réellement) — elles divergent suffisamment sur ce
+cas pour inverser l'avantage.
+
+**Bilan de la comparaison** : aucune des deux pistes ne domine clairement
+l'autre sur l'axe vitesse — B légèrement meilleur sur 2 cas (Lushen d11,
+Lushen d15 réel), nettement pire sur 1 (Sonia d14), comparable sur le reste.
+Les deux corrigent la régression de correction visée (Sonia d6), A un peu
+plus (−9,0 s contre −5,1 s). Aucune décision d'adoption prise à ce stade —
+voir la conclusion générale ci-dessous.
+
+### Suite — fix du cache de bundle esbuild dans `perf-battery.ts`
+
+**Bug découvert en comparant une baseline fraîche à l'ancienne** : le
+graphique Chronographe montrait un delta NÉGATIF (mieux) sur Sonia deck 14
+entre deux baselines au code STRICTEMENT identique, alors que les segments
+visibles (préparation + construction + appariement) étaient, eux, plus
+longs sur la nouvelle mesure — contradiction visuelle/chiffrée. Cause :
+`ensureBuildHalfWorkerBundle()` ([perf-battery.ts](scripts/perf-battery.ts))
+bundlait le Worker via esbuild dans un dossier temporaire RECRÉÉ à chaque
+appel (`mkdtempSync`), mis en cache seulement en mémoire du PROCESSUS — or
+chaque cas de la batterie tourne dans son propre processus Node isolé (voir
+plus haut, « chronométré depuis l'ENTRÉE... »), donc ce cache ne survivait
+jamais d'un cas à l'autre : CHAQUE cas rebundlait depuis zéro. Ce temps de
+bundling n'entre dans AUCUN segment mesuré (`prepMs` et `buildWallMs` sont
+chronométrés strictement avant/après cette étape) — il ne contaminait donc
+que `totalMs`/`foundMs`, d'un bruit variable et parfois important (+2,6 s
+observé sur ce cas précis entre deux mesures).
+
+**Correctif** : le bundle est maintenant mis en cache sur un chemin FIXE
+(`%TEMP%/sw-forge-perf-buildhalf-cache`), invalidé seulement si
+`build-half-worker.ts` a changé depuis (comparaison de `mtime`) — un seul
+bundling pour toute une batterie (voire entre plusieurs batteries
+successives), au lieu d'un par cas. `totalMs`/`foundMs` redeviennent des
+métriques utilisables directement pour comparer deux mesures, plus besoin
+de se rabattre sur `buildWallMs`/`pairingTotalMs` uniquement.
+
+⚠️ Ce fix ne corrige que les mesures FUTURES — les `totalMs`/`foundMs` déjà
+enregistrés dans `scripts/perf-baseline.json` et les logs de comparaison
+piste A/piste B plus haut sur ce document restent contaminés, aucun
+recalcul rétroactif n'est possible (le bundling n'a jamais été chronométré
+séparément). `prepMs`, `buildWallMs`, `pairingFoundMs`, `pairingTotalMs` de
+ces mesures passées, eux, n'ont jamais été affectés.
+
+87 dossiers de bundle laissés par l'ancien comportement (~1,5 Mo au total)
+ont été nettoyés de `%TEMP%` après le fix — cruft sans impact mesurable sur
+les temps observés (voir l'investigation de dérive ci-dessous).
+
+### Suite — piste B GATÉE derrière un paramètre, coût vérifié nul par défaut
+
+Avant tout bouton dans l'UI : `buildBuckets` reçoit un nouveau paramètre
+optionnel `adaptiveTrancheWeighting` (défaut `false`), qui encadre tout le
+mécanisme de la piste B (calcul de `reallocatedCap` avant la triple boucle,
+et son utilisation comme plafond par tranche). Désactivé, le comportement
+retombe EXACTEMENT sur `perOtherSliceCap` comme avant l'introduction de la
+piste B — aucun appel supplémentaire, aucune structure supplémentaire
+construite.
+
+**Pourquoi cette vérification était nécessaire, et pas juste supposée** :
+la piste A modifie la signature partagée de `heapPush` (`void` →
+`HeapPushResult`, un objet alloué à CHAQUE insertion/éviction, y compris
+sur les appels qui n'ont rien à voir avec la pondération adaptative) — un
+risque de coût caché sur le chemin par défaut, jamais mesuré, qui reste
+d'ailleurs une inconnue non résolue si la piste A devait un jour être
+réactivée. La piste B, elle, ne touche PAS `heapPush` : son seul
+changement dans la boucle chaude est l'argument `cap` passé à un appel déjà
+existant — gater ce choix (`reallocatedCap[...]` vs `perOtherSliceCap`) ne
+devrait, en théorie, rien coûter. « En théorie » vérifié par la mesure, pas
+supposé.
+
+**Premier essai, alarme fausse** : comparer la piste B gatée à la baseline
+PERSISTÉE (mesurée plusieurs heures plus tôt) a montré un surcoût
+systématique de +0,9 s à +3,0 s sur les 7 cas (moyenne +1,6 s) — dans le
+même sens partout, donc pas un bruit qui s'annule, en apparence un vrai
+coût du code gaté. **Deuxième mesure, dos-à-dos** : remettre le code
+d'ORIGINE (sans aucune trace de piste B, même gatée) de côté et le mesurer
+IMMÉDIATEMENT après, dans les mêmes conditions machine que la piste B
+gatée, donne un delta moyen de −0,29 s, dispersé des deux côtés de zéro —
+dans l'enveloppe de bruit établie ci-dessous. Conclusion : le +1,6 s
+initial venait de la dérive de la MACHINE entre les deux instants de
+mesure, pas du code — voir l'investigation ci-après. **Le flag est
+confirmé gratuit**, prêt à servir de socle à un bouton « Prioriser les
+stats les plus difficiles » dans l'UI (nom choisi pour refléter le
+mécanisme réel — un arbitrage entre STATS demandées en compétition pour le
+budget de rétention, pas une détection de runes individuellement rares).
+
+### Suite — investigation de la dérive : la machine, pas le script
+
+Question posée après la fausse alerte ci-dessus : la dérive observée
+vient-elle de la machine, ou d'un artefact qui s'ACCUMULE au fil des
+exécutions de `perf-battery.ts` lui-même (fichiers non nettoyés, cache qui
+grossit) ?
+
+**Méthode** : tracer `buildWallMs` du cas Ciri (appariement quasi nul,
+signal de construction quasi pur) sur les 8 exécutions de la session,
+DANS L'ORDRE CHRONOLOGIQUE réel plutôt que par type de mesure :
+
+| Heure locale | `buildWallMs` | Mesure |
+|---|---|---|
+| 14 août 22:08 | 9,2 s | baseline (070013b) |
+| 15 août 00:28 | 10,9 s | piste A |
+| 15 août 02:14 | 10,9 s | piste A v2 |
+| 15 août 07:19 | 11,3 s | piste B |
+| 15 août 07:50 | **9,0 s** | baseline fraîche |
+| 15 août 08:10 | 9,7 s | baseline (persistée) |
+| 15 août 09:44 | 10,9 s | piste B gatée |
+| 15 août 09:59 | 11,0 s | baseline (dos-à-dos) |
+
+**Verdict** : la chute nette à 07:50 (9,0 s, plus bas que le tout premier
+point de la veille) après un pic à 11,3 s est incompatible avec un artefact
+qui s'accumule — le nombre d'exécutions ne fait qu'augmenter avec le temps,
+un tel artefact ne peut mécaniquement pas produire une valeur plus basse
+qu'au début. Pistes disque écartées par la mesure : les 92 dossiers de
+bundle laissés par l'ancien comportement (~1,5 Mo, voir ci-dessus) sont
+bien trop petits pour expliquer des écarts de plusieurs secondes, et
+présents aussi bien aux points bas qu'aux points hauts de la courbe ; aucun
+cache tsx/esbuild qui grossirait avec les exécutions n'a été trouvé.
+Facteur retenu à la place : plusieurs utilitaires tournant en fond en
+continu sur cette machine (iCUE, MSI Afterburner, HueSync, plusieurs
+fenêtres VS Code) — une charge de fond variable selon ce qui tourne au
+moment précis de chaque mesure, pas selon la durée de la session.
+
+**Implication pratique** : une comparaison entre deux mesures prises à des
+heures différentes n'est fiable que pour un delta relatif GROSSIER — la
+seule façon d'obtenir un delta fin et fiable est de mesurer les deux codes
+à comparer L'UN APRÈS L'AUTRE, dans la même fenêtre de temps (méthode
+utilisée pour valider le flag ci-dessus).
+
+### Suite — enveloppe de bruit de référence, pour juger les futurs deltas
+
+**Objectif** : donner un ordre de grandeur objectif — un delta futur
+en-dessous de cette enveloppe doit être tenu pour potentiellement du bruit
+(sauf comparaison dos-à-dos), un delta au-delà est probablement réel.
+Calculée sur `buildWallMs` (jamais contaminé par le bug de bundling
+ci-dessus, contrairement à `totalMs`/`foundMs`), les 4 mesures de baseline
+STRICTEMENT identique (aucune piste active) prises à des instants
+différents de cette session : 14 août 22:08 (070013b), 15 août 07:50, 15
+août 08:10 (persistée), 15 août 09:59.
+
+| Cas | Échantillons (s) | Moyenne | Écart-type | **CV** | Étendue |
+|---|---|---|---|---|---|
+| Lushen d15 R+B | 10,2 / 11,9 / 11,4 / 14,1 | 11,9 s | 1,4 s | **12,0 %** | 10,2–14,1 s (33 %) |
+| Lushen d15 R seul | 6,6 / 6,0 / 6,1 / 7,8 | 6,6 s | 0,7 s | **10,9 %** | 6,0–7,8 s (27 %) |
+| Lushen d10 | 4,8 / 4,6 / 4,4 / 6,0 | 5,0 s | 0,6 s | **12,4 %** | 4,4–6,0 s (31 %) |
+| Lushen d11 | 10,2 / 9,5 / 10,4 / 11,9 | 10,5 s | 0,9 s | **8,3 %** | 9,5–11,9 s (23 %) |
+| Sonia d6 | 11,0 / 10,0 / 10,5 / 12,4 | 11,0 s | 0,9 s | **8,1 %** | 10,0–12,4 s (22 %) |
+| Sonia d14 | 12,3 / 11,9 / 13,1 / 15,8 | 13,3 s | 1,5 s | **11,5 %** | 11,9–15,8 s (29 %) |
+| Ciri | 9,2 / 9,0 / 9,7 / 11,0 | 9,7 s | 0,8 s | **8,0 %** | 9,0–11,0 s (21 %) |
+
+**CV moyen ≈ 10 %, étendue moyenne ≈ 27 % de la moyenne** — sur cette
+machine, dans les conditions de cette session (plusieurs heures, charge de
+fond variable, voir l'investigation ci-dessus).
+
+**Règle pratique retenue** : un delta de `buildWallMs` sur UNE mesure
+isolée, inférieur à ~2× le CV du cas concerné (donc grossièrement sous les
+15-25 % selon le cas), doit être considéré comme potentiellement du bruit
+— ni confirmé, ni infirmé par cette seule mesure. Au-delà, ou confirmé par
+une comparaison dos-à-dos (deux codes mesurés l'un après l'autre, comme
+pour la vérification du flag ci-dessus), le delta peut être tenu pour réel.
+`totalMs`/`pairingTotalMs` n'ont pas encore d'enveloppe de référence
+propre — accumuler plusieurs mesures POST-FIX (cache de bundle) avant de
+leur faire confiance quantitativement ; en attendant, `buildWallMs` reste
+la métrique la plus sûre pour juger un changement touchant `buildBuckets`.
+
+### Suite — piste A : état sauvegardé, pas abandonnée
+
+Décision prise en clôturant cette itération : la piste B sert de socle au
+bouton « Prioriser les stats les plus difficiles » (opt-in, coût nul par
+défaut vérifié ci-dessus). La piste A n'est PAS retenue pour l'instant,
+mais n'est pas fermée pour autant — une question précise reste ouverte, à
+reprendre ici plutôt qu'à relancer depuis zéro.
+
+**Où tout est conservé** :
+- `git stash@{0}` (message : « piste A (ponderation adaptative CV agrege,
+  principale exclue)… ») — l'implémentation complète telle que testée.
+- [scripts/patches/piste-a-tranche-weighting.patch](scripts/patches/piste-a-tranche-weighting.patch)
+  (236 lignes) et [scripts/patches/README.md](scripts/patches/README.md).
+- Les cinq itérations, les deux cas de stress, et le bilan avantages/
+  défauts complet : voir « Suite — piste A implémentée », « Suite — deux
+  cas de stress synthétiques » et « Suite — bilan de la piste A »
+  ci-dessus sur ce document.
+
+⚠️ **Ni le stash ni le patch ne s'appliquent plus proprement** —
+vérifié : `git apply --check` échoue (`patch does not apply` sur
+`runeBuildOptim.ts:1022`). Les deux ont été capturés AVANT l'ajout du
+paramètre `adaptiveTrancheWeighting` (piste B gatée, voir ci-dessus) : le
+fichier a bougé depuis. Réactiver la piste A demandera une réapplication
+MANUELLE (relire le patch, reporter les changements à la main sur le code
+actuel), pas un `git apply`/`git stash pop` direct.
+
+**La question précise qui reste ouverte** — pas « laquelle coûte le moins
+cher » (déjà tranché : les deux ont un coût réel et comparable), mais
+« laquelle TROUVE MIEUX, une fois que l'utilisateur a déjà accepté de payer
+plus cher en cliquant sur un mode opt-in ? ». Signal jamais approfondi :
+sur Sonia deck 14, la piste A ne s'est pas contentée d'être « pareille » à
+B — elle a trouvé la cible plus vite (3,4 s contre 6,5 s) ET épuisé la
+recherche plus vite (76,8 s contre 102,8 s au total). Explication
+plausible : A observe la dispersion RÉELLE des demi-builds construits, B
+l'ESTIME via une hypothèse d'indépendance entre slots qui, sur ce cas
+précis, a produit une réallocation différente et moins bonne. Un seul cas
+ne suffit pas à conclure que c'est systématique — mais c'est le genre
+d'avantage qu'on attendrait justement de la piste A si son raisonnement
+théorique (pas d'approximation) est juste.
+
+**Avant de rouvrir le dossier**, dans l'ordre :
+1. Rebaser le patch sur l'état actuel de `runeBuildOptim.ts`.
+2. Gater la piste A derrière un paramètre comme pour B, et vérifier — chose
+   JAMAIS faite pour A — que le changement de signature de `heapPush`
+   (`void` → `HeapPushResult`, appliqué à TOUS les appels, pas seulement
+   ceux de la piste A) ne coûte rien en mode désactivé. C'est l'inconnue
+   technique qui a fait préférer B comme socle de l'opt-in.
+3. Chercher d'autres cas où A et B divergent en QUALITÉ de résultat (pas en
+   coût), pour voir si l'avantage vu sur Sonia d14 est systématique ou un
+   coup de chance sur ce cas précis.
+
+**Quand y revenir** : si l'usage réel du bouton « Prioriser les stats les
+plus difficiles » (piste B) montre que des utilisateurs cliquent dessus et
+ne trouvent quand même pas ce qu'ils cherchent — pas avant, pour éviter de
+spéculer sur un avantage vu une seule fois.
+
+### Suite — les toggles « Prioriser… » et « Utiliser tout l'inventaire »,
+### deux points d'interrogation cliquables
+
+Le bouton « Prioriser les stats les plus difficiles » devient un TOGGLE
+(désactivé par défaut, comme « Stats de base exclues »), pas un bouton qui
+lance sa propre recherche — `handleSearch` lit l'état au moment du clic sur
+« Rechercher », un seul déclencheur pour les deux modes. Même traitement
+pour « Utiliser tout l'inventaire ». Les deux réglages, plus « Stats de
+base exclues » et « Ignorer les statistiques des artéfacts », partagent
+maintenant le même bouton d'aide rond avec popup cliquable (fermeture au
+clic extérieur ou Échap) que « Mon compte → Courbes » — nouveau composant
+générique `src/components/HelpPopover.tsx`, pour ne pas dupliquer la
+gestion d'ouverture/fermeture à chaque nouvel usage.
+
+### Suite — résultats affichés EN DIRECT pendant l'appariement
+
+Jusqu'ici, `BuildCandidateCard` n'apparaissait qu'une fois `result` posé —
+après épuisement complet du budget ou arrêt manuel, jamais PENDANT la
+recherche, alors que `pairBuckets` produit déjà `candidates` à chaque point
+de passage (`PairingProgress.candidates`, jamais transmis au-delà du
+Worker jusqu'ici). Trois relais mis à jour :
+
+- `WorkerPairingMessage.newCandidates` (`runeBuildOptim.worker.ts`) —
+  UNIQUEMENT les candidats trouvés depuis le dernier message, pas la liste
+  entière accumulée : `progress.candidates` peut grossir jusqu'à
+  `maxCollected` (100 000 par défaut) sur une recherche lâche,
+  retransmettre le même préfixe en entier à chaque point de passage
+  throttlé (~150 ms) recopierait des dizaines de fois la même chose pour
+  rien.
+- `useBuildOptimSearch.ts` accumule ces deltas dans `progress.candidates`
+  (fusion, pas remplacement — même patron que `halves` pour la phase
+  `building`), plafonné à `PREVIEW_CANDIDATES_CAP=3000` : l'aperçu
+  n'affiche jamais plus de 20 cartes triées, aucune raison de trier un
+  tableau bien plus gros à chaque tick pendant une recherche très lâche. Le
+  résultat FINAL (`result.candidates`), lui, n'est jamais tronqué par ce
+  plafond — seul l'aperçu EN DIRECT l'est.
+- `OptimizerSection.tsx` : `candidatesSource` bascule entre `result.
+  candidates` (terminé) et `progress.candidates` (en cours, phase
+  `pairing`) ; le panneau de résultats s'affiche dès qu'au moins un candidat
+  existe dans l'une ou l'autre source, avec un intitulé distinct pendant la
+  recherche (« N combinaison(s) trouvée(s) pour l'instant — recherche en
+  cours… », `N` = `progress.found`, le vrai compte, pas la taille de
+  l'aperçu plafonné). Les diagnostics « 0 résultat »/bandeau tronqué restent
+  gatés strictement sur `result` (n'ont de sens qu'une fois la recherche
+  réellement terminée).
+
+⚠️ Non vérifié visuellement (pas d'outil de pilotage de navigateur
+disponible dans cet environnement au moment de l'implémentation) —
+`tsc --noEmit` et les 365 tests existants passent, mais la vérification en
+conditions réelles (le tri qui se met à jour en direct, le décompte qui
+avance, le passage propre au résultat final) reste à faire manuellement.
 
 ## Limites connues
 

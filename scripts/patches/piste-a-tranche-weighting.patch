@@ -1,0 +1,236 @@
+diff --git a/src/lib/runeBuildOptim.ts b/src/lib/runeBuildOptim.ts
+index ae10071..200337a 100644
+--- a/src/lib/runeBuildOptim.ts
++++ b/src/lib/runeBuildOptim.ts
+@@ -348,6 +348,33 @@ export function runeContribution(rune: RuneDetail, key: StatKey): { pct: number;
+   return { pct, flat };
+ }
+ 
++// ⚠️ Comme `runeContribution`, mais SANS la principale — sous-stats et
++// innée uniquement. Sert à la pondération adaptative des tranches de
++// rétention (voir « Suite — point 4 » dans spec/outils/optimizer.md) : la
++// principale d'un slot est une valeur GARANTIE et relativement stable pour
++// toute rune candidate de ce slot (surtout sur un slot à principale imposée
++// — VIT slot 2, TC/DCC slot 4, RES/PRE slot 6) — elle NOIE la vraie
++// dispersion (sous-stats, aléatoires) derrière une moyenne artificiellement
++// élevée et stable. Une rune ne peut d'ailleurs JAMAIS avoir sa propre
++// principale dupliquée en sous-stat (même code — règle du jeu, voir la
++// mémoire sw-rune-mainstat-rules) : sur un slot dont la principale EST la
++// stat suivie, la contribution hors-principale est structurellement nulle,
++// ce qui est exactement le signal recherché (ce slot n'apporte rien à la
++// VARIABILITÉ de cette stat, seulement un plancher fixe).
++function runeSubOnlyContribution(rune: RuneDetail, key: StatKey): { pct: number; flat: number } {
++  let pct = 0;
++  let flat = 0;
++  const add = (code: number, value: number) => {
++    const def = RUNE_EFFECT[code];
++    if (!def || def.stat !== key) return;
++    if (def.pct) pct += value;
++    else flat += value;
++  };
++  if (rune.innate) add(rune.innate.code, rune.innate.value);
++  for (const s of rune.subs) add(s.code, s.value);
++  return { pct, flat };
++}
++
+ function valueOf(rune: RuneDetail, metric: OptimMetric): number {
+   return metric === 'eff' ? runeEfficiency(rune) : runeScore(rune);
+ }
+@@ -847,7 +874,20 @@ interface ScoredEntry<T> {
+ // chaque insertion/éviction à O(log cap). ⚠️ Le tas n'est PAS trié pendant la
+ // construction — le tri final se fait une seule fois, après coup (voir
+ // `buildBuckets`), pour ne jamais payer un tri à chaque insertion.
+-function heapPush<T>(heap: ScoredEntry<T>[], entry: ScoredEntry<T>, cap: number): void {
++// ⚠️ Retourne ce qui a été inséré/évincé (au lieu de `void`) — sert
++// UNIQUEMENT au suivi live de la dispersion (voir « Suite — pondération
++// adaptative par tranche, piste A » plus bas) : additionner/soustraire la
++// contribution d'un demi-build à des accumulateurs de somme/somme-des-carrés
++// exactement quand il entre/sort d'un tas, sans jamais avoir à reparcourir
++// le tas entier. Les 3 sites d'appel qui n'en ont pas besoin (tranche
++// combinée, tranches par stat elles-mêmes) ignorent simplement la valeur de
++// retour — coût nul pour eux.
++interface HeapPushResult<T> {
++  inserted: boolean;
++  evicted: ScoredEntry<T> | null;
++}
++
++function heapPush<T>(heap: ScoredEntry<T>[], entry: ScoredEntry<T>, cap: number): HeapPushResult<T> {
+   if (heap.length < cap) {
+     heap.push(entry);
+     let i = heap.length - 1;
+@@ -857,9 +897,10 @@ function heapPush<T>(heap: ScoredEntry<T>[], entry: ScoredEntry<T>, cap: number)
+       [heap[parent], heap[i]] = [heap[i], heap[parent]];
+       i = parent;
+     }
+-    return;
++    return { inserted: true, evicted: null };
+   }
+-  if (heap.length === 0 || entry.score <= heap[0].score) return;
++  if (heap.length === 0 || entry.score <= heap[0].score) return { inserted: false, evicted: null };
++  const evicted = heap[0];
+   heap[0] = entry;
+   let i = 0;
+   for (;;) {
+@@ -872,6 +913,7 @@ function heapPush<T>(heap: ScoredEntry<T>[], entry: ScoredEntry<T>, cap: number)
+     [heap[smallest], heap[i]] = [heap[i], heap[smallest]];
+     i = smallest;
+   }
++  return { inserted: true, evicted };
+ }
+ 
+ /* --------------------------------------------------------------------------
+@@ -1022,6 +1064,78 @@ export function* buildBuckets(
+   const genericCap = bucketCap;
+   const perOtherSliceCap = genericCap;
+ 
++  // ⚠️ Piste A — pondération adaptative par tranche (spec/outils/
++  // optimizer.md, « Suite — point 4 »). Chaque tranche par stat est
++  // construite en SURPROVISIONNÉ (`RETENTION_OVERPROVISION_FACTOR × bucketCap`
++  // places, pas `bucketCap`), pendant qu'un tas global DÉDIÉ — séparé des tas
++  // génériques PAR COMPARTIMENT ci-dessus, lui à l'échelle de la moitié
++  // entière — reconstitue en direct le TOP `bucketCap` par `relevanceScore`
++  // sur TOUS les compartiments confondus (même population que celle validée
++  // par scripts/retention-dispersion-diag.ts). Un accumulateur somme/
++  // somme-des-carrés PAR retentionKey, mis à jour en O(1) à chaque
++  // insertion/éviction de ce tas global (voir `HeapPushResult`, jamais besoin
++  // de reparcourir), donne le CV de chaque stat SANS coût supplémentaire
++  // notable pendant le flux. Une fois la triple boucle terminée, chaque
++  // tranche par stat est ÉLAGUÉE à sa taille réallouée (proportionnelle à son
++  // CV, budget total inchangé) — voir juste après la boucle principale.
++  const RETENTION_OVERPROVISION_FACTOR = 3;
++  const perStatBuiltCap = perOtherSliceCap * RETENTION_OVERPROVISION_FACTOR;
++  const globalGenericHeap: ScoredEntry<HalfCombo>[] = [];
++  // ⚠️ Accumulateurs sur le demi-build AGRÉGÉ (somme des 3 runes), comme la
++  // toute première version — mais en EXCLUANT la principale de chaque rune
++  // (voir `runeSubOnlyContribution`), pas `combo.pct`/`combo.flat` qui
++  // l'incluent. Deux versions intermédiaires écartées, mesurées : (1) sur
++  // l'agrégat AVEC principale — une principale garantie stable noie la
++  // vraie dispersion, régression mesurée sur un vrai compte (Sonia deck 6) ;
++  // (2) par SLOT individuel avec principale — corrige (1) mais introduit un
++  // bruit pire (une seule rune sans cette sous-stat contribue zéro,
++  // gonflant artificiellement le CV d'un slot). Exclure la principale de
++  // l'AGRÉGAT cumule les deux bénéfices sans le bruit : la moyenne sur 3
++  // runes lisse déjà les zéros individuels, et le slot à principale garantie
++  // contribue mécaniquement zéro à la variabilité SANS avoir besoin de le
++  // traiter à part (une rune ne peut jamais avoir sa propre principale
++  // dupliquée en sous-stat — voir la mémoire sw-rune-mainstat-rules).
++  // ⚠️ Accumulateurs sur le demi-build AGRÉGÉ (somme des 3 runes), comme la
++  // toute première version — mais en EXCLUANT la principale de chaque rune
++  // (voir `runeSubOnlyContribution`), pas `combo.pct`/`combo.flat` qui
++  // l'incluent. TROIS versions intermédiaires écartées, mesurées : (1) sur
++  // l'agrégat AVEC principale — une principale garantie stable noie la
++  // vraie dispersion, régression mesurée sur un vrai compte (Sonia deck 6) ;
++  // (2) par SLOT individuel AVEC principale — corrige l'hypothèse mais
++  // introduit un bruit pire (mesuré : `cd` à CV=6,39 en moitié B) ; (3) par
++  // SLOT individuel, principale EXCLUE cette fois — retestée spécifiquement
++  // pour vérifier si l'exclusion suffisait à corriger le bruit du par-slot :
++  // CV STRICTEMENT IDENTIQUES à la version (2) sur Sonia deck 6 (aucun slot
++  // n'a Dégâts Crit en principale pour ce cas précis — l'exclusion n'a donc
++  // rien à retirer), confirmant que le bruit du par-slot est un problème
++  // DISTINCT (rareté d'une sous-stat sur une seule rune, pas un mélange
++  // avec la principale) — toujours régression. Exclure la principale de
++  // l'AGRÉGAT cumule les deux bénéfices sans le bruit du par-slot : la
++  // moyenne sur 3 runes lisse déjà les zéros individuels, et le slot à
++  // principale garantie contribue mécaniquement zéro à la variabilité SANS
++  // avoir besoin de le traiter à part (une rune ne peut jamais avoir sa
++  // propre principale dupliquée en sous-stat — voir la mémoire
++  // sw-rune-mainstat-rules).
++  const dispersionSum: Record<string, number> = {};
++  const dispersionSumSq: Record<string, number> = {};
++  let dispersionCount = 0;
++  for (const k of retentionKeys) {
++    dispersionSum[k] = 0;
++    dispersionSumSq[k] = 0;
++  }
++  function trackDispersion(combo: HalfCombo, sign: 1 | -1) {
++    dispersionCount += sign;
++    for (const k of retentionKeys) {
++      let v = 0;
++      for (const r of combo.runes) {
++        const c = runeSubOnlyContribution(r, k as StatKey);
++        v += c.pct + c.flat;
++      }
++      dispersionSum[k] += sign * v;
++      dispersionSumSq[k] += sign * v * v;
++    }
++  }
++
+   // Meilleur cas atteignable par CHAQUE slot de cette moitié, pour chaque set
+   // demandé — calculé une fois, réutilisé à chaque étape du triple flux.
+   const slotHasKey = [i0, i1, i2].map((i) => distinctKeys.map((key) => filtered[i].some((r) => r.set === key)));
+@@ -1090,12 +1204,17 @@ export function* buildBuckets(
+         }
+         const combo: HalfCombo = { runes, counts, jokers, pct, flat, relevanceScore: score };
+         heapPush(bucketSlices![0], { item: combo, score }, genericCap);
++        if (retentionKeys.length > 0) {
++          const globalResult = heapPush(globalGenericHeap, { item: combo, score }, genericCap);
++          if (globalResult.inserted) trackDispersion(combo, 1);
++          if (globalResult.evicted) trackDispersion(globalResult.evicted.item, -1);
++        }
+         const retentionOffset = hasCombined ? 2 : 1;
+         if (hasCombined) {
+           heapPush(bucketSlices![1], { item: combo, score: combinedRetentionScore(pct, flat, minEntries) }, perOtherSliceCap);
+         }
+         for (let i = 0; i < retentionKeys.length; i++) {
+-          heapPush(bucketSlices![retentionOffset + i], { item: combo, score: retentionScore(pct, flat, retentionKeys[i]) }, perOtherSliceCap);
++          heapPush(bucketSlices![retentionOffset + i], { item: combo, score: retentionScore(pct, flat, retentionKeys[i]) }, perStatBuiltCap);
+         }
+         if (skylines) {
+           let skyline = skylines.get(key);
+@@ -1108,6 +1227,56 @@ export function* buildBuckets(
+       }
+     }
+   }
++  // ⚠️ Réallocation des tranches par stat, la dispersion RÉELLE maintenant
++  // connue (accumulateurs ci-dessus) — AVANT la fusion, pour qu'elle opère
++  // sur les tailles définitives. Budget total INCHANGÉ (somme des caps
++  // réalloués = `retentionKeys.length × perOtherSliceCap`, exactement comme
++  // avant) : une redistribution, pas un budget supplémentaire — les tas
++  // surprovisionnés pendant la boucle ne servaient qu'à laisser une stat
++  // tendue GARDER plus que `bucketCap` si sa part le justifie ; une stat
++  // molle est ici ramenée BIEN EN DESSOUS de ce qu'elle occupait pendant la
++  // construction.
++  if (retentionKeys.length > 0 && dispersionCount > 0) {
++    const cv: Record<string, number> = {};
++    for (const k of retentionKeys) {
++      const mean = dispersionSum[k] / dispersionCount;
++      const variance = Math.max(0, dispersionSumSq[k] / dispersionCount - mean * mean);
++      cv[k] = mean > 0 ? Math.sqrt(variance) / mean : 0;
++    }
++    // ⚠️ CV AU CARRÉ (pas linéaire) : un partage proportionnel au CV brut
++    // reste trop timide dès que plusieurs stats ont un CV du même ordre de
++    // grandeur (mesuré : ×3 d'écart n'ouvre qu'~50 % du budget total à la
++    // tranche dominante, largement insuffisant face à une compétition
++    // absolue sévère) — le carré accentue l'écart relatif entre une stat
++    // vraiment tendue et les autres, sans changer l'ordre.
++    const cv2: Record<string, number> = {};
++    for (const k of retentionKeys) cv2[k] = cv[k] * cv[k];
++    const totalCv2 = retentionKeys.reduce((s, k) => s + cv2[k], 0);
++    const totalBudget = retentionKeys.length * perOtherSliceCap;
++    // Plancher à 10 % de la part égale — une stat sans dispersion mesurable
++    // reste une condition RÉELLE posée par l'utilisateur, jamais ramenée à
++    // (presque) rien.
++    const floorCap = Math.max(1, Math.round(perOtherSliceCap * 0.1));
++    const reallocatedCap: Record<string, number> = {};
++    for (const k of retentionKeys) {
++      const share = totalCv2 > 0 ? cv2[k] / totalCv2 : 1 / retentionKeys.length;
++      reallocatedCap[k] = Math.min(perStatBuiltCap, Math.max(floorCap, Math.round(share * totalBudget)));
++    }
++    if ((globalThis as any).DEBUG_TRANCHE_REALLOC) {
++      console.error(`[réallocation ${half}] cv(maxParSlot)=${JSON.stringify(cv)} reallocatedCap=${JSON.stringify(reallocatedCap)}`);
++    }
++    const retentionOffset = hasCombined ? 2 : 1;
++    for (const bucketSlices of slices.values()) {
++      for (let i = 0; i < retentionKeys.length; i++) {
++        const cap = reallocatedCap[retentionKeys[i]];
++        const slice = bucketSlices[retentionOffset + i];
++        if (slice.length > cap) {
++          slice.sort((a, b) => b.score - a.score);
++          slice.length = cap;
++        }
++      }
++    }
++  }
+   // Fusion des tranches, une fois le flux terminé : `combos` doit rester une
+   // liste DÉDUPLIQUÉE (un même demi-build peut survivre dans PLUSIEURS
+   // tranches — générique ET une ou plusieurs stats — sans qu'on veuille le

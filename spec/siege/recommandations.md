@@ -115,8 +115,15 @@ decks qui jouent l'un des trois.
   Ce dernier n'apparaît **qu'une fois quelque chose posé**, et **Échap** en est
   le raccourci — on sort d'une recherche, on ne la corrige pas champ par champ.
 - Le message d'absence de résultat **énonce la règle** au-delà d'un terme
-  (« Aucun deck ne réunit A + B ») : sans ça, une recherche à trois qui ne
-  renvoie rien se lit comme un bug, puisqu'on voit chaque monstre à l'écran.
+  (« … ne réunit A + B ») : sans ça, une recherche à trois qui ne renvoie rien
+  se lit comme un bug, puisqu'on voit chaque monstre à l'écran.
+- ⚠️ Il **nomme aussi le rôle cherché**, puisque le sélecteur filtre :
+  « Aucune défense visée ne réunit … », « Aucun deck d'offense … », « Aucun deck
+  ni défense visée … ». Sans ça, on conclut que la composition n'existe pas
+  alors qu'elle est peut-être dans l'autre rôle.
+  - Sur un mode restrictif, le message propose **« Chercher partout »** à côté
+    d'« Effacer la recherche » : la sortie utile est d'**élargir**, pas
+    d'abandonner — et c'est un clic.
 
 Deux questions se posent devant une liste de recommandations, et elles n'ont pas
 la même réponse :

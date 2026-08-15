@@ -58,6 +58,18 @@ const SEARCH_MODES: { key: RecoSearchMode; label: string; hint: string }[] = [
   },
 ];
 
+// Sujet du message quand la recherche ne renvoie rien — il doit nommer le rôle
+// où l'on vient de chercher, puisque le sélecteur filtre.
+//
+// ⚠️ Formulé au SINGULIER et sans accord à porter par la suite de la phrase
+// (« … ne réunit X », « … ne contient X ») : le libellé change, pas la
+// grammaire autour.
+const LIBELLE_VIDE: Record<RecoSearchMode, string> = {
+  all: 'Aucun deck ni défense visée',
+  defense: 'Aucune défense visée',
+  offense: 'Aucun deck d’offense',
+};
+
 export default function RecoBoard({ recos, monsters, builds, teams, copies6, offense }: Props) {
   const [filter, setFilter] = useStickyState<OriginFilter>('recos.filter', 'all');
   // Recherche par monstre : jusqu'à TROIS, autant qu'une composition.
@@ -483,17 +495,37 @@ export default function RecoBoard({ recos, monsters, builds, teams, copies6, off
                 trois doivent être dans la MÊME composition. Sans ça, une
                 recherche à trois termes qui ne renvoie rien se lit comme un bug
                 — on voit bien chaque monstre à l'écran, séparément. */}
+            {/* ⚠️ Le message nomme aussi le RÔLE cherché : avec un sélecteur
+                qui filtre, « aucun deck ne réunit X » est incomplet — le deck
+                existe peut-être, dans l'autre rôle. Le dire évite de conclure
+                qu'il n'existe pas alors qu'il suffit de basculer sur
+                « Partout ». */}
             {termesPoses.length > 1 ? (
               <>
-                Aucun deck ne réunit{' '}
+                {LIBELLE_VIDE[searchMode]} ne réunit{' '}
                 <b className="text-ink">{termesPoses.join(' + ')}</b>
               </>
             ) : (
               <>
-                Aucun monstre ne correspond à « <b className="text-ink">{termesPoses[0]}</b> »
+                {LIBELLE_VIDE[searchMode]} ne contient «{' '}
+                <b className="text-ink">{termesPoses[0]}</b> »
               </>
             )}
             {filter !== 'all' && ' dans ce filtre'}.{' '}
+            {/* ⚠️ Sur un mode restrictif, la porte de sortie utile n'est pas
+                d'effacer mais d'ÉLARGIR : le résultat existe peut-être dans
+                l'autre rôle, et c'est un clic. Effacer reste proposé à côté. */}
+            {searchMode !== 'all' && (
+              <>
+                <button
+                  onClick={() => setSearchMode('all')}
+                  className="text-ink underline transition hoverable:text-star"
+                >
+                  Chercher partout
+                </button>
+                {' · '}
+              </>
+            )}
             <button
               onClick={effacerRecherche}
               className="text-ink underline transition hoverable:text-star"

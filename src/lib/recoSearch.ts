@@ -5,15 +5,15 @@
 //   « **contre quoi** ce monstre est-il joué ? »  → il est dans une DÉFENSE visée
 //   « **qui** joue ce monstre ? »                 → il est dans un DECK
 //
-// ⚠️ La recherche regarde **toujours les deux**, et le sélecteur ne fait que
-// **classer** les résultats. Restreindre la portée au type choisi cachait des
-// correspondances réelles sans le dire : on cherche « Chloe », on ne la voit
-// pas, et rien à l'écran n'indique qu'elle existe juste à côté dans l'autre
-// rôle. Ici, un résultat n'est jamais masqué — il est seulement plus bas.
+// ⚠️ Le sélecteur **FILTRE** : il décide où l'on cherche, et ce qui relève de
+// l'autre rôle n'est pas affiché. Un mode qui se contentait de trier laissait à
+// l'écran des résultats qu'on n'avait pas demandés — demander « offense à
+// runer » et voir remonter des défenses n'est pas un classement, c'est du
+// bruit. « Partout » reste là pour qui veut les deux.
 
 import { Monster, Reco, RecoDeck } from '../types';
 
-// Ce qu'on veut voir en premier. `all` n'ordonne rien de particulier.
+// Où chercher. `all` = les deux rôles.
 export type RecoSearchMode = 'all' | 'defense' | 'offense';
 
 // Où le monstre cherché a été trouvé, dans UN deck.
@@ -91,29 +91,42 @@ function chercheDansDeck(
   deck: RecoDeck,
   deckIndex: number,
   termes: string[],
+  mode: RecoSearchMode,
   monsterByCom2us: Map<number, Monster>
 ): DeckHit | null {
+  // ⚠️ Le mode RESTREINT où l'on cherche :
+  //   `offense` → uniquement les monstres du deck (« qui joue ça ? ») ;
+  //   `defense` → uniquement les défenses visées (« qui bat ça ? ») ;
+  //   `all`     → les deux.
+  // Un mode qui se contentait de trier laissait à l'écran des résultats de
+  // l'autre rôle : demander « offense à runer » et voir remonter des défenses
+  // n'est pas un classement, c'est du bruit.
+  const dansOffense = mode !== 'defense';
+  const dansDefense = mode !== 'offense';
+
   const nomsSlots = deck.slots.map((sl) =>
     sl.com2usId == null ? '' : normalise(nomDe(sl.com2usId, sl.name, monsterByCom2us))
   );
-  const slots = positionsSiToutes(nomsSlots, termes) ?? [];
+  const slots = dansOffense ? positionsSiToutes(nomsSlots, termes) ?? [] : [];
 
   const counters: number[] = [];
-  deck.counters.forEach((c, i) => {
-    const noms = c.monsters.map((m) =>
-      m.com2usId == null ? '' : normalise(nomDe(m.com2usId, m.name, monsterByCom2us))
-    );
-    if (positionsSiToutes(noms, termes)) counters.push(i);
-  });
+  if (dansDefense) {
+    deck.counters.forEach((c, i) => {
+      const noms = c.monsters.map((m) =>
+        m.com2usId == null ? '' : normalise(nomDe(m.com2usId, m.name, monsterByCom2us))
+      );
+      if (positionsSiToutes(noms, termes)) counters.push(i);
+    });
+  }
 
   if (!slots.length && !counters.length) return null;
   return { deckIndex, slots, counters };
 }
 
-// Recommandations contenant le monstre cherché, ordonnées selon le mode.
+// Recommandations contenant le monstre cherché, dans le rôle demandé.
 //
-// Une requête vide renvoie tout, sans hit : c'est l'état neutre de la page, on
-// ne veut alors ni filtrer ni déplier quoi que ce soit.
+// Une requête vide renvoie `null` : c'est l'état neutre de la page, on ne veut
+// alors ni filtrer ni déplier quoi que ce soit.
 export function chercheMonstre(
   recos: Reco[],
   query: string | string[],
@@ -129,7 +142,7 @@ export function chercheMonstre(
   for (const reco of recos) {
     const decks: DeckHit[] = [];
     reco.decks.forEach((deck, di) => {
-      const h = chercheDansDeck(deck, di, termes, monsterByCom2us);
+      const h = chercheDansDeck(deck, di, termes, mode, monsterByCom2us);
       if (h) decks.push(h);
     });
     if (!decks.length) continue;
@@ -141,14 +154,8 @@ export function chercheMonstre(
     });
   }
 
-  // ⚠️ Un tri STABLE qui ne retire rien : le mode remonte ce qui correspond au
-  // rôle demandé, il ne masque pas le reste. Une reco où le monstre n'apparaît
-  // que dans l'autre rôle reste visible, plus bas dans la liste.
-  if (mode === 'defense') {
-    return [...hits].sort((a, b) => Number(b.enDefense) - Number(a.enDefense));
-  }
-  if (mode === 'offense') {
-    return [...hits].sort((a, b) => Number(b.enOffense) - Number(a.enOffense));
-  }
+  // ⚠️ Aucun tri : le mode a déjà FILTRÉ à la source (voir `chercheDansDeck`).
+  // Ce qui reste répond toutes au rôle demandé, il n'y a plus rien à départager
+  // — et l'ordre de la liste reste celui de l'utilisateur.
   return hits;
 }

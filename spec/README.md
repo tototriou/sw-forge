@@ -125,7 +125,8 @@ Concepts partagés par plusieurs pages, documentés une seule fois :
   ([releases.md](releases.md)) puis, à la fin, l'incrément de `package.json`.
   ⚠️ **Une branche porte un sujet, pas un numéro** : le numéro se décide à la
   fusion, quand on voit ce que la version contient — d'ici là l'entrée du
-  journal a `version: null`. Processus détaillé dans le [README](README.md).
+  journal a `version: null`. Processus détaillé dans
+  [releases.md](releases.md#modèle-de-branches-et-processus-de-release).
   ⚠️ **Un changement de calcul se note toujours** dans le journal : c'est ce
   qu'un joueur remarque en premier.
 - **Footer** — trois informations, dans cet ordre :

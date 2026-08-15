@@ -3,6 +3,7 @@ import {
   ArtifactKind,
   MAX_ARTIFACT_SUBS,
   Reco,
+  RecoCounter,
   RecoDeck,
   RecoSlot,
   RecoPayload,
@@ -10,6 +11,7 @@ import {
   RecoStatKey,
   RUNE_SETS,
   emptyRecoArtifacts,
+  emptyRecoCounter,
   emptyRecoDeck,
 } from '../types';
 import { artifactSubKinds, canAddSet, isArtifactSub } from '../lib/effects';
@@ -67,7 +69,25 @@ function loadDeck(raw: unknown): RecoDeck {
     name: typeof d.name === 'string' ? d.name : '',
     note: typeof d.note === 'string' ? d.note : '',
     slots: [0, 1, 2].map((i) => loadSlot(d?.slots?.[i])), // toujours 3 slots
+    // ⚠️ Absent des enregistrements antérieurs à la fonctionnalité : un deck
+    // sans défense visée n'en exige aucune, il ne casse rien.
+    counters: Array.isArray(d.counters) ? d.counters.map(loadCounter) : [],
   };
+}
+
+// Défense adverse relue du stockage local — les données ont pu être bricolées à
+// la main, on rejoue donc la forme attendue (toujours 3 emplacements).
+function loadCounter(raw: unknown): RecoCounter {
+  const c = (raw ?? {}) as Partial<RecoCounter>;
+  const monsters = [0, 1, 2].map((i) => {
+    const m = c.monsters?.[i];
+    const id = Number(m?.com2usId);
+    return {
+      com2usId: Number.isFinite(id) && id > 0 ? Math.round(id) : null,
+      name: typeof m?.name === 'string' ? m.name : '',
+    };
+  });
+  return { monsters, note: typeof c.note === 'string' ? c.note : '' };
 }
 
 function load(): RecoState {
@@ -111,6 +131,18 @@ export interface UseRecoState {
   addDeckWith: (id: string, deck: RecoDeck) => void; // deck pré-rempli (ex. depuis le siège)
   removeDeck: (id: string, deck: number) => void;
   setDeckMeta: (id: string, deck: number, patch: Partial<Pick<RecoDeck, 'name' | 'note'>>) => void;
+  // Défenses adverses visées par un deck (« fort contre ») — informatif.
+  addCounter: (id: string, deck: number) => void;
+  removeCounter: (id: string, deck: number, ci: number) => void;
+  setCounterMonster: (
+    id: string,
+    deck: number,
+    ci: number,
+    idx: number,
+    com2usId: number | null,
+    name: string
+  ) => void;
+  setCounterNote: (id: string, deck: number, ci: number, note: string) => void;
   setSlotMonster: (id: string, deck: number, idx: number, com2usId: number | null, name: string) => void;
   setSlotStat: (id: string, deck: number, idx: number, stat: RecoStatKey, value: number | null) => void;
   addSlotArtifact: (id: string, deck: number, idx: number, kind: ArtifactKind, code: number) => void;
@@ -192,6 +224,45 @@ export function useSiegeRecos(): UseRecoState {
   const setDeckMeta = useCallback(
     (id: string, deck: number, patch: Partial<Pick<RecoDeck, 'name' | 'note'>>) =>
       updateDeck(id, deck, (d) => ({ ...d, ...patch })),
+    [updateDeck]
+  );
+
+  /* ---- Défenses adverses visées par un deck (« fort contre ») ----------- */
+
+  const addCounter = useCallback(
+    (id: string, deck: number) =>
+      updateDeck(id, deck, (d) => ({ ...d, counters: [...d.counters, emptyRecoCounter()] })),
+    [updateDeck]
+  );
+
+  // ⚠️ Retirée pour de bon, sans repli sur une défense vide : contrairement aux
+  // decks (dont une reco garde toujours au moins un), zéro défense visée est un
+  // état parfaitement normal — c'est même le cas de la plupart des decks.
+  const removeCounter = useCallback(
+    (id: string, deck: number, ci: number) =>
+      updateDeck(id, deck, (d) => ({ ...d, counters: d.counters.filter((_, i) => i !== ci) })),
+    [updateDeck]
+  );
+
+  const setCounterMonster = useCallback(
+    (id: string, deck: number, ci: number, idx: number, com2usId: number | null, name: string) =>
+      updateDeck(id, deck, (d) => ({
+        ...d,
+        counters: d.counters.map((c, i) =>
+          i !== ci
+            ? c
+            : { ...c, monsters: c.monsters.map((m, j) => (j === idx ? { com2usId, name } : m)) }
+        ),
+      })),
+    [updateDeck]
+  );
+
+  const setCounterNote = useCallback(
+    (id: string, deck: number, ci: number, note: string) =>
+      updateDeck(id, deck, (d) => ({
+        ...d,
+        counters: d.counters.map((c, i) => (i === ci ? { ...c, note } : c)),
+      })),
     [updateDeck]
   );
 
@@ -339,6 +410,10 @@ export function useSiegeRecos(): UseRecoState {
     addDeckWith,
     removeDeck,
     setDeckMeta,
+    addCounter,
+    removeCounter,
+    setCounterMonster,
+    setCounterNote,
     setSlotMonster,
     setSlotStat,
     addSlotArtifact,

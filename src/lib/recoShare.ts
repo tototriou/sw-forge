@@ -11,6 +11,7 @@ import {
   ArtifactKind,
   MAX_ARTIFACT_SUBS,
   Reco,
+  RecoCounter,
   RecoDeck,
   RecoPayload,
   RecoSlot,
@@ -198,6 +199,53 @@ function artifactsToJson(
   return Object.keys(out).length ? out : undefined;
 }
 
+// Écriture des défenses adverses visées par un deck (« fort contre »).
+//
+// ⚠️ Une défense **sans aucun monstre n'est pas écrite** : elle ne dit rien, et
+// la relire créerait un bloc vide chez le destinataire. Même règle que les decks
+// entièrement vides, qui ne sont pas exportés non plus.
+function counterListToJson(counters: RecoCounter[] | undefined): { fort_contre?: unknown[] } {
+  const utiles = (counters ?? [])
+    .filter((c) => c.monsters.some((m) => m.com2usId != null))
+    .map((c) => ({
+      monstres: c.monsters.map((m) =>
+        m.com2usId == null ? null : { com2usId: m.com2usId, nom: m.name.slice(0, 40) }
+      ),
+      // La note ne part que si elle existe, comme les consignes.
+      ...(c.note.trim() ? { note: c.note.slice(0, COUNTER_NOTE_MAX) } : {}),
+    }));
+  return utiles.length ? { fort_contre: utiles } : {};
+}
+
+// Lecture d'une défense adverse. Tolérante comme le reste : clés françaises ou
+// anglaises, entrées invalides ignorées plutôt que bloquantes.
+function jsonToCounter(raw: unknown, ctx: Issues, where: string): RecoCounter | null {
+  const o = (raw ?? {}) as Record<string, unknown>;
+  const bruts = (
+    Array.isArray(o.monstres) ? o.monstres : Array.isArray(o.monsters) ? o.monsters : []
+  ) as unknown[];
+  if (bruts.length > 3) {
+    warn(ctx, `${where} : ${bruts.length} monstres — seuls les 3 premiers sont gardés.`);
+  }
+  const monsters = [0, 1, 2].map((i) => {
+    const m = (bruts[i] ?? null) as Record<string, unknown> | null;
+    if (m == null || typeof m !== 'object') return { com2usId: null, name: '' };
+    const id = Number(m.com2usId);
+    const valide = Number.isFinite(id) && id > 0;
+    if (m.com2usId != null && !valide) {
+      warn(ctx, `${where} : « com2usId » invalide (${String(m.com2usId)}) — monstre ignoré.`);
+    }
+    const nom = m.nom ?? m.name;
+    return {
+      com2usId: valide ? Math.round(id) : null,
+      name: typeof nom === 'string' ? nom.slice(0, 40) : '',
+    };
+  });
+  // Aucun monstre lisible → rien à montrer, on n'ajoute pas un bloc vide.
+  if (!monsters.some((m) => m.com2usId != null)) return null;
+  return { monsters, note: cleanText(o.note ?? o.consignes, COUNTER_NOTE_MAX, ctx, where) };
+}
+
 // Texte borné, en signalant la troncature.
 function cleanText(raw: unknown, max: number, ctx: Issues, where: string): string {
   if (typeof raw !== 'string') return '';
@@ -221,7 +269,12 @@ export const JSON_FORMAT = 'sw-forge/recommandations';
 // v4 : un monstre peut exiger des **propriétés secondaires d'artéfact**
 // (`artefacts: { attribut: [...], type: [...] }`). Les fichiers v3 restent lus
 // sans perte — un monstre sans clé `artefacts` n'exige simplement rien.
-export const JSON_VERSION = 4;
+export const JSON_VERSION = 5;
+
+// Note d'une défense adverse. Plus courte que celle d'un deck : elle précise
+// une condition (« si le Chloe est en lead »), elle ne raconte pas comment
+// jouer — c'est le rôle des consignes du deck.
+export const COUNTER_NOTE_MAX = 200;
 
 // Clés en clair (français, comme l'interface) pour qu'un joueur puisse ouvrir
 // le fichier, le relire et le corriger sans décodeur.
@@ -236,6 +289,10 @@ function recoToJson(r: Reco) {
       .map((d) => ({
         nom: d.name.slice(0, 40),
         consignes: d.note.slice(0, DECK_NOTE_MAX),
+        // ⚠️ Omise quand il n'y en a pas — comme les sortes d'artéfact vides :
+        // un deck sans défense visée ne traîne pas une liste vide dans le
+        // fichier. La clé absente se relit comme « aucune ».
+        ...counterListToJson(d.counters),
         monstres: d.slots.map((sl) =>
           sl.com2usId == null
             ? null
@@ -304,10 +361,19 @@ function jsonToDeck(raw: unknown, ctx: Issues, where: string): RecoDeck {
   if (slots.length > 3) {
     warn(ctx, `${label} : ${slots.length} monstres — seuls les 3 premiers sont gardés.`);
   }
+  // Défenses visées — absentes des fichiers ≤ v4, qui n'en exigent donc aucune.
+  const bruts = (
+    Array.isArray(o.fort_contre) ? o.fort_contre : Array.isArray(o.counters) ? o.counters : []
+  ) as unknown[];
+  const counters = bruts
+    .map((c, i) => jsonToCounter(c, ctx, `${label}, défense visée ${i + 1}`))
+    .filter((c): c is RecoCounter => c !== null);
+
   return {
     name,
     note: cleanText(note, DECK_NOTE_MAX, ctx, label),
     slots: [0, 1, 2].map((i) => jsonToSlot(slots[i], ctx, `${label}, monstre ${i + 1}`)),
+    counters,
   };
 }
 

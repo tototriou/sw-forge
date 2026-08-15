@@ -106,6 +106,29 @@ export function collectOwnedTeams(args: {
   return out;
 }
 
+// Combien d'EXEMPLAIRES 6★ le joueur possède, par `com2usId`.
+//
+// ⚠️ La **box seule**, jamais `collectOwnedBuilds` : celui-ci agrège les presets
+// (RTA, défense, offense), si bien qu'un seul monstre y apparaît trois fois. Le
+// compter là-dessus multiplierait les exemplaires par le nombre de contextes où
+// il est utilisé, et annoncerait des decks montables qui ne le sont pas.
+//
+// ⚠️ **6★ uniquement**, ce que la box garantit déjà : `parseAccountBox` ne
+// retient que `class === 6` (voir importAccount.ts). Un monstre en réserve à 5★
+// n'est pas jouable en siège tel quel — l'annoncer comme disponible enverrait
+// composer un deck impossible.
+//
+// Chaque entrée de la box est un `unit_id` distinct, donc une unité réelle.
+export function countCopiesByCom2us(box: BoxItem[]): Map<number, number> {
+  const map = new Map<number, number>();
+  for (const item of box) {
+    const id = item.monster.com2usId;
+    if (id == null) continue;
+    map.set(id, (map.get(id) ?? 0) + 1);
+  }
+  return map;
+}
+
 // Index par com2usId : un monstre peut avoir plusieurs builds (exemplaires
 // multiples ET presets différents).
 export function indexBuildsByCom2us(builds: OwnedBuild[]): Map<number, OwnedBuild[]> {

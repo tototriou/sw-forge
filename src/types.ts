@@ -310,11 +310,33 @@ export interface RecoSlot {
 // 4 emplacements de propriété secondaire par artéfact, comme dans le jeu.
 export const MAX_ARTIFACT_SUBS = 4;
 
+// Une défense adverse que le deck bat : 3 monstres, et pourquoi.
+//
+// ⚠️ **Une identité, pas un build.** On décrit ce qu'on AFFRONTE, pas comment
+// c'est runé : ni sets, ni stats, ni propriétés d'artéfact. Le runage de
+// l'adversaire n'est pas connaissable depuis l'app, et l'exiger transformerait
+// une information de terrain (« ce deck passe sur cette def ») en fiche à
+// remplir que personne ne remplirait.
+//
+// ⚠️ Même clé stable que partout ailleurs : le `com2usId`, seul identifiant qui
+// vaille d'un joueur à l'autre. Un monstre perso n'y entre donc pas.
+export interface RecoCounter {
+  monsters: { com2usId: number | null; name: string }[]; // toujours 3
+  note: string; // « si le Chloe est en lead » — facultatif
+}
+
 // Un deck recommandé : 3 monstres, index 0 = leader (comme une équipe de siège).
 export interface RecoDeck {
   name: string; // « Def 1 » (facultatif → « Deck N »)
   note: string; // consignes propres à CE deck (multi-lignes)
   slots: RecoSlot[]; // toujours 3 ; index 0 = leader
+  // Défenses adverses contre lesquelles CE deck est fort. Facultatif et
+  // possiblement multiple : un même deck bat souvent plusieurs compositions.
+  //
+  // ⚠️ **Purement informatif, jamais confronté au compte.** L'app ne connaît
+  // que MES équipes, pas celles des adversaires : il n'y a rien à quoi comparer.
+  // C'est un message de l'auteur vers le lecteur, au même titre qu'une consigne.
+  counters: RecoCounter[];
 }
 
 // D'où vient une recommandation. Purement LOCAL : jamais transporté dans un
@@ -349,6 +371,25 @@ export function emptyRecoArtifacts(): Record<ArtifactKind, number[]> {
 }
 
 export function emptyRecoDeck(): RecoDeck {
-  return { name: '', note: '', slots: [emptyRecoSlot(), emptyRecoSlot(), emptyRecoSlot()] };
+  return {
+    name: '',
+    note: '',
+    slots: [emptyRecoSlot(), emptyRecoSlot(), emptyRecoSlot()],
+    // Aucune défense d'office : c'est un ajout délibéré de l'auteur, et un bloc
+    // vide posé par défaut se lit comme un champ à remplir.
+    counters: [],
+  };
+}
+
+// Une défense adverse vide : 3 emplacements, comme un deck.
+export function emptyRecoCounter(): RecoCounter {
+  return {
+    monsters: [
+      { com2usId: null, name: '' },
+      { com2usId: null, name: '' },
+      { com2usId: null, name: '' },
+    ],
+    note: '',
+  };
 }
 

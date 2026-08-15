@@ -118,6 +118,9 @@ export interface DeckMatch {
   okCount: number; // slots satisfaits
   filled: number; // slots renseignés dans le deck
   team: string | null; // équipe existante retenue (« Offense 3 »), si trouvée
+  // Combien de fois le deck est montable EN PARALLÈLE avec les 6★ en réserve.
+  // `null` = pas de compte importé, ou deck vide (voir `deckCopies`).
+  copies: number | null;
 }
 
 // Confrontation d'une recommandation ENTIÈRE (plusieurs decks).
@@ -238,6 +241,37 @@ function checkSlot(slot: RecoSlot, build: OwnedBuild | null, copies: number): Sl
 export interface MatchContext {
   builds: Map<number, OwnedBuild[]>; // tous les builds connus → « je possède ce monstre »
   teams: OwnedTeam[]; // équipes réellement composées → « j'ai un deck avec ces monstres »
+  // Exemplaires 6★ réellement possédés (box seule) → « combien de fois puis-je
+  // monter ce deck en parallèle ». Absent = information indisponible.
+  copies6?: Map<number, number>;
+}
+
+// Combien de fois ce deck peut être monté EN PARALLÈLE avec la réserve 6★.
+//
+// ⚠️ Le deck est limité par son monstre le PLUS RARE : trois exemplaires de l'un
+// ne servent à rien si le second n'existe qu'en un exemplaire. D'où un `min` sur
+// les slots, et non une moyenne ni un total.
+//
+// ⚠️ Un monstre placé DEUX FOIS dans le même deck consomme deux exemplaires : on
+// compte donc les occurrences par `com2usId` avant de diviser. Sans ça, un deck
+// demandant deux Chloé passerait pour montable avec une seule.
+//
+// Renvoie `null` quand l'information n'est pas disponible (aucune box importée)
+// ou que le deck est vide — un « 0 » se lirait « tu ne peux pas le monter »,
+// ce qui est une tout autre affirmation que « je ne sais pas ».
+export function deckCopies(deck: RecoDeck, copies6: Map<number, number> | undefined): number | null {
+  if (!copies6) return null;
+  const besoins = new Map<number, number>();
+  for (const slot of deck.slots) {
+    if (slot.com2usId == null) continue;
+    besoins.set(slot.com2usId, (besoins.get(slot.com2usId) ?? 0) + 1);
+  }
+  if (besoins.size === 0) return null;
+  let min = Infinity;
+  for (const [id, requis] of besoins) {
+    min = Math.min(min, Math.floor((copies6.get(id) ?? 0) / requis));
+  }
+  return min === Infinity ? null : min;
 }
 
 // Confronte un deck de recommandation au compte, en trois questions dans l'ordre :
@@ -253,22 +287,28 @@ export function matchDeck(deck: RecoDeck, ctx: MatchContext): DeckMatch {
       okCount: 0,
       filled: 0,
       team: null,
+      copies: null, // deck vide : rien à monter
     };
   }
 
   const copiesOf = (id: number | null) => (id == null ? 0 : (ctx.builds.get(id) ?? []).length);
+  // Combien de fois ce deck est montable en parallèle avec la réserve 6★.
+  // ⚠️ Calculé une fois pour les trois sorties ci-dessous : il ne dépend pas du
+  // statut. Savoir qu'on peut monter un deck trois fois reste utile même s'il
+  // faut le reruner.
+  const copies = deckCopies(deck, ctx.copies6);
 
   // 1. Monstres indisponibles → bloquant, on n'ira pas plus loin.
   if (filledSlots.some((s) => copiesOf(s.com2usId) === 0)) {
     const slots = deck.slots.map((s) => checkSlot(s, null, copiesOf(s.com2usId)));
-    return { status: 'missing', slots, okCount: 0, filled: filledSlots.length, team: null };
+    return { status: 'missing', slots, okCount: 0, filled: filledSlots.length, team: null, copies };
   }
 
   // 2. Équipes existantes qui réunissent TOUS les monstres du deck.
   const candidates = ctx.teams.filter((t) => filledSlots.every((s) => t.builds.has(s.com2usId!)));
   if (candidates.length === 0) {
     const slots = deck.slots.map((s) => checkSlot(s, null, copiesOf(s.com2usId)));
-    return { status: 'nodeck', slots, okCount: 0, filled: filledSlots.length, team: null };
+    return { status: 'nodeck', slots, okCount: 0, filled: filledSlots.length, team: null, copies };
   }
 
   // 3. La MEILLEURE de ces équipes : celle qui satisfait le plus de critères.
@@ -296,6 +336,7 @@ export function matchDeck(deck: RecoDeck, ctx: MatchContext): DeckMatch {
     slots,
     okCount,
     filled: filledSlots.length,
+    copies,
     team,
   };
 }

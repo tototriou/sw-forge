@@ -47,7 +47,7 @@ import { useRtaState } from './hooks/useRtaState';
 import { useSiegeState } from './hooks/useSiegeState';
 import { useSiegeRecos } from './hooks/useSiegeRecos';
 import { useOptimizerState } from './hooks/useOptimizerState';
-import { collectOwnedBuilds, collectOwnedTeams } from './lib/ownedBuilds';
+import { collectOwnedBuilds, collectOwnedTeams, countCopiesByCom2us } from './lib/ownedBuilds';
 import {
   BoxMonster,
   parseAccountJson,
@@ -265,7 +265,7 @@ export default function App() {
   // ferait échouer la confrontation d'un deck de siège pourtant possédé.
   // + les ÉQUIPES réellement composées, pour distinguer « j'ai ces monstres »
   // de « j'ai un deck qui les réunit » (voir siege/recommandations.md).
-  const { ownedBuilds, ownedTeams } = useMemo(() => {
+  const { ownedBuilds, ownedTeams, copies6 } = useMemo(() => {
     const byId = new Map<string, Monster>();
     for (const mon of allMonsters) byId.set(String(mon.id), mon);
     return {
@@ -281,6 +281,10 @@ export default function App() {
         offense: siegeOff.state.teams,
         monsterById: byId,
       }),
+      // Exemplaires 6★ réellement possédés : la BOX seule, et non les builds
+      // agrégés — un même monstre y figure une fois par preset, ce qui
+      // multiplierait le compte. Voir `countCopiesByCom2us`.
+      copies6: countCopiesByCom2us(box),
     };
   }, [box, rta.state.entries, siegeDef.state.teams, siegeOff.state.teams, allMonsters]);
 
@@ -866,6 +870,7 @@ export default function App() {
             recos={recos}
             builds={ownedBuilds}
             teams={ownedTeams}
+            copies6={copies6}
             monsters={allMonsters}
             loadState={data.loadState}
             onCreateMonster={custom.addCustomMonster}

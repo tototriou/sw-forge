@@ -2,6 +2,7 @@ import { useId, useMemo, useState } from 'react';
 import { Search, Plus, Check } from 'lucide-react';
 import { Monster } from '../../types';
 import MonsterAvatar from '../MonsterAvatar';
+import { formesJouables } from '../../lib/monsterForms';
 import { useComboboxNav } from '../../hooks/useComboboxNav';
 
 interface Props {
@@ -25,18 +26,22 @@ export default function RtaSearch({ monsters, addedIds, onAdd }: Props) {
   const [query, setQuery] = useState('');
   const idBase = useId();
 
+  // Seules les formes JOUABLES (voir lib/monsterForms.ts) : pas de forme non
+  // éveillée, et la 2A remplace l'éveillée simple là où elle existe.
+  const jouables = useMemo(() => formesJouables(monsters), [monsters]);
+
   const results = useMemo(() => {
     const q = query.trim().toLowerCase();
     if (!q) return [];
     const out: Monster[] = [];
-    for (const m of monsters) {
+    for (const m of jouables) {
       if (m.name.toLowerCase().includes(q)) {
         out.push(m);
         if (out.length >= MAX_RESULTS) break;
       }
     }
     return out;
-  }, [monsters, query]);
+  }, [jouables, query]);
 
   const nav = useComboboxNav<Monster>({
     results,

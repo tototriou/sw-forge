@@ -2,6 +2,7 @@ import { useId, useMemo, useState } from 'react';
 import { Search, Plus } from 'lucide-react';
 import { Monster } from '../types';
 import MonsterAvatar from './MonsterAvatar';
+import { formesJouables } from '../lib/monsterForms';
 import { useComboboxNav } from '../hooks/useComboboxNav';
 
 interface Props {
@@ -26,11 +27,16 @@ export default function MonsterPicker({ monsters, onPick, excludeIds, placeholde
   // d'un autre champ.
   const idBase = useId();
 
+  // ⚠️ Seules les formes JOUABLES sont proposées : pas de non éveillée, et la
+  // 2A remplace l'éveillée simple quand elle existe (voir lib/monsterForms.ts).
+  // Chercher « Seren » renvoyait trois entrées, dont deux qu'on ne joue jamais.
+  const jouables = useMemo(() => formesJouables(monsters), [monsters]);
+
   const results = useMemo(() => {
     const q = query.trim().toLowerCase();
     if (!q) return [];
     const out: Monster[] = [];
-    for (const m of monsters) {
+    for (const m of jouables) {
       if (excludeIds?.has(String(m.id))) continue;
       if (m.name.toLowerCase().includes(q)) {
         out.push(m);
@@ -38,7 +44,7 @@ export default function MonsterPicker({ monsters, onPick, excludeIds, placeholde
       }
     }
     return out;
-  }, [monsters, query, excludeIds]);
+  }, [jouables, query, excludeIds]);
 
   const nav = useComboboxNav<Monster>({
     results,

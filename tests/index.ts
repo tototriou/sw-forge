@@ -9,7 +9,13 @@ import testImport from './import.test';
 import testPersistance from './persistance.test';
 import testMeules, { testPalier, testRegistre, testSansDowngrade } from './meules.test';
 import testArtefacts from './artefacts.test';
-import testReco from './reco.test';
+import testReco, {
+  testDefensesVisees,
+  testRechercheMonstre,
+  testRechercheMultiple,
+  testDecksMontables,
+  testFormesJouables,
+} from './reco.test';
 import testRtaPartage from './rta-partage.test';
 import testRuneOptim from './rune-optim.test';
 import testRuneOptimDifferential from './rune-optim-differential.test';
@@ -21,6 +27,11 @@ async function main() {
   testVitesse();
   testImport();
   testReco();
+  testDefensesVisees();
+  testRechercheMonstre();
+  testRechercheMultiple();
+  testDecksMontables();
+  testFormesJouables();
   testRtaPartage();
   testSetsIntangible();
   testRuneOptim();

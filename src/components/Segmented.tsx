@@ -17,7 +17,7 @@ export default function Segmented<T extends string>({
   className = '',
   size = 'sm',
 }: {
-  options: { key: T; label: string; hint?: string; icon?: React.ReactNode }[];
+  options: { key: T; label: string; hint?: string; icon?: React.ReactNode; suffix?: React.ReactNode }[];
   value: T;
   onChange: (v: T) => void;
   className?: string;
@@ -62,6 +62,9 @@ export default function Segmented<T extends string>({
             >
               {o.icon}
               {o.label}
+              {/* Après le libellé : un effectif se lit APRÈS ce qu'il compte
+                  (« Importées 3 »), là où une icône se lit avant. */}
+              {o.suffix}
             </button>
           </div>
         );

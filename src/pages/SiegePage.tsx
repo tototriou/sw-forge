@@ -17,6 +17,7 @@ interface Props {
   offense: UseSiegeState; // toujours l'offense, quel que soit l'onglet actif
   recos: UseRecoState;
   builds: OwnedBuild[];
+  copies6: Map<number, number>;
   teams: OwnedTeam[];
   monsters: Monster[];
   loadState: LoadState;
@@ -31,7 +32,18 @@ const SUB_TABS: { tab: SiegeTab; label: string; icon: typeof Shield; hash: strin
   { tab: 'recos', label: 'Recommandations', icon: Lightbulb, hash: '#/siege/recommandations' },
 ];
 
-export default function SiegePage({ tab, siege, offense, recos, builds, teams, ...boardProps }: Props) {
+// ⚠️ `copies6` est extrait explicitement : laissé dans `...boardProps`, il
+// partait dans `SiegeBoard`, qui ne le connaît pas.
+export default function SiegePage({
+  tab,
+  siege,
+  offense,
+  recos,
+  builds,
+  teams,
+  copies6,
+  ...boardProps
+}: Props) {
   return (
     <div>
       {/* Sous-onglets Défense / Offense / Recommandations */}
@@ -65,6 +77,7 @@ export default function SiegePage({ tab, siege, offense, recos, builds, teams, .
           monsters={boardProps.monsters}
           builds={builds}
           teams={teams}
+          copies6={copies6}
           offense={offense}
         />
       ) : (

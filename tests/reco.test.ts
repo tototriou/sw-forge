@@ -294,6 +294,65 @@ export function testDefensesVisees() {
   );
 }
 
+// Espaces parasites : ils ne veulent rien dire, et voyageaient jusque dans le
+// fichier partagé — où « Defs G3 » et « Defs G3  » se lisent pareil à l'écran
+// tout en étant deux chaînes différentes partout ailleurs.
+export function testTrimPartage() {
+  titre('Recommandations · espaces en trop');
+
+  const reco = {
+    id: 'x',
+    origin: 'mine' as const,
+    name: '  Defs G3  ',
+    author: '  Thomas ',
+    note: '  viser le heal  ',
+    decks: [
+      {
+        name: '  Def 1 ',
+        note: '  garder le strip ',
+        slots: [
+          { ...emptyRecoSlot(), com2usId: 999, name: '  Trevor ' },
+          emptyRecoSlot(),
+          emptyRecoSlot(),
+        ],
+        counters: [
+          {
+            monsters: [
+              { com2usId: 15214, name: ' Bella ' },
+              { com2usId: null, name: '' },
+              { com2usId: null, name: '' },
+            ],
+            note: '  si Chloe est en lead  ',
+          },
+        ],
+      },
+    ],
+  };
+
+  const relu = decodeRecosJson(encodeRecosJson([reco]))?.[0];
+  egal(relu?.name, 'Defs G3', 'le nom de la recommandation est trimé');
+  egal(relu?.author, 'Thomas', 'l’auteur est trimé');
+  egal(relu?.note, 'viser le heal', 'les consignes générales sont trimées');
+  egal(relu?.decks[0]?.name, 'Def 1', 'le nom du deck est trimé');
+  egal(relu?.decks[0]?.note, 'garder le strip', 'les consignes du deck sont trimées');
+  egal(relu?.decks[0]?.slots[0]?.name, 'Trevor', 'le nom d’un monstre de slot est trimé');
+  egal(relu?.decks[0]?.counters[0]?.note, 'si Chloe est en lead', 'la précision est trimée');
+  egal(
+    relu?.decks[0]?.counters[0]?.monsters[0]?.name,
+    'Bella',
+    'le nom d’un monstre de défense est trimé'
+  );
+
+  // ⚠️ Les retours à la ligne INTÉRIEURS sont conservés : ils font partie de la
+  // mise en forme voulue par l'auteur, seuls les bords sont rognés.
+  const multi = { ...reco, note: '  ligne 1\nligne 2  ' };
+  egal(
+    decodeRecosJson(encodeRecosJson([multi]))?.[0]?.note,
+    'ligne 1\nligne 2',
+    'un retour à la ligne intérieur survit au trim'
+  );
+}
+
 // Recherche d'un monstre sur la page des recommandations.
 //
 // ⚠️ Le point qui compte : le mode ORDONNE, il ne restreint pas. Une reco où le

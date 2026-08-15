@@ -61,6 +61,27 @@ Concepts partagés par plusieurs pages, documentés une seule fois :
 
 ## Conventions communes (toutes les pages)
 
+- ⚠️ **Un texte saisi est TRIMÉ à la sortie du champ**, jamais à la frappe.
+  Les espaces de tête et de queue ne veulent rien dire — mais « Defs G3 » et
+  « Defs G3&nbsp;&nbsp;» se lisent pareil à l'écran tout en étant deux chaînes
+  différentes partout ailleurs : dans un nom de fichier exporté, dans une
+  comparaison, dans un tri.
+  - ⚠️ **À `onBlur`, jamais à `onChange`** : trimer pendant la frappe empêche
+    d'écrire une espace entre deux mots.
+  - Les espaces et retours à la ligne **intérieurs sont conservés** : ils font
+    partie de la mise en forme voulue par l'auteur (voir les consignes des
+    recommandations, rendues en `whitespace-pre-line`).
+  - Le trim est **rejoué à l'écriture et à la lecture** d'un fichier partagé
+    (`texteSortant` / `cleanText` dans
+    [recoShare.ts](src/lib/recoShare.ts)) : un fichier peut avoir été bricolé à
+    la main, et la saisie d'une version antérieure a pu laisser passer des
+    espaces.
+  - Les champs **numériques** ne sont pas concernés : ils stockent un `number`,
+    donc « 007 » vaut 7 dès la frappe (voir
+    [NumberField.tsx](src/components/NumberField.tsx)).
+  - Les champs de **recherche** ne sont pas trimés à la frappe non plus —
+    l'espace y est un caractère de saisie comme un autre.
+
 - **Persistance navigateur — un SEUL interrupteur pour toute l'app**
   ([usePersistence.ts](src/hooks/usePersistence.ts)). Prépa RTA, équipes de
   siège, recommandations, catégories, monstres perso **et** compte importé sont

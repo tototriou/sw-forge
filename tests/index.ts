@@ -10,6 +10,7 @@ import testPersistance from './persistance.test';
 import testMeules, { testPalier, testRegistre, testSansDowngrade } from './meules.test';
 import testArtefacts from './artefacts.test';
 import testReco, {
+  testTrimPartage,
   testDefensesVisees,
   testRechercheMonstre,
   testRechercheMultiple,
@@ -29,6 +30,7 @@ async function main() {
   testImport();
   testReco();
   testDefensesVisees();
+  testTrimPartage();
   testRechercheMonstre();
   testRechercheMultiple();
   testDecksMontables();

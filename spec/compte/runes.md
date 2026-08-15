@@ -219,8 +219,18 @@ Deux pièces, reprises telles quelles :
   c'est refusé, plutôt qu'une liste qui rétrécit sous le curseur.
 - ⚠️ Les critères se cumulent **en ET, bornes comprises**, et la **première**
   sert de clé aux deux tris « propriété » : la position porte du sens.
-- Les **bornes n'apparaissent qu'une fois la propriété cochée** : deux champs par
-  ligne sur 40 propriétés décochées feraient un mur de saisie inutilisé.
+- ⚠️ **Les bornes sont TOUJOURS affichées**, comme dans le jeu — pas seulement
+  une fois la ligne cochée. On voit d'emblée que chaque propriété se borne, et on
+  compare les intervalles d'une ligne à l'autre. Elles sont **estompées** tant
+  que la ligne est décochée, pour que la lecture reste celle des libellés.
+- ⚠️ **Saisir une borne COCHE la ligne** : taper « 25 » en face de VIT veut dire
+  qu'on cherche de la VIT. Sans ça, on remplit un champ qui ne sert à rien tant
+  qu'on n'a pas trouvé la case.
+  - **Vider les deux bornes ne décoche pas** pour autant : « cette propriété,
+    sans borne » est une recherche valide — c'est même la plus courante. On ne
+    retire une ligne que par sa case.
+  - Un **min à 0 s'affiche vide** : zéro ne filtre rien, le champ montre donc son
+    placeholder comme s'il n'était pas rempli.
 
 > L'inventaire d'**artéfacts** garde sa grille de
 > [CritereCase.tsx](src/components/account/CritereCase.tsx) (un seuil, pas de

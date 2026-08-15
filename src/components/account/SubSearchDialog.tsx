@@ -50,8 +50,24 @@ export default function SubSearchDialog({
           : [...cur, { code, min: 0 }]
     );
 
-  const majBorne = (code: number, champ: 'min' | 'max', valeur: number | undefined) =>
-    setBrouillon((cur) => cur.map((c) => (c.code === code ? { ...c, [champ]: valeur } : c)));
+  // Pose une borne — et COCHE la ligne si elle ne l'était pas : taper « 25 » en
+  // face de VIT veut dire qu'on cherche de la VIT.
+  //
+  // ⚠️ Vider les DEUX bornes ne décoche pas pour autant : « cette propriété,
+  // sans borne » est une recherche valide (c'est même la plus courante). On ne
+  // retire une ligne que par sa case.
+  const poserBorne = (code: number, champ: 'min' | 'max', valeur: number | undefined) =>
+    setBrouillon((cur) => {
+      const existe = cur.some((c) => c.code === code);
+      if (existe) {
+        return cur.map((c) =>
+          c.code === code ? { ...c, [champ]: champ === 'min' ? (valeur ?? 0) : valeur } : c
+        );
+      }
+      // Ligne non cochée : on la crée, sauf si le maximum est déjà atteint.
+      if (cur.length >= max || valeur == null) return cur;
+      return [...cur, { code, min: champ === 'min' ? valeur : 0, ...(champ === 'max' ? { max: valeur } : {}) }];
+    });
 
   return (
     <Modale onClose={onClose} labelledBy="sub-search-titre" largeur="max-w-[560px]">
@@ -76,7 +92,7 @@ export default function SubSearchDialog({
             <div
               key={o.code}
               className={`flex items-center gap-2 rounded px-1.5 py-1 transition ${
-                actif ? 'bg-accent-soft' : bloque ? 'opacity-40' : 'hoverable:bg-panel2'
+                actif ? 'bg-accent-soft' : bloque ? 'opacity-50' : 'hoverable:bg-panel2'
               }`}
             >
               <label
@@ -96,24 +112,37 @@ export default function SubSearchDialog({
                 </span>
               </label>
 
-              {/* Les bornes n'apparaissent qu'une fois la propriété cochée :
-                  deux champs par ligne sur 40 propriétés décochées feraient un
-                  mur de saisie dont rien ne serait utilisé. */}
-              {actif && (
-                <div className="flex flex-none items-center gap-1">
-                  <Borne
-                    valeur={c!.min}
-                    placeholder="Min"
-                    onChange={(v) => majBorne(o.code, 'min', v ?? 0)}
-                  />
-                  <span className="font-mono text-[11px] text-ink-dim">~</span>
-                  <Borne
-                    valeur={c!.max}
-                    placeholder="Max"
-                    onChange={(v) => majBorne(o.code, 'max', v)}
-                  />
-                </div>
-              )}
+              {/* ⚠️ Les bornes sont TOUJOURS là, comme dans le jeu — pas
+                  seulement une fois la ligne cochée. On voit d'emblée que
+                  chaque propriété se borne, et on peut comparer les intervalles
+                  d'une ligne à l'autre. Elles sont estompées tant que la ligne
+                  est décochée, pour que la lecture reste celle des libellés.
+                  ⚠️ Saisir une borne COCHE la ligne : c'est le geste naturel —
+                  taper « 25 » en face de VIT veut dire qu'on cherche de la VIT.
+                  Sans ça, on remplit un champ qui ne sert à rien tant qu'on n'a
+                  pas trouvé la case. */}
+              <div
+                className={`flex flex-none items-center gap-1 transition ${
+                  actif ? '' : 'opacity-50'
+                }`}
+              >
+                {/* `|| undefined` : un min à 0 s'affiche VIDE, pas « 0 ». Zéro
+                    ne filtre rien — le champ doit donc montrer son placeholder
+                    « Min », comme s'il n'était pas rempli. */}
+                <Borne
+                  valeur={c?.min || undefined}
+                  placeholder="Min"
+                  disabled={bloque}
+                  onChange={(v) => poserBorne(o.code, 'min', v)}
+                />
+                <span className="font-mono text-[11px] text-ink-dim">~</span>
+                <Borne
+                  valeur={c?.max}
+                  placeholder="Max"
+                  disabled={bloque}
+                  onChange={(v) => poserBorne(o.code, 'max', v)}
+                />
+              </div>
             </div>
           );
         })}
@@ -147,10 +176,12 @@ export default function SubSearchDialog({
 function Borne({
   valeur,
   placeholder,
+  disabled = false,
   onChange,
 }: {
   valeur: number | undefined;
   placeholder: string;
+  disabled?: boolean;
   onChange: (v: number | undefined) => void;
 }) {
   return (
@@ -160,6 +191,7 @@ function Borne({
       value={valeur ?? ''}
       placeholder={placeholder}
       aria-label={placeholder}
+      disabled={disabled}
       onChange={(e) => {
         const brut = e.target.value.trim();
         if (brut === '') return onChange(undefined);
@@ -168,7 +200,8 @@ function Borne({
       }}
       className="h-[22px] w-[52px] rounded border border-border bg-panel px-1 text-center
                  font-mono text-[11px] text-ink outline-none transition tabular-nums
-                 placeholder:text-ink-dim focus:border-accent"
+                 placeholder:text-ink-dim focus:border-accent
+                 disabled:cursor-not-allowed disabled:opacity-50"
     />
   );
 }

@@ -81,8 +81,9 @@ Fighter, Tekken, Le Seigneur des Anneaux, Demon Slayer…) ajoutent des monstres
 sous licence qui sont, mécaniquement, des monstres SW existants **réhabillés** :
 mêmes stats, même lead, mêmes compétences. Seuls le nom et le portrait changent.
 
-Les deux occupent donc **une seule carte** — portrait coupé en **diagonale**,
-les deux noms séparés d'une **virgule** (« Satoru Gojo, Werner »).
+Les deux occupent donc **une seule carte** — portrait coupé **verticalement**
+(le monstre d'origine à gauche, son jumeau à droite), les deux noms séparés
+d'une **virgule** (« Satoru Gojo, Werner »).
 `sansDoublonDeCollab` / `jumeauDeCollab`
 ([monsterForms.ts](src/lib/monsterForms.ts)), vérifiés par
 [collab-paires.test.ts](tests/collab-paires.test.ts).
@@ -108,6 +109,11 @@ les deux noms séparés d'une **virgule** (« Satoru Gojo, Werner »).
   irrésolu, et l'image le tranche exactement.
 - ⚠️ **Un groupe de trois n'apparie rien** : la signature ne suffit alors pas à
   distinguer, et on préfère ne rien affirmer plutôt qu'apparier au hasard.
+- ⚠️ La seconde image est **posée par-dessus et découpée** (`clip-path`), et non
+  accolée en deux moitiés : chaque portrait garde son cadrage d'origine, là où
+  deux moitiés de 32 px écraseraient les visages. Leur `object-position` est
+  **tiré vers l'extérieur** (30 % / 70 %) — les portraits SW centrent le visage,
+  et n'en garder que la moitié le couperait en deux.
 - ⚠️ **La recherche porte sur les DEUX noms** : la carte s'intitule « Satoru
   Gojo, Werner », et chercher « Werner » ne devait pas rester sans résultat.
 - ⚠️ **Noms identiques → un seul affiché.** Certaines collabs reprennent le nom

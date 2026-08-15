@@ -62,7 +62,7 @@ export default function MonsterCard({
 }: {
   monster: Monster;
   // Équivalent SW d'un monstre de COLLABORATION (Satoru Gojo ↔ Werner). Les
-  // deux partagent une seule carte : portrait coupé en diagonale, noms séparés
+  // deux partagent une seule carte : portrait coupé verticalement, noms séparés
   // d'une virgule. Absent = monstre ordinaire, rendu inchangé.
   jumeau?: Monster | null;
   // Ouvre la fiche complète. Absent = carte non cliquable (aucun appelant n'est
@@ -118,22 +118,27 @@ export default function MonsterCard({
           <div className="hex-frame relative w-full h-full bg-panel2 flex items-center justify-center overflow-hidden">
             {showImage ? (
               <>
+                {/* ⚠️ `object-position` décalé quand la carte est PARTAGÉE :
+                    les portraits SW cadrent le visage au centre, et n'en garder
+                    que la moitié gauche le couperait en deux. En tirant le
+                    cadrage vers l'extérieur, chaque moitié montre son visage. */}
                 <img
                   src={monster.image!}
                   alt={monster.name}
                   loading="lazy"
                   onError={() => setImgFailed(true)}
                   className="w-full h-full object-cover"
+                  style={jumeau?.image ? { objectPosition: '30% center' } : undefined}
                 />
                 {/* ⚠️ Portrait de COLLABORATION : les deux visages sur un seul
-                    portrait, séparés en diagonale. Ils sont le même monstre —
+                    portrait, séparés VERTICALEMENT — le monstre d'origine à
+                    gauche, son jumeau à droite. Ils sont le même monstre :
                     deux cartes côte à côte laisseraient croire à deux
                     recrutements possibles, alors qu'il n'y en a qu'un.
                     La seconde image est POSÉE PAR-DESSUS et découpée
                     (`clip-path`), plutôt que deux moitiés accolées : chaque
-                    portrait garde ainsi son cadrage d'origine, alors que deux
-                    moitiés de 32 px écraseraient les visages.
-                    La diagonale part du haut-droit — c'est la coupe du jeu. */}
+                    portrait garde ainsi son cadrage d'origine, là où deux
+                    moitiés de 32 px écraseraient les visages. */}
                 {jumeau?.image && (
                   <>
                     <img
@@ -141,17 +146,16 @@ export default function MonsterCard({
                       alt={jumeau.name}
                       loading="lazy"
                       className="absolute inset-0 w-full h-full object-cover"
-                      style={{ clipPath: 'polygon(100% 0, 100% 100%, 0 100%)' }}
+                      style={{
+                        clipPath: 'polygon(50% 0, 100% 0, 100% 100%, 50% 100%)',
+                        objectPosition: '70% center',
+                      }}
                     />
                     {/* Trait de séparation : sans lui, deux portraits sombres se
                         fondent l'un dans l'autre et la coupe ne se lit plus. */}
                     <span
                       aria-hidden
-                      className="absolute inset-0 bg-gradient-to-tr from-transparent via-white/50 to-transparent"
-                      style={{
-                        clipPath:
-                          'polygon(calc(100% - 1px) 0, 100% 0, 1px 100%, 0 100%)',
-                      }}
+                      className="absolute inset-y-0 left-1/2 w-px -translate-x-1/2 bg-white/50"
                     />
                   </>
                 )}

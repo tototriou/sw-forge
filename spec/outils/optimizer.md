@@ -2390,6 +2390,26 @@ stats les plus difficiles » dans l'UI (nom choisi pour refléter le
 mécanisme réel — un arbitrage entre STATS demandées en compétition pour le
 budget de rétention, pas une détection de runes individuellement rares).
 
+⚠️ **Reconfirmé après coup, avec une méthodologie plus rigoureuse.** Ce
+« deuxième mesure, dos-à-dos » a été fait AVANT le fix du bug de cache de
+`perf-battery.ts` (voir « Suite — point 1 implémenté et mesuré » plus bas,
+qui a débusqué ce bug) — il était donc lui-même à risque du même piège
+(deux mesures comparant en réalité le même bundle figé, indépendamment du
+`git stash`/`pop` de `runeBuildOptim.ts`). Revérifié PROPREMENT une fois le
+bug corrigé : `git worktree` isolé sur `main` (jamais touché à la branche
+de travail courante), pas de `git stash` en place — état A (`main` tel
+que livré, flag désactivé) contre état B (aucune trace de la piste B,
+`runeBuildOptim.ts` du commit `2739f6b`, juste avant l'apparition du
+paramètre). Premier essai avec un écart de plusieurs minutes entre A et B :
+**+40 % à +70 % de retard sur B, systématique** — semblait d'abord indiquer
+un vrai coût. Rejoué immédiatement (A puis B, sans rien d'autre entre les
+deux) : l'état A REJOUÉ montre le MÊME retard que B (le code strictement
+identique mesuré ~15-20 min plus tôt était largement plus rapide) — preuve
+directe de dérive machine, pas de différence de code. Comparaison finale,
+dos-à-dos immédiat : delta moyen −0,31 s, dispersé des deux côtés de zéro
+sur les 7 cas — dans l'enveloppe de bruit. **Conclusion inchangée, cette
+fois sur un socle de mesure vérifié sain.**
+
 ### Suite — investigation de la dérive : la machine, pas le script
 
 Question posée après la fausse alerte ci-dessus : la dérive observée

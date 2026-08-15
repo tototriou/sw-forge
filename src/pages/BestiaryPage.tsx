@@ -7,7 +7,12 @@ import MonsterDetailDialog from '../components/MonsterDetailDialog';
 import Pager from '../components/account/Pager';
 import { ELEMENTS, ElementKey, Monster } from '../types';
 import { LoadState } from '../hooks/useMonsters';
-import { autreForme, sansDoublonDeTransformation } from '../lib/monsterForms';
+import {
+  autreForme,
+  jumeauDeCollab,
+  sansDoublonDeCollab,
+  sansDoublonDeTransformation,
+} from '../lib/monsterForms';
 
 interface Props {
   monsters: Monster[];
@@ -63,8 +68,16 @@ export default function BestiaryPage({ monsters }: Props) {
     // semblables existent en deux entrées de même nom, même élément, même
     // icône. Deux fiches identiques côte à côte n'apprennent rien et font
     // ouvrir l'une pour l'autre.
-    const filtered = sansDoublonDeTransformation(monsters).filter((m) => {
-      if (q && !m.name.toLowerCase().includes(q)) return false;
+    // ⚠️ Puis les paires de COLLABORATION (Satoru Gojo = Werner), qui partagent
+    // une carte : deux entrées laisseraient croire à deux monstres distincts.
+    const filtered = sansDoublonDeCollab(sansDoublonDeTransformation(monsters)).filter((m) => {
+      // La recherche porte sur les DEUX noms : la carte s'intitule « Satoru
+      // Gojo, Werner », chercher « Werner » doit la trouver.
+      if (q) {
+        const jumeau = jumeauDeCollab(m, monsters);
+        const noms = [m.name, jumeau?.name].filter(Boolean) as string[];
+        if (!noms.some((n) => n.toLowerCase().includes(q))) return false;
+      }
       if (activeElements.size && !activeElements.has(m.element)) return false;
       if (activeStars.size && !(m.stars !== null && activeStars.has(m.stars))) return false;
       return true;
@@ -91,7 +104,10 @@ export default function BestiaryPage({ monsters }: Props) {
   // Total de RÉFÉRENCE : après déduplication des formes transformables. Sans
   // ça, le compteur annoncerait « 60 sur 3000 » alors que la base n'en montre
   // que ~2 940 — un écart qu'on ne saurait pas expliquer.
-  const totalBase = useMemo(() => sansDoublonDeTransformation(monsters).length, [monsters]);
+  const totalBase = useMemo(
+    () => sansDoublonDeCollab(sansDoublonDeTransformation(monsters)).length,
+    [monsters]
+  );
   const pageCount = Math.max(1, Math.ceil(totalShown / PAGE));
   const safePage = Math.min(page, pageCount - 1);
 
@@ -156,6 +172,7 @@ export default function BestiaryPage({ monsters }: Props) {
             key={el.key}
             elementDef={el}
             monsters={grouped.get(el.key) ?? []}
+            allMonsters={monsters}
             onOpen={setFiche}
           />
         ))

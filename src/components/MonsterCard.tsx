@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { motion } from 'framer-motion';
 import { Monster } from '../types';
 import ElementIcon from './ElementIcon';
+import { libelleCollab } from '../lib/collabPairs';
 
 const BORDER: Record<string, string> = {
   fire: 'hoverable:border-fire hoverable:shadow-lg hoverable:shadow-fire-glow/40',
@@ -54,11 +55,16 @@ function initials(name: string) {
 // de plus à faire défiler.
 export default function MonsterCard({
   monster,
+  jumeau,
   onOpen,
   count,
   showStars = true,
 }: {
   monster: Monster;
+  // Équivalent SW d'un monstre de COLLABORATION (Satoru Gojo ↔ Werner). Les
+  // deux partagent une seule carte : portrait coupé en diagonale, noms séparés
+  // d'une virgule. Absent = monstre ordinaire, rendu inchangé.
+  jumeau?: Monster | null;
   // Ouvre la fiche complète. Absent = carte non cliquable (aucun appelant n'est
   // dans ce cas aujourd'hui, mais la prop reste facultative pour ne pas imposer
   // une fiche à un futur usage purement décoratif).
@@ -109,15 +115,47 @@ export default function MonsterCard({
         <div
           className={`hex-frame w-[64px] h-[64px] p-[2px] bg-gradient-to-br ${GRADIENT[monster.element]}`}
         >
-          <div className="hex-frame w-full h-full bg-panel2 flex items-center justify-center overflow-hidden">
+          <div className="hex-frame relative w-full h-full bg-panel2 flex items-center justify-center overflow-hidden">
             {showImage ? (
-              <img
-                src={monster.image!}
-                alt={monster.name}
-                loading="lazy"
-                onError={() => setImgFailed(true)}
-                className="w-full h-full object-cover"
-              />
+              <>
+                <img
+                  src={monster.image!}
+                  alt={monster.name}
+                  loading="lazy"
+                  onError={() => setImgFailed(true)}
+                  className="w-full h-full object-cover"
+                />
+                {/* ⚠️ Portrait de COLLABORATION : les deux visages sur un seul
+                    portrait, séparés en diagonale. Ils sont le même monstre —
+                    deux cartes côte à côte laisseraient croire à deux
+                    recrutements possibles, alors qu'il n'y en a qu'un.
+                    La seconde image est POSÉE PAR-DESSUS et découpée
+                    (`clip-path`), plutôt que deux moitiés accolées : chaque
+                    portrait garde ainsi son cadrage d'origine, alors que deux
+                    moitiés de 32 px écraseraient les visages.
+                    La diagonale part du haut-droit — c'est la coupe du jeu. */}
+                {jumeau?.image && (
+                  <>
+                    <img
+                      src={jumeau.image}
+                      alt={jumeau.name}
+                      loading="lazy"
+                      className="absolute inset-0 w-full h-full object-cover"
+                      style={{ clipPath: 'polygon(100% 0, 100% 100%, 0 100%)' }}
+                    />
+                    {/* Trait de séparation : sans lui, deux portraits sombres se
+                        fondent l'un dans l'autre et la coupe ne se lit plus. */}
+                    <span
+                      aria-hidden
+                      className="absolute inset-0 bg-gradient-to-tr from-transparent via-white/50 to-transparent"
+                      style={{
+                        clipPath:
+                          'polygon(calc(100% - 1px) 0, 100% 0, 1px 100%, 0 100%)',
+                      }}
+                    />
+                  </>
+                )}
+              </>
             ) : (
               <span className={`font-display font-bold text-lg ${TEXT[monster.element]}`}>
                 {initials(monster.name)}
@@ -152,7 +190,13 @@ export default function MonsterCard({
       )}
       {/* `line-clamp-2` : les noms longs (« Dark Cow Girl ») tiennent sur deux
           lignes au plus, sinon une carte s'allonge et déchire la rangée. */}
-      <div className="text-[12px] font-semibold leading-tight line-clamp-2">{monster.name}</div>
+      {/* ⚠️ Les DEUX noms, séparés d'une virgule : « Satoru Gojo, Werner ».
+          C'est la question qu'on se pose devant la carte — « lequel est-ce ? » —
+          et n'en montrer qu'un obligerait à savoir de tête que l'autre existe.
+          `libelleCollab` n'écrit qu'une fois les noms identiques (Vendhan). */}
+      <div className="text-[12px] font-semibold leading-tight line-clamp-2">
+        {jumeau ? libelleCollab(monster.name, jumeau.name) : monster.name}
+      </div>
     </motion.div>
   );
 }

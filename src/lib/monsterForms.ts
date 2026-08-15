@@ -79,6 +79,49 @@ export function autreForme(m: Monster, monsters: Monster[]): Monster | null {
   return monsters.find((x) => x.swarfarmId === m.transformsTo && x !== m) ?? null;
 }
 
+// Le jumeau de COLLABORATION d'un monstre, s'il est dans la liste.
+//
+// ⚠️ Même forme qu'`autreForme`, mais **une tout autre relation** : les deux
+// formes d'un transformable ont des compétences DIFFÉRENTES et méritent chacune
+// leur fiche, alors que les deux faces d'une collab sont le même monstre —
+// mêmes stats, mêmes compétences, seuls le nom et le portrait changent. C'est
+// pourquoi l'une donne un sélecteur de forme et l'autre un portrait partagé.
+export function jumeauDeCollab(m: Monster, monsters: Monster[]): Monster | null {
+  if (m.jumeauCollab == null) return null;
+  return monsters.find((x) => x.com2usId === m.jumeauCollab && x !== m) ?? null;
+}
+
+// ⚠️ **Une paire de COLLABORATION n'occupe qu'UNE carte.** Satoru Gojo et
+// Werner sont le même monstre : deux cartes laisseraient croire à deux
+// recrutements possibles, et on chercherait lequel prendre.
+//
+// On garde celui au `com2usId` le plus PETIT — l'entrée SW d'origine, arrivée
+// avant la collab. Comme pour les transformations, ce qui compte est surtout que
+// la règle soit **déterministe** : le même monstre doit rester en carte d'un
+// rendu à l'autre, sinon l'affichage changerait sous le curseur.
+//
+// ⚠️ **Si le jumeau est absent de la liste, rien n'est écarté** : un filtre
+// d'élément ou une recherche peut l'avoir retiré, et écarter quand même
+// laisserait un trou inexplicable.
+export function sansDoublonDeCollab(monsters: Monster[]): Monster[] {
+  const parId = new Map<number, Monster>();
+  for (const m of monsters) {
+    if (m.com2usId != null) parId.set(m.com2usId, m);
+  }
+
+  const ecartes = new Set<Monster>();
+  for (const m of monsters) {
+    if (m.jumeauCollab == null) continue;
+    const jumeau = parId.get(m.jumeauCollab);
+    if (!jumeau || jumeau === m) continue;
+    const idA = m.com2usId ?? Infinity;
+    const idB = jumeau.com2usId ?? Infinity;
+    if (idA > idB) ecartes.add(m);
+  }
+
+  return ecartes.size === 0 ? monsters : monsters.filter((m) => !ecartes.has(m));
+}
+
 export function sansDoublonDeTransformation(monsters: Monster[]): Monster[] {
   // Index par id SWARFARM : c'est la clé que `transformsTo` référence.
   const parSwarfarm = new Map<number, Monster>();

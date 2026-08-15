@@ -39,6 +39,18 @@ export interface Monster {
   // entrées décrivent donc le même monstre, et une seule doit être affichée
   // (voir `formeCanonique` dans lib/monsterForms.ts).
   transformsTo?: number | null;
+  // Équivalent SW d'un monstre de COLLABORATION, en `com2usId` — Satoru Gojo
+  // pointe vers Werner, et Werner vers Gojo. Mêmes stats, même lead, mêmes
+  // compétences : c'est le même monstre sous deux habillages.
+  //
+  // ⚠️ **Rien de tel chez SWARFARM** : le lien est DÉDUIT à la génération par
+  // `scripts/link-collabs.mjs` (règle dans lib/collabPairs.ts). Le calculer au
+  // rendu supposerait de charger les 3 000 fiches de compétences.
+  //
+  // ⚠️ À ne pas confondre avec `transformsTo`, qui relie les deux formes d'un
+  // monstre transformable — celles-là ont des compétences DIFFÉRENTES, alors
+  // que les deux faces d'une collab sont identiques.
+  jumeauCollab?: number | null;
 }
 
 export interface ElementDef {

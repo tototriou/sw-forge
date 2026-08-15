@@ -107,6 +107,11 @@ export const RELEASES: Release[] = [
       },
       {
         kind: 'feat',
+        scope: 'Bestiaire',
+        text: 'Un monstre de collaboration partage la carte de son équivalent : « Satoru Gojo, Werner ».',
+      },
+      {
+        kind: 'feat',
         scope: 'RTA',
         text: 'Un bouton remet tes équipes dans l’état de l’import de compte.',
       },

@@ -74,6 +74,52 @@ garde qu'une, vérifié par
   monstre, c'est posséder ses deux formes. Sur ~3 000 entrées, **58** sont ainsi
   écartées.
 
+### ⚠️ Un monstre de COLLABORATION partage la carte de son équivalent SW
+
+**Satoru Gojo, c'est Werner.** Les collaborations (Jujutsu Kaisen, Street
+Fighter, Tekken, Le Seigneur des Anneaux, Demon Slayer…) ajoutent des monstres
+sous licence qui sont, mécaniquement, des monstres SW existants **réhabillés** :
+mêmes stats, même lead, mêmes compétences. Seuls le nom et le portrait changent.
+
+Les deux occupent donc **une seule carte** — portrait coupé en **diagonale**,
+les deux noms séparés d'une **virgule** (« Satoru Gojo, Werner »).
+`sansDoublonDeCollab` / `jumeauDeCollab`
+([monsterForms.ts](src/lib/monsterForms.ts)), vérifiés par
+[collab-paires.test.ts](tests/collab-paires.test.ts).
+
+- ⚠️ **SWARFARM ne dit rien de ce lien.** `transforms_to` ne relie que les
+  formes transformables ; **aucun champ** ne relie Gojo à Werner. La relation
+  est **déduite** d'une signature — élément, stats, lead, rareté, et le détail
+  des compétences — par [link-collabs.mjs](scripts/link-collabs.mjs), qui écrit
+  le champ `jumeauCollab`. **70 paires**, 140 monstres liés.
+  - ⚠️ **Calculé à la GÉNÉRATION, pas au rendu** : le déduire dans l'app
+    supposerait de charger les 3 000 fiches de compétences à l'ouverture d'une
+    page, alors qu'elles sont justement découpées pour n'être lues qu'une par
+    une. Le script tourne **en dernier**, après `fetch-monsters` *et*
+    `fetch-skills` — il a besoin des deux sorties.
+- ⚠️ **La signature doit inclure les COMPÉTENCES.** Sur les stats et le lead
+  seuls, 120 paires ressortent, mais **14 ont des compétences différentes** :
+  deux monstres distincts qui partagent une grille de stats. Les fusionner
+  aurait effacé de vraies différences.
+- ⚠️ **Deux entrées de même PORTRAIT sont le même monstre, pas une paire.**
+  SWARFARM liste deux fois Nezuko Kamado (familles 319 et 320, image
+  identique) : sans cette déduplication, le groupe « Nezuko, Nezuko, Vermilion
+  Bird Dancer » comptait trois entrées et devenait ambigu. C'était le seul cas
+  irrésolu, et l'image le tranche exactement.
+- ⚠️ **Un groupe de trois n'apparie rien** : la signature ne suffit alors pas à
+  distinguer, et on préfère ne rien affirmer plutôt qu'apparier au hasard.
+- ⚠️ **La recherche porte sur les DEUX noms** : la carte s'intitule « Satoru
+  Gojo, Werner », et chercher « Werner » ne devait pas rester sans résultat.
+- ⚠️ **Noms identiques → un seul affiché.** Certaines collabs reprennent le nom
+  SW tel quel (Vendhan, Dyeus) : « Vendhan, Vendhan » se lirait comme un bug.
+- La carte gardée est celle au **`com2usId` le plus petit** — l'entrée SW
+  d'origine. Comme pour les transformations, ce qui compte est que la règle soit
+  **déterministe**, sinon l'affichage changerait sous le curseur.
+- ⚠️ **Dans la box du compte, le compte de l'écarté REVIENT à celui qu'on
+  garde** : posséder un Werner et un Gojo, c'est posséder deux exemplaires du
+  même monstre. Sans ce report, l'un des deux disparaissait de la box et le
+  total ne tombait plus juste.
+
 ### Pagination — ⚠️ 60 cartes par page
 
 Le bestiaire porte **~3 000 monstres**, et chaque carte est un `motion.div`

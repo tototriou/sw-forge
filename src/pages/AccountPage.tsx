@@ -13,7 +13,12 @@ import ArtifactsSection from '../components/account/ArtifactsSection';
 import { useStickyState } from '../hooks/useStickyState';
 import Segmented from '../components/Segmented';
 import { MonsterSortMode, comparateurMonstres } from '../lib/monsterSort';
-import { autreForme, sansDoublonDeTransformation } from '../lib/monsterForms';
+import {
+  autreForme,
+  jumeauDeCollab,
+  sansDoublonDeCollab,
+  sansDoublonDeTransformation,
+} from '../lib/monsterForms';
 import MonsterDetailDialog from '../components/MonsterDetailDialog';
 
 type Sub = 'monstres' | 'runes' | 'artefacts';
@@ -83,11 +88,26 @@ function MonsterBoxSection({ box, allMonsters = [] }: { box: BoxItem[]; allMonst
     // ⚠️ Les formes TRANSFORMABLES sont réduites à une entrée (Bellenus…) :
     // posséder le monstre, c'est posséder les deux formes — les compter deux
     // fois gonflerait la box de doublons qu'on ne peut pas distinguer.
-    const uniques = sansDoublonDeTransformation(
-      Array.from(byMonster.values()).map((e) => e.monster)
+    // ⚠️ Et les paires de COLLABORATION de même (Satoru Gojo = Werner) : elles
+    // partagent une carte, donc une seule entrée.
+    const uniques = sansDoublonDeCollab(
+      sansDoublonDeTransformation(Array.from(byMonster.values()).map((e) => e.monster))
     );
     const gardes = new Set(uniques);
-    return Array.from(byMonster.values())
+    const entrees = Array.from(byMonster.values());
+
+    // ⚠️ **Le compte de l'écarté REVIENT à celui qu'on garde.** Posséder un
+    // Werner ET un Gojo, c'est posséder deux exemplaires du même monstre : sans
+    // ce report, l'un des deux disparaissait purement et simplement de la box,
+    // et le total ne tombait plus juste.
+    const parId = new Map(entrees.map((e) => [e.monster.com2usId, e]));
+    for (const e of entrees) {
+      if (gardes.has(e.monster)) continue;
+      const vers = e.monster.jumeauCollab != null ? parId.get(e.monster.jumeauCollab) : null;
+      if (vers && gardes.has(vers.monster)) vers.count += e.count;
+    }
+
+    return entrees
       .filter((e) => gardes.has(e.monster))
       .sort((a, b) => cmp(a.monster, b.monster));
   }, [box, sortMode]);
@@ -95,7 +115,14 @@ function MonsterBoxSection({ box, allMonsters = [] }: { box: BoxItem[]; allMonst
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
     return entries.filter((e) => {
-      if (q && !e.monster.name.toLowerCase().includes(q)) return false;
+      // ⚠️ La recherche porte sur les DEUX noms d'une paire de collaboration :
+      // la carte s'intitule « Satoru Gojo, Werner », et chercher « Werner » ne
+      // devait pas rester sans résultat.
+      if (q) {
+        const jumeau = jumeauDeCollab(e.monster, allMonsters);
+        const noms = [e.monster.name, jumeau?.name].filter(Boolean) as string[];
+        if (!noms.some((n) => n.toLowerCase().includes(q))) return false;
+      }
       if (activeElements.size && !activeElements.has(e.monster.element)) return false;
       if (activeStars.size && !(e.monster.naturalStars != null && activeStars.has(e.monster.naturalStars)))
         return false;
@@ -103,7 +130,7 @@ function MonsterBoxSection({ box, allMonsters = [] }: { box: BoxItem[]; allMonst
       if (secondOnly && !e.monster.secondAwaken) return false;
       return true;
     });
-  }, [entries, query, activeElements, activeStars, dupesOnly, secondOnly]);
+  }, [entries, query, activeElements, activeStars, dupesOnly, secondOnly, allMonsters]);
 
   return (
     <div>
@@ -237,6 +264,7 @@ function MonsterBoxSection({ box, allMonsters = [] }: { box: BoxItem[]; allMonst
               <MonsterCard
                 key={e.monster.id}
                 monster={e.monster}
+                jumeau={jumeauDeCollab(e.monster, allMonsters)}
                 count={e.count}
                 // Tout est 6★ dans la box : la rangée d'étoiles n'apprendrait
                 // rien et se répéterait 300 fois.

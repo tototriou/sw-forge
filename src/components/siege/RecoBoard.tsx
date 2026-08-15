@@ -71,6 +71,8 @@ export default function RecoBoard({ recos, monsters, builds, teams, offense }: P
     setQueries((cur) => cur.map((q, k) => (k === i ? v : q)));
   const termesPoses = queries.map((q) => q.trim()).filter(Boolean);
   const aUneRecherche = termesPoses.length > 0;
+  // Vide les trois champs d'un coup.
+  const effacerRecherche = () => setQueries(['', '', '']);
   const [msg, setMsg] = useState<{ text: string; error?: boolean } | null>(null);
   // Rapport de validation du dernier import : NON éphémère (il faut pouvoir le lire).
   const [report, setReport] = useState<ImportReport | null>(null);
@@ -78,12 +80,33 @@ export default function RecoBoard({ recos, monsters, builds, teams, offense }: P
   // Recommandations dépliées (« Consulter ») — toutes repliées par défaut, pour
   // garder une liste lisible quand on en a beaucoup.
   const [openIds, setOpenIds] = useState<Set<string>>(new Set());
-  const toggleOpen = (id: string) =>
+  // Cartes que la recherche a ouvertes et que l'utilisateur a REFERMÉES.
+  //
+  // ⚠️ Sans cet état, « Réduire » était inopérant sur un résultat de recherche :
+  // le clic retirait bien l'id d'`openIds`, mais l'ouverture automatique le
+  // réimposait aussitôt. Un bouton qui ne fait rien passe pour cassé.
+  // On mémorise donc le refus, au lieu de laisser la recherche gagner : elle
+  // propose un dépliage, elle ne l'impose pas.
+  const [replieesPendantRecherche, setRepliees] = useState<Set<string>>(new Set());
+  const toggleOpen = (id: string) => {
+    const ouverteParRecherche = hitPar.has(id) && !replieesPendantRecherche.has(id);
+    if (ouverteParRecherche) {
+      // Elle n'est ouverte que parce qu'elle est un résultat : on note le repli.
+      setRepliees((s) => new Set(s).add(id));
+      return;
+    }
+    setRepliees((s) => {
+      if (!s.has(id)) return s;
+      const next = new Set(s);
+      next.delete(id);
+      return next;
+    });
     setOpenIds((s) => {
       const next = new Set(s);
       next.has(id) ? next.delete(id) : next.add(id);
       return next;
     });
+  };
   const fileRef = useRef<HTMLInputElement>(null);
 
   // Scroll vers la recommandation qu'on vient de créer (comme les équipes).
@@ -237,6 +260,14 @@ export default function RecoBoard({ recos, monsters, builds, teams, offense }: P
   const list = hits ? hits.map((h) => h.reco) : parOrigine;
   // Où se trouve le monstre, par recommandation — la carte s'en sert pour
   // déplier les bons decks et surligner les bons portraits.
+  // ⚠️ Les replis manuels ne survivent pas à un changement de recherche : ils
+  // valaient pour CES résultats-là. Gardés, une carte refermée hier resterait
+  // fermée alors qu'elle répond maintenant à une tout autre question.
+  const cleRecherche = queries.join(' ');
+  useEffect(() => {
+    setRepliees(new Set());
+  }, [cleRecherche]);
+
   const hitPar = useMemo(() => {
     const m = new Map<string, RecoHit>();
     for (const h of hits ?? []) m.set(h.reco.id, h);
@@ -372,10 +403,12 @@ export default function RecoBoard({ recos, monsters, builds, teams, offense }: P
                   type="text"
                   value={q}
                   onChange={(e) => setQueryAt(i, e.target.value)}
-                  // Échap vide le champ : le geste attendu pour sortir d'une
-                  // recherche, sans aller viser la croix à la souris.
+                  // ⚠️ Échap vide TOUTE la recherche, pas seulement le champ où
+                  // l'on est : on sort d'une recherche, on ne la corrige pas
+                  // champ par champ. La croix de chaque champ reste là pour le
+                  // retrait ciblé.
                   onKeyDown={(e) => {
-                    if (e.key === 'Escape') setQueryAt(i, '');
+                    if (e.key === 'Escape') effacerRecherche();
                   }}
                   placeholder={i === 0 ? 'Chercher un monstre…' : `Monstre ${i + 1}…`}
                   className="w-full rounded-lg border border-border bg-panel py-1.5 pl-2.5 pr-6 text-[13px]
@@ -393,6 +426,24 @@ export default function RecoBoard({ recos, monsters, builds, teams, offense }: P
                 )}
               </div>
             ))}
+
+            {/* Vider les trois champs d'un coup. ⚠️ N'apparaît qu'une fois
+                quelque chose posé : un bouton d'effacement toujours visible sur
+                une recherche vide n'a rien à effacer.
+                Il est DISTINCT des croix de chaque champ — celles-ci retirent un
+                monstre pour affiner, celui-ci abandonne la recherche entière. */}
+            {aUneRecherche && (
+              <button
+                onClick={effacerRecherche}
+                className="flex h-[30px] flex-none items-center gap-1 rounded-lg border border-border
+                           px-2 text-[11.5px] font-semibold text-ink-dim transition
+                           hoverable:border-fire hoverable:text-fire"
+                title="Vider la recherche"
+                aria-label="Vider la recherche"
+              >
+                <X size={13} /> Vider
+              </button>
+            )}
           </div>
 
           {/* ⚠️ Le sélecteur ne RESTREINT pas la recherche, il classe : une reco
@@ -452,7 +503,7 @@ export default function RecoBoard({ recos, monsters, builds, teams, offense }: P
             )}
             {filter !== 'all' && ' dans ce filtre'}.{' '}
             <button
-              onClick={() => setQueries(['', '', ''])}
+              onClick={effacerRecherche}
               className="text-ink underline transition hoverable:text-star"
             >
               Effacer la recherche
@@ -492,7 +543,13 @@ export default function RecoBoard({ recos, monsters, builds, teams, offense }: P
                 // sans toucher à `openIds` : c'est un état de CONSULTATION, pas
                 // un choix de l'utilisateur. Effacer la recherche rend donc à la
                 // page exactement le repli qu'elle avait avant.
-                open={openIds.has(reco.id) || hitPar.has(reco.id)}
+                // ⚠️ La recherche PROPOSE le dépliage, elle ne l'impose pas :
+                // une carte refermée à la main le reste, même si elle est un
+                // résultat. Sans ça, « Réduire » semblait mort.
+                open={
+                  openIds.has(reco.id) ||
+                  (hitPar.has(reco.id) && !replieesPendantRecherche.has(reco.id))
+                }
                 onToggleOpen={toggleOpen}
                 hit={hitPar.get(reco.id) ?? null}
                 editing={editingId === reco.id}

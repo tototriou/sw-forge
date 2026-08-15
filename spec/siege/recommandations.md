@@ -110,6 +110,10 @@ decks qui jouent l'un des trois.
   du jeu en contient (« Dark Cow Girl »), la séparation serait ambiguë. Trois
   champs disent aussi combien de monstres on peut poser — autant qu'une
   composition.
+- **Deux effacements, deux portées** : la **croix de chaque champ** retire un
+  monstre (on affine), le bouton **« Vider »** abandonne la recherche entière.
+  Ce dernier n'apparaît **qu'une fois quelque chose posé**, et **Échap** en est
+  le raccourci — on sort d'une recherche, on ne la corrige pas champ par champ.
 - Le message d'absence de résultat **énonce la règle** au-delà d'un terme
   (« Aucun deck ne réunit A + B ») : sans ça, une recherche à trois qui ne
   renvoie rien se lit comme un bug, puisqu'on voit chaque monstre à l'écran.
@@ -137,6 +141,17 @@ la même réponse :
   repli.** C'est un état de **consultation**, pas un choix de l'utilisateur :
   effacer la recherche rend à la page exactement le repli qu'elle avait avant.
   Sans ça on se retrouve avec six decks ouverts sans les avoir ouverts.
+- ⚠️ **La recherche PROPOSE le dépliage, elle ne l'impose pas.** Une carte
+  ouverte par un résultat reste **refermable** : le repli manuel est mémorisé à
+  part et gagne sur l'ouverture automatique.
+  - Sans ça, « Réduire » était **inopérant** sur un résultat — le clic retirait
+    bien la carte des dépliées, mais l'ouverture automatique la réimposait
+    aussitôt. Un bouton qui ne fait rien passe pour cassé.
+  - Ces replis **ne survivent pas à un changement de recherche** : ils valaient
+    pour ces résultats-là. Gardés, une carte refermée resterait fermée alors
+    qu'elle répond désormais à une autre question.
+  - **Règle générale** : un filtre peut changer ce qui est montré, il ne rend
+    jamais un contrôle inopérant.
 - ⚠️ **Le filtre porte sur les DEUX niveaux** : quelles recommandations, et
   **quels decks à l'intérieur**. Les decks qui ne répondent pas ne sont **pas
   affichés du tout**. Sans ça, une carte remontait dans les résultats en

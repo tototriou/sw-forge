@@ -12,7 +12,8 @@ import SlotFilter from './SlotFilter';
 import RuneSlotIcon from '../RuneSlotIcon';
 import { RuneDetailBox } from '../MonsterGear';
 import Pager from './Pager';
-import CritereCase, { Critere } from './CritereCase';
+import { Critere } from './CritereCase';
+import SubSearchBar from './SubSearchBar';
 import DetailPopover from './DetailPopover';
 import {
   RUNE_SORTS,
@@ -44,9 +45,8 @@ interface RuneRow {
 const PAGE = 60; // tuiles par page (DOM borné pour rester fluide)
 
 // Une rune ne porte que 4 propriétés secondaires : un 5ᵉ critère ne pourrait
-// jamais être satisfait. La grille se replie à 2 tant qu'on n'en use pas plus.
+// jamais être satisfait. C'est aussi le nombre de cases de rappel du jeu.
 const MAX_SUBS = 4;
-const GRILLE_REPLIEE = 2;
 
 // Propriétés secondaires proposées, dans l'ordre de la table de référence.
 // ⚠️ Toutes les lignes de `RUNE_EFFECT` peuvent être un substat SAUF la VIT
@@ -72,12 +72,9 @@ export default function RunesList({ runes }: Props) {
   // ⚠️ QUATRE au plus : une rune ne porte que 4 propriétés secondaires, un
   // cinquième critère ne pourrait jamais être satisfait.
   const [criteres, setCriteres] = useStickyState<Critere[]>('runesList.criteres', []);
-  const [depliee, setDepliee] = useState(false);
-  const cases = depliee ? MAX_SUBS : GRILLE_REPLIEE;
-  const actifs = useMemo(
-    () => criteres.slice(0, cases).filter((c) => c.code > 0),
-    [criteres, cases]
-  );
+  // La modale ne pose que des critères complets ; ce garde-fou couvre un état
+  // mémorisé d'une version antérieure, où une case vide valait `{code: 0}`.
+  const actifs = useMemo(() => criteres.filter((c) => c.code > 0), [criteres]);
   const metric = useRuneMetric(); // choix PARTAGÉ avec les autres vues
   const [page, setPage] = useState(0);
   const [openId, setOpenId] = useState<number | null>(null);
@@ -98,12 +95,14 @@ export default function RunesList({ runes }: Props) {
       if (sets.size && !sets.has(r.set)) return false;
       if (slots.size && !slots.has(r.slot)) return false;
       if (ancientOnly && !(r.rank > 10)) return false;
-      // ⚠️ Les critères se cumulent en ET, seuil compris : la rune doit porter
-      // TOUTES les propriétés cherchées, chacune au moins à son minimum. Même
-      // règle que la recherche détaillée du jeu et que l'inventaire d'artéfacts.
+      // ⚠️ Les critères se cumulent en ET, bornes comprises : la rune doit
+      // porter TOUTES les propriétés cherchées, chacune dans son intervalle.
+      // Même règle que la recherche détaillée du jeu.
+      // ⚠️ `max` absent = pas de plafond, ce qui n'est PAS « au plus zéro ».
       for (const c of actifs) {
         const v = valeurSub(r, c.code);
         if (v == null || v < c.min) return false;
+        if (c.max != null && v > c.max) return false;
       }
       return true;
     });
@@ -169,66 +168,23 @@ export default function RunesList({ runes }: Props) {
           </button>
         </div>
 
-        {/* Propriété secondaire — grille de critères, façon recherche détaillée
-            du jeu. Même grammaire que l'inventaire d'artéfacts.
+        {/* Propriété secondaire — la barre du JEU : quatre cases de rappel
+            et un « … » qui ouvre la recherche détaillée.
             ⚠️ Les cases sont ORDONNÉES : la 1ʳᵉ sert aussi de clé aux deux tris
             « propriété secondaire ». La position porte donc du sens. */}
         <div className="flex flex-wrap items-start gap-2">
-          <span className="w-[86px] flex-none label mt-1.5">Propriété</span>
-          {/* ⚠️ Largeur BORNÉE, contrairement aux artéfacts : les propriétés de
-              rune ont des libellés très courts (« VIT », « Dmg Crit »), là où
-              celles d'un artéfact tiennent en une phrase (« Dégâts sur le Feu
-              +X% »). Laissée en `flex-1`, la grille s'étirait sur toute la
-              largeur pour n'afficher que trois lettres par menu. */}
-          {/* 480 px : une case tombe à ~237 px, dont ~126 pris par le rang et
-              les commandes du seuil une fois posé — il reste ~110 px au menu,
-              de quoi lire « Dmg Crit » sans troncature. En dessous, le libellé
-              se coupait dès qu'un seuil était saisi. */}
+          <span className="w-[86px] flex-none label mt-1">Propriété</span>
           <div className="min-w-0 flex-1 max-w-[480px]">
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5">
-              {Array.from({ length: cases }, (_, i) => (
-                <CritereCase
-                  key={i}
-                  rang={i + 1}
-                  critere={criteres[i] ?? null}
-                  options={SUBS_OPTIONS}
-                  nomDe={(code) => RUNE_EFFECT[code]?.label ?? `#${code}`}
-                  onChange={(c) => {
-                    const next = [...criteres];
-                    while (next.length < cases) next.push({ code: 0, min: 0 });
-                    next[i] = c ?? { code: 0, min: 0 };
-                    setCriteres(next);
-                    setPage(0);
-                  }}
-                />
-              ))}
-            </div>
-
-            <div className="mt-1.5 flex items-center gap-2">
-              {/* ⚠️ Le bouton dit CE QU'IL VA FAIRE, pas l'état courant. */}
-              <button
-                onClick={() => setDepliee(!depliee)}
-                className="rounded border border-border px-2 py-0.5 text-[11px] font-semibold
-                           text-ink-dim transition hoverable:text-ink hoverable:border-accent"
-              >
-                {depliee
-                  ? `▴ Replier à ${GRILLE_REPLIEE} propriétés`
-                  : `▾ Déplier à ${MAX_SUBS} propriétés`}
-              </button>
-
-              {actifs.length > 0 && (
-                <button
-                  onClick={() => {
-                    setCriteres([]);
-                    setPage(0);
-                  }}
-                  className="rounded border border-border px-2 py-0.5 text-[11px] font-semibold
-                             text-ink-dim transition hoverable:text-fire hoverable:border-fire"
-                >
-                  ✕ Réinitialiser
-                </button>
-              )}
-            </div>
+            <SubSearchBar
+              options={SUBS_OPTIONS}
+              criteres={criteres}
+              max={MAX_SUBS}
+              nomDe={(code) => RUNE_EFFECT[code]?.label ?? `#${code}`}
+              onChange={(c) => {
+                setCriteres(c);
+                setPage(0);
+              }}
+            />
           </div>
         </div>
 

@@ -8,7 +8,11 @@ import { X } from 'lucide-react';
 // liste de cases à cocher : la position de chaque critère porte du sens.
 export interface Critere {
   code: number;
-  min: number; // seuil en unité de la propriété (%, ou points pour les stats plates)
+  min: number; // seuil bas, en unité de la propriété (%, ou points si plate)
+  // Seuil haut. ⚠️ `undefined` = pas de plafond, ce qui n'est PAS la même chose
+  // que 0 : le jeu propose un Min ET un Max par propriété, et laisser le Max
+  // vide veut dire « peu importe jusqu'où », pas « au plus zéro ».
+  max?: number;
 }
 
 // Une case de la grille : le rang (= priorité de tri), la propriété, le seuil.

@@ -185,25 +185,48 @@ l'efficience est notre mesure, le slot sert au repérage.
 - Un tri **mémorisé qui n'existe plus** retombe sur le défaut : sans ce
   garde-fou, le comparateur serait `undefined` et la page blanche.
 
-### Filtre par propriété secondaire — même grammaire que les artéfacts
+### Filtre par propriété secondaire — ⚠️ la MODALE du jeu
 
-Une grille de **4 critères au plus** (une rune ne porte que 4 propriétés
-secondaires : un 5ᵉ ne pourrait jamais être satisfait), repliée à 2 par défaut.
-Chaque case = une **propriété** et un **seuil « au moins »**.
+Le jeu pose la question dans l'autre sens que quatre menus déroulants : au lieu
+de « quelle propriété pour la case 1 ? », il montre **toutes les propriétés** et
+on coche celles qu'on veut. On lit d'un coup ce qui est disponible, et on compare
+les bornes d'une ligne à l'autre — impossible à travers des menus qui n'en
+montrent qu'une à la fois.
 
-- ⚠️ Les critères se cumulent **en ET, seuil compris** : la rune doit porter
-  **toutes** les propriétés cherchées, chacune au moins à son minimum.
-- ⚠️ Les cases sont **ORDONNÉES** : la première sert aussi de **clé aux deux
-  tris « propriété »**. La position porte donc du sens.
-- Le composant [CritereCase.tsx](src/components/account/CritereCase.tsx) est
-  **partagé avec l'inventaire d'artéfacts** — il y vivait, et a été **remonté**
-  au deuxième usage plutôt que recopié (deux copies auraient divergé). Seul le
-  **nom d'une propriété** diffère entre les deux, d'où le paramètre `nomDe`.
-- ⚠️ La grille est **bornée à 480 px** ici, alors qu'elle prend toute la largeur
-  chez les artéfacts : les propriétés de rune ont des libellés très **courts**
-  (« VIT », « Dmg Crit »), là où celles d'un artéfact tiennent en une phrase
-  (« Dégâts sur le Feu +X% »). Étirée, la grille réservait toute la largeur pour
-  n'afficher que trois lettres par menu.
+Deux pièces, reprises telles quelles :
+
+| Pièce | Fichier | Rôle |
+|-------|---------|------|
+| **Barre de rappel** | [SubSearchBar.tsx](src/components/account/SubSearchBar.tsx) | 4 cases numérotées + un bouton **« … »** |
+| **Recherche détaillée** | [SubSearchDialog.tsx](src/components/account/SubSearchDialog.tsx) | la modale : toutes les propriétés, **Min** et **Max** |
+
+- ⚠️ **Les cases sont un RAPPEL, pas un formulaire.** Elles affichent le critère
+  posé (« VIT +25 ~ +37 ») et ne servent qu'à ça. Toute la saisie vit dans la
+  modale : quatre menus déroulants occupaient toute la largeur pour n'afficher
+  que trois lettres, et un seuil unique ne savait pas dire « entre 25 et 37 ».
+- ⚠️ **Min ET Max**, pas un seuil unique. « VIT entre 25 et 37 » est la recherche
+  courante quand on trie ses runes.
+  - ⚠️ Un `max` **absent** vaut « pas de plafond » — ce n'est **pas** « au plus
+    zéro ». C'est ce qui permet de ne borner que d'un côté.
+- **Cliquer n'importe où** ouvre la modale : une case, vide ou pleine, ou le
+  « … ». Ce dernier existe quand même — un bouton dédié dit l'intention sans
+  qu'on ait à deviner qu'une case est cliquable.
+- ⚠️ La modale travaille sur un **brouillon local**, validé par **OK** : écrire
+  directement dans l'état ferait filtrer la liste derrière à chaque frappe, et
+  « Annuler » ne voudrait plus rien dire.
+- **4 au plus** (une rune ne porte que 4 propriétés). Au-delà, les cases non
+  cochées sont **grisées et non retirées** : on voit ce qui existe et pourquoi
+  c'est refusé, plutôt qu'une liste qui rétrécit sous le curseur.
+- ⚠️ Les critères se cumulent **en ET, bornes comprises**, et la **première**
+  sert de clé aux deux tris « propriété » : la position porte du sens.
+- Les **bornes n'apparaissent qu'une fois la propriété cochée** : deux champs par
+  ligne sur 40 propriétés décochées feraient un mur de saisie inutilisé.
+
+> L'inventaire d'**artéfacts** garde sa grille de
+> [CritereCase.tsx](src/components/account/CritereCase.tsx) (un seuil, pas de
+> plafond) : ses libellés tiennent en une phrase (« Dégâts sur le Feu +X% »), là
+> où ceux d'une rune font trois lettres — la contrainte de place qui a motivé la
+> modale ne s'y pose pas.
 - **Pagination** ([Pager.tsx](src/components/account/Pager.tsx)) : 60 tuiles/page
   → DOM borné (fluide même à ~2000 runes). Composant **partagé par toutes les
   listes paginées** de l'app.

@@ -360,6 +360,8 @@ export default function RtaPage({
           categories={cats.categories}
           categoriesVisible={cats.visible}
           onToggleCategories={cats.setVisible}
+          estVisible={cats.estVisible}
+          onToggleCategorie={cats.toggleVisible}
         />
       </section>
     </div>

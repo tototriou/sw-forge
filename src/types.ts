@@ -30,6 +30,15 @@ export interface Monster {
   image: string | null;
   stats: MonsterStats;
   leaderSkill: LeaderSkill | null;
+  // Id SWARFARM du monstre. Sert à résoudre `transformsTo` — c'est cette clé-là
+  // que l'API emploie pour les liens entre monstres, et non le `com2usId`.
+  swarfarmId?: number | null;
+  // Forme TRANSFORMÉE (Bellenus, les Sœurs…), en id SWARFARM.
+  //
+  // ⚠️ Le lien est **bidirectionnel** : A pointe vers B et B vers A. Deux
+  // entrées décrivent donc le même monstre, et une seule doit être affichée
+  // (voir `formeCanonique` dans lib/monsterForms.ts).
+  transformsTo?: number | null;
 }
 
 export interface ElementDef {

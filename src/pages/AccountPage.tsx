@@ -11,6 +11,7 @@ import ArtifactsSection from '../components/account/ArtifactsSection';
 import { useStickyState } from '../hooks/useStickyState';
 import Segmented from '../components/Segmented';
 import { MonsterSortMode, comparateurMonstres } from '../lib/monsterSort';
+import { sansDoublonDeTransformation } from '../lib/monsterForms';
 import MonsterDetailDialog from '../components/MonsterDetailDialog';
 
 type Sub = 'monstres' | 'runes' | 'artefacts';
@@ -156,7 +157,16 @@ function MonsterBoxSection({ box }: { box: BoxItem[] }) {
       else byMonster.set(id, { monster: it.monster, count: 1 });
     }
     const cmp = comparateurMonstres(sortMode);
-    return Array.from(byMonster.values()).sort((a, b) => cmp(a.monster, b.monster));
+    // ⚠️ Les formes TRANSFORMABLES sont réduites à une entrée (Bellenus…) :
+    // posséder le monstre, c'est posséder les deux formes — les compter deux
+    // fois gonflerait la box de doublons qu'on ne peut pas distinguer.
+    const uniques = sansDoublonDeTransformation(
+      Array.from(byMonster.values()).map((e) => e.monster)
+    );
+    const gardes = new Set(uniques);
+    return Array.from(byMonster.values())
+      .filter((e) => gardes.has(e.monster))
+      .sort((a, b) => cmp(a.monster, b.monster));
   }, [box, sortMode]);
 
   const filtered = useMemo(() => {

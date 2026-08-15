@@ -95,6 +95,13 @@ function normalizeMonster(raw, idx) {
     image: buildImageUrl(raw),
     stats: normalizeStats(raw),
     leaderSkill: normalizeLeaderSkill(raw),
+    // ⚠️ Forme TRANSFORMÉE d'un monstre (Bellenus, les Sœurs…), en **id
+    // SWARFARM** — pas en `com2usId`. Le lien est **bidirectionnel** dans
+    // l'API : A pointe vers B et B vers A. C'est ce qui permet de n'afficher
+    // qu'UNE fiche par monstre au lieu de deux (voir lib/monsterForms.ts).
+    transformsTo: num(raw.transforms_to),
+    // Id SWARFARM du monstre lui-même : `transformsTo` s'y résout.
+    swarfarmId: num(raw.id),
   };
 }
 

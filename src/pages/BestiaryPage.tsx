@@ -7,6 +7,7 @@ import MonsterDetailDialog from '../components/MonsterDetailDialog';
 import Pager from '../components/account/Pager';
 import { ELEMENTS, ElementKey, Monster } from '../types';
 import { LoadState } from '../hooks/useMonsters';
+import { sansDoublonDeTransformation } from '../lib/monsterForms';
 
 interface Props {
   monsters: Monster[];
@@ -58,7 +59,11 @@ export default function BestiaryPage({ monsters }: Props) {
   // pagination.
   const retenus = useMemo(() => {
     const q = query.trim().toLowerCase();
-    const filtered = monsters.filter((m) => {
+    // ⚠️ Les monstres TRANSFORMABLES sont dédupliqués d'abord : Bellenus et ses
+    // semblables existent en deux entrées de même nom, même élément, même
+    // icône. Deux fiches identiques côte à côte n'apprennent rien et font
+    // ouvrir l'une pour l'autre.
+    const filtered = sansDoublonDeTransformation(monsters).filter((m) => {
       if (q && !m.name.toLowerCase().includes(q)) return false;
       if (activeElements.size && !activeElements.has(m.element)) return false;
       if (activeStars.size && !(m.stars !== null && activeStars.has(m.stars))) return false;
@@ -83,6 +88,10 @@ export default function BestiaryPage({ monsters }: Props) {
   }, [monsters, query, activeElements, activeStars, sortMode]);
 
   const totalShown = retenus.length;
+  // Total de RÉFÉRENCE : après déduplication des formes transformables. Sans
+  // ça, le compteur annoncerait « 60 sur 3000 » alors que la base n'en montre
+  // que ~2 940 — un écart qu'on ne saurait pas expliquer.
+  const totalBase = useMemo(() => sansDoublonDeTransformation(monsters).length, [monsters]);
   const pageCount = Math.max(1, Math.ceil(totalShown / PAGE));
   const safePage = Math.min(page, pageCount - 1);
 
@@ -130,7 +139,7 @@ export default function BestiaryPage({ monsters }: Props) {
         >
           <p className="font-mono text-[12px] text-ink-dim">
             {totalShown} monstre{totalShown > 1 ? 's' : ''}
-            {totalShown !== monsters.length && ` sur ${monsters.length}`}
+            {totalShown !== totalBase && ` sur ${totalBase}`}
           </p>
           <Pager page={safePage} pageCount={pageCount} onChange={setPage} />
         </div>

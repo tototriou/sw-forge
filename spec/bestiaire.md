@@ -35,6 +35,36 @@ casse, `includes`).
 - Si un filtre ne renvoie rien : message « Aucun monstre ne correspond à ces
   filtres. »
 
+### ⚠️ Un monstre transformable n'a qu'UNE fiche
+
+**Bellenus**, les **Sœurs**… existent en **deux entrées** chez SWARFARM : la
+forme de départ et la forme transformée. Elles portent le **même nom**, le
+**même élément** et la **même icône** — côte à côte, on ne sait pas laquelle est
+laquelle, et on ouvre l'une en croyant ouvrir l'autre.
+
+`sansDoublonDeTransformation` ([monsterForms.ts](src/lib/monsterForms.ts)) n'en
+garde qu'une, vérifié par
+[monstre-formes.test.ts](tests/monstre-formes.test.ts).
+
+- La relation vient du champ **`transforms_to`** de l'API, conservé sous
+  `transformsTo`. ⚠️ Il référence un **id SWARFARM**, pas un `com2usId` — d'où
+  `swarfarmId`, ajouté aux données pour pouvoir le résoudre.
+- ⚠️ **Le lien est BIDIRECTIONNEL** (A → B et B → A) : il ne dit donc pas
+  laquelle est « la vraie ». On retient celle au **`com2usId` le plus petit** —
+  la forme de départ, celle qu'on invoque et sous laquelle on connaît le
+  monstre. Le choix doit surtout être **déterministe** : n'importe quelle règle
+  stable conviendrait, mais elle doit donner le même résultat à chaque rendu,
+  sinon la fiche changerait sous le curseur.
+- ⚠️ **Si l'autre forme est absente de la liste, rien n'est écarté** : le cas se
+  produit dès qu'un filtre l'a retirée, et écarter quand même laisserait un trou
+  que rien n'expliquerait.
+- ⚠️ **Un second éveil n'est PAS une transformation.** Ses deux formes se
+  distinguent (nom, icône, stats) et restent toutes les deux — c'est
+  `formesJouables` qui les arbitre, et seulement dans les sélecteurs.
+- La règle s'applique **au Bestiaire comme à la box du compte** : posséder le
+  monstre, c'est posséder ses deux formes. Sur ~3 000 entrées, **58** sont ainsi
+  écartées.
+
 ### Pagination — ⚠️ 60 cartes par page
 
 Le bestiaire porte **~3 000 monstres**, et chaque carte est un `motion.div`

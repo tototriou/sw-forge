@@ -272,7 +272,7 @@ export default function RecoBoard({ recos, monsters, builds, teams, offense }: P
                 key={f.key}
                 onClick={() => setFilter(f.key)}
                 className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-[12.5px] font-semibold transition
-                  ${active ? 'bg-accent-soft text-ink shadow' : 'text-ink-dim hoverable:text-ink'}`}
+                  ${active ? 'bg-accent-soft text-ink' : 'text-ink-dim hoverable:text-ink'}`}
               >
                 {f.label}
                 <span className={`font-mono text-[11px] ${active ? 'text-ink-dim' : 'opacity-70'}`}>{n}</span>

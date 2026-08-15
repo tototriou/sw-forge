@@ -26,7 +26,7 @@ de ce qui s'affiche. **Ne pas** appeler l'API GitHub :
 
 ```ts
 interface Release {
-  version: string;        // « 1.1.0 »
+  version: string | null; // « 1.1.0 » — null = numéro pas encore tranché
   date: string;           // ISO court
   title: string;          // résumé en une ligne
   highlights?: string[];  // 1 à 3 points mis en avant
@@ -35,22 +35,46 @@ interface Release {
 }
 ```
 
+### ⚠️ `version: null` — la version en préparation
+
+Une version se développe **sans savoir** si elle sortira en corrective ou en
+mineure : c'est ce qu'elle contient à la fin qui tranche. Écrire un numéro
+d'avance obligeait à le corriger en route, dans `package.json`, dans `releases.ts`
+**et** dans le nom de la branche.
+
+`version: null` dit « pas encore fixé ». La page affiche alors **« En
+préparation »** et une pastille « Pas encore publiée », au lieu du numéro. Le
+numéro s'écrit **au moment de publier**, en même temps que `package.json` et le
+tag — un seul geste, un seul endroit où se tromper.
+
+`libelleVersion()` ([releases.ts](src/data/releases.ts)) porte le préfixe `v` :
+écrit en dur par l'appelant, il donnait « vEn préparation ». Les deux pages qui
+affichent une version (**Nouveautés** et l'**accueil**) passent par elle.
+
+⚠️ **Le bandeau « Quoi de neuf » de l'accueil montre la dernière version
+PUBLIÉE**, pas `RELEASES[0]`. Il sert à donner une raison de revenir : annoncer
+une version en préparation promettrait des nouveautés absentes de l'app.
+
+⚠️ **La pastille « Version actuelle » ne s'affiche pas sur une version en
+préparation**, même en tête de liste : elle désigne ce qui **tourne**. La
+montrer sur une version non déployée ferait croire au joueur qu'il l'utilise.
+
 ### ⚠️ Le lien « GitHub ↗ » n'est pas systématique
 
 Chaque entrée affiche un lien vers `/releases/tag/vX.Y.Z`. Il était écrit
 **inconditionnellement** : la **1.0.0**, publiée avant que le dépôt existe, n'a
 jamais eu de tag — le lien menait à un **404**.
 
-`tag: false` masque le lien. Deux cas l'exigent :
+Le lien est masqué dans deux cas :
 
-| Cas | Pourquoi |
-|-----|----------|
-| Version antérieure au dépôt | Aucun tag ne lui correspondra jamais (1.0.0) |
-| Version **en préparation** | Déjà au journal, taguée seulement à la fusion dans `main` |
+| Cas | Marqueur | Pourquoi |
+|-----|----------|----------|
+| Version antérieure au dépôt | `tag: false` | Aucun tag ne lui correspondra jamais (1.0.0) |
+| Version **en préparation** | `version: null` | Pas de numéro → pas d'URL de tag à construire |
 
-**Au moment de publier**, retirer le `tag: false` de la version qu'on sort — le
-tag existe désormais. C'est une étape du processus de release, au même titre que
-l'incrément de `package.json`.
+Le second **ne demande aucun `tag: false`** : sans numéro il n'y a rien à
+pointer, la page le déduit. Écrire le numéro à la publication fait donc
+réapparaître le lien tout seul — une chose de moins à ne pas oublier.
 
 Un lien mort est pire que pas de lien : il donne l'impression que le site est
 cassé, sur la page même qui sert à montrer qu'il est entretenu.
@@ -76,9 +100,13 @@ c'est le même geste, dans la même branche de release.
 
 ## Voir aussi
 
-Le **modèle de branches et le processus de release** (branche `release/x.y.z`,
+Le **modèle de branches et le processus de release** (branche `forge/<sujet>`,
 `main` stable, **fusion `--no-ff`**, tag, release GitHub) sont décrits dans le
 [README](README.md), section « Versions & releases ».
+
+⚠️ **Une branche porte un sujet, pas un numéro** (`forge/prepa-rta`) : le numéro
+n'est décidé qu'à la fusion. C'est le pendant, côté Git, du `version: null`
+ci-dessus — on ne nomme pas une version avant de savoir ce qu'elle contient.
 
 ⚠️ **`--no-ff`, jamais `--squash`** : un squash recopie le contenu sans
 enregistrer la parenté, si bien qu'une branche publiée reste indistinguable

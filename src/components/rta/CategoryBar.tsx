@@ -148,7 +148,8 @@ export default function CategoryBar({ cats, monsters }: Props) {
           className={`ml-auto flex h-7 items-center gap-1.5 rounded-full border px-2.5 text-[12px] transition ${
             cats.showSpeeds
               ? 'border-border bg-panel text-ink-dim hoverable:text-ink hoverable:border-accent'
-              : 'border-accent bg-panel2 text-ink'
+              : // Fond seul — voir spec/shared/design.md.
+                'border-border bg-accent-soft text-ink'
           }`}
         >
           {cats.showSpeeds ? <Eye size={12} /> : <EyeOff size={12} />}
@@ -166,7 +167,8 @@ export default function CategoryBar({ cats, monsters }: Props) {
           className={`flex h-7 items-center gap-1.5 rounded-full border px-2.5 text-[12px] transition ${
             cats.markDesync
               ? 'border-border bg-panel text-ink-dim hoverable:text-ink hoverable:border-accent'
-              : 'border-accent bg-panel2 text-ink'
+              : // Fond seul — voir spec/shared/design.md.
+                'border-border bg-accent-soft text-ink'
           }`}
         >
           {cats.markDesync ? <Eye size={12} /> : <EyeOff size={12} />}
@@ -188,7 +190,8 @@ export default function CategoryBar({ cats, monsters }: Props) {
           className={`flex h-7 items-center gap-1.5 rounded-full border px-2.5 text-[12px] transition ${
             cats.visible
               ? 'border-border bg-panel text-ink-dim hoverable:text-ink hoverable:border-accent'
-              : 'border-accent bg-panel2 text-ink'
+              : // Fond seul — voir spec/shared/design.md.
+                'border-border bg-accent-soft text-ink'
           }`}
         >
           {cats.visible ? <Eye size={12} /> : <EyeOff size={12} />}
@@ -199,7 +202,10 @@ export default function CategoryBar({ cats, monsters }: Props) {
       {/* Panneau d'affectation : tous les monstres de la page. */}
       {open && (
         <div
-          className="mt-2 rounded-xl border p-3"
+          // Le panneau se pose au lieu de surgir : il s'ouvre SOUS la rangée de
+          // catégories et pousse le contenu, un apparaître sec fait sauter la
+          // page. Pas de `scale` — il arrive à sa taille définitive.
+          className="mt-2 rounded-xl border p-3 animate-[apparition_180ms_var(--ease-out)]"
           style={{
             borderColor: withAlpha(open.color, 0.5),
             // Le panneau reprend la teinte de la catégorie ouverte : on sait

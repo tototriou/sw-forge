@@ -16,13 +16,21 @@ import {
   Sparkles,
   ExternalLink,
   ShieldCheck,
+  Gem,
 } from 'lucide-react';
 import ElementIcon from '../components/ElementIcon';
 import { ElementKey } from '../types';
-import { RELEASES } from '../data/releases';
+import { RELEASES, libelleVersion } from '../data/releases';
 
 const ELEMENT_ORDER: ElementKey[] = ['fire', 'water', 'wind', 'light', 'dark'];
 const SW_EXPORTER = 'https://github.com/Xzandro/sw-exporter';
+
+// ⚠️ La MÊME courbe que le reste de l'app (`--ease-out` de index.css), écrite
+// ici en points de Bézier : Framer ne lit pas les variables CSS dans `ease`.
+// L'`'easeOut'` natif qui était posé là est plus mou — la page d'accueil
+// démarrait sur une courbe que rien d'autre n'utilise.
+// Voir la section « Mouvement » de spec/shared/design.md.
+const EASE_OUT = [0.23, 1, 0.32, 1] as const;
 
 const container = {
   hidden: {},
@@ -30,7 +38,7 @@ const container = {
 };
 const item = {
   hidden: { opacity: 0, y: 16 },
-  show: { opacity: 1, y: 0, transition: { duration: 0.4, ease: 'easeOut' } },
+  show: { opacity: 1, y: 0, transition: { duration: 0.4, ease: EASE_OUT } },
 };
 
 // Ce que l'accueil sait de l'état local du joueur. Tout vient de `App` : ce sont
@@ -63,7 +71,10 @@ interface Props {
 // Puis « comment ça marche », les fonctionnalités et un dernier appel. Le
 // bandeau de version en fin de page donne la raison de revenir.
 export default function HomePage({ stats, onImport }: Props) {
-  const derniere = RELEASES[0];
+  // ⚠️ La dernière version PUBLIÉE, pas `RELEASES[0]` : une version en
+  // préparation est en tête du journal sans être en ligne. L'annoncer ici
+  // promettrait au visiteur des nouveautés qu'il ne trouvera pas dans l'app.
+  const derniere = RELEASES.find((r) => r.version !== null) ?? RELEASES[0];
   const aDesDonnees = stats.rta > 0 || stats.defense > 0 || stats.offense > 0 || stats.recos > 0;
   // Le bouton du dernier appel ouvre le sélecteur de fichier, comme la zone de
   // dépôt du héros — même `onImport`, donc un seul chemin d'import.
@@ -178,6 +189,7 @@ export default function HomePage({ stats, onImport }: Props) {
           <Feature href="#/siege/defense" icon={Castle} accent="#E4463A" kicker="Siège" title="Défenses et offenses" body="Compose tes équipes et vérifie tes speed tune sur les ticks 239 et 286." />
           <Feature href="#/siege/recommandations" icon={Lightbulb} accent="#5EDB8F" kicker="Partage" title="Recommandations" body="Décris tes decks, partage-les en JSON, et vois ce que ton compte peut jouer." />
           <Feature href="#/compte/runes" icon={UserRound} accent="#4AD8D8" kicker="Compte" title="Analyse de runes" body="Résumé chiffré, efficience ou score SW, courbes, et ce que tes meules et gemmes en réserve permettent d'améliorer dès maintenant." />
+          <Feature href="#/compte/artefacts" icon={Gem} accent="#E08A3C" kicker="Compte" title="Analyse d'artéfacts" body="Le score du jeu et l'efficience de chaque pièce, la distribution de ton stock et les propriétés que tu possèdes le plus." />
           <Feature href="#/bestiary" icon={BookOpen} accent="#2FA0E0" kicker="Données" title="Bestiaire" body="Recherche et filtres par élément et étoiles naturelles, stats de base à portée de main." />
           <Feature href="#/mecaniques" icon={Calculator} accent="#8890B8" kicker="Doc" title="Mécaniques" body="Vitesse de combat, barre d'action, équation des dégâts et facteur de défense." />
           <Feature href="#/releases" icon={Tag} accent="#C79BFF" kicker="Suivi" title="Nouveautés" body="Ce qui change à chaque version : ajouts, corrections et calculs revus." />
@@ -225,7 +237,7 @@ export default function HomePage({ stats, onImport }: Props) {
                    bg-panel/50 px-4 py-3 transition hoverable:border-accent"
       >
         <span className="rounded-full bg-star/15 px-2 py-0.5 label text-star">
-          v{derniere.version}
+          {libelleVersion(derniere.version)}
         </span>
         <span className="text-[13.5px] text-ink">{derniere.title}</span>
         <span className="ml-auto inline-flex items-center gap-1 text-[12.5px] text-ink-dim">

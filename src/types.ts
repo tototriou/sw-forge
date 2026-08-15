@@ -72,6 +72,11 @@ export interface EffectLine {
   value: number;
   grind?: number;
   enchant?: boolean;
+  // Substats d'ARTÉFACT : nombre d'améliorations tombées sur cette ligne
+  // (`sec_effects[i][2]`). ⚠️ Ne pas confondre avec `enchant`, qui vient de
+  // `[4]` : celui-là marque un substat modifié et monte jusqu'à 87 — il ne
+  // compte aucun roll. Voir spec/compte/calcul-artefacts.md §1.
+  rolls?: number;
 }
 
 export interface RuneDetail {

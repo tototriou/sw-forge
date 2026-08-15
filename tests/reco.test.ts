@@ -158,8 +158,18 @@ export default function testReco() {
 
   // Le libellé sert de repère dans une liste de 45 : il doit nommer la
   // propriété, pas retomber sur « #300 ».
-  egal(artifactSubLabel(300), 'Dégâts sur le Feu +X%', 'libellé lisible, valeur en joker');
+  //
+  // ⚠️ C'est le libellé **du jeu**, relevé sur sa recherche détaillée de
+  // sous-propriétés — pas une reformulation « plus claire ». Un joueur qui lit
+  // autre chose ici que dans son inventaire ne fait pas le rapprochement.
+  egal(artifactSubLabel(300), 'Aug. des dgts infl. au Feu +X%', 'libellé lisible, valeur en joker');
   ok(!isArtifactSub(999), 'code inexistant refusé');
+
+  // ⚠️ L'ORDRE est celui du jeu, pas celui des codes : les dégâts élémentaires
+  // d'abord (300-304), puis les dégâts reçus (305-309), puis les compétences.
+  // Cette liste servira à l'optimisation d'artéfacts — voir SUB_ORDER.
+  egal(attribut.slice(0, 5), [300, 301, 302, 303, 304], 'les dégâts élémentaires ouvrent la liste');
+  egal(type.slice(0, 4), [400, 401, 410, 411], 'le type commence par les dmg crit de compétence');
 
   titre("Artéfacts d'une recommandation partagée");
 

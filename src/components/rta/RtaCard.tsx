@@ -88,8 +88,12 @@ export default function RtaCard({
     <div
       ref={cardRef}
       title={categoryLabels.length > 0 ? categoryLabels.join(' · ') : undefined}
+      // ⚠️ La bordure SEULE quand le détail est ouvert : elle était doublée d'un
+      // `ring-1 ring-accent/50`, soit deux traits d'accent concentriques autour
+      // de la même carte. Superposés, ils ne se lisent pas comme deux
+      // informations mais comme un contour flou. Voir spec/shared/design.md.
       className={`group relative rounded-lg border bg-panel2 transition-colors ${
-        open ? 'border-accent ring-1 ring-accent/50' : 'border-border'
+        open ? 'border-accent' : 'border-border'
       }`}
     >
       {/* Anneau des catégories, par-dessus la bordure (voir CategoryRing). */}

@@ -46,8 +46,9 @@ export default function SiegePage({ tab, siege, offense, recos, builds, teams, .
                 href={t.hash}
                 className={`flex items-center gap-1.5 rounded-lg px-3.5 py-1.5 text-[13px] font-semibold transition
                   ${
+                    // Fond seul, sans fausse élévation — voir design.md.
                     active
-                      ? 'bg-accent-soft text-ink shadow'
+                      ? 'bg-accent-soft text-ink'
                       : 'text-ink-dim hoverable:text-ink'
                   }`}
               >

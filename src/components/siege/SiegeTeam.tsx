@@ -290,7 +290,8 @@ export default function SiegeTeam({
                 }
                 className={`flex-1 min-w-0 flex items-center gap-2 rounded-lg border px-2 py-1.5 text-left transition hoverable:border-accent ${
                   active
-                    ? 'border-accent ring-1 ring-accent/50 bg-panel2'
+                    ? // Bordure seule, sans anneau superposé — voir design.md.
+                      'border-accent bg-panel2'
                     : danger
                       ? 'border-fire/70 ring-1 ring-fire/50 bg-fire/5'
                       : 'border-border bg-panel2/60'

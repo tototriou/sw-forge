@@ -389,7 +389,11 @@ export default function RecoCard({
               </button>
             </div>
           )}
-          <div className="flex flex-col gap-2.5">
+          {/* Les decks se posent au dépliage plutôt que d'apparaître d'un bloc.
+              ⚠️ L'animation est sur CE conteneur, déjà présent, et non sur un
+              `<div>` ajouté autour du fragment : un wrapper de plus casserait
+              l'espacement du parent pour un simple effet. */}
+          <div className="flex flex-col gap-2.5 animate-[apparition_180ms_var(--ease-out)]">
             {reco.decks.map((deck, di) => (
               <DeckBlock
                 key={di}
@@ -433,8 +437,9 @@ export default function RecoCard({
               }
               className={`flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-[12.5px] transition
                 disabled:opacity-40 disabled:cursor-not-allowed ${
+                  // Fond seul — voir spec/shared/design.md.
                   pickOffense
-                    ? 'border-accent bg-panel2 text-ink'
+                    ? 'border-border bg-accent-soft text-ink'
                     : 'border-dashed border-border bg-panel/50 text-ink-dim hoverable:text-ink hoverable:border-accent'
                 }`}
             >
@@ -1415,6 +1420,8 @@ function ArtifactEditor({
               <option value="">
                 {plein ? `Les ${MAX_ARTIFACT_SUBS} propriétés sont prises` : '+ Propriété…'}
               </option>
+              {/* `artifactSubsFor` les rend déjà dans l'ordre du JEU — le même
+                  que le filtre de l'inventaire d'artéfacts. */}
               {dispo.map((o) => (
                 <option key={o.code} value={o.code}>
                   {o.label}

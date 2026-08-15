@@ -82,7 +82,8 @@ function CarteAmi({
     <div
       title={libelles.length > 0 ? libelles.join(' · ') : undefined}
       className={`relative rounded-lg border bg-panel2 transition-colors ${
-        open ? 'border-accent ring-1 ring-accent/50' : 'border-border'
+        // Bordure seule, sans anneau superposé — voir spec/shared/design.md.
+        open ? 'border-accent' : 'border-border'
       }`}
     >
       <CategoryRing colors={couleurs} />

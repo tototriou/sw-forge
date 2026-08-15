@@ -197,7 +197,9 @@ export default function TurnOrder({
               className={`group inline-flex items-center rounded-full border transition select-none
                 ${
                   active
-                    ? 'bg-gradient-to-br from-star to-yellow-200 text-bg border-star shadow'
+                    ? // Le dégradé `star` EST le marqueur (c'est le code couleur
+                      // du lead, pas l'accent) : pas d'ombre en plus.
+                      'bg-gradient-to-br from-star to-yellow-200 text-bg border-star'
                     : 'bg-panel border-border text-ink-dim hoverable:text-ink hoverable:border-accent'
                 }`}
             >
@@ -226,8 +228,9 @@ export default function TurnOrder({
           onClick={() => setLead(0)}
           className={`rounded-full border px-3 py-1 text-[12.5px] font-semibold transition select-none
             ${
+              // Fond seul — voir spec/shared/design.md.
               lead === 0
-                ? 'bg-panel2 border-accent text-ink shadow'
+                ? 'bg-accent-soft border-border text-ink'
                 : 'bg-panel border-border text-ink-dim hoverable:text-ink'
             }`}
         >
@@ -273,7 +276,8 @@ export default function TurnOrder({
             className={`flex h-7 items-center gap-1.5 rounded-full border px-2.5 text-[12px] transition ${
               showSpeed
                 ? 'border-border bg-panel text-ink-dim hoverable:text-ink hoverable:border-accent'
-                : 'border-accent bg-panel2 text-ink'
+                : // Fond seul — voir spec/shared/design.md.
+                  'border-border bg-accent-soft text-ink'
             }`}
           >
             {showSpeed ? <Eye size={12} /> : <EyeOff size={12} />}
@@ -293,7 +297,8 @@ export default function TurnOrder({
             className={`flex h-7 items-center gap-1.5 rounded-full border px-2.5 text-[12px] transition ${
               categoriesVisible
                 ? 'border-border bg-panel text-ink-dim hoverable:text-ink hoverable:border-accent'
-                : 'border-accent bg-panel2 text-ink'
+                : // Fond seul — voir spec/shared/design.md.
+                  'border-border bg-accent-soft text-ink'
             }`}
           >
             {categoriesVisible ? <Eye size={12} /> : <EyeOff size={12} />}

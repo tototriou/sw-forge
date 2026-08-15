@@ -93,7 +93,7 @@ d'une **virgule** (« Satoru Gojo, Werner »).
   Normalement identiques — quand ils divergent, le monstre **emprunte** les
   compétences d'un autre : Werner (famille 30900) porte le groupe 30300, celui
   de Gojo. [link-collabs.mjs](scripts/link-collabs.mjs) écrit le champ
-  `jumeauCollab`. **308 paires**, 616 monstres liés.
+  `jumeauCollab`. **163 paires**, 326 monstres liés.
   - ⚠️ **Ne pas déduire le lien des stats et des compétences.** Une première
     version l'a fait, faute d'avoir vu ce champ — et une signature comparée n'a
     jamais fini de se tromper : elle échoue **en silence**, laissant un monstre
@@ -114,6 +114,17 @@ d'une **virgule** (« Satoru Gojo, Werner »).
     Vampire Lord celles de Vampire, **sans partager leurs stats**. Ce sont de
     vrais monstres distincts : la comparaison des stats et de la rareté écarte
     ainsi 27 faux appariements.
+- ⚠️ **Les formes ÉVEILLÉES seulement.** Les entrées non éveillées d'une collab
+  portent des noms **coréens** chez SWARFARM (« 에이보르(물) » pour Eivor eau) :
+  appariées, elles produisaient des cartes titrées « Mercenary Queen,
+  에이보르(물) ». Elles ne servent d'ailleurs à rien ici — on ne joue que des
+  monstres éveillés, et la box n'en contient aucune (`class === 6` à l'import).
+  - L'éveil se lit **`stars > naturalStars`** : un nat4 éveillé plafonne à 5★,
+    un test sur 6★ écarterait la moitié des candidats.
+  - Reste **une** paire à nom coréen : « 간달프(빛)(강화) » — une variante
+    *renforcée* de Gandalf, doublon technique du jeu, correctement appariée mais
+    sans nom anglais chez SWARFARM. On la garde telle quelle : la donnée est
+    juste, et lui inventer un nom serait pire.
 - ⚠️ **L'appariement se fait à SUFFIXE ÉGAL** : une famille porte cinq éléments,
   et le Gojo eau doit trouver le Werner eau, pas le Werner feu.
 - ⚠️ **Un groupe de trois n'apparie rien** : on ne saurait pas qui associer à

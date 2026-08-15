@@ -44273,8 +44273,7 @@
       "transformsTo": null,
       "swarfarmId": 1630,
       "familyId": 24000,
-      "skillGroupId": 24000,
-      "jumeauCollab": 24501
+      "skillGroupId": 24000
     },
     {
       "id": 1631,
@@ -44304,8 +44303,7 @@
       "transformsTo": null,
       "swarfarmId": 1631,
       "familyId": 24000,
-      "skillGroupId": 24000,
-      "jumeauCollab": 24502
+      "skillGroupId": 24000
     },
     {
       "id": 1632,
@@ -44335,8 +44333,7 @@
       "transformsTo": null,
       "swarfarmId": 1632,
       "familyId": 24000,
-      "skillGroupId": 24000,
-      "jumeauCollab": 24503
+      "skillGroupId": 24000
     },
     {
       "id": 1633,
@@ -44366,8 +44363,7 @@
       "transformsTo": null,
       "swarfarmId": 1633,
       "familyId": 24000,
-      "skillGroupId": 24000,
-      "jumeauCollab": 24504
+      "skillGroupId": 24000
     },
     {
       "id": 1634,
@@ -44397,8 +44393,7 @@
       "transformsTo": null,
       "swarfarmId": 1634,
       "familyId": 24000,
-      "skillGroupId": 24000,
-      "jumeauCollab": 24505
+      "skillGroupId": 24000
     },
     {
       "id": 1635,
@@ -44583,8 +44578,7 @@
       "transformsTo": null,
       "swarfarmId": 1640,
       "familyId": 24100,
-      "skillGroupId": 24100,
-      "jumeauCollab": 24602
+      "skillGroupId": 24100
     },
     {
       "id": 1641,
@@ -44645,8 +44639,7 @@
       "transformsTo": null,
       "swarfarmId": 1642,
       "familyId": 24200,
-      "skillGroupId": 24200,
-      "jumeauCollab": 24701
+      "skillGroupId": 24200
     },
     {
       "id": 1643,
@@ -44676,8 +44669,7 @@
       "transformsTo": null,
       "swarfarmId": 1643,
       "familyId": 24200,
-      "skillGroupId": 24200,
-      "jumeauCollab": 24702
+      "skillGroupId": 24200
     },
     {
       "id": 1644,
@@ -44707,8 +44699,7 @@
       "transformsTo": null,
       "swarfarmId": 1644,
       "familyId": 24200,
-      "skillGroupId": 24200,
-      "jumeauCollab": 24703
+      "skillGroupId": 24200
     },
     {
       "id": 1645,
@@ -44738,8 +44729,7 @@
       "transformsTo": null,
       "swarfarmId": 1645,
       "familyId": 24200,
-      "skillGroupId": 24200,
-      "jumeauCollab": 24704
+      "skillGroupId": 24200
     },
     {
       "id": 1646,
@@ -44769,8 +44759,7 @@
       "transformsTo": null,
       "swarfarmId": 1646,
       "familyId": 24200,
-      "skillGroupId": 24200,
-      "jumeauCollab": 24705
+      "skillGroupId": 24200
     },
     {
       "id": 1647,
@@ -44950,8 +44939,7 @@
       "transformsTo": null,
       "swarfarmId": 1652,
       "familyId": 24300,
-      "skillGroupId": 24300,
-      "jumeauCollab": 24801
+      "skillGroupId": 24300
     },
     {
       "id": 1653,
@@ -44976,8 +44964,7 @@
       "transformsTo": null,
       "swarfarmId": 1653,
       "familyId": 24300,
-      "skillGroupId": 24300,
-      "jumeauCollab": 24802
+      "skillGroupId": 24300
     },
     {
       "id": 1654,
@@ -45002,8 +44989,7 @@
       "transformsTo": null,
       "swarfarmId": 1654,
       "familyId": 24300,
-      "skillGroupId": 24300,
-      "jumeauCollab": 24803
+      "skillGroupId": 24300
     },
     {
       "id": 1655,
@@ -45028,8 +45014,7 @@
       "transformsTo": null,
       "swarfarmId": 1655,
       "familyId": 24300,
-      "skillGroupId": 24300,
-      "jumeauCollab": 24804
+      "skillGroupId": 24300
     },
     {
       "id": 1656,
@@ -45054,8 +45039,7 @@
       "transformsTo": null,
       "swarfarmId": 1656,
       "familyId": 24300,
-      "skillGroupId": 24300,
-      "jumeauCollab": 24805
+      "skillGroupId": 24300
     },
     {
       "id": 1657,
@@ -45240,8 +45224,7 @@
       "transformsTo": null,
       "swarfarmId": 1662,
       "familyId": 24400,
-      "skillGroupId": 24400,
-      "jumeauCollab": 24901
+      "skillGroupId": 24400
     },
     {
       "id": 1663,
@@ -45271,8 +45254,7 @@
       "transformsTo": null,
       "swarfarmId": 1663,
       "familyId": 24400,
-      "skillGroupId": 24400,
-      "jumeauCollab": 24902
+      "skillGroupId": 24400
     },
     {
       "id": 1664,
@@ -45302,8 +45284,7 @@
       "transformsTo": null,
       "swarfarmId": 1664,
       "familyId": 24400,
-      "skillGroupId": 24400,
-      "jumeauCollab": 24903
+      "skillGroupId": 24400
     },
     {
       "id": 1665,
@@ -45333,8 +45314,7 @@
       "transformsTo": null,
       "swarfarmId": 1665,
       "familyId": 24400,
-      "skillGroupId": 24400,
-      "jumeauCollab": 24904
+      "skillGroupId": 24400
     },
     {
       "id": 1666,
@@ -45364,8 +45344,7 @@
       "transformsTo": null,
       "swarfarmId": 1666,
       "familyId": 24400,
-      "skillGroupId": 24400,
-      "jumeauCollab": 24905
+      "skillGroupId": 24400
     },
     {
       "id": 1667,
@@ -45550,8 +45529,7 @@
       "transformsTo": null,
       "swarfarmId": 1672,
       "familyId": 24500,
-      "skillGroupId": 24000,
-      "jumeauCollab": 24001
+      "skillGroupId": 24000
     },
     {
       "id": 1673,
@@ -45581,8 +45559,7 @@
       "transformsTo": null,
       "swarfarmId": 1673,
       "familyId": 24500,
-      "skillGroupId": 24000,
-      "jumeauCollab": 24002
+      "skillGroupId": 24000
     },
     {
       "id": 1674,
@@ -45612,8 +45589,7 @@
       "transformsTo": null,
       "swarfarmId": 1674,
       "familyId": 24500,
-      "skillGroupId": 24000,
-      "jumeauCollab": 24003
+      "skillGroupId": 24000
     },
     {
       "id": 1675,
@@ -45643,8 +45619,7 @@
       "transformsTo": null,
       "swarfarmId": 1675,
       "familyId": 24500,
-      "skillGroupId": 24000,
-      "jumeauCollab": 24004
+      "skillGroupId": 24000
     },
     {
       "id": 1676,
@@ -45674,8 +45649,7 @@
       "transformsTo": null,
       "swarfarmId": 1676,
       "familyId": 24500,
-      "skillGroupId": 24000,
-      "jumeauCollab": 24005
+      "skillGroupId": 24000
     },
     {
       "id": 1677,
@@ -45860,8 +45834,7 @@
       "transformsTo": null,
       "swarfarmId": 1682,
       "familyId": 24600,
-      "skillGroupId": 24100,
-      "jumeauCollab": 24102
+      "skillGroupId": 24100
     },
     {
       "id": 1683,
@@ -45922,8 +45895,7 @@
       "transformsTo": null,
       "swarfarmId": 1684,
       "familyId": 24700,
-      "skillGroupId": 24200,
-      "jumeauCollab": 24201
+      "skillGroupId": 24200
     },
     {
       "id": 1685,
@@ -45953,8 +45925,7 @@
       "transformsTo": null,
       "swarfarmId": 1685,
       "familyId": 24700,
-      "skillGroupId": 24200,
-      "jumeauCollab": 24202
+      "skillGroupId": 24200
     },
     {
       "id": 1686,
@@ -45984,8 +45955,7 @@
       "transformsTo": null,
       "swarfarmId": 1686,
       "familyId": 24700,
-      "skillGroupId": 24200,
-      "jumeauCollab": 24203
+      "skillGroupId": 24200
     },
     {
       "id": 1687,
@@ -46015,8 +45985,7 @@
       "transformsTo": null,
       "swarfarmId": 1687,
       "familyId": 24700,
-      "skillGroupId": 24200,
-      "jumeauCollab": 24204
+      "skillGroupId": 24200
     },
     {
       "id": 1688,
@@ -46046,8 +46015,7 @@
       "transformsTo": null,
       "swarfarmId": 1688,
       "familyId": 24700,
-      "skillGroupId": 24200,
-      "jumeauCollab": 24205
+      "skillGroupId": 24200
     },
     {
       "id": 1689,
@@ -46227,8 +46195,7 @@
       "transformsTo": null,
       "swarfarmId": 1694,
       "familyId": 24800,
-      "skillGroupId": 24300,
-      "jumeauCollab": 24301
+      "skillGroupId": 24300
     },
     {
       "id": 1695,
@@ -46253,8 +46220,7 @@
       "transformsTo": null,
       "swarfarmId": 1695,
       "familyId": 24800,
-      "skillGroupId": 24300,
-      "jumeauCollab": 24302
+      "skillGroupId": 24300
     },
     {
       "id": 1696,
@@ -46279,8 +46245,7 @@
       "transformsTo": null,
       "swarfarmId": 1696,
       "familyId": 24800,
-      "skillGroupId": 24300,
-      "jumeauCollab": 24303
+      "skillGroupId": 24300
     },
     {
       "id": 1697,
@@ -46305,8 +46270,7 @@
       "transformsTo": null,
       "swarfarmId": 1697,
       "familyId": 24800,
-      "skillGroupId": 24300,
-      "jumeauCollab": 24304
+      "skillGroupId": 24300
     },
     {
       "id": 1698,
@@ -46331,8 +46295,7 @@
       "transformsTo": null,
       "swarfarmId": 1698,
       "familyId": 24800,
-      "skillGroupId": 24300,
-      "jumeauCollab": 24305
+      "skillGroupId": 24300
     },
     {
       "id": 1699,
@@ -46517,8 +46480,7 @@
       "transformsTo": null,
       "swarfarmId": 1704,
       "familyId": 24900,
-      "skillGroupId": 24400,
-      "jumeauCollab": 24401
+      "skillGroupId": 24400
     },
     {
       "id": 1705,
@@ -46548,8 +46510,7 @@
       "transformsTo": null,
       "swarfarmId": 1705,
       "familyId": 24900,
-      "skillGroupId": 24400,
-      "jumeauCollab": 24402
+      "skillGroupId": 24400
     },
     {
       "id": 1706,
@@ -46579,8 +46540,7 @@
       "transformsTo": null,
       "swarfarmId": 1706,
       "familyId": 24900,
-      "skillGroupId": 24400,
-      "jumeauCollab": 24403
+      "skillGroupId": 24400
     },
     {
       "id": 1707,
@@ -46610,8 +46570,7 @@
       "transformsTo": null,
       "swarfarmId": 1707,
       "familyId": 24900,
-      "skillGroupId": 24400,
-      "jumeauCollab": 24404
+      "skillGroupId": 24400
     },
     {
       "id": 1708,
@@ -46641,8 +46600,7 @@
       "transformsTo": null,
       "swarfarmId": 1708,
       "familyId": 24900,
-      "skillGroupId": 24400,
-      "jumeauCollab": 24405
+      "skillGroupId": 24400
     },
     {
       "id": 1709,
@@ -53702,8 +53660,7 @@
       "transformsTo": null,
       "swarfarmId": 1972,
       "familyId": 26200,
-      "skillGroupId": 26200,
-      "jumeauCollab": 26703
+      "skillGroupId": 26200
     },
     {
       "id": 1973,
@@ -53764,8 +53721,7 @@
       "transformsTo": null,
       "swarfarmId": 1974,
       "familyId": 26300,
-      "skillGroupId": 26300,
-      "jumeauCollab": 26801
+      "skillGroupId": 26300
     },
     {
       "id": 1975,
@@ -53795,8 +53751,7 @@
       "transformsTo": null,
       "swarfarmId": 1975,
       "familyId": 26300,
-      "skillGroupId": 26300,
-      "jumeauCollab": 26802
+      "skillGroupId": 26300
     },
     {
       "id": 1976,
@@ -53826,8 +53781,7 @@
       "transformsTo": null,
       "swarfarmId": 1976,
       "familyId": 26300,
-      "skillGroupId": 26300,
-      "jumeauCollab": 26803
+      "skillGroupId": 26300
     },
     {
       "id": 1977,
@@ -53857,8 +53811,7 @@
       "transformsTo": null,
       "swarfarmId": 1977,
       "familyId": 26300,
-      "skillGroupId": 26300,
-      "jumeauCollab": 26804
+      "skillGroupId": 26300
     },
     {
       "id": 1978,
@@ -53888,8 +53841,7 @@
       "transformsTo": null,
       "swarfarmId": 1978,
       "familyId": 26300,
-      "skillGroupId": 26300,
-      "jumeauCollab": 26805
+      "skillGroupId": 26300
     },
     {
       "id": 1979,
@@ -54074,8 +54026,7 @@
       "transformsTo": null,
       "swarfarmId": 1984,
       "familyId": 26400,
-      "skillGroupId": 26400,
-      "jumeauCollab": 26901
+      "skillGroupId": 26400
     },
     {
       "id": 1985,
@@ -54105,8 +54056,7 @@
       "transformsTo": null,
       "swarfarmId": 1985,
       "familyId": 26400,
-      "skillGroupId": 26400,
-      "jumeauCollab": 26902
+      "skillGroupId": 26400
     },
     {
       "id": 1986,
@@ -54136,8 +54086,7 @@
       "transformsTo": null,
       "swarfarmId": 1986,
       "familyId": 26400,
-      "skillGroupId": 26400,
-      "jumeauCollab": 26903
+      "skillGroupId": 26400
     },
     {
       "id": 1987,
@@ -54167,8 +54116,7 @@
       "transformsTo": null,
       "swarfarmId": 1987,
       "familyId": 26400,
-      "skillGroupId": 26400,
-      "jumeauCollab": 26904
+      "skillGroupId": 26400
     },
     {
       "id": 1988,
@@ -54198,8 +54146,7 @@
       "transformsTo": null,
       "swarfarmId": 1988,
       "familyId": 26400,
-      "skillGroupId": 26400,
-      "jumeauCollab": 26905
+      "skillGroupId": 26400
     },
     {
       "id": 1989,
@@ -54379,8 +54326,7 @@
       "transformsTo": null,
       "swarfarmId": 1994,
       "familyId": 26500,
-      "skillGroupId": 26500,
-      "jumeauCollab": 27001
+      "skillGroupId": 26500
     },
     {
       "id": 1995,
@@ -54405,8 +54351,7 @@
       "transformsTo": null,
       "swarfarmId": 1995,
       "familyId": 26500,
-      "skillGroupId": 26500,
-      "jumeauCollab": 27002
+      "skillGroupId": 26500
     },
     {
       "id": 1996,
@@ -54431,8 +54376,7 @@
       "transformsTo": null,
       "swarfarmId": 1996,
       "familyId": 26500,
-      "skillGroupId": 26500,
-      "jumeauCollab": 27003
+      "skillGroupId": 26500
     },
     {
       "id": 1997,
@@ -54457,8 +54401,7 @@
       "transformsTo": null,
       "swarfarmId": 1997,
       "familyId": 26500,
-      "skillGroupId": 26500,
-      "jumeauCollab": 27004
+      "skillGroupId": 26500
     },
     {
       "id": 1998,
@@ -54483,8 +54426,7 @@
       "transformsTo": null,
       "swarfarmId": 1998,
       "familyId": 26500,
-      "skillGroupId": 26500,
-      "jumeauCollab": 27005
+      "skillGroupId": 26500
     },
     {
       "id": 1999,
@@ -54639,8 +54581,7 @@
       "transformsTo": null,
       "swarfarmId": 2004,
       "familyId": 26600,
-      "skillGroupId": 26600,
-      "jumeauCollab": 27101
+      "skillGroupId": 26600
     },
     {
       "id": 2005,
@@ -54665,8 +54606,7 @@
       "transformsTo": null,
       "swarfarmId": 2005,
       "familyId": 26600,
-      "skillGroupId": 26600,
-      "jumeauCollab": 27102
+      "skillGroupId": 26600
     },
     {
       "id": 2006,
@@ -54691,8 +54631,7 @@
       "transformsTo": null,
       "swarfarmId": 2006,
       "familyId": 26600,
-      "skillGroupId": 26600,
-      "jumeauCollab": 27103
+      "skillGroupId": 26600
     },
     {
       "id": 2007,
@@ -54717,8 +54656,7 @@
       "transformsTo": null,
       "swarfarmId": 2007,
       "familyId": 26600,
-      "skillGroupId": 26600,
-      "jumeauCollab": 27104
+      "skillGroupId": 26600
     },
     {
       "id": 2008,
@@ -54743,8 +54681,7 @@
       "transformsTo": null,
       "swarfarmId": 2008,
       "familyId": 26600,
-      "skillGroupId": 26600,
-      "jumeauCollab": 27105
+      "skillGroupId": 26600
     },
     {
       "id": 2009,
@@ -54929,8 +54866,7 @@
       "transformsTo": null,
       "swarfarmId": 2014,
       "familyId": 26700,
-      "skillGroupId": 26200,
-      "jumeauCollab": 26203
+      "skillGroupId": 26200
     },
     {
       "id": 2015,
@@ -54991,8 +54927,7 @@
       "transformsTo": null,
       "swarfarmId": 2016,
       "familyId": 26800,
-      "skillGroupId": 26300,
-      "jumeauCollab": 26301
+      "skillGroupId": 26300
     },
     {
       "id": 2017,
@@ -55022,8 +54957,7 @@
       "transformsTo": null,
       "swarfarmId": 2017,
       "familyId": 26800,
-      "skillGroupId": 26300,
-      "jumeauCollab": 26302
+      "skillGroupId": 26300
     },
     {
       "id": 2018,
@@ -55053,8 +54987,7 @@
       "transformsTo": null,
       "swarfarmId": 2018,
       "familyId": 26800,
-      "skillGroupId": 26300,
-      "jumeauCollab": 26303
+      "skillGroupId": 26300
     },
     {
       "id": 2019,
@@ -55084,8 +55017,7 @@
       "transformsTo": null,
       "swarfarmId": 2019,
       "familyId": 26800,
-      "skillGroupId": 26300,
-      "jumeauCollab": 26304
+      "skillGroupId": 26300
     },
     {
       "id": 2020,
@@ -55115,8 +55047,7 @@
       "transformsTo": null,
       "swarfarmId": 2020,
       "familyId": 26800,
-      "skillGroupId": 26300,
-      "jumeauCollab": 26305
+      "skillGroupId": 26300
     },
     {
       "id": 2021,
@@ -55301,8 +55232,7 @@
       "transformsTo": null,
       "swarfarmId": 2026,
       "familyId": 26900,
-      "skillGroupId": 26400,
-      "jumeauCollab": 26401
+      "skillGroupId": 26400
     },
     {
       "id": 2027,
@@ -55332,8 +55262,7 @@
       "transformsTo": null,
       "swarfarmId": 2027,
       "familyId": 26900,
-      "skillGroupId": 26400,
-      "jumeauCollab": 26402
+      "skillGroupId": 26400
     },
     {
       "id": 2028,
@@ -55363,8 +55292,7 @@
       "transformsTo": null,
       "swarfarmId": 2028,
       "familyId": 26900,
-      "skillGroupId": 26400,
-      "jumeauCollab": 26403
+      "skillGroupId": 26400
     },
     {
       "id": 2029,
@@ -55394,8 +55322,7 @@
       "transformsTo": null,
       "swarfarmId": 2029,
       "familyId": 26900,
-      "skillGroupId": 26400,
-      "jumeauCollab": 26404
+      "skillGroupId": 26400
     },
     {
       "id": 2030,
@@ -55425,8 +55352,7 @@
       "transformsTo": null,
       "swarfarmId": 2030,
       "familyId": 26900,
-      "skillGroupId": 26400,
-      "jumeauCollab": 26405
+      "skillGroupId": 26400
     },
     {
       "id": 2031,
@@ -55606,8 +55532,7 @@
       "transformsTo": null,
       "swarfarmId": 2036,
       "familyId": 27000,
-      "skillGroupId": 26500,
-      "jumeauCollab": 26501
+      "skillGroupId": 26500
     },
     {
       "id": 2037,
@@ -55632,8 +55557,7 @@
       "transformsTo": null,
       "swarfarmId": 2037,
       "familyId": 27000,
-      "skillGroupId": 26500,
-      "jumeauCollab": 26502
+      "skillGroupId": 26500
     },
     {
       "id": 2038,
@@ -55658,8 +55582,7 @@
       "transformsTo": null,
       "swarfarmId": 2038,
       "familyId": 27000,
-      "skillGroupId": 26500,
-      "jumeauCollab": 26503
+      "skillGroupId": 26500
     },
     {
       "id": 2039,
@@ -55684,8 +55607,7 @@
       "transformsTo": null,
       "swarfarmId": 2039,
       "familyId": 27000,
-      "skillGroupId": 26500,
-      "jumeauCollab": 26504
+      "skillGroupId": 26500
     },
     {
       "id": 2040,
@@ -55710,8 +55632,7 @@
       "transformsTo": null,
       "swarfarmId": 2040,
       "familyId": 27000,
-      "skillGroupId": 26500,
-      "jumeauCollab": 26505
+      "skillGroupId": 26500
     },
     {
       "id": 2041,
@@ -55866,8 +55787,7 @@
       "transformsTo": null,
       "swarfarmId": 2046,
       "familyId": 27100,
-      "skillGroupId": 26600,
-      "jumeauCollab": 26601
+      "skillGroupId": 26600
     },
     {
       "id": 2047,
@@ -55892,8 +55812,7 @@
       "transformsTo": null,
       "swarfarmId": 2047,
       "familyId": 27100,
-      "skillGroupId": 26600,
-      "jumeauCollab": 26602
+      "skillGroupId": 26600
     },
     {
       "id": 2048,
@@ -55918,8 +55837,7 @@
       "transformsTo": null,
       "swarfarmId": 2048,
       "familyId": 27100,
-      "skillGroupId": 26600,
-      "jumeauCollab": 26603
+      "skillGroupId": 26600
     },
     {
       "id": 2049,
@@ -55944,8 +55862,7 @@
       "transformsTo": null,
       "swarfarmId": 2049,
       "familyId": 27100,
-      "skillGroupId": 26600,
-      "jumeauCollab": 26604
+      "skillGroupId": 26600
     },
     {
       "id": 2050,
@@ -55970,8 +55887,7 @@
       "transformsTo": null,
       "swarfarmId": 2050,
       "familyId": 27100,
-      "skillGroupId": 26600,
-      "jumeauCollab": 26605
+      "skillGroupId": 26600
     },
     {
       "id": 2051,
@@ -56676,8 +56592,7 @@
       "transformsTo": null,
       "swarfarmId": 2077,
       "familyId": 320000,
-      "skillGroupId": 320000,
-      "jumeauCollab": 320101
+      "skillGroupId": 320000
     },
     {
       "id": 2078,
@@ -56702,8 +56617,7 @@
       "transformsTo": null,
       "swarfarmId": 2078,
       "familyId": 320000,
-      "skillGroupId": 320000,
-      "jumeauCollab": 320102
+      "skillGroupId": 320000
     },
     {
       "id": 2079,
@@ -56728,8 +56642,7 @@
       "transformsTo": null,
       "swarfarmId": 2079,
       "familyId": 320100,
-      "skillGroupId": 320000,
-      "jumeauCollab": 320001
+      "skillGroupId": 320000
     },
     {
       "id": 2080,
@@ -56754,8 +56667,7 @@
       "transformsTo": null,
       "swarfarmId": 2080,
       "familyId": 320100,
-      "skillGroupId": 320000,
-      "jumeauCollab": 320002
+      "skillGroupId": 320000
     },
     {
       "id": 2081,
@@ -57160,8 +57072,7 @@
       "transformsTo": null,
       "swarfarmId": 2094,
       "familyId": 27300,
-      "skillGroupId": 27300,
-      "jumeauCollab": 27804
+      "skillGroupId": 27300
     },
     {
       "id": 2095,
@@ -57222,8 +57133,7 @@
       "transformsTo": null,
       "swarfarmId": 2096,
       "familyId": 27400,
-      "skillGroupId": 27400,
-      "jumeauCollab": 27901
+      "skillGroupId": 27400
     },
     {
       "id": 2097,
@@ -57253,8 +57163,7 @@
       "transformsTo": null,
       "swarfarmId": 2097,
       "familyId": 27400,
-      "skillGroupId": 27400,
-      "jumeauCollab": 27902
+      "skillGroupId": 27400
     },
     {
       "id": 2098,
@@ -57279,8 +57188,7 @@
       "transformsTo": null,
       "swarfarmId": 2098,
       "familyId": 27400,
-      "skillGroupId": 27400,
-      "jumeauCollab": 27903
+      "skillGroupId": 27400
     },
     {
       "id": 2099,
@@ -57310,8 +57218,7 @@
       "transformsTo": null,
       "swarfarmId": 2099,
       "familyId": 27400,
-      "skillGroupId": 27400,
-      "jumeauCollab": 27904
+      "skillGroupId": 27400
     },
     {
       "id": 2100,
@@ -57336,8 +57243,7 @@
       "transformsTo": null,
       "swarfarmId": 2100,
       "familyId": 27400,
-      "skillGroupId": 27400,
-      "jumeauCollab": 27905
+      "skillGroupId": 27400
     },
     {
       "id": 2101,
@@ -57517,8 +57423,7 @@
       "transformsTo": null,
       "swarfarmId": 2106,
       "familyId": 27500,
-      "skillGroupId": 27500,
-      "jumeauCollab": 28001
+      "skillGroupId": 27500
     },
     {
       "id": 2107,
@@ -57548,8 +57453,7 @@
       "transformsTo": null,
       "swarfarmId": 2107,
       "familyId": 27500,
-      "skillGroupId": 27500,
-      "jumeauCollab": 28002
+      "skillGroupId": 27500
     },
     {
       "id": 2108,
@@ -57579,8 +57483,7 @@
       "transformsTo": null,
       "swarfarmId": 2108,
       "familyId": 27500,
-      "skillGroupId": 27500,
-      "jumeauCollab": 28003
+      "skillGroupId": 27500
     },
     {
       "id": 2109,
@@ -57605,8 +57508,7 @@
       "transformsTo": null,
       "swarfarmId": 2109,
       "familyId": 27500,
-      "skillGroupId": 27500,
-      "jumeauCollab": 28004
+      "skillGroupId": 27500
     },
     {
       "id": 2110,
@@ -57636,8 +57538,7 @@
       "transformsTo": null,
       "swarfarmId": 2110,
       "familyId": 27500,
-      "skillGroupId": 27500,
-      "jumeauCollab": 28005
+      "skillGroupId": 27500
     },
     {
       "id": 2111,
@@ -57817,8 +57718,7 @@
       "transformsTo": null,
       "swarfarmId": 2116,
       "familyId": 27600,
-      "skillGroupId": 27600,
-      "jumeauCollab": 28101
+      "skillGroupId": 27600
     },
     {
       "id": 2117,
@@ -57843,8 +57743,7 @@
       "transformsTo": null,
       "swarfarmId": 2117,
       "familyId": 27600,
-      "skillGroupId": 27600,
-      "jumeauCollab": 28102
+      "skillGroupId": 27600
     },
     {
       "id": 2118,
@@ -57874,8 +57773,7 @@
       "transformsTo": null,
       "swarfarmId": 2118,
       "familyId": 27600,
-      "skillGroupId": 27600,
-      "jumeauCollab": 28103
+      "skillGroupId": 27600
     },
     {
       "id": 2119,
@@ -57900,8 +57798,7 @@
       "transformsTo": null,
       "swarfarmId": 2119,
       "familyId": 27600,
-      "skillGroupId": 27600,
-      "jumeauCollab": 28104
+      "skillGroupId": 27600
     },
     {
       "id": 2120,
@@ -57931,8 +57828,7 @@
       "transformsTo": null,
       "swarfarmId": 2120,
       "familyId": 27600,
-      "skillGroupId": 27600,
-      "jumeauCollab": 28105
+      "skillGroupId": 27600
     },
     {
       "id": 2121,
@@ -58117,8 +58013,7 @@
       "transformsTo": null,
       "swarfarmId": 2126,
       "familyId": 27700,
-      "skillGroupId": 27700,
-      "jumeauCollab": 28201
+      "skillGroupId": 27700
     },
     {
       "id": 2127,
@@ -58143,8 +58038,7 @@
       "transformsTo": null,
       "swarfarmId": 2127,
       "familyId": 27700,
-      "skillGroupId": 27700,
-      "jumeauCollab": 28202
+      "skillGroupId": 27700
     },
     {
       "id": 2128,
@@ -58169,8 +58063,7 @@
       "transformsTo": null,
       "swarfarmId": 2128,
       "familyId": 27700,
-      "skillGroupId": 27700,
-      "jumeauCollab": 28203
+      "skillGroupId": 27700
     },
     {
       "id": 2129,
@@ -58200,8 +58093,7 @@
       "transformsTo": null,
       "swarfarmId": 2129,
       "familyId": 27700,
-      "skillGroupId": 27700,
-      "jumeauCollab": 28204
+      "skillGroupId": 27700
     },
     {
       "id": 2130,
@@ -58226,8 +58118,7 @@
       "transformsTo": null,
       "swarfarmId": 2130,
       "familyId": 27700,
-      "skillGroupId": 27700,
-      "jumeauCollab": 28205
+      "skillGroupId": 27700
     },
     {
       "id": 2131,
@@ -58887,8 +58778,7 @@
       "transformsTo": null,
       "swarfarmId": 2155,
       "familyId": 27800,
-      "skillGroupId": 27300,
-      "jumeauCollab": 27304
+      "skillGroupId": 27300
     },
     {
       "id": 2156,
@@ -58949,8 +58839,7 @@
       "transformsTo": null,
       "swarfarmId": 2157,
       "familyId": 27900,
-      "skillGroupId": 27400,
-      "jumeauCollab": 27401
+      "skillGroupId": 27400
     },
     {
       "id": 2158,
@@ -58980,8 +58869,7 @@
       "transformsTo": null,
       "swarfarmId": 2158,
       "familyId": 27900,
-      "skillGroupId": 27400,
-      "jumeauCollab": 27402
+      "skillGroupId": 27400
     },
     {
       "id": 2159,
@@ -59006,8 +58894,7 @@
       "transformsTo": null,
       "swarfarmId": 2159,
       "familyId": 27900,
-      "skillGroupId": 27400,
-      "jumeauCollab": 27403
+      "skillGroupId": 27400
     },
     {
       "id": 2160,
@@ -59037,8 +58924,7 @@
       "transformsTo": null,
       "swarfarmId": 2160,
       "familyId": 27900,
-      "skillGroupId": 27400,
-      "jumeauCollab": 27404
+      "skillGroupId": 27400
     },
     {
       "id": 2161,
@@ -59063,8 +58949,7 @@
       "transformsTo": null,
       "swarfarmId": 2161,
       "familyId": 27900,
-      "skillGroupId": 27400,
-      "jumeauCollab": 27405
+      "skillGroupId": 27400
     },
     {
       "id": 2162,
@@ -59244,8 +59129,7 @@
       "transformsTo": null,
       "swarfarmId": 2167,
       "familyId": 28000,
-      "skillGroupId": 27500,
-      "jumeauCollab": 27501
+      "skillGroupId": 27500
     },
     {
       "id": 2168,
@@ -59275,8 +59159,7 @@
       "transformsTo": null,
       "swarfarmId": 2168,
       "familyId": 28000,
-      "skillGroupId": 27500,
-      "jumeauCollab": 27502
+      "skillGroupId": 27500
     },
     {
       "id": 2169,
@@ -59306,8 +59189,7 @@
       "transformsTo": null,
       "swarfarmId": 2169,
       "familyId": 28000,
-      "skillGroupId": 27500,
-      "jumeauCollab": 27503
+      "skillGroupId": 27500
     },
     {
       "id": 2170,
@@ -59332,8 +59214,7 @@
       "transformsTo": null,
       "swarfarmId": 2170,
       "familyId": 28000,
-      "skillGroupId": 27500,
-      "jumeauCollab": 27504
+      "skillGroupId": 27500
     },
     {
       "id": 2171,
@@ -59363,8 +59244,7 @@
       "transformsTo": null,
       "swarfarmId": 2171,
       "familyId": 28000,
-      "skillGroupId": 27500,
-      "jumeauCollab": 27505
+      "skillGroupId": 27500
     },
     {
       "id": 2172,
@@ -59544,8 +59424,7 @@
       "transformsTo": null,
       "swarfarmId": 2177,
       "familyId": 28100,
-      "skillGroupId": 27600,
-      "jumeauCollab": 27601
+      "skillGroupId": 27600
     },
     {
       "id": 2178,
@@ -59575,8 +59454,7 @@
       "transformsTo": null,
       "swarfarmId": 2178,
       "familyId": 28100,
-      "skillGroupId": 27600,
-      "jumeauCollab": 27602
+      "skillGroupId": 27600
     },
     {
       "id": 2179,
@@ -59606,8 +59484,7 @@
       "transformsTo": null,
       "swarfarmId": 2179,
       "familyId": 28100,
-      "skillGroupId": 27600,
-      "jumeauCollab": 27603
+      "skillGroupId": 27600
     },
     {
       "id": 2180,
@@ -59632,8 +59509,7 @@
       "transformsTo": null,
       "swarfarmId": 2180,
       "familyId": 28100,
-      "skillGroupId": 27600,
-      "jumeauCollab": 27604
+      "skillGroupId": 27600
     },
     {
       "id": 2181,
@@ -59663,8 +59539,7 @@
       "transformsTo": null,
       "swarfarmId": 2181,
       "familyId": 28100,
-      "skillGroupId": 27600,
-      "jumeauCollab": 27605
+      "skillGroupId": 27600
     },
     {
       "id": 2182,
@@ -59849,8 +59724,7 @@
       "transformsTo": null,
       "swarfarmId": 2187,
       "familyId": 28200,
-      "skillGroupId": 27700,
-      "jumeauCollab": 27701
+      "skillGroupId": 27700
     },
     {
       "id": 2188,
@@ -59875,8 +59749,7 @@
       "transformsTo": null,
       "swarfarmId": 2188,
       "familyId": 28200,
-      "skillGroupId": 27700,
-      "jumeauCollab": 27702
+      "skillGroupId": 27700
     },
     {
       "id": 2189,
@@ -59901,8 +59774,7 @@
       "transformsTo": null,
       "swarfarmId": 2189,
       "familyId": 28200,
-      "skillGroupId": 27700,
-      "jumeauCollab": 27703
+      "skillGroupId": 27700
     },
     {
       "id": 2190,
@@ -59932,8 +59804,7 @@
       "transformsTo": null,
       "swarfarmId": 2190,
       "familyId": 28200,
-      "skillGroupId": 27700,
-      "jumeauCollab": 27704
+      "skillGroupId": 27700
     },
     {
       "id": 2191,
@@ -59963,8 +59834,7 @@
       "transformsTo": null,
       "swarfarmId": 2191,
       "familyId": 28200,
-      "skillGroupId": 27700,
-      "jumeauCollab": 27705
+      "skillGroupId": 27700
     },
     {
       "id": 2192,
@@ -61244,8 +61114,7 @@
       "transformsTo": null,
       "swarfarmId": 2241,
       "familyId": 211200,
-      "skillGroupId": 211200,
-      "jumeauCollab": 211406
+      "skillGroupId": 211200
     },
     {
       "id": 2242,
@@ -61270,8 +61139,7 @@
       "transformsTo": null,
       "swarfarmId": 2242,
       "familyId": 211300,
-      "skillGroupId": 211300,
-      "jumeauCollab": 211506
+      "skillGroupId": 211300
     },
     {
       "id": 2243,
@@ -62806,8 +62674,7 @@
       "transformsTo": null,
       "swarfarmId": 2300,
       "familyId": 211400,
-      "skillGroupId": 211200,
-      "jumeauCollab": 211206
+      "skillGroupId": 211200
     },
     {
       "id": 2301,
@@ -62832,8 +62699,7 @@
       "transformsTo": null,
       "swarfarmId": 2301,
       "familyId": 211500,
-      "skillGroupId": 211300,
-      "jumeauCollab": 211306
+      "skillGroupId": 211300
     },
     {
       "id": 2302,
@@ -64163,8 +64029,7 @@
       "transformsTo": null,
       "swarfarmId": 2349,
       "familyId": 29200,
-      "skillGroupId": 29200,
-      "jumeauCollab": 29601
+      "skillGroupId": 29200
     },
     {
       "id": 2350,
@@ -64194,8 +64059,7 @@
       "transformsTo": null,
       "swarfarmId": 2350,
       "familyId": 29200,
-      "skillGroupId": 29200,
-      "jumeauCollab": 29602
+      "skillGroupId": 29200
     },
     {
       "id": 2351,
@@ -64225,8 +64089,7 @@
       "transformsTo": null,
       "swarfarmId": 2351,
       "familyId": 29200,
-      "skillGroupId": 29200,
-      "jumeauCollab": 29603
+      "skillGroupId": 29200
     },
     {
       "id": 2352,
@@ -64256,8 +64119,7 @@
       "transformsTo": null,
       "swarfarmId": 2352,
       "familyId": 29200,
-      "skillGroupId": 29200,
-      "jumeauCollab": 29604
+      "skillGroupId": 29200
     },
     {
       "id": 2353,
@@ -64287,8 +64149,7 @@
       "transformsTo": null,
       "swarfarmId": 2353,
       "familyId": 29200,
-      "skillGroupId": 29200,
-      "jumeauCollab": 29605
+      "skillGroupId": 29200
     },
     {
       "id": 2354,
@@ -64473,8 +64334,7 @@
       "transformsTo": null,
       "swarfarmId": 2359,
       "familyId": 29300,
-      "skillGroupId": 29300,
-      "jumeauCollab": 29701
+      "skillGroupId": 29300
     },
     {
       "id": 2360,
@@ -64499,8 +64359,7 @@
       "transformsTo": null,
       "swarfarmId": 2360,
       "familyId": 29300,
-      "skillGroupId": 29300,
-      "jumeauCollab": 29702
+      "skillGroupId": 29300
     },
     {
       "id": 2361,
@@ -64530,8 +64389,7 @@
       "transformsTo": null,
       "swarfarmId": 2361,
       "familyId": 29300,
-      "skillGroupId": 29300,
-      "jumeauCollab": 29703
+      "skillGroupId": 29300
     },
     {
       "id": 2362,
@@ -64561,8 +64419,7 @@
       "transformsTo": null,
       "swarfarmId": 2362,
       "familyId": 29300,
-      "skillGroupId": 29300,
-      "jumeauCollab": 29704
+      "skillGroupId": 29300
     },
     {
       "id": 2363,
@@ -64587,8 +64444,7 @@
       "transformsTo": null,
       "swarfarmId": 2363,
       "familyId": 29300,
-      "skillGroupId": 29300,
-      "jumeauCollab": 29705
+      "skillGroupId": 29300
     },
     {
       "id": 2364,
@@ -64773,8 +64629,7 @@
       "transformsTo": null,
       "swarfarmId": 2369,
       "familyId": 29400,
-      "skillGroupId": 29400,
-      "jumeauCollab": 29801
+      "skillGroupId": 29400
     },
     {
       "id": 2370,
@@ -64804,8 +64659,7 @@
       "transformsTo": null,
       "swarfarmId": 2370,
       "familyId": 29400,
-      "skillGroupId": 29400,
-      "jumeauCollab": 29802
+      "skillGroupId": 29400
     },
     {
       "id": 2371,
@@ -64830,8 +64684,7 @@
       "transformsTo": null,
       "swarfarmId": 2371,
       "familyId": 29400,
-      "skillGroupId": 29400,
-      "jumeauCollab": 29803
+      "skillGroupId": 29400
     },
     {
       "id": 2372,
@@ -64856,8 +64709,7 @@
       "transformsTo": null,
       "swarfarmId": 2372,
       "familyId": 29400,
-      "skillGroupId": 29400,
-      "jumeauCollab": 29804
+      "skillGroupId": 29400
     },
     {
       "id": 2373,
@@ -64887,8 +64739,7 @@
       "transformsTo": null,
       "swarfarmId": 2373,
       "familyId": 29400,
-      "skillGroupId": 29400,
-      "jumeauCollab": 29805
+      "skillGroupId": 29400
     },
     {
       "id": 2374,
@@ -65068,8 +64919,7 @@
       "transformsTo": null,
       "swarfarmId": 2379,
       "familyId": 29500,
-      "skillGroupId": 29500,
-      "jumeauCollab": 29901
+      "skillGroupId": 29500
     },
     {
       "id": 2380,
@@ -65099,8 +64949,7 @@
       "transformsTo": null,
       "swarfarmId": 2380,
       "familyId": 29500,
-      "skillGroupId": 29500,
-      "jumeauCollab": 29902
+      "skillGroupId": 29500
     },
     {
       "id": 2381,
@@ -65125,8 +64974,7 @@
       "transformsTo": null,
       "swarfarmId": 2381,
       "familyId": 29500,
-      "skillGroupId": 29500,
-      "jumeauCollab": 29903
+      "skillGroupId": 29500
     },
     {
       "id": 2382,
@@ -65156,8 +65004,7 @@
       "transformsTo": null,
       "swarfarmId": 2382,
       "familyId": 29500,
-      "skillGroupId": 29500,
-      "jumeauCollab": 29904
+      "skillGroupId": 29500
     },
     {
       "id": 2383,
@@ -65187,8 +65034,7 @@
       "transformsTo": null,
       "swarfarmId": 2383,
       "familyId": 29500,
-      "skillGroupId": 29500,
-      "jumeauCollab": 29905
+      "skillGroupId": 29500
     },
     {
       "id": 2384,
@@ -66048,8 +65894,7 @@
       "transformsTo": null,
       "swarfarmId": 2413,
       "familyId": 29600,
-      "skillGroupId": 29200,
-      "jumeauCollab": 29201
+      "skillGroupId": 29200
     },
     {
       "id": 2414,
@@ -66079,8 +65924,7 @@
       "transformsTo": null,
       "swarfarmId": 2414,
       "familyId": 29600,
-      "skillGroupId": 29200,
-      "jumeauCollab": 29202
+      "skillGroupId": 29200
     },
     {
       "id": 2415,
@@ -66110,8 +65954,7 @@
       "transformsTo": null,
       "swarfarmId": 2415,
       "familyId": 29600,
-      "skillGroupId": 29200,
-      "jumeauCollab": 29203
+      "skillGroupId": 29200
     },
     {
       "id": 2416,
@@ -66141,8 +65984,7 @@
       "transformsTo": null,
       "swarfarmId": 2416,
       "familyId": 29600,
-      "skillGroupId": 29200,
-      "jumeauCollab": 29204
+      "skillGroupId": 29200
     },
     {
       "id": 2417,
@@ -66172,8 +66014,7 @@
       "transformsTo": null,
       "swarfarmId": 2417,
       "familyId": 29600,
-      "skillGroupId": 29200,
-      "jumeauCollab": 29205
+      "skillGroupId": 29200
     },
     {
       "id": 2418,
@@ -66358,8 +66199,7 @@
       "transformsTo": null,
       "swarfarmId": 2423,
       "familyId": 29700,
-      "skillGroupId": 29300,
-      "jumeauCollab": 29301
+      "skillGroupId": 29300
     },
     {
       "id": 2424,
@@ -66384,8 +66224,7 @@
       "transformsTo": null,
       "swarfarmId": 2424,
       "familyId": 29700,
-      "skillGroupId": 29300,
-      "jumeauCollab": 29302
+      "skillGroupId": 29300
     },
     {
       "id": 2425,
@@ -66415,8 +66254,7 @@
       "transformsTo": null,
       "swarfarmId": 2425,
       "familyId": 29700,
-      "skillGroupId": 29300,
-      "jumeauCollab": 29303
+      "skillGroupId": 29300
     },
     {
       "id": 2426,
@@ -66446,8 +66284,7 @@
       "transformsTo": null,
       "swarfarmId": 2426,
       "familyId": 29700,
-      "skillGroupId": 29300,
-      "jumeauCollab": 29304
+      "skillGroupId": 29300
     },
     {
       "id": 2427,
@@ -66472,8 +66309,7 @@
       "transformsTo": null,
       "swarfarmId": 2427,
       "familyId": 29700,
-      "skillGroupId": 29300,
-      "jumeauCollab": 29305
+      "skillGroupId": 29300
     },
     {
       "id": 2428,
@@ -66658,8 +66494,7 @@
       "transformsTo": null,
       "swarfarmId": 2433,
       "familyId": 29800,
-      "skillGroupId": 29400,
-      "jumeauCollab": 29401
+      "skillGroupId": 29400
     },
     {
       "id": 2434,
@@ -66689,8 +66524,7 @@
       "transformsTo": null,
       "swarfarmId": 2434,
       "familyId": 29800,
-      "skillGroupId": 29400,
-      "jumeauCollab": 29402
+      "skillGroupId": 29400
     },
     {
       "id": 2435,
@@ -66715,8 +66549,7 @@
       "transformsTo": null,
       "swarfarmId": 2435,
       "familyId": 29800,
-      "skillGroupId": 29400,
-      "jumeauCollab": 29403
+      "skillGroupId": 29400
     },
     {
       "id": 2436,
@@ -66741,8 +66574,7 @@
       "transformsTo": null,
       "swarfarmId": 2436,
       "familyId": 29800,
-      "skillGroupId": 29400,
-      "jumeauCollab": 29404
+      "skillGroupId": 29400
     },
     {
       "id": 2437,
@@ -66772,8 +66604,7 @@
       "transformsTo": null,
       "swarfarmId": 2437,
       "familyId": 29800,
-      "skillGroupId": 29400,
-      "jumeauCollab": 29405
+      "skillGroupId": 29400
     },
     {
       "id": 2438,
@@ -66953,8 +66784,7 @@
       "transformsTo": null,
       "swarfarmId": 2443,
       "familyId": 29900,
-      "skillGroupId": 29500,
-      "jumeauCollab": 29501
+      "skillGroupId": 29500
     },
     {
       "id": 2444,
@@ -66984,8 +66814,7 @@
       "transformsTo": null,
       "swarfarmId": 2444,
       "familyId": 29900,
-      "skillGroupId": 29500,
-      "jumeauCollab": 29502
+      "skillGroupId": 29500
     },
     {
       "id": 2445,
@@ -67010,8 +66839,7 @@
       "transformsTo": null,
       "swarfarmId": 2445,
       "familyId": 29900,
-      "skillGroupId": 29500,
-      "jumeauCollab": 29503
+      "skillGroupId": 29500
     },
     {
       "id": 2446,
@@ -67041,8 +66869,7 @@
       "transformsTo": null,
       "swarfarmId": 2446,
       "familyId": 29900,
-      "skillGroupId": 29500,
-      "jumeauCollab": 29504
+      "skillGroupId": 29500
     },
     {
       "id": 2447,
@@ -67072,8 +66899,7 @@
       "transformsTo": null,
       "swarfarmId": 2447,
       "familyId": 29900,
-      "skillGroupId": 29500,
-      "jumeauCollab": 29505
+      "skillGroupId": 29500
     },
     {
       "id": 2448,
@@ -72295,8 +72121,7 @@
       "transformsTo": null,
       "swarfarmId": 2633,
       "familyId": 31700,
-      "skillGroupId": 31700,
-      "jumeauCollab": 32403
+      "skillGroupId": 31700
     },
     {
       "id": 2634,
@@ -72352,8 +72177,7 @@
       "transformsTo": null,
       "swarfarmId": 2635,
       "familyId": 31800,
-      "skillGroupId": 31800,
-      "jumeauCollab": 32501
+      "skillGroupId": 31800
     },
     {
       "id": 2636,
@@ -72383,8 +72207,7 @@
       "transformsTo": null,
       "swarfarmId": 2636,
       "familyId": 31800,
-      "skillGroupId": 31800,
-      "jumeauCollab": 32502
+      "skillGroupId": 31800
     },
     {
       "id": 2637,
@@ -72414,8 +72237,7 @@
       "transformsTo": null,
       "swarfarmId": 2637,
       "familyId": 31800,
-      "skillGroupId": 31800,
-      "jumeauCollab": 32503
+      "skillGroupId": 31800
     },
     {
       "id": 2638,
@@ -72445,8 +72267,7 @@
       "transformsTo": null,
       "swarfarmId": 2638,
       "familyId": 31800,
-      "skillGroupId": 31800,
-      "jumeauCollab": 32504
+      "skillGroupId": 31800
     },
     {
       "id": 2639,
@@ -72471,8 +72292,7 @@
       "transformsTo": null,
       "swarfarmId": 2639,
       "familyId": 31800,
-      "skillGroupId": 31800,
-      "jumeauCollab": 32505
+      "skillGroupId": 31800
     },
     {
       "id": 2640,
@@ -72657,8 +72477,7 @@
       "transformsTo": null,
       "swarfarmId": 2645,
       "familyId": 31900,
-      "skillGroupId": 31900,
-      "jumeauCollab": 32601
+      "skillGroupId": 31900
     },
     {
       "id": 2646,
@@ -72688,8 +72507,7 @@
       "transformsTo": null,
       "swarfarmId": 2646,
       "familyId": 31900,
-      "skillGroupId": 31900,
-      "jumeauCollab": 32602
+      "skillGroupId": 31900
     },
     {
       "id": 2647,
@@ -72714,8 +72532,7 @@
       "transformsTo": null,
       "swarfarmId": 2647,
       "familyId": 31900,
-      "skillGroupId": 31900,
-      "jumeauCollab": 32603
+      "skillGroupId": 31900
     },
     {
       "id": 2648,
@@ -72740,8 +72557,7 @@
       "transformsTo": null,
       "swarfarmId": 2648,
       "familyId": 31900,
-      "skillGroupId": 31900,
-      "jumeauCollab": 32604
+      "skillGroupId": 31900
     },
     {
       "id": 2649,
@@ -72771,8 +72587,7 @@
       "transformsTo": null,
       "swarfarmId": 2649,
       "familyId": 31900,
-      "skillGroupId": 31900,
-      "jumeauCollab": 32605
+      "skillGroupId": 31900
     },
     {
       "id": 2650,
@@ -73107,8 +72922,7 @@
       "transformsTo": null,
       "swarfarmId": 2660,
       "familyId": 32100,
-      "skillGroupId": 32100,
-      "jumeauCollab": 32801
+      "skillGroupId": 32100
     },
     {
       "id": 2661,
@@ -73138,8 +72952,7 @@
       "transformsTo": null,
       "swarfarmId": 2661,
       "familyId": 32100,
-      "skillGroupId": 32100,
-      "jumeauCollab": 32802
+      "skillGroupId": 32100
     },
     {
       "id": 2662,
@@ -73164,8 +72977,7 @@
       "transformsTo": null,
       "swarfarmId": 2662,
       "familyId": 32100,
-      "skillGroupId": 32100,
-      "jumeauCollab": 32803
+      "skillGroupId": 32100
     },
     {
       "id": 2663,
@@ -73195,8 +73007,7 @@
       "transformsTo": null,
       "swarfarmId": 2663,
       "familyId": 32100,
-      "skillGroupId": 32100,
-      "jumeauCollab": 32804
+      "skillGroupId": 32100
     },
     {
       "id": 2664,
@@ -73221,8 +73032,7 @@
       "transformsTo": null,
       "swarfarmId": 2664,
       "familyId": 32100,
-      "skillGroupId": 32100,
-      "jumeauCollab": 32805
+      "skillGroupId": 32100
     },
     {
       "id": 2665,
@@ -73402,8 +73212,7 @@
       "transformsTo": null,
       "swarfarmId": 2670,
       "familyId": 32200,
-      "skillGroupId": 32200,
-      "jumeauCollab": 32901
+      "skillGroupId": 32200
     },
     {
       "id": 2671,
@@ -73428,8 +73237,7 @@
       "transformsTo": null,
       "swarfarmId": 2671,
       "familyId": 32200,
-      "skillGroupId": 32200,
-      "jumeauCollab": 32902
+      "skillGroupId": 32200
     },
     {
       "id": 2672,
@@ -73454,8 +73262,7 @@
       "transformsTo": null,
       "swarfarmId": 2672,
       "familyId": 32200,
-      "skillGroupId": 32200,
-      "jumeauCollab": 32903
+      "skillGroupId": 32200
     },
     {
       "id": 2673,
@@ -73480,8 +73287,7 @@
       "transformsTo": null,
       "swarfarmId": 2673,
       "familyId": 32200,
-      "skillGroupId": 32200,
-      "jumeauCollab": 32904
+      "skillGroupId": 32200
     },
     {
       "id": 2674,
@@ -73506,8 +73312,7 @@
       "transformsTo": null,
       "swarfarmId": 2674,
       "familyId": 32200,
-      "skillGroupId": 32200,
-      "jumeauCollab": 32905
+      "skillGroupId": 32200
     },
     {
       "id": 2675,
@@ -73667,8 +73472,7 @@
       "transformsTo": null,
       "swarfarmId": 2680,
       "familyId": 32400,
-      "skillGroupId": 31700,
-      "jumeauCollab": 31703
+      "skillGroupId": 31700
     },
     {
       "id": 2681,
@@ -73724,8 +73528,7 @@
       "transformsTo": null,
       "swarfarmId": 2682,
       "familyId": 32500,
-      "skillGroupId": 31800,
-      "jumeauCollab": 31801
+      "skillGroupId": 31800
     },
     {
       "id": 2683,
@@ -73755,8 +73558,7 @@
       "transformsTo": null,
       "swarfarmId": 2683,
       "familyId": 32500,
-      "skillGroupId": 31800,
-      "jumeauCollab": 31802
+      "skillGroupId": 31800
     },
     {
       "id": 2684,
@@ -73786,8 +73588,7 @@
       "transformsTo": null,
       "swarfarmId": 2684,
       "familyId": 32500,
-      "skillGroupId": 31800,
-      "jumeauCollab": 31803
+      "skillGroupId": 31800
     },
     {
       "id": 2685,
@@ -73817,8 +73618,7 @@
       "transformsTo": null,
       "swarfarmId": 2685,
       "familyId": 32500,
-      "skillGroupId": 31800,
-      "jumeauCollab": 31804
+      "skillGroupId": 31800
     },
     {
       "id": 2686,
@@ -73843,8 +73643,7 @@
       "transformsTo": null,
       "swarfarmId": 2686,
       "familyId": 32500,
-      "skillGroupId": 31800,
-      "jumeauCollab": 31805
+      "skillGroupId": 31800
     },
     {
       "id": 2687,
@@ -74029,8 +73828,7 @@
       "transformsTo": null,
       "swarfarmId": 2692,
       "familyId": 32600,
-      "skillGroupId": 31900,
-      "jumeauCollab": 31901
+      "skillGroupId": 31900
     },
     {
       "id": 2693,
@@ -74060,8 +73858,7 @@
       "transformsTo": null,
       "swarfarmId": 2693,
       "familyId": 32600,
-      "skillGroupId": 31900,
-      "jumeauCollab": 31902
+      "skillGroupId": 31900
     },
     {
       "id": 2694,
@@ -74086,8 +73883,7 @@
       "transformsTo": null,
       "swarfarmId": 2694,
       "familyId": 32600,
-      "skillGroupId": 31900,
-      "jumeauCollab": 31903
+      "skillGroupId": 31900
     },
     {
       "id": 2695,
@@ -74112,8 +73908,7 @@
       "transformsTo": null,
       "swarfarmId": 2695,
       "familyId": 32600,
-      "skillGroupId": 31900,
-      "jumeauCollab": 31904
+      "skillGroupId": 31900
     },
     {
       "id": 2696,
@@ -74143,8 +73938,7 @@
       "transformsTo": null,
       "swarfarmId": 2696,
       "familyId": 32600,
-      "skillGroupId": 31900,
-      "jumeauCollab": 31905
+      "skillGroupId": 31900
     },
     {
       "id": 2697,
@@ -74329,8 +74123,7 @@
       "transformsTo": null,
       "swarfarmId": 2702,
       "familyId": 32800,
-      "skillGroupId": 32100,
-      "jumeauCollab": 32101
+      "skillGroupId": 32100
     },
     {
       "id": 2703,
@@ -74360,8 +74153,7 @@
       "transformsTo": null,
       "swarfarmId": 2703,
       "familyId": 32800,
-      "skillGroupId": 32100,
-      "jumeauCollab": 32102
+      "skillGroupId": 32100
     },
     {
       "id": 2704,
@@ -74386,8 +74178,7 @@
       "transformsTo": null,
       "swarfarmId": 2704,
       "familyId": 32800,
-      "skillGroupId": 32100,
-      "jumeauCollab": 32103
+      "skillGroupId": 32100
     },
     {
       "id": 2705,
@@ -74417,8 +74208,7 @@
       "transformsTo": null,
       "swarfarmId": 2705,
       "familyId": 32800,
-      "skillGroupId": 32100,
-      "jumeauCollab": 32104
+      "skillGroupId": 32100
     },
     {
       "id": 2706,
@@ -74443,8 +74233,7 @@
       "transformsTo": null,
       "swarfarmId": 2706,
       "familyId": 32800,
-      "skillGroupId": 32100,
-      "jumeauCollab": 32105
+      "skillGroupId": 32100
     },
     {
       "id": 2707,
@@ -74624,8 +74413,7 @@
       "transformsTo": null,
       "swarfarmId": 2712,
       "familyId": 32900,
-      "skillGroupId": 32200,
-      "jumeauCollab": 32201
+      "skillGroupId": 32200
     },
     {
       "id": 2713,
@@ -74650,8 +74438,7 @@
       "transformsTo": null,
       "swarfarmId": 2713,
       "familyId": 32900,
-      "skillGroupId": 32200,
-      "jumeauCollab": 32202
+      "skillGroupId": 32200
     },
     {
       "id": 2714,
@@ -74676,8 +74463,7 @@
       "transformsTo": null,
       "swarfarmId": 2714,
       "familyId": 32900,
-      "skillGroupId": 32200,
-      "jumeauCollab": 32203
+      "skillGroupId": 32200
     },
     {
       "id": 2715,
@@ -74702,8 +74488,7 @@
       "transformsTo": null,
       "swarfarmId": 2715,
       "familyId": 32900,
-      "skillGroupId": 32200,
-      "jumeauCollab": 32204
+      "skillGroupId": 32200
     },
     {
       "id": 2716,
@@ -74728,8 +74513,7 @@
       "transformsTo": null,
       "swarfarmId": 2716,
       "familyId": 32900,
-      "skillGroupId": 32200,
-      "jumeauCollab": 32205
+      "skillGroupId": 32200
     },
     {
       "id": 2717,
@@ -75189,8 +74973,7 @@
       "transformsTo": null,
       "swarfarmId": 2732,
       "familyId": 33000,
-      "skillGroupId": 33000,
-      "jumeauCollab": 33502
+      "skillGroupId": 33000
     },
     {
       "id": 2733,
@@ -75246,8 +75029,7 @@
       "transformsTo": null,
       "swarfarmId": 2734,
       "familyId": 33100,
-      "skillGroupId": 33100,
-      "jumeauCollab": 33601
+      "skillGroupId": 33100
     },
     {
       "id": 2735,
@@ -75277,8 +75059,7 @@
       "transformsTo": null,
       "swarfarmId": 2735,
       "familyId": 33100,
-      "skillGroupId": 33100,
-      "jumeauCollab": 33602
+      "skillGroupId": 33100
     },
     {
       "id": 2736,
@@ -75308,8 +75089,7 @@
       "transformsTo": null,
       "swarfarmId": 2736,
       "familyId": 33100,
-      "skillGroupId": 33100,
-      "jumeauCollab": 33603
+      "skillGroupId": 33100
     },
     {
       "id": 2737,
@@ -75334,8 +75114,7 @@
       "transformsTo": null,
       "swarfarmId": 2737,
       "familyId": 33100,
-      "skillGroupId": 33100,
-      "jumeauCollab": 33604
+      "skillGroupId": 33100
     },
     {
       "id": 2738,
@@ -75365,8 +75144,7 @@
       "transformsTo": null,
       "swarfarmId": 2738,
       "familyId": 33100,
-      "skillGroupId": 33100,
-      "jumeauCollab": 33605
+      "skillGroupId": 33100
     },
     {
       "id": 2739,
@@ -75551,8 +75329,7 @@
       "transformsTo": null,
       "swarfarmId": 2744,
       "familyId": 33200,
-      "skillGroupId": 33200,
-      "jumeauCollab": 33701
+      "skillGroupId": 33200
     },
     {
       "id": 2745,
@@ -75577,8 +75354,7 @@
       "transformsTo": null,
       "swarfarmId": 2745,
       "familyId": 33200,
-      "skillGroupId": 33200,
-      "jumeauCollab": 33702
+      "skillGroupId": 33200
     },
     {
       "id": 2746,
@@ -75608,8 +75384,7 @@
       "transformsTo": null,
       "swarfarmId": 2746,
       "familyId": 33200,
-      "skillGroupId": 33200,
-      "jumeauCollab": 33703
+      "skillGroupId": 33200
     },
     {
       "id": 2747,
@@ -75639,8 +75414,7 @@
       "transformsTo": null,
       "swarfarmId": 2747,
       "familyId": 33200,
-      "skillGroupId": 33200,
-      "jumeauCollab": 33704
+      "skillGroupId": 33200
     },
     {
       "id": 2748,
@@ -75665,8 +75439,7 @@
       "transformsTo": null,
       "swarfarmId": 2748,
       "familyId": 33200,
-      "skillGroupId": 33200,
-      "jumeauCollab": 33705
+      "skillGroupId": 33200
     },
     {
       "id": 2749,
@@ -75851,8 +75624,7 @@
       "transformsTo": null,
       "swarfarmId": 2754,
       "familyId": 33300,
-      "skillGroupId": 33300,
-      "jumeauCollab": 33801
+      "skillGroupId": 33300
     },
     {
       "id": 2755,
@@ -75882,8 +75654,7 @@
       "transformsTo": null,
       "swarfarmId": 2755,
       "familyId": 33300,
-      "skillGroupId": 33300,
-      "jumeauCollab": 33802
+      "skillGroupId": 33300
     },
     {
       "id": 2756,
@@ -75913,8 +75684,7 @@
       "transformsTo": null,
       "swarfarmId": 2756,
       "familyId": 33300,
-      "skillGroupId": 33300,
-      "jumeauCollab": 33803
+      "skillGroupId": 33300
     },
     {
       "id": 2757,
@@ -75939,8 +75709,7 @@
       "transformsTo": null,
       "swarfarmId": 2757,
       "familyId": 33300,
-      "skillGroupId": 33300,
-      "jumeauCollab": 33804
+      "skillGroupId": 33300
     },
     {
       "id": 2758,
@@ -75965,8 +75734,7 @@
       "transformsTo": null,
       "swarfarmId": 2758,
       "familyId": 33300,
-      "skillGroupId": 33300,
-      "jumeauCollab": 33805
+      "skillGroupId": 33300
     },
     {
       "id": 2759,
@@ -76151,8 +75919,7 @@
       "transformsTo": null,
       "swarfarmId": 2764,
       "familyId": 33400,
-      "skillGroupId": 33400,
-      "jumeauCollab": 33901
+      "skillGroupId": 33400
     },
     {
       "id": 2765,
@@ -76177,8 +75944,7 @@
       "transformsTo": null,
       "swarfarmId": 2765,
       "familyId": 33400,
-      "skillGroupId": 33400,
-      "jumeauCollab": 33902
+      "skillGroupId": 33400
     },
     {
       "id": 2766,
@@ -76203,8 +75969,7 @@
       "transformsTo": null,
       "swarfarmId": 2766,
       "familyId": 33400,
-      "skillGroupId": 33400,
-      "jumeauCollab": 33903
+      "skillGroupId": 33400
     },
     {
       "id": 2767,
@@ -76234,8 +75999,7 @@
       "transformsTo": null,
       "swarfarmId": 2767,
       "familyId": 33400,
-      "skillGroupId": 33400,
-      "jumeauCollab": 33904
+      "skillGroupId": 33400
     },
     {
       "id": 2768,
@@ -76265,8 +76029,7 @@
       "transformsTo": null,
       "swarfarmId": 2768,
       "familyId": 33400,
-      "skillGroupId": 33400,
-      "jumeauCollab": 33905
+      "skillGroupId": 33400
     },
     {
       "id": 2769,
@@ -77726,8 +77489,7 @@
       "transformsTo": null,
       "swarfarmId": 2822,
       "familyId": 33500,
-      "skillGroupId": 33000,
-      "jumeauCollab": 33002
+      "skillGroupId": 33000
     },
     {
       "id": 2823,
@@ -77783,8 +77545,7 @@
       "transformsTo": null,
       "swarfarmId": 2824,
       "familyId": 33600,
-      "skillGroupId": 33100,
-      "jumeauCollab": 33101
+      "skillGroupId": 33100
     },
     {
       "id": 2825,
@@ -77814,8 +77575,7 @@
       "transformsTo": null,
       "swarfarmId": 2825,
       "familyId": 33600,
-      "skillGroupId": 33100,
-      "jumeauCollab": 33102
+      "skillGroupId": 33100
     },
     {
       "id": 2826,
@@ -77845,8 +77605,7 @@
       "transformsTo": null,
       "swarfarmId": 2826,
       "familyId": 33600,
-      "skillGroupId": 33100,
-      "jumeauCollab": 33103
+      "skillGroupId": 33100
     },
     {
       "id": 2827,
@@ -77871,8 +77630,7 @@
       "transformsTo": null,
       "swarfarmId": 2827,
       "familyId": 33600,
-      "skillGroupId": 33100,
-      "jumeauCollab": 33104
+      "skillGroupId": 33100
     },
     {
       "id": 2828,
@@ -77902,8 +77660,7 @@
       "transformsTo": null,
       "swarfarmId": 2828,
       "familyId": 33600,
-      "skillGroupId": 33100,
-      "jumeauCollab": 33105
+      "skillGroupId": 33100
     },
     {
       "id": 2829,
@@ -78088,8 +77845,7 @@
       "transformsTo": null,
       "swarfarmId": 2834,
       "familyId": 33700,
-      "skillGroupId": 33200,
-      "jumeauCollab": 33201
+      "skillGroupId": 33200
     },
     {
       "id": 2835,
@@ -78114,8 +77870,7 @@
       "transformsTo": null,
       "swarfarmId": 2835,
       "familyId": 33700,
-      "skillGroupId": 33200,
-      "jumeauCollab": 33202
+      "skillGroupId": 33200
     },
     {
       "id": 2836,
@@ -78145,8 +77900,7 @@
       "transformsTo": null,
       "swarfarmId": 2836,
       "familyId": 33700,
-      "skillGroupId": 33200,
-      "jumeauCollab": 33203
+      "skillGroupId": 33200
     },
     {
       "id": 2837,
@@ -78176,8 +77930,7 @@
       "transformsTo": null,
       "swarfarmId": 2837,
       "familyId": 33700,
-      "skillGroupId": 33200,
-      "jumeauCollab": 33204
+      "skillGroupId": 33200
     },
     {
       "id": 2838,
@@ -78202,8 +77955,7 @@
       "transformsTo": null,
       "swarfarmId": 2838,
       "familyId": 33700,
-      "skillGroupId": 33200,
-      "jumeauCollab": 33205
+      "skillGroupId": 33200
     },
     {
       "id": 2839,
@@ -78388,8 +78140,7 @@
       "transformsTo": null,
       "swarfarmId": 2844,
       "familyId": 33800,
-      "skillGroupId": 33300,
-      "jumeauCollab": 33301
+      "skillGroupId": 33300
     },
     {
       "id": 2845,
@@ -78419,8 +78170,7 @@
       "transformsTo": null,
       "swarfarmId": 2845,
       "familyId": 33800,
-      "skillGroupId": 33300,
-      "jumeauCollab": 33302
+      "skillGroupId": 33300
     },
     {
       "id": 2846,
@@ -78450,8 +78200,7 @@
       "transformsTo": null,
       "swarfarmId": 2846,
       "familyId": 33800,
-      "skillGroupId": 33300,
-      "jumeauCollab": 33303
+      "skillGroupId": 33300
     },
     {
       "id": 2847,
@@ -78476,8 +78225,7 @@
       "transformsTo": null,
       "swarfarmId": 2847,
       "familyId": 33800,
-      "skillGroupId": 33300,
-      "jumeauCollab": 33304
+      "skillGroupId": 33300
     },
     {
       "id": 2848,
@@ -78502,8 +78250,7 @@
       "transformsTo": null,
       "swarfarmId": 2848,
       "familyId": 33800,
-      "skillGroupId": 33300,
-      "jumeauCollab": 33305
+      "skillGroupId": 33300
     },
     {
       "id": 2849,
@@ -78688,8 +78435,7 @@
       "transformsTo": null,
       "swarfarmId": 2854,
       "familyId": 33900,
-      "skillGroupId": 33400,
-      "jumeauCollab": 33401
+      "skillGroupId": 33400
     },
     {
       "id": 2855,
@@ -78714,8 +78460,7 @@
       "transformsTo": null,
       "swarfarmId": 2855,
       "familyId": 33900,
-      "skillGroupId": 33400,
-      "jumeauCollab": 33402
+      "skillGroupId": 33400
     },
     {
       "id": 2856,
@@ -78740,8 +78485,7 @@
       "transformsTo": null,
       "swarfarmId": 2856,
       "familyId": 33900,
-      "skillGroupId": 33400,
-      "jumeauCollab": 33403
+      "skillGroupId": 33400
     },
     {
       "id": 2857,
@@ -78771,8 +78515,7 @@
       "transformsTo": null,
       "swarfarmId": 2857,
       "familyId": 33900,
-      "skillGroupId": 33400,
-      "jumeauCollab": 33404
+      "skillGroupId": 33400
     },
     {
       "id": 2858,
@@ -78802,8 +78545,7 @@
       "transformsTo": null,
       "swarfarmId": 2858,
       "familyId": 33900,
-      "skillGroupId": 33400,
-      "jumeauCollab": 33405
+      "skillGroupId": 33400
     },
     {
       "id": 2859,
@@ -79433,8 +79175,7 @@
       "transformsTo": null,
       "swarfarmId": 2880,
       "familyId": 34300,
-      "skillGroupId": 34300,
-      "jumeauCollab": 34901
+      "skillGroupId": 34300
     },
     {
       "id": 2881,
@@ -79495,8 +79236,7 @@
       "transformsTo": null,
       "swarfarmId": 2882,
       "familyId": 34400,
-      "skillGroupId": 34400,
-      "jumeauCollab": 35001
+      "skillGroupId": 34400
     },
     {
       "id": 2883,
@@ -79526,8 +79266,7 @@
       "transformsTo": null,
       "swarfarmId": 2883,
       "familyId": 34400,
-      "skillGroupId": 34400,
-      "jumeauCollab": 35002
+      "skillGroupId": 34400
     },
     {
       "id": 2884,
@@ -79557,8 +79296,7 @@
       "transformsTo": null,
       "swarfarmId": 2884,
       "familyId": 34400,
-      "skillGroupId": 34400,
-      "jumeauCollab": 35003
+      "skillGroupId": 34400
     },
     {
       "id": 2885,
@@ -79588,8 +79326,7 @@
       "transformsTo": null,
       "swarfarmId": 2885,
       "familyId": 34400,
-      "skillGroupId": 34400,
-      "jumeauCollab": 35004
+      "skillGroupId": 34400
     },
     {
       "id": 2886,
@@ -79619,8 +79356,7 @@
       "transformsTo": null,
       "swarfarmId": 2886,
       "familyId": 34400,
-      "skillGroupId": 34400,
-      "jumeauCollab": 35005
+      "skillGroupId": 34400
     },
     {
       "id": 2887,
@@ -79836,8 +79572,7 @@
       "transformsTo": null,
       "swarfarmId": 2893,
       "familyId": 34600,
-      "skillGroupId": 34600,
-      "jumeauCollab": 35201
+      "skillGroupId": 34600
     },
     {
       "id": 2894,
@@ -79867,8 +79602,7 @@
       "transformsTo": null,
       "swarfarmId": 2894,
       "familyId": 34600,
-      "skillGroupId": 34600,
-      "jumeauCollab": 35202
+      "skillGroupId": 34600
     },
     {
       "id": 2895,
@@ -79893,8 +79627,7 @@
       "transformsTo": null,
       "swarfarmId": 2895,
       "familyId": 34600,
-      "skillGroupId": 34600,
-      "jumeauCollab": 35203
+      "skillGroupId": 34600
     },
     {
       "id": 2896,
@@ -79919,8 +79652,7 @@
       "transformsTo": null,
       "swarfarmId": 2896,
       "familyId": 34600,
-      "skillGroupId": 34600,
-      "jumeauCollab": 35204
+      "skillGroupId": 34600
     },
     {
       "id": 2897,
@@ -79950,8 +79682,7 @@
       "transformsTo": null,
       "swarfarmId": 2897,
       "familyId": 34600,
-      "skillGroupId": 34600,
-      "jumeauCollab": 35205
+      "skillGroupId": 34600
     },
     {
       "id": 2898,
@@ -80131,8 +79862,7 @@
       "transformsTo": null,
       "swarfarmId": 2903,
       "familyId": 34700,
-      "skillGroupId": 34700,
-      "jumeauCollab": 35301
+      "skillGroupId": 34700
     },
     {
       "id": 2904,
@@ -80162,8 +79892,7 @@
       "transformsTo": null,
       "swarfarmId": 2904,
       "familyId": 34700,
-      "skillGroupId": 34700,
-      "jumeauCollab": 35302
+      "skillGroupId": 34700
     },
     {
       "id": 2905,
@@ -80193,8 +79922,7 @@
       "transformsTo": null,
       "swarfarmId": 2905,
       "familyId": 34700,
-      "skillGroupId": 34700,
-      "jumeauCollab": 35303
+      "skillGroupId": 34700
     },
     {
       "id": 2906,
@@ -80224,8 +79952,7 @@
       "transformsTo": null,
       "swarfarmId": 2906,
       "familyId": 34700,
-      "skillGroupId": 34700,
-      "jumeauCollab": 35304
+      "skillGroupId": 34700
     },
     {
       "id": 2907,
@@ -80250,8 +79977,7 @@
       "transformsTo": null,
       "swarfarmId": 2907,
       "familyId": 34700,
-      "skillGroupId": 34700,
-      "jumeauCollab": 35305
+      "skillGroupId": 34700
     },
     {
       "id": 2908,
@@ -82256,8 +81982,7 @@
       "transformsTo": null,
       "swarfarmId": 2983,
       "familyId": 34900,
-      "skillGroupId": 34300,
-      "jumeauCollab": 34301
+      "skillGroupId": 34300
     },
     {
       "id": 2984,
@@ -82318,8 +82043,7 @@
       "transformsTo": null,
       "swarfarmId": 2985,
       "familyId": 35000,
-      "skillGroupId": 34400,
-      "jumeauCollab": 34401
+      "skillGroupId": 34400
     },
     {
       "id": 2986,
@@ -82349,8 +82073,7 @@
       "transformsTo": null,
       "swarfarmId": 2986,
       "familyId": 35000,
-      "skillGroupId": 34400,
-      "jumeauCollab": 34402
+      "skillGroupId": 34400
     },
     {
       "id": 2987,
@@ -82380,8 +82103,7 @@
       "transformsTo": null,
       "swarfarmId": 2987,
       "familyId": 35000,
-      "skillGroupId": 34400,
-      "jumeauCollab": 34403
+      "skillGroupId": 34400
     },
     {
       "id": 2988,
@@ -82411,8 +82133,7 @@
       "transformsTo": null,
       "swarfarmId": 2988,
       "familyId": 35000,
-      "skillGroupId": 34400,
-      "jumeauCollab": 34404
+      "skillGroupId": 34400
     },
     {
       "id": 2989,
@@ -82442,8 +82163,7 @@
       "transformsTo": null,
       "swarfarmId": 2989,
       "familyId": 35000,
-      "skillGroupId": 34400,
-      "jumeauCollab": 34405
+      "skillGroupId": 34400
     },
     {
       "id": 2990,
@@ -82659,8 +82379,7 @@
       "transformsTo": null,
       "swarfarmId": 2996,
       "familyId": 35200,
-      "skillGroupId": 34600,
-      "jumeauCollab": 34601
+      "skillGroupId": 34600
     },
     {
       "id": 2997,
@@ -82690,8 +82409,7 @@
       "transformsTo": null,
       "swarfarmId": 2997,
       "familyId": 35200,
-      "skillGroupId": 34600,
-      "jumeauCollab": 34602
+      "skillGroupId": 34600
     },
     {
       "id": 2998,
@@ -82716,8 +82434,7 @@
       "transformsTo": null,
       "swarfarmId": 2998,
       "familyId": 35200,
-      "skillGroupId": 34600,
-      "jumeauCollab": 34603
+      "skillGroupId": 34600
     },
     {
       "id": 2999,
@@ -82742,8 +82459,7 @@
       "transformsTo": null,
       "swarfarmId": 2999,
       "familyId": 35200,
-      "skillGroupId": 34600,
-      "jumeauCollab": 34604
+      "skillGroupId": 34600
     },
     {
       "id": 3000,
@@ -82773,8 +82489,7 @@
       "transformsTo": null,
       "swarfarmId": 3000,
       "familyId": 35200,
-      "skillGroupId": 34600,
-      "jumeauCollab": 34605
+      "skillGroupId": 34600
     },
     {
       "id": 3001,
@@ -82954,8 +82669,7 @@
       "transformsTo": null,
       "swarfarmId": 3006,
       "familyId": 35300,
-      "skillGroupId": 34700,
-      "jumeauCollab": 34701
+      "skillGroupId": 34700
     },
     {
       "id": 3007,
@@ -82985,8 +82699,7 @@
       "transformsTo": null,
       "swarfarmId": 3007,
       "familyId": 35300,
-      "skillGroupId": 34700,
-      "jumeauCollab": 34702
+      "skillGroupId": 34700
     },
     {
       "id": 3008,
@@ -83016,8 +82729,7 @@
       "transformsTo": null,
       "swarfarmId": 3008,
       "familyId": 35300,
-      "skillGroupId": 34700,
-      "jumeauCollab": 34703
+      "skillGroupId": 34700
     },
     {
       "id": 3009,
@@ -83047,8 +82759,7 @@
       "transformsTo": null,
       "swarfarmId": 3009,
       "familyId": 35300,
-      "skillGroupId": 34700,
-      "jumeauCollab": 34704
+      "skillGroupId": 34700
     },
     {
       "id": 3010,
@@ -83073,8 +82784,7 @@
       "transformsTo": null,
       "swarfarmId": 3010,
       "familyId": 35300,
-      "skillGroupId": 34700,
-      "jumeauCollab": 34705
+      "skillGroupId": 34700
     },
     {
       "id": 3011,

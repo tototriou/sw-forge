@@ -19,8 +19,18 @@ async function main() {
   const brut = JSON.parse(await readFile(MONSTERS_JSON, 'utf8'));
   const liste = Array.isArray(brut) ? brut : (brut.monsters ?? []);
 
+  // ⚠️ **Les formes ÉVEILLÉES seulement.** Les entrées non éveillées d'une
+  // collaboration portent des noms COREENS chez SWARFARM (« 에이보르(물) »
+  // pour Eivor eau) : appariées, elles produisaient des cartes titrées
+  // « Mercenary Queen, 에이보르(물) ». Et elles ne servent à rien ici — on ne
+  // joue que des monstres éveillés, et la box n'en contient aucune (elle filtre
+  // sur `class === 6`).
+  //
+  // L'éveil se lit `stars > naturalStars` : un nat4 éveillé plafonne à 5★, un
+  // test sur 6★ écarterait la moitié des candidats.
   const candidats = liste
     .filter((m) => m.com2usId != null)
+    .filter((m) => m.stars != null && m.naturalStars != null && m.stars > m.naturalStars)
     .map((m) => ({
       com2usId: m.com2usId,
       familyId: m.familyId ?? null,

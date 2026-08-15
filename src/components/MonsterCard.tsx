@@ -57,6 +57,8 @@ function initials(name: string) {
 export default function MonsterCard({
   monster,
   jumeau,
+  possede = true,
+  jumeauPossede = true,
   onOpen,
   count,
   showStars = true,
@@ -66,6 +68,11 @@ export default function MonsterCard({
   // deux partagent une seule carte : portrait coupé verticalement, noms séparés
   // d'une virgule. Absent = monstre ordinaire, rendu inchangé.
   jumeau?: Monster | null;
+  // Chacune des deux faces d'une paire est-elle DANS LA BOX ? La moitié qu'on
+  // n'a pas est grisée. ⚠️ La box seule le sait — le bestiaire ignore ce qu'on
+  // possède, et laisse donc les deux en couleur (défaut).
+  possede?: boolean;
+  jumeauPossede?: boolean;
   // Ouvre la fiche complète. Absent = carte non cliquable (aucun appelant n'est
   // dans ce cas aujourd'hui, mais la prop reste facultative pour ne pas imposer
   // une fiche à un futur usage purement décoratif).
@@ -122,13 +129,13 @@ export default function MonsterCard({
         >
           <div className="hex-frame relative w-full h-full bg-panel2 flex items-center justify-center overflow-hidden">
             {showImage ? (
-              <>
-                <CollabPortrait
-                  monster={monster}
-                  jumeau={jumeau}
-                  onError={() => setImgFailed(true)}
-                />
-              </>
+              <CollabPortrait
+                monster={monster}
+                jumeau={jumeau}
+                possede={possede}
+                jumeauPossede={jumeauPossede}
+                onError={() => setImgFailed(true)}
+              />
             ) : (
               <span className={`font-display font-bold text-lg ${TEXT[monster.element]}`}>
                 {initials(monster.name)}
@@ -167,6 +174,10 @@ export default function MonsterCard({
           C'est la question qu'on se pose devant la carte — « lequel est-ce ? » —
           et n'en montrer qu'un obligerait à savoir de tête que l'autre existe.
           `libelleCollab` n'écrit qu'une fois les noms identiques (Vendhan). */}
+      {/* ⚠️ Les deux noms restent EN PLEIN, même quand une seule face est
+          possédée : ils disent ce que le monstre EST, pas ce qu'on en a. La
+          moitié grisée du portrait porte déjà cette information, et ternir le
+          nom par-dessus le rendait juste moins lisible. */}
       <div className="text-[12px] font-semibold leading-tight line-clamp-2">
         {jumeau ? libelleCollab(monster.name, jumeau.name) : monster.name}
       </div>

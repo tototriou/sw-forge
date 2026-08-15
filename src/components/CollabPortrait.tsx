@@ -18,11 +18,26 @@ import { Monster } from '../types';
 export default function CollabPortrait({
   monster,
   jumeau,
+  jumeauPossede = true,
+  possede = true,
   onError,
 }: {
   monster: Monster;
   // Absent (ou sans image) : portrait ordinaire, non découpé.
   jumeau?: Monster | null;
+  // ⚠️ Chaque moitié dit si CETTE face-là est dans la box. Une paire de collab
+  // se recrute par un côté ou par l'autre : posséder Aragorn ne donne pas Night
+  // Fang. Montrer les deux visages en couleur laissait croire qu'on avait les
+  // deux, alors que la carte n'en représente qu'un.
+  //
+  // La moitié qu'on n'a pas passe en NUANCES DE GRIS, sans disparaître : elle
+  // dit « ce monstre existe aussi sous ce nom », ce qui est justement ce qu'on
+  // vient chercher. L'effacer reviendrait à cacher la moitié de l'information.
+  //
+  // Par défaut les deux sont « possédées » — le Bestiaire, lui, ne sait pas ce
+  // qu'on a, et n'y grise donc rien.
+  possede?: boolean;
+  jumeauPossede?: boolean;
   // La carte s'en sert pour retomber sur les initiales quand l'image casse.
   onError?: () => void;
 }) {
@@ -35,7 +50,7 @@ export default function CollabPortrait({
         alt={monster.name}
         loading="lazy"
         onError={onError}
-        className="h-full w-full object-cover"
+        className={`h-full w-full object-cover ${partage && !possede ? 'grayscale' : ''}`}
         style={partage ? { objectPosition: '30% center' } : undefined}
       />
       {partage && (
@@ -44,7 +59,9 @@ export default function CollabPortrait({
             src={jumeau!.image!}
             alt={jumeau!.name}
             loading="lazy"
-            className="absolute inset-0 h-full w-full object-cover"
+            className={`absolute inset-0 h-full w-full object-cover ${
+              jumeauPossede ? '' : 'grayscale'
+            }`}
             style={{
               clipPath: 'polygon(50% 0, 100% 0, 100% 100%, 50% 100%)',
               objectPosition: '70% center',

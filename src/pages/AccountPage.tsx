@@ -112,6 +112,18 @@ function MonsterBoxSection({ box, allMonsters = [] }: { box: BoxItem[]; allMonst
       .sort((a, b) => cmp(a.monster, b.monster));
   }, [box, sortMode]);
 
+  // Les `com2usId` réellement PRÉSENTS dans la box, avant toute déduplication.
+  //
+  // ⚠️ Une paire de collaboration se recrute par un côté OU par l'autre :
+  // posséder Aragorn ne donne pas Night Fang. La carte montre les deux visages,
+  // et sans cet ensemble elle les montrait tous les deux en couleur — on croyait
+  // avoir les deux monstres alors qu'on n'en a qu'un.
+  const possedes = useMemo(() => {
+    const ids = new Set<number>();
+    for (const it of box) if (it.monster.com2usId != null) ids.add(it.monster.com2usId);
+    return ids;
+  }, [box]);
+
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
     return entries.filter((e) => {
@@ -265,6 +277,8 @@ function MonsterBoxSection({ box, allMonsters = [] }: { box: BoxItem[]; allMonst
                 key={e.monster.id}
                 monster={e.monster}
                 jumeau={jumeauDeCollab(e.monster, allMonsters)}
+                possede={e.monster.com2usId == null || possedes.has(e.monster.com2usId)}
+                jumeauPossede={e.monster.jumeauCollab == null || possedes.has(e.monster.jumeauCollab)}
                 count={e.count}
                 // Tout est 6★ dans la box : la rangée d'étoiles n'apprendrait
                 // rien et se répéterait 300 fois.

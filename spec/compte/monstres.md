@@ -84,6 +84,14 @@ coups, effets appliqués avec leur taux, et ce qu'apporte chaque amélioration.
   avec chacune sa formule, ses effets et ses sept niveaux d'amélioration
   repousseraient la grille de plusieurs écrans — on perdrait le monstre qu'on
   vient de cliquer.
+- ⚠️ Les **stats sont EN COLONNE**, une par ligne, et non en grille 2×4 : les
+  valeurs s'alignent alors les unes **sous** les autres, ce qui permet de les
+  comparer d'un monstre à l'autre et de repérer un ordre de grandeur d'un coup
+  d'œil. En grille, « 10 050 » et « 107 » tombaient dans des colonnes
+  différentes et l'œil devait sauter.
+  - Même grammaire que la table de stats du panneau d'équipement : lignes
+    séparées d'un filet, libellé terne à gauche, valeur **mono `tabular-nums`**
+    alignée à droite, milliers séparés (« 10 050 »).
 - Le **lead** porte l'**icône officielle du jeu**
   ([LeadPill.tsx](src/components/siege/LeadPill.tsx), `leadIconUrl`) — c'est à
   elle qu'un joueur reconnaît un lead VIT d'un lead ATQ, et elle encode déjà la

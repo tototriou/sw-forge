@@ -137,8 +137,15 @@ export default function MonsterDetailDialog({
       )}
 
       {/* Stats du monstre 6★ nu — les mêmes que celles qui servent aux calculs
-          de l'app (voir spec/shared/donnees-monstres.md). */}
-      <div className="mb-3 grid grid-cols-2 gap-x-4 gap-y-1 rounded-lg border border-border bg-panel2 p-2.5 sm:grid-cols-4">
+          de l'app (voir spec/shared/donnees-monstres.md).
+          ⚠️ **UNE colonne, une stat par ligne**, et non une grille 2×4 : les
+          valeurs s'alignent alors les unes SOUS les autres, ce qui permet de les
+          comparer d'un monstre à l'autre et de repérer un ordre de grandeur d'un
+          coup d'œil. En grille, « 10 050 » et « 107 » se retrouvaient dans des
+          colonnes différentes et l'œil devait sauter.
+          Même grammaire que la table de stats du panneau d'équipement : lignes
+          séparées, libellé terne à gauche, valeur mono alignée à droite. */}
+      <div className="mb-3 rounded-lg border border-border bg-panel2 px-2.5 py-1.5">
         <Stat label="PV" valeur={s.hp} />
         <Stat label="ATQ" valeur={s.attack} />
         <Stat label="DEF" valeur={s.defense} />
@@ -146,7 +153,7 @@ export default function MonsterDetailDialog({
         <Stat label="Taux crit." valeur={s.critRate} suffixe="%" />
         <Stat label="Dmg crit." valeur={s.critDamage} suffixe="%" />
         <Stat label="RES" valeur={s.resistance} suffixe="%" />
-        <Stat label="Précision" valeur={s.accuracy} suffixe="%" />
+        <Stat label="Précision" valeur={s.accuracy} suffixe="%" dernier />
       </div>
 
       {/* Compétence de leader — ce que le monstre apporte à l'équipe.
@@ -219,16 +226,26 @@ function Stat({
   label,
   valeur,
   suffixe = '',
+  dernier = false,
 }: {
   label: string;
   valeur: number | null | undefined;
   suffixe?: string;
+  // Pas de filet sous la dernière ligne : il soulignerait le bord du cadre.
+  dernier?: boolean;
 }) {
   return (
-    <div className="flex items-baseline justify-between gap-2 text-[12px]">
+    <div
+      className={`flex items-baseline justify-between gap-3 py-1 text-[12px] ${
+        dernier ? '' : 'border-b border-border/40'
+      }`}
+    >
       <span className="text-ink-dim">{label}</span>
+      {/* ⚠️ Espace fine insécable entre les milliers (« 10 050 ») : à quatre
+          chiffres et plus, un nombre nu se lit mal. `tabular-nums` garde les
+          colonnes alignées d'une ligne à l'autre. */}
       <span className="font-mono tabular-nums text-ink">
-        {valeur ?? '—'}
+        {valeur != null ? valeur.toLocaleString('fr-FR') : '—'}
         {valeur != null && suffixe}
       </span>
     </div>

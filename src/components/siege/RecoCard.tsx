@@ -209,6 +209,9 @@ export default function RecoCard({
     () => new Set((hit?.decks ?? []).map((d) => d.deckIndex)),
     [hit]
   );
+  // Une recherche est en cours sur CETTE carte → on masque les decks qui n'y
+  // répondent pas. `hit` vaut `null` hors recherche : rien n'est alors masqué.
+  const decksFiltres = hit != null;
   // Positions du monstre dans un deck donné, pour le surlignage.
   const hitDeDeck = (di: number) => hit?.decks.find((d) => d.deckIndex === di) ?? null;
 
@@ -239,8 +242,14 @@ export default function RecoCard({
             <Download size={10} /> Importée
           </span>
         )}
+        {/* ⚠️ Pendant une recherche, le compteur dit « N sur M » : afficher le
+            total alors qu'un seul deck est à l'écran se lit comme un bug
+            d'affichage — on cherche les cinq autres. Même règle que le compteur
+            filtré de l'inventaire d'artéfacts. */}
         <span className="font-mono text-[11px] text-ink-dim">
-          {reco.decks.length} deck{reco.decks.length > 1 ? 's' : ''}
+          {decksFiltres
+            ? `${decksTrouves.size} sur ${reco.decks.length} deck${reco.decks.length > 1 ? 's' : ''}`
+            : `${reco.decks.length} deck${reco.decks.length > 1 ? 's' : ''}`}
         </span>
         {!editing && reco.author && (
           <span className="font-mono text-[11px] text-ink-dim">· par {reco.author}</span>
@@ -394,7 +403,10 @@ export default function RecoCard({
       {/* Les decks de la recommandation */}
       {expanded && (
         <>
-          {reco.decks.length > 1 && (
+          {/* ⚠️ Masqué pendant une recherche : les decks trouvés sont déjà
+              dépliés d'office, et « Déplier tous les decks » désignerait des
+              decks qui ne sont plus à l'écran. */}
+          {reco.decks.length > 1 && !decksFiltres && (
             <div className="flex justify-end mb-1.5">
               <button
                 onClick={() =>
@@ -413,23 +425,33 @@ export default function RecoCard({
               `<div>` ajouté autour du fragment : un wrapper de plus casserait
               l'espacement du parent pour un simple effet. */}
           <div className="flex flex-col gap-2.5 animate-[apparition_180ms_var(--ease-out)]">
-            {reco.decks.map((deck, di) => (
-              <DeckBlock
-                key={di}
-                reco={reco}
-                deck={deck}
-                deckIndex={di}
-                monsters={monsters}
-                monsterByCom2us={monsterByCom2us}
-                match={match?.decks[di] ?? null}
-                editing={editingDeck === di}
-                onToggleEdit={() => setEditingDeck((cur) => (cur === di ? null : di))}
-                folded={!openDecks.has(di) && editingDeck !== di && !decksTrouves.has(di)}
-                onToggleFold={() => toggleDeck(di)}
-                hit={hitDeDeck(di)}
-                recos={recos}
-              />
-            ))}
+            {/* ⚠️ Pendant une recherche, SEULS les decks trouvés sont rendus —
+                les autres disparaissent complètement. Sans ça la carte remontait
+                dans les résultats en affichant ses six decks, et il fallait
+                encore chercher à l'œil lequel répondait. Le filtre porte donc
+                sur les deux niveaux : quelles recos, et quels decks dedans.
+                ⚠️ On itère sur les decks D'ORIGINE et on filtre : `di` doit
+                rester l'index réel, il indexe le match, l'édition et le repli. */}
+            {reco.decks.map((deck, di) => {
+              if (decksFiltres && !decksTrouves.has(di)) return null;
+              return (
+                <DeckBlock
+                  key={di}
+                  reco={reco}
+                  deck={deck}
+                  deckIndex={di}
+                  monsters={monsters}
+                  monsterByCom2us={monsterByCom2us}
+                  match={match?.decks[di] ?? null}
+                  editing={editingDeck === di}
+                  onToggleEdit={() => setEditingDeck((cur) => (cur === di ? null : di))}
+                  folded={!openDecks.has(di) && editingDeck !== di && !decksTrouves.has(di)}
+                  onToggleFold={() => toggleDeck(di)}
+                  hit={hitDeDeck(di)}
+                  recos={recos}
+                />
+              );
+            })}
           </div>
         </>
       )}

@@ -137,6 +137,18 @@ la même réponse :
   repli.** C'est un état de **consultation**, pas un choix de l'utilisateur :
   effacer la recherche rend à la page exactement le repli qu'elle avait avant.
   Sans ça on se retrouve avec six decks ouverts sans les avoir ouverts.
+- ⚠️ **Le filtre porte sur les DEUX niveaux** : quelles recommandations, et
+  **quels decks à l'intérieur**. Les decks qui ne répondent pas ne sont **pas
+  affichés du tout**. Sans ça, une carte remontait dans les résultats en
+  montrant ses six decks, et il restait à chercher à l'œil lequel répondait.
+  - Les decks sont parcourus dans leur ordre **d'origine** et simplement omis :
+    l'index réel indexe le résultat d'analyse, l'édition et le repli.
+  - Le compteur d'en-tête passe à **« N sur M decks »** : afficher le total
+    alors qu'un seul deck est à l'écran se lit comme un bug — on cherche les
+    cinq autres. Même règle que le compteur filtré de l'inventaire d'artéfacts.
+  - **« Déplier tous les decks » est masqué** pendant une recherche : les decks
+    trouvés sont déjà dépliés, et le lien désignerait des decks absents de
+    l'écran.
 - **Surlignage** : le slot ou la défense qui contient le monstre prend un **fond
   d'accent léger**.
   - ⚠️ **Un fond, jamais une bordure** : celle-ci porte déjà le résultat de

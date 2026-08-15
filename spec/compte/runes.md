@@ -194,10 +194,18 @@ Détails :
   « laquelle ? », et il fallait aller la chercher à la main dans la liste.
   - Le rang cliqué est marqué d'un **trait plein** (le survol est tireté) : il
     **survit au départ du pointeur** et dit d'où sort le détail lu en dessous.
-  - ⚠️ **UNE seule rune : celle de la courbe « Actuelle ».** Les potentiels ne
-    sont pas d'autres runes — c'est la même box projetée dans une autre
-    hypothèse. En ouvrir trois côte à côte donnait trois cartes qui se
-    ressemblent pour une seule question : « quelle est cette rune ? ».
+  - ⚠️ **Une carte par courbe OUVRABLE, à ce rang** — et ce que « ouvrable »
+    veut dire diffère selon l'onglet, parce que les courbes n'y disent pas la
+    même chose :
+
+    | Onglet | Ouvrables | Pourquoi |
+    |--------|-----------|----------|
+    | **Courbes** | « Actuelle » seule | Les potentiels ne sont pas d'autres runes : c'est la **même box** projetée dans une autre hypothèse. Trois cartes quasi identiques pour une seule question — « quelle est cette rune ? ». |
+    | **Comparaison** | **toutes** celles qui portent leurs runes | Chaque courbe est un **compte différent** : « à ma 12ᵉ meilleure rune, qu'ont-ils, eux ? ». N'en montrer qu'une obligeait à recliquer chaque courbe pour la même question. |
+
+    Les cartes sont ordonnées **par valeur décroissante**, comme les courbes au
+    point X et comme l'infobulle de survol : même lecture partout. Une courbe
+    **masquée** dans la légende n'apparaît pas (elle n'atteint pas le graphe).
   - Le détail est précédé de l'**image de la rune** (cadre du slot + symbole du
     set, `RuneSlotIcon`) puis de son **set** et de son **slot**. ⚠️ L'image
     d'abord : c'est à elle qu'on reconnaît une rune d'un coup d'œil, le texte ne
@@ -223,12 +231,13 @@ Détails :
     ne porte que des valeurs : elle reste en lecture seule. Un **fichier de
     compte**, lui, porte ses runes — ses points sont donc ouvrables, dans les
     deux sous-onglets de Comparaison.
-  - ⚠️ **À plusieurs courbes ouvrables, on ouvre la PLUS PROCHE du clic**
-    (distance verticale). Cliquer sur l'une et voir la rune d'une autre serait
-    incompréhensible. Le nom de la courbe est alors rappelé sous le détail — il
-    est masqué quand une seule est ouvrable, où il n'apprendrait rien.
-  - On mémorise le **rang et le nom de la série** : le rang 12 de ma courbe et
-    celui d'un ami ne sont pas la même rune.
+  - Le **nom de la courbe** est rappelé sur chaque carte dès qu'il y a plusieurs
+    ouvrables ; masqué sinon, où il n'apprendrait rien.
+  - On mémorise le **rang seul** : c'est une **position du classement**, et
+    c'est cette position qu'on lit sur toutes les courbes à la fois. La
+    navigation porte sur le rang le plus élevé des courbes ouvrables (le
+    **max**, pas le min : une courbe plus courte cesse simplement d'être
+    affichée, elle ne bride pas les autres).
   - On mémorise le **rang**, jamais les runes : les séries se recalculent à
     chaque changement de filtre ou de mesure, et des runes figées désigneraient
     un point disparu.

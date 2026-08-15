@@ -89,10 +89,15 @@ export default function RunesCurve({ runes }: Props) {
     runes: d.runes.slice(0, cap),
   });
 
+  // ⚠️ Seule « Actuelle » transporte ses runes : les potentiels ne sont pas
+  // d'autres runes, c'est la MÊME box projetée dans une autre hypothèse. Leur
+  // donner leurs runes ouvrirait trois cartes quasi identiques pour une seule
+  // question — « quelle est cette rune ? ». (En comparaison, c'est l'inverse :
+  // chaque courbe est un compte DIFFÉRENT, donc toutes sont ouvrables.)
   const allSeries: CurveSeries[] = [
     { name: 'Actuelle', ...lim(cur), color: OWN_COLOR, own: true },
-    { name: 'Potentiel Héro', ...lim(hero), color: HERO_COLOR, own: false },
-    { name: 'Potentiel Légend', ...lim(legend), color: LEGEND_COLOR, own: false },
+    { name: 'Potentiel Héro', effs: lim(hero).effs, color: HERO_COLOR, own: false },
+    { name: 'Potentiel Légend', effs: lim(legend).effs, color: LEGEND_COLOR, own: false },
   ];
   const visible = allSeries.filter((s) => !hidden.has(s.name));
 

@@ -206,12 +206,24 @@ Détails :
   - ⚠️ **Sous le graphe, dans le flux — pas en flottant.** La carte d'une rune
     fait ~300 px de haut : un popover de cette taille ancré sur un point
     recouvrirait la courbe qu'on vient de lire.
-  - Re-cliquer le même rang **referme** (le geste est son propre inverse) ;
+  - Le détail est **centré**, encadré de **flèches ← →** qui parcourent le
+    classement rune par rune — sans revenir viser un point sur la courbe. Elles
+    **bornent au lieu de boucler** (le classement a un début et une fin ;
+    repasser du dernier au premier ferait croire à un saut de position) et sont
+    désactivées aux extrémités. Les **touches ← →** font la même chose.
+  - Re-cliquer le même point **referme** (le geste est son propre inverse) ;
     **Échap** et la croix ferment aussi.
-  - ⚠️ **Cliquable seulement si MA courbe porte ses runes**
-    (`CurveSeries.runes`, aligné sur `effs`, même tri). Une courbe **importée**
-    d'un ami ne porte que des valeurs : le graphe reste alors en lecture seule,
-    sans curseur `pointer` qui promettrait un clic sans effet.
+  - ⚠️ **Cliquable seulement là où la courbe porte ses runes**
+    (`CurveSeries.runes`, aligné sur `effs`, même tri). Une courbe **partagée**
+    ne porte que des valeurs : elle reste en lecture seule. Un **fichier de
+    compte**, lui, porte ses runes — ses points sont donc ouvrables, dans les
+    deux sous-onglets de Comparaison.
+  - ⚠️ **À plusieurs courbes ouvrables, on ouvre la PLUS PROCHE du clic**
+    (distance verticale). Cliquer sur l'une et voir la rune d'une autre serait
+    incompréhensible. Le nom de la courbe est alors rappelé sous le détail — il
+    est masqué quand une seule est ouvrable, où il n'apprendrait rien.
+  - On mémorise le **rang et le nom de la série** : le rang 12 de ma courbe et
+    celui d'un ami ne sont pas la même rune.
   - On mémorise le **rang**, jamais les runes : les séries se recalculent à
     chaque changement de filtre ou de mesure, et des runes figées désigneraient
     un point disparu.

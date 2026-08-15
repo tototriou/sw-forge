@@ -213,7 +213,6 @@ function OngletCourbes({
   const [nomExportDemande, setNomExportDemande] = useState(false);
   const myEffs = useMemo(() => runes.map((r) => runeEfficiency(r)).sort(desc), [runes]);
   const myScores = useMemo(() => runes.map((r) => runeScore(r)).sort(desc), [runes]);
-  const mine = metric === 'eff' ? myEffs : myScores;
 
   function handleExport() {
     if (myEffs.length === 0) return flash(false, 'Aucune rune à exporter.');
@@ -258,8 +257,23 @@ function OngletCourbes({
   // les fichiers de compte, ramenés à leurs points. L'inverse n'est pas vrai —
   // l'onglet Comptes ne peut pas afficher une courbe partagée, faute de runes
   // sur lesquelles appliquer ses filtres.
+  // Valeurs ET runes triées ensemble, pour que le graphe puisse ouvrir la rune
+  // d'un point par son rang (les deux tableaux doivent rester alignés).
+  const classees = (rs: RuneDetail[]) => {
+    const tri = rs
+      .map((r) => ({ rune: r, val: metric === 'eff' ? runeEfficiency(r) : runeScore(r) }))
+      .sort((a, b) => b.val - a.val)
+      .slice(0, Math.max(1, limit));
+    return { effs: tri.map((t) => t.val), runes: tri.map((t) => t.rune) };
+  };
+
   const lignes: Ligne[] = [
-    { series: { name: 'Moi', effs: cap(mine), color: OWN_COLOR, own: true } },
+    // ⚠️ `runes` et non `mine` : `mine` n'est qu'une liste de valeurs déjà
+    // triées, sans les runes qui vont avec.
+    { series: { name: 'Moi', ...classees(runes), color: OWN_COLOR, own: true } },
+    // ⚠️ Une courbe PARTAGÉE ne porte pas ses runes — juste des points. Elle
+    // reste donc en lecture seule, sans `runes` : le graphe ne promet un clic
+    // que là où il y a quelque chose à ouvrir.
     ...overlays.map((o, i) => ({
       series: {
         name: o.name,
@@ -269,15 +283,9 @@ function OngletCourbes({
       },
       remove: () => setOverlays((prev) => prev.filter((_, j) => j !== i)),
     })),
+    // Un FICHIER DE COMPTE, lui, porte ses runes : ses points sont ouvrables.
     ...comptes.map((o, i) => ({
-      series: {
-        name: o.name,
-        effs: cap(
-          o.runes.map((r) => (metric === 'eff' ? runeEfficiency(r) : runeScore(r))).sort(desc)
-        ),
-        color: o.color,
-        own: false,
-      },
+      series: { name: o.name, ...classees(o.runes), color: o.color, own: false },
       remove: () => setComptes((prev) => prev.filter((_, j) => j !== i)),
     })),
   ];
@@ -407,16 +415,23 @@ function OngletComptes({
       return true;
     });
 
-  const valeurs = (rs: RuneDetail[]) =>
-    filtrer(rs)
-      .map((r) => (metric === 'eff' ? runeEfficiency(r) : runeScore(r)))
-      .sort(desc)
+  // ⚠️ Valeurs ET runes triées ENSEMBLE : le graphe ouvre la rune d'un point
+  // par son rang, les deux tableaux doivent donc rester alignés. Un `filtrer`
+  // puis un `sort` séparés auraient suffi à décaler l'un par rapport à l'autre.
+  const classees = (rs: RuneDetail[]) => {
+    const tri = filtrer(rs)
+      .map((r) => ({ rune: r, val: metric === 'eff' ? runeEfficiency(r) : runeScore(r) }))
+      .sort((a, b) => b.val - a.val)
       .slice(0, Math.max(1, limit));
+    return { effs: tri.map((t) => t.val), runes: tri.map((t) => t.rune) };
+  };
 
+  // Ici TOUTES les séries portent leurs runes — les fichiers de compte en
+  // contiennent, contrairement aux courbes partagées. Chacune est donc ouvrable.
   const lignes: Ligne[] = [
-    { series: { name: 'Moi', effs: valeurs(runes), color: OWN_COLOR, own: true } },
+    { series: { name: 'Moi', ...classees(runes), color: OWN_COLOR, own: true } },
     ...overlays.map((o, i) => ({
-      series: { name: o.name, effs: valeurs(o.runes), color: o.color, own: false },
+      series: { name: o.name, ...classees(o.runes), color: o.color, own: false },
       remove: () => setOverlays((prev) => prev.filter((_, j) => j !== i)),
     })),
   ];

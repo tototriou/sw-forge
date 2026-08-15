@@ -199,6 +199,11 @@ Chaque case = une **propriété** et un **seuil « au moins »**.
   **partagé avec l'inventaire d'artéfacts** — il y vivait, et a été **remonté**
   au deuxième usage plutôt que recopié (deux copies auraient divergé). Seul le
   **nom d'une propriété** diffère entre les deux, d'où le paramètre `nomDe`.
+- ⚠️ La grille est **bornée à 480 px** ici, alors qu'elle prend toute la largeur
+  chez les artéfacts : les propriétés de rune ont des libellés très **courts**
+  (« VIT », « Dmg Crit »), là où celles d'un artéfact tiennent en une phrase
+  (« Dégâts sur le Feu +X% »). Étirée, la grille réservait toute la largeur pour
+  n'afficher que trois lettres par menu.
 - **Pagination** ([Pager.tsx](src/components/account/Pager.tsx)) : 60 tuiles/page
   → DOM borné (fluide même à ~2000 runes). Composant **partagé par toutes les
   listes paginées** de l'app.

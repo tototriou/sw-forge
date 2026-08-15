@@ -175,7 +175,16 @@ export default function RunesList({ runes }: Props) {
             « propriété secondaire ». La position porte donc du sens. */}
         <div className="flex flex-wrap items-start gap-2">
           <span className="w-[86px] flex-none label mt-1.5">Propriété</span>
-          <div className="min-w-0 flex-1">
+          {/* ⚠️ Largeur BORNÉE, contrairement aux artéfacts : les propriétés de
+              rune ont des libellés très courts (« VIT », « Dmg Crit »), là où
+              celles d'un artéfact tiennent en une phrase (« Dégâts sur le Feu
+              +X% »). Laissée en `flex-1`, la grille s'étirait sur toute la
+              largeur pour n'afficher que trois lettres par menu. */}
+          {/* 480 px : une case tombe à ~237 px, dont ~126 pris par le rang et
+              les commandes du seuil une fois posé — il reste ~110 px au menu,
+              de quoi lire « Dmg Crit » sans troncature. En dessous, le libellé
+              se coupait dès qu'un seuil était saisi. */}
+          <div className="min-w-0 flex-1 max-w-[480px]">
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5">
               {Array.from({ length: cases }, (_, i) => (
                 <CritereCase

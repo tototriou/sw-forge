@@ -27,13 +27,17 @@ export function Modale({
   onClose,
   labelledBy,
   largeur = 'max-w-[400px]',
+  padding = 'p-5',
   children,
 }: {
   onClose: () => void;
   labelledBy: string;
-  // Classe de largeur — une boîte de saisie tient en 400 px, une grille de
-  // recherche détaillée non.
+  // Classe de largeur — une boîte de message tient en 400 px, une liste à
+  // parcourir se règle au cas par cas.
   largeur?: string;
+  // Une boîte de message respire ; une liste dense se serre, sinon la marge
+  // pèse plus que le contenu.
+  padding?: string;
   children: ReactNode;
 }) {
   const boite = useRef<HTMLDivElement>(null);
@@ -102,8 +106,9 @@ export function Modale({
         // Le voile en fondu, la boîte en fondu + 8 px de montée. Un peu plus
         // lente que le voile (200 vs 150 ms) : la boîte finit APRÈS le fond
         // qu'elle recouvre, sinon elle semble arriver avant lui.
-        className={`w-full ${largeur} max-h-[90vh] overflow-y-auto rounded-2xl border border-border bg-panel
-                   p-5 shadow-glow shadow-black/60 animate-[dialogue_200ms_var(--ease-out)]`}
+        className={`w-full ${largeur} ${padding} max-h-[90vh] overflow-y-auto rounded-2xl border
+                   border-border bg-panel shadow-glow shadow-black/60
+                   animate-[dialogue_200ms_var(--ease-out)]`}
       >
         {children}
       </div>

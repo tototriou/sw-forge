@@ -69,16 +69,26 @@ export default function SubSearchDialog({
       return [...cur, { code, min: champ === 'min' ? valeur : 0, ...(champ === 'max' ? { max: valeur } : {}) }];
     });
 
+  // 380 px : la liste ne porte qu'une case, un libellé court (« Dmg Crit » au
+  // plus long) et deux bornes de 52 px. Plus large, la ligne s'étirait entre le
+  // nom et ses champs, et l'œil devait traverser du vide pour relier les deux.
   return (
-    <Modale onClose={onClose} labelledBy="sub-search-titre" largeur="max-w-[560px]">
-      <h2 id="sub-search-titre" className="mb-1 text-[15px] font-bold text-ink">
-        Recherche détaillée de sous-propriétés
-      </h2>
-      <p className="mb-3 text-[12px] text-ink-dim">
-        Coche les propriétés à exiger, et borne-les si tu veux.{' '}
-        <b className="text-ink">{brouillon.length}/{max}</b> retenue
-        {brouillon.length > 1 ? 's' : ''}.
-      </p>
+    <Modale
+      onClose={onClose}
+      labelledBy="sub-search-titre"
+      largeur="max-w-[380px]"
+      padding="p-3.5"
+    >
+      {/* Titre et compteur sur la MÊME ligne : le compteur est une jauge de ce
+          qu'on est en train de faire, pas une phrase à lire. */}
+      <div className="mb-2 flex items-baseline gap-2">
+        <h2 id="sub-search-titre" className="text-[14px] font-bold text-ink">
+          Sous-propriétés
+        </h2>
+        <span className="ml-auto flex-none font-mono text-[11px] text-ink-dim">
+          {brouillon.length}/{max}
+        </span>
+      </div>
 
       <div className="flex flex-col gap-0.5">
         {options.map((o) => {
@@ -91,7 +101,7 @@ export default function SubSearchDialog({
           return (
             <div
               key={o.code}
-              className={`flex items-center gap-2 rounded px-1.5 py-1 transition ${
+              className={`flex items-center gap-2 rounded px-1.5 py-0.5 transition ${
                 actif ? 'bg-accent-soft' : bloque ? 'opacity-50' : 'hoverable:bg-panel2'
               }`}
             >
@@ -148,15 +158,20 @@ export default function SubSearchDialog({
         })}
       </div>
 
-      <div className="mt-4 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+      {/* ⚠️ « Réinitialiser » à GAUCHE et en lien, pas en troisième bouton :
+          trois boutons de même poids sur 380 px se serrent, et celui-ci n'est
+          pas du même ordre que la paire Annuler/OK — il ne clôt pas la modale,
+          il vide son contenu. */}
+      <div className="mt-3 flex items-center gap-2">
         <button
           onClick={() => setBrouillon([])}
           disabled={brouillon.length === 0}
-          className={`${BOUTON_SECONDAIRE} disabled:cursor-not-allowed disabled:opacity-30`}
+          className="text-[12px] text-ink-dim underline transition hoverable:text-fire
+                     disabled:cursor-not-allowed disabled:no-underline disabled:opacity-30"
         >
           Réinitialiser
         </button>
-        <button onClick={onClose} className={BOUTON_SECONDAIRE}>
+        <button onClick={onClose} className={`${BOUTON_SECONDAIRE} ml-auto`}>
           Annuler
         </button>
         <button onClick={() => onValider(brouillon)} className={BOUTON_PRIMAIRE} autoFocus>

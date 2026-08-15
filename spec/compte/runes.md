@@ -197,20 +197,34 @@ Deux pièces, reprises telles quelles :
 
 | Pièce | Fichier | Rôle |
 |-------|---------|------|
-| **Barre de rappel** | [SubSearchBar.tsx](src/components/account/SubSearchBar.tsx) | 4 cases numérotées + un bouton **« … »** |
+| **Barre de rappel** | [SubSearchBar.tsx](src/components/account/SubSearchBar.tsx) | 2 ou 4 cases numérotées + la bascule 2 ↔ 4 |
 | **Recherche détaillée** | [SubSearchDialog.tsx](src/components/account/SubSearchDialog.tsx) | la modale : toutes les propriétés, **Min** et **Max** |
 
 - ⚠️ **Les cases sont un RAPPEL, pas un formulaire.** Elles affichent le critère
   posé (« VIT +25 ~ +37 ») et ne servent qu'à ça. Toute la saisie vit dans la
   modale : quatre menus déroulants occupaient toute la largeur pour n'afficher
   que trois lettres, et un seuil unique ne savait pas dire « entre 25 et 37 ».
+- **Bascule 2 ↔ 4 cases**, par les **deux icônes du jeu** : deux barres empilées
+  (`Rows2`) pour 2 propriétés, une grille 2×2 (`Grid2x2`) pour 4. Elles disent la
+  forme de la grille qu'on obtient, sans un mot.
+  - ⚠️ L'icône montre l'état **à venir**, pas l'état courant : c'est un bouton,
+    on y lit ce qu'il va faire.
+  - ⚠️ Le mode ne fait que **cacher** des cases : les critères 3 et 4 restent
+    posés si on repasse à 2 et réapparaissent tels quels. Les effacer ferait
+    perdre une recherche en changeant simplement de vue.
+  - ⚠️ **Le mode 4 s'impose** dès qu'il y a plus de deux critères, et le bouton
+    se désactive : un critère caché filtrerait la liste sans rien montrer à
+    l'écran — on chercherait pourquoi il manque des runes.
+  - Le maximum de la **modale suit le mode** : en 2 cases, cocher une 3ᵉ
+    propriété poserait un critère invisible dans la barre.
 - ⚠️ **Min ET Max**, pas un seuil unique. « VIT entre 25 et 37 » est la recherche
   courante quand on trie ses runes.
   - ⚠️ Un `max` **absent** vaut « pas de plafond » — ce n'est **pas** « au plus
     zéro ». C'est ce qui permet de ne borner que d'un côté.
-- **Cliquer n'importe où** ouvre la modale : une case, vide ou pleine, ou le
-  « … ». Ce dernier existe quand même — un bouton dédié dit l'intention sans
-  qu'on ait à deviner qu'une case est cliquable.
+- **Cliquer une case**, vide ou pleine, ouvre la modale. ⚠️ Pas de bouton « … »
+  en plus : les cases y mènent déjà, et un second déclencheur pour le même geste
+  n'ajoutait qu'un doublon à côté de la bascule 2/4 — deux carrés voisins dont
+  un seul change la forme de la grille.
 - ⚠️ La modale travaille sur un **brouillon local**, validé par **OK** : écrire
   directement dans l'état ferait filtrer la liste derrière à chaque frappe, et
   « Annuler » ne voudrait plus rien dire.

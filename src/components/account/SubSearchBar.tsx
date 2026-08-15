@@ -1,11 +1,11 @@
 import { useState } from 'react';
-import { MoreHorizontal } from 'lucide-react';
+import { Grid2x2, Rows2 } from 'lucide-react';
 import { Critere } from './CritereCase';
 import SubSearchDialog from './SubSearchDialog';
 
-// Barre « Propriété secondaire » — la grille de rappel du JEU : quatre cases
-// numérotées, chacune montrant le critère qu'elle porte (« VIT +25 ~ +37 »), et
-// un bouton « … » qui ouvre la recherche détaillée.
+// Barre « Propriété secondaire » — la grille de rappel du JEU : deux ou quatre
+// cases numérotées, chacune montrant le critère qu'elle porte
+// (« VIT +25 ~ +37 »), et la bascule 2 ↔ 4 à côté.
 //
 // ⚠️ Les cases sont un RAPPEL, pas un formulaire. Elles ne portaient jusqu'ici
 // ni les bornes ni le nombre de propriétés du jeu : quatre menus déroulants
@@ -13,8 +13,8 @@ import SubSearchDialog from './SubSearchDialog';
 // unique ne disait pas « entre 25 et 37 ». Toute la saisie vit désormais dans la
 // modale — les cases se contentent d'en montrer le résultat.
 //
-// Cliquer n'importe où (une case, vide ou pleine, ou le « … ») ouvre la modale :
-// c'est le seul endroit où l'on choisit.
+// Cliquer une case, vide ou pleine, ouvre la modale : c'est le seul endroit où
+// l'on choisit.
 export default function SubSearchBar({
   options,
   criteres,
@@ -29,6 +29,17 @@ export default function SubSearchBar({
   onChange: (c: Critere[]) => void;
 }) {
   const [ouverte, setOuverte] = useState(false);
+  // Deux ou quatre cases, comme le jeu. ⚠️ Le mode ne fait que CACHER des
+  // cases : les critères 3 et 4 restent posés si on repasse à 2, ils
+  // réapparaissent tels quels en revenant. Les effacer ferait perdre une
+  // recherche en changeant simplement de vue.
+  const [large, setLarge] = useState(false);
+  // ⚠️ Le mode 4 s'IMPOSE dès qu'il y a plus de deux critères : un critère
+  // caché filtrerait la liste sans rien montrer à l'écran — on chercherait
+  // pourquoi il manque des runes. On ne peut donc pas replier à 2 tant qu'un
+  // troisième critère est posé.
+  const force = criteres.length > 2;
+  const visibles = large || force ? max : 2;
 
   // Résumé d'un critère, dans la langue du jeu : « VIT +25 ~ +37 », « VIT +25 »
   // si rien n'est plafonné, « VIT » si aucune borne n'est posée.
@@ -43,9 +54,9 @@ export default function SubSearchBar({
   return (
     <>
       <div className="flex items-start gap-1.5">
-        {/* Grille 2×2 comme dans le jeu : quatre cases, deux par ligne. */}
+        {/* Deux par ligne, comme dans le jeu — d'où la grille 2×2 en mode 4. */}
         <div className="grid min-w-0 flex-1 grid-cols-1 gap-1 sm:grid-cols-2">
-          {Array.from({ length: max }, (_, i) => {
+          {Array.from({ length: visibles }, (_, i) => {
             const c = criteres[i];
             return (
               <button
@@ -79,26 +90,45 @@ export default function SubSearchBar({
           })}
         </div>
 
-        {/* Le « … » du jeu : c'est LUI qui porte l'intention « ouvrir la
-            recherche détaillée ». Les cases y mènent aussi, mais un bouton
-            dédié le dit sans qu'on ait à deviner qu'une case est cliquable. */}
+        {/* Bascule 2 ↔ 4 cases — les DEUX ICÔNES du jeu : deux barres empilées
+            pour 2 propriétés, une grille 2×2 pour 4. Elles disent la forme de la
+            grille qu'on obtient, sans un mot.
+            ⚠️ L'icône montre l'état À VENIR, pas l'état courant : c'est un
+            bouton, on y lit ce qu'il va faire. */}
         <button
-          onClick={() => setOuverte(true)}
-          title="Recherche détaillée de sous-propriétés"
-          aria-label="Recherche détaillée de sous-propriétés"
+          onClick={() => setLarge((v) => !v)}
+          disabled={force}
+          aria-pressed={visibles === max}
+          title={
+            force
+              ? 'Plus de deux propriétés sont posées : la grille reste à quatre'
+              : large
+                ? 'Revenir à deux propriétés'
+                : 'Passer à quatre propriétés'
+          }
+          aria-label={large ? 'Revenir à deux propriétés' : 'Passer à quatre propriétés'}
           className="flex h-[26px] w-[26px] flex-none items-center justify-center rounded border
                      border-border bg-panel text-ink-dim transition
-                     hoverable:border-accent hoverable:text-ink"
+                     hoverable:border-accent hoverable:text-ink
+                     disabled:cursor-not-allowed disabled:opacity-30"
         >
-          <MoreHorizontal size={14} />
+          {visibles === max ? <Rows2 size={14} /> : <Grid2x2 size={14} />}
         </button>
+
+        {/* ⚠️ Pas de bouton « … » : les cases ouvrent déjà la modale, et un
+            second déclencheur pour le même geste n'ajoutait qu'un doublon à
+            côté de la bascule 2/4 — deux carrés voisins dont un seul change la
+            forme de la grille. */}
       </div>
 
       {ouverte && (
         <SubSearchDialog
           options={options}
           criteres={criteres}
-          max={max}
+          // ⚠️ Le maximum de la modale suit le MODE : en 2 cases, cocher une 3ᵉ
+          // propriété poserait un critère invisible dans la barre. La bascule
+          // vers 4 est à un clic si on en veut plus.
+          max={visibles}
           onValider={(c) => {
             onChange(c);
             setOuverte(false);

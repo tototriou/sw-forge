@@ -10,21 +10,34 @@
 // vaut l'autre — or c'est précisément ce qu'on vient chercher, et c'est ce qui
 // décide si on possède déjà le monstre.
 //
-// ⚠️ **SWARFARM ne dit rien de ce lien.** `transforms_to` ne relie que les
-// formes transformables (Bellenus) ; aucun champ ne relie Gojo à Werner. La
-// relation se DÉDUIT donc, et c'est la raison de ce module.
+// ⚠️ **Le lien vient de l'API : `family_id` ≠ `skill_group_id`.**
+// SWARFARM donne à chaque monstre sa famille ET son groupe de compétences.
+// Normalement identiques — quand ils divergent, c'est que le monstre EMPRUNTE
+// les compétences d'un autre, et c'est exactement ce qu'est une collab : Werner
+// (famille 30900) porte le groupe 30300, celui de Gojo.
+//
+// ⚠️ **Ne pas déduire le lien des stats et des compétences.** Une première
+// version l'a fait, faute d'avoir vu ce champ — et une signature comparée n'a
+// jamais fini de se tromper : elle échoue en silence, laissant un monstre
+// dépareillé au milieu de ses quatre frères, visible seulement en ouvrant la
+// bonne carte. Quatre champs de SWARFARM ont dû être écartés un par un (`aoe`
+// faux dans 14 % du corpus, ordre des effets instable, effets surnuméraires,
+// `coups` sur des compétences sans dégâts) avant que l'appariement soit complet.
+// Le champ, lui, est exact du premier coup.
 
-// Ce qu'il faut d'un monstre pour l'apparier. Volontairement réduit à des
-// primitives : le script de génération (Node, JSON brut) et l'app (typé)
-// appellent la même fonction, sans partager leurs types.
+// Ce qu'il faut d'un monstre pour l'apparier. Réduit à des primitives : le
+// script de génération (Node, JSON brut) et l'app (typé) appellent la même
+// fonction sans partager leurs types.
 export interface CandidatCollab {
   com2usId: number;
-  name: string;
-  image: string | null;
-  // Signature de ce que le monstre EST et FAIT. Construite par l'appelant, qui
-  // seul a accès aux compétences — l'app ne les charge qu'à l'ouverture d'une
-  // fiche, le script les a toutes sous la main.
-  signature: string;
+  familyId: number | null;
+  skillGroupId: number | null;
+  // Suffixe d'élément et d'éveil du `com2usId` — deux monstres ne s'apparient
+  // qu'à suffixe ÉGAL (le Gojo eau avec le Werner eau).
+  suffixe: number;
+  // Signature de ce que le monstre EST : rareté naturelle et stats de base.
+  // ⚠️ Le groupe de compétences ne suffit PAS — voir `apparierCollabs`.
+  profil: string;
 }
 
 export interface PaireCollab {
@@ -32,53 +45,55 @@ export interface PaireCollab {
   b: number;
 }
 
-// Apparie les monstres dont la signature est identique.
+// Apparie chaque monstre de collaboration à son équivalent SW.
 //
-// ⚠️ **La signature doit inclure les COMPÉTENCES**, pas seulement les stats.
-// Sur les stats + le lead seuls, 120 paires ressortent — mais 14 d'entre elles
-// ont des compétences différentes : ce sont alors deux monstres distincts qui
-// partagent une grille de stats, et les fusionner effacerait de vraies
-// différences. Avec les compétences, il reste 75 paires, toutes légitimes.
+// ⚠️ **Un écart de +10 entre famille et groupe n'est PAS une collab** : c'est un
+// SECOND ÉVEIL, qui emprunte les compétences de sa propre famille (Elucia 2A,
+// famille 10110, groupe 10100). Ces deux-là sont le même monstre à deux stades,
+// déjà traités par `formesJouables` — les fusionner ici masquerait la 2A.
 //
-// ⚠️ **Deux entrées de MÊME image sont le même monstre, pas une paire.**
-// SWARFARM liste parfois deux fois le même monstre (Nezuko Kamado apparaît en
-// familles 319 ET 320, portrait identique). Sans cette déduplication, le groupe
-// « Nezuko, Nezuko, Vermilion Bird Dancer » comptait trois entrées et devenait
-// ambigu — c'était le seul cas irrésolu, et l'image le tranche exactement.
+// ⚠️ **Partager un groupe de compétences ne suffit pas.** D'autres monstres les
+// RÉUTILISENT sans être le même monstre : Fairy Queen emprunte les compétences
+// de Fairy, Vampire Lord celles de Vampire, sans partager leurs stats. Une
+// collab, elle, est un RESKIN — mêmes stats, même rareté. D'où le `profil`, qui
+// écarte 27 faux appariements de ce genre.
 //
-// ⚠️ **Seuls les groupes de DEUX sont retenus.** Trois monstres de même
-// signature, c'est qu'elle ne suffit pas à les distinguer : on préfère ne rien
-// affirmer plutôt que d'apparier au hasard. Sur les données réelles, il n'en
-// reste aucun.
+// ⚠️ L'appariement se fait **à suffixe égal** : une famille porte cinq éléments,
+// et le Gojo eau doit trouver le Werner eau, pas le Werner feu.
 export function apparierCollabs(candidats: CandidatCollab[]): PaireCollab[] {
-  const parSignature = new Map<string, CandidatCollab[]>();
+  // Index des monstres par (groupe de compétences, suffixe) : c'est la clé
+  // qu'un monstre de collab partage avec son équivalent.
+  const parGroupe = new Map<string, CandidatCollab[]>();
   for (const c of candidats) {
-    const groupe = parSignature.get(c.signature);
+    if (c.skillGroupId == null) continue;
+    const cle = `${c.skillGroupId}|${c.suffixe}`;
+    const groupe = parGroupe.get(cle);
     if (groupe) groupe.push(c);
-    else parSignature.set(c.signature, [c]);
+    else parGroupe.set(cle, [c]);
   }
 
   const paires: PaireCollab[] = [];
-  for (const groupe of parSignature.values()) {
-    if (groupe.length < 2) continue;
+  for (const groupe of parGroupe.values()) {
+    // Un monstre seul dans son groupe n'a pas d'équivalent : c'est le cas
+    // courant, l'immense majorité du bestiaire.
+    if (groupe.length !== 2) continue;
 
-    // Une seule entrée par portrait : les doublons d'un même monstre tombent.
-    const parImage = new Map<string, CandidatCollab>();
-    for (const c of groupe) {
-      const cle = c.image ?? `__sans-image-${c.com2usId}`;
-      if (!parImage.has(cle)) parImage.set(cle, c);
+    const [a, b] = [...groupe].sort((x, y) => x.com2usId - y.com2usId);
+    // Les deux doivent appartenir à des FAMILLES différentes : deux entrées
+    // d'une même famille sont deux formes d'un même monstre, pas une paire.
+    if (a.familyId != null && a.familyId === b.familyId) continue;
+    // Second éveil (+10) : même monstre, deux stades. Voir plus haut.
+    if (a.familyId != null && b.familyId != null && Math.abs(a.familyId - b.familyId) === 10) {
+      continue;
     }
-    const distincts = [...parImage.values()];
-    if (distincts.length !== 2) continue;
+    // Stats ou rareté différentes : l'un emprunte les compétences de l'autre
+    // sans être le même monstre.
+    if (a.profil !== b.profil) continue;
 
-    // ⚠️ Ordre par `com2usId` : la paire doit être la MÊME à chaque génération,
-    // sinon l'affichage (quelle moitié à gauche) changerait d'une version à
-    // l'autre sans qu'on ait rien touché.
-    const [a, b] = distincts.sort((x, y) => x.com2usId - y.com2usId);
     paires.push({ a: a.com2usId, b: b.com2usId });
   }
 
-  // Ordre stable de la liste elle-même, pour un diff lisible sur le JSON généré.
+  // Ordre stable, pour un diff lisible sur le JSON généré.
   return paires.sort((p, q) => p.a - q.a);
 }
 

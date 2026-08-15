@@ -43,14 +43,18 @@ export interface Monster {
   // pointe vers Werner, et Werner vers Gojo. Mêmes stats, même lead, mêmes
   // compétences : c'est le même monstre sous deux habillages.
   //
-  // ⚠️ **Rien de tel chez SWARFARM** : le lien est DÉDUIT à la génération par
-  // `scripts/link-collabs.mjs` (règle dans lib/collabPairs.ts). Le calculer au
-  // rendu supposerait de charger les 3 000 fiches de compétences.
+  // Le lien est posé à la génération par `scripts/link-collabs.mjs` (règle dans
+  // lib/collabPairs.ts), d'après `familyId` / `skillGroupId` ci-dessous.
   //
   // ⚠️ À ne pas confondre avec `transformsTo`, qui relie les deux formes d'un
   // monstre transformable — celles-là ont des compétences DIFFÉRENTES, alors
   // que les deux faces d'une collab sont identiques.
   jumeauCollab?: number | null;
+  // Famille du monstre et groupe de COMPÉTENCES. Normalement identiques —
+  // quand ils divergent, le monstre EMPRUNTE les compétences d'un autre, et
+  // c'est ainsi qu'on reconnaît une collaboration (voir `jumeauCollab`).
+  familyId?: number | null;
+  skillGroupId?: number | null;
 }
 
 export interface ElementDef {

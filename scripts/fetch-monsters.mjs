@@ -102,6 +102,13 @@ function normalizeMonster(raw, idx) {
     transformsTo: num(raw.transforms_to),
     // Id SWARFARM du monstre lui-même : `transformsTo` s'y résout.
     swarfarmId: num(raw.id),
+    // ⚠️ Famille du monstre et groupe de COMPÉTENCES, deux notions distinctes.
+    // Quand ils divergent, c'est que le monstre EMPRUNTE les compétences d'un
+    // autre — et c'est ainsi que se reconnaît une COLLABORATION : Werner
+    // (famille 30900) porte le groupe 30300, celui de Satoru Gojo. Le lien est
+    // ainsi donné par l'API, sans rien avoir à déduire.
+    familyId: num(raw.family_id),
+    skillGroupId: num(raw.skill_group_id),
   };
 }
 

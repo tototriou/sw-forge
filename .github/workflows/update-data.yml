@@ -42,8 +42,8 @@ jobs:
       - name: Récupérer le détail des compétences
         run: node scripts/fetch-skills.mjs
 
-      # ⚠️ EN DERNIER : l'appariement des collaborations (Satoru Gojo = Werner)
-      # a besoin des stats ET des compétences, donc des deux étapes ci-dessus.
+      # ⚠️ APRÈS `fetch-monsters`, qui capture `family_id` / `skill_group_id` —
+      # les deux champs d'où se lit une collaboration (Satoru Gojo = Werner).
       # Il réécrit `monsters.json` pour y poser le champ `jumeauCollab`.
       - name: Relier les monstres de collaboration
         run: node scripts/link-collabs.mjs

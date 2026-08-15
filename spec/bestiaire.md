@@ -88,27 +88,36 @@ d'une **virgule** (« Satoru Gojo, Werner »).
 ([monsterForms.ts](src/lib/monsterForms.ts)), vérifiés par
 [collab-paires.test.ts](tests/collab-paires.test.ts).
 
-- ⚠️ **SWARFARM ne dit rien de ce lien.** `transforms_to` ne relie que les
-  formes transformables ; **aucun champ** ne relie Gojo à Werner. La relation
-  est **déduite** d'une signature — élément, stats, lead, rareté, et le détail
-  des compétences — par [link-collabs.mjs](scripts/link-collabs.mjs), qui écrit
-  le champ `jumeauCollab`. **70 paires**, 140 monstres liés.
-  - ⚠️ **Calculé à la GÉNÉRATION, pas au rendu** : le déduire dans l'app
-    supposerait de charger les 3 000 fiches de compétences à l'ouverture d'une
-    page, alors qu'elles sont justement découpées pour n'être lues qu'une par
-    une. Le script tourne **en dernier**, après `fetch-monsters` *et*
-    `fetch-skills` — il a besoin des deux sorties.
-- ⚠️ **La signature doit inclure les COMPÉTENCES.** Sur les stats et le lead
-  seuls, 120 paires ressortent, mais **14 ont des compétences différentes** :
-  deux monstres distincts qui partagent une grille de stats. Les fusionner
-  aurait effacé de vraies différences.
-- ⚠️ **Deux entrées de même PORTRAIT sont le même monstre, pas une paire.**
-  SWARFARM liste deux fois Nezuko Kamado (familles 319 et 320, image
-  identique) : sans cette déduplication, le groupe « Nezuko, Nezuko, Vermilion
-  Bird Dancer » comptait trois entrées et devenait ambigu. C'était le seul cas
-  irrésolu, et l'image le tranche exactement.
-- ⚠️ **Un groupe de trois n'apparie rien** : la signature ne suffit alors pas à
-  distinguer, et on préfère ne rien affirmer plutôt qu'apparier au hasard.
+- ⚠️ **Le lien est DONNÉ par l'API : `family_id` ≠ `skill_group_id`.**
+  SWARFARM donne à chaque monstre sa famille *et* son groupe de compétences.
+  Normalement identiques — quand ils divergent, le monstre **emprunte** les
+  compétences d'un autre : Werner (famille 30900) porte le groupe 30300, celui
+  de Gojo. [link-collabs.mjs](scripts/link-collabs.mjs) écrit le champ
+  `jumeauCollab`. **308 paires**, 616 monstres liés.
+  - ⚠️ **Ne pas déduire le lien des stats et des compétences.** Une première
+    version l'a fait, faute d'avoir vu ce champ — et une signature comparée n'a
+    jamais fini de se tromper : elle échoue **en silence**, laissant un monstre
+    dépareillé au milieu de ses quatre frères, visible seulement en ouvrant la
+    bonne carte. Quatre champs de SWARFARM ont dû être écartés un par un —
+    `aoe` (faux dans **14 %** du corpus), l'ordre des effets, les effets
+    surnuméraires, le nombre de coups sur des compétences sans dégâts — et
+    l'appariement restait incomplet. Le champ, lui, est exact du premier coup.
+  - ⚠️ **Calculé à la GÉNÉRATION**, pas au rendu.
+- ⚠️ **Le groupe de compétences ne suffit pas** : il recouvre **trois**
+  relations, et une seule doit fusionner deux cartes.
+  - **Collaboration** — familles différentes, **mêmes stats et même rareté**
+    (un *reskin*). C'est le seul cas qu'on fusionne.
+  - **Second éveil** — écart de **+10** entre les familles (Elucia 2A, famille
+    10110, groupe 10100) : même monstre à deux stades, déjà arbitré par
+    `formesJouables`. Les fusionner masquerait la 2A.
+  - **Réutilisation de compétences** — Fairy Queen emprunte celles de Fairy,
+    Vampire Lord celles de Vampire, **sans partager leurs stats**. Ce sont de
+    vrais monstres distincts : la comparaison des stats et de la rareté écarte
+    ainsi 27 faux appariements.
+- ⚠️ **L'appariement se fait à SUFFIXE ÉGAL** : une famille porte cinq éléments,
+  et le Gojo eau doit trouver le Werner eau, pas le Werner feu.
+- ⚠️ **Un groupe de trois n'apparie rien** : on ne saurait pas qui associer à
+  qui, et on préfère ne rien affirmer.
 - ⚠️ **La FICHE porte les deux identités elle aussi** : même portrait partagé,
   mêmes deux noms en titre. On vient de cliquer cette carte — la fiche qui
   s'ouvre doit montrer la même chose, sans quoi on croirait s'être trompé.

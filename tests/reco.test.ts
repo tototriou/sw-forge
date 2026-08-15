@@ -16,6 +16,7 @@ import { OwnedBuild } from '../src/lib/ownedBuilds';
 import { artifactSubKinds, artifactSubLabel, artifactSubsFor, isArtifactSub } from '../src/lib/effects';
 import { cleanArtifacts, decodeRecosJson, encodeRecosJson } from '../src/lib/recoShare';
 import { chercheMonstre } from '../src/lib/recoSearch';
+import { estEveille, formesJouables } from '../src/lib/monsterForms';
 import {
   MAX_ARTIFACT_SUBS,
   Monster,
@@ -513,4 +514,69 @@ export function testDecksMontables() {
   // sais pas ».
   egal(deckCopies(deck([1, 2, 3]), undefined), null, 'aucune box importée → on ne dit rien');
   egal(deckCopies(deck([null, null, null]), new Map()), null, 'deck vide → rien à monter');
+}
+
+// Quelles formes d'un monstre sont proposées dans les sélecteurs.
+export function testFormesJouables() {
+  titre('Formes proposées quand on choisit un monstre');
+
+  const mon = (p: Partial<Monster> & { name: string }): Monster =>
+    ({
+      id: `${p.name}-${p.stars ?? 0}-${p.element ?? 'dark'}`,
+      com2usId: 1,
+      element: 'dark',
+      stars: null,
+      naturalStars: null,
+      secondAwaken: false,
+      image: null,
+      stats: {} as any,
+      leaderSkill: null,
+      ...p,
+    }) as Monster;
+
+  // Seren : brute (parasite), éveillée, 2A → seule la 2A doit rester.
+  const seren = [
+    mon({ name: 'Seren', stars: 1, naturalStars: 1 }),
+    mon({ name: 'Seren', stars: 4, naturalStars: 3 }),
+    mon({ name: 'Seren', stars: 6, naturalStars: 3, secondAwaken: true }),
+  ];
+  egal(
+    formesJouables(seren).map((m) => m.stars),
+    [6],
+    'un monstre à second éveil ne propose QUE sa 2A'
+  );
+
+  // Sans 2A, l'éveillée reste — et la brute part.
+  const chloe = [
+    mon({ name: 'Chloe', element: 'fire', stars: 4, naturalStars: 4 }),
+    mon({ name: 'Chloe', element: 'fire', stars: 5, naturalStars: 4 }),
+  ];
+  egal(
+    formesJouables(chloe).map((m) => m.stars),
+    [5],
+    'sans 2A, on garde l’éveillée et on écarte la forme brute'
+  );
+
+  // ⚠️ Le regroupement tient compte de l'ÉLÉMENT : deux homonymes d'éléments
+  // différents sont deux monstres, la 2A de l'un ne masque pas l'autre.
+  const homonymes = [
+    mon({ name: 'Vigor', element: 'water', stars: 6, naturalStars: 3, secondAwaken: true }),
+    mon({ name: 'Vigor', element: 'fire', stars: 4, naturalStars: 3 }),
+  ];
+  egal(
+    formesJouables(homonymes).map((m) => m.element),
+    ['water', 'fire'],
+    'la 2A d’un élément ne masque pas l’homonyme d’un autre élément'
+  );
+
+  // Monstre créé à la main : aucune étoile connue, mais il existe parce que
+  // l'utilisateur l'a saisi — il doit rester proposable.
+  egal(
+    formesJouables([mon({ name: 'Perso' })]).length,
+    1,
+    'un monstre perso (sans étoiles) reste proposable'
+  );
+
+  ok(!estEveille(mon({ name: 'X', stars: 3, naturalStars: 3 })), 'stars = nat → non éveillé');
+  ok(estEveille(mon({ name: 'X', stars: 4, naturalStars: 3 })), 'stars > nat → éveillé');
 }

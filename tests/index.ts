@@ -14,6 +14,7 @@ import testReco, {
   testRechercheMonstre,
   testRechercheMultiple,
   testDecksMontables,
+  testFormesJouables,
 } from './reco.test';
 import testRtaPartage from './rta-partage.test';
 import testStockage from './stockage.test';
@@ -27,6 +28,7 @@ async function main() {
   testRechercheMonstre();
   testRechercheMultiple();
   testDecksMontables();
+  testFormesJouables();
   testRtaPartage();
   testMeules();
   testArtefacts();

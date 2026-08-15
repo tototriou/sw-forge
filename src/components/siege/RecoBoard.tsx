@@ -10,6 +10,7 @@ import { matchReco, RecoMatch } from '../../lib/recoMatch';
 import { chercheMonstre, RecoHit, RecoSearchMode } from '../../lib/recoSearch';
 import { ConfirmDialog } from '../Dialogs';
 import { OwnedBuild, OwnedTeam, indexBuildsByCom2us } from '../../lib/ownedBuilds';
+import { formesJouables } from '../../lib/monsterForms';
 import Segmented from '../Segmented';
 import MonsterAvatar from '../MonsterAvatar';
 import MonsterPicker from '../MonsterPicker';
@@ -103,13 +104,17 @@ export default function RecoBoard({ recos, monsters, builds, teams, copies6, off
   const retirerMonstre = (i: number) =>
     setQueries((cur) => cur.map((q, k) => (k === i ? '' : q)));
   const casesPleines = queries.every((q) => q.trim());
+  // ⚠️ LA MÊME liste que celle du sélecteur (voir lib/monsterForms.ts) : les
+  // cases doivent afficher le portrait de la forme réellement proposée, pas
+  // celui d'une homonyme non éveillée restée dans les données brutes.
+  const monstresJouables = useMemo(() => formesJouables(monsters), [monsters]);
   // Ids locaux des monstres déjà posés, pour les retirer des suggestions.
   const dejaPoses = useMemo(() => {
     const noms = new Set(queries.filter(Boolean));
     const ids = new Set<string>();
-    for (const m of monsters) if (noms.has(m.name)) ids.add(String(m.id));
+    for (const m of monstresJouables) if (noms.has(m.name)) ids.add(String(m.id));
     return ids;
-  }, [queries, monsters]);
+  }, [queries, monstresJouables]);
   const [msg, setMsg] = useState<{ text: string; error?: boolean } | null>(null);
   // Rapport de validation du dernier import : NON éphémère (il faut pouvoir le lire).
   const [report, setReport] = useState<ImportReport | null>(null);
@@ -427,7 +432,12 @@ export default function RecoBoard({ recos, monsters, builds, teams, copies6, off
                 viser une case entre chaque. */}
             <div className="flex items-center justify-center gap-2">
               {queries.map((nom, i) => {
-                const mon = nom ? monsters.find((m) => m.name === nom) ?? null : null;
+                // ⚠️ Résolu dans les formes JOUABLES, pas dans la liste
+                // complète : plusieurs entrées portent le même nom (forme
+                // éveillée, 2A, entrées techniques de SWARFARM). Chercher dans
+                // `monsters` retombait sur la première venue — d'où un portrait
+                // qui ne correspondait pas à celui choisi dans les suggestions.
+                const mon = nom ? monstresJouables.find((m) => m.name === nom) ?? null : null;
                 if (!nom) {
                   return (
                     <div

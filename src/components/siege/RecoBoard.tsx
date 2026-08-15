@@ -294,7 +294,7 @@ export default function RecoBoard({ recos, monsters, builds, teams, copies6, off
   // ⚠️ Changer de recherche efface les choix d’ouverture : ils valaient pour CES
   // résultats-là. Et SEULEMENT quand une recherche est en cours — sans cette
   // garde, taper puis effacer refermait les cartes ouvertes à la main avant.
-  const cleRecherche = queries.join(' ');
+  const cleRecherche = queries.join('\0');
   useEffect(() => {
     if (!cleRecherche.trim()) return;
     setChoixOuverture(new Map());
@@ -337,13 +337,18 @@ export default function RecoBoard({ recos, monsters, builds, teams, copies6, off
             onClick={() => handleExport(list, filter === 'all' ? 'toutes' : filter)}
             className="flex items-center gap-1.5 rounded-lg border border-border bg-panel px-3.5 py-2 text-[13px]
                        text-ink-dim hoverable:text-ink hoverable:border-accent transition"
+            // ⚠️ Le LIBELLÉ NE CHANGE PAS avec le filtre. Un bouton qui se
+            // renomme sous le curseur se lit comme un autre bouton : on cesse de
+            // le reconnaître d'un écran à l'autre, et on relit une barre
+            // d'actions qu'on connaissait. Ce qui part réellement se dit dans
+            // l'infobulle, et le message de retour le récapitule.
             title={
               filter === 'all'
                 ? 'Exporter toutes les recommandations en un seul fichier'
                 : "Exporter les recommandations affichées (celles du filtre actif)"
             }
           >
-            <Upload size={15} /> {filter === 'all' ? 'Tout exporter' : "Exporter l'affichage"}
+            <Upload size={15} /> Tout exporter
           </button>
         )}
 
@@ -371,27 +376,6 @@ export default function RecoBoard({ recos, monsters, builds, teams, copies6, off
         />
       )}
 
-      {/* Filtre d'origine : n'apparaît que s'il y a quelque chose à trier */}
-      {all.length > 0 && (
-        <div className="mt-3 flex items-center gap-1 bg-panel border border-border rounded-xl p-1 w-fit">
-          {FILTERS.map((f) => {
-            const active = filter === f.key;
-            const n = counts[f.key];
-            return (
-              <button
-                key={f.key}
-                onClick={() => setFilter(f.key)}
-                className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-[12.5px] font-semibold transition
-                  ${active ? 'bg-accent-soft text-ink' : 'text-ink-dim hoverable:text-ink'}`}
-              >
-                {f.label}
-                <span className={`font-mono text-[11px] ${active ? 'text-ink-dim' : 'opacity-70'}`}>{n}</span>
-              </button>
-            );
-          })}
-        </div>
-      )}
-
       {/* Import : un seul chemin, le fichier .json (input déclenché par le
           bouton « Importer » ci-dessus). */}
       <input
@@ -408,29 +392,55 @@ export default function RecoBoard({ recos, monsters, builds, teams, copies6, off
       />
 
       {msg && (
-        <p className={`mt-3 text-[12.5px] ${msg.error ? 'text-fire' : 'text-good'}`}>{msg.text}</p>
+        <p className={`mt-3 text-[13px] ${msg.error ? 'text-fire' : 'text-good'}`}>{msg.text}</p>
       )}
 
       {report && (report.errors.length > 0 || report.warnings.length > 0) && (
         <ValidationReport report={report} onClose={() => setReport(null)} />
       )}
 
-      {/* Recherche par monstre — JUSTE au-dessus des recommandations, sous les
-          filtres : c'est elle qui décide de ce que la liste montre, elle doit
-          donc être collée à ce qu'elle filtre.
-          ⚠️ N'apparaît que s'il y a des recommandations : un champ de recherche
-          au-dessus d'une page vide n'a rien à chercher, et laisse croire qu'on
-          n'a rien trouvé alors qu'il n'y a rien. */}
+      {/* Bloc de filtres — origine, composition cherchée, rôle.
+          ⚠️ UN SEUL bloc, et des RANGÉES INTITULÉES (même grammaire que
+          l'inventaire d'artéfacts, voir account/ArtifactsList.tsx) : les trois
+          contrôles filtrent tous la même liste, les poser à trois niveaux et
+          sans intitulé donnait trois objets flottants dont rien ne disait qu'ils
+          se combinaient. L'intitulé de largeur fixe aligne les contrôles entre
+          eux, quelle que soit la longueur du mot.
+          ⚠️ N'apparaît que s'il y a des recommandations : un filtre au-dessus
+          d'une page vide n'a rien à filtrer, et laisse croire qu'on n'a rien
+          trouvé alors qu'il n'y a rien. */}
       {all.length > 0 && (
-        <div className="mt-5 flex flex-wrap items-start gap-x-3 gap-y-2">
-          <div className="flex min-w-0 flex-1 flex-col gap-1.5 sm:max-w-[380px]">
+        <div className="mt-4 flex flex-col gap-2.5 rounded-xl border border-border bg-panel/40 px-3 py-3">
+          {/* Origine — le VRAI Segmented, pas une copie : deux contrôles à cran
+              dans la même page doivent avoir le même cadre, le même rayon et la
+              même taille de texte. */}
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="w-[76px] flex-none label">Origine</span>
+            <Segmented
+              value={filter}
+              onChange={setFilter}
+              options={FILTERS.map((f) => ({
+                key: f.key,
+                label: f.label,
+                // Le compteur vit DANS le cran, APRÈS le libellé, en mono comme
+                // tout ce qui se compare d'une ligne à l'autre. Il reste
+                // `ink-dim` posé comme au repos : c'est une quantité, pas l'état
+                // du cran — le fond dit déjà lequel est choisi (design.md).
+                suffix: <span className="font-mono text-[11px] text-ink-dim">{counts[f.key]}</span>,
+              }))}
+            />
+          </div>
+
+          {/* Composition cherchée. */}
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="w-[76px] flex-none label">Monstres</span>
             {/* ⚠️ TROIS CASES, et non trois champs texte : elles montrent la
                 forme de ce qu'on cherche — une composition de 3 monstres — avant
                 même qu'on ait tapé quoi que ce soit, et reprennent le langage
-                des slots de deck de la page. Un champ unique en dessous les
-                remplit dans l'ordre : on enchaîne les trois noms sans avoir à
-                viser une case entre chaque. */}
-            <div className="flex items-center justify-center gap-2">
+                des slots de deck de la page. Un champ unique à côté les remplit
+                dans l'ordre : on enchaîne les trois noms sans avoir à viser une
+                case entre chaque. */}
+            <div className="flex items-center gap-1.5">
               {queries.map((nom, i) => {
                 // ⚠️ Résolu dans les formes JOUABLES, pas dans la liste
                 // complète : plusieurs entrées portent le même nom (forme
@@ -442,11 +452,11 @@ export default function RecoBoard({ recos, monsters, builds, teams, copies6, off
                   return (
                     <div
                       key={i}
-                      className="flex h-[46px] w-[46px] flex-none items-center justify-center rounded-lg
+                      className="flex h-[40px] w-[40px] flex-none items-center justify-center rounded-lg
                                  border border-dashed border-border text-ink-dim"
                       aria-hidden
                     >
-                      <Plus size={16} />
+                      <Plus size={15} />
                     </div>
                   );
                 }
@@ -454,7 +464,7 @@ export default function RecoBoard({ recos, monsters, builds, teams, copies6, off
                   <button
                     key={i}
                     onClick={() => retirerMonstre(i)}
-                    className="group relative flex h-[46px] w-[46px] flex-none items-center justify-center
+                    className="group relative flex h-[40px] w-[40px] flex-none items-center justify-center
                                rounded-lg border border-accent bg-accent/[0.08] transition
                                hoverable:border-fire"
                     title={`Retirer ${nom}`}
@@ -463,7 +473,7 @@ export default function RecoBoard({ recos, monsters, builds, teams, copies6, off
                     {/* Le portrait, pas le nom : plusieurs monstres portent le
                         même nom (formes 2A) — voir MonsterAvatar. Le repli sur
                         les initiales couvre un monstre absent des données. */}
-                    <MonsterAvatar monster={mon} fallback={nom} size={38} />
+                    <MonsterAvatar monster={mon} fallback={nom} size={32} />
                     <span
                       className="absolute -right-1 -top-1 flex h-4 w-4 items-center justify-center rounded-full
                                  bg-panel2 text-ink-dim opacity-0 transition-opacity
@@ -476,61 +486,70 @@ export default function RecoBoard({ recos, monsters, builds, teams, copies6, off
               })}
             </div>
 
-            {/* Le champ unique. Il disparaît quand les trois cases sont prises :
-                un champ de saisie qui n'a plus où poser ce qu'on y tape se lit
-                comme un bug. */}
+            {/* Le champ unique, sur la MÊME rangée que les cases qu'il remplit :
+                empilé dessous, rien ne disait qu'il les alimentait. Il disparaît
+                quand les trois sont prises — un champ de saisie qui n'a plus où
+                poser ce qu'on y tape se lit comme un bug. */}
             {!casesPleines ? (
-              <MonsterPicker
-                monsters={monsters}
-                // ⚠️ Les monstres déjà posés sont retirés des suggestions : le
-                // ET exige des monstres DISTINCTS (voir recoSearch.ts), poser
-                // deux fois le même garantirait zéro résultat.
-                excludeIds={dejaPoses}
-                placeholder="Nom du monstre…"
-                onPick={(id) => {
-                  const m = monsters.find((x) => String(x.id) === id);
-                  if (m) poserMonstre(m.name);
-                }}
-              />
+              <div className="min-w-[180px] flex-1 sm:max-w-[260px]">
+                <MonsterPicker
+                  monsters={monsters}
+                  // ⚠️ Les monstres déjà posés sont retirés des suggestions : le
+                  // ET exige des monstres DISTINCTS (voir recoSearch.ts), poser
+                  // deux fois le même garantirait zéro résultat.
+                  excludeIds={dejaPoses}
+                  placeholder="Nom du monstre…"
+                  onPick={(id) => {
+                    const m = monsters.find((x) => String(x.id) === id);
+                    if (m) poserMonstre(m.name);
+                  }}
+                />
+              </div>
             ) : (
-              <p className="text-center text-[11.5px] text-ink-dim">
+              <p className="text-[12px] text-ink-dim">
                 Trois monstres posés — clique un portrait pour le retirer.
               </p>
             )}
-          </div>
 
-          {/* ⚠️ Le sélecteur FILTRE : ce qui relève de l'autre rôle n'est pas
-              affiché (voir SEARCH_MODES). Il n'apparaît qu'une fois quelque
-              chose posé — sans monstre, il n'y a rien à filtrer. */}
-          {aUneRecherche && (
-            <div className="flex flex-wrap items-center gap-2">
-              <Segmented
-                value={searchMode}
-                onChange={setSearchMode}
-                options={SEARCH_MODES.map((m) => ({ key: m.key, label: m.label, hint: m.hint }))}
-              />
-
-              {/* Vider les trois cases d'un coup — distinct du retrait d'un seul
-                  portrait, qui sert à affiner. */}
+            {/* Vider les trois cases d'un coup — distinct du retrait d'un seul
+                portrait, qui sert à affiner. Il vit AVEC les cases qu'il vide,
+                et non avec le sélecteur de rôle, qui ne les touche pas. */}
+            {aUneRecherche && (
               <button
                 onClick={effacerRecherche}
-                className="flex h-[30px] flex-none items-center gap-1 rounded-lg border border-border
-                           px-2 text-[11.5px] font-semibold text-ink-dim transition
+                className="flex flex-none items-center gap-1 rounded-lg border border-border px-2 py-1
+                           text-[12px] font-semibold text-ink-dim transition
                            hoverable:border-fire hoverable:text-fire"
                 title="Vider la recherche"
                 aria-label="Vider la recherche"
               >
                 <X size={13} /> Vider
               </button>
-            </div>
-          )}
+            )}
+          </div>
 
-          {hits && (
-            <span className="font-mono text-[11.5px] leading-[30px] text-ink-dim">
-              {hits.length === 0
-                ? 'aucun résultat'
-                : `${hits.length} reco${hits.length > 1 ? 's' : ''}`}
-            </span>
+          {/* ⚠️ Le sélecteur FILTRE : ce qui relève de l'autre rôle n'est pas
+              affiché (voir SEARCH_MODES). Il n'apparaît qu'une fois quelque
+              chose posé — sans monstre, il n'y a rien à filtrer.
+              Le compteur de résultats vit sur CETTE rangée : c'est le rôle qui
+              décide combien il en reste, et il n'a ainsi plus besoin d'une
+              hauteur de ligne en dur pour se caler sur un contrôle voisin. */}
+          {aUneRecherche && (
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="w-[76px] flex-none label">Rôle</span>
+              <Segmented
+                value={searchMode}
+                onChange={setSearchMode}
+                options={SEARCH_MODES.map((m) => ({ key: m.key, label: m.label, hint: m.hint }))}
+              />
+              {hits && (
+                <span className="font-mono text-[11px] text-ink-dim">
+                  {hits.length === 0
+                    ? 'aucun résultat'
+                    : `${hits.length} reco${hits.length > 1 ? 's' : ''}`}
+                </span>
+              )}
+            </div>
           )}
         </div>
       )}

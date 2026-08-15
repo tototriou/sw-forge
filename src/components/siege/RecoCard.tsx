@@ -15,7 +15,7 @@ import {
   Search,
   Gauge,
 } from 'lucide-react';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import {
   ARTIFACT_KINDS,
   ArtifactKind,
@@ -215,10 +215,54 @@ export default function RecoCard({
   // Positions du monstre dans un deck donné, pour le surlignage.
   const hitDeDeck = (di: number) => hit?.decks.find((d) => d.deckIndex === di) ?? null;
 
+  // ── Aller d'une ligne du résumé au deck correspondant ────────────────────
+  //
+  // Le résumé dit ce qui cloche ; le geste suivant est toujours d'aller voir le
+  // deck. Sans ce lien, il fallait déplier la carte, retrouver le deck à l'œil
+  // parmi six, puis l'ouvrir — alors que la ligne le désigne déjà.
+  const deckRefs = useRef<Map<number, HTMLDivElement>>(new Map());
+  // Deck vers lequel défiler une fois qu'il est monté ET déplié. Le scroll ne
+  // peut pas se faire dans le `onClick` : la carte ou le deck viennent peut-être
+  // d'être dépliés dans la même passe, et leur hauteur n'est pas encore posée.
+  const [deckAViser, setDeckAViser] = useState<number | null>(null);
+
+  const allerAuDeck = (di: number) => {
+    // ⚠️ Déplier la CARTE aussi : le résumé reste visible carte repliée (c'est
+    // tout son intérêt), donc on clique souvent depuis une carte fermée où le
+    // deck visé n'est pas rendu du tout.
+    if (!expanded) onToggleOpen(reco.id);
+    setOpenDecks((s) => new Set(s).add(di));
+    setDeckAViser(di);
+  };
+
+  useEffect(() => {
+    if (deckAViser == null) return;
+    // ⚠️ Une frame d'attente avant de viser : la carte et le deck viennent
+    // peut-être d'être dépliés dans la même passe, et leur hauteur n'est pas
+    // encore posée — `scrollIntoView` calerait sur une position périmée.
+    const t = requestAnimationFrame(() => {
+      // ⚠️ Un deck peut n'avoir AUCUNE ref : pendant une recherche, seuls les
+      // decks trouvés sont rendus. On ne fait alors rien plutôt que de sauter
+      // au hasard — le deck est bien déplié, il réapparaîtra à sa place dès que
+      // la recherche sera effacée.
+      deckRefs.current.get(deckAViser)?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      setDeckAViser(null);
+    });
+    return () => cancelAnimationFrame(t);
+  }, [deckAViser]);
+
   return (
     <section className={`rounded-2xl border p-4 transition-colors ${AURA[status]}`}>
-      {/* En-tête de la recommandation */}
-      <div className="flex items-center gap-2 mb-3 flex-wrap">
+      {/* En-tête de la recommandation.
+          ⚠️ DEUX zones, et non un seul `flex-wrap` : le titre et ses
+          métadonnées à gauche (elles peuvent passer à la ligne), les actions
+          ancrées **en haut à droite** (`items-start` + `ml-auto` sur le groupe).
+          Dans un `flex-wrap` unique, les icônes Exporter/Éditer/Supprimer
+          suivaient le flux et retombaient sous le titre dès que la ligne était
+          pleine — on les cherchait des yeux d'une carte à l'autre. Elles sont
+          maintenant TOUJOURS dans l'angle supérieur droit. */}
+      <div className="flex items-start gap-2 mb-3">
+        <div className="flex flex-1 min-w-0 items-center gap-2 flex-wrap">
         {editing ? (
           <input
             value={reco.name}
@@ -273,55 +317,60 @@ export default function RecoCard({
           </button>
         )}
 
-        {/* En édition, la carte est forcément dépliée → le bouton n'a pas de sens. */}
-        {!editing && (
-          <button
-            onClick={() => onToggleOpen(reco.id)}
-            aria-expanded={expanded}
-            className={`ml-auto flex items-center gap-1.5 rounded-md border px-2.5 py-1 text-[12px] font-semibold transition ${
-              open
-                ? 'border-accent bg-panel2 text-ink'
-                : 'border-border bg-panel text-ink hoverable:border-accent'
-            }`}
-            title={open ? 'Replier' : `Voir les ${reco.decks.length} deck(s)`}
-          >
-            <ChevronDown size={13} className={`transition-transform ${expanded ? 'rotate-180' : ''}`} />
-            {open ? 'Réduire' : 'Consulter'}
-          </button>
-        )}
-        {/* Exporter / Éditer / Supprimer : icônes nues (ni cadre ni fond), comme
-            la corbeille — l'en-tête est déjà chargé. Groupées et resserrées pour
-            se lire comme UNE barre d'outils, pas comme trois actions éparses.
-            Le sens passe par l'infobulle et l'`aria-label` ; l'édition active se
-            lit au ✓ doré. */}
-        <div className={`${editing ? 'ml-auto ' : ''}flex items-center gap-0.5 -mr-1`}>
-          <button
-            onClick={() => onExport(reco)}
-            className="flex items-center justify-center w-6 h-6 text-ink-dim hoverable:text-ink transition"
-            title="Exporter cette recommandation (tous ses decks)"
-            aria-label="Exporter cette recommandation"
-          >
-            <Upload size={13} />
-          </button>
-          <button
-            onClick={() => onToggleEdit(reco.id)}
-            className={`flex items-center justify-center w-6 h-6 transition ${
-              editing ? 'text-star' : 'text-ink-dim hoverable:text-ink'
-            }`}
-            title={editing ? "Terminer l'édition" : 'Éditer la recommandation'}
-            aria-label={editing ? "Terminer l'édition" : 'Éditer la recommandation'}
-            aria-pressed={editing}
-          >
-            {editing ? <Check size={14} /> : <Pencil size={13} />}
-          </button>
-          <button
-            onClick={() => setSuppressionAConfirmer(true)}
-            className="flex items-center justify-center w-6 h-6 text-ink-dim hoverable:text-fire transition"
-            title="Supprimer cette recommandation"
-            aria-label="Supprimer cette recommandation"
-          >
-            <Trash2 size={13} />
-          </button>
+        </div>
+
+        {/* Actions — ancrées en haut à droite, hors du flux du titre. */}
+        <div className="flex flex-none items-center gap-1.5">
+          {/* En édition, la carte est forcément dépliée → le bouton n'a pas de sens. */}
+          {!editing && (
+            <button
+              onClick={() => onToggleOpen(reco.id)}
+              aria-expanded={expanded}
+              className={`flex items-center gap-1.5 rounded-md border px-2.5 py-1 text-[12px] font-semibold transition ${
+                open
+                  ? 'border-accent bg-panel2 text-ink'
+                  : 'border-border bg-panel text-ink hoverable:border-accent'
+              }`}
+              title={open ? 'Replier' : `Voir les ${reco.decks.length} deck(s)`}
+            >
+              <ChevronDown size={13} className={`transition-transform ${expanded ? 'rotate-180' : ''}`} />
+              {open ? 'Réduire' : 'Consulter'}
+            </button>
+          )}
+          {/* Exporter / Éditer / Supprimer : icônes nues (ni cadre ni fond), comme
+              la corbeille — l'en-tête est déjà chargé. Groupées et resserrées pour
+              se lire comme UNE barre d'outils, pas comme trois actions éparses.
+              Le sens passe par l'infobulle et l'`aria-label` ; l'édition active se
+              lit au ✓ doré. */}
+          <div className="flex items-center gap-0.5 -mr-1">
+            <button
+              onClick={() => onExport(reco)}
+              className="flex items-center justify-center w-6 h-6 text-ink-dim hoverable:text-ink transition"
+              title="Exporter cette recommandation (tous ses decks)"
+              aria-label="Exporter cette recommandation"
+            >
+              <Upload size={13} />
+            </button>
+            <button
+              onClick={() => onToggleEdit(reco.id)}
+              className={`flex items-center justify-center w-6 h-6 transition ${
+                editing ? 'text-star' : 'text-ink-dim hoverable:text-ink'
+              }`}
+              title={editing ? "Terminer l'édition" : 'Éditer la recommandation'}
+              aria-label={editing ? "Terminer l'édition" : 'Éditer la recommandation'}
+              aria-pressed={editing}
+            >
+              {editing ? <Check size={14} /> : <Pencil size={13} />}
+            </button>
+            <button
+              onClick={() => setSuppressionAConfirmer(true)}
+              className="flex items-center justify-center w-6 h-6 text-ink-dim hoverable:text-fire transition"
+              title="Supprimer cette recommandation"
+              aria-label="Supprimer cette recommandation"
+            >
+              <Trash2 size={13} />
+            </button>
+          </div>
         </div>
       </div>
 
@@ -366,6 +415,7 @@ export default function RecoCard({
           match={match}
           monsterByCom2us={monsterByCom2us}
           onClear={onClearAnalysis}
+          onGoToDeck={allerAuDeck}
         />
       )}
 
@@ -435,21 +485,30 @@ export default function RecoCard({
             {reco.decks.map((deck, di) => {
               if (decksFiltres && !decksTrouves.has(di)) return null;
               return (
-                <DeckBlock
+                // Conteneur porteur de la ref : c'est la cible du défilement
+                // quand on clique la ligne correspondante du résumé.
+                <div
                   key={di}
-                  reco={reco}
-                  deck={deck}
-                  deckIndex={di}
-                  monsters={monsters}
-                  monsterByCom2us={monsterByCom2us}
-                  match={match?.decks[di] ?? null}
-                  editing={editingDeck === di}
-                  onToggleEdit={() => setEditingDeck((cur) => (cur === di ? null : di))}
-                  folded={!openDecks.has(di) && editingDeck !== di && !decksTrouves.has(di)}
-                  onToggleFold={() => toggleDeck(di)}
-                  hit={hitDeDeck(di)}
-                  recos={recos}
-                />
+                  ref={(el) => {
+                    if (el) deckRefs.current.set(di, el);
+                    else deckRefs.current.delete(di);
+                  }}
+                >
+                  <DeckBlock
+                    reco={reco}
+                    deck={deck}
+                    deckIndex={di}
+                    monsters={monsters}
+                    monsterByCom2us={monsterByCom2us}
+                    match={match?.decks[di] ?? null}
+                    editing={editingDeck === di}
+                    onToggleEdit={() => setEditingDeck((cur) => (cur === di ? null : di))}
+                    folded={!openDecks.has(di) && editingDeck !== di && !decksTrouves.has(di)}
+                    onToggleFold={() => toggleDeck(di)}
+                    hit={hitDeDeck(di)}
+                    recos={recos}
+                  />
+                </div>
               );
             })}
           </div>
@@ -588,23 +647,146 @@ function deckProblem(dm: DeckMatch): string {
   return '';
 }
 
-// Synthèse après « Analyser » : combien de decks passent, et le détail de ceux
-// qui ne passent pas. C'est le livrable de l'analyse — il reste visible même
-// recommandation repliée.
+// Les QUATRE familles de verdict de l'analyse — une par statut réel.
+//
+// ⚠️ Le rouge est SCINDÉ en deux, alors qu'il ne l'était pas au départ : « à
+// revoir » et « monstre manquant » partagent la couleur mais pas du tout le
+// geste. L'un se répare en rerunant ce qu'on possède déjà ; l'autre demande
+// d'invoquer et de monter un monstre qu'on n'a pas — ce n'est plus le même
+// horizon, ni la même décision. Les fondre obligeait à parcourir la liste rouge
+// pour trier à l'œil ce sur quoi on pouvait agir ce soir.
+//
+// Les deux gardent la couleur `fire` : ils sont bloquants tous les deux, et
+// c'est bien ce que la couleur dit. Ce sont deux FILTRES sur un même rouge, pas
+// deux couleurs de plus.
+type VerdictKey = 'ok' | 'nodeck' | 'ko' | 'missing';
+
+const VERDICTS: {
+  key: VerdictKey;
+  label: string;
+  statuts: DeckMatch['status'][];
+  dot: string;
+  texte: string;
+  actif: string;
+  // ⚠️ Rang de TRI de la liste, distinct de l'ordre des pastilles ci-dessous.
+  // La liste va du plus urgent au plus tranquille — rouge, orange, vert : ce
+  // qui demande du travail se lit en premier, les decks déjà jouables closent
+  // et n'ont pas à être dépassés pour atteindre les problèmes.
+  rang: number;
+}[] = [
+  // L'ordre du TABLEAU est celui des PASTILLES, qui se lisent comme une
+  // légende, du meilleur au pire — l'inverse de la liste, et c'est voulu :
+  // une légende ordonne des catégories, une liste hiérarchise l'urgence.
+  {
+    key: 'ok',
+    label: 'Bon',
+    statuts: ['ok'],
+    dot: 'bg-good',
+    texte: 'text-good',
+    actif: 'border-good bg-good/10 text-ink',
+    rang: 3,
+  },
+  {
+    key: 'nodeck',
+    label: 'À composer',
+    statuts: ['nodeck'],
+    dot: 'bg-warn',
+    texte: 'text-warn',
+    actif: 'border-warn bg-warn/10 text-ink',
+    rang: 2,
+  },
+  {
+    key: 'ko',
+    label: 'À revoir',
+    statuts: ['ko'],
+    dot: 'bg-fire',
+    texte: 'text-fire',
+    actif: 'border-fire bg-fire/10 text-ink',
+    rang: 1,
+  },
+  {
+    // ⚠️ Le plus bloquant en tête de liste : rien de ce qu'on possède ne
+    // répare un monstre absent, alors qu'un « à revoir » se corrige le soir
+    // même avec les runes qu'on a déjà.
+    key: 'missing',
+    label: 'Monstre manquant',
+    statuts: ['missing'],
+    // ⚠️ Point CREUX, même rouge : deux pastilles de la même couleur côte à
+    // côte ne se distinguent plus que par leur texte, qu'on ne relit pas une
+    // fois la barre connue. Le creux dit « il manque quelque chose » sans
+    // introduire une cinquième couleur qui mentirait sur la gravité.
+    dot: 'border border-fire',
+    texte: 'text-fire',
+    actif: 'border-fire bg-fire/10 text-ink',
+    rang: 0,
+  },
+];
+
+const RANG_DE = Object.fromEntries(VERDICTS.map((v) => [v.key, v.rang])) as Record<
+  VerdictKey,
+  number
+>;
+
+const VERDICT_DE: Record<string, VerdictKey | null> = {
+  ok: 'ok',
+  nodeck: 'nodeck',
+  ko: 'ko',
+  missing: 'missing',
+  unknown: null,
+};
+
+// Synthèse après « Analyser » : le verdict de CHAQUE deck, bons compris, et le
+// détail de ceux qui ne passent pas. C'est le livrable de l'analyse — il reste
+// visible même recommandation repliée.
+//
+// ⚠️ Les decks au niveau sont LISTÉS, pas seulement comptés. Un « 4/6 au
+// niveau » oblige à rouvrir la carte pour savoir LESQUELS sont jouables — or
+// c'est la question qu'on se pose devant une défense de guilde à poser. Le
+// détail par monstre reste réservé aux decks fautifs : sur un deck bon, il n'y
+// a rien à corriger.
 function AnalysisSummary({
   reco,
   match,
   monsterByCom2us,
   onClear,
+  onGoToDeck,
 }: {
   reco: Reco;
   match: RecoMatch;
   monsterByCom2us: Map<number, Monster>;
   onClear: () => void;
+  // Déplie le deck visé (et la carte si besoin) puis y fait défiler.
+  onGoToDeck: (deckIndex: number) => void;
 }) {
-  const rates = reco.decks
+  // Tous les decks analysables, triés du plus urgent au plus tranquille :
+  // ⚠️ ROUGE → ORANGE → VERT. Ce qui demande du travail se lit en premier ; les
+  // decks déjà jouables closent la liste au lieu de la précéder — sinon il faut
+  // les dépasser pour atteindre ce sur quoi on peut agir.
+  // ⚠️ Tri STABLE (`sort` l'est en JS moderne) sur le seul rang : à verdict
+  // égal, les decks gardent l'ordre de la recommandation, qui est celui de son
+  // auteur. Trier aussi à l'intérieur d'une famille mélangerait ses decks sans
+  // que rien à l'écran ne dise pourquoi.
+  const lignes = reco.decks
     .map((deck, i) => ({ deck, i, dm: match.decks[i] }))
-    .filter(({ dm }) => dm && dm.status !== 'ok' && dm.status !== 'unknown');
+    .filter(({ dm }) => dm && dm.status !== 'unknown')
+    .map((l) => ({ ...l, verdict: VERDICT_DE[l.dm.status] as VerdictKey }))
+    .sort((a, b) => RANG_DE[a.verdict] - RANG_DE[b.verdict]);
+
+  const compte = (k: VerdictKey) => lignes.filter((l) => l.verdict === k).length;
+  const rates = lignes.filter((l) => l.verdict !== 'ok');
+
+  // Filtres de verdict. ⚠️ Rien de coché = TOUT est montré : un écran de
+  // filtres tous éteints qui n'afficherait rien se lirait comme une analyse
+  // vide. Cocher restreint, et l'ensemble reste cumulable (plusieurs couleurs
+  // à la fois) — d'où des pastilles indépendantes et non un `Segmented`.
+  const [vus, setVus] = useState<Set<VerdictKey>>(new Set());
+  const bascule = (k: VerdictKey) =>
+    setVus((cur) => {
+      const next = new Set(cur);
+      if (!next.delete(k)) next.add(k);
+      return next;
+    });
+  const visibles = vus.size === 0 ? lignes : lignes.filter((l) => vus.has(l.verdict));
 
   // Referme le résultat : la carte redevient neutre (halo et pastille compris).
   const closeBtn = (
@@ -621,65 +803,156 @@ function AnalysisSummary({
   if (match.totalDecks === 0) {
     return (
       <div className="mb-3 flex items-center gap-2 rounded-lg border border-border bg-panel/60 px-3 py-2">
-        <p className="text-[12.5px] text-ink-dim">Rien à analyser : aucun deck rempli.</p>
+        <p className="text-[13px] text-ink-dim">Rien à analyser : aucun deck rempli.</p>
         {closeBtn}
       </div>
     );
   }
 
-  if (rates.length === 0) {
-    return (
-      <div className="mb-3 flex items-center gap-2 rounded-lg border border-good/40 bg-good/10 px-3 py-2">
-        <Check size={15} className="flex-none text-good" />
-        <p className="text-[12.5px] text-good">
-          Tout est respecté : les <b>{match.totalDecks}</b> deck(s) sont jouables avec tes monstres.
-        </p>
-        {closeBtn}
-      </div>
-    );
-  }
+  // L'encart prend la couleur du pire verdict présent : vert si tout passe,
+  // orange sinon — le rouge reste porté par les lignes, pour ne pas alarmer sur
+  // une reco dont il ne manque qu'une équipe à composer.
+  const toutPasse = rates.length === 0;
 
   return (
-    <div className="mb-3 rounded-lg border border-warn/40 bg-warn/5 px-3 py-2">
-      <div className="flex items-center gap-2 mb-1.5">
-        <AlertTriangle size={15} className="flex-none text-warn" />
-        <p className="text-[12.5px] font-semibold text-warn">
-          {match.okDecks}/{match.totalDecks} deck(s) au niveau · {rates.length} à corriger
+    <div
+      className={`mb-3 rounded-lg border px-3 py-2 ${
+        toutPasse ? 'border-good/40 bg-good/10' : 'border-warn/40 bg-warn/5'
+      }`}
+    >
+      <div className="flex items-center gap-2">
+        {toutPasse ? (
+          <Check size={15} className="flex-none text-good" />
+        ) : (
+          <AlertTriangle size={15} className="flex-none text-warn" />
+        )}
+        <p className={`text-[13px] font-semibold ${toutPasse ? 'text-good' : 'text-warn'}`}>
+          {toutPasse
+            ? `Tout est respecté : les ${match.totalDecks} deck(s) sont jouables avec tes monstres.`
+            : `${match.okDecks}/${match.totalDecks} deck(s) au niveau · ${rates.length} à corriger`}
         </p>
         {closeBtn}
       </div>
-      <ul className="space-y-1.5">
-        {rates.map(({ deck, i, dm }) => (
-          <li key={i}>
-            <div className="flex items-baseline gap-1.5 flex-wrap">
-              <span className={`w-1.5 h-1.5 rounded-full flex-none self-center ${DOT[dm.status]}`} />
-              <span className="text-[12px] font-semibold text-ink">
-                {deckLabel(deck, monsterByCom2us, i)}
-              </span>
-              <span
-                className={`font-mono text-[10.5px] ${
-                  dm.status === 'nodeck' ? 'text-warn' : 'text-fire'
-                }`}
+
+      {/* Filtres de verdict — pastilles CUMULABLES (plusieurs couleurs à la
+          fois), d'où des boutons indépendants et non un `Segmented`, qui dirait
+          que les choix s'excluent (voir components/Segmented.tsx).
+          ⚠️ La BORDURE marque l'actif, jamais un aplat plein : c'est la règle
+          des pastilles de filtre (voir spec/shared/design.md).
+          Un verdict sans aucun deck est affiché GRISÉ et non retiré : on voit
+          qu'il n'y en a aucun, au lieu de chercher un bouton disparu. */}
+      <div className="mt-2 flex flex-wrap items-center gap-1.5">
+        {VERDICTS.map((v) => {
+          const n = compte(v.key);
+          const actif = vus.has(v.key);
+          return (
+            <button
+              key={v.key}
+              onClick={() => bascule(v.key)}
+              disabled={n === 0}
+              aria-pressed={actif}
+              title={
+                n === 0
+                  ? `Aucun deck « ${v.label} »`
+                  : actif
+                    ? `Ne plus isoler « ${v.label} »`
+                    : `N'afficher que « ${v.label} »`
+              }
+              className={`flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-[12px]
+                          font-semibold transition ${
+                            n === 0
+                              ? 'border-border text-ink-dim opacity-40 cursor-not-allowed'
+                              : actif
+                                ? v.actif
+                                : 'border-border text-ink-dim hoverable:border-accent hoverable:text-ink'
+                          }`}
+            >
+              {/* 2 px de plus que le point des lignes : un cercle CREUX de
+                  1.5 px ne se lit pas, son intérieur disparaît. */}
+              <span className={`h-2 w-2 flex-none rounded-full ${v.dot}`} />
+              {v.label}
+              <span className="font-mono text-[11px] text-ink-dim">{n}</span>
+            </button>
+          );
+        })}
+        {vus.size > 0 && (
+          <button
+            onClick={() => setVus(new Set())}
+            className="text-[12px] text-ink-dim underline transition hoverable:text-ink"
+          >
+            Tout afficher
+          </button>
+        )}
+      </div>
+
+      {/* ⚠️ TOUS les decks sont listés, les bons compris : « lesquels puis-je
+          poser » est la question qu'on se pose devant une défense de guilde, et
+          un simple compteur obligeait à rouvrir la carte pour y répondre. */}
+      <ul className="mt-2 space-y-1.5">
+        {visibles.map(({ deck, i, dm, verdict }) => {
+          const v = VERDICTS.find((x) => x.key === verdict)!;
+          return (
+            <li key={i}>
+              {/* ⚠️ La ligne entière est un BOUTON : le résumé dit ce qui
+                  cloche, et le geste suivant est toujours d'aller voir le deck.
+                  Sans ça il fallait déplier la carte, retrouver le deck à l'œil
+                  parmi six, puis l'ouvrir — alors que la ligne le désigne déjà.
+                  ⚠️ Le DÉTAIL par monstre reste HORS du bouton : c'est du texte
+                  qu'on lit et qu'on veut pouvoir sélectionner, pas une cible. */}
+              <button
+                onClick={() => onGoToDeck(i)}
+                className="flex w-full items-baseline gap-1.5 flex-wrap rounded-md px-1 py-0.5 -mx-1
+                           text-left transition hoverable:bg-panel2/60"
+                title={`Voir le deck « ${deckLabel(deck, monsterByCom2us, i)} »`}
               >
-                {deckProblem(dm)}
-              </span>
-            </div>
-            {/* « nodeck » : le détail par monstre n'apporte rien, il n'y a pas
-                de build à confronter — le message du deck suffit. */}
-            {dm.status !== 'nodeck' && (
-              <ul className="ml-3 mt-0.5 space-y-0.5">
-                {deck.slots.map((slot, si) => {
-                  const txt = dm.slots[si] ? slotProblem(slot, dm.slots[si], monsterByCom2us) : null;
-                  return txt ? (
-                    <li key={si} className="text-[11.5px] text-ink-dim leading-snug">
-                      • {txt}
-                    </li>
-                  ) : null;
-                })}
-              </ul>
-            )}
-          </li>
-        ))}
+                {/* Le point du VERDICT, pas `DOT[status]` : il doit être le
+                    même que celui de la pastille qui filtre cette ligne — dont
+                    le creux distingue « monstre manquant » de « à revoir ».
+                    `DOT` reste la table de l'aperçu replié, où le vocabulaire à
+                    trois couleurs suffit. */}
+                <span className={`w-2 h-2 rounded-full flex-none self-center ${v.dot}`} />
+                <span className="text-[12px] font-semibold text-ink">
+                  {deckLabel(deck, monsterByCom2us, i)}
+                </span>
+                <span className={`font-mono text-[11px] ${v.texte}`}>
+                  {/* Un deck bon annonce ce qui le rend jouable — l'équipe
+                      retenue —, pas un simple « ok » : c'est elle qu'on va
+                      chercher en jeu. */}
+                  {verdict === 'ok'
+                    ? dm.team
+                      ? `jouable · ${dm.team}`
+                      : 'jouable'
+                    : deckProblem(dm)}
+                </span>
+                {/* Combien de fois le deck est montable EN PARALLÈLE avec la
+                    réserve 6★ (`deckCopies`). C'est la question qu'on se pose
+                    devant SIX défenses de guilde à remplir : un deck jouable
+                    une seule fois n'en couvre qu'une.
+                    ⚠️ Affiché sur TOUS les verdicts, pas seulement les bons :
+                    savoir qu'un deck à revoir n'existe de toute façon qu'en un
+                    exemplaire change ce qu'on décide d'aller corriger. */}
+                <CopiesBadge copies={dm.copies} />
+              </button>
+              {/* Détail par monstre : sur les deux verdicts rouges. « à
+                  revoir » dit quoi corriger, « monstre manquant » dit LEQUEL
+                  manque — sans quoi on saurait le deck bloqué sans savoir par
+                  qui. « nodeck » n'en a pas (aucun build à confronter) et un
+                  deck bon n'a rien à montrer. */}
+              {(verdict === 'ko' || verdict === 'missing') && (
+                <ul className="ml-3 mt-0.5 space-y-0.5">
+                  {deck.slots.map((slot, si) => {
+                    const txt = dm.slots[si] ? slotProblem(slot, dm.slots[si], monsterByCom2us) : null;
+                    return txt ? (
+                      <li key={si} className="text-[12px] text-ink-dim leading-snug">
+                        • {txt}
+                      </li>
+                    ) : null;
+                  })}
+                </ul>
+              )}
+            </li>
+          );
+        })}
       </ul>
     </div>
   );
@@ -1072,58 +1345,137 @@ function CounterBlock({
   // Index des défenses qui contiennent le monstre cherché.
   hitCounters: number[];
 }) {
-  // ⚠️ Édition PROPRE au bloc, indépendante de celle du deck.
+  // ⚠️ Édition PAR DÉFENSE, et non pour le bloc entier.
   //
-  // Les deux gestes n'ont ni la même fréquence ni le même poids : noter la
-  // défense qu'on vient d'affronter se fait en passant, alors qu'éditer les
-  // sets et les stats d'un deck est un travail de fond. Les mettre derrière le
-  // même bouton obligeait à ouvrir le second pour faire le premier — et à
-  // traverser tout le formulaire de stats pour ajouter trois portraits.
-  const [editing, setEditing] = useState(false);
+  // Le bloc n'a plus de bouton « Éditer » : noter la défense qu'on vient
+  // d'affronter est un geste DE PASSAGE, et le crayon ajoutait une étape
+  // (ouvrir le mode, ajouter, refermer) là où le geste réel est « + ». Le « + »
+  // ajoute donc directement une défense, et c'est ELLE qui s'ouvre en édition —
+  // les autres restent en lecture, en vignettes, à côté.
+  //
+  // `null` = aucune en édition. On n'en édite qu'une à la fois : on note une
+  // composition, pas six.
+  const [enEdition, setEnEdition] = useState<number | null>(null);
+
+  // Précision affichée : `null` = aucune. Une seule à la fois.
+  //
+  // ⚠️ **La note s'affiche en POPOVER**, ancré sur sa vignette. Un panneau posé
+  // dans le flux devait s'aligner sous une vignette qui, en `flex-wrap`, peut
+  // être n'importe où sur n'importe quelle ligne : le trait du cran et celui du
+  // panneau ne se rejoignaient pas, et le rattachement mentait. Un flottant naît
+  // de son ancre, il n'a rien à aligner. Il ne pousse rien non plus — la rangée
+  // de vignettes ne bouge plus quand on lit une note.
+  //
+  // ⚠️ **Aucune ouverture automatique à la recherche.** Une défense trouvée
+  // s'ouvrait d'office : sur une recherche qui remonte plusieurs défenses, cela
+  // dépliait des notes qu'on n'avait pas demandées, et le surlignage de la
+  // vignette suffit à dire laquelle répond. On ouvre si on veut lire.
+  const [noteOuverte, setNoteOuverte] = useState<number | null>(null);
+
+  // Un flottant se referme au clic extérieur et à Échap — même motif que le menu
+  // de réglages et les autres popovers de l'app (voir SettingsMenu.tsx).
+  const rangeeRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (noteOuverte == null) return;
+    const onDown = (e: MouseEvent) => {
+      if (rangeeRef.current && !rangeeRef.current.contains(e.target as Node)) setNoteOuverte(null);
+    };
+    const onEsc = (e: KeyboardEvent) => e.key === 'Escape' && setNoteOuverte(null);
+    document.addEventListener('mousedown', onDown);
+    document.addEventListener('keydown', onEsc);
+    return () => {
+      document.removeEventListener('mousedown', onDown);
+      document.removeEventListener('keydown', onEsc);
+    };
+  }, [noteOuverte]);
+
+  // ⚠️ Les index se décalent à la suppression : une défense retirée laisserait
+  // l'édition (ou la note ouverte) pointer sur sa voisine, ou dans le vide.
+  const nbCounters = deck.counters.length;
+  useEffect(() => {
+    setEnEdition((cur) => (cur != null && cur >= nbCounters ? null : cur));
+    setNoteOuverte((cur) => (cur != null && cur >= nbCounters ? null : cur));
+  }, [nbCounters]);
+
+  const estVide = (ci: number) =>
+    (deck.counters[ci]?.monsters ?? []).every((m) => m.com2usId == null);
+
+  // ⚠️ Le bloc vit dans la partie DÉPLIÉE du deck : replier le démonte sans
+  // passer par « Terminer ». Sans ce nettoyage, une défense ouverte et laissée
+  // vide survivait au repli — exactement ce qu'on refuse d'enregistrer.
+  // Les valeurs sont lues dans une ref : l'effet de démontage ne s'exécute
+  // qu'une fois, et capturerait sinon l'état du premier rendu.
+  const etatAuDemontage = useRef({ enEdition, estVide, reco, deckIndex, recos });
+  etatAuDemontage.current = { enEdition, estVide, reco, deckIndex, recos };
+  useEffect(
+    () => () => {
+      const s = etatAuDemontage.current;
+      if (s.enEdition != null && s.estVide(s.enEdition))
+        s.recos.removeCounter(s.reco.id, s.deckIndex, s.enEdition);
+    },
+    []
+  );
+
+  const ajouter = () => {
+    // ⚠️ Si une défense est déjà ouverte et restée vide, on ne l'empile pas :
+    // cliquer « + » deux fois de suite ne doit pas laisser une entrée vide
+    // derrière soi. On la réutilise plutôt que d'en créer une seconde.
+    if (enEdition != null && estVide(enEdition)) return;
+    recos.addCounter(reco.id, deckIndex);
+    // La nouvelle est ajoutée en fin de liste : elle s'ouvre en édition, sinon
+    // on aurait ajouté une vignette vide sans moyen de la remplir.
+    setEnEdition(nbCounters);
+  };
+
+  // ⚠️ **Une défense sans AUCUN monstre n'est pas conservée.** L'entrée est bien
+  // créée au « + » — c'est le formulaire qu'on remplit —, mais si on la referme
+  // sans avoir rien choisi, elle est retirée : elle ne décrit aucune
+  // composition, ne se lit pas en vignette, et voyagerait telle quelle dans
+  // l'export. Refermer sans rien poser vaut donc « j'abandonne », pas
+  // « j'enregistre du vide ».
+  //
+  // ⚠️ La note seule ne suffit PAS à la retenir : une précision sans les
+  // portraits qu'elle qualifie (« si le Chloe est en lead ») ne veut rien dire.
+  // Ce sont les 3 monstres qui font la défense.
+  const fermerEdition = (ci: number) => {
+    if (estVide(ci)) recos.removeCounter(reco.id, deckIndex, ci);
+    setEnEdition(null);
+  };
+
+  // Passer d'une défense à une autre referme la précédente — et l'abandonne si
+  // elle est restée vide, exactement comme le bouton « Terminer ».
+  const basculerEdition = (ci: number) => {
+    if (enEdition === ci) {
+      fermerEdition(ci);
+      return;
+    }
+    if (enEdition != null && estVide(enEdition)) {
+      recos.removeCounter(reco.id, deckIndex, enEdition);
+      // ⚠️ Retirer une entrée AVANT celle qu'on vise décale son index d'un cran.
+      setEnEdition(enEdition < ci ? ci - 1 : ci);
+      return;
+    }
+    setEnEdition(ci);
+  };
 
   return (
     <div className="mt-2.5 pt-2.5 border-t border-border/50">
       <div className="mb-1.5 flex items-center gap-1.5">
         <Swords size={13} className="flex-none text-ink-dim" />
         <span className="label">Fort contre</span>
-        {!editing && deck.counters.length > 1 && (
-          <span className="font-mono text-[10.5px] text-ink-dim">{deck.counters.length}</span>
+        {deck.counters.length > 1 && (
+          <span className="font-mono text-[11px] text-ink-dim">{deck.counters.length}</span>
         )}
-
-        {/* ⚠️ Son PROPRE bouton, à droite de l'intitulé : le bloc s'ouvre sans
-            passer par l'édition du deck. Même langage que les autres en-têtes —
-            icône nue, et ✓ doré quand l'édition est en cours (voir la
-            convention d'icônes de spec/siege/recommandations.md). */}
-        <button
-          onClick={() => setEditing((v) => !v)}
-          aria-pressed={editing}
-          className={`ml-auto flex h-6 w-6 flex-none items-center justify-center rounded transition ${
-            editing ? 'text-star' : 'text-ink-dim hoverable:text-ink'
-          }`}
-          title={editing ? 'Terminer' : 'Ajouter ou modifier les défenses'}
-          aria-label={editing ? 'Terminer' : 'Ajouter ou modifier les défenses'}
-        >
-          {editing ? <Check size={14} /> : <Pencil size={13} />}
-        </button>
       </div>
-
-      {/* En lecture et sans rien à montrer, seul l'intitulé reste — il porte le
-          bouton qui permet d'en ajouter. Sans lui, la fonctionnalité serait
-          invisible sur les decks qui n'en ont pas encore. */}
-      {editing && deck.counters.length === 0 && (
-        <p className="mb-1.5 text-[11.5px] text-ink-dim">
-          Les défenses que ce deck bat. Facultatif, et surtout utile à qui reçoit la
-          recommandation.
-        </p>
-      )}
 
       {/* ⚠️ Les défenses côte à côte, en `flex-wrap` : ce sont des vignettes de
           3 portraits, empilées elles gaspillaient une ligne entière chacune
           pour 90 px de contenu. On en voit maintenant plusieurs d'un coup, ce
           qui est le point : reconnaître la composition qu'on affronte.
-          En ÉDITION en revanche, chacune reprend toute la largeur — elle porte
-          alors 3 sélecteurs et un champ de texte. */}
-      <div className={editing ? 'flex flex-col gap-1.5' : 'flex flex-wrap items-start gap-1.5'}>
+          Celle EN ÉDITION reprend toute la largeur — elle porte alors 3
+          sélecteurs et un champ de texte —, d'où le `w-full` qu'elle se donne
+          elle-même dans la rangée. */}
+      <div ref={rangeeRef} className="flex flex-wrap items-start gap-1.5">
         {deck.counters.map((counter, ci) => (
           <CounterRow
             key={ci}
@@ -1134,27 +1486,29 @@ function CounterBlock({
             monsters={monsters}
             monsterByCom2us={monsterByCom2us}
             recos={recos}
-            editing={editing}
+            editing={enEdition === ci}
+            onToggleEdit={() => basculerEdition(ci)}
             trouve={hitCounters.includes(ci)}
-            // Une défense trouvée par la recherche s'ouvre d'office : c'est
-            // celle qu'on est venu voir, sa précision fait partie du résultat.
-            ouvertParDefaut={hitCounters.includes(ci)}
+            noteOuverte={noteOuverte === ci}
+            onToggleNote={() => setNoteOuverte((cur) => (cur === ci ? null : ci))}
           />
         ))}
 
-        {/* Le « + » vit DANS la rangée, à la suite des défenses : c'est là
-            qu'on ajoute, et il montre où la prochaine se posera. */}
-        {editing && (
-          <button
-            onClick={() => recos.addCounter(reco.id, deckIndex)}
-            className="flex h-[44px] items-center gap-1 rounded-lg border border-dashed border-border
-                       px-2.5 text-[11.5px] font-semibold text-ink-dim transition
-                       hoverable:border-accent hoverable:text-ink"
-            title="Ajouter une défense"
-          >
-            <Plus size={14} /> Défense
-          </button>
-        )}
+        {/* ⚠️ UN SEUL bouton, toujours visible : le « + ». Il vit DANS la
+            rangée, à la suite des défenses — c'est là qu'on ajoute, et il montre
+            où la prochaine se posera. Le bloc restant visible même vide, c'est
+            aussi lui qui rend la fonctionnalité découvrable sur un deck qui n'en
+            porte encore aucune. */}
+        <button
+          onClick={ajouter}
+          className="flex h-[44px] flex-none items-center gap-1 rounded-lg border border-dashed border-border
+                     px-2.5 text-[12px] font-semibold text-ink-dim transition
+                     hoverable:border-accent hoverable:text-ink"
+          title="Ajouter une défense que ce deck bat"
+          aria-label="Ajouter une défense que ce deck bat"
+        >
+          <Plus size={14} /> Défense
+        </button>
       </div>
     </div>
   );
@@ -1170,8 +1524,10 @@ function CounterRow({
   monsterByCom2us,
   recos,
   editing,
+  onToggleEdit,
   trouve,
-  ouvertParDefaut,
+  noteOuverte,
+  onToggleNote,
 }: {
   counter: RecoCounter;
   reco: Reco;
@@ -1181,21 +1537,13 @@ function CounterRow({
   monsterByCom2us: Map<number, Monster>;
   recos: UseRecoState;
   editing: boolean;
+  onToggleEdit: () => void; // ouvre/ferme l'édition de CETTE défense
   trouve: boolean; // contient le monstre cherché
-  ouvertParDefaut: boolean; // trouvé par la recherche → sa précision est visible
+  // ⚠️ L'état de la précision vit dans le BLOC, pas ici : une seule ouverte à la
+  // fois sur toute la rangée. Voir CounterBlock.
+  noteOuverte: boolean;
+  onToggleNote: () => void;
 }) {
-  // Précision dépliée. ⚠️ Repliée par défaut : la rangée doit rester une suite
-  // de vignettes qu'on parcourt du regard, or une note ouverte fait deux fois la
-  // hauteur d'une vignette et casse l'alignement de toute la ligne.
-  const [noteOuverte, setNoteOuverte] = useState(ouvertParDefaut);
-  // ⚠️ Une recherche lancée alors que la carte est DÉJÀ à l'écran doit ouvrir la
-  // précision de ce qu'elle trouve : en état initial seul, elle ne s'ouvrait
-  // qu'au montage, donc jamais dans le cas courant (on tape avec la liste sous
-  // les yeux). L'inverse n'est pas vrai : effacer la recherche ne referme pas
-  // ce que l'utilisateur a pu ouvrir lui-même entre-temps.
-  useEffect(() => {
-    if (ouvertParDefaut) setNoteOuverte(true);
-  }, [ouvertParDefaut]);
   // Un même monstre ne peut pas occuper deux emplacements de LA MÊME défense —
   // même règle que les slots d'un deck. Il peut revenir dans une autre défense.
   const usedIds = new Set(
@@ -1236,14 +1584,43 @@ function CounterRow({
       </div>
     );
 
-    // Même écho de recherche que sur un slot : un fond d'accent, rien de plus.
-    const fond = trouve ? 'bg-accent/[0.10]' : 'bg-panel2/50';
+    // La vignette dont la précision est ouverte prend la bordure d'accent, comme
+    // le monstre sélectionné d'une équipe de siège dont on consulte les runes
+    // (voir SiegeTeam.tsx) : elle dit d'où sort le popover.
+    const cran = noteOuverte
+      ? 'border-accent bg-panel2'
+      : trouve
+        ? // Même écho de recherche que sur un slot : un fond d'accent, rien de plus.
+          'border-transparent bg-accent/[0.10]'
+        : 'border-transparent bg-panel2/50';
 
     return (
-      <div className={`min-w-0 rounded-lg ${fond}`}>
+      // `group` : le crayon n'apparaît qu'au survol de SA vignette.
+      // `relative` : ancre du popover de précision. ⚠️ `z-20` quand il est
+      // ouvert : les vignettes suivantes sont peintes APRÈS dans le flux et
+      // passeraient sinon par-dessus le flottant.
+      <div className={`group relative min-w-0 rounded-lg border ${noteOuverte ? 'z-20' : ''} ${cran}`}>
+        {/* ⚠️ Une défense posée doit rester modifiable : sans le bouton
+            « Éditer » du bloc, c'est la vignette qui porte son propre crayon.
+            Discret (il ne se montre qu'au survol) pour ne pas alourdir une
+            rangée qu'on parcourt du regard, mais TOUJOURS visible au tactile,
+            où il n'y a pas de survol — voir la règle « un élément atteignable
+            ne dépend jamais du survol » de spec/shared/design.md. */}
+        <button
+          onClick={onToggleEdit}
+          className="absolute -right-1 -top-1 z-10 flex h-5 w-5 items-center justify-center rounded-full
+                     border border-border bg-panel text-ink-dim opacity-0 transition
+                     hoverable:text-ink no-hover:opacity-100 group-hoverable:opacity-100
+                     focus-visible:opacity-100"
+          title="Modifier cette défense"
+          aria-label="Modifier cette défense"
+        >
+          <Pencil size={10} />
+        </button>
+
         {aUneNote ? (
           <button
-            onClick={() => setNoteOuverte((v) => !v)}
+            onClick={onToggleNote}
             aria-expanded={noteOuverte}
             className="flex w-full items-center rounded-lg px-2 py-1.5 transition hoverable:brightness-110"
             title={noteOuverte ? 'Masquer la précision' : 'Voir la précision'}
@@ -1254,19 +1631,33 @@ function CounterRow({
           <div className="px-2 py-1.5">{portraits}</div>
         )}
 
-        {/* La précision se déplie SOUS la vignette, dans sa largeur — elle
-            appartient à cette défense-là, pas à la rangée. */}
-        {aUneNote && noteOuverte && (
-          <p className="max-w-[260px] px-2 pb-1.5 text-[11.5px] leading-snug text-ink-dim">
-            {counter.note}
-          </p>
+        {/* La précision, en POPOVER ancré sous SA vignette.
+            ⚠️ Flottant et non posé dans le flux : il naît de son ancre, donc il
+            n'a rien à aligner — et il ne pousse pas la rangée, qui reste
+            immobile pendant qu'on lit.
+            ⚠️ `origin-top-left` : un flottant ancré grandit DEPUIS son ancre,
+            jamais depuis son centre (voir spec/shared/design.md).
+            `min-w-full` : au moins aussi large que la vignette, pour se lire
+            comme sa suite ; `w-max` + plafond au-delà, la note étant courte. */}
+        {noteOuverte && (
+          <div
+            className="absolute left-0 top-full z-20 mt-1 w-max min-w-full max-w-[280px] origin-top-left
+                       rounded-lg border border-accent bg-panel px-2.5 py-1.5 shadow-xl shadow-black/50
+                       animate-[popover_150ms_var(--ease-out)]"
+          >
+            <p className="text-[12px] leading-snug text-ink-dim">{counter.note}</p>
+          </div>
         )}
       </div>
     );
   }
 
   return (
-    <div className="rounded-lg border border-border bg-panel2/50 p-2">
+    // ⚠️ `w-full` : la rangée est en `flex-wrap` (les autres défenses restent en
+    // vignettes à côté), et celle qu'on édite porte 3 sélecteurs plus un champ
+    // de texte — elle prend donc toute la largeur pour elle seule.
+    // La bordure d'accent dit LAQUELLE est en cours d'édition.
+    <div className="w-full rounded-lg border border-accent bg-panel2/50 p-2">
       <div className="flex items-start gap-1.5">
         <div className="grid min-w-0 flex-1 grid-cols-1 gap-1.5 sm:grid-cols-3">
           {counter.monsters.map((m, i) => {
@@ -1315,14 +1706,28 @@ function CounterRow({
             );
           })}
         </div>
-        <button
-          onClick={() => recos.removeCounter(reco.id, deckIndex, counterIndex)}
-          className="mt-1 flex-none text-ink-dim transition hoverable:text-fire"
-          title="Retirer cette défense"
-          aria-label="Retirer cette défense"
-        >
-          <Trash2 size={13} />
-        </button>
+        {/* Terminer, puis supprimer — l'ordre du geste courant d'abord.
+            ⚠️ Le ✓ doré est la convention de l'édition en cours dans toute la
+            page (voir spec/siege/recommandations.md). */}
+        <div className="mt-1 flex flex-none items-center gap-1.5">
+          <button
+            onClick={onToggleEdit}
+            aria-pressed
+            className="text-star transition hoverable:brightness-125"
+            title="Terminer"
+            aria-label="Terminer"
+          >
+            <Check size={14} />
+          </button>
+          <button
+            onClick={() => recos.removeCounter(reco.id, deckIndex, counterIndex)}
+            className="text-ink-dim transition hoverable:text-fire"
+            title="Retirer cette défense"
+            aria-label="Retirer cette défense"
+          >
+            <Trash2 size={13} />
+          </button>
+        </div>
       </div>
 
       {/* Condition éventuelle — une ligne, pas un pavé : elle précise QUAND ça
@@ -1998,23 +2403,23 @@ function CopiesBadge({ copies }: { copies: number | null }) {
   if (copies === 0) {
     return (
       <span
-        className="font-mono text-[10.5px] text-fire"
+        className="font-mono text-[11px] text-fire"
         title="Il manque au moins un monstre 6★ en réserve pour monter ce deck"
       >
-        · montable 0 fois
+        · réalisable 0 fois
       </span>
     );
   }
   return (
     <span
-      className="font-mono text-[10.5px] text-ink-dim"
+      className="font-mono text-[11px] text-ink-dim"
       title={
         copies > 1
           ? `Tes monstres 6★ permettent de monter ce deck ${copies} fois en parallèle`
           : 'Tes monstres 6★ permettent de monter ce deck une seule fois'
       }
     >
-      · montable {copies} fois
+      · réalisable {copies} fois
     </span>
   );
 }

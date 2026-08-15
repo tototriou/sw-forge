@@ -72,10 +72,10 @@ export (d'où `RecoPayload`, qui exclut `id` **et** `origin`). Ce qui est « à 
 chez l'auteur devient « importée » chez celui qui la reçoit — y compris si je
 réimporte mon propre export.
 
-**Filtre** (segmenté, sous la barre d'actions) : **Toutes · Mes recos ·
-Importées**, chacun avec son effectif. N'apparaît **que s'il existe au moins une
-recommandation**. Persistance via `useStickyState` (survit à la navigation, remis
-à « Toutes » au reload).
+**Filtre** : **Toutes · Mes recos · Importées**, chacun avec son effectif.
+N'apparaît **que s'il existe au moins une recommandation**. Persistance via
+`useStickyState` (survit à la navigation, remis à « Toutes » au reload). Il vit
+dans le **bloc de filtres** décrit plus bas, sur la rangée « Origine ».
 
 Garde-fous pour ne jamais « perdre » ce qu'on vient de faire :
 - **créer** une recommandation depuis la vue « Importées » bascule le filtre sur
@@ -88,9 +88,41 @@ Garde-fous pour ne jamais « perdre » ce qu'on vient de faire :
 `Défense à taper` · `Offense à runer`
 ([recoSearch.ts](src/lib/recoSearch.ts), calcul pur).
 
-**Placement : juste au-dessus des recommandations**, sous les filtres. C'est
-elle qui décide de ce que la liste montre, elle doit donc être collée à ce
+**Placement : juste au-dessus des recommandations**, dans le bloc de filtres.
+C'est elle qui décide de ce que la liste montre, elle doit donc être collée à ce
 qu'elle filtre.
+
+### ⚠️ UN SEUL bloc de filtres, à rangées intitulées
+
+Origine, monstres cherchés et rôle **filtrent tous la même liste** et se
+**combinent**. Ils sont donc réunis dans **un seul encart** (`border` +
+`bg-panel/40`), en **rangées `intitulé + contrôle`** — même grammaire que
+l'inventaire d'artéfacts (voir [../compte/artefacts.md](../compte/artefacts.md)) :
+
+| Rangée | Contrôle | Visible |
+|--------|----------|---------|
+| **Origine** | `Segmented` Toutes · Mes recos · Importées, effectif dans chaque cran | dès 1 recommandation |
+| **Monstres** | les 3 cases + le champ + « Vider » | dès 1 recommandation |
+| **Rôle** | `Segmented` Partout · Défense à taper · Offense à runer + le compteur de résultats | une fois un monstre posé |
+
+- ⚠️ **Ils étaient posés à trois niveaux différents, sans intitulé** : trois
+  objets flottants dont rien ne disait qu'ils portaient sur la même liste ni
+  qu'ils se cumulaient. L'intitulé de **largeur fixe** (`w-[76px]`) aligne les
+  contrôles entre eux quelle que soit la longueur du mot.
+- ⚠️ **Le filtre d'origine utilise le VRAI [Segmented](src/components/Segmented.tsx)**,
+  et non une copie écrite à la main. La copie avait dérivé — `bg-panel` au lieu de
+  `bg-panel2`, `rounded-xl p-1` au lieu de `rounded-lg p-0.5`, texte plus grand :
+  deux contrôles à cran voisins n'avaient ni le même cadre, ni le même rayon, ni
+  la même taille. Un composant partagé existe, on le prend.
+- L'**effectif** vit **dans le cran, après le libellé** (`suffix` de `Segmented`,
+  ajouté pour ça) : un nombre se lit après ce qu'il compte. Il reste `ink-dim`
+  dans tous les états — c'est une quantité, pas l'état du cran, que le fond dit
+  déjà (voir [../shared/design.md](../shared/design.md)).
+- Le **compteur de résultats** est sur la rangée **Rôle** : c'est lui qui décide
+  combien il en reste. Il n'a ainsi plus besoin d'une hauteur de ligne en dur
+  (`leading-[30px]`) pour se caler sur un contrôle voisin.
+- **« Vider » est sur la rangée Monstres**, avec les cases qu'il vide — et non
+  avec le sélecteur de rôle, auquel il ne touche pas.
 
 ### ⚠️ Plusieurs monstres se cumulent en ET, dans la MÊME composition
 
@@ -113,9 +145,10 @@ forme de ce qu'on cherche — une composition de 3 monstres — **avant même d'
 tapé**, et reprennent le langage des slots de deck de la page. Une case vide
 porte un `+` en tireté.
 
-- **Un champ unique en dessous** (`MonsterPicker`, celui des slots de deck)
-  remplit la **première case libre** : on enchaîne les trois noms sans viser une
-  case entre chaque.
+- **Un champ unique à côté** (`MonsterPicker`, celui des slots de deck) remplit
+  la **première case libre** : on enchaîne les trois noms sans viser une case
+  entre chaque. Il est sur la **même rangée** que les cases qu'il alimente —
+  empilé dessous, rien ne disait qu'il les remplissait.
 - **Portrait, jamais le nom seul** : plusieurs monstres portent le même nom
   (formes 2A) — voir [MonsterAvatar](src/components/MonsterAvatar.tsx). Repli sur
   les initiales si le monstre est absent des données chargées.
@@ -210,8 +243,11 @@ la même réponse :
   reload), comme le filtre d'origine.
 
 Effet du filtre sur les actions :
-- **Export global** : exporte **ce qui est affiché**. Le bouton s'intitule
-  « Tout exporter » sans filtre, « Exporter l'affichage » avec un filtre actif.
+- **Export global** : exporte **ce qui est affiché**. ⚠️ Le bouton s'intitule
+  **« Tout exporter » en permanence** : un libellé qui change avec le filtre se
+  lit comme un autre bouton, on cesse de le reconnaître d'un écran à l'autre. Ce
+  qui part réellement est dit par l'**infobulle**, et récapitulé par le message
+  de retour (« N recommandation(s) · M deck(s) »).
 - **Tout effacer** : efface **tout**, filtre ou non (la modale le dit
   explicitement).
 - Filtre sans résultat → message dédié + lien « Voir toutes les recommandations »
@@ -452,30 +488,93 @@ illisible.
     distingue une défense qui cache une précision d'une défense qui n'en a pas,
     et on cliquerait au hasard. Une vignette sans note **n'est pas cliquable** —
     un bouton qui ne fait rien se lit comme un défaut.
-  - Une défense **trouvée par la recherche ouvre sa précision** : c'est celle
-    qu'on est venu voir. Y compris si la recherche est lancée alors que la liste
-    est déjà à l'écran (cas courant), d'où une synchronisation et pas seulement
-    un état initial.
-- **En édition**, chaque défense reprend **toute la largeur** : elle porte alors
-  3 sélecteurs et un champ de texte, que la mise en rangée écraserait.
-- **Édition** : un bouton **« + Défense »** ajoute une entrée ; chacune a ses 3
-  `MonsterPicker`, son champ de précision (200 car.) et sa corbeille.
-  - Le **« + » vit DANS la rangée**, à la suite des défenses existantes : c'est
-    là qu'on ajoute, et il montre où la prochaine se posera.
-  - ⚠️ Supprimer une défense la retire **pour de bon**, sans repli sur une entrée
-    vide — contrairement aux decks, dont une recommandation garde toujours au
-    moins un. **Zéro défense visée est l'état normal.**
-  - ⚠️ **Le bloc a son PROPRE bouton d'édition**, indépendant de celui du deck.
-    Les deux gestes n'ont ni la même fréquence ni le même poids : noter la
-    défense qu'on vient d'affronter se fait **en passant**, alors qu'éditer les
-    sets et les stats d'un deck est un **travail de fond**. Derrière le même
-    bouton, il fallait ouvrir le second pour faire le premier, et traverser tout
-    le formulaire de stats pour poser trois portraits.
-  - Le bloc reste donc **visible même vide** (en lecture, réduit à son intitulé
-    et à son crayon) : sans ça, la fonctionnalité serait invisible sur les decks
-    qui n'en portent pas encore.
-  - Il vit **dans la partie dépliée du deck** : son état d'édition se
-    réinitialise donc de lui-même au repli, sans rien à gérer.
+
+#### La précision s'ouvre en POPOVER, ancré sous sa vignette
+
+La vignette cliquée prend la **bordure d'accent** — comme le monstre sélectionné
+d'une équipe de siège dont on consulte les runes (voir
+[SiegeTeam.tsx](src/components/siege/SiegeTeam.tsx)) — et la note apparaît en
+**flottant ancré** juste dessous.
+
+- ⚠️ **Un flottant, pas un panneau dans le flux.** Posé dans le flux, il devait
+  s'aligner sous une vignette qui, en `flex-wrap`, peut être n'importe où sur
+  n'importe quelle ligne : le trait du cran et celui du panneau ne se
+  rejoignaient pas, et **le rattachement mentait**. Un flottant naît de son
+  ancre, il n'a rien à aligner — et il ne pousse rien : la rangée reste immobile
+  pendant qu'on lit.
+- ⚠️ **`origin-top-left`** : un flottant ancré grandit **depuis son ancre**,
+  jamais depuis son centre (voir [../shared/design.md](../shared/design.md)).
+- ⚠️ **Une seule précision ouverte à la fois.** L'état vit dans le **bloc**, pas
+  dans la vignette.
+- Se ferme au **clic extérieur** et à **Échap**, même motif que les autres
+  popovers de l'app ([SettingsMenu.tsx](src/components/SettingsMenu.tsx)).
+- `min-w-full` (au moins la largeur de sa vignette, pour se lire comme sa suite)
+  et **280 px au plus** : la note est une phrase courte.
+- La vignette ouverte passe en **`z-20`** : les suivantes sont peintes après dans
+  le flux et passeraient sinon par-dessus le flottant.
+
+#### ⚠️ La recherche n'ouvre AUCUNE précision
+
+Une défense trouvée ouvrait sa précision d'office. Sur une recherche qui remonte
+plusieurs défenses, cela dépliait des notes qu'on n'avait pas demandées — et avec
+un panneau unique sous la rangée, cela n'a plus de sens du tout. Le
+**surlignage** de la vignette suffit à dire laquelle répond ; on ouvre si on veut
+lire.
+### ⚠️ Un « + », pas un bouton « Éditer »
+
+Le bloc **n'a pas de mode édition**. Noter la défense qu'on vient d'affronter est
+un geste **de passage** : le crayon ajoutait une étape (ouvrir le mode, ajouter,
+refermer) là où le geste réel est simplement « + ».
+
+- **« + Défense »** ajoute une entrée **et l'ouvre en édition** — sinon on aurait
+  posé une vignette vide sans moyen de la remplir.
+- Le **« + » vit DANS la rangée**, à la suite des défenses existantes : c'est là
+  qu'on ajoute, et il montre où la prochaine se posera. Il est **toujours
+  visible**, y compris sur un deck qui n'en porte aucune — c'est lui qui rend la
+  fonctionnalité découvrable, rôle que tenait l'intitulé + crayon.
+- ⚠️ **L'édition est PAR DÉFENSE, pas pour le bloc entier**, et **une seule à la
+  fois** : on note une composition, pas six. Les autres restent en **vignettes de
+  lecture à côté**, ce qui permet de voir ce qu'on a déjà noté pendant qu'on
+  ajoute.
+- Celle en édition prend **toute la largeur** (`w-full` dans la rangée
+  `flex-wrap`) : elle porte 3 sélecteurs et un champ de texte, que la mise en
+  vignette écraserait. Une **bordure d'accent** dit laquelle est ouverte.
+- ⚠️ **Chaque vignette porte son propre crayon**, sinon une défense posée
+  deviendrait non modifiable. Discret (il n'apparaît qu'au survol, pour ne pas
+  alourdir une rangée qu'on parcourt du regard) mais **toujours visible au
+  tactile** — voir la règle « un élément atteignable ne dépend jamais du survol »
+  de [../shared/design.md](../shared/design.md).
+- ⚠️ **L'index en édition est remis à `null` si le nombre de défenses change** :
+  une défense supprimée laisserait l'édition pointer sur sa voisine, ou dans le
+  vide.
+#### ⚠️ Une défense sans AUCUN monstre n'est pas conservée
+
+L'entrée est bien **créée** au clic sur « + » — c'est le formulaire qu'on
+remplit —, mais si on la referme sans avoir rien choisi, elle est **retirée** :
+elle ne décrit aucune composition, ne se lit pas en vignette, et voyagerait telle
+quelle dans l'export.
+
+Refermer sans rien poser vaut donc « j'abandonne », pas « j'enregistre du vide ».
+Les **quatre** sorties sont couvertes :
+
+| Sortie | Ce qui se passe |
+|--------|-----------------|
+| **Terminer** (✓) | l'entrée vide est retirée |
+| **Ouvrir une autre défense** | la précédente, restée vide, est retirée (l'index visé est décalé si elle était avant lui) |
+| **Replier le deck** | le bloc est démonté → nettoyage au démontage, sinon l'entrée vide survivait |
+| **Re-cliquer « + »** | aucune seconde entrée n'est créée tant que l'ouverte est vide — on réutilise celle qui est là |
+
+- ⚠️ **La note seule ne suffit pas à la retenir** : une précision sans les
+  portraits qu'elle qualifie (« si le Chloe est en lead ») ne veut rien dire. Ce
+  sont les **3 monstres** qui font la défense.
+- La même règle vaut déjà à l'**export** (`counterListToJson`) et à l'**import**
+  (`jsonToCounter` renvoie `null`) : une défense vide n'est ni écrite, ni relue.
+  Les trois chemins disent donc la même chose.
+- ⚠️ Supprimer une défense la retire **pour de bon**, sans repli sur une entrée
+  vide — contrairement aux decks, dont une recommandation garde toujours au
+  moins un. **Zéro défense visée est l'état normal.**
+- Le bloc vit **dans la partie dépliée du deck** : son état d'édition se
+  réinitialise donc de lui-même au repli, sans rien à gérer.
 
 ## Propriétés d'artéfact recommandées
 
@@ -707,10 +806,11 @@ confrontation porte sur **l'ensemble des decks**, pas sur un seul.
 
 Un **encart de synthèse** sous l'en-tête, visible **même recommandation repliée** :
 
-- tout passe → bandeau vert « Tout est respecté : les N deck(s) sont jouables » ;
-- sinon → bandeau orange « N/M deck(s) au niveau · K à corriger », puis **la liste
-  des decks qui ne passent pas**, chacun avec son verdict et, s'il y a lieu, le
-  détail par monstre :
+- bandeau vert « Tout est respecté : les N deck(s) sont jouables » si tout passe,
+  orange « N/M deck(s) au niveau · K à corriger » sinon ;
+- puis **la liste de TOUS les decks analysés**, chacun avec son verdict, sa
+  réserve (« réalisable N fois ») et, s'il y a lieu, le détail par monstre :
+  - `Def 1` · **jouable · Offense 3** (vert)
   - `Trevor - Bella - Tarq` · **aucun deck avec ces monstres — tu peux le composer**
     (pas de détail : sans équipe, il n'y a aucun build à confronter)
   - `Def 2` · **monstre indisponible — deck impossible** → `Tarq — monstre indisponible`
@@ -718,15 +818,117 @@ Un **encart de synthèse** sous l'en-tête, visible **même recommandation repli
     `Bella — set Violent manquant · artéfact d'attribut : Dégâts sur l'Eau +X% absent · VIT 117 au lieu de 212`
 - aucun deck rempli → « Rien à analyser ».
 
+#### Ordre de la liste — ⚠️ ROUGE → ORANGE → VERT
+
+Du plus urgent au plus tranquille : **monstre manquant**, **à revoir**, **à
+composer**, puis les **bons**. Ce qui demande du travail se lit en premier ; les
+decks déjà jouables closent la liste au lieu de la précéder — sinon il faut les
+dépasser pour atteindre ce sur quoi on peut agir.
+
+- Des deux rouges, **`missing` passe devant `ko`** : rien de ce qu'on possède ne
+  répare un monstre absent, alors qu'un « à revoir » se corrige le soir même
+  avec les runes qu'on a déjà.
+
+- ⚠️ **Tri STABLE sur le seul verdict** : à verdict égal, les decks gardent
+  l'ordre de la recommandation, qui est celui de son auteur. Trier aussi à
+  l'intérieur d'une famille les mélangerait sans que rien à l'écran ne dise
+  pourquoi.
+- ⚠️ **L'ordre des PASTILLES est l'inverse** (Bon · À composer · À revoir), et
+  c'est voulu : une légende ordonne des catégories du meilleur au pire, une
+  liste hiérarchise l'urgence. Deux objets, deux logiques.
+
+#### ⚠️ Chaque ligne mène à SON deck
+
+La ligne entière est un **bouton** : le résumé dit ce qui cloche, et le geste
+suivant est toujours d'aller voir le deck. Sans ce lien, il fallait déplier la
+carte, retrouver le deck à l'œil parmi six, puis l'ouvrir — alors que la ligne le
+désigne déjà.
+
+Un clic **déplie la carte si elle est repliée** (le résumé reste visible carte
+fermée — c'est tout son intérêt —, donc on clique souvent depuis une carte où le
+deck n'est même pas rendu), **déplie le deck visé**, puis y **fait défiler**
+(`scrollIntoView`, `block: 'center'`).
+
+- ⚠️ Le défilement attend **une frame** (`requestAnimationFrame`) : la carte et
+  le deck viennent peut-être d'être dépliés dans la même passe, et leur hauteur
+  n'est pas encore posée — viser tout de suite calerait sur une position périmée.
+- ⚠️ Pendant une **recherche**, seuls les decks trouvés sont rendus : un deck
+  masqué n'a **aucune ref**. On ne fait alors rien plutôt que de sauter au
+  hasard — le deck est bien déplié et réapparaîtra à sa place dès la recherche
+  effacée.
+- ⚠️ Le **détail par monstre reste HORS du bouton** : c'est du texte qu'on lit et
+  qu'on veut pouvoir sélectionner, pas une cible de clic.
+
+#### ⚠️ Les decks au niveau sont LISTÉS, pas seulement comptés
+
+Seuls les decks fautifs apparaissaient ; les bons se résumaient à un « 4/6 au
+niveau ». Or « **lesquels** puis-je poser » est exactement la question qu'on se
+pose devant une défense de guilde à remplir — il fallait rouvrir la carte et
+parcourir les decks pour y répondre.
+
+- Un deck bon annonce **l'équipe qui le rend jouable** (« jouable · Offense 3 »),
+  pas un simple « ok » : c'est elle qu'on va chercher en jeu.
+- Le **détail par monstre reste réservé aux decks `ko`** : sur un deck au niveau
+  il n'y a rien à corriger, et `nodeck` n'a aucun build à confronter.
+
+#### Filtres de verdict — Bon · À composer · À revoir · Monstre manquant
+
+**Quatre pastilles** sous le bandeau, une par statut réel, avec l'effectif de
+chacune :
+
+| Pastille | Couleur | Statut | Point |
+|----------|---------|--------|-------|
+| **Bon** | vert | `ok` | plein |
+| **À composer** | orange | `nodeck` | plein |
+| **À revoir** | rouge | `ko` | plein |
+| **Monstre manquant** | rouge | `missing` | **creux** |
+
+- ⚠️ **Le rouge est SCINDÉ en deux** — il ne l'était pas au départ. « À revoir »
+  et « monstre manquant » partagent la couleur mais **pas le geste** : l'un se
+  répare en rerunant ce qu'on possède déjà, l'autre demande d'invoquer et de
+  monter un monstre qu'on n'a pas. Ce n'est ni le même horizon, ni la même
+  décision. Fondus, il fallait parcourir toute la liste rouge pour trier à l'œil
+  ce sur quoi on pouvait agir le soir même.
+- ⚠️ **Deux filtres, un seul rouge.** Les deux gardent la couleur `fire` : ils
+  sont bloquants tous les deux, et c'est ce que la couleur dit. On n'introduit
+  pas une cinquième couleur qui mentirait sur la gravité.
+- ⚠️ **Le point de « Monstre manquant » est CREUX.** Deux pastilles de la même
+  couleur côte à côte ne se distinguent plus que par leur texte, qu'on ne relit
+  pas une fois la barre connue. Le creux dit « il manque quelque chose ». Il est
+  porté aussi par la **ligne** correspondante de la liste, qui reprend donc le
+  point du **verdict** et non `DOT[status]` — `DOT` reste la table de l'aperçu
+  replié, où le vocabulaire à trois couleurs suffit.
+- Le **détail par monstre** est affiché sur **les deux verdicts rouges** : « à
+  revoir » dit quoi corriger, « monstre manquant » dit **lequel** manque — sans
+  quoi on saurait le deck bloqué sans savoir par qui.
+- ⚠️ **Cumulables** : on peut isoler vert **et** rouge à la fois. D'où des
+  **pastilles indépendantes** et non un `Segmented`, dont le cadre commun dirait
+  que les choix s'excluent.
+- ⚠️ **Rien de coché = tout est montré.** Un écran de filtres tous éteints
+  n'affichant rien se lirait comme une analyse vide. Cocher **restreint** ; un
+  lien « Tout afficher » rétablit dès qu'un filtre est posé.
+- Un verdict **sans aucun deck** est **grisé, jamais retiré** : on voit qu'il n'y
+  en a aucun au lieu de chercher un bouton disparu. Même règle que les pastilles
+  d'attribut de l'inventaire d'artéfacts.
+- Le marqueur d'actif est la **bordure** (règle des pastilles de filtre, voir
+  [../shared/design.md](../shared/design.md)).
+- État **local à l'encart** : il vit et meurt avec le résultat d'analyse.
+
 Une fois analysée, la carte reprend tout le langage visuel décrit plus bas (aura,
 pastille, badges de deck et de monstre, comparaison stat par stat).
 
-#### Combien de fois le deck est montable — « montable N fois »
+#### Combien de fois le deck est montable — « réalisable N fois »
 
 Chaque deck analysé affiche combien de fois il peut être monté **en parallèle**
 avec la réserve du joueur (`deckCopies` dans
 [recoMatch.ts](src/lib/recoMatch.ts)). C'est ce qui dit si on peut poser le même
 deck sur plusieurs défenses de guilde.
+
+**Affiché à deux endroits** : dans l'en-tête du deck, et sur **chaque ligne du
+résumé d'analyse** — c'est là qu'on arbitre entre six défenses de guilde à
+remplir, et un deck jouable une seule fois n'en couvre qu'une. Sur **tous les
+verdicts**, pas seulement les bons : savoir qu'un deck à revoir n'existe de toute
+façon qu'en un exemplaire change ce qu'on décide d'aller corriger.
 
 - ⚠️ **Les 6★ UNIQUEMENT**, et depuis la **box seule**
   (`countCopiesByCom2us` dans [ownedBuilds.ts](src/lib/ownedBuilds.ts)) :
@@ -933,11 +1135,28 @@ Indépendamment du repli de la carte, **chaque deck a son propre chevron**.
 |--------|----|----------------|
 | ✏️ (en-tête de la carte) | recommandation | **nom, auteur, consignes générales** + **Ajouter un deck vide** / **Importer un deck d'offense** |
 | ✏️ (en-tête de chaque deck) | deck | **nom du deck, ses consignes, ses monstres, sets, artéfacts et stats** + 🗑 **Supprimer ce deck** |
-| ✏️ (en-tête « Fort contre ») | défenses visées | **les défenses que ce deck bat** — indépendant du deck |
+| **+ Défense** / ✏️ sur une vignette | défenses visées | **une** défense que ce deck bat — indépendant du deck |
 
 ⚠️ Le troisième est **volontairement détaché** du deuxième : ajouter une défense
 qu'on vient d'affronter est un geste **de passage**, éditer les stats d'un deck
-est un **travail de fond**. Voir « Défenses visées » plus haut.
+est un **travail de fond**. Il n'a d'ailleurs **pas de mode édition de bloc** —
+juste un « + » qui ajoute et ouvre l'entrée créée. Voir « Défenses visées » plus
+haut.
+
+#### ⚠️ Les icônes d'action sont TOUJOURS dans l'angle supérieur droit
+
+L'en-tête est **deux zones**, pas un `flex-wrap` unique :
+
+| Zone | Contenu | Comportement |
+|------|---------|--------------|
+| gauche (`flex-1 min-w-0`) | nom, puce « Importée », compteur de decks, auteur, pastille de statut, « Analyser mes decks » | passe à la ligne librement |
+| droite (`flex-none`) | « Consulter », puis Exporter ↑ · Éditer ✏️ · Supprimer 🗑 | **ancrée en haut à droite** (`items-start`) |
+
+Dans un `flex-wrap` unique, les trois icônes suivaient le flux et **retombaient
+sous le titre** dès que la ligne était pleine — leur position changeait d'une
+carte à l'autre selon la longueur du nom et la présence de la pastille, et il
+fallait les chercher des yeux à chaque fois. Une barre d'outils se trouve à un
+endroit fixe, ou elle n'en est pas une.
 
 **Icônes nues partout** dans les en-têtes — carrés de 24 px, **sans cadre ni
 fond**, groupés et resserrés (`gap-0.5`) à droite de la ligne :

@@ -51,10 +51,23 @@ export interface UseRtaState {
   /** Remplace TOUTE la prépa (restauration d'un point, import d'un fichier). */
   replaceAll: (next: RtaState) => void;
   clearAll: () => void;
+  /**
+   * Nombre d'imports de compte depuis le chargement de la page. Sert à figer la
+   * prépa **telle que le fichier l'a produite** (voir useRtaBackup).
+   */
+  importCount: number;
 }
 
 export function useRtaState(): UseRtaState {
   const [state, setState] = useState<RtaState>(load);
+  // Compteur d'imports de compte. ⚠️ Un COMPTEUR et non un booléen : deux
+  // imports successifs doivent chacun déclencher la pose du point de retour, et
+  // un booléen déjà à `true` ne redéclencherait rien.
+  //
+  // Il vit ici parce que c'est ce hook qui sait qu'un import a eu lieu ; la page
+  // RTA s'en sert pour figer la prépa telle que le fichier l'a produite (voir
+  // useRtaBackup).
+  const [importCount, setImportCount] = useState(0);
 
   // Conservation : tout changement est enregistré — SI l'utilisateur l'a
   // accepté (voir usePersistence). `persist` est dans les dépendances pour que
@@ -163,6 +176,7 @@ export function useRtaState(): UseRtaState {
         }
         return { ...s, sections, entries };
       });
+      setImportCount((n) => n + 1);
     },
     []
   );
@@ -193,5 +207,6 @@ export function useRtaState(): UseRtaState {
     importEntries,
     replaceAll,
     clearAll,
+    importCount,
   };
 }

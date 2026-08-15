@@ -17,8 +17,25 @@ import { loadLocal, saveLocal, usePersistence } from './usePersistence';
 // hooks séparés, mais les catégories désignent des monstres de la prépa :
 // restaurer l'un sans l'autre laisserait des anneaux sur des monstres absents,
 // ou des monstres qui ont perdu leur étiquette. Une seule clé, un seul geste.
+//
+// ⚠️ **DEUX instantanés, sur deux clés distinctes :**
+//
+//   - `backup`  — posé par l'utilisateur (« Sauvegarder ») ;
+//   - `importe` — posé automatiquement à chaque import de compte, et jamais
+//                 autrement. C'est le point de retour de « Réinitialiser » :
+//                 la prépa telle que le fichier l'a produite.
+//
+// Les confondre ferait qu'importer un compte effacerait sans un mot le point
+// qu'on venait de poser — ou que « Réinitialiser » ramènerait à un classement
+// remanié à la main, ce qui n'est pas ce qu'il promet.
 
 const KEY = 'sw-forge-rta-backup-v1';
+// ⚠️ Clé SÉPARÉE du point manuel : les deux instantanés coexistent.
+//
+// Le point d'import est posé automatiquement, celui-là est posé par
+// l'utilisateur. Les mettre dans la même case ferait qu'importer un compte
+// effacerait sans un mot le point qu'on venait de poser — ou l'inverse.
+const KEY_IMPORT = 'sw-forge-rta-import-v1';
 
 export interface RtaBackup {
   date: string; // ISO — sert à dire « sauvegardé le … »
@@ -29,9 +46,9 @@ export interface RtaBackup {
 // Relecture défensive : le contenu peut venir d'une version antérieure ou avoir
 // été bricolé à la main. Un instantané douteux vaut mieux absent que restauré de
 // travers — d'où `null` plutôt qu'une réparation approximative.
-function load(): RtaBackup | null {
+function load(cle = KEY): RtaBackup | null {
   try {
-    const raw = loadLocal(KEY);
+    const raw = loadLocal(cle);
     if (!raw) return null;
     const o = JSON.parse(raw) as Partial<RtaBackup>;
     if (!o || typeof o !== 'object') return null;
@@ -57,10 +74,18 @@ export interface UseRtaBackup {
   sauvegarder: (state: RtaState, categories: RtaCategory[]) => void;
   /** Oublie le point de retour (sans toucher à la prépa). */
   oublier: () => void;
+  /**
+   * L'état **tel que l'import de compte l'a produit**, ou `null` si aucun compte
+   * n'a jamais été importé. C'est le point de retour de « Réinitialiser ».
+   */
+  importe: RtaBackup | null;
+  /** Posé automatiquement à chaque import de compte. */
+  poserImport: (state: RtaState, categories: RtaCategory[]) => void;
 }
 
 export function useRtaBackup(): UseRtaBackup {
   const [backup, setBackup] = useState<RtaBackup | null>(load);
+  const [importe, setImporte] = useState<RtaBackup | null>(() => load(KEY_IMPORT));
 
   // ⚠️ Écrit à CHAQUE changement d'instantané, et à l'activation de la
   // conservation (`persist` en dépendance) — sinon un point posé avant
@@ -84,5 +109,15 @@ export function useRtaBackup(): UseRtaBackup {
     }
   }, []);
 
-  return { backup, sauvegarder, oublier };
+  // Point d'import, écrit sur sa propre clé et à l'activation de la
+  // conservation, comme le point manuel.
+  useEffect(() => {
+    if (importe) saveLocal(KEY_IMPORT, JSON.stringify(importe));
+  }, [importe, persist]);
+
+  const poserImport = useCallback((state: RtaState, categories: RtaCategory[]) => {
+    setImporte({ date: new Date().toISOString(), state, categories });
+  }, []);
+
+  return { backup, sauvegarder, oublier, importe, poserImport };
 }

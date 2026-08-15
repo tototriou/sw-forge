@@ -11,6 +11,7 @@ import {
   Eye,
   EyeOff,
   Gauge,
+  History,
 } from 'lucide-react';
 import { ElementKey, Monster, RtaState } from '../../types';
 import { CustomLead } from '../../hooks/useCustomMonsters';
@@ -32,7 +33,7 @@ import {
 import { ConfirmDialog } from '../Dialogs';
 
 /* --------------------------------------------------------------------------
- * Sauvegarder · Reprendre · Exporter · Importer
+ * Sauvegarder · Reprendre · Réinitialiser · Exporter · Importer
  * -----------------------------------------------------------------------
  *
  * ⚠️ **« Sauvegarder » n'est PAS de l'enregistrement.** La prépa est déjà écrite
@@ -46,10 +47,17 @@ import { ConfirmDialog } from '../Dialogs';
  * jamais dans l'état local. C'est ce qui permet de l'ouvrir sans confirmation —
  * il n'y a rien à perdre. Voir RtaFriendView.tsx.
  *
- * ⚠️ **Deux gestes seulement modifient la prépa** (Reprendre, et l'écrasement
- * d'un point existant) : les deux confirment, et jamais avec un OK destructeur —
- * « Annuler » est le défaut, l'action portée en couleur d'alerte. Voir
- * ../Dialogs.tsx.
+ * ⚠️ **Trois points de retour, trois portées différentes** :
+ *
+ *   | Bouton | Ramène à | Posé par |
+ *   |--------|----------|----------|
+ *   | Reprendre | le point qu'on a figé soi-même | « Sauvegarder » |
+ *   | Réinitialiser | la prépa **telle que l'import l'a produite** | automatiquement, à chaque import de compte |
+ *   | Importer | une prépa d'un fichier | l'utilisateur |
+ *
+ * ⚠️ **Tout geste qui modifie la prépa confirme**, et jamais avec un OK
+ * destructeur — « Annuler » est le défaut, l'action portée en couleur d'alerte.
+ * Voir ../Dialogs.tsx.
  */
 
 interface Props {
@@ -116,6 +124,7 @@ export default function RtaBackupBar({
   const [report, setReport] = useState<ImportReport | null>(null);
   const [reprendreAConfirmer, setReprendreAConfirmer] = useState(false);
   const [ecraserAConfirmer, setEcraserAConfirmer] = useState(false);
+  const [resetAConfirmer, setResetAConfirmer] = useState(false);
   // Choix « avec / sans équipement », posé au moment d'exporter.
   const [exportAChoisir, setExportAChoisir] = useState(false);
   // Import en attente de confirmation : l'appliquer écraserait la prépa en cours.
@@ -165,6 +174,20 @@ export default function RtaBackupBar({
       backup.backup.categories.map((c) => ({ label: c.label, color: c.color, members: c.members }))
     );
     setMsg({ text: 'Prépa restaurée au dernier point de sauvegarde.' });
+  }
+
+  // Retour à la prépa **telle que l'import de compte l'a produite**.
+  //
+  // ⚠️ C'est le geste le plus destructeur de la barre : il efface d'un coup tout
+  // le classement fait à la main depuis l'import. D'où une confirmation qui
+  // l'énonce, et qui rappelle qu'un export est la seule façon d'en garder trace.
+  function reinitialiser() {
+    if (!backup.importe) return;
+    rta.replaceAll(backup.importe.state);
+    cats.replaceAll(
+      backup.importe.categories.map((c) => ({ label: c.label, color: c.color, members: c.members }))
+    );
+    setMsg({ text: 'Prépa remise dans l’état de ton dernier import de compte.' });
   }
 
   // Combien de monstres emporteraient réellement leur équipement ? Sert à ne pas
@@ -317,6 +340,21 @@ export default function RtaBackupBar({
           <RotateCcw size={14} /> Reprendre
         </button>
 
+        {/* ⚠️ N'apparaît QUE si un compte a été importé : sans point d'import,
+            le bouton n'aurait aucun état où revenir. Le griser en permanence
+            aurait ajouté une promesse à celui qui n'importe jamais de compte. */}
+        {backup.importe && (
+          <button
+            onClick={() => setResetAConfirmer(true)}
+            className={BOUTON}
+            title={`Remettre la prépa dans l'état de ton dernier import de compte (${depuis(
+              backup.importe.date
+            )})`}
+          >
+            <History size={14} /> Réinitialiser
+          </button>
+        )}
+
         <span className="w-px h-5 bg-border" aria-hidden />
 
         <button
@@ -356,6 +394,14 @@ export default function RtaBackupBar({
         <p className="mt-1.5 font-mono text-[11px] text-ink-dim">
           Point de sauvegarde : {Object.keys(backup.backup.state.entries).length} monstre(s) ·{' '}
           {dateBackup}
+        </p>
+      )}
+      {/* Le point d'import est annoncé lui aussi : sans repère, on ne sait pas
+          vers quel état « Réinitialiser » ramène, ni de quand il date. */}
+      {backup.importe && (
+        <p className="mt-0.5 font-mono text-[11px] text-ink-dim">
+          Dernier import : {Object.keys(backup.importe.state.entries).length} monstre(s) ·{' '}
+          {depuis(backup.importe.date)}
         </p>
       )}
 
@@ -419,6 +465,48 @@ export default function RtaBackupBar({
           onConfirm={() => {
             setReprendreAConfirmer(false);
             reprendre();
+          }}
+        />
+      )}
+
+      {/* ⚠️ La confirmation la plus bavarde de la barre, et elle le mérite : ce
+          geste efface tout le classement fait depuis l'import, ET le point de
+          sauvegarde manuel devient une référence vers un état qu'on quitte. On
+          dit donc les deux, et on rappelle qu'un export est la seule façon de
+          garder ce travail. */}
+      {resetAConfirmer && backup.importe && (
+        <ConfirmDialog
+          titre="Revenir à l'état de ton import de compte ?"
+          message={
+            <>
+              Ta prépa actuelle ({nbMonstres} monstre(s)) et ses catégories seront remplacées par
+              celles issues de ton import du{' '}
+              <b className="text-ink">{depuis(backup.importe.date)}</b> (
+              {Object.keys(backup.importe.state.entries).length} monstre(s)).{' '}
+              <b className="text-ink">
+                Tout le classement que tu as fait depuis sera perdu
+              </b>{' '}
+              — monstres ajoutés à la main, sections modifiées, catégories.
+              {backup.backup && (
+                <>
+                  {' '}
+                  Ton point de sauvegarde du <b className="text-ink">{dateBackup}</b> reste en place,
+                  mais il pointe vers un classement d'avant ce retour en arrière.
+                </>
+              )}
+              <br />
+              <span className="text-ink-dim">
+                Pour garder ton travail actuel, annule et utilise « Exporter » : c'est le seul moyen
+                de le retrouver ensuite.
+              </span>
+            </>
+          }
+          libelleAction="Réinitialiser"
+          destructif
+          onCancel={() => setResetAConfirmer(false)}
+          onConfirm={() => {
+            setResetAConfirmer(false);
+            reinitialiser();
           }}
         />
       )}

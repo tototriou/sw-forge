@@ -1,7 +1,7 @@
 # RTA · Point de sauvegarde & partage de prépa
 
-Cinq boutons sous la barre d'actions : **Sauvegarder · Reprendre · Exporter ·
-Importer · Consulter celle d'un ami**.
+Six boutons sous la barre d'actions : **Sauvegarder · Reprendre ·
+Réinitialiser · Exporter · Importer · Consulter celle d'un ami**.
 
 Fichiers : [RtaBackupBar.tsx](src/components/rta/RtaBackupBar.tsx) ·
 [RtaFriendView.tsx](src/components/rta/RtaFriendView.tsx) (la consultation) ·
@@ -27,12 +27,45 @@ Le point est **annoncé sous les boutons** (« Point de sauvegarde : 42 monstres
 il y a 3 min »). Sans repère visible, on ne sait pas s'il existe ni de quand il
 date — donc on n'ose pas expérimenter, et la fonctionnalité ne sert à rien.
 
+## « Réinitialiser » — revenir à l'état de l'import
+
+Un classement se remanie beaucoup, et on finit parfois par vouloir **repartir de
+ce que le fichier de compte disait** : chaque monstre dans la section de son set,
+rien d'ajouté à la main. C'est ce que fait ce bouton.
+
+⚠️ **DEUX instantanés, sur deux clés distinctes**
+([useRtaBackup.ts](src/hooks/useRtaBackup.ts)) :
+
+| Point | Clé | Posé par | Ramène à |
+|-------|-----|----------|----------|
+| **manuel** | `sw-forge-rta-backup-v1` | « Sauvegarder » | ce qu'on a figé soi-même |
+| **import** | `sw-forge-rta-import-v1` | **automatiquement**, à chaque import de compte | la prépa telle que le fichier l'a produite |
+
+Les confondre ferait qu'importer un compte effacerait sans un mot le point qu'on
+venait de poser — ou que « Réinitialiser » ramènerait à un classement remanié à
+la main, ce qui n'est pas ce qu'il promet.
+
+- Le point d'import est posé **dans la page RTA** et non dans `App` : il embarque
+  les **catégories**, qui vivent là. Le déclencheur est un **compteur** d'imports
+  (`UseRtaState.importCount`) — un booléen déjà à `true` ne redéclencherait rien
+  au second import.
+- ⚠️ Le bouton **n'apparaît que si un compte a été importé** : sans point
+  d'import, il n'aurait aucun état où revenir. Le griser en permanence aurait
+  ajouté une promesse à qui n'importe jamais de compte.
+- La confirmation **dit les deux pertes** : tout le classement fait depuis
+  l'import, et le fait que le point de sauvegarde manuel pointe désormais vers un
+  état d'avant ce retour en arrière. Elle rappelle qu'**« Exporter » est le seul
+  moyen** de garder le travail en cours.
+- Le point d'import est **annoncé sous les boutons**, comme le point manuel :
+  sans repère, on ne sait pas vers quel état on revient ni de quand il date.
+
 ## ⚠️ L'instantané porte la prépa ET les catégories
 
 Les deux vivent dans des hooks séparés, mais les catégories désignent des
 monstres de la prépa. Restaurer l'un sans l'autre laisserait des anneaux sur des
-monstres absents, ou des monstres dépouillés de leur étiquette. **Une seule clé**
-(`sw-forge-rta-backup-v1`), un seul geste.
+monstres absents, ou des monstres dépouillés de leur étiquette. **Une seule clé
+par instantané**, un seul geste — vrai pour le point manuel comme pour celui de
+l'import.
 
 À la restauration, `seeded` passe à **vrai** : sans ça « Lead SPD » se
 réamorcerait par-dessus ce qu'on vient de restaurer, et réapparaîtrait

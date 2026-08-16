@@ -339,6 +339,17 @@ devenait alors plus haute que l'écran, d'où un saut de mise en page à chaque
 changement de sens. Toutes les hauteurs de viewport sont en **`dvh`**, avec
 `vh` en repli pour les navigateurs qui l'ignorent.
 
+⚠️ **« Tirer pour recharger » est désactivé** (`overscroll-behavior-y: contain`,
+sur `html` ET `body`). Arrivé en haut de la page, un geste vers le bas
+rechargeait l'app — qui n'a pourtant rien à rafraîchir depuis un serveur, tout
+étant local. On perdait l'état courant (une prépa en cours d'édition, un panneau
+ouvert) pour rien, chaque fois qu'on remontait un peu trop vite.
+
+⚠️ `contain` et non `none` : le second coupe aussi l'élan du défilement et rend
+la page raide au doigt. Et la propriété est répétée sur les deux éléments parce
+que Safari ne la lit que sur celui qui défile réellement — lequel des deux
+variant selon la version.
+
 ⚠️ **Safari grossit les polices en paysage** (« text autosizing ») si rien ne
 l'en empêche : les tailles calculées ne valent alors plus rien et un bloc dessiné
 pour tenir déborde. `html` porte `-webkit-text-size-adjust: 100%`.

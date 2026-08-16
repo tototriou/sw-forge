@@ -93,6 +93,12 @@ export default function CategoryBar({ cats, monsters }: Props) {
                 onClick={() => setEditId((e) => (e === c.id ? null : c.id))}
                 title="Renommer / changer la couleur"
                 aria-label={`Éditer ${c.label}`}
+                // ⚠️ `data-cible-fine`, et SANS zone étendue : ces deux boutons
+                // sont posés DANS une pilule de 28 px et collés l'un à l'autre.
+                // Portés à 40 px par la règle tactile, ils la débordaient ;
+                // dotés d'une cible de 44 px, ils se chevaucheraient et on
+                // supprimerait la catégorie en voulant l'éditer.
+                data-cible-fine
                 className="flex items-center justify-center w-5 h-5 rounded-full text-ink-dim transition hoverable:text-ink hoverable:bg-black/25"
               >
                 <Pencil size={11} />
@@ -101,6 +107,7 @@ export default function CategoryBar({ cats, monsters }: Props) {
                 onClick={() => setASupprimer({ id: c.id, label: c.label })}
                 title="Supprimer la catégorie"
                 aria-label={`Supprimer ${c.label}`}
+                data-cible-fine
                 className="flex items-center justify-center w-5 h-5 rounded-full text-ink-dim transition hoverable:text-fire hoverable:bg-black/25"
               >
                 <Trash2 size={11} />

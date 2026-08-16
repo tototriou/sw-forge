@@ -541,6 +541,27 @@ sur une rangée de filtres serrée on active le **voisin**.
   rectangles avec l'icône flottant dans un vide vertical. Le marqueur est
   `aspect-square` et non `.h-8` — un sélecteur sur le nom de classe Tailwind
   aurait cassé au premier ajustement de taille.
+#### Quand la taille EST le dessin
+
+⚠️ **Certains contrôles ne peuvent pas grandir sans cesser d'être eux-mêmes.**
+Un interrupteur de 22 px porté à 40 devient un cercle dont la pastille pend en
+haut ; une pastille ronde devient un ovale. La règle les cassait au lieu de les
+servir.
+
+Trois réponses, selon ce qui gêne :
+
+| Marqueur | Effet | Pour qui |
+|----------|-------|----------|
+| `.cible-tactile` | Zone touchable de 44 px par pseudo-élément, **dessin inchangé** | `Switch` — la hauteur est sa forme, mais il est isolé |
+| `data-cible-fine` | Exempté, **aucune** zone étendue | Le crayon et la corbeille d'une pilule de catégorie : collés l'un à l'autre, une zone de 44 px les ferait se chevaucher et on supprimerait en voulant éditer |
+| `data-carte-dense` | 32 px au lieu de 40 | Un contrôle seul sur la largeur de sa carte — rater y est improbable |
+
+⚠️ **`.cible-tactile` est la réponse par défaut** dès qu'un contrôle a une forme
+qui porte du sens : elle rend la cible utilisable sans rien déformer. Les deux
+autres sont des exceptions qu'il faut justifier — la première parce qu'un
+voisinage serré rend la grande cible dangereuse, la seconde parce que le contexte
+protège déjà du ratage.
+
 - Les **champs de saisie** aussi : viser un `<input>` de 28 px au doigt demande
   autant de précision qu'un bouton, et rater ouvre le clavier au mauvais
   endroit.

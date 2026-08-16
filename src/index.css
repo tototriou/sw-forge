@@ -504,6 +504,26 @@ button:not(:disabled):not([draggable]):not([role='switch']):active,
     min-height: 40px;
   }
 
+  /* ⚠️ **Agrandir la ZONE DE TOUCHE sans toucher au dessin.** Certains contrôles
+     ont une taille qui EST leur forme — un interrupteur de 22 px, une pastille
+     ronde. Les porter à 40 px les déforme : la piste de l'interrupteur devenait
+     un cercle avec sa pastille collée en haut.
+     `.cible-tactile` ajoute un pseudo-élément qui déborde de chaque côté :
+     la zone touchable atteint 44 px, le dessin ne bouge pas d'un pixel.
+     ⚠️ `position: absolute` sur le pseudo, donc l'élément doit être `relative` —
+     ce que tous les porteurs sont déjà, ayant du contenu positionné. */
+  .cible-tactile::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    min-width: 44px;
+    min-height: 44px;
+    width: 100%;
+    height: 100%;
+    transform: translate(-50%, -50%);
+  }
+
   /* Les champs de saisie AUSSI : viser un `<input>` de 28 px au doigt demande
      autant de précision qu'un bouton, et rater ouvre le clavier au mauvais
      endroit. */

@@ -15,7 +15,9 @@ import { AnimatePresence, motion } from 'framer-motion';
 // contrôles y vivent — pas des copies : la page les rend, le panneau ne fait que
 // les accueillir sous `lg`.
 //
-// ⚠️ **Hauteur plafonnée à 85 %**, jamais plein écran : la bande de page qui
+// ⚠️ **Hauteur plafonnée à 85 % de `dvh`**, jamais plein écran. `dvh` et non
+// `vh` : sur iOS, `vh` vaut la hauteur avec la barre d'adresse dépliée, et le
+// panneau dépassait donc de l'écran une fois celle-ci repliée. la bande de page qui
 // reste visible en haut dit qu'on est toujours sur cette page, et qu'un appui
 // hors du panneau le referme. En plein écran, il devient indiscernable d'un
 // changement de page.
@@ -97,8 +99,8 @@ export default function MobileSheet({
             // réglage.
             className={`fixed flex flex-col border-border bg-panel lg:hidden ${
               centre
-                ? 'inset-x-4 top-1/2 z-[60] max-h-[80vh] -translate-y-1/2 rounded-2xl border shadow-glow shadow-black/60'
-                : 'inset-x-0 bottom-0 z-50 max-h-[85vh] rounded-t-2xl border-t'
+                ? 'inset-x-4 top-1/2 z-[60] max-h-[80dvh] -translate-y-1/2 rounded-2xl border shadow-glow shadow-black/60'
+                : 'inset-x-0 bottom-0 z-50 max-h-[85dvh] rounded-t-2xl border-t'
             }`}
             style={centre ? undefined : { paddingBottom: 'env(safe-area-inset-bottom)' }}
           >

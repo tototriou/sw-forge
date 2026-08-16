@@ -143,7 +143,7 @@ export function Modale({
         // `focus:outline-none` : la boîte reçoit le focus initial (voir plus
         // haut), mais elle n'est pas un contrôle — l'anneau d'accent global
         // entourerait toute la modale à l'ouverture.
-        className={`w-full ${largeur} ${padding} max-h-[90vh] overflow-y-auto rounded-2xl border
+        className={`w-full ${largeur} ${padding} max-h-[90dvh] overflow-y-auto rounded-2xl border
                    border-border bg-panel shadow-glow shadow-black/60 focus:outline-none
                    animate-[dialogue_200ms_var(--ease-out)]`}
       >

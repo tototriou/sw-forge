@@ -338,9 +338,44 @@ html[data-theme='dark'] {
 body {
   background: var(--page-veil), rgb(var(--bg));
   color: rgb(var(--ink));
+  /* ⚠️ `dvh` et non `vh` : sur iOS, `100vh` vaut la hauteur AVEC la barre
+     d'adresse dépliée. Elle se replie au défilement, et la page se retrouve
+     alors plus haute que l'écran — d'où un saut de mise en page à chaque fois
+     qu'on change de sens. `dvh` suit la hauteur réellement visible.
+     `100vh` reste en repli pour les navigateurs qui ignorent `dvh`. */
   min-height: 100vh;
+  min-height: 100dvh;
   /* Garde-fou : aucun débordement horizontal sur mobile. */
   overflow-x: hidden;
+  /* ⚠️ **`overflow-x: hidden` ne suffit PAS sur iOS.** Safari laisse la page
+     défiler latéralement dès qu'un élément `position: fixed` dépasse la largeur
+     du viewport — la règle ne borne que le flux normal, pas ce qui en est
+     sorti. `width: 100%` + `position: relative` posent une largeur de référence
+     à laquelle les `fixed` se rattachent. */
+  position: relative;
+  width: 100%;
+}
+
+/* ⚠️ **Le texte ne se redimensionne pas tout seul.** Sans cette règle, iOS
+   Safari grossit les polices quand la page passe en paysage (« text
+   autosizing ») : les tailles calculées ici ne valent plus rien, et un bloc
+   dessiné pour tenir déborde. */
+html {
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+}
+
+/* ⚠️ **Aucun élément hors du flux ne dépasse la largeur de l'écran.** Dernier
+   filet, posé sur les `.fixed` et `.sticky` de Tailwind : ce sont les seuls que
+   `overflow-x: hidden` ne retient pas, et une barre d'onglets ou un panneau trop
+   large y provoque un défilement latéral que rien n'explique dans le flux.
+
+   ⚠️ Sélecteur sur la classe EXACTE, jamais `[class*='fixed']` : cette forme
+   attraperait tout attribut contenant la sous-chaîne, et `100vw` inclut la barre
+   de défilement — on créerait le débordement qu'on prétend corriger. */
+.fixed,
+.sticky {
+  max-width: 100%;
 }
 
 /* ---- Focus : UNE règle globale ----------------------------------------- */

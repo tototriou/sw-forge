@@ -312,6 +312,23 @@ carte fait défiler la page entière, et on le constate sur un écran qui n'a ri
 voir avec le composant fautif. C'est ce qui rend ces bugs coûteux à chercher — et
 pourquoi ils reviennent.
 
+### Les trois pièges d'iOS
+
+⚠️ **`overflow-x: hidden` ne retient PAS un élément `fixed`.** Safari laisse la
+page défiler latéralement dès qu'un flottant dépasse la largeur du viewport : la
+règle ne borne que le flux normal, pas ce qui en est sorti. `body` porte donc
+`position: relative` et `width: 100%`, et un dernier filet plafonne les `.fixed`
+et `.sticky`.
+
+⚠️ **`100vh` inclut la barre d'adresse**, qui se replie au défilement : la page
+devenait alors plus haute que l'écran, d'où un saut de mise en page à chaque
+changement de sens. Toutes les hauteurs de viewport sont en **`dvh`**, avec
+`vh` en repli pour les navigateurs qui l'ignorent.
+
+⚠️ **Safari grossit les polices en paysage** (« text autosizing ») si rien ne
+l'en empêche : les tailles calculées ne valent alors plus rien et un bloc dessiné
+pour tenir déborde. `html` porte `-webkit-text-size-adjust: 100%`.
+
 ⚠️ **Un détecteur nomme le coupable en développement**
 (`src/lib/detecteurDebordement.ts`). Il parcourt le DOM après chaque changement,
 ne retient que l'élément **le plus profond** qui dépasse — un enfant trop large

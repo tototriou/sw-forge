@@ -412,16 +412,25 @@ la dernière ligne restait à moitié vide. En grille, tous font la même taille
 s'alignent verticalement d'une rangée à l'autre — c'est ce qui rend le
 groupement par type lisible d'un coup d'œil.
 
-- `grid-auto-flow: column` + `grid-auto-columns: 1fr`, **pas** `repeat(3, 1fr)` :
-  plusieurs rangées perdent un bouton selon l'état (« Réinitialiser » n'existe
-  qu'après un import de compte). À trois colonnes fixes, la rangée gardait une
-  cellule vide qui se lisait comme un bouton manquant.
+- **Trois colonnes fixes, identiques pour toutes les rangées.** Un
+  `grid-auto-flow: column` faisait calculer à chaque rangée ses propres
+  colonnes : deux boutons s'étalaient en moitiés, trois en tiers, et rien ne
+  s'alignait d'une ligne à l'autre — le contraire d'une grille.
+- Une rangée incomplète laisse donc une **cellule vide en bout de ligne**, et
+  c'est voulu : l'alignement des colonnes vaut mieux qu'un remplissage qui
+  décale tout. Les boutons conditionnels (« Réinitialiser » sans import de
+  compte) manquent à la fin, là où leur absence ne déplace rien.
 - Ciblé par un **attribut**, jamais par la forme du conteneur. Un sélecteur sur
   `.flex-wrap` aurait attrapé les rangées de **pastilles** — six éléments du jeu,
   cinq niveaux d'étoiles — et les aurait forcées à trois par ligne, soit deux
   lignes au lieu d'une : l'inverse du but.
-- Une rangée à **un seul bouton** n'est pas marquée : il n'occuperait qu'un tiers
-  de la largeur, flottant à gauche d'un vide de deux cellules.
+- Une rangée à **un seul bouton est marquée elle aussi** : il occupe UNE cellule,
+  pas toute la largeur. Étiré sur trois colonnes, « Créer un monstre » écrasait
+  par sa taille les six boutons en dessous alors qu'il ne vaut pas plus qu'eux.
+- Le sélecteur vise aussi les boutons **enveloppés** (`> * > button`) :
+  `CreateMonster` place le sien dans un `div.relative` qui ancre son popover.
+  Sans cela, c'est le div qui remplissait la cellule et le bouton flottait
+  dedans à sa taille propre.
 
 ⚠️ **Les intitulés de rangée disparaissent** dans le panneau (`.label`).
 « Élément », « Trier par », « Stat principale » coûtent 86 px sur une rangée
@@ -433,7 +442,8 @@ DOM : un lecteur d'écran n'a pas la vue d'ensemble qui rend le mot superflu.
 dispose d'un tiers de 348 px. « Ajouter une équipe » → « Équipe », « Vérifier mes
 tick ATB » → « Ticks », « Créer une recommandation » → « Créer », « Consulter
 celle d'un ami » → « Ami ». Le sens entier reste dans l'infobulle et dans
-`aria-label`, où il ne coûte aucune place. La règle
+`aria-label`, où il ne coûte aucune place. « Créer un monstre » → « Monstre »
+suit la même règle. La règle
 `[data-tiroir] .hidden.lg\:inline { display: none }` empêche que la révélation
 des libellés n'affiche les deux variantes côte à côte.
 

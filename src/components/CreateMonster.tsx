@@ -79,10 +79,17 @@ export default function CreateMonster({ onCreate, customMonsters, onDelete }: Pr
           px-3.5 py-2 / 13px, sinon il paraît rabougri à côté d'eux. */}
       <button
         onClick={() => setOpen((o) => !o)}
+        aria-label="Créer un monstre"
+        title="Créer un monstre qui n'existe pas dans les données chargées"
         className="flex items-center gap-1.5 rounded-lg border border-border bg-panel px-3.5 py-2 text-sm
                    text-ink-dim hoverable:text-ink hoverable:border-accent transition"
       >
-        <Wand2 size={15} /> Créer un monstre
+        {/* ⚠️ Deux longueurs : dans le panneau mobile ce bouton occupe une
+            cellule d'un tiers de 348 px, où « Créer un monstre » passe à la
+            ligne. `aria-label` et l'infobulle portent la phrase entière. */}
+        <Wand2 size={15} />
+        <span className="lg:hidden">Monstre</span>
+        <span className="hidden lg:inline">Créer un monstre</span>
       </button>
 
       {open && (

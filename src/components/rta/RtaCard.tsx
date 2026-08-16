@@ -1,5 +1,5 @@
 import { useRef } from 'react';
-import { GripVertical, X, ChevronDown } from 'lucide-react';
+import { GripVertical, X } from 'lucide-react';
 import { Monster, RtaEntry, sectionLabel } from '../../types';
 import ElementIcon from '../ElementIcon';
 import RuneIcon from '../RuneIcon';
@@ -111,7 +111,16 @@ export default function RtaCard({
         <GripVertical size={14} />
       </button>
 
-      <div className={`relative flex-none ${hasGear ? 'cursor-pointer' : ''}`} onClick={toggle}>
+      {/* ⚠️ **Le PORTRAIT ouvre le détail des runes.** Un chevron « ⌄ » le
+          faisait aussi, au bout de la ligne : deux cibles pour un seul geste,
+          dont une de 14 px coincée entre les icônes de set. Le portrait est la
+          plus grande zone de la carte et celle qu'on vise naturellement — il
+          suffit. L'état ouvert se lit au détail déplié juste dessous. */}
+      <div
+        className={`relative flex-none ${hasGear ? 'cursor-pointer' : ''}`}
+        onClick={toggle}
+        title={hasGear ? 'Voir le détail des runes' : undefined}
+      >
         <div
           className={`hex-frame w-[50px] h-[50px] p-[2px] bg-gradient-to-br ${GRADIENT[monster.element]}`}
         >
@@ -163,12 +172,7 @@ export default function RtaCard({
           {(entry.sets ?? []).slice(0, 3).map((s, i) => (
             <RuneIcon key={i} setKey={s} size={18} className="flex-none" />
           ))}
-          {hasGear && (
-            <ChevronDown
-              size={14}
-              className={`flex-none text-ink-dim transition-transform ${open ? 'rotate-180' : ''}`}
-            />
-          )}
+
         </div>
         <select
           value={entry.section}

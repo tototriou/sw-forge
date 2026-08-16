@@ -74,6 +74,11 @@ import { VUES_INVENTAIRE, hashVue, vueValide } from './lib/accountViews';
 
 const DISCORD_INVITE = 'https://discord.gg/R2Fe4GJZET';
 
+// Pages dont les actions et les filtres passent dans le tiroir mobile.
+// ⚠️ Les autres n'en ont aucune (Accueil, Mécaniques, Nouveautés, Paramètres) :
+// leur ouvrir un panneau vide serait pire que ne rien proposer.
+const PAGES_AVEC_MENU = new Set<Route>(['rta', 'siege', 'bestiary', 'compte']);
+
 type Route =
   | 'home'
   | 'bestiary'
@@ -265,6 +270,15 @@ export default function App() {
   // Confirmations à l'écran : purge globale (⚙), et refus de conservation alors
   // qu'on conservait déjà (la valeur portée est « ne plus me montrer »).
   const [purgeGlobale, setPurgeGlobale] = useState(false);
+
+  // Tiroir d'actions de la page, sous `lg`. ⚠️ L'état vit ICI parce que le
+  // bouton (barre supérieure) et le contenu (la page) sont deux sous-arbres
+  // distincts : seul leur ancêtre commun peut les relier.
+  const [menuPageOuvert, setMenuPageOuvert] = useState(false);
+
+  // Le tiroir se referme à chaque changement d'écran : ses actions portent sur
+  // la page qu'on vient de quitter.
+  useEffect(() => setMenuPageOuvert(false), [route]);
 
   // Repli de la barre latérale. Vit ici et non dans `Sidebar` : le CONTENU doit
   // décaler sa marge en même temps, sinon la barre se replie sur une colonne de
@@ -828,6 +842,9 @@ export default function App() {
         titre={titreSection}
         icone={iconeSection}
         decalage={sidebarRetractee ? LARGEUR_SIDEBAR_RETRACTEE : LARGEUR_SIDEBAR}
+        // ⚠️ Le burger n'apparaît que sur les pages qui ONT des actions : un
+        // bouton qui ouvre un panneau vide est pire que pas de bouton.
+        onOuvrirMenu={PAGES_AVEC_MENU.has(route) ? () => setMenuPageOuvert(true) : undefined}
         parametresActifs={route === 'parametres'}
         onToggleParametres={() => {
           window.location.hash =
@@ -889,6 +906,8 @@ export default function App() {
             onCreateMonster={custom.addCustomMonster}
             customMonsters={custom.customMonsters}
             onDeleteMonster={custom.removeCustomMonster}
+            menuOuvert={menuPageOuvert}
+            onFermerMenu={() => setMenuPageOuvert(false)}
           />
         ) : route === 'bestiary' ? (
           <BestiaryPage monsters={data.monsters} loadState={data.loadState} />

@@ -15,6 +15,7 @@ import RtaSearch from '../components/rta/RtaSearch';
 import RtaSection from '../components/rta/RtaSection';
 import CategoryBar from '../components/rta/CategoryBar';
 import RtaBackupBar from '../components/rta/RtaBackupBar';
+import MobileDrawer from '../components/MobileDrawer';
 import RtaFriendView from '../components/rta/RtaFriendView';
 import { RtaVueAmi } from '../lib/rtaShare';
 import { ConfirmDialog } from '../components/Dialogs';
@@ -35,6 +36,9 @@ interface Props {
   onCreateMonster: (name: string, element: ElementKey, speed: number, lead?: CustomLead | null) => Monster;
   customMonsters: Monster[];
   onDeleteMonster: (id: string) => void;
+  // Tiroir d'actions mobile — piloté par la barre supérieure (voir App.tsx).
+  menuOuvert: boolean;
+  onFermerMenu: () => void;
 }
 
 function totalSpeed(it: TurnItem): number | null {
@@ -50,6 +54,8 @@ export default function RtaPage({
   onCreateMonster,
   customMonsters,
   onDeleteMonster,
+  menuOuvert,
+  onFermerMenu,
 }: Props) {
   const [draggingId, setDraggingId] = useState<string | null>(null);
   const [newSection, setNewSection] = useState('');
@@ -261,14 +267,35 @@ export default function RtaPage({
         />
       )}
 
-      <RtaBackupBar
-        rta={rta}
-        cats={cats}
-        backup={backup}
-        monsters={monsters}
-        onConsulter={setVueAmi}
-        onCreateMonster={onCreateMonster}
-      />
+      {/* ⚠️ La barre d'actions vit à DEUX endroits selon la largeur, mais
+          c'est le MÊME composant rendu une seule fois — pas une copie. Au-dessus
+          de `lg` elle est en tête de page ; en dessous elle passe dans le
+          tiroir, faute de place : six boutons, deux rangées de catégories et un
+          champ de recherche repoussaient la prépa de trois écrans. */}
+      <div className="hidden lg:block">
+        <RtaBackupBar
+          rta={rta}
+          cats={cats}
+          backup={backup}
+          monsters={monsters}
+          onConsulter={setVueAmi}
+          onCreateMonster={onCreateMonster}
+        />
+      </div>
+
+      <MobileDrawer ouvert={menuOuvert} onFermer={onFermerMenu} titre="Ma prépa RTA">
+        <RtaBackupBar
+          rta={rta}
+          cats={cats}
+          backup={backup}
+          monsters={monsters}
+          onConsulter={(v) => {
+            setVueAmi(v);
+            onFermerMenu();
+          }}
+          onCreateMonster={onCreateMonster}
+        />
+      </MobileDrawer>
 
       {/* ⚠️ La prépa consultée s'affiche AVANT la sienne, et encadrée : c'est ce
           qu'on vient d'ouvrir, on doit la voir sans chercher. Elle se ferme d'un

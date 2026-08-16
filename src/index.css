@@ -631,7 +631,12 @@ button:not(:disabled):not([draggable]):not([role='switch']):active,
 /* ⚠️ Limité aux RANGÉES D'ACTIONS : les pastilles de filtre et les cases de
    couleur d'un formulaire ont leur propre habillage, leur imposer celui-ci les
    déformerait. */
-[data-tiroir] [data-rangee-actions] > button {
+/* ⚠️ `:not([aria-pressed])` : un bouton-BASCULE porte déjà son propre fond
+   (`accent-soft` quand il est actif). Lui imposer celui du panneau écrasait son
+   état — les trois interrupteurs d'affichage de la prépa RTA s'y affichaient
+   tous éteints, quel que soit le réglage. `aria-pressed` désigne exactement les
+   boutons concernés, et il est déjà là pour l'accessibilité. */
+[data-tiroir] [data-rangee-actions] > button:not([aria-pressed]) {
   gap: 0.375rem;
   border-width: 1px;
   border-color: rgb(var(--border));
@@ -893,6 +898,28 @@ button:not(:disabled):not([draggable]):not([role='switch']):active,
 
 [data-tiroir] [data-zone-destructive] > button {
   justify-content: center;
+}
+
+/* ⚠️ **Les rangées d'actions successives fusionnent en UNE grille** dans le
+   panneau. Chacune y formait sa propre grille de trois colonnes : quand l'une
+   perdait un bouton conditionnel (« Réinitialiser » n'existe qu'après un import
+   de compte), sa dernière cellule s'étirait et plus rien ne s'alignait d'une
+   rangée à l'autre. Le conteneur qui les empile devient la grille, et les
+   rangées s'y effacent — six boutons, six cellules égales.
+   ⚠️ `display: contents` : la rangée disparaît de la mise en page sans
+   disparaître du DOM, donc ses enfants deviennent ceux de la grille.
+   ⚠️ Marqué par `data-grille-actions`, jamais déduit de la structure : le
+   panneau RTA empile aussi la création, la barre de sauvegarde et les
+   catégories dans un `flex-col` — les fusionner toutes aurait mêlé des
+   pastilles de catégorie à des boutons d'action. */
+[data-tiroir] [data-grille-actions] {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.5rem;
+}
+
+[data-tiroir] [data-grille-actions] > [data-rangee-actions] {
+  display: contents;
 }
 
 /* ⚠️ Les marges hautes des barres d'outils sont annulées dans le panneau. Elles

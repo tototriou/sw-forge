@@ -334,7 +334,12 @@ export default function RtaBackupBar({
           lisaient comme voisins alors qu'ils n'ont rien à voir — et le
           séparateur vertical qui les distinguait passait inaperçu dès que la
           rangée se repliait, ce qu'elle fait sur tout écran étroit. */}
-      <div className="flex flex-col gap-1.5">
+      {/* ⚠️ `data-grille-actions` : dans le panneau mobile, les DEUX rangées
+          fusionnent en une seule grille de six cellules égales (voir
+          index.css). Chacune y formait sinon sa propre grille de trois
+          colonnes, et celle qui perdait « Réinitialiser » — absent tant qu'aucun
+          compte n'a été importé — étirait sa dernière cellule. */}
+      <div data-grille-actions className="flex flex-col gap-1.5">
       {/* ⚠️ Écart PLUS LARGE sous `sm`, où les boutons sont des icônes nues :
           sans cadre pour les délimiter, six icônes à 8 px d'intervalle se lisent
           comme une frise continue, et l'on ne sait plus où finit l'une et où
@@ -423,17 +428,16 @@ export default function RtaBackupBar({
           className={BOUTON}
           title="Ouvrir la prépa d'un ami en lecture (fichier .json). Ta prépa n'est pas touchée."
         >
-          {/* ⚠️ Deux longueurs de libellé, pas une. « Consulter celle d'un ami »
-              fait à lui seul près de la moitié d'une largeur de téléphone : avec
-              « Exporter » et « Importer » sur la même rangée, il la faisait
-              passer à la ligne — et la rangée cessait de dire « échanger un
-              fichier », ce qu'elle est censée montrer d'un coup d'œil. Le sens
-              tient dans « Ami » ; l'infobulle porte le reste.
-              ⚠️ Sur `compact` uniquement — au pointeur fin, la barre a la place
-              du libellé complet quelle que soit la largeur. */}
+          {/* ⚠️ **« Ami » et rien d'autre.** Le libellé complet — « Consulter
+              celle d'un ami » — fait à lui seul près de la moitié d'une largeur
+              de téléphone : dans la grille du panneau il passait sur trois
+              lignes et déformait toute la rangée. Deux variantes n'y changeaient
+              rien, la règle qui révèle les libellés dans le panneau les
+              affichant l'une et l'autre.
+              Le sens tient dans le mot ; l'infobulle et `aria-label` portent la
+              phrase entière. */}
           <Users size={14} />
-          <span className="hidden compact:inline">Ami</span>
-          <span className="compact:hidden">Consulter celle d'un ami</span>
+          <span className="compact:hidden">Ami</span>
         </button>
       </div>
       </div>

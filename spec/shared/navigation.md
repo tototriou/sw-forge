@@ -466,6 +466,11 @@ la dernière ligne restait à moitié vide. En grille, tous font la même taille
 s'alignent verticalement d'une rangée à l'autre — c'est ce qui rend le
 groupement par type lisible d'un coup d'œil.
 
+- **Les rangées SUCCESSIVES d'un même bloc fusionnent** (`data-grille-actions`) :
+  les six boutons de la barre RTA forment une grille unique de six cellules, et
+  non deux grilles de trois. Séparées, celle qui perdait son bouton conditionnel
+  (« Réinitialiser », absent tant qu'aucun compte n'a été importé) étirait sa
+  dernière cellule et plus rien ne s'alignait d'une rangée à l'autre.
 - **Trois colonnes fixes, identiques pour toutes les rangées.** Un
   `grid-auto-flow: column` faisait calculer à chaque rangée ses propres
   colonnes : deux boutons s'étalaient en moitiés, trois en tiers, et rien ne
@@ -516,6 +521,11 @@ qui passent déjà à la ligne seuls : les extraire imposerait de découper
 `SiegeBoard` sans gagner une hauteur mesurable. **Ouvrir un panneau vide serait
 pire que ne rien proposer** — c'est la règle qui décide de l'appartenance à
 cette liste, pas la page.
+
+⚠️ Un bouton-bascule (`aria-pressed`) **garde son propre fond** dans le
+panneau : la règle qui rend leur cadre aux boutons l'aurait écrasé, et les trois
+interrupteurs d'affichage de la prépa RTA s'y affichaient tous éteints quel que
+soit le réglage.
 
 ⚠️ Le panneau porte `data-tiroir` : les libellés masqués par `hidden sm:inline`
 y sont **rétablis** (`src/index.css`). Un bouton réduit à son icône a du sens

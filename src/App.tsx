@@ -817,30 +817,40 @@ export default function App() {
         icone={iconeSection}
         decalage={sidebarRetractee ? LARGEUR_SIDEBAR_RETRACTEE : LARGEUR_SIDEBAR}
         onDeconnexion={() => setPurgeGlobale(true)}
-        gauche={
-          <>
-            {/* Sous `lg`, la barre latérale n'existe pas : le logo et l'import
-                doivent rester ici. Au-dessus, la barre les porte déjà. */}
-            <a href="#/" className="flex items-center gap-2 lg:hidden">
-              <img src={`${import.meta.env.BASE_URL}favicon.svg`} alt="" className="h-6 w-6" />
-            </a>
-            {/* ⚠️ Masqué sur l'ACCUEIL : la zone de dépôt y est déjà au centre
-                de l'écran, deux points d'entrée pour le même geste sèment le
-                doute sur celui qui « compte vraiment ». */}
+        actions={
+          /* ⚠️ MOBILE seulement : au-dessus de `lg`, la barre latérale porte
+             déjà l'import et les réglages en pied.
+             ⚠️ Masqué sur l'ACCUEIL : la zone de dépôt y est au centre de
+             l'écran, deux points d'entrée pour le même geste sèment le doute
+             sur celui qui « compte vraiment ». */
+          <div className="flex items-center gap-0.5 lg:hidden">
             {route !== 'home' && (
-              <div className="lg:hidden">
-                <AccountImportControl onImport={importAccount} variant="desktop" />
-              </div>
+              <AccountImportControl onImport={importAccount} variant="icone" />
             )}
-            <div className="lg:hidden">
-              <SettingsMenu
-                variant="bar"
-                onClearData={() => setPurgeGlobale(true)}
-                onKeepAccount={persistCurrentAccount}
-                accountExportedAt={accountExportedAt}
-              />
-            </div>
-          </>
+            <a
+              href="#/parametres"
+              title="Paramètres"
+              aria-label="Paramètres"
+              className={`flex h-8 w-8 items-center justify-center rounded-md transition-colors ${
+                route === 'parametres'
+                  ? 'bg-ctx-soft text-ctx'
+                  : 'text-ink-dim hoverable:bg-panel2 hoverable:text-ink'
+              }`}
+            >
+              <Settings size={16} />
+            </a>
+          </div>
+        }
+        gauche={
+          /* ⚠️ Le LOGO SEUL sous `lg`, rien d'autre. La zone portait aussi
+             l'import (au libellé complet, « Importer un JSON ») et les
+             réglages : trois éléments qui poussaient le titre centré en absolu
+             SOUS eux — le bouton ⚙ chevauchait « RTA ».
+             Les deux gestes restent atteignables : l'import est sur chaque
+             page qui en a besoin, les réglages ont leur page (onglet Outils). */
+          <a href="#/" className="flex items-center gap-2 lg:hidden">
+            <img src={`${import.meta.env.BASE_URL}favicon.svg`} alt="" className="h-6 w-6" />
+          </a>
         }
       />
 

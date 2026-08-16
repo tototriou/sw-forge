@@ -26,6 +26,7 @@ export default function TopBar({
   titre,
   icone,
   gauche,
+  actions,
   onDeconnexion,
   // Bord GAUCHE de la barre : celui de la barre latérale, qu'elle ne recouvre
   // pas. ⚠️ Piloté par l'appelant, qui seul sait si elle est repliée.
@@ -37,6 +38,10 @@ export default function TopBar({
   // l'accent contextuel, comme partout ailleurs.
   icone?: ReactNode;
   gauche?: ReactNode;
+  // Actions posées à GAUCHE du bouton de sortie. ⚠️ En icônes seules : la
+  // barre porte un titre centré en absolu, et tout libellé de plus le
+  // recouvrait.
+  actions?: ReactNode;
   onDeconnexion: () => void;
   decalage: number;
 }) {
@@ -66,18 +71,29 @@ export default function TopBar({
             rester centré, et capterait sinon les clics destinés aux boutons
             qu'il recouvre. */}
         <span
-          className="pointer-events-none absolute inset-x-0 flex items-center justify-center
-                     gap-2 font-display text-[15px] tracking-wide text-ink"
+          // ⚠️ Marges LATÉRALES sur le titre, pas `inset-x-0` : centré sur
+          // toute la largeur, il passait SOUS les boutons — le bouton ⚙
+          // chevauchait « RTA » sur mobile. Les 116 px réservés à droite
+          // correspondent aux trois cibles de 32 px plus la déconnexion ;
+          // 88 px à gauche au logo. `truncate` finit le travail sur les titres
+          // longs (« Recommandations »).
+          className="pointer-events-none absolute inset-y-0 left-[88px] right-[116px] flex
+                     items-center justify-center gap-2 font-display text-[15px]
+                     tracking-wide text-ink lg:left-4 lg:right-[150px]"
         >
           {icone && <span className="flex-none text-ctx">{icone}</span>}
-          {titre}
+          <span className="truncate">{titre}</span>
         </span>
+
+        <div className="relative z-10 ml-auto flex items-center gap-0.5">
+          {actions}
+        </div>
 
         <button
           type="button"
           onClick={onDeconnexion}
           title="Effacer mes données de cet appareil"
-          className="relative z-10 ml-auto flex items-center gap-1.5 rounded-md px-2 py-1.5
+          className="relative z-10 flex items-center gap-1.5 rounded-md px-2 py-1.5
                      text-[13px] text-ink-dim transition-colors
                      hoverable:bg-panel2 hoverable:text-bad"
         >

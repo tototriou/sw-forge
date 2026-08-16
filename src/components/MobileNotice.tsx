@@ -22,10 +22,15 @@ export default function MobileNotice() {
   return (
     <div className="md:hidden mb-4 flex items-start gap-2.5 rounded-xl border border-accent bg-panel2/60 px-3 py-2.5">
       <Monitor size={16} className="mt-0.5 flex-none text-accent" />
+      {/* ⚠️ Texte RACCOURCI depuis la refonte : « SW Forge est pensé pour un
+          grand écran » n'est plus vrai — la navigation, les grilles et les
+          listes s'adaptent désormais. Ce qui reste vrai, et seulement ça : les
+          écrans les plus DENSES (comparaison de courbes, optimiseur) demandent
+          de la largeur. Trois lignes pour le dire prenaient un quart de
+          l'écran, juste sous la barre. */}
       <p className="flex-1 text-[12px] leading-relaxed text-ink-dim">
-        <b className="text-ink">SW Forge est pensé pour un grand écran.</b> Tout fonctionne sur
-        téléphone, mais les listes de runes et les équipes de siège se lisent bien plus
-        confortablement sur ordinateur.
+        Les <b className="text-ink">courbes</b> et l'<b className="text-ink">optimiseur</b> se
+        lisent plus confortablement sur un grand écran.
       </p>
       <button
         onClick={() => setFerme(true)}

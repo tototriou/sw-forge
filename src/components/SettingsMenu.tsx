@@ -124,12 +124,10 @@ export function SettingsList({
 // rester accessibles en UN geste, donc jamais enfouis dans le menu. Même gabarit
 // que le bouton hamburger (44 px, encadré) pour former une paire.
 export default function SettingsMenu({
-  variant = 'desktop',
   onClearData,
   onKeepAccount,
   accountExportedAt,
 }: {
-  variant?: 'desktop' | 'bar';
   onClearData?: () => void;
   onKeepAccount?: () => void;
   accountExportedAt?: number | null;
@@ -151,10 +149,12 @@ export default function SettingsMenu({
     };
   }, [open]);
 
-  const btnClass =
-    variant === 'bar'
-      ? `w-11 h-11 rounded-lg border border-border ${open ? 'bg-panel2' : 'bg-panel'} text-ink`
-      : `w-9 h-9 rounded-lg ${open ? 'bg-panel2 text-ink' : 'text-ink-dim hoverable:text-ink hoverable:bg-panel2'}`;
+  // ⚠️ La variante `bar` (44 px, encadrée) a disparu avec la barre mobile
+  // qu'elle accompagnait : sur mobile, les réglages sont désormais une ICÔNE de
+  // la barre supérieure menant à leur page, pas un popover.
+  const btnClass = `w-9 h-9 rounded-lg ${
+    open ? 'bg-panel2 text-ink' : 'text-ink-dim hoverable:text-ink hoverable:bg-panel2'
+  }`;
 
   return (
     <div className="relative" ref={ref}>
@@ -165,7 +165,7 @@ export default function SettingsMenu({
         title="Réglages"
         className={`flex items-center justify-center transition ${btnClass}`}
       >
-        <Settings size={variant === 'bar' ? 20 : 16} />
+        <Settings size={16} />
       </button>
       {open && (
         <div

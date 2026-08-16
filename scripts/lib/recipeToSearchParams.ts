@@ -77,7 +77,9 @@ export function recipeToSearchParams(
     requirement: recipe.requirement,
     metric: recipe.metric,
     objective: recipe.objective,
-    maxMs: HARD_TIMEOUT_MS,
+    // ⚠️ `?? false` : une recette exportée avant l'ajout de ce réglage n'a pas
+    // ce champ — même repli que `importRecipe` (OptimizerSection.tsx).
+    maxMs: (recipe.exhaustiveSearch ?? false) ? Number.POSITIVE_INFINITY : HARD_TIMEOUT_MS,
     slotFilterCap: resolveSlotFilterCap(recipe.slotFilterPreset),
     adaptiveTrancheWeighting: recipe.adaptiveTrancheWeighting,
   };

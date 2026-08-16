@@ -478,8 +478,11 @@ groupement par type lisible d'un coup d'œil.
   effacerait aussi ceux qu'on ajoutera demain pour une autre raison.
 - ⚠️ La **création de monstre est seule sur sa ligne**, hors de la grille : elle
   ne relève pas du même geste que les six autres, qui échangent ou figent un
-  fichier de prépa. Elle garde leur gabarit pour qu'aucune ne paraisse plus
-  importante.
+  fichier de prépa. Mais elle garde leur **taille exacte** — un tiers de largeur,
+  même hauteur : un bouton d'action n'a pas de raison de peser plus qu'un autre,
+  et pleine largeur il redevenait le plus gros du panneau. Sa ligne reste donc
+  aux deux tiers vide, ce qui dit justement qu'il n'appartient pas au groupe en
+  dessous.
 - **Les rangées SUCCESSIVES d'un même bloc fusionnent** (`data-grille-actions`) :
   les six boutons de la barre RTA forment une grille unique de six cellules, et
   non deux grilles de trois. Séparées, celle qui perdait son bouton conditionnel

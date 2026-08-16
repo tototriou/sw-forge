@@ -942,11 +942,17 @@ button:not(:disabled):not([draggable]):not([role='switch']):active,
    panneau RTA l'imbrique dans la grille commune avec le bouton de création.
    Un sélecteur d'enfant direct n'aurait vu que le conteneur intermédiaire, qui
    serait resté une grille dans la grille. */
-/* ⚠️ Le bouton de création occupe TOUTE la largeur dans le panneau : il y est
-   seul sur sa ligne, hors de la grille des six autres (voir RtaPage). Réduit à
-   son texte, il aurait flotté à gauche d'un vide. `CreateMonster` s'enveloppe
-   dans un `div.relative` qui ancre son popover — d'où le sélecteur en deux
-   temps. */
+/* ⚠️ Le bouton de création fait **UN TIERS de largeur**, comme les six autres :
+   il est seul sur sa ligne mais garde leur taille — un bouton d'action n'a pas
+   de raison de peser plus qu'un autre, et pleine largeur il redevenait le plus
+   gros du panneau. Sa ligne à lui reste donc aux deux tiers vide, ce qui dit
+   justement qu'il n'appartient pas au groupe en dessous.
+   `CreateMonster` s'enveloppe dans un `div.relative` qui ancre son popover —
+   d'où le sélecteur en deux temps. */
+[data-tiroir] > * > .relative {
+  width: calc((100% - 1rem) / 3);
+}
+
 [data-tiroir] > * > .relative > button {
   width: 100%;
   justify-content: center;

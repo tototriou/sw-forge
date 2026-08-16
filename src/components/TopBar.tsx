@@ -50,9 +50,14 @@ export default function TopBar({
       // ⚠️ Fond OPAQUE, pas de flou : le contenu qu'on devinait derrière ne
       // disait rien d'utile et brouillait le titre par transparence. Une barre
       // de repère doit se lire net.
-      className="fixed right-0 top-0 z-20 h-12 border-b border-border bg-panel
-                 transition-[left] duration-[180ms]"
-      style={{ left: `var(--top-left, 0px)`, ['--top-left' as string]: `${decalage}px` }}
+      // ⚠️ `left` en CLASSE, pas en style inline : le décalage ne vaut qu'à
+      // partir de `lg`. En inline il s'appliquait à TOUTES les largeurs, et sur
+      // mobile — où la barre latérale n'existe pas — la barre partait 224 px
+      // hors écran : le titre disparaissait à droite et le bouton de
+      // déconnexion devenait inatteignable.
+      className="fixed inset-x-0 top-0 z-20 h-12 border-b border-border bg-panel
+                 lg:left-[var(--top-left)] lg:right-0 lg:transition-[left] lg:duration-[180ms]"
+      style={{ ['--top-left' as string]: `${decalage}px` }}
     >
       <div className="relative flex h-full items-center gap-3 px-3">
         <div className="flex min-w-0 items-center gap-2">{gauche}</div>

@@ -902,9 +902,9 @@ export default function App() {
           en bas. */}
       {/* ⚠️ Le dégagement du haut inclut l'ENCOCHE : la barre supérieure
           descend sous elle (voir TopBar), donc le contenu doit descendre
-          d'autant. À `pt-[68px]` fixe, les premiers éléments de la page —
-          les sous-onglets du siège, par exemple — restaient sous la barre et
-          l'on ne pouvait pas remonter jusqu'à eux. */}
+          d'autant.
+          ⚠️ **En `padding`, pas en `margin`** : une marge s'effondrerait hors du
+          conteneur et la barre recouvrirait de nouveau le début de la page. */}
       <div
         className="px-4 pb-24 sm:px-6 lg:pb-16"
         style={{ paddingTop: 'calc(68px + env(safe-area-inset-top))' }}

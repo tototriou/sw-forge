@@ -366,7 +366,15 @@ body {
        jamais : la page garde la même hauteur quel que soit le sens du geste.
      `100vh` reste en repli pour les navigateurs qui ignorent `svh`. */
   min-height: 100vh;
-  min-height: 100svh;
+  /* ⚠️ **La page doit toujours pouvoir DÉFILER sous la barre supérieure.**
+     Quand son contenu tient dans l'écran, il n'y a rien à faire défiler : le
+     navigateur est « en haut » dès le départ, et le moindre geste vers le bas
+     déclenche le rechargement — avant même qu'on ait vu le premier bloc, qui se
+     trouve pourtant sous la barre.
+     La hauteur minimale ajoute donc la hauteur de la barre : il reste toujours
+     de quoi remonter, et « en haut » signifie bien « je vois le début du
+     contenu ». */
+  min-height: calc(100svh + 3rem + env(safe-area-inset-top));
   /* ⚠️ **`overflow-x` reste sur `html` SEUL.** Le poser aussi sur `body` faisait
      de celui-ci un conteneur de défilement à part entière : sa hauteur se
      bornait alors au viewport, et la molette n'avait plus rien à faire défiler

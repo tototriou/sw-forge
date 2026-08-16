@@ -355,11 +355,19 @@ Une valeur fixe laissait le haut de la page sous la barre.
 téléphone. Il a été bloqué un temps parce qu'il se déclenchait *avant* que le
 contenu n'ait atteint le haut, mais c'était traiter le symptôme.
 
-⚠️ La cause était la **hauteur de `body` en `dvh`** : cette unité suit la hauteur
-courante du viewport, donc elle **change** quand la barre d'adresse se replie ou
-se déplie. En remontant, la barre se déplie, `dvh` diminue et la page raccourcit
-sous le doigt — le défilement se retrouve poussé au-delà du haut, et le
-rechargement part trop tôt.
+⚠️ Deux causes se cumulaient pour le déclencher trop tôt.
+
+**La hauteur de `body` était en `dvh`** : cette unité suit la hauteur courante du
+viewport, donc elle **change** quand la barre d'adresse se replie ou se déplie.
+En remontant, la barre se déplie, `dvh` diminue et la page raccourcit sous le
+doigt — le défilement se retrouve poussé au-delà du haut.
+
+**La page ne pouvait pas défiler sous la barre supérieure.** Quand son contenu
+tient dans l'écran, il n'y a rien à faire défiler : le navigateur est « en haut »
+dès le départ, et le moindre geste vers le bas déclenche le rechargement — avant
+même qu'on ait vu le premier bloc, qui se trouve pourtant **derrière la barre**.
+La hauteur minimale de `body` ajoute donc celle de la barre : il reste toujours
+de quoi remonter, et « en haut » signifie bien « je vois le début du contenu ».
 
 `svh` est la hauteur du plus **petit** état (barre dépliée) et ne bouge jamais.
 C'est la bonne unité pour une hauteur de page. `dvh` reste correct sur les

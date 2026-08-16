@@ -154,15 +154,24 @@ endroits où les deux se séparent (voir
 
 | | Zone droite |
 |---|---|
-| **Bureau** | « Se déconnecter » puis ⚙ **Paramètres** |
+| **Bureau** | « Se déconnecter » seule |
 | **Mobile** | ⚙ **Paramètres** seul |
+
+- ⚠️ **Un seul bouton de chaque côté, et ce n'est pas le même.** Sur bureau, le
+  ⚙ a été retiré : le **pied de la barre latérale** en porte déjà un, à côté du
+  nom du compte et de l'import (`SidebarCompte`). Deux chemins vers le même
+  écran, à 60 px l'un de l'autre, se lisent comme deux réglages différents — et
+  c'est dans le bloc compte que celui-ci a sa place.
+- ⚠️ Sur mobile, à l'inverse, le ⚙ est le **seul accès** aux paramètres : il n'y
+  a pas de barre latérale, et aucun des cinq onglets n'y mène. C'est donc la
+  déconnexion qui descend, pas lui.
 
 - ⚠️ Sur **mobile**, trois cibles dans 48 px de haut, à côté d'un titre centré
   en absolu, ne laissaient à chacune ni la place ni la marge d'erreur qu'un
   doigt réclame — et le bouton ⚙ chevauchait « RTA ». L'import descend dans les
   paramètres, où il côtoie l'état du compte ; la déconnexion aussi, où elle
   côtoie le réglage de conservation. Le titre porte en outre des marges qui
-  réservent leur place aux boutons restants.
+  réservent leur place au bouton restant.
 - ⚠️ Sur **bureau**, la déconnexion reste ici : c'est la zone qui porte ce qui
   sort, et la largeur y suffit largement. La descendre n'aurait rien réglé
   là-bas — le problème tenait aux 348 px d'un téléphone, pas au geste lui-même.

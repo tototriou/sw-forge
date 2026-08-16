@@ -97,14 +97,19 @@ export default function TopBar({
           <span className="truncate">{titre}</span>
         </span>
 
-        {/* ⚠️ **Sur MOBILE, les paramètres seuls.** La déconnexion et l'import
-            en descendent : trois cibles dans 48 px de haut, à côté d'un titre
-            centré, ne laissaient à chacune ni la place ni la marge d'erreur
-            qu'un doigt réclame. Elles restent atteignables par les paramètres et
-            par le panneau d'actions.
-            ⚠️ Au-dessus de `lg` la déconnexion REVIENT ici, à sa place : c'est
-            la zone de la barre qui porte ce qui SORT, et la largeur y suffit
-            largement. */}
+        {/* ⚠️ **Zone droite : un contenu par format, et strictement un.**
+
+            BUREAU — « Se déconnecter » seule. Le ⚙ en a été retiré : le pied de
+            la barre latérale en porte déjà un, à côté du nom du compte et de
+            l'import (voir SidebarCompte). Deux chemins vers le même écran, à
+            60 px l'un de l'autre, se lisent comme deux réglages différents — et
+            c'est dans le bloc compte que celui-ci a sa place.
+
+            MOBILE — le ⚙ seul, parce qu'il n'y a pas de barre latérale et
+            qu'aucun onglet ne mène aux paramètres : c'est le seul accès. La
+            déconnexion et l'import y descendent, faute de place — trois cibles
+            dans 48 px de haut, à côté d'un titre centré, ne laissaient à chacune
+            ni la marge d'erreur qu'un doigt réclame. */}
         <button
           type="button"
           onClick={onDeconnexion}
@@ -123,11 +128,11 @@ export default function TopBar({
           title={parametresActifs ? 'Fermer les paramètres' : 'Paramètres'}
           aria-label={parametresActifs ? 'Fermer les paramètres' : 'Paramètres'}
           aria-pressed={parametresActifs}
-          // ⚠️ `ml-auto` seulement sous `lg` : au-dessus, c'est la déconnexion
-          // qui pousse le groupe à droite, et deux `ml-auto` de suite auraient
-          // séparé les deux boutons d'un vide.
+          // ⚠️ `lg:hidden` : sur bureau, le pied de la barre latérale porte le
+          // même accès, à côté du nom du compte. Le garder ici aurait fait deux
+          // boutons pour un seul écran.
           className={`relative z-10 ml-auto flex aspect-square h-8 w-8 items-center justify-center
-                      rounded-md transition-colors lg:ml-2 ${
+                      rounded-md transition-colors lg:hidden ${
                         parametresActifs
                           ? 'bg-ctx-soft text-ctx'
                           : 'text-ink-dim hoverable:bg-panel2 hoverable:text-ink'

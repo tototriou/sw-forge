@@ -145,17 +145,30 @@ Un champ en tête de la barre, `⌘K` depuis n'importe où.
 
 ## Barre supérieure
 
-Trois zones : l'identité à gauche, **où l'on est** au centre, les
-**paramètres** à droite. Et rien de plus.
+Trois zones : l'identité à gauche, **où l'on est** au centre, ce qui **sort** à
+droite.
 
-- ⚠️ Elle a d'abord porté l'**import** et la **déconnexion**. Ni l'un ni l'autre
-  n'y avait sa place : ce sont des gestes **rares**, et la barre est ce qu'on
-  lit en permanence. Ils vivent dans les paramètres, où l'on va justement quand
-  on veut changer quelque chose — l'import y côtoie l'état du compte, la
-  suppression des données y côtoie le réglage de conservation.
-- ⚠️ Sur mobile, ces trois éléments à gauche poussaient le titre centré en
-  absolu **sous** eux : le bouton ⚙ chevauchait « RTA ». Le titre porte
-  désormais des marges qui réservent leur place aux boutons.
+⚠️ **Le contenu de la zone droite diffère selon le format** — c'est l'un des
+endroits où les deux se séparent (voir
+[deux-applications.md](deux-applications.md)) :
+
+| | Zone droite |
+|---|---|
+| **Bureau** | « Se déconnecter » puis ⚙ **Paramètres** |
+| **Mobile** | ⚙ **Paramètres** seul |
+
+- ⚠️ Sur **mobile**, trois cibles dans 48 px de haut, à côté d'un titre centré
+  en absolu, ne laissaient à chacune ni la place ni la marge d'erreur qu'un
+  doigt réclame — et le bouton ⚙ chevauchait « RTA ». L'import descend dans les
+  paramètres, où il côtoie l'état du compte ; la déconnexion aussi, où elle
+  côtoie le réglage de conservation. Le titre porte en outre des marges qui
+  réservent leur place aux boutons restants.
+- ⚠️ Sur **bureau**, la déconnexion reste ici : c'est la zone qui porte ce qui
+  sort, et la largeur y suffit largement. La descendre n'aurait rien réglé
+  là-bas — le problème tenait aux 348 px d'un téléphone, pas au geste lui-même.
+- ⚠️ **Un seul chemin de purge** : ce bouton déclenche le même geste que
+  « Effacer mes données » des paramètres. Deux chemins auraient divergé à la
+  première garde ajoutée (le dialogue de conservation, par exemple).
 
 - ⚠️ **Elle COMMENCE après la barre latérale**, elle ne la surplombe pas
   (`z-20` contre `z-30`). La barre latérale est la navigation principale : la

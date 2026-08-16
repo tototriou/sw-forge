@@ -557,6 +557,20 @@ sur une rangée de filtres serrée on active le **voisin**.
   contrainte de forme, sinon le mot déborderait d'un carré. Le marqueur est
   `aspect-square` et non `.h-8` — un sélecteur sur le nom de classe Tailwind
   aurait cassé au premier ajustement de taille.
+#### Densité d'un bloc répétitif
+
+⚠️ **Ce qui compte n'est pas la taille du texte mais la HAUTEUR DU BLOC.** Le
+panneau de stats en est l'exemple : huit lignes à 12 px plus 8 px d'interligne
+font ~190 px de haut — il pesait plus lourd que les trois monstres au-dessus,
+alors qu'il ne fait que les détailler. Le texte n'était pourtant pas gros.
+
+Au doigt, un bloc de plus de cinq lignes descend donc d'un cran (`compact:`) :
+texte à 11 px, interligne de moitié, rembourrage du cadre réduit. À la souris,
+rien ne change — la place ne manque pas.
+
+⚠️ Le repère de référence est le **nom du monstre** juste au-dessus : le panneau
+doit rester en dessous de lui dans la hiérarchie, puisqu'il le détaille.
+
 #### Quand la taille EST le dessin
 
 ⚠️ **Certains contrôles ne peuvent pas grandir sans cesser d'être eux-mêmes.**

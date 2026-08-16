@@ -87,7 +87,11 @@ export default function RtaCard({
   return (
     <div
       ref={cardRef}
-      title={categoryLabels.length > 0 ? categoryLabels.join(' · ') : undefined}
+      // ⚠️ Le NOM d'abord, les catégories ensuite. Le nom est masqué sous `sm`
+      // (voir plus bas) : sans lui ici, il n'existerait plus nulle part sur
+      // téléphone. Il précède les catégories parce que c'est ce qu'on cherche
+      // en survolant une carte qu'on ne reconnaît pas.
+      title={[monster.name, ...categoryLabels].join(' · ')}
       // ⚠️ `data-carte-dense` : le sélecteur de section reste à 32 px au doigt,
       // au lieu des 40 px de la règle tactile générale. Dans une tuile de
       // 150 px qui porte déjà un portrait, un nom, une vitesse et trois icônes
@@ -158,9 +162,20 @@ export default function RtaCard({
           title={hasGear ? 'Voir le détail des runes' : undefined}
         >
           {/* Nom en orange quand les runes ne suivent plus la vitesse demandée :
-              on repère les monstres à re-runer sans ouvrir chaque fiche. */}
+              on repère les monstres à re-runer sans ouvrir chaque fiche.
+              ⚠️ **Masqué sous `sm`.** Sur deux colonnes de 150 px, avec la
+              vitesse, le badge de désync et trois icônes de set sur la même
+              ligne, il ne restait au nom qu'une quarantaine de pixels — de quoi
+              afficher « Sath… », qui ne distingue rien. Le PORTRAIT identifie le
+              monstre bien mieux qu'un nom tronqué, et il est déjà là. Le nom
+              complet reste dans l'infobulle de la carte.
+              La vitesse prend la place : c'est la donnée qu'on vient lire sur
+              cet écran — la prépa RTA se règle au point de vitesse.
+              ⚠️ La vitesse passe alors à GAUCHE (`flex-1` transféré) : seule sur
+              sa ligne, calée à droite, elle flottait loin du portrait qu'elle
+              qualifie. */}
           <span
-            className={`text-xs font-semibold leading-tight truncate flex-1 ${
+            className={`hidden sm:block text-xs font-semibold leading-tight truncate flex-1 ${
               desync && markDesync ? 'text-warn' : ''
             }`}
           >
@@ -170,7 +185,7 @@ export default function RtaCard({
             <>
               <img src={SPD_ICON} alt="SPD" width={15} height={15} className="flex-none" />
               <span
-                className={`font-mono text-sm font-black leading-none ${
+                className={`font-mono text-sm font-black leading-none max-sm:flex-1 ${
                   desync && markDesync ? 'text-warn' : 'text-ink'
                 }`}
               >
@@ -179,10 +194,16 @@ export default function RtaCard({
             </>
           )}
           {desync && <DesyncBadge ecart={desync} size={13} />}
-          {(entry.sets ?? []).slice(0, 3).map((s, i) => (
-            <RuneIcon key={i} setKey={s} size={18} className="flex-none" />
-          ))}
-
+          {/* ⚠️ `pr-3` sous `sm` : la croix de suppression est posée SUR le coin
+              haut-droit de la carte, hors du flux — rien ne la repousse. La
+              dernière icône de set passait dessous. Le nom masqué sur téléphone
+              avait libéré assez de place pour que les trois icônes atteignent le
+              bord, ce qu'elles ne faisaient pas quand il les repoussait. */}
+          <span className="flex items-center gap-1 max-sm:pr-3">
+            {(entry.sets ?? []).slice(0, 3).map((s, i) => (
+              <RuneIcon key={i} setKey={s} size={18} className="flex-none" />
+            ))}
+          </span>
         </div>
         <select
           value={entry.section}

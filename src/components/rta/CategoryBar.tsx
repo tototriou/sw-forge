@@ -134,9 +134,20 @@ export default function CategoryBar({ cats, monsters }: Props) {
           )}
         </div>
 
-        {/* Interrupteurs d'affichage, poussés à droite. On coupe le bruit sans
-            rien perdre : les catégories et les vitesses restent, seul le rendu
-            disparaît. */}
+      </div>
+
+      {/* ⚠️ Les trois interrupteurs d'affichage sur leur PROPRE rangée, et non
+          poussés à droite de la précédente. Ils ne créent ni ne classent rien :
+          ils coupent du bruit à l'écran, ce que ni « + Catégorie » ni les
+          pastilles ne font. Mêlés à elles, ils passaient à la ligne dès qu'une
+          catégorie de plus existait — et se retrouvaient un coup à droite, un
+          coup en dessous, selon le nombre de catégories.
+          Sur téléphone, c'était pire : la rangée en comptait déjà quatre
+          éléments avant eux. */}
+      <div
+        data-rangee-actions
+        className="mt-1.5 flex items-center gap-1.5 flex-wrap"
+      >
         <button
           onClick={() => cats.setShowSpeeds(!cats.showSpeeds)}
           aria-pressed={cats.showSpeeds}
@@ -145,7 +156,7 @@ export default function CategoryBar({ cats, monsters }: Props) {
               ? 'Masquer les vitesses sur les cartes'
               : 'Réafficher les vitesses sur les cartes'
           }
-          className={`ml-auto flex h-7 items-center gap-1.5 rounded-full border px-2.5 text-xs transition ${
+          className={`flex h-7 items-center gap-1.5 rounded-full border px-2.5 text-xs transition ${
             cats.showSpeeds
               ? 'border-border bg-panel text-ink-dim hoverable:text-ink hoverable:border-accent'
               : // Fond seul — voir spec/shared/design.md.

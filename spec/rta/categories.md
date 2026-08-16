@@ -45,8 +45,15 @@ vitesse.
 
 ## Interrupteurs d'affichage
 
-Trois boutons, poussés à droite de la barre : **Vitesses**, **Modifiés** et
-**Catégories**. Ils coupent le bruit **sans rien perdre** — les données restent,
+Trois boutons **sur leur propre rangée**, sous les catégories : **Vitesses**,
+**Modifiés** et **Catégories**.
+
+⚠️ Ils étaient poussés à droite de la rangée des pastilles. Ils ne créent ni ne
+classent rien — ils coupent du bruit à l'écran, ce que ni « + Catégorie » ni les
+pastilles ne font. Mêlés à elles, ils passaient à la ligne dès qu'une catégorie
+de plus existait, et se retrouvaient un coup à droite, un coup en dessous, selon
+le nombre de catégories. Sur téléphone la rangée en comptait déjà quatre éléments
+avant eux. Ils coupent le bruit **sans rien perdre** — les données restent,
 seul le rendu disparaît. Les trois états sont **persistés**.
 
 - ⚠️ **Les trois sont TOUJOURS affichés**, même quand ils ne servent à rien (pas
@@ -58,10 +65,11 @@ seul le rendu disparaît. Les trois états sont **persistés**.
   l'**icône œil barré** qui porte l'état.
 - **Vitesses** — masque la vitesse sur les cartes de classement. Utile quand on
   range sa box par rôle et que les chiffres n'apportent rien à ce moment-là.
-- **Modifiés** — écrit en **orange le nom ET la vitesse** des monstres dont les
+- **Modifiés** — écrit en **orange le nom et la vitesse** des monstres dont les
   runes ne suivent plus la vitesse demandée dans l'ordre de tour (voir
   [ordre-de-tour.md](ordre-de-tour.md)). On repère ainsi ceux à re-runer **sans
-  ouvrir chaque fiche**.
+  ouvrir chaque fiche**. ⚠️ Sous `sm` le nom n'est pas affiché (voir plus bas) :
+  seule la vitesse porte l'orange, ce qui suffit — c'est elle qui est en cause.
 - **Catégories** — masque les anneaux de couleur.
 
 Le bouton **Catégories** coupe les anneaux **sans rien perdre** : les catégories,
@@ -221,3 +229,22 @@ catégorie » plus haut.
   définitions du joueur, pas des données de compte.
 - Aucune catégorie créée → la barre n'affiche que « + Catégorie », et aucune
   carte n'a d'anneau.
+
+## La carte sur téléphone
+
+⚠️ **Le nom du monstre n'est pas affiché sous `sm`.** Sur deux colonnes de
+150 px, la ligne porte déjà la vitesse, le badge de désynchronisation et trois
+icônes de set : il ne restait au nom qu'une quarantaine de pixels, de quoi
+afficher « Sath… » — qui ne distingue rien.
+
+Le **portrait** identifie le monstre bien mieux qu'un nom tronqué, et il est déjà
+là. La **vitesse** prend la place libérée, calée à gauche : c'est la donnée qu'on
+vient lire sur cet écran, la prépa RTA se réglant au point de vitesse.
+
+⚠️ Le nom complet passe dans l'**infobulle de la carte**, en tête des catégories.
+Sans cela il n'existerait plus nulle part sur téléphone.
+
+⚠️ Les icônes de set réservent `pr-3` sous `sm`. La croix de suppression est
+posée **sur** le coin haut-droit, hors du flux : rien ne la repousse, et la
+dernière icône passait dessous dès que le nom masqué eut libéré assez de place
+pour que les trois atteignent le bord.

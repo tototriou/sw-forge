@@ -16,6 +16,7 @@ import {
   Gauge,
 } from 'lucide-react';
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { useRecalageEcran } from '../../hooks/useRecalageEcran';
 import {
   ARTIFACT_KINDS,
   ArtifactKind,
@@ -1558,6 +1559,11 @@ function CounterRow({
   noteOuverte: boolean;
   onToggleNote: () => void;
 }) {
+  // La note dépliée est ancrée à gauche d'une vignette qui peut être la dernière
+  // de sa rangée : sans recalage, elle sortait de l'écran par la droite.
+  const noteRef = useRef<HTMLDivElement>(null);
+  const { style: recalageNote } = useRecalageEcran(noteRef, noteOuverte);
+
   // Un même monstre ne peut pas occuper deux emplacements de LA MÊME défense —
   // même règle que les slots d'un deck. Il peut revenir dans une autre défense.
   const usedIds = new Set(
@@ -1655,6 +1661,11 @@ function CounterRow({
             comme sa suite ; `w-max` + plafond au-delà, la note étant courte. */}
         {noteOuverte && (
           <div
+            ref={noteRef}
+            // ⚠️ Ancrée à gauche d'une vignette qui peut être la DERNIÈRE de sa
+            // rangée : la note sortait alors de l'écran par la droite. Le
+            // `max-w` borne sa largeur, pas sa position. Voir le hook.
+            style={recalageNote}
             className="absolute left-0 top-full z-20 mt-1 w-max min-w-full max-w-[280px] origin-top-left
                        rounded-lg border border-accent bg-panel px-2.5 py-1.5 shadow-xl shadow-black/50
                        animate-[popover_150ms_var(--ease-out)]"

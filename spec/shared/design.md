@@ -247,6 +247,40 @@ Quatre keyframes, déclarés une fois dans `index.css` :
   centre, on cherche des yeux une origine qui ne correspond à rien.
 - ⚠️ **La boîte de dialogue fait exception** et reste centrée : elle n'a pas
   d'ancre, elle ne sort d'aucun bouton.
+
+### Un flottant ne sort jamais de l'écran
+
+⚠️ **`max-width` ne suffit pas.** Il borne la LARGEUR ; un panneau ancré à gauche
+d'un déclencheur déjà proche du bord droit sort quand même, parce que c'est sa
+POSITION qui dépasse. Le cas se produit dès que la place du déclencheur varie :
+une pilule de catégorie au bout d'une rangée, un bouton qui a bougé parce qu'un
+libellé s'est allongé, une vignette en fin de ligne. Aucune règle CSS statique ne
+peut savoir où ce déclencheur-là se trouve.
+
+Tout flottant **de largeur fixe ancré à gauche** passe donc par
+`useRecalageEcran` (`src/hooks/`), qui mesure sa position réelle après rendu et
+le ramène dans l'écran :
+
+| Flottant | Ancré sur |
+|----------|-----------|
+| Création / édition de catégorie | Une pilule, ou « + Catégorie » |
+| Création de monstre | Un bouton de barre d'outils ou de panneau |
+| Note d'une défense (recommandations) | Une vignette de rangée |
+
+- **`useLayoutEffect`, pas `useEffect`** : la mesure a lieu avant peinture, le
+  flottant ne s'affiche jamais hors cadre, même une image.
+- **L'état d'ouverture est passé au hook.** Le flottant n'est monté que lorsqu'il
+  est ouvert ; une `ref` ne provoque pas de rendu, donc rien ne redéclencherait
+  la mesure à l'ouverture.
+- **Remesure au redimensionnement** : une rotation de téléphone change la largeur
+  sous un flottant déjà ouvert.
+- Les flottants **ancrés à droite** (`right-0`) et ceux **larges comme leur
+  ancre** (`w-full`) n'en ont pas besoin — leur position ne peut pas dépasser.
+
+⚠️ **`min-w-[Npx]` s'écrit `min-w-[min(Npx,100%)]`.** Un minimum rigide empêche
+l'élément de se réduire dans un conteneur plus étroit, et c'est toute la page qui
+gagne un défilement latéral — le symptôme apparaît loin de sa cause, sur un écran
+qui n'a rien à voir avec le composant fautif.
 - ⚠️ **Jamais depuis `scale(0)`** : rien n'apparaît de nulle part. `.96` au
   minimum.
 - ⚠️ **Pas de `scale` sur du texte** (`apparition`) : la mise à l'échelle

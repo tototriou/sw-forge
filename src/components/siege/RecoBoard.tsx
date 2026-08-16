@@ -534,8 +534,12 @@ export default function RecoBoard({
                 empilé dessous, rien ne disait qu'il les alimentait. Il disparaît
                 quand les trois sont prises — un champ de saisie qui n'a plus où
                 poser ce qu'on y tape se lit comme un bug. */}
+            {/* ⚠️ `min(180px, 100%)` et non `180px` nu sur le champ ci-dessous :
+                un minimum rigide l'empêche de se réduire dans un conteneur plus
+                étroit, et c'est toute la page qui gagne un défilement latéral.
+                Même garde que RecoCard et ReleasesPage. */}
             {!casesPleines ? (
-              <div className="min-w-[180px] flex-1 sm:max-w-[260px]">
+              <div className="min-w-[min(180px,100%)] flex-1 sm:max-w-[260px]">
                 <MonsterPicker
                   monsters={monsters}
                   // ⚠️ Les monstres déjà posés sont retirés des suggestions : le

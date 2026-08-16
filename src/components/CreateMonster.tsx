@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { useRecalageEcran } from '../hooks/useRecalageEcran';
 import { Plus, X, Wand2 } from 'lucide-react';
 import { ELEMENTS, ElementKey, Monster } from '../types';
 import { CustomLead } from '../hooks/useCustomMonsters';
@@ -35,6 +36,8 @@ export default function CreateMonster({ onCreate, customMonsters, onDelete }: Pr
   const [lead, setLead] = useState('');
   const [scope, setScope] = useState<'General' | 'Element'>('General');
   const ref = useRef<HTMLDivElement>(null);
+  const popover = useRef<HTMLDivElement>(null);
+  const { style: recalage } = useRecalageEcran(popover, open);
 
   // Ferme la popup au clic à l'extérieur ou sur Échap.
   useEffect(() => {
@@ -94,6 +97,12 @@ export default function CreateMonster({ onCreate, customMonsters, onDelete }: Pr
 
       {open && (
         <div
+          ref={popover}
+          // ⚠️ Ce panneau de 300 px est ancré à gauche de son bouton, dont la
+          // place varie : dernier d'une barre d'outils sur desktop, cellule de
+          // grille dans le panneau mobile. Il sortait de l'écran dans le second
+          // cas — `max-w` borne la largeur, pas la position. Voir le hook.
+          style={recalage}
           className="absolute z-30 mt-2 w-[300px] max-w-[calc(100vw-2rem)] rounded-xl border border-border bg-panel p-3 shadow-glow shadow-black/60
                      origin-top-left animate-[popover_150ms_var(--ease-out)]"
         >

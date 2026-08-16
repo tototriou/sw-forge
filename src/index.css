@@ -591,12 +591,22 @@ button:not(:disabled):not([draggable]):not([role='switch']):active,
    quatre actions remplissaient la moitié de l'écran.
    ⚠️ Le rembourrage n'est retouché que sur les boutons EMPILÉS. Les pastilles
    d'une rangée sont rondes (`rounded-full`) et calibrées au texte : leur imposer
-   un autre padding les déforme en ovales inégaux. Elles gagnent la hauteur, pas
-   la géométrie. */
-[data-tiroir] button:not([data-cible-fine]),
-[data-tiroir] a[role='button'],
-[data-tiroir] select,
-[data-tiroir] input:not([type='checkbox']):not([type='radio']) {
+   un autre padding les déforme en ovales inégaux.
+
+   ⚠️ Les éléments à hauteur EXPLICITE (`.h-7`, `.h-8`…) sont exclus. Une
+   `min-height` supérieure gagne contre un `height` fixe et les étire : les trois
+   interrupteurs d'affichage de la prépa RTA, dessinés en pastilles de 28 px,
+   devenaient des ovales de 34. Une hauteur écrite dans le composant est un
+   choix de forme, pas un oubli — ce n'est pas au panneau de la contredire.
+
+   ⚠️ Marqué par `data-hauteur-fixe`, et non détecté sur la classe. Un
+   `:not([class*='h-'])` aurait aussi exclu tout ce qui porte `hoverable:`,
+   `shadow-…` ou `flex-…` : la sous-chaîne « h- » se retrouve partout, et la
+   règle n'aurait plus rien couvert. */
+[data-tiroir] button:not([data-cible-fine]):not([data-hauteur-fixe]),
+[data-tiroir] a[role='button']:not([data-hauteur-fixe]),
+[data-tiroir] select:not([data-hauteur-fixe]),
+[data-tiroir] input:not([type='checkbox']):not([type='radio']):not([data-hauteur-fixe]) {
   min-height: 34px;
 }
 

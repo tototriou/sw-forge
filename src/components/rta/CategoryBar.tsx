@@ -4,6 +4,7 @@ import { Monster } from '../../types';
 import MonsterAvatar from '../MonsterAvatar';
 import { RtaCategory, UseRtaCategories, MAX_CATEGORIES_PER_MONSTER } from '../../hooks/useRtaCategories';
 import { ConfirmDialog } from '../Dialogs';
+import { useRecalageEcran } from '../../hooks/useRecalageEcran';
 
 // Palette FERMÉE plutôt qu'un sélecteur de couleur libre : le contrôle natif
 // (`<input type="color">`) est un composant du système, hors charte, et un choix
@@ -144,10 +145,11 @@ export default function CategoryBar({ cats, monsters }: Props) {
           coup en dessous, selon le nombre de catégories.
           Sur téléphone, c'était pire : la rangée en comptait déjà quatre
           éléments avant eux. */}
-      <div
-        data-rangee-actions
-        className="mt-1.5 flex items-center gap-1.5 flex-wrap"
-      >
+      {/* ⚠️ PAS de `data-rangee-actions` : ce sont des pastilles rondes (`h-7`,
+          `rounded-full`) calibrées au texte, pas des boutons d'action. Étirées
+          en cellules de grille égales, elles devenaient des ovales déformés aux
+          libellés flottants. Elles gardent leur largeur propre. */}
+      <div className="mt-1.5 flex items-center gap-1.5 flex-wrap">
         <button
           onClick={() => cats.setShowSpeeds(!cats.showSpeeds)}
           aria-pressed={cats.showSpeeds}
@@ -156,6 +158,7 @@ export default function CategoryBar({ cats, monsters }: Props) {
               ? 'Masquer les vitesses sur les cartes'
               : 'Réafficher les vitesses sur les cartes'
           }
+          data-hauteur-fixe
           className={`flex h-7 items-center gap-1.5 rounded-full border px-2.5 text-xs transition ${
             cats.showSpeeds
               ? 'border-border bg-panel text-ink-dim hoverable:text-ink hoverable:border-accent'
@@ -175,6 +178,7 @@ export default function CategoryBar({ cats, monsters }: Props) {
               ? 'Ne plus signaler les monstres dont les runes ne suivent plus la vitesse demandée'
               : 'Signaler en orange les monstres dont les runes ne suivent plus'
           }
+          data-hauteur-fixe
           className={`flex h-7 items-center gap-1.5 rounded-full border px-2.5 text-xs transition ${
             cats.markDesync
               ? 'border-border bg-panel text-ink-dim hoverable:text-ink hoverable:border-accent'
@@ -198,6 +202,7 @@ export default function CategoryBar({ cats, monsters }: Props) {
               ? 'Masquer les couleurs sur les cartes et l’ordre de tour'
               : 'Réafficher les couleurs'
           }
+          data-hauteur-fixe
           className={`flex h-7 items-center gap-1.5 rounded-full border px-2.5 text-xs transition ${
             cats.visible
               ? 'border-border bg-panel text-ink-dim hoverable:text-ink hoverable:border-accent'
@@ -347,6 +352,10 @@ function CategoryPopover({
   const [label, setLabel] = useState(initial.label);
   const [color, setColor] = useState(initial.color);
   const ref = useRef<HTMLFormElement>(null);
+  // ⚠️ La popup est ancrée à gauche d'un bouton dont la position dépend du
+  // nombre de catégories et de la largeur de leurs noms : elle sortait de
+  // l'écran dès que ce bouton se trouvait sur la droite. Voir le hook.
+  const { style: recalage } = useRecalageEcran(ref, true);
 
   // Fermeture au clic extérieur et à Échap, comme les autres menus de l'app.
   useEffect(() => {
@@ -369,11 +378,12 @@ function CategoryPopover({
         e.preventDefault();
         onSubmit(label, color);
       }}
-      // ⚠️ `max-w-[calc(100vw-2rem)]` : ancré à gauche de son bouton, ce
-      // panneau de 220 px sortait de l'écran quand le bouton se trouvait déjà
-      // sur la droite — d'où un défilement latéral de toute la page.
+      // ⚠️ `max-w-[calc(100vw-2rem)]` borne la LARGEUR, mais ne suffit pas :
+      // ancrée `left-0` sur un bouton déjà proche du bord droit, la popup
+      // sortait quand même de l'écran. `useRecalageEcran` la ramène dedans.
       className="absolute z-30 left-0 top-full mt-1.5 w-[220px] max-w-[calc(100vw-2rem)]
                  rounded-xl border border-border bg-panel p-2.5 shadow-glow shadow-black/60"
+      style={recalage}
     >
       <div className="flex items-center gap-1.5">
         <span

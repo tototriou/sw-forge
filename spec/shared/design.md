@@ -106,6 +106,16 @@ marqueurs différents côte à côte se lisent comme deux natures de filtre.
   d'accent perd du contraste au lieu d'en gagner : le libellé d'un élément
   sélectionné devient moins lisible que ses voisins non sélectionnés. Le texte
   passe à `ink` sur fond actif.
+- ⚠️ **Un bouton dont l'état change TOUTE la page prend le fond PLEIN**
+  (`bg-star text-bg`), pas `accent-soft`. C'est le cas de « Vérifier mes tick
+  ATB » au siège : il commande la couleur de chaque équipe affichée, et à côté de
+  trois autres boutons `accent-soft` — un fond de panneau, très proche du gris
+  ambiant — on ne voyait pas lequel était allumé.
+  C'est le même doré que les autres bascules pleines de l'app (« Ne plus
+  montrer », les filtres d'élément), donc pas un marqueur de plus : le vocabulaire
+  reste le même, seule son intensité suit la portée du réglage.
+  `accent-soft` reste la règle pour tout ce qui n'affecte que soi — un filtre,
+  un onglet, une pastille.
 - Le **survol** garde `hoverable:border-accent` sur les contrôles à fond : il
   agit au repos, quand aucun marqueur n'occupe la bordure — il n'y a donc pas de
   cumul.

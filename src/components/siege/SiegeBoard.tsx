@@ -120,25 +120,21 @@ export default function SiegeBoard({
                 : 'Colorer les équipes selon leur calage sur les ticks ATB'
             }
             className={`flex items-center gap-1.5 rounded-lg border px-3.5 py-2 text-sm font-semibold transition ${
-              // ⚠️ Le fond `accent-soft` SEUL ne suffisait pas à dire l'état :
-              // c'est une teinte très discrète, et à côté de trois autres
-              // boutons on ne voyait pas lequel était actif. La bordure d'accent
-              // et la puce s'y ajoutent — trois signaux concordants pour un
-              // bouton dont l'état commande la couleur de toutes les équipes.
+              // ⚠️ **Fond PLEIN quand c'est actif**, et non la teinte
+              // `accent-soft` : celle-ci est un fond de panneau, trop proche du
+              // gris ambiant pour se remarquer à côté de trois autres boutons.
+              // Un bouton dont l'état commande la couleur de TOUTES les équipes
+              // doit se voir sans être cherché.
+              // ⚠️ `bg-star text-bg`, le motif que le projet emploie déjà pour un
+              // bouton-bascule allumé (voir Dialogs et FilterBar) : c'est le
+              // doré qui dit « actif » dans toute l'app, et `text-bg` garantit
+              // le contraste sur les deux thèmes — `text-white` aurait été une
+              // couleur en dur, illisible si l'accent venait à s'éclaircir.
               checkTicks
-                ? 'border-accent bg-accent-soft text-ink'
+                ? 'border-star bg-star text-bg'
                 : 'border-border bg-panel text-ink-dim hoverable:text-ink hoverable:border-accent'
             }`}
           >
-            {/* Puce pleine quand la vérification est active, creuse sinon —
-                la même que les interrupteurs d'affichage de la prépa RTA.
-                `border-current` : elle suit la couleur du texte. */}
-            <span
-              aria-hidden
-              className={`h-2 w-2 flex-none rounded-full border border-current transition ${
-                checkTicks ? 'bg-current' : 'bg-transparent'
-              }`}
-            />
             <Gauge size={15} />
             <span className="lg:hidden">Ticks</span>
             <span className="hidden lg:inline">Vérifier mes tick ATB</span>

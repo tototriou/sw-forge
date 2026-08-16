@@ -23,6 +23,7 @@ import testRechargement from './rechargement.test';
 import testCollabPaires from './collab-paires.test';
 import testRuneOptim from './rune-optim.test';
 import testRuneOptimDifferential from './rune-optim-differential.test';
+import testRuneOptimScaleMonotonicity from './rune-optim-scale-monotonicity.test';
 import testSetsIntangible from './sets-intangible.test';
 import testRuneTri from './rune-tri.test';
 import testMonstreTri from './monstre-tri.test';
@@ -50,6 +51,7 @@ async function main() {
   testCollabPaires();
   testRuneOptim();
   testRuneOptimDifferential();
+  testRuneOptimScaleMonotonicity();
   testMeules();
   testArtefacts();
   testRegistre();

@@ -2,7 +2,7 @@
 // Worker DÉDIÉ à la construction d'UNE SEULE moitié (`buildBuckets`), spawné
 // PAR `runeBuildOptim.worker.ts` (pas par l'app directement) pour paralléliser
 // la construction des deux moitiés A et B sur deux cœurs plutôt qu'un seul —
-// voir spec/outils/optimizer.md, « Suite — parallélisation de la construction
+// voir spec/outils/optimizer/, « Suite — parallélisation de la construction
 // des deux moitiés ». Reste minimal, comme runeBuildOptim.worker.ts : aucune
 // logique propre, pilote juste `buildBuckets` pas à pas pour pouvoir relayer
 // une progression pendant que ça tourne.
@@ -83,7 +83,7 @@ self.onmessage = (e: MessageEvent<BuildHalfRequest>) => {
   // affichée restait bloquée juste avant 100 % (ex. 57/61) alors que le
   // calcul, LUI, allait bien jusqu'au bout (cette boucle ne saute JAMAIS une
   // étape de `gen.next()`, seulement des `postMessage` — voir
-  // spec/outils/optimizer.md). Un cas réel confirmé en usage : la barre ne
+  // spec/outils/optimizer/). Un cas réel confirmé en usage : la barre ne
   // semblait jamais finir, laissant croire à tort que des demi-builds
   // manquaient au résultat.
   const finalProgress: BuildHalfProgressMessage = { type: 'progress', half, scanned: total, total };

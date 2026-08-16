@@ -8,7 +8,7 @@ index ae10071..200337a 100644
  
 +// ⚠️ Comme `runeContribution`, mais SANS la principale — sous-stats et
 +// innée uniquement. Sert à la pondération adaptative des tranches de
-+// rétention (voir « Suite — point 4 » dans spec/outils/optimizer.md) : la
++// rétention (voir « Suite — point 4 » dans spec/outils/optimizer/) : la
 +// principale d'un slot est une valeur GARANTIE et relativement stable pour
 +// toute rune candidate de ce slot (surtout sur un slot à principale imposée
 +// — VIT slot 2, TC/DCC slot 4, RES/PRE slot 6) — elle NOIE la vraie
@@ -84,7 +84,7 @@ index ae10071..200337a 100644
    const perOtherSliceCap = genericCap;
  
 +  // ⚠️ Piste A — pondération adaptative par tranche (spec/outils/
-+  // optimizer.md, « Suite — point 4 »). Chaque tranche par stat est
++  // optimizer/, « Suite — point 4 »). Chaque tranche par stat est
 +  // construite en SURPROVISIONNÉ (`RETENTION_OVERPROVISION_FACTOR × bucketCap`
 +  // places, pas `bucketCap`), pendant qu'un tas global DÉDIÉ — séparé des tas
 +  // génériques PAR COMPARTIMENT ci-dessus, lui à l'échelle de la moitié

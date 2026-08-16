@@ -39,7 +39,7 @@ const objectiveArg = args.rest[2] ?? 'none';
 const objective = (objectiveArg === 'none' ? undefined : objectiveArg) as Objective | undefined;
 const slotFilterCap = args.rest[3] ? Number(args.rest[3]) : 80;
 const bucketCapOverride = args.rest[4] ? Number(args.rest[4]) : undefined;
-// Phase 0 (spec/outils/optimizer.md) : forcer un budget de paires généreux,
+// Phase 0 (spec/outils/optimizer/) : forcer un budget de paires généreux,
 // FIXE, pour simuler « au pire ce que l'escalade finirait par couvrir » sans
 // avoir à driver le générateur pas à pas — `searchBuilds` n'escalade pas lui
 // même (seul le Worker le fait), donc sans cette surcharge un `bucketCap`
@@ -146,7 +146,7 @@ function testWith(label: string, sets: string[]) {
   const total = totalPairCount(prepared, bucketsA, bucketsB);
   console.log(`totalPairCount : ${total.toLocaleString('fr-FR')}`);
 
-  // ⚠️ Phase 0 (spec/outils/optimizer.md) : rejoue ICI exactement la même
+  // ⚠️ Phase 0 (spec/outils/optimizer/) : rejoue ICI exactement la même
   // escalade que runeBuildOptim.worker.ts (ESCALATION_FACTOR/TIME_SAFETY,
   // nodeBudget mutable relu en direct par pairBuckets) plutôt que d'appeler
   // `searchBuilds` — qui repart d'un budget FIXE et ne reflète donc pas ce

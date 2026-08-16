@@ -18,7 +18,7 @@ interface Props {
 const MAX_RESULTS = 25;
 
 // Recherche de monstre à optimiser, parmi TOUS les monstres 6★ de la box
-// importée (voir spec/outils/optimizer.md) — avec ou sans runes déjà
+// importée (voir spec/outils/optimizer/) — avec ou sans runes déjà
 // équipées : un monstre nu peut tout aussi bien être optimisé. Même
 // grammaire de navigation clavier que MonsterPicker/RtaSearch — voir
 // spec/shared/recherche-clavier.md.

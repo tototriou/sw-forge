@@ -1,7 +1,7 @@
 // Batterie de cas RÉELS connus, avec suivi persistant des temps mesurés
 // (scripts/perf-baseline.json, suivi par git) — pour pouvoir juger l'impact
 // d'une modification du moteur (ex. point 4 : pondération adaptative des
-// tranches de rétention, voir spec/outils/optimizer.md) par un DELTA
+// tranches de rétention, voir spec/outils/optimizer/) par un DELTA
 // mesuré, pas une impression.
 //
 // Deux nombres suivis par cas, pas un seul :
@@ -36,7 +36,22 @@
 // des cas ayant exploré des centaines de millions de paires) et a fait
 // échouer à tort Sonia deck 14 — pression mémoire/GC accumulée, pas un vrai
 // ralentissement algorithmique. Coût : le lancement de `npx tsx` par mesure
-// (~1-2 s), négligeable face à ce que ça évite.
+// (~1-2 s), négligeable face à ce que ça évite. ⚠️ Cette isolation ne se
+// PARALLÉLISE PAS pour autant (voir « leçons retenues sur la
+// méthodologie de mesure » dans spec/outils/optimizer/) : la contention
+// CPU/mémoire entre processus CONCURRENTS fausserait le temps mesuré
+// exactement comme le chaînage séquentiel le fait — les 7 cas de CETTE
+// batterie de TEMPS restent volontairement séquentiels. Seul
+// `--monotonicity` (justesse, pas de temps comparé) est parallélisé. Voir
+// le skill `optimizer-perf-testing` pour la boîte à outils complète (quel
+// mode utiliser pour quelle question) et `scripts/perf-battery-compare.ts`
+// pour un dos-à-dos fiable entre deux versions du code.
+//
+// ⚠️ `Case`/`CASES`/`loadCase`/`checkMonotonicityForCase` vivent dans
+// `scripts/lib/perfShared.ts`, PAS ici — extraits pour que
+// `monotonicity-worker.ts` (un `worker_threads`) ne bundle jamais les
+// effets de bord de CLI de CE fichier (`process.exit()` en tête, lus au
+// chargement du module) en important par erreur depuis perf-battery.ts.
 //
 // Usage : perf-battery.ts [--repeats=2] [--save]
 //   --save : réécrit scripts/perf-baseline.json avec les résultats de cette
@@ -44,6 +59,29 @@
 //            avant de l'avoir comparé à l'ancienne baseline).
 //   --case=<index> : mode WORKER interne (voir plus bas) — pas un usage
 //            direct, l'orchestrateur se relance lui-même avec ce flag.
+//   --monotonicity : mode INDÉPENDANT, PARALLÉLISÉ (voir plus bas) —
+//            vérifie, sur les 7 cas connus, que le build cible reste
+//            retrouvable à mesure que slotFilterCap grandit
+//            (bas→moyen→haut→extrême), PAS seulement à cap=80 comme le
+//            reste de cette batterie. Rapide (buildBuckets seul, jamais
+//            pairBuckets), pas de baseline — la parallélisation est sans
+//            risque ici puisqu'aucun temps n'est comparé. Voir
+//            spec/outils/optimizer/, section « BUCKET_CAP mis à
+//            l'échelle » pour le bug que cette vérification aurait détecté
+//            plus tôt si elle avait existé avant.
+//   --quick : mode INDÉPENDANT — 2 cas canari SEULEMENT (Ciri, Lushen d11 —
+//            les deux seuls dont `foundMs` reste sous 10 s en temps normal,
+//            voir scripts/perf-baseline.json), `maxMs` réduit à 45 s
+//            (~5-6× leur temps normal, marge large pour le bruit machine),
+//            1 répétition, MÊME processus (pas d'isolation — on ne compare
+//            aucun temps précis). Un signal « rien d'évidemment cassé » en
+//            quelques secondes, PAS un remplaçant de la batterie complète
+//            ni de `--monotonicity` : ces deux cas sont les plus LÉGERS de
+//            la batterie (jamais besoin de beaucoup d'escalade) et
+//            n'auraient rien pu détecter du bug BUCKET_CAP, qui ne se
+//            manifeste que sur des cas plus volumineux ou via
+//            `--monotonicity`. Choisis pour l'itération rapide pendant le
+//            développement, pas pour la validation avant de committer.
 
 import { readFileSync, writeFileSync, existsSync, mkdirSync, rmSync } from 'fs';
 import { execSync } from 'child_process';
@@ -51,51 +89,25 @@ import { Worker } from 'worker_threads';
 import { build } from 'esbuild';
 import { tmpdir } from 'os';
 import { join } from 'path';
-import { computeStats } from '../src/lib/stats';
-import { activeSets } from '../src/lib/effects';
 import {
   BuildRequirement,
   SearchParams,
-  Objective,
   prepareSearch,
   pairBuckets,
+  maybeEscalateNodeBudget,
   NodeBudget,
-  CHECKPOINT_EVERY,
   Bucket,
 } from '../src/lib/runeBuildOptim';
-import { loadDeckMonster } from './lib/deckMonster';
-// ⚠️ `import type` impératif ici : build-half-worker.ts exécute du code au
-// chargement du module (il LIT `workerData`, absent dans ce processus
-// parent) — un import normal, même pour les seuls types, le chargerait et
-// planterait en dehors d'un vrai worker_threads.
+import { Case, CASES, loadCase } from './lib/perfShared';
+// ⚠️ `import type` impératif ici : build-half-worker.ts / monotonicity-worker.ts
+// exécutent du code au chargement du module (ils LISENT `workerData`, absent
+// dans ce processus parent) — un import normal, même pour les seuls types,
+// les chargerait et planterait en dehors d'un vrai worker_threads.
 import type { BuildHalfWorkerData, BuildHalfWorkerResult } from './lib/build-half-worker';
+import type { MonotonicityWorkerResult } from './lib/monotonicity-worker';
 
-interface Case {
-  label: string;
-  exportPath: string;
-  deckId: number;
-  monsterName: string;
-  defense: boolean;
-  statKeys: string[];
-  objective: Objective | undefined;
-  // Sinon, les sets RÉELLEMENT actifs sur le monstre (le cas courant).
-  setsOverride?: string[];
-}
-
-// ⚠️ Eivor (défense deck 2, 7 conditions) volontairement ABSENT de cette
-// batterie : cas déjà connu comme cassé pour une raison indépendante de
-// bucketCap/des tranches (`buildBuckets` dépasse `maxMs` à lui seul, voir
-// spec/outils/optimizer.md) — l'inclure ralentirait cette batterie à
-// chaque exécution sans mesurer ce qu'on cherche à suivre ici.
-const CASES: Case[] = [
-  { label: 'Lushen d15 (Rage+Blade, reel)', exportPath: 'ß☆Enzo-6399149.json', deckId: 15, monsterName: 'Lushen', defense: false, statKeys: ['atk', 'cr', 'cd'], objective: 'degats' },
-  { label: 'Lushen d15 (Rage seul, relache)', exportPath: 'ß☆Enzo-6399149.json', deckId: 15, monsterName: 'Lushen', defense: false, statKeys: ['atk', 'cr', 'cd'], objective: 'degats', setsOverride: ['rage'] },
-  { label: 'Lushen d10 (tototriou)', exportPath: 'tototriou-12889591.json', deckId: 10, monsterName: 'Lushen', defense: false, statKeys: ['atk', 'cr', 'cd'], objective: 'degats' },
-  { label: 'Lushen d11 (tototriou)', exportPath: 'tototriou-12889591.json', deckId: 11, monsterName: 'Lushen', defense: false, statKeys: ['atk', 'cr', 'cd'], objective: 'degats' },
-  { label: 'Sonia d6 (tototriou)', exportPath: 'tototriou-12889591.json', deckId: 6, monsterName: 'Sonia', defense: false, statKeys: ['atk', 'spd', 'cr', 'cd'], objective: 'degats' },
-  { label: 'Sonia d14 (Enzo)', exportPath: 'ß☆Enzo-6399149.json', deckId: 14, monsterName: 'Sonia', defense: false, statKeys: ['atk', 'cr', 'cd', 'spd'], objective: 'degats' },
-  { label: 'Ciri defense eq.3 (Enzo)', exportPath: 'ß☆Enzo-6399149.json', deckId: 32732517, monsterName: 'Ciri', defense: true, statKeys: ['hp', 'def', 'spd', 'acc'], objective: 'ehp' },
-];
+export type { Case };
+export { CASES };
 
 const REPEATS = Number(process.argv.find((a) => a.startsWith('--repeats='))?.split('=')[1] ?? 2);
 const SAVE = process.argv.includes('--save');
@@ -109,6 +121,15 @@ const BASELINE_PATH = 'scripts/perf-baseline.json';
 
 interface RunResult {
   found: boolean;
+  // ⚠️ Total de builds VALIDES retenus à la fin (`res.candidates.length`) —
+  // pas seulement « le build cible est-il dedans ». Item 1 (voir spec/
+  // outils/optimizer/ « BUCKET_CAP mis à l'échelle ») : `found` seul ne
+  // peut PAS détecter qu'une régression a fait perdre la MOITIÉ des
+  // résultats tant que le build cible reste par ailleurs présent — c'est
+  // exactement ce qui a caché le bug BUCKET_CAP pendant plusieurs relevés.
+  // Ce compteur, suivi dans la baseline, rend un tel recul visible même
+  // sans que `found` ne bascule à faux.
+  foundCount: number;
   // Écoulé depuis le tout début (entrée de `prepareSearch`) — vue globale.
   foundMs: number | null;
   foundExplored: number | null;
@@ -161,23 +182,17 @@ interface CaseOutcome {
   params: RunParams | null;
 }
 
-function drain<T>(gen: Generator<unknown, T, void>): T {
-  let step = gen.next();
-  while (!step.done) step = gen.next();
-  return step.value;
-}
-
-// Bundle build-half-worker.ts en .cjs (un worker_threads a besoin de JS pur,
-// pas de TypeScript transpilé à la volée) — même patron que les lanceurs
-// .mjs existants (voir monster-search-validate.mjs). Mis en cache sur un
-// chemin PROPRE À CETTE EXÉCUTION (dérivé du PID de l'orchestrateur, passé
-// aux enfants via `--bundle-dir=`), pas un chemin fixe partagé entre
-// invocations séparées : chaque cas de la batterie tourne dans son propre
-// processus Node (voir `--case=` plus bas), donc un cache en mémoire de
-// module ne survit jamais d'un cas à l'autre — sans CE cache disque, CHAQUE
-// cas payait un bundling esbuild complet, un coût absent de tout segment
-// mesuré (ni `prepMs` ni `buildWallMs`, tous deux chronométrés en dehors de
-// cette fonction) qui ne contaminait donc que `totalMs`/`foundMs` d'un bruit
+// Bundle un script worker en .cjs (un worker_threads a besoin de JS pur, pas
+// de TypeScript transpilé à la volée) — même patron que les lanceurs .mjs
+// existants (voir monster-search-validate.mjs). Mis en cache sur un chemin
+// PROPRE À CETTE EXÉCUTION (dérivé du PID de l'orchestrateur, passé aux
+// enfants via `--bundle-dir=`), pas un chemin fixe partagé entre invocations
+// séparées : chaque cas de la batterie tourne dans son propre processus Node
+// (voir `--case=` plus bas), donc un cache en mémoire de module ne survit
+// jamais d'un cas à l'autre — sans CE cache disque, CHAQUE cas payait un
+// bundling esbuild complet, un coût absent de tout segment mesuré (ni
+// `prepMs` ni `buildWallMs`, tous deux chronométrés en dehors de cette
+// fonction) qui ne contaminait donc que `totalMs`/`foundMs` d'un bruit
 // variable — observé : +2.6s sur Sonia d14 entre deux baselines au code
 // strictement identique.
 // ⚠️ **Bug corrigé** : une première version utilisait un chemin FIXE
@@ -195,14 +210,13 @@ function drain<T>(gen: Generator<unknown, T, void>): T {
 // (~1 s) plutôt que jamais — un coût négligeable face au risque de mesures
 // silencieusement fausses.
 const RUN_ID = process.argv.find((a) => a.startsWith('--bundle-dir='))?.slice('--bundle-dir='.length) ?? String(process.pid);
-const BUILD_HALF_BUNDLE_DIR = join(tmpdir(), `sw-forge-perf-buildhalf-${RUN_ID}`);
-const BUILD_HALF_SRC = 'scripts/lib/build-half-worker.ts';
-async function ensureBuildHalfWorkerBundle(): Promise<string> {
-  const outfile = join(BUILD_HALF_BUNDLE_DIR, 'build-half-worker.cjs');
+const BUNDLE_DIR = join(tmpdir(), `sw-forge-perf-bundle-${RUN_ID}`);
+async function ensureWorkerBundle(entrySrc: string, outname: string): Promise<string> {
+  const outfile = join(BUNDLE_DIR, outname);
   if (existsSync(outfile)) return outfile;
-  mkdirSync(BUILD_HALF_BUNDLE_DIR, { recursive: true });
+  mkdirSync(BUNDLE_DIR, { recursive: true });
   await build({
-    entryPoints: [BUILD_HALF_SRC],
+    entryPoints: [entrySrc],
     bundle: true,
     platform: 'node',
     format: 'cjs',
@@ -211,11 +225,13 @@ async function ensureBuildHalfWorkerBundle(): Promise<string> {
   });
   return outfile;
 }
+const ensureBuildHalfWorkerBundle = () => ensureWorkerBundle('scripts/lib/build-half-worker.ts', 'build-half-worker.cjs');
+const ensureMonotonicityWorkerBundle = () => ensureWorkerBundle('scripts/lib/monotonicity-worker.ts', 'monotonicity-worker.cjs');
 
-function runBuildHalfWorker(scriptPath: string, data: BuildHalfWorkerData): Promise<BuildHalfWorkerResult> {
+function runWorker<TData, TResult>(scriptPath: string, data: TData): Promise<TResult> {
   return new Promise((resolve, reject) => {
     const worker = new Worker(scriptPath, { workerData: data });
-    worker.once('message', (msg: BuildHalfWorkerResult) => {
+    worker.once('message', (msg: TResult) => {
       worker.terminate();
       resolve(msg);
     });
@@ -223,25 +239,49 @@ function runBuildHalfWorker(scriptPath: string, data: BuildHalfWorkerData): Prom
   });
 }
 
-async function runOnce(c: Case): Promise<CaseOutcome> {
-  const { gear, allRunes } = loadDeckMonster({ exportPath: c.exportPath, deckId: c.deckId, monsterName: c.monsterName, defense: c.defense, rest: [] });
-  const targetRuneIds = new Set(gear.runes.map((r) => r.id));
-  const realSets = activeSets(gear.runes.map((r) => r.set));
-  const targetStats = computeStats(gear);
-  const minStats: BuildRequirement['minStats'] = {};
-  for (const key of c.statKeys) {
-    const row = targetStats.find((r) => r.key === key);
-    if (row) (minStats as any)[key] = row.total;
+// ── Vérification de MONOTONICITÉ, PARALLÉLISÉE (voir spec/outils/
+// optimizer/ « BUCKET_CAP mis à l'échelle ») ────────────────────────────
+// Chaque cas dans son propre `worker_threads` (voir monotonicity-worker.ts),
+// tous lancés EN MÊME TEMPS — sans risque de précision à protéger : ce mode
+// ne mesure aucun temps comparé à une baseline, seulement un verdict de
+// justesse (trouvé/perdu), contrairement à la batterie de TEMPS ci-dessous
+// qui reste, elle, volontairement séquentielle (voir le commentaire de tête
+// du fichier sur la contention CPU/mémoire).
+async function runMonotonicityCheck(): Promise<void> {
+  console.log(`Vérification de monotonicité — ${CASES.length} cas EN PARALLÈLE, 4 préréglages chacun (bas/moyen/haut/extrême), buildBuckets seul (pas d'appariement).\n`);
+  console.log("⚠️ Le build cible doit rester retrouvable à mesure que le pré-filtrage s'élargit — toute case qui passe de 'oui' à 'non' signale une régression.\n");
+
+  const workerScript = await ensureMonotonicityWorkerBundle();
+  const outcomes = await Promise.all(
+    CASES.map((c) => runWorker<Case, MonotonicityWorkerResult>(workerScript, c))
+  );
+
+  let anyRegression = false;
+  for (const { label, rows } of outcomes) {
+    console.log(label);
+    let sawRetained = false;
+    for (const r of rows) {
+      const retained = r.halfARetained && r.halfBRetained;
+      const regressed = sawRetained && !retained;
+      if (retained) sawRetained = true;
+      if (regressed) anyRegression = true;
+      console.log(
+        `  ${r.preset.padEnd(7)} (cap=${String(r.cap).padEnd(3)}) bucketCap=${String(r.bucketCap).padEnd(6)} pool=${r.inFilteredPool ? 'oui' : 'non'} moitié A=${r.halfARetained ? 'oui' : 'non'} moitié B=${r.halfBRetained ? 'oui' : 'non'}${regressed ? '  ⚠️ RÉGRESSION (perdu après avoir été retenu à un préréglage plus étroit)' : ''}`
+      );
+    }
   }
-  const mainStats: NonNullable<BuildRequirement['mainStats']> = {};
-  for (const r of gear.runes) if (r.slot === 2 || r.slot === 4 || r.slot === 6) mainStats[r.slot] = [r.main.code];
-  const requirement: BuildRequirement = { sets: c.setsOverride ?? realSets, minStats, mainStats };
+  console.log(anyRegression ? '\n⚠️ Au moins une régression de monotonicité détectée — voir ci-dessus.' : '\nAucune régression de monotonicité détectée sur ces 7 cas.');
+}
+
+async function runOnce(c: Case, maxMs: number = MAX_MS): Promise<CaseOutcome> {
+  const { gear, allRunes, requirement } = loadCase(c);
+  const targetRuneIds = new Set(gear.runes.map((r) => r.id));
   // ⚠️ slotFilterCap=80 explicite : préréglage « Moyen », le défaut réel de
   // l'écran (voir OptimizerSection.tsx) et la valeur utilisée dans TOUTES
   // les mesures Phase 0 — l'omettre retombe sur MAX_PER_SLOT_MATCH=40 (le
   // défaut interne du moteur), un pré-filtrage plus étroit que ce que
   // l'app utilise réellement, faussant toute comparaison.
-  const params: SearchParams = { base: gear.base, artifacts: gear.artifacts, relic: gear.relic, pool: allRunes, requirement, metric: 'eff', objective: c.objective, maxMs: MAX_MS, slotFilterCap: 80 };
+  const params: SearchParams = { base: gear.base, artifacts: gear.artifacts, relic: gear.relic, pool: allRunes, requirement, metric: 'eff', objective: c.objective, maxMs, slotFilterCap: 80 };
 
   const t0 = performance.now();
   const prepared = prepareSearch(params);
@@ -250,6 +290,7 @@ async function runOnce(c: Case): Promise<CaseOutcome> {
     return {
       result: {
         found: false,
+        foundCount: 0,
         foundMs: null,
         foundExplored: null,
         totalMs: tPrepared - t0,
@@ -267,7 +308,7 @@ async function runOnce(c: Case): Promise<CaseOutcome> {
   }
   const runParams: RunParams = {
     slotFilterCap: params.slotFilterCap!,
-    maxMsConfigured: MAX_MS,
+    maxMsConfigured: maxMs,
     bucketCap: prepared.bucketCap,
     maxNodesInitial: prepared.maxNodes,
     objective: c.objective,
@@ -296,8 +337,8 @@ async function runOnce(c: Case): Promise<CaseOutcome> {
   };
   const tBuildStart = performance.now();
   const [outA, outB] = await Promise.all([
-    runBuildHalfWorker(workerScript, { ...inputBase, half: 'A', slotIdxs: [0, 1, 2], otherHalfMaxSets: prepared.maxSetsForA }),
-    runBuildHalfWorker(workerScript, { ...inputBase, half: 'B', slotIdxs: [3, 4, 5], otherHalfMaxSets: prepared.maxSetsForB }),
+    runWorker<BuildHalfWorkerData, BuildHalfWorkerResult>(workerScript, { ...inputBase, half: 'A', slotIdxs: [0, 1, 2], otherHalfMaxSets: prepared.maxSetsForA }),
+    runWorker<BuildHalfWorkerData, BuildHalfWorkerResult>(workerScript, { ...inputBase, half: 'B', slotIdxs: [3, 4, 5], otherHalfMaxSets: prepared.maxSetsForB }),
   ]);
   const tBuildB = performance.now();
   const bucketsA: Bucket[] = outA.buckets;
@@ -308,8 +349,6 @@ async function runOnce(c: Case): Promise<CaseOutcome> {
   const buildBMs = outB.ms;
   const buildWallMs = tBuildB - tBuildStart;
 
-  const ESCALATION_FACTOR = 2;
-  const ESCALATION_TIME_SAFETY = 0.95;
   const nodeBudget: NodeBudget = { max: prepared.maxNodes };
   let foundMs: number | null = null;
   let foundExplored: number | null = null;
@@ -326,13 +365,7 @@ async function runOnce(c: Case): Promise<CaseOutcome> {
       foundExplored = progress.explored;
     }
     const now = Date.now();
-    if (
-      nodeBudget.max - progress.explored <= CHECKPOINT_EVERY &&
-      now - prepared.startedAt < prepared.maxMs * ESCALATION_TIME_SAFETY &&
-      progress.candidates.length < prepared.maxCollected
-    ) {
-      nodeBudget.max *= ESCALATION_FACTOR;
-    }
+    maybeEscalateNodeBudget(nodeBudget, prepared, progress, now);
     step = gen.next();
   }
   const res = step.value;
@@ -347,6 +380,7 @@ async function runOnce(c: Case): Promise<CaseOutcome> {
   return {
     result: {
       found: foundMs !== null,
+      foundCount: res.candidates.length,
       foundMs,
       foundExplored,
       totalMs,
@@ -384,6 +418,35 @@ if (caseArg) {
   process.exit(0);
 }
 
+// ── Mode MONOTONICITÉ : --monotonicity, indépendant du reste (pas de
+// mesure de temps, pas de baseline), PARALLÉLISÉ — voir
+// runMonotonicityCheck ci-dessus. ─────────────────────────────────────────
+if (process.argv.includes('--monotonicity')) {
+  await runMonotonicityCheck();
+  rmSync(BUNDLE_DIR, { recursive: true, force: true });
+  process.exit(0);
+}
+
+// ── Mode RAPIDE : --quick, indépendant, 2 cas canari, MÊME processus (pas
+// d'isolation — voir le commentaire de tête du fichier). ─────────────────
+const QUICK_CASE_LABELS = ['Lushen d11 (tototriou)', 'Ciri defense eq.3 (Enzo)'];
+const QUICK_MAX_MS = 45_000;
+if (process.argv.includes('--quick')) {
+  const quickCases = CASES.filter((c) => QUICK_CASE_LABELS.includes(c.label));
+  console.log(
+    `Mode rapide — ${quickCases.length} cas canari (${QUICK_MAX_MS / 1000}s de budget, 1 exécution, même processus). ` +
+      `Signal « rien d'évidemment cassé », PAS un remplaçant de la batterie complète ni de --monotonicity : ` +
+      `ce sont les 2 cas les plus légers de la batterie, choisis pour l'itération rapide en développement.\n`
+  );
+  for (const c of quickCases) {
+    const outcome = await runOnce(c, QUICK_MAX_MS);
+    const r = outcome.result;
+    console.log(`${c.label} | ${r.found ? 'oui' : 'NON'} | compte=${r.foundCount} | foundMs=${fmtMs(r.foundMs)} | totalMs=${fmtMs(r.totalMs)}${r.truncated ? ' | TRONQUÉ' : ''}`);
+  }
+  rmSync(BUNDLE_DIR, { recursive: true, force: true });
+  process.exit(0);
+}
+
 // ── Mode ORCHESTRATEUR : relance CE MÊME fichier via `npx tsx`, une fois
 // par répétition, dans un processus FRAIS à chaque fois. ─────────────────
 function runCaseIsolated(idx: number): CaseOutcome {
@@ -392,8 +455,8 @@ function runCaseIsolated(idx: number): CaseOutcome {
     // `idx` est un entier borné par CASES.length, `RUN_ID` un PID — tous
     // deux sûrs à interpoler directement. `--bundle-dir=` transmet le
     // répertoire de cache DE CET ORCHESTRATEUR à l'enfant, pour qu'ils
-    // bundlent tous dans le MÊME dossier (voir `ensureBuildHalfWorkerBundle`)
-    // sans jamais retomber sur un chemin fixe partagé entre exécutions.
+    // bundlent tous dans le MÊME dossier (voir `ensureWorkerBundle`) sans
+    // jamais retomber sur un chemin fixe partagé entre exécutions.
     const out = execSync(`npx tsx scripts/perf-battery.ts --case=${idx} --bundle-dir=${RUN_ID}`, {
       encoding: 'utf8',
       maxBuffer: 10 * 1024 * 1024,
@@ -408,6 +471,9 @@ function runCaseIsolated(idx: number): CaseOutcome {
   return {
     result: {
       found: results.every((r) => r.found),
+      // Déterministe (même pool, même requirement à chaque répétition) : le
+      // minimum est une précaution, pas une vraie agrégation nécessaire.
+      foundCount: Math.min(...results.map((r) => r.foundCount)),
       foundMs: best((r) => r.foundMs),
       foundExplored: best((r) => r.foundExplored),
       totalMs: best((r) => r.totalMs)!,
@@ -431,7 +497,7 @@ const current: Baseline = { measuredAt: new Date().toISOString(), repeats: REPEA
 
 console.log(`Batterie de perf — ${CASES.length} cas, ${REPEATS} répétition(s) en processus isolés, min retenu.\n`);
 console.log(
-  ['cas', 'trouvé', 'prep', 'buildA (fil)', 'buildB (fil)', 'build réel (parallèle)', 'appariement (jusqu\'à trouvé / total)', 'foundMs global (delta)', 'totalMs global (delta)'].join(
+  ['cas', 'trouvé', 'compte', 'prep', 'buildA (fil)', 'buildB (fil)', 'build réel (parallèle)', 'appariement (jusqu\'à trouvé / total)', 'foundMs global (delta)', 'totalMs global (delta)'].join(
     ' | '
   )
 );
@@ -447,8 +513,14 @@ for (let idx = 0; idx < CASES.length; idx++) {
   const foundStr = `${fmtMs(result.foundMs)}${deltaFound != null ? ` (${deltaFound >= 0 ? '+' : ''}${fmtMs(Math.abs(deltaFound))})` : ''}`;
   const totalStr = `${fmtMs(result.totalMs)}${deltaTotal != null ? ` (${deltaTotal >= 0 ? '+' : ''}${fmtMs(Math.abs(deltaTotal))})` : ''}`;
   const pairingStr = `${fmtMs(result.pairingFoundMs)} / ${fmtMs(result.pairingTotalMs)}`;
+  // ⚠️ Delta de COMPTE affiché avec le même relief que les temps : un recul
+  // (moins de builds valides retenus qu'avant) est le signal qu'aurait dû
+  // donner `perf-battery.ts` pendant les relevés BUCKET_CAP précédents —
+  // voir foundCount dans RunResult.
+  const deltaCount = prevResult != null ? result.foundCount - prevResult.foundCount : null;
+  const countStr = `${result.foundCount}${deltaCount != null && deltaCount !== 0 ? ` (${deltaCount > 0 ? '+' : ''}${deltaCount})` : ''}`;
   console.log(
-    `${c.label} | ${result.found ? 'oui' : 'NON'} | ${fmtMs(result.prepMs)} | ${fmtMs(result.buildAMs)} | ${fmtMs(result.buildBMs)} | ${fmtMs(result.buildWallMs)} | ${pairingStr} | ${foundStr} | ${totalStr}`
+    `${c.label} | ${result.found ? 'oui' : 'NON'} | ${countStr} | ${fmtMs(result.prepMs)} | ${fmtMs(result.buildAMs)} | ${fmtMs(result.buildBMs)} | ${fmtMs(result.buildWallMs)} | ${pairingStr} | ${foundStr} | ${totalStr}`
   );
 }
 
@@ -462,8 +534,8 @@ if (SAVE) {
 }
 
 // Nettoyage du dossier de bundle propre à CETTE exécution (voir
-// `ensureBuildHalfWorkerBundle`) — un chemin par PID évite toute mesure
+// `ensureWorkerBundle`) — un chemin par PID évite toute mesure
 // silencieusement faussée, mais laisserait sinon un dossier orphelin par
 // exécution dans %TEMP% (le même genre d'accumulation déjà nettoyée une
 // fois cette session, voir « Suite — investigation de la dérive »).
-rmSync(BUILD_HALF_BUNDLE_DIR, { recursive: true, force: true });
+rmSync(BUNDLE_DIR, { recursive: true, force: true });

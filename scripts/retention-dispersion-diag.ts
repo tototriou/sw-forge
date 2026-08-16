@@ -1,4 +1,4 @@
-// Point 4 (spec/outils/optimizer.md) : mesure si une stat de `retentionKeys`
+// Point 4 (spec/outils/optimizer/) : mesure si une stat de `retentionKeys`
 // DIFFÉRENCIE vraiment les demi-builds, ou si presque tous les demi-builds
 // déjà bons (par `relevanceScore`, la tranche générique) l'ont de toute
 // façon — c'est CE signal, pas `diagnoseFeasibility` (écarté, voir

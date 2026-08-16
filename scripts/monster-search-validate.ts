@@ -77,7 +77,7 @@ const params: SearchParams = {
 
 console.log('\nRecherche en cours (peut prendre jusqu\'à quelques dizaines de secondes)...');
 
-// ⚠️ Phase 0 (spec/outils/optimizer.md) : rejoue l'escalade automatique du
+// ⚠️ Phase 0 (spec/outils/optimizer/) : rejoue l'escalade automatique du
 // budget de nœuds (voir runeBuildOptim.worker.ts) plutôt que d'appeler
 // `searchBuilds` (budget FIXE) — sans quoi un `bucketCap` plus élevé
 // reproduirait à tort le rejet historique (budget fixe pénalisé par des

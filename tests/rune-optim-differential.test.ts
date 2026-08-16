@@ -165,7 +165,7 @@ export default function testRuneOptimDifferential() {
     // ⚠️ L'optimum EXACT n'est comparable que si le moteur n'a pas été
     // tronqué (`truncated`) : au-delà de son plafond de collecte, il renvoie
     // « le meilleur trouvé », pas une garantie d'optimalité globale — c'est
-    // documenté (spec/outils/optimizer.md), pas un bug. Le comparer quand
+    // documenté (spec/outils/optimizer/), pas un bug. Le comparer quand
     // même ferait échouer le test sur un comportement voulu.
     if (res.candidates.length > 0 && ref.count > 0 && !res.truncated) {
       const bestFound = Math.max(...res.candidates.map((c) => c.effTotal));
@@ -205,7 +205,7 @@ export default function testRuneOptimDifferential() {
     // épuiser ») doit rester une borne SÛRE : jamais en dessous du nombre de
     // paires RÉELLEMENT visitées par une recherche exhaustive (`!truncated`)
     // sur ce même scénario, sous peine d'annoncer moins de travail qu'il n'y
-    // en a en réalité — voir spec/outils/optimizer.md, « Suite — espace de
+    // en a en réalité — voir spec/outils/optimizer/, « Suite — espace de
     // recherche affiné (pairFeasibleMin) ». Balayé sur les 15 scénarios
     // aléatoires (sets et minStats variés, contrairement au pool synthétique
     // à un seul compartiment de tests/rune-optim.test.ts) plutôt que sur un
@@ -231,7 +231,7 @@ export default function testRuneOptimDifferential() {
   }
 
   // ⚠️ Scénario DÉDIÉ (pas aléatoire) — vérifie le correctif du cas limite
-  // documenté dans spec/outils/optimizer.md, « Suite — bonus de set NON
+  // documenté dans spec/outils/optimizer/, « Suite — bonus de set NON
   // demandé anticipé dès le pré-filtrage » : `guaranteedSetBonus` ne compte
   // QUE les sets de `requirement.sets` — un set qui s'activerait par ACCIDENT
   // via les emplacements « libres » (non requis par le combo demandé) était
@@ -302,7 +302,7 @@ export default function testRuneOptimDifferential() {
   }
 
   // ⚠️ Scénario DÉDIÉ — vérifie le correctif « activation supplémentaire d'un
-  // set DÉJÀ demandé » (voir spec/outils/optimizer.md, cas réel Ciri :
+  // set DÉJÀ demandé » (voir spec/outils/optimizer/, cas réel Ciri :
   // Energy demandé UNE fois — 1 activation garantie, +15 % PV — mais le
   // build réel en active DEUX, `energy+shield+energy`, +30 % PV réels).
   // `guaranteedSetBonus` ne comptait que l'activation MINIMALE demandée ;

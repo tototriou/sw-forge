@@ -65,5 +65,5 @@ export function loadDeckMonster({ exportPath, deckId, monsterName, defense }: De
 
   const gear: GearSet = slot.gear;
   const { runes: allRunes } = parseAccountInventory(data);
-  return { data, deck, gear, allRunes };
+  return { data, deck, gear, allRunes, com2usId: slot.com2usId };
 }

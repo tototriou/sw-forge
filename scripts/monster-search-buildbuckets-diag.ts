@@ -95,7 +95,7 @@ const maxSetsForA = maxSetCountsForSlots(filtered, [3, 4, 5], distinctKeys);
 const maxSetsForB = maxSetCountsForSlots(filtered, [0, 1, 2], distinctKeys);
 
 // buildBuckets est un GÉNÉRATEUR depuis le correctif « phase de préparation
-// muette » (voir spec/outils/optimizer.md) — le drainer jusqu'au bout donne
+// muette » (voir spec/outils/optimizer/) — le drainer jusqu'au bout donne
 // le Bucket[] final via sa valeur de retour, exactement comme searchBuilds
 // draine searchBuildsSteps.
 function drain<T>(gen: Generator<unknown, T, void>): T {

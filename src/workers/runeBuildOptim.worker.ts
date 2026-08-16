@@ -9,7 +9,7 @@
 // moitiés A et B sont indépendantes (aucune ne dépend du résultat construit
 // de l'autre, seulement de bornes calculées d'avance par `prepareSearch`),
 // donc les construire sur deux cœurs plutôt qu'un seul accélère cette phase
-// d'environ 2× — voir spec/outils/optimizer.md, « Suite — parallélisation de
+// d'environ 2× — voir spec/outils/optimizer/, « Suite — parallélisation de
 // la construction des deux moitiés ». La phase d'appariement (`pairBuckets`)
 // reste, elle, pilotée PAS À PAS dans CE Worker, exactement comme avant :
 // c'est ce qui permet de rendre la main à la boucle d'évènements entre deux
@@ -18,7 +18,7 @@
 // single-threaded : un message ne peut être livré que quand le code en
 // cours d'exécution le permet).
 
-import { prepareSearch, pairBuckets, totalPairCount, PreparedSearch, SearchParams, SearchResult, Bucket, NodeBudget, CHECKPOINT_EVERY, BuildCandidate } from '../lib/runeBuildOptim';
+import { prepareSearch, pairBuckets, totalPairCount, maybeEscalateNodeBudget, PreparedSearch, SearchParams, SearchResult, Bucket, NodeBudget, BuildCandidate } from '../lib/runeBuildOptim';
 import { BuildHalfRequest, BuildHalfResponse } from './buildHalf.worker';
 
 export type WorkerRequest = SearchParams | { stop: true };
@@ -34,7 +34,7 @@ const PROGRESS_THROTTLE_MS = 150;
 // ~4 ms (throttling standard, y compris dans un Worker) — sur une recherche à
 // `maxNodes=20 000 000`, ça fait 40 000 rendus de main, soit jusqu'à ~160 s
 // de pur overhead de planification, largement au-dessus du temps de calcul
-// réel (~30-47 s mesurés en dehors du Worker, voir spec/outils/optimizer.md).
+// réel (~30-47 s mesurés en dehors du Worker, voir spec/outils/optimizer/).
 // Confirmé être la cause d'un écart mesuré en usage réel (recherche « Dégâts »
 // sur un vrai compte : ~30-47 s hors Worker contre 3 min 40 dans le
 // navigateur, pour la MÊME recherche). Throttlé au temps écoulé, comme la
@@ -48,7 +48,7 @@ const YIELD_THROTTLE_MS = 50;
 // prendre jusqu'à environ une minute sur un compte réel avec beaucoup de
 // conditions à la fois, ENTIÈREMENT AVANT que `phase: 'pairing'` (l'ancien
 // comportement, inchangé) ne commence — sans cette distinction, l'UI n'avait
-// aucune information pendant cette phase (voir spec/outils/optimizer.md).
+// aucune information pendant cette phase (voir spec/outils/optimizer/).
 export interface WorkerBuildingMessage {
   type: 'progress';
   phase: 'building';
@@ -78,7 +78,7 @@ export interface WorkerPairingMessage {
   totalPairs: number;
   // ⚠️ Les candidats NOUVEAUX depuis le dernier message, PAS la liste
   // entière accumulée jusqu'ici (voir « Suite — affichage des résultats en
-  // direct » dans spec/outils/optimizer.md) : `progress.candidates` peut
+  // direct » dans spec/outils/optimizer/) : `progress.candidates` peut
   // grossir jusqu'à `maxCollected` (100 000 par défaut) sur une recherche
   // lâche — le retransmettre EN ENTIER à chaque point de passage throttlé
   // (~150 ms) recopierait le même préfixe des dizaines de fois pour rien.
@@ -229,32 +229,18 @@ self.onmessage = async (e: MessageEvent<WorkerRequest>) => {
     return;
   }
 
-  // ⚠️ Suite — escalade automatique du budget de nœuds. `adaptiveMaxNodes`
-  // (le plafond INITIAL, dans `nodeBudget.max`) est calibré pour rester dans
-  // un temps raisonnable sur le cas TYPIQUE — mais un compte avec beaucoup de
-  // runes peut épuiser ce plafond en quelques secondes, alors que le vrai
-  // filet de temps de l'écran (10 min, voir OptimizerSection.tsx) reste très
-  // largement inutilisé. Signalé sur un vrai compte (Sonia, tototriou-
-  // 12889591.json) : plafond adaptatif épuisé en 22 s (38,4M nœuds, 0
-  // résultat), alors qu'un plafond 13× plus large retrouve le build exact en
-  // 32 s (86,8M nœuds réellement explorés) — le budget-TEMPS n'était
-  // simplement jamais sollicité. Voir spec/outils/optimizer.md.
+  // ⚠️ Escalade automatique du budget de nœuds — voir `maybeEscalateNodeBudget`
+  // dans runeBuildOptim.ts pour le détail complet. Signalé sur un vrai compte
+  // (Sonia, tototriou-12889591.json) : plafond adaptatif épuisé en 22 s
+  // (38,4M nœuds, 0 résultat), alors qu'un plafond 13× plus large retrouve le
+  // build exact en 32 s (86,8M nœuds réellement explorés) — le budget-TEMPS
+  // n'était simplement jamais sollicité. Voir spec/outils/optimizer/.
   //
-  // `nodeBudget` (voir runeBuildOptim.ts) est un objet MUTABLE : le relever
-  // ICI, entre deux appels à `gen.next()`, laisse le générateur CONTINUER
-  // exactement où il en était (mêmes compartiments, mêmes combos, `explored`
-  // jamais remis à zéro) — aucune paire déjà visitée n'est revisitée, aucun
-  // des deux Workers de construction n'est rappelé. Doublé à chaque fois
-  // qu'on s'approche du plafond courant, tant qu'il reste du budget-temps ET
-  // que la recherche n'a pas déjà atteint son plafond de candidats — le
-  // budget-temps (`overBudget`, DÉJÀ vérifié par `pairBuckets` lui-même)
-  // reste l'arbitre final, jamais contourné : une recherche sans réponse
-  // s'arrête toujours par manque de TEMPS, jamais par manque de nœuds.
-  const ESCALATION_FACTOR = 2;
-  // Marge de sécurité sous `maxMs` : inutile d'escalader dans les toutes
-  // dernières secondes, `overBudget()` va de toute façon arrêter la
-  // recherche au prochain point de passage.
-  const ESCALATION_TIME_SAFETY = 0.95;
+  // `nodeBudget` est un objet MUTABLE : le relever ICI, entre deux appels à
+  // `gen.next()`, laisse le générateur CONTINUER exactement où il en était
+  // (mêmes compartiments, mêmes combos, `explored` jamais remis à zéro) —
+  // aucune paire déjà visitée n'est revisitée, aucun des deux Workers de
+  // construction n'est rappelé.
   const nodeBudget: NodeBudget = { max: prepared.maxNodes };
 
   // Taille RÉELLE de l'espace à épuiser (voir `totalPairCount`) — calculée
@@ -283,13 +269,7 @@ self.onmessage = async (e: MessageEvent<WorkerRequest>) => {
     }
     const now = Date.now();
     const progress = step.value;
-    if (
-      nodeBudget.max - progress.explored <= CHECKPOINT_EVERY &&
-      now - prepared.startedAt < prepared.maxMs * ESCALATION_TIME_SAFETY &&
-      progress.candidates.length < prepared.maxCollected
-    ) {
-      nodeBudget.max *= ESCALATION_FACTOR;
-    }
+    maybeEscalateNodeBudget(nodeBudget, prepared, progress, now);
     if (now - lastProgressPost > PROGRESS_THROTTLE_MS) {
       lastProgressPost = now;
       const newCandidates = progress.candidates.slice(candidatesSent);

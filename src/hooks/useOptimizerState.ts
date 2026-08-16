@@ -1,10 +1,10 @@
 import { Dispatch, SetStateAction, useState } from 'react';
 import { StatKey } from '../lib/effects';
-import { Objective } from '../lib/runeBuildOptim';
+import { Objective, SlotFilterPresetKey } from '../lib/runeBuildOptim';
 import { ArtifactKind } from '../types';
 import { useBuildOptimSearch } from './useBuildOptimSearch';
 
-export type SlotFilterPresetKey = 'bas' | 'moyen' | 'haut' | 'extreme';
+export type { SlotFilterPresetKey };
 export type OptimizerSortKey = StatKey | Objective;
 // Choix de statistique principale d'artéfact pour la recherche : les trois
 // valeurs de jeu standard (voir ARTIFACT_MAIN dans effects.ts — 100=PV,
@@ -58,7 +58,7 @@ export interface OptimizerState {
   exploreAll: boolean;
   setExploreAll: Dispatch<SetStateAction<boolean>>;
   // Toggle « Prioriser les stats les plus difficiles » (piste B, voir
-  // spec/outils/optimizer.md « Suite — piste B gatée derrière un
+  // spec/outils/optimizer/ « Suite — piste B gatée derrière un
   // paramètre ») — désactivé par défaut, lu par `handleSearch` au moment du
   // clic sur « Rechercher », pas un bouton séparé qui lance sa propre
   // recherche.
@@ -97,7 +97,7 @@ export function useOptimizerState(): OptimizerState {
   const [minStats, setMinStats] = useState<Partial<Record<StatKey, number>>>({});
   const [maxStats, setMaxStats] = useState<Partial<Record<StatKey, number>>>({});
   // ⚠️ Coché par défaut : demande reconfirmée après un premier aller-retour
-  // (décoché par défaut, puis revenu sur cochée) — voir spec/outils/optimizer.md.
+  // (décoché par défaut, puis revenu sur cochée) — voir spec/outils/optimizer/.
   const [excludeBase, setExcludeBase] = useState(true);
   const [ignoreArtifacts, setIgnoreArtifacts] = useState(false);
   const [artifactMainByKind, setArtifactMainByKind] = useState<Partial<Record<ArtifactKind, ArtifactMainChoice>>>({});

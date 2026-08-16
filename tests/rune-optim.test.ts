@@ -865,7 +865,7 @@ export default function testRuneOptim() {
 
   {
     // ⚠️ Escalade du budget de nœuds (`NodeBudget`) — voir spec/outils/
-    // optimizer.md « Suite — escalade automatique du budget de nœuds ». Le
+    // optimizer/ « Suite — escalade automatique du budget de nœuds ». Le
     // point à vérifier N'EST PAS « le résultat final est correct » (ça,
     // n'importe quelle implémentation correcte, même une qui relancerait
     // `pairBuckets` depuis le début à chaque escalade, le donnerait aussi,

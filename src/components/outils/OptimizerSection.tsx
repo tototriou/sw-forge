@@ -1,5 +1,5 @@
-import { Fragment, useMemo, useRef } from 'react';
-import { Search, Boxes, Square, Settings2, HelpCircle, RotateCcw, FlaskConical, Target } from 'lucide-react';
+import { Fragment, useMemo, useRef, useState, useEffect } from 'react';
+import { Search, Boxes, Square, Settings2, HelpCircle, RotateCcw, FlaskConical, Target, Upload, Download } from 'lucide-react';
 import { ArtifactDetail, ARTIFACT_KINDS, RECO_STATS, RuneDetail } from '../../types';
 import { BoxItem } from '../../lib/applyAccount';
 import { ARTIFACT_MAIN, CAPPED_STATS, RUNE_EFFECT, StatKey, runeEfficiency } from '../../lib/effects';
@@ -16,7 +16,11 @@ import {
   objectiveScore,
   candidateMetricTotal,
   OBJECTIVE_LABELS,
+  SLOT_FILTER_PRESETS,
+  ARTIFACT_MAIN_VALUE,
+  ARTIFACT_MAIN_OPTIONS,
 } from '../../lib/runeBuildOptim';
+import { buildOptimizerRecipe, parseOptimizerRecipe } from '../../lib/optimizerRecipe';
 import { ArtifactMainChoice, OptimizerState, OptimizerSortKey } from '../../hooks/useOptimizerState';
 import { useRuneMetric } from '../../hooks/useRuneMetric';
 import NumberField from '../NumberField';
@@ -55,41 +59,26 @@ const BASE_TOGGLE_STATS = new Set<StatKey>(['hp', 'atk', 'def', 'spd']);
 
 const CONFIGURABLE_SLOTS: (2 | 4 | 6)[] = [2, 4, 6];
 
-// Les trois valeurs de statistique principale d'artéfact possibles en jeu
-// (voir ARTIFACT_MAIN dans effects.ts pour les codes 100/101/102) — la
-// valeur elle-même n'est jamais un choix libre, seule la STAT l'est.
-const ARTIFACT_MAIN_VALUE: Record<100 | 101 | 102, number> = { 100: 1500, 101: 100, 102: 100 };
-const ARTIFACT_MAIN_OPTIONS: { code: 100 | 101 | 102; label: string }[] = [
-  { code: 101, label: 'ATQ +100' },
-  { code: 102, label: 'DEF +100' },
-  { code: 100, label: 'PV +1500' },
-];
-
-// Pré-filtrage par emplacement, en PRESETS plutôt qu'un curseur libre —
-// calibré par mesure sur un vrai compte (voir spec/outils/optimizer.md,
-// « Validation grandeur nature ») : 40 est le défaut historique, 300 est la
-// valeur qui a permis de retrouver un build réel sur un très gros compte.
-const SLOT_FILTER_PRESETS: { key: 'bas' | 'moyen' | 'haut' | 'extreme'; label: string; cap: number; hint: string }[] = [
-  { key: 'bas', label: 'Bas', cap: 40, hint: 'Rapide — suffit la plupart du temps.' },
-  { key: 'moyen', label: 'Moyen', cap: 80, hint: 'Un peu plus large, coût encore modéré.' },
-  { key: 'haut', label: 'Haut', cap: 150, hint: 'Nettement plus de runes considérées — recherche plus lente.' },
-  {
-    key: 'extreme',
-    label: 'Extrême',
-    cap: 300,
-    hint: 'Valeur mesurée nécessaire pour retrouver un vrai build sur un très gros compte — peut prendre plusieurs dizaines de secondes.',
-  },
-];
-
 function formatBig(n: number): string {
   if (!Number.isFinite(n)) return '—';
   if (n < 1_000_000_000) return Math.round(n).toLocaleString('fr-FR');
   return n.toExponential(1);
 }
 
+// Télécharge un texte en fichier (aucun envoi réseau) — même patron que
+// RtaBackupBar.tsx.
+function download(filename: string, text: string) {
+  const url = URL.createObjectURL(new Blob([text], { type: 'application/json;charset=utf-8' }));
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
 // Outil « Optimizer » : cherche, parmi les runes du compte, la (les)
 // meilleure(s) combinaison(s) de 6 pour un monstre, un combo de sets et des
-// minimums de stats donnés. Voir spec/outils/optimizer.md.
+// minimums de stats donnés. Voir spec/outils/optimizer/.
 export default function OptimizerSection({ box, runes, optimizer }: Props) {
   const metric = useRuneMetric();
   const {
@@ -136,7 +125,7 @@ export default function OptimizerSection({ box, runes, optimizer }: Props) {
   // TOUS les monstres 6★ de la box importée (avec ou sans runes actuellement
   // équipées — voir « Mon compte » → Monstres), dédupliqués par monstre : on
   // garde le meilleur exemplaire équipé pour les stats/artéfacts affichés —
-  // voir spec/outils/optimizer.md pour cette simplification.
+  // voir spec/outils/optimizer/ pour cette simplification.
   const gearedMonsters = useMemo<GearedMonster[]>(() => {
     const best = new Map<string, BoxItem>();
     const score = (b: BoxItem) => (b.gear?.runes ?? []).reduce((s, r) => s + runeEfficiency(r), 0);
@@ -152,7 +141,7 @@ export default function OptimizerSection({ box, runes, optimizer }: Props) {
   const selected = gearedMonsters.find((g) => String(g.monster.id) === selectedId) ?? null;
 
   // Statistiques principales autorisées sur les slots 2/4/6 — vide = libre.
-  // Voir spec/outils/optimizer.md : pour un Lushen, ATQ% en 2, Dmg Crit en 4,
+  // Voir spec/outils/optimizer/ : pour un Lushen, ATQ% en 2, Dmg Crit en 4,
   // ATQ% en 6 — sans cette contrainte, ces slots partent dans n'importe quel
   // sens et noient le pré-filtrage sous des runes hors sujet.
   function toggleMainStat(slot: 2 | 4 | 6, code: number) {
@@ -184,7 +173,7 @@ export default function OptimizerSection({ box, runes, optimizer }: Props) {
   // décochée par défaut pouvait surprendre : un demi-build qui semblait
   // manquer alors que ses runes étaient simplement rattachées ailleurs dans
   // la box, sans que rien à l'écran ne le signale, voir spec/outils/
-  // optimizer.md « Suite — case cochée par défaut »). Décochée, la recherche
+  // optimizer/ « Suite — case cochée par défaut »). Décochée, la recherche
   // ne propose que des combos réellement montables sans dérunir un autre
   // monstre de la box.
   const pool = useMemo(() => {
@@ -285,7 +274,7 @@ export default function OptimizerSection({ box, runes, optimizer }: Props) {
   // budget de rétention par tranche entre les stats demandées selon leur
   // dispersion mesurée, au lieu d'un plafond uniforme. Désactivé (défaut) :
   // comportement historique inchangé, coût nul (vérifié par mesure — voir
-  // spec/outils/optimizer.md, « Suite — piste B gatée derrière un
+  // spec/outils/optimizer/, « Suite — piste B gatée derrière un
   // paramètre »). Activé : recherche plus longue (+20 % de temps de
   // construction mesuré en moyenne), pour les cas où la recherche normale
   // ne trouve pas un build qui semble pourtant montable.
@@ -313,6 +302,80 @@ export default function OptimizerSection({ box, runes, optimizer }: Props) {
     });
   }
 
+  // Exporte la RECETTE de cette recherche (set, minimums, objectif,
+  // réglages) — jamais le pool de runes ni le compte, qui appartiennent à
+  // qui la relance. Sert à trois choses : (1) reproduire fidèlement un cas
+  // signalé sans retranscrire les réglages à la main (source de plusieurs
+  // erreurs vécues en investigation — conversion bonus/total, défauts
+  // d'écran périmés), (2) partager une recherche entre joueurs, chacun
+  // l'appliquant à son propre inventaire, (3) réutilisable tel quel par un
+  // script Node (voir scripts/lib/) ou, plus tard, par les recommandations
+  // de decks. Voir src/lib/optimizerRecipe.ts.
+  function exportRecipe() {
+    if (!selected || selected.monster.com2usId == null) return;
+    const recipe = buildOptimizerRecipe({
+      monsterCom2usId: selected.monster.com2usId,
+      monsterName: selected.monster.name,
+      requirement,
+      objective,
+      metric,
+      slotFilterPreset,
+      adaptiveTrancheWeighting,
+      exploreAll,
+      ignoreArtifacts,
+      artifactMainByKind,
+    });
+    const jour = new Date().toISOString().slice(0, 10);
+    const DIACRITICS = new RegExp('[̀-ͯ]', 'g');
+    const slug = selected.monster.name.toLowerCase().normalize('NFD').replace(DIACRITICS, '').replace(/[^a-z0-9]+/g, '-');
+    download(`swforge-optimizer-${slug}-${jour}.json`, JSON.stringify(recipe, null, 2));
+  }
+
+  // Reprend une recette importée (export d'un autre joueur, ou la sienne
+  // gardée de côté) — remplit les réglages tels quels, et sélectionne le
+  // monstre de CETTE box si son com2usId s'y trouve (peut différer du
+  // joueur qui a exporté : chacun l'applique à son propre inventaire, voir
+  // src/lib/optimizerRecipe.ts). Rien n'est irréversible : ça REMPLACE la
+  // saisie en cours, comme changer n'importe quel réglage à la main —
+  // aucune confirmation nécessaire.
+  const [importMsg, setImportMsg] = useState<{ text: string; error?: boolean } | null>(null);
+  const importFileRef = useRef<HTMLInputElement>(null);
+  useEffect(() => {
+    if (!importMsg) return;
+    const t = setTimeout(() => setImportMsg(null), importMsg.error ? 9000 : 5000);
+    return () => clearTimeout(t);
+  }, [importMsg]);
+
+  function importRecipe(file: File) {
+    file.text().then((text) => {
+      const { recipe, error } = parseOptimizerRecipe(text);
+      if (!recipe) {
+        setImportMsg({ text: `Import refusé : ${error}`, error: true });
+        return;
+      }
+      setComboSets(recipe.requirement.sets);
+      setMinStats(recipe.requirement.minStats);
+      setMaxStats(recipe.requirement.maxStats ?? {});
+      setMainStatsBySlot(recipe.requirement.mainStats ?? {});
+      setObjective(recipe.objective);
+      setSlotFilterPreset(recipe.slotFilterPreset);
+      setAdaptiveTrancheWeighting(recipe.adaptiveTrancheWeighting);
+      setExploreAll(recipe.exploreAll);
+      setIgnoreArtifacts(recipe.ignoreArtifacts);
+      setArtifactMainByKind(recipe.artifactMainByKind);
+
+      const match = gearedMonsters.find((g) => g.monster.com2usId === recipe.monsterCom2usId);
+      if (match) {
+        setSelectedId(String(match.monster.id));
+        setImportMsg({ text: `Réglages importés pour ${recipe.monsterName} — monstre sélectionné automatiquement.` });
+      } else {
+        setImportMsg({
+          text: `Réglages importés (${recipe.monsterName}), mais ce monstre n'est pas dans ta box — choisis-en un manuellement.`,
+        });
+      }
+    });
+  }
+
   // Source des candidats affichés : le résultat FINAL une fois la recherche
   // terminée, sinon l'aperçu EN DIRECT accumulé pendant qu'elle tourne (voir
   // useBuildOptimSearch.ts) — pour voir des builds apparaître au fur et à
@@ -333,7 +396,11 @@ export default function OptimizerSection({ box, runes, optimizer }: Props) {
       // avec le popover d'une rune (recalculé en direct) si l'utilisateur
       // bascule Efficience ↔ Score après coup sans relancer.
       list.sort((a, b) => candidateMetricTotal(b, runeById, metric) - candidateMetricTotal(a, runeById, metric));
-    } else if (sortBy === 'degats' || sortBy === 'ehp' || sortBy === 'vitesse') {
+    } else if (sortBy === 'degats' || sortBy === 'ehp' || sortBy === 'vitesse' || sortBy === 'speed_nuker') {
+      // ⚠️ `speed_nuker` : sonde expérimentale (voir Objective dans
+      // runeBuildOptim.ts), jamais réellement sélectionnable ici (absente
+      // de OBJECTIVE_LABELS) — cette branche n'existe que pour que le
+      // typeur narrove correctement le `else` ci-dessous en StatKey pur.
       list.sort((a, b) => objectiveScore(b, sortBy) - objectiveScore(a, sortBy));
     } else {
       list.sort((a, b) => statTotal(b.stats, sortBy) - statTotal(a.stats, sortBy));
@@ -469,9 +536,10 @@ export default function OptimizerSection({ box, runes, optimizer }: Props) {
         <p className="label mb-1.5">Objectif de recherche</p>
         <Segmented options={OBJECTIVE_LABELS} value={objective} onChange={setObjective} size="lg" />
         <p className="mt-1 text-[11px] text-ink-dim">
-          Oriente le type de rune étudié dès le pré-filtrage, avant même de lancer la recherche — pas
-          seulement l'ordre des résultats. Dégâts considère ATQ, Taux Crit et Dgts Crit ensemble
-          (espérance moyenne).
+          Élargit la sélection de runes candidates pour ses stats dès le pré-filtrage, avant même de
+          lancer la recherche — les minimums posés ci-dessus restent ce qui décide quels demi-builds
+          sont conservés pendant la recherche elle-même. Dégâts considère ATQ, Taux Crit et Dgts Crit
+          ensemble (espérance moyenne).
         </p>
       </div>
 
@@ -712,7 +780,7 @@ export default function OptimizerSection({ box, runes, optimizer }: Props) {
         </div>
 
         {/* Toggle, pas un bouton qui lance sa propre recherche : désactivé
-            par défaut, jamais suggéré (voir spec/outils/optimizer.md — pas
+            par défaut, jamais suggéré (voir spec/outils/optimizer/ — pas
             d'indicateur tant qu'aucun seuil de déclenchement fiable n'est
             calibré), lu par `handleSearch` au moment du clic sur
             « Rechercher » ci-dessous. */}
@@ -756,6 +824,50 @@ export default function OptimizerSection({ box, runes, optimizer }: Props) {
           {status === 'running' ? 'Recherche…' : 'Rechercher'}
         </button>
 
+        {/* Exporte les réglages de CETTE recherche (set, minimums, objectif…),
+            jamais le pool de runes ni le compte — pour reproduire fidèlement
+            un cas signalé, partager une recherche entre joueurs (chacun
+            l'applique à son propre inventaire), ou la réutiliser depuis un
+            script. Voir src/lib/optimizerRecipe.ts. */}
+        <button
+          type="button"
+          onClick={exportRecipe}
+          disabled={!selected || comboSets.length === 0}
+          title="Télécharger les réglages de cette recherche en fichier .json (set, minimums, objectif…) — pour la partager ou la reproduire, jamais tes runes ni ton compte."
+          className="flex items-center gap-1.5 rounded-lg border border-border bg-panel px-3 py-2 text-[12.5px]
+                     text-ink-dim transition hoverable:text-ink hoverable:border-accent disabled:opacity-40 disabled:cursor-not-allowed"
+        >
+          <Upload size={14} />
+          Exporter les paramètres
+        </button>
+
+        {/* Reprend une recette importée (fichier reçu d'un autre joueur, ou
+            gardée de côté) — remplit les réglages et sélectionne le monstre
+            si son com2usId existe dans CETTE box. Aucune confirmation :
+            remplacer les réglages en cours n'est pas plus destructeur que
+            les modifier à la main un par un. */}
+        <button
+          type="button"
+          onClick={() => importFileRef.current?.click()}
+          title="Reprendre les réglages d'un fichier .json exporté depuis l'Optimizer (le tien ou celui d'un autre joueur)."
+          className="flex items-center gap-1.5 rounded-lg border border-border bg-panel px-3 py-2 text-[12.5px]
+                     text-ink-dim transition hoverable:text-ink hoverable:border-accent"
+        >
+          <Download size={14} />
+          Importer les paramètres
+        </button>
+        <input
+          ref={importFileRef}
+          type="file"
+          accept=".json,application/json"
+          className="hidden"
+          onChange={(e) => {
+            const f = e.target.files?.[0];
+            e.target.value = ''; // permet de réimporter le même fichier
+            if (f) importRecipe(f);
+          }}
+        />
+
         {status === 'running' && (
           <button
             type="button"
@@ -772,6 +884,12 @@ export default function OptimizerSection({ box, runes, optimizer }: Props) {
         )}
       </div>
 
+      {importMsg && (
+        <p className={`text-[12.5px] ${importMsg.error ? 'text-bad' : 'text-good'}`} role="status">
+          {importMsg.text}
+        </p>
+      )}
+
       {/* ⚠️ Deux phases distinctes affichées différemment, pas une seule
           barre continue : `building` (construction des compartiments, avant
           même de savoir combien de paires il y aura à explorer) et `pairing`
@@ -782,7 +900,7 @@ export default function OptimizerSection({ box, runes, optimizer }: Props) {
           la phase `building` (jusqu'à ~1 minute sur un compte réel à
           beaucoup de conditions) : la barre affichait 0 % sans bouger et le
           texte « 0 combinaisons examinées », sans dire qu'un TRAVAIL était
-          en cours — voir spec/outils/optimizer.md. */}
+          en cours — voir spec/outils/optimizer/. */}
       {/* ⚠️ Deux barres empilées, une par moitié, pas une seule — depuis leur
           construction EN PARALLÈLE (deux Workers, voir
           runeBuildOptim.worker.ts), A et B avancent en même temps ; une seule

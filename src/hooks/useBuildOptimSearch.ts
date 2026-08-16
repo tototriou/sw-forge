@@ -28,7 +28,7 @@ export interface HalfBuildProgress {
 // l'ancien comportement) et peut à elle seule durer jusqu'à environ une
 // minute sur un compte réel avec beaucoup de conditions — sans cette
 // distinction, l'UI n'avait AUCUNE information pendant cette phase (voir
-// spec/outils/optimizer.md, « Suite — la phase de préparation restait
+// spec/outils/optimizer/, « Suite — la phase de préparation restait
 // muette »).
 // ⚠️ `building` garde les DEUX moitiés (`halves.A`/`halves.B`), pas une seule
 // — depuis leur construction en parallèle (deux Workers, voir
@@ -86,7 +86,7 @@ export type BuildOptimProgress =
 // parfaitement valide (React ne l'invalide pas) et écraserait alors l'état
 // de la recherche EN COURS avec une valeur PÉRIMÉE. Confirmé en usage réel :
 // lancer/arrêter plusieurs recherches rapprochées pouvait figer une des deux
-// barres de la phase `building` (voir spec/outils/optimizer.md) — plus
+// barres de la phase `building` (voir spec/outils/optimizer/) — plus
 // probable depuis la parallélisation des deux moitiés (deux Workers de plus
 // à chaque recherche, donc deux fois plus de messages en vol au moment d'un
 // arrêt/relance). Chaque `run()` incrémente `runId` ; tout message reçu par

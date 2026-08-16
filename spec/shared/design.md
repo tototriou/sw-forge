@@ -277,10 +277,42 @@ le ramène dans l'écran :
 - Les flottants **ancrés à droite** (`right-0`) et ceux **larges comme leur
   ancre** (`w-full`) n'en ont pas besoin — leur position ne peut pas dépasser.
 
-⚠️ **`min-w-[Npx]` s'écrit `min-w-[min(Npx,100%)]`.** Un minimum rigide empêche
-l'élément de se réduire dans un conteneur plus étroit, et c'est toute la page qui
-gagne un défilement latéral — le symptôme apparaît loin de sa cause, sur un écran
-qui n'a rien à voir avec le composant fautif.
+### Jamais de défilement latéral
+
+`html` et `body` portent `overflow-x: hidden` (`index.css`) — **les deux**, car
+le navigateur propage le débordement de `body` à `html` quand `body` est seul à
+le masquer. Mais ce n'est **qu'un filet de sécurité** : le contenu déborde
+toujours, il est simplement coupé, donc inatteignable.
+
+Les quatre causes rencontrées, par ordre de fréquence :
+
+| Cause | Correctif |
+|-------|-----------|
+| `min-w-[Npx]` rigide | S'écrit `min-w-[min(Npx,100%)]` |
+| `minmax(Npx, 1fr)` dans une grille | S'écrit `minmax(min(100%,Npx), 1fr)` |
+| Enfant flex qui refuse de se réduire | `min-w-0` — la valeur par défaut est `auto`, qui interdit de passer sous la largeur du contenu |
+| Flottant de largeur fixe ancré à gauche | `useRecalageEcran` (voir plus haut) |
+
+⚠️ Le symptôme apparaît **loin de sa cause** : un `min-width` calibré pour une
+carte fait défiler la page entière, et on le constate sur un écran qui n'a rien à
+voir avec le composant fautif. C'est ce qui rend ces bugs coûteux à chercher — et
+pourquoi ils reviennent.
+
+⚠️ **Un détecteur nomme le coupable en développement**
+(`src/lib/detecteurDebordement.ts`). Il parcourt le DOM après chaque changement,
+ne retient que l'élément **le plus profond** qui dépasse — un enfant trop large
+déborde tous ses parents, les signaler tous noierait le vrai coupable — et
+l'écrit dans la console avec le nombre de pixels en cause. Il est éliminé du
+bundle de production (`import.meta.env.DEV`).
+
+⚠️ Il compare à `documentElement.clientWidth`, **jamais** à `window.innerWidth` :
+le second inclut la barre de défilement verticale, et tout paraîtrait déborder de
+~15 px sur desktop. C'est aussi pourquoi `100vw` est trompeur dans un `calc()`.
+
+⚠️ Le **panneau d'actions mobile** reçoit une garde supplémentaire : ses enfants
+flex et grid ont `min-width: 0` d'office. Il accueille des contrôles dessinés
+pour une rangée desktop de 900 px, où un `min-width` calibré là-bas déborde
+systématiquement.
 - ⚠️ **Jamais depuis `scale(0)`** : rien n'apparaît de nulle part. `.96` au
   minimum.
 - ⚠️ **Pas de `scale` sur du texte** (`apparition`) : la mise à l'échelle

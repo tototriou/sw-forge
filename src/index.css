@@ -776,3 +776,22 @@ button:not(:disabled):not([draggable]):not([role='switch']):active,
 [data-tiroir] > * > .mt-4 {
   margin-top: 0;
 }
+
+/* ⚠️ **Le panneau d'actions ne défile jamais latéralement.** Il accueille des
+   contrôles dessinés pour une rangée desktop de 900 px : un `min-width` calibré
+   là-bas y déborde. `overflow-x: hidden` couperait le contenu ; on force plutôt
+   les enfants à se réduire.
+
+   `min-width: 0` sur les descendants directs d'un conteneur flex : sans lui, un
+   élément flex refuse de passer sous la largeur de son contenu — c'est la
+   valeur par défaut (`auto`), et la cause la plus fréquente d'un débordement
+   qu'aucune classe ne semble expliquer. */
+[data-tiroir] .flex > *,
+[data-tiroir] .grid > * {
+  min-width: 0;
+}
+
+/* Les images ne dépassent pas non plus leur conteneur. */
+[data-tiroir] img {
+  max-width: 100%;
+}

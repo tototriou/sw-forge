@@ -312,7 +312,7 @@ function MonsterBoxSection({
       ) : (
         // La MÊME grille que le Bestiaire (`MonsterGrid`) : c'est ce gabarit-ci
         // qui sert de référence aux deux, et non l'inverse.
-        <div className="grid grid-cols-[repeat(auto-fill,minmax(104px,1fr))] gap-2 items-start">
+        <div className="grid grid-cols-[repeat(auto-fill,minmax(min(100%,104px),1fr))] gap-2 items-start">
           {/* `AnimatePresence` comme dans MonsterGrid : sans lui, la carte
               s'anime à l'entrée mais disparaît sèchement au filtrage — la
               moitié d'une animation se remarque plus que pas d'animation. */}

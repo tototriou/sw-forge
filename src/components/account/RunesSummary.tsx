@@ -331,7 +331,7 @@ export default function RunesSummary({ runes }: Props) {
 
       {/* ---- Par set ----------------------------------------------------- */}
       <Panel title={`Par set (${s.sets.length})`}>
-        <div className="grid grid-cols-[repeat(auto-fill,minmax(148px,1fr))] gap-2">
+        <div className="grid grid-cols-[repeat(auto-fill,minmax(min(100%,148px),1fr))] gap-2">
           {s.sets.map(({ set, agg }) => (
             <div
               key={set.key}

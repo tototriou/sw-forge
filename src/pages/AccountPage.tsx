@@ -20,6 +20,7 @@ import {
   sansDoublonDeTransformation,
 } from '../lib/monsterForms';
 import MonsterDetailDialog from '../components/MonsterDetailDialog';
+import MobileDrawer from '../components/MobileDrawer';
 import type { AccountView } from '../App';
 import { VUES_INVENTAIRE, hashVue, vueParDefaut } from '../lib/accountViews';
 
@@ -50,6 +51,9 @@ interface Props {
   // Bestiaire COMPLET. Sert à retrouver la seconde forme d'un monstre
   // transformable, que la box ne contient pas forcément.
   allMonsters?: Monster[];
+  // Tiroir d'actions mobile — piloté par la barre supérieure (voir App.tsx).
+  menuOuvert: boolean;
+  onFermerMenu: () => void;
 }
 
 // Un monstre unique de la box + son nombre d'exemplaires possédés.
@@ -59,7 +63,17 @@ interface BoxEntry {
 }
 
 // Sous-section « Box de monstres » (tous les 6★, dédupliqués, filtrables).
-function MonsterBoxSection({ box, allMonsters = [] }: { box: BoxItem[]; allMonsters?: Monster[] }) {
+function MonsterBoxSection({
+  box,
+  allMonsters = [],
+  menuOuvert,
+  onFermerMenu,
+}: {
+  box: BoxItem[];
+  allMonsters?: Monster[];
+  menuOuvert: boolean;
+  onFermerMenu: () => void;
+}) {
   const [query, setQuery] = useStickyState('box.query', '');
   const [activeElements, setActiveElements] = useStickyState<Set<ElementKey>>('box.elements', new Set());
   const [activeStars, setActiveStars] = useStickyState<Set<number>>('box.stars', new Set());
@@ -158,51 +172,11 @@ function MonsterBoxSection({ box, allMonsters = [] }: { box: BoxItem[]; allMonst
     });
   }, [entries, query, activeElements, activeStars, dupesOnly, secondOnly, allMonsters]);
 
-  return (
-    <div>
-      <p className="font-mono text-ink-dim text-xs mb-4">
-        {entries.length} monstre{entries.length > 1 ? 's' : ''} différent{entries.length > 1 ? 's' : ''}
-        {box.length !== entries.length && ` · ${box.length} au total`} · 6★
-      </p>
-
-      <div className="flex flex-col gap-3 mb-4">
-        <div className="flex flex-wrap items-center gap-2">
-          <div className="relative max-w-xs flex-1">
-            <Search size={15} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-ink-dim" />
-            <input
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-              placeholder="Rechercher un monstre…"
-              className="w-full bg-panel border border-border rounded-lg pl-8 pr-3 py-1.5 text-sm
-                         text-ink outline-none focus:border-accent"
-            />
-          </div>
-
-          {/* ⚠️ Un contrôle à CRAN (`Segmented`) et non une pastille : les deux
-              ordres s'excluent. Et il est posé à côté de la RECHERCHE, pas dans
-              la rangée de filtres en dessous — trier n'est pas filtrer, le
-              mêler aux pastilles le ferait lire comme un critère de plus.
-              ⚠️ Les libellés disent ce qui varie — la date ou le nom — et NON
-              « ordre du jeu » : les monstres sont groupés par élément dans les
-              deux cas, donc les deux sont « l'ordre du jeu ». */}
-          <Segmented
-            value={sortMode}
-            onChange={setSortMode}
-            options={[
-              {
-                key: 'jeu' as const,
-                label: 'Sortie',
-                hint: 'Par élément, puis les 2A d’abord et les familles par date de sortie',
-              },
-              {
-                key: 'alpha' as const,
-                label: 'A → Z',
-                hint: 'Par élément, puis par nom',
-              },
-            ]}
-          />
-        </div>
-
+  // Les rangées de filtres, rendues une seule fois et posées à DEUX endroits
+  // selon la largeur : dans la page au-dessus de `lg`, dans le tiroir en
+  // dessous. C'est le même JSX — deux copies auraient divergé.
+  const filtres = (
+    <>
         {/* Filtre élément */}
         <div className="flex flex-wrap items-center gap-2">
           <span className="label mr-1">Élément</span>
@@ -274,7 +248,64 @@ function MonsterBoxSection({ box, allMonsters = [] }: { box: BoxItem[]; allMonst
             <Star size={13} /> 2A
           </button>
         </div>
+    </>
+  );
+
+  return (
+    <div>
+      <p className="font-mono text-ink-dim text-xs mb-4">
+        {entries.length} monstre{entries.length > 1 ? 's' : ''} différent{entries.length > 1 ? 's' : ''}
+        {box.length !== entries.length && ` · ${box.length} au total`} · 6★
+      </p>
+
+      {/* ⚠️ La RECHERCHE et le TRI restent visibles ; les trois rangées de
+          filtres (élément, étoiles, doublons/2A) passent dans le tiroir sous
+          `lg`. Elles occupaient quatre lignes avant la première carte sur un
+          téléphone — plus que la grille qu'elles filtrent. */}
+      <div className="flex flex-col gap-3 mb-4">
+        <div className="flex flex-wrap items-center gap-2">
+          <div className="relative max-w-xs flex-1">
+            <Search size={15} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-ink-dim" />
+            <input
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder="Rechercher un monstre…"
+              className="w-full bg-panel border border-border rounded-lg pl-8 pr-3 py-1.5 text-sm
+                         text-ink outline-none focus:border-accent"
+            />
+          </div>
+
+          {/* ⚠️ Un contrôle à CRAN (`Segmented`) et non une pastille : les deux
+              ordres s'excluent. Et il est posé à côté de la RECHERCHE, pas dans
+              la rangée de filtres en dessous — trier n'est pas filtrer, le
+              mêler aux pastilles le ferait lire comme un critère de plus.
+              ⚠️ Les libellés disent ce qui varie — la date ou le nom — et NON
+              « ordre du jeu » : les monstres sont groupés par élément dans les
+              deux cas, donc les deux sont « l'ordre du jeu ». */}
+          <Segmented
+            value={sortMode}
+            onChange={setSortMode}
+            options={[
+              {
+                key: 'jeu' as const,
+                label: 'Sortie',
+                hint: 'Par élément, puis les 2A d’abord et les familles par date de sortie',
+              },
+              {
+                key: 'alpha' as const,
+                label: 'A → Z',
+                hint: 'Par élément, puis par nom',
+              },
+            ]}
+          />
+        </div>
+
+        <div className="hidden lg:contents">{filtres}</div>
       </div>
+
+      <MobileDrawer ouvert={menuOuvert} onFermer={onFermerMenu} titre="Filtrer ma box">
+        <div className="flex flex-col gap-3">{filtres}</div>
+      </MobileDrawer>
 
       {filtered.length === 0 ? (
         <p className="text-ink-dim text-sm">Aucun monstre ne correspond aux filtres.</p>
@@ -328,6 +359,8 @@ export default function AccountPage({
   loadState,
   hydrating,
   allMonsters,
+  menuOuvert,
+  onFermerMenu,
 }: Props) {
   const empty = box.length === 0 && runes.length === 0 && artifacts.length === 0;
 
@@ -410,7 +443,14 @@ export default function AccountPage({
         )}
       </div>
 
-      {sub === 'monstres' && <MonsterBoxSection box={box} allMonsters={allMonsters} />}
+      {sub === 'monstres' && (
+        <MonsterBoxSection
+          box={box}
+          allMonsters={allMonsters}
+          menuOuvert={menuOuvert}
+          onFermerMenu={onFermerMenu}
+        />
+      )}
       {sub === 'runes' && <RunesSection runes={runes} crafts={crafts} vue={vue} />}
       {sub === 'artefacts' && <ArtifactsSection artifacts={artifacts} vue={vue} />}
     </div>

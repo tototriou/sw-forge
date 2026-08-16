@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Sparkles, BookOpen } from 'lucide-react';
 import SearchBar from '../components/SearchBar';
+import MobileDrawer from '../components/MobileDrawer';
 import FilterBar from '../components/FilterBar';
 import MonsterGrid from '../components/MonsterGrid';
 import MonsterDetailDialog from '../components/MonsterDetailDialog';
@@ -17,6 +18,9 @@ import {
 interface Props {
   monsters: Monster[];
   loadState: LoadState;
+  // Tiroir d'actions mobile — piloté par la barre supérieure (voir App.tsx).
+  menuOuvert: boolean;
+  onFermerMenu: () => void;
 }
 
 // Cartes par page. ⚠️ Le bestiaire porte ~3 000 monstres, et chaque carte est un
@@ -28,7 +32,7 @@ interface Props {
 // l'autre.
 const PAGE = 60;
 
-export default function BestiaryPage({ monsters }: Props) {
+export default function BestiaryPage({ monsters, menuOuvert, onFermerMenu }: Props) {
   const [query, setQuery] = useState('');
   const [activeElements, setActiveElements] = useState<Set<ElementKey>>(new Set());
   const [activeStars, setActiveStars] = useState<Set<number>>(new Set());
@@ -133,7 +137,25 @@ export default function BestiaryPage({ monsters }: Props) {
   return (
     <div>
       <div>
+        {/* ⚠️ La RECHERCHE reste toujours visible : c'est le geste principal de
+            cette page — on vient y chercher un monstre par son nom. Seuls les
+            FILTRES passent dans le tiroir sous `lg` : six pastilles d'élément,
+            six d'étoiles et un tri, soit trois rangées avant la première carte
+            sur un téléphone. */}
         <SearchBar value={query} onChange={setQuery} />
+        <div className="hidden lg:block">
+          <FilterBar
+            activeElements={activeElements}
+            toggleElement={toggleElement}
+            activeStars={activeStars}
+            toggleStar={toggleStar}
+            sortMode={sortMode}
+            setSortMode={setSortMode}
+          />
+        </div>
+      </div>
+
+      <MobileDrawer ouvert={menuOuvert} onFermer={onFermerMenu} titre="Filtrer le bestiaire">
         <FilterBar
           activeElements={activeElements}
           toggleElement={toggleElement}
@@ -142,7 +164,7 @@ export default function BestiaryPage({ monsters }: Props) {
           sortMode={sortMode}
           setSortMode={setSortMode}
         />
-      </div>
+      </MobileDrawer>
 
       {/* Compteur + pagination en TÊTE : sur une page de 60 cartes, renvoyer en
           bas de page pour changer de page ferait remonter à chaque fois.

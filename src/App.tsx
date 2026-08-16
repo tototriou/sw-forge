@@ -77,7 +77,10 @@ const DISCORD_INVITE = 'https://discord.gg/R2Fe4GJZET';
 // Pages dont les actions et les filtres passent dans le tiroir mobile.
 // ⚠️ Les autres n'en ont aucune (Accueil, Mécaniques, Nouveautés, Paramètres) :
 // leur ouvrir un panneau vide serait pire que ne rien proposer.
-const PAGES_AVEC_MENU = new Set<Route>(['rta', 'siege', 'bestiary', 'compte']);
+// ⚠️ Le Siège en est ABSENT : sa barre d'outils tient en quatre boutons qui
+// passent déjà à la ligne d'eux-mêmes. Les déplacer coûterait un découpage de
+// `SiegeBoard` sans rien gagner en hauteur.
+const PAGES_AVEC_MENU = new Set<Route>(['rta', 'bestiary', 'compte']);
 
 type Route =
   | 'home'
@@ -910,7 +913,12 @@ export default function App() {
             onFermerMenu={() => setMenuPageOuvert(false)}
           />
         ) : route === 'bestiary' ? (
-          <BestiaryPage monsters={data.monsters} loadState={data.loadState} />
+          <BestiaryPage
+            monsters={data.monsters}
+            loadState={data.loadState}
+            menuOuvert={menuPageOuvert}
+            onFermerMenu={() => setMenuPageOuvert(false)}
+          />
         ) : route === 'siege' ? (
           <SiegePage
             tab={siegeTab}
@@ -948,6 +956,8 @@ export default function App() {
             // monstre transformable doit pouvoir montrer sa seconde forme, que
             // la box ne contient pas forcément (voir `autreForme`).
             allMonsters={allMonsters}
+            menuOuvert={menuPageOuvert}
+            onFermerMenu={() => setMenuPageOuvert(false)}
           />
         ) : route === 'outils' ? (
           <OutilsPage

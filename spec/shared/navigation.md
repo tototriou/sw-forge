@@ -331,3 +331,39 @@ les tableaux de runes et l'optimiseur y gagnent une à deux colonnes.
 | Optimiseur | 768 px | Suite de réglages lus de haut en bas — étalée, chaque ligne « libellé … champ » devenait un aller-retour du regard |
 | Roue de runes | ×0,72 sous `sm` | ⚠️ C'est un DESSIN calculé en pixels (cadres, icônes de set, décalages) : il ne se réduit pas seul comme une image. À 208 px il occupait plus de la moitié des 348 px utiles. En dessous de 0,72 les icônes de set passent sous 14 px et le set ne se reconnaît plus |
 | Courbes | 980 px | ⚠️ Le graphe suit son conteneur : sur 2 000 px la courbe s'aplatissait jusqu'à la ligne droite, et les écarts entre runes — la seule chose qu'on vient y lire — disparaissaient |
+
+## Tiroir d'actions mobile
+
+Sous `lg`, la barre supérieure porte un bouton **hamburger** à gauche (à la
+place du logo) qui ouvre `MobileDrawer` — un panneau glissant **depuis la
+gauche**, du même côté que le bouton qui l'appelle et que la barre latérale
+qu'il remplace.
+
+Il reçoit les **filtres et les actions** de la page, ceux qui occupaient trois
+ou quatre rangées avant la première donnée. Ce qui y entre et ce qui reste :
+
+| Page | Reste visible | Passe dans le tiroir |
+|------|---------------|----------------------|
+| RTA | La grille des équipes | Filtres, sauvegarde, import/export |
+| Bestiaire | La recherche | `FilterBar` (élément, étoiles, tri) |
+| Mon compte → Monstres | La recherche et le tri | Élément, étoiles, doublons, 2A |
+
+⚠️ **La recherche ne descend jamais dans le tiroir.** C'est le geste le plus
+fréquent de ces trois écrans ; l'enfouir derrière une ouverture de panneau
+coûterait deux gestes là où il y en avait zéro.
+
+⚠️ **Le Siège n'a pas de tiroir**, et son hamburger ne s'affiche donc pas
+(`PAGES_AVEC_MENU` dans `App.tsx`). Sa barre d'outils tient en quatre boutons
+qui passent déjà à la ligne seuls : les extraire imposerait de découper
+`SiegeBoard` sans gagner une hauteur mesurable. **Ouvrir un panneau vide serait
+pire que ne rien proposer** — c'est la règle qui décide de l'appartenance à
+cette liste, pas la page.
+
+⚠️ Le tiroir porte `data-tiroir` : les libellés masqués par `hidden sm:inline`
+y sont **rétablis** (`src/index.css`). Un bouton réduit à son icône a du sens
+dans une barre d'outils serrée ; dans un panneau qui a toute la largeur, il ne
+dit plus ce qu'il fait.
+
+⚠️ Les filtres sont **un seul JSX**, posé à deux endroits selon la largeur
+(`hidden lg:contents` dans la page, et le même fragment dans le tiroir). Deux
+copies auraient divergé au premier filtre ajouté.

@@ -553,6 +553,15 @@ button:not(:disabled):not([draggable]):not([role='switch']):active,
   display: inline !important;
 }
 
+/* ⚠️ …SAUF la variante longue d'un libellé qui en a deux. La règle ci-dessus
+   révèle tout ce qui porte `hidden sm:inline` ; un bouton qui décline un libellé
+   court pour le panneau et un long pour le desktop (`hidden lg:inline`) verrait
+   les deux s'afficher côte à côte. Le panneau vit sous `lg` : c'est la version
+   courte qui y a cours. */
+[data-tiroir] .hidden.lg\:inline {
+  display: none !important;
+}
+
 /* ⚠️ Les boutons empilés s'alignent à GAUCHE : un libellé centré dans un bouton
    large flotte au milieu du vide, et l'œil doit repartir chercher le début de
    chaque ligne. Alignés, ils forment une colonne dont tous les mots commencent
@@ -686,4 +695,12 @@ button:not(:disabled):not([draggable]):not([role='switch']):active,
    d'elle-même. */
 [data-tiroir] .w-\[86px\] {
   width: auto;
+}
+
+/* ⚠️ Les marges hautes des barres d'outils sont annulées dans le panneau. Elles
+   les détachent du contenu qui les précède DANS LA PAGE ; empilées dans un
+   panneau qui gère déjà ses écarts (`gap-3`), elles s'y ajoutent et creusent le
+   double du vide voulu entre deux rangées. */
+[data-tiroir] > * > .mt-4 {
+  margin-top: 0;
 }

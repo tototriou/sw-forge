@@ -318,6 +318,14 @@ export default function RtaBackupBar({
 
   return (
     <div className="mt-4">
+      {/* ⚠️ **Une rangée par TYPE d'action**, et non une seule file de six
+          boutons. Les trois premiers agissent sur l'état COURANT de la prépa
+          (le figer, y revenir) ; les trois suivants échangent un FICHIER avec
+          l'extérieur. Alignés d'affilée, « Réinitialiser » et « Exporter » se
+          lisaient comme voisins alors qu'ils n'ont rien à voir — et le
+          séparateur vertical qui les distinguait passait inaperçu dès que la
+          rangée se repliait, ce qu'elle fait sur tout écran étroit. */}
+      <div className="flex flex-col gap-1.5">
       <div className="flex items-center gap-2 flex-wrap">
         <button
           onClick={() => (backup.backup ? setEcraserAConfirmer(true) : sauvegarder())}
@@ -363,8 +371,9 @@ export default function RtaBackupBar({
           </button>
         )}
 
-        <span className="w-px h-5 bg-border" aria-hidden />
+      </div>
 
+      <div className="flex items-center gap-2 flex-wrap">
         <button
           onClick={() => setExportAChoisir(true)}
           disabled={vide}
@@ -395,8 +404,17 @@ export default function RtaBackupBar({
           className={BOUTON}
           title="Ouvrir la prépa d'un ami en lecture (fichier .json). Ta prépa n'est pas touchée."
         >
-          <Users size={14} /> <span className="hidden sm:inline">Consulter celle d'un ami</span>
+          {/* ⚠️ Deux longueurs de libellé, pas une. « Consulter celle d'un ami »
+              fait à lui seul près de la moitié d'une largeur de téléphone : avec
+              « Exporter » et « Importer » sur la même rangée, il la faisait
+              passer à la ligne — et la rangée cessait de dire « échanger un
+              fichier », ce qu'elle est censée montrer d'un coup d'œil. Le sens
+              tient dans « Ami » ; l'infobulle porte le reste. */}
+          <Users size={14} />
+          <span className="hidden sm:inline lg:hidden">Ami</span>
+          <span className="hidden lg:inline">Consulter celle d'un ami</span>
         </button>
+      </div>
       </div>
 
       {/* Le point de sauvegarde est ANNONCÉ : sans repère visible, on ne sait
@@ -405,14 +423,6 @@ export default function RtaBackupBar({
         <p className="mt-1.5 font-mono text-micro text-ink-dim">
           Point de sauvegarde : {Object.keys(backup.backup.state.entries).length} monstre(s) ·{' '}
           {dateBackup}
-        </p>
-      )}
-      {/* Le point d'import est annoncé lui aussi : sans repère, on ne sait pas
-          vers quel état « Réinitialiser » ramène, ni de quand il date. */}
-      {backup.importe && (
-        <p className="mt-0.5 font-mono text-micro text-ink-dim">
-          Dernier import : {Object.keys(backup.importe.state.entries).length} monstre(s) ·{' '}
-          {depuis(backup.importe.date)}
         </p>
       )}
 

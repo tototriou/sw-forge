@@ -360,7 +360,7 @@ ou quatre rangées avant la première donnée. Ce qui y entre et ce qui reste :
 
 | Écran | Reste visible | Passe dans le panneau |
 |-------|---------------|----------------------|
-| RTA | Recherche, grille des équipes | Sauvegarde, import/export, création |
+| RTA | Recherche, compteur, grille des équipes | Création de monstre, sauvegarde/reprise/réinitialisation, export/import/consultation, catégories, tout effacer |
 | Siège (défense / offense) | Le compteur d'équipes | Ajouter une équipe, vérifier les ticks, créer un monstre, tout effacer |
 | Siège → Recommandations | — | Créer, importer, tout exporter, tout effacer |
 | Bestiaire | La recherche | `FilterBar` (élément, étoiles, tri) |
@@ -383,6 +383,38 @@ aurait montré les contrôles du précédent.
 Dans la page il se pose à l'opposé (`ml-auto`) ; dans le panneau il garde cette
 distance. Un bouton destructeur ne se met pas au contact de celui qu'on presse
 en boucle.
+
+### Une rangée par type d'action
+
+⚠️ **Les boutons du panneau se groupent par NATURE, une rangée chacune** — ils
+ne forment pas une colonne unique. Sur la prépa RTA :
+
+| Rangée | Ce qu'elle fait |
+|--------|-----------------|
+| Création | Créer un monstre |
+| État courant | Sauvegarder · Reprendre · Réinitialiser |
+| Échange de fichier | Exporter · Importer · Ami |
+| Organisation | Catégories |
+| *(détaché)* | Tout effacer |
+
+Empilés en une seule colonne, six boutons de nature différente se lisaient comme
+une liste indifférenciée où il fallait relire chaque libellé. Groupés, on vise
+la bonne rangée d'abord et le bon bouton ensuite.
+
+⚠️ Le séparateur vertical qui distinguait ces groupes **dans la page** a disparu
+au profit d'un saut de rangée : il passait inaperçu dès que la barre se repliait,
+ce qu'elle fait sur tout écran étroit.
+
+⚠️ **Une rangée doit TENIR sur une ligne**, sinon le groupement ne montre plus
+rien. « Consulter celle d'un ami » faisait à lui seul la moitié d'une largeur de
+téléphone et poussait sa rangée à la ligne : il décline un libellé court
+(« Ami », `hidden sm:inline lg:hidden`) et un long (`hidden lg:inline`).
+La règle `[data-tiroir] .hidden.lg\:inline { display: none }` empêche que la
+révélation des libellés n'affiche les deux côte à côte.
+
+⚠️ Les **marges hautes** (`mt-4`) des barres d'outils sont annulées dans le
+panneau : elles les détachent de ce qui précède *dans la page*, mais s'ajoutent
+au `gap-3` du panneau et y creusent le double du vide voulu.
 
 ⚠️ **La recherche ne descend jamais dans le panneau.** C'est le geste le plus
 fréquent de ces trois écrans ; l'enfouir derrière une ouverture de panneau

@@ -211,31 +211,49 @@ export default function RtaPage({
 
   const runeSections = rta.state.sections;
 
+  // ⚠️ Rendus une seule fois, posés à DEUX endroits selon la largeur : dans la
+  // page au-dessus de `lg`, dans le panneau en dessous. Deux copies auraient
+  // divergé au premier ajustement.
+  const creation = (
+    <CreateMonster
+      onCreate={handleCreateMonster}
+      customMonsters={customMonsters}
+      onDelete={onDeleteMonster}
+    />
+  );
+
+  // ⚠️ « Tout effacer » reste SÉPARÉ des gestes de construction : dans la page
+  // il se pose à l'opposé (`ml-auto`), dans le panneau il est détaché en bas
+  // sous un filet. Un bouton destructeur ne se met pas au contact de celui
+  // qu'on presse en boucle.
+  const effacer = addedIds.size > 0 && (
+    <button
+      onClick={() => {
+        setEffacementAConfirmer(true);
+        onFermerMenu();
+      }}
+      className="flex items-center gap-1.5 text-xs text-ink-dim hoverable:text-fire transition"
+    >
+      <Trash2 size={13} /> Tout effacer
+    </button>
+  );
+
   return (
     <div>
       <div>
         <RtaSearch monsters={monsters} addedIds={addedIds} onAdd={rta.addMonster} />
       </div>
 
-      <div className="flex items-center gap-3 mt-4 flex-wrap">
+      {/* ⚠️ Seul le COMPTEUR reste dans la page — c'est une information, pas
+          une action. La création et l'effacement descendent dans le panneau
+          « Options » sous `lg`. */}
+      <div className="mt-4 flex flex-wrap items-center gap-3">
         <span className="font-mono text-xs text-ink-dim">
           {addedIds.size} monstre{addedIds.size > 1 ? 's' : ''} en prépa
         </span>
 
-        <CreateMonster
-          onCreate={handleCreateMonster}
-          customMonsters={customMonsters}
-          onDelete={onDeleteMonster}
-        />
-
-        {addedIds.size > 0 && (
-          <button
-            onClick={() => setEffacementAConfirmer(true)}
-            className="ml-auto flex items-center gap-1.5 text-xs text-ink-dim hoverable:text-fire transition"
-          >
-            <Trash2 size={13} /> Tout effacer
-          </button>
-        )}
+        <div className="hidden lg:contents">{creation}</div>
+        <div className="ml-auto hidden lg:contents">{effacer}</div>
       </div>
 
       {effacementAConfirmer && (
@@ -283,18 +301,32 @@ export default function RtaPage({
         />
       </div>
 
+      {/* ⚠️ **Une rangée par TYPE d'action.** Empilés en une seule colonne, six
+          boutons de nature différente se lisaient comme une liste indifférenciée
+          où il fallait relire chaque libellé. Regroupés — créer, puis sauver et
+          revenir, puis échanger un fichier — on vise la bonne rangée d'abord et
+          le bon bouton ensuite. `RtaBackupBar` porte ses deux rangées ; celle-ci
+          ajoute la création avant, les catégories et l'effacement après. */}
       <MobileSheet ouvert={menuOuvert} onFermer={onFermerMenu} titre="Ma prépa RTA">
-        <RtaBackupBar
-          rta={rta}
-          cats={cats}
-          backup={backup}
-          monsters={monsters}
-          onConsulter={(v) => {
-            setVueAmi(v);
-            onFermerMenu();
-          }}
-          onCreateMonster={onCreateMonster}
-        />
+        <div className="flex flex-col gap-3">
+          <div className="flex flex-wrap items-center gap-2">{creation}</div>
+
+          <RtaBackupBar
+            rta={rta}
+            cats={cats}
+            backup={backup}
+            monsters={monsters}
+            onConsulter={(v) => {
+              setVueAmi(v);
+              onFermerMenu();
+            }}
+            onCreateMonster={onCreateMonster}
+          />
+
+          <CategoryBar cats={cats} monsters={pageMonsters} />
+        </div>
+
+        {effacer && <div className="mt-4 border-t border-border pt-3">{effacer}</div>}
       </MobileSheet>
 
       {/* ⚠️ La prépa consultée s'affiche AVANT la sienne, et encadrée : c'est ce
@@ -302,7 +334,13 @@ export default function RtaPage({
           bouton et ne laisse aucune trace. */}
       {vueAmi && <RtaFriendView vue={vueAmi} onClose={() => setVueAmi(null)} />}
 
-      <CategoryBar cats={cats} monsters={pageMonsters} />
+      {/* ⚠️ Les catégories descendent AUSSI dans le panneau sous `lg` : deux
+          rangées de pastilles plus le bouton de création, soit un tiers d'écran
+          de téléphone consacré à un outil d'ORGANISATION — pas au contenu qu'on
+          vient organiser. */}
+      <div className="hidden lg:block">
+        <CategoryBar cats={cats} monsters={pageMonsters} />
+      </div>
 
       {loadState === 'loading' && monsters.length === 0 && (
         <p className="mt-4 text-ink-dim text-sm">Chargement des monstres…</p>

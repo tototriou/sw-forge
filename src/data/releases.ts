@@ -61,6 +61,27 @@ export const RELEASES: Release[] = [
   // fusion, d'après ce que la branche contient au final. On le remplace au
   // moment de publier, en même temps que `package.json` et le tag.
   {
+    version: null,
+    date: '2026-08-17',
+    title: 'L’Optimiseur trouve plus de résultats sur les préréglages larges',
+    highlights: [
+      'Corrige un bug où les préréglages larges (Haut, Extrême) pouvaient trouver MOINS de résultats que les préréglages plus étroits — ils en trouvent maintenant plus, comme attendu',
+      'Exporte et importe tes paramètres de recherche pour les partager avec d’autres joueurs',
+    ],
+    changes: [
+      {
+        kind: 'fix',
+        scope: 'Outils',
+        text: 'Les préréglages larges (Haut, Extrême) de l’Optimiseur trouvent maintenant plus de résultats, au lieu d’en perdre en cours de route.',
+      },
+      {
+        kind: 'feat',
+        scope: 'Outils',
+        text: 'Exporte tes paramètres de recherche dans un fichier, pour les partager avec d’autres joueurs ou les réimporter plus tard.',
+      },
+    ],
+  },
+  {
     version: '1.6.3',
     date: '2026-08-16',
     title: 'Tes runes et tes monstres se lisent comme dans le jeu',

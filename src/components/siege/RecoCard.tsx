@@ -274,7 +274,7 @@ export default function RecoCard({
               if (t !== reco.name) recos.setMeta(reco.id, { name: t });
             }}
             placeholder={`Recommandation ${index + 1}`}
-            className="flex-1 min-w-[160px] bg-panel border border-border rounded-lg px-2.5 py-1 text-[15px]
+            className="min-w-[min(160px,100%)] flex-1 bg-panel border border-border rounded-lg px-2.5 py-1 text-[15px]
                        font-semibold text-ink outline-none focus:border-accent"
           />
         ) : (
@@ -1061,7 +1061,7 @@ function DeckBlock({
             }}
             placeholder={autoDeckName(deck, monsterByCom2us, deckIndex)}
             title="Laisse vide pour reprendre les noms des monstres"
-            className="min-w-[180px] flex-1 bg-panel border border-border rounded px-2 py-0.5 text-[12px]
+            className="min-w-[min(180px,100%)] flex-1 bg-panel border border-border rounded px-2 py-0.5 text-[12px]
                        text-ink outline-none focus:border-accent"
           />
         ) : (

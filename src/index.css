@@ -318,6 +318,13 @@ html {
   background: rgb(var(--bg));
   /* Formulaires natifs (scrollbar, sélection) rendus dans le bon thème. */
   color-scheme: light;
+  /* ⚠️ Garde-fou posé sur `html` AUSSI, pas seulement sur `body` : quand
+     `body` est seul à porter `overflow-x: hidden`, le navigateur PROPAGE le
+     débordement à `html`, qui l'affiche quand même. La barre de défilement
+     latérale réapparaissait donc malgré la règle.
+     ⚠️ Ce n'est qu'un filet de sécurité. Un débordement se corrige à sa
+     source — le masquer rend le contenu coupé inatteignable. */
+  overflow-x: hidden;
 }
 @media (prefers-color-scheme: dark) {
   html:not([data-theme='light']) {

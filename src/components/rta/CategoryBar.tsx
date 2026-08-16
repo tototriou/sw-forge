@@ -358,8 +358,11 @@ function CategoryPopover({
         e.preventDefault();
         onSubmit(label, color);
       }}
-      className="absolute z-30 left-0 top-full mt-1.5 w-[220px] rounded-xl border border-border
-                 bg-panel p-2.5 shadow-glow shadow-black/60"
+      // ⚠️ `max-w-[calc(100vw-2rem)]` : ancré à gauche de son bouton, ce
+      // panneau de 220 px sortait de l'écran quand le bouton se trouvait déjà
+      // sur la droite — d'où un défilement latéral de toute la page.
+      className="absolute z-30 left-0 top-full mt-1.5 w-[220px] max-w-[calc(100vw-2rem)]
+                 rounded-xl border border-border bg-panel p-2.5 shadow-glow shadow-black/60"
     >
       <div className="flex items-center gap-1.5">
         <span

@@ -108,7 +108,14 @@ export default function ReleasesPage() {
                     <span className="label">
                       {c.scope}
                     </span>
-                    <span className="flex-1 min-w-[220px] text-ink-dim leading-relaxed">{c.text}</span>
+                    {/* ⚠️ `min-w-[min(220px,100%)]` : le minimum force la
+                        ligne à passer seule sous les deux étiquettes, mais à
+                        220 px fixes il DÉBORDAIT dans une carte paddée sur un
+                        écran de 320 px — c'était l'origine d'un défilement
+                        latéral de toute la page. */}
+                    <span className="min-w-[min(220px,100%)] flex-1 text-ink-dim leading-relaxed">
+                      {c.text}
+                    </span>
                   </li>
                 ))}
             </ul>

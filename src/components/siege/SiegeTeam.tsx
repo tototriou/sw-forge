@@ -487,7 +487,14 @@ function TickBtn({ active, onClick, label }: { active: boolean; onClick: () => v
   return (
     <button
       onClick={onClick}
+      // ⚠️ `data-cible-fine`, sans zone étendue : ces pastilles forment une
+      // rangée serrée de cinq. Portées à 40 px par la règle tactile, elles
+      // occupaient deux lignes dans un slot qui en fait 110 ; dotées d'une cible
+      // de 44, elles se chevaucheraient et l'on choisirait le mauvais tick.
+      // C'est l'espacement du groupe qui protège du ratage.
+      data-cible-fine
       className={`rounded-full border px-2.5 py-0.5 text-micro font-mono font-semibold transition select-none
+        compact:px-2
         ${
           active
             ? 'bg-gradient-to-br from-star to-yellow-200 text-bg border-star'
@@ -536,7 +543,9 @@ function SlotContent({
 
   if (!monster) {
     return (
-      <div className="p-3 min-h-[150px] flex flex-col justify-center">
+      // ⚠️ `min-h` abaissée au doigt : trois slots empilés à 150 px font
+      // 450 px d'édition avant même le reste de la page.
+      <div className="flex min-h-[150px] flex-col justify-center p-3 compact:min-h-[110px] compact:p-2">
         <div className="flex items-center gap-1.5 mb-2">
           {isLeader && <Crown size={13} className="text-star" />}
           <span className="label">
@@ -569,8 +578,11 @@ function SlotContent({
   }
 
   return (
-    <div ref={cardRef} className="relative p-3 min-h-[150px] flex flex-col">
-      <div className="flex items-center gap-1.5 mb-2">
+    <div
+      ref={cardRef}
+      className="relative flex min-h-[150px] flex-col p-3 compact:min-h-[110px] compact:p-2"
+    >
+      <div className="mb-2 flex items-center gap-1.5 compact:mb-1">
         <button
           draggable
           onDragStart={handleDragStart}
@@ -584,7 +596,8 @@ function SlotContent({
         {isLeader && !monster.leaderSkill && <Crown size={13} className="text-star flex-none" />}
         <div className="relative flex-none">
           <div
-            className={`hex-frame w-[38px] h-[38px] p-[2px] bg-gradient-to-br ${GRADIENT[monster.element]}`}
+            className={`hex-frame w-[38px] h-[38px] p-[2px] bg-gradient-to-br
+              compact:w-[32px] compact:h-[32px] ${GRADIENT[monster.element]}`}
           >
             <div className="hex-frame w-full h-full bg-panel flex items-center justify-center overflow-hidden">
               {monster.image ? (
@@ -600,7 +613,9 @@ function SlotContent({
         </div>
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-1.5">
-            <span className="text-sm font-semibold leading-tight truncate">{monster.name}</span>
+            <span className="truncate text-sm font-semibold leading-tight compact:text-xs">
+              {monster.name}
+            </span>
             {slot.sets && slot.sets.length > 0 && (
               <span className="flex items-center gap-1 flex-none">
                 {slot.sets.slice(0, 3).map((s, i) => (
@@ -634,12 +649,18 @@ function SlotContent({
       </div>
 
       {/* Vitesse de combat, mise en avant */}
-      <div className="flex items-end justify-between mt-1">
+      <div className="mt-1 flex items-end justify-between compact:mt-0.5">
         <div>
-          <div className="font-mono text-[26px] font-black text-star leading-none">
+          {/* ⚠️ 26 px, le plus gros texte de l'app — justifié sur un écran large
+              où c'est LA valeur qu'on règle, excessif sur un slot de 110 px de
+              haut où il écrase tout le reste. 20 px au doigt : il reste le plus
+              gros du bloc, ce qui suffit à dire qu'il est le principal. */}
+          <div className="font-mono text-[26px] font-black leading-none text-star compact:text-[20px]">
             {combat ?? '—'}
           </div>
-          <div className="font-mono text-micro text-ink-dim mt-1">base {base ?? '—'}</div>
+          <div className="mt-1 font-mono text-micro text-ink-dim compact:mt-0.5">
+            base {base ?? '—'}
+          </div>
         </div>
         <label className="flex items-center gap-1.5">
           <span className="label">SPD :</span>
@@ -655,7 +676,7 @@ function SlotContent({
       </div>
 
       {/* Tick cible, propre à ce monstre */}
-      <div className="flex items-center gap-1.5 mt-2 flex-wrap">
+      <div className="mt-2 flex flex-wrap items-center gap-1.5 compact:mt-1 compact:gap-1">
         <TickBtn active={tick === 0} onClick={() => onTick(0)} label="Off" />
         {SIEGE_TICKS.map((t) => (
           <TickBtn
@@ -669,7 +690,7 @@ function SlotContent({
 
       {/* Retour tick : manque / surplus */}
       {diff !== null && (
-        <div className="mt-2">
+        <div className="mt-2 compact:mt-1">
           {diff < 0 ? (
             <span className="inline-flex items-center gap-1 rounded-md bg-fire/15 text-fire px-2 py-0.5 text-micro font-mono font-semibold">
               manque {-diff} pour {tick}
@@ -687,7 +708,7 @@ function SlotContent({
       )}
 
       {/* Position dans l'équipe (repli tactile du drag & drop) */}
-      <div className="flex items-center gap-1.5 mt-2 pt-2 border-t border-border/60">
+      <div className="mt-2 flex items-center gap-1.5 border-t border-border/60 pt-2 compact:mt-1 compact:pt-1">
         <span className="label">Position</span>
         <select
           value={idx}

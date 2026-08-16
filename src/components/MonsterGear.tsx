@@ -14,6 +14,7 @@ import {
   runeScore,
 } from '../lib/effects';
 import RuneWheel from './RuneWheel';
+import { COMPACT, useMediaQuery } from '../hooks/useMediaQuery';
 import ArtifactSlots from './ArtifactSlots';
 import StatPanel from './StatPanel';
 import { RUNE_METRICS, formatRuneMetric, useRuneMetric } from '../hooks/useRuneMetric';
@@ -47,7 +48,7 @@ function AncientMark({ size = 12, color = 'currentColor' }: { size?: number; col
 export function RuneDetailBox({
   rune,
   icone,
-  compact = false,
+  compact,
   cherches,
 }: {
   rune: RuneDetail;
@@ -55,13 +56,21 @@ export function RuneDetailBox({
   // l'en-tête. Fournie par l'appelant : la carte sert aussi dans un popover où
   // l'image est déjà à côté, sur la tuile qui l'a ouvert.
   icone?: ReactNode;
-  // Rendu resserré pour une TUILE de liste : corps réduits, interlignes et
-  // marges rognés. Le contenu reste le même — c'est la carte du jeu, et elle
-  // vaut d'être lue entière ; seule la place qu'elle prend change.
+  // Rendu resserré : corps réduits, interlignes et marges rognés. Le contenu
+  // reste le même — c'est la carte du jeu, et elle vaut d'être lue entière ;
+  // seule la place qu'elle prend change.
+  //
+  // ⚠️ **Par défaut, AU DOIGT.** La carte s'ouvre sous une rune du siège ou de
+  // la prépa RTA, écrans où elle est déjà le troisième niveau de détail : en
+  // pleine taille elle y occupait un demi-écran. Les tuiles de liste passent
+  // `true` explicitement, la fiche d'un monstre `false` — un appel explicite
+  // l'emporte toujours.
   compact?: boolean;
   // Codes recherchés → la ligne correspondante est surlignée (écho du filtre).
   cherches?: Set<number>;
 }) {
+  const auDoigt = useMediaQuery(COMPACT);
+  const resserre = compact ?? auDoigt;
   const rarity = RARITY_META[rune.rarity] ?? RARITY_META[1];
   const bonus = SET_BONUS[rune.set];
   const ancient = rune.rank > 10;
@@ -123,7 +132,7 @@ export function RuneDetailBox({
             : 'Voir les valeurs totales, meule comprise'
           : undefined
       }
-      className={`rounded-lg border border-border bg-panel2 ${compact ? 'p-2' : 'p-3'} ${
+      className={`rounded-lg border border-border bg-panel2 ${resserre ? 'p-2' : 'p-3'} ${
         aDeLaMeule ? 'cursor-pointer transition hoverable:border-accent' : ''
       }`}
     >
@@ -136,14 +145,14 @@ export function RuneDetailBox({
         <div className="min-w-0 flex-1">
           {/* stat principale + innée */}
           <div
-            className={`font-black text-ink leading-tight ${compact ? 'text-sm' : 'text-base'}`}
+            className={`font-black text-ink leading-tight ${resserre ? 'text-sm' : 'text-base'}`}
           >
             {formatRuneEffect(rune.main)}
           </div>
           {rune.innate && (
             <div
               className={`font-semibold text-water leading-tight ${
-                compact ? 'text-micro' : 'text-sm'
+                resserre ? 'text-micro' : 'text-sm'
               }`}
             >
               {formatRuneEffect(rune.innate)}
@@ -158,12 +167,12 @@ export function RuneDetailBox({
               jeu —, seule la place qu'ils prennent change. */}
           <span
             className={`inline-flex items-center gap-1 rounded font-bold uppercase ${
-              compact ? 'px-1.5 py-px text-micro' : 'px-2 py-0.5 text-micro tracking-wide'
+              resserre ? 'px-1.5 py-px text-micro' : 'px-2 py-0.5 text-micro tracking-wide'
             }`}
             style={{ background: rarity.bg, color: rarity.color }}
             title={ancient ? 'Rune antique' : undefined}
           >
-            {ancient && <AncientMark size={compact ? 10 : 12} color={rarity.color} />}
+            {ancient && <AncientMark size={resserre ? 10 : 12} color={rarity.color} />}
             {rarity.label}
           </span>
           {/* Mesure choisie globalement (sélecteur dans la liste des runes et en
@@ -183,7 +192,7 @@ export function RuneDetailBox({
           oblige l'œil à traverser du vide sur chaque ligne. */}
       <div
         className={`border-t border-border/40 ${
-          compact ? 'mt-1.5 space-y-px pt-1.5' : 'mt-2 space-y-1 pt-2'
+          resserre ? 'mt-1.5 space-y-px pt-1.5' : 'mt-2 space-y-1 pt-2'
         }`}
       >
         {rune.subs.map((s, i) => {
@@ -200,7 +209,7 @@ export function RuneDetailBox({
             <div
               key={i}
               className={`flex items-center gap-1 leading-tight ${
-                compact ? 'text-micro' : 'text-xs'
+                resserre ? 'text-micro' : 'text-xs'
               } ${vise ? '-mx-1 rounded border-l-2 border-accent bg-accent/[0.08] pl-[2px] pr-1' : ''}`}
             >
               {total ? (
@@ -234,7 +243,7 @@ export function RuneDetailBox({
       {bonus && (
         <div
           className={`border-t border-border/40 text-good ${
-            compact ? 'mt-1.5 pt-1.5 text-micro leading-tight' : 'mt-2 pt-2 text-xs'
+            resserre ? 'mt-1.5 pt-1.5 text-micro leading-tight' : 'mt-2 pt-2 text-xs'
           }`}
         >
           {bonus.pieces} Set : {bonus.label}
@@ -270,10 +279,14 @@ export function ArtifactDetailBox({ artifact }: { artifact: ArtifactDetail }) {
   const metric = useRuneMetric();
   return (
     // Fond opaque : carte affichée en popover, au-dessus de la grille.
-    <div className="rounded-lg border border-border bg-panel2 p-3">
+    <div className="rounded-lg border border-border bg-panel2 p-3 compact:p-2">
       {/* badge de rareté + SCORE, disposés comme sur la fiche du jeu : la
-          rareté, et le score juste en dessous. */}
-      <div className="flex flex-col items-end mb-1.5 gap-1">
+          rareté, et le score juste en dessous.
+          ⚠️ Sur UNE ligne au doigt : empilés, ils prenaient deux lignes rien
+          que pour eux, dans une carte qui s'ouvre déjà en troisième niveau de
+          détail sous un artéfact. Même correction que sur la carte de rune. */}
+      <div className="mb-1.5 flex flex-col items-end gap-1
+                      compact:mb-1 compact:flex-row compact:items-center compact:justify-end">
         <span
           className="rounded px-2 py-0.5 text-micro font-bold uppercase tracking-wide"
           style={{ background: rarity.bg, color: rarity.color }}
@@ -296,7 +309,9 @@ export function ArtifactDetailBox({ artifact }: { artifact: ArtifactDetail }) {
         </span>
       </div>
       {/* stat principale */}
-      <div className="text-base font-black text-ink leading-tight">{formatArtifactMain(artifact.main)}</div>
+      <div className="text-base font-black leading-tight text-ink compact:text-sm">
+        {formatArtifactMain(artifact.main)}
+      </div>
       {/* Substats, disposés comme dans le JEU : le nombre de PROCS dans une
           pastille à GAUCHE, puis le libellé dont la **valeur est teintée**
           différemment du texte qui l'entoure.
@@ -309,7 +324,7 @@ export function ArtifactDetailBox({ artifact }: { artifact: ArtifactDetail }) {
           const procs = s.rolls ?? 0;
           const { avant, valeur, apres } = splitArtifactSub(s);
           return (
-            <div key={j} className="flex items-start gap-1.5 text-xs leading-snug">
+            <div key={j} className="flex items-start gap-1.5 text-xs leading-snug compact:text-micro">
               {/* Pastille de procs : verte dès qu'une amélioration est tombée,
                   neutre à zéro — on repère les lignes travaillées d'un coup
                   d'œil, sans lire les chiffres. */}

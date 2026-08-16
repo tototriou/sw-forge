@@ -16,7 +16,14 @@ Fichiers : [SiegeTeam.tsx](src/components/siege/SiegeTeam.tsx) ·
   reçoit en prop et remonte le clic (`onToggleExpand`).
 
 ### Vue compacte (repliée)
-Une ligne par équipe, très basse : les **3 monstres** côte à côte. Chaque monstre
+Une ligne par équipe, très basse : les **3 monstres** côte à côte.
+
+⚠️ **Côte à côte À TOUTE largeur**, y compris sur téléphone. Ils s'y empilaient
+en colonne : trois cartes de 52 px plus les écarts, soit 170 px par équipe avant
+même l'en-tête — on voyait une équipe et demie là où le siège en compte huit à
+comparer. **Une équipe EST une rangée de trois** ; l'empiler défait ce qu'on
+vient lire. Sous `sm`, le portrait descend à 30 px et le nom à 11 px pour que
+les trois tiennent sur 348 px. Chaque monstre
 = portrait hexagonal + **icône d'élément** + (couronne si leader), puis un bloc
 texte **sur deux lignes** :
 
@@ -130,3 +137,26 @@ Idéale avec beaucoup d'équipes (import offense ~50).
 - Un monstre **perso** est sélectionnable comme les autres.
 - Vider/retirer un slot le remet à l'état vide (pas de décalage des autres).
 - Le nombre d'équipes est illimité ; chaque équipe est indépendante.
+
+## Densité sur téléphone
+
+La page empile jusqu'à huit équipes : tout rembourrage s'y paie autant de fois.
+Sous `sm` :
+
+| | Bureau | Mobile |
+|---|---|---|
+| Carte d'équipe | `p-4` | `p-2.5` |
+| Écart entre équipes | `gap-4` | `gap-2` |
+| Portrait en vue compacte | 36 px | 30 px |
+| Nom du monstre | 12 px | 11 px |
+| Titre « Équipe N » | 17 px | 15 px |
+| « Éditer » / « Supprimer » | Libellé + icône | Icône seule |
+
+⚠️ Les libellés des deux boutons d'en-tête tombent sous `sm` : la ligne y porte
+déjà le titre, la pastille d'état et la pastille de lead. Le crayon et la
+corbeille se reconnaissent seuls, et `aria-label` porte le sens complet.
+
+⚠️ Le sous-onglet **« Recommandations » devient « Recos »** sous `sm`. À sa
+longueur complète, les trois onglets ne tenaient pas sur une ligne et la rangée
+passait à la ligne — une navigation à trois entrées ne doit pas occuper deux
+lignes. C'est en outre le mot qu'on emploie.

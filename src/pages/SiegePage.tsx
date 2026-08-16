@@ -29,10 +29,27 @@ interface Props {
   onFermerMenu: () => void;
 }
 
-const SUB_TABS: { tab: SiegeTab; label: string; icon: typeof Shield; hash: string }[] = [
-  { tab: 'defense', label: 'Défense', icon: Shield, hash: '#/siege/defense' },
-  { tab: 'offense', label: 'Offense', icon: Swords, hash: '#/siege/offense' },
-  { tab: 'recos', label: 'Recommandations', icon: Lightbulb, hash: '#/siege/recommandations' },
+// ⚠️ `court` : « Recommandations » fait à lui seul près de la moitié d'une
+// largeur de téléphone. Les trois onglets ne tenaient pas sur une ligne et la
+// rangée passait à la ligne — une navigation à trois entrées ne doit pas
+// occuper deux lignes. « Recos » est le mot qu'on emploie, et le libellé complet
+// reste dans `aria-label` et dans la barre latérale sur bureau.
+const SUB_TABS: {
+  tab: SiegeTab;
+  label: string;
+  court: string;
+  icon: typeof Shield;
+  hash: string;
+}[] = [
+  { tab: 'defense', label: 'Défense', court: 'Défense', icon: Shield, hash: '#/siege/defense' },
+  { tab: 'offense', label: 'Offense', court: 'Offense', icon: Swords, hash: '#/siege/offense' },
+  {
+    tab: 'recos',
+    label: 'Recommandations',
+    court: 'Recos',
+    icon: Lightbulb,
+    hash: '#/siege/recommandations',
+  },
 ];
 
 // ⚠️ `copies6` est extrait explicitement : laissé dans `...boardProps`, il
@@ -54,8 +71,8 @@ export default function SiegePage({
       {/* ⚠️ Sous-onglets MOBILES seulement (`lg:hidden`) : au-dessus de `lg`,
           la barre latérale les porte déjà, et les répéter ici donnerait deux
           jeux de contrôles pour la même navigation. */}
-      <div className="mb-4 lg:hidden">
-        <nav className="inline-flex items-center gap-1 bg-panel border border-border rounded-xl p-1">
+      <div className="mb-3 sm:mb-4 lg:hidden">
+        <nav className="inline-flex items-center gap-0.5 sm:gap-1 rounded-xl border border-border bg-panel p-1">
           {SUB_TABS.map((t) => {
             const active = tab === t.tab;
             const Icon = t.icon;
@@ -63,7 +80,10 @@ export default function SiegePage({
               <a
                 key={t.tab}
                 href={t.hash}
-                className={`flex items-center gap-1.5 rounded-lg px-3.5 py-1.5 text-sm font-semibold transition
+                aria-label={t.label}
+                aria-current={active ? 'page' : undefined}
+                className={`flex items-center gap-1 sm:gap-1.5 rounded-lg px-2.5 py-1.5 text-xs
+                  font-semibold transition sm:px-3.5 sm:text-sm
                   ${
                     // Fond seul, sans fausse élévation — voir design.md.
                     active
@@ -71,7 +91,9 @@ export default function SiegePage({
                       : 'text-ink-dim hoverable:text-ink'
                   }`}
               >
-                <Icon size={14} /> {t.label}
+                <Icon size={14} className="flex-none" />
+                <span className="sm:hidden">{t.court}</span>
+                <span className="hidden sm:inline">{t.label}</span>
               </a>
             );
           })}

@@ -155,9 +155,12 @@ export default function SiegeTeam({
     status === 'red' ? 'bg-fire' : status === 'orange' ? 'bg-warn' : status === 'green' ? 'bg-good' : '';
 
   return (
-    <section className={`rounded-2xl border p-4 transition-colors ${sectionClass}`}>
-      <div className="flex items-center gap-2 mb-3 flex-wrap">
-        <h3 className="font-display text-lg tracking-wide">Équipe {index + 1}</h3>
+    // ⚠️ `p-2.5` sous `sm` : la page empile jusqu'à huit équipes, et chaque
+    // `p-4` coûte 32 px de haut multipliés par ce nombre — deux écrans de vide
+    // sur un téléphone.
+    <section className={`rounded-2xl border p-2.5 sm:p-4 transition-colors ${sectionClass}`}>
+      <div className="flex items-center gap-1.5 sm:gap-2 mb-2 sm:mb-3 flex-wrap">
+        <h3 className="font-display text-base sm:text-lg tracking-wide">Équipe {index + 1}</h3>
         {dotClass && <span className={`w-2 h-2 rounded-full ${dotClass}`} />}
         {/* Lead à côté du nom de l'équipe : la VALEUR doit être lisible sans
             déplier. Le badge posé sur le portrait du leader reste, lui : il dit
@@ -177,15 +180,22 @@ export default function SiegeTeam({
           }`}
           aria-expanded={expanded}
           title={expanded ? "Terminer l'édition" : "Éditer l'équipe"}
+          aria-label={expanded ? "Terminer l'édition" : "Éditer l'équipe"}
         >
-          <Pencil size={13} /> {expanded ? 'Terminer' : 'Éditer'}
+          {/* ⚠️ Le libellé tombe sous `sm` : l'en-tête y porte déjà le titre, la
+              pastille d'état et la pastille de lead. Le crayon et le ✓ se
+              reconnaissent seuls, et `title` porte le sens complet. */}
+          <Pencil size={13} />
+          <span className="hidden sm:inline">{expanded ? 'Terminer' : 'Éditer'}</span>
         </button>
         <button
           onClick={() => setSuppressionAConfirmer(true)}
           className="flex items-center gap-1.5 text-xs text-ink-dim hoverable:text-fire transition"
           title="Supprimer l'équipe"
+          aria-label="Supprimer l'équipe"
         >
-          <Trash2 size={13} /> Supprimer
+          <Trash2 size={13} />
+          <span className="hidden sm:inline">Supprimer</span>
         </button>
       </div>
 
@@ -264,8 +274,15 @@ export default function SiegeTeam({
         })}
       </div>
       ) : (
-        /* Vue compacte : cards des 3 monstres, clic = déplier le détail dessous */
-        <div className="flex flex-col sm:flex-row gap-1.5">
+        /* Vue compacte : cards des 3 monstres, clic = déplier le détail dessous.
+           ⚠️ **En RANGÉE dès le plus petit écran.** Elles s'empilaient sous
+           `sm` : trois cartes de 52 px plus les écarts, soit 170 px par équipe
+           avant même l'en-tête — on voyait une équipe et demie sur un
+           téléphone, là où le siège en compte huit à comparer. Une équipe EST
+           une rangée de trois, l'empiler défait ce qu'on vient lire.
+           Le portrait descend à 30 px et le nom passe en `text-micro` pour que
+           les trois tiennent sur 348 px. */
+        <div className="flex flex-row gap-1 sm:gap-1.5">
           {slotInfos.map(({ monster, combat }, idx) => {
             const danger = status === 'red' ? slotDangers[idx] : null;
             const sets = team.slots[idx].sets ?? [];
@@ -288,7 +305,8 @@ export default function SiegeTeam({
                       ? 'Voir le détail des runes'
                       : 'Modifier'
                 }
-                className={`flex-1 min-w-0 flex items-center gap-2 rounded-lg border px-2 py-1.5 text-left transition hoverable:border-accent ${
+                className={`flex-1 min-w-0 flex items-center gap-1 sm:gap-2 rounded-lg border
+                  px-1 py-1 sm:px-2 sm:py-1.5 text-left transition hoverable:border-accent ${
                   active
                     ? // Bordure seule, sans anneau superposé — voir design.md.
                       'border-accent bg-panel2'
@@ -301,7 +319,8 @@ export default function SiegeTeam({
                   <>
                     <div className="relative flex-none">
                       <div
-                        className={`hex-frame w-[36px] h-[36px] p-[2px] bg-gradient-to-br ${GRADIENT[monster.element]}`}
+                        className={`hex-frame w-[30px] h-[30px] sm:w-[36px] sm:h-[36px] p-[2px]
+                          bg-gradient-to-br ${GRADIENT[monster.element]}`}
                       >
                         <div className="hex-frame w-full h-full bg-panel flex items-center justify-center overflow-hidden">
                           {monster.image ? (
@@ -328,11 +347,14 @@ export default function SiegeTeam({
                         finissait sous les icônes de set. Ligne 2 = vitesse à
                         gauche, sets poussés à droite. */}
                     <div className="min-w-0 flex-1">
-                      <div className="text-xs font-semibold leading-tight truncate">{monster.name}</div>
+                      <div className="text-micro sm:text-xs font-semibold leading-tight truncate">
+                        {monster.name}
+                      </div>
                       <div className="mt-0.5 flex items-center gap-1">
-                        <img src={SPD_ICON} alt="SPD" width={14} height={14} className="flex-none" />
+                        <img src={SPD_ICON} alt="SPD" width={12} height={12} className="flex-none sm:hidden" />
+                        <img src={SPD_ICON} alt="" width={14} height={14} className="hidden flex-none sm:block" />
                         <span
-                          className={`font-mono text-base font-black leading-none flex-none ${
+                          className={`font-mono text-sm sm:text-base font-black leading-none flex-none ${
                             danger ? 'text-fire' : 'text-ink'
                           }`}
                         >

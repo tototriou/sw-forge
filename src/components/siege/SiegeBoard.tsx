@@ -198,7 +198,10 @@ export default function SiegeBoard({
       ) : (
         // 2 équipes par ligne sur grand écran ; une équipe en édition reprend
         // toute la largeur. `items-start` évite d'étirer les cartes basses.
-        <div className="mt-6 grid grid-cols-1 xl:grid-cols-2 gap-4 items-start">
+        // ⚠️ Écarts réduits sous `sm` : la page empile jusqu'à huit équipes, et
+        // chaque `gap-4` se paie autant de fois — un écran entier de vide sur un
+        // téléphone.
+        <div className="mt-3 grid grid-cols-1 gap-2 items-start sm:mt-6 sm:gap-4 xl:grid-cols-2">
           {siege.state.teams.map((team, i) => (
             <div
               key={team.id}

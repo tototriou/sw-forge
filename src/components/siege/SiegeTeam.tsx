@@ -181,7 +181,14 @@ export default function SiegeTeam({
             onToggleExpand(team.id);
             setDetailIdx(null);
           }}
-          className={`ml-auto flex items-center gap-1.5 rounded-md border px-2.5 py-1 text-xs font-semibold transition ${
+          // ⚠️ **Carré au doigt, avec libellé à la souris.** Réduit à son
+          // icône sous `sm` (voir plus bas), il gardait un rembourrage
+          // horizontal calculé pour un mot : la règle tactile le portait à
+          // 40 px de haut pour 34 de large, et le crayon flottait dans un
+          // rectangle vertical. `aspect-square` + `h-8` lui rendent une forme,
+          // et la règle l'élargit alors autant qu'elle le grandit.
+          className={`ml-auto flex aspect-square h-8 items-center justify-center rounded-md border
+            text-xs font-semibold transition sm:aspect-auto sm:h-auto sm:gap-1.5 sm:px-2.5 sm:py-1 ${
             expanded
               ? 'border-accent bg-panel2 text-ink'
               : 'border-border bg-panel text-ink hoverable:border-accent'
@@ -198,7 +205,14 @@ export default function SiegeTeam({
         </button>
         <button
           onClick={() => setSuppressionAConfirmer(true)}
-          className="flex items-center gap-1.5 text-xs text-ink-dim hoverable:text-fire transition"
+          // ⚠️ Même traitement : sans forme propre, la corbeille se retrouvait
+          // seule au milieu d'un rectangle de 40 px de haut. Bordure discrète
+          // sous `sm` pour qu'elle se lise comme un bouton et non comme une
+          // icône posée là — à côté d'un « Éditer » encadré, une icône nue
+          // paraissait décorative.
+          className="flex aspect-square h-8 items-center justify-center rounded-md border border-border
+                     text-xs text-ink-dim transition hoverable:text-fire
+                     sm:aspect-auto sm:h-auto sm:gap-1.5 sm:border-0"
           title="Supprimer l'équipe"
           aria-label="Supprimer l'équipe"
         >

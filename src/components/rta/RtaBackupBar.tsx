@@ -111,10 +111,16 @@ function depuis(iso: string): string {
 // complet, chacune portée à 40 px de haut par la règle tactile, remplissaient
 // l'écran d'un téléphone : trois rangées de boutons avant d'atteindre la prépa.
 // Rien n'est perdu — l'intitulé reste au survol et au lecteur d'écran.
+// ⚠️ **Carré sous `sm`, où le libellé tombe.** Sans forme propre, ces boutons
+// gardaient un rembourrage horizontal calculé pour un mot : la règle tactile
+// les portait à 40 px de haut pour ~34 de large, et l'icône flottait dans un
+// rectangle vertical. `aspect-square` leur rend une forme — et la règle les
+// élargit alors autant qu'elle les grandit (voir index.css).
 const BOUTON =
-  'flex items-center gap-1.5 rounded-lg border border-border bg-panel px-2.5 py-1.5 ' +
+  'flex aspect-square h-9 items-center justify-center rounded-lg border border-border bg-panel ' +
   'text-xs text-ink-dim hoverable:text-ink hoverable:border-accent transition ' +
-  'disabled:opacity-40 disabled:cursor-not-allowed sm:px-3';
+  'disabled:opacity-40 disabled:cursor-not-allowed ' +
+  'sm:aspect-auto sm:h-auto sm:gap-1.5 sm:px-3 sm:py-1.5';
 
 export default function RtaBackupBar({
   rta,

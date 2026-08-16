@@ -538,7 +538,16 @@ sur une rangée de filtres serrée on active le **voisin**.
   interface, et on ne retrouve plus ce qu'on connaît.
 - ⚠️ Les boutons **carrés** (icône seule) portent `aspect-square` et gagnent
   aussi en largeur : agrandis en hauteur seulement, ils devenaient des
-  rectangles avec l'icône flottant dans un vide vertical. Le marqueur est
+  rectangles avec l'icône flottant dans un vide vertical.
+- ⚠️ **Un bouton qui PERD son libellé sous `sm` doit devenir carré**
+  (`aspect-square h-8`, puis `sm:aspect-auto sm:h-auto` au-dessus). Sans cela il
+  garde un rembourrage horizontal calculé pour un mot qui n'est plus là : la
+  règle le porte à 40 px de haut pour ~34 de large, et l'icône flotte. C'est le
+  défaut qu'avaient « Éditer » / « Supprimer » d'une équipe de siège et les six
+  boutons de la barre RTA.
+- ⚠️ …mais dans le **panneau d'actions mobile**, le libellé revient (voir
+  navigation.md) : la règle `[data-tiroir] button.aspect-square` relâche alors la
+  contrainte de forme, sinon le mot déborderait d'un carré. Le marqueur est
   `aspect-square` et non `.h-8` — un sélecteur sur le nom de classe Tailwind
   aurait cassé au premier ajustement de taille.
 #### Quand la taille EST le dessin

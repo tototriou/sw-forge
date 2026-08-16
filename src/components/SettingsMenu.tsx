@@ -171,7 +171,10 @@ export default function SettingsMenu({
         <div
           // Ancré à DROITE de son bouton, donc origine en haut à droite : le
           // menu sort de l'engrenage, pas de son propre centre.
-          className="absolute z-30 right-0 mt-1.5 w-fit min-w-[260px] rounded-xl border border-border bg-panel px-3 py-2 shadow-glow shadow-black/60
+          // ⚠️ `max-w-[calc(100vw-2rem)]` : ancré à droite de son bouton, le
+          // popover sortait de l'écran sur un téléphone — les réglages les plus
+          // à gauche devenaient inatteignables. `min-w` seul ne borne rien.
+          className="absolute z-30 right-0 mt-1.5 w-fit min-w-[260px] max-w-[calc(100vw-2rem)] rounded-xl border border-border bg-panel px-3 py-2 shadow-glow shadow-black/60
                      origin-top-right animate-[popover_150ms_var(--ease-out)]"
         >
           <div className="flex items-baseline gap-3 border-b border-border pb-1.5">

@@ -368,6 +368,9 @@ export default function OptimizerSection({ box, runes, optimizer }: Props) {
   }
 
   return (
+    // ⚠️ 768 px : l'optimiseur est une SUITE DE RÉGLAGES qu'on lit de haut en
+    // bas, pas un tableau. Étalé sur tout l'écran, chaque ligne « libellé …
+    // champ » devenait un aller-retour du regard.
     <div className="max-w-3xl space-y-5">
       {/* ⚠️ Pas de `useStickyState`/case à fermer, contrairement à
           MobileNotice : ce n'est pas un avertissement ponctuel mais un statut
@@ -550,7 +553,9 @@ export default function OptimizerSection({ box, runes, optimizer }: Props) {
             TOUJOURS plus large qu'un champ sans suffixe à largeur de texte
             égale (le suffixe prend de la place en plus), et les colonnes
             Min/Max ne s'aligneraient pas d'une stat à l'autre. */}
-        <div className="grid grid-cols-[minmax(90px,auto)_auto_auto] gap-y-1.5 gap-x-4 items-center">
+        {/* ⚠️ `gap-x` réduit sous `sm` : trois colonnes plus deux écarts de
+            16 px ne laissaient plus de place aux champs sur 348 px utiles. */}
+        <div className="grid grid-cols-[minmax(76px,auto)_auto_auto] items-center gap-x-2 gap-y-1.5 sm:grid-cols-[minmax(90px,auto)_auto_auto] sm:gap-x-4">
           {RECO_STATS.map((st) => {
             const affectedByToggle = BASE_TOGGLE_STATS.has(st.key);
             const base = baseOf(st.key);
@@ -987,7 +992,7 @@ export default function OptimizerSection({ box, runes, optimizer }: Props) {
               cartes affichent stats + artéfacts + roue sur une seule LIGNE
               (voir BuildCandidateCard.tsx), calibrées pour tenir dans cette
               largeur (`WHEEL_SCALE`/`ARTIFACT_SCALE` = 0,45). */}
-          <div className="grid grid-cols-[repeat(auto-fill,minmax(360px,1fr))] gap-3">
+          <div className="grid grid-cols-[repeat(auto-fill,minmax(min(360px,100%),1fr))] gap-3">
             {sortedCandidates.map((c, i) => (
               <BuildCandidateCard
                 key={c.runeIds.join('-')}

@@ -100,9 +100,13 @@ export default function BuildCandidateCard({
           compacte, en ligne plutôt qu'empilée verticalement (demande
           explicite : « les runes et les artefacts affichés à droite de la
           fiche de statistiques »). */}
-      <div className="flex items-center justify-center gap-2">
+      {/* ⚠️ EN PILE sous `sm` : la table de stats, les artéfacts et la roue de
+          runes tiennent sur une ligne à partir de 360 px de carte, pas en
+          dessous — les trois blocs s'y écrasaient jusqu'à devenir illisibles.
+          Empilés, chacun garde sa taille de lecture. */}
+      <div className="flex flex-col items-center justify-center gap-2 sm:flex-row">
         <StatPanel stats={candidate.stats} />
-        <div className="flex items-center gap-1 flex-none">
+        <div className="flex flex-none items-center gap-1">
           <ArtifactSlots
             artifacts={artifacts}
             scale={ARTIFACT_SCALE}

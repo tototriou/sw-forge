@@ -447,7 +447,7 @@ export default function RunesOptim({ runes, crafts }: Props) {
 
       {/* Clé POSITIONNELLE : la tuile est réutilisée d'une page/d'un tri à
           l'autre, donc le cadre de rune pivote vers son nouveau slot (voir SPIN). */}
-      <div className="grid grid-cols-[repeat(auto-fill,minmax(230px,1fr))] gap-2 items-start">
+      <div className="grid grid-cols-[repeat(auto-fill,minmax(min(230px,100%),1fr))] gap-2 items-start">
         {shown.map((row, i) => (
           <OptimTile
             key={i}

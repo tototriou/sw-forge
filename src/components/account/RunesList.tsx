@@ -230,7 +230,7 @@ export default function RunesList({ runes }: Props) {
           rareté passe SOUS la stat principale — chaque tuile gagne alors une
           ligne, l'inverse du but. La bannière est resserrée en mode compact
           justement pour descendre jusque-là (voir RuneDetailBox). */}
-      <div className="grid grid-cols-[repeat(auto-fill,minmax(215px,1fr))] gap-2 items-start">
+      <div className="grid grid-cols-[repeat(auto-fill,minmax(min(215px,100%),1fr))] gap-2 items-start">
         {shown.map((row, i) => (
           <RuneTile key={i} row={row} cherches={cherches} />
         ))}

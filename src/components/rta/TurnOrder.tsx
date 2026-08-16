@@ -398,7 +398,13 @@ export default function TurnOrder({
           Ajoute des monstres pour visualiser l'ordre de tour.
         </div>
       ) : (
-        <div className="flex flex-wrap gap-2.5 pb-3">
+        // ⚠️ **Une seule ligne qui DÉFILE sous `sm`**, pas un retour à la
+        // ligne. L'ordre de tour est une SÉQUENCE : replié sur deux ou trois
+        // rangées, on ne lit plus qui joue avant qui — c'est précisément
+        // l'information de cet écran. On le fait donc glisser du doigt.
+        // Au-dessus de `sm`, la largeur suffit et le retour à la ligne évite
+        // un défilement inutile.
+        <div className="flex gap-2.5 overflow-x-auto pb-3 sm:flex-wrap sm:overflow-visible">
           {ordered.map((it, i) => {
             const eff = effective(it, lead);
             const m = it.monster;

@@ -200,8 +200,14 @@ export default function CurveChart({
     setChoisi((cur) => (cur && cur.rang === hover ? null : { rang: hover }));
   }
 
+  // ⚠️ **Largeur BORNÉE et centrée.** Le graphe suit son conteneur, et depuis
+  // que le contenu occupe tout l'écran il s'étirait sur 2 000 px : la courbe
+  // s'aplatissait jusqu'à devenir une ligne droite, et les écarts entre runes —
+  // la seule chose qu'on vient y lire — disparaissaient.
+  // 980 px : au-delà, l'amplitude verticale ne suit plus la largeur (le
+  // `viewBox` est à ratio fixe) et chaque pixel gagné écrase la lecture.
   return (
-    <div className="rounded-xl border border-border bg-panel/50 p-2">
+    <div className="mx-auto w-full max-w-[980px] rounded-xl border border-border bg-panel/50 p-2">
       <svg
         ref={svgRef}
         viewBox={`0 0 ${W} ${H}`}

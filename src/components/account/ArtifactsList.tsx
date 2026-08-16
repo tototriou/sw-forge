@@ -472,7 +472,7 @@ export default function ArtifactsList({ artifacts }: Props) {
         </p>
       )}
 
-      <div className="grid grid-cols-[repeat(auto-fill,minmax(240px,1fr))] gap-2 items-start">
+      <div className="grid grid-cols-[repeat(auto-fill,minmax(min(240px,100%),1fr))] gap-2 items-start">
         {shown.map((row) => (
           <ArtTile
             key={row.id}

@@ -179,6 +179,24 @@ déconnexion, quand les comptes vivront en base).
 Avant cette refonte, **toute l'application comptait 8 occurrences de
 breakpoints** et aucune barre de navigation mobile.
 
+La passe qui a suivi a corrigé quatre familles de défauts :
+
+- ⚠️ **`minmax(360px, 1fr)` déborde** sur 348 px utiles : une colonne ne peut
+  pas descendre sous son minimum. `minmax(min(360px, 100%), 1fr)` prend la plus
+  petite des deux — le minimum voulu, ou toute la largeur.
+- ⚠️ **L'ordre de tour DÉFILE** au lieu de passer à la ligne. C'est une
+  *séquence* : replié sur trois rangées, on ne lit plus qui joue avant qui —
+  précisément l'information de cet écran.
+- ⚠️ **La carte de build s'empile** sous `sm` : table de stats, artéfacts et
+  roue de runes tiennent sur une ligne à partir de 360 px de carte, pas en
+  dessous.
+- ⚠️ **Les popovers ancrés à droite** ont besoin d'un `max-w-[calc(100vw-2rem)]` :
+  `min-w` seul ne borne rien, et le menu sortait de l'écran.
+
+⚠️ **`overflow-x: hidden` sur le `body` n'est PAS une correction** : il masque
+le débordement au lieu de le résoudre, et rend le contenu coupé inatteignable.
+Il reste comme garde-fou de dernier recours, jamais comme réponse.
+
 ## Accent contextuel — `--ctx`
 
 L'idée directrice de la refonte : **l'élément du monstre consulté teinte
@@ -302,3 +320,5 @@ les tableaux de runes et l'optimiseur y gagnent une à deux colonnes.
 | Mécaniques | 1100 px | Texte suivi — une ligne de 2 000 px se lit mal, l'œil perd le début de la suivante |
 | Nouveautés | 900 px | Liste de textes courts lus de haut en bas |
 | Paramètres | 620 px | Lignes « intitulé / contrôle » |
+| Optimiseur | 768 px | Suite de réglages lus de haut en bas — étalée, chaque ligne « libellé … champ » devenait un aller-retour du regard |
+| Courbes | 980 px | ⚠️ Le graphe suit son conteneur : sur 2 000 px la courbe s'aplatissait jusqu'à la ligne droite, et les écarts entre runes — la seule chose qu'on vient y lire — disparaissaient |

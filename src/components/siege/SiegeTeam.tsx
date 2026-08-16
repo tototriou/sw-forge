@@ -587,7 +587,13 @@ function SlotContent({
           draggable
           onDragStart={handleDragStart}
           onDragEnd={onDragEnd}
-          className="cursor-grab active:cursor-grabbing text-ink-dim hoverable:text-ink touch-none"
+          // ⚠️ **Masquée au DOIGT** (`coarse:hidden`) : le glisser-déposer HTML5
+          // n'y fonctionne pas, et le sélecteur « Position » en bas du slot fait
+          // déjà le travail. Elle prenait 15 px de large sur une ligne qui porte
+          // aussi le portrait, le nom, les sets et la croix.
+          // Même traitement que la poignée d'une carte RTA (voir RtaCard).
+          className="cursor-grab active:cursor-grabbing text-ink-dim hoverable:text-ink
+                     touch-none coarse:hidden"
           title="Glisser pour intervertir"
           aria-label="Déplacer"
         >
@@ -718,7 +724,12 @@ function SlotContent({
           value={idx}
           onChange={(e) => onMoveTo(Number(e.target.value))}
           title="Changer la position (intervertir les monstres)"
-          className="bg-panel border border-border rounded-md px-1.5 py-0.5 text-micro text-ink-dim
+          // ⚠️ `data-cible-fine` : la règle tactile portait ce sélecteur à 40 px
+          // de haut, dans un slot qui en fait 110 — il y pesait autant que la
+          // vitesse qu'on vient régler. Il occupe toute la largeur restante de
+          // sa ligne : rien d'autre à toucher autour, donc rien à rater.
+          data-cible-fine
+          className="rounded-md border border-border bg-panel px-1.5 py-0.5 text-micro text-ink-dim
                      outline-none focus:border-accent"
         >
           <option value={0}>1 · Leader</option>

@@ -138,6 +138,19 @@ Idéale avec beaucoup d'équipes (import offense ~50).
 - Vider/retirer un slot le remet à l'état vide (pas de décalage des autres).
 - Le nombre d'équipes est illimité ; chaque équipe est indépendante.
 
+## Le slot en édition, sur téléphone
+
+⚠️ La **poignée de glissement est masquée au doigt** (`coarse:hidden`) : le
+glisser-déposer HTML5 n'y fonctionne pas, et le sélecteur « Position » en bas du
+slot fait déjà le travail. Elle prenait 15 px sur une ligne qui porte aussi le
+portrait, le nom, les sets et la croix. Même traitement que la poignée d'une
+carte RTA.
+
+⚠️ Le **sélecteur de position** est exempté de la règle tactile
+(`data-cible-fine`) : porté à 40 px dans un slot qui en fait 110, il pesait
+autant que la vitesse qu'on vient régler. Il occupe toute la largeur restante de
+sa ligne — rien d'autre à toucher autour, donc rien à rater.
+
 ## Densité sur téléphone
 
 La page empile jusqu'à huit équipes : tout rembourrage s'y paie autant de fois.

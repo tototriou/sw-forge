@@ -349,8 +349,14 @@ export default function RecoCard({
               se lire comme UNE barre d'outils, pas comme trois actions éparses.
               Le sens passe par l'infobulle et l'`aria-label` ; l'édition active se
               lit au ✓ doré. */}
+          {/* ⚠️ `data-cible-fine` sur les trois, SANS zone tactile étendue :
+              `gap-0.5` les sépare de 2 px. La règle globale les étirait en
+              ovales de 24 × 40, et une cible de 44 px les ferait se chevaucher —
+              on supprimerait la recommandation en voulant l'exporter. C'est le
+              cas de voisinage serré décrit dans spec/shared/design.md. */}
           <div className="flex items-center gap-0.5 -mr-1">
             <button
+              data-cible-fine
               onClick={() => onExport(reco)}
               className="flex items-center justify-center w-6 h-6 text-ink-dim hoverable:text-ink transition"
               title="Exporter cette recommandation (tous ses decks)"
@@ -359,6 +365,7 @@ export default function RecoCard({
               <Upload size={13} />
             </button>
             <button
+              data-cible-fine
               onClick={() => onToggleEdit(reco.id)}
               className={`flex items-center justify-center w-6 h-6 transition ${
                 editing ? 'text-star' : 'text-ink-dim hoverable:text-ink'
@@ -370,6 +377,7 @@ export default function RecoCard({
               {editing ? <Check size={14} /> : <Pencil size={13} />}
             </button>
             <button
+              data-cible-fine
               onClick={() => setSuppressionAConfirmer(true)}
               className="flex items-center justify-center w-6 h-6 text-ink-dim hoverable:text-fire transition"
               title="Supprimer cette recommandation"
@@ -1099,8 +1107,10 @@ function DeckBlock({
 
         {/* Édition PROPRE au deck (monstres, sets, stats, consignes) : icônes
             nues et resserrées, comme dans l'en-tête de la recommandation. */}
+        {/* ⚠️ `data-cible-fine` : même voisinage serré que l'en-tête ci-dessus. */}
         <div className="ml-auto flex items-center gap-0.5">
           <button
+            data-cible-fine
             onClick={onToggleEdit}
             className={`flex items-center justify-center w-6 h-6 transition ${
               editing ? 'text-star' : 'text-ink-dim hoverable:text-ink'
@@ -1113,6 +1123,7 @@ function DeckBlock({
           </button>
           {editing && (
             <button
+              data-cible-fine
               onClick={() => setDeckAConfirmer(true)}
               className="flex items-center justify-center w-6 h-6 text-ink-dim hoverable:text-fire transition"
               title="Supprimer ce deck"
@@ -1627,6 +1638,10 @@ function CounterRow({
             où il n'y a pas de survol — voir la règle « un élément atteignable
             ne dépend jamais du survol » de spec/shared/design.md. */}
         <button
+          // ⚠️ `data-cible-fine` : posé SUR le coin de la vignette, hors du
+          // flux. Agrandi, il la déborde et recouvre le portrait — même cas que
+          // la croix de suppression d'une carte RTA.
+          data-cible-fine
           onClick={onToggleEdit}
           className="absolute -right-1 -top-1 z-10 flex h-5 w-5 items-center justify-center rounded-full
                      border border-border bg-panel text-ink-dim opacity-0 transition
@@ -2132,6 +2147,9 @@ function SetEditor({
                       : `${st.label} — ${setPieces(st.key)} runes : il ne reste pas la place`
                   }
                   aria-label={st.label}
+                  // ⚠️ `data-cible-fine` : grille serrée d'icônes de set, où une
+                  // cible de 44 px déborderait sur la voisine.
+                  data-cible-fine
                   className={`flex items-center justify-center w-8 h-8 rounded-md border transition
                     ${
                       fits

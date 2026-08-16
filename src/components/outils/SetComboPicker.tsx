@@ -71,6 +71,10 @@ export default function SetComboPicker({ sets, onChange }: Props) {
                     if (!RUNE_SETS.some((st) => canAddSet(next, st.key))) setOpen(false);
                   }}
                   title={s.label}
+                  // ⚠️ `data-cible-fine` : grille serrée d'icônes de set, où
+                  // une cible de 44 px déborderait sur la voisine. L'icône reste
+                  // reconnaissable à 32 px, c'est ce qui compte.
+                  data-cible-fine
                   className="flex items-center justify-center w-8 h-8 rounded-lg border border-border bg-panel2
                              transition hoverable:border-accent disabled:opacity-25 disabled:cursor-not-allowed"
                 >

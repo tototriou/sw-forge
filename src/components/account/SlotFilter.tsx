@@ -36,6 +36,11 @@ export default function SlotFilter({
               key={n}
               onClick={() => toggle(n)}
               aria-pressed={active}
+              // ⚠️ `data-cible-fine`, sans zone étendue : six pastilles alignées
+              // à `gap-0.5`. Des cibles de 44 px se chevaucheraient et on
+              // filtrerait le mauvais emplacement. C'est l'ESPACEMENT du groupe
+              // qui protège du ratage — même choix que SetFilter juste à côté.
+              data-cible-fine
               className={`w-7 h-7 rounded-md border text-xs font-mono font-semibold transition select-none
                 ${
                   active

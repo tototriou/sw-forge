@@ -236,6 +236,11 @@ function Borne({
         if (!/^\d+$/.test(brut)) return; // frappe invalide ignorée
         onChange(Number(brut));
       }}
+      // ⚠️ `data-cible-fine` : ce champ de 22 px est posé DANS une ligne de
+      // critère, aligné sur un libellé et une case. Porté à 40 px par la règle
+      // tactile, il déformait la ligne entière — et il n'est pas la cible qu'on
+      // vise en premier, c'est la case à cocher à côté qui l'est.
+      data-cible-fine
       className="h-[22px] w-[52px] rounded border border-border bg-panel px-1 text-center
                  font-mono text-micro text-ink outline-none transition tabular-nums
                  placeholder:text-ink-dim focus:border-accent

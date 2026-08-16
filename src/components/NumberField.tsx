@@ -59,6 +59,11 @@ export default function NumberField({
 
   const bouger = (delta: number) => onChange(borne((value ?? 0) + delta));
 
+  // ⚠️ `data-cible-fine` (posé sur chaque bouton) : ces deux flèches sont
+  // EMPILÉES et collées, à l'intérieur du cadre du champ. La règle tactile les
+  // portait à 40 px chacune, soit 80 px de haut pour un champ qui en fait 28 —
+  // le cadre éclatait. Une zone étendue les ferait se chevaucher : on
+  // incrémenterait en voulant décrémenter.
   const btn =
     'flex h-7 w-6 flex-none items-center justify-center text-ink-dim transition hoverable:text-ink hoverable:bg-panel2 disabled:opacity-30';
 
@@ -72,6 +77,7 @@ export default function NumberField({
         type="button"
         onClick={() => bouger(-step)}
         disabled={disabled || (min != null && (value ?? 0) <= min)}
+        data-cible-fine
         className={`${btn} border-r border-border`}
         aria-label="Diminuer"
         tabIndex={-1}
@@ -113,6 +119,7 @@ export default function NumberField({
         type="button"
         onClick={() => bouger(step)}
         disabled={disabled || (max != null && (value ?? 0) >= max)}
+        data-cible-fine
         className={`${btn} border-l border-border`}
         aria-label="Augmenter"
         tabIndex={-1}

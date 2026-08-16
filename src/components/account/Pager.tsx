@@ -40,8 +40,12 @@ export default function Pager({
     onChange(cible);
   };
 
+  // ⚠️ `cible-tactile` : ces flèches font 28 px et la règle tactile globale les
+  // étirerait en rectangles de 28 × 40 — elle n'élargit que ce qui porte
+  // `aspect-square`. Le pseudo-élément leur rend 44 px de zone touchable sans
+  // toucher au dessin ; l'écart de 6 px entre elles suffit à les distinguer.
   const arrow =
-    'flex items-center justify-center w-7 h-7 rounded-lg border border-border bg-panel ' +
+    'cible-tactile flex items-center justify-center w-7 h-7 rounded-lg border border-border bg-panel ' +
     'hoverable:text-ink hoverable:border-accent transition disabled:opacity-30 disabled:cursor-not-allowed';
 
   return (
@@ -49,6 +53,7 @@ export default function Pager({
       <button
         onClick={() => onChange(Math.max(0, page - 1))}
         disabled={page === 0}
+        data-cible-fine
         className={arrow}
         aria-label="Page précédente"
         title="Page précédente"
@@ -79,6 +84,7 @@ export default function Pager({
       <button
         onClick={() => onChange(Math.min(pageCount - 1, page + 1))}
         disabled={page >= pageCount - 1}
+        data-cible-fine
         className={arrow}
         aria-label="Page suivante"
         title="Page suivante"

@@ -340,7 +340,11 @@ export default function RunesOptim({ runes, crafts }: Props) {
             aria-expanded={showHelp}
             aria-label="Comment est-ce calculé ?"
             title="Comment est-ce calculé ?"
-            className={`flex items-center justify-center w-8 h-8 rounded-full border transition
+            // ⚠️ Cercle de 32 px : la règle tactile en ferait un ovale de
+            // 32 × 40. Exempté, avec une zone touchable rendue par le
+            // pseudo-élément — comme HelpPopover, dont c'est le jumeau.
+            data-cible-fine
+            className={`cible-tactile flex items-center justify-center w-8 h-8 rounded-full border transition
               ${showHelp ? 'bg-accent-soft border-accent text-ink' : 'bg-panel border-border text-ink-dim hoverable:text-ink hoverable:border-accent'}`}
           >
             <HelpCircle size={18} />

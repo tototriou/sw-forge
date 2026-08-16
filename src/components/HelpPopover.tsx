@@ -41,7 +41,13 @@ export default function HelpPopover({
         aria-expanded={open}
         aria-label={ariaLabel ?? title}
         title={ariaLabel ?? title}
-        className={`flex items-center justify-center w-6 h-6 rounded-full border transition
+        // ⚠️ `data-cible-fine` + `.cible-tactile` : ce bouton est un CERCLE de
+        // 24 px, et la règle tactile globale (40 px de haut, voir index.css) en
+        // faisait un ovale vertical — elle n'élargit que ce qui porte
+        // `aspect-square`. Le pseudo-élément lui rend une zone touchable de
+        // 44 px sans toucher au dessin. Voir spec/shared/design.md.
+        data-cible-fine
+        className={`cible-tactile flex items-center justify-center w-6 h-6 rounded-full border transition
           ${open ? 'bg-accent-soft border-accent text-ink' : 'bg-panel/80 border-border text-ink-dim hoverable:text-ink hoverable:border-accent'}`}
       >
         <HelpCircle size={14} />

@@ -338,16 +338,18 @@ html {
   /* ⚠️ **Pas de « tirer pour recharger ».** Arrivé en haut, un geste vers le bas
      rechargeait l'app sur iOS et Android — qui n'a pourtant rien à rafraîchir
      depuis un serveur, tout étant local : on perdait l'état courant pour rien.
-     `contain` bloque le geste au bord SANS empêcher le défilement normal, à ne
-     pas confondre avec `none` qui coupe aussi l'élan.
+     ⚠️ **`none` et non `contain`.** `contain` n'empêche que la PROPAGATION du
+     geste à un parent — sur l'élément racine, qui n'en a pas, il ne bloque donc
+     rien du tout : le rechargement se déclenchait encore, juste avant que le
+     contenu n'atteigne le haut. `none` interdit en plus le geste au bord, ce
+     qui est exactement ce qu'on veut ici.
+     Le seul effet de bord est la disparition du rebond élastique en haut et en
+     bas — un ornement, à comparer avec la perte de l'état courant à chaque
+     remontée un peu vive.
 
      ⚠️ **Sur `html`, l'élément qui DÉFILE ici** — et non sur `body`, où la
-     propriété n'a aucun effet puisque ce n'est pas lui qui défile. C'est ce qui
-     avait fait réapparaître le rechargement après la correction de la molette.
-     Elle cohabite sans problème avec `overflow-x` sur le même élément : c'est
-     leur présence sur `body` qui en faisait un second conteneur de défilement,
-     pas leur voisinage ici. */
-  overscroll-behavior-y: contain;
+     propriété n'a aucun effet puisque ce n'est pas lui qui défile. */
+  overscroll-behavior-y: none;
 }
 @media (prefers-color-scheme: dark) {
   html:not([data-theme='light']) {

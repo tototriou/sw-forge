@@ -355,8 +355,14 @@ rechargeait l'app — qui n'a pourtant rien à rafraîchir depuis un serveur, to
 étant local. On perdait l'état courant (une prépa en cours d'édition, un panneau
 ouvert) pour rien, chaque fois qu'on remontait un peu trop vite.
 
-⚠️ `contain` et non `none` : le second coupe aussi l'élan du défilement et rend
-la page raide au doigt.
+⚠️ **`none` et non `contain`.** `contain` n'empêche que la *propagation* du geste
+à un parent ; sur l'élément racine, qui n'en a pas, il ne bloque donc rien — le
+rechargement se déclenchait encore, juste avant que le contenu n'atteigne le
+haut. `none` interdit en plus le geste au bord.
+
+Le seul effet de bord est la disparition du **rebond élastique** en haut et en
+bas. C'est un ornement, à comparer avec la perte de l'état courant à chaque
+remontée un peu vive.
 
 ⚠️ **Les deux gardes vivent sur `html`, jamais sur `body`.** C'est `html` qui
 défile ; sur `body`, `overscroll-behavior` n'a aucun effet et `overflow-x` en
@@ -366,7 +372,7 @@ la molette n'a alors plus rien à faire défiler sur un écran de bureau.
 | Propriété | Sur `html` | Sur `body` |
 |-----------|-----------|------------|
 | `overflow-x: hidden` | ✅ la garde | ❌ immobilise la page |
-| `overscroll-behavior-y: contain` | ✅ la garde | ❌ sans effet |
+| `overscroll-behavior-y: none` | ✅ la garde | ❌ sans effet |
 | `position: relative` + `width: 100%` | — | ✅ largeur de référence des `fixed` |
 
 ⚠️ Les deux cohabitent **sans problème sur `html`** : c'est leur présence sur

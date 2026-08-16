@@ -64,6 +64,13 @@ export interface OptimizerState {
   // recherche.
   adaptiveTrancheWeighting: boolean;
   setAdaptiveTrancheWeighting: Dispatch<SetStateAction<boolean>>;
+  // Toggle « Rechercher jusqu'à épuisement complet » — désactivé par défaut,
+  // lu par `handleSearch` comme `adaptiveTrancheWeighting` ci-dessus. Retire
+  // la limite de temps de 10 minutes (`maxMs: Infinity`, déjà supporté par le
+  // moteur — voir OptimizerSection.tsx) ; ne touche PAS au plafond de 100 000
+  // candidats collectés, qui reste une limite indépendante.
+  exhaustiveSearch: boolean;
+  setExhaustiveSearch: Dispatch<SetStateAction<boolean>>;
   sortBy: OptimizerSortKey;
   setSortBy: Dispatch<SetStateAction<OptimizerSortKey>>;
   showAdvanced: boolean;
@@ -105,6 +112,7 @@ export function useOptimizerState(): OptimizerState {
   const [objective, setObjective] = useState<Objective>('efficience');
   const [exploreAll, setExploreAll] = useState(true);
   const [adaptiveTrancheWeighting, setAdaptiveTrancheWeighting] = useState(false);
+  const [exhaustiveSearch, setExhaustiveSearch] = useState(false);
   const [sortBy, setSortBy] = useState<OptimizerSortKey>('efficience');
   const [showAdvanced, setShowAdvanced] = useState(false);
   const [slotFilterPreset, setSlotFilterPreset] = useState<SlotFilterPresetKey>('moyen');
@@ -138,6 +146,8 @@ export function useOptimizerState(): OptimizerState {
     setExploreAll,
     adaptiveTrancheWeighting,
     setAdaptiveTrancheWeighting,
+    exhaustiveSearch,
+    setExhaustiveSearch,
     sortBy,
     setSortBy,
     showAdvanced,

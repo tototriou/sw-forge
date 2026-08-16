@@ -32,6 +32,7 @@ export interface OptimizerRecipe {
   metric: RuneMetric;
   slotFilterPreset: SlotFilterPresetKey;
   adaptiveTrancheWeighting: boolean;
+  exhaustiveSearch: boolean;
   exploreAll: boolean;
   ignoreArtifacts: boolean;
   artifactMainByKind: Partial<Record<ArtifactKind, ArtifactMainChoice>>;

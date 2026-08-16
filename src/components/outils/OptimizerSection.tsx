@@ -106,6 +106,8 @@ export default function OptimizerSection({ box, runes, optimizer }: Props) {
     setExploreAll,
     adaptiveTrancheWeighting,
     setAdaptiveTrancheWeighting,
+    exhaustiveSearch,
+    setExhaustiveSearch,
     sortBy,
     setSortBy,
     showAdvanced,
@@ -278,6 +280,17 @@ export default function OptimizerSection({ box, runes, optimizer }: Props) {
   // paramètre »). Activé : recherche plus longue (+20 % de temps de
   // construction mesuré en moyenne), pour les cas où la recherche normale
   // ne trouve pas un build qui semble pourtant montable.
+  //
+  // `exhaustiveSearch` (toggle « Rechercher jusqu'à épuisement complet ») :
+  // remplace le filet de temps de 10 min (`HARD_TIMEOUT_MS`) par `Infinity` —
+  // déjà un budget-temps VALIDE pour le moteur, pas un cas spécial ajouté ici
+  // (le Worker sait déjà ignorer un `maxMs` non fini, voir `estimatePct` dans
+  // runeBuildOptim.worker.ts). ⚠️ Ne retire QUE la limite de temps : le
+  // plafond de `maxCollected` (100 000 candidats, non exposé dans l'UI) reste
+  // actif — une recherche assez lâche pour en trouver plus s'arrêtera quand
+  // même avant d'avoir visité tout l'espace. Désactivé par défaut : sans lui,
+  // une recherche mal contrainte peut tourner très longtemps (le bouton
+  // « Arrêter » reste le seul filet, coopératif comme toujours).
   function handleSearch() {
     if (!selected) return;
     if (comboSets.length === 0) {
@@ -295,7 +308,7 @@ export default function OptimizerSection({ box, runes, optimizer }: Props) {
       pool,
       requirement,
       metric,
-      maxMs: HARD_TIMEOUT_MS,
+      maxMs: exhaustiveSearch ? Number.POSITIVE_INFINITY : HARD_TIMEOUT_MS,
       slotFilterCap,
       objective,
       adaptiveTrancheWeighting,
@@ -321,6 +334,7 @@ export default function OptimizerSection({ box, runes, optimizer }: Props) {
       metric,
       slotFilterPreset,
       adaptiveTrancheWeighting,
+      exhaustiveSearch,
       exploreAll,
       ignoreArtifacts,
       artifactMainByKind,
@@ -360,6 +374,10 @@ export default function OptimizerSection({ box, runes, optimizer }: Props) {
       setObjective(recipe.objective);
       setSlotFilterPreset(recipe.slotFilterPreset);
       setAdaptiveTrancheWeighting(recipe.adaptiveTrancheWeighting);
+      // ⚠️ `?? false` : une recette exportée AVANT ce réglage ne porte pas ce
+      // champ (`undefined`) — repli sur le défaut plutôt que de propager une
+      // valeur non booléenne à l'état.
+      setExhaustiveSearch(recipe.exhaustiveSearch ?? false);
       setExploreAll(recipe.exploreAll);
       setIgnoreArtifacts(recipe.ignoreArtifacts);
       setArtifactMainByKind(recipe.artifactMainByKind);
@@ -740,6 +758,24 @@ export default function OptimizerSection({ box, runes, optimizer }: Props) {
             <p className="mt-1 text-[11.5px] text-warn max-w-[280px]">
               ⚠️ {SLOT_FILTER_PRESETS.find((p) => p.key === slotFilterPreset)?.hint}
             </p>
+
+            {/* Toggle, même patron que « Prioriser les stats les plus
+                difficiles » : désactivé par défaut, lu par `handleSearch` au
+                clic sur « Rechercher », jamais un bouton qui lance sa propre
+                recherche. */}
+            <div className="mt-3 flex items-center justify-between gap-2 border-t border-border pt-3">
+              <div className="flex items-center gap-1.5">
+                <span className="text-[11.5px] text-ink-dim">Rechercher jusqu'à épuisement complet</span>
+                <span title="Retire la limite de temps de 10 minutes : la recherche continue tant qu'il reste des combinaisons à examiner. Peut prendre très longtemps sur une recherche avec peu de conditions — le bouton « Arrêter » reste disponible et garde le meilleur trouvé jusque-là. Le plafond de 100 000 résultats collectés, lui, reste actif.">
+                  <HelpCircle size={13} className="text-ink-dim" />
+                </span>
+              </div>
+              <Switch
+                checked={exhaustiveSearch}
+                onChange={setExhaustiveSearch}
+                label="Rechercher jusqu'à épuisement complet"
+              />
+            </div>
 
             <div className="mt-3 flex items-center justify-between gap-2 border-t border-border pt-3">
               <div className="flex items-center gap-1.5">

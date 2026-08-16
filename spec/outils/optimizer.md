@@ -140,9 +140,21 @@ retour.
    emplacement**, en **presets** plutôt qu'un curseur libre — Bas / Moyen
    (défaut) / Haut / Extrême, du plus rapide au plus large (et donc plus
    lent, mais capable de retrouver un build sur un très gros compte). Sous ce
-   réglage, un second interrupteur **« Diagnostic approfondi sur 0
-   résultat »**, décoché par défaut (plus coûteux qu'un diagnostic simple,
-   voir « Résultats »).
+   réglage :
+   - **« Rechercher jusqu'à épuisement complet »**, décoché par défaut :
+     retire le filet de temps de 10 minutes (voir « Interruption ») — la
+     recherche continue tant qu'il reste des combinaisons à examiner, plutôt
+     que de s'arrêter au bout d'un temps fixe. ⚠️ Peut prendre très longtemps
+     sur une recherche avec peu de conditions (beaucoup de combinaisons
+     restent à examiner) : le bouton « Arrêter » reste le seul filet et garde
+     le meilleur trouvé jusque-là. ⚠️ Ne retire que la limite de TEMPS — le
+     plafond interne de candidats collectés (non réglable) reste actif ; une
+     recherche assez large pour l'atteindre s'arrête quand même avant d'avoir
+     tout exploré, ce qui n'a en pratique aucune conséquence sur la qualité
+     du résultat (voir « Limites connues »). Fait partie des réglages
+     exportés/importés dans une recette (voir plus bas).
+   - **« Diagnostic approfondi sur 0 résultat »**, décoché par défaut (plus
+     coûteux qu'un diagnostic simple, voir « Résultats »).
 10. **Estimation du nombre de builds** — dès qu'un monstre et un set sont
     choisis, une ligne affiche un ordre de grandeur du pool considéré,
     recalculée en direct à chaque changement de critère. ⚠️ Un ordre de
@@ -212,9 +224,13 @@ qu'un autre appelant construise le sien.
 Trois façons dont une recherche s'arrête **avant** d'avoir tout exploré, en
 plus du plafond de candidats collectés :
 
-- **Filet de temps** — fixe, non réglable (10 minutes) : une garde-fou en cas
-  de recherche anormalement longue, pas un réglage à ajuster. Le vrai moyen
-  de reprendre la main **avant** reste le bouton « Arrêter ».
+- **Filet de temps** — 10 minutes par défaut, pas un réglage direct : une
+  garde-fou en cas de recherche anormalement longue. Le vrai moyen de
+  reprendre la main **avant** reste le bouton « Arrêter ». Peut être retiré
+  via « Rechercher jusqu'à épuisement complet » (Options avancées, décoché
+  par défaut) — la recherche continue alors jusqu'à épuisement des
+  combinaisons à examiner (ou du plafond de candidats collectés, voir
+  ci-dessous), sans limite de temps automatique.
 - **Pré-filtrage par emplacement** — les presets « Options avancées »
   ci-dessus, calibrés par mesure sur des comptes réels : plus le preset est
   large, plus le pool considéré par emplacement grandit, et plus la
@@ -348,9 +364,14 @@ plusieurs milliers de runes.
   sur les runes.
 - L'exclusion v1 ne connaît que la **box** (6★ équipés) ; RTA, Siège et
   l'exclusion ciblée par monstre/rune sont prévus mais pas construits.
-- Seul le preset de pré-filtrage par emplacement (« Options avancées ») est
-  un réglage utilisateur ; le filet de temps et les autres budgets internes
-  du moteur ne sont pas exposés dans l'UI.
+- Le preset de pré-filtrage par emplacement et le filet de temps (« Options
+  avancées ») sont réglables ; le plafond de candidats collectés et le
+  budget de paires restent des paramètres internes du moteur, non exposés
+  dans l'UI — **« Rechercher jusqu'à épuisement complet » ne les retire
+  pas**. Sur une recherche assez large pour atteindre le plafond de
+  candidats collectés avant d'avoir tout exploré, la recherche s'arrête
+  quand même — en pratique sans conséquence sur la qualité du résultat, ce
+  plafond étant largement au-delà de ce qu'affiche l'écran.
 - **L'estimation du nombre de builds** est un ordre de grandeur, pas le
   nombre réellement exploré par le meet-in-the-middle — et la barre de
   progression est elle-même approximative (voir « Interruption »).

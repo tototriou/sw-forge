@@ -893,23 +893,15 @@ button:not(:disabled):not([draggable]):not([role='switch']):active,
 [data-tiroir] [data-rangee-actions] > button,
 [data-tiroir] [data-rangee-actions] > * > button {
   width: 100%;
-  /* ⚠️ **Hauteur IDENTIQUE d'une cellule à l'autre.** Sans elle, chaque bouton
-     prenait celle de son contenu : « Réinitialiser » sur deux lignes était plus
-     haut que « Ami » sur une, et la grille partait en marches d'escalier.
-     `height: 100%` remplit la rangée, dont la hauteur est celle du plus grand —
-     et `min-height` pose un plancher pour que trois boutons courts ne fassent
-     pas une rangée écrasée. */
-  height: 100%;
+  /* ⚠️ **Hauteur ÉCRITE, jamais `height: 100%`.** Ce dernier paraissait la
+     bonne réponse pour égaliser les cellules ; il a fait exploser la grille —
+     les rangées étant en `display: contents`, il n'y a aucune ligne dont hériter
+     et le pourcentage s'étirait sans borne, un bouton par écran.
+     Une valeur fixe les égalise sans dépendre de rien. */
   min-height: 38px;
   justify-content: center;
-  text-align: center;
   padding-left: 0.375rem;
   padding-right: 0.375rem;
-}
-
-/* La cellule s'étire, sinon `height: 100%` sur le bouton n'a rien à remplir. */
-[data-tiroir] [data-grille-actions] {
-  align-items: stretch;
 }
 
 /* ⚠️ **« Tout effacer » est CENTRÉ en bas du panneau**, pas aligné à gauche
@@ -950,8 +942,25 @@ button:not(:disabled):not([draggable]):not([role='switch']):active,
    panneau RTA l'imbrique dans la grille commune avec le bouton de création.
    Un sélecteur d'enfant direct n'aurait vu que le conteneur intermédiaire, qui
    serait resté une grille dans la grille. */
+/* ⚠️ Le bouton de création occupe TOUTE la largeur dans le panneau : il y est
+   seul sur sa ligne, hors de la grille des six autres (voir RtaPage). Réduit à
+   son texte, il aurait flotté à gauche d'un vide. `CreateMonster` s'enveloppe
+   dans un `div.relative` qui ancre son popover — d'où le sélecteur en deux
+   temps. */
+[data-tiroir] > * > .relative > button {
+  width: 100%;
+  justify-content: center;
+  min-height: 38px;
+}
+
+/* ⚠️ Les rangées ET les conteneurs qui les enveloppent s'effacent
+   (`data-passe-grille`) : `RtaBackupBar` empile ses deux rangées dans un `div`
+   de marge, qui restait sinon l'enfant unique de la grille et absorbait à lui
+   seul une cellule — les six boutons s'y retrouvaient empilés, un par écran.
+   ⚠️ Marqué, jamais déduit : une règle sur « tout div intermédiaire » aurait
+   effacé aussi ceux qu'on ajoutera demain pour une autre raison. */
 [data-tiroir] [data-grille-actions] [data-rangee-actions],
-[data-tiroir] [data-grille-actions] [data-grille-actions] {
+[data-tiroir] [data-grille-actions] [data-passe-grille] {
   display: contents;
 }
 

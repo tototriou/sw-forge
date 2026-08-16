@@ -181,7 +181,7 @@ export default function RtaBackupBar({
 
   function sauvegarder() {
     backup.sauvegarder(rta.state, cats.categories);
-    setMsg({ text: `Point de sauvegarde posé · ${nbMonstres} monstre(s).` });
+    setMsg({ text: 'Point de sauvegarde posé.' });
   }
 
   function reprendre() {
@@ -330,7 +330,10 @@ export default function RtaBackupBar({
   const dateBackup = backup.backup ? depuis(backup.backup.date) : '';
 
   return (
-    <div className="mt-4">
+    // ⚠️ `data-passe-grille` : dans le panneau mobile, ce conteneur et celui
+    // des deux rangées s'effacent pour que les six boutons deviennent les
+    // enfants directs de la grille commune (voir index.css).
+    <div data-passe-grille className="mt-4">
       {/* ⚠️ **Une rangée par TYPE d'action**, et non une seule file de six
           boutons. Les trois premiers agissent sur l'état COURANT de la prépa
           (le figer, y revenir) ; les trois suivants échangent un FICHIER avec
@@ -343,7 +346,7 @@ export default function RtaBackupBar({
           index.css). Chacune y formait sinon sa propre grille de trois
           colonnes, et celle qui perdait « Réinitialiser » — absent tant qu'aucun
           compte n'a été importé — étirait sa dernière cellule. */}
-      <div data-grille-actions className="flex flex-col gap-1.5">
+      <div data-grille-actions data-passe-grille className="flex flex-col gap-1.5">
       {/* ⚠️ Écart PLUS LARGE sous `sm`, où les boutons sont des icônes nues :
           sans cadre pour les délimiter, six icônes à 8 px d'intervalle se lisent
           comme une frise continue, et l'on ne sait plus où finit l'une et où
@@ -450,8 +453,12 @@ export default function RtaBackupBar({
           pas s'il existe ni de quand il date — donc on n'ose pas expérimenter. */}
       {backup.backup && (
         <p className="mt-1.5 font-mono text-micro text-ink-dim">
-          Point de sauvegarde : {Object.keys(backup.backup.state.entries).length} monstre(s) ·{' '}
-          {dateBackup}
+          {/* ⚠️ Le NOMBRE de monstres a disparu de cette ligne. Il ne servait
+              à rien qu'on vienne y chercher : ce qu'on veut savoir, c'est
+              QUAND le point a été posé, pour décider si l'on peut y revenir
+              sans perdre le travail de la session. Le compte, lui, se lit sur
+              la prépa elle-même, juste en dessous. */}
+          Point de sauvegarde · {dateBackup}
         </p>
       )}
 

@@ -466,6 +466,20 @@ la dernière ligne restait à moitié vide. En grille, tous font la même taille
 s'alignent verticalement d'une rangée à l'autre — c'est ce qui rend le
 groupement par type lisible d'un coup d'œil.
 
+- ⚠️ **`height: 100%` sur un bouton de grille EXPLOSE la mise en page.** Il
+  paraît la bonne réponse pour égaliser les cellules ; comme les rangées sont en
+  `display: contents`, il n'y a aucune ligne dont hériter et le pourcentage
+  s'étire sans borne — un bouton par écran. Une `min-height` écrite les égalise
+  sans dépendre de rien.
+- ⚠️ **Les conteneurs intermédiaires s'effacent aussi** (`data-passe-grille`) :
+  `RtaBackupBar` empile ses rangées dans un `div` de marge, qui restait sinon
+  l'enfant unique de la grille et absorbait à lui seul une cellule. Marqué,
+  jamais déduit d'une structure — une règle sur « tout div intermédiaire »
+  effacerait aussi ceux qu'on ajoutera demain pour une autre raison.
+- ⚠️ La **création de monstre est seule sur sa ligne**, hors de la grille : elle
+  ne relève pas du même geste que les six autres, qui échangent ou figent un
+  fichier de prépa. Elle garde leur gabarit pour qu'aucune ne paraisse plus
+  importante.
 - **Les rangées SUCCESSIVES d'un même bloc fusionnent** (`data-grille-actions`) :
   les six boutons de la barre RTA forment une grille unique de six cellules, et
   non deux grilles de trois. Séparées, celle qui perdait son bouton conditionnel

@@ -309,16 +309,16 @@ export default function RtaPage({
           ajoute la création avant, les catégories et l'effacement après. */}
       <MobileSheet ouvert={menuOuvert} onFermer={onFermerMenu} titre="Ma prépa RTA">
         <div className="flex flex-col gap-3">
-          {/* ⚠️ **La création entre dans la MÊME grille que la barre de
-              sauvegarde**, et non dans une rangée à part. Isolée, elle formait
-              sa propre grille de trois colonnes : le bouton y occupait un tiers
-              de largeur quand les six autres, plus nombreux, se partageaient la
-              leur — sept boutons d'action de deux tailles différentes.
-              `data-grille-actions` sur le conteneur commun les fond en une
-              grille unique (voir index.css). */}
-          <div data-grille-actions className="flex flex-col gap-1.5">
-            <div data-rangee-actions>{creation}</div>
+          {/* ⚠️ **La création est SEULE sur sa ligne**, hors de la grille des
+              six autres. Elle ne relève pas du même geste : les six échangent ou
+              figent un fichier de prépa, elle ajoute un monstre qui n'existe pas
+              dans les données. La mêler à eux en faisait une action de
+              sauvegarde de plus.
+              Elle garde le gabarit des autres — même hauteur, même corps — pour
+              qu'aucune ne paraisse plus importante. */}
+          {creation}
 
+          <div data-grille-actions className="flex flex-col gap-1.5">
             <RtaBackupBar
               rta={rta}
               cats={cats}

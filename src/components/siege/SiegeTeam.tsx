@@ -494,7 +494,7 @@ function TickBtn({ active, onClick, label }: { active: boolean; onClick: () => v
       // C'est l'espacement du groupe qui protège du ratage.
       data-cible-fine
       className={`rounded-full border px-2.5 py-0.5 text-micro font-mono font-semibold transition select-none
-        compact:px-2
+        compact:px-1.5 compact:py-0 compact:text-nano
         ${
           active
             ? 'bg-gradient-to-br from-star to-yellow-200 text-bg border-star'
@@ -655,10 +655,14 @@ function SlotContent({
               où c'est LA valeur qu'on règle, excessif sur un slot de 110 px de
               haut où il écrase tout le reste. 20 px au doigt : il reste le plus
               gros du bloc, ce qui suffit à dire qu'il est le principal. */}
-          <div className="font-mono text-[26px] font-black leading-none text-star compact:text-[20px]">
+          {/* ⚠️ 16 px au doigt contre 26 à la souris. Le nom du monstre est la
+              RÉFÉRENCE de ce bloc : la vitesse doit rester au-dessus de lui sans
+              l'écraser — un rapport de 1,3 suffit à dire « c'est la valeur
+              principale », là où 2,2 en faisait le seul élément lisible. */}
+          <div className="font-mono text-[26px] font-black leading-none text-star compact:text-[16px]">
             {combat ?? '—'}
           </div>
-          <div className="mt-1 font-mono text-micro text-ink-dim compact:mt-0.5">
+          <div className="mt-1 font-mono text-micro text-ink-dim compact:mt-0.5 compact:text-nano">
             base {base ?? '—'}
           </div>
         </div>

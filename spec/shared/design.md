@@ -574,6 +574,23 @@ sur une rangée de filtres serrée on active le **voisin**.
   contrainte de forme, sinon le mot déborderait d'un carré. Le marqueur est
   `aspect-square` et non `.h-8` — un sélecteur sur le nom de classe Tailwind
   aurait cassé au premier ajustement de taille.
+#### Le nom du monstre est la RÉFÉRENCE
+
+⚠️ Sur une carte de monstre, **rien ne doit peser plus lourd que son nom** sauf
+la valeur principale — et celle-ci reste dans un rapport de **1,3** avec lui, pas
+davantage. À 2,2 (26 px contre 12), la vitesse était le seul élément qu'on
+voyait ; le reste de la carte devenait un décor.
+
+⚠️ Les **capitales espacées** pèsent plus lourd que leur taille ne le dit :
+`.label` à 11 px avec `letter-spacing: 0.08em` occupe autant qu'un mot de 13 px
+en bas de casse. Au doigt, la classe descend à 10 px et son espacement de moitié
+— le rôle d'un libellé est de nommer, pas de rivaliser.
+
+⚠️ Le cran **`nano` (10 px) n'existe que sous `compact:`** : c'est le secours du
+tactile, pas une taille de l'échelle générale. Il sert aux mentions qui
+accompagnent une valeur sans être lues pour elles-mêmes (« base 107 »). En
+dessous, on ne lit plus.
+
 #### Densité d'un bloc répétitif
 
 ⚠️ **Ce qui compte n'est pas la taille du texte mais la HAUTEUR DU BLOC.** Le

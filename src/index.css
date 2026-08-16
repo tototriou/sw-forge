@@ -761,6 +761,11 @@ button:not(:disabled):not([draggable]):not([role='switch']):active,
    La mono reste réservée aux CHIFFRES, qui doivent s'aligner.
    Voir spec/shared/design.md. */
 @layer components {
+  /* ⚠️ Les CAPITALES espacées pèsent plus lourd que leur taille ne le dit :
+     à 11 px avec `letter-spacing: 0.08em`, « POSITION » occupe autant qu'un mot
+     de 13 px en bas de casse, et paraît plus gros que le nom du monstre qu'il
+     accompagne. Au doigt, la taille descend d'un cran et l'espacement de
+     moitié — le rôle du libellé est de nommer, pas de rivaliser. */
   .label {
     font-family: 'Inter', sans-serif;
     font-size: 11px;
@@ -769,6 +774,13 @@ button:not(:disabled):not([draggable]):not([role='switch']):active,
     letter-spacing: 0.08em;
     text-transform: uppercase;
     color: rgb(var(--ink-dim));
+  }
+
+  @media (pointer: coarse) {
+    .label {
+      font-size: 10px;
+      letter-spacing: 0.04em;
+    }
   }
 }
 

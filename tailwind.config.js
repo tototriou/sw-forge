@@ -71,6 +71,12 @@ export default {
       // Six paliers, plancher à 11 px. ⚠️ Ni demi-pixel, ni valeur en dessous
       // de 11 px : l'écart ne crée pas de hiérarchie, il crée du flou.
       fontSize: {
+        // ⚠️ **`nano` n'existe QUE sous `compact:`** — c'est le cran de secours
+        // du tactile, pas une taille de l'échelle générale. Il sert aux
+        // mentions qui accompagnent une valeur sans être lues pour elles-mêmes
+        // (« base 107 », un libellé de pastille), là où 11 px les faisait
+        // rivaliser avec le nom du monstre à côté. En dessous, on ne lit plus.
+        nano: ['10px', { lineHeight: '1.4' }],
         micro: ['11px', { lineHeight: '1.45' }],
         xs: ['12px', { lineHeight: '1.5' }],
         sm: ['13px', { lineHeight: '1.5' }],

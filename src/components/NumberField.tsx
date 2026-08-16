@@ -109,7 +109,9 @@ export default function NumberField({
           const b = borne(value);
           if (b !== value) onChange(b);
         }}
-        className={`${boxWidth ? 'flex-1' : width} min-w-0 bg-transparent px-1 text-center font-mono text-sm text-ink
+        // ⚠️ Un cran plus bas au doigt : 13 px, ce champ pesait plus lourd que
+        // le nom du monstre à côté duquel il vit.
+        className={`${boxWidth ? 'flex-1' : width} min-w-0 bg-transparent px-1 text-center font-mono text-sm compact:text-xs text-ink
                     outline-none placeholder:text-ink-dim disabled:cursor-not-allowed`}
       />
 

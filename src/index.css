@@ -335,6 +335,19 @@ html {
      ⚠️ Ce n'est qu'un filet de sécurité. Un débordement se corrige à sa
      source — le masquer rend le contenu coupé inatteignable. */
   overflow-x: hidden;
+  /* ⚠️ **Pas de « tirer pour recharger ».** Arrivé en haut, un geste vers le bas
+     rechargeait l'app sur iOS et Android — qui n'a pourtant rien à rafraîchir
+     depuis un serveur, tout étant local : on perdait l'état courant pour rien.
+     `contain` bloque le geste au bord SANS empêcher le défilement normal, à ne
+     pas confondre avec `none` qui coupe aussi l'élan.
+
+     ⚠️ **Sur `html`, l'élément qui DÉFILE ici** — et non sur `body`, où la
+     propriété n'a aucun effet puisque ce n'est pas lui qui défile. C'est ce qui
+     avait fait réapparaître le rechargement après la correction de la molette.
+     Elle cohabite sans problème avec `overflow-x` sur le même élément : c'est
+     leur présence sur `body` qui en faisait un second conteneur de défilement,
+     pas leur voisinage ici. */
+  overscroll-behavior-y: contain;
 }
 @media (prefers-color-scheme: dark) {
   html:not([data-theme='light']) {
@@ -366,20 +379,6 @@ body {
      contexte de défilement. */
   position: relative;
   width: 100%;
-  /* ⚠️ **Pas de « tirer pour recharger ».** Arrivé en haut de la page, un geste
-     vers le bas déclenche sinon un rechargement sur iOS et Android — et l'app
-     n'a rien à rafraîchir depuis un serveur : tout est local. On perdait donc
-     l'état courant (une prépa en cours d'édition, un panneau ouvert) pour rien.
-     `contain` bloque le geste au bord SANS empêcher le défilement normal — à ne
-     pas confondre avec `none`, qui coupe aussi l'élan et rend la page raide.
-
-     ⚠️ **Sur `body` SEUL, jamais sur `html`** — ce dernier porte déjà
-     `overflow-x: hidden`, et les deux ensemble en feraient un conteneur de
-     défilement qui capture la molette. C'est aussi pourquoi `overflow-x` ne se
-     pose QUE sur `html` : dupliqué sur `body`, il produisait le même effet ici,
-     et la page de bureau restait immobile. **Un seul élément porte chaque
-     garde.** */
-  overscroll-behavior-y: contain;
 }
 
 /* ⚠️ **Le texte ne se redimensionne pas tout seul.** Sans cette règle, iOS

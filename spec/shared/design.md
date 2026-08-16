@@ -358,10 +358,19 @@ ouvert) pour rien, chaque fois qu'on remontait un peu trop vite.
 ⚠️ `contain` et non `none` : le second coupe aussi l'élan du défilement et rend
 la page raide au doigt.
 
-⚠️ **Sur `body` SEUL, jamais sur `html`.** Posée là-haut, la propriété s'ajoute à
-l'`overflow-x: hidden` du même élément, et les deux ensemble font de `html` un
-conteneur de défilement à part entière : il capture la molette et **immobilise la
-page** sur un écran de bureau. C'est `body` qui défile.
+⚠️ **Les deux gardes vivent sur `html`, jamais sur `body`.** C'est `html` qui
+défile ; sur `body`, `overscroll-behavior` n'a aucun effet et `overflow-x` en
+fait un **second conteneur de défilement** dont la hauteur se borne au viewport —
+la molette n'a alors plus rien à faire défiler sur un écran de bureau.
+
+| Propriété | Sur `html` | Sur `body` |
+|-----------|-----------|------------|
+| `overflow-x: hidden` | ✅ la garde | ❌ immobilise la page |
+| `overscroll-behavior-y: contain` | ✅ la garde | ❌ sans effet |
+| `position: relative` + `width: 100%` | — | ✅ largeur de référence des `fixed` |
+
+⚠️ Les deux cohabitent **sans problème sur `html`** : c'est leur présence sur
+`body` qui créait le conteneur parasite, pas leur voisinage.
 
 ⚠️ **Safari grossit les polices en paysage** (« text autosizing ») si rien ne
 l'en empêche : les tailles calculées ne valent alors plus rien et un bloc dessiné

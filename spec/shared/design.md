@@ -356,9 +356,12 @@ rechargeait l'app — qui n'a pourtant rien à rafraîchir depuis un serveur, to
 ouvert) pour rien, chaque fois qu'on remontait un peu trop vite.
 
 ⚠️ `contain` et non `none` : le second coupe aussi l'élan du défilement et rend
-la page raide au doigt. Et la propriété est répétée sur les deux éléments parce
-que Safari ne la lit que sur celui qui défile réellement — lequel des deux
-variant selon la version.
+la page raide au doigt.
+
+⚠️ **Sur `body` SEUL, jamais sur `html`.** Posée là-haut, la propriété s'ajoute à
+l'`overflow-x: hidden` du même élément, et les deux ensemble font de `html` un
+conteneur de défilement à part entière : il capture la molette et **immobilise la
+page** sur un écran de bureau. C'est `body` qui défile.
 
 ⚠️ **Safari grossit les polices en paysage** (« text autosizing ») si rien ne
 l'en empêche : les tailles calculées ne valent alors plus rien et un bloc dessiné

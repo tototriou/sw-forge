@@ -363,9 +363,17 @@ body {
      à laquelle les `fixed` se rattachent. */
   position: relative;
   width: 100%;
-  /* ⚠️ Répété sur `body`, pas seulement sur `html` : Safari ne lit la propriété
-     que sur l'élément qui défile réellement, et lequel des deux c'est varie
-     selon la version. La poser aux deux endroits est le seul moyen fiable. */
+  /* ⚠️ **Pas de « tirer pour recharger ».** Arrivé en haut de la page, un geste
+     vers le bas déclenche sinon un rechargement sur iOS et Android — et l'app
+     n'a rien à rafraîchir depuis un serveur : tout est local. On perdait donc
+     l'état courant (une prépa en cours d'édition, un panneau ouvert) pour rien.
+     `contain` bloque le geste au bord SANS empêcher le défilement normal — à ne
+     pas confondre avec `none`, qui coupe aussi l'élan et rend la page raide.
+
+     ⚠️ **Sur `body` SEUL, jamais sur `html`.** Posée là-haut, la propriété
+     s'ajoutait à l'`overflow-x: hidden` du même élément : les deux ensemble font
+     de `html` un conteneur de défilement à part entière, qui capture la molette
+     et immobilise la page sur un écran de bureau. C'est `body` qui défile. */
   overscroll-behavior-y: contain;
 }
 
@@ -376,15 +384,6 @@ body {
 html {
   -webkit-text-size-adjust: 100%;
   text-size-adjust: 100%;
-  /* ⚠️ **Pas de « tirer pour recharger ».** Arrivé en haut de la page, un geste
-     vers le bas déclenche sinon un rechargement sur iOS et Android — et l'app
-     n'a aucun contenu à rafraîchir depuis un serveur : tout est local. On perdait
-     donc l'état courant (une prépa en cours d'édition, un panneau ouvert) pour
-     rien, à chaque fois qu'on remontait un peu trop vite.
-     `contain` bloque le geste au bord SANS empêcher le défilement normal — à ne
-     pas confondre avec `none`, qui coupe aussi l'élan (« momentum ») et rend la
-     page raide au doigt. */
-  overscroll-behavior-y: contain;
 }
 
 /* ⚠️ **Aucun élément hors du flux ne dépasse la largeur de l'écran.** Dernier

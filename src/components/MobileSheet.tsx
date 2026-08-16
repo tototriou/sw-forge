@@ -1,6 +1,7 @@
 import { ReactNode, useEffect } from 'react';
 import { X } from 'lucide-react';
 import { AnimatePresence, motion } from 'framer-motion';
+import { SOUS_LG, useMediaQuery } from '../hooks/useMediaQuery';
 
 // Panneau d'actions MOBILE : les filtres et les actions de la page courante.
 //
@@ -44,10 +45,18 @@ export default function MobileSheet({
   centre?: boolean;
   children: ReactNode;
 }) {
+  // ⚠️ **Le panneau n'existe qu'en dessous de `lg`.** `lg:hidden` le masquait
+  // visuellement, mais l'effet ci-dessous s'exécutait quand même : il posait
+  // `overflow: hidden` sur `body` et la page de BUREAU ne défilait plus, sans
+  // qu'aucun panneau ne soit visible pour l'expliquer. Il suffisait d'ouvrir le
+  // panneau sur un écran étroit puis d'élargir la fenêtre.
+  const sousLg = useMediaQuery(SOUS_LG);
+  const visible = ouvert && sousLg;
+
   // Échap ferme, et la page derrière ne défile plus — mêmes garanties que la
   // coquille `Modale`, dont ce panneau est un cousin.
   useEffect(() => {
-    if (!ouvert) return;
+    if (!visible) return;
     const scrollAvant = document.body.style.overflow;
     document.body.style.overflow = 'hidden';
     // ⚠️ `stopPropagation` : deux panneaux peuvent être ouverts l'un sur
@@ -65,11 +74,11 @@ export default function MobileSheet({
       document.removeEventListener('keydown', onKey);
       document.body.style.overflow = scrollAvant;
     };
-  }, [ouvert, onFermer]);
+  }, [visible, onFermer]);
 
   return (
     <AnimatePresence>
-      {ouvert && (
+      {visible && (
         <>
           <motion.div
             className={`fixed inset-0 lg:hidden ${

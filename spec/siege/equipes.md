@@ -149,12 +149,27 @@ Sous `sm` :
 | Écart entre équipes | `gap-4` | `gap-2` |
 | Portrait en vue compacte | 36 px | 30 px |
 | Nom du monstre | 12 px | 11 px |
+| Icônes de set | 17 px | 14 px |
+| Badge de lead | 22 px | 17 px |
+| Icône de vitesse | Affichée | Masquée |
 | Titre « Équipe N » | 17 px | 15 px |
 | « Éditer » / « Supprimer » | Libellé + icône | Icône seule |
 
 ⚠️ Les libellés des deux boutons d'en-tête tombent sous `sm` : la ligne y porte
 déjà le titre, la pastille d'état et la pastille de lead. Le crayon et la
 corbeille se reconnaissent seuls, et `aria-label` porte le sens complet.
+
+⚠️ **Le budget de la ligne « vitesse + sets » est COMPTÉ**, pas estimé. Sur
+348 px, une carte compacte fait `(348 − 2×4) ÷ 3 ≈ 113 px` ; moins le
+rembourrage et le portrait de 30, il reste **~73 px**. Une icône de vitesse (12)
+plus un nombre à trois chiffres (~22) plus trois icônes de set (3×14) font déjà
+76 : l'icône de vitesse tombe, parce qu'elle est **ce qui apporte le moins** —
+le gros chiffre en gras se lit comme une vitesse sans elle, c'est la seule de la
+carte.
+
+⚠️ Le carré du slot **vide** suit exactement la taille du portrait rempli. À
+34 px fixes, une carte vide était plus haute qu'une carte pleine et la rangée de
+trois partait en dents de scie.
 
 ⚠️ Le sous-onglet **« Recommandations » devient « Recos »** sous `sm`. À sa
 longueur complète, les trois onglets ne tenaient pas sur une ligne et la rangée

@@ -19,6 +19,7 @@ import MonsterGear from '../MonsterGear';
 import NumberField from '../NumberField';
 import LeadPill, { LeadBadge } from './LeadPill';
 import { ConfirmDialog } from '../Dialogs';
+import { useMediaQuery, SOUS_SM } from '../../hooks/useMediaQuery';
 
 const GRADIENT: Record<string, string> = {
   fire: 'from-fire to-panel2',
@@ -78,6 +79,13 @@ export default function SiegeTeam({
   const [overIdx, setOverIdx] = useState<number | null>(null);
   const [detailIdx, setDetailIdx] = useState<number | null>(null); // slot dont on montre le détail
   const [suppressionAConfirmer, setSuppressionAConfirmer] = useState(false);
+  // ⚠️ Le budget de la ligne « vitesse + sets » est COMPTÉ. Sur 348 px, une
+  // carte compacte fait (348 − 2×4) ÷ 3 ≈ 113 px ; moins le rembourrage et le
+  // portrait de 30, il reste ~73 px. Trois icônes à 17 px n'y tiennent pas à
+  // côté d'un nombre à trois chiffres. `RuneIcon` dimensionne en pixels — il
+  // faut donc la valeur, pas une classe.
+  const petitEcran = useMediaQuery(SOUS_SM);
+  const tailleSet = petitEcran ? 14 : 17;
 
   const usedIds = new Set(
     team.slots.map((s) => s.monsterId).filter((id): id is string => id !== null)
@@ -340,7 +348,12 @@ export default function SiegeTeam({
                       {/* Lead sur le portrait du leader : la carte compacte n'a
                           pas la place d'une pastille (voir spec), et le badge
                           dit à la fois « c'est lui le leader » et quel lead. */}
-                      {idx === 0 && monster.leaderSkill && <LeadBadge ls={monster.leaderSkill} />}
+                      {/* ⚠️ Réduit avec le portrait : à 22 px sur un portrait
+                          de 30, il en couvrait les deux tiers et l'on ne
+                          reconnaissait plus le monstre. */}
+                      {idx === 0 && monster.leaderSkill && (
+                        <LeadBadge ls={monster.leaderSkill} size={petitEcran ? 17 : 22} />
+                      )}
                     </div>
                     {/* Le nom occupe SA ligne : nom, vitesse et sets se
                         disputaient la même, et le gros chiffre (non réductible)
@@ -350,9 +363,23 @@ export default function SiegeTeam({
                       <div className="text-micro sm:text-xs font-semibold leading-tight truncate">
                         {monster.name}
                       </div>
-                      <div className="mt-0.5 flex items-center gap-1">
-                        <img src={SPD_ICON} alt="SPD" width={12} height={12} className="flex-none sm:hidden" />
-                        <img src={SPD_ICON} alt="" width={14} height={14} className="hidden flex-none sm:block" />
+                      {/* ⚠️ Le budget de cette ligne est COMPTÉ. Sur 348 px,
+                          une carte fait (348 − 2×4) ÷ 3 ≈ 113 px ; moins le
+                          rembourrage et le portrait de 30, il reste ~73 px. Une
+                          icône de vitesse (12) + un nombre à trois chiffres
+                          (~22) + trois icônes de set (3×14) = 76 — et l'icône de
+                          vitesse est celle qui apporte le moins : le gros
+                          chiffre en gras se lit comme une vitesse sans elle,
+                          c'est la seule de la carte. Elle tombe donc sous `sm`,
+                          et les sets descendent à 14 px. */}
+                      <div className="mt-0.5 flex items-center gap-0.5 sm:gap-1">
+                        <img
+                          src={SPD_ICON}
+                          alt="SPD"
+                          width={14}
+                          height={14}
+                          className="hidden flex-none sm:block"
+                        />
                         <span
                           className={`font-mono text-sm sm:text-base font-black leading-none flex-none ${
                             danger ? 'text-fire' : 'text-ink'
@@ -361,9 +388,9 @@ export default function SiegeTeam({
                           {combat ?? '—'}
                         </span>
                         {sets.length > 0 && (
-                          <span className="ml-auto flex items-center gap-0.5 flex-none">
+                          <span className="ml-auto flex flex-none items-center gap-0.5">
                             {sets.slice(0, 3).map((s, i) => (
-                              <RuneIcon key={i} setKey={s} size={17} className="flex-none" />
+                              <RuneIcon key={i} setKey={s} size={tailleSet} className="flex-none" />
                             ))}
                           </span>
                         )}
@@ -371,11 +398,20 @@ export default function SiegeTeam({
                     </div>
                   </>
                 ) : (
-                  <div className="flex items-center gap-2 text-ink-dim">
-                    <span className="w-[34px] h-[34px] flex-none rounded-lg border border-dashed border-border flex items-center justify-center text-lg">
+                  // ⚠️ Le carré vide suit EXACTEMENT le portrait rempli (30 px
+                  // sous `sm`, 36 au-dessus). À 34 px fixes, une carte vide était
+                  // plus haute qu'une carte pleine et la rangée de trois partait
+                  // en dents de scie.
+                  <div className="flex items-center gap-1 text-ink-dim sm:gap-2">
+                    <span
+                      className="flex h-[30px] w-[30px] flex-none items-center justify-center rounded-lg
+                                 border border-dashed border-border text-base sm:h-[36px] sm:w-[36px] sm:text-lg"
+                    >
                       +
                     </span>
-                    <span className="text-micro">{idx === 0 ? 'Leader' : 'vide'}</span>
+                    <span className="min-w-0 truncate text-micro">
+                      {idx === 0 ? 'Leader' : 'vide'}
+                    </span>
                   </div>
                 )}
               </button>
@@ -569,7 +605,13 @@ function SlotContent({
         </div>
         <button
           onClick={onClear}
-          className="text-ink-dim hoverable:text-fire transition flex-none self-start"
+          // ⚠️ `data-cible-fine` + zone étendue : cette croix n'a aucune
+          // dimension propre, et la règle tactile la portait à 40 px de haut —
+          // elle décalait alors la ligne du nom qu'elle borde. Le
+          // pseudo-élément lui rend 44 px de zone touchable ; elle est seule
+          // dans son coin, rien à rater autour.
+          data-cible-fine
+          className="cible-tactile relative flex-none self-start text-ink-dim transition hoverable:text-fire"
           title="Retirer"
           aria-label="Retirer"
         >

@@ -335,21 +335,13 @@ html {
      ⚠️ Ce n'est qu'un filet de sécurité. Un débordement se corrige à sa
      source — le masquer rend le contenu coupé inatteignable. */
   overflow-x: hidden;
-  /* ⚠️ **Pas de « tirer pour recharger ».** Arrivé en haut, un geste vers le bas
-     rechargeait l'app sur iOS et Android — qui n'a pourtant rien à rafraîchir
-     depuis un serveur, tout étant local : on perdait l'état courant pour rien.
-     ⚠️ **`none` et non `contain`.** `contain` n'empêche que la PROPAGATION du
-     geste à un parent — sur l'élément racine, qui n'en a pas, il ne bloque donc
-     rien du tout : le rechargement se déclenchait encore, juste avant que le
-     contenu n'atteigne le haut. `none` interdit en plus le geste au bord, ce
-     qui est exactement ce qu'on veut ici.
-     Le seul effet de bord est la disparition du rebond élastique en haut et en
-     bas — un ornement, à comparer avec la perte de l'état courant à chaque
-     remontée un peu vive.
-
-     ⚠️ **Sur `html`, l'élément qui DÉFILE ici** — et non sur `body`, où la
-     propriété n'a aucun effet puisque ce n'est pas lui qui défile. */
-  overscroll-behavior-y: none;
+  /* ⚠️ **Le « tirer pour recharger » est CONSERVÉ.** Il a été bloqué un temps
+     (`overscroll-behavior-y: none`) parce qu'il se déclenchait avant que le
+     contenu n'ait atteint le haut — mais le geste lui-même est attendu sur un
+     téléphone, et le supprimer coûtait plus qu'il ne réglait.
+     ⚠️ Ce qui le déclenchait trop tôt est corrigé à sa source : la hauteur de
+     `body` était en `dvh`, qui change quand la barre d'adresse se replie (voir
+     plus bas). La page raccourcissait sous le doigt pendant qu'on remontait. */
 }
 @media (prefers-color-scheme: dark) {
   html:not([data-theme='light']) {
@@ -363,13 +355,18 @@ html[data-theme='dark'] {
 body {
   background: var(--page-veil), rgb(var(--bg));
   color: rgb(var(--ink));
-  /* ⚠️ `dvh` et non `vh` : sur iOS, `100vh` vaut la hauteur AVEC la barre
-     d'adresse dépliée. Elle se replie au défilement, et la page se retrouve
-     alors plus haute que l'écran — d'où un saut de mise en page à chaque fois
-     qu'on change de sens. `dvh` suit la hauteur réellement visible.
-     `100vh` reste en repli pour les navigateurs qui ignorent `dvh`. */
+  /* ⚠️ **`svh`, ni `vh` ni `dvh`.**
+     — `vh` vaut la hauteur avec la barre d'adresse REPLIÉE : la page dépassait
+       l'écran tant qu'elle était dépliée.
+     — `dvh` suit la hauteur courante, donc il CHANGE quand la barre se replie ou
+       se déplie. En remontant, la barre se déplie, `dvh` diminue et la page
+       raccourcit sous le doigt — le défilement se retrouve poussé au-delà du
+       haut, et le « tirer pour recharger » se déclenche avant qu'on y soit.
+     — `svh` est la hauteur du plus PETIT état (barre dépliée). Elle ne bouge
+       jamais : la page garde la même hauteur quel que soit le sens du geste.
+     `100vh` reste en repli pour les navigateurs qui ignorent `svh`. */
   min-height: 100vh;
-  min-height: 100dvh;
+  min-height: 100svh;
   /* ⚠️ **`overflow-x` reste sur `html` SEUL.** Le poser aussi sur `body` faisait
      de celui-ci un conteneur de défilement à part entière : sa hauteur se
      bornait alors au viewport, et la molette n'avait plus rien à faire défiler

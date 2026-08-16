@@ -349,34 +349,33 @@ jusqu'aux premiers éléments de la page.
 env(safe-area-inset-top))` + `padding-top`), et le dégagement du contenu suit.
 Une valeur fixe laissait le haut de la page sous la barre.
 
-⚠️ **« Tirer pour recharger » est désactivé** (`overscroll-behavior-y: contain`,
-sur `html` ET `body`). Arrivé en haut de la page, un geste vers le bas
-rechargeait l'app — qui n'a pourtant rien à rafraîchir depuis un serveur, tout
-étant local. On perdait l'état courant (une prépa en cours d'édition, un panneau
-ouvert) pour rien, chaque fois qu'on remontait un peu trop vite.
 
-⚠️ **`none` et non `contain`.** `contain` n'empêche que la *propagation* du geste
-à un parent ; sur l'élément racine, qui n'en a pas, il ne bloque donc rien — le
-rechargement se déclenchait encore, juste avant que le contenu n'atteigne le
-haut. `none` interdit en plus le geste au bord.
 
-Le seul effet de bord est la disparition du **rebond élastique** en haut et en
-bas. C'est un ornement, à comparer avec la perte de l'état courant à chaque
-remontée un peu vive.
+⚠️ **Le « tirer pour recharger » est CONSERVÉ** — c'est un geste attendu sur un
+téléphone. Il a été bloqué un temps parce qu'il se déclenchait *avant* que le
+contenu n'ait atteint le haut, mais c'était traiter le symptôme.
 
-⚠️ **Les deux gardes vivent sur `html`, jamais sur `body`.** C'est `html` qui
-défile ; sur `body`, `overscroll-behavior` n'a aucun effet et `overflow-x` en
-fait un **second conteneur de défilement** dont la hauteur se borne au viewport —
-la molette n'a alors plus rien à faire défiler sur un écran de bureau.
+⚠️ La cause était la **hauteur de `body` en `dvh`** : cette unité suit la hauteur
+courante du viewport, donc elle **change** quand la barre d'adresse se replie ou
+se déplie. En remontant, la barre se déplie, `dvh` diminue et la page raccourcit
+sous le doigt — le défilement se retrouve poussé au-delà du haut, et le
+rechargement part trop tôt.
+
+`svh` est la hauteur du plus **petit** état (barre dépliée) et ne bouge jamais.
+C'est la bonne unité pour une hauteur de page. `dvh` reste correct sur les
+**plafonds** d'éléments fixes (`max-h` d'un panneau, d'un dialogue), qui doivent
+au contraire suivre la hauteur visible.
+
+⚠️ **`overflow-x: hidden` vit sur `html`, jamais sur `body`.** C'est `html` qui
+défile ; sur `body`, la propriété en fait un **second conteneur de défilement**
+dont la hauteur se borne au viewport — la molette n'a alors plus rien à faire
+défiler sur un écran de bureau.
 
 | Propriété | Sur `html` | Sur `body` |
 |-----------|-----------|------------|
 | `overflow-x: hidden` | ✅ la garde | ❌ immobilise la page |
-| `overscroll-behavior-y: none` | ✅ la garde | ❌ sans effet |
+| `min-height: 100svh` | — | ✅ hauteur de page |
 | `position: relative` + `width: 100%` | — | ✅ largeur de référence des `fixed` |
-
-⚠️ Les deux cohabitent **sans problème sur `html`** : c'est leur présence sur
-`body` qui créait le conteneur parasite, pas leur voisinage.
 
 ⚠️ **Safari grossit les polices en paysage** (« text autosizing ») si rien ne
 l'en empêche : les tailles calculées ne valent alors plus rien et un bloc dessiné

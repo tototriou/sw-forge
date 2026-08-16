@@ -244,6 +244,12 @@ vient lire sur cet écran, la prépa RTA se réglant au point de vitesse.
 ⚠️ Le nom complet passe dans l'**infobulle de la carte**, en tête des catégories.
 Sans cela il n'existerait plus nulle part sur téléphone.
 
+⚠️ Les icônes de set sont **collées** (`gap-0`) et la ligne entière resserrée
+(`gap-0.5` sous `sm`). À trois sets — le maximum — les écarts suffisaient à
+faire déborder la dernière icône de la carte. Elles restent lisibles au
+contact : ce sont des pastilles rondes cerclées, chacune se détache de sa
+voisine sans qu'il faille un blanc entre elles.
+
 ⚠️ Les icônes de set réservent `pr-3` sous `sm`. La croix de suppression est
 posée **sur** le coin haut-droit, hors du flux : rien ne la repousse, et la
 dernière icône passait dessous dès que le nom masqué eut libéré assez de place

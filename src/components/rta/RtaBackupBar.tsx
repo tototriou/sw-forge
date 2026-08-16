@@ -118,9 +118,13 @@ function depuis(iso: string): string {
 // a besoin d'une surface à colorer.
 // `data-cible-fine` est posé sur chaque bouton ; `.cible-tactile` rend 44 px
 // touchables sans qu'un pixel du dessin ne bouge.
+// ⚠️ **Le même gabarit que `CreateMonster`** (`px-3.5 py-2 / 13 px`) : les sept
+// boutons se retrouvent côte à côte dans le panneau mobile, et « Monstre » y
+// paraissait plus grand que ses six voisins — un bouton d'action n'a pas de
+// raison de peser plus qu'un autre. Les deux gabarits doivent rester alignés.
 const BOUTON =
   'cible-tactile relative flex items-center justify-center gap-1.5 rounded-lg border ' +
-  'border-border bg-panel px-3 py-1.5 text-xs text-ink-dim hoverable:text-ink ' +
+  'border-border bg-panel px-3.5 py-2 text-sm text-ink-dim hoverable:text-ink ' +
   'hoverable:border-accent transition disabled:opacity-40 disabled:cursor-not-allowed ' +
   'compact:gap-0 compact:rounded-none compact:border-0 compact:bg-transparent ' +
   'compact:px-0 compact:py-0';

@@ -309,23 +309,28 @@ export default function RtaPage({
           ajoute la création avant, les catégories et l'effacement après. */}
       <MobileSheet ouvert={menuOuvert} onFermer={onFermerMenu} titre="Ma prépa RTA">
         <div className="flex flex-col gap-3">
-          {/* ⚠️ Marqué comme les autres : ce bouton seul occupe UNE cellule de
-              la grille, pas toute la largeur. Sans cela il s'étirait sur les
-              trois colonnes et écrasait par sa taille les six boutons en
-              dessous, alors qu'il ne vaut pas plus qu'eux. */}
-          <div data-rangee-actions>{creation}</div>
+          {/* ⚠️ **La création entre dans la MÊME grille que la barre de
+              sauvegarde**, et non dans une rangée à part. Isolée, elle formait
+              sa propre grille de trois colonnes : le bouton y occupait un tiers
+              de largeur quand les six autres, plus nombreux, se partageaient la
+              leur — sept boutons d'action de deux tailles différentes.
+              `data-grille-actions` sur le conteneur commun les fond en une
+              grille unique (voir index.css). */}
+          <div data-grille-actions className="flex flex-col gap-1.5">
+            <div data-rangee-actions>{creation}</div>
 
-          <RtaBackupBar
-            rta={rta}
-            cats={cats}
-            backup={backup}
-            monsters={monsters}
-            onConsulter={(v) => {
-              setVueAmi(v);
-              onFermerMenu();
-            }}
-            onCreateMonster={onCreateMonster}
-          />
+            <RtaBackupBar
+              rta={rta}
+              cats={cats}
+              backup={backup}
+              monsters={monsters}
+              onConsulter={(v) => {
+                setVueAmi(v);
+                onFermerMenu();
+              }}
+              onCreateMonster={onCreateMonster}
+            />
+          </div>
 
           <CategoryBar cats={cats} monsters={pageMonsters} />
         </div>

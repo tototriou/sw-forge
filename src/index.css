@@ -918,7 +918,13 @@ button:not(:disabled):not([draggable]):not([role='switch']):active,
   gap: 0.5rem;
 }
 
-[data-tiroir] [data-grille-actions] > [data-rangee-actions] {
+/* ⚠️ Les rangées s'effacent à TOUTE profondeur (` ` et non `>`) : la barre de
+   sauvegarde rend son propre conteneur autour de ses deux rangées, et le
+   panneau RTA l'imbrique dans la grille commune avec le bouton de création.
+   Un sélecteur d'enfant direct n'aurait vu que le conteneur intermédiaire, qui
+   serait resté une grille dans la grille. */
+[data-tiroir] [data-grille-actions] [data-rangee-actions],
+[data-tiroir] [data-grille-actions] [data-grille-actions] {
   display: contents;
 }
 

@@ -66,9 +66,16 @@ export default function TopBar({
       // mobile — où la barre latérale n'existe pas — la barre partait 224 px
       // hors écran : le titre disparaissait à droite et le bouton de
       // déconnexion devenait inatteignable.
-      className="fixed inset-x-0 top-0 z-20 h-12 border-b border-border bg-panel
+      // ⚠️ La barre DESCEND sous l'encoche : sa hauteur s'ajoute à
+      // `safe-area-inset-top`, et son contenu se décale d'autant. Sans cela,
+      // le titre et les boutons passaient sous l'encoche d'un iPhone.
+      className="fixed inset-x-0 top-0 z-20 border-b border-border bg-panel
                  lg:left-[var(--top-left)] lg:right-0 lg:transition-[left] lg:duration-[180ms]"
-      style={{ ['--top-left' as string]: `${decalage}px` }}
+      style={{
+        ['--top-left' as string]: `${decalage}px`,
+        height: 'calc(3rem + env(safe-area-inset-top))',
+        paddingTop: 'env(safe-area-inset-top)',
+      }}
     >
       {/* ⚠️ `pr-2.5` à droite contre `pl-3` à gauche : le bouton de paramètres
           a son propre padding interne (32 px de cible pour une icône de 16),

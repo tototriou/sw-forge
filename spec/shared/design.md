@@ -339,6 +339,16 @@ devenait alors plus haute que l'écran, d'où un saut de mise en page à chaque
 changement de sens. Toutes les hauteurs de viewport sont en **`dvh`**, avec
 `vh` en repli pour les navigateurs qui l'ignorent.
 
+⚠️ **`viewport-fit=cover` est obligatoire** dans le `<meta viewport>`. Sans lui,
+`env(safe-area-inset-*)` vaut **zéro** : toutes les gardes posées sur l'encoche
+ou sur la barre de geste sont alors inertes, sans que rien ne le signale. La
+barre supérieure passait ainsi sous l'encoche, et l'on ne pouvait pas remonter
+jusqu'aux premiers éléments de la page.
+
+⚠️ La barre supérieure **descend sous l'encoche** (`height: calc(3rem +
+env(safe-area-inset-top))` + `padding-top`), et le dégagement du contenu suit.
+Une valeur fixe laissait le haut de la page sous la barre.
+
 ⚠️ **« Tirer pour recharger » est désactivé** (`overscroll-behavior-y: contain`,
 sur `html` ET `body`). Arrivé en haut de la page, un geste vers le bas
 rechargeait l'app — qui n'a pourtant rien à rafraîchir depuis un serveur, tout

@@ -900,7 +900,15 @@ export default function App() {
           ⚠️ `pt-[68px]` : la barre supérieure est FIXE (48 px) et recouvrirait
           le haut du contenu. `pb-24` sous `lg` : la barre d'onglets est fixée
           en bas. */}
-      <div className="px-4 pb-24 pt-[68px] sm:px-6 lg:pb-16">
+      {/* ⚠️ Le dégagement du haut inclut l'ENCOCHE : la barre supérieure
+          descend sous elle (voir TopBar), donc le contenu doit descendre
+          d'autant. À `pt-[68px]` fixe, les premiers éléments de la page —
+          les sous-onglets du siège, par exemple — restaient sous la barre et
+          l'on ne pouvait pas remonter jusqu'à eux. */}
+      <div
+        className="px-4 pb-24 sm:px-6 lg:pb-16"
+        style={{ paddingTop: 'calc(68px + env(safe-area-inset-top))' }}
+      >
 
         {/* Avertissement petit écran : au-dessus du contenu, avant qu'on se soit
             fait une idée sur un affichage à l'étroit. */}

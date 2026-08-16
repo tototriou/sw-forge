@@ -2,7 +2,14 @@
 <html lang="fr">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <!-- viewport-fit=cover : sans lui, `env(safe-area-inset-*)` vaut ZÉRO et
+         toutes les gardes posées sur l'encoche ou la barre de geste des iPhone
+         sont inertes. La barre supérieure passait donc sous l'encoche, et son
+         contenu y était mangé. -->
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, viewport-fit=cover"
+    />
 
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <link rel="icon" type="image/png" sizes="512x512" href="/favicon.png" />

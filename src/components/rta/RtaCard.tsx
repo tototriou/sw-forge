@@ -202,12 +202,14 @@ export default function RtaCard({
               dernière icône de set passait dessous. Le nom masqué sur téléphone
               avait libéré assez de place pour que les trois icônes atteignent le
               bord, ce qu'elles ne faisaient pas quand il les repoussait. */}
-          {/* ⚠️ `gap-0` entre les icônes de set, et non `gap-1`. À trois sets —
-              le maximum — les deux écarts suffisaient à faire déborder la
-              dernière icône de la carte. Elles sont déjà lisibles collées : ce
-              sont des pastilles rondes cerclées, chacune se détache de sa
-              voisine sans qu'il faille un blanc entre elles. */}
-          <span className="flex flex-none items-center gap-0 max-sm:pr-3">
+          {/* ⚠️ Icônes de set COLLÉES sous `sm` seulement. À trois sets — le
+              maximum — les deux écarts suffisaient à faire déborder la dernière
+              de la carte, qui n'y fait que 150 px. Elles restent lisibles au
+              contact : ce sont des pastilles rondes cerclées, chacune se détache
+              de sa voisine sans blanc entre elles.
+              Sur bureau la carte est deux fois plus large et l'écart tient sans
+              rien coûter — il n'y avait pas lieu de l'y retirer. */}
+          <span className="flex flex-none items-center gap-0 sm:gap-1 max-sm:pr-3">
             {(entry.sets ?? []).slice(0, 3).map((s, i) => (
               <RuneIcon key={i} setKey={s} size={18} className="flex-none" />
             ))}

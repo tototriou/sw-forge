@@ -45,15 +45,13 @@ vitesse.
 
 ## Interrupteurs d'affichage
 
-Trois boutons **sur leur propre rangée**, sous les catégories : **Vitesses**,
-**Modifiés** et **Catégories**.
+Trois boutons : **Vitesses**, **Modifiés** et **Catégories**.
 
-⚠️ Ils étaient poussés à droite de la rangée des pastilles. Ils ne créent ni ne
-classent rien — ils coupent du bruit à l'écran, ce que ni « + Catégorie » ni les
-pastilles ne font. Mêlés à elles, ils passaient à la ligne dès qu'une catégorie
-de plus existait, et se retrouvaient un coup à droite, un coup en dessous, selon
-le nombre de catégories. Sur téléphone la rangée en comptait déjà quatre éléments
-avant eux. Ils coupent le bruit **sans rien perdre** — les données restent,
+⚠️ **Deux emplacements selon la largeur.** Sur bureau ils sont poussés à droite
+de la rangée des catégories — la largeur y suffit. Sous `lg` ils prennent leur
+propre rangée : la rangée des catégories comptait déjà quatre éléments avant eux,
+ils y passaient à la ligne dès qu'une catégorie de plus existait et se
+retrouvaient un coup à droite, un coup en dessous. Ils coupent le bruit **sans rien perdre** — les données restent,
 seul le rendu disparaît. Les trois états sont **persistés**.
 
 - ⚠️ **Les trois sont TOUJOURS affichés**, même quand ils ne servent à rien (pas
@@ -62,16 +60,24 @@ seul le rendu disparaît. Les trois états sont **persistés**.
   d'un réglage qu'on aurait perdu.
 - Le libellé nomme **ce qu'on affiche**, pas l'état du réglage — « Couleurs
   masquées » obligeait à relire le bouton pour savoir ce qu'il pilote.
-- ⚠️ **L'ACCENT marque l'état actif**, jamais l'inverse. Il était posé sur l'état
-  *masqué* : la chose coupée ressortait, celle qu'on voyait s'effaçait. On lisait
-  la rangée à l'envers — trois pastilles ternes signifiaient « tout est
-  affiché », une pastille colorée « ceci manque ».
-- ⚠️ **Une PUCE, pas un œil barré.** Ce pictogramme demande de se rappeler s'il
-  montre l'état courant ou l'action à venir — l'ambiguïté est inhérente au
-  symbole. Un point plein (affiché) ou creux (masqué) se lit sans être
-  interprété, comme une case à cocher.
-- Les trois sont **un seul composant** (`InterrupteurAffichage`), pas trois
-  copies du même bouton.
+- Sur **bureau**, l'icône **œil ouvert / barré** porte l'état et l'accent marque
+  l'état *masqué*.
+- Sous `lg`, deux écarts que la petite taille impose :
+  - ⚠️ **L'accent marque l'état ACTIF.** Sur un écran large on embrasse la
+    rangée d'un regard et l'inversion se rattrape ; sur trois pastilles serrées,
+    elle se lit à l'envers — trois pastilles ternes voudraient dire « tout est
+    affiché », une pastille colorée « ceci manque ».
+  - ⚠️ **Une PUCE plutôt qu'un œil barré.** Ce pictogramme demande de se
+    rappeler s'il montre l'état courant ou l'action à venir ; à 12 px sur un
+    téléphone, l'ambiguïté ne se lève plus. Un point plein ou creux se lit sans
+    être interprété.
+- Les trois sont **un seul composant** (`InterrupteurAffichage`) à deux rendus,
+  pas trois copies du même bouton.
+
+⚠️ **Le rendu de bureau n'a pas changé.** Ce n'est pas qu'il soit meilleur —
+c'est qu'il n'était pas en cause : la refonte visait le téléphone, et déplacer
+au passage les repères d'un écran qui ne souffrait de rien aurait été un coût
+sans contrepartie.
 - **Vitesses** — masque la vitesse sur les cartes de classement. Utile quand on
   range sa box par rôle et que les chiffres n'apportent rien à ce moment-là.
 - **Modifiés** — écrit en **orange le nom et la vitesse** des monstres dont les
@@ -253,11 +259,12 @@ vient lire sur cet écran, la prépa RTA se réglant au point de vitesse.
 ⚠️ Le nom complet passe dans l'**infobulle de la carte**, en tête des catégories.
 Sans cela il n'existerait plus nulle part sur téléphone.
 
-⚠️ Dans le panneau d'affectation, un monstre sélectionné se marque **par son
-FOND** teinté à la couleur de la catégorie, plus le liseré. Une coche de 12 px
-se posait en plus dans son coin : trois signaux pour un seul état booléen, et le
-plus petit des trois masquait un bout du portrait qu'il désignait. Le fond porte
-en outre la COULEUR de la catégorie, ce qu'une coche ne dit pas.
+⚠️ Dans le panneau d'affectation, un monstre sélectionné se marque par son
+**fond** teinté à la couleur de la catégorie, plus le liseré. La coche de 12 px
+posée dans son coin ne s'affiche plus **sous `lg`** : sur un portrait de 36 px
+elle en masquait un bout au doigt, là où le fond et le liseré disent déjà la
+sélection — et le fond porte en outre la COULEUR de la catégorie, ce qu'une
+coche ne dit pas. Sur bureau elle reste, rien ne l'y gênant.
 
 ⚠️ Le formulaire de catégorie devient un panneau **de second niveau** sous `lg`
 (`MobileSheet centre`), et reste une popup ancrée au-dessus. Une popup ancrée sur
@@ -276,11 +283,12 @@ parcourt du pouce mais un formulaire court, dont il ne restait qu'une bande sous
 le clavier. Il paraît en fondu plutôt qu'en glissant : le glissement dit « je
 viens du bord », or celui-ci ne vient de nulle part, il interrompt.
 
-⚠️ Les icônes de set sont **collées** (`gap-0`) et la ligne entière resserrée
-(`gap-0.5` sous `sm`). À trois sets — le maximum — les écarts suffisaient à
+⚠️ Les icônes de set sont **collées** et la ligne entière resserrée — **sous
+`sm` seulement**. À trois sets — le maximum — les écarts suffisaient à
 faire déborder la dernière icône de la carte. Elles restent lisibles au
 contact : ce sont des pastilles rondes cerclées, chacune se détache de sa
-voisine sans qu'il faille un blanc entre elles.
+voisine sans qu'il faille un blanc entre elles. Sur bureau la carte est deux
+fois plus large : l'écart y tient sans rien coûter.
 
 ⚠️ Les icônes de set réservent `pr-3` sous `sm`. La croix de suppression est
 posée **sur** le coin haut-droit, hors du flux : rien ne la repousse, et la

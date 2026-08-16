@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { Plus, Pencil, Trash2, Check, X } from 'lucide-react';
+import { Plus, Pencil, Trash2, Check, X, Eye, EyeOff } from 'lucide-react';
 import { Monster } from '../../types';
 import MonsterAvatar from '../MonsterAvatar';
 import { RtaCategory, UseRtaCategories, MAX_CATEGORIES_PER_MONSTER } from '../../hooks/useRtaCategories';
@@ -41,6 +41,11 @@ export default function CategoryBar({ cats, monsters }: Props) {
   const [editId, setEditId] = useState<string | null>(null); // catégorie en édition
   const [creating, setCreating] = useState(false);
   const [aSupprimer, setASupprimer] = useState<{ id: string; label: string } | null>(null);
+  // ⚠️ La refonte de cette barre ne vise QUE le téléphone : le rendu de bureau
+  // reste celui d'avant, à l'identique. Ce qui change tient à la place et au
+  // doigt — un écran large n'a ni l'une ni l'autre contrainte, et déplacer ses
+  // repères aurait changé ce qui n'était pas en cause.
+  const surMobile = useMediaQuery(SOUS_LG);
 
   const open = cats.categories.find((c) => c.id === openId) ?? null;
   // Effectif AFFICHÉ = membres réellement présents dans la prépa. Un monstre
@@ -137,46 +142,82 @@ export default function CategoryBar({ cats, monsters }: Props) {
           )}
         </div>
 
+        {/* Sur BUREAU seulement : poussés à droite de cette rangée, comme
+            avant la refonte mobile. */}
+        {!surMobile && (
+          <>
+          <InterrupteurAffichage
+            actif={cats.showSpeeds}
+            onToggle={() => cats.setShowSpeeds(!cats.showSpeeds)}
+            libelle="Vitesses"
+            titreActif="Masquer les vitesses sur les cartes"
+            titreInactif="Réafficher les vitesses sur les cartes"
+            surMobile={surMobile}
+            premier
+          />
+          <InterrupteurAffichage
+            actif={cats.markDesync}
+            onToggle={() => cats.setMarkDesync(!cats.markDesync)}
+            libelle="Modifiés"
+            titreActif="Ne plus signaler les monstres dont les runes ne suivent plus la vitesse demandée"
+            titreInactif="Signaler en orange les monstres dont les runes ne suivent plus"
+            surMobile={surMobile}
+          />
+          {/* ⚠️ Toujours affiché, même sans aucune catégorie : les trois
+              interrupteurs forment un groupe fixe. Un bouton qui apparaît et
+              disparaît fait sauter la rangée et donne l'impression d'un
+              réglage qu'on aurait perdu. */}
+          <InterrupteurAffichage
+            actif={cats.visible}
+            onToggle={() => cats.setVisible(!cats.visible)}
+            libelle="Catégories"
+            titreActif="Masquer les couleurs sur les cartes et l’ordre de tour"
+            titreInactif="Réafficher les couleurs"
+            surMobile={surMobile}
+          />
+          </>
+        )}
       </div>
 
-      {/* ⚠️ Les trois interrupteurs d'affichage sur leur PROPRE rangée, et non
-          poussés à droite de la précédente. Ils ne créent ni ne classent rien :
-          ils coupent du bruit à l'écran, ce que ni « + Catégorie » ni les
-          pastilles ne font. Mêlés à elles, ils passaient à la ligne dès qu'une
-          catégorie de plus existait — et se retrouvaient un coup à droite, un
-          coup en dessous, selon le nombre de catégories.
-          Sur téléphone, c'était pire : la rangée en comptait déjà quatre
-          éléments avant eux. */}
-      {/* ⚠️ PAS de `data-rangee-actions` : ce sont des pastilles calibrées au
-          texte, pas des boutons d'action. Étirées en cellules de grille égales,
-          elles devenaient des ovales déformés aux libellés flottants. */}
-      <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
-        <InterrupteurAffichage
-          actif={cats.showSpeeds}
-          onToggle={() => cats.setShowSpeeds(!cats.showSpeeds)}
-          libelle="Vitesses"
-          titreActif="Masquer les vitesses sur les cartes"
-          titreInactif="Réafficher les vitesses sur les cartes"
-        />
-        <InterrupteurAffichage
-          actif={cats.markDesync}
-          onToggle={() => cats.setMarkDesync(!cats.markDesync)}
-          libelle="Modifiés"
-          titreActif="Ne plus signaler les monstres dont les runes ne suivent plus la vitesse demandée"
-          titreInactif="Signaler en orange les monstres dont les runes ne suivent plus"
-        />
-        {/* ⚠️ Toujours affiché, même sans aucune catégorie : les trois
-            interrupteurs forment un groupe fixe. Un bouton qui apparaît et
-            disparaît fait sauter la rangée et donne l'impression d'un réglage
-            qu'on aurait perdu. */}
-        <InterrupteurAffichage
-          actif={cats.visible}
-          onToggle={() => cats.setVisible(!cats.visible)}
-          libelle="Catégories"
-          titreActif="Masquer les couleurs sur les cartes et l’ordre de tour"
-          titreInactif="Réafficher les couleurs"
-        />
-      </div>
+      {/* ⚠️ **Rangée propre SOUS `lg` seulement.** Sur téléphone, la rangée des
+          catégories comptait déjà quatre éléments avant eux : les interrupteurs
+          y passaient à la ligne dès qu'une catégorie de plus existait, et se
+          retrouvaient un coup à droite, un coup en dessous.
+          Au-dessus de `lg` ils restent poussés à DROITE de cette rangée, comme
+          avant — la largeur y suffit. */}
+      {surMobile && (
+        <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
+          <InterrupteurAffichage
+            actif={cats.showSpeeds}
+            onToggle={() => cats.setShowSpeeds(!cats.showSpeeds)}
+            libelle="Vitesses"
+            titreActif="Masquer les vitesses sur les cartes"
+            titreInactif="Réafficher les vitesses sur les cartes"
+            surMobile={surMobile}
+            premier
+          />
+          <InterrupteurAffichage
+            actif={cats.markDesync}
+            onToggle={() => cats.setMarkDesync(!cats.markDesync)}
+            libelle="Modifiés"
+            titreActif="Ne plus signaler les monstres dont les runes ne suivent plus la vitesse demandée"
+            titreInactif="Signaler en orange les monstres dont les runes ne suivent plus"
+            surMobile={surMobile}
+          />
+          {/* ⚠️ Toujours affiché, même sans aucune catégorie : les trois
+              interrupteurs forment un groupe fixe. Un bouton qui apparaît et
+              disparaît fait sauter la rangée et donne l'impression d'un
+              réglage qu'on aurait perdu. */}
+          <InterrupteurAffichage
+            actif={cats.visible}
+            onToggle={() => cats.setVisible(!cats.visible)}
+            libelle="Catégories"
+            titreActif="Masquer les couleurs sur les cartes et l’ordre de tour"
+            titreInactif="Réafficher les couleurs"
+            surMobile={surMobile}
+          />
+        </div>
+      )}
 
       {/* Panneau d'affectation : tous les monstres de la page. */}
       {open && (
@@ -250,15 +291,14 @@ export default function CategoryBar({ cats, monsters }: Props) {
                           ? ''
                           : 'opacity-70 hoverable:opacity-100 hoverable:bg-panel2'
                     }`}
-                    // ⚠️ **Le FOND suffit à dire la sélection.** Une coche de
-                    // 12 px se posait en plus dans le coin, sur un portrait de
-                    // 36 : trois signaux (fond teinté, liseré, coche) pour un
-                    // seul état booléen, et le plus petit des trois masquait un
-                    // bout du monstre qu'il désignait. Le fond porte déjà la
-                    // couleur de la catégorie, ce qu'une coche ne dit pas.
+                    // ⚠️ Fond plus soutenu sous `lg`, où la coche ne s'affiche
+                    // pas : il y porte seul l'état de sélection.
                     style={
                       dedans
-                        ? { boxShadow: `0 0 0 1.5px ${open.color}`, backgroundColor: withAlpha(open.color, 0.28) }
+                        ? {
+                            boxShadow: `0 0 0 1.5px ${open.color}`,
+                            backgroundColor: withAlpha(open.color, surMobile ? 0.28 : 0.2),
+                          }
                         : undefined
                     }
                   >
@@ -270,6 +310,18 @@ export default function CategoryBar({ cats, monsters }: Props) {
                     <span className="w-full truncate text-center text-micro leading-tight text-ink-dim">
                       {m.name}
                     </span>
+                    {/* ⚠️ Coche masquée SOUS `lg` seulement : 12 px posés dans
+                        le coin d'un portrait de 36, elle en masquait un bout au
+                        doigt, là où le fond teinté et le liseré disent déjà la
+                        sélection. Sur bureau elle reste — rien ne l'y gênait. */}
+                    {dedans && !surMobile && (
+                      <span
+                        className="absolute top-0.5 right-0.5 flex items-center justify-center w-3 h-3 rounded-full"
+                        style={{ backgroundColor: open.color }}
+                      >
+                        <Check size={8} className="text-bg" />
+                      </span>
+                    )}
                   </button>
                 );
               })}
@@ -300,28 +352,40 @@ export default function CategoryBar({ cats, monsters }: Props) {
 // fait ». Les trois de la barre RTA en sont des instances — ils étaient trois
 // copies du même bouton, à trois endroits, avec les mêmes vingt lignes.
 //
-// ⚠️ **L'accent marque l'état ACTIF, pas l'inverse.** Il était posé sur l'état
-// masqué : la chose coupée ressortait, celle qu'on voyait s'effaçait. On lisait
-// donc la rangée à l'envers — trois pastilles ternes signifiaient « tout est
-// affiché », et une pastille colorée « ceci manque ». L'accent dit maintenant
-// ce qui est LÀ.
+// ⚠️ **Deux rendus, et celui de BUREAU est l'ancien, inchangé** : œil ouvert /
+// barré, accent sur l'état masqué, poussé à droite de la rangée des catégories.
+// Ce n'est pas qu'il soit meilleur — c'est qu'il n'était pas en cause. La
+// refonte visait le téléphone ; changer le bureau au passage aurait déplacé les
+// repères de quelqu'un qui ne demandait rien.
 //
-// ⚠️ **Une PUCE, pas une icône à décoder.** L'œil barré demandait de se
-// rappeler s'il montre l'état courant ou l'action à venir — l'ambiguïté
-// classique de ce pictogramme. Un point plein / creux se lit sans être
-// interprété, comme n'importe quelle case à cocher.
+// Sous `lg`, deux écarts que la petite taille rend nécessaires :
+//
+// - **L'accent marque l'état ACTIF.** Il est posé sur l'état masqué dans la
+//   version de bureau : la chose coupée ressort, celle qu'on voit s'efface. Sur
+//   un écran large on embrasse la rangée d'un regard et l'inversion se
+//   rattrape ; sur trois pastilles serrées, elle se lit à l'envers.
+// - **Une PUCE plutôt qu'un œil barré.** Ce pictogramme demande de se rappeler
+//   s'il montre l'état courant ou l'action à venir. À 12 px sur un téléphone,
+//   l'ambiguïté ne se lève plus ; un point plein ou creux se lit sans être
+//   interprété.
 function InterrupteurAffichage({
   actif,
   onToggle,
   libelle,
   titreActif,
   titreInactif,
+  surMobile,
+  premier = false,
 }: {
   actif: boolean;
   onToggle: () => void;
   libelle: string;
   titreActif: string;
   titreInactif: string;
+  surMobile: boolean;
+  // Premier des trois : sur bureau il porte le `ml-auto` qui pousse le groupe à
+  // droite de la rangée des catégories.
+  premier?: boolean;
 }) {
   return (
     <button
@@ -329,25 +393,36 @@ function InterrupteurAffichage({
       aria-pressed={actif}
       title={actif ? titreActif : titreInactif}
       // ⚠️ `data-hauteur-fixe` : la hauteur est dessinée ici, le panneau mobile
-      // ne doit pas la remplacer par son minimum (voir index.css). 32 px au
-      // doigt plutôt que 28 : trois pastilles côte à côte, on vise la voisine.
+      // ne doit pas la remplacer par son minimum (voir index.css).
       data-hauteur-fixe
-      className={`flex h-7 max-lg:h-8 items-center gap-1.5 rounded-full border px-2.5 text-xs
-                  transition select-none ${
-                    actif
-                      ? 'border-accent bg-accent-soft font-semibold text-ink'
-                      : 'border-border bg-panel text-ink-dimmer hoverable:text-ink-dim hoverable:border-accent'
-                  }`}
-    >
-      {/* Puce pleine quand la chose est affichée, creuse quand elle est coupée.
-          `border-current` : elle emprunte la couleur du texte, donc elle suit
-          l'état sans qu'on ait à la déclarer deux fois. */}
-      <span
-        aria-hidden
-        className={`h-2 w-2 flex-none rounded-full border transition ${
-          actif ? 'border-current bg-current' : 'border-current bg-transparent'
+      className={`flex h-7 items-center gap-1.5 rounded-full border px-2.5 text-xs transition
+        ${!surMobile && premier ? 'ml-auto' : ''}
+        ${
+          surMobile
+            ? actif
+              ? 'select-none border-accent bg-accent-soft font-semibold text-ink'
+              : 'select-none border-border bg-panel text-ink-dimmer hoverable:border-accent hoverable:text-ink-dim'
+            : actif
+              ? 'border-border bg-panel text-ink-dim hoverable:text-ink hoverable:border-accent'
+              : // Fond seul — voir spec/shared/design.md.
+                'border-border bg-accent-soft text-ink'
         }`}
-      />
+    >
+      {surMobile ? (
+        // Puce pleine quand la chose est affichée, creuse quand elle est coupée.
+        // `border-current` : elle emprunte la couleur du texte, donc elle suit
+        // l'état sans qu'on ait à le déclarer deux fois.
+        <span
+          aria-hidden
+          className={`h-2 w-2 flex-none rounded-full border border-current transition ${
+            actif ? 'bg-current' : 'bg-transparent'
+          }`}
+        />
+      ) : actif ? (
+        <Eye size={12} />
+      ) : (
+        <EyeOff size={12} />
+      )}
       {libelle}
     </button>
   );

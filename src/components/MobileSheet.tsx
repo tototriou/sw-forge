@@ -83,8 +83,11 @@ export default function MobileSheet({
               <span className="h-1 w-9 rounded-full bg-border" aria-hidden />
             </div>
 
-            <div className="flex flex-none items-center gap-2 px-4 pb-2 pt-2">
-              <h2 className="font-display text-base tracking-wide text-ink">{titre}</h2>
+            <div className="flex flex-none items-center gap-2 px-4 pb-1.5 pt-1.5">
+              {/* ⚠️ `text-sm` et non `text-base` : ce titre rappelle où l'on est,
+                  il n'annonce pas une page. À la taille d'un titre de section il
+                  pesait autant que les actions qu'il coiffe. */}
+              <h2 className="font-display text-sm tracking-wide text-ink">{titre}</h2>
               <button
                 type="button"
                 onClick={onFermer}
@@ -107,7 +110,7 @@ export default function MobileSheet({
                 y serait un rébus. Voir la règle dans index.css. */}
             <div
               data-tiroir
-              className="flex-1 overflow-y-auto overscroll-contain px-4 pb-4 pt-1"
+              className="flex-1 overflow-y-auto overscroll-contain px-4 pb-4 pt-0.5"
             >
               {children}
             </div>

@@ -553,18 +553,49 @@ button:not(:disabled):not([draggable]):not([role='switch']):active,
   display: inline !important;
 }
 
-/* ⚠️ Les boutons s'alignent à GAUCHE quand ils occupent toute la largeur : un
-   libellé centré dans un bouton pleine largeur flotte au milieu du vide, et
-   l'œil doit repartir chercher le début de chaque ligne. Empilés, ils forment
-   une colonne dont tous les mots commencent au même endroit.
+/* ⚠️ Les boutons empilés s'alignent à GAUCHE : un libellé centré dans un bouton
+   large flotte au milieu du vide, et l'œil doit repartir chercher le début de
+   chaque ligne. Alignés, ils forment une colonne dont tous les mots commencent
+   au même endroit.
    ⚠️ **Seulement les boutons EMPILÉS**, jamais ceux d'une rangée. Les pastilles
    de filtre (élément, étoiles) vivent dans un `flex-wrap` et doivent garder leur
    largeur propre : alignées de force, chacune s'étirerait sur toute la ligne et
    la rangée deviendrait une colonne de six pastilles géantes.
-   D'où `.flex-col > button` — seul un conteneur qui empile est visé. */
+   D'où `.flex-col > button` — seul un conteneur qui empile est visé.
+
+   ⚠️ **Plus de `width: 100%`.** Une colonne de barres pleine largeur donnait à
+   quatre actions le poids visuel d'un menu principal, alors que le panneau en
+   est un accessoire. `align-items: flex-start` sur le conteneur suffit : les
+   boutons reprennent la largeur de leur texte, alignés au même bord gauche. */
+[data-tiroir] .flex-col {
+  align-items: flex-start;
+}
+
 [data-tiroir] .flex-col > button {
   justify-content: flex-start;
-  width: 100%;
+}
+
+/* ⚠️ **Boutons plus BAS dans le panneau qu'ailleurs.** Le minimum tactile de
+   40 px vaut pour un bouton perdu dans une page, entouré d'autre chose à
+   toucher. Ici ils sont seuls, empilés dans un panneau qui ne contient rien
+   d'autre : il n'y a rien à rater autour. À 40 px plus leur rembourrage propre,
+   quatre actions remplissaient la moitié de l'écran.
+   ⚠️ Le rembourrage n'est retouché que sur les boutons EMPILÉS. Les pastilles
+   d'une rangée sont rondes (`rounded-full`) et calibrées au texte : leur imposer
+   un autre padding les déforme en ovales inégaux. Elles gagnent la hauteur, pas
+   la géométrie. */
+[data-tiroir] button:not([data-cible-fine]),
+[data-tiroir] a[role='button'],
+[data-tiroir] select,
+[data-tiroir] input:not([type='checkbox']):not([type='radio']) {
+  min-height: 34px;
+}
+
+[data-tiroir] .flex-col > button {
+  padding-top: 0.25rem;
+  padding-bottom: 0.25rem;
+  padding-left: 0.625rem;
+  padding-right: 0.625rem;
 }
 
 ::-webkit-scrollbar {

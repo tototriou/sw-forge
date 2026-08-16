@@ -405,15 +405,33 @@ dit plus ce qu'il fait.
 (`hidden lg:contents` ou `hidden lg:flex` dans la page, et le même fragment dans
 le panneau). Deux copies auraient divergé au premier filtre ajouté.
 
-⚠️ Deux règles CSS adaptent les contrôles au panneau (`src/index.css`), plutôt
+⚠️ Des règles CSS adaptent les contrôles au panneau (`src/index.css`), plutôt
 que de les réécrire dans chaque composant :
-- `[data-tiroir] .flex-col > button` — les boutons **empilés** prennent toute la
-  largeur et s'alignent à gauche. **Seulement les empilés** : les pastilles de
-  filtre vivent dans un `flex-wrap` et doivent garder leur largeur propre, sinon
-  la rangée devient une colonne de six pastilles géantes.
-- `[data-tiroir] .w-[86px]` — les intitulés à largeur fixe reprennent leur
-  largeur naturelle. Calibrés pour une rangée desktop de 900 px, ils amputaient
-  d'un quart le contrôle qu'ils désignent.
+
+- **Hauteur à 34 px**, contre les 40 px de la règle tactile générale. Ces 40 px
+  valent pour un bouton perdu dans une page, entouré d'autre chose à toucher ;
+  dans le panneau les boutons sont seuls et empilés, il n'y a rien à rater
+  autour. À 40 px plus leur rembourrage propre, quatre actions remplissaient la
+  moitié de l'écran.
+- **Pas de `width: 100%`.** Une colonne de barres pleine largeur donnait à
+  quatre actions le poids visuel d'un menu principal, alors que le panneau en
+  est un accessoire. `align-items: flex-start` suffit : les boutons reprennent
+  la largeur de leur texte, alignés au même bord gauche.
+- **Rembourrage resserré sur les boutons empilés seulement.** Les pastilles
+  d'une rangée sont rondes et calibrées au texte : leur imposer un autre padding
+  les déforme en ovales inégaux. Elles gagnent la hauteur, pas la géométrie.
+- **Alignement à gauche des boutons empilés.** Un libellé centré dans un bouton
+  large flotte au milieu du vide, et l'œil repart chercher le début de chaque
+  ligne. **Seulement les empilés** : les pastilles de filtre vivent dans un
+  `flex-wrap` et doivent garder leur largeur propre, sinon la rangée devient une
+  colonne de six pastilles géantes.
+- **`.w-[86px]` libéré** — les intitulés à largeur fixe reprennent leur largeur
+  naturelle. Calibrés pour une rangée desktop de 900 px, ils amputaient d'un
+  quart le contrôle qu'ils désignent.
+
+⚠️ Le **titre** du panneau est en `text-sm`, pas `text-base` : il rappelle où
+l'on est, il n'annonce pas une page. À la taille d'un titre de section, il
+pesait autant que les actions qu'il coiffe.
 
 ## Densité au doigt
 

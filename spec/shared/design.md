@@ -267,6 +267,28 @@ Quatre keyframes, déclarés une fois dans `index.css` :
 - ⚠️ **La boîte de dialogue fait exception** et reste centrée : elle n'a pas
   d'ancre, elle ne sort d'aucun bouton.
 
+### L'échelle des plans
+
+⚠️ Deux éléments au **même `z-index`** se départagent par leur ordre dans le
+DOM — celui monté en dernier passe devant. C'est ainsi qu'une confirmation
+ouverte depuis le panneau d'actions se retrouvait **derrière lui** : tous deux à
+`z-50`, et le panneau monté après. On cliquait « Supprimer », rien ne semblait se
+produire, et le geste paraissait dépourvu de confirmation.
+
+| Plan | Niveau | Qui |
+|------|--------|-----|
+| Contenu | — | La page |
+| Barre supérieure | `z-20` | Elle passe sous la barre latérale |
+| Barre latérale, bouton « Options » | `z-30` | La navigation |
+| Barre d'onglets | `z-40` | Sous le panneau qui la recouvre |
+| Panneau d'actions | `z-50` | Recouvre la navigation |
+| Panneau de second niveau | `z-60` | Recouvre le panneau d'où il sort |
+| **Dialogues** | **`z-70`** | **Au-dessus de tout** |
+
+⚠️ **Une confirmation est le dernier mot de l'interface : rien ne se met devant
+elle.** Tout dialogue modal — `Modale`, `ConfirmDialog`, et les voiles écrits à
+la main comme celui de l'export RTA — porte `z-[70]`.
+
 ### Un flottant ne sort jamais de l'écran
 
 ⚠️ **`max-width` ne suffit pas.** Il borne la LARGEUR ; un panneau ancré à gauche

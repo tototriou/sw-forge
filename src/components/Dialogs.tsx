@@ -121,7 +121,14 @@ export function Modale({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-bg/80 p-4
+      // ⚠️ **`z-[70]` : au-dessus de TOUT, panneaux mobiles compris.** À `z-50`,
+      // une confirmation ouverte depuis le panneau d'actions (supprimer une
+      // catégorie RTA, par exemple) se retrouvait DERRIÈRE lui : même niveau,
+      // et le panneau monté après dans le DOM passait devant. On cliquait, rien
+      // ne semblait se produire, et le geste paraissait sans confirmation.
+      // Une confirmation est le dernier mot de l'interface : rien ne se met
+      // devant elle.
+      className="fixed inset-0 z-[70] flex items-center justify-center bg-bg/80 p-4
                  animate-[voile_150ms_var(--ease-out)]"
       onClick={onClose}
       role="presentation"
@@ -334,7 +341,8 @@ export function KeepAccountDialog({
   const [nePlusMontrer, setNePlusMontrer] = useState(false);
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-bg/80 p-4 backdrop-blur-sm
+      // ⚠️ `z-[70]` comme la coquille `Modale` — voir la note là-haut.
+      className="fixed inset-0 z-[70] flex items-center justify-center bg-bg/80 p-4 backdrop-blur-sm
                  animate-[voile_150ms_var(--ease-out)]"
       onClick={onDismiss}
       role="presentation"

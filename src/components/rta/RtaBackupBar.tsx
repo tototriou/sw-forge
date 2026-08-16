@@ -709,7 +709,10 @@ function ChoixExport({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-bg/80 p-4"
+      // ⚠️ `z-[70]` comme les autres dialogues (voir Dialogs.tsx) : celui-ci
+      // s'ouvre depuis le panneau d'actions, qui est lui-même à `z-50`. Au même
+      // niveau, le panneau — monté après dans le DOM — serait passé devant.
+      className="fixed inset-0 z-[70] flex items-center justify-center bg-bg/80 p-4"
       onClick={onAnnuler}
       role="presentation"
     >

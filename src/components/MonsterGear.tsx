@@ -14,10 +14,10 @@ import {
   runeScore,
 } from '../lib/effects';
 import RuneWheel from './RuneWheel';
+import ArtifactSlots from './ArtifactSlots';
 import StatPanel from './StatPanel';
 import { RUNE_METRICS, formatRuneMetric, useRuneMetric } from '../hooks/useRuneMetric';
 import { artifactScore, artifactEfficiency } from '../lib/artifacts';
-import ArtifactFrameIcon from './ArtifactFrameIcon';
 
 type Selected =
   | { kind: 'rune'; i: number }
@@ -378,24 +378,19 @@ export default function MonsterGear({ gear, spdCible = null }: Props) {
       <StatPanel stats={stats} spdCible={spdCible} />
 
       {/* Artéfacts — détail affiché EN LIGNE plus bas (bloc `sel`), pas un
-          popover flottant : pas de `renderOverlay` ici. */}
-      {gear.artifacts.length > 0 && (
-        <div className="flex flex-col gap-1.5">
-          {gear.artifacts.map((a, i) => {
-            const selected = isSel({ kind: 'artifact', i });
-            return (
-              <button
-                key={i}
-                onClick={() => toggle({ kind: 'artifact', i })}
-                title="Voir l'artéfact"
-                className="rounded transition"
-              >
-                <ArtifactFrameIcon artifact={a} size={58} glow={selected} />
-              </button>
-            );
-          })}
-        </div>
-      )}
+          popover flottant : pas de `renderOverlay` ici.
+          ⚠️ **`ArtifactSlots` et non une boucle sur `gear.artifacts`.** Ce
+          composant affiche TOUJOURS les deux emplacements (Attribut, Type), et
+          grise celui qui est vide. La boucle, elle, ne rendait que les
+          artéfacts PRÉSENTS : un monstre sans artéfact de type n'en montrait
+          qu'un, sans qu'on sache s'il en manquait un ou si le monstre n'en
+          portait qu'un — et sans artéfact du tout, le bloc disparaissait.
+          C'est le même composant que l'Optimiseur utilise déjà. */}
+      <ArtifactSlots
+        artifacts={gear.artifacts}
+        isSelected={(_a, i) => isSel({ kind: 'artifact', i })}
+        onSelectArtifact={(_a, i) => toggle({ kind: 'artifact', i })}
+      />
 
       {/* Roue de runes — voir RuneWheel.tsx. Le détail au clic reste
           affiché EN LIGNE sous la roue (bloc `sel` plus bas), pas un

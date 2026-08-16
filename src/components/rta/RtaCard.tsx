@@ -99,12 +99,16 @@ export default function RtaCard({
       {/* Anneau des catégories, par-dessus la bordure (voir CategoryRing). */}
       <CategoryRing colors={categoryColors} />
       <div className="flex items-center gap-2 p-1.5">
-      {/* Poignée de drag : seule zone qui déclenche le glisser-déposer */}
+      {/* Poignée de drag : seule zone qui déclenche le glisser-déposer.
+          ⚠️ Masquée au DOIGT (`coarse:hidden`) : le glisser-déposer HTML5 n'y
+          fonctionne pas, et le sélecteur de section sous le nom fait déjà le
+          travail. Elle prenait 14 px de large sur une carte qui en compte 150. */}
       <button
         draggable
         onDragStart={handleDragStart}
         onDragEnd={onDragEnd}
-        className="flex-none cursor-grab active:cursor-grabbing text-ink-dim hoverable:text-ink touch-none"
+        className="flex-none cursor-grab active:cursor-grabbing text-ink-dim
+                   hoverable:text-ink touch-none coarse:hidden"
         title="Glisser vers une section"
         aria-label="Déplacer"
       >
@@ -122,7 +126,7 @@ export default function RtaCard({
         title={hasGear ? 'Voir le détail des runes' : undefined}
       >
         <div
-          className={`hex-frame w-[50px] h-[50px] p-[2px] bg-gradient-to-br ${GRADIENT[monster.element]}`}
+          className={`hex-frame w-[42px] h-[42px] p-[2px] bg-gradient-to-br sm:w-[50px] sm:h-[50px] ${GRADIENT[monster.element]}`}
         >
           <div className="hex-frame w-full h-full bg-panel flex items-center justify-center overflow-hidden">
             {monster.image ? (

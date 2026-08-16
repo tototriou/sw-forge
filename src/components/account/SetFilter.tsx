@@ -64,13 +64,14 @@ export default function SetFilter({
               aria-pressed={active}
               // ⚠️ `data-cible-fine` : la règle tactile globale (40 px) ne
               // s'applique pas à cette GRILLE. Vingt-six sets à 40 px feraient
-              // quatre lignes de pastilles avant le premier résultat. Elles
-              // gagnent en revanche 2 px et un écart plus large au doigt :
-              // c'est l'espacement, pas la taille, qui évite d'activer le
-              // voisin quand les cibles sont alignées.
+              // quatre lignes de pastilles avant le premier résultat — la
+              // liste qu'on vient filtrer se retrouvait hors écran.
+              // ⚠️ Elles ne grossissent PAS non plus au doigt : c'est
+              // l'ESPACEMENT entre cibles alignées qui évite d'activer le
+              // voisin, pas leur taille. L'icône de set est reconnaissable à
+              // 28 px, c'est ce qui compte ici.
               data-cible-fine
               className={`flex items-center justify-center w-7 h-7 rounded-md border transition select-none
-                coarse:h-[34px] coarse:w-[34px]
                 ${
                   // ⚠️ Fond seul (voir spec/shared/design.md). La bordure reste
                   // TRANSPARENTE et non `border`, comme au repos : ces pastilles

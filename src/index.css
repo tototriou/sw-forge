@@ -524,6 +524,25 @@ button:not(:disabled):not([draggable]):not([role='switch']):active,
   }
 }
 
+/* ---- Tiroir mobile ------------------------------------------------------ */
+/* ⚠️ Les libellés masqués par `hidden sm:inline` REDEVIENNENT visibles dans le
+   tiroir. Ils disparaissent dans la page faute de place — six boutons à
+   libellé complet y remplissaient trois rangées —, mais le tiroir est un
+   panneau dédié de 340 px : une colonne d'icônes sans mots y serait un rébus.
+
+   ⚠️ La règle vit ICI et non dans chaque composant : les boutons ne savent pas
+   où ils sont rendus, et c'est très bien — ils déclarent leur libellé une fois,
+   le contexte décide s'il tient. */
+[data-tiroir] .hidden.sm\:inline {
+  display: inline !important;
+}
+
+/* Les boutons y prennent aussi toute la largeur : dans une colonne, un bouton
+   à la largeur de son texte laisse un bord flottant qui ne s'aligne sur rien. */
+[data-tiroir] button {
+  justify-content: flex-start;
+}
+
 ::-webkit-scrollbar {
   width: 10px;
   height: 10px;

@@ -15,9 +15,9 @@ import { AnimatePresence, motion } from 'framer-motion';
 // vivent — pas des copies : la page les rend, le tiroir ne fait que les
 // accueillir sous `lg`.
 //
-// ⚠️ **À droite, pas à gauche** : le pouce d'une main droite y arrive sans
-// traverser l'écran, et la gauche est déjà prise par les gestes de retour du
-// système.
+// ⚠️ **À GAUCHE** : c'est de là que vient le bouton qui l'ouvre, dans le coin
+// gauche de la barre. Un panneau qui surgit à l'opposé de son déclencheur oblige
+// à chercher le lien entre les deux.
 
 export default function MobileDrawer({
   ouvert,
@@ -66,14 +66,14 @@ export default function MobileDrawer({
             role="dialog"
             aria-modal="true"
             aria-label={titre}
-            // ⚠️ Le tiroir GLISSE depuis le bord droit : c'est de là qu'il
+            // ⚠️ Le tiroir GLISSE depuis le bord gauche : c'est de là qu'il
             // vient, et le mouvement dit d'où il sort — donc où il retournera.
-            initial={{ x: '100%' }}
+            initial={{ x: '-100%' }}
             animate={{ x: 0 }}
-            exit={{ x: '100%' }}
+            exit={{ x: '-100%' }}
             transition={{ duration: 0.22, ease: [0.23, 1, 0.32, 1] }}
-            className="fixed inset-y-0 right-0 z-50 flex w-[min(340px,88vw)] flex-col
-                       border-l border-border bg-panel lg:hidden"
+            className="fixed inset-y-0 left-0 z-50 flex w-[min(340px,88vw)] flex-col
+                       border-r border-border bg-panel lg:hidden"
           >
             <div className="flex flex-none items-center gap-2 border-b border-border px-4 py-3">
               <h2 className="font-display text-[16px] tracking-wide text-ink">{titre}</h2>
@@ -92,7 +92,13 @@ export default function MobileDrawer({
             {/* ⚠️ `overscroll-contain` : arrivé en bas du tiroir, le geste ne
                 doit pas se propager à la page derrière — elle défilerait sous
                 un panneau qui la recouvre. */}
-            <div className="flex-1 overflow-y-auto overscroll-contain p-4">{children}</div>
+            {/* ⚠️ `data-tiroir` : les boutons retrouvent leur LIBELLÉ ici. Ils
+                le perdent dans la page faute de place (voir RtaBackupBar), mais
+                le tiroir est un panneau dédié de 340 px — une colonne d'icônes
+                sans mots y serait un rébus. Voir la règle dans index.css. */}
+            <div data-tiroir className="flex-1 overflow-y-auto overscroll-contain p-4">
+              {children}
+            </div>
           </motion.div>
         </>
       )}

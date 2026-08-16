@@ -88,7 +88,15 @@ export default function RtaSection({
         </div>
       ) : (
         <AccordionGrid
-          className="grid grid-cols-[repeat(auto-fill,minmax(min(100%,210px),1fr))] gap-2.5"
+          // ⚠️ **150 px de colonne minimale, pas 210.** À 210, une seule carte
+          // tenait sur 320 px utiles : une prépa de trente monstres devenait
+          // trente lignes, et l'ordre de tour — qui se lit en balayant — n'était
+          // plus lisible d'un coup d'œil. À 150, deux colonnes tiennent dès
+          // 320 px et trois à partir de 480.
+          // La carte s'y adapte : le sélecteur de section passe sous le nom
+          // plutôt qu'à côté (voir RtaCard).
+          className="grid grid-cols-[repeat(auto-fill,minmax(min(100%,150px),1fr))] gap-2
+                     sm:grid-cols-[repeat(auto-fill,minmax(min(100%,210px),1fr))] sm:gap-2.5"
           openIndex={openIndex}
           detail={detail}
         >

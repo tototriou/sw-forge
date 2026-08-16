@@ -267,6 +267,15 @@ le ramène dans l'écran :
 | Création de monstre | Un bouton de barre d'outils ou de panneau |
 | Note d'une défense (recommandations) | Une vignette de rangée |
 
+- **`left`, jamais `transform: translateX()`.** Une transformée déplace ce qu'on
+  VOIT, mais la boîte de mise en page reste où elle était : le débordement
+  subsiste et la page garde son défilement latéral — le bug qu'on prétendait
+  corriger. `left` déplace la boîte elle-même.
+- Le flottant doit donc porter **`left-0` explicite**. Sans ancrage horizontal
+  posé (`left: auto`), une valeur négative ne décale pas : elle repositionne
+  depuis un bord que le navigateur choisit seul.
+- Le hook pose aussi un **`max-width` mesuré**, car sur un écran plus étroit que
+  le flottant le décalage ne suffit pas — il faut le rétrécir.
 - **`useLayoutEffect`, pas `useEffect`** : la mesure a lieu avant peinture, le
   flottant ne s'affiche jamais hors cadre, même une image.
 - **L'état d'ouverture est passé au hook.** Le flottant n'est monté que lorsqu'il

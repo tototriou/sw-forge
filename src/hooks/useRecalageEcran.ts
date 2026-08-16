@@ -31,7 +31,7 @@ export function useRecalageEcran(
   ouvert: boolean,
   // Distance minimale au bord de l'écran.
   marge = 8
-): { style: { transform: string } | undefined; remesurer: () => void } {
+): { style: { left: string; maxWidth: string } | undefined; remesurer: () => void } {
   const [decalage, setDecalage] = useState(0);
 
   const mesurer = useCallback(() => {
@@ -39,7 +39,7 @@ export function useRecalageEcran(
     if (!el) return;
     // On repart de la position naturelle : sans cela, la correction s'ajoute à
     // elle-même à chaque passage et l'élément part vers la gauche.
-    el.style.transform = '';
+    el.style.left = '';
     const r = el.getBoundingClientRect();
     const debord = r.right - (document.documentElement.clientWidth - marge);
     if (debord <= 0) {
@@ -74,7 +74,22 @@ export function useRecalageEcran(
   }, [ouvert, mesurer]);
 
   return {
-    style: decalage ? { transform: `translateX(${decalage}px)` } : undefined,
+    // ⚠️ **`left`, et surtout PAS `transform: translateX()`.** Une transformée
+    // déplace ce qu'on VOIT, mais la boîte de mise en page reste où elle était :
+    // le débordement d'origine subsiste, et la page garde son défilement
+    // latéral — le bug qu'on prétendait corriger. `left` déplace la boîte
+    // elle-même, donc le débordement disparaît réellement.
+    style: decalage
+      ? {
+          left: `${decalage}px`,
+          // ⚠️ Plafond posé ICI et non par une classe : `max-w-[calc(100vw-2rem)]`
+          // se trompe de ~15 px sur desktop, `100vw` incluant la barre de
+          // défilement verticale. `clientWidth` est la largeur réellement
+          // disponible. Sur un écran plus étroit que le flottant, le décalage
+          // seul ne suffit pas — il faut aussi le rétrécir.
+          maxWidth: `${document.documentElement.clientWidth - marge * 2}px`,
+        }
+      : undefined,
     remesurer: mesurer,
   };
 }

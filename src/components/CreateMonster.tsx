@@ -103,7 +103,11 @@ export default function CreateMonster({ onCreate, customMonsters, onDelete }: Pr
           // grille dans le panneau mobile. Il sortait de l'écran dans le second
           // cas — `max-w` borne la largeur, pas la position. Voir le hook.
           style={recalage}
-          className="absolute z-30 mt-2 w-[300px] max-w-[calc(100vw-2rem)] rounded-xl border border-border bg-panel p-3 shadow-glow shadow-black/60
+          // ⚠️ `left-0` explicite : le recalage s'exprime en `left`, qui n'a de
+          // sens que si l'ancrage horizontal est posé. Sans lui (`left: auto`),
+          // une valeur négative ne décale pas — elle repositionne depuis un bord
+          // que le navigateur choisit seul.
+          className="absolute left-0 z-30 mt-2 w-[300px] max-w-[calc(100vw-2rem)] rounded-xl border border-border bg-panel p-3 shadow-glow shadow-black/60
                      origin-top-left animate-[popover_150ms_var(--ease-out)]"
         >
           <div className="flex items-center justify-between mb-2.5">

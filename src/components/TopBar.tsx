@@ -61,22 +61,26 @@ export default function TopBar({
                  lg:left-[var(--top-left)] lg:right-0 lg:transition-[left] lg:duration-[180ms]"
       style={{ ['--top-left' as string]: `${decalage}px` }}
     >
-      <div className="relative flex h-full items-center gap-3 px-3">
+      {/* ⚠️ `pr-2.5` à droite contre `pl-3` à gauche : le bouton de paramètres
+          a son propre padding interne (32 px de cible pour une icône de 16),
+          alors que le logo à gauche n'en a pas. Un padding égal des deux côtés
+          l'aurait visuellement décollé du bord. */}
+      <div className="relative flex h-full items-center gap-3 pl-3 pr-2.5">
         <div className="flex min-w-0 items-center gap-2">{gauche}</div>
 
         {/* ⚠️ `pointer-events-none` : le titre couvre toute la largeur pour
             rester centré, et capterait sinon les clics destinés aux boutons
             qu'il recouvre. */}
         <span
-          // ⚠️ Marges LATÉRALES sur le titre, pas `inset-x-0` : centré sur
-          // toute la largeur, il passait SOUS les boutons — le bouton ⚙
-          // chevauchait « RTA » sur mobile. Les 116 px réservés à droite
-          // correspondent aux trois cibles de 32 px plus la déconnexion ;
-          // 88 px à gauche au logo. `truncate` finit le travail sur les titres
-          // longs (« Recommandations »).
-          className="pointer-events-none absolute inset-y-0 left-[88px] right-[52px] flex
+          // ⚠️ Marges LATÉRALES sur le titre, pas `inset-x-0` : centré sur toute
+          // la largeur, il passait SOUS le bouton — le ⚙ chevauchait « RTA »
+          // sur mobile. 56 px réservés à droite (la cible de 32 px plus sa
+          // gouttière), 60 px à gauche pour le logo. Au-dessus de `lg` le logo
+          // vit dans la barre latérale : la marge gauche retombe à celle du
+          // conteneur. `truncate` finit le travail sur « Recommandations ».
+          className="pointer-events-none absolute inset-y-0 left-[60px] right-[56px] flex
                      items-center justify-center gap-2 font-display text-[15px]
-                     tracking-wide text-ink lg:left-4 lg:right-[52px]"
+                     tracking-wide text-ink lg:left-3"
         >
           {icone && <span className="flex-none text-ctx">{icone}</span>}
           <span className="truncate">{titre}</span>

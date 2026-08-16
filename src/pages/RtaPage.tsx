@@ -309,6 +309,10 @@ export default function RtaPage({
           ajoute la création avant, les catégories et l'effacement après. */}
       <MobileSheet ouvert={menuOuvert} onFermer={onFermerMenu} titre="Ma prépa RTA">
         <div className="flex flex-col gap-3">
+          {/* ⚠️ Pas de `data-rangee-actions` ici : un bouton SEUL dans une
+              grille à trois colonnes n'occuperait qu'un tiers de la largeur,
+              flottant à gauche d'un vide de deux cellules. Il prend sa largeur
+              naturelle. */}
           <div className="flex flex-wrap items-center gap-2">{creation}</div>
 
           <RtaBackupBar

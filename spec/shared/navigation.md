@@ -405,12 +405,37 @@ la bonne rangée d'abord et le bon bouton ensuite.
 au profit d'un saut de rangée : il passait inaperçu dès que la barre se repliait,
 ce qu'elle fait sur tout écran étroit.
 
-⚠️ **Une rangée doit TENIR sur une ligne**, sinon le groupement ne montre plus
-rien. « Consulter celle d'un ami » faisait à lui seul la moitié d'une largeur de
-téléphone et poussait sa rangée à la ligne : il décline un libellé court
-(« Ami », `hidden sm:inline lg:hidden`) et un long (`hidden lg:inline`).
-La règle `[data-tiroir] .hidden.lg\:inline { display: none }` empêche que la
-révélation des libellés n'affiche les deux côte à côte.
+⚠️ **Chaque rangée est une GRILLE** (`data-rangee-actions`), pas une file qui se
+replie. En `flex-wrap`, chaque bouton prenait la largeur de son texte :
+« Sauvegarder » et « Ami » finissaient côte à côte à des tailles différentes, et
+la dernière ligne restait à moitié vide. En grille, tous font la même taille et
+s'alignent verticalement d'une rangée à l'autre — c'est ce qui rend le
+groupement par type lisible d'un coup d'œil.
+
+- `grid-auto-flow: column` + `grid-auto-columns: 1fr`, **pas** `repeat(3, 1fr)` :
+  plusieurs rangées perdent un bouton selon l'état (« Réinitialiser » n'existe
+  qu'après un import de compte). À trois colonnes fixes, la rangée gardait une
+  cellule vide qui se lisait comme un bouton manquant.
+- Ciblé par un **attribut**, jamais par la forme du conteneur. Un sélecteur sur
+  `.flex-wrap` aurait attrapé les rangées de **pastilles** — six éléments du jeu,
+  cinq niveaux d'étoiles — et les aurait forcées à trois par ligne, soit deux
+  lignes au lieu d'une : l'inverse du but.
+- Une rangée à **un seul bouton** n'est pas marquée : il n'occuperait qu'un tiers
+  de la largeur, flottant à gauche d'un vide de deux cellules.
+
+⚠️ **Les intitulés de rangée disparaissent** dans le panneau (`.label`).
+« Élément », « Trier par », « Stat principale » coûtent 86 px sur une rangée
+desktop de 900 px et nomment ce qui suit ; sur 348 px ils prennent le quart de la
+largeur pour un mot que les pastilles disent déjà. Masqués en CSS, pas retirés du
+DOM : un lecteur d'écran n'a pas la vue d'ensemble qui rend le mot superflu.
+
+⚠️ **Les libellés longs déclinent une version courte** sous `lg` : un bouton
+dispose d'un tiers de 348 px. « Ajouter une équipe » → « Équipe », « Vérifier mes
+tick ATB » → « Ticks », « Créer une recommandation » → « Créer », « Consulter
+celle d'un ami » → « Ami ». Le sens entier reste dans l'infobulle et dans
+`aria-label`, où il ne coûte aucune place. La règle
+`[data-tiroir] .hidden.lg\:inline { display: none }` empêche que la révélation
+des libellés n'affiche les deux variantes côte à côte.
 
 ⚠️ Les **marges hautes** (`mt-4`) des barres d'outils sont annulées dans le
 panneau : elles les détachent de ce qui précède *dans la page*, mais s'ajoutent

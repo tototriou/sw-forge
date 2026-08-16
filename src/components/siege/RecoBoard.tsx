@@ -334,7 +334,11 @@ export default function RecoBoard({
           className="flex items-center gap-1.5 rounded-lg border border-border bg-panel px-3.5 py-2 text-sm
                      text-ink hoverable:border-accent transition"
         >
-          <Plus size={15} /> Créer une recommandation
+          {/* ⚠️ Deux longueurs — voir SiegeBoard : un tiers de 348 px ne tient
+              pas « Créer une recommandation ». */}
+          <Plus size={15} />
+          <span className="lg:hidden">Créer</span>
+          <span className="hidden lg:inline">Créer une recommandation</span>
         </button>
 
         <button
@@ -362,7 +366,9 @@ export default function RecoBoard({
                 : "Exporter les recommandations affichées (celles du filtre actif)"
             }
           >
-            <Upload size={15} /> Tout exporter
+            <Upload size={15} />
+            <span className="lg:hidden">Exporter</span>
+            <span className="hidden lg:inline">Tout exporter</span>
           </button>
         )}
 
@@ -396,7 +402,7 @@ export default function RecoBoard({
       </div>
 
       <MobileSheet ouvert={menuOuvert} onFermer={onFermerMenu} titre="Actions — recommandations">
-        <div className="flex flex-col gap-2">{actions}</div>
+        <div data-rangee-actions>{actions}</div>
         {effacer && <div className="mt-4 border-t border-border pt-3">{effacer}</div>}
       </MobileSheet>
 

@@ -326,7 +326,7 @@ export default function RtaBackupBar({
           séparateur vertical qui les distinguait passait inaperçu dès que la
           rangée se repliait, ce qu'elle fait sur tout écran étroit. */}
       <div className="flex flex-col gap-1.5">
-      <div className="flex items-center gap-2 flex-wrap">
+      <div data-rangee-actions className="flex items-center gap-2 flex-wrap">
         <button
           onClick={() => (backup.backup ? setEcraserAConfirmer(true) : sauvegarder())}
           disabled={vide}
@@ -373,7 +373,7 @@ export default function RtaBackupBar({
 
       </div>
 
-      <div className="flex items-center gap-2 flex-wrap">
+      <div data-rangee-actions className="flex items-center gap-2 flex-wrap">
         <button
           onClick={() => setExportAChoisir(true)}
           disabled={vide}

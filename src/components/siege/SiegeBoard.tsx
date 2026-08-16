@@ -95,11 +95,19 @@ export default function SiegeBoard({
           onClick={() => {
             siege.addTeam();
             setScrollToLast(true);
+            onFermerMenu();
           }}
+          aria-label="Ajouter une équipe"
           className="flex items-center gap-1.5 rounded-lg border border-border bg-panel px-3.5 py-2 text-sm
                      text-ink hoverable:border-accent transition"
         >
-          <Plus size={15} /> Ajouter une équipe
+          {/* ⚠️ Deux longueurs : en grille à trois colonnes, un bouton dispose
+              d'un tiers de 348 px. « Ajouter une équipe » y passait à la ligne
+              et déformait la rangée. Le sens tient dans « Équipe » à côté d'un
+              `+` ; l'infobulle et `aria-label` portent la phrase entière. */}
+          <Plus size={15} />
+          <span className="lg:hidden">Équipe</span>
+          <span className="hidden lg:inline">Ajouter une équipe</span>
         </button>
 
         {siege.state.teams.length > 0 && (
@@ -119,7 +127,9 @@ export default function SiegeBoard({
                 : 'border-border bg-panel text-ink-dim hoverable:text-ink hoverable:border-accent'
             }`}
           >
-            <Gauge size={15} /> Vérifier mes tick ATB
+            <Gauge size={15} />
+            <span className="lg:hidden">Ticks</span>
+            <span className="hidden lg:inline">Vérifier mes tick ATB</span>
           </button>
         )}
 
@@ -148,7 +158,7 @@ export default function SiegeBoard({
       </div>
 
       <MobileSheet ouvert={menuOuvert} onFermer={onFermerMenu} titre={`Actions — ${noun}`}>
-        <div className="flex flex-col gap-2">{actions}</div>
+        <div data-rangee-actions>{actions}</div>
         {effacer && (
           <div className="mt-4 border-t border-border pt-3">{effacer}</div>
         )}

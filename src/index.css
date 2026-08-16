@@ -697,6 +697,60 @@ button:not(:disabled):not([draggable]):not([role='switch']):active,
   width: auto;
 }
 
+/* ⚠️ **Les INTITULÉS de rangée disparaissent dans le panneau.** « Élément »,
+   « Trier par », « Stat principale » : sur une rangée desktop de 900 px ils
+   coûtent 86 px et nomment ce qui suit. Sur 348 px ils prennent le quart de la
+   largeur pour un mot que les pastilles elles-mêmes disent déjà — on ne se
+   demande pas de quoi parle une rangée de six éléments du jeu.
+
+   ⚠️ Masqués, pas supprimés du DOM : `.label` reste lisible par un lecteur
+   d'écran, qui n'a pas la vue d'ensemble qui rend le mot superflu. */
+[data-tiroir] .label {
+  display: none;
+}
+
+/* ⚠️ **Les boutons d'une rangée forment une GRILLE**, pas une file qui se
+   replie. En `flex-wrap`, chaque bouton prend la largeur de son texte :
+   « Sauvegarder » et « Ami » finissaient côte à côte à des tailles différentes,
+   et la dernière ligne restait à moitié vide. En grille à trois colonnes égales,
+   tous font la même taille et s'alignent verticalement d'une rangée à l'autre —
+   c'est ce qui rend le groupement par type lisible d'un coup d'œil.
+
+   ⚠️ Trois colonnes : c'est ce que portent les rangées d'actions (sauver /
+   reprendre / réinitialiser, exporter / importer / ami). À deux, elles
+   passeraient à la ligne ; à quatre, le libellé ne tiendrait plus.
+
+   ⚠️ Ciblé par `data-rangee-actions`, **pas** par la forme du conteneur. Un
+   sélecteur sur `.flex-wrap` aurait aussi attrapé les rangées de PASTILLES —
+   six éléments du jeu, cinq niveaux d'étoiles — qu'il aurait forcées à trois par
+   ligne, soit deux lignes au lieu d'une : l'inverse du but. La grille ne vaut
+   que pour des boutons de même nature, en nombre connu.
+
+   ⚠️ `grid-auto-flow: column` et non `repeat(3, 1fr)` : plusieurs rangées
+   perdent un bouton selon l'état (« Réinitialiser » n'existe qu'après un import
+   de compte, « Tout exporter » qu'avec au moins une recommandation). À trois
+   colonnes fixes, la rangée gardait une cellule vide et se lisait comme un
+   bouton manquant. En flux par colonne, la grille en crée autant qu'il y a de
+   boutons — `grid-auto-columns: 1fr` les fait égales — et ils se partagent
+   toujours toute la largeur. */
+[data-tiroir] [data-rangee-actions] {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: 1fr;
+  align-items: stretch;
+  gap: 0.5rem;
+}
+
+/* Les boutons remplissent leur cellule et centrent leur contenu : à taille
+   égale, un libellé calé à gauche laisserait des vides irréguliers d'une
+   colonne à l'autre. */
+[data-tiroir] [data-rangee-actions] > button {
+  width: 100%;
+  justify-content: center;
+  padding-left: 0.375rem;
+  padding-right: 0.375rem;
+}
+
 /* ⚠️ Les marges hautes des barres d'outils sont annulées dans le panneau. Elles
    les détachent du contenu qui les précède DANS LA PAGE ; empilées dans un
    panneau qui gère déjà ses écarts (`gap-3`), elles s'y ajoutent et creusent le

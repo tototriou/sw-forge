@@ -496,8 +496,10 @@ function TickBtn({ active, onClick, label }: { active: boolean; onClick: () => v
       className={`rounded-full border px-2.5 py-0.5 text-micro font-mono font-semibold transition select-none
         compact:px-1.5 compact:py-0 compact:text-nano
         ${
+          // ⚠️ **Contour d'accent + fond très léger**, le marqueur d'état unique
+          // de l'app (voir spec/shared/design.md).
           active
-            ? 'bg-gradient-to-br from-star to-yellow-200 text-bg border-star'
+            ? 'border-accent bg-accent-soft text-ink'
             : 'bg-panel border-border text-ink-dim hoverable:text-ink hoverable:border-accent'
         }`}
     >

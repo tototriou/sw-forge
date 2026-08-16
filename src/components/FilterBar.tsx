@@ -60,11 +60,14 @@ export default function FilterBar({
               onClick={() => toggleStar(s)}
               className={`rounded-full border px-3.5 py-1.5 text-sm font-mono font-semibold transition select-none
                 ${
-                  // Le dégradé `star` EST le marqueur : pas de `shadow-lg` en
-                  // plus, qui faisait flotter la pastille au-dessus de sa
-                  // rangée. Voir spec/shared/design.md.
+                  // ⚠️ **Contour d'accent + fond très léger**, le marqueur
+                  // d'état unique de l'app (voir spec/shared/design.md). Le
+                  // dégradé doré plein qu'elles portaient criait plus fort que
+                  // le réglage ne le mérite, et faisait deux vocabulaires selon
+                  // l'écran — un filtre actif ne doit pas se lire différemment
+                  // ici et là.
                   active
-                    ? 'bg-gradient-to-br from-star to-yellow-200 text-bg border-star'
+                    ? 'border-accent bg-accent-soft text-ink'
                     : 'bg-panel border-border text-ink-dim hoverable:text-ink hoverable:border-accent'
                 }`}
             >

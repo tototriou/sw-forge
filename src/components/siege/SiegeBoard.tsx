@@ -120,18 +120,14 @@ export default function SiegeBoard({
                 : 'Colorer les équipes selon leur calage sur les ticks ATB'
             }
             className={`flex items-center gap-1.5 rounded-lg border px-3.5 py-2 text-sm font-semibold transition ${
-              // ⚠️ **Fond PLEIN quand c'est actif**, et non la teinte
-              // `accent-soft` : celle-ci est un fond de panneau, trop proche du
+              // ⚠️ **Contour d'accent + fond très léger.** Le fond `accent-soft`
+              // seul ne se voyait pas : c'est un fond de panneau, trop proche du
               // gris ambiant pour se remarquer à côté de trois autres boutons.
-              // Un bouton dont l'état commande la couleur de TOUTES les équipes
-              // doit se voir sans être cherché.
-              // ⚠️ `bg-star text-bg`, le motif que le projet emploie déjà pour un
-              // bouton-bascule allumé (voir Dialogs et FilterBar) : c'est le
-              // doré qui dit « actif » dans toute l'app, et `text-bg` garantit
-              // le contraste sur les deux thèmes — `text-white` aurait été une
-              // couleur en dur, illisible si l'accent venait à s'éclaircir.
+              // C'est la BORDURE qui manquait — elle porte l'état, le fond ne
+              // fait que l'appuyer. Un fond plein, lui, criait plus fort que le
+              // réglage ne le mérite.
               checkTicks
-                ? 'border-star bg-star text-bg'
+                ? 'border-accent bg-accent-soft text-ink'
                 : 'border-border bg-panel text-ink-dim hoverable:text-ink hoverable:border-accent'
             }`}
           >

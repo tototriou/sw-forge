@@ -216,7 +216,7 @@ function MonsterBoxSection({
                 className={`rounded-full border px-3 py-1 text-xs font-mono font-semibold transition select-none
                   ${
                     active
-                      ? 'bg-gradient-to-br from-star to-yellow-200 text-bg border-star'
+                      ? 'border-accent bg-accent-soft text-ink'
                       : 'bg-panel border-border text-ink-dim hoverable:text-ink hoverable:border-accent'
                   }`}
               >
@@ -229,7 +229,7 @@ function MonsterBoxSection({
             className={`ml-1 flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs font-semibold transition select-none
               ${
                 dupesOnly
-                  ? 'bg-gradient-to-br from-star to-yellow-200 text-bg border-star'
+                  ? 'border-accent bg-accent-soft text-ink'
                   : 'bg-panel border-border text-ink-dim hoverable:text-ink hoverable:border-accent'
               }`}
           >
@@ -240,7 +240,7 @@ function MonsterBoxSection({
             className={`flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs font-semibold transition select-none
               ${
                 secondOnly
-                  ? 'bg-gradient-to-br from-star to-yellow-200 text-bg border-star'
+                  ? 'border-accent bg-accent-soft text-ink'
                   : 'bg-panel border-border text-ink-dim hoverable:text-ink hoverable:border-accent'
               }`}
             title="Monstres à second éveil (double éveil)"

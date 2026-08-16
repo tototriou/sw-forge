@@ -106,16 +106,20 @@ marqueurs différents côte à côte se lisent comme deux natures de filtre.
   d'accent perd du contraste au lieu d'en gagner : le libellé d'un élément
   sélectionné devient moins lisible que ses voisins non sélectionnés. Le texte
   passe à `ink` sur fond actif.
-- ⚠️ **Un bouton dont l'état change TOUTE la page prend le fond PLEIN**
-  (`bg-star text-bg`), pas `accent-soft`. C'est le cas de « Vérifier mes tick
-  ATB » au siège : il commande la couleur de chaque équipe affichée, et à côté de
-  trois autres boutons `accent-soft` — un fond de panneau, très proche du gris
-  ambiant — on ne voyait pas lequel était allumé.
-  C'est le même doré que les autres bascules pleines de l'app (« Ne plus
-  montrer », les filtres d'élément), donc pas un marqueur de plus : le vocabulaire
-  reste le même, seule son intensité suit la portée du réglage.
-  `accent-soft` reste la règle pour tout ce qui n'affecte que soi — un filtre,
-  un onglet, une pastille.
+- ⚠️ **Le marqueur d'état est UNIQUE : `border-accent bg-accent-soft text-ink`**
+  — un contour d'accent et un fond très léger. Le contour porte l'état, le fond
+  ne fait que l'appuyer : `accent-soft` seul ne se voyait pas, étant un fond de
+  panneau trop proche du gris ambiant.
+  ⚠️ Il a remplacé un **dégradé doré plein** sur les filtres d'étoiles, les
+  pastilles de tick et les filtres de la box. Celui-ci criait plus fort que le
+  réglage ne le mérite, et faisait surtout **deux vocabulaires selon l'écran** —
+  un filtre actif ne doit pas se lire différemment ici et là.
+  **Deux exceptions**, qui n'en sont pas vraiment :
+  - La **case à cocher** d'un dialogue (15 px) garde son remplissage plein : un
+    contour de 1 px y disparaît, et une case cochée se lit par son remplissage.
+  - Les boutons de **lead SPD** (ordre de tour) gardent le doré : ce n'est pas un
+    marqueur d'état mais le **code couleur du lead** lui-même, celui de
+    `LeadPill`.
 - Le **survol** garde `hoverable:border-accent` sur les contrôles à fond : il
   agit au repos, quand aucun marqueur n'occupe la bordure — il n'y a donc pas de
   cumul.

@@ -79,6 +79,11 @@ export const RELEASES: Release[] = [
         scope: 'Outils',
         text: 'Exporte tes paramètres de recherche dans un fichier, pour les partager avec d’autres joueurs ou les réimporter plus tard.',
       },
+      {
+        kind: 'feat',
+        scope: 'Outils',
+        text: 'Nouveau réglage « Rechercher jusqu’à épuisement complet » pour retirer la limite de temps de 10 minutes.',
+      },
     ],
   },
   {

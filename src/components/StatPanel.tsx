@@ -51,7 +51,7 @@ export default function StatPanel({ stats, spdCible = null }: Props) {
       className={`rounded-lg border border-border bg-panel/50 p-3 self-start ${PANEL_WIDTH} cursor-pointer
                  transition hoverable:border-accent`}
     >
-      <table className="w-full text-[12px]">
+      <table className="w-full text-xs">
         <tbody>
           {stats.map((row) => {
             // ⚠️ Le plafond de 100 % (Taux Crit/RES/Précision) n'a de sens à

@@ -32,7 +32,7 @@ export function Kpi({
       >
         {value}
       </p>
-      {sub && <p className="mt-1 font-mono text-[11px] text-ink-dim">{sub}</p>}
+      {sub && <p className="mt-1 font-mono text-micro text-ink-dim">{sub}</p>}
     </div>
   );
 }
@@ -69,7 +69,7 @@ export function BarRow({
   return (
     <div className="flex items-center gap-2.5">
       <span
-        className="flex-none font-mono text-[11.5px] text-ink-dim truncate"
+        className="flex-none font-mono text-micro text-ink-dim truncate"
         style={{ width: labelWidth }}
         title={label}
       >
@@ -81,7 +81,7 @@ export function BarRow({
           style={{ width: `${max ? (n / max) * 100 : 0}%`, background: color }}
         />
       </div>
-      <span className="w-[92px] flex-none text-right font-mono text-[11.5px] text-ink-dim tabular-nums">
+      <span className="w-[92px] flex-none text-right font-mono text-micro text-ink-dim tabular-nums">
         <b className="text-ink">{n.toLocaleString('fr-FR')}</b> · {fmt(pct(n, total))} %
       </span>
     </div>

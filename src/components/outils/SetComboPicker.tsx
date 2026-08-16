@@ -27,7 +27,7 @@ export default function SetComboPicker({ sets, onChange }: Props) {
           return (
             <span
               key={`${key}-${i}`}
-              className="flex items-center gap-1 rounded-full border border-border bg-panel2 pl-1.5 pr-1 py-0.5 text-[11.5px] font-semibold"
+              className="flex items-center gap-1 rounded-full border border-border bg-panel2 pl-1.5 pr-1 py-0.5 text-micro font-semibold"
             >
               <RuneIcon setKey={key} size={14} />
               {def?.label ?? key}
@@ -47,12 +47,12 @@ export default function SetComboPicker({ sets, onChange }: Props) {
           type="button"
           onClick={() => setOpen((o) => !o)}
           disabled={full}
-          className="rounded-full border border-border bg-panel px-2 py-1 text-[11px] font-semibold text-ink-dim
+          className="rounded-full border border-border bg-panel px-2 py-1 text-micro font-semibold text-ink-dim
                      transition hoverable:text-ink hoverable:border-accent disabled:opacity-40 disabled:cursor-not-allowed"
         >
           {full ? 'Plus de place (6 runes)' : '+ Set'}
         </button>
-        <span className="font-mono text-[11px] text-ink-dim">{used}/6 runes</span>
+        <span className="font-mono text-micro text-ink-dim">{used}/6 runes</span>
       </div>
 
       {open && !full && (

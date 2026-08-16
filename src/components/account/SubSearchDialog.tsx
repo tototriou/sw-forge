@@ -101,10 +101,10 @@ export default function SubSearchDialog({
       {/* Titre et compteur sur la MÊME ligne : le compteur est une jauge de ce
           qu'on est en train de faire, pas une phrase à lire. */}
       <div className="mb-2 flex items-baseline gap-2">
-        <h2 id="sub-search-titre" className="text-[14px] font-bold text-ink">
+        <h2 id="sub-search-titre" className="text-sm font-bold text-ink">
           Sous-propriétés
         </h2>
-        <span className="ml-auto flex-none font-mono text-[11px] text-ink-dim">
+        <span className="ml-auto flex-none font-mono text-micro text-ink-dim">
           {brouillon.length}/{max}
         </span>
       </div>
@@ -136,7 +136,7 @@ export default function SubSearchDialog({
                   onChange={() => basculer(o.code)}
                   className="h-3.5 w-3.5 flex-none accent-accent"
                 />
-                <span className={`truncate text-[12px] ${actif ? 'text-ink' : 'text-ink-dim'}`}>
+                <span className={`truncate text-xs ${actif ? 'text-ink' : 'text-ink-dim'}`}>
                   {o.label}
                 </span>
               </label>
@@ -164,7 +164,7 @@ export default function SubSearchDialog({
                   disabled={bloque}
                   onChange={(v) => poserBorne(o.code, 'min', v)}
                 />
-                <span className="font-mono text-[11px] text-ink-dim">~</span>
+                <span className="font-mono text-micro text-ink-dim">~</span>
                 <Borne
                   valeur={c?.max}
                   placeholder="Max"
@@ -185,7 +185,7 @@ export default function SubSearchDialog({
         <button
           onClick={() => setBrouillon([])}
           disabled={brouillon.length === 0}
-          className="text-[12px] text-ink-dim underline transition hoverable:text-fire
+          className="text-xs text-ink-dim underline transition hoverable:text-fire
                      disabled:cursor-not-allowed disabled:no-underline disabled:opacity-30"
         >
           Réinitialiser
@@ -237,7 +237,7 @@ function Borne({
         onChange(Number(brut));
       }}
       className="h-[22px] w-[52px] rounded border border-border bg-panel px-1 text-center
-                 font-mono text-[11px] text-ink outline-none transition tabular-nums
+                 font-mono text-micro text-ink outline-none transition tabular-nums
                  placeholder:text-ink-dim focus:border-accent
                  disabled:cursor-not-allowed disabled:opacity-50"
     />

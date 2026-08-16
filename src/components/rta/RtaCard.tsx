@@ -154,7 +154,7 @@ export default function RtaCard({
           {/* Nom en orange quand les runes ne suivent plus la vitesse demandée :
               on repère les monstres à re-runer sans ouvrir chaque fiche. */}
           <span
-            className={`text-[12px] font-semibold leading-tight truncate flex-1 ${
+            className={`text-xs font-semibold leading-tight truncate flex-1 ${
               desync && markDesync ? 'text-warn' : ''
             }`}
           >
@@ -164,7 +164,7 @@ export default function RtaCard({
             <>
               <img src={SPD_ICON} alt="SPD" width={15} height={15} className="flex-none" />
               <span
-                className={`font-mono text-[14px] font-black leading-none ${
+                className={`font-mono text-sm font-black leading-none ${
                   desync && markDesync ? 'text-warn' : 'text-ink'
                 }`}
               >
@@ -182,7 +182,7 @@ export default function RtaCard({
           value={entry.section}
           onChange={(e) => onMove(String(monster.id), e.target.value)}
           title="Déplacer vers une section"
-          className="mt-1 w-full bg-panel border border-border rounded px-1.5 py-0.5 text-[10px]
+          className="mt-1 w-full bg-panel border border-border rounded px-1.5 py-0.5 text-micro
                      text-ink-dim outline-none focus:border-accent"
         >
           {sectionKeys.map((k) => (

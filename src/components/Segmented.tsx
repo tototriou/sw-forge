@@ -47,7 +47,7 @@ export default function Segmented<T extends string>({
               aria-pressed={active}
               className={`flex flex-1 items-center justify-center gap-1.5 rounded-md font-semibold
                           transition whitespace-nowrap ${
-                            size === 'lg' ? 'px-2 py-1.5 text-[12px]' : 'px-2 py-1 text-[11.5px]'
+                            size === 'lg' ? 'px-2 py-1.5 text-xs' : 'px-2 py-1 text-micro'
                           } ${
                             // ⚠️ Le fond SEUL marque le cran posé — pas d'ombre
                             // en plus, elle faisait décoller le bouton de son

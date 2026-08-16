@@ -147,7 +147,7 @@ export default function RunesSummary({ runes }: Props) {
 
   if (!s.total) {
     return (
-      <p className="rounded-xl border border-border bg-panel px-4 py-6 text-center text-[13px] text-ink-dim">
+      <p className="rounded-xl border border-border bg-panel px-4 py-6 text-center text-sm text-ink-dim">
         Aucune rune dans l'inventaire importé.
       </p>
     );
@@ -239,7 +239,7 @@ export default function RunesSummary({ runes }: Props) {
                   )
               )}
             </div>
-            <div className="flex flex-wrap gap-x-3 gap-y-1 font-mono text-[11px] text-ink-dim">
+            <div className="flex flex-wrap gap-x-3 gap-y-1 font-mono text-micro text-ink-dim">
               {s.rarities.map((r) => (
                 <span key={r.rarity} className="flex items-center gap-1">
                   {/* La PASTILLE garde la couleur vive du jeu (elle a sa propre
@@ -264,12 +264,12 @@ export default function RunesSummary({ runes }: Props) {
             <div key={slot} className="rounded-lg border border-border bg-panel2 px-3 py-2">
               <div className="flex items-baseline justify-between">
                 <span className="label">Slot {slot}</span>
-                <span className="font-mono text-[12px] text-ink">{agg.n}</span>
+                <span className="font-mono text-xs text-ink">{agg.n}</span>
               </div>
-              <div className="mt-1 font-mono text-[12px] text-ink-dim">
+              <div className="mt-1 font-mono text-xs text-ink-dim">
                 moy. <b className="text-ink">{fmt(avg(agg))} %</b>
               </div>
-              <div className="font-mono text-[11px] text-ink-dim">
+              <div className="font-mono text-micro text-ink-dim">
                 max <b className="text-star">{fmt(agg.best)} %</b>
               </div>
             </div>
@@ -299,7 +299,7 @@ export default function RunesSummary({ runes }: Props) {
 
         {/* ---- Marge de progression ------------------------------------- */}
         <Panel title="Marge de progression">
-          <p className="mb-3 text-[12px] text-ink-dim leading-relaxed">
+          <p className="mb-3 text-xs text-ink-dim leading-relaxed">
             Si chaque rune recevait sa gemme optimale puis sa meule au max, en scénario{' '}
             <b className="text-ink">légendaire</b>. Sur{' '}
             <b className="text-ink">tes {s.topN} meilleures runes</b> — mêmes runes des deux côtés,
@@ -341,10 +341,10 @@ export default function RunesSummary({ runes }: Props) {
               <RuneIcon setKey={set.key} size={26} />
               <div className="min-w-0 flex-1">
                 <div className="flex items-baseline justify-between gap-2">
-                  <span className="text-[12.5px] font-bold text-ink truncate">{set.label}</span>
-                  <span className="font-mono text-[12px] text-ink-dim">{agg.n}</span>
+                  <span className="text-xs font-bold text-ink truncate">{set.label}</span>
+                  <span className="font-mono text-xs text-ink-dim">{agg.n}</span>
                 </div>
-                <div className="font-mono text-[11px] text-ink-dim">
+                <div className="font-mono text-micro text-ink-dim">
                   moy. <b className="text-ink">{fmt(avg(agg))} %</b> · max{' '}
                   <b className="text-star">{fmt(agg.best)} %</b>
                 </div>

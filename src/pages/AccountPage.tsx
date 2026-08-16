@@ -173,7 +173,7 @@ function MonsterBoxSection({ box, allMonsters = [] }: { box: BoxItem[]; allMonst
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               placeholder="Rechercher un monstre…"
-              className="w-full bg-panel border border-border rounded-lg pl-8 pr-3 py-1.5 text-[13px]
+              className="w-full bg-panel border border-border rounded-lg pl-8 pr-3 py-1.5 text-sm
                          text-ink outline-none focus:border-accent"
             />
           </div>
@@ -214,7 +214,7 @@ function MonsterBoxSection({ box, allMonsters = [] }: { box: BoxItem[]; allMonst
                 data-active={active}
                 onClick={() => toggleElement(el.key)}
                 // L'opacité est le marqueur, sans ombre — voir design.md.
-                className={`flex items-center gap-1.5 rounded-full border bg-panel px-3 py-1 text-[12.5px] font-semibold
+                className={`flex items-center gap-1.5 rounded-full border bg-panel px-3 py-1 text-xs font-semibold
                   transition select-none ${ELEMENT_FILTER_STYLES[el.key]}
                   ${active ? '' : 'opacity-70 hoverable:opacity-100'}`}
               >
@@ -239,7 +239,7 @@ function MonsterBoxSection({ box, allMonsters = [] }: { box: BoxItem[]; allMonst
               <button
                 key={s}
                 onClick={() => toggleStar(s)}
-                className={`rounded-full border px-3 py-1 text-[12.5px] font-mono font-semibold transition select-none
+                className={`rounded-full border px-3 py-1 text-xs font-mono font-semibold transition select-none
                   ${
                     active
                       ? 'bg-gradient-to-br from-star to-yellow-200 text-bg border-star'
@@ -252,7 +252,7 @@ function MonsterBoxSection({ box, allMonsters = [] }: { box: BoxItem[]; allMonst
           })}
           <button
             onClick={() => setDupesOnly((v) => !v)}
-            className={`ml-1 flex items-center gap-1.5 rounded-full border px-3 py-1 text-[12.5px] font-semibold transition select-none
+            className={`ml-1 flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs font-semibold transition select-none
               ${
                 dupesOnly
                   ? 'bg-gradient-to-br from-star to-yellow-200 text-bg border-star'
@@ -263,7 +263,7 @@ function MonsterBoxSection({ box, allMonsters = [] }: { box: BoxItem[]; allMonst
           </button>
           <button
             onClick={() => setSecondOnly((v) => !v)}
-            className={`flex items-center gap-1.5 rounded-full border px-3 py-1 text-[12.5px] font-semibold transition select-none
+            className={`flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs font-semibold transition select-none
               ${
                 secondOnly
                   ? 'bg-gradient-to-br from-star to-yellow-200 text-bg border-star'
@@ -277,7 +277,7 @@ function MonsterBoxSection({ box, allMonsters = [] }: { box: BoxItem[]; allMonst
       </div>
 
       {filtered.length === 0 ? (
-        <p className="text-ink-dim text-[13px]">Aucun monstre ne correspond aux filtres.</p>
+        <p className="text-ink-dim text-sm">Aucun monstre ne correspond aux filtres.</p>
       ) : (
         // La MÊME grille que le Bestiaire (`MonsterGrid`) : c'est ce gabarit-ci
         // qui sert de référence aux deux, et non l'inverse.
@@ -339,7 +339,7 @@ export default function AccountPage({
           <GameIcon name="rune" size={34} />
           <GameIcon name="artifact" size={34} />
         </div>
-        <p className="text-[13px]">Chargement de ton compte…</p>
+        <p className="text-sm">Chargement de ton compte…</p>
       </div>
     );
   }
@@ -353,13 +353,13 @@ export default function AccountPage({
           <GameIcon name="rune" size={34} />
           <GameIcon name="artifact" size={34} />
         </div>
-        <p className="text-[15px] font-semibold text-ink">Aucune donnée de compte chargée</p>
-        <p className="mt-1 text-[13px] max-w-sm">
+        <p className="text-base font-semibold text-ink">Aucune donnée de compte chargée</p>
+        <p className="mt-1 text-sm max-w-sm">
           Importe ton compte (bouton « Importer un JSON ») pour afficher tes monstres 6★, tes runes et
           tes artéfacts. Active « Garder mon compte » dans le menu ⚙ pour ne pas avoir à le
           redéposer à chaque visite.
         </p>
-        {loadState === 'loading' && <p className="mt-3 text-[12px]">Chargement des monstres…</p>}
+        {loadState === 'loading' && <p className="mt-3 text-xs">Chargement des monstres…</p>}
       </div>
     );
   }
@@ -380,7 +380,7 @@ export default function AccountPage({
               // ⚠️ Vers la vue par DÉFAUT de l'inventaire : conserver la vue
               // courante mènerait à « Courbes » côté artéfacts, qui n'en a pas.
               href={hashVue(t.sub, vueParDefaut(t.sub))}
-              className={`flex items-center gap-1.5 rounded-lg px-3.5 py-1.5 text-[13px] font-semibold transition ${
+              className={`flex items-center gap-1.5 rounded-lg px-3.5 py-1.5 text-sm font-semibold transition ${
                 sub === t.sub ? 'bg-ctx-soft text-ink' : 'text-ink-dim hoverable:text-ink'
               }`}
             >
@@ -397,7 +397,7 @@ export default function AccountPage({
               <a
                 key={v.key}
                 href={hashVue(sub, v.key)}
-                className={`flex items-center gap-1.5 rounded-lg px-2.5 py-1 text-[12.5px] transition ${
+                className={`flex items-center gap-1.5 rounded-lg px-2.5 py-1 text-xs transition ${
                   vue === v.key
                     ? 'bg-ctx-soft text-ink'
                     : 'text-ink-dim hoverable:bg-panel2 hoverable:text-ink'

@@ -157,7 +157,7 @@ export default function SiegeTeam({
   return (
     <section className={`rounded-2xl border p-4 transition-colors ${sectionClass}`}>
       <div className="flex items-center gap-2 mb-3 flex-wrap">
-        <h3 className="font-display text-[17px] tracking-wide">Équipe {index + 1}</h3>
+        <h3 className="font-display text-lg tracking-wide">Équipe {index + 1}</h3>
         {dotClass && <span className={`w-2 h-2 rounded-full ${dotClass}`} />}
         {/* Lead à côté du nom de l'équipe : la VALEUR doit être lisible sans
             déplier. Le badge posé sur le portrait du leader reste, lui : il dit
@@ -170,7 +170,7 @@ export default function SiegeTeam({
             onToggleExpand(team.id);
             setDetailIdx(null);
           }}
-          className={`ml-auto flex items-center gap-1.5 rounded-md border px-2.5 py-1 text-[12px] font-semibold transition ${
+          className={`ml-auto flex items-center gap-1.5 rounded-md border px-2.5 py-1 text-xs font-semibold transition ${
             expanded
               ? 'border-accent bg-panel2 text-ink'
               : 'border-border bg-panel text-ink hoverable:border-accent'
@@ -182,7 +182,7 @@ export default function SiegeTeam({
         </button>
         <button
           onClick={() => setSuppressionAConfirmer(true)}
-          className="flex items-center gap-1.5 text-[12px] text-ink-dim hoverable:text-fire transition"
+          className="flex items-center gap-1.5 text-xs text-ink-dim hoverable:text-fire transition"
           title="Supprimer l'équipe"
         >
           <Trash2 size={13} /> Supprimer
@@ -307,7 +307,7 @@ export default function SiegeTeam({
                           {monster.image ? (
                             <img src={monster.image} alt={monster.name} className="w-full h-full object-cover" />
                           ) : (
-                            <span className={`font-display font-bold text-[10px] ${TEXT[monster.element]}`}>
+                            <span className={`font-display font-bold text-micro ${TEXT[monster.element]}`}>
                               {initials(monster.name)}
                             </span>
                           )}
@@ -328,11 +328,11 @@ export default function SiegeTeam({
                         finissait sous les icônes de set. Ligne 2 = vitesse à
                         gauche, sets poussés à droite. */}
                     <div className="min-w-0 flex-1">
-                      <div className="text-[12px] font-semibold leading-tight truncate">{monster.name}</div>
+                      <div className="text-xs font-semibold leading-tight truncate">{monster.name}</div>
                       <div className="mt-0.5 flex items-center gap-1">
                         <img src={SPD_ICON} alt="SPD" width={14} height={14} className="flex-none" />
                         <span
-                          className={`font-mono text-[16px] font-black leading-none flex-none ${
+                          className={`font-mono text-base font-black leading-none flex-none ${
                             danger ? 'text-fire' : 'text-ink'
                           }`}
                         >
@@ -353,7 +353,7 @@ export default function SiegeTeam({
                     <span className="w-[34px] h-[34px] flex-none rounded-lg border border-dashed border-border flex items-center justify-center text-lg">
                       +
                     </span>
-                    <span className="text-[11px]">{idx === 0 ? 'Leader' : 'vide'}</span>
+                    <span className="text-micro">{idx === 0 ? 'Leader' : 'vide'}</span>
                   </div>
                 )}
               </button>
@@ -385,14 +385,14 @@ export default function SiegeTeam({
             size={15}
             className={`flex-none ${status === 'red' ? 'text-fire' : 'text-warn'}`}
           />
-          <span className={`text-[12px] flex-1 ${status === 'red' ? 'text-fire' : 'text-warn'}`}>
+          <span className={`text-xs flex-1 ${status === 'red' ? 'text-fire' : 'text-warn'}`}>
             {status === 'red'
               ? messageTick ?? "Ton équipe n'est pas au tick."
               : 'Vérifier le speed tuning'}
           </span>
           <button
             onClick={() => onDismissAlert(team.id, true)}
-            className="flex-none rounded-md bg-panel border border-border px-2.5 py-1 text-[11px] font-semibold text-ink hoverable:border-accent transition"
+            className="flex-none rounded-md bg-panel border border-border px-2.5 py-1 text-micro font-semibold text-ink hoverable:border-accent transition"
           >
             Ignorer la recommandation
           </button>
@@ -401,7 +401,7 @@ export default function SiegeTeam({
       {status === 'green' && validated && (
         <button
           onClick={() => onDismissAlert(team.id, false)}
-          className="mt-3 text-[11px] text-good hoverable:text-ink transition"
+          className="mt-3 text-micro text-good hoverable:text-ink transition"
           title="Réafficher la recommandation"
         >
           ✓ Recommandation ignorée · rétablir
@@ -415,7 +415,7 @@ function TickBtn({ active, onClick, label }: { active: boolean; onClick: () => v
   return (
     <button
       onClick={onClick}
-      className={`rounded-full border px-2.5 py-0.5 text-[11px] font-mono font-semibold transition select-none
+      className={`rounded-full border px-2.5 py-0.5 text-micro font-mono font-semibold transition select-none
         ${
           active
             ? 'bg-gradient-to-br from-star to-yellow-200 text-bg border-star'
@@ -528,7 +528,7 @@ function SlotContent({
         </div>
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-1.5">
-            <span className="text-[13px] font-semibold leading-tight truncate">{monster.name}</span>
+            <span className="text-sm font-semibold leading-tight truncate">{monster.name}</span>
             {slot.sets && slot.sets.length > 0 && (
               <span className="flex items-center gap-1 flex-none">
                 {slot.sets.slice(0, 3).map((s, i) => (
@@ -561,7 +561,7 @@ function SlotContent({
           <div className="font-mono text-[26px] font-black text-star leading-none">
             {combat ?? '—'}
           </div>
-          <div className="font-mono text-[10px] text-ink-dim mt-1">base {base ?? '—'}</div>
+          <div className="font-mono text-micro text-ink-dim mt-1">base {base ?? '—'}</div>
         </div>
         <label className="flex items-center gap-1.5">
           <span className="label">SPD :</span>
@@ -593,15 +593,15 @@ function SlotContent({
       {diff !== null && (
         <div className="mt-2">
           {diff < 0 ? (
-            <span className="inline-flex items-center gap-1 rounded-md bg-fire/15 text-fire px-2 py-0.5 text-[11px] font-mono font-semibold">
+            <span className="inline-flex items-center gap-1 rounded-md bg-fire/15 text-fire px-2 py-0.5 text-micro font-mono font-semibold">
               manque {-diff} pour {tick}
             </span>
           ) : diff > 0 ? (
-            <span className="inline-flex items-center gap-1 rounded-md bg-water/15 text-water px-2 py-0.5 text-[11px] font-mono font-semibold">
+            <span className="inline-flex items-center gap-1 rounded-md bg-water/15 text-water px-2 py-0.5 text-micro font-mono font-semibold">
               +{diff} au-dessus de {tick}
             </span>
           ) : (
-            <span className="inline-flex items-center gap-1 rounded-md bg-wind/15 text-wind px-2 py-0.5 text-[11px] font-mono font-semibold">
+            <span className="inline-flex items-center gap-1 rounded-md bg-wind/15 text-wind px-2 py-0.5 text-micro font-mono font-semibold">
               pile au tick {tick} ✓
             </span>
           )}
@@ -615,7 +615,7 @@ function SlotContent({
           value={idx}
           onChange={(e) => onMoveTo(Number(e.target.value))}
           title="Changer la position (intervertir les monstres)"
-          className="bg-panel border border-border rounded-md px-1.5 py-0.5 text-[11px] text-ink-dim
+          className="bg-panel border border-border rounded-md px-1.5 py-0.5 text-micro text-ink-dim
                      outline-none focus:border-accent"
         >
           <option value={0}>1 · Leader</option>

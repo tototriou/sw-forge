@@ -58,7 +58,7 @@ export default function SiegePage({
               <a
                 key={t.tab}
                 href={t.hash}
-                className={`flex items-center gap-1.5 rounded-lg px-3.5 py-1.5 text-[13px] font-semibold transition
+                className={`flex items-center gap-1.5 rounded-lg px-3.5 py-1.5 text-sm font-semibold transition
                   ${
                     // Fond seul, sans fausse élévation — voir design.md.
                     active

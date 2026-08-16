@@ -23,7 +23,7 @@ export default function ReleasesPage() {
       <h1 className="font-display font-black text-[clamp(28px,4vw,42px)] title-gradient mb-2">
         Nouveautés
       </h1>
-      <p className="text-ink-dim text-[14px] leading-relaxed mb-6 max-w-2xl">
+      <p className="text-ink-dim text-sm leading-relaxed mb-6 max-w-2xl">
         Ce qui a changé à chaque version de SW Forge. La version en cours est rappelée en bas de
         chaque page.{' '}
         <a
@@ -46,7 +46,7 @@ export default function ReleasesPage() {
             }`}
           >
             <div className="flex items-baseline gap-2.5 flex-wrap mb-1">
-              <h2 className="font-display text-[20px] tracking-wide flex items-center gap-1.5">
+              <h2 className="font-display text-lg tracking-wide flex items-center gap-1.5">
                 <Tag size={15} className={i === 0 ? 'text-star' : 'text-ink-dim'} />
                 {libelleVersion(r.version)}
               </h2>
@@ -63,7 +63,7 @@ export default function ReleasesPage() {
                   Pas encore publiée
                 </span>
               )}
-              <span className="font-mono text-[11px] text-ink-dim">{formatDate(r.date)}</span>
+              <span className="font-mono text-micro text-ink-dim">{formatDate(r.date)}</span>
               {/* ⚠️ Le lien n'apparaît QUE si un tag Git correspond. Il était
                   écrit inconditionnellement : la 1.0.0, publiée avant que le
                   dépôt existe, menait à un 404. Un lien mort est pire que pas
@@ -74,7 +74,7 @@ export default function ReleasesPage() {
                   href={`${REPO}/releases/tag/v${r.version}`}
                   target="_blank"
                   rel="noreferrer"
-                  className="ml-auto font-mono text-[11px] text-ink-dim hoverable:text-ink transition"
+                  className="ml-auto font-mono text-micro text-ink-dim hoverable:text-ink transition"
                   title={`Release v${r.version} sur GitHub`}
                 >
                   GitHub ↗
@@ -82,12 +82,12 @@ export default function ReleasesPage() {
               )}
             </div>
 
-            <p className="text-[14px] text-ink mb-2">{r.title}</p>
+            <p className="text-sm text-ink mb-2">{r.title}</p>
 
             {r.highlights && r.highlights.length > 0 && (
               <ul className="mb-3 space-y-1">
                 {r.highlights.map((h, k) => (
-                  <li key={k} className="flex gap-2 text-[13px] text-ink-dim">
+                  <li key={k} className="flex gap-2 text-sm text-ink-dim">
                     <span className="text-star">◆</span>
                     {h}
                   </li>
@@ -99,7 +99,7 @@ export default function ReleasesPage() {
               {[...r.changes]
                 .sort((a, b) => ORDER.indexOf(a.kind) - ORDER.indexOf(b.kind))
                 .map((c, k) => (
-                  <li key={k} className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5 text-[13px]">
+                  <li key={k} className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5 text-sm">
                     <span
                       className={`label ${CHANGE_META[c.kind].color}`}
                     >

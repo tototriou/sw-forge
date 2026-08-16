@@ -79,7 +79,7 @@ export default function CreateMonster({ onCreate, customMonsters, onDelete }: Pr
           px-3.5 py-2 / 13px, sinon il paraît rabougri à côté d'eux. */}
       <button
         onClick={() => setOpen((o) => !o)}
-        className="flex items-center gap-1.5 rounded-lg border border-border bg-panel px-3.5 py-2 text-[13px]
+        className="flex items-center gap-1.5 rounded-lg border border-border bg-panel px-3.5 py-2 text-sm
                    text-ink-dim hoverable:text-ink hoverable:border-accent transition"
       >
         <Wand2 size={15} /> Créer un monstre
@@ -104,7 +104,7 @@ export default function CreateMonster({ onCreate, customMonsters, onDelete }: Pr
             value={name}
             onChange={(e) => setName(e.target.value)}
             placeholder="Nom du monstre"
-            className="w-full bg-panel2 border border-border rounded-lg px-3 py-2 text-[13px] text-ink
+            className="w-full bg-panel2 border border-border rounded-lg px-3 py-2 text-sm text-ink
                        placeholder:text-ink-dim outline-none focus:border-accent mb-2"
           />
 
@@ -112,7 +112,7 @@ export default function CreateMonster({ onCreate, customMonsters, onDelete }: Pr
             <select
               value={element}
               onChange={(e) => setElement(e.target.value as ElementKey)}
-              className="flex-1 bg-panel2 border border-border rounded-lg px-2.5 py-2 text-[13px] text-ink outline-none"
+              className="flex-1 bg-panel2 border border-border rounded-lg px-2.5 py-2 text-sm text-ink outline-none"
             >
               {ELEMENT_CHOICES.map((el) => (
                 <option key={el.key} value={el.key}>
@@ -138,7 +138,7 @@ export default function CreateMonster({ onCreate, customMonsters, onDelete }: Pr
             value={leadStat}
             onChange={(e) => setLeadStat(e.target.value)}
             title="Type de lead (optionnel)"
-            className="w-full bg-panel2 border border-border rounded-lg px-2.5 py-2 text-[13px] text-ink outline-none mb-2.5"
+            className="w-full bg-panel2 border border-border rounded-lg px-2.5 py-2 text-sm text-ink outline-none mb-2.5"
           >
             <option value="">Lead : aucun</option>
             {LEAD_STATS.map((s) => (
@@ -164,7 +164,7 @@ export default function CreateMonster({ onCreate, customMonsters, onDelete }: Pr
                 value={scope}
                 onChange={(e) => setScope(e.target.value as 'General' | 'Element')}
                 title="Portée du lead"
-                className="flex-1 bg-panel2 border border-border rounded-lg px-2.5 py-2 text-[13px] text-ink outline-none"
+                className="flex-1 bg-panel2 border border-border rounded-lg px-2.5 py-2 text-sm text-ink outline-none"
               >
                 <option value="General">Toutes cibles</option>
                 <option value="Element">Même élément</option>
@@ -176,7 +176,7 @@ export default function CreateMonster({ onCreate, customMonsters, onDelete }: Pr
             onClick={submit}
             disabled={!valid}
             className="w-full flex items-center justify-center gap-1.5 rounded-lg bg-accent-soft
-                       px-3 py-2 text-[13px] font-semibold text-ink disabled:opacity-40 disabled:cursor-not-allowed"
+                       px-3 py-2 text-sm font-semibold text-ink disabled:opacity-40 disabled:cursor-not-allowed"
           >
             <Plus size={14} /> Créer
           </button>
@@ -188,7 +188,7 @@ export default function CreateMonster({ onCreate, customMonsters, onDelete }: Pr
               </span>
               <ul className="mt-1.5 flex flex-col gap-1 max-h-40 overflow-y-auto">
                 {customMonsters.map((m) => (
-                  <li key={m.id} className="flex items-center gap-2 text-[12.5px]">
+                  <li key={m.id} className="flex items-center gap-2 text-xs">
                     <ElementIcon element={m.element} size={15} className="flex-none" />
                     <span className="truncate flex-1">{m.name}</span>
                     <span className="font-mono text-ink-dim">SPD {m.stats.speed ?? '—'}</span>

@@ -104,7 +104,7 @@ export default function HomePage({ stats, onImport }: Props) {
             La boîte à outils pour Summoners&nbsp;War.
           </p>
 
-          <p className="mt-3 max-w-lg text-[15px] leading-relaxed text-ink-dim">
+          <p className="mt-3 max-w-lg text-base leading-relaxed text-ink-dim">
             Runes, RTA, siège, analyse de compte. Importe ton export SWEX et tout est calculé{' '}
             <b className="text-ink">dans ton navigateur</b>.
           </p>
@@ -201,7 +201,7 @@ export default function HomePage({ stats, onImport }: Props) {
       {/* ---- Dernier appel -------------------------------------------------- */}
       <motion.section variants={item} className="py-12 max-w-xl">
         <h2 className="font-display text-[26px] tracking-wide">Prêt à préparer tes équipes ?</h2>
-        <p className="mt-2 text-[14.5px] leading-relaxed text-ink-dim">
+        <p className="mt-2 text-sm leading-relaxed text-ink-dim">
           Importe ton fichier SWEX et retrouve ta box, tes runes, ta prépa RTA et tes équipes de siège
           en quelques secondes.
         </p>
@@ -212,7 +212,7 @@ export default function HomePage({ stats, onImport }: Props) {
         <button
           onClick={() => ctaRef.current?.click()}
           className="mt-4 inline-flex items-center gap-2 rounded-lg bg-accent-soft
-                     border border-accent px-4 py-2.5 text-[14px] font-semibold text-ink
+                     border border-accent px-4 py-2.5 text-sm font-semibold text-ink
                      transition hoverable:border-accent"
         >
           <Upload size={15} /> Importer mon compte
@@ -240,8 +240,8 @@ export default function HomePage({ stats, onImport }: Props) {
         <span className="rounded-full bg-star/15 px-2 py-0.5 label text-star">
           {libelleVersion(derniere.version)}
         </span>
-        <span className="text-[13.5px] text-ink">{derniere.title}</span>
-        <span className="ml-auto inline-flex items-center gap-1 text-[12.5px] text-ink-dim">
+        <span className="text-sm text-ink">{derniere.title}</span>
+        <span className="ml-auto inline-flex items-center gap-1 text-xs text-ink-dim">
           Voir les nouveautés <ArrowRight size={13} />
         </span>
       </motion.a>
@@ -290,14 +290,14 @@ function Dropzone({ onImport }: { onImport: (text: string) => void }) {
                   }`}
     >
       <Upload size={30} className="text-accent" />
-      <div className="font-display text-[16px] tracking-wide text-ink">
+      <div className="font-display text-base tracking-wide text-ink">
         Dépose ton fichier .json ici
       </div>
-      <div className="text-[13px] text-ink-dim">ou clique pour parcourir</div>
+      <div className="text-sm text-ink-dim">ou clique pour parcourir</div>
       <span className="mt-1 rounded-full border border-border bg-panel2 px-2.5 py-1 label">
         Export SWEX (.json)
       </span>
-      <span className="mt-1 inline-flex items-center gap-1.5 text-[11.5px] text-ink-dim">
+      <span className="mt-1 inline-flex items-center gap-1.5 text-micro text-ink-dim">
         <ShieldCheck size={12} /> lu dans la page, jamais envoyé
       </span>
       <input
@@ -323,7 +323,7 @@ function SectionTitle({ icon: Icon, title }: { icon: typeof BookOpen; title: str
   return (
     <div className="flex items-center gap-2 mb-2.5">
       <Icon size={15} className="text-ink-dim" />
-      <h2 className="font-display text-[17px] tracking-wide">{title}</h2>
+      <h2 className="font-display text-lg tracking-wide">{title}</h2>
     </div>
   );
 }
@@ -360,7 +360,7 @@ function Resume({
       </div>
       <div className="flex items-baseline gap-1.5">
         <span className="font-mono text-[24px] font-black leading-none text-ink">{value}</span>
-        <span className="text-[11.5px] text-ink-dim">{unit}</span>
+        <span className="text-micro text-ink-dim">{unit}</span>
       </div>
     </motion.a>
   );
@@ -396,7 +396,7 @@ function Etape({
             invalide — le cadre disparaissait purement et simplement sur l'étape
             qui l'utilisait. `color-mix` marche avec les deux formes. */}
         <span
-          className="flex h-8 w-8 flex-none items-center justify-center rounded-lg font-mono text-[13px] font-bold"
+          className="flex h-8 w-8 flex-none items-center justify-center rounded-lg font-mono text-sm font-bold"
           style={{
             background: `linear-gradient(135deg, color-mix(in srgb, ${accent} 22%, transparent), transparent)`,
             border: `1px solid color-mix(in srgb, ${accent} 45%, transparent)`,
@@ -407,14 +407,14 @@ function Etape({
         </span>
         <Icon size={17} style={{ color: accent }} />
       </div>
-      <h3 className="mt-2.5 font-display text-[16px] tracking-wide">{title}</h3>
-      <p className="mt-1.5 text-[13px] leading-relaxed text-ink-dim">{desc}</p>
+      <h3 className="mt-2.5 font-display text-base tracking-wide">{title}</h3>
+      <p className="mt-1.5 text-sm leading-relaxed text-ink-dim">{desc}</p>
       {lien && (
         <a
           href={lien.href}
           target="_blank"
           rel="noreferrer"
-          className="mt-1.5 inline-flex items-center gap-1 text-[13px] text-accent transition hoverable:text-ink"
+          className="mt-1.5 inline-flex items-center gap-1 text-sm text-accent transition hoverable:text-ink"
         >
           {lien.label} <ExternalLink size={11} />
         </a>
@@ -459,8 +459,8 @@ function Feature({
         {kicker}
         {soon && ' · bientôt'}
       </div>
-      <div className="mt-0.5 text-[14px] font-semibold text-ink">{title}</div>
-      <p className="mt-1.5 text-[12.5px] leading-relaxed text-ink-dim">{body}</p>
+      <div className="mt-0.5 text-sm font-semibold text-ink">{title}</div>
+      <p className="mt-1.5 text-xs leading-relaxed text-ink-dim">{body}</p>
     </motion.a>
   );
 }

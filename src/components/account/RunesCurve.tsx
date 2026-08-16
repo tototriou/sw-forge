@@ -112,7 +112,7 @@ export default function RunesCurve({ runes }: Props) {
           <SlotFilter value={slots} onChange={setSlots} />
           <button
             onClick={() => setAncientOnly((v) => !v)}
-            className={`ml-1 rounded-full border px-3 py-1 text-[12.5px] font-semibold transition select-none
+            className={`ml-1 rounded-full border px-3 py-1 text-xs font-semibold transition select-none
               ${
                 // Bordure seule — voir spec/shared/design.md.
                 ancientOnly
@@ -141,14 +141,14 @@ export default function RunesCurve({ runes }: Props) {
                     ? 'Potentiel avec la gemme optimale + les meules'
                     : 'Potentiel en gardant les stats actuelles (meules seulement)'
                 }
-                className={`rounded-md px-2.5 py-1 text-[12px] font-semibold transition
+                className={`rounded-md px-2.5 py-1 text-xs font-semibold transition
                   ${gemMode === o.key ? 'bg-accent-soft text-ink' : 'text-ink-dim hoverable:text-ink'}`}
               >
                 {o.label}
               </button>
             ))}
           </div>
-          <span className="font-mono text-[12px] text-ink-dim">
+          <span className="font-mono text-xs text-ink-dim">
             top {Math.min(cap, total)}
             {total > cap && ` sur ${total}`}
           </span>
@@ -166,7 +166,7 @@ export default function RunesCurve({ runes }: Props) {
           />
           <button
             onClick={() => setLimit(total || 1)}
-            className="rounded-lg border border-border bg-panel px-2.5 py-1 text-[12px] font-semibold text-ink-dim hoverable:text-ink hoverable:border-accent transition"
+            className="rounded-lg border border-border bg-panel px-2.5 py-1 text-xs font-semibold text-ink-dim hoverable:text-ink hoverable:border-accent transition"
           >
             Tout
           </button>
@@ -188,7 +188,7 @@ export default function RunesCurve({ runes }: Props) {
           </button>
           {showHelp && (
             <div
-              className="absolute right-0 mt-1.5 w-[340px] max-w-[88vw] rounded-lg border border-accent bg-panel p-3 text-[12.5px] text-ink-dim leading-relaxed shadow-xl shadow-black/50
+              className="absolute right-0 mt-1.5 w-[340px] max-w-[88vw] rounded-lg border border-accent bg-panel p-3 text-xs text-ink-dim leading-relaxed shadow-xl shadow-black/50
                          origin-top-right animate-[popover_150ms_var(--ease-out)]"
             >
               <p className="text-ink font-semibold mb-1">À quoi sert ce graphe ?</p>
@@ -256,8 +256,8 @@ export default function RunesCurve({ runes }: Props) {
               // ce qui ferait 120 px pour trois lignes de légende. Ici la cible
               // fait toute la LARGEUR — on ne rate pas, même à 28 px de haut.
               className="flex min-h-0 items-center gap-2 rounded px-1.5 py-1 text-left
-                         font-mono text-[11.5px] transition-colors hoverable:bg-panel2
-                         sm:justify-center sm:text-[12px]"
+                         font-mono text-micro transition-colors hoverable:bg-panel2
+                         sm:justify-center sm:text-xs"
             >
               <span
                 className="inline-block h-1.5 w-3 flex-none rounded-full transition"
@@ -284,7 +284,7 @@ export default function RunesCurve({ runes }: Props) {
             répétait trois fois pour dire la même chose. Un en-tête unique
             suffit — et il ne s'affiche que si une série est visible. */}
         {allSeries.some((s) => !hidden.has(s.name)) && (
-          <p className="px-1.5 text-right font-mono text-[10px] text-ink-dimmer sm:text-center">
+          <p className="px-1.5 text-right font-mono text-micro text-ink-dimmer sm:text-center">
             max · médiane
           </p>
         )}

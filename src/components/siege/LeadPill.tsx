@@ -140,7 +140,7 @@ export default function LeadPill({
       title={leadTitle(ls)}
       className={`items-center gap-1 font-bold leading-none
         ${pleineLargeur ? 'flex w-full justify-center' : 'inline-flex'}
-        ${lg ? 'rounded-xl py-1.5 pl-1.5 pr-3 text-[15px]' : 'rounded-full py-0.5 pl-0.5 pr-2 text-[12px]'}
+        ${lg ? 'rounded-xl py-1.5 pl-1.5 pr-3 text-base' : 'rounded-full py-0.5 pl-0.5 pr-2 text-xs'}
         bg-star/15 text-star`}
     >
       {icon && (

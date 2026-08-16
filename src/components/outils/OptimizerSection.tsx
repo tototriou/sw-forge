@@ -378,14 +378,14 @@ export default function OptimizerSection({ box, runes, optimizer }: Props) {
           visible à chaque visite, pas disparaître après un premier clic. */}
       <div className="flex items-start gap-2.5 rounded-xl border border-warn/60 bg-warn/10 px-3 py-2.5">
         <FlaskConical size={16} className="mt-0.5 flex-none text-warn" />
-        <p className="flex-1 text-[12px] leading-relaxed text-ink-dim">
+        <p className="flex-1 text-xs leading-relaxed text-ink-dim">
           <b className="text-ink">Optimizer en bêta.</b> L'outil est encore en rodage : le moteur de
           recherche peut mettre du temps sur des critères serrés ou manquer un build sur un cas
           inhabituel — vérifie toujours le résultat avant de re-runer.
         </p>
       </div>
 
-      <p className="text-[13px] text-ink-dim">
+      <p className="text-sm text-ink-dim">
         Recherche parmi tes runes possédées ; rien n'est appliqué à ton compte, l'outil est purement
         indicatif — c'est à toi de re-runer dans le jeu.
       </p>
@@ -399,7 +399,7 @@ export default function OptimizerSection({ box, runes, optimizer }: Props) {
         <div className="rounded-xl border border-accent bg-panel/60 p-3">
           <div className="flex items-center gap-2 mb-2">
             <MonsterAvatar monster={selected.monster} size={32} />
-            <span className="font-semibold text-[14px]">{selected.monster.name}</span>
+            <span className="font-semibold text-sm">{selected.monster.name}</span>
           </div>
           {/* ⚠️ Même composant que RTA/Siège quand on clique un monstre — pas
               une réimplémentation : stats base/bonus, artéfacts, roue de
@@ -429,7 +429,7 @@ export default function OptimizerSection({ box, runes, optimizer }: Props) {
           }}
         />
         {setPickerInvalid && (
-          <p className="mt-1.5 text-[11.5px] font-semibold text-red-500">
+          <p className="mt-1.5 text-micro font-semibold text-red-500">
             Sélectionne au moins un set avant de lancer la recherche.
           </p>
         )}
@@ -440,7 +440,7 @@ export default function OptimizerSection({ box, runes, optimizer }: Props) {
         <div className="flex flex-col gap-1.5">
           {CONFIGURABLE_SLOTS.map((slot) => (
             <div key={slot} className="flex items-center gap-2 flex-wrap">
-              <span className="text-[11.5px] text-ink-dim w-14">Slot {slot}</span>
+              <span className="text-micro text-ink-dim w-14">Slot {slot}</span>
               {SLOT_MAIN_OPTIONS[slot].map((code) => {
                 const active = (mainStatsBySlot[slot] ?? []).includes(code);
                 return (
@@ -449,7 +449,7 @@ export default function OptimizerSection({ box, runes, optimizer }: Props) {
                     type="button"
                     onClick={() => toggleMainStat(slot, code)}
                     aria-pressed={active}
-                    className={`rounded-full border px-2.5 py-1 text-[11.5px] font-semibold transition select-none ${
+                    className={`rounded-full border px-2.5 py-1 text-micro font-semibold transition select-none ${
                       active
                         ? 'border-accent bg-accent-soft text-ink shadow'
                         : 'border-border bg-panel text-ink-dim hoverable:text-ink hoverable:border-accent'
@@ -462,7 +462,7 @@ export default function OptimizerSection({ box, runes, optimizer }: Props) {
             </div>
           ))}
         </div>
-        <p className="mt-1 text-[11px] text-ink-dim">
+        <p className="mt-1 text-micro text-ink-dim">
           Aucune coche sur un slot = pas de contrainte. Pour un Lushen classique par exemple : ATQ%
           en 2, Dmg Crit en 4, ATQ% en 6.
         </p>
@@ -471,7 +471,7 @@ export default function OptimizerSection({ box, runes, optimizer }: Props) {
       <div>
         <p className="label mb-1.5">Objectif de recherche</p>
         <Segmented options={OBJECTIVE_LABELS} value={objective} onChange={setObjective} size="lg" />
-        <p className="mt-1 text-[11px] text-ink-dim">
+        <p className="mt-1 text-micro text-ink-dim">
           Oriente le type de rune étudié dès le pré-filtrage, avant même de lancer la recherche — pas
           seulement l'ordre des résultats. Dégâts considère ATQ, Taux Crit et Dgts Crit ensemble
           (espérance moyenne).
@@ -482,7 +482,7 @@ export default function OptimizerSection({ box, runes, optimizer }: Props) {
         <div className="flex items-center justify-between mb-1 flex-wrap gap-2">
           <p className="label">Artéfacts</p>
           <div className="flex items-center gap-1.5">
-            <span className="text-[12px] font-semibold text-ink-dim">Ignorer les statistiques des artéfacts</span>
+            <span className="text-xs font-semibold text-ink-dim">Ignorer les statistiques des artéfacts</span>
             <HelpPopover title="Ignorer les statistiques des artéfacts">
               Activé, la recherche ne compte <b className="text-ink">aucune</b> statistique d'artéfact (comme si le
               monstre n'en portait pas). Désactivé, choisis la statistique principale à supposer pour chaque
@@ -499,7 +499,7 @@ export default function OptimizerSection({ box, runes, optimizer }: Props) {
           <div className="flex flex-wrap gap-3">
             {ARTIFACT_KINDS.map(({ key, label }) => (
               <div key={key} className="flex items-center gap-1.5">
-                <span className="text-[12.5px] text-ink w-14">{label}</span>
+                <span className="text-xs text-ink w-14">{label}</span>
                 <select
                   value={String(artifactMainByKind[key] ?? 'equipped')}
                   onChange={(e) => {
@@ -507,7 +507,7 @@ export default function OptimizerSection({ box, runes, optimizer }: Props) {
                     const next: ArtifactMainChoice = raw === 'equipped' || raw === 'none' ? raw : (Number(raw) as 100 | 101 | 102);
                     setArtifactMainByKind((prev) => ({ ...prev, [key]: next }));
                   }}
-                  className="bg-panel border border-border text-ink rounded-lg px-2.5 py-1.5 text-[13px] outline-none"
+                  className="bg-panel border border-border text-ink rounded-lg px-2.5 py-1.5 text-sm outline-none"
                 >
                   <option value="equipped">Comme équipé</option>
                   {ARTIFACT_MAIN_OPTIONS.map((o) => (
@@ -521,7 +521,7 @@ export default function OptimizerSection({ box, runes, optimizer }: Props) {
             ))}
           </div>
         )}
-        <p className="mt-1 text-[11px] text-ink-dim">
+        <p className="mt-1 text-micro text-ink-dim">
           « Comme équipé » reprend l'artéfact du build de base (celui affiché ci-dessus) porté à cet
           emplacement. Choisir une statistique l'hypothèque pour la recherche sans avoir besoin de le
           posséder — utile si ce monstre porte des artéfacts différents en RTA ou dans un deck de siège,
@@ -534,7 +534,7 @@ export default function OptimizerSection({ box, runes, optimizer }: Props) {
         <div className="flex items-center justify-between mb-1 flex-wrap gap-2">
           <p className="label">Conditions</p>
           <div className="flex items-center gap-1.5">
-            <span className="text-[12px] font-semibold text-ink-dim">Stats de base exclues</span>
+            <span className="text-xs font-semibold text-ink-dim">Stats de base exclues</span>
             <HelpPopover title="Stats de base exclues">
               <b className="text-ink">PV/ATQ/DEF/VIT</b> : activé, la valeur est ce que l'équipement (runes ET
               artéfacts comptés) doit apporter <b className="text-ink">au-dessus de la base</b> du monstre. Désactivé,
@@ -579,7 +579,7 @@ export default function OptimizerSection({ box, runes, optimizer }: Props) {
 
             return (
               <Fragment key={st.key}>
-                <span className="text-[12.5px] text-ink">{st.label}</span>
+                <span className="text-xs text-ink">{st.label}</span>
                 <div className="flex items-center gap-1.5">
                   <NumberField
                     value={minDisplayed}
@@ -604,7 +604,7 @@ export default function OptimizerSection({ box, runes, optimizer }: Props) {
                     ariaLabel={`${st.label} minimum`}
                     title="Minimum"
                   />
-                  <span className="text-ink-dim text-[11px]">Min</span>
+                  <span className="text-ink-dim text-micro">Min</span>
                 </div>
                 <div className="flex items-center gap-1.5">
                   <NumberField
@@ -626,7 +626,7 @@ export default function OptimizerSection({ box, runes, optimizer }: Props) {
                     ariaLabel={`${st.label} maximum`}
                     title="Maximum"
                   />
-                  <span className="text-ink-dim text-[11px]">Max</span>
+                  <span className="text-ink-dim text-micro">Max</span>
                 </div>
               </Fragment>
             );
@@ -639,7 +639,7 @@ export default function OptimizerSection({ box, runes, optimizer }: Props) {
               setMinStats({});
               setMaxStats({});
             }}
-            className="flex items-center gap-1.5 text-[12px] font-semibold text-ink-dim transition hoverable:text-bad"
+            className="flex items-center gap-1.5 text-xs font-semibold text-ink-dim transition hoverable:text-bad"
           >
             <RotateCcw size={13} /> Réinitialiser les conditions
           </button>
@@ -651,13 +651,13 @@ export default function OptimizerSection({ box, runes, optimizer }: Props) {
           type="button"
           onClick={() => setShowAdvanced((v) => !v)}
           aria-expanded={showAdvanced}
-          className="flex items-center gap-1.5 text-[12px] font-semibold text-ink-dim transition hoverable:text-ink"
+          className="flex items-center gap-1.5 text-xs font-semibold text-ink-dim transition hoverable:text-ink"
         >
           <Settings2 size={13} /> Options avancées
         </button>
         {showAdvanced && (
           <div className="mt-2 rounded-lg border border-border bg-panel p-3">
-            <p className="text-[11.5px] text-ink-dim mb-1">Pré-filtrage par emplacement</p>
+            <p className="text-micro text-ink-dim mb-1">Pré-filtrage par emplacement</p>
             <div className="flex items-center gap-1 bg-panel2 border border-border rounded-lg p-0.5 w-fit">
               {SLOT_FILTER_PRESETS.map((p) => (
                 <button
@@ -666,7 +666,7 @@ export default function OptimizerSection({ box, runes, optimizer }: Props) {
                   onClick={() => setSlotFilterPreset(p.key)}
                   title={p.hint}
                   aria-pressed={slotFilterPreset === p.key}
-                  className={`rounded-md px-2.5 py-1 text-[12px] font-semibold transition ${
+                  className={`rounded-md px-2.5 py-1 text-xs font-semibold transition ${
                     slotFilterPreset === p.key ? 'bg-accent-soft text-ink' : 'text-ink-dim hoverable:text-ink'
                   }`}
                 >
@@ -674,13 +674,13 @@ export default function OptimizerSection({ box, runes, optimizer }: Props) {
                 </button>
               ))}
             </div>
-            <p className="mt-1 text-[11.5px] text-warn max-w-[280px]">
+            <p className="mt-1 text-micro text-warn max-w-[280px]">
               ⚠️ {SLOT_FILTER_PRESETS.find((p) => p.key === slotFilterPreset)?.hint}
             </p>
 
             <div className="mt-3 flex items-center justify-between gap-2 border-t border-border pt-3">
               <div className="flex items-center gap-1.5">
-                <span className="text-[11.5px] text-ink-dim">Diagnostic approfondi sur 0 résultat</span>
+                <span className="text-micro text-ink-dim">Diagnostic approfondi sur 0 résultat</span>
                 <span title="Après une recherche à 0 résultat, identifie quelle condition posée libère le plus de candidats si on la retire — un indice, pas une preuve. Coûte plusieurs passes de pré-filtrage au lieu d'une seule, jamais une recherche complète.">
                   <HelpCircle size={13} className="text-ink-dim" />
                 </span>
@@ -696,7 +696,7 @@ export default function OptimizerSection({ box, runes, optimizer }: Props) {
       </div>
 
       {estimate && (
-        <p className="font-mono text-[11.5px] text-ink-dim">
+        <p className="font-mono text-micro text-ink-dim">
           ≈ {formatBig(estimate.product)} combinaisons brutes après filtrage (pool par emplacement :{' '}
           {estimate.perSlot.join(' × ')}) — un ordre de grandeur, pas le nombre réellement exploré par
           l'algorithme.
@@ -706,7 +706,7 @@ export default function OptimizerSection({ box, runes, optimizer }: Props) {
       <div className="flex flex-wrap items-center gap-3">
         <div className="flex items-center gap-1.5">
           <Boxes size={15} className="text-ink-dim" />
-          <span className="text-[12.5px] font-semibold text-ink-dim">Utiliser tout l'inventaire</span>
+          <span className="text-xs font-semibold text-ink-dim">Utiliser tout l'inventaire</span>
           <HelpPopover title="Utiliser tout l'inventaire">
             Par défaut, la recherche ne considère que les runes réellement disponibles pour ce monstre —{' '}
             <b className="text-ink">celles qu'aucun autre monstre de la box ne porte déjà</b> (un build réellement
@@ -723,7 +723,7 @@ export default function OptimizerSection({ box, runes, optimizer }: Props) {
             « Rechercher » ci-dessous. */}
         <div className="flex items-center gap-1.5">
           <Target size={15} className="text-ink-dim" />
-          <span className="text-[12.5px] font-semibold text-ink-dim">Prioriser les stats les plus difficiles</span>
+          <span className="text-xs font-semibold text-ink-dim">Prioriser les stats les plus difficiles</span>
           <HelpPopover title="Prioriser les stats les plus difficiles">
             Par défaut, le budget de recherche est réparti également entre toutes les stats demandées en même temps.
             Une stat rare (peu de runes candidates en apportent beaucoup) peut alors être étouffée par une stat plus
@@ -752,7 +752,7 @@ export default function OptimizerSection({ box, runes, optimizer }: Props) {
           onClick={handleSearch}
           disabled={!selected || status === 'running'}
           title={selected && status !== 'running' && comboSets.length === 0 ? 'Choisis d\'abord un set de runes recherché' : undefined}
-          className={`flex items-center gap-1.5 rounded-lg border border-accent bg-accent-soft px-3.5 py-2 text-[13px] font-semibold
+          className={`flex items-center gap-1.5 rounded-lg border border-accent bg-accent-soft px-3.5 py-2 text-sm font-semibold
                      text-ink transition hoverable:shadow disabled:opacity-40 disabled:cursor-not-allowed ${
                        comboSets.length === 0 ? 'opacity-40 cursor-not-allowed' : ''
                      }`}
@@ -769,7 +769,7 @@ export default function OptimizerSection({ box, runes, optimizer }: Props) {
               stop();
             }}
             title="Arrêter la recherche et garder ce qui a déjà été trouvé"
-            className="flex items-center gap-1.5 rounded-lg border border-border bg-panel px-3.5 py-2 text-[13px] font-semibold
+            className="flex items-center gap-1.5 rounded-lg border border-border bg-panel px-3.5 py-2 text-sm font-semibold
                        text-ink-dim transition hoverable:text-bad hoverable:border-bad"
           >
             <Square size={13} /> Arrêter
@@ -805,7 +805,7 @@ export default function OptimizerSection({ box, runes, optimizer }: Props) {
                     style={{ width: `${Math.round((h?.pct ?? 0) * 100)}%` }}
                   />
                 </div>
-                <p className="mt-1 font-mono text-[11px] text-ink-dim">
+                <p className="mt-1 font-mono text-micro text-ink-dim">
                   Préparation — moitié {half} :{' '}
                   {h ? `${h.scanned.toLocaleString('fr-FR')} / ${h.total.toLocaleString('fr-FR')} runes` : 'en attente…'}
                 </p>
@@ -830,18 +830,18 @@ export default function OptimizerSection({ box, runes, optimizer }: Props) {
               la ligne « Espace de recherche à épuiser » juste en dessous,
               qui montre TOUJOURS `totalPairs`. Les deux lignes partagent
               maintenant le même chiffre. */}
-          <p className="mt-1 font-mono text-[11px] text-ink-dim">
+          <p className="mt-1 font-mono text-micro text-ink-dim">
             {progress === null
               ? 'Préparation…'
               : `${progress.explored.toLocaleString('fr-FR')} / ${progress.totalPairs.toLocaleString('fr-FR')} combinaisons examinées · ${progress.found.toLocaleString('fr-FR')} trouvée(s)`}
           </p>
           {progress !== null && (
-            <p className="mt-0.5 font-mono text-[11px] text-ink-dimmer">
+            <p className="mt-0.5 font-mono text-micro text-ink-dimmer">
               Espace de recherche à épuiser (au pire) : {progress.totalPairs.toLocaleString('fr-FR')} combinaisons
             </p>
           )}
           {progress !== null && (
-            <p className="mt-0.5 font-mono text-[11px] text-ink-dimmer">
+            <p className="mt-0.5 font-mono text-micro text-ink-dimmer">
               Le budget de recherche s'élargit automatiquement tant qu'il reste du temps et rien de trouvé.
             </p>
           )}
@@ -849,7 +849,7 @@ export default function OptimizerSection({ box, runes, optimizer }: Props) {
       )}
 
       {status === 'error' && (
-        <p className="text-[12.5px] text-bad">La recherche a échoué. Réessaie avec des critères moins stricts.</p>
+        <p className="text-xs text-bad">La recherche a échoué. Réessaie avec des critères moins stricts.</p>
       )}
 
       {/* ⚠️ S'affiche AUSSI pendant la phase d'appariement, dès qu'au moins
@@ -877,7 +877,7 @@ export default function OptimizerSection({ box, runes, optimizer }: Props) {
               <select
                 value={sortBy}
                 onChange={(e) => setSortBy(e.target.value as OptimizerSortKey)}
-                className="bg-panel border border-border rounded-lg px-2 py-1 text-[12px] text-ink outline-none
+                className="bg-panel border border-border rounded-lg px-2 py-1 text-xs text-ink outline-none
                            focus:border-accent"
               >
                 <optgroup label="Stats">
@@ -909,7 +909,7 @@ export default function OptimizerSection({ box, runes, optimizer }: Props) {
             <div className="mb-3 rounded-lg border border-border bg-panel p-3">
               {impossibleFeasibility.length > 0 ? (
                 <>
-                  <p className="mb-1.5 text-[12px] font-semibold text-bad">
+                  <p className="mb-1.5 text-xs font-semibold text-bad">
                     {impossibleFeasibility.length === 1
                       ? 'Une condition est'
                       : `${impossibleFeasibility.length} conditions sont`}{' '}
@@ -919,7 +919,7 @@ export default function OptimizerSection({ box, runes, optimizer }: Props) {
                     {impossibleFeasibility.map((f) => {
                       const st = RECO_STATS.find((s) => s.key === f.key)!;
                       return (
-                        <li key={`${f.key}-${f.kind}`} className="text-[12px] text-ink-dim">
+                        <li key={`${f.key}-${f.kind}`} className="text-xs text-ink-dim">
                           <span className="font-semibold text-ink">{st.label}</span>{' '}
                           {f.kind === 'min'
                             ? `minimum demandé ${f.requested}${st.suffix} — maximum atteignable ${f.bound}${st.suffix} avec ce pool, ce set et ces statistiques principales.`
@@ -930,7 +930,7 @@ export default function OptimizerSection({ box, runes, optimizer }: Props) {
                   </ul>
                 </>
               ) : (
-                <p className="text-[12px] text-ink-dim">
+                <p className="text-xs text-ink-dim">
                   Aucune condition n'est, à elle seule, mathématiquement hors de portée — le blocage
                   vient probablement de leur <b className="text-ink">combinaison</b> (rare qu'un seul
                   build satisfasse tout à la fois), ou du pré-filtrage de la recherche elle-même. Essaie
@@ -948,7 +948,7 @@ export default function OptimizerSection({ box, runes, optimizer }: Props) {
           {result?.candidates.length === 0 &&
             (blockingDiagnosis && blockingDiagnosis.impacts.length > 0 ? (
               <div className="mb-3 rounded-lg border border-border bg-panel p-3">
-                <p className="mb-1.5 text-[12px] font-semibold text-ink">
+                <p className="mb-1.5 text-xs font-semibold text-ink">
                   Diagnostic approfondi — pool le plus restreint : {blockingDiagnosis.baselineMinSlot} candidat(s)
                   actuellement.
                 </p>
@@ -957,7 +957,7 @@ export default function OptimizerSection({ box, runes, optimizer }: Props) {
                     const st = RECO_STATS.find((s) => s.key === imp.key)!;
                     const gain = imp.poolMinSlotWithout - blockingDiagnosis.baselineMinSlot;
                     return (
-                      <li key={`${imp.key}-${imp.kind}`} className="text-[12px] text-ink-dim">
+                      <li key={`${imp.key}-${imp.kind}`} className="text-xs text-ink-dim">
                         Retirer <span className="font-semibold text-ink">{st.label}</span> (
                         {imp.kind === 'min' ? '≥' : '≤'} {imp.requested}
                         {st.suffix}) : {imp.poolMinSlotWithout} candidat(s){gain > 0 ? ` (+${gain})` : ' (aucun gain)'}.
@@ -965,13 +965,13 @@ export default function OptimizerSection({ box, runes, optimizer }: Props) {
                     );
                   })}
                 </ul>
-                <p className="mt-1.5 text-[11px] text-ink-dim">
+                <p className="mt-1.5 text-micro text-ink-dim">
                   Un indice, pas une preuve — basé sur le pré-filtrage sûr, pas sur une recherche complète.
                 </p>
               </div>
             ) : (
               !diagnoseBlockingEnabled && (
-                <p className="mb-3 text-[11px] text-ink-dim">
+                <p className="mb-3 text-micro text-ink-dim">
                   Astuce : active le diagnostic approfondi (Options avancées) pour identifier quelle
                   condition libère le plus de candidats.
                 </p>
@@ -979,7 +979,7 @@ export default function OptimizerSection({ box, runes, optimizer }: Props) {
             ))}
 
           {result?.truncated && (
-            <p className="mb-2 text-[11.5px] text-warn">
+            <p className="mb-2 text-micro text-warn">
               {stoppedManually
                 ? `Recherche arrêtée après examen de ${result.explored.toLocaleString('fr-FR')} combinaisons — voici le meilleur trouvé jusque-là.`
                 : `Recherche interrompue après examen de ${result.explored.toLocaleString('fr-FR')} combinaisons — resserre tes critères pour un résultat exhaustif.`}

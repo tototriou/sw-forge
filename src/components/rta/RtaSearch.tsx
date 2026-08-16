@@ -65,7 +65,7 @@ export default function RtaSearch({ monsters, addedIds, onAdd }: Props) {
         onChange={(e) => setQuery(e.target.value)}
         placeholder="Rechercher un monstre à ajouter à ta prépa RTA…"
         // Bordure seule au focus, sans halo : voir spec/shared/design.md.
-        className="w-full bg-panel border border-border rounded-xl py-3.5 pl-11 pr-4 text-[15px]
+        className="w-full bg-panel border border-border rounded-xl py-3.5 pl-11 pr-4 text-base
                    text-ink placeholder:text-ink-dim transition focus:border-accent"
       />
 
@@ -77,7 +77,7 @@ export default function RtaSearch({ monsters, addedIds, onAdd }: Props) {
                      bg-panel shadow-glow shadow-black/60"
         >
           {results.length === 0 ? (
-            <div className="px-4 py-3 text-ink-dim text-[13px]">Aucun monstre trouvé.</div>
+            <div className="px-4 py-3 text-ink-dim text-sm">Aucun monstre trouvé.</div>
           ) : (
             results.map((m, i) => {
               const added = addedIds.has(String(m.id));
@@ -101,11 +101,11 @@ export default function RtaSearch({ monsters, addedIds, onAdd }: Props) {
                   {/* Portrait : le nom ne suffit pas à distinguer les formes
                       d'un même monstre (voir MonsterAvatar). */}
                   <MonsterAvatar monster={m} size={30} />
-                  <span className="text-[13.5px] font-medium truncate flex-1">{m.name}</span>
+                  <span className="text-sm font-medium truncate flex-1">{m.name}</span>
                   {m.stars ? (
-                    <span className="font-mono text-[11px] text-star">{m.stars}★</span>
+                    <span className="font-mono text-micro text-star">{m.stars}★</span>
                   ) : null}
-                  <span className="font-mono text-[11px] text-ink-dim w-16 text-right">
+                  <span className="font-mono text-micro text-ink-dim w-16 text-right">
                     SPD {m.stats.speed ?? '—'}
                   </span>
                   {added ? (

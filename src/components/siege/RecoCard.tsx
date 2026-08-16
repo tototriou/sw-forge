@@ -274,11 +274,11 @@ export default function RecoCard({
               if (t !== reco.name) recos.setMeta(reco.id, { name: t });
             }}
             placeholder={`Recommandation ${index + 1}`}
-            className="min-w-[min(160px,100%)] flex-1 bg-panel border border-border rounded-lg px-2.5 py-1 text-[15px]
+            className="min-w-[min(160px,100%)] flex-1 bg-panel border border-border rounded-lg px-2.5 py-1 text-base
                        font-semibold text-ink outline-none focus:border-accent"
           />
         ) : (
-          <h3 className="font-display text-[17px] tracking-wide">
+          <h3 className="font-display text-lg tracking-wide">
             {reco.name || `Recommandation ${index + 1}`}
           </h3>
         )}
@@ -296,13 +296,13 @@ export default function RecoCard({
             total alors qu'un seul deck est à l'écran se lit comme un bug
             d'affichage — on cherche les cinq autres. Même règle que le compteur
             filtré de l'inventaire d'artéfacts. */}
-        <span className="font-mono text-[11px] text-ink-dim">
+        <span className="font-mono text-micro text-ink-dim">
           {decksFiltres
             ? `${decksTrouves.size} sur ${reco.decks.length} deck${reco.decks.length > 1 ? 's' : ''}`
             : `${reco.decks.length} deck${reco.decks.length > 1 ? 's' : ''}`}
         </span>
         {!editing && reco.author && (
-          <span className="font-mono text-[11px] text-ink-dim">· par {reco.author}</span>
+          <span className="font-mono text-micro text-ink-dim">· par {reco.author}</span>
         )}
         {!editing && match && <StatusPill match={match} onClear={onClearAnalysis} />}
 
@@ -316,7 +316,7 @@ export default function RecoCard({
                 : 'Importe ton compte pour analyser'
             }
             className="flex items-center gap-1.5 rounded-md border border-border bg-panel px-2.5 py-1
-                       text-[12px] font-semibold text-ink-dim hoverable:text-ink hoverable:border-accent
+                       text-xs font-semibold text-ink-dim hoverable:text-ink hoverable:border-accent
                        transition disabled:opacity-40 disabled:cursor-not-allowed"
           >
             <Gauge size={13} /> {match ? 'Réanalyser mes decks' : 'Analyser mes decks'}
@@ -332,7 +332,7 @@ export default function RecoCard({
             <button
               onClick={() => onToggleOpen(reco.id)}
               aria-expanded={expanded}
-              className={`flex items-center gap-1.5 rounded-md border px-2.5 py-1 text-[12px] font-semibold transition ${
+              className={`flex items-center gap-1.5 rounded-md border px-2.5 py-1 text-xs font-semibold transition ${
                 open
                   ? 'border-accent bg-panel2 text-ink'
                   : 'border-border bg-panel text-ink hoverable:border-accent'
@@ -404,7 +404,7 @@ export default function RecoCard({
               if (t !== reco.author) recos.setMeta(reco.id, { author: t });
             }}
             placeholder="Ton pseudo (auteur)"
-            className="bg-panel border border-border rounded-lg px-2.5 py-1.5 text-[12.5px] text-ink
+            className="bg-panel border border-border rounded-lg px-2.5 py-1.5 text-xs text-ink
                        outline-none focus:border-accent"
           />
           <NoteEditor
@@ -445,7 +445,7 @@ export default function RecoCard({
               <span
                 key={di}
                 className="inline-flex items-center gap-1.5 rounded-full border border-border bg-panel2/60
-                           px-2 py-0.5 text-[11.5px] text-ink-dim"
+                           px-2 py-0.5 text-micro text-ink-dim"
               >
                 <span className={`w-1.5 h-1.5 rounded-full flex-none ${DOT[st]}`} />
                 {deckLabel(deck, monsterByCom2us, di)}
@@ -453,7 +453,7 @@ export default function RecoCard({
             );
           })}
           {reco.note && (
-            <span className="inline-flex items-center gap-1 text-[11.5px] text-ink-dim">
+            <span className="inline-flex items-center gap-1 text-micro text-ink-dim">
               <StickyNote size={11} className="text-star" /> consignes
             </span>
           )}
@@ -474,7 +474,7 @@ export default function RecoCard({
                     s.size === reco.decks.length ? new Set() : new Set(reco.decks.map((_, i) => i))
                   )
                 }
-                className="font-mono text-[11px] text-ink-dim hoverable:text-ink transition underline"
+                className="font-mono text-micro text-ink-dim hoverable:text-ink transition underline"
               >
                 {openDecks.size === reco.decks.length ? 'Replier tous les decks' : 'Déplier tous les decks'}
               </button>
@@ -534,7 +534,7 @@ export default function RecoCard({
                 setEditingDeck(reco.decks.length); // le nouveau deck s'ouvre en édition
               }}
               className="flex items-center gap-1.5 rounded-lg border border-dashed border-border bg-panel/50
-                         px-3 py-1.5 text-[12.5px] text-ink-dim hoverable:text-ink hoverable:border-accent transition"
+                         px-3 py-1.5 text-xs text-ink-dim hoverable:text-ink hoverable:border-accent transition"
             >
               <Plus size={14} /> Ajouter un deck vide
             </button>
@@ -546,7 +546,7 @@ export default function RecoCard({
                   ? "Aucune équipe d'offense : importe ton compte (barre du haut) après avoir sauvegardé tes attaques en jeu."
                   : "Partir d'une de tes équipes d'offense (monstres, sets, artéfacts et stats réels pré-remplis)"
               }
-              className={`flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-[12.5px] transition
+              className={`flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs transition
                 disabled:opacity-40 disabled:cursor-not-allowed ${
                   // Fond seul — voir spec/shared/design.md.
                   pickOffense
@@ -555,7 +555,7 @@ export default function RecoCard({
                 }`}
             >
               <Swords size={14} /> Importer un deck d'offense
-              <span className="font-mono text-[11px] opacity-70">{offenseTeams.length}</span>
+              <span className="font-mono text-micro opacity-70">{offenseTeams.length}</span>
             </button>
           </div>
 
@@ -576,7 +576,7 @@ export default function RecoCard({
                   value={offenseQuery}
                   onChange={(e) => setOffenseQuery(e.target.value)}
                   placeholder="Filtrer par monstre…"
-                  className="w-full bg-panel border border-border rounded-lg pl-7 pr-2 py-1 text-[12px]
+                  className="w-full bg-panel border border-border rounded-lg pl-7 pr-2 py-1 text-xs
                              text-ink placeholder:text-ink-dim outline-none focus:border-accent"
                 />
               </div>
@@ -596,7 +596,7 @@ export default function RecoCard({
                     className="flex items-center gap-2 rounded-lg border border-border bg-panel px-2.5 py-1.5
                                hoverable:border-accent transition"
                   >
-                    <span className="font-mono text-[11px] text-ink-dim flex-none">#{index + 1}</span>
+                    <span className="font-mono text-micro text-ink-dim flex-none">#{index + 1}</span>
                     <span className="flex items-center gap-1.5 flex-1">
                       {trio.map((m, i) => (
                         <MiniMonster key={i} monster={m} size={30} />
@@ -606,7 +606,7 @@ export default function RecoCard({
                   </button>
                 ))}
                 {filteredOffense.length === 0 && (
-                  <p className="px-1 py-2 text-[12px] text-ink-dim">Aucune équipe avec ce monstre.</p>
+                  <p className="px-1 py-2 text-xs text-ink-dim">Aucune équipe avec ce monstre.</p>
                 )}
               </div>
             </div>
@@ -813,7 +813,7 @@ function AnalysisSummary({
   if (match.totalDecks === 0) {
     return (
       <div className="mb-3 flex items-center gap-2 rounded-lg border border-border bg-panel/60 px-3 py-2">
-        <p className="text-[13px] text-ink-dim">Rien à analyser : aucun deck rempli.</p>
+        <p className="text-sm text-ink-dim">Rien à analyser : aucun deck rempli.</p>
         {closeBtn}
       </div>
     );
@@ -836,7 +836,7 @@ function AnalysisSummary({
         ) : (
           <AlertTriangle size={15} className="flex-none text-warn" />
         )}
-        <p className={`text-[13px] font-semibold ${toutPasse ? 'text-good' : 'text-warn'}`}>
+        <p className={`text-sm font-semibold ${toutPasse ? 'text-good' : 'text-warn'}`}>
           {toutPasse
             ? `Tout est respecté : les ${match.totalDecks} deck(s) sont jouables avec tes monstres.`
             : `${match.okDecks}/${match.totalDecks} deck(s) au niveau · ${rates.length} à corriger`}
@@ -868,7 +868,7 @@ function AnalysisSummary({
                     ? `Ne plus isoler « ${v.label} »`
                     : `N'afficher que « ${v.label} »`
               }
-              className={`flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-[12px]
+              className={`flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-xs
                           font-semibold transition ${
                             n === 0
                               ? 'border-border text-ink-dim opacity-40 cursor-not-allowed'
@@ -881,14 +881,14 @@ function AnalysisSummary({
                   1.5 px ne se lit pas, son intérieur disparaît. */}
               <span className={`h-2 w-2 flex-none rounded-full ${v.dot}`} />
               {v.label}
-              <span className="font-mono text-[11px] text-ink-dim">{n}</span>
+              <span className="font-mono text-micro text-ink-dim">{n}</span>
             </button>
           );
         })}
         {vus.size > 0 && (
           <button
             onClick={() => setVus(new Set())}
-            className="text-[12px] text-ink-dim underline transition hoverable:text-ink"
+            className="text-xs text-ink-dim underline transition hoverable:text-ink"
           >
             Tout afficher
           </button>
@@ -921,10 +921,10 @@ function AnalysisSummary({
                     `DOT` reste la table de l'aperçu replié, où le vocabulaire à
                     trois couleurs suffit. */}
                 <span className={`w-2 h-2 rounded-full flex-none self-center ${v.dot}`} />
-                <span className="text-[12px] font-semibold text-ink">
+                <span className="text-xs font-semibold text-ink">
                   {deckLabel(deck, monsterByCom2us, i)}
                 </span>
-                <span className={`font-mono text-[11px] ${v.texte}`}>
+                <span className={`font-mono text-micro ${v.texte}`}>
                   {/* Un deck bon annonce ce qui le rend jouable — l'équipe
                       retenue —, pas un simple « ok » : c'est elle qu'on va
                       chercher en jeu. */}
@@ -953,7 +953,7 @@ function AnalysisSummary({
                   {deck.slots.map((slot, si) => {
                     const txt = dm.slots[si] ? slotProblem(slot, dm.slots[si], monsterByCom2us) : null;
                     return txt ? (
-                      <li key={si} className="text-[12px] text-ink-dim leading-snug">
+                      <li key={si} className="text-xs text-ink-dim leading-snug">
                         • {txt}
                       </li>
                     ) : null;
@@ -1061,7 +1061,7 @@ function DeckBlock({
             }}
             placeholder={autoDeckName(deck, monsterByCom2us, deckIndex)}
             title="Laisse vide pour reprendre les noms des monstres"
-            className="min-w-[min(180px,100%)] flex-1 bg-panel border border-border rounded px-2 py-0.5 text-[12px]
+            className="min-w-[min(180px,100%)] flex-1 bg-panel border border-border rounded px-2 py-0.5 text-xs
                        text-ink outline-none focus:border-accent"
           />
         ) : (
@@ -1201,7 +1201,7 @@ function DeckBlock({
                     />
                   </div>
                 ) : (
-                  <p className="text-[12px] text-ink-dim py-4 text-center">
+                  <p className="text-xs text-ink-dim py-4 text-center">
                     {idx === 0 ? 'Leader' : 'Slot'} vide
                   </p>
                 )
@@ -1220,7 +1220,7 @@ function DeckBlock({
                         ))}
                     </MonsterAvatar>
                     <div className="min-w-0 flex-1">
-                      <div className="text-[12.5px] font-semibold leading-tight truncate">
+                      <div className="text-xs font-semibold leading-tight truncate">
                         {monster?.name ?? slot.name ?? '—'}
                       </div>
                       {/* Pastille complète sous le nom du leader : ici on a la
@@ -1231,7 +1231,7 @@ function DeckBlock({
                         </div>
                       )}
                       {sm && <SlotBadge sm={sm} />}
-                      {!monster && <div className="font-mono text-[10px] text-ink-dim">monstre inconnu</div>}
+                      {!monster && <div className="font-mono text-micro text-ink-dim">monstre inconnu</div>}
                     </div>
                     {editing && (
                       <button
@@ -1478,7 +1478,7 @@ function CounterBlock({
         <Swords size={13} className="flex-none text-ink-dim" />
         <span className="label">Fort contre</span>
         {deck.counters.length > 1 && (
-          <span className="font-mono text-[11px] text-ink-dim">{deck.counters.length}</span>
+          <span className="font-mono text-micro text-ink-dim">{deck.counters.length}</span>
         )}
       </div>
 
@@ -1516,7 +1516,7 @@ function CounterBlock({
         <button
           onClick={ajouter}
           className="flex h-[44px] flex-none items-center gap-1 rounded-lg border border-dashed border-border
-                     px-2.5 text-[12px] font-semibold text-ink-dim transition
+                     px-2.5 text-xs font-semibold text-ink-dim transition
                      hoverable:border-accent hoverable:text-ink"
           title="Ajouter une défense que ce deck bat"
           aria-label="Ajouter une défense que ce deck bat"
@@ -1659,7 +1659,7 @@ function CounterRow({
                        rounded-lg border border-accent bg-panel px-2.5 py-1.5 shadow-xl shadow-black/50
                        animate-[popover_150ms_var(--ease-out)]"
           >
-            <p className="text-[12px] leading-snug text-ink-dim">{counter.note}</p>
+            <p className="text-xs leading-snug text-ink-dim">{counter.note}</p>
           </div>
         )}
       </div>
@@ -1701,7 +1701,7 @@ function CounterRow({
                 ) : (
                   <div className="flex items-center gap-1.5 rounded border border-border bg-panel px-1.5 py-1">
                     <MiniMonster monster={monster} fallback={m.name} size={26} />
-                    <span className="min-w-0 flex-1 truncate text-[11.5px] text-ink">
+                    <span className="min-w-0 flex-1 truncate text-micro text-ink">
                       {monster?.name ?? m.name}
                     </span>
                     <button
@@ -1758,7 +1758,7 @@ function CounterRow({
           if (t !== counter.note) recos.setCounterNote(reco.id, deckIndex, counterIndex, t);
         }}
         placeholder="Précision (ex. « si le Chloe est en lead »)…"
-        className="mt-1.5 w-full rounded border border-border bg-panel px-1.5 py-1 text-[11.5px]
+        className="mt-1.5 w-full rounded border border-border bg-panel px-1.5 py-1 text-micro
                    text-ink placeholder:text-ink-dim transition focus:border-accent"
       />
     </div>
@@ -1827,7 +1827,7 @@ function StatEditor({
   // bonus finissait masqué) ou de déborder sur la carte voisine.
   return (
     <div className="overflow-x-auto">
-    <table className="w-full min-w-[236px] text-[11.5px]">
+    <table className="w-full min-w-[236px] text-micro">
       <thead>
         <tr className="label">
           <th className="pb-1 pr-2 text-left font-normal">Stat</th>
@@ -1857,7 +1857,7 @@ function StatEditor({
               </td>
               <td className="py-0.5 pr-2">
                 <div className="flex items-center gap-1">
-                  <span className="font-mono text-[10px] text-good/70">+</span>
+                  <span className="font-mono text-micro text-good/70">+</span>
                   {/* Champ texte (et non `type=number`) : pas de boutons +/- à
                       droite, qui mangent la largeur d'une colonne déjà étroite.
                       `inputMode=numeric` garde le pavé numérique sur mobile.
@@ -1876,7 +1876,7 @@ function StatEditor({
                     }}
                     placeholder="—"
                     className="w-full min-w-[5ch] bg-panel border border-border rounded px-1 py-0.5
-                               text-[11px] font-mono tabular-nums text-good
+                               text-micro font-mono tabular-nums text-good
                                outline-none focus:border-accent"
                   />
                 </div>
@@ -1924,7 +1924,7 @@ function NoteEditor({
       <div className="flex items-center justify-between mb-0.5">
         <span className="label">{label}</span>
         {left < max / 4 && (
-          <span className={`font-mono text-[10px] ${left <= 0 ? 'text-fire' : 'text-ink-dim'}`}>
+          <span className={`font-mono text-micro ${left <= 0 ? 'text-fire' : 'text-ink-dim'}`}>
             {left} car.
           </span>
         )}
@@ -1943,7 +1943,7 @@ function NoteEditor({
           if (t !== value) onChange(t);
         }}
         placeholder={placeholder}
-        className="w-full bg-panel border border-border rounded-lg px-2.5 py-1.5 text-[12.5px] text-ink
+        className="w-full bg-panel border border-border rounded-lg px-2.5 py-1.5 text-xs text-ink
                    outline-none focus:border-accent resize-y"
       />
     </div>
@@ -1960,7 +1960,7 @@ function NoteBlock({ text, label, compact }: { text: string; label: string; comp
         <StickyNote size={11} className="flex-none text-star" />
         <span className="label">{label}</span>
       </div>
-      <p className="text-[12.5px] text-ink leading-relaxed whitespace-pre-line">{text}</p>
+      <p className="text-xs text-ink leading-relaxed whitespace-pre-line">{text}</p>
     </div>
   );
 }
@@ -2010,7 +2010,7 @@ function SetEditor({
         <span className="label">
           Runage{options.length > 1 ? ` · ${options.length} possibilités` : ''}
         </span>
-        <span className="font-mono text-[10px] text-ink-dim">
+        <span className="font-mono text-micro text-ink-dim">
           {used}/{MAX_SET_PIECES} runes
         </span>
       </div>
@@ -2021,14 +2021,14 @@ function SetEditor({
             const vise = oi === target && options.length > 1;
             return (
               <span key={oi} className="flex flex-wrap items-center gap-1">
-                {oi > 0 && <span className="px-0.5 font-mono text-[12px] text-ink-dim">|</span>}
+                {oi > 0 && <span className="px-0.5 font-mono text-xs text-ink-dim">|</span>}
                 <span
                   className={`flex flex-wrap items-center gap-1 rounded-md ${
                     vise ? 'ring-1 ring-accent px-1 py-0.5' : ''
                   }`}
                 >
                   {sets.length === 0 ? (
-                    <span className="font-mono text-[10px] text-ink-dim italic">vide</span>
+                    <span className="font-mono text-micro text-ink-dim italic">vide</span>
                   ) : (
                     sets.map((key, pos) => (
                       <span
@@ -2049,7 +2049,7 @@ function SetEditor({
                           className="inline-flex items-center gap-1"
                         >
                           <RuneIcon setKey={key} size={14} />
-                          <span className="text-[10.5px] text-ink">×{setPieces(key)}</span>
+                          <span className="text-micro text-ink">×{setPieces(key)}</span>
                         </button>
                         <button
                           onClick={() => onRemove(oi, pos)}
@@ -2076,7 +2076,7 @@ function SetEditor({
           disabled={full}
           aria-expanded={open}
           className="flex-1 flex items-center justify-center gap-1 rounded border border-border bg-panel
-                     px-1.5 py-1 text-[11px] font-semibold text-ink-dim transition
+                     px-1.5 py-1 text-micro font-semibold text-ink-dim transition
                      hoverable:text-ink hoverable:border-accent disabled:opacity-40 disabled:cursor-not-allowed"
         >
           {full ? 'Plus de place (6 runes)' : '+ Set'}
@@ -2094,7 +2094,7 @@ function SetEditor({
               : 'Proposer un autre runage possible — un seul suffira'
           }
           className="flex items-center justify-center gap-0.5 rounded border border-border bg-panel
-                     px-2 py-1 text-[11px] font-semibold text-ink-dim transition
+                     px-2 py-1 text-micro font-semibold text-ink-dim transition
                      hoverable:text-ink hoverable:border-accent disabled:opacity-40 disabled:cursor-not-allowed"
         >
           <Plus size={11} /> Possibilité
@@ -2172,8 +2172,8 @@ function ArtifactEditor({
         return (
           <div key={key}>
             <div className="flex items-center justify-between gap-2">
-              <span className="font-mono text-[10px] text-ink-dim">{label}</span>
-              <span className="font-mono text-[10px] text-ink-dim">
+              <span className="font-mono text-micro text-ink-dim">{label}</span>
+              <span className="font-mono text-micro text-ink-dim">
                 {choisis.length}/{MAX_ARTIFACT_SUBS}
               </span>
             </div>
@@ -2185,7 +2185,7 @@ function ArtifactEditor({
                     key={code}
                     className="inline-flex items-center gap-1 rounded-full border border-border bg-panel pl-1.5 pr-1 py-0.5"
                   >
-                    <span className="text-[10.5px] text-ink">{artifactSubLabel(code)}</span>
+                    <span className="text-micro text-ink">{artifactSubLabel(code)}</span>
                     <button
                       onClick={() => onRemove(key, code)}
                       className="text-ink-dim hoverable:text-fire transition"
@@ -2208,7 +2208,7 @@ function ArtifactEditor({
                 const code = Number(e.target.value);
                 if (code) onAdd(key, code);
               }}
-              className="mt-0.5 w-full rounded border border-border bg-panel px-1.5 py-1 text-[11px]
+              className="mt-0.5 w-full rounded border border-border bg-panel px-1.5 py-1 text-micro
                          text-ink-dim transition hoverable:text-ink hoverable:border-accent
                          disabled:opacity-40 disabled:cursor-not-allowed"
             >
@@ -2255,7 +2255,7 @@ function ArtifactList({
         if (codes.length === 0) return null;
         return (
           <div key={key} className="flex flex-wrap items-center gap-1">
-            <span className="font-mono text-[10px] text-ink-dim">{label}</span>
+            <span className="font-mono text-micro text-ink-dim">{label}</span>
             {codes.map((code) => {
               const ok = analyse ? etat.get(`${key}:${code}`) ?? false : null;
               return (
@@ -2276,7 +2276,7 @@ function ArtifactList({
                         : 'border-fire/50 bg-fire/10'
                   }`}
                 >
-                  <span className={`text-[10.5px] ${ok === false ? 'text-fire' : 'text-ink'}`}>
+                  <span className={`text-micro ${ok === false ? 'text-fire' : 'text-ink'}`}>
                     {artifactSubLabel(code)}
                   </span>
                   {ok === true && <Check size={10} className="text-good" />}
@@ -2299,7 +2299,7 @@ function ArtifactList({
 function SetList({ options, sm }: { options: string[][]; sm: SlotMatch | null }) {
   const opts = options?.length ? options : [[]];
   if (opts.every((o) => o.length === 0)) {
-    return <p className="font-mono text-[10.5px] text-ink-dim">Aucun set recommandé</p>;
+    return <p className="font-mono text-micro text-ink-dim">Aucun set recommandé</p>;
   }
   const analysed = !!sm && sm.status !== 'empty';
   const retenue = sm?.matchedOption ?? 0;
@@ -2311,9 +2311,9 @@ function SetList({ options, sm }: { options: string[][]; sm: SlotMatch | null })
         const pool = analysed && oi === retenue ? [...(sm?.missingSets ?? [])] : null;
         return (
           <span key={oi} className="flex flex-wrap items-center gap-1">
-            {oi > 0 && <span className="px-0.5 font-mono text-[12px] text-ink-dim">|</span>}
+            {oi > 0 && <span className="px-0.5 font-mono text-xs text-ink-dim">|</span>}
             {sets.length === 0 ? (
-              <span className="font-mono text-[10.5px] text-ink-dim italic">aucun set</span>
+              <span className="font-mono text-micro text-ink-dim italic">aucun set</span>
             ) : (
               <span className="flex flex-wrap items-center gap-1">
                 {sets.map((key, i) => {
@@ -2340,7 +2340,7 @@ function SetList({ options, sm }: { options: string[][]; sm: SlotMatch | null })
                       }`}
                     >
                       <RuneIcon setKey={key} size={14} />
-                      <span className={`text-[10.5px] ${ok === false ? 'text-fire' : 'text-ink'}`}>
+                      <span className={`text-micro ${ok === false ? 'text-fire' : 'text-ink'}`}>
                         ×{setPieces(key)}
                       </span>
                       {ok === true && <Check size={10} className="text-good" />}
@@ -2380,7 +2380,7 @@ function StatusPill({ match, onClear }: { match: RecoMatch; onClear: () => void 
   const Icon = map.Icon;
   return (
     <span
-      className={`inline-flex items-center gap-1 rounded-full border pl-2 pr-1 py-0.5 text-[11px] font-semibold ${map.cls}`}
+      className={`inline-flex items-center gap-1 rounded-full border pl-2 pr-1 py-0.5 text-micro font-semibold ${map.cls}`}
     >
       <Icon size={11} /> {map.text}
       <button
@@ -2408,7 +2408,7 @@ function DeckBadge({ match }: { match: DeckMatch }) {
   };
   const m = map[match.status];
   if (!m) return null;
-  return <span className={`font-mono text-[10.5px] ${m.cls}`}>· {m.text}</span>;
+  return <span className={`font-mono text-micro ${m.cls}`}>· {m.text}</span>;
 }
 
 // Combien de fois le deck est montable EN PARALLÈLE avec la réserve 6★.
@@ -2429,7 +2429,7 @@ function CopiesBadge({ copies }: { copies: number | null }) {
   if (copies === 0) {
     return (
       <span
-        className="font-mono text-[11px] text-fire"
+        className="font-mono text-micro text-fire"
         title="Il manque au moins un monstre 6★ en réserve pour monter ce deck"
       >
         · réalisable 0 fois
@@ -2438,7 +2438,7 @@ function CopiesBadge({ copies }: { copies: number | null }) {
   }
   return (
     <span
-      className="font-mono text-[11px] text-ink-dim"
+      className="font-mono text-micro text-ink-dim"
       title={
         copies > 1
           ? `Tes monstres 6★ permettent de monter ce deck ${copies} fois en parallèle`
@@ -2486,19 +2486,19 @@ function libelleCausesDeck(causes: FaultCause[]): string {
 // (box, RTA, défense/offense de siège) — utile quand plusieurs presets existent.
 function SlotBadge({ sm }: { sm: SlotMatch }) {
   if (sm.status === 'absent')
-    return <div className="font-mono text-[10px] text-fire">monstre indisponible</div>;
+    return <div className="font-mono text-micro text-fire">monstre indisponible</div>;
   if (sm.status === 'unknown')
     // Possédé, mais aucun deck existant ne le réunit aux autres → rien à comparer.
-    return <div className="font-mono text-[10px] text-ink-dim">possédé</div>;
+    return <div className="font-mono text-micro text-ink-dim">possédé</div>;
   if (sm.status === 'ok')
     return (
-      <div className="font-mono text-[10px] text-good" title={`Deck retenu : ${sm.owned?.label}`}>
+      <div className="font-mono text-micro text-good" title={`Deck retenu : ${sm.owned?.label}`}>
         au niveau
       </div>
     );
   if (sm.status === 'ko')
     return (
-      <div className="font-mono text-[10px] text-fire" title={`Deck retenu : ${sm.owned?.label}`}>
+      <div className="font-mono text-micro text-fire" title={`Deck retenu : ${sm.owned?.label}`}>
         {libelleCausesSlot(slotFaults(sm)) || 'critères non respectés'}
       </div>
     );
@@ -2520,7 +2520,7 @@ function StatList({
 }) {
   const entries = RECO_STATS.filter((st) => (slot.stats[st.key] ?? 0) > 0);
   if (entries.length === 0) {
-    return <p className="font-mono text-[10.5px] text-ink-dim">Aucune stat recommandée</p>;
+    return <p className="font-mono text-micro text-ink-dim">Aucune stat recommandée</p>;
   }
   const checkOf = (key: RecoStatKey) => sm?.checks.find((c) => c.key === key) ?? null;
   // La colonne « toi » n'a de sens qu'après une analyse.
@@ -2528,7 +2528,7 @@ function StatList({
 
   return (
     <div className="overflow-x-auto">
-    <table className="w-full min-w-[236px] text-[11px]">
+    <table className="w-full min-w-[236px] text-micro">
       <thead>
         <tr className="label">
           <th className="pb-1 pr-1.5 text-left font-normal">Stat</th>

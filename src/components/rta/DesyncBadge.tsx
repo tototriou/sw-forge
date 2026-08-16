@@ -56,7 +56,7 @@ export default function DesyncBadge({
           vers la gauche ou vers le haut selon la place disponible. */}
       <DetailPopover open={open} anchorRef={ref} width={230} height={130}>
         <div
-          className="rounded-lg border border-warn/50 bg-panel p-2.5 text-left text-[11.5px]
+          className="rounded-lg border border-warn/50 bg-panel p-2.5 text-left text-micro
                      leading-relaxed text-ink-dim"
           onClick={(e) => e.stopPropagation()}
         >

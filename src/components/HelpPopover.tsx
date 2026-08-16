@@ -49,7 +49,7 @@ export default function HelpPopover({
       {open && (
         <div
           className="absolute right-0 z-20 mt-1.5 w-[340px] max-w-[88vw] rounded-lg border border-accent bg-panel p-3
-                     text-[12.5px] leading-relaxed text-ink-dim shadow-xl shadow-black/50"
+                     text-xs leading-relaxed text-ink-dim shadow-xl shadow-black/50"
           style={{ width }}
         >
           <p className="text-ink font-semibold mb-1">{title}</p>

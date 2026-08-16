@@ -142,7 +142,7 @@ export default function RunesList({ runes }: Props) {
               setAncientOnly((v) => !v);
               setPage(0);
             }}
-            className={`ml-1 rounded-full border px-3 py-1 text-[12.5px] font-semibold transition select-none
+            className={`ml-1 rounded-full border px-3 py-1 text-xs font-semibold transition select-none
               ${
                 // ⚠️ La BORDURE seule (voir spec/shared/design.md). Elle
                 // cumulait fond + bordure + encre d'accent + ombre : quatre
@@ -189,7 +189,7 @@ export default function RunesList({ runes }: Props) {
               setPage(0);
             }}
             title={RUNE_SORTS.find((s) => s.key === sort)?.hint}
-            className="bg-panel border border-border text-ink rounded-lg px-2.5 py-1 text-[13px] outline-none"
+            className="bg-panel border border-border text-ink rounded-lg px-2.5 py-1 text-sm outline-none"
           >
             {RUNE_SORTS.map((s) => (
               <option key={s.key} value={s.key} title={s.hint}>
@@ -200,7 +200,7 @@ export default function RunesList({ runes }: Props) {
           {/* ⚠️ Les deux tris « propriété » n'ont rien à classer sans critère :
               le dire ici évite de croire que le tri est cassé. */}
           {(sort === 'sub_desc' || sort === 'sub_brut_desc') && !premierCode && (
-            <span className="text-[12px] text-warn">
+            <span className="text-xs text-warn">
               Choisis une propriété ci-dessus pour trier dessus.
             </span>
           )}
@@ -208,7 +208,7 @@ export default function RunesList({ runes }: Props) {
       </div>
 
       <div className="flex items-center justify-between gap-3 mb-3 flex-wrap">
-        <p className="font-mono text-[12px] text-ink-dim">
+        <p className="font-mono text-xs text-ink-dim">
           {filtered.length} rune{filtered.length > 1 ? 's' : ''}
           {filtered.length !== runes.length && ` sur ${runes.length}`}
           {filtered.length > 0 && (

@@ -153,7 +153,7 @@ export default function BestiaryPage({ monsters }: Props) {
           ref={listeRef}
           className="mt-4 flex flex-wrap items-center justify-between gap-3"
         >
-          <p className="font-mono text-[12px] text-ink-dim">
+          <p className="font-mono text-xs text-ink-dim">
             {totalShown} monstre{totalShown > 1 ? 's' : ''}
             {totalShown !== totalBase && ` sur ${totalBase}`}
           </p>

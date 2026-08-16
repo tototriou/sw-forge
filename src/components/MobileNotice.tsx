@@ -28,7 +28,7 @@ export default function MobileNotice() {
           écrans les plus DENSES (comparaison de courbes, optimiseur) demandent
           de la largeur. Trois lignes pour le dire prenaient un quart de
           l'écran, juste sous la barre. */}
-      <p className="flex-1 text-[12px] leading-relaxed text-ink-dim">
+      <p className="flex-1 text-xs leading-relaxed text-ink-dim">
         Les <b className="text-ink">courbes</b> et l'<b className="text-ink">optimiseur</b> se
         lisent plus confortablement sur un grand écran.
       </p>

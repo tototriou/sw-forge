@@ -151,7 +151,7 @@ export default function ArtifactsSummary({ artifacts }: Props) {
 
   if (!s.total) {
     return (
-      <p className="rounded-xl border border-border bg-panel px-4 py-6 text-center text-[13px] text-ink-dim">
+      <p className="rounded-xl border border-border bg-panel px-4 py-6 text-center text-sm text-ink-dim">
         Aucun artéfact dans l'inventaire importé.
       </p>
     );
@@ -239,7 +239,7 @@ export default function ArtifactsSummary({ artifacts }: Props) {
                     <span className="label" style={{ color: k.tone }}>
                       {k.label}
                     </span>
-                    <span className="font-mono text-[11px] text-ink-dim">{a.total}</span>
+                    <span className="font-mono text-micro text-ink-dim">{a.total}</span>
                   </div>
                   <div className="flex h-2.5 w-full overflow-hidden rounded-full bg-panel2">
                     {a.rarities.map(
@@ -256,7 +256,7 @@ export default function ArtifactsSummary({ artifacts }: Props) {
                         )
                     )}
                   </div>
-                  <div className="mt-1 flex flex-wrap gap-x-3 font-mono text-[10.5px] text-ink-dim">
+                  <div className="mt-1 flex flex-wrap gap-x-3 font-mono text-micro text-ink-dim">
                     {a.rarities
                       .filter((r) => r.n > 0)
                       .map((r) => (
@@ -301,12 +301,12 @@ export default function ArtifactsSummary({ artifacts }: Props) {
               >
                 <div className="flex items-baseline justify-between gap-2">
                   <span className="label truncate">{g.label}</span>
-                  <span className="font-mono text-[12px] text-ink">{g.n}</span>
+                  <span className="font-mono text-xs text-ink">{g.n}</span>
                 </div>
-                <div className="mt-1 font-mono text-[12px] text-ink-dim">
+                <div className="mt-1 font-mono text-xs text-ink-dim">
                   moy. <b className="text-ink">{fmt(g.sum / g.n)} %</b>
                 </div>
-                <div className="font-mono text-[11px] text-ink-dim">
+                <div className="font-mono text-micro text-ink-dim">
                   max <b className="text-star">{fmt(g.best)} %</b>
                 </div>
               </div>
@@ -323,7 +323,7 @@ export default function ArtifactsSummary({ artifacts }: Props) {
           n'ont aucun recouvrement. */}
       <Panel title="Quad rolls · sur quelle propriété">
         {A.fullStack + T.fullStack === 0 ? (
-          <p className="text-[12.5px] text-ink-dim">
+          <p className="text-xs text-ink-dim">
             Aucun quad roll dans l'inventaire. Il faut un artéfact{' '}
             <b>légendaire</b> dont les 4 améliorations tombent sur la même
             propriété — c'est rare.
@@ -338,17 +338,17 @@ export default function ArtifactsSummary({ artifacts }: Props) {
                     <span className="label" style={{ color: k.tone }}>
                       {k.label}
                     </span>
-                    <span className="font-mono text-[11px] text-ink-dim">
+                    <span className="font-mono text-micro text-ink-dim">
                       {a.fullStack} quad roll{a.fullStack > 1 ? 's' : ''}
                     </span>
                   </div>
                   {a.quads.length === 0 && (
-                    <span className="font-mono text-[11.5px] text-ink-dim">—</span>
+                    <span className="font-mono text-micro text-ink-dim">—</span>
                   )}
                   {a.quads.map((q) => (
                     <div key={q.code} className="flex items-center gap-2.5">
                       <span
-                        className="flex-1 min-w-0 truncate font-mono text-[11px] text-ink-dim"
+                        className="flex-1 min-w-0 truncate font-mono text-micro text-ink-dim"
                         title={artifactSubLabel(q.code)}
                       >
                         {/* `artifactSubName` plutôt qu'un `replace` maison : il
@@ -365,7 +365,7 @@ export default function ArtifactsSummary({ artifacts }: Props) {
                           }}
                         />
                       </div>
-                      <span className="w-[24px] flex-none text-right font-mono text-[11.5px] text-ink tabular-nums">
+                      <span className="w-[24px] flex-none text-right font-mono text-micro text-ink tabular-nums">
                         {q.n}
                       </span>
                     </div>
@@ -375,7 +375,7 @@ export default function ArtifactsSummary({ artifacts }: Props) {
             })}
           </div>
         )}
-        <p className="mt-3 border-t border-border pt-3 text-[11.5px] leading-relaxed text-ink-dim">
+        <p className="mt-3 border-t border-border pt-3 text-micro leading-relaxed text-ink-dim">
           ⚠️ Un quad roll n'existe qu'en <b>légendaire</b> : c'est la seule
           rareté qui distribue 4 améliorations.
         </p>
@@ -421,7 +421,7 @@ function LigneDouble({
 }) {
   return (
     <div className="flex items-center gap-2.5">
-      <span className="w-[86px] flex-none font-mono text-[11.5px] text-ink-dim truncate" title={label}>
+      <span className="w-[86px] flex-none font-mono text-micro text-ink-dim truncate" title={label}>
         {label}
       </span>
       {/* ⚠️ UNE piste, deux segments — pas deux barres superposées : à six
@@ -445,10 +445,10 @@ function LigneDouble({
       {/* ⚠️ Le NOMBRE seul, pas la part : la longueur de barre dit déjà la
           proportion. Répéter « 25,8 % » à côté d'une barre au quart plein
           encode deux fois la même information et alourdit la ligne. */}
-      <span className="w-[52px] flex-none text-right font-mono text-[11.5px] text-ink tabular-nums">
+      <span className="w-[52px] flex-none text-right font-mono text-micro text-ink tabular-nums">
         {gauche.toLocaleString('fr-FR')}
       </span>
-      <span className="w-[52px] flex-none text-right font-mono text-[11.5px] text-ink tabular-nums">
+      <span className="w-[52px] flex-none text-right font-mono text-micro text-ink tabular-nums">
         {droite.toLocaleString('fr-FR')}
       </span>
     </div>

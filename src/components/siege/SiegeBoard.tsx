@@ -71,7 +71,7 @@ export default function SiegeBoard({
             siege.addTeam();
             setScrollToLast(true);
           }}
-          className="flex items-center gap-1.5 rounded-lg border border-border bg-panel px-3.5 py-2 text-[13px]
+          className="flex items-center gap-1.5 rounded-lg border border-border bg-panel px-3.5 py-2 text-sm
                      text-ink hoverable:border-accent transition"
         >
           <Plus size={15} /> Ajouter une équipe
@@ -86,7 +86,7 @@ export default function SiegeBoard({
                 ? 'Masquer les auras de vérification'
                 : 'Colorer les équipes selon leur calage sur les ticks ATB'
             }
-            className={`flex items-center gap-1.5 rounded-lg border px-3.5 py-2 text-[13px] font-semibold transition ${
+            className={`flex items-center gap-1.5 rounded-lg border px-3.5 py-2 text-sm font-semibold transition ${
               // Fond seul (voir spec/shared/design.md) : ce bouton-bascule
               // cumulait bordure d'accent + fond + ombre pour dire « activé ».
               checkTicks
@@ -105,13 +105,13 @@ export default function SiegeBoard({
           onDelete={onDeleteMonster}
         />
 
-        <span className="font-mono text-[12px] text-ink-dim">
+        <span className="font-mono text-xs text-ink-dim">
           {siege.state.teams.length} équipe{siege.state.teams.length > 1 ? 's' : ''}
         </span>
         {siege.state.teams.length > 0 && (
           <button
             onClick={() => setEffacementAConfirmer(true)}
-            className="ml-auto flex items-center gap-1.5 text-[12px] text-ink-dim hoverable:text-fire transition"
+            className="ml-auto flex items-center gap-1.5 text-xs text-ink-dim hoverable:text-fire transition"
           >
             <Trash2 size={13} /> Tout effacer
           </button>
@@ -133,7 +133,7 @@ export default function SiegeBoard({
       )}
 
       {loadState === 'loading' && monsters.length === 0 && (
-        <p className="mt-4 text-ink-dim text-[13px]">Chargement des monstres…</p>
+        <p className="mt-4 text-ink-dim text-sm">Chargement des monstres…</p>
       )}
 
       {siege.state.teams.length === 0 ? (
@@ -141,7 +141,7 @@ export default function SiegeBoard({
           <div className="flex items-center justify-center w-14 h-14 rounded-2xl bg-panel2 border border-border mb-4">
             <Castle size={26} className="text-ink-dim" />
           </div>
-          <p className="text-ink-dim text-[14px] max-w-md">
+          <p className="text-ink-dim text-sm max-w-md">
             Aucune équipe d'{noun} pour l'instant. Clique sur{' '}
             <b className="text-ink">Ajouter une équipe</b> pour composer, ou importe ton compte
             depuis la barre du haut.

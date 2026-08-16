@@ -82,14 +82,14 @@ export default function BuildCandidateCard({
       }`}
     >
       <div className="flex items-center justify-between mb-2">
-        <span className="font-mono text-[12px] font-bold text-star">#{rank}</span>
-        <span className="font-mono text-[12px] text-ink-dim">
+        <span className="font-mono text-xs font-bold text-star">#{rank}</span>
+        <span className="font-mono text-xs text-ink-dim">
           {formatRuneMetric(liveTotal / 6, metric)} en moyenne
         </span>
       </div>
 
       {sets.length > 0 && (
-        <p className="mb-2 flex flex-wrap items-center gap-1 text-[11.5px] text-ink-dim">
+        <p className="mb-2 flex flex-wrap items-center gap-1 text-micro text-ink-dim">
           {sets.map((key, i) => (
             <span key={`${key}-${i}`}>{RUNE_SETS.find((s) => s.key === key)?.label ?? key}</span>
           ))}

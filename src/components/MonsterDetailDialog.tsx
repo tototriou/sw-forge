@@ -123,10 +123,10 @@ export default function MonsterDetailDialog({
           {/* Les DEUX noms pour une paire de collaboration, comme sur la carte.
               ⚠️ Seulement sur la forme de BASE : sur une forme transformée, le
               jumeau ne correspondrait plus à ce qui est affiché. */}
-          <h2 id="fiche-monstre" className="font-display text-[19px] tracking-wide text-ink">
+          <h2 id="fiche-monstre" className="font-display text-lg tracking-wide text-ink">
             {jumeauAffiche ? libelleCollab(forme.name, jumeauAffiche.name) : forme.name}
           </h2>
-          <div className="mt-1 flex flex-wrap items-center gap-2 text-[12px] text-ink-dim">
+          <div className="mt-1 flex flex-wrap items-center gap-2 text-xs text-ink-dim">
             <span className="inline-flex items-center gap-1">
               <ElementIcon element={forme.element} size={14} />
             </span>
@@ -137,7 +137,7 @@ export default function MonsterDetailDialog({
               </span>
             )}
             {forme.secondAwaken && (
-              <span className="rounded bg-ctx-soft px-1.5 py-px font-mono text-[11px] text-ink">
+              <span className="rounded bg-ctx-soft px-1.5 py-px font-mono text-micro text-ink">
                 2A
               </span>
             )}
@@ -219,14 +219,14 @@ export default function MonsterDetailDialog({
             une description longue déborderait sur la colonne de gauche. */}
         <div className="min-w-0 flex-1">
           {chargement ? (
-            <p className="py-6 text-center text-[12px] text-ink-dim">Chargement des compétences…</p>
+            <p className="py-6 text-center text-xs text-ink-dim">Chargement des compétences…</p>
           ) : detail && detail.competences.length > 0 ? (
             <div className="flex flex-col gap-2">
               {detail.competences.map((c) => (
                 <CompetenceBloc key={c.id} c={c} />
               ))}
               {detail.skillUpsToMax != null && (
-                <p className="mt-1 font-mono text-[11px] text-ink-dim">
+                <p className="mt-1 font-mono text-micro text-ink-dim">
                   {detail.skillUpsToMax} amélioration(s) pour maxer ses compétences.
                 </p>
               )}
@@ -235,7 +235,7 @@ export default function MonsterDetailDialog({
         // ⚠️ Le message dit POURQUOI c'est vide. « Aucune compétence » se lirait
         // comme une affirmation sur le monstre, alors que c'est notre donnée qui
         // manque — un monstre perso n'a pas de fiche SWARFARM.
-        <p className="py-6 text-center text-[12px] text-ink-dim">
+        <p className="py-6 text-center text-xs text-ink-dim">
           {forme.com2usId == null
             ? "Ce monstre a été créé à la main : il n'a pas de fiche de compétences."
             : 'Le détail des compétences de ce monstre n’est pas disponible.'}
@@ -261,7 +261,7 @@ function Stat({
 }) {
   return (
     <div
-      className={`flex items-baseline justify-between gap-3 py-1 text-[12px] ${
+      className={`flex items-baseline justify-between gap-3 py-1 text-xs ${
         dernier ? '' : 'border-b border-border/40'
       }`}
     >
@@ -296,16 +296,16 @@ function CompetenceBloc({ c }: { c: Competence }) {
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
             {c.slot != null && (
-              <span className="font-mono text-[11px] text-ink-dim">S{c.slot}</span>
+              <span className="font-mono text-micro text-ink-dim">S{c.slot}</span>
             )}
-            <span className="text-[13px] font-bold text-ink">{c.nom}</span>
+            <span className="text-sm font-bold text-ink">{c.nom}</span>
             {c.passif && (
-              <span className="rounded bg-panel px-1.5 py-px font-mono text-[10px] text-ink-dim">
+              <span className="rounded bg-panel px-1.5 py-px font-mono text-micro text-ink-dim">
                 Passif
               </span>
             )}
             {c.aoe && (
-              <span className="rounded bg-panel px-1.5 py-px font-mono text-[10px] text-ink-dim">
+              <span className="rounded bg-panel px-1.5 py-px font-mono text-micro text-ink-dim">
                 Zone
               </span>
             )}
@@ -314,7 +314,7 @@ function CompetenceBloc({ c }: { c: Competence }) {
           {/* ⚠️ Le COEFFICIENT en évidence : c'est la donnée qu'on vient
               chercher, celle qui décide d'un build. Elle passe avant la
               description, qui la raconte en mots. */}
-          <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 font-mono text-[11px]">
+          <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 font-mono text-micro">
             {formule && (
               <span className="inline-flex items-center gap-1 text-star">
                 <Sword size={11} /> {formule}
@@ -354,7 +354,7 @@ function CompetenceBloc({ c }: { c: Competence }) {
           </div>
 
           {c.description && (
-            <p className="mt-1 text-[12px] leading-snug text-ink-dim">{c.description}</p>
+            <p className="mt-1 text-xs leading-snug text-ink-dim">{c.description}</p>
           )}
         </div>
       </div>
@@ -375,7 +375,7 @@ function CompetenceBloc({ c }: { c: Competence }) {
             <span
               key={i}
               title={[e.description, e.note].filter(Boolean).join(' · ') || undefined}
-              className={`inline-flex items-center gap-1 rounded border px-1.5 py-px text-[11px] ${
+              className={`inline-flex items-center gap-1 rounded border px-1.5 py-px text-micro ${
                 e.bonus
                   ? 'border-good/40 bg-good/10 text-good'
                   : 'border-fire/40 bg-fire/10 text-fire'
@@ -394,12 +394,12 @@ function CompetenceBloc({ c }: { c: Competence }) {
           les quatre s'ouvrent d'un coup. */}
       {c.ameliorations.length > 0 && (
         <details className="mt-2">
-          <summary className="cursor-pointer text-[11px] text-ink-dim transition hoverable:text-ink">
+          <summary className="cursor-pointer text-micro text-ink-dim transition hoverable:text-ink">
             {c.ameliorations.length} amélioration(s)
           </summary>
           <ol className="mt-1 space-y-px pl-4">
             {c.ameliorations.map((a, i) => (
-              <li key={i} className="list-decimal text-[11px] leading-snug text-ink-dim">
+              <li key={i} className="list-decimal text-micro leading-snug text-ink-dim">
                 {a}
               </li>
             ))}

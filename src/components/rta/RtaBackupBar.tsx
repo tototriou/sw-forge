@@ -113,7 +113,7 @@ function depuis(iso: string): string {
 // Rien n'est perdu — l'intitulé reste au survol et au lecteur d'écran.
 const BOUTON =
   'flex items-center gap-1.5 rounded-lg border border-border bg-panel px-2.5 py-1.5 ' +
-  'text-[12.5px] text-ink-dim hoverable:text-ink hoverable:border-accent transition ' +
+  'text-xs text-ink-dim hoverable:text-ink hoverable:border-accent transition ' +
   'disabled:opacity-40 disabled:cursor-not-allowed sm:px-3';
 
 export default function RtaBackupBar({
@@ -402,7 +402,7 @@ export default function RtaBackupBar({
       {/* Le point de sauvegarde est ANNONCÉ : sans repère visible, on ne sait
           pas s'il existe ni de quand il date — donc on n'ose pas expérimenter. */}
       {backup.backup && (
-        <p className="mt-1.5 font-mono text-[11px] text-ink-dim">
+        <p className="mt-1.5 font-mono text-micro text-ink-dim">
           Point de sauvegarde : {Object.keys(backup.backup.state.entries).length} monstre(s) ·{' '}
           {dateBackup}
         </p>
@@ -410,7 +410,7 @@ export default function RtaBackupBar({
       {/* Le point d'import est annoncé lui aussi : sans repère, on ne sait pas
           vers quel état « Réinitialiser » ramène, ni de quand il date. */}
       {backup.importe && (
-        <p className="mt-0.5 font-mono text-[11px] text-ink-dim">
+        <p className="mt-0.5 font-mono text-micro text-ink-dim">
           Dernier import : {Object.keys(backup.importe.state.entries).length} monstre(s) ·{' '}
           {depuis(backup.importe.date)}
         </p>
@@ -430,7 +430,7 @@ export default function RtaBackupBar({
       />
 
       {msg && (
-        <p className={`mt-2 text-[12.5px] ${msg.error ? 'text-fire' : 'text-good'}`} role="status">
+        <p className={`mt-2 text-xs ${msg.error ? 'text-fire' : 'text-good'}`} role="status">
           {msg.text}
         </p>
       )}
@@ -674,16 +674,16 @@ function ChoixExport({
         onClick={(e) => e.stopPropagation()}
         className="w-full max-w-[460px] rounded-2xl border border-border bg-panel p-5 shadow-glow shadow-black/60"
       >
-        <h2 id="export-rta-titre" className="text-[15px] font-bold text-ink">
+        <h2 id="export-rta-titre" className="text-base font-bold text-ink">
           Que veux-tu partager ?
         </h2>
-        <p className="mt-1.5 text-[12.5px] leading-relaxed text-ink-dim">
+        <p className="mt-1.5 text-xs leading-relaxed text-ink-dim">
           Tes sections et tes catégories sont toujours incluses. La question porte sur ce que tu
           laisses voir de <b className="text-ink">ton runage</b>.
         </p>
 
         {avecRunes === 0 && (
-          <p className="mt-3 rounded-lg border border-border bg-panel2 px-3 py-2 text-[11.5px] leading-relaxed text-ink-dim">
+          <p className="mt-3 rounded-lg border border-border bg-panel2 px-3 py-2 text-micro leading-relaxed text-ink-dim">
             Aucun de tes monstres ne porte de runes connues — importe ton compte pour pouvoir les
             partager.
           </p>
@@ -703,13 +703,13 @@ function ChoixExport({
               >
                 <Icone size={16} className="mt-[2px] flex-none text-ink-dim" />
                 <span className="min-w-0">
-                  <span className="flex items-center gap-1.5 text-[12.5px] font-semibold text-ink">
+                  <span className="flex items-center gap-1.5 text-xs font-semibold text-ink">
                     {o.titre}
                     {o.compte ? (
-                      <span className="font-mono text-[11px] text-ink-dim">{o.compte}</span>
+                      <span className="font-mono text-micro text-ink-dim">{o.compte}</span>
                     ) : null}
                   </span>
-                  <span className="mt-0.5 block text-[11.5px] leading-relaxed text-ink-dim">
+                  <span className="mt-0.5 block text-micro leading-relaxed text-ink-dim">
                     {o.detail}
                   </span>
                 </span>
@@ -721,7 +721,7 @@ function ChoixExport({
         {/* ⚠️ Explique POURQUOI chaque palier retire ce qu'il retire. Sans ces
             phrases, les restrictions passent pour arbitraires alors que chacune
             ferme une fuite réelle. */}
-        <p className="mt-3 text-[11px] leading-relaxed text-ink-dim">
+        <p className="mt-3 text-micro leading-relaxed text-ink-dim">
           Le <b className="text-ink">classement par section</b> part avec le détail des runes :
           ranger un monstre dans « Swift » en dit autant que l'icône. Et la vitesse de base étant
           publique, donner la vitesse totale revient à donner celle des runes — c'est pourquoi le
@@ -730,7 +730,7 @@ function ChoixExport({
 
         <button
           onClick={onAnnuler}
-          className="mt-3 w-full text-center text-[12px] text-ink-dim hoverable:text-ink transition"
+          className="mt-3 w-full text-center text-xs text-ink-dim hoverable:text-ink transition"
         >
           Annuler
         </button>
@@ -755,7 +755,7 @@ function ValidationReport({ report, onClose }: { report: ImportReport; onClose: 
         ) : (
           <AlertTriangle size={15} className="flex-none text-warn" />
         )}
-        <span className={`text-[12.5px] font-semibold ${bloque ? 'text-fire' : 'text-warn'}`}>
+        <span className={`text-xs font-semibold ${bloque ? 'text-fire' : 'text-warn'}`}>
           {bloque
             ? "Import refusé — le contenu n'est pas valide"
             : `Lu avec ${report.warnings.length} correction${report.warnings.length > 1 ? 's' : ''}`}
@@ -771,19 +771,19 @@ function ValidationReport({ report, onClose }: { report: ImportReport; onClose: 
 
       <ul className="space-y-0.5 max-h-[220px] overflow-y-auto">
         {report.errors.map((e, i) => (
-          <li key={`e${i}`} className="text-[12px] text-fire leading-snug">
+          <li key={`e${i}`} className="text-xs text-fire leading-snug">
             • {e}
           </li>
         ))}
         {report.warnings.map((w, i) => (
-          <li key={`w${i}`} className="text-[12px] text-warn/90 leading-snug">
+          <li key={`w${i}`} className="text-xs text-warn/90 leading-snug">
             • {w}
           </li>
         ))}
       </ul>
 
       {!bloque && (
-        <p className="mt-1.5 font-mono text-[11px] text-ink-dim">
+        <p className="mt-1.5 font-mono text-micro text-ink-dim">
           {report.counts.monstres} monstre(s) · {report.counts.avecRunes} avec runes ·{' '}
           {report.counts.categories} catégorie(s) lus.
         </p>

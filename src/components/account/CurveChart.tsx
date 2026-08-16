@@ -119,7 +119,7 @@ export default function CurveChart({
 
   const active = series.filter((s) => s.effs.length > 0);
   if (active.length === 0) {
-    return <p className="text-ink-dim text-[13px]">Aucune rune à afficher.</p>;
+    return <p className="text-ink-dim text-sm">Aucune rune à afficher.</p>;
   }
 
   // Bornes X (nb max de runes) et Y (min→max global, arrondis).
@@ -458,7 +458,7 @@ export default function CurveChart({
             {/* Le rang ENTRE les deux flèches : c'est lui qu'elles font défiler,
                 et il dit où l'on en est dans le classement. Largeur fixe, sinon
                 les flèches se déplacent au passage de « 9 » à « 10 ». */}
-            <span className="w-[92px] text-center font-mono text-[11px] text-ink-dim">
+            <span className="w-[92px] text-center font-mono text-micro text-ink-dim">
               n° {choisi.rang + 1} / {rangMax}
             </span>
             <button
@@ -499,13 +499,13 @@ export default function CurveChart({
                     height={46}
                   />
                   <div className="min-w-0">
-                    <div className="truncate text-[13px] font-bold leading-tight text-ink">
+                    <div className="truncate text-sm font-bold leading-tight text-ink">
                       {RUNE_SETS.find((s) => s.key === rune.set)?.label ?? rune.set} ·{' '}
                       <span className="text-ink-dim">slot {rune.slot}</span>
                     </div>
                     {/* Le rang n'est PAS répété ici : il vit dans la barre de
                         navigation au-dessus, entre les deux flèches. */}
-                    <div className="font-mono text-[11px] text-ink-dim">
+                    <div className="font-mono text-micro text-ink-dim">
                       {unit === '%' ? val.toFixed(1) : String(Math.round(val))}
                       {unit}
                     </div>
@@ -513,7 +513,7 @@ export default function CurveChart({
                         plusieurs d'ouvrables : sur l'onglet Courbes, où seule la
                         mienne l'est, il n'apprend rien. */}
                     {ouvrables.length > 1 && (
-                      <div className="mt-0.5 flex items-center gap-1.5 font-mono text-[11px]">
+                      <div className="mt-0.5 flex items-center gap-1.5 font-mono text-micro">
                         <span
                           className="inline-block h-1.5 w-3 flex-none rounded-full"
                           style={{ background: serie.color }}

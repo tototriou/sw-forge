@@ -73,7 +73,7 @@ export default function CategoryBar({ cats, monsters }: Props) {
                 onClick={() => setOpenId((o) => (o === c.id ? null : c.id))}
                 aria-expanded={openId === c.id}
                 title="Choisir les monstres de cette catégorie"
-                className="flex h-full items-center gap-1.5 text-[12px] font-semibold text-ink"
+                className="flex h-full items-center gap-1.5 text-xs font-semibold text-ink"
               >
                 <span
                   className="w-2.5 h-2.5 rounded-full flex-none"
@@ -117,7 +117,7 @@ export default function CategoryBar({ cats, monsters }: Props) {
             onClick={() => setCreating((v) => !v)}
             aria-expanded={creating}
             className="flex h-7 items-center gap-1 rounded-full border border-dashed border-border
-                       bg-transparent px-2.5 text-[12px] text-ink-dim transition
+                       bg-transparent px-2.5 text-xs text-ink-dim transition
                        hoverable:text-ink hoverable:border-accent hoverable:bg-panel2"
           >
             <Plus size={12} /> Catégorie
@@ -145,7 +145,7 @@ export default function CategoryBar({ cats, monsters }: Props) {
               ? 'Masquer les vitesses sur les cartes'
               : 'Réafficher les vitesses sur les cartes'
           }
-          className={`ml-auto flex h-7 items-center gap-1.5 rounded-full border px-2.5 text-[12px] transition ${
+          className={`ml-auto flex h-7 items-center gap-1.5 rounded-full border px-2.5 text-xs transition ${
             cats.showSpeeds
               ? 'border-border bg-panel text-ink-dim hoverable:text-ink hoverable:border-accent'
               : // Fond seul — voir spec/shared/design.md.
@@ -164,7 +164,7 @@ export default function CategoryBar({ cats, monsters }: Props) {
               ? 'Ne plus signaler les monstres dont les runes ne suivent plus la vitesse demandée'
               : 'Signaler en orange les monstres dont les runes ne suivent plus'
           }
-          className={`flex h-7 items-center gap-1.5 rounded-full border px-2.5 text-[12px] transition ${
+          className={`flex h-7 items-center gap-1.5 rounded-full border px-2.5 text-xs transition ${
             cats.markDesync
               ? 'border-border bg-panel text-ink-dim hoverable:text-ink hoverable:border-accent'
               : // Fond seul — voir spec/shared/design.md.
@@ -187,7 +187,7 @@ export default function CategoryBar({ cats, monsters }: Props) {
               ? 'Masquer les couleurs sur les cartes et l’ordre de tour'
               : 'Réafficher les couleurs'
           }
-          className={`flex h-7 items-center gap-1.5 rounded-full border px-2.5 text-[12px] transition ${
+          className={`flex h-7 items-center gap-1.5 rounded-full border px-2.5 text-xs transition ${
             cats.visible
               ? 'border-border bg-panel text-ink-dim hoverable:text-ink hoverable:border-accent'
               : // Fond seul — voir spec/shared/design.md.
@@ -215,15 +215,15 @@ export default function CategoryBar({ cats, monsters }: Props) {
         >
           <div className="flex items-center gap-2 mb-2 flex-wrap">
             <span className="w-2.5 h-2.5 rounded-full flex-none" style={{ backgroundColor: open.color }} />
-            <span className="text-[13px] font-semibold text-ink">{open.label}</span>
-            <span className="font-mono text-[11px] text-ink-dim">
+            <span className="text-sm font-semibold text-ink">{open.label}</span>
+            <span className="font-mono text-micro text-ink-dim">
               {countOf(open)} monstre{countOf(open) > 1 ? 's' : ''}
             </span>
             {countOf(open) > 0 && (
               <button
                 onClick={() => cats.clearMembers(open.id)}
                 className="ml-auto flex h-6 items-center gap-1 rounded-full border border-border bg-panel
-                           px-2 text-[11px] text-ink-dim transition hoverable:border-fire/60 hoverable:text-fire"
+                           px-2 text-micro text-ink-dim transition hoverable:border-fire/60 hoverable:text-fire"
                 title="Retirer tous les monstres de cette catégorie"
               >
                 <X size={11} /> Tout décocher
@@ -240,7 +240,7 @@ export default function CategoryBar({ cats, monsters }: Props) {
           </div>
 
           {monsters.length === 0 ? (
-            <p className="text-[12.5px] text-ink-dim">
+            <p className="text-xs text-ink-dim">
               Aucun monstre dans ta prépa : ajoute-en d'abord ci-dessus.
             </p>
           ) : (
@@ -282,7 +282,7 @@ export default function CategoryBar({ cats, monsters }: Props) {
                         illisible pour un daltonien. Le nom, lui, identifie le
                         monstre quelle que soit la vision des couleurs. */}
                     <MonsterAvatar monster={m} size={36} element={false} />
-                    <span className="w-full truncate text-center text-[10px] leading-tight text-ink-dim">
+                    <span className="w-full truncate text-center text-micro leading-tight text-ink-dim">
                       {m.name}
                     </span>
                     {dedans && (
@@ -376,7 +376,7 @@ function CategoryPopover({
           onChange={(e) => setLabel(e.target.value)}
           placeholder="Striper, Lead SPD…"
           maxLength={24}
-          className="min-w-0 flex-1 bg-panel2 border border-border rounded-md px-2 py-1 text-[12px] text-ink
+          className="min-w-0 flex-1 bg-panel2 border border-border rounded-md px-2 py-1 text-xs text-ink
                      outline-none focus:border-accent placeholder:text-ink-dim"
         />
       </div>
@@ -409,14 +409,14 @@ function CategoryPopover({
           type="submit"
           disabled={!label.trim()}
           className="flex-1 rounded-md bg-accent-soft px-2 py-1
-                     text-[12px] font-semibold text-ink transition disabled:opacity-40"
+                     text-xs font-semibold text-ink transition disabled:opacity-40"
         >
           Valider
         </button>
         <button
           type="button"
           onClick={onClose}
-          className="rounded-md border border-border px-2 py-1 text-[12px] text-ink-dim
+          className="rounded-md border border-border px-2 py-1 text-xs text-ink-dim
                      transition hoverable:text-ink hoverable:border-accent"
         >
           Annuler

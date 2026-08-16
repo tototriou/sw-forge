@@ -136,14 +136,14 @@ export function RuneDetailBox({
         <div className="min-w-0 flex-1">
           {/* stat principale + innée */}
           <div
-            className={`font-black text-ink leading-tight ${compact ? 'text-[13px]' : 'text-[15px]'}`}
+            className={`font-black text-ink leading-tight ${compact ? 'text-sm' : 'text-base'}`}
           >
             {formatRuneEffect(rune.main)}
           </div>
           {rune.innate && (
             <div
               className={`font-semibold text-water leading-tight ${
-                compact ? 'text-[11px]' : 'text-[13px]'
+                compact ? 'text-micro' : 'text-sm'
               }`}
             >
               {formatRuneEffect(rune.innate)}
@@ -158,7 +158,7 @@ export function RuneDetailBox({
               jeu —, seule la place qu'ils prennent change. */}
           <span
             className={`inline-flex items-center gap-1 rounded font-bold uppercase ${
-              compact ? 'px-1.5 py-px text-[9.5px]' : 'px-2 py-0.5 text-[10px] tracking-wide'
+              compact ? 'px-1.5 py-px text-micro' : 'px-2 py-0.5 text-micro tracking-wide'
             }`}
             style={{ background: rarity.bg, color: rarity.color }}
             title={ancient ? 'Rune antique' : undefined}
@@ -168,7 +168,7 @@ export function RuneDetailBox({
           </span>
           {/* Mesure choisie globalement (sélecteur dans la liste des runes et en
               pied de ce panneau) — même couleur dans les deux cas. */}
-          <span className="mt-0.5 font-mono text-[11px] text-ink-dim" title={metricHint}>
+          <span className="mt-0.5 font-mono text-micro text-ink-dim" title={metricHint}>
             {metric === 'eff' ? 'Efficience' : 'Score SW'}{' '}
             <b className="text-star">
               {formatRuneMetric(metric === 'eff' ? runeEfficiency(rune) : runeScore(rune), metric)}
@@ -200,7 +200,7 @@ export function RuneDetailBox({
             <div
               key={i}
               className={`flex items-center gap-1 leading-tight ${
-                compact ? 'text-[11.5px]' : 'text-[12.5px]'
+                compact ? 'text-micro' : 'text-xs'
               } ${vise ? '-mx-1 rounded border-l-2 border-accent bg-accent/[0.08] pl-[2px] pr-1' : ''}`}
             >
               {total ? (
@@ -234,7 +234,7 @@ export function RuneDetailBox({
       {bonus && (
         <div
           className={`border-t border-border/40 text-good ${
-            compact ? 'mt-1.5 pt-1.5 text-[11px] leading-tight' : 'mt-2 pt-2 text-[12px]'
+            compact ? 'mt-1.5 pt-1.5 text-micro leading-tight' : 'mt-2 pt-2 text-xs'
           }`}
         >
           {bonus.pieces} Set : {bonus.label}
@@ -275,7 +275,7 @@ export function ArtifactDetailBox({ artifact }: { artifact: ArtifactDetail }) {
           rareté, et le score juste en dessous. */}
       <div className="flex flex-col items-end mb-1.5 gap-1">
         <span
-          className="rounded px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide"
+          className="rounded px-2 py-0.5 text-micro font-bold uppercase tracking-wide"
           style={{ background: rarity.bg, color: rarity.color }}
         >
           {rarity.label}
@@ -284,7 +284,7 @@ export function ArtifactDetailBox({ artifact }: { artifact: ArtifactDetail }) {
             pour les runes. L'autre reste en infobulle : les deux sont la même
             somme à un facteur près (spec/compte/calcul-artefacts.md §3). */}
         <span
-          className="font-mono text-[11px] text-ink-dim tabular-nums"
+          className="font-mono text-micro text-ink-dim tabular-nums"
           title={`Score ${artifactScore(artifact)} · efficience ${artifactEfficiency(artifact).toFixed(1)} %`}
         >
           <Gauge size={10} className="inline-block mr-0.5 -mt-0.5" />
@@ -296,7 +296,7 @@ export function ArtifactDetailBox({ artifact }: { artifact: ArtifactDetail }) {
         </span>
       </div>
       {/* stat principale */}
-      <div className="text-[15px] font-black text-ink leading-tight">{formatArtifactMain(artifact.main)}</div>
+      <div className="text-base font-black text-ink leading-tight">{formatArtifactMain(artifact.main)}</div>
       {/* Substats, disposés comme dans le JEU : le nombre de PROCS dans une
           pastille à GAUCHE, puis le libellé dont la **valeur est teintée**
           différemment du texte qui l'entoure.
@@ -309,12 +309,12 @@ export function ArtifactDetailBox({ artifact }: { artifact: ArtifactDetail }) {
           const procs = s.rolls ?? 0;
           const { avant, valeur, apres } = splitArtifactSub(s);
           return (
-            <div key={j} className="flex items-start gap-1.5 text-[12px] leading-snug">
+            <div key={j} className="flex items-start gap-1.5 text-xs leading-snug">
               {/* Pastille de procs : verte dès qu'une amélioration est tombée,
                   neutre à zéro — on repère les lignes travaillées d'un coup
                   d'œil, sans lire les chiffres. */}
               <span
-                className={`mt-px flex-none rounded px-1 font-mono text-[10.5px] font-bold tabular-nums ${
+                className={`mt-px flex-none rounded px-1 font-mono text-micro font-bold tabular-nums ${
                   procs > 0 ? 'bg-good/20 text-good' : 'bg-ink-dim/15 text-ink-dim'
                 }`}
                 title={`${procs} amélioration${procs > 1 ? 's' : ''} sur cette ligne`}
@@ -334,7 +334,7 @@ export function ArtifactDetailBox({ artifact }: { artifact: ArtifactDetail }) {
         })}
       </div>
       {/* type */}
-      <div className="mt-2 pt-2 border-t border-border/40 text-[12px] text-good">
+      <div className="mt-2 pt-2 border-t border-border/40 text-xs text-good">
         {artifactTypeLabel(artifact)}
       </div>
     </div>
@@ -344,9 +344,9 @@ export function ArtifactDetailBox({ artifact }: { artifact: ArtifactDetail }) {
 function RelicDetailBox({ relic }: { relic: RelicDetail }) {
   return (
     <div className="rounded-lg border border-border bg-panel/70 p-2.5">
-      <div className="text-[12px] font-bold text-ink">{formatRelicMain(relic.main)}</div>
+      <div className="text-xs font-bold text-ink">{formatRelicMain(relic.main)}</div>
       {relic.sub && (
-        <div className="text-[11px] text-ink-dim mt-0.5">Effet secondaire · {relic.sub.value}</div>
+        <div className="text-micro text-ink-dim mt-0.5">Effet secondaire · {relic.sub.value}</div>
       )}
     </div>
   );
@@ -416,7 +416,7 @@ export default function MonsterGear({ gear, spdCible = null }: Props) {
           }`}
         >
           <div className="label">Relique</div>
-          <div className="text-[12px] font-bold text-ink mt-0.5">{formatRelicMain(gear.relic.main)}</div>
+          <div className="text-xs font-bold text-ink mt-0.5">{formatRelicMain(gear.relic.main)}</div>
         </button>
       )}
       {/* Détail de la pièce sélectionnée, sur sa propre ligne */}

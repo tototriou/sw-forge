@@ -56,7 +56,7 @@ export default function MonsterGearPicker({ items, onPick, placeholder }: Props)
         value={query}
         onChange={(e) => setQuery(e.target.value)}
         placeholder={placeholder ?? 'Rechercher un monstre…'}
-        className="w-full bg-panel border border-border rounded-lg py-2 pl-9 pr-3 text-[13px]
+        className="w-full bg-panel border border-border rounded-lg py-2 pl-9 pr-3 text-sm
                    text-ink placeholder:text-ink-dim outline-none transition
                    focus:border-accent focus:shadow-[0_0_0_3px_rgb(var(--accent)/0.25)]"
       />
@@ -68,7 +68,7 @@ export default function MonsterGearPicker({ items, onPick, placeholder }: Props)
           className="absolute z-30 mt-1.5 w-full max-h-[300px] overflow-y-auto rounded-lg border border-border bg-panel shadow-glow shadow-black/60"
         >
           {results.length === 0 ? (
-            <div className="px-3 py-2 text-ink-dim text-[12.5px]">Aucun monstre trouvé.</div>
+            <div className="px-3 py-2 text-ink-dim text-xs">Aucun monstre trouvé.</div>
           ) : (
             results.map((it, i) => {
               const estActif = i === nav.actif;
@@ -85,8 +85,8 @@ export default function MonsterGearPicker({ items, onPick, placeholder }: Props)
                     ${estActif ? 'bg-accent-soft' : ''}`}
                 >
                   <MonsterAvatar monster={it.monster} size={28} />
-                  <span className="text-[13px] font-medium truncate flex-1">{it.monster.name}</span>
-                  <span className="font-mono text-[11px] text-ink-dim">
+                  <span className="text-sm font-medium truncate flex-1">{it.monster.name}</span>
+                  <span className="font-mono text-micro text-ink-dim">
                     {it.gear.runes.length} rune{it.gear.runes.length > 1 ? 's' : ''}
                   </span>
                 </div>

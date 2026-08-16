@@ -218,7 +218,7 @@ export default function RtaPage({
       </div>
 
       <div className="flex items-center gap-3 mt-4 flex-wrap">
-        <span className="font-mono text-[12px] text-ink-dim">
+        <span className="font-mono text-xs text-ink-dim">
           {addedIds.size} monstre{addedIds.size > 1 ? 's' : ''} en prépa
         </span>
 
@@ -231,7 +231,7 @@ export default function RtaPage({
         {addedIds.size > 0 && (
           <button
             onClick={() => setEffacementAConfirmer(true)}
-            className="ml-auto flex items-center gap-1.5 text-[12px] text-ink-dim hoverable:text-fire transition"
+            className="ml-auto flex items-center gap-1.5 text-xs text-ink-dim hoverable:text-fire transition"
           >
             <Trash2 size={13} /> Tout effacer
           </button>
@@ -305,7 +305,7 @@ export default function RtaPage({
       <CategoryBar cats={cats} monsters={pageMonsters} />
 
       {loadState === 'loading' && monsters.length === 0 && (
-        <p className="mt-4 text-ink-dim text-[13px]">Chargement des monstres…</p>
+        <p className="mt-4 text-ink-dim text-sm">Chargement des monstres…</p>
       )}
 
       {/* Zone tampon : les monstres ajoutés y arrivent avant classement */}
@@ -349,7 +349,7 @@ export default function RtaPage({
         <select
           value={newSection}
           onChange={(e) => setNewSection(e.target.value)}
-          className="bg-panel border border-border text-ink rounded-lg px-2.5 py-1.5 text-[13px] outline-none"
+          className="bg-panel border border-border text-ink rounded-lg px-2.5 py-1.5 text-sm outline-none"
         >
           <option value="">Choisir un set de runes…</option>
           {availableSets.map((s) => (
@@ -364,7 +364,7 @@ export default function RtaPage({
             rta.addSection(newSection);
             setNewSection('');
           }}
-          className="flex items-center gap-1.5 rounded-lg border border-border bg-panel px-3 py-1.5 text-[13px]
+          className="flex items-center gap-1.5 rounded-lg border border-border bg-panel px-3 py-1.5 text-sm
                      text-ink-dim hoverable:text-ink hoverable:border-accent transition
                      disabled:opacity-40 disabled:cursor-not-allowed"
         >
@@ -375,7 +375,7 @@ export default function RtaPage({
       {/* Ordre de tour global, trié par vitesse totale */}
       <section className="mt-10">
         <div className="flex items-baseline gap-x-3 gap-y-1 flex-wrap pb-2.5 mb-4 border-b border-border">
-          <h2 className="font-display text-[19px] tracking-wide">Ordre de tour</h2>
+          <h2 className="font-display text-lg tracking-wide">Ordre de tour</h2>
           <span className="font-mono text-ink-dim text-xs">par vitesse combat totale</span>
         </div>
         {/* ⚠️ Les catégories sont passées ENTIÈRES, le masquage est le rôle de

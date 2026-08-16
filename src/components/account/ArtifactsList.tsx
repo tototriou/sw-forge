@@ -283,7 +283,7 @@ export default function ArtifactsList({ artifacts }: Props) {
                   setArchetype(''); // les deux axes s'excluent
                   setPage(0);
                 }}
-                className={`flex items-center gap-1.5 rounded-full border bg-panel px-3 py-1 text-[12.5px] font-semibold
+                className={`flex items-center gap-1.5 rounded-full border bg-panel px-3 py-1 text-xs font-semibold
                   transition select-none ${ELEMENT_FILTER_STYLES[e.key]}
                   ${hs ? 'opacity-25 cursor-not-allowed' : active ? '' : 'opacity-70 hoverable:opacity-100'}`}
               >
@@ -315,7 +315,7 @@ export default function ArtifactsList({ artifacts }: Props) {
                   setElement(''); // les deux axes s'excluent
                   setPage(0);
                 }}
-                className={`flex items-center gap-1.5 rounded-full border px-3 py-1 text-[12.5px] font-semibold
+                className={`flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs font-semibold
                   transition select-none ${
                     // ⚠️ La BORDURE seule (voir spec/shared/design.md), et non
                     // un aplat : ces chips portent une icône de type, qu'un
@@ -356,7 +356,7 @@ export default function ArtifactsList({ artifacts }: Props) {
                 //     qui suit le thème. Sans fond, `meta.color` était illisible
                 //     en thème clair (#7cf0a6 sur blanc), et la bordure était
                 //     codée en dur (#2b3055) donc invisible elle aussi.
-                className={`flex items-center rounded-full border px-3 py-1 text-[12.5px] font-semibold
+                className={`flex items-center rounded-full border px-3 py-1 text-xs font-semibold
                             transition select-none ${active ? '' : 'bg-panel2 hoverable:brightness-110'}`}
                 style={
                   active
@@ -426,7 +426,7 @@ export default function ArtifactsList({ artifacts }: Props) {
             {/* Ce que les numéros veulent dire. Sans ce rappel, « 1 » et « 2 »
                 passent pour des emplacements d'artéfact. */}
             {actifs.length > 1 && (
-              <p className="mt-1 text-[11px] text-ink-dim">
+              <p className="mt-1 text-micro text-ink-dim">
                 <b className="font-mono text-accent">1</b> trie la liste,{' '}
                 <b className="font-mono text-accent">2</b> départage les ex æquo
               </p>
@@ -436,7 +436,7 @@ export default function ArtifactsList({ artifacts }: Props) {
       </div>
 
       <div className="flex items-center justify-between gap-3 mb-3 flex-wrap">
-        <p className="font-mono text-[12px] text-ink-dim">
+        <p className="font-mono text-xs text-ink-dim">
           {filtered.length} artéfact{filtered.length > 1 ? 's' : ''}
           {filtered.length !== artifacts.length && ` sur ${artifacts.length}`}
           {/* ⚠️ Sur « Tous », la liste mêle DEUX inventaires distincts qu'on ne
@@ -465,7 +465,7 @@ export default function ArtifactsList({ artifacts }: Props) {
           bannière de rareté sur une seule ligne. En dessous de 240px, la stat
           principale se fait tronquer par la bannière. */}
       {filtered.length === 0 && (
-        <p className="rounded-xl border border-border bg-panel px-4 py-6 text-center text-[13px] text-ink-dim">
+        <p className="rounded-xl border border-border bg-panel px-4 py-6 text-center text-sm text-ink-dim">
           {actifs.length > 0
             ? `Aucun artéfact n'atteint ${actifs.length > 1 ? 'tous ces minimums' : 'ce minimum'} avec les filtres actuels.`
             : 'Aucun artéfact ne correspond à ces filtres.'}
@@ -526,7 +526,7 @@ const ArtTile = memo(function ArtTile({
         <div className="flex w-full items-start gap-2.5">
           <ArtifactFrameIcon artifact={art} size={46} />
           <div className="min-w-0 flex-1 self-center">
-            <div className="text-[13px] font-bold text-ink leading-tight truncate">
+            <div className="text-sm font-bold text-ink leading-tight truncate">
               {formatArtifactMain(art.main)}
             </div>
           </div>
@@ -535,13 +535,13 @@ const ArtTile = memo(function ArtTile({
                 jeu, avec son fond sombre dédié — le cas pour lequel la couleur
                 vive est faite. Voir RARITY_META. */}
             <span
-              className="rounded px-1.5 py-px text-[9.5px] font-bold uppercase tracking-wide leading-tight"
+              className="rounded px-1.5 py-px text-micro font-bold uppercase tracking-wide leading-tight"
               style={{ background: meta.bg, color: meta.color }}
             >
               {meta.label}
             </span>
             {/* La mesure affichée suit le menu ⚙, comme pour les runes. */}
-            <span className="flex items-center gap-1 rounded bg-panel2 px-1.5 py-px font-mono text-[11.5px] leading-tight tabular-nums text-ink">
+            <span className="flex items-center gap-1 rounded bg-panel2 px-1.5 py-px font-mono text-micro leading-tight tabular-nums text-ink">
               <img
                 src={`${import.meta.env.BASE_URL}icons/artifact.png`}
                 alt=""
@@ -584,7 +584,7 @@ const ArtTile = memo(function ArtTile({
                 // oubliée — largeur ou hauteur — décale la ligne visée par
                 // rapport aux trois autres, et c'est ce décalage qu'on voit en
                 // premier au lieu de la propriété.
-                className={`flex items-start gap-1.5 text-[10.5px] leading-tight ${
+                className={`flex items-start gap-1.5 text-micro leading-tight ${
                   vise ? '-mx-1 rounded border-l-2 border-accent bg-accent/[0.08] pl-[2px] pr-1' : ''
                 }`}
               >
@@ -592,7 +592,7 @@ const ArtTile = memo(function ArtTile({
                     son contenu et les libellés démarraient à deux colonnes
                     différentes selon que la ligne portait 0 ou 4 procs. */}
                 <span
-                  className={`mt-px w-[14px] flex-none rounded text-center font-mono text-[9.5px] font-bold tabular-nums ${
+                  className={`mt-px w-[14px] flex-none rounded text-center font-mono text-micro font-bold tabular-nums ${
                     procs > 0 ? 'bg-good/20 text-good' : 'bg-ink-dim/15 text-ink-dim'
                   }`}
                 >

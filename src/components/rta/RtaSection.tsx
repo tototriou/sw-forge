@@ -69,12 +69,12 @@ export default function RtaSection({
         ) : (
           <RuneIcon setKey={sectionKey} size={22} className="flex-none" />
         )}
-        <h3 className="font-display text-[16px] tracking-wide">{label}</h3>
-        <span className="font-mono text-ink-dim text-[11px]">{count}</span>
+        <h3 className="font-display text-base tracking-wide">{label}</h3>
+        <span className="font-mono text-ink-dim text-micro">{count}</span>
         {removable && onRemoveSection && (
           <button
             onClick={() => onRemoveSection(sectionKey)}
-            className="ml-auto flex items-center gap-1 text-ink-dim hoverable:text-fire text-[11px] transition"
+            className="ml-auto flex items-center gap-1 text-ink-dim hoverable:text-fire text-micro transition"
             title="Supprimer la section (les monstres reviennent en Non classé)"
           >
             <X size={13} />
@@ -83,7 +83,7 @@ export default function RtaSection({
       </div>
 
       {count === 0 ? (
-        <div className="rounded-xl border border-dashed border-border/70 py-6 text-center text-ink-dim text-[12.5px]">
+        <div className="rounded-xl border border-dashed border-border/70 py-6 text-center text-ink-dim text-xs">
           Glisse des monstres ici
         </div>
       ) : (

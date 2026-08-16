@@ -103,11 +103,11 @@ export default function NumberField({
           const b = borne(value);
           if (b !== value) onChange(b);
         }}
-        className={`${boxWidth ? 'flex-1' : width} min-w-0 bg-transparent px-1 text-center font-mono text-[13px] text-ink
+        className={`${boxWidth ? 'flex-1' : width} min-w-0 bg-transparent px-1 text-center font-mono text-sm text-ink
                     outline-none placeholder:text-ink-dim disabled:cursor-not-allowed`}
       />
 
-      {suffix && <span className="pr-1.5 font-mono text-[12px] text-ink-dim">{suffix}</span>}
+      {suffix && <span className="pr-1.5 font-mono text-xs text-ink-dim">{suffix}</span>}
 
       <button
         type="button"

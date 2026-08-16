@@ -211,10 +211,10 @@ export function ConfirmDialog({
           <AlertTriangle size={18} />
         </span>
         <div>
-          <h2 id="modale-titre" className="text-[15px] font-bold text-ink">
+          <h2 id="modale-titre" className="text-base font-bold text-ink">
             {titre}
           </h2>
-          <p className="mt-1.5 text-[12.5px] leading-relaxed text-ink-dim">{message}</p>
+          <p className="mt-1.5 text-xs leading-relaxed text-ink-dim">{message}</p>
         </div>
       </div>
 
@@ -259,10 +259,10 @@ export function PromptDialog({
 
   return (
     <Modale onClose={onCancel} labelledBy="modale-titre">
-      <h2 id="modale-titre" className="text-[15px] font-bold text-ink">
+      <h2 id="modale-titre" className="text-base font-bold text-ink">
         {titre}
       </h2>
-      {message && <p className="mt-1.5 text-[12.5px] leading-relaxed text-ink-dim">{message}</p>}
+      {message && <p className="mt-1.5 text-xs leading-relaxed text-ink-dim">{message}</p>}
       <form
         onSubmit={(e) => {
           e.preventDefault();
@@ -275,7 +275,7 @@ export function PromptDialog({
           onChange={(e) => setValeur(e.target.value)}
           placeholder={placeholder}
           autoFocus
-          className="mt-3 w-full rounded-lg border border-border bg-panel2 px-3 py-2 text-[13px] text-ink
+          className="mt-3 w-full rounded-lg border border-border bg-panel2 px-3 py-2 text-sm text-ink
                      outline-none focus:border-accent"
         />
         <div className="mt-4 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
@@ -352,20 +352,20 @@ export function KeepAccountDialog({
             <HardDriveDownload size={18} />
           </span>
           <div>
-            <h2 id="keep-account-titre" className="text-[15px] font-bold text-ink">
+            <h2 id="keep-account-titre" className="text-base font-bold text-ink">
               Garder tes données sur cet appareil ?
             </h2>
-            <p className="mt-1.5 text-[12.5px] leading-relaxed text-ink-dim">
+            <p className="mt-1.5 text-xs leading-relaxed text-ink-dim">
               Ton compte, ta prépa RTA, tes équipes de siège et tes recommandations seront encore là
               à ta prochaine visite, sans rien redéposer.
             </p>
-            <p className="mt-2 text-[12.5px] font-semibold leading-relaxed text-star">
+            <p className="mt-2 text-xs font-semibold leading-relaxed text-star">
               Recommandé : sans ça, tu perds tout ton travail en fermant l'onglet.
             </p>
           </div>
         </div>
 
-        <p className="mt-3 flex items-start gap-2 rounded-lg border border-border bg-panel2 px-3 py-2 text-[11.5px] leading-relaxed text-ink-dim">
+        <p className="mt-3 flex items-start gap-2 rounded-lg border border-border bg-panel2 px-3 py-2 text-micro leading-relaxed text-ink-dim">
           <ShieldCheck size={14} className="mt-[1px] flex-none text-good" />
           <span>
             Tout reste <b className="text-ink">dans ton navigateur</b>, sur cet ordinateur. Rien
@@ -374,7 +374,7 @@ export function KeepAccountDialog({
         </p>
 
         {/* La case s'applique aux DEUX réponses, et seulement à cette session. */}
-        <label className="mt-3.5 flex cursor-pointer select-none items-center gap-2 text-[11.5px] text-ink-dim">
+        <label className="mt-3.5 flex cursor-pointer select-none items-center gap-2 text-micro text-ink-dim">
           <span
             className={`flex h-[15px] w-[15px] flex-none items-center justify-center rounded border transition
               ${nePlusMontrer ? 'border-star bg-star text-bg' : 'border-border bg-panel2'}`}
@@ -393,7 +393,7 @@ export function KeepAccountDialog({
         <div className="mt-3 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
           <button
             onClick={() => onChoose(false, nePlusMontrer)}
-            className="rounded-lg border border-border bg-panel2 px-3.5 py-2 text-[12.5px] font-semibold
+            className="rounded-lg border border-border bg-panel2 px-3.5 py-2 text-xs font-semibold
                        text-ink-dim transition hoverable:text-ink"
           >
             Non, ne rien garder de mes informations
@@ -401,14 +401,14 @@ export function KeepAccountDialog({
           <button
             onClick={() => onChoose(true, nePlusMontrer)}
             autoFocus
-            className="rounded-lg bg-accent-soft px-3.5 py-2 text-[12.5px]
+            className="rounded-lg bg-accent-soft px-3.5 py-2 text-xs
                        font-semibold text-ink shadow transition hoverable:brightness-110"
           >
             Garder mes données (recommandé)
           </button>
         </div>
 
-        <p className="mt-2.5 text-center text-[11px] text-ink-dim">
+        <p className="mt-2.5 text-center text-micro text-ink-dim">
           Tu pourras changer d'avis à tout moment dans les réglages ⚙.
         </p>
       </div>

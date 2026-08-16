@@ -317,7 +317,7 @@ export default function RecoBoard({ recos, monsters, builds, teams, copies6, off
             // La nouvelle est « à moi » : ne pas la créer dans une vue qui la cache.
             if (filter === 'imported') setFilter('mine');
           }}
-          className="flex items-center gap-1.5 rounded-lg border border-border bg-panel px-3.5 py-2 text-[13px]
+          className="flex items-center gap-1.5 rounded-lg border border-border bg-panel px-3.5 py-2 text-sm
                      text-ink hoverable:border-accent transition"
         >
           <Plus size={15} /> Créer une recommandation
@@ -325,7 +325,7 @@ export default function RecoBoard({ recos, monsters, builds, teams, copies6, off
 
         <button
           onClick={() => fileRef.current?.click()}
-          className="flex items-center gap-1.5 rounded-lg border border-border bg-panel px-3.5 py-2 text-[13px]
+          className="flex items-center gap-1.5 rounded-lg border border-border bg-panel px-3.5 py-2 text-sm
                      text-ink-dim hoverable:text-ink hoverable:border-accent transition"
           title="Charger un fichier .json reçu d'un ami"
         >
@@ -335,7 +335,7 @@ export default function RecoBoard({ recos, monsters, builds, teams, copies6, off
         {list.length > 0 && (
           <button
             onClick={() => handleExport(list, filter === 'all' ? 'toutes' : filter)}
-            className="flex items-center gap-1.5 rounded-lg border border-border bg-panel px-3.5 py-2 text-[13px]
+            className="flex items-center gap-1.5 rounded-lg border border-border bg-panel px-3.5 py-2 text-sm
                        text-ink-dim hoverable:text-ink hoverable:border-accent transition"
             // ⚠️ Le LIBELLÉ NE CHANGE PAS avec le filtre. Un bouton qui se
             // renomme sous le curseur se lit comme un autre bouton : on cesse de
@@ -355,7 +355,7 @@ export default function RecoBoard({ recos, monsters, builds, teams, copies6, off
         {all.length > 0 && (
           <button
             onClick={() => setEffacementAConfirmer(true)}
-            className="ml-auto flex items-center gap-1.5 text-[12px] text-ink-dim hoverable:text-fire transition"
+            className="ml-auto flex items-center gap-1.5 text-xs text-ink-dim hoverable:text-fire transition"
           >
             <Trash2 size={13} /> Tout effacer
           </button>
@@ -392,7 +392,7 @@ export default function RecoBoard({ recos, monsters, builds, teams, copies6, off
       />
 
       {msg && (
-        <p className={`mt-3 text-[13px] ${msg.error ? 'text-fire' : 'text-good'}`}>{msg.text}</p>
+        <p className={`mt-3 text-sm ${msg.error ? 'text-fire' : 'text-good'}`}>{msg.text}</p>
       )}
 
       {report && (report.errors.length > 0 || report.warnings.length > 0) && (
@@ -426,7 +426,7 @@ export default function RecoBoard({ recos, monsters, builds, teams, copies6, off
                 // tout ce qui se compare d'une ligne à l'autre. Il reste
                 // `ink-dim` posé comme au repos : c'est une quantité, pas l'état
                 // du cran — le fond dit déjà lequel est choisi (design.md).
-                suffix: <span className="font-mono text-[11px] text-ink-dim">{counts[f.key]}</span>,
+                suffix: <span className="font-mono text-micro text-ink-dim">{counts[f.key]}</span>,
               }))}
             />
           </div>
@@ -506,7 +506,7 @@ export default function RecoBoard({ recos, monsters, builds, teams, copies6, off
                 />
               </div>
             ) : (
-              <p className="text-[12px] text-ink-dim">
+              <p className="text-xs text-ink-dim">
                 Trois monstres posés — clique un portrait pour le retirer.
               </p>
             )}
@@ -518,7 +518,7 @@ export default function RecoBoard({ recos, monsters, builds, teams, copies6, off
               <button
                 onClick={effacerRecherche}
                 className="flex flex-none items-center gap-1 rounded-lg border border-border px-2 py-1
-                           text-[12px] font-semibold text-ink-dim transition
+                           text-xs font-semibold text-ink-dim transition
                            hoverable:border-fire hoverable:text-fire"
                 title="Vider la recherche"
                 aria-label="Vider la recherche"
@@ -543,7 +543,7 @@ export default function RecoBoard({ recos, monsters, builds, teams, copies6, off
                 options={SEARCH_MODES.map((m) => ({ key: m.key, label: m.label, hint: m.hint }))}
               />
               {hits && (
-                <span className="font-mono text-[11px] text-ink-dim">
+                <span className="font-mono text-micro text-ink-dim">
                   {hits.length === 0
                     ? 'aucun résultat'
                     : `${hits.length} reco${hits.length > 1 ? 's' : ''}`}
@@ -559,7 +559,7 @@ export default function RecoBoard({ recos, monsters, builds, teams, copies6, off
           <div className="flex items-center justify-center w-14 h-14 rounded-2xl bg-panel2 border border-border mb-4">
             <Lightbulb size={26} className="text-ink-dim" />
           </div>
-          <p className="text-ink-dim text-[14px] max-w-md">
+          <p className="text-ink-dim text-sm max-w-md">
             Aucune recommandation. <b className="text-ink">Crée-en une</b> pour proposer un{' '}
             <b className="text-ink">ensemble de decks</b> avec les sets, les artéfacts et les stats à
             viser sur chaque monstre, ou <b className="text-ink">importe</b> celle d'un autre joueur pour vérifier
@@ -571,7 +571,7 @@ export default function RecoBoard({ recos, monsters, builds, teams, copies6, off
         // Dire « tu n'as créé aucune recommandation » alors qu'on vient de taper
         // un nom ferait croire à une perte de données.
         <div className="mt-6 rounded-xl border border-dashed border-border bg-panel/40 py-8 px-6 text-center">
-          <p className="text-[13px] text-ink-dim">
+          <p className="text-sm text-ink-dim">
             {/* ⚠️ Le message dit LA RÈGLE quand il y a plusieurs monstres : les
                 trois doivent être dans la MÊME composition. Sans ça, une
                 recherche à trois termes qui ne renvoie rien se lit comme un bug
@@ -618,7 +618,7 @@ export default function RecoBoard({ recos, monsters, builds, teams, copies6, off
       ) : list.length === 0 ? (
         // Il y a des recommandations, mais aucune dans le filtre actif.
         <div className="mt-6 rounded-xl border border-dashed border-border bg-panel/40 py-8 px-6 text-center">
-          <p className="text-ink-dim text-[13px]">
+          <p className="text-ink-dim text-sm">
             {filter === 'mine'
               ? "Tu n'as créé aucune recommandation pour l'instant."
               : "Tu n'as importé aucune recommandation pour l'instant."}{' '}
@@ -680,7 +680,7 @@ function ValidationReport({ report, onClose }: { report: ImportReport; onClose: 
         ) : (
           <AlertTriangle size={15} className="flex-none text-warn" />
         )}
-        <span className={`text-[12.5px] font-semibold ${bloque ? 'text-fire' : 'text-warn'}`}>
+        <span className={`text-xs font-semibold ${bloque ? 'text-fire' : 'text-warn'}`}>
           {bloque
             ? "Import refusé — le contenu n'est pas valide"
             : `Import effectué avec ${report.warnings.length} correction${report.warnings.length > 1 ? 's' : ''}`}
@@ -696,19 +696,19 @@ function ValidationReport({ report, onClose }: { report: ImportReport; onClose: 
 
       <ul className="space-y-0.5 max-h-[220px] overflow-y-auto">
         {report.errors.map((e, i) => (
-          <li key={`e${i}`} className="text-[12px] text-fire leading-snug">
+          <li key={`e${i}`} className="text-xs text-fire leading-snug">
             • {e}
           </li>
         ))}
         {report.warnings.map((w, i) => (
-          <li key={`w${i}`} className="text-[12px] text-warn/90 leading-snug">
+          <li key={`w${i}`} className="text-xs text-warn/90 leading-snug">
             • {w}
           </li>
         ))}
       </ul>
 
       {!bloque && (
-        <p className="mt-1.5 font-mono text-[11px] text-ink-dim">
+        <p className="mt-1.5 font-mono text-micro text-ink-dim">
           {report.counts.recos} recommandation(s) · {report.counts.decks} deck(s) ·{' '}
           {report.counts.monstres} monstre(s) retenus.
         </p>

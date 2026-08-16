@@ -19,10 +19,10 @@ function Setting({ title, hint, children }: { title: string; hint?: string; chil
   return (
     <div className="py-2.5 border-b border-border/60 last:border-0">
       <div className="flex items-center justify-between gap-3">
-        <span className="text-[13px] font-semibold text-ink">{title}</span>
+        <span className="text-sm font-semibold text-ink">{title}</span>
         {children}
       </div>
-      {hint && <p className="mt-1 text-[11px] text-ink-dim leading-snug">{hint}</p>}
+      {hint && <p className="mt-1 text-micro text-ink-dim leading-snug">{hint}</p>}
     </div>
   );
 }
@@ -109,7 +109,7 @@ export function SettingsList({
             onClick={onClearData}
             title="Efface la prépa RTA, les équipes de siège, les recommandations, les monstres perso et le compte importé"
             className="flex flex-none items-center gap-1.5 rounded-lg border border-border bg-panel2
-                       px-2.5 py-1 text-[11.5px] font-semibold text-ink-dim transition
+                       px-2.5 py-1 text-micro font-semibold text-ink-dim transition
                        hoverable:border-fire/60 hoverable:text-fire"
           >
             <Trash2 size={12} /> Tout supprimer
@@ -185,7 +185,7 @@ export default function SettingsMenu({
             <a
               href="#/parametres"
               onClick={() => setOpen(false)}
-              className="ml-auto text-[11.5px] text-accent transition hoverable:text-ink"
+              className="ml-auto text-micro text-accent transition hoverable:text-ink"
             >
               Tout voir
             </a>

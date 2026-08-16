@@ -221,7 +221,7 @@ export default function TurnOrder({
             >
               <button
                 onClick={() => setLead(active ? 0 : pct)}
-                className="pl-3 pr-1 py-1 text-[12.5px] font-mono font-semibold"
+                className="pl-3 pr-1 py-1 text-xs font-mono font-semibold"
               >
                 +{pct}%
               </button>
@@ -242,7 +242,7 @@ export default function TurnOrder({
         })}
         <button
           onClick={() => setLead(0)}
-          className={`rounded-full border px-3 py-1 text-[12.5px] font-semibold transition select-none
+          className={`rounded-full border px-3 py-1 text-xs font-semibold transition select-none
             ${
               // Fond seul — voir spec/shared/design.md.
               lead === 0
@@ -270,7 +270,7 @@ export default function TurnOrder({
           <button
             onClick={ajouterLead}
             disabled={saisie === null || saisie <= 0}
-            className="px-1 py-0.5 text-[11.5px] font-semibold text-ink-dim underline-offset-2 transition
+            className="px-1 py-0.5 text-micro font-semibold text-ink-dim underline-offset-2 transition
                        hoverable:text-ink hoverable:underline disabled:opacity-40 disabled:hover:text-ink-dim
                        disabled:hover:no-underline"
           >
@@ -289,7 +289,7 @@ export default function TurnOrder({
                 ? "Masquer les vitesses (l'ordre reste le même)"
                 : 'Réafficher les vitesses'
             }
-            className={`flex h-7 items-center gap-1.5 rounded-full border px-2.5 text-[12px] transition ${
+            className={`flex h-7 items-center gap-1.5 rounded-full border px-2.5 text-xs transition ${
               showSpeed
                 ? 'border-border bg-panel text-ink-dim hoverable:text-ink hoverable:border-accent'
                 : // Fond seul — voir spec/shared/design.md.
@@ -310,7 +310,7 @@ export default function TurnOrder({
                 ? 'Masquer les couleurs de catégories'
                 : 'Réafficher les couleurs de catégories'
             }
-            className={`flex h-7 items-center gap-1.5 rounded-full border px-2.5 text-[12px] transition ${
+            className={`flex h-7 items-center gap-1.5 rounded-full border px-2.5 text-xs transition ${
               categoriesVisible
                 ? 'border-border bg-panel text-ink-dim hoverable:text-ink hoverable:border-accent'
                 : // Fond seul — voir spec/shared/design.md.
@@ -338,7 +338,7 @@ export default function TurnOrder({
                 ${highlightMovers ? 'translate-x-[19px]' : 'translate-x-[3px]'}`}
             />
           </span>
-          <span className={`text-[12px] font-semibold ${highlightMovers ? 'text-ink' : 'text-ink-dim'}`}>
+          <span className={`text-xs font-semibold ${highlightMovers ? 'text-ink' : 'text-ink-dim'}`}>
             Surligner les changements
           </span>
         </button>
@@ -378,14 +378,14 @@ export default function TurnOrder({
                 onClick={() => onToggleCategorie(c.id)}
                 aria-pressed={!off}
                 title={off ? `Réafficher « ${c.label} »` : `Masquer « ${c.label} »`}
-                className={`inline-flex items-center gap-1.5 text-[11px] transition ${
+                className={`inline-flex items-center gap-1.5 text-micro transition ${
                   off ? 'text-ink-dim opacity-60' : 'text-ink-dim hoverable:text-ink'
                 }`}
               >
                 {contenu}
               </button>
             ) : (
-              <span key={c.id} className="inline-flex items-center gap-1.5 text-[11px] text-ink-dim">
+              <span key={c.id} className="inline-flex items-center gap-1.5 text-micro text-ink-dim">
                 {contenu}
               </span>
             );
@@ -394,7 +394,7 @@ export default function TurnOrder({
       )}
 
       {ordered.length === 0 ? (
-        <div className="rounded-xl border border-dashed border-border/70 py-8 text-center text-ink-dim text-[13px]">
+        <div className="rounded-xl border border-dashed border-border/70 py-8 text-center text-ink-dim text-sm">
           Ajoute des monstres pour visualiser l'ordre de tour.
         </div>
       ) : (
@@ -433,7 +433,7 @@ export default function TurnOrder({
                 <span
                   className="absolute -top-2 -left-2 z-10 flex items-center justify-center min-w-[20px] h-5 px-1
                              rounded-full bg-accent-soft border border-border
-                             font-mono text-[10px] font-bold text-ink shadow"
+                             font-mono text-micro font-bold text-ink shadow"
                 >
                   {i + 1}
                 </span>
@@ -462,14 +462,14 @@ export default function TurnOrder({
                   </div>
 
                   <div className="min-w-0 flex-1">
-                    <div className="text-[12px] font-semibold leading-tight truncate" title={m.name}>
+                    <div className="text-xs font-semibold leading-tight truncate" title={m.name}>
                       {m.name}
                     </div>
                     <div className="flex items-center gap-1 mt-1">
                       {showSpeed && (
                         <>
                           <img src={SPD_ICON} alt="SPD" width={15} height={15} className="flex-none" />
-                          <span className="font-mono text-[16px] font-black text-ink leading-none">
+                          <span className="font-mono text-base font-black text-ink leading-none">
                             {eff ?? '—'}
                           </span>
                         </>

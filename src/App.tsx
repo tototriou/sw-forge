@@ -889,7 +889,7 @@ export default function App() {
             // apparaît d'un coup sous le curseur se lit comme une erreur de
             // rendu. Voir spec/shared/design.md.
             <p
-              className={`mb-3 text-[12.5px] animate-[apparition_200ms_var(--ease-out)] ${
+              className={`mb-3 text-xs animate-[apparition_200ms_var(--ease-out)] ${
                 importMsg.ok ? 'text-good' : 'text-bad'
               }`}
             >

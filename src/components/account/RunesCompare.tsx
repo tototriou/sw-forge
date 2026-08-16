@@ -116,7 +116,7 @@ export default function RunesCompare({ runes }: Props) {
                   setOnglet(o.key);
                   setMsg(null);
                 }}
-                className={`flex items-center gap-1.5 rounded-md px-2.5 py-1 text-[12px] font-semibold transition ${
+                className={`flex items-center gap-1.5 rounded-md px-2.5 py-1 text-xs font-semibold transition ${
                   onglet === o.key
                     ? 'bg-accent-soft text-ink'
                     : 'text-ink-dim hoverable:text-ink'
@@ -133,14 +133,14 @@ export default function RunesCompare({ runes }: Props) {
             onClick={() => setRetraitAConfirmer(true)}
             title="Retire uniquement ce qui a été importé ici"
             className="ml-auto flex items-center gap-1.5 rounded-lg border border-border bg-panel px-3 py-1.5
-                       text-[12.5px] font-semibold text-ink-dim transition hoverable:border-fire/60 hoverable:text-fire"
+                       text-xs font-semibold text-ink-dim transition hoverable:border-fire/60 hoverable:text-fire"
           >
             <Trash2 size={14} /> Tout retirer ({importes})
           </button>
         )}
       </div>
 
-      {msg && <p className={`text-[12px] mb-3 ${msg.ok ? 'text-wind' : 'text-fire'}`}>{msg.text}</p>}
+      {msg && <p className={`text-xs mb-3 ${msg.ok ? 'text-wind' : 'text-fire'}`}>{msg.text}</p>}
 
       {onglet === 'courbes' ? (
         <OngletCourbes
@@ -318,7 +318,7 @@ function OngletCourbes({
       </div>
 
       {/* ⚠️ Explique l'ABSENCE des autres filtres, sinon on la prend pour un oubli. */}
-      <p className="mb-3 text-[12px] leading-relaxed text-ink-dim">
+      <p className="mb-3 text-xs leading-relaxed text-ink-dim">
         Cet onglet montre <b className="text-ink">tout ce que tu as importé</b>, courbes partagées
         comme fichiers de compte. Une courbe partagée ne contient que des{' '}
         <b className="text-ink">points</b>, pas les runes — c'est ce qui lui évite de transporter la
@@ -456,7 +456,7 @@ function OngletComptes({
           <FileJson size={14} /> Importer un fichier de compte
         </button>
         <input ref={jsonRef} type="file" accept=".json,application/json" onChange={handleFile} className="hidden" />
-        <span className="text-[12px] text-ink-dim">
+        <span className="text-xs text-ink-dim">
           L'export SWEX d'un ami — lu dans la page, jamais envoyé.
         </span>
       </div>
@@ -467,7 +467,7 @@ function OngletComptes({
           <SlotFilter value={slots} onChange={setSlots} />
           <button
             onClick={() => setAncientOnly((v) => !v)}
-            className={`rounded-full border px-3 py-1 text-[12.5px] font-semibold transition select-none
+            className={`rounded-full border px-3 py-1 text-xs font-semibold transition select-none
               ${
                 // Bordure seule — voir spec/shared/design.md.
                 ancientOnly
@@ -492,7 +492,7 @@ function OngletComptes({
       </div>
 
       {overlays.length === 0 && (
-        <p className="mb-3 text-[12px] leading-relaxed text-ink-dim">
+        <p className="mb-3 text-xs leading-relaxed text-ink-dim">
           Importe le fichier de compte d'un ami pour le comparer au tien.{' '}
           <b className="text-ink">Les filtres s'appliquent à tout le monde de la même façon</b> — ton
           top Violent face au sien, et non face à l'ensemble de son stock. Seuls les fichiers de
@@ -520,7 +520,7 @@ function OngletComptes({
 /* ---- Communs -------------------------------------------------------------- */
 
 const btn =
-  'flex items-center gap-1.5 rounded-lg border border-border bg-panel px-3 py-1.5 text-[12.5px] ' +
+  'flex items-center gap-1.5 rounded-lg border border-border bg-panel px-3 py-1.5 text-xs ' +
   'font-semibold text-ink-dim hoverable:text-ink hoverable:border-accent transition';
 
 // Deux courbes homonymes seraient impossibles à distinguer dans la légende.
@@ -565,7 +565,7 @@ function Graphe({
         {lignes.map(({ series: s, remove }) => {
           const off = hidden.has(s.name);
           return (
-            <span key={s.name} className="flex items-center gap-1.5 font-mono text-[12px]">
+            <span key={s.name} className="flex items-center gap-1.5 font-mono text-xs">
               <button
                 onClick={() => toggle(s.name)}
                 title={off ? 'Afficher cette courbe' : 'Masquer cette courbe'}
@@ -605,7 +605,7 @@ function Graphe({
         unit={metric === 'eff' ? '%' : ''}
       />
 
-      <p className="mt-3 font-mono text-[11px] text-ink-dim">
+      <p className="mt-3 font-mono text-micro text-ink-dim">
         Tout reste en local : rien n'est envoyé.
       </p>
     </>

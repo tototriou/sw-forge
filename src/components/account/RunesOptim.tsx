@@ -199,7 +199,7 @@ export default function RunesOptim({ runes, crafts }: Props) {
 
   return (
     <div>
-      <div className="mb-4 flex items-start gap-2 rounded-lg border border-warn/50 bg-warn/10 px-3 py-2 text-[12px] text-warn">
+      <div className="mb-4 flex items-start gap-2 rounded-lg border border-warn/50 bg-warn/10 px-3 py-2 text-xs text-warn">
         <AlertTriangle size={15} className="flex-none mt-0.5" />
         <span>
           Ceci est une optimisation d'<b>efficience</b> : ce n'est pas toujours la bonne solution pour tes
@@ -239,7 +239,7 @@ export default function RunesOptim({ runes, crafts }: Props) {
               setPage(0);
             }}
           />
-          <span className="font-mono text-[12px] text-ink-dim">{metric === 'eff' ? '%' : 'pts'}</span>
+          <span className="font-mono text-xs text-ink-dim">{metric === 'eff' ? '%' : 'pts'}</span>
         </div>
 
         <div className="flex items-center gap-2">
@@ -250,7 +250,7 @@ export default function RunesOptim({ runes, crafts }: Props) {
               setSort(e.target.value as SortMode);
               setPage(0);
             }}
-            className="bg-panel border border-border text-ink rounded-lg px-2.5 py-1 text-[13px] outline-none"
+            className="bg-panel border border-border text-ink rounded-lg px-2.5 py-1 text-sm outline-none"
           >
             {SORTS.map((s) => (
               <option key={s.key} value={s.key}>
@@ -276,7 +276,7 @@ export default function RunesOptim({ runes, crafts }: Props) {
                   ? 'Potentiel avec la gemme optimale + les meules'
                   : 'Potentiel en gardant les stats actuelles (meules seulement)'
               }
-              className={`rounded-md px-2.5 py-1 text-[12px] font-semibold transition
+              className={`rounded-md px-2.5 py-1 text-xs font-semibold transition
                 ${gemMode === o.key ? 'bg-accent-soft text-ink' : 'text-ink-dim hoverable:text-ink'}`}
             >
               {o.label}
@@ -296,7 +296,7 @@ export default function RunesOptim({ runes, crafts }: Props) {
                 }}
                 title={o.hint}
                 aria-pressed={ancient === o.key}
-                className={`rounded-md px-2.5 py-1 text-[12px] font-semibold transition
+                className={`rounded-md px-2.5 py-1 text-xs font-semibold transition
                   ${ancient === o.key ? 'bg-accent-soft text-ink' : 'text-ink-dim hoverable:text-ink'}`}
               >
                 {o.label}
@@ -323,7 +323,7 @@ export default function RunesOptim({ runes, crafts }: Props) {
               ? `Ne garder que les runes applicables avec tes ${stock.total} meules et gemmes en réserve`
               : 'Aucune meule ni gemme dans les données chargées — réimporte ton compte'
           }
-          className={`flex items-center gap-1.5 rounded-lg border px-2.5 py-1.5 text-[12px] font-semibold transition
+          className={`flex items-center gap-1.5 rounded-lg border px-2.5 py-1.5 text-xs font-semibold transition
             ${
               verifie
                 ? 'bg-accent-soft border-accent text-ink'
@@ -347,7 +347,7 @@ export default function RunesOptim({ runes, crafts }: Props) {
           </button>
           {showHelp && (
             <div
-              className="absolute right-0 z-30 mt-1.5 w-[360px] max-w-[88vw] rounded-lg border border-accent bg-panel p-3 text-[12.5px] text-ink-dim leading-relaxed shadow-xl shadow-black/50
+              className="absolute right-0 z-30 mt-1.5 w-[360px] max-w-[88vw] rounded-lg border border-accent bg-panel p-3 text-xs text-ink-dim leading-relaxed shadow-xl shadow-black/50
                          origin-top-right animate-[popover_150ms_var(--ease-out)]"
             >
               <p className="text-ink font-semibold mb-1">Comment est-ce calculé ?</p>
@@ -435,7 +435,7 @@ export default function RunesOptim({ runes, crafts }: Props) {
       </div>
 
       <div className="flex items-center justify-between gap-3 mb-3 flex-wrap">
-        <p className="font-mono text-[12px] text-ink-dim">
+        <p className="font-mono text-xs text-ink-dim">
           {filtered.length} rune{filtered.length > 1 ? 's' : ''} ≥ {threshold}
           {metric === 'eff' ? '%' : ''}
           {ancient === 'without' && ' · hors antiques'}
@@ -464,7 +464,7 @@ export default function RunesOptim({ runes, crafts }: Props) {
       </div>
 
       {filtered.length === 0 && (
-        <p className="text-ink-dim text-[13px]">
+        <p className="text-ink-dim text-sm">
           Aucune rune ≥ {threshold}
           {metric === 'eff' ? '%' : ''}
           {ancient !== 'all' && (ancient === 'without' ? ' hors antiques' : ' parmi les antiques')}. Baisse le
@@ -515,18 +515,18 @@ export const OptimTile = memo(function OptimTile({
       <button onClick={() => onToggle(row.id)} className="w-full flex items-center gap-2.5 p-2 text-left">
         <RuneSlotIcon slot={rune.slot} setKey={rune.set} rarity={rune.rarity} ancient={ancient} height={46} />
         <div className="min-w-0 flex-1">
-          <div className="text-[12.5px] font-bold text-ink leading-tight truncate">
+          <div className="text-xs font-bold text-ink leading-tight truncate">
             {formatRuneEffect(rune.main)}
           </div>
-          <div className="font-mono text-[12px] text-ink leading-tight">
+          <div className="font-mono text-xs text-ink leading-tight">
             {/* Texte, donc `meta.ink` — voir RARITY_META. */}
             actuelle <b style={{ color: meta.ink }}>{fmt(pot.eff)}</b>
           </div>
-          <div className="font-mono text-[11px] leading-tight" style={{ color: 'rgb(var(--rarity-4))' }}>
+          <div className="font-mono text-micro leading-tight" style={{ color: 'rgb(var(--rarity-4))' }}>
             Héro {signed(pot.heroGain, metric)}{' '}
             <span className={effColor(pot.heroEff, pot.eff)}>→ {fmt(pot.heroEff)}</span>
           </div>
-          <div className="font-mono text-[11px] leading-tight font-bold text-star">
+          <div className="font-mono text-micro leading-tight font-bold text-star">
             Légend {signed(pot.legendGain, metric)}{' '}
             <span className={`font-normal ${effColor(pot.legendEff, pot.eff)}`}>
               → {fmt(pot.legendEff)}
@@ -653,12 +653,12 @@ export function OptimPlanBox({
   const gain = plan.targetEff - plan.eff;
 
   return (
-    <div className="rounded-lg border border-border bg-panel2 p-3 text-[12px]">
+    <div className="rounded-lg border border-border bg-panel2 p-3 text-xs">
       <div className="flex items-center justify-between mb-2 gap-2">
-        <span className="font-bold text-ink uppercase tracking-wide text-[11px]">
+        <span className="font-bold text-ink uppercase tracking-wide text-micro">
           {scenario === 'legend' ? 'Légendaire' : 'Héroïque'}
         </span>
-        <span className="font-mono text-ink-dim text-[11px]">
+        <span className="font-mono text-ink-dim text-micro">
           {formatRuneMetric(plan.eff, metric)} →{' '}
           <b className="text-star">{formatRuneMetric(plan.targetEff, metric)}</b>{' '}
           <span className={gain >= 0 ? 'text-good' : 'text-fire'}>({signed(gain, metric)})</span>
@@ -666,9 +666,9 @@ export function OptimPlanBox({
       </div>
 
       {/* stat principale + innée (communes aux deux colonnes) */}
-      <div className="text-[14px] font-black text-ink leading-tight">{formatRuneEffect(rune.main)}</div>
+      <div className="text-sm font-black text-ink leading-tight">{formatRuneEffect(rune.main)}</div>
       {rune.innate && (
-        <div className="text-[12px] font-semibold text-water leading-tight">{formatRuneEffect(rune.innate)}</div>
+        <div className="text-xs font-semibold text-water leading-tight">{formatRuneEffect(rune.innate)}</div>
       )}
 
       <div className="mt-2 pt-2 border-t border-border/40 grid grid-cols-2 gap-x-4">

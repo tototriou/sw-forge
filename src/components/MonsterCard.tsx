@@ -154,7 +154,7 @@ export default function MonsterCard({
         {count != null && count > 1 && (
           <span
             className="absolute -bottom-1 -right-1 flex h-5 min-w-[20px] items-center justify-center
-                       rounded-full border border-accent bg-accent-soft px-1 font-mono text-[11px]
+                       rounded-full border border-accent bg-accent-soft px-1 font-mono text-micro
                        font-bold text-ink shadow-[0_1px_3px_rgba(0,0,0,0.6)]"
             title={`${count} exemplaires`}
           >
@@ -164,7 +164,7 @@ export default function MonsterCard({
       </div>
 
       {showStars && (
-        <div className="text-star text-[11px] tracking-[-1px] mb-1">
+        <div className="text-star text-micro tracking-[-1px] mb-1">
           {monster.stars ? '★'.repeat(monster.stars) : '—'}
         </div>
       )}
@@ -178,7 +178,7 @@ export default function MonsterCard({
           possédée : ils disent ce que le monstre EST, pas ce qu'on en a. La
           moitié grisée du portrait porte déjà cette information, et ternir le
           nom par-dessus le rendait juste moins lisible. */}
-      <div className="text-[12px] font-semibold leading-tight line-clamp-2">
+      <div className="text-xs font-semibold leading-tight line-clamp-2">
         {jumeau ? libelleCollab(monster.name, jumeau.name) : monster.name}
       </div>
     </motion.div>

@@ -25,7 +25,7 @@ export default function OutilsPage({ sub, box, runes, loadState, hydrating, opti
     return (
       <div className="mt-10 flex flex-col items-center text-center text-ink-dim">
         <Wrench size={34} className="mb-3 opacity-40" />
-        <p className="text-[13px]">Chargement de ton compte…</p>
+        <p className="text-sm">Chargement de ton compte…</p>
       </div>
     );
   }
@@ -34,12 +34,12 @@ export default function OutilsPage({ sub, box, runes, loadState, hydrating, opti
     return (
       <div className="mt-10 flex flex-col items-center text-center text-ink-dim">
         <Wrench size={34} className="mb-3 opacity-70" />
-        <p className="text-[15px] font-semibold text-ink">Aucune donnée de compte chargée</p>
-        <p className="mt-1 text-[13px] max-w-sm">
+        <p className="text-base font-semibold text-ink">Aucune donnée de compte chargée</p>
+        <p className="mt-1 text-sm max-w-sm">
           Importe ton compte (bouton « Importer un JSON ») pour rechercher des combinaisons de runes
           parmi celles que tu possèdes déjà.
         </p>
-        {loadState === 'loading' && <p className="mt-3 text-[12px]">Chargement des monstres…</p>}
+        {loadState === 'loading' && <p className="mt-3 text-xs">Chargement des monstres…</p>}
       </div>
     );
   }

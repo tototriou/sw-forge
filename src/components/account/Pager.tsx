@@ -45,7 +45,7 @@ export default function Pager({
     'hoverable:text-ink hoverable:border-accent transition disabled:opacity-30 disabled:cursor-not-allowed';
 
   return (
-    <div className="flex items-center gap-1.5 font-mono text-[12px] text-ink-dim">
+    <div className="flex items-center gap-1.5 font-mono text-xs text-ink-dim">
       <button
         onClick={() => onChange(Math.max(0, page - 1))}
         disabled={page === 0}

@@ -95,7 +95,7 @@ export default function SetFilter({
           onClick={() => onChange(new Set())}
           title="Effacer le filtre de sets"
           className="ml-1 flex h-8 items-center gap-1 rounded-md border border-border bg-panel px-2.5
-                     text-[11px] font-semibold text-ink-dim transition
+                     text-micro font-semibold text-ink-dim transition
                      hoverable:border-fire/60 hoverable:text-fire"
         >
           <X size={12} className="flex-none" /> tout

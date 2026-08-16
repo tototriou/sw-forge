@@ -24,7 +24,7 @@ export default function MonsterGrid({ elementDef, monsters, onOpen, allMonsters 
     <section className="mt-9">
       <div className="flex items-center gap-3 pb-2.5 mb-4 border-b border-border">
         <ElementIcon element={elementDef.key} size={22} />
-        <h2 className="font-display text-[19px] tracking-wide">{elementDef.label}</h2>
+        <h2 className="font-display text-lg tracking-wide">{elementDef.label}</h2>
         <span className="font-mono text-ink-dim text-xs ml-auto">
           {monsters.length} monstre{monsters.length > 1 ? 's' : ''}
         </span>

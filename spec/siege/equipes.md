@@ -138,6 +138,20 @@ Idéale avec beaucoup d'équipes (import offense ~50).
 - Vider/retirer un slot le remet à l'état vide (pas de décalage des autres).
 - Le nombre d'équipes est illimité ; chaque équipe est indépendante.
 
+## Retirer un monstre d'un slot
+
+La croix d'un slot demande une **confirmation**, sur les deux formats — la même
+règle que la croix d'une carte de prépa RTA (voir
+[../rta/sections-runes.md](../rta/sections-runes.md)).
+
+⚠️ Ce qui part avec le monstre ne se retrouve pas : sa **vitesse saisie** et son
+**tick visé**. Ni annulation ni corbeille, alors que ces deux valeurs sont
+justement ce qu'on vient régler sur cet écran.
+
+⚠️ La suppression d'une **équipe entière** en demandait déjà une ; celle d'un
+monstre n'en avait aucune. L'écart n'avait pas de justification : c'est la même
+perte, à une échelle plus petite.
+
 ## Le slot en édition, sur téléphone
 
 ⚠️ La **poignée de glissement est masquée au doigt** (`coarse:hidden`) : le

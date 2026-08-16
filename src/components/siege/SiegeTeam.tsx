@@ -542,6 +542,10 @@ function SlotContent({
   onDragEnd,
 }: SlotProps) {
   const cardRef = useRef<HTMLDivElement>(null);
+  // ⚠️ Le retrait passe par une CONFIRMATION, comme sur une carte de prépa RTA
+  // (voir RtaCard) : la vitesse saisie et le tick visé partent avec le monstre,
+  // et rien ne permet de les retrouver.
+  const [retraitAConfirmer, setRetraitAConfirmer] = useState(false);
 
   if (!monster) {
     return (
@@ -641,7 +645,7 @@ function SlotContent({
           )}
         </div>
         <button
-          onClick={onClear}
+          onClick={() => setRetraitAConfirmer(true)}
           // ⚠️ `data-cible-fine` + zone étendue : cette croix n'a aucune
           // dimension propre, et la règle tactile la portait à 40 px de haut —
           // elle décalait alors la ligne du nom qu'elle borde. Le
@@ -659,10 +663,6 @@ function SlotContent({
       {/* Vitesse de combat, mise en avant */}
       <div className="mt-1 flex items-end justify-between compact:mt-0.5">
         <div>
-          {/* ⚠️ 26 px, le plus gros texte de l'app — justifié sur un écran large
-              où c'est LA valeur qu'on règle, excessif sur un slot de 110 px de
-              haut où il écrase tout le reste. 20 px au doigt : il reste le plus
-              gros du bloc, ce qui suffit à dire qu'il est le principal. */}
           {/* ⚠️ 16 px au doigt contre 26 à la souris. Le nom du monstre est la
               RÉFÉRENCE de ce bloc : la vitesse doit rester au-dessus de lui sans
               l'écraser — un rapport de 1,3 suffit à dire « c'est la valeur
@@ -747,6 +747,25 @@ function SlotContent({
           <option value={2}>3</option>
         </select>
       </div>
+
+      {retraitAConfirmer && (
+        <ConfirmDialog
+          titre={`Retirer ${monster.name} de cette équipe ?`}
+          message={
+            <>
+              Sa vitesse saisie et son tick visé partent avec lui. L'emplacement
+              redevient libre, les deux autres monstres ne sont pas touchés.
+            </>
+          }
+          libelleAction="Retirer"
+          destructif
+          onCancel={() => setRetraitAConfirmer(false)}
+          onConfirm={() => {
+            setRetraitAConfirmer(false);
+            onClear();
+          }}
+        />
+      )}
     </div>
   );
 }

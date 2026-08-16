@@ -327,10 +327,11 @@ html {
   background: rgb(var(--bg));
   /* Formulaires natifs (scrollbar, sélection) rendus dans le bon thème. */
   color-scheme: light;
-  /* ⚠️ Garde-fou posé sur `html` AUSSI, pas seulement sur `body` : quand
-     `body` est seul à porter `overflow-x: hidden`, le navigateur PROPAGE le
-     débordement à `html`, qui l'affiche quand même. La barre de défilement
-     latérale réapparaissait donc malgré la règle.
+  /* ⚠️ **Sur `html` SEUL.** Il l'a d'abord été sur `body` seul, où le navigateur
+     propageait le débordement à `html` qui l'affichait quand même ; puis sur les
+     deux, ce qui faisait de `body` un conteneur de défilement à part entière —
+     sa hauteur se bornait au viewport et la molette n'avait plus rien à faire
+     défiler sur un écran de bureau. `html` est celui que le navigateur consulte.
      ⚠️ Ce n'est qu'un filet de sécurité. Un débordement se corrige à sa
      source — le masquer rend le contenu coupé inatteignable. */
   overflow-x: hidden;
@@ -354,13 +355,15 @@ body {
      `100vh` reste en repli pour les navigateurs qui ignorent `dvh`. */
   min-height: 100vh;
   min-height: 100dvh;
-  /* Garde-fou : aucun débordement horizontal sur mobile. */
-  overflow-x: hidden;
-  /* ⚠️ **`overflow-x: hidden` ne suffit PAS sur iOS.** Safari laisse la page
-     défiler latéralement dès qu'un élément `position: fixed` dépasse la largeur
-     du viewport — la règle ne borne que le flux normal, pas ce qui en est
-     sorti. `width: 100%` + `position: relative` posent une largeur de référence
-     à laquelle les `fixed` se rattachent. */
+  /* ⚠️ **`overflow-x` reste sur `html` SEUL.** Le poser aussi sur `body` faisait
+     de celui-ci un conteneur de défilement à part entière : sa hauteur se
+     bornait alors au viewport, et la molette n'avait plus rien à faire défiler
+     sur un écran de bureau. Un seul des deux éléments doit porter la garde, et
+     `html` est celui que le navigateur consulte.
+     ⚠️ `position: relative` + `width: 100%` restent, eux : ils donnent aux
+     éléments `fixed` une largeur de référence, sans quoi Safari les laisse
+     dépasser et la page défile latéralement. Ni l'un ni l'autre ne crée de
+     contexte de défilement. */
   position: relative;
   width: 100%;
   /* ⚠️ **Pas de « tirer pour recharger ».** Arrivé en haut de la page, un geste
@@ -370,10 +373,12 @@ body {
      `contain` bloque le geste au bord SANS empêcher le défilement normal — à ne
      pas confondre avec `none`, qui coupe aussi l'élan et rend la page raide.
 
-     ⚠️ **Sur `body` SEUL, jamais sur `html`.** Posée là-haut, la propriété
-     s'ajoutait à l'`overflow-x: hidden` du même élément : les deux ensemble font
-     de `html` un conteneur de défilement à part entière, qui capture la molette
-     et immobilise la page sur un écran de bureau. C'est `body` qui défile. */
+     ⚠️ **Sur `body` SEUL, jamais sur `html`** — ce dernier porte déjà
+     `overflow-x: hidden`, et les deux ensemble en feraient un conteneur de
+     défilement qui capture la molette. C'est aussi pourquoi `overflow-x` ne se
+     pose QUE sur `html` : dupliqué sur `body`, il produisait le même effet ici,
+     et la page de bureau restait immobile. **Un seul élément porte chaque
+     garde.** */
   overscroll-behavior-y: contain;
 }
 

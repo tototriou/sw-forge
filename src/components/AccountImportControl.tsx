@@ -45,7 +45,7 @@ export default function AccountImportControl({ onImport, variant }: Props) {
             : 'flex items-center gap-1.5 rounded-lg border border-border bg-panel px-2.5 py-1.5 text-[13px] font-semibold text-ink-dim hoverable:text-ink hoverable:border-accent transition whitespace-nowrap'
         }
       >
-        <Import size={isMobile ? 18 : 14} /> Importer un JSON
+        <Import size={isMobile ? 18 : 14} className="flex-none" /> Importer un JSON
       </button>
 
     </div>

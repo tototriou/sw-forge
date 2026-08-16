@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Sparkles } from 'lucide-react';
+import { Sparkles, BookOpen } from 'lucide-react';
 import SearchBar from '../components/SearchBar';
 import FilterBar from '../components/FilterBar';
 import MonsterGrid from '../components/MonsterGrid';
@@ -132,7 +132,7 @@ export default function BestiaryPage({ monsters }: Props) {
 
   return (
     <div>
-      <div className="mt-6">
+      <div>
         <SearchBar value={query} onChange={setQuery} />
         <FilterBar
           activeElements={activeElements}

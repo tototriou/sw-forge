@@ -61,6 +61,53 @@ export const RELEASES: Release[] = [
   // fusion, d'après ce que la branche contient au final. On le remplace au
   // moment de publier, en même temps que `package.json` et le tag.
   {
+    version: null,
+    date: '2026-08-16',
+    title: 'Une nouvelle navigation',
+    changes: [
+      {
+        kind: 'feat',
+        scope: 'Interface',
+        text: 'Une barre latérale remplace le menu du haut : toutes les sections se voient d’un coup.',
+      },
+      {
+        kind: 'feat',
+        scope: 'Interface',
+        text: 'Replie la barre pour gagner de la place, elle garde tes repères.',
+      },
+      {
+        kind: 'feat',
+        scope: 'Interface',
+        text: 'Cherche une page au clavier avec ⌘K, sans quitter ton écran.',
+      },
+      {
+        kind: 'feat',
+        scope: 'Mon compte',
+        text: 'Résumé, Liste, Courbes et Comparaison sont dans la navigation, plus cachés dans la page.',
+      },
+      {
+        kind: 'feat',
+        scope: 'Mon compte',
+        text: 'Le nom du compte chargé s’affiche : tu sais toujours lequel tu consultes.',
+      },
+      {
+        kind: 'feat',
+        scope: 'Interface',
+        text: 'Une page Paramètres réunit tous les réglages, avec leurs explications.',
+      },
+      {
+        kind: 'fix',
+        scope: 'Interface',
+        text: 'Le contenu occupe toute la largeur de l’écran.',
+      },
+      {
+        kind: 'fix',
+        scope: 'Interface',
+        text: 'Un seul contour au clavier, au lieu de deux emboîtés.',
+      },
+    ],
+  },
+  {
     version: '1.6.3',
     date: '2026-08-16',
     title: 'Tes runes et tes monstres se lisent comme dans le jeu',

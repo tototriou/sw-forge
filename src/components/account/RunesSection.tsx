@@ -1,6 +1,6 @@
-import { List, LineChart, GitCompare, Wand2, Gauge, Hammer, Gem } from 'lucide-react';
+import { Hammer, Gem } from 'lucide-react';
 import { CraftLine, RuneDetail } from '../../types';
-import { useStickyState } from '../../hooks/useStickyState';
+import type { AccountView } from '../../App';
 import RunesSummary from './RunesSummary';
 import RunesList from './RunesList';
 import RunesCurve from './RunesCurve';
@@ -11,47 +11,15 @@ import ComingSoon from '../../pages/ComingSoon';
 interface Props {
   runes: RuneDetail[];
   crafts: CraftLine[];
+  // Vue courante. ⚠️ Elle vient de l'URL et de la barre latérale — les onglets
+  // internes qui vivaient ici ont disparu : sept vues cachées derrière une
+  // rangée d'onglets qu'on ne voyait qu'une fois sur la page.
+  vue: AccountView;
 }
 
-type View = 'resume' | 'liste' | 'courbes' | 'comparaison' | 'optimisation' | 'meules' | 'gemmes';
-
-const VIEWS: { key: View; label: string; icon: typeof List }[] = [
-  { key: 'resume', label: 'Résumé', icon: Gauge },
-  { key: 'liste', label: 'Liste', icon: List },
-  { key: 'courbes', label: 'Courbes', icon: LineChart },
-  { key: 'comparaison', label: 'Comparaison', icon: GitCompare },
-  { key: 'optimisation', label: 'Optimisation', icon: Wand2 },
-  // ⚠️ Ces deux-là ne refont pas l'Optimisation : « quelles runes puis-je
-  // améliorer avec ce que j'ai » y est un simple FILTRE, sans quoi il faudrait
-  // y réimplémenter potentiels et gains. Ils porteront la question inverse —
-  // ce qui MANQUE, et où aller le chercher.
-  { key: 'meules', label: 'Meules', icon: Hammer },
-  { key: 'gemmes', label: 'Gemmes', icon: Gem },
-];
-
-export default function RunesSection({ runes, crafts }: Props) {
-  const [view, setView] = useStickyState<View>('runes.view', 'resume');
-
+export default function RunesSection({ runes, crafts, vue: view }: Props) {
   return (
     <div>
-      {/* Onglets internes des runes */}
-      <div className="flex items-center gap-1 bg-panel border border-border rounded-xl p-1 w-fit mb-5">
-        {VIEWS.map((v) => {
-          const Icon = v.icon;
-          const active = view === v.key;
-          return (
-            <button
-              key={v.key}
-              onClick={() => setView(v.key)}
-              className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-[13px] font-semibold transition
-                ${active ? 'bg-accent-soft text-ink' : 'text-ink-dim hoverable:text-ink'}`}
-            >
-              <Icon size={14} /> {v.label}
-            </button>
-          );
-        })}
-      </div>
-
       {view === 'resume' && <RunesSummary runes={runes} />}
       {view === 'liste' && <RunesList runes={runes} />}
       {view === 'courbes' && <RunesCurve runes={runes} />}

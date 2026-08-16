@@ -29,10 +29,16 @@ export function Modale({
   largeur = 'max-w-[400px]',
   padding = 'p-5',
   croix = false,
+  ctx,
   children,
 }: {
   onClose: () => void;
   labelledBy: string;
+  // Élément qui donne son ACCENT CONTEXTUEL au contenu (voir `--ctx` dans
+  // index.css). Posé sur la boîte, il teinte tout ce qu'elle contient : la
+  // fiche d'un monstre d'eau vire au bleu sans qu'aucun de ses composants
+  // n'ait à connaître son élément.
+  ctx?: string | null;
   // Croix de fermeture en coin. ⚠️ Réservée aux modales qu'on **consulte**
   // (fiche d'un monstre, d'une rune) : Échap et le clic à côté ne se voient
   // pas, et rien d'autre n'y indique par où sortir.
@@ -129,6 +135,7 @@ export function Modale({
         // départ du clavier, mais elle ne doit pas s'insérer dans le cycle de
         // Tab comme un contrôle de plus.
         tabIndex={-1}
+        data-ctx={ctx ?? undefined}
         onClick={(e) => e.stopPropagation()}
         // Le voile en fondu, la boîte en fondu + 8 px de montée. Un peu plus
         // lente que le voile (200 vs 150 ms) : la boîte finit APRÈS le fond

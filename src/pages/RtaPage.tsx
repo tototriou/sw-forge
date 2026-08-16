@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Plus, Trash2 } from 'lucide-react';
+import { Plus, Trash2, Swords } from 'lucide-react';
 import {
   Monster,
   ElementKey,
@@ -207,7 +207,7 @@ export default function RtaPage({
 
   return (
     <div>
-      <div className="mt-6">
+      <div>
         <RtaSearch monsters={monsters} addedIds={addedIds} onAdd={rta.addMonster} />
       </div>
 

@@ -98,11 +98,21 @@ export default function MonsterDetailDialog({
   // ⚠️ `croix` : cette fiche se CONSULTE, elle ne demande rien. Aucun bouton
   // n'y dit par où sortir, et Échap comme le clic à côté sont invisibles.
   return (
-    <Modale onClose={onClose} labelledBy="fiche-monstre" largeur="max-w-[820px]" croix>
+    // ⚠️ `ctx` : l'ÉLÉMENT du monstre teinte toute la fiche (voir `--ctx` dans
+    // index.css). C'est le principe de la refonte — on sait de quel monstre on
+    // parle avant d'avoir lu son nom. Aucun composant à l'intérieur n'a besoin
+    // de connaître l'élément : ils écrivent `text-ctx`, la valeur descend.
+    <Modale
+      onClose={onClose}
+      labelledBy="fiche-monstre"
+      largeur="max-w-[820px]"
+      ctx={forme.element}
+      croix
+    >
       {/* En-tête : portrait, nom, élément, rareté naturelle. */}
       <div className="mb-3 flex items-start gap-3">
         {forme.image && (
-          <div className="hex-frame relative h-[64px] w-[64px] flex-none overflow-hidden bg-panel2">
+          <div className="hex-frame relative h-[64px] w-[64px] flex-none overflow-hidden bg-ctx-soft">
             {/* ⚠️ Le MÊME portrait partagé que sur la carte (`CollabPortrait`),
                 pas une seconde découpe : on vient de cliquer cette carte, et la
                 fiche qui s'ouvre doit montrer la même chose. */}
@@ -127,7 +137,7 @@ export default function MonsterDetailDialog({
               </span>
             )}
             {forme.secondAwaken && (
-              <span className="rounded bg-accent-soft px-1.5 py-px font-mono text-[11px] text-ink">
+              <span className="rounded bg-ctx-soft px-1.5 py-px font-mono text-[11px] text-ink">
                 2A
               </span>
             )}

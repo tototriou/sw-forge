@@ -15,8 +15,11 @@ function formatDate(iso: string): string {
 const ORDER: ChangeKind[] = ['feat', 'fix', 'docs'];
 
 export default function ReleasesPage() {
+  // ⚠️ Colonne BORNÉE : c'est une liste de textes courts qu'on lit de haut en
+  // bas, pas un tableau à parcourir. Étalée sur toute la largeur, chaque entrée
+  // devenait une ligne isolée au milieu du vide.
   return (
-    <div className="pt-6">
+    <div className="mx-auto max-w-[900px]">
       <h1 className="font-display font-black text-[clamp(28px,4vw,42px)] title-gradient mb-2">
         Nouveautés
       </h1>

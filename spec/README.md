@@ -58,6 +58,9 @@ Concepts partagés par plusieurs pages, documentés une seule fois :
   les règles de focus, de survol et de mouvement. **Source de vérité** pour toute
   décision d'apparence : une valeur qui n'y est pas n'a pas à être écrite en dur
   dans un composant.
+- [shared/navigation.md](shared/navigation.md) — la **barre latérale** et les
+  **onglets mobiles**, et l'**accent contextuel** (`--ctx`) qui prend la couleur
+  de l'élément du monstre consulté.
 
 ## Conventions communes (toutes les pages)
 

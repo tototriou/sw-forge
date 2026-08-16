@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react';
 import { AnimatePresence } from 'framer-motion';
-import { Search, Copy, Star } from 'lucide-react';
-import GameIcon from '../components/GameIcon';
+import { Search, Copy, Star, CircleUserRound } from 'lucide-react';
+import GameIcon, { GameIconKey } from '../components/GameIcon';
 import { BoxItem } from '../lib/applyAccount';
 import { ELEMENTS, ElementKey, Monster, RuneDetail, ArtifactDetail, CraftLine } from '../types';
 import { LoadState } from '../hooks/useMonsters';
@@ -20,11 +20,25 @@ import {
   sansDoublonDeTransformation,
 } from '../lib/monsterForms';
 import MonsterDetailDialog from '../components/MonsterDetailDialog';
+import type { AccountView } from '../App';
+import { VUES_INVENTAIRE, hashVue, vueParDefaut } from '../lib/accountViews';
 
 type Sub = 'monstres' | 'runes' | 'artefacts';
 
+// Les trois inventaires. ⚠️ Icônes DU JEU : un joueur les reconnaît
+// instantanément, là où trois pictogrammes de bibliothèque se ressemblent.
+const SOUS_SECTIONS: { sub: Sub; label: string; icon: GameIconKey }[] = [
+  { sub: 'monstres', label: 'Monstres', icon: 'monster' },
+  { sub: 'runes', label: 'Runes', icon: 'rune' },
+  { sub: 'artefacts', label: 'Artéfacts', icon: 'artifact' },
+];
+
 interface Props {
-  sub: Sub; // sous-section pilotée par le dropdown de nav (« Mon compte »)
+  sub: Sub; // inventaire courant, piloté par la barre latérale
+  // Vue à l'intérieur de l'inventaire (Résumé, Liste, Courbes…).
+  // ⚠️ Elle vient de l'URL, plus d'un état local : c'est ce qui permet à la
+  // barre latérale de la porter et à un lien direct de fonctionner.
+  vue: AccountView;
   box: BoxItem[];
   runes: RuneDetail[];
   artifacts: ArtifactDetail[];
@@ -306,6 +320,7 @@ function MonsterBoxSection({ box, allMonsters = [] }: { box: BoxItem[]; allMonst
 
 export default function AccountPage({
   sub,
+  vue,
   box,
   runes,
   artifacts,
@@ -340,7 +355,7 @@ export default function AccountPage({
         </div>
         <p className="text-[15px] font-semibold text-ink">Aucune donnée de compte chargée</p>
         <p className="mt-1 text-[13px] max-w-sm">
-          Importe ton compte (bouton en haut à droite) pour afficher tes monstres 6★, tes runes et
+          Importe ton compte (bouton « Importer un JSON ») pour afficher tes monstres 6★, tes runes et
           tes artéfacts. Active « Garder mon compte » dans le menu ⚙ pour ne pas avoir à le
           redéposer à chaque visite.
         </p>
@@ -350,10 +365,54 @@ export default function AccountPage({
   }
 
   return (
-    <div className="mt-6">
+    <div>
+      {/* ⚠️ Onglets MOBILES seulement : au-dessus de `lg`, la barre latérale
+          les porte. Les répéter donnerait deux jeux de contrôles pour la même
+          navigation.
+          Deux rangées, comme les deux niveaux de la barre : l'INVENTAIRE, puis
+          sa VUE. Les fondre en une seule aurait donné onze onglets sur un
+          téléphone. */}
+      <div className="mb-4 flex flex-col gap-2 lg:hidden">
+        <nav className="flex w-fit items-center gap-1 rounded-xl border border-border bg-panel p-1">
+          {SOUS_SECTIONS.map((t) => (
+            <a
+              key={t.sub}
+              // ⚠️ Vers la vue par DÉFAUT de l'inventaire : conserver la vue
+              // courante mènerait à « Courbes » côté artéfacts, qui n'en a pas.
+              href={hashVue(t.sub, vueParDefaut(t.sub))}
+              className={`flex items-center gap-1.5 rounded-lg px-3.5 py-1.5 text-[13px] font-semibold transition ${
+                sub === t.sub ? 'bg-ctx-soft text-ink' : 'text-ink-dim hoverable:text-ink'
+              }`}
+            >
+              <GameIcon name={t.icon} size={14} /> {t.label}
+            </a>
+          ))}
+        </nav>
+
+        {/* La rangée des vues n'apparaît que s'il y a un choix à faire : la box
+            de monstres n'a qu'une vue, un onglet solitaire ne dirait rien. */}
+        {VUES_INVENTAIRE[sub].length > 1 && (
+          <nav className="flex flex-wrap items-center gap-1">
+            {VUES_INVENTAIRE[sub].map((v) => (
+              <a
+                key={v.key}
+                href={hashVue(sub, v.key)}
+                className={`flex items-center gap-1.5 rounded-lg px-2.5 py-1 text-[12.5px] transition ${
+                  vue === v.key
+                    ? 'bg-ctx-soft text-ink'
+                    : 'text-ink-dim hoverable:bg-panel2 hoverable:text-ink'
+                }`}
+              >
+                <v.icon size={13} /> {v.label}
+              </a>
+            ))}
+          </nav>
+        )}
+      </div>
+
       {sub === 'monstres' && <MonsterBoxSection box={box} allMonsters={allMonsters} />}
-      {sub === 'runes' && <RunesSection runes={runes} crafts={crafts} />}
-      {sub === 'artefacts' && <ArtifactsSection artifacts={artifacts} />}
+      {sub === 'runes' && <RunesSection runes={runes} crafts={crafts} vue={vue} />}
+      {sub === 'artefacts' && <ArtifactsSection artifacts={artifacts} vue={vue} />}
     </div>
   );
 }

@@ -1,4 +1,4 @@
-import { Shield, Swords, Lightbulb } from 'lucide-react';
+import { Shield, Swords, Lightbulb, Castle } from 'lucide-react';
 import { Monster, ElementKey } from '../types';
 import { LoadState } from '../hooks/useMonsters';
 import { SiegeSide, UseSiegeState } from '../hooks/useSiegeState';
@@ -46,8 +46,10 @@ export default function SiegePage({
 }: Props) {
   return (
     <div>
-      {/* Sous-onglets Défense / Offense / Recommandations */}
-      <div className="mt-4">
+      {/* ⚠️ Sous-onglets MOBILES seulement (`lg:hidden`) : au-dessus de `lg`,
+          la barre latérale les porte déjà, et les répéter ici donnerait deux
+          jeux de contrôles pour la même navigation. */}
+      <div className="mb-4 lg:hidden">
         <nav className="inline-flex items-center gap-1 bg-panel border border-border rounded-xl p-1">
           {SUB_TABS.map((t) => {
             const active = tab === t.tab;
@@ -60,7 +62,7 @@ export default function SiegePage({
                   ${
                     // Fond seul, sans fausse élévation — voir design.md.
                     active
-                      ? 'bg-accent-soft text-ink'
+                      ? 'bg-ctx-soft text-ink'
                       : 'text-ink-dim hoverable:text-ink'
                   }`}
               >

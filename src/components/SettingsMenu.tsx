@@ -34,7 +34,12 @@ function Setting({ title, hint, children }: { title: string; hint?: string; chil
 // Réglages GLOBAUX de l'application : on les pose une fois, ils valent partout.
 // Règle (voir spec/README.md) : un réglage qui concerne plusieurs pages vient
 // ICI, jamais dupliqué en sélecteur sur chaque page.
-function SettingsList({
+//
+// ⚠️ **Exportée** : la PAGE de réglages (`#/parametres`) affiche exactement la
+// même liste que le popover. Deux copies auraient divergé au premier réglage
+// ajouté — et c'est le genre de divergence qu'on ne voit pas, puisqu'on n'ouvre
+// jamais les deux à la fois.
+export function SettingsList({
   onClearData,
   onKeepAccount,
   accountExportedAt,
@@ -169,8 +174,18 @@ export default function SettingsMenu({
           className="absolute z-30 right-0 mt-1.5 w-fit min-w-[260px] rounded-xl border border-border bg-panel px-3 py-2 shadow-glow shadow-black/60
                      origin-top-right animate-[popover_150ms_var(--ease-out)]"
         >
-          <div className="label pb-1.5 border-b border-border">
-            Réglages
+          <div className="flex items-baseline gap-3 border-b border-border pb-1.5">
+            <span className="label">Réglages</span>
+            {/* ⚠️ Vers la PAGE : ce popover porte sept réglages dont deux à
+                explication longue, et 260 px ne suffisent pas à les lire. Il
+                reste le geste rapide ; la page est là pour s'y attarder. */}
+            <a
+              href="#/parametres"
+              onClick={() => setOpen(false)}
+              className="ml-auto text-[11.5px] text-accent transition hoverable:text-ink"
+            >
+              Tout voir
+            </a>
           </div>
           <SettingsList
             onClearData={onClearData}

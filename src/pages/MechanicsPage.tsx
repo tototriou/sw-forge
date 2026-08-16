@@ -41,8 +41,11 @@ function K({ children }: { children: ReactNode }) {
 }
 
 export default function MechanicsPage() {
+  // ⚠️ Colonne BORNÉE, contrairement aux autres pages : c'est du texte suivi,
+  // pas une grille. Une ligne de 2 000 px se lit mal — l'œil perd le début de
+  // la suivante. Voir spec/shared/design.md.
   return (
-    <div className="mt-4">
+    <div className="mx-auto max-w-[1100px]">
       <header>
         <h1 className="font-display font-black text-[clamp(28px,4vw,42px)] title-gradient mb-1.5">
           Mécaniques du jeu

@@ -1,21 +1,19 @@
-import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import { CSSProperties, useEffect, useMemo, useRef, useState } from 'react';
 import {
   Swords,
   BookOpen,
   Home,
   Castle,
   Trophy,
-  Menu,
-  X,
   Calculator,
-  Library,
-  ChevronDown,
   CircleUserRound,
   Github,
   MessageCircle,
   Tag,
-  Wrench,
   Sparkles,
+  Shield,
+  Lightbulb,
+  Settings,
 } from 'lucide-react';
 import HomePage from './pages/HomePage';
 import BestiaryPage from './pages/BestiaryPage';
@@ -26,8 +24,20 @@ import ReleasesPage from './pages/ReleasesPage';
 import AccountPage from './pages/AccountPage';
 import OutilsPage from './pages/OutilsPage';
 import ComingSoon from './pages/ComingSoon';
+import SettingsPage from './pages/SettingsPage';
 import AccountImportControl from './components/AccountImportControl';
 import SettingsMenu from './components/SettingsMenu';
+import Sidebar, {
+  LARGEUR_SIDEBAR,
+  LARGEUR_SIDEBAR_RETRACTEE,
+  SidebarGroupe,
+  SidebarSection,
+  useSidebarRetractee,
+} from './components/Sidebar';
+import MobileTabs, { OngletMobile } from './components/MobileTabs';
+import TopBar from './components/TopBar';
+import SidebarCompte from './components/SidebarCompte';
+import SidebarSearch, { CibleNav } from './components/SidebarSearch';
 import MobileNotice from './components/MobileNotice';
 import { loadAccount, saveAccount } from './lib/accountStore';
 import {
@@ -52,6 +62,7 @@ import {
   BoxMonster,
   parseAccountJson,
   parseAccountExportDate,
+  parseAccountWizardName,
   parseAccountSource,
   parseSiegeDefense,
   parseSiegeOffense,
@@ -59,6 +70,7 @@ import {
   parseAccountInventory,
 } from './lib/importAccount';
 import { mapRtaItems, mapSiegeTeams, mapBoxMonsters, BoxItem } from './lib/applyAccount';
+import { VUES_INVENTAIRE, hashVue, vueValide } from './lib/accountViews';
 
 const DISCORD_INVITE = 'https://discord.gg/R2Fe4GJZET';
 
@@ -71,8 +83,24 @@ type Route =
   | 'mecaniques'
   | 'compte'
   | 'outils'
-  | 'releases';
+  | 'releases'
+  | 'parametres';
 export type AccountSub = 'monstres' | 'runes' | 'artefacts';
+
+// Vue à l'intérieur d'un inventaire — troisième niveau de navigation.
+//
+// ⚠️ **Dans l'URL, pas dans un état local.** Elles y vivaient
+// (`useStickyState('runes.view')`), ce qui les rendait impossibles à mettre dans
+// la barre latérale : rien n'aurait dit laquelle est active, et un lien direct
+// vers « Courbes » n'existait pas. Le hash devient `#/compte/runes/courbes`.
+export type AccountView =
+  | 'resume'
+  | 'liste'
+  | 'courbes'
+  | 'comparaison'
+  | 'optimisation'
+  | 'meules'
+  | 'gemmes';
 export type ToolSub = 'optimizer';
 
 // Route + sous-route de siège (offense/défense) + sous-section « Mon compte »
@@ -81,31 +109,44 @@ function parseHash(): {
   route: Route;
   siegeTab: SiegeTab;
   accountSub: AccountSub;
+  accountView: AccountView;
   toolSub: ToolSub;
 } {
   const h = window.location.hash.replace(/^#\/?/, '');
   const base = {
     siegeTab: 'defense' as SiegeTab,
     accountSub: 'monstres' as AccountSub,
+    accountView: 'resume' as AccountView,
     toolSub: 'optimizer' as ToolSub,
   };
   if (h === 'rta') return { route: 'rta', ...base };
   if (h === 'bestiary') return { route: 'bestiary', ...base };
   if (h === 'arene') return { route: 'arene', ...base };
   if (h === 'compte' || h.startsWith('compte/')) {
+    // `compte/runes/courbes` → sous-section « runes », vue « courbes ».
+    const [, sub, vue] = h.split('/');
     const accountSub: AccountSub =
-      h === 'compte/runes' ? 'runes' : h === 'compte/artefacts' ? 'artefacts' : 'monstres';
-    return { route: 'compte', siegeTab: 'defense', accountSub, toolSub: 'optimizer' };
+      sub === 'runes' ? 'runes' : sub === 'artefacts' ? 'artefacts' : 'monstres';
+    return {
+      route: 'compte',
+      siegeTab: 'defense',
+      accountSub,
+      // ⚠️ Défaut « resume » : on arrive sur l'état du stock, pas sur 2 000
+      // tuiles. C'était déjà le défaut des onglets internes.
+      accountView: (vue as AccountView) || 'resume',
+      toolSub: 'optimizer',
+    };
   }
   if (h === 'outils' || h.startsWith('outils/')) {
-    return { route: 'outils', siegeTab: 'defense', accountSub: 'monstres', toolSub: 'optimizer' };
+    return { route: 'outils', ...base };
   }
   if (h === 'mecaniques') return { route: 'mecaniques', ...base };
   if (h === 'releases') return { route: 'releases', ...base };
+  if (h === 'parametres') return { route: 'parametres', ...base };
   if (h === 'siege' || h.startsWith('siege/')) {
     const siegeTab: SiegeTab =
       h === 'siege/offense' ? 'offense' : h === 'siege/recommandations' ? 'recos' : 'defense';
-    return { route: 'siege', siegeTab, accountSub: 'monstres', toolSub: 'optimizer' };
+    return { route: 'siege', ...base, siegeTab };
   }
   return { route: 'home', ...base };
 }
@@ -125,16 +166,28 @@ const ARENE_ITEM: NavItem = { key: 'arene', label: 'Arène', icon: Trophy, hash:
 // Sous-sections de « Mon compte » (dropdown de nav).
 // ⚠️ Icônes DU JEU (voir GameIcon), pas des pictogrammes de bibliothèque : un
 // joueur reconnaît ses trois inventaires instantanément à celles-ci.
-const ACCOUNT_SUBS: { sub: AccountSub; label: string; icon: GameIconKey; hash: string }[] = [
-  { sub: 'monstres', label: 'Monstres', icon: 'monster', hash: '#/compte' },
-  { sub: 'runes', label: 'Runes', icon: 'rune', hash: '#/compte/runes' },
-  { sub: 'artefacts', label: 'Artéfacts', icon: 'artifact', hash: '#/compte/artefacts' },
+// ⚠️ Plus de `hash` ici : les liens passent par `hashVue`, qui compose
+// `#/compte/<inventaire>/<vue>`. Deux façons d'écrire la même URL auraient
+// divergé — l'une menant à la vue par défaut, l'autre à la vue courante.
+const ACCOUNT_SUBS: { sub: AccountSub; label: string; icon: GameIconKey }[] = [
+  { sub: 'monstres', label: 'Monstres', icon: 'monster' },
+  { sub: 'runes', label: 'Runes', icon: 'rune' },
+  { sub: 'artefacts', label: 'Artéfacts', icon: 'artifact' },
 ];
 
 // Sous-sections d'« Outils » (dropdown de nav) — un seul outil pour l'instant,
 // structuré pour en accueillir d'autres sans retoucher la nav.
 const OUTILS_SUBS: { sub: ToolSub; label: string; icon: typeof Sparkles; hash: string }[] = [
   { sub: 'optimizer', label: 'Optimizer', icon: Sparkles, hash: '#/outils/optimizer' },
+];
+
+// Sous-sections de « Siège ». ⚠️ Remontées ICI depuis SiegePage : elles
+// étaient des onglets posés en haut de la page, et chaque section avait le sien
+// avec son propre rendu. La barre latérale les porte toutes de la même façon.
+const SIEGE_SUBS: { tab: SiegeTab; label: string; icon: typeof Shield; hash: string }[] = [
+  { tab: 'defense', label: 'Défense', icon: Shield, hash: '#/siege/defense' },
+  { tab: 'offense', label: 'Offense', icon: Swords, hash: '#/siege/offense' },
+  { tab: 'recos', label: 'Recommandations', icon: Lightbulb, hash: '#/siege/recommandations' },
 ];
 
 // Regroupées sous « Ressources ».
@@ -185,8 +238,12 @@ export default function App() {
   // l'enregistrement.
   const [accountExportedAt, setAccountExportedAt] = useState<number | null>(null);
 
-  const [{ route, siegeTab, accountSub, toolSub }, setNav] = useState(parseHash);
-  const [menuOpen, setMenuOpen] = useState(false);
+  // Nom du joueur dont le compte est chargé (`wizard_info.wizard_name`).
+  // ⚠️ On peut jongler entre plusieurs exports — le sien, celui d'un ami dont
+  // on compare les runes — et rien ne disait lequel était affiché.
+  const [accountName, setAccountName] = useState<string | null>(null);
+
+  const [{ route, siegeTab, accountSub, accountView, toolSub }, setNav] = useState(parseHash);
   const [resourcesOpen, setResourcesOpen] = useState(false);
   const resourcesRef = useRef<HTMLDivElement>(null);
   const [accountOpen, setAccountOpen] = useState(false);
@@ -200,19 +257,13 @@ export default function App() {
   // Confirmations à l'écran : purge globale (⚙), et refus de conservation alors
   // qu'on conservait déjà (la valeur portée est « ne plus me montrer »).
   const [purgeGlobale, setPurgeGlobale] = useState(false);
+
+  // Repli de la barre latérale. Vit ici et non dans `Sidebar` : le CONTENU doit
+  // décaler sa marge en même temps, sinon la barre se replie sur une colonne de
+  // vide.
+  const [sidebarRetractee, setSidebarRetractee] = useSidebarRetractee();
   const [purgeApresRefus, setPurgeApresRefus] = useState<boolean | null>(null);
 
-  // Barre du haut : si la rangée complète (onglets + import + réglages) ne tient
-  // pas sur UNE ligne, on bascule sur le menu hamburger plutôt que de laisser
-  // les boutons passer à la ligne. Mesuré, pas fixé à un breakpoint : le nombre
-  // d'onglets change à chaque nouvelle section, un seuil en dur serait périmé.
-  const barRef = useRef<HTMLDivElement>(null);
-  const navRef = useRef<HTMLElement>(null);
-  const toolsRef = useRef<HTMLDivElement>(null);
-  const neededRef = useRef(0); // largeur d'une ligne complète, dernière mesure
-  const [compactNav, setCompactNav] = useState(false);
-
-  const resourcesActive = RESOURCES.some((r) => r.key === route);
 
   // Monstres officiels + monstres créés à la main (RTA & Siège).
   const allMonsters = useMemo(
@@ -252,6 +303,7 @@ export default function App() {
         setArtifacts(rec.artifacts);
         setCrafts(rec.crafts);
         setAccountExportedAt(rec.exportedAt);
+        setAccountName(rec.wizardName ?? null);
       }
       setAccountHydrating(false);
     });
@@ -323,6 +375,7 @@ export default function App() {
     }
 
     const exporte = parseAccountExportDate(data);
+    const nomJoueur = parseAccountWizardName(data);
     const rtaRes = parseAccountJson(data);
     const defRes = parseSiegeDefense(data);
     const offRes = parseSiegeOffense(data);
@@ -358,6 +411,7 @@ export default function App() {
     importedManuallyRef.current = true;
     rawBoxRef.current = boxRes.monsters ?? [];
     setAccountExportedAt(exporte);
+    setAccountName(nomJoueur);
     setBox(boxItems);
     setRunes(invRes.runes ?? []);
     setArtifacts(invRes.artifacts ?? []);
@@ -374,6 +428,7 @@ export default function App() {
         artifacts: invRes.artifacts ?? [],
         crafts: invRes.crafts ?? [],
         exportedAt: exporte,
+        wizardName: nomJoueur,
       });
     }
 
@@ -444,13 +499,19 @@ export default function App() {
   // en mémoire, sinon il faudrait réimporter le même fichier pour rien.
   function persistCurrentAccount() {
     if (rawBoxRef.current.length === 0 && runes.length === 0 && artifacts.length === 0) return;
-    void saveAccount({ box: rawBoxRef.current, runes, artifacts, crafts, exportedAt: accountExportedAt });
+    void saveAccount({
+      box: rawBoxRef.current,
+      runes,
+      artifacts,
+      crafts,
+      exportedAt: accountExportedAt,
+      wizardName: accountName,
+    });
   }
 
   useEffect(() => {
     const onHash = () => {
       setNav(parseHash());
-      setMenuOpen(false); // referme le menu mobile à chaque navigation
       setResourcesOpen(false); // referme le dropdown Ressources
       setAccountOpen(false); // referme le dropdown Mon compte
       setOutilsOpen(false); // referme le dropdown Outils
@@ -472,31 +533,6 @@ export default function App() {
     return () => document.removeEventListener('mousedown', onDown);
   }, [resourcesOpen, accountOpen, outilsOpen]);
 
-  // Mesure de la barre du haut. En mode complet on RETIENT la largeur nécessaire
-  // (`neededRef`) : une fois replié, la rangée ne contient plus la nav et ne
-  // peut donc plus la mesurer — sans cette mémoire on ne saurait jamais quand
-  // redéployer. `useLayoutEffect` : le repli est décidé avant peinture, donc
-  // aucune image de barre débordante.
-  useLayoutEffect(() => {
-    const bar = barRef.current;
-    if (!bar) return;
-    const measure = () => {
-      if (navRef.current && toolsRef.current) {
-        // +12 : le `gap-3` entre la nav et le bloc import/réglages.
-        neededRef.current = navRef.current.offsetWidth + toolsRef.current.offsetWidth + 12;
-      }
-      // clientWidth 0 = barre masquée (mobile) : c'est le hamburger natif qui joue.
-      setCompactNav(bar.clientWidth > 0 && bar.clientWidth < neededRef.current);
-    };
-    measure();
-    const ro = new ResizeObserver(measure);
-    ro.observe(bar);
-    // La nav aussi : la largeur de la barre ne bouge pas quand c'est son
-    // CONTENU qui s'élargit (police chargée après coup, libellé plus long).
-    if (navRef.current) ro.observe(navRef.current);
-    return () => ro.disconnect();
-  }, [compactNav]);
-
   // Message d'import éphémère : il disparaît tout seul (un peu plus long pour une erreur).
   useEffect(() => {
     if (!importMsg) return;
@@ -504,327 +540,321 @@ export default function App() {
     return () => clearTimeout(t);
   }, [importMsg]);
 
+  // ⚠️ **La SECTION OUVERTE, si elle a des sous-sections.** Quand elle existe,
+  // elle REMPLACE la liste des sections dans la barre latérale (voir Sidebar) :
+  // une seule liste à lire, et la place revient aux sous-sections.
+  //
+  // Trois sections en ont : Siège, Mon compte, Outils. Les autres (Accueil,
+  // RTA, Bestiaire…) n'ont qu'un écran — la barre y garde son premier niveau.
+  // Les trois sections à sous-sections, déclarées une fois : elles servent à la
+  // fois de niveau ouvert par la route ET de cible des entrées du premier
+  // niveau (`ouvre`). Deux définitions auraient divergé.
+  const sectionSiege: SidebarSection = {
+    titre: 'Siège',
+    icon: <Castle size={17} />,
+    groupes: [
+      {
+        liens: SIEGE_SUBS.map((t) => ({
+          key: t.tab,
+          label: t.label,
+          hash: t.hash,
+          icon: <t.icon size={17} />,
+          actif: route === 'siege' && siegeTab === t.tab,
+        })),
+      },
+    ],
+  };
+
+  const sectionCompte: SidebarSection = {
+    titre: 'Mon compte',
+    icon: <CircleUserRound size={17} />,
+    // ⚠️ **Un groupe par INVENTAIRE, ses vues en entrées.** Les trois
+    // inventaires étaient trois liens, et leurs vues (Résumé, Liste, Courbes…)
+    // vivaient dans une rangée d'onglets en haut de page — invisible tant qu'on
+    // n'y était pas. Onze destinations dont huit cachées derrière un clic.
+    // Le nom de l'inventaire devient un TITRE de groupe, comme « Ressources »
+    // au premier niveau : il annonce, il ne mène nulle part. C'est la vue qu'on
+    // choisit, pas l'inventaire.
+    groupes: ACCOUNT_SUBS.map((sub) => ({
+      titre: sub.label,
+      liens: VUES_INVENTAIRE[sub.sub].map((v) => ({
+        key: `${sub.sub}-${v.key}`,
+        label: v.label,
+        hash: hashVue(sub.sub, v.key),
+        icon: <v.icon size={17} />,
+        actif: route === 'compte' && accountSub === sub.sub && accountView === v.key,
+      })),
+    })),
+  };
+
+  const sectionOutils: SidebarSection = {
+    titre: 'Outils',
+    icon: <Sparkles size={17} />,
+    groupes: [
+      {
+        liens: OUTILS_SUBS.map((sub) => ({
+          key: sub.sub,
+          label: sub.label,
+          hash: sub.hash,
+          icon: <sub.icon size={17} />,
+          actif: route === 'outils' && toolSub === sub.sub,
+        })),
+      },
+    ],
+  };
+
+  // ⚠️ **La SECTION OUVERTE PAR LA ROUTE.** Arriver sur `#/siege/offense`
+  // montre les sous-sections du Siège ; la barre peut ensuite en ouvrir une
+  // autre à la main, sans naviguer (voir Sidebar).
+  const sectionOuverte: SidebarSection | null =
+    route === 'siege'
+      ? sectionSiege
+      : route === 'compte'
+        ? sectionCompte
+        : route === 'outils'
+          ? sectionOutils
+          : null;
+
+  // Premier niveau — les sections. ⚠️ Le MÊME ordre d'importance que la nav
+  // précédente (spec/README.md) : Accueil → RTA → Siège → Mon compte → Outils
+  // → Arène, puis les ressources. La refonte change la FORME de la navigation,
+  // pas la hiérarchie, qui elle est le fruit de l'usage.
+
+  const groupesNav: SidebarGroupe[] = [
+    {
+      liens: [
+        ...NAV.map((item) => ({
+          key: item.key,
+          label: item.label,
+          icon: <item.icon size={17} />,
+          // ⚠️ Le Siège OUVRE sa section au lieu de naviguer : on choisit
+          // Défense, Offense ou Recommandations avant de charger une page.
+          ...(item.key === 'siege' ? { ouvre: sectionSiege } : { hash: item.hash }),
+          actif: route === item.key,
+        })),
+        {
+          key: 'compte',
+          label: 'Mon compte',
+          icon: <CircleUserRound size={17} />,
+          ouvre: sectionCompte,
+          actif: route === 'compte',
+        },
+        {
+          key: 'outils',
+          label: 'Outils',
+          icon: <Sparkles size={17} />,
+          ouvre: sectionOutils,
+          actif: route === 'outils',
+        },
+        {
+          key: ARENE_ITEM.key,
+          label: ARENE_ITEM.label,
+          hash: ARENE_ITEM.hash,
+          icon: <ARENE_ITEM.icon size={17} />,
+          actif: route === 'arene',
+        },
+      ],
+    },
+    {
+      titre: 'Ressources',
+      liens: RESOURCES.map((item) => ({
+        key: item.key,
+        label: item.label,
+        hash: item.hash,
+        icon: <item.icon size={17} />,
+        actif: route === item.key,
+      })),
+    },
+  ];
+
+  // Titre de la barre supérieure — la section courante.
+  //
+  // ⚠️ DÉRIVÉ des mêmes constantes que la navigation, jamais une table de plus :
+  // une seconde liste de libellés aurait divergé au premier renommage, et le
+  // titre aurait annoncé une page qui n'existe plus sous ce nom.
+  const entreeCourante = [...NAV, ARENE_ITEM, ...RESOURCES].find((i) => i.key === route);
+  const titreSection =
+    sectionOuverte?.titre ??
+    entreeCourante?.label ??
+    (route === 'parametres' ? 'Paramètres' : 'SW Forge');
+  const iconeSection = sectionOuverte?.icon ??
+    (entreeCourante ? <entreeCourante.icon size={16} /> : null) ??
+    (route === 'parametres' ? <Settings size={16} /> : null);
+
+  // TOUTES les destinations pour la recherche de navigation — sections ET
+  // sous-sections, à plat.
+  //
+  // ⚠️ **Dérivée des mêmes constantes que la barre** (`NAV`, `ACCOUNT_SUBS`…),
+  // pas ressaisie : une seconde liste écrite à la main aurait divergé au premier
+  // écran ajouté, et le manque serait passé inaperçu — on ne cherche pas ce dont
+  // on ignore l'existence.
+  //
+  // ⚠️ Les sous-sections portent leur SECTION en contexte : « Défense » seul ne
+  // dit pas de quel écran il s'agit.
+  const ciblesRecherche: CibleNav[] = [
+    ...NAV.map((i) => ({
+      key: i.key,
+      label: i.label,
+      hash: i.hash,
+      icon: <i.icon size={15} />,
+    })),
+    ...SIEGE_SUBS.map((t) => ({
+      key: `siege-${t.tab}`,
+      label: t.label,
+      hash: t.hash,
+      icon: <t.icon size={15} />,
+      contexte: 'Siège',
+    })),
+    // ⚠️ Chaque VUE de chaque inventaire, pas seulement les trois inventaires :
+    // c'est tout l'intérêt du champ. On tape « courbes » pour y aller, sans
+    // passer par Mon compte puis Runes.
+    // Le contexte porte l'inventaire (« Runes »), sinon « Résumé » et « Liste »
+    // apparaîtraient trois fois sans qu'on sache lesquels.
+    ...ACCOUNT_SUBS.flatMap((sub) =>
+      VUES_INVENTAIRE[sub.sub].map((v) => ({
+        key: `compte-${sub.sub}-${v.key}`,
+        label: v.label,
+        hash: hashVue(sub.sub, v.key),
+        icon: <v.icon size={15} />,
+        contexte: sub.label,
+      }))
+    ),
+    ...OUTILS_SUBS.map((sub) => ({
+      key: `outils-${sub.sub}`,
+      label: sub.label,
+      hash: sub.hash,
+      icon: <sub.icon size={15} />,
+      contexte: 'Outils',
+    })),
+    {
+      key: ARENE_ITEM.key,
+      label: ARENE_ITEM.label,
+      hash: ARENE_ITEM.hash,
+      icon: <ARENE_ITEM.icon size={15} />,
+    },
+    ...RESOURCES.map((i) => ({
+      key: i.key,
+      label: i.label,
+      hash: i.hash,
+      icon: <i.icon size={15} />,
+      contexte: 'Ressources',
+    })),
+    {
+      key: 'parametres',
+      label: 'Paramètres',
+      hash: '#/parametres',
+      icon: <Settings size={15} />,
+    },
+  ];
+
+  // ⚠️ CINQ onglets mobiles au maximum — au-delà, les cibles passent sous 44 px.
+  // Les quatre premiers sont les destinations de travail ; « Compte » ouvre la
+  // section dont dépendent toutes les autres.
+  const ongletsMobile: OngletMobile[] = [
+    { key: 'home', label: 'Accueil', hash: '#/', icon: <Home size={17} />, actif: route === 'home' },
+    { key: 'rta', label: 'RTA', hash: '#/rta', icon: <Swords size={17} />, actif: route === 'rta' },
+    { key: 'siege', label: 'Siège', hash: '#/siege/defense', icon: <Castle size={17} />, actif: route === 'siege' },
+    { key: 'compte', label: 'Compte', hash: '#/compte', icon: <CircleUserRound size={17} />, actif: route === 'compte' },
+    { key: 'outils', label: 'Outils', hash: '#/outils/optimizer', icon: <Sparkles size={17} />, actif: route === 'outils' || route === 'bestiary' || route === 'mecaniques' || route === 'releases' || route === 'arene' },
+  ];
+
   return (
-    <div className="max-w-[1180px] mx-auto px-4 sm:px-5 py-5 sm:py-6 pb-16">
-        {/* ---- Barre repliée : logo + menu hamburger ----
-            Sur mobile par CSS, et sur desktop dès que la rangée complète ne
-            tient plus sur une ligne (`compactNav`). */}
-        <div className={`mb-4 ${compactNav ? '' : 'sm:hidden'}`}>
-          <div className="flex items-center justify-between">
-            <a href="#/" className="flex items-center gap-2">
-              <img src={`${import.meta.env.BASE_URL}favicon.svg`} alt="" className="w-7 h-7" />
-              <span className="font-display text-[18px] tracking-wide">SW Forge</span>
+    // ⚠️ `data-ctx` sur la RACINE : c'est lui qui décide de l'accent contextuel
+    // de tout l'écran (voir index.css). Une page qui parle d'un monstre le
+    // posera à son élément ; partout ailleurs il reste absent, et `--ctx`
+    // retombe sur l'accent de l'app.
+    <div
+      // ⚠️ La marge suit le REPLI de la barre, et à la même courbe : sans ça,
+      // la barre se replierait sur une colonne de vide. `--pad-nav` n'est posé
+      // qu'au-dessus de `lg` (voir index.css) — sous cette largeur la barre
+      // n'existe pas.
+      style={
+        {
+          '--pad-nav': `${sidebarRetractee ? LARGEUR_SIDEBAR_RETRACTEE : LARGEUR_SIDEBAR}px`,
+        } as CSSProperties
+      }
+      className="pad-nav"
+    >
+      {/* La sidebar est FIXE et hors flux : le contenu se décale d'autant
+          au lieu d'être encapsulé dans une grille. Un
+          `position: sticky` aurait suffi visuellement, mais la barre doit
+          rester en place quand le contenu défile sur 3 000 monstres. */}
+      <Sidebar
+        groupes={groupesNav}
+        section={sectionOuverte}
+        recherche={
+          <SidebarSearch
+            cibles={ciblesRecherche}
+            retractee={sidebarRetractee}
+            onDeplier={() => setSidebarRetractee(false)}
+          />
+        }
+        retractee={sidebarRetractee}
+        onToggleRetract={() => setSidebarRetractee((r) => !r)}
+        pied={
+          /* ⚠️ Le pied dit QUI est chargé, et porte les deux gestes qui s'y
+             rapportent : changer de compte, régler l'app. Il a d'abord affiché
+             la date du dernier import dans une carte — une information qu'on ne
+             lit qu'une fois, occupant en permanence le bas de l'écran. Elle vit
+             maintenant dans les paramètres, à côté du réglage de conservation,
+             là où on se pose la question. */
+          <SidebarCompte
+            nom={accountName}
+            retractee={sidebarRetractee}
+            parametresActifs={route === 'parametres'}
+            onImport={importAccount}
+          />
+        }
+      />
+
+      <MobileTabs onglets={ongletsMobile} />
+
+      {/* ⚠️ Montée APRÈS la barre latérale dans le DOM, mais posée au-dessus
+          (`z-40` contre `z-30`) : elle traverse toute la largeur, y compris
+          au-dessus de la barre. */}
+      <TopBar
+        titre={titreSection}
+        icone={iconeSection}
+        decalage={sidebarRetractee ? LARGEUR_SIDEBAR_RETRACTEE : LARGEUR_SIDEBAR}
+        onDeconnexion={() => setPurgeGlobale(true)}
+        gauche={
+          <>
+            {/* Sous `lg`, la barre latérale n'existe pas : le logo et l'import
+                doivent rester ici. Au-dessus, la barre les porte déjà. */}
+            <a href="#/" className="flex items-center gap-2 lg:hidden">
+              <img src={`${import.meta.env.BASE_URL}favicon.svg`} alt="" className="h-6 w-6" />
             </a>
-            {/* Les réglages restent EN DEHORS du menu : accessibles en un geste
-                quelle que soit la largeur, jamais enfouis derrière le hamburger. */}
-            <div className="flex items-center gap-1.5">
+            {/* ⚠️ Masqué sur l'ACCUEIL : la zone de dépôt y est déjà au centre
+                de l'écran, deux points d'entrée pour le même geste sèment le
+                doute sur celui qui « compte vraiment ». */}
+            {route !== 'home' && (
+              <div className="lg:hidden">
+                <AccountImportControl onImport={importAccount} variant="desktop" />
+              </div>
+            )}
+            <div className="lg:hidden">
               <SettingsMenu
                 variant="bar"
                 onClearData={() => setPurgeGlobale(true)}
                 onKeepAccount={persistCurrentAccount}
                 accountExportedAt={accountExportedAt}
               />
-              <button
-                onClick={() => setMenuOpen((o) => !o)}
-                aria-label="Menu"
-                aria-expanded={menuOpen}
-                className="flex items-center justify-center w-11 h-11 rounded-lg border border-border bg-panel text-ink"
-              >
-                {menuOpen ? <X size={22} /> : <Menu size={22} />}
-              </button>
             </div>
-          </div>
+          </>
+        }
+      />
 
-          {menuOpen && (
-            <nav className="mt-2 flex flex-col gap-1 bg-panel border border-border rounded-xl p-2">
-              {NAV.map((item) => {
-                const active = route === item.key;
-                const Icon = item.icon;
-                return (
-                  <a
-                    key={item.key}
-                    href={item.hash}
-                    onClick={() => setMenuOpen(false)}
-                    className={`flex items-center gap-3 rounded-lg px-3 py-3 text-[16px] font-semibold transition
-                      ${active ? 'bg-accent-soft text-ink' : 'text-ink-dim'}`}
-                  >
-                    <Icon size={18} /> {item.label}
-                  </a>
-                );
-              })}
-
-              {/* Mon compte */}
-              <div className="mt-1 pt-2 border-t border-border">
-                <div className="px-3 pb-1 label">
-                  Mon compte
-                </div>
-                {ACCOUNT_SUBS.map((item) => {
-                  const active = route === 'compte' && accountSub === item.sub;
-                  return (
-                    <a
-                      key={item.sub}
-                      href={item.hash}
-                      onClick={() => setMenuOpen(false)}
-                      className={`flex items-center gap-3 rounded-lg px-3 py-3 text-[16px] font-semibold transition
-                        ${active ? 'bg-accent-soft text-ink' : 'text-ink-dim'}`}
-                    >
-                      <GameIcon name={item.icon} size={20} /> {item.label}
-                    </a>
-                  );
-                })}
-              </div>
-
-              {/* Outils */}
-              <div className="mt-1 pt-2 border-t border-border">
-                <div className="px-3 pb-1 label">
-                  Outils
-                </div>
-                {OUTILS_SUBS.map((item) => {
-                  const active = route === 'outils' && toolSub === item.sub;
-                  const Icon = item.icon;
-                  return (
-                    <a
-                      key={item.sub}
-                      href={item.hash}
-                      onClick={() => setMenuOpen(false)}
-                      className={`flex items-center gap-3 rounded-lg px-3 py-3 text-[16px] font-semibold transition
-                        ${active ? 'bg-accent-soft text-ink' : 'text-ink-dim'}`}
-                    >
-                      <Icon size={18} /> {item.label}
-                    </a>
-                  );
-                })}
-              </div>
-
-              {/* Arène — entre Outils et Ressources, voir la nav desktop plus bas. */}
-              <a
-                href={ARENE_ITEM.hash}
-                onClick={() => setMenuOpen(false)}
-                className={`mt-1 pt-2 border-t border-border flex items-center gap-3 rounded-lg px-3 py-3 text-[16px] font-semibold transition
-                  ${route === 'arene' ? 'bg-accent-soft text-ink' : 'text-ink-dim'}`}
-              >
-                <Trophy size={18} /> {ARENE_ITEM.label}
-              </a>
-
-              {/* Ressources */}
-              <div className="mt-1 pt-2 border-t border-border">
-                <div className="px-3 pb-1 label">
-                  Ressources
-                </div>
-                {RESOURCES.map((item) => {
-                  const active = route === item.key;
-                  const Icon = item.icon;
-                  return (
-                    <a
-                      key={item.key}
-                      href={item.hash}
-                      onClick={() => setMenuOpen(false)}
-                      className={`flex items-center gap-3 rounded-lg px-3 py-3 text-[16px] font-semibold transition
-                        ${active ? 'bg-accent-soft text-ink' : 'text-ink-dim'}`}
-                    >
-                      <Icon size={18} /> {item.label}
-                    </a>
-                  );
-                })}
-              </div>
-
-              {/* Pas de section « Réglages » ici : le ⚙ est resté dans la barre. */}
-
-              {/* Import unique, sous les liens de navigation */}
-              <div className="mt-1 pt-2 border-t border-border">
-                <AccountImportControl onImport={importAccount} variant="mobile" />
-              </div>
-            </nav>
-          )}
-        </div>
-
-        {/* ---- Barre desktop : onglets + import ----
-            Reste MONTÉE même repliée (hauteur nulle) : c'est elle qui mesure la
-            largeur disponible, donc qui sait quand redéployer. */}
-        <div
-          ref={barRef}
-          className={`hidden sm:flex items-center gap-3 flex-wrap ${compactNav ? '' : 'mb-3'}`}
-        >
-          {!compactNav && (
-            <>
-          {/* `flex-nowrap` : la nav ne doit JAMAIS passer à la ligne toute
-              seule — c'est son débordement qui déclenche le hamburger. */}
-          <nav
-            ref={navRef}
-            className="flex flex-nowrap items-center gap-1 bg-panel border border-border rounded-xl p-1"
-          >
-            {NAV.map((item) => {
-              const active = route === item.key;
-              const Icon = item.icon;
-              return (
-                <a
-                  key={item.key}
-                  href={item.hash}
-                  className={`flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-[13px] font-semibold transition flex-none whitespace-nowrap
-                    ${
-                      // ⚠️ Le fond SEUL marque l'onglet courant. L'ombre qu'il
-                      // portait était une fausse élévation : une ombre dit
-                      // « ceci flotte au-dessus du reste », or un onglet actif
-                      // est dans le plan de la barre. Voir spec/shared/design.md.
-                      active
-                        ? 'bg-accent-soft text-ink'
-                        : 'text-ink-dim hoverable:text-ink'
-                    }`}
-                >
-                  <Icon size={14} /> {item.label}
-                </a>
-              );
-            })}
-
-            {/* Mon compte (Monstres + Runes + Artéfacts) */}
-            <div className="relative" ref={accountRef}>
-              <button
-                onClick={() => setAccountOpen((o) => !o)}
-                aria-expanded={accountOpen}
-                className={`flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-[13px] font-semibold transition flex-none whitespace-nowrap
-                  ${
-                    // Fond seul, sans fausse élévation — voir design.md.
-                    route === 'compte'
-                      ? 'bg-accent-soft text-ink'
-                      : 'text-ink-dim hoverable:text-ink'
-                  }`}
-              >
-                {/* Le bouton ouvre le compte entier, pas un inventaire : une icône
-                    de profil, et les icônes du jeu restent sur les trois sous-onglets. */}
-                <CircleUserRound size={16} /> Mon compte
-                <ChevronDown size={12} className={`transition-transform ${accountOpen ? 'rotate-180' : ''}`} />
-              </button>
-              {accountOpen && (
-                <div
-                  // Le menu grandit depuis SON BOUTON (coin haut gauche), pas
-                  // depuis son centre : il sort de l'onglet qu'on vient de
-                  // cliquer. Même règle que DetailPopover.
-                  className="absolute z-30 left-0 mt-1.5 min-w-[168px] rounded-xl border border-border bg-panel p-1 shadow-glow shadow-black/60
-                             origin-top-left animate-[popover_150ms_var(--ease-out)]"
-                >
-                  {ACCOUNT_SUBS.map((item) => {
-                    const active = route === 'compte' && accountSub === item.sub;
-                    return (
-                      <a
-                        key={item.sub}
-                        href={item.hash}
-                        onClick={() => setAccountOpen(false)}
-                        className={`flex items-center gap-2 rounded-lg px-2.5 py-2 text-[13px] font-semibold transition
-                          ${active ? 'bg-panel2 text-ink' : 'text-ink-dim hoverable:text-ink hoverable:bg-panel2'}`}
-                      >
-                        <GameIcon name={item.icon} size={17} /> {item.label}
-                      </a>
-                    );
-                  })}
-                </div>
-              )}
-            </div>
-
-            {/* Outils (Optimizer) */}
-            <div className="relative" ref={outilsRef}>
-              <button
-                onClick={() => setOutilsOpen((o) => !o)}
-                aria-expanded={outilsOpen}
-                className={`flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-[13px] font-semibold transition flex-none whitespace-nowrap
-                  ${
-                    route === 'outils'
-                      ? 'bg-accent-soft text-ink shadow'
-                      : 'text-ink-dim hoverable:text-ink'
-                  }`}
-              >
-                <Wrench size={14} /> Outils
-                <ChevronDown size={12} className={`transition-transform ${outilsOpen ? 'rotate-180' : ''}`} />
-              </button>
-              {outilsOpen && (
-                <div className="absolute z-30 left-0 mt-1.5 min-w-[168px] rounded-xl border border-border bg-panel p-1 shadow-glow shadow-black/60">
-                  {OUTILS_SUBS.map((item) => {
-                    const active = route === 'outils' && toolSub === item.sub;
-                    const Icon = item.icon;
-                    return (
-                      <a
-                        key={item.sub}
-                        href={item.hash}
-                        onClick={() => setOutilsOpen(false)}
-                        className={`flex items-center gap-2 rounded-lg px-2.5 py-2 text-[13px] font-semibold transition
-                          ${active ? 'bg-panel2 text-ink' : 'text-ink-dim hoverable:text-ink hoverable:bg-panel2'}`}
-                      >
-                        <Icon size={14} /> {item.label}
-                      </a>
-                    );
-                  })}
-                </div>
-              )}
-            </div>
-
-            {/* Arène — entre Outils et Ressources. */}
-            <a
-              href={ARENE_ITEM.hash}
-              className={`flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-[13px] font-semibold transition flex-none whitespace-nowrap
-                ${route === 'arene' ? 'bg-accent-soft text-ink shadow' : 'text-ink-dim hoverable:text-ink'}`}
-            >
-              <Trophy size={14} /> {ARENE_ITEM.label}
-            </a>
-
-            {/* Ressources (Bestiaire + Mécaniques) */}
-            <div className="relative" ref={resourcesRef}>
-              <button
-                onClick={() => setResourcesOpen((o) => !o)}
-                aria-expanded={resourcesOpen}
-                className={`flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-[13px] font-semibold transition flex-none whitespace-nowrap
-                  ${
-                    // Fond seul, sans fausse élévation — voir design.md.
-                    resourcesActive
-                      ? 'bg-accent-soft text-ink'
-                      : 'text-ink-dim hoverable:text-ink'
-                  }`}
-              >
-                <Library size={14} /> Ressources
-                <ChevronDown size={12} className={`transition-transform ${resourcesOpen ? 'rotate-180' : ''}`} />
-              </button>
-              {resourcesOpen && (
-                <div
-                  // Le menu grandit depuis SON BOUTON (coin haut gauche), pas
-                  // depuis son centre : il sort de l'onglet qu'on vient de
-                  // cliquer. Même règle que DetailPopover.
-                  className="absolute z-30 left-0 mt-1.5 min-w-[168px] rounded-xl border border-border bg-panel p-1 shadow-glow shadow-black/60
-                             origin-top-left animate-[popover_150ms_var(--ease-out)]"
-                >
-                  {RESOURCES.map((item) => {
-                    const active = route === item.key;
-                    const Icon = item.icon;
-                    return (
-                      <a
-                        key={item.key}
-                        href={item.hash}
-                        onClick={() => setResourcesOpen(false)}
-                        className={`flex items-center gap-2 rounded-lg px-2.5 py-2 text-[13px] font-semibold transition
-                          ${active ? 'bg-panel2 text-ink' : 'text-ink-dim hoverable:text-ink hoverable:bg-panel2'}`}
-                      >
-                        <Icon size={14} /> {item.label}
-                      </a>
-                    );
-                  })}
-                </div>
-              )}
-            </div>
-          </nav>
-          {/* Réglages tout à droite, après l'import : c'est le geste le plus rare. */}
-          <div ref={toolsRef} className="ml-auto flex items-center gap-1">
-            {/* ⚠️ Masqué sur l'ACCUEIL : la zone de dépôt y est déjà au centre
-                de l'écran, deux points d'entrée pour le même geste sèment le
-                doute sur celui qui « compte vraiment ». */}
-            {route !== 'home' && (
-              <AccountImportControl onImport={importAccount} variant="desktop" />
-            )}
-            <SettingsMenu
-              onClearData={() => setPurgeGlobale(true)}
-              onKeepAccount={persistCurrentAccount}
-              accountExportedAt={accountExportedAt}
-            />
-          </div>
-            </>
-          )}
-        </div>
+      {/* ⚠️ `pb-24` sous `lg` : la barre d'onglets est fixée en bas et
+          recouvrirait le pied de page. */}
+      {/* ⚠️ **Toute la largeur disponible**, plus de plafond à 1180 px. Celui-ci
+          datait de la navigation horizontale : le contenu était centré sous une
+          barre elle-même centrée. Avec une barre latérale, la page commence à
+          son bord droit et doit aller jusqu'au bout — les grilles de monstres,
+          les tableaux de runes et l'optimiseur gagnent une à deux colonnes.
+          ⚠️ `pt-[68px]` : la barre supérieure est FIXE (48 px) et recouvrirait
+          le haut du contenu. `pb-24` sous `lg` : la barre d'onglets est fixée
+          en bas. */}
+      <div className="px-4 pb-24 pt-[68px] sm:px-6 lg:pb-16">
 
         {/* Avertissement petit écran : au-dessus du contenu, avant qu'on se soit
             fait une idée sur un affichage à l'étroit. */}
@@ -886,6 +916,9 @@ export default function App() {
         ) : route === 'compte' ? (
           <AccountPage
             sub={accountSub}
+            // ⚠️ `vueValide` : passer des Runes (sur « Courbes ») aux Artéfacts,
+            // qui n'ont pas de courbes, laissait sinon un écran blanc.
+            vue={vueValide(accountSub, accountView)}
             box={box}
             runes={runes}
             artifacts={artifacts}
@@ -910,6 +943,13 @@ export default function App() {
           <ReleasesPage />
         ) : route === 'mecaniques' ? (
           <MechanicsPage />
+        ) : route === 'parametres' ? (
+          <SettingsPage
+            onClearData={() => setPurgeGlobale(true)}
+            onKeepAccount={persistCurrentAccount}
+            accountExportedAt={accountExportedAt}
+            accountName={accountName}
+          />
         ) : (
           <HomePage
             stats={{
@@ -1011,5 +1051,6 @@ export default function App() {
           />
         )}
       </div>
+    </div>
   );
 }

@@ -49,6 +49,22 @@ export default {
         dark: 'rgb(var(--el-dark) / <alpha-value>)',
         unknown: 'rgb(var(--el-unknown) / <alpha-value>)',
 
+        // Fonds doux par élément — pour les surfaces qui portent une teinte
+        // sans la crier (pastille active, en-tête d'écran).
+        'fire-soft': 'rgb(var(--el-fire-soft) / <alpha-value>)',
+        'water-soft': 'rgb(var(--el-water-soft) / <alpha-value>)',
+        'wind-soft': 'rgb(var(--el-wind-soft) / <alpha-value>)',
+        'light-soft': 'rgb(var(--el-light-soft) / <alpha-value>)',
+        'dark-soft': 'rgb(var(--el-dark-soft) / <alpha-value>)',
+        'unknown-soft': 'rgb(var(--el-unknown-soft) / <alpha-value>)',
+
+        // ⚠️ Accent CONTEXTUEL : `bg-ctx`, `text-ctx`, `border-ctx`. Sa valeur
+        // dépend du `data-ctx` de l'ancêtre le plus proche — l'élément du
+        // monstre affiché, ou l'accent de l'app par défaut. Un composant n'a
+        // donc RIEN à savoir de l'élément courant : il écrit `text-ctx`.
+        ctx: 'rgb(var(--ctx) / <alpha-value>)',
+        'ctx-soft': 'rgb(var(--ctx-soft) / <alpha-value>)',
+
         star: 'rgb(var(--star) / <alpha-value>)',
       },
 

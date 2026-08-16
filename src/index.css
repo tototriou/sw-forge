@@ -74,6 +74,18 @@
   --el-dark: 118 36 190;
   --el-unknown: 86 95 122;
 
+  /* Fonds DOUX par élément — la teinte fondue dans la surface, exactement comme
+     `--accent-soft` l'est pour l'accent. Ils portent l'élément sans crier :
+     une pastille sélectionnée, un en-tête d'écran, une carte de résumé.
+     ⚠️ Assez pâles pour que `--ink` reste lisible dessus — ce sont des FONDS,
+     jamais du texte. */
+  --el-fire-soft: 250 232 230;
+  --el-water-soft: 226 238 247;
+  --el-wind-soft: 246 240 222;
+  --el-light-soft: 246 240 226;
+  --el-dark-soft: 240 231 250;
+  --el-unknown-soft: 234 237 244;
+
   --star: 138 87 12;
 
   /* Palette du résumé de compte (paliers d'efficience, qualité du stock).
@@ -102,7 +114,29 @@
   --radius-lg: 7px;
 
   --page-veil: radial-gradient(ellipse 80% 50% at 50% -10%, #dfe3f5 0%, transparent 60%);
+
+  /* ---- Accent CONTEXTUEL (refonte UI) --------------------------------- */
+  /* ⚠️ **Un alias, pas une couleur.** `--ctx` ne vaut jamais une valeur
+     nouvelle : il POINTE vers un token qui existe déjà — un élément
+     (`--el-water`) quand l'écran parle d'un monstre, l'accent de l'app sinon.
+     Chaque teinte reste donc celle dont le contraste a été mesuré, et il n'y a
+     rien de plus à vérifier.
+     ⚠️ Défini pour les DEUX thèmes du seul fait qu'il est un alias : la valeur
+     suit automatiquement `--accent`, qui change avec le thème. */
+  --ctx: var(--accent);
+  --ctx-soft: var(--accent-soft);
 }
+
+/* L'élément d'un écran est porté par un attribut `data-ctx` sur un conteneur.
+   Toute la sous-arborescence prend la teinte — barre latérale, titres, boutons.
+   ⚠️ Ces règles sont hors des blocs de thème : elles ne redéfinissent que des
+   ALIAS, dont les cibles, elles, sont déjà propres à chaque thème. */
+[data-ctx='fire'] { --ctx: var(--el-fire); --ctx-soft: var(--el-fire-soft); }
+[data-ctx='water'] { --ctx: var(--el-water); --ctx-soft: var(--el-water-soft); }
+[data-ctx='wind'] { --ctx: var(--el-wind); --ctx-soft: var(--el-wind-soft); }
+[data-ctx='light'] { --ctx: var(--el-light); --ctx-soft: var(--el-light-soft); }
+[data-ctx='dark'] { --ctx: var(--el-dark); --ctx-soft: var(--el-dark-soft); }
+[data-ctx='unknown'] { --ctx: var(--el-unknown); --ctx-soft: var(--el-unknown-soft); }
 
 /* ---- Forge (sombre) : les valeurs, définies UNE SEULE FOIS ----
    ⚠️ Volontairement plus clair que la maquette d'origine (#0c0b0f) : sur une
@@ -131,6 +165,16 @@
   --forge-warn: 217 164 65;
   /* Éclairci : `bad` passait sous 4.0 sur panel2, or il porte les alertes. */
   --forge-bad: 226 116 104;
+
+  /* Fonds doux — la teinte fondue dans `--forge-panel` (25 26 38), la même
+     construction que `--forge-accent-soft` (48 38 34), qui est le cuivre fondu
+     dans ce fond-là. */
+  --forge-el-fire-soft: 46 27 33;
+  --forge-el-water-soft: 23 40 51;
+  --forge-el-wind-soft: 45 40 32;
+  --forge-el-light-soft: 41 42 53;
+  --forge-el-dark-soft: 38 29 52;
+  --forge-el-unknown-soft: 34 37 48;
 
   --forge-el-fire: 232 92 80;
   --forge-el-water: 47 160 224;
@@ -185,6 +229,12 @@
     --el-light: var(--forge-el-light);
     --el-dark: var(--forge-el-dark);
     --el-unknown: var(--forge-el-unknown);
+    --el-fire-soft: var(--forge-el-fire-soft);
+    --el-water-soft: var(--forge-el-water-soft);
+    --el-wind-soft: var(--forge-el-wind-soft);
+    --el-light-soft: var(--forge-el-light-soft);
+    --el-dark-soft: var(--forge-el-dark-soft);
+    --el-unknown-soft: var(--forge-el-unknown-soft);
     --star: var(--forge-star);
     --pal-1: var(--forge-pal-1);
   --pal-2: var(--forge-pal-2);
@@ -228,6 +278,12 @@
   --el-light: var(--forge-el-light);
   --el-dark: var(--forge-el-dark);
   --el-unknown: var(--forge-el-unknown);
+  --el-fire-soft: var(--forge-el-fire-soft);
+  --el-water-soft: var(--forge-el-water-soft);
+  --el-wind-soft: var(--forge-el-wind-soft);
+  --el-light-soft: var(--forge-el-light-soft);
+  --el-dark-soft: var(--forge-el-dark-soft);
+  --el-unknown-soft: var(--forge-el-unknown-soft);
   --star: var(--forge-star);
   --pal-1: var(--forge-pal-1);
   --pal-2: var(--forge-pal-2);
@@ -301,9 +357,25 @@ body {
    focus reste visible, il cesse juste de se dédoubler.
    Voir la section « UN SEUL marqueur de sélection » dans spec/shared/design.md. */
 .border-accent:focus-visible,
+.border-ctx:focus-visible,
 .focus\:border-accent:focus-visible,
-.focus-within\:border-accent:focus-within:has(:focus-visible) {
+.focus\:border-ctx:focus-visible,
+.focus-within\:border-accent:focus-within:has(:focus-visible),
+.focus-within\:border-ctx:focus-within:has(:focus-visible) {
   outline-offset: 0;
+}
+
+/* ⚠️ **UN SEUL contour, celui du PARENT.** Un champ posé dans un cadre qui
+   réagit déjà au focus (`focus-within:border-…`) ne doit pas porter son propre
+   anneau : on obtenait un contour DANS un contour, à 2 px l'un de l'autre.
+   C'est le cadre qui marque le focus — le champ, lui, remplit le cadre.
+
+   Le focus reste donc parfaitement visible : il a simplement cessé d'être
+   dessiné deux fois. La règle vaut pour toute l'app, pas pour un composant.
+   Voir spec/shared/design.md § « UN SEUL marqueur de sélection ». */
+.focus-within\:border-accent :focus-visible,
+.focus-within\:border-ctx :focus-visible {
+  outline: none;
 }
 
 /* ---- Pression au clic --------------------------------------------------- */
@@ -380,6 +452,25 @@ button:not(:disabled):not([draggable]):not([role='switch']):active,
   to {
     opacity: 1;
     transform: translateY(0);
+  }
+}
+
+/* Décalage du contenu sous la barre latérale FIXE.
+   ⚠️ Au-dessus de `lg` seulement : sous cette largeur la barre n'existe pas
+   (c'est la barre d'onglets du bas qui prend le relais).
+   La transition suit la même courbe et la même durée que le repli de la barre
+   elle-même — les deux doivent bouger ensemble, sinon on voit une colonne de
+   vide apparaître puis se combler. */
+@media (min-width: 1024px) {
+  .pad-nav {
+    padding-left: var(--pad-nav, 224px);
+    transition: padding-left 180ms var(--ease-out);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pad-nav {
+    transition: none;
   }
 }
 

@@ -164,14 +164,29 @@ export type SlotFilterPresetKey = 'bas' | 'moyen' | 'haut' | 'extreme';
 // « Validation grandeur nature ») : 40 est le défaut historique, 300 est la
 // valeur qui a permis de retrouver un build réel sur un très gros compte.
 export const SLOT_FILTER_PRESETS: { key: SlotFilterPresetKey; label: string; cap: number; hint: string }[] = [
-  { key: 'bas', label: 'Bas', cap: 40, hint: 'Rapide — suffit la plupart du temps.' },
-  { key: 'moyen', label: 'Moyen', cap: 80, hint: 'Un peu plus large, coût encore modéré.' },
-  { key: 'haut', label: 'Haut', cap: 150, hint: 'Nettement plus de runes considérées — recherche plus lente.' },
+  {
+    key: 'bas',
+    label: 'Bas',
+    cap: 40,
+    hint: 'Rapide, mais peut manquer des runes si tu en as beaucoup au même emplacement.',
+  },
+  {
+    key: 'moyen',
+    label: 'Moyen',
+    cap: 80,
+    hint: 'Un bon équilibre entre rapidité et exhaustivité — le choix par défaut.',
+  },
+  {
+    key: 'haut',
+    label: 'Haut',
+    cap: 150,
+    hint: 'Considère plus de runes, donc plus long — utile si Moyen ne trouve pas de résultat satisfaisant.',
+  },
   {
     key: 'extreme',
     label: 'Extrême',
     cap: 300,
-    hint: 'Valeur mesurée nécessaire pour retrouver un vrai build sur un très gros compte — peut prendre plusieurs dizaines de secondes.',
+    hint: 'Le plus complet, mais le plus long — peut prendre plusieurs minutes selon le nombre de conditions demandées.',
   },
 ];
 

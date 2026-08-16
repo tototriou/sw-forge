@@ -134,3 +134,12 @@ vitesse_effective = (base + runes) + ceil( base × (15 + lead) / 100 )
   de section (`onRuneSpeed` → `setRuneSpeed`) : modifier ici met à jour partout.
 - Change de lead ⇒ le tri et les rangs se réordonnent en direct.
 - Vide ⇒ « Ajoute des monstres pour visualiser l'ordre de tour. »
+
+## Interrupteurs d'affichage
+
+⚠️ « Vitesses » et « Catégories » sont le **même composant** que les trois de la
+barre de catégories (`InterrupteurAffichage`, voir
+[categories.md](categories.md)). Ils portaient auparavant leur propre style :
+l'accent y marquait l'état *masqué* et l'œil barré demandait d'être décodé —
+deux défauts déjà corrigés à côté, mais pas ici, si bien que le même geste se
+lisait différemment d'un bloc à l'autre.

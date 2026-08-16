@@ -893,9 +893,23 @@ button:not(:disabled):not([draggable]):not([role='switch']):active,
 [data-tiroir] [data-rangee-actions] > button,
 [data-tiroir] [data-rangee-actions] > * > button {
   width: 100%;
+  /* ⚠️ **Hauteur IDENTIQUE d'une cellule à l'autre.** Sans elle, chaque bouton
+     prenait celle de son contenu : « Réinitialiser » sur deux lignes était plus
+     haut que « Ami » sur une, et la grille partait en marches d'escalier.
+     `height: 100%` remplit la rangée, dont la hauteur est celle du plus grand —
+     et `min-height` pose un plancher pour que trois boutons courts ne fassent
+     pas une rangée écrasée. */
+  height: 100%;
+  min-height: 38px;
   justify-content: center;
+  text-align: center;
   padding-left: 0.375rem;
   padding-right: 0.375rem;
+}
+
+/* La cellule s'étire, sinon `height: 100%` sur le bouton n'a rien à remplir. */
+[data-tiroir] [data-grille-actions] {
+  align-items: stretch;
 }
 
 /* ⚠️ **« Tout effacer » est CENTRÉ en bas du panneau**, pas aligné à gauche

@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { Eye, EyeOff, X } from 'lucide-react';
+import { X } from 'lucide-react';
 import { Monster, RtaEntry } from '../../types';
 import ElementIcon from '../ElementIcon';
 import CategoryRing from './CategoryRing';
@@ -8,6 +8,8 @@ import { RtaCategory } from '../../hooks/useRtaCategories';
 import RuneIcon from '../RuneIcon';
 import { SPEED_LEADS, speedLeadOf } from '../../lib/speed';
 import { useStickyState } from '../../hooks/useStickyState';
+import { InterrupteurAffichage } from './CategoryBar';
+import { COMPACT, useMediaQuery } from '../../hooks/useMediaQuery';
 
 const SPD_ICON = `${import.meta.env.BASE_URL}stats/spd.png`;
 
@@ -136,6 +138,9 @@ export default function TurnOrder({
   onToggleSpeed,
 }: Props) {
   const [lead, setLead] = useState(0);
+  // Les deux interrupteurs d'affichage sont ceux de la barre de catégories —
+  // même composant, donc même rendu au doigt qu'à la souris.
+  const surMobile = useMediaQuery(COMPACT);
 
   // Leads ajoutés à la main, et leads proposés que l'utilisateur a retirés.
   // ⚠️ Deux listes plutôt qu'une liste modifiable : la prépa change (import,
@@ -281,45 +286,26 @@ export default function TurnOrder({
         {/* Interrupteurs d'AFFICHAGE, au contact des vignettes qu'ils modifient
             — et non en tête de panneau, où l'on ne fait pas le lien. */}
         {onToggleSpeed && (
-          <button
-            onClick={() => onToggleSpeed(!showSpeed)}
-            aria-pressed={showSpeed}
-            title={
-              showSpeed
-                ? "Masquer les vitesses (l'ordre reste le même)"
-                : 'Réafficher les vitesses'
-            }
-            className={`flex h-7 items-center gap-1.5 rounded-full border px-2.5 text-xs transition ${
-              showSpeed
-                ? 'border-border bg-panel text-ink-dim hoverable:text-ink hoverable:border-accent'
-                : // Fond seul — voir spec/shared/design.md.
-                  'border-border bg-accent-soft text-ink'
-            }`}
-          >
-            {showSpeed ? <Eye size={12} /> : <EyeOff size={12} />}
-            Vitesses
-          </button>
+          <InterrupteurAffichage
+            actif={showSpeed}
+            onToggle={() => onToggleSpeed(!showSpeed)}
+            libelle="Vitesses"
+            titreActif="Masquer les vitesses (l'ordre reste le même)"
+            titreInactif="Réafficher les vitesses"
+            surMobile={surMobile}
+          />
+
         )}
 
         {onToggleCategories && (
-          <button
-            onClick={() => onToggleCategories(!categoriesVisible)}
-            aria-pressed={categoriesVisible}
-            title={
-              categoriesVisible
-                ? 'Masquer les couleurs de catégories'
-                : 'Réafficher les couleurs de catégories'
-            }
-            className={`flex h-7 items-center gap-1.5 rounded-full border px-2.5 text-xs transition ${
-              categoriesVisible
-                ? 'border-border bg-panel text-ink-dim hoverable:text-ink hoverable:border-accent'
-                : // Fond seul — voir spec/shared/design.md.
-                  'border-border bg-accent-soft text-ink'
-            }`}
-          >
-            {categoriesVisible ? <Eye size={12} /> : <EyeOff size={12} />}
-            Catégories
-          </button>
+          <InterrupteurAffichage
+            actif={categoriesVisible}
+            onToggle={() => onToggleCategories(!categoriesVisible)}
+            libelle="Catégories"
+            titreActif="Masquer les couleurs de catégories"
+            titreInactif="Réafficher les couleurs de catégories"
+            surMobile={surMobile}
+          />
         )}
 
         <button

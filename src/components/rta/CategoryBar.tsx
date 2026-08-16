@@ -375,7 +375,7 @@ export default function CategoryBar({ cats, monsters }: Props) {
 //   s'il montre l'état courant ou l'action à venir. À 12 px sur un téléphone,
 //   l'ambiguïté ne se lève plus ; un point plein ou creux se lit sans être
 //   interprété.
-function InterrupteurAffichage({
+export function InterrupteurAffichage({
   actif,
   onToggle,
   libelle,

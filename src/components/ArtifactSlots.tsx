@@ -2,6 +2,7 @@ import { ReactNode, useRef } from 'react';
 import { Ban } from 'lucide-react';
 import { ARTIFACT_KINDS, ArtifactDetail } from '../types';
 import ArtifactIcon from './ArtifactIcon';
+import { SOUS_SM, useMediaQuery } from '../hooks/useMediaQuery';
 
 // Emplacements d'artéfacts — extraits de [MonsterGear.tsx](src/components/MonsterGear.tsx)
 // à son deuxième usage (cartes de résultat de l'Optimizer, voir
@@ -16,12 +17,16 @@ const ARTIFACT_FRAME = `${import.meta.env.BASE_URL}artifact-blank.png`;
 
 // Taille de référence (celle de MonsterGear à `scale=1`).
 const BASE_FRAME = 58;
+// Voir la note d'échelle dans le composant.
+const SCALE_MOBILE = 0.72;
 const BASE_ICON = 26;
 const BASE_BAN_ICON = 22;
 
 export interface ArtifactSlotsProps {
   artifacts: ArtifactDetail[];
   // 1 = taille pleine (MonsterGear) ; plus petit pour une carte compacte.
+  // Échelle explicite. ⚠️ Elle REMPLACE l'adaptation mobile automatique (voir
+  // le composant), elle ne s'y multiplie pas.
   scale?: number;
   isSelected?: (artifact: ArtifactDetail, index: number) => boolean;
   onSelectArtifact?: (artifact: ArtifactDetail, index: number) => void;
@@ -37,18 +42,29 @@ export interface ArtifactSlotsProps {
 
 export default function ArtifactSlots({
   artifacts,
-  scale = 1,
+  scale,
   isSelected,
   onSelectArtifact,
   renderOverlay,
 }: ArtifactSlotsProps) {
   const refs = useRef<(HTMLDivElement | null)[]>([]);
-  const frame = Math.round(BASE_FRAME * scale);
-  const iconSize = Math.max(10, Math.round(BASE_ICON * scale));
-  const banSize = Math.max(10, Math.round(BASE_BAN_ICON * scale));
+  // ⚠️ **0,72 sous `sm`** — la même échelle que la roue de runes (RuneWheel) :
+  // les deux blocs se lisent côte à côte, les réduire inégalement les
+  // désaccorderait. Le cadre passe de 58 à 42 px, ce qui laisse les trois blocs
+  // d'équipement (artéfacts, roue, relique) sur UNE ligne de 348 px.
+  //
+  // ⚠️ Une `scale` explicite REMPLACE cette valeur, elle ne s'y multiplie pas —
+  // même contrat que `RuneWheel`. La carte de résultat de l'Optimiseur passe
+  // déjà 0,45 pour tenir deux cartes par ligne ; multiplier aurait donné 0,32,
+  // soit une icône de 8 px où l'artéfact ne se reconnaît plus.
+  const petitEcran = useMediaQuery(SOUS_SM);
+  const echelle = scale ?? (petitEcran ? SCALE_MOBILE : 1);
+  const frame = Math.round(BASE_FRAME * echelle);
+  const iconSize = Math.max(10, Math.round(BASE_ICON * echelle));
+  const banSize = Math.max(10, Math.round(BASE_BAN_ICON * echelle));
 
   return (
-    <div className="flex flex-col gap-1.5">
+    <div className="flex flex-col gap-1 sm:gap-1.5">
       {ARTIFACT_KINDS.map(({ key, label }, slotIdx) => {
         const i = artifacts.findIndex((a) => a.kind === key);
         const a = i >= 0 ? artifacts[i] : null;

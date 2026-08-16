@@ -43,7 +43,34 @@ Tout le reste — disposition, densité, taille, ordre, choix d'un contrôle —
 
 ## Où passe la frontière
 
-Le seuil est `lg` (1024 px), celui de la barre latérale.
+Deux frontières, pour deux questions différentes.
+
+### La NAVIGATION : `lg` (1024 px)
+
+Barre latérale au-dessus, barre d'onglets en dessous. C'est une question de
+largeur : une barre latérale de 224 px n'a pas sa place sur un écran de 400.
+
+### La DENSITÉ : `compact:` — le POINTEUR, jamais la largeur
+
+⚠️ **Tailles, écarts et rembourrages suivent le mode de pointage**, pas la
+taille de l'écran. `compact:` vaut `@media (pointer: coarse)` — comme
+`hoverable:` et `coarse:`, dont c'est le pendant pour la densité.
+
+Deux raisons, toutes deux constatées :
+
+- **L'ORIENTATION ne doit rien changer.** Avec un seuil sur `sm`, un iPhone
+  basculait d'un rendu à l'autre en le tournant : 390 px en portrait, 844 en
+  paysage. Portraits, écarts et tailles changeaient d'un quart de tour, alors que
+  c'est le même téléphone dans la même main.
+- **La TABLETTE a la largeur d'un bureau mais les gestes d'un mobile.** Elle a
+  donc les mêmes besoins de densité, et un seuil en pixels la classait du mauvais
+  côté.
+
+⚠️ Un téléphone garde donc l'affichage resserré en paysage, **et** la navigation
+de bureau si sa largeur dépasse `lg`. Ce n'est pas une incohérence : ce sont deux
+questions distinctes, et chacune a la bonne réponse.
+
+Le seuil `lg` (1024 px) reste celui de la barre latérale.
 
 | | Sous `lg` — format MOBILE | Au-dessus — format BUREAU |
 |---|---|---|
@@ -65,21 +92,26 @@ suffise.**
 ### 1. Les variantes Tailwind — le cas ordinaire
 
 ```tsx
-className="gap-0.5 sm:gap-1"        // resserré au doigt
-className="hidden lg:flex"          // bureau seulement
-className="lg:hidden"               // mobile seulement
+className="gap-1 compact:gap-0.5"   // resserré au DOIGT (toute largeur)
+className="hidden lg:flex"          // navigation de bureau seulement
+className="lg:hidden"               // navigation mobile seulement
 ```
+
+⚠️ **La valeur de base est celle du BUREAU**, `compact:` porte celle du tactile —
+et non l'inverse. Le contraire (`gap-0.5 sm:gap-1`) lisait « petit par défaut,
+grand si l'écran est large », ce qui redevient un raisonnement sur la largeur.
 
 Aucun rendu supplémentaire, aucun état. C'est la réponse à « le même élément,
 d'une taille ou d'un écart différent ».
 
-### 2. `useMediaQuery(SOUS_LG)` — quand une VALEUR change
+### 2. `useMediaQuery(COMPACT)` ou `(SOUS_LG)` — quand une VALEUR change
 
 Pour ce que le CSS ne peut pas exprimer : la taille d'un dessin calculée en
 pixels, le nombre d'éléments d'une liste, **le choix d'un composant**.
 
 ```tsx
-const surMobile = useMediaQuery(SOUS_LG);
+const surMobile = useMediaQuery(SOUS_LG); // navigation
+const auDoigt = useMediaQuery(COMPACT); // densité
 if (surMobile) return <MobileSheet …>{formulaire}</MobileSheet>;
 return <Popover …>{formulaire}</Popover>;
 ```

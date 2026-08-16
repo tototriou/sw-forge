@@ -1,5 +1,5 @@
 import { ReactNode, useRef } from 'react';
-import { SOUS_SM, useMediaQuery } from '../hooks/useMediaQuery';
+import { COMPACT, useMediaQuery } from '../hooks/useMediaQuery';
 import { RuneDetail } from '../types';
 import { RARITY_FILTER } from '../lib/effects';
 import RuneIcon from './RuneIcon';
@@ -89,7 +89,7 @@ const SCALE_MOBILE = 0.72;
 
 export default function RuneWheel({ runes, scale, isSelected, onSelectRune, renderOverlay }: RuneWheelProps) {
   const refs = useRef<(HTMLDivElement | null)[]>([]);
-  const petitEcran = useMediaQuery(SOUS_SM);
+  const petitEcran = useMediaQuery(COMPACT);
   const echelle = scale ?? (petitEcran ? SCALE_MOBILE : 1);
 
   const wheelW = Math.round(BASE_WHEEL_W * echelle);

@@ -372,7 +372,7 @@ export default function MonsterGear({ gear, spdCible = null }: Props) {
   const toggle = (s: Exclude<Selected, null>) => setSel((cur) => (isSel(s) ? null : s));
 
   return (
-    <div className="flex flex-col items-center gap-2 sm:flex-row sm:flex-wrap sm:justify-center">
+    <div className="flex flex-row flex-wrap items-center justify-center gap-2 compact:flex-col">
       {/* Panneau de stats — voir StatPanel.tsx (base+bonus ↔ total au clic,
           largeur fixe pour ne jamais déplacer artéfacts/roue/relique).
           ⚠️ Sur sa PROPRE ligne sous `sm`. À 200 px il occupait plus de la
@@ -386,7 +386,7 @@ export default function MonsterGear({ gear, spdCible = null }: Props) {
           perd la vue d'ensemble qu'on vient chercher. Ils tiennent sur 348 px
           une fois le panneau de stats sorti de la rangée — voir les tailles
           réduites de chaque bloc sous `sm`. */}
-      <div className="flex w-full items-center justify-center gap-1.5 sm:contents">
+      <div className="contents compact:flex compact:w-full compact:items-center compact:justify-center compact:gap-1.5">
       {/* Artéfacts — détail affiché EN LIGNE plus bas (bloc `sel`), pas un
           popover flottant : pas de `renderOverlay` ici.
           ⚠️ **`ArtifactSlots` et non une boucle sur `gear.artifacts`.** Ce
@@ -422,14 +422,14 @@ export default function MonsterGear({ gear, spdCible = null }: Props) {
           // ⚠️ Resserrée sous `sm` : elle partage la rangée avec les artéfacts
           // et la roue, et son rembourrage de 10 px de chaque côté était le
           // plus facile à rendre — le contenu, lui, ne se réduit pas.
-          className={`rounded-lg border px-1.5 py-1.5 text-center transition sm:px-2.5 sm:py-2 ${
+          className={`rounded-lg border px-2.5 py-2 text-center transition compact:px-1.5 compact:py-1.5 ${
             isSel({ kind: 'relic' })
               ? 'border-star ring-1 ring-star/50 bg-star/10'
               : 'border-border bg-panel/60 hoverable:border-accent'
           }`}
         >
           <div className="label">Relique</div>
-          <div className="mt-0.5 text-micro font-bold text-ink sm:text-xs">
+          <div className="mt-0.5 text-xs font-bold text-ink compact:text-micro">
             {formatRelicMain(gear.relic.main)}
           </div>
         </button>

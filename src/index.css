@@ -560,7 +560,7 @@ button:not(:disabled):not([draggable]):not([role='switch']):active,
 }
 
 /* ---- Panneau d'actions mobile ------------------------------------------------------ */
-/* ⚠️ Les libellés masqués par `hidden sm:inline` REDEVIENNENT visibles dans le
+/* ⚠️ Les libellés masqués par `compact:hidden` REDEVIENNENT visibles dans le
    tiroir. Ils disparaissent dans la page faute de place — six boutons à
    libellé complet y remplissaient trois rangées —, mais le tiroir est un
    panneau dédié qui tient toute la largeur : une rangée d'icônes sans mots y
@@ -569,21 +569,28 @@ button:not(:disabled):not([draggable]):not([role='switch']):active,
    ⚠️ La règle vit ICI et non dans chaque composant : les boutons ne savent pas
    où ils sont rendus, et c'est très bien — ils déclarent leur libellé une fois,
    le contexte décide s'il tient. */
-[data-tiroir] .hidden.sm\:inline {
+[data-tiroir] .compact\:hidden {
   display: inline !important;
 }
 
-/* ⚠️ …et le bouton REPREND une forme large. Réduit à son icône dans la page, il
-   porte `aspect-square` pour ne pas devenir un rectangle vertical au doigt (voir
-   la règle tactile). Mais son libellé revient ici : gardé carré, le mot en
-   débordait. La grille du panneau lui donne déjà sa largeur — il suffit de
-   relâcher la contrainte de forme. */
-[data-tiroir] button.aspect-square {
-  aspect-ratio: auto;
-  width: 100%;
+/* ⚠️ …et le bouton REPREND son cadre. Dans la page il est réduit à une icône
+   nue (`compact:` retire bordure, fond et rembourrage) : six cadres y feraient
+   six carrés dans une barre serrée. Ici il occupe une cellule de grille, avec
+   son libellé — sans cadre, on ne verrait plus où finit un bouton et où
+   commence le suivant.
+   ⚠️ Écrit en CSS et non dans le composant : celui-ci ne sait pas où il est
+   rendu, et c'est très bien. */
+/* ⚠️ Limité aux RANGÉES D'ACTIONS : les pastilles de filtre et les cases de
+   couleur d'un formulaire ont leur propre habillage, leur imposer celui-ci les
+   déformerait. */
+[data-tiroir] [data-rangee-actions] > button {
   gap: 0.375rem;
-  padding-left: 0.375rem;
-  padding-right: 0.375rem;
+  border-width: 1px;
+  border-color: rgb(var(--border));
+  background-color: rgb(var(--panel));
+  border-radius: var(--radius);
+  padding-left: 0.5rem;
+  padding-right: 0.5rem;
 }
 
 /* ⚠️ …et la zone tactile étendue n'a plus lieu d'être ici. Elle compense la
@@ -595,14 +602,6 @@ button:not(:disabled):not([draggable]):not([role='switch']):active,
   display: none;
 }
 
-/* ⚠️ …SAUF la variante longue d'un libellé qui en a deux. La règle ci-dessus
-   révèle tout ce qui porte `hidden sm:inline` ; un bouton qui décline un libellé
-   court pour le panneau et un long pour le desktop (`hidden lg:inline`) verrait
-   les deux s'afficher côte à côte. Le panneau vit sous `lg` : c'est la version
-   courte qui y a cours. */
-[data-tiroir] .hidden.lg\:inline {
-  display: none !important;
-}
 
 /* ⚠️ Les boutons empilés s'alignent à GAUCHE : un libellé centré dans un bouton
    large flotte au milieu du vide, et l'œil doit repartir chercher le début de

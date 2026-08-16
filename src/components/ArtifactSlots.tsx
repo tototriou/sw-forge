@@ -2,7 +2,7 @@ import { ReactNode, useRef } from 'react';
 import { Ban } from 'lucide-react';
 import { ARTIFACT_KINDS, ArtifactDetail } from '../types';
 import ArtifactIcon from './ArtifactIcon';
-import { SOUS_SM, useMediaQuery } from '../hooks/useMediaQuery';
+import { COMPACT, useMediaQuery } from '../hooks/useMediaQuery';
 
 // Emplacements d'artéfacts — extraits de [MonsterGear.tsx](src/components/MonsterGear.tsx)
 // à son deuxième usage (cartes de résultat de l'Optimizer, voir
@@ -57,14 +57,14 @@ export default function ArtifactSlots({
   // même contrat que `RuneWheel`. La carte de résultat de l'Optimiseur passe
   // déjà 0,45 pour tenir deux cartes par ligne ; multiplier aurait donné 0,32,
   // soit une icône de 8 px où l'artéfact ne se reconnaît plus.
-  const petitEcran = useMediaQuery(SOUS_SM);
+  const petitEcran = useMediaQuery(COMPACT);
   const echelle = scale ?? (petitEcran ? SCALE_MOBILE : 1);
   const frame = Math.round(BASE_FRAME * echelle);
   const iconSize = Math.max(10, Math.round(BASE_ICON * echelle));
   const banSize = Math.max(10, Math.round(BASE_BAN_ICON * echelle));
 
   return (
-    <div className="flex flex-col gap-1 sm:gap-1.5">
+    <div className="flex flex-col gap-1.5 compact:gap-1">
       {ARTIFACT_KINDS.map(({ key, label }, slotIdx) => {
         const i = artifacts.findIndex((a) => a.kind === key);
         const a = i >= 0 ? artifacts[i] : null;

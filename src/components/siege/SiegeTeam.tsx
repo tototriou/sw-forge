@@ -19,7 +19,7 @@ import MonsterGear from '../MonsterGear';
 import NumberField from '../NumberField';
 import LeadPill, { LeadBadge } from './LeadPill';
 import { ConfirmDialog } from '../Dialogs';
-import { useMediaQuery, SOUS_SM } from '../../hooks/useMediaQuery';
+import { useMediaQuery, COMPACT } from '../../hooks/useMediaQuery';
 
 const GRADIENT: Record<string, string> = {
   fire: 'from-fire to-panel2',
@@ -84,7 +84,7 @@ export default function SiegeTeam({
   // portrait de 30, il reste ~73 px. Trois icônes à 17 px n'y tiennent pas à
   // côté d'un nombre à trois chiffres. `RuneIcon` dimensionne en pixels — il
   // faut donc la valeur, pas une classe.
-  const petitEcran = useMediaQuery(SOUS_SM);
+  const petitEcran = useMediaQuery(COMPACT);
   const tailleSet = petitEcran ? 14 : 17;
 
   const usedIds = new Set(
@@ -166,11 +166,11 @@ export default function SiegeTeam({
     // ⚠️ `p-2.5` sous `sm` : la page empile jusqu'à huit équipes, et chaque
     // `p-4` coûte 32 px de haut multipliés par ce nombre — deux écrans de vide
     // sur un téléphone.
-    <section className={`rounded-2xl border p-2.5 sm:p-4 transition-colors ${sectionClass}`}>
+    <section className={`rounded-2xl border p-4 compact:p-2.5 transition-colors ${sectionClass}`}>
       {/* ⚠️ `gap-3` sous `sm` autour des deux icônes nues : sans cadre, elles se
           distinguent par l'espace. */}
-      <div className="mb-2 flex flex-wrap items-center gap-3 sm:mb-3 sm:gap-2">
-        <h3 className="font-display text-base sm:text-lg tracking-wide">Équipe {index + 1}</h3>
+      <div className="mb-3 flex flex-wrap items-center gap-2 compact:mb-2 compact:gap-3">
+        <h3 className="font-display text-lg tracking-wide compact:text-base">Équipe {index + 1}</h3>
         {dotClass && <span className={`w-2 h-2 rounded-full ${dotClass}`} />}
         {/* Lead à côté du nom de l'équipe : la VALEUR doit être lisible sans
             déplier. Le badge posé sur le portrait du leader reste, lui : il dit
@@ -304,7 +304,7 @@ export default function SiegeTeam({
            une rangée de trois, l'empiler défait ce qu'on vient lire.
            Le portrait descend à 30 px et le nom passe en `text-micro` pour que
            les trois tiennent sur 348 px. */
-        <div className="flex flex-row gap-1 sm:gap-1.5">
+        <div className="flex flex-row gap-1.5 compact:gap-1">
           {slotInfos.map(({ monster, combat }, idx) => {
             const danger = status === 'red' ? slotDangers[idx] : null;
             const sets = team.slots[idx].sets ?? [];
@@ -327,8 +327,8 @@ export default function SiegeTeam({
                       ? 'Voir le détail des runes'
                       : 'Modifier'
                 }
-                className={`flex-1 min-w-0 flex items-center gap-1 sm:gap-2 rounded-lg border
-                  px-1 py-1 sm:px-2 sm:py-1.5 text-left transition hoverable:border-accent ${
+                className={`flex-1 min-w-0 flex items-center gap-2 rounded-lg border
+                  px-2 py-1.5 compact:gap-1 compact:px-1 compact:py-1 text-left transition hoverable:border-accent ${
                   active
                     ? // Bordure seule, sans anneau superposé — voir design.md.
                       'border-accent bg-panel2'
@@ -341,7 +341,7 @@ export default function SiegeTeam({
                   <>
                     <div className="relative flex-none">
                       <div
-                        className={`hex-frame w-[30px] h-[30px] sm:w-[36px] sm:h-[36px] p-[2px]
+                        className={`hex-frame w-[36px] h-[36px] compact:w-[30px] compact:h-[30px] p-[2px]
                           bg-gradient-to-br ${GRADIENT[monster.element]}`}
                       >
                         <div className="hex-frame w-full h-full bg-panel flex items-center justify-center overflow-hidden">
@@ -374,7 +374,7 @@ export default function SiegeTeam({
                         finissait sous les icônes de set. Ligne 2 = vitesse à
                         gauche, sets poussés à droite. */}
                     <div className="min-w-0 flex-1">
-                      <div className="text-micro sm:text-xs font-semibold leading-tight truncate">
+                      <div className="text-xs font-semibold leading-tight truncate compact:text-micro">
                         {monster.name}
                       </div>
                       {/* ⚠️ Le budget de cette ligne est COMPTÉ. Sur 348 px,
@@ -386,16 +386,16 @@ export default function SiegeTeam({
                           chiffre en gras se lit comme une vitesse sans elle,
                           c'est la seule de la carte. Elle tombe donc sous `sm`,
                           et les sets descendent à 14 px. */}
-                      <div className="mt-0.5 flex items-center gap-0.5 sm:gap-1">
+                      <div className="mt-0.5 flex items-center gap-1 compact:gap-0.5">
                         <img
                           src={SPD_ICON}
                           alt="SPD"
                           width={14}
                           height={14}
-                          className="hidden flex-none sm:block"
+                          className="flex-none compact:hidden"
                         />
                         <span
-                          className={`font-mono text-sm sm:text-base font-black leading-none flex-none ${
+                          className={`font-mono text-base font-black leading-none flex-none compact:text-sm ${
                             danger ? 'text-fire' : 'text-ink'
                           }`}
                         >
@@ -416,10 +416,10 @@ export default function SiegeTeam({
                   // sous `sm`, 36 au-dessus). À 34 px fixes, une carte vide était
                   // plus haute qu'une carte pleine et la rangée de trois partait
                   // en dents de scie.
-                  <div className="flex items-center gap-1 text-ink-dim sm:gap-2">
+                  <div className="flex items-center gap-2 text-ink-dim compact:gap-1">
                     <span
-                      className="flex h-[30px] w-[30px] flex-none items-center justify-center rounded-lg
-                                 border border-dashed border-border text-base sm:h-[36px] sm:w-[36px] sm:text-lg"
+                      className="flex h-[36px] w-[36px] flex-none items-center justify-center rounded-lg
+                                 border border-dashed border-border text-lg compact:h-[30px] compact:w-[30px] compact:text-base"
                     >
                       +
                     </span>

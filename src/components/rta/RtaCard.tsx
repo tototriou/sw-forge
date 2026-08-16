@@ -136,7 +136,7 @@ export default function RtaCard({
         title={hasGear ? 'Voir le détail des runes' : undefined}
       >
         <div
-          className={`hex-frame w-[42px] h-[42px] p-[2px] bg-gradient-to-br sm:w-[50px] sm:h-[50px] ${GRADIENT[monster.element]}`}
+          className={`hex-frame w-[50px] h-[50px] p-[2px] bg-gradient-to-br compact:w-[42px] compact:h-[42px] ${GRADIENT[monster.element]}`}
         >
           <div className="hex-frame w-full h-full bg-panel flex items-center justify-center overflow-hidden">
             {monster.image ? (
@@ -160,7 +160,7 @@ export default function RtaCard({
           // ⚠️ `gap-0.5` sous `sm` : la ligne porte la vitesse, son icône, le
           // badge de désync et jusqu'à trois icônes de set sur 150 px. À
           // `gap-1` partout, la somme des écarts débordait de la carte.
-          className={`flex items-center gap-0.5 sm:gap-1 ${hasGear ? 'cursor-pointer' : ''}`}
+          className={`flex items-center gap-1 compact:gap-0.5 ${hasGear ? 'cursor-pointer' : ''}`}
           onClick={toggle}
           title={hasGear ? 'Voir le détail des runes' : undefined}
         >
@@ -178,7 +178,7 @@ export default function RtaCard({
               sa ligne, calée à droite, elle flottait loin du portrait qu'elle
               qualifie. */}
           <span
-            className={`hidden sm:block text-xs font-semibold leading-tight truncate flex-1 ${
+            className={`text-xs font-semibold compact:hidden leading-tight truncate flex-1 ${
               desync && markDesync ? 'text-warn' : ''
             }`}
           >
@@ -188,7 +188,7 @@ export default function RtaCard({
             <>
               <img src={SPD_ICON} alt="SPD" width={15} height={15} className="flex-none" />
               <span
-                className={`font-mono text-sm font-black leading-none max-sm:flex-1 ${
+                className={`font-mono text-sm font-black leading-none compact:flex-1 ${
                   desync && markDesync ? 'text-warn' : 'text-ink'
                 }`}
               >
@@ -209,7 +209,7 @@ export default function RtaCard({
               de sa voisine sans blanc entre elles.
               Sur bureau la carte est deux fois plus large et l'écart tient sans
               rien coûter — il n'y avait pas lieu de l'y retirer. */}
-          <span className="flex flex-none items-center gap-0 sm:gap-1 max-sm:pr-3">
+          <span className="flex flex-none items-center gap-1 compact:gap-0 compact:pr-3">
             {(entry.sets ?? []).slice(0, 3).map((s, i) => (
               <RuneIcon key={i} setKey={s} size={18} className="flex-none" />
             ))}

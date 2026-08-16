@@ -42,3 +42,16 @@ export function useMediaQuery(query: string): boolean {
 // disséminées dans les composants.
 export const SOUS_SM = '(max-width: 639px)';
 export const SOUS_LG = '(max-width: 1023px)';
+
+// ⚠️ **L'affichage resserré du TACTILE**, quel que soit l'appareil et quelle que
+// soit son orientation.
+//
+// C'est le POINTEUR seul qui décide, jamais la largeur. `SOUS_SM` faisait
+// basculer un iPhone d'un rendu à l'autre en le tournant (390 px en portrait,
+// 844 en paysage) : portraits, écarts et tailles changeaient d'un quart de tour,
+// alors que c'est le même téléphone dans la même main. Une tablette, elle, a la
+// largeur d'un bureau mais les gestes d'un mobile — et donc les mêmes besoins de
+// densité.
+//
+// ⚠️ Doit rester ALIGNÉ avec la variante `compact:` de tailwind.config.js.
+export const COMPACT = '(pointer: coarse)';

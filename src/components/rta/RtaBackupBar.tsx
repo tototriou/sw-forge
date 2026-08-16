@@ -107,7 +107,7 @@ function depuis(iso: string): string {
 }
 
 // ⚠️ **Icône seule sous `sm`** — le libellé vit dans un `<span className="hidden
-// sm:inline">`, et dans le `title` de chaque bouton. Six actions à libellé
+// compact:hidden">`, et dans le `title` de chaque bouton. Six actions à libellé
 // complet, chacune portée à 40 px de haut par la règle tactile, remplissaient
 // l'écran d'un téléphone : trois rangées de boutons avant d'atteindre la prépa.
 // Rien n'est perdu — l'intitulé reste au survol et au lecteur d'écran.
@@ -119,10 +119,11 @@ function depuis(iso: string): string {
 // `data-cible-fine` est posé sur chaque bouton ; `.cible-tactile` rend 44 px
 // touchables sans qu'un pixel du dessin ne bouge.
 const BOUTON =
-  'cible-tactile relative flex items-center justify-center text-xs text-ink-dim ' +
-  'hoverable:text-ink transition disabled:opacity-40 disabled:cursor-not-allowed ' +
-  'sm:gap-1.5 sm:rounded-lg sm:border sm:border-border sm:bg-panel sm:px-3 sm:py-1.5 ' +
-  'sm:hoverable:border-accent';
+  'cible-tactile relative flex items-center justify-center gap-1.5 rounded-lg border ' +
+  'border-border bg-panel px-3 py-1.5 text-xs text-ink-dim hoverable:text-ink ' +
+  'hoverable:border-accent transition disabled:opacity-40 disabled:cursor-not-allowed ' +
+  'compact:gap-0 compact:rounded-none compact:border-0 compact:bg-transparent ' +
+  'compact:px-0 compact:py-0';
 
 export default function RtaBackupBar({
   rta,
@@ -338,7 +339,7 @@ export default function RtaBackupBar({
           sans cadre pour les délimiter, six icônes à 8 px d'intervalle se lisent
           comme une frise continue, et l'on ne sait plus où finit l'une et où
           commence la suivante. C'est l'espace qui remplace le trait. */}
-      <div data-rangee-actions className="flex flex-wrap items-center gap-4 sm:gap-2">
+      <div data-rangee-actions className="flex flex-wrap items-center gap-2 compact:gap-4">
         <button
           onClick={() => (backup.backup ? setEcraserAConfirmer(true) : sauvegarder())}
           disabled={vide}
@@ -351,7 +352,7 @@ export default function RtaBackupBar({
               : 'Fige la prépa actuelle comme point de retour. Ta prépa est déjà conservée automatiquement : ceci sert à pouvoir revenir en arrière après des essais.'
           }
         >
-          <Save size={14} /> <span className="hidden sm:inline">Sauvegarder</span>
+          <Save size={14} /> <span className="compact:hidden">Sauvegarder</span>
         </button>
 
         <button
@@ -366,7 +367,7 @@ export default function RtaBackupBar({
               : "Aucun point de sauvegarde : clique d'abord sur « Sauvegarder »"
           }
         >
-          <RotateCcw size={14} /> <span className="hidden sm:inline">Reprendre</span>
+          <RotateCcw size={14} /> <span className="compact:hidden">Reprendre</span>
         </button>
 
         {/* ⚠️ N'apparaît QUE si un compte a été importé : sans point d'import,
@@ -382,13 +383,13 @@ export default function RtaBackupBar({
               backup.importe.date
             )})`}
           >
-            <History size={14} /> <span className="hidden sm:inline">Réinitialiser</span>
+            <History size={14} /> <span className="compact:hidden">Réinitialiser</span>
           </button>
         )}
 
       </div>
 
-      <div data-rangee-actions className="flex flex-wrap items-center gap-4 sm:gap-2">
+      <div data-rangee-actions className="flex flex-wrap items-center gap-2 compact:gap-4">
         <button
           onClick={() => setExportAChoisir(true)}
           disabled={vide}
@@ -397,7 +398,7 @@ export default function RtaBackupBar({
           className={BOUTON}
           title="Télécharger ta prépa en fichier .json, pour la partager ou la garder de côté"
         >
-          <Upload size={14} /> <span className="hidden sm:inline">Exporter</span>
+          <Upload size={14} /> <span className="compact:hidden">Exporter</span>
         </button>
 
         {/* ⚠️ DEUX boutons pour un même format de fichier, parce que ce sont
@@ -412,7 +413,7 @@ export default function RtaBackupBar({
           className={BOUTON}
           title="Reprendre une prépa exportée : une archive, ou celle d'un autre navigateur. Elle remplacera la tienne."
         >
-          <Download size={14} /> <span className="hidden sm:inline">Importer</span>
+          <Download size={14} /> <span className="compact:hidden">Importer</span>
         </button>
 
         <button
@@ -427,10 +428,12 @@ export default function RtaBackupBar({
               « Exporter » et « Importer » sur la même rangée, il la faisait
               passer à la ligne — et la rangée cessait de dire « échanger un
               fichier », ce qu'elle est censée montrer d'un coup d'œil. Le sens
-              tient dans « Ami » ; l'infobulle porte le reste. */}
+              tient dans « Ami » ; l'infobulle porte le reste.
+              ⚠️ Sur `compact` uniquement — au pointeur fin, la barre a la place
+              du libellé complet quelle que soit la largeur. */}
           <Users size={14} />
-          <span className="hidden sm:inline lg:hidden">Ami</span>
-          <span className="hidden lg:inline">Consulter celle d'un ami</span>
+          <span className="hidden compact:inline">Ami</span>
+          <span className="compact:hidden">Consulter celle d'un ami</span>
         </button>
       </div>
       </div>

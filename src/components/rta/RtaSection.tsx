@@ -61,12 +61,12 @@ export default function RtaSection({
       // ⚠️ Rembourrage réduit sous `sm` : la page empile trois à six sections,
       // et chaque `p-3` coûte 24 px de haut multipliés par le nombre de
       // sections — soit un écran entier de vide sur un téléphone.
-      className={`rounded-2xl border p-2 sm:p-3 transition-colors ${
+      className={`rounded-2xl border p-3 transition-colors compact:p-2 ${
         over ? 'border-transparent bg-panel2/80' : 'border-border bg-panel/40'
       }`}
       style={over ? { boxShadow: `0 0 0 2px ${accent}`, borderColor: accent } : undefined}
     >
-      <div className="flex items-center gap-2 mb-2 sm:gap-2.5 sm:mb-3">
+      <div className="flex items-center gap-2.5 mb-3 compact:gap-2 compact:mb-2">
         {sectionKey === RTA_OTHER || sectionKey === RTA_UNASSIGNED ? (
           <span className="w-3 h-3 rounded-[3px] rotate-45 flex-none" style={{ background: accent }} />
         ) : (

@@ -71,8 +71,8 @@ export default function SiegePage({
       {/* ⚠️ Sous-onglets MOBILES seulement (`lg:hidden`) : au-dessus de `lg`,
           la barre latérale les porte déjà, et les répéter ici donnerait deux
           jeux de contrôles pour la même navigation. */}
-      <div className="mb-3 sm:mb-4 lg:hidden">
-        <nav className="inline-flex items-center gap-0.5 sm:gap-1 rounded-xl border border-border bg-panel p-1">
+      <div className="mb-4 compact:mb-3 lg:hidden">
+        <nav className="inline-flex items-center gap-1 rounded-xl compact:gap-0.5 border border-border bg-panel p-1">
           {SUB_TABS.map((t) => {
             const active = tab === t.tab;
             const Icon = t.icon;
@@ -82,8 +82,8 @@ export default function SiegePage({
                 href={t.hash}
                 aria-label={t.label}
                 aria-current={active ? 'page' : undefined}
-                className={`flex items-center gap-1 sm:gap-1.5 rounded-lg px-2.5 py-1.5 text-xs
-                  font-semibold transition sm:px-3.5 sm:text-sm
+                className={`flex items-center gap-1.5 rounded-lg px-3.5 py-1.5 text-sm
+                  font-semibold transition compact:gap-1 compact:px-2.5 compact:text-xs
                   ${
                     // Fond seul, sans fausse élévation — voir design.md.
                     active
@@ -92,8 +92,8 @@ export default function SiegePage({
                   }`}
               >
                 <Icon size={14} className="flex-none" />
-                <span className="sm:hidden">{t.court}</span>
-                <span className="hidden sm:inline">{t.label}</span>
+                <span className="hidden compact:inline">{t.court}</span>
+                <span className="compact:hidden">{t.label}</span>
               </a>
             );
           })}

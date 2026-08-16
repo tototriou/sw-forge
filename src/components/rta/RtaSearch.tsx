@@ -57,7 +57,7 @@ export default function RtaSearch({ monsters, addedIds, onAdd }: Props) {
 
   return (
     <div className="relative">
-      <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-ink-dim sm:left-4 sm:w-[18px] sm:h-[18px]" />
+      <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-[18px] h-[18px] text-ink-dim compact:left-3 compact:w-4 compact:h-4" />
       <input
         {...nav.inputProps}
         type="text"
@@ -69,8 +69,8 @@ export default function RtaSearch({ monsters, addedIds, onAdd }: Props) {
         // elle mangeait un sixième de la hauteur utile d'un téléphone, avant
         // même le premier monstre. 40 px reste la cible tactile pleine — c'est
         // le rembourrage décoratif qui tombe, pas la zone touchable.
-        className="w-full bg-panel border border-border rounded-xl py-2 pl-9 pr-3 text-sm
-                   sm:py-3.5 sm:pl-11 sm:pr-4 sm:text-base
+        className="w-full bg-panel border border-border rounded-xl py-3.5 pl-11 pr-4 text-base
+                   compact:py-2 compact:pl-9 compact:pr-3 compact:text-sm
                    text-ink placeholder:text-ink-dim transition focus:border-accent"
       />
 

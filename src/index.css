@@ -110,6 +110,15 @@
   --rarity-2: 20 110 66;
   --rarity-1: 90 96 112;
 
+  /* ⚠️ Chevron de remplacement pour un `<select>` dont on retire l'habillage
+     natif (`appearance-none`). C'est le seul moyen d'en réduire la HAUTEUR : un
+     `<select>` natif garde un socle imposé par le navigateur, que ni le
+     rembourrage ni la classe ne franchissent. Encodé en `url()` plutôt qu'en
+     élément séparé — il n'y a rien à cliquer dessus, le `<select>` capte tout.
+     ⚠️ La couleur est écrite en dur (`%238890b8` = `--ink-dim` du thème sombre)
+     : une `data:` URI ne peut pas lire une variable CSS. Elle reste lisible sur
+     les deux thèmes, étant une teinte moyenne. */
+  --chevron-select: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 12' fill='none' stroke='%238890b8' stroke-width='1.8' stroke-linecap='round'%3E%3Cpath d='M3 4.5 6 7.5 9 4.5'/%3E%3C/svg%3E");
   --radius: 5px;
   --radius-lg: 7px;
 

@@ -729,8 +729,16 @@ function SlotContent({
           // vitesse qu'on vient régler. Il occupe toute la largeur restante de
           // sa ligne : rien d'autre à toucher autour, donc rien à rater.
           data-cible-fine
-          className="rounded-md border border-border bg-panel px-1.5 py-0.5 text-micro text-ink-dim
-                     outline-none focus:border-accent"
+          // ⚠️ `h-5` + `appearance-none` : un `<select>` natif garde une hauteur
+          // MINIMALE imposée par le navigateur, que ni `py-0.5` ni la classe ne
+          // réduisent — le rembourrage se rajoutait à un socle de ~24 px. Il
+          // faut donc à la fois retirer l'habillage natif et poser la hauteur.
+          // Le chevron natif part avec ; celui qu'on dessine à droite le
+          // remplace, en `background-image`.
+          className="h-5 appearance-none rounded-md border border-border bg-panel py-0 pl-1.5 pr-5
+                     text-micro leading-none text-ink-dim outline-none focus:border-accent
+                     bg-[length:9px] bg-[right_0.35rem_center] bg-no-repeat
+                     bg-[image:var(--chevron-select)]"
         >
           <option value={0}>1 · Leader</option>
           <option value={1}>2</option>

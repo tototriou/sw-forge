@@ -147,9 +147,15 @@ portrait, le nom, les sets et la croix. Même traitement que la poignée d'une
 carte RTA.
 
 ⚠️ Le **sélecteur de position** est exempté de la règle tactile
-(`data-cible-fine`) : porté à 40 px dans un slot qui en fait 110, il pesait
-autant que la vitesse qu'on vient régler. Il occupe toute la largeur restante de
-sa ligne — rien d'autre à toucher autour, donc rien à rater.
+(`data-cible-fine`) et ramené à **20 px** : porté à 40 dans un slot qui en fait
+110, il pesait autant que la vitesse qu'on vient régler. Il occupe toute la
+largeur restante de sa ligne — rien d'autre à toucher autour, donc rien à rater.
+
+⚠️ Y parvenir demande `appearance-none` **et** une hauteur explicite : un
+`<select>` natif garde un socle imposé par le navigateur, que ni le rembourrage
+ni la classe ne franchissent. Le chevron natif part avec l'habillage ; celui qui
+le remplace est une `data:` URI (`--chevron-select`), posée en image de fond —
+il n'y a rien à cliquer dessus, le `<select>` capte tout.
 
 ## Densité sur téléphone
 

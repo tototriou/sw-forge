@@ -25,10 +25,10 @@ interface Props {
   // Exemplaires 6★ possédés, par com2usId → « combien de fois puis-je monter ce
   // deck en parallèle ». Vient de la BOX seule (voir countCopiesByCom2us).
   copies6: Map<number, number>;
-  offense: UseSiegeState;
+  offense: UseSiegeState; // équipes d'attaque de siège, réutilisables comme decks
   // Panneau d'actions mobile — piloté par le bouton « Options » (voir App.tsx).
   menuOuvert: boolean;
-  onFermerMenu: () => void; // équipes d'attaque de siège, réutilisables comme decks
+  onFermerMenu: () => void;
 }
 
 // Télécharge un texte en fichier (aucun envoi réseau).
@@ -403,7 +403,7 @@ export default function RecoBoard({
 
       <MobileSheet ouvert={menuOuvert} onFermer={onFermerMenu} titre="Actions — recommandations">
         <div data-rangee-actions>{actions}</div>
-        {effacer && <div className="mt-4 border-t border-border pt-3">{effacer}</div>}
+        {effacer && <div data-zone-destructive className="mt-4 border-t border-border pt-3">{effacer}</div>}
       </MobileSheet>
 
       {effacementAConfirmer && (

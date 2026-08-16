@@ -379,9 +379,12 @@ vues de sept.
 chacun avec ses filtres — rester ouvert en passant des runes aux artéfacts
 aurait montré les contrôles du précédent.
 
-⚠️ **« Tout effacer » reste détaché** des autres actions, sous un séparateur.
-Dans la page il se pose à l'opposé (`ml-auto`) ; dans le panneau il garde cette
-distance. Un bouton destructeur ne se met pas au contact de celui qu'on presse
+⚠️ **« Tout effacer » reste détaché** des autres actions, sous un séparateur, et
+**centré** — pas aligné à gauche comme la colonne au-dessus. Il n'appartient pas
+à leur liste : centré, il se lit comme une sortie de secours plutôt que comme une
+action de plus, et rien ne se trouve à côté de lui qu'on pourrait toucher à sa
+place. Dans la page il se pose à l'opposé (`ml-auto`) ; dans le panneau il garde
+cette distance. Un bouton destructeur ne se met pas au contact de celui qu'on presse
 en boucle.
 
 ### Une rangée par type d'action

@@ -250,9 +250,15 @@ export default function CategoryBar({ cats, monsters }: Props) {
                           ? ''
                           : 'opacity-70 hoverable:opacity-100 hoverable:bg-panel2'
                     }`}
+                    // ⚠️ **Le FOND suffit à dire la sélection.** Une coche de
+                    // 12 px se posait en plus dans le coin, sur un portrait de
+                    // 36 : trois signaux (fond teinté, liseré, coche) pour un
+                    // seul état booléen, et le plus petit des trois masquait un
+                    // bout du monstre qu'il désignait. Le fond porte déjà la
+                    // couleur de la catégorie, ce qu'une coche ne dit pas.
                     style={
                       dedans
-                        ? { boxShadow: `0 0 0 1.5px ${open.color}`, backgroundColor: withAlpha(open.color, 0.2) }
+                        ? { boxShadow: `0 0 0 1.5px ${open.color}`, backgroundColor: withAlpha(open.color, 0.28) }
                         : undefined
                     }
                   >
@@ -264,14 +270,6 @@ export default function CategoryBar({ cats, monsters }: Props) {
                     <span className="w-full truncate text-center text-micro leading-tight text-ink-dim">
                       {m.name}
                     </span>
-                    {dedans && (
-                      <span
-                        className="absolute top-0.5 right-0.5 flex items-center justify-center w-3 h-3 rounded-full"
-                        style={{ backgroundColor: open.color }}
-                      >
-                        <Check size={8} className="text-bg" />
-                      </span>
-                    )}
                   </button>
                 );
               })}
@@ -508,7 +506,12 @@ function CategoryPopover({
   // souvent hors de portée du pouce pour la valider.
   if (surMobile) {
     return (
-      <MobileSheet ouvert onFermer={onClose} titre={initial.label ? 'Modifier la catégorie' : 'Nouvelle catégorie'}>
+      <MobileSheet
+        ouvert
+        centre
+        onFermer={onClose}
+        titre={initial.label ? 'Modifier la catégorie' : 'Nouvelle catégorie'}
+      >
         {formulaire}
       </MobileSheet>
     );

@@ -253,14 +253,28 @@ vient lire sur cet écran, la prépa RTA se réglant au point de vitesse.
 ⚠️ Le nom complet passe dans l'**infobulle de la carte**, en tête des catégories.
 Sans cela il n'existerait plus nulle part sur téléphone.
 
-⚠️ Le formulaire de catégorie devient un **panneau montant** sous `lg`
-(`MobileSheet`), et reste une popup ancrée au-dessus. Une popup ancrée sur
+⚠️ Dans le panneau d'affectation, un monstre sélectionné se marque **par son
+FOND** teinté à la couleur de la catégorie, plus le liseré. Une coche de 12 px
+se posait en plus dans son coin : trois signaux pour un seul état booléen, et le
+plus petit des trois masquait un bout du portrait qu'il désignait. Le fond porte
+en outre la COULEUR de la catégorie, ce qu'une coche ne dit pas.
+
+⚠️ Le formulaire de catégorie devient un panneau **de second niveau** sous `lg`
+(`MobileSheet centre`), et reste une popup ancrée au-dessus. Une popup ancrée sur
 téléphone s'ouvre là où le doigt a tapé — souvent en haut de l'écran, hors de
 portée du pouce pour la valider — et flotte hors de tout cadre, d'où les
 débordements qu'il fallait rattraper à la mesure. Le formulaire est le **même
 JSX** dans les deux cas ; seuls le contenant et les tailles changent (champ à
 16 px pour éviter le zoom automatique d'iOS, pastilles de couleur à 40 px,
 « Valider » pleine largeur sous « Annuler »).
+
+⚠️ Il s'ouvre **depuis** le panneau « Options », donc **par-dessus** lui : voile
+opaque et `z-index` supérieur, sinon on voyait deux panneaux empilés, deux
+titres et deux croix, sans savoir laquelle ferme quoi. Il est aussi **centré**
+verticalement et non collé en bas — ce n'est pas une liste d'actions qu'on
+parcourt du pouce mais un formulaire court, dont il ne restait qu'une bande sous
+le clavier. Il paraît en fondu plutôt qu'en glissant : le glissement dit « je
+viens du bord », or celui-ci ne vient de nulle part, il interrompt.
 
 ⚠️ Les icônes de set sont **collées** (`gap-0`) et la ligne entière resserrée
 (`gap-0.5` sous `sm`). À trois sets — le maximum — les écarts suffisaient à

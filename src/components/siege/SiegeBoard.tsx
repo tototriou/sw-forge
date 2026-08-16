@@ -160,7 +160,9 @@ export default function SiegeBoard({
       <MobileSheet ouvert={menuOuvert} onFermer={onFermerMenu} titre={`Actions — ${noun}`}>
         <div data-rangee-actions>{actions}</div>
         {effacer && (
-          <div className="mt-4 border-t border-border pt-3">{effacer}</div>
+          <div data-zone-destructive className="mt-4 border-t border-border pt-3">
+            {effacer}
+          </div>
         )}
       </MobileSheet>
 

@@ -330,7 +330,7 @@ export default function RtaPage({
           <CategoryBar cats={cats} monsters={pageMonsters} />
         </div>
 
-        {effacer && <div className="mt-4 border-t border-border pt-3">{effacer}</div>}
+        {effacer && <div data-zone-destructive className="mt-4 border-t border-border pt-3">{effacer}</div>}
       </MobileSheet>
 
       {/* ⚠️ La prépa consultée s'affiche AVANT la sienne, et encadrée : c'est ce

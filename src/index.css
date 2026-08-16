@@ -779,6 +779,21 @@ button:not(:disabled):not([draggable]):not([role='switch']):active,
   padding-right: 0.375rem;
 }
 
+/* ⚠️ **« Tout effacer » est CENTRÉ en bas du panneau**, pas aligné à gauche
+   comme les actions au-dessus. Il n'appartient pas à leur colonne : il est
+   détaché sous un filet, en dernier, et c'est le seul geste destructeur de
+   l'écran. Centré, il se lit comme une sortie de secours plutôt que comme une
+   action de plus dans la liste — et rien ne se trouve à côté de lui qu'on
+   pourrait toucher à sa place. */
+[data-tiroir] [data-zone-destructive] {
+  display: flex;
+  justify-content: center;
+}
+
+[data-tiroir] [data-zone-destructive] > button {
+  justify-content: center;
+}
+
 /* ⚠️ Les marges hautes des barres d'outils sont annulées dans le panneau. Elles
    les détachent du contenu qui les précède DANS LA PAGE ; empilées dans un
    panneau qui gère déjà ses écarts (`gap-3`), elles s'y ajoutent et creusent le

@@ -1,13 +1,16 @@
 import { ReactNode } from 'react';
-import { LogOut } from 'lucide-react';
+import { Settings } from 'lucide-react';
 
 // Barre SUPÉRIEURE, fixe.
 //
-// ⚠️ Trois zones, trois rôles :
-//   — à gauche, l'IDENTITÉ (le logo, qui ramène à l'accueil) ;
-//   — au centre, OÙ L'ON EST — la section courante ;
-//   — à droite, ce qui SORT (aujourd'hui l'effacement des données ; demain la
-//     déconnexion, quand les comptes vivront en base).
+// ⚠️ **Trois zones, et rien de plus** : l'identité à gauche, OÙ L'ON EST au
+// centre, les PARAMÈTRES à droite.
+//
+// Elle a d'abord porté l'import et la déconnexion. Ni l'un ni l'autre n'y
+// avait sa place : ce sont des gestes RARES, et la barre est ce qu'on lit en
+// permanence. Ils vivent dans les paramètres, où l'on va justement quand on
+// veut changer quelque chose — l'import y côtoie l'état du compte, la
+// suppression des données y côtoie le réglage de conservation.
 //
 // ⚠️ **Fixe, et elle COMMENCE après la barre latérale** — elle ne la surplombe
 // pas. La barre latérale est la navigation principale : la couper d'un bandeau
@@ -18,16 +21,14 @@ import { LogOut } from 'lucide-react';
 // disparaît oblige à remonter pour savoir où l'on est.
 //
 // ⚠️ Le titre est **au centre en absolu**, pas dans le flux : centré par la
-// disposition, il se serait décalé dès que la zone de droite change de largeur
-// (un bouton de plus, un libellé plus long). Un repère qui bouge n'en est plus
-// un.
+// disposition, il se serait décalé dès que la zone de droite change de largeur.
+// Un repère qui bouge n'en est plus un.
 
 export default function TopBar({
   titre,
   icone,
   gauche,
-  actions,
-  onDeconnexion,
+  parametresActifs,
   // Bord GAUCHE de la barre : celui de la barre latérale, qu'elle ne recouvre
   // pas. ⚠️ Piloté par l'appelant, qui seul sait si elle est repliée.
   decalage,
@@ -38,11 +39,7 @@ export default function TopBar({
   // l'accent contextuel, comme partout ailleurs.
   icone?: ReactNode;
   gauche?: ReactNode;
-  // Actions posées à GAUCHE du bouton de sortie. ⚠️ En icônes seules : la
-  // barre porte un titre centré en absolu, et tout libellé de plus le
-  // recouvrait.
-  actions?: ReactNode;
-  onDeconnexion: () => void;
+  parametresActifs: boolean;
   decalage: number;
 }) {
   return (
@@ -77,31 +74,30 @@ export default function TopBar({
           // correspondent aux trois cibles de 32 px plus la déconnexion ;
           // 88 px à gauche au logo. `truncate` finit le travail sur les titres
           // longs (« Recommandations »).
-          className="pointer-events-none absolute inset-y-0 left-[88px] right-[116px] flex
+          className="pointer-events-none absolute inset-y-0 left-[88px] right-[52px] flex
                      items-center justify-center gap-2 font-display text-[15px]
-                     tracking-wide text-ink lg:left-4 lg:right-[150px]"
+                     tracking-wide text-ink lg:left-4 lg:right-[52px]"
         >
           {icone && <span className="flex-none text-ctx">{icone}</span>}
           <span className="truncate">{titre}</span>
         </span>
 
-        <div className="relative z-10 ml-auto flex items-center gap-0.5">
-          {actions}
-        </div>
-
-        <button
-          type="button"
-          onClick={onDeconnexion}
-          title="Effacer mes données de cet appareil"
-          className="relative z-10 flex items-center gap-1.5 rounded-md px-2 py-1.5
-                     text-[13px] text-ink-dim transition-colors
-                     hoverable:bg-panel2 hoverable:text-bad"
+        {/* ⚠️ Les PARAMÈTRES seuls. C'est le seul geste qui mérite d'être
+            atteignable depuis n'importe quel écran sans passer par la
+            navigation — tout le reste y est déjà. */}
+        <a
+          href="#/parametres"
+          title="Paramètres"
+          aria-label="Paramètres"
+          className={`relative z-10 ml-auto flex h-8 w-8 items-center justify-center rounded-md
+                      transition-colors ${
+                        parametresActifs
+                          ? 'bg-ctx-soft text-ctx'
+                          : 'text-ink-dim hoverable:bg-panel2 hoverable:text-ink'
+                      }`}
         >
-          <LogOut size={16} className="flex-none" />
-          {/* Le libellé tombe sous `sm` : trois zones plus un mot ne tiennent
-              pas sur 380 px, et l'icône de sortie se reconnaît seule. */}
-          <span className="hidden sm:inline">Se déconnecter</span>
-        </button>
+          <Settings size={16} />
+        </a>
       </div>
     </header>
   );

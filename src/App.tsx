@@ -816,38 +816,12 @@ export default function App() {
         titre={titreSection}
         icone={iconeSection}
         decalage={sidebarRetractee ? LARGEUR_SIDEBAR_RETRACTEE : LARGEUR_SIDEBAR}
-        onDeconnexion={() => setPurgeGlobale(true)}
-        actions={
-          /* ⚠️ MOBILE seulement : au-dessus de `lg`, la barre latérale porte
-             déjà l'import et les réglages en pied.
-             ⚠️ Masqué sur l'ACCUEIL : la zone de dépôt y est au centre de
-             l'écran, deux points d'entrée pour le même geste sèment le doute
-             sur celui qui « compte vraiment ». */
-          <div className="flex items-center gap-0.5 lg:hidden">
-            {route !== 'home' && (
-              <AccountImportControl onImport={importAccount} variant="icone" />
-            )}
-            <a
-              href="#/parametres"
-              title="Paramètres"
-              aria-label="Paramètres"
-              className={`flex h-8 w-8 items-center justify-center rounded-md transition-colors ${
-                route === 'parametres'
-                  ? 'bg-ctx-soft text-ctx'
-                  : 'text-ink-dim hoverable:bg-panel2 hoverable:text-ink'
-              }`}
-            >
-              <Settings size={16} />
-            </a>
-          </div>
-        }
+        parametresActifs={route === 'parametres'}
         gauche={
-          /* ⚠️ Le LOGO SEUL sous `lg`, rien d'autre. La zone portait aussi
-             l'import (au libellé complet, « Importer un JSON ») et les
+          /* ⚠️ Le LOGO SEUL, et seulement sous `lg` — au-dessus, la barre
+             latérale porte déjà l'identité. La zone a porté l'import et les
              réglages : trois éléments qui poussaient le titre centré en absolu
-             SOUS eux — le bouton ⚙ chevauchait « RTA ».
-             Les deux gestes restent atteignables : l'import est sur chaque
-             page qui en a besoin, les réglages ont leur page (onglet Outils). */
+             SOUS eux, et le bouton ⚙ chevauchait « RTA ». */
           <a href="#/" className="flex items-center gap-2 lg:hidden">
             <img src={`${import.meta.env.BASE_URL}favicon.svg`} alt="" className="h-6 w-6" />
           </a>
@@ -957,6 +931,7 @@ export default function App() {
           <SettingsPage
             onClearData={() => setPurgeGlobale(true)}
             onKeepAccount={persistCurrentAccount}
+            onImport={importAccount}
             accountExportedAt={accountExportedAt}
             accountName={accountName}
           />

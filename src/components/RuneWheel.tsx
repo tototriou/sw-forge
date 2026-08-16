@@ -1,4 +1,5 @@
 import { ReactNode, useRef } from 'react';
+import { SOUS_SM, useMediaQuery } from '../hooks/useMediaQuery';
 import { RuneDetail } from '../types';
 import { RARITY_FILTER } from '../lib/effects';
 import RuneIcon from './RuneIcon';
@@ -64,8 +65,10 @@ const SET_OFFSET: Record<number, { x: number; y: number }> = {
 
 export interface RuneWheelProps {
   runes: RuneDetail[];
-  // 1 = taille pleine (MonsterGear à scale=1) ; plus petit pour une carte
-  // compacte (voir BuildCandidateCard.tsx).
+  // Taille de la roue. **Absent = responsive** : pleine taille à partir de
+  // `sm`, réduite en dessous (voir `SCALE_MOBILE`). Une valeur explicite
+  // l'emporte et vaut à toutes les largeurs — c'est le cas des cartes de build,
+  // déjà calibrées pour leur conteneur.
   scale?: number;
   isSelected?: (rune: RuneDetail, index: number) => boolean;
   onSelectRune?: (rune: RuneDetail, index: number) => void;
@@ -76,14 +79,24 @@ export interface RuneWheelProps {
   renderOverlay?: (rune: RuneDetail, index: number, anchorRef: { current: HTMLElement | null }) => ReactNode;
 }
 
-export default function RuneWheel({ runes, scale = 1, isSelected, onSelectRune, renderOverlay }: RuneWheelProps) {
-  const refs = useRef<(HTMLDivElement | null)[]>([]);
+// ⚠️ **0,72 sous `sm`** — 150 px au lieu de 208. La roue est un dessin dont
+// tout est calculé en PIXELS (cadres, icônes de set, décalages) : elle ne peut
+// pas se réduire toute seule comme une image, et à 208 px elle occupait plus de
+// la moitié des 348 px utiles d'un téléphone, poussant les stats hors écran.
+// En dessous de 0,72, les icônes de set passent sous 14 px et le set ne se
+// reconnaît plus — c'est le plancher de lisibilité, pas un chiffre rond.
+const SCALE_MOBILE = 0.72;
 
-  const wheelW = Math.round(BASE_WHEEL_W * scale);
-  const wheelH = Math.round(BASE_WHEEL_H * scale);
-  const fw = Math.round(BASE_FW * scale);
-  const fh = Math.round(BASE_FH * scale);
-  const setIconSize = Math.max(10, Math.round(BASE_SET_ICON * scale));
+export default function RuneWheel({ runes, scale, isSelected, onSelectRune, renderOverlay }: RuneWheelProps) {
+  const refs = useRef<(HTMLDivElement | null)[]>([]);
+  const petitEcran = useMediaQuery(SOUS_SM);
+  const echelle = scale ?? (petitEcran ? SCALE_MOBILE : 1);
+
+  const wheelW = Math.round(BASE_WHEEL_W * echelle);
+  const wheelH = Math.round(BASE_WHEEL_H * echelle);
+  const fw = Math.round(BASE_FW * echelle);
+  const fh = Math.round(BASE_FH * echelle);
+  const setIconSize = Math.max(10, Math.round(BASE_SET_ICON * echelle));
 
   return (
     <div
@@ -113,7 +126,7 @@ export default function RuneWheel({ runes, scale = 1, isSelected, onSelectRune, 
               top: pos.top,
               width: fw,
               height: fh,
-              transform: `translate(calc(-50% + ${nudge.x * scale}px), calc(-50% + ${nudge.y * scale}px))`,
+              transform: `translate(calc(-50% + ${nudge.x * echelle}px), calc(-50% + ${nudge.y * echelle}px))`,
             }}
           >
             <button
@@ -144,7 +157,7 @@ export default function RuneWheel({ runes, scale = 1, isSelected, onSelectRune, 
               {/* icône de set, décalée vers le centre (glissée dans le pétale) */}
               <span
                 className={`absolute inset-0 flex items-center justify-center ${SPIN}`}
-                style={{ transform: `translate(${setOff.x * scale}px, ${setOff.y * scale}px)` }}
+                style={{ transform: `translate(${setOff.x * echelle}px, ${setOff.y * echelle}px)` }}
               >
                 <RuneIcon setKey={r.set} size={setIconSize} filter={RARITY_FILTER[r.rarity] ?? RARITY_FILTER[1]} />
               </span>

@@ -1,5 +1,6 @@
 import { Settings } from 'lucide-react';
 import { SettingsList } from '../components/SettingsMenu';
+import AccountImportControl from '../components/AccountImportControl';
 
 // Page des RÉGLAGES (`#/parametres`).
 //
@@ -15,6 +16,7 @@ import { SettingsList } from '../components/SettingsMenu';
 export default function SettingsPage({
   onClearData,
   onKeepAccount,
+  onImport,
   accountExportedAt,
   accountName,
 }: {
@@ -24,6 +26,11 @@ export default function SettingsPage({
   // Nom du joueur dont le compte est chargé. ⚠️ Répété ici parce que la barre
   // latérale, qui le porte au-dessus de `lg`, n'existe pas en dessous.
   accountName?: string | null;
+  // ⚠️ L'import vit ICI depuis qu'il a quitté la barre supérieure : c'est un
+  // geste RARE, et la barre est ce qu'on lit en permanence. À côté de l'état du
+  // compte, il répond à la question qu'on vient justement de se poser —
+  // « lequel est chargé ? » appelle « en charger un autre ».
+  onImport: (texte: string) => void;
 }) {
   // ⚠️ **Colonne CENTRÉE**, contrairement aux autres pages. Celles-ci portent
   // des grilles et des tableaux qui se lisent en largeur ; les réglages sont une
@@ -40,16 +47,24 @@ export default function SettingsPage({
       {/* QUEL compte est chargé. Il précède les réglages : c'est ce sur quoi
           ils portent, et la question « est-ce le bon compte ? » vient avant
           « comment est-il affiché ? ». */}
-      {accountName && (
-        <div className="mb-4 flex items-center gap-2.5 rounded-xl border border-border
-                        bg-panel px-4 py-3">
-          <span className="h-2 w-2 flex-none rounded-full bg-good" aria-hidden />
-          <div className="min-w-0">
-            <span className="label">Compte chargé</span>
-            <div className="truncate text-[14px] font-semibold text-ink">{accountName}</div>
+      <div className="mb-4 flex flex-wrap items-center gap-3 rounded-xl border border-border
+                      bg-panel px-4 py-3">
+        {accountName ? (
+          <>
+            <span className="h-2 w-2 flex-none rounded-full bg-good" aria-hidden />
+            <div className="min-w-0 flex-1">
+              <span className="label">Compte chargé</span>
+              <div className="truncate text-[14px] font-semibold text-ink">{accountName}</div>
+            </div>
+          </>
+        ) : (
+          <div className="min-w-0 flex-1">
+            <span className="label">Compte</span>
+            <div className="text-[14px] text-ink-dim">Aucun compte chargé</div>
           </div>
-        </div>
-      )}
+        )}
+        <AccountImportControl onImport={onImport} variant="desktop" />
+      </div>
       <div className="rounded-xl border border-border bg-panel px-4 py-1">
         <SettingsList
           onClearData={onClearData}

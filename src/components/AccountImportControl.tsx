@@ -4,9 +4,7 @@ import { Import } from 'lucide-react';
 interface Props {
   // Applique un export (RTA + siège défense + offense d'un coup).
   onImport: (text: string) => void;
-  // `icone` : le bouton réduit à son pictogramme, pour la barre supérieure sur
-  // mobile. ⚠️ Le libellé complet y recouvrait le titre centré.
-  variant: 'desktop' | 'mobile' | 'icone';
+  variant: 'desktop' | 'mobile';
 }
 
 // Bouton d'import unique et invariant, dans la barre de navigation (desktop) et
@@ -28,29 +26,6 @@ export default function AccountImportControl({ onImport, variant }: Props) {
   }
 
   const isMobile = variant === 'mobile';
-
-  if (variant === 'icone') {
-    return (
-      <>
-        <input
-          ref={fileInput}
-          type="file"
-          accept=".json,application/json"
-          onChange={handleFile}
-          className="hidden"
-        />
-        <button
-          onClick={() => fileInput.current?.click()}
-          title="Importer un export de compte SWEX (traité localement, rien n'est envoyé)"
-          aria-label="Importer un JSON"
-          className="flex h-8 w-8 items-center justify-center rounded-md text-ink-dim
-                     transition-colors hoverable:bg-panel2 hoverable:text-ink"
-        >
-          <Import size={16} />
-        </button>
-      </>
-    );
-  }
 
   return (
     <div className={isMobile ? 'flex flex-col gap-1' : 'flex items-center gap-2'}>

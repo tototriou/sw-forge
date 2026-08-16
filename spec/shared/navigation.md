@@ -141,9 +141,17 @@ Un champ en tête de la barre, `⌘K` depuis n'importe où.
 
 ## Barre supérieure
 
-Trois zones, trois rôles : l'identité à gauche, **où l'on est** au centre, ce
-qui **sort** à droite (aujourd'hui l'effacement des données ; demain la
-déconnexion, quand les comptes vivront en base).
+Trois zones : l'identité à gauche, **où l'on est** au centre, les
+**paramètres** à droite. Et rien de plus.
+
+- ⚠️ Elle a d'abord porté l'**import** et la **déconnexion**. Ni l'un ni l'autre
+  n'y avait sa place : ce sont des gestes **rares**, et la barre est ce qu'on
+  lit en permanence. Ils vivent dans les paramètres, où l'on va justement quand
+  on veut changer quelque chose — l'import y côtoie l'état du compte, la
+  suppression des données y côtoie le réglage de conservation.
+- ⚠️ Sur mobile, ces trois éléments à gauche poussaient le titre centré en
+  absolu **sous** eux : le bouton ⚙ chevauchait « RTA ». Le titre porte
+  désormais des marges qui réservent leur place aux boutons.
 
 - ⚠️ **Elle COMMENCE après la barre latérale**, elle ne la surplombe pas
   (`z-20` contre `z-30`). La barre latérale est la navigation principale : la
@@ -321,4 +329,5 @@ les tableaux de runes et l'optimiseur y gagnent une à deux colonnes.
 | Nouveautés | 900 px | Liste de textes courts lus de haut en bas |
 | Paramètres | 620 px | Lignes « intitulé / contrôle » |
 | Optimiseur | 768 px | Suite de réglages lus de haut en bas — étalée, chaque ligne « libellé … champ » devenait un aller-retour du regard |
+| Roue de runes | ×0,72 sous `sm` | ⚠️ C'est un DESSIN calculé en pixels (cadres, icônes de set, décalages) : il ne se réduit pas seul comme une image. À 208 px il occupait plus de la moitié des 348 px utiles. En dessous de 0,72 les icônes de set passent sous 14 px et le set ne se reconnaît plus |
 | Courbes | 980 px | ⚠️ Le graphe suit son conteneur : sur 2 000 px la courbe s'aplatissait jusqu'à la ligne droite, et les écarts entre runes — la seule chose qu'on vient y lire — disparaissaient |

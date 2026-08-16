@@ -1,10 +1,11 @@
-import { useRef } from 'react';
+import { useRef, useState } from 'react';
 import { GripVertical, X } from 'lucide-react';
 import { Monster, RtaEntry, sectionLabel } from '../../types';
 import ElementIcon from '../ElementIcon';
 import RuneIcon from '../RuneIcon';
 import CategoryRing from './CategoryRing';
 import DesyncBadge from './DesyncBadge';
+import { ConfirmDialog } from '../Dialogs';
 
 const SPD_ICON = `${import.meta.env.BASE_URL}stats/spd.png`;
 
@@ -70,6 +71,12 @@ export default function RtaCard({
   markDesync = true,
 }: Props) {
   const cardRef = useRef<HTMLDivElement>(null);
+  // ⚠️ Le retrait passe par une CONFIRMATION. La croix est posée sur le coin de
+  // la carte, à quelques pixels du portrait qu'on touche pour ouvrir le détail :
+  // au doigt on la déclenche par accident en faisant défiler une grille, et le
+  // monstre part avec sa vitesse saisie, ses sets et ses catégories — sans
+  // annulation ni corbeille pour le retrouver.
+  const [retraitAConfirmer, setRetraitAConfirmer] = useState(false);
   const base = monster.stats.speed;
   const rune = entry.runeSpeed;
   const total = base !== null || rune !== null ? (base ?? 0) + (rune ?? 0) : null;
@@ -236,7 +243,7 @@ export default function RtaCard({
           (l'élément reste dans le DOM) et on le laisse visible là où il n'y a
           pas de survol. Voir spec/shared/design.md. */}
       <button
-        onClick={() => onRemove(String(monster.id))}
+        onClick={() => setRetraitAConfirmer(true)}
         // ⚠️ `data-cible-fine` : la règle tactile globale (40 px, voir
         // index.css) ne s'applique pas ici. Cette croix est POSÉE SUR le coin
         // de la carte, pas dans un flux : agrandie, elle la déborde et recouvre
@@ -252,6 +259,25 @@ export default function RtaCard({
       >
         <X size={12} />
       </button>
+
+      {retraitAConfirmer && (
+        <ConfirmDialog
+          titre={`Retirer ${monster.name} de ta prépa ?`}
+          message={
+            <>
+              Sa vitesse saisie et son classement partent avec lui. Les autres
+              monstres ne sont pas touchés.
+            </>
+          }
+          libelleAction="Retirer"
+          destructif
+          onCancel={() => setRetraitAConfirmer(false)}
+          onConfirm={() => {
+            setRetraitAConfirmer(false);
+            onRemove(String(monster.id));
+          }}
+        />
+      )}
       </div>
     </div>
   );

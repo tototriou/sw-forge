@@ -111,16 +111,18 @@ function depuis(iso: string): string {
 // complet, chacune portée à 40 px de haut par la règle tactile, remplissaient
 // l'écran d'un téléphone : trois rangées de boutons avant d'atteindre la prépa.
 // Rien n'est perdu — l'intitulé reste au survol et au lecteur d'écran.
-// ⚠️ **Carré sous `sm`, où le libellé tombe.** Sans forme propre, ces boutons
-// gardaient un rembourrage horizontal calculé pour un mot : la règle tactile
-// les portait à 40 px de haut pour ~34 de large, et l'icône flottait dans un
-// rectangle vertical. `aspect-square` leur rend une forme — et la règle les
-// élargit alors autant qu'elle les grandit (voir index.css).
+// ⚠️ **L'ICÔNE NUE sous `sm`** — ni cadre, ni bordure, ni fond. Six boutons
+// encadrés faisaient six carrés dans une barre qu'on cherche à compacter, et le
+// cadre n'apprend rien : l'icône dit l'action, sa présence dit qu'on peut la
+// toucher. Le cadre revient à la souris, où la barre a la place et où le survol
+// a besoin d'une surface à colorer.
+// `data-cible-fine` est posé sur chaque bouton ; `.cible-tactile` rend 44 px
+// touchables sans qu'un pixel du dessin ne bouge.
 const BOUTON =
-  'flex aspect-square h-9 items-center justify-center rounded-lg border border-border bg-panel ' +
-  'text-xs text-ink-dim hoverable:text-ink hoverable:border-accent transition ' +
-  'disabled:opacity-40 disabled:cursor-not-allowed ' +
-  'sm:aspect-auto sm:h-auto sm:gap-1.5 sm:px-3 sm:py-1.5';
+  'cible-tactile relative flex items-center justify-center text-xs text-ink-dim ' +
+  'hoverable:text-ink transition disabled:opacity-40 disabled:cursor-not-allowed ' +
+  'sm:gap-1.5 sm:rounded-lg sm:border sm:border-border sm:bg-panel sm:px-3 sm:py-1.5 ' +
+  'sm:hoverable:border-accent';
 
 export default function RtaBackupBar({
   rta,
@@ -332,11 +334,16 @@ export default function RtaBackupBar({
           séparateur vertical qui les distinguait passait inaperçu dès que la
           rangée se repliait, ce qu'elle fait sur tout écran étroit. */}
       <div className="flex flex-col gap-1.5">
-      <div data-rangee-actions className="flex items-center gap-2 flex-wrap">
+      {/* ⚠️ Écart PLUS LARGE sous `sm`, où les boutons sont des icônes nues :
+          sans cadre pour les délimiter, six icônes à 8 px d'intervalle se lisent
+          comme une frise continue, et l'on ne sait plus où finit l'une et où
+          commence la suivante. C'est l'espace qui remplace le trait. */}
+      <div data-rangee-actions className="flex flex-wrap items-center gap-4 sm:gap-2">
         <button
           onClick={() => (backup.backup ? setEcraserAConfirmer(true) : sauvegarder())}
           disabled={vide}
           aria-label="Sauvegarder"
+          data-cible-fine
           className={BOUTON}
           title={
             vide
@@ -351,6 +358,7 @@ export default function RtaBackupBar({
           onClick={() => setReprendreAConfirmer(true)}
           disabled={!backup.backup}
           aria-label="Reprendre"
+          data-cible-fine
           className={BOUTON}
           title={
             backup.backup
@@ -368,7 +376,8 @@ export default function RtaBackupBar({
           <button
             onClick={() => setResetAConfirmer(true)}
             aria-label="Réinitialiser"
-            className={BOUTON}
+            data-cible-fine
+          className={BOUTON}
             title={`Remettre la prépa dans l'état de ton dernier import de compte (${depuis(
               backup.importe.date
             )})`}
@@ -379,11 +388,12 @@ export default function RtaBackupBar({
 
       </div>
 
-      <div data-rangee-actions className="flex items-center gap-2 flex-wrap">
+      <div data-rangee-actions className="flex flex-wrap items-center gap-4 sm:gap-2">
         <button
           onClick={() => setExportAChoisir(true)}
           disabled={vide}
           aria-label="Exporter"
+          data-cible-fine
           className={BOUTON}
           title="Télécharger ta prépa en fichier .json, pour la partager ou la garder de côté"
         >
@@ -398,6 +408,7 @@ export default function RtaBackupBar({
         <button
           onClick={() => ouvrirFichier('importer')}
           aria-label="Importer"
+          data-cible-fine
           className={BOUTON}
           title="Reprendre une prépa exportée : une archive, ou celle d'un autre navigateur. Elle remplacera la tienne."
         >
@@ -407,6 +418,7 @@ export default function RtaBackupBar({
         <button
           onClick={() => ouvrirFichier('consulter')}
           aria-label="Consulter la prépa d'un ami"
+          data-cible-fine
           className={BOUTON}
           title="Ouvrir la prépa d'un ami en lecture (fichier .json). Ta prépa n'est pas touchée."
         >

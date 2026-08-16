@@ -167,7 +167,9 @@ export default function SiegeTeam({
     // `p-4` coûte 32 px de haut multipliés par ce nombre — deux écrans de vide
     // sur un téléphone.
     <section className={`rounded-2xl border p-2.5 sm:p-4 transition-colors ${sectionClass}`}>
-      <div className="flex items-center gap-1.5 sm:gap-2 mb-2 sm:mb-3 flex-wrap">
+      {/* ⚠️ `gap-3` sous `sm` autour des deux icônes nues : sans cadre, elles se
+          distinguent par l'espace. */}
+      <div className="mb-2 flex flex-wrap items-center gap-3 sm:mb-3 sm:gap-2">
         <h3 className="font-display text-base sm:text-lg tracking-wide">Équipe {index + 1}</h3>
         {dotClass && <span className={`w-2 h-2 rounded-full ${dotClass}`} />}
         {/* Lead à côté du nom de l'équipe : la VALEUR doit être lisible sans
@@ -181,17 +183,19 @@ export default function SiegeTeam({
             onToggleExpand(team.id);
             setDetailIdx(null);
           }}
-          // ⚠️ **Carré au doigt, avec libellé à la souris.** Réduit à son
-          // icône sous `sm` (voir plus bas), il gardait un rembourrage
-          // horizontal calculé pour un mot : la règle tactile le portait à
-          // 40 px de haut pour 34 de large, et le crayon flottait dans un
-          // rectangle vertical. `aspect-square` + `h-8` lui rendent une forme,
-          // et la règle l'élargit alors autant qu'elle le grandit.
-          className={`ml-auto flex aspect-square h-8 items-center justify-center rounded-md border
-            text-xs font-semibold transition sm:aspect-auto sm:h-auto sm:gap-1.5 sm:px-2.5 sm:py-1 ${
+          // ⚠️ **L'ICÔNE NUE sous `sm`** — ni cadre, ni bordure, ni fond. Un
+          // en-tête d'équipe porte déjà le titre, la pastille d'état et celle du
+          // lead ; deux boutons encadrés par-dessus en faisaient une barre
+          // d'outils, alors que ce sont deux gestes ponctuels. L'accent
+          // contextuel dit l'état actif, le trait suffit à dire l'action.
+          // `data-cible-fine` + `.cible-tactile` : 20 px dessinés, 44 touchables.
+          data-cible-fine
+          className={`cible-tactile relative ml-auto flex items-center justify-center text-xs
+            font-semibold transition
+            sm:gap-1.5 sm:rounded-md sm:border sm:px-2.5 sm:py-1 ${
             expanded
-              ? 'border-accent bg-panel2 text-ink'
-              : 'border-border bg-panel text-ink hoverable:border-accent'
+              ? 'text-ctx sm:border-accent sm:bg-panel2 sm:text-ink'
+              : 'text-ink-dim hoverable:text-ink sm:border-border sm:bg-panel sm:text-ink sm:hoverable:border-accent'
           }`}
           aria-expanded={expanded}
           title={expanded ? "Terminer l'édition" : "Éditer l'équipe"}
@@ -205,14 +209,10 @@ export default function SiegeTeam({
         </button>
         <button
           onClick={() => setSuppressionAConfirmer(true)}
-          // ⚠️ Même traitement : sans forme propre, la corbeille se retrouvait
-          // seule au milieu d'un rectangle de 40 px de haut. Bordure discrète
-          // sous `sm` pour qu'elle se lise comme un bouton et non comme une
-          // icône posée là — à côté d'un « Éditer » encadré, une icône nue
-          // paraissait décorative.
-          className="flex aspect-square h-8 items-center justify-center rounded-md border border-border
-                     text-xs text-ink-dim transition hoverable:text-fire
-                     sm:aspect-auto sm:h-auto sm:gap-1.5 sm:border-0"
+          // ⚠️ Icône nue elle aussi : les deux se lisent comme une paire.
+          data-cible-fine
+          className="cible-tactile relative flex items-center justify-center text-xs text-ink-dim
+                     transition hoverable:text-fire sm:gap-1.5"
           title="Supprimer l'équipe"
           aria-label="Supprimer l'équipe"
         >

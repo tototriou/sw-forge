@@ -584,6 +584,16 @@ button:not(:disabled):not([draggable]):not([role='switch']):active,
   justify-content: flex-start;
 }
 
+/* ⚠️ …sauf dans un FORMULAIRE. Le panneau accueille aussi des formulaires (la
+   création d'une catégorie RTA), où les boutons ne sont pas une liste d'actions
+   à parcourir mais un couple valider/annuler : le premier occupe toute la
+   largeur et son libellé se centre, comme sur n'importe quel bouton principal.
+   Aligné à gauche, il ressemblait à une ligne de menu de plus. */
+[data-tiroir] form .flex-col > button,
+[data-tiroir] form .flex-col-reverse > button {
+  justify-content: center;
+}
+
 /* ⚠️ **Boutons plus BAS dans le panneau qu'ailleurs.** Le minimum tactile de
    40 px vaut pour un bouton perdu dans une page, entouré d'autre chose à
    toucher. Ici ils sont seuls, empilés dans un panneau qui ne contient rien

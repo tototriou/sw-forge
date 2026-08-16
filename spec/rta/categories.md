@@ -61,8 +61,17 @@ seul le rendu disparaît. Les trois états sont **persistés**.
   bouton qui apparaît et disparaît fait sauter la rangée et donne l'impression
   d'un réglage qu'on aurait perdu.
 - Le libellé nomme **ce qu'on affiche**, pas l'état du réglage — « Couleurs
-  masquées » obligeait à relire le bouton pour savoir ce qu'il pilote. C'est
-  l'**icône œil barré** qui porte l'état.
+  masquées » obligeait à relire le bouton pour savoir ce qu'il pilote.
+- ⚠️ **L'ACCENT marque l'état actif**, jamais l'inverse. Il était posé sur l'état
+  *masqué* : la chose coupée ressortait, celle qu'on voyait s'effaçait. On lisait
+  la rangée à l'envers — trois pastilles ternes signifiaient « tout est
+  affiché », une pastille colorée « ceci manque ».
+- ⚠️ **Une PUCE, pas un œil barré.** Ce pictogramme demande de se rappeler s'il
+  montre l'état courant ou l'action à venir — l'ambiguïté est inhérente au
+  symbole. Un point plein (affiché) ou creux (masqué) se lit sans être
+  interprété, comme une case à cocher.
+- Les trois sont **un seul composant** (`InterrupteurAffichage`), pas trois
+  copies du même bouton.
 - **Vitesses** — masque la vitesse sur les cartes de classement. Utile quand on
   range sa box par rôle et que les chiffres n'apportent rien à ce moment-là.
 - **Modifiés** — écrit en **orange le nom et la vitesse** des monstres dont les
@@ -243,6 +252,15 @@ vient lire sur cet écran, la prépa RTA se réglant au point de vitesse.
 
 ⚠️ Le nom complet passe dans l'**infobulle de la carte**, en tête des catégories.
 Sans cela il n'existerait plus nulle part sur téléphone.
+
+⚠️ Le formulaire de catégorie devient un **panneau montant** sous `lg`
+(`MobileSheet`), et reste une popup ancrée au-dessus. Une popup ancrée sur
+téléphone s'ouvre là où le doigt a tapé — souvent en haut de l'écran, hors de
+portée du pouce pour la valider — et flotte hors de tout cadre, d'où les
+débordements qu'il fallait rattraper à la mesure. Le formulaire est le **même
+JSX** dans les deux cas ; seuls le contenant et les tailles changent (champ à
+16 px pour éviter le zoom automatique d'iOS, pastilles de couleur à 40 px,
+« Valider » pleine largeur sous « Annuler »).
 
 ⚠️ Les icônes de set sont **collées** (`gap-0`) et la ligne entière resserrée
 (`gap-0.5` sous `sm`). À trois sets — le maximum — les écarts suffisaient à

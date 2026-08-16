@@ -570,9 +570,13 @@ button:not(:disabled):not([draggable]):not([role='switch']):active,
 
   /* Les champs de saisie AUSSI : viser un `<input>` de 28 px au doigt demande
      autant de précision qu'un bouton, et rater ouvre le clavier au mauvais
-     endroit. */
-  input:not([type='checkbox']):not([type='radio']),
-  select {
+     endroit.
+     ⚠️ `data-cible-fine` les exempte, comme les boutons — l'attribut manquait
+     ici, et un `<select>` marqué gardait donc ses 40 px sans qu'on comprenne
+     pourquoi. Il vaut pour tout ce que la règle touche, jamais pour une seule
+     famille d'éléments. */
+  input:not([type='checkbox']):not([type='radio']):not([data-cible-fine]),
+  select:not([data-cible-fine]) {
     min-height: 40px;
   }
 

@@ -617,7 +617,7 @@ Trois réponses, selon ce qui gêne :
 | Marqueur | Effet | Pour qui |
 |----------|-------|----------|
 | `.cible-tactile` | Zone touchable de 44 px par pseudo-élément, **dessin inchangé** | `Switch` — la hauteur est sa forme, mais il est isolé |
-| `data-cible-fine` | Exempté, **aucune** zone étendue | Le crayon et la corbeille d'une pilule de catégorie : collés l'un à l'autre, une zone de 44 px les ferait se chevaucher et on supprimerait en voulant éditer |
+| `data-cible-fine` | Exempté, **aucune** zone étendue — vaut pour les boutons **comme pour les champs** (`input`, `select`) | Le crayon et la corbeille d'une pilule de catégorie : collés l'un à l'autre, une zone de 44 px les ferait se chevaucher et on supprimerait en voulant éditer |
 | `data-carte-dense` | 32 px au lieu de 40 | Un contrôle seul sur la largeur de sa carte — rater y est improbable |
 
 ⚠️ **`.cible-tactile` est la réponse par défaut** dès qu'un contrôle a une forme

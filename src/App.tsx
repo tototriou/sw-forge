@@ -244,6 +244,20 @@ export default function App() {
   const [accountName, setAccountName] = useState<string | null>(null);
 
   const [{ route, siegeTab, accountSub, accountView, toolSub }, setNav] = useState(parseHash);
+
+  // Écran d'où l'on vient, pour que le bouton ⚙ RAMÈNE là où on était.
+  //
+  // ⚠️ Un lien seul ne permettait pas de sortir des paramètres : on y entrait
+  // sans pouvoir en revenir autrement qu'en choisissant une autre destination.
+  // Le bouton bascule donc — il ouvre, puis il referme.
+  //
+  // ⚠️ Une `ref` et non un état : sa mise à jour ne doit RIEN redessiner, et
+  // elle se fait dans l'effet de navigation lui-même.
+  const avantParametres = useRef<string>('#/');
+  // Hash courant, tenu à jour par l'effet de navigation : c'est LUI qu'on
+  // mémorise en entrant dans les paramètres, pas `window.location.hash`, qui
+  // porte déjà la destination au moment où l'événement arrive.
+  const hashCourant = useRef<string>(window.location.hash || '#/');
   const [importMsg, setImportMsg] = useState<{ ok: boolean; text: string } | null>(null);
   const [askKeep, setAskKeep] = useState(false);
   // Fichier déposé, en attente de confirmation de remplacement.
@@ -505,6 +519,15 @@ export default function App() {
 
   useEffect(() => {
     const onHash = () => {
+      // ⚠️ Mémorisé AVANT la mise à jour : `window.location.hash` porte déjà la
+      // nouvelle valeur, mais `route` tient encore l'ancienne. On enregistre
+      // donc l'écran qu'on QUITTE, et jamais les paramètres eux-mêmes — sinon
+      // le bouton n'aurait nulle part où ramener.
+      const cible = parseHash().route;
+      if (cible === 'parametres' && route !== 'parametres') {
+        avantParametres.current = hashCourant.current;
+      }
+      hashCourant.current = window.location.hash || '#/';
       setNav(parseHash());
       // ⚠️ **Retour en HAUT à chaque changement d'écran.** Le routage par hash
       // ne fait défiler nulle part : on arrivait sur une nouvelle page à la
@@ -520,7 +543,7 @@ export default function App() {
     };
     window.addEventListener('hashchange', onHash);
     return () => window.removeEventListener('hashchange', onHash);
-  }, []);
+  }, [route]);
 
   // Message d'import éphémère : il disparaît tout seul (un peu plus long pour une erreur).
   useEffect(() => {
@@ -806,6 +829,10 @@ export default function App() {
         icone={iconeSection}
         decalage={sidebarRetractee ? LARGEUR_SIDEBAR_RETRACTEE : LARGEUR_SIDEBAR}
         parametresActifs={route === 'parametres'}
+        onToggleParametres={() => {
+          window.location.hash =
+            route === 'parametres' ? avantParametres.current : '#/parametres';
+        }}
         gauche={
           /* ⚠️ Le LOGO SEUL, et seulement sous `lg` — au-dessus, la barre
              latérale porte déjà l'identité. La zone a porté l'import et les

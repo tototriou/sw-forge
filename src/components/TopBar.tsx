@@ -29,6 +29,7 @@ export default function TopBar({
   icone,
   gauche,
   parametresActifs,
+  onToggleParametres,
   // Bord GAUCHE de la barre : celui de la barre latérale, qu'elle ne recouvre
   // pas. ⚠️ Piloté par l'appelant, qui seul sait si elle est repliée.
   decalage,
@@ -40,6 +41,10 @@ export default function TopBar({
   icone?: ReactNode;
   gauche?: ReactNode;
   parametresActifs: boolean;
+  // ⚠️ Le bouton BASCULE : il ouvre les paramètres, puis ramène d'où l'on
+  // vient. Un lien seul n'offrait aucune sortie — on y entrait sans pouvoir en
+  // revenir autrement qu'en choisissant une autre destination.
+  onToggleParametres: () => void;
   decalage: number;
 }) {
   return (
@@ -89,10 +94,12 @@ export default function TopBar({
         {/* ⚠️ Les PARAMÈTRES seuls. C'est le seul geste qui mérite d'être
             atteignable depuis n'importe quel écran sans passer par la
             navigation — tout le reste y est déjà. */}
-        <a
-          href="#/parametres"
-          title="Paramètres"
-          aria-label="Paramètres"
+        <button
+          type="button"
+          onClick={onToggleParametres}
+          title={parametresActifs ? 'Fermer les paramètres' : 'Paramètres'}
+          aria-label={parametresActifs ? 'Fermer les paramètres' : 'Paramètres'}
+          aria-pressed={parametresActifs}
           className={`relative z-10 ml-auto flex h-8 w-8 items-center justify-center rounded-md
                       transition-colors ${
                         parametresActifs
@@ -100,8 +107,15 @@ export default function TopBar({
                           : 'text-ink-dim hoverable:bg-panel2 hoverable:text-ink'
                       }`}
         >
-          <Settings size={16} />
-        </a>
+          {/* L'engrenage pivote d'un huitième de tour quand les paramètres sont
+              ouverts : le bouton dit alors qu'il fera l'inverse au prochain
+              clic, sans changer d'icône — une croix aurait fait croire à une
+              fermeture de la page entière. */}
+          <Settings
+            size={16}
+            className={`transition-transform ${parametresActifs ? 'rotate-45' : ''}`}
+          />
+        </button>
       </div>
     </header>
   );

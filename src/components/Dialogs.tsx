@@ -1,6 +1,7 @@
 import { ReactNode, useEffect, useRef, useState } from 'react';
 import { AlertTriangle, Check, HardDriveDownload, ShieldCheck, X } from 'lucide-react';
 import { BOUTON_DESTRUCTIF, BOUTON_PRIMAIRE, BOUTON_SECONDAIRE } from './buttonStyles';
+import { useScrollBloque } from '../hooks/useScrollBloque';
 
 /* --------------------------------------------------------------------------
  * Fenêtres modales de l'application
@@ -56,17 +57,20 @@ export function Modale({
 }) {
   const boite = useRef<HTMLDivElement>(null);
 
+  // La modale est toujours ouverte quand elle est montée : le verrou vaut donc
+  // toute sa durée de vie.
+  useScrollBloque(true);
+
   // ⚠️ Trois manques corrigés ICI, dans la coquille : les quatre dialogues en
   // héritent d'un coup.
   //  1. le focus REVIENT à l'élément qui a ouvert la modale — sans ça, on
   //     repartait du haut du document après avoir confirmé un effacement ;
   //  2. Tab BOUCLE dans la modale — sinon on tabulait dans la page derrière,
   //     invisible et toujours cliquable ;
-  //  3. la page derrière ne DÉFILE plus.
+  //  3. la page derrière ne DÉFILE plus (par `useScrollBloque` — voir le hook :
+  //     une modale peut s'ouvrir depuis un panneau, qui bloque déjà).
   useEffect(() => {
     const ouvreur = document.activeElement as HTMLElement | null;
-    const scrollAvant = document.body.style.overflow;
-    document.body.style.overflow = 'hidden';
 
     // Point de départ du clavier : la BOÎTE, sauf si un contenu a déjà pris le
     // focus par `autoFocus` (le champ d'un `PromptDialog`, l'« Annuler » d'une
@@ -114,7 +118,6 @@ export function Modale({
     document.addEventListener('keydown', onKey);
     return () => {
       document.removeEventListener('keydown', onKey);
-      document.body.style.overflow = scrollAvant;
       ouvreur?.focus?.();
     };
   }, [onClose]);

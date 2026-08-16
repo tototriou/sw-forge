@@ -267,6 +267,22 @@ Quatre keyframes, déclarés une fois dans `index.css` :
 - ⚠️ **La boîte de dialogue fait exception** et reste centrée : elle n'a pas
   d'ancre, elle ne sort d'aucun bouton.
 
+### Bloquer le défilement derrière un flottant
+
+⚠️ **Par `useScrollBloque`, jamais à la main.** Chaque composant mémorisait la
+valeur d'`overflow` à son ouverture pour la restaurer à sa fermeture. Avec un
+seul flottant, cela marche ; imbriqués, non :
+
+1. le panneau d'actions s'ouvre, mémorise `''`, pose `hidden` ;
+2. une confirmation s'ouvre par-dessus, mémorise `hidden`, repose `hidden` ;
+3. on confirme — le panneau se ferme d'abord et restaure `''` ;
+4. le dialogue se ferme ensuite et restaure… `hidden`.
+
+La page restait bloquée, **sans qu'aucun flottant ne soit visible pour
+l'expliquer**. Le hook tient un compteur : le blocage tombe quand le dernier
+verrou est relâché, jamais avant, jamais après — et le résultat ne dépend plus de
+l'ordre de démontage.
+
 ### L'échelle des plans
 
 ⚠️ Deux éléments au **même `z-index`** se départagent par leur ordre dans le

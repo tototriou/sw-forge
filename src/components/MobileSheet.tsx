@@ -2,6 +2,7 @@ import { ReactNode, useEffect } from 'react';
 import { X } from 'lucide-react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { SOUS_LG, useMediaQuery } from '../hooks/useMediaQuery';
+import { useScrollBloque } from '../hooks/useScrollBloque';
 
 // Panneau d'actions MOBILE : les filtres et les actions de la page courante.
 //
@@ -53,12 +54,15 @@ export default function MobileSheet({
   const sousLg = useMediaQuery(SOUS_LG);
   const visible = ouvert && sousLg;
 
-  // Échap ferme, et la page derrière ne défile plus — mêmes garanties que la
-  // coquille `Modale`, dont ce panneau est un cousin.
+  // La page derrière ne défile plus. ⚠️ Par le hook partagé, jamais à la main :
+  // un dialogue peut s'ouvrir PAR-DESSUS ce panneau, et deux composants qui
+  // mémorisent chacun la valeur précédente se marchent dessus (voir le hook).
+  useScrollBloque(visible);
+
+  // Échap ferme — même garantie que la coquille `Modale`, dont ce panneau est un
+  // cousin.
   useEffect(() => {
     if (!visible) return;
-    const scrollAvant = document.body.style.overflow;
-    document.body.style.overflow = 'hidden';
     // ⚠️ `stopPropagation` : deux panneaux peuvent être ouverts l'un sur
     // l'autre (le formulaire de catégorie par-dessus « Options »). Sans cela,
     // une seule pression d'Échap fermait les DEUX — les deux écouteurs sont
@@ -72,7 +76,6 @@ export default function MobileSheet({
     document.addEventListener('keydown', onKey);
     return () => {
       document.removeEventListener('keydown', onKey);
-      document.body.style.overflow = scrollAvant;
     };
   }, [visible, onFermer]);
 

@@ -244,12 +244,6 @@ export default function App() {
   const [accountName, setAccountName] = useState<string | null>(null);
 
   const [{ route, siegeTab, accountSub, accountView, toolSub }, setNav] = useState(parseHash);
-  const [resourcesOpen, setResourcesOpen] = useState(false);
-  const resourcesRef = useRef<HTMLDivElement>(null);
-  const [accountOpen, setAccountOpen] = useState(false);
-  const accountRef = useRef<HTMLDivElement>(null);
-  const [outilsOpen, setOutilsOpen] = useState(false);
-  const outilsRef = useRef<HTMLDivElement>(null);
   const [importMsg, setImportMsg] = useState<{ ok: boolean; text: string } | null>(null);
   const [askKeep, setAskKeep] = useState(false);
   // Fichier déposé, en attente de confirmation de remplacement.
@@ -512,26 +506,21 @@ export default function App() {
   useEffect(() => {
     const onHash = () => {
       setNav(parseHash());
-      setResourcesOpen(false); // referme le dropdown Ressources
-      setAccountOpen(false); // referme le dropdown Mon compte
-      setOutilsOpen(false); // referme le dropdown Outils
+      // ⚠️ **Retour en HAUT à chaque changement d'écran.** Le routage par hash
+      // ne fait défiler nulle part : on arrivait sur une nouvelle page à la
+      // position qu'on occupait sur la précédente — au milieu du bestiaire
+      // après avoir quitté une longue liste de runes, sans rien y comprendre.
+      // C'est le comportement d'une navigation classique, que le hash nous fait
+      // perdre.
+      //
+      // ⚠️ `instant` et non `smooth` : ce n'est pas un déplacement DANS la page
+      // qu'on suit du regard, mais un changement de page. Une animation
+      // donnerait à croire qu'on défile encore dans l'écran d'avant.
+      window.scrollTo({ top: 0, behavior: 'instant' });
     };
     window.addEventListener('hashchange', onHash);
     return () => window.removeEventListener('hashchange', onHash);
   }, []);
-
-  // Ferme les dropdowns (Ressources / Mon compte / Outils) au clic à l'extérieur.
-  useEffect(() => {
-    if (!resourcesOpen && !accountOpen && !outilsOpen) return;
-    const onDown = (e: MouseEvent) => {
-      const t = e.target as Node;
-      if (resourcesRef.current && !resourcesRef.current.contains(t)) setResourcesOpen(false);
-      if (accountRef.current && !accountRef.current.contains(t)) setAccountOpen(false);
-      if (outilsRef.current && !outilsRef.current.contains(t)) setOutilsOpen(false);
-    };
-    document.addEventListener('mousedown', onDown);
-    return () => document.removeEventListener('mousedown', onDown);
-  }, [resourcesOpen, accountOpen, outilsOpen]);
 
   // Message d'import éphémère : il disparaît tout seul (un peu plus long pour une erreur).
   useEffect(() => {

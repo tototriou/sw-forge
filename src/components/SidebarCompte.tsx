@@ -60,7 +60,7 @@ export default function SidebarCompte({
           onClick={() => fichier.current?.click()}
           title="Importer un export de compte SWEX"
           aria-label="Importer un compte"
-          className="flex h-8 w-8 items-center justify-center rounded-lg text-ink-dim
+          className="flex aspect-square h-8 w-8 items-center justify-center rounded-lg text-ink-dim
                      transition-colors hoverable:bg-panel2 hoverable:text-ink"
         >
           <Import size={16} />
@@ -69,7 +69,7 @@ export default function SidebarCompte({
           href="#/parametres"
           title="Paramètres"
           aria-label="Paramètres"
-          className={`flex h-8 w-8 items-center justify-center rounded-lg transition-colors ${
+          className={`flex aspect-square h-8 w-8 items-center justify-center rounded-lg transition-colors ${
             parametresActifs
               ? 'bg-ctx-soft text-ctx'
               : 'text-ink-dim hoverable:bg-panel2 hoverable:text-ink'
@@ -110,7 +110,7 @@ export default function SidebarCompte({
         onClick={() => fichier.current?.click()}
         title="Importer un export de compte SWEX (traité localement, rien n'est envoyé)"
         aria-label="Importer un compte"
-        className="flex h-8 w-8 flex-none items-center justify-center rounded-md text-ink-dim
+        className="flex aspect-square h-8 w-8 flex-none items-center justify-center rounded-md text-ink-dim
                    transition-colors hoverable:bg-panel2 hoverable:text-ink"
       >
         <Import size={16} />
@@ -119,7 +119,7 @@ export default function SidebarCompte({
         href="#/parametres"
         title="Paramètres"
         aria-label="Paramètres"
-        className={`flex h-8 w-8 flex-none items-center justify-center rounded-md
+        className={`flex aspect-square h-8 w-8 flex-none items-center justify-center rounded-md
                     transition-colors ${
                       parametresActifs
                         ? 'bg-ctx-soft text-ctx'

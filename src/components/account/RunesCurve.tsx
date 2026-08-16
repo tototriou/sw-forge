@@ -181,7 +181,7 @@ export default function RunesCurve({ runes }: Props) {
             aria-expanded={showHelp}
             aria-label="Comment lire ce graphe ?"
             title="Comment lire ce graphe ?"
-            className={`flex items-center justify-center w-9 h-9 rounded-full border transition
+            className={`flex aspect-square items-center justify-center w-9 h-9 rounded-full border transition
               ${showHelp ? 'bg-accent-soft border-accent text-ink' : 'bg-panel/80 border-border text-ink-dim hoverable:text-ink hoverable:border-accent'}`}
           >
             <HelpCircle size={20} />

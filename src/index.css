@@ -481,6 +481,49 @@ button:not(:disabled):not([draggable]):not([role='switch']):active,
   }
 }
 
+/* ---- Cibles TACTILES ---------------------------------------------------- */
+/* ⚠️ **Au doigt, une cible fait au moins 40 px de haut.** L'app est dessinée
+   pour la souris, qui vise au pixel : les pastilles de filtre tombent à 26 px,
+   les boutons d'icône à 32. Au doigt on tape à côté, et sur une rangée de
+   filtres serrée on active le voisin.
+
+   ⚠️ Conditionné à `(pointer: coarse)`, JAMAIS à une largeur : ce n'est pas
+   l'écran qui est petit, c'est le doigt qui est gros. Une tablette au stylet
+   garde les tailles fines ; un téléphone en paysage les agrandit quand même.
+   C'est le pendant de la variante `hoverable` (voir tailwind.config.js), qui
+   règle le même problème pour le survol.
+
+   ⚠️ Seuls la HAUTEUR et l'espacement changent — jamais la taille du texte ni
+   les couleurs. Une interface qui se réécrit au doigt devient une autre
+   interface, et on ne retrouve plus ce qu'on connaît. */
+@media (pointer: coarse) {
+  button:not([data-cible-fine]),
+  a[role='button'],
+  [role='tab'],
+  summary {
+    min-height: 40px;
+  }
+
+  /* Les champs de saisie AUSSI : viser un `<input>` de 28 px au doigt demande
+     autant de précision qu'un bouton, et rater ouvre le clavier au mauvais
+     endroit. */
+  input:not([type='checkbox']):not([type='radio']),
+  select {
+    min-height: 40px;
+  }
+
+  /* ⚠️ Les boutons CARRÉS (icône seule) gagnent aussi en LARGEUR : agrandis en
+     hauteur seulement, ils devenaient des rectangles et l'icône flottait au
+     milieu d'un vide vertical.
+     `aspect-square` les désigne tous, quelle que soit leur taille — un
+     sélecteur sur `.h-8` aurait dépendu du nom de classe Tailwind, donc cassé
+     au premier ajustement de taille. */
+  button.aspect-square,
+  a.aspect-square {
+    min-width: 40px;
+  }
+}
+
 ::-webkit-scrollbar {
   width: 10px;
   height: 10px;

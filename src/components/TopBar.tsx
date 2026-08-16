@@ -100,7 +100,7 @@ export default function TopBar({
           title={parametresActifs ? 'Fermer les paramètres' : 'Paramètres'}
           aria-label={parametresActifs ? 'Fermer les paramètres' : 'Paramètres'}
           aria-pressed={parametresActifs}
-          className={`relative z-10 ml-auto flex h-8 w-8 items-center justify-center rounded-md
+          className={`relative z-10 ml-auto flex aspect-square h-8 w-8 items-center justify-center rounded-md
                       transition-colors ${
                         parametresActifs
                           ? 'bg-ctx-soft text-ctx'

@@ -120,7 +120,7 @@ export default function SidebarSearch({
         }}
         title="Rechercher une page (⌘K)"
         aria-label="Rechercher une page"
-        className="mx-auto mb-1 flex h-8 w-8 items-center justify-center rounded-md
+        className="mx-auto mb-1 flex aspect-square h-8 w-8 items-center justify-center rounded-md
                    text-ink-dim transition-colors hoverable:bg-panel2 hoverable:text-ink"
       >
         <Search size={17} />

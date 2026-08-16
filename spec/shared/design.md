@@ -434,6 +434,37 @@ n'indique par où sortir, et on cherche.
 - Elle vit **dans la coquille**, pas dans chaque fiche : posée au cas par cas,
   elle aurait fini à trois endroits différents selon la modale.
 
+### Cibles tactiles — 40 px au doigt
+
+```css
+@media (pointer: coarse) {
+  button, a[role='button'], [role='tab'], summary,
+  input, select { min-height: 40px; }
+  button.aspect-square, a.aspect-square { min-width: 40px; }
+}
+```
+
+L'app est dessinée pour la **souris**, qui vise au pixel : les pastilles de
+filtre tombent à 26 px, les boutons d'icône à 32. Au doigt on tape à côté, et
+sur une rangée de filtres serrée on active le **voisin**.
+
+- ⚠️ Conditionné à **`(pointer: coarse)`**, jamais à une largeur : ce n'est pas
+  l'écran qui est petit, c'est le doigt qui est gros. Une tablette au stylet
+  garde les tailles fines ; un téléphone en paysage les agrandit quand même.
+  C'est le pendant de la variante `hoverable`, qui règle le même problème pour
+  le survol.
+- ⚠️ Seuls la **hauteur** et la largeur changent — jamais la taille du texte ni
+  les couleurs. Une interface qui se réécrit au doigt devient une autre
+  interface, et on ne retrouve plus ce qu'on connaît.
+- ⚠️ Les boutons **carrés** (icône seule) portent `aspect-square` et gagnent
+  aussi en largeur : agrandis en hauteur seulement, ils devenaient des
+  rectangles avec l'icône flottant dans un vide vertical. Le marqueur est
+  `aspect-square` et non `.h-8` — un sélecteur sur le nom de classe Tailwind
+  aurait cassé au premier ajustement de taille.
+- Les **champs de saisie** aussi : viser un `<input>` de 28 px au doigt demande
+  autant de précision qu'un bouton, et rater ouvre le clavier au mauvais
+  endroit.
+
 ### Focus — une règle globale, pas 24 exceptions
 
 ```css

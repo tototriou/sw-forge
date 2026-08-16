@@ -152,7 +152,7 @@ export default function SettingsMenu({
   // ⚠️ La variante `bar` (44 px, encadrée) a disparu avec la barre mobile
   // qu'elle accompagnait : sur mobile, les réglages sont désormais une ICÔNE de
   // la barre supérieure menant à leur page, pas un popover.
-  const btnClass = `w-9 h-9 rounded-lg ${
+  const btnClass = `aspect-square w-9 h-9 rounded-lg ${
     open ? 'bg-panel2 text-ink' : 'text-ink-dim hoverable:text-ink hoverable:bg-panel2'
   }`;
 

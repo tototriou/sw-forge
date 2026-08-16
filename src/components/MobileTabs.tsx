@@ -38,7 +38,11 @@ export default function MobileTabs({ onglets }: { onglets: OngletMobile[] }) {
             key={o.key}
             href={o.hash}
             aria-current={o.actif ? 'page' : undefined}
-            className={`relative flex flex-col items-center gap-1 px-1 pt-2.5 pb-2.5 text-[9.5px]
+            // ⚠️ `px-0.5` et non `px-1` : à 11 px (le plancher de l'échelle,
+            // voir design.md), « Accueil » remplit une colonne de 64 px sur un
+            // écran de 320. Le libellé était à 9,5 px — sous le plancher, donc
+            // flou au doigt. On resserre la marge plutôt que le texte.
+            className={`relative flex flex-col items-center gap-1 px-0.5 pt-2.5 pb-2.5 text-micro
                         leading-none transition-colors ${
                           o.actif ? 'text-ctx' : 'text-ink-dimmer'
                         }`}

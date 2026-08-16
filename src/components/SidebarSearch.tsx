@@ -142,7 +142,7 @@ export default function SidebarSearch({
           placeholder="Aller à…"
           aria-label="Rechercher une page"
           title="Rechercher une page (⌘K)"
-          className="min-w-0 flex-1 bg-transparent text-[13px] text-ink outline-none
+          className="min-w-0 flex-1 bg-transparent text-sm text-ink outline-none
                      placeholder:text-ink-dimmer"
         />
         {/* ⚠️ Un CHEVRON VERS LA DROITE, pas le badge « ⌘K ». Le badge
@@ -172,7 +172,7 @@ export default function SidebarSearch({
                      border-border bg-panel shadow-glow shadow-black/40"
         >
           {resultats.length === 0 ? (
-            <p className="px-3 py-2.5 text-[12.5px] text-ink-dim">Aucune page</p>
+            <p className="px-3 py-2.5 text-xs text-ink-dim">Aucune page</p>
           ) : (
             resultats.map((c, i) => (
               <a
@@ -183,7 +183,7 @@ export default function SidebarSearch({
                 // avant que le clic ne l'atteigne.
                 onMouseDown={(e) => e.preventDefault()}
                 onClick={() => nav.reinitialiser()}
-                className={`flex w-full items-center gap-2.5 px-3 py-1.5 text-left text-[13px]
+                className={`flex w-full items-center gap-2.5 px-3 py-1.5 text-left text-sm
                             transition-colors ${
                               i === nav.actif ? 'bg-ctx-soft text-ink' : 'text-ink-dim'
                             }`}

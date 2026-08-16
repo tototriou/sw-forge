@@ -107,7 +107,7 @@ export default function TopBar({
           // vit dans la barre latérale : la marge gauche retombe à celle du
           // conteneur. `truncate` finit le travail sur « Recommandations ».
           className="pointer-events-none absolute inset-y-0 left-[60px] right-[56px] flex
-                     items-center justify-center gap-2 font-display text-[15px]
+                     items-center justify-center gap-2 font-display text-base
                      tracking-wide text-ink lg:left-3"
         >
           {icone && <span className="flex-none text-ctx">{icone}</span>}

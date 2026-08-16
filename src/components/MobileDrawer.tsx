@@ -76,7 +76,7 @@ export default function MobileDrawer({
                        border-r border-border bg-panel lg:hidden"
           >
             <div className="flex flex-none items-center gap-2 border-b border-border px-4 py-3">
-              <h2 className="font-display text-[16px] tracking-wide text-ink">{titre}</h2>
+              <h2 className="font-display text-lg tracking-wide text-ink">{titre}</h2>
               <button
                 type="button"
                 onClick={onFermer}

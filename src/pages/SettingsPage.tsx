@@ -40,7 +40,7 @@ export default function SettingsPage({
   // contrôle.
   return (
     <div className="mx-auto max-w-[620px]">
-      <p className="mb-4 text-[13px] leading-relaxed text-ink-dim">
+      <p className="mb-4 text-sm leading-relaxed text-ink-dim">
         Ces réglages valent pour toute l'application et restent sur cet appareil.
       </p>
 
@@ -54,13 +54,13 @@ export default function SettingsPage({
             <span className="h-2 w-2 flex-none rounded-full bg-good" aria-hidden />
             <div className="min-w-0 flex-1">
               <span className="label">Compte chargé</span>
-              <div className="truncate text-[14px] font-semibold text-ink">{accountName}</div>
+              <div className="truncate text-sm font-semibold text-ink">{accountName}</div>
             </div>
           </>
         ) : (
           <div className="min-w-0 flex-1">
             <span className="label">Compte</span>
-            <div className="text-[14px] text-ink-dim">Aucun compte chargé</div>
+            <div className="text-sm text-ink-dim">Aucun compte chargé</div>
           </div>
         )}
         <AccountImportControl onImport={onImport} variant="desktop" />

@@ -185,7 +185,7 @@ export default function Sidebar({
         }`}
       >
         <img src={`${import.meta.env.BASE_URL}favicon.svg`} alt="" className="w-7 h-7 flex-none" />
-        {!retractee && <span className="font-display text-[16px] tracking-wide">SW Forge</span>}
+        {!retractee && <span className="font-display text-lg tracking-wide">SW Forge</span>}
       </a>
 
       {/* ⚠️ La recherche est HORS de la zone défilante ci-dessous : sa liste de
@@ -258,7 +258,7 @@ export default function Sidebar({
                   {!retractee && (
                     <>
                       <span className="flex-none text-ctx">{niveauDeux.icon}</span>
-                      <span className="truncate font-display text-[15px] tracking-wide text-ink">
+                      <span className="truncate font-display text-base tracking-wide text-ink">
                         {niveauDeux.titre}
                       </span>
                     </>
@@ -302,7 +302,7 @@ export default function Sidebar({
         onClick={onToggleRetract}
         aria-label={retractee ? 'Déplier la navigation' : 'Replier la navigation'}
         title={retractee ? 'Déplier la navigation' : 'Replier la navigation'}
-        className={`flex items-center gap-2.5 border-t border-border-soft py-2.5 text-[12px]
+        className={`flex items-center gap-2.5 border-t border-border-soft py-2.5 text-xs
                     text-ink-dimmer transition-colors hoverable:bg-panel2 hoverable:text-ink ${
                       retractee ? 'justify-center px-0' : 'px-3.5'
                     }`}
@@ -402,7 +402,7 @@ function LienBarre({
       // larges comme leur texte, et leur fond au survol s'arrêtait au milieu de
       // la barre — trois entrées visiblement différentes des six autres.
       className={`group relative flex w-full items-center rounded-md py-1.5 text-left
-                  text-[14px] transition-colors ${
+                  text-sm transition-colors ${
                     retractee ? 'justify-center px-0' : 'gap-2.5 px-2'
                   } ${
                     lien.actif ? 'text-ink' : 'text-ink-dim hoverable:text-ink'

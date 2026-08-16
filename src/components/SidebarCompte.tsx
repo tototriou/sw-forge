@@ -89,12 +89,12 @@ export default function SidebarCompte({
           <Avatar nom={nom} />
           {/* `min-w-0` + `truncate` : un pseudo long ne doit pas pousser les
               deux boutons hors de la barre. */}
-          <span className="min-w-0 flex-1 truncate text-[13.5px] text-ink" title={nom}>
+          <span className="min-w-0 flex-1 truncate text-sm text-ink" title={nom}>
             {nom}
           </span>
         </>
       ) : (
-        <span className="min-w-0 flex-1 truncate text-[13.5px] text-ink-dimmer">
+        <span className="min-w-0 flex-1 truncate text-sm text-ink-dimmer">
           Aucun compte
         </span>
       )}
@@ -139,7 +139,7 @@ function Avatar({ nom }: { nom: string }) {
     <span
       aria-hidden
       className="flex h-7 w-7 flex-none items-center justify-center rounded-full
-                 bg-ctx-soft text-[12.5px] font-bold uppercase text-ctx"
+                 bg-ctx-soft text-xs font-bold uppercase text-ctx"
     >
       {nom.trim().charAt(0)}
     </span>

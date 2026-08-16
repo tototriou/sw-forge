@@ -557,11 +557,14 @@ button:not(:disabled):not([draggable]):not([role='switch']):active,
    libellé centré dans un bouton pleine largeur flotte au milieu du vide, et
    l'œil doit repartir chercher le début de chaque ligne. Empilés, ils forment
    une colonne dont tous les mots commencent au même endroit.
-   ⚠️ Sauf ceux d'une rangée (`flex-wrap`), qui gardent leur largeur propre —
-   la règle ne s'applique qu'aux enfants directs empilés. */
-[data-tiroir] > * > button,
-[data-tiroir] > button {
+   ⚠️ **Seulement les boutons EMPILÉS**, jamais ceux d'une rangée. Les pastilles
+   de filtre (élément, étoiles) vivent dans un `flex-wrap` et doivent garder leur
+   largeur propre : alignées de force, chacune s'étirerait sur toute la ligne et
+   la rangée deviendrait une colonne de six pastilles géantes.
+   D'où `.flex-col > button` — seul un conteneur qui empile est visé. */
+[data-tiroir] .flex-col > button {
   justify-content: flex-start;
+  width: 100%;
 }
 
 ::-webkit-scrollbar {
@@ -642,4 +645,14 @@ button:not(:disabled):not([draggable]):not([role='switch']):active,
 
 .hex-frame {
   clip-path: polygon(50% 0%, 95% 25%, 95% 75%, 50% 100%, 5% 75%, 5% 25%);
+}
+
+/* ⚠️ Les intitulés de rangée à largeur FIXE (`w-[86px]` dans les listes de
+   runes et d'artéfacts) sont dimensionnés pour le desktop, où la rangée fait
+   900 px. Dans le panneau mobile ils amputent d'un quart la largeur du contrôle
+   qu'ils désignent — un `SubSearchBar` de quatre cases tombait à deux par
+   ligne. Ils reprennent leur largeur naturelle, et la rangée passe à la ligne
+   d'elle-même. */
+[data-tiroir] .w-\[86px\] {
+  width: auto;
 }

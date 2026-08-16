@@ -24,6 +24,9 @@ interface Props {
   onCreateMonster: (name: string, element: ElementKey, speed: number, lead?: CustomLead | null) => Monster;
   customMonsters: Monster[];
   onDeleteMonster: (id: string) => void;
+  // Panneau d'actions mobile — piloté par le bouton « Options » (voir App.tsx).
+  menuOuvert: boolean;
+  onFermerMenu: () => void;
 }
 
 const SUB_TABS: { tab: SiegeTab; label: string; icon: typeof Shield; hash: string }[] = [
@@ -42,6 +45,8 @@ export default function SiegePage({
   builds,
   teams,
   copies6,
+  menuOuvert,
+  onFermerMenu,
   ...boardProps
 }: Props) {
   return (
@@ -81,10 +86,19 @@ export default function SiegePage({
           teams={teams}
           copies6={copies6}
           offense={offense}
+          menuOuvert={menuOuvert}
+          onFermerMenu={onFermerMenu}
         />
       ) : (
         // key={tab} pour réinitialiser l'état du board au changement de côté
-        <SiegeBoard key={tab} side={tab as SiegeSide} siege={siege} {...boardProps} />
+        <SiegeBoard
+          key={tab}
+          side={tab as SiegeSide}
+          siege={siege}
+          menuOuvert={menuOuvert}
+          onFermerMenu={onFermerMenu}
+          {...boardProps}
+        />
       )}
     </div>
   );

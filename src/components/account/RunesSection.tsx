@@ -15,13 +15,24 @@ interface Props {
   // internes qui vivaient ici ont disparu : sept vues cachées derrière une
   // rangée d'onglets qu'on ne voyait qu'une fois sur la page.
   vue: AccountView;
+  // Panneau d'actions mobile — piloté par le bouton « Options » (voir App.tsx).
+  menuOuvert: boolean;
+  onFermerMenu: () => void;
 }
 
-export default function RunesSection({ runes, crafts, vue: view }: Props) {
+export default function RunesSection({
+  runes,
+  crafts,
+  vue: view,
+  menuOuvert,
+  onFermerMenu,
+}: Props) {
   return (
     <div>
       {view === 'resume' && <RunesSummary runes={runes} />}
-      {view === 'liste' && <RunesList runes={runes} />}
+      {view === 'liste' && (
+        <RunesList runes={runes} menuOuvert={menuOuvert} onFermerMenu={onFermerMenu} />
+      )}
       {view === 'courbes' && <RunesCurve runes={runes} />}
       {view === 'comparaison' && <RunesCompare runes={runes} />}
       {view === 'optimisation' && <RunesOptim runes={runes} crafts={crafts} />}

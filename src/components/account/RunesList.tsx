@@ -8,6 +8,7 @@ import { RuneDetailBox } from '../MonsterGear';
 import Pager from './Pager';
 import { Critere } from './SubSearchDialog';
 import SubSearchBar from './SubSearchBar';
+import MobileSheet from '../MobileSheet';
 import {
   RUNE_SORTS,
   RuneSortMode,
@@ -20,6 +21,9 @@ import { useRuneMetric } from '../../hooks/useRuneMetric';
 
 interface Props {
   runes: RuneDetail[];
+  // Panneau d'actions mobile — piloté par le bouton « Options » (voir App.tsx).
+  menuOuvert: boolean;
+  onFermerMenu: () => void;
 }
 
 // Une rune enrichie de ses deux mesures (calculées une fois).
@@ -45,7 +49,7 @@ const SUBS_OPTIONS = Object.entries(RUNE_EFFECT).map(([code, def]) => ({
   label: def.label,
 }));
 
-export default function RunesList({ runes }: Props) {
+export default function RunesList({ runes, menuOuvert, onFermerMenu }: Props) {
   const [sets, setSets] = useStickyState<Set<string>>('runesList.sets', new Set());
   const [slots, setSlots] = useStickyState<Set<number>>('runesList.slots', new Set());
   const [ancientOnly, setAncientOnly] = useStickyState('runesList.ancient', false);
@@ -114,10 +118,10 @@ export default function RunesList({ runes }: Props) {
   const safePage = Math.min(page, pageCount - 1);
   const shown = sorted.slice(safePage * PAGE, safePage * PAGE + PAGE);
 
-  return (
-    <div>
-      {/* Filtres */}
-      <div className="flex flex-col gap-3 mb-4">
+  // Les filtres, rendus une seule fois et posés à DEUX endroits selon la
+  // largeur. Deux copies auraient divergé au premier filtre ajouté.
+  const filtres = (
+    <>
         {/* Sets : multi-sélection, icônes seules (voir SetFilter) */}
         <SetFilter
           runes={runes}
@@ -205,7 +209,19 @@ export default function RunesList({ runes }: Props) {
             </span>
           )}
         </div>
-      </div>
+    </>
+  );
+
+  return (
+    <div>
+      {/* ⚠️ CINQ rangées de filtres — sets, slots, propriété secondaire, tri —
+          soit près de la moitié d'un écran de téléphone avant la première rune.
+          Sous `lg` elles descendent dans le panneau « Options ». */}
+      <div className="hidden lg:flex lg:flex-col gap-3 mb-4">{filtres}</div>
+
+      <MobileSheet ouvert={menuOuvert} onFermer={onFermerMenu} titre="Filtrer mes runes">
+        <div className="flex flex-col gap-3">{filtres}</div>
+      </MobileSheet>
 
       <div className="flex items-center justify-between gap-3 mb-3 flex-wrap">
         <p className="font-mono text-xs text-ink-dim">

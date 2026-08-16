@@ -358,11 +358,31 @@ referme. Plein écran, il devient indiscernable d'un changement de page.
 Il reçoit les **filtres et les actions** de la page, ceux qui occupaient trois
 ou quatre rangées avant la première donnée. Ce qui y entre et ce qui reste :
 
-| Page | Reste visible | Passe dans le panneau |
-|------|---------------|----------------------|
-| RTA | La grille des équipes | Filtres, sauvegarde, import/export |
+| Écran | Reste visible | Passe dans le panneau |
+|-------|---------------|----------------------|
+| RTA | Recherche, grille des équipes | Sauvegarde, import/export, création |
+| Siège (défense / offense) | Le compteur d'équipes | Ajouter une équipe, vérifier les ticks, créer un monstre, tout effacer |
+| Siège → Recommandations | — | Créer, importer, tout exporter, tout effacer |
 | Bestiaire | La recherche | `FilterBar` (élément, étoiles, tri) |
-| Mon compte → Monstres | La recherche et le tri | Élément, étoiles, doublons, 2A |
+| Mon compte → Monstres | Recherche et tri | Élément, étoiles, doublons, 2A |
+| Mon compte → Runes → Liste | Le compteur et la pagination | Sets, slots, antiques, propriété secondaire, tri |
+| Mon compte → Artéfacts → Liste | Le compteur et la pagination | Catégorie, sous-filtre, stat principale, propriétés |
+
+⚠️ **Le bouton dépend de l'ÉCRAN, pas de la page** (`pageAPanneau` dans
+`App.tsx`). Sur « Mon compte », seules les vues en *liste* ont des filtres : le
+résumé, les courbes et la comparaison n'en ont aucun, et le bouton n'y apparaît
+pas. Une condition sur la seule route aurait ouvert un panneau vide sur trois
+vues de sept.
+
+⚠️ **Le panneau se referme aussi sur `accountSub`, `accountView` et
+`siegeTab`**, pas seulement sur la route. Ce sont des écrans à part entière,
+chacun avec ses filtres — rester ouvert en passant des runes aux artéfacts
+aurait montré les contrôles du précédent.
+
+⚠️ **« Tout effacer » reste détaché** des autres actions, sous un séparateur.
+Dans la page il se pose à l'opposé (`ml-auto`) ; dans le panneau il garde cette
+distance. Un bouton destructeur ne se met pas au contact de celui qu'on presse
+en boucle.
 
 ⚠️ **La recherche ne descend jamais dans le panneau.** C'est le geste le plus
 fréquent de ces trois écrans ; l'enfouir derrière une ouverture de panneau
@@ -382,8 +402,18 @@ dans une barre d'outils serrée ; dans un panneau qui a toute la largeur, il ne
 dit plus ce qu'il fait.
 
 ⚠️ Les filtres sont **un seul JSX**, posé à deux endroits selon la largeur
-(`hidden lg:contents` dans la page, et le même fragment dans le tiroir). Deux
-copies auraient divergé au premier filtre ajouté.
+(`hidden lg:contents` ou `hidden lg:flex` dans la page, et le même fragment dans
+le panneau). Deux copies auraient divergé au premier filtre ajouté.
+
+⚠️ Deux règles CSS adaptent les contrôles au panneau (`src/index.css`), plutôt
+que de les réécrire dans chaque composant :
+- `[data-tiroir] .flex-col > button` — les boutons **empilés** prennent toute la
+  largeur et s'alignent à gauche. **Seulement les empilés** : les pastilles de
+  filtre vivent dans un `flex-wrap` et doivent garder leur largeur propre, sinon
+  la rangée devient une colonne de six pastilles géantes.
+- `[data-tiroir] .w-[86px]` — les intitulés à largeur fixe reprennent leur
+  largeur naturelle. Calibrés pour une rangée desktop de 900 px, ils amputaient
+  d'un quart le contrôle qu'ils désignent.
 
 ## Densité au doigt
 

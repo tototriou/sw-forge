@@ -7,6 +7,7 @@ import { useStickyState } from '../../hooks/useStickyState';
 import SiegeTeam from './SiegeTeam';
 import CreateMonster from '../CreateMonster';
 import { ConfirmDialog } from '../Dialogs';
+import MobileSheet from '../MobileSheet';
 import { CustomLead } from '../../hooks/useCustomMonsters';
 
 interface Props {
@@ -17,6 +18,10 @@ interface Props {
   onCreateMonster: (name: string, element: ElementKey, speed: number, lead?: CustomLead | null) => Monster;
   customMonsters: Monster[];
   onDeleteMonster: (id: string) => void;
+  // Panneau d'actions mobile — piloté par le bouton « Options » de la barre
+  // d'onglets (voir App.tsx).
+  menuOuvert: boolean;
+  onFermerMenu: () => void;
 }
 
 // L'import se fait globalement depuis la barre de nav (voir AccountImportControl) :
@@ -30,6 +35,8 @@ export default function SiegeBoard({
   onCreateMonster,
   customMonsters,
   onDeleteMonster,
+  menuOuvert,
+  onFermerMenu,
 }: Props) {
   const noun = side === 'defense' ? 'défense' : 'attaque';
 
@@ -63,9 +70,27 @@ export default function SiegeBoard({
     return m;
   }, [monsters]);
 
-  return (
-    <div>
-      <div className="flex items-center gap-3 mt-5 flex-wrap">
+  // Les actions du board, rendues une seule fois et posées à DEUX endroits
+  // selon la largeur : dans la page au-dessus de `lg`, dans le panneau en
+  // dessous. Deux copies auraient divergé au premier bouton ajouté.
+  // ⚠️ « Tout effacer » est SÉPARÉ des autres actions : dans la page il se pose
+  // à l'opposé (`ml-auto`), loin des gestes de construction — un bouton
+  // destructeur ne se met pas à côté de celui qu'on presse en boucle. Dans le
+  // panneau il garde la même distance, en bas et détaché.
+  const effacer = siege.state.teams.length > 0 && (
+    <button
+      onClick={() => {
+        setEffacementAConfirmer(true);
+        onFermerMenu();
+      }}
+      className="flex items-center gap-1.5 text-xs text-ink-dim hoverable:text-fire transition"
+    >
+      <Trash2 size={13} /> Tout effacer
+    </button>
+  );
+
+  const actions = (
+    <>
         <button
           onClick={() => {
             siege.addTeam();
@@ -105,18 +130,29 @@ export default function SiegeBoard({
           onDelete={onDeleteMonster}
         />
 
+    </>
+  );
+
+  return (
+    <div>
+      {/* ⚠️ Sous `lg`, les trois actions descendent dans le panneau
+          « Options » : à 40 px avec leur libellé complet, elles remplissaient
+          deux rangées avant la première équipe. Le COMPTEUR reste, lui — c'est
+          une information, pas une action, et elle tient sur une ligne. */}
+      <div className="mt-5 flex items-center gap-3 flex-wrap">
+        <div className="hidden lg:contents">{actions}</div>
         <span className="font-mono text-xs text-ink-dim">
           {siege.state.teams.length} équipe{siege.state.teams.length > 1 ? 's' : ''}
         </span>
-        {siege.state.teams.length > 0 && (
-          <button
-            onClick={() => setEffacementAConfirmer(true)}
-            className="ml-auto flex items-center gap-1.5 text-xs text-ink-dim hoverable:text-fire transition"
-          >
-            <Trash2 size={13} /> Tout effacer
-          </button>
-        )}
+        <div className="ml-auto hidden lg:contents">{effacer}</div>
       </div>
+
+      <MobileSheet ouvert={menuOuvert} onFermer={onFermerMenu} titre={`Actions — ${noun}`}>
+        <div className="flex flex-col gap-2">{actions}</div>
+        {effacer && (
+          <div className="mt-4 border-t border-border pt-3">{effacer}</div>
+        )}
+      </MobileSheet>
 
       {effacementAConfirmer && (
         <ConfirmDialog

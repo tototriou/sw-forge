@@ -14,13 +14,27 @@ interface Props {
   // seul levier est de monter la pièce au +15.
   // Voir spec/compte/calcul-artefacts.md.
   vue: AccountView;
+  // Panneau d'actions mobile — piloté par le bouton « Options » (voir App.tsx).
+  menuOuvert: boolean;
+  onFermerMenu: () => void;
 }
 
-export default function ArtifactsSection({ artifacts, vue: view }: Props) {
+export default function ArtifactsSection({
+  artifacts,
+  vue: view,
+  menuOuvert,
+  onFermerMenu,
+}: Props) {
   return (
     <div>
       {view === 'resume' && <ArtifactsSummary artifacts={artifacts} />}
-      {view === 'liste' && <ArtifactsList artifacts={artifacts} />}
+      {view === 'liste' && (
+        <ArtifactsList
+          artifacts={artifacts}
+          menuOuvert={menuOuvert}
+          onFermerMenu={onFermerMenu}
+        />
+      )}
     </div>
   );
 }

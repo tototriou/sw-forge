@@ -15,6 +15,7 @@ import { ArtifactGlyph } from '../ArtifactIcon';
 import ArtifactFrameIcon from '../ArtifactFrameIcon';
 import ElementIcon from '../ElementIcon';
 import Segmented from '../Segmented';
+import MobileSheet from '../MobileSheet';
 import { ELEMENT_FILTER_STYLES } from '../elementStyles';
 import Pager from './Pager';
 import { Critere } from './SubSearchDialog';
@@ -24,6 +25,9 @@ import { RuneMetric, useRuneMetric } from '../../hooks/useRuneMetric';
 
 interface Props {
   artifacts: ArtifactDetail[];
+  // Panneau d'actions mobile — piloté par le bouton « Options » (voir App.tsx).
+  menuOuvert: boolean;
+  onFermerMenu: () => void;
 }
 
 interface ArtRow {
@@ -60,7 +64,7 @@ const ARCHETYPES: { key: Archetype; label: string }[] = [
   { key: 'support', label: 'Support' },
 ];
 
-export default function ArtifactsList({ artifacts }: Props) {
+export default function ArtifactsList({ artifacts, menuOuvert, onFermerMenu }: Props) {
   const [kind, setKind] = useStickyState<'all' | 'element' | 'archetype'>('artefacts.kind', 'all');
   const [element, setElement] = useStickyState<ElementKey | ''>('artefacts.element', '');
   const [archetype, setArchetype] = useStickyState<Archetype | ''>('artefacts.archetype', '');
@@ -194,9 +198,10 @@ export default function ArtifactsList({ artifacts }: Props) {
   const safePage = Math.min(page, pageCount - 1);
   const shown = filtered.slice(safePage * PAGE, safePage * PAGE + PAGE);
 
-  return (
-    <div>
-      <div className="flex flex-col gap-3 mb-4">
+  // Les filtres, rendus une seule fois et posés à DEUX endroits selon la
+  // largeur. Deux copies auraient divergé au premier filtre ajouté.
+  const filtres = (
+    <>
         {/* Catégorie + sous-filtre.
             ⚠️ L'intitulé de la rangée est « Catégorie » et non « Type » : les
             deux sortes d'artéfacts s'appellent **Attribut** et **Type** dans le
@@ -433,7 +438,19 @@ export default function ArtifactsList({ artifacts }: Props) {
             )}
           </div>
         </div>
-      </div>
+    </>
+  );
+
+  return (
+    <div>
+      {/* ⚠️ Cinq rangées de filtres — catégorie, sous-filtre, stat principale,
+          propriétés — qui remplissaient un écran de téléphone avant le premier
+          artéfact. Sous `lg` elles descendent dans le panneau « Options ». */}
+      <div className="hidden lg:flex lg:flex-col gap-3 mb-4">{filtres}</div>
+
+      <MobileSheet ouvert={menuOuvert} onFermer={onFermerMenu} titre="Filtrer mes artéfacts">
+        <div className="flex flex-col gap-3">{filtres}</div>
+      </MobileSheet>
 
       <div className="flex items-center justify-between gap-3 mb-3 flex-wrap">
         <p className="font-mono text-xs text-ink-dim">

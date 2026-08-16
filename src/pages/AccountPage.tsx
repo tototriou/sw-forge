@@ -451,8 +451,23 @@ export default function AccountPage({
           onFermerMenu={onFermerMenu}
         />
       )}
-      {sub === 'runes' && <RunesSection runes={runes} crafts={crafts} vue={vue} />}
-      {sub === 'artefacts' && <ArtifactsSection artifacts={artifacts} vue={vue} />}
+      {sub === 'runes' && (
+        <RunesSection
+          runes={runes}
+          crafts={crafts}
+          vue={vue}
+          menuOuvert={menuOuvert}
+          onFermerMenu={onFermerMenu}
+        />
+      )}
+      {sub === 'artefacts' && (
+        <ArtifactsSection
+          artifacts={artifacts}
+          vue={vue}
+          menuOuvert={menuOuvert}
+          onFermerMenu={onFermerMenu}
+        />
+      )}
     </div>
   );
 }

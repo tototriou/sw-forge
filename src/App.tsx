@@ -77,12 +77,14 @@ const DISCORD_INVITE = 'https://discord.gg/R2Fe4GJZET';
 // Pages dont les actions et les filtres passent dans le panneau mobile
 // (`MobileSheet`), ouvert par le bouton « Options » au-dessus de la barre
 // d'onglets.
-// ⚠️ Les autres n'en ont aucune (Accueil, Mécaniques, Nouveautés, Paramètres) :
-// leur ouvrir un panneau vide serait pire que ne rien proposer.
-// ⚠️ Le Siège en est ABSENT : sa barre d'outils tient en quatre boutons qui
-// passent déjà à la ligne d'eux-mêmes. Les déplacer coûterait un découpage de
-// `SiegeBoard` sans rien gagner en hauteur.
-const PAGES_AVEC_MENU = new Set<Route>(['rta', 'bestiary', 'compte']);
+// ⚠️ L'OPTIMISEUR en est absent, et ce n'est pas un oubli : ses réglages SONT
+// son contenu — la page est une suite de champs lus de haut en bas (voir la
+// largeur bornée à 768 px dans navigation.md). Les descendre dans un panneau
+// laisserait une page vide au-dessus d'un bouton.
+// ⚠️ Même chose pour Accueil, Mécaniques, Nouveautés et Paramètres : aucune
+// action à y loger. Leur ouvrir un panneau vide serait pire que ne rien
+// proposer — c'est la règle qui décide de l'appartenance à cette liste.
+const PAGES_AVEC_MENU = new Set<Route>(['rta', 'siege', 'bestiary', 'compte']);
 
 type Route =
   | 'home'
@@ -276,14 +278,27 @@ export default function App() {
   // qu'on conservait déjà (la valeur portée est « ne plus me montrer »).
   const [purgeGlobale, setPurgeGlobale] = useState(false);
 
-  // Tiroir d'actions de la page, sous `lg`. ⚠️ L'état vit ICI parce que le
-  // bouton (barre supérieure) et le contenu (la page) sont deux sous-arbres
+  // Panneau d'actions de la page, sous `lg`. ⚠️ L'état vit ICI parce que le
+  // bouton (barre d'onglets) et le contenu (la page) sont deux sous-arbres
   // distincts : seul leur ancêtre commun peut les relier.
   const [menuPageOuvert, setMenuPageOuvert] = useState(false);
 
-  // Le tiroir se referme à chaque changement d'écran : ses actions portent sur
-  // la page qu'on vient de quitter.
-  useEffect(() => setMenuPageOuvert(false), [route]);
+  // ⚠️ La page ne suffit pas à décider si le bouton « Options » s'affiche : sur
+  // « Mon compte », seules les vues en LISTE ont des filtres. Le résumé, les
+  // courbes et la comparaison n'en ont aucun — leur ouvrir un panneau vide
+  // serait pire que ne rien proposer.
+  const pageAPanneau =
+    PAGES_AVEC_MENU.has(route) &&
+    (route !== 'compte' || accountSub === 'monstres' || accountView === 'liste');
+
+  // Le panneau se referme à chaque changement d'écran : ses actions portent sur
+  // celui qu'on vient de quitter. ⚠️ `accountSub`/`accountView`/`siegeTab` en
+  // font partie — ce sont des écrans à part entière, avec chacun ses filtres, et
+  // rester ouvert sur ceux du précédent afficherait des contrôles sans rapport.
+  useEffect(
+    () => setMenuPageOuvert(false),
+    [route, accountSub, accountView, siegeTab]
+  );
 
   // Repli de la barre latérale. Vit ici et non dans `Sidebar` : le CONTENU doit
   // décaler sa marge en même temps, sinon la barre se replie sur une colonne de
@@ -841,7 +856,7 @@ export default function App() {
       <MobileTabs
         onglets={ongletsMobile}
         onOuvrirActions={
-          PAGES_AVEC_MENU.has(route) ? () => setMenuPageOuvert(true) : undefined
+          pageAPanneau ? () => setMenuPageOuvert(true) : undefined
         }
         actionsOuvertes={menuPageOuvert}
       />
@@ -940,6 +955,8 @@ export default function App() {
             onCreateMonster={custom.addCustomMonster}
             customMonsters={custom.customMonsters}
             onDeleteMonster={custom.removeCustomMonster}
+            menuOuvert={menuPageOuvert}
+            onFermerMenu={() => setMenuPageOuvert(false)}
           />
         ) : route === 'arene' ? (
           <ComingSoon

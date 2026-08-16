@@ -12,6 +12,7 @@ import { ConfirmDialog } from '../Dialogs';
 import { OwnedBuild, OwnedTeam, indexBuildsByCom2us } from '../../lib/ownedBuilds';
 import { formesJouables } from '../../lib/monsterForms';
 import Segmented from '../Segmented';
+import MobileSheet from '../MobileSheet';
 import MonsterAvatar from '../MonsterAvatar';
 import MonsterPicker from '../MonsterPicker';
 import RecoCard from './RecoCard';
@@ -24,7 +25,10 @@ interface Props {
   // Exemplaires 6★ possédés, par com2usId → « combien de fois puis-je monter ce
   // deck en parallèle ». Vient de la BOX seule (voir countCopiesByCom2us).
   copies6: Map<number, number>;
-  offense: UseSiegeState; // équipes d'attaque de siège, réutilisables comme decks
+  offense: UseSiegeState;
+  // Panneau d'actions mobile — piloté par le bouton « Options » (voir App.tsx).
+  menuOuvert: boolean;
+  onFermerMenu: () => void; // équipes d'attaque de siège, réutilisables comme decks
 }
 
 // Télécharge un texte en fichier (aucun envoi réseau).
@@ -73,7 +77,16 @@ const LIBELLE_VIDE: Record<RecoSearchMode, string> = {
   offense: 'Aucun deck d’offense',
 };
 
-export default function RecoBoard({ recos, monsters, builds, teams, copies6, offense }: Props) {
+export default function RecoBoard({
+  recos,
+  monsters,
+  builds,
+  teams,
+  copies6,
+  offense,
+  menuOuvert,
+  onFermerMenu,
+}: Props) {
   const [filter, setFilter] = useStickyState<OriginFilter>('recos.filter', 'all');
   // Recherche par monstre : jusqu'à TROIS, autant qu'une composition.
   //
@@ -306,9 +319,10 @@ export default function RecoBoard({ recos, monsters, builds, teams, copies6, off
     return m;
   }, [hits]);
 
-  return (
-    <div>
-      <div className="flex items-center gap-3 mt-5 flex-wrap">
+  // ⚠️ Rendues une seule fois, posées à DEUX endroits selon la largeur. Deux
+  // copies auraient divergé au premier bouton ajouté.
+  const actions = (
+    <>
         <button
           onClick={() => {
             const id = recos.addReco();
@@ -352,15 +366,39 @@ export default function RecoBoard({ recos, monsters, builds, teams, copies6, off
           </button>
         )}
 
-        {all.length > 0 && (
-          <button
-            onClick={() => setEffacementAConfirmer(true)}
-            className="ml-auto flex items-center gap-1.5 text-xs text-ink-dim hoverable:text-fire transition"
-          >
-            <Trash2 size={13} /> Tout effacer
-          </button>
-        )}
+    </>
+  );
+
+  // ⚠️ « Tout effacer » reste SÉPARÉ : dans la page il se pose à l'opposé
+  // (`ml-auto`), loin des gestes de construction. Un bouton destructeur ne se
+  // met pas à côté de celui qu'on presse en boucle — dans le panneau il garde
+  // cette distance, détaché en bas.
+  const effacer = all.length > 0 && (
+    <button
+      onClick={() => {
+        setEffacementAConfirmer(true);
+        onFermerMenu();
+      }}
+      className="flex items-center gap-1.5 text-xs text-ink-dim hoverable:text-fire transition"
+    >
+      <Trash2 size={13} /> Tout effacer
+    </button>
+  );
+
+  return (
+    <div>
+      {/* ⚠️ Sous `lg`, les actions descendent dans le panneau « Options » :
+          quatre boutons à libellé complet remplissaient deux rangées avant la
+          première recommandation. */}
+      <div className="mt-5 flex flex-wrap items-center gap-3 empty:mt-0">
+        <div className="hidden lg:contents">{actions}</div>
+        <div className="ml-auto hidden lg:contents">{effacer}</div>
       </div>
+
+      <MobileSheet ouvert={menuOuvert} onFermer={onFermerMenu} titre="Actions — recommandations">
+        <div className="flex flex-col gap-2">{actions}</div>
+        {effacer && <div className="mt-4 border-t border-border pt-3">{effacer}</div>}
+      </MobileSheet>
 
       {effacementAConfirmer && (
         <ConfirmDialog

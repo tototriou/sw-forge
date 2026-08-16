@@ -33,10 +33,22 @@ centraux de l'outil).
 > carte + ordre) **et** dans la nav de [App.tsx](src/App.tsx), **dans le même
 > commit** que la fonctionnalité.
 
+## Règle de cadre
+
+> ⚠️ **Une application responsive, mais DEUX plateformes de premier rang** :
+> téléphone et ordinateur, dont aucune n'est le cas dégradé de l'autre. On ne
+> dessine pas pour le bureau avant de rétrécir. **Une correction destinée à un
+> format ne touche pas l'autre.** Cette règle prime sur tout arbitrage
+> d'interface : lire [shared/deux-applications.md](shared/deux-applications.md)
+> **avant** de modifier un écran.
+
 ## Briques transverses
 
 Concepts partagés par plusieurs pages, documentés une seule fois :
 
+- [shared/deux-applications.md](shared/deux-applications.md) — **mobile et
+  bureau, deux formats de premier rang** : où passe la frontière, comment
+  l'écrire, ce qui reste global
 - [shared/calcul-vitesse.md](shared/calcul-vitesse.md) — le modèle de vitesse SW
   (base, runes, totem, lead, ticks). **Source de vérité** pour RTA et Siège.
 - [shared/donnees-monstres.md](shared/donnees-monstres.md) — d'où viennent les

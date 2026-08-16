@@ -1,5 +1,5 @@
 import { ReactNode } from 'react';
-import { Settings } from 'lucide-react';
+import { LogOut, Settings } from 'lucide-react';
 
 // Barre SUPÉRIEURE, fixe.
 //
@@ -28,6 +28,7 @@ export default function TopBar({
   titre,
   icone,
   gauche,
+  onDeconnexion,
   parametresActifs,
   onToggleParametres,
   // Bord GAUCHE de la barre : celui de la barre latérale, qu'elle ne recouvre
@@ -40,6 +41,9 @@ export default function TopBar({
   // l'accent contextuel, comme partout ailleurs.
   icone?: ReactNode;
   gauche?: ReactNode;
+  // Efface les données de l'appareil — « Se déconnecter » en attendant que les
+  // comptes vivent en base. ⚠️ Bureau seulement (voir plus bas).
+  onDeconnexion: () => void;
   parametresActifs: boolean;
   // ⚠️ Le bouton BASCULE : il ouvre les paramètres, puis ramène d'où l'on
   // vient. Un lien seul n'offrait aucune sortie — on y entrait sans pouvoir en
@@ -93,17 +97,37 @@ export default function TopBar({
           <span className="truncate">{titre}</span>
         </span>
 
-        {/* ⚠️ Les PARAMÈTRES seuls. C'est le seul geste qui mérite d'être
-            atteignable depuis n'importe quel écran sans passer par la
-            navigation — tout le reste y est déjà. */}
+        {/* ⚠️ **Sur MOBILE, les paramètres seuls.** La déconnexion et l'import
+            en descendent : trois cibles dans 48 px de haut, à côté d'un titre
+            centré, ne laissaient à chacune ni la place ni la marge d'erreur
+            qu'un doigt réclame. Elles restent atteignables par les paramètres et
+            par le panneau d'actions.
+            ⚠️ Au-dessus de `lg` la déconnexion REVIENT ici, à sa place : c'est
+            la zone de la barre qui porte ce qui SORT, et la largeur y suffit
+            largement. */}
+        <button
+          type="button"
+          onClick={onDeconnexion}
+          title="Effacer mes données de cet appareil"
+          className="relative z-10 ml-auto hidden items-center gap-1.5 rounded-md px-2 py-1.5
+                     text-sm text-ink-dim transition-colors lg:flex
+                     hoverable:bg-panel2 hoverable:text-bad"
+        >
+          <LogOut size={16} className="flex-none" />
+          Se déconnecter
+        </button>
+
         <button
           type="button"
           onClick={onToggleParametres}
           title={parametresActifs ? 'Fermer les paramètres' : 'Paramètres'}
           aria-label={parametresActifs ? 'Fermer les paramètres' : 'Paramètres'}
           aria-pressed={parametresActifs}
-          className={`relative z-10 ml-auto flex aspect-square h-8 w-8 items-center justify-center rounded-md
-                      transition-colors ${
+          // ⚠️ `ml-auto` seulement sous `lg` : au-dessus, c'est la déconnexion
+          // qui pousse le groupe à droite, et deux `ml-auto` de suite auraient
+          // séparé les deux boutons d'un vide.
+          className={`relative z-10 ml-auto flex aspect-square h-8 w-8 items-center justify-center
+                      rounded-md transition-colors lg:ml-2 ${
                         parametresActifs
                           ? 'bg-ctx-soft text-ctx'
                           : 'text-ink-dim hoverable:bg-panel2 hoverable:text-ink'

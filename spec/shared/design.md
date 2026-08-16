@@ -1,5 +1,10 @@
 # Système visuel — thèmes, tokens, échelles
 
+> ⚠️ **Ce document décrit le système visuel COMMUN aux deux formats** (couleurs,
+> échelle typographique, animations). La façon dont chaque écran l'emploie, elle,
+> diffère entre mobile et bureau — voir
+> [deux-applications.md](deux-applications.md), qui prime en cas de doute.
+
 > **Source de vérité** pour toute décision d'apparence. Une valeur qui n'est pas
 > ici n'a pas à être écrite en dur dans un composant.
 

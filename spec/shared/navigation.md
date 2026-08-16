@@ -1,5 +1,9 @@
 # Navigation — barre latérale, barre supérieure et onglets mobiles
 
+> ⚠️ La navigation est l'endroit où les **deux formats** divergent le plus :
+> barre latérale sur bureau, barre d'onglets et panneau montant sur mobile. Voir
+> [deux-applications.md](deux-applications.md) pour la règle de cadre.
+
 Depuis la refonte UI, la navigation repose sur trois pièces :
 une **barre latérale** (au-dessus de `lg`), une **barre supérieure** fixe, et
 une **barre d'onglets en bas** (sous `lg`).

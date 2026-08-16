@@ -871,6 +871,10 @@ export default function App() {
         // ⚠️ Le burger n'apparaît que sur les pages qui ONT des actions : un
         // bouton qui ouvre un panneau vide est pire que pas de bouton.
         parametresActifs={route === 'parametres'}
+        // ⚠️ Le MÊME geste que « Effacer mes données » des paramètres, pas un
+        // second chemin : deux façons de purger auraient divergé à la première
+        // garde ajoutée (le dialogue de conservation, par exemple).
+        onDeconnexion={() => setPurgeGlobale(true)}
         onToggleParametres={() => {
           window.location.hash =
             route === 'parametres' ? avantParametres.current : '#/parametres';

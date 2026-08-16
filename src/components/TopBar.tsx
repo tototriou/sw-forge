@@ -1,5 +1,5 @@
 import { ReactNode } from 'react';
-import { Menu, Settings } from 'lucide-react';
+import { Settings } from 'lucide-react';
 
 // Barre SUPÉRIEURE, fixe.
 //
@@ -28,7 +28,6 @@ export default function TopBar({
   titre,
   icone,
   gauche,
-  onOuvrirMenu,
   parametresActifs,
   onToggleParametres,
   // Bord GAUCHE de la barre : celui de la barre latérale, qu'elle ne recouvre
@@ -41,9 +40,6 @@ export default function TopBar({
   // l'accent contextuel, comme partout ailleurs.
   icone?: ReactNode;
   gauche?: ReactNode;
-  // Ouvre le tiroir d'actions de la page. ⚠️ Absent quand la page n'a AUCUNE
-  // action : un burger qui ouvre un panneau vide est pire que pas de burger.
-  onOuvrirMenu?: () => void;
   parametresActifs: boolean;
   // ⚠️ Le bouton BASCULE : il ouvre les paramètres, puis ramène d'où l'on
   // vient. Un lien seul n'offrait aucune sortie — on y entrait sans pouvoir en
@@ -76,23 +72,6 @@ export default function TopBar({
           l'aurait visuellement décollé du bord. */}
       <div className="relative flex h-full items-center gap-3 pl-3 pr-2.5">
         <div className="flex min-w-0 items-center gap-2">
-          {/* ⚠️ Le BURGER prend la place du logo sous `lg`. Le logo n'y servait
-              qu'à revenir à l'accueil — ce que fait déjà l'onglet « Accueil »
-              de la barre du bas, à portée de pouce. Cette place vaut mieux pour
-              les actions de la page, qui n'en avaient aucune. */}
-          {onOuvrirMenu && (
-            <button
-              type="button"
-              onClick={onOuvrirMenu}
-              aria-label="Actions de la page"
-              title="Actions de la page"
-              className="flex aspect-square h-8 w-8 items-center justify-center rounded-md
-                         text-ink-dim transition-colors hoverable:bg-panel2 hoverable:text-ink
-                         lg:hidden"
-            >
-              <Menu size={18} />
-            </button>
-          )}
           {gauche}
         </div>
 

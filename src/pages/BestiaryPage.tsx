@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Sparkles, BookOpen } from 'lucide-react';
 import SearchBar from '../components/SearchBar';
-import MobileDrawer from '../components/MobileDrawer';
+import MobileSheet from '../components/MobileSheet';
 import FilterBar from '../components/FilterBar';
 import MonsterGrid from '../components/MonsterGrid';
 import MonsterDetailDialog from '../components/MonsterDetailDialog';
@@ -155,7 +155,7 @@ export default function BestiaryPage({ monsters, menuOuvert, onFermerMenu }: Pro
         </div>
       </div>
 
-      <MobileDrawer ouvert={menuOuvert} onFermer={onFermerMenu} titre="Filtrer le bestiaire">
+      <MobileSheet ouvert={menuOuvert} onFermer={onFermerMenu} titre="Filtrer le bestiaire">
         <FilterBar
           activeElements={activeElements}
           toggleElement={toggleElement}
@@ -164,7 +164,7 @@ export default function BestiaryPage({ monsters, menuOuvert, onFermerMenu }: Pro
           sortMode={sortMode}
           setSortMode={setSortMode}
         />
-      </MobileDrawer>
+      </MobileSheet>
 
       {/* Compteur + pagination en TÊTE : sur une page de 60 cartes, renvoyer en
           bas de page pour changer de page ferait remonter à chaque fois.

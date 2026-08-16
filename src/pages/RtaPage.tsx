@@ -15,7 +15,7 @@ import RtaSearch from '../components/rta/RtaSearch';
 import RtaSection from '../components/rta/RtaSection';
 import CategoryBar from '../components/rta/CategoryBar';
 import RtaBackupBar from '../components/rta/RtaBackupBar';
-import MobileDrawer from '../components/MobileDrawer';
+import MobileSheet from '../components/MobileSheet';
 import RtaFriendView from '../components/rta/RtaFriendView';
 import { RtaVueAmi } from '../lib/rtaShare';
 import { ConfirmDialog } from '../components/Dialogs';
@@ -283,7 +283,7 @@ export default function RtaPage({
         />
       </div>
 
-      <MobileDrawer ouvert={menuOuvert} onFermer={onFermerMenu} titre="Ma prépa RTA">
+      <MobileSheet ouvert={menuOuvert} onFermer={onFermerMenu} titre="Ma prépa RTA">
         <RtaBackupBar
           rta={rta}
           cats={cats}
@@ -295,7 +295,7 @@ export default function RtaPage({
           }}
           onCreateMonster={onCreateMonster}
         />
-      </MobileDrawer>
+      </MobileSheet>
 
       {/* ⚠️ La prépa consultée s'affiche AVANT la sienne, et encadrée : c'est ce
           qu'on vient d'ouvrir, on doit la voir sans chercher. Elle se ferme d'un

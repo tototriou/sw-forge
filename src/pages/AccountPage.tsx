@@ -20,7 +20,7 @@ import {
   sansDoublonDeTransformation,
 } from '../lib/monsterForms';
 import MonsterDetailDialog from '../components/MonsterDetailDialog';
-import MobileDrawer from '../components/MobileDrawer';
+import MobileSheet from '../components/MobileSheet';
 import type { AccountView } from '../App';
 import { VUES_INVENTAIRE, hashVue, vueParDefaut } from '../lib/accountViews';
 
@@ -303,9 +303,9 @@ function MonsterBoxSection({
         <div className="hidden lg:contents">{filtres}</div>
       </div>
 
-      <MobileDrawer ouvert={menuOuvert} onFermer={onFermerMenu} titre="Filtrer ma box">
+      <MobileSheet ouvert={menuOuvert} onFermer={onFermerMenu} titre="Filtrer ma box">
         <div className="flex flex-col gap-3">{filtres}</div>
-      </MobileDrawer>
+      </MobileSheet>
 
       {filtered.length === 0 ? (
         <p className="text-ink-dim text-sm">Aucun monstre ne correspond aux filtres.</p>

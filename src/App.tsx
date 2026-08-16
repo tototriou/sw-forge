@@ -74,7 +74,9 @@ import { VUES_INVENTAIRE, hashVue, vueValide } from './lib/accountViews';
 
 const DISCORD_INVITE = 'https://discord.gg/R2Fe4GJZET';
 
-// Pages dont les actions et les filtres passent dans le tiroir mobile.
+// Pages dont les actions et les filtres passent dans le panneau mobile
+// (`MobileSheet`), ouvert par le bouton « Options » au-dessus de la barre
+// d'onglets.
 // ⚠️ Les autres n'en ont aucune (Accueil, Mécaniques, Nouveautés, Paramètres) :
 // leur ouvrir un panneau vide serait pire que ne rien proposer.
 // ⚠️ Le Siège en est ABSENT : sa barre d'outils tient en quatre boutons qui
@@ -836,7 +838,13 @@ export default function App() {
         }
       />
 
-      <MobileTabs onglets={ongletsMobile} />
+      <MobileTabs
+        onglets={ongletsMobile}
+        onOuvrirActions={
+          PAGES_AVEC_MENU.has(route) ? () => setMenuPageOuvert(true) : undefined
+        }
+        actionsOuvertes={menuPageOuvert}
+      />
 
       {/* ⚠️ Montée APRÈS la barre latérale dans le DOM, mais posée au-dessus
           (`z-40` contre `z-30`) : elle traverse toute la largeur, y compris
@@ -847,7 +855,6 @@ export default function App() {
         decalage={sidebarRetractee ? LARGEUR_SIDEBAR_RETRACTEE : LARGEUR_SIDEBAR}
         // ⚠️ Le burger n'apparaît que sur les pages qui ONT des actions : un
         // bouton qui ouvre un panneau vide est pire que pas de bouton.
-        onOuvrirMenu={PAGES_AVEC_MENU.has(route) ? () => setMenuPageOuvert(true) : undefined}
         parametresActifs={route === 'parametres'}
         onToggleParametres={() => {
           window.location.hash =

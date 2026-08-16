@@ -88,6 +88,12 @@ export default function RtaCard({
     <div
       ref={cardRef}
       title={categoryLabels.length > 0 ? categoryLabels.join(' · ') : undefined}
+      // ⚠️ `data-carte-dense` : le sélecteur de section reste à 32 px au doigt,
+      // au lieu des 40 px de la règle tactile générale. Dans une tuile de
+      // 150 px qui porte déjà un portrait, un nom, une vitesse et trois icônes
+      // de set, un contrôle de 40 px pesait plus lourd que le monstre qu'il
+      // classe. Voir index.css.
+      data-carte-dense
       // ⚠️ La bordure SEULE quand le détail est ouvert : elle était doublée d'un
       // `ring-1 ring-accent/50`, soit deux traits d'accent concentriques autour
       // de la même carte. Superposés, ils ne se lisent pas comme deux

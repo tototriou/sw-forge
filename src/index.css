@@ -522,13 +522,29 @@ button:not(:disabled):not([draggable]):not([role='switch']):active,
   a.aspect-square {
     min-width: 40px;
   }
+
+  /* ⚠️ **Contrôles IMBRIQUÉS dans une carte : 32 px, pas 40.** Les 40 px valent
+     pour une cible autonome, posée dans une barre ou une page, où rater signifie
+     ne rien déclencher. Le sélecteur de section d'une carte RTA, lui, vit DANS
+     une tuile de 150 px avec un portrait, un nom, une vitesse et trois icônes de
+     set : à 40 px il pesait plus lourd que le monstre qu'il classe, et deux
+     cartes ne tenaient plus dans un écran.
+     Ce qui protège du ratage ici n'est pas la taille mais l'isolement — le
+     contrôle occupe toute la largeur de sa carte, et il n'y a rien d'autre à
+     toucher sur cette ligne. */
+  [data-carte-dense] select,
+  [data-carte-dense] input:not([type='checkbox']):not([type='radio']),
+  [data-carte-dense] button:not([data-cible-fine]) {
+    min-height: 32px;
+  }
 }
 
-/* ---- Tiroir mobile ------------------------------------------------------ */
+/* ---- Panneau d'actions mobile ------------------------------------------------------ */
 /* ⚠️ Les libellés masqués par `hidden sm:inline` REDEVIENNENT visibles dans le
    tiroir. Ils disparaissent dans la page faute de place — six boutons à
    libellé complet y remplissaient trois rangées —, mais le tiroir est un
-   panneau dédié de 340 px : une colonne d'icônes sans mots y serait un rébus.
+   panneau dédié qui tient toute la largeur : une rangée d'icônes sans mots y
+   serait un rébus.
 
    ⚠️ La règle vit ICI et non dans chaque composant : les boutons ne savent pas
    où ils sont rendus, et c'est très bien — ils déclarent leur libellé une fois,
@@ -537,9 +553,14 @@ button:not(:disabled):not([draggable]):not([role='switch']):active,
   display: inline !important;
 }
 
-/* Les boutons y prennent aussi toute la largeur : dans une colonne, un bouton
-   à la largeur de son texte laisse un bord flottant qui ne s'aligne sur rien. */
-[data-tiroir] button {
+/* ⚠️ Les boutons s'alignent à GAUCHE quand ils occupent toute la largeur : un
+   libellé centré dans un bouton pleine largeur flotte au milieu du vide, et
+   l'œil doit repartir chercher le début de chaque ligne. Empilés, ils forment
+   une colonne dont tous les mots commencent au même endroit.
+   ⚠️ Sauf ceux d'une rangée (`flex-wrap`), qui gardent leur largeur propre —
+   la règle ne s'applique qu'aux enfants directs empilés. */
+[data-tiroir] > * > button,
+[data-tiroir] > button {
   justify-content: flex-start;
 }
 

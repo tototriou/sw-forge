@@ -1,4 +1,5 @@
 import { ReactNode } from 'react';
+import { SlidersHorizontal } from 'lucide-react';
 import { motion } from 'framer-motion';
 
 // Barre d'onglets du BAS — la navigation sous `lg`.
@@ -25,9 +26,46 @@ export interface OngletMobile {
   actif: boolean;
 }
 
-export default function MobileTabs({ onglets }: { onglets: OngletMobile[] }) {
+export default function MobileTabs({
+  onglets,
+  onOuvrirActions,
+  actionsOuvertes = false,
+}: {
+  onglets: OngletMobile[];
+  // Ouvre le panneau d'actions de la page (`MobileSheet`). Absent = la page n'en
+  // a pas, et le bouton ne s'affiche pas — voir `PAGES_AVEC_MENU` dans App.tsx.
+  onOuvrirActions?: () => void;
+  actionsOuvertes?: boolean;
+}) {
   return (
-    <nav
+    <>
+      {/* ⚠️ Bouton d'actions posé JUSTE AU-DESSUS des onglets, pas dedans. La
+          barre est à cinq colonnes ; une sixième ferait passer chaque cible
+          sous les 44 px que réclame un pouce. Et il ne mène pas à une page :
+          l'isoler dit qu'il fait autre chose que ses voisins.
+          ⚠️ À DROITE : c'est le côté du pouce pour la plupart des gens, et il
+          ne recouvre alors aucun contenu que l'on vient de lire (le regard part
+          de la gauche). */}
+      {onOuvrirActions && (
+        <button
+          type="button"
+          onClick={onOuvrirActions}
+          aria-expanded={actionsOuvertes}
+          aria-label="Filtres et actions de la page"
+          className="lg:hidden fixed right-3 z-30 flex items-center gap-1.5 rounded-full border
+                     border-border bg-panel2 px-3 py-2 text-xs font-semibold text-ink
+                     shadow-[0_4px_16px_-4px_rgba(0,0,0,0.6)] transition-colors
+                     hoverable:border-ctx"
+          // ⚠️ Décalé de la hauteur de la barre d'onglets PLUS l'encoche du bas :
+          // sans `env()`, il se pose sur les onglets des iPhone récents.
+          style={{ bottom: 'calc(env(safe-area-inset-bottom) + 68px)' }}
+        >
+          <SlidersHorizontal size={15} />
+          Options
+        </button>
+      )}
+
+      <nav
       className="lg:hidden fixed inset-x-0 bottom-0 z-40 border-t border-border bg-panel"
       style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
       aria-label="Navigation principale"
@@ -65,6 +103,7 @@ export default function MobileTabs({ onglets }: { onglets: OngletMobile[] }) {
           </a>
         ))}
       </div>
-    </nav>
+      </nav>
+    </>
   );
 }

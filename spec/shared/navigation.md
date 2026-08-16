@@ -332,34 +332,51 @@ les tableaux de runes et l'optimiseur y gagnent une à deux colonnes.
 | Roue de runes | ×0,72 sous `sm` | ⚠️ C'est un DESSIN calculé en pixels (cadres, icônes de set, décalages) : il ne se réduit pas seul comme une image. À 208 px il occupait plus de la moitié des 348 px utiles. En dessous de 0,72 les icônes de set passent sous 14 px et le set ne se reconnaît plus |
 | Courbes | 980 px | ⚠️ Le graphe suit son conteneur : sur 2 000 px la courbe s'aplatissait jusqu'à la ligne droite, et les écarts entre runes — la seule chose qu'on vient y lire — disparaissaient |
 
-## Tiroir d'actions mobile
+## Panneau d'actions mobile
 
-Sous `lg`, la barre supérieure porte un bouton **hamburger** à gauche (à la
-place du logo) qui ouvre `MobileDrawer` — un panneau glissant **depuis la
-gauche**, du même côté que le bouton qui l'appelle et que la barre latérale
-qu'il remplace.
+Sous `lg`, un bouton **« Options »** flotte **juste au-dessus de la barre
+d'onglets**, à droite, et ouvre `MobileSheet` — un panneau qui monte **depuis le
+bas** de l'écran.
+
+⚠️ **Ni dans la barre d'onglets, ni dans la barre du haut.**
+- *Pas dedans* : la barre est à cinq colonnes, une sixième ferait passer chaque
+  cible sous les 44 px que réclame un pouce. Et ce bouton ne mène pas à une
+  page — le sortir de la rangée dit qu'il fait autre chose que ses voisins.
+- *Pas en haut* : c'était un hamburger à la place du logo. Sur un téléphone tenu
+  à une main, le coin haut-gauche est le point le plus éloigné du pouce, pour un
+  bouton qu'on ouvre et referme plusieurs fois par écran.
+
+⚠️ Le panneau **monte du bas**, du côté du doigt qui l'a demandé. Le tiroir
+glissait de la gauche tant que son déclencheur était en haut à gauche ; le
+déclencheur ayant bougé, le mouvement suit — un panneau qui surgit à l'opposé
+de son bouton oblige à refaire le lien entre les deux à chaque ouverture.
+
+⚠️ **Hauteur plafonnée à 85 %**, jamais plein écran : la bande de page visible
+en haut dit qu'on est toujours sur cette page et qu'un appui hors du panneau le
+referme. Plein écran, il devient indiscernable d'un changement de page.
 
 Il reçoit les **filtres et les actions** de la page, ceux qui occupaient trois
 ou quatre rangées avant la première donnée. Ce qui y entre et ce qui reste :
 
-| Page | Reste visible | Passe dans le tiroir |
+| Page | Reste visible | Passe dans le panneau |
 |------|---------------|----------------------|
 | RTA | La grille des équipes | Filtres, sauvegarde, import/export |
 | Bestiaire | La recherche | `FilterBar` (élément, étoiles, tri) |
 | Mon compte → Monstres | La recherche et le tri | Élément, étoiles, doublons, 2A |
 
-⚠️ **La recherche ne descend jamais dans le tiroir.** C'est le geste le plus
+⚠️ **La recherche ne descend jamais dans le panneau.** C'est le geste le plus
 fréquent de ces trois écrans ; l'enfouir derrière une ouverture de panneau
 coûterait deux gestes là où il y en avait zéro.
 
-⚠️ **Le Siège n'a pas de tiroir**, et son hamburger ne s'affiche donc pas
+⚠️ **Le Siège n'a pas de panneau**, et son bouton « Options » ne s'affiche donc
+pas
 (`PAGES_AVEC_MENU` dans `App.tsx`). Sa barre d'outils tient en quatre boutons
 qui passent déjà à la ligne seuls : les extraire imposerait de découper
 `SiegeBoard` sans gagner une hauteur mesurable. **Ouvrir un panneau vide serait
 pire que ne rien proposer** — c'est la règle qui décide de l'appartenance à
 cette liste, pas la page.
 
-⚠️ Le tiroir porte `data-tiroir` : les libellés masqués par `hidden sm:inline`
+⚠️ Le panneau porte `data-tiroir` : les libellés masqués par `hidden sm:inline`
 y sont **rétablis** (`src/index.css`). Un bouton réduit à son icône a du sens
 dans une barre d'outils serrée ; dans un panneau qui a toute la largeur, il ne
 dit plus ce qu'il fait.
@@ -367,3 +384,26 @@ dit plus ce qu'il fait.
 ⚠️ Les filtres sont **un seul JSX**, posé à deux endroits selon la largeur
 (`hidden lg:contents` dans la page, et le même fragment dans le tiroir). Deux
 copies auraient divergé au premier filtre ajouté.
+
+## Densité au doigt
+
+⚠️ **La règle tactile a deux paliers**, pas un seul (`src/index.css`) :
+
+| Cible | Hauteur | Pourquoi |
+|-------|---------|----------|
+| Autonome (barre, page, panneau) | 40 px | Rater signifie ne rien déclencher |
+| Imbriquée dans une carte (`data-carte-dense`) | 32 px | Rater est improbable : le contrôle occupe toute la largeur de sa carte, rien d'autre à toucher sur la ligne |
+| Posée sur un coin (`data-cible-fine`) | libre | Agrandie, elle déborde la carte et recouvre le contenu |
+
+⚠️ Le palier unique à 40 px avait un effet qu'on ne voit qu'à l'usage : le
+sélecteur de section d'une carte RTA pesait plus lourd que le monstre qu'il
+classe, et deux cartes ne tenaient plus dans un écran. **Une règle
+d'accessibilité appliquée sans discernement finit par coûter en lisibilité ce
+qu'elle gagne en visée.**
+
+Compactage sous `sm`, dans le même esprit :
+
+- **Recherche RTA** — 40 px au lieu de 56 (`py-2 text-sm` contre `py-3.5
+  text-base`). C'est le rembourrage décoratif qui tombe, pas la zone touchable.
+- **Sections RTA** — `p-2` au lieu de `p-3`. La page en empile trois à six :
+  chaque rembourrage se paie autant de fois.

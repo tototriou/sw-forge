@@ -1,5 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { useRecalageEcran } from '../hooks/useRecalageEcran';
+import { COMPACT, useMediaQuery } from '../hooks/useMediaQuery';
+import MobileSheet from './MobileSheet';
 import { Plus, X, Wand2 } from 'lucide-react';
 import { ELEMENTS, ElementKey, Monster } from '../types';
 import { CustomLead } from '../hooks/useCustomMonsters';
@@ -37,11 +39,18 @@ export default function CreateMonster({ onCreate, customMonsters, onDelete }: Pr
   const [scope, setScope] = useState<'General' | 'Element'>('General');
   const ref = useRef<HTMLDivElement>(null);
   const popover = useRef<HTMLDivElement>(null);
-  const { style: recalage } = useRecalageEcran(popover, open);
+  const auDoigt = useMediaQuery(COMPACT);
+  // Le recalage ne concerne que la popup ancrée : le panneau centré est posé
+  // par rapport à l'écran, il n'a rien à corriger.
+  const { style: recalage } = useRecalageEcran(popover, open && !auDoigt);
 
   // Ferme la popup au clic à l'extérieur ou sur Échap.
+  // ⚠️ Le clic extérieur ne vaut QUE pour la popup ancrée. Le panneau mobile est
+  // monté hors de `ref` (il est fixé à l'écran) : tout clic DANS le formulaire
+  // aurait donc été vu comme extérieur et l'aurait refermé aussitôt. Le panneau
+  // a son propre voile, qui ferme déjà au clic.
   useEffect(() => {
-    if (!open) return;
+    if (!open || auDoigt) return;
     function onDown(e: MouseEvent) {
       if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
     }
@@ -54,7 +63,7 @@ export default function CreateMonster({ onCreate, customMonsters, onDelete }: Pr
       document.removeEventListener('mousedown', onDown);
       document.removeEventListener('keydown', onKey);
     };
-  }, [open]);
+  }, [open, auDoigt]);
 
   const speedNum = Number(speed);
   const valid = name.trim().length > 0 && speed !== '' && Number.isFinite(speedNum) && speedNum > 0;
@@ -95,7 +104,127 @@ export default function CreateMonster({ onCreate, customMonsters, onDelete }: Pr
         <span className="hidden lg:inline">Créer un monstre</span>
       </button>
 
-      {open && (
+      {/* ⚠️ **Panneau centré au doigt, popup ancrée à la souris.** La popup est
+          en `absolute` dans le flux de la page ; posée dans le panneau
+          « Options », qui défile (`overflow-y: auto`), elle s'y trouvait
+          CLIPPÉE — on n'en voyait qu'une bande. C'est le même remède que pour
+          le formulaire de catégorie : un panneau de second niveau, qui recouvre
+          celui d'où il sort. */}
+      {open && auDoigt && (
+        <MobileSheet ouvert centre onFermer={() => setOpen(false)} titre="Nouveau monstre">
+          <div className="flex flex-col">
+
+          <input
+            type="text"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            placeholder="Nom du monstre"
+            className="w-full bg-panel2 border border-border rounded-lg px-3 py-2 text-sm text-ink
+                       placeholder:text-ink-dim outline-none focus:border-accent mb-2"
+          />
+
+          <div className="flex gap-2 mb-2.5">
+            <select
+              value={element}
+              onChange={(e) => setElement(e.target.value as ElementKey)}
+              className="flex-1 bg-panel2 border border-border rounded-lg px-2.5 py-2 text-sm text-ink outline-none"
+            >
+              {ELEMENT_CHOICES.map((el) => (
+                <option key={el.key} value={el.key}>
+                  {el.label}
+                </option>
+              ))}
+            </select>
+            {/* La valeur est stockée en TEXTE ici (champ libre du formulaire) :
+                on convertit aux bornes du composant. */}
+            <NumberField
+              value={speed === '' ? null : Number(speed)}
+              allowEmpty
+              min={0}
+              width="w-16"
+              placeholder="SPD"
+              ariaLabel="Vitesse de base"
+              onChange={(v) => setSpeed(v == null ? '' : String(v))}
+            />
+          </div>
+
+          {/* Lead (optionnel). Affiché en Siège ; seul un lead de vitesse alimente le tick. */}
+          <select
+            value={leadStat}
+            onChange={(e) => setLeadStat(e.target.value)}
+            title="Type de lead (optionnel)"
+            className="w-full bg-panel2 border border-border rounded-lg px-2.5 py-2 text-sm text-ink outline-none mb-2.5"
+          >
+            <option value="">Lead : aucun</option>
+            {LEAD_STATS.map((s) => (
+              <option key={s.value} value={s.value}>
+                Lead {s.label}
+              </option>
+            ))}
+          </select>
+
+          {leadStat !== '' && (
+            <div className="flex gap-2 mb-2.5">
+              <NumberField
+                value={lead === '' ? null : Number(lead)}
+                allowEmpty
+                min={0}
+                max={100}
+                width="w-14"
+                placeholder="%"
+                ariaLabel="Valeur du lead en %"
+                onChange={(v) => setLead(v == null ? '' : String(v))}
+              />
+              <select
+                value={scope}
+                onChange={(e) => setScope(e.target.value as 'General' | 'Element')}
+                title="Portée du lead"
+                className="flex-1 bg-panel2 border border-border rounded-lg px-2.5 py-2 text-sm text-ink outline-none"
+              >
+                <option value="General">Toutes cibles</option>
+                <option value="Element">Même élément</option>
+              </select>
+            </div>
+          )}
+
+          <button
+            onClick={submit}
+            disabled={!valid}
+            className="w-full flex items-center justify-center gap-1.5 rounded-lg bg-accent-soft
+                       px-3 py-2 text-sm font-semibold text-ink disabled:opacity-40 disabled:cursor-not-allowed"
+          >
+            <Plus size={14} /> Créer
+          </button>
+
+          {customMonsters.length > 0 && (
+            <div className="mt-3 pt-2.5 border-t border-border">
+              <span className="label">
+                Mes monstres perso
+              </span>
+              <ul className="mt-1.5 flex flex-col gap-1 max-h-40 overflow-y-auto">
+                {customMonsters.map((m) => (
+                  <li key={m.id} className="flex items-center gap-2 text-xs">
+                    <ElementIcon element={m.element} size={15} className="flex-none" />
+                    <span className="truncate flex-1">{m.name}</span>
+                    <span className="font-mono text-ink-dim">SPD {m.stats.speed ?? '—'}</span>
+                    <button
+                      onClick={() => onDelete(String(m.id))}
+                      className="text-ink-dim hoverable:text-fire flex-none"
+                      title="Supprimer"
+                      aria-label="Supprimer"
+                    >
+                      <X size={13} />
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+          </div>
+        </MobileSheet>
+      )}
+
+      {open && !auDoigt && (
         <div
           ref={popover}
           // ⚠️ Ce panneau de 300 px est ancré à gauche de son bouton, dont la

@@ -120,13 +120,25 @@ export default function SiegeBoard({
                 : 'Colorer les équipes selon leur calage sur les ticks ATB'
             }
             className={`flex items-center gap-1.5 rounded-lg border px-3.5 py-2 text-sm font-semibold transition ${
-              // Fond seul (voir spec/shared/design.md) : ce bouton-bascule
-              // cumulait bordure d'accent + fond + ombre pour dire « activé ».
+              // ⚠️ Le fond `accent-soft` SEUL ne suffisait pas à dire l'état :
+              // c'est une teinte très discrète, et à côté de trois autres
+              // boutons on ne voyait pas lequel était actif. La bordure d'accent
+              // et la puce s'y ajoutent — trois signaux concordants pour un
+              // bouton dont l'état commande la couleur de toutes les équipes.
               checkTicks
-                ? 'border-border bg-accent-soft text-ink'
+                ? 'border-accent bg-accent-soft text-ink'
                 : 'border-border bg-panel text-ink-dim hoverable:text-ink hoverable:border-accent'
             }`}
           >
+            {/* Puce pleine quand la vérification est active, creuse sinon —
+                la même que les interrupteurs d'affichage de la prépa RTA.
+                `border-current` : elle suit la couleur du texte. */}
+            <span
+              aria-hidden
+              className={`h-2 w-2 flex-none rounded-full border border-current transition ${
+                checkTicks ? 'bg-current' : 'bg-transparent'
+              }`}
+            />
             <Gauge size={15} />
             <span className="lg:hidden">Ticks</span>
             <span className="hidden lg:inline">Vérifier mes tick ATB</span>

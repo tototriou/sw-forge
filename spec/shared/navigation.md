@@ -392,6 +392,16 @@ glissait de la gauche tant que son déclencheur était en haut à gauche ; le
 déclencheur ayant bougé, le mouvement suit — un panneau qui surgit à l'opposé
 de son bouton oblige à refaire le lien entre les deux à chaque ouverture.
 
+⚠️ **Un flottant ANCRÉ ne peut pas vivre dans le panneau.** Il défile
+(`overflow-y: auto`), donc tout `position: absolute` posé dedans s'y trouve
+clippé — on n'en voit qu'une bande. Les formulaires ouverts depuis le panneau
+(création d'un monstre, d'une catégorie) passent donc en **panneau de second
+niveau** : `MobileSheet centre`, qui recouvre celui d'où il sort.
+
+⚠️ Leur fermeture au clic extérieur doit alors être **désactivée** : le panneau
+est monté hors de l'arbre du composant, et tout clic dans le formulaire serait vu
+comme extérieur. C'est le voile du panneau qui ferme.
+
 ⚠️ **Hauteur plafonnée à 85 %**, jamais plein écran : la bande de page visible
 en haut dit qu'on est toujours sur cette page et qu'un appui hors du panneau le
 referme. Plein écran, il devient indiscernable d'un changement de page.

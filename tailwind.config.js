@@ -103,6 +103,12 @@ export default {
       addVariant('group-hoverable', '@media (hover: hover) and (pointer: fine) { :merge(.group):hover & }');
       // Complément : ce qui doit rester visible quand il n'y a pas de survol.
       addVariant('no-hover', '@media (hover: none)');
+      // ⚠️ `coarse:` = pointeur GROSSIER (doigt), pas « petit écran ». Une
+      // tablette au stylet garde les tailles fines, un téléphone en paysage les
+      // agrandit quand même : c'est le doigt qui est gros, pas l'écran qui est
+      // petit. Même logique que `hoverable`, pour la taille des cibles.
+      // Voir la règle globale des 40 px dans index.css.
+      addVariant('coarse', '@media (pointer: coarse)');
     }),
   ],
 };

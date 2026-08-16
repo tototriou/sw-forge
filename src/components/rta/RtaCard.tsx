@@ -192,6 +192,12 @@ export default function RtaCard({
           pas de survol. Voir spec/shared/design.md. */}
       <button
         onClick={() => onRemove(String(monster.id))}
+        // ⚠️ `data-cible-fine` : la règle tactile globale (40 px, voir
+        // index.css) ne s'applique pas ici. Cette croix est POSÉE SUR le coin
+        // de la carte, pas dans un flux : agrandie, elle la déborde et recouvre
+        // le portrait. Sa cible reste petite mais isolée — rien d'autre à
+        // toucher autour, donc rien à rater.
+        data-cible-fine
         className="absolute -top-1.5 -right-1.5 flex items-center justify-center
                    w-5 h-5 rounded-full bg-fire text-white shadow
                    opacity-0 no-hover:opacity-100 group-hoverable:opacity-100

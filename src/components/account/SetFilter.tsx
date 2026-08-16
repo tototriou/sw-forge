@@ -52,7 +52,7 @@ export default function SetFilter({
       {/* Une SEULE barre continue plutôt que des boutons détachés : les symboles
           se lisent comme une rangée d'icônes du jeu, et l'ensemble tient sur une
           ligne même avec 25 sets. Seul l'état actif porte un cadre. */}
-      <div className="flex flex-wrap items-center gap-0.5 rounded-lg border border-border bg-panel p-1">
+      <div className="flex flex-wrap items-center gap-0.5 rounded-lg border border-border bg-panel p-1 coarse:gap-1">
         {present.map((s) => {
           const active = value.has(s.key);
           return (
@@ -62,7 +62,15 @@ export default function SetFilter({
               title={s.label}
               aria-label={s.label}
               aria-pressed={active}
+              // ⚠️ `data-cible-fine` : la règle tactile globale (40 px) ne
+              // s'applique pas à cette GRILLE. Vingt-six sets à 40 px feraient
+              // quatre lignes de pastilles avant le premier résultat. Elles
+              // gagnent en revanche 2 px et un écart plus large au doigt :
+              // c'est l'espacement, pas la taille, qui évite d'activer le
+              // voisin quand les cibles sont alignées.
+              data-cible-fine
               className={`flex items-center justify-center w-7 h-7 rounded-md border transition select-none
+                coarse:h-[34px] coarse:w-[34px]
                 ${
                   // ⚠️ Fond seul (voir spec/shared/design.md). La bordure reste
                   // TRANSPARENTE et non `border`, comme au repos : ces pastilles

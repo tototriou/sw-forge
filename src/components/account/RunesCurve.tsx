@@ -235,8 +235,16 @@ export default function RunesCurve({ runes }: Props) {
         />
       </div>
 
-      {/* Légende — sous le graphe ; cliquer un nom masque/affiche sa courbe */}
-      <div className="flex items-center justify-center gap-4 flex-wrap mt-3">
+      {/* Légende — sous le graphe ; cliquer un nom masque/affiche sa courbe.
+          ⚠️ **Une LIGNE par série, alignée en colonnes** — pas une rangée qui
+          passe à la ligne. Chaque entrée porte un nom et deux mesures : à
+          `flex-wrap`, aucune ne tenait sur 348 px, donc chacune prenait sa
+          ligne AVEC l'écart de la rangée (16 px) et la hauteur tactile de
+          40 px. Trois séries occupaient un tiers de l'écran.
+          En grille, le nom et les mesures s'alignent d'une ligne à l'autre :
+          on compare les maxima en descendant la colonne, ce que la rangée
+          ne permettait pas non plus. */}
+      <div className="mx-auto mt-3 flex w-full max-w-[420px] flex-col gap-0.5 sm:max-w-none">
         {allSeries.map((s) => {
           const off = hidden.has(s.name);
           return (
@@ -244,24 +252,42 @@ export default function RunesCurve({ runes }: Props) {
               key={s.name}
               onClick={() => toggleHidden(s.name)}
               title={off ? 'Afficher' : 'Masquer'}
-              className="flex items-center gap-1.5 font-mono text-[12px]"
+              // `min-h-0` : la règle tactile globale porte les boutons à 40 px,
+              // ce qui ferait 120 px pour trois lignes de légende. Ici la cible
+              // fait toute la LARGEUR — on ne rate pas, même à 28 px de haut.
+              className="flex min-h-0 items-center gap-2 rounded px-1.5 py-1 text-left
+                         font-mono text-[11.5px] transition-colors hoverable:bg-panel2
+                         sm:justify-center sm:text-[12px]"
             >
               <span
-                className="inline-block w-3 h-1.5 rounded-full transition"
+                className="inline-block h-1.5 w-3 flex-none rounded-full transition"
                 style={{ background: s.color, opacity: off ? 0.3 : 1 }}
               />
-              <span className={`font-semibold transition ${off ? 'text-ink-dim line-through' : 'text-ink'}`}>
+              <span
+                className={`flex-1 truncate font-semibold transition sm:flex-none ${
+                  off ? 'text-ink-dim line-through' : 'text-ink'
+                }`}
+              >
                 {s.name}
               </span>
               {s.effs.length > 0 && !off && (
-                <span className="text-ink-dim">
-                  · max {formatRuneMetric(maxOf(s.effs), metric)} · méd.{' '}
+                <span className="flex-none tabular-nums text-ink-dim">
+                  {formatRuneMetric(maxOf(s.effs), metric)}
+                  <span className="text-ink-dimmer"> · </span>
                   {formatRuneMetric(median(s.effs), metric)}
                 </span>
               )}
             </button>
           );
         })}
+        {/* Les deux chiffres n'ont plus leur libellé sur chaque ligne : il se
+            répétait trois fois pour dire la même chose. Un en-tête unique
+            suffit — et il ne s'affiche que si une série est visible. */}
+        {allSeries.some((s) => !hidden.has(s.name)) && (
+          <p className="px-1.5 text-right font-mono text-[10px] text-ink-dimmer sm:text-center">
+            max · médiane
+          </p>
+        )}
       </div>
     </div>
   );

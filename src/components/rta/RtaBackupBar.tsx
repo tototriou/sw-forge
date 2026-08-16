@@ -106,10 +106,15 @@ function depuis(iso: string): string {
   return d.toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' });
 }
 
+// ⚠️ **Icône seule sous `sm`** — le libellé vit dans un `<span className="hidden
+// sm:inline">`, et dans le `title` de chaque bouton. Six actions à libellé
+// complet, chacune portée à 40 px de haut par la règle tactile, remplissaient
+// l'écran d'un téléphone : trois rangées de boutons avant d'atteindre la prépa.
+// Rien n'est perdu — l'intitulé reste au survol et au lecteur d'écran.
 const BOUTON =
-  'flex items-center gap-1.5 rounded-lg border border-border bg-panel px-3 py-1.5 text-[12.5px] ' +
-  'text-ink-dim hoverable:text-ink hoverable:border-accent transition ' +
-  'disabled:opacity-40 disabled:cursor-not-allowed';
+  'flex items-center gap-1.5 rounded-lg border border-border bg-panel px-2.5 py-1.5 ' +
+  'text-[12.5px] text-ink-dim hoverable:text-ink hoverable:border-accent transition ' +
+  'disabled:opacity-40 disabled:cursor-not-allowed sm:px-3';
 
 export default function RtaBackupBar({
   rta,
@@ -317,6 +322,7 @@ export default function RtaBackupBar({
         <button
           onClick={() => (backup.backup ? setEcraserAConfirmer(true) : sauvegarder())}
           disabled={vide}
+          aria-label="Sauvegarder"
           className={BOUTON}
           title={
             vide
@@ -324,12 +330,13 @@ export default function RtaBackupBar({
               : 'Fige la prépa actuelle comme point de retour. Ta prépa est déjà conservée automatiquement : ceci sert à pouvoir revenir en arrière après des essais.'
           }
         >
-          <Save size={14} /> Sauvegarder
+          <Save size={14} /> <span className="hidden sm:inline">Sauvegarder</span>
         </button>
 
         <button
           onClick={() => setReprendreAConfirmer(true)}
           disabled={!backup.backup}
+          aria-label="Reprendre"
           className={BOUTON}
           title={
             backup.backup
@@ -337,7 +344,7 @@ export default function RtaBackupBar({
               : "Aucun point de sauvegarde : clique d'abord sur « Sauvegarder »"
           }
         >
-          <RotateCcw size={14} /> Reprendre
+          <RotateCcw size={14} /> <span className="hidden sm:inline">Reprendre</span>
         </button>
 
         {/* ⚠️ N'apparaît QUE si un compte a été importé : sans point d'import,
@@ -346,12 +353,13 @@ export default function RtaBackupBar({
         {backup.importe && (
           <button
             onClick={() => setResetAConfirmer(true)}
+            aria-label="Réinitialiser"
             className={BOUTON}
             title={`Remettre la prépa dans l'état de ton dernier import de compte (${depuis(
               backup.importe.date
             )})`}
           >
-            <History size={14} /> Réinitialiser
+            <History size={14} /> <span className="hidden sm:inline">Réinitialiser</span>
           </button>
         )}
 
@@ -360,10 +368,11 @@ export default function RtaBackupBar({
         <button
           onClick={() => setExportAChoisir(true)}
           disabled={vide}
+          aria-label="Exporter"
           className={BOUTON}
           title="Télécharger ta prépa en fichier .json, pour la partager ou la garder de côté"
         >
-          <Upload size={14} /> Exporter
+          <Upload size={14} /> <span className="hidden sm:inline">Exporter</span>
         </button>
 
         {/* ⚠️ DEUX boutons pour un même format de fichier, parce que ce sont
@@ -373,18 +382,20 @@ export default function RtaBackupBar({
             alors que l'utilisateur le sait déjà en cliquant. */}
         <button
           onClick={() => ouvrirFichier('importer')}
+          aria-label="Importer"
           className={BOUTON}
           title="Reprendre une prépa exportée : une archive, ou celle d'un autre navigateur. Elle remplacera la tienne."
         >
-          <Download size={14} /> Importer
+          <Download size={14} /> <span className="hidden sm:inline">Importer</span>
         </button>
 
         <button
           onClick={() => ouvrirFichier('consulter')}
+          aria-label="Consulter la prépa d'un ami"
           className={BOUTON}
           title="Ouvrir la prépa d'un ami en lecture (fichier .json). Ta prépa n'est pas touchée."
         >
-          <Users size={14} /> Consulter celle d'un ami
+          <Users size={14} /> <span className="hidden sm:inline">Consulter celle d'un ami</span>
         </button>
       </div>
 

@@ -541,10 +541,15 @@ export default function RecoBoard({
         </div>
 
         {/* ⚠️ Origine AU DOIGT : descendue ici plutôt que sur la page, qui garde
-            la carte pour la recherche — voir `origineFilter` plus haut. */}
-        {all.length > 0 && (
-          <div className="mt-4 border-t border-border pt-3">{origineFilter(true)}</div>
-        )}
+            la carte pour la recherche — voir `origineFilter` plus haut.
+            ⚠️ **Toujours affiché, actif même sans recommandation** — comme
+            « Tout exporter » et « Tout effacer » un peu plus haut, ce n'est
+            pas un bouton d'action qui perd son sens à vide : les trois crans
+            (Toutes/Mes recos/Importées) restent de vrais filtres, juste tous
+            à zéro. Le retirer avait le même défaut que les retirer, eux : il
+            réapparaît une fois la première recommandation créée, sans qu'on
+            comprenne d'où il sort. */}
+        <div className="mt-4 border-t border-border pt-3">{origineFilter(true)}</div>
         <div data-zone-destructive className="mt-4 border-t border-border pt-3">
           {effacer(true)}
         </div>
@@ -608,25 +613,29 @@ export default function RecoBoard({
         <ValidationReport report={report} onClose={() => setReport(null)} />
       )}
 
-      {/* Bloc de filtres — origine, composition cherchée, rôle.
-          ⚠️ UN SEUL bloc, et des RANGÉES INTITULÉES (même grammaire que
-          l'inventaire d'artéfacts, voir account/ArtifactsList.tsx) : les trois
-          contrôles filtrent tous la même liste, les poser à trois niveaux et
-          sans intitulé donnait trois objets flottants dont rien ne disait qu'ils
-          se combinaient. L'intitulé de largeur fixe aligne les contrôles entre
-          eux, quelle que soit la longueur du mot.
-          ⚠️ N'apparaît que s'il y a des recommandations : un filtre au-dessus
-          d'une page vide n'a rien à filtrer, et laisse croire qu'on n'a rien
-          trouvé alors qu'il n'y a rien. */}
-      {all.length > 0 && (
-        <div className="mt-4 flex flex-col gap-2.5 rounded-xl border border-border bg-panel/40 px-3 py-3 compact:px-2 compact:py-2">
-          {/* ⚠️ **Origine : à la SOURIS seulement (`hidden lg:flex`).** Ces trois
-              boutons descendent dans le panneau « Options » au doigt — voir plus
-              bas — pour laisser la carte à la recherche, qui reste le contrôle
-              qu'on veut sous le pouce sans avoir à ouvrir un panneau. Rendu une
-              seule fois (`origineFilter`), posé aux deux endroits. */}
-          <div className="hidden lg:flex flex-wrap items-center gap-2">{origineFilter(false)}</div>
+      {/* ⚠️ **Origine, à la SOURIS : SORTIE du bloc de filtres, toujours
+          affichée et active.** Contrairement à la recherche par composition
+          (Monstres/Rôle, plus bas), qui n'a effectivement rien à filtrer sur
+          une liste vide, Origine reste un vrai filtre même à zéro — les trois
+          crans (Toutes/Mes recos/Importées) ont un sens dès qu'on en crée une
+          première. Rendu une seule fois (`origineFilter`), posé aux deux
+          endroits (ici et dans le panneau « Options » au doigt). */}
+      <div className="mt-4 hidden lg:flex flex-wrap items-center gap-2">
+        {origineFilter(false)}
+      </div>
 
+      {/* Bloc de filtres — composition cherchée, rôle.
+          ⚠️ UNE RANGÉE INTITULÉE par contrôle (même grammaire que l'inventaire
+          d'artéfacts, voir account/ArtifactsList.tsx) : les deux contrôles
+          filtrent la même liste, sans intitulé rien ne disait qu'ils se
+          combinaient. L'intitulé de largeur fixe aligne les contrôles entre
+          eux, quelle que soit la longueur du mot.
+          ⚠️ N'apparaît que s'il y a des recommandations : ici, à la différence
+          d'Origine, il n'y a RIEN à chercher dans une liste vide — poser le
+          bloc quand même laisserait croire qu'on n'a rien trouvé alors qu'il
+          n'y a rien. */}
+      {all.length > 0 && (
+        <div className="mt-2.5 flex flex-col gap-2.5 rounded-xl border border-border bg-panel/40 px-3 py-3 compact:px-2 compact:py-2">
           {/* Composition cherchée. */}
           <div className="flex flex-wrap items-center gap-2">
             <span className="w-[76px] flex-none label">Monstres</span>

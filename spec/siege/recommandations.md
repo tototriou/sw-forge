@@ -73,9 +73,10 @@ chez l'auteur devient « importée » chez celui qui la reçoit — y compris si
 réimporte mon propre export.
 
 **Filtre** : **Toutes · Mes recos · Importées**, chacun avec son effectif.
-N'apparaît **que s'il existe au moins une recommandation**. Persistance via
-`useStickyState` (survit à la navigation, remis à « Toutes » au reload). Il vit
-dans le **bloc de filtres** décrit plus bas, sur la rangée « Origine ».
+**Toujours affiché et actif**, même sans aucune recommandation (tous les
+effectifs à zéro) — voir plus bas pourquoi il ne suit pas la règle du bloc de
+filtres. Persistance via `useStickyState` (survit à la navigation, remis à
+« Toutes » au reload).
 
 Garde-fous pour ne jamais « perdre » ce qu'on vient de faire :
 - **créer** une recommandation depuis la vue « Importées » bascule le filtre sur
@@ -92,36 +93,54 @@ Garde-fous pour ne jamais « perdre » ce qu'on vient de faire :
 C'est elle qui décide de ce que la liste montre, elle doit donc être collée à ce
 qu'elle filtre.
 
-### ⚠️ UN SEUL bloc de filtres, à rangées intitulées
+### Origine — SORTIE du bloc de filtres, toujours affichée
 
-Origine, monstres cherchés et rôle **filtrent tous la même liste** et se
+⚠️ **Origine ne suit pas la règle du bloc de filtres** (ci-dessous), et c'est
+volontaire. Un filtre au-dessus d'une liste vide n'a normalement rien à
+filtrer — c'est vrai pour la recherche par monstre, qui n'a RIEN à chercher
+sans recommandation. Ce n'est **pas** vrai pour Origine : ses trois crans
+(Toutes/Mes recos/Importées) restent un choix qui a un sens dès qu'on **crée**
+la première recommandation, et un bouton d'action qui apparaît une fois qu'on
+en a besoin surprend — on ne l'a jamais vu apparaître d'un geste, il était
+juste absent (voir la règle générale dans
+[shared/design.md](../shared/design.md#-un-bouton-daction-ne-disparaît-jamais--il-se-désactive)).
+Origine est donc **posée hors du bloc**, sur sa propre ligne, **toujours
+affichée et active** — aux deux formats.
+
+Rendu **une seule fois** (`origineFilter(pleineLargeur)`), posé aux deux
+endroits — même geste que `actions` et `effacer` :
+- **à la souris** : sur la page, juste au-dessus du bloc de filtres, `hidden
+  lg:flex` ;
+- **au doigt** : dans le panneau « Options » (sous un filet, sous les
+  actions) — la carte reste à la **recherche**, le contrôle qu'on veut sous
+  le pouce sans ouvrir un panneau.
+
+⚠️ **Pleine largeur dans le panneau**, pas à sa taille propre : seul contrôle
+de sa ligne, il y flotterait sinon dans une bande vide. `Segmented` passe en
+`size="lg"` (chaque cran se partage la largeur à égalité) et l'intitulé
+« Origine » monte au-dessus plutôt qu'à côté. À la souris, il garde sa taille
+`sm` et son intitulé de largeur fixe.
+
+### ⚠️ UN SEUL bloc de filtres pour la recherche, à rangées intitulées
+
+Monstres cherchés et rôle **filtrent tous la même liste** et se
 **combinent**. Ils sont donc réunis dans **un seul encart** (`border` +
 `bg-panel/40`), en **rangées `intitulé + contrôle`** — même grammaire que
 l'inventaire d'artéfacts (voir [../compte/artefacts.md](../compte/artefacts.md)) :
 
 | Rangée | Contrôle | Visible |
 |--------|----------|---------|
-| **Origine** | `Segmented` Toutes · Mes recos · Importées, effectif dans chaque cran | dès 1 recommandation |
 | **Monstres** | les 3 cases + le champ + « Vider » | dès 1 recommandation |
 | **Rôle** | `Segmented` Partout · Défense à taper · Offense à runer + le compteur de résultats | une fois un monstre posé |
 
-⚠️ **Au DOIGT, « Origine » descend dans le panneau « Options »** (sous un filet,
-sous les actions) — la carte reste à la **recherche**, le contrôle qu'on veut
-sous le pouce sans ouvrir un panneau. À la souris, rien ne change : les trois
-rangées restent réunies sur la page. Rendu **une seule fois**
-(`origineFilter(pleineLargeur)`), posé aux deux endroits — même geste que
-`actions` et `effacer`.
+Ce bloc-là, lui, **n'apparaît que s'il existe au moins une recommandation** :
+sans rien à chercher, la recherche n'a pas sa place.
 
-⚠️ **Pleine largeur dans le panneau**, pas à sa taille propre : seul contrôle
-de sa ligne, il y flotterait sinon dans une bande vide. `Segmented` passe en
-`size="lg"` (chaque cran se partage la largeur à égalité) et l'intitulé
-« Origine » monte au-dessus plutôt qu'à côté. À la souris, il garde sa taille
-`sm` et son intitulé de largeur fixe, à côté des autres rangées.
-
-- ⚠️ **Ils étaient posés à trois niveaux différents, sans intitulé** : trois
-  objets flottants dont rien ne disait qu'ils portaient sur la même liste ni
-  qu'ils se cumulaient. L'intitulé de **largeur fixe** (`w-[76px]`) aligne les
-  contrôles entre eux quelle que soit la longueur du mot.
+- ⚠️ **Origine, Monstres et Rôle étaient posés à trois niveaux différents, sans
+  intitulé** : trois objets flottants dont rien ne disait qu'ils portaient sur
+  la même liste ni qu'ils se cumulaient. L'intitulé de **largeur fixe**
+  (`w-[76px]`) aligne les contrôles entre eux quelle que soit la longueur du
+  mot.
 - ⚠️ **Le filtre d'origine utilise le VRAI [Segmented](src/components/Segmented.tsx)**,
   et non une copie écrite à la main. La copie avait dérivé — `bg-panel` au lieu de
   `bg-panel2`, `rounded-xl p-1` au lieu de `rounded-lg p-0.5`, texte plus grand :

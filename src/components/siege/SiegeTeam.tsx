@@ -477,14 +477,20 @@ export default function SiegeTeam({
       {/* ⚠️ Pas un `Bouton` de la librairie : le vert ici est SÉMANTIQUE (l'état
           « recommandation écartée »), pas un ton d'action — même distinction que
           les pastilles manque/surplus plus bas, en `text-fire`/`text-water`. Un
-          ton de la librairie (accent, neutre…) dirait autre chose. */}
+          ton de la librairie (accent, neutre…) dirait autre chose.
+          ⚠️ **Le SOULIGNEMENT se pose sur « rétablir » seul**, pas sur la
+          ligne entière : « Recommandation ignorée » est un ÉTAT, à lire ; c'est
+          « rétablir » qui est l'ACTION, à cliquer. Toute la phrase reste dans
+          le même `<button>` — cible et infobulle ne changent pas —, mais le
+          trait dit où regarder pour comprendre que ça se clique. Même
+          convention que les liens de RecoBoard/RecoCard. */}
       {status === 'green' && validated && (
         <button
           onClick={() => onDismissAlert(team.id, false)}
           className="mt-3 text-micro text-good hoverable:text-ink transition"
           title="Réafficher la recommandation"
         >
-          ✓ Recommandation ignorée · rétablir
+          ✓ Recommandation ignorée · <span className="underline underline-offset-2">rétablir</span>
         </button>
       )}
     </section>

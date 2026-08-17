@@ -270,10 +270,20 @@ coche ne dit pas. Sur bureau elle reste, rien ne l'y gênant.
 (`MobileSheet centre`), et reste une popup ancrée au-dessus. Une popup ancrée sur
 téléphone s'ouvre là où le doigt a tapé — souvent en haut de l'écran, hors de
 portée du pouce pour la valider — et flotte hors de tout cadre, d'où les
-débordements qu'il fallait rattraper à la mesure. Le formulaire est le **même
-JSX** dans les deux cas ; seuls le contenant et les tailles changent (champ à
-16 px pour éviter le zoom automatique d'iOS, pastilles de couleur à 40 px,
-« Valider » pleine largeur sous « Annuler »).
+débordements qu'il fallait rattraper à la mesure. Le formulaire est le **même JSX** dans les deux cas ; seuls le contenant et les
+tailles changent :
+
+| | Bureau | Doigt |
+|---|---|---|
+| Largeur | 220 px, ancrée | Toute celle du panneau |
+| Champ de nom | 12 px | **16 px** — en dessous, iOS zoome à la mise au point et la page n'en revient pas seule |
+| Cases de couleur | 24 px de haut | **44 px** — douze côte à côte, une erreur de visée choisit la voisine |
+| Pastille de rappel à côté du champ | Affichée | **Masquée** — la palette montre déjà la couleur choisie, d'un cadre autour de sa case ; deux rappels à 40 px l'un de l'autre, dont un qui rogne le champ |
+| Valider / Annuler | Sur une ligne | **Empilés, pleine largeur**, « Valider » en bas — dans le pouce |
+
+⚠️ La palette garde **six colonnes** dans les deux cas : douze couleurs en deux
+rangées se comparent d'un coup d'œil, là où trois rangées de quatre obligeraient
+à balayer.
 
 ⚠️ Il s'ouvre **depuis** le panneau « Options », donc **par-dessus** lui : voile
 opaque et `z-index` supérieur, sinon on voyait deux panneaux empilés, deux

@@ -525,8 +525,12 @@ function CategoryPopover({
       style={surMobile ? undefined : recalage}
     >
       <div className="flex items-center gap-1.5">
+        {/* ⚠️ Masquée au doigt : la palette juste en dessous montre déjà la
+            couleur choisie, d'un cadre autour de sa case. Deux rappels de la
+            même chose à 40 px l'un de l'autre, dont un qui rogne la largeur du
+            champ qu'on vient remplir. */}
         <span
-          className="w-4 h-4 rounded-full flex-none border border-black/30"
+          className="w-4 h-4 rounded-full flex-none border border-black/30 compact:hidden"
           style={{ backgroundColor: color }}
           aria-hidden
         />
@@ -536,16 +540,19 @@ function CategoryPopover({
           onChange={(e) => setLabel(e.target.value)}
           placeholder="Striper, Lead SPD…"
           maxLength={24}
-          // ⚠️ Plus haut et plus grand dans le panneau : c'est le champ qu'on
-          // vient remplir, et `text-xs` sur un clavier de téléphone force iOS à
-          // zoomer sur le champ (sous 16 px), ce dont on ne revient pas seul.
+          // ⚠️ Plus haut et plus grand au doigt : c'est le champ qu'on vient
+          // remplir, et sous 16 px iOS zoome dessus à la mise au point — un zoom
+          // dont la page ne revient pas seule.
           className="min-w-0 flex-1 rounded-md border border-border bg-panel2 px-2 py-1 text-xs
                      text-ink outline-none placeholder:text-ink-dim focus:border-accent
-                     lg:text-xs max-lg:px-3 max-lg:py-2 max-lg:text-base"
+                     compact:px-3 compact:py-2.5 compact:text-base"
         />
       </div>
 
-      <div className="mt-2 grid grid-cols-6 gap-1">
+      {/* ⚠️ Palette à SIX colonnes partout, mais des cases plus hautes au doigt
+          (voir plus bas) : douze couleurs en deux rangées se comparent d'un coup
+          d'œil, là où trois rangées de quatre obligeraient à balayer. */}
+      <div className="mt-2 grid grid-cols-6 gap-1 compact:mt-3 compact:gap-1.5">
         {PALETTE.map((c) => {
           const actif = c.toLowerCase() === color.toLowerCase();
           return (
@@ -555,12 +562,12 @@ function CategoryPopover({
               onClick={() => setColor(c)}
               aria-label={`Couleur ${c}`}
               aria-pressed={actif}
-              // ⚠️ 40 px de haut au doigt contre 24 à la souris : douze
-              // pastilles côte à côte, une erreur de visée choisit la voisine et
-              // il faut recommencer. C'est la règle tactile de l'app (index.css),
-              // rappelée ici parce que la hauteur est écrite en dur.
+              // ⚠️ 44 px de haut au doigt contre 24 à la souris : douze cases
+              // côte à côte, une erreur de visée choisit la voisine et il faut
+              // recommencer. C'est la cible tactile pleine, la hauteur étant
+              // écrite en dur ici et non héritée de la règle globale.
               className={`flex items-center justify-center rounded-md transition
-                h-6 max-lg:h-10 ${
+                h-6 compact:h-11 ${
                 actif
                   ? 'ring-2 ring-ink ring-offset-2 ring-offset-panel'
                   : 'opacity-80 hoverable:opacity-100 hoverable:-translate-y-px'
@@ -578,13 +585,14 @@ function CategoryPopover({
           place là où le pouce tombe, et rien à côté d'elle ne peut être touché
           par erreur. En popup les deux restent sur une ligne — la souris vise au
           pixel, et la hauteur y coûte plus qu'elle ne rapporte. */}
-      <div className="mt-2.5 flex items-center gap-1.5 max-lg:mt-4 max-lg:flex-col-reverse max-lg:gap-2">
+      <div className="mt-2.5 flex items-center gap-1.5
+                      compact:mt-4 compact:flex-col-reverse compact:gap-2">
         <button
           type="submit"
           disabled={!label.trim()}
           className="flex-1 rounded-md bg-accent-soft px-2 py-1 text-xs font-semibold
                      text-ink transition disabled:opacity-40
-                     max-lg:w-full max-lg:rounded-lg max-lg:py-2.5 max-lg:text-sm"
+                     compact:w-full compact:rounded-lg compact:py-3 compact:text-sm"
         >
           Valider
         </button>
@@ -593,7 +601,7 @@ function CategoryPopover({
           onClick={onClose}
           className="rounded-md border border-border px-2 py-1 text-xs text-ink-dim
                      transition hoverable:text-ink hoverable:border-accent
-                     max-lg:w-full max-lg:border-transparent max-lg:py-2"
+                     compact:w-full compact:border-transparent compact:py-2.5"
         >
           Annuler
         </button>

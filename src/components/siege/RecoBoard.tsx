@@ -353,6 +353,12 @@ export default function RecoBoard({
           setScrollToLast(true);
           // La nouvelle est « à moi » : ne pas la créer dans une vue qui la cache.
           if (filter === 'imported') setFilter('mine');
+          // ⚠️ Même geste que « Ajouter une équipe » (SiegeBoard) : le panneau
+          // « Options » se referme et la page défile jusqu'à la nouvelle carte.
+          // Créer une reco est le geste principal de cet écran, comme composer
+          // une équipe l'est en défense/offense — il doit se voir tout de suite,
+          // pas rester caché derrière un panneau resté ouvert.
+          onFermerMenu();
         }}
         icone={<Plus size={15} />}
         libelle="Créer une recommandation"

@@ -6,7 +6,6 @@ import {
   X,
   Check,
   AlertTriangle,
-  HelpCircle,
   Plus,
   StickyNote,
   Download,
@@ -318,8 +317,13 @@ export default function RecoCard({
         {!editing && reco.author && (
           <span className="font-mono text-micro text-ink-dim">· par {reco.author}</span>
         )}
-        {!editing && match && <StatusPill match={match} onClear={onClearAnalysis} />}
 
+        {/* ⚠️ **À la SOURIS seulement** (`compact:hidden`) : au doigt, ce bouton
+            étiqueté crowdait le titre sur une carte étroite, à côté d'une
+            pastille qui redisait déjà ce que l'encart d'analyse affiche juste
+            en dessous (voir plus bas — `StatusPill` a été retiré pour ça). Sa
+            version au doigt vit désormais en icône, groupée avec Exporter /
+            Éditer / Supprimer — voir plus bas. */}
         {!editing && (
           <button
             onClick={onAnalyze}
@@ -331,7 +335,7 @@ export default function RecoCard({
             }
             className="flex items-center gap-1.5 rounded-md border border-border bg-panel px-2.5 py-1
                        text-xs font-semibold text-ink-dim hoverable:text-ink hoverable:border-accent
-                       transition disabled:opacity-40 disabled:cursor-not-allowed"
+                       transition disabled:opacity-40 disabled:cursor-not-allowed compact:hidden"
           >
             <Gauge size={13} /> {match ? 'Réanalyser mes decks' : 'Analyser mes decks'}
           </button>
@@ -375,6 +379,28 @@ export default function RecoCard({
               on supprimerait la recommandation en voulant l'exporter. C'est le
               cas de voisinage serré décrit dans spec/shared/design.md. */}
           <div className="flex items-center gap-0.5 -mr-1">
+            {/* ⚠️ Icône seule, AU DOIGT SEULEMENT (`hidden compact:flex`) : la
+                version étiquetée reste à la souris, juste à gauche du titre
+                (voir plus haut). Groupée ici avec Exporter / Éditer /
+                Supprimer plutôt que sur sa propre ligne, elle ne se dispute
+                plus la place du titre sur une carte étroite. */}
+            {!editing && (
+              <button
+                data-cible-fine
+                onClick={onAnalyze}
+                disabled={!canAnalyze}
+                className="hidden items-center justify-center w-6 h-6 text-ink-dim hoverable:text-ink
+                           transition disabled:opacity-40 disabled:cursor-not-allowed compact:flex"
+                title={
+                  canAnalyze
+                    ? 'Confronter toute la recommandation à tes monstres'
+                    : 'Importe ton compte pour analyser'
+                }
+                aria-label={match ? 'Réanalyser mes decks' : 'Analyser mes decks'}
+              >
+                <Gauge size={13} />
+              </button>
+            )}
             <button
               data-cible-fine
               onClick={() => onExport(reco)}
@@ -2407,42 +2433,6 @@ function SetList({ options, sm }: { options: string[][]; sm: SlotMatch | null })
 }
 
 /* ---- Badges de statut --------------------------------------------------- */
-
-// Pastille globale de la recommandation : combien de decks sont jouables.
-// Porte elle aussi une croix : c'est le repère le plus visible une fois la carte
-// repliée, on doit pouvoir effacer l'analyse depuis là.
-function StatusPill({ match, onClear }: { match: RecoMatch; onClear: () => void }) {
-  const map = {
-    ok: {
-      text: `${match.totalDecks} deck${match.totalDecks > 1 ? 's' : ''} jouable${match.totalDecks > 1 ? 's' : ''}`,
-      cls: 'border-good/50 text-good bg-good/10',
-      Icon: Check,
-    },
-    partial: {
-      text: `${match.okDecks}/${match.totalDecks} deck${match.totalDecks > 1 ? 's' : ''} au niveau`,
-      cls: 'border-warn/50 text-warn bg-warn/10',
-      Icon: AlertTriangle,
-    },
-    missing: { text: 'Aucun deck jouable', cls: 'border-fire/50 text-fire bg-fire/10', Icon: X },
-    unknown: { text: '—', cls: 'border-border text-ink-dim', Icon: HelpCircle },
-  }[match.status];
-  const Icon = map.Icon;
-  return (
-    <span
-      className={`inline-flex items-center gap-1 rounded-full border pl-2 pr-1 py-0.5 text-micro font-semibold ${map.cls}`}
-    >
-      <Icon size={11} /> {map.text}
-      <button
-        onClick={onClear}
-        className="ml-0.5 flex items-center justify-center w-4 h-4 rounded-full opacity-60 hoverable:opacity-100 transition"
-        title="Masquer le résultat de l'analyse"
-        aria-label="Masquer le résultat de l'analyse"
-      >
-        <X size={11} />
-      </button>
-    </span>
-  );
-}
 
 // Badge d'un deck : le verdict en trois mots, + l'équipe retenue si trouvée.
 function DeckBadge({ match }: { match: DeckMatch }) {

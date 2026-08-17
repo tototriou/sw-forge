@@ -794,6 +794,12 @@ recommandation**, via le bouton **« Analyser mes decks »** de son en-tête (il
 devient « Réanalyser mes decks » ensuite) — le libellé dit bien que la
 confrontation porte sur **l'ensemble des decks**, pas sur un seul.
 
+⚠️ **Deux gabarits selon le POINTEUR** (`compact:`, pas une largeur) : à la
+souris, étiqueté, à côté du titre — la place ne manque pas. Au doigt, réduit à
+son icône (jauge) et groupé avec Exporter / Éditer / Supprimer, dans le coin
+supérieur droit — étiqueté, il se disputait la place du titre sur une carte
+étroite.
+
 - Le bouton est **désactivé sans compte importé** (rien à quoi comparer).
 - Le résultat est **mémorisé dans le board** avec la reco et les builds qui ont
   servi ; il devient **périmé** dès que l'un des deux change (comparaison par
@@ -952,16 +958,18 @@ façon qu'en un exemplaire change ce qu'on décide d'aller corriger.
   le deck mais une information de **stock**. Les fondre ferait lire
   « jouable ×2 » comme un degré de conformité.
 
-**Fermer le résultat** : une **croix** efface l'analyse et la carte **redevient
-neutre** — halo, pastille, badges et colonne « toi » disparaissent d'un coup.
-Utile quand tout est vert : l'information a été lue, le halo n'a plus rien à dire.
-Il suffit de relancer « Analyser mes decks » pour la revoir.
+**Fermer le résultat** : une **croix**, sur l'**encart de synthèse** (ses trois
+états : vert, orange, « rien à analyser »), efface l'analyse et la carte
+**redevient neutre** — halo, encart et badges disparaissent d'un coup. Utile
+quand tout est vert : l'information a été lue, le halo n'a plus rien à dire. Il
+suffit de relancer « Analyser mes decks » pour la revoir.
 
-La croix est présente **aux deux endroits** où le résultat s'affiche :
-- sur l'**encart de synthèse** (ses trois états : vert, orange, « rien à
-  analyser ») ;
-- **dans la pastille d'en-tête** (« 1/4 decks au niveau ») — c'est le seul repère
-  visible quand la carte est repliée, il doit donc être refermable de là aussi.
+⚠️ **Pas de pastille en-tête redondante.** L'en-tête portait une seconde
+pastille (« 1/4 decks au niveau »), avec sa propre croix — reprenant, un cran
+plus haut, exactement ce que dit déjà l'encart de synthèse juste en dessous,
+lui-même visible carte repliée (voir plus haut). Deux endroits pour la même
+phrase, sur une carte déjà chargée, sans qu'aucun n'apprenne quoi que ce soit
+que l'autre ne dise pas.
 
 ### ⚠️ Source : TOUS les builds, pas seulement la box
 
@@ -1065,14 +1073,15 @@ lire les chiffres. Le slot fautif prend une bordure rouge, comme un slot dont le
 monstre est indisponible : les deux sont bloquants.
 
 - Statut **de la recommandation** (`matchReco`) = **agrégat de ses decks non
-  vides**, aura de la carte + pastille d'en-tête :
+  vides**, aura de la carte SEULE (voir `AURA` dans RecoCard.tsx) — le résumé en
+  mots ne vit plus qu'à l'encart de synthèse, voir plus haut :
 
-| Statut | Couleur | Condition | Pastille |
-|--------|---------|-----------|----------|
-| `ok` | `emerald` | **tous** les decks jouables | « N decks jouables » |
-| `partial` | `amber` | une partie seulement | « N/M decks au niveau » |
-| `missing` | `fire` | **aucun** deck jouable, tous bloqués par un monstre manquant | « Aucun deck jouable » |
-| `unknown` | neutre | **pas encore analysée**, ou aucun deck rempli | — |
+| Statut | Couleur | Condition |
+|--------|---------|-----------|
+| `ok` | `emerald` | **tous** les decks jouables |
+| `partial` | `amber` | une partie seulement |
+| `missing` | `fire` | **aucun** deck jouable, tous bloqués par un monstre manquant |
+| `unknown` | neutre | **pas encore analysée**, ou aucun deck rempli |
 
 - Sans compte importé : bouton « Analyser » **désactivé**, cartes neutres. Les
   recommandations restent consultables, éditables et exportables.
@@ -1088,8 +1097,8 @@ monstre est indisponible : les deux sont bloquants.
 Une recommandation contenant plusieurs decks de 3 monstres, la liste serait
 illisible tout déplié. Chaque carte est donc **repliée par défaut** :
 
-- **Repliée** : l'en-tête (nom, puce « Importée », nombre de decks, auteur,
-  pastille de statut) **+ un aperçu d'une ligne** — une puce par deck avec son
+- **Repliée** : l'en-tête (nom, puce « Importée », nombre de decks, auteur)
+  **+ un aperçu d'une ligne** — une puce par deck avec son
   **nom** et un **point de couleur** (vert/orange/rouge/neutre) reprenant son
   statut, plus un repère « consignes » si la recommandation en porte. On voit
   donc quoi ouvrir **sans rien déplier**. Cliquer l'aperçu déplie aussi.
@@ -1156,21 +1165,22 @@ L'en-tête est **deux zones**, pas un `flex-wrap` unique :
 
 | Zone | Contenu | Comportement |
 |------|---------|--------------|
-| gauche (`flex-1 min-w-0`) | nom, puce « Importée », compteur de decks, auteur, pastille de statut, « Analyser mes decks » | passe à la ligne librement |
-| droite (`flex-none`) | « Consulter », puis Exporter ↑ · Éditer ✏️ · Supprimer 🗑 | **ancrée en haut à droite** (`items-start`) |
+| gauche (`flex-1 min-w-0`) | titre (cliquable, bascule la carte), puce « Importée », compteur de decks, auteur, « Analyser mes decks » (souris seulement) | passe à la ligne librement |
+| droite (`flex-none`) | « Consulter » (souris seulement), puis Analyser (doigt seulement) · Exporter ↑ · Éditer ✏️ · Supprimer 🗑 | **ancrée en haut à droite** (`items-start`) |
 
 Dans un `flex-wrap` unique, les trois icônes suivaient le flux et **retombaient
 sous le titre** dès que la ligne était pleine — leur position changeait d'une
-carte à l'autre selon la longueur du nom et la présence de la pastille, et il
-fallait les chercher des yeux à chaque fois. Une barre d'outils se trouve à un
-endroit fixe, ou elle n'en est pas une.
+carte à l'autre selon la longueur du nom, et il fallait les chercher des yeux à
+chaque fois. Une barre d'outils se trouve à un endroit fixe, ou elle n'en est
+pas une.
 
 **Icônes nues partout** dans les en-têtes — carrés de 24 px, **sans cadre ni
 fond**, groupés et resserrés (`gap-0.5`) à droite de la ligne :
 
-- **recommandation** : Exporter ↑, Éditer ✏️, Supprimer 🗑 — la ligne porte déjà
-  le nom, la puce « Importée », le compteur de decks, l'auteur, la pastille de
-  statut, « Analyser mes decks » et « Consulter ».
+- **recommandation** : Analyser 📊 (doigt seulement — voir plus haut), Exporter
+  ↑, Éditer ✏️, Supprimer 🗑 — la ligne porte déjà le titre, la puce
+  « Importée », le compteur de decks, l'auteur, et « Analyser mes decks » /
+  « Consulter » à la souris.
 - **deck** : Éditer ✏️, puis Supprimer 🗑 (visible seulement en édition).
 - Le sens passe par l'**infobulle** et l'`aria-label` (obligatoire : une icône
   seule n'est pas lisible au lecteur d'écran).

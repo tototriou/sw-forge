@@ -1910,9 +1910,13 @@ function StatEditor({
               {/* Champ texte (et non `type=number`) : pas de boutons +/- à
                   droite, qui mangent la largeur d'une colonne déjà étroite.
                   `inputMode=numeric` garde le pavé numérique sur mobile.
-                  `min-w-[5ch]` : 5 chiffres visibles au minimum — la plupart
-                  des stats en ont autant (PV ~35 000), et sans ce plancher le
-                  champ se refermait jusqu'à masquer la valeur saisie. */}
+                  `w-14` : cinq chiffres visibles — la plupart des stats en ont
+                  autant (PV ~35 000).
+                  ⚠️ **`pleineLargeur={false}` obligatoire ici.** `Champ` vaut
+                  `w-full` par défaut : posé tel quel dans une ligne
+                  `flex-wrap`, sans largeur de colonne pour le contenir, il
+                  s'étirait sur presque toute la carte — un champ numérique de
+                  cinq chiffres large comme la ligne entière. */}
               <Champ
                 inputMode="numeric"
                 value={bonus ?? ''}
@@ -1923,7 +1927,8 @@ function StatEditor({
                   onSet(st.key, base + Number(raw));
                 }}
                 placeholder="—"
-                className="min-w-[5ch] bg-panel px-1 py-0.5 text-micro font-mono tabular-nums text-good"
+                pleineLargeur={false}
+                className="w-14 bg-panel px-1 py-0.5 text-micro font-mono tabular-nums text-good"
               />
             </span>
             <span
@@ -2112,16 +2117,24 @@ function SetEditor({
       )}
 
       {/* Les deux actions sur la MÊME ligne : ajouter un set à la combinaison en
-          cours, ou en ouvrir une nouvelle. */}
-      <div className="flex items-center gap-1">
+          cours, ou en ouvrir une nouvelle.
+          ⚠️ **`flex-wrap`, pas un `flex-1` qui ne peut pas marcher ici.**
+          `Bouton` pose `flex-none` dans son SOCLE (voir Bouton.tsx) : un
+          `flex-1` posé en `className` ne le bat pas, `flex-none` vient APRÈS
+          dans la feuille de style construite (vérifié, pas supposé) — le
+          bouton reste à sa largeur de contenu, jamais partagée. `pleineLargeur`
+          posait `w-full`, qui lui s'applique bien malgré `flex-none` : le
+          bouton revendiquait alors TOUTE la rangée et poussait le second hors
+          de la carte — exactement le débordement observé. `flex-wrap` laisse
+          le second bouton descendre à la ligne suivante s'il ne reste pas la
+          place, plutôt que de déborder ou d'écraser le premier. */}
+      <div className="flex flex-wrap items-center gap-1">
         <Bouton
           onClick={() => setOpen((o) => !o)}
           disabled={full}
           aria-expanded={open}
           taille="xs"
-          pleineLargeur
           libelle={full ? 'Plus de place (6 runes)' : '+ Set'}
-          className="flex-1"
         />
         <Bouton
           onClick={() => {

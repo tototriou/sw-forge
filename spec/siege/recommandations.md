@@ -424,11 +424,24 @@ plus lourd que la colonne qu'il remplaçait. Les autres colonnes (`Stat`,
 suffit à les nommer, et « actuel » est la seule à valoir la peine d'un mot
 au-dessus puisqu'elle n'apparaît qu'après une analyse.
 
-- le **champ de bonus** garde son plancher **`min-w-[5ch]`** — cinq chiffres
-  visibles, la taille de la plupart des stats (PV ~35 000) ;
+- le **champ de bonus** est **`w-14`, `pleineLargeur={false}`** — cinq
+  chiffres visibles, la taille de la plupart des stats (PV ~35 000).
+  ⚠️ **`pleineLargeur={false}` n'est pas optionnel** : `Champ` (la librairie)
+  vaut `w-full` par défaut, pensé pour un champ posé seul dans un formulaire.
+  Sans l'annuler ici, un champ de cinq chiffres s'étirait sur presque toute
+  la largeur de la carte, posé sans colonne de table pour le contenir ;
 - les cartes de slot restent en **`min-w-0`** : une cellule de grille refuse
   sinon de descendre sous la largeur de son contenu et **déborde sur sa
   voisine**.
+- ⚠️ **« + Set » / « + Possibilité » (éditeur de sets) : `flex-wrap`, jamais
+  `pleineLargeur` sur un seul des deux.** `Bouton` pose `flex-none` dans son
+  socle — un `flex-1` en `className` ne le bat pas (vérifié dans le CSS
+  construit : `flex-none` est plus loin dans la feuille de style, donc
+  gagne). `pleineLargeur`, lui, s'applique bien malgré `flex-none` : posé sur
+  un seul des deux boutons d'une paire, il revendiquait toute la rangée et
+  poussait l'autre hors de la carte. La rangée passe en `flex-wrap` : le
+  second bouton descend à la ligne suivante s'il ne reste pas la place,
+  plutôt que déborder.
 
 La colonne **« actuel » n'apparaît qu'après une analyse**, cohérent avec le
 fait que rien n'est confronté par défaut — mais une fois là, elle reste

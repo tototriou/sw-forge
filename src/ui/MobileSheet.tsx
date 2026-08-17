@@ -138,7 +138,11 @@ export default function MobileSheet({
               {/* ⚠️ `text-sm` et non `text-base` : ce titre rappelle où l'on est,
                   il n'annonce pas une page. À la taille d'un titre de section il
                   pesait autant que les actions qu'il coiffe. */}
-              <h2 className="font-display text-sm tracking-wide text-ink">{titre}</h2>
+              {/* ⚠️ Même taille que le reste du panneau (12 px). Ce qui le
+                  distingue comme titre n'est pas sa taille mais sa POLICE
+                  d'affichage et son espacement de lettres — à 13 px il pesait
+                  autant que les actions qu'il coiffe. */}
+              <h2 className="font-display text-xs tracking-wide text-ink">{titre}</h2>
               {/* ⚠️ `data-cible-fine` : cette croix vit dans l'en-tête du
                   panneau, dont la hauteur est mesurée pour laisser le maximum au
                   contenu. Portée à 40 px, elle imposait sa taille à toute la

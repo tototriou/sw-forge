@@ -903,6 +903,24 @@ button:not(:disabled):not([draggable]):not([role='switch']):active,
   display: none;
 }
 
+/* ⚠️ **UNE SEULE taille de texte dans le panneau : 12 px.** Il en portait trois
+   — 13 px pour les six boutons d'action, 12 pour les pilules de catégorie et les
+   interrupteurs, 11 pour la ligne du point de sauvegarde. Trois tailles à un
+   pixel d'écart ne créent aucune hiérarchie : elles se lisent comme un défaut
+   d'alignement, et sur un panneau qui n'empile qu'une dizaine de lignes, la
+   régularité vaut mieux qu'une gradation qu'on ne perçoit pas.
+
+   ⚠️ Le GRAS reste : c'est lui qui distingue une action d'une ligne
+   d'information, et il le fait sans changer la hauteur de la ligne.
+
+   ⚠️ Posé sur les ÉLÉMENTS (`button`, `p`) et non sur le conteneur : hérité, il
+   toucherait aussi les valeurs en `font-mono`, dont l'alignement en colonnes
+   dépend de leur propre taille. */
+[data-tiroir] button,
+[data-tiroir] p {
+  font-size: 12px;
+}
+
 /* ⚠️ **Les boutons d'une rangée forment une GRILLE**, pas une file qui se
    replie. En `flex-wrap`, chaque bouton prend la largeur de son texte :
    « Sauvegarder » et « Ami » finissaient côte à côte à des tailles différentes,

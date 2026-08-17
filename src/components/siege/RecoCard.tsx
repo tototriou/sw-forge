@@ -35,7 +35,7 @@ import {
 import { DeckMatch, FaultCause, RecoMatch, SlotMatch, deckFaults, fmtStat, slotFaults } from '../../lib/recoMatch';
 import { DeckHit, RecoHit } from '../../lib/recoSearch';
 import { ConfirmDialog } from '../../ui/Dialogs';
-import { Selecteur } from '../../ui';
+import { Selecteur, ZoneCliquable } from '../../ui';
 import { NOTE_MAX, DECK_NOTE_MAX, COUNTER_NOTE_MAX } from '../../lib/recoShare';
 import { deckFromSiegeTeam } from '../../lib/recoFromSiege';
 import {
@@ -280,9 +280,21 @@ export default function RecoCard({
                        font-semibold text-ink outline-none focus:border-accent"
           />
         ) : (
-          <h3 className="font-display text-lg tracking-wide">
-            {reco.name || `Recommandation ${index + 1}`}
-          </h3>
+          // ⚠️ **Le TITRE bascule la carte**, comme le bouton « Consulter » qui
+          // reste à côté : deux cibles pour le même geste, pas deux gestes
+          // différents. Sur une liste de recommandations qu'on parcourt au
+          // pouce, le titre est la cible la plus large et la plus naturelle —
+          // on ne vise plus le petit bouton du coin.
+          <ZoneCliquable
+            onClick={() => onToggleOpen(reco.id)}
+            aria-expanded={expanded}
+            title={open ? 'Replier' : `Voir les ${reco.decks.length} deck(s)`}
+            className="text-left transition hoverable:text-ctx"
+          >
+            <h3 className="font-display text-lg tracking-wide">
+              {reco.name || `Recommandation ${index + 1}`}
+            </h3>
+          </ZoneCliquable>
         )}
 
         {reco.origin === 'imported' && (

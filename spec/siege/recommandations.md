@@ -1095,6 +1095,10 @@ illisible tout déplié. Chaque carte est donc **repliée par défaut** :
   donc quoi ouvrir **sans rien déplier**. Cliquer l'aperçu déplie aussi.
 - **Bouton « Consulter »** (chevron) dans l'en-tête → déplie et affiche les
   consignes générales puis tous les decks ; devient **« Réduire »**.
+- **Le TITRE bascule aussi la carte** — même geste que « Consulter », pas un
+  second : sur une liste qu'on parcourt au pouce, c'est la cible la plus large
+  et la plus naturelle. Masqué en édition, comme « Consulter » : le titre
+  devient alors le champ de saisie du nom.
 - **Plusieurs recommandations peuvent être dépliées** en même temps (état local
   au board, non persisté).
 - **Éditer implique déplier** : une carte en édition (recommandation **ou** l'un

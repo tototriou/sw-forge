@@ -320,11 +320,18 @@ pas — il remplit trois emplacements :
 
 > ⚠️ **Rangée taquée à droite par défaut ; empilée quand les libellés sont des
 > PHRASES.** « Non, ne rien garder de mes informations » face à « Garder mes
-> données (recommandé) » : deux phrases dans une rangée se serrent et se replient
-> au milieu d'un mot. Empilées pleine largeur au doigt (`actionsEmpilees`),
-> chacune se lit d'un trait. Un « Valider » ou un « Créer », lui, n'a rien à
-> gagner à s'étaler d'un bord à l'autre. Le bureau reste en rangée dans les deux
-> cas.
+> données (recommandé) » : deux phrases ne tiennent pas sur une ligne.
+>
+> ⚠️ **Une rangée qui se replie ne vaut jamais mieux qu'une colonne assumée.**
+> Repliés, les boutons gardent chacun sa largeur propre et s'alignent à droite —
+> on obtient un escalier de boutons de tailles différentes. `actionsEmpilees` les
+> met donc en colonne **à toutes les largeurs**, chacun occupant toute la boîte.
+> Un « Valider » ou un « Créer », lui, n'a rien à gagner à s'étaler d'un bord à
+> l'autre : il reste en rangée.
+>
+> ⚠️ `flex-col` et non `flex-col-reverse` : les enfants s'écrivent secondaire
+> d'abord, mis en avant ensuite. En colonne simple, le mis en avant tombe donc en
+> bas — sous le pouce, et au même rang que le « à droite » d'une rangée.
 
 > ⚠️ **`noteFinale` se pose SOUS les boutons**, centrée. Sa place fait son rôle :
 > elle désamorce l'engagement une fois les choix sous les yeux (« tu pourras

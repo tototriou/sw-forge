@@ -29,7 +29,7 @@ export default function PiedDeDialogue({
   className = '',
 }: {
   children: ReactNode;
-  // Boutons EMPILÉS et pleine largeur au doigt, en rangée à partir de `sm`.
+  // Boutons EMPILÉS et pleine largeur, à toutes les tailles d'écran.
   //
   // ⚠️ **Pour des boutons dont le libellé est une PHRASE**, pas un verbe :
   // « Non, ne rien garder de mes informations » face à « Garder mes données
@@ -38,9 +38,9 @@ export default function PiedDeDialogue({
   // « Valider » n'a rien à gagner à s'étaler d'un bord à l'autre — d'où la
   // rangée par défaut.
   //
-  // ⚠️ L'inversion (`flex-col-reverse`) est ce qui met l'action RECOMMANDÉE en
-  // bas, sous le pouce, tout en la gardant à droite sur écran large : les
-  // enfants s'écrivent dans l'ordre de lecture, et la colonne les retourne.
+  // ⚠️ La colonne met l'action recommandée EN BAS — sous le pouce, et au même
+  // rang que le « à droite » d'une rangée — parce que les enfants s'écrivent
+  // secondaire d'abord, mis en avant ensuite.
   empile?: boolean;
   className?: string;
 }) {
@@ -54,7 +54,22 @@ export default function PiedDeDialogue({
       // droite, comme avant.
       className={`mt-4 flex gap-2 ${
         empile
-          ? 'flex-col-reverse sm:flex-row sm:flex-wrap sm:items-center sm:justify-end'
+          ? // ⚠️ **Empilé à TOUTES les largeurs, et pleine largeur.** Il repassait
+            // en rangée au-dessus de `sm` : les deux libellés y étaient trop
+            // longs pour tenir sur une ligne, se repliaient, et l'on obtenait
+            // deux boutons de TAILLES DIFFÉRENTES alignés à droite — un escalier.
+            // Une rangée qui se replie ne vaut jamais mieux qu'une colonne
+            // assumée : autant empiler franchement, chaque bouton occupant la
+            // même largeur que son voisin.
+            // `items-stretch` (le défaut du flex) fait le reste : sans largeur
+            // propre, les boutons s'étirent sur toute la boîte.
+            //
+            // ⚠️ `flex-col` et NON `flex-col-reverse` : les enfants s'écrivent
+            // secondaire d'abord, mis en avant ensuite. En colonne simple, le
+            // mis en avant tombe donc EN BAS — sous le pouce, et au même rang
+            // que le « à droite » d'une rangée. Inversée, la colonne remontait
+            // l'action recommandée en tête et laissait le refus sous le doigt.
+            'flex-col'
           : 'flex-wrap items-center justify-end'
       } ${className}`}
     >

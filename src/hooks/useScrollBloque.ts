@@ -20,12 +20,22 @@ export function useScrollBloque(actif: boolean): void {
   useEffect(() => {
     if (!actif) return;
     verrous += 1;
+    // ⚠️ **`documentElement` ET `body`, pas `body` seul.** C'est `<html>` qui
+    // défile dans cette app — `body` porte un `min-height` supérieur à l'écran
+    // (voir index.css), donc la barre de défilement appartient à la racine.
+    // Bloquer `body` seul ne bloquait donc RIEN : la page continuait de défiler
+    // derrière une modale ouverte, et le contenu de dessous glissait sous elle
+    // au moindre coup de molette ou de pouce.
+    document.documentElement.style.overflow = 'hidden';
     document.body.style.overflow = 'hidden';
     return () => {
       verrous -= 1;
       // ⚠️ `''` et non `'auto'` : on rend la propriété au CSS de la feuille de
       // style, au lieu de lui imposer une valeur en ligne qui la masquerait.
-      if (verrous === 0) document.body.style.overflow = '';
+      if (verrous === 0) {
+        document.documentElement.style.overflow = '';
+        document.body.style.overflow = '';
+      }
     };
   }, [actif]);
 }

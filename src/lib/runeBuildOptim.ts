@@ -1629,18 +1629,27 @@ function comboAFeasible(
 // elle-même. Exportée (plutôt que privée au Worker) pour être testable
 // directement en Node, sans dépendre de l'API Worker du navigateur — voir
 // tests/rune-optim-parallel-pairing.test.ts.
+// ⚠️ OPTION E (voir spec/outils/optimizer/pistes.md, point 9 — comparaison
+// à 3 branches) : l'équilibrage par charge (LPT) reste IDENTIQUE à la
+// version de base, mais chaque tranche est retriée EN PLUS dans l'ordre
+// d'origine de `bucketsA` (déjà par potentiel décroissant, voir
+// `buildBuckets`) avant d'être retournée. Coût quasi nul (un tri sur au
+// plus quelques compartiments par tranche), ne change RIEN à la répartition
+// de charge déjà mesurée — corrige uniquement l'ORDRE DE PARCOURS de chaque
+// worker (redevient « meilleur d'abord » au lieu de « plus gros d'abord »).
 export function partitionBucketsALPT(bucketsA: Bucket[], workerCount: number): Bucket[][] {
-  const withWorkload = bucketsA.map((b) => ({ b, workload: b.combos.length }));
+  const withWorkload = bucketsA.map((b, originalIndex) => ({ b, workload: b.combos.length, originalIndex }));
   withWorkload.sort((a, b) => b.workload - a.workload);
-  const slices: Bucket[][] = Array.from({ length: workerCount }, () => []);
+  const sliceEntries: { b: Bucket; originalIndex: number }[][] = Array.from({ length: workerCount }, () => []);
   const sliceWorkload = new Array(workerCount).fill(0);
-  for (const { b, workload } of withWorkload) {
+  for (const { b, workload, originalIndex } of withWorkload) {
     let target = 0;
     for (let i = 1; i < workerCount; i++) if (sliceWorkload[i] < sliceWorkload[target]) target = i;
-    slices[target].push(b);
+    sliceEntries[target].push({ b, originalIndex });
     sliceWorkload[target] += workload;
   }
-  return slices;
+  for (const entries of sliceEntries) entries.sort((a, b) => a.originalIndex - b.originalIndex);
+  return sliceEntries.map((entries) => entries.map((e) => e.b));
 }
 
 export function totalPairCount(prepared: PreparedSearch, bucketsA: Bucket[], bucketsB: Bucket[]): number {

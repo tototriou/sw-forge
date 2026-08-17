@@ -28,7 +28,7 @@ const SOURCE_OPTIONS: { key: ExclusionSource; label: string }[] = [
   { key: 'box', label: 'Box' },
   { key: 'rta', label: 'RTA' },
   { key: 'siege-defense', label: 'Siège défense' },
-  { key: 'siege-offense', label: 'Siège attaque' },
+  { key: 'siege-offense', label: 'Siège offense' },
 ];
 
 // Même étiquette que le comptage « Défense N »/« Offense N » déjà utilisé
@@ -39,7 +39,7 @@ function sourceLabel(sel: ExclusionSelector, data: ExclusionSourceData): string 
   if (sel.source === 'rta') return 'RTA';
   const teams = sel.source === 'siege-defense' ? data.siegeDefenseTeams : data.siegeOffenseTeams;
   const idx = teams.findIndex((t) => t.id === sel.teamId);
-  const base = sel.source === 'siege-defense' ? 'Siège défense' : 'Siège attaque';
+  const base = sel.source === 'siege-defense' ? 'Siège défense' : 'Siège offense';
   return idx === -1 ? base : `${base} · équipe ${idx + 1}`;
 }
 

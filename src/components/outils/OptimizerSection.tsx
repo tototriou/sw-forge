@@ -877,7 +877,7 @@ export default function OptimizerSection({ box, runes, optimizer, allMonsters, r
           <Boxes size={15} className="text-ink-dim" />
           <span className="text-[12.5px] font-semibold text-ink-dim">Exclure les runes d'un monstre</span>
           <HelpPopover title="Exclure les runes d'un monstre">
-            Choisis un monstre (box, RTA, siège défense ou attaque) pour retirer SES runes actuellement équipées de
+            Choisis un monstre (box, RTA, siège défense ou offense) pour retirer SES runes actuellement équipées de
             la recherche — utile pour un build que tu ne veux pas défaire, en plus de{' '}
             <b className="text-ink">« Utiliser tout l'inventaire »</b> ci-dessus.
           </HelpPopover>

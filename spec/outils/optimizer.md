@@ -216,7 +216,7 @@ appelant construise le sien, ce que fait l'exclusion manuelle ci-dessous.
 
 **« Exclure les runes d'un monstre »**, sous « Utiliser tout l'inventaire » :
 recherche par nom un monstre déjà connu du compte, dans l'une de quatre
-sources (Box / RTA / Siège défense / Siège attaque), et retire SES runes
+sources (Box / RTA / Siège défense / Siège offense), et retire SES runes
 **actuellement équipées** du pool considéré — utile pour un build qu'on ne
 veut pas défaire, sans dépendre de la règle automatique (autre monstre de la
 box) ci-dessus. Se **superpose** à « Utiliser tout l'inventaire », ne le

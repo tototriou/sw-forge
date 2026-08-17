@@ -92,7 +92,7 @@ export default function testOptimizerExclusion() {
     );
 
     const offCandidates = exclusionCandidatesFor('siege-offense', data, null);
-    egal(offCandidates.length, 0, 'siège attaque : aucune équipe chargée, aucun candidat');
+    egal(offCandidates.length, 0, 'siège offense : aucune équipe chargée, aucun candidat');
   }
 
   // ── Camilla a un runage DIFFÉRENT en box, RTA et siège défense : exclure

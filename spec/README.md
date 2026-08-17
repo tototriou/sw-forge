@@ -275,6 +275,17 @@ Concepts partagés par plusieurs pages, documentés une seule fois :
   `inputMode="numeric"` (qui fait remonter le pavé numérique sur mobile). La
   frappe non numérique est **ignorée** : plus prévisible qu'un champ qui se vide
   ou se corrige pendant qu'on tape.
+  - ⚠️ **Un appui PROLONGÉ sur − ou + fait défiler la valeur en continu**, et la
+    cadence **accélère**. Ces champs portent des valeurs qui varient sur des
+    dizaines d'unités (une vitesse de 180 à 240, un minimum de crit de 15 à 85) :
+    un pas par clic imposait soixante clics, ou de repasser par le clavier alors
+    qu'on avait déjà le doigt sur le bouton. À cadence fixe, il fallait choisir
+    entre trop lent pour traverser 60 unités et si vif qu'on dépassait toujours
+    sa cible.
+    - Le défilement démarre après **400 ms** — assez pour qu'un clic ordinaire,
+      même mou, n'en déclenche jamais un et ne fasse pas sauter la valeur de deux.
+    - Il **s'arrête à la butée** (`min`/`max`), au relâchement **même hors du
+      bouton** (on glisse souvent le doigt à côté), et si l'on quitte l'onglet.
   - ⚠️ **`min`/`max` ne sont appliqués qu'à la SORTIE du champ** (`onBlur`) et
     sur les boutons ± — jamais à chaque frappe. Border chaque frappe casse la
     saisie dès qu'un `min` positif dépasse un chiffre isolé : avec `min={15}`

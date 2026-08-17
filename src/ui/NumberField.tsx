@@ -1,3 +1,4 @@
+import { useEffect, useRef } from 'react';
 import { Minus, Plus } from 'lucide-react';
 
 // Champ numérique de l'app : **deux boutons − / +** encadrant la valeur.
@@ -10,6 +11,23 @@ import { Minus, Plus } from 'lucide-react';
 //
 // La frappe non numérique est simplement ignorée : plus prévisible qu'un champ
 // qui se vide ou qui corrige tout seul pendant qu'on tape.
+//
+// ⚠️ **APPUI PROLONGÉ = répétition.** Ces champs servent à des valeurs qui
+// varient sur des dizaines d'unités — une vitesse de 180 à 240, un minimum de
+// crit de 15 à 85. Un pas par clic imposait soixante clics, ou de repasser par
+// le clavier alors qu'on avait déjà le doigt sur le bouton.
+
+// Temps d'appui avant que la répétition démarre. ⚠️ Assez long pour qu'un clic
+// ordinaire, même mou, n'en déclenche jamais une : sous ~300 ms, un simple clic
+// posé faisait sauter la valeur de deux.
+const DELAI_AVANT_REPETITION = 400;
+// Cadence de départ, puis accélération jusqu'au plancher. ⚠️ Elle accélère
+// parce qu'un appui long dit qu'on va LOIN : à cadence fixe, il fallait choisir
+// entre une répétition trop lente pour traverser 60 unités et une répétition si
+// vive qu'on dépassait toujours sa cible.
+const CADENCE_DEPART = 110;
+const CADENCE_PLANCHER = 35;
+const FACTEUR_ACCELERATION = 0.88;
 
 interface Props {
   value: number | null;
@@ -57,7 +75,91 @@ export default function NumberField({
     return v;
   };
 
-  const bouger = (delta: number) => onChange(borne((value ?? 0) + delta));
+  // ⚠️ **La valeur courante est tenue dans une `ref`, pas lue dans la closure.**
+  // La répétition vit dans un `setTimeout` : la fonction qu'il rappelle a
+  // capturé la valeur du rendu où elle a été créée, et un appui long
+  // n'incrémentait donc qu'une seule fois, encore et encore. La `ref` est aussi
+  // mise à jour SUR-LE-CHAMP par `bouger`, sans attendre le rendu suivant —
+  // deux pas peuvent tomber entre deux peintures.
+  const valeurCourante = useRef(value);
+  useEffect(() => {
+    valeurCourante.current = value;
+  }, [value]);
+
+  // Renvoie `false` quand la valeur ne peut plus bouger : c'est ce qui arrête la
+  // répétition à la butée, au lieu de la laisser tourner à vide.
+  const bouger = (delta: number): boolean => {
+    const suivant = borne((valeurCourante.current ?? 0) + delta);
+    if (suivant === valeurCourante.current) return false;
+    valeurCourante.current = suivant;
+    onChange(suivant);
+    return true;
+  };
+
+  // ── Appui prolongé ────────────────────────────────────────────────────────
+  const minuterie = useRef<number | null>(null);
+  // ⚠️ Un `pointerdown` fait déjà le premier pas ; le `click` qui suit au
+  // relâchement en ferait un second. On mémorise donc que le pointeur a pris la
+  // main, et le clic passe son tour — SANS supprimer `onClick`, qui reste la
+  // seule voie d'activation pour un lecteur d'écran (VoiceOver émet un clic, pas
+  // une séquence de pointeur).
+  const pointeurAGere = useRef(false);
+
+  const arreter = () => {
+    if (minuterie.current != null) window.clearTimeout(minuterie.current);
+    minuterie.current = null;
+  };
+
+  const demarrer = (delta: number) => {
+    pointeurAGere.current = true;
+    if (!bouger(delta)) return;
+    let cadence = CADENCE_DEPART;
+    const prochain = (attente: number) => {
+      minuterie.current = window.setTimeout(() => {
+        if (!bouger(delta)) return arreter();
+        cadence = Math.max(CADENCE_PLANCHER, cadence * FACTEUR_ACCELERATION);
+        prochain(cadence);
+      }, attente);
+    };
+    prochain(DELAI_AVANT_REPETITION);
+  };
+
+  // ⚠️ Le relâchement est écouté sur la FENÊTRE, pas sur le bouton : on lâche
+  // très souvent à côté après avoir glissé le doigt, et un `pointerup` posé sur
+  // le bouton laissait alors la valeur défiler toute seule.
+  useEffect(() => {
+    const stop = () => arreter();
+    window.addEventListener('pointerup', stop);
+    window.addEventListener('pointercancel', stop);
+    // Basculer d'onglet ou d'application pendant l'appui : le relâchement
+    // n'arrive jamais.
+    window.addEventListener('blur', stop);
+    return () => {
+      window.removeEventListener('pointerup', stop);
+      window.removeEventListener('pointercancel', stop);
+      window.removeEventListener('blur', stop);
+      arreter();
+    };
+  }, []);
+
+  // Propriétés communes aux deux flèches. ⚠️ `touch-none` : sans lui, maintenir
+  // le doigt sur « + » fait défiler la page au lieu d'incrémenter.
+  const gestes = (delta: number) => ({
+    onPointerDown: (e: React.PointerEvent) => {
+      // Bouton droit ou molette : pas une pression.
+      if (e.button !== 0) return;
+      demarrer(delta);
+    },
+    onClick: () => {
+      if (pointeurAGere.current) {
+        pointeurAGere.current = false;
+        return;
+      }
+      bouger(delta);
+    },
+    // L'appui long fait apparaître la loupe et la sélection sur iOS.
+    onContextMenu: (e: React.MouseEvent) => e.preventDefault(),
+  });
 
   // ⚠️ **Ces deux flèches restent des `<button>` nus, et c'est délibéré.** Elles
   // ne sont pas des boutons de l'app mais les ENTRAILLES de ce composant-ci :
@@ -75,7 +177,7 @@ export default function NumberField({
   // fois sur « + ». Les laisser dans le parcours de tabulation imposait trois
   // arrêts par champ pour atteindre le suivant.
   const btn =
-    'flex h-7 w-6 flex-none items-center justify-center text-ink-dim transition hoverable:text-ink hoverable:bg-panel2 disabled:opacity-30';
+    'flex h-7 w-6 flex-none touch-none select-none items-center justify-center text-ink-dim transition hoverable:text-ink hoverable:bg-panel2 disabled:opacity-30';
 
   return (
     <div
@@ -85,7 +187,7 @@ export default function NumberField({
     >
       <button
         type="button"
-        onClick={() => bouger(-step)}
+        {...gestes(-step)}
         disabled={disabled || (min != null && (value ?? 0) <= min)}
         data-cible-fine
         className={`${btn} border-r border-border`}
@@ -129,7 +231,7 @@ export default function NumberField({
 
       <button
         type="button"
-        onClick={() => bouger(step)}
+        {...gestes(step)}
         disabled={disabled || (max != null && (value ?? 0) >= max)}
         data-cible-fine
         className={`${btn} border-l border-border`}

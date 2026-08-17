@@ -15,27 +15,57 @@ import { useEffect } from 'react';
 // l'expliquer. Le compteur ne dépend pas de l'ordre de démontage : le blocage
 // tombe quand le DERNIER verrou est relâché, jamais avant, jamais après.
 let verrous = 0;
+// Position de défilement au moment du PREMIER verrou — c'est là qu'on revient.
+let departY = 0;
 
 export function useScrollBloque(actif: boolean): void {
   useEffect(() => {
     if (!actif) return;
     verrous += 1;
-    // ⚠️ **`documentElement` ET `body`, pas `body` seul.** C'est `<html>` qui
-    // défile dans cette app — `body` porte un `min-height` supérieur à l'écran
-    // (voir index.css), donc la barre de défilement appartient à la racine.
-    // Bloquer `body` seul ne bloquait donc RIEN : la page continuait de défiler
-    // derrière une modale ouverte, et le contenu de dessous glissait sous elle
-    // au moindre coup de molette ou de pouce.
+
+    // ⚠️ **`overflow: hidden` NE SUFFIT PAS sur iOS**, et c'est le piège de ce
+    // hook. Safari continue d'y faire défiler le document au doigt : la propriété
+    // est respectée pour la molette et les barres de défilement, pas pour le
+    // geste tactile. On voyait donc la page glisser derrière une modale ouverte,
+    // alors que le même code bloquait parfaitement le bureau.
+    //
+    // ⚠️ Le seul verrou fiable est de RETIRER `body` DU FLUX (`position: fixed`)
+    // et de compenser le décalage par un `top` négatif : sans rien qui dépasse de
+    // l'écran, il n'y a plus rien à faire défiler. C'est aussi ce qui empêche le
+    // « rubber-band » de découvrir le fond de page sous le voile.
+    //
+    // ⚠️ **Le décalage se mémorise, sinon la page saute au sommet.** `position:
+    // fixed` détache `body` : sa position de défilement est perdue à l'instant
+    // où on l'applique, et rendue à la fermeture par le `scrollTo` ci-dessous.
+    // Sans cela, fermer une confirmation vous ramenait en haut de la prépa.
+    if (verrous === 1) {
+      departY = window.scrollY;
+      document.body.style.position = 'fixed';
+      document.body.style.top = `-${departY}px`;
+      // ⚠️ `left`/`right` explicites : détaché du flux, `body` n'a plus de bord
+      // gauche à hériter. Sans eux, sa largeur reste juste mais sa position
+      // horizontale dépend du `width: 100%` que lui donne index.css — on
+      // s'appuierait sur une règle voisine pour tenir en place.
+      document.body.style.left = '0';
+      document.body.style.right = '0';
+    }
+    // Conservé pour la molette et les navigateurs de bureau, où il suffit.
     document.documentElement.style.overflow = 'hidden';
-    document.body.style.overflow = 'hidden';
+
     return () => {
       verrous -= 1;
-      // ⚠️ `''` et non `'auto'` : on rend la propriété au CSS de la feuille de
+      if (verrous > 0) return;
+      // ⚠️ `''` et non une valeur : on rend la propriété au CSS de la feuille de
       // style, au lieu de lui imposer une valeur en ligne qui la masquerait.
-      if (verrous === 0) {
-        document.documentElement.style.overflow = '';
-        document.body.style.overflow = '';
-      }
+      document.documentElement.style.overflow = '';
+      document.body.style.position = '';
+      document.body.style.top = '';
+      document.body.style.left = '';
+      document.body.style.right = '';
+      // ⚠️ `instant` : un retour animé se voit comme un saut de la page au
+      // moment où le dialogue disparaît, et l'utilisateur ne sait plus s'il a
+      // été déplacé ou si la page a bougé toute seule.
+      window.scrollTo({ top: departY, behavior: 'instant' });
     };
   }, [actif]);
 }

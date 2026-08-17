@@ -497,14 +497,21 @@ export default function TurnOrder({
                       </div>
                     )}
 
-                    {/* Saisie de la vitesse des runes — seulement sur SA prépa. */}
+                    {/* Saisie de la vitesse des runes — seulement sur SA prépa.
+                        ⚠️ **`boxWidth="w-full"`, pas `width`.** Les deux
+                        boutons − / + font 24 px chacun, FIXES quelle que soit
+                        la largeur demandée : avec `width="w-12"`, le contrôle
+                        entier (boutons + champ) dépassait les 74 px utiles de
+                        cette carte resserrée. `boxWidth` rend le CHAMP flexible
+                        et laisse les boutons imposer leur taille — c'est le
+                        contrôle entier qui se cale sur la carte, pas l'inverse. */}
                     {onRuneSpeed && (
                       <NumberField
                         value={it.entry.runeSpeed}
                         allowEmpty
                         min={0}
                         placeholder="+ runes"
-                        width="w-12"
+                        boxWidth="w-full"
                         ariaLabel={`SPD des runes de ${m.name}`}
                         onChange={(v) => onRuneSpeed(String(m.id), v)}
                       />

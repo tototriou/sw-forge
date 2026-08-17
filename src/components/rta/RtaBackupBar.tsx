@@ -445,7 +445,13 @@ export default function RtaBackupBar({
       {/* Le point de sauvegarde est ANNONCÉ : sans repère visible, on ne sait
           pas s'il existe ni de quand il date — donc on n'ose pas expérimenter. */}
       {backup.backup && (
-        <p className="mt-1.5 font-mono text-micro text-ink-dim">
+        /* ⚠️ `w-full` : dans le panneau mobile, la règle `[data-tiroir]
+           .flex-col { align-items: flex-start }` — qui aligne les boutons
+           empilés sur leur bord gauche — rétrécit AUSSI ce paragraphe sur son
+           texte. Il se repliait alors sur deux lignes au milieu d'une bande
+           vide, alors que la date tient sur une seule. Une largeur explicite le
+           soustrait à l'alignement des boutons, auquel il n'appartient pas. */
+        <p className="mt-1.5 w-full font-mono text-micro text-ink-dim">
           {/* ⚠️ Le NOMBRE de monstres a disparu de cette ligne. Il ne servait
               à rien qu'on vienne y chercher : ce qu'on veut savoir, c'est
               QUAND le point a été posé, pour décider si l'on peut y revenir

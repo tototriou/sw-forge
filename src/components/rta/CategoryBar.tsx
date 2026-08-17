@@ -247,23 +247,14 @@ export default function CategoryBar({ cats, monsters }: Props) {
             {countOf(open) > 0 && (
               <Bouton
                 ton="danger"
-                // ⚠️ FOND et contour, alors qu'il n'avait que le contour : posé
-                // sur le panneau teinté de la catégorie ouverte, un bouton
-                // transparent se confondait avec lui et ne se lisait plus comme
-                // une action.
-                fond="doux"
+                fond="vide"
                 taille="xs"
                 forme="pilule"
                 onClick={() => setViderAConfirmer({ id: open.id, label: open.label, n: countOf(open) })}
                 title="Retirer tous les monstres de cette catégorie"
                 icone={<X size={11} />}
                 libelle="Tout décocher"
-                // ⚠️ `leading-none` : l'interligne du libellé (1,45) donnait au
-                // texte une boîte plus haute que sa lettre. Centrées boîte
-                // contre boîte, l'icône et le mot ne l'étaient plus à l'œil —
-                // la croix paraissait remonter. Sans interligne, la boîte épouse
-                // la lettre et les deux s'alignent vraiment.
-                className="ml-auto h-6 leading-none"
+                className="ml-auto h-6"
               />
             )}
             <BoutonIcone

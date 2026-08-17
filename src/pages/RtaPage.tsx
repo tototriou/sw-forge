@@ -227,18 +227,31 @@ export default function RtaPage({
   // il se pose à l'opposé (`ml-auto`), dans le panneau il est détaché en bas
   // sous un filet. Un bouton destructeur ne se met pas au contact de celui
   // qu'on presse en boucle.
-  const effacer = addedIds.size > 0 && (
+  //
+  // ⚠️ **Deux habillages, un seul bouton.** Dans le PANNEAU il porte fond et
+  // contour d'alerte : posé seul en bas, sous un filet, un bouton transparent ne
+  // se distinguait plus d'une ligne de texte — rien ne disait qu'on pouvait le
+  // presser, ni que ce qu'il fait est irréversible. Dans la PAGE il reste nu,
+  // comme avant : il y vit au bout d'une rangée d'actions déjà cadrées, où un
+  // cadre de plus ferait du bruit.
+  const boutonEffacer = (dansLePanneau: boolean) =>
+    addedIds.size > 0 && (
     <Bouton
       onClick={() => {
         setEffacementAConfirmer(true);
         onFermerMenu();
       }}
       ton="danger"
-      fond="vide"
-      trait="aucun"
+      fond={dansLePanneau ? 'doux' : 'vide'}
+      trait={dansLePanneau ? 'plein' : 'aucun'}
       taille="sm"
       icone={<Trash2 size={13} />}
       libelle="Tout effacer"
+      // ⚠️ `leading-none` : l'interligne du libellé (1,5) donne au texte une
+      // boîte plus haute que sa lettre. Centrées boîte contre boîte, la poubelle
+      // et le mot ne le sont plus à l'œil — l'icône paraît remonter. Sans
+      // interligne, la boîte épouse la lettre et les deux s'alignent vraiment.
+      className="leading-none"
     />
   );
 
@@ -257,7 +270,7 @@ export default function RtaPage({
         </span>
 
         <div className="hidden lg:contents">{creation}</div>
-        <div className="ml-auto hidden lg:contents">{effacer}</div>
+        <div className="ml-auto hidden lg:contents">{boutonEffacer(false)}</div>
       </div>
 
       {effacementAConfirmer && (
@@ -339,7 +352,11 @@ export default function RtaPage({
           <CategoryBar cats={cats} monsters={pageMonsters} />
         </div>
 
-        {effacer && <div data-zone-destructive className="mt-4 border-t border-border pt-3">{effacer}</div>}
+        {addedIds.size > 0 && (
+          <div data-zone-destructive className="mt-4 border-t border-border pt-3">
+            {boutonEffacer(true)}
+          </div>
+        )}
       </MobileSheet>
 
       {/* ⚠️ La prépa consultée s'affiche AVANT la sienne, et encadrée : c'est ce

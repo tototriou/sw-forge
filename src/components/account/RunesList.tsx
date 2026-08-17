@@ -4,7 +4,7 @@ import { RUNE_EFFECT, runeEfficiency, runeScore } from '../../lib/effects';
 import SetFilter from './SetFilter';
 import SlotFilter from './SlotFilter';
 import RuneSlotIcon from '../RuneSlotIcon';
-import { RuneDetailBox } from '../MonsterGear';
+import { RuneDetailBox } from '../PieceDetail';
 import Pager from './Pager';
 import { Critere } from './SubSearchDialog';
 import SubSearchBar from './SubSearchBar';

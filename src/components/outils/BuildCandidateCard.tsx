@@ -3,7 +3,7 @@ import { ArtifactDetail, RuneDetail, RUNE_SETS } from '../../types';
 import { BuildCandidate, candidateMetricTotal } from '../../lib/runeBuildOptim';
 import { activeSets } from '../../lib/effects';
 import { RuneMetric, formatRuneMetric } from '../../hooks/useRuneMetric';
-import { ArtifactDetailBox, RuneDetailBox } from '../MonsterGear';
+import { ArtifactDetailBox, RuneDetailBox } from '../PieceDetail';
 import RuneWheel from '../RuneWheel';
 import ArtifactSlots from '../ArtifactSlots';
 import StatPanel from '../StatPanel';
@@ -112,8 +112,10 @@ export default function BuildCandidateCard({
             scale={ARTIFACT_SCALE}
             isSelected={(a) => openArtifactKind === a.kind}
             onSelectArtifact={(a) => setOpenArtifactKind((cur) => (cur === a.kind ? null : a.kind))}
+            // Mêmes dimensions que pour une rune : les deux cartes partagent la
+            // même coquille (voir PieceDetail.tsx), donc le même encombrement.
             renderOverlay={(a, _i, anchorRef) => (
-              <FlottantAuto ouvert={openArtifactKind === a.kind} ancre={anchorRef} largeur={240} hauteur={260}>
+              <FlottantAuto ouvert={openArtifactKind === a.kind} ancre={anchorRef} largeur={260} hauteur={320}>
                 <ArtifactDetailBox artifact={a} />
               </FlottantAuto>
             )}

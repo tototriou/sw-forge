@@ -138,7 +138,8 @@ Spec : [`spec/shared/librairie-ui.md`](spec/shared/librairie-ui.md).
 **Hors librairie mais partagés** (`src/components/`) : `Segmented`, `Switch`,
 `SearchBar`, `FilterBar`, `MonsterCard`, `MonsterGrid`, `MonsterPicker`,
 `MonsterAvatar`, `MonsterGear`, `MonsterDetailDialog`, `CreateMonster`,
-`AccordionGrid`, `StatPanel`, `RuneIcon`, `RuneSlotIcon`, `RuneWheel`,
+`AccordionGrid`, `StatPanel`, `PieceDetail` (⚠️ **la coquille unique** des
+fiches de rune ET d'artéfact), `RuneIcon`, `RuneSlotIcon`, `RuneWheel`,
 `ArtifactIcon`, `ArtifactFrameIcon`, `ArtifactSlots`, `ElementIcon`, `GameIcon`,
 `CollabPortrait`, `HelpPopover`.
 

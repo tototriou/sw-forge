@@ -5,7 +5,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { ChevronLeft, ChevronRight, X } from 'lucide-react';
 import { RuneDetail, RUNE_SETS } from '../../types';
-import { RuneDetailBox } from '../MonsterGear';
+import { RuneDetailBox } from '../PieceDetail';
 import RuneSlotIcon from '../RuneSlotIcon';
 
 export interface CurveSeries {

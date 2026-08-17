@@ -503,6 +503,24 @@ mécanismes, pas des boutons.
 
 ## Ce qui n'est pas dans cette librairie
 
+**Les composants de JEU.** Une roue de runes, un portrait de monstre, la fiche
+d'une pièce équipée ne sont pas du vocabulaire d'interface : ils rendent des
+données Summoners War et suivent les codes du jeu, pas la règle du contour unique
+de 1 px. Ils vivent dans `src/components/`.
+
+Ils obéissent en revanche à la **même exigence d'unicité** : un rendu se dessine
+une fois. ⚠️ La fiche d'une **rune** et celle d'un **artéfact** étaient deux
+composants indépendants, écrits à six mois d'écart, et cela se voyait dès qu'on
+les ouvrait l'une après l'autre au même endroit — rareté en colonne d'un côté, en
+bandeau au-dessus de l'autre ; « Efficience 98,4 % » ici, une jauge et un nombre
+nu là ; deux largeurs, deux hauteurs, pour la même question. Elles partagent
+désormais une coquille unique
+([PieceDetail.tsx](../../src/components/PieceDetail.tsx)) : cadre, en-tête
+(image, stat principale, rareté, mesure), bloc de lignes, pied. Ne reste propre à
+chaque pièce que **ce qu'elle a de différent** — la meule et la gemme d'un côté,
+les procs de l'autre ; le bonus de set d'un côté, l'attribut ou le type de
+l'autre. **La rune est la référence** : sa disposition est celle du jeu.
+
 **Aucune dépendance externe.** La question d'adopter Radix UI s'est posée pour
 `Dialog`, `Popover`, `Select` et `Switch`. Elle reste **ouverte** et concerne le
 comportement (piège de focus, empilement, clavier), pas l'apparence — ces

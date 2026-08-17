@@ -314,7 +314,7 @@ des clics). Deux conséquences voulues :
 > n'ouvre.
 
 La question est donc posée **à la fin du premier import**
-([Dialogs.tsx](src/components/Dialogs.tsx) → `KeepAccountDialog`),
+([Dialogs.tsx](src/ui/Dialogs.tsx) → `KeepAccountDialog`),
 quand l'utilisateur vient de voir ses données arriver.
 
 Trois éléments du texte à ne jamais retirer :

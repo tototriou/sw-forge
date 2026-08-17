@@ -7,6 +7,10 @@ ce qu'il peut faire, et les règles de calcul appliquées.
 > Ces specs décrivent l'existant. Elles servent de référence pour faire évoluer
 > l'outil sans casser les comportements établis.
 
+> 📐 **Où se trouve quoi** : [../ARCHITECTURE.md](../ARCHITECTURE.md) — la carte
+> des fichiers, par écran. Ce dossier-ci dit le **comportement attendu**,
+> `ARCHITECTURE.md` dit **quels fichiers ouvrir** pour le changer.
+
 ## Carte des pages
 
 | Page | Route | Statut | Spec |
@@ -99,7 +103,7 @@ Concepts partagés par plusieurs pages, documentés une seule fois :
     espaces.
   - ⚠️ **Un champ numérique s'écrit `type="text"` + `inputMode="numeric"`,
     jamais `type="number"`.** Outre les flèches natives inutilisables (voir
-    [NumberField.tsx](src/components/NumberField.tsx)), un champ `number` garde
+    [NumberField.tsx](src/ui/NumberField.tsx)), un champ `number` garde
     le **texte tapé tel quel** : saisir « 015 » donne bien `15` dans l'état, mais
     la valeur ne changeant plus au caractère suivant, React ne réécrit pas le DOM
     et le **zéro de tête reste affiché**. En `text`, la valeur rendue est
@@ -224,7 +228,7 @@ Concepts partagés par plusieurs pages, documentés une seule fois :
   ordinateur partagé, l'oubli au rechargement est une propriété. Les états sont
   remontés dans [App.tsx](src/App.tsx). Voir
   [shared/import-compte.md](shared/import-compte.md).
-- **Fenêtres modales** — [Dialogs.tsx](src/components/Dialogs.tsx) :
+- **Fenêtres modales** — [Dialogs.tsx](src/ui/Dialogs.tsx) :
   `ConfirmDialog` (confirmation) et `PromptDialog` (saisie).
   - ⚠️ **Aucun `confirm()` ni `prompt()` du navigateur.** La boîte native
     s'affiche hors de la page, sans sa typographie ni ses couleurs, colle le nom
@@ -263,7 +267,7 @@ Concepts partagés par plusieurs pages, documentés une seule fois :
 - **Monstres perso** : sur RTA et Siège, l'utilisateur peut créer un monstre
   absent des données (nom, élément, SPD base, lead optionnel). Voir
   [shared/donnees-monstres.md](shared/donnees-monstres.md).
-- **Champs numériques** — [NumberField.tsx](src/components/NumberField.tsx),
+- **Champs numériques** — [NumberField.tsx](src/ui/NumberField.tsx),
   **partout dans l'app**. ⚠️ **Jamais `type="number"`** : les flèches natives du
   navigateur sont deux triangles gris minuscules, hors charte, impossibles à
   styler et pénibles à viser (surtout au tactile). Le composant dessine ses

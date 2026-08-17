@@ -267,6 +267,44 @@ Quatre keyframes, déclarés une fois dans `index.css` :
 - ⚠️ **La boîte de dialogue fait exception** et reste centrée : elle n'a pas
   d'ancre, elle ne sort d'aucun bouton.
 
+### ⚠️ Un clic ne déplace JAMAIS ce qu'on vient de cliquer
+
+**Règle globale, mobile et bureau.** Quand une action ouvre quelque chose — le
+détail d'une rune, la grille de monstres d'une catégorie, un panneau dépliant —
+l'élément **sur lequel on a cliqué reste exactement où il était**. On doit
+pouvoir basculer l'état plusieurs fois d'affilée **sans bouger la souris ni le
+regard**.
+
+Ce que cela interdit :
+
+| Motif | Pourquoi il déplace |
+|-------|---------------------|
+| Insérer le détail **au-dessus** de la ligne cliquée | Tout ce qui est en dessous descend, la ligne cliquée avec |
+| Faire pousser un conteneur qui **précède** la cible dans le flux | Même effet, un cran plus haut |
+| Ouvrir un panneau qui **change la hauteur de la page** et fait défiler | Le pointeur ne vise plus rien |
+| Réserver la place **seulement quand c'est ouvert** | La réservation arrive trop tard : le saut a déjà eu lieu |
+
+Ce que cela impose — trois réponses, dans cet ordre de préférence :
+
+1. **La place est réservée d'avance.** Le détail d'une rune a sa colonne (ou son
+   bloc) présente en permanence, vide tant qu'on n'a rien choisi. Ouvrir ne fait
+   que la remplir. ⚠️ C'est la seule réponse qui tient quand on **enchaîne** les
+   clics d'un élément à l'autre : la place ne change pas d'une rune à la suivante.
+2. **Ce qui s'ouvre sort du flux** — un flottant ancré, un dialogue, un panneau
+   mobile. Rien de ce qui est en dessous ne bouge, parce que rien n'est poussé.
+3. **Ce qui s'ouvre pousse vers le BAS uniquement**, jamais vers le haut, et
+   l'ancre reste au-dessus du point d'insertion (un accordéon dont l'en-tête ne
+   bouge pas).
+
+⚠️ **Le tactile n'en est pas dispensé.** Le doigt ne « reste » pas sur sa cible,
+mais l'écran, lui, saute : choisir les monstres d'une catégorie faisait remonter
+toute la page, et on perdait la pilule sur laquelle on venait d'appuyer. Au
+doigt, la réponse est presque toujours la n° 2 — un panneau ou un dialogue.
+
+⚠️ **Ne pas confondre avec « le contenu ne change pas ».** Le contenu *doit*
+changer, et peut s'animer (voir plus haut) ; c'est la **géométrie autour de la
+cible** qui est figée.
+
 ### Ce qui se confirme, et ce qui ne se confirme pas
 
 ⚠️ **Un geste se confirme quand ce qu'il détruit ne se retrouve pas.** Le critère
@@ -622,7 +660,7 @@ bouton situé **sous une longue liste** ouvre donc la boîte **tout en bas**, su
 ses boutons, le contenu invisible — c'est ce qui est arrivé à la recherche
 détaillée de sous-propriétés, où le bouton « OK » suit 40 lignes.
 
-La coquille `Modale` ([Dialogs.tsx](../../src/components/Dialogs.tsx)) pose donc
+La coquille `Modale` ([Dialogs.tsx](../../src/ui/Dialogs.tsx)) pose donc
 le focus initial sur **la boîte elle-même** (`tabIndex={-1}` +
 `focus({ preventScroll: true })`), et remet son défilement en haut. Elle ne le
 fait **que si rien à l'intérieur n'a déjà pris le focus** : un `autoFocus`

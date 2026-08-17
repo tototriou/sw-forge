@@ -309,7 +309,7 @@ anneau : on obtenait un contour **dans** un contour, à 2 px l'un de l'autre.
 C'est le cadre qui marque le focus, le champ le remplit.
 
 Règle **globale**, pas propre à un composant : elle corrige aussi
-[NumberField](src/components/NumberField.tsx), qui avait le même défaut.
+[NumberField](src/ui/NumberField.tsx), qui avait le même défaut.
 
 ## Nom du compte chargé
 

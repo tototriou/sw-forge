@@ -67,17 +67,18 @@ const BoutonIcone = forwardRef<HTMLButtonElement, BoutonIconeProps>(function Bou
       fond={cadre ? 'doux' : 'vide'}
       trait={cadre ? 'plein' : 'aucun'}
       forme={serre ? 'pilule' : 'boite'}
-      taille="sm"
+      // ⚠️ Voir `TailleBouton.carre` : la taille `sm` posait un `py-1`, soit 8 px
+      // de rembourrage vertical sur une hauteur forcée à 20 px. Il ne restait
+      // plus rien pour l'icône — le bouton s'affichait, coloré et cliquable,
+      // mais VIDE.
+      taille="carre"
       aria-label={libelle}
       title={libelle}
       icone={icone}
       // ⚠️ Voir plus haut : `serre` s'exempte de la règle tactile parce que son
       // contenant est plus petit qu'elle, pas parce que 40 px gênait.
       {...(serre ? { 'data-cible-fine': true } : {})}
-      // ⚠️ `px-0` écrase le rembourrage horizontal du bouton : ici la largeur est
-      // celle du carré, pas celle d'un texte. Sans cela l'icône se retrouvait
-      // décentrée dans une boîte trop large.
-      className={`px-0 ${serre ? 'h-5 w-5' : 'h-7 w-7'} ${
+      className={`${serre ? 'h-5 w-5' : 'h-7 w-7'} ${
         cadre ? '' : 'hoverable:bg-black/25'
       } ${apparition} ${className}`}
       {...reste}

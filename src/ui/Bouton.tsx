@@ -40,7 +40,13 @@ export type FondBouton = 'vide' | 'doux' | 'plein';
 // grille là où il n'y a qu'une liste.
 export type TraitBouton = 'aucun' | 'plein' | 'pointille';
 
-export type TailleBouton = 'xs' | 'sm' | 'md';
+// ⚠️ `carre` n'a AUCUN rembourrage, dans aucune direction : sa boîte est un
+// carré dimensionné par l'appelant, dont l'icône occupe le centre. Une taille
+// avec rembourrage écrasée par un `p-0` dans le `className` ne marche PAS de
+// façon fiable — l'ordre des classes dans l'attribut ne décide de rien, c'est
+// leur ordre dans la feuille de style qui tranche. D'où une taille à part
+// plutôt qu'une annulation après coup.
+export type TailleBouton = 'xs' | 'sm' | 'md' | 'carre';
 
 // FORME. `pilule` pour ce qui vit dans une rangée, `boite` pour une action
 // posée dans un formulaire ou un dialogue.
@@ -66,6 +72,8 @@ const TAILLES: Record<TailleBouton, string> = {
   xs: 'px-2 py-0.5 text-micro',
   sm: 'px-2.5 py-1 text-xs',
   md: 'px-3.5 py-2 text-sm',
+  // Voir la note sur le type : pas de rembourrage du tout, la boîte est un carré.
+  carre: 'p-0 text-xs',
 };
 
 const FORMES: Record<FormeBouton, string> = {

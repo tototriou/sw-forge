@@ -2,6 +2,7 @@ import { ReactNode } from 'react';
 import { SlidersHorizontal } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { Bouton } from '../ui';
+import { useClavierOuvert } from '../hooks/useClavierOuvert';
 
 // Barre d'onglets du BAS — la navigation sous `lg`.
 //
@@ -38,6 +39,19 @@ export default function MobileTabs({
   onOuvrirActions?: () => void;
   actionsOuvertes?: boolean;
 }) {
+  // ⚠️ **La barre s'efface pendant la SAISIE.** Fixée en bas, le navigateur la
+  // recolle juste au-dessus du clavier quand celui-ci monte : elle remonte donc
+  // au milieu de l'écran, par-dessus le formulaire qu'on remplit. Ce n'est pas
+  // un défaut à corriger en CSS — c'est le comportement voulu pour une barre
+  // d'outils. La seule sortie est de la retirer, ce qui rend au passage une
+  // quarantaine de pixels à un écran qui en manque.
+  const clavierOuvert = useClavierOuvert();
+
+  // ⚠️ **Démontée, pas masquée.** Un `opacity-0` la laisserait cliquable et
+  // dans le parcours de tabulation, derrière le clavier — on quitterait la page
+  // en visant une touche.
+  if (clavierOuvert) return null;
+
   return (
     <>
       {/* ⚠️ Bouton d'actions posé JUSTE AU-DESSUS des onglets, pas dedans. La

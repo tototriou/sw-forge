@@ -256,20 +256,21 @@ export default function RecoCard({
     <section className={`rounded-2xl border p-4 transition-colors ${AURA[status]}`}>
       {/* En-tête de la recommandation.
           ⚠️ DEUX zones, et non un seul `flex-wrap` : le titre et ses
-          métadonnées à gauche (elles peuvent passer à la ligne), les actions
-          ancrées **en haut à droite** (`ml-auto` sur le groupe). Dans un
-          `flex-wrap` unique, les icônes Exporter/Éditer/Supprimer suivaient le
-          flux et retombaient sous le titre dès que la ligne était pleine — on
-          les cherchait des yeux d'une carte à l'autre. Elles sont maintenant
-          TOUJOURS dans l'angle supérieur droit.
-          ⚠️ `items-center`, pas `items-start` : le TITRE (24 px de boîte de
-          ligne, `font-display`) et les icônes (20 px, `taille="serre"`) ne
-          font pas la même hauteur — alignés en haut, l'écart se lisait comme
-          un défaut. Centrés, ils se répondent sur le cas courant (titre sur
-          une ligne). Si le titre passe sur deux lignes, les icônes se
-          recentrent sur le bloc entier plutôt que de rester pincées en haut —
-          un compromis accepté, ce cas restant rare. */}
-      <div className="flex items-center gap-2 mb-3">
+          métadonnées à gauche, les actions ancrées **en haut à droite**
+          (`items-start` + `ml-auto` sur le groupe). Dans un `flex-wrap`
+          unique, les icônes Exporter/Éditer/Supprimer suivaient le flux et
+          retombaient sous le titre dès que la ligne était pleine — on les
+          cherchait des yeux d'une carte à l'autre.
+          ⚠️ **`items-start`, pas `items-center`** : la zone de gauche passe
+          couramment sur DEUX lignes (titre, puis puce/decks/auteur en
+          dessous dès que le nom est un peu long — pas un cas rare). Centrer
+          sur tout le bloc plaçait les icônes ENTRE les deux lignes, ce qui se
+          lisait comme un défaut pire que l'écart qu'on corrigeait. Alignées en
+          haut, elles répondent toujours à la PREMIÈRE ligne — le titre —, où
+          qu'il s'arrête. Le `leading-none` du titre (plus bas) fait le reste :
+          sans lui, la boîte de ligne du texte dépassait la hauteur des icônes
+          et le haut de son GLYPHE, pas de sa boîte, restait décalé. */}
+      <div className="flex items-start gap-2 mb-3">
         <div className="flex flex-1 min-w-0 items-center gap-2 flex-wrap">
         {editing ? (
           <Champ
@@ -301,7 +302,7 @@ export default function RecoCard({
                 équipe de siège (SiegeTeam.tsx) — au doigt, `text-lg` pesait
                 trop lourd à côté de la puce « Importée » et du compteur de
                 decks sur la même ligne. */}
-            <h3 className="font-display text-lg tracking-wide compact:text-base">
+            <h3 className="font-display text-lg leading-none tracking-wide compact:text-base">
               {reco.name || `Recommandation ${index + 1}`}
             </h3>
           </ZoneCliquable>

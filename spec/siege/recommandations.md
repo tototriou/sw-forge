@@ -1204,13 +1204,24 @@ L'en-tête est **deux zones**, pas un `flex-wrap` unique :
 | Zone | Contenu | Comportement |
 |------|---------|--------------|
 | gauche (`flex-1 min-w-0`) | titre (cliquable, bascule la carte), puce « Importée », compteur de decks, auteur, « Analyser mes decks » (souris seulement) | passe à la ligne librement |
-| droite (`flex-none`) | « Consulter » (souris seulement), puis Exporter ↑ · Éditer ✏️ · Supprimer 🗑 | **ancrée à droite**, centrée verticalement sur le titre (`items-center`) |
+| droite (`flex-none`) | « Consulter » (souris seulement), puis Exporter ↑ · Éditer ✏️ · Supprimer 🗑 | **ancrée en haut à droite** (`items-start`), répond à la PREMIÈRE ligne — le titre — même quand la zone de gauche passe sur deux |
 
 Dans un `flex-wrap` unique, les trois icônes suivaient le flux et **retombaient
 sous le titre** dès que la ligne était pleine — leur position changeait d'une
 carte à l'autre selon la longueur du nom, et il fallait les chercher des yeux à
 chaque fois. Une barre d'outils se trouve à un endroit fixe, ou elle n'en est
 pas une.
+
+⚠️ **`items-center` sur les deux zones a été essayé, et défait.** La zone de
+gauche passe couramment sur deux lignes (le titre, puis puce/decks/auteur
+dessous dès que le nom n'est pas très court — pas un cas rare, le cas courant
+sur une carte de largeur mobile). Centrer sur tout le bloc plaçait les icônes
+**entre** les deux lignes : ni alignées sur le titre, ni sur les badges. Avec
+`items-start`, les icônes répondent toujours à la première ligne — le titre.
+⚠️ Le titre porte en plus `leading-none` : sans lui, sa boîte de ligne
+(`font-display`, interligne 1,6 de l'échelle) dépassait la hauteur des icônes
+(24 px contre 20), et même aligné en haut, le GLYPHE restait décalé d'un ou
+deux pixels sous le haut de sa propre boîte.
 
 **Icônes nues partout** dans les en-têtes — carrés de 24 px, **sans cadre ni
 fond**, groupés et resserrés (`gap-0.5`) à droite de la ligne :

@@ -393,6 +393,29 @@ export default function RecoBoard({
     </>
   );
 
+  // Origine — le VRAI Segmented, pas une copie : deux contrôles à cran dans la
+  // même page doivent avoir le même cadre, le même rayon et la même taille de
+  // texte. Rendu une seule fois, posé à deux endroits selon la largeur (voir
+  // plus bas) — même geste que `actions` et `effacer`.
+  const origineFilter = (
+    <>
+      <span className="w-[76px] flex-none label">Origine</span>
+      <Segmented
+        value={filter}
+        onChange={setFilter}
+        options={FILTERS.map((f) => ({
+          key: f.key,
+          label: f.label,
+          // Le compteur vit DANS le cran, APRÈS le libellé, en mono comme tout
+          // ce qui se compare d'une ligne à l'autre. Il reste `ink-dim` posé
+          // comme au repos : c'est une quantité, pas l'état du cran — le fond
+          // dit déjà lequel est choisi (design.md).
+          suffix: <span className="font-mono text-micro text-ink-dim">{counts[f.key]}</span>,
+        }))}
+      />
+    </>
+  );
+
   // ⚠️ « Tout effacer » reste SÉPARÉ : dans la page il se pose à l'opposé
   // (`ml-auto`), loin des gestes de construction. Un bouton destructeur ne se
   // met pas à côté de celui qu'on presse en boucle — dans le panneau il garde
@@ -429,6 +452,13 @@ export default function RecoBoard({
 
       <MobileSheet ouvert={menuOuvert} onFermer={onFermerMenu} titre="Actions — recommandations">
         <div data-rangee-actions>{actions}</div>
+        {/* ⚠️ Origine AU DOIGT : descendue ici plutôt que sur la page, qui garde
+            la carte pour la recherche — voir `origineFilter` plus haut. */}
+        {all.length > 0 && (
+          <div className="mt-4 flex flex-wrap items-center gap-2 border-t border-border pt-3">
+            {origineFilter}
+          </div>
+        )}
         {all.length > 0 && (
           <div data-zone-destructive className="mt-4 border-t border-border pt-3">
             {effacer(true)}
@@ -506,25 +536,12 @@ export default function RecoBoard({
           trouvé alors qu'il n'y a rien. */}
       {all.length > 0 && (
         <div className="mt-4 flex flex-col gap-2.5 rounded-xl border border-border bg-panel/40 px-3 py-3">
-          {/* Origine — le VRAI Segmented, pas une copie : deux contrôles à cran
-              dans la même page doivent avoir le même cadre, le même rayon et la
-              même taille de texte. */}
-          <div className="flex flex-wrap items-center gap-2">
-            <span className="w-[76px] flex-none label">Origine</span>
-            <Segmented
-              value={filter}
-              onChange={setFilter}
-              options={FILTERS.map((f) => ({
-                key: f.key,
-                label: f.label,
-                // Le compteur vit DANS le cran, APRÈS le libellé, en mono comme
-                // tout ce qui se compare d'une ligne à l'autre. Il reste
-                // `ink-dim` posé comme au repos : c'est une quantité, pas l'état
-                // du cran — le fond dit déjà lequel est choisi (design.md).
-                suffix: <span className="font-mono text-micro text-ink-dim">{counts[f.key]}</span>,
-              }))}
-            />
-          </div>
+          {/* ⚠️ **Origine : à la SOURIS seulement (`hidden lg:flex`).** Ces trois
+              boutons descendent dans le panneau « Options » au doigt — voir plus
+              bas — pour laisser la carte à la recherche, qui reste le contrôle
+              qu'on veut sous le pouce sans avoir à ouvrir un panneau. Rendu une
+              seule fois (`origineFilter`), posé aux deux endroits. */}
+          <div className="hidden lg:flex flex-wrap items-center gap-2">{origineFilter}</div>
 
           {/* Composition cherchée. */}
           <div className="flex flex-wrap items-center gap-2">

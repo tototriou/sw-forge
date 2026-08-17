@@ -105,6 +105,13 @@ l'inventaire d'artéfacts (voir [../compte/artefacts.md](../compte/artefacts.md)
 | **Monstres** | les 3 cases + le champ + « Vider » | dès 1 recommandation |
 | **Rôle** | `Segmented` Partout · Défense à taper · Offense à runer + le compteur de résultats | une fois un monstre posé |
 
+⚠️ **Au DOIGT, « Origine » descend dans le panneau « Options »** (sous un filet,
+sous les actions) — la carte reste à la **recherche**, le contrôle qu'on veut
+sous le pouce sans ouvrir un panneau. À la souris, rien ne change : les trois
+rangées restent réunies sur la page. Rendu **une seule fois**
+(`origineFilter`), posé aux deux endroits — même geste que `actions` et
+`effacer`.
+
 - ⚠️ **Ils étaient posés à trois niveaux différents, sans intitulé** : trois
   objets flottants dont rien ne disait qu'ils portaient sur la même liste ni
   qu'ils se cumulaient. L'intitulé de **largeur fixe** (`w-[76px]`) aligne les

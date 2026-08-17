@@ -127,15 +127,19 @@ export default function CreateMonster({ onCreate, customMonsters, onDelete }: Pr
             value={name}
             onChange={(e) => setName(e.target.value)}
             placeholder="Nom du monstre"
+            // ⚠️ 16 px au doigt : en dessous, iOS zoome sur le champ à la mise
+            // au point et la page n'en revient pas seule.
             className="w-full bg-panel2 border border-border rounded-lg px-3 py-2 text-sm text-ink
-                       placeholder:text-ink-dim outline-none focus:border-accent mb-2"
+                       placeholder:text-ink-dim outline-none focus:border-accent mb-2
+                       compact:py-2.5 compact:text-base"
           />
 
           <div className="flex gap-2 mb-2.5">
             <select
               value={element}
               onChange={(e) => setElement(e.target.value as ElementKey)}
-              className="flex-1 bg-panel2 border border-border rounded-lg px-2.5 py-2 text-sm text-ink outline-none"
+              className="flex-1 bg-panel2 border border-border rounded-lg px-2.5 py-2 text-sm
+                         text-ink outline-none compact:py-2.5 compact:text-base"
             >
               {ELEMENT_CHOICES.map((el) => (
                 <option key={el.key} value={el.key}>
@@ -199,7 +203,8 @@ export default function CreateMonster({ onCreate, customMonsters, onDelete }: Pr
             onClick={submit}
             disabled={!valid}
             className="w-full flex items-center justify-center gap-1.5 rounded-lg bg-accent-soft
-                       px-3 py-2 text-sm font-semibold text-ink disabled:opacity-40 disabled:cursor-not-allowed"
+                       px-3 py-2 text-sm font-semibold text-ink disabled:opacity-40
+                       disabled:cursor-not-allowed compact:py-3"
           >
             <Plus size={14} /> Créer
           </button>
@@ -261,15 +266,19 @@ export default function CreateMonster({ onCreate, customMonsters, onDelete }: Pr
             value={name}
             onChange={(e) => setName(e.target.value)}
             placeholder="Nom du monstre"
+            // ⚠️ 16 px au doigt : en dessous, iOS zoome sur le champ à la mise
+            // au point et la page n'en revient pas seule.
             className="w-full bg-panel2 border border-border rounded-lg px-3 py-2 text-sm text-ink
-                       placeholder:text-ink-dim outline-none focus:border-accent mb-2"
+                       placeholder:text-ink-dim outline-none focus:border-accent mb-2
+                       compact:py-2.5 compact:text-base"
           />
 
           <div className="flex gap-2 mb-2.5">
             <select
               value={element}
               onChange={(e) => setElement(e.target.value as ElementKey)}
-              className="flex-1 bg-panel2 border border-border rounded-lg px-2.5 py-2 text-sm text-ink outline-none"
+              className="flex-1 bg-panel2 border border-border rounded-lg px-2.5 py-2 text-sm
+                         text-ink outline-none compact:py-2.5 compact:text-base"
             >
               {ELEMENT_CHOICES.map((el) => (
                 <option key={el.key} value={el.key}>
@@ -333,7 +342,8 @@ export default function CreateMonster({ onCreate, customMonsters, onDelete }: Pr
             onClick={submit}
             disabled={!valid}
             className="w-full flex items-center justify-center gap-1.5 rounded-lg bg-accent-soft
-                       px-3 py-2 text-sm font-semibold text-ink disabled:opacity-40 disabled:cursor-not-allowed"
+                       px-3 py-2 text-sm font-semibold text-ink disabled:opacity-40
+                       disabled:cursor-not-allowed compact:py-3"
           >
             <Plus size={14} /> Créer
           </button>

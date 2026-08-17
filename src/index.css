@@ -640,7 +640,13 @@ button:not(:disabled):not([draggable]):not([role='switch']):active,
    ⚠️ La règle vit ICI et non dans chaque composant : les boutons ne savent pas
    où ils sont rendus, et c'est très bien — ils déclarent leur libellé une fois,
    le contexte décide s'il tient. */
-[data-tiroir] .compact\:hidden {
+/* ⚠️ Limité aux `<span>` DANS UN BOUTON : la règle révélait tout ce qui porte
+   `compact:hidden`, y compris ce qu'un composant masque pour de bonnes raisons
+   — la pastille de rappel du formulaire de catégorie, par exemple, réapparaissait
+   dans le panneau alors qu'elle y fait doublon avec la palette. Ce qu'on veut
+   rendre ici, ce sont les LIBELLÉS que les boutons ont laissés tomber faute de
+   place dans la barre. */
+[data-tiroir] button > span.compact\:hidden {
   display: inline !important;
 }
 

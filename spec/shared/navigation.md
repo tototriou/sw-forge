@@ -544,6 +544,13 @@ panneau : la règle qui rend leur cadre aux boutons l'aurait écrasé, et les tr
 interrupteurs d'affichage de la prépa RTA s'y affichaient tous éteints quel que
 soit le réglage.
 
+⚠️ La règle qui **rend les libellés** dans le panneau ne vise que les `<span>`
+**d'un bouton**. Écrite sur `.compact:hidden` tout court, elle révélait aussi ce
+qu'un composant masque pour de bonnes raisons — la pastille de rappel du
+formulaire de catégorie, par exemple, réapparaissait alors qu'elle y fait
+doublon avec la palette. Ce qu'on veut rendre, ce sont les libellés que les
+boutons ont laissés tomber faute de place dans la barre.
+
 ⚠️ Le panneau porte `data-tiroir` : les libellés masqués par `hidden sm:inline`
 y sont **rétablis** (`src/index.css`). Un bouton réduit à son icône a du sens
 dans une barre d'outils serrée ; dans un panneau qui a toute la largeur, il ne

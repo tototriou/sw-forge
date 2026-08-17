@@ -247,14 +247,23 @@ export default function CategoryBar({ cats, monsters }: Props) {
             {countOf(open) > 0 && (
               <Bouton
                 ton="danger"
-                fond="vide"
+                // ⚠️ FOND et contour, alors qu'il n'avait que le contour : posé
+                // sur le panneau teinté de la catégorie ouverte, un bouton
+                // transparent se confondait avec lui et ne se lisait plus comme
+                // une action.
+                fond="doux"
                 taille="xs"
                 forme="pilule"
                 onClick={() => setViderAConfirmer({ id: open.id, label: open.label, n: countOf(open) })}
                 title="Retirer tous les monstres de cette catégorie"
                 icone={<X size={11} />}
                 libelle="Tout décocher"
-                className="ml-auto h-6"
+                // ⚠️ `leading-none` : l'interligne du libellé (1,45) donnait au
+                // texte une boîte plus haute que sa lettre. Centrées boîte
+                // contre boîte, l'icône et le mot ne l'étaient plus à l'œil —
+                // la croix paraissait remonter. Sans interligne, la boîte épouse
+                // la lettre et les deux s'alignent vraiment.
+                className="ml-auto h-6 leading-none"
               />
             )}
             <BoutonIcone
@@ -270,7 +279,25 @@ export default function CategoryBar({ cats, monsters }: Props) {
               Aucun monstre dans ta prépa : ajoute-en d'abord ci-dessus.
             </p>
           ) : (
-            <div className="flex flex-wrap gap-1.5">
+            // ⚠️ **Une GRILLE au doigt, une rangée qui se replie à la souris.**
+            // En `flex-wrap` avec des cases de largeur fixe, la dernière colonne
+            // laissait un vide à droite et chaque portrait se retrouvait décalé de
+            // l'axe de sa colonne — l'œil ne suivait plus de verticale en
+            // parcourant la liste. La grille répartit la largeur restante entre
+            // les colonnes : chaque case fait le même pas, et le portrait s'y
+            // centre.
+            // ⚠️ `auto-fill` : le nombre de colonnes suit la largeur disponible au
+            // lieu d'être écrit en dur — quatre sur un téléphone étroit, cinq ou
+            // six sur un grand.
+            // ⚠️ Le rendu de BUREAU garde son `flex-wrap` : ses cases y ont une
+            // largeur propre, et la place ne manque pas.
+            <div
+              className={
+                surMobile
+                  ? 'grid grid-cols-[repeat(auto-fill,minmax(58px,1fr))] gap-1'
+                  : 'flex flex-wrap gap-1.5'
+              }
+            >
               {monsters.map((m) => {
                 const id = String(m.id);
                 const dedans = open.members.includes(id);
@@ -280,6 +307,12 @@ export default function CategoryBar({ cats, monsters }: Props) {
                 return (
                   <Vignette
                     key={id}
+                    // ⚠️ Dans la grille du doigt, la case prend TOUTE sa colonne
+                    // (`w-full`) : c'est la grille qui fixe le pas, et une
+                    // largeur propre y laisserait le portrait décalé de son axe.
+                    // Sur bureau, la case garde sa largeur — elle vit dans une
+                    // rangée qui se replie, sans colonne à respecter.
+                    largeur={surMobile ? 'w-full' : undefined}
                     onClick={() => cats.toggleMember(open.id, id)}
                     disabled={bloque}
                     choisi={dedans}

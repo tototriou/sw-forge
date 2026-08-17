@@ -95,7 +95,11 @@ const Vignette = forwardRef<HTMLButtonElement, VignetteProps>(function Vignette(
       className={`relative flex items-center justify-center transition ${PRESSION} ${
         aplat
           ? `rounded-md ${hauteur ?? 'h-6'}`
-          : `flex-col gap-1 rounded-lg px-1 py-1.5 ${largeur} ${hauteur ?? ''}`
+          : // ⚠️ Rembourrage rogné au DOIGT, contenu inchangé : c'est la case
+            // qui se resserre autour du portrait et du nom, pas eux qui
+            // rétrécissent. Une grille de vingt monstres y gagne deux rangées
+            // sans qu'un seul portrait ne devienne moins reconnaissable.
+            `flex-col gap-0.5 rounded-lg px-1 py-1.5 compact:px-0.5 compact:py-1 ${largeur} ${hauteur ?? ''}`
       } ${
         disabled
           ? 'cursor-not-allowed opacity-25'

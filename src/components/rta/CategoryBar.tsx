@@ -277,15 +277,20 @@ export default function CategoryBar({ cats, monsters }: Props) {
             // parcourant la liste. La grille répartit la largeur restante entre
             // les colonnes : chaque case fait le même pas, et le portrait s'y
             // centre.
-            // ⚠️ `auto-fill` : le nombre de colonnes suit la largeur disponible au
-            // lieu d'être écrit en dur — quatre sur un téléphone étroit, cinq ou
-            // six sur un grand.
+            // ⚠️ `auto-fill` : le nombre de colonnes suit la largeur disponible
+            // au lieu d'être écrit en dur.
+            // ⚠️ **Colonne minimale au plus près du CONTENU (48 px pour un
+            // portrait de 36).** À 58, quatre colonnes se partageaient la largeur
+            // et chacune faisait près de 80 px : le portrait y flottait au
+            // milieu de vingt pixels de vide de chaque côté, et l'alignement
+            // vertical ne se voyait plus. Serrées, les colonnes cadrent les
+            // portraits — et il en tient une de plus par rangée.
             // ⚠️ Le rendu de BUREAU garde son `flex-wrap` : ses cases y ont une
             // largeur propre, et la place ne manque pas.
             <div
               className={
                 surMobile
-                  ? 'grid grid-cols-[repeat(auto-fill,minmax(58px,1fr))] gap-1'
+                  ? 'grid grid-cols-[repeat(auto-fill,minmax(48px,1fr))] gap-x-1 gap-y-1.5'
                   : 'flex flex-wrap gap-1.5'
               }
             >

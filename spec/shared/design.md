@@ -446,22 +446,25 @@ carte fait défiler la page entière, et on le constate sur un écran qui n'a ri
 voir avec le composant fautif. C'est ce qui rend ces bugs coûteux à chercher — et
 pourquoi ils reviennent.
 
-### Le seuil de 16 px ne vaut qu'à la mise au point
+### Le zoom iOS se règle sur le `viewport`, pas sur la taille du texte
 
-⚠️ Safari iOS décide de zoomer en lisant la taille du texte **au moment où le
-champ prend le focus**, pas avant. Un champ posé à **13 px** qui passe à **16 px
-en `:focus`** est donc à 16 px au seul instant où c'est regardé : le clavier
-monte, la page ne zoome pas.
+⚠️ **`maximum-scale=1` sur la balise `viewport`** ([index.html](../../index.html)).
+C'est là qu'est sa place, et deux tentatives précédentes ont montré pourquoi :
 
-C'est ce qui permet de rendre le seuil invisible le reste du temps. À 16 px en
-permanence, une barre de recherche écrivait plus gros que le menu déroulant posé
-juste à côté — un même écran à deux échelles, sans qu'aucune décision ne le
-justifie. 13 px et non 12 : c'est la taille des menus voisins, et un champ de
-saisie ne doit pas écrire plus petit qu'eux non plus.
+| Tentative | Ce qu'elle donnait |
+|-----------|--------------------|
+| 16 px sur tous les champs, en permanence | Une barre de recherche qui écrit plus gros que le menu déroulant posé à côté — un même écran à deux échelles |
+| 16 px en `:focus` seulement | Le champ **change de taille sous le doigt** en s'activant, texte et cadre compris : ça se lit comme un défaut, pas comme une protection |
 
-⚠️ **À vérifier sur un appareil iOS réel** : c'est le seul endroit où le
-comportement se constate. Si le zoom revenait, la solution de repli est le 16 px
-permanent — pas une valeur intermédiaire, qui zoomerait tout autant.
+Le seuil de 16 px contaminait une décision d'interface (la taille du texte) avec
+une contrainte de plateforme. Sorti du CSS, les champs de saisie se posent à
+**13 px** — la taille des menus déroulants voisins, un champ ne devant écrire ni
+plus gros ni plus petit qu'eux.
+
+⚠️ **Le zoom à deux doigts reste possible.** Depuis iOS 10, Safari ignore cette
+restriction pour un geste de l'utilisateur et ne l'applique qu'au zoom qu'il
+déclenche lui-même. C'est ce qui rend la valeur acceptable, là où un
+`user-scalable=no` — qui bloque vraiment — ne le serait pas.
 
 ### Les trois pièges d'iOS
 

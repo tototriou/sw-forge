@@ -637,24 +637,21 @@ button:not(:disabled):not([draggable]):not([role='switch']):active,
      de l'app d'un coup : celui du classement d'une carte RTA passait de 11 à
      16 px dans une tuile de 150 px, ce qui défaisait toute la compaction.
      Les cases et boutons radio en sont exclus pour la même raison. */
-  /* ⚠️ **Le seuil ne vaut qu'AU MOMENT DE LA MISE AU POINT.** Safari décide de
-     zoomer en lisant la taille du texte quand le champ prend le focus, pas
-     avant. Un champ à 13 px qui passe à 16 px EN devenant actif est donc à 16
-     px au seul instant où c'est regardé : le clavier monte, la page ne zoome
-     pas — et le reste du temps le champ se lit à la taille de l'app.
-     À 16 px en permanence, une barre de recherche écrivait plus gros que le
-     menu déroulant posé juste à côté : un même écran à deux échelles, sans
-     qu'aucune décision ne le justifie.
+  /* ⚠️ **13 px, et la même taille au repos qu'à la saisie.** Le seuil des 16 px
+     a d'abord été posé en permanence : une barre de recherche écrivait alors
+     plus gros que le menu déroulant juste à côté, un même écran à deux
+     échelles. Puis en `:focus` seulement, pour n'être à 16 px qu'à l'instant où
+     Safari regarde — mais le champ CHANGEAIT DE TAILLE sous le doigt en
+     s'activant, texte et cadre compris. Un champ qui grandit quand on le touche
+     se lit comme un défaut, pas comme une protection.
+     Le zoom iOS est donc empêché ailleurs, là où c'est sa place : par
+     `maximum-scale=1` sur la balise `viewport` (voir index.html). La taille du
+     texte redevient une décision d'interface, et rien d'autre.
      ⚠️ 13 px et non 12 : c'est la taille des menus déroulants voisins, et un
      champ de saisie ne doit pas écrire PLUS PETIT qu'eux non plus. */
   input:not([type='checkbox']):not([type='radio']),
   textarea {
     font-size: 13px !important;
-  }
-
-  input:not([type='checkbox']):not([type='radio']):focus,
-  textarea:focus {
-    font-size: 16px !important;
   }
 
   /* ⚠️ Les boutons CARRÉS (icône seule) gagnent aussi en LARGEUR : agrandis en

@@ -5,10 +5,22 @@
     <!-- viewport-fit=cover : sans lui, `env(safe-area-inset-*)` vaut ZÉRO et
          toutes les gardes posées sur l'encoche ou la barre de geste des iPhone
          sont inertes. La barre supérieure passait donc sous l'encoche, et son
-         contenu y était mangé. -->
+         contenu y était mangé.
+
+         maximum-scale=1 : empêche le ZOOM AUTOMATIQUE de Safari iOS à la mise
+         au point d'un champ de saisie. C'est ici sa place, et non dans la
+         taille du texte : la contrainte imposait 16 px à tous les champs, donc
+         une barre de recherche qui écrivait plus gros que le menu déroulant
+         posé à côté, ou bien un champ qui grandissait sous le doigt en
+         s'activant. La taille du texte redevient une décision d'interface.
+         ⚠️ Le zoom À DEUX DOIGTS reste possible : depuis iOS 10, Safari ignore
+         cette restriction pour un geste de l'utilisateur, et ne l'applique
+         qu'au zoom qu'il déclenche lui-même. Rien n'est retiré à qui a besoin
+         d'agrandir — c'est ce qui rend cette valeur acceptable, là où un
+         `user-scalable=no` ne le serait pas. -->
     <meta
       name="viewport"
-      content="width=device-width, initial-scale=1.0, viewport-fit=cover"
+      content="width=device-width, initial-scale=1.0, maximum-scale=1, viewport-fit=cover"
     />
 
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />

@@ -349,7 +349,23 @@ export default function RtaBackupBar({
           index.css). Chacune y formait sinon sa propre grille de trois
           colonnes, et celle qui perdait « Réinitialiser » — absent tant qu'aucun
           compte n'a été importé — étirait sa dernière cellule. */}
-      <div data-grille-actions data-passe-grille className="flex flex-col gap-1.5">
+      {/* ⚠️ **Une seule ligne au-dessus de `lg`, deux en dessous.** Sur un écran
+          large, les six boutons tiennent côte à côte : les empiler en deux
+          rangées y laissait une colonne de vide à droite et faisait descendre la
+          prépa d'une ligne pour rien.
+          ⚠️ Les deux GROUPES survivent au passage en ligne, séparés par un écart
+          plus large (`lg:gap-5` entre eux, `gap-2` à l'intérieur). C'est ce qui
+          continue de dire que « Réinitialiser » et « Exporter » n'ont rien à
+          voir : les trois premiers agissent sur l'état courant de la prépa, les
+          trois suivants échangent un fichier avec l'extérieur.
+          ⚠️ `lg:` et non `compact:` : c'est une question de PLACE, pas de
+          pointeur — et sous `lg`, les rangées sont de toute façon reprises par
+          la grille du panneau (voir index.css). */}
+      <div
+        data-grille-actions
+        data-passe-grille
+        className="flex flex-col gap-1.5 lg:flex-row lg:flex-wrap lg:items-center lg:gap-5"
+      >
       {/* ⚠️ Écart PLUS LARGE sous `sm`, où les boutons sont des icônes nues :
           sans cadre pour les délimiter, six icônes à 8 px d'intervalle se lisent
           comme une frise continue, et l'on ne sait plus où finit l'une et où

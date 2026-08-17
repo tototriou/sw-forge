@@ -318,7 +318,12 @@ export const DEFAULT_MAX_MS = 15_000;
 // garantir qu'une combinaison satisfaisant le combo reste atteignable même
 // après filtrage — et les meilleures runes toutes provenances, pour la
 // diversité des slots « libres ». L'union des deux, dédupliquée.
-const MAX_PER_SLOT_MATCH = 40;
+// Exportée : c'est le défaut réel appliqué par `prepareSearch` quand
+// `SearchParams.slotFilterCap` est omis — un test qui vérifie une propriété
+// dépendant de `slotFilterCap` (ex. `estimatePairBound`) sur un appel sans
+// override doit connaître CETTE valeur précise, pas la redevine/dupliquer en
+// dur (risque de dérive silencieuse si elle change un jour).
+export const MAX_PER_SLOT_MATCH = 40;
 const MAX_PER_SLOT_FILL = 40;
 // ⚠️ En plus des deux paquets ci-dessus : le meilleur d'un slot sur CHAQUE
 // stat individuellement, même sans minimum demandé dessus. Sans ça, le
@@ -1678,6 +1683,85 @@ export function estimateSearchSpace(
   const perSlot = filtered.map((l) => l.length);
   const product = perSlot.reduce((a, b) => a * b, 1);
   return { perSlot, product };
+}
+
+// ⚠️ **VOLONTAIREMENT PAS AFFICHÉE À L'ÉCRAN** — mesurée
+// (`scripts/pair-bound-diag.ts`) sur les 7 cas réels connus avant d'être
+// branchée dans l'UI, comme toute constante de ce moteur : l'écart à
+// `totalPairCount` va de ×6 (le cas le plus serré) à **×300 000 000** (Ciri,
+// une recherche à conditions très précises — 784 paires réellement
+// explorées, borne à 236 milliards). Le majorant est structurellement
+// dominé par `bucketCap × nombre de tas`, une quantité qui ignore la RARETÉ
+// réelle des runes dans le pool — justement ce qui rend une recherche
+// serrée rapide en pratique. Utile comme brique interne prouvée (garde-fou
+// testé, réutilisable si le calcul est affiné un jour), pas comme chiffre
+// affiché : annoncer « au pire » un nombre couramment 100 à 100 000 000×
+// trop grand tromperait l'utilisateur plus qu'il ne l'informerait.
+//
+// Borne SUPÉRIEURE (majorant) du nombre de paires (comboA, comboB) qu'une
+// recherche pourrait examiner à l'appariement — calculable AVANT
+// `buildBuckets`, contrairement à `totalPairCount` qui a besoin des
+// compartiments déjà construits (voir son commentaire, plus haut dans ce
+// fichier) : c'est précisément la raison d'être de cette fonction, savoir
+// « au pire, combien ? » sans payer le coût de la construction elle-même.
+// ⚠️ Un MAJORANT, pas une estimation : suppose que CHAQUE compartiment
+// théoriquement atteignable est rempli à ras bord (`bucketCap` × le nombre
+// de tas parallèles par compartiment — voir `buildBuckets`, `genericCap`/
+// `perOtherSliceCap` : un générique, un combiné si des minimums sont posés,
+// un par `retentionKey`), et ignore tout élagage de faisabilité par les
+// stats (`bucketPairFeasibleMin`/`comboAFeasible`, voir `pairBuckets`) — SEULE
+// la compatibilité de sets (`satisfiesSets`, la MÊME fonction que
+// `pairBuckets`, jamais une réimplémentation qui pourrait diverger) filtre
+// les paires de clés de compartiment. Ignorer ces élagages ne peut que faire
+// GRANDIR la borne, jamais la réduire sous la vraie valeur — c'est ce qui en
+// fait un majorant sûr, vérifié par test différentiel contre `totalPairCount`
+// sur des recherches réelles (voir tests/rune-optim.test.ts).
+// ⚠️ Peut être TRÈS au-dessus de la réalité (attendu, pas un bug à
+// resserrer) : `bucketCap` est lui-même une valeur de sécurité rarement
+// atteinte en usage courant — voir spec/outils/optimizer/, « BUCKET_CAP mis
+// à l'échelle ». Le nombre affiché à l'écran doit rester lisible comme
+// « au pire », pas comme une prédiction.
+export function estimatePairBound(requirement: BuildRequirement, slotFilterCap: number, objective?: Objective): number {
+  const bucketCap = bucketCapFor(slotFilterCap);
+  const minKeys = ALL_STAT_KEYS.filter((k) => (requirement.minStats[k] ?? 0) > 0);
+  const retentionKeys = Array.from(new Set<StatKey>([...minKeys, ...(objective ? OBJECTIVE_RELEVANT_STATS[objective] : [])]));
+  const numHeaps = 1 + (minKeys.length > 0 ? 1 : 0) + retentionKeys.length;
+  const maxPerBucket = bucketCap * numHeaps;
+
+  // Toutes les clés de compartiment THÉORIQUEMENT atteignables par une
+  // moitié de 3 emplacements — un compte de pièces par set demandé (0 à 3)
+  // plus un joker (0 ou 1), sous la seule contrainte physique (au plus 3
+  // pièces au total) — indépendant du pool réel, donc calculable sans lui,
+  // et bon marché (au plus quelques dizaines de clés en pratique : le
+  // nombre de sets DISTINCTS demandés dépasse rarement 2 ou 3).
+  const distinctKeys = Array.from(new Set(requirement.sets));
+  const keys: { counts: number[]; jokers: number }[] = [];
+  const counts: number[] = [];
+  function enumerate(idx: number, remaining: number): void {
+    if (idx === distinctKeys.length) {
+      for (const jokers of [0, 1]) {
+        if (jokers <= remaining) keys.push({ counts: [...counts], jokers });
+      }
+      return;
+    }
+    for (let c = 0; c <= Math.min(3, remaining); c++) {
+      counts.push(c);
+      enumerate(idx + 1, remaining - c);
+      counts.pop();
+    }
+  }
+  enumerate(0, 3);
+
+  let compatiblePairs = 0;
+  for (const a of keys) {
+    for (const b of keys) {
+      if (a.jokers + b.jokers > 1) continue;
+      if (!satisfiesSets(a.counts, a.jokers, b.counts, b.jokers, distinctKeys, requirement)) continue;
+      compatiblePairs++;
+    }
+  }
+
+  return compatiblePairs * maxPerBucket * maxPerBucket;
 }
 
 // Regroupe ce que `diagnoseFeasibility`, `rankBlockingConditions` ET

@@ -20,7 +20,15 @@ import { BaseStats, EffectLine, RuneDetail } from '../src/types';
 import { activeSets, runeEfficiency } from '../src/lib/effects';
 import { computeStats } from '../src/lib/stats';
 import { missingSets } from '../src/lib/recoMatch';
-import { BuildRequirement, buildBuckets, prepareSearch, searchBuilds, totalPairCount } from '../src/lib/runeBuildOptim';
+import {
+  BuildRequirement,
+  buildBuckets,
+  prepareSearch,
+  searchBuilds,
+  totalPairCount,
+  estimatePairBound,
+  MAX_PER_SLOT_MATCH,
+} from '../src/lib/runeBuildOptim';
 import { egal, ok, titre } from './outils';
 
 // PRNG déterministe (mulberry32) — pas de dépendance, seed fixe pour des
@@ -226,6 +234,21 @@ export default function testRuneOptimDifferential() {
         );
         const total = totalPairCount(prepared, bucketsA, bucketsB);
         ok(total >= res.explored, `scénario ${s} : totalPairCount (${total}) reste une borne sûre — jamais en dessous des paires réellement explorées par une recherche exhaustive (${res.explored})`);
+
+        // ⚠️ `estimatePairBound` (affiché à l'écran AVANT `buildBuckets`, donc
+        // sans connaître les vrais compartiments) doit rester un MAJORANT de
+        // `totalPairCount` lui-même (calculé, lui, APRÈS construction) —
+        // sinon il annoncerait un « au pire » plus petit que la réalité déjà
+        // mesurée. Ne peut PAS être vérifié sur un pool trop petit pour
+        // `bucketCap` (le cas normal ici, `bucketCap=600` largement au-dessus
+        // du nombre de runes du test) : l'invariant qui compte est structurel
+        // (majorant théorique), pas une comparaison de magnitude sur ce pool
+        // synthétique minuscule.
+        const bound = estimatePairBound(requirement, MAX_PER_SLOT_MATCH);
+        ok(
+          bound >= total,
+          `scénario ${s} : estimatePairBound (${bound}) reste un majorant de totalPairCount (${total})`
+        );
       }
     }
   }

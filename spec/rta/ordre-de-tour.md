@@ -85,6 +85,16 @@ inutilisable avant tout import.
   qu'on lit comme un défaut d'alignement — et un bouton qui apparaît sous le
   curseur se clique par accident. Retirer le lead actif remet « Sans lead » :
   laisser un lead appliqué sans bouton pour l'annuler serait un piège.
+- ⚠️ **Le retrait demande une CONFIRMATION**, alors qu'il ne détruit rien
+  d'irremplaçable — le pourcentage se retape dans le champ « Ajouter ». Ce qu'on
+  protège est plus discret : la rangée **se réordonne** au retrait, et le bouton
+  voisin vient prendre la place de celui qu'on visait. Un clic légèrement à côté
+  enlève donc le mauvais lead, et on ne s'en aperçoit qu'après.
+- ⚠️ **`data-cible-fine` sur le bouton du pourcentage.** Sans lui, la règle
+  tactile globale le portait à 40 px — et avec lui **toute la pilule**, qui
+  doublait de hauteur au doigt. La cible reste petite mais rien n'est perdu : ce
+  bouton occupe toute la surface de la pilule sauf la croix. Voir le piège décrit
+  dans [librairie-ui.md](../shared/librairie-ui.md).
 - ⚠️ **Deux listes** (`leadsAjoutes`, `leadsRetires`) plutôt qu'une liste
   modifiable : la prépa change (import, ajout d'un monstre) et les boutons
   doivent suivre — sans effacer les ajouts, ni faire réapparaître ce qui a été

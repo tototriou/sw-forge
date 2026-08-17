@@ -87,6 +87,23 @@ variantes nommées n'auraient pas couvert. Et surtout :
 > `trait="pointille"`, et le pointillé dit « contenant pas encore rempli » dans
 > toute l'app, pas seulement là où on l'a écrit.
 
+### Le piège de la règle tactile
+
+> ⚠️ **Un bouton natif POSÉ DANS un contenant y impose sa hauteur.** La règle
+> globale porte tout `<button>` à 40 px au doigt (voir `index.css`). Sur un
+> bouton qui vit dans une pilule, une carte ou une rangée dense, ce n'est pas lui
+> qui grandit : c'est **son contenant**, qui double de hauteur sans que rien dans
+> son propre code ne l'explique. La rangée des leads SPD y prenait deux fois la
+> place nécessaire, et le fautif était un bouton intérieur de 20 px.
+>
+> La sortie est `data-cible-fine`, et elle se justifie à chaque fois : elle ne
+> s'emploie que si **la cible reste atteignable autrement** — parce que le
+> contenant entier est touchable, ou parce que rien d'autre n'est cliquable
+> autour. Les composants de la librairie la posent déjà (`BoutonIcone`
+> `taille="serre"`, `Selecteur` `taille="dense"`, `Pastille` via
+> `data-hauteur-fixe`) ; **un `<button>` écrit à la main ne la pose pas**, et
+> c'est exactement là que le bug revient.
+
 ### Axes de comportement
 
 Trois axes ne touchent pas à l'apparence au repos mais à ce que le bouton fait

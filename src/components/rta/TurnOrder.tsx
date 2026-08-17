@@ -11,6 +11,7 @@ import { useStickyState } from '../../hooks/useStickyState';
 import { InterrupteurAffichage } from './CategoryBar';
 import { COMPACT, useMediaQuery } from '../../hooks/useMediaQuery';
 import { Bouton, BoutonIcone, Interrupteur, Pastille } from '../../ui';
+import { ConfirmDialog } from '../Dialogs';
 
 const SPD_ICON = `${import.meta.env.BASE_URL}stats/spd.png`;
 
@@ -170,6 +171,13 @@ export default function TurnOrder({
     ? categories.filter((c) => items.some((it) => c.members.includes(String(it.monster.id))))
     : [];
   const [highlightMovers, setHighlightMovers] = useState(false);
+  // ⚠️ Le retrait d'un lead demande une CONFIRMATION, alors qu'il ne détruit
+  // rien d'irremplaçable — le pourcentage se retape dans le champ « Ajouter ».
+  // Ce qu'on protège ici est plus discret : la rangée se RÉORDONNE au retrait, et
+  // le bouton voisin vient prendre la place de celui qu'on a visé. Un clic
+  // légèrement à côté enlève donc le mauvais lead, et on ne s'en aperçoit
+  // qu'après. Voir spec/README.md — toute suppression se confirme.
+  const [leadASupprimer, setLeadASupprimer] = useState<number | null>(null);
 
   const leads = useMemo(() => {
     const proposes = leadsDeLaPrepa(items);
@@ -225,9 +233,16 @@ export default function TurnOrder({
                     : 'bg-panel border-border text-ink-dim hoverable:text-ink hoverable:border-accent'
                 }`}
             >
+              {/* ⚠️ `data-cible-fine` : la règle tactile globale (40 px, voir
+                  index.css) portait ce bouton — et donc TOUTE la pilule qui
+                  l'enveloppe — à 40 px de haut au doigt. Une rangée de leads y
+                  prenait deux fois la place nécessaire. La cible reste petite
+                  mais la pilule entière est touchable : ce bouton en occupe
+                  toute la surface sauf la croix. */}
               <button
                 onClick={() => setLead(active ? 0 : pct)}
-                className="pl-3 pr-1 py-1 text-xs font-mono font-semibold"
+                data-cible-fine
+                className="py-1 pl-3 pr-1 font-mono text-xs font-semibold"
               >
                 +{pct}%
               </button>
@@ -243,7 +258,7 @@ export default function TurnOrder({
                   qu'un assombrissement tacherait au lieu de le désigner. C'est
                   l'opacité de la croix qui répond au survol. */}
               <BoutonIcone
-                onClick={() => retirerLead(pct)}
+                onClick={() => setLeadASupprimer(pct)}
                 libelle={`Retirer le lead +${pct}%`}
                 taille="serre"
                 icone={<X size={11} strokeWidth={3} />}
@@ -478,6 +493,20 @@ export default function TurnOrder({
             );
           })}
         </div>
+      )}
+
+      {leadASupprimer !== null && (
+        <ConfirmDialog
+          titre={`Retirer le lead +${leadASupprimer} % de la rangée ?`}
+          message="Il disparaît des boutons de lead, mais rien n'est perdu : retape-le dans le champ à droite pour le faire revenir. Les vitesses de tes monstres ne changent pas."
+          libelleAction="Retirer"
+          destructif
+          onCancel={() => setLeadASupprimer(null)}
+          onConfirm={() => {
+            retirerLead(leadASupprimer);
+            setLeadASupprimer(null);
+          }}
+        />
       )}
     </div>
   );

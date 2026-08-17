@@ -35,6 +35,7 @@ import {
 import { DeckMatch, FaultCause, RecoMatch, SlotMatch, deckFaults, fmtStat, slotFaults } from '../../lib/recoMatch';
 import { DeckHit, RecoHit } from '../../lib/recoSearch';
 import { ConfirmDialog } from '../../ui/Dialogs';
+import { Selecteur } from '../../ui';
 import { NOTE_MAX, DECK_NOTE_MAX, COUNTER_NOTE_MAX } from '../../lib/recoShare';
 import { deckFromSiegeTeam } from '../../lib/recoFromSiege';
 import {
@@ -2230,16 +2231,16 @@ function ArtifactEditor({
             {/* `value=""` en permanence : le menu sert à AJOUTER, pas à porter
                 une sélection courante — sinon le dernier ajout resterait
                 affiché comme s'il était encore modifiable là. */}
-            <select
+            <Selecteur
               value=""
               disabled={plein || dispo.length === 0}
               onChange={(e) => {
                 const code = Number(e.target.value);
                 if (code) onAdd(key, code);
               }}
-              className="mt-0.5 w-full rounded border border-border bg-panel px-1.5 py-1 text-micro
-                         text-ink-dim transition hoverable:text-ink hoverable:border-accent
-                         disabled:opacity-40 disabled:cursor-not-allowed"
+              taille="dense"
+              surface="panel"
+              className="mt-0.5 text-ink-dim hoverable:text-ink disabled:opacity-40 disabled:cursor-not-allowed"
             >
               <option value="">
                 {plein ? `Les ${MAX_ARTIFACT_SUBS} propriétés sont prises` : '+ Propriété…'}
@@ -2251,7 +2252,7 @@ function ArtifactEditor({
                   {o.label}
                 </option>
               ))}
-            </select>
+            </Selecteur>
           </div>
         );
       })}

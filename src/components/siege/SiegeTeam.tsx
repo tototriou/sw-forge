@@ -19,6 +19,7 @@ import MonsterGear from '../MonsterGear';
 import NumberField from '../../ui/NumberField';
 import LeadPill, { LeadBadge } from './LeadPill';
 import { ConfirmDialog } from '../../ui/Dialogs';
+import { Selecteur } from '../../ui';
 import { useMediaQuery, COMPACT } from '../../hooks/useMediaQuery';
 
 const GRADIENT: Record<string, string> = {
@@ -722,30 +723,22 @@ function SlotContent({
       {/* Position dans l'équipe (repli tactile du drag & drop) */}
       <div className="mt-2 flex items-center gap-1.5 border-t border-border/60 pt-2 compact:mt-1 compact:pt-1">
         <span className="label">Position</span>
-        <select
+        <Selecteur
           value={idx}
           onChange={(e) => onMoveTo(Number(e.target.value))}
           title="Changer la position (intervertir les monstres)"
+          taille="dense"
+          surface="panel"
           // ⚠️ `data-cible-fine` : la règle tactile portait ce sélecteur à 40 px
           // de haut, dans un slot qui en fait 110 — il y pesait autant que la
           // vitesse qu'on vient régler. Il occupe toute la largeur restante de
           // sa ligne : rien d'autre à toucher autour, donc rien à rater.
           data-cible-fine
-          // ⚠️ `h-5` + `appearance-none` : un `<select>` natif garde une hauteur
-          // MINIMALE imposée par le navigateur, que ni `py-0.5` ni la classe ne
-          // réduisent — le rembourrage se rajoutait à un socle de ~24 px. Il
-          // faut donc à la fois retirer l'habillage natif et poser la hauteur.
-          // Le chevron natif part avec ; celui qu'on dessine à droite le
-          // remplace, en `background-image`.
-          className="h-5 appearance-none rounded-md border border-border bg-panel py-0 pl-1.5 pr-5
-                     text-micro leading-none text-ink-dim outline-none focus:border-accent
-                     bg-[length:9px] bg-[right_0.35rem_center] bg-no-repeat
-                     bg-[image:var(--chevron-select)]"
         >
           <option value={0}>1 · Leader</option>
           <option value={1}>2</option>
           <option value={2}>3</option>
-        </select>
+        </Selecteur>
       </div>
 
       {retraitAConfirmer && (

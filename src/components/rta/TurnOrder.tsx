@@ -339,7 +339,12 @@ export default function TurnOrder({
             // reconnaissable, le plein dit « affichée ».
             const puce = (
               <span
-                className="h-2.5 w-2.5 flex-none rounded-full border-2 transition"
+                // ⚠️ 1 px comme tout contour de l'app. À 2 px sur une puce de
+                // 10, le trait mangeait la moitié du disque : la version creuse
+                // et la version pleine se ressemblaient, alors que c'est
+                // justement ce qui distingue une catégorie affichée d'une
+                // catégorie coupée.
+                className="h-2.5 w-2.5 flex-none rounded-full border transition"
                 style={{ borderColor: c.color, backgroundColor: off ? 'transparent' : c.color }}
               />
             );

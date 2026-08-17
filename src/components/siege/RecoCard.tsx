@@ -130,9 +130,9 @@ interface Props {
 // ⚠️ Fonds à /10 et non /5 : sur fond clair, un aplat à 5 % ne se distingue pas
 // du panneau. Même langage visuel que SiegeTeam.
 const AURA: Record<string, string> = {
-  ok: 'border-good/70 bg-good/10 ring-1 ring-good/40',
-  partial: 'border-warn bg-warn/10 ring-2 ring-warn/50',
-  missing: 'border-fire bg-fire/10 ring-2 ring-fire/50',
+  ok: 'border-good/70 bg-good/10',
+  partial: 'border-warn bg-warn/10',
+  missing: 'border-fire bg-fire/10',
   unknown: 'border-border bg-panel/50',
 };
 
@@ -1181,7 +1181,7 @@ function DeckBlock({
               className={`min-w-0 rounded-xl border p-2.5 ${
                 // Indisponible ET stats insuffisantes sont tous deux bloquants → rouge.
                 sm?.status === 'absent' || sm?.status === 'ko'
-                  ? 'border-fire/70 ring-1 ring-fire/40 bg-fire/5'
+                  ? 'border-fire/70 bg-fire/5'
                   : sm?.status === 'ok'
                     ? 'border-good/50 bg-good/[0.04]'
                     : 'border-border bg-panel2/60'

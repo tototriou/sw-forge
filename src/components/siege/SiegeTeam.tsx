@@ -153,11 +153,11 @@ export default function SiegeTeam({
   // voit pas.
   const sectionClass =
     status === 'red'
-      ? 'border-fire bg-fire/10 ring-2 ring-fire/50'
+      ? 'border-fire bg-fire/10'
       : status === 'orange'
-        ? 'border-warn bg-warn/10 ring-2 ring-warn/50'
+        ? 'border-warn bg-warn/10'
         : status === 'green'
-          ? 'border-good/70 bg-good/10 ring-1 ring-good/40'
+          ? 'border-good/70 bg-good/10'
           : 'border-border bg-panel/50';
   const dotClass =
     status === 'red' ? 'bg-fire' : status === 'orange' ? 'bg-warn' : status === 'green' ? 'bg-good' : '';
@@ -264,7 +264,7 @@ export default function SiegeTeam({
                 overIdx === idx
                   ? 'border-accent bg-panel2'
                   : slotDanger
-                    ? 'border-fire/70 ring-1 ring-fire/50 bg-fire/5'
+                    ? 'border-fire/70 bg-fire/5'
                     : 'border-border bg-panel2/60'
               }`}
               title={
@@ -333,7 +333,7 @@ export default function SiegeTeam({
                     ? // Bordure seule, sans anneau superposé — voir design.md.
                       'border-accent bg-panel2'
                     : danger
-                      ? 'border-fire/70 ring-1 ring-fire/50 bg-fire/5'
+                      ? 'border-fire/70 bg-fire/5'
                       : 'border-border bg-panel2/60'
                 }`}
               >

@@ -381,24 +381,38 @@ main, avec trois opacités différentes.
   grisée on comprend qu'un plafond est atteint — à condition que le `title` le
   dise.
 
-## L'épaisseur d'un contour de sélection
+## Les contours : 1 px, et UN SEUL
 
-> ⚠️ **1 px, partout, aux deux formats.** Un contour de sélection CERNE ce qu'il
-> désigne, il ne l'encadre pas. Trois endroits en cumulaient plusieurs :
->
-> | Où | Avant | Épaisseur réelle |
-> |----|-------|------------------|
-> | Palette de couleurs | `ring-2` + `ring-offset-2` | **4 px** autour d'une case de 24 |
-> | Relique, lead | `border-star` + `ring-1` | 2 px, en **deux traits** concentriques |
-> | Section, au survol du dépôt | `borderColor` + ombre 2 px | 3 px |
->
-> Le premier pesait plus lourd que la couleur qu'il désigne — sur douze cases
-> serrées, la rangée entière paraissait cernée. Les deux autres ne se lisent pas
-> comme deux informations mais comme **un contour épais et flou**.
+> ⚠️ **Aucun contour de l'app ne dépasse 1 px, et jamais deux superposés.** Un
+> contour CERNE ce qu'il désigne, il ne l'encadre pas.
 
-> ⚠️ Le piège est toujours le même : une bordure *et* un anneau, ou une bordure
-> *et* une ombre portée. Avant d'ajouter un trait, vérifier que celui d'en
-> dessous n'est pas déjà teinté.
+Le piège n'est presque jamais l'épaisseur d'un trait : c'est le **cumul**. Une
+bordure *et* un anneau, une bordure *et* une ombre portée — l'épaisseur réelle
+n'est alors celle d'aucun des deux, et les traits concentriques se lisent comme
+un contour flou plutôt que comme deux informations.
+
+| Où | Avant | Épaisseur réelle |
+|----|-------|------------------|
+| Palette de couleurs | `ring-2` + `ring-offset-2` | **4 px** autour d'une case de 24 |
+| Recommandations, équipes de siège | `border-X` + `ring-2 ring-X/50` | 3 px, en deux traits |
+| Doublon de l'Optimiseur | `border-2` + `ring-4` | **6 px** |
+| Relique, lead | `border-star` + `ring-1` | 2 px, en deux traits |
+| Section, au survol du dépôt | `borderColor` + ombre 2 px | 3 px |
+| Puce de légende | `border-2` sur un disque de 10 px | le trait mangeait la moitié |
+
+> ⚠️ **Avant d'ajouter un trait, vérifier que celui d'en dessous n'est pas déjà
+> teinté.** C'est l'erreur qui revient : on colore une bordure existante, puis on
+> ajoute un anneau pour « que ça se voie mieux ».
+
+**Deux exceptions, et elles ne sont pas des contours :**
+
+- Le **`ring-offset`** de la palette est un *écart*, pas un second trait : sans
+  lui, l'anneau d'encre touche l'aplat de couleur et devient illisible sur les
+  teintes sombres.
+- L'**anneau de focus clavier** (`outline: 2px`, dans `index.css`) reste à 2 px.
+  Il n'apparaît qu'en tabulant — jamais à la souris ni au doigt — et sa taille
+  est ce qui le rend repérable quand on ne sait plus où l'on est dans la page.
+  Voir la règle de focus dans [design.md](design.md).
 
 ## Quand ajouter quelque chose
 

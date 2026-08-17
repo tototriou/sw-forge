@@ -416,7 +416,7 @@ export default function OptimizerSection({ box, runes, optimizer }: Props) {
         ref={setPickerSectionRef}
         className={
           setPickerInvalid
-            ? 'rounded-lg border-2 border-red-500 bg-red-500/15 ring-4 ring-red-500/50 p-2 -m-2 transition'
+            ? 'rounded-lg border border-red-500 bg-red-500/15 p-2 -m-2 transition'
             : 'transition'
         }
       >

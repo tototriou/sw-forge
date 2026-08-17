@@ -4,7 +4,7 @@ import { RuneDetail } from '../../types';
 import { runeEfficiency, runeScore, isAncient } from '../../lib/effects';
 import { encodeCurveJson, decodeCurve } from '../../lib/runeCurveShare';
 import { parseAccountInventory } from '../../lib/importAccount';
-import { ConfirmDialog, PromptDialog } from '../Dialogs';
+import { ConfirmDialog, PromptDialog } from '../../ui/Dialogs';
 import { useStickyState } from '../../hooks/useStickyState';
 import { useRuneMetric, formatRuneMetric } from '../../hooks/useRuneMetric';
 import CurveChart, { CurveSeries, OWN_COLOR } from './CurveChart';

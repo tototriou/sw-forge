@@ -3,7 +3,7 @@ import { X } from 'lucide-react';
 import { RTA_OTHER, RTA_UNASSIGNED } from '../../types';
 import RuneIcon from '../RuneIcon';
 import AccordionGrid from '../AccordionGrid';
-import { ConfirmDialog } from '../Dialogs';
+import { ConfirmDialog } from '../../ui/Dialogs';
 import { BoutonIcone } from '../../ui';
 
 interface Props {

@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Sparkles, BookOpen } from 'lucide-react';
 import SearchBar from '../components/SearchBar';
-import MobileSheet from '../components/MobileSheet';
+import MobileSheet from '../ui/MobileSheet';
 import FilterBar from '../components/FilterBar';
 import MonsterGrid from '../components/MonsterGrid';
 import MonsterDetailDialog from '../components/MonsterDetailDialog';

@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Modale } from '../Dialogs';
+import { Modale } from '../../ui/Dialogs';
 import { BOUTON_PRIMAIRE, BOUTON_SECONDAIRE } from '../buttonStyles';
 
 // Un critère de recherche : une propriété et son intervalle.

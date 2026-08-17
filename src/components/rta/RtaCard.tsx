@@ -5,7 +5,7 @@ import ElementIcon from '../ElementIcon';
 import RuneIcon from '../RuneIcon';
 import CategoryRing from './CategoryRing';
 import DesyncBadge from './DesyncBadge';
-import { ConfirmDialog } from '../Dialogs';
+import { ConfirmDialog } from '../../ui/Dialogs';
 import { BoutonIcone, Selecteur, ZoneCliquable } from '../../ui';
 
 const SPD_ICON = `${import.meta.env.BASE_URL}stats/spd.png`;

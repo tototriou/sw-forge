@@ -248,6 +248,37 @@ popup d'édition, formulaire ancré, liste de résultats d'une recherche.
 > bords, sinon le survol laisse une bande morte et l'entrée surlignée paraît
 > décalée de son propre cadre.
 
+**`Modale`** — la coquille de **toute** boîte modale : voile, centrage, fermeture
+au clic extérieur et à Échap. `ConfirmDialog`, `PromptDialog` et
+`KeepAccountDialog` en dérivent.
+
+> ⚠️ **Elle porte quatre choses invisibles**, et c'est pour elles qu'elle
+> existe : le **piège à focus** (Tab boucle dans la boîte au lieu de tabuler dans
+> la page derrière, invisible et toujours cliquable), le **retour du focus** à
+> l'élément qui a ouvert la modale, la **fermeture à Échap**, et le **blocage du
+> défilement** de la page.
+>
+> Deux écrans la recopiaient au lieu de l'importer — le dialogue d'export RTA et
+> la question de conservation des données. Ils perdaient donc ces quatre-là
+> **en silence** : rien ne le signalait à l'écran, et sur la seule fenêtre de
+> l'app qui demande si l'on conserve ses données, c'est la pire des fenêtres à
+> pouvoir contourner par accident.
+
+> ⚠️ **`z-[70]` : au-dessus de tout, panneaux mobiles compris.** À `z-50`, une
+> confirmation ouverte depuis le panneau d'actions se retrouvait *derrière* lui —
+> on cliquait, rien ne semblait se produire, et le geste paraissait sans
+> confirmation. Une confirmation est le dernier mot de l'interface : rien ne se
+> met devant elle.
+
+> ⚠️ Le voile est un **fondu seul**, sans flou. `KeepAccountDialog` portait un
+> `backdrop-blur-sm` que les autres n'avaient pas ; écart abandonné à la
+> migration — un seul dialogue floutant le fond se lisait comme un objet d'une
+> autre nature.
+
+**`MobileSheet`** — panneau montant du téléphone. ⚠️ **Ce n'est pas une modale** :
+il coexiste avec la page, monte du bas, et se pose **sous** les dialogues dans
+l'échelle des `z-index`. Il porte son propre voile pour cette raison.
+
 **`Case`** — case à cocher avec son libellé. ⚠️ **La case native est là, seulement
 invisible** (`sr-only`) — jamais remplacée par un `<div>` cliquable. C'est elle
 qui porte l'état, le focus clavier, la barre d'espace et l'annonce du lecteur

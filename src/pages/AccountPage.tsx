@@ -20,7 +20,7 @@ import {
   sansDoublonDeTransformation,
 } from '../lib/monsterForms';
 import MonsterDetailDialog from '../components/MonsterDetailDialog';
-import MobileSheet from '../components/MobileSheet';
+import MobileSheet from '../ui/MobileSheet';
 import type { AccountView } from '../App';
 import { VUES_INVENTAIRE, hashVue, vueParDefaut } from '../lib/accountViews';
 

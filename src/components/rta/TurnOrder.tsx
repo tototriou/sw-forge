@@ -11,7 +11,7 @@ import { useStickyState } from '../../hooks/useStickyState';
 import { InterrupteurAffichage } from './CategoryBar';
 import { COMPACT, useMediaQuery } from '../../hooks/useMediaQuery';
 import { Bouton, BoutonGroupe, BoutonIcone, Interrupteur } from '../../ui';
-import { ConfirmDialog } from '../Dialogs';
+import { ConfirmDialog } from '../../ui/Dialogs';
 
 const SPD_ICON = `${import.meta.env.BASE_URL}stats/spd.png`;
 

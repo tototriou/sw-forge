@@ -3,10 +3,10 @@ import { Plus, Pencil, Trash2, Check, X, Eye, EyeOff } from 'lucide-react';
 import { Monster } from '../../types';
 import MonsterAvatar from '../MonsterAvatar';
 import { RtaCategory, UseRtaCategories, MAX_CATEGORIES_PER_MONSTER } from '../../hooks/useRtaCategories';
-import { ConfirmDialog } from '../Dialogs';
+import { ConfirmDialog } from '../../ui/Dialogs';
 import { useRecalageEcran } from '../../hooks/useRecalageEcran';
 import { useMediaQuery, SOUS_LG } from '../../hooks/useMediaQuery';
-import MobileSheet from '../MobileSheet';
+import MobileSheet from '../../ui/MobileSheet';
 import { Bouton, BoutonGroupe, BoutonIcone, Champ, Flottant, Vignette } from '../../ui';
 
 // Palette FERMÉE plutôt qu'un sélecteur de couleur libre : le contrôle natif

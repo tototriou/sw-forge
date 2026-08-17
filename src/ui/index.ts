@@ -80,3 +80,16 @@ export { default as Case } from './Case';
 export type { CaseProps } from './Case';
 
 export { default as PiedDeDialogue } from './PiedDeDialogue';
+
+// ⚠️ **`Modale` est la coquille de TOUTE boîte modale de l'app**, et elle vivait
+// dans `components/` alors que deux écrans la recopiaient au lieu de l'importer.
+// Ces copies perdaient EN SILENCE le piège à focus, le retour du focus à
+// l'ouvreur, la fermeture à Échap et le blocage du défilement — rien ne le
+// signalait à l'écran. C'est précisément ce qu'une coquille partagée existe pour
+// empêcher, et le mettre ici est ce qui rend la copie moins tentante que
+// l'import.
+export { Modale, ConfirmDialog, PromptDialog, KeepAccountDialog } from './Dialogs';
+
+// Panneau montant du TÉLÉPHONE. ⚠️ Ce n'est pas une modale : il coexiste avec la
+// page, monte du bas et se pose SOUS les dialogues dans l'échelle des `z-index`.
+export { default as MobileSheet } from './MobileSheet';

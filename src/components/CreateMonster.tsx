@@ -1,8 +1,8 @@
 import { useEffect, useRef, useState } from 'react';
 import { useRecalageEcran } from '../hooks/useRecalageEcran';
 import { COMPACT, useMediaQuery } from '../hooks/useMediaQuery';
-import MobileSheet from './MobileSheet';
-import { ConfirmDialog } from './Dialogs';
+import MobileSheet from '../ui/MobileSheet';
+import { ConfirmDialog } from '../ui/Dialogs';
 import { Plus, X, Wand2 } from 'lucide-react';
 import { ELEMENTS, ElementKey, Monster } from '../types';
 import { CustomLead } from '../hooks/useCustomMonsters';

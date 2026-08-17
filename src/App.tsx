@@ -48,7 +48,7 @@ import {
   setPersistence,
   storageAvailable,
 } from './hooks/usePersistence';
-import { ConfirmDialog, KeepAccountDialog } from './components/Dialogs';
+import { ConfirmDialog, KeepAccountDialog } from './ui/Dialogs';
 import GameIcon, { GameIconKey } from './components/GameIcon';
 import { ArtifactDetail, CraftLine, Monster, RuneDetail } from './types';
 import { useMonsters } from './hooks/useMonsters';

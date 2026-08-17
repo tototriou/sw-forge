@@ -341,22 +341,16 @@ export function KeepAccountDialog({
   onDismiss: () => void;
 }) {
   const [nePlusMontrer, setNePlusMontrer] = useState(false);
+  // ⚠️ La coquille commune, alors que ce dialogue en réécrivait une à trois
+  // lignes d'ici. Il perdait ainsi le piège à focus, le retour du focus à
+  // l'ouvreur, Échap et le blocage du défilement — sur la seule fenêtre de l'app
+  // qui pose une question de CONSERVATION DES DONNÉES, c'est-à-dire celle qu'il
+  // faut le moins pouvoir contourner par accident.
+  // ⚠️ Son voile portait en plus un `backdrop-blur-sm` que les autres n'ont pas.
+  // Écart abandonné : la spec ne prévoit qu'un fondu (voir design.md), et un
+  // seul dialogue floutant le fond se lisait comme un objet d'une autre nature.
   return (
-    <div
-      // ⚠️ `z-[70]` comme la coquille `Modale` — voir la note là-haut.
-      className="fixed inset-0 z-[70] flex items-center justify-center bg-bg/80 p-4 backdrop-blur-sm
-                 animate-[voile_150ms_var(--ease-out)]"
-      onClick={onDismiss}
-      role="presentation"
-    >
-      <div
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby="keep-account-titre"
-        onClick={(e) => e.stopPropagation()}
-        className="w-full max-w-[420px] rounded-2xl border border-border bg-panel p-5 shadow-glow shadow-black/60
-                   animate-[dialogue_200ms_var(--ease-out)]"
-      >
+    <Modale onClose={onDismiss} labelledBy="keep-account-titre" largeur="max-w-[420px]">
         <div className="flex items-start gap-3">
           <span className="mt-0.5 flex-none rounded-lg bg-panel2 p-2 text-star">
             <HardDriveDownload size={18} />
@@ -416,7 +410,6 @@ export function KeepAccountDialog({
         <p className="mt-2.5 text-center text-micro text-ink-dim">
           Tu pourras changer d'avis à tout moment dans les réglages ⚙.
         </p>
-      </div>
-    </div>
+    </Modale>
   );
 }

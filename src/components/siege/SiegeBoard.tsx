@@ -6,8 +6,8 @@ import { SiegeSide, UseSiegeState } from '../../hooks/useSiegeState';
 import { useStickyState } from '../../hooks/useStickyState';
 import SiegeTeam from './SiegeTeam';
 import CreateMonster from '../CreateMonster';
-import { ConfirmDialog } from '../Dialogs';
-import MobileSheet from '../MobileSheet';
+import { ConfirmDialog } from '../../ui/Dialogs';
+import MobileSheet from '../../ui/MobileSheet';
 import { CustomLead } from '../../hooks/useCustomMonsters';
 
 interface Props {

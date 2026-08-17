@@ -30,7 +30,7 @@ import {
   validateRtaImport,
   versVueAmi,
 } from '../../lib/rtaShare';
-import { ConfirmDialog } from '../Dialogs';
+import { ConfirmDialog, Modale } from '../../ui/Dialogs';
 import { Bouton, BoutonIcone, Option } from '../../ui';
 
 /* --------------------------------------------------------------------------
@@ -107,29 +107,24 @@ function depuis(iso: string): string {
   return d.toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' });
 }
 
-// ⚠️ **Icône seule sous `sm`** — le libellé vit dans un `<span className="hidden
-// compact:hidden">`, et dans le `title` de chaque bouton. Six actions à libellé
-// complet, chacune portée à 40 px de haut par la règle tactile, remplissaient
-// l'écran d'un téléphone : trois rangées de boutons avant d'atteindre la prépa.
-// Rien n'est perdu — l'intitulé reste au survol et au lecteur d'écran.
-// ⚠️ **L'ICÔNE NUE sous `sm`** — ni cadre, ni bordure, ni fond. Six boutons
-// encadrés faisaient six carrés dans une barre qu'on cherche à compacter, et le
-// cadre n'apprend rien : l'icône dit l'action, sa présence dit qu'on peut la
-// toucher. Le cadre revient à la souris, où la barre a la place et où le survol
-// a besoin d'une surface à colorer.
-// `data-cible-fine` est posé sur chaque bouton ; `.cible-tactile` rend 44 px
-// touchables sans qu'un pixel du dessin ne bouge.
-// ⚠️ **Le même gabarit que `CreateMonster`** (`px-3.5 py-2 / 13 px`) : les sept
-// boutons se retrouvent côte à côte dans le panneau mobile, et « Monstre » y
-// paraissait plus grand que ses six voisins — un bouton d'action n'a pas de
-// raison de peser plus qu'un autre. Les deux gabarits doivent rester alignés.
-// ⚠️ Un PRÉRÉGLAGE, pas un style : ce sont les axes de [Bouton](../../ui/Bouton.tsx)
-// fixés une fois pour les six actions de cette barre, qui doivent rester
-// indiscernables les unes des autres. Aucune classe n'est écrite ici — si le
-// bouton de la librairie change, ces six-là changent avec lui.
-// ⚠️ Le même gabarit que `CreateMonster` (`taille="md"`) : les sept boutons se
-// retrouvent côte à côte dans le panneau mobile, et « Monstre » y paraissait plus
-// grand que ses six voisins. Les deux doivent rester alignés.
+// Réglages communs aux six actions de cette barre.
+//
+// ⚠️ Un PRÉRÉGLAGE, pas un style : ce sont les axes de
+// [Bouton](../../ui/Bouton.tsx) fixés une fois pour six boutons qui doivent
+// rester indiscernables les uns des autres. Aucune classe n'est écrite ici — si
+// le bouton de la librairie change, ces six-là changent avec lui.
+//
+// ⚠️ **L'ICÔNE SEULE au doigt** (`nuAuDoigt` + `libelleAuDoigt: false`) : six
+// actions à libellé complet, chacune portée à 40 px par la règle tactile,
+// remplissaient l'écran d'un téléphone — trois rangées de boutons avant
+// d'atteindre la prépa. Ni cadre ni fond non plus : six boutons encadrés font
+// six carrés dans une barre qu'on cherche à compacter, et le cadre n'apprend
+// rien. Rien n'est perdu : l'intitulé reste au survol, au lecteur d'écran, et
+// revient en toutes lettres dans le panneau d'actions.
+//
+// ⚠️ **Le même gabarit que `CreateMonster`** (`taille="md"`) : les sept boutons
+// se retrouvent côte à côte dans le panneau mobile, où « Monstre » paraissait
+// plus grand que ses six voisins. Les deux doivent rester alignés.
 const ACTION = {
   nuAuDoigt: true,
   libelleAuDoigt: false,
@@ -705,22 +700,13 @@ function ChoixExport({
     },
   ];
 
+  // ⚠️ La coquille `Modale` et non un voile recopié : ce dialogue en réécrivait
+  // un, et perdait donc EN SILENCE le piège à focus, le retour du focus à
+  // l'ouvreur, la fermeture à Échap et le blocage du défilement de la page
+  // derrière. Rien ne le signalait à l'écran — c'est exactement ce qu'une
+  // coquille partagée existe pour empêcher.
   return (
-    <div
-      // ⚠️ `z-[70]` comme les autres dialogues (voir Dialogs.tsx) : celui-ci
-      // s'ouvre depuis le panneau d'actions, qui est lui-même à `z-50`. Au même
-      // niveau, le panneau — monté après dans le DOM — serait passé devant.
-      className="fixed inset-0 z-[70] flex items-center justify-center bg-bg/80 p-4"
-      onClick={onAnnuler}
-      role="presentation"
-    >
-      <div
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby="export-rta-titre"
-        onClick={(e) => e.stopPropagation()}
-        className="w-full max-w-[460px] rounded-2xl border border-border bg-panel p-5 shadow-glow shadow-black/60"
-      >
+    <Modale onClose={onAnnuler} labelledBy="export-rta-titre" largeur="max-w-[460px]">
         <h2 id="export-rta-titre" className="text-base font-bold text-ink">
           Que veux-tu partager ?
         </h2>
@@ -773,8 +759,7 @@ function ChoixExport({
           libelle="Annuler"
           className="mt-3"
         />
-      </div>
-    </div>
+    </Modale>
   );
 }
 

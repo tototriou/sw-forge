@@ -34,7 +34,7 @@ import {
 } from '../../types';
 import { DeckMatch, FaultCause, RecoMatch, SlotMatch, deckFaults, fmtStat, slotFaults } from '../../lib/recoMatch';
 import { DeckHit, RecoHit } from '../../lib/recoSearch';
-import { ConfirmDialog } from '../Dialogs';
+import { ConfirmDialog } from '../../ui/Dialogs';
 import { NOTE_MAX, DECK_NOTE_MAX, COUNTER_NOTE_MAX } from '../../lib/recoShare';
 import { deckFromSiegeTeam } from '../../lib/recoFromSiege';
 import {

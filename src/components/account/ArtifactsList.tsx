@@ -15,7 +15,7 @@ import { ArtifactGlyph } from '../ArtifactIcon';
 import ArtifactFrameIcon from '../ArtifactFrameIcon';
 import ElementIcon from '../ElementIcon';
 import Segmented from '../Segmented';
-import MobileSheet from '../MobileSheet';
+import MobileSheet from '../../ui/MobileSheet';
 import { ELEMENT_FILTER_STYLES } from '../elementStyles';
 import Pager from './Pager';
 import { Critere } from './SubSearchDialog';

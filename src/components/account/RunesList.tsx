@@ -8,7 +8,7 @@ import { RuneDetailBox } from '../MonsterGear';
 import Pager from './Pager';
 import { Critere } from './SubSearchDialog';
 import SubSearchBar from './SubSearchBar';
-import MobileSheet from '../MobileSheet';
+import MobileSheet from '../../ui/MobileSheet';
 import {
   RUNE_SORTS,
   RuneSortMode,

@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Sword, Shield, Star, Hourglass, ArrowRight } from 'lucide-react';
 import { Monster } from '../types';
-import { Modale } from './Dialogs';
+import { Modale } from '../ui/Dialogs';
 import ElementIcon from './ElementIcon';
 import Segmented from './Segmented';
 import LeadPill from './siege/LeadPill';

@@ -18,7 +18,7 @@ import RuneIcon from '../RuneIcon';
 import MonsterGear from '../MonsterGear';
 import NumberField from '../../ui/NumberField';
 import LeadPill, { LeadBadge } from './LeadPill';
-import { ConfirmDialog } from '../Dialogs';
+import { ConfirmDialog } from '../../ui/Dialogs';
 import { useMediaQuery, COMPACT } from '../../hooks/useMediaQuery';
 
 const GRADIENT: Record<string, string> = {

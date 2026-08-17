@@ -20,6 +20,17 @@ import { RuneMetric } from '../hooks/useRuneMetric';
 
 export const OPTIMIZER_RECIPE_VERSION = 1;
 
+// ⚠️ **Deux constructeurs, PAS un seul — un champ ajouté ici doit être
+// branché dans les DEUX, sinon un script diverge de l'écran en silence
+// (aucune erreur `tsc`, le champ manquant reste un type optionnel valide).
+// Incident vécu : `exhaustiveSearch` branché dans OptimizerSection.tsx
+// (l'écran) mais oublié dans recipeToSearchParams.ts, repéré seulement
+// parce que l'utilisateur a posé la question — voir spec/README.md,
+// « Conventions communes », pour la règle générale.
+// 1. `OptimizerSection.tsx` — `exportRecipe`/`importRecipe`/`handleSearch`
+//    (l'écran, source de vérité).
+// 2. `scripts/lib/recipeToSearchParams.ts` — `recipeToSearchParams` (rejoue
+//    une recette depuis un script, utilisé par `scripts/optimizer-search.ts`).
 export interface OptimizerRecipe {
   version: typeof OPTIMIZER_RECIPE_VERSION;
   // Pour readabilité humaine et pour retrouver le monstre à l'import — le

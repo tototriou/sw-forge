@@ -111,7 +111,7 @@ export default function MobileSheet({
             // réglage.
             className={`fixed flex flex-col border-border bg-panel lg:hidden ${
               centre
-                ? 'inset-x-4 top-1/2 z-[60] max-h-[80dvh] -translate-y-1/2 rounded-2xl border shadow-glow shadow-black/60'
+                ? 'inset-x-3 top-1/2 z-[60] max-h-[80dvh] -translate-y-1/2 rounded-2xl border shadow-glow shadow-black/60'
                 : 'inset-x-0 bottom-0 z-50 max-h-[85dvh] rounded-t-2xl border-t'
             }`}
             style={centre ? undefined : { paddingBottom: 'env(safe-area-inset-bottom)' }}
@@ -127,7 +127,13 @@ export default function MobileSheet({
               </div>
             )}
 
-            <div className="flex flex-none items-center gap-2 px-4 pb-1.5 pt-1.5">
+            {/* Même rembourrage latéral que le corps, sinon le titre et la croix
+                ne s'alignent pas sur le contenu qu'ils coiffent. */}
+            <div
+              className={`flex flex-none items-center gap-2 pb-1.5 pt-1.5 ${
+                centre ? 'px-3' : 'px-4'
+              }`}
+            >
               {/* ⚠️ `text-sm` et non `text-base` : ce titre rappelle où l'on est,
                   il n'annonce pas une page. À la taille d'un titre de section il
                   pesait autant que les actions qu'il coiffe. */}
@@ -152,9 +158,17 @@ export default function MobileSheet({
                 le perdent dans la page faute de place (voir RtaBackupBar), mais
                 ce panneau tient toute la largeur — une rangée d'icônes sans mots
                 y serait un rébus. Voir la règle dans index.css. */}
+            {/* ⚠️ Rembourrage LATÉRAL réduit sur le panneau centré : il porte un
+                formulaire, dont les champs doivent prendre toute la largeur
+                disponible. Entre les 12 px du panneau et les 16 px d'ici, un
+                champ perdait 56 px sur 348 — un septième de l'écran en marges.
+                Le panneau montant, lui, garde `px-4` : ses boutons en grille ont
+                besoin de respirer du bord. */}
             <div
               data-tiroir
-              className="flex-1 overflow-y-auto overscroll-contain px-4 pb-4 pt-0.5"
+              className={`flex-1 overflow-y-auto overscroll-contain pb-4 pt-0.5 ${
+                centre ? 'px-3' : 'px-4'
+              }`}
             >
               {children}
             </div>

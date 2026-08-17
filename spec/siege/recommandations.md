@@ -45,17 +45,24 @@ lesquelles il peut jouer.
   en recrée un vide).
 - Un même monstre ne peut pas occuper deux slots **du même deck**, mais peut
   revenir dans **un autre deck** de la recommandation.
-- Chaque deck a un **nom facultatif**. **Laissé vide, il reprend les noms de ses
-  monstres séparés par un tiret** (« Trevor - Bella - Loren ») ; « Deck N » tant
-  qu'aucun monstre n'est choisi.
-  - Le nom automatique est **dérivé à l'affichage** (`autoDeckName` /
-    `deckLabel` dans [RecoCard.tsx](src/components/siege/RecoCard.tsx)), **jamais
-    stocké** : il suit les changements de monstres, et se recalcule chez celui qui
-    importe (mêmes `com2usId` → mêmes noms).
-  - En édition, il apparaît en **placeholder** du champ : taper quelque chose le
-    remplace, vider le champ le rétablit.
+- Chaque deck se nomme par **les noms de ses monstres, séparés par un tiret**
+  (« Trevor - Bella - Loren ») ; « Deck N » tant qu'aucun monstre n'est choisi.
+  **Pas de titre libre à saisir** — `deckLabel` (dans
+  [RecoCard.tsx](src/components/siege/RecoCard.tsx)) calcule toujours ce nom,
+  **dérivé à l'affichage, jamais stocké** : il suit les changements de
+  monstres, et se recalcule chez celui qui importe (mêmes `com2usId` → mêmes
+  noms).
   - Si un monstre est absent des données chargées, on retombe sur le nom stocké
     dans le slot au moment du partage.
+  - ⚠️ **`RecoDeck.name` existe encore dans le type et le stockage, pour la
+    RÉTROCOMPATIBILITÉ d'un import** : une recommandation exportée avant ce
+    changement — ou reçue d'un ami dont l'app n'est pas à jour — porte encore
+    un titre dans ce champ. Il n'est **jamais rejeté** par le validateur
+    d'import ([recoShare.ts](src/lib/recoShare.ts)), simplement **plus lu ni
+    affiché** : `deckLabel` ne le consulte plus. Un titre libre pouvait dater
+    une fois le deck modifié, redoubler ce que les portraits montrent déjà, ou
+    rester vide et donc identique au nom automatique — trois façons de ne rien
+    apporter.
 - Les **decks totalement vides** ne sont ni exportés ni comptés dans les statuts.
 
 ## Origine & filtre
@@ -1233,7 +1240,7 @@ Indépendamment du repli de la carte, **chaque deck a son propre chevron**.
 | Bouton | Où | Ce qu'il ouvre |
 |--------|----|----------------|
 | ✏️ (en-tête de la carte) | recommandation | **nom, auteur, consignes générales** + **Ajouter un deck vide** / **Importer un deck d'offense** |
-| ✏️ (en-tête de chaque deck) | deck | **nom du deck, ses consignes, ses monstres, sets, artéfacts et stats** + 🗑 **Supprimer ce deck** |
+| ✏️ (en-tête de chaque deck) | deck | **ses consignes, ses monstres, sets, artéfacts et stats** + 🗑 **Supprimer ce deck** (le nom n'est plus saisi, voir plus haut) |
 | **+ Défense** / ✏️ sur une vignette | défenses visées | **une** défense que ce deck bat — indépendant du deck |
 
 ⚠️ Le troisième est **volontairement détaché** du deuxième : ajouter une défense

@@ -683,10 +683,16 @@ export default function RecoBoard({
 
             {/* TROIS CASES, et non trois champs texte : elles montrent la
                 forme de ce qu'on cherche — une composition de 3 monstres —, et
-                reprennent le langage des slots de deck de la page. Poussées à
-                DROITE (`ml-auto`) : c'est le résultat du champ à gauche, il se
-                lit après lui, jamais avant. */}
-            <div className="ml-auto flex items-center gap-1.5">
+                reprennent le langage des slots de deck de la page.
+                ⚠️ **`ml-auto`, sauf à la SOURIS (`lg:ml-0`).** Au doigt, la
+                largeur manque et la rangée passe vite à la ligne : pousser les
+                cases au bord droit les sépare proprement du champ. À la
+                souris, le champ est plafonné à 260 px
+                (`sm:max-w-[260px]` ci-dessus) — sur une page bien plus large,
+                `ml-auto` les envoyait loin de lui, à l'autre bout d'une rangée
+                vide. Sans la marge auto, elles collent au champ dont elles
+                sont le résultat. */}
+            <div className="ml-auto flex items-center gap-1.5 lg:ml-0">
               {queries.map((nom, i) => {
                 // ⚠️ Résolu dans les formes JOUABLES, pas dans la liste
                 // complète : plusieurs entrées portent le même nom (forme

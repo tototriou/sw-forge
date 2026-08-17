@@ -79,19 +79,22 @@ function spdLeadBonus(
 }
 
 
-// Nom AUTOMATIQUE d'un deck : les noms de ses monstres séparés par un tiret
-// (« Trevor - Bella - Loren »), sinon « Deck N » tant qu'il est vide. On se rabat
-// sur le nom stocké dans le slot si le monstre est absent des données chargées.
-function autoDeckName(deck: RecoDeck, byCom2us: Map<number, Monster>, index: number): string {
+// Nom d'un deck : les noms de ses monstres séparés par un tiret
+// (« Trevor - Bella - Loren »), sinon « Deck N » tant qu'il est vide. On se
+// rabat sur le nom stocké dans le slot si le monstre est absent des données
+// chargées.
+//
+// ⚠️ **Plus de titre saisi par l'auteur.** `deck.name` existait pour un titre
+// libre (« Def anti-Chloé ») ; il pouvait dater une fois le deck modifié,
+// redoubler ce que les portraits montrent déjà, ou rester vide et donc
+// identique à ce nom automatique. `deckLabel` calcule toujours ce nom, sans
+// jamais lire `deck.name` — le champ reste dans le TYPE et le stockage pour
+// la rétrocompatibilité d'un import, mais n'est plus affiché.
+function deckLabel(deck: RecoDeck, byCom2us: Map<number, Monster>, index: number): string {
   const noms = deck.slots
     .map((s) => (s.com2usId != null ? byCom2us.get(s.com2usId)?.name ?? s.name : ''))
     .filter(Boolean);
   return noms.length ? noms.join(' - ') : `Deck ${index + 1}`;
-}
-
-// Nom affiché : celui saisi par l'auteur s'il en a mis un, sinon l'automatique.
-function deckLabel(deck: RecoDeck, byCom2us: Map<number, Monster>, index: number): string {
-  return deck.name.trim() || autoDeckName(deck, byCom2us, index);
 }
 
 // Une équipe d'offense proposée à l'import : son rang, ses 3 monstres résolus
@@ -1094,26 +1097,20 @@ function DeckBlock({
           libelle={folded ? 'Déplier ce deck' : 'Replier ce deck'}
         />
 
-        {editing && !folded ? (
-          // Vide = nom automatique (visible en placeholder) ; on ne stocke que
-          // ce que l'auteur choisit explicitement.
-          <Champ
-            value={deck.name}
-            onChange={(e) => recos.setDeckMeta(reco.id, deckIndex, { name: e.target.value })}
-            onBlur={(e) => {
-              const t = e.target.value.trim();
-              if (t !== deck.name) recos.setDeckMeta(reco.id, deckIndex, { name: t });
-            }}
-            placeholder={autoDeckName(deck, monsterByCom2us, deckIndex)}
-            title="Laisse vide pour reprendre les noms des monstres"
-            pleineLargeur={false}
-            className="min-w-[min(180px,100%)] flex-1 bg-panel py-0.5 text-xs"
-          />
-        ) : (
-          <ZoneCliquable onClick={onToggleFold} className="label hoverable:text-ink transition">
-            {deckLabel(deck, monsterByCom2us, deckIndex)}
-          </ZoneCliquable>
-        )}
+        {/* ⚠️ **Plus de titre à saisir : le nom des monstres, toujours.**
+            Un titre libre pouvait dater (« Def anti-Chloé » quand le deck a
+            changé depuis), redoubler ce que les portraits montrent déjà juste
+            en dessous, ou rester vide et donc identique au nom des monstres —
+            trois façons de ne rien apporter. `deckLabel` calcule maintenant
+            TOUJOURS le nom à partir des monstres, jamais de `deck.name`.
+            ⚠️ `deck.name` reste dans le TYPE et le stockage (retrocompat) :
+            une recommandation exportée avant ce changement, ou reçue d'un ami
+            qui n'a pas encore mis à jour l'app, garde son champ `name` — il
+            est juste ignoré à l'affichage désormais, jamais rejeté à
+            l'import. */}
+        <ZoneCliquable onClick={onToggleFold} className="label hoverable:text-ink transition">
+          {deckLabel(deck, monsterByCom2us, deckIndex)}
+        </ZoneCliquable>
         {!editing && match && !empty && <DeckBadge match={match} />}
         {!editing && match && !empty && <CopiesBadge copies={match.copies} />}
         {/* Le lead n'est pas dans l'en-tête : il est posé sur le leader lui-même

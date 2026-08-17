@@ -2099,13 +2099,23 @@ function SetEditor({
                           <RuneIcon setKey={key} size={14} />
                           <span className="text-micro text-ink">×{setPieces(key)}</span>
                         </ZoneCliquable>
-                        <BoutonIcone
+                        {/* ⚠️ Pas `BoutonIcone` : sa plus petite taille
+                            (`serre`, 20 px) est le plancher du BOUTON de la
+                            librairie, mais reste plus haute que cette
+                            puce (~16 px) — posée dedans, elle étirait toute
+                            la puce à sa propre hauteur. Un bouton nu, sans
+                            boîte imposée, épouse la hauteur du texte à côté
+                            duquel il vit — exactement ce que cette puce
+                            demande. */}
+                        <button
                           onClick={() => onRemove(oi, pos)}
-                          ton="danger"
-                          taille="serre"
-                          icone={<X size={10} />}
-                          libelle="Retirer ce set"
-                        />
+                          data-cible-fine
+                          className="flex-none text-ink-dim transition hoverable:text-fire"
+                          title="Retirer ce set"
+                          aria-label="Retirer ce set"
+                        >
+                          <X size={10} />
+                        </button>
                       </span>
                     ))
                   )}
@@ -2116,19 +2126,16 @@ function SetEditor({
         </div>
       )}
 
-      {/* Les deux actions sur la MÊME ligne : ajouter un set à la combinaison en
-          cours, ou en ouvrir une nouvelle.
-          ⚠️ **`flex-wrap`, pas un `flex-1` qui ne peut pas marcher ici.**
-          `Bouton` pose `flex-none` dans son SOCLE (voir Bouton.tsx) : un
-          `flex-1` posé en `className` ne le bat pas, `flex-none` vient APRÈS
-          dans la feuille de style construite (vérifié, pas supposé) — le
-          bouton reste à sa largeur de contenu, jamais partagée. `pleineLargeur`
-          posait `w-full`, qui lui s'applique bien malgré `flex-none` : le
-          bouton revendiquait alors TOUTE la rangée et poussait le second hors
-          de la carte — exactement le débordement observé. `flex-wrap` laisse
-          le second bouton descendre à la ligne suivante s'il ne reste pas la
-          place, plutôt que de déborder ou d'écraser le premier. */}
-      <div className="flex flex-wrap items-center gap-1">
+      {/* Les deux actions sur la MÊME ligne, à égalité : chacune la moitié de
+          la largeur de la carte, plutôt que sa largeur de contenu.
+          ⚠️ **`grid grid-cols-2` + `pleineLargeur` sur chaque bouton, pas
+          `flex` + `flex-1`.** `Bouton` pose `flex-none` dans son SOCLE (voir
+          Bouton.tsx) : un `flex-1` posé en `className` ne le bat pas,
+          `flex-none` vient APRÈS dans la feuille de style construite
+          (vérifié, pas supposé). `pleineLargeur` pose `w-full`, qui lui
+          s'applique bien malgré `flex-none` — dans une grille à 2 colonnes
+          égales, chaque bouton remplit alors exactement sa moitié. */}
+      <div className="grid grid-cols-2 gap-1">
         {/* ⚠️ `icone`, pas un « + » écrit dans le texte : c'était la seule
             incohérence entre les deux boutons de cette rangée, l'un portait
             son symbole dans l'icône (comme partout ailleurs dans l'app),
@@ -2138,6 +2145,7 @@ function SetEditor({
           disabled={full}
           aria-expanded={open}
           taille="xs"
+          pleineLargeur
           icone={!full ? <Plus size={11} /> : undefined}
           libelle={full ? 'Plus de place (6 runes)' : 'Set'}
         />
@@ -2154,6 +2162,7 @@ function SetEditor({
               : 'Proposer un autre runage possible — un seul suffira'
           }
           taille="xs"
+          pleineLargeur
           icone={<Plus size={11} />}
           libelle="Possibilité"
         />
@@ -2166,8 +2175,12 @@ function SetEditor({
           ⚠️ Pas `BoutonIcone` : cette grille est un CHOIX D'ICÔNES DE JEU (les
           symboles de set), pas une action d'interface — même famille que la
           roue de runes et les emplacements d'artéfacts, qui restent hors de la
-          librairie. Aucune taille de `BoutonIcone` ne correspond d'ailleurs à
-          ces 32 px. */}
+          librairie.
+          ⚠️ **28 px, pas 32** : le jeu compte plus de vingt sets. À 32 px +
+          `gap-1`, la grille pesait lourd sur une carte de siège déjà étroite —
+          un pavé de cases pour un choix qu'on fait une fois par slot. `RuneIcon`
+          descend à 16 px avec la case, le symbole restant net à cette taille
+          (voir la roue de runes, qui le dessine déjà aussi petit). */}
       {open && !full && (
         <div className="mt-1 rounded-lg border border-border bg-panel p-1.5">
           <div className="flex flex-wrap gap-1">
@@ -2187,14 +2200,14 @@ function SetEditor({
                   // ⚠️ `data-cible-fine` : grille serrée d'icônes de set, où une
                   // cible de 44 px déborderait sur la voisine.
                   data-cible-fine
-                  className={`flex items-center justify-center w-8 h-8 rounded-md border transition
+                  className={`flex items-center justify-center w-7 h-7 rounded-md border transition
                     ${
                       fits
                         ? 'bg-panel2 border-border hoverable:border-accent'
                         : 'bg-panel border-border opacity-25 cursor-not-allowed'
                     }`}
                 >
-                  <RuneIcon setKey={st.key} size={20} />
+                  <RuneIcon setKey={st.key} size={16} />
                 </button>
               );
             })}

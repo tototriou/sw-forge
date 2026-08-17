@@ -433,15 +433,24 @@ au-dessus puisqu'elle n'apparaît qu'après une analyse.
 - les cartes de slot restent en **`min-w-0`** : une cellule de grille refuse
   sinon de descendre sous la largeur de son contenu et **déborde sur sa
   voisine**.
-- ⚠️ **« + Set » / « + Possibilité » (éditeur de sets) : `flex-wrap`, jamais
-  `pleineLargeur` sur un seul des deux.** `Bouton` pose `flex-none` dans son
-  socle — un `flex-1` en `className` ne le bat pas (vérifié dans le CSS
-  construit : `flex-none` est plus loin dans la feuille de style, donc
-  gagne). `pleineLargeur`, lui, s'applique bien malgré `flex-none` : posé sur
-  un seul des deux boutons d'une paire, il revendiquait toute la rangée et
-  poussait l'autre hors de la carte. La rangée passe en `flex-wrap` : le
-  second bouton descend à la ligne suivante s'il ne reste pas la place,
-  plutôt que déborder.
+- ⚠️ **« + Set » / « + Possibilité » (éditeur de sets) : `grid grid-cols-2` +
+  `pleineLargeur` sur les DEUX boutons, jamais `flex` + `flex-1`.** `Bouton`
+  pose `flex-none` dans son socle — un `flex-1` en `className` ne le bat pas
+  (vérifié dans le CSS construit : `flex-none` est plus loin dans la feuille
+  de style, donc gagne). `pleineLargeur`, lui, pose `w-full` et s'applique
+  bien malgré `flex-none`. Un essai intermédiaire l'avait posé sur un seul
+  des deux boutons + `flex-wrap` : celui-ci revendiquait alors toute la
+  rangée et poussait l'autre à la ligne suivante — les deux actions
+  n'étaient plus lisibles d'un coup d'œil comme une paire. La grille à deux
+  colonnes égales fait que chaque `w-full` remplit sa propre moitié : les
+  deux boutons restent côte à côte, à égalité de largeur.
+- le **panneau de choix des sets** (ouvert par « + Set ») affiche chaque set
+  du jeu en **case `w-7 h-7` (28 px)** avec `RuneIcon size={16}` — pas
+  `w-8 h-8`/20 px comme au premier jet. Le jeu compte plus de vingt sets ; à
+  32 px + `gap-1`, la grille pesait lourd sur une carte de siège déjà
+  étroite, pour un choix qu'on fait une fois par slot. Le symbole reste net
+  à 16 px (même échelle que la roue de runes, qui le dessine déjà aussi
+  petit).
 
 La colonne **« actuel » n'apparaît qu'après une analyse**, cohérent avec le
 fait que rien n'est confronté par défaut — mais une fois là, elle reste

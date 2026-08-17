@@ -1305,9 +1305,11 @@ Indépendamment du repli de la carte, **chaque deck a son propre chevron**.
   suivait le badge sur sa ligne et se retrouvait repoussé en bas dès que
   « réalisable N fois » gagnait sa propre ligne (voir ci-dessus) — il devait
   rester en haut à droite, toujours.
-- **Padding réduit au tactile** (`compact:p-1.5`, contre `p-2.5` à la souris) :
-  les cartes de deck sont dans une liste déjà dense (jusqu'à une demi-douzaine
-  par recommandation) sur un écran étroit.
+- **Padding réduit au tactile** (`compact:p-1`, contre `p-2.5` à la souris ;
+  resserré une seconde fois après un premier `compact:p-1.5` jugé encore trop
+  généreux) : les cartes de deck sont dans une liste déjà dense (jusqu'à une
+  demi-douzaine par recommandation) sur un écran étroit. Même resserrement
+  sur l'espacement de la rangée verdict/copies (`compact:gap-1 compact:mt-0.5`).
 - **« Déplier / Replier tous les decks »** : lien en haut à droite de la liste,
   affiché dès **2 decks**.
 - Un deck **en édition est toujours déplié**, quel que soit son état de repli.

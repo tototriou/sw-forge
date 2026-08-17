@@ -1096,7 +1096,7 @@ function DeckBlock({
   const leadInfo = leaderId != null ? speedLeadOf(monsterByCom2us.get(leaderId)) : null;
 
   return (
-    <div className={`rounded-xl border p-2.5 compact:p-1.5 ${DECK_AURA[empty ? 'unknown' : status]}`}>
+    <div className={`rounded-xl border p-2.5 compact:p-1 ${DECK_AURA[empty ? 'unknown' : status]}`}>
       <div className="mb-2">
         {/* ⚠️ **Rangée à part, jamais mêlée au verdict/copies en dessous** :
             le crayon doit rester en HAUT À DROITE quel que soit l'état du
@@ -1185,7 +1185,7 @@ function DeckBlock({
             propre ligne, systématique. `sm:basis-auto` : au-delà, la place ne
             manque plus, elles reprennent leur place naturelle côte à côte. */}
         {!editing && match && !empty && (
-          <div className="flex flex-wrap items-center gap-2 mt-1">
+          <div className="flex flex-wrap items-center gap-2 compact:gap-1 mt-1 compact:mt-0.5">
             <span className="basis-full sm:basis-auto">
               <DeckBadge match={match} />
             </span>
@@ -1221,7 +1221,7 @@ function DeckBlock({
             max={DECK_NOTE_MAX}
             rows={2}
             label="Consignes du deck"
-            placeholder="Consignes pour ce deck (ex. « ne pas ouvrir sur le leader », « garder le strip pour le tour 2 »)…"
+            placeholder="Consignes pour ce deck (ex. « ne pas ouvrir sur le leader »)…"
             onChange={(v) => recos.setDeckMeta(reco.id, deckIndex, { note: v })}
           />
         </div>

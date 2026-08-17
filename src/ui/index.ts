@@ -54,3 +54,8 @@ export type { InterrupteurProps } from './Interrupteur';
 
 export { default as Vignette } from './Vignette';
 export type { VignetteProps } from './Vignette';
+
+export { default as Case } from './Case';
+export type { CaseProps } from './Case';
+
+export { default as PiedDeDialogue } from './PiedDeDialogue';

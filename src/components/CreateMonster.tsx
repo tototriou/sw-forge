@@ -8,6 +8,7 @@ import { ELEMENTS, ElementKey, Monster } from '../types';
 import { CustomLead } from '../hooks/useCustomMonsters';
 import ElementIcon from './ElementIcon';
 import NumberField from './NumberField';
+import { Bouton, BoutonIcone, Champ, Selecteur } from '../ui';
 
 const ELEMENT_CHOICES = ELEMENTS.filter((e) => e.key !== 'unknown');
 
@@ -93,24 +94,140 @@ export default function CreateMonster({ onCreate, customMonsters, onDelete }: Pr
     setLead('');
   }
 
+  // ⚠️ **Un seul formulaire pour les deux contenants.** Il était écrit DEUX
+  // FOIS, une fois dans le panneau mobile et une fois dans la popup de bureau —
+  // quarante lignes identiques, et le genre de duplication qui ne se voit pas :
+  // on ne teste jamais les deux largeurs à la fois, donc un champ ajouté d'un
+  // côté manque de l'autre sans que rien ne le signale. Même trajet que le
+  // formulaire de catégorie (voir CategoryBar).
+  const formulaire = (
+    <>
+      <Champ
+        value={name}
+        onChange={(e) => setName(e.target.value)}
+        placeholder="Nom du monstre"
+        className="mb-2 compact:py-2.5"
+      />
+
+      <div className="mb-2.5 flex gap-2">
+        <Selecteur
+          value={element}
+          onChange={(e) => setElement(e.target.value as ElementKey)}
+          pleineLargeur={false}
+          className="flex-1 compact:py-2.5 compact:text-base"
+        >
+          {ELEMENT_CHOICES.map((el) => (
+            <option key={el.key} value={el.key}>
+              {el.label}
+            </option>
+          ))}
+        </Selecteur>
+        {/* La valeur est stockée en TEXTE ici (champ libre du formulaire) :
+            on convertit aux bornes du composant. */}
+        <NumberField
+          value={speed === '' ? null : Number(speed)}
+          allowEmpty
+          min={0}
+          width="w-16"
+          placeholder="SPD"
+          ariaLabel="Vitesse de base"
+          onChange={(v) => setSpeed(v == null ? '' : String(v))}
+        />
+      </div>
+
+      {/* Lead (optionnel). Affiché en Siège ; seul un lead de vitesse alimente le tick. */}
+      <Selecteur
+        value={leadStat}
+        onChange={(e) => setLeadStat(e.target.value)}
+        title="Type de lead (optionnel)"
+        className="mb-2.5"
+      >
+        <option value="">Lead : aucun</option>
+        {LEAD_STATS.map((s) => (
+          <option key={s.value} value={s.value}>
+            Lead {s.label}
+          </option>
+        ))}
+      </Selecteur>
+
+      {leadStat !== '' && (
+        <div className="mb-2.5 flex gap-2">
+          <NumberField
+            value={lead === '' ? null : Number(lead)}
+            allowEmpty
+            min={0}
+            max={100}
+            width="w-14"
+            placeholder="%"
+            ariaLabel="Valeur du lead en %"
+            onChange={(v) => setLead(v == null ? '' : String(v))}
+          />
+          <Selecteur
+            value={scope}
+            onChange={(e) => setScope(e.target.value as 'General' | 'Element')}
+            title="Portée du lead"
+            pleineLargeur={false}
+            className="flex-1"
+          >
+            <option value="General">Toutes cibles</option>
+            <option value="Element">Même élément</option>
+          </Selecteur>
+        </div>
+      )}
+
+      <Bouton
+        onClick={submit}
+        disabled={!valid}
+        ton="accent"
+        fond="doux"
+        trait="aucun"
+        pleineLargeur
+        icone={<Plus size={14} />}
+        libelle="Créer"
+        className="compact:py-3"
+      />
+    </>
+  );
+
+  // Liste des monstres déjà créés, partagée elle aussi par les deux contenants.
+  const listePerso = customMonsters.length > 0 && (
+    <div className="mt-3 border-t border-border pt-2.5">
+      <span className="label">Mes monstres perso</span>
+      <ul className="mt-1.5 flex max-h-40 flex-col gap-1 overflow-y-auto">
+        {customMonsters.map((m) => (
+          <li key={m.id} className="flex items-center gap-2 text-xs">
+            <ElementIcon element={m.element} size={15} className="flex-none" />
+            <span className="flex-1 truncate">{m.name}</span>
+            <span className="font-mono text-ink-dim">SPD {m.stats.speed ?? '—'}</span>
+            <BoutonIcone
+              onClick={() => setSuppressionAConfirmer({ id: String(m.id), nom: m.name })}
+              libelle={`Supprimer ${m.name}`}
+              taille="serre"
+              ton="danger"
+              icone={<X size={13} />}
+            />
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+
   return (
     <div className="relative" ref={ref}>
-      {/* Même gabarit que les autres boutons d'action (RTA & siège) :
-          px-3.5 py-2 / 13px, sinon il paraît rabougri à côté d'eux. */}
-      <button
+      {/* ⚠️ Même gabarit (`taille="md"`) que les autres boutons d'action de RTA
+          et du siège : ils se retrouvent côte à côte dans le panneau mobile, et
+          celui-ci y paraissait rabougri à côté d'eux.
+          ⚠️ Deux longueurs : dans le panneau mobile ce bouton occupe une cellule
+          d'un tiers de 348 px, où « Créer un monstre » passe à la ligne.
+          `aria-label` et l'infobulle portent la phrase entière. */}
+      <Bouton
         onClick={() => setOpen((o) => !o)}
         aria-label="Créer un monstre"
         title="Créer un monstre qui n'existe pas dans les données chargées"
-        className="flex items-center gap-1.5 rounded-lg border border-border bg-panel px-3.5 py-2 text-sm
-                   text-ink-dim hoverable:text-ink hoverable:border-accent transition"
-      >
-        {/* ⚠️ Deux longueurs : dans le panneau mobile ce bouton occupe une
-            cellule d'un tiers de 348 px, où « Créer un monstre » passe à la
-            ligne. `aria-label` et l'infobulle portent la phrase entière. */}
-        <Wand2 size={15} />
-        <span className="lg:hidden">Monstre</span>
-        <span className="hidden lg:inline">Créer un monstre</span>
-      </button>
+        icone={<Wand2 size={15} />}
+        libelle="Créer un monstre"
+        libelleCourt="Monstre"
+      />
 
       {/* ⚠️ **Panneau centré au doigt, popup ancrée à la souris.** La popup est
           en `absolute` dans le flux de la page ; posée dans le panneau
@@ -121,118 +238,8 @@ export default function CreateMonster({ onCreate, customMonsters, onDelete }: Pr
       {open && auDoigt && (
         <MobileSheet ouvert centre onFermer={() => setOpen(false)} titre="Nouveau monstre">
           <div className="flex flex-col">
-
-          <input
-            type="text"
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            placeholder="Nom du monstre"
-            // ⚠️ 16 px au doigt : en dessous, iOS zoome sur le champ à la mise
-            // au point et la page n'en revient pas seule.
-            className="w-full bg-panel2 border border-border rounded-lg px-3 py-2 text-sm text-ink
-                       placeholder:text-ink-dim outline-none focus:border-accent mb-2
-                       compact:py-2.5 compact:text-base"
-          />
-
-          <div className="flex gap-2 mb-2.5">
-            <select
-              value={element}
-              onChange={(e) => setElement(e.target.value as ElementKey)}
-              className="flex-1 bg-panel2 border border-border rounded-lg px-2.5 py-2 text-sm
-                         text-ink outline-none compact:py-2.5 compact:text-base"
-            >
-              {ELEMENT_CHOICES.map((el) => (
-                <option key={el.key} value={el.key}>
-                  {el.label}
-                </option>
-              ))}
-            </select>
-            {/* La valeur est stockée en TEXTE ici (champ libre du formulaire) :
-                on convertit aux bornes du composant. */}
-            <NumberField
-              value={speed === '' ? null : Number(speed)}
-              allowEmpty
-              min={0}
-              width="w-16"
-              placeholder="SPD"
-              ariaLabel="Vitesse de base"
-              onChange={(v) => setSpeed(v == null ? '' : String(v))}
-            />
-          </div>
-
-          {/* Lead (optionnel). Affiché en Siège ; seul un lead de vitesse alimente le tick. */}
-          <select
-            value={leadStat}
-            onChange={(e) => setLeadStat(e.target.value)}
-            title="Type de lead (optionnel)"
-            className="w-full bg-panel2 border border-border rounded-lg px-2.5 py-2 text-sm text-ink outline-none mb-2.5"
-          >
-            <option value="">Lead : aucun</option>
-            {LEAD_STATS.map((s) => (
-              <option key={s.value} value={s.value}>
-                Lead {s.label}
-              </option>
-            ))}
-          </select>
-
-          {leadStat !== '' && (
-            <div className="flex gap-2 mb-2.5">
-              <NumberField
-                value={lead === '' ? null : Number(lead)}
-                allowEmpty
-                min={0}
-                max={100}
-                width="w-14"
-                placeholder="%"
-                ariaLabel="Valeur du lead en %"
-                onChange={(v) => setLead(v == null ? '' : String(v))}
-              />
-              <select
-                value={scope}
-                onChange={(e) => setScope(e.target.value as 'General' | 'Element')}
-                title="Portée du lead"
-                className="flex-1 bg-panel2 border border-border rounded-lg px-2.5 py-2 text-sm text-ink outline-none"
-              >
-                <option value="General">Toutes cibles</option>
-                <option value="Element">Même élément</option>
-              </select>
-            </div>
-          )}
-
-          <button
-            onClick={submit}
-            disabled={!valid}
-            className="w-full flex items-center justify-center gap-1.5 rounded-lg bg-accent-soft
-                       px-3 py-2 text-sm font-semibold text-ink disabled:opacity-40
-                       disabled:cursor-not-allowed compact:py-3"
-          >
-            <Plus size={14} /> Créer
-          </button>
-
-          {customMonsters.length > 0 && (
-            <div className="mt-3 pt-2.5 border-t border-border">
-              <span className="label">
-                Mes monstres perso
-              </span>
-              <ul className="mt-1.5 flex flex-col gap-1 max-h-40 overflow-y-auto">
-                {customMonsters.map((m) => (
-                  <li key={m.id} className="flex items-center gap-2 text-xs">
-                    <ElementIcon element={m.element} size={15} className="flex-none" />
-                    <span className="truncate flex-1">{m.name}</span>
-                    <span className="font-mono text-ink-dim">SPD {m.stats.speed ?? '—'}</span>
-                    <button
-                      onClick={() => setSuppressionAConfirmer({ id: String(m.id), nom: m.name })}
-                      className="text-ink-dim hoverable:text-fire flex-none"
-                      title="Supprimer"
-                      aria-label="Supprimer"
-                    >
-                      <X size={13} />
-                    </button>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          )}
+            {formulaire}
+            {listePerso}
           </div>
         </MobileSheet>
       )}
@@ -256,122 +263,15 @@ export default function CreateMonster({ onCreate, customMonsters, onDelete }: Pr
             <span className="label">
               Nouveau monstre
             </span>
-            <button onClick={() => setOpen(false)} className="text-ink-dim hoverable:text-ink" aria-label="Fermer">
-              <X size={14} />
-            </button>
-          </div>
-
-          <input
-            type="text"
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            placeholder="Nom du monstre"
-            // ⚠️ 16 px au doigt : en dessous, iOS zoome sur le champ à la mise
-            // au point et la page n'en revient pas seule.
-            className="w-full bg-panel2 border border-border rounded-lg px-3 py-2 text-sm text-ink
-                       placeholder:text-ink-dim outline-none focus:border-accent mb-2
-                       compact:py-2.5 compact:text-base"
-          />
-
-          <div className="flex gap-2 mb-2.5">
-            <select
-              value={element}
-              onChange={(e) => setElement(e.target.value as ElementKey)}
-              className="flex-1 bg-panel2 border border-border rounded-lg px-2.5 py-2 text-sm
-                         text-ink outline-none compact:py-2.5 compact:text-base"
-            >
-              {ELEMENT_CHOICES.map((el) => (
-                <option key={el.key} value={el.key}>
-                  {el.label}
-                </option>
-              ))}
-            </select>
-            {/* La valeur est stockée en TEXTE ici (champ libre du formulaire) :
-                on convertit aux bornes du composant. */}
-            <NumberField
-              value={speed === '' ? null : Number(speed)}
-              allowEmpty
-              min={0}
-              width="w-16"
-              placeholder="SPD"
-              ariaLabel="Vitesse de base"
-              onChange={(v) => setSpeed(v == null ? '' : String(v))}
+            <BoutonIcone
+              onClick={() => setOpen(false)}
+              libelle="Fermer"
+              icone={<X size={14} />}
             />
           </div>
 
-          {/* Lead (optionnel). Affiché en Siège ; seul un lead de vitesse alimente le tick. */}
-          <select
-            value={leadStat}
-            onChange={(e) => setLeadStat(e.target.value)}
-            title="Type de lead (optionnel)"
-            className="w-full bg-panel2 border border-border rounded-lg px-2.5 py-2 text-sm text-ink outline-none mb-2.5"
-          >
-            <option value="">Lead : aucun</option>
-            {LEAD_STATS.map((s) => (
-              <option key={s.value} value={s.value}>
-                Lead {s.label}
-              </option>
-            ))}
-          </select>
-
-          {leadStat !== '' && (
-            <div className="flex gap-2 mb-2.5">
-              <NumberField
-                value={lead === '' ? null : Number(lead)}
-                allowEmpty
-                min={0}
-                max={100}
-                width="w-14"
-                placeholder="%"
-                ariaLabel="Valeur du lead en %"
-                onChange={(v) => setLead(v == null ? '' : String(v))}
-              />
-              <select
-                value={scope}
-                onChange={(e) => setScope(e.target.value as 'General' | 'Element')}
-                title="Portée du lead"
-                className="flex-1 bg-panel2 border border-border rounded-lg px-2.5 py-2 text-sm text-ink outline-none"
-              >
-                <option value="General">Toutes cibles</option>
-                <option value="Element">Même élément</option>
-              </select>
-            </div>
-          )}
-
-          <button
-            onClick={submit}
-            disabled={!valid}
-            className="w-full flex items-center justify-center gap-1.5 rounded-lg bg-accent-soft
-                       px-3 py-2 text-sm font-semibold text-ink disabled:opacity-40
-                       disabled:cursor-not-allowed compact:py-3"
-          >
-            <Plus size={14} /> Créer
-          </button>
-
-          {customMonsters.length > 0 && (
-            <div className="mt-3 pt-2.5 border-t border-border">
-              <span className="label">
-                Mes monstres perso
-              </span>
-              <ul className="mt-1.5 flex flex-col gap-1 max-h-40 overflow-y-auto">
-                {customMonsters.map((m) => (
-                  <li key={m.id} className="flex items-center gap-2 text-xs">
-                    <ElementIcon element={m.element} size={15} className="flex-none" />
-                    <span className="truncate flex-1">{m.name}</span>
-                    <span className="font-mono text-ink-dim">SPD {m.stats.speed ?? '—'}</span>
-                    <button
-                      onClick={() => setSuppressionAConfirmer({ id: String(m.id), nom: m.name })}
-                      className="text-ink-dim hoverable:text-fire flex-none"
-                      title="Supprimer"
-                      aria-label="Supprimer"
-                    >
-                      <X size={13} />
-                    </button>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          )}
+          {formulaire}
+          {listePerso}
         </div>
       )}
 

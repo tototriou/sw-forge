@@ -187,6 +187,24 @@ lignes de description, une icône centrée verticalement flotte en face de rien.
 > règle du [README](../README.md) : le défaut ne perd jamais rien, et ce qui perd
 > s'explique avant.
 
+**`Case`** — case à cocher avec son libellé. ⚠️ **La case native est là, seulement
+invisible** (`sr-only`) — jamais remplacée par un `<div>` cliquable. C'est elle
+qui porte l'état, le focus clavier, la barre d'espace et l'annonce du lecteur
+d'écran ; le carré dessiné n'est qu'une peinture posée dessus. Une fausse case en
+`div` oblige à réimplémenter tout cela, et on n'en réimplémente jamais que la
+moitié. Le tout est enveloppé dans un `<label>`, ce qui rend le **texte**
+cliquable : viser un carré de 15 px au doigt est un exercice, viser une phrase
+ne l'est pas.
+
+**`PiedDeDialogue`** — rangée d'actions au bas d'un dialogue.
+⚠️ `flex-col-reverse` sous `sm`, et **l'inversion n'est pas un détail** : les
+enfants s'écrivent dans l'ordre de lecture (secondaire, puis mis en avant), ce
+qui place le bouton attendu à droite sur écran large. Sur téléphone l'ordre
+s'inverse pour que la mise en avant tombe **en bas, sous le pouce**. Empilés dans
+l'ordre d'écriture, on aurait « Annuler » sous le pouce — l'inverse exact de ce
+qu'on veut. C'est un composant plutôt qu'une classe recopiée parce que le bug ne
+se voit **que** sur un téléphone, donc jamais pendant qu'on écrit le code.
+
 **`Vignette`** — case sélectionnable d'une grille (les monstres d'une catégorie).
 ⚠️ **La teinte vient de l'appelant.** C'est ce qui la distingue d'un bouton à
 état : la couleur de sélection est ici une **donnée** (la couleur de la catégorie
@@ -221,6 +239,17 @@ librairie —
   **domaine** (le lead de vitesse), pas un ton d'interface.
 - **Les cases de la palette de couleurs** : un aplat sans contenu ni libellé, dont
   le marqueur est un anneau et non une teinte. Un seul usage.
+- **Les entrées de la barre latérale** : ce sont des liens de NAVIGATION, pas des
+  actions — pleine largeur, alignées à gauche, fond au survol seul, sans pression
+  au clic. Les faire passer par `Bouton` (centré, `flex-none`, pressé au clic)
+  demanderait d'annuler la moitié de ses axes au point d'appel.
+- **La case de relique** (`MonsterGear`) et **la pilule de lead** : leur marqueur
+  est la couleur `star`, un code du JEU et non un ton d'interface.
+
+Et **les contrôles qui ne sont pas des contrôles** ne comptent pas : un
+`<input type="file">` masqué (déclencheur technique jamais dessiné), une poignée
+qui porte `draggable`, une surface de carte rendue cliquable. Ce sont des
+mécanismes, pas des boutons.
 
 > ⚠️ **Ces exceptions doivent rester rares et JUSTIFIÉES ici.** Une exception non
 > écrite est une divergence qui recommence.

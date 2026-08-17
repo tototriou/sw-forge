@@ -228,6 +228,9 @@ export default function RtaCard({
           onChange={(e) => onMove(String(monster.id), e.target.value)}
           title="Déplacer vers une section"
           taille="dense"
+          // ⚠️ La carte est déjà en `panel2` : le sélecteur y prend `panel` pour
+          // s'en détacher. Voir la prop `surface`.
+          surface="panel"
           className="mt-1"
         >
           {sectionKeys.map((k) => (

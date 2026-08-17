@@ -139,6 +139,14 @@ export interface BoutonProps
   forme?: FormeBouton;
   icone?: ReactNode;
   libelle?: ReactNode;
+  // Libellé COURT, employé sous `lg` à la place du précédent.
+  //
+  // ⚠️ Ce n'est pas un doublon du masquage : ici les deux formats montrent un
+  // mot, mais pas le même. « Créer un monstre » occupe une cellule entière du
+  // panneau mobile et y passe à la ligne, alors que « Monstre » suffit — le
+  // contexte du panneau porte le reste du sens. La phrase entière reste dans
+  // `title` et `aria-label`, qui eux ne changent jamais.
+  libelleCourt?: ReactNode;
   // Le libellé tombe au doigt et ne reste que l'icône. ⚠️ Sans effet si le
   // bouton n'a pas d'icône : un bouton muet n'est plus un bouton.
   libelleAuDoigt?: boolean;
@@ -174,6 +182,7 @@ const Bouton = forwardRef<HTMLButtonElement, BoutonProps>(function Bouton(
     forme = 'boite',
     icone,
     libelle,
+    libelleCourt,
     libelleAuDoigt = true,
     pleineLargeur = false,
     nuAuDoigt = false,
@@ -220,8 +229,18 @@ const Bouton = forwardRef<HTMLButtonElement, BoutonProps>(function Bouton(
           balise que la règle `[data-tiroir] button > span.compact\:hidden` va
           rechercher pour rendre les mots dans le panneau mobile. Un texte nu,
           enfant direct du bouton, ne serait pas rattrapable. */}
-      {libelle != null && (
-        <span className={masquable ? 'compact:hidden' : undefined}>{libelle}</span>
+      {/* ⚠️ Bascule par `lg:` et non par `compact:` : c'est une question de
+          PLACE (la largeur de la cellule du panneau), pas de pointeur. Une
+          tablette au doigt mais large garde la phrase entière. */}
+      {libelleCourt != null && libelle != null ? (
+        <>
+          <span className="lg:hidden">{libelleCourt}</span>
+          <span className="hidden lg:inline">{libelle}</span>
+        </>
+      ) : (
+        libelle != null && (
+          <span className={masquable ? 'compact:hidden' : undefined}>{libelle}</span>
+        )
       )}
     </button>
   );

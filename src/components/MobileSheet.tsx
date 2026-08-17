@@ -3,6 +3,7 @@ import { X } from 'lucide-react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { SOUS_LG, useMediaQuery } from '../hooks/useMediaQuery';
 import { useScrollBloque } from '../hooks/useScrollBloque';
+import { BoutonIcone } from '../ui';
 
 // Panneau d'actions MOBILE : les filtres et les actions de la page courante.
 //
@@ -138,17 +139,17 @@ export default function MobileSheet({
                   il n'annonce pas une page. À la taille d'un titre de section il
                   pesait autant que les actions qu'il coiffe. */}
               <h2 className="font-display text-sm tracking-wide text-ink">{titre}</h2>
-              <button
-                type="button"
+              {/* ⚠️ `data-cible-fine` : cette croix vit dans l'en-tête du
+                  panneau, dont la hauteur est mesurée pour laisser le maximum au
+                  contenu. Portée à 40 px, elle imposait sa taille à toute la
+                  bande de titre. */}
+              <BoutonIcone
                 onClick={onFermer}
-                aria-label="Fermer"
-                title="Fermer"
+                libelle="Fermer"
+                icone={<X size={16} />}
                 data-cible-fine
-                className="ml-auto flex aspect-square h-7 w-7 items-center justify-center rounded-md
-                           text-ink-dim transition-colors hoverable:bg-panel2 hoverable:text-ink"
-              >
-                <X size={16} />
-              </button>
+                className="ml-auto hoverable:bg-panel2"
+              />
             </div>
 
             {/* ⚠️ `overscroll-contain` : arrivé en bas du panneau, le geste ne

@@ -1,7 +1,7 @@
 import { ReactNode, useEffect, useRef, useState } from 'react';
-import { AlertTriangle, Check, HardDriveDownload, ShieldCheck, X } from 'lucide-react';
-import { BOUTON_DESTRUCTIF, BOUTON_PRIMAIRE, BOUTON_SECONDAIRE } from './buttonStyles';
+import { AlertTriangle, HardDriveDownload, ShieldCheck, X } from 'lucide-react';
 import { useScrollBloque } from '../hooks/useScrollBloque';
+import { Bouton, BoutonIcone, Case, Champ, PiedDeDialogue } from '../ui';
 
 /* --------------------------------------------------------------------------
  * Fenêtres modales de l'application
@@ -164,22 +164,19 @@ export function Modale({
             la boîte sans pousser le contenu d'une ligne. */}
         {croix && (
           <div className="sticky top-0 z-10 flex h-0 justify-end">
-            <button
-              type="button"
+            {/* Croix NUE : ni cadre, ni fond — c'est le défaut de BoutonIcone.
+                Encadrée, elle se lirait comme un bouton d'action de plus, au même
+                rang que ce qu'on est venu lire. Le symbole se reconnaît seul.
+                ⚠️ Ombre portée : sans fond, la croix passe DEVANT le contenu qui
+                défile dessous, et un trait fin sur du texte devient illisible.
+                C'est le minimum pour l'en détacher — un fond opaque rendrait le
+                cadre qu'on vient d'enlever. */}
+            <BoutonIcone
               onClick={onClose}
-              title="Fermer"
-              aria-label="Fermer"
-              // Croix NUE : ni cadre, ni fond. Encadrée, elle se lisait comme un
-              // bouton d'action de plus, au même rang que ce qu'on est venu lire.
-              // Le symbole se reconnaît seul ; il n'a qu'à s'éclaircir au survol.
-              className="-mt-1 -mr-1 p-1.5 text-ink-dim transition-colors hoverable:hover:text-ink"
-            >
-              {/* ⚠️ Ombre portée : sans fond, la croix passe DEVANT le contenu
-                  qui défile dessous, et un trait fin sur du texte devient
-                  illisible. C'est le minimum pour l'en détacher — un fond
-                  opaque rendrait le cadre qu'on vient d'enlever. */}
-              <X size={18} className="drop-shadow-[0_1px_2px_rgba(0,0,0,0.8)]" />
-            </button>
+              libelle="Fermer"
+              icone={<X size={18} className="drop-shadow-[0_1px_2px_rgba(0,0,0,0.8)]" />}
+              className="-mr-1 -mt-1 hoverable:bg-transparent"
+            />
           </div>
         )}
         {children}
@@ -187,10 +184,6 @@ export function Modale({
     </div>
   );
 }
-
-// ⚠️ Ces trois classes ont été REMONTÉES dans buttonStyles.ts au deuxième
-// usage plutôt que recopiées ailleurs. C'est là que vit la pression au clic.
-const BOUTON_NEUTRE = BOUTON_PRIMAIRE;
 
 // Confirmation générique. `destructif` change la couleur du bouton d'action ET
 // l'ordre d'insistance : quand l'action détruit, c'est « Annuler » qui est mis en
@@ -228,14 +221,22 @@ export function ConfirmDialog({
         </div>
       </div>
 
-      <div className="mt-4 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
-        <button onClick={onConfirm} className={destructif ? BOUTON_DESTRUCTIF : BOUTON_SECONDAIRE}>
-          {libelleAction}
-        </button>
-        <button onClick={onCancel} autoFocus className={BOUTON_NEUTRE}>
-          Annuler
-        </button>
-      </div>
+      {/* ⚠️ L'ordre d'écriture donne l'action d'abord, « Annuler » ensuite —
+          donc « Annuler » à DROITE sur écran large et EN BAS sous le pouce sur
+          téléphone. C'est voulu : le défaut ne perd jamais rien (voir
+          spec/README.md), et c'est lui qui reçoit le focus initial. */}
+      <PiedDeDialogue>
+        {/* ⚠️ `plein` pour le ton neutre : c'est `bg-panel2`, la surface d'un
+            bouton posé DANS un dialogue — lui-même déjà en `bg-panel`. Un fond
+            `doux` s'y confondrait avec la boîte qui le porte. */}
+        <Bouton
+          onClick={onConfirm}
+          ton={destructif ? 'danger' : 'neutre'}
+          fond={destructif ? 'doux' : 'plein'}
+          libelle={libelleAction}
+        />
+        <Bouton onClick={onCancel} autoFocus ton="accent" fond="doux" libelle="Annuler" />
+      </PiedDeDialogue>
     </Modale>
   );
 }
@@ -279,23 +280,21 @@ export function PromptDialog({
           onValider(valeur);
         }}
       >
-        <input
+        <Champ
           ref={ref}
           value={valeur}
           onChange={(e) => setValeur(e.target.value)}
           placeholder={placeholder}
           autoFocus
-          className="mt-3 w-full rounded-lg border border-border bg-panel2 px-3 py-2 text-sm text-ink
-                     outline-none focus:border-accent"
+          className="mt-3"
         />
-        <div className="mt-4 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
-          <button type="button" onClick={onCancel} className={BOUTON_SECONDAIRE}>
-            Annuler
-          </button>
-          <button type="submit" className={BOUTON_NEUTRE}>
-            {libelleAction}
-          </button>
-        </div>
+        {/* ⚠️ Ici l'ordre est l'inverse de ConfirmDialog : c'est l'ACTION qui
+            est mise en avant, parce qu'elle ne perd rien — on vient saisir une
+            valeur, pas confirmer une destruction. */}
+        <PiedDeDialogue>
+          <Bouton onClick={onCancel} fond="plein" libelle="Annuler" />
+          <Bouton type="submit" ton="accent" fond="doux" libelle={libelleAction} />
+        </PiedDeDialogue>
       </form>
     </Modale>
   );
@@ -384,40 +383,35 @@ export function KeepAccountDialog({
           </span>
         </p>
 
-        {/* La case s'applique aux DEUX réponses, et seulement à cette session. */}
-        <label className="mt-3.5 flex cursor-pointer select-none items-center gap-2 text-micro text-ink-dim">
-          <span
-            className={`flex h-[15px] w-[15px] flex-none items-center justify-center rounded border transition
-              ${nePlusMontrer ? 'border-star bg-star text-bg' : 'border-border bg-panel2'}`}
-          >
-            {nePlusMontrer && <Check size={11} strokeWidth={3} />}
-          </span>
-          <input
-            type="checkbox"
-            className="sr-only"
-            checked={nePlusMontrer}
-            onChange={(e) => setNePlusMontrer(e.target.checked)}
-          />
-          Ne plus me montrer pendant cette session
-        </label>
+        {/* La case s'applique aux DEUX réponses, et seulement à cette session.
+            ⚠️ Ton `star` : elle accompagne la réponse recommandée, dont elle
+            reprend la couleur — la même que celle du paragraphe au-dessus. */}
+        <Case
+          libelle="Ne plus me montrer pendant cette session"
+          ton="star"
+          checked={nePlusMontrer}
+          onChange={(e) => setNePlusMontrer(e.target.checked)}
+          className="mt-3.5"
+        />
 
-        <div className="mt-3 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
-          <button
+        <PiedDeDialogue className="mt-3">
+          <Bouton
             onClick={() => onChoose(false, nePlusMontrer)}
-            className="rounded-lg border border-border bg-panel2 px-3.5 py-2 text-xs font-semibold
-                       text-ink-dim transition hoverable:text-ink"
-          >
-            Non, ne rien garder de mes informations
-          </button>
-          <button
+            fond="plein"
+            taille="sm"
+            libelle="Non, ne rien garder de mes informations"
+          />
+          <Bouton
             onClick={() => onChoose(true, nePlusMontrer)}
             autoFocus
-            className="rounded-lg bg-accent-soft px-3.5 py-2 text-xs
-                       font-semibold text-ink shadow transition hoverable:brightness-110"
-          >
-            Garder mes données (recommandé)
-          </button>
-        </div>
+            ton="accent"
+            fond="doux"
+            trait="aucun"
+            taille="sm"
+            libelle="Garder mes données (recommandé)"
+            className="shadow"
+          />
+        </PiedDeDialogue>
 
         <p className="mt-2.5 text-center text-micro text-ink-dim">
           Tu pourras changer d'avis à tout moment dans les réglages ⚙.

@@ -402,6 +402,7 @@ export default function RtaPage({
           onChange={(e) => setNewSection(e.target.value)}
           taille="sm"
           pleineLargeur={false}
+          surface="panel"
         >
           <option value="">Choisir un set de runes…</option>
           {availableSets.map((s) => (

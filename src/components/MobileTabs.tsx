@@ -1,6 +1,7 @@
 import { ReactNode } from 'react';
 import { SlidersHorizontal } from 'lucide-react';
 import { motion } from 'framer-motion';
+import { Bouton } from '../ui';
 
 // Barre d'onglets du BAS — la navigation sous `lg`.
 //
@@ -47,22 +48,24 @@ export default function MobileTabs({
           ne recouvre alors aucun contenu que l'on vient de lire (le regard part
           de la gauche). */}
       {onOuvrirActions && (
-        <button
-          type="button"
+        <Bouton
           onClick={onOuvrirActions}
           aria-expanded={actionsOuvertes}
           aria-label="Filtres et actions de la page"
-          className="lg:hidden fixed right-3 z-30 flex items-center gap-1.5 rounded-full border
-                     border-border bg-panel2 px-3 py-2 text-xs font-semibold text-ink
-                     shadow-[0_4px_16px_-4px_rgba(0,0,0,0.6)] transition-colors
-                     hoverable:border-ctx"
+          fond="plein"
+          forme="pilule"
+          taille="sm"
+          icone={<SlidersHorizontal size={15} />}
+          libelle="Options"
+          // ⚠️ L'OMBRE est ici justifiée, contrairement à la règle générale : ce
+          // bouton FLOTTE réellement au-dessus de la page qui défile dessous.
+          // C'est le seul cas où l'élévation dit quelque chose de vrai.
+          className="fixed right-3 z-30 shadow-[0_4px_16px_-4px_rgba(0,0,0,0.6)]
+                     hoverable:border-ctx lg:hidden"
           // ⚠️ Décalé de la hauteur de la barre d'onglets PLUS l'encoche du bas :
           // sans `env()`, il se pose sur les onglets des iPhone récents.
           style={{ bottom: 'calc(env(safe-area-inset-bottom) + 68px)' }}
-        >
-          <SlidersHorizontal size={15} />
-          Options
-        </button>
+        />
       )}
 
       <nav

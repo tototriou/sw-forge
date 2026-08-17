@@ -1875,76 +1875,69 @@ function StatEditor({
   spdLead: number; // points de VIT ajoutés par le siège, au TOTAL seulement
   onSet: (key: RecoStatKey, total: number | null) => void;
 }) {
-  // ⚠️ La table ne doit JAMAIS se comprimer : en dessous de sa largeur mini elle
-  // fait défiler DANS la carte, au lieu d'écraser les colonnes (le champ de
-  // bonus finissait masqué) ou de déborder sur la carte voisine.
+  // ⚠️ **PLUS de table qui défile.** Une table à colonnes fixes, sous sa
+  // largeur mini, faisait défiler HORIZONTALEMENT dans la carte — et une
+  // barre de défilement horizontale, sur trois ou quatre chiffres, est
+  // illisible : on ne voit plus la ligne entière d'un coup d'œil. Chaque
+  // stat est maintenant une ligne `flex-wrap` : label, base, bonus, total —
+  // si la largeur manque, le TOTAL passe à la ligne suivante plutôt que de
+  // sortir du cadre. Chaque valeur porte son propre petit mot (« base »,
+  // « total ») puisqu'il n'y a plus d'en-tête de colonne au-dessus pour le
+  // dire.
   return (
-    <div className="overflow-x-auto">
-    <table className="w-full min-w-[236px] text-micro">
-      <thead>
-        <tr className="label">
-          <th className="pb-1 pr-2 text-left font-normal">Stat</th>
-          <th className="pb-1 pr-2 text-right font-normal" title="Stat du monstre 6★ nu, sans runes">
-            base
-          </th>
-          <th className="pb-1 pr-2 text-left font-normal">bonus</th>
-          <th className="pb-1 text-right font-normal">total</th>
-        </tr>
-      </thead>
-      <tbody>
-        {RECO_STATS.map((st) => {
-          const known = baseFor(st.key, monster);
-          const base = known ?? 0; // base inconnue → le champ vaut le total
-          const total = slot.stats[st.key];
-          const bonus = total != null ? total - base : null;
-          return (
-            <tr key={st.key} className="border-b border-border/40 last:border-0">
-              <td
-                className="py-0.5 pr-2 text-ink-dim"
-                title={st.key === 'spd' && spdLead > 0 ? SPD_HINT : undefined}
-              >
-                {st.label}
-              </td>
-              <td className="py-0.5 pr-2 text-right font-mono text-ink-dim tabular-nums">
-                {known != null ? fmtStat(known) : '—'}
-              </td>
-              <td className="py-0.5 pr-2">
-                <div className="flex items-center gap-1">
-                  <span className="font-mono text-micro text-good/70">+</span>
-                  {/* Champ texte (et non `type=number`) : pas de boutons +/- à
-                      droite, qui mangent la largeur d'une colonne déjà étroite.
-                      `inputMode=numeric` garde le pavé numérique sur mobile.
-                      `min-w-[5ch]` : 5 chiffres visibles au minimum — la plupart
-                      des stats en ont autant (PV ~35 000), et sans ce plancher la
-                      colonne se refermait jusqu'à masquer la valeur saisie. */}
-                  <Champ
-                    inputMode="numeric"
-                    value={bonus ?? ''}
-                    onChange={(e) => {
-                      const raw = e.target.value.trim();
-                      if (raw === '' || raw === '-') return onSet(st.key, null);
-                      if (!/^-?\d+$/.test(raw)) return; // on ignore la frappe invalide
-                      onSet(st.key, base + Number(raw));
-                    }}
-                    placeholder="—"
-                    className="min-w-[5ch] bg-panel px-1 py-0.5 text-micro font-mono tabular-nums text-good"
-                  />
-                </div>
-              </td>
-              <td
-                className={`py-0.5 text-right font-mono tabular-nums ${
-                  total != null ? 'font-semibold text-ink' : 'text-ink-dim'
-                }`}
-              >
-                {total != null
-                  ? `${fmtStat(total + (st.key === 'spd' ? spdLead : 0))}${st.suffix}`
-                  : '—'}
-              </td>
-            </tr>
-          );
-        })}
-      </tbody>
-    </table>
+    <div className="flex flex-col">
+      {RECO_STATS.map((st) => {
+        const known = baseFor(st.key, monster);
+        const base = known ?? 0; // base inconnue → le champ vaut le total
+        const total = slot.stats[st.key];
+        const bonus = total != null ? total - base : null;
+        return (
+          <div
+            key={st.key}
+            className="flex flex-wrap items-center gap-x-2 gap-y-1 border-b border-border/40 py-1 text-micro last:border-0"
+          >
+            <span
+              className="w-14 flex-none text-ink-dim"
+              title={st.key === 'spd' && spdLead > 0 ? SPD_HINT : undefined}
+            >
+              {st.label}
+            </span>
+            <span className="flex-none font-mono text-ink-dim tabular-nums">
+              {known != null ? fmtStat(known) : '—'}
+            </span>
+            <span className="flex flex-none items-center gap-1">
+              <span className="font-mono text-micro text-good/70">+</span>
+              {/* Champ texte (et non `type=number`) : pas de boutons +/- à
+                  droite, qui mangent la largeur d'une colonne déjà étroite.
+                  `inputMode=numeric` garde le pavé numérique sur mobile.
+                  `min-w-[5ch]` : 5 chiffres visibles au minimum — la plupart
+                  des stats en ont autant (PV ~35 000), et sans ce plancher le
+                  champ se refermait jusqu'à masquer la valeur saisie. */}
+              <Champ
+                inputMode="numeric"
+                value={bonus ?? ''}
+                onChange={(e) => {
+                  const raw = e.target.value.trim();
+                  if (raw === '' || raw === '-') return onSet(st.key, null);
+                  if (!/^-?\d+$/.test(raw)) return; // on ignore la frappe invalide
+                  onSet(st.key, base + Number(raw));
+                }}
+                placeholder="—"
+                className="min-w-[5ch] bg-panel px-1 py-0.5 text-micro font-mono tabular-nums text-good"
+              />
+            </span>
+            <span
+              className={`ml-auto flex-none font-mono tabular-nums ${
+                total != null ? 'font-semibold text-ink' : 'text-ink-dim'
+              }`}
+            >
+              {total != null
+                ? `= ${fmtStat(total + (st.key === 'spd' ? spdLead : 0))}${st.suffix}`
+                : '—'}
+            </span>
+          </div>
+        );
+      })}
     </div>
   );
 }
@@ -2554,95 +2547,88 @@ function StatList({
   // La colonne « toi » n'a de sens qu'après une analyse.
   const analyse = !!sm && sm.checks.some((c) => c.actual !== null);
 
+  // ⚠️ **PLUS de table qui défile** — même règle que `StatEditor` juste
+  // au-dessus : chaque stat est une ligne `flex-wrap`, et la colonne
+  // « actuel » passe à la ligne suivante plutôt que de sortir du cadre.
+  // ⚠️ **Un seul en-tête « actuel », pas un mot répété à chaque ligne.**
+  // Écrire « toi » devant chaque valeur pesait plus lourd que la colonne
+  // qu'il remplaçait ; une seule étiquette au-dessus, alignée comme la
+  // colonne l'était dans la table, suffit à la nommer une fois pour toutes.
   return (
     <ZoneCliquable
       onClick={() => setTotal((v) => !v)}
       aria-pressed={total}
       title={total ? 'Voir le détail (base + bonus)' : 'Voir les valeurs totales'}
-      className="block w-full overflow-x-auto text-left"
+      className="flex w-full flex-col text-left"
     >
-    <table className="w-full min-w-[236px] text-micro">
-      <thead>
-        <tr className="label">
-          <th className="pb-1 pr-1.5 text-left font-normal">Stat</th>
-          {total ? (
-            <th className="pb-1 pr-1.5 text-right font-normal">total</th>
-          ) : (
-            <>
-              <th className="pb-1 pr-1.5 text-right font-normal" title="Stat du monstre 6★ nu">
-                base
-              </th>
-              <th className="pb-1 pr-1.5 text-right font-normal">bonus</th>
-            </>
-          )}
-          {analyse && <th className="pb-1 pl-1.5 text-right font-normal">toi</th>}
-        </tr>
-      </thead>
-      <tbody>
-        {entries.map((st) => {
-          const req = slot.stats[st.key]!;
-          const known = baseFor(st.key, monster);
-          const bonus = known != null ? req - known : null;
-          const c = checkOf(st.key);
-          // Stat non respectée → ligne mise en évidence (fond rouge léger), pour
-          // qu'on voie d'un coup CE qui bloque sans lire les chiffres.
-          const rate = analyse && c && c.actual !== null && !c.ok;
-          // Le bonus du siege (totem + lead) n'entre que dans les TOTAUX : la base
-          // et le bonus affiches restent les valeurs visibles du build.
-          const add = st.key === 'spd' ? spdLead : 0;
-          return (
-            <tr
-              key={st.key}
-              className={`border-b border-border/40 last:border-0 ${rate ? 'bg-fire/10' : ''}`}
+      {analyse && (
+        <div className="flex items-center pb-1">
+          <span className="ml-auto label">actuel</span>
+        </div>
+      )}
+      {entries.map((st) => {
+        const req = slot.stats[st.key]!;
+        const known = baseFor(st.key, monster);
+        const bonus = known != null ? req - known : null;
+        const c = checkOf(st.key);
+        // Stat non respectée → ligne mise en évidence (fond rouge léger), pour
+        // qu'on voie d'un coup CE qui bloque sans lire les chiffres.
+        const rate = analyse && c && c.actual !== null && !c.ok;
+        // Le bonus du siege (totem + lead) n'entre que dans les TOTAUX : la base
+        // et le bonus affiches restent les valeurs visibles du build.
+        const add = st.key === 'spd' ? spdLead : 0;
+        return (
+          <div
+            key={st.key}
+            className={`flex flex-wrap items-center gap-x-2 gap-y-1 border-b border-border/40 py-1
+              text-micro last:border-0 ${rate ? 'bg-fire/10' : ''}`}
+          >
+            <span
+              className={`w-14 flex-none ${rate ? 'text-fire font-semibold' : 'text-ink-dim'}`}
+              title={add > 0 ? SPD_HINT : undefined}
             >
-              <td
-                className={`py-0.5 pr-1.5 ${rate ? 'text-fire font-semibold' : 'text-ink-dim'}`}
-                title={add > 0 ? SPD_HINT : undefined}
+              {st.label}
+            </span>
+            {total ? (
+              <span className="flex-none font-mono font-semibold text-ink tabular-nums">
+                {fmtStat(req + add)}
+                {st.suffix}
+              </span>
+            ) : (
+              <>
+                <span className="flex-none font-mono text-ink-dim tabular-nums">
+                  {known != null ? fmtStat(known) : '—'}
+                </span>
+                <span className="flex-none font-mono text-good tabular-nums">
+                  {bonus != null ? `+${fmtStat(bonus)}` : '—'}
+                </span>
+              </>
+            )}
+            {analyse && (
+              <span
+                className={`ml-auto flex-none font-mono tabular-nums ${
+                  c ? (c.ok ? 'text-good' : 'text-fire') : 'text-ink-dim'
+                }`}
+                title={
+                  c && c.actual !== null && !c.ok
+                    ? `Il te manque ${fmtStat(-c.diff)}${st.suffix}`
+                    : undefined
+                }
               >
-                {st.label}
-              </td>
-              {total ? (
-                <td className="py-0.5 pr-1.5 text-right font-mono font-semibold text-ink tabular-nums">
-                  {fmtStat(req + add)}
-                  {st.suffix}
-                </td>
-              ) : (
-                <>
-                  <td className="py-0.5 pr-1.5 text-right font-mono text-ink-dim tabular-nums">
-                    {known != null ? fmtStat(known) : '—'}
-                  </td>
-                  <td className="py-0.5 pr-1.5 text-right font-mono text-good tabular-nums">
-                    {bonus != null ? `+${fmtStat(bonus)}` : '—'}
-                  </td>
-                </>
-              )}
-              {analyse && (
-                <td
-                  className={`py-0.5 pl-1.5 text-right font-mono font-semibold tabular-nums ${
-                    c ? (c.ok ? 'text-good' : 'text-fire') : 'text-ink-dim'
-                  }`}
-                  title={
-                    c && c.actual !== null && !c.ok
-                      ? `Il te manque ${fmtStat(-c.diff)}${st.suffix}`
-                      : undefined
-                  }
-                >
-                  {c && c.actual !== null ? (
-                    <>
-                      {fmtStat(c.actual + add)}
-                      {st.suffix}
-                      {!c.ok && <span className="text-fire/70"> (−{fmtStat(-c.diff)})</span>}
-                    </>
-                  ) : (
-                    '—'
-                  )}
-                </td>
-              )}
-            </tr>
-          );
-        })}
-      </tbody>
-    </table>
+                {c && c.actual !== null ? (
+                  <>
+                    {fmtStat(c.actual + add)}
+                    {st.suffix}
+                    {!c.ok && <span className="text-fire/70"> (−{fmtStat(-c.diff)})</span>}
+                  </>
+                ) : (
+                  '—'
+                )}
+              </span>
+            )}
+          </div>
+        );
+      })}
     </ZoneCliquable>
   );
 }

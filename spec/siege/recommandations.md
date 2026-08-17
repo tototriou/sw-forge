@@ -392,31 +392,47 @@ l'inclut) pesaient plus que ce qu'elles ajoutaient. Le **bonus est recalculé**
 (`total − base`), il n'est jamais stocké :
 
 ```
-Stat        base    bonus       toi              Stat        total       toi
-VIT          107     +105       220   ← atteint      ⇄        VIT      212       220
-PV        10 050  +24 950   28 400 (−6 600)                   PV    35 000   28 400 (−6 600)
+                                    actuel                              actuel
+Stat        base    bonus                        Stat        total
+VIT          107     +105          220 ← atteint     ⇄        VIT      212        220
+PV        10 050  +24 950      28 400 (−6 600)                PV    35 000    28 400 (−6 600)
 ```
 
-⚠️ **« toi » reste affichée dans les deux états** : c'est la seule colonne qui
-compare à mon compte, elle ne dépend pas de la question détail/total.
+⚠️ **« actuel » reste affichée dans les deux états** : c'est la seule colonne qui
+compare à mon compte, elle ne dépend pas de la question détail/total. Son
+en-tête est écrit **une seule fois**, au-dessus de la liste — répéter le mot
+sur chaque ligne (l'essai précédent, « toi 220 ») pesait plus lourd que la
+colonne qu'il remplaçait.
 
-#### ⚠️ Les tables de stats ne se compriment jamais
+#### ⚠️ Pas de table, pas de défilement horizontal — des lignes `flex-wrap`
 
-Sur écran étroit, les colonnes se refermaient jusqu'à **masquer la valeur saisie**
-dans le champ de bonus, et les cartes de slot finissaient par se chevaucher.
-Trois garde-fous, à conserver ensemble :
+Une table à colonnes fixes, sous sa largeur minimale, défilait
+**horizontalement DANS la carte** (`overflow-x-auto`) — et une barre de
+défilement horizontale, sur trois ou quatre chiffres, est **illisible** : on
+ne voit plus la ligne entière d'un coup d'œil, et il faut deviner qu'il y a
+quelque chose à faire glisser.
 
-- le **champ de bonus** a un plancher de **`min-w-[5ch]`** — cinq chiffres
+**Chaque stat est une ligne `flex flex-wrap`** (label, base, bonus, total)
+plutôt qu'une rangée de `<td>` : si la largeur manque, la **colonne « actuel »
+passe à la ligne suivante** au lieu de sortir du cadre.
+
+⚠️ **« actuel » garde un en-tête, écrit UNE SEULE fois au-dessus de la
+liste** (`label`, aligné comme la colonne l'était dans la table) — un premier
+essai l'écrivait devant chaque valeur (« toi 220 » répété sur chaque ligne),
+plus lourd que la colonne qu'il remplaçait. Les autres colonnes (`Stat`,
+`base`/`bonus`/`total`), elles, n'ont plus d'en-tête du tout : leur ordre
+suffit à les nommer, et « actuel » est la seule à valoir la peine d'un mot
+au-dessus puisqu'elle n'apparaît qu'après une analyse.
+
+- le **champ de bonus** garde son plancher **`min-w-[5ch]`** — cinq chiffres
   visibles, la taille de la plupart des stats (PV ~35 000) ;
-- chaque table porte une **largeur minimale** (`min-w-[236px]`) et défile
-  **horizontalement dans sa propre carte** (`overflow-x-auto`) au lieu d'écraser
-  ses colonnes ;
-- les cartes de slot sont en **`min-w-0`** : sans ça une cellule de grille refuse
-  de descendre sous la largeur de son contenu et **déborde sur sa voisine**
-  plutôt que de laisser la table défiler.
+- les cartes de slot restent en **`min-w-0`** : une cellule de grille refuse
+  sinon de descendre sous la largeur de son contenu et **déborde sur sa
+  voisine**.
 
-La colonne **« toi » n'apparaît qu'après une analyse** (sinon la table s'arrête à
-`total`), cohérent avec le fait que rien n'est confronté par défaut.
+La colonne **« actuel » n'apparaît qu'après une analyse**, cohérent avec le
+fait que rien n'est confronté par défaut — mais une fois là, elle reste
+affichée dans les deux états détail/total (voir plus haut).
 
 #### ⚠️ VIT : le lead entre dans le TOTAL, pas dans le bonus
 
@@ -425,7 +441,7 @@ En siège, la vitesse gagne un bonus en % de la **base** : **totem de guilde
 la vitesse de combat lue sur les cartes d'équipe, et donc la seule valeur qu'on
 puisse rapprocher d'une consigne (« Trevor 352 »).
 
-Ce bonus est appliqué **uniquement à l'affichage du total** (et de « toi »),
+Ce bonus est appliqué **uniquement à l'affichage du total** (et de « actuel »),
 jamais à la base ni au bonus saisi — **base et bonus restent les valeurs
 visibles du build** :
 

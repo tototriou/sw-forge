@@ -6,7 +6,7 @@ import RuneIcon from '../RuneIcon';
 import CategoryRing from './CategoryRing';
 import DesyncBadge from './DesyncBadge';
 import { ConfirmDialog } from '../Dialogs';
-import { BoutonIcone, Selecteur } from '../../ui';
+import { BoutonIcone, Selecteur, ZoneCliquable } from '../../ui';
 
 const SPD_ICON = `${import.meta.env.BASE_URL}stats/spd.png`;
 
@@ -121,17 +121,17 @@ export default function RtaCard({
           ⚠️ Masquée au DOIGT (`coarse:hidden`) : le glisser-déposer HTML5 n'y
           fonctionne pas, et le sélecteur de section sous le nom fait déjà le
           travail. Elle prenait 14 px de large sur une carte qui en compte 150. */}
-      <button
+      <ZoneCliquable
+        poignee
         draggable
         onDragStart={handleDragStart}
         onDragEnd={onDragEnd}
-        className="flex-none cursor-grab active:cursor-grabbing text-ink-dim
-                   hoverable:text-ink touch-none coarse:hidden"
+        className="text-ink-dim hoverable:text-ink coarse:hidden"
         title="Glisser vers une section"
         aria-label="Déplacer"
       >
         <GripVertical size={14} />
-      </button>
+      </ZoneCliquable>
 
       {/* ⚠️ **Le PORTRAIT ouvre le détail des runes.** Un chevron « ⌄ » le
           faisait aussi, au bout de la ligne : deux cibles pour un seul geste,

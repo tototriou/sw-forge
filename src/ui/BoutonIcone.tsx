@@ -42,6 +42,13 @@ export interface BoutonIconeProps
   fond?: FondBouton;
   trait?: TraitBouton;
   actif?: boolean;
+  // Retire l'infobulle NATIVE en gardant l'`aria-label`.
+  //
+  // ⚠️ Pour un bouton qui ouvre déjà un panneau explicatif au clic : l'infobulle
+  // y ferait doublon, et elle s'affiche par-dessus le panneau qu'on vient
+  // d'ouvrir. Le libellé reste obligatoire — c'est l'annonce au lecteur d'écran
+  // qu'on ne retire jamais, seulement son affichage à la souris.
+  sansInfobulle?: boolean;
   // N'apparaît qu'au survol de son conteneur, qui doit porter `group`.
   //
   // ⚠️ **JAMAIS `hidden group-hover:flex`** : l'élément sortirait du flux, donc
@@ -61,6 +68,7 @@ const BoutonIcone = forwardRef<HTMLButtonElement, BoutonIconeProps>(function Bou
     cadre = false,
     fond,
     trait,
+    sansInfobulle = false,
     auSurvol = false,
     className = '',
     ...reste
@@ -85,7 +93,7 @@ const BoutonIcone = forwardRef<HTMLButtonElement, BoutonIconeProps>(function Bou
       // mais VIDE.
       taille="carre"
       aria-label={libelle}
-      title={libelle}
+      title={sansInfobulle ? undefined : libelle}
       icone={icone}
       // ⚠️ Voir plus haut : `serre` s'exempte de la règle tactile parce que son
       // contenant est plus petit qu'elle, pas parce que 40 px gênait.

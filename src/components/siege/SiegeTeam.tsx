@@ -16,7 +16,7 @@ import MonsterPicker from '../MonsterPicker';
 import ElementIcon from '../ElementIcon';
 import RuneIcon from '../RuneIcon';
 import MonsterGear from '../MonsterGear';
-import NumberField from '../NumberField';
+import NumberField from '../../ui/NumberField';
 import LeadPill, { LeadBadge } from './LeadPill';
 import { ConfirmDialog } from '../Dialogs';
 import { useMediaQuery, COMPACT } from '../../hooks/useMediaQuery';

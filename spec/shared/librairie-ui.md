@@ -291,12 +291,16 @@ main, avec trois opacités différentes.
 Et l'inverse est vrai : **tout ne monte pas**. Restent délibérément hors
 librairie —
 
-- **Rien qui soit un bouton.** `InterrupteurAffichage` et la pilule de lead SPD
-  faisaient partie de cette liste ; ils n'en font plus. Le premier n'est
-  aujourd'hui qu'un **réglage** de `BoutonGroupe` — le sens de son accent
-  s'inverse entre les formats, ce qui se dit en passant `actif={!actif}`, pas en
-  ajoutant un drapeau au composant partagé. La seconde passe sa teinte de
-  domaine par `classNameActif`, prévu pour cela.
+- **Rien.** Cette liste a compté jusqu'à six entrées ; elle est vide. Chacune se
+  ramenait à un manque de la librairie, pas à une singularité de l'écran :
+  l'interrupteur d'affichage voulait un accent inversé (`actif={!actif}`), la
+  pilule de lead une teinte du jeu (`classNameActif`), la palette un marqueur en
+  anneau (`Vignette aplat`), le badge de désync et la relique des tons qui
+  n'existaient pas (`alerte`, `precieux`), les surfaces de carte un composant
+  volontairement nu (`ZoneCliquable`).
+- **Sauf ce qui n'est pas un contrôle** : un `<input type="file">` masqué, qui
+  n'est jamais dessiné — c'est un déclencheur technique, pas un bouton. C'est le
+  dernier élément natif de la page RTA.
 - **Les cases de la palette de couleurs** : un aplat sans contenu ni libellé, dont
   le marqueur est un anneau et non une teinte. Un seul usage.
 - **Les entrées de la barre latérale** : ce sont des liens de NAVIGATION, pas des

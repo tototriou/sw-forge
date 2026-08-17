@@ -27,7 +27,8 @@ export interface VignetteProps
   // Couleur de la sélection, en `#rrggbb`. Sans elle, la sélection prend
   // l'accent de l'app.
   teinte?: string;
-  contenu: ReactNode;
+  // Facultatif : un aplat de couleur n'a rien à montrer que lui-même.
+  contenu?: ReactNode;
   libelle?: ReactNode;
   // Largeur de la case. Défaut : celle d'un portrait de monstre plus sa marge.
   largeur?: string;
@@ -42,6 +43,19 @@ export interface VignetteProps
   // généralement pas rendu : le fond y porte seul l'état et doit se voir sans
   // lui.
   fondAppuye?: boolean;
+  // La case EST la teinte : un aplat de couleur, sans contenu à protéger.
+  //
+  // ⚠️ Le marqueur change alors de nature. Sur une case qui porte un portrait,
+  // la sélection se dit par un liseré de la teinte et un fond translucide ; sur
+  // un aplat de cette même teinte, ni l'un ni l'autre ne se verrait — le liseré
+  // se confondrait avec la case. Il faut un ANNEAU de contraste, détaché par un
+  // liseré de la couleur du panneau.
+  aplat?: boolean;
+  // Hauteur de la case. ⚠️ Écrite par l'appelant et non héritée de la règle
+  // tactile : dans une palette de douze cases côte à côte, une erreur de visée
+  // choisit la voisine et il faut recommencer — d'où une hauteur bien plus
+  // grande au doigt que ne l'imposerait la règle des 40 px.
+  hauteur?: string;
 }
 
 // « #rrggbb » + opacité → rgba(), pour teinter un fond sans écraser le contenu.
@@ -59,6 +73,8 @@ const Vignette = forwardRef<HTMLButtonElement, VignetteProps>(function Vignette(
     largeur = 'w-[72px]',
     coin,
     fondAppuye = false,
+    aplat = false,
+    hauteur,
     disabled,
     className = '',
     type = 'button',
@@ -72,21 +88,37 @@ const Vignette = forwardRef<HTMLButtonElement, VignetteProps>(function Vignette(
       type={type}
       aria-pressed={choisi}
       disabled={disabled}
-      className={`relative flex flex-col items-center gap-1 rounded-lg px-1 py-1.5 transition
-        ${largeur} ${PRESSION} ${
-          disabled
-            ? 'cursor-not-allowed opacity-25'
-            : choisi
-              ? ''
+      // ⚠️ Un aplat NE PORTE PAS le rembourrage ni la largeur d'une vignette
+      // ordinaire : sa surface est la couleur elle-même, et la grille qui
+      // l'accueille lui donne sa taille. Un `px-1` y laisserait une bande de
+      // panneau au bord de chaque case.
+      className={`relative flex items-center justify-center transition ${PRESSION} ${
+        aplat
+          ? `rounded-md ${hauteur ?? 'h-6'}`
+          : `flex-col gap-1 rounded-lg px-1 py-1.5 ${largeur} ${hauteur ?? ''}`
+      } ${
+        disabled
+          ? 'cursor-not-allowed opacity-25'
+          : choisi
+            ? ''
+            : aplat
+              ? 'opacity-80 hoverable:-translate-y-px hoverable:opacity-100'
               : 'opacity-70 hoverable:bg-panel2 hoverable:opacity-100'
-        } ${!teinte && choisi ? 'bg-accent-soft ring-[1.5px] ring-accent' : ''} ${className}`}
+      } ${
+        // Anneau de CONTRASTE sur un aplat : la teinte ne peut pas se marquer
+        // elle-même. Détaché par un liseré de la couleur du panneau, sans quoi
+        // il touche la case et se lit comme une bordure de plus.
+        aplat && choisi ? 'ring-2 ring-ink ring-offset-2 ring-offset-panel' : ''
+      } ${!teinte && !aplat && choisi ? 'bg-accent-soft ring-[1.5px] ring-accent' : ''} ${className}`}
       style={
-        teinte && choisi
-          ? {
-              boxShadow: `0 0 0 1.5px ${teinte}`,
-              backgroundColor: avecAlpha(teinte, fondAppuye ? 0.28 : 0.2),
-            }
-          : undefined
+        aplat
+          ? { backgroundColor: teinte }
+          : teinte && choisi
+            ? {
+                boxShadow: `0 0 0 1.5px ${teinte}`,
+                backgroundColor: avecAlpha(teinte, fondAppuye ? 0.28 : 0.2),
+              }
+            : undefined
       }
       {...reste}
     >

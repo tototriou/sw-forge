@@ -8,7 +8,7 @@ import MonsterGear from '../MonsterGear';
 import AccordionGrid from '../AccordionGrid';
 import CategoryRing from './CategoryRing';
 import TurnOrder from './TurnOrder';
-import { Bouton } from '../../ui';
+import { Bouton, ZoneCliquable } from '../../ui';
 
 /* --------------------------------------------------------------------------
  * Consultation de la prépa d'un ami
@@ -111,11 +111,14 @@ function CarteAmi({
         </div>
 
         <div className="min-w-0 flex-1">
-          <button
-            type="button"
+          {/* ⚠️ Une ZONE, pas un bouton : c'est la ligne entière de la carte qui
+              déplie le détail. Un cadre ou un fond y ferait un objet de plus sur
+              une carte qui porte déjà un portrait, un nom, une vitesse et des
+              icônes de set. */}
+          <ZoneCliquable
             onClick={hasGear ? onToggle : undefined}
             disabled={!hasGear}
-            className="flex w-full items-center gap-1 text-left disabled:cursor-default"
+            className="flex w-full items-center gap-1"
             title={hasGear ? 'Voir son équipement' : undefined}
           >
             <span className="text-xs font-semibold leading-tight truncate flex-1">
@@ -138,7 +141,7 @@ function CarteAmi({
                 className={`flex-none text-ink-dim transition-transform ${open ? 'rotate-180' : ''}`}
               />
             )}
-          </button>
+          </ZoneCliquable>
           <div className="mt-1 flex items-center gap-1">
             {(entry.sets ?? []).slice(0, 3).map((s, i) => (
               <RuneIcon key={i} setKey={s} size={16} className="flex-none" />

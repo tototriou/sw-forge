@@ -59,11 +59,21 @@ export default function NumberField({
 
   const bouger = (delta: number) => onChange(borne((value ?? 0) + delta));
 
-  // ⚠️ `data-cible-fine` (posé sur chaque bouton) : ces deux flèches sont
-  // EMPILÉES et collées, à l'intérieur du cadre du champ. La règle tactile les
-  // portait à 40 px chacune, soit 80 px de haut pour un champ qui en fait 28 —
-  // le cadre éclatait. Une zone étendue les ferait se chevaucher : on
-  // incrémenterait en voulant décrémenter.
+  // ⚠️ **Ces deux flèches restent des `<button>` nus, et c'est délibéré.** Elles
+  // ne sont pas des boutons de l'app mais les ENTRAILLES de ce composant-ci :
+  // elles n'existent qu'à l'intérieur de son cadre, dont elles épousent la
+  // hauteur, et ne se dupliquent nulle part. C'est `NumberField` qui est partagé,
+  // pas ses pièces — les faire passer par `BoutonIcone` reviendrait à annuler sa
+  // forme (`rounded`, rembourrage, pression au clic) pour retrouver celle-ci.
+  //
+  // ⚠️ `data-cible-fine` sur chacune : EMPILÉES et collées dans un cadre de
+  // 28 px, la règle tactile les portait à 40 px chacune — 80 px de haut pour un
+  // champ qui en fait 28, et le cadre éclatait. Une zone étendue les ferait se
+  // chevaucher : on incrémenterait en voulant décrémenter.
+  //
+  // ⚠️ `tabIndex={-1}` : au clavier on tape la valeur, on ne clique pas trente
+  // fois sur « + ». Les laisser dans le parcours de tabulation imposait trois
+  // arrêts par champ pour atteindre le suivant.
   const btn =
     'flex h-7 w-6 flex-none items-center justify-center text-ink-dim transition hoverable:text-ink hoverable:bg-panel2 disabled:opacity-30';
 

@@ -517,26 +517,20 @@ function CategoryPopover({
         {PALETTE.map((c) => {
           const actif = c.toLowerCase() === color.toLowerCase();
           return (
-            <button
+            <Vignette
               key={c}
-              type="button"
+              aplat
+              teinte={c}
+              choisi={actif}
               onClick={() => setColor(c)}
               aria-label={`Couleur ${c}`}
-              aria-pressed={actif}
               // ⚠️ 44 px de haut au doigt contre 24 à la souris : douze cases
               // côte à côte, une erreur de visée choisit la voisine et il faut
-              // recommencer. C'est la cible tactile pleine, la hauteur étant
-              // écrite en dur ici et non héritée de la règle globale.
-              className={`flex items-center justify-center rounded-md transition
-                h-6 compact:h-11 ${
-                actif
-                  ? 'ring-2 ring-ink ring-offset-2 ring-offset-panel'
-                  : 'opacity-80 hoverable:opacity-100 hoverable:-translate-y-px'
-              }`}
-              style={{ backgroundColor: c }}
-            >
-              {actif && <Check size={12} className="text-bg drop-shadow" />}
-            </button>
+              // recommencer. C'est plus que la cible tactile ordinaire, d'où une
+              // hauteur écrite ici et non héritée de la règle globale.
+              hauteur="h-6 compact:h-11"
+              contenu={actif ? <Check size={12} className="text-bg drop-shadow" /> : undefined}
+            />
           );
         })}
       </div>

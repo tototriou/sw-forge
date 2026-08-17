@@ -11,7 +11,7 @@ import CurveChart, { CurveSeries, OWN_COLOR } from './CurveChart';
 import { couleurLibre } from './curveColors';
 import SetFilter from './SetFilter';
 import SlotFilter from './SlotFilter';
-import NumberField from '../NumberField';
+import NumberField from '../../ui/NumberField';
 
 interface Props {
   runes: RuneDetail[];

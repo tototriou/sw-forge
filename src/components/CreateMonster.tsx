@@ -7,7 +7,7 @@ import { Plus, X, Wand2 } from 'lucide-react';
 import { ELEMENTS, ElementKey, Monster } from '../types';
 import { CustomLead } from '../hooks/useCustomMonsters';
 import ElementIcon from './ElementIcon';
-import NumberField from './NumberField';
+import NumberField from '../ui/NumberField';
 import { Bouton, BoutonIcone, Champ, Flottant, Selecteur } from '../ui';
 
 const ELEMENT_CHOICES = ELEMENTS.filter((e) => e.key !== 'unknown');

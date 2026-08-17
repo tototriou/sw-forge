@@ -101,6 +101,19 @@ const REPOS: Record<TonBouton, Record<FondBouton, string>> = {
     doux: 'border-bad/50 bg-bad/10 text-bad',
     plein: 'border-bad/50 bg-bad/20 text-bad',
   },
+  // ⚠️ Teinte présente DÈS LE REPOS, immobile au survol : elle signale un état
+  // des données, et un signal qui s'allume au passage de la souris n'en est plus
+  // un. Voir la note du type dans Bouton.
+  alerte: {
+    vide: 'border-warn/50 bg-transparent text-warn',
+    doux: 'border-warn/50 bg-warn/10 text-warn',
+    plein: 'border-warn/50 bg-warn/20 text-warn',
+  },
+  precieux: {
+    vide: 'border-border bg-transparent text-ink-dim hoverable:border-star',
+    doux: 'border-border bg-panel/60 text-ink-dim hoverable:border-star',
+    plein: 'border-star bg-star/10 text-ink',
+  },
 };
 
 // Habillage à l'état ACTIF. La bordure reste neutre : elle est déjà là au repos,
@@ -109,6 +122,11 @@ const ACTIFS: Record<TonBouton, string> = {
   neutre: 'border-border bg-accent-soft text-ink',
   accent: 'border-border bg-accent-soft text-ink',
   danger: 'border-bad/50 bg-bad/10 text-bad',
+  alerte: 'border-warn/50 bg-warn/10 text-warn',
+  // ⚠️ Le liseré EN PLUS du fond, contre la règle du marqueur unique : la teinte
+  // `star` est ici un code du jeu et non un état d'interface, et sur une case qui
+  // porte déjà du texte le fond seul se voit mal.
+  precieux: 'border-star bg-star/10 ring-1 ring-star/50 text-ink',
 };
 
 const BoutonGroupe = forwardRef<HTMLDivElement, BoutonGroupeProps>(function BoutonGroupe(

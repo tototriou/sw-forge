@@ -5,7 +5,7 @@ import { runePotential } from '../../lib/runeOptim';
 import { useRuneMetric, formatRuneMetric } from '../../hooks/useRuneMetric';
 import { useStickyState } from '../../hooks/useStickyState';
 import SetFilter from './SetFilter';
-import NumberField from '../NumberField';
+import NumberField from '../../ui/NumberField';
 import SlotFilter from './SlotFilter';
 import CurveChart, { CurveSeries, OWN_COLOR } from './CurveChart';
 

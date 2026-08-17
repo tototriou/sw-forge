@@ -3,7 +3,7 @@ import { X } from 'lucide-react';
 import { Monster, RtaEntry } from '../../types';
 import ElementIcon from '../ElementIcon';
 import CategoryRing from './CategoryRing';
-import NumberField from '../NumberField';
+import NumberField from '../../ui/NumberField';
 import { RtaCategory } from '../../hooks/useRtaCategories';
 import RuneIcon from '../RuneIcon';
 import { SPEED_LEADS, speedLeadOf } from '../../lib/speed';
@@ -335,37 +335,52 @@ export default function TurnOrder({
         <div className="mb-2 flex flex-wrap items-center gap-x-3 gap-y-1">
           {legende.map((c) => {
             const off = !affichee(c.id);
-            const cliquable = !!onToggleCategorie;
-            const contenu = (
-              <>
-                <span
-                  className="w-2.5 h-2.5 rounded-full flex-none border-2 transition"
-                  style={{
-                    borderColor: c.color,
-                    // Éteinte, la pastille devient un cercle CREUX : la couleur
-                    // reste reconnaissable, le plein dit « affichée ».
-                    backgroundColor: off ? 'transparent' : c.color,
-                  }}
-                />
-                <span className={off ? 'line-through' : ''}>{c.label}</span>
-              </>
+            // Éteinte, la pastille devient un cercle CREUX : la couleur reste
+            // reconnaissable, le plein dit « affichée ».
+            const puce = (
+              <span
+                className="h-2.5 w-2.5 flex-none rounded-full border-2 transition"
+                style={{ borderColor: c.color, backgroundColor: off ? 'transparent' : c.color }}
+              />
             );
-            return cliquable ? (
-              <button
+            const libelle = <span className={off ? 'line-through' : ''}>{c.label}</span>;
+
+            // ⚠️ En LECTURE SEULE (prépa d'un ami), la légende reste un simple
+            // rappel des couleurs : un bouton y promettrait un réglage qui
+            // n'existe pas sur cet écran.
+            if (!onToggleCategorie) {
+              return (
+                <span
+                  key={c.id}
+                  className="inline-flex items-center gap-1.5 text-micro text-ink-dim"
+                >
+                  {puce}
+                  {libelle}
+                </span>
+              );
+            }
+
+            // ⚠️ Sans fond ni trait : cette légende est posée sous l'ordre de
+            // tour, et douze cadres y feraient une seconde barre de filtres
+            // au-dessous de celle du haut. C'est l'ÉTAT DE LA PUCE qui porte
+            // l'information, pas l'habillage du bouton.
+            return (
+              <Bouton
                 key={c.id}
                 onClick={() => onToggleCategorie(c.id)}
+                // ⚠️ `aria-pressed` posé à la main plutôt que par `actif` : ce
+                // dernier peindrait un fond d'accent, or ici l'état se lit à la
+                // PUCE (pleine ou creuse) et au libellé barré. Un fond en plus
+                // ferait un troisième marqueur pour la même information.
                 aria-pressed={!off}
+                fond="vide"
+                trait="aucun"
+                taille="xs"
                 title={off ? `Réafficher « ${c.label} »` : `Masquer « ${c.label} »`}
-                className={`inline-flex items-center gap-1.5 text-micro transition ${
-                  off ? 'text-ink-dim opacity-60' : 'text-ink-dim hoverable:text-ink'
-                }`}
-              >
-                {contenu}
-              </button>
-            ) : (
-              <span key={c.id} className="inline-flex items-center gap-1.5 text-micro text-ink-dim">
-                {contenu}
-              </span>
+                icone={puce}
+                libelle={libelle}
+                className={`px-0 font-normal ${off ? 'opacity-60' : ''}`}
+              />
             );
           })}
         </div>

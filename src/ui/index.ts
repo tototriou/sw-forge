@@ -54,6 +54,10 @@ export type { ChampProps } from './Champ';
 export { default as Flottant } from './Flottant';
 export type { FlottantProps } from './Flottant';
 
+// Saisie NUMÉRIQUE bornée, avec ses deux flèches. ⚠️ Vivait dans `components/`
+// alors que sept écrans l'utilisaient : sa place est ici.
+export { default as NumberField } from './NumberField';
+
 export { default as Selecteur } from './Selecteur';
 export type { SelecteurProps } from './Selecteur';
 
@@ -65,6 +69,12 @@ export type { InterrupteurProps } from './Interrupteur';
 
 export { default as Vignette } from './Vignette';
 export type { VignetteProps } from './Vignette';
+
+// SURFACE rendue cliquable (ligne de carte, poignée de glissement) : un
+// <button> volontairement NU. Voir le composant — la nudité y est la règle, pas
+// un oubli.
+export { default as ZoneCliquable } from './ZoneCliquable';
+export type { ZoneCliquableProps } from './ZoneCliquable';
 
 export { default as Case } from './Case';
 export type { CaseProps } from './Case';

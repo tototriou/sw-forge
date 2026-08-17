@@ -19,7 +19,7 @@ import {
 } from '../../lib/runeBuildOptim';
 import { ArtifactMainChoice, OptimizerState, OptimizerSortKey } from '../../hooks/useOptimizerState';
 import { useRuneMetric } from '../../hooks/useRuneMetric';
-import NumberField from '../NumberField';
+import NumberField from '../../ui/NumberField';
 import MonsterAvatar from '../MonsterAvatar';
 import MonsterGear from '../MonsterGear';
 import Segmented from '../Segmented';

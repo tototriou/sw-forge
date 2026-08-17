@@ -10,7 +10,7 @@ import RuneSlotIcon from '../RuneSlotIcon';
 import Pager from './Pager';
 import SetFilter from './SetFilter';
 import SlotFilter from './SlotFilter';
-import NumberField from '../NumberField';
+import NumberField from '../../ui/NumberField';
 import DetailPopover from './DetailPopover';
 
 interface Props {

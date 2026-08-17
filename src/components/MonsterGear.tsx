@@ -19,6 +19,7 @@ import ArtifactSlots from './ArtifactSlots';
 import StatPanel from './StatPanel';
 import { RUNE_METRICS, formatRuneMetric, useRuneMetric } from '../hooks/useRuneMetric';
 import { artifactScore, artifactEfficiency } from '../lib/artifacts';
+import { ZoneCliquable } from '../ui';
 
 type Selected =
   | { kind: 'rune'; i: number }
@@ -96,14 +97,15 @@ export function RuneDetailBox({
     // ⚠️ Fond OPAQUE : cette carte s'affiche dans un popover flottant au-dessus
     // de la grille de runes. Un fond translucide laissait voir les tuiles
     // derrière et rendait le détail illisible.
-    <div
-      // ⚠️ `role="button"` sur le conteneur plutôt qu'un `<button>` autour :
-      // la carte contient déjà des éléments interactifs ailleurs (le popover
-      // l'utilise dans un contexte cliquable), et imbriquer des boutons est
-      // invalide. Ici la carte entière est la cible — c'est le geste du jeu.
-      // ⚠️ `stopPropagation` : dans un popover, la carte est posée à l'intérieur
-      // d'une zone dont le clic referme le flottant. Sans ça, basculer les
-      // valeurs fermait le détail qu'on est en train de lire.
+    <ZoneCliquable
+      // ⚠️ `imbrique` : la carte est posée DANS un popover lui-même cliquable, et
+      // un `<button>` dans un `<button>` est du HTML invalide. Le composant remet
+      // alors à la main le focus clavier et l'activation à Entrée/Espace — voir
+      // ZoneCliquable.
+      // ⚠️ `stopPropagation` : dans ce popover, le clic de la zone environnante
+      // referme le flottant. Sans ça, basculer les valeurs fermait le détail
+      // qu'on est en train de lire.
+      imbrique
       onClick={
         aDeLaMeule
           ? (e) => {
@@ -112,18 +114,6 @@ export function RuneDetailBox({
             }
           : undefined
       }
-      onKeyDown={
-        aDeLaMeule
-          ? (e) => {
-              if (e.key === 'Enter' || e.key === ' ') {
-                e.preventDefault();
-                setTotal((v) => !v);
-              }
-            }
-          : undefined
-      }
-      role={aDeLaMeule ? 'button' : undefined}
-      tabIndex={aDeLaMeule ? 0 : undefined}
       aria-pressed={aDeLaMeule ? total : undefined}
       title={
         aDeLaMeule
@@ -249,7 +239,7 @@ export function RuneDetailBox({
           {bonus.pieces} Set : {bonus.label}
         </div>
       )}
-    </div>
+    </ZoneCliquable>
   );
 }
 
@@ -429,17 +419,21 @@ export default function MonsterGear({ gear, spdCible = null }: Props) {
         />
       )}
 
-      {/* Relique à droite */}
+      {/* Relique à droite.
+          ⚠️ La teinte `star` est le code du JEU pour ce qui a de la valeur, pas
+          un accent d'interface — d'où le liseré EN PLUS du fond, contre la règle
+          du marqueur unique qui vaut pour les états d'interface.
+          ⚠️ Resserrée sous `sm` : elle partage la rangée avec les artéfacts et
+          la roue, et son rembourrage de 10 px de chaque côté était le plus
+          facile à rendre — le contenu, lui, ne se réduit pas. */}
       {gear.relic && (
-        <button
+        <ZoneCliquable
           onClick={() => toggle({ kind: 'relic' })}
           title="Voir la relique"
-          // ⚠️ Resserrée sous `sm` : elle partage la rangée avec les artéfacts
-          // et la roue, et son rembourrage de 10 px de chaque côté était le
-          // plus facile à rendre — le contenu, lui, ne se réduit pas.
-          className={`rounded-lg border px-2.5 py-2 text-center transition compact:px-1.5 compact:py-1.5 ${
+          aria-pressed={isSel({ kind: 'relic' })}
+          className={`rounded-lg border px-2.5 py-2 text-center compact:px-1.5 compact:py-1.5 ${
             isSel({ kind: 'relic' })
-              ? 'border-star ring-1 ring-star/50 bg-star/10'
+              ? 'border-star bg-star/10 ring-1 ring-star/50'
               : 'border-border bg-panel/60 hoverable:border-accent'
           }`}
         >
@@ -447,7 +441,7 @@ export default function MonsterGear({ gear, spdCible = null }: Props) {
           <div className="mt-0.5 text-xs font-bold text-ink compact:text-micro">
             {formatRelicMain(gear.relic.main)}
           </div>
-        </button>
+        </ZoneCliquable>
       )}
       </div>
 

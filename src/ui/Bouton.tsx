@@ -29,7 +29,17 @@ import { forwardRef, ReactNode } from 'react';
 // ⚠️ `danger` n'est pas « rouge » : c'est « cette action perd quelque chose ».
 // Elle n'est JAMAIS le bouton mis en avant d'un dialogue — voir spec/README.md,
 // le défaut ne perd jamais rien.
-export type TonBouton = 'neutre' | 'accent' | 'danger';
+//
+// ⚠️ `alerte` est différent : il ne dit rien de l'ACTION, il signale l'état des
+// DONNÉES (des runes qui ne suivent plus, une équipe incomplète). Le bouton n'y
+// est qu'un moyen d'ouvrir l'explication. C'est pourquoi il ne change pas au
+// survol : sa couleur est une information, pas une invitation.
+//
+// ⚠️ `precieux` est le CODE COULEUR DU JEU pour ce qui a de la valeur : une
+// relique, un lead de vitesse, une étoile. Il ne dit rien de l'action non plus
+// — c'est la nature de la chose désignée. Il existe parce que trois écrans le
+// peignaient à la main, chacun avec son opacité.
+export type TonBouton = 'neutre' | 'accent' | 'danger' | 'alerte' | 'precieux';
 
 // REMPLISSAGE. `plein` porte la teinte du ton, `doux` sa version atténuée,
 // `vide` ne pose aucun fond (le bouton vit sur la surface qui le porte).
@@ -100,6 +110,11 @@ const TEXTES: Record<TonBouton, { nu: string; doux: string; plein: string }> = {
   // `text-white` et non `text-ink` : sur l'aplat d'alerte, l'encre du thème
   // clair n'aurait pas le contraste, et cet aplat est le même dans les deux.
   danger: { nu: 'text-ink-dim hoverable:text-bad', doux: 'text-bad', plein: 'text-white' },
+  // ⚠️ La teinte est là DÈS LE REPOS et ne bouge pas au survol : elle signale un
+  // état des données, et un signal qui s'allume au passage de la souris n'est
+  // plus un signal.
+  alerte: { nu: 'text-warn', doux: 'text-warn', plein: 'text-bg' },
+  precieux: { nu: 'text-star', doux: 'text-ink', plein: 'text-bg' },
 };
 
 const FONDS: Record<TonBouton, Record<FondBouton, string>> = {
@@ -110,6 +125,8 @@ const FONDS: Record<TonBouton, Record<FondBouton, string>> = {
   // fond translucide laisserait passer l'image dessous et rendrait l'icône
   // illisible. `doux` reste le voile discret d'un bouton posé dans un panneau.
   danger: { vide: 'bg-transparent', doux: 'bg-bad/10', plein: 'bg-bad' },
+  alerte: { vide: 'bg-transparent', doux: 'bg-warn/10', plein: 'bg-warn' },
+  precieux: { vide: 'bg-transparent', doux: 'bg-star/10', plein: 'bg-star' },
 };
 
 const TRAITS: Record<TonBouton, Record<TraitBouton, string>> = {
@@ -127,6 +144,16 @@ const TRAITS: Record<TonBouton, Record<TraitBouton, string>> = {
     aucun: 'border border-transparent',
     plein: 'border border-bad/50',
     pointille: 'border border-dashed border-bad/50',
+  },
+  alerte: {
+    aucun: 'border border-transparent',
+    plein: 'border border-warn/50',
+    pointille: 'border border-dashed border-warn/50',
+  },
+  precieux: {
+    aucun: 'border border-transparent',
+    plein: 'border border-star',
+    pointille: 'border border-dashed border-star',
   },
 };
 

@@ -706,23 +706,31 @@ function ChoixExport({
   // derrière. Rien ne le signalait à l'écran — c'est exactement ce qu'une
   // coquille partagée existe pour empêcher.
   return (
-    <Modale onClose={onAnnuler} labelledBy="export-rta-titre" largeur="max-w-[460px]">
-        <h2 id="export-rta-titre" className="text-base font-bold text-ink">
-          Que veux-tu partager ?
-        </h2>
-        <p className="mt-1.5 text-xs leading-relaxed text-ink-dim">
+    // ⚠️ AVEC la croix, contrairement aux confirmations : ce dialogue est un
+    // CHOIX dont les options sont elles-mêmes les actions. Il n'a pas de bouton
+    // « Annuler » qui ferait office de sortie — la croix est donc la seule porte
+    // visible, et c'est précisément le cas où elle est nécessaire.
+    <Modale
+      onClose={onAnnuler}
+      labelledBy="export-rta-titre"
+      largeur="max-w-[460px]"
+      croix
+      titre="Que veux-tu partager ?"
+      sousTitre={
+        <>
           Tes sections et tes catégories sont toujours incluses. La question porte sur ce que tu
           laisses voir de <b className="text-ink">ton runage</b>.
-        </p>
-
+        </>
+      }
+    >
         {avecRunes === 0 && (
-          <p className="mt-3 rounded-lg border border-border bg-panel2 px-3 py-2 text-micro leading-relaxed text-ink-dim">
+          <p className="mb-3 rounded-lg border border-border bg-panel2 px-3 py-2 text-micro leading-relaxed text-ink-dim">
             Aucun de tes monstres ne porte de runes connues — importe ton compte pour pouvoir les
             partager.
           </p>
         )}
 
-        <div className="mt-4 flex flex-col gap-2">
+        <div className="flex flex-col gap-2">
           {options.map((o, i) => {
             const Icone = o.icone;
             return (
@@ -743,22 +751,16 @@ function ChoixExport({
         {/* ⚠️ Explique POURQUOI chaque palier retire ce qu'il retire. Sans ces
             phrases, les restrictions passent pour arbitraires alors que chacune
             ferme une fuite réelle. */}
+        {/* ⚠️ Plus de bouton « Annuler » en pied : la croix de l'en-tête ferme
+            désormais, et un dialogue de CHOIX n'a pas d'action à valider — on
+            sort en choisissant, ou en refermant. Deux sorties pour la même
+            chose obligeaient à se demander laquelle valait quoi. */}
         <p className="mt-3 text-micro leading-relaxed text-ink-dim">
           Le <b className="text-ink">classement par section</b> part avec le détail des runes :
           ranger un monstre dans « Swift » en dit autant que l'icône. Et la vitesse de base étant
           publique, donner la vitesse totale revient à donner celle des runes — c'est pourquoi le
           dernier niveau ne transmet que l'ordre.
         </p>
-
-        <Bouton
-          onClick={onAnnuler}
-          fond="vide"
-          trait="aucun"
-          taille="sm"
-          pleineLargeur
-          libelle="Annuler"
-          className="mt-3"
-        />
     </Modale>
   );
 }

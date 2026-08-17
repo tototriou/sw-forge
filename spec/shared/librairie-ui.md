@@ -252,6 +252,53 @@ popup d'édition, formulaire ancré, liste de résultats d'une recherche.
 au clic extérieur et à Échap. `ConfirmDialog`, `PromptDialog` et
 `KeepAccountDialog` en dérivent.
 
+### Une seule grammaire, trois bandes
+
+Toutes les modales de l'app ont la même structure, et l'appelant ne la compose
+pas — il remplit trois emplacements :
+
+| Bande | Contenu | Rendue par |
+|-------|---------|------------|
+| **En-tête** | icône, `titre` à gauche, `sousTitre`, croix à **droite** | la coquille |
+| **Corps** | `children` — le seul à défiler | l'appelant |
+| **Pied** | `actions` — les boutons, toujours en bas | la coquille |
+
+> ⚠️ **Le titre est rendu PAR la coquille**, pas écrit dans le contenu. Chaque
+> dialogue posait son propre `<h2>` avec sa taille et sa marge : quatre écrans,
+> quatre en-têtes légèrement différents. Il porte aussi l'`id` de `labelledBy`,
+> donc un lecteur d'écran annonce le bon titre sans que l'appelant ait à faire
+> correspondre les deux à la main.
+
+> ⚠️ **La croix est toujours en haut à droite.** On cherche la sortie d'une
+> fenêtre au même endroit à chaque fois ; une croix qui se déplace d'un écran à
+> l'autre se cherche.
+
+> ⚠️ **Les actions sont toujours en bas, et le pied ne défile pas.** C'est
+> l'objet de la structure en trois bandes : sur une fiche longue, des boutons
+> écrits dans le corps se retrouvaient au bout du défilement, là où personne ne
+> les cherche.
+
+> ⚠️ **Le corps prend TOUTE la largeur de la boîte** (`[&>*]:w-full` sur ses
+> enfants directs). C'est la règle qui manquait : dans un conteneur flex en
+> colonne, un `<form>` ou un `<div>` ne prend que la largeur de son contenu — les
+> formulaires flottaient donc à gauche avec du vide à droite. Un contenu qui ne
+> *peut* pas s'étirer sans devenir laid (une image, une grille à pas fixe) passe
+> `corpsCentre` et se centre au lieu de s'étirer.
+
+### La croix : une seule exception
+
+`croix` est posée partout **sauf sur les confirmations** (`ConfirmDialog`,
+`KeepAccountDialog`).
+
+> ⚠️ Sur une confirmation, **« Annuler » EST la sortie**. Une croix à côté ferait
+> deux portes pour un choix qui n'en a qu'une, et l'on hésiterait sur ce qu'elle
+> ferme — annuler, ou fermer sans répondre ? Échap et le clic à côté restent
+> disponibles, comme partout.
+>
+> À l'inverse, un dialogue de **choix** (l'export RTA, dont les options *sont*
+> les actions) n'a aucun bouton d'annulation : la croix y est la seule porte
+> visible, et c'est exactement le cas où elle est nécessaire.
+
 > ⚠️ **Elle porte quatre choses invisibles**, et c'est pour elles qu'elle
 > existe : le **piège à focus** (Tab boucle dans la boîte au lieu de tabuler dans
 > la page derrière, invisible et toujours cliquable), le **retour du focus** à

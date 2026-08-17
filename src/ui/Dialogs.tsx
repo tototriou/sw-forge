@@ -27,6 +27,11 @@ import { Bouton, BoutonIcone, Case, Champ, PiedDeDialogue } from '../ui';
 export function Modale({
   onClose,
   labelledBy,
+  titre,
+  sousTitre,
+  icone,
+  actions,
+  corpsCentre = false,
   largeur = 'max-w-[400px]',
   padding = 'p-5',
   croix = false,
@@ -35,6 +40,28 @@ export function Modale({
 }: {
   onClose: () => void;
   labelledBy: string;
+  // ⚠️ **Le titre est rendu PAR la coquille**, pas écrit dans le contenu. Chaque
+  // dialogue posait son propre `<h2>`, avec sa taille et sa marge : quatre
+  // écrans, quatre en-têtes légèrement différents. Il porte aussi l'`id` de
+  // `labelledBy` — un lecteur d'écran annonce donc le bon titre sans que
+  // l'appelant ait à faire correspondre les deux à la main.
+  titre?: ReactNode;
+  // Phrase sous le titre : ce que l'action implique, en une ligne ou deux.
+  sousTitre?: ReactNode;
+  // Pictogramme à gauche du titre — un triangle d'alerte, un disque dur.
+  icone?: ReactNode;
+  // Boutons d'action, posés dans le pied. ⚠️ **Toujours en bas**, jamais dans le
+  // corps : sur une fiche longue, des boutons écrits dans le contenu se
+  // retrouvaient au bout du défilement, là où personne ne les cherche.
+  // L'ordre d'écriture est celui de PiedDeDialogue — secondaire d'abord.
+  actions?: ReactNode;
+  // Le corps GARDE sa taille et se centre, au lieu de s'étirer.
+  //
+  // ⚠️ Pour un contenu qui ne PEUT pas s'étirer sans devenir laid : une image,
+  // une grille à pas fixe, un portrait. Le défaut est l'inverse — le corps
+  // occupe toute la largeur de la boîte —, parce qu'un formulaire qui flotte à
+  // gauche avec du vide à droite est presque toujours un oubli.
+  corpsCentre?: boolean;
   // Élément qui donne son ACCENT CONTEXTUEL au contenu (voir `--ctx` dans
   // index.css). Posé sur la boîte, il teinte tout ce qu'elle contient : la
   // fiche d'un monstre d'eau vire au bleu sans qu'aucun de ses composants
@@ -53,7 +80,10 @@ export function Modale({
   // Une boîte de message respire ; une liste dense se serre, sinon la marge
   // pèse plus que le contenu.
   padding?: string;
-  children: ReactNode;
+  // Facultatif : une confirmation n'a qu'un titre et une phrase, tous deux
+  // rendus par l'en-tête. Sans corps, la bande n'est pas rendue du tout — un
+  // conteneur vide laisserait un blanc entre le message et les boutons.
+  children?: ReactNode;
 }) {
   const boite = useRef<HTMLDivElement>(null);
 
@@ -153,33 +183,106 @@ export function Modale({
         // `focus:outline-none` : la boîte reçoit le focus initial (voir plus
         // haut), mais elle n'est pas un contrôle — l'anneau d'accent global
         // entourerait toute la modale à l'ouverture.
-        className={`w-full ${largeur} ${padding} max-h-[90dvh] overflow-y-auto rounded-2xl border
-                   border-border bg-panel shadow-glow shadow-black/60 focus:outline-none
+        // ⚠️ **`flex flex-col` et non un bloc qui défile en entier.** C'est ce
+        // qui permet à l'en-tête de rester en haut et au pied en bas pendant que
+        // SEUL le corps défile — sur une fiche longue, les boutons d'action
+        // partaient sinon hors de l'écran, et il fallait défiler jusqu'en bas
+        // pour trouver « Annuler ».
+        // ⚠️ Le rembourrage passe aux TROIS BANDES et non à la boîte : sans
+        // cela, le corps ne peut pas atteindre les bords quand il en a besoin
+        // (une liste dont les entrées doivent toucher le cadre).
+        className={`flex w-full ${largeur} max-h-[90dvh] flex-col overflow-hidden rounded-2xl
+                   border border-border bg-panel shadow-glow shadow-black/60 focus:outline-none
                    animate-[dialogue_200ms_var(--ease-out)]`}
       >
-        {/* ⚠️ `sticky` et non `absolute` : la boîte DÉFILE, et une croix
-            absolue disparaîtrait vers le haut dès les premières lignes d'une
-            fiche longue — c'est-à-dire exactement quand on la cherche.
-            Hauteur nulle + décalage négatif : elle se pose dans le padding de
-            la boîte sans pousser le contenu d'une ligne. */}
-        {croix && (
-          <div className="sticky top-0 z-10 flex h-0 justify-end">
+        {/* ── EN-TÊTE : titre à gauche, fermeture à droite ─────────────────
+            ⚠️ Toujours dans cet ordre, sur toutes les modales de l'app. On
+            cherche la sortie d'une fenêtre TOUJOURS au même endroit ; une croix
+            qui se déplace d'un écran à l'autre se cherche à chaque fois.
+            ⚠️ `flex-none` : l'en-tête ne défile pas et ne se comprime pas. */}
+        {(titre || croix) && (
+          <div
+            className={`flex flex-none items-start gap-3 ${padding} ${
+              // Sans titre, la bande ne porte que la croix : elle n'a donc pas à
+              // réserver de hauteur, et le contenu remonte contre le haut de la
+              // boîte. `h-0` la fait flotter dans le rembourrage du corps.
+              titre ? 'pb-2' : 'h-0 py-0'
+            }`}
+          >
+            {icone}
+            <div className="min-w-0 flex-1">
+              {/* ⚠️ Le `<h2>` n'est rendu QUE s'il y a un titre : vide, il
+                  porterait quand même `labelledBy`, et un lecteur d'écran
+                  annoncerait un dialogue sans nom alors que le contenu a le
+                  sien (la fiche d'un monstre écrit son propre titre). */}
+              {titre && (
+                <h2 id={labelledBy} className="text-base font-bold text-ink">
+                  {titre}
+                </h2>
+              )}
+              {sousTitre && (
+                <p className="mt-1.5 text-xs leading-relaxed text-ink-dim">{sousTitre}</p>
+              )}
+            </div>
             {/* Croix NUE : ni cadre, ni fond — c'est le défaut de BoutonIcone.
-                Encadrée, elle se lirait comme un bouton d'action de plus, au même
-                rang que ce qu'on est venu lire. Le symbole se reconnaît seul.
-                ⚠️ Ombre portée : sans fond, la croix passe DEVANT le contenu qui
-                défile dessous, et un trait fin sur du texte devient illisible.
-                C'est le minimum pour l'en détacher — un fond opaque rendrait le
-                cadre qu'on vient d'enlever. */}
-            <BoutonIcone
-              onClick={onClose}
-              libelle="Fermer"
-              icone={<X size={18} className="drop-shadow-[0_1px_2px_rgba(0,0,0,0.8)]" />}
-              className="-mr-1 -mt-1 hoverable:bg-transparent"
-            />
+                Encadrée, elle se lirait comme un bouton d'action de plus, au
+                même rang que ce qu'on est venu lire. Le symbole se reconnaît
+                seul.
+                ⚠️ `-mr-1 -mt-1` : elle se pose DANS le rembourrage de la bande
+                plutôt que de l'entamer, sinon le titre perd 28 px de largeur au
+                profit d'un bouton qui n'en a pas besoin. */}
+            {croix && (
+              <BoutonIcone
+                onClick={onClose}
+                libelle="Fermer"
+                icone={<X size={18} />}
+                className="-mr-1 -mt-1 flex-none hoverable:bg-transparent"
+              />
+            )}
           </div>
         )}
-        {children}
+
+        {/* ── CORPS : le seul à défiler ────────────────────────────────────
+            ⚠️ **Il prend TOUTE la largeur de la boîte.** C'est la règle qui
+            manquait : les formulaires y flottaient à leur largeur naturelle,
+            avec du vide à droite, parce que rien ne les forçait à s'étirer. Un
+            contenu qui ne PEUT pas s'étirer (une image, une grille à pas fixe)
+            se centre — d'où `items-center` sur l'axe transversal. Voir
+            `corpsCentre` pour le cas où le contenu doit rester à sa taille.
+            ⚠️ `pt-0` quand un en-tête existe : la bande du dessus a déjà posé
+            son écart, et deux rembourrages consécutifs faisaient un blanc de
+            32 px entre le titre et le premier champ. */}
+        {children != null && (
+        <div
+          className={`flex min-h-0 flex-1 flex-col overflow-y-auto ${padding} ${
+            titre || croix ? 'pt-0' : ''
+          } ${actions ? 'pb-2' : ''} ${
+            // ⚠️ `[&>*]:w-full` force les enfants DIRECTS à s'étirer : un `<form>`
+            // ou un `<div>` ne prend que la largeur de son contenu dans un
+            // conteneur flex en colonne, d'où les formulaires qui flottaient à
+            // gauche avec du vide à droite. En mode centré, on ne force rien —
+            // c'est justement que le contenu doit garder sa taille.
+            corpsCentre ? 'items-center' : '[&>*]:w-full'
+          }`}
+        >
+          {children}
+        </div>
+        )}
+
+        {/* ── PIED : les actions, toujours en bas ──────────────────────────
+            ⚠️ `flex-none` : il reste visible quand le corps défile. C'est tout
+            l'objet de la structure en trois bandes — sur une fiche longue, les
+            boutons d'action se trouvaient au bout du défilement, là où
+            personne ne les cherche. */}
+        {/* ⚠️ `pt-0` seulement s'il y a un CORPS au-dessus : c'est lui qui a
+            déjà posé l'écart. Sans corps (une confirmation, qui n'a qu'un titre
+            et une phrase), le pied doit reprendre son propre rembourrage haut,
+            sinon les boutons touchent le message. */}
+        {actions && (
+          <div className={`flex-none ${padding} ${children != null ? 'pt-0' : 'pt-3'}`}>
+            <PiedDeDialogue className="mt-0">{actions}</PiedDeDialogue>
+          </div>
+        )}
       </div>
     </div>
   );
@@ -204,40 +307,44 @@ export function ConfirmDialog({
   onCancel: () => void;
 }) {
   return (
-    <Modale onClose={onCancel} labelledBy="modale-titre">
-      <div className="flex items-start gap-3">
+    // ⚠️ **PAS de croix ici, et c'est la seule exception de l'app.** Sur une
+    // confirmation, « Annuler » EST la sortie : une croix à côté ferait deux
+    // portes pour un choix qui n'en a qu'une, et l'on hésiterait sur ce que
+    // ferme la croix — annuler, ou fermer sans répondre ? Échap et le clic à
+    // côté restent disponibles, comme partout.
+    <Modale
+      onClose={onCancel}
+      labelledBy="modale-titre"
+      titre={titre}
+      sousTitre={message}
+      icone={
         <span
           className={`mt-0.5 flex-none rounded-lg p-2 ${
-            destructif ? 'bg-fire/15 text-fire' : 'bg-warn/15 text-warn'
+            destructif ? 'bg-bad/15 text-bad' : 'bg-warn/15 text-warn'
           }`}
         >
           <AlertTriangle size={18} />
         </span>
-        <div>
-          <h2 id="modale-titre" className="text-base font-bold text-ink">
-            {titre}
-          </h2>
-          <p className="mt-1.5 text-xs leading-relaxed text-ink-dim">{message}</p>
-        </div>
-      </div>
-
-      {/* ⚠️ L'ordre d'écriture donne l'action d'abord, « Annuler » ensuite —
-          donc « Annuler » à DROITE sur écran large et EN BAS sous le pouce sur
-          téléphone. C'est voulu : le défaut ne perd jamais rien (voir
-          spec/README.md), et c'est lui qui reçoit le focus initial. */}
-      <PiedDeDialogue>
-        {/* ⚠️ `plein` pour le ton neutre : c'est `bg-panel2`, la surface d'un
-            bouton posé DANS un dialogue — lui-même déjà en `bg-panel`. Un fond
-            `doux` s'y confondrait avec la boîte qui le porte. */}
-        <Bouton
-          onClick={onConfirm}
-          ton={destructif ? 'danger' : 'neutre'}
-          fond={destructif ? 'doux' : 'plein'}
-          libelle={libelleAction}
-        />
-        <Bouton onClick={onCancel} autoFocus ton="accent" fond="doux" libelle="Annuler" />
-      </PiedDeDialogue>
-    </Modale>
+      }
+      // ⚠️ L'ordre d'écriture donne l'action d'abord, « Annuler » ensuite —
+      // donc « Annuler » à DROITE sur écran large et EN BAS sous le pouce sur
+      // téléphone. C'est voulu : le défaut ne perd jamais rien (voir
+      // spec/README.md), et c'est lui qui reçoit le focus initial.
+      actions={
+        <>
+          {/* ⚠️ `plein` pour le ton neutre : c'est `bg-panel2`, la surface d'un
+              bouton posé DANS un dialogue — lui-même déjà en `bg-panel`. Un fond
+              `doux` s'y confondrait avec la boîte qui le porte. */}
+          <Bouton
+            onClick={onConfirm}
+            ton={destructif ? 'danger' : 'neutre'}
+            fond={destructif ? 'doux' : 'plein'}
+            libelle={libelleAction}
+          />
+          <Bouton onClick={onCancel} autoFocus ton="accent" fond="doux" libelle="Annuler" />
+        </>
+      }
+    />
   );
 }
 
@@ -269,12 +376,34 @@ export function PromptDialog({
   }, []);
 
   return (
-    <Modale onClose={onCancel} labelledBy="modale-titre">
-      <h2 id="modale-titre" className="text-base font-bold text-ink">
-        {titre}
-      </h2>
-      {message && <p className="mt-1.5 text-xs leading-relaxed text-ink-dim">{message}</p>}
+    <Modale
+      onClose={onCancel}
+      labelledBy="modale-titre"
+      titre={titre}
+      sousTitre={message}
+      croix
+      // ⚠️ Ici l'ordre est l'inverse de ConfirmDialog : c'est l'ACTION qui est
+      // mise en avant, parce qu'elle ne perd rien — on vient saisir une valeur,
+      // pas confirmer une destruction.
+      actions={
+        <>
+          <Bouton onClick={onCancel} fond="plein" libelle="Annuler" />
+          {/* ⚠️ `form` + `id` : le bouton vit dans le PIED, hors du `<form>` qui
+              est dans le corps. Cet attribut les relie — sans lui, « Valider »
+              ne soumettrait rien, et seule la touche Entrée dans le champ
+              marcherait encore. */}
+          <Bouton
+            type="submit"
+            form="prompt-form"
+            ton="accent"
+            fond="doux"
+            libelle={libelleAction}
+          />
+        </>
+      }
+    >
       <form
+        id="prompt-form"
         onSubmit={(e) => {
           e.preventDefault();
           onValider(valeur);
@@ -286,15 +415,7 @@ export function PromptDialog({
           onChange={(e) => setValeur(e.target.value)}
           placeholder={placeholder}
           autoFocus
-          className="mt-3"
         />
-        {/* ⚠️ Ici l'ordre est l'inverse de ConfirmDialog : c'est l'ACTION qui
-            est mise en avant, parce qu'elle ne perd rien — on vient saisir une
-            valeur, pas confirmer une destruction. */}
-        <PiedDeDialogue>
-          <Bouton onClick={onCancel} fond="plein" libelle="Annuler" />
-          <Bouton type="submit" ton="accent" fond="doux" libelle={libelleAction} />
-        </PiedDeDialogue>
       </form>
     </Modale>
   );
@@ -350,45 +471,31 @@ export function KeepAccountDialog({
   // Écart abandonné : la spec ne prévoit qu'un fondu (voir design.md), et un
   // seul dialogue floutant le fond se lisait comme un objet d'une autre nature.
   return (
-    <Modale onClose={onDismiss} labelledBy="keep-account-titre" largeur="max-w-[420px]">
-        <div className="flex items-start gap-3">
-          <span className="mt-0.5 flex-none rounded-lg bg-panel2 p-2 text-star">
-            <HardDriveDownload size={18} />
+    // ⚠️ **PAS de croix**, comme les confirmations : cette fenêtre pose une
+    // question dont les deux réponses sont des boutons. Une croix serait une
+    // troisième issue, dont on ne saurait pas si elle vaut « non » — alors
+    // qu'elle n'enregistre RIEN et redemande au prochain import.
+    <Modale
+      onClose={onDismiss}
+      labelledBy="keep-account-titre"
+      largeur="max-w-[420px]"
+      titre="Garder tes données sur cet appareil ?"
+      sousTitre={
+        <>
+          Ton compte, ta prépa RTA, tes équipes de siège et tes recommandations seront encore là à
+          ta prochaine visite, sans rien redéposer.
+          <span className="mt-2 block font-semibold text-star">
+            Recommandé : sans ça, tu perds tout ton travail en fermant l'onglet.
           </span>
-          <div>
-            <h2 id="keep-account-titre" className="text-base font-bold text-ink">
-              Garder tes données sur cet appareil ?
-            </h2>
-            <p className="mt-1.5 text-xs leading-relaxed text-ink-dim">
-              Ton compte, ta prépa RTA, tes équipes de siège et tes recommandations seront encore là
-              à ta prochaine visite, sans rien redéposer.
-            </p>
-            <p className="mt-2 text-xs font-semibold leading-relaxed text-star">
-              Recommandé : sans ça, tu perds tout ton travail en fermant l'onglet.
-            </p>
-          </div>
-        </div>
-
-        <p className="mt-3 flex items-start gap-2 rounded-lg border border-border bg-panel2 px-3 py-2 text-micro leading-relaxed text-ink-dim">
-          <ShieldCheck size={14} className="mt-[1px] flex-none text-good" />
-          <span>
-            Tout reste <b className="text-ink">dans ton navigateur</b>, sur cet ordinateur. Rien
-            n'est envoyé nulle part, et rien n'est partagé.
-          </span>
-        </p>
-
-        {/* La case s'applique aux DEUX réponses, et seulement à cette session.
-            ⚠️ Ton `star` : elle accompagne la réponse recommandée, dont elle
-            reprend la couleur — la même que celle du paragraphe au-dessus. */}
-        <Case
-          libelle="Ne plus me montrer pendant cette session"
-          ton="star"
-          checked={nePlusMontrer}
-          onChange={(e) => setNePlusMontrer(e.target.checked)}
-          className="mt-3.5"
-        />
-
-        <PiedDeDialogue className="mt-3">
+        </>
+      }
+      icone={
+        <span className="mt-0.5 flex-none rounded-lg bg-panel2 p-2 text-star">
+          <HardDriveDownload size={18} />
+        </span>
+      }
+      actions={
+        <>
           <Bouton
             onClick={() => onChoose(false, nePlusMontrer)}
             fond="plein"
@@ -403,13 +510,35 @@ export function KeepAccountDialog({
             trait="aucun"
             taille="sm"
             libelle="Garder mes données (recommandé)"
-            className="shadow"
           />
-        </PiedDeDialogue>
+        </>
+      }
+    >
+      <p className="flex items-start gap-2 rounded-lg border border-border bg-panel2 px-3 py-2 text-micro leading-relaxed text-ink-dim">
+        <ShieldCheck size={14} className="mt-[1px] flex-none text-good" />
+        <span>
+          Tout reste <b className="text-ink">dans ton navigateur</b>, sur cet ordinateur. Rien
+          n'est envoyé nulle part, et rien n'est partagé.
+        </span>
+      </p>
 
-        <p className="mt-2.5 text-center text-micro text-ink-dim">
-          Tu pourras changer d'avis à tout moment dans les réglages ⚙.
-        </p>
+      {/* La case s'applique aux DEUX réponses, et seulement à cette session.
+          ⚠️ Ton `star` : elle accompagne la réponse recommandée, dont elle
+          reprend la couleur — la même que celle du paragraphe au-dessus. */}
+      <Case
+        libelle="Ne plus me montrer pendant cette session"
+        ton="star"
+        checked={nePlusMontrer}
+        onChange={(e) => setNePlusMontrer(e.target.checked)}
+        className="mt-3.5"
+      />
+
+      {/* ⚠️ Sous la case et non sous les boutons : le pied est réservé aux
+          ACTIONS. Cette phrase désamorce l'engagement — sans elle, on répond
+          « non » par prudence — et elle doit se lire AVANT de choisir. */}
+      <p className="mt-3 text-micro text-ink-dim">
+        Tu pourras changer d'avis à tout moment dans les réglages ⚙.
+      </p>
     </Modale>
   );
 }

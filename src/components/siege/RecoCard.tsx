@@ -290,7 +290,11 @@ export default function RecoCard({
             title={open ? 'Replier' : `Voir les ${reco.decks.length} deck(s)`}
             className="text-left transition hoverable:text-ctx"
           >
-            <h3 className="font-display text-lg tracking-wide">
+            {/* ⚠️ `compact:text-base` : même resserrement que le titre d'une
+                équipe de siège (SiegeTeam.tsx) — au doigt, `text-lg` pesait
+                trop lourd à côté de la puce « Importée » et du compteur de
+                decks sur la même ligne. */}
+            <h3 className="font-display text-lg tracking-wide compact:text-base">
               {reco.name || `Recommandation ${index + 1}`}
             </h3>
           </ZoneCliquable>

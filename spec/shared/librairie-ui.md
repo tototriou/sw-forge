@@ -246,7 +246,29 @@ popup d'édition, formulaire ancré, liste de résultats d'une recherche.
 
 > ⚠️ `rembourrage="aucun"` pour une **liste** : ses entrées doivent toucher les
 > bords, sinon le survol laisse une bande morte et l'entrée surlignée paraît
-> décalée de son propre cadre.
+> décalée de son propre cadre. C'est pourquoi le flottant porte
+> `overflow-hidden` — sans lui, les coins carrés du contenu dépassent de
+> l'arrondi du cadre, en quatre petits ergots aux angles.
+
+**`FlottantAuto`** — le même, mais qui **choisit son côté** en mesurant la place
+autour de son ancre : vers la gauche si l'ancre est près du bord droit, vers le
+haut si elle est près du bas.
+
+> ⚠️ Pour ce qui est ancré à un élément **dont la position varie** : une tuile
+> dans une grille, une carte de monstre, un badge au bout d'une ligne. Ces ancres
+> vont jusqu'aux bords de la page, et un flottant posé toujours du même côté s'y
+> trouvait coupé — exactement là où l'on venait de cliquer pour lire quelque
+> chose.
+
+> ⚠️ **Distinct de `useRecalageEcran`**, qui *tire* une surface débordante vers
+> l'intérieur après coup. Ici on choisit le bon côté **avant** de peindre : pas
+> de saut visible, et la surface reste alignée sur son ancre au lieu de flotter à
+> une position corrigée. Le recalage reste utile quand la surface doit garder son
+> côté (le formulaire de catégorie, ancré à sa pilule).
+
+> ⚠️ `useLayoutEffect` et non `useEffect` : la mesure doit précéder la peinture.
+> Avec `useEffect`, la surface apparaissait un instant du mauvais côté puis
+> sautait — un scintillement d'une frame, mais visible.
 
 **`Modale`** — la coquille de **toute** boîte modale : voile, centrage, fermeture
 au clic extérieur et à Échap. `ConfirmDialog`, `PromptDialog` et

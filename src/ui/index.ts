@@ -54,6 +54,13 @@ export type { ChampProps } from './Champ';
 export { default as Flottant } from './Flottant';
 export type { FlottantProps } from './Flottant';
 
+// Le même, mais qui CHOISIT SON CÔTÉ en mesurant la place autour de son ancre.
+// ⚠️ Pour ce qui est ancré à un élément dont la position varie — une tuile dans
+// une grille, un badge au bout d'une ligne : ces ancres vont jusqu'aux bords de
+// la page, où un flottant posé toujours du même côté se fait couper.
+export { default as FlottantAuto } from './FlottantAuto';
+export type { FlottantAutoProps } from './FlottantAuto';
+
 // Saisie NUMÉRIQUE bornée, avec ses deux flèches. ⚠️ Vivait dans `components/`
 // alors que sept écrans l'utilisaient : sa place est ici.
 export { default as NumberField } from './NumberField';

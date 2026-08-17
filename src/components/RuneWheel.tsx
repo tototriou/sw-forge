@@ -4,6 +4,7 @@ import { RuneDetail } from '../types';
 import { RARITY_FILTER } from '../lib/effects';
 import RuneIcon from './RuneIcon';
 import { SPIN } from './RuneSlotIcon';
+import { ZoneCliquable } from '../ui';
 
 // Roue de runes « façon jeu » — extraite de [MonsterGear.tsx](src/components/MonsterGear.tsx)
 // à son deuxième usage (cartes de résultat de l'Optimizer, voir
@@ -129,8 +130,11 @@ export default function RuneWheel({ runes, scale, isSelected, onSelectRune, rend
               transform: `translate(calc(-50% + ${nudge.x * echelle}px), calc(-50% + ${nudge.y * echelle}px))`,
             }}
           >
-            <button
-              type="button"
+            {/* ⚠️ Une ZONE et non un bouton : la cible est l'image de la rune
+                elle-même, posée en `absolute inset-0` sur son emplacement de la
+                roue. Un cadre ou un rembourrage y dessinerait un second objet
+                par-dessus le premier. */}
+            <ZoneCliquable
               onClick={() => onSelectRune?.(r, i)}
               title={`Slot ${r.slot}${ancient ? ' · antique' : ''} · voir le détail`}
               className="absolute inset-0"
@@ -161,7 +165,7 @@ export default function RuneWheel({ runes, scale, isSelected, onSelectRune, rend
               >
                 <RuneIcon setKey={r.set} size={setIconSize} filter={RARITY_FILTER[r.rarity] ?? RARITY_FILTER[1]} />
               </span>
-            </button>
+            </ZoneCliquable>
             {renderOverlay?.(r, i, { current: refs.current[i] })}
           </div>
         );

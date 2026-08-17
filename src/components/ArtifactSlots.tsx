@@ -3,6 +3,7 @@ import { Ban } from 'lucide-react';
 import { ARTIFACT_KINDS, ArtifactDetail } from '../types';
 import ArtifactIcon from './ArtifactIcon';
 import { COMPACT, useMediaQuery } from '../hooks/useMediaQuery';
+import { ZoneCliquable } from '../ui';
 
 // Emplacements d'artéfacts — extraits de [MonsterGear.tsx](src/components/MonsterGear.tsx)
 // à son deuxième usage (cartes de résultat de l'Optimizer, voir
@@ -94,11 +95,13 @@ export default function ArtifactSlots({
             // le même contexte d'empilement.
             className={`relative ${selected ? 'z-10' : ''}`}
           >
-            <button
-              type="button"
+            {/* ⚠️ Une ZONE et non un bouton : la cible est le cadre de
+                l'artéfact lui-même, dont la taille est calculée en pixels. Un
+                rembourrage de bouton l'aurait décalé de son emplacement. */}
+            <ZoneCliquable
               onClick={() => onSelectArtifact?.(a, i)}
               title={`Voir l'artéfact ${label.toLowerCase()}`}
-              className="relative inline-flex items-center justify-center rounded transition"
+              className="relative inline-flex items-center justify-center rounded"
               style={{ width: frame, height: frame }}
             >
               <img
@@ -109,7 +112,7 @@ export default function ArtifactSlots({
                 draggable={false}
               />
               <ArtifactIcon artifact={a} size={iconSize} className="relative drop-shadow-[0_1px_2px_rgba(0,0,0,0.8)]" />
-            </button>
+            </ZoneCliquable>
             {renderOverlay?.(a, i, { current: refs.current[slotIdx] })}
           </div>
         );

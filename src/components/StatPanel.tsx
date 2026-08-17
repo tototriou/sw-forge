@@ -3,6 +3,7 @@ import { ArrowRight } from 'lucide-react';
 import { StatRow } from '../lib/stats';
 import { CAPPED_STATS } from '../lib/effects';
 import { displayedTotal, useOvercapDisplay } from '../hooks/useOvercapDisplay';
+import { ZoneCliquable } from '../ui';
 
 // Nombres compacts (39051 → « 39 051 »).
 function fmt(n: number): string {
@@ -36,16 +37,13 @@ export default function StatPanel({ stats, spdCible = null }: Props) {
   const showOvercap = useOvercapDisplay();
 
   return (
-    <div
-      role="button"
-      tabIndex={0}
+    // ⚠️ `imbrique` : ce panneau est posé DANS la fiche d'un monstre, elle-même
+    // cliquable par endroits — un `<button>` dans un `<button>` est du HTML
+    // invalide. Le composant remet à la main le focus clavier et l'activation à
+    // Entrée/Espace, que le navigateur donnait gratuitement. Voir ZoneCliquable.
+    <ZoneCliquable
+      imbrique
       onClick={() => setShowTotal((v) => !v)}
-      onKeyDown={(e) => {
-        if (e.key === 'Enter' || e.key === ' ') {
-          e.preventDefault();
-          setShowTotal((v) => !v);
-        }
-      }}
       title={showTotal ? 'Afficher base + bonus' : 'Afficher le total'}
       aria-pressed={showTotal}
       // ⚠️ Rembourrage réduit au doigt : le panneau porte HUIT lignes, et
@@ -105,6 +103,6 @@ export default function StatPanel({ stats, spdCible = null }: Props) {
           })}
         </tbody>
       </table>
-    </div>
+    </ZoneCliquable>
   );
 }

@@ -11,7 +11,7 @@ import Pager from './Pager';
 import SetFilter from './SetFilter';
 import SlotFilter from './SlotFilter';
 import NumberField from '../../ui/NumberField';
-import DetailPopover from './DetailPopover';
+import { FlottantAuto } from '../../ui';
 
 interface Props {
   runes: RuneDetail[];
@@ -539,7 +539,7 @@ export const OptimTile = memo(function OptimTile({
         </div>
       </button>
 
-      <DetailPopover open={open} anchorRef={ref} height={300} width={340}>
+      <FlottantAuto ouvert={open} ancre={ref} hauteur={300} largeur={340}>
         <OptimPlanBox
           rune={rune}
           scenario={scenario}
@@ -548,7 +548,7 @@ export const OptimTile = memo(function OptimTile({
           restreint={restreint}
           stock={stock}
         />
-      </DetailPopover>
+      </FlottantAuto>
     </div>
   );
 });

@@ -7,7 +7,7 @@ import { ArtifactDetailBox, RuneDetailBox } from '../MonsterGear';
 import RuneWheel from '../RuneWheel';
 import ArtifactSlots from '../ArtifactSlots';
 import StatPanel from '../StatPanel';
-import DetailPopover from '../account/DetailPopover';
+import { FlottantAuto } from '../../ui';
 
 interface Props {
   rank: number;
@@ -113,9 +113,9 @@ export default function BuildCandidateCard({
             isSelected={(a) => openArtifactKind === a.kind}
             onSelectArtifact={(a) => setOpenArtifactKind((cur) => (cur === a.kind ? null : a.kind))}
             renderOverlay={(a, _i, anchorRef) => (
-              <DetailPopover open={openArtifactKind === a.kind} anchorRef={anchorRef} width={240} height={260}>
+              <FlottantAuto ouvert={openArtifactKind === a.kind} ancre={anchorRef} largeur={240} hauteur={260}>
                 <ArtifactDetailBox artifact={a} />
-              </DetailPopover>
+              </FlottantAuto>
             )}
           />
           <RuneWheel
@@ -124,9 +124,9 @@ export default function BuildCandidateCard({
             isSelected={(r) => openRuneKey === `${candidateKey}-${r.slot}`}
             onSelectRune={(r) => onToggleRune(`${candidateKey}-${r.slot}`)}
             renderOverlay={(r, _i, anchorRef) => (
-              <DetailPopover open={openRuneKey === `${candidateKey}-${r.slot}`} anchorRef={anchorRef} width={260} height={320}>
+              <FlottantAuto ouvert={openRuneKey === `${candidateKey}-${r.slot}`} ancre={anchorRef} largeur={260} hauteur={320}>
                 <RuneDetailBox rune={r} />
-              </DetailPopover>
+              </FlottantAuto>
             )}
           />
         </div>

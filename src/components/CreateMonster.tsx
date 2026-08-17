@@ -1,14 +1,11 @@
-import { useEffect, useRef, useState } from 'react';
-import { useRecalageEcran } from '../hooks/useRecalageEcran';
-import { COMPACT, useMediaQuery } from '../hooks/useMediaQuery';
-import MobileSheet from '../ui/MobileSheet';
-import { ConfirmDialog } from '../ui/Dialogs';
+import { useState } from 'react';
+import { ConfirmDialog, Modale } from '../ui/Dialogs';
 import { Plus, X, Wand2 } from 'lucide-react';
 import { ELEMENTS, ElementKey, Monster } from '../types';
 import { CustomLead } from '../hooks/useCustomMonsters';
 import ElementIcon from './ElementIcon';
 import NumberField from '../ui/NumberField';
-import { Bouton, BoutonIcone, Champ, Flottant, Selecteur } from '../ui';
+import { Bouton, BoutonIcone, Champ, Selecteur } from '../ui';
 
 const ELEMENT_CHOICES = ELEMENTS.filter((e) => e.key !== 'unknown');
 
@@ -46,33 +43,12 @@ export default function CreateMonster({ onCreate, customMonsters, onDelete }: Pr
   const [leadStat, setLeadStat] = useState('');
   const [lead, setLead] = useState('');
   const [scope, setScope] = useState<'General' | 'Element'>('General');
-  const ref = useRef<HTMLDivElement>(null);
-  const popover = useRef<HTMLDivElement>(null);
-  const auDoigt = useMediaQuery(COMPACT);
-  // Le recalage ne concerne que la popup ancrée : le panneau centré est posé
-  // par rapport à l'écran, il n'a rien à corriger.
-  const { style: recalage } = useRecalageEcran(popover, open && !auDoigt);
-
-  // Ferme la popup au clic à l'extérieur ou sur Échap.
-  // ⚠️ Le clic extérieur ne vaut QUE pour la popup ancrée. Le panneau mobile est
-  // monté hors de `ref` (il est fixé à l'écran) : tout clic DANS le formulaire
-  // aurait donc été vu comme extérieur et l'aurait refermé aussitôt. Le panneau
-  // a son propre voile, qui ferme déjà au clic.
-  useEffect(() => {
-    if (!open || auDoigt) return;
-    function onDown(e: MouseEvent) {
-      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
-    }
-    function onKey(e: KeyboardEvent) {
-      if (e.key === 'Escape') setOpen(false);
-    }
-    document.addEventListener('mousedown', onDown);
-    document.addEventListener('keydown', onKey);
-    return () => {
-      document.removeEventListener('mousedown', onDown);
-      document.removeEventListener('keydown', onKey);
-    };
-  }, [open, auDoigt]);
+  // ⚠️ **Trente lignes retirées ici** en passant à `Modale` : deux refs, un hook
+  // de recalage à l'écran, et un écouteur de clic extérieur doublé d'un écouteur
+  // d'Échap. Tout cela servait à rattraper une popup ancrée qui sortait de
+  // l'écran ou se faisait clipper par le panneau d'où elle sortait. Une modale
+  // ne s'ancre à rien : elle porte déjà sa fermeture au clic extérieur, à Échap,
+  // son piège à focus et son blocage du défilement.
 
   const speedNum = Number(speed);
   const valid = name.trim().length > 0 && speed !== '' && Number.isFinite(speedNum) && speedNum > 0;
@@ -175,18 +151,24 @@ export default function CreateMonster({ onCreate, customMonsters, onDelete }: Pr
         </div>
       )}
 
-      <Bouton
-        onClick={submit}
-        disabled={!valid}
-        ton="accent"
-        fond="doux"
-        trait="aucun"
-        pleineLargeur
-        icone={<Plus size={14} />}
-        libelle="Créer"
-        className="compact:py-3"
-      />
     </>
+  );
+
+  // ⚠️ L'action vit dans le PIED de la modale, pas au bout du formulaire : la
+  // liste des monstres perso s'affiche en dessous, et « Créer » s'y retrouvait
+  // au milieu du contenu — au-dessus d'une liste de dix monstres, on ne le
+  // trouvait plus.
+  const actionCreer = (
+    <Bouton
+      onClick={submit}
+      disabled={!valid}
+      ton="accent"
+      fond="doux"
+      trait="aucun"
+      pleineLargeur
+      icone={<Plus size={14} />}
+      libelle="Créer"
+    />
   );
 
   // Liste des monstres déjà créés, partagée elle aussi par les deux contenants.
@@ -213,7 +195,10 @@ export default function CreateMonster({ onCreate, customMonsters, onDelete }: Pr
   );
 
   return (
-    <div className="relative" ref={ref}>
+    // ⚠️ Plus de `<div className="relative">` : il ancrait la popup, qui n'existe
+    // plus. Une modale se pose par rapport à l'ÉCRAN, et un conteneur inutile
+    // dans une grille d'actions y occupe une cellule pour rien.
+    <>
       {/* ⚠️ Même gabarit (`taille="md"`) que les autres boutons d'action de RTA
           et du siège : ils se retrouvent côte à côte dans le panneau mobile, et
           celui-ci y paraissait rabougri à côté d'eux.
@@ -229,46 +214,31 @@ export default function CreateMonster({ onCreate, customMonsters, onDelete }: Pr
         libelleCourt="Monstre"
       />
 
-      {/* ⚠️ **Panneau centré au doigt, popup ancrée à la souris.** La popup est
-          en `absolute` dans le flux de la page ; posée dans le panneau
-          « Options », qui défile (`overflow-y: auto`), elle s'y trouvait
-          CLIPPÉE — on n'en voyait qu'une bande. C'est le même remède que pour
-          le formulaire de catégorie : un panneau de second niveau, qui recouvre
-          celui d'où il sort. */}
-      {open && auDoigt && (
-        <MobileSheet ouvert centre onFermer={() => setOpen(false)} titre="Nouveau monstre">
-          <div className="flex flex-col">
-            {formulaire}
-            {listePerso}
-          </div>
-        </MobileSheet>
-      )}
-
-      {/* ⚠️ Ce panneau de 300 px est ancré à gauche de son bouton, dont la place
-          varie : dernier d'une barre d'outils sur desktop, cellule de grille
-          dans le panneau mobile. Il sortait de l'écran dans le second cas —
-          `max-w` borne la largeur, pas la position. D'où le recalage, qui reste
-          au hook parce qu'il doit MESURER (voir Flottant). */}
-      {open && !auDoigt && (
-        <Flottant
-          ref={popover}
-          style={recalage}
-          largeur="w-[300px] max-w-[calc(100vw-2rem)]"
+      {/* ⚠️ **Une MODALE, et la même aux deux formats.** Ce formulaire vivait
+          dans deux contenants distincts — un panneau montant au doigt, une popup
+          ancrée à la souris — avec deux en-têtes différents et aucune des deux
+          grammaires de l'app.
+          La popup ancrée était de surcroît le mauvais objet : posée en
+          `absolute` dans le flux, elle se retrouvait CLIPPÉE dès qu'on ouvrait
+          le formulaire depuis le panneau « Options », qui défile — on n'en
+          voyait qu'une bande. Il avait fallu un hook de recalage pour la
+          rattraper à la mesure.
+          Une modale ne s'ancre à rien : elle se pose au centre de l'ÉCRAN, hors
+          du flux de la page. Le problème disparaît au lieu d'être corrigé, et
+          les deux formats reçoivent le même objet — titre à gauche, croix à
+          droite, actions en bas. */}
+      {open && (
+        <Modale
+          onClose={() => setOpen(false)}
+          labelledBy="creer-monstre-titre"
+          titre="Nouveau monstre"
+          largeur="max-w-[340px]"
+          croix
+          actions={actionCreer}
         >
-          <div className="flex items-center justify-between mb-2.5">
-            <span className="label">
-              Nouveau monstre
-            </span>
-            <BoutonIcone
-              onClick={() => setOpen(false)}
-              libelle="Fermer"
-              icone={<X size={14} />}
-            />
-          </div>
-
           {formulaire}
           {listePerso}
-        </Flottant>
+        </Modale>
       )}
 
       {/* ⚠️ Hors des deux blocs conditionnels : le même dialogue sert la popup
@@ -286,6 +256,6 @@ export default function CreateMonster({ onCreate, customMonsters, onDelete }: Pr
           }}
         />
       )}
-    </div>
+    </>
   );
 }

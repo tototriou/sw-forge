@@ -1,4 +1,5 @@
 import { ReactNode, useEffect, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { AlertTriangle, HardDriveDownload, ShieldCheck, X } from 'lucide-react';
 import { useScrollBloque } from '../hooks/useScrollBloque';
 import { Bouton, BoutonIcone, Case, Champ, PiedDeDialogue } from '../ui';
@@ -86,6 +87,25 @@ export function Modale({
   children?: ReactNode;
 }) {
   const boite = useRef<HTMLDivElement>(null);
+  // ⚠️ **La modale est montée dans `<body>`, pas là où elle est écrite.**
+  //
+  // Sans cela, elle reste un DESCENDANT DOM de ce qui l'a ouverte — et sur
+  // téléphone, ce qui l'ouvre est souvent le panneau « Options », dont le contenu
+  // porte `data-tiroir`. La règle `[data-tiroir] .flex-col { align-items:
+  // flex-start }` d'index.css, écrite pour aligner les boutons empilés du
+  // panneau, tombait donc sur la boîte de la modale : son en-tête, son corps et
+  // son pied se rétrécissaient sur leur contenu. La croix se collait au titre,
+  // les champs n'atteignaient plus le bord, les boutons restaient à gauche.
+  //
+  // Trois symptômes, une cause — et rien dans le code de la modale ne pouvait
+  // l'expliquer, puisque la règle vient d'un ancêtre. Un `position: fixed` ne
+  // protège pas de cela : il détache la POSITION, pas l'héritage des sélecteurs
+  // descendants.
+  //
+  // Le portail règle aussi deux choses au passage : plus de contexte
+  // d'empilement parent qui puisse coincer le `z-index`, et plus de découpage par
+  // un `overflow: hidden` d'ancêtre.
+  const [cible] = useState(() => (typeof document === 'undefined' ? null : document.body));
 
   // La modale est toujours ouverte quand elle est montée : le verrou vaut donc
   // toute sa durée de vie.
@@ -152,7 +172,9 @@ export function Modale({
     };
   }, [onClose]);
 
-  return (
+  if (!cible) return null;
+
+  return createPortal(
     <div
       // ⚠️ **`z-[70]` : au-dessus de TOUT, panneaux mobiles compris.** À `z-50`,
       // une confirmation ouverte depuis le panneau d'actions (supprimer une
@@ -291,7 +313,8 @@ export function Modale({
           </div>
         )}
       </div>
-    </div>
+    </div>,
+    cible,
   );
 }
 

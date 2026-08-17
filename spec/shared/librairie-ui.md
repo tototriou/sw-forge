@@ -274,6 +274,24 @@ haut si elle est près du bas.
 au clic extérieur et à Échap. `ConfirmDialog`, `PromptDialog` et
 `KeepAccountDialog` en dérivent.
 
+> ⚠️ **Elle est montée dans `<body>` par un portail, jamais là où elle est
+> écrite.** C'est ce qui manquait, et le bug était instructif : sur téléphone, une
+> modale s'ouvre souvent depuis le panneau « Options », dont le contenu porte
+> `data-tiroir`. La règle `[data-tiroir] .flex-col { align-items: flex-start }`,
+> écrite pour aligner les boutons empilés du panneau, tombait donc sur la boîte de
+> la modale — son en-tête, son corps et son pied se rétrécissaient sur leur
+> contenu. La croix se collait au titre, les champs n'atteignaient plus le bord,
+> les boutons restaient à gauche.
+>
+> **Trois symptômes, une cause, et rien dans le code de la modale ne pouvait
+> l'expliquer** puisque la règle venait d'un ancêtre. `position: fixed` ne protège
+> pas de cela : il détache la **position**, pas l'héritage des sélecteurs
+> descendants. Seul un portail sort du sous-arbre.
+>
+> Le portail règle deux autres pièges au passage : plus de contexte d'empilement
+> parent qui puisse coincer le `z-index`, et plus de découpage par un
+> `overflow: hidden` d'ancêtre.
+
 ### Une seule grammaire, trois bandes
 
 Toutes les modales de l'app ont la même structure, et l'appelant ne la compose

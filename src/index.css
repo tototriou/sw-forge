@@ -414,26 +414,39 @@ html {
 /* ⚠️ Remplace 24 `outline-none` sans marqueur : en tabulant, on ne savait
    jamais où on était. Un composant peut redéfinir l'anneau, jamais le
    supprimer. Voir spec/shared/design.md. */
+/* ⚠️ **1 px, comme tout contour de l'app.** Il en faisait 2, détachés de 2 px
+   de plus : un halo de quatre pixels autour de chaque contrôle atteint au
+   clavier, qui bavait sur ses voisins dans une rangée serrée. La couleur
+   d'accent suffit à le repérer — c'est le contraste qui fait un marqueur de
+   focus, pas l'épaisseur. Voir spec/shared/librairie-ui.md § contours. */
 :focus-visible {
-  outline: 2px solid rgb(var(--accent));
-  outline-offset: 2px;
+  outline: 1px solid rgb(var(--accent));
+  outline-offset: 1px;
   border-radius: 3px;
 }
 
-/* ⚠️ Sur un champ DÉJÀ marqué d'une bordure d'accent (un critère posé, un
-   filtre actif), l'anneau se COLLE à la bordure au lieu de flotter 2 px plus
-   loin. Détaché, il donnait deux traits d'accent séparés par un vide : on
-   lisait un halo épais qui bavait sur les contrôles voisins, au lieu de deux
-   informations distinctes (« ce critère est posé » et « le clavier est ici »).
-   Collé, il épaissit simplement la bordure existante.
+/* ⚠️ **Un contrôle qui marque DÉJÀ le focus par sa bordure n'a pas d'anneau.**
+   Un `<select>` ou un champ en `focus:border-accent` teinte sa propre bordure à
+   la mise au point : l'anneau par-dessus faisait un second trait d'accent collé
+   au premier — 3 px d'accent autour d'un contrôle qui n'en demandait qu'un.
 
-   L'anneau n'est pas supprimé pour autant — la règle du dessus tient : le
-   focus reste visible, il cesse juste de se dédoubler.
+   Le focus reste parfaitement visible : c'est la BORDURE qui le porte, et elle
+   change de couleur au moment précis où le clavier arrive. Même raisonnement
+   qu'en dessous pour un champ dans un cadre qui réagit — un seul contour, celui
+   qui a déjà quelque chose à dire.
    Voir la section « UN SEUL marqueur de sélection » dans spec/shared/design.md. */
+.focus\:border-accent:focus-visible,
+.focus\:border-ctx:focus-visible {
+  outline: none;
+}
+
+/* ⚠️ En revanche, une bordure d'accent PERMANENTE (un critère posé, un filtre
+   actif) ne dit rien du clavier : elle est là avant et après. L'anneau reste
+   donc, mais COLLÉ à elle — détaché, il donnait deux traits d'accent séparés
+   par un vide, qu'on lit comme un halo épais plutôt que comme deux
+   informations distinctes. */
 .border-accent:focus-visible,
 .border-ctx:focus-visible,
-.focus\:border-accent:focus-visible,
-.focus\:border-ctx:focus-visible,
 .focus-within\:border-accent:focus-within:has(:focus-visible),
 .focus-within\:border-ctx:focus-within:has(:focus-visible) {
   outline-offset: 0;

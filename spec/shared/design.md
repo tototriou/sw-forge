@@ -763,14 +763,30 @@ protège déjà du ratage.
 
 ```css
 :focus-visible {
-  outline: 2px solid var(--accent);
-  outline-offset: 2px;
+  outline: 1px solid var(--accent);
+  outline-offset: 1px;
 }
 ```
 
 ⚠️ **`outline-none` est interdit sans remplacement visible.** L'app comptait 24
 `outline-none` et zéro `focus-visible` : en tabulant, on ne savait jamais où on
 était.
+
+⚠️ **1 px, comme tout contour de l'app.** L'anneau en faisait 2, détachés de 2 px
+de plus : un halo de quatre pixels autour de chaque contrôle atteint au clavier,
+qui bavait sur ses voisins dans une rangée serrée. C'est le **contraste** qui
+fait un marqueur de focus, pas l'épaisseur.
+
+⚠️ **Un contrôle qui marque déjà le focus par sa BORDURE n'a pas d'anneau du
+tout.** Un `<select>` ou un champ en `focus:border-accent` teinte sa propre
+bordure à la mise au point ; l'anneau par-dessus faisait un second trait d'accent
+collé au premier, soit 3 px autour d'un contrôle qui n'en demandait qu'un. Le
+focus reste porté par la bordure, qui change de couleur au moment précis où le
+clavier arrive.
+
+⚠️ En revanche, une bordure d'accent **permanente** (un critère posé, un filtre
+actif) ne dit rien du clavier — elle est là avant et après. L'anneau reste donc,
+mais collé à elle.
 
 ### Survol — toujours derrière une media query
 

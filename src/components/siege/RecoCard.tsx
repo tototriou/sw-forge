@@ -258,23 +258,17 @@ export default function RecoCard({
     // et chaque `p-4` coûte 32 px de haut multipliés par leur nombre.
     <section className={`rounded-2xl border p-4 compact:p-2.5 transition-colors ${AURA[status]}`}>
       {/* En-tête de la recommandation.
-          ⚠️ DEUX zones, et non un seul `flex-wrap` : le titre et ses
-          métadonnées à gauche, les actions ancrées **en haut à droite**
-          (`items-start` + `ml-auto` sur le groupe). Dans un `flex-wrap`
-          unique, les icônes Exporter/Éditer/Supprimer suivaient le flux et
-          retombaient sous le titre dès que la ligne était pleine — on les
-          cherchait des yeux d'une carte à l'autre.
-          ⚠️ **`items-start`, pas `items-center`** : la zone de gauche passe
-          couramment sur DEUX lignes (titre, puis puce/decks/auteur en
-          dessous dès que le nom est un peu long — pas un cas rare). Centrer
-          sur tout le bloc plaçait les icônes ENTRE les deux lignes, ce qui se
-          lisait comme un défaut pire que l'écart qu'on corrigeait. Alignées en
-          haut, elles répondent toujours à la PREMIÈRE ligne — le titre —, où
-          qu'il s'arrête. Le `leading-none` du titre (plus bas) fait le reste :
-          sans lui, la boîte de ligne du texte dépassait la hauteur des icônes
-          et le haut de son GLYPHE, pas de sa boîte, restait décalé. */}
-      <div className="flex items-start gap-2 mb-3">
-        <div className="flex flex-1 min-w-0 items-center gap-2 flex-wrap">
+          ⚠️ **TROIS zones, pas deux.** Le titre et les icônes d'action
+          vivaient chacun dans leur propre bloc (titre + badges à gauche,
+          actions à droite), alignés `items-start` — mais dès que les badges
+          poussaient le titre à occuper toute sa ligne à lui, l'alignement ne
+          répondait plus qu'à une COÏNCIDENCE de hauteurs entre deux éléments
+          sans rapport (la boîte de ligne du texte, la boîte de l'icône).
+          Le titre et les icônes sont maintenant sur LEUR PROPRE rangée
+          (`items-center`), toujours à deux, jamais perturbée par la longueur
+          des badges — qui passent en dessous, sur une deuxième rangée qui
+          leur est propre et peut s'enrouler librement. */}
+      <div className="mb-1.5 flex items-center gap-2">
         {editing ? (
           <Champ
             value={reco.name}
@@ -301,67 +295,21 @@ export default function RecoCard({
             title={open ? 'Replier' : `Voir les ${reco.decks.length} deck(s)`}
             // ⚠️ `p-0` explicite : un `<button>` porte un rembourrage par
             // défaut du navigateur, invisible à l'œil mais qui élargit sa
-            // boîte au-delà du texte — c'est lui qui décalait le titre de
-            // l'alignement avec les icônes, pas seulement l'interligne.
-            className="p-0 text-left transition hoverable:text-ctx"
+            // boîte au-delà du texte.
+            className="min-w-0 flex-1 truncate p-0 text-left transition hoverable:text-ctx"
           >
             {/* ⚠️ `compact:text-base` : même resserrement que le titre d'une
                 équipe de siège (SiegeTeam.tsx) — au doigt, `text-lg` pesait
-                trop lourd à côté de la puce « Importée » et du compteur de
-                decks sur la même ligne. */}
-            <h3 className="font-display text-lg leading-none tracking-wide compact:text-base">
+                trop lourd. `leading-none` : sans lui, la boîte de ligne du
+                texte (interligne 1,6 de l'échelle) dépassait la hauteur des
+                icônes juste à côté, et l'écart se lisait comme un défaut. */}
+            <h3 className="truncate font-display text-lg leading-none tracking-wide compact:text-base">
               {reco.name || `Recommandation ${index + 1}`}
             </h3>
           </ZoneCliquable>
         )}
 
-        {reco.origin === 'imported' && (
-          <span
-            className="inline-flex items-center gap-1 rounded-full border border-accent bg-panel2 px-2 py-0.5
-                       label"
-            title="Recommandation reçue d'un autre joueur"
-          >
-            <Download size={10} /> Importée
-          </span>
-        )}
-        {/* ⚠️ Pendant une recherche, le compteur dit « N sur M » : afficher le
-            total alors qu'un seul deck est à l'écran se lit comme un bug
-            d'affichage — on cherche les cinq autres. Même règle que le compteur
-            filtré de l'inventaire d'artéfacts. */}
-        <span className="font-mono text-micro text-ink-dim">
-          {decksFiltres
-            ? `${decksTrouves.size} sur ${reco.decks.length} deck${reco.decks.length > 1 ? 's' : ''}`
-            : `${reco.decks.length} deck${reco.decks.length > 1 ? 's' : ''}`}
-        </span>
-        {!editing && reco.author && (
-          <span className="font-mono text-micro text-ink-dim">· par {reco.author}</span>
-        )}
-
-        {/* ⚠️ **À la SOURIS seulement** (`compact:hidden`) : au doigt, ce bouton
-            étiqueté crowdait le titre sur une carte étroite, à côté d'une
-            pastille qui redisait déjà ce que l'encart d'analyse affiche juste
-            en dessous (voir plus bas — `StatusPill` a été retiré pour ça). Sa
-            version au doigt vit désormais en icône, groupée avec Exporter /
-            Éditer / Supprimer — voir plus bas. */}
-        {!editing && (
-          <Bouton
-            onClick={onAnalyze}
-            disabled={!canAnalyze}
-            title={
-              canAnalyze
-                ? 'Confronter toute la recommandation à tes monstres'
-                : 'Importe ton compte pour analyser'
-            }
-            taille="sm"
-            icone={<Gauge size={13} />}
-            libelle={match ? 'Réanalyser mes decks' : 'Analyser mes decks'}
-            className="compact:hidden"
-          />
-        )}
-
-        </div>
-
-        {/* Actions — ancrées en haut à droite, hors du flux du titre. */}
+        {/* Actions — sur la MÊME rangée que le titre, à sa hauteur. */}
         <div className="flex flex-none items-center gap-1.5">
           {/* En édition, la carte est forcément dépliée → le bouton n'a pas de sens.
               ⚠️ **Masqué au DOIGT** (`compact:hidden`) : le titre bascule
@@ -430,6 +378,54 @@ export default function RecoCard({
             />
           </div>
         </div>
+      </div>
+
+      {/* Métadonnées — SOUS le titre, sur leur propre rangée qui s'enroule
+          librement sans jamais perturber l'alignement titre/icônes. */}
+      <div className="mb-3 flex flex-wrap items-center gap-2">
+        {reco.origin === 'imported' && (
+          <span
+            className="inline-flex items-center gap-1 rounded-full border border-accent bg-panel2 px-2 py-0.5
+                       label"
+            title="Recommandation reçue d'un autre joueur"
+          >
+            <Download size={10} /> Importée
+          </span>
+        )}
+        {/* ⚠️ Pendant une recherche, le compteur dit « N sur M » : afficher le
+            total alors qu'un seul deck est à l'écran se lit comme un bug
+            d'affichage — on cherche les cinq autres. Même règle que le compteur
+            filtré de l'inventaire d'artéfacts. */}
+        <span className="font-mono text-micro text-ink-dim">
+          {decksFiltres
+            ? `${decksTrouves.size} sur ${reco.decks.length} deck${reco.decks.length > 1 ? 's' : ''}`
+            : `${reco.decks.length} deck${reco.decks.length > 1 ? 's' : ''}`}
+        </span>
+        {!editing && reco.author && (
+          <span className="font-mono text-micro text-ink-dim">· par {reco.author}</span>
+        )}
+
+        {/* ⚠️ **À la SOURIS seulement** (`compact:hidden`) : au doigt, ce bouton
+            étiqueté crowdait le titre sur une carte étroite, à côté d'une
+            pastille qui redisait déjà ce que l'encart d'analyse affiche juste
+            en dessous (voir plus bas — `StatusPill` a été retiré pour ça). Sa
+            version au doigt vit désormais en icône, groupée avec Exporter /
+            Éditer / Supprimer — voir plus bas. */}
+        {!editing && (
+          <Bouton
+            onClick={onAnalyze}
+            disabled={!canAnalyze}
+            title={
+              canAnalyze
+                ? 'Confronter toute la recommandation à tes monstres'
+                : 'Importe ton compte pour analyser'
+            }
+            taille="sm"
+            icone={<Gauge size={13} />}
+            libelle={match ? 'Réanalyser mes decks' : 'Analyser mes decks'}
+            className="compact:hidden"
+          />
+        )}
       </div>
 
       {suppressionAConfirmer && (

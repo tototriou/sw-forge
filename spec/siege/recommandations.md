@@ -1197,41 +1197,48 @@ est un **travail de fond**. Il n'a d'ailleurs **pas de mode édition de bloc** �
 juste un « + » qui ajoute et ouvre l'entrée créée. Voir « Défenses visées » plus
 haut.
 
-#### ⚠️ Les icônes d'action sont TOUJOURS dans l'angle supérieur droit
+#### ⚠️ Le titre et les icônes d'action partagent LEUR PROPRE rangée
 
-L'en-tête est **deux zones**, pas un `flex-wrap` unique :
+L'en-tête est **trois zones empilées**, pas deux côte à côte :
 
-| Zone | Contenu | Comportement |
-|------|---------|--------------|
-| gauche (`flex-1 min-w-0`) | titre (cliquable, bascule la carte), puce « Importée », compteur de decks, auteur, « Analyser mes decks » (souris seulement) | passe à la ligne librement |
-| droite (`flex-none`) | « Consulter » (souris seulement), puis Exporter ↑ · Éditer ✏️ · Supprimer 🗑 | **ancrée en haut à droite** (`items-start`), répond à la PREMIÈRE ligne — le titre — même quand la zone de gauche passe sur deux |
+| Rangée | Contenu | Comportement |
+|--------|---------|--------------|
+| 1 — titre + actions | titre (cliquable, bascule la carte, tronqué s'il déborde) et, sur la MÊME ligne : « Consulter » (souris seulement), Exporter ↑, Éditer ✏️, Supprimer 🗑 | `items-center`, une seule ligne |
+| 2 — métadonnées | puce « Importée », compteur de decks, auteur, « Analyser mes decks » (souris seulement) | passe à la ligne librement, sous la rangée 1 |
 
-Dans un `flex-wrap` unique, les trois icônes suivaient le flux et **retombaient
-sous le titre** dès que la ligne était pleine — leur position changeait d'une
-carte à l'autre selon la longueur du nom, et il fallait les chercher des yeux à
-chaque fois. Une barre d'outils se trouve à un endroit fixe, ou elle n'en est
-pas une.
+⚠️ **Historique : deux zones côte à côte (titre+badges à gauche, icônes à
+droite), essayé et défait deux fois.**
+- `items-start` : correct tant que le titre est seul sur sa ligne, mais la
+  zone de gauche passe couramment sur DEUX lignes dès que le nom n'est pas très
+  court (badges qui débordent en dessous) — pas un cas rare, le cas courant sur
+  une carte de largeur mobile.
+- `items-center` sur ce même agencement à deux zones plaçait alors les icônes
+  **entre** les deux lignes de gauche : ni alignées sur le titre, ni sur les
+  badges — pire que l'écart qu'on corrigeait.
 
-⚠️ **`items-center` sur les deux zones a été essayé, et défait.** La zone de
-gauche passe couramment sur deux lignes (le titre, puis puce/decks/auteur
-dessous dès que le nom n'est pas très court — pas un cas rare, le cas courant
-sur une carte de largeur mobile). Centrer sur tout le bloc plaçait les icônes
-**entre** les deux lignes : ni alignées sur le titre, ni sur les badges. Avec
-`items-start`, les icônes répondent toujours à la première ligne — le titre.
-⚠️ Le titre porte en plus `leading-none` : sans lui, sa boîte de ligne
-(`font-display`, interligne 1,6 de l'échelle) dépassait la hauteur des icônes,
-et même aligné en haut, le GLYPHE restait décalé d'un ou deux pixels sous le
-haut de sa propre boîte.
+Le problème n'était pas l'alignement CSS mais la STRUCTURE : titre et badges
+n'ont aucune raison de partager une hauteur commune avec les icônes, ce sont
+deux informations différentes. Les séparer en deux rangées résout tout d'un
+coup — la rangée 1 ne contient plus QUE le titre et les icônes, qui peuvent
+alors se centrer l'un sur l'autre sans qu'un troisième élément interfère.
 
-⚠️ **En-tête de la recommandation : icônes en 24 px (`h-6 w-6`), pas 20.**
-Élargies pour respirer un peu plus, sans perdre l'exemption tactile
-(`taille="serre"` garde `data-cible-fine`, donc les 40 px de la règle au
-doigt ne s'appliquent pas). L'override passe par `className`, et ça tient
-parce que `h-6` est PLUS LOIN que le `h-5` du composant dans la feuille de
-style construite (Tailwind range ses valeurs par ordre croissant) — vérifié
-dans le CSS, pas supposé. Le bouton du titre, lui, porte `p-0` explicite :
-un `<button>` a un rembourrage par défaut du navigateur, invisible à l'œil
-mais qui élargit sa boîte au-delà du texte.
+⚠️ Le titre porte `leading-none` (sa boîte de ligne, interligne 1,6 de
+l'échelle, dépassait sinon la hauteur des icônes) et `p-0` explicite (un
+`<button>` a un rembourrage par défaut du navigateur, invisible à l'œil mais
+qui élargit sa boîte au-delà du texte).
+
+⚠️ **Icônes en 24 px (`h-6 w-6`), pas 20**, pour respirer un peu plus, sans
+perdre l'exemption tactile (`taille="serre"` garde `data-cible-fine`, donc les
+40 px de la règle au doigt ne s'appliquent pas). L'override passe par
+`className`, et ça tient parce que `h-6` est PLUS LOIN que le `h-5` du
+composant dans la feuille de style construite (Tailwind range ses valeurs par
+ordre croissant) — vérifié dans le CSS, pas supposé.
+
+Dans un `flex-wrap` unique (l'agencement d'avant tout ça), les trois icônes
+suivaient le flux et **retombaient sous le titre** dès que la ligne était
+pleine — leur position changeait d'une carte à l'autre selon la longueur du
+nom, et il fallait les chercher des yeux à chaque fois. Une barre d'outils se
+trouve à un endroit fixe, ou elle n'en est pas une.
 
 **Icônes nues partout** dans les en-têtes — carrés de 24 px, **sans cadre ni
 fond**, groupés et resserrés (`gap-0.5`) à droite de la ligne :

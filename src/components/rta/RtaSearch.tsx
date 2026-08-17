@@ -4,7 +4,7 @@ import { Monster } from '../../types';
 import MonsterAvatar from '../MonsterAvatar';
 import { formesJouables } from '../../lib/monsterForms';
 import { useComboboxNav } from '../../hooks/useComboboxNav';
-import { Champ } from '../../ui';
+import { Champ, Flottant } from '../../ui';
 
 interface Props {
   monsters: Monster[];
@@ -76,12 +76,15 @@ export default function RtaSearch({ monsters, addedIds, onAdd }: Props) {
                    compact:py-2 compact:pl-9 compact:pr-3"
       />
 
+      {/* ⚠️ `rembourrage="aucun"` : les entrées d'une liste doivent toucher les
+          bords. Un rembourrage y laisse une bande morte au survol, et l'entrée
+          surlignée paraît décalée de son propre cadre. */}
       {nav.open && (
-        <div
+        <Flottant
           {...nav.listProps}
           aria-label="Résultats de la recherche"
-          className="absolute z-20 mt-2 w-full max-h-[360px] overflow-y-auto rounded-xl border border-border
-                     bg-panel shadow-glow shadow-black/60"
+          rembourrage="aucun"
+          className="max-h-[360px] overflow-y-auto"
         >
           {results.length === 0 ? (
             <div className="px-4 py-3 text-ink-dim text-sm">Aucun monstre trouvé.</div>
@@ -124,7 +127,7 @@ export default function RtaSearch({ monsters, addedIds, onAdd }: Props) {
               );
             })
           )}
-        </div>
+        </Flottant>
       )}
     </div>
   );

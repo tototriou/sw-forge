@@ -223,6 +223,31 @@ lignes de description, une icône centrée verticalement flotte en face de rien.
 > règle du [README](../README.md) : le défaut ne perd jamais rien, et ce qui perd
 > s'explique avant.
 
+**`Flottant`** — surface posée au-dessus de la page, ancrée à ce qui l'a ouverte :
+popup d'édition, formulaire ancré, liste de résultats d'une recherche.
+
+> ⚠️ **C'est la seule chose de l'app qui ait droit à une OMBRE.** L'élévation dit
+> « je suis au-dessus, et je vais repartir » — ce qui est faux d'un bouton actif
+> ou d'une carte sélectionnée, qui appartiennent à la page. Trois écrans
+> recopiaient les mêmes `shadow-glow shadow-black/60`.
+
+> ⚠️ **Le `z-index` est un ORDRE, pas un nombre libre.** L'échelle de l'app —
+> contenu → barre du haut (20) → **flottants (30)** → onglets mobiles (40) →
+> panneau montant (50) → panneau de second niveau (60) → dialogues (70) — se
+> règle ici pour tout ce qui flotte. Un `z-40` écrit à la main « pour que ça
+> passe devant » se retrouve un jour derrière la barre d'onglets. La liste de
+> résultats de la recherche RTA était d'ailleurs à `z-20`, à égalité avec la
+> barre du haut.
+
+> ⚠️ Il ne s'occupe **pas du placement** : le recalage à l'écran reste au hook
+> `useRecalageEcran`, qui a besoin de mesurer. Mais il pose `left-0`, sans quoi
+> une valeur négative de recalage ne décale pas — elle repositionne depuis un
+> bord que le navigateur choisit seul.
+
+> ⚠️ `rembourrage="aucun"` pour une **liste** : ses entrées doivent toucher les
+> bords, sinon le survol laisse une bande morte et l'entrée surlignée paraît
+> décalée de son propre cadre.
+
 **`Case`** — case à cocher avec son libellé. ⚠️ **La case native est là, seulement
 invisible** (`sr-only`) — jamais remplacée par un `<div>` cliquable. C'est elle
 qui porte l'état, le focus clavier, la barre d'espace et l'annonce du lecteur

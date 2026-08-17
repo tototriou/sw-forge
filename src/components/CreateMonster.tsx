@@ -8,7 +8,7 @@ import { ELEMENTS, ElementKey, Monster } from '../types';
 import { CustomLead } from '../hooks/useCustomMonsters';
 import ElementIcon from './ElementIcon';
 import NumberField from './NumberField';
-import { Bouton, BoutonIcone, Champ, Selecteur } from '../ui';
+import { Bouton, BoutonIcone, Champ, Flottant, Selecteur } from '../ui';
 
 const ELEMENT_CHOICES = ELEMENTS.filter((e) => e.key !== 'unknown');
 
@@ -244,20 +244,16 @@ export default function CreateMonster({ onCreate, customMonsters, onDelete }: Pr
         </MobileSheet>
       )}
 
+      {/* ⚠️ Ce panneau de 300 px est ancré à gauche de son bouton, dont la place
+          varie : dernier d'une barre d'outils sur desktop, cellule de grille
+          dans le panneau mobile. Il sortait de l'écran dans le second cas —
+          `max-w` borne la largeur, pas la position. D'où le recalage, qui reste
+          au hook parce qu'il doit MESURER (voir Flottant). */}
       {open && !auDoigt && (
-        <div
+        <Flottant
           ref={popover}
-          // ⚠️ Ce panneau de 300 px est ancré à gauche de son bouton, dont la
-          // place varie : dernier d'une barre d'outils sur desktop, cellule de
-          // grille dans le panneau mobile. Il sortait de l'écran dans le second
-          // cas — `max-w` borne la largeur, pas la position. Voir le hook.
           style={recalage}
-          // ⚠️ `left-0` explicite : le recalage s'exprime en `left`, qui n'a de
-          // sens que si l'ancrage horizontal est posé. Sans lui (`left: auto`),
-          // une valeur négative ne décale pas — elle repositionne depuis un bord
-          // que le navigateur choisit seul.
-          className="absolute left-0 z-30 mt-2 w-[300px] max-w-[calc(100vw-2rem)] rounded-xl border border-border bg-panel p-3 shadow-glow shadow-black/60
-                     origin-top-left animate-[popover_150ms_var(--ease-out)]"
+          largeur="w-[300px] max-w-[calc(100vw-2rem)]"
         >
           <div className="flex items-center justify-between mb-2.5">
             <span className="label">
@@ -272,7 +268,7 @@ export default function CreateMonster({ onCreate, customMonsters, onDelete }: Pr
 
           {formulaire}
           {listePerso}
-        </div>
+        </Flottant>
       )}
 
       {/* ⚠️ Hors des deux blocs conditionnels : le même dialogue sert la popup

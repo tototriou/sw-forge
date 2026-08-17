@@ -47,6 +47,13 @@ export type { BoutonIconeProps } from './BoutonIcone';
 export { default as Champ } from './Champ';
 export type { ChampProps } from './Champ';
 
+// Surface qui FLOTTE au-dessus de la page, ancrée à ce qui l'a ouverte : popup,
+// menu, liste de résultats. ⚠️ La seule chose de l'app qui ait droit à une ombre
+// — et le seul endroit où se règle son `z-index`, qui est un ordre et non un
+// nombre libre.
+export { default as Flottant } from './Flottant';
+export type { FlottantProps } from './Flottant';
+
 export { default as Selecteur } from './Selecteur';
 export type { SelecteurProps } from './Selecteur';
 

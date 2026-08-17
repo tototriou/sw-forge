@@ -7,7 +7,7 @@ import { ConfirmDialog } from '../Dialogs';
 import { useRecalageEcran } from '../../hooks/useRecalageEcran';
 import { useMediaQuery, SOUS_LG } from '../../hooks/useMediaQuery';
 import MobileSheet from '../MobileSheet';
-import { Bouton, BoutonGroupe, BoutonIcone, Champ, Vignette } from '../../ui';
+import { Bouton, BoutonGroupe, BoutonIcone, Champ, Flottant, Vignette } from '../../ui';
 
 // Palette FERMÉE plutôt qu'un sélecteur de couleur libre : le contrôle natif
 // (`<input type="color">`) est un composant du système, hors charte, et un choix
@@ -451,7 +451,8 @@ function CategoryPopover({
 }) {
   const [label, setLabel] = useState(initial.label);
   const [color, setColor] = useState(initial.color);
-  const ref = useRef<HTMLFormElement>(null);
+  // Sur la surface FLOTTANTE, pas sur le formulaire : voir plus bas.
+  const ref = useRef<HTMLDivElement>(null);
   const surMobile = useMediaQuery(SOUS_LG);
   // Popup ancrée seulement : le panneau montant occupe une largeur connue et
   // n'a rien à recaler.
@@ -477,22 +478,10 @@ function CategoryPopover({
 
   const formulaire = (
     <form
-      ref={ref}
       onSubmit={(e) => {
         e.preventDefault();
         onSubmit(label, color);
       }}
-      // ⚠️ La popup est ancrée à gauche d'un bouton dont la position dépend du
-      // nombre de catégories et de la largeur de leurs noms : elle sortait de
-      // l'écran dès que ce bouton se trouvait sur la droite, d'où le recalage.
-      // Le panneau montant, lui, n'a pas de position à corriger.
-      className={
-        surMobile
-          ? ''
-          : `absolute z-30 left-0 top-full mt-1.5 w-[220px]
-             rounded-xl border border-border bg-panel p-2.5 shadow-glow shadow-black/60`
-      }
-      style={surMobile ? undefined : recalage}
     >
       <div className="flex items-center gap-1.5">
         {/* ⚠️ Masquée au doigt : la palette juste en dessous montre déjà la
@@ -600,5 +589,18 @@ function CategoryPopover({
     );
   }
 
-  return formulaire;
+  // ⚠️ La popup est ancrée à gauche d'un bouton dont la position dépend du
+  // nombre de catégories et de la largeur de leurs noms : elle sortait de
+  // l'écran dès que ce bouton se trouvait sur la droite, d'où le recalage. Le
+  // panneau montant, lui, n'a pas de position à corriger.
+  // ⚠️ `ref` sur le FLOTTANT et non sur le formulaire : c'est la surface
+  // visible qu'on mesure pour le recalage, et c'est elle dont on teste si le
+  // clic est tombé dedans. Posée sur le formulaire, la bordure et le
+  // rembourrage échappaient aux deux — un clic sur le bord de la popup la
+  // refermait.
+  return (
+    <Flottant ref={ref} largeur="w-[220px]" rembourrage="sm" style={recalage}>
+      {formulaire}
+    </Flottant>
+  );
 }

@@ -123,10 +123,11 @@ const ACTIFS: Record<TonBouton, string> = {
   accent: 'border-border bg-accent-soft text-ink',
   danger: 'border-bad/50 bg-bad/10 text-bad',
   alerte: 'border-warn/50 bg-warn/10 text-warn',
-  // ⚠️ Le liseré EN PLUS du fond, contre la règle du marqueur unique : la teinte
-  // `star` est ici un code du jeu et non un état d'interface, et sur une case qui
-  // porte déjà du texte le fond seul se voit mal.
-  precieux: 'border-star bg-star/10 ring-1 ring-star/50 text-ink',
+  // ⚠️ **La bordure teintée SUFFIT** : j'y avais ajouté un `ring-1 ring-star/50`
+  // par-dessus, soit deux traits dorés concentriques à 1 px l'un de l'autre. Ils
+  // ne se lisent pas comme deux informations mais comme un contour épais et
+  // flou. La règle du marqueur unique vaut ici aussi.
+  precieux: 'border-star bg-star/10 text-ink',
 };
 
 const BoutonGroupe = forwardRef<HTMLDivElement, BoutonGroupeProps>(function BoutonGroupe(

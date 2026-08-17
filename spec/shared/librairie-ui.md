@@ -381,6 +381,25 @@ main, avec trois opacités différentes.
   grisée on comprend qu'un plafond est atteint — à condition que le `title` le
   dise.
 
+## L'épaisseur d'un contour de sélection
+
+> ⚠️ **1 px, partout, aux deux formats.** Un contour de sélection CERNE ce qu'il
+> désigne, il ne l'encadre pas. Trois endroits en cumulaient plusieurs :
+>
+> | Où | Avant | Épaisseur réelle |
+> |----|-------|------------------|
+> | Palette de couleurs | `ring-2` + `ring-offset-2` | **4 px** autour d'une case de 24 |
+> | Relique, lead | `border-star` + `ring-1` | 2 px, en **deux traits** concentriques |
+> | Section, au survol du dépôt | `borderColor` + ombre 2 px | 3 px |
+>
+> Le premier pesait plus lourd que la couleur qu'il désigne — sur douze cases
+> serrées, la rangée entière paraissait cernée. Les deux autres ne se lisent pas
+> comme deux informations mais comme **un contour épais et flou**.
+
+> ⚠️ Le piège est toujours le même : une bordure *et* un anneau, ou une bordure
+> *et* une ombre portée. Avant d'ajouter un trait, vérifier que celui d'en
+> dessous n'est pas déjà teinté.
+
 ## Quand ajouter quelque chose
 
 > ⚠️ **Un composant monte ici au DEUXIÈME usage, jamais au premier.** Remonter

@@ -108,14 +108,23 @@ const Vignette = forwardRef<HTMLButtonElement, VignetteProps>(function Vignette(
         // Anneau de CONTRASTE sur un aplat : la teinte ne peut pas se marquer
         // elle-même. Détaché par un liseré de la couleur du panneau, sans quoi
         // il touche la case et se lit comme une bordure de plus.
-        aplat && choisi ? 'ring-2 ring-ink ring-offset-2 ring-offset-panel' : ''
-      } ${!teinte && !aplat && choisi ? 'bg-accent-soft ring-[1.5px] ring-accent' : ''} ${className}`}
+        //
+        // ⚠️ **1 px, et 1 px de détachement.** À `ring-2 ring-offset-2`, le
+        // marqueur faisait 4 px d'épaisseur visuelle autour d'une case qui en
+        // fait 24 : il pesait plus lourd que la couleur qu'il désigne, et sur
+        // une palette de douze cases serrées, la rangée entière paraissait
+        // cernée. Le trait doit se voir, pas se compter.
+        aplat && choisi ? 'ring-1 ring-ink ring-offset-1 ring-offset-panel' : ''
+      } ${!teinte && !aplat && choisi ? 'bg-accent-soft ring-1 ring-accent' : ''} ${className}`}
       style={
         aplat
           ? { backgroundColor: teinte }
           : teinte && choisi
             ? {
-                boxShadow: `0 0 0 1.5px ${teinte}`,
+                // ⚠️ 1 px comme partout ailleurs : le liseré cerne la case, il
+                // ne l'encadre pas. À 1,5 px il se lisait comme une bordure de
+                // la vignette elle-même plutôt que comme un état.
+                boxShadow: `0 0 0 1px ${teinte}`,
                 backgroundColor: avecAlpha(teinte, fondAppuye ? 0.28 : 0.2),
               }
             : undefined

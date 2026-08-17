@@ -72,7 +72,11 @@ export default function RtaSection({
       className={`rounded-2xl border p-3 transition-colors compact:p-2 ${
         over ? 'border-transparent bg-panel2/80' : 'border-border bg-panel/40'
       }`}
-      style={over ? { boxShadow: `0 0 0 2px ${accent}`, borderColor: accent } : undefined}
+      // ⚠️ 1 px, pas 2 : la bordure de la section est DÉJÀ teintée juste en
+      // dessous (`borderColor`), donc l'ombre s'ajoute à elle. À 2 px, la cible
+      // de dépôt se cernait d'un trait de 3 px qui pesait plus que la section
+      // elle-même. Voir la règle du marqueur unique dans spec/shared/design.md.
+      style={over ? { boxShadow: `0 0 0 1px ${accent}`, borderColor: accent } : undefined}
     >
       <div className="flex items-center gap-2.5 mb-3 compact:gap-2 compact:mb-2">
         {sectionKey === RTA_OTHER || sectionKey === RTA_UNASSIGNED ? (

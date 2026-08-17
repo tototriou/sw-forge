@@ -631,10 +631,13 @@ button:not(:disabled):not([draggable]):not([role='switch']):active,
      utilitaire posée au point d'appel (`text-sm`, `text-xs`). C'est exactement
      le genre de valeur qu'on ré-arbitre sans savoir ce qu'elle protège.
 
-     ⚠️ `select` compte aussi : iOS zoome dessus comme sur un champ texte.
-     Les cases et boutons radio, non — leur contenu n'est pas du texte. */
+     ⚠️ **Les `select` en sont EXCLUS.** Le zoom se déclenche à la SAISIE, quand
+     le clavier monte — un menu déroulant ouvre une roue de choix, pas un
+     clavier, et ne zoome pas. Les y avoir inclus a fait grossir tous les menus
+     de l'app d'un coup : celui du classement d'une carte RTA passait de 11 à
+     16 px dans une tuile de 150 px, ce qui défaisait toute la compaction.
+     Les cases et boutons radio en sont exclus pour la même raison. */
   input:not([type='checkbox']):not([type='radio']),
-  select,
   textarea {
     font-size: 16px !important;
   }

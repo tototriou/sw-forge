@@ -1,4 +1,4 @@
-import { ReactNode, useEffect } from 'react';
+import { ReactNode, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { X } from 'lucide-react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { SOUS_LG, useMediaQuery } from '../hooks/useMediaQuery';
@@ -55,6 +55,39 @@ export default function MobileSheet({
   const sousLg = useMediaQuery(SOUS_LG);
   const visible = ouvert && sousLg;
 
+  // ── Hauteur FIGÉE à l'ouverture ────────────────────────────────────────────
+  //
+  // ⚠️ **Le panneau est collé en bas : il ne peut grandir que vers le HAUT.**
+  // Tant que sa hauteur suit son contenu, déplier quoi que ce soit dedans (une
+  // catégorie RTA et sa grille de monstres) fait remonter d'un coup tout ce
+  // qu'il affiche — dont l'élément qu'on vient de toucher, qui n'est plus sous
+  // le doigt quand on veut le retoucher. C'est la règle générale de l'app : un
+  // clic ne déplace jamais ce qu'on vient de cliquer (spec/shared/design.md).
+  //
+  // La hauteur est donc mesurée **une fois, à l'ouverture**, et ne bouge plus :
+  // le bord supérieur reste où il est, et un contenu qui grandit se lit en
+  // faisant défiler le panneau — ce qu'il sait déjà faire.
+  //
+  // ⚠️ Mesurée en `useLayoutEffect`, avant peinture : en `useEffect`, on voyait
+  // le panneau à sa hauteur naturelle une image avant qu'elle soit figée.
+  //
+  // ⚠️ Le panneau CENTRÉ n'en a pas besoin : il grandit dans les deux sens
+  // autour de son axe, et il ne porte que des formulaires courts, sans rien à
+  // déplier.
+  const boite = useRef<HTMLDivElement>(null);
+  const [hauteurFigee, setHauteurFigee] = useState<number | null>(null);
+  useLayoutEffect(() => {
+    if (!visible || centre) {
+      setHauteurFigee(null);
+      return;
+    }
+    const el = boite.current;
+    if (el) setHauteurFigee(el.getBoundingClientRect().height);
+    // ⚠️ Dépendances volontairement réduites à l'OUVERTURE : remesurer à chaque
+    // changement de contenu reviendrait exactement à ce qu'on corrige ici.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [visible, centre]);
+
   // La page derrière ne défile plus. ⚠️ Par le hook partagé, jamais à la main :
   // un dialogue peut s'ouvrir PAR-DESSUS ce panneau, et deux composants qui
   // mémorisent chacun la valeur précédente se marchent dessus (voir le hook).
@@ -96,6 +129,7 @@ export default function MobileSheet({
             role="presentation"
           />
           <motion.div
+            ref={boite}
             role="dialog"
             aria-modal="true"
             aria-label={titre}
@@ -115,7 +149,15 @@ export default function MobileSheet({
                 ? 'inset-x-3 top-1/2 z-[60] max-h-[80dvh] -translate-y-1/2 rounded-2xl border shadow-glow shadow-black/60'
                 : 'inset-x-0 bottom-0 z-50 max-h-[85dvh] rounded-t-2xl border-t'
             }`}
-            style={centre ? undefined : { paddingBottom: 'env(safe-area-inset-bottom)' }}
+            style={
+              centre
+                ? undefined
+                : {
+                    paddingBottom: 'env(safe-area-inset-bottom)',
+                    // `undefined` au premier rendu : c'est LUI qu'on mesure.
+                    height: hauteurFigee ?? undefined,
+                  }
+            }
           >
             {/* Barrette de préhension — la convention des panneaux montants sur
                 téléphone. Elle ne fait rien (le glissement n'est pas implémenté)

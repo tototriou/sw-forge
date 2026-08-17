@@ -297,9 +297,16 @@ Ce que cela impose — trois réponses, dans cet ordre de préférence :
    bouge pas).
 
 ⚠️ **Le tactile n'en est pas dispensé.** Le doigt ne « reste » pas sur sa cible,
-mais l'écran, lui, saute : choisir les monstres d'une catégorie faisait remonter
-toute la page, et on perdait la pilule sur laquelle on venait d'appuyer. Au
-doigt, la réponse est presque toujours la n° 2 — un panneau ou un dialogue.
+mais l'écran, lui, saute.
+
+⚠️ **Attention à ce qui CONTIENT la cible.** Un panneau collé au bas de l'écran
+ne peut grandir que vers le haut : déplier quoi que ce soit dedans remonte tout
+son contenu, alors même que ce qui s'ouvre est bien placé — en dessous de ce
+qu'on a touché. C'est ce qui se passait en choisissant les monstres d'une
+catégorie RTA depuis « Options ». Le panneau lui-même était bon ; c'est le tiroir
+qui bougeait. **`MobileSheet` fige donc sa hauteur à l'ouverture** (mesure en
+`useLayoutEffect`) : le bord supérieur ne bouge plus, et un contenu qui grandit
+se lit en faisant défiler.
 
 ⚠️ **Ne pas confondre avec « le contenu ne change pas ».** Le contenu *doit*
 changer, et peut s'animer (voir plus haut) ; c'est la **géométrie autour de la

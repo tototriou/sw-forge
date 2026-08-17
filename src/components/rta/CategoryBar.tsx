@@ -221,7 +221,13 @@ export default function CategoryBar({ cats, monsters }: Props) {
         </div>
       )}
 
-      {/* Panneau d'affectation : tous les monstres de la page. */}
+      {/* Panneau d'affectation : tous les monstres de la page.
+          ⚠️ Il s'ouvre EN DESSOUS de la rangée, dans les deux formats : les
+          pilules sont AVANT le point d'insertion, donc celle qu'on vient de
+          toucher ne bouge pas. C'est la bonne place — voir la règle dans
+          spec/shared/design.md. Le saut ressenti au doigt ne venait pas d'ici
+          mais du tiroir « Options » qui le contient, et qui grandissait vers le
+          haut ; il est corrigé dans MobileSheet. */}
       {open && (
         <div
           // Le panneau se pose au lieu de surgir : il s'ouvre SOUS la rangée de

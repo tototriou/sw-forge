@@ -1,4 +1,4 @@
-import { ReactNode, useState } from 'react';
+import { ReactNode, useRef, useState } from 'react';
 import { RotateCw, Gauge } from 'lucide-react';
 import { ArtifactDetail, GearSet, RelicDetail, RuneDetail } from '../types';
 import { computeStats } from '../lib/stats';
@@ -19,7 +19,7 @@ import ArtifactSlots from './ArtifactSlots';
 import StatPanel from './StatPanel';
 import { RUNE_METRICS, formatRuneMetric, useRuneMetric } from '../hooks/useRuneMetric';
 import { artifactScore, artifactEfficiency } from '../lib/artifacts';
-import { ZoneCliquable } from '../ui';
+import { FlottantAuto, Modale, ZoneCliquable } from '../ui';
 
 type Selected =
   | { kind: 'rune'; i: number }
@@ -368,6 +368,11 @@ interface Props {
 export default function MonsterGear({ gear, spdCible = null }: Props) {
   const stats = computeStats(gear);
   const [sel, setSel] = useState<Selected>(null);
+  const auDoigt = useMediaQuery(COMPACT);
+  // Ancre du détail de la relique. Les runes et les artéfacts fournissent la
+  // leur (`renderOverlay`) ; la relique est dessinée ici, elle porte donc sa
+  // propre référence.
+  const ancreRelique = useRef<HTMLDivElement>(null);
 
   const isSel = (s: Selected) =>
     !!sel &&
@@ -375,6 +380,34 @@ export default function MonsterGear({ gear, spdCible = null }: Props) {
     sel.kind === s.kind &&
     (sel.kind === 'relic' || (s as { i: number }).i === (sel as { i: number }).i);
   const toggle = (s: Exclude<Selected, null>) => setSel((cur) => (isSel(s) ? null : s));
+
+  // ⚠️ **Le détail SORT DU FLUX, dans les deux formats.** Il s'affichait en
+  // dessous, sur sa propre ligne : la carte grandissait, la grille se
+  // réorganisait, et tout ce qui entourait la pièce sur laquelle on venait de
+  // cliquer se déplaçait. Pire d'une pièce à l'autre — une rune à trois
+  // substats et un artéfact à quatre lignes n'ont pas la même hauteur, donc
+  // enchaîner les clics faisait respirer la page à chaque fois.
+  //
+  // Réserver la place d'avance était l'autre réponse possible (voir
+  // spec/shared/design.md), mais elle demandait de deviner une hauteur : celle
+  // du plus grand détail possible, laissée vide le reste du temps, dans une
+  // carte qui est déjà un troisième niveau de détail. Sortir du flux ne devine
+  // rien et ne coûte aucune place.
+  //
+  // ⚠️ **Deux contenants selon le POINTEUR**, un seul contenu :
+  // - à la souris, un flottant ANCRÉ à la pièce — elle reste sous le curseur,
+  //   on rouvre et on referme sans bouger la main ;
+  // - au doigt, une MODALE. Un flottant ancré à une rune de la roue s'ouvre
+  //   exactement là où le doigt vient de se poser, et la main masque ce qu'on
+  //   voulait lire.
+  const piece =
+    sel?.kind === 'rune' && gear.runes[sel.i]
+      ? { titre: `Rune ${gear.runes[sel.i].slot}`, boite: <RuneDetailBox rune={gear.runes[sel.i]} /> }
+      : sel?.kind === 'artifact' && gear.artifacts[sel.i]
+        ? { titre: 'Artéfact', boite: <ArtifactDetailBox artifact={gear.artifacts[sel.i]} /> }
+        : sel?.kind === 'relic' && gear.relic
+          ? { titre: 'Relique', boite: <RelicDetailBox relic={gear.relic} /> }
+          : null;
 
   return (
     <div className="flex flex-row flex-wrap items-center justify-center gap-2 compact:flex-col">
@@ -392,8 +425,8 @@ export default function MonsterGear({ gear, spdCible = null }: Props) {
           une fois le panneau de stats sorti de la rangée — voir les tailles
           réduites de chaque bloc sous `sm`. */}
       <div className="contents compact:flex compact:w-full compact:items-center compact:justify-center compact:gap-1.5">
-      {/* Artéfacts — détail affiché EN LIGNE plus bas (bloc `sel`), pas un
-          popover flottant : pas de `renderOverlay` ici.
+      {/* Artéfacts — détail dans un flottant ANCRÉ à l'emplacement (souris) ou
+          dans une modale (doigt) : voir `piece` plus haut.
           ⚠️ **`ArtifactSlots` et non une boucle sur `gear.artifacts`.** Ce
           composant affiche TOUJOURS les deux emplacements (Attribut, Type), et
           grise celui qui est vide. La boucle, elle, ne rendait que les
@@ -405,17 +438,46 @@ export default function MonsterGear({ gear, spdCible = null }: Props) {
         artifacts={gear.artifacts}
         isSelected={(_a, i) => isSel({ kind: 'artifact', i })}
         onSelectArtifact={(_a, i) => toggle({ kind: 'artifact', i })}
+        // ⚠️ Aucun flottant au DOIGT : la modale plus bas s'en charge. Rendre
+        // les deux donnerait deux détails ouverts pour un seul clic.
+        renderOverlay={
+          auDoigt
+            ? undefined
+            : (a, i, ancre) => (
+                <FlottantAuto
+                  ouvert={isSel({ kind: 'artifact', i })}
+                  ancre={ancre}
+                  largeur={240}
+                  hauteur={260}
+                >
+                  <ArtifactDetailBox artifact={a} />
+                </FlottantAuto>
+              )
+        }
       />
 
-      {/* Roue de runes — voir RuneWheel.tsx. Le détail au clic reste
-          affiché EN LIGNE sous la roue (bloc `sel` plus bas), pas un
-          popover flottant : pas de `renderOverlay` ici, juste
-          `onSelectRune`/`isSelected` branchés sur le `Selected` local. */}
+      {/* Roue de runes — voir RuneWheel.tsx. */}
       {gear.runes.length > 0 && (
         <RuneWheel
           runes={gear.runes}
           isSelected={(_r, i) => isSel({ kind: 'rune', i })}
           onSelectRune={(_r, i) => toggle({ kind: 'rune', i })}
+          renderOverlay={
+            auDoigt
+              ? undefined
+              : (r, i, ancre) => (
+                  <FlottantAuto
+                    ouvert={isSel({ kind: 'rune', i })}
+                    ancre={ancre}
+                    largeur={260}
+                    hauteur={320}
+                  >
+                    {/* Pleine taille : ce flottant n'existe qu'à la souris, où
+                        la carte ne se resserre pas d'elle-même. */}
+                    <RuneDetailBox rune={r} />
+                  </FlottantAuto>
+                )
+          }
         />
       )}
 
@@ -430,33 +492,56 @@ export default function MonsterGear({ gear, spdCible = null }: Props) {
           la roue, et son rembourrage de 10 px de chaque côté était le plus
           facile à rendre — le contenu, lui, ne se réduit pas. */}
       {gear.relic && (
-        <ZoneCliquable
-          onClick={() => toggle({ kind: 'relic' })}
-          title="Voir la relique"
-          aria-pressed={isSel({ kind: 'relic' })}
-          className={`rounded-lg border px-2.5 py-2 text-center compact:px-1.5 compact:py-1.5 ${
-            isSel({ kind: 'relic' })
-              ? 'border-star bg-star/10 ring-1 ring-star/50'
-              : 'border-border bg-panel/60 hoverable:border-accent'
-          }`}
+        // ⚠️ `relative` : c'est l'ancre du flottant, qui s'y place en `absolute`.
+        // Et `z-10` quand elle est ouverte, comme les emplacements d'artéfacts —
+        // sans quoi la roue juste à côté recouvrirait le détail.
+        <div
+          ref={ancreRelique}
+          className={`relative ${isSel({ kind: 'relic' }) ? 'z-10' : ''}`}
         >
-          <div className="label">Relique</div>
-          <div className="mt-0.5 text-xs font-bold text-ink compact:text-micro">
-            {formatRelicMain(gear.relic.main)}
-          </div>
-        </ZoneCliquable>
+          <ZoneCliquable
+            onClick={() => toggle({ kind: 'relic' })}
+            title="Voir la relique"
+            aria-pressed={isSel({ kind: 'relic' })}
+            className={`rounded-lg border px-2.5 py-2 text-center compact:px-1.5 compact:py-1.5 ${
+              isSel({ kind: 'relic' })
+                ? 'border-star bg-star/10 ring-1 ring-star/50'
+                : 'border-border bg-panel/60 hoverable:border-accent'
+            }`}
+          >
+            <div className="label">Relique</div>
+            <div className="mt-0.5 text-xs font-bold text-ink compact:text-micro">
+              {formatRelicMain(gear.relic.main)}
+            </div>
+          </ZoneCliquable>
+          {!auDoigt && (
+            <FlottantAuto
+              ouvert={isSel({ kind: 'relic' })}
+              ancre={ancreRelique}
+              largeur={220}
+              hauteur={120}
+            >
+              <RelicDetailBox relic={gear.relic} />
+            </FlottantAuto>
+          )}
+        </div>
       )}
       </div>
 
-      {/* Détail de la pièce sélectionnée, sur sa propre ligne */}
-      {sel && (
-        <div className="w-full max-w-[280px] mx-auto">
-          {sel.kind === 'rune' && gear.runes[sel.i] && <RuneDetailBox rune={gear.runes[sel.i]} />}
-          {sel.kind === 'artifact' && gear.artifacts[sel.i] && (
-            <ArtifactDetailBox artifact={gear.artifacts[sel.i]} />
-          )}
-          {sel.kind === 'relic' && gear.relic && <RelicDetailBox relic={gear.relic} />}
-        </div>
+      {/* Au DOIGT : la pièce cliquée s'ouvre dans une modale. Elle recouvre la
+          page au lieu de la pousser, donc la roue et les emplacements restent
+          exactement où le doigt les a trouvés. */}
+      {auDoigt && piece && (
+        <Modale
+          onClose={() => setSel(null)}
+          labelledBy="piece-equipee-titre"
+          titre={piece.titre}
+          largeur="max-w-[320px]"
+          padding="p-4"
+          croix
+        >
+          {piece.boite}
+        </Modale>
       )}
     </div>
   );

@@ -83,20 +83,33 @@ export default function SiegeBoard({
   // `hidden lg:inline` recopié pour chaque libellé court. `Bouton` porte déjà
   // ça par ses axes (`icone`+`libelle`+`libelleCourt`, `actif` pour un
   // interrupteur) : voir le même geste sur RTA (`RtaBackupBar`).
-  const effacer = siege.state.teams.length > 0 && (
-    <Bouton
-      onClick={() => {
-        setEffacementAConfirmer(true);
-        onFermerMenu();
-      }}
-      ton="danger"
-      fond="vide"
-      trait="aucun"
-      taille="sm"
-      icone={<Trash2 size={13} />}
-      libelle="Tout effacer"
-    />
-  );
+  // ⚠️ **Même bouton que RTA (`boutonEffacer` dans RtaPage.tsx), au trait
+  // près.** Deux habillages selon le contenant, pas deux boutons : nu dans la
+  // page, où il vit au bout d'une rangée d'actions déjà cadrées (un cadre de
+  // plus y ferait du bruit) ; fond + contour rouges et PLEINE LARGEUR dans le
+  // panneau, où il est seul sur sa ligne sous un filet — à sa largeur propre,
+  // il y flottait au milieu d'une bande vide dont rien n'expliquait la
+  // présence.
+  const effacer = (dansLePanneau: boolean) =>
+    siege.state.teams.length > 0 && (
+      <Bouton
+        onClick={() => {
+          setEffacementAConfirmer(true);
+          onFermerMenu();
+        }}
+        ton="danger"
+        fond={dansLePanneau ? 'doux' : 'vide'}
+        trait={dansLePanneau ? 'plein' : 'aucun'}
+        pleineLargeur={dansLePanneau}
+        taille="sm"
+        icone={<Trash2 size={13} />}
+        libelle="Tout effacer"
+        // ⚠️ `leading-none` : l'interligne du libellé donne au texte une boîte
+        // plus haute que sa lettre. Centrées boîte contre boîte, la poubelle et
+        // le mot ne le sont plus à l'œil.
+        className="leading-none"
+      />
+    );
 
   const actions = (
     <>
@@ -151,14 +164,14 @@ export default function SiegeBoard({
         <span className="font-mono text-xs text-ink-dim">
           {siege.state.teams.length} équipe{siege.state.teams.length > 1 ? 's' : ''}
         </span>
-        <div className="ml-auto hidden lg:contents">{effacer}</div>
+        <div className="ml-auto hidden lg:contents">{effacer(false)}</div>
       </div>
 
       <MobileSheet ouvert={menuOuvert} onFermer={onFermerMenu} titre={`Actions — ${noun}`}>
         <div data-rangee-actions>{actions}</div>
-        {effacer && (
+        {siege.state.teams.length > 0 && (
           <div data-zone-destructive className="mt-4 border-t border-border pt-3">
-            {effacer}
+            {effacer(true)}
           </div>
         )}
       </MobileSheet>

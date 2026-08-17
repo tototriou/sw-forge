@@ -16,6 +16,7 @@ import MobileSheet from '../../ui/MobileSheet';
 import MonsterAvatar from '../MonsterAvatar';
 import MonsterPicker from '../MonsterPicker';
 import RecoCard from './RecoCard';
+import { Bouton, BoutonIcone, ZoneCliquable } from '../../ui';
 
 interface Props {
   recos: UseRecoState;
@@ -321,57 +322,48 @@ export default function RecoBoard({
 
   // ⚠️ Rendues une seule fois, posées à DEUX endroits selon la largeur. Deux
   // copies auraient divergé au premier bouton ajouté.
+  // ⚠️ Boutons de la librairie, pas des `<button>` redessinés — même geste que
+  // SiegeBoard (`Bouton` porte déjà `icone`+`libelle`+`libelleCourt`).
   const actions = (
     <>
-        <button
-          onClick={() => {
-            const id = recos.addReco();
-            setEditingId(id);
-            setScrollToLast(true);
-            // La nouvelle est « à moi » : ne pas la créer dans une vue qui la cache.
-            if (filter === 'imported') setFilter('mine');
-          }}
-          className="flex items-center gap-1.5 rounded-lg border border-border bg-panel px-3.5 py-2 text-sm
-                     text-ink hoverable:border-accent transition"
-        >
-          {/* ⚠️ Deux longueurs — voir SiegeBoard : un tiers de 348 px ne tient
-              pas « Créer une recommandation ». */}
-          <Plus size={15} />
-          <span className="lg:hidden">Créer</span>
-          <span className="hidden lg:inline">Créer une recommandation</span>
-        </button>
+      <Bouton
+        onClick={() => {
+          const id = recos.addReco();
+          setEditingId(id);
+          setScrollToLast(true);
+          // La nouvelle est « à moi » : ne pas la créer dans une vue qui la cache.
+          if (filter === 'imported') setFilter('mine');
+        }}
+        icone={<Plus size={15} />}
+        libelle="Créer une recommandation"
+        libelleCourt="Créer"
+      />
 
-        <button
-          onClick={() => fileRef.current?.click()}
-          className="flex items-center gap-1.5 rounded-lg border border-border bg-panel px-3.5 py-2 text-sm
-                     text-ink-dim hoverable:text-ink hoverable:border-accent transition"
-          title="Charger un fichier .json reçu d'un ami"
-        >
-          <Download size={15} /> Importer
-        </button>
+      <Bouton
+        onClick={() => fileRef.current?.click()}
+        icone={<Download size={15} />}
+        libelle="Importer"
+        title="Charger un fichier .json reçu d'un ami"
+      />
 
-        {list.length > 0 && (
-          <button
-            onClick={() => handleExport(list, filter === 'all' ? 'toutes' : filter)}
-            className="flex items-center gap-1.5 rounded-lg border border-border bg-panel px-3.5 py-2 text-sm
-                       text-ink-dim hoverable:text-ink hoverable:border-accent transition"
-            // ⚠️ Le LIBELLÉ NE CHANGE PAS avec le filtre. Un bouton qui se
-            // renomme sous le curseur se lit comme un autre bouton : on cesse de
-            // le reconnaître d'un écran à l'autre, et on relit une barre
-            // d'actions qu'on connaissait. Ce qui part réellement se dit dans
-            // l'infobulle, et le message de retour le récapitule.
-            title={
-              filter === 'all'
-                ? 'Exporter toutes les recommandations en un seul fichier'
-                : "Exporter les recommandations affichées (celles du filtre actif)"
-            }
-          >
-            <Upload size={15} />
-            <span className="lg:hidden">Exporter</span>
-            <span className="hidden lg:inline">Tout exporter</span>
-          </button>
-        )}
-
+      {list.length > 0 && (
+        <Bouton
+          onClick={() => handleExport(list, filter === 'all' ? 'toutes' : filter)}
+          icone={<Upload size={15} />}
+          // ⚠️ Le LIBELLÉ NE CHANGE PAS avec le filtre. Un bouton qui se
+          // renomme sous le curseur se lit comme un autre bouton : on cesse de
+          // le reconnaître d'un écran à l'autre, et on relit une barre
+          // d'actions qu'on connaissait. Ce qui part réellement se dit dans
+          // l'infobulle, et le message de retour le récapitule.
+          libelle="Tout exporter"
+          libelleCourt="Exporter"
+          title={
+            filter === 'all'
+              ? 'Exporter toutes les recommandations en un seul fichier'
+              : "Exporter les recommandations affichées (celles du filtre actif)"
+          }
+        />
+      )}
     </>
   );
 
@@ -379,17 +371,25 @@ export default function RecoBoard({
   // (`ml-auto`), loin des gestes de construction. Un bouton destructeur ne se
   // met pas à côté de celui qu'on presse en boucle — dans le panneau il garde
   // cette distance, détaché en bas.
-  const effacer = all.length > 0 && (
-    <button
-      onClick={() => {
-        setEffacementAConfirmer(true);
-        onFermerMenu();
-      }}
-      className="flex items-center gap-1.5 text-xs text-ink-dim hoverable:text-fire transition"
-    >
-      <Trash2 size={13} /> Tout effacer
-    </button>
-  );
+  // ⚠️ Même habillage à deux visages que RTA/SiegeBoard (`boutonEffacer`) :
+  // nu dans la page, fond + contour rouges et pleine largeur dans le panneau.
+  const effacer = (dansLePanneau: boolean) =>
+    all.length > 0 && (
+      <Bouton
+        onClick={() => {
+          setEffacementAConfirmer(true);
+          onFermerMenu();
+        }}
+        ton="danger"
+        fond={dansLePanneau ? 'doux' : 'vide'}
+        trait={dansLePanneau ? 'plein' : 'aucun'}
+        pleineLargeur={dansLePanneau}
+        taille="sm"
+        icone={<Trash2 size={13} />}
+        libelle="Tout effacer"
+        className="leading-none"
+      />
+    );
 
   return (
     <div>
@@ -398,12 +398,16 @@ export default function RecoBoard({
           première recommandation. */}
       <div className="mt-5 flex flex-wrap items-center gap-3 empty:mt-0">
         <div className="hidden lg:contents">{actions}</div>
-        <div className="ml-auto hidden lg:contents">{effacer}</div>
+        <div className="ml-auto hidden lg:contents">{effacer(false)}</div>
       </div>
 
       <MobileSheet ouvert={menuOuvert} onFermer={onFermerMenu} titre="Actions — recommandations">
         <div data-rangee-actions>{actions}</div>
-        {effacer && <div data-zone-destructive className="mt-4 border-t border-border pt-3">{effacer}</div>}
+        {all.length > 0 && (
+          <div data-zone-destructive className="mt-4 border-t border-border pt-3">
+            {effacer(true)}
+          </div>
+        )}
       </MobileSheet>
 
       {effacementAConfirmer && (
@@ -505,7 +509,7 @@ export default function RecoBoard({
                   );
                 }
                 return (
-                  <button
+                  <ZoneCliquable
                     key={i}
                     onClick={() => retirerMonstre(i)}
                     className="group relative flex h-[40px] w-[40px] flex-none items-center justify-center
@@ -525,7 +529,7 @@ export default function RecoBoard({
                     >
                       <X size={10} />
                     </span>
-                  </button>
+                  </ZoneCliquable>
                 );
               })}
             </div>
@@ -562,17 +566,20 @@ export default function RecoBoard({
             {/* Vider les trois cases d'un coup — distinct du retrait d'un seul
                 portrait, qui sert à affiner. Il vit AVEC les cases qu'il vide,
                 et non avec le sélecteur de rôle, qui ne les touche pas. */}
+            {/* ⚠️ Ton NEUTRE, pas `danger` : vider une recherche se repose en un
+                geste, ça ne se confirme pas (voir spec/README.md) — la
+                surestimer en rouge permanent la ferait paraître plus grave
+                qu'elle ne l'est. */}
             {aUneRecherche && (
-              <button
+              <Bouton
                 onClick={effacerRecherche}
-                className="flex flex-none items-center gap-1 rounded-lg border border-border px-2 py-1
-                           text-xs font-semibold text-ink-dim transition
-                           hoverable:border-fire hoverable:text-fire"
+                taille="sm"
+                icone={<X size={13} />}
+                libelle="Vider"
                 title="Vider la recherche"
                 aria-label="Vider la recherche"
-              >
-                <X size={13} /> Vider
-              </button>
+                className="flex-none"
+              />
             )}
           </div>
 
@@ -733,13 +740,12 @@ function ValidationReport({ report, onClose }: { report: ImportReport; onClose: 
             ? "Import refusé — le contenu n'est pas valide"
             : `Import effectué avec ${report.warnings.length} correction${report.warnings.length > 1 ? 's' : ''}`}
         </span>
-        <button
+        <BoutonIcone
           onClick={onClose}
-          className="ml-auto text-ink-dim hoverable:text-ink transition"
-          title="Fermer le rapport"
-        >
-          <X size={14} />
-        </button>
+          libelle="Fermer le rapport"
+          icone={<X size={14} />}
+          className="ml-auto"
+        />
       </div>
 
       <ul className="space-y-0.5 max-h-[220px] overflow-y-auto">

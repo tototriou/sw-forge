@@ -7,6 +7,7 @@ import { ConfirmDialog } from '../Dialogs';
 import { useRecalageEcran } from '../../hooks/useRecalageEcran';
 import { useMediaQuery, SOUS_LG } from '../../hooks/useMediaQuery';
 import MobileSheet from '../MobileSheet';
+import { Bouton, BoutonIcone, Champ, Pastille, Vignette } from '../../ui';
 
 // Palette FERMÉE plutôt qu'un sélecteur de couleur libre : le contrôle natif
 // (`<input type="color">`) est un composant du système, hors charte, et un choix
@@ -94,29 +95,24 @@ export default function CategoryBar({ cats, monsters }: Props) {
                 />
                 {c.label}
               </button>
-              <button
+              {/* ⚠️ `taille="serre"` : ces deux boutons sont posés DANS une
+                  pilule de 28 px et collés l'un à l'autre. Portés à 40 px par la
+                  règle tactile, ils la débordaient ; dotés d'une zone étendue de
+                  44 px, ils se chevaucheraient et on supprimerait la catégorie en
+                  voulant l'éditer. Voir BoutonIcone. */}
+              <BoutonIcone
                 onClick={() => setEditId((e) => (e === c.id ? null : c.id))}
-                title="Renommer / changer la couleur"
-                aria-label={`Éditer ${c.label}`}
-                // ⚠️ `data-cible-fine`, et SANS zone étendue : ces deux boutons
-                // sont posés DANS une pilule de 28 px et collés l'un à l'autre.
-                // Portés à 40 px par la règle tactile, ils la débordaient ;
-                // dotés d'une cible de 44 px, ils se chevaucheraient et on
-                // supprimerait la catégorie en voulant l'éditer.
-                data-cible-fine
-                className="flex items-center justify-center w-5 h-5 rounded-full text-ink-dim transition hoverable:text-ink hoverable:bg-black/25"
-              >
-                <Pencil size={11} />
-              </button>
-              <button
+                libelle={`Éditer ${c.label}`}
+                taille="serre"
+                icone={<Pencil size={11} />}
+              />
+              <BoutonIcone
                 onClick={() => setASupprimer({ id: c.id, label: c.label })}
-                title="Supprimer la catégorie"
-                aria-label={`Supprimer ${c.label}`}
-                data-cible-fine
-                className="flex items-center justify-center w-5 h-5 rounded-full text-ink-dim transition hoverable:text-fire hoverable:bg-black/25"
-              >
-                <Trash2 size={11} />
-              </button>
+                libelle={`Supprimer ${c.label}`}
+                taille="serre"
+                ton="danger"
+                icone={<Trash2 size={11} />}
+              />
             </div>
 
             {editId === c.id && (
@@ -133,15 +129,21 @@ export default function CategoryBar({ cats, monsters }: Props) {
         ))}
 
         <div className="relative">
-          <button
+          {/* ⚠️ Le POINTILLÉ dit « contenant pas encore rempli » — c'est ce qui
+              distingue « ajouter » des catégories déjà là, sans un mot de plus.
+              C'est un axe du bouton (`trait`), pas une variante nommée. */}
+          <Bouton
             onClick={() => setCreating((v) => !v)}
             aria-expanded={creating}
-            className="flex h-7 items-center gap-1 rounded-full border border-dashed border-border
-                       bg-transparent px-2.5 text-xs text-ink-dim transition
-                       hoverable:text-ink hoverable:border-accent hoverable:bg-panel2"
-          >
-            <Plus size={12} /> Catégorie
-          </button>
+            trait="pointille"
+            fond="vide"
+            forme="pilule"
+            taille="sm"
+            icone={<Plus size={12} />}
+            libelle="Catégorie"
+            data-hauteur-fixe
+            className="h-7 font-normal hoverable:bg-panel2"
+          />
           {creating && (
             <CategoryPopover
               initial={{ label: '', color: nextColor(cats.categories.map((x) => x.color.toLowerCase())) }}
@@ -251,24 +253,28 @@ export default function CategoryBar({ cats, monsters }: Props) {
             <span className="font-mono text-micro text-ink-dim">
               {countOf(open)} monstre{countOf(open) > 1 ? 's' : ''}
             </span>
+            {/* ⚠️ Ton `danger` : elle décoche d'un coup ce qu'on a coché un
+                monstre à la fois. Le ton porte l'avertissement, la confirmation
+                porte le reste. */}
             {countOf(open) > 0 && (
-              <button
+              <Bouton
+                ton="danger"
+                fond="vide"
+                taille="xs"
+                forme="pilule"
                 onClick={() => setViderAConfirmer({ id: open.id, label: open.label, n: countOf(open) })}
-                className="ml-auto flex h-6 items-center gap-1 rounded-full border border-border bg-panel
-                           px-2 text-micro text-ink-dim transition hoverable:border-fire/60 hoverable:text-fire"
                 title="Retirer tous les monstres de cette catégorie"
-              >
-                <X size={11} /> Tout décocher
-              </button>
+                icone={<X size={11} />}
+                libelle="Tout décocher"
+                className="ml-auto h-6"
+              />
             )}
-            <button
+            <BoutonIcone
               onClick={() => setOpenId(null)}
-              className={`${countOf(open) > 0 ? '' : 'ml-auto '}text-ink-dim hoverable:text-ink transition`}
-              title="Fermer"
-              aria-label="Fermer"
-            >
-              <X size={14} />
-            </button>
+              libelle="Fermer"
+              icone={<X size={14} />}
+              className={countOf(open) > 0 ? '' : 'ml-auto'}
+            />
           </div>
 
           {monsters.length === 0 ? (
@@ -284,11 +290,15 @@ export default function CategoryBar({ cats, monsters }: Props) {
                 // explique pourquoi il est refusé, plutôt que de le cacher.
                 const bloque = !dedans && !cats.canAssign(id);
                 return (
-                  <button
+                  <Vignette
                     key={id}
                     onClick={() => cats.toggleMember(open.id, id)}
                     disabled={bloque}
-                    aria-pressed={dedans}
+                    choisi={dedans}
+                    teinte={open.color}
+                    // ⚠️ Fond plus soutenu sous `lg`, où la coche ne s'affiche
+                    // pas : il y porte seul l'état de sélection.
+                    fondAppuye={surMobile}
                     title={
                       bloque
                         ? `${m.name} — déjà ${MAX_CATEGORIES_PER_MONSTER} catégories (maximum)`
@@ -296,45 +306,27 @@ export default function CategoryBar({ cats, monsters }: Props) {
                           ? `Retirer ${m.name} de « ${open.label} »`
                           : `Ajouter ${m.name} à « ${open.label} »`
                     }
-                    className={`relative flex w-[72px] flex-col items-center gap-1 rounded-lg px-1 py-1.5 transition ${
-                      bloque
-                        ? 'opacity-25 cursor-not-allowed'
-                        : dedans
-                          ? ''
-                          : 'opacity-70 hoverable:opacity-100 hoverable:bg-panel2'
-                    }`}
-                    // ⚠️ Fond plus soutenu sous `lg`, où la coche ne s'affiche
-                    // pas : il y porte seul l'état de sélection.
-                    style={
-                      dedans
-                        ? {
-                            boxShadow: `0 0 0 1.5px ${open.color}`,
-                            backgroundColor: withAlpha(open.color, surMobile ? 0.28 : 0.2),
-                          }
-                        : undefined
+                    // ⚠️ Pas de pastille d'élément ici, mais le NOM sous le
+                    // portrait : l'élément ne se distingue que par sa couleur,
+                    // illisible pour un daltonien. Le nom, lui, identifie le
+                    // monstre quelle que soit la vision des couleurs.
+                    contenu={<MonsterAvatar monster={m} size={36} element={false} />}
+                    libelle={m.name}
+                    // ⚠️ Coche masquée SOUS `lg` seulement : 12 px posés dans le
+                    // coin d'un portrait de 36, elle en masquait un bout au
+                    // doigt, là où le fond teinté et le liseré disent déjà la
+                    // sélection. Sur bureau elle reste — rien ne l'y gênait.
+                    coin={
+                      dedans && !surMobile ? (
+                        <span
+                          className="absolute right-0.5 top-0.5 flex h-3 w-3 items-center justify-center rounded-full"
+                          style={{ backgroundColor: open.color }}
+                        >
+                          <Check size={8} className="text-bg" />
+                        </span>
+                      ) : undefined
                     }
-                  >
-                    {/* ⚠️ Pas de pastille d'élément ici, mais le NOM sous le
-                        portrait : l'élément ne se distingue que par sa couleur,
-                        illisible pour un daltonien. Le nom, lui, identifie le
-                        monstre quelle que soit la vision des couleurs. */}
-                    <MonsterAvatar monster={m} size={36} element={false} />
-                    <span className="w-full truncate text-center text-micro leading-tight text-ink-dim">
-                      {m.name}
-                    </span>
-                    {/* ⚠️ Coche masquée SOUS `lg` seulement : 12 px posés dans
-                        le coin d'un portrait de 36, elle en masquait un bout au
-                        doigt, là où le fond teinté et le liseré disent déjà la
-                        sélection. Sur bureau elle reste — rien ne l'y gênait. */}
-                    {dedans && !surMobile && (
-                      <span
-                        className="absolute top-0.5 right-0.5 flex items-center justify-center w-3 h-3 rounded-full"
-                        style={{ backgroundColor: open.color }}
-                      >
-                        <Check size={8} className="text-bg" />
-                      </span>
-                    )}
-                  </button>
+                  />
                 );
               })}
             </div>
@@ -413,42 +405,43 @@ export function InterrupteurAffichage({
   // droite de la rangée des catégories.
   premier?: boolean;
 }) {
+  // ⚠️ Sur téléphone, c'est la [Pastille](../../ui/Pastille.tsx) de la
+  // librairie, sans un pixel de style local : l'état actif, la hauteur, la
+  // pression au clic viennent de là. Si la pastille change dans la librairie,
+  // ces trois interrupteurs changent avec elle — c'est tout l'objet.
+  if (surMobile) {
+    return (
+      <Pastille
+        actif={actif}
+        onClick={onToggle}
+        title={actif ? titreActif : titreInactif}
+        libelle={libelle}
+        puce
+      />
+    );
+  }
+
+  // ⚠️ Rendu de BUREAU, laissé à l'identique et volontairement HORS de la
+  // librairie : l'accent y marque l'état MASQUÉ, l'inverse de la pastille. Le
+  // faire entrer dans `Pastille` obligerait à y ajouter un drapeau qui inverse
+  // sa lecture — soit exactement l'option qui vide un composant partagé de son
+  // sens. Il migrera le jour où le bureau adoptera la même convention, pas avant.
   return (
     <button
       onClick={onToggle}
       aria-pressed={actif}
       title={actif ? titreActif : titreInactif}
-      // ⚠️ `data-hauteur-fixe` : la hauteur est dessinée ici, le panneau mobile
-      // ne doit pas la remplacer par son minimum (voir index.css).
       data-hauteur-fixe
       className={`flex h-7 items-center gap-1.5 rounded-full border px-2.5 text-xs transition
-        ${!surMobile && premier ? 'ml-auto' : ''}
+        ${premier ? 'ml-auto' : ''}
         ${
-          surMobile
-            ? actif
-              ? 'select-none border-accent bg-accent-soft font-semibold text-ink'
-              : 'select-none border-border bg-panel text-ink-dimmer hoverable:border-accent hoverable:text-ink-dim'
-            : actif
-              ? 'border-border bg-panel text-ink-dim hoverable:text-ink hoverable:border-accent'
-              : // Fond seul — voir spec/shared/design.md.
-                'border-border bg-accent-soft text-ink'
+          actif
+            ? 'border-border bg-panel text-ink-dim hoverable:text-ink hoverable:border-accent'
+            : // Fond seul — voir spec/shared/design.md.
+              'border-border bg-accent-soft text-ink'
         }`}
     >
-      {surMobile ? (
-        // Puce pleine quand la chose est affichée, creuse quand elle est coupée.
-        // `border-current` : elle emprunte la couleur du texte, donc elle suit
-        // l'état sans qu'on ait à le déclarer deux fois.
-        <span
-          aria-hidden
-          className={`h-2 w-2 flex-none rounded-full border border-current transition ${
-            actif ? 'bg-current' : 'bg-transparent'
-          }`}
-        />
-      ) : actif ? (
-        <Eye size={12} />
-      ) : (
-        <EyeOff size={12} />
-      )}
+      {actif ? <Eye size={12} /> : <EyeOff size={12} />}
       {libelle}
     </button>
   );
@@ -534,18 +527,20 @@ function CategoryPopover({
           style={{ backgroundColor: color }}
           aria-hidden
         />
-        <input
+        {/* ⚠️ Le grossissement au doigt (16 px, contre le zoom iOS à la mise au
+            point) vit dans [Champ](../../ui/Champ.tsx), pas ici : c'est un piège
+            de plateforme, pas une décision de ce formulaire. */}
+        <Champ
           autoFocus
           value={label}
           onChange={(e) => setLabel(e.target.value)}
           placeholder="Striper, Lead SPD…"
           maxLength={24}
-          // ⚠️ Plus haut et plus grand au doigt : c'est le champ qu'on vient
-          // remplir, et sous 16 px iOS zoome dessus à la mise au point — un zoom
-          // dont la page ne revient pas seule.
-          className="min-w-0 flex-1 rounded-md border border-border bg-panel2 px-2 py-1 text-xs
-                     text-ink outline-none placeholder:text-ink-dim focus:border-accent
-                     compact:px-3 compact:py-2.5 compact:text-base"
+          // ⚠️ `pleineLargeur={false}` avec `flex-1` : les deux ensemble
+          // (`w-full` et `flex-1`) se contredisent dans un conteneur flex, et le
+          // champ refusait de rétrécir sous son contenu.
+          pleineLargeur={false}
+          className="flex-1 py-1 text-xs compact:py-2.5"
         />
       </div>
 
@@ -587,24 +582,26 @@ function CategoryPopover({
           pixel, et la hauteur y coûte plus qu'elle ne rapporte. */}
       <div className="mt-2.5 flex items-center gap-1.5
                       compact:mt-4 compact:flex-col-reverse compact:gap-2">
-        <button
+        <Bouton
           type="submit"
+          ton="accent"
+          fond="doux"
           disabled={!label.trim()}
-          className="flex-1 rounded-md bg-accent-soft px-2 py-1 text-xs font-semibold
-                     text-ink transition disabled:opacity-40
-                     compact:w-full compact:rounded-lg compact:py-3 compact:text-sm"
-        >
-          Valider
-        </button>
-        <button
-          type="button"
+          taille="sm"
+          libelle="Valider"
+          className="flex-1 compact:w-full compact:py-3 compact:text-sm"
+        />
+        {/* ⚠️ Sans fond ni trait : l'action à côté de « Valider » ne doit pas lui
+            disputer le regard — elle est là pour être trouvée, pas pour être
+            proposée. */}
+        <Bouton
+          fond="vide"
+          trait="aucun"
+          taille="sm"
           onClick={onClose}
-          className="rounded-md border border-border px-2 py-1 text-xs text-ink-dim
-                     transition hoverable:text-ink hoverable:border-accent
-                     compact:w-full compact:border-transparent compact:py-2.5"
-        >
-          Annuler
-        </button>
+          libelle="Annuler"
+          className="compact:w-full compact:py-2.5"
+        />
       </div>
     </form>
   );

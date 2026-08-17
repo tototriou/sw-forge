@@ -4,6 +4,7 @@ import { Monster } from '../../types';
 import MonsterAvatar from '../MonsterAvatar';
 import { formesJouables } from '../../lib/monsterForms';
 import { useComboboxNav } from '../../hooks/useComboboxNav';
+import { Champ } from '../../ui';
 
 interface Props {
   monsters: Monster[];
@@ -57,21 +58,22 @@ export default function RtaSearch({ monsters, addedIds, onAdd }: Props) {
 
   return (
     <div className="relative">
-      <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-[18px] h-[18px] text-ink-dim compact:left-3 compact:w-4 compact:h-4" />
-      <input
+      {/* ⚠️ Le champ est celui de la librairie, mais il garde ici trois écarts
+          assumés, tous liés au fait que c'est LE champ de la page : plus haut au
+          repos (`py-3.5`), fond `bg-panel` plutôt que `panel2` parce qu'il est
+          posé sur la page et non dans une carte, et coins `rounded-xl`.
+          ⚠️ Plus BAS au doigt (40 px contre 56) : à `py-3.5` et `text-base` il
+          mangeait un sixième de la hauteur utile d'un téléphone, avant même le
+          premier monstre. 40 px reste la cible tactile pleine — c'est le
+          rembourrage décoratif qui tombe, pas la zone touchable. */}
+      <Champ
         {...nav.inputProps}
-        type="text"
         value={query}
         onChange={(e) => setQuery(e.target.value)}
         placeholder="Rechercher un monstre à ajouter à ta prépa RTA…"
-        // Bordure seule au focus, sans halo : voir spec/shared/design.md.
-        // ⚠️ Plus BASSE sous `sm` (40 px contre 56) : à `py-3.5` et `text-base`
-        // elle mangeait un sixième de la hauteur utile d'un téléphone, avant
-        // même le premier monstre. 40 px reste la cible tactile pleine — c'est
-        // le rembourrage décoratif qui tombe, pas la zone touchable.
-        className="w-full bg-panel border border-border rounded-xl py-3.5 pl-11 pr-4 text-base
-                   compact:py-2 compact:pl-9 compact:pr-3 compact:text-sm
-                   text-ink placeholder:text-ink-dim transition focus:border-accent"
+        icone={<Search className="h-[18px] w-[18px] compact:h-4 compact:w-4" />}
+        className="rounded-xl bg-panel py-3.5 pl-11 pr-4 text-base
+                   compact:py-2 compact:pl-9 compact:pr-3"
       />
 
       {nav.open && (

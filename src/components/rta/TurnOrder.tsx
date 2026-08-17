@@ -10,6 +10,7 @@ import { SPEED_LEADS, speedLeadOf } from '../../lib/speed';
 import { useStickyState } from '../../hooks/useStickyState';
 import { InterrupteurAffichage } from './CategoryBar';
 import { COMPACT, useMediaQuery } from '../../hooks/useMediaQuery';
+import { Bouton, BoutonIcone, Interrupteur, Pastille } from '../../ui';
 
 const SPD_ICON = `${import.meta.env.BASE_URL}stats/spd.png`;
 
@@ -234,29 +235,22 @@ export default function TurnOrder({
                   vide à droite du pourcentage, qu'on lit comme un défaut
                   d'alignement — et un bouton qui apparaît sous le curseur se
                   clique par accident. */}
-              <button
+              {/* ⚠️ `taille="serre"` : posé DANS la pilule, il ne peut pas
+                  prendre la cible tactile pleine sans la déborder. Voir
+                  BoutonIcone. */}
+              <BoutonIcone
                 onClick={() => retirerLead(pct)}
-                aria-label={`Retirer le lead +${pct}%`}
-                title={`Retirer le lead +${pct}%`}
-                className="pr-2 pl-0.5 py-1 opacity-50 transition hoverable:opacity-100 hoverable:text-fire"
-              >
-                <X size={11} strokeWidth={3} />
-              </button>
+                libelle={`Retirer le lead +${pct}%`}
+                taille="serre"
+                icone={<X size={11} strokeWidth={3} />}
+                className="mr-1 opacity-50 hoverable:bg-transparent hoverable:opacity-100"
+              />
             </span>
           );
         })}
-        <button
-          onClick={() => setLead(0)}
-          className={`rounded-full border px-3 py-1 text-xs font-semibold transition select-none
-            ${
-              // Fond seul — voir spec/shared/design.md.
-              lead === 0
-                ? 'bg-accent-soft border-border text-ink'
-                : 'bg-panel border-border text-ink-dim hoverable:text-ink'
-            }`}
-        >
-          Sans lead
-        </button>
+        {/* Fond seul comme marqueur d'état — c'est la règle de la Pastille, et
+            elle vient d'elle : rien n'est redit ici. */}
+        <Pastille actif={lead === 0} onClick={() => setLead(0)} libelle="Sans lead" />
 
         {/* Ajout d'un lead absent de la prépa : il REJOINT la rangée au lieu de
             vivre dans un champ à part — une fois ajouté, il se clique comme les
@@ -272,15 +266,15 @@ export default function TurnOrder({
             allowEmpty
             ariaLabel="Lead de vitesse à ajouter, en pourcentage"
           />
-          <button
+          <Bouton
             onClick={ajouterLead}
             disabled={saisie === null || saisie <= 0}
-            className="px-1 py-0.5 text-micro font-semibold text-ink-dim underline-offset-2 transition
-                       hoverable:text-ink hoverable:underline disabled:opacity-40 disabled:hover:text-ink-dim
-                       disabled:hover:no-underline"
-          >
-            Ajouter
-          </button>
+            fond="vide"
+            trait="aucun"
+            taille="xs"
+            libelle="Ajouter"
+            className="underline-offset-2 hoverable:underline"
+          />
         </span>
 
         {/* Interrupteurs d'AFFICHAGE, au contact des vignettes qu'ils modifient
@@ -308,26 +302,17 @@ export default function TurnOrder({
           />
         )}
 
-        <button
-          onClick={() => setHighlightMovers((v) => !v)}
-          role="switch"
-          aria-checked={highlightMovers}
+        {/* ⚠️ Ton `star` : ce réglage ne fait pas qu'être actif, il ALLUME
+            quelque chose à l'écran. La teinte de la piste est celle du
+            surlignage qu'elle déclenche. */}
+        <Interrupteur
+          actif={highlightMovers}
+          onChange={setHighlightMovers}
+          ton="star"
+          libelle="Surligner les changements"
           title="Surligner les monstres dont la place change avec le lead actif"
-          className="ml-1 flex items-center gap-2 select-none"
-        >
-          <span
-            className={`relative inline-flex h-5 w-9 flex-none items-center rounded-full transition-colors
-              ${highlightMovers ? 'bg-star' : 'bg-panel2 border border-border'}`}
-          >
-            <span
-              className={`inline-block h-3.5 w-3.5 rounded-full bg-white shadow transition-transform
-                ${highlightMovers ? 'translate-x-[19px]' : 'translate-x-[3px]'}`}
-            />
-          </span>
-          <span className={`text-xs font-semibold ${highlightMovers ? 'text-ink' : 'text-ink-dim'}`}>
-            Surligner les changements
-          </span>
-        </button>
+          className="ml-1"
+        />
       </div>
 
       {/* Rappel des couleurs : sans légende, un anneau coloré ne veut rien dire

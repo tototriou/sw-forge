@@ -31,6 +31,7 @@ import {
   versVueAmi,
 } from '../../lib/rtaShare';
 import { ConfirmDialog } from '../Dialogs';
+import { Bouton, BoutonIcone, Option } from '../../ui';
 
 /* --------------------------------------------------------------------------
  * Sauvegarder · Reprendre · Réinitialiser · Exporter · Importer
@@ -122,12 +123,19 @@ function depuis(iso: string): string {
 // boutons se retrouvent côte à côte dans le panneau mobile, et « Monstre » y
 // paraissait plus grand que ses six voisins — un bouton d'action n'a pas de
 // raison de peser plus qu'un autre. Les deux gabarits doivent rester alignés.
-const BOUTON =
-  'cible-tactile relative flex items-center justify-center gap-1.5 rounded-lg border ' +
-  'border-border bg-panel px-3.5 py-2 text-sm text-ink-dim hoverable:text-ink ' +
-  'hoverable:border-accent transition disabled:opacity-40 disabled:cursor-not-allowed ' +
-  'compact:gap-0 compact:rounded-none compact:border-0 compact:bg-transparent ' +
-  'compact:px-0 compact:py-0';
+// ⚠️ Un PRÉRÉGLAGE, pas un style : ce sont les axes de [Bouton](../../ui/Bouton.tsx)
+// fixés une fois pour les six actions de cette barre, qui doivent rester
+// indiscernables les unes des autres. Aucune classe n'est écrite ici — si le
+// bouton de la librairie change, ces six-là changent avec lui.
+// ⚠️ Le même gabarit que `CreateMonster` (`taille="md"`) : les sept boutons se
+// retrouvent côte à côte dans le panneau mobile, et « Monstre » y paraissait plus
+// grand que ses six voisins. Les deux doivent rester alignés.
+const ACTION = {
+  nuAuDoigt: true,
+  libelleAuDoigt: false,
+  fond: 'doux',
+  taille: 'md',
+} as const;
 
 export default function RtaBackupBar({
   rta,
@@ -352,100 +360,90 @@ export default function RtaBackupBar({
           comme une frise continue, et l'on ne sait plus où finit l'une et où
           commence la suivante. C'est l'espace qui remplace le trait. */}
       <div data-rangee-actions className="flex flex-wrap items-center gap-2 compact:gap-4">
-        <button
+        <Bouton
+          {...ACTION}
           onClick={() => (backup.backup ? setEcraserAConfirmer(true) : sauvegarder())}
           disabled={vide}
           aria-label="Sauvegarder"
-          data-cible-fine
-          className={BOUTON}
+          icone={<Save size={14} />}
+          libelle="Sauvegarder"
           title={
             vide
               ? 'Ajoute des monstres avant de poser un point de sauvegarde'
               : 'Fige la prépa actuelle comme point de retour. Ta prépa est déjà conservée automatiquement : ceci sert à pouvoir revenir en arrière après des essais.'
           }
-        >
-          <Save size={14} /> <span className="compact:hidden">Sauvegarder</span>
-        </button>
+        />
 
-        <button
+        <Bouton
+          {...ACTION}
           onClick={() => setReprendreAConfirmer(true)}
           disabled={!backup.backup}
           aria-label="Reprendre"
-          data-cible-fine
-          className={BOUTON}
+          icone={<RotateCcw size={14} />}
+          libelle="Reprendre"
           title={
             backup.backup
               ? `Revenir au point de sauvegarde (${dateBackup})`
               : "Aucun point de sauvegarde : clique d'abord sur « Sauvegarder »"
           }
-        >
-          <RotateCcw size={14} /> <span className="compact:hidden">Reprendre</span>
-        </button>
+        />
 
         {/* ⚠️ N'apparaît QUE si un compte a été importé : sans point d'import,
             le bouton n'aurait aucun état où revenir. Le griser en permanence
             aurait ajouté une promesse à celui qui n'importe jamais de compte. */}
         {backup.importe && (
-          <button
+          <Bouton
+            {...ACTION}
             onClick={() => setResetAConfirmer(true)}
             aria-label="Réinitialiser"
-            data-cible-fine
-          className={BOUTON}
+            icone={<History size={14} />}
+            libelle="Réinitialiser"
             title={`Remettre la prépa dans l'état de ton dernier import de compte (${depuis(
               backup.importe.date
             )})`}
-          >
-            <History size={14} /> <span className="compact:hidden">Réinitialiser</span>
-          </button>
+          />
         )}
 
       </div>
 
       <div data-rangee-actions className="flex flex-wrap items-center gap-2 compact:gap-4">
-        <button
+        <Bouton
+          {...ACTION}
           onClick={() => setExportAChoisir(true)}
           disabled={vide}
           aria-label="Exporter"
-          data-cible-fine
-          className={BOUTON}
+          icone={<Upload size={14} />}
+          libelle="Exporter"
           title="Télécharger ta prépa en fichier .json, pour la partager ou la garder de côté"
-        >
-          <Upload size={14} /> <span className="compact:hidden">Exporter</span>
-        </button>
+        />
 
         {/* ⚠️ DEUX boutons pour un même format de fichier, parce que ce sont
             deux intentions : reprendre une prépa à soi (elle remplace), ou
             regarder celle d'un ami (elle ne touche à rien). Un seul bouton
             obligerait à demander « et maintenant, j'en fais quoi ? » après coup,
             alors que l'utilisateur le sait déjà en cliquant. */}
-        <button
+        <Bouton
+          {...ACTION}
           onClick={() => ouvrirFichier('importer')}
           aria-label="Importer"
-          data-cible-fine
-          className={BOUTON}
+          icone={<Download size={14} />}
+          libelle="Importer"
           title="Reprendre une prépa exportée : une archive, ou celle d'un autre navigateur. Elle remplacera la tienne."
-        >
-          <Download size={14} /> <span className="compact:hidden">Importer</span>
-        </button>
+        />
 
-        <button
+        {/* ⚠️ **« Ami » et rien d'autre.** Le libellé complet — « Consulter
+            celle d'un ami » — fait à lui seul près de la moitié d'une largeur de
+            téléphone : dans la grille du panneau il passait sur trois lignes et
+            déformait toute la rangée. Le sens tient dans le mot ; l'infobulle et
+            `aria-label` portent la phrase entière. */}
+        <Bouton
+          {...ACTION}
           onClick={() => ouvrirFichier('consulter')}
           aria-label="Consulter la prépa d'un ami"
-          data-cible-fine
-          className={BOUTON}
+          icone={<Users size={14} />}
+          libelle="Ami"
           title="Ouvrir la prépa d'un ami en lecture (fichier .json). Ta prépa n'est pas touchée."
-        >
-          {/* ⚠️ **« Ami » et rien d'autre.** Le libellé complet — « Consulter
-              celle d'un ami » — fait à lui seul près de la moitié d'une largeur
-              de téléphone : dans la grille du panneau il passait sur trois
-              lignes et déformait toute la rangée. Deux variantes n'y changeaient
-              rien, la règle qui révèle les libellés dans le panneau les
-              affichant l'une et l'autre.
-              Le sens tient dans le mot ; l'infobulle et `aria-label` portent la
-              phrase entière. */}
-          <Users size={14} />
-          <span className="compact:hidden">Ami</span>
-        </button>
+        />
       </div>
       </div>
 
@@ -742,27 +740,16 @@ function ChoixExport({
           {options.map((o, i) => {
             const Icone = o.icone;
             return (
-              <button
+              <Option
                 key={o.cle}
                 onClick={() => onChoisir(o.cle)}
                 autoFocus={i === 0}
                 disabled={o.desactive}
-                className="flex items-start gap-2.5 rounded-xl border border-border bg-panel2 px-3 py-2.5 text-left
-                           transition hoverable:border-accent disabled:opacity-40 disabled:cursor-not-allowed"
-              >
-                <Icone size={16} className="mt-[2px] flex-none text-ink-dim" />
-                <span className="min-w-0">
-                  <span className="flex items-center gap-1.5 text-xs font-semibold text-ink">
-                    {o.titre}
-                    {o.compte ? (
-                      <span className="font-mono text-micro text-ink-dim">{o.compte}</span>
-                    ) : null}
-                  </span>
-                  <span className="mt-0.5 block text-micro leading-relaxed text-ink-dim">
-                    {o.detail}
-                  </span>
-                </span>
-              </button>
+                icone={<Icone size={16} />}
+                titre={o.titre}
+                compte={o.compte || undefined}
+                description={o.detail}
+              />
             );
           })}
         </div>
@@ -777,12 +764,15 @@ function ChoixExport({
           dernier niveau ne transmet que l'ordre.
         </p>
 
-        <button
+        <Bouton
           onClick={onAnnuler}
-          className="mt-3 w-full text-center text-xs text-ink-dim hoverable:text-ink transition"
-        >
-          Annuler
-        </button>
+          fond="vide"
+          trait="aucun"
+          taille="sm"
+          pleineLargeur
+          libelle="Annuler"
+          className="mt-3"
+        />
       </div>
     </div>
   );
@@ -809,13 +799,12 @@ function ValidationReport({ report, onClose }: { report: ImportReport; onClose: 
             ? "Import refusé — le contenu n'est pas valide"
             : `Lu avec ${report.warnings.length} correction${report.warnings.length > 1 ? 's' : ''}`}
         </span>
-        <button
+        <BoutonIcone
           onClick={onClose}
-          className="ml-auto text-ink-dim hoverable:text-ink transition"
-          title="Fermer le rapport"
-        >
-          <X size={14} />
-        </button>
+          libelle="Fermer le rapport"
+          icone={<X size={14} />}
+          className="ml-auto"
+        />
       </div>
 
       <ul className="space-y-0.5 max-h-[220px] overflow-y-auto">

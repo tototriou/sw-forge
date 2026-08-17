@@ -70,6 +70,12 @@ Concepts partagés par plusieurs pages, documentés une seule fois :
   les règles de focus, de survol et de mouvement. **Source de vérité** pour toute
   décision d'apparence : une valeur qui n'y est pas n'a pas à être écrite en dur
   dans un composant.
+- [shared/librairie-ui.md](shared/librairie-ui.md) — les **composants partagés**
+  (`src/ui/`) : bouton, pastille, champ, sélecteur, interrupteur, option,
+  vignette. Dit **quels composants existent** et **comment choisir entre eux**,
+  là où `design.md` dit quelles valeurs ils emploient. ⚠️ Un composant dessiné
+  là-bas ne se redessine nulle part ailleurs — c'est ce qui permet de changer un
+  bouton une fois pour toute l'app.
 - [shared/navigation.md](shared/navigation.md) — la **barre latérale** et les
   **onglets mobiles**, et l'**accent contextuel** (`--ctx`) qui prend la couleur
   de l'élément du monstre consulté.

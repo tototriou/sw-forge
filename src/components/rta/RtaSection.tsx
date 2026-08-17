@@ -4,6 +4,7 @@ import { RTA_OTHER, RTA_UNASSIGNED } from '../../types';
 import RuneIcon from '../RuneIcon';
 import AccordionGrid from '../AccordionGrid';
 import { ConfirmDialog } from '../Dialogs';
+import { BoutonIcone } from '../../ui';
 
 interface Props {
   sectionKey: string;
@@ -82,13 +83,13 @@ export default function RtaSection({
         <h3 className="font-display text-base tracking-wide">{label}</h3>
         <span className="font-mono text-ink-dim text-micro">{count}</span>
         {removable && onRemoveSection && (
-          <button
+          <BoutonIcone
             onClick={() => setSuppressionAConfirmer(true)}
-            className="ml-auto flex items-center gap-1 text-ink-dim hoverable:text-fire text-micro transition"
-            title="Supprimer la section (les monstres reviennent en Non classé)"
-          >
-            <X size={13} />
-          </button>
+            libelle="Supprimer la section (les monstres reviennent en Non classé)"
+            ton="danger"
+            icone={<X size={13} />}
+            className="ml-auto"
+          />
         )}
       </div>
 

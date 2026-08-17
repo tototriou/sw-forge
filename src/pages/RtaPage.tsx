@@ -28,6 +28,7 @@ import MonsterGear from '../components/MonsterGear';
 import TurnOrder, { TurnItem } from '../components/rta/TurnOrder';
 import CreateMonster from '../components/CreateMonster';
 import { CustomLead } from '../hooks/useCustomMonsters';
+import { Bouton, Selecteur } from '../ui';
 
 interface Props {
   rta: UseRtaState;
@@ -227,15 +228,18 @@ export default function RtaPage({
   // sous un filet. Un bouton destructeur ne se met pas au contact de celui
   // qu'on presse en boucle.
   const effacer = addedIds.size > 0 && (
-    <button
+    <Bouton
       onClick={() => {
         setEffacementAConfirmer(true);
         onFermerMenu();
       }}
-      className="flex items-center gap-1.5 text-xs text-ink-dim hoverable:text-fire transition"
-    >
-      <Trash2 size={13} /> Tout effacer
-    </button>
+      ton="danger"
+      fond="vide"
+      trait="aucun"
+      taille="sm"
+      icone={<Trash2 size={13} />}
+      libelle="Tout effacer"
+    />
   );
 
   return (
@@ -393,10 +397,11 @@ export default function RtaPage({
         <span className="label">
           Ajouter une section
         </span>
-        <select
+        <Selecteur
           value={newSection}
           onChange={(e) => setNewSection(e.target.value)}
-          className="bg-panel border border-border text-ink rounded-lg px-2.5 py-1.5 text-sm outline-none"
+          taille="sm"
+          pleineLargeur={false}
         >
           <option value="">Choisir un set de runes…</option>
           {availableSets.map((s) => (
@@ -404,19 +409,17 @@ export default function RtaPage({
               {s.label}
             </option>
           ))}
-        </select>
-        <button
+        </Selecteur>
+        <Bouton
           disabled={!newSection}
           onClick={() => {
             rta.addSection(newSection);
             setNewSection('');
           }}
-          className="flex items-center gap-1.5 rounded-lg border border-border bg-panel px-3 py-1.5 text-sm
-                     text-ink-dim hoverable:text-ink hoverable:border-accent transition
-                     disabled:opacity-40 disabled:cursor-not-allowed"
-        >
-          <Plus size={14} /> Créer
-        </button>
+          taille="sm"
+          icone={<Plus size={14} />}
+          libelle="Créer"
+        />
       </div>
 
       {/* Ordre de tour global, trié par vitesse totale */}

@@ -6,6 +6,7 @@ import RuneIcon from '../RuneIcon';
 import CategoryRing from './CategoryRing';
 import DesyncBadge from './DesyncBadge';
 import { ConfirmDialog } from '../Dialogs';
+import { BoutonIcone, Selecteur } from '../../ui';
 
 const SPD_ICON = `${import.meta.env.BASE_URL}stats/spd.png`;
 
@@ -222,19 +223,19 @@ export default function RtaCard({
             ))}
           </span>
         </div>
-        <select
+        <Selecteur
           value={entry.section}
           onChange={(e) => onMove(String(monster.id), e.target.value)}
           title="Déplacer vers une section"
-          className="mt-1 w-full bg-panel border border-border rounded px-1.5 py-0.5 text-micro
-                     text-ink-dim outline-none focus:border-accent"
+          taille="dense"
+          className="mt-1"
         >
           {sectionKeys.map((k) => (
             <option key={k} value={k}>
               {sectionLabel(k)}
             </option>
           ))}
-        </select>
+        </Selecteur>
       </div>
 
       {/* ⚠️ JAMAIS `hidden group-hover:flex` : l'élément sortait du flux, donc
@@ -242,23 +243,20 @@ export default function RtaCard({
           pouvait pas retirer un monstre sur téléphone. On joue sur l'opacité
           (l'élément reste dans le DOM) et on le laisse visible là où il n'y a
           pas de survol. Voir spec/shared/design.md. */}
-      <button
+      {/* ⚠️ `taille="serre"` : la règle tactile globale (40 px, voir index.css)
+          ne s'applique pas ici. Cette croix est POSÉE SUR le coin de la carte,
+          pas dans un flux : agrandie, elle la déborde et recouvre le portrait.
+          Sa cible reste petite mais isolée — rien d'autre à toucher autour, donc
+          rien à rater. */}
+      <BoutonIcone
         onClick={() => setRetraitAConfirmer(true)}
-        // ⚠️ `data-cible-fine` : la règle tactile globale (40 px, voir
-        // index.css) ne s'applique pas ici. Cette croix est POSÉE SUR le coin
-        // de la carte, pas dans un flux : agrandie, elle la déborde et recouvre
-        // le portrait. Sa cible reste petite mais isolée — rien d'autre à
-        // toucher autour, donc rien à rater.
-        data-cible-fine
-        className="absolute -top-1.5 -right-1.5 flex items-center justify-center
-                   w-5 h-5 rounded-full bg-fire text-white shadow
-                   opacity-0 no-hover:opacity-100 group-hoverable:opacity-100
-                   focus-visible:opacity-100 transition-opacity duration-150 ease-out"
-        title="Retirer"
-        aria-label={`Retirer ${monster.name}`}
-      >
-        <X size={12} />
-      </button>
+        libelle={`Retirer ${monster.name}`}
+        taille="serre"
+        ton="danger"
+        auSurvol
+        icone={<X size={12} />}
+        className="absolute -top-1.5 -right-1.5 bg-bad text-white shadow hoverable:bg-bad"
+      />
 
       {retraitAConfirmer && (
         <ConfirmDialog

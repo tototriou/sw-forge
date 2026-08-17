@@ -1,0 +1,213 @@
+# Librairie UI — le vocabulaire visuel commun
+
+> **Source de vérité** pour la façon dont un contrôle se dessine. Les VALEURS
+> (couleurs, échelle de texte, rayons) restent dans
+> [design.md](design.md) ; ce document dit **quels composants existent** et
+> **comment on choisit entre eux**.
+>
+> Code : [`src/ui/`](../../src/ui/), point d'entrée unique
+> [`src/ui/index.ts`](../../src/ui/index.ts).
+
+## Le problème que ce dossier résout
+
+Avant lui, chaque écran redessinait ses boutons. Un même bouton d'action existait
+en une quarantaine d'exemplaires, chacun avec ses classes recopiées puis
+divaguées : rembourrages différents à deux pixels près, deux rayons de coin,
+trois façons de dire « désactivé ».
+
+La conséquence n'était pas esthétique mais **économique** : demander « réduis les
+boutons sur téléphone » voulait dire refaire le même travail dans dix-sept
+fichiers, et en oublier trois.
+
+Une tentative avait déjà eu lieu, sous forme d'un fichier de **constantes de
+classes** (`buttonStyles.ts`). Elle a échoué, et il faut savoir pourquoi :
+
+> ⚠️ **Une constante de classes se contourne, un composant non.** Sept fichiers
+> importaient `BOUTON_PRIMAIRE`, quarante dessinaient des boutons à la main. Rien
+> ne s'opposait à recopier la chaîne en y ajoutant « juste un `px-2` pour ce
+> cas » — et la divergence repartait. Un composant impose sa structure : la
+> hauteur tactile, la pression au clic, l'état désactivé ne sont plus négociables
+> au point d'appel.
+
+## La règle qui gouverne tout le reste
+
+> ⚠️ **Un composant dessiné dans `src/ui/` ne se redessine nulle part ailleurs.**
+> Si un écran a besoin d'un bouton, il importe `Bouton`. S'il a besoin d'un
+> bouton qui n'existe pas, on ajoute **un axe** au bouton — jamais un bouton de
+> plus dans un dossier de page.
+
+## Des AXES, pas un catalogue de variantes
+
+C'est la décision structurante de cette librairie, et elle a été prise **contre**
+un premier jet qui nommait ses styles par intention (`principal`, `discret`,
+`destructeur`…).
+
+Ce premier jet ne tient pas : dès qu'un écran veut un bouton d'ajout **en
+pointillés**, il faut une cinquième entrée. Puis une sixième pour la même chose
+en rouge. Puis une septième pour la version sans fond. Le catalogue grossit d'une
+ligne à chaque écran neuf, et les combinaisons manquantes se règlent en
+`className` — c'est-à-dire par le contournement qu'on cherchait à empêcher.
+
+Les axes se **choisissent séparément et se combinent** :
+
+| Axe | Valeurs | Ce qu'il décide |
+|-----|---------|-----------------|
+| `ton` | `neutre`, `accent`, `danger` | La **couleur** de l'action |
+| `fond` | `vide`, `doux`, `plein` | Le **remplissage** |
+| `trait` | `aucun`, `plein`, `pointille` | Le **contour** |
+| `forme` | `boite`, `pilule` | Le **rayon des coins** |
+| `taille` | `xs`, `sm`, `md` | L'**encombrement** |
+
+Trois axes de couleur × trois de fond × trois de trait couvrent ce que douze
+variantes nommées n'auraient pas couvert. Et surtout :
+
+> ⚠️ **La librairie ne grossit que si un AXE manque**, jamais parce qu'un écran
+> de plus a un besoin de plus. « Bouton d'ajout » n'est pas une variante : c'est
+> `trait="pointille"`, et le pointillé dit « contenant pas encore rempli » dans
+> toute l'app, pas seulement là où on l'a écrit.
+
+### Axes de comportement
+
+Trois axes ne touchent pas à l'apparence au repos mais à ce que le bouton fait
+selon le contexte :
+
+- **`nuAuDoigt`** — le bouton se déshabille au tactile : plus de cadre, plus de
+  fond, plus de rembourrage, il ne reste que l'icône. ⚠️ **Réservé aux barres où
+  le même geste se répète cinq ou six fois.** Six boutons encadrés font six
+  carrés dans une barre qu'on cherche à compacter, et le cadre n'apprend rien :
+  l'icône dit l'action, sa présence dit qu'on peut la toucher. Il pose
+  `cible-tactile`, qui rend 44 px touchables **sans qu'un pixel du dessin ne
+  bouge** — sinon la règle des 40 px regonflerait ce qu'on vient de déshabiller.
+- **`libelleAuDoigt`** — le libellé tombe et ne reste que l'icône. ⚠️ Sans effet
+  s'il n'y a pas d'icône : un bouton muet n'est plus un bouton.
+- **`actif`** — bouton à **deux états**. Il prend le fond de son ton et pose
+  `aria-pressed` : sans quoi un lecteur d'écran annonce « bouton » là où
+  l'utilisateur voit un interrupteur.
+
+> ⚠️ **Le libellé se masque, il ne DISPARAÎT pas.** C'est pourquoi l'API est
+> `icone` + `libelle` et non un `children` libre : le panneau d'actions mobile
+> **rend les mots** quand la place existe (règle `[data-tiroir]` dans
+> `index.css`), et il ne peut le faire que si le libellé est dans un `<span>`
+> repérable. Un texte écrit en dur dans `children` n'est plus rattrapable, et la
+> rangée d'icônes nues du panneau redevient un rébus.
+
+## Les composants
+
+### Fondation
+
+**`Bouton`** — toute pression qui n'est pas une pastille de filtre. Porte les
+cinq axes ci-dessus.
+
+### Préréglages
+
+Ils n'ont **pas de style propre** : ce sont des `Bouton` dont certains axes sont
+fixés. Un changement dans `Bouton` les traverse tous sans qu'on y touche.
+
+**`Pastille`** — petite, cumulable, dans une rangée. Un filtre, un interrupteur
+d'affichage. Fixe `forme="pilule"`, `taille="sm"`, hauteur `h-7`, et ajoute la
+**puce** (pleine = affiché, creuse = coupé).
+
+> ⚠️ **UN SEUL MARQUEUR sur la pastille active : le fond.** Elle cumulait fond +
+> bordure teintée + ombre — trois signaux pour dire une seule chose. Elle se
+> surlignait deux fois et bavait sur ses voisines. L'ombre part aussi : une
+> pastille active ne **décolle** pas de la page, l'élévation est réservée à ce
+> qui flotte.
+
+**`BoutonIcone`** — réduit à son icône. ⚠️ `libelle` est **obligatoire et jamais
+dessiné** : il alimente `aria-label` et `title` à la fois. L'app comptait une
+dizaine de boutons muets pour un lecteur d'écran ; le rendre obligatoire dans le
+type est la seule façon de ne plus avoir à y penser.
+
+- `taille="serre"` n'est **pas « plus petit »**, c'est une **exemption tactile** :
+  un bouton posé DANS un contenant plus petit que la cible de 40 px (les deux
+  boutons d'une pilule de 28 px). Portés à 40 px ils la débordent ; dotés en plus
+  d'une zone étendue de 44 px ils se chevauchent, et **on supprime la catégorie
+  en voulant l'éditer**.
+- `auSurvol` — n'apparaît qu'au survol du conteneur (qui porte `group`).
+  ⚠️ **JAMAIS `hidden group-hover:flex`** : l'élément sortirait du flux, donc ne
+  serait ni focusable au clavier ni atteignable au doigt — on ne pouvait plus
+  retirer un monstre sur téléphone. On joue sur l'**opacité**, et il est visible
+  d'office là où il n'y a pas de survol.
+
+### Composants à part entière
+
+**`Champ`** — saisie texte. ⚠️ `compact:text-base` n'est **pas un choix de
+taille, c'est un correctif** : sous 16 px, iOS **zoome** sur le champ à la mise
+au point, et la page ne revient pas seule de ce zoom. C'est la seule raison pour
+laquelle un champ grossit au doigt alors que tout le reste rétrécit. Écrit une
+fois ici, ce piège ne peut plus être oublié dans un formulaire neuf.
+
+**`Selecteur`** — liste déroulante. ⚠️ `appearance-none` + notre propre chevron :
+le contrôle natif dessine sa flèche avec les couleurs du **système**, qui ne
+suivent aucun des deux thèmes — sur fond sombre, une flèche noire disparaît. La
+**liste ouverte** reste celle du système : c'est le seul morceau de l'app qu'on
+ne dessine pas, et le remplacer coûterait un menu flottant complet à claviériser.
+
+**`Interrupteur`** — glissière avec libellé. ⚠️ `role="switch"` et non `button` :
+un lecteur d'écran annonce « interrupteur, activé » plutôt que « bouton » — la
+différence entre savoir dans quel état on est et devoir l'essayer pour le
+découvrir.
+
+> ⚠️ **Interrupteur ou Pastille ?** Ils ont le même rôle logique, et le choix
+> n'est pas affaire de goût. La **pastille** vit dans une RANGÉE de ses
+> semblables, où seul le fond peut porter l'état sans que trois voisines se
+> disputent le regard. La **glissière** vit SEULE, avec une phrase à côté : elle
+> a la place de dessiner son état, et le mouvement du curseur dit dans quel sens
+> on va.
+
+**`Option`** — choix riche : icône, titre, description. ⚠️ Distinct de `Bouton`
+parce qu'il **ne se lit pas pareil** : un bouton s'identifie d'un coup d'œil, une
+option se LIT. D'où le texte aligné à gauche et l'icône calée en haut — sur deux
+lignes de description, une icône centrée verticalement flotte en face de rien.
+
+> ⚠️ **La description n'est pas décorative.** Ces choix engagent ce qu'on ne peut
+> pas défaire d'un clic (ce qu'on publie de son compte, ce qu'on écrase). Un
+> titre seul oblige à deviner, et c'est précisément là qu'on se trompe. Voir la
+> règle du [README](../README.md) : le défaut ne perd jamais rien, et ce qui perd
+> s'explique avant.
+
+**`Vignette`** — case sélectionnable d'une grille (les monstres d'une catégorie).
+⚠️ **La teinte vient de l'appelant.** C'est ce qui la distingue d'un bouton à
+état : la couleur de sélection est ici une **donnée** (la couleur de la catégorie
+qu'on remplit), pas une décision d'apparence. Trois écrans la recalculaient à la
+main, avec trois opacités différentes.
+
+- Elle porte **le liseré ET le fond**, contrairement à la règle du marqueur
+  unique : celle-ci vaut pour un état d'**interface**, alors qu'ici la teinte est
+  l'identité de ce qu'on coche — et le fond seul ne se voit pas sur une case qui
+  porte déjà une image.
+- `bloque` n'est pas `disabled` au sens visuel : une case refusée reste
+  **affichée** et très estompée plutôt que cachée. Disparue on la cherche ;
+  grisée on comprend qu'un plafond est atteint — à condition que le `title` le
+  dise.
+
+## Quand ajouter quelque chose
+
+> ⚠️ **Un composant monte ici au DEUXIÈME usage, jamais au premier.** Remonter
+> trop tôt fabrique une abstraction taillée pour un seul appelant, que le second
+> fait éclater en options. C'est le trajet qu'ont suivi `Segmented` et
+> `elementStyles` avant ce dossier.
+
+Et l'inverse est vrai : **tout ne monte pas**. Restent délibérément hors
+librairie —
+
+- **Le rendu de bureau de `InterrupteurAffichage`** (RTA) : l'accent y marque
+  l'état **masqué**, l'inverse de la pastille. Le faire entrer demanderait un
+  drapeau qui inverse la lecture du composant — exactement l'option qui vide un
+  composant partagé de son sens. Il migrera le jour où le bureau adoptera la même
+  convention, pas avant.
+- **La pilule de lead SPD** : son dégradé `star` est un code couleur du
+  **domaine** (le lead de vitesse), pas un ton d'interface.
+- **Les cases de la palette de couleurs** : un aplat sans contenu ni libellé, dont
+  le marqueur est un anneau et non une teinte. Un seul usage.
+
+> ⚠️ **Ces exceptions doivent rester rares et JUSTIFIÉES ici.** Une exception non
+> écrite est une divergence qui recommence.
+
+## Ce qui n'est pas dans cette librairie
+
+**Aucune dépendance externe.** La question d'adopter Radix UI s'est posée pour
+`Dialog`, `Popover`, `Select` et `Switch`. Elle reste **ouverte** et concerne le
+comportement (piège de focus, empilement, clavier), pas l'apparence — ces
+composants-ci sont à nous et le resteraient. Voir
+[navigation.md](navigation.md) pour ce qui flotte au-dessus de la page.

@@ -8,6 +8,7 @@ import MonsterGear from '../MonsterGear';
 import AccordionGrid from '../AccordionGrid';
 import CategoryRing from './CategoryRing';
 import TurnOrder from './TurnOrder';
+import { Bouton } from '../../ui';
 
 /* --------------------------------------------------------------------------
  * Consultation de la prépa d'un ami
@@ -291,13 +292,16 @@ export default function RtaFriendView({ vue, onClose }: { vue: RtaVueAmi; onClos
         <span className="font-mono text-micro text-ink-dim">
           {vue.entries.length} monstre{vue.entries.length > 1 ? 's' : ''}
         </span>
-        <button
+        <Bouton
           onClick={onClose}
-          className="ml-auto flex items-center gap-1.5 text-xs text-ink-dim hoverable:text-ink transition"
+          fond="vide"
+          trait="aucun"
+          taille="sm"
+          icone={<X size={14} />}
+          libelle="Fermer"
           title="Fermer la consultation"
-        >
-          <X size={14} /> Fermer
-        </button>
+          className="ml-auto"
+        />
       </div>
 
       {/* ⚠️ Dit à voix haute que rien n'est comparé ni modifié : sans ça, on

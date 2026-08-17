@@ -341,12 +341,19 @@ export default function RecoCard({
 
         {/* Actions — ancrées en haut à droite, hors du flux du titre. */}
         <div className="flex flex-none items-center gap-1.5">
-          {/* En édition, la carte est forcément dépliée → le bouton n'a pas de sens. */}
+          {/* En édition, la carte est forcément dépliée → le bouton n'a pas de sens.
+              ⚠️ **Masqué au DOIGT** (`compact:hidden`) : le titre bascule
+              désormais la carte lui-même (voir plus haut), et ce petit bouton
+              du coin devenait une seconde cible pour le même geste — sur un
+              écran qu'on parcourt au pouce, la plus petite des deux. Il reste
+              à la SOURIS, où viser un bouton précis ne coûte rien et où le
+              chevron confirme l'état d'un coup d'œil. */}
           {!editing && (
             <button
               onClick={() => onToggleOpen(reco.id)}
               aria-expanded={expanded}
-              className={`flex items-center gap-1.5 rounded-md border px-2.5 py-1 text-xs font-semibold transition ${
+              className={`flex items-center gap-1.5 rounded-md border px-2.5 py-1 text-xs font-semibold
+                transition compact:hidden ${
                 open
                   ? 'border-accent bg-panel2 text-ink'
                   : 'border-border bg-panel text-ink hoverable:border-accent'

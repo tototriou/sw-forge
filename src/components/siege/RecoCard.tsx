@@ -257,12 +257,19 @@ export default function RecoCard({
       {/* En-tête de la recommandation.
           ⚠️ DEUX zones, et non un seul `flex-wrap` : le titre et ses
           métadonnées à gauche (elles peuvent passer à la ligne), les actions
-          ancrées **en haut à droite** (`items-start` + `ml-auto` sur le groupe).
-          Dans un `flex-wrap` unique, les icônes Exporter/Éditer/Supprimer
-          suivaient le flux et retombaient sous le titre dès que la ligne était
-          pleine — on les cherchait des yeux d'une carte à l'autre. Elles sont
-          maintenant TOUJOURS dans l'angle supérieur droit. */}
-      <div className="flex items-start gap-2 mb-3">
+          ancrées **en haut à droite** (`ml-auto` sur le groupe). Dans un
+          `flex-wrap` unique, les icônes Exporter/Éditer/Supprimer suivaient le
+          flux et retombaient sous le titre dès que la ligne était pleine — on
+          les cherchait des yeux d'une carte à l'autre. Elles sont maintenant
+          TOUJOURS dans l'angle supérieur droit.
+          ⚠️ `items-center`, pas `items-start` : le TITRE (24 px de boîte de
+          ligne, `font-display`) et les icônes (20 px, `taille="serre"`) ne
+          font pas la même hauteur — alignés en haut, l'écart se lisait comme
+          un défaut. Centrés, ils se répondent sur le cas courant (titre sur
+          une ligne). Si le titre passe sur deux lignes, les icônes se
+          recentrent sur le bloc entier plutôt que de rester pincées en haut —
+          un compromis accepté, ce cas restant rare. */}
+      <div className="flex items-center gap-2 mb-3">
         <div className="flex flex-1 min-w-0 items-center gap-2 flex-wrap">
         {editing ? (
           <Champ
@@ -379,27 +386,6 @@ export default function RecoCard({
               BoutonIcone.tsx) — la règle des 40 px les ferait se chevaucher, on
               supprimerait la recommandation en voulant l'exporter. */}
           <div className="flex items-center gap-0.5 -mr-1">
-            {/* ⚠️ Icône seule, AU DOIGT SEULEMENT (`compact:flex`) : la version
-                étiquetée reste à la souris, juste à gauche du titre (voir plus
-                haut). Groupée ici avec Exporter / Éditer / Supprimer plutôt que
-                sur sa propre ligne, elle ne se dispute plus la place du titre
-                sur une carte étroite. */}
-            {!editing && (
-              <BoutonIcone
-                onClick={onAnalyze}
-                disabled={!canAnalyze}
-                taille="serre"
-                icone={<Gauge size={13} />}
-                libelle={
-                  canAnalyze
-                    ? match
-                      ? 'Réanalyser mes decks'
-                      : 'Analyser mes decks'
-                    : 'Importe ton compte pour analyser'
-                }
-                className="hidden compact:flex"
-              />
-            )}
             <BoutonIcone
               onClick={() => onExport(reco)}
               taille="serre"

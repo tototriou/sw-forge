@@ -814,11 +814,13 @@ recommandation**, via le bouton **« Analyser mes decks »** de son en-tête (il
 devient « Réanalyser mes decks » ensuite) — le libellé dit bien que la
 confrontation porte sur **l'ensemble des decks**, pas sur un seul.
 
-⚠️ **Deux gabarits selon le POINTEUR** (`compact:`, pas une largeur) : à la
-souris, étiqueté, à côté du titre — la place ne manque pas. Au doigt, réduit à
-son icône (jauge) et groupé avec Exporter / Éditer / Supprimer, dans le coin
-supérieur droit — étiqueté, il se disputait la place du titre sur une carte
-étroite.
+⚠️ **À la SOURIS seulement** (`compact:hidden`), étiqueté, à côté du titre — la
+place ne manque pas. Au doigt, il n'est plus sur la carte du tout : il vivait en
+icône dans le coin supérieur droit, groupée avec Exporter / Éditer / Supprimer,
+mais choisir SA carte demandait d'abord d'y faire défiler — un geste que le
+panneau « Options » fait maintenant sans quitter le haut de l'écran (voir plus
+bas). Une icône de plus dans un coin déjà chargé pour un geste qui a un meilleur
+endroit ne se justifiait plus.
 
 - Le bouton est **désactivé sans compte importé** (rien à quoi comparer).
 - Le résultat est **mémorisé dans le board** avec la reco et les builds qui ont
@@ -828,25 +830,21 @@ supérieur droit — étiqueté, il se disputait la place du titre sur une carte
 - Motivation : confronter *toutes* les recos à *tous* les builds à chaque rendu
   était un coût permanent pour une information qu'on ne consulte que ponctuellement.
 
-### Analyser depuis le panneau « Options » — au doigt, en plus de la carte
+### Analyser depuis le panneau « Options » — LE chemin au doigt
 
-⚠️ Le bouton de l'en-tête suppose qu'on est **déjà sur la bonne carte** — au
-doigt, ça veut dire y faire défiler d'abord. Le panneau « Options » propose
-donc le **même geste sans quitter le haut de l'écran** : un menu déroulant
-choisit **laquelle** analyser (aucune carte n'est sous les yeux pour le dire),
-puis « Analyser » fait le reste.
+⚠️ Au doigt, analyser n'est plus un bouton sur la carte : c'est le panneau
+« Options » qui porte le geste, avec un menu déroulant qui choisit **laquelle**
+analyser (aucune carte n'est sous les yeux pour le dire), puis « Analyser » qui
+fait le reste.
 
 - Le menu liste les recommandations **affichées** (`list` — filtre d'origine et
   recherche déjà appliqués), avec le même nom de repli
   (« Recommandation N ») que sur les cartes.
-- **Désactivé sans compte importé**, même condition que le bouton de l'en-tête.
+- **Désactivé sans compte importé**, même condition que le bouton de la souris.
 - Au clic sur « Analyser » : l'analyse se lance, la carte visée **s'ouvre**
   (elle serait sinon repliée et le résultat invisible au premier défilement),
   le panneau se referme, et un message éphémère confirme sur quelle
   recommandation.
-- **Vient s'ajouter** au bouton de l'en-tête, ne le remplace pas : rester sur une
-  carte pour la réanalyser après une édition reste plus direct que rouvrir le
-  panneau.
 
 ### Ce que l'analyse affiche
 
@@ -1206,7 +1204,7 @@ L'en-tête est **deux zones**, pas un `flex-wrap` unique :
 | Zone | Contenu | Comportement |
 |------|---------|--------------|
 | gauche (`flex-1 min-w-0`) | titre (cliquable, bascule la carte), puce « Importée », compteur de decks, auteur, « Analyser mes decks » (souris seulement) | passe à la ligne librement |
-| droite (`flex-none`) | « Consulter » (souris seulement), puis Analyser (doigt seulement) · Exporter ↑ · Éditer ✏️ · Supprimer 🗑 | **ancrée en haut à droite** (`items-start`) |
+| droite (`flex-none`) | « Consulter » (souris seulement), puis Exporter ↑ · Éditer ✏️ · Supprimer 🗑 | **ancrée à droite**, centrée verticalement sur le titre (`items-center`) |
 
 Dans un `flex-wrap` unique, les trois icônes suivaient le flux et **retombaient
 sous le titre** dès que la ligne était pleine — leur position changeait d'une
@@ -1217,10 +1215,10 @@ pas une.
 **Icônes nues partout** dans les en-têtes — carrés de 24 px, **sans cadre ni
 fond**, groupés et resserrés (`gap-0.5`) à droite de la ligne :
 
-- **recommandation** : Analyser 📊 (doigt seulement — voir plus haut), Exporter
-  ↑, Éditer ✏️, Supprimer 🗑 — la ligne porte déjà le titre, la puce
-  « Importée », le compteur de decks, l'auteur, et « Analyser mes decks » /
-  « Consulter » à la souris.
+- **recommandation** : Exporter ↑, Éditer ✏️, Supprimer 🗑 — la ligne porte déjà
+  le titre, la puce « Importée », le compteur de decks, l'auteur, et
+  « Analyser mes decks » / « Consulter » à la souris. Analyser vit au doigt
+  dans le panneau « Options » (voir plus haut), pas dans ce groupe.
 - **deck** : Éditer ✏️, puis Supprimer 🗑 (visible seulement en édition).
 - Le sens passe par l'**infobulle** et l'`aria-label` (obligatoire : une icône
   seule n'est pas lisible au lecteur d'écran).

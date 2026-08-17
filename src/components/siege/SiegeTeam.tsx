@@ -442,25 +442,35 @@ export default function SiegeTeam({
           croire à une approbation de l'outil, alors que c'est l'utilisateur qui
           écarte un conseil dont il assume la responsabilité. */}
       {(status === 'orange' || status === 'red') && (
+        // ⚠️ **Empilé au DOIGT, en ligne à la souris.** Le message peut nommer
+        // deux monstres (« Morris dépasse le tick 286 et ROBO-F29 dépasse le
+        // tick 286 ») : sur une seule ligne étroite, il se compressait contre
+        // le bouton et les deux se lisaient de travers. Empilé, le texte prend
+        // toute la largeur pour se plier proprement, et le bouton — seul, en
+        // dessous — se tasse à droite plutôt que de rester centré au milieu
+        // d'une ligne vide.
         <div
-          className={`mt-3 flex items-center gap-2 rounded-lg border px-3 py-2 ${
+          className={`mt-3 flex flex-col gap-2 rounded-lg border px-3 py-2
+            sm:flex-row sm:items-center ${
             status === 'red' ? 'border-fire/40 bg-fire/10' : 'border-warn/40 bg-warn/10'
           }`}
         >
-          <AlertTriangle
-            size={15}
-            className={`flex-none ${status === 'red' ? 'text-fire' : 'text-warn'}`}
-          />
-          <span className={`text-xs flex-1 ${status === 'red' ? 'text-fire' : 'text-warn'}`}>
-            {status === 'red'
-              ? messageTick ?? "Ton équipe n'est pas au tick."
-              : 'Vérifier le speed tuning'}
-          </span>
+          <div className="flex items-start gap-2">
+            <AlertTriangle
+              size={15}
+              className={`mt-px flex-none ${status === 'red' ? 'text-fire' : 'text-warn'}`}
+            />
+            <span className={`text-xs ${status === 'red' ? 'text-fire' : 'text-warn'}`}>
+              {status === 'red'
+                ? messageTick ?? "Ton équipe n'est pas au tick."
+                : 'Vérifier le speed tuning'}
+            </span>
+          </div>
           <Bouton
             onClick={() => onDismissAlert(team.id, true)}
             taille="sm"
             libelle="Ignorer la recommandation"
-            className="flex-none"
+            className="flex-none self-end sm:ml-auto sm:self-auto"
           />
         </div>
       )}

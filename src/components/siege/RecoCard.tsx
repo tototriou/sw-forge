@@ -253,7 +253,10 @@ export default function RecoCard({
   }, [deckAViser]);
 
   return (
-    <section className={`rounded-2xl border p-4 transition-colors ${AURA[status]}`}>
+    // ⚠️ `compact:p-2.5` : même resserrement qu'une équipe de siège
+    // (SiegeTeam.tsx) — au doigt, la page empile plusieurs recommandations,
+    // et chaque `p-4` coûte 32 px de haut multipliés par leur nombre.
+    <section className={`rounded-2xl border p-4 compact:p-2.5 transition-colors ${AURA[status]}`}>
       {/* En-tête de la recommandation.
           ⚠️ DEUX zones, et non un seul `flex-wrap` : le titre et ses
           métadonnées à gauche, les actions ancrées **en haut à droite**
@@ -296,7 +299,11 @@ export default function RecoCard({
             onClick={() => onToggleOpen(reco.id)}
             aria-expanded={expanded}
             title={open ? 'Replier' : `Voir les ${reco.decks.length} deck(s)`}
-            className="text-left transition hoverable:text-ctx"
+            // ⚠️ `p-0` explicite : un `<button>` porte un rembourrage par
+            // défaut du navigateur, invisible à l'œil mais qui élargit sa
+            // boîte au-delà du texte — c'est lui qui décalait le titre de
+            // l'alignement avec les icônes, pas seulement l'interligne.
+            className="p-0 text-left transition hoverable:text-ctx"
           >
             {/* ⚠️ `compact:text-base` : même resserrement que le titre d'une
                 équipe de siège (SiegeTeam.tsx) — au doigt, `text-lg` pesait
@@ -378,20 +385,23 @@ export default function RecoCard({
             />
           )}
           {/* Exporter / Éditer / Supprimer : icônes nues (ni cadre ni fond), comme
-              la corbeille — l'en-tête est déjà chargé. Groupées et resserrées pour
-              se lire comme UNE barre d'outils, pas comme trois actions éparses.
-              Le sens passe par l'infobulle et l'`aria-label`.
-              ⚠️ `taille="serre"` sur les quatre : posées DANS un en-tête déjà
-              chargé, à 2 px l'une de l'autre (`gap-0.5`), c'est exactement
-              l'exemption pour laquelle cette taille existe (voir
-              BoutonIcone.tsx) — la règle des 40 px les ferait se chevaucher, on
-              supprimerait la recommandation en voulant l'exporter. */}
-          <div className="flex items-center gap-0.5 -mr-1">
+              la corbeille — l'en-tête est déjà chargé. Groupées pour se lire
+              comme UNE barre d'outils, pas comme trois actions éparses. Le sens
+              passe par l'infobulle et l'`aria-label`.
+              ⚠️ `taille="serre"` sur les quatre (garde `data-cible-fine`, donc
+              l'exemption de la règle tactile des 40 px) — mais la BOÎTE est
+              élargie à 24 px (`h-6 w-6`, contre 20 par défaut) pour leur
+              redonner un peu d'air autour de l'icône. `h-6` gagne sur le `h-5`
+              du composant car il est plus loin dans la feuille de style
+              (valeurs Tailwind rangées par ordre croissant) — vérifié dans le
+              CSS construit, pas supposé. */}
+          <div className="flex items-center gap-1 -mr-1">
             <BoutonIcone
               onClick={() => onExport(reco)}
               taille="serre"
               icone={<Upload size={13} />}
               libelle="Exporter cette recommandation (tous ses decks)"
+              className="h-6 w-6"
             />
             {/* ⚠️ Pas `actif` (le marqueur d'état standard) : le ✓ DORÉ
                 (`text-star`) est la convention DOCUMENTÉE de l'édition en
@@ -401,7 +411,7 @@ export default function RecoCard({
             <button
               onClick={() => onToggleEdit(reco.id)}
               data-cible-fine
-              className={`flex h-5 w-5 items-center justify-center transition ${
+              className={`flex h-6 w-6 items-center justify-center transition ${
                 editing ? 'text-star' : 'text-ink-dim hoverable:text-ink'
               }`}
               title={editing ? "Terminer l'édition" : 'Éditer la recommandation'}
@@ -416,6 +426,7 @@ export default function RecoCard({
               taille="serre"
               icone={<Trash2 size={13} />}
               libelle="Supprimer cette recommandation"
+              className="h-6 w-6"
             />
           </div>
         </div>
@@ -1076,7 +1087,7 @@ function DeckBlock({
   const leadInfo = leaderId != null ? speedLeadOf(monsterByCom2us.get(leaderId)) : null;
 
   return (
-    <div className={`rounded-xl border p-2.5 ${DECK_AURA[empty ? 'unknown' : status]}`}>
+    <div className={`rounded-xl border p-2.5 compact:p-2 ${DECK_AURA[empty ? 'unknown' : status]}`}>
       <div className="flex items-center gap-2 mb-2 flex-wrap">
         {/* Chevron de repli : indispensable en édition avec plusieurs decks */}
         <BoutonIcone
@@ -1205,7 +1216,7 @@ function DeckBlock({
               // `min-w-0` : sans lui une cellule de grille refuse de descendre
               // sous la largeur de son contenu, et la carte déborde sur sa
               // voisine au lieu de laisser la table défiler à l'intérieur.
-              className={`min-w-0 rounded-xl border p-2.5 ${
+              className={`min-w-0 rounded-xl border p-2.5 compact:p-2 ${
                 // Indisponible ET stats insuffisantes sont tous deux bloquants → rouge.
                 sm?.status === 'absent' || sm?.status === 'ko'
                   ? 'border-fire/70 bg-fire/5'

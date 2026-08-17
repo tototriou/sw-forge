@@ -602,7 +602,7 @@ export default function RecoBoard({
           d'une page vide n'a rien à filtrer, et laisse croire qu'on n'a rien
           trouvé alors qu'il n'y a rien. */}
       {all.length > 0 && (
-        <div className="mt-4 flex flex-col gap-2.5 rounded-xl border border-border bg-panel/40 px-3 py-3">
+        <div className="mt-4 flex flex-col gap-2.5 rounded-xl border border-border bg-panel/40 px-3 py-3 compact:px-2 compact:py-2">
           {/* ⚠️ **Origine : à la SOURIS seulement (`hidden lg:flex`).** Ces trois
               boutons descendent dans le panneau « Options » au doigt — voir plus
               bas — pour laisser la carte à la recherche, qui reste le contrôle

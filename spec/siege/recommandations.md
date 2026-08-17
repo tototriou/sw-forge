@@ -1219,9 +1219,19 @@ sur une carte de largeur mobile). Centrer sur tout le bloc plaçait les icônes
 **entre** les deux lignes : ni alignées sur le titre, ni sur les badges. Avec
 `items-start`, les icônes répondent toujours à la première ligne — le titre.
 ⚠️ Le titre porte en plus `leading-none` : sans lui, sa boîte de ligne
-(`font-display`, interligne 1,6 de l'échelle) dépassait la hauteur des icônes
-(24 px contre 20), et même aligné en haut, le GLYPHE restait décalé d'un ou
-deux pixels sous le haut de sa propre boîte.
+(`font-display`, interligne 1,6 de l'échelle) dépassait la hauteur des icônes,
+et même aligné en haut, le GLYPHE restait décalé d'un ou deux pixels sous le
+haut de sa propre boîte.
+
+⚠️ **En-tête de la recommandation : icônes en 24 px (`h-6 w-6`), pas 20.**
+Élargies pour respirer un peu plus, sans perdre l'exemption tactile
+(`taille="serre"` garde `data-cible-fine`, donc les 40 px de la règle au
+doigt ne s'appliquent pas). L'override passe par `className`, et ça tient
+parce que `h-6` est PLUS LOIN que le `h-5` du composant dans la feuille de
+style construite (Tailwind range ses valeurs par ordre croissant) — vérifié
+dans le CSS, pas supposé. Le bouton du titre, lui, porte `p-0` explicite :
+un `<button>` a un rembourrage par défaut du navigateur, invisible à l'œil
+mais qui élargit sa boîte au-delà du texte.
 
 **Icônes nues partout** dans les en-têtes — carrés de 24 px, **sans cadre ni
 fond**, groupés et resserrés (`gap-0.5`) à droite de la ligne :

@@ -449,16 +449,21 @@ export default function RecoBoard({
         }))}
       />
     );
+    // ⚠️ **Pas d'intitulé « Origine » à la SOURIS.** Il avait sa raison d'être
+    // DANS le bloc de filtres, aligné sur « Monstres » et « Rôle » en dessous
+    // (même largeur `w-[76px]`, même grammaire intitulé+contrôle) — mais
+    // Origine est sortie de ce bloc, seule sur sa ligne : les trois crans
+    // (Toutes/Mes recos/Importées) se lisent d'eux-mêmes, rien ne les précède
+    // plus à quoi l'intitulé pourrait s'aligner. Gardé au DOIGT (`mb-1 block`)
+    // où il n'accompagne aucune autre rangée : c'est le seul repère du panneau
+    // pour ce contrôle.
     return pleineLargeur ? (
       <div className="w-full">
         <span className="label mb-1 block">Origine</span>
         {segmented}
       </div>
     ) : (
-      <>
-        <span className="w-[76px] flex-none label">Origine</span>
-        {segmented}
-      </>
+      segmented
     );
   };
 
@@ -630,27 +635,58 @@ export default function RecoBoard({
       </div>
 
       {/* Bloc de filtres — composition cherchée, rôle.
-          ⚠️ UNE RANGÉE INTITULÉE par contrôle (même grammaire que l'inventaire
-          d'artéfacts, voir account/ArtifactsList.tsx) : les deux contrôles
-          filtrent la même liste, sans intitulé rien ne disait qu'ils se
-          combinaient. L'intitulé de largeur fixe aligne les contrôles entre
-          eux, quelle que soit la longueur du mot.
-          ⚠️ N'apparaît que s'il y a des recommandations : ici, à la différence
+          ⚠️ **Sans cadre ni intitulé « Monstres »** : les trois cases ET le
+          champ de recherche disent déjà par leur FORME ce qu'on y fait — une
+          composition de 3 monstres à composer —, un mot devant n'ajoutait
+          rien. Le cadre (bordure + fond) enfermait un contenu qui n'a pas
+          besoin d'être distingué du reste de la page : Origine, juste
+          au-dessus, n'en a pas non plus.
+          ⚠️ « Rôle » garde son intitulé, lui : contrairement aux cases, un
+          `Segmented` Partout/Défense/Offense ne dit pas de lui-même sur QUOI
+          il porte.
+          ⚠️ N'apparaît que s'il y a des recommandations : à la différence
           d'Origine, il n'y a RIEN à chercher dans une liste vide — poser le
           bloc quand même laisserait croire qu'on n'a rien trouvé alors qu'il
           n'y a rien. */}
       {all.length > 0 && (
-        <div className="mt-2.5 flex flex-col gap-2.5 rounded-xl border border-border bg-panel/40 px-3 py-3 compact:px-2 compact:py-2">
+        <div className="mt-2.5 flex flex-col gap-2.5">
           {/* Composition cherchée. */}
           <div className="flex flex-wrap items-center gap-2">
-            <span className="w-[76px] flex-none label">Monstres</span>
-            {/* ⚠️ TROIS CASES, et non trois champs texte : elles montrent la
-                forme de ce qu'on cherche — une composition de 3 monstres — avant
-                même qu'on ait tapé quoi que ce soit, et reprennent le langage
-                des slots de deck de la page. Un champ unique à côté les remplit
-                dans l'ordre : on enchaîne les trois noms sans avoir à viser une
-                case entre chaque. */}
-            <div className="flex items-center gap-1.5">
+            {/* ⚠️ **La recherche à GAUCHE, les portraits à DROITE.** C'est le
+                champ qu'on utilise en premier — le regard commence par lui,
+                pas par des cases encore vides. Les cases suivent CE QU'ON A
+                TAPÉ, elles se lisent après.
+                ⚠️ `min(180px, 100%)` et non `180px` nu : un minimum rigide
+                empêche le champ de se réduire dans un conteneur plus étroit,
+                et c'est toute la page qui gagne un défilement latéral. Même
+                garde que RecoCard et ReleasesPage. */}
+            {!casesPleines ? (
+              <div className="min-w-[min(180px,100%)] flex-1 sm:max-w-[260px]">
+                <MonsterPicker
+                  monsters={monsters}
+                  // ⚠️ Les monstres déjà posés sont retirés des suggestions : le
+                  // ET exige des monstres DISTINCTS (voir recoSearch.ts), poser
+                  // deux fois le même garantirait zéro résultat.
+                  excludeIds={dejaPoses}
+                  placeholder="Nom du monstre…"
+                  onPick={(id) => {
+                    const m = monsters.find((x) => String(x.id) === id);
+                    if (m) poserMonstre(m.name);
+                  }}
+                />
+              </div>
+            ) : (
+              <p className="flex-1 text-xs text-ink-dim">
+                Trois monstres posés — clique un portrait pour le retirer.
+              </p>
+            )}
+
+            {/* TROIS CASES, et non trois champs texte : elles montrent la
+                forme de ce qu'on cherche — une composition de 3 monstres —, et
+                reprennent le langage des slots de deck de la page. Poussées à
+                DROITE (`ml-auto`) : c'est le résultat du champ à gauche, il se
+                lit après lui, jamais avant. */}
+            <div className="ml-auto flex items-center gap-1.5">
               {queries.map((nom, i) => {
                 // ⚠️ Résolu dans les formes JOUABLES, pas dans la liste
                 // complète : plusieurs entrées portent le même nom (forme
@@ -695,35 +731,6 @@ export default function RecoBoard({
                 );
               })}
             </div>
-
-            {/* Le champ unique, sur la MÊME rangée que les cases qu'il remplit :
-                empilé dessous, rien ne disait qu'il les alimentait. Il disparaît
-                quand les trois sont prises — un champ de saisie qui n'a plus où
-                poser ce qu'on y tape se lit comme un bug. */}
-            {/* ⚠️ `min(180px, 100%)` et non `180px` nu sur le champ ci-dessous :
-                un minimum rigide l'empêche de se réduire dans un conteneur plus
-                étroit, et c'est toute la page qui gagne un défilement latéral.
-                Même garde que RecoCard et ReleasesPage. */}
-            {!casesPleines ? (
-              <div className="min-w-[min(180px,100%)] flex-1 sm:max-w-[260px]">
-                <MonsterPicker
-                  monsters={monsters}
-                  // ⚠️ Les monstres déjà posés sont retirés des suggestions : le
-                  // ET exige des monstres DISTINCTS (voir recoSearch.ts), poser
-                  // deux fois le même garantirait zéro résultat.
-                  excludeIds={dejaPoses}
-                  placeholder="Nom du monstre…"
-                  onPick={(id) => {
-                    const m = monsters.find((x) => String(x.id) === id);
-                    if (m) poserMonstre(m.name);
-                  }}
-                />
-              </div>
-            ) : (
-              <p className="text-xs text-ink-dim">
-                Trois monstres posés — clique un portrait pour le retirer.
-              </p>
-            )}
 
             {/* Vider les trois cases d'un coup — distinct du retrait d'un seul
                 portrait, qui sert à affiner. Il vit AVEC les cases qu'il vide,

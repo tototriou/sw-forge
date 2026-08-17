@@ -117,8 +117,15 @@ endroits — même geste que `actions` et `effacer` :
 
 ⚠️ **Pleine largeur dans le panneau**, pas à sa taille propre : seul contrôle
 de sa ligne, il y flotterait sinon dans une bande vide. `Segmented` passe en
-`size="lg"` (chaque cran se partage la largeur à égalité) et l'intitulé
-« Origine » monte au-dessus plutôt qu'à côté.
+`size="lg"` (chaque cran se partage la largeur à égalité).
+
+⚠️ **Intitulé « Origine » : au DOIGT seulement.** Dans le panneau, c'est le
+seul repère de ce contrôle — rien d'autre à côté pour dire ce qu'il fait.
+À la SOURIS, plus d'intitulé : il avait sa raison d'être DANS le bloc de
+filtres, aligné sur « Monstres » et « Rôle » en dessous (même largeur
+`w-[76px]`, grammaire intitulé+contrôle) ; sorti de ce bloc et seul sur sa
+ligne, rien ne le précède plus à quoi l'intitulé pourrait s'aligner — les trois
+crans (Toutes/Mes recos/Importées) se lisent d'eux-mêmes.
 
 ⚠️ **`size="md"` à la souris, pas `sm`** — troisième palier ajouté à
 [Segmented.tsx](../../src/components/Segmented.tsx) : le texte et le
@@ -127,20 +134,33 @@ le cran est seul sur sa ligne). Posé seul sur sa propre ligne depuis qu'il est
 sorti du bloc de filtres, ce contrôle a la place d'être aussi lisible qu'un
 réglage structurant.
 
-### ⚠️ UN SEUL bloc de filtres pour la recherche, à rangées intitulées
+### La recherche par composition — sans cadre, sans intitulé « Monstres »
 
 Monstres cherchés et rôle **filtrent tous la même liste** et se
-**combinent**. Ils sont donc réunis dans **un seul encart** (`border` +
-`bg-panel/40`), en **rangées `intitulé + contrôle`** — même grammaire que
-l'inventaire d'artéfacts (voir [../compte/artefacts.md](../compte/artefacts.md)) :
+**combinent**. Deux rangées empilées, **sans encart** (ni bordure ni fond) et
+**sans intitulé sur la première** :
 
 | Rangée | Contrôle | Visible |
 |--------|----------|---------|
-| **Monstres** | les 3 cases + le champ + « Vider » | dès 1 recommandation |
+| **(sans intitulé)** | le champ, puis les 3 cases (`ml-auto`), puis « Vider » | dès 1 recommandation |
 | **Rôle** | `Segmented` Partout · Défense à taper · Offense à runer + le compteur de résultats | une fois un monstre posé |
 
-Ce bloc-là, lui, **n'apparaît que s'il existe au moins une recommandation** :
-sans rien à chercher, la recherche n'a pas sa place.
+⚠️ **Pas de cadre.** Il enfermait un contenu qui n'a pas besoin d'être distingué
+du reste de la page — Origine, juste au-dessus, n'en a pas non plus.
+
+⚠️ **Pas d'intitulé « Monstres ».** Les trois cases et le champ disent déjà par
+leur FORME ce qu'on y fait — une composition de 3 monstres à composer —, un mot
+devant n'ajoutait rien. « Rôle » garde le sien : contrairement aux cases, un
+`Segmented` Partout/Défense/Offense ne dit pas de lui-même sur QUOI il porte.
+
+Ce bloc **n'apparaît que s'il existe au moins une recommandation** : sans rien
+à chercher, la recherche n'a pas sa place — à la différence d'Origine, qui
+reste affichée à vide (voir plus haut).
+
+⚠️ **Le champ de recherche à GAUCHE, les portraits des monstres posés à
+DROITE (`ml-auto`).** C'est le champ qu'on utilise en premier — le regard
+commence par lui, pas par des cases encore vides — et les portraits sont son
+RÉSULTAT : ils se lisent après ce qu'on vient de taper, jamais avant.
 
 - ⚠️ **Origine, Monstres et Rôle étaient posés à trois niveaux différents, sans
   intitulé** : trois objets flottants dont rien ne disait qu'ils portaient sur

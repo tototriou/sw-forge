@@ -90,26 +90,32 @@ export default function SiegeBoard({
   // panneau, où il est seul sur sa ligne sous un filet — à sa largeur propre,
   // il y flottait au milieu d'une bande vide dont rien n'expliquait la
   // présence.
-  const effacer = (dansLePanneau: boolean) =>
-    siege.state.teams.length > 0 && (
-      <Bouton
-        onClick={() => {
-          setEffacementAConfirmer(true);
-          onFermerMenu();
-        }}
-        ton="danger"
-        fond={dansLePanneau ? 'doux' : 'vide'}
-        trait={dansLePanneau ? 'plein' : 'aucun'}
-        pleineLargeur={dansLePanneau}
-        taille="sm"
-        icone={<Trash2 size={13} />}
-        libelle="Tout effacer"
-        // ⚠️ `leading-none` : l'interligne du libellé donne au texte une boîte
-        // plus haute que sa lettre. Centrées boîte contre boîte, la poubelle et
-        // le mot ne le sont plus à l'œil.
-        className="leading-none"
-      />
-    );
+  // ⚠️ **Toujours affiché, désactivé s'il n'y a rien à effacer** — jamais
+  // retiré. Un bouton qui apparaît une fois la première équipe créée ne
+  // s'explique pas : on ne l'a jamais vu apparaître d'un geste, il était
+  // juste absent. Désactivé, c'est un repère fixe de la page — même règle
+  // partout dans l'app, voir RecoBoard.tsx.
+  const effacer = (dansLePanneau: boolean) => (
+    <Bouton
+      onClick={() => {
+        setEffacementAConfirmer(true);
+        onFermerMenu();
+      }}
+      disabled={siege.state.teams.length === 0}
+      ton="danger"
+      fond={dansLePanneau ? 'doux' : 'vide'}
+      trait={dansLePanneau ? 'plein' : 'aucun'}
+      pleineLargeur={dansLePanneau}
+      taille="sm"
+      icone={<Trash2 size={13} />}
+      libelle="Tout effacer"
+      title={siege.state.teams.length === 0 ? "Aucune équipe à effacer" : undefined}
+      // ⚠️ `leading-none` : l'interligne du libellé donne au texte une boîte
+      // plus haute que sa lettre. Centrées boîte contre boîte, la poubelle et
+      // le mot ne le sont plus à l'œil.
+      className="leading-none"
+    />
+  );
 
   const actions = (
     <>
@@ -129,20 +135,23 @@ export default function SiegeBoard({
         libelleCourt="Équipe"
       />
 
-      {siege.state.teams.length > 0 && (
-        <Bouton
-          onClick={() => setCheckTicks((v) => !v)}
-          actif={checkTicks}
-          title={
-            checkTicks
+      {/* ⚠️ Toujours affiché, désactivé sans équipe — même règle que
+          « Tout effacer » juste au-dessus. */}
+      <Bouton
+        onClick={() => setCheckTicks((v) => !v)}
+        actif={checkTicks}
+        disabled={siege.state.teams.length === 0}
+        title={
+          siege.state.teams.length === 0
+            ? 'Aucune équipe à vérifier'
+            : checkTicks
               ? 'Masquer les auras de vérification'
               : 'Colorer les équipes selon leur calage sur les ticks ATB'
-          }
-          icone={<Gauge size={15} />}
-          libelle="Vérifier mes tick ATB"
-          libelleCourt="Ticks"
-        />
-      )}
+        }
+        icone={<Gauge size={15} />}
+        libelle="Vérifier mes tick ATB"
+        libelleCourt="Ticks"
+      />
 
       {/* En dernier des actions : c'est le geste le plus rare. */}
       <CreateMonster
@@ -169,11 +178,9 @@ export default function SiegeBoard({
 
       <MobileSheet ouvert={menuOuvert} onFermer={onFermerMenu} titre={`Actions — ${noun}`}>
         <div data-rangee-actions>{actions}</div>
-        {siege.state.teams.length > 0 && (
-          <div data-zone-destructive className="mt-4 border-t border-border pt-3">
-            {effacer(true)}
-          </div>
-        )}
+        <div data-zone-destructive className="mt-4 border-t border-border pt-3">
+          {effacer(true)}
+        </div>
       </MobileSheet>
 
       {effacementAConfirmer && (

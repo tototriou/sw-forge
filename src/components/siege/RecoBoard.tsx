@@ -390,24 +390,31 @@ export default function RecoBoard({
         title="Charger un fichier .json reçu d'un ami"
       />
 
-      {list.length > 0 && (
-        <Bouton
-          onClick={() => requestExport(list, filter === 'all' ? 'toutes' : filter)}
-          icone={<Upload size={15} />}
-          // ⚠️ Le LIBELLÉ NE CHANGE PAS avec le filtre. Un bouton qui se
-          // renomme sous le curseur se lit comme un autre bouton : on cesse de
-          // le reconnaître d'un écran à l'autre, et on relit une barre
-          // d'actions qu'on connaissait. Ce qui part réellement se dit dans
-          // l'infobulle, et le message de retour le récapitule.
-          libelle="Tout exporter"
-          libelleCourt="Exporter"
-          title={
-            filter === 'all'
+      {/* ⚠️ **Toujours affiché, désactivé plutôt que retiré.** Un bouton qui
+          apparaît une fois la première recommandation créée surprend : on ne
+          comprend pas D'OÙ il sort, puisqu'on ne l'a jamais vu absent d'un
+          geste volontaire. Désactivé, il reste un repère fixe de la barre —
+          on sait qu'exporter est possible, juste pas encore. Même règle
+          partout dans l'app : voir `boutonEffacer` ci-dessous. */}
+      <Bouton
+        onClick={() => requestExport(list, filter === 'all' ? 'toutes' : filter)}
+        disabled={list.length === 0}
+        icone={<Upload size={15} />}
+        // ⚠️ Le LIBELLÉ NE CHANGE PAS avec le filtre. Un bouton qui se
+        // renomme sous le curseur se lit comme un autre bouton : on cesse de
+        // le reconnaître d'un écran à l'autre, et on relit une barre
+        // d'actions qu'on connaissait. Ce qui part réellement se dit dans
+        // l'infobulle, et le message de retour le récapitule.
+        libelle="Tout exporter"
+        libelleCourt="Exporter"
+        title={
+          list.length === 0
+            ? 'Aucune recommandation à exporter'
+            : filter === 'all'
               ? 'Exporter toutes les recommandations en un seul fichier'
               : "Exporter les recommandations affichées (celles du filtre actif)"
-          }
-        />
-      )}
+        }
+      />
     </>
   );
 
@@ -456,23 +463,29 @@ export default function RecoBoard({
   // cette distance, détaché en bas.
   // ⚠️ Même habillage à deux visages que RTA/SiegeBoard (`boutonEffacer`) :
   // nu dans la page, fond + contour rouges et pleine largeur dans le panneau.
-  const effacer = (dansLePanneau: boolean) =>
-    all.length > 0 && (
-      <Bouton
-        onClick={() => {
-          setEffacementAConfirmer(true);
-          onFermerMenu();
-        }}
-        ton="danger"
-        fond={dansLePanneau ? 'doux' : 'vide'}
-        trait={dansLePanneau ? 'plein' : 'aucun'}
-        pleineLargeur={dansLePanneau}
-        taille="sm"
-        icone={<Trash2 size={13} />}
-        libelle="Tout effacer"
-        className="leading-none"
-      />
-    );
+  // ⚠️ **Toujours affiché, désactivé s'il n'y a rien à effacer** — jamais
+  // retiré. Un bouton qui surgit dès qu'on a créé une première recommandation
+  // ne s'explique pas : on ne l'a jamais vu apparaître d'un geste, il était
+  // juste absent. Désactivé, c'est un repère fixe de la page, dont l'état
+  // dit lui-même pourquoi il ne répond pas — même règle partout dans l'app.
+  const effacer = (dansLePanneau: boolean) => (
+    <Bouton
+      onClick={() => {
+        setEffacementAConfirmer(true);
+        onFermerMenu();
+      }}
+      disabled={all.length === 0}
+      ton="danger"
+      fond={dansLePanneau ? 'doux' : 'vide'}
+      trait={dansLePanneau ? 'plein' : 'aucun'}
+      pleineLargeur={dansLePanneau}
+      taille="sm"
+      icone={<Trash2 size={13} />}
+      libelle="Tout effacer"
+      title={all.length === 0 ? 'Aucune recommandation à effacer' : undefined}
+      className="leading-none"
+    />
+  );
 
   return (
     <div>
@@ -490,47 +503,51 @@ export default function RecoBoard({
         {/* ⚠️ « Analyser mes decks », AU DOIGT : le bouton de l'en-tête d'une
             carte demande d'abord d'y faire défiler. Le panneau propose le même
             geste d'ici — un menu choisit LAQUELLE, puisqu'aucune carte n'est
-            sous les yeux pour le dire — voir `analyserDepuisPanneau` plus haut. */}
-        {list.length > 0 && (
-          <div className="mt-4 flex flex-col gap-1.5 border-t border-border pt-3">
-            <span className="label">Analyser une recommandation</span>
-            <div className="flex items-center gap-1.5">
-              <Selecteur
-                value={pickAnalyse}
-                onChange={(e) => setPickAnalyse(e.target.value)}
-                disabled={builds.length === 0}
-                className="flex-1"
-              >
-                <option value="">
-                  {builds.length === 0 ? 'Importe ton compte pour analyser' : 'Choisir…'}
+            sous les yeux pour le dire — voir `analyserDepuisPanneau` plus haut.
+            ⚠️ **Toujours affiché**, désactivé sans recommandation ni compte
+            importé plutôt que retiré — même règle que « Tout exporter » et
+            « Tout effacer » : un contrôle qui apparaît une fois qu'on a de
+            quoi l'utiliser surprend, on ne l'a jamais vu absent d'un geste. */}
+        <div className="mt-4 flex flex-col gap-1.5 border-t border-border pt-3">
+          <span className="label">Analyser une recommandation</span>
+          <div className="flex items-center gap-1.5">
+            <Selecteur
+              value={pickAnalyse}
+              onChange={(e) => setPickAnalyse(e.target.value)}
+              disabled={list.length === 0 || builds.length === 0}
+              className="flex-1"
+            >
+              <option value="">
+                {list.length === 0
+                  ? 'Aucune recommandation'
+                  : builds.length === 0
+                    ? 'Importe ton compte pour analyser'
+                    : 'Choisir…'}
+              </option>
+              {list.map((r, i) => (
+                <option key={r.id} value={r.id}>
+                  {r.name || `Recommandation ${i + 1}`}
                 </option>
-                {list.map((r, i) => (
-                  <option key={r.id} value={r.id}>
-                    {r.name || `Recommandation ${i + 1}`}
-                  </option>
-                ))}
-              </Selecteur>
-              <Bouton
-                onClick={analyserDepuisPanneau}
-                disabled={!pickAnalyse || builds.length === 0}
-                icone={<Gauge size={14} />}
-                libelle="Analyser"
-                taille="sm"
-              />
-            </div>
+              ))}
+            </Selecteur>
+            <Bouton
+              onClick={analyserDepuisPanneau}
+              disabled={!pickAnalyse || list.length === 0 || builds.length === 0}
+              icone={<Gauge size={14} />}
+              libelle="Analyser"
+              taille="sm"
+            />
           </div>
-        )}
+        </div>
 
         {/* ⚠️ Origine AU DOIGT : descendue ici plutôt que sur la page, qui garde
             la carte pour la recherche — voir `origineFilter` plus haut. */}
         {all.length > 0 && (
           <div className="mt-4 border-t border-border pt-3">{origineFilter(true)}</div>
         )}
-        {all.length > 0 && (
-          <div data-zone-destructive className="mt-4 border-t border-border pt-3">
-            {effacer(true)}
-          </div>
-        )}
+        <div data-zone-destructive className="mt-4 border-t border-border pt-3">
+          {effacer(true)}
+        </div>
       </MobileSheet>
 
       {effacementAConfirmer && (

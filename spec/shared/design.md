@@ -318,6 +318,31 @@ se lit en faisant défiler.
 changer, et peut s'animer (voir plus haut) ; c'est la **géométrie autour de la
 cible** qui est figée.
 
+### ⚠️ Un bouton d'action ne disparaît jamais — il se désactive
+
+Un bouton dont l'existence dépend des données (« Tout exporter » sans rien à
+exporter, « Tout effacer » sans rien à effacer, « Analyser » sans compte
+importé) reste **toujours affiché**, et se pose en `disabled` avec un `title`
+qui dit pourquoi — il ne sort jamais du rendu conditionnel `{condition &&
+<Bouton />}`.
+
+⚠️ **Un bouton qui apparaît une fois qu'on a de quoi l'utiliser surprend** : on
+ne l'a jamais vu apparaître d'un geste volontaire, il était juste absent, et
+rien n'explique d'où il sort. Désactivé, c'est un repère fixe de l'interface —
+on sait que l'action existe, juste pas encore qu'elle s'applique.
+
+Cette règle vaut pour les **boutons d'action**, pas pour tout ce qui se
+rend conditionnellement :
+- **Les changements de MODE restent conditionnels** — un panneau d'édition qui
+  remplace un contrôle par un autre (le titre d'une recommandation devient un
+  champ de saisie) n'est pas la même nature de disparition.
+- **Un bloc de filtre/recherche entier** peut rester absent d'une page vide,
+  si ce choix est documenté et réfléchi (voir « UN SEUL bloc de filtres » dans
+  [rta/categories.md](../rta/categories.md) et
+  [siege/recommandations.md](../siege/recommandations.md)) : un filtre
+  au-dessus d'une liste vide n'a rien à filtrer, et laisse parfois croire
+  qu'on n'a rien trouvé alors qu'il n'y a rien.
+
 ### Ce qui se confirme, et ce qui ne se confirme pas
 
 ⚠️ **Un geste se confirme quand ce qu'il détruit ne se retrouve pas.** Le critère

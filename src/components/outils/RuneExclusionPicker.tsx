@@ -45,7 +45,7 @@ function sourceLabel(sel: ExclusionSelector, data: ExclusionSourceData): string 
 
 // Recherche + sélection multiple de monstres dont les runes ACTUELLES
 // doivent être exclues de la recherche — 4 sources (box, RTA, siège
-// défense/attaque), une entrée précise par choix (pas juste un monstre :
+// défense/offense), une entrée précise par choix (pas juste un monstre :
 // voir optimizerExclusion.ts). Même grammaire de navigation clavier que
 // MonsterGearPicker (choix du monstre à optimiser).
 export default function RuneExclusionPicker({ data, excludeOwnUnitKey, selected, onChange }: Props) {
@@ -133,16 +133,48 @@ export default function RuneExclusionPicker({ data, excludeOwnUnitKey, selected,
                       add(c);
                       nav.reinitialiser();
                     }}
-                    className={`flex w-full items-center gap-2.5 px-3 py-1.5 text-left transition
+                    className={`flex w-full items-center gap-3 px-3 text-left transition
+                      ${c.teamContext ? 'py-1' : 'py-1.5'}
                       ${dejaChoisi ? 'opacity-40 cursor-default' : 'cursor-pointer'}
                       ${estActif && !dejaChoisi ? 'bg-accent-soft' : ''}`}
                   >
-                    <MonsterAvatar monster={c.monster} size={28} />
-                    <span className="text-[13px] font-medium truncate flex-1">{c.monster.name}</span>
-                    <span className="font-mono text-[11px] text-ink-dim">
-                      {c.gear.runes.length} rune{c.gear.runes.length > 1 ? 's' : ''}
-                    </span>
-                    {dejaChoisi && <span className="text-[11px] text-ink-dim">déjà exclu</span>}
+                    <MonsterAvatar monster={c.monster} size={c.teamContext ? 46 : 28} className="flex-none" />
+                    <div className="min-w-0 flex-1 flex flex-col justify-center gap-0.5">
+                      <div className="flex items-center gap-2.5">
+                        <span className="text-[13px] font-medium truncate flex-1">{c.monster.name}</span>
+                        <span className="font-mono text-[11px] text-ink-dim flex-none">
+                          {c.gear.runes.length} rune{c.gear.runes.length > 1 ? 's' : ''}
+                        </span>
+                        {dejaChoisi && <span className="text-[11px] text-ink-dim flex-none">déjà exclu</span>}
+                      </div>
+                      {/* ⚠️ Siège UNIQUEMENT — un même monstre peut apparaître
+                          dans PLUSIEURS équipes, indiscernables par le seul nom
+                          (deux « Tractor » d'équipes différentes) : le vrai
+                          repère n'est PAS le portrait du monstre lui-même (même
+                          espèce = même portrait dans les deux équipes), mais le
+                          NUMÉRO d'équipe et SES COÉQUIPIERS — signalé
+                          directement, à une échelle proche de celle de l'écran
+                          Siège (pas de simples pastilles), sur UNE seule ligne
+                          quitte à défiler horizontalement plutôt que se casser. */}
+                      {c.teamContext && (
+                        <div className="flex items-center gap-2 text-[11px] text-ink-dim">
+                          <span className="flex-none">Équipe {c.teamContext.teamNumber}</span>
+                          <span className="flex items-center gap-2.5 min-w-0 overflow-x-auto">
+                            {c.teamContext.slots.map((m, slotIdx) => {
+                              const estSlotCourant = 'slotIndex' in c.selector && c.selector.slotIndex === slotIdx;
+                              return (
+                                <span key={slotIdx} className="flex items-center gap-1.5 flex-none">
+                                  <MonsterAvatar monster={m} element={false} size={34} className="flex-none" />
+                                  <span className={`whitespace-nowrap ${estSlotCourant ? 'text-ink font-medium' : ''}`}>
+                                    {m?.name ?? '—'}
+                                  </span>
+                                </span>
+                              );
+                            })}
+                          </span>
+                        </div>
+                      )}
+                    </div>
                   </div>
                 );
               })

@@ -143,4 +143,62 @@ export default function testOptimizerExclusion() {
     const k2 = exclusionSelectorKey({ source: 'siege-defense', teamId: 'team-1', slotIndex: 0 });
     ok(k1 !== k2, 'clé canonique : deux slots de la MÊME équipe restent distincts (slotIndex fait partie de la clé)');
   }
+
+  // ── Contexte d'équipe (teamContext) : LE cas signalé en usage réel — un
+  // même monstre dans DEUX équipes de siège différentes est indiscernable
+  // par le seul nom/portrait (même espèce = même portrait). Le repère
+  // affiché doit être le numéro d'équipe ET les VRAIS coéquipiers de CETTE
+  // équipe précise, jamais mélangés avec ceux de l'autre. ──
+  {
+    const fran = monster(4, 'Fran');
+    const vero = monster(5, 'Veromos');
+    const monsterById2 = new Map(monsterById);
+    monsterById2.set(String(fran.id), fran);
+    monsterById2.set(String(vero.id), vero);
+
+    // Deux équipes, TOUTES DEUX avec Lushen — reproduit le cas « deux
+    // Tractor » signalé (même monstre, decks différents).
+    const twoTeams: SiegeTeam[] = [
+      {
+        id: 'team-a', lead: 0, tickAlertDismissed: false,
+        slots: [
+          { monsterId: String(lushen.id), runeSpeed: 200, tick: 0, gear: gear([401, 402, 403, 404, 405, 406]) },
+          { monsterId: String(fran.id), runeSpeed: 200, tick: 0, gear: gear([407, 408, 409, 410, 411, 412]) },
+          { monsterId: null, runeSpeed: null, tick: 0 },
+        ],
+      },
+      {
+        id: 'team-b', lead: 0, tickAlertDismissed: false,
+        slots: [
+          { monsterId: String(vero.id), runeSpeed: 200, tick: 0, gear: gear([501, 502, 503, 504, 505, 506]) },
+          { monsterId: String(lushen.id), runeSpeed: 200, tick: 0, gear: gear([507, 508, 509, 510, 511, 512]) },
+          { monsterId: String(camilla.id), runeSpeed: 200, tick: 0, gear: gear([513, 514, 515, 516, 517, 518]) },
+        ],
+      },
+    ];
+    const data2: ExclusionSourceData = { box, rtaEntries, siegeDefenseTeams: twoTeams, siegeOffenseTeams: [], monsterById: monsterById2 };
+    const candidates = exclusionCandidatesFor('siege-defense', data2, null);
+    const lushenEntries = candidates.filter((c) => c.monster.name === 'Lushen');
+    egal(lushenEntries.length, 2, 'deux équipes avec le même monstre : les 2 entrées Lushen existent bien, séparément');
+
+    const teamNumbers = lushenEntries.map((c) => c.teamContext?.teamNumber).sort();
+    egal(teamNumbers, [1, 2], 'chaque Lushen porte le numéro de SA propre équipe (1 et 2, jamais le même)');
+
+    const lushenTeamA = lushenEntries.find((c) => c.teamContext?.teamNumber === 1);
+    egal(
+      lushenTeamA?.teamContext?.slots.map((m) => m?.name ?? null),
+      ['Lushen', 'Fran', null],
+      "équipe 1 : les 3 slots affichés sont CEUX de l'équipe 1 (Fran, pas Veromos/Camilla de l'équipe 2), slot vide = null"
+    );
+
+    const lushenTeamB = lushenEntries.find((c) => c.teamContext?.teamNumber === 2);
+    egal(
+      lushenTeamB?.teamContext?.slots.map((m) => m?.name ?? null),
+      ['Veromos', 'Lushen', 'Camilla'],
+      "équipe 2 : les 3 slots affichés sont CEUX de l'équipe 2 (Veromos/Camilla, pas Fran de l'équipe 1)"
+    );
+
+    const boxCandidate = exclusionCandidatesFor('box', data2, null)[0];
+    egal(boxCandidate.teamContext, undefined, "box : pas de contexte d'équipe (n'a de sens qu'en siège)");
+  }
 }

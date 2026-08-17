@@ -228,6 +228,12 @@ dans un deck de siège ; exclure « Camilla (RTA) » n'exclut QUE son runage
 RTA. Plusieurs sélections restent possibles à la fois (une liste, pas un
 choix unique).
 
+En Siège défense/offense, un même monstre peut apparaître dans plusieurs
+équipes — indiscernables par le seul nom/portrait (même espèce = même
+portrait). Chaque résultat de recherche affiche donc le **numéro d'équipe et
+les portraits des 3 coéquipiers** (slot vide = tiret), à la même échelle que
+l'écran Siège, pour lever l'ambiguïté sans avoir à cliquer.
+
 Fait partie des réglages exportés/importés dans une recette : ce qui est
 exporté, ce sont des **identifiants** (quel monstre, quelle source), jamais
 les runes elles-mêmes — re-résolus contre le compte de qui importe la

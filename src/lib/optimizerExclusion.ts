@@ -31,6 +31,12 @@ export interface ExclusionCandidate {
   selector: ExclusionSelector;
   monster: Monster;
   gear: GearSet;
+  // Box/RTA : `undefined`. Siège UNIQUEMENT — un même monstre peut
+  // apparaître dans PLUSIEURS équipes (deux « Tractor » de decks
+  // différents, indiscernables par le seul nom, voir RuneExclusionPicker.tsx)
+  // : de quoi afficher la provenance (numéro d'équipe + les 3 monstres,
+  // dans l'ordre des slots, `null` = slot vide ou monstre non résolu).
+  teamContext?: { teamNumber: number; slots: (Monster | null)[] };
 }
 
 // Clé canonique — dédoublonnage et comparaison, jamais recalculée à la main
@@ -81,13 +87,18 @@ export function exclusionCandidatesFor(source: ExclusionSource, data: ExclusionS
     return out;
   }
   const teams = source === 'siege-defense' ? data.siegeDefenseTeams : data.siegeOffenseTeams;
-  teams.forEach((team) => {
+  teams.forEach((team, teamIndex) => {
+    // Même numérotation que le reste de l'app (SiegeTeam.tsx : « Équipe
+    // {index+1} ») — calculé UNE fois par équipe, réutilisé pour chacun de
+    // ses slots.
+    const teamNumber = teamIndex + 1;
+    const teamSlots = team.slots.map((s) => (s.monsterId ? (data.monsterById.get(s.monsterId) ?? null) : null));
     team.slots.forEach((slot, slotIndex) => {
       if (!slot.gear || slot.gear.runes.length === 0) return;
       if (slot.monsterId == null) return;
       const monster = data.monsterById.get(slot.monsterId);
       if (!monster) return;
-      out.push({ selector: { source, teamId: team.id, slotIndex }, monster, gear: slot.gear });
+      out.push({ selector: { source, teamId: team.id, slotIndex }, monster, gear: slot.gear, teamContext: { teamNumber, slots: teamSlots } });
     });
   });
   return out;

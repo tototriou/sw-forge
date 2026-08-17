@@ -114,9 +114,18 @@ export default function BuildCandidateCard({
             onSelectArtifact={(a) => setOpenArtifactKind((cur) => (cur === a.kind ? null : a.kind))}
             // Mêmes dimensions que pour une rune : les deux cartes partagent la
             // même coquille (voir PieceDetail.tsx), donc le même encombrement.
+            // ⚠️ `rembourrage="md"` + `encadre={false}` : le flottant pose déjà
+            // le cadre, la carte n'a plus à poser le sien — sinon carte dans
+            // une carte, à deux rayons de coin différents.
             renderOverlay={(a, _i, anchorRef) => (
-              <FlottantAuto ouvert={openArtifactKind === a.kind} ancre={anchorRef} largeur={260} hauteur={320}>
-                <ArtifactDetailBox artifact={a} />
+              <FlottantAuto
+                ouvert={openArtifactKind === a.kind}
+                ancre={anchorRef}
+                largeur={260}
+                hauteur={320}
+                rembourrage="md"
+              >
+                <ArtifactDetailBox artifact={a} encadre={false} />
               </FlottantAuto>
             )}
           />
@@ -126,8 +135,14 @@ export default function BuildCandidateCard({
             isSelected={(r) => openRuneKey === `${candidateKey}-${r.slot}`}
             onSelectRune={(r) => onToggleRune(`${candidateKey}-${r.slot}`)}
             renderOverlay={(r, _i, anchorRef) => (
-              <FlottantAuto ouvert={openRuneKey === `${candidateKey}-${r.slot}`} ancre={anchorRef} largeur={260} hauteur={320}>
-                <RuneDetailBox rune={r} />
+              <FlottantAuto
+                ouvert={openRuneKey === `${candidateKey}-${r.slot}`}
+                ancre={anchorRef}
+                largeur={260}
+                hauteur={320}
+                rembourrage="md"
+              >
+                <RuneDetailBox rune={r} encadre={false} />
               </FlottantAuto>
             )}
           />

@@ -539,7 +539,11 @@ export const OptimTile = memo(function OptimTile({
         </div>
       </button>
 
-      <FlottantAuto ouvert={open} ancre={ref} hauteur={300} largeur={340}>
+      {/* ⚠️ `rembourrage="md"` : le flottant pose bord + fond + coins arrondis,
+          `OptimPlanBox` n'a plus les siens (voir plus bas) — sinon carte dans
+          une carte, à deux rayons de coin différents. Même règle que
+          `DesyncBadge` et le détail d'une pièce équipée (PieceDetail.tsx). */}
+      <FlottantAuto ouvert={open} ancre={ref} hauteur={300} largeur={340} rembourrage="md">
         <OptimPlanBox
           rune={rune}
           scenario={scenario}
@@ -657,7 +661,9 @@ export function OptimPlanBox({
   const gain = plan.targetEff - plan.eff;
 
   return (
-    <div className="rounded-lg border border-border bg-panel2 p-3 text-xs">
+    // Sans cadre : le seul appelant (`RuneCard` ci-dessus) l'affiche dans un
+    // `Flottant` qui pose déjà bord + fond + coins arrondis.
+    <div className="text-xs">
       <div className="flex items-center justify-between mb-2 gap-2">
         <span className="font-bold text-ink uppercase tracking-wide text-micro">
           {scenario === 'legend' ? 'Légendaire' : 'Héroïque'}

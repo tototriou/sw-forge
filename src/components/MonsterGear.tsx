@@ -15,9 +15,11 @@ type Selected =
   | { kind: 'relic' }
   | null;
 
-function RelicDetailBox({ relic }: { relic: RelicDetail }) {
+// ⚠️ `encadre=false` dans un `Flottant`, qui pose déjà bord + fond + coins
+// arrondis — voir `PieceDetailBox`, même règle.
+function RelicDetailBox({ relic, encadre = true }: { relic: RelicDetail; encadre?: boolean }) {
   return (
-    <div className="rounded-lg border border-border bg-panel/70 p-2.5">
+    <div className={encadre ? 'rounded-lg border border-border bg-panel/70 p-2.5' : ''}>
       <div className="text-xs font-bold text-ink">{formatRelicMain(relic.main)}</div>
       {relic.sub && (
         <div className="text-micro text-ink-dim mt-0.5">Effet secondaire · {relic.sub.value}</div>
@@ -112,13 +114,18 @@ export default function MonsterGear({ gear, spdCible = null }: Props) {
           auDoigt
             ? undefined
             : (a, i, ancre) => (
+                // ⚠️ `rembourrage="md"` + `encadre={false}` : le flottant pose
+                // DÉJÀ bord + fond + coins arrondis, la carte n'a plus à poser
+                // les siens — sans quoi les deux cadres, à des rayons
+                // différents, se lisaient comme une carte dans une carte.
                 <FlottantAuto
                   ouvert={isSel({ kind: 'artifact', i })}
                   ancre={ancre}
                   largeur={260}
                   hauteur={320}
+                  rembourrage="md"
                 >
-                  <ArtifactDetailBox artifact={a} />
+                  <ArtifactDetailBox artifact={a} encadre={false} />
                 </FlottantAuto>
               )
         }
@@ -139,10 +146,13 @@ export default function MonsterGear({ gear, spdCible = null }: Props) {
                     ancre={ancre}
                     largeur={260}
                     hauteur={320}
+                    rembourrage="md"
                   >
                     {/* Pleine taille : ce flottant n'existe qu'à la souris, où
-                        la carte ne se resserre pas d'elle-même. */}
-                    <RuneDetailBox rune={r} />
+                        la carte ne se resserre pas d'elle-même.
+                        `encadre={false}` : voir la même remarque sur l'artéfact
+                        juste au-dessus. */}
+                    <RuneDetailBox rune={r} encadre={false} />
                   </FlottantAuto>
                 )
           }
@@ -188,8 +198,9 @@ export default function MonsterGear({ gear, spdCible = null }: Props) {
               ancre={ancreRelique}
               largeur={220}
               hauteur={120}
+              rembourrage="md"
             >
-              <RelicDetailBox relic={gear.relic} />
+              <RelicDetailBox relic={gear.relic} encadre={false} />
             </FlottantAuto>
           )}
         </div>

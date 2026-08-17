@@ -8,6 +8,7 @@ import SiegeTeam from './SiegeTeam';
 import CreateMonster from '../CreateMonster';
 import { ConfirmDialog } from '../../ui/Dialogs';
 import MobileSheet from '../../ui/MobileSheet';
+import { Bouton } from '../../ui';
 import { CustomLead } from '../../hooks/useCustomMonsters';
 
 interface Props {
@@ -77,73 +78,65 @@ export default function SiegeBoard({
   // à l'opposé (`ml-auto`), loin des gestes de construction — un bouton
   // destructeur ne se met pas à côté de celui qu'on presse en boucle. Dans le
   // panneau il garde la même distance, en bas et détaché.
+  // ⚠️ **Boutons de la librairie, pas des `<button>` redessinés.** Ce board les
+  // écrivait à la main — trois fois la même paire de classes, un `lg:hidden` /
+  // `hidden lg:inline` recopié pour chaque libellé court. `Bouton` porte déjà
+  // ça par ses axes (`icone`+`libelle`+`libelleCourt`, `actif` pour un
+  // interrupteur) : voir le même geste sur RTA (`RtaBackupBar`).
   const effacer = siege.state.teams.length > 0 && (
-    <button
+    <Bouton
       onClick={() => {
         setEffacementAConfirmer(true);
         onFermerMenu();
       }}
-      className="flex items-center gap-1.5 text-xs text-ink-dim hoverable:text-fire transition"
-    >
-      <Trash2 size={13} /> Tout effacer
-    </button>
+      ton="danger"
+      fond="vide"
+      trait="aucun"
+      taille="sm"
+      icone={<Trash2 size={13} />}
+      libelle="Tout effacer"
+    />
   );
 
   const actions = (
     <>
-        <button
-          onClick={() => {
-            siege.addTeam();
-            setScrollToLast(true);
-            onFermerMenu();
-          }}
-          aria-label="Ajouter une équipe"
-          className="flex items-center gap-1.5 rounded-lg border border-border bg-panel px-3.5 py-2 text-sm
-                     text-ink hoverable:border-accent transition"
-        >
-          {/* ⚠️ Deux longueurs : en grille à trois colonnes, un bouton dispose
-              d'un tiers de 348 px. « Ajouter une équipe » y passait à la ligne
-              et déformait la rangée. Le sens tient dans « Équipe » à côté d'un
-              `+` ; l'infobulle et `aria-label` portent la phrase entière. */}
-          <Plus size={15} />
-          <span className="lg:hidden">Équipe</span>
-          <span className="hidden lg:inline">Ajouter une équipe</span>
-        </button>
+      {/* ⚠️ Deux longueurs : en grille à trois colonnes, un bouton dispose d'un
+          tiers de 348 px. « Ajouter une équipe » y passait à la ligne et
+          déformait la rangée. `libelleCourt` porte « Équipe » sous `lg`,
+          l'infobulle et `aria-label` gardent la phrase entière. */}
+      <Bouton
+        onClick={() => {
+          siege.addTeam();
+          setScrollToLast(true);
+          onFermerMenu();
+        }}
+        aria-label="Ajouter une équipe"
+        icone={<Plus size={15} />}
+        libelle="Ajouter une équipe"
+        libelleCourt="Équipe"
+      />
 
-        {siege.state.teams.length > 0 && (
-          <button
-            onClick={() => setCheckTicks((v) => !v)}
-            aria-pressed={checkTicks}
-            title={
-              checkTicks
-                ? 'Masquer les auras de vérification'
-                : 'Colorer les équipes selon leur calage sur les ticks ATB'
-            }
-            className={`flex items-center gap-1.5 rounded-lg border px-3.5 py-2 text-sm font-semibold transition ${
-              // ⚠️ **Contour d'accent + fond très léger.** Le fond `accent-soft`
-              // seul ne se voyait pas : c'est un fond de panneau, trop proche du
-              // gris ambiant pour se remarquer à côté de trois autres boutons.
-              // C'est la BORDURE qui manquait — elle porte l'état, le fond ne
-              // fait que l'appuyer. Un fond plein, lui, criait plus fort que le
-              // réglage ne le mérite.
-              checkTicks
-                ? 'border-accent bg-accent-soft text-ink'
-                : 'border-border bg-panel text-ink-dim hoverable:text-ink hoverable:border-accent'
-            }`}
-          >
-            <Gauge size={15} />
-            <span className="lg:hidden">Ticks</span>
-            <span className="hidden lg:inline">Vérifier mes tick ATB</span>
-          </button>
-        )}
-
-        {/* En dernier des actions : c'est le geste le plus rare. */}
-        <CreateMonster
-          onCreate={onCreateMonster}
-          customMonsters={customMonsters}
-          onDelete={onDeleteMonster}
+      {siege.state.teams.length > 0 && (
+        <Bouton
+          onClick={() => setCheckTicks((v) => !v)}
+          actif={checkTicks}
+          title={
+            checkTicks
+              ? 'Masquer les auras de vérification'
+              : 'Colorer les équipes selon leur calage sur les ticks ATB'
+          }
+          icone={<Gauge size={15} />}
+          libelle="Vérifier mes tick ATB"
+          libelleCourt="Ticks"
         />
+      )}
 
+      {/* En dernier des actions : c'est le geste le plus rare. */}
+      <CreateMonster
+        onCreate={onCreateMonster}
+        customMonsters={customMonsters}
+        onDelete={onDeleteMonster}
+      />
     </>
   );
 

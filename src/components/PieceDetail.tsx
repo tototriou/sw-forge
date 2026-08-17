@@ -64,6 +64,7 @@ export function PieceDetailBox({
   onClick,
   ariaPressed,
   title,
+  encadre = true,
 }: {
   // Image de la pièce, posée à gauche de l'en-tête. Fournie par l'appelant : la
   // carte sert aussi dans un flottant où l'image est déjà à côté, sur la tuile
@@ -84,11 +85,21 @@ export function PieceDetailBox({
   onClick?: (e: React.MouseEvent<HTMLElement>) => void;
   ariaPressed?: boolean;
   title?: string;
+  // La carte porte-t-elle SON PROPRE cadre (bord, fond, coins arrondis) ?
+  //
+  // ⚠️ **`false` quand l'appelant est DÉJÀ une surface encadrée** — un
+  // `Flottant`, qui pose son propre bord + fond + coins arrondis autour de son
+  // contenu. Les deux cadres superposés, à des rayons différents (`rounded-xl`
+  // du flottant contre `rounded-lg` ici), se lisaient comme une carte dans une
+  // carte : un liseré visible à un pixel du bord, et un angle qui ne suit pas
+  // l'autre. Un seul cadre à la fois — voir `DesyncBadge`, qui a posé la même
+  // règle en premier. Le rembourrage passe alors au FLOTTANT (`rembourrage`),
+  // pas ici : sans cadre, cette carte n'a plus de bord à en tenir éloigné.
+  encadre?: boolean;
 }) {
   return (
-    // ⚠️ Fond OPAQUE : cette carte s'affiche dans un flottant au-dessus de la
-    // grille de runes. Un fond translucide laissait voir les tuiles derrière et
-    // rendait le détail illisible.
+    // ⚠️ Fond OPAQUE : cette carte s'affiche aussi À PLAT dans une grille (voir
+    // `encadre`), où un fond translucide laisserait voir les tuiles derrière.
     <ZoneCliquable
       // ⚠️ `imbrique` : la carte est posée DANS un flottant lui-même cliquable,
       // et un `<button>` dans un `<button>` est du HTML invalide. Sans `onClick`,
@@ -97,9 +108,15 @@ export function PieceDetailBox({
       onClick={onClick}
       aria-pressed={ariaPressed}
       title={title}
-      className={`rounded-lg border border-border bg-panel2 ${resserre ? 'p-2' : 'p-3'} ${
-        onClick ? 'cursor-pointer transition hoverable:border-accent' : ''
-      }`}
+      className={
+        encadre
+          ? `rounded-lg border border-border bg-panel2 ${resserre ? 'p-2' : 'p-3'} ${
+              onClick ? 'cursor-pointer transition hoverable:border-accent' : ''
+            }`
+          : onClick
+            ? 'cursor-pointer transition'
+            : ''
+      }
     >
       {/* En-tête : l'image à gauche, la stat principale au centre, la rareté et
           la mesure à droite. ⚠️ Sur une seule ligne en compact : elles
@@ -223,6 +240,7 @@ export function RuneDetailBox({
   icone,
   compact,
   cherches,
+  encadre = true,
 }: {
   rune: RuneDetail;
   icone?: ReactNode;
@@ -234,6 +252,8 @@ export function RuneDetailBox({
   compact?: boolean;
   // Codes recherchés → la ligne correspondante est surlignée (écho du filtre).
   cherches?: Set<number>;
+  // Voir `PieceDetailBox` : `false` dans un `Flottant`, qui pose déjà le sien.
+  encadre?: boolean;
 }) {
   const auDoigt = useMediaQuery(COMPACT);
   const resserre = compact ?? auDoigt;
@@ -262,6 +282,7 @@ export function RuneDetailBox({
     <PieceDetailBox
       icone={icone}
       resserre={resserre}
+      encadre={encadre}
       principale={formatRuneEffect(rune.main)}
       secondaire={rune.innate ? formatRuneEffect(rune.innate) : undefined}
       rarete={{
@@ -358,9 +379,12 @@ function artifactTypeLabel(a: ArtifactDetail): string {
 export function ArtifactDetailBox({
   artifact,
   compact,
+  encadre = true,
 }: {
   artifact: ArtifactDetail;
   compact?: boolean;
+  // Voir `PieceDetailBox` : `false` dans un `Flottant`, qui pose déjà le sien.
+  encadre?: boolean;
 }) {
   const auDoigt = useMediaQuery(COMPACT);
   const resserre = compact ?? auDoigt;
@@ -372,6 +396,7 @@ export function ArtifactDetailBox({
   return (
     <PieceDetailBox
       resserre={resserre}
+      encadre={encadre}
       principale={formatArtifactMain(artifact.main)}
       rarete={{ label: rarity.label, bg: rarity.bg, color: rarity.color }}
       // ⚠️ Le même libellé que pour une rune (« Efficience » / « Score SW »), et

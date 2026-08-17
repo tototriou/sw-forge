@@ -454,6 +454,17 @@ un contour flou plutôt que comme deux informations.
 > teinté.** C'est l'erreur qui revient : on colore une bordure existante, puis on
 > ajoute un anneau pour « que ça se voie mieux ».
 
+⚠️ **Un `Flottant` posant déjà un cadre, ce qu'il contient n'en pose pas un
+second.** Une carte qui a SON PROPRE cadre (`PieceDetailBox`, `OptimPlanBox` —
+bord + fond + coins arrondis) ouverte dans un `Flottant`/`FlottantAuto` donnait
+une carte dans une carte : deux bords à un pixel l'un de l'autre, à des rayons
+de coin différents (`rounded-xl` du flottant contre `rounded-lg` de la carte),
+qui se lisent comme un contour flou plutôt que comme deux informations.
+`DesyncBadge` a posé la règle en premier ; `PieceDetailBox` la porte comme un
+axe (`encadre`, `false` dans un flottant) plutôt que par une copie retouchée. Le
+rembourrage passe alors au flottant (`rembourrage="md"`) : sans cadre, la carte
+n'a plus de bord à en tenir éloigné.
+
 **Deux exceptions, et elles ne sont pas des contours :**
 
 - Le **`ring-offset`** de la palette est un *écart*, pas un second trait : sans

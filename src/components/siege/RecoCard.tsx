@@ -1096,95 +1096,104 @@ function DeckBlock({
   const leadInfo = leaderId != null ? speedLeadOf(monsterByCom2us.get(leaderId)) : null;
 
   return (
-    <div className={`rounded-xl border p-2.5 compact:p-2 ${DECK_AURA[empty ? 'unknown' : status]}`}>
-      <div className="flex items-center gap-2 mb-2 flex-wrap">
-        {/* Chevron de repli : indispensable en édition avec plusieurs decks */}
-        <BoutonIcone
-          onClick={onToggleFold}
-          aria-expanded={!folded}
-          taille="serre"
-          icone={<ChevronDown size={14} className={`transition-transform ${folded ? '-rotate-90' : ''}`} />}
-          libelle={folded ? 'Déplier ce deck' : 'Replier ce deck'}
-        />
+    <div className={`rounded-xl border p-2.5 compact:p-1.5 ${DECK_AURA[empty ? 'unknown' : status]}`}>
+      <div className="mb-2">
+        {/* ⚠️ **Rangée à part, jamais mêlée au verdict/copies en dessous** :
+            le crayon doit rester en HAUT À DROITE quel que soit l'état du
+            deck. Le mettre dans la même rangée flex-wrap que le verdict le
+            faisait suivre le badge sur sa ligne (repoussé en bas dès que
+            « réalisable N fois » prenait sa propre ligne, voir plus bas) —
+            un bouton d'action ne doit pas se déplacer selon ce qui s'affiche
+            à côté de lui. */}
+        <div className="flex items-center gap-2">
+          {/* Chevron de repli : indispensable en édition avec plusieurs decks */}
+          <BoutonIcone
+            onClick={onToggleFold}
+            aria-expanded={!folded}
+            taille="serre"
+            icone={<ChevronDown size={14} className={`transition-transform ${folded ? '-rotate-90' : ''}`} />}
+            libelle={folded ? 'Déplier ce deck' : 'Replier ce deck'}
+          />
 
-        {/* ⚠️ **Plus de titre texte : les portraits SEULS identifient le
-            deck**, plus grands (34 px, contre 26 pour l'ancien aperçu replié
-            seul) pour porter ce que le mot enlevé portait. Un titre — libre ou
-            calculé — redoublait ce que ces portraits montrent déjà ; les
-            garder seuls, agrandis, évite la redite plutôt que de biffer un mot
-            de plus dans un en-tête déjà chargé. Toujours affichés, replié ou
-            non : c'est le seul repère du deck quel que soit son état.
-            ⚠️ `deck.name` reste dans le TYPE et le stockage (retrocompat) :
-            une recommandation exportée avant ce changement, ou reçue d'un ami
-            qui n'a pas encore mis à jour l'app, garde son champ `name` — il
-            n'a jamais été lu ici, et n'est pas rejeté à l'import. */}
-        <ZoneCliquable
-          onClick={onToggleFold}
-          className="flex items-center gap-1.5 flex-1 min-w-0"
-          title={folded ? 'Déplier ce deck' : 'Replier ce deck'}
-        >
-          {deck.slots.map((sl, i) => (
-            <MiniMonster
-              key={i}
-              monster={sl.com2usId != null ? monsterByCom2us.get(sl.com2usId) ?? null : null}
-              fallback={sl.name}
-              size={34}
-              lead={i === 0 ? leaderLead : null}
-            />
-          ))}
-        </ZoneCliquable>
+          {/* ⚠️ **Plus de titre texte : les portraits SEULS identifient le
+              deck**, plus grands (34 px, contre 26 pour l'ancien aperçu replié
+              seul) pour porter ce que le mot enlevé portait. Un titre — libre ou
+              calculé — redoublait ce que ces portraits montrent déjà ; les
+              garder seuls, agrandis, évite la redite plutôt que de biffer un mot
+              de plus dans un en-tête déjà chargé. Toujours affichés, replié ou
+              non : c'est le seul repère du deck quel que soit son état.
+              ⚠️ `deck.name` reste dans le TYPE et le stockage (retrocompat) :
+              une recommandation exportée avant ce changement, ou reçue d'un ami
+              qui n'a pas encore mis à jour l'app, garde son champ `name` — il
+              n'a jamais été lu ici, et n'est pas rejeté à l'import. */}
+          <ZoneCliquable
+            onClick={onToggleFold}
+            className="flex items-center gap-1.5 flex-1 min-w-0"
+            title={folded ? 'Déplier ce deck' : 'Replier ce deck'}
+          >
+            {deck.slots.map((sl, i) => (
+              <MiniMonster
+                key={i}
+                monster={sl.com2usId != null ? monsterByCom2us.get(sl.com2usId) ?? null : null}
+                fallback={sl.name}
+                size={34}
+                lead={i === 0 ? leaderLead : null}
+              />
+            ))}
+          </ZoneCliquable>
+          {/* Le lead n'est pas dans l'en-tête : il est posé sur le leader lui-même
+              (aperçu replié ci-dessous, ou slot 0 déplié) — comme en siège. */}
+
+          {/* Édition PROPRE au deck (monstres, sets, stats, consignes) : icônes
+              nues et resserrées, comme dans l'en-tête de la recommandation. */}
+          <div className="ml-auto flex items-center gap-0.5">
+            {/* ⚠️ Même exception que l'en-tête de la recommandation : le ✓ doré
+                est la convention documentée de l'édition en cours sur toute
+                cette page (spec/siege/recommandations.md), pas le marqueur
+                d'état standard. */}
+            <button
+              onClick={onToggleEdit}
+              data-cible-fine
+              className={`flex h-5 w-5 items-center justify-center transition ${
+                editing ? 'text-star' : 'text-ink-dim hoverable:text-ink'
+              }`}
+              title={editing ? "Terminer l'édition de ce deck" : 'Éditer ce deck'}
+              aria-label={editing ? "Terminer l'édition de ce deck" : 'Éditer ce deck'}
+              aria-pressed={editing}
+            >
+              {editing ? <Check size={13} /> : <Pencil size={12} />}
+            </button>
+            {editing && (
+              <BoutonIcone
+                onClick={() => setDeckAConfirmer(true)}
+                ton="danger"
+                taille="serre"
+                icone={<Trash2 size={12} />}
+                libelle="Supprimer ce deck"
+              />
+            )}
+          </div>
+        </div>
+
         {/* ⚠️ `basis-full` sur mobile, PAS un simple `flex-wrap` sur le
             conteneur : un item flex qui a un peu de place restante sur la
-            ligne des icônes s'y installe et enroule son PROPRE texte au mot
-            (« indis- » collé aux icônes, « ponible... » en dessous) au lieu
-            de descendre entier à la ligne suivante — c'est ce qui rendait le
-            repli imprévisible (bon tantôt, tronqué tantôt, selon le nombre
-            d'icônes déjà posées). `basis-full` force CHAQUE ligne (verdict,
-            puis nombre de copies) à démarrer sa propre ligne, systématique.
-            `sm:basis-auto` : au-delà, la place ne manque plus, elles
-            reprennent leur place naturelle à côté des icônes. */}
+            ligne s'y installe et enroule son PROPRE texte au mot
+            (« indis- » collé, « ponible... » en dessous) au lieu de
+            descendre entier à la ligne suivante — c'est ce qui rendait le
+            repli imprévisible (bon tantôt, tronqué tantôt). `basis-full`
+            force CHAQUE ligne (verdict, puis nombre de copies) à démarrer sa
+            propre ligne, systématique. `sm:basis-auto` : au-delà, la place ne
+            manque plus, elles reprennent leur place naturelle côte à côte. */}
         {!editing && match && !empty && (
-          <span className="basis-full sm:basis-auto">
-            <DeckBadge match={match} />
-          </span>
+          <div className="flex flex-wrap items-center gap-2 mt-1">
+            <span className="basis-full sm:basis-auto">
+              <DeckBadge match={match} />
+            </span>
+            <span className="basis-full sm:basis-auto">
+              <CopiesBadge copies={match.copies} />
+            </span>
+          </div>
         )}
-        {!editing && match && !empty && (
-          <span className="basis-full sm:basis-auto">
-            <CopiesBadge copies={match.copies} />
-          </span>
-        )}
-        {/* Le lead n'est pas dans l'en-tête : il est posé sur le leader lui-même
-            (aperçu replié ci-dessous, ou slot 0 déplié) — comme en siège. */}
-
-        {/* Édition PROPRE au deck (monstres, sets, stats, consignes) : icônes
-            nues et resserrées, comme dans l'en-tête de la recommandation. */}
-        <div className="ml-auto flex items-center gap-0.5">
-          {/* ⚠️ Même exception que l'en-tête de la recommandation : le ✓ doré
-              est la convention documentée de l'édition en cours sur toute
-              cette page (spec/siege/recommandations.md), pas le marqueur
-              d'état standard. */}
-          <button
-            onClick={onToggleEdit}
-            data-cible-fine
-            className={`flex h-5 w-5 items-center justify-center transition ${
-              editing ? 'text-star' : 'text-ink-dim hoverable:text-ink'
-            }`}
-            title={editing ? "Terminer l'édition de ce deck" : 'Éditer ce deck'}
-            aria-label={editing ? "Terminer l'édition de ce deck" : 'Éditer ce deck'}
-            aria-pressed={editing}
-          >
-            {editing ? <Check size={13} /> : <Pencil size={12} />}
-          </button>
-          {editing && (
-            <BoutonIcone
-              onClick={() => setDeckAConfirmer(true)}
-              ton="danger"
-              taille="serre"
-              icone={<Trash2 size={12} />}
-              libelle="Supprimer ce deck"
-            />
-          )}
-        </div>
       </div>
 
       {deckAConfirmer && (

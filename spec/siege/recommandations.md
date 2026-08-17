@@ -1298,6 +1298,16 @@ Indépendamment du repli de la carte, **chaque deck a son propre chevron**.
   la largeur qu'occupaient les icônes déjà posées. `basis-full` force chaque
   ligne à démarrer la sienne, systématiquement, tant qu'il n'y a pas la place
   de tout tenir sur une seule (`sm:basis-auto` au-delà).
+- ⚠️ **Le crayon Éditer/Supprimer reste dans SA PROPRE rangée** (chevron +
+  portraits + crayon), séparée du verdict/copies en dessous, plutôt que dans
+  la même rangée `flex-wrap` qu'eux. Un bouton d'action ne doit pas changer de
+  position selon ce qui s'affiche à côté de lui : mêlé au verdict, le crayon
+  suivait le badge sur sa ligne et se retrouvait repoussé en bas dès que
+  « réalisable N fois » gagnait sa propre ligne (voir ci-dessus) — il devait
+  rester en haut à droite, toujours.
+- **Padding réduit au tactile** (`compact:p-1.5`, contre `p-2.5` à la souris) :
+  les cartes de deck sont dans une liste déjà dense (jusqu'à une demi-douzaine
+  par recommandation) sur un écran étroit.
 - **« Déplier / Replier tous les decks »** : lien en haut à droite de la liste,
   affiché dès **2 decks**.
 - Un deck **en édition est toujours déplié**, quel que soit son état de repli.

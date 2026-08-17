@@ -2,12 +2,12 @@ import { forwardRef, ReactNode } from 'react';
 
 // Champ de saisie texte.
 //
-// ⚠️ **`compact:text-base` n'est pas un choix de taille, c'est un correctif.**
-// Sous 16 px, iOS ZOOME sur le champ à la mise au point — et la page ne revient
-// pas seule de ce zoom : on se retrouve décalé sur un formulaire dont on ne voit
-// plus les boutons. C'est la seule raison pour laquelle un champ grossit au
-// doigt alors que tout le reste rétrécit. Écrit ici une fois, ce piège ne peut
-// plus être oublié dans un formulaire neuf.
+// ⚠️ **Le zoom d'iOS ne se traite PAS ici.** Ce composant portait un
+// `compact:text-base` censé l'empêcher — sauf que `text-base` vaut 15 px dans
+// cette app, sous le seuil de 16 px de Safari : il n'a jamais rien empêché, et
+// il ne couvrait que ce composant alors que tout `<input>`, `<select>` ou
+// `<textarea>` est concerné. La règle vit désormais dans index.css, sur les
+// ÉLÉMENTS et sous `pointer: coarse`.
 //
 // ⚠️ Bordure seule au focus, **sans halo** : voir spec/shared/design.md.
 
@@ -38,7 +38,7 @@ const Champ = forwardRef<HTMLInputElement, ChampProps>(function Champ(
       type={type}
       className={`min-w-0 rounded-lg border border-border bg-panel2 px-3 py-2 text-sm text-ink
         outline-none transition placeholder:text-ink-dim focus:border-accent
-        compact:text-base ${pleineLargeur ? 'w-full' : ''} ${icone ? 'pl-9' : ''} ${className}`}
+        ${pleineLargeur ? 'w-full' : ''} ${icone ? 'pl-9' : ''} ${className}`}
       {...reste}
     />
   );

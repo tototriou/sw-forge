@@ -616,6 +616,29 @@ button:not(:disabled):not([draggable]):not([role='switch']):active,
     min-height: 40px;
   }
 
+  /* ⚠️ **16 px sur tout ce qui se saisit — et ce n'est PAS un choix de taille.**
+     Safari iOS ZOOME sur un champ dont le texte fait moins de 16 px au moment où
+     on le met au point, et la page ne revient pas seule de ce zoom : on se
+     retrouve décalé sur un formulaire dont on ne voit plus les boutons.
+
+     ⚠️ L'échelle de l'app plafonne à 15 px pour `text-base` : **aucune classe
+     Tailwind ne peut donc éviter le zoom**, et le `compact:text-base` que
+     portaient certains champs n'a jamais rien empêché. C'est un seuil de
+     PLATEFORME, pas un cran de l'échelle — il se pose ici, une fois, sur les
+     éléments et non sur les composants.
+
+     ⚠️ `!important` : ce seuil ne doit jamais être repris par une classe
+     utilitaire posée au point d'appel (`text-sm`, `text-xs`). C'est exactement
+     le genre de valeur qu'on ré-arbitre sans savoir ce qu'elle protège.
+
+     ⚠️ `select` compte aussi : iOS zoome dessus comme sur un champ texte.
+     Les cases et boutons radio, non — leur contenu n'est pas du texte. */
+  input:not([type='checkbox']):not([type='radio']),
+  select,
+  textarea {
+    font-size: 16px !important;
+  }
+
   /* ⚠️ Les boutons CARRÉS (icône seule) gagnent aussi en LARGEUR : agrandis en
      hauteur seulement, ils devenaient des rectangles et l'icône flottait au
      milieu d'un vide vertical.

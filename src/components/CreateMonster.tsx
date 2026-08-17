@@ -90,7 +90,7 @@ export default function CreateMonster({ onCreate, customMonsters, onDelete }: Pr
           value={element}
           onChange={(e) => setElement(e.target.value as ElementKey)}
           pleineLargeur={false}
-          className="flex-1 compact:py-2.5 compact:text-base"
+          className="flex-1 compact:py-2.5"
         >
           {ELEMENT_CHOICES.map((el) => (
             <option key={el.key} value={el.key}>
@@ -159,8 +159,10 @@ export default function CreateMonster({ onCreate, customMonsters, onDelete }: Pr
   // au milieu du contenu — au-dessus d'une liste de dix monstres, on ne le
   // trouvait plus.
   // ⚠️ **PAS de `pleineLargeur`** : le pied taque ses boutons à DROITE, et un
-  // bouton étiré occupe toute la largeur — il ne peut donc plus l'être. La
-  // pleine largeur revient d'elle-même sous `sm`, où le pied s'empile.
+  // bouton étiré occupe toute la largeur — il ne peut donc plus l'être.
+  // « Créer » est un verbe court : il n'a rien à gagner à s'étaler d'un bord à
+  // l'autre. L'empilement pleine largeur est réservé aux libellés qui sont des
+  // PHRASES (voir `actionsEmpilees` dans PiedDeDialogue).
   const actionCreer = (
     <Bouton
       onClick={submit}

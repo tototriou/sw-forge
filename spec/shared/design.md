@@ -299,6 +299,12 @@ Ce que cela impose — trois réponses, dans cet ordre de préférence :
 ⚠️ **Le tactile n'en est pas dispensé.** Le doigt ne « reste » pas sur sa cible,
 mais l'écran, lui, saute.
 
+⚠️ **La réponse n° 3 est souvent la bonne au doigt**, et la n° 2 souvent la
+mauvaise : un flottant ancré s'ouvre exactement là où le doigt vient de se poser,
+et la main masque ce qu'on voulait lire. Le détail d'une rune se pose donc SOUS
+la roue au doigt, et dans un flottant ancré à la souris — même composant, deux
+placements.
+
 ⚠️ **Attention à ce qui CONTIENT la cible.** Un panneau collé au bas de l'écran
 ne peut grandir que vers le haut : déplier quoi que ce soit dedans remonte tout
 son contenu, alors même que ce qui s'ouvre est bien placé — en dessous de ce

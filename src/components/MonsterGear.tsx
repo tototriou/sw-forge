@@ -19,7 +19,7 @@ import ArtifactSlots from './ArtifactSlots';
 import StatPanel from './StatPanel';
 import { RUNE_METRICS, formatRuneMetric, useRuneMetric } from '../hooks/useRuneMetric';
 import { artifactScore, artifactEfficiency } from '../lib/artifacts';
-import { FlottantAuto, Modale, ZoneCliquable } from '../ui';
+import { FlottantAuto, ZoneCliquable } from '../ui';
 
 type Selected =
   | { kind: 'rune'; i: number }
@@ -381,33 +381,28 @@ export default function MonsterGear({ gear, spdCible = null }: Props) {
     (sel.kind === 'relic' || (s as { i: number }).i === (sel as { i: number }).i);
   const toggle = (s: Exclude<Selected, null>) => setSel((cur) => (isSel(s) ? null : s));
 
-  // ⚠️ **Le détail SORT DU FLUX, dans les deux formats.** Il s'affichait en
-  // dessous, sur sa propre ligne : la carte grandissait, la grille se
-  // réorganisait, et tout ce qui entourait la pièce sur laquelle on venait de
-  // cliquer se déplaçait. Pire d'une pièce à l'autre — une rune à trois
-  // substats et un artéfact à quatre lignes n'ont pas la même hauteur, donc
-  // enchaîner les clics faisait respirer la page à chaque fois.
+  // ⚠️ **Deux placements du détail, selon le POINTEUR.**
   //
-  // Réserver la place d'avance était l'autre réponse possible (voir
-  // spec/shared/design.md), mais elle demandait de deviner une hauteur : celle
-  // du plus grand détail possible, laissée vide le reste du temps, dans une
-  // carte qui est déjà un troisième niveau de détail. Sortir du flux ne devine
-  // rien et ne coûte aucune place.
+  // - **À la souris, il SORT DU FLUX** : un flottant ancré à la pièce. Il
+  //   s'affichait en dessous, sur sa propre ligne — la carte grandissait, la
+  //   grille se réorganisait, et tout ce qui entourait la pièce cliquée se
+  //   déplaçait. Pire d'une pièce à l'autre : une rune à trois substats et un
+  //   artéfact à quatre lignes n'ont pas la même hauteur, donc enchaîner les
+  //   clics faisait respirer la page à chaque fois.
+  // - **Au doigt, il reste EN LIGNE, sous la roue.** C'est déjà la bonne
+  //   place : il s'insère APRÈS ce qu'on a touché, qui ne bouge donc pas. Un
+  //   flottant y serait le mauvais objet — il s'ouvrirait exactement là où le
+  //   doigt vient de se poser, et la main masquerait ce qu'on voulait lire.
   //
-  // ⚠️ **Deux contenants selon le POINTEUR**, un seul contenu :
-  // - à la souris, un flottant ANCRÉ à la pièce — elle reste sous le curseur,
-  //   on rouvre et on referme sans bouger la main ;
-  // - au doigt, une MODALE. Un flottant ancré à une rune de la roue s'ouvre
-  //   exactement là où le doigt vient de se poser, et la main masque ce qu'on
-  //   voulait lire.
-  const piece =
-    sel?.kind === 'rune' && gear.runes[sel.i]
-      ? { titre: `Rune ${gear.runes[sel.i].slot}`, boite: <RuneDetailBox rune={gear.runes[sel.i]} /> }
-      : sel?.kind === 'artifact' && gear.artifacts[sel.i]
-        ? { titre: 'Artéfact', boite: <ArtifactDetailBox artifact={gear.artifacts[sel.i]} /> }
-        : sel?.kind === 'relic' && gear.relic
-          ? { titre: 'Relique', boite: <RelicDetailBox relic={gear.relic} /> }
-          : null;
+  // Voir la règle générale dans spec/shared/design.md.
+  const detail =
+    sel?.kind === 'rune' && gear.runes[sel.i] ? (
+      <RuneDetailBox rune={gear.runes[sel.i]} />
+    ) : sel?.kind === 'artifact' && gear.artifacts[sel.i] ? (
+      <ArtifactDetailBox artifact={gear.artifacts[sel.i]} />
+    ) : sel?.kind === 'relic' && gear.relic ? (
+      <RelicDetailBox relic={gear.relic} />
+    ) : null;
 
   return (
     <div className="flex flex-row flex-wrap items-center justify-center gap-2 compact:flex-col">
@@ -528,21 +523,9 @@ export default function MonsterGear({ gear, spdCible = null }: Props) {
       )}
       </div>
 
-      {/* Au DOIGT : la pièce cliquée s'ouvre dans une modale. Elle recouvre la
-          page au lieu de la pousser, donc la roue et les emplacements restent
-          exactement où le doigt les a trouvés. */}
-      {auDoigt && piece && (
-        <Modale
-          onClose={() => setSel(null)}
-          labelledBy="piece-equipee-titre"
-          titre={piece.titre}
-          largeur="max-w-[320px]"
-          padding="p-4"
-          croix
-        >
-          {piece.boite}
-        </Modale>
-      )}
+      {/* Au DOIGT : le détail sur sa propre ligne, sous la roue — voir plus
+          haut. La souris, elle, le reçoit dans un flottant ancré à la pièce. */}
+      {auDoigt && detail && <div className="mx-auto w-full max-w-[280px]">{detail}</div>}
     </div>
   );
 }

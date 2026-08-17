@@ -19,7 +19,7 @@ import MonsterGear from '../MonsterGear';
 import NumberField from '../../ui/NumberField';
 import LeadPill, { LeadBadge } from './LeadPill';
 import { ConfirmDialog } from '../../ui/Dialogs';
-import { Selecteur } from '../../ui';
+import { Bouton, BoutonIcone, Selecteur, ZoneCliquable } from '../../ui';
 import { useMediaQuery, COMPACT } from '../../hooks/useMediaQuery';
 
 const GRADIENT: Record<string, string> = {
@@ -179,47 +179,40 @@ export default function SiegeTeam({
             différentes, ce n'est pas un doublon. */}
         {leaderMonster?.leaderSkill && <LeadPill ls={leaderMonster.leaderSkill} />}
 
-        <button
+        {/* ⚠️ **Icône nue au doigt** (`nuAuDoigt`) — ni cadre, ni bordure, ni
+            fond. L'en-tête d'équipe porte déjà le titre, la pastille d'état et
+            celle du lead ; deux boutons encadrés par-dessus en faisaient une
+            barre d'outils, alors que ce sont deux gestes ponctuels. À la
+            souris, où la place ne manque pas, ils reprennent leur cadre. */}
+        <Bouton
           onClick={() => {
             onToggleExpand(team.id);
             setDetailIdx(null);
           }}
-          // ⚠️ **L'ICÔNE NUE sous `sm`** — ni cadre, ni bordure, ni fond. Un
-          // en-tête d'équipe porte déjà le titre, la pastille d'état et celle du
-          // lead ; deux boutons encadrés par-dessus en faisaient une barre
-          // d'outils, alors que ce sont deux gestes ponctuels. L'accent
-          // contextuel dit l'état actif, le trait suffit à dire l'action.
-          // `data-cible-fine` + `.cible-tactile` : 20 px dessinés, 44 touchables.
-          data-cible-fine
-          className={`cible-tactile relative ml-auto flex items-center justify-center text-xs
-            font-semibold transition
-            sm:gap-1.5 sm:rounded-md sm:border sm:px-2.5 sm:py-1 ${
-            expanded
-              ? 'text-ctx sm:border-accent sm:bg-panel2 sm:text-ink'
-              : 'text-ink-dim hoverable:text-ink sm:border-border sm:bg-panel sm:text-ink sm:hoverable:border-accent'
-          }`}
+          actif={expanded}
+          nuAuDoigt
+          libelleAuDoigt={false}
+          taille="sm"
+          icone={<Pencil size={13} />}
+          libelle={expanded ? 'Terminer' : 'Éditer'}
           aria-expanded={expanded}
           title={expanded ? "Terminer l'édition" : "Éditer l'équipe"}
           aria-label={expanded ? "Terminer l'édition" : "Éditer l'équipe"}
-        >
-          {/* ⚠️ Le libellé tombe sous `sm` : l'en-tête y porte déjà le titre, la
-              pastille d'état et la pastille de lead. Le crayon et le ✓ se
-              reconnaissent seuls, et `title` porte le sens complet. */}
-          <Pencil size={13} />
-          <span className="hidden sm:inline">{expanded ? 'Terminer' : 'Éditer'}</span>
-        </button>
-        <button
+          className="ml-auto"
+        />
+        <Bouton
           onClick={() => setSuppressionAConfirmer(true)}
-          // ⚠️ Icône nue elle aussi : les deux se lisent comme une paire.
-          data-cible-fine
-          className="cible-tactile relative flex items-center justify-center text-xs text-ink-dim
-                     transition hoverable:text-fire sm:gap-1.5"
+          ton="danger"
+          fond="vide"
+          trait="aucun"
+          nuAuDoigt
+          libelleAuDoigt={false}
+          taille="sm"
+          icone={<Trash2 size={13} />}
+          libelle="Supprimer"
           title="Supprimer l'équipe"
           aria-label="Supprimer l'équipe"
-        >
-          <Trash2 size={13} />
-          <span className="hidden sm:inline">Supprimer</span>
-        </button>
+        />
       </div>
 
       {/* ⚠️ Une équipe se supprime en un clic, juste à côté du bouton « Éditer »
@@ -313,7 +306,7 @@ export default function SiegeTeam({
             const canDetail = !!slotGear && slotGear.runes.length > 0;
             const active = detailIdx === idx;
             return (
-              <button
+              <ZoneCliquable
                 key={idx}
                 onClick={() => {
                   if (canDetail) setDetailIdx((d) => (d === idx ? null : idx));
@@ -329,7 +322,7 @@ export default function SiegeTeam({
                       : 'Modifier'
                 }
                 className={`flex-1 min-w-0 flex items-center gap-2 rounded-lg border
-                  px-2 py-1.5 compact:gap-1 compact:px-1 compact:py-1 text-left transition hoverable:border-accent ${
+                  px-2 py-1.5 compact:gap-1 compact:px-1 compact:py-1 transition hoverable:border-accent ${
                   active
                     ? // Bordure seule, sans anneau superposé — voir design.md.
                       'border-accent bg-panel2'
@@ -429,7 +422,7 @@ export default function SiegeTeam({
                     </span>
                   </div>
                 )}
-              </button>
+              </ZoneCliquable>
             );
           })}
         </div>
@@ -463,14 +456,18 @@ export default function SiegeTeam({
               ? messageTick ?? "Ton équipe n'est pas au tick."
               : 'Vérifier le speed tuning'}
           </span>
-          <button
+          <Bouton
             onClick={() => onDismissAlert(team.id, true)}
-            className="flex-none rounded-md bg-panel border border-border px-2.5 py-1 text-micro font-semibold text-ink hoverable:border-accent transition"
-          >
-            Ignorer la recommandation
-          </button>
+            taille="sm"
+            libelle="Ignorer la recommandation"
+            className="flex-none"
+          />
         </div>
       )}
+      {/* ⚠️ Pas un `Bouton` de la librairie : le vert ici est SÉMANTIQUE (l'état
+          « recommandation écartée »), pas un ton d'action — même distinction que
+          les pastilles manque/surplus plus bas, en `text-fire`/`text-water`. Un
+          ton de la librairie (accent, neutre…) dirait autre chose. */}
       {status === 'green' && validated && (
         <button
           onClick={() => onDismissAlert(team.id, false)}
@@ -484,28 +481,27 @@ export default function SiegeTeam({
   );
 }
 
+// Préréglage de `Bouton` : le marqueur d'état unique de l'app (contour
+// d'accent + fond léger, voir spec/shared/design.md) vient du composant via
+// `actif`. Ne reste ici que ce qui est propre à ces pastilles-là : le mono, et
+// le resserrement à trois crans au doigt (cinq pastilles côte à côte dans un
+// slot qui en fait 110).
 function TickBtn({ active, onClick, label }: { active: boolean; onClick: () => void; label: string }) {
   return (
-    <button
+    <Bouton
       onClick={onClick}
+      actif={active}
+      forme="pilule"
+      taille="xs"
+      libelle={label}
       // ⚠️ `data-cible-fine`, sans zone étendue : ces pastilles forment une
       // rangée serrée de cinq. Portées à 40 px par la règle tactile, elles
       // occupaient deux lignes dans un slot qui en fait 110 ; dotées d'une cible
       // de 44, elles se chevaucheraient et l'on choisirait le mauvais tick.
       // C'est l'espacement du groupe qui protège du ratage.
       data-cible-fine
-      className={`rounded-full border px-2.5 py-0.5 text-micro font-mono font-semibold transition select-none
-        compact:px-1.5 compact:py-0 compact:text-nano
-        ${
-          // ⚠️ **Contour d'accent + fond très léger**, le marqueur d'état unique
-          // de l'app (voir spec/shared/design.md).
-          active
-            ? 'border-accent bg-accent-soft text-ink'
-            : 'bg-panel border-border text-ink-dim hoverable:text-ink hoverable:border-accent'
-        }`}
-    >
-      {label}
-    </button>
+      className="font-mono select-none compact:px-1.5 compact:py-0 compact:text-nano"
+    />
   );
 }
 
@@ -590,7 +586,8 @@ function SlotContent({
       className="relative flex min-h-[150px] flex-col p-3 compact:min-h-[110px] compact:p-2"
     >
       <div className="mb-2 flex items-center gap-1.5 compact:mb-1">
-        <button
+        <ZoneCliquable
+          poignee
           draggable
           onDragStart={handleDragStart}
           onDragEnd={onDragEnd}
@@ -599,13 +596,12 @@ function SlotContent({
           // déjà le travail. Elle prenait 15 px de large sur une ligne qui porte
           // aussi le portrait, le nom, les sets et la croix.
           // Même traitement que la poignée d'une carte RTA (voir RtaCard).
-          className="cursor-grab active:cursor-grabbing text-ink-dim hoverable:text-ink
-                     touch-none coarse:hidden"
+          className="text-ink-dim hoverable:text-ink coarse:hidden"
           title="Glisser pour intervertir"
           aria-label="Déplacer"
         >
           <GripVertical size={15} />
-        </button>
+        </ZoneCliquable>
         {isLeader && !monster.leaderSkill && <Crown size={13} className="text-star flex-none" />}
         <div className="relative flex-none">
           <div
@@ -645,20 +641,19 @@ function SlotContent({
             </div>
           )}
         </div>
-        <button
+        {/* ⚠️ `taille="serre"` : cette croix n'a aucune dimension propre, et la
+            règle tactile la portait à 40 px de haut — elle décalait alors la
+            ligne du nom qu'elle borde. `serre` reste à 20 px dessinés, avec sa
+            propre zone étendue à 44 px (le pseudo-élément de `data-cible-fine`) :
+            elle est seule dans son coin, rien à rater autour. */}
+        <BoutonIcone
           onClick={() => setRetraitAConfirmer(true)}
-          // ⚠️ `data-cible-fine` + zone étendue : cette croix n'a aucune
-          // dimension propre, et la règle tactile la portait à 40 px de haut —
-          // elle décalait alors la ligne du nom qu'elle borde. Le
-          // pseudo-élément lui rend 44 px de zone touchable ; elle est seule
-          // dans son coin, rien à rater autour.
-          data-cible-fine
-          className="cible-tactile relative flex-none self-start text-ink-dim transition hoverable:text-fire"
-          title="Retirer"
-          aria-label="Retirer"
-        >
-          <X size={14} />
-        </button>
+          libelle="Retirer"
+          taille="serre"
+          ton="danger"
+          icone={<X size={14} />}
+          className="self-start"
+        />
       </div>
 
       {/* Vitesse de combat, mise en avant */}

@@ -34,11 +34,15 @@ export type {
   TailleBouton,
 } from './Bouton';
 
+// Bouton portant des ACTIONS ACCOLÉES à sa droite (une pilule de catégorie, une
+// pilule de lead). ⚠️ Ce n'est pas un bouton de plus : c'est la forme que trois
+// endroits redessinaient déjà à la main, dont deux avec le même bug de hauteur
+// tactile.
+export { default as BoutonGroupe } from './BoutonGroupe';
+export type { BoutonGroupeProps } from './BoutonGroupe';
+
 export { default as BoutonIcone } from './BoutonIcone';
 export type { BoutonIconeProps } from './BoutonIcone';
-
-export { default as Pastille } from './Pastille';
-export type { PastilleProps } from './Pastille';
 
 export { default as Champ } from './Champ';
 export type { ChampProps } from './Champ';

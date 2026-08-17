@@ -10,7 +10,7 @@ import { SPEED_LEADS, speedLeadOf } from '../../lib/speed';
 import { useStickyState } from '../../hooks/useStickyState';
 import { InterrupteurAffichage } from './CategoryBar';
 import { COMPACT, useMediaQuery } from '../../hooks/useMediaQuery';
-import { Bouton, BoutonIcone, Interrupteur, Pastille } from '../../ui';
+import { Bouton, BoutonGroupe, BoutonIcone, Interrupteur } from '../../ui';
 import { ConfirmDialog } from '../Dialogs';
 
 const SPD_ICON = `${import.meta.env.BASE_URL}stats/spd.png`;
@@ -221,59 +221,43 @@ export default function TurnOrder({
         </span>
         {leads.map((pct) => {
           const active = lead === pct;
+          // ⚠️ Le dégradé `star` EST le marqueur (c'est le code couleur du lead,
+          // pas l'accent d'interface) : il passe par `classNameActif`, qui
+          // REMPLACE l'habillage du ton au lieu de s'y ajouter.
           return (
-            <span
+            <BoutonGroupe
               key={pct}
-              className={`group inline-flex items-center rounded-full border transition select-none
-                ${
-                  active
-                    ? // Le dégradé `star` EST le marqueur (c'est le code couleur
-                      // du lead, pas l'accent) : pas d'ombre en plus.
-                      'bg-gradient-to-br from-star to-yellow-200 text-bg border-star'
-                    : 'bg-panel border-border text-ink-dim hoverable:text-ink hoverable:border-accent'
-                }`}
-            >
-              {/* ⚠️ `data-cible-fine` : la règle tactile globale (40 px, voir
-                  index.css) portait ce bouton — et donc TOUTE la pilule qui
-                  l'enveloppe — à 40 px de haut au doigt. Une rangée de leads y
-                  prenait deux fois la place nécessaire. La cible reste petite
-                  mais la pilule entière est touchable : ce bouton en occupe
-                  toute la surface sauf la croix. */}
-              <button
-                onClick={() => setLead(active ? 0 : pct)}
-                data-cible-fine
-                className="py-1 pl-3 pr-1 font-mono text-xs font-semibold"
-              >
-                +{pct}%
-              </button>
-              {/* ⚠️ Le × reste VISIBLE. Ne l'afficher qu'au survol laissait un
-                  vide à droite du pourcentage, qu'on lit comme un défaut
-                  d'alignement — et un bouton qui apparaît sous le curseur se
-                  clique par accident. */}
-              {/* ⚠️ `taille="serre"` : posé DANS la pilule, il ne peut pas
-                  prendre la cible tactile pleine sans la déborder. Voir
-                  BoutonIcone. */}
-              {/* ⚠️ Le voile de survol est neutralisé (`hoverable:bg-transparent`) :
-                  ce bouton est posé sur le dégradé `star` de la pilule active,
-                  qu'un assombrissement tacherait au lieu de le désigner. C'est
-                  l'opacité de la croix qui répond au survol. */}
-              <BoutonIcone
-                onClick={() => setLeadASupprimer(pct)}
-                libelle={`Retirer le lead +${pct}%`}
-                taille="serre"
-                icone={<X size={11} strokeWidth={3} />}
-                // ⚠️ `text-current` : la croix HÉRITE de la couleur de sa pilule
-                // — encre sombre sur la pilule active (dégradé doré), encre
-                // atténuée sur les autres. Lui donner un ton propre la découpait
-                // du fond sur lequel elle est posée.
-                className="mr-1 text-current opacity-50 hoverable:bg-transparent hoverable:text-current hoverable:opacity-100"
-              />
-            </span>
+              actif={active}
+              onClick={() => setLead(active ? 0 : pct)}
+              classNameActif="border-star bg-gradient-to-br from-star to-yellow-200 text-bg"
+              libelle={<span className="font-mono">+{pct}%</span>}
+              actions={
+                /* ⚠️ Le × reste VISIBLE. Ne l'afficher qu'au survol laissait un
+                   vide à droite du pourcentage, qu'on lit comme un défaut
+                   d'alignement — et un bouton qui apparaît sous le curseur se
+                   clique par accident.
+                   ⚠️ `text-current` : la croix HÉRITE de la couleur de sa pilule
+                   — encre sombre sur la pilule active (dégradé doré), encre
+                   atténuée sur les autres. Lui donner un ton propre la
+                   découperait du fond sur lequel elle est posée. Le voile de
+                   survol est neutralisé pour la même raison : il tacherait le
+                   dégradé au lieu de le désigner. */
+                <BoutonIcone
+                  onClick={() => setLeadASupprimer(pct)}
+                  libelle={`Retirer le lead +${pct}%`}
+                  taille="serre"
+                  icone={<X size={11} strokeWidth={3} />}
+                  className="text-current opacity-50 hoverable:bg-transparent hoverable:text-current hoverable:opacity-100"
+                />
+              }
+            />
           );
         })}
-        {/* Fond seul comme marqueur d'état — c'est la règle de la Pastille, et
-            elle vient d'elle : rien n'est redit ici. */}
-        <Pastille actif={lead === 0} onClick={() => setLead(0)} libelle="Sans lead" />
+        {/* ⚠️ Le MÊME composant que les pilules de lead juste à gauche, sans ses
+            actions : c'est ce qui garantit qu'il ne fait pas une dent de scie au
+            bout de la rangée. Fond seul comme marqueur d'état — la règle vient
+            du composant, rien n'est redit ici. */}
+        <BoutonGroupe actif={lead === 0} onClick={() => setLead(0)} libelle="Sans lead" />
 
         {/* Ajout d'un lead absent de la prépa : il REJOINT la rangée au lieu de
             vivre dans un champ à part — une fois ajouté, il se clique comme les

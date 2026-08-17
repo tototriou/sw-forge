@@ -7,7 +7,7 @@ import { ConfirmDialog } from '../Dialogs';
 import { useRecalageEcran } from '../../hooks/useRecalageEcran';
 import { useMediaQuery, SOUS_LG } from '../../hooks/useMediaQuery';
 import MobileSheet from '../MobileSheet';
-import { Bouton, BoutonIcone, Champ, Pastille, Vignette } from '../../ui';
+import { Bouton, BoutonGroupe, BoutonIcone, Champ, Vignette } from '../../ui';
 
 // Palette FERMÉE plutôt qu'un sélecteur de couleur libre : le contrôle natif
 // (`<input type="color">`) est un composant du système, hors charte, et un choix
@@ -71,49 +71,40 @@ export default function CategoryBar({ cats, monsters }: Props) {
           /* Pilule : point de couleur, nom, puis édition et suppression.
              ⚠️ **Tous les éléments de la barre font la même hauteur (`h-7`)** —
              pilules, bouton d'ajout, interrupteur. Des hauteurs différentes
-             donnaient une rangée en dents de scie.
-             Le cadre porte le style et les boutons sont transparents à
-             l'intérieur : aucune couture entre eux, et pas de bouton imbriqué
-             dans un bouton (HTML invalide). */
+             donnaient une rangée en dents de scie. C'est `BoutonGroupe` qui la
+             tient désormais, avec la même structure que la pilule de lead SPD de
+             l'ordre de tour. */
           <div key={c.id} className="relative">
-            <div
-              className={`inline-flex h-7 items-center gap-1.5 rounded-full border pl-2.5 pr-1 transition ${
-                openId === c.id
-                  ? 'border-accent bg-panel2'
-                  : 'border-border bg-panel hoverable:border-accent'
-              }`}
-            >
-              <button
-                onClick={() => setOpenId((o) => (o === c.id ? null : c.id))}
-                aria-expanded={openId === c.id}
-                title="Choisir les monstres de cette catégorie"
-                className="flex h-full items-center gap-1.5 text-xs font-semibold text-ink"
-              >
+            <BoutonGroupe
+              actif={openId === c.id}
+              onClick={() => setOpenId((o) => (o === c.id ? null : c.id))}
+              aria-expanded={openId === c.id}
+              title="Choisir les monstres de cette catégorie"
+              icone={
                 <span
-                  className="w-2.5 h-2.5 rounded-full flex-none"
+                  className="h-2.5 w-2.5 flex-none rounded-full"
                   style={{ backgroundColor: c.color }}
                 />
-                {c.label}
-              </button>
-              {/* ⚠️ `taille="serre"` : ces deux boutons sont posés DANS une
-                  pilule de 28 px et collés l'un à l'autre. Portés à 40 px par la
-                  règle tactile, ils la débordaient ; dotés d'une zone étendue de
-                  44 px, ils se chevaucheraient et on supprimerait la catégorie en
-                  voulant l'éditer. Voir BoutonIcone. */}
-              <BoutonIcone
-                onClick={() => setEditId((e) => (e === c.id ? null : c.id))}
-                libelle={`Éditer ${c.label}`}
-                taille="serre"
-                icone={<Pencil size={11} />}
-              />
-              <BoutonIcone
-                onClick={() => setASupprimer({ id: c.id, label: c.label })}
-                libelle={`Supprimer ${c.label}`}
-                taille="serre"
-                ton="danger"
-                icone={<Trash2 size={11} />}
-              />
-            </div>
+              }
+              libelle={c.label}
+              actions={
+                <>
+                  <BoutonIcone
+                    onClick={() => setEditId((e) => (e === c.id ? null : c.id))}
+                    libelle={`Éditer ${c.label}`}
+                    taille="serre"
+                    icone={<Pencil size={11} />}
+                  />
+                  <BoutonIcone
+                    onClick={() => setASupprimer({ id: c.id, label: c.label })}
+                    libelle={`Supprimer ${c.label}`}
+                    taille="serre"
+                    ton="danger"
+                    icone={<Trash2 size={11} />}
+                  />
+                </>
+              }
+            />
 
             {editId === c.id && (
               <CategoryPopover
@@ -131,18 +122,16 @@ export default function CategoryBar({ cats, monsters }: Props) {
         <div className="relative">
           {/* ⚠️ Le POINTILLÉ dit « contenant pas encore rempli » — c'est ce qui
               distingue « ajouter » des catégories déjà là, sans un mot de plus.
-              C'est un axe du bouton (`trait`), pas une variante nommée. */}
-          <Bouton
+              C'est une prop du composant, pas un bouton d'un autre genre : il
+              partage donc la hauteur de ses voisins de rangée. */}
+          <BoutonGroupe
             onClick={() => setCreating((v) => !v)}
             aria-expanded={creating}
-            trait="pointille"
+            pointille
             fond="vide"
-            forme="pilule"
-            taille="sm"
             icone={<Plus size={12} />}
             libelle="Catégorie"
-            data-hauteur-fixe
-            className="h-7 font-normal hoverable:bg-panel2"
+            className="font-normal hoverable:bg-panel2"
           />
           {creating && (
             <CategoryPopover
@@ -370,22 +359,22 @@ export default function CategoryBar({ cats, monsters }: Props) {
 // fait ». Les trois de la barre RTA en sont des instances — ils étaient trois
 // copies du même bouton, à trois endroits, avec les mêmes vingt lignes.
 //
-// ⚠️ **Deux rendus, et celui de BUREAU est l'ancien, inchangé** : œil ouvert /
-// barré, accent sur l'état masqué, poussé à droite de la rangée des catégories.
-// Ce n'est pas qu'il soit meilleur — c'est qu'il n'était pas en cause. La
-// refonte visait le téléphone ; changer le bureau au passage aurait déplacé les
-// repères de quelqu'un qui ne demandait rien.
+// ⚠️ **Ce n'est plus qu'un RÉGLAGE de [BoutonGroupe](../../ui/BoutonGroupe.tsx),
+// pas un composant.** Il en dessinait un second, avec ses propres classes — d'où
+// des rangées en dents de scie dès qu'il voisinait une pilule de catégorie. Il
+// ne reste ici que ce qui est propre au SENS de ces trois interrupteurs ; tout
+// le dessin vient de la librairie.
 //
-// Sous `lg`, deux écarts que la petite taille rend nécessaires :
+// Deux écarts subsistent entre les formats, et ils sont réels :
 //
-// - **L'accent marque l'état ACTIF.** Il est posé sur l'état masqué dans la
-//   version de bureau : la chose coupée ressort, celle qu'on voit s'efface. Sur
-//   un écran large on embrasse la rangée d'un regard et l'inversion se
-//   rattrape ; sur trois pastilles serrées, elle se lit à l'envers.
-// - **Une PUCE plutôt qu'un œil barré.** Ce pictogramme demande de se rappeler
-//   s'il montre l'état courant ou l'action à venir. À 12 px sur un téléphone,
-//   l'ambiguïté ne se lève plus ; un point plein ou creux se lit sans être
-//   interprété.
+// - **Le sens de l'accent s'inverse.** Sur bureau il marque l'état MASQUÉ (la
+//   chose coupée ressort, celle qu'on voit s'efface) ; au doigt il marque l'état
+//   affiché. Sur un écran large on embrasse la rangée d'un regard et l'inversion
+//   se rattrape ; sur trois pastilles serrées, elle se lit à l'envers.
+// - **Une PUCE plutôt qu'un œil barré au doigt.** Ce pictogramme demande de se
+//   rappeler s'il montre l'état courant ou l'action à venir. À 12 px sur un
+//   téléphone, l'ambiguïté ne se lève plus ; un point plein ou creux se lit sans
+//   être interprété.
 export function InterrupteurAffichage({
   actif,
   onToggle,
@@ -405,45 +394,33 @@ export function InterrupteurAffichage({
   // droite de la rangée des catégories.
   premier?: boolean;
 }) {
-  // ⚠️ Sur téléphone, c'est la [Pastille](../../ui/Pastille.tsx) de la
-  // librairie, sans un pixel de style local : l'état actif, la hauteur, la
-  // pression au clic viennent de là. Si la pastille change dans la librairie,
-  // ces trois interrupteurs changent avec elle — c'est tout l'objet.
-  if (surMobile) {
-    return (
-      <Pastille
-        actif={actif}
-        onClick={onToggle}
-        title={actif ? titreActif : titreInactif}
-        libelle={libelle}
-        puce
-      />
-    );
-  }
-
-  // ⚠️ Rendu de BUREAU, laissé à l'identique et volontairement HORS de la
-  // librairie : l'accent y marque l'état MASQUÉ, l'inverse de la pastille. Le
-  // faire entrer dans `Pastille` obligerait à y ajouter un drapeau qui inverse
-  // sa lecture — soit exactement l'option qui vide un composant partagé de son
-  // sens. Il migrera le jour où le bureau adoptera la même convention, pas avant.
+  // ⚠️ **UN SEUL composant pour les deux formats**, avec deux réglages qui
+  // diffèrent — et non deux écritures. Les deux se ramènent à un `BoutonGroupe`,
+  // donc la hauteur, la pression au clic et `aria-pressed` viennent du même
+  // endroit ; seuls la DÉCORATION et le SENS de l'accent changent.
+  //
+  // ⚠️ `actif={!actif}` sur bureau, et c'est tout l'écart : l'accent y marque
+  // l'état MASQUÉ (la chose coupée ressort, celle qu'on voit s'efface). Sur un
+  // écran large on embrasse la rangée d'un regard et l'inversion se rattrape ;
+  // sur trois pastilles serrées au doigt, elle se lit à l'envers — d'où le sens
+  // droit en mobile. C'est une inversion de la VALEUR passée, pas un drapeau
+  // ajouté au composant partagé : lui n'a rien à savoir de cette convention.
   return (
-    <button
+    <BoutonGroupe
+      actif={surMobile ? actif : !actif}
       onClick={onToggle}
-      aria-pressed={actif}
       title={actif ? titreActif : titreInactif}
-      data-hauteur-fixe
-      className={`flex h-7 items-center gap-1.5 rounded-full border px-2.5 text-xs transition
-        ${premier ? 'ml-auto' : ''}
-        ${
-          actif
-            ? 'border-border bg-panel text-ink-dim hoverable:text-ink hoverable:border-accent'
-            : // Fond seul — voir spec/shared/design.md.
-              'border-border bg-accent-soft text-ink'
-        }`}
-    >
-      {actif ? <Eye size={12} /> : <EyeOff size={12} />}
-      {libelle}
-    </button>
+      libelle={libelle}
+      // Une PUCE au doigt plutôt qu'un œil barré : ce pictogramme demande de se
+      // rappeler s'il montre l'état courant ou l'action à venir. À 12 px sur un
+      // téléphone, l'ambiguïté ne se lève plus ; un point plein ou creux se lit
+      // sans être interprété.
+      puce={surMobile}
+      icone={surMobile ? undefined : actif ? <Eye size={12} /> : <EyeOff size={12} />}
+      // Premier des trois : sur bureau il porte le `ml-auto` qui pousse le
+      // groupe à droite de la rangée des catégories.
+      className={!surMobile && premier ? 'ml-auto' : ''}
+    />
   );
 }
 

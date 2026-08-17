@@ -141,15 +141,34 @@ cinq axes ci-dessus.
 Ils n'ont **pas de style propre** : ce sont des `Bouton` dont certains axes sont
 fixés. Un changement dans `Bouton` les traverse tous sans qu'on y touche.
 
-**`Pastille`** — petite, cumulable, dans une rangée. Un filtre, un interrupteur
-d'affichage. Fixe `forme="pilule"`, `taille="sm"`, hauteur `h-7`, et ajoute la
-**puce** (pleine = affiché, creuse = coupé).
+**`BoutonGroupe`** — **le** bouton des rangées : un libellé, une icône
+**optionnelle** à gauche, des actions **optionnelles** accolées à droite. Une
+pilule de catégorie (puce + nom + éditer + supprimer), une pilule de lead
+(pourcentage + retirer), un filtre (« Sans lead »), un interrupteur d'affichage
+(« Vitesses »), un bouton d'ajout en pointillés.
 
-> ⚠️ **UN SEUL MARQUEUR sur la pastille active : le fond.** Elle cumulait fond +
-> bordure teintée + ombre — trois signaux pour dire une seule chose. Elle se
-> surlignait deux fois et bavait sur ses voisines. L'ombre part aussi : une
-> pastille active ne **décolle** pas de la page, l'élévation est réservée à ce
-> qui flotte.
+> ⚠️ **Un seul composant pour ces cinq-là**, alors qu'ils étaient cinq écritures
+> différentes. Ce qui les distingue n'est pas leur nature — ce sont tous des
+> boutons d'une même rangée, à la même hauteur — mais la seule présence ou
+> absence de décorations. Cela se dit avec deux props facultatives, pas avec cinq
+> composants. Et une rangée qui les mélange ne fait plus de **dents de scie**,
+> puisque la hauteur est écrite à un seul endroit.
+
+> ⚠️ **Le cadre porte le style, les boutons sont transparents dedans.** C'est une
+> contrainte du HTML avant d'être un choix : un `<button>` dans un `<button>` est
+> invalide. Le conteneur n'est donc pas un bouton — il dessine, ses enfants
+> agissent. Bénéfice au passage : aucune couture entre le bouton principal et ses
+> actions, là où trois boutons côte à côte laissent deux traits.
+
+> ⚠️ **UN SEUL MARQUEUR d'état : le fond.** Il cumulait fond + bordure teintée +
+> ombre — trois signaux pour dire une seule chose. Le bouton se surlignait deux
+> fois et bavait sur ses voisins. L'ombre part aussi : un bouton actif ne
+> **décolle** pas de la page, l'élévation est réservée à ce qui flotte.
+
+> ⚠️ Il pose `data-cible-fine` sur son bouton principal, et **c'est son cœur** :
+> sans lui, la règle tactile ne gonflerait pas ce bouton mais le **cadre** qui
+> l'enveloppe. Rien n'est perdu — le bouton occupe toute la surface du groupe
+> sauf les actions.
 
 **`BoutonIcone`** — réduit à son icône. ⚠️ `libelle` est **obligatoire et jamais
 dessiné** : il alimente `aria-label` et `title` à la fois. L'app comptait une
@@ -247,13 +266,12 @@ main, avec trois opacités différentes.
 Et l'inverse est vrai : **tout ne monte pas**. Restent délibérément hors
 librairie —
 
-- **Le rendu de bureau de `InterrupteurAffichage`** (RTA) : l'accent y marque
-  l'état **masqué**, l'inverse de la pastille. Le faire entrer demanderait un
-  drapeau qui inverse la lecture du composant — exactement l'option qui vide un
-  composant partagé de son sens. Il migrera le jour où le bureau adoptera la même
-  convention, pas avant.
-- **La pilule de lead SPD** : son dégradé `star` est un code couleur du
-  **domaine** (le lead de vitesse), pas un ton d'interface.
+- **Rien qui soit un bouton.** `InterrupteurAffichage` et la pilule de lead SPD
+  faisaient partie de cette liste ; ils n'en font plus. Le premier n'est
+  aujourd'hui qu'un **réglage** de `BoutonGroupe` — le sens de son accent
+  s'inverse entre les formats, ce qui se dit en passant `actif={!actif}`, pas en
+  ajoutant un drapeau au composant partagé. La seconde passe sa teinte de
+  domaine par `classNameActif`, prévu pour cela.
 - **Les cases de la palette de couleurs** : un aplat sans contenu ni libellé, dont
   le marqueur est un anneau et non une teinte. Un seul usage.
 - **Les entrées de la barre latérale** : ce sont des liens de NAVIGATION, pas des

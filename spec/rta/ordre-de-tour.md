@@ -130,12 +130,23 @@ vitesse_effective = (base + runes) + ceil( base × (15 + lead) / 100 )
 
 ## Rendu des cartes
 
-- Disposition **multi-lignes** (`flex flex-wrap`), cartes **horizontales** (~168 px),
-  style uniforme avec le siège.
-- Chaque carte : **badge de rang superposé** en haut à gauche, portrait hexagonal
-  + badge élément, nom, puis **icône vitesse + vitesse effective (blanc)** et les
-  **icônes de sets de runes** (4 pièces en premier). Champ SPD runes éditable **en
-  bas** (placeholder « + runes »).
+- Disposition **multi-lignes** (`flex flex-wrap`), **jamais de défilement
+  latéral** — y compris sous `lg` : le numéro d'ordre porte déjà la séquence,
+  quel que soit le rang de la carte dans la grille.
+- **Deux gabarits selon le POINTEUR** (`compact:`, pas une largeur d'écran) —
+  voir [shared/deux-applications.md](../shared/deux-applications.md) :
+  - **Souris** — carte **horizontale** (~168 px), style uniforme avec le siège.
+    Badge de rang superposé en haut à gauche, portrait hexagonal + badge élément,
+    **nom**, puis icône vitesse + vitesse effective (blanc) et les icônes de sets
+    de runes (4 pièces en premier). Champ SPD runes éditable en bas
+    (placeholder « + runes »).
+  - **Doigt** — carte **verticale et resserrée** (~86 px), portrait **centré**.
+    ⚠️ **Le nom n'a plus sa propre ligne** : douze cartes par écran avec un nom
+    tronqué chacune faisaient une grille dense et illisible, là où le portrait
+    seul se reconnaît d'un coup d'œil — comme le choix des monstres d'une
+    catégorie (voir [categories.md](categories.md)). Le nom reste dans le
+    `title` de la carte (combiné aux catégories), pour l'appui long et le
+    lecteur d'écran.
 - Pas d'icône éclair ; « base X » retiré pour épurer.
 
 ## Attendus

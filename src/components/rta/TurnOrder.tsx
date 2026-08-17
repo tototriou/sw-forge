@@ -412,19 +412,36 @@ export default function TurnOrder({
             return (
               <div
                 key={m.id}
+                // ⚠️ Sur MOBILE, le nom rejoint le `title` : il n'a plus de
+                // ligne à lui, mais reste à l'appui long et pour le lecteur
+                // d'écran. Sur bureau il reste écrit — voir plus bas.
                 title={
-                  catsOf(String(m.id)).length > 0
-                    ? catsOf(String(m.id))
-                        .map((c) => c.label)
-                        .join(' · ')
-                    : undefined
+                  surMobile
+                    ? catsOf(String(m.id)).length > 0
+                      ? `${m.name} — ${catsOf(String(m.id))
+                          .map((c) => c.label)
+                          .join(' · ')}`
+                      : m.name
+                    : catsOf(String(m.id)).length > 0
+                      ? catsOf(String(m.id))
+                          .map((c) => c.label)
+                          .join(' · ')
+                      : undefined
                 }
                 // ⚠️ Un monstre qui change de place se signale par son FOND
                 // orange, et rien d'autre. Repeindre la bordure entrait en
                 // concurrence avec l'anneau de catégories : deux informations
                 // au même endroit, on ne lisait plus ni l'une ni l'autre.
-                className={`relative flex-none w-[168px] rounded-xl border border-border p-2 flex flex-col gap-1.5 transition-colors
-                  ${moved ? 'bg-warn/20' : 'bg-panel2'}`}
+                //
+                // ⚠️ **Deux gabarits selon le POINTEUR, la refonte de cette
+                // section ne visant QUE le doigt.** Au clavier/à la souris, la
+                // carte garde son rendu d'avant, à l'identique — voir
+                // spec/shared/deux-applications.md.
+                className={`relative flex-none rounded-xl border border-border transition-colors ${
+                  surMobile
+                    ? 'w-[86px] p-1.5 flex flex-col items-center gap-1'
+                    : 'w-[168px] p-2 flex flex-col gap-1.5'
+                } ${moved ? 'bg-warn/20' : 'bg-panel2'}`}
               >
                 <CategoryRing colors={catsOf(String(m.id)).map((c) => c.color)} radius="rounded-xl" />
                 {/* numéro d'ordre superposé en haut à gauche */}
@@ -436,62 +453,123 @@ export default function TurnOrder({
                   {i + 1}
                 </span>
 
-                <div className="flex items-center gap-2">
-                  {/* portrait */}
-                  <div className="relative flex-none">
-                    <div
-                      className={`hex-frame w-[42px] h-[42px] p-[2px] bg-gradient-to-br ${RING[m.element]}`}
-                    >
-                      <div className="hex-frame w-full h-full bg-panel flex items-center justify-center overflow-hidden">
-                        {m.image ? (
-                          <img src={m.image} alt={m.name} className="w-full h-full object-cover" />
-                        ) : (
-                          <span className={`font-display font-bold text-sm ${TEXT[m.element]}`}>
-                            {initials(m.name)}
-                          </span>
-                        )}
+                {surMobile ? (
+                  <>
+                    {/* ⚠️ **Portrait CENTRÉ, le nom retiré.** Ce qu'on identifie
+                        d'un coup d'œil dans une grille dense, c'est l'image —
+                        comme dans le jeu, comme la grille de choix de catégorie
+                        (voir CategoryBar). Le nom reste dans le `title`. */}
+                    <div className="relative flex-none">
+                      <div
+                        className={`hex-frame w-[42px] h-[42px] p-[2px] bg-gradient-to-br ${RING[m.element]}`}
+                      >
+                        <div className="hex-frame w-full h-full bg-panel flex items-center justify-center overflow-hidden">
+                          {m.image ? (
+                            <img src={m.image} alt={m.name} className="w-full h-full object-cover" />
+                          ) : (
+                            <span className={`font-display font-bold text-sm ${TEXT[m.element]}`}>
+                              {initials(m.name)}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                      <ElementIcon
+                        element={m.element}
+                        size={15}
+                        className="absolute -top-1 -right-1 drop-shadow-[0_1px_2px_rgba(0,0,0,0.7)]"
+                      />
+                    </div>
+
+                    {showSpeed && (
+                      <div className="flex items-center gap-1">
+                        <img src={SPD_ICON} alt="SPD" width={13} height={13} className="flex-none" />
+                        <span className="font-mono text-sm font-black text-ink leading-none">
+                          {eff ?? '—'}
+                        </span>
+                      </div>
+                    )}
+
+                    {(it.entry.sets ?? []).length > 0 && (
+                      <div className="flex items-center justify-center gap-0.5">
+                        {(it.entry.sets ?? []).slice(0, 3).map((s, si) => (
+                          <RuneIcon key={si} setKey={s} size={14} className="flex-none" />
+                        ))}
+                      </div>
+                    )}
+
+                    {/* Saisie de la vitesse des runes — seulement sur SA prépa. */}
+                    {onRuneSpeed && (
+                      <NumberField
+                        value={it.entry.runeSpeed}
+                        allowEmpty
+                        min={0}
+                        placeholder="+ runes"
+                        width="w-12"
+                        ariaLabel={`SPD des runes de ${m.name}`}
+                        onChange={(v) => onRuneSpeed(String(m.id), v)}
+                      />
+                    )}
+                  </>
+                ) : (
+                  <>
+                    <div className="flex items-center gap-2">
+                      {/* portrait */}
+                      <div className="relative flex-none">
+                        <div
+                          className={`hex-frame w-[42px] h-[42px] p-[2px] bg-gradient-to-br ${RING[m.element]}`}
+                        >
+                          <div className="hex-frame w-full h-full bg-panel flex items-center justify-center overflow-hidden">
+                            {m.image ? (
+                              <img src={m.image} alt={m.name} className="w-full h-full object-cover" />
+                            ) : (
+                              <span className={`font-display font-bold text-sm ${TEXT[m.element]}`}>
+                                {initials(m.name)}
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                        <ElementIcon
+                          element={m.element}
+                          size={15}
+                          className="absolute -top-1 -right-1 drop-shadow-[0_1px_2px_rgba(0,0,0,0.7)]"
+                        />
+                      </div>
+
+                      <div className="min-w-0 flex-1">
+                        <div className="text-xs font-semibold leading-tight truncate" title={m.name}>
+                          {m.name}
+                        </div>
+                        <div className="flex items-center gap-1 mt-1">
+                          {showSpeed && (
+                            <>
+                              <img src={SPD_ICON} alt="SPD" width={15} height={15} className="flex-none" />
+                              <span className="font-mono text-base font-black text-ink leading-none">
+                                {eff ?? '—'}
+                              </span>
+                            </>
+                          )}
+                          {(it.entry.sets ?? []).slice(0, 3).map((s, si) => (
+                            <RuneIcon key={si} setKey={s} size={16} className="flex-none" />
+                          ))}
+                        </div>
                       </div>
                     </div>
-                    <ElementIcon
-                      element={m.element}
-                      size={15}
-                      className="absolute -top-1 -right-1 drop-shadow-[0_1px_2px_rgba(0,0,0,0.7)]"
-                    />
-                  </div>
 
-                  <div className="min-w-0 flex-1">
-                    <div className="text-xs font-semibold leading-tight truncate" title={m.name}>
-                      {m.name}
-                    </div>
-                    <div className="flex items-center gap-1 mt-1">
-                      {showSpeed && (
-                        <>
-                          <img src={SPD_ICON} alt="SPD" width={15} height={15} className="flex-none" />
-                          <span className="font-mono text-base font-black text-ink leading-none">
-                            {eff ?? '—'}
-                          </span>
-                        </>
-                      )}
-                      {(it.entry.sets ?? []).slice(0, 3).map((s, si) => (
-                        <RuneIcon key={si} setKey={s} size={16} className="flex-none" />
-                      ))}
-                    </div>
-                  </div>
-                </div>
-
-                {/* Saisie de la vitesse des runes — seulement sur SA prépa. */}
-                {onRuneSpeed && (
-                  <div className="flex justify-center">
-                    <NumberField
-                      value={it.entry.runeSpeed}
-                      allowEmpty
-                      min={0}
-                      placeholder="+ runes"
-                      width="w-14"
-                      ariaLabel={`SPD des runes de ${m.name}`}
-                      onChange={(v) => onRuneSpeed(String(m.id), v)}
-                    />
-                  </div>
+                    {/* Saisie de la vitesse des runes — seulement sur SA prépa. */}
+                    {onRuneSpeed && (
+                      <div className="flex justify-center">
+                        <NumberField
+                          value={it.entry.runeSpeed}
+                          allowEmpty
+                          min={0}
+                          placeholder="+ runes"
+                          width="w-14"
+                          ariaLabel={`SPD des runes de ${m.name}`}
+                          onChange={(v) => onRuneSpeed(String(m.id), v)}
+                        />
+                      </div>
+                    )}
+                  </>
                 )}
               </div>
             );

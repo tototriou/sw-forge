@@ -158,6 +158,9 @@ export default function CreateMonster({ onCreate, customMonsters, onDelete }: Pr
   // liste des monstres perso s'affiche en dessous, et « Créer » s'y retrouvait
   // au milieu du contenu — au-dessus d'une liste de dix monstres, on ne le
   // trouvait plus.
+  // ⚠️ **PAS de `pleineLargeur`** : le pied taque ses boutons à DROITE, et un
+  // bouton étiré occupe toute la largeur — il ne peut donc plus l'être. La
+  // pleine largeur revient d'elle-même sous `sm`, où le pied s'empile.
   const actionCreer = (
     <Bouton
       onClick={submit}
@@ -165,7 +168,6 @@ export default function CreateMonster({ onCreate, customMonsters, onDelete }: Pr
       ton="accent"
       fond="doux"
       trait="aucun"
-      pleineLargeur
       icone={<Plus size={14} />}
       libelle="Créer"
     />

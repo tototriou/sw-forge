@@ -3,10 +3,9 @@ import { Plus, Pencil, Trash2, Check, X, Eye, EyeOff } from 'lucide-react';
 import { Monster } from '../../types';
 import MonsterAvatar from '../MonsterAvatar';
 import { RtaCategory, UseRtaCategories, MAX_CATEGORIES_PER_MONSTER } from '../../hooks/useRtaCategories';
-import { ConfirmDialog } from '../../ui/Dialogs';
+import { ConfirmDialog, Modale } from '../../ui/Dialogs';
 import { useRecalageEcran } from '../../hooks/useRecalageEcran';
 import { useMediaQuery, SOUS_LG } from '../../hooks/useMediaQuery';
-import MobileSheet from '../../ui/MobileSheet';
 import { Bouton, BoutonGroupe, BoutonIcone, Champ, Flottant, Vignette } from '../../ui';
 
 // Palette FERMÉE plutôt qu'un sélecteur de couleur libre : le contrôle natif
@@ -478,6 +477,7 @@ function CategoryPopover({
 
   const formulaire = (
     <form
+      id="categorie-form"
       onSubmit={(e) => {
         e.preventDefault();
         onSubmit(label, color);
@@ -535,13 +535,11 @@ function CategoryPopover({
         })}
       </div>
 
-      {/* ⚠️ Dans le panneau, « Valider » occupe TOUTE la largeur et « Annuler »
-          passe dessous, en retrait. C'est l'action qu'on vient faire : elle se
-          place là où le pouce tombe, et rien à côté d'elle ne peut être touché
-          par erreur. En popup les deux restent sur une ligne — la souris vise au
-          pixel, et la hauteur y coûte plus qu'elle ne rapporte. */}
-      <div className="mt-2.5 flex items-center gap-1.5
-                      compact:mt-4 compact:flex-col-reverse compact:gap-2">
+      {/* ⚠️ Les boutons ne sont ICI que pour la popup de BUREAU, où le
+          formulaire est tout le contenu. Sur téléphone ils vivent dans le pied
+          de la modale (voir `actions` plus bas) : `lg:` les garde côté souris,
+          `hidden` les retire au doigt pour ne pas les afficher deux fois. */}
+      <div className="mt-2.5 hidden items-center gap-1.5 lg:flex">
         <Bouton
           type="submit"
           ton="accent"
@@ -549,7 +547,7 @@ function CategoryPopover({
           disabled={!label.trim()}
           taille="sm"
           libelle="Valider"
-          className="flex-1 compact:w-full compact:py-3 compact:text-sm"
+          className="flex-1"
         />
         {/* ⚠️ Sans fond ni trait : l'action à côté de « Valider » ne doit pas lui
             disputer le regard — elle est là pour être trouvée, pas pour être
@@ -560,26 +558,55 @@ function CategoryPopover({
           taille="sm"
           onClick={onClose}
           libelle="Annuler"
-          className="compact:w-full compact:py-2.5"
+          libelleAuDoigt
         />
       </div>
     </form>
   );
 
-  // ⚠️ Sur téléphone, le formulaire arrive dans le panneau montant de l'app —
-  // le même objet que les filtres et les actions, ouvert au même endroit. Une
-  // popup ancrée y était le mauvais geste : elle s'ouvre là où le doigt a tapé,
-  // souvent hors de portée du pouce pour la valider.
+  // Actions du PIED de la modale — téléphone seulement.
+  //
+  // ⚠️ `form="categorie-form"` sur « Valider » : le bouton vit dans le pied,
+  // hors du `<form>` qui est dans le corps. Cet attribut les relie — sans lui,
+  // « Valider » ne soumettrait rien.
+  const actions = (
+    <>
+      <Bouton fond="vide" trait="aucun" taille="sm" onClick={onClose} libelle="Annuler" />
+      <Bouton
+        type="submit"
+        form="categorie-form"
+        ton="accent"
+        fond="doux"
+        disabled={!label.trim()}
+        taille="sm"
+        libelle="Valider"
+      />
+    </>
+  );
+
+  // ⚠️ **Sur téléphone : une MODALE**, la même grammaire que la création de
+  // monstre — titre à gauche, croix en haut à droite, actions taquées à droite
+  // en bas. Le panneau montant y servait de contenant, mais il dessinait son
+  // propre en-tête : deux formulaires voisins, deux façons d'être coiffés.
+  //
+  // Une popup ancrée, elle, était le mauvais geste au doigt : elle s'ouvre là
+  // où le doigt a tapé, souvent hors de portée du pouce pour la valider.
+  //
+  // ⚠️ Le rendu de BUREAU ne change pas : il garde sa popup ancrée à la pilule
+  // qu'on édite (voir plus bas). On y voit la rangée derrière, on sait sur quoi
+  // on agit, et la souris est déjà là.
   if (surMobile) {
     return (
-      <MobileSheet
-        ouvert
-        centre
-        onFermer={onClose}
+      <Modale
+        onClose={onClose}
+        labelledBy="categorie-titre"
         titre={initial.label ? 'Modifier la catégorie' : 'Nouvelle catégorie'}
+        largeur="max-w-[340px]"
+        croix
+        actions={actions}
       >
         {formulaire}
-      </MobileSheet>
+      </Modale>
     );
   }
 

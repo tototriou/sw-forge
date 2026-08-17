@@ -232,11 +232,15 @@ export function Modale({
                 plutôt que de l'entamer, sinon le titre perd 28 px de largeur au
                 profit d'un bouton qui n'en a pas besoin. */}
             {croix && (
+              // ⚠️ `ml-auto` EN PLUS du `flex-1` du bloc de titre : la mise à
+              // droite ne doit pas dépendre d'un voisin. Un titre absent, ou un
+              // bloc qui cesserait de s'étirer, ramenait la croix contre le
+              // texte — au milieu de la boîte, là où on ne la cherche pas.
               <BoutonIcone
                 onClick={onClose}
                 libelle="Fermer"
                 icone={<X size={18} />}
-                className="-mr-1 -mt-1 flex-none hoverable:bg-transparent"
+                className="-mr-1 -mt-1 ml-auto flex-none hoverable:bg-transparent"
               />
             )}
           </div>
@@ -257,12 +261,15 @@ export function Modale({
           className={`flex min-h-0 flex-1 flex-col overflow-y-auto ${padding} ${
             titre || croix ? 'pt-0' : ''
           } ${actions ? 'pb-2' : ''} ${
-            // ⚠️ `[&>*]:w-full` force les enfants DIRECTS à s'étirer : un `<form>`
-            // ou un `<div>` ne prend que la largeur de son contenu dans un
-            // conteneur flex en colonne, d'où les formulaires qui flottaient à
-            // gauche avec du vide à droite. En mode centré, on ne force rien —
-            // c'est justement que le contenu doit garder sa taille.
-            corpsCentre ? 'items-center' : '[&>*]:w-full'
+            // ⚠️ **`items-stretch` explicite, et non un variant arbitraire.**
+            // J'avais écrit `[&>*]:w-full` : Tailwind ne l'a JAMAIS émis, parce
+            // qu'il lit le source comme du texte et n'y reconnaît pas `>` et `*`
+            // comme des caractères de classe. La règle était morte sans que rien
+            // ne le signale — vérifier dans le CSS construit, pas dans le TSX.
+            // `stretch` fait le même travail et est une classe ordinaire : dans
+            // un conteneur flex en colonne, les enfants prennent alors toute la
+            // largeur au lieu de celle de leur contenu.
+            corpsCentre ? 'items-center' : 'items-stretch'
           }`}
         >
           {children}

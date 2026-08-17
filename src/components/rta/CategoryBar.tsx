@@ -539,7 +539,16 @@ function CategoryPopover({
           formulaire est tout le contenu. Sur téléphone ils vivent dans le pied
           de la modale (voir `actions` plus bas) : `lg:` les garde côté souris,
           `hidden` les retire au doigt pour ne pas les afficher deux fois. */}
-      <div className="mt-2.5 hidden items-center gap-1.5 lg:flex">
+      {/* ⚠️ **« Valider » taqué à DROITE, « Annuler » à sa gauche** — le même
+          ordre que dans le pied de la modale, donc la même main au même endroit
+          quel que soit le format. Il était inversé ici, et « Valider » y était
+          de surcroît ÉTIRÉ (`flex-1`) : une action étirée occupe toute la
+          largeur, elle ne peut donc plus être taquée. */}
+      <div className="mt-2.5 hidden items-center justify-end gap-1.5 lg:flex">
+        {/* ⚠️ Sans fond ni trait : l'action à côté de « Valider » ne doit pas lui
+            disputer le regard — elle est là pour être trouvée, pas pour être
+            proposée. */}
+        <Bouton fond="vide" trait="aucun" taille="sm" onClick={onClose} libelle="Annuler" />
         <Bouton
           type="submit"
           ton="accent"
@@ -547,18 +556,6 @@ function CategoryPopover({
           disabled={!label.trim()}
           taille="sm"
           libelle="Valider"
-          className="flex-1"
-        />
-        {/* ⚠️ Sans fond ni trait : l'action à côté de « Valider » ne doit pas lui
-            disputer le regard — elle est là pour être trouvée, pas pour être
-            proposée. */}
-        <Bouton
-          fond="vide"
-          trait="aucun"
-          taille="sm"
-          onClick={onClose}
-          libelle="Annuler"
-          libelleAuDoigt
         />
       </div>
     </form>

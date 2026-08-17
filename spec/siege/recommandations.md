@@ -109,8 +109,14 @@ l'inventaire d'artéfacts (voir [../compte/artefacts.md](../compte/artefacts.md)
 sous les actions) — la carte reste à la **recherche**, le contrôle qu'on veut
 sous le pouce sans ouvrir un panneau. À la souris, rien ne change : les trois
 rangées restent réunies sur la page. Rendu **une seule fois**
-(`origineFilter`), posé aux deux endroits — même geste que `actions` et
-`effacer`.
+(`origineFilter(pleineLargeur)`), posé aux deux endroits — même geste que
+`actions` et `effacer`.
+
+⚠️ **Pleine largeur dans le panneau**, pas à sa taille propre : seul contrôle
+de sa ligne, il y flotterait sinon dans une bande vide. `Segmented` passe en
+`size="lg"` (chaque cran se partage la largeur à égalité) et l'intitulé
+« Origine » monte au-dessus plutôt qu'à côté. À la souris, il garde sa taille
+`sm` et son intitulé de largeur fixe, à côté des autres rangées.
 
 - ⚠️ **Ils étaient posés à trois niveaux différents, sans intitulé** : trois
   objets flottants dont rien ne disait qu'ils portaient sur la même liste ni

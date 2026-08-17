@@ -397,12 +397,17 @@ export default function RecoBoard({
   // même page doivent avoir le même cadre, le même rayon et la même taille de
   // texte. Rendu une seule fois, posé à deux endroits selon la largeur (voir
   // plus bas) — même geste que `actions` et `effacer`.
-  const origineFilter = (
-    <>
-      <span className="w-[76px] flex-none label">Origine</span>
+  // ⚠️ `pleineLargeur` : au doigt, dans le panneau « Options », le cran prend
+  // TOUTE la largeur (`Segmented` en `size="lg"`, intitulé au-dessus plutôt
+  // qu'à côté) — c'est le seul contrôle de cette ligne, le laisser à sa
+  // largeur propre le fait flotter dans une bande vide. À la souris, il garde
+  // sa place à côté de son intitulé, dans la rangée des autres filtres.
+  const origineFilter = (pleineLargeur: boolean) => {
+    const segmented = (
       <Segmented
         value={filter}
         onChange={setFilter}
+        size={pleineLargeur ? 'lg' : 'sm'}
         options={FILTERS.map((f) => ({
           key: f.key,
           label: f.label,
@@ -413,8 +418,19 @@ export default function RecoBoard({
           suffix: <span className="font-mono text-micro text-ink-dim">{counts[f.key]}</span>,
         }))}
       />
-    </>
-  );
+    );
+    return pleineLargeur ? (
+      <div className="w-full">
+        <span className="label mb-1 block">Origine</span>
+        {segmented}
+      </div>
+    ) : (
+      <>
+        <span className="w-[76px] flex-none label">Origine</span>
+        {segmented}
+      </>
+    );
+  };
 
   // ⚠️ « Tout effacer » reste SÉPARÉ : dans la page il se pose à l'opposé
   // (`ml-auto`), loin des gestes de construction. Un bouton destructeur ne se
@@ -455,9 +471,7 @@ export default function RecoBoard({
         {/* ⚠️ Origine AU DOIGT : descendue ici plutôt que sur la page, qui garde
             la carte pour la recherche — voir `origineFilter` plus haut. */}
         {all.length > 0 && (
-          <div className="mt-4 flex flex-wrap items-center gap-2 border-t border-border pt-3">
-            {origineFilter}
-          </div>
+          <div className="mt-4 border-t border-border pt-3">{origineFilter(true)}</div>
         )}
         {all.length > 0 && (
           <div data-zone-destructive className="mt-4 border-t border-border pt-3">
@@ -541,7 +555,7 @@ export default function RecoBoard({
               bas — pour laisser la carte à la recherche, qui reste le contrôle
               qu'on veut sous le pouce sans avoir à ouvrir un panneau. Rendu une
               seule fois (`origineFilter`), posé aux deux endroits. */}
-          <div className="hidden lg:flex flex-wrap items-center gap-2">{origineFilter}</div>
+          <div className="hidden lg:flex flex-wrap items-center gap-2">{origineFilter(false)}</div>
 
           {/* Composition cherchée. */}
           <div className="flex flex-wrap items-center gap-2">

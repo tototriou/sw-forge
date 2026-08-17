@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { useRecalageEcran } from '../hooks/useRecalageEcran';
 import { COMPACT, useMediaQuery } from '../hooks/useMediaQuery';
 import MobileSheet from './MobileSheet';
+import { ConfirmDialog } from './Dialogs';
 import { Plus, X, Wand2 } from 'lucide-react';
 import { ELEMENTS, ElementKey, Monster } from '../types';
 import { CustomLead } from '../hooks/useCustomMonsters';
@@ -30,6 +31,13 @@ interface Props {
 
 // Bouton + formulaire pour créer un monstre perso (nom, élément, SPD de base).
 export default function CreateMonster({ onCreate, customMonsters, onDelete }: Props) {
+  // ⚠️ La suppression d'un monstre créé à la main demande une CONFIRMATION : il
+  // n'existe nulle part ailleurs. Contrairement à un monstre du jeu, qu'on
+  // retrouve dans les données, celui-ci part avec son nom, son élément et sa
+  // vitesse — il faut le ressaisir en entier.
+  const [suppressionAConfirmer, setSuppressionAConfirmer] = useState<
+    { id: string; nom: string } | null
+  >(null);
   const [open, setOpen] = useState(false);
   const [name, setName] = useState('');
   const [element, setElement] = useState<ElementKey>('fire');
@@ -208,7 +216,7 @@ export default function CreateMonster({ onCreate, customMonsters, onDelete }: Pr
                     <span className="truncate flex-1">{m.name}</span>
                     <span className="font-mono text-ink-dim">SPD {m.stats.speed ?? '—'}</span>
                     <button
-                      onClick={() => onDelete(String(m.id))}
+                      onClick={() => setSuppressionAConfirmer({ id: String(m.id), nom: m.name })}
                       className="text-ink-dim hoverable:text-fire flex-none"
                       title="Supprimer"
                       aria-label="Supprimer"
@@ -342,7 +350,7 @@ export default function CreateMonster({ onCreate, customMonsters, onDelete }: Pr
                     <span className="truncate flex-1">{m.name}</span>
                     <span className="font-mono text-ink-dim">SPD {m.stats.speed ?? '—'}</span>
                     <button
-                      onClick={() => onDelete(String(m.id))}
+                      onClick={() => setSuppressionAConfirmer({ id: String(m.id), nom: m.name })}
                       className="text-ink-dim hoverable:text-fire flex-none"
                       title="Supprimer"
                       aria-label="Supprimer"
@@ -355,6 +363,22 @@ export default function CreateMonster({ onCreate, customMonsters, onDelete }: Pr
             </div>
           )}
         </div>
+      )}
+
+      {/* ⚠️ Hors des deux blocs conditionnels : le même dialogue sert la popup
+          de bureau ET le panneau mobile, qui affichent chacun leur liste. */}
+      {suppressionAConfirmer && (
+        <ConfirmDialog
+          titre={`Supprimer ${suppressionAConfirmer.nom} ?`}
+          message="Ce monstre a été créé à la main : il n'existe pas dans les données du jeu et devra être ressaisi en entier. Les équipes qui l'utilisaient perdent leur emplacement."
+          libelleAction="Supprimer"
+          destructif
+          onCancel={() => setSuppressionAConfirmer(null)}
+          onConfirm={() => {
+            onDelete(suppressionAConfirmer.id);
+            setSuppressionAConfirmer(null);
+          }}
+        />
       )}
     </div>
   );

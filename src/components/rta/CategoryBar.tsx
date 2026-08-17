@@ -41,6 +41,11 @@ export default function CategoryBar({ cats, monsters }: Props) {
   const [editId, setEditId] = useState<string | null>(null); // catégorie en édition
   const [creating, setCreating] = useState(false);
   const [aSupprimer, setASupprimer] = useState<{ id: string; label: string } | null>(null);
+  // ⚠️ « Tout décocher » demande une CONFIRMATION : il retire d'un coup ce qu'on
+  // a coché un monstre à la fois, et il n'y a pas d'annulation.
+  const [viderAConfirmer, setViderAConfirmer] = useState<
+    { id: string; label: string; n: number } | null
+  >(null);
   // ⚠️ La refonte de cette barre ne vise QUE le téléphone : le rendu de bureau
   // reste celui d'avant, à l'identique. Ce qui change tient à la place et au
   // doigt — un écran large n'a ni l'une ni l'autre contrainte, et déplacer ses
@@ -248,7 +253,7 @@ export default function CategoryBar({ cats, monsters }: Props) {
             </span>
             {countOf(open) > 0 && (
               <button
-                onClick={() => cats.clearMembers(open.id)}
+                onClick={() => setViderAConfirmer({ id: open.id, label: open.label, n: countOf(open) })}
                 className="ml-auto flex h-6 items-center gap-1 rounded-full border border-border bg-panel
                            px-2 text-micro text-ink-dim transition hoverable:border-fire/60 hoverable:text-fire"
                 title="Retirer tous les monstres de cette catégorie"
@@ -335,6 +340,20 @@ export default function CategoryBar({ cats, monsters }: Props) {
             </div>
           )}
         </div>
+      )}
+
+      {viderAConfirmer && (
+        <ConfirmDialog
+          titre={`Retirer les ${viderAConfirmer.n} monstres de « ${viderAConfirmer.label} » ?`}
+          message="La catégorie reste, mais elle se vide. Les monstres ne sont pas retirés de ta prépa — c'est leur appartenance à cette catégorie qui part, et elle se recoche un monstre à la fois."
+          libelleAction="Tout retirer"
+          destructif
+          onCancel={() => setViderAConfirmer(null)}
+          onConfirm={() => {
+            cats.clearMembers(viderAConfirmer.id);
+            setViderAConfirmer(null);
+          }}
+        />
       )}
 
       {aSupprimer && (

@@ -267,6 +267,37 @@ Quatre keyframes, déclarés une fois dans `index.css` :
 - ⚠️ **La boîte de dialogue fait exception** et reste centrée : elle n'a pas
   d'ancre, elle ne sort d'aucun bouton.
 
+### Ce qui se confirme, et ce qui ne se confirme pas
+
+⚠️ **Un geste se confirme quand ce qu'il détruit ne se retrouve pas.** Le critère
+n'est pas le mot « supprimer » sur le bouton, c'est le coût de l'erreur.
+
+**Se confirme** — la donnée est saisie à la main et perdue sans retour :
+
+| Geste | Ce qui part |
+|-------|-------------|
+| Retirer un monstre d'une prépa RTA ou d'un slot de siège | Sa vitesse saisie, son tick, son classement |
+| Supprimer un monstre créé à la main | Le monstre entier : il n'existe pas dans les données du jeu |
+| Supprimer une section RTA | Le classement — les monstres, eux, reviennent en « Non classé » |
+| Supprimer / vider une catégorie | L'appartenance, cochée un monstre à la fois |
+| Supprimer une équipe, un deck, une recommandation | Leur composition |
+| Effacer les données du compte | Tout |
+
+**Ne se confirme PAS** — l'état se repose en un geste :
+
+| Geste | Pourquoi |
+|-------|----------|
+| Effacer un filtre (sets, slots, éléments) | Un clic pour le reposer |
+| Vider une recherche | Idem |
+| Retirer un critère de recherche | C'est un critère, pas une donnée |
+| Retirer un lead de l'ordre de tour | Il revient en le retapant |
+| Retirer un set d'une combinaison en édition | Le geste EST le sujet de l'écran |
+
+⚠️ **Confirmer partout est pire que ne confirmer nulle part.** À force d'en voir,
+on valide sans lire — et celle qui compte vraiment passe inaperçue. Deux clics
+pour annuler un filtre useraient la patience qu'on veut garder pour l'effacement
+d'une prépa.
+
 ### Bloquer le défilement derrière un flottant
 
 ⚠️ **Par `useScrollBloque`, jamais à la main.** Chaque composant mémorisait la

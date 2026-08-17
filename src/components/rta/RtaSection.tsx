@@ -3,6 +3,7 @@ import { X } from 'lucide-react';
 import { RTA_OTHER, RTA_UNASSIGNED } from '../../types';
 import RuneIcon from '../RuneIcon';
 import AccordionGrid from '../AccordionGrid';
+import { ConfirmDialog } from '../Dialogs';
 
 interface Props {
   sectionKey: string;
@@ -52,6 +53,12 @@ export default function RtaSection({
     if (id) onDropMonster(sectionKey, id);
   }
 
+  // ⚠️ La suppression d'une section demande une CONFIRMATION. Elle ne perd
+  // aucun monstre — ils reviennent en « Non classé » —, mais elle perd le
+  // CLASSEMENT, qui est le travail qu'on vient faire sur cet écran : une section
+  // de vingt monstres se reconstitue un par un.
+  const [suppressionAConfirmer, setSuppressionAConfirmer] = useState(false);
+
   return (
     <section
       onDragOver={(e) => e.preventDefault()}
@@ -76,7 +83,7 @@ export default function RtaSection({
         <span className="font-mono text-ink-dim text-micro">{count}</span>
         {removable && onRemoveSection && (
           <button
-            onClick={() => onRemoveSection(sectionKey)}
+            onClick={() => setSuppressionAConfirmer(true)}
             className="ml-auto flex items-center gap-1 text-ink-dim hoverable:text-fire text-micro transition"
             title="Supprimer la section (les monstres reviennent en Non classé)"
           >
@@ -84,6 +91,24 @@ export default function RtaSection({
           </button>
         )}
       </div>
+
+      {suppressionAConfirmer && (
+        <ConfirmDialog
+          titre={`Supprimer la section « ${label} » ?`}
+          message={
+            count > 0
+              ? `Ses ${count} monstre(s) reviennent en « Non classé » — aucun n'est retiré de ta prépa. C'est le CLASSEMENT qui est perdu, et il se refait un monstre à la fois.`
+              : 'Cette section est vide. Les autres ne sont pas touchées.'
+          }
+          libelleAction="Supprimer"
+          destructif
+          onCancel={() => setSuppressionAConfirmer(false)}
+          onConfirm={() => {
+            setSuppressionAConfirmer(false);
+            onRemoveSection?.(sectionKey);
+          }}
+        />
+      )}
 
       {count === 0 ? (
         <div className="rounded-xl border border-dashed border-border/70 py-6 text-center text-ink-dim text-xs">

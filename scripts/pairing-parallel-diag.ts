@@ -107,16 +107,35 @@ async function main() {
         explored = res.explored;
         found = res.candidates.length;
       } else {
-        // Découpage ROUND-ROBIN de bucketsA (pas contigu) : les compartiments
-        // sont triés par potentiel décroissant (voir buildBuckets), un
-        // découpage contigu donnerait au worker 0 tous les "meilleurs"
-        // compartiments et au dernier tous les "pires" — round-robin répartit
-        // la charge plus uniformément entre workers.
+        // ⚠️ Round-robin par RANG (première version) donnait un budget ÉGAL
+        // à des tranches de travail INÉGALES (un compartiment peut contenir
+        // jusqu'à bucketCap² paires brutes, un autre bien moins) — un worker
+        // pouvait s'arrêter AU MILIEU d'un compartiment disproportionné,
+        // là où le séquentiel ne se serait jamais arrêté à cet endroit précis.
+        // Corrigé en DEUX temps : (1) répartition GLOUTONNE par charge réelle
+        // (nombre de combos, LPT — Longest Processing Time first : les plus
+        // gros compartiments d'abord, toujours au worker le moins chargé),
+        // pas par rang ; (2) budget PROPORTIONNEL à la charge assignée à
+        // CHAQUE worker, pas un partage égal aveugle — pour que le point
+        // d'arrêt de chaque worker corresponde à la même PROFONDEUR relative
+        // que le séquentiel aurait atteinte dans ce même sous-ensemble.
+        const withWorkload = bucketsA.map((b) => ({ b, workload: b.combos.length }));
+        withWorkload.sort((a, b) => b.workload - a.workload);
         const slices: Bucket[][] = Array.from({ length: n }, () => []);
-        bucketsA.forEach((b, i) => slices[i % n].push(b));
-        const perWorkerBudget = Math.round(TOTAL_BUDGET / n);
+        const sliceWorkload = new Array(n).fill(0);
+        for (const { b, workload } of withWorkload) {
+          let target = 0;
+          for (let i = 1; i < n; i++) if (sliceWorkload[i] < sliceWorkload[target]) target = i;
+          slices[target].push(b);
+          sliceWorkload[target] += workload;
+        }
+        const totalWorkload = sliceWorkload.reduce((s, w) => s + w, 0);
         const results = await Promise.all(
-          slices.map((slice) => runWorker(workerScript, { params, bucketASlice: slice, bucketsB, nodeBudgetMax: perWorkerBudget }))
+          slices.map((slice, i) => {
+            const share = totalWorkload > 0 ? sliceWorkload[i] / totalWorkload : 1 / n;
+            const nodeBudgetMax = Math.max(1, Math.round(TOTAL_BUDGET * share));
+            return runWorker(workerScript, { params, bucketASlice: slice, bucketsB, nodeBudgetMax });
+          })
         );
         explored = results.reduce((s, r) => s + r.explored, 0);
         found = results.reduce((s, r) => s + r.foundCount, 0);

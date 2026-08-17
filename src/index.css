@@ -959,15 +959,16 @@ button:not(:disabled):not([draggable]):not([role='switch']):active,
   padding-right: 0.375rem;
 }
 
-/* ⚠️ **« Tout effacer » est CENTRÉ en bas du panneau**, pas aligné à gauche
-   comme les actions au-dessus. Il n'appartient pas à leur colonne : il est
-   détaché sous un filet, en dernier, et c'est le seul geste destructeur de
-   l'écran. Centré, il se lit comme une sortie de secours plutôt que comme une
-   action de plus dans la liste — et rien ne se trouve à côté de lui qu'on
-   pourrait toucher à sa place. */
+/* ⚠️ **« Tout effacer » occupe TOUTE LA LARGEUR en bas du panneau**, alors que
+   les actions au-dessus gardent la largeur de leur texte. Il n'appartient pas à
+   leur colonne : il est détaché sous un filet, en dernier, et c'est le seul
+   geste destructeur de l'écran.
+   Il a d'abord été CENTRÉ à sa largeur propre — il y flottait alors au milieu
+   d'une bande vide dont rien n'expliquait la présence. Étalé, il se lit comme
+   une barre de sortie plutôt que comme une action de plus dans la liste, et
+   rien ne se trouve à côté de lui qu'on pourrait toucher à sa place. */
 [data-tiroir] [data-zone-destructive] {
   display: flex;
-  justify-content: center;
 }
 
 [data-tiroir] [data-zone-destructive] > button {

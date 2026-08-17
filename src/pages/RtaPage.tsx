@@ -244,6 +244,11 @@ export default function RtaPage({
       ton="danger"
       fond={dansLePanneau ? 'doux' : 'vide'}
       trait={dansLePanneau ? 'plein' : 'aucun'}
+      // ⚠️ PLEINE LARGEUR dans le panneau : il y est seul sur sa ligne, sous un
+      // filet. À sa largeur propre, il flottait au milieu d'une bande vide dont
+      // rien n'expliquait la présence. Dans la PAGE il garde sa taille — il y
+      // vit au bout d'une rangée d'autres actions.
+      pleineLargeur={dansLePanneau}
       taille="sm"
       icone={<Trash2 size={13} />}
       libelle="Tout effacer"

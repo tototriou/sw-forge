@@ -759,6 +759,13 @@ y a quelque chose à lire — et se ferme par une croix.
   **ou** « Tout exporter ». Produit le **fichier `.json`**. Une recommandation
   dont **aucun deck** n'a de monstre n'est pas exportable ; le message récapitule
   « N recommandation(s) · M deck(s) ».
+  - ⚠️ **Se confirme, malgré l'absence de perte locale.** Rien ne disparaît sur
+    l'appareil — mais c'est un geste vers l'EXTÉRIEUR : un fichier écrit sur le
+    disque, prêt à être partagé. La modale dit CE QUI VA SORTIR (combien de
+    recommandations, combien de decks) **avant** que ça parte, plutôt qu'un
+    message après coup qu'on ne lit qu'une fois le fichier déjà sur le disque.
+    Ton **neutre**, pas `destructif` : ce n'est pas la même nature de geste
+    qu'un effacement, même si les deux se confirment.
 - **Importer** (icône **Download ↓**) : ouvre **directement le sélecteur de
   fichier** `.json` — pas d'écran intermédiaire, pas de zone de collage. Le
   contenu passe par le validateur (voir ci-dessous) ; espaces et retours ligne

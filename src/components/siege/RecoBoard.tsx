@@ -227,12 +227,25 @@ export default function RecoBoard({
     return entry && entry.reco === reco && entry.builds === builds ? entry.match : null;
   };
 
-  function handleExport(list: Reco[], label: string) {
+  // ⚠️ **Confirmation avant l'export**, même s'il ne détruit rien sur place :
+  // c'est un geste vers l'EXTÉRIEUR (un fichier qui part sur le disque, prêt à
+  // être partagé), et la confirmation dit CE QUI VA SORTIR — combien de
+  // recommandations, combien de decks — avant que ça parte, plutôt qu'un
+  // message après coup qu'on ne lit qu'une fois le fichier déjà écrit.
+  const [exportAConfirmer, setExportAConfirmer] = useState<{
+    list: Reco[];
+    label: string;
+    usable: Reco[];
+    decks: number;
+  } | null>(null);
+
+  function requestExport(list: Reco[], label: string) {
     // Une reco n'est exportable que si au moins un de ses decks a un monstre.
     const usable = list.filter((r) =>
       r.decks.some((d) => d.slots.some((s) => s.com2usId != null))
     );
     if (usable.length === 0) {
+      // Rien à confirmer : l'export échouerait de toute façon.
       setMsg({ text: 'Rien à exporter : ajoute au moins un monstre.', error: true });
       return;
     }
@@ -240,12 +253,19 @@ export default function RecoBoard({
       (n, r) => n + r.decks.filter((d) => d.slots.some((s) => s.com2usId != null)).length,
       0
     );
+    setExportAConfirmer({ list, label, usable, decks });
+  }
+
+  function handleExport() {
+    if (!exportAConfirmer) return;
+    const { usable, label, decks } = exportAConfirmer;
     // Un seul format ET un seul support : le fichier .json. Plus de copie au
     // presse-papier — l'import ne lit que des fichiers, un contenu collé
     // n'aurait nulle part où aller.
     const what = `${usable.length} recommandation(s) · ${decks} deck(s)`;
     download(`swforge-reco-${slugify(label)}.json`, encodeRecosJson(usable));
     setMsg({ text: `${what} · fichier .json téléchargé.` });
+    setExportAConfirmer(null);
   }
 
   // JSON uniquement, et **par fichier uniquement** : pas de zone de collage.
@@ -348,7 +368,7 @@ export default function RecoBoard({
 
       {list.length > 0 && (
         <Bouton
-          onClick={() => handleExport(list, filter === 'all' ? 'toutes' : filter)}
+          onClick={() => requestExport(list, filter === 'all' ? 'toutes' : filter)}
           icone={<Upload size={15} />}
           // ⚠️ Le LIBELLÉ NE CHANGE PAS avec le filtre. Un bouton qui se
           // renomme sous le curseur se lit comme un autre bouton : on cesse de
@@ -421,6 +441,27 @@ export default function RecoBoard({
             setEffacementAConfirmer(false);
             recos.clearAll();
           }}
+        />
+      )}
+
+      {/* ⚠️ Pas `destructif` : rien ne disparaît sur cet appareil, un fichier
+          part seulement sur le disque. Le ton neutre le distingue d'un
+          effacement — même si les deux se confirment. */}
+      {exportAConfirmer && (
+        <ConfirmDialog
+          titre={
+            exportAConfirmer.usable.length > 1
+              ? `Exporter ${exportAConfirmer.usable.length} recommandations ?`
+              : `Exporter « ${exportAConfirmer.usable[0].name || 'cette recommandation'} » ?`
+          }
+          message={`${exportAConfirmer.usable.length} recommandation${
+            exportAConfirmer.usable.length > 1 ? 's' : ''
+          } · ${exportAConfirmer.decks} deck${
+            exportAConfirmer.decks > 1 ? 's' : ''
+          } seront réunis dans un fichier .json téléchargé sur cet appareil.`}
+          libelleAction="Exporter"
+          onCancel={() => setExportAConfirmer(null)}
+          onConfirm={handleExport}
         />
       )}
 
@@ -708,7 +749,7 @@ export default function RecoBoard({
                 hit={hitPar.get(reco.id) ?? null}
                 editing={editingId === reco.id}
                 onToggleEdit={(id) => setEditingId((cur) => (cur === id ? null : id))}
-                onExport={(r) => handleExport([r], r.name || `reco-${i + 1}`)}
+                onExport={(r) => requestExport([r], r.name || `reco-${i + 1}`)}
                 recos={recos}
               />
             </div>

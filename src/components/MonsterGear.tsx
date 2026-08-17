@@ -421,9 +421,11 @@ export default function MonsterGear({ gear, spdCible = null }: Props) {
 
       {/* Relique à droite.
           ⚠️ La teinte `star` est le code du JEU pour ce qui a de la valeur, pas
-          un accent d'interface. Bordure teintée et fond doux SUFFISENT : un
-          anneau par-dessus faisait deux traits dorés concentriques, qui se
-          lisent comme un contour épais et non comme deux informations.
+          un accent d'interface — et la ÉQUIPEMENT échappe à la règle du contour
+          unique de 1 px, qui ne vaut que pour les composants d'INTERFACE. Une
+          rune, un artéfact, une relique sélectionnés se mettent en valeur comme
+          dans le jeu : halo doré, éclat, liseré appuyé. Voir la roue de runes et
+          les emplacements d'artéfacts, qui font de même.
           ⚠️ Resserrée sous `sm` : elle partage la rangée avec les artéfacts et
           la roue, et son rembourrage de 10 px de chaque côté était le plus
           facile à rendre — le contenu, lui, ne se réduit pas. */}
@@ -434,7 +436,7 @@ export default function MonsterGear({ gear, spdCible = null }: Props) {
           aria-pressed={isSel({ kind: 'relic' })}
           className={`rounded-lg border px-2.5 py-2 text-center compact:px-1.5 compact:py-1.5 ${
             isSel({ kind: 'relic' })
-              ? 'border-star bg-star/10'
+              ? 'border-star bg-star/10 ring-1 ring-star/50'
               : 'border-border bg-panel/60 hoverable:border-accent'
           }`}
         >

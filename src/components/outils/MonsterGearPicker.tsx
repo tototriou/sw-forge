@@ -56,9 +56,14 @@ export default function MonsterGearPicker({ items, onPick, placeholder }: Props)
         value={query}
         onChange={(e) => setQuery(e.target.value)}
         placeholder={placeholder ?? 'Rechercher un monstre…'}
+        // ⚠️ **Bordure seule au focus, sans halo.** Ce champ posait en plus une
+        // ombre de 3 px en accent translucide : deux contours superposés autour
+        // du même cadre, dont le plus large déborde sur ce qui l'entoure. C'est
+        // la règle de spec/shared/design.md, que tous les autres champs de l'app
+        // suivaient déjà.
         className="w-full bg-panel border border-border rounded-lg py-2 pl-9 pr-3 text-sm
                    text-ink placeholder:text-ink-dim outline-none transition
-                   focus:border-accent focus:shadow-[0_0_0_3px_rgb(var(--accent)/0.25)]"
+                   focus:border-accent"
       />
 
       {nav.open && (

@@ -35,11 +35,12 @@ import { forwardRef, ReactNode } from 'react';
 // est qu'un moyen d'ouvrir l'explication. C'est pourquoi il ne change pas au
 // survol : sa couleur est une information, pas une invitation.
 //
-// ⚠️ `precieux` est le CODE COULEUR DU JEU pour ce qui a de la valeur : une
-// relique, un lead de vitesse, une étoile. Il ne dit rien de l'action non plus
-// — c'est la nature de la chose désignée. Il existe parce que trois écrans le
-// peignaient à la main, chacun avec son opacité.
-export type TonBouton = 'neutre' | 'accent' | 'danger' | 'alerte' | 'precieux';
+// ⚠️ **Pas de ton pour le CODE COULEUR DU JEU** (le doré d'une relique, d'un
+// lead, d'une étoile). J'en avais ajouté un : il n'a jamais servi. Ces
+// éléments-là ne sont pas des composants d'interface — ils se mettent en valeur
+// comme dans le jeu, avec halo et éclat, et échappent aux règles de contour de
+// cette librairie. Leur donner un ton ici invitait à les y ramener.
+export type TonBouton = 'neutre' | 'accent' | 'danger' | 'alerte';
 
 // REMPLISSAGE. `plein` porte la teinte du ton, `doux` sa version atténuée,
 // `vide` ne pose aucun fond (le bouton vit sur la surface qui le porte).
@@ -114,7 +115,6 @@ const TEXTES: Record<TonBouton, { nu: string; doux: string; plein: string }> = {
   // état des données, et un signal qui s'allume au passage de la souris n'est
   // plus un signal.
   alerte: { nu: 'text-warn', doux: 'text-warn', plein: 'text-bg' },
-  precieux: { nu: 'text-star', doux: 'text-ink', plein: 'text-bg' },
 };
 
 const FONDS: Record<TonBouton, Record<FondBouton, string>> = {
@@ -126,7 +126,6 @@ const FONDS: Record<TonBouton, Record<FondBouton, string>> = {
   // illisible. `doux` reste le voile discret d'un bouton posé dans un panneau.
   danger: { vide: 'bg-transparent', doux: 'bg-bad/10', plein: 'bg-bad' },
   alerte: { vide: 'bg-transparent', doux: 'bg-warn/10', plein: 'bg-warn' },
-  precieux: { vide: 'bg-transparent', doux: 'bg-star/10', plein: 'bg-star' },
 };
 
 const TRAITS: Record<TonBouton, Record<TraitBouton, string>> = {
@@ -149,11 +148,6 @@ const TRAITS: Record<TonBouton, Record<TraitBouton, string>> = {
     aucun: 'border border-transparent',
     plein: 'border border-warn/50',
     pointille: 'border border-dashed border-warn/50',
-  },
-  precieux: {
-    aucun: 'border border-transparent',
-    plein: 'border border-star',
-    pointille: 'border border-dashed border-star',
   },
 };
 

@@ -451,7 +451,11 @@ export default function OptimizerSection({ box, runes, optimizer }: Props) {
                     aria-pressed={active}
                     className={`rounded-full border px-2.5 py-1 text-micro font-semibold transition select-none ${
                       active
-                        ? 'border-accent bg-accent-soft text-ink shadow'
+                        // ⚠️ Pas d'ombre : un élément SÉLECTIONNÉ ne décolle pas
+                        // de la page — l'élévation est réservée à ce qui flotte
+                        // au-dessus d'elle. Le fond et la bordure disent déjà
+                        // l'état, l'ombre en faisait un troisième signal.
+                        ? 'border-accent bg-accent-soft text-ink'
                         : 'border-border bg-panel text-ink-dim hoverable:text-ink hoverable:border-accent'
                     }`}
                   >

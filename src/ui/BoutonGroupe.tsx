@@ -109,11 +109,6 @@ const REPOS: Record<TonBouton, Record<FondBouton, string>> = {
     doux: 'border-warn/50 bg-warn/10 text-warn',
     plein: 'border-warn/50 bg-warn/20 text-warn',
   },
-  precieux: {
-    vide: 'border-border bg-transparent text-ink-dim hoverable:border-star',
-    doux: 'border-border bg-panel/60 text-ink-dim hoverable:border-star',
-    plein: 'border-star bg-star/10 text-ink',
-  },
 };
 
 // Habillage à l'état ACTIF. La bordure reste neutre : elle est déjà là au repos,
@@ -123,11 +118,6 @@ const ACTIFS: Record<TonBouton, string> = {
   accent: 'border-border bg-accent-soft text-ink',
   danger: 'border-bad/50 bg-bad/10 text-bad',
   alerte: 'border-warn/50 bg-warn/10 text-warn',
-  // ⚠️ **La bordure teintée SUFFIT** : j'y avais ajouté un `ring-1 ring-star/50`
-  // par-dessus, soit deux traits dorés concentriques à 1 px l'un de l'autre. Ils
-  // ne se lisent pas comme deux informations mais comme un contour épais et
-  // flou. La règle du marqueur unique vaut ici aussi.
-  precieux: 'border-star bg-star/10 text-ink',
 };
 
 const BoutonGroupe = forwardRef<HTMLDivElement, BoutonGroupeProps>(function BoutonGroupe(

@@ -383,8 +383,20 @@ main, avec trois opacités différentes.
 
 ## Les contours : 1 px, et UN SEUL
 
-> ⚠️ **Aucun contour de l'app ne dépasse 1 px, et jamais deux superposés.** Un
-> contour CERNE ce qu'il désigne, il ne l'encadre pas.
+> ⚠️ **Aucun contour d'INTERFACE ne dépasse 1 px, et jamais deux superposés.** Un
+> contour cerne ce qu'il désigne, il ne l'encadre pas.
+
+> ⚠️ **La règle ne vaut PAS pour l'équipement** — runes, artéfacts, reliques. Ces
+> objets-là appartiennent au jeu, pas à l'interface : sélectionnés, ils se
+> mettent en valeur **comme dans le jeu**, avec halo doré, éclat et liseré
+> appuyé. C'est ce qui les distingue d'un bouton au milieu de la même page. La
+> roue de runes et les emplacements d'artéfacts font de même, et il ne faut pas
+> les « corriger ».
+>
+> La frontière est celle-ci : un composant de `src/ui/` suit la règle ; un objet
+> que le joueur reconnaît de sa partie ne la suit pas. Aucun ton de la librairie
+> ne porte le doré du jeu — j'en avais ajouté un (`precieux`), il n'a jamais
+> servi et invitait à ramener ces objets dans le système d'interface.
 
 Le piège n'est presque jamais l'épaisseur d'un trait : c'est le **cumul**. Une
 bordure *et* un anneau, une bordure *et* une ombre portée — l'épaisseur réelle

@@ -1287,6 +1287,17 @@ Indépendamment du repli de la carte, **chaque deck a son propre chevron**.
   Toujours affichés, quel que soit l'état de repli : c'est le seul repère du
   deck qu'on garde en le dépliant, avant que sets/artéfacts/stats n'arrivent
   plus bas.
+- ⚠️ **Sur mobile, le verdict et le nombre de copies passent chacun à la
+  ligne** (`basis-full sm:basis-auto` sur les deux `span` qui les portent) :
+  icônes des monstres sur une ligne, verdict sur la suivante, « réalisable N
+  fois » sur la dernière. Un simple `flex-wrap` sur la rangée ne suffisait
+  pas — un item flex qui trouve un peu de place restante après les icônes s'y
+  installe et enroule son PROPRE texte au mot (« indis- » collé aux icônes,
+  « ponible… » en dessous) au lieu de descendre entier à la ligne suivante :
+  le repli semblait aléatoire (net sur un deck, tronqué sur le suivant) selon
+  la largeur qu'occupaient les icônes déjà posées. `basis-full` force chaque
+  ligne à démarrer la sienne, systématiquement, tant qu'il n'y a pas la place
+  de tout tenir sur une seule (`sm:basis-auto` au-delà).
 - **« Déplier / Replier tous les decks »** : lien en haut à droite de la liste,
   affiché dès **2 decks**.
 - Un deck **en édition est toujours déplié**, quel que soit son état de repli.

@@ -1133,8 +1133,26 @@ function DeckBlock({
             />
           ))}
         </ZoneCliquable>
-        {!editing && match && !empty && <DeckBadge match={match} />}
-        {!editing && match && !empty && <CopiesBadge copies={match.copies} />}
+        {/* ⚠️ `basis-full` sur mobile, PAS un simple `flex-wrap` sur le
+            conteneur : un item flex qui a un peu de place restante sur la
+            ligne des icônes s'y installe et enroule son PROPRE texte au mot
+            (« indis- » collé aux icônes, « ponible... » en dessous) au lieu
+            de descendre entier à la ligne suivante — c'est ce qui rendait le
+            repli imprévisible (bon tantôt, tronqué tantôt, selon le nombre
+            d'icônes déjà posées). `basis-full` force CHAQUE ligne (verdict,
+            puis nombre de copies) à démarrer sa propre ligne, systématique.
+            `sm:basis-auto` : au-delà, la place ne manque plus, elles
+            reprennent leur place naturelle à côté des icônes. */}
+        {!editing && match && !empty && (
+          <span className="basis-full sm:basis-auto">
+            <DeckBadge match={match} />
+          </span>
+        )}
+        {!editing && match && !empty && (
+          <span className="basis-full sm:basis-auto">
+            <CopiesBadge copies={match.copies} />
+          </span>
+        )}
         {/* Le lead n'est pas dans l'en-tête : il est posé sur le leader lui-même
             (aperçu replié ci-dessous, ou slot 0 déplié) — comme en siège. */}
 

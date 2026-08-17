@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Plus, Download, Upload, Trash2, Lightbulb, AlertTriangle, XCircle, X } from 'lucide-react';
+import { Plus, Download, Upload, Trash2, Lightbulb, AlertTriangle, XCircle, X, Gauge } from 'lucide-react';
 import { Monster, Reco } from '../../types';
 import { UseRecoState } from '../../hooks/useSiegeRecos';
 import { UseSiegeState } from '../../hooks/useSiegeState';
@@ -16,7 +16,7 @@ import MobileSheet from '../../ui/MobileSheet';
 import MonsterAvatar from '../MonsterAvatar';
 import MonsterPicker from '../MonsterPicker';
 import RecoCard from './RecoCard';
-import { Bouton, BoutonIcone, ZoneCliquable } from '../../ui';
+import { Bouton, BoutonIcone, Selecteur, ZoneCliquable } from '../../ui';
 
 interface Props {
   recos: UseRecoState;
@@ -213,6 +213,24 @@ export default function RecoBoard({
 
   const analyzeReco = (reco: Reco) =>
     setAnalyses((m) => new Map(m).set(reco.id, { match: matchReco(reco, matchCtx), reco, builds }));
+
+  // ⚠️ **Lancée depuis le panneau « Options », au DOIGT.** Le bouton « Analyser
+  // mes decks » de l'en-tête vit sur la carte elle-même — mais au doigt il
+  // faut d'abord faire défiler jusqu'à la bonne recommandation pour l'atteindre.
+  // Le panneau propose donc le même geste sans quitter le haut de l'écran : un
+  // menu choisit LAQUELLE (il n'y a pas de carte sous les yeux pour le dire),
+  // puis « Analyser » fait le reste — et ouvre la carte visée, pour que le
+  // résultat soit là au premier défilement plutôt que caché repliée.
+  const [pickAnalyse, setPickAnalyse] = useState('');
+  function analyserDepuisPanneau() {
+    const reco = list.find((r) => r.id === pickAnalyse);
+    if (!reco) return;
+    analyzeReco(reco);
+    setChoixOuverture((m) => new Map(m).set(reco.id, true));
+    setPickAnalyse('');
+    onFermerMenu();
+    setMsg({ text: `Analyse lancée pour « ${reco.name || 'cette recommandation'} ».` });
+  }
 
   // Effacer le résultat : la carte redevient neutre (plus d'aura ni de pastille).
   const clearAnalysis = (id: string) =>
@@ -468,6 +486,41 @@ export default function RecoBoard({
 
       <MobileSheet ouvert={menuOuvert} onFermer={onFermerMenu} titre="Actions — recommandations">
         <div data-rangee-actions>{actions}</div>
+
+        {/* ⚠️ « Analyser mes decks », AU DOIGT : le bouton de l'en-tête d'une
+            carte demande d'abord d'y faire défiler. Le panneau propose le même
+            geste d'ici — un menu choisit LAQUELLE, puisqu'aucune carte n'est
+            sous les yeux pour le dire — voir `analyserDepuisPanneau` plus haut. */}
+        {list.length > 0 && (
+          <div className="mt-4 flex flex-col gap-1.5 border-t border-border pt-3">
+            <span className="label">Analyser une recommandation</span>
+            <div className="flex items-center gap-1.5">
+              <Selecteur
+                value={pickAnalyse}
+                onChange={(e) => setPickAnalyse(e.target.value)}
+                disabled={builds.length === 0}
+                className="flex-1"
+              >
+                <option value="">
+                  {builds.length === 0 ? 'Importe ton compte pour analyser' : 'Choisir…'}
+                </option>
+                {list.map((r, i) => (
+                  <option key={r.id} value={r.id}>
+                    {r.name || `Recommandation ${i + 1}`}
+                  </option>
+                ))}
+              </Selecteur>
+              <Bouton
+                onClick={analyserDepuisPanneau}
+                disabled={!pickAnalyse || builds.length === 0}
+                icone={<Gauge size={14} />}
+                libelle="Analyser"
+                taille="sm"
+              />
+            </div>
+          </div>
+        )}
+
         {/* ⚠️ Origine AU DOIGT : descendue ici plutôt que sur la page, qui garde
             la carte pour la recherche — voir `origineFilter` plus haut. */}
         {all.length > 0 && (

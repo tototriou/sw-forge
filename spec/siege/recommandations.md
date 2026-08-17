@@ -828,6 +828,26 @@ supérieur droit — étiqueté, il se disputait la place du titre sur une carte
 - Motivation : confronter *toutes* les recos à *tous* les builds à chaque rendu
   était un coût permanent pour une information qu'on ne consulte que ponctuellement.
 
+### Analyser depuis le panneau « Options » — au doigt, en plus de la carte
+
+⚠️ Le bouton de l'en-tête suppose qu'on est **déjà sur la bonne carte** — au
+doigt, ça veut dire y faire défiler d'abord. Le panneau « Options » propose
+donc le **même geste sans quitter le haut de l'écran** : un menu déroulant
+choisit **laquelle** analyser (aucune carte n'est sous les yeux pour le dire),
+puis « Analyser » fait le reste.
+
+- Le menu liste les recommandations **affichées** (`list` — filtre d'origine et
+  recherche déjà appliqués), avec le même nom de repli
+  (« Recommandation N ») que sur les cartes.
+- **Désactivé sans compte importé**, même condition que le bouton de l'en-tête.
+- Au clic sur « Analyser » : l'analyse se lance, la carte visée **s'ouvre**
+  (elle serait sinon repliée et le résultat invisible au premier défilement),
+  le panneau se referme, et un message éphémère confirme sur quelle
+  recommandation.
+- **Vient s'ajouter** au bouton de l'en-tête, ne le remplace pas : rester sur une
+  carte pour la réanalyser après une édition reste plus direct que rouvrir le
+  panneau.
+
 ### Ce que l'analyse affiche
 
 Un **encart de synthèse** sous l'en-tête, visible **même recommandation repliée** :

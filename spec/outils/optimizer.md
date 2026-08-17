@@ -332,11 +332,11 @@ différent, coopératif (voir « Interruption »).
   poster sa progression sans jamais geler l'interface. La construction des
   deux moitiés tourne en **vrai parallèle** (deux Web Workers dédiés).
 - **L'appariement peut lui aussi se paralléliser sur plusieurs Web Workers**,
-  mais uniquement en mode « Rechercher jusqu'à épuisement complet » et
-  au-delà d'une taille de recherche donnée — jamais en recherche normale
-  (le filet de temps par défaut), où ça risquerait de perdre un résultat
-  valide. Invisible à l'écran : mêmes garanties, potentiellement plus rapide
-  sur une grosse recherche exhaustive.
+  au-delà d'une taille de recherche donnée — en recherche normale (le filet
+  de temps par défaut) comme en mode « Rechercher jusqu'à épuisement
+  complet ». Invisible à l'écran : mêmes garanties (aucun résultat valide
+  perdu, vérifié par différentiel), potentiellement plus rapide sur une
+  grosse recherche.
 
 ### Vérification
 

@@ -1,11 +1,14 @@
 /// <reference lib="webworker" />
-// Worker enfant pour la parallélisation de l'APPARIEMENT, réservée au mode
-// « Rechercher jusqu'à épuisement complet » (voir spec/outils/optimizer/
-// pistes.md, point 9, et runeBuildOptim.worker.ts pour la décision de
-// déclenchement/le découpage). Reçoit une TRANCHE de bucketsA (répartie par
-// charge réelle par l'appelant) + la moitié B COMPLÈTE — aucun
-// SharedArrayBuffer disponible aujourd'hui (pas d'en-têtes COOP/COEP), donc
-// une vraie copie par worker, pas un pointeur partagé.
+// Worker enfant pour la parallélisation de l'APPARIEMENT — voir
+// spec/outils/optimizer/pistes.md, point 9, et runeBuildOptim.worker.ts pour
+// la décision de déclenchement (seuil de taille)/le découpage. Active en
+// recherche EXHAUSTIVE **et** NORMALE (tronquée par défaut) depuis la
+// vérification à grande échelle (49 essais réels, 0 perte, voir pistes.md) —
+// voir plus bas pour le budget ADAPTATIF qui rend ça sûr dans les deux cas.
+// Reçoit une TRANCHE de bucketsA (répartie par charge réelle par
+// l'appelant) + la moitié B COMPLÈTE — aucun SharedArrayBuffer disponible
+// aujourd'hui (pas d'en-têtes COOP/COEP), donc une vraie copie par worker,
+// pas un pointeur partagé.
 //
 // ⚠️ `PreparedSearch` (avec sa fonction `totalOf`) n'est PAS clonable via
 // `postMessage` (structured clone ne clone jamais de fonction) — ce worker
@@ -22,7 +25,7 @@
 // SA tranche, exactement comme le comportement séquentiel existant (bouton
 // « Arrêter » qui garde le meilleur trouvé jusque-là).
 
-import { prepareSearch, pairBuckets, SearchParams, Bucket, NodeBudget, BuildCandidate } from '../lib/runeBuildOptim';
+import { prepareSearch, pairBuckets, maybeEscalateNodeBudget, SearchParams, Bucket, NodeBudget, BuildCandidate } from '../lib/runeBuildOptim';
 
 export interface PairSliceRequest {
   // ⚠️ `maxCollected` DOIT déjà être la part de CE worker (le plafond
@@ -41,6 +44,11 @@ export interface PairSliceProgressMessage {
   type: 'progress';
   explored: number;
   newCandidates: BuildCandidate[];
+  // Plafond de nœuds ACTUEL de CE worker (grandit avec l'escalade, voir
+  // plus bas) — l'orchestrateur (`runeBuildOptim.worker.ts`) additionne
+  // celui de chaque worker pour un total honnête, plutôt que d'afficher
+  // une valeur inventée (voir son commentaire sur `WorkerPairingMessage`).
+  nodeBudgetMax: number;
 }
 export interface PairSliceResultMessage {
   type: 'result';
@@ -71,10 +79,19 @@ self.onmessage = async (e: MessageEvent<PairSliceInbound>) => {
     return;
   }
 
-  // Budget INFINI, jamais d'escalade : ce worker n'est appelé qu'en mode
-  // exhaustif (garanti par l'appelant — voir `useParallelPairing`), donc
-  // rien ne doit jamais tronquer cette tranche avant qu'elle soit épuisée.
-  const nodeBudget: NodeBudget = { max: Number.POSITIVE_INFINITY };
+  // ⚠️ Budget ADAPTATIF + escalade — EXACTEMENT le mécanisme réel du
+  // chemin séquentiel (voir runeBuildOptim.worker.ts, même appel à
+  // `maybeEscalateNodeBudget`), pas un budget figé. C'est CE mécanisme,
+  // vérifié à grande échelle (49 essais réels sous contention volontaire,
+  // 0 perte — voir spec/outils/optimizer/pistes.md, point 9), qui rend la
+  // parallélisation sûre aussi en recherche NORMALE (tronquée par défaut) :
+  // chaque worker démarre avec `prepared.maxNodes` (PAS divisé entre
+  // workers, chacun a sa PROPRE trajectoire d'escalade) et grandit tant
+  // qu'il reste du temps sous le même `prepared.maxMs` que le séquentiel
+  // aurait respecté — en mode exhaustif, `maxMs=Infinity` fait que cette
+  // escalade ne s'arrête jamais avant épuisement complet, retrouvant
+  // exactement le comportement déjà prouvé sans perte de ce mode-là.
+  const nodeBudget: NodeBudget = { max: prepared.maxNodes };
 
   let candidatesSent = 0;
   let lastProgressPost = 0;
@@ -90,11 +107,12 @@ self.onmessage = async (e: MessageEvent<PairSliceInbound>) => {
     }
     const now = Date.now();
     const progress = step.value;
+    maybeEscalateNodeBudget(nodeBudget, prepared, progress, now);
     if (now - lastProgressPost > PROGRESS_THROTTLE_MS) {
       lastProgressPost = now;
       const newCandidates = progress.candidates.slice(candidatesSent);
       candidatesSent = progress.candidates.length;
-      const message: PairSliceProgressMessage = { type: 'progress', explored: progress.explored, newCandidates };
+      const message: PairSliceProgressMessage = { type: 'progress', explored: progress.explored, newCandidates, nodeBudgetMax: nodeBudget.max };
       (self as unknown as Worker).postMessage(message);
     }
     if (now - lastYield > YIELD_THROTTLE_MS) {

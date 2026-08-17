@@ -133,21 +133,34 @@ let stopBuildReject: (() => void) | null = null;
 let activePairingWorkers: Worker[] = [];
 
 // ⚠️ Parallélisation de l'APPARIEMENT — voir spec/outils/optimizer/
-// pistes.md, point 9. Mesuré sur 3 itérations successives
-// (scripts/pairing-parallel-diag.ts) : un découpage STATIQUE de bucketsA
-// est SÛR (aucune perte de couverture, quel que soit le découpage) mais
-// UNIQUEMENT en recherche EXHAUSTIVE (maxMs=Infinity, aucune troncature
-// possible) — en recherche normale (tronquée par défaut), le même
-// découpage perd des candidats valides, voir le détail dans pistes.md.
-// Jamais activé hors de ce mode.
+// pistes.md, point 9. Historique en deux temps :
+// 1. Mesuré sur 3 itérations (scripts/pairing-parallel-diag.ts) : un
+//    découpage STATIQUE de bucketsA à budget INFINI (mode exhaustif
+//    seulement) est SÛR — aucune perte, quel que soit le découpage.
+//    Découpage à budget FIGÉ (round-robin ou LPT) en recherche NORMALE
+//    (tronquée) perdait des candidats valides — mais ce prototype figeait
+//    le budget au lieu de laisser chaque worker ESCALADER le sien, voir
+//    point 2.
+// 2. Chaque worker utilise désormais le VRAI mécanisme de production
+//    (`maybeEscalateNodeBudget`, budget ADAPTATIF par worker — voir
+//    pairSlice.worker.ts), pas un budget figé. Sous ce mécanisme, vérifié
+//    à grande échelle (49 essais réels, 7 cas × 7 durées, SOUS CONTENTION
+//    volontaire pour durcir le test — skill `optimizer-perf-testing`) :
+//    **0 perte détectée**, y compris en recherche NORMALE. La parallélisation
+//    s'applique donc désormais aux DEUX modes — seul le seuil de taille
+//    ci-dessous décide si ça vaut le coût de coordination.
 //
-// PARALLEL_PAIRING_THRESHOLD : sous ~46M paires réelles, paralléliser est
-// une PERTE nette mesurée (jusqu'à ×0,32 — le coût de copie/démarrage des
-// Workers dépasse le gain de calcul). Le gain réel n'apparaît qu'au-delà
-// d'environ 250M paires (×1,4 à ×2,3 mesuré sur 4 cas réels). 100M est
-// choisi DANS cet intervalle, qui n'a PAS été finement calibré (rien
-// mesuré entre 46M et 250M) — à resserrer si un usage réel montre un cas
-// proche de cette frontière qui se comporte mal.
+// PARALLEL_PAIRING_THRESHOLD : calibré en mode EXHAUSTIF (sous ~46M paires
+// réelles, perte nette mesurée jusqu'à ×0,32 — le coût de copie/démarrage
+// des Workers dépasse le gain de calcul ; gain réel au-delà d'environ 250M,
+// ×1,4 à ×2,3 mesuré). 100M est choisi DANS cet intervalle, qui n'a PAS été
+// finement calibré (rien mesuré entre 46M et 250M) — à resserrer si un
+// usage réel montre un cas proche de cette frontière qui se comporte mal.
+// ⚠️ PAS reconfirmé spécifiquement en recherche NORMALE : la calibration du
+// SEUIL vient du mode exhaustif, la vérification de NON-PERTE (point 2
+// ci-dessus) couvre les deux modes mais ne re-teste pas si 100M reste le
+// bon seuil de RENTABILITÉ quand la recherche peut aussi s'arrêter par
+// `maxMs`/`maxCollected` avant `totalPairs`.
 //
 // PARALLEL_PAIRING_WORKERS : fixé à 4, délibérément PAS dérivé de
 // `navigator.hardwareConcurrency`. Mesuré NON monotone : sur 3 des 4 plus
@@ -165,14 +178,14 @@ const PARALLEL_PAIRING_WORKERS = 4;
 
 function pairSliceInWorker(
   request: PairSliceRequest,
-  onProgress: (explored: number, newCandidates: BuildCandidate[]) => void
+  onProgress: (explored: number, newCandidates: BuildCandidate[], nodeBudgetMax: number) => void
 ): { worker: Worker; done: Promise<SearchResult> } {
   const worker = new Worker(new URL('./pairSlice.worker.ts', import.meta.url), { type: 'module' });
   const done = new Promise<SearchResult>((resolve, reject) => {
     worker.onmessage = (e: MessageEvent<PairSliceResponse>) => {
       const msg = e.data;
       if (msg.type === 'progress') {
-        onProgress(msg.explored, msg.newCandidates);
+        onProgress(msg.explored, msg.newCandidates, msg.nodeBudgetMax);
         return;
       }
       resolve({ candidates: msg.candidates, explored: msg.explored, truncated: msg.truncated });
@@ -187,24 +200,32 @@ function pairSliceInWorker(
 // plus que `bucketsA.length`, sinon des workers recevraient une tranche
 // vide pour rien), donne à CHAQUE worker une part ÉGALE du plafond GLOBAL
 // de candidats collectés (`prepared.maxCollected`, 100 000 par défaut,
-// INCHANGÉ par le mode exhaustif — décision actée) pour que la somme des N
-// workers ne dépasse jamais significativement ce plafond, et fusionne les
-// résultats finaux (pas l'accumulateur de progression, qui ne sert qu'à
-// l'affichage EN DIRECT) — union simple, sans dédoublonnage nécessaire
-// puisque les tranches de bucketsA sont disjointes : un candidat donné ne
-// peut exister que dans LA tranche qui contient son comboA.
+// INCHANGÉ par le mode exhaustif ET le mode normal — décision actée) pour
+// que la somme des N workers ne dépasse jamais significativement ce
+// plafond, et fusionne les résultats finaux (pas l'accumulateur de
+// progression, qui ne sert qu'à l'affichage EN DIRECT) — union simple, sans
+// dédoublonnage nécessaire puisque les tranches de bucketsA sont
+// disjointes : un candidat donné ne peut exister que dans LA tranche qui
+// contient son comboA.
 async function runParallelPairing(
   params: SearchParams,
   prepared: PreparedSearch,
   bucketsA: Bucket[],
   bucketsB: Bucket[],
-  postProgress: (explored: number, found: number, newCandidates: BuildCandidate[]) => void
+  postProgress: (explored: number, found: number, newCandidates: BuildCandidate[], nodeBudgetMax: number) => void
 ): Promise<SearchResult> {
   const workerCount = Math.min(PARALLEL_PAIRING_WORKERS, bucketsA.length);
   const slices = partitionBucketsALPT(bucketsA, workerCount);
   const perWorkerMaxCollected = Math.max(1, Math.ceil(prepared.maxCollected / workerCount));
 
   const exploredByWorker: number[] = new Array(workerCount).fill(0);
+  // Chaque worker escalade son PROPRE plafond (voir pairSlice.worker.ts) —
+  // additionnés pour un total honnête, plutôt qu'une valeur inventée
+  // (Infinity n'est plus vrai depuis que ce chemin s'applique aussi en
+  // recherche normale). Champ non affiché tel quel dans l'UI (débogage/
+  // évolution future, voir useBuildOptimSearch.ts) : l'honnêteté du chiffre
+  // compte plus que sa précision exacte.
+  const nodeBudgetMaxByWorker: number[] = new Array(workerCount).fill(0);
   const allCandidates: BuildCandidate[] = [];
   let candidatesSent = 0;
   let lastProgressPost = 0;
@@ -216,13 +237,15 @@ async function runParallelPairing(
     const newCandidatesSlice = allCandidates.slice(candidatesSent);
     candidatesSent = allCandidates.length;
     const explored = exploredByWorker.reduce((s, v) => s + v, 0);
-    postProgress(explored, allCandidates.length, newCandidatesSlice);
+    const nodeBudgetMax = nodeBudgetMaxByWorker.reduce((s, v) => s + v, 0);
+    postProgress(explored, allCandidates.length, newCandidatesSlice, nodeBudgetMax);
   };
 
   const handles = slices.map((bucketASlice, i) => {
     const sliceParams: SearchParams = { ...params, maxCollected: perWorkerMaxCollected };
-    return pairSliceInWorker({ params: sliceParams, bucketASlice, bucketsB }, (explored, newCandidates) => {
+    return pairSliceInWorker({ params: sliceParams, bucketASlice, bucketsB }, (explored, newCandidates, nodeBudgetMax) => {
       exploredByWorker[i] = explored;
+      nodeBudgetMaxByWorker[i] = nodeBudgetMax;
       if (newCandidates.length > 0) allCandidates.push(...newCandidates);
       flushProgress();
     });
@@ -357,24 +380,24 @@ self.onmessage = async (e: MessageEvent<WorkerRequest>) => {
   // poignée de compartiments de chaque côté, jamais les combos eux-mêmes.
   const totalPairs = totalPairCount(prepared, bucketsA, bucketsB);
 
-  // Voir la définition de `runParallelPairing` plus haut pour le détail
-  // mesuré derrière ces deux conditions. `!Number.isFinite(prepared.maxMs)`
-  // = mode « Rechercher jusqu'à épuisement complet » (seul mode où un
-  // découpage statique est prouvé sans perte).
-  if (!Number.isFinite(prepared.maxMs) && totalPairs >= PARALLEL_PAIRING_THRESHOLD) {
-    const postProgress = (explored: number, found: number, newCandidates: BuildCandidate[]) => {
+  // Voir la définition de `runParallelPairing` et le commentaire de
+  // `PARALLEL_PAIRING_THRESHOLD` plus haut : depuis la vérification à
+  // grande échelle (budget adaptatif par worker, 0 perte sur 49 essais),
+  // le SEUL critère de déclenchement est la taille de l'espace à explorer —
+  // plus de condition sur le mode (exhaustif ou normal).
+  if (totalPairs >= PARALLEL_PAIRING_THRESHOLD) {
+    const postProgress = (explored: number, found: number, newCandidates: BuildCandidate[], nodeBudgetMax: number) => {
       const message: WorkerPairingMessage = {
         type: 'progress',
         phase: 'pairing',
         explored,
         found,
         pct: estimatePct(prepared, totalPairs, explored, found, Date.now() - startedAt),
-        // Pas de plafond de nœuds unique en mode parallèle (chaque worker a
-        // un budget infini sur sa propre tranche, voir `pairSlice.worker.
-        // ts`) — champ non affiché tel quel dans l'UI (débogage/évolution
-        // future uniquement, voir useBuildOptimSearch.ts), Infinity est la
-        // valeur honnête.
-        nodeBudgetMax: Number.POSITIVE_INFINITY,
+        // Somme des plafonds ACTUELS de chaque worker (chacun escalade le
+        // sien indépendamment, voir `runParallelPairing`) — pas une valeur
+        // unique comme en séquentiel, mais honnête : reflète le VRAI total
+        // actuellement autorisé, pas une approximation figée.
+        nodeBudgetMax,
         totalPairs,
         newCandidates,
       };

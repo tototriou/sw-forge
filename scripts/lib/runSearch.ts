@@ -6,6 +6,18 @@
 // `algo-verify`, section « Fidélité des scripts diagnostics », pour
 // l'incident qui a motivé cette factorisation.
 //
+// ⚠️ Écart de fidélité CONNU depuis l'extension de la parallélisation de
+// l'appariement au mode normal (voir pistes.md, point 9) : ce script reste
+// TOUJOURS séquentiel (Node n'a pas de Web Worker) — la vraie app peut
+// paralléliser l'appariement (4 workers) dès que `totalPairs ≥ 100M`, quel
+// que soit le mode. Sur une recherche NORMALE (tronquée) assez grande, le
+// séquentiel ici peut donc trouver MOINS de candidats que ce que l'écran a
+// réellement affiché pour la MÊME recette (le parallèle bénéficie d'un
+// débit ×N dans la même fenêtre de temps) — jamais l'inverse (le
+// parallèle ne perd rien, vérifié par différentiel). Sans conséquence en
+// mode exhaustif (`exhaustiveSearch`) : les deux chemins convergent vers le
+// même ensemble complet, juste à des vitesses différentes.
+//
 // Usage : `runSearchToCompletion(params)` — synchrone jusqu'au bout, pas de
 // pilotage pas à pas (pas besoin de rendre la main à une UI dans un script).
 

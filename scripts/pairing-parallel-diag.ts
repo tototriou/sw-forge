@@ -54,27 +54,43 @@ function runWorker(scriptPath: string, data: PairingWorkerData): Promise<Pairing
   });
 }
 
-const TOTAL_BUDGET = 100_000_000; // même budget TOTAL quel que soit N, pour comparer à travail égal.
 const MAX_WORKERS = cpus().length;
 const WORKER_COUNTS = [1, 2, 4, 8].filter((n) => n <= MAX_WORKERS);
 
-// Cas choisis pour ce prototype : représentatifs (un serré, un plus lâche),
-// au préréglage Moyen (construction rapide, on isole le temps d'APPARIEMENT).
-const DIAG_CASES = CASES.filter((c) => c.label.includes('Lushen d11') || c.label.includes('Sonia d14'));
+// ⚠️ Deuxième itération de ce prototype. La première comparait à budget de
+// paires FIXE (100M) — ce qui, pour les cas dont le total réel dépasse ce
+// plafond (Sonia d14), mesurait en fait une recherche TRONQUÉE : régime déjà
+// prouvé risqué (voir pistes.md, « point 9 », round-robin par rang ET
+// équilibrage par charge perdent tous les deux des candidats valides sous
+// troncature). Le mode visé ici (« Rechercher jusqu'à épuisement complet »)
+// n'a PAR DÉFINITION aucun plafond — donc aucun risque de troncature, quel
+// que soit le découpage. Mesure corrigée : nodeBudget INFINI pour N=1 ET
+// pour chaque worker à N>1 (vraie complétion, pas une approximation
+// plafonnée), sur les 7 cas connus au préréglage Bas (cap=40 — le plus
+// rapide à atteindre l'épuisement réel, seul moyen de couvrir les 7 cas en
+// un temps de diagnostic raisonnable).
+const DIAG_CASES = CASES;
+const SLOT_FILTER_CAP = 40; // préréglage « Bas »
 
 async function main() {
-  console.log(`Machine : ${MAX_WORKERS} cœurs logiques détectés (os.cpus().length). Budget total fixe par essai : ${TOTAL_BUDGET.toLocaleString('fr-FR')} paires.\n`);
+  console.log(`Machine : ${MAX_WORKERS} cœurs logiques détectés (os.cpus().length). Aucun plafond de paires — vraie complétion à chaque essai, préréglage Bas (cap=${SLOT_FILTER_CAP}).\n`);
   const workerScript = await ensureWorkerBundle();
 
   for (const c of DIAG_CASES) {
     const { gear, allRunes, requirement } = loadCase(c);
-    // ⚠️ maxMs/maxCollected LAISSÉS À LEUR DÉFAUT (DEFAULT_MAX_MS=15s,
-    // MAX_COLLECTED=100 000) faussaient silencieusement la mesure — un essai
-    // pouvait être tronqué par l'UN OU L'AUTRE sans jamais toucher au
-    // nodeBudget qu'on croyait être le SEUL frein. Rendus infinis
-    // explicitement : seul nodeBudget.max (contrôlé ci-dessous) doit pouvoir
-    // arrêter un essai, pour comparer les N à budget de PAIRES égal, pas un
-    // mélange de budgets différents selon la vitesse de chaque essai.
+    // ⚠️ Fidélité vérifiée contre le vrai appel de production
+    // (`OptimizerSection.tsx`, `handleSearch`) : PAS de `maxCollected` ici,
+    // volontairement — la prod ne le passe JAMAIS, même en mode exhaustif
+    // (`exhaustiveSearch` ne touche QUE `maxMs`, décision actée), donc le
+    // défaut réel `MAX_COLLECTED=100 000` doit s'appliquer tel quel. Une
+    // première version de ce script le forçait à `MAX_SAFE_INTEGER` — un
+    // vrai écart de fidélité, pas un détail (voir le skill
+    // `optimizer-perf-testing`/section « Fidélité des scripts diagnostics »
+    // d'`algo-verify`). `adaptiveTrancheWeighting` explicite à `false` pour
+    // la même raison : ce prototype ne teste PAS ce réglage, jamais implicite.
+    // `maxMs` reste infini : seul champ que `exhaustiveSearch` fait
+    // réellement varier en prod, donc le seul qu'on a le droit de diverger
+    // du défaut d'écran ici.
     const params: SearchParams = {
       base: gear.base,
       artifacts: gear.artifacts,
@@ -83,9 +99,9 @@ async function main() {
       requirement,
       metric: 'eff',
       objective: c.objective,
-      slotFilterCap: 80,
+      slotFilterCap: SLOT_FILTER_CAP,
       maxMs: Number.POSITIVE_INFINITY,
-      maxCollected: Number.MAX_SAFE_INTEGER,
+      adaptiveTrancheWeighting: false,
     };
     const prepared = prepareSearch(params);
     if (!prepared) {
@@ -97,28 +113,23 @@ async function main() {
     console.log(`=== ${c.label} (bucketCap=${prepared.bucketCap}, |bucketsA|=${bucketsA.length}, |bucketsB|=${bucketsB.length}) ===`);
 
     let baselineMs = 0;
+    let baselineFound = -1;
     for (const n of WORKER_COUNTS) {
       const t0 = performance.now();
       let explored = 0;
       let found = 0;
       if (n === 1) {
-        const nodeBudget: NodeBudget = { max: TOTAL_BUDGET };
+        const nodeBudget: NodeBudget = { max: Number.POSITIVE_INFINITY };
         const res = drain(pairBuckets(prepared, bucketsA, bucketsB, nodeBudget));
         explored = res.explored;
         found = res.candidates.length;
       } else {
-        // ⚠️ Round-robin par RANG (première version) donnait un budget ÉGAL
-        // à des tranches de travail INÉGALES (un compartiment peut contenir
-        // jusqu'à bucketCap² paires brutes, un autre bien moins) — un worker
-        // pouvait s'arrêter AU MILIEU d'un compartiment disproportionné,
-        // là où le séquentiel ne se serait jamais arrêté à cet endroit précis.
-        // Corrigé en DEUX temps : (1) répartition GLOUTONNE par charge réelle
-        // (nombre de combos, LPT — Longest Processing Time first : les plus
-        // gros compartiments d'abord, toujours au worker le moins chargé),
-        // pas par rang ; (2) budget PROPORTIONNEL à la charge assignée à
-        // CHAQUE worker, pas un partage égal aveugle — pour que le point
-        // d'arrêt de chaque worker corresponde à la même PROFONDEUR relative
-        // que le séquentiel aurait atteinte dans ce même sous-ensemble.
+        // Mode exhaustif = aucun plafond, donc aucun risque de troncature
+        // quel que soit le découpage — l'ordre par potentiel décroissant
+        // (qui protège les recherches TRONQUÉES) n'a plus d'importance ici.
+        // Équilibrage GLOUTON par charge réelle (LPT) retenu pour le temps
+        // MUR (moins de traînards), chaque worker reçoit un budget INFINI
+        // (rien à répartir : chacun va simplement au bout de sa tranche).
         const withWorkload = bucketsA.map((b) => ({ b, workload: b.combos.length }));
         withWorkload.sort((a, b) => b.workload - a.workload);
         const slices: Bucket[][] = Array.from({ length: n }, () => []);
@@ -129,21 +140,20 @@ async function main() {
           slices[target].push(b);
           sliceWorkload[target] += workload;
         }
-        const totalWorkload = sliceWorkload.reduce((s, w) => s + w, 0);
         const results = await Promise.all(
-          slices.map((slice, i) => {
-            const share = totalWorkload > 0 ? sliceWorkload[i] / totalWorkload : 1 / n;
-            const nodeBudgetMax = Math.max(1, Math.round(TOTAL_BUDGET * share));
-            return runWorker(workerScript, { params, bucketASlice: slice, bucketsB, nodeBudgetMax });
-          })
+          slices.map((slice) => runWorker(workerScript, { params, bucketASlice: slice, bucketsB, nodeBudgetMax: Number.POSITIVE_INFINITY }))
         );
         explored = results.reduce((s, r) => s + r.explored, 0);
         found = results.reduce((s, r) => s + r.foundCount, 0);
       }
       const ms = performance.now() - t0;
-      if (n === 1) baselineMs = ms;
+      if (n === 1) {
+        baselineMs = ms;
+        baselineFound = found;
+      }
       const speedup = baselineMs > 0 ? baselineMs / ms : 1;
-      console.log(`  N=${String(n).padEnd(2)} : ${ms.toFixed(0).padStart(6)} ms   explored=${explored.toLocaleString('fr-FR').padStart(12)}   trouvés=${found.toString().padStart(6)}   accélération=×${speedup.toFixed(2)}`);
+      const mismatch = found !== baselineFound ? '  ⚠️ DIVERGENCE vs N=1' : '';
+      console.log(`  N=${String(n).padEnd(2)} : ${ms.toFixed(0).padStart(7)} ms   explored=${explored.toLocaleString('fr-FR').padStart(12)}   trouvés=${found.toString().padStart(6)}   accélération=×${speedup.toFixed(2)}${mismatch}`);
     }
     console.log('');
   }

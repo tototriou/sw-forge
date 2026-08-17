@@ -2129,12 +2129,17 @@ function SetEditor({
           le second bouton descendre à la ligne suivante s'il ne reste pas la
           place, plutôt que de déborder ou d'écraser le premier. */}
       <div className="flex flex-wrap items-center gap-1">
+        {/* ⚠️ `icone`, pas un « + » écrit dans le texte : c'était la seule
+            incohérence entre les deux boutons de cette rangée, l'un portait
+            son symbole dans l'icône (comme partout ailleurs dans l'app),
+            l'autre dans le libellé. */}
         <Bouton
           onClick={() => setOpen((o) => !o)}
           disabled={full}
           aria-expanded={open}
           taille="xs"
-          libelle={full ? 'Plus de place (6 runes)' : '+ Set'}
+          icone={!full ? <Plus size={11} /> : undefined}
+          libelle={full ? 'Plus de place (6 runes)' : 'Set'}
         />
         <Bouton
           onClick={() => {

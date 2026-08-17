@@ -353,18 +353,20 @@ export default function RtaBackupBar({
           large, les six boutons tiennent côte à côte : les empiler en deux
           rangées y laissait une colonne de vide à droite et faisait descendre la
           prépa d'une ligne pour rien.
-          ⚠️ Les deux GROUPES survivent au passage en ligne, séparés par un écart
-          plus large (`lg:gap-5` entre eux, `gap-2` à l'intérieur). C'est ce qui
-          continue de dire que « Réinitialiser » et « Exporter » n'ont rien à
-          voir : les trois premiers agissent sur l'état courant de la prépa, les
-          trois suivants échangent un fichier avec l'extérieur.
+          ⚠️ Les deux GROUPES survivent au passage en ligne, séparés par un
+          FILET vertical. C'est ce qui continue de dire que « Réinitialiser » et
+          « Exporter » n'ont rien à voir : les trois premiers agissent sur l'état
+          courant de la prépa, les trois suivants échangent un fichier avec
+          l'extérieur. Sur une seule ligne, un simple écart ne suffisait plus à
+          les distinguer — six boutons régulièrement espacés se lisent comme six
+          actions équivalentes.
           ⚠️ `lg:` et non `compact:` : c'est une question de PLACE, pas de
           pointeur — et sous `lg`, les rangées sont de toute façon reprises par
           la grille du panneau (voir index.css). */}
       <div
         data-grille-actions
         data-passe-grille
-        className="flex flex-col gap-1.5 lg:flex-row lg:flex-wrap lg:items-center lg:gap-5"
+        className="flex flex-col gap-1.5 lg:flex-row lg:flex-wrap lg:items-stretch lg:gap-4"
       >
       {/* ⚠️ Écart PLUS LARGE sous `sm`, où les boutons sont des icônes nues :
           sans cadre pour les délimiter, six icônes à 8 px d'intervalle se lisent
@@ -416,6 +418,15 @@ export default function RtaBackupBar({
         )}
 
       </div>
+
+      {/* ⚠️ **Filet visible au-dessus de `lg` seulement.** Sous cette largeur les
+          deux groupes sont l'un SOUS l'autre, et un trait vertical entre deux
+          lignes empilées ne sépare rien ; dans le panneau mobile, il deviendrait
+          en plus une cellule de la grille des actions.
+          ⚠️ `self-stretch` : sa hauteur est celle de la rangée, pas une valeur
+          écrite en dur qui se désaccorderait au premier changement de taille de
+          bouton. */}
+      <div aria-hidden className="hidden w-px self-stretch bg-border lg:block" />
 
       <div data-rangee-actions className="flex flex-wrap items-center gap-2 compact:gap-4">
         <Bouton

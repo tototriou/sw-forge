@@ -331,6 +331,12 @@ différent, coopératif (voir « Interruption »).
   bout : il rend la main régulièrement pour rester interruptible et pour
   poster sa progression sans jamais geler l'interface. La construction des
   deux moitiés tourne en **vrai parallèle** (deux Web Workers dédiés).
+- **L'appariement peut lui aussi se paralléliser sur plusieurs Web Workers**,
+  mais uniquement en mode « Rechercher jusqu'à épuisement complet » et
+  au-delà d'une taille de recherche donnée — jamais en recherche normale
+  (le filet de temps par défaut), où ça risquerait de perdre un résultat
+  valide. Invisible à l'écran : mêmes garanties, potentiellement plus rapide
+  sur une grosse recherche exhaustive.
 
 ### Vérification
 
@@ -345,7 +351,12 @@ main, la statistique principale imposée, les conditions maximum, et les cas
 limites de chaque élagage. Un test de régression à échelle réelle
 ([tests/rune-optim-scale-monotonicity.test.ts](tests/rune-optim-scale-monotonicity.test.ts))
 couvre en plus des pools de taille proche des comptes réels, pas seulement
-les petits jeux du test différentiel. Le moteur a par ailleurs été validé
+les petits jeux du test différentiel.
+[tests/rune-optim-parallel-pairing.test.ts](tests/rune-optim-parallel-pairing.test.ts)
+vérifie spécifiquement que découper l'appariement sur plusieurs Workers
+retrouve EXACTEMENT le même ensemble de candidats que l'appariement
+séquentiel, sur des jeux aléatoires balayés à 1/2/3/4 tranches. Le moteur a
+par ailleurs été validé
 « grandeur nature » : retrouver exactement le runage d'un monstre réel
 existant, à partir de ses propres stats comme critères, sur un compte de
 plusieurs milliers de runes.

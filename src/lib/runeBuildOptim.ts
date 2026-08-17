@@ -1617,6 +1617,32 @@ function comboAFeasible(
 // compartiments compatible) — jamais la boucle B, donc toujours bien moins
 // cher que la recherche elle-même (143 099 comboA vérifiés sur ce cas,
 // contre 86,8M paires que la vraie recherche visite).
+// ⚠️ Parallélisation de l'appariement (voir runeBuildOptim.worker.ts,
+// `runParallelPairing`, et spec/outils/optimizer/pistes.md, point 9) —
+// réparti GLOUTONNEMENT par charge réelle (LPT — Longest Processing Time
+// first : les plus gros compartiments d'abord, toujours au worker le moins
+// chargé), PAS par rang. Mesuré (`scripts/pairing-parallel-diag.ts`) :
+// n'importe quel découpage statique de `bucketsA` donne un résultat
+// identique au séquentiel UNIQUEMENT quand rien n'est tronqué (recherche
+// exhaustive, budget infini par tranche) — c'est la SEULE garantie que cette
+// fonction suppose déjà vraie côté appelant, elle ne la vérifie pas
+// elle-même. Exportée (plutôt que privée au Worker) pour être testable
+// directement en Node, sans dépendre de l'API Worker du navigateur — voir
+// tests/rune-optim-parallel-pairing.test.ts.
+export function partitionBucketsALPT(bucketsA: Bucket[], workerCount: number): Bucket[][] {
+  const withWorkload = bucketsA.map((b) => ({ b, workload: b.combos.length }));
+  withWorkload.sort((a, b) => b.workload - a.workload);
+  const slices: Bucket[][] = Array.from({ length: workerCount }, () => []);
+  const sliceWorkload = new Array(workerCount).fill(0);
+  for (const { b, workload } of withWorkload) {
+    let target = 0;
+    for (let i = 1; i < workerCount; i++) if (sliceWorkload[i] < sliceWorkload[target]) target = i;
+    slices[target].push(b);
+    sliceWorkload[target] += workload;
+  }
+  return slices;
+}
+
 export function totalPairCount(prepared: PreparedSearch, bucketsA: Bucket[], bucketsB: Bucket[]): number {
   const { distinctKeys, requirement, minEntries, maxEntries, guaranteed, guaranteedMin, relPct, artFlat, totalOf } = prepared;
   let total = 0;

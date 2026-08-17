@@ -24,6 +24,7 @@ import testCollabPaires from './collab-paires.test';
 import testRuneOptim from './rune-optim.test';
 import testRuneOptimDifferential from './rune-optim-differential.test';
 import testRuneOptimScaleMonotonicity from './rune-optim-scale-monotonicity.test';
+import testRuneOptimParallelPairing from './rune-optim-parallel-pairing.test';
 import testSetsIntangible from './sets-intangible.test';
 import testRuneTri from './rune-tri.test';
 import testMonstreTri from './monstre-tri.test';
@@ -52,6 +53,7 @@ async function main() {
   testRuneOptim();
   testRuneOptimDifferential();
   testRuneOptimScaleMonotonicity();
+  testRuneOptimParallelPairing();
   testMeules();
   testArtefacts();
   testRegistre();

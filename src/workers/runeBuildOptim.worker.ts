@@ -18,8 +18,9 @@
 // single-threaded : un message ne peut être livré que quand le code en
 // cours d'exécution le permet).
 
-import { prepareSearch, pairBuckets, totalPairCount, maybeEscalateNodeBudget, PreparedSearch, SearchParams, SearchResult, Bucket, NodeBudget, BuildCandidate } from '../lib/runeBuildOptim';
+import { prepareSearch, pairBuckets, totalPairCount, partitionBucketsALPT, maybeEscalateNodeBudget, PreparedSearch, SearchParams, SearchResult, Bucket, NodeBudget, BuildCandidate } from '../lib/runeBuildOptim';
 import { BuildHalfRequest, BuildHalfResponse } from './buildHalf.worker';
+import { PairSliceRequest, PairSliceResponse } from './pairSlice.worker';
 
 export type WorkerRequest = SearchParams | { stop: true };
 
@@ -123,6 +124,125 @@ let activeHalfWorkers: Worker[] = [];
 // cette phase fasse sortir `await` immédiatement plutôt que de rester
 // bloqué indéfiniment (les Workers tués ne posteront plus jamais de message).
 let stopBuildReject: (() => void) | null = null;
+// Workers enfants EN COURS (phase d'APPARIEMENT parallèle uniquement, voir
+// `runParallelPairing`) — contrairement à `activeHalfWorkers`, un arrêt
+// manuel ici poste `{stop:true}` (coopératif) plutôt que `terminate()` :
+// chaque worker répond avec les candidats déjà trouvés sur SA tranche, pour
+// garder le même comportement qu'un arrêt en phase séquentielle (« garde le
+// meilleur trouvé jusque-là »).
+let activePairingWorkers: Worker[] = [];
+
+// ⚠️ Parallélisation de l'APPARIEMENT — voir spec/outils/optimizer/
+// pistes.md, point 9. Mesuré sur 3 itérations successives
+// (scripts/pairing-parallel-diag.ts) : un découpage STATIQUE de bucketsA
+// est SÛR (aucune perte de couverture, quel que soit le découpage) mais
+// UNIQUEMENT en recherche EXHAUSTIVE (maxMs=Infinity, aucune troncature
+// possible) — en recherche normale (tronquée par défaut), le même
+// découpage perd des candidats valides, voir le détail dans pistes.md.
+// Jamais activé hors de ce mode.
+//
+// PARALLEL_PAIRING_THRESHOLD : sous ~46M paires réelles, paralléliser est
+// une PERTE nette mesurée (jusqu'à ×0,32 — le coût de copie/démarrage des
+// Workers dépasse le gain de calcul). Le gain réel n'apparaît qu'au-delà
+// d'environ 250M paires (×1,4 à ×2,3 mesuré sur 4 cas réels). 100M est
+// choisi DANS cet intervalle, qui n'a PAS été finement calibré (rien
+// mesuré entre 46M et 250M) — à resserrer si un usage réel montre un cas
+// proche de cette frontière qui se comporte mal.
+//
+// PARALLEL_PAIRING_WORKERS : fixé à 4, délibérément PAS dérivé de
+// `navigator.hardwareConcurrency`. Mesuré NON monotone : sur 3 des 4 plus
+// gros cas connus, N=8 fait PIRE que N=4 (overhead croissant sans gain de
+// calcul supplémentaire) — un réglage automatique basé sur les cœurs
+// disponibles aurait été FAUX dans les deux sens (trop de workers sur un
+// petit cas, pas forcément mieux sur un gros). Voir pistes.md, point 9,
+// troisième mesure, pour le détail des 7 cas.
+const PARALLEL_PAIRING_THRESHOLD = 100_000_000;
+const PARALLEL_PAIRING_WORKERS = 4;
+
+// Répartition GLOUTONNE par charge réelle (LPT) — voir `partitionBucketsALPT`
+// dans runeBuildOptim.ts (déplacée là pour être testable en Node, voir
+// tests/rune-optim-parallel-pairing.test.ts) pour la stratégie et sa preuve.
+
+function pairSliceInWorker(
+  request: PairSliceRequest,
+  onProgress: (explored: number, newCandidates: BuildCandidate[]) => void
+): { worker: Worker; done: Promise<SearchResult> } {
+  const worker = new Worker(new URL('./pairSlice.worker.ts', import.meta.url), { type: 'module' });
+  const done = new Promise<SearchResult>((resolve, reject) => {
+    worker.onmessage = (e: MessageEvent<PairSliceResponse>) => {
+      const msg = e.data;
+      if (msg.type === 'progress') {
+        onProgress(msg.explored, msg.newCandidates);
+        return;
+      }
+      resolve({ candidates: msg.candidates, explored: msg.explored, truncated: msg.truncated });
+    };
+    worker.onerror = reject;
+  });
+  worker.postMessage(request);
+  return { worker, done };
+}
+
+// Découpe `bucketsA` en au plus `PARALLEL_PAIRING_WORKERS` tranches (jamais
+// plus que `bucketsA.length`, sinon des workers recevraient une tranche
+// vide pour rien), donne à CHAQUE worker une part ÉGALE du plafond GLOBAL
+// de candidats collectés (`prepared.maxCollected`, 100 000 par défaut,
+// INCHANGÉ par le mode exhaustif — décision actée) pour que la somme des N
+// workers ne dépasse jamais significativement ce plafond, et fusionne les
+// résultats finaux (pas l'accumulateur de progression, qui ne sert qu'à
+// l'affichage EN DIRECT) — union simple, sans dédoublonnage nécessaire
+// puisque les tranches de bucketsA sont disjointes : un candidat donné ne
+// peut exister que dans LA tranche qui contient son comboA.
+async function runParallelPairing(
+  params: SearchParams,
+  prepared: PreparedSearch,
+  bucketsA: Bucket[],
+  bucketsB: Bucket[],
+  postProgress: (explored: number, found: number, newCandidates: BuildCandidate[]) => void
+): Promise<SearchResult> {
+  const workerCount = Math.min(PARALLEL_PAIRING_WORKERS, bucketsA.length);
+  const slices = partitionBucketsALPT(bucketsA, workerCount);
+  const perWorkerMaxCollected = Math.max(1, Math.ceil(prepared.maxCollected / workerCount));
+
+  const exploredByWorker: number[] = new Array(workerCount).fill(0);
+  const allCandidates: BuildCandidate[] = [];
+  let candidatesSent = 0;
+  let lastProgressPost = 0;
+
+  const flushProgress = () => {
+    const now = Date.now();
+    if (now - lastProgressPost <= PROGRESS_THROTTLE_MS) return;
+    lastProgressPost = now;
+    const newCandidatesSlice = allCandidates.slice(candidatesSent);
+    candidatesSent = allCandidates.length;
+    const explored = exploredByWorker.reduce((s, v) => s + v, 0);
+    postProgress(explored, allCandidates.length, newCandidatesSlice);
+  };
+
+  const handles = slices.map((bucketASlice, i) => {
+    const sliceParams: SearchParams = { ...params, maxCollected: perWorkerMaxCollected };
+    return pairSliceInWorker({ params: sliceParams, bucketASlice, bucketsB }, (explored, newCandidates) => {
+      exploredByWorker[i] = explored;
+      if (newCandidates.length > 0) allCandidates.push(...newCandidates);
+      flushProgress();
+    });
+  });
+  activePairingWorkers = handles.map((h) => h.worker);
+
+  // Arrêt manuel pendant cette phase : géré par le handler `stop` global
+  // (`self.onmessage`), qui poste `{stop:true}` à chaque worker actif —
+  // chacun répond gracieusement (voir pairSlice.worker.ts), donc `Promise.
+  // all` se résout normalement, juste plus tôt et avec `truncated: true`.
+  const results = await Promise.all(handles.map((h) => h.done));
+  for (const w of activePairingWorkers) w.terminate();
+  activePairingWorkers = [];
+
+  return {
+    candidates: results.flatMap((r) => r.candidates),
+    explored: results.reduce((s, r) => s + r.explored, 0),
+    truncated: results.some((r) => r.truncated),
+  };
+}
 
 function buildHalfInWorker(request: BuildHalfRequest, onProgress: (scanned: number, total: number) => void): Promise<Bucket[]> {
   return new Promise((resolve, reject) => {
@@ -155,6 +275,7 @@ self.onmessage = async (e: MessageEvent<WorkerRequest>) => {
     for (const w of activeHalfWorkers) w.terminate();
     activeHalfWorkers = [];
     if (stopBuildReject) stopBuildReject();
+    for (const w of activePairingWorkers) w.postMessage({ stop: true });
     return;
   }
   stopped = false;
@@ -229,6 +350,44 @@ self.onmessage = async (e: MessageEvent<WorkerRequest>) => {
     return;
   }
 
+  // Taille RÉELLE de l'espace à épuiser (voir `totalPairCount`) — calculée
+  // UNE SEULE FOIS, maintenant que les deux moitiés sont construites (avant
+  // ça, seule l'estimation brute pré-recherche, `estimateSearchSpace`,
+  // existe). Coût négligeable : O(compartiments A × compartiments B), une
+  // poignée de compartiments de chaque côté, jamais les combos eux-mêmes.
+  const totalPairs = totalPairCount(prepared, bucketsA, bucketsB);
+
+  // Voir la définition de `runParallelPairing` plus haut pour le détail
+  // mesuré derrière ces deux conditions. `!Number.isFinite(prepared.maxMs)`
+  // = mode « Rechercher jusqu'à épuisement complet » (seul mode où un
+  // découpage statique est prouvé sans perte).
+  if (!Number.isFinite(prepared.maxMs) && totalPairs >= PARALLEL_PAIRING_THRESHOLD) {
+    const postProgress = (explored: number, found: number, newCandidates: BuildCandidate[]) => {
+      const message: WorkerPairingMessage = {
+        type: 'progress',
+        phase: 'pairing',
+        explored,
+        found,
+        pct: estimatePct(prepared, totalPairs, explored, found, Date.now() - startedAt),
+        // Pas de plafond de nœuds unique en mode parallèle (chaque worker a
+        // un budget infini sur sa propre tranche, voir `pairSlice.worker.
+        // ts`) — champ non affiché tel quel dans l'UI (débogage/évolution
+        // future uniquement, voir useBuildOptimSearch.ts), Infinity est la
+        // valeur honnête.
+        nodeBudgetMax: Number.POSITIVE_INFINITY,
+        totalPairs,
+        newCandidates,
+      };
+      (self as unknown as Worker).postMessage(message);
+    };
+    const finalResult = await runParallelPairing(params, prepared, bucketsA, bucketsB, postProgress);
+    const result: WorkerResultMessage = { type: 'result', ...finalResult };
+    (self as unknown as Worker).postMessage(result);
+    return;
+  }
+
+  // ── Chemin séquentiel existant, INCHANGÉ (recherche normale, ou
+  // recherche exhaustive sous le seuil de parallélisation) ──
   // ⚠️ Escalade automatique du budget de nœuds — voir `maybeEscalateNodeBudget`
   // dans runeBuildOptim.ts pour le détail complet. Signalé sur un vrai compte
   // (Sonia, tototriou-12889591.json) : plafond adaptatif épuisé en 22 s
@@ -242,13 +401,6 @@ self.onmessage = async (e: MessageEvent<WorkerRequest>) => {
   // aucune paire déjà visitée n'est revisitée, aucun des deux Workers de
   // construction n'est rappelé.
   const nodeBudget: NodeBudget = { max: prepared.maxNodes };
-
-  // Taille RÉELLE de l'espace à épuiser (voir `totalPairCount`) — calculée
-  // UNE SEULE FOIS, maintenant que les deux moitiés sont construites (avant
-  // ça, seule l'estimation brute pré-recherche, `estimateSearchSpace`,
-  // existe). Coût négligeable : O(compartiments A × compartiments B), une
-  // poignée de compartiments de chaque côté, jamais les combos eux-mêmes.
-  const totalPairs = totalPairCount(prepared, bucketsA, bucketsB);
 
   let lastYield = Date.now();
   // Nombre déjà relayé au fil principal (voir `WorkerPairingMessage.

@@ -279,18 +279,18 @@ export default function CategoryBar({ cats, monsters }: Props) {
             // centre.
             // ⚠️ `auto-fill` : le nombre de colonnes suit la largeur disponible
             // au lieu d'être écrit en dur.
-            // ⚠️ **Colonne minimale au plus près du CONTENU (48 px pour un
-            // portrait de 36).** À 58, quatre colonnes se partageaient la largeur
-            // et chacune faisait près de 80 px : le portrait y flottait au
-            // milieu de vingt pixels de vide de chaque côté, et l'alignement
-            // vertical ne se voyait plus. Serrées, les colonnes cadrent les
-            // portraits — et il en tient une de plus par rangée.
+            // ⚠️ **Colonne minimale au plus près du PORTRAIT (44 px pour 36).**
+            // Elle valait 58 quand le nom vivait sous l'image : quatre colonnes
+            // se partageaient alors la largeur et chacune faisait près de 80 px,
+            // le portrait flottant au milieu de vingt pixels de vide. Sans nom,
+            // la case n'a plus à loger que l'image — six par rangée au lieu de
+            // quatre, et chaque portrait cadré dans sa colonne.
             // ⚠️ Le rendu de BUREAU garde son `flex-wrap` : ses cases y ont une
             // largeur propre, et la place ne manque pas.
             <div
               className={
                 surMobile
-                  ? 'grid grid-cols-[repeat(auto-fill,minmax(48px,1fr))] gap-x-1 gap-y-1.5'
+                  ? 'grid grid-cols-[repeat(auto-fill,minmax(44px,1fr))] gap-1'
                   : 'flex flex-wrap gap-1.5'
               }
             >
@@ -323,12 +323,21 @@ export default function CategoryBar({ cats, monsters }: Props) {
                           ? `Retirer ${m.name} de « ${open.label} »`
                           : `Ajouter ${m.name} à « ${open.label} »`
                     }
-                    // ⚠️ Pas de pastille d'élément ici, mais le NOM sous le
-                    // portrait : l'élément ne se distingue que par sa couleur,
-                    // illisible pour un daltonien. Le nom, lui, identifie le
-                    // monstre quelle que soit la vision des couleurs.
                     contenu={<MonsterAvatar monster={m} size={36} element={false} />}
-                    libelle={m.name}
+                    // ⚠️ **Pas de nom au DOIGT.** Il n'y tenait pas : « Mei Hou
+                    // Wang » se coupait en « Mei Hou … », et une rangée où
+                    // certains noms sont entiers et d'autres tronqués n'a plus
+                    // de masse visuelle régulière — c'est ce qui donnait à la
+                    // grille son air désordonné, plus que la position des
+                    // portraits.
+                    // Le portrait suffit à reconnaître un monstre : c'est
+                    // l'image du jeu, celle qu'on voit dans sa box. Le nom
+                    // complet reste dans l'infobulle et pour le lecteur d'écran
+                    // (`title` ci-dessus), donc rien n'est perdu pour qui en a
+                    // besoin.
+                    // ⚠️ Sur BUREAU il reste : la case y est plus large, les
+                    // noms tiennent, et rien ne les gênait.
+                    libelle={surMobile ? undefined : m.name}
                     // ⚠️ Coche masquée SOUS `lg` seulement : 12 px posés dans le
                     // coin d'un portrait de 36, elle en masquait un bout au
                     // doigt, là où le fond teinté et le liseré disent déjà la

@@ -135,7 +135,16 @@ const Vignette = forwardRef<HTMLButtonElement, VignetteProps>(function Vignette(
       }
       {...reste}
     >
-      {contenu}
+      {/* ⚠️ **Le contenu est centré par son PROPRE conteneur**, pas par
+          l'`align-items` du bouton. Les deux devraient donner le même résultat,
+          mais l'alignement du bouton est à la portée de n'importe quelle règle
+          descendante — et il en existe une dans cette app qui aligne à gauche
+          tout ce qu'elle trouve en colonne (`[data-tiroir] .flex-col`, voir
+          index.css). Elle a déjà décentré une modale entière.
+          Un conteneur pleine largeur qui centre lui-même ne dépend de rien
+          au-dessus de lui : le portrait est au milieu de sa case, quoi qu'il
+          arrive. */}
+      <span className="flex w-full items-center justify-center">{contenu}</span>
       {libelle != null && (
         <span className="w-full truncate text-center text-micro leading-tight text-ink-dim">
           {libelle}

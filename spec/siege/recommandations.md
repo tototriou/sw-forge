@@ -118,8 +118,14 @@ endroits — même geste que `actions` et `effacer` :
 ⚠️ **Pleine largeur dans le panneau**, pas à sa taille propre : seul contrôle
 de sa ligne, il y flotterait sinon dans une bande vide. `Segmented` passe en
 `size="lg"` (chaque cran se partage la largeur à égalité) et l'intitulé
-« Origine » monte au-dessus plutôt qu'à côté. À la souris, il garde sa taille
-`sm` et son intitulé de largeur fixe.
+« Origine » monte au-dessus plutôt qu'à côté.
+
+⚠️ **`size="md"` à la souris, pas `sm`** — troisième palier ajouté à
+[Segmented.tsx](../../src/components/Segmented.tsx) : le texte et le
+rembourrage de `lg`, sans forcer sa largeur (`lg` reste réservé au panneau, où
+le cran est seul sur sa ligne). Posé seul sur sa propre ligne depuis qu'il est
+sorti du bloc de filtres, ce contrôle a la place d'être aussi lisible qu'un
+réglage structurant.
 
 ### ⚠️ UN SEUL bloc de filtres pour la recherche, à rangées intitulées
 

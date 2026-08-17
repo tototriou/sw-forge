@@ -24,8 +24,14 @@ export default function Segmented<T extends string>({
   // 'lg' : chaque option se partage la largeur à égalité, sur une seule
   // ligne bien visible — pour un choix structurant (peu d'options, chacune
   // méritant d'être lue d'un coup d'œil), pas un réglage secondaire.
-  size?: 'sm' | 'lg';
+  // 'md' : le texte et le rembourrage de `lg`, mais SANS forcer la largeur —
+  // le cadre reste à sa taille de contenu, posé au milieu d'une rangée de
+  // filtres plutôt que seul sur sa ligne. Pour un choix qu'on veut plus lisible
+  // à la souris, où la place ne manque pas, sans lui donner le poids visuel
+  // d'un choix structurant.
+  size?: 'sm' | 'md' | 'lg';
 }) {
+  const large = size === 'lg' || size === 'md';
   return (
     <div
       className={`flex items-center ${size === 'lg' ? 'w-full gap-0' : 'gap-0.5 flex-none'} bg-panel2 border border-border rounded-lg p-0.5 ${className}`}
@@ -47,7 +53,7 @@ export default function Segmented<T extends string>({
               aria-pressed={active}
               className={`flex flex-1 items-center justify-center gap-1.5 rounded-md font-semibold
                           transition whitespace-nowrap ${
-                            size === 'lg' ? 'px-2 py-1.5 text-xs' : 'px-2 py-1 text-micro'
+                            large ? 'px-3 py-1.5 text-xs' : 'px-2 py-1 text-micro'
                           } ${
                             // ⚠️ Le fond SEUL marque le cran posé — pas d'ombre
                             // en plus, elle faisait décoller le bouton de son

@@ -432,7 +432,12 @@ export default function RecoBoard({
       <Segmented
         value={filter}
         onChange={setFilter}
-        size={pleineLargeur ? 'lg' : 'sm'}
+        // ⚠️ `md` à la souris, pas `sm` : posé seul sur sa ligne depuis qu'il
+        // est sorti du bloc de filtres, ce contrôle a la place d'être aussi
+        // lisible qu'un réglage structurant — `md` porte le texte et le
+        // rembourrage de `lg` sans forcer sa largeur, contrairement à `lg`
+        // (réservé au panneau, où il n'y a que lui sur la ligne).
+        size={pleineLargeur ? 'lg' : 'md'}
         options={FILTERS.map((f) => ({
           key: f.key,
           label: f.label,

@@ -1,5 +1,5 @@
 import { forwardRef, ReactNode } from 'react';
-import Bouton, { TonBouton } from './Bouton';
+import Bouton, { FondBouton, TonBouton, TraitBouton } from './Bouton';
 
 // Bouton réduit à son icône : une croix de fermeture, un crayon, une corbeille.
 //
@@ -31,6 +31,16 @@ export interface BoutonIconeProps
   // Pose un cadre autour de l'icône. Défaut : non — la plupart de ces boutons
   // vivent dans un en-tête déjà cadré, où une bordure de plus ferait du bruit.
   cadre?: boolean;
+  // Les axes du bouton restent OUVERTS.
+  //
+  // ⚠️ `fond` compte pour la COULEUR DE L'ICÔNE, pas seulement pour le
+  // remplissage : un bouton sans fond prend une icône qui vire à la teinte de
+  // son ton au survol, ce qui est juste sur une surface neutre. Sur un bouton
+  // dont l'appelant PEINT le fond (la croix rouge posée sur le coin d'une
+  // carte), cette même règle donnait une croix rouge sur fond rouge — l'icône
+  // disparaissait au survol. `fond="plein"` lui rend une icône de contraste.
+  fond?: FondBouton;
+  trait?: TraitBouton;
   actif?: boolean;
   // N'apparaît qu'au survol de son conteneur, qui doit porter `group`.
   //
@@ -49,6 +59,8 @@ const BoutonIcone = forwardRef<HTMLButtonElement, BoutonIconeProps>(function Bou
     taille = 'libre',
     ton = 'neutre',
     cadre = false,
+    fond,
+    trait,
     auSurvol = false,
     className = '',
     ...reste
@@ -64,8 +76,8 @@ const BoutonIcone = forwardRef<HTMLButtonElement, BoutonIconeProps>(function Bou
     <Bouton
       ref={ref}
       ton={ton}
-      fond={cadre ? 'doux' : 'vide'}
-      trait={cadre ? 'plein' : 'aucun'}
+      fond={fond ?? (cadre ? 'doux' : 'vide')}
+      trait={trait ?? (cadre ? 'plein' : 'aucun')}
       forme={serre ? 'pilule' : 'boite'}
       // ⚠️ Voir `TailleBouton.carre` : la taille `sm` posait un `py-1`, soit 8 px
       // de rembourrage vertical sur une hauteur forcée à 20 px. Il ne restait
@@ -78,8 +90,10 @@ const BoutonIcone = forwardRef<HTMLButtonElement, BoutonIconeProps>(function Bou
       // ⚠️ Voir plus haut : `serre` s'exempte de la règle tactile parce que son
       // contenant est plus petit qu'elle, pas parce que 40 px gênait.
       {...(serre ? { 'data-cible-fine': true } : {})}
+      // ⚠️ Le voile de survol ne se pose QUE sur un bouton sans fond propre :
+      // sur un fond déjà peint, il l'assombrit au lieu de le désigner.
       className={`${serre ? 'h-5 w-5' : 'h-7 w-7'} ${
-        cadre ? '' : 'hoverable:bg-black/25'
+        cadre || fond ? '' : 'hoverable:bg-black/25'
       } ${apparition} ${className}`}
       {...reste}
     />

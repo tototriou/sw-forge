@@ -238,12 +238,20 @@ export default function TurnOrder({
               {/* ⚠️ `taille="serre"` : posé DANS la pilule, il ne peut pas
                   prendre la cible tactile pleine sans la déborder. Voir
                   BoutonIcone. */}
+              {/* ⚠️ Le voile de survol est neutralisé (`hoverable:bg-transparent`) :
+                  ce bouton est posé sur le dégradé `star` de la pilule active,
+                  qu'un assombrissement tacherait au lieu de le désigner. C'est
+                  l'opacité de la croix qui répond au survol. */}
               <BoutonIcone
                 onClick={() => retirerLead(pct)}
                 libelle={`Retirer le lead +${pct}%`}
                 taille="serre"
                 icone={<X size={11} strokeWidth={3} />}
-                className="mr-1 opacity-50 hoverable:bg-transparent hoverable:opacity-100"
+                // ⚠️ `text-current` : la croix HÉRITE de la couleur de sa pilule
+                // — encre sombre sur la pilule active (dégradé doré), encre
+                // atténuée sur les autres. Lui donner un ton propre la découpait
+                // du fond sur lequel elle est posée.
+                className="mr-1 text-current opacity-50 hoverable:bg-transparent hoverable:text-current hoverable:opacity-100"
               />
             </span>
           );

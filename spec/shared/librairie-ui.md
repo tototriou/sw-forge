@@ -56,7 +56,28 @@ Les axes se **choisissent séparément et se combinent** :
 | `fond` | `vide`, `doux`, `plein` | Le **remplissage** |
 | `trait` | `aucun`, `plein`, `pointille` | Le **contour** |
 | `forme` | `boite`, `pilule` | Le **rayon des coins** |
-| `taille` | `xs`, `sm`, `md` | L'**encombrement** |
+| `taille` | `xs`, `sm`, `md`, `carre` | L'**encombrement** |
+
+> ⚠️ **`fond` décide aussi de la COULEUR DU CONTENU**, pas seulement du
+> remplissage. Un bouton sans fond prend une icône qui vire à la teinte de son
+> ton au survol — juste sur une surface neutre. Sur un fond peint de cette même
+> teinte, cela donnait une **croix rouge sur fond rouge** : l'icône disparaissait
+> exactement au moment où on la vise. D'où trois cas de texte (`nu`, `doux`,
+> `plein`) et non deux, et d'où un `fond="plein"` **opaque** pour le ton
+> `danger` : c'est le cran des actions posées SUR autre chose, où un fond
+> translucide laisse passer l'image dessous.
+>
+> ⚠️ Corollaire : **ne jamais peindre un fond en `className`.** Le composant ne
+> peut pas le savoir, et choisit alors la couleur de contenu du fond nu.
+
+> ⚠️ **`taille="carre"` n'a aucun rembourrage, dans aucune direction.** Elle
+> existe parce qu'un `p-0` posé en `className` par-dessus une taille qui
+> rembourre **ne marche pas de façon fiable** : l'ordre des classes dans
+> l'attribut ne décide de rien, c'est leur ordre dans la feuille de style qui
+> tranche. Les boutons-icônes s'affichaient vides — colorés, cliquables, sans
+> icône — parce que le `py-1` de la taille `sm` mangeait les 20 px de hauteur.
+> Une annulation après coup marche ou ne marche pas selon ce que Tailwind a émis
+> en premier ; une taille à part ne peut pas entrer en conflit.
 
 Trois axes de couleur × trois de fond × trois de trait couvrent ce que douze
 variantes nommées n'auraient pas couvert. Et surtout :

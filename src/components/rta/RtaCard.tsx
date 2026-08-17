@@ -253,9 +253,14 @@ export default function RtaCard({
         libelle={`Retirer ${monster.name}`}
         taille="serre"
         ton="danger"
+        // ⚠️ `fond="plein"` et non un `bg-` dans le `className` : c'est le fond
+        // qui décide de la COULEUR DE L'ICÔNE. Peint à la main, le bouton gardait
+        // la règle du fond nu — une croix qui vire au rouge au survol, sur un
+        // fond déjà rouge. Elle disparaissait exactement quand on la vise.
+        fond="plein"
         auSurvol
         icone={<X size={12} />}
-        className="absolute -top-1.5 -right-1.5 bg-bad text-white shadow hoverable:bg-bad"
+        className="absolute -top-1.5 -right-1.5 shadow"
       />
 
       {retraitAConfirmer && (

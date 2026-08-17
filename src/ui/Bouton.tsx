@@ -81,21 +81,35 @@ const FORMES: Record<FormeBouton, string> = {
   pilule: 'rounded-full',
 };
 
-// Couleur du TEXTE, par ton et selon que le fond est peint ou non.
+// Couleur du TEXTE, par ton et par remplissage.
 //
 // ⚠️ Sur fond peint, le texte passe en `ink` plein : `ink-dim` sur `accent-soft`
-// tombait sous le contraste lisible, et c'est le seul endroit où les deux se
-// rencontrent.
-const TEXTES: Record<TonBouton, { nu: string; peint: string }> = {
-  neutre: { nu: 'text-ink-dim hoverable:text-ink', peint: 'text-ink' },
-  accent: { nu: 'text-ink hoverable:brightness-110', peint: 'text-ink hoverable:brightness-110' },
-  danger: { nu: 'text-ink-dim hoverable:text-bad', peint: 'text-bad' },
+// tombait sous le contraste lisible.
+//
+// ⚠️ TROIS cas et non deux, parce que `plein` ne se comporte pas comme `doux` :
+// sur un aplat opaque, la couleur du ton devient celle du FOND, et un texte de
+// la même teinte disparaît dedans. C'est ce qui rendait la croix de retrait
+// invisible au survol — rouge sur rouge, exactement quand on la vise.
+const TEXTES: Record<TonBouton, { nu: string; doux: string; plein: string }> = {
+  neutre: { nu: 'text-ink-dim hoverable:text-ink', doux: 'text-ink', plein: 'text-ink' },
+  accent: {
+    nu: 'text-ink hoverable:brightness-110',
+    doux: 'text-ink hoverable:brightness-110',
+    plein: 'text-ink hoverable:brightness-110',
+  },
+  // `text-white` et non `text-ink` : sur l'aplat d'alerte, l'encre du thème
+  // clair n'aurait pas le contraste, et cet aplat est le même dans les deux.
+  danger: { nu: 'text-ink-dim hoverable:text-bad', doux: 'text-bad', plein: 'text-white' },
 };
 
 const FONDS: Record<TonBouton, Record<FondBouton, string>> = {
   neutre: { vide: 'bg-transparent', doux: 'bg-panel', plein: 'bg-panel2' },
   accent: { vide: 'bg-transparent', doux: 'bg-accent-soft', plein: 'bg-accent-soft' },
-  danger: { vide: 'bg-transparent', doux: 'bg-bad/10', plein: 'bg-bad/20' },
+  // ⚠️ `plein` est OPAQUE, pas une opacité de plus que `doux` : c'est le cran
+  // des actions posées SUR autre chose (la croix au coin d'une carte), où un
+  // fond translucide laisserait passer l'image dessous et rendrait l'icône
+  // illisible. `doux` reste le voile discret d'un bouton posé dans un panneau.
+  danger: { vide: 'bg-transparent', doux: 'bg-bad/10', plein: 'bg-bad' },
 };
 
 const TRAITS: Record<TonBouton, Record<TraitBouton, string>> = {
@@ -196,7 +210,7 @@ const Bouton = forwardRef<HTMLButtonElement, BoutonProps>(function Bouton(
       {...(nuAuDoigt ? { 'data-cible-fine': true } : {})}
       className={`${SOCLE} ${TAILLES[taille]} ${FORMES[forme]} ${TRAITS[ton][trait]} ${nu} ${
         FONDS[tonEffectif][fondEffectif]
-      } ${peint ? TEXTES[tonEffectif].peint : TEXTES[tonEffectif].nu} ${
+      } ${TEXTES[tonEffectif][fondEffectif === 'vide' ? 'nu' : fondEffectif]} ${
         pleineLargeur ? 'w-full' : ''
       } ${className}`}
       {...reste}

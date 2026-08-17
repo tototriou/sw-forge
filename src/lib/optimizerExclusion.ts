@@ -1,9 +1,11 @@
 // Exclusion MANUELLE de runes dans l'Optimizer (voir spec/outils/optimizer.md) —
-// se superpose à l'exclusion automatique existante (« Utiliser tout
-// l'inventaire », voir `excludedRuneIds` dans runeBuildOptim.ts), qui ne
-// couvre que la box. Ici : n'importe quel monstre déjà connu du compte —
-// box, RTA (favoris), Siège défense, Siège offense — peut être choisi
-// explicitement pour exclure SES runes actuelles de la recherche.
+// se superpose à l'exclusion AUTOMATIQUE « Exclure les runes déjà utilisées »
+// (voir `autoExcludedRuneIds` plus bas, et `excludedRuneIds` dans
+// runeBuildOptim.ts pour son cas particulier « périmètre Box »), qui ne
+// couvre qu'UN périmètre entier à la fois (RTA/Défenses siège/Box). Ici :
+// n'importe quel monstre déjà connu du compte — box, RTA (favoris), Siège
+// défense, Siège offense — peut être choisi explicitement pour exclure SES
+// runes actuelles de la recherche.
 //
 // ⚠️ Volontairement PAS une extension de `collectOwnedBuilds`
 // (ownedBuilds.ts) : cette fonction est déjà utilisée par les
@@ -18,6 +20,7 @@
 // siège — exclure « Camilla (RTA) » n'exclut QUE son runage RTA.
 import { BoxItem } from './applyAccount';
 import { GearSet, Monster, RtaEntry, SiegeTeam } from '../types';
+import { excludedRuneIds } from './runeBuildOptim';
 
 export type ExclusionSource = 'box' | 'rta' | 'siege-defense' | 'siege-offense';
 
@@ -129,7 +132,7 @@ export function resolveExclusionEntry(sel: ExclusionSelector, data: ExclusionSou
 // données ACTUELLEMENT chargées. Un sélecteur introuvable (monstre reruné
 // depuis, deck modifié, recette d'un AUTRE compte…) est silencieusement
 // ignoré — jamais une erreur : même tolérance que l'import de recette pour
-// `exploreAll`/le monstre choisi.
+// `excludeUsedRunes`/le monstre choisi.
 export function resolveExcludedRuneIds(selectors: ExclusionSelector[], data: ExclusionSourceData): Set<number> {
   const out = new Set<number>();
   for (const sel of selectors) {
@@ -143,6 +146,56 @@ export function resolveExcludedRuneIds(selectors: ExclusionSelector[], data: Exc
       gear = teams.find((t) => t.id === sel.teamId)?.slots[sel.slotIndex]?.gear;
     }
     for (const r of gear?.runes ?? []) out.add(r.id);
+  }
+  return out;
+}
+
+/* --------------------------------------------------------------------------
+ * Exclusion AUTOMATIQUE — « Exclure les runes déjà utilisées »
+ * (OptimizerSection.tsx) : exclut TOUT un périmètre d'un coup (RTA, Défenses
+ * siège ou Box), à l'opposé de l'exclusion MANUELLE ci-dessus qui retient des
+ * entrées précises une par une. Un seul périmètre actif à la fois — remplace
+ * l'ancienne case « Utiliser tout l'inventaire » (inversée : décochée par
+ * défaut désormais, et plus seulement scopée à la box).
+ * ----------------------------------------------------------------------- */
+export type AutoExclusionScope = 'rta' | 'siege-defense' | 'box';
+
+export const AUTO_EXCLUSION_SCOPES: { key: AutoExclusionScope; label: string }[] = [
+  { key: 'rta', label: 'RTA' },
+  { key: 'siege-defense', label: 'Défenses siège' },
+  { key: 'box', label: 'Box' },
+];
+
+// `ownCom2usId` : le monstre RECHERCHÉ n'est jamais exclu de LUI-MÊME, quel
+// que soit le périmètre — comparaison par ESPÈCE (com2usId), pas par entrée
+// précise, car la box peut contenir plusieurs exemplaires du même monstre
+// (voir excludedRuneIds ci-dessus, dont la branche `box` est directement
+// réutilisée pour rester une SEULE définition de « à soi » niveau box).
+export function autoExcludedRuneIds(scope: AutoExclusionScope, data: ExclusionSourceData, ownCom2usId: number | null): Set<number> {
+  if (scope === 'box') {
+    return excludedRuneIds(
+      data.box.map((b) => ({ unitKey: b.key, com2usId: b.monster.com2usId, gear: b.gear })),
+      ownCom2usId
+    );
+  }
+  const isOwn = (monsterId: string | null | undefined): boolean => {
+    if (ownCom2usId == null || monsterId == null) return false;
+    return data.monsterById.get(monsterId)?.com2usId === ownCom2usId;
+  };
+  const out = new Set<number>();
+  if (scope === 'rta') {
+    for (const entry of Object.values(data.rtaEntries)) {
+      if (isOwn(entry.monsterId)) continue;
+      for (const r of entry.gear?.runes ?? []) out.add(r.id);
+    }
+    return out;
+  }
+  // 'siege-defense'
+  for (const team of data.siegeDefenseTeams) {
+    for (const slot of team.slots) {
+      if (isOwn(slot.monsterId)) continue;
+      for (const r of slot.gear?.runes ?? []) out.add(r.id);
+    }
   }
   return out;
 }

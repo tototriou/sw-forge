@@ -14,7 +14,7 @@
 // à connaître la base du monstre pour le réinterpréter, une source d'erreur
 // de plus, pas de moins.
 import { BuildRequirement, Objective } from './runeBuildOptim';
-import { ExclusionSelector } from './optimizerExclusion';
+import { AutoExclusionScope, ExclusionSelector } from './optimizerExclusion';
 import { ArtifactKind } from '../types';
 import { ArtifactMainChoice, SlotFilterPresetKey } from '../hooks/useOptimizerState';
 import { RuneMetric } from '../hooks/useRuneMetric';
@@ -45,8 +45,12 @@ export interface OptimizerRecipe {
   slotFilterPreset: SlotFilterPresetKey;
   adaptiveTrancheWeighting: boolean;
   exhaustiveSearch: boolean;
-  exploreAll: boolean;
-  // ⚠️ Comme `monsterCom2usId`/`exploreAll` : des IDENTIFIANTS re-résolus
+  // ⚠️ Remplace l'ancien `exploreAll` (COCHÉ par défaut, portait uniquement
+  // sur la box, signification inverse) — voir OptimizerSection.tsx pour le
+  // repli de lecture appliqué aux recettes exportées AVANT ce renommage.
+  excludeUsedRunes: boolean;
+  excludeUsedScope: AutoExclusionScope;
+  // ⚠️ Comme `monsterCom2usId`/`excludeUsedRunes` : des IDENTIFIANTS re-résolus
   // contre le compte de qui importe, jamais les runes elles-mêmes (voir
   // resolveExcludedRuneIds, optimizerExclusion.ts) — un sélecteur introuvable
   // chez l'importeur (monstre absent, deck différent…) est silencieusement

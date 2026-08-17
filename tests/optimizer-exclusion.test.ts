@@ -8,6 +8,7 @@ import { BoxItem } from '../src/lib/applyAccount';
 import { GearSet, Monster, RtaEntry, RuneDetail, SiegeTeam } from '../src/types';
 import {
   ExclusionSourceData,
+  autoExcludedRuneIds,
   exclusionCandidatesFor,
   exclusionSelectorKey,
   resolveExcludedRuneIds,
@@ -200,5 +201,46 @@ export default function testOptimizerExclusion() {
 
     const boxCandidate = exclusionCandidatesFor('box', data2, null)[0];
     egal(boxCandidate.teamContext, undefined, "box : pas de contexte d'équipe (n'a de sens qu'en siège)");
+  }
+
+  // ── Exclusion AUTOMATIQUE (« Exclure les runes déjà utilisées »,
+  // autoExcludedRuneIds) — remplace l'ancien `exploreAll`/`excludedRuneIds`
+  // scopé uniquement box. UN périmètre entier exclu d'un coup, jamais le
+  // monstre RECHERCHÉ lui-même (comparaison par ESPÈCE, com2usId — même
+  // convention que le reste du fichier, où com2usId === id). ──
+  {
+    egal(
+      [...autoExcludedRuneIds('box', data, camilla.com2usId)].sort((a, b) => a - b),
+      [7, 8, 9, 10, 11, 12],
+      'scope box : exclut les runes des AUTRES monstres de la box (Lushen), jamais les siennes propres'
+    );
+
+    egal(
+      [...autoExcludedRuneIds('rta', data, camilla.com2usId)],
+      [],
+      "scope rta : la SEULE entrée RTA appartient au monstre recherché lui-même → rien à exclure"
+    );
+    egal(
+      [...autoExcludedRuneIds('rta', data, lushen.com2usId)].sort((a, b) => a - b),
+      [101, 102, 103, 104, 105, 106],
+      "scope rta : pour un AUTRE monstre recherché (Lushen, absent du RTA), l'entrée RTA de Camilla est bien exclue"
+    );
+
+    egal(
+      [...autoExcludedRuneIds('siege-defense', data, camilla.com2usId)].sort((a, b) => a - b),
+      [201, 202, 203, 204, 205, 206],
+      'scope siège défense : exclut le slot Lushen (équipe 1), jamais le propre slot de Camilla (équipe 1 aussi)'
+    );
+    egal(
+      [...autoExcludedRuneIds('siege-defense', data, lushen.com2usId)].sort((a, b) => a - b),
+      [301, 302, 303, 304, 305, 306],
+      'scope siège défense : symétrique — recherché = Lushen, exclut le slot Camilla'
+    );
+
+    egal(
+      [...autoExcludedRuneIds('siege-defense', data, null)].sort((a, b) => a - b),
+      [201, 202, 203, 204, 205, 206, 301, 302, 303, 304, 305, 306],
+      'aucun monstre "à soi" (com2usId null) : rien ne peut être reconnu comme le sien, tout le périmètre est exclu'
+    );
   }
 }

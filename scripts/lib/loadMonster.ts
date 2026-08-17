@@ -98,27 +98,23 @@ export function loadBoxMonster(exportPath: string, monsterName: string): LoadedM
   return { unitId: best.unitId, com2usId: best.com2usId, monsterName, gear: best.gear!, allRunes };
 }
 
-// Box complète, dans la forme attendue par `excludedRuneIds` (runeBuildOptim.ts)
-// — nécessaire uniquement pour reproduire une recette avec `exploreAll=false`
-// (exclusion des runes portées par un AUTRE monstre de la box).
-export function loadBoxForExclusion(exportPath: string): { unitKey: string; com2usId: number | null; gear?: GearSet }[] {
-  const data = parseAccountSource(readFileSync(exportPath, 'utf8'))!;
-  const { monsters: box } = parseAccountBox(data);
-  return box.map((b) => ({ unitKey: String(b.unitId), com2usId: b.com2usId, gear: b.gear }));
-}
-
-// ── Sources pour l'exclusion MANUELLE (RuneExclusionPicker/
-// optimizerExclusion.ts), rejouée fidèlement par optimizer-search.ts quand
-// `recipe.excludedSelectors` n'est pas vide. Box et RTA se résolvent de
+// ── Sources partagées par les DEUX exclusions de l'écran (voir
+// optimizerExclusion.ts) : AUTOMATIQUE (« Exclure les runes déjà utilisées »,
+// `autoExcludedRuneIds` — un périmètre entier d'un coup) ET MANUELLE
+// (RuneExclusionPicker/`resolveExcludedRuneIds` — entrée par entrée),
+// rejouées fidèlement par optimizer-search.ts. Box et RTA se résolvent de
 // façon FIABLE (unitId/monsterId dérivés des données du compte, stables
-// d'un chargement à l'autre). ⚠️ Siège NE l'est PAS : `SiegeTeam.id` est un
-// identifiant ALÉATOIRE, généré à chaque import (voir useSiegeState.ts,
-// `newId()`) — jamais dérivé du deck lui-même. Un sélecteur siège exporté
-// depuis l'écran ne peut donc PAS être résolu de façon fiable ici : chaque
-// exécution de ce script régénère de nouveaux ids, différents de ceux de la
-// session d'export. Chargé quand même (comportement honnête : la fonction
-// existe, mais `optimizer-search.ts` avertit explicitement plutôt que de
-// laisser le sélecteur échouer en silence sans explication).
+// d'un chargement à l'autre) pour LES DEUX. ⚠️ Siège NE L'EST PAS pour
+// l'exclusion MANUELLE : `SiegeTeam.id` est un identifiant ALÉATOIRE, généré
+// à chaque import (voir useSiegeState.ts, `newId()`) — jamais dérivé du deck
+// lui-même, donc un SÉLECTEUR siège exporté depuis l'écran (qui porte ce
+// `teamId`) ne peut PAS être résolu de façon fiable ici. L'exclusion
+// AUTOMATIQUE en périmètre « Défenses siège », elle, N'A PAS ce problème :
+// elle ne dépend que de `monsterId` (stable), jamais de `teamId` — voir
+// `autoExcludedRuneIds`. Chargé quand même pour le cas manuel (comportement
+// honnête : la fonction existe, mais `optimizer-search.ts` avertit
+// explicitement plutôt que de laisser un sélecteur manuel siège échouer en
+// silence sans explication).
 export function loadBoxItemsForExclusion(exportPath: string): BoxItem[] {
   const data = parseAccountSource(readFileSync(exportPath, 'utf8'))!;
   const byCom2us = loadAllMonstersByCom2us();

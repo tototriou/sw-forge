@@ -6,7 +6,6 @@ import { ARTIFACT_MAIN, CAPPED_STATS, RUNE_EFFECT, StatKey, runeEfficiency } fro
 import {
   BuildRequirement,
   SLOT_MAIN_OPTIONS,
-  excludedRuneIds,
   estimateSearchSpace,
   diagnoseFeasibility,
   StatFeasibility,
@@ -20,7 +19,13 @@ import {
   ARTIFACT_MAIN_VALUE,
   ARTIFACT_MAIN_OPTIONS,
 } from '../../lib/runeBuildOptim';
-import { ExclusionSourceData, resolveExcludedRuneIds } from '../../lib/optimizerExclusion';
+import {
+  AUTO_EXCLUSION_SCOPES,
+  AutoExclusionScope,
+  ExclusionSourceData,
+  autoExcludedRuneIds,
+  resolveExcludedRuneIds,
+} from '../../lib/optimizerExclusion';
 import { buildOptimizerRecipe, parseOptimizerRecipe } from '../../lib/optimizerRecipe';
 import { ArtifactMainChoice, OptimizerState, OptimizerSortKey } from '../../hooks/useOptimizerState';
 import { useRuneMetric } from '../../hooks/useRuneMetric';
@@ -110,8 +115,10 @@ export default function OptimizerSection({ box, runes, optimizer, allMonsters, r
     setMainStatsBySlot,
     objective,
     setObjective,
-    exploreAll,
-    setExploreAll,
+    excludeUsedRunes,
+    setExcludeUsedRunes,
+    excludeUsedScope,
+    setExcludeUsedScope,
     excludedSelectors,
     setExcludedSelectors,
     adaptiveTrancheWeighting,
@@ -196,13 +203,16 @@ export default function OptimizerSection({ box, runes, optimizer, allMonsters, r
   // « Rechercher » ne s'est rien passé.
   const setPickerSectionRef = useRef<HTMLDivElement>(null);
 
-  // ⚠️ « Utiliser tout l'inventaire » COCHÉE PAR DÉFAUT (revu — l'exclusion
-  // décochée par défaut pouvait surprendre : un demi-build qui semblait
-  // manquer alors que ses runes étaient simplement rattachées ailleurs dans
-  // la box, sans que rien à l'écran ne le signale, voir spec/outils/
-  // optimizer/ « Suite — case cochée par défaut »). Décochée, la recherche
-  // ne propose que des combos réellement montables sans dérunir un autre
-  // monstre de la box.
+  // ⚠️ « Exclure les runes déjà utilisées » DÉCOCHÉE PAR DÉFAUT — inversion
+  // volontaire de l'ancienne case « Utiliser tout l'inventaire » (COCHÉE par
+  // défaut, avec la signification opposée : décochée = exclusion box). Les
+  // deux réglages laissent le comportement PAR DÉFAUT de la recherche
+  // inchangé (tout l'inventaire considéré, rien exclu) — seule la case à
+  // activer explicitement pour restreindre a changé de sens et de nom, avec
+  // en plus un périmètre au choix (RTA/Défenses siège/Box, un seul à la
+  // fois, voir `AUTO_EXCLUSION_SCOPES`) là où l'ancienne case ne portait QUE
+  // sur la box. Voir spec/outils/optimizer/ « Suite — case cochée par
+  // défaut » pour l'historique de la case d'origine.
   // Indexé par `String(monster.id)` — même clé que `RtaEntry.monsterId`/
   // `SiegeSlot.monsterId` (voir applyAccount.ts). Recalculé seulement si la
   // liste de monstres change, pas à chaque rendu.
@@ -219,20 +229,17 @@ export default function OptimizerSection({ box, runes, optimizer, allMonsters, r
 
   const pool = useMemo(() => {
     if (!selected) return runes;
-    // Se SUPERPOSENT, ne se remplacent pas : `exploreAll` reste l'exclusion
-    // automatique historique (toute la box), `excludedSelectors` l'exclusion
-    // manuelle en plus (box/RTA/siège, monstre par monstre) — voir
-    // optimizerExclusion.ts.
-    const auto = exploreAll
-      ? new Set<number>()
-      : excludedRuneIds(
-          box.map((b) => ({ unitKey: b.key, com2usId: b.monster.com2usId, gear: b.gear })),
-          selected.monster.com2usId
-        );
+    // Se SUPERPOSENT, ne se remplacent pas : `excludeUsedRunes` l'exclusion
+    // automatique (un périmètre entier, RTA/Défenses siège/Box),
+    // `excludedSelectors` l'exclusion manuelle en plus (entrée par entrée,
+    // n'importe laquelle des 4 sources) — voir optimizerExclusion.ts.
+    const auto = excludeUsedRunes
+      ? autoExcludedRuneIds(excludeUsedScope, exclusionData, selected.monster.com2usId)
+      : new Set<number>();
     const manual = resolveExcludedRuneIds(excludedSelectors, exclusionData);
     if (auto.size === 0 && manual.size === 0) return runes;
     return runes.filter((r) => !auto.has(r.id) && !manual.has(r.id));
-  }, [selected, exploreAll, excludedSelectors, exclusionData, box, runes]);
+  }, [selected, excludeUsedRunes, excludeUsedScope, excludedSelectors, exclusionData, runes]);
 
   // Artéfacts RÉELLEMENT transmis au moteur — indépendants de ceux affichés
   // dans « Équipement actuel » (toujours les VRAIS, une photo de l'existant,
@@ -380,7 +387,8 @@ export default function OptimizerSection({ box, runes, optimizer, allMonsters, r
       slotFilterPreset,
       adaptiveTrancheWeighting,
       exhaustiveSearch,
-      exploreAll,
+      excludeUsedRunes,
+      excludeUsedScope,
       excludedSelectors,
       ignoreArtifacts,
       artifactMainByKind,
@@ -424,7 +432,15 @@ export default function OptimizerSection({ box, runes, optimizer, allMonsters, r
       // champ (`undefined`) — repli sur le défaut plutôt que de propager une
       // valeur non booléenne à l'état.
       setExhaustiveSearch(recipe.exhaustiveSearch ?? false);
-      setExploreAll(recipe.exploreAll);
+      // ⚠️ Repli sur l'ANCIEN champ `exploreAll` (recette exportée avant ce
+      // renommage/inversion) : `exploreAll` coché = pas d'exclusion
+      // (`excludeUsedRunes = false`, comportement identique) ; décoché =
+      // exclusion box (`excludeUsedRunes = true`, `excludeUsedScope = 'box'`
+      // — seul périmètre que l'ancienne case connaissait). Une recette déjà
+      // à jour porte directement `excludeUsedRunes`/`excludeUsedScope`.
+      const legacy = recipe as unknown as { exploreAll?: boolean };
+      setExcludeUsedRunes(recipe.excludeUsedRunes ?? legacy.exploreAll === false);
+      setExcludeUsedScope(recipe.excludeUsedScope ?? 'box');
       // ⚠️ `?? []` : même repli qu'`exhaustiveSearch` ci-dessus, pour les
       // recettes exportées avant ce champ. Les sélecteurs sont re-résolus
       // contre CE compte au moment de la recherche (voir optimizerExclusion.
@@ -856,22 +872,28 @@ export default function OptimizerSection({ box, runes, optimizer, allMonsters, r
       <div className="flex flex-wrap items-center gap-3">
         <div className="flex items-center gap-1.5">
           <Boxes size={15} className="text-ink-dim" />
-          <span className="text-[12.5px] font-semibold text-ink-dim">Utiliser tout l'inventaire</span>
-          <HelpPopover title="Utiliser tout l'inventaire">
-            Par défaut, la recherche ne considère que les runes réellement disponibles pour ce monstre —{' '}
-            <b className="text-ink">celles qu'aucun autre monstre de la box ne porte déjà</b> (un build réellement
-            montable sans dérunir quelqu'un). Active ce réglage pour explorer tout l'inventaire, runes déjà portées
-            ailleurs comprises.
+          <span className="text-[12.5px] font-semibold text-ink-dim">Exclure les runes déjà utilisées</span>
+          <HelpPopover title="Exclure les runes déjà utilisées">
+            Par défaut, la recherche considère TOUT l'inventaire, runes déjà portées ailleurs comprises. Active ce
+            réglage pour retirer de la recherche les runes déjà portées par d'AUTRES monstres dans le périmètre
+            choisi ci-contre (un seul à la fois) — un build réellement montable sans déruner quelqu'un. Le monstre
+            recherché lui-même n'est jamais exclu de ses propres runes.
           </HelpPopover>
-          <Switch checked={exploreAll} onChange={setExploreAll} label="Utiliser tout l'inventaire" />
+          <Switch checked={excludeUsedRunes} onChange={setExcludeUsedRunes} label="Exclure les runes déjà utilisées" />
         </div>
+        <Segmented
+          options={AUTO_EXCLUSION_SCOPES}
+          value={excludeUsedScope}
+          onChange={setExcludeUsedScope}
+          disabled={!excludeUsedRunes}
+        />
       </div>
 
-      {/* Exclusion MANUELLE — se superpose à « Utiliser tout l'inventaire »
-          ci-dessus, ne le remplace pas (voir optimizerExclusion.ts). Choisir
-          un monstre ici, dans n'importe laquelle des 4 sources, retire ses
-          runes ACTUELLEMENT équipées du pool considéré, en plus de
-          l'exclusion automatique éventuelle. */}
+      {/* Exclusion MANUELLE — se superpose à « Exclure les runes déjà
+          utilisées » ci-dessus, ne le remplace pas (voir
+          optimizerExclusion.ts). Choisir un monstre ici, dans n'importe
+          laquelle des 4 sources, retire ses runes ACTUELLEMENT équipées du
+          pool considéré, en plus de l'exclusion automatique éventuelle. */}
       <div>
         <div className="mb-1.5 flex items-center gap-1.5">
           <Boxes size={15} className="text-ink-dim" />
@@ -879,7 +901,7 @@ export default function OptimizerSection({ box, runes, optimizer, allMonsters, r
           <HelpPopover title="Exclure les runes d'un monstre">
             Choisis un monstre (box, RTA, siège défense ou offense) pour retirer SES runes actuellement équipées de
             la recherche — utile pour un build que tu ne veux pas défaire, en plus de{' '}
-            <b className="text-ink">« Utiliser tout l'inventaire »</b> ci-dessus.
+            <b className="text-ink">« Exclure les runes déjà utilisées »</b> ci-dessus.
           </HelpPopover>
         </div>
         <RuneExclusionPicker

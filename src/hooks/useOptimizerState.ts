@@ -1,7 +1,7 @@
 import { Dispatch, SetStateAction, useState } from 'react';
 import { StatKey } from '../lib/effects';
 import { Objective, SlotFilterPresetKey } from '../lib/runeBuildOptim';
-import { ExclusionSelector } from '../lib/optimizerExclusion';
+import { AutoExclusionScope, ExclusionSelector } from '../lib/optimizerExclusion';
 import { ArtifactKind } from '../types';
 import { useBuildOptimSearch } from './useBuildOptimSearch';
 
@@ -56,9 +56,21 @@ export interface OptimizerState {
   setMainStatsBySlot: Dispatch<SetStateAction<Partial<Record<2 | 4 | 6, number[]>>>>;
   objective: Objective;
   setObjective: Dispatch<SetStateAction<Objective>>;
-  exploreAll: boolean;
-  setExploreAll: Dispatch<SetStateAction<boolean>>;
-  // Exclusion MANUELLE, en plus d'`exploreAll` (se superpose, ne le
+  // « Exclure les runes déjà utilisées » — DÉCOCHÉ par défaut (inversion du
+  // comportement historique de l'ancienne case « Utiliser tout l'inventaire »,
+  // qui était COCHÉE par défaut avec la signification opposée : les deux
+  // réglages laissent donc le comportement par défaut de la recherche
+  // INCHANGÉ — voir OptimizerSection.tsx). Activé, exclut les runes
+  // actuellement utilisées dans `excludeUsedScope` (un seul périmètre à la
+  // fois) — voir `autoExcludedRuneIds`, optimizerExclusion.ts.
+  excludeUsedRunes: boolean;
+  setExcludeUsedRunes: Dispatch<SetStateAction<boolean>>;
+  // Périmètre de `excludeUsedRunes` — n'a d'effet que si celui-ci est activé.
+  // Défaut RTA (le cas d'usage le plus courant : ne pas défaire un build RTA
+  // en optimisant un autre monstre).
+  excludeUsedScope: AutoExclusionScope;
+  setExcludeUsedScope: Dispatch<SetStateAction<AutoExclusionScope>>;
+  // Exclusion MANUELLE, en plus d'`excludeUsedRunes` (se superpose, ne le
   // remplace pas) — voir lib/optimizerExclusion.ts. Vide par défaut.
   excludedSelectors: ExclusionSelector[];
   setExcludedSelectors: Dispatch<SetStateAction<ExclusionSelector[]>>;
@@ -115,7 +127,8 @@ export function useOptimizerState(): OptimizerState {
   const [artifactMainByKind, setArtifactMainByKind] = useState<Partial<Record<ArtifactKind, ArtifactMainChoice>>>({});
   const [mainStatsBySlot, setMainStatsBySlot] = useState<Partial<Record<2 | 4 | 6, number[]>>>({});
   const [objective, setObjective] = useState<Objective>('efficience');
-  const [exploreAll, setExploreAll] = useState(true);
+  const [excludeUsedRunes, setExcludeUsedRunes] = useState(false);
+  const [excludeUsedScope, setExcludeUsedScope] = useState<AutoExclusionScope>('rta');
   const [excludedSelectors, setExcludedSelectors] = useState<ExclusionSelector[]>([]);
   const [adaptiveTrancheWeighting, setAdaptiveTrancheWeighting] = useState(false);
   const [exhaustiveSearch, setExhaustiveSearch] = useState(false);
@@ -148,8 +161,10 @@ export function useOptimizerState(): OptimizerState {
     setMainStatsBySlot,
     objective,
     setObjective,
-    exploreAll,
-    setExploreAll,
+    excludeUsedRunes,
+    setExcludeUsedRunes,
+    excludeUsedScope,
+    setExcludeUsedScope,
     excludedSelectors,
     setExcludedSelectors,
     adaptiveTrancheWeighting,

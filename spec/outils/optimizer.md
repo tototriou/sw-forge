@@ -196,31 +196,38 @@ jeu) : c'est au joueur de re-runer dans Summoners War.
 
 ## Exclusion des runes déjà portées ailleurs
 
-**« Utiliser tout l'inventaire »**, cochée par défaut, porte la recherche sur
-l'**inventaire entier** — y compris des runes qu'il faudrait retirer d'un
-autre monstre pour composer le build proposé.
+**« Exclure les runes déjà utilisées »**, DÉCOCHÉE par défaut, porte la
+recherche sur l'**inventaire entier** — y compris des runes qu'il faudrait
+retirer d'un autre monstre pour composer le build proposé.
 
-Décochée, la recherche **exclut** les runes déjà portées par un **autre**
-monstre de la box : elle ne propose alors que des combinaisons réellement
-montables sans dérunir quelqu'un. Les runes déjà portées par le monstre
-**choisi** (n'importe lequel de ses exemplaires) restent TOUJOURS
-disponibles quel que soit ce réglage, elles sont « à soi ».
+Cochée, la recherche **exclut** les runes déjà portées ailleurs, dans **un
+seul périmètre au choix** (jamais plusieurs à la fois) : **RTA** (défaut),
+**Défenses siège** ou **Box**. Elle ne propose alors que des combinaisons
+réellement montables sans déruner quelqu'un dans ce périmètre. Les runes
+déjà portées par le monstre **choisi** lui-même (même espèce, n'importe
+lequel de ses exemplaires) restent TOUJOURS disponibles quel que soit ce
+réglage — jamais exclu de ses propres runes. Le sélecteur de périmètre est
+grisé et non cliquable tant que la case n'est pas cochée.
 
-⚠️ **Le moteur est générique**, pas couplé à la box : `searchBuilds` ne
-connaît qu'un `pool` de runes déjà filtré. `excludedRuneIds` (dans
-[runeBuildOptim.ts](src/lib/runeBuildOptim.ts)) est la fonction spécifique à
-la box qui construit cet ensemble d'exclusion — pensée pour qu'un autre
-appelant construise le sien, ce que fait l'exclusion manuelle ci-dessous.
+⚠️ **Le moteur est générique**, pas couplé à un périmètre précis :
+`searchBuilds` ne connaît qu'un `pool` de runes déjà filtré.
+`autoExcludedRuneIds` (dans
+[optimizerExclusion.ts](src/lib/optimizerExclusion.ts)) est la fonction qui
+construit cet ensemble d'exclusion pour le périmètre choisi — sa branche
+« Box » réutilise `excludedRuneIds`
+([runeBuildOptim.ts](src/lib/runeBuildOptim.ts)), seule fonction restée
+spécifique à la box (comportement historique de l'outil, avant l'ajout des
+deux autres périmètres).
 
 ### Exclusion manuelle — un monstre précis, dans n'importe quelle source
 
-**« Exclure les runes d'un monstre »**, sous « Utiliser tout l'inventaire » :
-recherche par nom un monstre déjà connu du compte, dans l'une de quatre
-sources (Box / RTA / Siège défense / Siège offense), et retire SES runes
-**actuellement équipées** du pool considéré — utile pour un build qu'on ne
-veut pas défaire, sans dépendre de la règle automatique (autre monstre de la
-box) ci-dessus. Se **superpose** à « Utiliser tout l'inventaire », ne le
-remplace pas : les deux exclusions s'additionnent.
+**« Exclure les runes d'un monstre »**, sous « Exclure les runes déjà
+utilisées » : recherche par nom un monstre déjà connu du compte, dans l'une
+de quatre sources (Box / RTA / Siège défense / Siège offense), et retire SES
+runes **actuellement équipées** du pool considéré — utile pour un build
+qu'on ne veut pas défaire, sans dépendre du périmètre choisi ci-dessus. Se
+**superpose** à « Exclure les runes déjà utilisées », ne le remplace pas :
+les deux exclusions s'additionnent.
 
 ⚠️ Chaque sélection porte sur une **entrée précise**, pas un monstre en
 général — un même monstre peut avoir un runage différent en box, en RTA et

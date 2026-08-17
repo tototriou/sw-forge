@@ -6,16 +6,10 @@
 // runeBuildOptim.ts, pas d'une copie locale) pour qu'un script ne puisse
 // plus diverger silencieusement de l'écran comme c'est arrivé cette session.
 
-import {
-  SearchParams,
-  SlotFilterPresetKey,
-  SLOT_FILTER_PRESETS,
-  ARTIFACT_MAIN_VALUE,
-  excludedRuneIds,
-} from '../../src/lib/runeBuildOptim';
-import { ExclusionSourceData, resolveExcludedRuneIds } from '../../src/lib/optimizerExclusion';
+import { SearchParams, SlotFilterPresetKey, SLOT_FILTER_PRESETS, ARTIFACT_MAIN_VALUE } from '../../src/lib/runeBuildOptim';
+import { ExclusionSourceData, autoExcludedRuneIds, resolveExcludedRuneIds } from '../../src/lib/optimizerExclusion';
 import { OptimizerRecipe } from '../../src/lib/optimizerRecipe';
-import { ArtifactDetail, ArtifactKind, GearSet, RuneDetail } from '../../src/types';
+import { ArtifactDetail, ArtifactKind, RuneDetail } from '../../src/types';
 import { LoadedMonster } from './loadMonster';
 
 export function resolveSlotFilterCap(preset: SlotFilterPresetKey): number {
@@ -43,32 +37,29 @@ export function resolveArtifacts(recipe: OptimizerRecipe, loaded: LoadedMonster)
   return out;
 }
 
-// Même logique que `pool` (OptimizerSection.tsx) : `exploreAll` coché (défaut
-// de l'écran) → tout l'inventaire ; décoché → exclut les runes déjà portées
-// par un AUTRE monstre de la box. `boxForExclusion` n'est nécessaire que
-// dans ce second cas — omis, `exploreAll=false` lève une erreur explicite
-// plutôt que de silencieusement retomber sur le pool complet.
-//
-// `excludedSelectors` (exclusion MANUELLE, voir optimizerExclusion.ts) se
-// SUPERPOSE, comme à l'écran — `exclusionData` n'est nécessaire QUE si
-// `recipe.excludedSelectors` n'est pas vide, même logique de garde-fou
-// explicite que `boxForExclusion` ci-dessus.
+// Même logique que `pool` (OptimizerSection.tsx) : `excludeUsedRunes` coché
+// → exclut les runes déjà utilisées dans `recipe.excludeUsedScope` (RTA/
+// Défenses siège/Box, un seul à la fois — voir `autoExcludedRuneIds`) ;
+// décoché (défaut de l'écran) → tout l'inventaire. `exclusionData` (box +
+// RTA + siège + monsterById) n'est nécessaire que si `excludeUsedRunes` est
+// coché OU si `excludedSelectors` (exclusion MANUELLE, voir
+// optimizerExclusion.ts) n'est pas vide — omis dans l'un ou l'autre cas,
+// une erreur explicite plutôt qu'un repli silencieux sur le pool complet.
 export function resolvePool(
   recipe: OptimizerRecipe,
   loaded: LoadedMonster,
-  boxForExclusion?: { unitKey: string; com2usId: number | null; gear?: GearSet }[],
   exclusionData?: ExclusionSourceData
 ): RuneDetail[] {
-  const auto = recipe.exploreAll
-    ? new Set<number>()
-    : (() => {
-        if (!boxForExclusion) {
+  const auto = recipe.excludeUsedRunes
+    ? (() => {
+        if (!exclusionData) {
           throw new Error(
-            "recipe.exploreAll=false : il faut fournir boxForExclusion (la box complète) pour reproduire fidèlement l'exclusion des runes portées ailleurs."
+            'recipe.excludeUsedRunes=true : il faut fournir exclusionData (box + RTA + siège chargés) pour reproduire fidèlement cette exclusion automatique.'
           );
         }
-        return excludedRuneIds(boxForExclusion, loaded.com2usId);
-      })();
+        return autoExcludedRuneIds(recipe.excludeUsedScope, exclusionData, loaded.com2usId);
+      })()
+    : new Set<number>();
   const manual = (() => {
     if (recipe.excludedSelectors == null || recipe.excludedSelectors.length === 0) return new Set<number>();
     if (!exclusionData) {
@@ -87,14 +78,13 @@ const HARD_TIMEOUT_MS = 10 * 60 * 1000; // ⚠️ IDENTIQUE à HARD_TIMEOUT_MS (
 export function recipeToSearchParams(
   recipe: OptimizerRecipe,
   loaded: LoadedMonster,
-  boxForExclusion?: { unitKey: string; com2usId: number | null; gear?: GearSet }[],
   exclusionData?: ExclusionSourceData
 ): SearchParams {
   return {
     base: loaded.gear.base,
     artifacts: resolveArtifacts(recipe, loaded),
     relic: loaded.gear.relic,
-    pool: resolvePool(recipe, loaded, boxForExclusion, exclusionData),
+    pool: resolvePool(recipe, loaded, exclusionData),
     requirement: recipe.requirement,
     metric: recipe.metric,
     objective: recipe.objective,

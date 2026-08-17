@@ -25,22 +25,38 @@ import { ReactNode } from 'react';
 
 export default function PiedDeDialogue({
   children,
+  empile = false,
   className = '',
 }: {
   children: ReactNode;
+  // Boutons EMPILÉS et pleine largeur au doigt, en rangée à partir de `sm`.
+  //
+  // ⚠️ **Pour des boutons dont le libellé est une PHRASE**, pas un verbe :
+  // « Non, ne rien garder de mes informations » face à « Garder mes données
+  // (recommandé) ». Deux phrases dans une rangée taquée à droite se serrent et
+  // se replient au milieu d'un mot ; empilées, chacune se lit d'un trait. Un
+  // « Valider » n'a rien à gagner à s'étaler d'un bord à l'autre — d'où la
+  // rangée par défaut.
+  //
+  // ⚠️ L'inversion (`flex-col-reverse`) est ce qui met l'action RECOMMANDÉE en
+  // bas, sous le pouce, tout en la gardant à droite sur écran large : les
+  // enfants s'écrivent dans l'ordre de lecture, et la colonne les retourne.
+  empile?: boolean;
   className?: string;
 }) {
   return (
     <div
-      // ⚠️ **`flex-wrap` plutôt qu'un empilement sous `sm`.** Les boutons
-      // étaient en colonne au doigt, étirés sur toute la largeur : deux longs
-      // libellés y prenaient deux bandes pleines, et un bouton seul (« Créer »)
-      // s'étalait d'un bord à l'autre pour une action qui ne le mérite pas.
-      // En rangée alignée à droite, ils gardent leur taille et se replient d'eux-
-      // mêmes quand la largeur manque — le pliage remplace la règle de largeur.
-      // ⚠️ Le rendu de BUREAU ne change pas : il était déjà en rangée taquée à
-      // droite au-dessus de `sm`.
-      className={`mt-4 flex flex-wrap items-center justify-end gap-2 ${className}`}
+      // ⚠️ **Rangée taquée à droite par DÉFAUT**, plutôt qu'un empilement sous
+      // `sm`. Un bouton seul (« Créer ») s'étalait d'un bord à l'autre pour une
+      // action qui ne le mérite pas ; en rangée, les boutons gardent leur taille
+      // et se replient d'eux-mêmes quand la largeur manque.
+      // ⚠️ Le rendu de BUREAU est le même dans les deux modes : rangée taquée à
+      // droite, comme avant.
+      className={`mt-4 flex gap-2 ${
+        empile
+          ? 'flex-col-reverse sm:flex-row sm:flex-wrap sm:items-center sm:justify-end'
+          : 'flex-wrap items-center justify-end'
+      } ${className}`}
     >
       {children}
     </div>

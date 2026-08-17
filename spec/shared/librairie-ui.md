@@ -318,6 +318,19 @@ pas — il remplit trois emplacements :
 > écrits dans le corps se retrouvaient au bout du défilement, là où personne ne
 > les cherche.
 
+> ⚠️ **Rangée taquée à droite par défaut ; empilée quand les libellés sont des
+> PHRASES.** « Non, ne rien garder de mes informations » face à « Garder mes
+> données (recommandé) » : deux phrases dans une rangée se serrent et se replient
+> au milieu d'un mot. Empilées pleine largeur au doigt (`actionsEmpilees`),
+> chacune se lit d'un trait. Un « Valider » ou un « Créer », lui, n'a rien à
+> gagner à s'étaler d'un bord à l'autre. Le bureau reste en rangée dans les deux
+> cas.
+
+> ⚠️ **`noteFinale` se pose SOUS les boutons**, centrée. Sa place fait son rôle :
+> elle désamorce l'engagement une fois les choix sous les yeux (« tu pourras
+> changer d'avis »). Remontée dans le corps, elle devient une consigne de plus à
+> lire avant de décider — je l'avais déplacée, la fenêtre y a perdu.
+
 > ⚠️ **Le corps prend TOUTE la largeur de la boîte** (`[&>*]:w-full` sur ses
 > enfants directs). C'est la règle qui manquait : dans un conteneur flex en
 > colonne, un `<form>` ou un `<div>` ne prend que la largeur de son contenu — les

@@ -32,6 +32,8 @@ export function Modale({
   sousTitre,
   icone,
   actions,
+  actionsEmpilees = false,
+  noteFinale,
   corpsCentre = false,
   largeur = 'max-w-[400px]',
   padding = 'p-5',
@@ -56,6 +58,16 @@ export function Modale({
   // retrouvaient au bout du défilement, là où personne ne les cherche.
   // L'ordre d'écriture est celui de PiedDeDialogue — secondaire d'abord.
   actions?: ReactNode;
+  // Les boutons du pied s'EMPILENT au doigt, pleine largeur. ⚠️ Pour des
+  // libellés qui sont des PHRASES et non des verbes — voir PiedDeDialogue.
+  actionsEmpilees?: boolean;
+  // Phrase posée SOUS les boutons, centrée et discrète.
+  //
+  // ⚠️ Elle ne se lit qu'APRÈS avoir vu les choix, et c'est sa place qui lui
+  // donne son rôle : elle désamorce l'engagement (« tu pourras changer d'avis »).
+  // Remontée au-dessus des boutons, elle devient une consigne de plus à lire
+  // avant de décider — j'avais fait ce déplacement, il valait moins bien.
+  noteFinale?: ReactNode;
   // Le corps GARDE sa taille et se centre, au lieu de s'étirer.
   //
   // ⚠️ Pour un contenu qui ne PEUT pas s'étirer sans devenir laid : une image,
@@ -309,7 +321,12 @@ export function Modale({
             sinon les boutons touchent le message. */}
         {actions && (
           <div className={`flex-none ${padding} ${children != null ? 'pt-0' : 'pt-3'}`}>
-            <PiedDeDialogue className="mt-0">{actions}</PiedDeDialogue>
+            <PiedDeDialogue className="mt-0" empile={actionsEmpilees}>
+              {actions}
+            </PiedDeDialogue>
+            {noteFinale && (
+              <p className="mt-2.5 text-center text-micro text-ink-dim">{noteFinale}</p>
+            )}
           </div>
         )}
       </div>
@@ -524,6 +541,15 @@ export function KeepAccountDialog({
           <HardDriveDownload size={18} />
         </span>
       }
+      // ⚠️ EMPILÉS au doigt : ces deux libellés sont des phrases, pas des
+      // verbes. Taqués en rangée ils se serraient et se repliaient au milieu
+      // d'un mot — c'est ce qui rendait cette fenêtre moins lisible qu'avant.
+      actionsEmpilees
+      // ⚠️ SOUS les boutons, et centrée. Je l'avais remontée dans le corps :
+      // elle y devenait une consigne de plus à lire avant de choisir, alors que
+      // son rôle est de désamorcer l'engagement une fois les choix sous les yeux.
+      // Sans elle, on répond « non » par prudence.
+      noteFinale="Tu pourras changer d'avis à tout moment dans les réglages ⚙."
       actions={
         <>
           <Bouton
@@ -563,12 +589,6 @@ export function KeepAccountDialog({
         className="mt-3.5"
       />
 
-      {/* ⚠️ Sous la case et non sous les boutons : le pied est réservé aux
-          ACTIONS. Cette phrase désamorce l'engagement — sans elle, on répond
-          « non » par prudence — et elle doit se lire AVANT de choisir. */}
-      <p className="mt-3 text-micro text-ink-dim">
-        Tu pourras changer d'avis à tout moment dans les réglages ⚙.
-      </p>
     </Modale>
   );
 }

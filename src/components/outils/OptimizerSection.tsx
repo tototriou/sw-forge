@@ -1,6 +1,6 @@
 import { Fragment, useMemo, useRef, useState, useEffect } from 'react';
 import { Search, Boxes, Square, Settings2, HelpCircle, RotateCcw, FlaskConical, Target, Upload, Download } from 'lucide-react';
-import { ArtifactDetail, ARTIFACT_KINDS, RECO_STATS, RuneDetail } from '../../types';
+import { ArtifactDetail, ARTIFACT_KINDS, RECO_STATS, RuneDetail, Monster, RtaEntry, SiegeTeam } from '../../types';
 import { BoxItem } from '../../lib/applyAccount';
 import { ARTIFACT_MAIN, CAPPED_STATS, RUNE_EFFECT, StatKey, runeEfficiency } from '../../lib/effects';
 import {
@@ -20,6 +20,7 @@ import {
   ARTIFACT_MAIN_VALUE,
   ARTIFACT_MAIN_OPTIONS,
 } from '../../lib/runeBuildOptim';
+import { ExclusionSourceData, resolveExcludedRuneIds } from '../../lib/optimizerExclusion';
 import { buildOptimizerRecipe, parseOptimizerRecipe } from '../../lib/optimizerRecipe';
 import { ArtifactMainChoice, OptimizerState, OptimizerSortKey } from '../../hooks/useOptimizerState';
 import { useRuneMetric } from '../../hooks/useRuneMetric';
@@ -30,6 +31,7 @@ import Segmented from '../Segmented';
 import Switch from '../Switch';
 import HelpPopover from '../HelpPopover';
 import MonsterGearPicker, { GearedMonster } from './MonsterGearPicker';
+import RuneExclusionPicker from './RuneExclusionPicker';
 import SetComboPicker from './SetComboPicker';
 import BuildCandidateCard from './BuildCandidateCard';
 
@@ -41,6 +43,12 @@ interface Props {
   // remontée, toute la saisie (monstre, conditions, résultats…) serait
   // perdue au moindre aller-retour vers un autre onglet.
   optimizer: OptimizerState;
+  // Pour l'exclusion manuelle de runes (RuneExclusionPicker) — RTA/Siège
+  // n'étaient jusqu'ici jamais lus par cet écran, voir optimizerExclusion.ts.
+  allMonsters: Monster[];
+  rtaEntries: Record<string, RtaEntry>;
+  siegeDefenseTeams: SiegeTeam[];
+  siegeOffenseTeams: SiegeTeam[];
 }
 
 // ⚠️ Le plafond de CAPPED_STATS (voir lib/effects.ts) ne s'applique QU'À la
@@ -79,7 +87,7 @@ function download(filename: string, text: string) {
 // Outil « Optimizer » : cherche, parmi les runes du compte, la (les)
 // meilleure(s) combinaison(s) de 6 pour un monstre, un combo de sets et des
 // minimums de stats donnés. Voir spec/outils/optimizer/.
-export default function OptimizerSection({ box, runes, optimizer }: Props) {
+export default function OptimizerSection({ box, runes, optimizer, allMonsters, rtaEntries, siegeDefenseTeams, siegeOffenseTeams }: Props) {
   const metric = useRuneMetric();
   const {
     selectedId,
@@ -104,6 +112,8 @@ export default function OptimizerSection({ box, runes, optimizer }: Props) {
     setObjective,
     exploreAll,
     setExploreAll,
+    excludedSelectors,
+    setExcludedSelectors,
     adaptiveTrancheWeighting,
     setAdaptiveTrancheWeighting,
     exhaustiveSearch,
@@ -142,6 +152,21 @@ export default function OptimizerSection({ box, runes, optimizer }: Props) {
 
   const selected = gearedMonsters.find((g) => String(g.monster.id) === selectedId) ?? null;
 
+  // `unitKey` (box) du monstre RECHERCHÉ, pour l'exclure de ses propres
+  // propositions dans RuneExclusionPicker (s'exclure soi-même n'a pas de
+  // sens) — même règle de dédup (meilleur exemplaire par efficience) que
+  // `gearedMonsters` ci-dessus, appliquée seulement au monstre sélectionné.
+  const selectedUnitKey = useMemo(() => {
+    if (!selected) return null;
+    const score = (b: BoxItem) => (b.gear?.runes ?? []).reduce((s, r) => s + runeEfficiency(r), 0);
+    let best: BoxItem | null = null;
+    for (const item of box) {
+      if (!item.gear || String(item.monster.id) !== String(selected.monster.id)) continue;
+      if (!best || score(item) > score(best)) best = item;
+    }
+    return best?.key ?? null;
+  }, [selected, box]);
+
   // Statistiques principales autorisées sur les slots 2/4/6 — vide = libre.
   // Voir spec/outils/optimizer/ : pour un Lushen, ATQ% en 2, Dmg Crit en 4,
   // ATQ% en 6 — sans cette contrainte, ces slots partent dans n'importe quel
@@ -178,16 +203,36 @@ export default function OptimizerSection({ box, runes, optimizer }: Props) {
   // optimizer/ « Suite — case cochée par défaut »). Décochée, la recherche
   // ne propose que des combos réellement montables sans dérunir un autre
   // monstre de la box.
+  // Indexé par `String(monster.id)` — même clé que `RtaEntry.monsterId`/
+  // `SiegeSlot.monsterId` (voir applyAccount.ts). Recalculé seulement si la
+  // liste de monstres change, pas à chaque rendu.
+  const monsterById = useMemo(() => {
+    const m = new Map<string, Monster>();
+    for (const mon of allMonsters) m.set(String(mon.id), mon);
+    return m;
+  }, [allMonsters]);
+
+  const exclusionData = useMemo<ExclusionSourceData>(
+    () => ({ box, rtaEntries, siegeDefenseTeams, siegeOffenseTeams, monsterById }),
+    [box, rtaEntries, siegeDefenseTeams, siegeOffenseTeams, monsterById]
+  );
+
   const pool = useMemo(() => {
     if (!selected) return runes;
-    const excluded = exploreAll
+    // Se SUPERPOSENT, ne se remplacent pas : `exploreAll` reste l'exclusion
+    // automatique historique (toute la box), `excludedSelectors` l'exclusion
+    // manuelle en plus (box/RTA/siège, monstre par monstre) — voir
+    // optimizerExclusion.ts.
+    const auto = exploreAll
       ? new Set<number>()
       : excludedRuneIds(
           box.map((b) => ({ unitKey: b.key, com2usId: b.monster.com2usId, gear: b.gear })),
           selected.monster.com2usId
         );
-    return excluded.size === 0 ? runes : runes.filter((r) => !excluded.has(r.id));
-  }, [selected, exploreAll, box, runes]);
+    const manual = resolveExcludedRuneIds(excludedSelectors, exclusionData);
+    if (auto.size === 0 && manual.size === 0) return runes;
+    return runes.filter((r) => !auto.has(r.id) && !manual.has(r.id));
+  }, [selected, exploreAll, excludedSelectors, exclusionData, box, runes]);
 
   // Artéfacts RÉELLEMENT transmis au moteur — indépendants de ceux affichés
   // dans « Équipement actuel » (toujours les VRAIS, une photo de l'existant,
@@ -336,6 +381,7 @@ export default function OptimizerSection({ box, runes, optimizer }: Props) {
       adaptiveTrancheWeighting,
       exhaustiveSearch,
       exploreAll,
+      excludedSelectors,
       ignoreArtifacts,
       artifactMainByKind,
     });
@@ -379,6 +425,11 @@ export default function OptimizerSection({ box, runes, optimizer }: Props) {
       // valeur non booléenne à l'état.
       setExhaustiveSearch(recipe.exhaustiveSearch ?? false);
       setExploreAll(recipe.exploreAll);
+      // ⚠️ `?? []` : même repli qu'`exhaustiveSearch` ci-dessus, pour les
+      // recettes exportées avant ce champ. Les sélecteurs sont re-résolus
+      // contre CE compte au moment de la recherche (voir optimizerExclusion.
+      // ts) — un monstre absent ici est silencieusement ignoré, pas une erreur.
+      setExcludedSelectors(recipe.excludedSelectors ?? []);
       setIgnoreArtifacts(recipe.ignoreArtifacts);
       setArtifactMainByKind(recipe.artifactMainByKind);
 
@@ -814,7 +865,32 @@ export default function OptimizerSection({ box, runes, optimizer }: Props) {
           </HelpPopover>
           <Switch checked={exploreAll} onChange={setExploreAll} label="Utiliser tout l'inventaire" />
         </div>
+      </div>
 
+      {/* Exclusion MANUELLE — se superpose à « Utiliser tout l'inventaire »
+          ci-dessus, ne le remplace pas (voir optimizerExclusion.ts). Choisir
+          un monstre ici, dans n'importe laquelle des 4 sources, retire ses
+          runes ACTUELLEMENT équipées du pool considéré, en plus de
+          l'exclusion automatique éventuelle. */}
+      <div>
+        <div className="mb-1.5 flex items-center gap-1.5">
+          <Boxes size={15} className="text-ink-dim" />
+          <span className="text-[12.5px] font-semibold text-ink-dim">Exclure les runes d'un monstre</span>
+          <HelpPopover title="Exclure les runes d'un monstre">
+            Choisis un monstre (box, RTA, siège défense ou attaque) pour retirer SES runes actuellement équipées de
+            la recherche — utile pour un build que tu ne veux pas défaire, en plus de{' '}
+            <b className="text-ink">« Utiliser tout l'inventaire »</b> ci-dessus.
+          </HelpPopover>
+        </div>
+        <RuneExclusionPicker
+          data={exclusionData}
+          excludeOwnUnitKey={selectedUnitKey}
+          selected={excludedSelectors}
+          onChange={setExcludedSelectors}
+        />
+      </div>
+
+      <div className="flex flex-wrap items-center gap-3">
         {/* Toggle, pas un bouton qui lance sa propre recherche : désactivé
             par défaut, jamais suggéré (voir spec/outils/optimizer/ — pas
             d'indicateur tant qu'aucun seuil de déclenchement fiable n'est

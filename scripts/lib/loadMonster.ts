@@ -25,10 +25,12 @@ import {
   parseAccountBox,
   parseAccountInventory,
   parseAccountJson,
+  parseSiegeDefense,
+  parseSiegeOffense,
 } from '../../src/lib/importAccount';
-import { runeSpeedOf } from '../../src/lib/applyAccount';
+import { runeSpeedOf, mapRtaItems, mapSiegeTeams, mapBoxMonsters, BoxItem } from '../../src/lib/applyAccount';
 import { runeEfficiency } from '../../src/lib/effects';
-import { GearSet, RuneDetail } from '../../src/types';
+import { GearSet, Monster, RtaEntry, RuneDetail, SiegeTeam } from '../../src/types';
 import { loadDeckMonster, DeckMonsterArgs } from './deckMonster';
 
 export interface LoadedMonster {
@@ -51,6 +53,20 @@ export function loadMonsterSpeeds(): Map<number, number> {
   const raw = JSON.parse(readFileSync('public/data/monsters.json', 'utf8'));
   const list = Array.isArray(raw) ? raw : raw.monsters;
   return new Map<number, number>(list.map((m: any) => [m.com2usId, Number(m.stats?.speed) || 0]));
+}
+
+// Bestiaire complet, indexé par com2usId — nécessaire à `mapRtaItems`/
+// `mapSiegeTeams` (applyAccount.ts), pas juste nom/vitesse comme les deux
+// fonctions ci-dessus. Utilisé UNIQUEMENT par les loaders d'EXCLUSION
+// ci-dessous (RuneExclusionPicker côté script) — les trois loaders de
+// MONSTRE CIBLE plus bas continuent d'utiliser leur propre lecture locale
+// pour ne rien changer à un chemin déjà correct.
+function loadAllMonstersByCom2us(): Map<number, Monster> {
+  const raw = JSON.parse(readFileSync('public/data/monsters.json', 'utf8'));
+  const list: Monster[] = Array.isArray(raw) ? raw : raw.monsters;
+  const m = new Map<number, Monster>();
+  for (const mon of list) if (mon.com2usId != null) m.set(mon.com2usId, mon);
+  return m;
 }
 
 // Imprime TOUJOURS ce qui a été choisi — jamais une hypothèse silencieuse
@@ -89,6 +105,53 @@ export function loadBoxForExclusion(exportPath: string): { unitKey: string; com2
   const data = parseAccountSource(readFileSync(exportPath, 'utf8'))!;
   const { monsters: box } = parseAccountBox(data);
   return box.map((b) => ({ unitKey: String(b.unitId), com2usId: b.com2usId, gear: b.gear }));
+}
+
+// ── Sources pour l'exclusion MANUELLE (RuneExclusionPicker/
+// optimizerExclusion.ts), rejouée fidèlement par optimizer-search.ts quand
+// `recipe.excludedSelectors` n'est pas vide. Box et RTA se résolvent de
+// façon FIABLE (unitId/monsterId dérivés des données du compte, stables
+// d'un chargement à l'autre). ⚠️ Siège NE l'est PAS : `SiegeTeam.id` est un
+// identifiant ALÉATOIRE, généré à chaque import (voir useSiegeState.ts,
+// `newId()`) — jamais dérivé du deck lui-même. Un sélecteur siège exporté
+// depuis l'écran ne peut donc PAS être résolu de façon fiable ici : chaque
+// exécution de ce script régénère de nouveaux ids, différents de ceux de la
+// session d'export. Chargé quand même (comportement honnête : la fonction
+// existe, mais `optimizer-search.ts` avertit explicitement plutôt que de
+// laisser le sélecteur échouer en silence sans explication).
+export function loadBoxItemsForExclusion(exportPath: string): BoxItem[] {
+  const data = parseAccountSource(readFileSync(exportPath, 'utf8'))!;
+  const byCom2us = loadAllMonstersByCom2us();
+  const { monsters: box } = parseAccountBox(data);
+  return mapBoxMonsters(box, byCom2us);
+}
+
+export function loadRtaEntriesForExclusion(exportPath: string): Record<string, RtaEntry> {
+  const data = parseAccountSource(readFileSync(exportPath, 'utf8'))!;
+  const byCom2us = loadAllMonstersByCom2us();
+  const { units, error } = parseAccountJson(data);
+  if (error) return {};
+  const items = mapRtaItems(units, byCom2us);
+  const entries: Record<string, RtaEntry> = {};
+  for (const it of items) entries[it.monsterId] = { monsterId: it.monsterId, section: it.section, runeSpeed: it.runeSpeed, sets: it.sets, gear: it.gear };
+  return entries;
+}
+
+// ⚠️ Ids de tranche INSTABLES — voir le commentaire de tête ci-dessus. À
+// utiliser seulement pour tenter la résolution, jamais pour garantir qu'un
+// sélecteur siège exporté depuis l'écran sera retrouvé ici.
+export function loadSiegeTeamsForExclusion(exportPath: string, defense: boolean): SiegeTeam[] {
+  const data = parseAccountSource(readFileSync(exportPath, 'utf8'))!;
+  const byCom2us = loadAllMonstersByCom2us();
+  const { decks, error } = defense ? parseSiegeDefense(data) : parseSiegeOffense(data);
+  if (error) return [];
+  const { teams } = mapSiegeTeams(decks, byCom2us);
+  return teams.map((t, i) => ({
+    id: String(i),
+    slots: t.slots.map((s) => ({ monsterId: s.monsterId, runeSpeed: s.runeSpeed, sets: s.sets, tick: s.tick ?? 0, gear: s.gear })),
+    lead: 0,
+    tickAlertDismissed: false,
+  }));
 }
 
 // Mode RTA : meilleur exemplaire par vitesse de runes MAXIMALE (SPD plate +

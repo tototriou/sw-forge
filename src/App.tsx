@@ -905,6 +905,10 @@ export default function App() {
             loadState={data.loadState}
             hydrating={accountHydrating}
             optimizer={optimizer}
+            allMonsters={allMonsters}
+            rtaEntries={rta.state.entries}
+            siegeDefenseTeams={siegeDef.state.teams}
+            siegeOffenseTeams={siegeOff.state.teams}
           />
         ) : route === 'releases' ? (
           <ReleasesPage />

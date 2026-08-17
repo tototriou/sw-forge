@@ -1,6 +1,7 @@
 import { Dispatch, SetStateAction, useState } from 'react';
 import { StatKey } from '../lib/effects';
 import { Objective, SlotFilterPresetKey } from '../lib/runeBuildOptim';
+import { ExclusionSelector } from '../lib/optimizerExclusion';
 import { ArtifactKind } from '../types';
 import { useBuildOptimSearch } from './useBuildOptimSearch';
 
@@ -57,6 +58,10 @@ export interface OptimizerState {
   setObjective: Dispatch<SetStateAction<Objective>>;
   exploreAll: boolean;
   setExploreAll: Dispatch<SetStateAction<boolean>>;
+  // Exclusion MANUELLE, en plus d'`exploreAll` (se superpose, ne le
+  // remplace pas) — voir lib/optimizerExclusion.ts. Vide par défaut.
+  excludedSelectors: ExclusionSelector[];
+  setExcludedSelectors: Dispatch<SetStateAction<ExclusionSelector[]>>;
   // Toggle « Prioriser les stats les plus difficiles » (piste B, voir
   // spec/outils/optimizer/ « Suite — piste B gatée derrière un
   // paramètre ») — désactivé par défaut, lu par `handleSearch` au moment du
@@ -111,6 +116,7 @@ export function useOptimizerState(): OptimizerState {
   const [mainStatsBySlot, setMainStatsBySlot] = useState<Partial<Record<2 | 4 | 6, number[]>>>({});
   const [objective, setObjective] = useState<Objective>('efficience');
   const [exploreAll, setExploreAll] = useState(true);
+  const [excludedSelectors, setExcludedSelectors] = useState<ExclusionSelector[]>([]);
   const [adaptiveTrancheWeighting, setAdaptiveTrancheWeighting] = useState(false);
   const [exhaustiveSearch, setExhaustiveSearch] = useState(false);
   const [sortBy, setSortBy] = useState<OptimizerSortKey>('efficience');
@@ -144,6 +150,8 @@ export function useOptimizerState(): OptimizerState {
     setObjective,
     exploreAll,
     setExploreAll,
+    excludedSelectors,
+    setExcludedSelectors,
     adaptiveTrancheWeighting,
     setAdaptiveTrancheWeighting,
     exhaustiveSearch,

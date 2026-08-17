@@ -15,9 +15,19 @@
 
 import { readFileSync } from 'fs';
 import { parseOptimizerRecipe } from '../src/lib/optimizerRecipe';
-import { loadBoxMonster, loadRtaMonster, loadSiegeMonster, loadBoxForExclusion, printMonsterSummary } from './lib/loadMonster';
+import {
+  loadBoxMonster,
+  loadRtaMonster,
+  loadSiegeMonster,
+  loadBoxForExclusion,
+  loadBoxItemsForExclusion,
+  loadRtaEntriesForExclusion,
+  loadSiegeTeamsForExclusion,
+  printMonsterSummary,
+} from './lib/loadMonster';
 import { recipeToSearchParams } from './lib/recipeToSearchParams';
 import { runSearchToCompletion } from './lib/runSearch';
+import { ExclusionSourceData, resolveExcludedRuneIds } from '../src/lib/optimizerExclusion';
 
 const [exportPath, recipePath] = process.argv.slice(2).filter((a) => !a.startsWith('--'));
 const rtaMode = process.argv.includes('--rta');
@@ -71,7 +81,37 @@ if (loaded.com2usId !== recipe.monsterCom2usId) {
 }
 
 const boxForExclusion = recipe.exploreAll ? undefined : loadBoxForExclusion(exportPath);
-const params = recipeToSearchParams(recipe, loaded, boxForExclusion);
+
+// Exclusion MANUELLE (voir optimizerExclusion.ts) : chargée seulement si la
+// recette en a besoin — coûte 3 lectures/parsages supplémentaires (box, RTA,
+// les 2 siège) qu'une recette sans exclusion manuelle n'a aucune raison de
+// payer.
+let exclusionData: ExclusionSourceData | undefined;
+if (recipe.excludedSelectors && recipe.excludedSelectors.length > 0) {
+  const monsterById = new Map(loadBoxItemsForExclusion(exportPath).map((b) => [String(b.monster.id), b.monster]));
+  exclusionData = {
+    box: loadBoxItemsForExclusion(exportPath),
+    rtaEntries: loadRtaEntriesForExclusion(exportPath),
+    siegeDefenseTeams: loadSiegeTeamsForExclusion(exportPath, true),
+    siegeOffenseTeams: loadSiegeTeamsForExclusion(exportPath, false),
+    monsterById,
+  };
+  // ⚠️ `SiegeTeam.id` est régénéré ALÉATOIREMENT à chaque chargement (voir
+  // loadMonster.ts, `loadSiegeTeamsForExclusion`) — un sélecteur siège
+  // exporté depuis l'écran ne matchera JAMAIS un id généré ici. Prévenir
+  // explicitement plutôt que laisser `resolveExcludedRuneIds` l'ignorer
+  // en silence sans que personne ne comprenne pourquoi.
+  const siegeSelectors = recipe.excludedSelectors.filter((s) => s.source === 'siege-defense' || s.source === 'siege-offense');
+  if (siegeSelectors.length > 0) {
+    console.warn(
+      `⚠️ ${siegeSelectors.length} exclusion(s) manuelle(s) de la recette viennent du Siège — ce script régénère des identifiants d'équipe DIFFÉRENTS à chaque exécution (voir loadMonster.ts) et ne peut donc PAS les résoudre fidèlement. Elles seront silencieusement ignorées ci-dessous (pool plus large que sur l'écran).`
+    );
+  }
+  const resolved = resolveExcludedRuneIds(recipe.excludedSelectors, exclusionData);
+  console.log(`Exclusion manuelle : ${recipe.excludedSelectors.length} sélection(s) dans la recette, ${resolved.size} rune(s) réellement exclue(s) sur ce compte.`);
+}
+
+const params = recipeToSearchParams(recipe, loaded, boxForExclusion, exclusionData);
 
 console.log('\nRecherche en cours (avec escalade du budget, comme l\'app réelle — peut prendre plusieurs minutes)…');
 const result = runSearchToCompletion(params);

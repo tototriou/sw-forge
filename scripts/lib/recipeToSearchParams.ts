@@ -13,6 +13,7 @@ import {
   ARTIFACT_MAIN_VALUE,
   excludedRuneIds,
 } from '../../src/lib/runeBuildOptim';
+import { ExclusionSourceData, resolveExcludedRuneIds } from '../../src/lib/optimizerExclusion';
 import { OptimizerRecipe } from '../../src/lib/optimizerRecipe';
 import { ArtifactDetail, ArtifactKind, GearSet, RuneDetail } from '../../src/types';
 import { LoadedMonster } from './loadMonster';
@@ -47,19 +48,38 @@ export function resolveArtifacts(recipe: OptimizerRecipe, loaded: LoadedMonster)
 // par un AUTRE monstre de la box. `boxForExclusion` n'est nécessaire que
 // dans ce second cas — omis, `exploreAll=false` lève une erreur explicite
 // plutôt que de silencieusement retomber sur le pool complet.
+//
+// `excludedSelectors` (exclusion MANUELLE, voir optimizerExclusion.ts) se
+// SUPERPOSE, comme à l'écran — `exclusionData` n'est nécessaire QUE si
+// `recipe.excludedSelectors` n'est pas vide, même logique de garde-fou
+// explicite que `boxForExclusion` ci-dessus.
 export function resolvePool(
   recipe: OptimizerRecipe,
   loaded: LoadedMonster,
-  boxForExclusion?: { unitKey: string; com2usId: number | null; gear?: GearSet }[]
+  boxForExclusion?: { unitKey: string; com2usId: number | null; gear?: GearSet }[],
+  exclusionData?: ExclusionSourceData
 ): RuneDetail[] {
-  if (recipe.exploreAll) return loaded.allRunes;
-  if (!boxForExclusion) {
-    throw new Error(
-      "recipe.exploreAll=false : il faut fournir boxForExclusion (la box complète) pour reproduire fidèlement l'exclusion des runes portées ailleurs."
-    );
-  }
-  const excluded = excludedRuneIds(boxForExclusion, loaded.com2usId);
-  return excluded.size === 0 ? loaded.allRunes : loaded.allRunes.filter((r) => !excluded.has(r.id));
+  const auto = recipe.exploreAll
+    ? new Set<number>()
+    : (() => {
+        if (!boxForExclusion) {
+          throw new Error(
+            "recipe.exploreAll=false : il faut fournir boxForExclusion (la box complète) pour reproduire fidèlement l'exclusion des runes portées ailleurs."
+          );
+        }
+        return excludedRuneIds(boxForExclusion, loaded.com2usId);
+      })();
+  const manual = (() => {
+    if (recipe.excludedSelectors == null || recipe.excludedSelectors.length === 0) return new Set<number>();
+    if (!exclusionData) {
+      throw new Error(
+        'recipe.excludedSelectors non vide : il faut fournir exclusionData (box + RTA + siège chargés) pour reproduire fidèlement ces exclusions manuelles.'
+      );
+    }
+    return resolveExcludedRuneIds(recipe.excludedSelectors, exclusionData);
+  })();
+  if (auto.size === 0 && manual.size === 0) return loaded.allRunes;
+  return loaded.allRunes.filter((r) => !auto.has(r.id) && !manual.has(r.id));
 }
 
 const HARD_TIMEOUT_MS = 10 * 60 * 1000; // ⚠️ IDENTIQUE à HARD_TIMEOUT_MS (OptimizerSection.tsx).
@@ -67,13 +87,14 @@ const HARD_TIMEOUT_MS = 10 * 60 * 1000; // ⚠️ IDENTIQUE à HARD_TIMEOUT_MS (
 export function recipeToSearchParams(
   recipe: OptimizerRecipe,
   loaded: LoadedMonster,
-  boxForExclusion?: { unitKey: string; com2usId: number | null; gear?: GearSet }[]
+  boxForExclusion?: { unitKey: string; com2usId: number | null; gear?: GearSet }[],
+  exclusionData?: ExclusionSourceData
 ): SearchParams {
   return {
     base: loaded.gear.base,
     artifacts: resolveArtifacts(recipe, loaded),
     relic: loaded.gear.relic,
-    pool: resolvePool(recipe, loaded, boxForExclusion),
+    pool: resolvePool(recipe, loaded, boxForExclusion, exclusionData),
     requirement: recipe.requirement,
     metric: recipe.metric,
     objective: recipe.objective,

@@ -209,15 +209,31 @@ disponibles quel que soit ce réglage, elles sont « à soi ».
 ⚠️ **Le moteur est générique**, pas couplé à la box : `searchBuilds` ne
 connaît qu'un `pool` de runes déjà filtré. `excludedRuneIds` (dans
 [runeBuildOptim.ts](src/lib/runeBuildOptim.ts)) est la fonction spécifique à
-la box qui construit cet ensemble d'exclusion aujourd'hui — pensée pour
-qu'un autre appelant construise le sien.
+la box qui construit cet ensemble d'exclusion — pensée pour qu'un autre
+appelant construise le sien, ce que fait l'exclusion manuelle ci-dessous.
 
-> **Prévu, pas construit** : brancher l'outil dans RTA (pool RTA, dont le
-> runage est **séparé** du reste) et dans le Siège (pool des decks de
-> défense), avec la possibilité d'exclure des runes/monstres **ciblés** en
-> plus de « tout » ou « rien ». L'architecture (pool + exclusion calculée par
-> l'appelant) ne s'y oppose pas, mais rien de tout ça n'est implémenté pour
-> l'instant.
+### Exclusion manuelle — un monstre précis, dans n'importe quelle source
+
+**« Exclure les runes d'un monstre »**, sous « Utiliser tout l'inventaire » :
+recherche par nom un monstre déjà connu du compte, dans l'une de quatre
+sources (Box / RTA / Siège défense / Siège attaque), et retire SES runes
+**actuellement équipées** du pool considéré — utile pour un build qu'on ne
+veut pas défaire, sans dépendre de la règle automatique (autre monstre de la
+box) ci-dessus. Se **superpose** à « Utiliser tout l'inventaire », ne le
+remplace pas : les deux exclusions s'additionnent.
+
+⚠️ Chaque sélection porte sur une **entrée précise**, pas un monstre en
+général — un même monstre peut avoir un runage différent en box, en RTA et
+dans un deck de siège ; exclure « Camilla (RTA) » n'exclut QUE son runage
+RTA. Plusieurs sélections restent possibles à la fois (une liste, pas un
+choix unique).
+
+Fait partie des réglages exportés/importés dans une recette : ce qui est
+exporté, ce sont des **identifiants** (quel monstre, quelle source), jamais
+les runes elles-mêmes — re-résolus contre le compte de qui importe la
+recette au moment de la recherche. Un identifiant introuvable (monstre
+absent chez l'importeur, deck remanié depuis…) est silencieusement ignoré,
+jamais une erreur — même tolérance que pour le monstre recherché lui-même.
 
 ## Interruption — filet de temps, pré-filtrage et arrêt manuel
 

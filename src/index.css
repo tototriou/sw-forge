@@ -1026,6 +1026,23 @@ button:not(:disabled):not([draggable]):not([role='switch']):active,
   display: contents;
 }
 
+/* ⚠️ **Tout ce qui n'est PAS un bouton traverse la grille.** Effacer les
+   conteneurs (`display: contents`) fait remonter TOUS leurs enfants en cellules,
+   pas seulement les boutons : la ligne « Point de sauvegarde · hier », les
+   messages d'import et le rapport de validation se retrouvaient chacun dans une
+   colonne d'un tiers, à se replier sur trois lignes au milieu d'un vide.
+
+   Une largeur en `w-full` ne les sauvait pas — elle remplit la CELLULE, qui fait
+   un tiers. Il faut traverser les trois colonnes, ce que seul `grid-column` sait
+   faire.
+
+   ⚠️ Formulé en négatif (« tout sauf une rangée d'actions ») plutôt qu'en
+   listant les éléments concernés : la barre gagnera un message de plus, et il
+   doit se comporter correctement sans qu'on ait à revenir ici. */
+[data-tiroir] [data-grille-actions] [data-passe-grille] > *:not([data-rangee-actions]) {
+  grid-column: 1 / -1;
+}
+
 /* ⚠️ Les marges hautes des barres d'outils sont annulées dans le panneau. Elles
    les détachent du contenu qui les précède DANS LA PAGE ; empilées dans un
    panneau qui gère déjà ses écarts (`gap-3`), elles s'y ajoutent et creusent le

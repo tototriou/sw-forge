@@ -533,8 +533,17 @@ export default function RecoCard({
           {/* Les decks se posent au dépliage plutôt que d'apparaître d'un bloc.
               ⚠️ L'animation est sur CE conteneur, déjà présent, et non sur un
               `<div>` ajouté autour du fragment : un wrapper de plus casserait
-              l'espacement du parent pour un simple effet. */}
-          <div className="flex flex-col gap-2.5 animate-[apparition_180ms_var(--ease-out)]">
+              l'espacement du parent pour un simple effet.
+              ⚠️ **Grille à la SOURIS** (`lg:grid-cols-2`), une colonne en
+              dessous — même seuil que la grille d'équipes de siège
+              (SiegeBoard.tsx). Une recommandation porte souvent une demi-douzaine
+              de decks : les empiler sur une seule colonne, à la souris, laissait
+              la moitié de la largeur de l'écran vide.
+              ⚠️ **Le deck en ÉDITION reprend toute la largeur** (`col-span-2`) :
+              ses 3 emplacements de monstres plus le picker de chacun seraient à
+              l'étroit sur une demi-colonne — même raison que pour une équipe de
+              siège dépliée. */}
+          <div className="grid grid-cols-1 gap-2.5 lg:grid-cols-2 lg:items-start animate-[apparition_180ms_var(--ease-out)]">
             {/* ⚠️ Pendant une recherche, SEULS les decks trouvés sont rendus —
                 les autres disparaissent complètement. Sans ça la carte remontait
                 dans les résultats en affichant ses six decks, et il fallait
@@ -553,6 +562,7 @@ export default function RecoCard({
                     if (el) deckRefs.current.set(di, el);
                     else deckRefs.current.delete(di);
                   }}
+                  className={editingDeck === di ? 'lg:col-span-2' : undefined}
                 >
                   <DeckBlock
                     reco={reco}
@@ -1097,43 +1107,36 @@ function DeckBlock({
           libelle={folded ? 'Déplier ce deck' : 'Replier ce deck'}
         />
 
-        {/* ⚠️ **Plus de titre à saisir : le nom des monstres, toujours.**
-            Un titre libre pouvait dater (« Def anti-Chloé » quand le deck a
-            changé depuis), redoubler ce que les portraits montrent déjà juste
-            en dessous, ou rester vide et donc identique au nom des monstres —
-            trois façons de ne rien apporter. `deckLabel` calcule maintenant
-            TOUJOURS le nom à partir des monstres, jamais de `deck.name`.
+        {/* ⚠️ **Plus de titre texte : les portraits SEULS identifient le
+            deck**, plus grands (34 px, contre 26 pour l'ancien aperçu replié
+            seul) pour porter ce que le mot enlevé portait. Un titre — libre ou
+            calculé — redoublait ce que ces portraits montrent déjà ; les
+            garder seuls, agrandis, évite la redite plutôt que de biffer un mot
+            de plus dans un en-tête déjà chargé. Toujours affichés, replié ou
+            non : c'est le seul repère du deck quel que soit son état.
             ⚠️ `deck.name` reste dans le TYPE et le stockage (retrocompat) :
             une recommandation exportée avant ce changement, ou reçue d'un ami
             qui n'a pas encore mis à jour l'app, garde son champ `name` — il
-            est juste ignoré à l'affichage désormais, jamais rejeté à
-            l'import. */}
-        <ZoneCliquable onClick={onToggleFold} className="label hoverable:text-ink transition">
-          {deckLabel(deck, monsterByCom2us, deckIndex)}
+            n'a jamais été lu ici, et n'est pas rejeté à l'import. */}
+        <ZoneCliquable
+          onClick={onToggleFold}
+          className="flex items-center gap-1.5 flex-1 min-w-0"
+          title={folded ? 'Déplier ce deck' : 'Replier ce deck'}
+        >
+          {deck.slots.map((sl, i) => (
+            <MiniMonster
+              key={i}
+              monster={sl.com2usId != null ? monsterByCom2us.get(sl.com2usId) ?? null : null}
+              fallback={sl.name}
+              size={34}
+              lead={i === 0 ? leaderLead : null}
+            />
+          ))}
         </ZoneCliquable>
         {!editing && match && !empty && <DeckBadge match={match} />}
         {!editing && match && !empty && <CopiesBadge copies={match.copies} />}
         {/* Le lead n'est pas dans l'en-tête : il est posé sur le leader lui-même
             (aperçu replié ci-dessous, ou slot 0 déplié) — comme en siège. */}
-
-        {/* Replié : aperçu des 3 monstres en icônes, pour s'y retrouver */}
-        {folded && (
-          <ZoneCliquable
-            onClick={onToggleFold}
-            className="flex items-center gap-1 flex-1 min-w-0"
-            title="Déplier ce deck"
-          >
-            {deck.slots.map((sl, i) => (
-              <MiniMonster
-                key={i}
-                monster={sl.com2usId != null ? monsterByCom2us.get(sl.com2usId) ?? null : null}
-                fallback={sl.name}
-                size={26}
-                lead={i === 0 ? leaderLead : null}
-              />
-            ))}
-          </ZoneCliquable>
-        )}
 
         {/* Édition PROPRE au deck (monstres, sets, stats, consignes) : icônes
             nues et resserrées, comme dans l'en-tête de la recommandation. */}
@@ -2523,6 +2526,14 @@ function SlotBadge({ sm }: { sm: SlotMatch }) {
 
 // Liste « stat : minimum » avec, si un compte est chargé, la valeur réelle et
 // l'écart (vert = atteint, rouge = il manque X).
+//
+// ⚠️ **Pas de colonne « total » permanente.** Base et bonus se lisent
+// séparément par défaut ; un clic sur la table bascule vers le total —
+// même geste que le détail d'une rune ou d'un artéfact équipé
+// (`RuneDetailBox`/`ArtifactDetailBox` dans PieceDetail.tsx) : la carte du
+// jeu montre « VIT +26 +5 » au repos, le total au clic. Trois colonnes
+// affichées en permanence pour dire la même chose deux fois (bonus ET total)
+// pesaient plus lourd que ce qu'elles ajoutaient.
 function StatList({
   slot,
   monster,
@@ -2535,6 +2546,7 @@ function StatList({
   spdLead: number; // points de VIT ajoutés par le siège, au TOTAL seulement
 }) {
   const entries = RECO_STATS.filter((st) => (slot.stats[st.key] ?? 0) > 0);
+  const [total, setTotal] = useState(false);
   if (entries.length === 0) {
     return <p className="font-mono text-micro text-ink-dim">Aucune stat recommandée</p>;
   }
@@ -2543,16 +2555,26 @@ function StatList({
   const analyse = !!sm && sm.checks.some((c) => c.actual !== null);
 
   return (
-    <div className="overflow-x-auto">
+    <ZoneCliquable
+      onClick={() => setTotal((v) => !v)}
+      aria-pressed={total}
+      title={total ? 'Voir le détail (base + bonus)' : 'Voir les valeurs totales'}
+      className="block w-full overflow-x-auto text-left"
+    >
     <table className="w-full min-w-[236px] text-micro">
       <thead>
         <tr className="label">
           <th className="pb-1 pr-1.5 text-left font-normal">Stat</th>
-          <th className="pb-1 pr-1.5 text-right font-normal" title="Stat du monstre 6★ nu">
-            base
-          </th>
-          <th className="pb-1 pr-1.5 text-right font-normal">bonus</th>
-          <th className="pb-1 text-right font-normal">total</th>
+          {total ? (
+            <th className="pb-1 pr-1.5 text-right font-normal">total</th>
+          ) : (
+            <>
+              <th className="pb-1 pr-1.5 text-right font-normal" title="Stat du monstre 6★ nu">
+                base
+              </th>
+              <th className="pb-1 pr-1.5 text-right font-normal">bonus</th>
+            </>
+          )}
           {analyse && <th className="pb-1 pl-1.5 text-right font-normal">toi</th>}
         </tr>
       </thead>
@@ -2579,16 +2601,21 @@ function StatList({
               >
                 {st.label}
               </td>
-              <td className="py-0.5 pr-1.5 text-right font-mono text-ink-dim tabular-nums">
-                {known != null ? fmtStat(known) : '—'}
-              </td>
-              <td className="py-0.5 pr-1.5 text-right font-mono text-good tabular-nums">
-                {bonus != null ? `+${fmtStat(bonus)}` : '—'}
-              </td>
-              <td className="py-0.5 text-right font-mono font-semibold text-ink tabular-nums">
-                {fmtStat(req + add)}
-                {st.suffix}
-              </td>
+              {total ? (
+                <td className="py-0.5 pr-1.5 text-right font-mono font-semibold text-ink tabular-nums">
+                  {fmtStat(req + add)}
+                  {st.suffix}
+                </td>
+              ) : (
+                <>
+                  <td className="py-0.5 pr-1.5 text-right font-mono text-ink-dim tabular-nums">
+                    {known != null ? fmtStat(known) : '—'}
+                  </td>
+                  <td className="py-0.5 pr-1.5 text-right font-mono text-good tabular-nums">
+                    {bonus != null ? `+${fmtStat(bonus)}` : '—'}
+                  </td>
+                </>
+              )}
               {analyse && (
                 <td
                   className={`py-0.5 pl-1.5 text-right font-mono font-semibold tabular-nums ${
@@ -2616,6 +2643,6 @@ function StatList({
         })}
       </tbody>
     </table>
-    </div>
+    </ZoneCliquable>
   );
 }

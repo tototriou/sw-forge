@@ -54,6 +54,11 @@ lesquelles il peut jouer.
   noms).
   - Si un monstre est absent des données chargées, on retombe sur le nom stocké
     dans le slot au moment du partage.
+  - ⚠️ **Ce nom calculé sert de TEXTE** dans l'aperçu replié de la
+    recommandation et la ligne « aller au deck » de l'encart de synthèse — pas
+    dans l'en-tête du deck lui-même (voir plus bas, « Repli deck par deck ») :
+    aux deux formats, l'en-tête montre les **portraits des monstres**, jamais
+    de texte.
   - ⚠️ **`RecoDeck.name` existe encore dans le type et le stockage, pour la
     RÉTROCOMPATIBILITÉ d'un import** : une recommandation exportée avant ce
     changement — ou reçue d'un ami dont l'app n'est pas à jour — porte encore
@@ -377,15 +382,23 @@ PV        10 050  + [24 950]  35 000
 - Base inconnue (monstre absent des données) → base affichée « — » et base
   traitée comme 0 : le champ vaut alors directement le total.
 
-**Lecture** — **mêmes colonnes** que la saisie (`base` / `bonus` / `total`), pour
-qu'on lise une recommandation exactement comme on l'écrit. Le **bonus est
-recalculé** (`total − base`), il n'est jamais stocké :
+**Lecture** — ⚠️ **pas de colonne « total » permanente**, contrairement à la
+saisie : `base` et `bonus` par défaut, le total au clic — même geste que le
+détail d'une rune ou d'un artéfact équipé (`RuneDetailBox`/`ArtifactDetailBox`
+dans [PieceDetail.tsx](../../src/components/PieceDetail.tsx)), qui bascule
+pareillement entre « valeur + meule » et le total cumulé. Trois colonnes en
+permanence pour dire deux fois la même chose (le bonus ET le total qui
+l'inclut) pesaient plus que ce qu'elles ajoutaient. Le **bonus est recalculé**
+(`total − base`), il n'est jamais stocké :
 
 ```
-Stat        base    bonus     total       toi
-VIT          107     +105       212       220          ← vert : atteint
-PV        10 050  +24 950    35 000   28 400 (−6 600)  ← rouge : écart affiché
+Stat        base    bonus       toi              Stat        total       toi
+VIT          107     +105       220   ← atteint      ⇄        VIT      212       220
+PV        10 050  +24 950   28 400 (−6 600)                   PV    35 000   28 400 (−6 600)
 ```
+
+⚠️ **« toi » reste affichée dans les deux états** : c'est la seule colonne qui
+compare à mon compte, elle ne dépend pas de la question détail/total.
 
 #### ⚠️ Les tables de stats ne se compriment jamais
 
@@ -1215,14 +1228,27 @@ Indépendamment du repli de la carte, **chaque deck a son propre chevron**.
 - ⚠️ **Les decks sont repliés par défaut** : déplier une recommandation montre la
   **liste de ses decks**, pas leur contenu. On ouvre ensuite celui qui intéresse.
   Sans ça, une reco de 6 decks déroulait tout l'écran d'un coup.
+- ⚠️ **Grille à 2 colonnes à la SOURIS** (`lg:grid-cols-2`), une colonne en
+  dessous — même seuil que la grille d'équipes de siège (SiegeBoard.tsx). Une
+  recommandation porte souvent une demi-douzaine de decks : les empiler sur
+  une seule colonne, à la souris, laissait la moitié de la largeur de l'écran
+  vide. **Le deck en édition reprend toute la largeur** (`col-span-2`) : ses 3
+  emplacements de monstres plus le picker de chacun seraient à l'étroit sur
+  une demi-colonne — même raison que pour une équipe de siège dépliée.
 - **Lead du leader** : affiché **sur le monstre** en slot 0, comme en siège et
   avec les mêmes composants ([LeadPill.tsx](src/components/siege/LeadPill.tsx)) —
   `LeadBadge` sur son portrait dans l'aperçu replié, `LeadPill` (icône +
   montant) sous son nom dans le deck déplié. **Pas** dans l'en-tête du deck :
   on doit voir de quel monstre vient le lead. Voir [equipes.md](equipes.md).
-- **Deck replié** : chevron + nom (cliquable) + **les 3 monstres en icônes**
-  (portrait hexagonal + badge d'élément, **sans nom**) pour s'y retrouver d'un
-  coup d'œil, + le badge de statut et le bouton **Éditer**.
+- **En-tête du deck, replié OU déplié** : chevron + **les 3 monstres en
+  icônes** (portrait hexagonal 34 px + badge d'élément, **sans nom, sans
+  titre texte**), cliquables pour basculer le repli, + le badge de statut et
+  les icônes **Éditer**/Supprimer. ⚠️ **Aucun texte n'identifie plus le
+  deck** : les portraits, agrandis (34 px, contre 26 dans l'ancien aperçu
+  replié seul), portent seuls ce qu'un titre — libre ou calculé — redoublait.
+  Toujours affichés, quel que soit l'état de repli : c'est le seul repère du
+  deck qu'on garde en le dépliant, avant que sets/artéfacts/stats n'arrivent
+  plus bas.
 - **« Déplier / Replier tous les decks »** : lien en haut à droite de la liste,
   affiché dès **2 decks**.
 - Un deck **en édition est toujours déplié**, quel que soit son état de repli.

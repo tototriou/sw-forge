@@ -446,6 +446,23 @@ carte fait défiler la page entière, et on le constate sur un écran qui n'a ri
 voir avec le composant fautif. C'est ce qui rend ces bugs coûteux à chercher — et
 pourquoi ils reviennent.
 
+### Le seuil de 16 px ne vaut qu'à la mise au point
+
+⚠️ Safari iOS décide de zoomer en lisant la taille du texte **au moment où le
+champ prend le focus**, pas avant. Un champ posé à **13 px** qui passe à **16 px
+en `:focus`** est donc à 16 px au seul instant où c'est regardé : le clavier
+monte, la page ne zoome pas.
+
+C'est ce qui permet de rendre le seuil invisible le reste du temps. À 16 px en
+permanence, une barre de recherche écrivait plus gros que le menu déroulant posé
+juste à côté — un même écran à deux échelles, sans qu'aucune décision ne le
+justifie. 13 px et non 12 : c'est la taille des menus voisins, et un champ de
+saisie ne doit pas écrire plus petit qu'eux non plus.
+
+⚠️ **À vérifier sur un appareil iOS réel** : c'est le seul endroit où le
+comportement se constate. Si le zoom revenait, la solution de repli est le 16 px
+permanent — pas une valeur intermédiaire, qui zoomerait tout autant.
+
 ### Les trois pièges d'iOS
 
 ⚠️ **`overflow-x: hidden` ne retient PAS un élément `fixed`.** Safari laisse la

@@ -6,7 +6,7 @@ import { encodeCurveJson, decodeCurve } from '../../lib/runeCurveShare';
 import { parseAccountInventory } from '../../lib/importAccount';
 import { ConfirmDialog, PromptDialog } from '../../ui/Dialogs';
 import { useStickyState } from '../../hooks/useStickyState';
-import { useRuneMetric, formatRuneMetric } from '../../hooks/useRuneMetric';
+import { useRuneMetric } from '../../hooks/useRuneMetric';
 import CurveChart, { CurveSeries, OWN_COLOR } from './CurveChart';
 import { couleurLibre } from './curveColors';
 import SetFilter from './SetFilter';
@@ -42,7 +42,6 @@ interface AccountOverlay {
 
 type Onglet = 'courbes' | 'comptes';
 
-const median = (sorted: number[]) => (sorted.length ? sorted[Math.floor(sorted.length / 2)] : 0);
 const desc = (a: number, b: number) => b - a;
 
 function download(filename: string, text: string) {
@@ -543,7 +542,16 @@ function Graphe({
 
   return (
     <>
-      <div className="flex items-center gap-3 flex-wrap mb-3">
+      <CurveChart
+        series={lignes.map((l) => l.series).filter((s) => !hidden.has(s.name))}
+        yLabel={metric === 'eff' ? 'Efficience (%)' : 'Score SW'}
+        unit={metric === 'eff' ? '%' : ''}
+      />
+
+      {/* Légende SOUS le graphe, en RANGÉE horizontale : couleur + nom, sans les
+          valeurs. Cliquer un nom masque/affiche sa courbe ; la croix retire une
+          courbe importée. */}
+      <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1">
         {lignes.map(({ series: s, remove }) => {
           const off = hidden.has(s.name);
           return (
@@ -560,12 +568,6 @@ function Graphe({
                 <span className={`font-semibold transition ${off ? 'text-ink-dim line-through' : 'text-ink'}`}>
                   {s.name}
                 </span>
-                {s.effs.length > 0 && !off && (
-                  <span className="text-ink-dim">
-                    · max {formatRuneMetric(s.effs[0], metric)} · méd.{' '}
-                    {formatRuneMetric(median(s.effs), metric)} · {s.effs.length}
-                  </span>
-                )}
               </button>
               {remove && (
                 <BoutonIcone
@@ -580,12 +582,6 @@ function Graphe({
           );
         })}
       </div>
-
-      <CurveChart
-        series={lignes.map((l) => l.series).filter((s) => !hidden.has(s.name))}
-        yLabel={metric === 'eff' ? 'Efficience (%)' : 'Score SW'}
-        unit={metric === 'eff' ? '%' : ''}
-      />
 
       <p className="mt-3 font-mono text-micro text-ink-dim">
         Tout reste en local : rien n'est envoyé.

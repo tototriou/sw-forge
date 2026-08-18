@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { HelpCircle } from 'lucide-react';
 import { RuneDetail } from '../../types';
 import { runePotential } from '../../lib/runeOptim';
-import { useRuneMetric, formatRuneMetric } from '../../hooks/useRuneMetric';
+import { useRuneMetric } from '../../hooks/useRuneMetric';
 import { useStickyState } from '../../hooks/useStickyState';
 import SetFilter from './SetFilter';
 import NumberField from '../../ui/NumberField';
@@ -19,14 +19,6 @@ interface Props {
 const DEFAULT_LIMIT = 400; // nb de runes affichées par défaut
 const HERO_COLOR = '#c88cff'; // Potentiel héroïque → violet
 const LEGEND_COLOR = '#f8b24a'; // Potentiel légendaire → orange
-
-// Médiane & max indépendants de l'ordre (les séries « Par rune » ne sont pas triées).
-const median = (arr: number[]) => {
-  if (!arr.length) return 0;
-  const s = [...arr].sort((a, b) => a - b);
-  return s[Math.floor(s.length / 2)];
-};
-const maxOf = (arr: number[]) => arr.reduce((m, v) => (v > m ? v : m), -Infinity);
 
 export default function RunesCurve({ runes }: Props) {
   const [sets, setSets] = useStickyState<Set<string>>('runesCurve.sets', new Set());
@@ -223,16 +215,12 @@ export default function RunesCurve({ runes }: Props) {
         />
       </div>
 
-      {/* Légende — sous le graphe ; cliquer un nom masque/affiche sa courbe.
-          ⚠️ **Une LIGNE par série, alignée en colonnes** — pas une rangée qui
-          passe à la ligne. Chaque entrée porte un nom et deux mesures : à
-          `flex-wrap`, aucune ne tenait sur 348 px, donc chacune prenait sa
-          ligne AVEC l'écart de la rangée (16 px) et la hauteur tactile de
-          40 px. Trois séries occupaient un tiers de l'écran.
-          En grille, le nom et les mesures s'alignent d'une ligne à l'autre :
-          on compare les maxima en descendant la colonne, ce que la rangée
-          ne permettait pas non plus. */}
-      <div className="mx-auto mt-3 flex w-full max-w-[420px] flex-col gap-0.5 sm:max-w-none">
+      {/* Légende — sous le graphe, en RANGÉE horizontale (les entrées les unes à
+          côté des autres, comme les autres légendes de l'app) ; cliquer un nom
+          masque/affiche sa courbe. La couleur et le nom, rien d'autre : les
+          valeurs (max, médiane) se lisent au survol du graphe — répétées ici,
+          elles alourdissaient une zone qui ne sert qu'à identifier et masquer. */}
+      <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1">
         {allSeries.map((s) => {
           const off = hidden.has(s.name);
           return (
@@ -242,40 +230,25 @@ export default function RunesCurve({ runes }: Props) {
               title={off ? 'Afficher' : 'Masquer'}
               // `min-h-0` : la règle tactile globale porte les boutons à 40 px,
               // ce qui ferait 120 px pour trois lignes de légende. Ici la cible
-              // fait toute la LARGEUR — on ne rate pas, même à 28 px de haut.
+              // fait toute la LARGEUR de son texte — on ne rate pas, même à
+              // 28 px de haut.
               className="flex min-h-0 items-center gap-2 rounded px-1.5 py-1 text-left
-                         font-mono text-micro transition-colors hoverable:bg-panel2
-                         sm:justify-center sm:text-xs"
+                         font-mono text-micro transition-colors hoverable:bg-panel2 sm:text-xs"
             >
               <span
                 className="inline-block h-1.5 w-3 flex-none rounded-full transition"
                 style={{ background: s.color, opacity: off ? 0.3 : 1 }}
               />
               <span
-                className={`flex-1 truncate font-semibold transition sm:flex-none ${
+                className={`truncate font-semibold transition ${
                   off ? 'text-ink-dim line-through' : 'text-ink'
                 }`}
               >
                 {s.name}
               </span>
-              {s.effs.length > 0 && !off && (
-                <span className="flex-none tabular-nums text-ink-dim">
-                  {formatRuneMetric(maxOf(s.effs), metric)}
-                  <span className="text-ink-dimmer"> · </span>
-                  {formatRuneMetric(median(s.effs), metric)}
-                </span>
-              )}
             </button>
           );
         })}
-        {/* Les deux chiffres n'ont plus leur libellé sur chaque ligne : il se
-            répétait trois fois pour dire la même chose. Un en-tête unique
-            suffit — et il ne s'affiche que si une série est visible. */}
-        {allSeries.some((s) => !hidden.has(s.name)) && (
-          <p className="px-1.5 text-right font-mono text-micro text-ink-dimmer sm:text-center">
-            max · médiane
-          </p>
-        )}
       </div>
     </div>
   );

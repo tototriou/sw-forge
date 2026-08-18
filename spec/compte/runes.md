@@ -392,7 +392,9 @@ Détails :
   - On mémorise le **rang**, jamais les runes : les séries se recalculent à
     chaque changement de filtre ou de mesure, et des runes figées désigneraient
     un point disparu.
-- **Légende sous le graphe** : cliquer un nom **masque/affiche** sa courbe.
+- **Légende sous le graphe** : en **rangée horizontale** (les entrées côte à
+  côte), **pastille de couleur + nom** uniquement — pas de valeurs. Cliquer un
+  nom **masque/affiche** sa courbe.
 - **Filtres** : sets (`SetFilter`), slot (`SlotFilter`), antiques.
 - **Nombre de runes** : champ libre (défaut **400**) + **Tout**.
 - **Mode** : **Gemme + meule** / **Meule seule** (voir Optimisation).
@@ -509,8 +511,11 @@ sous-onglet : c'est ce qui permet un bouton unique qui les vide toutes les deux.
     tracé de 1 px. Au-delà de la palette (8 courbes), l'unicité n'est plus
     tenable et le cycle reprend — un doublon entre la 1re et la 9e vaut mieux
     qu'entre deux voisines.
-- **Légende** : pastille + nom + (max · médiane · nb) ; **cliquer le nom
-  masque/affiche** ; la croix (✕) **retire** une courbe importée.
+- **Légende** : **sous le graphe**, en **rangée horizontale** (les entrées côte à
+  côte), réduite à la **pastille de couleur + le nom** — pas de valeurs
+  (max/médiane/nb), qui se lisent au survol du graphe et alourdissaient une zone
+  servant seulement à identifier et masquer les courbes. **Cliquer le nom**
+  masque/affiche ; la croix (✕) **retire** une courbe importée.
 - Deux courbes homonymes sont **renommées** (« Ami (2) »), **en tenant compte des
   deux listes à la fois** puisqu'elles cohabitent dans l'onglet Courbes : sinon
   la légende serait illisible et la croix ambiguë.

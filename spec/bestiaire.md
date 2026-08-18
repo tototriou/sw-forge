@@ -186,6 +186,14 @@ sensation d'un écran à l'autre.
 - Le compteur dit **« N sur M »** quand un filtre coupe : afficher le total alors
   qu'on en voit 60 se lit comme un bug d'affichage. Même règle que l'inventaire
   d'artéfacts.
+- ⚠️ **L'animation de disposition est coupée au-delà de `SEUIL_ANIMATION_GRILLE`
+  cartes (48)** — voir [compte/monstres.md](compte/monstres.md#pagination--performance).
+  Une page pleine (60) saccaderait au FLIP de framer-motion ; `BestiaryPage`
+  calcule le nombre de cartes de la page et passe `anime={false}` à chaque
+  `MonsterGrid` au-dessus du seuil. La carte n'est alors plus un `motion.div` du
+  tout (survol en CSS). ⚠️ **Décidé sur le total de la PAGE**, pas par bloc
+  d'élément : cinq blocs de douze sous le seuil feraient quand même soixante FLIP
+  simultanés.
 
 ### Fiche complète — au clic sur une carte
 

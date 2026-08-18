@@ -1,9 +1,18 @@
-import { useState } from 'react';
+import { memo, useState } from 'react';
 import { motion } from 'framer-motion';
 import { Monster } from '../types';
 import ElementIcon from './ElementIcon';
 import { libelleCollab } from '../lib/collabPairs';
 import CollabPortrait from './CollabPortrait';
+
+// ⚠️ **Au-delà de ce nombre de cartes, l'animation de disposition est COUPÉE.**
+// Chaque carte animée est un `motion.div layout` : à chaque filtre, framer-motion
+// remesure et fait glisser (FLIP) TOUTES les cartes vers leur nouvelle place.
+// Délicieux sur vingt cartes, saccadé sur des centaines — la box d'un compte
+// entier n'est pas paginée. Le parent compare la taille de sa grille à ce seuil
+// et passe `anime={false}` au-dessus : le filtrage redevient instantané, on
+// garde le fondu pour les petites listes. Voir spec/compte/monstres.md.
+export const SEUIL_ANIMATION_GRILLE = 48;
 
 const BORDER: Record<string, string> = {
   fire: 'hoverable:border-fire hoverable:shadow-lg hoverable:shadow-fire-glow/40',
@@ -54,7 +63,7 @@ function initials(name: string) {
 // portrait 64 px, colonnes de 104. C'est le plus dense des deux, et le bon —
 // on parcourt des centaines de monstres, chaque pixel de marge coûte une ligne
 // de plus à faire défiler.
-export default function MonsterCard({
+const MonsterCard = memo(function MonsterCard({
   monster,
   jumeau,
   possede = true,
@@ -62,6 +71,7 @@ export default function MonsterCard({
   onOpen,
   count,
   showStars = true,
+  anime = true,
 }: {
   monster: Monster;
   // Équivalent SW d'un monstre de COLLABORATION (Satoru Gojo ↔ Werner). Les
@@ -83,46 +93,45 @@ export default function MonsterCard({
   // Rangée d'étoiles sous le portrait. ⚠️ Masquée dans la box : tout y est 6★,
   // la répéter 300 fois n'apprend rien.
   showStars?: boolean;
+  // Animer l'entrée et la disposition (FLIP). ⚠️ Le PARENT décide, selon la
+  // taille de sa grille (voir SEUIL_ANIMATION_GRILLE) : sur des centaines de
+  // cartes, le FLIP de framer-motion saccade. `false` → plus de `motion.div` du
+  // tout, le survol passe en CSS.
+  anime?: boolean;
 }) {
   const [imgFailed, setImgFailed] = useState(false);
   const showImage = monster.image && !imgFailed;
 
-  return (
-    <motion.div
-      layout
-      initial={{ opacity: 0, y: 12 }}
-      animate={{ opacity: 1, y: 0 }}
-      exit={{ opacity: 0, y: -8 }}
-      transition={{ duration: 0.25 }}
-      whileHover={{ y: -4 }}
-      // ⚠️ `role="button"` sur le `motion.div` plutôt qu'un `<button>` autour :
-      // envelopper casserait l'animation de disposition (`layout`), qui mesure
-      // CET élément. Le clavier est rétabli à la main juste en dessous.
-      onClick={onOpen ? () => onOpen(monster) : undefined}
-      onKeyDown={
-        onOpen
-          ? (e) => {
-              if (e.key === 'Enter' || e.key === ' ') {
-                e.preventDefault();
-                onOpen(monster);
-              }
-            }
-          : undefined
-      }
-      role={onOpen ? 'button' : undefined}
-      tabIndex={onOpen ? 0 : undefined}
-      title={
-        onOpen
-          ? `Voir la fiche de ${jumeau ? libelleCollab(monster.name, jumeau.name) : monster.name}`
-          : undefined
-      }
-      // ⚠️ Gabarit repris de la BOX du compte : portrait 64 px, `rounded-xl`,
-      // padding resserré. C'est la carte la plus dense des deux, et c'est la
-      // bonne référence — on parcourt des centaines de monstres, chaque pixel
-      // de marge coûte une ligne de plus à faire défiler.
-      className={`group relative rounded-xl border border-border bg-panel px-2 pt-3 pb-2.5 text-center
-        transition-colors shadow-none ${onOpen ? 'cursor-pointer' : ''} ${BORDER[monster.element]}`}
-    >
+  // Poignées communes aux deux rendus. ⚠️ `role="button"` porté par l'élément
+  // lui-même plutôt qu'un `<button>` autour : envelopper casserait l'animation
+  // de disposition (`layout`), qui mesure CET élément. Le clavier est rétabli à
+  // la main.
+  const handlers = {
+    onClick: onOpen ? () => onOpen(monster) : undefined,
+    onKeyDown: onOpen
+      ? (e: React.KeyboardEvent) => {
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            onOpen(monster);
+          }
+        }
+      : undefined,
+    role: onOpen ? ('button' as const) : undefined,
+    tabIndex: onOpen ? 0 : undefined,
+    title: onOpen
+      ? `Voir la fiche de ${jumeau ? libelleCollab(monster.name, jumeau.name) : monster.name}`
+      : undefined,
+  };
+
+  // ⚠️ Gabarit repris de la BOX du compte : portrait 64 px, `rounded-xl`,
+  // padding resserré. C'est la carte la plus dense des deux, et la bonne
+  // référence — on parcourt des centaines de monstres, chaque pixel de marge
+  // coûte une ligne de plus à faire défiler.
+  const socle = `group relative rounded-xl border border-border bg-panel px-2 pt-3 pb-2.5 text-center
+    shadow-none ${onOpen ? 'cursor-pointer' : ''} ${BORDER[monster.element]}`;
+
+  const contenu = (
+    <>
       <div className="relative w-[64px] mx-auto mb-1.5">
         <div
           className={`hex-frame w-[64px] h-[64px] p-[2px] bg-gradient-to-br ${GRADIENT[monster.element]}`}
@@ -181,6 +190,34 @@ export default function MonsterCard({
       <div className="text-xs font-semibold leading-tight line-clamp-2">
         {jumeau ? libelleCollab(monster.name, jumeau.name) : monster.name}
       </div>
+    </>
+  );
+
+  // ⚠️ Sans animation, PLUS de `motion.div` : le survol se fait en CSS
+  // (`transition` + `hoverable:-translate-y-1`), et rien ne mesure la
+  // disposition. C'est ce qui rend le filtrage instantané sur une grande grille.
+  if (!anime) {
+    return (
+      <div {...handlers} className={`${socle} transition hoverable:-translate-y-1`}>
+        {contenu}
+      </div>
+    );
+  }
+
+  return (
+    <motion.div
+      layout
+      initial={{ opacity: 0, y: 12 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, y: -8 }}
+      transition={{ duration: 0.25 }}
+      whileHover={{ y: -4 }}
+      {...handlers}
+      className={`${socle} transition-colors`}
+    >
+      {contenu}
     </motion.div>
   );
-}
+});
+
+export default MonsterCard;

@@ -4,6 +4,7 @@ import SearchBar from '../components/SearchBar';
 import MobileSheet from '../ui/MobileSheet';
 import FilterBar from '../components/FilterBar';
 import MonsterGrid from '../components/MonsterGrid';
+import { SEUIL_ANIMATION_GRILLE } from '../components/MonsterCard';
 import MonsterDetailDialog from '../components/MonsterDetailDialog';
 import Pager from '../components/account/Pager';
 import { ELEMENTS, ElementKey, Monster } from '../types';
@@ -115,6 +116,13 @@ export default function BestiaryPage({ monsters, menuOuvert, onFermerMenu }: Pro
   const pageCount = Math.max(1, Math.ceil(totalShown / PAGE));
   const safePage = Math.min(page, pageCount - 1);
 
+  // Cartes réellement affichées sur cette page. ⚠️ Au-delà du seuil, l'animation
+  // de disposition est coupée pour toute la page — voir SEUIL_ANIMATION_GRILLE :
+  // une page pleine (60) saccaderait au FLIP, une dernière page courte garde le
+  // fondu.
+  const nbPage = Math.max(0, Math.min(PAGE, totalShown - safePage * PAGE));
+  const animePage = nbPage <= SEUIL_ANIMATION_GRILLE;
+
   // ⚠️ On pagine AVANT de grouper, et non l'inverse : paginer chaque élément
   // séparément donnerait cinq paginations à l'écran, et « page 2 » ne voudrait
   // plus rien dire. Ici la page découpe la liste entière ; les blocs d'élément
@@ -196,6 +204,7 @@ export default function BestiaryPage({ monsters, menuOuvert, onFermerMenu }: Pro
             monsters={grouped.get(el.key) ?? []}
             allMonsters={monsters}
             onOpen={setFiche}
+            anime={animePage}
           />
         ))
       )}

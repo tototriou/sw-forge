@@ -119,6 +119,10 @@ export interface SearchParams {
   // répartition uniforme raterait, au prix d'un temps de recherche plus
   // long (+20 % de temps de construction mesuré en moyenne).
   adaptiveTrancheWeighting?: boolean;
+  // ⚠️ PROTOTYPE EN MESURE — voir `buildBuckets`, paramètre
+  // `combosOrderMode`. `undefined`/`'potential'` (défaut, tous les appels de
+  // production) : comportement inchangé. Jamais exposé dans l'UI.
+  combosOrderMode?: 'potential' | 'relevance';
 }
 
 export interface SearchResult {
@@ -1183,7 +1187,19 @@ export function* buildBuckets(
   // dans l'UI, pas encore fait). `true` : reproduit le comportement piste B
   // déjà validé (Sonia deck 6, cas de stress atteignable) contre un coût de
   // construction non démontré meilleur que la piste A.
-  adaptiveTrancheWeighting = false
+  adaptiveTrancheWeighting = false,
+  // ⚠️ PROTOTYPE EN MESURE — voir spec/outils/optimizer/
+  // historique-dimensionnement.md, « Suite — vitesse de convergence : ordre
+  // au sein d'un compartiment ». `'potential'` (défaut, TOUS les appels de
+  // production actuels) : comportement INCHANGÉ, tri par potentiel
+  // normalisé multi-tranches (voir plus bas). `'relevance'` : garde le tri
+  // des COMPARTIMENTS entre eux par potentiel (déjà mesuré comme un vrai
+  // gain, deck 10), mais trie les demi-builds À L'INTÉRIEUR d'un même
+  // compartiment par `relevanceScore` seul (comportement d'avant l'ajout du
+  // potentiel normalisé, ICI SEULEMENT) — hypothèse : le tri par potentiel
+  // à ce niveau précis coûte de l'exploration sans bénéfice démontré
+  // séparément de celui du tri des compartiments. Jamais exposé dans l'UI.
+  combosOrderMode: 'potential' | 'relevance' = 'potential'
 ): Generator<BuildingProgress, Bucket[], void> {
   const [i0, i1, i2] = slotIdxs;
   const buckets = new Map<string, Bucket>();
@@ -1456,7 +1472,11 @@ export function* buildBuckets(
       }
       return { combo, potential };
     });
-    scored.sort((x, y) => y.potential - x.potential);
+    if (combosOrderMode === 'relevance') {
+      scored.sort((x, y) => y.combo.relevanceScore - x.combo.relevanceScore);
+    } else {
+      scored.sort((x, y) => y.potential - x.potential);
+    }
     b.combos = scored.map((s) => s.combo);
     if (skylines) b.skyline = skylines.get(key) ?? [];
   }
@@ -2405,12 +2425,12 @@ export function* searchBuildsSteps(params: SearchParams): Generator<SearchProgre
   const bucketsA = yield* buildBuckets(
     'A', [0, 1, 2], prepared.filtered, prepared.distinctKeys, prepared.constrainedKeys, prepared.retentionKeys,
     prepared.minEntries, prepared.bucketCap, prepared.maxSetsForA, prepared.jokerCredit, prepared.requiredPieces,
-    undefined, params.adaptiveTrancheWeighting
+    undefined, params.adaptiveTrancheWeighting, params.combosOrderMode
   );
   const bucketsB = yield* buildBuckets(
     'B', [3, 4, 5], prepared.filtered, prepared.distinctKeys, prepared.constrainedKeys, prepared.retentionKeys,
     prepared.minEntries, prepared.bucketCap, prepared.maxSetsForB, prepared.jokerCredit, prepared.requiredPieces,
-    undefined, params.adaptiveTrancheWeighting
+    undefined, params.adaptiveTrancheWeighting, params.combosOrderMode
   );
   return yield* pairBuckets(prepared, bucketsA, bucketsB);
 }

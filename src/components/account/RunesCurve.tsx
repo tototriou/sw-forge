@@ -6,6 +6,7 @@ import { useRuneMetric, formatRuneMetric } from '../../hooks/useRuneMetric';
 import { useStickyState } from '../../hooks/useStickyState';
 import SetFilter from './SetFilter';
 import NumberField from '../../ui/NumberField';
+import Pastille from '../../ui/Pastille';
 import SlotFilter from './SlotFilter';
 import CurveChart, { CurveSeries, OWN_COLOR } from './CurveChart';
 
@@ -110,18 +111,12 @@ export default function RunesCurve({ runes }: Props) {
 
         <div className="flex flex-wrap items-center gap-2">
           <SlotFilter value={slots} onChange={setSlots} />
-          <button
+          <Pastille
+            actif={ancientOnly}
             onClick={() => setAncientOnly((v) => !v)}
-            className={`ml-1 rounded-full border px-3 py-1 text-xs font-semibold transition select-none
-              ${
-                // Bordure seule — voir spec/shared/design.md.
-                ancientOnly
-                  ? 'bg-panel border-accent text-ink'
-                  : 'bg-panel border-border text-ink-dim hoverable:text-ink hoverable:border-accent'
-              }`}
-          >
-            Antiques
-          </button>
+            className="ml-1"
+            libelle="Antiques"
+          />
         </div>
       </div>
 

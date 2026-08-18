@@ -11,6 +11,7 @@ import Pager from './Pager';
 import SetFilter from './SetFilter';
 import SlotFilter from './SlotFilter';
 import NumberField from '../../ui/NumberField';
+import Selecteur from '../../ui/Selecteur';
 import { FlottantAuto } from '../../ui';
 
 interface Props {
@@ -244,20 +245,20 @@ export default function RunesOptim({ runes, crafts }: Props) {
 
         <div className="flex items-center gap-2">
           <span className="label">Trier par</span>
-          <select
+          <Selecteur
             value={sort}
             onChange={(e) => {
               setSort(e.target.value as SortMode);
               setPage(0);
             }}
-            className="bg-panel border border-border text-ink rounded-lg px-2.5 py-1 text-sm outline-none"
+            pleineLargeur={false}
           >
             {SORTS.map((s) => (
               <option key={s.key} value={s.key}>
                 {s.label}
               </option>
             ))}
-          </select>
+          </Selecteur>
         </div>
 
         <div className="flex items-center gap-1 bg-panel border border-border rounded-lg p-0.5">

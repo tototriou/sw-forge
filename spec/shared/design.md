@@ -90,12 +90,13 @@ filtres sont posés.
 | Support | Marqueur | Pourquoi pas l'autre |
 |---------|----------|----------------------|
 | **Champ de saisie** (`select`, `input`, `textarea`) | `border-accent` | Un fond coloré passe derrière du texte qu'on doit lire, et concurrence le curseur |
-| **Pastille de filtre** (chip bordée) | `border-accent` | L'outline entoure la pastille sans passer derrière son icône ; l'aplat la faisait ressortir comme un bouton d'action |
-| **Cran d'un `Segmented`, onglet** | `bg-accent-soft` | Ils vivent dans un cadre commun où toutes les bordures sont déjà posées : seul le fond peut distinguer l'élu |
+| **Pastille de filtre** (chip, cran de `Segmented`, onglet) | `border-accent bg-accent-soft` | Le marqueur unique de l'app : le contour porte l'état, le fond l'appuie. Un cran dans un cadre commun (`SlotFilter`, `Segmented`) peut n'en garder que le fond, la bordure étant déjà celle du cadre |
 
 ⚠️ **Les pastilles voisines partagent le même marqueur.** Les numéros de
-`SlotFilter` et le bouton « Antiques » sont dans la même rangée : deux
-marqueurs différents côte à côte se lisent comme deux natures de filtre.
+`SlotFilter`, le bouton « Antiques » et les filtres de Ma box (Nat / Doublons /
+2A) portent tous le **même fond d'accent** — deux marqueurs différents côte à
+côte se liraient comme deux natures de filtre. C'est la brique `Pastille`
+([librairie-ui.md](librairie-ui.md)), qui pose ce marqueur une fois pour toutes.
 
 **Corollaires :**
 

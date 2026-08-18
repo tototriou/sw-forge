@@ -44,11 +44,12 @@ export default function SlotFilter({
               className={`w-7 h-7 rounded-md border text-xs font-mono font-semibold transition select-none
                 ${
                   active
-                    ? // ⚠️ Bordure seule (voir spec/shared/design.md) : ces
-                      // numéros sont dans la MÊME rangée que le bouton
-                      // « Antiques ». Deux marqueurs différents côte à côte se
-                      // liraient comme deux natures de filtre.
-                      'bg-panel border-accent text-ink'
+                    ? // ⚠️ Marqueur d'état UNIQUE de l'app (voir spec/shared/design.md) :
+                      // contour d'accent + fond très léger. Le même que la pastille
+                      // « Antiques » de la même rangée et que les filtres de Ma box —
+                      // deux marqueurs différents côte à côte se liraient comme deux
+                      // natures de filtre.
+                      'bg-accent-soft border-accent text-ink'
                     : 'border-transparent text-ink-dim hoverable:text-ink hoverable:bg-panel2'
                 }`}
             >

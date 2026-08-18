@@ -12,6 +12,7 @@ import { couleurLibre } from './curveColors';
 import SetFilter from './SetFilter';
 import SlotFilter from './SlotFilter';
 import NumberField from '../../ui/NumberField';
+import Pastille from '../../ui/Pastille';
 
 interface Props {
   runes: RuneDetail[];
@@ -465,18 +466,7 @@ function OngletComptes({
         <SetFilter runes={toutesLesRunes} value={sets} onChange={setSets} />
         <div className="flex flex-wrap items-center gap-2">
           <SlotFilter value={slots} onChange={setSlots} />
-          <button
-            onClick={() => setAncientOnly((v) => !v)}
-            className={`rounded-full border px-3 py-1 text-xs font-semibold transition select-none
-              ${
-                // Bordure seule — voir spec/shared/design.md.
-                ancientOnly
-                  ? 'bg-panel border-accent text-ink'
-                  : 'bg-panel border-border text-ink-dim hoverable:text-ink hoverable:border-accent'
-              }`}
-          >
-            Antiques
-          </button>
+          <Pastille actif={ancientOnly} onClick={() => setAncientOnly((v) => !v)} libelle="Antiques" />
           <div className="ml-auto flex items-center gap-2">
             <span className="label">Nb de runes</span>
             <NumberField

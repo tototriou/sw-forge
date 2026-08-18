@@ -9,6 +9,8 @@ import Pager from './Pager';
 import { Critere } from './SubSearchDialog';
 import SubSearchBar from './SubSearchBar';
 import MobileSheet from '../../ui/MobileSheet';
+import Selecteur from '../../ui/Selecteur';
+import Pastille from '../../ui/Pastille';
 import {
   RUNE_SORTS,
   RuneSortMode,
@@ -141,25 +143,15 @@ export default function RunesList({ runes, menuOuvert, onFermerMenu }: Props) {
               setPage(0);
             }}
           />
-          <button
+          <Pastille
+            actif={ancientOnly}
             onClick={() => {
               setAncientOnly((v) => !v);
               setPage(0);
             }}
-            className={`ml-1 rounded-full border px-3 py-1 text-xs font-semibold transition select-none
-              ${
-                // ⚠️ La BORDURE seule (voir spec/shared/design.md). Elle
-                // cumulait fond + bordure + encre d'accent + ombre : quatre
-                // signaux pour un seul état. L'outline est plus discret que
-                // l'aplat sur une pastille isolée en bout de rangée — le fond
-                // la faisait ressortir comme un bouton d'action.
-                ancientOnly
-                  ? 'bg-panel border-accent text-ink'
-                  : 'bg-panel border-border text-ink-dim hoverable:text-ink hoverable:border-accent'
-              }`}
-          >
-            Antiques
-          </button>
+            className="ml-1"
+            libelle="Antiques"
+          />
         </div>
 
         {/* Propriété secondaire — la barre du JEU : quatre cases de rappel
@@ -186,21 +178,21 @@ export default function RunesList({ runes, menuOuvert, onFermerMenu }: Props) {
             score) reste un réglage global, dans la barre de nav. */}
         <div className="flex items-center gap-2 flex-wrap">
           <span className="w-[86px] flex-none label">Trier par</span>
-          <select
+          <Selecteur
             value={sort}
             onChange={(e) => {
               setSort(e.target.value as RuneSortMode);
               setPage(0);
             }}
             title={RUNE_SORTS.find((s) => s.key === sort)?.hint}
-            className="bg-panel border border-border text-ink rounded-lg px-2.5 py-1 text-sm outline-none"
+            pleineLargeur={false}
           >
             {RUNE_SORTS.map((s) => (
               <option key={s.key} value={s.key} title={s.hint}>
                 {s.label}
               </option>
             ))}
-          </select>
+          </Selecteur>
           {/* ⚠️ Les deux tris « propriété » n'ont rien à classer sans critère :
               le dire ici évite de croire que le tri est cassé. */}
           {(sort === 'sub_desc' || sort === 'sub_brut_desc') && !premierCode && (

@@ -173,13 +173,17 @@ export default function MobileNavSheet({
                 </>
               ) : (
                 /* ── Premier temps ────────────────────────────────────────
-                   ⚠️ **Une seule colonne ici, quelle que soit la largeur.**
-                   Les trois inventaires sont l'ossature du compte : les mettre
-                   en grille les réduirait à des vignettes de la taille d'une
-                   vue, alors qu'ils ne sont pas au même niveau. La grille est
-                   réservée au second temps, où les sept vues de Runes doivent
-                   tenir sans défiler. */
-                <nav className="flex w-full flex-col gap-2" aria-label={`Sections de ${section.titre}`}>
+                   ⚠️ **La MÊME grille qu'au second temps**, pas une mise en
+                   page à part. Les deux temps se succèdent au même endroit, à
+                   quelques centaines de millisecondes d'intervalle : une
+                   colonne pleine largeur puis deux colonnes, c'était deux
+                   gabarits de cible pour un seul geste, et le panneau changeait
+                   de nature en descendant d'un niveau.
+                   ⚠️ Un nombre IMPAIR de cibles laisse la dernière seule sur sa
+                   rangée, à gauche — trois inventaires, trois vues de Siège.
+                   C'est le comportement d'une grille, et l'étirer sur les deux
+                   colonnes lui donnerait un poids qu'elle n'a pas. */
+                <nav className={`grid w-full gap-2 ${GRILLE}`} aria-label={`Sections de ${section.titre}`}>
                   {aDesGroupes
                     ? groupes.map((g) => <EntreeGroupe key={g.titre} groupe={g} onOuvrir={() => setGroupeOuvert(g.titre!)} onFermer={onFermer} />)
                     : groupes.flatMap((g) =>

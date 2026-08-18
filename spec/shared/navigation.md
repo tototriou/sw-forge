@@ -329,9 +329,16 @@ s'orienter.
   - ⚠️ Les `_` sont la façon d'écrire une espace dans une valeur arbitraire
     Tailwind (`calc(50%_-_4px)`). Sans eux la classe n'est pas reconnue et
     **aucune règle n'est émise** — à vérifier dans le CSS construit.
-- ⚠️ **Le premier temps reste sur UNE colonne**, quelle que soit la largeur. Les
-  trois inventaires sont l'ossature du compte : en grille, ils se réduiraient à
-  des vignettes de la taille d'une vue alors qu'ils ne sont pas au même niveau.
+- ⚠️ **Les DEUX temps partagent la même grille.** Ils se succèdent au même
+  endroit à quelques centaines de millisecondes d'intervalle : une colonne
+  pleine largeur puis deux colonnes, c'était deux gabarits de cible pour un seul
+  geste, et le panneau changeait de nature en descendant d'un niveau.
+  - Un nombre **impair** de cibles laisse la dernière seule sur sa rangée, à
+    gauche (trois inventaires, trois vues de Siège). C'est le comportement d'une
+    grille ; l'étirer sur les deux colonnes lui donnerait un poids qu'elle n'a
+    pas.
+  - Le **retour** échappe à la grille : pleine largeur, au-dessus d'elle. C'est
+    une action sur le panneau, pas une destination de plus.
 - La **colonne d'icône est à largeur fixe** (18 px) : sans elle les libellés se
   décalent d'une cible à l'autre au gré de la largeur des symboles — et en
   grille, les deux colonnes cessent de s'aligner l'une sur l'autre.

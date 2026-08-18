@@ -73,18 +73,18 @@ export default function testOptimizerExclusion() {
 
   // ── exclusionCandidatesFor ──────────────────────────────────────────
   {
-    const boxCandidates = exclusionCandidatesFor('box', data, null);
+    const boxCandidates = exclusionCandidatesFor('box', data, null, null);
     egal(boxCandidates.length, 2, 'box : 2 candidats proposables (le troisième, sans runes, est exclu de la liste)');
 
-    const boxWithoutOwn = exclusionCandidatesFor('box', data, 'unit-camilla');
+    const boxWithoutOwn = exclusionCandidatesFor('box', data, 'unit-camilla', null);
     egal(boxWithoutOwn.length, 1, 'box : le monstre RECHERCHÉ (excludeOwnUnitKey) est retiré de ses propres propositions');
     egal(boxWithoutOwn[0].monster.name, 'Lushen', 'box : le candidat restant est bien Lushen, pas Camilla');
 
-    const rtaCandidates = exclusionCandidatesFor('rta', data, null);
+    const rtaCandidates = exclusionCandidatesFor('rta', data, null, null);
     egal(rtaCandidates.length, 1, 'rta : un seul favori RTA équipé de runes');
     egal(rtaCandidates[0].selector, { source: 'rta', monsterId: '1' }, 'rta : sélecteur résolu par monsterId');
 
-    const defCandidates = exclusionCandidatesFor('siege-defense', data, null);
+    const defCandidates = exclusionCandidatesFor('siege-defense', data, null, null);
     egal(defCandidates.length, 2, 'siège défense : 2 slots équipés (le slot vide est ignoré)');
     ok(
       defCandidates.some((c) => c.selector.source === 'siege-defense' && 'slotIndex' in c.selector && c.selector.slotIndex === 0) &&
@@ -92,21 +92,44 @@ export default function testOptimizerExclusion() {
       'siège défense : les slotIndex 0 et 2 sont bien distingués (le slot 1, vide, est absent)'
     );
 
-    const offCandidates = exclusionCandidatesFor('siege-offense', data, null);
+    const offCandidates = exclusionCandidatesFor('siege-offense', data, null, null);
     egal(offCandidates.length, 0, 'siège offense : aucune équipe chargée, aucun candidat');
+  }
+
+  // ── Trou trouvé par une revue de code externe : `excludeOwnUnitKey`
+  // (box) ne protégeait QUE la box — RTA et siège n'avaient AUCUNE garde,
+  // le monstre recherché pouvait s'auto-proposer à l'exclusion depuis ces
+  // deux sources. `excludeOwnCom2usId` (par ESPÈCE, pas par entrée —
+  // RTA/siège n'ont qu'UNE entrée par monstre) corrige les deux. ──
+  {
+    const rtaWithoutOwn = exclusionCandidatesFor('rta', data, null, camilla.com2usId);
+    egal(rtaWithoutOwn.length, 0, "rta : le monstre recherché (excludeOwnCom2usId=Camilla) retiré de ses propres propositions RTA");
+
+    const rtaWithOtherOwn = exclusionCandidatesFor('rta', data, null, lushen.com2usId);
+    egal(rtaWithOtherOwn.length, 1, "rta : un AUTRE monstre recherché (Lushen) ne retire pas l'entrée RTA de Camilla");
+
+    const defWithoutOwn = exclusionCandidatesFor('siege-defense', data, null, camilla.com2usId);
+    egal(defWithoutOwn.length, 1, 'siège défense : le monstre recherché (Camilla) retiré de ses propres propositions, Lushen reste');
+    egal(defWithoutOwn[0]?.monster.name, 'Lushen', 'siège défense : le candidat restant est bien Lushen, pas Camilla');
+
+    // La box, elle, reste gouvernée par excludeOwnUnitKey SEUL (granularité
+    // par entrée précise, pas par espèce) — excludeOwnCom2usId ne doit PAS
+    // en plus retirer un AUTRE exemplaire de la même espèce en box.
+    const boxUnaffectedByCom2usId = exclusionCandidatesFor('box', data, null, camilla.com2usId);
+    egal(boxUnaffectedByCom2usId.length, 2, "box : excludeOwnCom2usId seul ne retire rien (granularité par entrée, pas par espèce)");
   }
 
   // ── Camilla a un runage DIFFÉRENT en box, RTA et siège défense : exclure
   // UNE source précise ne doit exclure QUE ses runes à elle, jamais les
   // deux autres builds du même monstre (voir l'en-tête de optimizerExclusion.ts). ──
   {
-    const onlyBox = resolveExcludedRuneIds([{ source: 'box', unitKey: 'unit-camilla' }], data);
+    const onlyBox = resolveExcludedRuneIds([{ source: 'box', unitKey: 'unit-camilla' }], data, null, null);
     egal([...onlyBox].sort((a, b) => a - b), [1, 2, 3, 4, 5, 6], 'box seul : exclut les runes BOX de Camilla, pas ses runes RTA ni siège');
 
-    const onlyRta = resolveExcludedRuneIds([{ source: 'rta', monsterId: String(camilla.id) }], data);
+    const onlyRta = resolveExcludedRuneIds([{ source: 'rta', monsterId: String(camilla.id) }], data, null, null);
     egal([...onlyRta].sort((a, b) => a - b), [101, 102, 103, 104, 105, 106], 'rta seul : exclut les runes RTA de Camilla, distinctes de ses runes box');
 
-    const onlySiege = resolveExcludedRuneIds([{ source: 'siege-defense', teamId: 'team-1', slotIndex: 2 }], data);
+    const onlySiege = resolveExcludedRuneIds([{ source: 'siege-defense', teamId: 'team-1', slotIndex: 2 }], data, null, null);
     egal([...onlySiege].sort((a, b) => a - b), [301, 302, 303, 304, 305, 306], 'siège seul : exclut les runes du DECK, distinctes des deux autres');
 
     const combined = resolveExcludedRuneIds(
@@ -114,9 +137,62 @@ export default function testOptimizerExclusion() {
         { source: 'box', unitKey: 'unit-camilla' },
         { source: 'rta', monsterId: String(camilla.id) },
       ],
-      data
+      data,
+      null,
+      null
     );
     egal(combined.size, 12, 'plusieurs sélecteurs : union des runes exclues (box + RTA de Camilla, aucun chevauchement)');
+  }
+
+  // ── Trou trouvé par une revue de code externe : un sélecteur choisi
+  // LÉGITIMEMENT en optimisant un AUTRE monstre (« exclure les runes de
+  // Camilla » pendant qu'on optimise Lushen) devient une AUTO-exclusion si
+  // l'utilisateur change ensuite le monstre recherché pour Camilla —
+  // `excludedSelectors` (l'état de l'écran) n'était jusqu'ici jamais purgé
+  // ni revérifié à ce changement. Défendu ICI, à la résolution, pour que
+  // la garantie tienne quelle que soit la façon dont le sélecteur est
+  // arrivé dans la liste (voir aussi le useEffect de purge dans
+  // OptimizerSection.tsx, qui nettoie l'AFFICHAGE — cosmétique, cette
+  // défense-ci est celle qui garantit le POOL réel). ──
+  {
+    const staleRta = resolveExcludedRuneIds([{ source: 'rta', monsterId: String(camilla.id) }], data, null, camilla.com2usId);
+    egal(staleRta.size, 0, "sélecteur RTA périmé (devenu le monstre recherché lui-même) : ignoré, aucune rune exclue à tort");
+
+    const staleSiege = resolveExcludedRuneIds([{ source: 'siege-defense', teamId: 'team-1', slotIndex: 2 }], data, null, camilla.com2usId);
+    egal(staleSiege.size, 0, "sélecteur siège périmé (devenu le monstre recherché lui-même) : ignoré, aucune rune exclue à tort");
+
+    // Box : granularité PAR ENTRÉE (`ownUnitKey`), pas par espèce — sa
+    // PROPRE entrée (celle réellement en cours d'optimisation) reste
+    // défendue, mais un DEUXIÈME exemplaire de Camilla en box (runage
+    // différent, entrée différente) reste, lui, exclusible (voir l'en-tête
+    // du fichier : plusieurs exemplaires du même monstre sont possibles).
+    const boxSelfExcluded = resolveExcludedRuneIds([{ source: 'box', unitKey: 'unit-camilla' }], data, 'unit-camilla', camilla.com2usId);
+    egal([...boxSelfExcluded], [], 'box : sa PROPRE entrée (ownUnitKey) reste défendue');
+
+    const dataWithSecondCamilla: ExclusionSourceData = {
+      ...data,
+      box: [...box, { key: 'unit-camilla-2', monster: camilla, stars: 6, level: 40, gear: gear([21, 22, 23, 24, 25, 26]) }],
+    };
+    const boxOtherCopyStillWorks = resolveExcludedRuneIds([{ source: 'box', unitKey: 'unit-camilla-2' }], dataWithSecondCamilla, 'unit-camilla', camilla.com2usId);
+    egal(
+      [...boxOtherCopyStillWorks].sort((a, b) => a - b),
+      [21, 22, 23, 24, 25, 26],
+      'box : un AUTRE exemplaire de Camilla (entrée différente, même espèce) reste exclusible — granularité par entrée préservée'
+    );
+
+    // Mélange : un sélecteur périmé (RTA de Camilla, désormais soi-même) ET
+    // un sélecteur toujours légitime (box de Lushen) dans la MÊME liste —
+    // seul le premier doit être ignoré.
+    const mixed = resolveExcludedRuneIds(
+      [
+        { source: 'rta', monsterId: String(camilla.id) }, // périmé : Camilla = soi-même
+        { source: 'box', unitKey: 'unit-lushen' }, // toujours légitime
+      ],
+      data,
+      'unit-camilla',
+      camilla.com2usId
+    );
+    egal([...mixed].sort((a, b) => a - b), [7, 8, 9, 10, 11, 12], 'mélange : le sélecteur périmé est ignoré, le légitime reste appliqué');
   }
 
   // ── Tolérance : un sélecteur introuvable (recette d'un autre compte,
@@ -130,7 +206,9 @@ export default function testOptimizerExclusion() {
         { source: 'siege-defense', teamId: 'equipe-inconnue', slotIndex: 0 },
         { source: 'siege-offense', teamId: 'team-1', slotIndex: 5 }, // slotIndex hors bornes
       ],
-      data
+      data,
+      null,
+      null
     );
     egal(inconnu.size, 0, 'sélecteurs introuvables : silencieusement ignorés, aucune exception, aucune rune exclue à tort');
 
@@ -178,7 +256,7 @@ export default function testOptimizerExclusion() {
       },
     ];
     const data2: ExclusionSourceData = { box, rtaEntries, siegeDefenseTeams: twoTeams, siegeOffenseTeams: [], monsterById: monsterById2 };
-    const candidates = exclusionCandidatesFor('siege-defense', data2, null);
+    const candidates = exclusionCandidatesFor('siege-defense', data2, null, null);
     const lushenEntries = candidates.filter((c) => c.monster.name === 'Lushen');
     egal(lushenEntries.length, 2, 'deux équipes avec le même monstre : les 2 entrées Lushen existent bien, séparément');
 
@@ -199,7 +277,7 @@ export default function testOptimizerExclusion() {
       "équipe 2 : les 3 slots affichés sont CEUX de l'équipe 2 (Veromos/Camilla, pas Fran de l'équipe 1)"
     );
 
-    const boxCandidate = exclusionCandidatesFor('box', data2, null)[0];
+    const boxCandidate = exclusionCandidatesFor('box', data2, null, null)[0];
     egal(boxCandidate.teamContext, undefined, "box : pas de contexte d'équipe (n'a de sens qu'en siège)");
   }
 

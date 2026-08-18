@@ -18,6 +18,10 @@ interface Props {
   // Le monstre actuellement recherché — jamais proposable à l'exclusion
   // depuis sa propre entrée box (voir optimizerExclusion.ts).
   excludeOwnUnitKey: string | null;
+  // Même monstre, par ESPÈCE cette fois — nécessaire pour garder RTA/siège
+  // hors de la liste proposable aussi (la box seule ne suffit pas, voir
+  // exclusionCandidatesFor).
+  excludeOwnCom2usId: number | null;
   selected: ExclusionSelector[];
   onChange: (next: ExclusionSelector[]) => void;
 }
@@ -48,7 +52,7 @@ function sourceLabel(sel: ExclusionSelector, data: ExclusionSourceData): string 
 // défense/offense), une entrée précise par choix (pas juste un monstre :
 // voir optimizerExclusion.ts). Même grammaire de navigation clavier que
 // MonsterGearPicker (choix du monstre à optimiser).
-export default function RuneExclusionPicker({ data, excludeOwnUnitKey, selected, onChange }: Props) {
+export default function RuneExclusionPicker({ data, excludeOwnUnitKey, excludeOwnCom2usId, selected, onChange }: Props) {
   const [activeSource, setActiveSource] = useState<ExclusionSource>('box');
   const [query, setQuery] = useState('');
   const idBase = useId();
@@ -56,8 +60,8 @@ export default function RuneExclusionPicker({ data, excludeOwnUnitKey, selected,
   const selectedKeys = useMemo(() => new Set(selected.map(exclusionSelectorKey)), [selected]);
 
   const candidates = useMemo(
-    () => exclusionCandidatesFor(activeSource, data, excludeOwnUnitKey),
-    [activeSource, data, excludeOwnUnitKey]
+    () => exclusionCandidatesFor(activeSource, data, excludeOwnUnitKey, excludeOwnCom2usId),
+    [activeSource, data, excludeOwnUnitKey, excludeOwnCom2usId]
   );
 
   const results = useMemo(() => {

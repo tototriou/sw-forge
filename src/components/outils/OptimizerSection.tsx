@@ -255,10 +255,35 @@ export default function OptimizerSection({ box, runes, optimizer, allMonsters, r
     const auto = excludeUsedRunes
       ? autoExcludedRuneIds(excludeUsedScope, exclusionData, selected.monster.com2usId)
       : new Set<number>();
-    const manual = resolveExcludedRuneIds(excludedSelectors, exclusionData);
+    const manual = resolveExcludedRuneIds(excludedSelectors, exclusionData, selectedUnitKey, selected.monster.com2usId);
     if (auto.size === 0 && manual.size === 0) return runes;
     return runes.filter((r) => !auto.has(r.id) && !manual.has(r.id));
-  }, [selected, excludeUsedRunes, excludeUsedScope, excludedSelectors, exclusionData, runes]);
+  }, [selected, selectedUnitKey, excludeUsedRunes, excludeUsedScope, excludedSelectors, exclusionData, runes]);
+
+  // ⚠️ Purge les sélecteurs d'exclusion manuelle devenus AUTO-exclusion
+  // depuis un changement de monstre recherché — `resolveExcludedRuneIds`
+  // (ci-dessus, dans `pool`) les ignore déjà pour le calcul réel du pool
+  // (garantie de justesse, pas juste cosmétique), mais sans cette purge un
+  // sélecteur devenu inerte resterait affiché comme « sélectionné » dans
+  // RuneExclusionPicker sans plus rien faire — trompeur. Trouvé par une
+  // revue de code externe (`excludedSelectors` ne réagissait jusqu'ici à
+  // aucun changement de `selectedId`). Même double granularité que
+  // `resolveExcludedRuneIds` : box par ENTRÉE (`selectedUnitKey`), RTA/
+  // siège par ESPÈCE (`com2usId`) — un second exemplaire box de la même
+  // espèce reste une sélection légitime, jamais purgée à tort.
+  useEffect(() => {
+    const ownCom2usId = selected?.monster.com2usId ?? null;
+    if (ownCom2usId == null) return;
+    setExcludedSelectors((prev) => {
+      const next = prev.filter((sel) => {
+        if (sel.source === 'box') return sel.unitKey !== selectedUnitKey;
+        const monsterId = sel.source === 'rta' ? sel.monsterId : exclusionData.siegeDefenseTeams.concat(exclusionData.siegeOffenseTeams).find((t) => t.id === sel.teamId)?.slots[sel.slotIndex]?.monsterId;
+        const monster = monsterId != null ? exclusionData.monsterById.get(monsterId) : undefined;
+        return monster?.com2usId !== ownCom2usId;
+      });
+      return next.length === prev.length ? prev : next;
+    });
+  }, [selected?.monster.com2usId, selectedUnitKey, exclusionData, setExcludedSelectors]);
 
   // Artéfacts RÉELLEMENT transmis au moteur — indépendants de ceux affichés
   // dans « Équipement actuel » (toujours les VRAIS, une photo de l'existant,
@@ -1064,6 +1089,7 @@ export default function OptimizerSection({ box, runes, optimizer, allMonsters, r
             <RuneExclusionPicker
               data={exclusionData}
               excludeOwnUnitKey={selectedUnitKey}
+              excludeOwnCom2usId={selected?.monster.com2usId ?? null}
               selected={excludedSelectors}
               onChange={setExcludedSelectors}
             />

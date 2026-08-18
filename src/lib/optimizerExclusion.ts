@@ -68,9 +68,22 @@ export interface ExclusionSourceData {
 }
 
 // Liste des monstres proposables à l'exclusion pour UNE source — filtre les
-// entrées sans runes équipées (rien à exclure) et, pour la box, le monstre
-// actuellement recherché (s'exclure soi-même n'a pas de sens).
-export function exclusionCandidatesFor(source: ExclusionSource, data: ExclusionSourceData, excludeOwnUnitKey: string | null): ExclusionCandidate[] {
+// entrées sans runes équipées (rien à exclure) et le monstre actuellement
+// recherché (s'exclure soi-même n'a pas de sens).
+//
+// ⚠️ Deux gardes DISTINCTES, une par granularité — trouvé manquant pour RTA/
+// siège par une revue de code externe (voir spec/outils/optimizer/
+// historique-acceleration-et-outillage.md) :
+// - `excludeOwnUnitKey` (box UNIQUEMENT) : compare par ENTRÉE précise (clé de
+//   box), pas par espèce — la box peut contenir plusieurs exemplaires du même
+//   monstre (voir l'en-tête du fichier), et SEUL l'exemplaire réellement en
+//   cours d'optimisation doit être écarté ; un AUTRE exemplaire de la même
+//   espèce reste une exclusion manuelle légitime et différente.
+// - `excludeOwnCom2usId` (RTA + siège) : compare par ESPÈCE (com2usId), même
+//   principe que `autoExcludedRuneIds`/`isOwn` plus bas — RTA et un slot de
+//   siège n'ont qu'UNE seule entrée par monstre, donc la bonne granularité
+//   est directement l'espèce, pas une clé d'entrée qui n'existe pas ici.
+export function exclusionCandidatesFor(source: ExclusionSource, data: ExclusionSourceData, excludeOwnUnitKey: string | null, excludeOwnCom2usId: number | null): ExclusionCandidate[] {
   const out: ExclusionCandidate[] = [];
   if (source === 'box') {
     for (const item of data.box) {
@@ -85,6 +98,7 @@ export function exclusionCandidatesFor(source: ExclusionSource, data: ExclusionS
       if (!entry.gear || entry.gear.runes.length === 0) continue;
       const monster = data.monsterById.get(entry.monsterId);
       if (!monster) continue;
+      if (excludeOwnCom2usId != null && monster.com2usId === excludeOwnCom2usId) continue;
       out.push({ selector: { source: 'rta', monsterId: entry.monsterId }, monster, gear: entry.gear });
     }
     return out;
@@ -101,6 +115,7 @@ export function exclusionCandidatesFor(source: ExclusionSource, data: ExclusionS
       if (slot.monsterId == null) return;
       const monster = data.monsterById.get(slot.monsterId);
       if (!monster) return;
+      if (excludeOwnCom2usId != null && monster.com2usId === excludeOwnCom2usId) return;
       out.push({ selector: { source, teamId: team.id, slotIndex }, monster, gear: slot.gear, teamContext: { teamNumber, slots: teamSlots } });
     });
   });
@@ -133,17 +148,43 @@ export function resolveExclusionEntry(sel: ExclusionSelector, data: ExclusionSou
 // depuis, deck modifié, recette d'un AUTRE compte…) est silencieusement
 // ignoré — jamais une erreur : même tolérance que l'import de recette pour
 // `excludeUsedRunes`/le monstre choisi.
-export function resolveExcludedRuneIds(selectors: ExclusionSelector[], data: ExclusionSourceData): Set<number> {
+//
+// ⚠️ Revérifié ICI, à la RÉSOLUTION — pas seulement au moment où
+// `exclusionCandidatesFor` a proposé le sélecteur. Trouvé par une revue de
+// code externe : `excludedSelectors` (l'état de l'écran) survit à un
+// changement de monstre recherché sans jamais être purgé — un sélecteur
+// choisi en toute légitimité en optimisant le monstre A (« exclure les
+// runes de B ») devient une AUTO-exclusion si l'utilisateur change ensuite
+// le monstre recherché pour B. Défendu ici, au point où l'exclusion est
+// RÉELLEMENT appliquée au pool, pour que la garantie « le monstre recherché
+// n'est jamais exclu de ses propres runes » tienne quelle que soit la façon
+// dont le sélecteur est arrivé dans la liste (choix frais, recette importée,
+// ou changement de monstre après coup) — pas seulement au moment du choix.
+//
+// ⚠️ DEUX gardes séparées, MÊME granularité que `exclusionCandidatesFor` —
+// piège vécu en écrivant le test différentiel : une comparaison par
+// ESPÈCE (com2usId) pour la box aurait exclu TOUT exemplaire de la même
+// espèce, pas seulement celui réellement en cours d'optimisation. La box
+// reste PAR ENTRÉE (`ownUnitKey`) — un second exemplaire de la même
+// espèce, runage différent, reste une exclusion manuelle légitime.
+export function resolveExcludedRuneIds(selectors: ExclusionSelector[], data: ExclusionSourceData, ownUnitKey: string | null, ownCom2usId: number | null): Set<number> {
   const out = new Set<number>();
   for (const sel of selectors) {
     let gear: GearSet | undefined;
     if (sel.source === 'box') {
+      if (sel.unitKey === ownUnitKey) continue;
       gear = data.box.find((b) => b.key === sel.unitKey)?.gear;
     } else if (sel.source === 'rta') {
-      gear = data.rtaEntries[sel.monsterId]?.gear;
+      const entry = data.rtaEntries[sel.monsterId];
+      const monster = data.monsterById.get(sel.monsterId);
+      if (ownCom2usId != null && monster?.com2usId === ownCom2usId) continue;
+      gear = entry?.gear;
     } else {
       const teams = sel.source === 'siege-defense' ? data.siegeDefenseTeams : data.siegeOffenseTeams;
-      gear = teams.find((t) => t.id === sel.teamId)?.slots[sel.slotIndex]?.gear;
+      const slot = teams.find((t) => t.id === sel.teamId)?.slots[sel.slotIndex];
+      const monster = slot?.monsterId != null ? data.monsterById.get(slot.monsterId) : undefined;
+      if (ownCom2usId != null && monster?.com2usId === ownCom2usId) continue;
+      gear = slot?.gear;
     }
     for (const r of gear?.runes ?? []) out.add(r.id);
   }

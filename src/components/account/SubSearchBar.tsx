@@ -56,8 +56,15 @@ export default function SubSearchBar({
   return (
     <>
       <div className="flex items-start gap-1.5">
-        {/* Deux par ligne, comme dans le jeu — d'où la grille 2×2 en mode 4. */}
-        <div className="grid min-w-0 flex-1 grid-cols-1 gap-1 sm:grid-cols-2">
+        {/* ⚠️ En mode 4, une GRILLE 2×2 comme dans le jeu ; en mode 2, les deux
+            cases empilées en pleine largeur (plus lisibles seules). Le
+            `sm:grid-cols-2` garde le desktop à deux colonnes quel que soit le
+            mode — la bascule n'affecte que le panneau mobile. */}
+        <div
+          className={`grid min-w-0 flex-1 gap-1 sm:grid-cols-2 ${
+            visibles > 2 ? 'grid-cols-2' : 'grid-cols-1'
+          }`}
+        >
           {Array.from({ length: visibles }, (_, i) => {
             const c = criteres[i];
             return (

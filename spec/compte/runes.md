@@ -566,6 +566,17 @@ Différence assumée : les **six slots sont toujours proposés**, alors que les 
 se limitent à ceux présents. Un slot sans rune reste une information utile
 (« je n'ai rien en 2 »), là où un set absent n'est qu'un bouton mort.
 
+### ⚠️ Dans le panneau « Options » (mobile), les filtres prennent toute la largeur
+
+Le bloc de filtres est le **même** qu'au desktop (rendu une fois, posé à deux
+endroits selon la largeur). Dans le panneau, il s'étire pour occuper toute la
+largeur, comme les autres popups — au lieu de rester compact, aligné à gauche :
+les **six emplacements se répartissent** sur la ligne (`SlotFilter`), les **cases
+de propriété** remplissent la largeur (une par ligne en mode 2, **grille 2×2** en
+mode 4), et le **tri** occupe toute la largeur. Ciblé par `data-filtres-runes`
+sous `[data-tiroir]` (voir index.css) ; le desktop garde ses contrôles à la
+largeur de leur contenu.
+
 ## Onglet Optimisation — `RunesOptim`
 
 Calcule, pour chaque rune, son **potentiel maximal** et **ce qu'il faut faire**

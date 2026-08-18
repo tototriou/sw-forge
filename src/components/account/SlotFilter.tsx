@@ -26,7 +26,9 @@ export default function SlotFilter({
   };
 
   return (
-    <div className="flex flex-wrap items-center gap-1">
+    // `data-filtre-slots` : dans le panneau mobile, les six emplacements se
+    // répartissent sur toute la largeur (voir index.css). Ailleurs, sans effet.
+    <div data-filtre-slots className="flex flex-wrap items-center gap-1">
       <span className="label mr-1">{label}</span>
       <div className="flex flex-wrap items-center gap-0.5 rounded-lg border border-border bg-panel p-1">
         {SLOTS.map((n) => {

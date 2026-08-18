@@ -1099,3 +1099,32 @@ button:not(:disabled):not([draggable]):not([role='switch']):active,
 [data-tiroir] img {
   max-width: 100%;
 }
+
+/* ⚠️ **Les filtres de la LISTE de runes prennent TOUTE LA LARGEUR dans le
+   panneau**, comme les autres popups — au lieu de rester compacts, alignés à
+   gauche, avec du vide à droite. Le bloc `filtres` sert AUSSI au desktop (hors
+   tiroir), où il garde la largeur de son contenu : d'où le ciblage `[data-tiroir]
+   [data-filtres-runes]`, qui n'existe que dans le panneau.
+   (Sans rapport avec le `width:100%` retiré plus haut sur les LISTES D'ACTIONS :
+   là c'était une colonne de barres qui pesait comme un menu principal ; ici ce
+   sont des contrôles de formulaire, qu'on veut pleins comme dans un dialogue.) */
+[data-tiroir] [data-filtres-runes] > * {
+  width: 100%;
+}
+[data-tiroir] [data-filtres-runes] select {
+  width: 100%;
+}
+[data-tiroir] [data-filtres-runes] .max-w-\[480px\] {
+  max-width: none;
+}
+/* Les six emplacements se répartissent sur toute la largeur ; « Antiques » et le
+   bouton « ✕ tout » gardent leur taille à côté. */
+[data-tiroir] [data-filtres-runes] [data-filtre-slots] {
+  flex: 1 1 auto;
+}
+[data-tiroir] [data-filtres-runes] [data-filtre-slots] > div {
+  flex: 1 1 auto;
+}
+[data-tiroir] [data-filtres-runes] [data-filtre-slots] > div > button {
+  flex: 1 1 0;
+}

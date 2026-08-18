@@ -212,7 +212,13 @@ export default function RunesList({ runes, menuOuvert, onFermerMenu }: Props) {
       <div className="hidden lg:flex lg:flex-col gap-3 mb-4">{filtres}</div>
 
       <MobileSheet ouvert={menuOuvert} onFermer={onFermerMenu} titre="Filtrer mes runes">
-        <div className="flex flex-col gap-3">{filtres}</div>
+        {/* ⚠️ `data-filtres-runes` : dans le PANNEAU, les contrôles prennent toute
+            la largeur (voir index.css). Le même bloc sert au desktop (ci-dessus,
+            hors tiroir), où il reste compact — d'où le marqueur, lu uniquement
+            sous `[data-tiroir]`. */}
+        <div className="flex flex-col gap-3" data-filtres-runes>
+          {filtres}
+        </div>
       </MobileSheet>
 
       <div className="flex items-center justify-between gap-3 mb-3 flex-wrap">

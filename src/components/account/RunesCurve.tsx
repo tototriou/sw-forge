@@ -184,7 +184,19 @@ export default function RunesCurve({ runes }: Props) {
           </button>
           {showHelp && (
             <div
-              className="absolute right-0 mt-1.5 w-[340px] max-w-[88vw] rounded-lg border border-accent bg-panel p-3 text-xs text-ink-dim leading-relaxed shadow-xl shadow-black/50
+              // ⚠️ **Plafonné et DÉFILANT.** Ce texte fait une demi-page : posé
+              // sans hauteur maximale, il descendait sous le bas de l'écran, et
+              // ses dernières lignes passaient derrière la barre d'onglets —
+              // `z-40` contre le `z-20` d'ici. On ne pouvait donc pas les lire,
+              // et rien ne disait qu'il en restait.
+              // ⚠️ `dvh` et non `vh` : sur iOS, `vh` vaut la hauteur barre
+              // d'adresse DÉPLIÉE, et le plafond ne tenait plus une fois
+              // celle-ci repliée. Même raison que dans `MobileSheet`.
+              // ⚠️ `overscroll-contain` : arrivé en bas du popover, le geste ne
+              // doit pas se propager à la page derrière.
+              className="absolute right-0 mt-1.5 max-h-[60dvh] w-[340px] max-w-[88vw] overflow-y-auto
+                         overscroll-contain rounded-lg border border-accent bg-panel p-3 text-xs
+                         text-ink-dim leading-relaxed shadow-xl shadow-black/50
                          origin-top-right animate-[popover_150ms_var(--ease-out)]"
             >
               <p className="text-ink font-semibold mb-1">À quoi sert ce graphe ?</p>

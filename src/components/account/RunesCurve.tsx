@@ -11,20 +11,16 @@ import Bouton from '../../ui/Bouton';
 import Segmented from '../Segmented';
 import SlotFilter from './SlotFilter';
 import CurveChart, { CurveSeries, OWN_COLOR } from './CurveChart';
-import MobileSheet from '../../ui/MobileSheet';
 
 interface Props {
   runes: RuneDetail[];
-  // Panneau « Options » mobile — piloté par la barre d'onglets (voir App.tsx).
-  menuOuvert: boolean;
-  onFermerMenu: () => void;
 }
 
 const DEFAULT_LIMIT = 400; // nb de runes affichées par défaut
 const HERO_COLOR = '#c88cff'; // Potentiel héroïque → violet
 const LEGEND_COLOR = '#f8b24a'; // Potentiel légendaire → orange
 
-export default function RunesCurve({ runes, menuOuvert, onFermerMenu }: Props) {
+export default function RunesCurve({ runes }: Props) {
   // Liste blanche, tout coché par défaut (voir RunesList) : un set/slot coché est
   // affiché, aucun coché = rien.
   const [sets, setSets] = useStickyState<Set<string>>('runesCurve.sets', new Set(runes.map((r) => r.set)));
@@ -102,44 +98,29 @@ export default function RunesCurve({ runes, menuOuvert, onFermerMenu }: Props) {
   ];
   const visible = allSeries.filter((s) => !hidden.has(s.name));
 
-  // Les contrôles de la courbe, rendus UNE fois et posés à DEUX endroits selon
-  // la largeur : dans la page au-dessus de `lg`, dans le panneau « Options » en
-  // dessous. C'est le même JSX — deux copies auraient divergé.
-  //
-  // ⚠️ **Même idiome que l'onglet Liste**, pas une variante : ces deux vues
-  // portent les mêmes filtres de runes, et un joueur qui passe de l'une à
-  // l'autre doit retrouver le même geste au même endroit.
-  const filtres = (
-    <>
-      {/* Sets : icônes seules (voir SetFilter) */}
-      <SetFilter runes={runes} value={sets} onChange={setSets} />
-
-      <div className="flex flex-wrap items-center gap-2">
-        <SlotFilter value={slots} onChange={setSlots} />
-        <Pastille
-          actif={ancientOnly}
-          onClick={() => setAncientOnly((v) => !v)}
-          className="ml-1"
-          libelle="Antiques"
-        />
-      </div>
-    </>
-  );
-
   return (
     <div>
-      {/* Filtres de la courbe — dans la PAGE au-dessus de `lg` seulement. */}
-      <div className="hidden lg:flex lg:flex-col gap-3 mb-4">{filtres}</div>
+      {/* Filtres de la courbe — DANS LA PAGE, aux deux formats.
+          ⚠️ **Pas de panneau « Options » ici**, contrairement à l'onglet Liste.
+          Descendus dans le tiroir, ils laissaient un écran qui ne porte plus
+          qu'un graphe et deux réglages : la page paraît vide, et le bouton
+          flottant annonce un contenu qu'on ne devine pas. La Liste, elle, a
+          3 000 tuiles à montrer — chaque rangée de filtre lui prend un écran de
+          résultats, ce qui n'est pas le cas ici. */}
+      <div className="flex flex-col gap-3 mb-4">
+        {/* Sets : icônes seules (voir SetFilter) */}
+        <SetFilter runes={runes} value={sets} onChange={setSets} />
 
-      <MobileSheet ouvert={menuOuvert} onFermer={onFermerMenu} titre="Filtrer les courbes">
-        {/* ⚠️ `data-filtres-runes` : dans le PANNEAU, les contrôles prennent
-            toute la largeur (voir index.css). Le même bloc sert au bureau
-            ci-dessus, hors tiroir, où il reste compact — d'où le marqueur, lu
-            uniquement sous `[data-tiroir]`. */}
-        <div className="flex flex-col gap-3" data-filtres-runes>
-          {filtres}
+        <div className="flex flex-wrap items-center gap-2">
+          <SlotFilter value={slots} onChange={setSlots} />
+          <Pastille
+            actif={ancientOnly}
+            onClick={() => setAncientOnly((v) => !v)}
+            className="ml-1"
+            libelle="Antiques"
+          />
         </div>
-      </MobileSheet>
+      </div>
 
       {/* Mode gemme + nombre de runes */}
       <div className="flex items-center justify-between gap-3 flex-wrap mb-3">

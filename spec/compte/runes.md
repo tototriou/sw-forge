@@ -482,18 +482,20 @@ n'est retiré au reste de l'application.
   revenu à la page sur un graphe montrant cinquante runes sans rien qui dise
   pourquoi.
 
-#### Panneau « Options »
+#### ⚠️ Pas de panneau « Options » ici — les filtres restent dans la page
 
-⚠️ **Les Courbes ont le bouton « Options »**, comme la Liste : elles portent les
-mêmes filtres de runes (sets, slots, antiques), et ceux-ci n'étaient
-**atteignables nulle part sous `lg`** — la page les rendait dans son en-tête,
-réservé au bureau depuis la refonte. Le résumé et la comparaison n'en ont
-toujours aucun, et n'ont donc pas le bouton (voir `pageAPanneau`, App.tsx).
+Les Courbes portent pourtant les mêmes filtres que la Liste (sets, slots,
+antiques). Ils ont été descendus dans le tiroir, puis **remontés** : l'écran ne
+porte alors plus qu'un graphe et deux réglages, la page paraît **vide**, et le
+bouton flottant annonce un contenu qu'on ne devine pas.
 
-Le bloc de contrôles est **écrit une fois** et posé à deux endroits — page
-au-dessus de `lg`, panneau en dessous : deux copies auraient divergé. Même
-idiome que l'onglet Liste, pas une variante : un joueur qui passe de l'une à
-l'autre doit retrouver le même geste au même endroit.
+La Liste, elle, a **3 000 tuiles** à montrer : chaque rangée de filtre lui prend
+un écran de résultats, et la place libérée profite immédiatement.
+
+> ⚠️ **Avoir des filtres ne suffit pas à mériter le panneau.** Il faut aussi
+> que la page ait de quoi remplir la place qu'ils libèrent. C'est ce qui décide
+> de l'appartenance à `pageAPanneau` ([App.tsx](src/App.tsx)) — au même titre
+> que l'Optimiseur, dont les réglages SONT le contenu.
 
 - ⚠️ **Cliquer un point ouvre la rune correspondante**, sous le graphe. On lit
   « ma 12ᵉ meilleure rune vaut 78 % » ; la question suivante est toujours

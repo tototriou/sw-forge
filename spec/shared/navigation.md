@@ -337,8 +337,12 @@ s'orienter.
     gauche (trois inventaires, trois vues de Siège). C'est le comportement d'une
     grille ; l'étirer sur les deux colonnes lui donnerait un poids qu'elle n'a
     pas.
-  - Le **retour** échappe à la grille : pleine largeur, au-dessus d'elle. C'est
-    une action sur le panneau, pas une destination de plus.
+  - ⚠️ **Toutes les cibles ont la MÊME taille**, le retour compris — il est une
+    cellule de la grille comme les autres. Posé pleine largeur au-dessus, au
+    motif que c'est une action sur le panneau et non une destination, il faisait
+    un bouton deux fois plus large que ses voisins dans un panneau qui n'a qu'un
+    seul gabarit. Ce qui le distingue est son **encre atténuée** et son chevron
+    **vers la gauche**, pas son encombrement.
 - La **colonne d'icône est à largeur fixe** (18 px) : sans elle les libellés se
   décalent d'une cible à l'autre au gré de la largeur des symboles — et en
   grille, les deux colonnes cessent de s'aligner l'une sur l'autre.

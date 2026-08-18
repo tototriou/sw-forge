@@ -146,31 +146,33 @@ export default function MobileNavSheet({
             >
               {groupeCourant ? (
                 /* ── Second temps : les vues du groupe choisi ─────────────── */
-                <>
-                  {/* ⚠️ Le RETOUR en tête : on est descendu d'un niveau, il
-                      faut pouvoir remonter sans refermer le panneau et le
-                      rouvrir. Un `<button>` — il ne va nulle part.
-                      ⚠️ Pleine largeur, au-dessus de la grille : c'est une
-                      action sur le panneau, pas une destination de plus. */}
+                <nav className={`grid w-full gap-2 ${GRILLE}`} aria-label={`Vues de ${groupeCourant.titre}`}>
+                  {/* ⚠️ Le RETOUR est une CELLULE DE LA GRILLE, comme les
+                      autres. Il a d'abord été posé pleine largeur au-dessus,
+                      au motif que c'est une action sur le panneau et non une
+                      destination : le résultat était un bouton deux fois plus
+                      large que ses voisins, dans un panneau qui n'en compte
+                      qu'un seul gabarit. **Toutes les cibles ont la même
+                      taille.** Ce qui le distingue est son encre atténuée et
+                      son chevron vers la gauche, pas son encombrement.
+                      ⚠️ Un `<button>` — il ne va nulle part. */}
                   <Case
                     onClick={() => setGroupeOuvert(null)}
                     icone={<ChevronLeft size={16} />}
                     libelle={section.titre}
                     discret
                   />
-                  <nav className={`grid w-full gap-2 ${GRILLE}`} aria-label={`Vues de ${groupeCourant.titre}`}>
-                    {groupeCourant.liens.map((l) => (
-                      <Case
-                        key={l.key}
-                        href={l.hash}
-                        onClick={onFermer}
-                        icone={l.icon}
-                        libelle={l.label}
-                        actif={l.actif}
-                      />
-                    ))}
-                  </nav>
-                </>
+                  {groupeCourant.liens.map((l) => (
+                    <Case
+                      key={l.key}
+                      href={l.hash}
+                      onClick={onFermer}
+                      icone={l.icon}
+                      libelle={l.label}
+                      actif={l.actif}
+                    />
+                  ))}
+                </nav>
               ) : (
                 /* ── Premier temps ────────────────────────────────────────
                    ⚠️ **La MÊME grille qu'au second temps**, pas une mise en

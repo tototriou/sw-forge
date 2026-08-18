@@ -7,6 +7,12 @@ ce qu'il peut faire, et les règles de calcul appliquées.
 > Ces specs décrivent l'existant. Elles servent de référence pour faire évoluer
 > l'outil sans casser les comportements établis.
 
+> Ce dossier documente le **produit** (ce que l'utilisateur voit/fait). Les
+> instructions destinées à l'agent Claude Code lui-même (comment travailler
+> sur ce dépôt — déclencheurs de skills, gotchas d'environnement,
+> conventions de vérification…) vivent dans [CLAUDE.md](../CLAUDE.md), à la
+> racine, chargé automatiquement à chaque session — pas ici.
+
 ## Carte des pages
 
 | Page | Route | Statut | Spec |

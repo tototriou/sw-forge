@@ -22,7 +22,12 @@ vérification** avant de considérer une implémentation comme fiable.
   moteur.
 - Réécriture d'un algorithme existant vers une technique plus complexe
   (ex. branch-and-bound → meet-in-the-middle) pour des raisons de performance
-  ou de complétude.
+  ou de complétude. La **parallélisation** d'un algorithme déjà correct
+  compte aussi (ex. `pairBuckets` séquentiel → `partitionBucketsALPT` +
+  `runParallelPairing` + `pairSlice.worker.ts`, plusieurs Workers) : changer
+  COMMENT le travail est réparti peut introduire une classe de bug propre
+  (perte de candidats par déséquilibre de charge entre workers), même sans
+  toucher au critère de sélection lui-même.
 - **Tout script ad hoc (diagnostic, reproduction d'un cas signalé, mesure) qui
   appelle les fonctions internes du moteur directement** (`prepareSearch`,
   `buildBuckets`, `pairBuckets`…) plutôt que l'API publique (`searchBuilds`/
@@ -61,6 +66,26 @@ ou un filtre linéaire n'a pas besoin de cette discipline.
    « le moteur perd-il une bonne réponse qu'il avait déjà en élargissant un
    paramètre »), voir `rune-optim-scale-monotonicity.test.ts` pour un
    exemple du second genre.
+   ⚠️ **De la même façon, un budget de TEMPS artificiellement court peut
+   faire diverger un test différentiel sans que ce soit représentatif d'un
+   usage réel.** Vécu en étendant la parallélisation de l'appariement au
+   mode normal (`partitionBucketsALPT`/`runParallelPairing`,
+   `runeBuildOptim.worker.ts`) : un test différentiel committé a d'abord
+   trouvé de VRAIES pertes de candidats à `maxMs ≤ 500` — l'escalade
+   adaptative de budget (`maybeEscalateNodeBudget`) a besoin d'un minimum de
+   temps RÉEL pour corriger un déséquilibre de charge initial entre
+   workers — mais AUCUN réglage d'écran ni arrêt manuel réel ne descend à
+   cette échelle (challengé directement par l'utilisateur : « un
+   utilisateur ne met jamais de limite de temps, tout au plus il arrêtera
+   une recherche au bout de quelques dizaines de secondes »). Remonté à un
+   `maxMs` réaliste (15 s puis 30 s), les MÊMES scénarios ne perdent plus
+   rien — voir `tests/rune-optim-parallel-pairing.test.ts` (`maxMs=30000`
+   committé comme plancher vérifié) et la mémoire
+   `sw-forge-realistic-test-parameters.md`. Un paramètre juste « assez
+   extrême pour déclencher le chemin de code » (peu de temps, peu de
+   nœuds…) peut être QUALITATIVEMENT différent d'un paramètre réaliste —
+   vérifier À L'ÉCHELLE D'USAGE RÉELLE avant de conclure à un risque, pas
+   seulement à l'échelle qui fait apparaître le symptôme.
 3. **Ne jamais choisir une stratégie sur intuition.** Si plusieurs approches
    sont plausibles (brute-force / backtracking / branch-and-bound /
    meet-in-the-middle…), les implémenter — au moins à l'état de prototype — et
@@ -118,9 +143,14 @@ incomplet).
 
 **Règle** : avant de faire confiance au résultat d'un script qui appelle les
 internes du moteur (pas l'API publique `searchBuilds`), le DIFFER
-explicitement, ligne par ligne, contre le vrai chemin de production
-(`runeBuildOptim.worker.ts`) et/ou `perf-battery.ts` — pas seulement « même
-noms de fonctions dans le même ordre ». En particulier vérifier :
+explicitement, ligne par ligne, contre le vrai chemin de production —
+`runeBuildOptim.worker.ts` (recherche séquentielle) et/ou `perf-battery.ts`,
+**et `pairSlice.worker.ts` si le script touche l'appariement PARALLÉLISÉ**
+(chaque slice y porte son propre budget adaptatif via
+`maybeEscalateNodeBudget`, exactement comme le chemin séquentiel — un script
+qui lui donnerait un budget FIGÉ reproduirait l'incident « Un budget de
+TEMPS artificiellement court » de la méthode, point 2) — pas seulement
+« même noms de fonctions dans le même ordre ». En particulier vérifier :
 - Tout paramètre optionnel avec une valeur par défaut différente du
   comportement réel (ici `pairBuckets(..., nodeBudget)` — le 4ᵉ argument a un
   défaut FIGÉ, documenté comme tel, alors que la prod passe toujours un objet
@@ -132,9 +162,11 @@ noms de fonctions dans le même ordre ». En particulier vérifier :
   être perdu.
 - Les VALEURS de chaque paramètre transmis (caps, objectif, metric, pool,
   exclusions…), pas seulement leur présence — un défaut d'écran qui a changé
-  depuis la dernière fois (ex. « Utiliser tout l'inventaire » passé de
-  décoché à coché par défaut) invalide silencieusement un script écrit avant
-  ce changement.
+  depuis la dernière fois (ex. l'exclusion automatique de runes, renommée ET
+  son défaut INVERSÉ entre deux sessions — « Utiliser tout l'inventaire »
+  cochée par défaut devenue « Exclure les runes déjà utilisées » décochée
+  par défaut, voir `excludeUsedRunes`/`autoExcludedRuneIds`) invalide
+  silencieusement un script écrit avant ce changement.
 Si le script reproduit un cas signalé par l'utilisateur, ne jamais conclure
 « bug confirmé dans le moteur » avant que cette fidélité soit vérifiée — un
 script infidèle qui ne trouve rien ressemble EXACTEMENT à un vrai bug.

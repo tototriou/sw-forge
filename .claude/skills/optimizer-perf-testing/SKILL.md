@@ -25,8 +25,9 @@ vérifier vite et sans se faire piéger par la mécanique de mesure elle-même.
 
 ## Quand ce skill s'applique
 
-- Avant de tester un changement dans `src/lib/runeBuildOptim.ts` ou son
-  Worker (`src/workers/runeBuildOptim.worker.ts`).
+- Avant de tester un changement dans `src/lib/runeBuildOptim.ts` ou ses
+  Workers (`src/workers/runeBuildOptim.worker.ts`, et
+  `src/workers/pairSlice.worker.ts` pour l'appariement parallélisé).
 - Avant de lancer ou d'écrire un script qui mesure un temps ou une justesse
   sur ce moteur (`scripts/perf-battery.ts`, `scripts/perf-battery-compare.ts`,
   ou un script ad hoc similaire).
@@ -42,6 +43,7 @@ vérifier vite et sans se faire piéger par la mécanique de mesure elle-même.
 | Quel est l'impact RÉEL en temps d'un changement, comparé de façon fiable ? | `perf-battery-compare.ts <ref-ancien>` | quelques min par cas (dos-à-dos simultané) |
 | Je veux figer une référence de temps suivie dans le temps (avant de committer un changement accepté) | `perf-battery.ts --save` | plusieurs minutes (7 cas séquentiels, exprès) |
 | Un demi-build/une rune survit-il à la rétention, sans lancer une recherche complète ? | `prepareSearch` + `buildBuckets` SEUL (jamais `pairBuckets`) | quelques secondes, même à grande échelle |
+| Un changement de PARALLÉLISATION de l'appariement perd-il des candidats (pas une question de temps) ? | `tests/rune-optim-parallel-pairing.test.ts` — différentiel à `maxMs` RÉALISTE (30 s, jamais un budget court juste assez long pour déclencher le chemin de code, voir `algo-verify` méthode point 2) | quelques secondes à quelques minutes selon le nombre de scénarios |
 
 ⚠️ **`--quick` n'est PAS une preuve de justesse.** Ses 2 cas canari (voir
 `scripts/perf-battery.ts`) sont les plus LÉGERS de la batterie — ils
@@ -69,9 +71,11 @@ processus). Deux régimes, pas un seul :
 
 - **Mesure de TEMPS comparée à une référence** (baseline JSON, dos-à-dos) :
   la contention FAUSSE directement ce qu'on mesure — jamais paralléliser.
-  `perf-battery.ts` (mode `--save`) reste séquentiel exprès ; chaîner
-  plusieurs mesures dans un seul processus long fait dériver le résultat
-  d'un facteur ×10 à ×27 (mesuré).
+  La boucle principale de `perf-battery.ts` (hors `--quick`/
+  `--monotonicity`) reste séquentielle exprès, `--save` ou non — `--save`
+  ne fait qu'ajouter l'écriture de la baseline à la fin, il ne change rien
+  à l'exécution elle-même ; chaîner plusieurs mesures dans un seul
+  processus long fait dériver le résultat d'un facteur ×10 à ×27 (mesuré).
 - **Verdict de justesse seul** (trouvé/perdu, pas de temps comparé) : la
   contention ne corrompt PAS ce signal. `--monotonicity` parallélise ses 7
   cas sans risque pour cette raison précise.
@@ -90,7 +94,9 @@ simultanée. Il faut deux répertoires distincts (voir
    `node_modules` (jonction, `symlinkSync(..., 'junction')` — n'exige PAS
    de privilège élevé sur Windows, contrairement à un symlink de dossier),
    les comptes réels par leur nom exact (`tototriou-12889591.json`,
-   `ß☆Enzo-6399149.json` — même liste que `tests/outils.ts`, `exportReel`).
+   `ß☆Enzo-6399149.json` — liste `ACCOUNT_FILES` dans
+   `perf-battery-compare.ts`, ⚠️ PAS `tests/outils.ts`/`exportReel`, qui ne
+   connaît QUE `tototriou-12889591.json`).
 2. **Lier en BLOC par motif peut écraser un fichier SUIVI par git** dans le
    worktree (ex. `tsconfig.json`/`package.json` remplacés par la version de
    la branche courante au lieu du commit visé). Contre-mesure : jamais de
@@ -118,6 +124,32 @@ une seule CHAÎNE de commande déjà assemblée (jamais un tableau `args`
 séparé) passée à `spawn` avec `shell: true` — sûr tant que chaque morceau
 de cette chaîne est un littéral fixe ou une valeur déjà validée (un index
 numérique, jamais une entrée utilisateur brute).
+
+### Simuler N workers SÉQUENTIELLEMENT dans un test : état FRAIS à chaque itération
+
+Un test qui simule plusieurs workers indépendants en les appelant l'un après
+l'autre dans le même thread (au lieu de vrais `worker_threads`/Web Workers)
+doit reconstruire son état de préparation (`prepareSearch(params)`) À
+CHAQUE appel, jamais le partager entre « workers » simulés. Vécu en
+construisant `tests/rune-optim-parallel-pairing.test.ts` : un `prepared0`
+unique fermé sur toutes les slices faisait que `overBudget()` (qui compare
+`Date.now()` à `prepared.startedAt`, figé à la construction) considérait les
+slices traitées plus tard comme déjà hors budget — pertes énormes et
+fausses (jusqu'à -565 candidats sur un scénario) qui ressemblaient
+EXACTEMENT à un vrai bug de parallélisation. Chaque vrai Worker de prod
+appelle `prepareSearch` indépendamment ; un test qui simule cette
+indépendance doit faire pareil.
+
+### `candidats.push(...tableauEnorme)` — limite d'arguments V8
+
+`Array.prototype.push(...bigArray)` lève `RangeError: Maximum call stack
+size exceeded` au-delà d'environ 65 536 éléments (limite V8 sur le nombre
+d'arguments d'un appel de fonction) — atteint facilement dans un test
+différentiel avec un `maxCollected` large sur une recherche peu contrainte.
+Contre-mesure : accumuler dans un `Set`/tableau via une boucle
+élément-par-élément (`for (const c of nouveauxCandidats) déjà.add(c)`),
+jamais un spread sur un tableau dont la taille n'est pas bornée
+explicitement.
 
 ## Voir aussi
 

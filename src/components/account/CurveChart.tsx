@@ -137,6 +137,28 @@ export default function CurveChart({
   // QUE si l'écran est encore en portrait.
   const tourne = pleinEcran && ecran.h > ecran.w;
 
+  // ── Zoom, en plein écran seulement ─────────────────────────────────────────
+  //
+  // ⚠️ **Le zoom est FAIT ICI, pas délégué au navigateur.** `index.html` pose
+  // `maximum-scale=1` pour empêcher Safari iOS de zoomer tout seul quand on
+  // met un champ au point — une contrainte pesée et documentée là-bas, qu'on
+  // ne défait pas pour un graphe. Le pincement agit donc sur la FENÊTRE DE
+  // RANGS du dessin : le résultat est le même à l'œil, il est identique sur
+  // tous les navigateurs, et rien n'est retiré au reste de l'application.
+  const [vue, setVue] = useState<{ i0: number; i1: number } | null>(null);
+
+  // ⚠️ Le zoom se remet à plat en QUITTANT le plein écran : la fenêtre réduite
+  // n'a de sens que dans le grand format. Gardée, on serait revenu à la page
+  // sur un graphe montrant cinquante runes sans rien qui dise pourquoi.
+  useEffect(() => {
+    if (!pleinEcran) setVue(null);
+  }, [pleinEcran]);
+
+  // Doigts posés, par identifiant de pointeur — c'est le nombre de doigts qui
+  // départage les deux gestes : UN doigt lit la courbe, DEUX la zooment.
+  const doigts = useRef(new Map<number, { x: number; y: number }>());
+  const pince = useRef<{ ecart: number; milieu: number } | null>(null);
+
   useScrollBloque(pleinEcran);
 
   // Échap ferme le plein écran avant le détail : c'est la couche du dessus.
@@ -189,15 +211,29 @@ export default function CurveChart({
   hi = Math.ceil(hi / 10) * 10;
   if (hi <= lo) hi = lo + 10;
 
-  const x = (i: number) => PAD_L + (maxLen <= 1 ? IW / 2 : (i / (maxLen - 1)) * IW);
+  // Fenêtre de rangs visible. `null` = tout le classement.
+  //
+  // ⚠️ **Le zoom porte sur l'axe des RANGS seul**, jamais sur la hauteur. Les
+  // trois mille runes s'écrasent en largeur, pas en hauteur : c'est le début du
+  // classement qu'on veut détailler (« mes cinquante meilleures »), et une
+  // échelle verticale qui bougerait avec ferait mentir la comparaison entre
+  // courbes — deux points à la même hauteur doivent valoir la même chose.
+  const i0 = vue ? vue.i0 : 0;
+  const i1 = vue ? vue.i1 : maxLen - 1;
+  const span = Math.max(1e-6, i1 - i0);
+
+  const x = (i: number) => PAD_L + (maxLen <= 1 ? IW / 2 : ((i - i0) / span) * IW);
   const y = (e: number) => PAD_T + IH - ((e - lo) / (hi - lo)) * IH;
 
   const yStep = niceStep(hi - lo);
   const yTicks: number[] = [];
   for (let v = lo; v <= hi + 0.001; v += yStep) yTicks.push(v);
   const xTickCount = Math.min(6, maxLen);
+  // Graduations réparties sur la FENÊTRE visible, pas sur tout le classement :
+  // zoomé sur les cent premières runes, l'axe doit les compter, pas continuer à
+  // afficher « 3 000 » à droite.
   const xTicks = Array.from({ length: xTickCount }, (_, k) =>
-    Math.round((k / (xTickCount - 1 || 1)) * (maxLen - 1))
+    Math.round(i0 + (k / (xTickCount - 1 || 1)) * span)
   );
 
   const me = active.find((s) => s.own);
@@ -211,14 +247,72 @@ export default function CurveChart({
   // la rotation, pas le graphe, et le point visé tombait n'importe où. La
   // matrice inverse, elle, ramène un point de l'écran dans le repère du dessin
   // quelles que soient les transformations traversées.
-  function onMove(e: React.PointerEvent<SVGSVGElement>) {
+  // Abscisse d'un pointeur, dans le repère du DESSIN.
+  function versDessin(clientX: number, clientY: number): number | null {
     const svg = svgRef.current;
-    if (!svg) return;
-    const ctm = svg.getScreenCTM();
-    if (!ctm) return;
-    const pt = new DOMPoint(e.clientX, e.clientY).matrixTransform(ctm.inverse());
-    const frac = maxLen <= 1 ? 0 : (pt.x - PAD_L) / IW;
-    setHover(Math.max(0, Math.min(maxLen - 1, Math.round(frac * (maxLen - 1)))));
+    const ctm = svg?.getScreenCTM();
+    if (!svg || !ctm) return null;
+    return new DOMPoint(clientX, clientY).matrixTransform(ctm.inverse()).x;
+  }
+
+  function onMove(e: React.PointerEvent<SVGSVGElement>) {
+    if (doigts.current.has(e.pointerId)) {
+      doigts.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
+    }
+
+    // ── DEUX doigts : on zoome, on ne survole plus ──────────────────────────
+    if (pleinEcran && doigts.current.size === 2) {
+      const [a, b] = [...doigts.current.values()];
+      const ecart = Math.hypot(a.x - b.x, a.y - b.y);
+      const milieu = versDessin((a.x + b.x) / 2, (a.y + b.y) / 2);
+      if (milieu == null || ecart < 1) return;
+      const prec = pince.current;
+      pince.current = { ecart, milieu };
+      if (!prec) return;
+
+      // Écarter les doigts RÉDUIT la fenêtre de rangs : c'est ce qui agrandit
+      // le dessin. D'où le rapport dans ce sens.
+      const facteur = prec.ecart / ecart;
+      // ⚠️ Plancher à 5 rangs : en dessous, la courbe n'est plus qu'un segment
+      // entre deux runes et le lissage n'a plus rien à lisser.
+      const nouveauSpan = Math.min(maxLen - 1, Math.max(5, span * facteur));
+
+      // ⚠️ Le rang sous le MILIEU DES DOIGTS ne bouge pas : c'est ce qui fait
+      // qu'on zoome là où l'on regarde, et non vers le centre du graphe.
+      const fr = (milieu - PAD_L) / IW;
+      const rangFocal = i0 + fr * span;
+      // …et le déplacement du milieu fait glisser la fenêtre, ce qui donne le
+      // panoramique dans le même geste.
+      const glissement = ((prec.milieu - milieu) / IW) * nouveauSpan;
+      let n0 = rangFocal - fr * nouveauSpan + glissement;
+      n0 = Math.max(0, Math.min(maxLen - 1 - nouveauSpan, n0));
+      setVue({ i0: n0, i1: n0 + nouveauSpan });
+      setHover(null);
+      return;
+    }
+
+    // ── UN doigt (ou la souris) : survol ────────────────────────────────────
+    //
+    // ⚠️ **Par la matrice du SVG (`getScreenCTM`), pas par son cadre.** Le
+    // calcul passait par `getBoundingClientRect()`, qui rend un rectangle
+    // ALIGNÉ SUR L'ÉCRAN : dès que le graphe est tourné — ce que fait le plein
+    // écran sur un téléphone tenu à la verticale — ce rectangle décrit la boîte
+    // englobante de la rotation, pas le graphe, et le point visé tombait
+    // n'importe où. La matrice inverse ramène un point de l'écran dans le
+    // repère du dessin quelles que soient les transformations traversées.
+    const px = versDessin(e.clientX, e.clientY);
+    if (px == null) return;
+    const frac = maxLen <= 1 ? 0 : (px - PAD_L) / IW;
+    setHover(Math.max(0, Math.min(maxLen - 1, Math.round(i0 + frac * span))));
+  }
+
+  function onDown(e: React.PointerEvent<SVGSVGElement>) {
+    doigts.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
+    if (doigts.current.size === 2) pince.current = null;
+  }
+  function onUp(e: React.PointerEvent<SVGSVGElement>) {
+    doigts.current.delete(e.pointerId);
+    if (doigts.current.size < 2) pince.current = null;
   }
 
   // Séries disposant d'une valeur au point survolé, ordonnées comme les courbes
@@ -257,7 +351,11 @@ export default function CurveChart({
   const rangMax = ouvrables.reduce((m, s) => Math.max(m, s.effs.length), 0);
 
   function onClick() {
-    if (!cliquable || hover == null) return;
+    // ⚠️ **Pas d'ouverture de rune en PLEIN ÉCRAN.** On y vient lire la courbe
+    // en grand, et le geste s'y confond avec le pincement : un doigt qui se
+    // pose pour zoomer ouvrait une carte de rune par-dessus le graphe. Le
+    // détail reste à sa place, dans la page.
+    if (pleinEcran || !cliquable || hover == null) return;
     // Re-cliquer le même rang referme : le geste est son propre inverse.
     setChoisi((cur) => (cur && cur.rang === hover ? null : { rang: hover }));
   }
@@ -289,11 +387,14 @@ export default function CurveChart({
         // VERTICAL de la page doit continuer de passer, sinon on reste coincé
         // en travers du graphe. En plein écran il n'y a rien à faire défiler,
         // et c'est `touch-none` qui s'applique (voir plus bas).
-        className={`w-full h-auto touch-pan-y ${cliquable ? 'cursor-pointer' : ''} ${
-          pleinEcran ? 'touch-none' : ''
-        }`}
+        className={`w-full h-auto touch-pan-y ${
+          cliquable && !pleinEcran ? 'cursor-pointer' : ''
+        } ${pleinEcran ? 'touch-none' : ''}`}
         preserveAspectRatio="xMidYMid meet"
+        onPointerDown={onDown}
         onPointerMove={onMove}
+        onPointerUp={onUp}
+        onPointerCancel={onUp}
         onPointerLeave={() => setHover(null)}
         onClick={onClick}
       >
@@ -302,6 +403,14 @@ export default function CurveChart({
             <stop offset="0%" stopColor={OWN_COLOR} stopOpacity="0.14" />
             <stop offset="100%" stopColor={OWN_COLOR} stopOpacity="0" />
           </linearGradient>
+          {/* ⚠️ **Détourage de l'aire de tracé.** Zoomé, le classement déborde
+              des deux côtés de la fenêtre visible : `downsample` parcourt TOUTES
+              les runes, et celles hors fenêtre se dessinaient par-dessus les
+              graduations Y et jusque dans les marges. Le détourage les coupe au
+              cadre — c'est l'aire de tracé qui définit ce qui existe. */}
+          <clipPath id="rcClip">
+            <rect x={PAD_L} y={PAD_T} width={IW} height={IH} />
+          </clipPath>
         </defs>
 
         {/* Grille + graduations Y */}
@@ -339,6 +448,8 @@ export default function CurveChart({
           </g>
         ))}
 
+        {/* Aire + courbes, DANS l'aire de tracé (voir `rcClip`). */}
+        <g clipPath="url(#rcClip)">
         {/* Aire sous ma courbe */}
         {me &&
           (() => {
@@ -362,6 +473,7 @@ export default function CurveChart({
               strokeLinejoin="round"
             />
           ))}
+        </g>
 
         {/* Titres des axes */}
         <text x={PAD_L + IW / 2} y={H - 5} textAnchor="middle" fontSize="11" fill="#9aa2d0" fontFamily="monospace">

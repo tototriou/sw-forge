@@ -450,6 +450,50 @@ téléphone de 390 px il est donc réduit à **42 %**, et ses graduations écrit
   traversées.
 - Plein écran en `z-[70]`, le niveau des **dialogues** : sans quoi la barre
   d'onglets et le panneau de navigation resteraient posés dessus.
+- ⚠️ **En plein écran, le clic n'ouvre plus de rune.** On y vient lire la courbe
+  en grand, et le geste s'y confond avec le pincement : un doigt qui se pose
+  pour zoomer ouvrait une carte de rune par-dessus le graphe. Le détail reste à
+  sa place, dans la page.
+
+#### ⚠️ Le zoom est fait DANS le graphe, pas délégué au navigateur
+
+`index.html` pose `maximum-scale=1` pour empêcher Safari iOS de zoomer tout seul
+à la mise au point d'un champ — une contrainte pesée et documentée là-bas, qu'on
+ne défait pas pour un graphe. Le pincement agit donc sur la **fenêtre de rangs**
+du dessin : même résultat à l'œil, identique sur tous les navigateurs, et rien
+n'est retiré au reste de l'application.
+
+- **Un doigt lit la courbe, deux la zooment.** C'est le nombre de pointeurs
+  posés qui départage les deux gestes.
+- ⚠️ **Le zoom porte sur l'axe des RANGS seul**, jamais sur la hauteur. Les
+  trois mille runes s'écrasent en largeur, pas en hauteur ; et une échelle
+  verticale qui bougerait ferait mentir la comparaison entre courbes — deux
+  points à la même hauteur doivent valoir la même chose.
+- Le rang sous le **milieu des doigts ne bouge pas** : on zoome là où l'on
+  regarde, et non vers le centre du graphe. Le déplacement de ce milieu fait
+  glisser la fenêtre, ce qui donne le **panoramique dans le même geste**.
+- Plancher à **5 rangs** : en dessous, la courbe n'est plus qu'un segment entre
+  deux runes et le lissage n'a plus rien à lisser.
+- ⚠️ **Détourage de l'aire de tracé** (`clipPath`) : zoomé, le classement déborde
+  des deux côtés de la fenêtre. `downsample` parcourt **toutes** les runes, et
+  celles hors fenêtre se dessinaient par-dessus les graduations Y et jusque dans
+  les marges.
+- Le zoom **se remet à plat en quittant le plein écran** : gardé, on serait
+  revenu à la page sur un graphe montrant cinquante runes sans rien qui dise
+  pourquoi.
+
+#### Panneau « Options »
+
+⚠️ **Les Courbes ont le bouton « Options »**, comme la Liste : elles portent les
+mêmes filtres de runes (sets, slots, antiques), et ceux-ci n'étaient
+**atteignables nulle part sous `lg`** — la page les rendait dans son en-tête,
+réservé au bureau depuis la refonte. Le résumé et la comparaison n'en ont
+toujours aucun, et n'ont donc pas le bouton (voir `pageAPanneau`, App.tsx).
+
+Le bloc de contrôles est **écrit une fois** et posé à deux endroits — page
+au-dessus de `lg`, panneau en dessous : deux copies auraient divergé. Même
+idiome que l'onglet Liste, pas une variante : un joueur qui passe de l'une à
+l'autre doit retrouver le même geste au même endroit.
 
 - ⚠️ **Cliquer un point ouvre la rune correspondante**, sous le graphe. On lit
   « ma 12ᵉ meilleure rune vaut 78 % » ; la question suivante est toujours

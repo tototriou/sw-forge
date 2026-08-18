@@ -296,9 +296,16 @@ export default function App() {
   // « Mon compte », seules les vues en LISTE ont des filtres. Le résumé, les
   // courbes et la comparaison n'en ont aucun — leur ouvrir un panneau vide
   // serait pire que ne rien proposer.
+  // ⚠️ Les COURBES rejoignent la liste : elles portent les mêmes filtres de
+  // runes (sets, slots, antiques), qui n'étaient atteignables nulle part sous
+  // `lg` — la page les rendait dans son en-tête, réservé au bureau depuis la
+  // refonte. Le résumé et la comparaison n'en ont toujours aucun.
   const pageAPanneau =
     PAGES_AVEC_MENU.has(route) &&
-    (route !== 'compte' || accountSub === 'monstres' || accountView === 'liste');
+    (route !== 'compte' ||
+      accountSub === 'monstres' ||
+      accountView === 'liste' ||
+      accountView === 'courbes');
 
   // Le panneau se referme à chaque changement d'écran : ses actions portent sur
   // celui qu'on vient de quitter. ⚠️ `accountSub`/`accountView`/`siegeTab` en

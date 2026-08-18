@@ -2,8 +2,6 @@ import { Fragment, useMemo, useRef, useState, useEffect } from 'react';
 import {
   Search,
   Square,
-  Settings2,
-  HelpCircle,
   RotateCcw,
   FlaskConical,
   Target,
@@ -16,6 +14,7 @@ import {
   UserX,
   Ban,
   SlidersHorizontal,
+  Wrench,
 } from 'lucide-react';
 import { ArtifactDetail, ARTIFACT_KINDS, RECO_STATS, RuneDetail, Monster, RtaEntry, SiegeTeam } from '../../types';
 import { BoxItem } from '../../lib/applyAccount';
@@ -895,8 +894,11 @@ export default function OptimizerSection({ box, runes, optimizer, allMonsters, r
           aria-expanded={showAdvanced}
           className="flex w-full items-center gap-1.5 text-[13px] font-bold text-ink"
         >
-          <div className="flex h-6 w-6 flex-none items-center justify-center rounded-md border border-border-soft bg-panel2">
-            <Settings2 size={13} className="text-ink-dim" />
+          {/* Clé à molette, distincte des curseurs de « Critères de
+              recherche » (forme différente, pas seulement une couleur) —
+              même traitement accent que les autres en-têtes de carte. */}
+          <div className="flex h-6 w-6 flex-none items-center justify-center rounded-md border border-accent/40 bg-accent-soft">
+            <Wrench size={13} className="text-accent" />
           </div>
           Réglages avancés
           <ChevronDown
@@ -934,9 +936,12 @@ export default function OptimizerSection({ box, runes, optimizer, allMonsters, r
             <div className="mt-3 flex items-center justify-between gap-2 border-t border-border pt-3">
               <div className="flex items-center gap-1.5">
                 <span className="text-[11.5px] text-ink-dim">Rechercher jusqu'à épuisement complet</span>
-                <span title="Retire la limite de temps de 10 minutes : la recherche continue tant qu'il reste des combinaisons à examiner. Peut prendre très longtemps sur une recherche avec peu de conditions — le bouton « Arrêter » reste disponible et garde le meilleur trouvé jusque-là. Le plafond de 100 000 résultats collectés, lui, reste actif.">
-                  <HelpCircle size={13} className="text-ink-dim" />
-                </span>
+                <HelpPopover title="Rechercher jusqu'à épuisement complet">
+                  Retire la limite de temps de 10 minutes : la recherche continue tant qu'il reste des combinaisons
+                  à examiner. Peut prendre très longtemps sur une recherche avec peu de conditions — le bouton{' '}
+                  <b className="text-ink">« Arrêter »</b> reste disponible et garde le meilleur trouvé jusque-là.
+                  Le plafond de 100 000 résultats collectés, lui, reste actif.
+                </HelpPopover>
               </div>
               <Switch
                 checked={exhaustiveSearch}
@@ -948,9 +953,11 @@ export default function OptimizerSection({ box, runes, optimizer, allMonsters, r
             <div className="mt-3 flex items-center justify-between gap-2 border-t border-border pt-3">
               <div className="flex items-center gap-1.5">
                 <span className="text-[11.5px] text-ink-dim">Diagnostic approfondi sur 0 résultat</span>
-                <span title="Après une recherche à 0 résultat, identifie quelle condition posée libère le plus de candidats si on la retire — un indice, pas une preuve. Coûte plusieurs passes de pré-filtrage au lieu d'une seule, jamais une recherche complète.">
-                  <HelpCircle size={13} className="text-ink-dim" />
-                </span>
+                <HelpPopover title="Diagnostic approfondi sur 0 résultat">
+                  Après une recherche à 0 résultat, identifie quelle condition posée libère le plus de candidats si
+                  on la retire — <b className="text-ink">un indice, pas une preuve</b>. Coûte plusieurs passes de
+                  pré-filtrage au lieu d'une seule, jamais une recherche complète.
+                </HelpPopover>
               </div>
               <Switch
                 checked={diagnoseBlockingEnabled}

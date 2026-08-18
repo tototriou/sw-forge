@@ -87,13 +87,17 @@ export interface SidebarSection {
 // ⚠️ **8 px, 180 ms.** La liste doit sembler GLISSER, pas voler à travers
 // l'écran : au-delà, le déplacement devient le sujet et on attend qu'il
 // finisse. C'est une navigation, pas une démonstration.
-const GLISSEMENT = {
+// ⚠️ Exportés : le panneau de navigation mobile (MobileNavSheet) descend d'un
+// niveau exactement de la même façon, et deux définitions du même mouvement
+// auraient dérivé au premier réglage. C'est le vocabulaire du passage d'un
+// NIVEAU à l'autre, quel que soit le format.
+export const GLISSEMENT = {
   initial: (entrant: boolean) => ({ opacity: 0, x: entrant ? 8 : -8 }),
   animate: { opacity: 1, x: 0 },
   exit: (entrant: boolean) => ({ opacity: 0, x: entrant ? -8 : 8 }),
 };
 
-const COURBE = { duration: 0.18, ease: [0.23, 1, 0.32, 1] as const };
+export const COURBE = { duration: 0.18, ease: [0.23, 1, 0.32, 1] as const };
 
 // Le repli de la barre, exposé pour que le contenu décale sa marge en même
 // temps. ⚠️ `useStickyState` et non `useState` : le choix tient pour la

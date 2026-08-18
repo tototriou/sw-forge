@@ -287,6 +287,24 @@ s'orienter.
 - On repart **toujours du premier temps** à l'ouverture. Rouvrir « Compte » sur
   les vues de Runes parce qu'on y était la fois d'avant ferait apparaître une
   liste dont le titre ne dit pas d'où elle sort.
+- ⚠️ **Le passage d'un temps à l'autre GLISSE**, du même mouvement que les deux
+  niveaux de la barre latérale — `GLISSEMENT` et `COURBE` sont **importés de
+  `Sidebar`**, pas réécrits : descendre d'un niveau est le même geste quel que
+  soit le format, et deux définitions auraient dérivé au premier réglage. On
+  entre par la droite, on ressort par la gauche (8 px, 180 ms) : un fondu seul
+  dirait « ça a changé » sans dire « tu es descendu ».
+  - ⚠️ **`mode="popLayout"`** : le niveau sortant quitte le **flux** au lieu de
+    rester empilé sous l'entrant. C'est ce qui permet de re-mesurer la hauteur
+    sur le seul niveau entrant — les deux en flux, elle aurait relevé la **somme
+    des deux** et le panneau se serait figé à une hauteur qui n'existe à aucun
+    moment. Le conteneur est `relative` : sans ancêtre positionné, le sortant se
+    calait sur le panneau `fixed` entier, donc en travers du titre.
+- **Toutes les cibles prennent toute la largeur, libellé CENTRÉ.** Elles se
+  lisent comme une pile de boutons, pas comme une liste alignée à gauche dans
+  une colonne large de tout l'écran. ⚠️ Les chevrons (retour, « il y a un niveau
+  en dessous ») sortent donc du flux en `absolute` : en `ml-auto`, ils
+  décalaient le couple icône + libellé et les deux temps ne s'alignaient plus
+  l'un sur l'autre.
 - ⚠️ La hauteur du panneau est **re-mesurée au changement de temps**
   (`mesureCle`). Elle est figée à l'ouverture pour qu'un dépliage interne ne
   fasse pas remonter ce qu'on vient de toucher ; mais ici tout le contenu est

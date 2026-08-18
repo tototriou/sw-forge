@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react';
+import { AnimatePresence, motion } from 'framer-motion';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import MobileSheet from '../ui/MobileSheet';
-import { SidebarGroupe, SidebarLien, SidebarSection } from './Sidebar';
+import { COURBE, GLISSEMENT, SidebarGroupe, SidebarLien, SidebarSection } from './Sidebar';
 
 // Choix de la SOUS-SECTION sur téléphone — le second niveau de navigation.
 //
@@ -85,51 +86,85 @@ export default function MobileNavSheet({
       surLesOnglets
     >
       {section && (
-        <nav className="flex flex-col gap-0.5" aria-label={`Vues de ${section.titre}`}>
-          {/* ── Second temps : les vues du groupe choisi ─────────────────── */}
-          {groupeCourant ? (
-            <>
-              {/* ⚠️ Le RETOUR en tête, comme dans la barre latérale : on est
-                  descendu d'un niveau, il faut pouvoir remonter sans refermer
-                  le panneau et le rouvrir. Un `<button>` — il ne va nulle
-                  part. */}
-              <button
-                type="button"
-                onClick={() => setGroupeOuvert(null)}
-                // ⚠️ `w-full` explicite : un `<button>` ne s'étire pas comme un
-                // `<a>`, et toute cible de ce panneau prend TOUTE la largeur —
-                // c'est une liste qu'on vise du pouce, pas une rangée de
-                // pastilles. Même règle que les entrées de la barre latérale.
-                className="group mb-1 flex w-full min-h-[44px] items-center gap-1.5 rounded-lg px-2
-                           text-sm text-ink-dim transition-colors hoverable:bg-panel2"
-              >
-                <ChevronLeft
-                  size={16}
-                  className="flex-none transition-transform group-hoverable:-translate-x-0.5"
+        // ⚠️ **Le MÊME glissement que la barre latérale** (`GLISSEMENT`,
+        // `COURBE` — 8 px, 180 ms), importé et non réécrit : descendre d'un
+        // niveau est le même geste, quel que soit le format. On entre par la
+        // droite, on ressort par la gauche, comme on tourne une page — un fondu
+        // seul dirait « ça a changé » sans dire « tu es descendu ».
+        //
+        // ⚠️ `mode="popLayout"` : le niveau sortant quitte le FLUX au lieu de
+        // rester empilé sous l'entrant. C'est ce qui permet à `MobileSheet` de
+        // re-mesurer la hauteur (voir `mesureCle`) sur le seul niveau entrant —
+        // les deux en flux, elle aurait relevé la somme des deux et le panneau
+        // se serait figé à une hauteur qui n'existe à aucun moment.
+        // ⚠️ `relative` : `popLayout` sort le niveau sortant du flux en
+        // `absolute`. Sans ancêtre positionné ici, il se serait calé sur le
+        // panneau `fixed` tout entier — donc sur son bord, en travers du titre.
+        <div className="relative">
+        <AnimatePresence mode="popLayout" custom={Boolean(groupeCourant)} initial={false}>
+          <motion.nav
+            key={groupeCourant?.titre ?? 'racine'}
+            custom={Boolean(groupeCourant)}
+            variants={GLISSEMENT}
+            initial="initial"
+            animate="animate"
+            exit="exit"
+            transition={COURBE}
+            className="flex flex-col gap-0.5"
+            aria-label={`Vues de ${section.titre}`}
+          >
+            {/* ── Second temps : les vues du groupe choisi ───────────────── */}
+            {groupeCourant ? (
+              <>
+                {/* ⚠️ Le RETOUR en tête, comme dans la barre latérale : on est
+                    descendu d'un niveau, il faut pouvoir remonter sans refermer
+                    le panneau et le rouvrir. Un `<button>` — il ne va nulle
+                    part. */}
+                <button
+                  type="button"
+                  onClick={() => setGroupeOuvert(null)}
+                  // ⚠️ `w-full` explicite : un `<button>` ne s'étire pas comme
+                  // un `<a>`, et toute cible de ce panneau prend TOUTE la
+                  // largeur — c'est une liste qu'on vise du pouce, pas une
+                  // rangée de pastilles.
+                  // ⚠️ Libellé CENTRÉ, comme partout dans ce panneau : le
+                  // chevron sort donc du flux (`absolute`), sinon il décalerait
+                  // le texte vers la droite et le retour ne s'alignerait plus
+                  // sur les entrées qu'il coiffe.
+                  className="group relative mb-1 flex w-full min-h-[44px] items-center
+                             justify-center rounded-lg px-10 text-sm text-ink-dim
+                             transition-colors hoverable:bg-panel2"
+                >
+                  <ChevronLeft
+                    size={16}
+                    className="absolute left-3 flex-none transition-transform
+                               group-hoverable:-translate-x-0.5"
+                  />
+                  {section.titre}
+                </button>
+                {groupeCourant.liens.map((l) => (
+                  <LienNav key={l.key} lien={l} onFermer={onFermer} />
+                ))}
+              </>
+            ) : aDesGroupes ? (
+              /* ── Premier temps : les inventaires ──────────────────────── */
+              groupes.map((g) => (
+                <EntreeGroupe
+                  key={g.titre}
+                  groupe={g}
+                  onOuvrir={() => setGroupeOuvert(g.titre!)}
+                  onFermer={onFermer}
                 />
-                {section.titre}
-              </button>
-              {groupeCourant.liens.map((l) => (
-                <LienNav key={l.key} lien={l} onFermer={onFermer} />
-              ))}
-            </>
-          ) : aDesGroupes ? (
-            /* ── Premier temps : les inventaires ────────────────────────── */
-            groupes.map((g) => (
-              <EntreeGroupe
-                key={g.titre}
-                groupe={g}
-                onOuvrir={() => setGroupeOuvert(g.titre!)}
-                onFermer={onFermer}
-              />
-            ))
-          ) : (
-            /* ── Un seul temps : la section n'a rien à trancher (Siège) ─── */
-            groupes.flatMap((g) =>
-              g.liens.map((l) => <LienNav key={l.key} lien={l} onFermer={onFermer} />)
-            )
-          )}
-        </nav>
+              ))
+            ) : (
+              /* ── Un seul temps : la section n'a rien à trancher (Siège) ── */
+              groupes.flatMap((g) =>
+                g.liens.map((l) => <LienNav key={l.key} lien={l} onFermer={onFermer} />)
+              )
+            )}
+          </motion.nav>
+        </AnimatePresence>
+        </div>
       )}
     </MobileSheet>
   );
@@ -165,8 +200,11 @@ function EntreeGroupe({
       type="button"
       onClick={onOuvrir}
       // Cible PLEINE HAUTEUR (44 px) : une liste qu'on vise du pouce.
-      className={`group relative flex min-h-[44px] w-full items-center gap-2.5 rounded-lg px-3
-                  text-left text-sm transition-colors ${
+      // ⚠️ Contenu CENTRÉ, et le chevron hors du flux (`absolute`) : en
+      // `ml-auto` il poussait le couple icône + libellé vers la gauche, et les
+      // trois inventaires ne s'alignaient plus sur les vues du second temps.
+      className={`group relative flex min-h-[44px] w-full items-center justify-center gap-2.5
+                  rounded-lg px-10 text-sm transition-colors ${
                     actif ? 'text-ink' : 'text-ink-dim hoverable:bg-panel2'
                   }`}
     >
@@ -185,7 +223,7 @@ function EntreeGroupe({
       <ChevronRight
         size={15}
         aria-hidden
-        className="relative ml-auto flex-none text-ink-dimmer transition-transform
+        className="absolute right-3 flex-none text-ink-dimmer transition-transform
                    group-hoverable:translate-x-0.5"
       />
     </button>
@@ -205,8 +243,11 @@ function LienNav({ lien, onFermer }: { lien: SidebarLien; onFermer: () => void }
       // pas une rangée de pastilles serrées. La règle tactile s'applique ici
       // sans exception.
       // ⚠️ `w-full` : toute cible de ce panneau prend TOUTE la largeur.
-      className={`relative flex w-full min-h-[44px] items-center gap-2.5 rounded-lg px-3 text-sm
-                  transition-colors ${
+      // ⚠️ Contenu CENTRÉ : les entrées se lisent comme une pile de boutons
+      // pleine largeur, pas comme une liste alignée à gauche dans une colonne
+      // large de tout l'écran, où le libellé flottait loin de son bord droit.
+      className={`relative flex w-full min-h-[44px] items-center justify-center gap-2.5
+                  rounded-lg px-3 text-sm transition-colors ${
                     lien.actif ? 'text-ink' : 'text-ink-dim hoverable:bg-panel2'
                   }`}
     >

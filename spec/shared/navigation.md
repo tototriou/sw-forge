@@ -60,6 +60,26 @@ nouvel onglet ». Le type l'impose — `hash` **ou** `ouvre`, jamais les deux.
 lui, les trois entrées à sous-section étaient larges comme leur texte et leur
 fond au survol s'arrêtait au milieu de la barre.
 
+### L'entrée active — contour + fond, le marqueur unique de l'app
+
+⚠️ **`border-ctx bg-ctx-soft`**, comme toute pastille de l'app
+([design.md](design.md)) : le **contour porte l'état**, le fond ne fait que
+l'appuyer.
+
+- ⚠️ **Le contour n'est pas décoratif.** L'entrée n'a longtemps porté que
+  `bg-ctx-soft` — exactement le cas que la règle décrit : *un fond de panneau
+  trop proche du gris ambiant, qui ne se voit pas*. Au second niveau, où toutes
+  les entrées sont des vues d'un même inventaire (Runes → Résumé, Liste,
+  Courbes…), **on ne savait plus laquelle on lisait**.
+- ⚠️ Le contour vit sur le **calque en `absolute`**, pas sur l'entrée elle-même :
+  posé sur elle, il décalerait l'icône et le libellé de 1 px au changement de
+  page — un clic déplacerait ce qu'on vient de cliquer.
+- ⚠️ **L'icône ne se teinte plus.** Elle portait `text-ctx` sur l'entrée active :
+  avec le contour, cela faisait un **troisième signal** pour dire la même chose.
+  Elle suit l'encre du libellé, qui passe à `ink`.
+- Le **survol** est un calque distinct rendu **dessous** : une entrée déjà
+  sélectionnée ne change pas d'aspect quand la souris la traverse.
+
 ### L'état de la barre : trois valeurs, pas deux
 
 | Valeur | Sens |

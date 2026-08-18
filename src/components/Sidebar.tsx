@@ -416,7 +416,16 @@ function LienBarre({
         className="absolute inset-0 rounded-lg bg-panel2 opacity-0 transition-opacity
                    group-hoverable:opacity-100"
       />
-      {/* Fond de l'entrée active.
+      {/* Marqueur de l'entrée active — **le marqueur unique de l'app** :
+          contour d'accent + fond très léger (voir spec/shared/design.md).
+          ⚠️ **Le CONTOUR est indispensable.** L'entrée n'a longtemps porté que
+          `bg-ctx-soft`, et c'est le cas que la règle décrit mot pour mot : un
+          fond de panneau trop proche du gris ambiant, qui ne se voit pas. Sur
+          les sous-sections (Runes → Liste, Courbes…) on ne savait plus laquelle
+          on lisait.
+          ⚠️ Le contour vit sur ce calque en `absolute`, pas sur l'entrée : posé
+          sur elle, il aurait décalé de 1 px l'icône et le libellé au changement
+          de page — un clic déplacerait ce qu'on vient de cliquer.
           ⚠️ **Pas de `layoutId`.** Un fond partagé qui GLISSE d'une ligne à
           l'autre a été essayé — l'effet est joli, mais le nœud animé traverse
           alors le changement de niveau, lui-même géré par un `AnimatePresence`.
@@ -425,7 +434,7 @@ function LienBarre({
           en naviguant. Une simple transition de couleur ne peut pas casser. */}
       <span
         aria-hidden
-        className={`absolute inset-0 rounded-lg bg-ctx-soft transition-opacity ${
+        className={`absolute inset-0 rounded-lg border border-ctx bg-ctx-soft transition-opacity ${
           lien.actif ? 'opacity-100' : 'opacity-0'
         }`}
       />
@@ -435,10 +444,11 @@ function LienBarre({
           change de couleur brutalement fait sursauter la colonne entière.
           `group-hoverable` : le mouvement part du LIEN, pas de chaque élément —
           ils doivent bouger d'un bloc. */}
-      <span
-        className={`relative flex-none transition-transform
-                    group-hoverable:translate-x-0.5 ${lien.actif ? 'text-ctx' : ''}`}
-      >
+      {/* ⚠️ L'icône ne se teinte PLUS en `ctx` sur l'entrée active : le contour
+          porte l'état, et une icône colorée par-dessus faisait un troisième
+          signal pour dire la même chose (spec/shared/design.md — un seul
+          marqueur). Elle suit l'encre du libellé, qui passe à `ink`. */}
+      <span className="relative flex-none transition-transform group-hoverable:translate-x-0.5">
         {lien.icon}
       </span>
       {!retractee && (

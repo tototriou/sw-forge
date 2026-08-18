@@ -719,19 +719,28 @@ export default function App() {
   // une seconde liste de libellés aurait divergé au premier renommage, et le
   // titre aurait annoncé une page qui n'existe plus sous ce nom.
   //
-  // ⚠️ **Sur « Mon compte », le titre montre l'INVENTAIRE courant** (Monstres /
-  // Runes / Artéfacts), pas « Mon compte » : ce dernier faisait DOUBLON avec la
-  // navigation (l'onglet « Compte » en bas au doigt, l'en-tête de section dans la
-  // barre latérale à la souris). Nommer la sous-section apprend où l'on est.
+  // ⚠️ **Le titre montre la SOUS-SECTION courante**, pas le nom de la section,
+  // quand celle-ci en a : l'inventaire sur « Mon compte » (Monstres / Runes /
+  // Artéfacts), la vue sur le « Siège » (Défense / Offense / Recommandations).
+  // Répéter « Mon compte » ou « Siège » faisait DOUBLON avec la navigation —
+  // l'onglet du bas au doigt, l'en-tête de section de la barre latérale à la
+  // souris. Nommer la sous-section apprend où l'on est au lieu de répéter le
+  // niveau au-dessus.
   const entreeCourante = [...NAV, ARENE_ITEM, ...RESOURCES].find((i) => i.key === route);
   const compteSub = route === 'compte' ? ACCOUNT_SUBS.find((s) => s.sub === accountSub) : null;
+  const siegeSub = route === 'siege' ? SIEGE_SUBS.find((s) => s.tab === siegeTab) : null;
   const titreSection =
     compteSub?.label ??
+    siegeSub?.label ??
     sectionOuverte?.titre ??
     entreeCourante?.label ??
     (route === 'parametres' ? 'Paramètres' : 'SW Forge');
+  // ⚠️ Icônes de nature différente : DU JEU pour l'inventaire (`GameIcon`),
+  // lucide pour la vue de siège — d'où les deux branches.
   const iconeSection = compteSub ? (
     <GameIcon name={compteSub.icon} size={16} />
+  ) : siegeSub ? (
+    <siegeSub.icon size={16} />
   ) : (
     sectionOuverte?.icon ??
     (entreeCourante ? <entreeCourante.icon size={16} /> : null) ??

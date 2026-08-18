@@ -307,13 +307,28 @@ s'orienter.
   traits, dont on ne voyait pas où commençait la cible. Le cadre est ce qui dit
   où est le bouton. **Un seul contour, 1 px** — le marqueur d'état ne fait que le
   teindre (`border-ctx bg-ctx-soft`), il n'en ajoute pas un second.
-- ⚠️ **Second temps en GRILLE**, `auto-fit` sur `minmax(140px, 1fr)` : les sept
-  vues de Runes tiennent sur **quatre rangées au lieu de sept**, dans un panneau
-  qui n'a que le tiers de l'écran. 140 px est la largeur en dessous de laquelle
-  « Optimisation » et « Comparaison » se tronquent ; au-delà de deux colonnes,
-  aucun libellé ne tiendrait. Sur les écrans les plus étroits la grille
-  **retombe d'elle-même sur une colonne pleine largeur** — pas de second seuil à
-  écrire, et rien à maintenir d'accord.
+- ⚠️ **Second temps en GRILLE de DEUX colonnes**, une seule quand elles
+  n'entrent plus. Les sept vues de Runes tiennent alors sur quatre rangées au
+  lieu de sept, dans un panneau qui n'a que le tiers de l'écran.
+
+  ```
+  repeat(auto-fit, minmax(max(140px, calc(50% - 4px)), 1fr))
+  ```
+
+  - La **borne à deux** tient dans le `max()` : le minimum d'une colonne vaut la
+    moitié de la largeur, donc trois n'entrent jamais. ⚠️ Un `minmax(140px, 1fr)`
+    seul laissait `auto-fit` en poser **trois** dès 543 px de panneau — vrai sur
+    une tablette étroite, et les vues y devenaient des vignettes.
+  - Le **plancher de 140 px** porte le repli : c'est la largeur sous laquelle
+    « Optimisation » et « Comparaison » se tronquent. Dès que la moitié du
+    panneau passe dessous, plus aucune paire n'entre et la grille retombe
+    **d'elle-même** sur une colonne pleine largeur.
+  - Bascule mesurée : **2 colonnes dès 320 px d'écran** (288 px de panneau),
+    1 seule en dessous. Un seul `max()` porte les deux règles — pas de second
+    seuil à écrire, donc rien à maintenir d'accord.
+  - ⚠️ Les `_` sont la façon d'écrire une espace dans une valeur arbitraire
+    Tailwind (`calc(50%_-_4px)`). Sans eux la classe n'est pas reconnue et
+    **aucune règle n'est émise** — à vérifier dans le CSS construit.
 - ⚠️ **Le premier temps reste sur UNE colonne**, quelle que soit la largeur. Les
   trois inventaires sont l'ossature du compte : en grille, ils se réduiraient à
   des vignettes de la taille d'une vue alors qu'ils ne sont pas au même niveau.

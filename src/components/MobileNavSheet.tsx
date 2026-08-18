@@ -40,14 +40,27 @@ import { COURBE, GLISSEMENT, SidebarGroupe, SidebarSection } from './Sidebar';
 // manque serait passé inaperçu : on ne cherche pas ce dont on ignore
 // l'existence. C'est déjà la règle de `SidebarSearch`.
 
-// ⚠️ **Deux colonnes quand la largeur le permet, une seule sinon.**
-// `auto-fit` + `minmax(140px, 1fr)` : les sept vues de Runes tiennent alors sur
-// quatre rangées au lieu de sept, dans un panneau qui n'a que le tiers de
-// l'écran. 140 px est la largeur en dessous de laquelle « Optimisation » et
-// « Comparaison » se tronquent — au-delà de deux colonnes, aucun libellé ne
-// tiendrait. Sur les écrans les plus étroits la grille retombe d'elle-même sur
-// une colonne pleine largeur, sans second seuil à écrire.
-const GRILLE = 'grid-cols-[repeat(auto-fit,minmax(140px,1fr))]';
+// ⚠️ **DEUX colonnes quand la largeur le permet, UNE seule sinon — jamais
+// trois.** Les sept vues de Runes tiennent alors sur quatre rangées au lieu de
+// sept, dans un panneau qui n'a que le tiers de l'écran.
+//
+// La borne à deux tient dans le `max()` : le minimum d'une colonne vaut **la
+// moitié de la largeur** (moins la moitié de l'écart), donc trois n'entrent
+// jamais. Un `minmax(140px, 1fr)` seul laissait `auto-fit` en poser trois dès
+// 543 px de panneau — vrai sur une tablette étroite, et les vues y devenaient
+// des vignettes.
+//
+// Et le plancher de 140 px garde le repli : dès que la moitié du panneau passe
+// sous cette largeur (« Optimisation » et « Comparaison » s'y tronquent), plus
+// aucune paire n'entre et la grille retombe **d'elle-même** sur une colonne
+// pleine largeur. Un seul `max()` porte les deux règles — pas de second seuil à
+// écrire, donc rien à maintenir d'accord.
+//
+// ⚠️ Les `_` sont la façon d'écrire une espace dans une valeur arbitraire
+// Tailwind : `calc(50%_-_4px)` produit `calc(50% - 4px)`. Sans eux la classe
+// n'est pas reconnue et **aucune règle n'est émise** — vérifié dans le CSS
+// construit, pas seulement ici.
+const GRILLE = 'grid-cols-[repeat(auto-fit,minmax(max(140px,calc(50%_-_4px)),1fr))]';
 
 export default function MobileNavSheet({
   section,

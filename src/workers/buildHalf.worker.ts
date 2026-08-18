@@ -33,6 +33,15 @@ export interface BuildHalfRequest {
   // Bouton « Prioriser les stats les plus difficiles » — voir SearchParams
   // dans runeBuildOptim.ts, même paramètre relayé tel quel jusqu'ici.
   adaptiveTrancheWeighting?: boolean;
+  // ⚠️ Manquait jusqu'ici — voir SearchParams.combosOrderMode dans
+  // runeBuildOptim.ts. Sans ce champ (et son relais ci-dessous jusqu'à
+  // `buildBuckets`), `SearchParams.combosOrderMode` n'avait AUCUN effet sur
+  // le vrai chemin de production (Web Workers) : `buildBuckets` recevait
+  // toujours `undefined` ici, retombant sur son défaut interne quel que
+  // soit ce que l'appelant avait demandé — trouvé par une revue de code
+  // externe, voir spec/outils/optimizer/historique-dimensionnement.md,
+  // « revue de code externe ».
+  combosOrderMode?: 'potential' | 'relevance';
 }
 export interface BuildHalfProgressMessage {
   type: 'progress';
@@ -55,7 +64,7 @@ const PROGRESS_THROTTLE_MS = 150;
 self.onmessage = (e: MessageEvent<BuildHalfRequest>) => {
   const {
     half, slotIdxs, filtered, distinctKeys, constrainedKeys, retentionKeys, minEntries, bucketCap, otherHalfMaxSets, jokerCredit, requiredPieces,
-    adaptiveTrancheWeighting,
+    adaptiveTrancheWeighting, combosOrderMode,
   } = e.data;
   // Connu D'AVANCE (indépendant du générateur) : le total réel que
   // `buildBuckets` utilisera pour CE premier emplacement de la moitié — sert
@@ -63,7 +72,7 @@ self.onmessage = (e: MessageEvent<BuildHalfRequest>) => {
   const total = filtered[slotIdxs[0]].length;
   const gen = buildBuckets(
     half, slotIdxs, filtered, distinctKeys, constrainedKeys, retentionKeys, minEntries, bucketCap, otherHalfMaxSets, jokerCredit, requiredPieces,
-    undefined, adaptiveTrancheWeighting
+    undefined, adaptiveTrancheWeighting, combosOrderMode
   );
   let lastPost = 0;
   let step = gen.next();

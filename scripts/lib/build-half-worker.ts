@@ -27,6 +27,15 @@ export interface BuildHalfWorkerData {
   otherHalfMaxSets: number[];
   jokerCredit: number;
   requiredPieces: number[];
+  // ⚠️ Manquaient tous les deux jusqu'ici — ce worker (utilisé par
+  // perf-battery.ts pour mesurer la construction « comme en prod ») ignorait
+  // silencieusement adaptiveTrancheWeighting ET combosOrderMode, retombant
+  // TOUJOURS sur le défaut interne de buildBuckets quel que soit ce que
+  // SearchParams portait — trouvé en corrigeant le même trou côté
+  // src/workers/buildHalf.worker.ts (voir spec/outils/optimizer/
+  // historique-dimensionnement.md, « revue de code externe »).
+  adaptiveTrancheWeighting?: boolean;
+  combosOrderMode?: 'potential' | 'relevance';
 }
 export interface BuildHalfWorkerResult {
   buckets: Bucket[];
@@ -53,7 +62,10 @@ const buckets = drain(
     data.bucketCap,
     data.otherHalfMaxSets,
     data.jokerCredit,
-    data.requiredPieces
+    data.requiredPieces,
+    undefined,
+    data.adaptiveTrancheWeighting,
+    data.combosOrderMode
   )
 );
 const ms = performance.now() - t0;

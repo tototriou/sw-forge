@@ -60,14 +60,14 @@ export function runSearchToCompletion(params: SearchParams): TimedSearchResult {
     buildBuckets(
       'A', [0, 1, 2], prepared.filtered, prepared.distinctKeys, prepared.constrainedKeys, prepared.retentionKeys,
       prepared.minEntries, prepared.bucketCap, prepared.maxSetsForA, prepared.jokerCredit, prepared.requiredPieces,
-      undefined, params.adaptiveTrancheWeighting
+      undefined, params.adaptiveTrancheWeighting, params.combosOrderMode
     )
   );
   const bucketsB = drain(
     buildBuckets(
       'B', [3, 4, 5], prepared.filtered, prepared.distinctKeys, prepared.constrainedKeys, prepared.retentionKeys,
       prepared.minEntries, prepared.bucketCap, prepared.maxSetsForB, prepared.jokerCredit, prepared.requiredPieces,
-      undefined, params.adaptiveTrancheWeighting
+      undefined, params.adaptiveTrancheWeighting, params.combosOrderMode
     )
   );
   const tBuild = performance.now();

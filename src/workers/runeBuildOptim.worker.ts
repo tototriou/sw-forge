@@ -325,12 +325,14 @@ self.onmessage = async (e: MessageEvent<WorkerRequest>) => {
       constrainedKeys: prepared.constrainedKeys, retentionKeys: prepared.retentionKeys, minEntries: prepared.minEntries,
       bucketCap: prepared.bucketCap, otherHalfMaxSets: prepared.maxSetsForA, jokerCredit: prepared.jokerCredit,
       requiredPieces: prepared.requiredPieces, adaptiveTrancheWeighting: params.adaptiveTrancheWeighting,
+      combosOrderMode: params.combosOrderMode,
     };
     const requestB: BuildHalfRequest = {
       half: 'B', slotIdxs: [3, 4, 5], filtered: prepared.filtered, distinctKeys: prepared.distinctKeys,
       constrainedKeys: prepared.constrainedKeys, retentionKeys: prepared.retentionKeys, minEntries: prepared.minEntries,
       bucketCap: prepared.bucketCap, otherHalfMaxSets: prepared.maxSetsForB, jokerCredit: prepared.jokerCredit,
       requiredPieces: prepared.requiredPieces, adaptiveTrancheWeighting: params.adaptiveTrancheWeighting,
+      combosOrderMode: params.combosOrderMode,
     };
     // ⚠️ Pas de throttle ICI (contrairement à la phase d'appariement plus
     // bas) : chacun des deux Workers enfants (buildHalf.worker.ts) throttle

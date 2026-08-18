@@ -1117,6 +1117,12 @@ button:not(:disabled):not([draggable]):not([role='switch']):active,
 [data-tiroir] [data-filtres-runes] .max-w-\[480px\] {
   max-width: none;
 }
+/* ⚠️ Le TRI remonte en tête du panneau (trier vient avant filtrer). Uniquement
+   dans le tiroir : au desktop, le bloc garde sa place en bas de la colonne. */
+[data-tiroir] [data-filtres-runes] [data-tri-bloc] {
+  order: -1;
+}
+
 /* Les six emplacements se répartissent sur toute la largeur ; « Antiques » et le
    bouton « ✕ tout » gardent leur taille à côté. */
 [data-tiroir] [data-filtres-runes] [data-filtre-slots] {

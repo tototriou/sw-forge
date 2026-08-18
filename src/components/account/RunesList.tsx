@@ -175,8 +175,11 @@ export default function RunesList({ runes, menuOuvert, onFermerMenu }: Props) {
         </div>
 
         {/* Tri — les entrées du JEU, dans son ordre. La MESURE (efficience /
-            score) reste un réglage global, dans la barre de nav. */}
-        <div className="flex items-center gap-2 flex-wrap">
+            score) reste un réglage global, dans la barre de nav.
+            ⚠️ `data-tri-bloc` : dans le PANNEAU mobile, ce bloc remonte en tête
+            (voir index.css) — trier vient avant filtrer. Au desktop il garde sa
+            place, en bas de la colonne de filtres. */}
+        <div data-tri-bloc className="flex items-center gap-2 flex-wrap">
           <span className="w-[86px] flex-none label">Trier par</span>
           <Selecteur
             value={sort}

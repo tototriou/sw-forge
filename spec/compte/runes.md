@@ -557,10 +557,11 @@ nombre de sets visibles sans défilement. Le nom reste en `title` et en
   filtre qui ne peut rien renvoyer n'aide personne. ⚠️ En **Comparaison**, les
   sets d'un compte d'ami importé **rejoignent la sélection** : sans ça, un set
   qu'il possède et pas moi serait masqué d'emblée et sa courbe faussée.
-- Bouton **« Tout / Rien »** : sélectionne tous les sets présents, ou les
-  déselectionne tous d'un coup (indispensable à vingt-cinq sets). **Même gabarit
-  que les pastilles** pour ne pas casser la rangée ; le libellé dit ce qu'un clic
-  fera.
+- Bascule **« Tous »** : sélectionne tous les sets présents, ou les
+  déselectionne tous d'un coup (indispensable à vingt-cinq sets). **Tuile EN
+  TÊTE de la même grille**, au même gabarit que les pastilles de set — comme la
+  case « Tous » du jeu — et non un bouton texte greffé à côté de la barre.
+  Icône `Layers` (lucide), pas de nom de set possible pour ce rôle.
 - ⚠️ **Au doigt (`pointer: coarse`), les symboles passent de 18 à 24 px** et leur
   case de 28 à 36 px : 28 px se visaient mal du pouce. À la souris, inchangé.
 

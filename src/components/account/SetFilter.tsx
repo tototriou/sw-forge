@@ -1,4 +1,5 @@
 import { useMemo } from 'react';
+import { Layers } from 'lucide-react';
 import { RuneDetail, RUNE_SETS } from '../../types';
 import RuneIcon from '../RuneIcon';
 import { useMediaQuery, COMPACT } from '../../hooks/useMediaQuery';
@@ -61,6 +62,26 @@ export default function SetFilter({
           se lisent comme une rangée d'icônes du jeu, et l'ensemble tient sur une
           ligne même avec 25 sets. Seul l'état actif porte un cadre. */}
       <div className="flex flex-wrap items-center gap-0.5 rounded-lg border border-border bg-panel p-1 coarse:gap-1">
+        {/* Bascule TOUT / RIEN, EN TÊTE de la grille et au même gabarit que les
+            sets — comme la tuile « Tous » du jeu, pas un bouton à part greffé
+            sur le côté. */}
+        {present.length > 0 && (
+          <button
+            onClick={() => onChange(toutSelectionne ? new Set() : new Set(present.map((s) => s.key)))}
+            title={toutSelectionne ? 'Tout désélectionner' : 'Tout sélectionner'}
+            aria-label={toutSelectionne ? 'Tout désélectionner' : 'Tout sélectionner'}
+            aria-pressed={toutSelectionne}
+            data-cible-fine
+            className={`flex items-center justify-center w-7 h-7 coarse:w-9 coarse:h-9 rounded-md border transition select-none
+              ${
+                toutSelectionne
+                  ? 'bg-accent-soft border-transparent'
+                  : 'border-transparent opacity-50 hoverable:opacity-100 hoverable:bg-panel2'
+              }`}
+          >
+            <Layers size={auDoigt ? 24 : 18} strokeWidth={1.75} />
+          </button>
+        )}
         {present.map((s) => {
           const active = value.has(s.key);
           return (
@@ -99,21 +120,6 @@ export default function SetFilter({
           );
         })}
       </div>
-      {/* Bascule TOUT / RIEN : sélectionne tous les sets présents, ou les
-          déselectionne tous. Même gabarit que les pastilles pour ne pas casser
-          la rangée ; l'action, pas un set de plus. Le libellé dit ce qu'un clic
-          fera. */}
-      {present.length > 0 && (
-        <button
-          onClick={() => onChange(toutSelectionne ? new Set() : new Set(present.map((s) => s.key)))}
-          title={toutSelectionne ? 'Tout désélectionner' : 'Tout sélectionner'}
-          className="ml-1 flex h-8 coarse:h-9 items-center rounded-md border border-border bg-panel px-2.5
-                     text-micro font-semibold text-ink-dim transition
-                     hoverable:border-accent hoverable:text-ink"
-        >
-          {toutSelectionne ? 'Rien' : 'Tout'}
-        </button>
-      )}
     </div>
   );
 }

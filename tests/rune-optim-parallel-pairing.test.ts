@@ -217,17 +217,27 @@ export default function testRuneOptimParallelPairing() {
       // ⚠️ `prepareSearch` RAPPELÉ à chaque appel — PAS le `prepared0` déjà
       // construit ci-dessus réutilisé tel quel. `overBudget()` (dans
       // `pairBuckets`) compare `Date.now()` à `prepared.startedAt`, figé au
-      // moment de CET appel à `prepareSearch` — en production, CHAQUE
-      // worker appelle `prepareSearch` lui-même en le RECEVANT (voir
-      // pairSlice.worker.ts), donc CHACUN a son propre chrono qui démarre à
-      // SON PROPRE instant. Réutiliser un seul `prepared` partagé pour
-      // plusieurs tranches TRAITÉES L'UNE APRÈS L'AUTRE (comme ce test, en
-      // un seul fil) ferait croire aux tranches suivantes que leur temps est
-      // DÉJÀ écoulé (celui déjà consommé par les tranches précédentes) —
-      // écart de fidélité trouvé EN FAISANT tourner ce test (pertes
-      // massives, pas de perte réelle : juste un budget-temps déjà épuisé
-      // avant même d'avoir commencé). Même mécanisme sinon (budget adaptatif
-      // + escalade) que pairSlice.worker.ts/runeBuildOptim.worker.ts.
+      // moment de CET appel à `prepareSearch`.
+      // ⚠️ **Divergence VOLONTAIRE et CONNUE avec le vrai chemin de
+      // production, pas un oubli** : depuis la correction du filet de
+      // sécurité temps (voir spec/outils/optimizer/historique-
+      // dimensionnement.md, « revue de code externe »), un VRAI worker
+      // `pairSlice.worker.ts` reçoit désormais le VRAI `startedAt` GLOBAL
+      // (calculé une seule fois, avant la construction) et écrase avec lui
+      // celui que `prepareSearch` vient de fixer en interne — CHAQUE worker
+      // réel partage donc maintenant le MÊME chrono, plus un chrono propre.
+      // Ce test-ci, lui, reste volontairement sur un chrono FRAIS par
+      // tranche : les tranches sont ici traitées L'UNE APRÈS L'AUTRE dans un
+      // SEUL fil (pas de vrais Workers concurrents) — partager un seul
+      // `startedAt` figé AVANT la première tranche ferait croire aux
+      // tranches suivantes que leur temps est DÉJÀ écoulé (celui consommé
+      // par les tranches précédentes dans CE fil unique), un artefact de la
+      // simulation SÉQUENTIELLE, pas une fidélité au vrai chemin concurrent
+      // — écart trouvé EN FAISANT tourner ce test AVANT ce commentaire
+      // (pertes massives, pas de perte réelle : juste un budget-temps
+      // déjà épuisé avant même d'avoir commencé). Même mécanisme sinon
+      // (budget adaptatif + escalade) que pairSlice.worker.ts/
+      // runeBuildOptim.worker.ts.
       function runWithEscalation(bA: Bucket[], bB: Bucket[]) {
         const prepared = prepareSearch(params)!;
         const nodeBudget: NodeBudget = { max: prepared.maxNodes };

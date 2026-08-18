@@ -212,7 +212,8 @@ async function runParallelPairing(
   prepared: PreparedSearch,
   bucketsA: Bucket[],
   bucketsB: Bucket[],
-  postProgress: (explored: number, found: number, newCandidates: BuildCandidate[], nodeBudgetMax: number) => void
+  postProgress: (explored: number, found: number, newCandidates: BuildCandidate[], nodeBudgetMax: number) => void,
+  startedAt: number
 ): Promise<SearchResult> {
   const workerCount = Math.min(PARALLEL_PAIRING_WORKERS, bucketsA.length);
   const slices = partitionBucketsALPT(bucketsA, workerCount);
@@ -243,7 +244,7 @@ async function runParallelPairing(
 
   const handles = slices.map((bucketASlice, i) => {
     const sliceParams: SearchParams = { ...params, maxCollected: perWorkerMaxCollected };
-    return pairSliceInWorker({ params: sliceParams, bucketASlice, bucketsB }, (explored, newCandidates, nodeBudgetMax) => {
+    return pairSliceInWorker({ params: sliceParams, bucketASlice, bucketsB, startedAt }, (explored, newCandidates, nodeBudgetMax) => {
       exploredByWorker[i] = explored;
       nodeBudgetMaxByWorker[i] = nodeBudgetMax;
       if (newCandidates.length > 0) allCandidates.push(...newCandidates);
@@ -405,9 +406,31 @@ self.onmessage = async (e: MessageEvent<WorkerRequest>) => {
       };
       (self as unknown as Worker).postMessage(message);
     };
-    const finalResult = await runParallelPairing(params, prepared, bucketsA, bucketsB, postProgress);
-    const result: WorkerResultMessage = { type: 'result', ...finalResult };
-    (self as unknown as Worker).postMessage(result);
+    // ⚠️ `try/catch` ajouté après une revue de code externe — ABSENT jusqu'ici,
+    // contrairement à la phase de construction juste au-dessus (qui, elle,
+    // l'est). Si un des workers `pairSlice.worker.ts` lève une erreur
+    // (`worker.onerror = reject` dans `pairSliceInWorker`), la `Promise.all`
+    // de `runParallelPairing` rejette — et une rejection de promesse NON
+    // interceptée à l'intérieur d'un handler `async self.onmessage` de
+    // Worker ne remonte PAS via `Worker.onerror` au parent (piège JS/
+    // navigateur réel, vérifié) : sans ce `catch`, aucun message `result`/
+    // `error` n'était plus jamais posté — l'UI restait bloquée en
+    // `'running'` indéfiniment, ET les workers enfants NON fautifs
+    // fuyaient (le code qui les termine, juste après `Promise.all` dans
+    // `runParallelPairing`, n'était jamais atteint).
+    try {
+      const finalResult = await runParallelPairing(params, prepared, bucketsA, bucketsB, postProgress, startedAt);
+      const result: WorkerResultMessage = { type: 'result', ...finalResult };
+      (self as unknown as Worker).postMessage(result);
+    } catch {
+      // `runParallelPairing` a pu être interrompue avant son propre nettoyage
+      // (juste après `Promise.all`, voir son commentaire) — les workers
+      // enfants encore listés ici n'ont alors jamais été terminés.
+      for (const w of activePairingWorkers) w.terminate();
+      activePairingWorkers = [];
+      const result: WorkerResultMessage = { type: 'result', candidates: [], explored: 0, truncated: true };
+      (self as unknown as Worker).postMessage(result);
+    }
     return;
   }
 

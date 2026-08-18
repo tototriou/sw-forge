@@ -37,6 +37,15 @@ export interface PairSliceRequest {
   params: SearchParams;
   bucketASlice: Bucket[];
   bucketsB: Bucket[];
+  // ⚠️ Le VRAI instant de départ de la recherche GLOBALE (calculé une seule
+  // fois par runeBuildOptim.worker.ts, AVANT la phase de construction) —
+  // PAS un `Date.now()` local à ce worker. Sans ce champ, ce worker
+  // recréait son propre `PreparedSearch` via `prepareSearch(params)`, qui
+  // fixe SON PROPRE `startedAt` interne — mesuré APRÈS la construction déjà
+  // écoulée (jusqu'à ~1 min sur un gros compte), repoussant silencieusement
+  // l'échéance du filet de sécurité `maxMs`. Trouvé par une revue de code
+  // externe — voir spec/outils/optimizer/historique-dimensionnement.md.
+  startedAt: number;
 }
 export type PairSliceInbound = PairSliceRequest | { stop: true };
 
@@ -71,13 +80,20 @@ self.onmessage = async (e: MessageEvent<PairSliceInbound>) => {
     return;
   }
   stopped = false;
-  const { params, bucketASlice, bucketsB } = e.data;
+  const { params, bucketASlice, bucketsB, startedAt } = e.data;
   const prepared = prepareSearch(params);
   if (!prepared) {
     const result: PairSliceResultMessage = { type: 'result', explored: 0, candidates: [], truncated: false };
     (self as unknown as Worker).postMessage(result);
     return;
   }
+  // ⚠️ Écrase le `startedAt` interne que `prepareSearch` vient de fixer
+  // (Date.now() APPELÉ ICI, après la construction déjà écoulée) par le VRAI
+  // instant de départ global reçu du parent — voir le commentaire de
+  // `PairSliceRequest.startedAt`. `overBudget()` dans `pairBuckets` lit
+  // `prepared.startedAt` : cette correction doit avoir lieu AVANT toute
+  // utilisation du budget-temps ci-dessous.
+  prepared.startedAt = startedAt;
 
   // ⚠️ Budget ADAPTATIF + escalade — EXACTEMENT le mécanisme réel du
   // chemin séquentiel (voir runeBuildOptim.worker.ts, même appel à

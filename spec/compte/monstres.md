@@ -239,12 +239,19 @@ Recherche et pastilles passent par la **librairie partagée** (voir
 main — le même JSX sert dans la page (desktop) et dans le tiroir « Options »
 (mobile).
 
+⚠️ **Liste BLANCHE, tout coché par défaut** (Élément et Nat) — même règle que
+les filtres de runes ([runes.md](runes.md)) : une chip cochée est **affichée**,
+n'en cocher **aucune** revient à **ne rien vouloir voir**. Les interrupteurs
+**Doublons** et **2A**, eux, restent des restrictions qu'on ajoute.
+
 - **Recherche** par nom (insensible à la casse).
 - **Élément** : chips multi-sélection (Eau/Feu/Vent/Lumière/Ténèbres ; « Autre »
   exclu du filtre).
 - **Nat** (rareté naturelle) : chips **5★ · 4★ · 3★ · 2★**. Utilise
   `monster.naturalStars` — la **vraie** rareté naturelle SWARFARM, distincte de
   `stars` (grade obtenable / `base_stars`). Ex. Racuni = nat 3 même si base_stars 4.
+  - ⚠️ Un monstre **sans rareté naturelle** échappe à ce filtre : aucune chip ne
+    peut le désigner, le masquer le rendrait introuvable.
 - **Doublons** : ne montre que les monstres possédés en plusieurs exemplaires
   (`count ≥ 2`).
 - **2A** : ne montre que les monstres à **second éveil** (`monster.secondAwaken`,

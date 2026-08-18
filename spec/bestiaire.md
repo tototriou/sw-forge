@@ -19,10 +19,17 @@ perso (ceux-ci ne servent qu'à RTA / Siège).
 casse, `includes`).
 
 ### Filtres — [FilterBar.tsx](src/components/FilterBar.tsx)
+
+⚠️ **Liste BLANCHE, tout coché par défaut** — même règle que les filtres de
+runes ([compte/runes.md](compte/runes.md)) : une pilule cochée est **affichée**,
+n'en cocher **aucune** revient à **ne rien vouloir voir**.
+
 - **Élément** : pilules Feu / Eau / Vent / Lumière / Ténèbres / Autre. Multi-sélection
   (toggle). Chaque pilule reprend la couleur de son élément.
 - **Étoiles naturelles** : pilules 1★→6★. Multi-sélection. Filtre sur `stars`
   (étoiles à l'invocation, pas l'éveil).
+  - ⚠️ Un monstre **sans grade naturel** (`stars === null`) échappe à ce filtre :
+    aucune case ne peut le désigner, le masquer le rendrait introuvable.
 - **Tri interne** (au sein de chaque groupe d'élément) :
   - `stars_desc` (défaut) : étoiles ↓ puis nom
   - `stars_asc` : étoiles ↑ puis nom

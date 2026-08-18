@@ -94,6 +94,9 @@ démarrent ainsi sur une même colonne. Laissés à leur largeur naturelle,
   - Elle reste **sans icône** : c'est un **mode d'affichage**, pas une valeur — et
     le jeu n'a pas de symbole pour « Attribut » ou « Type » pris globalement.
 - **Rareté** : chips (Légendaire → Commun), aux couleurs du jeu (`RARITY_META`).
+  - ⚠️ **Liste BLANCHE, tout coché par défaut** — même règle que les filtres de
+    runes ([runes.md](runes.md)) : une rareté cochée est **affichée**, n'en
+    cocher **aucune** revient à **ne rien vouloir voir**.
   - ⚠️ **Même typographie que les autres chips de la page** (`font-semibold`,
     casse normale). Le gras majuscule espacé qu'elles portaient venait de la
     bannière du jeu — reproduite à raison dans la fiche d'artéfact, mais isolée
@@ -112,7 +115,7 @@ démarrent ainsi sur une même colonne. Laissés à leur largeur naturelle,
   - ⚠️ **« Toutes » est une option**, pas l'absence de sélection : le cadre
     montre toujours quel cran est posé, là où trois boutons tous éteints ne
     diraient pas si le filtre est inactif ou simplement vide. C'est aussi ce qui
-    distingue cette rangée de Rareté, où l'ensemble vide veut dire « toutes ».
+    distingue cette rangée de Rareté, cumulable et en liste blanche.
   - ⚠️ L'intitulé se replie sur **deux lignes** au lieu d'être abrégé en « Stat
     princ. » : en 11 px capitales espacées, « STAT PRINCIPALE » dépasse les 86 px
     de la colonne. L'abréger trahirait le nom du jeu, élargir la colonne

@@ -68,7 +68,13 @@ export default function ArtifactsList({ artifacts, menuOuvert, onFermerMenu }: P
   const [kind, setKind] = useStickyState<'all' | 'element' | 'archetype'>('artefacts.kind', 'all');
   const [element, setElement] = useStickyState<ElementKey | ''>('artefacts.element', '');
   const [archetype, setArchetype] = useStickyState<Archetype | ''>('artefacts.archetype', '');
-  const [rarities, setRarities] = useStickyState<Set<number>>('artefacts.rarities', new Set());
+  // ⚠️ **Liste BLANCHE, tout coché par défaut** — même règle que les filtres de
+  // runes : une rareté cochée est AFFICHÉE, n'en cocher aucune revient à ne rien
+  // vouloir voir.
+  const [rarities, setRarities] = useStickyState<Set<number>>(
+    'artefacts.rarities',
+    new Set(RARITY_ORDER)
+  );
   // Stat principale retenue, `''` = toutes.
   //
   // ⚠️ Un SEUL choix à la fois, d'où un contrôle à cran et non des pastilles :
@@ -132,7 +138,7 @@ export default function ArtifactsList({ artifacts, menuOuvert, onFermerMenu }: P
       if (kind !== 'all' && art.kind !== kind) return false;
       if (elementActif && art.element !== elementActif) return false;
       if (archetypeActif && art.archetype !== archetypeActif) return false;
-      if (rarities.size && !rarities.has(art.rarity)) return false;
+      if (!rarities.has(art.rarity)) return false;
       if (main && art.main.code !== Number(main)) return false;
       // ⚠️ ET, pas OU : on cherche l'artéfact qui porte **toutes** les
       // propriétés demandées, chacune au-dessus de son seuil. Un OU renverrait

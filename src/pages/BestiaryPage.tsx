@@ -7,7 +7,7 @@ import MonsterGrid from '../components/MonsterGrid';
 import { SEUIL_ANIMATION_GRILLE } from '../components/MonsterCard';
 import MonsterDetailDialog from '../components/MonsterDetailDialog';
 import Pager from '../components/account/Pager';
-import { ELEMENTS, ElementKey, Monster } from '../types';
+import { ELEMENTS, STAR_OPTIONS, ElementKey, Monster } from '../types';
 import { LoadState } from '../hooks/useMonsters';
 import {
   autreForme,
@@ -35,8 +35,13 @@ const PAGE = 60;
 
 export default function BestiaryPage({ monsters, menuOuvert, onFermerMenu }: Props) {
   const [query, setQuery] = useState('');
-  const [activeElements, setActiveElements] = useState<Set<ElementKey>>(new Set());
-  const [activeStars, setActiveStars] = useState<Set<number>>(new Set());
+  // ⚠️ **Liste BLANCHE, tout coché par défaut** — même règle que les filtres de
+  // runes : une pastille cochée est AFFICHÉE, n'en cocher aucune revient à ne
+  // rien vouloir voir.
+  const [activeElements, setActiveElements] = useState<Set<ElementKey>>(
+    () => new Set(ELEMENTS.map((el) => el.key))
+  );
+  const [activeStars, setActiveStars] = useState<Set<number>>(() => new Set(STAR_OPTIONS));
   const [sortMode, setSortMode] = useState('stars_desc');
   // Fiche ouverte — état local, non persisté : rouvrir la page sur une fiche
   // consultée la veille serait déroutant.
@@ -83,8 +88,10 @@ export default function BestiaryPage({ monsters, menuOuvert, onFermerMenu }: Pro
         const noms = [m.name, jumeau?.name].filter(Boolean) as string[];
         if (!noms.some((n) => n.toLowerCase().includes(q))) return false;
       }
-      if (activeElements.size && !activeElements.has(m.element)) return false;
-      if (activeStars.size && !(m.stars !== null && activeStars.has(m.stars))) return false;
+      if (!activeElements.has(m.element)) return false;
+      // ⚠️ Un monstre SANS grade naturel échappe au filtre d'étoiles : aucune
+      // case ne peut le désigner, le masquer serait le rendre introuvable.
+      if (m.stars !== null && !activeStars.has(m.stars)) return false;
       return true;
     });
 

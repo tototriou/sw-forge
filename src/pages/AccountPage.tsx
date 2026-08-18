@@ -3,7 +3,15 @@ import { AnimatePresence } from 'framer-motion';
 import { Search, Copy, Star, CircleUserRound } from 'lucide-react';
 import InventaireIcon, { InventaireIconKey } from '../components/InventaireIcon';
 import { BoxItem } from '../lib/applyAccount';
-import { ELEMENTS, ElementKey, Monster, RuneDetail, ArtifactDetail, CraftLine } from '../types';
+import {
+  ELEMENTS,
+  STAR_OPTIONS,
+  ElementKey,
+  Monster,
+  RuneDetail,
+  ArtifactDetail,
+  CraftLine,
+} from '../types';
 import { LoadState } from '../hooks/useMonsters';
 import ElementIcon from '../components/ElementIcon';
 import MonsterCard, { SEUIL_ANIMATION_GRILLE } from '../components/MonsterCard';
@@ -79,8 +87,17 @@ function MonsterBoxSection({
   onFermerMenu: () => void;
 }) {
   const [query, setQuery] = useStickyState('box.query', '');
-  const [activeElements, setActiveElements] = useStickyState<Set<ElementKey>>('box.elements', new Set());
-  const [activeStars, setActiveStars] = useStickyState<Set<number>>('box.stars', new Set());
+  // ⚠️ **Liste BLANCHE, tout coché par défaut** — même règle que les filtres de
+  // runes : une pastille cochée est AFFICHÉE, n'en cocher aucune revient à ne
+  // rien vouloir voir.
+  const [activeElements, setActiveElements] = useStickyState<Set<ElementKey>>(
+    'box.elements',
+    new Set(ELEMENTS.map((el) => el.key))
+  );
+  const [activeStars, setActiveStars] = useStickyState<Set<number>>(
+    'box.stars',
+    new Set(STAR_OPTIONS)
+  );
   const [dupesOnly, setDupesOnly] = useStickyState('box.dupes', false);
   // ⚠️ Défaut : l'ordre du JEU. C'est celui qu'on a en tête en parcourant sa
   // collection ; l'alphabétique sert à retrouver UN monstre dont on connaît le
@@ -170,9 +187,10 @@ function MonsterBoxSection({
         const noms = [e.monster.name, jumeau?.name].filter(Boolean) as string[];
         if (!noms.some((n) => n.toLowerCase().includes(q))) return false;
       }
-      if (activeElements.size && !activeElements.has(e.monster.element)) return false;
-      if (activeStars.size && !(e.monster.naturalStars != null && activeStars.has(e.monster.naturalStars)))
-        return false;
+      if (!activeElements.has(e.monster.element)) return false;
+      // ⚠️ Un monstre SANS grade naturel échappe au filtre d'étoiles : aucune
+      // case ne peut le désigner, le masquer serait le rendre introuvable.
+      if (e.monster.naturalStars != null && !activeStars.has(e.monster.naturalStars)) return false;
       if (dupesOnly && e.count < 2) return false;
       if (secondOnly && !e.monster.secondAwaken) return false;
       return true;

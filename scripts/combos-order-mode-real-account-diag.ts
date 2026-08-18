@@ -24,7 +24,12 @@
 // retenu comme plancher vérifié) ; l'escalade fait le reste, EXACTEMENT
 // comme runeBuildOptim.worker.ts en production.
 //
-// Usage : combos-order-mode-real-account-diag.ts [maxMs=60000]
+// Usage : combos-order-mode-real-account-diag.ts [maxMs=60000] [filtres]
+//   filtres — sous-chaînes (insensibles à la casse), séparées par des
+//   virgules, filtrant CASES par label (un cas retenu s'il matche AU MOINS
+//   UNE sous-chaîne) — pour ne rejouer que quelques cas précis (ex.
+//   re-mesurer un cas inconcluant avec un budget plus généreux) sans
+//   repayer les 7. Exemple : "sonia d6,lushen d10,rage seul".
 
 import { ArtifactDetail, BaseStats, RelicDetail } from '../src/types';
 import { SearchParams, prepareSearch, buildBuckets, pairBuckets, totalPairCount, NodeBudget, maybeEscalateNodeBudget } from '../src/lib/runeBuildOptim';
@@ -32,6 +37,8 @@ import { CASES, loadCase } from './lib/perfShared';
 
 const CHECKPOINTS = [0.01, 0.05, 0.1, 0.25, 0.5, 0.75, 1.0];
 const MAX_MS = process.argv[2] ? Number(process.argv[2]) : 60_000;
+const FILTERS = process.argv[3]?.toLowerCase().split(',').map((s) => s.trim()).filter(Boolean);
+const SELECTED_CASES = FILTERS ? CASES.filter((c) => FILTERS.some((f) => c.label.toLowerCase().includes(f))) : CASES;
 
 function drain<T>(gen: Generator<unknown, T, void>): T {
   let step = gen.next();
@@ -100,9 +107,9 @@ function measure(base: BaseStats, artifacts: ArtifactDetail[], relic: RelicDetai
   return { foundExplored, foundRank: foundExplored != null && total > 0 ? foundExplored / total : null, totalPairCount: total, yieldCurve };
 }
 
-console.log(`combosOrderMode 'potential' vs 'relevance' — 7 cas réels connus, objective réel, maxMs=${MAX_MS}ms (budget de nœuds adaptatif + escalade réelle, comme en production).\n`);
+console.log(`combosOrderMode 'potential' vs 'relevance' — ${SELECTED_CASES.length}/${CASES.length} cas réel(s)${FILTERS ? ` (filtre: ${FILTERS.join(', ')})` : ''}, objective réel, maxMs=${MAX_MS}ms (budget de nœuds adaptatif + escalade réelle, comme en production).\n`);
 
-for (const c of CASES) {
+for (const c of SELECTED_CASES) {
   const { gear, allRunes, requirement, targetRuneIds } = loadCase(c);
   const target = Array.from(targetRuneIds);
   const potential = measure(gear.base, gear.artifacts, gear.relic, allRunes, requirement, c.objective, target, 'potential');

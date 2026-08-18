@@ -1,4 +1,4 @@
-import { ReactNode, useEffect } from 'react';
+import { ReactNode, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { X } from 'lucide-react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { SOUS_LG, useMediaQuery } from '../hooks/useMediaQuery';
@@ -18,16 +18,20 @@ import { BoutonIcone } from '../ui';
 // contrôles y vivent — pas des copies : la page les rend, le panneau ne fait que
 // les accueillir sous `lg`.
 //
-// ⚠️ **Hauteur FIXE à 80 % de `dvh`**, jamais plein écran. Fixe, et non « suit
-// le contenu » : le panneau est collé en bas et ne peut grandir que vers le
-// HAUT, or un contenu qui s'agrandit (déplier une catégorie, cocher une 4ᵉ
-// propriété) ferait alors remonter d'un coup ce qu'on vient de toucher — la
-// règle générale de l'app l'interdit (spec/shared/design.md). Une hauteur figée
-// tient ce bord en place ; ce qui dépasse se lit en faisant défiler le corps.
-// `dvh` et non `vh` : sur iOS, `vh` vaut la hauteur barre d'adresse dépliée, et
-// le panneau dépassait de l'écran une fois celle-ci repliée. La bande de page
-// visible en haut dit qu'on est toujours sur cette page, et qu'un appui hors du
-// panneau le referme — en plein écran, il passerait pour un changement de page.
+// ⚠️ **Il s'ouvre à la hauteur de son CONTENU, plafonné à 80 % de `dvh`.** Un
+// contenu court ne laisse pas de vide sous lui ; au-delà de 80 %, le corps se
+// met à défiler. `dvh` et non `vh` : sur iOS, `vh` vaut la hauteur barre
+// d'adresse dépliée, et le panneau dépassait de l'écran une fois celle-ci
+// repliée. La bande de page visible en haut dit qu'on est toujours sur cette
+// page, et qu'un appui hors du panneau le referme — en plein écran, il passerait
+// pour un changement de page.
+//
+// ⚠️ **Hauteur mesurée puis FIGÉE à l'ouverture.** Le panneau est collé en bas
+// et ne peut grandir que vers le HAUT : tant que sa hauteur suit le contenu,
+// déplier quoi que ce soit dedans (une catégorie RTA, une 4ᵉ propriété) fait
+// remonter d'un coup ce qu'on vient de toucher — la règle générale l'interdit
+// (spec/shared/design.md). On mesure donc à l'ouverture (bornée par le plafond),
+// on fige, et un contenu qui grandit ensuite se lit en défilant.
 
 export default function MobileSheet({
   ouvert,
@@ -58,6 +62,23 @@ export default function MobileSheet({
   // panneau sur un écran étroit puis d'élargir la fenêtre.
   const sousLg = useMediaQuery(SOUS_LG);
   const visible = ouvert && sousLg;
+
+  // Hauteur mesurée une fois à l'ouverture, puis figée (voir l'en-tête). ⚠️ En
+  // `useLayoutEffect`, avant peinture : en `useEffect`, on voyait le panneau à sa
+  // hauteur naturelle une image avant qu'elle soit figée. Le panneau CENTRÉ n'en
+  // a pas besoin — il grandit autour de son axe et ne porte que des formulaires
+  // courts, sans rien à déplier.
+  const boite = useRef<HTMLDivElement>(null);
+  const [hauteurFigee, setHauteurFigee] = useState<number | null>(null);
+  useLayoutEffect(() => {
+    if (!visible || centre) {
+      setHauteurFigee(null);
+      return;
+    }
+    const el = boite.current;
+    if (el) setHauteurFigee(el.getBoundingClientRect().height);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [visible, centre]);
 
   // La page derrière ne défile plus. ⚠️ Par le hook partagé, jamais à la main :
   // un dialogue peut s'ouvrir PAR-DESSUS ce panneau, et deux composants qui
@@ -100,6 +121,7 @@ export default function MobileSheet({
             role="presentation"
           />
           <motion.div
+            ref={boite}
             role="dialog"
             aria-modal="true"
             aria-label={titre}
@@ -117,14 +139,20 @@ export default function MobileSheet({
             className={`fixed flex flex-col border-border bg-panel lg:hidden ${
               centre
                 ? 'inset-x-3 top-1/2 z-[60] max-h-[80dvh] -translate-y-1/2 rounded-2xl border shadow-glow shadow-black/60'
-                : 'inset-x-0 bottom-0 z-50 h-[80dvh] rounded-t-2xl border-t'
+                : 'inset-x-0 bottom-0 z-50 max-h-[80dvh] rounded-t-2xl border-t'
             }`}
-            // ⚠️ Le panneau montant a une hauteur FIXE (`h-[80dvh]`, dans la
-            // className) : le corps `overflow-y-auto` prend le relais si le
-            // contenu dépasse. Le panneau centré, lui, reste à la taille de son
-            // formulaire, plafonné à `max-h-[80dvh]`.
+            // Panneau montant : hauteur du contenu mesurée puis figée (voir
+            // l'en-tête), plafonnée par `max-h-[80dvh]` ; le corps
+            // `overflow-y-auto` défile au-delà. Centré : taille du formulaire,
+            // même plafond.
             style={
-              centre ? undefined : { paddingBottom: 'env(safe-area-inset-bottom)' }
+              centre
+                ? undefined
+                : {
+                    paddingBottom: 'env(safe-area-inset-bottom)',
+                    // `undefined` au premier rendu : c'est LUI qu'on mesure.
+                    height: hauteurFigee ?? undefined,
+                  }
             }
           >
             {/* Barrette de préhension — la convention des panneaux montants sur

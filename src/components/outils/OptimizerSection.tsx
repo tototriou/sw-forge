@@ -15,6 +15,7 @@ import {
   Layers,
   UserX,
   Ban,
+  SlidersHorizontal,
 } from 'lucide-react';
 import { ArtifactDetail, ARTIFACT_KINDS, RECO_STATS, RuneDetail, Monster, RtaEntry, SiegeTeam } from '../../types';
 import { BoxItem } from '../../lib/applyAccount';
@@ -629,11 +630,21 @@ export default function OptimizerSection({ box, runes, optimizer, allMonsters, r
 
       <div className="rounded-xl border border-border bg-panel p-3">
         <div className="mb-3 flex items-center gap-2">
-          <div className="flex h-6 w-6 flex-none items-center justify-center rounded-md border border-border-soft bg-panel2">
-            <Target size={13} className="text-ink-dim" />
+          {/* Curseurs de réglage, colorés (accent) — plus parlant qu'une
+              cible générique pour « plusieurs critères ajustables », et
+              distinct du `Target` déjà utilisé plus bas pour un réglage
+              précis (« Prioriser les stats les plus difficiles »). */}
+          <div className="flex h-6 w-6 flex-none items-center justify-center rounded-md border border-accent/40 bg-accent-soft">
+            <SlidersHorizontal size={13} className="text-accent" />
           </div>
           <p className="text-[13.5px] font-bold text-ink">Critères de recherche</p>
         </div>
+        {/* ⚠️ `space-y-4` restaure l'espacement entre blocs (Set/Statistique
+            principale/Objectif/Artéfacts/Conditions) — ces blocs comptaient
+            sur le `space-y-5` du CONTENEUR DE PAGE avant leur regroupement
+            dans cette carte ; devenus des enfants directs de la carte, ils
+            en ont hérité aucun espacement propre sans ce wrapper. */}
+        <div className="space-y-4">
       <div
         ref={setPickerSectionRef}
         className={
@@ -658,7 +669,7 @@ export default function OptimizerSection({ box, runes, optimizer, allMonsters, r
       </div>
 
       <div>
-        <div className="mb-1.5 flex items-center gap-1.5">
+        <div className="mb-2.5 flex items-center gap-1.5">
           <p className="label">Statistique principale imposée (slots pairs)</p>
           <HelpPopover title="Statistique principale imposée (slots pairs)">
             Aucune coche sur un slot = pas de contrainte. Pour un{' '}
@@ -694,7 +705,7 @@ export default function OptimizerSection({ box, runes, optimizer, allMonsters, r
       </div>
 
       <div>
-        <div className="mb-1.5 flex items-center gap-1.5">
+        <div className="mb-2.5 flex items-center gap-1.5">
           <p className="label">Objectif de recherche</p>
           <HelpPopover title="Objectif de recherche">
             Élargit la sélection de runes candidates pour ses stats dès le pré-filtrage, avant même de
@@ -708,7 +719,7 @@ export default function OptimizerSection({ box, runes, optimizer, allMonsters, r
       </div>
 
       <div>
-        <div className="flex items-center justify-between mb-1 flex-wrap gap-2">
+        <div className="flex items-center justify-between mb-2 flex-wrap gap-2">
           <div className="flex items-center gap-1.5">
             <p className="label">Artéfacts</p>
             <HelpPopover title="Artéfacts">
@@ -762,7 +773,7 @@ export default function OptimizerSection({ box, runes, optimizer, allMonsters, r
       </div>
 
       <div>
-        <div className="flex items-center justify-between mb-1 flex-wrap gap-2">
+        <div className="flex items-center justify-between mb-2 flex-wrap gap-2">
           <p className="label">Conditions</p>
           <div className="flex items-center gap-1.5">
             <span className="text-[12px] font-semibold text-ink-dim">Stats de base exclues</span>
@@ -874,6 +885,7 @@ export default function OptimizerSection({ box, runes, optimizer, allMonsters, r
           </button>
         </div>
       </div>
+        </div>
       </div>
 
       <div className="rounded-xl border border-border bg-panel p-3">
@@ -1033,7 +1045,7 @@ export default function OptimizerSection({ box, runes, optimizer, allMonsters, r
               du pool considéré, en plus de l'exclusion automatique
               éventuelle. */}
           <div>
-            <div className="mb-1.5 flex items-center gap-1.5">
+            <div className="mb-2.5 flex items-center gap-1.5">
               <UserX size={15} className="text-ink-dim" />
               <span className="text-[12.5px] font-semibold text-ink-dim">Exclure les runes d'un monstre</span>
               <HelpPopover title="Exclure les runes d'un monstre">

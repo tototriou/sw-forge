@@ -43,3 +43,10 @@ sw-account*.json
 # perdu en rendant ce dossier privé : il reste sur le disque, juste plus
 # suivi par git ni poussé vers le dépôt public.
 spec/outils/optimizer/
+
+# Captures du driver run-sw-forge (.claude/skills/run-sw-forge/driver.mjs) —
+# régénérables à tout moment en relançant le driver, et construites à
+# partir d'un VRAI export de compte (voir plus haut) : les stats/runes d'un
+# joueur réel ne doivent pas finir committées juste parce qu'elles sont
+# passées par une capture d'écran plutôt qu'un fichier .json.
+.claude/skills/run-sw-forge/screenshots/

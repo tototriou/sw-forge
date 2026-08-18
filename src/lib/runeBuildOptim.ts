@@ -1382,6 +1382,35 @@ export function* buildBuckets(
         // reparcourir les 3 runes une deuxième fois.
         const counts = haveR01.map((c, k) => c + (r2.set === distinctKeys[k] ? 1 : 0));
         const jokers = (p0.isJoker ? 1 : 0) + (p1.isJoker ? 1 : 0) + (p2.isJoker ? 1 : 0);
+
+        // Élagage EXACT (pas une heuristique) — demi-build MORT pour un set
+        // demandé À PLUS DE 3 PIÈCES (ex. Violent, 4 pièces) : avec
+        // seulement 3 emplacements par moitié, 0 pièce de ce set ICI ne
+        // peut JAMAIS être compensée par l'autre moitié, MÊME avec un
+        // joker — preuve : un joker occupe l'un des 3 emplacements de la
+        // moitié qui le porte, donc si c'est l'AUTRE moitié qui porte le
+        // joker, elle ne peut fournir que 2 pièces réelles du set (pas 3),
+        // soit 2+1(joker)=3 au total, jamais 4. Le joker ne peut compléter
+        // la 4ᵉ pièce QUE s'il est dans la moitié qui a 0 pièce ELLE-MÊME
+        // (elle fournit alors 0+1(joker)=… complété par les 3 pièces
+        // réelles de l'autre moitié = 4 exactement). D'où le repli sur CE
+        // demi-build LUI-MÊME (`jokers`, pas le `jokerCredit` global du
+        // pool entier) — pas un choix conservateur, la SEULE configuration
+        // physiquement possible. Trouvé sur un compte réel (Camilla,
+        // violent 4p + nemesis 2p) — une tranche entière de compartiments à
+        // 0 pièce violent, aucun n'ayant de joker propre, gaspillait tout
+        // son quota de candidats en pairing parallèle faute de pouvoir
+        // s'apparier avec QUOI QUE CE SOIT (voir spec/outils/optimizer/
+        // historique-acceleration-et-outillage.md, « Chantier D »).
+        let demiBuildMort = false;
+        for (let k = 0; k < distinctKeys.length; k++) {
+          if (requiredPieces[k] > 3 && counts[k] === 0 && jokers === 0) {
+            demiBuildMort = true;
+            break;
+          }
+        }
+        if (demiBuildMort) continue;
+
         const pct: Record<string, number> = {};
         const flat: Record<string, number> = {};
         let score = (p0.eff + p1.eff + p2.eff) / 1000;

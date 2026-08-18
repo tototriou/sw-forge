@@ -619,17 +619,24 @@ export function filterSlot(
   // Le meilleur d'un slot sur chaque stat individuellement — voir
   // PER_STAT_KEEP. Budget élargi (PER_STAT_KEEP_OBJECTIVE) pour les stats de
   // l'objectif choisi, s'il y en a un.
+  // ⚠️ Top-K via le tas borné (`heapPush`, déjà utilisé pour la rétention par
+  // compartiment dans `buildBuckets`) au lieu d'un tri complet de tout
+  // `candidates` suivi d'un `.slice()` — même sémantique top-K (les `keepN`
+  // plus grandes valeurs de `c.pct + c.flat` sont gardées), coût ramené de
+  // O(n log n) à O(n log keepN) par stat, `keepN` (6 ou 24) restant petit
+  // devant `n` (jusqu'à plusieurs milliers de runes par slot sur un gros
+  // compte). Un seul passage sur `candidates` par stat, aucun tableau
+  // intermédiaire trié. Voir spec/outils/optimizer/, piste « point 2 —
+  // filterSlot : top-K via le tas ».
   const objectiveKeys = objective ? OBJECTIVE_RELEVANT_STATS[objective] : [];
   for (const k of ALL_STAT_KEYS) {
     const keepN = objectiveKeys.includes(k) ? PER_STAT_KEEP_OBJECTIVE : PER_STAT_KEEP;
-    const top = candidates
-      .map((r) => {
-        const c = runeContribution(r, k);
-        return { r, v: c.pct + c.flat };
-      })
-      .sort((a, b) => b.v - a.v)
-      .slice(0, keepN);
-    for (const { r } of top) kept.set(r.id, r);
+    const heap: ScoredEntry<RuneDetail>[] = [];
+    for (const r of candidates) {
+      const c = runeContribution(r, k);
+      heapPush(heap, { item: r, score: c.pct + c.flat }, keepN);
+    }
+    for (const { item } of heap) kept.set(item.id, item);
   }
 
   return Array.from(kept.values());

@@ -40,6 +40,7 @@ export default function MobileSheet({
   titre,
   centre = false,
   surLesOnglets = false,
+  mesureCle,
   children,
 }: {
   ouvert: boolean;
@@ -56,6 +57,14 @@ export default function MobileSheet({
   // décale de sa hauteur. Son voile, lui, reste sous la barre aussi : il couvre
   // la page et le bouton « Options », pas les onglets.
   surLesOnglets?: boolean;
+  // ⚠️ **Re-mesurer la hauteur quand cette clé change.** La hauteur est figée à
+  // l'ouverture (voir l'en-tête) pour qu'un dépliage interne ne fasse pas
+  // remonter ce qu'on vient de toucher. Mais le panneau de NAVIGATION remplace
+  // tout son contenu quand on descend d'un niveau (les trois inventaires → les
+  // sept vues de Runes) : figée sur le premier, la seconde liste se serait lue
+  // en défilant dans une fenêtre trois fois trop courte. Ce n'est pas un
+  // dépliage — rien de ce qu'on vient de toucher n'est encore là.
+  mesureCle?: string | number;
   // ⚠️ Panneau de SECOND niveau : celui qui s'ouvre DEPUIS un autre panneau (le
   // formulaire de catégorie, ouvert depuis « Options »). Il se pose plus haut
   // dans la pile et son voile est OPAQUE, de sorte qu'il recouvre entièrement
@@ -89,9 +98,16 @@ export default function MobileSheet({
       return;
     }
     const el = boite.current;
-    if (el) setHauteurFigee(el.getBoundingClientRect().height);
+    if (!el) return;
+    // ⚠️ On REND d'abord la hauteur au contenu avant de mesurer. Sans cette
+    // ligne, une re-mesure (`mesureCle`) relèverait la hauteur qu'on a figée au
+    // passage précédent, et le panneau ne changerait plus jamais de taille.
+    // Écrit sur le nœud plutôt que par un rendu intermédiaire : on est en
+    // `useLayoutEffect`, donc avant peinture — rien de tout cela n'est vu.
+    el.style.height = '';
+    setHauteurFigee(el.getBoundingClientRect().height);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [visible, centre]);
+  }, [visible, centre, mesureCle]);
 
   // La page derrière ne défile plus. ⚠️ Par le hook partagé, jamais à la main :
   // un dialogue peut s'ouvrir PAR-DESSUS ce panneau, et deux composants qui

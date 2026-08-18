@@ -642,6 +642,8 @@ export default function App() {
     // choisit, pas l'inventaire.
     groupes: ACCOUNT_SUBS.map((sub) => ({
       titre: sub.label,
+      // Pour le panneau mobile, qui fait choisir l'inventaire AVANT sa vue.
+      icone: <InventaireIcon name={sub.icon} size={17} />,
       liens: VUES_INVENTAIRE[sub.sub].map((v) => ({
         key: `${sub.sub}-${v.key}`,
         label: v.label,

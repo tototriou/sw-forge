@@ -258,7 +258,43 @@ Avant, chaque page à sous-sections portait **ses propres rangées d'onglets** s
 - Ces rangées étaient écrites **page par page**, chacune avec son rendu : deux
   jeux de contrôles à tenir d'accord avec la barre latérale.
 
-Le panneau les remplace toutes :
+Le panneau les remplace toutes.
+
+#### ⚠️ DEUX TEMPS quand la section a des groupes
+
+Sur « Mon compte », on choisit **l'inventaire** (Monstres · Runes · Artéfacts),
+**puis** sa vue.
+
+Les dix destinations ont d'abord été posées **à plat**, groupes et intitulés
+compris — c'est la liste de la barre latérale, qui tient sur un écran de bureau
+de 900 px de haut et **pas** dans un panneau qui s'arrête au tiers de l'écran.
+On y défilait pour trouver, alors que les trois inventaires suffisent à
+s'orienter.
+
+- ⚠️ **Un seul temps quand il n'y a rien à trancher.** « Siège » n'a qu'un
+  groupe, sans intitulé : ses trois vues s'affichent directement. Faire choisir
+  un groupe unique ajoute un geste sans rien donner à décider — la même règle qui
+  laisse « Outils » en simple lien dans la barre d'onglets.
+- ⚠️ **Un groupe à VUE UNIQUE mène directement à elle.** « Monstres » n'a que
+  « Ma box » : il devient un lien, sans chevron. Il garde le libellé du
+  **groupe** — c'est la liste des inventaires qu'on lit, et « Ma box » n'y aurait
+  pas le même sens que ses deux voisins.
+- Le **titre du panneau suit le temps** où l'on est (« Mon compte », puis
+  « Runes ») : c'est la seule chose qui dise ce qu'on est en train de choisir. Le
+  retour, en tête du second temps, ramène au premier **sans refermer**.
+- Le **groupe courant porte le marqueur d'état**, comme les destinations : sans
+  lui, le premier temps ne disait pas dans quel inventaire on se trouve déjà.
+- On repart **toujours du premier temps** à l'ouverture. Rouvrir « Compte » sur
+  les vues de Runes parce qu'on y était la fois d'avant ferait apparaître une
+  liste dont le titre ne dit pas d'où elle sort.
+- ⚠️ La hauteur du panneau est **re-mesurée au changement de temps**
+  (`mesureCle`). Elle est figée à l'ouverture pour qu'un dépliage interne ne
+  fasse pas remonter ce qu'on vient de toucher ; mais ici tout le contenu est
+  **remplacé** — figée sur les trois inventaires, la liste des sept vues se
+  serait lue en défilant dans une fenêtre trois fois trop courte. Ce n'est pas
+  un dépliage : rien de ce qu'on vient de toucher n'est encore là.
+
+Le reste :
 
 - ⚠️ **Alimenté par les mêmes `SidebarSection` que la barre latérale**, pas une
   seconde liste — elle aurait divergé au premier écran ajouté, et le manque

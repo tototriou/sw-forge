@@ -57,6 +57,12 @@ export interface SidebarGroupe {
   // confondait — on cliquait dessus pour ouvrir la liste, alors qu'on voulait
   // juste voir les entrées.
   titre?: string;
+  // Icône du groupe. ⚠️ Sert au panneau mobile, qui fait CHOISIR le groupe
+  // avant sa vue (voir MobileNavSheet) : à ce niveau-là, « Monstres / Runes /
+  // Artéfacts » sont des destinations qu'on vise du pouce, et une liste de mots
+  // nus se parcourt moins vite qu'une liste d'icônes. La barre latérale, elle,
+  // montre les deux niveaux d'un coup et n'en a pas l'usage.
+  icone?: ReactNode;
   liens: SidebarLien[];
 }
 

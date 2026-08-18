@@ -160,6 +160,13 @@ interface SideResult {
     foundMs: number | null;
     totalMs: number;
     truncated: boolean;
+    // ⚠️ Optionnels pour la même raison que `foundCount` — absents sur un
+    // `ref` antérieur à leur ajout au format `RunResult`. Décomposition par
+    // phase (voir perf-battery.ts, `RunResult`) : `buildWallMs` isole la
+    // construction (avant tout appariement), `pairingFoundMs` isole le
+    // temps DANS la phase d'appariement jusqu'au build cible.
+    buildWallMs?: number;
+    pairingFoundMs?: number | null;
   };
 }
 
@@ -216,8 +223,16 @@ async function compareCase(idx: number) {
     const vals = runs.map((r) => r.result.foundMs).filter((v): v is number => v != null);
     return vals.length > 0 ? Math.min(...vals) : null;
   };
-  const newBest = { totalMs: bestTotal(newRuns), foundMs: bestFound(newRuns), foundCount: newRuns[newRuns.length - 1].result.foundCount, found: newRuns.every((r) => r.result.found) };
-  const oldBest = { totalMs: bestTotal(oldRuns), foundMs: bestFound(oldRuns), foundCount: oldRuns[oldRuns.length - 1].result.foundCount, found: oldRuns.every((r) => r.result.found) };
+  const bestBuildWall = (runs: SideResult[]) => {
+    const vals = runs.map((r) => r.result.buildWallMs).filter((v): v is number => v != null);
+    return vals.length > 0 ? Math.min(...vals) : null;
+  };
+  const bestPairingFound = (runs: SideResult[]) => {
+    const vals = runs.map((r) => r.result.pairingFoundMs).filter((v): v is number => v != null);
+    return vals.length > 0 ? Math.min(...vals) : null;
+  };
+  const newBest = { totalMs: bestTotal(newRuns), foundMs: bestFound(newRuns), foundCount: newRuns[newRuns.length - 1].result.foundCount, found: newRuns.every((r) => r.result.found), buildWallMs: bestBuildWall(newRuns), pairingFoundMs: bestPairingFound(newRuns) };
+  const oldBest = { totalMs: bestTotal(oldRuns), foundMs: bestFound(oldRuns), foundCount: oldRuns[oldRuns.length - 1].result.foundCount, found: oldRuns.every((r) => r.result.found), buildWallMs: bestBuildWall(oldRuns), pairingFoundMs: bestPairingFound(oldRuns) };
   const deltaTotal = newBest.totalMs - oldBest.totalMs;
   // ⚠️ `foundCount` peut être ABSENT côté `ancien` si `ref` précède son
   // ajout au format (voir spec/outils/optimizer/) — pas une erreur, juste
@@ -225,10 +240,19 @@ async function compareCase(idx: number) {
   // plutôt que `undefined`/`NaN`.
   const deltaCount = oldBest.foundCount != null && newBest.foundCount != null ? newBest.foundCount - oldBest.foundCount : null;
   const fmtCount = (n: number | undefined) => (n == null ? '—' : String(n));
-  console.log(`  ancien  (${ref})  | trouvé=${oldBest.found ? 'oui' : 'NON'} | compte=${fmtCount(oldBest.foundCount)} | foundMs=${fmtMs(oldBest.foundMs)} | totalMs=${fmtMs(oldBest.totalMs)}`);
-  console.log(`  nouveau (courant) | trouvé=${newBest.found ? 'oui' : 'NON'} | compte=${fmtCount(newBest.foundCount)} | foundMs=${fmtMs(newBest.foundMs)} | totalMs=${fmtMs(newBest.totalMs)}`);
+  const deltaBuildWall = oldBest.buildWallMs != null && newBest.buildWallMs != null ? newBest.buildWallMs - oldBest.buildWallMs : null;
+  console.log(`  ancien  (${ref})  | trouvé=${oldBest.found ? 'oui' : 'NON'} | compte=${fmtCount(oldBest.foundCount)} | foundMs=${fmtMs(oldBest.foundMs)} | totalMs=${fmtMs(oldBest.totalMs)} | buildWallMs=${fmtMs(oldBest.buildWallMs ?? null)} | pairingFoundMs=${fmtMs(oldBest.pairingFoundMs ?? null)}`);
+  console.log(`  nouveau (courant) | trouvé=${newBest.found ? 'oui' : 'NON'} | compte=${fmtCount(newBest.foundCount)} | foundMs=${fmtMs(newBest.foundMs)} | totalMs=${fmtMs(newBest.totalMs)} | buildWallMs=${fmtMs(newBest.buildWallMs ?? null)} | pairingFoundMs=${fmtMs(newBest.pairingFoundMs ?? null)}`);
   const deltaCountStr = deltaCount == null ? '—' : `${deltaCount >= 0 ? '+' : ''}${deltaCount}`;
-  console.log(`  delta             | compte ${deltaCountStr} | total ${deltaTotal >= 0 ? '+' : ''}${fmtMs(Math.abs(deltaTotal))}`);
+  // ⚠️ Le signe doit être écrit EXPLICITEMENT dans les deux cas — `'+'` sur
+  // positif, mais aussi `'-'` sur négatif (pas juste omis, sinon un delta
+  // négatif s'affiche comme un nombre nu indiscernable d'un delta positif
+  // sans signe). Bug vécu : cette ligne (et `total` juste en dessous)
+  // omettaient le `'-'`, rendant plusieurs cas RÉELLEMENT plus rapides
+  // illisibles comme « plus lents de X ms » à la première lecture.
+  const fmtDelta = (d: number) => `${d >= 0 ? '+' : '-'}${fmtMs(Math.abs(d))}`;
+  const deltaBuildWallStr = deltaBuildWall == null ? '—' : fmtDelta(deltaBuildWall);
+  console.log(`  delta             | compte ${deltaCountStr} | total ${fmtDelta(deltaTotal)} | construction ${deltaBuildWallStr}`);
 }
 
 try {

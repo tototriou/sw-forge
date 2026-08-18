@@ -975,9 +975,14 @@ export default function OptimizerSection({ box, runes, optimizer, allMonsters, r
         </div>
         <p className="mb-3 pl-8 text-[11px] text-ink-dim">Deux réglages indépendants, qui se superposent.</p>
 
-        <div className="border-b border-border-soft pb-3">
-          <div className="flex flex-wrap items-center gap-3">
-            <div className="flex items-center gap-1.5">
+        {/* Côte à côte à partir de `sm` (les deux tiennent dans les 768px du
+            conteneur) ; empilés en dessous, comme avant, pour rester
+            praticable sur mobile. Colonne de gauche plus étroite (toggle +
+            3 options) que celle de droite (recherche + liste), pas un
+            50/50 aveugle. */}
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-[minmax(200px,260px)_1fr] sm:gap-5">
+          <div className="sm:border-r sm:border-border-soft sm:pr-5">
+            <div className="flex flex-wrap items-center gap-1.5 mb-2">
               <Layers size={15} className="text-ink-dim" />
               <span className="text-[12.5px] font-semibold text-ink-dim">Exclure les runes déjà utilisées</span>
               <HelpPopover title="Exclure les runes déjà utilisées">
@@ -995,29 +1000,30 @@ export default function OptimizerSection({ box, runes, optimizer, allMonsters, r
               disabled={!excludeUsedRunes}
             />
           </div>
-        </div>
 
-        {/* Exclusion MANUELLE — se superpose à « Exclure les runes déjà
-            utilisées » ci-dessus, ne le remplace pas (voir
-            optimizerExclusion.ts). Choisir un monstre ici, dans n'importe
-            laquelle des 4 sources, retire ses runes ACTUELLEMENT équipées du
-            pool considéré, en plus de l'exclusion automatique éventuelle. */}
-        <div className="pt-3">
-          <div className="mb-1.5 flex items-center gap-1.5">
-            <UserX size={15} className="text-ink-dim" />
-            <span className="text-[12.5px] font-semibold text-ink-dim">Exclure les runes d'un monstre</span>
-            <HelpPopover title="Exclure les runes d'un monstre">
-              Choisis un monstre (box, RTA, siège défense ou offense) pour retirer SES runes actuellement équipées de
-              la recherche — utile pour un build que tu ne veux pas défaire, en plus de{' '}
-              <b className="text-ink">« Exclure les runes déjà utilisées »</b> ci-dessus.
-            </HelpPopover>
+          {/* Exclusion MANUELLE — se superpose à « Exclure les runes déjà
+              utilisées » à gauche, ne la remplace pas (voir
+              optimizerExclusion.ts). Choisir un monstre ici, dans n'importe
+              laquelle des 4 sources, retire ses runes ACTUELLEMENT équipées
+              du pool considéré, en plus de l'exclusion automatique
+              éventuelle. */}
+          <div>
+            <div className="mb-1.5 flex items-center gap-1.5">
+              <UserX size={15} className="text-ink-dim" />
+              <span className="text-[12.5px] font-semibold text-ink-dim">Exclure les runes d'un monstre</span>
+              <HelpPopover title="Exclure les runes d'un monstre">
+                Choisis un monstre (box, RTA, siège défense ou offense) pour retirer SES runes actuellement équipées de
+                la recherche — utile pour un build que tu ne veux pas défaire, en plus de{' '}
+                <b className="text-ink">« Exclure les runes déjà utilisées »</b> à gauche.
+              </HelpPopover>
+            </div>
+            <RuneExclusionPicker
+              data={exclusionData}
+              excludeOwnUnitKey={selectedUnitKey}
+              selected={excludedSelectors}
+              onChange={setExcludedSelectors}
+            />
           </div>
-          <RuneExclusionPicker
-            data={exclusionData}
-            excludeOwnUnitKey={selectedUnitKey}
-            selected={excludedSelectors}
-            onChange={setExcludedSelectors}
-          />
         </div>
       </div>
 

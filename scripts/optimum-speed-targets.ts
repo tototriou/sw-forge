@@ -171,7 +171,18 @@ function exactOptimum(bucketsA: Bucket[], bucketsB: Bucket[], distinctKeys: stri
     }
   }
   if (!anyCompatible) return null;
-  if (!best && anyBudgetExceeded) return 'budget-exceeded';
+  // ⚠️ Conservateur À DESSEIN : dès qu'UN SEUL couple de compartiments a
+  // atteint HEAP_BUDGET (anyBudgetExceeded), le résultat n'est PLUS une
+  // preuve d'optimalité — un autre couple tronqué peut porter un meilleur
+  // effTotal jamais atteint. Avant ce correctif, une troncature partielle
+  // était absorbée en silence dès qu'AU MOINS UN couple avait produit un
+  // résultat (`!best && anyBudgetExceeded` seulement) : un optimum
+  // SOUS-OPTIMAL pouvait être écrit comme vérité terrain sans le signaler
+  // — trouvé par une revue de code externe, voir historique-
+  // dimensionnement.md, « revue de code externe ». Ce script sert de
+  // référence pour valider d'autres mesures : mieux vaut sauter un
+  // scénario incertain que lui faire confiance à tort.
+  if (anyBudgetExceeded) return 'budget-exceeded';
   return best;
 }
 

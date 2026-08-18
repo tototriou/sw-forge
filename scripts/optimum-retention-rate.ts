@@ -249,7 +249,14 @@ function exactOptimum(bucketsA: Bucket[], bucketsB: Bucket[], distinctKeys: stri
     }
   }
   if (!anyCompatible) return null;
-  if (!best && anyBudgetExceeded) return 'budget-exceeded';
+  // ⚠️ Conservateur À DESSEIN (même correctif que optimum-speed-targets.ts,
+  // voir son commentaire) : dès qu'UN SEUL couple de compartiments a
+  // atteint le budget du tas, le résultat n'est plus une preuve
+  // d'optimalité, même si un AUTRE couple a produit un `best` — avant ce
+  // correctif, cette troncature partielle était absorbée en silence
+  // (`!best && anyBudgetExceeded` seulement), un optimum sous-optimal
+  // pouvant être écrit comme vérité terrain sans le signaler.
+  if (anyBudgetExceeded) return 'budget-exceeded';
   return best;
 }
 

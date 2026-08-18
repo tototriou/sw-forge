@@ -120,7 +120,16 @@ export default function MobileNavSheet({
               animate="animate"
               exit="exit"
               transition={COURBE}
-              className="flex flex-col gap-2"
+              // ⚠️ `w-full` sur CHAQUE conteneur empilé de ce panneau. Le corps
+              // du `MobileSheet` porte `data-tiroir`, et index.css y pose
+              // `[data-tiroir] .flex-col { align-items: flex-start }` — une
+              // règle écrite pour les RANGÉES D'ACTIONS, où quatre boutons
+              // pleine largeur auraient le poids d'un menu principal. Elle
+              // s'applique aussi ici, et sans `w-full` elle ramenait la grille
+              // des vues à sa largeur de contenu : une seule colonne de 140 px
+              // au milieu d'un panneau de 543. Ce panneau EST un menu
+              // principal — il reprend donc toute la largeur, explicitement.
+              className="flex w-full flex-col gap-2"
             >
               {groupeCourant ? (
                 /* ── Second temps : les vues du groupe choisi ─────────────── */
@@ -136,7 +145,7 @@ export default function MobileNavSheet({
                     libelle={section.titre}
                     discret
                   />
-                  <nav className={`grid gap-2 ${GRILLE}`} aria-label={`Vues de ${groupeCourant.titre}`}>
+                  <nav className={`grid w-full gap-2 ${GRILLE}`} aria-label={`Vues de ${groupeCourant.titre}`}>
                     {groupeCourant.liens.map((l) => (
                       <Case
                         key={l.key}
@@ -157,7 +166,7 @@ export default function MobileNavSheet({
                    vue, alors qu'ils ne sont pas au même niveau. La grille est
                    réservée au second temps, où les sept vues de Runes doivent
                    tenir sans défiler. */
-                <nav className="flex flex-col gap-2" aria-label={`Sections de ${section.titre}`}>
+                <nav className="flex w-full flex-col gap-2" aria-label={`Sections de ${section.titre}`}>
                   {aDesGroupes
                     ? groupes.map((g) => <EntreeGroupe key={g.titre} groupe={g} onOuvrir={() => setGroupeOuvert(g.titre!)} onFermer={onFermer} />)
                     : groupes.flatMap((g) =>

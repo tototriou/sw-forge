@@ -332,7 +332,14 @@ export const DEFAULT_MAX_MS = 15_000;
 // override doit connaître CETTE valeur précise, pas la redevine/dupliquer en
 // dur (risque de dérive silencieuse si elle change un jour).
 export const MAX_PER_SLOT_MATCH = 40;
-const MAX_PER_SLOT_FILL = 40;
+// ⚠️ Exportée (au lieu de rester privée) uniquement pour que les scripts de
+// mesure (filterslot-topk-diag.ts) important les VRAIES valeurs de
+// production plutôt que de les dupliquer localement — incident vécu : une
+// copie locale à 80/40 (asymétrique, jamais vraie en production) a produit
+// une mesure de divergence qui ne caractérisait pas le vrai comportement de
+// filterSlot (voir historique-dimensionnement.md, « revue de code
+// externe »).
+export const MAX_PER_SLOT_FILL = 40;
 // ⚠️ En plus des deux paquets ci-dessus : le meilleur d'un slot sur CHAQUE
 // stat individuellement, même sans minimum demandé dessus. Sans ça, le
 // pré-filtrage ne retient que ce qui sert les minimums SAISIS — si
@@ -1030,7 +1037,12 @@ export function insertIntoSkyline(skyline: HalfCombo[], combo: HalfCombo, keys: 
 // précis trie — un même demi-build peut être poussé dans plusieurs tas avec
 // des scores différents (voir « Rétention par tranches » plus bas), sans
 // dupliquer ni muter l'objet `HalfCombo` lui-même.
-interface ScoredEntry<T> {
+// ⚠️ Exporté UNIQUEMENT pour que les tests différentiels (voir
+// rune-optim-filterslot-topk.test.ts) puissent appeler `heapPush` RÉELLEMENT
+// utilisé par `filterSlot`/`buildBuckets`, plutôt qu'une réimplémentation
+// locale qui ne détecterait jamais une régression du vrai code (incident
+// vécu : voir historique-dimensionnement.md, « revue de code externe »).
+export interface ScoredEntry<T> {
   item: T;
   score: number;
 }
@@ -1048,7 +1060,7 @@ interface ScoredEntry<T> {
 // chaque insertion/éviction à O(log cap). ⚠️ Le tas n'est PAS trié pendant la
 // construction — le tri final se fait une seule fois, après coup (voir
 // `buildBuckets`), pour ne jamais payer un tri à chaque insertion.
-function heapPush<T>(heap: ScoredEntry<T>[], entry: ScoredEntry<T>, cap: number): void {
+export function heapPush<T>(heap: ScoredEntry<T>[], entry: ScoredEntry<T>, cap: number): void {
   if (heap.length < cap) {
     heap.push(entry);
     let i = heap.length - 1;

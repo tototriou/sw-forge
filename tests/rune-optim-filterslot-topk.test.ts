@@ -5,23 +5,32 @@
 // `.slice()`. Voir spec/outils/optimizer/pistes.md, piste « point 2 —
 // filterSlot : top-K via le tas ».
 //
+// ⚠️ **Version corrigée après une revue de code externe** (voir
+// spec/outils/optimizer/historique-dimensionnement.md, « revue de code
+// externe : le défaut 'relevance' invalidé », point 3) : la version
+// précédente définissait SA PROPRE réimplémentation locale de `heapPush`
+// (array + tri complet à chaque insertion) au lieu d'appeler le vrai
+// `heapPush` de `runeBuildOptim.ts` — un bug dans le VRAI code n'aurait pas
+// fait échouer ce test. `heapPush`/`ScoredEntry` sont maintenant exportés
+// (uniquement pour cet usage) et appelés directement ici.
+//
 // ⚠️ **L'ensemble EXACT des runes gardées peut différer sur une ÉGALITÉ de
-// score** (mesuré via `scripts/filterslot-topk-diag.ts` : ~27 % des
-// scénarios à beaucoup d'égalités, écart moyen ~3 ids, max 10, sur des pools
-// de 10 à 3000 runes) — le tri est stable (garde les premiers du tableau
-// d'origine sur une égalité à la frontière), le tas garde le premier ENTRÉ
-// tant qu'aucune valeur strictement supérieure ne le déloge, ce qui n'est
-// PAS garanti identique. Ce n'est PAS un bug : les deux méthodes gardent par
-// construction les `keepN` PLUS GRANDES VALEURS, seule l'IDENTITÉ précise
-// des runes à égalité parfaite peut varier — des runes interchangeables
-// pour CE critère précis (ex. plusieurs runes à contribution nulle sur une
-// stat qu'aucune ne porte). L'invariant qui compte réellement, et que ce
-// test vérifie : le MULTISET DES VALEURS retenues (triées) est identique
-// entre les deux méthodes — la sélection top-K reste correcte en valeur,
-// peu importe laquelle des runes à égalité est choisie.
+// score** (mesuré via `scripts/filterslot-topk-diag.ts` — voir ce script
+// pour la mise en garde sur les plafonds utilisés) — le tri est stable
+// (garde les premiers du tableau d'origine sur une égalité à la frontière),
+// le tas garde le premier ENTRÉ tant qu'aucune valeur strictement
+// supérieure ne le déloge, ce qui n'est PAS garanti identique. Ce n'est PAS
+// un bug : les deux méthodes gardent par construction les `keepN` PLUS
+// GRANDES VALEURS, seule l'IDENTITÉ précise des runes à égalité parfaite
+// peut varier — des runes interchangeables pour CE critère précis (ex.
+// plusieurs runes à contribution nulle sur une stat qu'aucune ne porte).
+// L'invariant qui compte réellement, et que ce test vérifie : le MULTISET
+// DES VALEURS retenues (triées) est identique entre les deux méthodes — la
+// sélection top-K reste correcte en valeur, peu importe laquelle des runes
+// à égalité est choisie.
 
 import { EffectLine, RuneDetail, StatKey } from '../src/types';
-import { runeContribution } from '../src/lib/runeBuildOptim';
+import { ScoredEntry, heapPush, runeContribution } from '../src/lib/runeBuildOptim';
 import { egal, ok, titre } from './outils';
 
 function mulberry32(seed: number) {
@@ -73,31 +82,19 @@ function topKByFullSort(candidates: RuneDetail[], key: StatKey, keepN: number): 
     .slice(0, keepN);
 }
 
-// Reproduit la nouvelle implémentation (tas borné) — logique identique à
-// celle de `filterSlot`, isolée ici pour comparer le mécanisme seul plutôt
-// que de dépendre du reste de la fonction (matches/scored/offSet, inchangés
-// par ce correctif).
-function heapPush(heap: number[], score: number, cap: number): void {
-  if (heap.length < cap) {
-    heap.push(score);
-    heap.sort((a, b) => a - b); // implémentation de référence, pas la version optimisée
-    return;
-  }
-  if (heap.length === 0 || score <= heap[0]) return;
-  heap[0] = score;
-  heap.sort((a, b) => a - b);
-}
+// Le VRAI mécanisme : le `heapPush` exporté de `runeBuildOptim.ts`, celui
+// que `filterSlot` appelle réellement — plus une réimplémentation locale.
 function topKByHeap(candidates: RuneDetail[], key: StatKey, keepN: number): number[] {
-  const heap: number[] = [];
+  const heap: ScoredEntry<RuneDetail>[] = [];
   for (const r of candidates) {
     const c = runeContribution(r, key);
-    heapPush(heap, c.pct + c.flat, keepN);
+    heapPush(heap, { item: r, score: c.pct + c.flat }, keepN);
   }
-  return [...heap].sort((a, b) => b - a);
+  return heap.map((e) => e.score).sort((a, b) => b - a);
 }
 
 export default function testFilterSlotTopK() {
-  titre('Optimizer · filterSlot — top-K par tas vs tri complet (multiset de valeurs)');
+  titre('Optimizer · filterSlot — top-K par le VRAI tas vs tri complet (multiset de valeurs)');
 
   // Cas manuel : égalité EXACTE à la frontière du top-K. 5 runes à VIT 10,
   // keepN=3 → n'importe quelle sélection de 3 parmi les 5 doit donner le
@@ -110,12 +107,13 @@ export default function testFilterSlotTopK() {
     const byFullSort = topKByFullSort(candidates, 'spd', 3);
     const byHeap = topKByHeap(candidates, 'spd', 3);
     egal(byFullSort, [10, 10, 10], 'référence : 3 des 5 valeurs à égalité (10)');
-    egal(byHeap, byFullSort, 'tas : même multiset de valeurs malgré l’égalité totale');
+    egal(byHeap, byFullSort, 'vrai heapPush : même multiset de valeurs malgré l’égalité totale');
   }
 
   // Test différentiel : jeux aléatoires, seed fixe, plusieurs tailles —
   // l'invariant qui compte (multiset de VALEURS retenues) doit tenir sur
-  // TOUS les scénarios, y compris ceux à beaucoup d'égalités (`sparse`).
+  // TOUS les scénarios, y compris ceux à beaucoup d'égalités (`sparse`),
+  // contre le VRAI `heapPush` de production.
   {
     const SIZES = [5, 10, 25, 80, 300, 1200, 3000];
     const KEEP_NS = [6, 24]; // PER_STAT_KEEP / PER_STAT_KEEP_OBJECTIVE réels
@@ -135,6 +133,6 @@ export default function testFilterSlotTopK() {
       scenarios++;
       if (JSON.stringify(ref) !== JSON.stringify(got)) allIdentical = false;
     }
-    ok(allIdentical, `top-K par tas : multiset de valeurs identique à la référence par tri complet sur ${scenarios} scénarios aléatoires (tailles 5 à 3000, seed fixe)`);
+    ok(allIdentical, `top-K par le VRAI heapPush : multiset de valeurs identique à la référence par tri complet sur ${scenarios} scénarios aléatoires (tailles 5 à 3000, seed fixe)`);
   }
 }

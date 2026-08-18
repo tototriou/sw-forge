@@ -16,7 +16,16 @@
 // Usage : filterslot-topk-diag.ts [scenarios=200] [seed=9000]
 
 import { EffectLine, RuneDetail, StatKey } from '../src/types';
-import { BuildRequirement, Objective, OBJECTIVE_RELEVANT_STATS, filterSlot, relevance, runeContribution } from '../src/lib/runeBuildOptim';
+import {
+  BuildRequirement,
+  MAX_PER_SLOT_FILL,
+  MAX_PER_SLOT_MATCH,
+  Objective,
+  OBJECTIVE_RELEVANT_STATS,
+  filterSlot,
+  relevance,
+  runeContribution,
+} from '../src/lib/runeBuildOptim';
 
 function mulberry32(seed: number) {
   let a = seed;
@@ -73,8 +82,11 @@ const PER_STAT_KEEP_OBJECTIVE = 24;
 const ALL_STAT_KEYS: StatKey[] = ['hp', 'atk', 'def', 'spd', 'cr', 'cd', 'res', 'acc'];
 const FILTER_SLOT_WIDENING_THRESHOLD = 4;
 const FILTER_SLOT_WIDENING_PER_CONDITION = 20;
-const MAX_PER_SLOT_MATCH = 80;
-const MAX_PER_SLOT_FILL = 40;
+// ⚠️ MAX_PER_SLOT_MATCH/MAX_PER_SLOT_FILL importés de runeBuildOptim.ts
+// (pas dupliqués localement) — un ancien copié-collé à 80/40 (asymétrique,
+// jamais vrai en production, où les deux valent 40) avait faussé la mesure
+// de divergence de ce script sans qu'aucune erreur tsc ne le détecte (voir
+// historique-dimensionnement.md, « revue de code externe »).
 
 function filterSlotOld(
   candidates: RuneDetail[],

@@ -189,6 +189,12 @@ endroits où les deux se séparent (voir
   rien d'utile et brouillait le titre par transparence.
 - Le titre et son icône sont **dérivés** des constantes de navigation — jamais
   une table de libellés en plus, qui aurait divergé au premier renommage.
+- ⚠️ **Sur « Mon compte », le titre nomme l'INVENTAIRE courant** (Monstres /
+  Runes / Artéfacts), pas « Mon compte ». Ce dernier faisait **doublon avec la
+  navigation** — l'onglet « Compte » de la barre du bas au doigt, l'en-tête de
+  section de la barre latérale à la souris. Nommer la sous-section apprend **où
+  l'on est** au lieu de répéter le niveau au-dessus. (Siège et Outils ont le même
+  doublon — extension à décider.)
 - ⚠️ `PageHeader` a disparu avec elle : chaque page portait son titre, et les
   garder aurait fait deux fois le même à 60 px d'écart.
 

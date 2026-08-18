@@ -718,14 +718,25 @@ export default function App() {
   // ⚠️ DÉRIVÉ des mêmes constantes que la navigation, jamais une table de plus :
   // une seconde liste de libellés aurait divergé au premier renommage, et le
   // titre aurait annoncé une page qui n'existe plus sous ce nom.
+  //
+  // ⚠️ **Sur « Mon compte », le titre montre l'INVENTAIRE courant** (Monstres /
+  // Runes / Artéfacts), pas « Mon compte » : ce dernier faisait DOUBLON avec la
+  // navigation (l'onglet « Compte » en bas au doigt, l'en-tête de section dans la
+  // barre latérale à la souris). Nommer la sous-section apprend où l'on est.
   const entreeCourante = [...NAV, ARENE_ITEM, ...RESOURCES].find((i) => i.key === route);
+  const compteSub = route === 'compte' ? ACCOUNT_SUBS.find((s) => s.sub === accountSub) : null;
   const titreSection =
+    compteSub?.label ??
     sectionOuverte?.titre ??
     entreeCourante?.label ??
     (route === 'parametres' ? 'Paramètres' : 'SW Forge');
-  const iconeSection = sectionOuverte?.icon ??
+  const iconeSection = compteSub ? (
+    <GameIcon name={compteSub.icon} size={16} />
+  ) : (
+    sectionOuverte?.icon ??
     (entreeCourante ? <entreeCourante.icon size={16} /> : null) ??
-    (route === 'parametres' ? <Settings size={16} /> : null);
+    (route === 'parametres' ? <Settings size={16} /> : null)
+  );
 
   // TOUTES les destinations pour la recherche de navigation — sections ET
   // sous-sections, à plat.

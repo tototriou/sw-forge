@@ -2,6 +2,7 @@ import { useMemo } from 'react';
 import { X } from 'lucide-react';
 import { RuneDetail, RUNE_SETS } from '../../types';
 import RuneIcon from '../RuneIcon';
+import { useMediaQuery, COMPACT } from '../../hooks/useMediaQuery';
 
 // Colorisation DORÉE des symboles de set dans les barres de filtre. Les PNG du
 // jeu sont multicolores : alignés par vingt-cinq ils font une rangée bruyante où
@@ -33,6 +34,9 @@ export default function SetFilter({
   onChange: (next: Set<string>) => void;
   label?: string;
 }) {
+  // Pointeur grossier (téléphone) → icônes de set agrandies pour la visée.
+  const auDoigt = useMediaQuery(COMPACT);
+
   // Seulement les sets réellement présents dans l'inventaire : proposer un
   // filtre qui ne peut rien renvoyer n'aide personne.
   const present = useMemo(() => {
@@ -65,13 +69,14 @@ export default function SetFilter({
               // ⚠️ `data-cible-fine` : la règle tactile globale (40 px) ne
               // s'applique pas à cette GRILLE. Vingt-six sets à 40 px feraient
               // quatre lignes de pastilles avant le premier résultat — la
-              // liste qu'on vient filtrer se retrouvait hors écran.
-              // ⚠️ Elles ne grossissent PAS non plus au doigt : c'est
+              // liste qu'on vient filtrer se retrouvait hors écran. C'est
               // l'ESPACEMENT entre cibles alignées qui évite d'activer le
-              // voisin, pas leur taille. L'icône de set est reconnaissable à
-              // 28 px, c'est ce qui compte ici.
+              // voisin, pas leur taille.
+              // ⚠️ Au DOIGT (`coarse:`), la case passe tout de même à 36 px et
+              // l'icône grossit un peu : 28 px se visaient mal du pouce. À la
+              // souris elles restent compactes.
               data-cible-fine
-              className={`flex items-center justify-center w-7 h-7 rounded-md border transition select-none
+              className={`flex items-center justify-center w-7 h-7 coarse:w-9 coarse:h-9 rounded-md border transition select-none
                 ${
                   // ⚠️ Fond seul (voir spec/shared/design.md). La bordure reste
                   // TRANSPARENTE et non `border`, comme au repos : ces pastilles
@@ -82,7 +87,10 @@ export default function SetFilter({
                     : 'border-transparent opacity-50 hoverable:opacity-100 hoverable:bg-panel2'
                 }`}
             >
-              <RuneIcon setKey={s.key} size={18} filter={OR(active)} />
+              {/* ⚠️ Taille selon le POINTEUR : 24 px au doigt (visée du pouce),
+                  18 px à la souris — la taille est posée en `style` inline par
+                  RuneIcon, donc un `coarse:` en `className` serait ignoré. */}
+              <RuneIcon setKey={s.key} size={auDoigt ? 24 : 18} filter={OR(active)} />
             </button>
           );
         })}

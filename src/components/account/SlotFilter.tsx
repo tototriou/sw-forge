@@ -1,13 +1,14 @@
-import { X } from 'lucide-react';
-
 // Filtre multi-sélection par emplacement de rune (1 → 6).
 //
-// Partagé par Liste, Courbes et Optimisation, comme
-// [SetFilter](SetFilter.tsx) : même grammaire visuelle (hauteur 32 px, même
-// bordure, même bouton « ✕ tout »), pour que les deux filtres se lisent comme
-// une seule barre. Les slots sont **toujours les six** — contrairement aux sets,
-// où l'on ne propose que ceux présents dans l'inventaire : un slot vide reste
-// une information utile (« je n'ai rien en 2 »).
+// Partagé par Liste, Courbes et Optimisation, même grammaire visuelle que
+// [SetFilter](SetFilter.tsx) (hauteur 32 px, même bordure) pour que les deux
+// filtres se lisent comme une seule barre. Les slots sont **toujours les six** —
+// contrairement aux sets, où l'on ne propose que ceux présents dans l'inventaire :
+// un slot vide reste une information utile (« je n'ai rien en 2 »).
+//
+// ⚠️ **Pas de bouton « ✕ tout ».** Six cases se décochent d'un geste, une par
+// une ; un raccourci de remise à zéro n'y gagnait rien et alourdissait la barre
+// (là où il reste utile côté SETS, qui en aligne vingt-cinq).
 const SLOTS = [1, 2, 3, 4, 5, 6];
 
 export default function SlotFilter({
@@ -60,17 +61,6 @@ export default function SlotFilter({
           );
         })}
       </div>
-      {value.size > 0 && (
-        <button
-          onClick={() => onChange(new Set())}
-          title="Effacer le filtre de slots"
-          className="ml-1 flex h-8 items-center gap-1 rounded-md border border-border bg-panel px-2.5
-                     text-micro font-semibold text-ink-dim transition
-                     hoverable:border-fire/60 hoverable:text-fire"
-        >
-          <X size={12} className="flex-none" /> tout
-        </button>
-      )}
     </div>
   );
 }

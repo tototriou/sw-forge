@@ -260,10 +260,13 @@ Concepts partagés par plusieurs pages, documentés une seule fois :
   blanc, Ténèbres = violet. Icônes officielles servies en local depuis
   `public/elements/`. Voir [ElementIcon.tsx](src/components/ElementIcon.tsx).
 - **Icônes d'inventaire** : les trois sous-onglets de « Mon compte » (Monstres,
-  Runes, Artéfacts) portent les **icônes du jeu**, servies en local depuis
-  `public/icons/` — voir [GameIcon.tsx](src/components/GameIcon.tsx). Le bouton
-  de nav « Mon compte », lui, garde une icône de **profil** : il ouvre le compte
-  entier, pas un inventaire en particulier.
+  Runes, Artéfacts) portent des **icônes au trait** dans le style de la librairie
+  (lucide) — les silhouettes du jeu (tête de monstre, hexagone de rune, médaillon
+  d'artéfact) redessinées au contour monochrome (`currentColor`), pour ne pas
+  jurer à côté des icônes de la nav. Voir
+  [InventaireIcon.tsx](src/components/InventaireIcon.tsx). Le bouton de nav « Mon
+  compte », lui, garde une icône de **profil** : il ouvre le compte entier, pas
+  un inventaire en particulier.
 - **Monstres perso** : sur RTA et Siège, l'utilisateur peut créer un monstre
   absent des données (nom, élément, SPD base, lead optionnel). Voir
   [shared/donnees-monstres.md](shared/donnees-monstres.md).

@@ -49,7 +49,7 @@ import {
   storageAvailable,
 } from './hooks/usePersistence';
 import { ConfirmDialog, KeepAccountDialog } from './ui/Dialogs';
-import GameIcon, { GameIconKey } from './components/GameIcon';
+import InventaireIcon, { InventaireIconKey } from './components/InventaireIcon';
 import { ArtifactDetail, CraftLine, Monster, RuneDetail } from './types';
 import { useMonsters } from './hooks/useMonsters';
 import { useCustomMonsters } from './hooks/useCustomMonsters';
@@ -176,12 +176,13 @@ const NAV: NavItem[] = [
 const ARENE_ITEM: NavItem = { key: 'arene', label: 'Arène', icon: Trophy, hash: '#/arene' };
 
 // Sous-sections de « Mon compte » (dropdown de nav).
-// ⚠️ Icônes DU JEU (voir GameIcon), pas des pictogrammes de bibliothèque : un
-// joueur reconnaît ses trois inventaires instantanément à celles-ci.
+// ⚠️ Icônes AU TRAIT dans le style de la librairie (voir InventaireIcon) : les
+// silhouettes du jeu (tête de monstre, rune, médaillon) redessinées au contour
+// monochrome, pour ne pas jurer à côté des icônes lucide de la nav.
 // ⚠️ Plus de `hash` ici : les liens passent par `hashVue`, qui compose
 // `#/compte/<inventaire>/<vue>`. Deux façons d'écrire la même URL auraient
 // divergé — l'une menant à la vue par défaut, l'autre à la vue courante.
-const ACCOUNT_SUBS: { sub: AccountSub; label: string; icon: GameIconKey }[] = [
+const ACCOUNT_SUBS: { sub: AccountSub; label: string; icon: InventaireIconKey }[] = [
   { sub: 'monstres', label: 'Monstres', icon: 'monster' },
   { sub: 'runes', label: 'Runes', icon: 'rune' },
   { sub: 'artefacts', label: 'Artéfacts', icon: 'artifact' },
@@ -735,10 +736,10 @@ export default function App() {
     sectionOuverte?.titre ??
     entreeCourante?.label ??
     (route === 'parametres' ? 'Paramètres' : 'SW Forge');
-  // ⚠️ Icônes de nature différente : DU JEU pour l'inventaire (`GameIcon`),
-  // lucide pour la vue de siège — d'où les deux branches.
+  // ⚠️ Deux branches : l'icône d'inventaire (`InventaireIcon`, au trait comme le
+  // reste) et la vue de siège (lucide) n'ont pas la même API — mais le MÊME style.
   const iconeSection = compteSub ? (
-    <GameIcon name={compteSub.icon} size={16} />
+    <InventaireIcon name={compteSub.icon} size={16} />
   ) : siegeSub ? (
     <siegeSub.icon size={16} />
   ) : (

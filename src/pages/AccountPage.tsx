@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { AnimatePresence } from 'framer-motion';
 import { Search, Copy, Star, CircleUserRound } from 'lucide-react';
-import GameIcon, { GameIconKey } from '../components/GameIcon';
+import InventaireIcon, { InventaireIconKey } from '../components/InventaireIcon';
 import { BoxItem } from '../lib/applyAccount';
 import { ELEMENTS, ElementKey, Monster, RuneDetail, ArtifactDetail, CraftLine } from '../types';
 import { LoadState } from '../hooks/useMonsters';
@@ -29,9 +29,10 @@ import { VUES_INVENTAIRE, hashVue, vueParDefaut } from '../lib/accountViews';
 
 type Sub = 'monstres' | 'runes' | 'artefacts';
 
-// Les trois inventaires. ⚠️ Icônes DU JEU : un joueur les reconnaît
-// instantanément, là où trois pictogrammes de bibliothèque se ressemblent.
-const SOUS_SECTIONS: { sub: Sub; label: string; icon: GameIconKey }[] = [
+// Les trois inventaires. ⚠️ Icônes AU TRAIT (voir InventaireIcon) : les
+// silhouettes du jeu redessinées dans le style de la librairie, pour ne pas
+// jurer à côté des icônes lucide des vues et de la barre d'onglets.
+const SOUS_SECTIONS: { sub: Sub; label: string; icon: InventaireIconKey }[] = [
   { sub: 'monstres', label: 'Monstres', icon: 'monster' },
   { sub: 'runes', label: 'Runes', icon: 'rune' },
   { sub: 'artefacts', label: 'Artéfacts', icon: 'artifact' },
@@ -394,9 +395,9 @@ export default function AccountPage({
     return (
       <div className="mt-10 flex flex-col items-center text-center text-ink-dim">
         <div className="mb-3 flex items-center gap-3 opacity-40">
-          <GameIcon name="monster" size={34} />
-          <GameIcon name="rune" size={34} />
-          <GameIcon name="artifact" size={34} />
+          <InventaireIcon name="monster" size={34} />
+          <InventaireIcon name="rune" size={34} />
+          <InventaireIcon name="artifact" size={34} />
         </div>
         <p className="text-sm">Chargement de ton compte…</p>
       </div>
@@ -408,9 +409,9 @@ export default function AccountPage({
       <div className="mt-10 flex flex-col items-center text-center text-ink-dim">
         {/* Les trois icônes du jeu : l'écran vide annonce ce qu'on va y trouver. */}
         <div className="mb-3 flex items-center gap-3 opacity-70">
-          <GameIcon name="monster" size={34} />
-          <GameIcon name="rune" size={34} />
-          <GameIcon name="artifact" size={34} />
+          <InventaireIcon name="monster" size={34} />
+          <InventaireIcon name="rune" size={34} />
+          <InventaireIcon name="artifact" size={34} />
         </div>
         <p className="text-base font-semibold text-ink">Aucune donnée de compte chargée</p>
         <p className="mt-1 text-sm max-w-sm">
@@ -443,7 +444,7 @@ export default function AccountPage({
                 sub === t.sub ? 'bg-ctx-soft text-ink' : 'text-ink-dim hoverable:text-ink'
               }`}
             >
-              <GameIcon name={t.icon} size={14} /> {t.label}
+              <InventaireIcon name={t.icon} size={14} /> {t.label}
             </a>
           ))}
         </nav>

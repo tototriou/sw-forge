@@ -91,6 +91,47 @@ export default function MonsterDetailDialog({
   // jumeau, et l'en-tête annoncerait une paire qui n'existe pas.
   const jumeauAffiche = forme === monster ? jumeau : null;
 
+  // ⚠️ En-tête rendu par la COQUILLE (icône + titre + sous-titre), et non dans le
+  // corps : c'est la grammaire commune des modales, et c'est elle qui pose la
+  // CROIX avec la même marge que partout. Écrit dans le corps, l'en-tête laissait
+  // la croix flotter seule dans le coin, collée au bord, sans cet écart.
+  const portrait = forme.image ? (
+    <div className="hex-frame relative h-[64px] w-[64px] flex-none overflow-hidden bg-ctx-soft">
+      {/* ⚠️ Le MÊME portrait partagé que sur la carte (`CollabPortrait`), pas une
+          seconde découpe : on vient de cliquer cette carte, et la fiche qui
+          s'ouvre doit montrer la même chose. */}
+      <CollabPortrait monster={forme} jumeau={jumeauAffiche} />
+    </div>
+  ) : undefined;
+
+  // Nom en police d'AFFICHAGE : on garde le cachet « fiche de monstre » que le
+  // titre standard de la coquille (`text-base`) n'aurait pas. Les DEUX noms pour
+  // une paire de collaboration, comme sur la carte — et seulement sur la forme de
+  // base, où le jumeau correspond encore à ce qui est affiché.
+  const nom = (
+    <span className="font-display text-lg tracking-wide">
+      {jumeauAffiche ? libelleCollab(forme.name, jumeauAffiche.name) : forme.name}
+    </span>
+  );
+
+  // Sous-titre : élément, rareté naturelle, 2A, archétype. Un `inline-flex` car la
+  // coquille l'enveloppe d'un `<p>` — un `div` y serait invalide.
+  const meta = (
+    <span className="inline-flex flex-wrap items-center gap-2">
+      <ElementIcon element={forme.element} size={14} />
+      {forme.naturalStars != null && (
+        <span className="inline-flex items-center gap-0.5 font-mono text-star">
+          {forme.naturalStars}
+          <Star size={11} className="fill-current" />
+        </span>
+      )}
+      {forme.secondAwaken && (
+        <span className="rounded bg-ctx-soft px-1.5 py-px font-mono text-micro text-ink">2A</span>
+      )}
+      {detail?.archetype && <span>{detail.archetype}</span>}
+    </span>
+  );
+
   // 820 px : la colonne de gauche en prend 200, il en reste ~600 aux
   // compétences — la largeur qu'elles avaient seules avant la mise en colonnes.
   // Sans cet élargissement, les passer à droite les aurait rétrécies d'un tiers.
@@ -108,44 +149,10 @@ export default function MonsterDetailDialog({
       largeur="max-w-[820px]"
       ctx={forme.element}
       croix
+      icone={portrait}
+      titre={nom}
+      sousTitre={meta}
     >
-      {/* En-tête : portrait, nom, élément, rareté naturelle. */}
-      <div className="mb-3 flex items-start gap-3">
-        {forme.image && (
-          <div className="hex-frame relative h-[64px] w-[64px] flex-none overflow-hidden bg-ctx-soft">
-            {/* ⚠️ Le MÊME portrait partagé que sur la carte (`CollabPortrait`),
-                pas une seconde découpe : on vient de cliquer cette carte, et la
-                fiche qui s'ouvre doit montrer la même chose. */}
-            <CollabPortrait monster={forme} jumeau={jumeauAffiche} />
-          </div>
-        )}
-        <div className="min-w-0 flex-1">
-          {/* Les DEUX noms pour une paire de collaboration, comme sur la carte.
-              ⚠️ Seulement sur la forme de BASE : sur une forme transformée, le
-              jumeau ne correspondrait plus à ce qui est affiché. */}
-          <h2 id="fiche-monstre" className="font-display text-lg tracking-wide text-ink">
-            {jumeauAffiche ? libelleCollab(forme.name, jumeauAffiche.name) : forme.name}
-          </h2>
-          <div className="mt-1 flex flex-wrap items-center gap-2 text-xs text-ink-dim">
-            <span className="inline-flex items-center gap-1">
-              <ElementIcon element={forme.element} size={14} />
-            </span>
-            {forme.naturalStars != null && (
-              <span className="inline-flex items-center gap-0.5 font-mono text-star">
-                {forme.naturalStars}
-                <Star size={11} className="fill-current" />
-              </span>
-            )}
-            {forme.secondAwaken && (
-              <span className="rounded bg-ctx-soft px-1.5 py-px font-mono text-micro text-ink">
-                2A
-              </span>
-            )}
-            {detail?.archetype && <span>{detail.archetype}</span>}
-          </div>
-        </div>
-      </div>
-
       {/* ⚠️ Sélecteur de FORME, pour les monstres transformables. La grille n'en
           montre qu'une carte — les deux entrées sont indistinguables — mais
           leurs compétences DIFFÈRENT : Bellenus voit son S2 passer de 3.0 à

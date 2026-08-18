@@ -287,13 +287,17 @@ export function Modale({
             contenu qui ne PEUT pas s'étirer (une image, une grille à pas fixe)
             se centre — d'où `items-center` sur l'axe transversal. Voir
             `corpsCentre` pour le cas où le contenu doit rester à sa taille.
-            ⚠️ `pt-0` quand un en-tête existe : la bande du dessus a déjà posé
-            son écart, et deux rembourrages consécutifs faisaient un blanc de
-            32 px entre le titre et le premier champ. */}
+            ⚠️ `pt-0` seulement quand un TITRE existe : c'est sa bande qui a déjà
+            posé l'écart du haut, et deux rembourrages consécutifs faisaient un
+            blanc de 32 px entre le titre et le premier champ. Une `croix` SEULE
+            ne compte pas : sa bande est en `h-0` (elle flotte), donc elle ne
+            pose aucun écart — le corps doit garder son rembourrage haut, sinon
+            le contenu colle au bord (la fiche d'un monstre n'avait aucun espace
+            en haut). */}
         {children != null && (
         <div
           className={`flex min-h-0 flex-1 flex-col overflow-y-auto ${padding} ${
-            titre || croix ? 'pt-0' : ''
+            titre ? 'pt-0' : ''
           } ${actions ? 'pb-2' : ''} ${
             // ⚠️ **`items-stretch` explicite, et non un variant arbitraire.**
             // J'avais écrit `[&>*]:w-full` : Tailwind ne l'a JAMAIS émis, parce

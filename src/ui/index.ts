@@ -77,6 +77,13 @@ export type { InterrupteurProps } from './Interrupteur';
 export { default as Vignette } from './Vignette';
 export type { VignetteProps } from './Vignette';
 
+// PASTILLE de filtre : la pilule à deux états d'une rangée de critères (élément,
+// rareté, doublons). ⚠️ Distincte d'un `Bouton actif` — voir le composant : un
+// bouton dit un mode, une pastille pose un filtre et vit en rangée. C'est la
+// brique que `Bouton` annonçait sans qu'elle existe encore.
+export { default as Pastille } from './Pastille';
+export type { PastilleProps } from './Pastille';
+
 // SURFACE rendue cliquable (ligne de carte, poignée de glissement) : un
 // <button> volontairement NU. Voir le composant — la nudité y est la règle, pas
 // un oubli.

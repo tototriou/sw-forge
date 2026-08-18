@@ -212,6 +212,27 @@ découvrir.
 > a la place de dessiner son état, et le mouvement du curseur dit dans quel sens
 > on va.
 
+**`Pastille`** — pilule de filtre à deux états, posée en RANGÉE de critères :
+l'élément, la rareté naturelle, les doublons de la box (les mêmes au Bestiaire).
+On l'enclenche pour restreindre une liste, et plusieurs le sont souvent à la
+fois.
+
+> ⚠️ **Distincte d'un `Bouton actif`.** Un bouton à état signale un MODE ou une
+> option et se lit seul ; une pastille POSE UN FILTRE et se lit en rangée. La
+> forme serrée (pilule `text-xs`) et l'usage (une grille de critères) en font une
+> brique à part — c'est celle que `Bouton` annonçait en tête (« toute pression
+> qui n'est pas une pastille de filtre passe par ici ») avant qu'elle existe.
+
+> ⚠️ **Un seul marqueur d'état, deux schémas jamais mêlés dans une rangée.** Sans
+> `couleurs`, l'état actif prend l'**accent** de l'app — c'est le cas de filtres
+> qui n'ont pas de couleur propre (Nat, Doublons, 2A) : un seul style les
+> rassemble, là où trois surbrillances se liraient comme trois natures de filtre.
+> Avec `couleurs`, l'**appelant porte la teinte** (l'élément a la sienne, un
+> token partagé avec le Bestiaire via `elementStyles.ts`), exactement comme la
+> `teinte` d'une `Vignette` : la couleur est une DONNÉE de l'appelant, jamais une
+> valeur en dur dans la librairie. La bordure colorée reste visible au repos, le
+> fond teinté ne fait que confirmer l'état posé.
+
 **`Option`** — choix riche : icône, titre, description. ⚠️ Distinct de `Bouton`
 parce qu'il **ne se lit pas pareil** : un bouton s'identifie d'un coup d'œil, une
 option se LIT. D'où le texte aligné à gauche et l'icône calée en haut — sur deux

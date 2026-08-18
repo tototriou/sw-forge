@@ -617,20 +617,31 @@ export default function CurveChart({
   //
   // ⚠️ **Sous `lg` seulement.** À la souris, le graphe a déjà la largeur pour
   // laquelle il est dessiné ; un bouton de plus n'y ouvrirait rien de mieux.
-  // ⚠️ **En bas à gauche** : le haut à droite porte déjà le bouton d'aide de
-  // l'onglet Courbes, et le bas à droite est là où la courbe finit — c'est
-  // l'angle le plus souvent occupé par le dessin.
+  // ⚠️ **En bas à DROITE**, sous le bouton d'aide qui occupe le haut du même
+  // bord : les deux commandes du graphe se retrouvent ainsi sur la même
+  // verticale, du côté du pouce, au lieu d'être réparties dans deux angles
+  // opposés.
+  //
+  // ⚠️ **`data-cible-fine` + `cible-tactile` vont ENSEMBLE.** Le premier
+  // exempte de la règle tactile globale (`min-height: 40px` au doigt), qui
+  // aurait étiré ce bouton de 28 px en un ovale de 28 × 40 — le piège que
+  // index.css documente. Le second lui rend ses 44 px de zone touchable par un
+  // pseudo-élément qui déborde : la cible reste réglementaire, le dessin reste
+  // petit. Retirer l'un des deux casse soit la forme, soit la visée.
   const bouton = (
     <button
       type="button"
       onClick={() => setPleinEcran((v) => !v)}
       aria-label={pleinEcran ? 'Quitter le plein écran' : 'Afficher le graphe en plein écran'}
       title={pleinEcran ? 'Quitter le plein écran' : 'Afficher le graphe en plein écran'}
-      className={`absolute bottom-3 left-3 z-10 flex h-10 w-10 items-center justify-center
-                  rounded-full border border-border bg-panel/90 text-ink-dim transition
-                  hoverable:border-accent hoverable:text-ink ${pleinEcran ? '' : 'lg:hidden'}`}
+      data-cible-fine
+      className={`cible-tactile absolute bottom-3 right-3 z-10 flex h-7 w-7 items-center
+                  justify-center rounded-full border border-border bg-panel/90 text-ink-dim
+                  transition hoverable:border-accent hoverable:text-ink ${
+                    pleinEcran ? '' : 'lg:hidden'
+                  }`}
     >
-      {pleinEcran ? <Minimize2 size={18} /> : <Maximize2 size={18} />}
+      {pleinEcran ? <Minimize2 size={14} /> : <Maximize2 size={14} />}
     </button>
   );
 

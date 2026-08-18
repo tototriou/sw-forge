@@ -163,10 +163,18 @@ export default function RunesCurve({ runes }: Props) {
             aria-expanded={showHelp}
             aria-label="Comment lire ce graphe ?"
             title="Comment lire ce graphe ?"
-            className={`flex aspect-square items-center justify-center w-9 h-9 rounded-full border transition
+            // ⚠️ Même gabarit que le bouton de plein écran du graphe (28 px) :
+            // ce sont les deux commandes du même dessin, sur le même bord. Deux
+            // tailles les auraient fait lire comme deux natures de contrôle.
+            // ⚠️ `data-cible-fine` + `cible-tactile` vont ensemble — voir
+            // CurveChart : sans le premier, la règle tactile globale étire le
+            // bouton en ovale de 28 × 40 ; sans le second, la cible tombe sous
+            // les 44 px réglementaires.
+            data-cible-fine
+            className={`cible-tactile flex aspect-square items-center justify-center w-7 h-7 rounded-full border transition
               ${showHelp ? 'bg-accent-soft border-accent text-ink' : 'bg-panel/80 border-border text-ink-dim hoverable:text-ink hoverable:border-accent'}`}
           >
-            <HelpCircle size={20} />
+            <HelpCircle size={14} />
           </button>
           {showHelp && (
             <div

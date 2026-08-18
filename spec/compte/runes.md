@@ -419,10 +419,18 @@ téléphone de 390 px il est donc réduit à **42 %**, et ses graduations écrit
   `pointermove` : le graphe était **muet sur téléphone** alors que tout le code
   d'interaction était là. `pan-y` et non `none` : le défilement **vertical** de
   la page doit continuer de passer, sinon on reste coincé en travers du graphe.
-- **Bouton plein écran**, en bas à gauche du cadre, **sous `lg` seulement** : à
-  la souris, le graphe a déjà la largeur pour laquelle il est dessiné. En bas à
-  *gauche* parce que le haut à droite porte le bouton d'aide et que le bas à
-  droite est là où la courbe finit.
+- **Bouton plein écran**, en bas à **droite** du cadre, **sous `lg` seulement** :
+  à la souris, le graphe a déjà la largeur pour laquelle il est dessiné. Sur le
+  même bord que le bouton d'aide, qui occupe le haut : les deux commandes du
+  graphe se lisent sur une même verticale, du côté du pouce, plutôt que dans
+  deux angles opposés.
+- ⚠️ **Les deux boutons font 28 px, et portent `data-cible-fine` +
+  `cible-tactile` ENSEMBLE.** Le premier exempte de la règle tactile globale
+  (`min-height: 40px` au doigt), qui aurait étiré un bouton de 28 px en **ovale
+  de 28 × 40** — le piège que documente index.css. Le second lui rend ses 44 px
+  de zone touchable par un pseudo-élément qui déborde : la cible reste
+  réglementaire, le dessin reste petit. Retirer l'un des deux casse soit la
+  forme, soit la visée.
 - ⚠️ **On TOURNE le graphe, on ne force pas l'appareil.** Verrouiller
   l'orientation (`screen.orientation.lock`) exige le plein écran natif, que
   Safari iOS n'accorde qu'à la vidéo : le geste aurait marché sur un téléphone

@@ -11,6 +11,8 @@ import Bouton from '../../ui/Bouton';
 import Segmented from '../Segmented';
 import SlotFilter from './SlotFilter';
 import CurveChart, { CurveSeries, OWN_COLOR } from './CurveChart';
+import MobileSheet from '../../ui/MobileSheet';
+import { useMediaQuery, SOUS_LG } from '../../hooks/useMediaQuery';
 
 interface Props {
   runes: RuneDetail[];
@@ -31,18 +33,27 @@ export default function RunesCurve({ runes }: Props) {
   const [gemMode, setGemMode] = useStickyState<'gem' | 'grind'>('runesCurve.gemMode', 'gem');
   const metric = useRuneMetric(); // réglage global : efficience ou score SW
   const [showHelp, setShowHelp] = useState(false);
+  // ⚠️ **Deux supports pour la même aide.** Ce texte fait une demi-page :
+  // ancré à un bouton de 28 px, il descendait sous le bas de l'écran et ses
+  // dernières lignes passaient derrière la barre d'onglets. Le plafonner et le
+  // faire défiler n'a pas suffi — un pavé de texte dans une bulle flottante
+  // reste illisible sur un téléphone. Sous `lg` il devient donc un PANNEAU
+  // MONTANT, le composant que l'app emploie partout ailleurs pour ça.
+  const auDoigt = useMediaQuery(SOUS_LG);
   const helpRef = useRef<HTMLDivElement>(null);
   const withGem = gemMode === 'gem';
 
   // Ferme la popup d'aide au clic à l'extérieur.
+  // ⚠️ Popover SEULEMENT : le panneau montant a son propre voile et sa croix,
+  // et cet écouteur l'aurait refermé au premier appui à l'intérieur.
   useEffect(() => {
-    if (!showHelp) return;
+    if (!showHelp || auDoigt) return;
     const onDown = (e: MouseEvent) => {
       if (helpRef.current && !helpRef.current.contains(e.target as Node)) setShowHelp(false);
     };
     document.addEventListener('mousedown', onDown);
     return () => document.removeEventListener('mousedown', onDown);
-  }, [showHelp]);
+  }, [showHelp, auDoigt]);
 
   function toggleHidden(name: string) {
     setHidden((prev) => {
@@ -97,6 +108,45 @@ export default function RunesCurve({ runes }: Props) {
     { name: 'Potentiel Légend', effs: lim(legend).effs, color: LEGEND_COLOR, own: false },
   ];
   const visible = allSeries.filter((s) => !hidden.has(s.name));
+
+  // Le texte d'aide, écrit UNE fois pour les deux supports.
+  const aide = (
+    <>
+        <p className="text-ink font-semibold mb-1">À quoi sert ce graphe ?</p>
+        <p>
+          Il classe toutes tes runes, de la meilleure à la moins bonne :{' '}
+          <b className="text-ink">l'efficience (%)</b> en hauteur, le{' '}
+          <b className="text-ink">nombre de runes</b> en largeur. Plus les courbes sont{' '}
+          <i>hautes et étalées</i>, meilleure est ta box.
+        </p>
+        <ul className="mt-2 space-y-1.5">
+          <li>
+            <span style={{ color: OWN_COLOR }}>●</span> <b className="text-ink">Actuelle</b> —
+            l'efficience de tes runes aujourd'hui.
+          </li>
+          <li>
+            <span style={{ color: HERO_COLOR }}>●</span> <b className="text-ink">Potentiel Héro</b> — ce
+            que deviendrait ta box si chaque rune recevait sa <b className="text-ink">gemme et ses meules
+            héroïques optimales</b> <span className="text-ink-dim">(tri « Potentiel héroïque » de l'onglet Optimisation)</span>.
+          </li>
+          <li>
+            <span style={{ color: LEGEND_COLOR }}>●</span> <b className="text-ink">Potentiel Légend</b> —
+            la même chose, en <b className="text-ink">légendaire</b>{' '}
+            <span className="text-ink-dim">(tri « Potentiel légendaire »)</span>.
+          </li>
+        </ul>
+        <p className="mt-2">
+          Le sélecteur <b className="text-ink">Gemme + meule / Meule seule</b> change les courbes de
+          potentiel : <b className="text-ink">Gemme + meule</b> = gemme optimale puis meules au max ;{' '}
+          <b className="text-ink">Meule seule</b> = on garde les stats actuelles, seules les meules sont
+          poussées.
+        </p>
+        <p className="mt-2">
+          👉 Va dans l'onglet <b className="text-ink">Optimisation</b> pour voir{' '}
+          <b className="text-ink">quelles runes améliorer</b> et augmenter ton efficience.
+        </p>
+    </>
+  );
 
   return (
     <div>
@@ -182,59 +232,32 @@ export default function RunesCurve({ runes }: Props) {
           >
             <HelpCircle size={14} />
           </button>
-          {showHelp && (
+
+          {/* À la SOURIS : bulle ancrée au bouton. L'écran est haut, le texte
+              tient, et le geste (survol/clic hors zone) est celui d'un
+              popover. */}
+          {showHelp && !auDoigt && (
             <div
-              // ⚠️ **Plafonné et DÉFILANT.** Ce texte fait une demi-page : posé
-              // sans hauteur maximale, il descendait sous le bas de l'écran, et
-              // ses dernières lignes passaient derrière la barre d'onglets —
-              // `z-40` contre le `z-20` d'ici. On ne pouvait donc pas les lire,
-              // et rien ne disait qu'il en restait.
-              // ⚠️ `dvh` et non `vh` : sur iOS, `vh` vaut la hauteur barre
-              // d'adresse DÉPLIÉE, et le plafond ne tenait plus une fois
-              // celle-ci repliée. Même raison que dans `MobileSheet`.
-              // ⚠️ `overscroll-contain` : arrivé en bas du popover, le geste ne
-              // doit pas se propager à la page derrière.
               className="absolute right-0 mt-1.5 max-h-[60dvh] w-[340px] max-w-[88vw] overflow-y-auto
                          overscroll-contain rounded-lg border border-accent bg-panel p-3 text-xs
                          text-ink-dim leading-relaxed shadow-xl shadow-black/50
                          origin-top-right animate-[popover_150ms_var(--ease-out)]"
             >
-              <p className="text-ink font-semibold mb-1">À quoi sert ce graphe ?</p>
-              <p>
-                Il classe toutes tes runes, de la meilleure à la moins bonne :{' '}
-                <b className="text-ink">l'efficience (%)</b> en hauteur, le{' '}
-                <b className="text-ink">nombre de runes</b> en largeur. Plus les courbes sont{' '}
-                <i>hautes et étalées</i>, meilleure est ta box.
-              </p>
-              <ul className="mt-2 space-y-1.5">
-                <li>
-                  <span style={{ color: OWN_COLOR }}>●</span> <b className="text-ink">Actuelle</b> —
-                  l'efficience de tes runes aujourd'hui.
-                </li>
-                <li>
-                  <span style={{ color: HERO_COLOR }}>●</span> <b className="text-ink">Potentiel Héro</b> — ce
-                  que deviendrait ta box si chaque rune recevait sa <b className="text-ink">gemme et ses meules
-                  héroïques optimales</b> <span className="text-ink-dim">(tri « Potentiel héroïque » de l'onglet Optimisation)</span>.
-                </li>
-                <li>
-                  <span style={{ color: LEGEND_COLOR }}>●</span> <b className="text-ink">Potentiel Légend</b> —
-                  la même chose, en <b className="text-ink">légendaire</b>{' '}
-                  <span className="text-ink-dim">(tri « Potentiel légendaire »)</span>.
-                </li>
-              </ul>
-              <p className="mt-2">
-                Le sélecteur <b className="text-ink">Gemme + meule / Meule seule</b> change les courbes de
-                potentiel : <b className="text-ink">Gemme + meule</b> = gemme optimale puis meules au max ;{' '}
-                <b className="text-ink">Meule seule</b> = on garde les stats actuelles, seules les meules sont
-                poussées.
-              </p>
-              <p className="mt-2">
-                👉 Va dans l'onglet <b className="text-ink">Optimisation</b> pour voir{' '}
-                <b className="text-ink">quelles runes améliorer</b> et augmenter ton efficience.
-              </p>
+              {aide}
             </div>
           )}
         </div>
+
+        {/* AU DOIGT : panneau montant. Il monte du bas, se pose AU-DESSUS de la
+            barre d'onglets, occupe toute la largeur et défile — tout ce qui
+            manquait à la bulle. */}
+        <MobileSheet
+          ouvert={showHelp && auDoigt}
+          onFermer={() => setShowHelp(false)}
+          titre="Comment lire ce graphe ?"
+        >
+          <div className="text-xs leading-relaxed text-ink-dim">{aide}</div>
+        </MobileSheet>
 
         <CurveChart
           series={visible}

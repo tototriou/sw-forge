@@ -482,6 +482,25 @@ n'est retiré au reste de l'application.
   revenu à la page sur un graphe montrant cinquante runes sans rien qui dise
   pourquoi.
 
+#### ⚠️ L'aide « Comment lire ce graphe ? » a DEUX supports
+
+Le texte fait une demi-page. Ancré à un bouton de 28 px, il descendait sous le
+bas de l'écran et ses dernières lignes passaient **derrière la barre
+d'onglets** (`z-40` contre le `z-20` du popover). Le plafonner à `60dvh` et le
+faire défiler n'a pas suffi : un pavé de texte dans une bulle flottante reste
+illisible sur un téléphone.
+
+| Format | Support |
+|---|---|
+| **Bureau** | popover ancré au bouton — l'écran est haut, le texte tient, et le geste (clic hors zone) est celui d'un popover |
+| **Téléphone** | **`MobileSheet`** — il monte du bas, se pose au-dessus de la barre d'onglets, prend toute la largeur et défile |
+
+- Le texte est **écrit une fois** et passé aux deux : deux copies auraient
+  divergé à la première correction.
+- ⚠️ L'écouteur de **clic extérieur** ne vaut que pour le popover : le panneau
+  a son propre voile et sa croix, et cet écouteur l'aurait refermé au premier
+  appui à l'intérieur.
+
 #### ⚠️ Pas de panneau « Options » ici — les filtres restent dans la page
 
 Les Courbes portent pourtant les mêmes filtres que la Liste (sets, slots,

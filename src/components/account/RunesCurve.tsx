@@ -229,10 +229,10 @@ export default function RunesCurve({ runes }: Props) {
             aria-expanded={showHelp}
             libelle="Comment lire ce graphe ?"
             icone={<HelpCircle size={14} />}
-            taille="serre"
             cadre
+            forme="pilule"
+            zoneEtendue
             actif={showHelp}
-            className="rounded-full"
           />
 
           {/* À la SOURIS : bulle ancrée au bouton.

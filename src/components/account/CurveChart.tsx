@@ -746,9 +746,10 @@ export default function CurveChart({
       onClick={() => setPleinEcran((v) => !v)}
       libelle={pleinEcran ? 'Quitter le plein écran' : 'Afficher le graphe en plein écran'}
       icone={pleinEcran ? <Minimize2 size={14} /> : <Maximize2 size={14} />}
-      taille="serre"
       cadre
-      className={`absolute bottom-3 right-3 z-10 rounded-full ${pleinEcran ? '' : 'lg:hidden'}`}
+      forme="pilule"
+      zoneEtendue
+      className={`absolute bottom-3 right-3 z-10 ${pleinEcran ? '' : 'lg:hidden'}`}
     />
   );
 

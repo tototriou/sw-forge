@@ -1,5 +1,5 @@
 import { forwardRef, ReactNode } from 'react';
-import Bouton, { FondBouton, TonBouton, TraitBouton } from './Bouton';
+import Bouton, { FondBouton, FormeBouton, TonBouton, TraitBouton } from './Bouton';
 
 // Bouton réduit à son icône : une croix de fermeture, un crayon, une corbeille.
 //
@@ -41,7 +41,26 @@ export interface BoutonIconeProps
   // disparaissait au survol. `fond="plein"` lui rend une icône de contraste.
   fond?: FondBouton;
   trait?: TraitBouton;
+  // ⚠️ **Transmise, alors qu'elle était seulement ANNONCÉE.** L'en-tête dit
+  // depuis toujours que les axes du bouton restent ouverts, `forme` comprise —
+  // elle ne l'était pas, et se déduisait de `taille`. Un bouton d'icône ROND de
+  // taille normale était donc impossible sans réécrire son rayon par-dessus.
+  // Défaut inchangé : `pilule` quand `serre`, `boite` sinon.
+  forme?: FormeBouton;
   actif?: boolean;
+  // ⚠️ **Le dessin reste petit, la CIBLE fait 44 px.**
+  //
+  // Distinct de `serre`, qui exempte de la règle tactile SANS rien rendre :
+  // c'est le bon choix dans une pilule, où deux zones étendues se
+  // chevaucheraient et où l'on activerait le mauvais bouton. Ici l'inverse — un
+  // bouton **isolé**, posé sur une surface (le coin d'un graphe), qu'on veut
+  // discret à l'œil et confortable au doigt.
+  //
+  // Pose les DEUX attributs ensemble, et c'est le point : `data-cible-fine`
+  // seul laisse la cible sous les 44 px réglementaires, `cible-tactile` seul
+  // laisse la règle globale étirer le bouton en ovale (28 × 40). Les séparer
+  // casse soit la visée, soit la forme — d'où un seul axe pour les deux.
+  zoneEtendue?: boolean;
   // Retire l'infobulle NATIVE en gardant l'`aria-label`.
   //
   // ⚠️ Pour un bouton qui ouvre déjà un panneau explicatif au clic : l'infobulle
@@ -68,6 +87,8 @@ const BoutonIcone = forwardRef<HTMLButtonElement, BoutonIconeProps>(function Bou
     cadre = false,
     fond,
     trait,
+    forme,
+    zoneEtendue = false,
     sansInfobulle = false,
     auSurvol = false,
     className = '',
@@ -86,7 +107,7 @@ const BoutonIcone = forwardRef<HTMLButtonElement, BoutonIconeProps>(function Bou
       ton={ton}
       fond={fond ?? (cadre ? 'doux' : 'vide')}
       trait={trait ?? (cadre ? 'plein' : 'aucun')}
-      forme={serre ? 'pilule' : 'boite'}
+      forme={forme ?? (serre ? 'pilule' : 'boite')}
       // ⚠️ Voir `TailleBouton.carre` : la taille `sm` posait un `py-1`, soit 8 px
       // de rembourrage vertical sur une hauteur forcée à 20 px. Il ne restait
       // plus rien pour l'icône — le bouton s'affichait, coloré et cliquable,
@@ -97,10 +118,10 @@ const BoutonIcone = forwardRef<HTMLButtonElement, BoutonIconeProps>(function Bou
       icone={icone}
       // ⚠️ Voir plus haut : `serre` s'exempte de la règle tactile parce que son
       // contenant est plus petit qu'elle, pas parce que 40 px gênait.
-      {...(serre ? { 'data-cible-fine': true } : {})}
+      {...(serre || zoneEtendue ? { 'data-cible-fine': true } : {})}
       // ⚠️ Le voile de survol ne se pose QUE sur un bouton sans fond propre :
       // sur un fond déjà peint, il l'assombrit au lieu de le désigner.
-      className={`${serre ? 'h-5 w-5' : 'h-7 w-7'} ${
+      className={`${serre ? 'h-5 w-5' : 'h-7 w-7'} ${zoneEtendue ? 'cible-tactile' : ''} ${
         cadre || fond ? '' : 'hoverable:bg-black/25'
       } ${apparition} ${className}`}
       {...reste}

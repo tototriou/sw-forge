@@ -180,6 +180,26 @@ type est la seule façon de ne plus avoir à y penser.
   boutons d'une pilule de 28 px). Portés à 40 px ils la débordent ; dotés en plus
   d'une zone étendue de 44 px ils se chevauchent, et **on supprime la catégorie
   en voulant l'éditer**.
+- `zoneEtendue` — **le dessin reste petit, la cible fait 44 px.** C'est
+  l'INVERSE de `serre`, et les deux ne se confondent pas :
+
+  | | `serre` | `zoneEtendue` |
+  |---|---|---|
+  | Pour | un bouton **dans** un contenant plus petit que 40 px | un bouton **isolé**, posé sur une surface |
+  | Dessin | 20 px | inchangé (28 px) |
+  | Zone touchable | celle du dessin | **44 px** |
+  | Pourquoi pas l'autre | une zone étendue chevaucherait le voisin | sans zone étendue, on vise 28 px au pouce |
+
+  ⚠️ Il pose `data-cible-fine` **et** `cible-tactile` **ensemble**, et c'est
+  tout l'intérêt d'en faire un seul axe : le premier seul laisse la cible sous
+  les 44 px réglementaires, le second seul laisse la règle globale étirer le
+  bouton en **ovale de 28 × 40**. Les séparer casse soit la visée, soit la forme
+  — c'est arrivé deux fois avant que l'axe existe.
+- `forme` — **transmise, alors qu'elle était seulement annoncée.** L'en-tête du
+  composant dit depuis toujours que les axes du bouton restent ouverts, `forme`
+  comprise ; elle ne l'était pas, et se déduisait de `taille`. Un bouton d'icône
+  **rond de taille normale** était donc impossible sans réécrire son rayon
+  par-dessus. Défaut inchangé : `pilule` quand `serre`, `boite` sinon.
 - `auSurvol` — n'apparaît qu'au survol du conteneur (qui porte `group`).
   ⚠️ **JAMAIS `hidden group-hover:flex`** : l'élément sortirait du flux, donc ne
   serait ni focusable au clavier ni atteignable au doigt — on ne pouvait plus

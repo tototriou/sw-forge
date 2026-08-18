@@ -13,7 +13,6 @@ import {
   ChevronLeft,
   ChevronRight,
   ChevronDown,
-  User,
   Layers,
   UserX,
 } from 'lucide-react';
@@ -47,6 +46,7 @@ import { buildOptimizerRecipe, parseOptimizerRecipe } from '../../lib/optimizerR
 import { ArtifactMainChoice, OptimizerState, OptimizerSortKey } from '../../hooks/useOptimizerState';
 import { useRuneMetric } from '../../hooks/useRuneMetric';
 import NumberField from '../NumberField';
+import GameIcon from '../GameIcon';
 import MonsterAvatar from '../MonsterAvatar';
 import MonsterGear from '../MonsterGear';
 import Segmented from '../Segmented';
@@ -589,7 +589,7 @@ export default function OptimizerSection({ box, runes, optimizer, allMonsters, r
       <div className="rounded-xl border border-border bg-panel p-3">
         <div className="mb-3 flex items-center gap-2">
           <div className="flex h-6 w-6 flex-none items-center justify-center rounded-md border border-border-soft bg-panel2">
-            <User size={13} className="text-ink-dim" />
+            <GameIcon name="monster" size={15} />
           </div>
           <p className="text-[13.5px] font-bold text-ink">Monstre &amp; équipement</p>
         </div>

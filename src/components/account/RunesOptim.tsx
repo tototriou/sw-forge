@@ -12,6 +12,8 @@ import SetFilter from './SetFilter';
 import SlotFilter from './SlotFilter';
 import NumberField from '../../ui/NumberField';
 import Selecteur from '../../ui/Selecteur';
+import Bouton from '../../ui/Bouton';
+import Segmented from '../Segmented';
 import { FlottantAuto } from '../../ui';
 
 interface Props {
@@ -261,49 +263,36 @@ export default function RunesOptim({ runes, crafts }: Props) {
           </Selecteur>
         </div>
 
-        <div className="flex items-center gap-1 bg-panel border border-border rounded-lg p-0.5">
-          {[
-            { key: 'gem' as const, label: 'Gemme + meule' },
-            { key: 'grind' as const, label: 'Meule seule' },
-          ].map((o) => (
-            <button
-              key={o.key}
-              onClick={() => {
-                setGemMode(o.key);
-                setPage(0);
-              }}
-              title={
-                o.key === 'gem'
-                  ? 'Potentiel avec la gemme optimale + les meules'
-                  : 'Potentiel en gardant les stats actuelles (meules seulement)'
-              }
-              className={`rounded-md px-2.5 py-1 text-xs font-semibold transition
-                ${gemMode === o.key ? 'bg-accent-soft text-ink' : 'text-ink-dim hoverable:text-ink'}`}
-            >
-              {o.label}
-            </button>
-          ))}
-        </div>
+        <Segmented
+          value={gemMode}
+          onChange={(k) => {
+            setGemMode(k);
+            setPage(0);
+          }}
+          options={[
+            {
+              key: 'gem',
+              label: 'Gemme + meule',
+              hint: 'Potentiel avec la gemme optimale + les meules',
+            },
+            {
+              key: 'grind',
+              label: 'Meule seule',
+              hint: 'Potentiel en gardant les stats actuelles (meules seulement)',
+            },
+          ]}
+        />
 
         <div className="flex items-center gap-2">
           <span className="label">Runes</span>
-          <div className="flex items-center gap-1 bg-panel border border-border rounded-lg p-0.5">
-            {ANCIENTS.map((o) => (
-              <button
-                key={o.key}
-                onClick={() => {
-                  setAncient(o.key);
-                  setPage(0);
-                }}
-                title={o.hint}
-                aria-pressed={ancient === o.key}
-                className={`rounded-md px-2.5 py-1 text-xs font-semibold transition
-                  ${ancient === o.key ? 'bg-accent-soft text-ink' : 'text-ink-dim hoverable:text-ink'}`}
-              >
-                {o.label}
-              </button>
-            ))}
-          </div>
+          <Segmented
+            value={ancient}
+            onChange={(k) => {
+              setAncient(k);
+              setPage(0);
+            }}
+            options={ANCIENTS}
+          />
         </div>
 
         {/* ⚠️ Un potentiel de +20 ne vaut rien si la meule qui l'apporte n'est
@@ -312,27 +301,22 @@ export default function RunesOptim({ runes, crafts }: Props) {
             Désactivé sans réserve connue (compte importé avant cette version) :
             un bouton qui viderait la liste sans explication vaut moins qu'un
             bouton grisé qui dit pourquoi. */}
-        <button
+        <Bouton
           onClick={() => {
             setCheckStock((v) => !v);
             setPage(0);
           }}
           disabled={!stockDispo}
-          aria-pressed={verifie}
+          actif={verifie}
+          taille="sm"
           title={
             stockDispo
               ? `Ne garder que les runes applicables avec tes ${stock.total} meules et gemmes en réserve`
               : 'Aucune meule ni gemme dans les données chargées — réimporte ton compte'
           }
-          className={`flex items-center gap-1.5 rounded-lg border px-2.5 py-1.5 text-xs font-semibold transition
-            ${
-              verifie
-                ? 'bg-accent-soft border-accent text-ink'
-                : 'bg-panel border-border text-ink-dim hoverable:text-ink hoverable:border-accent'
-            } disabled:opacity-40 disabled:cursor-not-allowed`}
-        >
-          <PackageCheck size={14} /> Faisable avec ma réserve
-        </button>
+          icone={<PackageCheck size={14} />}
+          libelle="Faisable avec ma réserve"
+        />
 
         {/* Aide : « ? » sur la même ligne, à droite */}
         <div ref={helpRef} className="relative ml-auto">

@@ -7,6 +7,8 @@ import { useStickyState } from '../../hooks/useStickyState';
 import SetFilter from './SetFilter';
 import NumberField from '../../ui/NumberField';
 import Pastille from '../../ui/Pastille';
+import Bouton from '../../ui/Bouton';
+import Segmented from '../Segmented';
 import SlotFilter from './SlotFilter';
 import CurveChart, { CurveSeries, OWN_COLOR } from './CurveChart';
 
@@ -123,26 +125,22 @@ export default function RunesCurve({ runes }: Props) {
       {/* Mode gemme + nombre de runes */}
       <div className="flex items-center justify-between gap-3 flex-wrap mb-3">
         <div className="flex items-center gap-2">
-          <div className="flex items-center gap-1 bg-panel border border-border rounded-lg p-0.5">
-            {[
-              { key: 'gem' as const, label: 'Gemme + meule' },
-              { key: 'grind' as const, label: 'Meule seule' },
-            ].map((o) => (
-              <button
-                key={o.key}
-                onClick={() => setGemMode(o.key)}
-                title={
-                  o.key === 'gem'
-                    ? 'Potentiel avec la gemme optimale + les meules'
-                    : 'Potentiel en gardant les stats actuelles (meules seulement)'
-                }
-                className={`rounded-md px-2.5 py-1 text-xs font-semibold transition
-                  ${gemMode === o.key ? 'bg-accent-soft text-ink' : 'text-ink-dim hoverable:text-ink'}`}
-              >
-                {o.label}
-              </button>
-            ))}
-          </div>
+          <Segmented
+            value={gemMode}
+            onChange={setGemMode}
+            options={[
+              {
+                key: 'gem',
+                label: 'Gemme + meule',
+                hint: 'Potentiel avec la gemme optimale + les meules',
+              },
+              {
+                key: 'grind',
+                label: 'Meule seule',
+                hint: 'Potentiel en gardant les stats actuelles (meules seulement)',
+              },
+            ]}
+          />
           <span className="font-mono text-xs text-ink-dim">
             top {Math.min(cap, total)}
             {total > cap && ` sur ${total}`}
@@ -159,12 +157,7 @@ export default function RunesCurve({ runes }: Props) {
             ariaLabel="Nombre de runes"
             onChange={(v) => setLimit(Math.max(1, v ?? 1))}
           />
-          <button
-            onClick={() => setLimit(total || 1)}
-            className="rounded-lg border border-border bg-panel px-2.5 py-1 text-xs font-semibold text-ink-dim hoverable:text-ink hoverable:border-accent transition"
-          >
-            Tout
-          </button>
+          <Bouton onClick={() => setLimit(total || 1)} taille="sm" libelle="Tout" />
         </div>
       </div>
 

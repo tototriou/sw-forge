@@ -13,6 +13,9 @@ import SetFilter from './SetFilter';
 import SlotFilter from './SlotFilter';
 import NumberField from '../../ui/NumberField';
 import Pastille from '../../ui/Pastille';
+import Bouton from '../../ui/Bouton';
+import BoutonIcone from '../../ui/BoutonIcone';
+import Segmented from '../Segmented';
 
 interface Props {
   runes: RuneDetail[];
@@ -104,40 +107,29 @@ export default function RunesCompare({ runes }: Props) {
   return (
     <div>
       <div className="mb-3 flex items-center gap-2 flex-wrap">
-        <div className="flex items-center gap-1 bg-panel border border-border rounded-lg p-0.5 w-fit">
-          {[
-            { key: 'courbes' as const, icon: LineChart, label: 'Courbes partagées' },
-            { key: 'comptes' as const, icon: Boxes, label: 'Fichiers de compte' },
-          ].map((o) => {
-            const Icon = o.icon;
-            return (
-              <button
-                key={o.key}
-                onClick={() => {
-                  setOnglet(o.key);
-                  setMsg(null);
-                }}
-                className={`flex items-center gap-1.5 rounded-md px-2.5 py-1 text-xs font-semibold transition ${
-                  onglet === o.key
-                    ? 'bg-accent-soft text-ink'
-                    : 'text-ink-dim hoverable:text-ink'
-                }`}
-              >
-                <Icon size={13} /> {o.label}
-              </button>
-            );
-          })}
-        </div>
+        <Segmented
+          value={onglet}
+          onChange={(k) => {
+            setOnglet(k);
+            setMsg(null);
+          }}
+          options={[
+            { key: 'courbes', label: 'Courbes partagées', icon: <LineChart size={13} /> },
+            { key: 'comptes', label: 'Fichiers de compte', icon: <Boxes size={13} /> },
+          ]}
+        />
 
         {importes > 0 && (
-          <button
+          <Bouton
             onClick={() => setRetraitAConfirmer(true)}
             title="Retire uniquement ce qui a été importé ici"
-            className="ml-auto flex items-center gap-1.5 rounded-lg border border-border bg-panel px-3 py-1.5
-                       text-xs font-semibold text-ink-dim transition hoverable:border-fire/60 hoverable:text-fire"
-          >
-            <Trash2 size={14} /> Tout retirer ({importes})
-          </button>
+            ton="danger"
+            fond="vide"
+            taille="sm"
+            icone={<Trash2 size={14} />}
+            libelle={`Tout retirer (${importes})`}
+            className="ml-auto"
+          />
         )}
       </div>
 
@@ -297,12 +289,13 @@ function OngletCourbes({
   return (
     <>
       <div className="flex items-center gap-2 flex-wrap mb-3">
-        <button onClick={handleExport} className={btn}>
-          <Upload size={14} /> Exporter ma courbe
-        </button>
-        <button onClick={() => curveRef.current?.click()} className={btn}>
-          <Download size={14} /> Importer une courbe
-        </button>
+        <Bouton onClick={handleExport} taille="sm" icone={<Upload size={14} />} libelle="Exporter ma courbe" />
+        <Bouton
+          onClick={() => curveRef.current?.click()}
+          taille="sm"
+          icone={<Download size={14} />}
+          libelle="Importer une courbe"
+        />
         <input ref={curveRef} type="file" accept=".json,application/json" onChange={handleFile} className="hidden" />
 
         <div className="ml-auto flex items-center gap-2">
@@ -453,9 +446,12 @@ function OngletComptes({
   return (
     <>
       <div className="flex items-center gap-2 flex-wrap mb-3">
-        <button onClick={() => jsonRef.current?.click()} className={btn}>
-          <FileJson size={14} /> Importer un fichier de compte
-        </button>
+        <Bouton
+          onClick={() => jsonRef.current?.click()}
+          taille="sm"
+          icone={<FileJson size={14} />}
+          libelle="Importer un fichier de compte"
+        />
         <input ref={jsonRef} type="file" accept=".json,application/json" onChange={handleFile} className="hidden" />
         <span className="text-xs text-ink-dim">
           L'export SWEX d'un ami — lu dans la page, jamais envoyé.
@@ -508,10 +504,6 @@ function OngletComptes({
 }
 
 /* ---- Communs -------------------------------------------------------------- */
-
-const btn =
-  'flex items-center gap-1.5 rounded-lg border border-border bg-panel px-3 py-1.5 text-xs ' +
-  'font-semibold text-ink-dim hoverable:text-ink hoverable:border-accent transition';
 
 // Deux courbes homonymes seraient impossibles à distinguer dans la légende.
 function nomLibre(souhaite: string, pris: string[]): string {
@@ -576,13 +568,13 @@ function Graphe({
                 )}
               </button>
               {remove && (
-                <button
+                <BoutonIcone
                   onClick={remove}
-                  className="text-ink-dim hoverable:text-fire transition"
-                  title="Retirer cette courbe"
-                >
-                  <X size={13} />
-                </button>
+                  icone={<X size={13} />}
+                  libelle="Retirer cette courbe"
+                  ton="danger"
+                  taille="serre"
+                />
               )}
             </span>
           );

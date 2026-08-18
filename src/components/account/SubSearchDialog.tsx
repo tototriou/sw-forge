@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Modale } from '../../ui/Dialogs';
-import { BOUTON_PRIMAIRE, BOUTON_SECONDAIRE } from '../buttonStyles';
+import Bouton from '../../ui/Bouton';
 
 // Un critère de recherche : une propriété et son intervalle.
 //
@@ -190,16 +190,18 @@ export default function SubSearchDialog({
         >
           Réinitialiser
         </button>
-        <button onClick={onClose} className={`${BOUTON_SECONDAIRE} ml-auto`}>
-          Annuler
-        </button>
+        <Bouton onClick={onClose} fond="plein" taille="sm" libelle="Annuler" className="ml-auto" />
         {/* ⚠️ PAS d'`autoFocus` ici : le bouton est en bas d'une liste de 40
             propriétés, et le navigateur défile jusqu'à l'élément focalisé —
             la modale s'ouvrait donc tout en bas, sur ses boutons, la liste
             invisible. Le focus initial est posé en tête (voir plus haut). */}
-        <button onClick={() => onValider(brouillon)} className={BOUTON_PRIMAIRE}>
-          OK
-        </button>
+        <Bouton
+          onClick={() => onValider(brouillon)}
+          ton="accent"
+          fond="doux"
+          taille="sm"
+          libelle="OK"
+        />
       </div>
     </Modale>
   );

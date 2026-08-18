@@ -94,7 +94,7 @@ export default function RuneExclusionPicker({ data, excludeOwnUnitKey, selected,
 
   return (
     <div>
-      <Segmented options={SOURCE_OPTIONS} value={activeSource} onChange={setActiveSource} className="mb-2 flex-wrap" />
+      <Segmented options={SOURCE_OPTIONS} value={activeSource} onChange={setActiveSource} className="mb-2" size="lg" />
 
       <div className="relative">
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-ink-dim" />

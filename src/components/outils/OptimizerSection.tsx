@@ -1,7 +1,6 @@
 import { Fragment, useMemo, useRef, useState, useEffect } from 'react';
 import {
   Search,
-  Boxes,
   Square,
   Settings2,
   HelpCircle,
@@ -647,7 +646,14 @@ export default function OptimizerSection({ box, runes, optimizer, allMonsters, r
       </div>
 
       <div>
-        <p className="label mb-1.5">Statistique principale imposée (slots pairs)</p>
+        <div className="mb-1.5 flex items-center gap-1.5">
+          <p className="label">Statistique principale imposée (slots pairs)</p>
+          <HelpPopover title="Statistique principale imposée (slots pairs)">
+            Aucune coche sur un slot = pas de contrainte. Pour un{' '}
+            <b className="text-ink">Lushen</b> classique par exemple : <b className="text-ink">ATQ%</b> en 2,{' '}
+            <b className="text-ink">Dmg Crit</b> en 4, <b className="text-ink">ATQ%</b> en 6.
+          </HelpPopover>
+        </div>
         <div className="flex flex-col gap-1.5">
           {CONFIGURABLE_SLOTS.map((slot) => (
             <div key={slot} className="flex items-center gap-2 flex-wrap">
@@ -673,26 +679,34 @@ export default function OptimizerSection({ box, runes, optimizer, allMonsters, r
             </div>
           ))}
         </div>
-        <p className="mt-1 text-[11px] text-ink-dim">
-          Aucune coche sur un slot = pas de contrainte. Pour un Lushen classique par exemple : ATQ%
-          en 2, Dmg Crit en 4, ATQ% en 6.
-        </p>
       </div>
 
       <div>
-        <p className="label mb-1.5">Objectif de recherche</p>
+        <div className="mb-1.5 flex items-center gap-1.5">
+          <p className="label">Objectif de recherche</p>
+          <HelpPopover title="Objectif de recherche">
+            Élargit la sélection de runes candidates pour ses stats dès le pré-filtrage, avant même de
+            lancer la recherche — les minimums posés ci-dessus restent ce qui décide quels demi-builds
+            sont conservés pendant la recherche elle-même. <b className="text-ink">Dégâts</b> considère{' '}
+            <b className="text-ink">ATQ</b>, <b className="text-ink">Taux Crit</b> et{' '}
+            <b className="text-ink">Dgts Crit</b> ensemble (espérance moyenne).
+          </HelpPopover>
+        </div>
         <Segmented options={OBJECTIVE_LABELS} value={objective} onChange={setObjective} size="lg" />
-        <p className="mt-1 text-[11px] text-ink-dim">
-          Élargit la sélection de runes candidates pour ses stats dès le pré-filtrage, avant même de
-          lancer la recherche — les minimums posés ci-dessus restent ce qui décide quels demi-builds
-          sont conservés pendant la recherche elle-même. Dégâts considère ATQ, Taux Crit et Dgts Crit
-          ensemble (espérance moyenne).
-        </p>
       </div>
 
       <div>
         <div className="flex items-center justify-between mb-1 flex-wrap gap-2">
-          <p className="label">Artéfacts</p>
+          <div className="flex items-center gap-1.5">
+            <p className="label">Artéfacts</p>
+            <HelpPopover title="Artéfacts">
+              <b className="text-ink">« Comme équipé »</b> reprend l'artéfact du build de base (celui affiché
+              ci-dessus) porté à cet emplacement. Choisir une statistique l'hypothèque pour la recherche sans avoir
+              besoin de le posséder — utile si ce monstre porte des artéfacts différents en RTA ou dans un deck de
+              siège, puisque ce build de base n'est pas forcément celui que tu cherches à reproduire ;{' '}
+              <b className="text-ink">« Aucun »</b> retire l'emplacement même s'il est réellement équipé.
+            </HelpPopover>
+          </div>
           <div className="flex items-center gap-1.5">
             <span className="text-[12px] font-semibold text-ink-dim">Ignorer les statistiques des artéfacts</span>
             <HelpPopover title="Ignorer les statistiques des artéfacts">
@@ -733,13 +747,6 @@ export default function OptimizerSection({ box, runes, optimizer, allMonsters, r
             ))}
           </div>
         )}
-        <p className="mt-1 text-[11px] text-ink-dim">
-          « Comme équipé » reprend l'artéfact du build de base (celui affiché ci-dessus) porté à cet
-          emplacement. Choisir une statistique l'hypothèque pour la recherche sans avoir besoin de le
-          posséder — utile si ce monstre porte des artéfacts différents en RTA ou dans un deck de siège,
-          puisque ce build de base n'est pas forcément celui que tu cherches à reproduire ; « Aucun »
-          retire l'emplacement même s'il est réellement équipé.
-        </p>
       </div>
 
       <div>
@@ -968,8 +975,14 @@ export default function OptimizerSection({ box, runes, optimizer, allMonsters, r
           l'un ne remplace l'autre. */}
       <div className="rounded-xl border border-accent/50 bg-panel p-3">
         <div className="mb-0.5 flex items-center gap-2">
-          <div className="flex h-6 w-6 flex-none items-center justify-center rounded-md border border-border-soft bg-panel2">
-            <Boxes size={13} className="text-ink-dim" />
+          {/* Icône « Runes » de Mon compte (même GameIcon que le menu),
+              barrée d'un trait diagonal — l'exclusion RETIRE des runes de la
+              recherche, pas un pictogramme d'inventaire générique. */}
+          <div className="relative flex h-6 w-6 flex-none items-center justify-center rounded-md border border-border-soft bg-panel2">
+            <GameIcon name="rune" size={15} />
+            <span className="pointer-events-none absolute inset-0 flex items-center justify-center">
+              <span className="h-[1.5px] w-[19px] rotate-45 rounded-full bg-bad" />
+            </span>
           </div>
           <p className="text-[13.5px] font-bold text-ink">Exclusion de runes</p>
         </div>
@@ -998,6 +1011,7 @@ export default function OptimizerSection({ box, runes, optimizer, allMonsters, r
               value={excludeUsedScope}
               onChange={setExcludeUsedScope}
               disabled={!excludeUsedRunes}
+              size="lg"
             />
           </div>
 
@@ -1065,7 +1079,7 @@ export default function OptimizerSection({ box, runes, optimizer, allMonsters, r
                      text-ink-dim transition hoverable:text-ink hoverable:border-accent disabled:opacity-40 disabled:cursor-not-allowed"
         >
           <Upload size={14} />
-          Exporter les paramètres
+          Exporter les paramètres de recherche
         </button>
 
         {/* Reprend une recette importée (fichier reçu d'un autre joueur, ou
@@ -1081,7 +1095,7 @@ export default function OptimizerSection({ box, runes, optimizer, allMonsters, r
                      text-ink-dim transition hoverable:text-ink hoverable:border-accent"
         >
           <Download size={14} />
-          Importer les paramètres
+          Importer les paramètres de recherche
         </button>
         <input
           ref={importFileRef}

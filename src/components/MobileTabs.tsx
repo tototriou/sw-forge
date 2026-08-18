@@ -3,6 +3,7 @@ import { SlidersHorizontal } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { Bouton } from '../ui';
 import { useClavierOuvert } from '../hooks/useClavierOuvert';
+import { HAUTEUR_ONGLETS } from '../lib/layout';
 
 // Barre d'onglets du BAS — la navigation sous `lg`.
 //
@@ -93,7 +94,7 @@ export default function MobileTabs({
                      hoverable:border-ctx lg:hidden"
           // ⚠️ Décalé de la hauteur de la barre d'onglets PLUS l'encoche du bas :
           // sans `env()`, il se pose sur les onglets des iPhone récents.
-          style={{ bottom: 'calc(env(safe-area-inset-bottom) + 68px)' }}
+          style={{ bottom: `calc(env(safe-area-inset-bottom) + ${HAUTEUR_ONGLETS + 16}px)` }}
         />
       )}
 

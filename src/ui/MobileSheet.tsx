@@ -4,6 +4,7 @@ import { AnimatePresence, motion } from 'framer-motion';
 import { SOUS_LG, useMediaQuery } from '../hooks/useMediaQuery';
 import { useScrollBloque } from '../hooks/useScrollBloque';
 import { BoutonIcone } from '../ui';
+import { HAUTEUR_ONGLETS } from '../lib/layout';
 
 // Panneau d'actions MOBILE : les filtres et les actions de la page courante.
 //
@@ -38,11 +39,23 @@ export default function MobileSheet({
   onFermer,
   titre,
   centre = false,
+  surLesOnglets = false,
   children,
 }: {
   ouvert: boolean;
   onFermer: () => void;
   titre: string;
+  // ⚠️ **Le panneau se pose AU-DESSUS de la barre d'onglets au lieu de la
+  // recouvrir.** C'est l'inverse du défaut, et pour une raison précise : le
+  // panneau par défaut porte des ACTIONS, et la barre mène ailleurs — la
+  // laisser dépasser inviterait à quitter la page au milieu d'un réglage. Un
+  // panneau de NAVIGATION, lui, EST la barre : la masquer retirerait de l'écran
+  // la section où l'on est et le moyen d'en changer, au moment même où l'on
+  // navigue.
+  // Il passe donc SOUS elle dans la pile (`z-[35]` contre son `z-40`) et se
+  // décale de sa hauteur. Son voile, lui, reste sous la barre aussi : il couvre
+  // la page et le bouton « Options », pas les onglets.
+  surLesOnglets?: boolean;
   // ⚠️ Panneau de SECOND niveau : celui qui s'ouvre DEPUIS un autre panneau (le
   // formulaire de catégorie, ouvert depuis « Options »). Il se pose plus haut
   // dans la pile et son voile est OPAQUE, de sorte qu'il recouvre entièrement
@@ -111,7 +124,11 @@ export default function MobileSheet({
         <>
           <motion.div
             className={`fixed inset-0 lg:hidden ${
-              centre ? 'z-[60] bg-bg/95' : 'z-50 bg-bg/70'
+              centre
+                ? 'z-[60] bg-bg/95'
+                : surLesOnglets
+                  ? 'z-30 bg-bg/70'
+                  : 'z-50 bg-bg/70'
             }`}
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
@@ -123,7 +140,12 @@ export default function MobileSheet({
           <motion.div
             ref={boite}
             role="dialog"
-            aria-modal="true"
+            // ⚠️ **Pas `aria-modal` quand la barre d'onglets reste utilisable.**
+            // L'attribut annonce que TOUT le reste de la page est inerte ; ici
+            // les onglets restent au-dessus du voile et cliquables, et un
+            // lecteur d'écran aurait masqué la seule chose qu'on a
+            // délibérément laissée visible.
+            aria-modal={surLesOnglets ? undefined : true}
             aria-label={titre}
             // Le panneau de second niveau ne monte pas du bas : il paraît au
             // centre, comme une boîte de dialogue. Le glissement dit « je viens
@@ -139,7 +161,13 @@ export default function MobileSheet({
             className={`fixed flex flex-col border-border bg-panel lg:hidden ${
               centre
                 ? 'inset-x-3 top-1/2 z-[60] max-h-[80dvh] -translate-y-1/2 rounded-2xl border shadow-glow shadow-black/60'
-                : 'inset-x-0 bottom-0 z-50 max-h-[80dvh] rounded-t-2xl border-t'
+                : surLesOnglets
+                  ? // ⚠️ `bottom` en `style` (voir plus bas), pas `bottom-0` :
+                    // il se cale sur la hauteur de la barre d'onglets. Et
+                    // `z-[35]`, donc SOUS elle (`z-40`) mais au-dessus de son
+                    // propre voile (`z-30`).
+                    'inset-x-0 z-[35] max-h-[70dvh] rounded-t-2xl border-t'
+                  : 'inset-x-0 bottom-0 z-50 max-h-[80dvh] rounded-t-2xl border-t'
             }`}
             // Panneau montant : hauteur du contenu mesurée puis figée (voir
             // l'en-tête), plafonnée par `max-h-[80dvh]` ; le corps
@@ -149,7 +177,14 @@ export default function MobileSheet({
               centre
                 ? undefined
                 : {
-                    paddingBottom: 'env(safe-area-inset-bottom)',
+                    // ⚠️ Posé au-dessus des onglets, le panneau ne touche plus
+                    // le bord de l'écran : c'est la BARRE qui absorbe l'encoche,
+                    // et un rembourrage ici ajouterait une bande vide de plus.
+                    ...(surLesOnglets
+                      ? {
+                          bottom: `calc(env(safe-area-inset-bottom) + ${HAUTEUR_ONGLETS}px)`,
+                        }
+                      : { paddingBottom: 'env(safe-area-inset-bottom)' }),
                     // `undefined` au premier rendu : c'est LUI qu'on mesure.
                     height: hauteurFigee ?? undefined,
                   }

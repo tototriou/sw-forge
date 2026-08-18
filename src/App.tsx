@@ -922,7 +922,14 @@ export default function App() {
 
       <MobileTabs
         onglets={ongletsMobile}
-        onOuvrirSection={setNavMobileOuverte}
+        // ⚠️ **BASCULE, pas ouverture.** Retoucher l'onglet déjà ouvert le
+        // referme. Le geste qui ouvre doit pouvoir défaire ce qu'il vient de
+        // faire : sans ça, on ouvrait « Compte » par erreur et il fallait viser
+        // la croix ou le voile pour en sortir — deux cibles ailleurs sur
+        // l'écran, alors que le doigt est encore sur l'onglet.
+        onOuvrirSection={(titre) =>
+          setNavMobileOuverte((cur) => (cur === titre ? null : titre))
+        }
         sectionOuverte={navMobileOuverte}
         onOuvrirActions={
           pageAPanneau ? () => setMenuPageOuvert(true) : undefined

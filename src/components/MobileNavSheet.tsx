@@ -34,6 +34,14 @@ export default function MobileNavSheet({
       ouvert={section !== null}
       onFermer={onFermer}
       titre={section?.titre ?? ''}
+      // ⚠️ **La barre d'onglets reste visible sous le panneau.** Le panneau
+      // d'actions la recouvre à dessein — elle mène ailleurs, or on règle la
+      // page où l'on est. Ici c'est l'inverse : ce panneau EST la navigation.
+      // La masquer retirerait de l'écran la section où l'on se trouve et le
+      // moyen d'en changer, au moment précis où l'on navigue — et le
+      // déclencheur qu'on vient de toucher disparaîtrait sous son propre
+      // résultat.
+      surLesOnglets
     >
       {section && (
         <nav className="flex flex-col gap-0.5" aria-label={`Vues de ${section.titre}`}>

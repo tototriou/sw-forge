@@ -271,6 +271,28 @@ Le panneau les remplace toutes :
   barre latérale.
 - ⚠️ **« Outils » reste un LIEN** : une seule sous-section. Un panneau pour un
   seul choix ajoute un geste sans rien donner à décider.
+- ⚠️ **La barre d'onglets RESTE VISIBLE sous le panneau** — l'inverse du panneau
+  d'actions, qui la recouvre à dessein (`z-50` contre son `z-40`) parce qu'elle
+  mène ailleurs alors qu'on règle la page où l'on est. Ici le panneau **est** la
+  navigation : la masquer retirerait de l'écran la section où l'on se trouve et
+  le moyen d'en changer, au moment précis où l'on navigue — et le déclencheur
+  qu'on vient de toucher disparaîtrait sous son propre résultat. D'où la
+  variante `surLesOnglets` de `MobileSheet` : panneau en `z-[35]`, voile en
+  `z-30`, tous deux **sous** les onglets, et le panneau décalé de leur hauteur.
+  - ⚠️ **Pas d'`aria-modal` dans cette variante.** L'attribut annonce que tout
+    le reste de la page est inerte ; les onglets, eux, restent cliquables — un
+    lecteur d'écran aurait masqué la seule chose qu'on laisse délibérément
+    visible.
+  - La hauteur des onglets vit dans [layout.ts](src/lib/layout.ts), pas dans
+    `MobileTabs` : trois pièces la lisent, et la déclarer dans le composant
+    forçait `src/ui/` à importer `src/components/` — un **cycle**, puisque
+    `MobileTabs` importe déjà la librairie. La librairie est la couche du
+    dessous, elle ne connaît pas les écrans.
+- ⚠️ **Retoucher l'onglet déjà ouvert REFERME le panneau.** Le geste qui ouvre
+  doit pouvoir défaire ce qu'il vient de faire : sans la bascule, on ouvrait
+  « Compte » par erreur et il fallait viser la croix ou le voile pour en sortir
+  — deux cibles ailleurs sur l'écran, alors que le doigt est encore sur
+  l'onglet.
 - Le panneau se ferme au **choix d'une destination**, et aussi à tout changement
   de route (retour arrière, lien depuis l'accueil, recherche de navigation) —
   sinon il restait ouvert par-dessus l'écran qu'on vient d'atteindre.

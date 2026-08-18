@@ -165,11 +165,70 @@ en parcourant 2 000 runes.
 - **Bonus de set** en pied, comme dans le jeu.
 - ⚠️ **Plus de popover au clic** : il n'aurait rien montré de plus, tout étant
   déjà sur la tuile. Le clic sert désormais à basculer détail ↔ total.
-- Grille à **215 px** : c'est la largeur en dessous de laquelle la bannière de
+
+#### ⚠️ Deux grilles, une par format
+
+| Format | Grille | Tuile |
+|---|---|---|
+| **Bureau** (`lg` et au-delà) | `auto-fill` à **215 px** | carte entière |
+| **Téléphone** (sous `lg`) | **deux colonnes fixes** | rendu **étroit** |
+
+- Le **215 px** du bureau est la largeur en dessous de laquelle la bannière de
   rareté passe **sous** la stat principale — chaque tuile gagne alors une ligne,
   l'inverse du but. En mode compact, la bannière perd son espacement de lettres
   et se resserre **justement pour descendre jusque-là** : c'est elle qui dictait
   la largeur minimale de toute la grille.
+- ⚠️ **Sur téléphone, `auto-fill` ne pouvait pas donner deux colonnes** : à
+  390 px d'écran il reste ~358 px utiles, soit moins que deux fois 215 px, et il
+  retombait donc toujours sur **une seule rune par rangée** — un défilement
+  interminable sur 3 000 runes. D'où deux colonnes **fixes**, et non un seuil de
+  plus.
+
+#### Le rendu ÉTROIT — le seul endroit où la carte montre moins
+
+À deux colonnes, la tuile tombe à **~175 px** (159 px de contenu). L'en-tête y
+tient sur une ligne : icône 36 px + stat principale + bloc rareté/mesure. Trois
+retraits, et trois seulement — chacun rendu nécessaire par le précédent :
+
+1. **La bannière prend son abréviation** (`RARITY_META.court` — « Lég », « Hér »,
+   « Rare », « Mag », « Com »). ⚠️ **Le seul libellé du jeu abrégé de toute
+   l'app** ; le mot entier reste en `title`. « LÉGENDAIRE » seul prenait la
+   moitié de la largeur utile.
+2. **La mesure abrège son libellé** — « Effi » / « Score », le début du mot
+   entier et non un autre mot. « Score SW » dictait la largeur du bloc de droite
+   (~66 px contre ~47 px pour la bannière abrégée). ⚠️ **Le libellé est gardé,
+   pas supprimé** : la mesure est un réglage *global*, elle ne se lit nulle part
+   ailleurs sur la page, et une valeur nue ne dirait pas ce qu'on mesure.
+3. **Le bonus de set n'est pas rendu.** C'est la ligne la plus longue de la carte
+   (« Chance de tour supplémentaire 22% »), et la seule qui se **déduit
+   d'ailleurs** : le symbole de set est déjà porté par l'icône.
+
+Et deux ajustements, qui ne sont pas des retraits :
+
+- Le **cadre de rune passe de 36 à 30 px**. ⚠️ **Pas en dessous de 30** : le
+  symbole de set gravé dans le cadre cesse alors de se reconnaître, or c'est lui
+  qui dit à quel set appartient la rune — l'abréviation de rareté ne le dit pas,
+  et le bonus de set n'est plus là.
+- **Chaque texte de l'en-tête descend d'un cran** : stat principale `sm → xs`,
+  innée et mesure `micro → nano`. C'est ce qui permet de **garder** le libellé de
+  la mesure plutôt que de le supprimer. ⚠️ La hiérarchie ne bouge pas — la
+  principale reste en `font-black`, l'innée en `water`, la valeur en `star` :
+  seule la taille change.
+
+| | Bureau | Étroit |
+|---|---|---|
+| Cadre de rune | 36 px | **30 px** |
+| Stat principale | `sm` (13 px) | **`xs`** (12 px) |
+| Innée | `micro` (11 px) | **`nano`** (10 px) |
+| Mesure | `micro`, « Score SW » | **`nano`**, « Score » |
+| Bannière | « LÉGENDAIRE » | « LÉG » |
+| Bonus de set | en pied | — |
+
+⚠️ **`etroit` et `resserre` sont deux axes distincts, qui se cumulent.**
+`resserre` rogne les corps, les marges et les interlignes — il ne retire jamais
+rien. `etroit` retire. Confondre les deux aurait fait disparaître le bonus de set
+partout où la carte est déjà compacte (siège, prépa RTA), où la place ne manque
+pas.
 > La même carte sert **en popover** ailleurs dans l'app (détail d'un monstre,
 > candidat de l'Optimizer) : elle y est rendue **sans `compact`** et sans image,
 > celle-ci étant déjà sur l'élément qui a ouvert le flottant.

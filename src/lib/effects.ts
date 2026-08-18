@@ -127,12 +127,17 @@ export const RELIC_MAIN: Record<number, { label: string; stat: StatKey }> = {
 //     illisible.
 // D'où `color` (bannière, fixe) et `ink` (texte, variable de thème). Les valeurs
 // claires vivent dans index.css. Voir spec/shared/design.md.
+// ⚠️ `court` : l'abréviation de la bannière, réservée aux tuiles TROP ÉTROITES
+// pour le mot entier — la liste de runes à deux colonnes sur téléphone, où
+// « LÉGENDAIRE » à lui seul mangeait la moitié de la largeur utile. Partout
+// ailleurs c'est `label`, le mot du jeu. Le mot entier reste en `title`.
 export const RARITY_META: Record<
   number,
-  { label: string; color: string; bg: string; ink: string }
+  { label: string; court: string; color: string; bg: string; ink: string }
 > = {
   5: {
     label: 'Légendaire',
+    court: 'Lég',
     color: '#f8b24a',
     bg: 'linear-gradient(180deg,#7a2a1c,#431310)',
     ink: 'rgb(var(--rarity-5))',
@@ -146,24 +151,28 @@ export const RARITY_META: Record<
   // L'héroïque garde son violet : essayé en #691d42, le rendu ne passait pas.
   4: {
     label: 'Héroïque',
+    court: 'Hér',
     color: '#c88cff',
     bg: 'linear-gradient(180deg,#3f2270,#241145)',
     ink: 'rgb(var(--rarity-4))',
   },
   3: {
     label: 'Rare',
+    court: 'Rare',
     color: '#6fa3cf',
     bg: 'linear-gradient(180deg,#154c79,#0d2c47)',
     ink: 'rgb(var(--rarity-3))',
   },
   2: {
     label: 'Magique',
+    court: 'Mag',
     color: '#7cf0a6',
     bg: 'linear-gradient(180deg,#1f5a39,#0f3121)',
     ink: 'rgb(var(--rarity-2))',
   },
   1: {
     label: 'Commun',
+    court: 'Com',
     color: '#e6e6e6',
     bg: 'linear-gradient(180deg,#4a4a4a,#2a2a2a)',
     ink: 'rgb(var(--rarity-1))',

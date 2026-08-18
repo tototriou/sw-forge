@@ -39,6 +39,9 @@ import { ZoneCliquable } from '../ui';
 
 export interface RareteAffichee {
   label: string;
+  // Abréviation posée à la place du mot entier en rendu ÉTROIT (voir `etroit`).
+  // Absente, le mot entier est gardé — c'est le cas de l'artéfact.
+  labelCourt?: string;
   bg: string;
   color: string;
   // Marque posée avant le libellé — la marque « Antique » d'une rune.
@@ -48,6 +51,10 @@ export interface RareteAffichee {
 
 export interface MesureAffichee {
   libelle: string;
+  // Libellé court du rendu ÉTROIT (« Score », « Effi »). ⚠️ Le libellé RESTE
+  // affiché : sans lui, la valeur seule ne dit pas ce qu'on mesure, et la
+  // mesure est un réglage global qu'on ne voit nulle part ailleurs sur la page.
+  libelleCourt?: string;
   valeur: string;
   hint?: string;
 }
@@ -61,6 +68,7 @@ export function PieceDetailBox({
   lignes,
   pied,
   resserre,
+  etroit = false,
   onClick,
   ariaPressed,
   title,
@@ -82,6 +90,20 @@ export function PieceDetailBox({
   // reste le même — c'est la carte du jeu, et elle vaut d'être lue entière ;
   // seule la place qu'elle prend change.
   resserre: boolean;
+  // ⚠️ **Rendu ÉTROIT — le seul endroit où la carte MONTRE MOINS.** Réservé aux
+  // colonnes trop fines pour l'en-tête sur une ligne : la liste de runes à deux
+  // colonnes sur téléphone, où chaque tuile tombe à ~175 px. À cette largeur,
+  // « LÉGENDAIRE » et « Score SW 293 » laissaient une trentaine de pixels à la
+  // stat principale — la carte se disloquait.
+  // Deux retraits, et deux seulement :
+  //   - la bannière prend son abréviation (`labelCourt`), le mot entier restant
+  //     en `title` ;
+  //   - le PIED (bonus de set) n'est pas rendu : c'est la ligne la plus longue
+  //     de la carte (« Chance de tour supplémentaire 22% »), la seule qui se
+  //     déduit du symbole de set déjà porté par l'icône.
+  // ⚠️ `resserre` ne suffisait pas : il rogne les corps et les marges, il ne
+  // retire jamais rien. Les deux axes sont distincts et se cumulent.
+  etroit?: boolean;
   onClick?: (e: React.MouseEvent<HTMLElement>) => void;
   ariaPressed?: boolean;
   title?: string;
@@ -124,14 +146,24 @@ export function PieceDetailBox({
           pour elles. */}
       <div className="flex items-start gap-2">
         {icone}
+        {/* ⚠️ En rendu ÉTROIT, la stat principale et l'innée descendent chacune
+            d'un cran (`xs` et `nano`). C'est le dernier réglage de l'en-tête à
+            deux colonnes : « Taux Crit +58% » en `sm` passait encore sur deux
+            lignes une fois la largeur partagée avec le cadre et le bloc de
+            droite. La principale reste en `font-black` et l'innée en `water` —
+            leur HIÉRARCHIE ne bouge pas, seule leur taille. */}
         <div className="min-w-0 flex-1">
-          <div className={`font-black leading-tight text-ink ${resserre ? 'text-sm' : 'text-base'}`}>
+          <div
+            className={`font-black leading-tight text-ink ${
+              resserre ? (etroit ? 'text-xs' : 'text-sm') : 'text-base'
+            }`}
+          >
             {principale}
           </div>
           {secondaire && (
             <div
               className={`font-semibold leading-tight text-water ${
-                resserre ? 'text-micro' : 'text-sm'
+                resserre ? (etroit ? 'text-nano' : 'text-micro') : 'text-sm'
               }`}
             >
               {secondaire}
@@ -144,20 +176,38 @@ export function PieceDetailBox({
               (« LÉGENDAIRE » en capitales espacées), donc celle de toute la
               grille. Les couleurs et le mot restent — c'est le vocabulaire du
               jeu —, seule la place qu'ils prennent change. */}
+          {/* ⚠️ En rendu ÉTROIT, le mot entier cède à son abréviation — et il
+              passe en `title`, donc rien ne se perd. C'est le seul endroit de
+              l'app où un libellé du jeu est abrégé : à ~175 px de tuile,
+              « LÉGENDAIRE » prenait la moitié de la largeur utile. */}
           <span
             className={`inline-flex items-center gap-1 rounded font-bold uppercase ${
               resserre ? 'px-1.5 py-px text-micro' : 'px-2 py-0.5 text-micro tracking-wide'
             }`}
             style={{ background: rarete.bg, color: rarete.color }}
-            title={rarete.titre}
+            title={rarete.titre ?? (etroit && rarete.labelCourt ? rarete.label : undefined)}
           >
             {rarete.marque}
-            {rarete.label}
+            {etroit && rarete.labelCourt ? rarete.labelCourt : rarete.label}
           </span>
           {/* Mesure choisie globalement (menu ⚙) — le même libellé et la même
-              couleur pour une rune et pour un artéfact. */}
-          <span className="mt-0.5 font-mono text-micro tabular-nums text-ink-dim" title={mesure.hint}>
-            {mesure.libelle} <b className="text-star">{mesure.valeur}</b>
+              couleur pour une rune et pour un artéfact.
+              ⚠️ En rendu ÉTROIT, le libellé est ABRÉGÉ (« Score », « Effi ») —
+              pas supprimé. « Score SW » entier dictait la largeur du bloc de
+              droite (~66 px contre ~47 px pour la bannière abrégée), mais le
+              retirer tout à fait laissait un nombre nu : la mesure est un
+              réglage GLOBAL, elle ne se lit nulle part ailleurs sur la page.
+              ⚠️ La VALEUR descend d'un cran (`nano`) : c'est ce qui permet de
+              garder le libellé. Elle reste en `star` et en gras, donc lisible
+              comme la valeur qu'on vient chercher. */}
+          <span
+            className={`mt-0.5 font-mono tabular-nums text-ink-dim ${
+              etroit ? 'text-nano' : 'text-micro'
+            }`}
+            title={mesure.hint}
+          >
+            {etroit && mesure.libelleCourt ? mesure.libelleCourt : mesure.libelle}{' '}
+            <b className="text-star">{mesure.valeur}</b>
           </span>
         </div>
       </div>
@@ -176,8 +226,13 @@ export function PieceDetailBox({
       </div>
 
       {/* Pied : le bonus de set d'une rune, l'attribut ou le type d'un
-          artéfact. Même place et même couleur dans les deux cas. */}
-      {pied && (
+          artéfact. Même place et même couleur dans les deux cas.
+          ⚠️ **Retiré en rendu ÉTROIT** : c'est la ligne la plus longue de la
+          carte (« Chance de tour supplémentaire 22% »), elle y passait sur deux
+          ou trois lignes à elle seule. C'est aussi la seule information de la
+          carte qui se déduit d'ailleurs — le symbole de set est déjà porté par
+          l'icône, à gauche de l'en-tête. */}
+      {pied && !etroit && (
         <div
           className={`border-t border-border/40 text-good ${
             resserre ? 'mt-1.5 pt-1.5 text-micro leading-tight' : 'mt-2 pt-2 text-xs'
@@ -239,6 +294,7 @@ export function RuneDetailBox({
   rune,
   icone,
   compact,
+  etroit,
   cherches,
   encadre = true,
 }: {
@@ -250,6 +306,9 @@ export function RuneDetailBox({
   // `true` explicitement, la fiche d'un monstre `false` — un appel explicite
   // l'emporte toujours.
   compact?: boolean;
+  // Voir `PieceDetailBox` : bannière abrégée, bonus de set retiré. Posé par la
+  // liste de runes quand elle passe à deux colonnes sur téléphone.
+  etroit?: boolean;
   // Codes recherchés → la ligne correspondante est surlignée (écho du filtre).
   cherches?: Set<number>;
   // Voir `PieceDetailBox` : `false` dans un `Flottant`, qui pose déjà le sien.
@@ -282,11 +341,13 @@ export function RuneDetailBox({
     <PieceDetailBox
       icone={icone}
       resserre={resserre}
+      etroit={etroit}
       encadre={encadre}
       principale={formatRuneEffect(rune.main)}
       secondaire={rune.innate ? formatRuneEffect(rune.innate) : undefined}
       rarete={{
         label: rarity.label,
+        labelCourt: rarity.court,
         bg: rarity.bg,
         color: rarity.color,
         marque: ancient ? <AncientMark size={resserre ? 10 : 12} color={rarity.color} /> : undefined,
@@ -294,6 +355,10 @@ export function RuneDetailBox({
       }}
       mesure={{
         libelle: metric === 'eff' ? 'Efficience' : 'Score SW',
+        // ⚠️ « Effi » / « Score » : le mot qu'on garde en rendu étroit. C'est
+        // le début du libellé complet, pas un autre mot — on doit reconnaître
+        // le même réglage d'un format à l'autre.
+        libelleCourt: metric === 'eff' ? 'Effi' : 'Score',
         valeur: formatRuneMetric(metric === 'eff' ? runeEfficiency(rune) : runeScore(rune), metric),
         hint: metricHint,
       }}

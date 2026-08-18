@@ -20,6 +20,7 @@ import {
 } from '../../lib/runeSort';
 import { useStickyState } from '../../hooks/useStickyState';
 import { useRuneMetric } from '../../hooks/useRuneMetric';
+import { useMediaQuery, SOUS_LG } from '../../hooks/useMediaQuery';
 
 interface Props {
   runes: RuneDetail[];
@@ -77,6 +78,10 @@ export default function RunesList({ runes, menuOuvert, onFermerMenu }: Props) {
   const cherches = useMemo(() => new Set(actifs.map((c) => c.code)), [actifs]);
   const metric = useRuneMetric(); // choix PARTAGÉ avec les autres vues
   const [page, setPage] = useState(0);
+  // Sous `lg`, la grille passe à DEUX colonnes et les tuiles au rendu étroit.
+  // ⚠️ Lu ICI, une seule fois, et passé aux tuiles : ce qui change n'est pas un
+  // style mais le CONTENU rendu, ce qu'aucune classe `lg:` ne peut exprimer.
+  const deuxColonnes = useMediaQuery(SOUS_LG);
   // ⚠️ Plus d'état « rune ouverte » : la tuile EST la carte de détail, il n'y a
   // plus rien à ouvrir. Voir RuneTile.
 
@@ -248,13 +253,26 @@ export default function RunesList({ runes, menuOuvert, onFermerMenu }: Props) {
           Clé POSITIONNELLE (et non `row.id`) : la tuile est réutilisée quand la
           page/le filtre change, donc le cadre pivote vers son nouveau slot au
           lieu d'être remonté d'un coup. Voir SPIN dans RuneSlotIcon. */}
-      {/* ⚠️ 215 px : c'est la largeur en dessous de laquelle la bannière de
-          rareté passe SOUS la stat principale — chaque tuile gagne alors une
-          ligne, l'inverse du but. La bannière est resserrée en mode compact
-          justement pour descendre jusque-là (voir RuneDetailBox). */}
-      <div className="grid grid-cols-[repeat(auto-fill,minmax(min(215px,100%),1fr))] gap-2 items-start">
+      {/* ⚠️ **DEUX grilles, une par format** — pas un seul `auto-fill` pour les
+          deux (voir spec/shared/deux-applications.md).
+          - Sous `lg` (téléphone) : **deux colonnes fixes**. Une seule tuile par
+            rangée ne montrait qu'une rune par écran et demandait un défilement
+            interminable sur 3 000 runes. `auto-fill` ne pouvait pas y arriver :
+            à 390 px d'écran il reste ~358 px utiles, soit moins que deux fois
+            215 px, et il retombait donc toujours sur une colonne.
+          - À partir de `lg` : l'`auto-fill` d'origine, INCHANGÉ. ⚠️ 215 px est
+            la largeur en dessous de laquelle la bannière de rareté passe SOUS
+            la stat principale — chaque tuile gagne alors une ligne, l'inverse
+            du but. La bannière est resserrée en mode compact justement pour
+            descendre jusque-là (voir RuneDetailBox).
+          C'est le rendu ÉTROIT de la tuile qui rend les deux colonnes tenables
+          à ~175 px — voir `RuneTile`. */}
+      <div
+        className="grid grid-cols-2 gap-2 items-start
+                   lg:grid-cols-[repeat(auto-fill,minmax(min(215px,100%),1fr))]"
+      >
         {shown.map((row, i) => (
-          <RuneTile key={i} row={row} cherches={cherches} />
+          <RuneTile key={i} row={row} cherches={cherches} etroit={deuxColonnes} />
         ))}
       </div>
 
@@ -283,15 +301,21 @@ export default function RunesList({ runes, menuOuvert, onFermerMenu }: Props) {
 const RuneTile = memo(function RuneTile({
   row,
   cherches,
+  etroit,
 }: {
   row: RuneRow;
   cherches: Set<number>; // codes recherchés → la ligne est surlignée
+  // ⚠️ Reçu en PROP, jamais lu ici : la liste en rend jusqu'à soixante d'un
+  // coup, et un `useMediaQuery` par tuile aurait posé soixante écouteurs
+  // `matchMedia` pour une seule et même réponse. La liste le lit une fois.
+  etroit: boolean;
 }) {
   const { rune } = row;
   return (
     <RuneDetailBox
       rune={rune}
       compact
+      etroit={etroit}
       cherches={cherches}
       icone={
         <RuneSlotIcon
@@ -299,7 +323,13 @@ const RuneTile = memo(function RuneTile({
           setKey={rune.set}
           rarity={rune.rarity}
           ancient={rune.rank > 10}
-          height={36}
+          // ⚠️ 30 px en rendu ÉTROIT, 36 ailleurs. À deux colonnes, le cadre de
+          // rune est le dernier poste de largeur de l'en-tête une fois la
+          // bannière abrégée et la mesure réduite à sa valeur : les 6 px rendus
+          // ici vont à la stat principale. En dessous de 30 le symbole de set
+          // gravé dans le cadre cesse de se reconnaître — c'est lui qui dit à
+          // quel set appartient la rune, l'abréviation de rareté ne le dit pas.
+          height={etroit ? 30 : 36}
         />
       }
     />

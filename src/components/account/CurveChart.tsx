@@ -3,10 +3,11 @@
 // Réutilisé par « Courbes » (une série) et « Comparaison » (plusieurs séries).
 
 import { useEffect, useRef, useState } from 'react';
-import { ChevronLeft, ChevronRight, X } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Maximize2, Minimize2, X } from 'lucide-react';
 import { RuneDetail, RUNE_SETS } from '../../types';
 import { RuneDetailBox } from '../PieceDetail';
 import RuneSlotIcon from '../RuneSlotIcon';
+import { useScrollBloque } from '../../hooks/useScrollBloque';
 
 export interface CurveSeries {
   name: string;
@@ -97,6 +98,59 @@ export default function CurveChart({
   // c'est cette position qu'on lit sur toutes les courbes à la fois.
   const [choisi, setChoisi] = useState<{ rang: number } | null>(null);
 
+  // ── Plein écran ────────────────────────────────────────────────────────────
+  //
+  // ⚠️ **Le graphe garde son gabarit de 820 × 380**, sur téléphone comme sur
+  // bureau. Il y est donc réduit à 42 % — les graduations écrites en 11 px
+  // arrivent à 4,6 px. Plutôt que de redessiner un second graphe pour l'écran
+  // étroit, on donne le moyen de le lire EN GRAND : un téléphone tourné offre
+  // 844 px de large, soit à peu près la largeur pour laquelle ce graphe est
+  // dessiné.
+  const [pleinEcran, setPleinEcran] = useState(false);
+
+  // Dimensions de l'écran, relues aux changements d'orientation.
+  // ⚠️ `orientationchange` NE SUFFIT PAS, et `resize` non plus tout seul :
+  // suivant les navigateurs, l'un des deux arrive avant que les dimensions
+  // soient à jour. On écoute les deux — la lecture est idempotente.
+  const [ecran, setEcran] = useState(() =>
+    typeof window === 'undefined'
+      ? { w: 820, h: 380 }
+      : { w: window.innerWidth, h: window.innerHeight }
+  );
+  useEffect(() => {
+    if (!pleinEcran) return;
+    const relire = () => setEcran({ w: window.innerWidth, h: window.innerHeight });
+    relire();
+    window.addEventListener('resize', relire);
+    window.addEventListener('orientationchange', relire);
+    return () => {
+      window.removeEventListener('resize', relire);
+      window.removeEventListener('orientationchange', relire);
+    };
+  }, [pleinEcran]);
+
+  // ⚠️ **On TOURNE le graphe plutôt que de forcer l'appareil.** Verrouiller
+  // l'orientation (`screen.orientation.lock`) exige le plein écran natif, que
+  // Safari iOS n'accorde qu'à la vidéo : le geste aurait marché sur un
+  // téléphone et pas sur l'autre. Une rotation CSS donne le même résultat
+  // partout, et l'appareil tourné physiquement reste correct — on ne tourne
+  // QUE si l'écran est encore en portrait.
+  const tourne = pleinEcran && ecran.h > ecran.w;
+
+  useScrollBloque(pleinEcran);
+
+  // Échap ferme le plein écran avant le détail : c'est la couche du dessus.
+  useEffect(() => {
+    if (!pleinEcran) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key !== 'Escape') return;
+      e.stopImmediatePropagation();
+      setPleinEcran(false);
+    };
+    document.addEventListener('keydown', onKey);
+    return () => document.removeEventListener('keydown', onKey);
+  }, [pleinEcran]);
+
   // Échap ferme ; les flèches ← → parcourent le classement. Le clavier double
   // les boutons plutôt que de les remplacer : on garde la main sur la souris
   // quand on vient de cliquer un point.
@@ -149,13 +203,21 @@ export default function CurveChart({
   const me = active.find((s) => s.own);
 
   // Survol : convertit la position pointeur en index de rune (X).
+  //
+  // ⚠️ **Par la matrice du SVG (`getScreenCTM`), pas par son cadre.** Le calcul
+  // passait par `getBoundingClientRect()`, qui rend un rectangle ALIGNÉ SUR
+  // L'ÉCRAN : dès que le graphe est tourné — ce que fait le plein écran sur un
+  // téléphone tenu à la verticale — ce rectangle décrit la boîte englobante de
+  // la rotation, pas le graphe, et le point visé tombait n'importe où. La
+  // matrice inverse, elle, ramène un point de l'écran dans le repère du dessin
+  // quelles que soient les transformations traversées.
   function onMove(e: React.PointerEvent<SVGSVGElement>) {
     const svg = svgRef.current;
     if (!svg) return;
-    const rect = svg.getBoundingClientRect();
-    if (!rect.width) return;
-    const px = ((e.clientX - rect.left) / rect.width) * W;
-    const frac = maxLen <= 1 ? 0 : (px - PAD_L) / IW;
+    const ctm = svg.getScreenCTM();
+    if (!ctm) return;
+    const pt = new DOMPoint(e.clientX, e.clientY).matrixTransform(ctm.inverse());
+    const frac = maxLen <= 1 ? 0 : (pt.x - PAD_L) / IW;
     setHover(Math.max(0, Math.min(maxLen - 1, Math.round(frac * (maxLen - 1)))));
   }
 
@@ -206,14 +268,30 @@ export default function CurveChart({
   // la seule chose qu'on vient y lire — disparaissaient.
   // 980 px : au-delà, l'amplitude verticale ne suit plus la largeur (le
   // `viewBox` est à ratio fixe) et chaque pixel gagné écrase la lecture.
-  return (
-    <div className="mx-auto w-full max-w-[980px] rounded-xl border border-border bg-panel/50 p-2">
+  const graphe = (
+    <div
+      className={
+        pleinEcran
+          ? 'flex h-full w-full flex-col overflow-y-auto overscroll-contain p-2'
+          : 'mx-auto w-full max-w-[980px] rounded-xl border border-border bg-panel/50 p-2'
+      }
+    >
       <svg
         ref={svgRef}
         viewBox={`0 0 ${W} ${H}`}
         // Le curseur dit que le graphe répond au clic — mais seulement quand il
         // y a réellement des runes derrière les points.
-        className={`w-full h-auto ${cliquable ? 'cursor-pointer' : ''}`}
+        // ⚠️ **`touch-pan-y` : c'est LUI qui rend le graphe interactif au
+        // doigt.** Sans lui, le navigateur interprète le glissement horizontal
+        // comme un début de défilement, s'approprie le geste et n'envoie plus
+        // aucun `pointermove` : le graphe était muet sur téléphone alors que le
+        // code d'interaction était là. `pan-y` et non `none` : le défilement
+        // VERTICAL de la page doit continuer de passer, sinon on reste coincé
+        // en travers du graphe. En plein écran il n'y a rien à faire défiler,
+        // et c'est `touch-none` qui s'applique (voir plus bas).
+        className={`w-full h-auto touch-pan-y ${cliquable ? 'cursor-pointer' : ''} ${
+          pleinEcran ? 'touch-none' : ''
+        }`}
         preserveAspectRatio="xMidYMid meet"
         onPointerMove={onMove}
         onPointerLeave={() => setHover(null)}
@@ -532,6 +610,61 @@ export default function CurveChart({
           </div>
         </div>
       )}
+    </div>
+  );
+
+  // Le bouton d'agrandissement, posé DANS le cadre du graphe.
+  //
+  // ⚠️ **Sous `lg` seulement.** À la souris, le graphe a déjà la largeur pour
+  // laquelle il est dessiné ; un bouton de plus n'y ouvrirait rien de mieux.
+  // ⚠️ **En bas à gauche** : le haut à droite porte déjà le bouton d'aide de
+  // l'onglet Courbes, et le bas à droite est là où la courbe finit — c'est
+  // l'angle le plus souvent occupé par le dessin.
+  const bouton = (
+    <button
+      type="button"
+      onClick={() => setPleinEcran((v) => !v)}
+      aria-label={pleinEcran ? 'Quitter le plein écran' : 'Afficher le graphe en plein écran'}
+      title={pleinEcran ? 'Quitter le plein écran' : 'Afficher le graphe en plein écran'}
+      className={`absolute bottom-3 left-3 z-10 flex h-10 w-10 items-center justify-center
+                  rounded-full border border-border bg-panel/90 text-ink-dim transition
+                  hoverable:border-accent hoverable:text-ink ${pleinEcran ? '' : 'lg:hidden'}`}
+    >
+      {pleinEcran ? <Minimize2 size={18} /> : <Maximize2 size={18} />}
+    </button>
+  );
+
+  if (!pleinEcran) {
+    return (
+      <div className="relative">
+        {graphe}
+        {bouton}
+      </div>
+    );
+  }
+
+  // ⚠️ `z-[70]`, le même niveau que les DIALOGUES : le plein écran doit passer
+  // au-dessus des panneaux mobiles, sans quoi la barre d'onglets et le panneau
+  // de navigation resteraient posés sur un graphe qui occupe tout l'écran.
+  return (
+    <div className="fixed inset-0 z-[70] bg-bg">
+      {/* ⚠️ La boîte TOURNÉE échange largeur et hauteur : après un quart de tour,
+          la largeur du dessin longe la hauteur de l'écran. Sans cet échange
+          elle garderait la largeur du téléphone et le graphe dépasserait des
+          deux côtés.
+          Centrée par `translate(-50%, -50%)` AVANT la rotation — l'ordre compte :
+          tourner d'abord ferait pivoter aussi le déplacement. */}
+      <div
+        className="absolute left-1/2 top-1/2"
+        style={{
+          width: tourne ? ecran.h : ecran.w,
+          height: tourne ? ecran.w : ecran.h,
+          transform: `translate(-50%, -50%) ${tourne ? 'rotate(90deg)' : ''}`,
+        }}
+      >
+        {graphe}
+        {bouton}
+      </div>
     </div>
   );
 }

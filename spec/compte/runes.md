@@ -406,6 +406,43 @@ Détails :
   - Le nom est **borné à 16 caractères** (le complet reste dans la légende) et la
     **largeur de la boîte est mesurée sur le contenu réel** : en dur, les noms
     débordaient.
+### ⚠️ Interactif au DOIGT, et lisible en plein écran
+
+Le graphe garde son gabarit de **820 × 380** sur les deux formats. Sur un
+téléphone de 390 px il est donc réduit à **42 %**, et ses graduations écrites en
+11 px arrivent à l'écran en **4,6**. Plutôt qu'un second graphe pour l'écran
+étroit, on donne le moyen de lire celui-ci **en grand**.
+
+- ⚠️ **`touch-action: pan-y` sur le SVG — c'est lui qui rend le graphe
+  interactif au doigt.** Sans lui le navigateur prend le glissement horizontal
+  pour un début de défilement, s'approprie le geste et n'envoie plus aucun
+  `pointermove` : le graphe était **muet sur téléphone** alors que tout le code
+  d'interaction était là. `pan-y` et non `none` : le défilement **vertical** de
+  la page doit continuer de passer, sinon on reste coincé en travers du graphe.
+- **Bouton plein écran**, en bas à gauche du cadre, **sous `lg` seulement** : à
+  la souris, le graphe a déjà la largeur pour laquelle il est dessiné. En bas à
+  *gauche* parce que le haut à droite porte le bouton d'aide et que le bas à
+  droite est là où la courbe finit.
+- ⚠️ **On TOURNE le graphe, on ne force pas l'appareil.** Verrouiller
+  l'orientation (`screen.orientation.lock`) exige le plein écran natif, que
+  Safari iOS n'accorde qu'à la vidéo : le geste aurait marché sur un téléphone
+  et pas sur l'autre. Une rotation CSS donne le même résultat partout — et on ne
+  tourne **que si l'écran est encore en portrait**, l'appareil tourné
+  physiquement restant correct.
+  - La boîte tournée **échange largeur et hauteur** : après un quart de tour, la
+    largeur du dessin longe la hauteur de l'écran. Sans cet échange, le graphe
+    dépasserait des deux côtés.
+  - Centrage `translate(-50%, -50%)` **avant** la rotation — tourner d'abord
+    ferait pivoter aussi le déplacement.
+- ⚠️ **Le pointeur se convertit par `getScreenCTM()`, plus par le cadre du
+  SVG.** `getBoundingClientRect()` rend un rectangle **aligné sur l'écran** :
+  dès que le graphe est tourné, il décrit la boîte englobante de la rotation et
+  le point visé tombait n'importe où. La matrice inverse ramène un point de
+  l'écran dans le repère du dessin, quelles que soient les transformations
+  traversées.
+- Plein écran en `z-[70]`, le niveau des **dialogues** : sans quoi la barre
+  d'onglets et le panneau de navigation resteraient posés dessus.
+
 - ⚠️ **Cliquer un point ouvre la rune correspondante**, sous le graphe. On lit
   « ma 12ᵉ meilleure rune vaut 78 % » ; la question suivante est toujours
   « laquelle ? », et il fallait aller la chercher à la main dans la liste.

@@ -83,3 +83,28 @@ checklist dédiée du skill `algo-verify`.
 
 Code, commentaires, specs (`spec/`) et skills (`.claude/skills/`) : en
 français, comme le reste du dépôt — même un diff isolé de quelques lignes.
+
+## Commits atomiques — un commit = une chose reviewable
+
+Chaque commit doit correspondre à UN changement logique explicable en une
+phrase — jamais un fourre-tout de fin de tâche qui regroupe tout ce qui a
+été touché depuis le dernier commit sous prétexte que c'est la même
+« session » de travail.
+
+⚠️ **Incident vécu** : le commit `docs(agent): CLAUDE.md, skill
+optimizer-field-propagation, mise à jour algo-verify/optimizer-perf-testing`
+mélangeait trois changements indépendants (création de `CLAUDE.md`,
+création d'un nouveau skill, correction de deux skills existants face au
+code actuel) — chacun aurait mérité son propre commit, avec son propre
+message précis. La discipline avait été respectée en tout début de session
+(des commits scindés par sujet) puis abandonnée progressivement au profit
+d'un seul commit groupé à la demande « commit » de fin de tour.
+
+**Comment l'appliquer** : quand plusieurs sujets indépendants ont été
+traités dans le même tour de conversation et que l'utilisateur demande de
+committer, proposer/faire PLUSIEURS commits (un par sujet), pas un seul —
+même si ça veut dire enchaîner 2-3 `git add`/`git commit` à la suite plutôt
+qu'un seul. Un changement qui touche plusieurs fichiers pour UNE SEULE
+raison logique (ex. renommer un champ dans l'écran ET la recette ET les
+scripts CLI) reste UN commit — l'atomicité se juge sur la cohérence du
+POURQUOI, pas sur le nombre de fichiers.

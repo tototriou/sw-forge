@@ -209,20 +209,36 @@ Et deux ajustements, qui ne sont pas des retraits :
   symbole de set gravé dans le cadre cesse alors de se reconnaître, or c'est lui
   qui dit à quel set appartient la rune — l'abréviation de rareté ne le dit pas,
   et le bonus de set n'est plus là.
-- **Chaque texte de l'en-tête descend d'un cran** : stat principale `sm → xs`,
-  innée et mesure `micro → nano`. C'est ce qui permet de **garder** le libellé de
-  la mesure plutôt que de le supprimer. ⚠️ La hiérarchie ne bouge pas — la
-  principale reste en `font-black`, l'innée en `water`, la valeur en `star` :
-  seule la taille change.
+- **Tout l'en-tête descend au cran `nano`** : stat principale, innée, mesure et
+  bannière. C'est ce qui permet de **garder** le libellé de la mesure plutôt que
+  de le supprimer. ⚠️ La stat principale y rejoint l'innée en TAILLE, mais leur
+  hiérarchie tient toujours par le **poids** et la **couleur** (`font-black` +
+  `ink` contre `font-semibold` + `water`) — la taille n'était que le troisième
+  marqueur. La bannière resserre aussi son rembourrage (`px-1`) : à cette
+  échelle, `px-1.5` autour de « LÉG » se lisait comme une pastille de filtre.
 
 | | Bureau | Étroit |
 |---|---|---|
 | Cadre de rune | 36 px | **30 px** |
-| Stat principale | `sm` (13 px) | **`xs`** (12 px) |
+| Stat principale | `sm` (13 px) | **`nano`** (10 px) |
 | Innée | `micro` (11 px) | **`nano`** (10 px) |
 | Mesure | `micro`, « Score SW » | **`nano`**, « Score » |
-| Bannière | « LÉGENDAIRE » | « LÉG » |
+| Bannière | `micro`, « LÉGENDAIRE » | **`nano` `px-1`**, « LÉG » |
 | Bonus de set | en pied | — |
+
+##### ⚠️ Les libellés longs restent sur deux lignes — c'est assumé
+
+À ~175 px de tuile il reste **~59 px** à gauche de la colonne rareté/mesure
+(159 de contenu − 30 de cadre − 16 d'écarts − 54 pour « Score 293 », le plus
+long des deux éléments empilés à droite). Or « Taux Crit +58% » occupe ~84 px
+même à 10 px : une ligne unique demanderait ~7 px, illisible.
+
+Ce qui la donnerait, c'est de faire **descendre rareté et mesure sous le
+texte** — 121 px alors disponibles, « Taux Crit +58% » tiendrait en 12 px.
+**Écarté volontairement** : l'en-tête resterait sur deux lignes de toute façon
+(bannière et mesure sont déjà empilées), pour un gain qui ne porte que sur les
+trois libellés de 14 caractères — « Taux Crit », « Précision », « Dmg Crit ».
+Les autres (`PV +2448`, `VIT +42`, `DEF +160`) tiennent déjà sur une ligne.
 
 ⚠️ **`etroit` et `resserre` sont deux axes distincts, qui se cumulent.**
 `resserre` rogne les corps, les marges et les interlignes — il ne retire jamais

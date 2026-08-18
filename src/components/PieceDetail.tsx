@@ -146,16 +146,22 @@ export function PieceDetailBox({
           pour elles. */}
       <div className="flex items-start gap-2">
         {icone}
-        {/* ⚠️ En rendu ÉTROIT, la stat principale et l'innée descendent chacune
-            d'un cran (`xs` et `nano`). C'est le dernier réglage de l'en-tête à
-            deux colonnes : « Taux Crit +58% » en `sm` passait encore sur deux
-            lignes une fois la largeur partagée avec le cadre et le bloc de
-            droite. La principale reste en `font-black` et l'innée en `water` —
-            leur HIÉRARCHIE ne bouge pas, seule leur taille. */}
+        {/* ⚠️ En rendu ÉTROIT, la stat principale et l'innée tombent toutes deux
+            au cran `nano`. La principale y rejoint l'innée en TAILLE, mais leur
+            hiérarchie tient toujours par le POIDS et la COULEUR (`font-black` +
+            `ink` contre `font-semibold` + `water`) — ce sont deux marqueurs, la
+            taille n'était que le troisième.
+            ⚠️ **Les libellés longs passent quand même sur deux lignes.** À
+            ~175 px de tuile il reste ~59 px à gauche de la colonne
+            rareté/mesure, et « Taux Crit +58% » en occupe ~84 même à 10 px : une
+            ligne unique demanderait ~7 px, illisible. Ce qui la donnerait, c'est
+            de faire descendre rareté et mesure sous le texte (121 px alors
+            disponibles) — écarté volontairement, l'en-tête resterait sur deux
+            lignes pour un gain qui ne porte que sur trois libellés. */}
         <div className="min-w-0 flex-1">
           <div
             className={`font-black leading-tight text-ink ${
-              resserre ? (etroit ? 'text-xs' : 'text-sm') : 'text-base'
+              resserre ? (etroit ? 'text-nano' : 'text-sm') : 'text-base'
             }`}
           >
             {principale}
@@ -180,9 +186,18 @@ export function PieceDetailBox({
               passe en `title`, donc rien ne se perd. C'est le seul endroit de
               l'app où un libellé du jeu est abrégé : à ~175 px de tuile,
               « LÉGENDAIRE » prenait la moitié de la largeur utile. */}
+          {/* ⚠️ En ÉTROIT, la bannière descend aussi d'un cran et son
+              rembourrage latéral se resserre : elle n'a plus à porter qu'une
+              abréviation de trois lettres, et à cette échelle un `px-1.5`
+              autour de « LÉG » se lisait comme une pastille de filtre plutôt
+              que comme une bannière de rareté. */}
           <span
             className={`inline-flex items-center gap-1 rounded font-bold uppercase ${
-              resserre ? 'px-1.5 py-px text-micro' : 'px-2 py-0.5 text-micro tracking-wide'
+              resserre
+                ? etroit
+                  ? 'px-1 py-px text-nano'
+                  : 'px-1.5 py-px text-micro'
+                : 'px-2 py-0.5 text-micro tracking-wide'
             }`}
             style={{ background: rarete.bg, color: rarete.color }}
             title={rarete.titre ?? (etroit && rarete.labelCourt ? rarete.label : undefined)}

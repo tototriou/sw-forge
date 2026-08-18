@@ -90,6 +90,14 @@ export interface OptimizerState {
   setExhaustiveSearch: Dispatch<SetStateAction<boolean>>;
   sortBy: OptimizerSortKey;
   setSortBy: Dispatch<SetStateAction<OptimizerSortKey>>;
+  // Pagination des résultats affichés (1-indexé) — état d'AFFICHAGE pur, pas
+  // un paramètre de recherche : n'entre donc jamais dans `OptimizerRecipe`
+  // ni les scripts CLI (voir le skill optimizer-field-propagation, dont la
+  // checklist recette/CLI ne s'applique PAS à ce champ précisément pour
+  // cette raison). Remise à 1 par l'écran à chaque nouvelle recherche ou
+  // changement de tri — voir OptimizerSection.tsx.
+  resultsPage: number;
+  setResultsPage: Dispatch<SetStateAction<number>>;
   showAdvanced: boolean;
   setShowAdvanced: Dispatch<SetStateAction<boolean>>;
   slotFilterPreset: SlotFilterPresetKey;
@@ -133,6 +141,7 @@ export function useOptimizerState(): OptimizerState {
   const [adaptiveTrancheWeighting, setAdaptiveTrancheWeighting] = useState(false);
   const [exhaustiveSearch, setExhaustiveSearch] = useState(false);
   const [sortBy, setSortBy] = useState<OptimizerSortKey>('efficience');
+  const [resultsPage, setResultsPage] = useState(1);
   const [showAdvanced, setShowAdvanced] = useState(false);
   const [slotFilterPreset, setSlotFilterPreset] = useState<SlotFilterPresetKey>('moyen');
   const [diagnoseBlockingEnabled, setDiagnoseBlockingEnabled] = useState(false);
@@ -173,6 +182,8 @@ export function useOptimizerState(): OptimizerState {
     setExhaustiveSearch,
     sortBy,
     setSortBy,
+    resultsPage,
+    setResultsPage,
     showAdvanced,
     setShowAdvanced,
     slotFilterPreset,

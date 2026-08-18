@@ -1,5 +1,18 @@
 import { Fragment, useMemo, useRef, useState, useEffect } from 'react';
-import { Search, Boxes, Square, Settings2, HelpCircle, RotateCcw, FlaskConical, Target, Upload, Download } from 'lucide-react';
+import {
+  Search,
+  Boxes,
+  Square,
+  Settings2,
+  HelpCircle,
+  RotateCcw,
+  FlaskConical,
+  Target,
+  Upload,
+  Download,
+  ChevronLeft,
+  ChevronRight,
+} from 'lucide-react';
 import { ArtifactDetail, ARTIFACT_KINDS, RECO_STATS, RuneDetail, Monster, RtaEntry, SiegeTeam } from '../../types';
 import { BoxItem } from '../../lib/applyAccount';
 import { ARTIFACT_MAIN, CAPPED_STATS, RUNE_EFFECT, StatKey, runeEfficiency } from '../../lib/effects';
@@ -127,6 +140,8 @@ export default function OptimizerSection({ box, runes, optimizer, allMonsters, r
     setExhaustiveSearch,
     sortBy,
     setSortBy,
+    resultsPage,
+    setResultsPage,
     showAdvanced,
     setShowAdvanced,
     slotFilterPreset,
@@ -353,6 +368,7 @@ export default function OptimizerSection({ box, runes, optimizer, allMonsters, r
     setSetPickerInvalid(false);
     setStoppedManually(false);
     setSortBy(objective);
+    setResultsPage(1);
     run({
       base: selected.gear.base,
       artifacts: searchArtifacts,
@@ -472,7 +488,11 @@ export default function OptimizerSection({ box, runes, optimizer, allMonsters, r
 
   // Tri CLIENT, sans relancer la recherche : le moteur collecte déjà les
   // stats complètes de chaque candidat valide (voir runeBuildOptim.ts).
-  const sortedCandidates = useMemo(() => {
+  // ⚠️ Liste COMPLÈTE, plus limitée à 20 — la pagination ci-dessous découpe
+  // cette liste en pages, pour pouvoir visualiser TOUS les builds trouvés
+  // (jusqu'à `MAX_COLLECTED`, voir runeBuildOptim.ts), pas seulement les
+  // meilleurs 20.
+  const fullSortedCandidates = useMemo(() => {
     if (!candidatesSource) return [];
     const list = candidatesSource.slice();
     if (sortBy === 'efficience') {
@@ -490,8 +510,26 @@ export default function OptimizerSection({ box, runes, optimizer, allMonsters, r
     } else {
       list.sort((a, b) => statTotal(b.stats, sortBy) - statTotal(a.stats, sortBy));
     }
-    return list.slice(0, 20);
+    return list;
   }, [candidatesSource, sortBy, runeById, metric]);
+
+  const RESULTS_PAGE_SIZE = 20;
+  const totalResultsPages = Math.max(1, Math.ceil(fullSortedCandidates.length / RESULTS_PAGE_SIZE));
+
+  // ⚠️ CORRIGE la page courante, ne la remet PAS à 1 : un aperçu EN DIRECT
+  // (pendant la phase d'appariement) grandit au fil de la recherche sans
+  // que ce soit une NOUVELLE recherche — recommencer à la page 1 à chaque
+  // candidat qui arrive rendrait la pagination inutilisable pendant qu'une
+  // recherche tourne. Seuls `handleSearch` (nouvelle recherche) et le choix
+  // de tri (classement entièrement différent) remettent explicitement à 1.
+  useEffect(() => {
+    setResultsPage((p) => Math.min(Math.max(p, 1), totalResultsPages));
+  }, [totalResultsPages, setResultsPage]);
+
+  const pageCandidates = useMemo(
+    () => fullSortedCandidates.slice((resultsPage - 1) * RESULTS_PAGE_SIZE, resultsPage * RESULTS_PAGE_SIZE),
+    [fullSortedCandidates, resultsPage]
+  );
 
   // Base « nue » du monstre choisi pour une stat — 0 tant qu'aucun monstre
   // n'est sélectionné. ⚠️ N'inclut PAS les artéfacts : en jeu, le mode
@@ -1106,24 +1144,27 @@ export default function OptimizerSection({ box, runes, optimizer, allMonsters, r
           que d'attendre l'épuisement complet de l'espace de recherche.
           `result === null` tant que rien n'est trouvé : rien à montrer de
           plus utile que les barres de progression déjà affichées. */}
-      {(result || sortedCandidates.length > 0) && (
+      {(result || fullSortedCandidates.length > 0) && (
         <div>
           <div className="flex items-center justify-between mb-2 flex-wrap gap-2">
             <p className="label">
               {result
                 ? result.candidates.length === 0
                   ? 'Aucune combinaison ne répond à ces critères'
-                  : `${result.candidates.length} combinaison(s) trouvée(s)${
-                      result.candidates.length > 20 ? ' · 20 affichées' : ''
-                    }`
-                : `${(progress?.phase === 'pairing' ? progress.found : sortedCandidates.length).toLocaleString(
+                  : `${result.candidates.length} combinaison(s) trouvée(s)`
+                : `${(progress?.phase === 'pairing' ? progress.found : fullSortedCandidates.length).toLocaleString(
                     'fr-FR'
                   )} combinaison(s) trouvée(s) pour l'instant — recherche en cours…`}
             </p>
             {(result ? result.candidates.length > 0 : true) && (
               <select
                 value={sortBy}
-                onChange={(e) => setSortBy(e.target.value as OptimizerSortKey)}
+                onChange={(e) => {
+                  setSortBy(e.target.value as OptimizerSortKey);
+                  // Classement entièrement différent : la page courante
+                  // n'a plus le même sens, on repart du meilleur résultat.
+                  setResultsPage(1);
+                }}
                 className="bg-panel border border-border rounded-lg px-2 py-1 text-[12px] text-ink outline-none
                            focus:border-accent"
               >
@@ -1240,10 +1281,10 @@ export default function OptimizerSection({ box, runes, optimizer, allMonsters, r
               (voir BuildCandidateCard.tsx), calibrées pour tenir dans cette
               largeur (`WHEEL_SCALE`/`ARTIFACT_SCALE` = 0,45). */}
           <div className="grid grid-cols-[repeat(auto-fill,minmax(360px,1fr))] gap-3">
-            {sortedCandidates.map((c, i) => (
+            {pageCandidates.map((c, i) => (
               <BuildCandidateCard
                 key={c.runeIds.join('-')}
-                rank={i + 1}
+                rank={(resultsPage - 1) * RESULTS_PAGE_SIZE + i + 1}
                 candidate={c}
                 runeById={runeById}
                 // ⚠️ `searchArtifacts`, PAS `selected.gear.artifacts` : les
@@ -1259,6 +1300,70 @@ export default function OptimizerSection({ box, runes, optimizer, allMonsters, r
               />
             ))}
           </div>
+
+          {/* Pagination — remplace l'ancienne troncature dure à 20 : la
+              liste complète (jusqu'à MAX_COLLECTED, voir runeBuildOptim.ts)
+              reste consultable, 20 par page. Flèches précédent/suivant +
+              saisie directe du numéro de page (même convention que les
+              champs numériques de l'app : `type="text"` + `inputMode=
+              "numeric"`, jamais de flèches natives de navigateur — voir
+              NumberField.tsx). */}
+          {totalResultsPages > 1 && (
+            <div className="mt-4 flex items-center justify-center gap-3">
+              <button
+                type="button"
+                onClick={() => setResultsPage((p) => Math.max(1, p - 1))}
+                disabled={resultsPage <= 1}
+                aria-label="Page précédente"
+                title="Page précédente"
+                className="flex h-8 w-8 flex-none items-center justify-center rounded-lg border border-border
+                           bg-panel text-ink-dim transition hoverable:text-ink hoverable:border-accent
+                           disabled:opacity-30 disabled:cursor-not-allowed"
+              >
+                <ChevronLeft size={16} />
+              </button>
+
+              <div className="flex items-center gap-1.5 font-mono text-[12.5px] text-ink-dim">
+                <span>Page</span>
+                <input
+                  type="text"
+                  inputMode="numeric"
+                  value={resultsPage}
+                  aria-label="Aller à la page"
+                  onChange={(e) => {
+                    const brut = e.target.value.trim();
+                    if (brut === '' || !/^\d+$/.test(brut)) return; // frappe invalide/vide ignorée
+                    // ⚠️ PAS borné ici (même raison que NumberField.tsx) :
+                    // borner chaque frappe empêcherait de composer un
+                    // nombre à plusieurs chiffres au-delà de `totalResultsPages`
+                    // en cours de saisie. Le clampage définitif se fait au
+                    // blur/Entrée.
+                    setResultsPage(Number(brut));
+                  }}
+                  onBlur={() => setResultsPage((p) => Math.min(Math.max(p, 1), totalResultsPages))}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') (e.target as HTMLInputElement).blur();
+                  }}
+                  className="w-11 rounded-md border border-border bg-panel px-1 py-1 text-center text-ink
+                             outline-none focus:border-accent"
+                />
+                <span>/ {totalResultsPages}</span>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => setResultsPage((p) => Math.min(totalResultsPages, p + 1))}
+                disabled={resultsPage >= totalResultsPages}
+                aria-label="Page suivante"
+                title="Page suivante"
+                className="flex h-8 w-8 flex-none items-center justify-center rounded-lg border border-border
+                           bg-panel text-ink-dim transition hoverable:text-ink hoverable:border-accent
+                           disabled:opacity-30 disabled:cursor-not-allowed"
+              >
+                <ChevronRight size={16} />
+              </button>
+            </div>
+          )}
         </div>
       )}
     </div>

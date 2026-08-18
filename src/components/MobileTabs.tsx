@@ -23,17 +23,32 @@ import { useClavierOuvert } from '../hooks/useClavierOuvert';
 export interface OngletMobile {
   key: string;
   label: string;
-  hash: string;
+  // Destination. ⚠️ **Absente quand l'onglet OUVRE une section** — voir `ouvre`.
+  hash?: string;
   icon: ReactNode;
+  // Le TITRE de la section dont il faut choisir la sous-section (voir
+  // MobileNavSheet). ⚠️ Un onglet qui en a une ne mène nulle part par lui-même :
+  // « Compte » menait droit à l'inventaire de monstres, et les dix autres vues
+  // n'étaient atteignables que par des rangées d'onglets posées dans la page.
+  // Même règle que la barre latérale : on choisit d'abord OÙ, la page ne change
+  // qu'ensuite.
+  ouvre?: string;
   actif: boolean;
 }
 
 export default function MobileTabs({
   onglets,
+  onOuvrirSection,
+  sectionOuverte = null,
   onOuvrirActions,
   actionsOuvertes = false,
 }: {
   onglets: OngletMobile[];
+  // Ouvre le panneau de choix de sous-section, pour un onglet qui porte `ouvre`.
+  onOuvrirSection?: (titre: string) => void;
+  // Titre de la section dont le panneau est OUVERT — pour `aria-expanded`. Un
+  // `false` en dur mentirait au lecteur d'écran dès que le panneau est déplié.
+  sectionOuverte?: string | null;
   // Ouvre le panneau d'actions de la page (`MobileSheet`). Absent = la page n'en
   // a pas, et le bouton ne s'affiche pas — voir `PAGES_AVEC_MENU` dans App.tsx.
   onOuvrirActions?: () => void;
@@ -88,11 +103,20 @@ export default function MobileTabs({
       aria-label="Navigation principale"
     >
       <div className="grid grid-cols-5">
-        {onglets.map((o) => (
-          <a
+        {onglets.map((o) => {
+          // ⚠️ Un BOUTON quand l'onglet ouvre une section, un LIEN quand il mène
+          // quelque part. Le premier ne va nulle part : il n'a rien à faire dans
+          // l'historique du navigateur ni dans un « ouvrir dans un nouvel
+          // onglet ». Même distinction que la barre latérale.
+          const Balise = o.ouvre ? 'button' : 'a';
+          return (
+          <Balise
             key={o.key}
-            href={o.hash}
-            aria-current={o.actif ? 'page' : undefined}
+            {...(o.ouvre
+              ? { type: 'button' as const, onClick: () => onOuvrirSection?.(o.ouvre!) }
+              : { href: o.hash })}
+            aria-expanded={o.ouvre ? o.ouvre === sectionOuverte : undefined}
+            aria-current={o.actif && !o.ouvre ? 'page' : undefined}
             // ⚠️ `px-0.5` et non `px-1` : à 11 px (le plancher de l'échelle,
             // voir design.md), « Accueil » remplit une colonne de 64 px sur un
             // écran de 320. Le libellé était à 9,5 px — sous le plancher, donc
@@ -117,8 +141,9 @@ export default function MobileTabs({
             )}
             {o.icon}
             {o.label}
-          </a>
-        ))}
+          </Balise>
+          );
+        })}
       </div>
       </nav>
     </>

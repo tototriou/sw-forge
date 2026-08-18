@@ -1,4 +1,3 @@
-import { Shield, Swords, Lightbulb, Castle } from 'lucide-react';
 import { Monster, ElementKey } from '../types';
 import { LoadState } from '../hooks/useMonsters';
 import { SiegeSide, UseSiegeState } from '../hooks/useSiegeState';
@@ -29,28 +28,6 @@ interface Props {
   onFermerMenu: () => void;
 }
 
-// ⚠️ `court` : « Recommandations » fait à lui seul près de la moitié d'une
-// largeur de téléphone. Les trois onglets ne tenaient pas sur une ligne et la
-// rangée passait à la ligne — une navigation à trois entrées ne doit pas
-// occuper deux lignes. « Recos » est le mot qu'on emploie, et le libellé complet
-// reste dans `aria-label` et dans la barre latérale sur bureau.
-const SUB_TABS: {
-  tab: SiegeTab;
-  label: string;
-  court: string;
-  icon: typeof Shield;
-  hash: string;
-}[] = [
-  { tab: 'defense', label: 'Défense', court: 'Défense', icon: Shield, hash: '#/siege/defense' },
-  { tab: 'offense', label: 'Offense', court: 'Offense', icon: Swords, hash: '#/siege/offense' },
-  {
-    tab: 'recos',
-    label: 'Recommandations',
-    court: 'Recos',
-    icon: Lightbulb,
-    hash: '#/siege/recommandations',
-  },
-];
 
 // ⚠️ `copies6` est extrait explicitement : laissé dans `...boardProps`, il
 // partait dans `SiegeBoard`, qui ne le connaît pas.
@@ -68,37 +45,12 @@ export default function SiegePage({
 }: Props) {
   return (
     <div>
-      {/* ⚠️ Sous-onglets MOBILES seulement (`lg:hidden`) : au-dessus de `lg`,
-          la barre latérale les porte déjà, et les répéter ici donnerait deux
-          jeux de contrôles pour la même navigation. */}
-      <div className="mb-4 compact:mb-3 lg:hidden">
-        <nav className="inline-flex items-center gap-1 rounded-xl compact:gap-0.5 border border-border bg-panel p-1">
-          {SUB_TABS.map((t) => {
-            const active = tab === t.tab;
-            const Icon = t.icon;
-            return (
-              <a
-                key={t.tab}
-                href={t.hash}
-                aria-label={t.label}
-                aria-current={active ? 'page' : undefined}
-                className={`flex items-center gap-1.5 rounded-lg px-3.5 py-1.5 text-sm
-                  font-semibold transition compact:gap-1 compact:px-2.5 compact:text-xs
-                  ${
-                    // Fond seul, sans fausse élévation — voir design.md.
-                    active
-                      ? 'bg-ctx-soft text-ink'
-                      : 'text-ink-dim hoverable:text-ink'
-                  }`}
-              >
-                <Icon size={14} className="flex-none" />
-                <span className="hidden compact:inline">{t.court}</span>
-                <span className="compact:hidden">{t.label}</span>
-              </a>
-            );
-          })}
-        </nav>
-      </div>
+      {/* ⚠️ **Plus de sous-onglets ICI.** Défense / Offense / Recommandations
+          étaient une rangée posée en haut de la page sous `lg`, invisible tant
+          qu'on n'était pas déjà dessus. Elles sont passées dans le panneau
+          qu'ouvre l'onglet « Siège » de la barre du bas (voir MobileNavSheet) :
+          sous le pouce, et alimentées par les mêmes sections que la barre
+          latérale. Le titre de la barre du haut dit la vue courante. */}
 
       {tab === 'recos' ? (
         <RecoBoard

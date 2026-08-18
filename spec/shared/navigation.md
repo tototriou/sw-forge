@@ -240,10 +240,48 @@ endroits où les deux se séparent (voir
   pouce autorise.
 - ⚠️ **`env(safe-area-inset-bottom)`** : sans lui, la barre passe sous la barre
   de geste des iPhone récents et le dernier onglet devient intouchable.
-- ⚠️ Les onglets mobiles **naviguent directement**, contrairement à la barre
-  latérale : il n'y a pas de second niveau où choisir ensuite.
-- Chaque page à sous-sections porte **ses propres onglets** sous `lg`
-  (`lg:hidden`), puisque la barre latérale n'existe pas.
+
+### ⚠️ Un onglet à sous-sections les FAIT CHOISIR — [MobileNavSheet.tsx](src/components/MobileNavSheet.tsx)
+
+**Toucher « Siège » ou « Compte » n'ouvre pas une page : ça ouvre un panneau où
+l'on choisit la sous-section.** C'est la règle « la barre navigue SEULE » portée
+au tactile — on choisit d'abord **où**, la page ne change qu'ensuite.
+
+Avant, chaque page à sous-sections portait **ses propres rangées d'onglets** sous
+`lg` (`lg:hidden`) :
+
+- « Compte » menait droit à l'inventaire de monstres, et ses **dix autres vues**
+  n'étaient atteignables que par **deux rangées** posées en haut de la page —
+  onze destinations empilées avant le premier résultat, et **invisibles tant
+  qu'on n'était pas déjà sur la page**. « Siège » ouvrait la Défense, ses deux
+  autres vues idem.
+- Ces rangées étaient écrites **page par page**, chacune avec son rendu : deux
+  jeux de contrôles à tenir d'accord avec la barre latérale.
+
+Le panneau les remplace toutes :
+
+- ⚠️ **Alimenté par les mêmes `SidebarSection` que la barre latérale**, pas une
+  seconde liste — elle aurait divergé au premier écran ajouté, et le manque
+  serait passé inaperçu. Même règle que la recherche de navigation.
+- ⚠️ **`MobileSheet`, le composant déjà en place**, monté depuis le BAS : son
+  déclencheur est un onglet de la barre du bas, et un menu qui surgirait en haut
+  obligerait à refaire le lien entre les deux à chaque fois.
+- ⚠️ Un onglet qui ouvre une section est un **`<button>`**, pas un `<a>` : il ne
+  va nulle part, il n'a rien à faire dans l'historique. Même distinction que la
+  barre latérale.
+- ⚠️ **« Outils » reste un LIEN** : une seule sous-section. Un panneau pour un
+  seul choix ajoute un geste sans rien donner à décider.
+- Le panneau se ferme au **choix d'une destination**, et aussi à tout changement
+  de route (retour arrière, lien depuis l'accueil, recherche de navigation) —
+  sinon il restait ouvert par-dessus l'écran qu'on vient d'atteindre.
+- ⚠️ **Cibles pleine hauteur (44 px)** : c'est une liste qu'on vise du pouce, pas
+  une rangée de pastilles serrées. La règle tactile s'y applique sans exception.
+
+⚠️ **Le titre de la barre du haut nomme désormais la VUE** sur « Mon compte »
+(« Runes · Liste »), et non plus le seul inventaire : les rangées d'onglets
+disaient la vue, et rien d'autre à l'écran ne la disait à leur place. La vue
+n'est ajoutée que s'il y a un **choix** — « Monstres · Ma box » répéterait deux
+fois la même chose.
 
 ### ⚠️ Le responsive était quasi inexistant
 

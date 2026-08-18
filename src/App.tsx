@@ -35,6 +35,7 @@ import Sidebar, {
   useSidebarRetractee,
 } from './components/Sidebar';
 import MobileTabs, { OngletMobile } from './components/MobileTabs';
+import MobileNavSheet from './components/MobileNavSheet';
 import TopBar from './components/TopBar';
 import SidebarCompte from './components/SidebarCompte';
 import SidebarSearch, { CibleNav } from './components/SidebarSearch';
@@ -284,6 +285,13 @@ export default function App() {
   // distincts : seul leur ancêtre commun peut les relier.
   const [menuPageOuvert, setMenuPageOuvert] = useState(false);
 
+  // Navigation de second niveau sur téléphone : le TITRE de la section dont on
+  // choisit la sous-section, `null` si le panneau est fermé (voir
+  // MobileNavSheet). ⚠️ Même raison que ci-dessus : le déclencheur est dans la
+  // barre d'onglets, le contenu vient des sections — seul leur ancêtre commun
+  // peut les relier.
+  const [navMobileOuverte, setNavMobileOuverte] = useState<string | null>(null);
+
   // ⚠️ La page ne suffit pas à décider si le bouton « Options » s'affiche : sur
   // « Mon compte », seules les vues en LISTE ont des filtres. Le résumé, les
   // courbes et la comparaison n'en ont aucun — leur ouvrir un panneau vide
@@ -298,6 +306,16 @@ export default function App() {
   // rester ouvert sur ceux du précédent afficherait des contrôles sans rapport.
   useEffect(
     () => setMenuPageOuvert(false),
+    [route, accountSub, accountView, siegeTab]
+  );
+
+  // ⚠️ Le panneau de NAVIGATION se referme aux mêmes changements. Il se ferme
+  // déjà au clic sur une destination (voir MobileNavSheet), mais pas quand la
+  // page change autrement — retour arrière du navigateur, lien depuis l'accueil,
+  // recherche de navigation. Il serait alors resté ouvert par-dessus l'écran
+  // qu'on vient d'atteindre.
+  useEffect(
+    () => setNavMobileOuverte(null),
     [route, accountSub, accountView, siegeTab]
   );
 
@@ -730,8 +748,19 @@ export default function App() {
   const entreeCourante = [...NAV, ARENE_ITEM, ...RESOURCES].find((i) => i.key === route);
   const compteSub = route === 'compte' ? ACCOUNT_SUBS.find((s) => s.sub === accountSub) : null;
   const siegeSub = route === 'siege' ? SIEGE_SUBS.find((s) => s.tab === siegeTab) : null;
+  // ⚠️ Sur « Mon compte », le titre nomme l'inventaire ET SA VUE
+  // (« Runes · Liste »). Il ne disait que l'inventaire : la vue était portée par
+  // une rangée d'onglets dans la page, qui est passée dans le panneau de
+  // navigation (voir MobileNavSheet). Sans elle, plus rien à l'écran ne disait
+  // laquelle des sept vues de Runes on regardait.
+  // La vue n'est ajoutée que s'il y a un CHOIX : la box de monstres n'en a
+  // qu'une, « Monstres · Ma box » répéterait la même chose deux fois.
+  const compteVue =
+    compteSub && VUES_INVENTAIRE[accountSub].length > 1
+      ? VUES_INVENTAIRE[accountSub].find((v) => v.key === vueValide(accountSub, accountView))?.label
+      : null;
   const titreSection =
-    compteSub?.label ??
+    (compteSub ? `${compteSub.label}${compteVue ? ` · ${compteVue}` : ''}` : null) ??
     siegeSub?.label ??
     sectionOuverte?.titre ??
     entreeCourante?.label ??
@@ -817,13 +846,30 @@ export default function App() {
   // ⚠️ CINQ onglets mobiles au maximum — au-delà, les cibles passent sous 44 px.
   // Les quatre premiers sont les destinations de travail ; « Compte » ouvre la
   // section dont dépendent toutes les autres.
+  //
+  // ⚠️ **Un onglet qui a des SOUS-SECTIONS les fait choisir** (`ouvre`) au lieu
+  // de mener droit à l'une d'elles — voir MobileNavSheet. « Siège » ouvrait la
+  // Défense et « Compte » l'inventaire de monstres ; les dix autres vues du
+  // compte n'étaient atteignables que par des rangées d'onglets posées DANS la
+  // page, une par écran, invisibles tant qu'on n'y était pas. C'est la règle de
+  // la barre latérale portée au tactile : on choisit d'abord OÙ.
+  //
+  // ⚠️ « Outils » n'a qu'une sous-section : il reste un LIEN. Un panneau pour un
+  // seul choix ajoute un geste sans rien donner à décider.
   const ongletsMobile: OngletMobile[] = [
     { key: 'home', label: 'Accueil', hash: '#/', icon: <Home size={17} />, actif: route === 'home' },
     { key: 'rta', label: 'RTA', hash: '#/rta', icon: <Swords size={17} />, actif: route === 'rta' },
-    { key: 'siege', label: 'Siège', hash: '#/siege/defense', icon: <Castle size={17} />, actif: route === 'siege' },
-    { key: 'compte', label: 'Compte', hash: '#/compte', icon: <CircleUserRound size={17} />, actif: route === 'compte' },
+    { key: 'siege', label: 'Siège', ouvre: sectionSiege.titre, icon: <Castle size={17} />, actif: route === 'siege' },
+    { key: 'compte', label: 'Compte', ouvre: sectionCompte.titre, icon: <CircleUserRound size={17} />, actif: route === 'compte' },
     { key: 'outils', label: 'Outils', hash: '#/outils/optimizer', icon: <Sparkles size={17} />, actif: route === 'outils' || route === 'bestiary' || route === 'mecaniques' || route === 'releases' || route === 'arene' },
   ];
+
+  // La section dont on choisit la sous-section, sur téléphone.
+  // ⚠️ Son TITRE, jamais son objet : un objet mémorisé se fige à l'instant du
+  // clic et son surlignage reste en arrière de la navigation — la barre
+  // latérale a déjà payé cette leçon (voir Sidebar, `ouverte`).
+  const sectionMobile =
+    [sectionSiege, sectionCompte].find((s) => s.titre === navMobileOuverte) ?? null;
 
   return (
     // ⚠️ `data-ctx` sur la RACINE : c'est lui qui décide de l'accent contextuel
@@ -876,11 +922,17 @@ export default function App() {
 
       <MobileTabs
         onglets={ongletsMobile}
+        onOuvrirSection={setNavMobileOuverte}
+        sectionOuverte={navMobileOuverte}
         onOuvrirActions={
           pageAPanneau ? () => setMenuPageOuvert(true) : undefined
         }
         actionsOuvertes={menuPageOuvert}
       />
+
+      {/* Choix de la sous-section, sur téléphone. Alimenté par les MÊMES
+          sections que la barre latérale — pas une seconde liste. */}
+      <MobileNavSheet section={sectionMobile} onFermer={() => setNavMobileOuverte(null)} />
 
       {/* ⚠️ Montée APRÈS la barre latérale dans le DOM, mais posée au-dessus
           (`z-40` contre `z-30`) : elle traverse toute la largeur, y compris

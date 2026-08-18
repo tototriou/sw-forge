@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { AnimatePresence } from 'framer-motion';
 import { Search, Copy, Star, CircleUserRound } from 'lucide-react';
-import InventaireIcon, { InventaireIconKey } from '../components/InventaireIcon';
+import InventaireIcon from '../components/InventaireIcon';
 import { BoxItem } from '../lib/applyAccount';
 import {
   ELEMENTS,
@@ -33,18 +33,8 @@ import MobileSheet from '../ui/MobileSheet';
 import Champ from '../ui/Champ';
 import Pastille from '../ui/Pastille';
 import type { AccountView } from '../App';
-import { VUES_INVENTAIRE, hashVue, vueParDefaut } from '../lib/accountViews';
 
 type Sub = 'monstres' | 'runes' | 'artefacts';
-
-// Les trois inventaires. ⚠️ Icônes AU TRAIT (voir InventaireIcon) : les
-// silhouettes du jeu redessinées dans le style de la librairie, pour ne pas
-// jurer à côté des icônes lucide des vues et de la barre d'onglets.
-const SOUS_SECTIONS: { sub: Sub; label: string; icon: InventaireIconKey }[] = [
-  { sub: 'monstres', label: 'Monstres', icon: 'monster' },
-  { sub: 'runes', label: 'Runes', icon: 'rune' },
-  { sub: 'artefacts', label: 'Artéfacts', icon: 'artifact' },
-];
 
 interface Props {
   sub: Sub; // inventaire courant, piloté par la barre latérale
@@ -444,49 +434,13 @@ export default function AccountPage({
 
   return (
     <div>
-      {/* ⚠️ Onglets MOBILES seulement : au-dessus de `lg`, la barre latérale
-          les porte. Les répéter donnerait deux jeux de contrôles pour la même
-          navigation.
-          Deux rangées, comme les deux niveaux de la barre : l'INVENTAIRE, puis
-          sa VUE. Les fondre en une seule aurait donné onze onglets sur un
-          téléphone. */}
-      <div className="mb-4 flex flex-col gap-2 lg:hidden">
-        <nav className="flex w-fit items-center gap-1 rounded-xl border border-border bg-panel p-1">
-          {SOUS_SECTIONS.map((t) => (
-            <a
-              key={t.sub}
-              // ⚠️ Vers la vue par DÉFAUT de l'inventaire : conserver la vue
-              // courante mènerait à « Courbes » côté artéfacts, qui n'en a pas.
-              href={hashVue(t.sub, vueParDefaut(t.sub))}
-              className={`flex items-center gap-1.5 rounded-lg px-3.5 py-1.5 text-sm font-semibold transition ${
-                sub === t.sub ? 'bg-ctx-soft text-ink' : 'text-ink-dim hoverable:text-ink'
-              }`}
-            >
-              <InventaireIcon name={t.icon} size={14} /> {t.label}
-            </a>
-          ))}
-        </nav>
-
-        {/* La rangée des vues n'apparaît que s'il y a un choix à faire : la box
-            de monstres n'a qu'une vue, un onglet solitaire ne dirait rien. */}
-        {VUES_INVENTAIRE[sub].length > 1 && (
-          <nav className="flex flex-wrap items-center gap-1">
-            {VUES_INVENTAIRE[sub].map((v) => (
-              <a
-                key={v.key}
-                href={hashVue(sub, v.key)}
-                className={`flex items-center gap-1.5 rounded-lg px-2.5 py-1 text-xs transition ${
-                  vue === v.key
-                    ? 'bg-ctx-soft text-ink'
-                    : 'text-ink-dim hoverable:bg-panel2 hoverable:text-ink'
-                }`}
-              >
-                <v.icon size={13} /> {v.label}
-              </a>
-            ))}
-          </nav>
-        )}
-      </div>
+      {/* ⚠️ **Plus d'onglets de navigation ICI.** La page en portait deux
+          rangées sous `lg` — l'inventaire, puis sa vue — soit onze destinations
+          empilées avant le premier résultat, et invisibles tant qu'on n'était
+          pas déjà sur la page. Elles sont passées dans le panneau qu'ouvre
+          l'onglet « Compte » de la barre du bas (voir MobileNavSheet) : une
+          seule liste, sous le pouce, alimentée par les mêmes sections que la
+          barre latérale. Le titre de la barre du haut dit la vue courante. */}
 
       {sub === 'monstres' && (
         <MonsterBoxSection

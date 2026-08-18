@@ -23,7 +23,7 @@
 
 import { parentPort, workerData } from 'worker_threads';
 import { setImmediate } from 'node:timers/promises';
-import { SearchParams, Bucket, NodeBudget, prepareSearch, pairBuckets, maybeEscalateNodeBudget } from '../../src/lib/runeBuildOptim';
+import { SearchParams, Bucket, BuildCandidate, NodeBudget, prepareSearch, pairBuckets, maybeEscalateNodeBudget } from '../../src/lib/runeBuildOptim';
 
 export interface PairingQuotaWorkerData {
   params: SearchParams;
@@ -33,9 +33,13 @@ export interface PairingQuotaWorkerData {
   mode: 'fixed' | 'shared';
 }
 
+// ⚠️ Le message `'done'` porte les VRAIS candidats (`BuildCandidate[]`), pas
+// seulement leur compte — comme le vrai `pairSlice.worker.ts` en prod
+// (`PairSliceResultMessage.candidates`). Nécessaire pour tout appelant qui
+// doit comparer l'ENSEMBLE exact trouvé, pas seulement combien.
 export type PairingQuotaWorkerMessage =
   | { type: 'progress'; explored: number; foundCount: number }
-  | { type: 'done'; explored: number; foundCount: number; truncated: boolean };
+  | { type: 'done'; explored: number; foundCount: number; truncated: boolean; candidates: BuildCandidate[] };
 
 const data = workerData as PairingQuotaWorkerData;
 
@@ -49,7 +53,7 @@ if (data.mode === 'shared') {
 async function run() {
   const prepared = prepareSearch(data.params);
   if (!prepared) {
-    const msg: PairingQuotaWorkerMessage = { type: 'done', explored: 0, foundCount: 0, truncated: false };
+    const msg: PairingQuotaWorkerMessage = { type: 'done', explored: 0, foundCount: 0, truncated: false, candidates: [] };
     parentPort!.postMessage(msg);
     return;
   }
@@ -64,7 +68,7 @@ async function run() {
       parentPort!.postMessage(progress);
       await setImmediate(); // laisse passer un éventuel message 'stop' avant l'itération suivante
       if (stopRequested) {
-        const done: PairingQuotaWorkerMessage = { type: 'done', explored: step.value.explored, foundCount: step.value.candidates.length, truncated: true };
+        const done: PairingQuotaWorkerMessage = { type: 'done', explored: step.value.explored, foundCount: step.value.candidates.length, truncated: true, candidates: step.value.candidates };
         parentPort!.postMessage(done);
         return;
       }
@@ -72,7 +76,7 @@ async function run() {
     step = gen.next();
   }
   const r = step.value;
-  const done: PairingQuotaWorkerMessage = { type: 'done', explored: r.explored, foundCount: r.candidates.length, truncated: r.truncated };
+  const done: PairingQuotaWorkerMessage = { type: 'done', explored: r.explored, foundCount: r.candidates.length, truncated: r.truncated, candidates: r.candidates };
   parentPort!.postMessage(done);
 }
 

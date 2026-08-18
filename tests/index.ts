@@ -55,7 +55,7 @@ async function main() {
   testRuneOptim();
   testRuneOptimDifferential();
   testRuneOptimScaleMonotonicity();
-  testRuneOptimParallelPairing();
+  await testRuneOptimParallelPairing();
   testFilterSlotTopK();
   testOptimizerExclusion();
   testMeules();

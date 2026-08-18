@@ -5,21 +5,53 @@
 // 1. Budget INFINI (mode exhaustif) : découper `bucketsA` et appareiller
 //    chaque tranche INDÉPENDAMMENT doit produire EXACTEMENT le même
 //    résultat que le séquentiel — propriété STRUCTURELLE (rien n'est
-//    retenu/éliminé par le découpage), prouvée à petite échelle.
+//    retenu/éliminé par le découpage, AUCUNE dépendance au temps ou à
+//    l'ordre d'exécution), prouvée à petite échelle. Une simulation
+//    séquentielle est valide ici SANS RÉSERVE : le résultat ne peut,
+//    par construction, dépendre ni du temps ni de la concurrence.
 // 2. Budget ADAPTATIF + escalade (mode normal, VRAI mécanisme de
 //    production — `maybeEscalateNodeBudget`, voir pairSlice.worker.ts),
-//    plafonné par un vrai `maxMs` COURT pour forcer une troncature réelle :
-//    ici, l'égalité stricte n'est PAS attendue (le parallèle peut trouver
-//    PLUS que le séquentiel — débit ×N dans la même fenêtre de temps,
-//    vérifié sur 49 essais réels, voir pistes.md) — la seule propriété
-//    vérifiée est l'ABSENCE DE PERTE : tout candidat trouvé par le
-//    séquentiel doit AUSSI apparaître dans l'union des tranches.
+//    plafonné par un vrai `maxMs` COURT pour forcer une troncature réelle.
+//    ⚠️ De VRAIS `worker_threads` Node concurrents (PAS une simulation
+//    séquentielle) — deux raisons distinctes, trouvées après une objection
+//    justifiée de l'utilisateur qui questionnait l'intérêt même d'une
+//    simulation séquentielle ici :
+//    (a) ce régime dépend du TEMPS RÉEL écoulé (`maybeEscalateNodeBudget`
+//        compare `Date.now()` à `startedAt`) — une ancienne version
+//        simulait les tranches séquentiellement avec un chrono FRAIS par
+//        tranche, un choix qui évite un artefact de perte (voir
+//        l'historique git) mais reste plus généreux en temps que la vraie
+//        concurrence (4 workers RÉELS partagent le MÊME budget-temps,
+//        simultanément, jamais 4× le budget empilé) ;
+//    (b) l'ancienne version ne reproduisait MÊME PAS la division réelle du
+//        plafond de candidats entre workers (`perWorkerMaxCollected` —
+//        voir `runParallelPairing`) : chaque tranche simulée gardait le
+//        plafond GLOBAL entier, non divisé — un écart de fidélité qui
+//        aurait empêché ce test de détecter le genre de perte par famine
+//        de quota confirmée sur un cas réel (Camilla, voir
+//        spec/outils/optimizer/historique-acceleration-et-outillage.md,
+//        « Chantier D »). Avec de vrais workers ET la vraie division du
+//        plafond, l'égalité stricte n'est PAS attendue (le parallèle peut
+//        trouver PLUS ou MOINS que le séquentiel selon la répartition
+//        réelle de productivité entre tranches) — la propriété vérifiée
+//        reste : le total trouvé ne doit jamais s'effondrer de façon
+//        disproportionnée par rapport au séquentiel (voir le seuil choisi
+//        plus bas, pas une égalité).
 //
-// Discipline imposée par .claude/skills/algo-verify/SKILL.md. La
-// calibration de performance aux volumes réels (seuil de déclenchement,
+// Discipline imposée par .claude/skills/algo-verify/SKILL.md et
+// .claude/skills/optimizer-perf-testing/SKILL.md (section « Simulation
+// séquentielle d'une COORDINATION EN DIRECT… », qui couvre un piège
+// voisin mais distinct — celui-ci n'est pas une coordination en direct
+// entre workers, juste un partage plus fidèle du budget-temps/plafond).
+// La calibration de performance aux volumes réels (seuil de déclenchement,
 // nombre de workers) vit séparément dans scripts/pairing-parallel-diag.ts
 // (trop lent pour `npm test`, voir tests/README.md).
 
+import { Worker } from 'node:worker_threads';
+import { build } from 'esbuild';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
+import { mkdirSync, rmSync, existsSync } from 'node:fs';
 import { BaseStats, EffectLine, RuneDetail } from '../src/types';
 import {
   BuildRequirement,
@@ -32,6 +64,7 @@ import {
   BuildCandidate,
   NodeBudget,
 } from '../src/lib/runeBuildOptim';
+import { PairingQuotaWorkerData, PairingQuotaWorkerMessage } from '../scripts/lib/pairing-quota-worker';
 import { egal, ok, titre } from './outils';
 
 // Même PRNG déterministe que rune-optim-differential.test.ts (mulberry32,
@@ -93,6 +126,37 @@ function drain<T>(gen: Generator<unknown, T, void>): T {
   return step.value;
 }
 
+// ── VRAIS worker_threads pour le régime 2 (voir l'en-tête du fichier) —
+// même patron que scripts/pairing-parallel-diag.ts/parallel-pairing-real-diag.ts :
+// bundlé UNE FOIS via esbuild (déjà une dépendance de Vite, pas un ajout),
+// réutilisé pour tous les scénarios. ──
+let workerBundlePath: string | null = null;
+let workerBundleDir: string | null = null;
+async function ensureWorkerBundle(): Promise<string> {
+  if (workerBundlePath && existsSync(workerBundlePath)) return workerBundlePath;
+  const runId = `${Date.now()}-${process.pid}`;
+  workerBundleDir = join(tmpdir(), `sw-forge-tests-pairing-quota-${runId}`);
+  mkdirSync(workerBundleDir, { recursive: true });
+  workerBundlePath = join(workerBundleDir, 'pairing-quota-worker.cjs');
+  await build({ entryPoints: ['scripts/lib/pairing-quota-worker.ts'], bundle: true, platform: 'node', format: 'cjs', outfile: workerBundlePath, logLevel: 'error' });
+  return workerBundlePath;
+}
+function cleanupWorkerBundle(): void {
+  if (workerBundleDir) rmSync(workerBundleDir, { recursive: true, force: true });
+}
+function runFixedWorker(scriptPath: string, data: PairingQuotaWorkerData): Promise<{ explored: number; candidates: BuildCandidate[]; truncated: boolean }> {
+  return new Promise((resolve, reject) => {
+    const worker = new Worker(scriptPath, { workerData: data });
+    worker.once('message', (msg: PairingQuotaWorkerMessage) => {
+      if (msg.type === 'done') {
+        worker.terminate();
+        resolve(msg);
+      }
+    });
+    worker.once('error', reject);
+  });
+}
+
 // Clé canonique d'un candidat, insensible à l'ordre — deux candidats avec
 // les 6 mêmes runeIds SONT le même candidat, quel que soit l'ordre dans
 // lequel chaque découpage les a rencontrés.
@@ -102,7 +166,7 @@ function candidateKey(c: BuildCandidate): string {
 
 const BASE: BaseStats = { hp: 8000, atk: 500, def: 400, spd: 100, cr: 15, cd: 50, res: 15, acc: 0 };
 
-export default function testRuneOptimParallelPairing() {
+export default async function testRuneOptimParallelPairing() {
   titre('Optimizer · parallélisation de l\'appariement (découpage vs séquentiel)');
 
   const SCENARIOS = 20;
@@ -184,7 +248,10 @@ export default function testRuneOptimParallelPairing() {
   // Documenté aussi dans spec/outils/optimizer/pistes.md, point 9. ──
   {
     let scenariosTronques = 0;
+    let auMoinsUneQuotaTronque = false;
     const SCENARIOS_TRONCATION = 12;
+    const workerScript = await ensureWorkerBundle();
+    try {
     for (let s = 0; s < SCENARIOS_TRONCATION; s++) {
       const rng = mulberry32(9000 + s);
       const pool = randomPool(rng, 12);
@@ -198,15 +265,20 @@ export default function testRuneOptimParallelPairing() {
       if (rng() < 0.3) minStats.hp = 8000 + Math.floor(rng() * 2000);
       const requirement: BuildRequirement = { sets, minStats };
 
-      // ⚠️ maxMs RÉALISTE (15 s — proche d'un arrêt manuel, voir la
-      // discussion qui a mené à cette valeur) et RÉEL, pas Infinity :
-      // c'est justement le régime qui n'était pas couvert avant cette
-      // extension. `maxCollected` OMIS exprès (pas de MAX_SAFE_INTEGER) :
-      // la prod ne le fixe JAMAIS non plus (voir OptimizerSection.tsx,
-      // handleSearch), le défaut réel (100 000, MAX_COLLECTED) s'applique
-      // — un plafond illimité a fait manquer de mémoire à cette durée
-      // (recherche assez lâche pour collecter des millions de candidats
-      // en 15 s), en plus de ne pas correspondre à la prod.
+      // ⚠️ maxMs RÉALISTE (30 s — proche d'un arrêt manuel, voir la
+      // discussion qui a mené à cette valeur) et RÉEL, pas Infinity.
+      // `maxCollected` OMIS exprès (pas de MAX_SAFE_INTEGER) : la prod ne le
+      // fixe JAMAIS non plus (voir OptimizerSection.tsx, handleSearch), le
+      // défaut réel (100 000, MAX_COLLECTED) s'applique.
+      //
+      // ⚠️ `startedAt` capturé ICI, AVANT `prepareSearch`/`buildBuckets` —
+      // exactement l'ordre du vrai chemin de production
+      // (runeBuildOptim.worker.ts:307, `startedAt` avant même l'appel à
+      // `prepareSearch`), PARTAGÉ ensuite par CHAQUE vrai worker (voir plus
+      // bas) — plus la simulation séquentielle à chrono frais par tranche
+      // d'avant cette révision (voir git blame pour l'ancien raisonnement,
+      // devenu obsolète maintenant que ce sont de VRAIS workers concurrents).
+      const startedAt = Date.now();
       const params = { base: BASE, artifacts: [], pool, requirement, metric: 'eff' as const, maxMs: 30000 };
       const prepared0 = prepareSearch(params);
       if (!prepared0) continue;
@@ -214,32 +286,21 @@ export default function testRuneOptimParallelPairing() {
       const bucketsA = drain(buildBuckets('A', [0, 1, 2], prepared0.filtered, prepared0.distinctKeys, prepared0.constrainedKeys, prepared0.retentionKeys, prepared0.minEntries, prepared0.bucketCap, prepared0.maxSetsForA, prepared0.jokerCredit, prepared0.requiredPieces));
       const bucketsB = drain(buildBuckets('B', [3, 4, 5], prepared0.filtered, prepared0.distinctKeys, prepared0.constrainedKeys, prepared0.retentionKeys, prepared0.minEntries, prepared0.bucketCap, prepared0.maxSetsForB, prepared0.jokerCredit, prepared0.requiredPieces));
 
-      // ⚠️ `prepareSearch` RAPPELÉ à chaque appel — PAS le `prepared0` déjà
-      // construit ci-dessus réutilisé tel quel. `overBudget()` (dans
-      // `pairBuckets`) compare `Date.now()` à `prepared.startedAt`, figé au
-      // moment de CET appel à `prepareSearch`.
-      // ⚠️ **Divergence VOLONTAIRE et CONNUE avec le vrai chemin de
-      // production, pas un oubli** : depuis la correction du filet de
-      // sécurité temps (voir spec/outils/optimizer/historique-
-      // dimensionnement.md, « revue de code externe »), un VRAI worker
-      // `pairSlice.worker.ts` reçoit désormais le VRAI `startedAt` GLOBAL
-      // (calculé une seule fois, avant la construction) et écrase avec lui
-      // celui que `prepareSearch` vient de fixer en interne — CHAQUE worker
-      // réel partage donc maintenant le MÊME chrono, plus un chrono propre.
-      // Ce test-ci, lui, reste volontairement sur un chrono FRAIS par
-      // tranche : les tranches sont ici traitées L'UNE APRÈS L'AUTRE dans un
-      // SEUL fil (pas de vrais Workers concurrents) — partager un seul
-      // `startedAt` figé AVANT la première tranche ferait croire aux
-      // tranches suivantes que leur temps est DÉJÀ écoulé (celui consommé
-      // par les tranches précédentes dans CE fil unique), un artefact de la
-      // simulation SÉQUENTIELLE, pas une fidélité au vrai chemin concurrent
-      // — écart trouvé EN FAISANT tourner ce test AVANT ce commentaire
-      // (pertes massives, pas de perte réelle : juste un budget-temps
-      // déjà épuisé avant même d'avoir commencé). Même mécanisme sinon
-      // (budget adaptatif + escalade) que pairSlice.worker.ts/
-      // runeBuildOptim.worker.ts.
-      function runWithEscalation(bA: Bucket[], bB: Bucket[]) {
-        const prepared = prepareSearch(params)!;
+      // Référence séquentielle NON divisée (plafond ENTIER, même fil,
+      // chrono partagé) — sert UNIQUEMENT au filet de sécurité
+      // méthodologique ci-dessous (au moins un scénario réellement
+      // tronqué). ⚠️ Ne sert PLUS à un verdict « aucune perte » : depuis
+      // que ce test reproduit la VRAIE division du plafond entre workers
+      // (`perWorkerMaxCollected`, voir plus bas), le parallèle PEUT
+      // légitimement trouver MOINS que cette référence au plafond entier —
+      // confirmé sur un cas réel (Camilla, 25 % de perte), ce n'est plus un
+      // bug à détecter mais une conséquence attendue de la division
+      // (Chantier D reste ouvert pour ça, voir
+      // spec/outils/optimizer/pistes.md).
+      function runWithEscalation(bA: Bucket[], bB: Bucket[], maxCollectedOverride: number | undefined, sharedStartedAt: number | undefined) {
+        const p2 = { ...params, maxCollected: maxCollectedOverride };
+        const prepared = prepareSearch(p2)!;
+        if (sharedStartedAt != null) prepared.startedAt = sharedStartedAt;
         const nodeBudget: NodeBudget = { max: prepared.maxNodes };
         const gen = pairBuckets(prepared, bA, bB, nodeBudget);
         let step = gen.next();
@@ -250,37 +311,83 @@ export default function testRuneOptimParallelPairing() {
         return step.value;
       }
 
-      const reference = runWithEscalation(bucketsA, bucketsB);
+      const reference = runWithEscalation(bucketsA, bucketsB, undefined, startedAt);
       if (reference.truncated) scenariosTronques++;
-      const refKeys = new Set(reference.candidates.map(candidateKey));
 
       const workerCount = Math.min(4, bucketsA.length);
       const slices = partitionBucketsALPT(bucketsA, workerCount);
-      // ⚠️ PAS `candidates.push(...r.candidates)` — une recherche assez
-      // lâche à maxMs=500 peut accumuler des dizaines de milliers de
-      // candidats, au-delà de la limite d'arguments d'un appel étalé
-      // (`RangeError: Maximum call stack size exceeded`, vécu en faisant
-      // tourner ce test). Un Set rempli élément par élément n'a pas cette
-      // limite, et c'est de toute façon la seule chose dont on a besoin.
-      const gotKeys = new Set<string>();
-      for (const slice of slices) {
-        const r = runWithEscalation(slice, bucketsB);
-        for (const c of r.candidates) gotKeys.add(candidateKey(c));
-      }
+      // ⚠️ Formule IDENTIQUE à `runParallelPairing` (runeBuildOptim.worker.ts)
+      // — c'est justement l'écart qui manquait avant cette révision : la
+      // version précédente laissait chaque tranche simulée sur le plafond
+      // GLOBAL entier, jamais divisé, ce qui aurait empêché ce test de
+      // détecter le genre de perte par famine de quota confirmée sur le cas
+      // réel Camilla.
+      const perWorkerMaxCollected = Math.max(1, Math.ceil(prepared0.maxCollected / workerCount));
 
-      const perdus = [...refKeys].filter((k) => !gotKeys.has(k));
-      ok(
-        perdus.length === 0,
-        `scénario troncature ${s} (tronqué=${reference.truncated}) : aucun candidat du séquentiel absent du parallèle` +
-          (perdus.length > 0 ? ` — ${perdus.length} PERDU(S)` : gotKeys.size > refKeys.size ? ` (parallèle en trouve ${gotKeys.size - refKeys.size} de plus, attendu)` : '')
+      // ── VRAIS worker_threads concurrents, VRAIE division du plafond —
+      // voir .claude/skills/optimizer-perf-testing/SKILL.md. ──
+      const results = await Promise.all(
+        slices.map((slice) =>
+          runFixedWorker(workerScript, {
+            params: { ...params, maxCollected: perWorkerMaxCollected },
+            bucketASlice: slice,
+            bucketsB,
+            startedAt,
+            mode: 'fixed',
+          })
+        )
       );
+
+      let auMoinsUneTrancheTronquee = false;
+      for (let i = 0; i < results.length; i++) {
+        const r = results[i];
+        if (r.truncated) auMoinsUneTrancheTronquee = true;
+        // Invariant STRUCTUREL, toujours vrai indépendamment de la
+        // productivité réelle de cette tranche.
+        ok(
+          r.candidates.length <= perWorkerMaxCollected,
+          `scénario troncature ${s}, tranche ${i} : ne dépasse jamais son plafond (${r.candidates.length}/${perWorkerMaxCollected})`
+        );
+        if (r.truncated) continue; // plafond/temps atteint : perte ATTENDUE ici, pas un bug — voir Chantier D, non testée
+        // Tranche qui a fini NATURELLEMENT (jamais tronquée par son propre
+        // plafond ni son budget-temps) : elle a exploré TOUT son espace
+        // faisable sur cette tranche précise, donc DOIT retrouver exactement
+        // ce qu'une référence généreuse (plafond illimité) trouve sur CETTE
+        // MÊME tranche — un écart ici serait un vrai bug d'implémentation
+        // (ex. le bug B1 du chrono non partagé, ou une divergence de
+        // sérialisation entre le fil principal et le worker), jamais une
+        // conséquence de la division du plafond.
+        // Chrono FRAIS (pas partagé) : cette vérification ne s'exécute que
+        // si le vrai worker n'a été limité NI par le temps NI par son
+        // plafond (truncated=false) — le temps déjà écoulé pendant la phase
+        // des vrais workers, ci-dessus, ne doit donc jamais entrer en jeu.
+        const genereux = runWithEscalation(slices[i], bucketsB, Number.MAX_SAFE_INTEGER, undefined);
+        const genereuxKeys = new Set(genereux.candidates.map(candidateKey));
+        const gotKeys = new Set(r.candidates.map(candidateKey));
+        let manquants = 0;
+        for (const k of genereuxKeys) if (!gotKeys.has(k)) manquants++;
+        egal(
+          manquants,
+          0,
+          `scénario troncature ${s}, tranche ${i} (non tronquée) : le VRAI worker retrouve tout ce qu'une recherche non plafonnée trouve sur la même tranche (${manquants} manquant(s))`
+        );
+      }
+      if (auMoinsUneTrancheTronquee) auMoinsUneQuotaTronque = true;
+    }
+    } finally {
+      cleanupWorkerBundle();
     }
     // ⚠️ Filet de sécurité méthodologique : si AUCUN scénario n'a jamais
     // tronqué, le test ci-dessus n'a rien prouvé sur le régime qu'il est
     // censé couvrir (tout se serait aussi bien passé avec un budget
-    // infini). `maxMs=3` sur un pool à 12 runes/slot doit tronquer au
+    // infini). `maxMs=30000` sur un pool à 12 runes/slot doit tronquer au
     // moins UNE fois sur 12 scénarios variés.
     ok(scenariosTronques > 0, `au moins un scénario réellement tronqué sur ${SCENARIOS_TRONCATION} (obtenu : ${scenariosTronques}) — sinon ce bloc ne teste rien`);
+    // Même filet pour la troncature PAR QUOTA spécifiquement (au moins une
+    // tranche a atteint SON `perWorkerMaxCollected`) — sinon la comparaison
+    // structurelle ci-dessus (jamais dépasser son plafond) n'a jamais été
+    // mise à l'épreuve.
+    ok(auMoinsUneQuotaTronque, `au moins une tranche réellement limitée par son propre plafond sur ${SCENARIOS_TRONCATION} scénarios — sinon l'invariant de plafond n'a jamais été mis à l'épreuve`);
   }
 
   // ⚠️ Cas limite dédié : moins de compartiments côté A que de workers

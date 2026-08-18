@@ -548,23 +548,34 @@ nombre de sets visibles sans défilement. Le nom reste en `title` et en
   et non en boutons détachés : les symboles se lisent comme une rangée
   d'icônes du jeu, et l'ensemble tient sur une ligne même avec 25 sets. Seul
   l'**état actif** porte un cadre ; l'inactif est simplement atténué.
-- Multi-sélection ; aucun set coché = aucun filtre.
+- ⚠️ **Liste BLANCHE, tout coché par défaut.** Un set coché est un set
+  **affiché** ; à l'ouverture, tous les présents le sont (tout est montré), et
+  n'en cocher **aucun** revient à **ne rien vouloir voir** (liste vide). C'est la
+  même logique partout dans l'app. (Avant : « aucun coché = aucun filtre » —
+  l'inverse.)
 - **Seuls les sets réellement présents** dans l'inventaire sont proposés : un
-  filtre qui ne peut rien renvoyer n'aide personne.
-- Bouton **« ✕ tout »** pour tout décocher, affiché seulement s'il y a une
-  sélection. **Même gabarit que les pastilles de set** (32 px, même rayon,
-  même bordure) pour ne pas casser la rangée, mais sans fond actif et virant
-  au rouge au survol : c'est une action, pas un set de plus.
+  filtre qui ne peut rien renvoyer n'aide personne. ⚠️ En **Comparaison**, les
+  sets d'un compte d'ami importé **rejoignent la sélection** : sans ça, un set
+  qu'il possède et pas moi serait masqué d'emblée et sa courbe faussée.
+- Bouton **« Tout / Rien »** : sélectionne tous les sets présents, ou les
+  déselectionne tous d'un coup (indispensable à vingt-cinq sets). **Même gabarit
+  que les pastilles** pour ne pas casser la rangée ; le libellé dit ce qu'un clic
+  fera.
+- ⚠️ **Au doigt (`pointer: coarse`), les symboles passent de 18 à 24 px** et leur
+  case de 28 à 36 px : 28 px se visaient mal du pouce. À la souris, inchangé.
 
 ### Filtrer par slot — `SlotFilter`
 
 [SlotFilter.tsx](src/components/account/SlotFilter.tsx), même grammaire visuelle
-que `SetFilter` (hauteur 32 px, même bordure, même bouton « ✕ tout ») pour que
-les deux se lisent comme une seule barre.
+que `SetFilter` (hauteur 32 px, même bordure) pour que les deux se lisent comme
+une seule barre. **Même logique de liste blanche** : les six slots cochés par
+défaut, aucun coché = rien affiché.
 
-Différence assumée : les **six slots sont toujours proposés**, alors que les sets
-se limitent à ceux présents. Un slot sans rune reste une information utile
-(« je n'ai rien en 2 »), là où un set absent n'est qu'un bouton mort.
+- ⚠️ **Pas de bouton « Tout / Rien ».** Six cases se cochent d'un geste ; le
+  raccourci n'y gagnait rien, là où il est utile côté SETS (vingt-cinq).
+- Différence assumée : les **six slots sont toujours proposés**, alors que les
+  sets se limitent à ceux présents. Un slot sans rune reste une information utile
+  (« je n'ai rien en 2 »), là où un set absent n'est qu'un bouton mort.
 
 ### ⚠️ Dans le panneau « Options » (mobile), les filtres prennent toute la largeur
 

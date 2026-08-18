@@ -81,8 +81,10 @@ export default function RunesOptim({ runes, crafts }: Props) {
   // se compare pas aux runes normales — pouvoir les écarter (ou n'avoir qu'elles)
   // évite de mélanger deux échelles dans un même classement.
   const [ancient, setAncient] = useStickyState<AncientFilter>('optim.ancient', 'all');
-  const [sets, setSets] = useStickyState<Set<string>>('optim.sets', new Set());
-  const [slots, setSlots] = useStickyState<Set<number>>('optim.slots', new Set());
+  // Liste blanche, tout coché par défaut (voir RunesList) : coché = affiché,
+  // aucun coché = rien.
+  const [sets, setSets] = useStickyState<Set<string>>('optim.sets', new Set(runes.map((r) => r.set)));
+  const [slots, setSlots] = useStickyState<Set<number>>('optim.slots', new Set([1, 2, 3, 4, 5, 6]));
   const [page, setPage] = useState(0);
   const [openId, setOpenId] = useState<number | null>(null);
   const toggleOpen = useCallback((id: number) => setOpenId((c) => (c === id ? null : id)), []);
@@ -165,8 +167,8 @@ export default function RunesOptim({ runes, crafts }: Props) {
         (r) =>
           r.pot.eff >= threshold &&
           keepAncient(r.rune, ancient) &&
-          (sets.size === 0 || sets.has(r.rune.set)) &&
-          (slots.size === 0 || slots.has(r.rune.slot)) &&
+          sets.has(r.rune.set) &&
+          slots.has(r.rune.slot) &&
           (!faisable || faisable.has(r.id))
       )
       .sort((a, b) => val(b.pot) - val(a.pot));

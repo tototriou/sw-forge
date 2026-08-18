@@ -1,5 +1,4 @@
 import { useMemo } from 'react';
-import { X } from 'lucide-react';
 import { RuneDetail, RUNE_SETS } from '../../types';
 import RuneIcon from '../RuneIcon';
 import { useMediaQuery, COMPACT } from '../../hooks/useMediaQuery';
@@ -43,6 +42,11 @@ export default function SetFilter({
     const s = new Set(runes.map((r) => r.set));
     return RUNE_SETS.filter((rs) => s.has(rs.key));
   }, [runes]);
+
+  // ⚠️ **Sémantique en LISTE BLANCHE** : un set coché est un set AFFICHÉ. Par
+  // défaut tous les présents sont cochés (tout est montré) ; n'en cocher aucun,
+  // c'est ne rien vouloir voir. Le bouton bascule entre ces deux extrêmes.
+  const toutSelectionne = present.length > 0 && present.every((s) => value.has(s.key));
 
   const toggle = (key: string) => {
     const next = new Set(value);
@@ -95,18 +99,19 @@ export default function SetFilter({
           );
         })}
       </div>
-      {/* Réinitialisation : même gabarit que les pastilles de set (32 px, même
-          rayon, même bordure) pour ne pas casser la rangée, mais sans fond actif
-          et virant au rouge au survol — c'est une action, pas un set de plus. */}
-      {value.size > 0 && (
+      {/* Bascule TOUT / RIEN : sélectionne tous les sets présents, ou les
+          déselectionne tous. Même gabarit que les pastilles pour ne pas casser
+          la rangée ; l'action, pas un set de plus. Le libellé dit ce qu'un clic
+          fera. */}
+      {present.length > 0 && (
         <button
-          onClick={() => onChange(new Set())}
-          title="Effacer le filtre de sets"
-          className="ml-1 flex h-8 items-center gap-1 rounded-md border border-border bg-panel px-2.5
+          onClick={() => onChange(toutSelectionne ? new Set() : new Set(present.map((s) => s.key)))}
+          title={toutSelectionne ? 'Tout désélectionner' : 'Tout sélectionner'}
+          className="ml-1 flex h-8 coarse:h-9 items-center rounded-md border border-border bg-panel px-2.5
                      text-micro font-semibold text-ink-dim transition
-                     hoverable:border-fire/60 hoverable:text-fire"
+                     hoverable:border-accent hoverable:text-ink"
         >
-          <X size={12} className="flex-none" /> tout
+          {toutSelectionne ? 'Rien' : 'Tout'}
         </button>
       )}
     </div>

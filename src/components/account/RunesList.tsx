@@ -52,8 +52,12 @@ const SUBS_OPTIONS = Object.entries(RUNE_EFFECT).map(([code, def]) => ({
 }));
 
 export default function RunesList({ runes, menuOuvert, onFermerMenu }: Props) {
-  const [sets, setSets] = useStickyState<Set<string>>('runesList.sets', new Set());
-  const [slots, setSlots] = useStickyState<Set<number>>('runesList.slots', new Set());
+  // ⚠️ **Filtres en LISTE BLANCHE : tout coché par défaut.** Un set/slot coché
+  // est AFFICHÉ ; par défaut tous le sont (tout est montré), et n'en cocher aucun
+  // revient à ne rien vouloir voir. Défaut sets = tous les sets présents à
+  // l'ouverture, défaut slots = les six.
+  const [sets, setSets] = useStickyState<Set<string>>('runesList.sets', new Set(runes.map((r) => r.set)));
+  const [slots, setSlots] = useStickyState<Set<number>>('runesList.slots', new Set([1, 2, 3, 4, 5, 6]));
   const [ancientOnly, setAncientOnly] = useStickyState('runesList.ancient', false);
   const [sortBrut, setSort] = useStickyState<RuneSortMode>('runesList.sort', 'score');
   // ⚠️ Un tri mémorisé qui n'existe plus (les clés ont changé avec les libellés
@@ -88,8 +92,9 @@ export default function RunesList({ runes, menuOuvert, onFermerMenu }: Props) {
   const filtered = useMemo(() => {
     return rows.filter((row) => {
       const r = row.rune;
-      if (sets.size && !sets.has(r.set)) return false;
-      if (slots.size && !slots.has(r.slot)) return false;
+      // Liste blanche : seul ce qui est coché passe (aucun coché → rien).
+      if (!sets.has(r.set)) return false;
+      if (!slots.has(r.slot)) return false;
       if (ancientOnly && !(r.rank > 10)) return false;
       // ⚠️ Les critères se cumulent en ET, bornes comprises : la rune doit
       // porter TOUTES les propriétés cherchées, chacune dans son intervalle.

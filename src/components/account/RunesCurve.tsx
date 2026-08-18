@@ -21,8 +21,10 @@ const HERO_COLOR = '#c88cff'; // Potentiel héroïque → violet
 const LEGEND_COLOR = '#f8b24a'; // Potentiel légendaire → orange
 
 export default function RunesCurve({ runes }: Props) {
-  const [sets, setSets] = useStickyState<Set<string>>('runesCurve.sets', new Set());
-  const [slots, setSlots] = useStickyState<Set<number>>('runesCurve.slots', new Set());
+  // Liste blanche, tout coché par défaut (voir RunesList) : un set/slot coché est
+  // affiché, aucun coché = rien.
+  const [sets, setSets] = useStickyState<Set<string>>('runesCurve.sets', new Set(runes.map((r) => r.set)));
+  const [slots, setSlots] = useStickyState<Set<number>>('runesCurve.slots', new Set([1, 2, 3, 4, 5, 6]));
   const [ancientOnly, setAncientOnly] = useStickyState('runesCurve.ancient', false);
   const [limit, setLimit] = useStickyState('runesCurve.limit', DEFAULT_LIMIT);
   const [hidden, setHidden] = useStickyState<Set<string>>('runesCurve.hidden', new Set());
@@ -58,8 +60,8 @@ export default function RunesCurve({ runes }: Props) {
   // désignent pas la même rune —, donc chacune transporte son propre ordre.
   const { cur, hero, legend } = useMemo(() => {
     const filtered = runes.filter((r) => {
-      if (sets.size && !sets.has(r.set)) return false;
-      if (slots.size && !slots.has(r.slot)) return false;
+      if (!sets.has(r.set)) return false;
+      if (!slots.has(r.slot)) return false;
       if (ancientOnly && !(r.rank > 10)) return false;
       return true;
     });

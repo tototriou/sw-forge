@@ -357,8 +357,10 @@ function OngletComptes({
   hidden: Set<string>;
   setHidden: Dispatch<SetStateAction<Set<string>>>;
 }) {
-  const [sets, setSets] = useStickyState<Set<string>>('runesCompare.sets', new Set());
-  const [slots, setSlots] = useStickyState<Set<number>>('runesCompare.slots', new Set());
+  // Liste blanche, tout coché par défaut (voir RunesList) : coché = affiché,
+  // aucun coché = rien.
+  const [sets, setSets] = useStickyState<Set<string>>('runesCompare.sets', new Set(runes.map((r) => r.set)));
+  const [slots, setSlots] = useStickyState<Set<number>>('runesCompare.slots', new Set([1, 2, 3, 4, 5, 6]));
   const [ancientOnly, setAncientOnly] = useStickyState('runesCompare.ancient', false);
   const [limit, setLimit] = useStickyState('runesCompare.accountsLimit', DEFAULT_LIMIT);
   const jsonRef = useRef<HTMLInputElement>(null);
@@ -381,6 +383,12 @@ function OngletComptes({
         color: couleurLibre(prev.map((o) => o.color)),
       },
     ]);
+    // ⚠️ Les sets du compte importé rejoignent la sélection. La liste blanche
+    // coche tout par défaut, mais « tout » ne connaissait que MES sets à
+    // l'ouverture : sans cet ajout, un set que l'ami possède et pas moi serait
+    // masqué d'emblée, et sa courbe faussée. Les slots, eux, sont déjà tous les
+    // six.
+    setSets((prev) => new Set([...prev, ...compteEnAttente.runes.map((r) => r.set)]));
     flash(true, `${compteEnAttente.runes.length} runes importées pour « ${nom} ».`);
     setCompteEnAttente(null);
   }
@@ -408,8 +416,8 @@ function OngletComptes({
   // comparaison honnête (mon top Violent contre le sien, pas contre son stock).
   const filtrer = (rs: RuneDetail[]) =>
     rs.filter((r) => {
-      if (sets.size && !sets.has(r.set)) return false;
-      if (slots.size && !slots.has(r.slot)) return false;
+      if (!sets.has(r.set)) return false;
+      if (!slots.has(r.slot)) return false;
       if (ancientOnly && !isAncient(r)) return false;
       return true;
     });

@@ -426,6 +426,17 @@ export default function OptimizerSection({ box, runes, optimizer, allMonsters, r
   // src/lib/optimizerRecipe.ts). Rien n'est irréversible : ça REMPLACE la
   // saisie en cours, comme changer n'importe quel réglage à la main —
   // aucune confirmation nécessaire.
+  // Brouillon de saisie du champ « Page X / Y » — `null` tant qu'on n'y
+  // tape pas (affiche alors `resultsPage`, la vraie valeur). Distinct de
+  // `resultsPage` lui-même : un numéro de page ne peut jamais être « vide »
+  // en soi (contrairement à une condition de stat, voir NumberField.tsx/
+  // `allowEmpty`), mais le CHAMP, pendant la frappe, doit pouvoir passer par
+  // un état vide (tout sélectionner puis taper un nouveau nombre) sans que
+  // React ne le re-remplisse aussitôt avec l'ancienne valeur — c'est
+  // exactement le bug vécu ici : `onChange` ignorait la chaîne vide sans
+  // jamais mettre à jour l'état, donc le champ contrôlé revenait TOUJOURS
+  // à l'ancien chiffre, rendant impossible de le vider avant de retaper.
+  const [pageDraft, setPageDraft] = useState<string | null>(null);
   const [importMsg, setImportMsg] = useState<{ text: string; error?: boolean } | null>(null);
   const importFileRef = useRef<HTMLInputElement>(null);
   useEffect(() => {
@@ -1398,19 +1409,24 @@ export default function OptimizerSection({ box, runes, optimizer, allMonsters, r
                 <input
                   type="text"
                   inputMode="numeric"
-                  value={resultsPage}
+                  value={pageDraft ?? String(resultsPage)}
                   aria-label="Aller à la page"
                   onChange={(e) => {
                     const brut = e.target.value.trim();
-                    if (brut === '' || !/^\d+$/.test(brut)) return; // frappe invalide/vide ignorée
-                    // ⚠️ PAS borné ici (même raison que NumberField.tsx) :
-                    // borner chaque frappe empêcherait de composer un
-                    // nombre à plusieurs chiffres au-delà de `totalResultsPages`
-                    // en cours de saisie. Le clampage définitif se fait au
-                    // blur/Entrée.
-                    setResultsPage(Number(brut));
+                    // ⚠️ La chaîne VIDE est un état de brouillon valide (tout
+                    // sélectionner puis taper) — contrairement à l'ancienne
+                    // version, ne JAMAIS `return` sans mettre à jour l'état
+                    // ici, sinon le champ contrôlé revient aussitôt à
+                    // l'ancienne valeur et le chiffre ne peut plus disparaître.
+                    if (brut !== '' && !/^\d+$/.test(brut)) return; // frappe invalide ignorée
+                    setPageDraft(brut);
                   }}
-                  onBlur={() => setResultsPage((p) => Math.min(Math.max(p, 1), totalResultsPages))}
+                  onBlur={() => {
+                    if (pageDraft !== null && pageDraft !== '') {
+                      setResultsPage(Math.min(Math.max(Number(pageDraft), 1), totalResultsPages));
+                    }
+                    setPageDraft(null);
+                  }}
                   onKeyDown={(e) => {
                     if (e.key === 'Enter') (e.target as HTMLInputElement).blur();
                   }}

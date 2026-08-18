@@ -299,12 +299,30 @@ s'orienter.
     des deux** et le panneau se serait figé à une hauteur qui n'existe à aucun
     moment. Le conteneur est `relative` : sans ancêtre positionné, le sortant se
     calait sur le panneau `fixed` entier, donc en travers du titre.
-- **Toutes les cibles prennent toute la largeur, libellé CENTRÉ.** Elles se
-  lisent comme une pile de boutons, pas comme une liste alignée à gauche dans
-  une colonne large de tout l'écran. ⚠️ Les chevrons (retour, « il y a un niveau
-  en dessous ») sortent donc du flux en `absolute` : en `ml-auto`, ils
-  décalaient le couple icône + libellé et les deux temps ne s'alignaient plus
-  l'un sur l'autre.
+
+#### ⚠️ Des boutons DÉLIMITÉS, et deux colonnes quand la largeur le permet
+
+- ⚠️ **Chaque cible porte SON cadre**, et non une liste qui les engloberait. Le
+  panneau a d'abord été une liste à filets : trois libellés séparés par des
+  traits, dont on ne voyait pas où commençait la cible. Le cadre est ce qui dit
+  où est le bouton. **Un seul contour, 1 px** — le marqueur d'état ne fait que le
+  teindre (`border-ctx bg-ctx-soft`), il n'en ajoute pas un second.
+- ⚠️ **Second temps en GRILLE**, `auto-fit` sur `minmax(140px, 1fr)` : les sept
+  vues de Runes tiennent sur **quatre rangées au lieu de sept**, dans un panneau
+  qui n'a que le tiers de l'écran. 140 px est la largeur en dessous de laquelle
+  « Optimisation » et « Comparaison » se tronquent ; au-delà de deux colonnes,
+  aucun libellé ne tiendrait. Sur les écrans les plus étroits la grille
+  **retombe d'elle-même sur une colonne pleine largeur** — pas de second seuil à
+  écrire, et rien à maintenir d'accord.
+- ⚠️ **Le premier temps reste sur UNE colonne**, quelle que soit la largeur. Les
+  trois inventaires sont l'ossature du compte : en grille, ils se réduiraient à
+  des vignettes de la taille d'une vue alors qu'ils ne sont pas au même niveau.
+- La **colonne d'icône est à largeur fixe** (18 px) : sans elle les libellés se
+  décalent d'une cible à l'autre au gré de la largeur des symboles — et en
+  grille, les deux colonnes cessent de s'aligner l'une sur l'autre.
+- Le **retour** est une cible pleine largeur au-dessus de la grille, même cadre
+  et même gabarit, encre atténuée : il ramène au niveau du dessus, il n'est pas
+  une destination de plus.
 - ⚠️ La hauteur du panneau est **re-mesurée au changement de temps**
   (`mesureCle`). Elle est figée à l'ouverture pour qu'un dépliage interne ne
   fasse pas remonter ce qu'on vient de toucher ; mais ici tout le contenu est

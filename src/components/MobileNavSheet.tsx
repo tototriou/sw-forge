@@ -1,8 +1,8 @@
-import { useEffect, useState } from 'react';
+import { ReactNode, useEffect, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import MobileSheet from '../ui/MobileSheet';
-import { COURBE, GLISSEMENT, SidebarGroupe, SidebarLien, SidebarSection } from './Sidebar';
+import { COURBE, GLISSEMENT, SidebarGroupe, SidebarSection } from './Sidebar';
 
 // Choix de la SOUS-SECTION sur téléphone — le second niveau de navigation.
 //
@@ -15,16 +15,20 @@ import { COURBE, GLISSEMENT, SidebarGroupe, SidebarLien, SidebarSection } from '
 //
 // ⚠️ **DEUX TEMPS quand la section a des groupes** : on choisit d'abord
 // l'inventaire (Monstres · Runes · Artéfacts), puis sa vue. Les dix
-// destinations de « Mon compte » ont d'abord été posées à plat, groupes et
-// intitulés compris : c'est la liste de la barre latérale, qui tient sur un
-// écran de bureau haut de 900 px et pas dans un panneau qui s'arrête au tiers
-// de l'écran. On y défilait pour trouver, alors que les trois inventaires
-// suffisent à s'orienter.
+// destinations de « Mon compte » ont d'abord été posées à plat : c'est la liste
+// de la barre latérale, qui tient sur un écran de bureau haut de 900 px et pas
+// dans un panneau qui s'arrête au tiers de l'écran.
 //
 // ⚠️ **Un seul temps quand il n'y a rien à trancher.** « Siège » n'a qu'un
 // groupe, sans intitulé : ses trois vues s'affichent directement. Faire choisir
 // un groupe unique ajoute un geste sans rien donner à décider — la même règle
 // qui laisse « Outils » en simple lien dans la barre d'onglets.
+//
+// ⚠️ **Des BOUTONS DÉLIMITÉS, pas du texte posé sur le fond.** Le panneau a
+// d'abord été une liste à filets : trois libellés séparés par des traits, dont
+// on ne voyait pas où commençait la cible. Chaque destination porte donc son
+// cadre — c'est la `Pastille` de l'app, et son marqueur d'état est celui de
+// toute l'app : contour d'accent + fond léger.
 //
 // ⚠️ **Il monte du BAS, sous le doigt qui l'a demandé.** Son déclencheur est un
 // onglet de la barre du bas ; un menu qui surgirait en haut de l'écran
@@ -35,6 +39,16 @@ import { COURBE, GLISSEMENT, SidebarGroupe, SidebarLien, SidebarSection } from '
 // liste. Une liste parallèle aurait divergé au premier écran ajouté, et le
 // manque serait passé inaperçu : on ne cherche pas ce dont on ignore
 // l'existence. C'est déjà la règle de `SidebarSearch`.
+
+// ⚠️ **Deux colonnes quand la largeur le permet, une seule sinon.**
+// `auto-fit` + `minmax(140px, 1fr)` : les sept vues de Runes tiennent alors sur
+// quatre rangées au lieu de sept, dans un panneau qui n'a que le tiers de
+// l'écran. 140 px est la largeur en dessous de laquelle « Optimisation » et
+// « Comparaison » se tronquent — au-delà de deux colonnes, aucun libellé ne
+// tiendrait. Sur les écrans les plus étroits la grille retombe d'elle-même sur
+// une colonne pleine largeur, sans second seuil à écrire.
+const GRILLE = 'grid-cols-[repeat(auto-fit,minmax(140px,1fr))]';
+
 export default function MobileNavSheet({
   section,
   onFermer,
@@ -74,96 +88,94 @@ export default function MobileNavSheet({
       titre={groupeCourant?.titre ?? section?.titre ?? ''}
       // ⚠️ Re-mesure de la hauteur au changement de temps. Figée sur le premier
       // (trois inventaires), les sept vues de Runes se seraient lues en défilant
-      // dans une fenêtre trois fois trop courte. Voir MobileSheet.
+      // dans une fenêtre trop courte. Voir MobileSheet.
       mesureCle={groupeCourant?.titre ?? ''}
       // ⚠️ **La barre d'onglets reste visible sous le panneau.** Le panneau
       // d'actions la recouvre à dessein — elle mène ailleurs, or on règle la
       // page où l'on est. Ici c'est l'inverse : ce panneau EST la navigation.
       // La masquer retirerait de l'écran la section où l'on se trouve et le
-      // moyen d'en changer, au moment précis où l'on navigue — et le
-      // déclencheur qu'on vient de toucher disparaîtrait sous son propre
-      // résultat.
+      // moyen d'en changer, au moment précis où l'on navigue.
       surLesOnglets
     >
       {section && (
-        // ⚠️ **Le MÊME glissement que la barre latérale** (`GLISSEMENT`,
-        // `COURBE` — 8 px, 180 ms), importé et non réécrit : descendre d'un
-        // niveau est le même geste, quel que soit le format. On entre par la
-        // droite, on ressort par la gauche, comme on tourne une page — un fondu
-        // seul dirait « ça a changé » sans dire « tu es descendu ».
-        //
-        // ⚠️ `mode="popLayout"` : le niveau sortant quitte le FLUX au lieu de
-        // rester empilé sous l'entrant. C'est ce qui permet à `MobileSheet` de
-        // re-mesurer la hauteur (voir `mesureCle`) sur le seul niveau entrant —
-        // les deux en flux, elle aurait relevé la somme des deux et le panneau
-        // se serait figé à une hauteur qui n'existe à aucun moment.
         // ⚠️ `relative` : `popLayout` sort le niveau sortant du flux en
         // `absolute`. Sans ancêtre positionné ici, il se serait calé sur le
         // panneau `fixed` tout entier — donc sur son bord, en travers du titre.
         <div className="relative">
-        <AnimatePresence mode="popLayout" custom={Boolean(groupeCourant)} initial={false}>
-          <motion.nav
-            key={groupeCourant?.titre ?? 'racine'}
-            custom={Boolean(groupeCourant)}
-            variants={GLISSEMENT}
-            initial="initial"
-            animate="animate"
-            exit="exit"
-            transition={COURBE}
-            className="flex flex-col gap-0.5"
-            aria-label={`Vues de ${section.titre}`}
-          >
-            {/* ── Second temps : les vues du groupe choisi ───────────────── */}
-            {groupeCourant ? (
-              <>
-                {/* ⚠️ Le RETOUR en tête, comme dans la barre latérale : on est
-                    descendu d'un niveau, il faut pouvoir remonter sans refermer
-                    le panneau et le rouvrir. Un `<button>` — il ne va nulle
-                    part. */}
-                <button
-                  type="button"
-                  onClick={() => setGroupeOuvert(null)}
-                  // ⚠️ `w-full` explicite : un `<button>` ne s'étire pas comme
-                  // un `<a>`, et toute cible de ce panneau prend TOUTE la
-                  // largeur — c'est une liste qu'on vise du pouce, pas une
-                  // rangée de pastilles.
-                  // ⚠️ Libellé CENTRÉ, comme partout dans ce panneau : le
-                  // chevron sort donc du flux (`absolute`), sinon il décalerait
-                  // le texte vers la droite et le retour ne s'alignerait plus
-                  // sur les entrées qu'il coiffe.
-                  className="group relative mb-1 flex w-full min-h-[44px] items-center
-                             justify-center rounded-lg px-10 text-sm text-ink-dim
-                             transition-colors hoverable:bg-panel2"
-                >
-                  <ChevronLeft
-                    size={16}
-                    className="absolute left-3 flex-none transition-transform
-                               group-hoverable:-translate-x-0.5"
+          {/* ⚠️ **Le MÊME glissement que la barre latérale** (`GLISSEMENT`,
+              `COURBE` — 8 px, 180 ms), importé et non réécrit : descendre d'un
+              niveau est le même geste, quel que soit le format.
+              ⚠️ `mode="popLayout"` : le niveau sortant quitte le FLUX au lieu
+              de rester empilé sous l'entrant. C'est ce qui permet à
+              `MobileSheet` de re-mesurer la hauteur (voir `mesureCle`) sur le
+              seul niveau entrant — les deux en flux, elle aurait relevé la
+              somme des deux et le panneau se serait figé à une hauteur qui
+              n'existe à aucun moment. */}
+          <AnimatePresence mode="popLayout" custom={Boolean(groupeCourant)} initial={false}>
+            <motion.div
+              key={groupeCourant?.titre ?? 'racine'}
+              custom={Boolean(groupeCourant)}
+              variants={GLISSEMENT}
+              initial="initial"
+              animate="animate"
+              exit="exit"
+              transition={COURBE}
+              className="flex flex-col gap-2"
+            >
+              {groupeCourant ? (
+                /* ── Second temps : les vues du groupe choisi ─────────────── */
+                <>
+                  {/* ⚠️ Le RETOUR en tête : on est descendu d'un niveau, il
+                      faut pouvoir remonter sans refermer le panneau et le
+                      rouvrir. Un `<button>` — il ne va nulle part.
+                      ⚠️ Pleine largeur, au-dessus de la grille : c'est une
+                      action sur le panneau, pas une destination de plus. */}
+                  <Case
+                    onClick={() => setGroupeOuvert(null)}
+                    icone={<ChevronLeft size={16} />}
+                    libelle={section.titre}
+                    discret
                   />
-                  {section.titre}
-                </button>
-                {groupeCourant.liens.map((l) => (
-                  <LienNav key={l.key} lien={l} onFermer={onFermer} />
-                ))}
-              </>
-            ) : aDesGroupes ? (
-              /* ── Premier temps : les inventaires ──────────────────────── */
-              groupes.map((g) => (
-                <EntreeGroupe
-                  key={g.titre}
-                  groupe={g}
-                  onOuvrir={() => setGroupeOuvert(g.titre!)}
-                  onFermer={onFermer}
-                />
-              ))
-            ) : (
-              /* ── Un seul temps : la section n'a rien à trancher (Siège) ── */
-              groupes.flatMap((g) =>
-                g.liens.map((l) => <LienNav key={l.key} lien={l} onFermer={onFermer} />)
-              )
-            )}
-          </motion.nav>
-        </AnimatePresence>
+                  <nav className={`grid gap-2 ${GRILLE}`} aria-label={`Vues de ${groupeCourant.titre}`}>
+                    {groupeCourant.liens.map((l) => (
+                      <Case
+                        key={l.key}
+                        href={l.hash}
+                        onClick={onFermer}
+                        icone={l.icon}
+                        libelle={l.label}
+                        actif={l.actif}
+                      />
+                    ))}
+                  </nav>
+                </>
+              ) : (
+                /* ── Premier temps ────────────────────────────────────────
+                   ⚠️ **Une seule colonne ici, quelle que soit la largeur.**
+                   Les trois inventaires sont l'ossature du compte : les mettre
+                   en grille les réduirait à des vignettes de la taille d'une
+                   vue, alors qu'ils ne sont pas au même niveau. La grille est
+                   réservée au second temps, où les sept vues de Runes doivent
+                   tenir sans défiler. */
+                <nav className="flex flex-col gap-2" aria-label={`Sections de ${section.titre}`}>
+                  {aDesGroupes
+                    ? groupes.map((g) => <EntreeGroupe key={g.titre} groupe={g} onOuvrir={() => setGroupeOuvert(g.titre!)} onFermer={onFermer} />)
+                    : groupes.flatMap((g) =>
+                        g.liens.map((l) => (
+                          <Case
+                            key={l.key}
+                            href={l.hash}
+                            onClick={onFermer}
+                            icone={l.icon}
+                            libelle={l.label}
+                            actif={l.actif}
+                          />
+                        ))
+                      )}
+                </nav>
+              )}
+            </motion.div>
+          </AnimatePresence>
         </div>
       )}
     </MobileSheet>
@@ -173,8 +185,10 @@ export default function MobileNavSheet({
 // Un inventaire, au premier temps.
 //
 // ⚠️ **Un groupe à VUE UNIQUE mène directement à elle** (« Monstres » n'a que
-// « Ma box ») : il devient un lien, sans chevron. Le faire ouvrir un second
-// temps d'un seul choix demanderait deux gestes pour un endroit unique.
+// « Ma box ») : pas de chevron, pas de second temps. Le faire ouvrir une liste
+// d'un seul choix demanderait deux gestes pour un endroit unique. Le libellé
+// reste celui du GROUPE — c'est la liste des inventaires qu'on lit, et « Ma
+// box » n'y aurait pas le même sens que ses deux voisins.
 function EntreeGroupe({
   groupe,
   onOuvrir,
@@ -184,85 +198,85 @@ function EntreeGroupe({
   onOuvrir: () => void;
   onFermer: () => void;
 }) {
-  // Le groupe où l'on se trouve : celui qui contient la vue courante. Il porte
-  // le même marqueur que les destinations — sans lui, le premier temps ne
-  // disait pas dans quel inventaire on était déjà.
+  // Le groupe où l'on se trouve : celui qui contient la vue courante. Sans ce
+  // marqueur, le premier temps ne disait pas dans quel inventaire on est déjà.
   const actif = groupe.liens.some((l) => l.actif);
   const seule = groupe.liens.length === 1 ? groupe.liens[0] : null;
-  if (seule) {
-    // Le libellé reste celui du GROUPE (« Monstres »), pas celui de la vue :
-    // c'est la liste des inventaires qu'on lit, et « Ma box » n'y aurait pas
-    // le même sens que ses deux voisins.
-    return <LienNav lien={{ ...seule, label: groupe.titre! }} onFermer={onFermer} />;
-  }
-  return (
-    <button
-      type="button"
-      onClick={onOuvrir}
-      // Cible PLEINE HAUTEUR (44 px) : une liste qu'on vise du pouce.
-      // ⚠️ Contenu CENTRÉ, et le chevron hors du flux (`absolute`) : en
-      // `ml-auto` il poussait le couple icône + libellé vers la gauche, et les
-      // trois inventaires ne s'alignaient plus sur les vues du second temps.
-      className={`group relative flex min-h-[44px] w-full items-center justify-center gap-2.5
-                  rounded-lg px-10 text-sm transition-colors ${
-                    actif ? 'text-ink' : 'text-ink-dim hoverable:bg-panel2'
-                  }`}
-    >
-      {/* Même marqueur unique que les destinations, sur un calque en `absolute`
-          pour ne pas décaler le libellé de 1 px. */}
-      <span
-        aria-hidden
-        className={`absolute inset-0 rounded-lg border border-ctx bg-ctx-soft transition-opacity ${
-          actif ? 'opacity-100' : 'opacity-0'
-        }`}
-      />
-      <span className="relative flex-none">{groupe.icone}</span>
-      <span className="relative">{groupe.titre}</span>
-      {/* Le chevron dit la seule chose utile : « il y a un niveau en dessous ».
-          Même rôle que dans la barre latérale. */}
-      <ChevronRight
-        size={15}
-        aria-hidden
-        className="absolute right-3 flex-none text-ink-dimmer transition-transform
-                   group-hoverable:translate-x-0.5"
-      />
-    </button>
+  return seule ? (
+    <Case href={seule.hash} onClick={onFermer} icone={groupe.icone} libelle={groupe.titre!} actif={actif} />
+  ) : (
+    <Case onClick={onOuvrir} icone={groupe.icone} libelle={groupe.titre!} actif={actif} chevron />
   );
 }
 
-// Une destination — au premier ou au second temps, le même rendu.
-function LienNav({ lien, onFermer }: { lien: SidebarLien; onFermer: () => void }) {
+// Une cible du panneau — destination, ouverture de groupe ou retour.
+//
+// ⚠️ **UN SEUL rendu pour les trois.** Ils avaient chacun le leur, et les
+// différences (centré ou non, avec ou sans chevron, cadre propre ou pas) se
+// lisaient comme trois natures d'objets alors qu'ils font tous la même chose :
+// mener quelque part. Seuls changent la BALISE (`<a>` qui navigue, `<button>`
+// qui ne va nulle part) et ce qu'on pose à droite.
+function Case({
+  href,
+  onClick,
+  icone,
+  libelle,
+  actif = false,
+  chevron = false,
+  discret = false,
+}: {
+  // Présent = la cible NAVIGUE (`<a>`). Absent = elle agit dans le panneau
+  // (`<button>`) : ouvrir un groupe, remonter d'un niveau. Même distinction que
+  // la barre latérale — ce qui ne va nulle part n'a rien à faire dans
+  // l'historique ni dans un « ouvrir dans un nouvel onglet ».
+  href?: string;
+  onClick: () => void;
+  icone: ReactNode;
+  libelle: string;
+  actif?: boolean;
+  chevron?: boolean;
+  // Cible de RETOUR : même gabarit et même cadre, encre atténuée. Elle ramène
+  // au niveau du dessus, elle n'est pas une destination de plus — la donner à
+  // lire comme les autres la ferait viser par erreur.
+  discret?: boolean;
+}) {
+  const Balise = href ? 'a' : 'button';
   return (
-    <a
-      href={lien.hash}
-      // ⚠️ Le panneau se ferme au CHOIX : c'est lui qui fait changer la page,
-      // donc c'est lui qui a fini le geste.
-      onClick={onFermer}
-      aria-current={lien.actif ? 'page' : undefined}
-      // ⚠️ Cible PLEINE HAUTEUR (44 px) : c'est une liste qu'on vise du pouce,
-      // pas une rangée de pastilles serrées. La règle tactile s'applique ici
-      // sans exception.
-      // ⚠️ `w-full` : toute cible de ce panneau prend TOUTE la largeur.
-      // ⚠️ Contenu CENTRÉ : les entrées se lisent comme une pile de boutons
-      // pleine largeur, pas comme une liste alignée à gauche dans une colonne
-      // large de tout l'écran, où le libellé flottait loin de son bord droit.
-      className={`relative flex w-full min-h-[44px] items-center justify-center gap-2.5
-                  rounded-lg px-3 text-sm transition-colors ${
-                    lien.actif ? 'text-ink' : 'text-ink-dim hoverable:bg-panel2'
+    <Balise
+      {...(href ? { href } : { type: 'button' as const })}
+      onClick={onClick}
+      aria-current={actif ? 'page' : undefined}
+      title={libelle}
+      // ⚠️ `w-full` explicite : un `<button>` ne s'étire pas comme un `<a>`.
+      // ⚠️ **44 px de haut**, la règle tactile : on vise du pouce sans regarder.
+      // ⚠️ **Le cadre est PORTÉ PAR LA CIBLE**, pas par une liste qui les
+      // engloberait : c'est lui qui dit où commence le bouton. Un seul contour,
+      // de 1 px — le marqueur d'état ne fait que le teinter, il n'en ajoute pas
+      // un second (spec/shared/design.md).
+      className={`flex w-full min-h-[44px] items-center gap-2.5 rounded-lg border px-3
+                  text-left text-sm transition-colors ${
+                    actif
+                      ? 'border-ctx bg-ctx-soft text-ink'
+                      : `border-border bg-panel2/40 hoverable:border-accent hoverable:text-ink ${
+                          discret ? 'text-ink-dimmer' : 'text-ink-dim'
+                        }`
                   }`}
     >
-      {/* Marqueur d'état UNIQUE de l'app : contour d'accent + fond très léger
-          (spec/shared/design.md). Posé sur un calque en `absolute` comme dans la
-          barre latérale — sur l'entrée elle-même, il décalerait le libellé de
-          1 px à chaque changement de vue. */}
-      <span
-        aria-hidden
-        className={`absolute inset-0 rounded-lg border border-ctx bg-ctx-soft transition-opacity ${
-          lien.actif ? 'opacity-100' : 'opacity-0'
-        }`}
-      />
-      <span className="relative flex-none">{lien.icon}</span>
-      <span className="relative">{lien.label}</span>
-    </a>
+      {/* Colonne d'icône à LARGEUR FIXE : sans elle, les libellés se décalaient
+          d'une cible à l'autre au gré de la largeur des symboles — et en grille,
+          les deux colonnes ne s'alignaient plus l'une sur l'autre. */}
+      <span className={`flex w-[18px] flex-none justify-center ${actif ? 'text-ctx' : ''}`}>
+        {icone}
+      </span>
+      {/* `truncate` : « Optimisation » et « Comparaison » frôlent la largeur
+          d'une colonne sur les écrans les plus étroits. Le `title` garde le
+          libellé entier. */}
+      <span className="flex-1 truncate">{libelle}</span>
+      {chevron && (
+        // Le chevron dit la seule chose utile : « il y a un niveau en dessous ».
+        // Même rôle que dans la barre latérale.
+        <ChevronRight size={15} aria-hidden className="flex-none text-ink-dimmer" />
+      )}
+    </Balise>
   );
 }

@@ -372,7 +372,7 @@ export default function CurveChart({
       className={
         pleinEcran
           ? 'flex h-full w-full flex-col overflow-y-auto overscroll-contain p-2'
-          : 'mx-auto w-full max-w-[980px] rounded-xl border border-border bg-panel/50 p-2'
+          : 'w-full rounded-xl border border-border bg-panel/50 p-2'
       }
     >
       <svg
@@ -749,13 +749,23 @@ export default function CurveChart({
       cadre
       forme="pilule"
       zoneEtendue
-      className={`absolute bottom-3 right-3 z-10 ${pleinEcran ? '' : 'lg:hidden'}`}
+      // ⚠️ **Même écart au bord que le bouton d'aide** (`right-2`), qui est
+      // posé par l'onglet Courbes sur une boîte de même largeur : ce sont les
+      // deux commandes du même dessin, sur la même verticale. À `right-3` ils
+      // étaient décalés de 4 px l'un de l'autre — assez pour se voir, pas assez
+      // pour passer pour une intention.
+      className={`absolute bottom-2 right-2 z-10 ${pleinEcran ? '' : 'lg:hidden'}`}
     />
   );
 
   if (!pleinEcran) {
     return (
-      <div className="relative">
+      // ⚠️ Le centrage et le plafond de largeur vivent SUR LE CONTENEUR
+      // RELATIF, plus sur la carte : les boutons sont posés en `absolute` par
+      // rapport à lui, et tant qu'il débordait la carte (au-delà de 980 px, où
+      // elle se centre), ils flottaient à côté du graphe au lieu d'être dans son
+      // coin.
+      <div className="relative mx-auto w-full max-w-[980px]">
         {graphe}
         {bouton}
       </div>

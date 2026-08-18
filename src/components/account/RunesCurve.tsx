@@ -212,8 +212,13 @@ export default function RunesCurve({ runes }: Props) {
         </div>
       </div>
 
-      {/* Graphe + bouton d'aide superposé (popup fermable au clic extérieur) */}
-      <div className="relative">
+      {/* Graphe + bouton d'aide superposé (popup fermable au clic extérieur).
+          ⚠️ **Même plafond de largeur et même centrage que la carte du graphe**
+          (voir CurveChart) : sans eux, cette boîte débordait la carte au-delà de
+          980 px et le bouton d'aide se posait à côté du dessin, pendant que le
+          bouton de plein écran restait dans son coin. Les deux commandes doivent
+          tomber sur la MÊME verticale. */}
+      <div className="relative mx-auto w-full max-w-[980px]">
         {/* ⚠️ L'ANCRE porte la position ET la taille du bouton : `FlottantAuto`
             mesure la place autour d'elle. Un conteneur sans dimensions — avec
             le bouton en `absolute` à l'intérieur — lui aurait fait mesurer un

@@ -8,6 +8,7 @@ import { RuneDetail, RUNE_SETS } from '../../types';
 import { RuneDetailBox } from '../PieceDetail';
 import RuneSlotIcon from '../RuneSlotIcon';
 import { useScrollBloque } from '../../hooks/useScrollBloque';
+import { BoutonIcone } from '../../ui';
 
 export interface CurveSeries {
   name: string;
@@ -741,20 +742,14 @@ export default function CurveChart({
   // pseudo-élément qui déborde : la cible reste réglementaire, le dessin reste
   // petit. Retirer l'un des deux casse soit la forme, soit la visée.
   const bouton = (
-    <button
-      type="button"
+    <BoutonIcone
       onClick={() => setPleinEcran((v) => !v)}
-      aria-label={pleinEcran ? 'Quitter le plein écran' : 'Afficher le graphe en plein écran'}
-      title={pleinEcran ? 'Quitter le plein écran' : 'Afficher le graphe en plein écran'}
-      data-cible-fine
-      className={`cible-tactile absolute bottom-3 right-3 z-10 flex h-7 w-7 items-center
-                  justify-center rounded-full border border-border bg-panel/90 text-ink-dim
-                  transition hoverable:border-accent hoverable:text-ink ${
-                    pleinEcran ? '' : 'lg:hidden'
-                  }`}
-    >
-      {pleinEcran ? <Minimize2 size={14} /> : <Maximize2 size={14} />}
-    </button>
+      libelle={pleinEcran ? 'Quitter le plein écran' : 'Afficher le graphe en plein écran'}
+      icone={pleinEcran ? <Minimize2 size={14} /> : <Maximize2 size={14} />}
+      taille="serre"
+      cadre
+      className={`absolute bottom-3 right-3 z-10 rounded-full ${pleinEcran ? '' : 'lg:hidden'}`}
+    />
   );
 
   if (!pleinEcran) {

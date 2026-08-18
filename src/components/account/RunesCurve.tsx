@@ -12,6 +12,7 @@ import Segmented from '../Segmented';
 import SlotFilter from './SlotFilter';
 import CurveChart, { CurveSeries, OWN_COLOR } from './CurveChart';
 import MobileSheet from '../../ui/MobileSheet';
+import { BoutonIcone, FlottantAuto } from '../../ui';
 import { useMediaQuery, SOUS_LG } from '../../hooks/useMediaQuery';
 
 interface Props {
@@ -213,39 +214,35 @@ export default function RunesCurve({ runes }: Props) {
 
       {/* Graphe + bouton d'aide superposé (popup fermable au clic extérieur) */}
       <div className="relative">
-        <div ref={helpRef} className="absolute top-2 right-2 z-20">
-          <button
+        {/* ⚠️ L'ANCRE porte la position ET la taille du bouton : `FlottantAuto`
+            mesure la place autour d'elle. Un conteneur sans dimensions — avec
+            le bouton en `absolute` à l'intérieur — lui aurait fait mesurer un
+            point de hauteur nulle, et la bulle serait tombée à côté. */}
+        <div ref={helpRef} className="absolute right-2 top-2 z-20">
+          {/* ⚠️ `BoutonIcone` de la librairie, plus un `<button>` écrit à la
+              main : le libellé, l'état actif, le cadre et la zone tactile sont
+              des AXES du composant. La version manuscrite les réécrivait un par
+              un — y compris `data-cible-fine` et `cible-tactile`, que la
+              librairie pose déjà ensemble. */}
+          <BoutonIcone
             onClick={() => setShowHelp((v) => !v)}
             aria-expanded={showHelp}
-            aria-label="Comment lire ce graphe ?"
-            title="Comment lire ce graphe ?"
-            // ⚠️ Même gabarit que le bouton de plein écran du graphe (28 px) :
-            // ce sont les deux commandes du même dessin, sur le même bord. Deux
-            // tailles les auraient fait lire comme deux natures de contrôle.
-            // ⚠️ `data-cible-fine` + `cible-tactile` vont ensemble — voir
-            // CurveChart : sans le premier, la règle tactile globale étire le
-            // bouton en ovale de 28 × 40 ; sans le second, la cible tombe sous
-            // les 44 px réglementaires.
-            data-cible-fine
-            className={`cible-tactile flex aspect-square items-center justify-center w-7 h-7 rounded-full border transition
-              ${showHelp ? 'bg-accent-soft border-accent text-ink' : 'bg-panel/80 border-border text-ink-dim hoverable:text-ink hoverable:border-accent'}`}
-          >
-            <HelpCircle size={14} />
-          </button>
+            libelle="Comment lire ce graphe ?"
+            icone={<HelpCircle size={14} />}
+            taille="serre"
+            cadre
+            actif={showHelp}
+            className="rounded-full"
+          />
 
-          {/* À la SOURIS : bulle ancrée au bouton. L'écran est haut, le texte
-              tient, et le geste (survol/clic hors zone) est celui d'un
-              popover. */}
-          {showHelp && !auDoigt && (
-            <div
-              className="absolute right-0 mt-1.5 max-h-[60dvh] w-[340px] max-w-[88vw] overflow-y-auto
-                         overscroll-contain rounded-lg border border-accent bg-panel p-3 text-xs
-                         text-ink-dim leading-relaxed shadow-xl shadow-black/50
-                         origin-top-right animate-[popover_150ms_var(--ease-out)]"
-            >
-              {aide}
-            </div>
-          )}
+          {/* À la SOURIS : bulle ancrée au bouton.
+              ⚠️ `FlottantAuto` et non un `<div absolute>` : il MESURE la place
+              autour de son ancre et choisit son côté avant de peindre. La bulle
+              écrite à la main s'ouvrait toujours vers le bas — c'est ce qui la
+              faisait sortir de l'écran. */}
+          <FlottantAuto ouvert={showHelp && !auDoigt} ancre={helpRef} largeur={340} hauteur={420}>
+            <div className="text-xs leading-relaxed text-ink-dim">{aide}</div>
+          </FlottantAuto>
         </div>
 
         {/* AU DOIGT : panneau montant. Il monte du bas, se pose AU-DESSUS de la

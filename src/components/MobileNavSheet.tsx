@@ -275,13 +275,28 @@ function Case({
       onClick={onClick}
       aria-current={actif ? 'page' : undefined}
       title={libelle}
+      // ⚠️ **`data-hauteur-fixe` : c'est LUI qui rend les cibles identiques.**
+      // Le corps du panneau porte `data-tiroir`, et index.css y pose
+      // `[data-tiroir] button:not(…) { min-height: 34px }` — spécificité
+      // (0,3,1), qui BAT un utilitaire de classe (0,1,0). Un `<button>` y était
+      // donc ramené à 34 px pendant qu'un `<a>`, que la règle ne vise pas,
+      // gardait ses 44 : « Monstres » (lien) était visiblement plus haut que
+      // « Runes » et « Artéfacts » (boutons), pour la seule raison qu'ils ne
+      // sont pas la même balise. L'attribut est l'échappatoire prévue par la
+      // règle elle-même — une hauteur écrite dans le composant est un choix de
+      // forme, pas un oubli.
+      data-hauteur-fixe
       // ⚠️ `w-full` explicite : un `<button>` ne s'étire pas comme un `<a>`.
-      // ⚠️ **44 px de haut**, la règle tactile : on vise du pouce sans regarder.
+      // ⚠️ **44 px de haut EXACTEMENT** (`h-11`), la règle tactile : on vise du
+      // pouce sans regarder. Une hauteur FIXE et non un minimum — c'est ce que
+      // `data-hauteur-fixe` ci-dessus déclare, et c'est ce qui garantit que
+      // toutes les cibles du panneau ont la même taille, quelle que soit leur
+      // balise et quel que soit leur contenu.
       // ⚠️ **Le cadre est PORTÉ PAR LA CIBLE**, pas par une liste qui les
       // engloberait : c'est lui qui dit où commence le bouton. Un seul contour,
       // de 1 px — le marqueur d'état ne fait que le teinter, il n'en ajoute pas
       // un second (spec/shared/design.md).
-      className={`flex w-full min-h-[44px] items-center gap-2.5 rounded-lg border px-3
+      className={`flex h-11 w-full items-center gap-2.5 rounded-lg border px-3
                   text-left text-sm transition-colors ${
                     actif
                       ? 'border-ctx bg-ctx-soft text-ink'

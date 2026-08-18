@@ -48,7 +48,7 @@
 // vérification rapide pendant l'itération — relancer avec ces arguments
 // explicites pour rejouer la mesure de référence complète.
 //
-// Usage : optimum-retention-rate.ts [scenarios=30] [perSlot=25] [seed=5000] [combosOrderMode=potential]
+// Usage : optimum-retention-rate.ts [scenarios=30] [perSlot=25] [seed=5000] [combosOrderMode=relevance]
 //   scenarios — nombre de scénarios synthétiques (défaut 30, monter à
 //               quelques centaines une fois le coût par scénario calibré).
 //   perSlot   — runes par slot dans le pool synthétique (défaut 25 — reste
@@ -57,11 +57,16 @@
 //               partagent exactement le même pool filtré).
 //   seed      — graine de base du PRNG déterministe (défaut 5000 — 1000 et
 //               3000 déjà pris par differential/scale-monotonicity).
-//   combosOrderMode — 'potential' (défaut, production) ou 'relevance'
-//               (prototype, voir buildBuckets/SearchParams) — appliqué
-//               UNIQUEMENT aux appels `buildBuckets` au VRAI bucketCap
-//               (rétention réelle) ; la référence exacte reste indifférente
-//               à l'ordre par construction (ré-triée indépendamment par
+//   combosOrderMode — 'relevance' (défaut ici ET en production depuis le
+//               2026-08-18) ou 'potential' (ancien comportement, gardé
+//               comme échappatoire de mesure/comparaison — voir
+//               buildBuckets/SearchParams) — appliqué explicitement, PAS
+//               via `undefined`/le défaut interne de `buildBuckets`, pour
+//               que ce script reste fidèle à ce qu'il mesure même si ce
+//               défaut change à nouveau un jour. Appliqué UNIQUEMENT aux
+//               appels `buildBuckets` au VRAI bucketCap (rétention réelle) ;
+//               la référence exacte reste indifférente à l'ordre par
+//               construction (ré-triée indépendamment par
 //               `exactOptimum` avant de chercher la meilleure paire).
 
 import { BaseStats, EffectLine, RuneDetail } from '../src/types';
@@ -260,7 +265,7 @@ const argv = process.argv.slice(2);
 const SCENARIOS = argv[0] ? Number(argv[0]) : 30;
 const PER_SLOT = argv[1] ? Number(argv[1]) : 25;
 const SEED_BASE = argv[2] ? Number(argv[2]) : 5000;
-const combosOrderMode = argv[3] === 'relevance' ? ('relevance' as const) : undefined;
+const combosOrderMode = argv[3] === 'potential' ? ('potential' as const) : ('relevance' as const);
 
 interface Row {
   scenario: number;
@@ -281,7 +286,7 @@ const rows: Row[] = [];
 let skippedInfeasible = 0;
 let skippedBudget = 0;
 
-console.log(`P(optimum conservé | BUCKET_CAP) — ${SCENARIOS} scénario(s), ${PER_SLOT} runes/slot, seed base ${SEED_BASE}, combosOrderMode=${combosOrderMode ?? 'potential'}.\n`);
+console.log(`P(optimum conservé | BUCKET_CAP) — ${SCENARIOS} scénario(s), ${PER_SLOT} runes/slot, seed base ${SEED_BASE}, combosOrderMode=${combosOrderMode}.\n`);
 
 for (let s = 0; s < SCENARIOS; s++) {
   const t0 = Date.now();

@@ -53,7 +53,11 @@ if (!scenarioFile || (modeArg !== 'potential' && modeArg !== 'relevance')) {
   console.error('Usage: optimum-rank-diag.ts <scenarios.json> <potential|relevance> [maxNodes=20000000]');
   process.exit(1);
 }
-const combosOrderMode = modeArg === 'relevance' ? ('relevance' as const) : undefined;
+// ⚠️ Toujours un littéral EXPLICITE ('potential' ou 'relevance'), jamais
+// `undefined` — sinon, passer 'potential' ici retomberait sur le défaut
+// interne de `buildBuckets` (`'relevance'` depuis le 2026-08-18) au lieu de
+// vraiment forcer l'ancien comportement demandé par l'appelant.
+const combosOrderMode = modeArg === 'relevance' ? ('relevance' as const) : ('potential' as const);
 const MAX_NODES = maxNodesArg ? Number(maxNodesArg) : 20_000_000;
 const scenarios: ScenarioIn[] = JSON.parse(readFileSync(scenarioFile, 'utf8'));
 

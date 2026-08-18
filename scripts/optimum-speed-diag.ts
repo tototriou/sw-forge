@@ -16,12 +16,16 @@
 // `optimum-speed-targets.ts` (reste dans le répertoire courant, importe
 // `buildBuckets`/`prepareSearch`, absents de l'ancien commit).
 //
-// Usage : optimum-speed-diag.ts <scenarios.json> [combosOrderMode=potential]
-//   combosOrderMode — 'potential' (défaut, comportement de production) ou
-//   'relevance' (prototype en mesure — voir `buildBuckets`,
+// Usage : optimum-speed-diag.ts <scenarios.json> [combosOrderMode=relevance]
+//   combosOrderMode — 'relevance' (défaut ici ET en production depuis le
+//   2026-08-18) ou 'potential' (ancien comportement — voir `buildBuckets`,
 //   `SearchParams.combosOrderMode`) : tri des demi-builds À L'INTÉRIEUR d'un
 //   compartiment par pure efficience au lieu du potentiel multi-tranches
 //   normalisé, sans toucher au tri DES compartiments entre eux (inchangé).
+//   Appliqué EXPLICITEMENT (jamais `undefined`) pour ne pas dépendre du
+//   défaut interne de `buildBuckets`, y compris quand ce script tourne
+//   contre un ANCIEN commit sans le champ `combosOrderMode` (ignoré sans
+//   effet dans ce cas — l'ancien code n'a qu'un seul comportement).
 // Sortie (stdout) : un JSON par scénario, une ligne — voir `Row` plus bas.
 
 import { readFileSync } from 'fs';
@@ -48,10 +52,10 @@ interface Row {
 
 const [scenarioFile, modeArg] = process.argv.slice(2);
 if (!scenarioFile) {
-  console.error('Usage: optimum-speed-diag.ts <scenarios.json> [combosOrderMode=potential]');
+  console.error('Usage: optimum-speed-diag.ts <scenarios.json> [combosOrderMode=relevance]');
   process.exit(1);
 }
-const combosOrderMode = modeArg === 'relevance' ? 'relevance' : undefined;
+const combosOrderMode = modeArg === 'potential' ? 'potential' as const : 'relevance' as const;
 const scenarios: ScenarioIn[] = JSON.parse(readFileSync(scenarioFile, 'utf8'));
 
 function sameIds(a: number[], b: number[]): boolean {

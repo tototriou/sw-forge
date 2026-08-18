@@ -119,9 +119,13 @@ export interface SearchParams {
   // répartition uniforme raterait, au prix d'un temps de recherche plus
   // long (+20 % de temps de construction mesuré en moyenne).
   adaptiveTrancheWeighting?: boolean;
-  // ⚠️ PROTOTYPE EN MESURE — voir `buildBuckets`, paramètre
-  // `combosOrderMode`. `undefined`/`'potential'` (défaut, tous les appels de
-  // production) : comportement inchangé. Jamais exposé dans l'UI.
+  // Voir `buildBuckets`, paramètre `combosOrderMode`. `undefined`/
+  // `'relevance'` (défaut depuis le 2026-08-18, tous les appels de
+  // production) : tri des demi-builds par `relevanceScore` au sein d'un
+  // compartiment (mesuré ~2× plus rapide, 0 régression — voir
+  // historique-dimensionnement.md). `'potential'` : ancien comportement,
+  // conservé comme échappatoire de mesure/comparaison. Jamais exposé dans
+  // l'UI.
   combosOrderMode?: 'potential' | 'relevance';
 }
 
@@ -1188,18 +1192,19 @@ export function* buildBuckets(
   // déjà validé (Sonia deck 6, cas de stress atteignable) contre un coût de
   // construction non démontré meilleur que la piste A.
   adaptiveTrancheWeighting = false,
-  // ⚠️ PROTOTYPE EN MESURE — voir spec/outils/optimizer/
-  // historique-dimensionnement.md, « Suite — vitesse de convergence : ordre
-  // au sein d'un compartiment ». `'potential'` (défaut, TOUS les appels de
-  // production actuels) : comportement INCHANGÉ, tri par potentiel
-  // normalisé multi-tranches (voir plus bas). `'relevance'` : garde le tri
-  // des COMPARTIMENTS entre eux par potentiel (déjà mesuré comme un vrai
-  // gain, deck 10), mais trie les demi-builds À L'INTÉRIEUR d'un même
-  // compartiment par `relevanceScore` seul (comportement d'avant l'ajout du
-  // potentiel normalisé, ICI SEULEMENT) — hypothèse : le tri par potentiel
-  // à ce niveau précis coûte de l'exploration sans bénéfice démontré
-  // séparément de celui du tri des compartiments. Jamais exposé dans l'UI.
-  combosOrderMode: 'potential' | 'relevance' = 'potential'
+  // Voir spec/outils/optimizer/historique-dimensionnement.md, « Suite —
+  // vitesse de convergence : ordre au sein d'un compartiment » et « Suite —
+  // rétention re-vérifiée EMPIRIQUEMENT avec le prototype ». `'relevance'`
+  // (défaut depuis le 2026-08-18, tous les appels de production) : garde le
+  // tri des COMPARTIMENTS entre eux par potentiel normalisé (mesuré comme
+  // un vrai gain, deck 10), mais trie les demi-builds À L'INTÉRIEUR d'un
+  // même compartiment par `relevanceScore` seul — mesuré ~2× plus rapide en
+  // paires explorées pour un même objectif, sans coût de rang relatif ni de
+  // rétention (696/696 scénarios synthétiques, 0 régression). `'potential'` :
+  // ancien comportement (tri par potentiel normalisé aussi au sein d'un
+  // compartiment), conservé comme échappatoire de mesure/comparaison —
+  // jamais exposé dans l'UI, aucun appel de production ne le passe.
+  combosOrderMode: 'potential' | 'relevance' = 'relevance'
 ): Generator<BuildingProgress, Bucket[], void> {
   const [i0, i1, i2] = slotIdxs;
   const buckets = new Map<string, Bucket>();

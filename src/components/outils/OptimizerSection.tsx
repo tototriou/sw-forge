@@ -14,6 +14,7 @@ import {
   ChevronDown,
   Layers,
   UserX,
+  Ban,
 } from 'lucide-react';
 import { ArtifactDetail, ARTIFACT_KINDS, RECO_STATS, RuneDetail, Monster, RtaEntry, SiegeTeam } from '../../types';
 import { BoxItem } from '../../lib/applyAccount';
@@ -333,7 +334,7 @@ export default function OptimizerSection({ box, runes, optimizer, allMonsters, r
   // plus coûteux que le palier 1 ci-dessus (N passes de pré-filtrage, N =
   // nombre de conditions posées, contre une seule) : calculé UNIQUEMENT
   // quand il sera réellement affiché — activé (`diagnoseBlockingEnabled`,
-  // « Options avancées ») ET une recherche vient de renvoyer 0 résultat —
+  // « Réglages avancés ») ET une recherche vient de renvoyer 0 résultat —
   // jamais à chaque frappe comme le palier 1.
   const blockingDiagnosis = useMemo<BlockingConditionsDiagnosis | null>(() => {
     if (!selected || !diagnoseBlockingEnabled) return null;
@@ -686,8 +687,8 @@ export default function OptimizerSection({ box, runes, optimizer, allMonsters, r
           <p className="label">Objectif de recherche</p>
           <HelpPopover title="Objectif de recherche">
             Élargit la sélection de runes candidates pour ses stats dès le pré-filtrage, avant même de
-            lancer la recherche — les minimums posés ci-dessus restent ce qui décide quels demi-builds
-            sont conservés pendant la recherche elle-même. <b className="text-ink">Dégâts</b> considère{' '}
+            lancer la recherche — les minimums posés plus bas (Conditions) restent ce qui décide quels
+            demi-builds sont conservés pendant la recherche elle-même. <b className="text-ink">Dégâts</b> considère{' '}
             <b className="text-ink">ATQ</b>, <b className="text-ink">Taux Crit</b> et{' '}
             <b className="text-ink">Dgts Crit</b> ensemble (espérance moyenne).
           </HelpPopover>
@@ -976,13 +977,12 @@ export default function OptimizerSection({ box, runes, optimizer, allMonsters, r
       <div className="rounded-xl border border-accent/50 bg-panel p-3">
         <div className="mb-0.5 flex items-center gap-2">
           {/* Icône « Runes » de Mon compte (même GameIcon que le menu),
-              barrée d'un trait diagonal — l'exclusion RETIRE des runes de la
-              recherche, pas un pictogramme d'inventaire générique. */}
+              barrée du vrai symbole « interdit » (cercle barré, comme le
+              curseur non-cliquable) plutôt qu'un simple trait — l'exclusion
+              RETIRE des runes de la recherche. */}
           <div className="relative flex h-6 w-6 flex-none items-center justify-center rounded-md border border-border-soft bg-panel2">
-            <GameIcon name="rune" size={15} />
-            <span className="pointer-events-none absolute inset-0 flex items-center justify-center">
-              <span className="h-[1.5px] w-[19px] rotate-45 rounded-full bg-bad" />
-            </span>
+            <GameIcon name="rune" size={13} />
+            <Ban size={22} strokeWidth={1.75} className="pointer-events-none absolute text-bad/85" />
           </div>
           <p className="text-[13.5px] font-bold text-ink">Exclusion de runes</p>
         </div>
@@ -1001,7 +1001,7 @@ export default function OptimizerSection({ box, runes, optimizer, allMonsters, r
               <HelpPopover title="Exclure les runes déjà utilisées">
                 Par défaut, la recherche considère TOUT l'inventaire, runes déjà portées ailleurs comprises. Active ce
                 réglage pour retirer de la recherche les runes déjà portées par d'AUTRES monstres dans le périmètre
-                choisi ci-contre (un seul à la fois) — un build réellement montable sans déruner quelqu'un. Le monstre
+                choisi ci-dessous (un seul à la fois) — un build réellement montable sans déruner quelqu'un. Le monstre
                 recherché lui-même n'est jamais exclu de ses propres runes.
               </HelpPopover>
               <Switch checked={excludeUsedRunes} onChange={setExcludeUsedRunes} label="Exclure les runes déjà utilisées" />
@@ -1045,7 +1045,7 @@ export default function OptimizerSection({ box, runes, optimizer, allMonsters, r
         {/* ⚠️ `comboSets.length === 0` reste HORS de `disabled` — un bouton
             HTML natif `disabled` ne déclenche JAMAIS `onClick` (règle du
             DOM, pas un oubli), ce qui aurait rendu le défilement vers « Set
-            de runes recherché » ci-dessous inatteignable : plus aucun clic
+            de runes recherché » plus haut inatteignable : plus aucun clic
             ne pouvait jamais arriver jusqu'à `handleSearch`. Grisé
             visuellement à la place (mêmes classes que `disabled:*`,
             appliquées manuellement) tout en restant cliquable, pour que le
@@ -1196,7 +1196,8 @@ export default function OptimizerSection({ box, runes, optimizer, allMonsters, r
           )}
           {progress !== null && (
             <p className="mt-0.5 font-mono text-[11px] text-ink-dimmer">
-              Le budget de recherche s'élargit automatiquement tant qu'il reste du temps et rien de trouvé.
+              Le budget de recherche s'élargit automatiquement tant qu'il reste du temps et que le plafond de
+              résultats (100 000) n'est pas atteint — pas seulement tant que rien n'est trouvé.
             </p>
           )}
         </div>
@@ -1291,7 +1292,7 @@ export default function OptimizerSection({ box, runes, optimizer, allMonsters, r
                   Aucune condition n'est, à elle seule, mathématiquement hors de portée — le blocage
                   vient probablement de leur <b className="text-ink">combinaison</b> (rare qu'un seul
                   build satisfasse tout à la fois), ou du pré-filtrage de la recherche elle-même. Essaie
-                  de desserrer une condition, ou un pré-filtrage plus large (Options avancées).
+                  de desserrer une condition, ou un pré-filtrage plus large (Réglages avancés).
                 </p>
               )}
             </div>
@@ -1329,7 +1330,7 @@ export default function OptimizerSection({ box, runes, optimizer, allMonsters, r
             ) : (
               !diagnoseBlockingEnabled && (
                 <p className="mb-3 text-[11px] text-ink-dim">
-                  Astuce : active le diagnostic approfondi (Options avancées) pour identifier quelle
+                  Astuce : active le diagnostic approfondi (Réglages avancés) pour identifier quelle
                   condition libère le plus de candidats.
                 </p>
               )

@@ -133,9 +133,19 @@ export default function Sidebar({
   // et le retour pointait vers `#/`, donc quittait l'écran pour consulter un
   // menu. La barre garde donc son propre niveau.
   //
+  // ⚠️ **On mémorise le TITRE de la section ouverte, pas son objet.** L'objet
+  // était stocké tel quel, donc figé à l'instant du clic : ses entrées gardaient
+  // les `actif` calculés à ce moment-là. On naviguait de « Liste » à
+  // « Courbes », la route changeait — mais comme on RESTE dans « Mon compte »,
+  // la remise à zéro sur changement de route ne se déclenchait pas et la barre
+  // continuait d'afficher l'ancien objet. **Le surlignage ne suivait donc la
+  // navigation qu'après un aller-retour au premier niveau.**
+  // Le titre, lui, est ré-résolu à chaque rendu sur les `groupes` reçus, qui
+  // sont reconstruits par l'appelant à chaque changement de page.
+  //
   // `null` = premier niveau. `undefined` = « suivre la route », l'état initial
   // et celui de chaque changement de page.
-  const [ouverte, setOuverte] = useState<SidebarSection | null | undefined>(undefined);
+  const [ouverte, setOuverte] = useState<string | null | undefined>(undefined);
 
   // ⚠️ Changer de page REPOSE le niveau sur celui de la route : arriver dans le
   // Siège doit montrer ses sous-sections, même si on avait remonté ailleurs.
@@ -147,7 +157,17 @@ export default function Sidebar({
   }
 
   // Le niveau affiché : celui qu'on a ouvert à la main, sinon celui de la route.
-  const niveauDeux = ouverte === undefined ? section : ouverte;
+  // ⚠️ La section ouverte à la main est **retrouvée dans les `groupes` du rendu
+  // courant**, jamais réutilisée depuis l'état : c'est ce qui garantit que ses
+  // entrées portent l'`actif` de la page qu'on regarde vraiment.
+  const niveauDeux =
+    ouverte === undefined
+      ? section
+      : ouverte === null
+        ? null
+        : (groupes
+            .flatMap((g) => g.liens)
+            .find((l) => l.ouvre?.titre === ouverte)?.ouvre ?? null);
 
   return (
     <motion.aside
@@ -331,8 +351,9 @@ function Groupes({
 }: {
   groupes: SidebarGroupe[];
   retractee: boolean;
-  // Ouvre une section dans la barre, sans naviguer.
-  onOuvrir?: (s: SidebarSection) => void;
+  // Ouvre une section dans la barre, sans naviguer. ⚠️ Reçoit son TITRE, pas
+  // l'objet : voir `ouverte` plus haut — l'objet se figeait au clic.
+  onOuvrir?: (titre: string) => void;
 }) {
   return (
     <>
@@ -374,7 +395,7 @@ function LienBarre({
 }: {
   lien: SidebarLien;
   retractee: boolean;
-  onOuvrir?: (s: SidebarSection) => void;
+  onOuvrir?: (titre: string) => void;
 }) {
   // ⚠️ Un BOUTON quand l'entrée ouvre une section, un LIEN quand elle mène
   // quelque part. Le premier ne doit pas apparaître dans l'historique du
@@ -383,7 +404,7 @@ function LienBarre({
   return (
     <Balise
       {...(lien.ouvre
-        ? { type: 'button' as const, onClick: () => onOuvrir?.(lien.ouvre!) }
+        ? { type: 'button' as const, onClick: () => onOuvrir?.(lien.ouvre!.titre) }
         : { href: lien.hash })}
       aria-current={lien.actif ? 'page' : undefined}
       // ⚠️ Rétractée, le `title` est la SEULE façon de savoir où l'on va : les

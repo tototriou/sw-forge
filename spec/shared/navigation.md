@@ -86,11 +86,20 @@ l'appuyer.
 |--------|------|
 | `undefined` | Suivre la route — l'état initial et celui de chaque changement de page |
 | `null` | Premier niveau, après un retour |
-| une section | Ouverte à la main |
+| le **titre** d'une section | Ouverte à la main |
 
 ⚠️ Changer de page **repose** l'état sur `undefined` : arriver sur
 `#/siege/offense` doit montrer les sous-sections du Siège, même si on avait
 remonté ailleurs juste avant.
+
+⚠️ **C'est le TITRE qui est mémorisé, jamais l'objet section.** L'objet y était
+stocké tel quel, donc **figé à l'instant du clic**, avec les `actif` calculés à
+ce moment-là. Or la remise à zéro ci-dessus ne se déclenche qu'au changement de
+*section* : en naviguant de « Liste » à « Courbes », on reste dans « Mon
+compte », elle ne se déclenchait donc pas et la barre continuait d'afficher
+l'ancien objet — **le surlignage ne suivait la navigation qu'après un
+aller-retour au premier niveau**. Le titre, lui, est ré-résolu à chaque rendu
+sur les `groupes` reçus, que l'appelant reconstruit à chaque changement de page.
 
 ## Trois niveaux — « Mon compte »
 

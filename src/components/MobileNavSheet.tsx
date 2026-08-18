@@ -96,7 +96,11 @@ export default function MobileNavSheet({
               <button
                 type="button"
                 onClick={() => setGroupeOuvert(null)}
-                className="group mb-1 flex min-h-[44px] items-center gap-1.5 rounded-lg px-2
+                // ⚠️ `w-full` explicite : un `<button>` ne s'étire pas comme un
+                // `<a>`, et toute cible de ce panneau prend TOUTE la largeur —
+                // c'est une liste qu'on vise du pouce, pas une rangée de
+                // pastilles. Même règle que les entrées de la barre latérale.
+                className="group mb-1 flex w-full min-h-[44px] items-center gap-1.5 rounded-lg px-2
                            text-sm text-ink-dim transition-colors hoverable:bg-panel2"
               >
                 <ChevronLeft
@@ -200,7 +204,8 @@ function LienNav({ lien, onFermer }: { lien: SidebarLien; onFermer: () => void }
       // ⚠️ Cible PLEINE HAUTEUR (44 px) : c'est une liste qu'on vise du pouce,
       // pas une rangée de pastilles serrées. La règle tactile s'applique ici
       // sans exception.
-      className={`relative flex min-h-[44px] items-center gap-2.5 rounded-lg px-3 text-sm
+      // ⚠️ `w-full` : toute cible de ce panneau prend TOUTE la largeur.
+      className={`relative flex w-full min-h-[44px] items-center gap-2.5 rounded-lg px-3 text-sm
                   transition-colors ${
                     lien.actif ? 'text-ink' : 'text-ink-dim hoverable:bg-panel2'
                   }`}

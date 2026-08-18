@@ -12,6 +12,10 @@ import {
   Download,
   ChevronLeft,
   ChevronRight,
+  ChevronDown,
+  User,
+  Layers,
+  UserX,
 } from 'lucide-react';
 import { ArtifactDetail, ARTIFACT_KINDS, RECO_STATS, RuneDetail, Monster, RtaEntry, SiegeTeam } from '../../types';
 import { BoxItem } from '../../lib/applyAccount';
@@ -577,28 +581,48 @@ export default function OptimizerSection({ box, runes, optimizer, allMonsters, r
         indicatif — c'est à toi de re-runer dans le jeu.
       </p>
 
-      <div>
-        <p className="label mb-1.5">Monstre à optimiser</p>
-        <MonsterGearPicker items={gearedMonsters} onPick={setSelectedId} />
+      {/* Regroupement visuel — voir spec/outils/optimizer/, proposition
+          d'ergonomie 2026-08-18 : la page était une pile plate de ~12
+          sections au même poids visuel. Cette carte et les suivantes
+          regroupent des réglages apparentés sous un en-tête commun,
+          comportement des champs eux-mêmes INCHANGÉ. */}
+      <div className="rounded-xl border border-border bg-panel p-3">
+        <div className="mb-3 flex items-center gap-2">
+          <div className="flex h-6 w-6 flex-none items-center justify-center rounded-md border border-border-soft bg-panel2">
+            <User size={13} className="text-ink-dim" />
+          </div>
+          <p className="text-[13.5px] font-bold text-ink">Monstre &amp; équipement</p>
+        </div>
+        <div>
+          <p className="label mb-1.5">Monstre à optimiser</p>
+          <MonsterGearPicker items={gearedMonsters} onPick={setSelectedId} />
+        </div>
+
+        {selected && (
+          <div className="mt-3 rounded-xl border border-accent bg-panel/60 p-3">
+            <div className="flex items-center gap-2 mb-2">
+              <MonsterAvatar monster={selected.monster} size={32} />
+              <span className="font-semibold text-[14px]">{selected.monster.name}</span>
+            </div>
+            {/* ⚠️ Même composant que RTA/Siège quand on clique un monstre — pas
+                une réimplémentation : stats base/bonus, artéfacts, roue de
+                runes et relique tels qu'ACTUELLEMENT équipés, chacun cliquable
+                pour son détail complet (RuneDetailBox/ArtifactDetailBox/
+                RelicDetailBox), inline sous la roue. Ce que l'Optimizer part
+                d'optimiser, visible d'un coup d'œil avant de lancer quoi que
+                ce soit. */}
+            <MonsterGear gear={selected.gear} />
+          </div>
+        )}
       </div>
 
-      {selected && (
-        <div className="rounded-xl border border-accent bg-panel/60 p-3">
-          <div className="flex items-center gap-2 mb-2">
-            <MonsterAvatar monster={selected.monster} size={32} />
-            <span className="font-semibold text-[14px]">{selected.monster.name}</span>
+      <div className="rounded-xl border border-border bg-panel p-3">
+        <div className="mb-3 flex items-center gap-2">
+          <div className="flex h-6 w-6 flex-none items-center justify-center rounded-md border border-border-soft bg-panel2">
+            <Target size={13} className="text-ink-dim" />
           </div>
-          {/* ⚠️ Même composant que RTA/Siège quand on clique un monstre — pas
-              une réimplémentation : stats base/bonus, artéfacts, roue de
-              runes et relique tels qu'ACTUELLEMENT équipés, chacun cliquable
-              pour son détail complet (RuneDetailBox/ArtifactDetailBox/
-              RelicDetailBox), inline sous la roue. Ce que l'Optimizer part
-              d'optimiser, visible d'un coup d'œil avant de lancer quoi que
-              ce soit. */}
-          <MonsterGear gear={selected.gear} />
+          <p className="text-[13.5px] font-bold text-ink">Critères de recherche</p>
         </div>
-      )}
-
       <div
         ref={setPickerSectionRef}
         className={
@@ -831,18 +855,26 @@ export default function OptimizerSection({ box, runes, optimizer, allMonsters, r
           </button>
         </div>
       </div>
+      </div>
 
-      <div>
+      <div className="rounded-xl border border-border bg-panel p-3">
         <button
           type="button"
           onClick={() => setShowAdvanced((v) => !v)}
           aria-expanded={showAdvanced}
-          className="flex items-center gap-1.5 text-[12px] font-semibold text-ink-dim transition hoverable:text-ink"
+          className="flex w-full items-center gap-1.5 text-[13px] font-bold text-ink"
         >
-          <Settings2 size={13} /> Options avancées
+          <div className="flex h-6 w-6 flex-none items-center justify-center rounded-md border border-border-soft bg-panel2">
+            <Settings2 size={13} className="text-ink-dim" />
+          </div>
+          Réglages avancés
+          <ChevronDown
+            size={14}
+            className={`ml-auto text-ink-dim transition-transform ${showAdvanced ? 'rotate-180' : ''}`}
+          />
         </button>
         {showAdvanced && (
-          <div className="mt-2 rounded-lg border border-border bg-panel p-3">
+          <div className="mt-3 rounded-lg border border-border bg-panel2 p-3">
             <p className="text-[11.5px] text-ink-dim mb-1">Pré-filtrage par emplacement</p>
             <div className="flex items-center gap-1 bg-panel2 border border-border rounded-lg p-0.5 w-fit">
               {SLOT_FILTER_PRESETS.map((p) => (
@@ -895,6 +927,28 @@ export default function OptimizerSection({ box, runes, optimizer, allMonsters, r
                 label="Diagnostic approfondi sur 0 résultat"
               />
             </div>
+
+            {/* Déplacé depuis son ancien emplacement (juste avant les
+                boutons d'action) — même toggle, même logique, regroupé ici
+                avec les autres réglages secondaires. */}
+            <div className="mt-3 flex items-center justify-between gap-2 border-t border-border pt-3">
+              <div className="flex items-center gap-1.5">
+                <Target size={15} className="text-ink-dim" />
+                <span className="text-[11.5px] text-ink-dim">Prioriser les stats les plus difficiles</span>
+                <HelpPopover title="Prioriser les stats les plus difficiles">
+                  Par défaut, le budget de recherche est réparti également entre toutes les stats demandées en
+                  même temps. Une stat rare (peu de runes candidates en apportent beaucoup) peut alors être
+                  étouffée par une stat plus commune. Ce réglage réalloue davantage de budget vers{' '}
+                  <b className="text-ink">les stats les plus difficiles à combiner</b> — peut retrouver un build
+                  qu'une recherche normale rate, au prix d'une recherche plus longue.
+                </HelpPopover>
+              </div>
+              <Switch
+                checked={adaptiveTrancheWeighting}
+                onChange={setAdaptiveTrancheWeighting}
+                label="Prioriser les stats les plus difficiles"
+              />
+            </div>
           </div>
         )}
       </div>
@@ -907,72 +961,67 @@ export default function OptimizerSection({ box, runes, optimizer, allMonsters, r
         </p>
       )}
 
-      <div className="flex flex-wrap items-center gap-3">
-        <div className="flex items-center gap-1.5">
-          <Boxes size={15} className="text-ink-dim" />
-          <span className="text-[12.5px] font-semibold text-ink-dim">Exclure les runes déjà utilisées</span>
-          <HelpPopover title="Exclure les runes déjà utilisées">
-            Par défaut, la recherche considère TOUT l'inventaire, runes déjà portées ailleurs comprises. Active ce
-            réglage pour retirer de la recherche les runes déjà portées par d'AUTRES monstres dans le périmètre
-            choisi ci-contre (un seul à la fois) — un build réellement montable sans déruner quelqu'un. Le monstre
-            recherché lui-même n'est jamais exclu de ses propres runes.
-          </HelpPopover>
-          <Switch checked={excludeUsedRunes} onChange={setExcludeUsedRunes} label="Exclure les runes déjà utilisées" />
+      {/* Catégorie « Exclusion de runes » — les deux réglages ci-dessous
+          existaient déjà séparément (voir git blame), simplement regroupés
+          sous un en-tête commun ; comportement/logique INCHANGÉS. Se
+          superposent l'un à l'autre (voir optimizerExclusion.ts), jamais
+          l'un ne remplace l'autre. */}
+      <div className="rounded-xl border border-accent/50 bg-panel p-3">
+        <div className="mb-0.5 flex items-center gap-2">
+          <div className="flex h-6 w-6 flex-none items-center justify-center rounded-md border border-border-soft bg-panel2">
+            <Boxes size={13} className="text-ink-dim" />
+          </div>
+          <p className="text-[13.5px] font-bold text-ink">Exclusion de runes</p>
         </div>
-        <Segmented
-          options={AUTO_EXCLUSION_SCOPES}
-          value={excludeUsedScope}
-          onChange={setExcludeUsedScope}
-          disabled={!excludeUsedRunes}
-        />
-      </div>
+        <p className="mb-3 pl-8 text-[11px] text-ink-dim">Deux réglages indépendants, qui se superposent.</p>
 
-      {/* Exclusion MANUELLE — se superpose à « Exclure les runes déjà
-          utilisées » ci-dessus, ne le remplace pas (voir
-          optimizerExclusion.ts). Choisir un monstre ici, dans n'importe
-          laquelle des 4 sources, retire ses runes ACTUELLEMENT équipées du
-          pool considéré, en plus de l'exclusion automatique éventuelle. */}
-      <div>
-        <div className="mb-1.5 flex items-center gap-1.5">
-          <Boxes size={15} className="text-ink-dim" />
-          <span className="text-[12.5px] font-semibold text-ink-dim">Exclure les runes d'un monstre</span>
-          <HelpPopover title="Exclure les runes d'un monstre">
-            Choisis un monstre (box, RTA, siège défense ou offense) pour retirer SES runes actuellement équipées de
-            la recherche — utile pour un build que tu ne veux pas défaire, en plus de{' '}
-            <b className="text-ink">« Exclure les runes déjà utilisées »</b> ci-dessus.
-          </HelpPopover>
+        <div className="border-b border-border-soft pb-3">
+          <div className="flex flex-wrap items-center gap-3">
+            <div className="flex items-center gap-1.5">
+              <Layers size={15} className="text-ink-dim" />
+              <span className="text-[12.5px] font-semibold text-ink-dim">Exclure les runes déjà utilisées</span>
+              <HelpPopover title="Exclure les runes déjà utilisées">
+                Par défaut, la recherche considère TOUT l'inventaire, runes déjà portées ailleurs comprises. Active ce
+                réglage pour retirer de la recherche les runes déjà portées par d'AUTRES monstres dans le périmètre
+                choisi ci-contre (un seul à la fois) — un build réellement montable sans déruner quelqu'un. Le monstre
+                recherché lui-même n'est jamais exclu de ses propres runes.
+              </HelpPopover>
+              <Switch checked={excludeUsedRunes} onChange={setExcludeUsedRunes} label="Exclure les runes déjà utilisées" />
+            </div>
+            <Segmented
+              options={AUTO_EXCLUSION_SCOPES}
+              value={excludeUsedScope}
+              onChange={setExcludeUsedScope}
+              disabled={!excludeUsedRunes}
+            />
+          </div>
         </div>
-        <RuneExclusionPicker
-          data={exclusionData}
-          excludeOwnUnitKey={selectedUnitKey}
-          selected={excludedSelectors}
-          onChange={setExcludedSelectors}
-        />
-      </div>
 
-      <div className="flex flex-wrap items-center gap-3">
-        {/* Toggle, pas un bouton qui lance sa propre recherche : désactivé
-            par défaut, jamais suggéré (voir spec/outils/optimizer/ — pas
-            d'indicateur tant qu'aucun seuil de déclenchement fiable n'est
-            calibré), lu par `handleSearch` au moment du clic sur
-            « Rechercher » ci-dessous. */}
-        <div className="flex items-center gap-1.5">
-          <Target size={15} className="text-ink-dim" />
-          <span className="text-[12.5px] font-semibold text-ink-dim">Prioriser les stats les plus difficiles</span>
-          <HelpPopover title="Prioriser les stats les plus difficiles">
-            Par défaut, le budget de recherche est réparti également entre toutes les stats demandées en même temps.
-            Une stat rare (peu de runes candidates en apportent beaucoup) peut alors être étouffée par une stat plus
-            commune. Ce réglage réalloue davantage de budget vers{' '}
-            <b className="text-ink">les stats les plus difficiles à combiner</b> — peut retrouver un build qu'une
-            recherche normale rate, au prix d'une recherche plus longue.
-          </HelpPopover>
-          <Switch
-            checked={adaptiveTrancheWeighting}
-            onChange={setAdaptiveTrancheWeighting}
-            label="Prioriser les stats les plus difficiles"
+        {/* Exclusion MANUELLE — se superpose à « Exclure les runes déjà
+            utilisées » ci-dessus, ne le remplace pas (voir
+            optimizerExclusion.ts). Choisir un monstre ici, dans n'importe
+            laquelle des 4 sources, retire ses runes ACTUELLEMENT équipées du
+            pool considéré, en plus de l'exclusion automatique éventuelle. */}
+        <div className="pt-3">
+          <div className="mb-1.5 flex items-center gap-1.5">
+            <UserX size={15} className="text-ink-dim" />
+            <span className="text-[12.5px] font-semibold text-ink-dim">Exclure les runes d'un monstre</span>
+            <HelpPopover title="Exclure les runes d'un monstre">
+              Choisis un monstre (box, RTA, siège défense ou offense) pour retirer SES runes actuellement équipées de
+              la recherche — utile pour un build que tu ne veux pas défaire, en plus de{' '}
+              <b className="text-ink">« Exclure les runes déjà utilisées »</b> ci-dessus.
+            </HelpPopover>
+          </div>
+          <RuneExclusionPicker
+            data={exclusionData}
+            excludeOwnUnitKey={selectedUnitKey}
+            selected={excludedSelectors}
+            onChange={setExcludedSelectors}
           />
         </div>
+      </div>
 
+      <div className="sticky bottom-3 z-10 flex flex-wrap items-center gap-3 rounded-xl border border-border bg-panel/95 p-3 shadow-lg backdrop-blur">
         {/* ⚠️ `comboSets.length === 0` reste HORS de `disabled` — un bouton
             HTML natif `disabled` ne déclenche JAMAIS `onClick` (règle du
             DOM, pas un oubli), ce qui aurait rendu le défilement vers « Set

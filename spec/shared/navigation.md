@@ -410,9 +410,19 @@ niveau** : `MobileSheet centre`, qui recouvre celui d'où il sort.
 est monté hors de l'arbre du composant, et tout clic dans le formulaire serait vu
 comme extérieur. C'est le voile du panneau qui ferme.
 
-⚠️ **Hauteur plafonnée à 85 %**, jamais plein écran : la bande de page visible
-en haut dit qu'on est toujours sur cette page et qu'un appui hors du panneau le
-referme. Plein écran, il devient indiscernable d'un changement de page.
+⚠️ **Hauteur FIXE à 80 %** (`h-[80dvh]`), pour **tous** les panneaux « Options »
+de l'app, jamais plein écran : la bande de page visible en haut dit qu'on est
+toujours sur cette page et qu'un appui hors du panneau le referme ; plein écran,
+il devient indiscernable d'un changement de page.
+- **Fixe, et non « suit le contenu »** : le panneau est collé en bas et ne peut
+  grandir que vers le haut. Une hauteur qui suit le contenu ferait remonter d'un
+  coup ce qu'on vient de toucher quand on déplie quelque chose (une catégorie,
+  une 4ᵉ propriété) — l'app l'interdit (voir [design.md](design.md)). Un bord
+  figé tient en place ; **ce qui dépasse se lit en faisant défiler le corps** du
+  panneau. Un contenu court laisse donc du vide sous lui, c'est le prix d'un bord
+  stable.
+- Le panneau de **second niveau** (`centre`) fait exception : il reste à la taille
+  de son formulaire, plafonné à 80 %.
 
 Il reçoit les **filtres et les actions** de la page, ceux qui occupaient trois
 ou quatre rangées avant la première donnée. Ce qui y entre et ce qui reste :

@@ -25,14 +25,9 @@ import {
   partitionBucketsALPT, totalPairCount, NodeBudget, Bucket, SearchParams,
 } from '../src/lib/runeBuildOptim';
 import { PairingQuotaWorkerData, PairingQuotaWorkerMessage } from './lib/pairing-quota-worker';
+import { drain } from './lib/drain';
 
 const WORKER_COUNT = 4;
-
-function drain<T>(gen: Generator<unknown, T, void>): T {
-  let step = gen.next();
-  while (!step.done) step = gen.next();
-  return step.value;
-}
 
 const RUN_ID = `${Date.now()}-${process.pid}`;
 const BUNDLE_DIR = join(tmpdir(), `sw-forge-pairing-quota-diag-${RUN_ID}`);

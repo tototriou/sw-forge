@@ -10,12 +10,7 @@
 // jour (voir spec/outils/optimizer/pistes.md).
 import { CASES, loadCase } from './lib/perfShared';
 import { prepareSearch, buildBuckets, totalPairCount, estimatePairBound, SLOT_FILTER_PRESETS } from '../src/lib/runeBuildOptim';
-
-function drain<T>(gen: Generator<unknown, T, void>): T {
-  let step = gen.next();
-  while (!step.done) step = gen.next();
-  return step.value;
-}
+import { drain } from './lib/drain';
 
 function fmt(n: number): string {
   return n.toLocaleString('fr-FR');

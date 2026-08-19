@@ -30,12 +30,7 @@ import {
   pairBuckets,
   maybeEscalateNodeBudget,
 } from '../../src/lib/runeBuildOptim';
-
-function drain<T>(gen: Generator<unknown, T, void>): T {
-  let step = gen.next();
-  while (!step.done) step = gen.next();
-  return step.value;
-}
+import { drain } from './drain';
 
 export interface TimedSearchResult extends SearchResult {
   prepMs: number;

@@ -15,12 +15,7 @@
 
 import { SearchParams, SLOT_FILTER_PRESETS, prepareSearch, buildBuckets } from '../src/lib/runeBuildOptim';
 import { CASES, loadCase } from './lib/perfShared';
-
-function drain<T>(gen: Generator<unknown, T, void>): T {
-  let step = gen.next();
-  while (!step.done) step = gen.next();
-  return step.value;
-}
+import { drain } from './lib/drain';
 
 const MOYEN_CAP = SLOT_FILTER_PRESETS.find((p) => p.key === 'moyen')!.cap;
 

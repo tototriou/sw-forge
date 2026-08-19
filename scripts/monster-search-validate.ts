@@ -14,6 +14,7 @@ import { activeSets, StatKey } from '../src/lib/effects';
 import { BuildRequirement, SearchParams, Objective, prepareSearch, buildBuckets, pairBuckets, totalPairCount, NodeBudget, CHECKPOINT_EVERY } from '../src/lib/runeBuildOptim';
 import { ArtifactDetail, BaseStats, RelicDetail } from '../src/types';
 import { loadDeckMonster, parseDeckMonsterArgs } from './lib/deckMonster';
+import { drain } from './lib/drain';
 
 const USAGE =
   'Usage: monster-search-validate.ts <export.json> <deckId> <nomMonstre> [--defense] [statKeys=atk,cr,cd] [objective=degats] [slotFilterCap=80] [bucketCap] [maxNodes] [maxMs=180000]';
@@ -83,12 +84,6 @@ console.log('\nRecherche en cours (peut prendre jusqu\'à quelques dizaines de s
 // reproduirait à tort le rejet historique (budget fixe pénalisé par des
 // compartiments plus coûteux à parcourir), sans refléter ce que l'écran fait
 // réellement aujourd'hui.
-function drain<T>(gen: Generator<unknown, T, void>): T {
-  let step = gen.next();
-  while (!step.done) step = gen.next();
-  return step.value;
-}
-
 const prepared = prepareSearch(params);
 if (!prepared) {
   console.log('prepareSearch = null (au moins un emplacement vide après pré-filtrage)');

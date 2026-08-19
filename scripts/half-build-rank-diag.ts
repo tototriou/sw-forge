@@ -28,6 +28,7 @@ import {
 } from '../src/lib/runeBuildOptim';
 import { BaseStats } from '../src/types';
 import { loadDeckMonster, parseDeckMonsterArgs } from './lib/deckMonster';
+import { drain } from './lib/drain';
 
 const USAGE =
   'Usage: half-build-rank-diag.ts <export.json> <deckId> <nomMonstre> [statKeys=atk,spd,cr,cd] [objective=degats] [slotFilterCap=80] [bucketCap=3000] [top=10]';
@@ -80,11 +81,6 @@ const requiredPieces = distinctKeys.map((key) => setPieces(key) * requirement.se
 const jokerCredit = anyJokerAvailable(filtered) ? 1 : 0;
 const maxSetsForB = maxSetCountsForSlots(filtered, [0, 1, 2], distinctKeys);
 
-function drain<T>(gen: Generator<unknown, T, void>): T {
-  let step = gen.next();
-  while (!step.done) step = gen.next();
-  return step.value;
-}
 const bucketsB = drain(
   buildBuckets('B', [3, 4, 5], filtered, distinctKeys, constrainedKeys, retentionKeys, minEntries, bucketCap, maxSetsForB, jokerCredit, requiredPieces)
 );

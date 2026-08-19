@@ -18,6 +18,7 @@ import {
   buildBuckets,
 } from '../../src/lib/runeBuildOptim';
 import { loadDeckMonster } from './deckMonster';
+import { drain } from './drain';
 import { GearSet, RuneDetail } from '../../src/types';
 
 export interface Case {
@@ -66,12 +67,6 @@ export function loadCase(c: Case): { gear: GearSet; allRunes: RuneDetail[]; targ
   return { gear, allRunes, targetRuneIds, requirement };
 }
 
-function drainSync<T>(gen: Generator<unknown, T, void>): T {
-  let step = gen.next();
-  while (!step.done) step = gen.next();
-  return step.value;
-}
-
 // ── Vérification de MONOTONICITÉ (voir spec/outils/optimizer/ « BUCKET_CAP
 // mis à l'échelle ») — rapide : `buildBuckets` SEUL, jamais `pairBuckets`,
 // pas besoin d'appariement complet pour savoir si les runes cible SURVIVENT
@@ -104,8 +99,8 @@ export function checkMonotonicityForCase(c: Case): MonotonicityRow[] {
       continue;
     }
     const inFilteredPool = prepared.filtered.flat().some((r) => targetRuneIds.has(r.id)) && prepared.filtered.every((slotList) => slotList.some((r) => targetRuneIds.has(r.id)));
-    const bucketsA = drainSync(buildBuckets('A', [0, 1, 2], prepared.filtered, prepared.distinctKeys, prepared.constrainedKeys, prepared.retentionKeys, prepared.minEntries, prepared.bucketCap, prepared.maxSetsForA, prepared.jokerCredit, prepared.requiredPieces));
-    const bucketsB = drainSync(buildBuckets('B', [3, 4, 5], prepared.filtered, prepared.distinctKeys, prepared.constrainedKeys, prepared.retentionKeys, prepared.minEntries, prepared.bucketCap, prepared.maxSetsForB, prepared.jokerCredit, prepared.requiredPieces));
+    const bucketsA = drain(buildBuckets('A', [0, 1, 2], prepared.filtered, prepared.distinctKeys, prepared.constrainedKeys, prepared.retentionKeys, prepared.minEntries, prepared.bucketCap, prepared.maxSetsForA, prepared.jokerCredit, prepared.requiredPieces));
+    const bucketsB = drain(buildBuckets('B', [3, 4, 5], prepared.filtered, prepared.distinctKeys, prepared.constrainedKeys, prepared.retentionKeys, prepared.minEntries, prepared.bucketCap, prepared.maxSetsForB, prepared.jokerCredit, prepared.requiredPieces));
     const isTargetHalf = (ids: number[]) => ids.every((id) => targetRuneIds.has(id));
     const halfARetained = bucketsA.some((b) => b.combos.some((combo) => isTargetHalf(combo.runes.map((r) => r.id))));
     const halfBRetained = bucketsB.some((b) => b.combos.some((combo) => isTargetHalf(combo.runes.map((r) => r.id))));

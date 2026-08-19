@@ -19,6 +19,7 @@
 
 import { EffectLine, RuneDetail, BaseStats } from '../src/types';
 import { BuildRequirement, SearchParams, prepareSearch, buildBuckets, totalPairCount, HalfCombo } from '../src/lib/runeBuildOptim';
+import { drain } from './lib/drain';
 
 function mulberry32(seed: number) {
   let a = seed;
@@ -139,12 +140,6 @@ console.log('Seuils dérivés de la cible :', minStats);
 
 const requirement: BuildRequirement = { sets: [], minStats, mainStats: { 2: [8] } };
 const params: SearchParams = { base, artifacts: [], relic: undefined, pool, requirement, metric: 'eff', slotFilterCap: 80, bucketCap: bucketCapOverride };
-
-function drain<T>(gen: Generator<unknown, T, void>): T {
-  let step = gen.next();
-  while (!step.done) step = gen.next();
-  return step.value;
-}
 
 const prepared = prepareSearch(params);
 if (!prepared) {

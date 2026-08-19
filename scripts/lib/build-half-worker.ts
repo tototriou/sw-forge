@@ -14,6 +14,7 @@ import { parentPort, workerData } from 'worker_threads';
 import { buildBuckets, Bucket } from '../../src/lib/runeBuildOptim';
 import { StatKey } from '../../src/lib/effects';
 import { RuneDetail } from '../../src/types';
+import { drain } from './drain';
 
 export interface BuildHalfWorkerData {
   half: 'A' | 'B';
@@ -40,12 +41,6 @@ export interface BuildHalfWorkerData {
 export interface BuildHalfWorkerResult {
   buckets: Bucket[];
   ms: number;
-}
-
-function drain<T>(gen: Generator<unknown, T, void>): T {
-  let step = gen.next();
-  while (!step.done) step = gen.next();
-  return step.value;
 }
 
 const data = workerData as BuildHalfWorkerData;

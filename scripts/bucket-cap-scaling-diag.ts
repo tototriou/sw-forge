@@ -29,12 +29,7 @@ import { parseAccountSource, parseAccountBox, parseAccountInventory } from '../s
 import { runeEfficiency } from '../src/lib/effects';
 import { BuildRequirement, SearchParams, prepareSearch, buildBuckets, SLOT_FILTER_PRESETS } from '../src/lib/runeBuildOptim';
 import { ArtifactDetail } from '../src/types';
-
-function drain<T>(gen: Generator<unknown, T, void>): T {
-  let step = gen.next();
-  while (!step.done) step = gen.next();
-  return step.value;
-}
+import { drain } from './lib/drain';
 
 const [exportPath] = process.argv.slice(2);
 if (!exportPath) {

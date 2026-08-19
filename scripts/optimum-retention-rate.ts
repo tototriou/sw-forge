@@ -74,6 +74,7 @@ import { StatKey, activeSets, runeEfficiency } from '../src/lib/effects';
 import { computeStats } from '../src/lib/stats';
 import { missingSets } from '../src/lib/recoMatch';
 import { BuildRequirement, SearchParams, SLOT_FILTER_PRESETS, prepareSearch, buildBuckets, Bucket, HalfCombo } from '../src/lib/runeBuildOptim';
+import { drain } from './lib/drain';
 
 function mulberry32(seed: number) {
   let a = seed;
@@ -124,12 +125,6 @@ function randomPool(rng: () => number, perSlot: number): RuneDetail[] {
 }
 
 const BASE: BaseStats = { hp: 8000, atk: 500, def: 400, spd: 100, cr: 15, cd: 50, res: 15, acc: 0 };
-
-function drain<T>(gen: Generator<unknown, T, void>): T {
-  let step = gen.next();
-  while (!step.done) step = gen.next();
-  return step.value;
-}
 
 // Reproduit EXACTEMENT `satisfiesSets` (runeBuildOptim.ts, non exportée) —
 // même formule (synthétise les pièces des DEUX compartiments + jokers,

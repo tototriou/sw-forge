@@ -23,12 +23,7 @@ import {
   pairBuckets,
 } from '../src/lib/runeBuildOptim';
 import { ArtifactDetail } from '../src/types';
-
-function drain<T>(gen: Generator<unknown, T, void>): T {
-  let step = gen.next();
-  while (!step.done) step = gen.next();
-  return step.value;
-}
+import { drain } from './lib/drain';
 
 const [exportPath, monsterName, objectiveArg] = process.argv.slice(2);
 if (!exportPath || !monsterName) {

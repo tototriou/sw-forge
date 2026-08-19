@@ -25,6 +25,7 @@
 import { readFileSync } from 'fs';
 import { BaseStats, BuildRequirement, RuneDetail } from '../src/types';
 import { SearchParams, prepareSearch, buildBuckets, pairBuckets, totalPairCount, NodeBudget } from '../src/lib/runeBuildOptim';
+import { drain } from './lib/drain';
 
 const BASE: BaseStats = { hp: 8000, atk: 500, def: 400, spd: 100, cr: 15, cd: 50, res: 15, acc: 0 };
 const CHECKPOINTS = [0.01, 0.05, 0.1, 0.25, 0.5, 0.75, 1.0]; // fractions de totalPairCount
@@ -34,12 +35,6 @@ interface ScenarioIn {
   pool: RuneDetail[];
   requirement: BuildRequirement;
   targetRuneIds: number[];
-}
-
-function drain<T>(gen: Generator<unknown, T, void>): T {
-  let step = gen.next();
-  while (!step.done) step = gen.next();
-  return step.value;
 }
 
 function sameIds(a: number[], b: number[]): boolean {

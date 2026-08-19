@@ -24,12 +24,7 @@ import { BuildRequirement, SearchParams, Objective, prepareSearch, buildBuckets,
 import { BaseStats } from '../src/types';
 import { loadDeckMonster } from './lib/deckMonster';
 import { readFileSync } from 'fs';
-
-function drain<T>(gen: Generator<unknown, T, void>): T {
-  let step = gen.next();
-  while (!step.done) step = gen.next();
-  return step.value;
-}
+import { drain } from './lib/drain';
 
 function retentionScoreLocal(pct: Record<string, number>, flat: Record<string, number>, key: string): number {
   return (pct[key] ?? 0) + (flat[key] ?? 0);

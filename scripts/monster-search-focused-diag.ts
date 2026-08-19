@@ -16,6 +16,7 @@ import { parseAccountSource, parseAccountBox, parseSiegeDefense, parseSiegeOffen
 import { BaseStats } from '../src/types';
 import { loadDeckMonster, parseDeckMonsterArgs } from './lib/deckMonster';
 import { readFileSync } from 'fs';
+import { drain } from './lib/drain';
 
 const USAGE = 'Usage: monster-search-focused-diag.ts <export.json> <deckId> <nomMonstre> [statKeys=atk,spd,cr,cd] [objective=none] [slotFilterCap=80] [--explore-all]';
 const exploreAll = process.argv.includes('--explore-all');
@@ -100,11 +101,6 @@ console.log('maxNodes adaptatif utilisé :', adaptiveMaxNodes(params).toLocaleSt
 // ⚠️ totalPairCount, calculé À PART de searchBuilds (qui ne l'expose pas) —
 // même prepareSearch/buildBuckets que la vraie recherche, pour comparer
 // directement l'estimation affichée à l'écran au nombre réellement explore.
-function drain<T>(gen: Generator<unknown, T, void>): T {
-  let step = gen.next();
-  while (!step.done) step = gen.next();
-  return step.value;
-}
 const preparedForEstimate = prepareSearch(params);
 if (preparedForEstimate) {
   const bucketsA = drain(

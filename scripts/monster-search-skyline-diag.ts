@@ -34,6 +34,7 @@ import {
 } from '../src/lib/runeBuildOptim';
 import { BaseStats } from '../src/types';
 import { loadDeckMonster, parseDeckMonsterArgs } from './lib/deckMonster';
+import { drain } from './lib/drain';
 
 const USAGE =
   'Usage: monster-search-skyline-diag.ts <export.json> <deckId> <nomMonstre> [--defense] [statKeys=atk,cr,cd] [objective=degats] [slotFilterCap=80] [bucketCap=3000]';
@@ -97,12 +98,6 @@ const requiredPieces = distinctKeys.map((key) => setPieces(key) * requirement.se
 const jokerCredit = anyJokerAvailable(filtered) ? 1 : 0;
 const maxSetsForA = maxSetCountsForSlots(filtered, [3, 4, 5], distinctKeys);
 const maxSetsForB = maxSetCountsForSlots(filtered, [0, 1, 2], distinctKeys);
-
-function drain<T>(gen: Generator<unknown, T, void>): T {
-  let step = gen.next();
-  while (!step.done) step = gen.next();
-  return step.value;
-}
 
 // ⚠️ Deux passes chronométrées séparément : SANS skyline (le comportement de
 // production actuel, inchangé) puis AVEC (`skylineKeys=retentionKeys`) — le

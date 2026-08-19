@@ -24,12 +24,7 @@ import { build } from 'esbuild';
 import { CASES, loadCase } from './lib/perfShared';
 import { prepareSearch, buildBuckets, pairBuckets, SearchParams, Bucket, NodeBudget } from '../src/lib/runeBuildOptim';
 import { PairingWorkerData, PairingWorkerResult } from './lib/pairing-worker';
-
-function drain<T>(gen: Generator<unknown, T, void>): T {
-  let step = gen.next();
-  while (!step.done) step = gen.next();
-  return step.value;
-}
+import { drain } from './lib/drain';
 
 // ── Bundling du worker, même patron que perf-battery.ts (répertoire par
 // RUN_ID pour ne jamais servir un bundle figé si la source a changé depuis —

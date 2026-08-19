@@ -34,17 +34,13 @@
 import { ArtifactDetail, BaseStats, RelicDetail } from '../src/types';
 import { SearchParams, prepareSearch, buildBuckets, pairBuckets, totalPairCount, NodeBudget, maybeEscalateNodeBudget } from '../src/lib/runeBuildOptim';
 import { CASES, loadCase } from './lib/perfShared';
+import { drain } from './lib/drain';
 
 const CHECKPOINTS = [0.01, 0.05, 0.1, 0.25, 0.5, 0.75, 1.0];
 const MAX_MS = process.argv[2] ? Number(process.argv[2]) : 60_000;
 const FILTERS = process.argv[3]?.toLowerCase().split(',').map((s) => s.trim()).filter(Boolean);
 const SELECTED_CASES = FILTERS ? CASES.filter((c) => FILTERS.some((f) => c.label.toLowerCase().includes(f))) : CASES;
 
-function drain<T>(gen: Generator<unknown, T, void>): T {
-  let step = gen.next();
-  while (!step.done) step = gen.next();
-  return step.value;
-}
 function sameIds(a: number[], b: number[]): boolean {
   if (a.length !== b.length) return false;
   const sb = [...b].sort((x, y) => x - y);

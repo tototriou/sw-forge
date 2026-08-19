@@ -15,6 +15,7 @@
 
 import { parentPort, workerData } from 'worker_threads';
 import { SearchParams, Bucket, NodeBudget, prepareSearch, pairBuckets } from '../../src/lib/runeBuildOptim';
+import { drain } from './drain';
 
 export interface PairingWorkerData {
   params: SearchParams;
@@ -27,12 +28,6 @@ export interface PairingWorkerResult {
   explored: number;
   foundCount: number;
   truncated: boolean;
-}
-
-function drain<T>(gen: Generator<unknown, T, void>): T {
-  let step = gen.next();
-  while (!step.done) step = gen.next();
-  return step.value;
 }
 
 const data = workerData as PairingWorkerData;

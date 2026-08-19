@@ -49,6 +49,7 @@ import {
   BuildCandidate,
   NodeBudget,
 } from '../src/lib/runeBuildOptim';
+import { drain } from './lib/drain';
 
 function mulberry32(seed: number) {
   let a = seed;
@@ -97,12 +98,6 @@ function randomPool(rng: () => number, perSlot: number): RuneDetail[] {
 
 const BASE: BaseStats = { hp: 8000, atk: 500, def: 400, spd: 100, cr: 15, cd: 50, res: 15, acc: 0 };
 const WORKER_COUNT = 4;
-
-function drain<T>(gen: Generator<unknown, T, void>): T {
-  let step = gen.next();
-  while (!step.done) step = gen.next();
-  return step.value;
-}
 
 const argv = process.argv.slice(2);
 const MAX_COLLECTED = argv[0] ? Number(argv[0]) : 2000;

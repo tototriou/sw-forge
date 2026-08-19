@@ -16,6 +16,7 @@ import { parseAccountSource, parseAccountBox, parseSiegeDefense, parseSiegeOffen
 import { BaseStats } from '../src/types';
 import { loadDeckMonster, parseDeckMonsterArgs } from './lib/deckMonster';
 import { readFileSync } from 'fs';
+import { drain } from './lib/drain';
 
 const USAGE =
   'Usage: set-relax-diag.ts <export.json> <deckId> <nomMonstre> <setsRelaches, ex: rage> [statKeys=atk,cr,cd] [objective=none] [slotFilterCap=80] [--explore-all]';
@@ -82,12 +83,6 @@ const base: BaseStats = gear.base;
 console.log(`Sets réels du monstre : ${realSets.join('+')}`);
 console.log(`minStats : ${JSON.stringify(minStats)}  mainStats : ${JSON.stringify(mainStats)}`);
 console.log(`Pool : ${pool.length} runes (${exploreAll ? 'tout l\'inventaire' : 'box, exclusion appliquée'})`);
-
-function drain<T>(gen: Generator<unknown, T, void>): T {
-  let step = gen.next();
-  while (!step.done) step = gen.next();
-  return step.value;
-}
 
 function testWith(label: string, sets: string[]) {
   console.log(`\n=== ${label} (sets demandés = [${sets.join(',')}]) ===`);

@@ -171,6 +171,43 @@ Si le script reproduit un cas signalé par l'utilisateur, ne jamais conclure
 « bug confirmé dans le moteur » avant que cette fidélité soit vérifiée — un
 script infidèle qui ne trouve rien ressemble EXACTEMENT à un vrai bug.
 
+## Arithmétique joker/pièces — ne jamais généraliser par analogie
+
+⚠️ **Incident vécu, DEUX FOIS dans la même session** — même classe
+d'erreur à chaque fois : combiner « pièces réelles d'un set » (`counts[k]`)
+et « crédit joker » (`jokers`/`jokerCredit`) par analogie avec une borne
+déjà établie ailleurs dans le fichier, sans revérifier que le résultat
+tient dans la limite physique de **3 emplacements par moitié** (6 au
+total, meet-in-the-middle).
+1. `stillFeasible` (élagage optimiste dans `buildBuckets`) additionne
+   `otherHalfMaxSets[k] + jokerCredit` comme si les deux étaient
+   atteignables INDÉPENDAMMENT dans la même moitié de 3 emplacements —
+   défaut identifié, resté non corrigé (la vérification EXACTE en aval,
+   `demiBuildMort`/`activeSets` final, garantit la justesse malgré cette
+   sur-addition — un pruning trop généreux ne peut qu'ÉCHOUER à couper
+   une branche morte, jamais couper une branche valide à tort, donc pas
+   un bug actif, mais révèle déjà le biais).
+2. Proposition (jamais implémentée, attrapée avant) d'une condition de
+   « compartiment de secours » généralisée depuis `demiBuildMort`/
+   `mustRescue` en changeant juste un chiffre : `counts[k] =
+   requiredPieces[k]-1 ET jokers=1` pour un set à 4 pièces — physiquement
+   IMPOSSIBLE (3 pièces réelles + 1 joker = 4 runes dans une moitié qui
+   n'en contient que 3). La condition RÉELLEMENT prouvée par
+   `demiBuildMort` est `counts[k]=0 ET jokers≥1` : la moitié n'apporte
+   AUCUNE pièce réelle, uniquement le joker, et ne survit QUE parce que
+   l'AUTRE moitié devra fournir EXACTEMENT ses 3 pièces réelles (le
+   maximum physique d'une moitié) pour atteindre 4 au total — la
+   configuration la plus tendue possible, pas « une pièce manque,
+   n'importe où ».
+
+**Règle** : avant d'énoncer une formule ou une condition impliquant
+`counts[k]`/`jokers`/`requiredPieces[k]` (pruning, priorité de
+classement, estimation…), écrire concrètement l'inventaire des 3
+emplacements d'UNE moitié (quelles runes, combien de réelles, combien de
+jokers) et vérifier que la somme ne dépasse jamais 3 — jamais réutiliser
+par analogie une borne déjà établie pour un AUTRE cas sans repasser par
+ce calcul concret à chaque fois.
+
 ## Checklist avant de considérer un tel algorithme comme terminé
 
 - [ ] Une référence naïve/exhaustive existe, même si elle n'est utilisée que

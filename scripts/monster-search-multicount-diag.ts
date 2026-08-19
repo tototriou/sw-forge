@@ -9,9 +9,6 @@
 //
 // Usage : monster-search-multicount-diag.ts <export.json> <nomMonstre> [objective=degats]
 
-import { readFileSync } from 'fs';
-import { parseAccountSource, parseAccountBox, parseAccountInventory } from '../src/lib/importAccount';
-import { runeEfficiency } from '../src/lib/effects';
 import {
   BuildRequirement,
   SearchParams,
@@ -24,6 +21,7 @@ import {
 } from '../src/lib/runeBuildOptim';
 import { ArtifactDetail } from '../src/types';
 import { drain } from './lib/drain';
+import { loadBoxMonster } from './lib/loadMonster';
 
 const [exportPath, monsterName, objectiveArg] = process.argv.slice(2);
 if (!exportPath || !monsterName) {
@@ -32,35 +30,15 @@ if (!exportPath || !monsterName) {
 }
 const objective = (objectiveArg ?? 'degats') as Objective;
 
-const raw = readFileSync(exportPath, 'utf8');
-const data = parseAccountSource(raw)!;
+const sonia = loadBoxMonster(exportPath, monsterName);
+// ⚠️ « Exclure les runes déjà utilisées » (excludeUsedRunes) est DÉCOCHÉ
+// par défaut à l'écran (useOptimizerState.ts) — pas d'exclusion des runes
+// portées par d'autres monstres, sauf si l'utilisateur coche explicitement.
+// Nom actuel du réglage depuis son renommage/inversion (ex-`exploreAll`,
+// coché par défaut, sens inverse) — voir optimizerExclusion.ts.
+const pool = sonia.allRunes;
 
-const monstersRaw = JSON.parse(readFileSync('public/data/monsters.json', 'utf8'));
-const monstersList = Array.isArray(monstersRaw) ? monstersRaw : monstersRaw.monsters;
-const nameByCom2us = new Map<number, string>(monstersList.map((m: any) => [m.com2usId, m.name]));
-
-const { monsters: box, error } = parseAccountBox(data);
-if (error) console.error('Erreur parse box :', error);
-
-// Même dédup que OptimizerSection.tsx : plusieurs exemplaires du même
-// monstre → garder le mieux équipé (somme d'efficience des runes).
-const candidates = box.filter((b) => nameByCom2us.get(b.com2usId) === monsterName && b.gear);
-if (candidates.length === 0) {
-  console.error(`"${monsterName}" introuvable (6★, monté) dans ${exportPath}.`);
-  process.exit(1);
-}
-const scoreOf = (b: (typeof candidates)[number]) => (b.gear!.runes ?? []).reduce((s, r) => s + runeEfficiency(r), 0);
-const sonia = candidates.reduce((best, b) => (scoreOf(b) > scoreOf(best) ? b : best));
-
-const { runes: allRunes } = parseAccountInventory(data);
-// ⚠️ « Utiliser tout l'inventaire » (exploreAll) est COCHÉ PAR DÉFAUT à
-// l'écran (useOptimizerState.ts : `useState(true)`) — pas d'exclusion des
-// runes portées par d'autres monstres, sauf si l'utilisateur décoche
-// explicitement. Erreur commise une première fois dans cette investigation :
-// supposé le contraire sans vérifier.
-const pool = allRunes;
-
-console.log(`\n=== ${monsterName} (com2usId ${sonia.com2usId}) — pool (exploreAll=true, défaut) : ${pool.length} runes ===`);
+console.log(`\n=== ${monsterName} (com2usId ${sonia.com2usId}) — pool (aucune exclusion, défaut) : ${pool.length} runes ===`);
 
 const artifacts: ArtifactDetail[] = [
   { kind: 'element', level: 1, rarity: 5, main: { code: 101, value: 100 }, subs: [] },
@@ -74,8 +52,8 @@ const artifacts: ArtifactDetail[] = [
 // `minDisplayed = minTotal - base` (donc `minTotal = displayed + base`).
 // Taux Crit/Dmg Crit restent TOUJOURS en total, ce réglage ne les touche
 // jamais (base d'éveil déjà comprise dedans par nature).
-const baseAtk = sonia.gear!.base.atk;
-const baseSpd = sonia.gear!.base.spd;
+const baseAtk = sonia.gear.base.atk;
+const baseSpd = sonia.gear.base.spd;
 const requirement: BuildRequirement = {
   sets: ['swift'],
   minStats: { atk: 2000 + baseAtk, spd: 194 + baseSpd, cr: 100, cd: 122 },
@@ -105,9 +83,9 @@ interface RunOutcome {
 
 function runOnce(slotFilterCap: number, adaptiveTrancheWeighting: boolean, metric: 'eff' | 'score' = 'eff'): RunOutcome {
   const params: SearchParams = {
-    base: sonia.gear!.base,
+    base: sonia.gear.base,
     artifacts,
-    relic: sonia.gear!.relic,
+    relic: sonia.gear.relic,
     pool,
     requirement,
     metric,
@@ -205,7 +183,7 @@ const reference = outcomes.get('moyen')!;
 if (reference.count > 0) {
   console.log(`\n=== Les ${reference.count} builds trouvés à "moyen" restent-ils atteignables à "extrême" ? ===`);
   const prepared300 = prepareSearch({
-    base: sonia.gear!.base, artifacts, relic: sonia.gear!.relic, pool, requirement, metric: 'eff', objective,
+    base: sonia.gear.base, artifacts, relic: sonia.gear.relic, pool, requirement, metric: 'eff', objective,
     maxMs: HARD_TIMEOUT_MS, slotFilterCap: 300,
   })!;
   const bucketsA300 = drain(

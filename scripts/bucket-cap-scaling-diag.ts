@@ -24,12 +24,10 @@
 //
 // Usage : bucket-cap-scaling-diag.ts <export.json>
 
-import { readFileSync } from 'fs';
-import { parseAccountSource, parseAccountBox, parseAccountInventory } from '../src/lib/importAccount';
-import { runeEfficiency } from '../src/lib/effects';
 import { BuildRequirement, SearchParams, prepareSearch, buildBuckets, SLOT_FILTER_PRESETS } from '../src/lib/runeBuildOptim';
 import { ArtifactDetail } from '../src/types';
 import { drain } from './lib/drain';
+import { loadBoxMonster } from './lib/loadMonster';
 
 const [exportPath] = process.argv.slice(2);
 if (!exportPath) {
@@ -37,22 +35,15 @@ if (!exportPath) {
   process.exit(1);
 }
 
-const data = parseAccountSource(readFileSync(exportPath, 'utf8'))!;
-const monstersRaw = JSON.parse(readFileSync('public/data/monsters.json', 'utf8'));
-const monstersList = Array.isArray(monstersRaw) ? monstersRaw : monstersRaw.monsters;
-const nameByCom2us = new Map<number, string>(monstersList.map((m: any) => [m.com2usId, m.name]));
-const { monsters: box } = parseAccountBox(data);
-const candidates = box.filter((b) => nameByCom2us.get(b.com2usId) === 'Sonia' && b.gear);
-const scoreOf = (b: (typeof candidates)[number]) => (b.gear!.runes ?? []).reduce((s, r) => s + runeEfficiency(r), 0);
-const sonia = candidates.reduce((best, b) => (scoreOf(b) > scoreOf(best) ? b : best));
-const { runes: pool } = parseAccountInventory(data);
+const sonia = loadBoxMonster(exportPath, 'Sonia');
+const pool = sonia.allRunes;
 
 const artifacts: ArtifactDetail[] = [
   { kind: 'element', level: 1, rarity: 5, main: { code: 101, value: 100 }, subs: [] },
   { kind: 'archetype', level: 1, rarity: 5, main: { code: 101, value: 100 }, subs: [] },
 ];
-const baseAtk = sonia.gear!.base.atk;
-const baseSpd = sonia.gear!.base.spd;
+const baseAtk = sonia.gear.base.atk;
+const baseSpd = sonia.gear.base.spd;
 const requirement: BuildRequirement = {
   sets: ['swift'],
   minStats: { atk: 2000 + baseAtk, spd: 194 + baseSpd, cr: 100, cd: 122 },
@@ -102,7 +93,7 @@ function checkRetention(
   builds: number[][]
 ): { survivedA: number; survivedB: number; buildMs: number } {
   const params: SearchParams = {
-    base: sonia.gear!.base, artifacts, relic: sonia.gear!.relic, pool, requirement, metric: 'eff',
+    base: sonia.gear.base, artifacts, relic: sonia.gear.relic, pool, requirement, metric: 'eff',
     objective, maxMs: 10 * 60 * 1000, slotFilterCap, bucketCap, adaptiveTrancheWeighting,
   };
   const prepared = prepareSearch(params)!;

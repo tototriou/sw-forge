@@ -64,13 +64,32 @@ Comme en **vue compacte du siège**, le panneau de détail (`MonsterGear`) s'ouv
   `openId` vit dans [RtaPage.tsx](src/pages/RtaPage.tsx) (ouvrir une carte ferme
   la précédente, même dans une autre section). `RtaSection` reçoit `openIndex` +
   `detail` et les passe à la grille.
-- Une carte **sans runes importées** n'est pas cliquable (pas de chevron).
+- Une carte **sans aucun gear** (`entry.gear` absent) n'est pas cliquable
+  (pas de chevron). ⚠️ **Le critère est la présence de `gear`, PAS le nombre
+  de runes** : `hasGear = !!entry.gear` dans `RtaCard.tsx`, sans exiger
+  `runes.length > 0`. Un monstre ajouté à la prépa mais jamais runé peut
+  quand même porter des **artéfacts** (voire une relique) — `MonsterGear`
+  gère déjà 0 rune sans problème (panneau de stats et emplacements
+  d'artéfacts toujours rendus, roue et relique seulement s'il y en a).
+  Exiger des runes rendait la carte ENTIÈRE non cliquable et cachait ces
+  artéfacts pourtant réels. Bug trouvé sur un compte réel (3 monstres
+  « Non classé », 2 artéfacts chacun mais 0 rune, tous les trois inertes).
 - **Artéfacts : toujours 2 emplacements affichés** (Attribut puis Type — voir
   `ARTIFACT_KINDS` dans [types.ts](src/types.ts)), même si le monstre n'en
   porte qu'un seul ou aucun — un emplacement vide est montré grisé (icône
   `Ban`), pas simplement absent. Comportement partagé par `MonsterGear` :
   s'applique aussi en Siège et dans l'Optimizer (voir
-  [outils/optimizer.md](../outils/optimizer.md)).
+  [outils/optimizer.md](../outils/optimizer.md)). ⚠️ Cette règle avait une
+  régression dans `MonsterGear.tsx` lui-même : le fichier rendait encore
+  l'artéfact via un bloc inline (`gear.artifacts.map` conditionné sur
+  `length > 0`, un seul `<ArtifactFrameIcon>` par artéfact PRÉSENT) au lieu
+  de réutiliser `ArtifactSlots` — le composant venait d'être extrait à son
+  **deuxième** usage (les cartes de résultat de l'Optimizer, voir plus bas)
+  mais son usage d'ORIGINE n'avait jamais été basculé dessus. Un monstre
+  avec un seul artéfact équipé (ex. Type sans Attribut) n'affichait donc
+  qu'une seule icône au lieu des 2 emplacements toujours attendus. Corrigé
+  en remplaçant le bloc inline par `<ArtifactSlots artifacts={gear.
+  artifacts} .../>`.
 - **L'encadré de stats entier est cliquable** (`role="button"`, pas un bouton
   séparé) et bascule entre deux affichages du même tableau :
   - **Base + bonus** (par défaut) : base en blanc, bonus en **vert**

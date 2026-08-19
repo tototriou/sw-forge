@@ -479,7 +479,18 @@ const BUCKET_CAP = 3000;
 // mieux aligné » testée et écartée : spec/outils/optimizer/, section
 // « BUCKET_CAP mis à l'échelle ». Script de calibration réutilisable :
 // scripts/bucket-cap-scaling-diag.ts.
-const BUCKET_CAP_REFERENCE_SLOT_FILTER_CAP = 40;
+// ⚠️ Volontairement IDENTIQUE à `MAX_PER_SLOT_MATCH` — les deux dérivent du
+// même préréglage « Bas » (slotFilterCap=40) : l'un est le plafond de
+// rétention par défaut de `filterSlot`/le repli de `prepareSearch` quand
+// `slotFilterCap` est omis, l'autre l'ancre de la mise à l'échelle de
+// `bucketCap` — deux RÔLES distincts qui doivent rester la MÊME valeur
+// (voir `bucketCapFor` juste en dessous : sa formule n'est correcte, au
+// repli `slotCap = params.slotFilterCap ?? MAX_PER_SLOT_MATCH` de
+// `prepareSearch`, QUE parce que les deux coïncident). Lié explicitement,
+// pas dupliqué, pour ne plus pouvoir diverger silencieusement (CLAUDE.md :
+// un concept partagé entre plusieurs endroits a plusieurs
+// « constructeurs »).
+const BUCKET_CAP_REFERENCE_SLOT_FILTER_CAP = MAX_PER_SLOT_MATCH;
 
 function bucketCapFor(slotFilterCap: number): number {
   return Math.round(BUCKET_CAP * (slotFilterCap / BUCKET_CAP_REFERENCE_SLOT_FILTER_CAP));

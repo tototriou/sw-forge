@@ -7,6 +7,7 @@ import { ArtifactDetailBox, RuneDetailBox } from '../PieceDetail';
 import RuneWheel from '../RuneWheel';
 import ArtifactSlots from '../ArtifactSlots';
 import StatPanel from '../StatPanel';
+import { COMPACT, useMediaQuery } from '../../hooks/useMediaQuery';
 import { FlottantAuto } from '../../ui';
 
 interface Props {
@@ -69,6 +70,14 @@ export default function BuildCandidateCard({
   const [openArtifactKind, setOpenArtifactKind] = useState<string | null>(null);
   const runeOpenHere = openRuneKey?.startsWith(`${candidateKey}-`) ?? false;
 
+  // ⚠️ Même bascule flottant (souris) / en ligne (doigt) que MonsterGear.tsx —
+  // voir sa justification. Le flottant, à taille fixe (260×320), débordait de
+  // l'écran sur une carte de résultat déjà compacte en mobile.
+  const auDoigt = useMediaQuery(COMPACT);
+  const openArtifact = openArtifactKind ? artifacts.find((a) => a.kind === openArtifactKind) : undefined;
+  const openRuneSlot = runeOpenHere ? Number(openRuneKey!.slice(candidateKey.length + 1)) : null;
+  const openRune = openRuneSlot !== null ? runes.find((r) => r.slot === openRuneSlot) : undefined;
+
   return (
     <div
       // ⚠️ `relative` + `z-10` UNIQUEMENT quand cette carte a un popover
@@ -117,37 +126,55 @@ export default function BuildCandidateCard({
             // ⚠️ `rembourrage="md"` + `encadre={false}` : le flottant pose déjà
             // le cadre, la carte n'a plus à poser le sien — sinon carte dans
             // une carte, à deux rayons de coin différents.
-            renderOverlay={(a, _i, anchorRef) => (
-              <FlottantAuto
-                ouvert={openArtifactKind === a.kind}
-                ancre={anchorRef}
-                largeur={260}
-                hauteur={320}
-                rembourrage="md"
-              >
-                <ArtifactDetailBox artifact={a} encadre={false} />
-              </FlottantAuto>
-            )}
+            renderOverlay={
+              auDoigt
+                ? undefined
+                : (a, _i, anchorRef) => (
+                    <FlottantAuto
+                      ouvert={openArtifactKind === a.kind}
+                      ancre={anchorRef}
+                      largeur={260}
+                      hauteur={320}
+                      rembourrage="md"
+                    >
+                      <ArtifactDetailBox artifact={a} encadre={false} />
+                    </FlottantAuto>
+                  )
+            }
           />
           <RuneWheel
             runes={runes}
             scale={WHEEL_SCALE}
             isSelected={(r) => openRuneKey === `${candidateKey}-${r.slot}`}
             onSelectRune={(r) => onToggleRune(`${candidateKey}-${r.slot}`)}
-            renderOverlay={(r, _i, anchorRef) => (
-              <FlottantAuto
-                ouvert={openRuneKey === `${candidateKey}-${r.slot}`}
-                ancre={anchorRef}
-                largeur={260}
-                hauteur={320}
-                rembourrage="md"
-              >
-                <RuneDetailBox rune={r} encadre={false} />
-              </FlottantAuto>
-            )}
+            renderOverlay={
+              auDoigt
+                ? undefined
+                : (r, _i, anchorRef) => (
+                    <FlottantAuto
+                      ouvert={openRuneKey === `${candidateKey}-${r.slot}`}
+                      ancre={anchorRef}
+                      largeur={260}
+                      hauteur={320}
+                      rembourrage="md"
+                    >
+                      <RuneDetailBox rune={r} encadre={false} />
+                    </FlottantAuto>
+                  )
+            }
           />
         </div>
       </div>
+
+      {/* Au DOIGT : le détail sur sa propre ligne, sous artéfacts/roue — voir
+          MonsterGear.tsx. Artéfact et rune peuvent être ouverts en même temps
+          (états indépendants) : les deux s'empilent plutôt que de s'exclure. */}
+      {auDoigt && (openArtifact || openRune) && (
+        <div className="mx-auto mt-2 w-full max-w-[280px] space-y-2">
+          {openArtifact && <ArtifactDetailBox artifact={openArtifact} />}
+          {openRune && <RuneDetailBox rune={openRune} />}
+        </div>
+      )}
     </div>
   );
 }

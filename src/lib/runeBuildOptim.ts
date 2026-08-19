@@ -537,14 +537,17 @@ export function runeContribution(rune: RuneDetail, key: StatKey): { pct: number;
 // ⚠️ Même résultat que d'appeler `runeContribution(rune, k)` pour CHAQUE
 // `k` de `ALL_STAT_KEYS`, mais en UN SEUL passage sur les effets de la
 // rune (principale + innée + jusqu'à 4 sous-stats, ~6 lignes) au lieu de
-// 8 — voir `filterSlot`, seul appelant : `runeContribution` y était
-// rappelée une fois par clé de `ALL_STAT_KEYS` (8), rescannant les mêmes
-// ~6 lignes à chaque fois (~48 vérifications par rune au lieu de 6),
-// exactement le motif déjà corrigé ailleurs pour la même raison
-// (`precomputeSlot` dans `buildBuckets`, voir son commentaire). Jamais
-// utilisée en dehors de `filterSlot` : les autres appelants de
-// `runeContribution` (élagage de dominance, rétention par compartiment…)
-// n'ont besoin que d'UNE clé à la fois, pas des 8.
+// 8 — rescannait les mêmes ~6 lignes à chaque fois (~48 vérifications par
+// rune au lieu de 6), exactement le motif déjà corrigé ailleurs pour la
+// même raison (`precomputeSlot` dans `buildBuckets`, voir son commentaire).
+// Deux appelants aujourd'hui, tous deux ont besoin des 8 clés À LA FOIS
+// pour CHAQUE rune comparée dans une boucle O(n) ou O(n²) : `filterSlot`
+// (top-K par stat) et `pruneDominated`/`isDominated` (élagage de
+// dominance — précalculée une fois par rune, plutôt que rappelée à
+// `runeContribution` pour CHAQUE paire comparée, voir son commentaire).
+// Les AUTRES appelants de `runeContribution` (rétention par compartiment,
+// `precomputeSlot`…) n'ont besoin que d'UNE clé à la fois, pas des 8 —
+// eux restent sur `runeContribution` seule.
 function runeContributionAllKeys(rune: RuneDetail): Record<StatKey, { pct: number; flat: number }> {
   const out = {} as Record<StatKey, { pct: number; flat: number }>;
   for (const k of ALL_STAT_KEYS) out[k] = { pct: 0, flat: 0 };

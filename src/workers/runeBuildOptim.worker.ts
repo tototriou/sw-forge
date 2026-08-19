@@ -18,7 +18,7 @@
 // single-threaded : un message ne peut être livré que quand le code en
 // cours d'exécution le permet).
 
-import { prepareSearch, pairBuckets, totalPairCount, partitionBucketsALPT, PreparedSearch, SearchParams, SearchResult, Bucket, NodeBudget, BuildCandidate } from '../lib/runeBuildOptim';
+import { prepareSearch, pairBuckets, totalPairCount, partitionBucketsALPT, combineParallelPairingResults, PreparedSearch, SearchParams, SearchResult, Bucket, NodeBudget, BuildCandidate } from '../lib/runeBuildOptim';
 import { BuildHalfRequest, BuildHalfResponse } from './buildHalf.worker';
 import { PairSliceRequest, PairSliceResponse } from './pairSlice.worker';
 import { drivePairing, PROGRESS_THROTTLE_MS } from './pairingDriver';
@@ -184,10 +184,14 @@ function pairSliceInWorker(
 // INCHANGÉ par le mode exhaustif ET le mode normal — décision actée) pour
 // que la somme des N workers ne dépasse jamais significativement ce
 // plafond, et fusionne les résultats finaux (pas l'accumulateur de
-// progression, qui ne sert qu'à l'affichage EN DIRECT) — union simple, sans
-// dédoublonnage nécessaire puisque les tranches de bucketsA sont
-// disjointes : un candidat donné ne peut exister que dans LA tranche qui
-// contient son comboA.
+// progression, qui ne sert qu'à l'affichage EN DIRECT) via
+// `combineParallelPairingResults` — union simple pour `candidates` (sans
+// dédoublonnage nécessaire, les tranches de bucketsA sont disjointes : un
+// candidat donné ne peut exister que dans LA tranche qui contient son
+// comboA) mais PAS un simple OR pour `truncated` : voir le commentaire de
+// `combineParallelPairingResults` (runeBuildOptim.ts) — un worker sur une
+// tranche riche qui remplit SON PROPRE quota n'est pas forcément le signe
+// d'une recherche globalement incomplète.
 async function runParallelPairing(
   params: SearchParams,
   prepared: PreparedSearch,
@@ -242,11 +246,7 @@ async function runParallelPairing(
   for (const w of activePairingWorkers) w.terminate();
   activePairingWorkers = [];
 
-  return {
-    candidates: results.flatMap((r) => r.candidates),
-    explored: results.reduce((s, r) => s + r.explored, 0),
-    truncated: results.some((r) => r.truncated),
-  };
+  return combineParallelPairingResults(results, perWorkerMaxCollected, prepared.maxCollected);
 }
 
 function buildHalfInWorker(request: BuildHalfRequest, onProgress: (scanned: number, total: number) => void): Promise<Bucket[]> {

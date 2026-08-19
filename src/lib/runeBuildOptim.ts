@@ -2547,6 +2547,44 @@ export function* pairBuckets(
   return { candidates, explored, truncated };
 }
 
+// Fusionne les résultats des N workers de l'appariement PARALLÈLE
+// (`runParallelPairing`, runeBuildOptim.worker.ts) en un `SearchResult`
+// unique — factorisé ici pour rester testable SANS `worker_threads` (pure
+// agrégation sur des `SearchResult[]` déjà calculés, voir `algo-verify`
+// point 6 : vérifier au bon étage, pas besoin de rejouer une vraie
+// parallélisation pour tester CETTE décision).
+//
+// ⚠️ `truncated` par worker (`pairBuckets`, ci-dessus) se déclenche pour
+// DEUX raisons distinctes, jamais distinguées avant ce correctif : (a) ce
+// worker a rempli SON PROPRE `perWorkerMaxCollected` (une tranche riche,
+// pas forcément le signe que la recherche GLOBALE est incomplète) ou (b)
+// il a épuisé son budget de nœuds/temps (`overBudget()`) AVANT même
+// d'atteindre son quota (une vraie troncature — de l'exploration
+// planifiée n'a jamais eu lieu). Un simple `results.some(r => r.truncated)`
+// (l'ancien comportement) confondait les deux : un worker sur une tranche
+// exceptionnellement riche pouvait à lui seul faire annoncer « recherche
+// tronquée » alors que le total agrégé restait très en-deçà du plafond
+// GLOBAL demandé et que les autres workers avaient fini leur exploration
+// au complet. Trouvé par une revue de code externe (2026-08-19, point 4).
+//
+// Distinction FIABLE (pas une heuristique) : `pairBuckets` vérifie
+// toujours le budget nœuds/temps AVANT de pousser un candidat, et ne
+// tronque par quota qu'APRÈS un push — au moment où `truncated` sort
+// `true`, `candidates.length` vaut EXACTEMENT `perWorkerMaxCollected` si
+// la cause est (a), et STRICTEMENT MOINS si la cause est (b) (sinon la
+// troncature par quota aurait déjà eu lieu à une itération précédente).
+export function combineParallelPairingResults(
+  results: SearchResult[],
+  perWorkerMaxCollected: number,
+  globalMaxCollected: number
+): SearchResult {
+  const candidates = results.flatMap((r) => r.candidates);
+  const explored = results.reduce((s, r) => s + r.explored, 0);
+  const realBudgetExhausted = results.some((r) => r.truncated && r.candidates.length < perWorkerMaxCollected);
+  const truncated = candidates.length >= globalMaxCollected || realBudgetExhausted;
+  return { candidates, explored, truncated };
+}
+
 // ⚠️ Simple ORCHESTRATION de `prepareSearch` → `buildBuckets` (×2) →
 // `pairBuckets` — plus de logique propre depuis le découpage ci-dessus.
 // Conservée telle quelle (comportement IDENTIQUE, vérifié par le harnais

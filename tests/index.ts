@@ -25,6 +25,7 @@ import testRuneOptim from './rune-optim.test';
 import testRuneOptimDifferential from './rune-optim-differential.test';
 import testRuneOptimScaleMonotonicity from './rune-optim-scale-monotonicity.test';
 import testRuneOptimParallelPairing from './rune-optim-parallel-pairing.test';
+import testRuneOptimParallelTruncated from './rune-optim-parallel-truncated.test';
 import testRuneOptimDeadHalfPruning from './rune-optim-dead-half-pruning.test';
 import testFilterSlotTopK from './rune-optim-filterslot-topk.test';
 import testOptimizerExclusion from './optimizer-exclusion.test';
@@ -57,6 +58,7 @@ async function main() {
   testRuneOptimDifferential();
   testRuneOptimScaleMonotonicity();
   await testRuneOptimParallelPairing();
+  testRuneOptimParallelTruncated();
   testRuneOptimDeadHalfPruning();
   testFilterSlotTopK();
   testOptimizerExclusion();

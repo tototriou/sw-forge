@@ -18,31 +18,12 @@
 // single-threaded : un message ne peut être livré que quand le code en
 // cours d'exécution le permet).
 
-import { prepareSearch, pairBuckets, totalPairCount, partitionBucketsALPT, maybeEscalateNodeBudget, PreparedSearch, SearchParams, SearchResult, Bucket, NodeBudget, BuildCandidate } from '../lib/runeBuildOptim';
+import { prepareSearch, pairBuckets, totalPairCount, partitionBucketsALPT, PreparedSearch, SearchParams, SearchResult, Bucket, NodeBudget, BuildCandidate } from '../lib/runeBuildOptim';
 import { BuildHalfRequest, BuildHalfResponse } from './buildHalf.worker';
 import { PairSliceRequest, PairSliceResponse } from './pairSlice.worker';
+import { drivePairing, PROGRESS_THROTTLE_MS } from './pairingDriver';
 
 export type WorkerRequest = SearchParams | { stop: true };
-
-// ⚠️ Un message de progression par point de passage flooderait le fil
-// principal (des centaines de `postMessage` par seconde quand l'élagage est
-// efficace) — throttlé au temps écoulé plutôt qu'au nombre de points de
-// passage, pour rester fluide quel que soit le rythme réel de la recherche.
-const PROGRESS_THROTTLE_MS = 150;
-// ⚠️ Rendre la main À CHAQUE point de passage (tous les 500 nœuds, voir
-// CHECKPOINT_EVERY dans runeBuildOptim.ts) coûte bien plus cher qu'il n'y
-// paraît : les navigateurs plafonnent `setTimeout(fn, 0)` appelé en boucle à
-// ~4 ms (throttling standard, y compris dans un Worker) — sur une recherche à
-// `maxNodes=20 000 000`, ça fait 40 000 rendus de main, soit jusqu'à ~160 s
-// de pur overhead de planification, largement au-dessus du temps de calcul
-// réel (~30-47 s mesurés en dehors du Worker, voir spec/outils/optimizer/).
-// Confirmé être la cause d'un écart mesuré en usage réel (recherche « Dégâts »
-// sur un vrai compte : ~30-47 s hors Worker contre 3 min 40 dans le
-// navigateur, pour la MÊME recherche). Throttlé au temps écoulé, comme la
-// progression ci-dessus, mais plus fréquemment (le bouton « Arrêter » doit
-// rester réactif) — un ordre de grandeur sous le seuil de perceptibilité
-// humaine, largement suffisant.
-const YIELD_THROTTLE_MS = 50;
 
 // ⚠️ Deux formes, comme `SearchProgress` côté moteur (voir son commentaire) :
 // la construction des compartiments (`phase: 'building'`) peut à elle seule
@@ -449,55 +430,20 @@ self.onmessage = async (e: MessageEvent<WorkerRequest>) => {
   // aucune paire déjà visitée n'est revisitée, aucun des deux Workers de
   // construction n'est rappelé.
   const nodeBudget: NodeBudget = { max: prepared.maxNodes };
-
-  let lastYield = Date.now();
-  // Nombre déjà relayé au fil principal (voir `WorkerPairingMessage.
-  // newCandidates`) — sert à ne transmettre à chaque point de passage QUE
-  // les candidats trouvés depuis le message précédent.
-  let candidatesSent = 0;
   const gen = pairBuckets(prepared, bucketsA, bucketsB, nodeBudget);
-  let step = gen.next();
-  while (!step.done) {
-    if (stopped) {
-      // Arrêt manuel pendant l'appariement : on ressort le dernier point de
-      // passage tel quel, requalifié « tronqué » — un résultat partiel
-      // assumé, pas une recherche allée au bout de son budget.
-      const progress = step.value;
-      const message: WorkerResultMessage = { type: 'result', candidates: progress.candidates, explored: progress.explored, truncated: true };
-      (self as unknown as Worker).postMessage(message);
-      return;
-    }
-    const now = Date.now();
-    const progress = step.value;
-    maybeEscalateNodeBudget(nodeBudget, prepared, progress, now);
-    if (now - lastProgressPost > PROGRESS_THROTTLE_MS) {
-      lastProgressPost = now;
-      const newCandidates = progress.candidates.slice(candidatesSent);
-      candidatesSent = progress.candidates.length;
-      const message: WorkerPairingMessage = {
-        type: 'progress',
-        phase: 'pairing',
-        explored: progress.explored,
-        found: progress.candidates.length,
-        pct: estimatePct(prepared, totalPairs, progress.explored, progress.candidates.length, now - startedAt),
-        nodeBudgetMax: nodeBudget.max,
-        totalPairs,
-        newCandidates,
-      };
-      (self as unknown as Worker).postMessage(message);
-    }
-    // Rend la main à la boucle d'évènements, mais throttlé (voir
-    // YIELD_THROTTLE_MS) : sans au moins CE rendu de main occasionnel, le
-    // message « stop » resterait en attente jusqu'à la fin de la recherche,
-    // ce qui viderait le bouton Arrêter de son sens — mais le faire à CHAQUE
-    // point de passage (tous les 500 nœuds) coûte bien plus cher que la
-    // recherche elle-même, voir le commentaire de la constante.
-    if (now - lastYield > YIELD_THROTTLE_MS) {
-      lastYield = now;
-      await new Promise((resolve) => setTimeout(resolve, 0));
-    }
-    step = gen.next();
-  }
-  const result: WorkerResultMessage = { type: 'result', ...step.value };
-  (self as unknown as Worker).postMessage(result);
+  const result = await drivePairing(gen, prepared, nodeBudget, () => stopped, (explored, newCandidates, nodeBudgetMax, foundTotal) => {
+    const message: WorkerPairingMessage = {
+      type: 'progress',
+      phase: 'pairing',
+      explored,
+      found: foundTotal,
+      pct: estimatePct(prepared, totalPairs, explored, foundTotal, Date.now() - startedAt),
+      nodeBudgetMax,
+      totalPairs,
+      newCandidates,
+    };
+    (self as unknown as Worker).postMessage(message);
+  });
+  const message: WorkerResultMessage = { type: 'result', ...result };
+  (self as unknown as Worker).postMessage(message);
 };

@@ -25,7 +25,8 @@
 // SA tranche, exactement comme le comportement séquentiel existant (bouton
 // « Arrêter » qui garde le meilleur trouvé jusque-là).
 
-import { prepareSearch, pairBuckets, maybeEscalateNodeBudget, SearchParams, Bucket, NodeBudget, BuildCandidate } from '../lib/runeBuildOptim';
+import { prepareSearch, pairBuckets, SearchParams, Bucket, NodeBudget, BuildCandidate } from '../lib/runeBuildOptim';
+import { drivePairing } from './pairingDriver';
 
 export interface PairSliceRequest {
   // ⚠️ `maxCollected` DOIT déjà être la part de CE worker (le plafond
@@ -67,11 +68,6 @@ export interface PairSliceResultMessage {
 }
 export type PairSliceResponse = PairSliceProgressMessage | PairSliceResultMessage;
 
-// Mêmes paliers que runeBuildOptim.worker.ts (voir ses commentaires pour le
-// détail des mesures qui les justifient) — pas de raison de diverger ici.
-const PROGRESS_THROTTLE_MS = 150;
-const YIELD_THROTTLE_MS = 50;
-
 let stopped = false;
 
 self.onmessage = async (e: MessageEvent<PairSliceInbound>) => {
@@ -108,35 +104,11 @@ self.onmessage = async (e: MessageEvent<PairSliceInbound>) => {
   // escalade ne s'arrête jamais avant épuisement complet, retrouvant
   // exactement le comportement déjà prouvé sans perte de ce mode-là.
   const nodeBudget: NodeBudget = { max: prepared.maxNodes };
-
-  let candidatesSent = 0;
-  let lastProgressPost = 0;
-  let lastYield = Date.now();
   const gen = pairBuckets(prepared, bucketASlice, bucketsB, nodeBudget);
-  let step = gen.next();
-  while (!step.done) {
-    if (stopped) {
-      const progress = step.value;
-      const result: PairSliceResultMessage = { type: 'result', explored: progress.explored, candidates: progress.candidates, truncated: true };
-      (self as unknown as Worker).postMessage(result);
-      return;
-    }
-    const now = Date.now();
-    const progress = step.value;
-    maybeEscalateNodeBudget(nodeBudget, prepared, progress, now);
-    if (now - lastProgressPost > PROGRESS_THROTTLE_MS) {
-      lastProgressPost = now;
-      const newCandidates = progress.candidates.slice(candidatesSent);
-      candidatesSent = progress.candidates.length;
-      const message: PairSliceProgressMessage = { type: 'progress', explored: progress.explored, newCandidates, nodeBudgetMax: nodeBudget.max };
-      (self as unknown as Worker).postMessage(message);
-    }
-    if (now - lastYield > YIELD_THROTTLE_MS) {
-      lastYield = now;
-      await new Promise((resolve) => setTimeout(resolve, 0));
-    }
-    step = gen.next();
-  }
-  const result: PairSliceResultMessage = { type: 'result', ...step.value };
-  (self as unknown as Worker).postMessage(result);
+  const result = await drivePairing(gen, prepared, nodeBudget, () => stopped, (explored, newCandidates, nodeBudgetMax) => {
+    const message: PairSliceProgressMessage = { type: 'progress', explored, newCandidates, nodeBudgetMax };
+    (self as unknown as Worker).postMessage(message);
+  });
+  const out: PairSliceResultMessage = { type: 'result', ...result };
+  (self as unknown as Worker).postMessage(out);
 };

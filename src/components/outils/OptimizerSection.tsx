@@ -1134,7 +1134,7 @@ export default function OptimizerSection({ box, runes, optimizer, allMonsters, r
         </div>
       </div>
 
-      <div className="sticky bottom-3 z-10 flex flex-wrap items-center gap-3 rounded-xl border border-border bg-panel/95 p-3 shadow-lg backdrop-blur">
+      <div className="flex flex-wrap items-center gap-3 rounded-xl border border-border bg-panel p-3 shadow-lg">
         {/* ⚠️ `comboSets.length === 0` reste HORS de `disabled` — un bouton
             HTML natif `disabled` ne déclenche JAMAIS `onClick` (règle du
             DOM, pas un oubli), ce qui aurait rendu le défilement vers « Set

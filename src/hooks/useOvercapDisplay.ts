@@ -11,7 +11,7 @@ import { StatKey, CAPPED_STATS } from '../lib/effects';
 // ⚠️ Un réglage d'AFFICHAGE, pas de calcul : `computeStats` continue de
 // renvoyer le total BRUT (nécessaire à la recherche de l'Optimizer, qui ne
 // doit surtout pas exclure un build dont le total brut dépasse 100 % — c'est
-// un résultat légitime, voir spec/outils/optimizer.md). Seule la VALEUR
+// un résultat légitime, voir spec/outils/optimizer/). Seule la VALEUR
 // MONTRÉE est bornée, jamais la donnée elle-même.
 //
 // Store externe (comme useRuneMetric) : le choix doit se propager EN DIRECT

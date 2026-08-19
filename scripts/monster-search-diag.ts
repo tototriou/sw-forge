@@ -3,7 +3,7 @@
 // pré-filtrage par emplacement (filterSlot) — utile pour distinguer « le
 // pré-filtrage par slot a éliminé cette rune » de « elle survit au slot mais
 // son demi-combo est ensuite évincé du compartiment » (voir
-// spec/outils/optimizer.md « Validation grandeur nature »). Générique :
+// spec/outils/optimizer/ « Validation grandeur nature »). Générique :
 // monstre/deck viennent des arguments, mainStats dérivé du runage réel.
 //
 // Usage : monster-search-diag.ts <export.json> <deckId> <nomMonstre> [cap]

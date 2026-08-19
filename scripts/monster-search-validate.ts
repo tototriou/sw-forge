@@ -14,6 +14,7 @@ import { activeSets, StatKey } from '../src/lib/effects';
 import { BuildRequirement, SearchParams, Objective, prepareSearch, buildBuckets, pairBuckets, totalPairCount, NodeBudget, CHECKPOINT_EVERY } from '../src/lib/runeBuildOptim';
 import { ArtifactDetail, BaseStats, RelicDetail } from '../src/types';
 import { loadDeckMonster, parseDeckMonsterArgs } from './lib/deckMonster';
+import { drain } from './lib/drain';
 
 const USAGE =
   'Usage: monster-search-validate.ts <export.json> <deckId> <nomMonstre> [--defense] [statKeys=atk,cr,cd] [objective=degats] [slotFilterCap=80] [bucketCap] [maxNodes] [maxMs=180000]';
@@ -77,18 +78,12 @@ const params: SearchParams = {
 
 console.log('\nRecherche en cours (peut prendre jusqu\'à quelques dizaines de secondes)...');
 
-// ⚠️ Phase 0 (spec/outils/optimizer.md) : rejoue l'escalade automatique du
+// ⚠️ Phase 0 (spec/outils/optimizer/) : rejoue l'escalade automatique du
 // budget de nœuds (voir runeBuildOptim.worker.ts) plutôt que d'appeler
 // `searchBuilds` (budget FIXE) — sans quoi un `bucketCap` plus élevé
 // reproduirait à tort le rejet historique (budget fixe pénalisé par des
 // compartiments plus coûteux à parcourir), sans refléter ce que l'écran fait
 // réellement aujourd'hui.
-function drain<T>(gen: Generator<unknown, T, void>): T {
-  let step = gen.next();
-  while (!step.done) step = gen.next();
-  return step.value;
-}
-
 const prepared = prepareSearch(params);
 if (!prepared) {
   console.log('prepareSearch = null (au moins un emplacement vide après pré-filtrage)');
@@ -96,10 +91,10 @@ if (!prepared) {
 }
 console.log(`bucketCap utilisé : ${prepared.bucketCap}`);
 const bucketsA = drain(
-  buildBuckets('A', [0, 1, 2], prepared.filtered, prepared.distinctKeys, prepared.constrainedKeys, prepared.retentionKeys, prepared.minEntries, prepared.bucketCap, prepared.maxSetsForA, prepared.jokerCredit, prepared.requiredPieces)
+  buildBuckets('A', [0, 1, 2], prepared, prepared.maxSetsForA)
 );
 const bucketsB = drain(
-  buildBuckets('B', [3, 4, 5], prepared.filtered, prepared.distinctKeys, prepared.constrainedKeys, prepared.retentionKeys, prepared.minEntries, prepared.bucketCap, prepared.maxSetsForB, prepared.jokerCredit, prepared.requiredPieces)
+  buildBuckets('B', [3, 4, 5], prepared, prepared.maxSetsForB)
 );
 console.log(`bucketsA : ${bucketsA.length} compartiment(s), tailles = [${bucketsA.map((b) => b.combos.length).join(', ')}]`);
 console.log(`bucketsB : ${bucketsB.length} compartiment(s), tailles = [${bucketsB.map((b) => b.combos.length).join(', ')}]`);

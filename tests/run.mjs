@@ -10,10 +10,15 @@
 import { build } from 'esbuild';
 import { spawn } from 'child_process';
 import { mkdtempSync, rmSync } from 'fs';
-import { tmpdir } from 'os';
 import { join } from 'path';
 
-const dossier = mkdtempSync(join(tmpdir(), 'sw-forge-tests-'));
+// ⚠️ Sous `node_modules/`, PAS `os.tmpdir()` — `require('esbuild')` (voir
+// `external` plus bas) doit pouvoir se résoudre normalement à l'exécution
+// depuis l'emplacement du bundle : la résolution CommonJS de Node remonte
+// les `node_modules` ANCÊTRES du fichier qui appelle `require`, ce qui
+// n'inclut jamais un dossier temporaire hors du dépôt. `node_modules/`
+// est déjà gitignoré et déjà l'ancêtre direct de `node_modules/esbuild`.
+const dossier = mkdtempSync(join('node_modules', 'sw-forge-tests-'));
 const sortie = join(dossier, 'tests.cjs');
 
 try {
@@ -26,6 +31,14 @@ try {
     logLevel: 'error',
     // `import.meta.url` sert à retrouver la racine du dépôt depuis les tests.
     define: { 'import.meta.url': JSON.stringify(new URL('index.ts', import.meta.url).href) },
+    // ⚠️ esbuild ne peut PAS être bundlé lui-même (son API a besoin d'un
+    // exécutable externe, localisé via un chemin RELATIF à son propre
+    // package sur disque — un chemin qui devient faux une fois inliné dans
+    // un autre fichier). Nécessaire depuis que rune-optim-parallel-pairing.test.ts
+    // bundle lui-même un worker (`scripts/lib/pairing-quota-worker.ts`, VRAIS
+    // `worker_threads` concurrents) — `require('esbuild')` reste un require
+    // normal, résolu à l'exécution depuis node_modules, jamais inliné.
+    external: ['esbuild'],
   });
 } catch {
   process.exit(1); // esbuild a déjà tout dit

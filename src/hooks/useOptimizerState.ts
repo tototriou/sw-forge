@@ -1,10 +1,11 @@
 import { Dispatch, SetStateAction, useState } from 'react';
 import { StatKey } from '../lib/effects';
-import { Objective } from '../lib/runeBuildOptim';
+import { Objective, SlotFilterPresetKey } from '../lib/runeBuildOptim';
+import { AutoExclusionScope, ExclusionSelector } from '../lib/optimizerExclusion';
 import { ArtifactKind } from '../types';
 import { useBuildOptimSearch } from './useBuildOptimSearch';
 
-export type SlotFilterPresetKey = 'bas' | 'moyen' | 'haut' | 'extreme';
+export type { SlotFilterPresetKey };
 export type OptimizerSortKey = StatKey | Objective;
 // Choix de statistique principale d'artéfact pour la recherche : les trois
 // valeurs de jeu standard (voir ARTIFACT_MAIN dans effects.ts — 100=PV,
@@ -55,17 +56,48 @@ export interface OptimizerState {
   setMainStatsBySlot: Dispatch<SetStateAction<Partial<Record<2 | 4 | 6, number[]>>>>;
   objective: Objective;
   setObjective: Dispatch<SetStateAction<Objective>>;
-  exploreAll: boolean;
-  setExploreAll: Dispatch<SetStateAction<boolean>>;
+  // « Exclure les runes déjà utilisées » — DÉCOCHÉ par défaut (inversion du
+  // comportement historique de l'ancienne case « Utiliser tout l'inventaire »,
+  // qui était COCHÉE par défaut avec la signification opposée : les deux
+  // réglages laissent donc le comportement par défaut de la recherche
+  // INCHANGÉ — voir OptimizerSection.tsx). Activé, exclut les runes
+  // actuellement utilisées dans `excludeUsedScope` (un seul périmètre à la
+  // fois) — voir `autoExcludedRuneIds`, optimizerExclusion.ts.
+  excludeUsedRunes: boolean;
+  setExcludeUsedRunes: Dispatch<SetStateAction<boolean>>;
+  // Périmètre de `excludeUsedRunes` — n'a d'effet que si celui-ci est activé.
+  // Défaut RTA (le cas d'usage le plus courant : ne pas défaire un build RTA
+  // en optimisant un autre monstre).
+  excludeUsedScope: AutoExclusionScope;
+  setExcludeUsedScope: Dispatch<SetStateAction<AutoExclusionScope>>;
+  // Exclusion MANUELLE, en plus d'`excludeUsedRunes` (se superpose, ne le
+  // remplace pas) — voir lib/optimizerExclusion.ts. Vide par défaut.
+  excludedSelectors: ExclusionSelector[];
+  setExcludedSelectors: Dispatch<SetStateAction<ExclusionSelector[]>>;
   // Toggle « Prioriser les stats les plus difficiles » (piste B, voir
-  // spec/outils/optimizer.md « Suite — piste B gatée derrière un
+  // spec/outils/optimizer/ « Suite — piste B gatée derrière un
   // paramètre ») — désactivé par défaut, lu par `handleSearch` au moment du
   // clic sur « Rechercher », pas un bouton séparé qui lance sa propre
   // recherche.
   adaptiveTrancheWeighting: boolean;
   setAdaptiveTrancheWeighting: Dispatch<SetStateAction<boolean>>;
+  // Toggle « Rechercher jusqu'à épuisement complet » — désactivé par défaut,
+  // lu par `handleSearch` comme `adaptiveTrancheWeighting` ci-dessus. Retire
+  // la limite de temps de 10 minutes (`maxMs: Infinity`, déjà supporté par le
+  // moteur — voir OptimizerSection.tsx) ; ne touche PAS au plafond de 100 000
+  // candidats collectés, qui reste une limite indépendante.
+  exhaustiveSearch: boolean;
+  setExhaustiveSearch: Dispatch<SetStateAction<boolean>>;
   sortBy: OptimizerSortKey;
   setSortBy: Dispatch<SetStateAction<OptimizerSortKey>>;
+  // Pagination des résultats affichés (1-indexé) — état d'AFFICHAGE pur, pas
+  // un paramètre de recherche : n'entre donc jamais dans `OptimizerRecipe`
+  // ni les scripts CLI (voir le skill optimizer-field-propagation, dont la
+  // checklist recette/CLI ne s'applique PAS à ce champ précisément pour
+  // cette raison). Remise à 1 par l'écran à chaque nouvelle recherche ou
+  // changement de tri — voir OptimizerSection.tsx.
+  resultsPage: number;
+  setResultsPage: Dispatch<SetStateAction<number>>;
   showAdvanced: boolean;
   setShowAdvanced: Dispatch<SetStateAction<boolean>>;
   slotFilterPreset: SlotFilterPresetKey;
@@ -88,6 +120,18 @@ export interface OptimizerState {
   openRuneKey: string | null;
   setOpenRuneKey: Dispatch<SetStateAction<string | null>>;
   search: ReturnType<typeof useBuildOptimSearch>;
+  // Remet à zéro « Critères de recherche » (set, statistique principale
+  // imposée, objectif, artéfacts, conditions min/max) ET « Combinaisons
+  // trouvées » (résultat, progression, tri, pagination) — PAS les réglages
+  // avancés (préfiltrage, exclusions, recherche exhaustive…), qui sont des
+  // préférences générales et pas des critères propres au monstre en cours.
+  // Appelée par OptimizerSection.tsx quand le monstre recherché change
+  // (sélection manuelle, pas un import de recette — celui-ci pose ses
+  // propres critères juste après, les effacer aussitôt les perdrait) et par
+  // App.tsx quand un nouveau compte est importé (voir son `useEffect` sur
+  // `box`) : dans les deux cas, la recherche affichée devient obsolète
+  // (autre monstre, autre pool de runes).
+  resetSearch: () => void;
 }
 
 export function useOptimizerState(): OptimizerState {
@@ -97,21 +141,42 @@ export function useOptimizerState(): OptimizerState {
   const [minStats, setMinStats] = useState<Partial<Record<StatKey, number>>>({});
   const [maxStats, setMaxStats] = useState<Partial<Record<StatKey, number>>>({});
   // ⚠️ Coché par défaut : demande reconfirmée après un premier aller-retour
-  // (décoché par défaut, puis revenu sur cochée) — voir spec/outils/optimizer.md.
+  // (décoché par défaut, puis revenu sur cochée) — voir spec/outils/optimizer/.
   const [excludeBase, setExcludeBase] = useState(true);
   const [ignoreArtifacts, setIgnoreArtifacts] = useState(false);
   const [artifactMainByKind, setArtifactMainByKind] = useState<Partial<Record<ArtifactKind, ArtifactMainChoice>>>({});
   const [mainStatsBySlot, setMainStatsBySlot] = useState<Partial<Record<2 | 4 | 6, number[]>>>({});
   const [objective, setObjective] = useState<Objective>('efficience');
-  const [exploreAll, setExploreAll] = useState(true);
+  const [excludeUsedRunes, setExcludeUsedRunes] = useState(false);
+  const [excludeUsedScope, setExcludeUsedScope] = useState<AutoExclusionScope>('rta');
+  const [excludedSelectors, setExcludedSelectors] = useState<ExclusionSelector[]>([]);
   const [adaptiveTrancheWeighting, setAdaptiveTrancheWeighting] = useState(false);
+  const [exhaustiveSearch, setExhaustiveSearch] = useState(false);
   const [sortBy, setSortBy] = useState<OptimizerSortKey>('efficience');
+  const [resultsPage, setResultsPage] = useState(1);
   const [showAdvanced, setShowAdvanced] = useState(false);
   const [slotFilterPreset, setSlotFilterPreset] = useState<SlotFilterPresetKey>('moyen');
   const [diagnoseBlockingEnabled, setDiagnoseBlockingEnabled] = useState(false);
   const [stoppedManually, setStoppedManually] = useState(false);
   const [openRuneKey, setOpenRuneKey] = useState<string | null>(null);
   const search = useBuildOptimSearch();
+
+  function resetSearch() {
+    setComboSets([]);
+    setSetPickerInvalid(false);
+    setMinStats({});
+    setMaxStats({});
+    setExcludeBase(true);
+    setIgnoreArtifacts(false);
+    setArtifactMainByKind({});
+    setMainStatsBySlot({});
+    setObjective('efficience');
+    setSortBy('efficience');
+    setResultsPage(1);
+    setStoppedManually(false);
+    setOpenRuneKey(null);
+    search.reset();
+  }
 
   return {
     selectedId,
@@ -134,12 +199,20 @@ export function useOptimizerState(): OptimizerState {
     setMainStatsBySlot,
     objective,
     setObjective,
-    exploreAll,
-    setExploreAll,
+    excludeUsedRunes,
+    setExcludeUsedRunes,
+    excludeUsedScope,
+    setExcludeUsedScope,
+    excludedSelectors,
+    setExcludedSelectors,
     adaptiveTrancheWeighting,
     setAdaptiveTrancheWeighting,
+    exhaustiveSearch,
+    setExhaustiveSearch,
     sortBy,
     setSortBy,
+    resultsPage,
+    setResultsPage,
     showAdvanced,
     setShowAdvanced,
     slotFilterPreset,
@@ -151,5 +224,6 @@ export function useOptimizerState(): OptimizerState {
     openRuneKey,
     setOpenRuneKey,
     search,
+    resetSearch,
   };
 }

@@ -28,7 +28,7 @@ export interface HalfBuildProgress {
 // l'ancien comportement) et peut à elle seule durer jusqu'à environ une
 // minute sur un compte réel avec beaucoup de conditions — sans cette
 // distinction, l'UI n'avait AUCUNE information pendant cette phase (voir
-// spec/outils/optimizer.md, « Suite — la phase de préparation restait
+// spec/outils/optimizer/, « Suite — la phase de préparation restait
 // muette »).
 // ⚠️ `building` garde les DEUX moitiés (`halves.A`/`halves.B`), pas une seule
 // — depuis leur construction en parallèle (deux Workers, voir
@@ -86,7 +86,7 @@ export type BuildOptimProgress =
 // parfaitement valide (React ne l'invalide pas) et écraserait alors l'état
 // de la recherche EN COURS avec une valeur PÉRIMÉE. Confirmé en usage réel :
 // lancer/arrêter plusieurs recherches rapprochées pouvait figer une des deux
-// barres de la phase `building` (voir spec/outils/optimizer.md) — plus
+// barres de la phase `building` (voir spec/outils/optimizer/) — plus
 // probable depuis la parallélisation des deux moitiés (deux Workers de plus
 // à chaque recherche, donc deux fois plus de messages en vol au moment d'un
 // arrêt/relance). Chaque `run()` incrémente `runId` ; tout message reçu par
@@ -170,5 +170,20 @@ export function useBuildOptimSearch() {
     workerRef.current?.postMessage({ stop: true });
   }, []);
 
-  return { status, result, progress, run, stop, cancel };
+  // Efface l'état affiché SANS relancer de recherche — `cancel()` seul
+  // termine le Worker mais laisse `status`/`result`/`progress` tels quels
+  // (utilisé par `run()` avant de lancer la SUIVANTE, jamais pour revenir à
+  // vide). Sert quand le monstre change ou qu'un nouveau compte est importé
+  // (voir useOptimizerState.ts, `resetSearch`) : les résultats affichés
+  // deviennent obsolètes (mauvais monstre/pool de runes), il faut les faire
+  // disparaître IMMÉDIATEMENT, pas attendre le prochain clic sur
+  // « Rechercher ».
+  const reset = useCallback(() => {
+    cancel();
+    setStatus('idle');
+    setResult(null);
+    setProgress(null);
+  }, [cancel]);
+
+  return { status, result, progress, run, stop, cancel, reset };
 }

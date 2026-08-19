@@ -20,7 +20,15 @@ import { BaseStats, EffectLine, RuneDetail } from '../src/types';
 import { activeSets, runeEfficiency } from '../src/lib/effects';
 import { computeStats } from '../src/lib/stats';
 import { missingSets } from '../src/lib/recoMatch';
-import { BuildRequirement, buildBuckets, prepareSearch, searchBuilds, totalPairCount } from '../src/lib/runeBuildOptim';
+import {
+  BuildRequirement,
+  buildBuckets,
+  prepareSearch,
+  searchBuilds,
+  totalPairCount,
+  estimatePairBound,
+  MAX_PER_SLOT_MATCH,
+} from '../src/lib/runeBuildOptim';
 import { egal, ok, titre } from './outils';
 
 // PRNG déterministe (mulberry32) — pas de dépendance, seed fixe pour des
@@ -165,7 +173,7 @@ export default function testRuneOptimDifferential() {
     // ⚠️ L'optimum EXACT n'est comparable que si le moteur n'a pas été
     // tronqué (`truncated`) : au-delà de son plafond de collecte, il renvoie
     // « le meilleur trouvé », pas une garantie d'optimalité globale — c'est
-    // documenté (spec/outils/optimizer.md), pas un bug. Le comparer quand
+    // documenté (spec/outils/optimizer/), pas un bug. Le comparer quand
     // même ferait échouer le test sur un comportement voulu.
     if (res.candidates.length > 0 && ref.count > 0 && !res.truncated) {
       const bestFound = Math.max(...res.candidates.map((c) => c.effTotal));
@@ -205,7 +213,7 @@ export default function testRuneOptimDifferential() {
     // épuiser ») doit rester une borne SÛRE : jamais en dessous du nombre de
     // paires RÉELLEMENT visitées par une recherche exhaustive (`!truncated`)
     // sur ce même scénario, sous peine d'annoncer moins de travail qu'il n'y
-    // en a en réalité — voir spec/outils/optimizer.md, « Suite — espace de
+    // en a en réalité — voir spec/outils/optimizer/, « Suite — espace de
     // recherche affiné (pairFeasibleMin) ». Balayé sur les 15 scénarios
     // aléatoires (sets et minStats variés, contrairement au pool synthétique
     // à un seul compartiment de tests/rune-optim.test.ts) plutôt que sur un
@@ -219,19 +227,34 @@ export default function testRuneOptimDifferential() {
           return step.value;
         }
         const bucketsA = drain(
-          buildBuckets('A', [0, 1, 2], prepared.filtered, prepared.distinctKeys, prepared.constrainedKeys, prepared.retentionKeys, prepared.minEntries, prepared.bucketCap, prepared.maxSetsForA, prepared.jokerCredit, prepared.requiredPieces)
+          buildBuckets('A', [0, 1, 2], prepared, prepared.maxSetsForA)
         );
         const bucketsB = drain(
-          buildBuckets('B', [3, 4, 5], prepared.filtered, prepared.distinctKeys, prepared.constrainedKeys, prepared.retentionKeys, prepared.minEntries, prepared.bucketCap, prepared.maxSetsForB, prepared.jokerCredit, prepared.requiredPieces)
+          buildBuckets('B', [3, 4, 5], prepared, prepared.maxSetsForB)
         );
         const total = totalPairCount(prepared, bucketsA, bucketsB);
         ok(total >= res.explored, `scénario ${s} : totalPairCount (${total}) reste une borne sûre — jamais en dessous des paires réellement explorées par une recherche exhaustive (${res.explored})`);
+
+        // ⚠️ `estimatePairBound` (affiché à l'écran AVANT `buildBuckets`, donc
+        // sans connaître les vrais compartiments) doit rester un MAJORANT de
+        // `totalPairCount` lui-même (calculé, lui, APRÈS construction) —
+        // sinon il annoncerait un « au pire » plus petit que la réalité déjà
+        // mesurée. Ne peut PAS être vérifié sur un pool trop petit pour
+        // `bucketCap` (le cas normal ici, `bucketCap=600` largement au-dessus
+        // du nombre de runes du test) : l'invariant qui compte est structurel
+        // (majorant théorique), pas une comparaison de magnitude sur ce pool
+        // synthétique minuscule.
+        const bound = estimatePairBound(requirement, MAX_PER_SLOT_MATCH);
+        ok(
+          bound >= total,
+          `scénario ${s} : estimatePairBound (${bound}) reste un majorant de totalPairCount (${total})`
+        );
       }
     }
   }
 
   // ⚠️ Scénario DÉDIÉ (pas aléatoire) — vérifie le correctif du cas limite
-  // documenté dans spec/outils/optimizer.md, « Suite — bonus de set NON
+  // documenté dans spec/outils/optimizer/, « Suite — bonus de set NON
   // demandé anticipé dès le pré-filtrage » : `guaranteedSetBonus` ne compte
   // QUE les sets de `requirement.sets` — un set qui s'activerait par ACCIDENT
   // via les emplacements « libres » (non requis par le combo demandé) était
@@ -302,7 +325,7 @@ export default function testRuneOptimDifferential() {
   }
 
   // ⚠️ Scénario DÉDIÉ — vérifie le correctif « activation supplémentaire d'un
-  // set DÉJÀ demandé » (voir spec/outils/optimizer.md, cas réel Ciri :
+  // set DÉJÀ demandé » (voir spec/outils/optimizer/, cas réel Ciri :
   // Energy demandé UNE fois — 1 activation garantie, +15 % PV — mais le
   // build réel en active DEUX, `energy+shield+energy`, +30 % PV réels).
   // `guaranteedSetBonus` ne comptait que l'activation MINIMALE demandée ;

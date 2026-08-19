@@ -2,7 +2,7 @@
 // Worker DÉDIÉ à la construction d'UNE SEULE moitié (`buildBuckets`), spawné
 // PAR `runeBuildOptim.worker.ts` (pas par l'app directement) pour paralléliser
 // la construction des deux moitiés A et B sur deux cœurs plutôt qu'un seul —
-// voir spec/outils/optimizer.md, « Suite — parallélisation de la construction
+// voir spec/outils/optimizer/, « Suite — parallélisation de la construction
 // des deux moitiés ». Reste minimal, comme runeBuildOptim.worker.ts : aucune
 // logique propre, pilote juste `buildBuckets` pas à pas pour pouvoir relayer
 // une progression pendant que ça tourne.
@@ -33,6 +33,15 @@ export interface BuildHalfRequest {
   // Bouton « Prioriser les stats les plus difficiles » — voir SearchParams
   // dans runeBuildOptim.ts, même paramètre relayé tel quel jusqu'ici.
   adaptiveTrancheWeighting?: boolean;
+  // ⚠️ Manquait jusqu'ici — voir SearchParams.combosOrderMode dans
+  // runeBuildOptim.ts. Sans ce champ (et son relais ci-dessous jusqu'à
+  // `buildBuckets`), `SearchParams.combosOrderMode` n'avait AUCUN effet sur
+  // le vrai chemin de production (Web Workers) : `buildBuckets` recevait
+  // toujours `undefined` ici, retombant sur son défaut interne quel que
+  // soit ce que l'appelant avait demandé — trouvé par une revue de code
+  // externe, voir spec/outils/optimizer/historique-dimensionnement.md,
+  // « revue de code externe ».
+  combosOrderMode?: 'potential' | 'relevance';
 }
 export interface BuildHalfProgressMessage {
   type: 'progress';
@@ -53,17 +62,20 @@ export type BuildHalfResponse = BuildHalfProgressMessage | BuildHalfResultMessag
 const PROGRESS_THROTTLE_MS = 150;
 
 self.onmessage = (e: MessageEvent<BuildHalfRequest>) => {
-  const {
-    half, slotIdxs, filtered, distinctKeys, constrainedKeys, retentionKeys, minEntries, bucketCap, otherHalfMaxSets, jokerCredit, requiredPieces,
-    adaptiveTrancheWeighting,
-  } = e.data;
+  const { half, slotIdxs, filtered, otherHalfMaxSets, adaptiveTrancheWeighting, combosOrderMode } = e.data;
   // Connu D'AVANCE (indépendant du générateur) : le total réel que
   // `buildBuckets` utilisera pour CE premier emplacement de la moitié — sert
   // au message de fin garanti ci-dessous, voir son commentaire.
   const total = filtered[slotIdxs[0]].length;
+  // ⚠️ `e.data` (BuildHalfRequest) satisfait déjà STRUCTURELLEMENT
+  // `BuildBucketsContext` (mêmes 8 champs, voir son commentaire dans
+  // runeBuildOptim.ts) — pas besoin de reconstruire un objet, les champs en
+  // trop (half/slotIdxs/otherHalfMaxSets/…) sont ignorés sans risque
+  // puisque ce n'est pas un littéral d'objet (aucune vérification de
+  // propriété excédentaire de TypeScript ici).
   const gen = buildBuckets(
-    half, slotIdxs, filtered, distinctKeys, constrainedKeys, retentionKeys, minEntries, bucketCap, otherHalfMaxSets, jokerCredit, requiredPieces,
-    undefined, adaptiveTrancheWeighting
+    half, slotIdxs, e.data, otherHalfMaxSets,
+    undefined, adaptiveTrancheWeighting, combosOrderMode
   );
   let lastPost = 0;
   let step = gen.next();
@@ -83,7 +95,7 @@ self.onmessage = (e: MessageEvent<BuildHalfRequest>) => {
   // affichée restait bloquée juste avant 100 % (ex. 57/61) alors que le
   // calcul, LUI, allait bien jusqu'au bout (cette boucle ne saute JAMAIS une
   // étape de `gen.next()`, seulement des `postMessage` — voir
-  // spec/outils/optimizer.md). Un cas réel confirmé en usage : la barre ne
+  // spec/outils/optimizer/). Un cas réel confirmé en usage : la barre ne
   // semblait jamais finir, laissant croire à tort que des demi-builds
   // manquaient au résultat.
   const finalProgress: BuildHalfProgressMessage = { type: 'progress', half, scanned: total, total };

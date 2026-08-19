@@ -73,7 +73,16 @@ export default function RtaCard({
   const base = monster.stats.speed;
   const rune = entry.runeSpeed;
   const total = base !== null || rune !== null ? (base ?? 0) + (rune ?? 0) : null;
-  const hasGear = !!entry.gear && entry.gear.runes.length > 0;
+  // ⚠️ PAS `entry.gear.runes.length > 0` en plus — un monstre peut avoir des
+  // artéfacts (voire une relique) équipés SANS aucune rune (ex. ajouté à la
+  // prépa mais jamais rune-é) : exiger des runes rendait la carte ENTIÈRE
+  // non cliquable, cachant des artéfacts/une relique pourtant bien réels et
+  // affichables (`MonsterGear` gère déjà 0 rune sans problème — panneau de
+  // stats et emplacements d'artéfacts TOUJOURS rendus, roue de runes et
+  // relique seulement s'il y en a). Trouvé sur un compte réel (3 monstres
+  // « Non classé » avec 2 artéfacts chacun mais 0 rune, tous les trois
+  // rendus inertes).
+  const hasGear = !!entry.gear;
 
   function handleDragStart(e: React.DragEvent) {
     e.dataTransfer.setData('text/plain', String(monster.id));
@@ -136,7 +145,7 @@ export default function RtaCard({
         <div
           className={`flex items-center gap-1 ${hasGear ? 'cursor-pointer' : ''}`}
           onClick={toggle}
-          title={hasGear ? 'Voir le détail des runes' : undefined}
+          title={hasGear ? "Voir le détail de l'équipement" : undefined}
         >
           {/* Nom en orange quand les runes ne suivent plus la vitesse demandée :
               on repère les monstres à re-runer sans ouvrir chaque fiche. */}

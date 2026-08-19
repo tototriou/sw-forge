@@ -1,4 +1,4 @@
-import { ReactNode, useState } from 'react';
+import { ReactNode, useRef, useState } from 'react';
 import { RotateCw, Gauge } from 'lucide-react';
 import { ArtifactDetail, GearSet, RelicDetail, RuneDetail } from '../types';
 import { computeStats } from '../lib/stats';
@@ -14,10 +14,11 @@ import {
   runeScore,
 } from '../lib/effects';
 import RuneWheel from './RuneWheel';
+import ArtifactSlots from './ArtifactSlots';
 import StatPanel from './StatPanel';
+import DetailPopover from './account/DetailPopover';
 import { RUNE_METRICS, formatRuneMetric, useRuneMetric } from '../hooks/useRuneMetric';
 import { artifactScore, artifactEfficiency } from '../lib/artifacts';
-import ArtifactFrameIcon from './ArtifactFrameIcon';
 
 type Selected =
   | { kind: 'rune'; i: number }
@@ -343,7 +344,11 @@ export function ArtifactDetailBox({ artifact }: { artifact: ArtifactDetail }) {
 
 function RelicDetailBox({ relic }: { relic: RelicDetail }) {
   return (
-    <div className="rounded-lg border border-border bg-panel/70 p-2.5">
+    // Fond opaque (pas `bg-panel/70`) : affichée dans un popover flottant,
+    // voir DetailPopover.tsx — un fond translucide laisserait voir le
+    // contenu derrière et rendrait le détail illisible, même remarque que
+    // RuneDetailBox/ArtifactDetailBox ci-dessus.
+    <div className="rounded-lg border border-border bg-panel2 p-2.5">
       <div className="text-[12px] font-bold text-ink">{formatRelicMain(relic.main)}</div>
       {relic.sub && (
         <div className="text-[11px] text-ink-dim mt-0.5">Effet secondaire · {relic.sub.value}</div>
@@ -363,6 +368,7 @@ interface Props {
 export default function MonsterGear({ gear, spdCible = null }: Props) {
   const stats = computeStats(gear);
   const [sel, setSel] = useState<Selected>(null);
+  const relicRef = useRef<HTMLButtonElement>(null);
 
   const isSel = (s: Selected) =>
     !!sel &&
@@ -372,66 +378,85 @@ export default function MonsterGear({ gear, spdCible = null }: Props) {
   const toggle = (s: Exclude<Selected, null>) => setSel((cur) => (isSel(s) ? null : s));
 
   return (
-    <div className="flex flex-wrap items-center justify-center gap-2">
+    // ⚠️ `relative` + `z-10` UNIQUEMENT quand un popover est ouvert : même
+    // raison que BuildCandidateCard.tsx (cartes de résultat de l'Optimizer,
+    // qui utilisent le même DetailPopover) — sans ça, le popover flottant
+    // pouvait se retrouver visuellement recouvert par une fiche VOISINE plus
+    // tard dans l'ordre du DOM (ex. la ligne suivante d'un AccordionGrid),
+    // même sans chevauchement apparent : l'empilement par défaut suit
+    // l'ordre du DOM, pas la position à l'écran.
+    <div className={`flex flex-wrap items-center justify-center gap-2 ${sel ? 'relative z-10' : ''}`}>
       {/* Panneau de stats — voir StatPanel.tsx (base+bonus ↔ total au clic,
           largeur fixe pour ne jamais déplacer artéfacts/roue/relique). */}
       <StatPanel stats={stats} spdCible={spdCible} />
 
-      {/* Artéfacts — détail affiché EN LIGNE plus bas (bloc `sel`), pas un
-          popover flottant : pas de `renderOverlay` ici. */}
-      {gear.artifacts.length > 0 && (
-        <div className="flex flex-col gap-1.5">
-          {gear.artifacts.map((a, i) => {
-            const selected = isSel({ kind: 'artifact', i });
-            return (
-              <button
-                key={i}
-                onClick={() => toggle({ kind: 'artifact', i })}
-                title="Voir l'artéfact"
-                className="rounded transition"
-              >
-                <ArtifactFrameIcon artifact={a} size={58} glow={selected} />
-              </button>
-            );
-          })}
-        </div>
-      )}
+      {/* Artéfacts. ⚠️ **`ArtifactSlots` et non une boucle sur
+          `gear.artifacts`.** Ce composant affiche TOUJOURS les deux
+          emplacements (Attribut, Type), et grise celui qui est vide. La
+          boucle, elle, ne rendait que les artéfacts PRÉSENTS : un monstre
+          sans artéfact de type n'en montrait qu'un, sans qu'on sache s'il en
+          manquait un ou si le monstre n'en portait qu'un — et sans artéfact
+          du tout, le bloc disparaissait. C'est le même composant que
+          l'Optimiseur utilise déjà.
+          Détail en **popover flottant** (`renderOverlay`), pas EN LIGNE :
+          MonsterGear utilisait un bloc `sel` poussant tout le reste de la
+          fiche vers le bas à chaque clic — gênant sur une fiche déjà dense
+          (RTA/Siège/Optimizer). Même dispositif que BuildCandidateCard.tsx,
+          qui l'utilisait déjà pour cette exacte raison (grille compacte, pas
+          de place pour pousser). */}
+      <ArtifactSlots
+        artifacts={gear.artifacts}
+        isSelected={(_a, i) => isSel({ kind: 'artifact', i })}
+        onSelectArtifact={(_a, i) => toggle({ kind: 'artifact', i })}
+        renderOverlay={(a, i, anchorRef) => (
+          <DetailPopover open={isSel({ kind: 'artifact', i })} anchorRef={anchorRef} width={260} height={280}>
+            <ArtifactDetailBox artifact={a} />
+          </DetailPopover>
+        )}
+      />
 
-      {/* Roue de runes — voir RuneWheel.tsx. Le détail au clic reste
-          affiché EN LIGNE sous la roue (bloc `sel` plus bas), pas un
-          popover flottant : pas de `renderOverlay` ici, juste
-          `onSelectRune`/`isSelected` branchés sur le `Selected` local. */}
-      {gear.runes.length > 0 && (
-        <RuneWheel
-          runes={gear.runes}
-          isSelected={(_r, i) => isSel({ kind: 'rune', i })}
-          onSelectRune={(_r, i) => toggle({ kind: 'rune', i })}
-        />
-      )}
+      {/* Roue de runes — voir RuneWheel.tsx. Détail en popover flottant,
+          même raison que les artéfacts ci-dessus.
+          ⚠️ TOUJOURS rendue, même à 0 rune — pas conditionnée sur
+          `gear.runes.length > 0`. `RuneWheel` se contente de `runes.map`,
+          donc un slot sans rune montre déjà juste le fond de la roue, sans
+          cadre dessus : même mécanique qu'un build partiel (une rune sur
+          deux, par exemple), pas un état grisé à part à inventer. Un
+          monstre sans aucune rune importée doit quand même montrer le
+          fond de la roue, pas rien du tout — même principe que les 2
+          emplacements d'`ArtifactSlots` toujours affichés au-dessus. */}
+      <RuneWheel
+        runes={gear.runes}
+        isSelected={(_r, i) => isSel({ kind: 'rune', i })}
+        onSelectRune={(_r, i) => toggle({ kind: 'rune', i })}
+        renderOverlay={(r, i, anchorRef) => (
+          <DetailPopover open={isSel({ kind: 'rune', i })} anchorRef={anchorRef} width={280} height={320}>
+            <RuneDetailBox rune={r} />
+          </DetailPopover>
+        )}
+      />
 
-      {/* Relique à droite */}
+      {/* Relique à droite — pas de composant partagé (un seul emplacement,
+          contrairement aux runes/artéfacts) : popover posé à la main dans un
+          wrapper `relative`, même ancrage que RuneWheel/ArtifactSlots. */}
       {gear.relic && (
-        <button
-          onClick={() => toggle({ kind: 'relic' })}
-          title="Voir la relique"
-          className={`rounded-lg border px-2.5 py-2 text-center transition ${
-            isSel({ kind: 'relic' })
-              ? 'border-star ring-1 ring-star/50 bg-star/10'
-              : 'border-border bg-panel/60 hoverable:border-accent'
-          }`}
-        >
-          <div className="label">Relique</div>
-          <div className="text-[12px] font-bold text-ink mt-0.5">{formatRelicMain(gear.relic.main)}</div>
-        </button>
-      )}
-      {/* Détail de la pièce sélectionnée, sur sa propre ligne */}
-      {sel && (
-        <div className="w-full max-w-[280px] mx-auto">
-          {sel.kind === 'rune' && gear.runes[sel.i] && <RuneDetailBox rune={gear.runes[sel.i]} />}
-          {sel.kind === 'artifact' && gear.artifacts[sel.i] && (
-            <ArtifactDetailBox artifact={gear.artifacts[sel.i]} />
-          )}
-          {sel.kind === 'relic' && gear.relic && <RelicDetailBox relic={gear.relic} />}
+        <div className={`relative ${isSel({ kind: 'relic' }) ? 'z-10' : ''}`}>
+          <button
+            ref={relicRef}
+            onClick={() => toggle({ kind: 'relic' })}
+            title="Voir la relique"
+            className={`rounded-lg border px-2.5 py-2 text-center transition ${
+              isSel({ kind: 'relic' })
+                ? 'border-star ring-1 ring-star/50 bg-star/10'
+                : 'border-border bg-panel/60 hoverable:border-accent'
+            }`}
+          >
+            <div className="label">Relique</div>
+            <div className="text-[12px] font-bold text-ink mt-0.5">{formatRelicMain(gear.relic.main)}</div>
+          </button>
+          <DetailPopover open={isSel({ kind: 'relic' })} anchorRef={relicRef} width={220} height={110}>
+            <RelicDetailBox relic={gear.relic} />
+          </DetailPopover>
         </div>
       )}
     </div>

@@ -7,6 +7,12 @@ ce qu'il peut faire, et les règles de calcul appliquées.
 > Ces specs décrivent l'existant. Elles servent de référence pour faire évoluer
 > l'outil sans casser les comportements établis.
 
+> Ce dossier documente le **produit** (ce que l'utilisateur voit/fait). Les
+> instructions destinées à l'agent Claude Code lui-même (comment travailler
+> sur ce dépôt — déclencheurs de skills, gotchas d'environnement,
+> conventions de vérification…) vivent dans [CLAUDE.md](../CLAUDE.md), à la
+> racine, chargé automatiquement à chaque session — pas ici.
+
 ## Carte des pages
 
 | Page | Route | Statut | Spec |
@@ -120,6 +126,21 @@ Concepts partagés par plusieurs pages, documentés une seule fois :
   export, stockage du compte, conservation des données. ⚠️ **Pas de test
   d'interface** : elle se vérifie à l'œil, et des tests d'affichage se
   contenteraient de figer le rendu du jour.
+- **Un type partagé entre l'écran et un script (recette exportable, etc.) a
+  PLUSIEURS constructeurs — un champ ajouté doit être répercuté dans TOUS.**
+  ⚠️ **Incident vécu** : `exhaustiveSearch`, ajouté à `OptimizerRecipe`
+  ([optimizerRecipe.ts](src/lib/optimizerRecipe.ts)), a été branché dans
+  `OptimizerSection.tsx` (l'écran) mais oublié dans
+  `recipeToSearchParams.ts` (le seul autre constructeur, utilisé par
+  `scripts/optimizer-search.ts`) — un script rejouant une recette exportée
+  avec ce réglage activé se serait tu, sans jamais l'appliquer, sans la
+  moindre erreur `tsc` (le champ manquant reste un type optionnel valide).
+  Repéré seulement parce que l'utilisateur a posé la question, pas par une
+  vérification systématique. **Avant de considérer un champ ajouté comme
+  terminé** : chercher tous les fichiers qui construisent ou consomment ce
+  type (`grep -rn NomDuType`), pas seulement celui qu'on vient d'éditer —
+  un `tsc` propre ne le détecte jamais, puisque l'appel reste valide, juste
+  incomplet.
 - **Versions & releases** — `main` reste **stable et déployée** ; on développe
   dans une branche **`forge/<sujet>`**, qui porte l'entrée du journal
   ([releases.md](releases.md)) puis, à la fin, l'incrément de `package.json`.

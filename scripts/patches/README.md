@@ -2,8 +2,8 @@
 
 Implémentations retirées du code de production mais gardées pour pouvoir
 être réappliquées sans tout retaper — voir la doc en prose dans
-[spec/outils/optimizer.md](../../spec/outils/optimizer.md) (section « Suite
-— point 4 ») pour le contexte complet de chacune.
+[spec/outils/optimizer/historique-ponderation-adaptative.md](../../spec/outils/optimizer/historique-ponderation-adaptative.md)
+pour le contexte complet de chacune.
 
 ## `piste-a-tranche-weighting.patch`
 

@@ -9,7 +9,7 @@
 //
 // bucketCap et slotFilterCap restent FIXES aux valeurs de production
 // (5000 et 80, le preset « Moyen » — bucketCap relevé une seconde fois
-// depuis, voir spec/outils/optimizer.md) — seul le budget de collecte
+// depuis, voir spec/outils/optimizer/) — seul le budget de collecte
 // (`maxCollected`/`maxNodes`) varie, avec un temps de mur mesuré à chaque
 // palier pour vérifier qu'on reste bien dans l'ordre de grandeur annoncé.
 //

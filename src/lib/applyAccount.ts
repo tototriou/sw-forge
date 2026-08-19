@@ -17,7 +17,11 @@ type MappedSlot = { monsterId: string | null; runeSpeed: number | null; sets?: s
 
 // Vitesse de runes finale = SPD plate + bonus Swift (25 % de la base) si set
 // complet. Arrondi au SUPÉRIEUR, comme tous les bonus en % de l'app.
-function runeSpeedOf(flatRuneSpeed: number, swift: boolean, base: number): number {
+// ⚠️ Exportée : c'est aussi la règle de dédup entre plusieurs exemplaires
+// d'un même monstre en RTA (meilleur build = SPD max, voir `mapRtaItems`
+// ci-dessous) — réutilisée telle quelle par scripts/lib/loadMonster.ts pour
+// qu'un script ne réimplémente jamais cette formule à côté.
+export function runeSpeedOf(flatRuneSpeed: number, swift: boolean, base: number): number {
   return flatRuneSpeed + (swift ? Math.ceil((base * 25) / 100) : 0);
 }
 

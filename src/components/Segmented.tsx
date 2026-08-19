@@ -16,6 +16,7 @@ export default function Segmented<T extends string>({
   onChange,
   className = '',
   size = 'sm',
+  disabled = false,
 }: {
   options: { key: T; label: string; hint?: string; icon?: React.ReactNode; suffix?: React.ReactNode }[];
   value: T;
@@ -25,10 +26,16 @@ export default function Segmented<T extends string>({
   // ligne bien visible — pour un choix structurant (peu d'options, chacune
   // méritant d'être lue d'un coup d'œil), pas un réglage secondaire.
   size?: 'sm' | 'lg';
+  // Un vrai `disabled` sur chaque bouton (pas juste grisé en CSS) : ni
+  // cliquable ni atteignable au clavier tant qu'un réglage parent (ex. « Exclure
+  // les runes déjà utilisées ») n'est pas actif — voir OptimizerSection.tsx.
+  disabled?: boolean;
 }) {
   return (
     <div
-      className={`flex items-center ${size === 'lg' ? 'w-full gap-0' : 'gap-0.5 flex-none'} bg-panel2 border border-border rounded-lg p-0.5 ${className}`}
+      className={`flex items-center ${size === 'lg' ? 'w-full gap-0' : 'gap-0.5 flex-none'} bg-panel2 border border-border rounded-lg p-0.5 ${
+        disabled ? 'opacity-40' : ''
+      } ${className}`}
     >
       {options.map((o, i) => {
         const active = value === o.key;
@@ -43,10 +50,11 @@ export default function Segmented<T extends string>({
             {size === 'lg' && i > 0 && <span className="w-px self-stretch bg-border" />}
             <button
               onClick={() => onChange(o.key)}
+              disabled={disabled}
               title={o.hint}
               aria-pressed={active}
               className={`flex flex-1 items-center justify-center gap-1.5 rounded-md font-semibold
-                          transition whitespace-nowrap ${
+                          transition whitespace-nowrap disabled:cursor-not-allowed ${
                             size === 'lg' ? 'px-2 py-1.5 text-[12px]' : 'px-2 py-1 text-[11.5px]'
                           } ${
                             // ⚠️ Le fond SEUL marque le cran posé — pas d'ombre

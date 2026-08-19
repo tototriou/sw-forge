@@ -60,7 +60,9 @@ retour.
    qu'ACTUELLEMENT équipés** sur le monstre choisi, chacun **cliquable**
    pour ouvrir son détail complet (`RuneDetailBox`/`ArtifactDetailBox`/
    `RelicDetailBox`, tous dans [MonsterGear.tsx](src/components/MonsterGear.tsx)),
-   affiché **en ligne sous la roue** (pas un popover flottant). Ce que
+   affiché en **popover flottant** ancré sur l'élément cliqué — même
+   dispositif que les cartes de résultat (`BuildCandidateCard`, voir plus
+   bas), pas un bloc qui pousserait le reste de la fiche vers le bas. Ce que
    l'outil part optimiser, visible d'un coup d'œil avant de lancer quoi que
    ce soit — y compris les artéfacts et la relique, qui ne sont eux jamais
    modifiés par la recherche (voir « Algorithme »). ⚠️ **Artéfacts : toujours

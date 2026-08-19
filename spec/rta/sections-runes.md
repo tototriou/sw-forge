@@ -131,11 +131,24 @@ Comme en **vue compacte du siège**, le panneau de détail (`MonsterGear`) s'ouv
   [outils/optimizer.md](../outils/optimizer.md)) plutôt que recopiés, même
   principe que `<Segmented>`/`<Switch>` (voir [README.md](../README.md)).
   Chacun paramétré par `scale` (1 = taille historique, inchangée ici) ;
-  `MonsterGear` ne porte plus que le reste de la fiche (état `Selected`,
-  détail affiché en ligne sous la roue). `StatPanel` a une **largeur fixe**
-  (`w-[200px]`, pas `w-fit`) : sans elle, la bascule base+bonus ↔ total
-  changeait la largeur de l'encadré et poussait la roue/les artéfacts/la
-  relique voisins d'un côté à l'autre au clic.
+  `MonsterGear` ne porte plus que le reste de la fiche (état `Selected`).
+  `StatPanel` a une **largeur fixe** (`w-[200px]`, pas `w-fit`) : sans elle,
+  la bascule base+bonus ↔ total changeait la largeur de l'encadré et
+  poussait la roue/les artéfacts/la relique voisins d'un côté à l'autre au
+  clic.
+- ⚠️ **Détail d'une rune/artéfact/relique en popover flottant, pas EN
+  LIGNE.** Jusqu'au 2026-08-19, cliquer une pièce insérait son détail dans
+  un bloc sous la roue, agrandissant toute la fiche à chaque clic (le cadre
+  de stats/roue/artéfacts/relique se décalait). Changé à la demande
+  explicite de l'utilisateur, sur le même modèle que `BuildCandidateCard`
+  (cartes de résultat de l'Optimizer, voir
+  [outils/optimizer/README.md](../outils/optimizer/README.md)) : `RuneWheel`
+  et `ArtifactSlots` reçoivent désormais un `renderOverlay` qui ancre un
+  `DetailPopover` (voir [account/DetailPopover.tsx](src/components/account/DetailPopover.tsx))
+  sur l'élément cliqué ; la relique (pas de composant partagé, un seul
+  emplacement) porte le même dispositif posé à la main dans `MonsterGear.tsx`
+  (`useRef` + `DetailPopover` dans un wrapper `relative`). Le cadre entier
+  ne bouge donc plus jamais, sur RTA, Siège et l'Optimizer.
 
 ## Pré-classement à l'import
 

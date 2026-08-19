@@ -1359,6 +1359,25 @@ export function* buildBuckets(
     return true;
   }
 
+  // Sous-ensemble de l'emplacement i2 pertinent pour SAUVER un demi-build
+  // encore à 0 pièce/0 joker pour un set demandé À PLUS DE 3 PIÈCES —
+  // runes qui sont soit ce set, soit un joker (les seules capables de
+  // changer l'issue, voir le repli final après r2). Utilisé UNIQUEMENT
+  // quand r0+r1 n'ont encore fourni ni l'un ni l'autre pour AU MOINS un
+  // tel set — dans ce cas précis, tout AUTRE choix de r2 est déjà condamné
+  // par construction, inutile de l'itérer pour le découvrir après coup.
+  const fourPieceKeys = distinctKeys.map((_, k) => requiredPieces[k] > 3);
+  const hasFourPieceRequirement = fourPieceKeys.some(Boolean);
+  const rescueIdxI2: number[] = [];
+  if (hasFourPieceRequirement) {
+    for (let idx = 0; idx < filtered[i2].length; idx++) {
+      const r = filtered[i2][idx];
+      if (r.set === 'intangible' || fourPieceKeys.some((is4p, k) => is4p && r.set === distinctKeys[k])) {
+        rescueIdxI2.push(idx);
+      }
+    }
+  }
+
   const totalR0 = filtered[i0].length;
   let scannedR0 = 0;
   for (let idx0 = 0; idx0 < filtered[i0].length; idx0++) {
@@ -1373,7 +1392,15 @@ export function* buildBuckets(
       const p1 = precompI1[idx1];
       const haveR01 = distinctKeys.map((key, k) => haveR0[k] + (r1.set === key ? 1 : 0));
       if (distinctKeys.length > 0 && !stillFeasible(haveR01, [2])) continue;
-      for (let idx2 = 0; idx2 < filtered[i2].length; idx2++) {
+      // ⚠️ Sûr, PAS une heuristique : si un set demandé >3 pièces est
+      // encore à 0 ET qu'aucun joker n'a été choisi (r0/r1), tout r2 qui
+      // n'est NI ce set NI un joker aboutit à un demi-build mort — coupé
+      // de toute façon par le repli final, mais en évitant de l'itérer.
+      const jokersR01 = (p0.isJoker ? 1 : 0) + (p1.isJoker ? 1 : 0);
+      const mustRescue = hasFourPieceRequirement && jokersR01 === 0 && fourPieceKeys.some((is4p, k) => is4p && haveR01[k] === 0);
+      const total2 = mustRescue ? rescueIdxI2.length : filtered[i2].length;
+      for (let j2 = 0; j2 < total2; j2++) {
+        const idx2 = mustRescue ? rescueIdxI2[j2] : j2;
         const r2 = filtered[i2][idx2];
         const p2 = precompI2[idx2];
         const runes: [RuneDetail, RuneDetail, RuneDetail] = [r0, r1, r2];

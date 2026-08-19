@@ -80,11 +80,14 @@ await firstOption.click();
 await page.waitForTimeout(300);
 
 console.log(`→ set ${setLabel}`);
-await page.getByRole('button', { name: '+ Set' }).click();
-// Un clic = TOUT le set d'un coup (le tableau `sets` contient des CLÉS de
-// set, pas des pièces individuelles — voir setsCost/canAddSet dans
-// src/lib/effects.ts). Cliquer plusieurs fois désactive le bouton dès que
-// le set est complet et bloque le driver — piège vécu en écrivant ceci.
+// ⚠️ Grille de sets TOUJOURS déployée (voir SetComboPicker.tsx) — PAS de
+// bouton « + Set » à cliquer d'abord (existait dans une version antérieure
+// de l'UI, retiré depuis ; ce driver appelait encore ce bouton fantôme
+// jusqu'à ce qu'une vérification réelle échoue dessus). Un clic = TOUT le
+// set d'un coup (le tableau `sets` contient des CLÉS de set, pas des
+// pièces individuelles — voir setsCost/canAddSet dans src/lib/effects.ts).
+// Cliquer plusieurs fois désactive le bouton dès que le set est complet et
+// bloque le driver — piège vécu en écrivant ceci.
 await page.locator(`[title="${setLabel}"]`).click();
 await page.waitForTimeout(300);
 await page.screenshot({ path: shot('02-monster-and-set.png') });

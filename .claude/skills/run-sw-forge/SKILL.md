@@ -1,6 +1,6 @@
 ---
 name: run-sw-forge
-description: Build, run, and drive SW Forge (React/Vite web app). Use when asked to start the dev server, take a screenshot of a page/component, or actually interact with the running app (click, fill, navigate) instead of just tsc/tests. Drives a real headless Chromium via Playwright — .claude/skills/run-sw-forge/driver.mjs.
+description: Compile, démarre et pilote SW Forge (app web React/Vite). À utiliser pour démarrer le serveur de dev, prendre une capture d'écran d'une page/d'un composant, ou interagir réellement avec l'app (clic, saisie, navigation) plutôt que juste tsc/tests. Pilote un vrai Chromium headless via Playwright — .claude/skills/run-sw-forge/driver.mjs.
 ---
 
 SW Forge est une app web Vite/React à un seul binaire (pas de backend séparé).

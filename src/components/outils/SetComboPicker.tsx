@@ -62,12 +62,17 @@ export default function SetComboPicker({ sets, onChange }: Props) {
       </div>
 
       {!full && (
-        <div className="mt-2 grid grid-cols-1 gap-3 rounded-lg border border-border bg-panel p-2 sm:grid-cols-2 sm:gap-0">
+        <div className="mt-2 grid grid-cols-2 gap-0 rounded-lg border border-border bg-panel p-2">
+          {/* ⚠️ Toujours 2 colonnes, jamais empilé sous un seuil de largeur :
+              chaque groupe passe déjà à la ligne en interne (`flex-wrap`), la
+              séparation verticale gagne de la place sur le plan VERTICAL —
+              le rare qui manque sur téléphone — plutôt que de dupliquer la
+              hauteur pour rien. */}
           {([
             ['Set principal', FOUR_PIECE],
             ['Set secondaire', TWO_PIECE],
           ] as const).map(([groupLabel, group], i) => (
-            <div key={groupLabel} className={i > 0 ? 'border-t border-border-soft pt-2 sm:border-t-0 sm:border-l sm:pl-3 sm:pt-0' : 'sm:pr-3'}>
+            <div key={groupLabel} className={i > 0 ? 'border-l border-border-soft pl-3' : 'pr-3'}>
               <p className="mb-1 text-[10.5px] font-semibold uppercase tracking-wide text-ink-dimmer">{groupLabel}</p>
               <div className="flex flex-wrap gap-1">
                 {group.map((s) => {

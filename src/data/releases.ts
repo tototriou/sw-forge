@@ -61,7 +61,7 @@ export const RELEASES: Release[] = [
   // fusion, d'après ce que la branche contient au final. On le remplace au
   // moment de publier, en même temps que `package.json` et le tag.
   {
-    version: null,
+    version: '1.7.0',
     date: '2026-08-19',
     title: 'Protège tes builds : exclus les runes d’un monstre de la recherche',
     highlights: [

@@ -1,7 +1,7 @@
 {
   "name": "sw-forge",
   "private": true,
-  "version": "1.6.3",
+  "version": "1.7.0",
   "type": "module",
   "description": "SW Forge — boîte à outils Summoners War : siège, RTA, runes et analyse de compte. 100 % local, aucune donnée envoyée.",
   "engines": {

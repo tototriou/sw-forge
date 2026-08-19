@@ -41,6 +41,7 @@ import {
   ExclusionSourceData,
   autoExcludedRuneIds,
   resolveExcludedRuneIds,
+  resolveExclusionEntry,
 } from '../../lib/optimizerExclusion';
 import { buildOptimizerRecipe, parseOptimizerRecipe } from '../../lib/optimizerRecipe';
 import { ArtifactMainChoice, OptimizerState, OptimizerSortKey } from '../../hooks/useOptimizerState';
@@ -271,14 +272,24 @@ export default function OptimizerSection({ box, runes, optimizer, allMonsters, r
   // `resolveExcludedRuneIds` : box par ENTRÉE (`selectedUnitKey`), RTA/
   // siège par ESPÈCE (`com2usId`) — un second exemplaire box de la même
   // espèce reste une sélection légitime, jamais purgée à tort.
+  //
+  // ⚠️ `resolveExclusionEntry` (déjà exporté, résout box/rta/siège-défense/
+  // siège-offense par `sel.source`), PAS un `.concat(siegeDefenseTeams,
+  // siegeOffenseTeams).find(t => t.id === sel.teamId)` maison — une
+  // deuxième revue de code externe (2026-08-19) a trouvé cette version
+  // précédente : `SiegeTeam.id` peut retomber sur `t_${Date.now()}_
+  // ${random}` quand `crypto.randomUUID` est indisponible (contexte non
+  // sécurisé, voir `useSiegeState.ts`), avec un risque de collision entre
+  // une équipe défense et une équipe offense créées à la même
+  // milliseconde — chercher dans les deux listes concaténées sans
+  // regarder `sel.source` pouvait alors résoudre la MAUVAISE équipe.
   useEffect(() => {
     const ownCom2usId = selected?.monster.com2usId ?? null;
     if (ownCom2usId == null) return;
     setExcludedSelectors((prev) => {
       const next = prev.filter((sel) => {
         if (sel.source === 'box') return sel.unitKey !== selectedUnitKey;
-        const monsterId = sel.source === 'rta' ? sel.monsterId : exclusionData.siegeDefenseTeams.concat(exclusionData.siegeOffenseTeams).find((t) => t.id === sel.teamId)?.slots[sel.slotIndex]?.monsterId;
-        const monster = monsterId != null ? exclusionData.monsterById.get(monsterId) : undefined;
+        const monster = resolveExclusionEntry(sel, exclusionData)?.monster;
         return monster?.com2usId !== ownCom2usId;
       });
       return next.length === prev.length ? prev : next;

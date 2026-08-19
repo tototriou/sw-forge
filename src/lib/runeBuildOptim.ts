@@ -265,6 +265,22 @@ export function objectiveScore(candidate: BuildCandidate, objective: Objective):
     const cr = Math.min(statTotal(stats, 'cr'), 100);
     return atk * (1 + (cr / 100) * (statTotal(stats, 'cd') / 100));
   }
+  // ⚠️ `speed_nuker` (sonde expérimentale, voir le commentaire du type
+  // `Objective`) N'A JAMAIS eu de formule de score — délibérément absente
+  // de `OBJECTIVE_LABELS` ET d'ici, seulement câblée dans
+  // `OBJECTIVE_RELEVANT_STATS` (rétention/filtrage, pas le score final).
+  // Avant cette garde, un objectif non géré retombait SILENCIEUSEMENT sur
+  // la formule EHP ci-dessous — repéré par une revue de code externe
+  // (2026-08-19) : `OptimizerSection.tsx` a un site d'appel qui route
+  // `speed_nuker` ici (aujourd'hui inatteignable, absent de
+  // `OBJECTIVE_LABELS`), et `Objective` fait partie du contrat de recette
+  // rejouable (`OptimizerRecipe.objective`) — un score EHP incohérent avec
+  // la rétention atk/cd/spd aurait été un vrai bug silencieux si l'un ou
+  // l'autre chemin devenait un jour atteignable. Échoue bruyamment plutôt
+  // que de renvoyer un nombre plausible mais faux.
+  if (objective !== 'ehp') {
+    throw new Error(`objectiveScore : aucune formule de score pour l'objectif "${objective}".`);
+  }
   const hp = statTotal(stats, 'hp');
   const def = statTotal(stats, 'def');
   return (hp * (1140 + 3.5 * def)) / 1000;

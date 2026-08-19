@@ -16,6 +16,7 @@
 
 import { EffectLine, RuneDetail, BaseStats } from '../src/types';
 import { BuildRequirement, SearchParams, prepareSearch, buildBuckets, totalPairCount, HalfCombo } from '../src/lib/runeBuildOptim';
+import { drain } from './lib/drain';
 
 function mulberry32(seed: number) {
   let a = seed;
@@ -141,12 +142,6 @@ console.log('Seuils dérivés de la cible :', minStats);
 const requirement: BuildRequirement = { sets: [], minStats, mainStats: { 2: [8], 4: [9], 6: [11] } };
 const params: SearchParams = { base, artifacts: [], relic: undefined, pool, requirement, metric: 'eff', slotFilterCap: 80, bucketCap: bucketCapOverride };
 
-function drain<T>(gen: Generator<unknown, T, void>): T {
-  let step = gen.next();
-  while (!step.done) step = gen.next();
-  return step.value;
-}
-
 const prepared = prepareSearch(params);
 if (!prepared) {
   console.log('prepareSearch = null — seuils trop stricts, ajuster.');
@@ -155,10 +150,10 @@ if (!prepared) {
 console.log(`bucketCap=${prepared.bucketCap}  retentionKeys=[${prepared.retentionKeys.join(', ')}]`);
 
 const bucketsA = drain(
-  buildBuckets('A', [0, 1, 2], prepared.filtered, prepared.distinctKeys, prepared.constrainedKeys, prepared.retentionKeys, prepared.minEntries, prepared.bucketCap, prepared.maxSetsForA, prepared.jokerCredit, prepared.requiredPieces)
+  buildBuckets('A', [0, 1, 2], prepared, prepared.maxSetsForA)
 );
 const bucketsB = drain(
-  buildBuckets('B', [3, 4, 5], prepared.filtered, prepared.distinctKeys, prepared.constrainedKeys, prepared.retentionKeys, prepared.minEntries, prepared.bucketCap, prepared.maxSetsForB, prepared.jokerCredit, prepared.requiredPieces)
+  buildBuckets('B', [3, 4, 5], prepared, prepared.maxSetsForB)
 );
 
 const targetIdsA = new Set(targetRunes.slice(0, 3).map((r) => r.id));

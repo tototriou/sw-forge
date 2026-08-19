@@ -24,11 +24,11 @@
 // construisait un tableau complet de `cap³` combinaisons par moitié avant de
 // les regrouper : sur un vrai compte (des centaines de runes par slot), ça
 // pouvait épuiser plusieurs Go de mémoire et planter — voir
-// spec/outils/optimizer.md, « Validation grandeur nature ». Chaque
+// spec/outils/optimizer/, « Validation grandeur nature ». Chaque
 // combinaison est maintenant évaluée puis, selon son mérite, retenue ou
 // **immédiatement jetée** : la mémoire dépend du nombre de compartiments ×
 // leur taille max (`BUCKET_CAP`), plus jamais du cube du pré-filtrage par
-// slot. Voir spec/outils/optimizer.md pour le résumé fonctionnel, et
+// slot. Voir spec/outils/optimizer/ pour le résumé fonctionnel, et
 // .claude/skills/algo-verify/SKILL.md pour la discipline de vérification
 // (référence brute-force + test différentiel dans
 // tests/rune-optim-differential.test.ts).
@@ -103,7 +103,7 @@ export interface SearchParams {
   // (scripts/benchmark-bucket-retention.ts) : élargir ce plafond pour
   // comparer la qualité trouvée à différents niveaux, en réutilisant le
   // moteur réel déjà vérifié plutôt qu'une réimplémentation séparée risquant
-  // de diverger. Jamais exposé dans l'UI — voir spec/outils/optimizer.md.
+  // de diverger. Jamais exposé dans l'UI — voir spec/outils/optimizer/.
   bucketCap?: number;
   // Choix fait AVANT de lancer la recherche (voir OptimizerSection.tsx) :
   // oriente le PRÉ-FILTRAGE par slot vers les stats utiles à cet objectif,
@@ -111,7 +111,7 @@ export interface SearchParams {
   // (le pré-filtrage ne suit que minStats/maxStats/l'efficience générale).
   objective?: Objective;
   // Bouton « Prioriser les stats les plus difficiles » (OptimizerSection.tsx)
-  // — piste B, spec/outils/optimizer.md « Suite — piste B gatée derrière un
+  // — piste B, spec/outils/optimizer/ « Suite — piste B gatée derrière un
   // paramètre ». `false`/absent (défaut, bouton « Rechercher » normal) :
   // comportement inchangé, coût nul (vérifié par mesure dos-à-dos). `true` :
   // réalloue le budget de rétention par tranche entre les stats demandées
@@ -119,6 +119,14 @@ export interface SearchParams {
   // répartition uniforme raterait, au prix d'un temps de recherche plus
   // long (+20 % de temps de construction mesuré en moyenne).
   adaptiveTrancheWeighting?: boolean;
+  // Voir `buildBuckets`, paramètre `combosOrderMode`. `undefined`/
+  // `'relevance'` (défaut depuis le 2026-08-18, tous les appels de
+  // production) : tri des demi-builds par `relevanceScore` au sein d'un
+  // compartiment (mesuré ~2× plus rapide, 0 régression — voir
+  // historique-dimensionnement.md). `'potential'` : ancien comportement,
+  // conservé comme échappatoire de mesure/comparaison. Jamais exposé dans
+  // l'UI.
+  combosOrderMode?: 'potential' | 'relevance';
 }
 
 export interface SearchResult {
@@ -130,13 +138,74 @@ export interface SearchResult {
 // Objectifs : choisis AVANT de lancer la recherche (OptimizerSection.tsx),
 // un grand bouton à choix unique — pour orienter le type de rune étudié dès
 // le pré-filtrage, pas seulement trier les résultats après coup.
-export type Objective = 'efficience' | 'degats' | 'ehp' | 'vitesse';
+// ⚠️ `'speed_nuker'` : SONDE EXPÉRIMENTALE, pas un objectif produit.
+// Ajoutée pour tester l'hypothèse « un objectif mal aligné force un
+// `bucketCap` plus grand » (voir spec/outils/optimizer/, section « Piste
+// écartée — un objectif de recherche mieux aligné ») — union des stats
+// pertinentes de Dégâts et Vitesse (ATQ+Dmg Crit+VIT). Hypothèse écartée
+// par la mesure (l'inverse s'est produit — voir cette même section) ;
+// conservée volontairement dans le code comme sonde réutilisable si la
+// question revient, mais ABSENTE de `OBJECTIVE_LABELS` (jamais affichée à
+// l'écran) et de `objectiveScore` (jamais utilisée pour trier un résultat
+// final) — aucun script permanent ne s'en sert aujourd'hui, les scripts
+// `_tmp-*` qui l'ont mesurée ont été nettoyés une fois la conclusion tirée
+// (convention de ce dépôt pour les scripts jetables).
+export type Objective = 'efficience' | 'degats' | 'ehp' | 'vitesse' | 'speed_nuker';
 
 export const OBJECTIVE_LABELS: { key: Objective; label: string }[] = [
   { key: 'efficience', label: 'Efficience' },
   { key: 'degats', label: 'Dégâts' },
   { key: 'ehp', label: 'PV effectifs' },
   { key: 'vitesse', label: 'Vitesse' },
+];
+
+// ⚠️ Constantes de RÈGLE DU JEU (pas d'affichage) déplacées ici depuis
+// OptimizerSection.tsx pour avoir une SEULE source, utilisée à la fois par
+// l'écran et par tout script qui doit reconstruire un `SearchParams` fidèle
+// (voir scripts/lib/) — deux copies indépendantes auraient pu diverger en
+// silence, exactement le genre de dérive qui a coûté du temps sur ce moteur.
+
+export type SlotFilterPresetKey = 'bas' | 'moyen' | 'haut' | 'extreme';
+
+// Pré-filtrage par emplacement, en PRESETS plutôt qu'un curseur libre —
+// calibré par mesure sur un vrai compte (voir spec/outils/optimizer/,
+// « Validation grandeur nature ») : 40 est le défaut historique, 300 est la
+// valeur qui a permis de retrouver un build réel sur un très gros compte.
+export const SLOT_FILTER_PRESETS: { key: SlotFilterPresetKey; label: string; cap: number; hint: string }[] = [
+  {
+    key: 'bas',
+    label: 'Bas',
+    cap: 40,
+    hint: 'Rapide, mais peut manquer des runes si tu en as beaucoup au même emplacement.',
+  },
+  {
+    key: 'moyen',
+    label: 'Moyen',
+    cap: 80,
+    hint: 'Un bon équilibre entre rapidité et exhaustivité — le choix par défaut.',
+  },
+  {
+    key: 'haut',
+    label: 'Haut',
+    cap: 150,
+    hint: 'Considère plus de runes, donc plus long — utile si Moyen ne trouve pas de résultat satisfaisant.',
+  },
+  {
+    key: 'extreme',
+    label: 'Extrême',
+    cap: 300,
+    hint: 'Le plus complet, mais le plus long — peut prendre plusieurs minutes selon le nombre de conditions demandées.',
+  },
+];
+
+// Les trois valeurs de statistique principale d'artéfact possibles en jeu
+// (codes 100/101/102 = PV/ATQ/DEF, voir ARTIFACT_MAIN dans effects.ts) — la
+// valeur elle-même n'est jamais un choix libre, seule la STAT l'est.
+export const ARTIFACT_MAIN_VALUE: Record<100 | 101 | 102, number> = { 100: 1500, 101: 100, 102: 100 };
+export const ARTIFACT_MAIN_OPTIONS: { code: 100 | 101 | 102; label: string }[] = [
+  { code: 101, label: 'ATQ +100' },
+  { code: 102, label: 'DEF +100' },
+  { code: 100, label: 'PV +1500' },
 ];
 
 // Stats individuellement pertinentes pour chaque objectif — sert à élargir
@@ -160,6 +229,8 @@ export const OBJECTIVE_RELEVANT_STATS: Record<Objective, StatKey[]> = {
   degats: ['atk', 'cd'],
   ehp: ['hp', 'def'],
   vitesse: ['spd'],
+  // ⚠️ Sonde expérimentale — voir le commentaire de `Objective`.
+  speed_nuker: ['atk', 'cd', 'spd'],
 };
 
 export function statTotal(stats: StatRow[], key: StatKey): number {
@@ -193,6 +264,22 @@ export function objectiveScore(candidate: BuildCandidate, objective: Objective):
     // de transformer une stat en dégâts, que le plafond compte.
     const cr = Math.min(statTotal(stats, 'cr'), 100);
     return atk * (1 + (cr / 100) * (statTotal(stats, 'cd') / 100));
+  }
+  // ⚠️ `speed_nuker` (sonde expérimentale, voir le commentaire du type
+  // `Objective`) N'A JAMAIS eu de formule de score — délibérément absente
+  // de `OBJECTIVE_LABELS` ET d'ici, seulement câblée dans
+  // `OBJECTIVE_RELEVANT_STATS` (rétention/filtrage, pas le score final).
+  // Avant cette garde, un objectif non géré retombait SILENCIEUSEMENT sur
+  // la formule EHP ci-dessous — repéré par une revue de code externe
+  // (2026-08-19) : `OptimizerSection.tsx` a un site d'appel qui route
+  // `speed_nuker` ici (aujourd'hui inatteignable, absent de
+  // `OBJECTIVE_LABELS`), et `Objective` fait partie du contrat de recette
+  // rejouable (`OptimizerRecipe.objective`) — un score EHP incohérent avec
+  // la rétention atk/cd/spd aurait été un vrai bug silencieux si l'un ou
+  // l'autre chemin devenait un jour atteignable. Échoue bruyamment plutôt
+  // que de renvoyer un nombre plausible mais faux.
+  if (objective !== 'ehp') {
+    throw new Error(`objectiveScore : aucune formule de score pour l'objectif "${objective}".`);
   }
   const hp = statTotal(stats, 'hp');
   const def = statTotal(stats, 'def');
@@ -232,7 +319,7 @@ export function candidateMetricTotal(
 // ⚠️ Relevé de 5000 à 100 000 (×20) — demande explicite : trouver le
 // meilleur build importe plus que la vitesse, une recherche allant jusqu'à
 // ~1 minute est acceptable. Mesuré avant de relever
-// (scripts/benchmark-search-budget.ts, voir spec/outils/optimizer.md) plutôt
+// (scripts/benchmark-search-budget.ts, voir spec/outils/optimizer/) plutôt
 // que deviné : au preset « Moyen » (slotFilterCap=80, le défaut réel),
 // relever `maxCollected` de 5000 à 100 000 a fait passer un scénario serré
 // (maximum posé) de 95,2 % à 100 % du meilleur trouvé, pour un coût de temps
@@ -255,8 +342,20 @@ export const DEFAULT_MAX_MS = 15_000;
 // garantir qu'une combinaison satisfaisant le combo reste atteignable même
 // après filtrage — et les meilleures runes toutes provenances, pour la
 // diversité des slots « libres ». L'union des deux, dédupliquée.
-const MAX_PER_SLOT_MATCH = 40;
-const MAX_PER_SLOT_FILL = 40;
+// Exportée : c'est le défaut réel appliqué par `prepareSearch` quand
+// `SearchParams.slotFilterCap` est omis — un test qui vérifie une propriété
+// dépendant de `slotFilterCap` (ex. `estimatePairBound`) sur un appel sans
+// override doit connaître CETTE valeur précise, pas la redevine/dupliquer en
+// dur (risque de dérive silencieuse si elle change un jour).
+export const MAX_PER_SLOT_MATCH = 40;
+// ⚠️ Exportée (au lieu de rester privée) uniquement pour que les scripts de
+// mesure (filterslot-topk-diag.ts) important les VRAIES valeurs de
+// production plutôt que de les dupliquer localement — incident vécu : une
+// copie locale à 80/40 (asymétrique, jamais vraie en production) a produit
+// une mesure de divergence qui ne caractérisait pas le vrai comportement de
+// filterSlot (voir historique-dimensionnement.md, « revue de code
+// externe »).
+export const MAX_PER_SLOT_FILL = 40;
 // ⚠️ En plus des deux paquets ci-dessus : le meilleur d'un slot sur CHAQUE
 // stat individuellement, même sans minimum demandé dessus. Sans ça, le
 // pré-filtrage ne retient que ce qui sert les minimums SAISIS — si
@@ -321,7 +420,7 @@ const PER_STAT_KEEP_OBJECTIVE = 24;
 //
 // ⚠️ **Relevé une quatrième fois, 1500 → 3000, une fois l'escalade de budget
 // de nœuds en place** (voir `adaptiveMaxNodes`/`NodeBudget` plus haut) —
-// « Phase 0 » de spec/outils/optimizer.md. Le rejet de `bucketCap=2000`
+// « Phase 0 » de spec/outils/optimizer/. Le rejet de `bucketCap=2000`
 // ci-dessus supposait un budget de paires FIXE : un compartiment plus gros
 // épuise ce budget sur MOINS de paires, faisant reculer un résultat déjà
 // trouvé. Cette hypothèse ne tient plus depuis l'escalade — REMESURÉ sur
@@ -334,6 +433,84 @@ const PER_STAT_KEEP_OBJECTIVE = 24;
 // demi-build cible, totalement absent à `bucketCap=1500`, redevient présent
 // et trouvé à `bucketCap=3000`, exhaustivement, en 51,7 s (297M paires).
 const BUCKET_CAP = 3000;
+
+// ⚠️ **Dilution par `slotFilterCap`, découverte et mesurée cette session**
+// (cas Sonia, Swift 4p, ATQ/VIT/TC/DCC demandés ensemble) : `BUCKET_CAP`
+// était une constante FIXE, indépendante de `slotFilterCap` — chaque tranche
+// de rétention reçoit `bucketCap` places EN PROPRE (voir son commentaire),
+// mais le NOMBRE de demi-combos candidats qui se disputent ces places grandit
+// avec `slotFilterCap` (pré-filtrage par slot plus large → triple boucle par
+// moitié bien plus peuplée). Le budget FIXE peut alors perdre un demi-build
+// déjà présent à un préréglage plus étroit — l'inverse de ce qu'élargir le
+// pré-filtrage devrait faire.
+//
+// ⚠️ **Piège évité de justesse : `perf-battery.ts` (ses sept cas réels,
+// TOUS à `slotFilterCap=80`) ne pouvait PAS détecter ce problème.** Il ne
+// vérifie qu'une chose — « le build CIBLE connu est-il retrouvé ? » — jamais
+// le NOMBRE de builds valides retenus. Une première version de ce correctif
+// ancrait `bucketCapFor` pour reproduire EXACTEMENT 3000 à `slotFilterCap=
+// 80`, en supposant (à tort) que « les 7 cas de perf-battery passent à
+// bucketCap=3000/cap=80 » prouvait que ce point était sûr. Faux : sur le cas
+// Sonia objectif Vitesse + piste B activée, `slotFilterCap=40` (Bas) trouve
+// RÉELLEMENT 5 builds valides, mais `slotFilterCap=80` (Moyen) — MÊME
+// `bucketCap=3000`, valeur INCHANGÉE entre les deux — n'en retient que 3 :
+// 2 des 5 demi-builds (moitié A, slots 1-3) trouvés à Bas ne survivaient déjà
+// plus à Moyen (runes toujours présentes dans le pool filtré — `filterSlot`
+// est croissant, la perte est dans `buildBuckets`). La dilution touche donc
+// DÉJÀ la plage 40→80, pas seulement au-delà de 80 comme le cas Dégâts
+// (Moyen→Extrême) l'avait d'abord laissé croire.
+//
+// **Ancre corrigée : Bas (`slotFilterCap=40`), pas Moyen.** C'est le plus
+// petit préréglage réel de l'écran — le seul point où `BUCKET_CAP=3000`
+// reste validé par construction (rien de plus petit à comparer contre).
+// Mesuré directement (cas Sonia réel) : `bucketCap=4000` est la première
+// valeur testée qui retient les 5 demi-builds à `slotFilterCap=80` (3000
+// n'en retient que 3, monotone croissant jusqu'à 10 000 testé).
+//
+// ⚠️ **Racine carrée ESSAYÉE D'ABORD, insuffisante — mesuré, pas supposé.**
+// Ancrée à 40, elle donne `bucketCap(80)≈4243` (au-dessus du seuil mesuré,
+// suffisant) mais `bucketCap(300)≈8216` à Extrême — revérifié sur le cas le
+// plus exigeant (Vitesse+piste B, 5 demi-builds) : encore 2 PERTES sur les 5
+// à ce niveau. `bucketCap=12 000` est la première valeur testée qui retient
+// les 5/5 à Extrême. Passé à une échelle LINÉAIRE (ancrée à 40 elle aussi) :
+// `bucketCap(300)=22 500`, confortablement au-dessus du seuil mesuré, avec
+// un coût de construction du même ordre de grandeur que les valeurs
+// testées entre 8 216 et 22 500 (30-44 s mesurés, pas de blowup) — plus
+// simple à raisonner qu'un exposant ajusté au plus juste, cohérent avec
+// « la plus petite formule SIMPLE qui ne perd rien », pas la plus petite
+// valeur possible au chiffre près.
+// Revérifié aux quatre préréglages, sur LES DEUX cas connus (Dégâts, 3
+// demi-builds à Moyen ; Vitesse+piste B, 5 demi-builds à Bas) : aucune perte
+// nulle part. `perf-battery.ts` (`slotFilterCap=80` fixe) change de résultat
+// après ce correctif — ATTENDU : c'est justement la preuve que ce point
+// n'était pas correctement calibré avant (il ne vérifie qu'un build CIBLE
+// connu, jamais le NOMBRE de builds valides retenus — voir plus haut, et
+// `--monotonicity` désormais disponible pour vérifier ça directement).
+// ⚠️ À Extrême, `bucketCap=22 500` fait ATTEINDRE le filet de temps de 10
+// min (`HARD_TIMEOUT_MS`) sur des cas volumineux — resserrer à une valeur
+// juste suffisante (9000, mesurée) N'ÉVITE PAS la troncature (l'escalade
+// consomme de toute façon tout le budget-temps disponible) et trouve
+// MOINS de builds en prime — conservé tel quel après mesure, pas par
+// défaut. Détails complets, y compris la piste « objectif de recherche
+// mieux aligné » testée et écartée : spec/outils/optimizer/, section
+// « BUCKET_CAP mis à l'échelle ». Script de calibration réutilisable :
+// scripts/bucket-cap-scaling-diag.ts.
+// ⚠️ Volontairement IDENTIQUE à `MAX_PER_SLOT_MATCH` — les deux dérivent du
+// même préréglage « Bas » (slotFilterCap=40) : l'un est le plafond de
+// rétention par défaut de `filterSlot`/le repli de `prepareSearch` quand
+// `slotFilterCap` est omis, l'autre l'ancre de la mise à l'échelle de
+// `bucketCap` — deux RÔLES distincts qui doivent rester la MÊME valeur
+// (voir `bucketCapFor` juste en dessous : sa formule n'est correcte, au
+// repli `slotCap = params.slotFilterCap ?? MAX_PER_SLOT_MATCH` de
+// `prepareSearch`, QUE parce que les deux coïncident). Lié explicitement,
+// pas dupliqué, pour ne plus pouvoir diverger silencieusement (CLAUDE.md :
+// un concept partagé entre plusieurs endroits a plusieurs
+// « constructeurs »).
+const BUCKET_CAP_REFERENCE_SLOT_FILTER_CAP = MAX_PER_SLOT_MATCH;
+
+function bucketCapFor(slotFilterCap: number): number {
+  return Math.round(BUCKET_CAP * (slotFilterCap / BUCKET_CAP_REFERENCE_SLOT_FILTER_CAP));
+}
 
 const ALL_STAT_KEYS: StatKey[] = ['hp', 'atk', 'def', 'spd', 'cr', 'cd', 'res', 'acc'];
 
@@ -357,9 +534,40 @@ export function runeContribution(rune: RuneDetail, key: StatKey): { pct: number;
   return { pct, flat };
 }
 
+// ⚠️ Même résultat que d'appeler `runeContribution(rune, k)` pour CHAQUE
+// `k` de `ALL_STAT_KEYS`, mais en UN SEUL passage sur les effets de la
+// rune (principale + innée + jusqu'à 4 sous-stats, ~6 lignes) au lieu de
+// 8 — rescannait les mêmes ~6 lignes à chaque fois (~48 vérifications par
+// rune au lieu de 6), exactement le motif déjà corrigé ailleurs pour la
+// même raison (`precomputeSlot` dans `buildBuckets`, voir son commentaire).
+// Deux appelants aujourd'hui, tous deux ont besoin des 8 clés À LA FOIS
+// pour CHAQUE rune comparée dans une boucle O(n) ou O(n²) : `filterSlot`
+// (top-K par stat) et `pruneDominated`/`isDominated` (élagage de
+// dominance — précalculée une fois par rune, plutôt que rappelée à
+// `runeContribution` pour CHAQUE paire comparée, voir son commentaire).
+// Les AUTRES appelants de `runeContribution` (rétention par compartiment,
+// `precomputeSlot`…) n'ont besoin que d'UNE clé à la fois, pas des 8 —
+// eux restent sur `runeContribution` seule.
+function runeContributionAllKeys(rune: RuneDetail): Record<StatKey, { pct: number; flat: number }> {
+  const out = {} as Record<StatKey, { pct: number; flat: number }>;
+  for (const k of ALL_STAT_KEYS) out[k] = { pct: 0, flat: 0 };
+  const add = (code: number, value: number) => {
+    const def = RUNE_EFFECT[code];
+    if (!def) return;
+    const entry = out[def.stat as StatKey];
+    if (!entry) return;
+    if (def.pct) entry.pct += value;
+    else entry.flat += value;
+  };
+  add(rune.main.code, rune.main.value);
+  if (rune.innate) add(rune.innate.code, rune.innate.value);
+  for (const s of rune.subs) add(s.code, s.value);
+  return out;
+}
+
 // ⚠️ Comme `runeContribution`, mais SANS la principale — sous-stats et
 // innée uniquement. Sert à la pondération adaptative des tranches de
-// rétention (voir « Suite — point 4 » dans spec/outils/optimizer.md, piste
+// rétention (voir « Suite — point 4 » dans spec/outils/optimizer/, piste
 // B) : la principale d'un slot est une valeur GARANTIE et relativement
 // stable pour toute rune candidate de ce slot (surtout sur un slot à
 // principale imposée — VIT slot 2, TC/DCC slot 4, RES/PRE slot 6) — elle
@@ -393,6 +601,19 @@ function valueOf(rune: RuneDetail, metric: OptimMetric): number {
 /* --------------------------------------------------------------------------
  * Pré-filtrage par slot
  * ----------------------------------------------------------------------- */
+// ⚠️ **Ne dépend JAMAIS de `objective`** — vérifié précisément cette session
+// (voir spec/outils/optimizer/, « Piste écartée — un objectif de
+// recherche mieux aligné… ») après avoir supposé le contraire par erreur.
+// Ce classement (qui alimente `matches`/`fillCap` dans `filterSlot`, ET la
+// rétention par tranche dans `buildBuckets`) n'est influencé QUE par
+// `requirement.minStats` — jamais par l'objectif choisi à l'écran.
+// L'objectif n'élargit QUE `PER_STAT_KEEP_OBJECTIVE` (voir `filterSlot`,
+// `OBJECTIVE_RELEVANT_STATS`) : plus de runes CANDIDATES entrent dans le
+// pool pré-filtré pour ses stats, mais leur CLASSEMENT une fois dedans reste
+// entièrement gouverné par les minimums posés, pas par l'objectif. Un
+// objectif « Dégâts » ne fait donc PAS que la recherche privilégie les
+// demi-builds les plus offensifs pendant la rétention — seulement qu'elle
+// leur garde une place plus large au pré-filtrage.
 export function relevance(rune: RuneDetail, requirement: BuildRequirement): number {
   let score = 0;
   for (const [key, min] of Object.entries(requirement.minStats)) {
@@ -433,7 +654,29 @@ export function filterSlot(
   objective?: Objective
 ): RuneDetail[] {
   const requiredKeys = new Set(requirement.sets);
-  const scored = candidates
+  // ⚠️ Élagage SÛR, pas une heuristique : combo à coût COMPLET
+  // (`setsCost(requirement.sets) === MAX_SET_PIECES`, ex. Rage+Blade
+  // 4+2=6) → AUCUN emplacement libre où une rune hors combo (ni un set
+  // demandé, ni joker) pourrait légitimement figurer dans un build FINAL
+  // valide. Preuve : les 6 emplacements se répartissent alors
+  // EXACTEMENT entre les sets demandés (un joker substituant au plus UNE
+  // pièce, où qu'il soit) — une seule rune hors combo parmi les 6 choisis
+  // prive nécessairement l'un des sets demandés d'au moins une pièce,
+  // laissant `missingSets` non vide quel que soit le reste du build.
+  // Trouvé en vérifiant explicitement (script ad hoc, pool synthétique
+  // varié) : pour Rage+Blade, environ la MOITIÉ du pool filtré par slot
+  // appartenait à des sets totalement hors combo AVANT ce correctif —
+  // occupant une place dans `matchCap`/`fillCap`/le top-K par stat qui
+  // aurait pu revenir à une rune réellement utile (dilution, même classe
+  // de problème que `BUCKET_CAP`/`slotFilterCap` cette session).
+  // ⚠️ SANS EFFET s'il reste un emplacement libre (ex. un set 4 pièces
+  // SEUL) : la réserve garantie hors combo plus bas reste alors
+  // nécessaire — voir son propre commentaire, motif ORIGINAL de son
+  // ajout, qui ne s'applique qu'à ce cas-là.
+  const hasFreeSlots = setsCost(requirement.sets) < MAX_SET_PIECES;
+  const isRelevantToCombo = (r: RuneDetail): boolean => requiredKeys.has(r.set) || r.set === 'intangible';
+  const pool = hasFreeSlots ? candidates : candidates.filter(isRelevantToCombo);
+  const scored = pool
     .map((r) => ({ r, s: relevance(r, requirement) }))
     .sort((a, b) => b.s - a.s);
 
@@ -456,24 +699,39 @@ export function filterSlot(
   // place garantie — la recherche ne peut alors proposer que des builds
   // tout-un-set, même quand le combo demandé n'en réclame qu'une partie des
   // pièces (ex. un set 4 pièces sur 6 emplacements). Signalé sur un compte
-  // réel (voir spec/outils/optimizer.md, « Limites connues »).
+  // réel (voir spec/outils/optimizer/, « Limites connues »).
+  // ⚠️ Motif ci-dessus SANS OBJET à coût complet (`!hasFreeSlots`) : `pool`
+  // a déjà exclu toute rune hors combo plus haut, `offSet` est alors
+  // structurellement vide — pas une branche morte à retirer, juste un
+  // no-op cohérent avec l'élagage déjà appliqué en amont.
   const offSet = scored.filter(({ r }) => !requiredKeys.has(r.set) && r.set !== 'intangible');
   for (const { r } of offSet.slice(0, effectiveFillCap)) kept.set(r.id, r);
 
   // Le meilleur d'un slot sur chaque stat individuellement — voir
   // PER_STAT_KEEP. Budget élargi (PER_STAT_KEEP_OBJECTIVE) pour les stats de
   // l'objectif choisi, s'il y en a un.
+  // ⚠️ Top-K via le tas borné (`heapPush`, déjà utilisé pour la rétention par
+  // compartiment dans `buildBuckets`) au lieu d'un tri complet de tout
+  // `candidates` suivi d'un `.slice()` — même sémantique top-K (les `keepN`
+  // plus grandes valeurs de `c.pct + c.flat` sont gardées), coût ramené de
+  // O(n log n) à O(n log keepN) par stat, `keepN` (6 ou 24) restant petit
+  // devant `n` (jusqu'à plusieurs milliers de runes par slot sur un gros
+  // compte). Un seul passage sur `candidates` par stat, aucun tableau
+  // intermédiaire trié. Voir spec/outils/optimizer/, piste « point 2 —
+  // filterSlot : top-K via le tas ».
+  // ⚠️ Contribution des 8 clés précalculée UNE FOIS par rune
+  // (`runeContributionAllKeys`), pas rappelée 8× via `runeContribution` —
+  // voir son commentaire pour le motif (même bug que `precomputeSlot`
+  // ailleurs dans ce fichier, jamais corrigé ici avant).
   const objectiveKeys = objective ? OBJECTIVE_RELEVANT_STATS[objective] : [];
+  const contribByRune = pool.map((r) => ({ r, c: runeContributionAllKeys(r) }));
   for (const k of ALL_STAT_KEYS) {
     const keepN = objectiveKeys.includes(k) ? PER_STAT_KEEP_OBJECTIVE : PER_STAT_KEEP;
-    const top = candidates
-      .map((r) => {
-        const c = runeContribution(r, k);
-        return { r, v: c.pct + c.flat };
-      })
-      .sort((a, b) => b.v - a.v)
-      .slice(0, keepN);
-    for (const { r } of top) kept.set(r.id, r);
+    const heap: ScoredEntry<RuneDetail>[] = [];
+    for (const { r, c } of contribByRune) {
+      heapPush(heap, { item: r, score: c[k].pct + c[k].flat }, keepN);
+    }
+    for (const { item } of heap) kept.set(item.id, item);
   }
 
   return Array.from(kept.values());
@@ -511,12 +769,20 @@ function isSetComparable(a: RuneDetail, b: RuneDetail, requiredKeys: Set<string>
 // bonne », elle est plus dangereuse. Sur ces stats-là, seule l'ÉGALITÉ
 // stricte (ni plus, ni moins) reste sûre à comparer : on ne sait pas, sans
 // connaître le reste du build, si « plus » ou « moins » serait le bon choix.
-function isDominated(a: RuneDetail, b: RuneDetail, requiredKeys: Set<string>, maxKeys: Set<StatKey>): boolean {
+function isDominated(
+  a: RuneDetail,
+  b: RuneDetail,
+  requiredKeys: Set<string>,
+  maxKeys: Set<StatKey>,
+  contribById: Map<number, Record<StatKey, { pct: number; flat: number }>>
+): boolean {
   if (a.id === b.id || !isSetComparable(a, b, requiredKeys)) return false;
+  const contribA = contribById.get(a.id)!;
+  const contribB = contribById.get(b.id)!;
   let strictlyBetter = false;
   for (const k of ALL_STAT_KEYS) {
-    const ca = runeContribution(a, k);
-    const cb = runeContribution(b, k);
+    const ca = contribA[k];
+    const cb = contribB[k];
     if (maxKeys.has(k)) {
       // Stat plafonnée : seule l'égalité est sûre dans les deux sens.
       if (cb.pct !== ca.pct || cb.flat !== ca.flat) return false;
@@ -540,14 +806,24 @@ function isDominated(a: RuneDetail, b: RuneDetail, requiredKeys: Set<string>, ma
 
 // Garde-fou de performance : la comparaison est O(n²) — négligeable sur les
 // tailles réelles d'un slot (quelques centaines à ~1000 runes, voir
-// spec/outils/optimizer.md), mais sans borne un pool démesuré (« Explorer
+// spec/outils/optimizer/), mais sans borne un pool démesuré (« Explorer
 // tout l'inventaire » sur un très gros compte) pourrait coûter cher pour un
 // gain marginal. Au-delà, on renonce à cet élagage plutôt que de ralentir.
 const DOMINANCE_MAX_POOL = 2000;
 
+// ⚠️ `runeContributionAllKeys` précalculée UNE FOIS par rune (O(n)) avant la
+// double boucle O(n²) — pas rappelée via `runeContribution` à CHAQUE paire
+// comparée (16 appels/paire : 8 clés × 2 runes). Même motif que
+// `filterSlot`/`precomputeSlot` ailleurs dans ce fichier, jusqu'ici oublié
+// ici — trouvé par une revue de code externe (2026-08-19, point 3) : ce
+// coût est payé À CHAQUE fois que `prepareSearch` tourne, y compris une
+// fois PAR WORKER en pairing parallèle (jusqu'à 4×, voir
+// `pairSlice.worker.ts`).
 export function pruneDominated(list: RuneDetail[], requiredKeys: Set<string>, maxKeys: Set<StatKey>): RuneDetail[] {
   if (list.length > DOMINANCE_MAX_POOL) return list;
-  return list.filter((a) => !list.some((b) => isDominated(a, b, requiredKeys, maxKeys)));
+  const contribById = new Map<number, Record<StatKey, { pct: number; flat: number }>>();
+  for (const r of list) contribById.set(r.id, runeContributionAllKeys(r));
+  return list.filter((a) => !list.some((b) => isDominated(a, b, requiredKeys, maxKeys, contribById)));
 }
 
 /* --------------------------------------------------------------------------
@@ -666,7 +942,7 @@ export function guaranteedSetBonus(requirement: BuildRequirement, base: BaseStat
 
 /* --------------------------------------------------------------------------
  * Bonus de set NON demandé, potentiellement en PLUS de `guaranteedSetBonus`
- * — voir spec/outils/optimizer.md, « Limites connues ». `guaranteedSetBonus`
+ * — voir spec/outils/optimizer/, « Limites connues ». `guaranteedSetBonus`
  * ne compte QUE les sets de `requirement.sets` ; un set À BONUS DE STAT
  * (`SET_STAT_BONUS`) peut s'activer PAR ACCIDENT sur les emplacements
  * « libres » (ceux que le combo demandé ne réserve pas), et ce bonus est
@@ -689,7 +965,7 @@ export function guaranteedSetBonus(requirement: BuildRequirement, base: BaseStat
 // raison d'être de cette fonction, voir « Limites connues ».
 // ⚠️ Suite — généralisée aux sets DÉJÀ demandés qui pourraient s'activer
 // PLUS de fois que le minimum demandé, pas seulement aux sets absents de
-// `requirement.sets` — voir spec/outils/optimizer.md, cas réel Ciri (Energy
+// `requirement.sets` — voir spec/outils/optimizer/, cas réel Ciri (Energy
 // demandé UNE fois = 1 activation garantie par `guaranteedSetBonus`, mais le
 // pool permet une SECONDE activation d'Energy sur les emplacements
 // « libres » : `guaranteed` seul ne créditait que +15 % PV, la moitié du
@@ -810,7 +1086,7 @@ function bucketKeyOf(counts: number[], jokers: number): string {
   return `${counts.join(',')}|${jokers}`;
 }
 
-// ⚠️ PROTOTYPE EN MESURE — voir spec/outils/optimizer.md, « Suite —
+// ⚠️ PROTOTYPE EN MESURE — voir spec/outils/optimizer/, « Suite —
 // dominance de demi-builds (skyline) ». Dominance de DEMI-BUILDS (3 runes),
 // un cran au-dessus de la dominance de runes individuelles (`isDominated`
 // plus haut). Même principe, même sûreté : A est dominé par B si B est AU
@@ -867,7 +1143,12 @@ export function insertIntoSkyline(skyline: HalfCombo[], combo: HalfCombo, keys: 
 // précis trie — un même demi-build peut être poussé dans plusieurs tas avec
 // des scores différents (voir « Rétention par tranches » plus bas), sans
 // dupliquer ni muter l'objet `HalfCombo` lui-même.
-interface ScoredEntry<T> {
+// ⚠️ Exporté UNIQUEMENT pour que les tests différentiels (voir
+// rune-optim-filterslot-topk.test.ts) puissent appeler `heapPush` RÉELLEMENT
+// utilisé par `filterSlot`/`buildBuckets`, plutôt qu'une réimplémentation
+// locale qui ne détecterait jamais une régression du vrai code (incident
+// vécu : voir historique-dimensionnement.md, « revue de code externe »).
+export interface ScoredEntry<T> {
   item: T;
   score: number;
 }
@@ -885,7 +1166,7 @@ interface ScoredEntry<T> {
 // chaque insertion/éviction à O(log cap). ⚠️ Le tas n'est PAS trié pendant la
 // construction — le tri final se fait une seule fois, après coup (voir
 // `buildBuckets`), pour ne jamais payer un tri à chaque insertion.
-function heapPush<T>(heap: ScoredEntry<T>[], entry: ScoredEntry<T>, cap: number): void {
+export function heapPush<T>(heap: ScoredEntry<T>[], entry: ScoredEntry<T>, cap: number): void {
   if (heap.length < cap) {
     heap.push(entry);
     let i = heap.length - 1;
@@ -995,6 +1276,28 @@ function combinedRetentionScore(pct: Record<string, number>, flat: Record<string
   return score;
 }
 
+// ⚠️ Regroupe 8 des paramètres de `buildBuckets` — tous déjà des champs de
+// `PreparedSearch` (voir plus bas), passés SÉPARÉMENT jusqu'ici (signature à
+// 14 paramètres positionnels, revue de code externe point 9 — 67 sites
+// d'appel dans 29 fichiers, aucun bug d'ordre trouvé en les auditant, mais
+// un vrai risque latent : la plupart de ces sites sont dans `scripts/`, hors
+// périmètre `tsc`, où un paramètre inversé ne serait détecté qu'à
+// l'exécution). N'importe quel objet qui a STRUCTURELLEMENT ces 8 champs
+// convient — un `PreparedSearch` complet (le cas normal, `searchBuildsSteps`)
+// ou un objet plus étroit comme `BuildHalfRequest` (buildHalf.worker.ts, qui
+// ne peut pas recevoir un `PreparedSearch` tel quel — sa fonction `totalOf`
+// n'est pas sérialisable via `postMessage`).
+export interface BuildBucketsContext {
+  filtered: RuneDetail[][];
+  distinctKeys: string[];
+  constrainedKeys: StatKey[];
+  retentionKeys: StatKey[];
+  minEntries: { k: StatKey; min: number }[];
+  bucketCap: number;
+  jokerCredit: number;
+  requiredPieces: number[];
+}
+
 // ⚠️ GÉNÉRATEUR, comme `searchBuildsSteps` — la construction d'un
 // compartiment (triple boucle sur les pools filtrés) peut à elle seule
 // prendre plusieurs dizaines de secondes sur un compte réel avec beaucoup de
@@ -1003,21 +1306,14 @@ function combinedRetentionScore(pct: Record<string, number>, flat: Record<string
 // (le seul endroit qui rendait la main jusqu'ici) n'ait la moindre chance de
 // tourner — sans point de passage ICI, ni la barre de progression ni le
 // bouton Arrêter ne réagissaient pendant cette phase (voir
-// spec/outils/optimizer.md, « Suite — la phase de préparation restait
+// spec/outils/optimizer/, « Suite — la phase de préparation restait
 // muette »). `half` sert uniquement à étiqueter la progression émise (A ou
 // B), aucun effet sur le calcul lui-même.
 export function* buildBuckets(
   half: 'A' | 'B',
   slotIdxs: readonly [number, number, number],
-  filtered: RuneDetail[][],
-  distinctKeys: string[],
-  constrainedKeys: StatKey[],
-  retentionKeys: StatKey[],
-  minEntries: { k: StatKey; min: number }[],
-  bucketCap: number,
+  ctx: BuildBucketsContext,
   otherHalfMaxSets: number[],
-  jokerCredit: number,
-  requiredPieces: number[],
   // ⚠️ PROTOTYPE EN MESURE — voir `Bucket.skyline`/`insertIntoSkyline`.
   // `undefined` (par défaut, TOUS les appels de production actuels) : rien
   // ne change, coût nul. Fourni : maintient EN PLUS, pour chaque
@@ -1027,7 +1323,7 @@ export function* buildBuckets(
   // (taille de la skyline sur un compte réel) n'est pas mesuré.
   skylineKeys?: StatKey[],
   // ⚠️ PROTOTYPE EN MESURE — piste B, pondération adaptative par tranche
-  // (spec/outils/optimizer.md, « Suite — piste B »). `false`/`undefined`
+  // (spec/outils/optimizer/, « Suite — piste B »). `false`/`undefined`
   // (par défaut, TOUS les appels de production actuels) : le bloc
   // `reallocatedCap` ci-dessous ne s'exécute pas, chaque tranche par stat
   // reçoit `perOtherSliceCap` exactement comme avant sa mise en place —
@@ -1035,8 +1331,22 @@ export function* buildBuckets(
   // dans l'UI, pas encore fait). `true` : reproduit le comportement piste B
   // déjà validé (Sonia deck 6, cas de stress atteignable) contre un coût de
   // construction non démontré meilleur que la piste A.
-  adaptiveTrancheWeighting = false
+  adaptiveTrancheWeighting = false,
+  // Voir spec/outils/optimizer/historique-dimensionnement.md, « Suite —
+  // vitesse de convergence : ordre au sein d'un compartiment » et « Suite —
+  // rétention re-vérifiée EMPIRIQUEMENT avec le prototype ». `'relevance'`
+  // (défaut depuis le 2026-08-18, tous les appels de production) : garde le
+  // tri des COMPARTIMENTS entre eux par potentiel normalisé (mesuré comme
+  // un vrai gain, deck 10), mais trie les demi-builds À L'INTÉRIEUR d'un
+  // même compartiment par `relevanceScore` seul — mesuré ~2× plus rapide en
+  // paires explorées pour un même objectif, sans coût de rang relatif ni de
+  // rétention (696/696 scénarios synthétiques, 0 régression). `'potential'` :
+  // ancien comportement (tri par potentiel normalisé aussi au sein d'un
+  // compartiment), conservé comme échappatoire de mesure/comparaison —
+  // jamais exposé dans l'UI, aucun appel de production ne le passe.
+  combosOrderMode: 'potential' | 'relevance' = 'relevance'
 ): Generator<BuildingProgress, Bucket[], void> {
+  const { filtered, distinctKeys, constrainedKeys, retentionKeys, minEntries, bucketCap, jokerCredit, requiredPieces } = ctx;
   const [i0, i1, i2] = slotIdxs;
   const buckets = new Map<string, Bucket>();
   // Tas de construction, PAS le contrat final (`Bucket.combos`) : une entrée
@@ -1071,7 +1381,7 @@ export function* buildBuckets(
   const perOtherSliceCap = genericCap;
 
   // ⚠️ Piste B — pondération adaptative par tranche (spec/outils/
-  // optimizer.md, « Suite — piste B envisagée à la lumière de la piste A »).
+  // optimizer/, « Suite — piste B envisagée à la lumière de la piste A »).
   // PROXY ANALYTIQUE calculé AVANT la triple boucle — pour chaque
   // `retentionKey`, estime la variance du demi-build complet en sommant la
   // variance de la contribution HORS PRINCIPALE (`runeSubOnlyContribution`,
@@ -1134,7 +1444,7 @@ export function* buildBuckets(
   const slotHasKey = [i0, i1, i2].map((i) => distinctKeys.map((key) => filtered[i].some((r) => r.set === key)));
 
   // ⚠️ Précalcul PAR RUNE, une fois avant la triple boucle — voir
-  // spec/outils/optimizer.md, « Suite — relecture du pipeline, pistes
+  // spec/outils/optimizer/, « Suite — relecture du pipeline, pistes
   // d'accélération ». `runeEfficiency(r0)`/`runeContribution(r0, k)`
   // étaient recalculés à CHAQUE itération de la double boucle r1×r2, alors
   // que r0 est fixe pour toute cette double boucle — pur travail redondant
@@ -1171,6 +1481,25 @@ export function* buildBuckets(
     return true;
   }
 
+  // Sous-ensemble de l'emplacement i2 pertinent pour SAUVER un demi-build
+  // encore à 0 pièce/0 joker pour un set demandé À PLUS DE 3 PIÈCES —
+  // runes qui sont soit ce set, soit un joker (les seules capables de
+  // changer l'issue, voir le repli final après r2). Utilisé UNIQUEMENT
+  // quand r0+r1 n'ont encore fourni ni l'un ni l'autre pour AU MOINS un
+  // tel set — dans ce cas précis, tout AUTRE choix de r2 est déjà condamné
+  // par construction, inutile de l'itérer pour le découvrir après coup.
+  const fourPieceKeys = distinctKeys.map((_, k) => requiredPieces[k] > 3);
+  const hasFourPieceRequirement = fourPieceKeys.some(Boolean);
+  const rescueIdxI2: number[] = [];
+  if (hasFourPieceRequirement) {
+    for (let idx = 0; idx < filtered[i2].length; idx++) {
+      const r = filtered[i2][idx];
+      if (r.set === 'intangible' || fourPieceKeys.some((is4p, k) => is4p && r.set === distinctKeys[k])) {
+        rescueIdxI2.push(idx);
+      }
+    }
+  }
+
   const totalR0 = filtered[i0].length;
   let scannedR0 = 0;
   for (let idx0 = 0; idx0 < filtered[i0].length; idx0++) {
@@ -1185,7 +1514,15 @@ export function* buildBuckets(
       const p1 = precompI1[idx1];
       const haveR01 = distinctKeys.map((key, k) => haveR0[k] + (r1.set === key ? 1 : 0));
       if (distinctKeys.length > 0 && !stillFeasible(haveR01, [2])) continue;
-      for (let idx2 = 0; idx2 < filtered[i2].length; idx2++) {
+      // ⚠️ Sûr, PAS une heuristique : si un set demandé >3 pièces est
+      // encore à 0 ET qu'aucun joker n'a été choisi (r0/r1), tout r2 qui
+      // n'est NI ce set NI un joker aboutit à un demi-build mort — coupé
+      // de toute façon par le repli final, mais en évitant de l'itérer.
+      const jokersR01 = (p0.isJoker ? 1 : 0) + (p1.isJoker ? 1 : 0);
+      const mustRescue = hasFourPieceRequirement && jokersR01 === 0 && fourPieceKeys.some((is4p, k) => is4p && haveR01[k] === 0);
+      const total2 = mustRescue ? rescueIdxI2.length : filtered[i2].length;
+      for (let j2 = 0; j2 < total2; j2++) {
+        const idx2 = mustRescue ? rescueIdxI2[j2] : j2;
         const r2 = filtered[i2][idx2];
         const p2 = precompI2[idx2];
         const runes: [RuneDetail, RuneDetail, RuneDetail] = [r0, r1, r2];
@@ -1194,6 +1531,35 @@ export function* buildBuckets(
         // reparcourir les 3 runes une deuxième fois.
         const counts = haveR01.map((c, k) => c + (r2.set === distinctKeys[k] ? 1 : 0));
         const jokers = (p0.isJoker ? 1 : 0) + (p1.isJoker ? 1 : 0) + (p2.isJoker ? 1 : 0);
+
+        // Élagage EXACT (pas une heuristique) — demi-build MORT pour un set
+        // demandé À PLUS DE 3 PIÈCES (ex. Violent, 4 pièces) : avec
+        // seulement 3 emplacements par moitié, 0 pièce de ce set ICI ne
+        // peut JAMAIS être compensée par l'autre moitié, MÊME avec un
+        // joker — preuve : un joker occupe l'un des 3 emplacements de la
+        // moitié qui le porte, donc si c'est l'AUTRE moitié qui porte le
+        // joker, elle ne peut fournir que 2 pièces réelles du set (pas 3),
+        // soit 2+1(joker)=3 au total, jamais 4. Le joker ne peut compléter
+        // la 4ᵉ pièce QUE s'il est dans la moitié qui a 0 pièce ELLE-MÊME
+        // (elle fournit alors 0+1(joker)=… complété par les 3 pièces
+        // réelles de l'autre moitié = 4 exactement). D'où le repli sur CE
+        // demi-build LUI-MÊME (`jokers`, pas le `jokerCredit` global du
+        // pool entier) — pas un choix conservateur, la SEULE configuration
+        // physiquement possible. Trouvé sur un compte réel (Camilla,
+        // violent 4p + nemesis 2p) — une tranche entière de compartiments à
+        // 0 pièce violent, aucun n'ayant de joker propre, gaspillait tout
+        // son quota de candidats en pairing parallèle faute de pouvoir
+        // s'apparier avec QUOI QUE CE SOIT (voir spec/outils/optimizer/
+        // historique-acceleration-et-outillage.md, « Chantier D »).
+        let demiBuildMort = false;
+        for (let k = 0; k < distinctKeys.length; k++) {
+          if (requiredPieces[k] > 3 && counts[k] === 0 && jokers === 0) {
+            demiBuildMort = true;
+            break;
+          }
+        }
+        if (demiBuildMort) continue;
+
         const pct: Record<string, number> = {};
         const flat: Record<string, number> = {};
         let score = (p0.eff + p1.eff + p2.eff) / 1000;
@@ -1285,7 +1651,7 @@ export function* buildBuckets(
   // demi-build qui n'a survécu à `bucketCap` que grâce à la tranche combinée
   // ou une tranche par stat (pas grâce à son efficience — précisément le cas
   // d'un build spécialisé sur des stats non meulables, voir « Suite —
-  // ordonnancement conscient des tranches » dans spec/outils/optimizer.md)
+  // ordonnancement conscient des tranches » dans spec/outils/optimizer/)
   // se retrouvait trié vers la FIN de la liste — la boucle d'appariement
   // (`for comboA of bA.combos` dans searchBuildsSteps) ne l'atteignait donc
   // qu'après des milliers de demi-builds génériquement bons mais hors sujet,
@@ -1308,7 +1674,11 @@ export function* buildBuckets(
       }
       return { combo, potential };
     });
-    scored.sort((x, y) => y.potential - x.potential);
+    if (combosOrderMode === 'relevance') {
+      scored.sort((x, y) => y.combo.relevanceScore - x.combo.relevanceScore);
+    } else {
+      scored.sort((x, y) => y.potential - x.potential);
+    }
     b.combos = scored.map((s) => s.combo);
     if (skylines) b.skyline = skylines.get(key) ?? [];
   }
@@ -1328,7 +1698,7 @@ export function* buildBuckets(
   // protégée par une tranche dédiée n'est plus exploré en dernier par
   // défaut, dès que `maxCollected`/`maxNodes` interrompt la recherche avant
   // de tout explorer (le cas courant, voir « Suite — augmenter le budget de
-  // recherche » dans spec/outils/optimizer.md).
+  // recherche » dans spec/outils/optimizer/).
   out.sort((x, y) => {
     const bx = bucketBestBySlice.get(bucketKeyOf(x.counts, x.jokers))!;
     const by = bucketBestBySlice.get(bucketKeyOf(y.counts, y.jokers))!;
@@ -1469,6 +1839,41 @@ function comboAFeasible(
 // compartiments compatible) — jamais la boucle B, donc toujours bien moins
 // cher que la recherche elle-même (143 099 comboA vérifiés sur ce cas,
 // contre 86,8M paires que la vraie recherche visite).
+// ⚠️ Parallélisation de l'appariement (voir runeBuildOptim.worker.ts,
+// `runParallelPairing`, et spec/outils/optimizer/pistes.md, point 9) —
+// réparti GLOUTONNEMENT par charge réelle (LPT — Longest Processing Time
+// first : les plus gros compartiments d'abord, toujours au worker le moins
+// chargé), PAS par rang. Mesuré (`scripts/pairing-parallel-diag.ts`) :
+// n'importe quel découpage statique de `bucketsA` donne un résultat
+// identique au séquentiel UNIQUEMENT quand rien n'est tronqué (recherche
+// exhaustive, budget infini par tranche) — c'est la SEULE garantie que cette
+// fonction suppose déjà vraie côté appelant, elle ne la vérifie pas
+// elle-même. Exportée (plutôt que privée au Worker) pour être testable
+// directement en Node, sans dépendre de l'API Worker du navigateur — voir
+// tests/rune-optim-parallel-pairing.test.ts.
+// ⚠️ OPTION E (voir spec/outils/optimizer/pistes.md, point 9 — comparaison
+// à 3 branches) : l'équilibrage par charge (LPT) reste IDENTIQUE à la
+// version de base, mais chaque tranche est retriée EN PLUS dans l'ordre
+// d'origine de `bucketsA` (déjà par potentiel décroissant, voir
+// `buildBuckets`) avant d'être retournée. Coût quasi nul (un tri sur au
+// plus quelques compartiments par tranche), ne change RIEN à la répartition
+// de charge déjà mesurée — corrige uniquement l'ORDRE DE PARCOURS de chaque
+// worker (redevient « meilleur d'abord » au lieu de « plus gros d'abord »).
+export function partitionBucketsALPT(bucketsA: Bucket[], workerCount: number): Bucket[][] {
+  const withWorkload = bucketsA.map((b, originalIndex) => ({ b, workload: b.combos.length, originalIndex }));
+  withWorkload.sort((a, b) => b.workload - a.workload);
+  const sliceEntries: { b: Bucket; originalIndex: number }[][] = Array.from({ length: workerCount }, () => []);
+  const sliceWorkload = new Array(workerCount).fill(0);
+  for (const { b, workload, originalIndex } of withWorkload) {
+    let target = 0;
+    for (let i = 1; i < workerCount; i++) if (sliceWorkload[i] < sliceWorkload[target]) target = i;
+    sliceEntries[target].push({ b, originalIndex });
+    sliceWorkload[target] += workload;
+  }
+  for (const entries of sliceEntries) entries.sort((a, b) => a.originalIndex - b.originalIndex);
+  return sliceEntries.map((entries) => entries.map((e) => e.b));
+}
+
 export function totalPairCount(prepared: PreparedSearch, bucketsA: Bucket[], bucketsB: Bucket[]): number {
   const { distinctKeys, requirement, minEntries, maxEntries, guaranteed, guaranteedMin, relPct, artFlat, totalOf } = prepared;
   let total = 0;
@@ -1535,6 +1940,85 @@ export function estimateSearchSpace(
   const perSlot = filtered.map((l) => l.length);
   const product = perSlot.reduce((a, b) => a * b, 1);
   return { perSlot, product };
+}
+
+// ⚠️ **VOLONTAIREMENT PAS AFFICHÉE À L'ÉCRAN** — mesurée
+// (`scripts/pair-bound-diag.ts`) sur les 7 cas réels connus avant d'être
+// branchée dans l'UI, comme toute constante de ce moteur : l'écart à
+// `totalPairCount` va de ×6 (le cas le plus serré) à **×300 000 000** (Ciri,
+// une recherche à conditions très précises — 784 paires réellement
+// explorées, borne à 236 milliards). Le majorant est structurellement
+// dominé par `bucketCap × nombre de tas`, une quantité qui ignore la RARETÉ
+// réelle des runes dans le pool — justement ce qui rend une recherche
+// serrée rapide en pratique. Utile comme brique interne prouvée (garde-fou
+// testé, réutilisable si le calcul est affiné un jour), pas comme chiffre
+// affiché : annoncer « au pire » un nombre couramment 100 à 100 000 000×
+// trop grand tromperait l'utilisateur plus qu'il ne l'informerait.
+//
+// Borne SUPÉRIEURE (majorant) du nombre de paires (comboA, comboB) qu'une
+// recherche pourrait examiner à l'appariement — calculable AVANT
+// `buildBuckets`, contrairement à `totalPairCount` qui a besoin des
+// compartiments déjà construits (voir son commentaire, plus haut dans ce
+// fichier) : c'est précisément la raison d'être de cette fonction, savoir
+// « au pire, combien ? » sans payer le coût de la construction elle-même.
+// ⚠️ Un MAJORANT, pas une estimation : suppose que CHAQUE compartiment
+// théoriquement atteignable est rempli à ras bord (`bucketCap` × le nombre
+// de tas parallèles par compartiment — voir `buildBuckets`, `genericCap`/
+// `perOtherSliceCap` : un générique, un combiné si des minimums sont posés,
+// un par `retentionKey`), et ignore tout élagage de faisabilité par les
+// stats (`bucketPairFeasibleMin`/`comboAFeasible`, voir `pairBuckets`) — SEULE
+// la compatibilité de sets (`satisfiesSets`, la MÊME fonction que
+// `pairBuckets`, jamais une réimplémentation qui pourrait diverger) filtre
+// les paires de clés de compartiment. Ignorer ces élagages ne peut que faire
+// GRANDIR la borne, jamais la réduire sous la vraie valeur — c'est ce qui en
+// fait un majorant sûr, vérifié par test différentiel contre `totalPairCount`
+// sur des recherches réelles (voir tests/rune-optim.test.ts).
+// ⚠️ Peut être TRÈS au-dessus de la réalité (attendu, pas un bug à
+// resserrer) : `bucketCap` est lui-même une valeur de sécurité rarement
+// atteinte en usage courant — voir spec/outils/optimizer/, « BUCKET_CAP mis
+// à l'échelle ». Le nombre affiché à l'écran doit rester lisible comme
+// « au pire », pas comme une prédiction.
+export function estimatePairBound(requirement: BuildRequirement, slotFilterCap: number, objective?: Objective): number {
+  const bucketCap = bucketCapFor(slotFilterCap);
+  const minKeys = ALL_STAT_KEYS.filter((k) => (requirement.minStats[k] ?? 0) > 0);
+  const retentionKeys = Array.from(new Set<StatKey>([...minKeys, ...(objective ? OBJECTIVE_RELEVANT_STATS[objective] : [])]));
+  const numHeaps = 1 + (minKeys.length > 0 ? 1 : 0) + retentionKeys.length;
+  const maxPerBucket = bucketCap * numHeaps;
+
+  // Toutes les clés de compartiment THÉORIQUEMENT atteignables par une
+  // moitié de 3 emplacements — un compte de pièces par set demandé (0 à 3)
+  // plus un joker (0 ou 1), sous la seule contrainte physique (au plus 3
+  // pièces au total) — indépendant du pool réel, donc calculable sans lui,
+  // et bon marché (au plus quelques dizaines de clés en pratique : le
+  // nombre de sets DISTINCTS demandés dépasse rarement 2 ou 3).
+  const distinctKeys = Array.from(new Set(requirement.sets));
+  const keys: { counts: number[]; jokers: number }[] = [];
+  const counts: number[] = [];
+  function enumerate(idx: number, remaining: number): void {
+    if (idx === distinctKeys.length) {
+      for (const jokers of [0, 1]) {
+        if (jokers <= remaining) keys.push({ counts: [...counts], jokers });
+      }
+      return;
+    }
+    for (let c = 0; c <= Math.min(3, remaining); c++) {
+      counts.push(c);
+      enumerate(idx + 1, remaining - c);
+      counts.pop();
+    }
+  }
+  enumerate(0, 3);
+
+  let compatiblePairs = 0;
+  for (const a of keys) {
+    for (const b of keys) {
+      if (a.jokers + b.jokers > 1) continue;
+      if (!satisfiesSets(a.counts, a.jokers, b.counts, b.jokers, distinctKeys, requirement)) continue;
+      compatiblePairs++;
+    }
+  }
+
+  return compatiblePairs * maxPerBucket * maxPerBucket;
 }
 
 // Regroupe ce que `diagnoseFeasibility`, `rankBlockingConditions` ET
@@ -1620,7 +2104,7 @@ export interface StatFeasibility {
 // déjà rune par rune ; ici agrégé pour un diagnostic lisible). Mais
 // l'inverse n'est PAS garanti : `satisfiable=true` sur CHAQUE stat prise
 // isolément ne prouve pas qu'un build satisfaisant TOUTES à la fois existe
-// — c'est exactement le piège documenté dans spec/outils/optimizer.md
+// — c'est exactement le piège documenté dans spec/outils/optimizer/
 // (« l'aiguille dans une botte de foin » du deck 10 Lushen) : chaque
 // contrainte était individuellement large, leur CONJONCTION était rare.
 // Sert de premier palier de diagnostic quand une recherche ne trouve rien
@@ -1748,7 +2232,7 @@ export function rankBlockingConditions(params: SearchParams): BlockingConditions
 // compartiments (`buildBucketsSteps`, avant même de savoir combien de paires
 // il y aura à explorer) peut à elle seule prendre de quelques secondes à
 // ~1 minute sur un compte réel avec beaucoup de conditions à la fois (voir
-// spec/outils/optimizer.md, « Suite — la phase de préparation restait
+// spec/outils/optimizer/, « Suite — la phase de préparation restait
 // muette ») — sans un point de passage PENDANT cette phase, l'utilisateur
 // n'avait aucune information et le bouton Arrêter ne réagissait pas avant la
 // toute première paire évaluée. `phase: 'pairing'` est l'ancien
@@ -1790,6 +2274,42 @@ export const CHECKPOINT_EVERY = 500;
 // déjà explorée.
 export interface NodeBudget {
   max: number;
+}
+
+// ⚠️ Escalade automatique du budget de nœuds, factorisée ici plutôt que
+// dupliquée par chaque appelant qui pilote `pairBuckets` pas à pas
+// (runeBuildOptim.worker.ts, scripts/perf-battery.ts, et tout script
+// diagnostic à venir) — trois copies indépendantes de cette même condition
+// existaient avant cette factorisation, et un script diagnostic écrit sans
+// elle a silencieusement exploré <0,0001 % de l'espace réel (38,4M paires
+// au lieu de 600M+ sur 10 min), produisant un faux « 0 résultat » pris pour
+// un bug du moteur — voir le skill `algo-verify`, section « Fidélité des
+// scripts diagnostics ». `adaptiveMaxNodes` (le plafond INITIAL) est
+// calibré pour le cas TYPIQUE ; sans cette escalade, un compte avec
+// beaucoup de runes peut épuiser ce plafond en quelques secondes alors que
+// le vrai budget-temps (`maxMs`, 10 min à l'écran) reste très largement
+// inutilisé.
+export const ESCALATION_FACTOR = 2;
+// Marge de sécurité sous `maxMs` : inutile d'escalader dans les toutes
+// dernières secondes, `overBudget()` (déjà vérifié par `pairBuckets`
+// lui-même) va de toute façon arrêter la recherche au prochain point de
+// passage — le budget-temps reste l'arbitre final, jamais contourné.
+export const ESCALATION_TIME_SAFETY = 0.95;
+
+// Mute `nodeBudget.max` EN PLACE si les trois conditions d'escalade sont
+// réunies (budget de paires presque épuisé, du temps encore disponible,
+// pas encore assez de candidats collectés) — sinon ne fait rien. À appeler
+// à CHAQUE point de passage (`step.value`) entre deux `gen.next()` d'un
+// générateur `pairBuckets`, avec une marge d'au moins `CHECKPOINT_EVERY`
+// pour être sûr d'agir avant que la boucle ne s'arrête d'elle-même.
+export function maybeEscalateNodeBudget(nodeBudget: NodeBudget, prepared: PreparedSearch, progress: PairingProgress, now: number): void {
+  if (
+    nodeBudget.max - progress.explored <= CHECKPOINT_EVERY &&
+    now - prepared.startedAt < prepared.maxMs * ESCALATION_TIME_SAFETY &&
+    progress.candidates.length < prepared.maxCollected
+  ) {
+    nodeBudget.max *= ESCALATION_FACTOR;
+  }
 }
 
 /**
@@ -1846,7 +2366,7 @@ export function adaptiveMaxNodes(params: SearchParams): number {
 // (`pairBuckets`) doivent partager — factorisé pour que les deux moitiés
 // puissent être construites INDÉPENDAMMENT (en parallèle, potentiellement
 // dans deux Workers distincts, voir runeBuildOptim.worker.ts et
-// spec/outils/optimizer.md « Suite — parallélisation… ») sans dupliquer la
+// spec/outils/optimizer/ « Suite — parallélisation… ») sans dupliquer la
 // préparation (mainStatFilteredBySlot → pruneDominated → eliminateInfeasible
 // → filterSlot), qui elle reste séquentielle et bon marché en comparaison.
 // `null` en retour de `prepareSearch` = un emplacement est vide après
@@ -1894,7 +2414,7 @@ export function prepareSearch(params: SearchParams): PreparedSearch | null {
   // l'objectif choisi. JAMAIS les maximums — sur une stat plafonnée, « plus »
   // n'est pas sûrement « meilleur » pour un tri après coup (le même piège
   // que la dominance directionnelle abandonnée cette session, voir
-  // spec/outils/optimizer.md) : un utilisateur qui pose un maximum peut
+  // spec/outils/optimizer/) : un utilisateur qui pose un maximum peut
   // vouloir ensuite trier PAR cette stat pour voir les valeurs les plus
   // proches du plafond, pas les plus basses. Se limiter aux minimums garde
   // la protection strictement sûre.
@@ -1915,7 +2435,7 @@ export function prepareSearch(params: SearchParams): PreparedSearch | null {
   // pré-filtrage heuristique par pertinence, orienté par l'objectif choisi
   // le cas échéant. Cet ordre réduit le pool réel dès le départ, ce qui
   // atténue aussi le coût mémoire/temps de tout ce qui suit — voir
-  // spec/outils/optimizer.md.
+  // spec/outils/optimizer/.
   let bySlot = mainStatFilteredBySlot(pool, requirement);
   bySlot = bySlot.map((list) => pruneDominated(list, requiredKeys, maxKeys));
   bySlot = eliminateInfeasible(bySlot, minEntries, maxEntries, constrainedKeys, guaranteed, artFlat, relPct, totalOf, guaranteedMin);
@@ -1931,7 +2451,7 @@ export function prepareSearch(params: SearchParams): PreparedSearch | null {
   const jokerCredit = anyJokerAvailable(filtered) ? 1 : 0;
   const maxSetsForA = maxSetCountsForSlots(filtered, [3, 4, 5], distinctKeys);
   const maxSetsForB = maxSetCountsForSlots(filtered, [0, 1, 2], distinctKeys);
-  const bucketCap = params.bucketCap ?? BUCKET_CAP;
+  const bucketCap = params.bucketCap ?? bucketCapFor(slotCap);
 
   return {
     base, artifacts, relic, requirement, metric,
@@ -2090,6 +2610,44 @@ export function* pairBuckets(
   return { candidates, explored, truncated };
 }
 
+// Fusionne les résultats des N workers de l'appariement PARALLÈLE
+// (`runParallelPairing`, runeBuildOptim.worker.ts) en un `SearchResult`
+// unique — factorisé ici pour rester testable SANS `worker_threads` (pure
+// agrégation sur des `SearchResult[]` déjà calculés, voir `algo-verify`
+// point 6 : vérifier au bon étage, pas besoin de rejouer une vraie
+// parallélisation pour tester CETTE décision).
+//
+// ⚠️ `truncated` par worker (`pairBuckets`, ci-dessus) se déclenche pour
+// DEUX raisons distinctes, jamais distinguées avant ce correctif : (a) ce
+// worker a rempli SON PROPRE `perWorkerMaxCollected` (une tranche riche,
+// pas forcément le signe que la recherche GLOBALE est incomplète) ou (b)
+// il a épuisé son budget de nœuds/temps (`overBudget()`) AVANT même
+// d'atteindre son quota (une vraie troncature — de l'exploration
+// planifiée n'a jamais eu lieu). Un simple `results.some(r => r.truncated)`
+// (l'ancien comportement) confondait les deux : un worker sur une tranche
+// exceptionnellement riche pouvait à lui seul faire annoncer « recherche
+// tronquée » alors que le total agrégé restait très en-deçà du plafond
+// GLOBAL demandé et que les autres workers avaient fini leur exploration
+// au complet. Trouvé par une revue de code externe (2026-08-19, point 4).
+//
+// Distinction FIABLE (pas une heuristique) : `pairBuckets` vérifie
+// toujours le budget nœuds/temps AVANT de pousser un candidat, et ne
+// tronque par quota qu'APRÈS un push — au moment où `truncated` sort
+// `true`, `candidates.length` vaut EXACTEMENT `perWorkerMaxCollected` si
+// la cause est (a), et STRICTEMENT MOINS si la cause est (b) (sinon la
+// troncature par quota aurait déjà eu lieu à une itération précédente).
+export function combineParallelPairingResults(
+  results: SearchResult[],
+  perWorkerMaxCollected: number,
+  globalMaxCollected: number
+): SearchResult {
+  const candidates = results.flatMap((r) => r.candidates);
+  const explored = results.reduce((s, r) => s + r.explored, 0);
+  const realBudgetExhausted = results.some((r) => r.truncated && r.candidates.length < perWorkerMaxCollected);
+  const truncated = candidates.length >= globalMaxCollected || realBudgetExhausted;
+  return { candidates, explored, truncated };
+}
+
 // ⚠️ Simple ORCHESTRATION de `prepareSearch` → `buildBuckets` (×2) →
 // `pairBuckets` — plus de logique propre depuis le découpage ci-dessus.
 // Conservée telle quelle (comportement IDENTIQUE, vérifié par le harnais
@@ -2098,21 +2656,19 @@ export function* pairBuckets(
 // aussi ce que `runeBuildOptim.worker.ts` appelait avant sa propre
 // parallélisation — désormais il appelle `prepareSearch`/`buildBuckets`/
 // `pairBuckets` directement pour pouvoir construire A et B dans deux Workers
-// séparés, voir spec/outils/optimizer.md « Suite — parallélisation… ».
+// séparés, voir spec/outils/optimizer/ « Suite — parallélisation… ».
 export function* searchBuildsSteps(params: SearchParams): Generator<SearchProgress, SearchResult, void> {
   const prepared = prepareSearch(params);
   if (!prepared) {
     return { candidates: [], explored: 0, truncated: false };
   }
   const bucketsA = yield* buildBuckets(
-    'A', [0, 1, 2], prepared.filtered, prepared.distinctKeys, prepared.constrainedKeys, prepared.retentionKeys,
-    prepared.minEntries, prepared.bucketCap, prepared.maxSetsForA, prepared.jokerCredit, prepared.requiredPieces,
-    undefined, params.adaptiveTrancheWeighting
+    'A', [0, 1, 2], prepared, prepared.maxSetsForA,
+    undefined, params.adaptiveTrancheWeighting, params.combosOrderMode
   );
   const bucketsB = yield* buildBuckets(
-    'B', [3, 4, 5], prepared.filtered, prepared.distinctKeys, prepared.constrainedKeys, prepared.retentionKeys,
-    prepared.minEntries, prepared.bucketCap, prepared.maxSetsForB, prepared.jokerCredit, prepared.requiredPieces,
-    undefined, params.adaptiveTrancheWeighting
+    'B', [3, 4, 5], prepared, prepared.maxSetsForB,
+    undefined, params.adaptiveTrancheWeighting, params.combosOrderMode
   );
   return yield* pairBuckets(prepared, bucketsA, bucketsB);
 }

@@ -34,6 +34,7 @@ import {
 } from '../src/lib/runeBuildOptim';
 import { BaseStats } from '../src/types';
 import { loadDeckMonster, parseDeckMonsterArgs } from './lib/deckMonster';
+import { drain } from './lib/drain';
 
 const USAGE =
   'Usage: monster-search-skyline-diag.ts <export.json> <deckId> <nomMonstre> [--defense] [statKeys=atk,cr,cd] [objective=degats] [slotFilterCap=80] [bucketCap=3000]';
@@ -98,34 +99,25 @@ const jokerCredit = anyJokerAvailable(filtered) ? 1 : 0;
 const maxSetsForA = maxSetCountsForSlots(filtered, [3, 4, 5], distinctKeys);
 const maxSetsForB = maxSetCountsForSlots(filtered, [0, 1, 2], distinctKeys);
 
-function drain<T>(gen: Generator<unknown, T, void>): T {
-  let step = gen.next();
-  while (!step.done) step = gen.next();
-  return step.value;
-}
-
 // ⚠️ Deux passes chronométrées séparément : SANS skyline (le comportement de
 // production actuel, inchangé) puis AVEC (`skylineKeys=retentionKeys`) — le
 // delta de temps est le VRAI surcoût de cette piste, pas une estimation.
 const t0 = performance.now();
+const buildBucketsCtx = { filtered, distinctKeys, constrainedKeys, retentionKeys, minEntries, bucketCap, jokerCredit, requiredPieces };
 const bucketsA_noSkyline = drain(
-  buildBuckets('A', [0, 1, 2], filtered, distinctKeys, constrainedKeys, retentionKeys, minEntries, bucketCap, maxSetsForA, jokerCredit, requiredPieces)
+  buildBuckets('A', [0, 1, 2], buildBucketsCtx, maxSetsForA)
 );
 const bucketsB_noSkyline = drain(
-  buildBuckets('B', [3, 4, 5], filtered, distinctKeys, constrainedKeys, retentionKeys, minEntries, bucketCap, maxSetsForB, jokerCredit, requiredPieces)
+  buildBuckets('B', [3, 4, 5], buildBucketsCtx, maxSetsForB)
 );
 const tSansSkyline = performance.now() - t0;
 
 const t1 = performance.now();
 const bucketsA = drain(
-  buildBuckets(
-    'A', [0, 1, 2], filtered, distinctKeys, constrainedKeys, retentionKeys, minEntries, bucketCap, maxSetsForA, jokerCredit, requiredPieces, retentionKeys
-  )
+  buildBuckets('A', [0, 1, 2], buildBucketsCtx, maxSetsForA, retentionKeys)
 );
 const bucketsB = drain(
-  buildBuckets(
-    'B', [3, 4, 5], filtered, distinctKeys, constrainedKeys, retentionKeys, minEntries, bucketCap, maxSetsForB, jokerCredit, requiredPieces, retentionKeys
-  )
+  buildBuckets('B', [3, 4, 5], buildBucketsCtx, maxSetsForB, retentionKeys)
 );
 const tAvecSkyline = performance.now() - t1;
 

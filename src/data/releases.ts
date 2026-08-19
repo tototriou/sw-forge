@@ -57,12 +57,9 @@ export const CHANGE_META: Record<ChangeKind, { label: string; color: string }> =
 // détail d'implémentation — tout ça vit dans les commits et dans `spec/`.
 // Si une ligne dépasse ~15 mots, c'est qu'elle raconte l'implémentation.
 export const RELEASES: Release[] = [
-  // ⚠️ Version EN PRÉPARATION (`version: null`) : le numéro se décide à la
-  // fusion, d'après ce que la branche contient au final. On le remplace au
-  // moment de publier, en même temps que `package.json` et le tag.
   {
-    version: null,
-    date: '2026-08-16',
+    version: '1.8.0',
+    date: '2026-08-19',
     title: 'Une nouvelle navigation',
     changes: [
       {
@@ -104,6 +101,103 @@ export const RELEASES: Release[] = [
         kind: 'fix',
         scope: 'Interface',
         text: 'Un seul contour au clavier, au lieu de deux emboîtés.',
+      },
+    ],
+  },
+  {
+    version: '1.7.0',
+    date: '2026-08-19',
+    title: 'Protège tes builds : exclus les runes d’un monstre de la recherche',
+    highlights: [
+      'Exclus les runes d’un monstre précis (box, RTA ou siège) pour ne jamais te faire proposer un build qui les démonterait',
+      'L’écran de l’Optimizer se réorganise en cartes claires, plus rapide à remplir',
+      'Le moteur de recherche est amélioré : plus fiable (les préréglages larges trouvent plus de résultats) et plus rapide',
+    ],
+    changes: [
+      {
+        kind: 'feat',
+        scope: 'Outils',
+        text: 'Exclus les runes d’un monstre précis (box, RTA ou siège) pour protéger un build que tu ne veux pas démonter.',
+      },
+      {
+        kind: 'feat',
+        scope: 'Outils',
+        text: '« Exclure les runes déjà utilisées » remplace « Utiliser tout l’inventaire » : choisis le périmètre (RTA, défenses de siège ou box).',
+      },
+      {
+        kind: 'feat',
+        scope: 'Outils',
+        text: 'L’écran se réorganise en cartes claires (Monstre, Critères, Exclusion de runes, Réglages avancés), boutons d’action toujours visibles en bas.',
+      },
+      {
+        kind: 'feat',
+        scope: 'Outils',
+        text: 'La grille de sets recherchés est directement dépliée, séparée en 4 pièces / 2 pièces — plus besoin de cliquer pour l’ouvrir.',
+      },
+      {
+        kind: 'feat',
+        scope: 'Outils',
+        text: 'Exporte tes paramètres de recherche dans un fichier, pour les partager avec d’autres joueurs ou les réimporter plus tard.',
+      },
+      {
+        kind: 'feat',
+        scope: 'Outils',
+        text: 'Nouveau réglage « Rechercher jusqu’à épuisement complet » pour retirer la limite de temps de 10 minutes.',
+      },
+      {
+        kind: 'feat',
+        scope: 'Outils',
+        text: 'Les résultats se parcourent maintenant par pages, au lieu de s’arrêter aux 20 meilleurs.',
+      },
+      {
+        kind: 'feat',
+        scope: 'Outils',
+        text: 'Changer de monstre (ou importer un nouveau compte) réinitialise automatiquement les critères et les résultats affichés.',
+      },
+      {
+        kind: 'fix',
+        scope: 'Outils',
+        text: 'Les préréglages larges (Haut, Extrême) trouvent maintenant plus de résultats, au lieu d’en perdre en cours de route.',
+      },
+      {
+        kind: 'fix',
+        scope: 'Outils',
+        text: 'La recherche va plus vite, sans rien changer aux résultats trouvés.',
+      },
+      {
+        kind: 'fix',
+        scope: 'Outils',
+        text: 'Un combo de 4+2 pièces (ex. Rage+Lame) ne laisse plus passer de runes d’un autre set dans les résultats.',
+      },
+      {
+        kind: 'fix',
+        scope: 'Outils',
+        text: 'Certains sets demandés à plus de 3 pièces ne font plus manquer un build pourtant valide.',
+      },
+      {
+        kind: 'fix',
+        scope: 'Outils',
+        text: 'L’exclusion manuelle ne peut plus exclure par erreur les runes du monstre que tu recherches.',
+      },
+      {
+        kind: 'fix',
+        scope: 'Mon compte',
+        text: 'Un monstre avec un seul artéfact équipé affiche de nouveau ses deux emplacements.',
+      },
+      {
+        kind: 'feat',
+        scope: 'Mon compte',
+        text: 'La roue de runes s’affiche même si le monstre n’a encore aucune rune.',
+      },
+      {
+        kind: 'feat',
+        scope: 'Mon compte',
+        text: 'Le détail d’une rune, d’un artéfact ou de la relique s’ouvre dans une bulle, sans plus faire bouger la fiche.',
+      },
+      {
+        kind: 'fix',
+        scope: 'RTA',
+        text: 'Un monstre sans rune mais avec des artéfacts est de nouveau cliquable pour voir son équipement.',
       },
     ],
   },

@@ -12,10 +12,46 @@ tototriou-*.json
 *export*.json
 sw-account*.json
 
-# Outillage Claude Code : personnel à chaque machine, pas du code du projet.
+# Outillage Claude Code — réglages personnels IGNORÉS, skills PARTAGÉS.
 # ⚠️ `settings.local.json` porte les permissions de l'utilisateur et
 # `settings.json` les plugins qu'il a installés — le premier n'est PAS ignoré
 # d'office par git, seul son nom suggère qu'il est local. Sans cette règle, un
 # `git add -A` les embarque, et le collaborateur hérite de réglages qui ne sont
-# pas les siens.
-.claude/
+# pas les siens. `scheduled_tasks.lock` est un verrou d'exécution local, même
+# principe.
+# ⚠️ `skills/` est délibérément EXCEPTÉ de cette règle (voir la négation
+# ci-dessous) : c'est de la discipline de projet réutilisable (algo-verify,
+# optimizer-perf-testing…), pas un réglage personnel — elle doit être
+# partagée avec quiconque travaille sur ce dépôt, pas redécouverte à chaque
+# machine. Négation nécessairement en DEUX temps (`.claude/*` puis
+# `!.claude/skills/`) : git ne redescend jamais dans un répertoire déjà
+# exclu pour y appliquer une règle d'inclusion — exclure `.claude/` tout
+# entier rendrait `!.claude/skills/` inopérant.
+.claude/*
+!.claude/skills/
+
+# Historique/méthodologie détaillée de l'Optimizer — PRIVÉ, protection
+# compétitive : ce dossier contient le journal chronologique complet du
+# calibrage (valeurs exactes, mesures, pistes tentées puis écartées), la
+# feuille de route des pistes encore ouvertes, et des échanges externes
+# (ChatGPT/Gemini) sur des idées d'amélioration de l'algorithme — soit
+# exactement ce qu'un concurrent gagnerait des jours à reconstruire, et
+# qu'un LLM peut aujourd'hui extraire d'un repo public en un instant.
+# ⚠️ `spec/outils/optimizer.md` (SANS le `/` final) reste public — c'est la
+# spec normale de la fonctionnalité, à la même philosophie que le reste de
+# `spec/` (comportement actuel, pas le journal d'investigation). Rien n'est
+# perdu en rendant ce dossier privé : il reste sur le disque, juste plus
+# suivi par git ni poussé vers le dépôt public.
+spec/outils/optimizer/
+
+# Captures du driver run-sw-forge (.claude/skills/run-sw-forge/driver.mjs) —
+# régénérables à tout moment en relançant le driver, et construites à
+# partir d'un VRAI export de compte (voir plus haut) : les stats/runes d'un
+# joueur réel ne doivent pas finir committées juste parce qu'elles sont
+# passées par une capture d'écran plutôt qu'un fichier .json.
+.claude/skills/run-sw-forge/screenshots/
+
+# Comptes-rendus de revue de code (/code-review) déposés à la racine pour
+# consultation locale — notes de travail éphémères, pas un artefact du
+# dépôt.
+code-review-*.txt

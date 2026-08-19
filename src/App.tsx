@@ -69,6 +69,7 @@ import {
   parseSiegeOffense,
   parseAccountBox,
   parseAccountInventory,
+  parseWizardId,
 } from './lib/importAccount';
 import { mapRtaItems, mapSiegeTeams, mapBoxMonsters, BoxItem } from './lib/applyAccount';
 import { VUES_INVENTAIRE, hashVue, vueValide } from './lib/accountViews';
@@ -230,6 +231,34 @@ export default function App() {
   const [runes, setRunes] = useState<RuneDetail[]>([]);
   const [artifacts, setArtifacts] = useState<ArtifactDetail[]>([]);
   const [crafts, setCrafts] = useState<CraftLine[]>([]);
+
+  // Un nouveau compte importé (`appliquerImport`, `setBox` avec une NOUVELLE
+  // référence) rend obsolètes les « Critères de recherche »/« Combinaisons
+  // trouvées » de l'Optimizer — autre monstre possible, autre pool de runes.
+  // ⚠️ Ici, dans App.tsx (jamais démonté), pas dans OptimizerSection.tsx
+  // (démontée à chaque changement d'onglet — voir son commentaire de tête) :
+  // importer un compte pendant qu'on est sur un AUTRE onglet doit quand même
+  // vider l'Optimizer, pas seulement quand on l'a sous les yeux au moment de
+  // l'import. Ignore la toute première exécution (montage) : `box` n'a pas
+  // encore de valeur « précédente » à comparer, et l'Optimizer démarre de
+  // toute façon déjà vide.
+  const boxMountedRef = useRef(false);
+  useEffect(() => {
+    if (!boxMountedRef.current) {
+      boxMountedRef.current = true;
+      return;
+    }
+    optimizer.resetSearch();
+  }, [box]);
+
+  // Identité du DERNIER compte importé cette session (`wizard_id`, voir
+  // parseWizardId) — comparée dans `appliquerImport` pour réinitialiser
+  // l'exclusion manuelle de runes de l'Optimizer UNIQUEMENT sur un compte
+  // réellement différent, jamais sur un simple réexport (même wizard_id,
+  // seule la date d'export change). `null` : rien d'importé pour l'instant
+  // cette session (ne couvre pas un compte hydraté depuis le stockage local
+  // d'une session précédente — non persisté, cf. `appliquerImport`).
+  const wizardIdRef = useRef<number | null>(null);
 
   // Box telle que sortie de l'extracteur, avant résolution en monstres. C'est
   // ELLE qu'on enregistre : un `BoxItem` embarque l'objet `Monster` et figerait
@@ -478,6 +507,24 @@ export default function App() {
     }
     if (def.teams.length) siegeDef.importTeams(def.teams);
     if (off.teams.length) siegeOff.importTeams(off.teams);
+
+    // Exclusion manuelle de runes de l'Optimizer (excludedSelectors) : à
+    // effacer sur un compte VRAIMENT DIFFÉRENT (autre wizard_id — voir
+    // parseWizardId), pas sur une simple nouvelle version RÉEXPORTÉE du même
+    // compte (même wizard_id, seul `tvalue` change) — un réexport garde les
+    // mêmes ids de monstre/rune, la sélection reste valide. `null` (import
+    // précédent illisible, ou tout premier import de la session) : aucune
+    // identité connue à comparer, on ne réinitialise pas — cohérent avec
+    // resetSearch() côté box (voir plus bas), qui lui se déclenche sur
+    // CHAQUE import sans cette distinction (les critères/résultats affichés
+    // deviennent obsolètes même pour un simple réexport, contrairement à
+    // l'exclusion qui référence des ids stables).
+    const wizardId = parseWizardId(data);
+    if (wizardIdRef.current !== null && wizardId !== null && wizardIdRef.current !== wizardId) {
+      optimizer.setExcludedSelectors([]);
+    }
+    wizardIdRef.current = wizardId;
+
     // Box + inventaire : toujours remplacés par le dernier import.
     importedManuallyRef.current = true;
     rawBoxRef.current = boxRes.monsters ?? [];
@@ -1095,6 +1142,10 @@ export default function App() {
             loadState={data.loadState}
             hydrating={accountHydrating}
             optimizer={optimizer}
+            allMonsters={allMonsters}
+            rtaEntries={rta.state.entries}
+            siegeDefenseTeams={siegeDef.state.teams}
+            siegeOffenseTeams={siegeOff.state.teams}
           />
         ) : route === 'releases' ? (
           <ReleasesPage />

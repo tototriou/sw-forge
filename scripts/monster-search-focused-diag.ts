@@ -16,6 +16,7 @@ import { parseAccountSource, parseAccountBox, parseSiegeDefense, parseSiegeOffen
 import { BaseStats } from '../src/types';
 import { loadDeckMonster, parseDeckMonsterArgs } from './lib/deckMonster';
 import { readFileSync } from 'fs';
+import { drain } from './lib/drain';
 
 const USAGE = 'Usage: monster-search-focused-diag.ts <export.json> <deckId> <nomMonstre> [statKeys=atk,spd,cr,cd] [objective=none] [slotFilterCap=80] [--explore-all]';
 const exploreAll = process.argv.includes('--explore-all');
@@ -100,18 +101,13 @@ console.log('maxNodes adaptatif utilisé :', adaptiveMaxNodes(params).toLocaleSt
 // ⚠️ totalPairCount, calculé À PART de searchBuilds (qui ne l'expose pas) —
 // même prepareSearch/buildBuckets que la vraie recherche, pour comparer
 // directement l'estimation affichée à l'écran au nombre réellement explore.
-function drain<T>(gen: Generator<unknown, T, void>): T {
-  let step = gen.next();
-  while (!step.done) step = gen.next();
-  return step.value;
-}
 const preparedForEstimate = prepareSearch(params);
 if (preparedForEstimate) {
   const bucketsA = drain(
-    buildBuckets('A', [0, 1, 2], preparedForEstimate.filtered, preparedForEstimate.distinctKeys, preparedForEstimate.constrainedKeys, preparedForEstimate.retentionKeys, preparedForEstimate.minEntries, preparedForEstimate.bucketCap, preparedForEstimate.maxSetsForA, preparedForEstimate.jokerCredit, preparedForEstimate.requiredPieces)
+    buildBuckets('A', [0, 1, 2], preparedForEstimate, preparedForEstimate.maxSetsForA)
   );
   const bucketsB = drain(
-    buildBuckets('B', [3, 4, 5], preparedForEstimate.filtered, preparedForEstimate.distinctKeys, preparedForEstimate.constrainedKeys, preparedForEstimate.retentionKeys, preparedForEstimate.minEntries, preparedForEstimate.bucketCap, preparedForEstimate.maxSetsForB, preparedForEstimate.jokerCredit, preparedForEstimate.requiredPieces)
+    buildBuckets('B', [3, 4, 5], preparedForEstimate, preparedForEstimate.maxSetsForB)
   );
   const total = totalPairCount(preparedForEstimate, bucketsA, bucketsB);
   console.log(`totalPairCount (pairFeasibleMin + comboAOk) : ${total.toLocaleString('fr-FR')}`);

@@ -1,4 +1,4 @@
-// Point 4 (spec/outils/optimizer.md) : mesure si une stat de `retentionKeys`
+// Point 4 (spec/outils/optimizer/) : mesure si une stat de `retentionKeys`
 // DIFFÉRENCIE vraiment les demi-builds, ou si presque tous les demi-builds
 // déjà bons (par `relevanceScore`, la tranche générique) l'ont de toute
 // façon — c'est CE signal, pas `diagnoseFeasibility` (écarté, voir
@@ -24,12 +24,7 @@ import { BuildRequirement, SearchParams, Objective, prepareSearch, buildBuckets,
 import { BaseStats } from '../src/types';
 import { loadDeckMonster } from './lib/deckMonster';
 import { readFileSync } from 'fs';
-
-function drain<T>(gen: Generator<unknown, T, void>): T {
-  let step = gen.next();
-  while (!step.done) step = gen.next();
-  return step.value;
-}
+import { drain } from './lib/drain';
 
 function retentionScoreLocal(pct: Record<string, number>, flat: Record<string, number>, key: string): number {
   return (pct[key] ?? 0) + (flat[key] ?? 0);
@@ -68,10 +63,10 @@ function runPrepared(label: string, params: SearchParams) {
   }
   console.log(`  retentionKeys=[${prepared.retentionKeys.join(', ')}]  bucketCap=${prepared.bucketCap}`);
   const bucketsA = drain(
-    buildBuckets('A', [0, 1, 2], prepared.filtered, prepared.distinctKeys, prepared.constrainedKeys, prepared.retentionKeys, prepared.minEntries, prepared.bucketCap, prepared.maxSetsForA, prepared.jokerCredit, prepared.requiredPieces)
+    buildBuckets('A', [0, 1, 2], prepared, prepared.maxSetsForA)
   );
   const bucketsB = drain(
-    buildBuckets('B', [3, 4, 5], prepared.filtered, prepared.distinctKeys, prepared.constrainedKeys, prepared.retentionKeys, prepared.minEntries, prepared.bucketCap, prepared.maxSetsForB, prepared.jokerCredit, prepared.requiredPieces)
+    buildBuckets('B', [3, 4, 5], prepared, prepared.maxSetsForB)
   );
   const combosA = bucketsA.flatMap((b) => b.combos);
   const combosB = bucketsB.flatMap((b) => b.combos);

@@ -131,33 +131,39 @@ export default function MonsterGear({ gear, spdCible = null }: Props) {
         }
       />
 
-      {/* Roue de runes — voir RuneWheel.tsx. */}
-      {gear.runes.length > 0 && (
-        <RuneWheel
-          runes={gear.runes}
-          isSelected={(_r, i) => isSel({ kind: 'rune', i })}
-          onSelectRune={(_r, i) => toggle({ kind: 'rune', i })}
-          renderOverlay={
-            auDoigt
-              ? undefined
-              : (r, i, ancre) => (
-                  <FlottantAuto
-                    ouvert={isSel({ kind: 'rune', i })}
-                    ancre={ancre}
-                    largeur={260}
-                    hauteur={320}
-                    rembourrage="md"
-                  >
-                    {/* Pleine taille : ce flottant n'existe qu'à la souris, où
-                        la carte ne se resserre pas d'elle-même.
-                        `encadre={false}` : voir la même remarque sur l'artéfact
-                        juste au-dessus. */}
-                    <RuneDetailBox rune={r} encadre={false} />
-                  </FlottantAuto>
-                )
-          }
-        />
-      )}
+      {/* Roue de runes — voir RuneWheel.tsx.
+          ⚠️ TOUJOURS rendue, même à 0 rune — pas conditionnée sur
+          `gear.runes.length > 0`. `RuneWheel` se contente de `runes.map`,
+          donc un slot sans rune montre déjà juste le fond de la roue, sans
+          cadre dessus : même mécanique qu'un build partiel (une rune sur
+          deux, par exemple), pas un état grisé à part à inventer. Un
+          monstre sans aucune rune importée doit quand même montrer le
+          fond de la roue, pas rien du tout — même principe que les
+          emplacements d'`ArtifactSlots` toujours affichés au-dessus. */}
+      <RuneWheel
+        runes={gear.runes}
+        isSelected={(_r, i) => isSel({ kind: 'rune', i })}
+        onSelectRune={(_r, i) => toggle({ kind: 'rune', i })}
+        renderOverlay={
+          auDoigt
+            ? undefined
+            : (r, i, ancre) => (
+                <FlottantAuto
+                  ouvert={isSel({ kind: 'rune', i })}
+                  ancre={ancre}
+                  largeur={260}
+                  hauteur={320}
+                  rembourrage="md"
+                >
+                  {/* Pleine taille : ce flottant n'existe qu'à la souris, où
+                      la carte ne se resserre pas d'elle-même.
+                      `encadre={false}` : voir la même remarque sur l'artéfact
+                      juste au-dessus. */}
+                  <RuneDetailBox rune={r} encadre={false} />
+                </FlottantAuto>
+              )
+        }
+      />
 
       {/* Relique à droite.
           ⚠️ La teinte `star` est le code du JEU pour ce qui a de la valeur, pas

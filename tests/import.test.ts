@@ -11,6 +11,7 @@ import {
   parseAccountSource,
   parseSiegeDefense,
   parseSiegeOffense,
+  parseWizardId,
 } from '../src/lib/importAccount';
 import { egal, exportReel, exportSynthetique, ignore, ok, titre } from './outils';
 
@@ -77,6 +78,17 @@ export default function testImport() {
   egal(parseAccountExportDate('{"tvalue":1786261890000}'), null, 'tvalue en millisecondes → rejetée');
   egal(parseAccountExportDate('{"tvalue":1}'), null, 'tvalue antérieure au jeu → rejetée');
 
+  /* --- Identité du compte (wizard_id) ----------------------------------- */
+
+  // ⚠️ C'est CETTE valeur (pas `tvalue`) qui distingue un réexport du même
+  // compte (même wizard_id, autre date) d'un compte réellement différent —
+  // voir App.tsx, `appliquerImport` (réinitialisation de l'exclusion
+  // manuelle de runes de l'Optimizer).
+  egal(parseWizardId('{"wizard_id":6399149}'), 6399149, 'wizard_id lu depuis la racine');
+  egal(parseWizardId('{"unit_list":[]}'), null, 'pas de wizard_id → aucune identité');
+  egal(parseWizardId('{"wizard_id":0}'), null, 'wizard_id à zéro → rejeté (jamais un vrai compte)');
+  egal(parseWizardId('{"wizard_id":"abc"}'), null, 'wizard_id non numérique → rejeté');
+
   /* --- Sur l'export réel, quand il est là ------------------------------ */
 
   const reel = exportReel();
@@ -89,4 +101,6 @@ export default function testImport() {
   ok(parseAccountInventory(reelObjet).runes.length > 1000, 'export réel : l’inventaire de runes est extrait');
   const d = parseAccountExportDate(reelObjet);
   ok(d !== null && d < Date.now(), 'export réel : date d’export plausible');
+  const w = parseWizardId(reelObjet);
+  ok(w !== null && w > 0, 'export réel : wizard_id plausible');
 }

@@ -865,7 +865,7 @@ export default function testRuneOptim() {
 
   {
     // ⚠️ Escalade du budget de nœuds (`NodeBudget`) — voir spec/outils/
-    // optimizer.md « Suite — escalade automatique du budget de nœuds ». Le
+    // optimizer/ « Suite — escalade automatique du budget de nœuds ». Le
     // point à vérifier N'EST PAS « le résultat final est correct » (ça,
     // n'importe quelle implémentation correcte, même une qui relancerait
     // `pairBuckets` depuis le début à chaque escalade, le donnerait aussi,
@@ -900,10 +900,10 @@ export default function testRuneOptim() {
     ok(prepared !== null, 'escalade NodeBudget : préparation réussie sur le pool synthétique');
     if (prepared) {
       const bucketsA = drain(
-        buildBuckets('A', [0, 1, 2], prepared.filtered, prepared.distinctKeys, prepared.constrainedKeys, prepared.retentionKeys, prepared.minEntries, prepared.bucketCap, prepared.maxSetsForA, prepared.jokerCredit, prepared.requiredPieces)
+        buildBuckets('A', [0, 1, 2], prepared, prepared.maxSetsForA)
       );
       const bucketsB = drain(
-        buildBuckets('B', [3, 4, 5], prepared.filtered, prepared.distinctKeys, prepared.constrainedKeys, prepared.retentionKeys, prepared.minEntries, prepared.bucketCap, prepared.maxSetsForB, prepared.jokerCredit, prepared.requiredPieces)
+        buildBuckets('B', [3, 4, 5], prepared, prepared.maxSetsForB)
       );
 
       // Référence : plafond large dès le départ, jamais atteint → exhaustif.

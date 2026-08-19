@@ -16,6 +16,7 @@ import { parseAccountSource, parseAccountBox, parseSiegeDefense, parseSiegeOffen
 import { BaseStats } from '../src/types';
 import { loadDeckMonster, parseDeckMonsterArgs } from './lib/deckMonster';
 import { readFileSync } from 'fs';
+import { drain } from './lib/drain';
 
 const USAGE =
   'Usage: set-relax-diag.ts <export.json> <deckId> <nomMonstre> <setsRelaches, ex: rage> [statKeys=atk,cr,cd] [objective=none] [slotFilterCap=80] [--explore-all]';
@@ -39,7 +40,7 @@ const objectiveArg = args.rest[2] ?? 'none';
 const objective = (objectiveArg === 'none' ? undefined : objectiveArg) as Objective | undefined;
 const slotFilterCap = args.rest[3] ? Number(args.rest[3]) : 80;
 const bucketCapOverride = args.rest[4] ? Number(args.rest[4]) : undefined;
-// Phase 0 (spec/outils/optimizer.md) : forcer un budget de paires généreux,
+// Phase 0 (spec/outils/optimizer/) : forcer un budget de paires généreux,
 // FIXE, pour simuler « au pire ce que l'escalade finirait par couvrir » sans
 // avoir à driver le générateur pas à pas — `searchBuilds` n'escalade pas lui
 // même (seul le Worker le fait), donc sans cette surcharge un `bucketCap`
@@ -83,12 +84,6 @@ console.log(`Sets réels du monstre : ${realSets.join('+')}`);
 console.log(`minStats : ${JSON.stringify(minStats)}  mainStats : ${JSON.stringify(mainStats)}`);
 console.log(`Pool : ${pool.length} runes (${exploreAll ? 'tout l\'inventaire' : 'box, exclusion appliquée'})`);
 
-function drain<T>(gen: Generator<unknown, T, void>): T {
-  let step = gen.next();
-  while (!step.done) step = gen.next();
-  return step.value;
-}
-
 function testWith(label: string, sets: string[]) {
   console.log(`\n=== ${label} (sets demandés = [${sets.join(',')}]) ===`);
   const requirement: BuildRequirement = { sets, minStats, mainStats };
@@ -116,10 +111,10 @@ function testWith(label: string, sets: string[]) {
   for (const k of Object.keys(prepared.guaranteedMin.flat)) headroomFlat[k] = (prepared.guaranteedMin.flat[k] ?? 0) - (prepared.guaranteed.flat[k] ?? 0);
   console.log(`headroom SEUL (unrequestedSetBonusHeadroom) : pct=${JSON.stringify(headroomPct)} flat=${JSON.stringify(headroomFlat)}`);
   const bucketsA = drain(
-    buildBuckets('A', [0, 1, 2], prepared.filtered, prepared.distinctKeys, prepared.constrainedKeys, prepared.retentionKeys, prepared.minEntries, prepared.bucketCap, prepared.maxSetsForA, prepared.jokerCredit, prepared.requiredPieces)
+    buildBuckets('A', [0, 1, 2], prepared, prepared.maxSetsForA)
   );
   const bucketsB = drain(
-    buildBuckets('B', [3, 4, 5], prepared.filtered, prepared.distinctKeys, prepared.constrainedKeys, prepared.retentionKeys, prepared.minEntries, prepared.bucketCap, prepared.maxSetsForB, prepared.jokerCredit, prepared.requiredPieces)
+    buildBuckets('B', [3, 4, 5], prepared, prepared.maxSetsForB)
   );
   console.log(`filtered (par slot) : ${prepared.filtered.map((l) => l.length).join(', ')}`);
   for (const tr of gear.runes) {
@@ -146,7 +141,7 @@ function testWith(label: string, sets: string[]) {
   const total = totalPairCount(prepared, bucketsA, bucketsB);
   console.log(`totalPairCount : ${total.toLocaleString('fr-FR')}`);
 
-  // ⚠️ Phase 0 (spec/outils/optimizer.md) : rejoue ICI exactement la même
+  // ⚠️ Phase 0 (spec/outils/optimizer/) : rejoue ICI exactement la même
   // escalade que runeBuildOptim.worker.ts (ESCALATION_FACTOR/TIME_SAFETY,
   // nodeBudget mutable relu en direct par pairBuckets) plutôt que d'appeler
   // `searchBuilds` — qui repart d'un budget FIXE et ne reflète donc pas ce

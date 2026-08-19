@@ -1,12 +1,27 @@
-import { Fragment, useMemo, useRef } from 'react';
-import { Search, Boxes, Square, Settings2, HelpCircle, RotateCcw, FlaskConical, Target } from 'lucide-react';
-import { ArtifactDetail, ARTIFACT_KINDS, RECO_STATS, RuneDetail } from '../../types';
+import { Fragment, useMemo, useRef, useState, useEffect } from 'react';
+import {
+  Search,
+  Square,
+  RotateCcw,
+  FlaskConical,
+  Target,
+  Upload,
+  Download,
+  ChevronLeft,
+  ChevronRight,
+  ChevronDown,
+  Layers,
+  UserX,
+  Ban,
+  SlidersHorizontal,
+  Wrench,
+} from 'lucide-react';
+import { ArtifactDetail, ARTIFACT_KINDS, RECO_STATS, RuneDetail, Monster, RtaEntry, SiegeTeam } from '../../types';
 import { BoxItem } from '../../lib/applyAccount';
 import { ARTIFACT_MAIN, CAPPED_STATS, RUNE_EFFECT, StatKey, runeEfficiency } from '../../lib/effects';
 import {
   BuildRequirement,
   SLOT_MAIN_OPTIONS,
-  excludedRuneIds,
   estimateSearchSpace,
   diagnoseFeasibility,
   StatFeasibility,
@@ -16,16 +31,30 @@ import {
   objectiveScore,
   candidateMetricTotal,
   OBJECTIVE_LABELS,
+  SLOT_FILTER_PRESETS,
+  ARTIFACT_MAIN_VALUE,
+  ARTIFACT_MAIN_OPTIONS,
 } from '../../lib/runeBuildOptim';
+import {
+  AUTO_EXCLUSION_SCOPES,
+  AutoExclusionScope,
+  ExclusionSourceData,
+  autoExcludedRuneIds,
+  resolveExcludedRuneIds,
+  resolveExclusionEntry,
+} from '../../lib/optimizerExclusion';
+import { buildOptimizerRecipe, parseOptimizerRecipe } from '../../lib/optimizerRecipe';
 import { ArtifactMainChoice, OptimizerState, OptimizerSortKey } from '../../hooks/useOptimizerState';
 import { useRuneMetric } from '../../hooks/useRuneMetric';
 import NumberField from '../../ui/NumberField';
+import GameIcon from '../GameIcon';
 import MonsterAvatar from '../MonsterAvatar';
 import MonsterGear from '../MonsterGear';
 import Segmented from '../../ui/Segmented';
 import Switch from '../Switch';
 import HelpPopover from '../HelpPopover';
 import MonsterGearPicker, { GearedMonster } from './MonsterGearPicker';
+import RuneExclusionPicker from './RuneExclusionPicker';
 import SetComboPicker from './SetComboPicker';
 import BuildCandidateCard from './BuildCandidateCard';
 
@@ -37,6 +66,12 @@ interface Props {
   // remontée, toute la saisie (monstre, conditions, résultats…) serait
   // perdue au moindre aller-retour vers un autre onglet.
   optimizer: OptimizerState;
+  // Pour l'exclusion manuelle de runes (RuneExclusionPicker) — RTA/Siège
+  // n'étaient jusqu'ici jamais lus par cet écran, voir optimizerExclusion.ts.
+  allMonsters: Monster[];
+  rtaEntries: Record<string, RtaEntry>;
+  siegeDefenseTeams: SiegeTeam[];
+  siegeOffenseTeams: SiegeTeam[];
 }
 
 // ⚠️ Le plafond de CAPPED_STATS (voir lib/effects.ts) ne s'applique QU'À la
@@ -55,42 +90,27 @@ const BASE_TOGGLE_STATS = new Set<StatKey>(['hp', 'atk', 'def', 'spd']);
 
 const CONFIGURABLE_SLOTS: (2 | 4 | 6)[] = [2, 4, 6];
 
-// Les trois valeurs de statistique principale d'artéfact possibles en jeu
-// (voir ARTIFACT_MAIN dans effects.ts pour les codes 100/101/102) — la
-// valeur elle-même n'est jamais un choix libre, seule la STAT l'est.
-const ARTIFACT_MAIN_VALUE: Record<100 | 101 | 102, number> = { 100: 1500, 101: 100, 102: 100 };
-const ARTIFACT_MAIN_OPTIONS: { code: 100 | 101 | 102; label: string }[] = [
-  { code: 101, label: 'ATQ +100' },
-  { code: 102, label: 'DEF +100' },
-  { code: 100, label: 'PV +1500' },
-];
-
-// Pré-filtrage par emplacement, en PRESETS plutôt qu'un curseur libre —
-// calibré par mesure sur un vrai compte (voir spec/outils/optimizer.md,
-// « Validation grandeur nature ») : 40 est le défaut historique, 300 est la
-// valeur qui a permis de retrouver un build réel sur un très gros compte.
-const SLOT_FILTER_PRESETS: { key: 'bas' | 'moyen' | 'haut' | 'extreme'; label: string; cap: number; hint: string }[] = [
-  { key: 'bas', label: 'Bas', cap: 40, hint: 'Rapide — suffit la plupart du temps.' },
-  { key: 'moyen', label: 'Moyen', cap: 80, hint: 'Un peu plus large, coût encore modéré.' },
-  { key: 'haut', label: 'Haut', cap: 150, hint: 'Nettement plus de runes considérées — recherche plus lente.' },
-  {
-    key: 'extreme',
-    label: 'Extrême',
-    cap: 300,
-    hint: 'Valeur mesurée nécessaire pour retrouver un vrai build sur un très gros compte — peut prendre plusieurs dizaines de secondes.',
-  },
-];
-
 function formatBig(n: number): string {
   if (!Number.isFinite(n)) return '—';
   if (n < 1_000_000_000) return Math.round(n).toLocaleString('fr-FR');
   return n.toExponential(1);
 }
 
+// Télécharge un texte en fichier (aucun envoi réseau) — même patron que
+// RtaBackupBar.tsx.
+function download(filename: string, text: string) {
+  const url = URL.createObjectURL(new Blob([text], { type: 'application/json;charset=utf-8' }));
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
 // Outil « Optimizer » : cherche, parmi les runes du compte, la (les)
 // meilleure(s) combinaison(s) de 6 pour un monstre, un combo de sets et des
-// minimums de stats donnés. Voir spec/outils/optimizer.md.
-export default function OptimizerSection({ box, runes, optimizer }: Props) {
+// minimums de stats donnés. Voir spec/outils/optimizer/.
+export default function OptimizerSection({ box, runes, optimizer, allMonsters, rtaEntries, siegeDefenseTeams, siegeOffenseTeams }: Props) {
   const metric = useRuneMetric();
   const {
     selectedId,
@@ -113,12 +133,20 @@ export default function OptimizerSection({ box, runes, optimizer }: Props) {
     setMainStatsBySlot,
     objective,
     setObjective,
-    exploreAll,
-    setExploreAll,
+    excludeUsedRunes,
+    setExcludeUsedRunes,
+    excludeUsedScope,
+    setExcludeUsedScope,
+    excludedSelectors,
+    setExcludedSelectors,
     adaptiveTrancheWeighting,
     setAdaptiveTrancheWeighting,
+    exhaustiveSearch,
+    setExhaustiveSearch,
     sortBy,
     setSortBy,
+    resultsPage,
+    setResultsPage,
     showAdvanced,
     setShowAdvanced,
     slotFilterPreset,
@@ -130,14 +158,22 @@ export default function OptimizerSection({ box, runes, optimizer }: Props) {
     openRuneKey,
     setOpenRuneKey,
     search,
+    resetSearch,
   } = optimizer;
   const { status, result, progress, run, stop } = search;
 
   // TOUS les monstres 6★ de la box importée (avec ou sans runes actuellement
   // équipées — voir « Mon compte » → Monstres), dédupliqués par monstre : on
   // garde le meilleur exemplaire équipé pour les stats/artéfacts affichés —
-  // voir spec/outils/optimizer.md pour cette simplification.
-  const gearedMonsters = useMemo<GearedMonster[]>(() => {
+  // voir spec/outils/optimizer/ pour cette simplification.
+  // ⚠️ `gearedMonsters` ET la clé de box (`unitKey`) du meilleur exemplaire
+  // PAR MONSTRE sont dérivés du MÊME passage sur `box` (un seul `score`, un
+  // seul balayage) — auparavant deux calculs séparés (revue de code externe,
+  // duplication) : `gearedMonsters` perdait `unitKey` en aplatissant vers
+  // `GearedMonster` (le type partagé avec MonsterGearPicker.tsx, qui n'en a
+  // pas besoin), obligeant `selectedUnitKey` à rebalayer `box` et
+  // redéfinir SA PROPRE copie de `score` juste pour le retrouver.
+  const { gearedMonsters, bestUnitKeyByMonsterId } = useMemo(() => {
     const best = new Map<string, BoxItem>();
     const score = (b: BoxItem) => (b.gear?.runes ?? []).reduce((s, r) => s + runeEfficiency(r), 0);
     for (const item of box) {
@@ -146,13 +182,21 @@ export default function OptimizerSection({ box, runes, optimizer }: Props) {
       const prev = best.get(id);
       if (!prev || score(item) > score(prev)) best.set(id, item);
     }
-    return Array.from(best.values()).map((item) => ({ monster: item.monster, gear: item.gear! }));
+    const gearedMonsters: GearedMonster[] = Array.from(best.values()).map((item) => ({ monster: item.monster, gear: item.gear! }));
+    const bestUnitKeyByMonsterId = new Map<string, string>(Array.from(best, ([id, item]) => [id, item.key]));
+    return { gearedMonsters, bestUnitKeyByMonsterId };
   }, [box]);
 
   const selected = gearedMonsters.find((g) => String(g.monster.id) === selectedId) ?? null;
 
+  // `unitKey` (box) du monstre RECHERCHÉ, pour l'exclure de ses propres
+  // propositions dans RuneExclusionPicker (s'exclure soi-même n'a pas de
+  // sens) — simple lookup O(1) dans la Map déjà calculée ci-dessus, pas un
+  // nouveau balayage de `box`.
+  const selectedUnitKey = selected ? (bestUnitKeyByMonsterId.get(String(selected.monster.id)) ?? null) : null;
+
   // Statistiques principales autorisées sur les slots 2/4/6 — vide = libre.
-  // Voir spec/outils/optimizer.md : pour un Lushen, ATQ% en 2, Dmg Crit en 4,
+  // Voir spec/outils/optimizer/ : pour un Lushen, ATQ% en 2, Dmg Crit en 4,
   // ATQ% en 6 — sans cette contrainte, ces slots partent dans n'importe quel
   // sens et noient le pré-filtrage sous des runes hors sujet.
   function toggleMainStat(slot: 2 | 4 | 6, code: number) {
@@ -180,23 +224,78 @@ export default function OptimizerSection({ box, runes, optimizer }: Props) {
   // « Rechercher » ne s'est rien passé.
   const setPickerSectionRef = useRef<HTMLDivElement>(null);
 
-  // ⚠️ « Utiliser tout l'inventaire » COCHÉE PAR DÉFAUT (revu — l'exclusion
-  // décochée par défaut pouvait surprendre : un demi-build qui semblait
-  // manquer alors que ses runes étaient simplement rattachées ailleurs dans
-  // la box, sans que rien à l'écran ne le signale, voir spec/outils/
-  // optimizer.md « Suite — case cochée par défaut »). Décochée, la recherche
-  // ne propose que des combos réellement montables sans dérunir un autre
-  // monstre de la box.
+  // ⚠️ « Exclure les runes déjà utilisées » DÉCOCHÉE PAR DÉFAUT — inversion
+  // volontaire de l'ancienne case « Utiliser tout l'inventaire » (COCHÉE par
+  // défaut, avec la signification opposée : décochée = exclusion box). Les
+  // deux réglages laissent le comportement PAR DÉFAUT de la recherche
+  // inchangé (tout l'inventaire considéré, rien exclu) — seule la case à
+  // activer explicitement pour restreindre a changé de sens et de nom, avec
+  // en plus un périmètre au choix (RTA/Défenses siège/Box, un seul à la
+  // fois, voir `AUTO_EXCLUSION_SCOPES`) là où l'ancienne case ne portait QUE
+  // sur la box. Voir spec/outils/optimizer/ « Suite — case cochée par
+  // défaut » pour l'historique de la case d'origine.
+  // Indexé par `String(monster.id)` — même clé que `RtaEntry.monsterId`/
+  // `SiegeSlot.monsterId` (voir applyAccount.ts). Recalculé seulement si la
+  // liste de monstres change, pas à chaque rendu.
+  const monsterById = useMemo(() => {
+    const m = new Map<string, Monster>();
+    for (const mon of allMonsters) m.set(String(mon.id), mon);
+    return m;
+  }, [allMonsters]);
+
+  const exclusionData = useMemo<ExclusionSourceData>(
+    () => ({ box, rtaEntries, siegeDefenseTeams, siegeOffenseTeams, monsterById }),
+    [box, rtaEntries, siegeDefenseTeams, siegeOffenseTeams, monsterById]
+  );
+
   const pool = useMemo(() => {
     if (!selected) return runes;
-    const excluded = exploreAll
-      ? new Set<number>()
-      : excludedRuneIds(
-          box.map((b) => ({ unitKey: b.key, com2usId: b.monster.com2usId, gear: b.gear })),
-          selected.monster.com2usId
-        );
-    return excluded.size === 0 ? runes : runes.filter((r) => !excluded.has(r.id));
-  }, [selected, exploreAll, box, runes]);
+    // Se SUPERPOSENT, ne se remplacent pas : `excludeUsedRunes` l'exclusion
+    // automatique (un périmètre entier, RTA/Défenses siège/Box),
+    // `excludedSelectors` l'exclusion manuelle en plus (entrée par entrée,
+    // n'importe laquelle des 4 sources) — voir optimizerExclusion.ts.
+    const auto = excludeUsedRunes
+      ? autoExcludedRuneIds(excludeUsedScope, exclusionData, selected.monster.com2usId)
+      : new Set<number>();
+    const manual = resolveExcludedRuneIds(excludedSelectors, exclusionData, selectedUnitKey, selected.monster.com2usId);
+    if (auto.size === 0 && manual.size === 0) return runes;
+    return runes.filter((r) => !auto.has(r.id) && !manual.has(r.id));
+  }, [selected, selectedUnitKey, excludeUsedRunes, excludeUsedScope, excludedSelectors, exclusionData, runes]);
+
+  // ⚠️ Purge les sélecteurs d'exclusion manuelle devenus AUTO-exclusion
+  // depuis un changement de monstre recherché — `resolveExcludedRuneIds`
+  // (ci-dessus, dans `pool`) les ignore déjà pour le calcul réel du pool
+  // (garantie de justesse, pas juste cosmétique), mais sans cette purge un
+  // sélecteur devenu inerte resterait affiché comme « sélectionné » dans
+  // RuneExclusionPicker sans plus rien faire — trompeur. Trouvé par une
+  // revue de code externe (`excludedSelectors` ne réagissait jusqu'ici à
+  // aucun changement de `selectedId`). Même double granularité que
+  // `resolveExcludedRuneIds` : box par ENTRÉE (`selectedUnitKey`), RTA/
+  // siège par ESPÈCE (`com2usId`) — un second exemplaire box de la même
+  // espèce reste une sélection légitime, jamais purgée à tort.
+  //
+  // ⚠️ `resolveExclusionEntry` (déjà exporté, résout box/rta/siège-défense/
+  // siège-offense par `sel.source`), PAS un `.concat(siegeDefenseTeams,
+  // siegeOffenseTeams).find(t => t.id === sel.teamId)` maison — une
+  // deuxième revue de code externe (2026-08-19) a trouvé cette version
+  // précédente : `SiegeTeam.id` peut retomber sur `t_${Date.now()}_
+  // ${random}` quand `crypto.randomUUID` est indisponible (contexte non
+  // sécurisé, voir `useSiegeState.ts`), avec un risque de collision entre
+  // une équipe défense et une équipe offense créées à la même
+  // milliseconde — chercher dans les deux listes concaténées sans
+  // regarder `sel.source` pouvait alors résoudre la MAUVAISE équipe.
+  useEffect(() => {
+    const ownCom2usId = selected?.monster.com2usId ?? null;
+    if (ownCom2usId == null) return;
+    setExcludedSelectors((prev) => {
+      const next = prev.filter((sel) => {
+        if (sel.source === 'box') return sel.unitKey !== selectedUnitKey;
+        const monster = resolveExclusionEntry(sel, exclusionData)?.monster;
+        return monster?.com2usId !== ownCom2usId;
+      });
+      return next.length === prev.length ? prev : next;
+    });
+  }, [selected?.monster.com2usId, selectedUnitKey, exclusionData, setExcludedSelectors]);
 
   // Artéfacts RÉELLEMENT transmis au moteur — indépendants de ceux affichés
   // dans « Équipement actuel » (toujours les VRAIS, une photo de l'existant,
@@ -272,7 +371,7 @@ export default function OptimizerSection({ box, runes, optimizer }: Props) {
   // plus coûteux que le palier 1 ci-dessus (N passes de pré-filtrage, N =
   // nombre de conditions posées, contre une seule) : calculé UNIQUEMENT
   // quand il sera réellement affiché — activé (`diagnoseBlockingEnabled`,
-  // « Options avancées ») ET une recherche vient de renvoyer 0 résultat —
+  // « Réglages avancés ») ET une recherche vient de renvoyer 0 résultat —
   // jamais à chaque frappe comme le palier 1.
   const blockingDiagnosis = useMemo<BlockingConditionsDiagnosis | null>(() => {
     if (!selected || !diagnoseBlockingEnabled) return null;
@@ -285,10 +384,21 @@ export default function OptimizerSection({ box, runes, optimizer }: Props) {
   // budget de rétention par tranche entre les stats demandées selon leur
   // dispersion mesurée, au lieu d'un plafond uniforme. Désactivé (défaut) :
   // comportement historique inchangé, coût nul (vérifié par mesure — voir
-  // spec/outils/optimizer.md, « Suite — piste B gatée derrière un
+  // spec/outils/optimizer/, « Suite — piste B gatée derrière un
   // paramètre »). Activé : recherche plus longue (+20 % de temps de
   // construction mesuré en moyenne), pour les cas où la recherche normale
   // ne trouve pas un build qui semble pourtant montable.
+  //
+  // `exhaustiveSearch` (toggle « Rechercher jusqu'à épuisement complet ») :
+  // remplace le filet de temps de 10 min (`HARD_TIMEOUT_MS`) par `Infinity` —
+  // déjà un budget-temps VALIDE pour le moteur, pas un cas spécial ajouté ici
+  // (le Worker sait déjà ignorer un `maxMs` non fini, voir `estimatePct` dans
+  // runeBuildOptim.worker.ts). ⚠️ Ne retire QUE la limite de temps : le
+  // plafond de `maxCollected` (100 000 candidats, non exposé dans l'UI) reste
+  // actif — une recherche assez lâche pour en trouver plus s'arrêtera quand
+  // même avant d'avoir visité tout l'espace. Désactivé par défaut : sans lui,
+  // une recherche mal contrainte peut tourner très longtemps (le bouton
+  // « Arrêter » reste le seul filet, coopératif comme toujours).
   function handleSearch() {
     if (!selected) return;
     if (comboSets.length === 0) {
@@ -299,6 +409,7 @@ export default function OptimizerSection({ box, runes, optimizer }: Props) {
     setSetPickerInvalid(false);
     setStoppedManually(false);
     setSortBy(objective);
+    setResultsPage(1);
     run({
       base: selected.gear.base,
       artifacts: searchArtifacts,
@@ -306,10 +417,115 @@ export default function OptimizerSection({ box, runes, optimizer }: Props) {
       pool,
       requirement,
       metric,
-      maxMs: HARD_TIMEOUT_MS,
+      maxMs: exhaustiveSearch ? Number.POSITIVE_INFINITY : HARD_TIMEOUT_MS,
       slotFilterCap,
       objective,
       adaptiveTrancheWeighting,
+    });
+  }
+
+  // Exporte la RECETTE de cette recherche (set, minimums, objectif,
+  // réglages) — jamais le pool de runes ni le compte, qui appartiennent à
+  // qui la relance. Sert à trois choses : (1) reproduire fidèlement un cas
+  // signalé sans retranscrire les réglages à la main (source de plusieurs
+  // erreurs vécues en investigation — conversion bonus/total, défauts
+  // d'écran périmés), (2) partager une recherche entre joueurs, chacun
+  // l'appliquant à son propre inventaire, (3) réutilisable tel quel par un
+  // script Node (voir scripts/lib/) ou, plus tard, par les recommandations
+  // de decks. Voir src/lib/optimizerRecipe.ts.
+  function exportRecipe() {
+    if (!selected || selected.monster.com2usId == null) return;
+    const recipe = buildOptimizerRecipe({
+      monsterCom2usId: selected.monster.com2usId,
+      monsterName: selected.monster.name,
+      requirement,
+      objective,
+      metric,
+      slotFilterPreset,
+      adaptiveTrancheWeighting,
+      exhaustiveSearch,
+      excludeUsedRunes,
+      excludeUsedScope,
+      excludedSelectors,
+      ignoreArtifacts,
+      artifactMainByKind,
+    });
+    const jour = new Date().toISOString().slice(0, 10);
+    const DIACRITICS = new RegExp('[̀-ͯ]', 'g');
+    const slug = selected.monster.name.toLowerCase().normalize('NFD').replace(DIACRITICS, '').replace(/[^a-z0-9]+/g, '-');
+    download(`swforge-optimizer-${slug}-${jour}.json`, JSON.stringify(recipe, null, 2));
+  }
+
+  // Reprend une recette importée (export d'un autre joueur, ou la sienne
+  // gardée de côté) — remplit les réglages tels quels, et sélectionne le
+  // monstre de CETTE box si son com2usId s'y trouve (peut différer du
+  // joueur qui a exporté : chacun l'applique à son propre inventaire, voir
+  // src/lib/optimizerRecipe.ts). Rien n'est irréversible : ça REMPLACE la
+  // saisie en cours, comme changer n'importe quel réglage à la main —
+  // aucune confirmation nécessaire.
+  // Brouillon de saisie du champ « Page X / Y » — `null` tant qu'on n'y
+  // tape pas (affiche alors `resultsPage`, la vraie valeur). Distinct de
+  // `resultsPage` lui-même : un numéro de page ne peut jamais être « vide »
+  // en soi (contrairement à une condition de stat, voir NumberField.tsx/
+  // `allowEmpty`), mais le CHAMP, pendant la frappe, doit pouvoir passer par
+  // un état vide (tout sélectionner puis taper un nouveau nombre) sans que
+  // React ne le re-remplisse aussitôt avec l'ancienne valeur — c'est
+  // exactement le bug vécu ici : `onChange` ignorait la chaîne vide sans
+  // jamais mettre à jour l'état, donc le champ contrôlé revenait TOUJOURS
+  // à l'ancien chiffre, rendant impossible de le vider avant de retaper.
+  const [pageDraft, setPageDraft] = useState<string | null>(null);
+  const [importMsg, setImportMsg] = useState<{ text: string; error?: boolean } | null>(null);
+  const importFileRef = useRef<HTMLInputElement>(null);
+  useEffect(() => {
+    if (!importMsg) return;
+    const t = setTimeout(() => setImportMsg(null), importMsg.error ? 9000 : 5000);
+    return () => clearTimeout(t);
+  }, [importMsg]);
+
+  function importRecipe(file: File) {
+    file.text().then((text) => {
+      const { recipe, error } = parseOptimizerRecipe(text);
+      if (!recipe) {
+        setImportMsg({ text: `Import refusé : ${error}`, error: true });
+        return;
+      }
+      setComboSets(recipe.requirement.sets);
+      setMinStats(recipe.requirement.minStats);
+      setMaxStats(recipe.requirement.maxStats ?? {});
+      setMainStatsBySlot(recipe.requirement.mainStats ?? {});
+      setObjective(recipe.objective);
+      setSlotFilterPreset(recipe.slotFilterPreset);
+      setAdaptiveTrancheWeighting(recipe.adaptiveTrancheWeighting);
+      // ⚠️ `?? false` : une recette exportée AVANT ce réglage ne porte pas ce
+      // champ (`undefined`) — repli sur le défaut plutôt que de propager une
+      // valeur non booléenne à l'état.
+      setExhaustiveSearch(recipe.exhaustiveSearch ?? false);
+      // ⚠️ Repli sur l'ANCIEN champ `exploreAll` (recette exportée avant ce
+      // renommage/inversion) : `exploreAll` coché = pas d'exclusion
+      // (`excludeUsedRunes = false`, comportement identique) ; décoché =
+      // exclusion box (`excludeUsedRunes = true`, `excludeUsedScope = 'box'`
+      // — seul périmètre que l'ancienne case connaissait). Une recette déjà
+      // à jour porte directement `excludeUsedRunes`/`excludeUsedScope`.
+      const legacy = recipe as unknown as { exploreAll?: boolean };
+      setExcludeUsedRunes(recipe.excludeUsedRunes ?? legacy.exploreAll === false);
+      setExcludeUsedScope(recipe.excludeUsedScope ?? 'box');
+      // ⚠️ `?? []` : même repli qu'`exhaustiveSearch` ci-dessus, pour les
+      // recettes exportées avant ce champ. Les sélecteurs sont re-résolus
+      // contre CE compte au moment de la recherche (voir optimizerExclusion.
+      // ts) — un monstre absent ici est silencieusement ignoré, pas une erreur.
+      setExcludedSelectors(recipe.excludedSelectors ?? []);
+      setIgnoreArtifacts(recipe.ignoreArtifacts);
+      setArtifactMainByKind(recipe.artifactMainByKind);
+
+      const match = gearedMonsters.find((g) => g.monster.com2usId === recipe.monsterCom2usId);
+      if (match) {
+        setSelectedId(String(match.monster.id));
+        setImportMsg({ text: `Réglages importés pour ${recipe.monsterName} — monstre sélectionné automatiquement.` });
+      } else {
+        setImportMsg({
+          text: `Réglages importés (${recipe.monsterName}), mais ce monstre n'est pas dans ta box — choisis-en un manuellement.`,
+        });
+      }
     });
   }
 
@@ -324,7 +540,11 @@ export default function OptimizerSection({ box, runes, optimizer }: Props) {
 
   // Tri CLIENT, sans relancer la recherche : le moteur collecte déjà les
   // stats complètes de chaque candidat valide (voir runeBuildOptim.ts).
-  const sortedCandidates = useMemo(() => {
+  // ⚠️ Liste COMPLÈTE, plus limitée à 20 — la pagination ci-dessous découpe
+  // cette liste en pages, pour pouvoir visualiser TOUS les builds trouvés
+  // (jusqu'à `MAX_COLLECTED`, voir runeBuildOptim.ts), pas seulement les
+  // meilleurs 20.
+  const fullSortedCandidates = useMemo(() => {
     if (!candidatesSource) return [];
     const list = candidatesSource.slice();
     if (sortBy === 'efficience') {
@@ -333,13 +553,35 @@ export default function OptimizerSection({ box, runes, optimizer }: Props) {
       // avec le popover d'une rune (recalculé en direct) si l'utilisateur
       // bascule Efficience ↔ Score après coup sans relancer.
       list.sort((a, b) => candidateMetricTotal(b, runeById, metric) - candidateMetricTotal(a, runeById, metric));
-    } else if (sortBy === 'degats' || sortBy === 'ehp' || sortBy === 'vitesse') {
+    } else if (sortBy === 'degats' || sortBy === 'ehp' || sortBy === 'vitesse' || sortBy === 'speed_nuker') {
+      // ⚠️ `speed_nuker` : sonde expérimentale (voir Objective dans
+      // runeBuildOptim.ts), jamais réellement sélectionnable ici (absente
+      // de OBJECTIVE_LABELS) — cette branche n'existe que pour que le
+      // typeur narrove correctement le `else` ci-dessous en StatKey pur.
       list.sort((a, b) => objectiveScore(b, sortBy) - objectiveScore(a, sortBy));
     } else {
       list.sort((a, b) => statTotal(b.stats, sortBy) - statTotal(a.stats, sortBy));
     }
-    return list.slice(0, 20);
+    return list;
   }, [candidatesSource, sortBy, runeById, metric]);
+
+  const RESULTS_PAGE_SIZE = 20;
+  const totalResultsPages = Math.max(1, Math.ceil(fullSortedCandidates.length / RESULTS_PAGE_SIZE));
+
+  // ⚠️ CORRIGE la page courante, ne la remet PAS à 1 : un aperçu EN DIRECT
+  // (pendant la phase d'appariement) grandit au fil de la recherche sans
+  // que ce soit une NOUVELLE recherche — recommencer à la page 1 à chaque
+  // candidat qui arrive rendrait la pagination inutilisable pendant qu'une
+  // recherche tourne. Seuls `handleSearch` (nouvelle recherche) et le choix
+  // de tri (classement entièrement différent) remettent explicitement à 1.
+  useEffect(() => {
+    setResultsPage((p) => Math.min(Math.max(p, 1), totalResultsPages));
+  }, [totalResultsPages, setResultsPage]);
+
+  const pageCandidates = useMemo(
+    () => fullSortedCandidates.slice((resultsPage - 1) * RESULTS_PAGE_SIZE, resultsPage * RESULTS_PAGE_SIZE),
+    [fullSortedCandidates, resultsPage]
+  );
 
   // Base « nue » du monstre choisi pour une stat — 0 tant qu'aucun monstre
   // n'est sélectionné. ⚠️ N'inclut PAS les artéfacts : en jeu, le mode
@@ -390,28 +632,74 @@ export default function OptimizerSection({ box, runes, optimizer }: Props) {
         indicatif — c'est à toi de re-runer dans le jeu.
       </p>
 
-      <div>
-        <p className="label mb-1.5">Monstre à optimiser</p>
-        <MonsterGearPicker items={gearedMonsters} onPick={setSelectedId} />
+      {/* Regroupement visuel — voir spec/outils/optimizer/, proposition
+          d'ergonomie 2026-08-18 : la page était une pile plate de ~12
+          sections au même poids visuel. Cette carte et les suivantes
+          regroupent des réglages apparentés sous un en-tête commun,
+          comportement des champs eux-mêmes INCHANGÉ. */}
+      <div className="rounded-xl border border-border bg-panel p-3">
+        <div className="mb-3 flex items-center gap-2">
+          <div className="flex h-6 w-6 flex-none items-center justify-center rounded-md border border-border-soft bg-panel2">
+            <GameIcon name="monster" size={15} />
+          </div>
+          <p className="text-[13.5px] font-bold text-ink">Monstre &amp; équipement</p>
+        </div>
+        <div>
+          <p className="label mb-1.5">Monstre à optimiser</p>
+          {/* ⚠️ Réinitialise « Critères de recherche » et « Combinaisons
+              trouvées » (`resetSearch`, voir useOptimizerState.ts) AVANT de
+              changer de monstre — sinon des critères/résultats posés pour
+              l'ANCIEN monstre resteraient affichés comme s'ils valaient pour
+              le nouveau. Garde `id !== selectedId` : re-cliquer le monstre
+              déjà sélectionné ne doit rien effacer, ce n'est pas un
+              changement. Uniquement dans CE picker, pas dans `setSelectedId`
+              lui-même — l'import d'une recette (plus bas) l'appelle aussi
+              mais pose ses PROPRES critères juste avant : les effacer
+              ensuite les perdrait aussitôt. */}
+          <MonsterGearPicker
+            items={gearedMonsters}
+            onPick={(id) => {
+              if (id !== selectedId) resetSearch();
+              setSelectedId(id);
+            }}
+          />
+        </div>
+
+        {selected && (
+          <div className="mt-3 rounded-xl border border-accent bg-panel/60 p-3">
+            <div className="flex items-center gap-2 mb-2">
+              <MonsterAvatar monster={selected.monster} size={32} />
+              <span className="font-semibold text-[14px]">{selected.monster.name}</span>
+            </div>
+            {/* ⚠️ Même composant que RTA/Siège quand on clique un monstre — pas
+                une réimplémentation : stats base/bonus, artéfacts, roue de
+                runes et relique tels qu'ACTUELLEMENT équipés, chacun cliquable
+                pour son détail complet (RuneDetailBox/ArtifactDetailBox/
+                RelicDetailBox), inline sous la roue. Ce que l'Optimizer part
+                d'optimiser, visible d'un coup d'œil avant de lancer quoi que
+                ce soit. */}
+            <MonsterGear gear={selected.gear} />
+          </div>
+        )}
       </div>
 
-      {selected && (
-        <div className="rounded-xl border border-accent bg-panel/60 p-3">
-          <div className="flex items-center gap-2 mb-2">
-            <MonsterAvatar monster={selected.monster} size={32} />
-            <span className="font-semibold text-sm">{selected.monster.name}</span>
+      <div className="rounded-xl border border-border bg-panel p-3">
+        <div className="mb-3 flex items-center gap-2">
+          {/* Curseurs de réglage, colorés (accent) — plus parlant qu'une
+              cible générique pour « plusieurs critères ajustables », et
+              distinct du `Target` déjà utilisé plus bas pour un réglage
+              précis (« Prioriser les stats les plus difficiles »). */}
+          <div className="flex h-6 w-6 flex-none items-center justify-center rounded-md border border-accent/40 bg-accent-soft">
+            <SlidersHorizontal size={13} className="text-accent" />
           </div>
-          {/* ⚠️ Même composant que RTA/Siège quand on clique un monstre — pas
-              une réimplémentation : stats base/bonus, artéfacts, roue de
-              runes et relique tels qu'ACTUELLEMENT équipés, chacun cliquable
-              pour son détail complet (RuneDetailBox/ArtifactDetailBox/
-              RelicDetailBox), inline sous la roue. Ce que l'Optimizer part
-              d'optimiser, visible d'un coup d'œil avant de lancer quoi que
-              ce soit. */}
-          <MonsterGear gear={selected.gear} />
+          <p className="text-[13.5px] font-bold text-ink">Critères de recherche</p>
         </div>
-      )}
-
+        {/* ⚠️ `space-y-4` restaure l'espacement entre blocs (Set/Statistique
+            principale/Objectif/Artéfacts/Conditions) — ces blocs comptaient
+            sur le `space-y-5` du CONTENEUR DE PAGE avant leur regroupement
+            dans cette carte ; devenus des enfants directs de la carte, ils
+            en ont hérité aucun espacement propre sans ce wrapper. */}
+        <div className="space-y-4">
       <div
         ref={setPickerSectionRef}
         className={
@@ -436,7 +724,14 @@ export default function OptimizerSection({ box, runes, optimizer }: Props) {
       </div>
 
       <div>
-        <p className="label mb-1.5">Statistique principale imposée (slots pairs)</p>
+        <div className="mb-2.5 flex items-center gap-1.5">
+          <p className="label">Statistique principale imposée (slots pairs)</p>
+          <HelpPopover title="Statistique principale imposée (slots pairs)">
+            Aucune coche sur un slot = pas de contrainte. Pour un{' '}
+            <b className="text-ink">Lushen</b> classique par exemple : <b className="text-ink">ATQ%</b> en 2,{' '}
+            <b className="text-ink">Dmg Crit</b> en 4, <b className="text-ink">ATQ%</b> en 6.
+          </HelpPopover>
+        </div>
         <div className="flex flex-col gap-1.5">
           {CONFIGURABLE_SLOTS.map((slot) => (
             <div key={slot} className="flex items-center gap-2 flex-wrap">
@@ -466,25 +761,34 @@ export default function OptimizerSection({ box, runes, optimizer }: Props) {
             </div>
           ))}
         </div>
-        <p className="mt-1 text-micro text-ink-dim">
-          Aucune coche sur un slot = pas de contrainte. Pour un Lushen classique par exemple : ATQ%
-          en 2, Dmg Crit en 4, ATQ% en 6.
-        </p>
       </div>
 
       <div>
-        <p className="label mb-1.5">Objectif de recherche</p>
+        <div className="mb-2.5 flex items-center gap-1.5">
+          <p className="label">Objectif de recherche</p>
+          <HelpPopover title="Objectif de recherche">
+            Élargit la sélection de runes candidates pour ses stats dès le pré-filtrage, avant même de
+            lancer la recherche — les minimums posés plus bas (Conditions) restent ce qui décide quels
+            demi-builds sont conservés pendant la recherche elle-même. <b className="text-ink">Dégâts</b> considère{' '}
+            <b className="text-ink">ATQ</b>, <b className="text-ink">Taux Crit</b> et{' '}
+            <b className="text-ink">Dgts Crit</b> ensemble (espérance moyenne).
+          </HelpPopover>
+        </div>
         <Segmented options={OBJECTIVE_LABELS} value={objective} onChange={setObjective} size="lg" />
-        <p className="mt-1 text-micro text-ink-dim">
-          Oriente le type de rune étudié dès le pré-filtrage, avant même de lancer la recherche — pas
-          seulement l'ordre des résultats. Dégâts considère ATQ, Taux Crit et Dgts Crit ensemble
-          (espérance moyenne).
-        </p>
       </div>
 
       <div>
-        <div className="flex items-center justify-between mb-1 flex-wrap gap-2">
-          <p className="label">Artéfacts</p>
+        <div className="flex items-center justify-between mb-2 flex-wrap gap-2">
+          <div className="flex items-center gap-1.5">
+            <p className="label">Artéfacts</p>
+            <HelpPopover title="Artéfacts">
+              <b className="text-ink">« Comme équipé »</b> reprend l'artéfact du build de base (celui affiché
+              ci-dessus) porté à cet emplacement. Choisir une statistique l'hypothèque pour la recherche sans avoir
+              besoin de le posséder — utile si ce monstre porte des artéfacts différents en RTA ou dans un deck de
+              siège, puisque ce build de base n'est pas forcément celui que tu cherches à reproduire ;{' '}
+              <b className="text-ink">« Aucun »</b> retire l'emplacement même s'il est réellement équipé.
+            </HelpPopover>
+          </div>
           <div className="flex items-center gap-1.5">
             <span className="text-xs font-semibold text-ink-dim">Ignorer les statistiques des artéfacts</span>
             <HelpPopover title="Ignorer les statistiques des artéfacts">
@@ -525,17 +829,10 @@ export default function OptimizerSection({ box, runes, optimizer }: Props) {
             ))}
           </div>
         )}
-        <p className="mt-1 text-micro text-ink-dim">
-          « Comme équipé » reprend l'artéfact du build de base (celui affiché ci-dessus) porté à cet
-          emplacement. Choisir une statistique l'hypothèque pour la recherche sans avoir besoin de le
-          posséder — utile si ce monstre porte des artéfacts différents en RTA ou dans un deck de siège,
-          puisque ce build de base n'est pas forcément celui que tu cherches à reproduire ; « Aucun »
-          retire l'emplacement même s'il est réellement équipé.
-        </p>
       </div>
 
       <div>
-        <div className="flex items-center justify-between mb-1 flex-wrap gap-2">
+        <div className="flex items-center justify-between mb-2 flex-wrap gap-2">
           <p className="label">Conditions</p>
           <div className="flex items-center gap-1.5">
             <span className="text-xs font-semibold text-ink-dim">Stats de base exclues</span>
@@ -649,19 +946,31 @@ export default function OptimizerSection({ box, runes, optimizer }: Props) {
           </button>
         </div>
       </div>
+        </div>
+      </div>
 
-      <div>
+      <div className="rounded-xl border border-border bg-panel p-3">
         <button
           type="button"
           onClick={() => setShowAdvanced((v) => !v)}
           aria-expanded={showAdvanced}
-          className="flex items-center gap-1.5 text-xs font-semibold text-ink-dim transition hoverable:text-ink"
+          className="flex w-full items-center gap-1.5 text-[13px] font-bold text-ink"
         >
-          <Settings2 size={13} /> Options avancées
+          {/* Clé à molette, distincte des curseurs de « Critères de
+              recherche » (forme différente, pas seulement une couleur) —
+              même traitement accent que les autres en-têtes de carte. */}
+          <div className="flex h-6 w-6 flex-none items-center justify-center rounded-md border border-accent/40 bg-accent-soft">
+            <Wrench size={13} className="text-accent" />
+          </div>
+          Réglages avancés
+          <ChevronDown
+            size={14}
+            className={`ml-auto text-ink-dim transition-transform ${showAdvanced ? 'rotate-180' : ''}`}
+          />
         </button>
         {showAdvanced && (
-          <div className="mt-2 rounded-lg border border-border bg-panel p-3">
-            <p className="text-micro text-ink-dim mb-1">Pré-filtrage par emplacement</p>
+          <div className="mt-3 rounded-lg border border-border bg-panel2 p-3">
+            <p className="text-[11.5px] text-ink-dim mb-1">Pré-filtrage par emplacement</p>
             <div className="flex items-center gap-1 bg-panel2 border border-border rounded-lg p-0.5 w-fit">
               {SLOT_FILTER_PRESETS.map((p) => (
                 <button
@@ -682,17 +991,62 @@ export default function OptimizerSection({ box, runes, optimizer }: Props) {
               ⚠️ {SLOT_FILTER_PRESETS.find((p) => p.key === slotFilterPreset)?.hint}
             </p>
 
+            {/* Toggle, même patron que « Prioriser les stats les plus
+                difficiles » : désactivé par défaut, lu par `handleSearch` au
+                clic sur « Rechercher », jamais un bouton qui lance sa propre
+                recherche. */}
             <div className="mt-3 flex items-center justify-between gap-2 border-t border-border pt-3">
               <div className="flex items-center gap-1.5">
-                <span className="text-micro text-ink-dim">Diagnostic approfondi sur 0 résultat</span>
-                <span title="Après une recherche à 0 résultat, identifie quelle condition posée libère le plus de candidats si on la retire — un indice, pas une preuve. Coûte plusieurs passes de pré-filtrage au lieu d'une seule, jamais une recherche complète.">
-                  <HelpCircle size={13} className="text-ink-dim" />
-                </span>
+                <span className="text-[11.5px] text-ink-dim">Rechercher jusqu'à épuisement complet</span>
+                <HelpPopover title="Rechercher jusqu'à épuisement complet">
+                  Retire la limite de temps de 10 minutes : la recherche continue tant qu'il reste des combinaisons
+                  à examiner. Peut prendre très longtemps sur une recherche avec peu de conditions — le bouton{' '}
+                  <b className="text-ink">« Arrêter »</b> reste disponible et garde le meilleur trouvé jusque-là.
+                  Le plafond de 100 000 résultats collectés, lui, reste actif.
+                </HelpPopover>
+              </div>
+              <Switch
+                checked={exhaustiveSearch}
+                onChange={setExhaustiveSearch}
+                label="Rechercher jusqu'à épuisement complet"
+              />
+            </div>
+
+            <div className="mt-3 flex items-center justify-between gap-2 border-t border-border pt-3">
+              <div className="flex items-center gap-1.5">
+                <span className="text-[11.5px] text-ink-dim">Diagnostic approfondi sur 0 résultat</span>
+                <HelpPopover title="Diagnostic approfondi sur 0 résultat">
+                  Après une recherche à 0 résultat, identifie quelle condition posée libère le plus de candidats si
+                  on la retire — <b className="text-ink">un indice, pas une preuve</b>. Coûte plusieurs passes de
+                  pré-filtrage au lieu d'une seule, jamais une recherche complète.
+                </HelpPopover>
               </div>
               <Switch
                 checked={diagnoseBlockingEnabled}
                 onChange={setDiagnoseBlockingEnabled}
                 label="Diagnostic approfondi sur 0 résultat"
+              />
+            </div>
+
+            {/* Déplacé depuis son ancien emplacement (juste avant les
+                boutons d'action) — même toggle, même logique, regroupé ici
+                avec les autres réglages secondaires. */}
+            <div className="mt-3 flex items-center justify-between gap-2 border-t border-border pt-3">
+              <div className="flex items-center gap-1.5">
+                <Target size={15} className="text-ink-dim" />
+                <span className="text-[11.5px] text-ink-dim">Prioriser les stats les plus difficiles</span>
+                <HelpPopover title="Prioriser les stats les plus difficiles">
+                  Par défaut, le budget de recherche est réparti également entre toutes les stats demandées en
+                  même temps. Une stat rare (peu de runes candidates en apportent beaucoup) peut alors être
+                  étouffée par une stat plus commune. Ce réglage réalloue davantage de budget vers{' '}
+                  <b className="text-ink">les stats les plus difficiles à combiner</b> — peut retrouver un build
+                  qu'une recherche normale rate, au prix d'une recherche plus longue.
+                </HelpPopover>
+              </div>
+              <Switch
+                checked={adaptiveTrancheWeighting}
+                onChange={setAdaptiveTrancheWeighting}
+                label="Prioriser les stats les plus difficiles"
               />
             </div>
           </div>
@@ -707,45 +1061,84 @@ export default function OptimizerSection({ box, runes, optimizer }: Props) {
         </p>
       )}
 
-      <div className="flex flex-wrap items-center gap-3">
-        <div className="flex items-center gap-1.5">
-          <Boxes size={15} className="text-ink-dim" />
-          <span className="text-xs font-semibold text-ink-dim">Utiliser tout l'inventaire</span>
-          <HelpPopover title="Utiliser tout l'inventaire">
-            Par défaut, la recherche ne considère que les runes réellement disponibles pour ce monstre —{' '}
-            <b className="text-ink">celles qu'aucun autre monstre de la box ne porte déjà</b> (un build réellement
-            montable sans dérunir quelqu'un). Active ce réglage pour explorer tout l'inventaire, runes déjà portées
-            ailleurs comprises.
-          </HelpPopover>
-          <Switch checked={exploreAll} onChange={setExploreAll} label="Utiliser tout l'inventaire" />
+      {/* Catégorie « Exclusion de runes » — les deux réglages ci-dessous
+          existaient déjà séparément (voir git blame), simplement regroupés
+          sous un en-tête commun ; comportement/logique INCHANGÉS. Se
+          superposent l'un à l'autre (voir optimizerExclusion.ts), jamais
+          l'un ne remplace l'autre. */}
+      <div className="rounded-xl border border-accent/50 bg-panel p-3">
+        <div className="mb-0.5 flex items-center gap-2">
+          {/* Icône « Runes » de Mon compte (même GameIcon que le menu),
+              barrée du vrai symbole « interdit » (cercle barré, comme le
+              curseur non-cliquable) plutôt qu'un simple trait — l'exclusion
+              RETIRE des runes de la recherche. */}
+          <div className="relative flex h-6 w-6 flex-none items-center justify-center rounded-md border border-border-soft bg-panel2">
+            <GameIcon name="rune" size={13} />
+            <Ban size={22} strokeWidth={1.75} className="pointer-events-none absolute text-bad/85" />
+          </div>
+          <p className="text-[13.5px] font-bold text-ink">Exclusion de runes</p>
         </div>
+        <p className="mb-3 pl-8 text-[11px] text-ink-dim">Deux réglages indépendants, qui se superposent.</p>
 
-        {/* Toggle, pas un bouton qui lance sa propre recherche : désactivé
-            par défaut, jamais suggéré (voir spec/outils/optimizer.md — pas
-            d'indicateur tant qu'aucun seuil de déclenchement fiable n'est
-            calibré), lu par `handleSearch` au moment du clic sur
-            « Rechercher » ci-dessous. */}
-        <div className="flex items-center gap-1.5">
-          <Target size={15} className="text-ink-dim" />
-          <span className="text-xs font-semibold text-ink-dim">Prioriser les stats les plus difficiles</span>
-          <HelpPopover title="Prioriser les stats les plus difficiles">
-            Par défaut, le budget de recherche est réparti également entre toutes les stats demandées en même temps.
-            Une stat rare (peu de runes candidates en apportent beaucoup) peut alors être étouffée par une stat plus
-            commune. Ce réglage réalloue davantage de budget vers{' '}
-            <b className="text-ink">les stats les plus difficiles à combiner</b> — peut retrouver un build qu'une
-            recherche normale rate, au prix d'une recherche plus longue.
-          </HelpPopover>
-          <Switch
-            checked={adaptiveTrancheWeighting}
-            onChange={setAdaptiveTrancheWeighting}
-            label="Prioriser les stats les plus difficiles"
-          />
+        {/* Côte à côte à partir de `sm` (les deux tiennent dans les 768px du
+            conteneur) ; empilés en dessous, comme avant, pour rester
+            praticable sur mobile. Colonne de gauche plus étroite (toggle +
+            3 options) que celle de droite (recherche + liste), pas un
+            50/50 aveugle. */}
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-[minmax(200px,260px)_1fr] sm:gap-5">
+          <div className="sm:border-r sm:border-border-soft sm:pr-5">
+            <div className="flex flex-wrap items-center gap-1.5 mb-2">
+              <Layers size={15} className="text-ink-dim" />
+              <span className="text-[12.5px] font-semibold text-ink-dim">Exclure les runes déjà utilisées</span>
+              <HelpPopover title="Exclure les runes déjà utilisées">
+                Par défaut, la recherche considère TOUT l'inventaire, runes déjà portées ailleurs comprises. Active ce
+                réglage pour retirer de la recherche les runes déjà portées par d'AUTRES monstres dans le périmètre
+                choisi ci-dessous (un seul à la fois) — un build réellement montable sans déruner quelqu'un. Le monstre
+                recherché lui-même n'est jamais exclu de ses propres runes.
+              </HelpPopover>
+              <Switch checked={excludeUsedRunes} onChange={setExcludeUsedRunes} label="Exclure les runes déjà utilisées" />
+            </div>
+            <Segmented
+              options={AUTO_EXCLUSION_SCOPES}
+              value={excludeUsedScope}
+              onChange={setExcludeUsedScope}
+              disabled={!excludeUsedRunes}
+              size="lg"
+            />
+          </div>
+
+          {/* Exclusion MANUELLE — se superpose à « Exclure les runes déjà
+              utilisées » à gauche, ne la remplace pas (voir
+              optimizerExclusion.ts). Choisir un monstre ici, dans n'importe
+              laquelle des 4 sources, retire ses runes ACTUELLEMENT équipées
+              du pool considéré, en plus de l'exclusion automatique
+              éventuelle. */}
+          <div>
+            <div className="mb-2.5 flex items-center gap-1.5">
+              <UserX size={15} className="text-ink-dim" />
+              <span className="text-[12.5px] font-semibold text-ink-dim">Exclure les runes d'un monstre</span>
+              <HelpPopover title="Exclure les runes d'un monstre">
+                Choisis un monstre (box, RTA, siège défense ou offense) pour retirer SES runes actuellement équipées de
+                la recherche — utile pour un build que tu ne veux pas défaire, en plus de{' '}
+                <b className="text-ink">« Exclure les runes déjà utilisées »</b> à gauche.
+              </HelpPopover>
+            </div>
+            <RuneExclusionPicker
+              data={exclusionData}
+              excludeOwnUnitKey={selectedUnitKey}
+              excludeOwnCom2usId={selected?.monster.com2usId ?? null}
+              selected={excludedSelectors}
+              onChange={setExcludedSelectors}
+            />
+          </div>
         </div>
+      </div>
 
+      <div className="sticky bottom-3 z-10 flex flex-wrap items-center gap-3 rounded-xl border border-border bg-panel/95 p-3 shadow-lg backdrop-blur">
         {/* ⚠️ `comboSets.length === 0` reste HORS de `disabled` — un bouton
             HTML natif `disabled` ne déclenche JAMAIS `onClick` (règle du
             DOM, pas un oubli), ce qui aurait rendu le défilement vers « Set
-            de runes recherché » ci-dessous inatteignable : plus aucun clic
+            de runes recherché » plus haut inatteignable : plus aucun clic
             ne pouvait jamais arriver jusqu'à `handleSearch`. Grisé
             visuellement à la place (mêmes classes que `disabled:*`,
             appliquées manuellement) tout en restant cliquable, pour que le
@@ -765,6 +1158,50 @@ export default function OptimizerSection({ box, runes, optimizer }: Props) {
           {status === 'running' ? 'Recherche…' : 'Rechercher'}
         </button>
 
+        {/* Exporte les réglages de CETTE recherche (set, minimums, objectif…),
+            jamais le pool de runes ni le compte — pour reproduire fidèlement
+            un cas signalé, partager une recherche entre joueurs (chacun
+            l'applique à son propre inventaire), ou la réutiliser depuis un
+            script. Voir src/lib/optimizerRecipe.ts. */}
+        <button
+          type="button"
+          onClick={exportRecipe}
+          disabled={!selected || comboSets.length === 0}
+          title="Télécharger les réglages de cette recherche en fichier .json (set, minimums, objectif…) — pour la partager ou la reproduire, jamais tes runes ni ton compte."
+          className="flex items-center gap-1.5 rounded-lg border border-border bg-panel px-3 py-2 text-[12.5px]
+                     text-ink-dim transition hoverable:text-ink hoverable:border-accent disabled:opacity-40 disabled:cursor-not-allowed"
+        >
+          <Upload size={14} />
+          Exporter les paramètres de recherche
+        </button>
+
+        {/* Reprend une recette importée (fichier reçu d'un autre joueur, ou
+            gardée de côté) — remplit les réglages et sélectionne le monstre
+            si son com2usId existe dans CETTE box. Aucune confirmation :
+            remplacer les réglages en cours n'est pas plus destructeur que
+            les modifier à la main un par un. */}
+        <button
+          type="button"
+          onClick={() => importFileRef.current?.click()}
+          title="Reprendre les réglages d'un fichier .json exporté depuis l'Optimizer (le tien ou celui d'un autre joueur)."
+          className="flex items-center gap-1.5 rounded-lg border border-border bg-panel px-3 py-2 text-[12.5px]
+                     text-ink-dim transition hoverable:text-ink hoverable:border-accent"
+        >
+          <Download size={14} />
+          Importer les paramètres de recherche
+        </button>
+        <input
+          ref={importFileRef}
+          type="file"
+          accept=".json,application/json"
+          className="hidden"
+          onChange={(e) => {
+            const f = e.target.files?.[0];
+            e.target.value = ''; // permet de réimporter le même fichier
+            if (f) importRecipe(f);
+          }}
+        />
+
         {status === 'running' && (
           <button
             type="button"
@@ -781,6 +1218,12 @@ export default function OptimizerSection({ box, runes, optimizer }: Props) {
         )}
       </div>
 
+      {importMsg && (
+        <p className={`text-[12.5px] ${importMsg.error ? 'text-bad' : 'text-good'}`} role="status">
+          {importMsg.text}
+        </p>
+      )}
+
       {/* ⚠️ Deux phases distinctes affichées différemment, pas une seule
           barre continue : `building` (construction des compartiments, avant
           même de savoir combien de paires il y aura à explorer) et `pairing`
@@ -791,7 +1234,7 @@ export default function OptimizerSection({ box, runes, optimizer }: Props) {
           la phase `building` (jusqu'à ~1 minute sur un compte réel à
           beaucoup de conditions) : la barre affichait 0 % sans bouger et le
           texte « 0 combinaisons examinées », sans dire qu'un TRAVAIL était
-          en cours — voir spec/outils/optimizer.md. */}
+          en cours — voir spec/outils/optimizer/. */}
       {/* ⚠️ Deux barres empilées, une par moitié, pas une seule — depuis leur
           construction EN PARALLÈLE (deux Workers, voir
           runeBuildOptim.worker.ts), A et B avancent en même temps ; une seule
@@ -845,8 +1288,9 @@ export default function OptimizerSection({ box, runes, optimizer }: Props) {
             </p>
           )}
           {progress !== null && (
-            <p className="mt-0.5 font-mono text-micro text-ink-dimmer">
-              Le budget de recherche s'élargit automatiquement tant qu'il reste du temps et rien de trouvé.
+            <p className="mt-0.5 font-mono text-[11px] text-ink-dimmer">
+              Le budget de recherche s'élargit automatiquement tant qu'il reste du temps et que le plafond de
+              résultats (100 000) n'est pas atteint — pas seulement tant que rien n'est trouvé.
             </p>
           )}
         </div>
@@ -863,25 +1307,28 @@ export default function OptimizerSection({ box, runes, optimizer }: Props) {
           que d'attendre l'épuisement complet de l'espace de recherche.
           `result === null` tant que rien n'est trouvé : rien à montrer de
           plus utile que les barres de progression déjà affichées. */}
-      {(result || sortedCandidates.length > 0) && (
+      {(result || fullSortedCandidates.length > 0) && (
         <div>
           <div className="flex items-center justify-between mb-2 flex-wrap gap-2">
             <p className="label">
               {result
                 ? result.candidates.length === 0
                   ? 'Aucune combinaison ne répond à ces critères'
-                  : `${result.candidates.length} combinaison(s) trouvée(s)${
-                      result.candidates.length > 20 ? ' · 20 affichées' : ''
-                    }`
-                : `${(progress?.phase === 'pairing' ? progress.found : sortedCandidates.length).toLocaleString(
+                  : `${result.candidates.length} combinaison(s) trouvée(s)`
+                : `${(progress?.phase === 'pairing' ? progress.found : fullSortedCandidates.length).toLocaleString(
                     'fr-FR'
                   )} combinaison(s) trouvée(s) pour l'instant — recherche en cours…`}
             </p>
             {(result ? result.candidates.length > 0 : true) && (
               <select
                 value={sortBy}
-                onChange={(e) => setSortBy(e.target.value as OptimizerSortKey)}
-                className="bg-panel border border-border rounded-lg px-2 py-1 text-xs text-ink outline-none
+                onChange={(e) => {
+                  setSortBy(e.target.value as OptimizerSortKey);
+                  // Classement entièrement différent : la page courante
+                  // n'a plus le même sens, on repart du meilleur résultat.
+                  setResultsPage(1);
+                }}
+                className="bg-panel border border-border rounded-lg px-2 py-1 text-[12px] text-ink outline-none
                            focus:border-accent"
               >
                 <optgroup label="Stats">
@@ -938,7 +1385,7 @@ export default function OptimizerSection({ box, runes, optimizer }: Props) {
                   Aucune condition n'est, à elle seule, mathématiquement hors de portée — le blocage
                   vient probablement de leur <b className="text-ink">combinaison</b> (rare qu'un seul
                   build satisfasse tout à la fois), ou du pré-filtrage de la recherche elle-même. Essaie
-                  de desserrer une condition, ou un pré-filtrage plus large (Options avancées).
+                  de desserrer une condition, ou un pré-filtrage plus large (Réglages avancés).
                 </p>
               )}
             </div>
@@ -975,8 +1422,8 @@ export default function OptimizerSection({ box, runes, optimizer }: Props) {
               </div>
             ) : (
               !diagnoseBlockingEnabled && (
-                <p className="mb-3 text-micro text-ink-dim">
-                  Astuce : active le diagnostic approfondi (Options avancées) pour identifier quelle
+                <p className="mb-3 text-[11px] text-ink-dim">
+                  Astuce : active le diagnostic approfondi (Réglages avancés) pour identifier quelle
                   condition libère le plus de candidats.
                 </p>
               )
@@ -997,10 +1444,10 @@ export default function OptimizerSection({ box, runes, optimizer }: Props) {
               (voir BuildCandidateCard.tsx), calibrées pour tenir dans cette
               largeur (`WHEEL_SCALE`/`ARTIFACT_SCALE` = 0,45). */}
           <div className="grid grid-cols-[repeat(auto-fill,minmax(min(360px,100%),1fr))] gap-3">
-            {sortedCandidates.map((c, i) => (
+            {pageCandidates.map((c, i) => (
               <BuildCandidateCard
                 key={c.runeIds.join('-')}
-                rank={i + 1}
+                rank={(resultsPage - 1) * RESULTS_PAGE_SIZE + i + 1}
                 candidate={c}
                 runeById={runeById}
                 // ⚠️ `searchArtifacts`, PAS `selected.gear.artifacts` : les
@@ -1016,6 +1463,75 @@ export default function OptimizerSection({ box, runes, optimizer }: Props) {
               />
             ))}
           </div>
+
+          {/* Pagination — remplace l'ancienne troncature dure à 20 : la
+              liste complète (jusqu'à MAX_COLLECTED, voir runeBuildOptim.ts)
+              reste consultable, 20 par page. Flèches précédent/suivant +
+              saisie directe du numéro de page (même convention que les
+              champs numériques de l'app : `type="text"` + `inputMode=
+              "numeric"`, jamais de flèches natives de navigateur — voir
+              NumberField.tsx). */}
+          {totalResultsPages > 1 && (
+            <div className="mt-4 flex items-center justify-center gap-3">
+              <button
+                type="button"
+                onClick={() => setResultsPage((p) => Math.max(1, p - 1))}
+                disabled={resultsPage <= 1}
+                aria-label="Page précédente"
+                title="Page précédente"
+                className="flex h-8 w-8 flex-none items-center justify-center rounded-lg border border-border
+                           bg-panel text-ink-dim transition hoverable:text-ink hoverable:border-accent
+                           disabled:opacity-30 disabled:cursor-not-allowed"
+              >
+                <ChevronLeft size={16} />
+              </button>
+
+              <div className="flex items-center gap-1.5 font-mono text-[12.5px] text-ink-dim">
+                <span>Page</span>
+                <input
+                  type="text"
+                  inputMode="numeric"
+                  value={pageDraft ?? String(resultsPage)}
+                  aria-label="Aller à la page"
+                  onChange={(e) => {
+                    const brut = e.target.value.trim();
+                    // ⚠️ La chaîne VIDE est un état de brouillon valide (tout
+                    // sélectionner puis taper) — contrairement à l'ancienne
+                    // version, ne JAMAIS `return` sans mettre à jour l'état
+                    // ici, sinon le champ contrôlé revient aussitôt à
+                    // l'ancienne valeur et le chiffre ne peut plus disparaître.
+                    if (brut !== '' && !/^\d+$/.test(brut)) return; // frappe invalide ignorée
+                    setPageDraft(brut);
+                  }}
+                  onBlur={() => {
+                    if (pageDraft !== null && pageDraft !== '') {
+                      setResultsPage(Math.min(Math.max(Number(pageDraft), 1), totalResultsPages));
+                    }
+                    setPageDraft(null);
+                  }}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') (e.target as HTMLInputElement).blur();
+                  }}
+                  className="w-11 rounded-md border border-border bg-panel px-1 py-1 text-center text-ink
+                             outline-none focus:border-accent"
+                />
+                <span>/ {totalResultsPages}</span>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => setResultsPage((p) => Math.min(totalResultsPages, p + 1))}
+                disabled={resultsPage >= totalResultsPages}
+                aria-label="Page suivante"
+                title="Page suivante"
+                className="flex h-8 w-8 flex-none items-center justify-center rounded-lg border border-border
+                           bg-panel text-ink-dim transition hoverable:text-ink hoverable:border-accent
+                           disabled:opacity-30 disabled:cursor-not-allowed"
+              >
+                <ChevronRight size={16} />
+              </button>
+            </div>
+          )}
         </div>
       )}
     </div>

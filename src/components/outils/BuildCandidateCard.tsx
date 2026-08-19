@@ -14,7 +14,7 @@ interface Props {
   candidate: BuildCandidate;
   runeById: Map<number, RuneDetail>;
   // Artéfacts ACTUELLEMENT équipés sur le monstre optimisé — fixes, jamais
-  // modifiés par la recherche (voir spec/outils/optimizer.md « Algorithme »).
+  // modifiés par la recherche (voir spec/outils/optimizer/ « Algorithme »).
   // Identiques d'une carte de résultat à l'autre : affichés pour la même
   // raison que « Équipement actuel » les affiche déjà, pas parce qu'ils
   // varient selon le candidat.

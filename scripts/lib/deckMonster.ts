@@ -7,6 +7,7 @@
 import { readFileSync } from 'fs';
 import { parseAccountSource, parseAccountInventory, parseSiegeOffense, parseSiegeDefense } from '../../src/lib/importAccount';
 import { GearSet } from '../../src/types';
+import { loadMonstersList } from './monstersData';
 
 export interface DeckMonsterArgs {
   exportPath: string;
@@ -41,9 +42,10 @@ export function loadDeckMonster({ exportPath, deckId, monsterName, defense }: De
   const raw = readFileSync(exportPath, 'utf8');
   const data = parseAccountSource(raw)!;
 
-  const monstersRaw = JSON.parse(readFileSync('public/data/monsters.json', 'utf8'));
-  const monstersList = Array.isArray(monstersRaw) ? monstersRaw : monstersRaw.monsters;
-  const nameByCom2us = new Map<number, string>(monstersList.map((m: any) => [m.com2usId, m.name]));
+  // Lecture/parsage de monsters.json mis en cache — voir `loadMonstersList`,
+  // partagée avec `loadMonster.ts` (revue de code externe, point 2).
+  const nameByCom2us = new Map<number, string>();
+  for (const mon of loadMonstersList()) if (mon.com2usId != null) nameByCom2us.set(mon.com2usId, mon.name);
 
   const { decks, error } = defense ? parseSiegeDefense(data) : parseSiegeOffense(data);
   if (error) console.error('Erreur parse siège :', error);
@@ -65,5 +67,5 @@ export function loadDeckMonster({ exportPath, deckId, monsterName, defense }: De
 
   const gear: GearSet = slot.gear;
   const { runes: allRunes } = parseAccountInventory(data);
-  return { data, deck, gear, allRunes };
+  return { data, deck, gear, allRunes, com2usId: slot.com2usId };
 }

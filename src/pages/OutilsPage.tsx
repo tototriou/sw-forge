@@ -1,5 +1,5 @@
 import { Wrench } from 'lucide-react';
-import { RuneDetail } from '../types';
+import { RuneDetail, Monster, RtaEntry, SiegeTeam } from '../types';
 import { BoxItem } from '../lib/applyAccount';
 import { LoadState } from '../hooks/useMonsters';
 import { OptimizerState } from '../hooks/useOptimizerState';
@@ -13,12 +13,16 @@ interface Props {
   loadState: LoadState;
   hydrating?: boolean;
   optimizer: OptimizerState;
+  allMonsters: Monster[];
+  rtaEntries: Record<string, RtaEntry>;
+  siegeDefenseTeams: SiegeTeam[];
+  siegeOffenseTeams: SiegeTeam[];
 }
 
 // Shell fin, miroir d'AccountPage.tsx : un seul outil aujourd'hui
 // (Optimizer), structuré pour en accueillir d'autres sans retoucher la nav
 // ni ce fichier (ajouter une branche = ajouter un outil).
-export default function OutilsPage({ sub, box, runes, loadState, hydrating, optimizer }: Props) {
+export default function OutilsPage({ sub, box, runes, loadState, hydrating, optimizer, allMonsters, rtaEntries, siegeDefenseTeams, siegeOffenseTeams }: Props) {
   const empty = box.length === 0;
 
   if (empty && hydrating) {
@@ -46,7 +50,17 @@ export default function OutilsPage({ sub, box, runes, loadState, hydrating, opti
 
   return (
     <div>
-      {sub === 'optimizer' && <OptimizerSection box={box} runes={runes} optimizer={optimizer} />}
+      {sub === 'optimizer' && (
+        <OptimizerSection
+          box={box}
+          runes={runes}
+          optimizer={optimizer}
+          allMonsters={allMonsters}
+          rtaEntries={rtaEntries}
+          siegeDefenseTeams={siegeDefenseTeams}
+          siegeOffenseTeams={siegeOffenseTeams}
+        />
+      )}
     </div>
   );
 }

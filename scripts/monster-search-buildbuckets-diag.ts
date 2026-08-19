@@ -30,6 +30,7 @@ import {
 } from '../src/lib/runeBuildOptim';
 import { BaseStats } from '../src/types';
 import { loadDeckMonster, parseDeckMonsterArgs } from './lib/deckMonster';
+import { drain } from './lib/drain';
 
 const USAGE =
   'Usage: monster-search-buildbuckets-diag.ts <export.json> <deckId> <nomMonstre> [--defense] [statKeys=atk,cr,cd] [objective=degats] [slotFilterCap=80] [bucketCap=3000]';
@@ -95,16 +96,12 @@ const maxSetsForA = maxSetCountsForSlots(filtered, [3, 4, 5], distinctKeys);
 const maxSetsForB = maxSetCountsForSlots(filtered, [0, 1, 2], distinctKeys);
 
 // buildBuckets est un GÉNÉRATEUR depuis le correctif « phase de préparation
-// muette » (voir spec/outils/optimizer.md) — le drainer jusqu'au bout donne
+// muette » (voir spec/outils/optimizer/) — le drainer jusqu'au bout donne
 // le Bucket[] final via sa valeur de retour, exactement comme searchBuilds
 // draine searchBuildsSteps.
-function drain<T>(gen: Generator<unknown, T, void>): T {
-  let step = gen.next();
-  while (!step.done) step = gen.next();
-  return step.value;
-}
-const bucketsA = drain(buildBuckets('A', [0, 1, 2], filtered, distinctKeys, constrainedKeys, retentionKeys, minEntries, bucketCap, maxSetsForA, jokerCredit, requiredPieces));
-const bucketsB = drain(buildBuckets('B', [3, 4, 5], filtered, distinctKeys, constrainedKeys, retentionKeys, minEntries, bucketCap, maxSetsForB, jokerCredit, requiredPieces));
+const ctx = { filtered, distinctKeys, constrainedKeys, retentionKeys, minEntries, bucketCap, jokerCredit, requiredPieces };
+const bucketsA = drain(buildBuckets('A', [0, 1, 2], ctx, maxSetsForA));
+const bucketsB = drain(buildBuckets('B', [3, 4, 5], ctx, maxSetsForB));
 
 function analyze(label: string, buckets: Bucket[], targetIds: number[]) {
   console.log(`\n${label} :`);

@@ -77,7 +77,7 @@ export default function ArtifactSlots({
               className="relative inline-flex items-center justify-center rounded opacity-40"
               style={{ width: frame, height: frame }}
             >
-              <img src={ARTIFACT_FRAME} className="absolute inset-0 w-full h-full grayscale" draggable={false} />
+              <img src={ARTIFACT_FRAME} className="absolute inset-0 w-full h-full object-contain grayscale" draggable={false} />
               <Ban size={banSize} className="relative text-ink-dim" />
             </div>
           );
@@ -101,12 +101,17 @@ export default function ArtifactSlots({
             <ZoneCliquable
               onClick={() => onSelectArtifact?.(a, i)}
               title={`Voir l'artéfact ${label.toLowerCase()}`}
+              // ⚠️ `data-cible-fine` : sans lui, `min-height: 40px` (cibles
+              // tactiles, index.css) gagne contre la hauteur fixée ici et
+              // étire le cadre — un carré de jeu, pas une cible libre à
+              // agrandir. Même cas que SetComboPicker.tsx.
+              data-cible-fine
               className="relative inline-flex items-center justify-center rounded"
               style={{ width: frame, height: frame }}
             >
               <img
                 src={ARTIFACT_FRAME}
-                className={`absolute inset-0 w-full h-full transition ${
+                className={`absolute inset-0 w-full h-full object-contain transition ${
                   selected ? 'brightness-150 drop-shadow-[0_0_6px_rgba(232,196,74,0.9)]' : ''
                 }`}
                 draggable={false}

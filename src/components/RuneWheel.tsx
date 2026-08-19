@@ -137,6 +137,12 @@ export default function RuneWheel({ runes, scale, isSelected, onSelectRune, rend
             <ZoneCliquable
               onClick={() => onSelectRune?.(r, i)}
               title={`Slot ${r.slot}${ancient ? ' · antique' : ''} · voir le détail`}
+              // ⚠️ `data-cible-fine` : sans lui, `min-height: 40px` (cibles
+              // tactiles, index.css) gagne contre la hauteur du cadre
+              // (`inset-0` sur son emplacement de la roue) et décale la rune
+              // vers le bas — le `top` reste ancré, c'est le bas qui s'étire.
+              // Même cas que SetComboPicker.tsx.
+              data-cible-fine
               className="absolute inset-0"
             >
               {/* cadre de rune, tourné pour épouser le slot — runes antiques →
@@ -144,7 +150,7 @@ export default function RuneWheel({ runes, scale, isSelected, onSelectRune, rend
               <img
                 src={RUNE_FRAME}
                 draggable={false}
-                className="absolute inset-0 w-full h-full transition duration-300 ease-out"
+                className="absolute inset-0 w-full h-full object-contain transition duration-300 ease-out"
                 style={{
                   transform: `rotate(${rot}deg)`,
                   filter:

@@ -45,6 +45,13 @@ export function resolveArtifacts(recipe: OptimizerRecipe, loaded: LoadedMonster)
 // coché OU si `excludedSelectors` (exclusion MANUELLE, voir
 // optimizerExclusion.ts) n'est pas vide — omis dans l'un ou l'autre cas,
 // une erreur explicite plutôt qu'un repli silencieux sur le pool complet.
+// ⚠️ `String(loaded.unitId)` : même format que `BoxItem.key` (voir son
+// usage dans `resolveExcludedRuneIds`) — `loaded.unitId=-1` en RTA/siège
+// (voir `loadRtaMonster`/`loadSiegeMonster`) est sans effet, cette garde ne
+// compte que pour le périmètre box. Même correctif que
+// `scripts/optimizer-search.ts` (commit `46867d7`) — signature à 4
+// arguments obligatoires (`optimizerExclusion.ts`), sans défaut, invisible
+// à `tsc --noEmit` (scripts/ hors du périmètre `tsconfig.json`).
 export function resolvePool(
   recipe: OptimizerRecipe,
   loaded: LoadedMonster,
@@ -67,7 +74,7 @@ export function resolvePool(
         'recipe.excludedSelectors non vide : il faut fournir exclusionData (box + RTA + siège chargés) pour reproduire fidèlement ces exclusions manuelles.'
       );
     }
-    return resolveExcludedRuneIds(recipe.excludedSelectors, exclusionData);
+    return resolveExcludedRuneIds(recipe.excludedSelectors, exclusionData, String(loaded.unitId), loaded.com2usId);
   })();
   if (auto.size === 0 && manual.size === 0) return loaded.allRunes;
   return loaded.allRunes.filter((r) => !auto.has(r.id) && !manual.has(r.id));

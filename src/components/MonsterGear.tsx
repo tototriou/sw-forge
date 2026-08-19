@@ -14,10 +14,10 @@ import {
   runeScore,
 } from '../lib/effects';
 import RuneWheel from './RuneWheel';
+import ArtifactSlots from './ArtifactSlots';
 import StatPanel from './StatPanel';
 import { RUNE_METRICS, formatRuneMetric, useRuneMetric } from '../hooks/useRuneMetric';
 import { artifactScore, artifactEfficiency } from '../lib/artifacts';
-import ArtifactSlots from './ArtifactSlots';
 
 type Selected =
   | { kind: 'rune'; i: number }
@@ -378,15 +378,14 @@ export default function MonsterGear({ gear, spdCible = null }: Props) {
       <StatPanel stats={stats} spdCible={spdCible} />
 
       {/* Artéfacts — détail affiché EN LIGNE plus bas (bloc `sel`), pas un
-          popover flottant : pas de `renderOverlay` ici. `ArtifactSlots` (PAS
-          l'ancien rendu inline ci-dessous, jamais resynchronisé depuis son
-          extraction) : TOUJOURS 2 emplacements (Attribut puis Type), un
-          emplacement vide montré grisé plutôt que simplement absent — voir
-          son commentaire de tête. Trouvé manquant ici (revue de code
-          externe) : un monstre sans artéfact d'attribut n'affichait qu'UNE
-          icône au lieu de deux, contrairement à la règle déjà en vigueur
-          sur les cartes de résultat de l'Optimizer (BuildCandidateCard.tsx,
-          le second usage pour lequel ce composant a été extrait). */}
+          popover flottant : pas de `renderOverlay` ici.
+          ⚠️ **`ArtifactSlots` et non une boucle sur `gear.artifacts`.** Ce
+          composant affiche TOUJOURS les deux emplacements (Attribut, Type), et
+          grise celui qui est vide. La boucle, elle, ne rendait que les
+          artéfacts PRÉSENTS : un monstre sans artéfact de type n'en montrait
+          qu'un, sans qu'on sache s'il en manquait un ou si le monstre n'en
+          portait qu'un — et sans artéfact du tout, le bloc disparaissait.
+          C'est le même composant que l'Optimiseur utilise déjà. */}
       <ArtifactSlots
         artifacts={gear.artifacts}
         isSelected={(_a, i) => isSel({ kind: 'artifact', i })}

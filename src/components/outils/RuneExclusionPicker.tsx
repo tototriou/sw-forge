@@ -3,6 +3,7 @@ import { Search, X } from 'lucide-react';
 import MonsterAvatar from '../MonsterAvatar';
 import Segmented from '../Segmented';
 import { useComboboxNav } from '../../hooks/useComboboxNav';
+import { useNameFilteredResults } from '../../hooks/useNameFilteredResults';
 import {
   ExclusionCandidate,
   ExclusionSelector,
@@ -25,8 +26,6 @@ interface Props {
   selected: ExclusionSelector[];
   onChange: (next: ExclusionSelector[]) => void;
 }
-
-const MAX_RESULTS = 25;
 
 const SOURCE_OPTIONS: { key: ExclusionSource; label: string }[] = [
   { key: 'box', label: 'Box' },
@@ -64,18 +63,7 @@ export default function RuneExclusionPicker({ data, excludeOwnUnitKey, excludeOw
     [activeSource, data, excludeOwnUnitKey, excludeOwnCom2usId]
   );
 
-  const results = useMemo(() => {
-    const q = query.trim().toLowerCase();
-    if (!q) return [];
-    const out: ExclusionCandidate[] = [];
-    for (const c of candidates) {
-      if (c.monster.name.toLowerCase().includes(q)) {
-        out.push(c);
-        if (out.length >= MAX_RESULTS) break;
-      }
-    }
-    return out;
-  }, [candidates, query]);
+  const results = useNameFilteredResults(candidates, query);
 
   function add(candidate: ExclusionCandidate) {
     const key = exclusionSelectorKey(candidate.selector);

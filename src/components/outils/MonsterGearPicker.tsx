@@ -1,8 +1,9 @@
-import { useId, useMemo, useState } from 'react';
+import { useId, useState } from 'react';
 import { Search } from 'lucide-react';
 import { GearSet, Monster } from '../../types';
 import MonsterAvatar from '../MonsterAvatar';
 import { useComboboxNav } from '../../hooks/useComboboxNav';
+import { useNameFilteredResults } from '../../hooks/useNameFilteredResults';
 
 export interface GearedMonster {
   monster: Monster;
@@ -15,8 +16,6 @@ interface Props {
   placeholder?: string;
 }
 
-const MAX_RESULTS = 25;
-
 // Recherche de monstre à optimiser, parmi TOUS les monstres 6★ de la box
 // importée (voir spec/outils/optimizer/) — avec ou sans runes déjà
 // équipées : un monstre nu peut tout aussi bien être optimisé. Même
@@ -26,18 +25,7 @@ export default function MonsterGearPicker({ items, onPick, placeholder }: Props)
   const [query, setQuery] = useState('');
   const idBase = useId();
 
-  const results = useMemo(() => {
-    const q = query.trim().toLowerCase();
-    if (!q) return [];
-    const out: GearedMonster[] = [];
-    for (const it of items) {
-      if (it.monster.name.toLowerCase().includes(q)) {
-        out.push(it);
-        if (out.length >= MAX_RESULTS) break;
-      }
-    }
-    return out;
-  }, [items, query]);
+  const results = useNameFilteredResults(items, query);
 
   const nav = useComboboxNav<GearedMonster>({
     results,

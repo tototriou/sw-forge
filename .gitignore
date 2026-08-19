@@ -50,3 +50,8 @@ spec/outils/optimizer/
 # joueur réel ne doivent pas finir committées juste parce qu'elles sont
 # passées par une capture d'écran plutôt qu'un fichier .json.
 .claude/skills/run-sw-forge/screenshots/
+
+# Comptes-rendus de revue de code (/code-review) déposés à la racine pour
+# consultation locale — notes de travail éphémères, pas un artefact du
+# dépôt.
+code-review-*.txt

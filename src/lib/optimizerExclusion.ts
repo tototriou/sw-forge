@@ -122,24 +122,34 @@ export function exclusionCandidatesFor(source: ExclusionSource, data: ExclusionS
   return out;
 }
 
-// Résout UN sélecteur vers son monstre + son équipement — pour l'affichage
-// (chaque sélection retenue à l'écran, voir RuneExclusionPicker.tsx), sans
-// recalculer la liste complète des candidats de sa source.
-export function resolveExclusionEntry(sel: ExclusionSelector, data: ExclusionSourceData): { monster: Monster; gear: GearSet } | null {
+// Résout UN sélecteur vers son monstre + son équipement bruts (l'un ou
+// l'autre — ou les deux — peuvent être absents : entrée introuvable, sans
+// runes équipées…) — factorisé une seule fois, réutilisé par
+// `resolveExclusionEntry` (résolution pour l'affichage) ET
+// `resolveExcludedRuneIds` (résolution pour le calcul du pool), qui
+// réimplémentaient chacune le même branchement à 3 voies (box/rta/siège).
+function resolveSelectorRaw(sel: ExclusionSelector, data: ExclusionSourceData): { monster: Monster | undefined; gear: GearSet | undefined } {
   if (sel.source === 'box') {
     const item = data.box.find((b) => b.key === sel.unitKey);
-    return item?.gear ? { monster: item.monster, gear: item.gear } : null;
+    return { monster: item?.monster, gear: item?.gear };
   }
   if (sel.source === 'rta') {
     const entry = data.rtaEntries[sel.monsterId];
     const monster = entry ? data.monsterById.get(entry.monsterId) : undefined;
-    return entry?.gear && monster ? { monster, gear: entry.gear } : null;
+    return { monster, gear: entry?.gear };
   }
   const teams = sel.source === 'siege-defense' ? data.siegeDefenseTeams : data.siegeOffenseTeams;
-  const team = teams.find((t) => t.id === sel.teamId);
-  const slot = team?.slots[sel.slotIndex];
-  const monster = slot?.monsterId ? data.monsterById.get(slot.monsterId) : undefined;
-  return slot?.gear && monster ? { monster, gear: slot.gear } : null;
+  const slot = teams.find((t) => t.id === sel.teamId)?.slots[sel.slotIndex];
+  const monster = slot?.monsterId != null ? data.monsterById.get(slot.monsterId) : undefined;
+  return { monster, gear: slot?.gear };
+}
+
+// Résout UN sélecteur vers son monstre + son équipement — pour l'affichage
+// (chaque sélection retenue à l'écran, voir RuneExclusionPicker.tsx), sans
+// recalculer la liste complète des candidats de sa source.
+export function resolveExclusionEntry(sel: ExclusionSelector, data: ExclusionSourceData): { monster: Monster; gear: GearSet } | null {
+  const { monster, gear } = resolveSelectorRaw(sel, data);
+  return monster && gear ? { monster, gear } : null;
 }
 
 // Résout une liste de sélecteurs (venus de l'état de l'écran, OU relus
@@ -170,22 +180,9 @@ export function resolveExclusionEntry(sel: ExclusionSelector, data: ExclusionSou
 export function resolveExcludedRuneIds(selectors: ExclusionSelector[], data: ExclusionSourceData, ownUnitKey: string | null, ownCom2usId: number | null): Set<number> {
   const out = new Set<number>();
   for (const sel of selectors) {
-    let gear: GearSet | undefined;
-    if (sel.source === 'box') {
-      if (sel.unitKey === ownUnitKey) continue;
-      gear = data.box.find((b) => b.key === sel.unitKey)?.gear;
-    } else if (sel.source === 'rta') {
-      const entry = data.rtaEntries[sel.monsterId];
-      const monster = data.monsterById.get(sel.monsterId);
-      if (ownCom2usId != null && monster?.com2usId === ownCom2usId) continue;
-      gear = entry?.gear;
-    } else {
-      const teams = sel.source === 'siege-defense' ? data.siegeDefenseTeams : data.siegeOffenseTeams;
-      const slot = teams.find((t) => t.id === sel.teamId)?.slots[sel.slotIndex];
-      const monster = slot?.monsterId != null ? data.monsterById.get(slot.monsterId) : undefined;
-      if (ownCom2usId != null && monster?.com2usId === ownCom2usId) continue;
-      gear = slot?.gear;
-    }
+    if (sel.source === 'box' && sel.unitKey === ownUnitKey) continue;
+    const { monster, gear } = resolveSelectorRaw(sel, data);
+    if (sel.source !== 'box' && ownCom2usId != null && monster?.com2usId === ownCom2usId) continue;
     for (const r of gear?.runes ?? []) out.add(r.id);
   }
   return out;

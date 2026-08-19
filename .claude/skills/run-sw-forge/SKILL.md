@@ -1,6 +1,6 @@
 ---
 name: run-sw-forge
-description: Compile, démarre et pilote SW Forge (app web React/Vite). À utiliser pour démarrer le serveur de dev, prendre une capture d'écran d'une page/d'un composant, ou interagir réellement avec l'app (clic, saisie, navigation) plutôt que juste tsc/tests. Pilote un vrai Chromium headless via Playwright — .claude/skills/run-sw-forge/driver.mjs.
+description: Compile, démarre et pilote SW Forge (app web React/Vite) via un Chromium headless Playwright. RÉSERVÉ au remote-access (utilisateur sans le serveur de dev sous les yeux) ET seulement sur demande explicite — jamais le réflexe par défaut pour vérifier un changement d'UI. Demander l'autorisation avant de lancer le driver si l'agent pense en avoir besoin.
 ---
 
 SW Forge est une app web Vite/React à un seul binaire (pas de backend séparé).
@@ -9,6 +9,15 @@ l'app veut dire : démarrer le serveur de dev, piloter un Chromium headless
 (Playwright) contre lui, et produire une VRAIE capture d'écran. Le
 driver vit dans `.claude/skills/run-sw-forge/driver.mjs`, à côté de ce
 fichier. Tous les chemins ci-dessous sont relatifs à la racine du dépôt.
+
+⚠️ **Ne PAS piloter Chromium par défaut à chaque changement d'UI.**
+L'utilisateur travaille normalement avec le serveur de dev sous les yeux et
+vérifie lui-même à l'œil — ce skill est réservé au cas où il est en
+**remote-access**, sans le serveur de dev sous les yeux à ce moment-là, et
+seulement quand il le demande **explicitement** pour ce tour. Si l'agent
+pense avoir besoin d'une vérification visuelle réelle (pas seulement
+`tsc`/`npm test`/`npm run build`), il doit **demander l'autorisation avant**
+de lancer le driver plutôt que de l'invoquer directement.
 
 ⚠️ Environnement observé pendant l'écriture de ce skill : **Windows local**
 (pas un conteneur Linux) — donc pas de `apt-get`/`xvfb-run` : Playwright

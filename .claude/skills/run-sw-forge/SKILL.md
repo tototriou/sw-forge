@@ -103,8 +103,8 @@ headless — c'est le chemin agent (`driver.mjs`) qui s'applique ici.
 npx tsc --noEmit && npm test && npm run build
 ```
 
-796 vérifications passées au moment de l'écriture de ce skill (voir
-`CLAUDE.md` à la racine — triade de vérification standard).
+855 vérifications passées au moment de la dernière relecture de ce skill
+(voir `CLAUDE.md` à la racine — triade de vérification standard).
 
 ---
 

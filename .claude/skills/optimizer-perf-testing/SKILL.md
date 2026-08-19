@@ -232,5 +232,5 @@ explicitement.
   chemin de production.
 - `spec/outils/optimizer/README.md` — index de la section, avec les
   fichiers `historique-*.md` (l'historique complet, chronologique, de
-  chaque décision résumée ici) et `spec/outils/optimizer-pistes.md` (état
+  chaque décision résumée ici) et `spec/outils/optimizer/pistes.md` (état
   des lieux des pistes sans relire l'historique).

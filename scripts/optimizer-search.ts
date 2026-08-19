@@ -121,7 +121,13 @@ if (recipe.excludedSelectors && recipe.excludedSelectors.length > 0 && exclusion
       `⚠️ ${siegeSelectors.length} exclusion(s) manuelle(s) de la recette viennent du Siège — ce script régénère des identifiants d'équipe DIFFÉRENTS à chaque exécution (voir loadMonster.ts) et ne peut donc PAS les résoudre fidèlement. Elles seront silencieusement ignorées ci-dessous (pool plus large que sur l'écran).`
     );
   }
-  const resolved = resolveExcludedRuneIds(recipe.excludedSelectors, exclusionData);
+  // ⚠️ Garde anti-auto-exclusion (Phase C, voir optimizerExclusion.ts) :
+  // `ownUnitKey` (box, PAR ENTRÉE — `String(unitId)`, même format que
+  // `BoxItem.key`/`mapBoxMonsters`) et `ownCom2usId` (RTA/siège, PAR
+  // ESPÈCE). `loaded.unitId` vaut -1 en mode RTA/siège (non exposé par ces
+  // presets, voir loadMonster.ts) — sans effet : cette branche ne sert
+  // qu'à la box, où `unitId` est toujours réel.
+  const resolved = resolveExcludedRuneIds(recipe.excludedSelectors, exclusionData, String(loaded.unitId), loaded.com2usId);
   console.log(`Exclusion manuelle : ${recipe.excludedSelectors.length} sélection(s) dans la recette, ${resolved.size} rune(s) réellement exclue(s) sur ce compte.`);
 }
 

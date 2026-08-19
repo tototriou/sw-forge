@@ -32,6 +32,7 @@ import { runeSpeedOf, mapRtaItems, mapSiegeTeams, mapBoxMonsters, BoxItem } from
 import { runeEfficiency } from '../../src/lib/effects';
 import { GearSet, Monster, RtaEntry, RuneDetail, SiegeTeam } from '../../src/types';
 import { loadDeckMonster, DeckMonsterArgs } from './deckMonster';
+import { loadMonstersList } from './monstersData';
 
 export interface LoadedMonster {
   unitId: number;
@@ -41,31 +42,29 @@ export interface LoadedMonster {
   allRunes: RuneDetail[];
 }
 
-// Index nom ↔ com2usId, chargé une fois par script — même source que
-// deckMonster.ts et l'app elle-même (public/data/monsters.json).
+// Index nom ↔ com2usId — même source que deckMonster.ts et l'app elle-même
+// (public/data/monsters.json), désormais lue/parsée UNE SEULE fois par
+// exécution de script quel que soit le nombre d'appelants (`loadMonstersList`,
+// mise en cache — voir son commentaire, point 2 d'une revue de code externe).
 export function loadMonsterNames(): Map<number, string> {
-  const raw = JSON.parse(readFileSync('public/data/monsters.json', 'utf8'));
-  const list = Array.isArray(raw) ? raw : raw.monsters;
-  return new Map<number, string>(list.map((m: any) => [m.com2usId, m.name]));
+  const m = new Map<number, string>();
+  for (const mon of loadMonstersList()) if (mon.com2usId != null) m.set(mon.com2usId, mon.name);
+  return m;
 }
 
 export function loadMonsterSpeeds(): Map<number, number> {
-  const raw = JSON.parse(readFileSync('public/data/monsters.json', 'utf8'));
-  const list = Array.isArray(raw) ? raw : raw.monsters;
-  return new Map<number, number>(list.map((m: any) => [m.com2usId, Number(m.stats?.speed) || 0]));
+  const m = new Map<number, number>();
+  for (const mon of loadMonstersList()) if (mon.com2usId != null) m.set(mon.com2usId, Number(mon.stats?.speed) || 0);
+  return m;
 }
 
 // Bestiaire complet, indexé par com2usId — nécessaire à `mapRtaItems`/
 // `mapSiegeTeams` (applyAccount.ts), pas juste nom/vitesse comme les deux
 // fonctions ci-dessus. Utilisé UNIQUEMENT par les loaders d'EXCLUSION
-// ci-dessous (RuneExclusionPicker côté script) — les trois loaders de
-// MONSTRE CIBLE plus bas continuent d'utiliser leur propre lecture locale
-// pour ne rien changer à un chemin déjà correct.
+// ci-dessous (RuneExclusionPicker côté script).
 function loadAllMonstersByCom2us(): Map<number, Monster> {
-  const raw = JSON.parse(readFileSync('public/data/monsters.json', 'utf8'));
-  const list: Monster[] = Array.isArray(raw) ? raw : raw.monsters;
   const m = new Map<number, Monster>();
-  for (const mon of list) if (mon.com2usId != null) m.set(mon.com2usId, mon);
+  for (const mon of loadMonstersList()) if (mon.com2usId != null) m.set(mon.com2usId, mon);
   return m;
 }
 

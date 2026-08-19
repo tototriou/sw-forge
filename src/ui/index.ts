@@ -71,6 +71,13 @@ export type { SelecteurProps } from './Selecteur';
 export { default as Option } from './Option';
 export type { OptionProps } from './Option';
 
+// Choix UNIQUE en cadre : des options côte à côte dont une seule est enfoncée.
+// ⚠️ L'axe que ni `Selecteur` (liste déroulante) ni `Option` (choix riche
+// empilé) ne couvraient — à préférer à une rangée de `Pastille` quand les choix
+// s'EXCLUENT, ce que le cadre commun dit sans un mot. Vivait dans `components/`
+// avec neuf appelants.
+export { default as Segmented } from './Segmented';
+
 export { default as Interrupteur } from './Interrupteur';
 export type { InterrupteurProps } from './Interrupteur';
 

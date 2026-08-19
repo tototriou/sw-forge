@@ -901,7 +901,7 @@ function AnalysisSummary({
 
       {/* Filtres de verdict — pastilles CUMULABLES (plusieurs couleurs à la
           fois), d'où des boutons indépendants et non un `Segmented`, qui dirait
-          que les choix s'excluent (voir components/Segmented.tsx).
+          que les choix s'excluent (voir ui/Segmented.tsx).
           ⚠️ La BORDURE marque l'actif, jamais un aplat plein : c'est la règle
           des pastilles de filtre (voir spec/shared/design.md).
           Un verdict sans aucun deck est affiché GRISÉ et non retiré : on voit

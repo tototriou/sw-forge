@@ -6,10 +6,11 @@
 // leur forme ne dit qu'en activer une désactive les autres. Le cadre commun le
 // dit sans un mot.
 //
-// Il vivait dans [SettingsMenu.tsx](src/components/SettingsMenu.tsx), qui a été
-// le premier à en avoir besoin ; il en a été **remonté** au deuxième usage
-// plutôt que recopié — deux copies auraient divergé, comme les chips d'élément
-// avant [elementStyles.ts](src/components/elementStyles.ts).
+// Il est né dans [SettingsMenu.tsx](src/components/SettingsMenu.tsx), qui a été
+// le premier à en avoir besoin ; **remonté** dans `components/` au deuxième
+// usage plutôt que recopié — deux copies auraient divergé, comme les chips
+// d'élément avant [elementStyles.ts](src/components/elementStyles.ts) — puis ici
+// dans la librairie une fois ses neuf appelants avérés.
 export default function Segmented<T extends string>({
   options,
   value,

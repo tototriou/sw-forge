@@ -22,7 +22,7 @@ import { useRuneMetric } from '../../hooks/useRuneMetric';
 import NumberField from '../../ui/NumberField';
 import MonsterAvatar from '../MonsterAvatar';
 import MonsterGear from '../MonsterGear';
-import Segmented from '../Segmented';
+import Segmented from '../../ui/Segmented';
 import Switch from '../Switch';
 import HelpPopover from '../HelpPopover';
 import MonsterGearPicker, { GearedMonster } from './MonsterGearPicker';

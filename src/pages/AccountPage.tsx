@@ -20,7 +20,7 @@ import { ELEMENT_FILTER_STYLES } from '../components/elementStyles';
 import RunesSection from '../components/account/RunesSection';
 import ArtifactsSection from '../components/account/ArtifactsSection';
 import { useStickyState } from '../hooks/useStickyState';
-import Segmented from '../components/Segmented';
+import Segmented from '../ui/Segmented';
 import { MonsterSortMode, comparateurMonstres } from '../lib/monsterSort';
 import {
   autreForme,

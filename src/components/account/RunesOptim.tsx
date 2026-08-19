@@ -13,7 +13,7 @@ import SlotFilter from './SlotFilter';
 import NumberField from '../../ui/NumberField';
 import Selecteur from '../../ui/Selecteur';
 import Bouton from '../../ui/Bouton';
-import Segmented from '../Segmented';
+import Segmented from '../../ui/Segmented';
 import { FlottantAuto } from '../../ui';
 
 interface Props {

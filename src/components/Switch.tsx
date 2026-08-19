@@ -6,7 +6,7 @@
 // le premier à en avoir besoin (« Garder mes données ») ; remonté ici au
 // deuxième usage plutôt que recopié — deux copies auraient divergé, comme les
 // chips d'élément avant [elementStyles.ts](src/components/elementStyles.ts) et
-// le contrôle à choix unique avant [Segmented.tsx](src/components/Segmented.tsx).
+// le contrôle à choix unique avant [Segmented.tsx](src/ui/Segmented.tsx).
 export default function Switch({
   checked,
   onChange,

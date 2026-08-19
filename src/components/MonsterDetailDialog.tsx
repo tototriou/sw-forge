@@ -3,7 +3,7 @@ import { Sword, Shield, Star, Hourglass, ArrowRight } from 'lucide-react';
 import { Monster } from '../types';
 import { Modale } from '../ui/Dialogs';
 import ElementIcon from './ElementIcon';
-import Segmented from './Segmented';
+import Segmented from '../ui/Segmented';
 import LeadPill from './siege/LeadPill';
 import CollabPortrait from './CollabPortrait';
 import { libelleCollab } from '../lib/collabPairs';

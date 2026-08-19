@@ -9,7 +9,7 @@ import { ZoneCliquable } from '../ui';
 // Roue de runes « façon jeu » — extraite de [MonsterGear.tsx](src/components/MonsterGear.tsx)
 // à son deuxième usage (cartes de résultat de l'Optimizer, voir
 // BuildCandidateCard.tsx) plutôt que recopiée, même principe que
-// [Segmented.tsx](src/components/Segmented.tsx)/[Switch.tsx](src/components/Switch.tsx).
+// [Segmented.tsx](src/ui/Segmented.tsx)/[Switch.tsx](src/components/Switch.tsx).
 //
 // ⚠️ Paramétrée par `scale` : MonsterGear l'utilise à `scale=1` (taille
 // historique, inchangée) pour la fiche pleine (RTA/Siège/Optimizer), et

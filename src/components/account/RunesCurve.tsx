@@ -8,9 +8,10 @@ import SetFilter from './SetFilter';
 import NumberField from '../../ui/NumberField';
 import Pastille from '../../ui/Pastille';
 import Bouton from '../../ui/Bouton';
-import Segmented from '../Segmented';
+import Segmented from '../../ui/Segmented';
 import SlotFilter from './SlotFilter';
 import CurveChart, { CurveSeries, OWN_COLOR } from './CurveChart';
+import CurveLegend from './CurveLegend';
 import MobileSheet from '../../ui/MobileSheet';
 import { BoutonIcone, FlottantAuto } from '../../ui';
 import { useMediaQuery, SOUS_LG } from '../../hooks/useMediaQuery';
@@ -268,41 +269,16 @@ export default function RunesCurve({ runes }: Props) {
         />
       </div>
 
-      {/* Légende — sous le graphe, en RANGÉE horizontale (les entrées les unes à
-          côté des autres, comme les autres légendes de l'app) ; cliquer un nom
-          masque/affiche sa courbe. La couleur et le nom, rien d'autre : les
-          valeurs (max, médiane) se lisent au survol du graphe — répétées ici,
-          elles alourdissaient une zone qui ne sert qu'à identifier et masquer. */}
-      <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1">
-        {allSeries.map((s) => {
-          const off = hidden.has(s.name);
-          return (
-            <button
-              key={s.name}
-              onClick={() => toggleHidden(s.name)}
-              title={off ? 'Afficher' : 'Masquer'}
-              // `min-h-0` : la règle tactile globale porte les boutons à 40 px,
-              // ce qui ferait 120 px pour trois lignes de légende. Ici la cible
-              // fait toute la LARGEUR de son texte — on ne rate pas, même à
-              // 28 px de haut.
-              className="flex min-h-0 items-center gap-2 rounded px-1.5 py-1 text-left
-                         font-mono text-micro transition-colors hoverable:bg-panel2 sm:text-xs"
-            >
-              <span
-                className="inline-block h-1.5 w-3 flex-none rounded-full transition"
-                style={{ background: s.color, opacity: off ? 0.3 : 1 }}
-              />
-              <span
-                className={`truncate font-semibold transition ${
-                  off ? 'text-ink-dim line-through' : 'text-ink'
-                }`}
-              >
-                {s.name}
-              </span>
-            </button>
-          );
-        })}
-      </div>
+      {/* Légende partagée avec l'onglet Comparaison (voir CurveLegend) — sous le
+          graphe, en rangée : la couleur et le nom, rien d'autre. Les valeurs
+          (max, médiane) se lisent au survol du graphe ; répétées ici, elles
+          alourdissaient une zone qui ne sert qu'à identifier et masquer. Aucune
+          courbe ne se retire ici (potentiels et « Moi » sont calculés). */}
+      <CurveLegend
+        entrees={allSeries.map((s) => ({ name: s.name, color: s.color }))}
+        masquees={hidden}
+        onBascule={toggleHidden}
+      />
     </div>
   );
 }

@@ -1,5 +1,5 @@
 import { Dispatch, SetStateAction, useMemo, useRef, useState } from 'react';
-import { Download, Upload, FileJson, X, LineChart, Boxes, Trash2 } from 'lucide-react';
+import { Download, Upload, FileJson, LineChart, Boxes, Trash2 } from 'lucide-react';
 import { RuneDetail } from '../../types';
 import { runeEfficiency, runeScore, isAncient } from '../../lib/effects';
 import { encodeCurveJson, decodeCurve } from '../../lib/runeCurveShare';
@@ -8,14 +8,14 @@ import { ConfirmDialog, PromptDialog } from '../../ui/Dialogs';
 import { useStickyState } from '../../hooks/useStickyState';
 import { useRuneMetric } from '../../hooks/useRuneMetric';
 import CurveChart, { CurveSeries, OWN_COLOR } from './CurveChart';
+import CurveLegend from './CurveLegend';
 import { couleurLibre } from './curveColors';
 import SetFilter from './SetFilter';
 import SlotFilter from './SlotFilter';
 import NumberField from '../../ui/NumberField';
 import Pastille from '../../ui/Pastille';
 import Bouton from '../../ui/Bouton';
-import BoutonIcone from '../../ui/BoutonIcone';
-import Segmented from '../Segmented';
+import Segmented from '../../ui/Segmented';
 
 interface Props {
   runes: RuneDetail[];
@@ -487,10 +487,8 @@ function OngletComptes({
       {overlays.length === 0 && (
         <p className="mb-3 text-xs leading-relaxed text-ink-dim">
           Importe le fichier de compte d'un ami pour le comparer au tien.{' '}
-          <b className="text-ink">Les filtres s'appliquent à tout le monde de la même façon</b> — ton
-          top Violent face au sien, et non face à l'ensemble de son stock. Seuls les fichiers de
-          compte apparaissent ici : une courbe partagée n'a pas les runes qu'il faudrait pour être
-          filtrée.
+          <b className="text-ink">Les filtres s'appliquent à tout le monde de la même façon.</b> Une
+          courbe partagée ne peut pas apparaître ici.
         </p>
       )}
 
@@ -556,44 +554,18 @@ function Graphe({
         unit={metric === 'eff' ? '%' : ''}
       />
 
-      {/* Légende SOUS le graphe, en RANGÉE horizontale : couleur + nom, sans les
-          valeurs. Cliquer un nom masque/affiche sa courbe ; la croix retire une
-          courbe importée. */}
-      <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1">
-        {lignes.map(({ series: s, remove }) => {
-          const off = hidden.has(s.name);
-          return (
-            <span key={s.name} className="flex items-center gap-1.5 font-mono text-xs">
-              <button
-                onClick={() => toggle(s.name)}
-                title={off ? 'Afficher cette courbe' : 'Masquer cette courbe'}
-                className="flex items-center gap-1.5"
-              >
-                <span
-                  className="inline-block w-3 h-1.5 rounded-full transition"
-                  style={{ background: s.color, opacity: off ? 0.3 : 1 }}
-                />
-                <span className={`font-semibold transition ${off ? 'text-ink-dim line-through' : 'text-ink'}`}>
-                  {s.name}
-                </span>
-              </button>
-              {remove && (
-                <BoutonIcone
-                  onClick={remove}
-                  icone={<X size={13} />}
-                  libelle="Retirer cette courbe"
-                  ton="danger"
-                  taille="serre"
-                />
-              )}
-            </span>
-          );
-        })}
-      </div>
-
-      <p className="mt-3 font-mono text-micro text-ink-dim">
-        Tout reste en local : rien n'est envoyé.
-      </p>
+      {/* Légende partagée avec l'onglet Courbes (voir CurveLegend). Le retrait
+          d'une ligne lui est attaché — l'onglet Courbes mélange deux listes, un
+          index n'y désignerait plus rien de fiable. */}
+      <CurveLegend
+        entrees={lignes.map(({ series: s, remove }) => ({
+          name: s.name,
+          color: s.color,
+          onRetirer: remove,
+        }))}
+        masquees={hidden}
+        onBascule={toggle}
+      />
     </>
   );
 }

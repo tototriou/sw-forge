@@ -14,7 +14,7 @@ import { artifactScore, artifactEfficiency } from '../../lib/artifacts';
 import { ArtifactGlyph } from '../ArtifactIcon';
 import ArtifactFrameIcon from '../ArtifactFrameIcon';
 import ElementIcon from '../ElementIcon';
-import Segmented from '../Segmented';
+import Segmented from '../../ui/Segmented';
 import MobileSheet from '../../ui/MobileSheet';
 import { ELEMENT_FILTER_STYLES } from '../elementStyles';
 import Pager from './Pager';

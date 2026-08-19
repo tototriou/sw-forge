@@ -579,7 +579,8 @@ un écran de résultats, et la place libérée profite immédiatement.
     un point disparu.
 - **Légende sous le graphe** : en **rangée horizontale** (les entrées côte à
   côte), **pastille de couleur + nom** uniquement — pas de valeurs. Cliquer un
-  nom **masque/affiche** sa courbe.
+  nom **masque/affiche** sa courbe. Composant **partagé avec la Comparaison**,
+  [CurveLegend.tsx](src/components/account/CurveLegend.tsx) (voir plus bas).
 - **Filtres** : sets (`SetFilter`), slot (`SlotFilter`), antiques.
 - **Nombre de runes** : champ libre (défaut **400**) + **Tout**.
 - **Mode** : **Gemme + meule** / **Meule seule** (voir Optimisation).
@@ -701,6 +702,22 @@ sous-onglet : c'est ce qui permet un bouton unique qui les vide toutes les deux.
   (max/médiane/nb), qui se lisent au survol du graphe et alourdissaient une zone
   servant seulement à identifier et masquer les courbes. **Cliquer le nom**
   masque/affiche ; la croix (✕) **retire** une courbe importée.
+  - ⚠️ **Composant unique**, [CurveLegend.tsx](src/components/account/CurveLegend.tsx),
+    partagé avec l'onglet **Courbes** : les deux affichaient la même pastille,
+    écrite deux fois à la main — celle de Comparaison sans le soin responsive de
+    l'autre (troncature, corps qui suit l'écran). Une seule source évite qu'elles
+    redivergent.
+  - ⚠️ Chaque pastille est une **`ZoneCliquable`** (surface nue), pas un
+    `Bouton` : une légende n'est pas une rangée de boutons encadrés. C'est le
+    seul contrôle de la page qui échappait encore à la librairie ; il n'y a
+    **plus aucun `<button>` custom** dans la Comparaison.
+  - ⚠️ L'exemption tactile passe par **`data-cible-fine`**, pas par un `min-h-0` :
+    la règle des 40 px vit **hors `@layer`** ([index.css](src/index.css)), donc
+    elle bat toute classe utilitaire quelle que soit la spécificité — un `min-h-0`
+    n'y pouvait rien, et l'ancienne légende de Comparaison, sans exemption du
+    tout, était **étirée à 40 px au doigt**. La cible fait déjà toute la largeur
+    de son texte, on ne la rate pas à ~28 px de haut. Même exemption que les
+    boutons du graphe, sans le `cible-tactile` (la largeur du texte suffit).
 - Deux courbes homonymes sont **renommées** (« Ami (2) »), **en tenant compte des
   deux listes à la fois** puisqu'elles cohabitent dans l'onglet Courbes : sinon
   la légende serait illisible et la croix ambiguë.

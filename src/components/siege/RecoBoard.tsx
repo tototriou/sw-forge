@@ -11,7 +11,7 @@ import { chercheMonstre, RecoHit, RecoSearchMode } from '../../lib/recoSearch';
 import { ConfirmDialog } from '../../ui/Dialogs';
 import { OwnedBuild, OwnedTeam, indexBuildsByCom2us } from '../../lib/ownedBuilds';
 import { formesJouables } from '../../lib/monsterForms';
-import Segmented from '../Segmented';
+import Segmented from '../../ui/Segmented';
 import MobileSheet from '../../ui/MobileSheet';
 import MonsterAvatar from '../MonsterAvatar';
 import MonsterPicker from '../MonsterPicker';

@@ -5,7 +5,7 @@ import { setPersistence, storageAvailable, usePersistence } from '../hooks/usePe
 import { THEME_CHOICES, setTheme, useTheme } from '../hooks/useTheme';
 import { setOvercapDisplay, useOvercapDisplay } from '../hooks/useOvercapDisplay';
 import AccountFreshness from './AccountFreshness';
-import Segmented from './Segmented';
+import Segmented from '../ui/Segmented';
 import Switch from './Switch';
 
 /* --------------------------------------------------------------------------

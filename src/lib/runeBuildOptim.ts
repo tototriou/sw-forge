@@ -654,7 +654,29 @@ export function filterSlot(
   objective?: Objective
 ): RuneDetail[] {
   const requiredKeys = new Set(requirement.sets);
-  const scored = candidates
+  // ⚠️ Élagage SÛR, pas une heuristique : combo à coût COMPLET
+  // (`setsCost(requirement.sets) === MAX_SET_PIECES`, ex. Rage+Blade
+  // 4+2=6) → AUCUN emplacement libre où une rune hors combo (ni un set
+  // demandé, ni joker) pourrait légitimement figurer dans un build FINAL
+  // valide. Preuve : les 6 emplacements se répartissent alors
+  // EXACTEMENT entre les sets demandés (un joker substituant au plus UNE
+  // pièce, où qu'il soit) — une seule rune hors combo parmi les 6 choisis
+  // prive nécessairement l'un des sets demandés d'au moins une pièce,
+  // laissant `missingSets` non vide quel que soit le reste du build.
+  // Trouvé en vérifiant explicitement (script ad hoc, pool synthétique
+  // varié) : pour Rage+Blade, environ la MOITIÉ du pool filtré par slot
+  // appartenait à des sets totalement hors combo AVANT ce correctif —
+  // occupant une place dans `matchCap`/`fillCap`/le top-K par stat qui
+  // aurait pu revenir à une rune réellement utile (dilution, même classe
+  // de problème que `BUCKET_CAP`/`slotFilterCap` cette session).
+  // ⚠️ SANS EFFET s'il reste un emplacement libre (ex. un set 4 pièces
+  // SEUL) : la réserve garantie hors combo plus bas reste alors
+  // nécessaire — voir son propre commentaire, motif ORIGINAL de son
+  // ajout, qui ne s'applique qu'à ce cas-là.
+  const hasFreeSlots = setsCost(requirement.sets) < MAX_SET_PIECES;
+  const isRelevantToCombo = (r: RuneDetail): boolean => requiredKeys.has(r.set) || r.set === 'intangible';
+  const pool = hasFreeSlots ? candidates : candidates.filter(isRelevantToCombo);
+  const scored = pool
     .map((r) => ({ r, s: relevance(r, requirement) }))
     .sort((a, b) => b.s - a.s);
 
@@ -678,6 +700,10 @@ export function filterSlot(
   // tout-un-set, même quand le combo demandé n'en réclame qu'une partie des
   // pièces (ex. un set 4 pièces sur 6 emplacements). Signalé sur un compte
   // réel (voir spec/outils/optimizer/, « Limites connues »).
+  // ⚠️ Motif ci-dessus SANS OBJET à coût complet (`!hasFreeSlots`) : `pool`
+  // a déjà exclu toute rune hors combo plus haut, `offSet` est alors
+  // structurellement vide — pas une branche morte à retirer, juste un
+  // no-op cohérent avec l'élagage déjà appliqué en amont.
   const offSet = scored.filter(({ r }) => !requiredKeys.has(r.set) && r.set !== 'intangible');
   for (const { r } of offSet.slice(0, effectiveFillCap)) kept.set(r.id, r);
 
@@ -698,7 +724,7 @@ export function filterSlot(
   // voir son commentaire pour le motif (même bug que `precomputeSlot`
   // ailleurs dans ce fichier, jamais corrigé ici avant).
   const objectiveKeys = objective ? OBJECTIVE_RELEVANT_STATS[objective] : [];
-  const contribByRune = candidates.map((r) => ({ r, c: runeContributionAllKeys(r) }));
+  const contribByRune = pool.map((r) => ({ r, c: runeContributionAllKeys(r) }));
   for (const k of ALL_STAT_KEYS) {
     const keepN = objectiveKeys.includes(k) ? PER_STAT_KEEP_OBJECTIVE : PER_STAT_KEEP;
     const heap: ScoredEntry<RuneDetail>[] = [];

@@ -856,6 +856,16 @@ protège déjà du ratage.
   autant de précision qu'un bouton, et rater ouvre le clavier au mauvais
   endroit.
 
+⚠️ **Incident vécu** : les cadres de rune (`RuneWheel.tsx`) et d'artéfact
+(`ArtifactSlots.tsx`), à échelle réduite dans les cartes de résultat de
+l'Optimizer (`BuildCandidateCard.tsx`), n'avaient PAS `data-cible-fine` —
+hérités de `main` sans cet attribut lors de la fusion de `forge/refonte-ui`.
+`min-height: 40px` gagnait contre la hauteur fixée en ligne : le cadre
+s'étirait (une roue de 6 runes ne tient que 94 px, une cible de 44 px par
+rune aurait de toute façon chevauché ses voisines — même cas que la pilule
+de catégorie ci-dessus, à vérifier en premier sur tout futur cadre de jeu
+réduit sous `compact:`).
+
 ### Focus — une règle globale, pas 24 exceptions
 
 ```css

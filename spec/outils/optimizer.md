@@ -192,8 +192,14 @@ retour.
 13. **Résultats** — jusqu'à 20 combinaisons affichées, chacune : rang, les
     sets obtenus, le **panneau de stats** (`StatPanel.tsx`, le même composant
     que dans « Équipement actuel ») et les artéfacts + les 6 runes sur une
-    roue à échelle réduite, cliquables pour ouvrir le détail complet de
-    chaque rune. Puis la valeur **moyenne par rune** dans la mesure choisie.
+    roue à échelle réduite (`BuildCandidateCard.tsx`), tous deux cliquables
+    pour ouvrir le détail complet de la pièce. Puis la valeur **moyenne par
+    rune** dans la mesure choisie.
+    ⚠️ **Détail à la souris vs au doigt — même bascule que « Équipement
+    actuel »/RTA/Siège** (voir `MonsterGear.tsx`) : à la souris, un flottant
+    ancré à la pièce ; au doigt, le détail s'affiche **en ligne sous la
+    carte**, sur sa propre ligne. Un flottant à taille fixe débordait de
+    l'écran sur une carte de résultat déjà compacte en mobile.
     ⚠️ **Sur 0 résultat**, un encadré diagnostic apparaît : soit une liste de
     conditions mathématiquement hors de portée (avec leur borne exacte), soit
     un message neutre orientant vers la conjonction des contraintes ou un
@@ -201,8 +207,6 @@ retour.
     client, instantanément**, sans relancer la recherche : le moteur a déjà
     calculé les stats complètes de chaque combinaison retenue. Deux groupes
     d'options — les 8 stats brutes, et les 4 mêmes objectifs qu'à l'étape 5.
-    Cliquer sur une rune d'un résultat ouvre le même popover que dans Mon
-    compte → Runes.
 
 ⚠️ **Rien n'est appliqué au compte.** L'outil est en lecture seule et
 purement indicatif, comme le reste de SW Forge (aucune écriture vers le

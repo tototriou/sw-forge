@@ -507,6 +507,34 @@ export function runeContribution(rune: RuneDetail, key: StatKey): { pct: number;
   return { pct, flat };
 }
 
+// ⚠️ Même résultat que d'appeler `runeContribution(rune, k)` pour CHAQUE
+// `k` de `ALL_STAT_KEYS`, mais en UN SEUL passage sur les effets de la
+// rune (principale + innée + jusqu'à 4 sous-stats, ~6 lignes) au lieu de
+// 8 — voir `filterSlot`, seul appelant : `runeContribution` y était
+// rappelée une fois par clé de `ALL_STAT_KEYS` (8), rescannant les mêmes
+// ~6 lignes à chaque fois (~48 vérifications par rune au lieu de 6),
+// exactement le motif déjà corrigé ailleurs pour la même raison
+// (`precomputeSlot` dans `buildBuckets`, voir son commentaire). Jamais
+// utilisée en dehors de `filterSlot` : les autres appelants de
+// `runeContribution` (élagage de dominance, rétention par compartiment…)
+// n'ont besoin que d'UNE clé à la fois, pas des 8.
+function runeContributionAllKeys(rune: RuneDetail): Record<StatKey, { pct: number; flat: number }> {
+  const out = {} as Record<StatKey, { pct: number; flat: number }>;
+  for (const k of ALL_STAT_KEYS) out[k] = { pct: 0, flat: 0 };
+  const add = (code: number, value: number) => {
+    const def = RUNE_EFFECT[code];
+    if (!def) return;
+    const entry = out[def.stat as StatKey];
+    if (!entry) return;
+    if (def.pct) entry.pct += value;
+    else entry.flat += value;
+  };
+  add(rune.main.code, rune.main.value);
+  if (rune.innate) add(rune.innate.code, rune.innate.value);
+  for (const s of rune.subs) add(s.code, s.value);
+  return out;
+}
+
 // ⚠️ Comme `runeContribution`, mais SANS la principale — sous-stats et
 // innée uniquement. Sert à la pondération adaptative des tranches de
 // rétention (voir « Suite — point 4 » dans spec/outils/optimizer/, piste
@@ -635,13 +663,17 @@ export function filterSlot(
   // compte). Un seul passage sur `candidates` par stat, aucun tableau
   // intermédiaire trié. Voir spec/outils/optimizer/, piste « point 2 —
   // filterSlot : top-K via le tas ».
+  // ⚠️ Contribution des 8 clés précalculée UNE FOIS par rune
+  // (`runeContributionAllKeys`), pas rappelée 8× via `runeContribution` —
+  // voir son commentaire pour le motif (même bug que `precomputeSlot`
+  // ailleurs dans ce fichier, jamais corrigé ici avant).
   const objectiveKeys = objective ? OBJECTIVE_RELEVANT_STATS[objective] : [];
+  const contribByRune = candidates.map((r) => ({ r, c: runeContributionAllKeys(r) }));
   for (const k of ALL_STAT_KEYS) {
     const keepN = objectiveKeys.includes(k) ? PER_STAT_KEEP_OBJECTIVE : PER_STAT_KEEP;
     const heap: ScoredEntry<RuneDetail>[] = [];
-    for (const r of candidates) {
-      const c = runeContribution(r, k);
-      heapPush(heap, { item: r, score: c.pct + c.flat }, keepN);
+    for (const { r, c } of contribByRune) {
+      heapPush(heap, { item: r, score: c[k].pct + c[k].flat }, keepN);
     }
     for (const { item } of heap) kept.set(item.id, item);
   }

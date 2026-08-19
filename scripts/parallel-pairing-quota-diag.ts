@@ -122,8 +122,8 @@ if (!prepared0) {
   console.error('prepareSearch a échoué — scénario infaisable, ajuster les paramètres.');
   process.exit(1);
 }
-const bucketsA = drain(buildBuckets('A', [0, 1, 2], prepared0.filtered, prepared0.distinctKeys, prepared0.constrainedKeys, prepared0.retentionKeys, prepared0.minEntries, prepared0.bucketCap, prepared0.maxSetsForA, prepared0.jokerCredit, prepared0.requiredPieces));
-const bucketsB = drain(buildBuckets('B', [3, 4, 5], prepared0.filtered, prepared0.distinctKeys, prepared0.constrainedKeys, prepared0.retentionKeys, prepared0.minEntries, prepared0.bucketCap, prepared0.maxSetsForB, prepared0.jokerCredit, prepared0.requiredPieces));
+const bucketsA = drain(buildBuckets('A', [0, 1, 2], prepared0, prepared0.maxSetsForA));
+const bucketsB = drain(buildBuckets('B', [3, 4, 5], prepared0, prepared0.maxSetsForB));
 
 console.log(`Scénario : ${bucketsA.length} compartiments A (tailles : ${bucketsA.map((b) => b.combos.length).join(', ')}), ${bucketsB.length} compartiments B.`);
 

@@ -103,7 +103,7 @@ function drain<T>(gen: Generator<unknown, T, void>): T {
 
 function retainedHalves(prepared: NonNullable<ReturnType<typeof prepareSearch>>): Set<string> {
   const bucketsA = drain(
-    buildBuckets('A', [0, 1, 2], prepared.filtered, prepared.distinctKeys, prepared.constrainedKeys, prepared.retentionKeys, prepared.minEntries, prepared.bucketCap, prepared.maxSetsForA, prepared.jokerCredit, prepared.requiredPieces)
+    buildBuckets('A', [0, 1, 2], prepared, prepared.maxSetsForA)
   );
   const ids = new Set<string>();
   for (const b of bucketsA) for (const combo of b.combos) ids.add(combo.runes.map((r) => r.id).sort((a, b2) => a - b2).join(','));

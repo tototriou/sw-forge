@@ -91,10 +91,10 @@ if (!prepared) {
 }
 console.log(`bucketCap utilisé : ${prepared.bucketCap}`);
 const bucketsA = drain(
-  buildBuckets('A', [0, 1, 2], prepared.filtered, prepared.distinctKeys, prepared.constrainedKeys, prepared.retentionKeys, prepared.minEntries, prepared.bucketCap, prepared.maxSetsForA, prepared.jokerCredit, prepared.requiredPieces)
+  buildBuckets('A', [0, 1, 2], prepared, prepared.maxSetsForA)
 );
 const bucketsB = drain(
-  buildBuckets('B', [3, 4, 5], prepared.filtered, prepared.distinctKeys, prepared.constrainedKeys, prepared.retentionKeys, prepared.minEntries, prepared.bucketCap, prepared.maxSetsForB, prepared.jokerCredit, prepared.requiredPieces)
+  buildBuckets('B', [3, 4, 5], prepared, prepared.maxSetsForB)
 );
 console.log(`bucketsA : ${bucketsA.length} compartiment(s), tailles = [${bucketsA.map((b) => b.combos.length).join(', ')}]`);
 console.log(`bucketsB : ${bucketsB.length} compartiment(s), tailles = [${bucketsB.map((b) => b.combos.length).join(', ')}]`);

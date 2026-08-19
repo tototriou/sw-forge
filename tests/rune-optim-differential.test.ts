@@ -227,10 +227,10 @@ export default function testRuneOptimDifferential() {
           return step.value;
         }
         const bucketsA = drain(
-          buildBuckets('A', [0, 1, 2], prepared.filtered, prepared.distinctKeys, prepared.constrainedKeys, prepared.retentionKeys, prepared.minEntries, prepared.bucketCap, prepared.maxSetsForA, prepared.jokerCredit, prepared.requiredPieces)
+          buildBuckets('A', [0, 1, 2], prepared, prepared.maxSetsForA)
         );
         const bucketsB = drain(
-          buildBuckets('B', [3, 4, 5], prepared.filtered, prepared.distinctKeys, prepared.constrainedKeys, prepared.retentionKeys, prepared.minEntries, prepared.bucketCap, prepared.maxSetsForB, prepared.jokerCredit, prepared.requiredPieces)
+          buildBuckets('B', [3, 4, 5], prepared, prepared.maxSetsForB)
         );
         const total = totalPairCount(prepared, bucketsA, bucketsB);
         ok(total >= res.explored, `scénario ${s} : totalPairCount (${total}) reste une borne sûre — jamais en dessous des paires réellement explorées par une recherche exhaustive (${res.explored})`);

@@ -231,10 +231,10 @@ for (let s = 0; s < SCENARIOS; s++) {
     continue;
   }
   const bucketsA_ref = drain(
-    buildBuckets('A', [0, 1, 2], prepared.filtered, prepared.distinctKeys, prepared.constrainedKeys, prepared.retentionKeys, prepared.minEntries, Number.MAX_SAFE_INTEGER, prepared.maxSetsForA, prepared.jokerCredit, prepared.requiredPieces)
+    buildBuckets('A', [0, 1, 2], { ...prepared, bucketCap: Number.MAX_SAFE_INTEGER }, prepared.maxSetsForA)
   );
   const bucketsB_ref = drain(
-    buildBuckets('B', [3, 4, 5], prepared.filtered, prepared.distinctKeys, prepared.constrainedKeys, prepared.retentionKeys, prepared.minEntries, Number.MAX_SAFE_INTEGER, prepared.maxSetsForB, prepared.jokerCredit, prepared.requiredPieces)
+    buildBuckets('B', [3, 4, 5], { ...prepared, bucketCap: Number.MAX_SAFE_INTEGER }, prepared.maxSetsForB)
   );
   const optimum = exactOptimum(bucketsA_ref, bucketsB_ref, prepared.distinctKeys, BASE, requirement);
   if (optimum === null) {

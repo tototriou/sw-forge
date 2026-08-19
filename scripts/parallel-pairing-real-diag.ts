@@ -118,8 +118,8 @@ async function main() {
   try {
     const prepared0 = prepareSearch(params);
     if (!prepared0) { console.error('infaisable'); process.exit(1); }
-    const bucketsA = drain(buildBuckets('A', [0, 1, 2], prepared0.filtered, prepared0.distinctKeys, prepared0.constrainedKeys, prepared0.retentionKeys, prepared0.minEntries, prepared0.bucketCap, prepared0.maxSetsForA, prepared0.jokerCredit, prepared0.requiredPieces, undefined, params.adaptiveTrancheWeighting, params.combosOrderMode));
-    const bucketsB = drain(buildBuckets('B', [3, 4, 5], prepared0.filtered, prepared0.distinctKeys, prepared0.constrainedKeys, prepared0.retentionKeys, prepared0.minEntries, prepared0.bucketCap, prepared0.maxSetsForB, prepared0.jokerCredit, prepared0.requiredPieces, undefined, params.adaptiveTrancheWeighting, params.combosOrderMode));
+    const bucketsA = drain(buildBuckets('A', [0, 1, 2], prepared0, prepared0.maxSetsForA, undefined, params.adaptiveTrancheWeighting, params.combosOrderMode));
+    const bucketsB = drain(buildBuckets('B', [3, 4, 5], prepared0, prepared0.maxSetsForB, undefined, params.adaptiveTrancheWeighting, params.combosOrderMode));
     const totalPairs = totalPairCount(prepared0, bucketsA, bucketsB);
     console.log(`\ncompartiments A : ${bucketsA.length} — compartiments B : ${bucketsB.length} — totalPairs : ${totalPairs.toLocaleString('fr-FR')}`);
 

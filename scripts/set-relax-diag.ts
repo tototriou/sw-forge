@@ -111,10 +111,10 @@ function testWith(label: string, sets: string[]) {
   for (const k of Object.keys(prepared.guaranteedMin.flat)) headroomFlat[k] = (prepared.guaranteedMin.flat[k] ?? 0) - (prepared.guaranteed.flat[k] ?? 0);
   console.log(`headroom SEUL (unrequestedSetBonusHeadroom) : pct=${JSON.stringify(headroomPct)} flat=${JSON.stringify(headroomFlat)}`);
   const bucketsA = drain(
-    buildBuckets('A', [0, 1, 2], prepared.filtered, prepared.distinctKeys, prepared.constrainedKeys, prepared.retentionKeys, prepared.minEntries, prepared.bucketCap, prepared.maxSetsForA, prepared.jokerCredit, prepared.requiredPieces)
+    buildBuckets('A', [0, 1, 2], prepared, prepared.maxSetsForA)
   );
   const bucketsB = drain(
-    buildBuckets('B', [3, 4, 5], prepared.filtered, prepared.distinctKeys, prepared.constrainedKeys, prepared.retentionKeys, prepared.minEntries, prepared.bucketCap, prepared.maxSetsForB, prepared.jokerCredit, prepared.requiredPieces)
+    buildBuckets('B', [3, 4, 5], prepared, prepared.maxSetsForB)
   );
   console.log(`filtered (par slot) : ${prepared.filtered.map((l) => l.length).join(', ')}`);
   for (const tr of gear.runes) {

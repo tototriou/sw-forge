@@ -54,7 +54,7 @@ export default function testRuneOptimDeadHalfPruning() {
     ];
     const params = { base: BASE, artifacts: [], pool, requirement, metric: 'eff' as const };
     const prepared = prepareSearch(params)!;
-    const bucketsA = drain(buildBuckets('A', [0, 1, 2], prepared.filtered, prepared.distinctKeys, prepared.constrainedKeys, prepared.retentionKeys, prepared.minEntries, prepared.bucketCap, prepared.maxSetsForA, prepared.jokerCredit, prepared.requiredPieces));
+    const bucketsA = drain(buildBuckets('A', [0, 1, 2], prepared, prepared.maxSetsForA));
     egal(bucketsA.length, 0, 'sans joker nulle part : le demi-build A (0 violent, 0 joker) est bien exclu de la construction — aucun compartiment A');
 
     const result = searchBuilds(params);
@@ -79,7 +79,7 @@ export default function testRuneOptimDeadHalfPruning() {
     ];
     const params = { base: BASE, artifacts: [], pool, requirement, metric: 'eff' as const };
     const prepared = prepareSearch(params)!;
-    const bucketsA = drain(buildBuckets('A', [0, 1, 2], prepared.filtered, prepared.distinctKeys, prepared.constrainedKeys, prepared.retentionKeys, prepared.minEntries, prepared.bucketCap, prepared.maxSetsForA, prepared.jokerCredit, prepared.requiredPieces));
+    const bucketsA = drain(buildBuckets('A', [0, 1, 2], prepared, prepared.maxSetsForA));
     egal(bucketsA.length, 1, 'avec un joker DANS ce demi-build : le compartiment A (0 violent, 1 joker) est bien RETENU — pas de perte de complétude');
 
     const result = searchBuilds(params);
@@ -100,7 +100,7 @@ export default function testRuneOptimDeadHalfPruning() {
     ];
     const params = { base: BASE, artifacts: [], pool, requirement: requirement2, metric: 'eff' as const };
     const prepared = prepareSearch(params)!;
-    const bucketsA = drain(buildBuckets('A', [0, 1, 2], prepared.filtered, prepared.distinctKeys, prepared.constrainedKeys, prepared.retentionKeys, prepared.minEntries, prepared.bucketCap, prepared.maxSetsForA, prepared.jokerCredit, prepared.requiredPieces));
+    const bucketsA = drain(buildBuckets('A', [0, 1, 2], prepared, prepared.maxSetsForA));
     egal(bucketsA.length, 1, 'set à 2 pièces seulement : 0 pièce dans une moitié reste normal, jamais élagué (contrôle négatif)');
 
     const result = searchBuilds(params);

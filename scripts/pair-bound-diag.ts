@@ -26,8 +26,8 @@ for (const c of CASES) {
       console.log(`  ${preset.label.padEnd(8)} pool vide après filtrage, ignoré`);
       continue;
     }
-    const bucketsA = drain(buildBuckets('A', [0, 1, 2], prepared.filtered, prepared.distinctKeys, prepared.constrainedKeys, prepared.retentionKeys, prepared.minEntries, prepared.bucketCap, prepared.maxSetsForA, prepared.jokerCredit, prepared.requiredPieces));
-    const bucketsB = drain(buildBuckets('B', [3, 4, 5], prepared.filtered, prepared.distinctKeys, prepared.constrainedKeys, prepared.retentionKeys, prepared.minEntries, prepared.bucketCap, prepared.maxSetsForB, prepared.jokerCredit, prepared.requiredPieces));
+    const bucketsA = drain(buildBuckets('A', [0, 1, 2], prepared, prepared.maxSetsForA));
+    const bucketsB = drain(buildBuckets('B', [3, 4, 5], prepared, prepared.maxSetsForB));
     const real = totalPairCount(prepared, bucketsA, bucketsB);
     const bound = estimatePairBound(requirement, preset.cap, c.objective);
     const ratio = real > 0 ? bound / real : Infinity;

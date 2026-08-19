@@ -333,10 +333,10 @@ for (let s = 0; s < SCENARIOS; s++) {
   }
 
   const bucketsA_ref = drain(
-    buildBuckets('A', [0, 1, 2], prepared.filtered, prepared.distinctKeys, prepared.constrainedKeys, prepared.retentionKeys, prepared.minEntries, Number.MAX_SAFE_INTEGER, prepared.maxSetsForA, prepared.jokerCredit, prepared.requiredPieces)
+    buildBuckets('A', [0, 1, 2], { ...prepared, bucketCap: Number.MAX_SAFE_INTEGER }, prepared.maxSetsForA)
   );
   const bucketsB_ref = drain(
-    buildBuckets('B', [3, 4, 5], prepared.filtered, prepared.distinctKeys, prepared.constrainedKeys, prepared.retentionKeys, prepared.minEntries, Number.MAX_SAFE_INTEGER, prepared.maxSetsForB, prepared.jokerCredit, prepared.requiredPieces)
+    buildBuckets('B', [3, 4, 5], { ...prepared, bucketCap: Number.MAX_SAFE_INTEGER }, prepared.maxSetsForB)
   );
   const refBucketSizeA = Math.max(0, ...bucketsA_ref.map((b) => b.combos.length));
   const refBucketSizeB = Math.max(0, ...bucketsB_ref.map((b) => b.combos.length));
@@ -358,10 +358,10 @@ for (let s = 0; s < SCENARIOS; s++) {
     const bucketCapReal = preset.key === 'bas' ? prepared.bucketCap : prepareSearch({ base: BASE, artifacts: [], pool, requirement, metric: 'eff', slotFilterCap: preset.cap })!.bucketCap;
 
     const bucketsA_real = drain(
-      buildBuckets('A', [0, 1, 2], prepared.filtered, prepared.distinctKeys, prepared.constrainedKeys, prepared.retentionKeys, prepared.minEntries, bucketCapReal, prepared.maxSetsForA, prepared.jokerCredit, prepared.requiredPieces, undefined, false, combosOrderMode)
+      buildBuckets('A', [0, 1, 2], { ...prepared, bucketCap: bucketCapReal }, prepared.maxSetsForA, undefined, false, combosOrderMode)
     );
     const bucketsB_real = drain(
-      buildBuckets('B', [3, 4, 5], prepared.filtered, prepared.distinctKeys, prepared.constrainedKeys, prepared.retentionKeys, prepared.minEntries, bucketCapReal, prepared.maxSetsForB, prepared.jokerCredit, prepared.requiredPieces, undefined, false, combosOrderMode)
+      buildBuckets('B', [3, 4, 5], { ...prepared, bucketCap: bucketCapReal }, prepared.maxSetsForB, undefined, false, combosOrderMode)
     );
 
     const foundA = bucketFor(bucketsA_real, idsA);

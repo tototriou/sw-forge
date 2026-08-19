@@ -99,8 +99,8 @@ export function checkMonotonicityForCase(c: Case): MonotonicityRow[] {
       continue;
     }
     const inFilteredPool = prepared.filtered.flat().some((r) => targetRuneIds.has(r.id)) && prepared.filtered.every((slotList) => slotList.some((r) => targetRuneIds.has(r.id)));
-    const bucketsA = drain(buildBuckets('A', [0, 1, 2], prepared.filtered, prepared.distinctKeys, prepared.constrainedKeys, prepared.retentionKeys, prepared.minEntries, prepared.bucketCap, prepared.maxSetsForA, prepared.jokerCredit, prepared.requiredPieces));
-    const bucketsB = drain(buildBuckets('B', [3, 4, 5], prepared.filtered, prepared.distinctKeys, prepared.constrainedKeys, prepared.retentionKeys, prepared.minEntries, prepared.bucketCap, prepared.maxSetsForB, prepared.jokerCredit, prepared.requiredPieces));
+    const bucketsA = drain(buildBuckets('A', [0, 1, 2], prepared, prepared.maxSetsForA));
+    const bucketsB = drain(buildBuckets('B', [3, 4, 5], prepared, prepared.maxSetsForB));
     const isTargetHalf = (ids: number[]) => ids.every((id) => targetRuneIds.has(id));
     const halfARetained = bucketsA.some((b) => b.combos.some((combo) => isTargetHalf(combo.runes.map((r) => r.id))));
     const halfBRetained = bucketsB.some((b) => b.combos.some((combo) => isTargetHalf(combo.runes.map((r) => r.id))));

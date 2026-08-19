@@ -104,10 +104,10 @@ console.log('maxNodes adaptatif utilisé :', adaptiveMaxNodes(params).toLocaleSt
 const preparedForEstimate = prepareSearch(params);
 if (preparedForEstimate) {
   const bucketsA = drain(
-    buildBuckets('A', [0, 1, 2], preparedForEstimate.filtered, preparedForEstimate.distinctKeys, preparedForEstimate.constrainedKeys, preparedForEstimate.retentionKeys, preparedForEstimate.minEntries, preparedForEstimate.bucketCap, preparedForEstimate.maxSetsForA, preparedForEstimate.jokerCredit, preparedForEstimate.requiredPieces)
+    buildBuckets('A', [0, 1, 2], preparedForEstimate, preparedForEstimate.maxSetsForA)
   );
   const bucketsB = drain(
-    buildBuckets('B', [3, 4, 5], preparedForEstimate.filtered, preparedForEstimate.distinctKeys, preparedForEstimate.constrainedKeys, preparedForEstimate.retentionKeys, preparedForEstimate.minEntries, preparedForEstimate.bucketCap, preparedForEstimate.maxSetsForB, preparedForEstimate.jokerCredit, preparedForEstimate.requiredPieces)
+    buildBuckets('B', [3, 4, 5], preparedForEstimate, preparedForEstimate.maxSetsForB)
   );
   const total = totalPairCount(preparedForEstimate, bucketsA, bucketsB);
   console.log(`totalPairCount (pairFeasibleMin + comboAOk) : ${total.toLocaleString('fr-FR')}`);

@@ -99,8 +99,9 @@ const maxSetsForB = maxSetCountsForSlots(filtered, [0, 1, 2], distinctKeys);
 // muette » (voir spec/outils/optimizer/) — le drainer jusqu'au bout donne
 // le Bucket[] final via sa valeur de retour, exactement comme searchBuilds
 // draine searchBuildsSteps.
-const bucketsA = drain(buildBuckets('A', [0, 1, 2], filtered, distinctKeys, constrainedKeys, retentionKeys, minEntries, bucketCap, maxSetsForA, jokerCredit, requiredPieces));
-const bucketsB = drain(buildBuckets('B', [3, 4, 5], filtered, distinctKeys, constrainedKeys, retentionKeys, minEntries, bucketCap, maxSetsForB, jokerCredit, requiredPieces));
+const ctx = { filtered, distinctKeys, constrainedKeys, retentionKeys, minEntries, bucketCap, jokerCredit, requiredPieces };
+const bucketsA = drain(buildBuckets('A', [0, 1, 2], ctx, maxSetsForA));
+const bucketsB = drain(buildBuckets('B', [3, 4, 5], ctx, maxSetsForB));
 
 function analyze(label: string, buckets: Bucket[], targetIds: number[]) {
   console.log(`\n${label} :`);

@@ -62,16 +62,19 @@ export type BuildHalfResponse = BuildHalfProgressMessage | BuildHalfResultMessag
 const PROGRESS_THROTTLE_MS = 150;
 
 self.onmessage = (e: MessageEvent<BuildHalfRequest>) => {
-  const {
-    half, slotIdxs, filtered, distinctKeys, constrainedKeys, retentionKeys, minEntries, bucketCap, otherHalfMaxSets, jokerCredit, requiredPieces,
-    adaptiveTrancheWeighting, combosOrderMode,
-  } = e.data;
+  const { half, slotIdxs, filtered, otherHalfMaxSets, adaptiveTrancheWeighting, combosOrderMode } = e.data;
   // Connu D'AVANCE (indépendant du générateur) : le total réel que
   // `buildBuckets` utilisera pour CE premier emplacement de la moitié — sert
   // au message de fin garanti ci-dessous, voir son commentaire.
   const total = filtered[slotIdxs[0]].length;
+  // ⚠️ `e.data` (BuildHalfRequest) satisfait déjà STRUCTURELLEMENT
+  // `BuildBucketsContext` (mêmes 8 champs, voir son commentaire dans
+  // runeBuildOptim.ts) — pas besoin de reconstruire un objet, les champs en
+  // trop (half/slotIdxs/otherHalfMaxSets/…) sont ignorés sans risque
+  // puisque ce n'est pas un littéral d'objet (aucune vérification de
+  // propriété excédentaire de TypeScript ici).
   const gen = buildBuckets(
-    half, slotIdxs, filtered, distinctKeys, constrainedKeys, retentionKeys, minEntries, bucketCap, otherHalfMaxSets, jokerCredit, requiredPieces,
+    half, slotIdxs, e.data, otherHalfMaxSets,
     undefined, adaptiveTrancheWeighting, combosOrderMode
   );
   let lastPost = 0;

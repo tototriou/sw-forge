@@ -103,16 +103,12 @@ function runOnce(slotFilterCap: number, adaptiveTrancheWeighting: boolean, metri
   }
 
   const bucketsA = drain(
-    buildBuckets(
-      'A', [0, 1, 2], prepared.filtered, prepared.distinctKeys, prepared.constrainedKeys, prepared.retentionKeys,
-      prepared.minEntries, prepared.bucketCap, prepared.maxSetsForA, prepared.jokerCredit, prepared.requiredPieces,
+    buildBuckets('A', [0, 1, 2], prepared, prepared.maxSetsForA,
       undefined, adaptiveTrancheWeighting
     )
   );
   const bucketsB = drain(
-    buildBuckets(
-      'B', [3, 4, 5], prepared.filtered, prepared.distinctKeys, prepared.constrainedKeys, prepared.retentionKeys,
-      prepared.minEntries, prepared.bucketCap, prepared.maxSetsForB, prepared.jokerCredit, prepared.requiredPieces,
+    buildBuckets('B', [3, 4, 5], prepared, prepared.maxSetsForB,
       undefined, adaptiveTrancheWeighting
     )
   );
@@ -187,10 +183,10 @@ if (reference.count > 0) {
     maxMs: HARD_TIMEOUT_MS, slotFilterCap: 300,
   })!;
   const bucketsA300 = drain(
-    buildBuckets('A', [0, 1, 2], prepared300.filtered, prepared300.distinctKeys, prepared300.constrainedKeys, prepared300.retentionKeys, prepared300.minEntries, prepared300.bucketCap, prepared300.maxSetsForA, prepared300.jokerCredit, prepared300.requiredPieces)
+    buildBuckets('A', [0, 1, 2], prepared300, prepared300.maxSetsForA)
   );
   const bucketsB300 = drain(
-    buildBuckets('B', [3, 4, 5], prepared300.filtered, prepared300.distinctKeys, prepared300.constrainedKeys, prepared300.retentionKeys, prepared300.minEntries, prepared300.bucketCap, prepared300.maxSetsForB, prepared300.jokerCredit, prepared300.requiredPieces)
+    buildBuckets('B', [3, 4, 5], prepared300, prepared300.maxSetsForB)
   );
   const allComboIdsA = new Set<string>();
   for (const b of bucketsA300) for (const c of b.combos) allComboIdsA.add(c.runes.map((r) => r.id).sort((a, b2) => a - b2).join(','));

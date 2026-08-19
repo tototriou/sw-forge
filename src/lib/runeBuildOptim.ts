@@ -1276,6 +1276,28 @@ function combinedRetentionScore(pct: Record<string, number>, flat: Record<string
   return score;
 }
 
+// ⚠️ Regroupe 8 des paramètres de `buildBuckets` — tous déjà des champs de
+// `PreparedSearch` (voir plus bas), passés SÉPARÉMENT jusqu'ici (signature à
+// 14 paramètres positionnels, revue de code externe point 9 — 67 sites
+// d'appel dans 29 fichiers, aucun bug d'ordre trouvé en les auditant, mais
+// un vrai risque latent : la plupart de ces sites sont dans `scripts/`, hors
+// périmètre `tsc`, où un paramètre inversé ne serait détecté qu'à
+// l'exécution). N'importe quel objet qui a STRUCTURELLEMENT ces 8 champs
+// convient — un `PreparedSearch` complet (le cas normal, `searchBuildsSteps`)
+// ou un objet plus étroit comme `BuildHalfRequest` (buildHalf.worker.ts, qui
+// ne peut pas recevoir un `PreparedSearch` tel quel — sa fonction `totalOf`
+// n'est pas sérialisable via `postMessage`).
+export interface BuildBucketsContext {
+  filtered: RuneDetail[][];
+  distinctKeys: string[];
+  constrainedKeys: StatKey[];
+  retentionKeys: StatKey[];
+  minEntries: { k: StatKey; min: number }[];
+  bucketCap: number;
+  jokerCredit: number;
+  requiredPieces: number[];
+}
+
 // ⚠️ GÉNÉRATEUR, comme `searchBuildsSteps` — la construction d'un
 // compartiment (triple boucle sur les pools filtrés) peut à elle seule
 // prendre plusieurs dizaines de secondes sur un compte réel avec beaucoup de
@@ -1290,15 +1312,8 @@ function combinedRetentionScore(pct: Record<string, number>, flat: Record<string
 export function* buildBuckets(
   half: 'A' | 'B',
   slotIdxs: readonly [number, number, number],
-  filtered: RuneDetail[][],
-  distinctKeys: string[],
-  constrainedKeys: StatKey[],
-  retentionKeys: StatKey[],
-  minEntries: { k: StatKey; min: number }[],
-  bucketCap: number,
+  ctx: BuildBucketsContext,
   otherHalfMaxSets: number[],
-  jokerCredit: number,
-  requiredPieces: number[],
   // ⚠️ PROTOTYPE EN MESURE — voir `Bucket.skyline`/`insertIntoSkyline`.
   // `undefined` (par défaut, TOUS les appels de production actuels) : rien
   // ne change, coût nul. Fourni : maintient EN PLUS, pour chaque
@@ -1331,6 +1346,7 @@ export function* buildBuckets(
   // jamais exposé dans l'UI, aucun appel de production ne le passe.
   combosOrderMode: 'potential' | 'relevance' = 'relevance'
 ): Generator<BuildingProgress, Bucket[], void> {
+  const { filtered, distinctKeys, constrainedKeys, retentionKeys, minEntries, bucketCap, jokerCredit, requiredPieces } = ctx;
   const [i0, i1, i2] = slotIdxs;
   const buckets = new Map<string, Bucket>();
   // Tas de construction, PAS le contrat final (`Bucket.combos`) : une entrée
@@ -2647,13 +2663,11 @@ export function* searchBuildsSteps(params: SearchParams): Generator<SearchProgre
     return { candidates: [], explored: 0, truncated: false };
   }
   const bucketsA = yield* buildBuckets(
-    'A', [0, 1, 2], prepared.filtered, prepared.distinctKeys, prepared.constrainedKeys, prepared.retentionKeys,
-    prepared.minEntries, prepared.bucketCap, prepared.maxSetsForA, prepared.jokerCredit, prepared.requiredPieces,
+    'A', [0, 1, 2], prepared, prepared.maxSetsForA,
     undefined, params.adaptiveTrancheWeighting, params.combosOrderMode
   );
   const bucketsB = yield* buildBuckets(
-    'B', [3, 4, 5], prepared.filtered, prepared.distinctKeys, prepared.constrainedKeys, prepared.retentionKeys,
-    prepared.minEntries, prepared.bucketCap, prepared.maxSetsForB, prepared.jokerCredit, prepared.requiredPieces,
+    'B', [3, 4, 5], prepared, prepared.maxSetsForB,
     undefined, params.adaptiveTrancheWeighting, params.combosOrderMode
   );
   return yield* pairBuckets(prepared, bucketsA, bucketsB);

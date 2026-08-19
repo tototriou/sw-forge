@@ -195,8 +195,8 @@ export default async function testRuneOptimParallelPairing() {
     const prepared = prepareSearch(params);
     if (!prepared) continue; // pool vide après filtrage — rien à comparer sur ce scénario
 
-    const bucketsA = drain(buildBuckets('A', [0, 1, 2], prepared.filtered, prepared.distinctKeys, prepared.constrainedKeys, prepared.retentionKeys, prepared.minEntries, prepared.bucketCap, prepared.maxSetsForA, prepared.jokerCredit, prepared.requiredPieces));
-    const bucketsB = drain(buildBuckets('B', [3, 4, 5], prepared.filtered, prepared.distinctKeys, prepared.constrainedKeys, prepared.retentionKeys, prepared.minEntries, prepared.bucketCap, prepared.maxSetsForB, prepared.jokerCredit, prepared.requiredPieces));
+    const bucketsA = drain(buildBuckets('A', [0, 1, 2], prepared, prepared.maxSetsForA));
+    const bucketsB = drain(buildBuckets('B', [3, 4, 5], prepared, prepared.maxSetsForB));
 
     const reference = drain(pairBuckets(prepared, bucketsA, bucketsB, { max: Number.POSITIVE_INFINITY }));
     const refKeys = new Set(reference.candidates.map(candidateKey));
@@ -283,8 +283,8 @@ export default async function testRuneOptimParallelPairing() {
       const prepared0 = prepareSearch(params);
       if (!prepared0) continue;
 
-      const bucketsA = drain(buildBuckets('A', [0, 1, 2], prepared0.filtered, prepared0.distinctKeys, prepared0.constrainedKeys, prepared0.retentionKeys, prepared0.minEntries, prepared0.bucketCap, prepared0.maxSetsForA, prepared0.jokerCredit, prepared0.requiredPieces));
-      const bucketsB = drain(buildBuckets('B', [3, 4, 5], prepared0.filtered, prepared0.distinctKeys, prepared0.constrainedKeys, prepared0.retentionKeys, prepared0.minEntries, prepared0.bucketCap, prepared0.maxSetsForB, prepared0.jokerCredit, prepared0.requiredPieces));
+      const bucketsA = drain(buildBuckets('A', [0, 1, 2], prepared0, prepared0.maxSetsForA));
+      const bucketsB = drain(buildBuckets('B', [3, 4, 5], prepared0, prepared0.maxSetsForB));
 
       // Référence séquentielle NON divisée (plafond ENTIER, même fil,
       // chrono partagé) — sert UNIQUEMENT au filet de sécurité
@@ -402,8 +402,8 @@ export default async function testRuneOptimParallelPairing() {
     const params = { base: BASE, artifacts: [], pool, requirement, metric: 'eff' as const, maxMs: Number.POSITIVE_INFINITY, maxCollected: Number.MAX_SAFE_INTEGER };
     const prepared = prepareSearch(params);
     if (prepared) {
-      const bucketsA = drain(buildBuckets('A', [0, 1, 2], prepared.filtered, prepared.distinctKeys, prepared.constrainedKeys, prepared.retentionKeys, prepared.minEntries, prepared.bucketCap, prepared.maxSetsForA, prepared.jokerCredit, prepared.requiredPieces));
-      const bucketsB = drain(buildBuckets('B', [3, 4, 5], prepared.filtered, prepared.distinctKeys, prepared.constrainedKeys, prepared.retentionKeys, prepared.minEntries, prepared.bucketCap, prepared.maxSetsForB, prepared.jokerCredit, prepared.requiredPieces));
+      const bucketsA = drain(buildBuckets('A', [0, 1, 2], prepared, prepared.maxSetsForA));
+      const bucketsB = drain(buildBuckets('B', [3, 4, 5], prepared, prepared.maxSetsForB));
       const slices = partitionBucketsALPT(bucketsA, Math.min(4, bucketsA.length));
       egal(slices.length <= bucketsA.length, true, `cas limite (peu de compartiments) : jamais plus de tranches que de compartiments réels (${slices.length} tranches pour ${bucketsA.length} compartiment(s))`);
       const nonVides = slices.filter((sl) => sl.length > 0).length;

@@ -49,15 +49,8 @@ const buckets = drain(
   buildBuckets(
     data.half,
     data.slotIdxs,
-    data.filtered,
-    data.distinctKeys,
-    data.constrainedKeys,
-    data.retentionKeys,
-    data.minEntries,
-    data.bucketCap,
+    data,
     data.otherHalfMaxSets,
-    data.jokerCredit,
-    data.requiredPieces,
     undefined,
     data.adaptiveTrancheWeighting,
     data.combosOrderMode

@@ -740,12 +740,20 @@ function isSetComparable(a: RuneDetail, b: RuneDetail, requiredKeys: Set<string>
 // bonne », elle est plus dangereuse. Sur ces stats-là, seule l'ÉGALITÉ
 // stricte (ni plus, ni moins) reste sûre à comparer : on ne sait pas, sans
 // connaître le reste du build, si « plus » ou « moins » serait le bon choix.
-function isDominated(a: RuneDetail, b: RuneDetail, requiredKeys: Set<string>, maxKeys: Set<StatKey>): boolean {
+function isDominated(
+  a: RuneDetail,
+  b: RuneDetail,
+  requiredKeys: Set<string>,
+  maxKeys: Set<StatKey>,
+  contribById: Map<number, Record<StatKey, { pct: number; flat: number }>>
+): boolean {
   if (a.id === b.id || !isSetComparable(a, b, requiredKeys)) return false;
+  const contribA = contribById.get(a.id)!;
+  const contribB = contribById.get(b.id)!;
   let strictlyBetter = false;
   for (const k of ALL_STAT_KEYS) {
-    const ca = runeContribution(a, k);
-    const cb = runeContribution(b, k);
+    const ca = contribA[k];
+    const cb = contribB[k];
     if (maxKeys.has(k)) {
       // Stat plafonnée : seule l'égalité est sûre dans les deux sens.
       if (cb.pct !== ca.pct || cb.flat !== ca.flat) return false;
@@ -774,9 +782,19 @@ function isDominated(a: RuneDetail, b: RuneDetail, requiredKeys: Set<string>, ma
 // gain marginal. Au-delà, on renonce à cet élagage plutôt que de ralentir.
 const DOMINANCE_MAX_POOL = 2000;
 
+// ⚠️ `runeContributionAllKeys` précalculée UNE FOIS par rune (O(n)) avant la
+// double boucle O(n²) — pas rappelée via `runeContribution` à CHAQUE paire
+// comparée (16 appels/paire : 8 clés × 2 runes). Même motif que
+// `filterSlot`/`precomputeSlot` ailleurs dans ce fichier, jusqu'ici oublié
+// ici — trouvé par une revue de code externe (2026-08-19, point 3) : ce
+// coût est payé À CHAQUE fois que `prepareSearch` tourne, y compris une
+// fois PAR WORKER en pairing parallèle (jusqu'à 4×, voir
+// `pairSlice.worker.ts`).
 export function pruneDominated(list: RuneDetail[], requiredKeys: Set<string>, maxKeys: Set<StatKey>): RuneDetail[] {
   if (list.length > DOMINANCE_MAX_POOL) return list;
-  return list.filter((a) => !list.some((b) => isDominated(a, b, requiredKeys, maxKeys)));
+  const contribById = new Map<number, Record<StatKey, { pct: number; flat: number }>>();
+  for (const r of list) contribById.set(r.id, runeContributionAllKeys(r));
+  return list.filter((a) => !list.some((b) => isDominated(a, b, requiredKeys, maxKeys, contribById)));
 }
 
 /* --------------------------------------------------------------------------

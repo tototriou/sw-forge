@@ -62,19 +62,25 @@ export default function SetComboPicker({ sets, onChange }: Props) {
       </div>
 
       {!full && (
-        <div className="mt-2 grid grid-cols-2 gap-0 rounded-lg border border-border bg-panel p-2">
+        <div className="mt-2 grid grid-cols-2 compact:grid-cols-[auto_1fr] gap-0 rounded-lg border border-border bg-panel p-2">
           {/* ⚠️ Toujours 2 colonnes, jamais empilé sous un seuil de largeur :
               chaque groupe passe déjà à la ligne en interne (`flex-wrap`), la
               séparation verticale gagne de la place sur le plan VERTICAL —
               le rare qui manque sur téléphone — plutôt que de dupliquer la
-              hauteur pour rien. */}
+              hauteur pour rien.
+              ⚠️ **Au doigt, colonnes ASYMÉTRIQUES** (`auto` / `1fr`) : Set
+              principal a EXACTEMENT 6 sets (`grid-cols-3` ci-dessous, deux
+              lignes de trois, jamais plus) — lui laisser une colonne égale
+              gaspillait une largeur qu'il n'utilise pas. Set secondaire (17
+              sets) récupère cette largeur libérée, ce qui réduit son nombre
+              de lignes — c'est lui qui pèse sur la hauteur. */}
           {([
             ['Set principal', FOUR_PIECE],
             ['Set secondaire', TWO_PIECE],
           ] as const).map(([groupLabel, group], i) => (
             <div key={groupLabel} className={i > 0 ? 'border-l border-border-soft pl-3' : 'pr-3'}>
               <p className="mb-1 text-[10.5px] font-semibold uppercase tracking-wide text-ink-dimmer">{groupLabel}</p>
-              <div className="flex flex-wrap gap-1">
+              <div className={i === 0 ? 'flex flex-wrap gap-1 compact:grid compact:grid-cols-3' : 'flex flex-wrap gap-1'}>
                 {group.map((s) => {
                   const fits = canAddSet(sets, s.key);
                   return (

@@ -262,6 +262,15 @@ recette au moment de la recherche. Un identifiant introuvable (monstre
 absent chez l'importeur, deck remanié depuis…) est silencieusement ignoré,
 jamais une erreur — même tolérance que pour le monstre recherché lui-même.
 
+⚠️ **Réinitialisée sur un compte réellement DIFFÉRENT, pas sur une simple
+nouvelle version réimportée du même compte.** Les sélections référencent des
+monstres/runes par identifiant — valides pour un réexport du même joueur
+(mêmes identifiants), mais sans plus aucun sens pour un compte différent.
+Distingué par l'identité STABLE du compte (`wizard_id`), pas la date
+d'export (qui change à chaque réexport) : réimporter son propre compte,
+même après des heures de jeu, garde les sélections ; importer le fichier
+d'un autre joueur les efface.
+
 ## Interruption — filet de temps, pré-filtrage et arrêt manuel
 
 Trois façons dont une recherche s'arrête **avant** d'avoir tout exploré, en

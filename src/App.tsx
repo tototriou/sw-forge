@@ -57,6 +57,7 @@ import {
   parseSiegeOffense,
   parseAccountBox,
   parseAccountInventory,
+  parseWizardId,
 } from './lib/importAccount';
 import { mapRtaItems, mapSiegeTeams, mapBoxMonsters, BoxItem } from './lib/applyAccount';
 
@@ -182,6 +183,15 @@ export default function App() {
     }
     optimizer.resetSearch();
   }, [box]);
+
+  // Identité du DERNIER compte importé cette session (`wizard_id`, voir
+  // parseWizardId) — comparée dans `appliquerImport` pour réinitialiser
+  // l'exclusion manuelle de runes de l'Optimizer UNIQUEMENT sur un compte
+  // réellement différent, jamais sur un simple réexport (même wizard_id,
+  // seule la date d'export change). `null` : rien d'importé pour l'instant
+  // cette session (ne couvre pas un compte hydraté depuis le stockage local
+  // d'une session précédente — non persisté, cf. `appliquerImport`).
+  const wizardIdRef = useRef<number | null>(null);
 
   // Box telle que sortie de l'extracteur, avant résolution en monstres. C'est
   // ELLE qu'on enregistre : un `BoxItem` embarque l'objet `Monster` et figerait
@@ -373,6 +383,24 @@ export default function App() {
     }
     if (def.teams.length) siegeDef.importTeams(def.teams);
     if (off.teams.length) siegeOff.importTeams(off.teams);
+
+    // Exclusion manuelle de runes de l'Optimizer (excludedSelectors) : à
+    // effacer sur un compte VRAIMENT DIFFÉRENT (autre wizard_id — voir
+    // parseWizardId), pas sur une simple nouvelle version RÉEXPORTÉE du même
+    // compte (même wizard_id, seul `tvalue` change) — un réexport garde les
+    // mêmes ids de monstre/rune, la sélection reste valide. `null` (import
+    // précédent illisible, ou tout premier import de la session) : aucune
+    // identité connue à comparer, on ne réinitialise pas — cohérent avec
+    // resetSearch() côté box (voir plus bas), qui lui se déclenche sur
+    // CHAQUE import sans cette distinction (les critères/résultats affichés
+    // deviennent obsolètes même pour un simple réexport, contrairement à
+    // l'exclusion qui référence des ids stables).
+    const wizardId = parseWizardId(data);
+    if (wizardIdRef.current !== null && wizardId !== null && wizardIdRef.current !== wizardId) {
+      optimizer.setExcludedSelectors([]);
+    }
+    wizardIdRef.current = wizardId;
+
     // Box + inventaire : toujours remplacés par le dernier import.
     importedManuallyRef.current = true;
     rawBoxRef.current = boxRes.monsters ?? [];

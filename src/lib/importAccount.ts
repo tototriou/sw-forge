@@ -67,6 +67,24 @@ export function parseAccountExportDate(src: AccountSource): number | null {
   return ms;
 }
 
+// Identifiant STABLE du compte (pas de l'export) — le même joueur réexporté
+// deux fois porte le même `wizard_id`, contrairement à `tvalue`
+// (parseAccountExportDate) qui change à chaque export. Sert à distinguer
+// « nouvelle version du même compte » (réexport, `wizard_id` inchangé) de
+// « compte différent » (voir App.tsx, `appliquerImport` — réinitialise
+// l'exclusion manuelle de runes de l'Optimizer uniquement dans ce second
+// cas : des sélections qui référencent des monstres/runes d'un AUTRE compte
+// n'ont plus de sens, alors qu'un simple réexport garde les mêmes ids).
+// ⚠️ Racine `wizard_id`, pas `wizard_info.wizard_id` : les deux existent
+// dans un export réel et portent la même valeur, mais la racine est plus
+// courte à lire et déjà utilisée ailleurs dans le format SWEX (`tvalue`, cf.
+// ci-dessus).
+export function parseWizardId(src: AccountSource): number | null {
+  const data = parseAccountSource(src);
+  const id = Number(data?.wizard_id);
+  return Number.isFinite(id) && id > 0 ? id : null;
+}
+
 // Mémoïse un index dérivé de `data` : les extracteurs reconstruisent sinon les
 // mêmes Maps (runes ×4, artéfacts ×3, unités ×2) sur des milliers d'entrées.
 // Clé faible sur l'objet parsé → libéré avec lui, et jamais partagé entre deux

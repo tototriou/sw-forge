@@ -69,8 +69,8 @@ Comme en **vue compacte du siège**, le panneau de détail (`MonsterGear`) s'ouv
   de runes** : `hasGear = !!entry.gear` dans `RtaCard.tsx`, sans exiger
   `runes.length > 0`. Un monstre ajouté à la prépa mais jamais runé peut
   quand même porter des **artéfacts** (voire une relique) — `MonsterGear`
-  gère déjà 0 rune sans problème (panneau de stats et emplacements
-  d'artéfacts toujours rendus, roue et relique seulement s'il y en a).
+  gère déjà 0 rune sans problème (panneau de stats, emplacements
+  d'artéfacts et roue toujours rendus ; relique seulement s'il y en a).
   Exiger des runes rendait la carte ENTIÈRE non cliquable et cachait ces
   artéfacts pourtant réels. Bug trouvé sur un compte réel (3 monstres
   « Non classé », 2 artéfacts chacun mais 0 rune, tous les trois inertes).
@@ -90,6 +90,16 @@ Comme en **vue compacte du siège**, le panneau de détail (`MonsterGear`) s'ouv
   qu'une seule icône au lieu des 2 emplacements toujours attendus. Corrigé
   en remplaçant le bloc inline par `<ArtifactSlots artifacts={gear.
   artifacts} .../>`.
+- **Roue de runes : toujours affichée, même à 0 rune** — pas de garde
+  `gear.runes.length > 0` autour de `<RuneWheel>`. `RuneWheel` ne fait que
+  `runes.map(...)` : un slot sans rune montre déjà seulement le **fond** de
+  la roue (`rune-wheel.png`), sans cadre dessus — exactement le même rendu
+  qu'un build partiel (une rune sur deux, par exemple), pas un état grisé
+  à inventer. Un monstre sans aucune rune importée montre donc le fond nu
+  de la roue plutôt que rien du tout. Comportement partagé par
+  `MonsterGear` : s'applique aussi en Siège et dans l'Optimizer. Même
+  principe que les 2 emplacements d'`ArtifactSlots` toujours affichés
+  ci-dessus.
 - **L'encadré de stats entier est cliquable** (`role="button"`, pas un bouton
   séparé) et bascule entre deux affichages du même tableau :
   - **Base + bonus** (par défaut) : base en blanc, bonus en **vert**

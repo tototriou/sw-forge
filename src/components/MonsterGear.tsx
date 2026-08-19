@@ -395,14 +395,20 @@ export default function MonsterGear({ gear, spdCible = null }: Props) {
       {/* Roue de runes — voir RuneWheel.tsx. Le détail au clic reste
           affiché EN LIGNE sous la roue (bloc `sel` plus bas), pas un
           popover flottant : pas de `renderOverlay` ici, juste
-          `onSelectRune`/`isSelected` branchés sur le `Selected` local. */}
-      {gear.runes.length > 0 && (
-        <RuneWheel
-          runes={gear.runes}
-          isSelected={(_r, i) => isSel({ kind: 'rune', i })}
-          onSelectRune={(_r, i) => toggle({ kind: 'rune', i })}
-        />
-      )}
+          `onSelectRune`/`isSelected` branchés sur le `Selected` local.
+          ⚠️ TOUJOURS rendue, même à 0 rune — pas conditionnée sur
+          `gear.runes.length > 0`. `RuneWheel` se contente de `runes.map`,
+          donc un slot sans rune montre déjà juste le fond de la roue, sans
+          cadre dessus : même mécanique qu'un build partiel (une rune sur
+          deux, par exemple), pas un état grisé à part à inventer. Un
+          monstre sans aucune rune importée doit quand même montrer le
+          fond de la roue, pas rien du tout — même principe que les 2
+          emplacements d'`ArtifactSlots` toujours affichés au-dessus. */}
+      <RuneWheel
+        runes={gear.runes}
+        isSelected={(_r, i) => isSel({ kind: 'rune', i })}
+        onSelectRune={(_r, i) => toggle({ kind: 'rune', i })}
+      />
 
       {/* Relique à droite */}
       {gear.relic && (

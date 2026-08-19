@@ -158,6 +158,7 @@ export default function OptimizerSection({ box, runes, optimizer, allMonsters, r
     openRuneKey,
     setOpenRuneKey,
     search,
+    resetSearch,
   } = optimizer;
   const { status, result, progress, run, stop } = search;
 
@@ -642,7 +643,23 @@ export default function OptimizerSection({ box, runes, optimizer, allMonsters, r
         </div>
         <div>
           <p className="label mb-1.5">Monstre à optimiser</p>
-          <MonsterGearPicker items={gearedMonsters} onPick={setSelectedId} />
+          {/* ⚠️ Réinitialise « Critères de recherche » et « Combinaisons
+              trouvées » (`resetSearch`, voir useOptimizerState.ts) AVANT de
+              changer de monstre — sinon des critères/résultats posés pour
+              l'ANCIEN monstre resteraient affichés comme s'ils valaient pour
+              le nouveau. Garde `id !== selectedId` : re-cliquer le monstre
+              déjà sélectionné ne doit rien effacer, ce n'est pas un
+              changement. Uniquement dans CE picker, pas dans `setSelectedId`
+              lui-même — l'import d'une recette (plus bas) l'appelle aussi
+              mais pose ses PROPRES critères juste avant : les effacer
+              ensuite les perdrait aussitôt. */}
+          <MonsterGearPicker
+            items={gearedMonsters}
+            onPick={(id) => {
+              if (id !== selectedId) resetSearch();
+              setSelectedId(id);
+            }}
+          />
         </div>
 
         {selected && (

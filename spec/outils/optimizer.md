@@ -54,6 +54,18 @@ retour.
    l'exemplaire au meilleur équipement (somme d'efficience la plus haute,
    0 pour un monstre nu) pour les stats/artéfacts affichés. **Tous** les
    exemplaires comptent comme « à soi » pour l'exclusion (voir plus bas).
+   ⚠️ **Changer de monstre réinitialise « Critères de recherche » et les
+   résultats affichés** (set, statistique principale imposée, objectif,
+   artéfacts, conditions min/max, tri, pagination) — des critères posés pour
+   l'ancien monstre n'ont pas de raison de valoir pour le nouveau, et
+   d'anciens résultats affichés resteraient trompeurs (mauvais monstre).
+   Re-choisir le même monstre déjà sélectionné n'efface rien. Les
+   **réglages avancés** (préfiltrage, exclusions, recherche exhaustive…) ne
+   sont PAS concernés : ce sont des préférences générales, pas des critères
+   propres à un monstre. **Importer un nouveau compte** (bouton global
+   « Importer un JSON ») déclenche la même réinitialisation, pour la même
+   raison (autre box, autre pool de runes possible) — même en étant sur un
+   autre onglet au moment de l'import.
 2. **Équipement actuel** — **le composant `MonsterGear`, réutilisé tel quel**
    (pas réimplémenté), le même qu'en RTA/Siège quand on clique un monstre :
    stats base/bonus, artéfacts, roue de runes et relique **tels

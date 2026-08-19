@@ -170,5 +170,20 @@ export function useBuildOptimSearch() {
     workerRef.current?.postMessage({ stop: true });
   }, []);
 
-  return { status, result, progress, run, stop, cancel };
+  // Efface l'état affiché SANS relancer de recherche — `cancel()` seul
+  // termine le Worker mais laisse `status`/`result`/`progress` tels quels
+  // (utilisé par `run()` avant de lancer la SUIVANTE, jamais pour revenir à
+  // vide). Sert quand le monstre change ou qu'un nouveau compte est importé
+  // (voir useOptimizerState.ts, `resetSearch`) : les résultats affichés
+  // deviennent obsolètes (mauvais monstre/pool de runes), il faut les faire
+  // disparaître IMMÉDIATEMENT, pas attendre le prochain clic sur
+  // « Rechercher ».
+  const reset = useCallback(() => {
+    cancel();
+    setStatus('idle');
+    setResult(null);
+    setProgress(null);
+  }, [cancel]);
+
+  return { status, result, progress, run, stop, cancel, reset };
 }

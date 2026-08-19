@@ -164,6 +164,25 @@ export default function App() {
   const [artifacts, setArtifacts] = useState<ArtifactDetail[]>([]);
   const [crafts, setCrafts] = useState<CraftLine[]>([]);
 
+  // Un nouveau compte importé (`appliquerImport`, `setBox` avec une NOUVELLE
+  // référence) rend obsolètes les « Critères de recherche »/« Combinaisons
+  // trouvées » de l'Optimizer — autre monstre possible, autre pool de runes.
+  // ⚠️ Ici, dans App.tsx (jamais démonté), pas dans OptimizerSection.tsx
+  // (démontée à chaque changement d'onglet — voir son commentaire de tête) :
+  // importer un compte pendant qu'on est sur un AUTRE onglet doit quand même
+  // vider l'Optimizer, pas seulement quand on l'a sous les yeux au moment de
+  // l'import. Ignore la toute première exécution (montage) : `box` n'a pas
+  // encore de valeur « précédente » à comparer, et l'Optimizer démarre de
+  // toute façon déjà vide.
+  const boxMountedRef = useRef(false);
+  useEffect(() => {
+    if (!boxMountedRef.current) {
+      boxMountedRef.current = true;
+      return;
+    }
+    optimizer.resetSearch();
+  }, [box]);
+
   // Box telle que sortie de l'extracteur, avant résolution en monstres. C'est
   // ELLE qu'on enregistre : un `BoxItem` embarque l'objet `Monster` et figerait
   // la correspondance com2usId → monstre au moment de l'import.

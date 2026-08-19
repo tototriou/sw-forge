@@ -120,6 +120,18 @@ export interface OptimizerState {
   openRuneKey: string | null;
   setOpenRuneKey: Dispatch<SetStateAction<string | null>>;
   search: ReturnType<typeof useBuildOptimSearch>;
+  // Remet à zéro « Critères de recherche » (set, statistique principale
+  // imposée, objectif, artéfacts, conditions min/max) ET « Combinaisons
+  // trouvées » (résultat, progression, tri, pagination) — PAS les réglages
+  // avancés (préfiltrage, exclusions, recherche exhaustive…), qui sont des
+  // préférences générales et pas des critères propres au monstre en cours.
+  // Appelée par OptimizerSection.tsx quand le monstre recherché change
+  // (sélection manuelle, pas un import de recette — celui-ci pose ses
+  // propres critères juste après, les effacer aussitôt les perdrait) et par
+  // App.tsx quand un nouveau compte est importé (voir son `useEffect` sur
+  // `box`) : dans les deux cas, la recherche affichée devient obsolète
+  // (autre monstre, autre pool de runes).
+  resetSearch: () => void;
 }
 
 export function useOptimizerState(): OptimizerState {
@@ -148,6 +160,23 @@ export function useOptimizerState(): OptimizerState {
   const [stoppedManually, setStoppedManually] = useState(false);
   const [openRuneKey, setOpenRuneKey] = useState<string | null>(null);
   const search = useBuildOptimSearch();
+
+  function resetSearch() {
+    setComboSets([]);
+    setSetPickerInvalid(false);
+    setMinStats({});
+    setMaxStats({});
+    setExcludeBase(true);
+    setIgnoreArtifacts(false);
+    setArtifactMainByKind({});
+    setMainStatsBySlot({});
+    setObjective('efficience');
+    setSortBy('efficience');
+    setResultsPage(1);
+    setStoppedManually(false);
+    setOpenRuneKey(null);
+    search.reset();
+  }
 
   return {
     selectedId,
@@ -195,5 +224,6 @@ export function useOptimizerState(): OptimizerState {
     openRuneKey,
     setOpenRuneKey,
     search,
+    resetSearch,
   };
 }

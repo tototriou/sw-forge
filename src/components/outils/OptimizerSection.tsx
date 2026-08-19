@@ -164,7 +164,14 @@ export default function OptimizerSection({ box, runes, optimizer, allMonsters, r
   // équipées — voir « Mon compte » → Monstres), dédupliqués par monstre : on
   // garde le meilleur exemplaire équipé pour les stats/artéfacts affichés —
   // voir spec/outils/optimizer/ pour cette simplification.
-  const gearedMonsters = useMemo<GearedMonster[]>(() => {
+  // ⚠️ `gearedMonsters` ET la clé de box (`unitKey`) du meilleur exemplaire
+  // PAR MONSTRE sont dérivés du MÊME passage sur `box` (un seul `score`, un
+  // seul balayage) — auparavant deux calculs séparés (revue de code externe,
+  // duplication) : `gearedMonsters` perdait `unitKey` en aplatissant vers
+  // `GearedMonster` (le type partagé avec MonsterGearPicker.tsx, qui n'en a
+  // pas besoin), obligeant `selectedUnitKey` à rebalayer `box` et
+  // redéfinir SA PROPRE copie de `score` juste pour le retrouver.
+  const { gearedMonsters, bestUnitKeyByMonsterId } = useMemo(() => {
     const best = new Map<string, BoxItem>();
     const score = (b: BoxItem) => (b.gear?.runes ?? []).reduce((s, r) => s + runeEfficiency(r), 0);
     for (const item of box) {
@@ -173,25 +180,18 @@ export default function OptimizerSection({ box, runes, optimizer, allMonsters, r
       const prev = best.get(id);
       if (!prev || score(item) > score(prev)) best.set(id, item);
     }
-    return Array.from(best.values()).map((item) => ({ monster: item.monster, gear: item.gear! }));
+    const gearedMonsters: GearedMonster[] = Array.from(best.values()).map((item) => ({ monster: item.monster, gear: item.gear! }));
+    const bestUnitKeyByMonsterId = new Map<string, string>(Array.from(best, ([id, item]) => [id, item.key]));
+    return { gearedMonsters, bestUnitKeyByMonsterId };
   }, [box]);
 
   const selected = gearedMonsters.find((g) => String(g.monster.id) === selectedId) ?? null;
 
   // `unitKey` (box) du monstre RECHERCHÉ, pour l'exclure de ses propres
   // propositions dans RuneExclusionPicker (s'exclure soi-même n'a pas de
-  // sens) — même règle de dédup (meilleur exemplaire par efficience) que
-  // `gearedMonsters` ci-dessus, appliquée seulement au monstre sélectionné.
-  const selectedUnitKey = useMemo(() => {
-    if (!selected) return null;
-    const score = (b: BoxItem) => (b.gear?.runes ?? []).reduce((s, r) => s + runeEfficiency(r), 0);
-    let best: BoxItem | null = null;
-    for (const item of box) {
-      if (!item.gear || String(item.monster.id) !== String(selected.monster.id)) continue;
-      if (!best || score(item) > score(best)) best = item;
-    }
-    return best?.key ?? null;
-  }, [selected, box]);
+  // sens) — simple lookup O(1) dans la Map déjà calculée ci-dessus, pas un
+  // nouveau balayage de `box`.
+  const selectedUnitKey = selected ? (bestUnitKeyByMonsterId.get(String(selected.monster.id)) ?? null) : null;
 
   // Statistiques principales autorisées sur les slots 2/4/6 — vide = libre.
   // Voir spec/outils/optimizer/ : pour un Lushen, ATQ% en 2, Dmg Crit en 4,

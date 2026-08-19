@@ -507,6 +507,14 @@ illisible sur un téléphone.
 - ⚠️ L'écouteur de **clic extérieur** ne vaut que pour le popover : le panneau
   a son propre voile et sa croix, et cet écouteur l'aurait refermé au premier
   appui à l'intérieur.
+- ⚠️ **Ce patron est le composant partagé [HelpPopover.tsx](src/components/HelpPopover.tsx)** :
+  bouton `BoutonIcone` + bulle `FlottantAuto` (souris) + `MobileSheet` (doigt),
+  le tout écrit une seule fois. Il sert ici, à l'onglet **Optimisation**
+  (« Comment est-ce calculé ? ») et à l'**Optimiseur d'Outils**. Trois aides qui
+  redessinaient chacune leur bouton et leur bulle à la main — dont deux avec un
+  `z-index` et une ombre posés en dur, hors `FlottantAuto` — ont convergé dessus.
+  `title` sert de titre au panneau et d'en-tête à la bulle ; `ariaLabel` donne au
+  bouton un libellé distinct quand il diffère (« Comment lire ce graphe ? »).
 
 #### ⚠️ Pas de panneau « Options » ici — les filtres restent dans la page
 
@@ -588,7 +596,8 @@ un écran de résultats, et la place libérée profite immédiatement.
   côte), **pastille de couleur + nom** uniquement — pas de valeurs. Cliquer un
   nom **masque/affiche** sa courbe. Composant **partagé avec la Comparaison**,
   [CurveLegend.tsx](src/components/account/CurveLegend.tsx) (voir plus bas).
-- **Filtres** : sets (`SetFilter`), slot (`SlotFilter`), antiques.
+- **Filtres** : sets (`SetFilter`), slot (`SlotFilter`), antiques (`AncientFilter`,
+  le **3 états** commun — voir l'onglet Optimisation).
 - **Nombre de runes** : champ libre (défaut **400**) + **Tout**.
 - **Mode** : **Gemme + meule** / **Meule seule** (voir Optimisation).
 - **Aide « ? »** superposée en coin du graphe (popup fermable au clic extérieur)
@@ -645,7 +654,8 @@ sinon on la prend pour un oubli.
   extraites à la volée (`parseAccountInventory`). **Lu dans la page, jamais
   envoyé.**
 - Filtres identiques à l'onglet **Courbes** (`SetFilter`, `SlotFilter`,
-  « Antiques », nombre de runes), **appliqués à toutes les courbes à la fois**.
+  `AncientFilter` **3 états**, nombre de runes), **appliqués à toutes les courbes
+  à la fois**.
 - ⚠️ Le filtre de sets propose les sets présents **chez moi OU chez un ami** :
   sinon on ne pourrait pas filtrer sur un set qu'on ne possède pas encore.
 - Pas de « gemme + meule / meule seule » : la comparaison porte sur l'**état
@@ -859,29 +869,60 @@ classiques/antiques, héro/légend) et l'**algorithme complet** `best()` sont da
     liste se remplirait toute seule au changement d'unité.
 - **Sets** (`SetFilter`) et **slot** (`SlotFilter`) : mêmes composants que les
   autres onglets.
-- **Runes** (segmenté) : **Toutes** (défaut) · **Antiques uniquement** ·
-  **Aucune antique**.
-  Pourquoi les trois et pas seulement un filtre « antiques » comme dans les
-  autres onglets : les antiques ont leurs **propres tables de max**, donc un
-  potentiel qui **ne se compare pas** à celui d'une rune normale. Les mélanger
-  dans un même classement fausse la lecture des tris « potentiel » et « gain » —
-  on veut pouvoir **écarter** les antiques autant que les isoler.
-  Le compteur et le message de liste vide rappellent le filtre actif
-  (« hors antiques » / « antiques seules »), pour qu'un résultat vide ne passe
-  pas pour une absence de runes.
+- **Runes** — le filtre antique **commun à toutes les pages de runes**,
+  [AncientFilter](src/components/account/AncientFilter.tsx) : **Toutes** (défaut) ·
+  **Antiques uniquement** · **Aucune antique**.
+  - ⚠️ **Trois états PARTOUT, plus une bascule on/off.** La Liste, la Comparaison
+    et les Courbes portaient un simple bouton « Antiques » (garder / masquer) ; il
+    manquait « n'afficher QU'ELLES ». Les antiques ont leurs **propres tables de
+    max**, donc un potentiel et une efficience qui **ne se comparent pas** à ceux
+    d'une rune normale : pouvoir les **isoler** autant que les écarter vaut sur
+    chaque page, pas seulement ici. D'où un `Segmented` à trois crans, **unique et
+    partagé** (le type, les options et `keepAncient` vivent dans le composant).
+  - Le compteur et le message de liste vide rappellent le filtre actif
+    (« hors antiques » / « antiques seules »), pour qu'un résultat vide ne passe
+    pas pour une absence de runes.
 - **Tuiles** : efficience **actuelle**, puis **Héro** et **Légend** avec leur gain
   et l'efficience cible colorée **vert** (au-dessus de l'actuelle) / **rouge** (en
   dessous — seulement hors filtre de réserve, voir `noDowngrade`).
   Pagination 60/page.
+  - ⚠️ **DEUX grilles, une par format** (même patron que l'onglet Liste) : sous
+    `lg`, **deux colonnes fixes** ; à partir de `lg`, l'`auto-fill` à 230 px. Sur
+    téléphone, l'`auto-fill` retombait toujours sur **une** colonne (une rune par
+    écran) ; les deux colonnes tiennent jusqu'à ~360 px de large.
+  - ⚠️ **Rendu resserré `etroit`** sous `lg` — police (`text-nano` au lieu de
+    `text-xs`/`text-micro`) et cadre de rune (**34 px** au lieu de 46) réduits, pour
+    que la tuile tienne à ~175 px sans se disloquer. Pas sous 30 px : le symbole de
+    set gravé cesse de se reconnaître. `useMediaQuery(SOUS_LG)` est lu **une fois**
+    par la liste et passé en prop — un lecteur par tuile poserait soixante
+    écouteurs `matchMedia` pour la même réponse.
 - **Rotation animée** des cadres, même mécanique que l'onglet Liste (clé
   positionnelle + `SPIN`).
 - **Détail au clic** : plan **« Actuel | Optimisé »** (`OptimPlanBox`) — substats
   actuels à gauche (base blanche + meule orange), optimisés à droite avec **seul ce
   qui change en violet** (grind posé ou 💎 gemme/proc max).
-- **Aide « ? »** sur la ligne des filtres (popup fermable au clic extérieur).
-  Elle détaille les deux modes, le choix de la gemme, le gain, **le palier** (ce
-  qu'il mesure et sa reconversion), **les icônes marteau/gemme** du plan, et le
-  filtre de réserve.
+- **Aide « ? »** sur la ligne des filtres — le composant partagé
+  [HelpPopover](src/components/HelpPopover.tsx) (bulle à la souris, **panneau
+  montant** au doigt), voir l'onglet Courbes § « L'aide a DEUX supports ». Elle
+  détaille les deux modes, le choix de la gemme, le gain, **le palier** (ce qu'il
+  mesure et sa reconversion), **les icônes marteau/gemme** du plan, et le filtre
+  de réserve.
+
+#### ⚠️ Le panneau « Options » (mobile) ne prend que quatre contrôles
+
+Comme la Liste, l'Optimisation gagne le bouton « Options » de la barre de nav sur
+téléphone (`pageAPanneau` dans [App.tsx](src/App.tsx) — les vues qui étalent une
+**grille de tuiles** y ont droit, pas le résumé ni les courbes). Mais **seuls
+quatre** contrôles y descendent : **palier**, **gemme + meule / meule seule**,
+**filtre antique** et **« Faisable avec ma réserve »**. **Sets, slot, tri et
+l'aide restent dans la page**, à tous les formats.
+
+- Les quatre sont écrits **une fois** (`optionsControls`) et posés à deux
+  endroits : **en ligne au bureau** (`hidden lg:flex`), **dans le panneau au
+  doigt** (`MobileSheet`). L'argument `large` élargit les segmentés à toute la
+  largeur du panneau (`size="lg"`) ; en ligne ils restent serrés.
+- ⚠️ Au **bureau, rien ne change** : les quatre restent visibles dans la rangée
+  de filtres. Le panneau n'existe que sous `lg`.
 
 ### « Faisable avec ma réserve » — le filtre qui regarde le sac
 

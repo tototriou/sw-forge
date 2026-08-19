@@ -35,7 +35,14 @@ export default function RunesSection({
       )}
       {view === 'courbes' && <RunesCurve runes={runes} />}
       {view === 'comparaison' && <RunesCompare runes={runes} />}
-      {view === 'optimisation' && <RunesOptim runes={runes} crafts={crafts} />}
+      {view === 'optimisation' && (
+        <RunesOptim
+          runes={runes}
+          crafts={crafts}
+          menuOuvert={menuOuvert}
+          onFermerMenu={onFermerMenu}
+        />
+      )}
       {view === 'meules' && <ComingSoon title="Meules" icon={Hammer} />}
       {view === 'gemmes' && <ComingSoon title="Gemmes" icon={Gem} />}
     </div>

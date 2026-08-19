@@ -10,7 +10,11 @@ import { Critere } from './SubSearchDialog';
 import SubSearchBar from './SubSearchBar';
 import MobileSheet from '../../ui/MobileSheet';
 import Selecteur from '../../ui/Selecteur';
-import Pastille from '../../ui/Pastille';
+import AncientFilter, {
+  AncientFilter as AncientFilterValue,
+  keepAncient,
+  normFiltreAntique,
+} from './AncientFilter';
 import {
   RUNE_SORTS,
   RuneSortMode,
@@ -59,7 +63,8 @@ export default function RunesList({ runes, menuOuvert, onFermerMenu }: Props) {
   // l'ouverture, défaut slots = les six.
   const [sets, setSets] = useStickyState<Set<string>>('runesList.sets', new Set(runes.map((r) => r.set)));
   const [slots, setSlots] = useStickyState<Set<number>>('runesList.slots', new Set([1, 2, 3, 4, 5, 6]));
-  const [ancientOnly, setAncientOnly] = useStickyState('runesList.ancient', false);
+  const [ancientBrut, setAncient] = useStickyState<AncientFilterValue>('runesList.ancient', 'all');
+  const ancient = normFiltreAntique(ancientBrut);
   const [sortBrut, setSort] = useStickyState<RuneSortMode>('runesList.sort', 'score');
   // ⚠️ Un tri mémorisé qui n'existe plus (les clés ont changé avec les libellés
   // du jeu) retombe sur le défaut : sinon `sortFn` renvoie `undefined` et le
@@ -100,7 +105,7 @@ export default function RunesList({ runes, menuOuvert, onFermerMenu }: Props) {
       // Liste blanche : seul ce qui est coché passe (aucun coché → rien).
       if (!sets.has(r.set)) return false;
       if (!slots.has(r.slot)) return false;
-      if (ancientOnly && !(r.rank > 10)) return false;
+      if (!keepAncient(r, ancient)) return false;
       // ⚠️ Les critères se cumulent en ET, bornes comprises : la rune doit
       // porter TOUTES les propriétés cherchées, chacune dans son intervalle.
       // Même règle que la recherche détaillée du jeu.
@@ -112,7 +117,7 @@ export default function RunesList({ runes, menuOuvert, onFermerMenu }: Props) {
       }
       return true;
     });
-  }, [rows, sets, slots, ancientOnly, actifs]);
+  }, [rows, sets, slots, ancient, actifs]);
 
   // Tri appliqué après filtrage (copie pour ne pas muter `filtered`).
   // Le 1ᵉʳ critère posé sert aux deux tris « propriété secondaire ».
@@ -153,14 +158,12 @@ export default function RunesList({ runes, menuOuvert, onFermerMenu }: Props) {
               setPage(0);
             }}
           />
-          <Pastille
-            actif={ancientOnly}
-            onClick={() => {
-              setAncientOnly((v) => !v);
+          <AncientFilter
+            value={ancient}
+            onChange={(v) => {
+              setAncient(v);
               setPage(0);
             }}
-            className="ml-1"
-            libelle="Antiques"
           />
         </div>
 

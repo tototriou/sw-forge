@@ -1,7 +1,7 @@
 import { Dispatch, SetStateAction, useMemo, useRef, useState } from 'react';
 import { Download, Upload, FileJson, LineChart, Boxes, Trash2 } from 'lucide-react';
 import { RuneDetail } from '../../types';
-import { runeEfficiency, runeScore, isAncient } from '../../lib/effects';
+import { runeEfficiency, runeScore } from '../../lib/effects';
 import { encodeCurveJson, decodeCurve } from '../../lib/runeCurveShare';
 import { parseAccountInventory } from '../../lib/importAccount';
 import { ConfirmDialog, PromptDialog } from '../../ui/Dialogs';
@@ -13,7 +13,11 @@ import { couleurLibre } from './curveColors';
 import SetFilter from './SetFilter';
 import SlotFilter from './SlotFilter';
 import NumberField from '../../ui/NumberField';
-import Pastille from '../../ui/Pastille';
+import AncientFilter, {
+  AncientFilter as AncientFilterValue,
+  keepAncient,
+  normFiltreAntique,
+} from './AncientFilter';
 import Bouton from '../../ui/Bouton';
 import Segmented from '../../ui/Segmented';
 
@@ -361,7 +365,8 @@ function OngletComptes({
   // aucun coché = rien.
   const [sets, setSets] = useStickyState<Set<string>>('runesCompare.sets', new Set(runes.map((r) => r.set)));
   const [slots, setSlots] = useStickyState<Set<number>>('runesCompare.slots', new Set([1, 2, 3, 4, 5, 6]));
-  const [ancientOnly, setAncientOnly] = useStickyState('runesCompare.ancient', false);
+  const [ancientBrut, setAncient] = useStickyState<AncientFilterValue>('runesCompare.ancient', 'all');
+  const ancient = normFiltreAntique(ancientBrut);
   const [limit, setLimit] = useStickyState('runesCompare.accountsLimit', DEFAULT_LIMIT);
   const jsonRef = useRef<HTMLInputElement>(null);
   // Runes lues, en attente du nom sous lequel les afficher.
@@ -418,7 +423,7 @@ function OngletComptes({
     rs.filter((r) => {
       if (!sets.has(r.set)) return false;
       if (!slots.has(r.slot)) return false;
-      if (ancientOnly && !isAncient(r)) return false;
+      if (!keepAncient(r, ancient)) return false;
       return true;
     });
 
@@ -469,7 +474,7 @@ function OngletComptes({
         <SetFilter runes={toutesLesRunes} value={sets} onChange={setSets} />
         <div className="flex flex-wrap items-center gap-2">
           <SlotFilter value={slots} onChange={setSlots} />
-          <Pastille actif={ancientOnly} onClick={() => setAncientOnly((v) => !v)} libelle="Antiques" />
+          <AncientFilter value={ancient} onChange={setAncient} />
           <div className="ml-auto flex items-center gap-2">
             <span className="label">Nb de runes</span>
             <NumberField

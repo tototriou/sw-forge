@@ -2552,11 +2552,18 @@ Le bouton « Prioriser les stats les plus difficiles » devient un TOGGLE
 lance sa propre recherche — `handleSearch` lit l'état au moment du clic sur
 « Rechercher », un seul déclencheur pour les deux modes. Même traitement
 pour « Utiliser tout l'inventaire ». Les deux réglages, plus « Stats de
-base exclues » et « Ignorer les statistiques des artéfacts », partagent
-maintenant le même bouton d'aide rond avec popup cliquable (fermeture au
-clic extérieur ou Échap) que « Mon compte → Courbes » — nouveau composant
-générique `src/components/HelpPopover.tsx`, pour ne pas dupliquer la
-gestion d'ouverture/fermeture à chaque nouvel usage.
+base exclues » et « Ignorer les statistiques des artéfacts », partagent le
+même bouton d'aide que « Mon compte → Courbes » : le composant générique
+`src/components/HelpPopover.tsx`, pour ne pas dupliquer la gestion
+d'ouverture/fermeture à chaque nouvel usage.
+
+⚠️ **Mis à jour depuis** : `HelpPopover` ne dessine plus son bouton ni sa bulle
+à la main. Il passe par la librairie — `BoutonIcone` (cadre, zone tactile, état
+actif), `FlottantAuto` pour la bulle à la souris (bord, ombre et `z-index` lui
+appartiennent, plus de `<div absolute z-…>` maison) et `MobileSheet` pour le
+**panneau montant** sur téléphone. Les quatre aides d'ici en profitent sans y
+toucher. Voir [spec/compte/runes.md](../compte/runes.md) § « L'aide a DEUX
+supports ».
 
 ### Suite — résultats affichés EN DIRECT pendant l'appariement
 

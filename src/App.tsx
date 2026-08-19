@@ -293,19 +293,22 @@ export default function App() {
   const [navMobileOuverte, setNavMobileOuverte] = useState<string | null>(null);
 
   // ⚠️ La page ne suffit pas à décider si le bouton « Options » s'affiche : sur
-  // « Mon compte », seules les vues en LISTE ont des filtres. Le résumé, les
-  // courbes et la comparaison n'en ont aucun — leur ouvrir un panneau vide
-  // serait pire que ne rien proposer.
+  // « Mon compte », seules les vues qui étalent une GRILLE de tuiles y gagnent —
+  // la Liste et l'Optimisation. Le résumé et la comparaison n'ont pas de quoi
+  // remplir la place, et les courbes se réduiraient à un graphe et deux réglages.
   // ⚠️ Les COURBES en sont exclues, alors qu'elles ont des filtres. Descendus
   // dans le tiroir, ils laissaient un écran qui ne porte plus qu'un graphe et
   // deux réglages : la page paraît vide, et le bouton flottant annonce un
-  // contenu qu'on ne devine pas. La Liste, elle, a 3 000 tuiles à montrer —
-  // chaque rangée de filtre lui prend un écran de résultats. **Avoir des
-  // filtres ne suffit donc pas : il faut aussi que la page ait de quoi remplir
-  // la place qu'ils libèrent.**
+  // contenu qu'on ne devine pas. La Liste et l'Optimisation, elles, ont des
+  // milliers de tuiles à montrer — chaque rangée de filtre leur prend un écran de
+  // résultats. **Avoir des filtres ne suffit donc pas : il faut aussi que la page
+  // ait de quoi remplir la place qu'ils libèrent.**
   const pageAPanneau =
     PAGES_AVEC_MENU.has(route) &&
-    (route !== 'compte' || accountSub === 'monstres' || accountView === 'liste');
+    (route !== 'compte' ||
+      accountSub === 'monstres' ||
+      accountView === 'liste' ||
+      accountView === 'optimisation');
 
   // Le panneau se referme à chaque changement d'écran : ses actions portent sur
   // celui qu'on vient de quitter. ⚠️ `accountSub`/`accountView`/`siegeTab` en

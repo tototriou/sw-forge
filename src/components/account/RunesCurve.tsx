@@ -1,20 +1,21 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
-import { HelpCircle } from 'lucide-react';
+import { useMemo } from 'react';
 import { RuneDetail } from '../../types';
 import { runePotential } from '../../lib/runeOptim';
 import { useRuneMetric } from '../../hooks/useRuneMetric';
 import { useStickyState } from '../../hooks/useStickyState';
 import SetFilter from './SetFilter';
 import NumberField from '../../ui/NumberField';
-import Pastille from '../../ui/Pastille';
+import AncientFilter, {
+  AncientFilter as AncientFilterValue,
+  keepAncient,
+  normFiltreAntique,
+} from './AncientFilter';
 import Bouton from '../../ui/Bouton';
 import Segmented from '../../ui/Segmented';
 import SlotFilter from './SlotFilter';
 import CurveChart, { CurveSeries, OWN_COLOR } from './CurveChart';
 import CurveLegend from './CurveLegend';
-import MobileSheet from '../../ui/MobileSheet';
-import { BoutonIcone, FlottantAuto } from '../../ui';
-import { useMediaQuery, SOUS_LG } from '../../hooks/useMediaQuery';
+import HelpPopover from '../HelpPopover';
 
 interface Props {
   runes: RuneDetail[];
@@ -29,33 +30,13 @@ export default function RunesCurve({ runes }: Props) {
   // affiché, aucun coché = rien.
   const [sets, setSets] = useStickyState<Set<string>>('runesCurve.sets', new Set(runes.map((r) => r.set)));
   const [slots, setSlots] = useStickyState<Set<number>>('runesCurve.slots', new Set([1, 2, 3, 4, 5, 6]));
-  const [ancientOnly, setAncientOnly] = useStickyState('runesCurve.ancient', false);
+  const [ancientBrut, setAncient] = useStickyState<AncientFilterValue>('runesCurve.ancient', 'all');
+  const ancient = normFiltreAntique(ancientBrut);
   const [limit, setLimit] = useStickyState('runesCurve.limit', DEFAULT_LIMIT);
   const [hidden, setHidden] = useStickyState<Set<string>>('runesCurve.hidden', new Set());
   const [gemMode, setGemMode] = useStickyState<'gem' | 'grind'>('runesCurve.gemMode', 'gem');
   const metric = useRuneMetric(); // réglage global : efficience ou score SW
-  const [showHelp, setShowHelp] = useState(false);
-  // ⚠️ **Deux supports pour la même aide.** Ce texte fait une demi-page :
-  // ancré à un bouton de 28 px, il descendait sous le bas de l'écran et ses
-  // dernières lignes passaient derrière la barre d'onglets. Le plafonner et le
-  // faire défiler n'a pas suffi — un pavé de texte dans une bulle flottante
-  // reste illisible sur un téléphone. Sous `lg` il devient donc un PANNEAU
-  // MONTANT, le composant que l'app emploie partout ailleurs pour ça.
-  const auDoigt = useMediaQuery(SOUS_LG);
-  const helpRef = useRef<HTMLDivElement>(null);
   const withGem = gemMode === 'gem';
-
-  // Ferme la popup d'aide au clic à l'extérieur.
-  // ⚠️ Popover SEULEMENT : le panneau montant a son propre voile et sa croix,
-  // et cet écouteur l'aurait refermé au premier appui à l'intérieur.
-  useEffect(() => {
-    if (!showHelp || auDoigt) return;
-    const onDown = (e: MouseEvent) => {
-      if (helpRef.current && !helpRef.current.contains(e.target as Node)) setShowHelp(false);
-    };
-    document.addEventListener('mousedown', onDown);
-    return () => document.removeEventListener('mousedown', onDown);
-  }, [showHelp, auDoigt]);
 
   function toggleHidden(name: string) {
     setHidden((prev) => {
@@ -75,7 +56,7 @@ export default function RunesCurve({ runes }: Props) {
     const filtered = runes.filter((r) => {
       if (!sets.has(r.set)) return false;
       if (!slots.has(r.slot)) return false;
-      if (ancientOnly && !(r.rank > 10)) return false;
+      if (!keepAncient(r, ancient)) return false;
       return true;
     });
     const pots = filtered.map((r) => ({ rune: r, p: runePotential(r, withGem, metric) }));
@@ -89,7 +70,7 @@ export default function RunesCurve({ runes }: Props) {
       hero: classe((p) => p.heroEff),
       legend: classe((p) => p.legendEff),
     };
-  }, [runes, sets, slots, ancientOnly, withGem, metric]);
+  }, [runes, sets, slots, ancient, withGem, metric]);
 
   const total = cur.effs.length;
   const cap = Math.max(1, limit);
@@ -111,10 +92,10 @@ export default function RunesCurve({ runes }: Props) {
   ];
   const visible = allSeries.filter((s) => !hidden.has(s.name));
 
-  // Le texte d'aide, écrit UNE fois pour les deux supports.
+  // Le texte d'aide, passé à HelpPopover (bulle à la souris, panneau montant au
+  // doigt). Le titre est rendu par HelpPopover, pas répété ici.
   const aide = (
     <>
-        <p className="text-ink font-semibold mb-1">À quoi sert ce graphe ?</p>
         <p>
           Il classe toutes tes runes, de la meilleure à la moins bonne :{' '}
           <b className="text-ink">l'efficience (%)</b> en hauteur, le{' '}
@@ -165,12 +146,7 @@ export default function RunesCurve({ runes }: Props) {
 
         <div className="flex flex-wrap items-center gap-2">
           <SlotFilter value={slots} onChange={setSlots} />
-          <Pastille
-            actif={ancientOnly}
-            onClick={() => setAncientOnly((v) => !v)}
-            className="ml-1"
-            libelle="Antiques"
-          />
+          <AncientFilter value={ancient} onChange={setAncient} />
         </div>
       </div>
 
@@ -213,54 +189,22 @@ export default function RunesCurve({ runes }: Props) {
         </div>
       </div>
 
-      {/* Graphe + bouton d'aide superposé (popup fermable au clic extérieur).
+      {/* Graphe + bouton d'aide superposé.
           ⚠️ **Même plafond de largeur et même centrage que la carte du graphe**
           (voir CurveChart) : sans eux, cette boîte débordait la carte au-delà de
           980 px et le bouton d'aide se posait à côté du dessin, pendant que le
           bouton de plein écran restait dans son coin. Les deux commandes doivent
           tomber sur la MÊME verticale. */}
       <div className="relative mx-auto w-full max-w-[980px]">
-        {/* ⚠️ L'ANCRE porte la position ET la taille du bouton : `FlottantAuto`
-            mesure la place autour d'elle. Un conteneur sans dimensions — avec
-            le bouton en `absolute` à l'intérieur — lui aurait fait mesurer un
-            point de hauteur nulle, et la bulle serait tombée à côté. */}
-        <div ref={helpRef} className="absolute right-2 top-2 z-20">
-          {/* ⚠️ `BoutonIcone` de la librairie, plus un `<button>` écrit à la
-              main : le libellé, l'état actif, le cadre et la zone tactile sont
-              des AXES du composant. La version manuscrite les réécrivait un par
-              un — y compris `data-cible-fine` et `cible-tactile`, que la
-              librairie pose déjà ensemble. */}
-          <BoutonIcone
-            onClick={() => setShowHelp((v) => !v)}
-            aria-expanded={showHelp}
-            libelle="Comment lire ce graphe ?"
-            icone={<HelpCircle size={14} />}
-            cadre
-            forme="pilule"
-            zoneEtendue
-            actif={showHelp}
-          />
-
-          {/* À la SOURIS : bulle ancrée au bouton.
-              ⚠️ `FlottantAuto` et non un `<div absolute>` : il MESURE la place
-              autour de son ancre et choisit son côté avant de peindre. La bulle
-              écrite à la main s'ouvrait toujours vers le bas — c'est ce qui la
-              faisait sortir de l'écran. */}
-          <FlottantAuto ouvert={showHelp && !auDoigt} ancre={helpRef} largeur={340} hauteur={420}>
-            <div className="text-xs leading-relaxed text-ink-dim">{aide}</div>
-          </FlottantAuto>
+        {/* Aide « ? » posée sur le coin du graphe — bulle à la souris, panneau
+            montant au doigt (voir HelpPopover). Le wrapper `absolute` la cale sur
+            la même verticale que le bouton de plein écran de CurveChart. Libellé
+            du bouton et titre du panneau diffèrent volontairement. */}
+        <div className="absolute right-2 top-2 z-20">
+          <HelpPopover title="À quoi sert ce graphe ?" ariaLabel="Comment lire ce graphe ?">
+            {aide}
+          </HelpPopover>
         </div>
-
-        {/* AU DOIGT : panneau montant. Il monte du bas, se pose AU-DESSUS de la
-            barre d'onglets, occupe toute la largeur et défile — tout ce qui
-            manquait à la bulle. */}
-        <MobileSheet
-          ouvert={showHelp && auDoigt}
-          onFermer={() => setShowHelp(false)}
-          titre="Comment lire ce graphe ?"
-        >
-          <div className="text-xs leading-relaxed text-ink-dim">{aide}</div>
-        </MobileSheet>
 
         <CurveChart
           series={visible}

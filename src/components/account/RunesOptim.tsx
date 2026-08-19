@@ -1,11 +1,12 @@
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { RotateCw, AlertTriangle, HelpCircle, PackageCheck, Hammer, Gem } from 'lucide-react';
+import { RotateCw, AlertTriangle, PackageCheck, Hammer, Gem } from 'lucide-react';
 import { CraftLine, RuneDetail } from '../../types';
-import { formatRuneEffect, isAncient, RARITY_META, RUNE_EFFECT } from '../../lib/effects';
+import { formatRuneEffect, RARITY_META, RUNE_EFFECT } from '../../lib/effects';
 import { runePotential, RunePotential, runePlan, planNeeds } from '../../lib/runeOptim';
 import { CraftStock, EMPTY_STOCK, GRADE_SCENARIO, buildCraftStock, ownsCraft } from '../../lib/crafts';
 import { useRuneMetric, formatRuneMetric, convertirPalier, runeMetricValue } from '../../hooks/useRuneMetric';
 import { useStickyState } from '../../hooks/useStickyState';
+import { useMediaQuery, SOUS_LG } from '../../hooks/useMediaQuery';
 import RuneSlotIcon from '../RuneSlotIcon';
 import Pager from './Pager';
 import SetFilter from './SetFilter';
@@ -15,10 +16,21 @@ import Selecteur from '../../ui/Selecteur';
 import Bouton from '../../ui/Bouton';
 import Segmented from '../../ui/Segmented';
 import { FlottantAuto } from '../../ui';
+import MobileSheet from '../../ui/MobileSheet';
+import HelpPopover from '../HelpPopover';
+import AncientFilter, {
+  AncientFilter as AncientFilterValue,
+  keepAncient,
+  normFiltreAntique,
+} from './AncientFilter';
 
 interface Props {
   runes: RuneDetail[];
   crafts: CraftLine[];
+  // Panneau d'actions mobile — piloté par le bouton « Options » (voir App.tsx),
+  // comme la Liste. Ne s'ouvre que sous `lg`.
+  menuOuvert: boolean;
+  onFermerMenu: () => void;
 }
 
 // Exporté : la section « Meules » réutilise la même tuile, pour qu'une rune se
@@ -56,23 +68,11 @@ const scenarioOf = (s: SortMode): 'hero' | 'legend' =>
 export const signed = (g: number, metric: 'eff' | 'score') =>
   (g >= 0 ? '+' : '') + (metric === 'eff' ? g.toFixed(1) : String(Math.round(g)));
 
-// Filtre antiques : les garder toutes, les écarter, ou n'afficher qu'elles.
-export type AncientFilter = 'all' | 'without' | 'only';
-export const ANCIENTS: { key: AncientFilter; label: string; hint: string }[] = [
-  { key: 'all', label: 'Toutes', hint: 'Runes normales et antiques' },
-  { key: 'only', label: 'Antiques uniquement', hint: 'Uniquement les runes antiques' },
-  { key: 'without', label: 'Aucune antique', hint: 'Masquer les runes antiques' },
-];
-export function keepAncient(rune: RuneDetail, filter: AncientFilter): boolean {
-  if (filter === 'all') return true;
-  return isAncient(rune) === (filter === 'only');
-}
-
 // Couleur d'une efficience potentielle vs l'actuelle : vert au-dessus, rouge en dessous.
 export const effColor = (e: number, base: number) =>
   e > base + 0.05 ? 'text-good' : e < base - 0.05 ? 'text-fire' : 'text-ink-dim';
 
-export default function RunesOptim({ runes, crafts }: Props) {
+export default function RunesOptim({ runes, crafts, menuOuvert, onFermerMenu }: Props) {
   const [threshold, setThreshold] = useStickyState('optim.threshold', 100);
   const metric = useRuneMetric(); // réglage global : efficience ou score SW
   const [sort, setSort] = useStickyState<SortMode>('optim.sort', 'effCur');
@@ -80,7 +80,8 @@ export default function RunesOptim({ runes, crafts }: Props) {
   // Antiques : elles ont leurs propres tables de max, donc un potentiel qui ne
   // se compare pas aux runes normales — pouvoir les écarter (ou n'avoir qu'elles)
   // évite de mélanger deux échelles dans un même classement.
-  const [ancient, setAncient] = useStickyState<AncientFilter>('optim.ancient', 'all');
+  const [ancientBrut, setAncient] = useStickyState<AncientFilterValue>('optim.ancient', 'all');
+  const ancient = normFiltreAntique(ancientBrut);
   // Liste blanche, tout coché par défaut (voir RunesList) : coché = affiché,
   // aucun coché = rien.
   const [sets, setSets] = useStickyState<Set<string>>('optim.sets', new Set(runes.map((r) => r.set)));
@@ -89,17 +90,11 @@ export default function RunesOptim({ runes, crafts }: Props) {
   const [openId, setOpenId] = useState<number | null>(null);
   const toggleOpen = useCallback((id: number) => setOpenId((c) => (c === id ? null : id)), []);
   const withGem = gemMode === 'gem';
-
-  const [showHelp, setShowHelp] = useState(false);
-  const helpRef = useRef<HTMLDivElement>(null);
-  useEffect(() => {
-    if (!showHelp) return;
-    const onDown = (e: MouseEvent) => {
-      if (helpRef.current && !helpRef.current.contains(e.target as Node)) setShowHelp(false);
-    };
-    document.addEventListener('mousedown', onDown);
-    return () => document.removeEventListener('mousedown', onDown);
-  }, [showHelp]);
+  // Sous `lg`, la grille passe à DEUX colonnes fixes et les tuiles au rendu
+  // resserré. ⚠️ Lu ICI une seule fois et passé aux tuiles : la liste en rend
+  // jusqu'à soixante, un `useMediaQuery` par tuile poserait soixante écouteurs
+  // `matchMedia` pour une seule et même réponse. Même patron que RunesList.
+  const etroit = useMediaQuery(SOUS_LG);
 
   const stock = useMemo(() => (crafts.length ? buildCraftStock(crafts) : EMPTY_STOCK), [crafts]);
   const stockDispo = stock.total > 0;
@@ -202,6 +197,81 @@ export default function RunesOptim({ runes, crafts }: Props) {
   const safePage = Math.min(page, pageCount - 1);
   const shown = filtered.slice(safePage * PAGE, safePage * PAGE + PAGE);
 
+  // Palier, mesure gemme/meule, filtre antique et « Faisable » — écrits UNE fois,
+  // posés à deux endroits : en ligne au bureau, dans le panneau « Options » au
+  // doigt (comme les filtres de la Liste). `large` élargit les segmentés à toute
+  // la largeur du panneau ; en ligne ils restent serrés.
+  const optionsControls = (large: boolean) => (
+    <>
+      <div className="flex items-center gap-2">
+        <span className="label">Palier</span>
+        <NumberField
+          value={threshold}
+          min={0}
+          step={5}
+          width="w-14"
+          ariaLabel="Palier"
+          onChange={(v) => {
+            setThreshold(Math.max(0, v ?? 0));
+            setPage(0);
+          }}
+        />
+        <span className="font-mono text-xs text-ink-dim">{metric === 'eff' ? '%' : 'pts'}</span>
+      </div>
+
+      <Segmented
+        value={gemMode}
+        onChange={(k) => {
+          setGemMode(k);
+          setPage(0);
+        }}
+        size={large ? 'lg' : undefined}
+        options={[
+          { key: 'gem', label: 'Gemme + meule', hint: 'Potentiel avec la gemme optimale + les meules' },
+          {
+            key: 'grind',
+            label: 'Meule seule',
+            hint: 'Potentiel en gardant les stats actuelles (meules seulement)',
+          },
+        ]}
+      />
+
+      <div className={large ? 'flex flex-col gap-1' : 'flex items-center gap-2'}>
+        <span className="label">Runes</span>
+        <AncientFilter
+          value={ancient}
+          onChange={(k) => {
+            setAncient(k);
+            setPage(0);
+          }}
+          size={large ? 'lg' : undefined}
+        />
+      </div>
+
+      {/* ⚠️ Un potentiel de +20 ne vaut rien si la meule qui l'apporte n'est pas
+          dans le sac. Ce bouton restreint la liste à ce qui est applicable **ce
+          soir**, sans rien retirer des colonnes. Désactivé sans réserve connue
+          (compte importé avant cette version) : un bouton qui viderait la liste
+          sans explication vaut moins qu'un bouton grisé qui dit pourquoi. */}
+      <Bouton
+        onClick={() => {
+          setCheckStock((v) => !v);
+          setPage(0);
+        }}
+        disabled={!stockDispo}
+        actif={verifie}
+        taille="sm"
+        title={
+          stockDispo
+            ? `Ne garder que les runes applicables avec tes ${stock.total} meules et gemmes en réserve`
+            : 'Aucune meule ni gemme dans les données chargées — réimporte ton compte'
+        }
+        icone={<PackageCheck size={14} />}
+        libelle="Faisable avec ma réserve"
+      />
+    </>
+  );
+
   return (
     <div>
       <div className="mb-4 flex items-start gap-2 rounded-lg border border-warn/50 bg-warn/10 px-3 py-2 text-xs text-warn">
@@ -232,22 +302,6 @@ export default function RunesOptim({ runes, crafts }: Props) {
         />
 
         <div className="flex items-center gap-2">
-          <span className="label">Palier</span>
-          <NumberField
-            value={threshold}
-            min={0}
-            step={5}
-            width="w-14"
-            ariaLabel="Palier"
-            onChange={(v) => {
-              setThreshold(Math.max(0, v ?? 0));
-              setPage(0);
-            }}
-          />
-          <span className="font-mono text-xs text-ink-dim">{metric === 'eff' ? '%' : 'pts'}</span>
-        </div>
-
-        <div className="flex items-center gap-2">
           <span className="label">Trier par</span>
           <Selecteur
             value={sort}
@@ -265,83 +319,14 @@ export default function RunesOptim({ runes, crafts }: Props) {
           </Selecteur>
         </div>
 
-        <Segmented
-          value={gemMode}
-          onChange={(k) => {
-            setGemMode(k);
-            setPage(0);
-          }}
-          options={[
-            {
-              key: 'gem',
-              label: 'Gemme + meule',
-              hint: 'Potentiel avec la gemme optimale + les meules',
-            },
-            {
-              key: 'grind',
-              label: 'Meule seule',
-              hint: 'Potentiel en gardant les stats actuelles (meules seulement)',
-            },
-          ]}
-        />
-
-        <div className="flex items-center gap-2">
-          <span className="label">Runes</span>
-          <Segmented
-            value={ancient}
-            onChange={(k) => {
-              setAncient(k);
-              setPage(0);
-            }}
-            options={ANCIENTS}
-          />
-        </div>
-
-        {/* ⚠️ Un potentiel de +20 ne vaut rien si la meule qui l'apporte n'est
-            pas dans le sac. Ce bouton restreint la liste à ce qui est
-            applicable **ce soir**, sans rien retirer des colonnes.
-            Désactivé sans réserve connue (compte importé avant cette version) :
-            un bouton qui viderait la liste sans explication vaut moins qu'un
-            bouton grisé qui dit pourquoi. */}
-        <Bouton
-          onClick={() => {
-            setCheckStock((v) => !v);
-            setPage(0);
-          }}
-          disabled={!stockDispo}
-          actif={verifie}
-          taille="sm"
-          title={
-            stockDispo
-              ? `Ne garder que les runes applicables avec tes ${stock.total} meules et gemmes en réserve`
-              : 'Aucune meule ni gemme dans les données chargées — réimporte ton compte'
-          }
-          icone={<PackageCheck size={14} />}
-          libelle="Faisable avec ma réserve"
-        />
+        {/* Palier, mesure gemme/meule, filtre antique et « Faisable avec ma
+            réserve » : au BUREAU en ligne ici, sur TÉLÉPHONE dans le panneau
+            « Options » (bouton de la barre de nav, voir la fin du composant). */}
+        <div className="hidden lg:flex lg:items-center lg:gap-4">{optionsControls(false)}</div>
 
         {/* Aide : « ? » sur la même ligne, à droite */}
-        <div ref={helpRef} className="relative ml-auto">
-          <button
-            onClick={() => setShowHelp((v) => !v)}
-            aria-expanded={showHelp}
-            aria-label="Comment est-ce calculé ?"
-            title="Comment est-ce calculé ?"
-            // ⚠️ Cercle de 32 px : la règle tactile en ferait un ovale de
-            // 32 × 40. Exempté, avec une zone touchable rendue par le
-            // pseudo-élément — comme HelpPopover, dont c'est le jumeau.
-            data-cible-fine
-            className={`cible-tactile flex items-center justify-center w-8 h-8 rounded-full border transition
-              ${showHelp ? 'bg-accent-soft border-accent text-ink' : 'bg-panel border-border text-ink-dim hoverable:text-ink hoverable:border-accent'}`}
-          >
-            <HelpCircle size={18} />
-          </button>
-          {showHelp && (
-            <div
-              className="absolute right-0 z-30 mt-1.5 w-[360px] max-w-[88vw] rounded-lg border border-accent bg-panel p-3 text-xs text-ink-dim leading-relaxed shadow-xl shadow-black/50
-                         origin-top-right animate-[popover_150ms_var(--ease-out)]"
-            >
-              <p className="text-ink font-semibold mb-1">Comment est-ce calculé ?</p>
+        <div className="ml-auto">
+          <HelpPopover title="Comment est-ce calculé ?" width={360}>
               <p>
                 Pour chaque rune on calcule son <b className="text-ink">efficience actuelle</b> puis son{' '}
                 <b className="text-ink">potentiel maximal</b>, en héroïque et en légendaire (tables distinctes
@@ -420,10 +405,17 @@ export default function RunesOptim({ runes, crafts }: Props) {
                 posée. Le gain affiché est donc <b className="text-ink">celui que tu peux réellement aller
                 chercher aujourd'hui</b>, pas le potentiel théorique.
               </p>
-            </div>
-          )}
+          </HelpPopover>
         </div>
       </div>
+
+      {/* AU DOIGT : panneau « Options » (palier, mesure gemme/meule, filtre
+          antique, « Faisable avec ma réserve »). Le bouton qui l'ouvre vit dans la
+          barre de nav — voir App.tsx (`pageAPanneau`). Sets, slots, tri et aide
+          restent dans la page. */}
+      <MobileSheet ouvert={menuOuvert} onFermer={onFermerMenu} titre="Options d'optimisation">
+        <div className="flex flex-col gap-3">{optionsControls(true)}</div>
+      </MobileSheet>
 
       <div className="flex items-center justify-between gap-3 mb-3 flex-wrap">
         <p className="font-mono text-xs text-ink-dim">
@@ -437,8 +429,16 @@ export default function RunesOptim({ runes, crafts }: Props) {
       </div>
 
       {/* Clé POSITIONNELLE : la tuile est réutilisée d'une page/d'un tri à
-          l'autre, donc le cadre de rune pivote vers son nouveau slot (voir SPIN). */}
-      <div className="grid grid-cols-[repeat(auto-fill,minmax(min(230px,100%),1fr))] gap-2 items-start">
+          l'autre, donc le cadre de rune pivote vers son nouveau slot (voir SPIN).
+          ⚠️ **DEUX grilles, une par format** (comme RunesList) : sous `lg`, DEUX
+          colonnes FIXES — l'`auto-fill` à 230 px retombait toujours sur une seule
+          colonne sur téléphone, une rune par écran. À partir de `lg`, l'`auto-fill`
+          d'origine, inchangé. C'est le rendu `etroit` de la tuile (police et icône
+          réduites) qui rend les deux colonnes tenables à ~175 px. */}
+      <div
+        className="grid grid-cols-2 gap-2 items-start
+                   lg:grid-cols-[repeat(auto-fill,minmax(min(230px,100%),1fr))]"
+      >
         {shown.map((row, i) => (
           <OptimTile
             key={i}
@@ -450,6 +450,7 @@ export default function RunesOptim({ runes, crafts }: Props) {
             stock={stockDispo ? stock : null}
             open={openId === row.id}
             onToggle={toggleOpen}
+            etroit={etroit}
           />
         ))}
       </div>
@@ -481,6 +482,7 @@ export const OptimTile = memo(function OptimTile({
   stock,
   open,
   onToggle,
+  etroit = false,
 }: {
   row: OptimRow;
   scenario: 'hero' | 'legend';
@@ -490,6 +492,11 @@ export const OptimTile = memo(function OptimTile({
   stock: CraftStock | null;
   open: boolean;
   onToggle: (id: number) => void;
+  // Rendu resserré des DEUX colonnes sur téléphone : police et icône réduites
+  // pour que la tuile tienne à ~175 px. Lu une fois par la liste, passé ici (voir
+  // RunesOptim). Ne touche QUE la tuile fermée — le plan ouvert (FlottantAuto)
+  // garde sa taille.
+  etroit?: boolean;
 }) {
   const ref = useRef<HTMLDivElement>(null);
   const { rune, pot } = row;
@@ -503,21 +510,36 @@ export const OptimTile = memo(function OptimTile({
       ref={ref}
       className={`relative rounded-lg border bg-panel ${open ? 'z-20 border-accent' : 'border-border'}`}
     >
-      <button onClick={() => onToggle(row.id)} className="w-full flex items-center gap-2.5 p-2 text-left">
-        <RuneSlotIcon slot={rune.slot} setKey={rune.set} rarity={rune.rarity} ancient={ancient} height={46} />
+      <button
+        onClick={() => onToggle(row.id)}
+        className={`w-full flex items-center text-left ${etroit ? 'gap-1.5 p-1.5' : 'gap-2.5 p-2'}`}
+      >
+        {/* ⚠️ 34 px en resserré, 46 ailleurs. À deux colonnes le cadre de rune est
+            le dernier poste de largeur ; pas sous 30 px, sinon le symbole de set
+            gravé cesse de se reconnaître (voir RunesList). */}
+        <RuneSlotIcon
+          slot={rune.slot}
+          setKey={rune.set}
+          rarity={rune.rarity}
+          ancient={ancient}
+          height={etroit ? 34 : 46}
+        />
         <div className="min-w-0 flex-1">
-          <div className="text-xs font-bold text-ink leading-tight truncate">
+          <div className={`font-bold text-ink leading-tight truncate ${etroit ? 'text-nano' : 'text-xs'}`}>
             {formatRuneEffect(rune.main)}
           </div>
-          <div className="font-mono text-xs text-ink leading-tight">
+          <div className={`font-mono text-ink leading-tight ${etroit ? 'text-nano' : 'text-xs'}`}>
             {/* Texte, donc `meta.ink` — voir RARITY_META. */}
             actuelle <b style={{ color: meta.ink }}>{fmt(pot.eff)}</b>
           </div>
-          <div className="font-mono text-micro leading-tight" style={{ color: 'rgb(var(--rarity-4))' }}>
+          <div
+            className={`font-mono leading-tight ${etroit ? 'text-nano' : 'text-micro'}`}
+            style={{ color: 'rgb(var(--rarity-4))' }}
+          >
             Héro {signed(pot.heroGain, metric)}{' '}
             <span className={effColor(pot.heroEff, pot.eff)}>→ {fmt(pot.heroEff)}</span>
           </div>
-          <div className="font-mono text-micro leading-tight font-bold text-star">
+          <div className={`font-mono leading-tight font-bold text-star ${etroit ? 'text-nano' : 'text-micro'}`}>
             Légend {signed(pot.legendGain, metric)}{' '}
             <span className={`font-normal ${effColor(pot.legendEff, pot.eff)}`}>
               → {fmt(pot.legendEff)}

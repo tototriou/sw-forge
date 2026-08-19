@@ -1,67 +1,81 @@
 import { ReactNode, useEffect, useRef, useState } from 'react';
 import { HelpCircle } from 'lucide-react';
+import { BoutonIcone, FlottantAuto } from '../ui';
+import MobileSheet from '../ui/MobileSheet';
+import { useMediaQuery, SOUS_LG } from '../hooks/useMediaQuery';
 
-// Bouton d'aide rond + popup fermable au clic extérieur — même patron que
-// celui de RunesCurve.tsx (Mon compte → Courbes, « À quoi sert ce graphe ? »),
-// généralisé ici pour être réutilisé ailleurs (Outils → Optimizer) sans
-// dupliquer la gestion d'ouverture/fermeture à chaque nouvel usage.
+// Bouton d'aide « ? » + son texte, sur DEUX supports selon le format — le patron
+// né dans RunesCurve (Mon compte → Courbes), généralisé ici pour qu'un même
+// besoin d'aide ne se réécrive plus à la main à chaque page.
+//
+// ⚠️ **Deux supports pour le même texte.** Une aide fait souvent une demi-page :
+// ancrée à un petit bouton, une bulle flottante descend sous le bas de l'écran
+// sur téléphone et ses dernières lignes passent derrière la barre d'onglets. Sous
+// `lg` elle devient donc un PANNEAU MONTANT (`MobileSheet`), le composant que
+// l'app emploie partout ailleurs pour ça ; à la souris, une bulle ancrée
+// (`FlottantAuto`, qui mesure la place et choisit son côté).
+//
+// ⚠️ **Rien d'écrit à la main ici** : le bouton est un `BoutonIcone` (cadre, zone
+// tactile, état actif sont ses axes), la bulle un `FlottantAuto` (bord, ombre et
+// `z-index` lui appartiennent — jamais un `<div absolute z-…>` maison). C'est ce
+// que la version manuscrite réécrivait un contrôle à la fois, chaque fois un peu
+// différemment. Voir spec/shared/librairie-ui.md.
 export default function HelpPopover({
   title,
   children,
   ariaLabel,
   width = 340,
 }: {
+  // Titre du panneau : sert de titre au panneau montant, d'en-tête à la bulle, et
+  // de libellé au bouton faute d'`ariaLabel`.
   title: string;
   children: ReactNode;
+  // Libellé du BOUTON quand il diffère du titre du panneau (« Comment lire ce
+  // graphe ? » sur le bouton, « À quoi sert ce graphe ? » en en-tête).
   ariaLabel?: string;
   width?: number;
 }) {
   const [open, setOpen] = useState(false);
+  const auDoigt = useMediaQuery(SOUS_LG);
   const ref = useRef<HTMLDivElement>(null);
 
+  // Ferme la bulle au clic à l'extérieur.
+  // ⚠️ Popover SEULEMENT : le panneau montant a son propre voile et sa croix, et
+  // cet écouteur l'aurait refermé au premier appui à l'intérieur.
   useEffect(() => {
-    if (!open) return;
+    if (!open || auDoigt) return;
     const onDown = (e: MouseEvent) => {
       if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
     };
-    const onEsc = (e: KeyboardEvent) => e.key === 'Escape' && setOpen(false);
     document.addEventListener('mousedown', onDown);
-    document.addEventListener('keydown', onEsc);
-    return () => {
-      document.removeEventListener('mousedown', onDown);
-      document.removeEventListener('keydown', onEsc);
-    };
-  }, [open]);
+    return () => document.removeEventListener('mousedown', onDown);
+  }, [open, auDoigt]);
 
   return (
     <div ref={ref} className="relative">
-      <button
-        type="button"
+      <BoutonIcone
         onClick={() => setOpen((v) => !v)}
         aria-expanded={open}
-        aria-label={ariaLabel ?? title}
-        title={ariaLabel ?? title}
-        // ⚠️ `data-cible-fine` + `.cible-tactile` : ce bouton est un CERCLE de
-        // 24 px, et la règle tactile globale (40 px de haut, voir index.css) en
-        // faisait un ovale vertical — elle n'élargit que ce qui porte
-        // `aspect-square`. Le pseudo-élément lui rend une zone touchable de
-        // 44 px sans toucher au dessin. Voir spec/shared/design.md.
-        data-cible-fine
-        className={`cible-tactile flex items-center justify-center w-6 h-6 rounded-full border transition
-          ${open ? 'bg-accent-soft border-accent text-ink' : 'bg-panel/80 border-border text-ink-dim hoverable:text-ink hoverable:border-accent'}`}
-      >
-        <HelpCircle size={14} />
-      </button>
-      {open && (
-        <div
-          className="absolute right-0 z-20 mt-1.5 w-[340px] max-w-[88vw] rounded-lg border border-accent bg-panel p-3
-                     text-xs leading-relaxed text-ink-dim shadow-xl shadow-black/50"
-          style={{ width }}
-        >
+        libelle={ariaLabel ?? title}
+        icone={<HelpCircle size={14} />}
+        cadre
+        forme="pilule"
+        zoneEtendue
+        actif={open}
+      />
+
+      {/* À la SOURIS : bulle ancrée au bouton, qui choisit son côté. */}
+      <FlottantAuto ouvert={open && !auDoigt} ancre={ref} largeur={width} hauteur={420}>
+        <div className="text-xs leading-relaxed text-ink-dim">
           <p className="text-ink font-semibold mb-1">{title}</p>
           {children}
         </div>
-      )}
+      </FlottantAuto>
+
+      {/* AU DOIGT : panneau montant, pleine largeur, défilant, au-dessus des onglets. */}
+      <MobileSheet ouvert={open && auDoigt} onFermer={() => setOpen(false)} titre={title}>
+        <div className="text-xs leading-relaxed text-ink-dim">{children}</div>
+      </MobileSheet>
     </div>
   );
 }

@@ -73,6 +73,7 @@ export function PieceDetailBox({
   ariaPressed,
   title,
   encadre = true,
+  imbrique = true,
 }: {
   // Image de la pièce, posée à gauche de l'en-tête. Fournie par l'appelant : la
   // carte sert aussi dans un flottant où l'image est déjà à côté, sur la tuile
@@ -118,15 +119,28 @@ export function PieceDetailBox({
   // règle en premier. Le rembourrage passe alors au FLOTTANT (`rembourrage`),
   // pas ici : sans cadre, cette carte n'a plus de bord à en tenir éloigné.
   encadre?: boolean;
+  // La carte est-elle posée DANS une surface déjà cliquable (un `Flottant`) ?
+  //
+  // ⚠️ **Défaut `true` par PRUDENCE** : la plupart des appelants (siège, prépa
+  // RTA, optimiseur) posent cette carte dans un flottant lui-même cliquable, où
+  // un vrai `<button>` imbriqué serait du HTML invalide — d'où le `<div
+  // role="button">` de `ZoneCliquable`. Un appelant qui l'affiche À PLAT (la
+  // liste de runes, dans une grille) passe `false` pour retrouver un VRAI
+  // `<button>` : sur téléphone, un `<div role="button">` rempli de texte laisse
+  // le tap déclencher une sélection au lieu du clic (`user-select` par défaut),
+  // et la bascule détail/total ne se faisait plus au doigt. Voir `ZoneCliquable`.
+  imbrique?: boolean;
 }) {
   return (
     // ⚠️ Fond OPAQUE : cette carte s'affiche aussi À PLAT dans une grille (voir
     // `encadre`), où un fond translucide laisserait voir les tuiles derrière.
     <ZoneCliquable
-      // ⚠️ `imbrique` : la carte est posée DANS un flottant lui-même cliquable,
-      // et un `<button>` dans un `<button>` est du HTML invalide. Sans `onClick`,
-      // le composant ne prend ni rôle ni `tabIndex` — voir ZoneCliquable.
-      imbrique
+      // ⚠️ `imbrique` : posée dans un flottant cliquable, la carte devient un
+      // `<div role="button">` (un `<button>` dans un `<button>` est invalide) ;
+      // à plat dans une grille, elle redevient un VRAI `<button>`, fiable au
+      // doigt. Voir la prop `imbrique` ci-dessus. Sans `onClick`, le composant
+      // ne prend ni rôle ni `tabIndex` — voir ZoneCliquable.
+      imbrique={imbrique}
       onClick={onClick}
       aria-pressed={ariaPressed}
       title={title}
@@ -312,6 +326,7 @@ export function RuneDetailBox({
   etroit,
   cherches,
   encadre = true,
+  imbrique = true,
 }: {
   rune: RuneDetail;
   icone?: ReactNode;
@@ -328,6 +343,9 @@ export function RuneDetailBox({
   cherches?: Set<number>;
   // Voir `PieceDetailBox` : `false` dans un `Flottant`, qui pose déjà le sien.
   encadre?: boolean;
+  // Voir `PieceDetailBox` : `false` à plat dans une grille (liste de runes) pour
+  // un VRAI `<button>` — la bascule détail/total redevient fiable au doigt.
+  imbrique?: boolean;
 }) {
   const auDoigt = useMediaQuery(COMPACT);
   const resserre = compact ?? auDoigt;
@@ -358,6 +376,7 @@ export function RuneDetailBox({
       resserre={resserre}
       etroit={etroit}
       encadre={encadre}
+      imbrique={imbrique}
       principale={formatRuneEffect(rune.main)}
       secondaire={rune.innate ? formatRuneEffect(rune.innate) : undefined}
       rarete={{

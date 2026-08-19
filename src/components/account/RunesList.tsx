@@ -294,8 +294,11 @@ export default function RunesList({ runes, menuOuvert, onFermerMenu }: Props) {
 // substats obligeait à ouvrir les runes une par une pour comparer, ce qui est
 // exactement ce qu'on fait en parcourant 2 000 runes.
 //
-// ⚠️ Plus de popover au clic : il n'aurait rien montré de plus. La tuile n'est
-// donc plus cliquable — un bouton qui ne fait rien se lit comme un défaut.
+// ⚠️ Plus de popover au clic : il n'aurait rien montré de plus. Le seul clic qui
+// reste est celui de `RuneDetailBox` — la bascule détail ↔ total sur une rune
+// meulée, sur place. `imbrique={false}` : à plat dans la grille, la tuile est un
+// VRAI `<button>`, sans quoi le tap déclenchait une sélection de texte sur
+// téléphone au lieu de basculer.
 //
 // Mémoïsée : ne se re-rend pas quand seuls les filtres/la page changent ailleurs.
 const RuneTile = memo(function RuneTile({
@@ -317,6 +320,11 @@ const RuneTile = memo(function RuneTile({
       compact
       etroit={etroit}
       cherches={cherches}
+      // ⚠️ À PLAT dans la grille (pas dans un flottant) → VRAI `<button>`. Un
+      // `<div role="button">` rempli de texte laissait le tap déclencher une
+      // sélection au lieu de la bascule détail/total sur téléphone. Voir
+      // `RuneDetailBox`/`ZoneCliquable`.
+      imbrique={false}
       icone={
         <RuneSlotIcon
           slot={rune.slot}

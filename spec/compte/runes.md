@@ -159,6 +159,13 @@ en parcourant 2 000 runes.
     sont identiques, et un clic sans effet se lit comme un défaut.
   - L'état est **propre à chaque carte** et n'est pas mémorisé : c'est un coup
     d'œil, pas un réglage.
+  - ⚠️ **La tuile est un VRAI `<button>`** (`RuneDetailBox imbrique={false}`), pas
+    le `<div role="button">` qu'emploie la même carte **en popover** (siège, prépa
+    RTA, optimiseur), où un `<button>` imbriqué dans le flottant cliquable serait
+    du HTML invalide. À plat dans la grille, rien n'impose ce détour — et sur
+    téléphone il **coûtait le clic** : un `<div>` rempli de texte laisse le tap
+    déclencher une **sélection de texte** (`user-select` par défaut) au lieu de la
+    bascule. Voir [librairie-ui.md](../shared/librairie-ui.md) (`ZoneCliquable`).
 - La ligne **recherchée** prend un **liseré d'accent + un fond à 8 %**, avec les
   compensations qui l'annulent exactement — sinon elle se décale par rapport aux
   autres, et c'est ce décalage qu'on voit en premier.

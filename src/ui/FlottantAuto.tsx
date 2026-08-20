@@ -1,4 +1,4 @@
-import { ReactNode, RefObject, useLayoutEffect, useState } from 'react';
+import { ReactNode, RefObject, useLayoutEffect, useRef, useState } from 'react';
 import Flottant from './Flottant';
 
 // [Flottant](Flottant.tsx) qui CHOISIT SON CÔTÉ en mesurant la place autour de
@@ -12,10 +12,16 @@ import Flottant from './Flottant';
 // quelque chose.
 //
 // ⚠️ Distinct de `useRecalageEcran`, qui TIRE une surface débordante vers
-// l'intérieur après coup. Ici on choisit le bon côté AVANT de peindre : pas de
-// saut visible, et la surface reste alignée sur son ancre au lieu de flotter à
-// une position corrigée. Le recalage reste utile quand la surface doit garder
-// son côté (le formulaire de catégorie, ancré à sa pilule).
+// l'intérieur après coup. Ici on mesure AVANT de peindre : on choisit le côté
+// d'ouverture puis on BORNE la position horizontale au viewport, en un seul
+// passage sans saut visible. Le recalage reste utile quand la surface doit
+// garder son côté (le formulaire de catégorie, ancré à sa pilule).
+//
+// ⚠️ **Le côté seul ne suffit pas près d'un bord.** Ancrée à un élément étroit
+// (une tuile de grille à deux colonnes du téléphone), une surface large alignée
+// sur un côté déborde de l'AUTRE — `html { overflow-x: hidden }` la coupe et
+// elle devient invisible. On borne donc sa position finale à l'écran, tout en la
+// gardant ancrée à ce qui l'a ouverte.
 //
 // ⚠️ `useLayoutEffect` et non `useEffect` : la mesure doit être faite AVANT que
 // le navigateur peigne. Avec `useEffect`, la surface apparaissait un instant du
@@ -51,24 +57,46 @@ export default function FlottantAuto({
   className = '',
   children,
 }: FlottantAutoProps) {
+  const boiteRef = useRef<HTMLDivElement>(null);
   const [place, setPlace] = useState<{
     cote: 'gauche' | 'droite';
     ancrage: 'dessus' | 'dessous';
-  }>({ cote: 'gauche', ancrage: 'dessous' });
+    // Décalage horizontal FINAL, en coordonnées de l'ancre (elle est
+    // `position: relative`) : c'est lui qui borne la surface à l'écran.
+    gauche: number;
+  }>({ cote: 'gauche', ancrage: 'dessous', gauche: 0 });
 
   useLayoutEffect(() => {
     if (!ouvert || !ancre.current) return;
     const r = ancre.current.getBoundingClientRect();
+    const vw = window.innerWidth;
+    const vh = window.innerHeight;
+    // ⚠️ **Dimensions RÉELLES, pas estimées.** La surface est déjà rendue (on ne
+    // rend rien tant que `!ouvert`), donc on mesure sa boîte — `maxWidth: 90vw`
+    // compris. Un flottant de 340 px ancré à une tuile de ~170 px de la grille à
+    // deux colonnes du téléphone débordait sinon hors de l'écran, coupé par
+    // `html { overflow-x: hidden }` : le détail devenait invisible au doigt.
+    const w = boiteRef.current?.offsetWidth ?? Math.min(largeur, vw - 2 * MARGE);
+    const h = boiteRef.current?.offsetHeight ?? hauteur;
+
+    // Côté préféré — celui d'où la surface s'ouvre (sert l'ancrage visuel ET le
+    // sens de l'animation). À droite si l'ancre est trop près du bord droit.
+    const cote = r.left + largeur > vw - MARGE ? 'droite' : 'gauche';
+    // Position absolue voulue selon le côté, PUIS bornée à l'écran : la surface
+    // reste ancrée à la tuile, mais ne sort jamais du viewport (ce que le choix
+    // binaire gauche/droite seul ne garantissait pas — près d'un bord, aligner
+    // sur l'autre côté la faisait déborder de CE côté-là).
+    const alPref = cote === 'droite' ? r.right - w : r.left;
+    const al = Math.max(MARGE, Math.min(alPref, vw - MARGE - w));
+
     setPlace({
-      cote: r.left + largeur > window.innerWidth - MARGE ? 'droite' : 'gauche',
+      cote,
       // ⚠️ On ne bascule vers le HAUT que s'il y a vraiment la place au-dessus :
       // sinon on échange un débordement par le bas contre un débordement par le
       // haut, et celui-là est pire — la surface sort de la fenêtre là où l'on ne
       // peut pas défiler pour la rattraper.
-      ancrage:
-        r.bottom + hauteur > window.innerHeight - MARGE && r.top - hauteur > MARGE
-          ? 'dessus'
-          : 'dessous',
+      ancrage: r.bottom + h > vh - MARGE && r.top - h > MARGE ? 'dessus' : 'dessous',
+      gauche: al - r.left,
     });
   }, [ouvert, largeur, hauteur, ancre]);
 
@@ -76,13 +104,18 @@ export default function FlottantAuto({
 
   return (
     <Flottant
+      ref={boiteRef}
       cote={place.cote}
       ancrage={place.ancrage}
       rembourrage={rembourrage}
       // ⚠️ `maxWidth` en plus de la largeur : sur un téléphone, 260 px demandés
       // dépassent parfois l'écran à eux seuls, quel que soit le côté choisi.
+      // ⚠️ **`left` explicite (et `right: auto`) : la position horizontale est
+      // pilotée par le décalage borné ci-dessus**, pas par le `left-0`/`right-0`
+      // que `cote` pose sur la classe. On neutralise donc `right` pour que seul
+      // notre `left` compte, quel que soit le côté choisi pour l'animation.
       largeur=""
-      style={{ width: largeur, maxWidth: '90vw' }}
+      style={{ width: largeur, maxWidth: '90vw', left: place.gauche, right: 'auto' }}
       className={className}
     >
       {children}

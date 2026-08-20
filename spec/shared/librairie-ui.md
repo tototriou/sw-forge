@@ -293,13 +293,23 @@ popup d'édition, formulaire ancré, liste de résultats d'une recherche.
 
 **`FlottantAuto`** — le même, mais qui **choisit son côté** en mesurant la place
 autour de son ancre : vers la gauche si l'ancre est près du bord droit, vers le
-haut si elle est près du bas.
+haut si elle est près du bas. Puis il **borne sa position au viewport**, en
+gardant la surface ancrée à ce qui l'a ouverte.
 
 > ⚠️ Pour ce qui est ancré à un élément **dont la position varie** : une tuile
 > dans une grille, une carte de monstre, un badge au bout d'une ligne. Ces ancres
 > vont jusqu'aux bords de la page, et un flottant posé toujours du même côté s'y
 > trouvait coupé — exactement là où l'on venait de cliquer pour lire quelque
 > chose.
+
+> ⚠️ **Le côté seul ne suffit pas près d'un bord.** Ancrée à un élément étroit
+> (une tuile de la grille à deux colonnes du téléphone), une surface large alignée
+> sur un côté déborde de l'AUTRE, que `html { overflow-x: hidden }` coupe : le
+> détail de rune de l'onglet Optimisation devenait invisible au doigt. `FlottantAuto`
+> mesure donc sa boîte réelle (`maxWidth: 90vw` compris) et **borne sa position
+> horizontale à l'écran** via un `left` explicite. Sans débordement — le cas du
+> bureau — la position calculée est **identique** à l'ancien `left-0`/`right-0` :
+> le bornage n'agit que quand la surface sortirait, il ne change rien ailleurs.
 
 > ⚠️ **Distinct de `useRecalageEcran`**, qui *tire* une surface débordante vers
 > l'intérieur après coup. Ici on choisit le bon côté **avant** de peindre : pas

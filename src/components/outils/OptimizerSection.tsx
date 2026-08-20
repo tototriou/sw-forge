@@ -44,6 +44,7 @@ import {
 import { buildOptimizerRecipe, parseOptimizerRecipe } from '../../lib/optimizerRecipe';
 import { ArtifactMainChoice, OptimizerState, OptimizerSortKey } from '../../hooks/useOptimizerState';
 import { useRuneMetric } from '../../hooks/useRuneMetric';
+import { useMediaQuery, SOUS_SM } from '../../hooks/useMediaQuery';
 import GameIcon from '../GameIcon';
 import MonsterAvatar from '../MonsterAvatar';
 import MonsterGear from '../MonsterGear';
@@ -125,6 +126,12 @@ function download(filename: string, text: string) {
 // minimums de stats donnés. Voir spec/outils/optimizer/.
 export default function OptimizerSection({ box, runes, optimizer, allMonsters, rtaEntries, siegeDefenseTeams, siegeOffenseTeams, menuOuvert, onFermerMenu }: Props) {
   const metric = useRuneMetric();
+  // ⚠️ Sous `sm`, les `Segmented` pleine largeur à libellés longs (l'objectif :
+  // « PV effectifs ») débordent leur quart de rangée que `whitespace-nowrap`
+  // interdit de couper. `dense` (texte réduit, retour à la ligne) est le
+  // mécanisme prévu pour ça — activé seulement au format étroit, le bureau garde
+  // le rendu normal.
+  const etroit = useMediaQuery(SOUS_SM);
   const {
     selectedId,
     setSelectedId,
@@ -776,7 +783,7 @@ export default function OptimizerSection({ box, runes, optimizer, allMonsters, r
             <b className="text-ink">Dgts Crit</b> ensemble (espérance moyenne).
           </HelpPopover>
         </div>
-        <Segmented options={OBJECTIVE_LABELS} value={objective} onChange={setObjective} size="lg" />
+        <Segmented options={OBJECTIVE_LABELS} value={objective} onChange={setObjective} size="lg" dense={etroit} />
       </div>
 
       <div>
@@ -861,6 +868,15 @@ export default function OptimizerSection({ box, runes, optimizer, allMonsters, r
         {/* ⚠️ `gap-x` réduit sous `sm` : trois colonnes plus deux écarts de
             16 px ne laissaient plus de place aux champs sur 348 px utiles. */}
         <div className="grid grid-cols-[minmax(76px,auto)_auto_auto] items-center gap-x-2 gap-y-1.5 sm:grid-cols-[minmax(90px,auto)_auto_auto] sm:gap-x-4">
+          {/* ⚠️ En-têtes Min/Max AU DOIGT seulement. Sur téléphone, le libellé
+              « Min »/« Max » collé à chaque champ faisait déborder la rangée
+              (label + 2 champs + 2 mots > largeur utile) ; on les masque et on
+              pose ces deux en-têtes une seule fois. Au bureau (`sm:`), chaque
+              champ garde son libellé à côté et ces en-têtes disparaissent —
+              rendu inchangé. */}
+          <span className="sm:hidden" aria-hidden />
+          <span className="label sm:hidden text-center">Min</span>
+          <span className="label sm:hidden text-center">Max</span>
           {RECO_STATS.map((st) => {
             const affectedByToggle = BASE_TOGGLE_STATS.has(st.key);
             const base = baseOf(st.key);
@@ -909,7 +925,7 @@ export default function OptimizerSection({ box, runes, optimizer, allMonsters, r
                     ariaLabel={`${st.label} minimum`}
                     title="Minimum"
                   />
-                  <span className="text-ink-dim text-micro">Min</span>
+                  <span className="hidden sm:inline text-ink-dim text-micro">Min</span>
                 </div>
                 <div className="flex items-center gap-1.5">
                   <NumberField
@@ -931,7 +947,7 @@ export default function OptimizerSection({ box, runes, optimizer, allMonsters, r
                     ariaLabel={`${st.label} maximum`}
                     title="Maximum"
                   />
-                  <span className="text-ink-dim text-micro">Max</span>
+                  <span className="hidden sm:inline text-ink-dim text-micro">Max</span>
                 </div>
               </Fragment>
             );
@@ -975,7 +991,10 @@ export default function OptimizerSection({ box, runes, optimizer, allMonsters, r
                 options={SLOT_FILTER_PRESETS}
                 value={slotFilterPreset}
                 onChange={setSlotFilterPreset}
-                className="w-fit"
+                // Dans le panneau « Options » : pleine largeur, comme les autres
+                // contrôles du tiroir. En ligne au bureau : serré à son contenu.
+                size={dansPanneau ? 'lg' : undefined}
+                className={dansPanneau ? '' : 'w-fit'}
               />
               {dansPanneau && estimate && (
                 <span className="font-mono text-micro text-ink-dim">
@@ -1145,7 +1164,10 @@ export default function OptimizerSection({ box, runes, optimizer, allMonsters, r
             <p className="mb-3 pl-8 text-[11px] text-ink-dim">Deux réglages indépendants, qui se superposent.</p>
 
             {dansPanneau ? (
-              <div className="flex flex-col gap-4">
+              // ⚠️ `space-y-4` (blocs) et non `flex flex-col` : sous
+              // `[data-tiroir]`, `align-items: flex-start` raboterait ces deux
+              // blocs — et donc leurs contrôles pleine largeur — à leur contenu.
+              <div className="space-y-4">
                 {monstrePrecisBlock(true)}
                 {dejaUtiliseesBlock}
               </div>
@@ -1217,7 +1239,14 @@ export default function OptimizerSection({ box, runes, optimizer, allMonsters, r
                 distinctes, pas juste un trait de séparation entre deux blocs
                 de texte. */}
             <MobileSheet ouvert={menuOuvert} onFermer={onFermerMenu} titre="Options de recherche">
-              <div className="flex flex-col gap-3">
+              {/* ⚠️ `space-y-3` et NON `flex flex-col` : le corps du panneau
+                  porte `data-tiroir`, et index.css y pose
+                  `[data-tiroir] .flex-col { align-items: flex-start }` — écrit
+                  pour les rangées d'actions, mais qui rabote ici les deux cartes
+                  à la largeur de leur contenu au lieu de les étirer. En blocs
+                  (`space-y`), les cartes reprennent d'elles-mêmes toute la
+                  largeur du panneau. Même piège que MobileNavSheet. */}
+              <div className="space-y-3">
                 <div className="rounded-lg border border-border-soft bg-panel2 p-3">
                   <div className="mb-0.5 flex items-center gap-2">{exclusionRunesTitre}</div>
                   {exclusionRunesInner(true)}
@@ -1265,6 +1294,7 @@ export default function OptimizerSection({ box, runes, optimizer, allMonsters, r
           title="Télécharger les réglages de cette recherche en fichier .json (set, minimums, objectif…) — pour la partager ou la reproduire, jamais tes runes ni ton compte."
           icone={<Upload size={14} />}
           libelle="Exporter les paramètres de recherche"
+          libelleCourt="Exporter"
         />
 
         {/* Reprend une recette importée (fichier reçu d'un autre joueur, ou
@@ -1277,6 +1307,7 @@ export default function OptimizerSection({ box, runes, optimizer, allMonsters, r
           title="Reprendre les réglages d'un fichier .json exporté depuis l'Optimizer (le tien ou celui d'un autre joueur)."
           icone={<Download size={14} />}
           libelle="Importer les paramètres de recherche"
+          libelleCourt="Importer"
         />
         <input
           ref={importFileRef}

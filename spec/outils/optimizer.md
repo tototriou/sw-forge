@@ -33,6 +33,31 @@ recherche des sélecteurs en `Champ` + `Flottant` (même patron combobox que
 RtaSearch), et les sets/exclusions choisis en `Jeton` (la pilule supprimable de
 la lib). La grille de sets à ajouter est en `BoutonIcone cadre`.
 
+⚠️ **Responsive — pas de débordement, et les contrôles du panneau prennent
+toute la largeur.** Points tenus au format étroit (l'écran n'avait jamais été
+audité en mobile) :
+- **Grille Conditions** : « Min »/« Max » collés à chaque champ faisaient
+  déborder la rangée (libellé + deux `NumberField` + deux mots > largeur utile).
+  Au doigt, ces mots sont masqués et remplacés par **deux en-têtes de colonne**
+  posés une fois ; au bureau (`sm:`), chaque champ garde son libellé à côté et
+  les en-têtes disparaissent — rendu inchangé.
+- **Objectif de recherche** : le `Segmented` pleine largeur passe en **`dense`**
+  sous `sm` (`useMediaQuery(SOUS_SM)`), sinon « PV effectifs » débordait son
+  quart de rangée que `whitespace-nowrap` interdit de couper.
+- **Panneau « Options » — tout prend la largeur.** Les conteneurs empilés du
+  panneau sont en **`space-y-*` (blocs), pas `flex flex-col`** : le corps du
+  panneau porte `data-tiroir`, où index.css pose
+  `[data-tiroir] .flex-col { align-items: flex-start }` (écrit pour les rangées
+  d'actions). Sur `flex flex-col`, cette règle raboterait les deux cartes — et
+  donc leurs contrôles — à la largeur de leur contenu, laissant une colonne vide
+  à droite sur tablette. En blocs, cartes et contrôles reprennent toute la
+  largeur. Même piège que MobileNavSheet. Les `Segmented` y sont en outre
+  `size="lg"`, dont le **pré-filtrage par emplacement** (serré à son contenu en
+  ligne au bureau, plein dans le panneau).
+- **Barre d'actions** : Exporter/Importer portent un `libelleCourt`
+  (« Exporter »/« Importer ») sous `lg`, pour ne pas étaler deux boutons à
+  libellé long au doigt.
+
 ⚠️ **Survit à un changement d'onglet.** Comme les autres pages de l'app,
 `OutilsPage` (et donc `OptimizerSection`) est **démontée** à chaque
 navigation — un simple `useState` local y perdrait tout (monstre choisi,

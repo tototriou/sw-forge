@@ -51,6 +51,11 @@ import {
 } from './hooks/usePersistence';
 import { ConfirmDialog, KeepAccountDialog } from './ui/Dialogs';
 import InventaireIcon, { InventaireIconKey } from './components/InventaireIcon';
+import {
+  COULEUR_SECTION,
+  COULEUR_SIEGE_SUB,
+  COULEUR_COMPTE_SUB,
+} from './data/couleursSection';
 import { ArtifactDetail, CraftLine, Monster, RuneDetail } from './types';
 import { useMonsters } from './hooks/useMonsters';
 import { useCustomMonsters } from './hooks/useCustomMonsters';
@@ -165,17 +170,24 @@ function parseHash(): {
   return { route: 'home', ...base };
 }
 
-type NavItem = { key: Route; label: string; icon: typeof BookOpen; hash: string };
+// ⚠️ `couleur` : la teinte de SIGNATURE de la section (data/couleursSection),
+// posée sur l'ICÔNE partout où la nav l'affiche — barre latérale, onglets du
+// bas, panneau mobile, barre supérieure, recherche. La MÊME couleur que la
+// carte de l'accueil ; elle voyage avec l'item plutôt que d'être ressaisie à
+// chaque point de rendu. Elle ne marque PAS l'état (l'actif reste le contour
+// d'accent, spec/shared/design.md « un seul marqueur ») : elle est constante,
+// actif ou non.
+type NavItem = { key: Route; label: string; icon: typeof BookOpen; hash: string; couleur: string };
 
 // Onglets principaux (outils). Arène est à part (voir ARENE_ITEM) : elle se
 // positionne entre les dropdowns Outils et Ressources, pas dans ce groupe.
 const NAV: NavItem[] = [
-  { key: 'home', label: 'Accueil', icon: Home, hash: '#/' },
-  { key: 'rta', label: 'RTA', icon: Swords, hash: '#/rta' },
-  { key: 'siege', label: 'Siège', icon: Castle, hash: '#/siege/defense' },
+  { key: 'home', label: 'Accueil', icon: Home, hash: '#/', couleur: COULEUR_SECTION.home },
+  { key: 'rta', label: 'RTA', icon: Swords, hash: '#/rta', couleur: COULEUR_SECTION.rta },
+  { key: 'siege', label: 'Siège', icon: Castle, hash: '#/siege/defense', couleur: COULEUR_SECTION.siege },
 ];
 
-const ARENE_ITEM: NavItem = { key: 'arene', label: 'Arène', icon: Trophy, hash: '#/arene' };
+const ARENE_ITEM: NavItem = { key: 'arene', label: 'Arène', icon: Trophy, hash: '#/arene', couleur: COULEUR_SECTION.arene };
 
 // Sous-sections de « Mon compte » (dropdown de nav).
 // ⚠️ Icônes AU TRAIT dans le style de la librairie (voir InventaireIcon) : les
@@ -184,32 +196,32 @@ const ARENE_ITEM: NavItem = { key: 'arene', label: 'Arène', icon: Trophy, hash:
 // ⚠️ Plus de `hash` ici : les liens passent par `hashVue`, qui compose
 // `#/compte/<inventaire>/<vue>`. Deux façons d'écrire la même URL auraient
 // divergé — l'une menant à la vue par défaut, l'autre à la vue courante.
-const ACCOUNT_SUBS: { sub: AccountSub; label: string; icon: InventaireIconKey }[] = [
-  { sub: 'monstres', label: 'Monstres', icon: 'monster' },
-  { sub: 'runes', label: 'Runes', icon: 'rune' },
-  { sub: 'artefacts', label: 'Artéfacts', icon: 'artifact' },
+const ACCOUNT_SUBS: { sub: AccountSub; label: string; icon: InventaireIconKey; couleur: string }[] = [
+  { sub: 'monstres', label: 'Monstres', icon: 'monster', couleur: COULEUR_COMPTE_SUB.monstres },
+  { sub: 'runes', label: 'Runes', icon: 'rune', couleur: COULEUR_COMPTE_SUB.runes },
+  { sub: 'artefacts', label: 'Artéfacts', icon: 'artifact', couleur: COULEUR_COMPTE_SUB.artefacts },
 ];
 
 // Sous-sections d'« Outils » (dropdown de nav) — un seul outil pour l'instant,
 // structuré pour en accueillir d'autres sans retoucher la nav.
-const OUTILS_SUBS: { sub: ToolSub; label: string; icon: typeof Sparkles; hash: string }[] = [
-  { sub: 'optimizer', label: 'Optimizer', icon: Sparkles, hash: '#/outils/optimizer' },
+const OUTILS_SUBS: { sub: ToolSub; label: string; icon: typeof Sparkles; hash: string; couleur: string }[] = [
+  { sub: 'optimizer', label: 'Optimizer', icon: Sparkles, hash: '#/outils/optimizer', couleur: COULEUR_SECTION.outils },
 ];
 
 // Sous-sections de « Siège ». ⚠️ Remontées ICI depuis SiegePage : elles
 // étaient des onglets posés en haut de la page, et chaque section avait le sien
 // avec son propre rendu. La barre latérale les porte toutes de la même façon.
-const SIEGE_SUBS: { tab: SiegeTab; label: string; icon: typeof Shield; hash: string }[] = [
-  { tab: 'defense', label: 'Défense', icon: Shield, hash: '#/siege/defense' },
-  { tab: 'offense', label: 'Offense', icon: Swords, hash: '#/siege/offense' },
-  { tab: 'recos', label: 'Recommandations', icon: Lightbulb, hash: '#/siege/recommandations' },
+const SIEGE_SUBS: { tab: SiegeTab; label: string; icon: typeof Shield; hash: string; couleur: string }[] = [
+  { tab: 'defense', label: 'Défense', icon: Shield, hash: '#/siege/defense', couleur: COULEUR_SIEGE_SUB.defense },
+  { tab: 'offense', label: 'Offense', icon: Swords, hash: '#/siege/offense', couleur: COULEUR_SIEGE_SUB.offense },
+  { tab: 'recos', label: 'Recommandations', icon: Lightbulb, hash: '#/siege/recommandations', couleur: COULEUR_SIEGE_SUB.recos },
 ];
 
 // Regroupées sous « Ressources ».
 const RESOURCES: NavItem[] = [
-  { key: 'bestiary', label: 'Bestiaire', icon: BookOpen, hash: '#/bestiary' },
-  { key: 'mecaniques', label: 'Mécaniques', icon: Calculator, hash: '#/mecaniques' },
-  { key: 'releases', label: 'Nouveautés', icon: Tag, hash: '#/releases' },
+  { key: 'bestiary', label: 'Bestiaire', icon: BookOpen, hash: '#/bestiary', couleur: COULEUR_SECTION.bestiary },
+  { key: 'mecaniques', label: 'Mécaniques', icon: Calculator, hash: '#/mecaniques', couleur: COULEUR_SECTION.mecaniques },
+  { key: 'releases', label: 'Nouveautés', icon: Tag, hash: '#/releases', couleur: COULEUR_SECTION.releases },
 ];
 
 export default function App() {
@@ -679,14 +691,14 @@ export default function App() {
   // niveau (`ouvre`). Deux définitions auraient divergé.
   const sectionSiege: SidebarSection = {
     titre: 'Siège',
-    icon: <Castle size={17} />,
+    icon: <Castle size={17} color={COULEUR_SECTION.siege} />,
     groupes: [
       {
         liens: SIEGE_SUBS.map((t) => ({
           key: t.tab,
           label: t.label,
           hash: t.hash,
-          icon: <t.icon size={17} />,
+          icon: <t.icon size={17} color={t.couleur} />,
           actif: route === 'siege' && siegeTab === t.tab,
         })),
       },
@@ -695,7 +707,7 @@ export default function App() {
 
   const sectionCompte: SidebarSection = {
     titre: 'Mon compte',
-    icon: <CircleUserRound size={17} />,
+    icon: <CircleUserRound size={17} color={COULEUR_SECTION.compte} />,
     // ⚠️ **Un groupe par INVENTAIRE, ses vues en entrées.** Les trois
     // inventaires étaient trois liens, et leurs vues (Résumé, Liste, Courbes…)
     // vivaient dans une rangée d'onglets en haut de page — invisible tant qu'on
@@ -706,12 +718,15 @@ export default function App() {
     groupes: ACCOUNT_SUBS.map((sub) => ({
       titre: sub.label,
       // Pour le panneau mobile, qui fait choisir l'inventaire AVANT sa vue.
-      icone: <InventaireIcon name={sub.icon} size={17} />,
+      icone: <InventaireIcon name={sub.icon} size={17} couleur={sub.couleur} />,
+      // ⚠️ Les VUES d'un inventaire portent la couleur de leur inventaire :
+      // une même famille de teinte pour tout le groupe (Runes → Résumé, Liste,
+      // Courbes… toutes en cyan), pas neuf teintes sans lien entre elles.
       liens: VUES_INVENTAIRE[sub.sub].map((v) => ({
         key: `${sub.sub}-${v.key}`,
         label: v.label,
         hash: hashVue(sub.sub, v.key),
-        icon: <v.icon size={17} />,
+        icon: <v.icon size={17} color={sub.couleur} />,
         actif: route === 'compte' && accountSub === sub.sub && accountView === v.key,
       })),
     })),
@@ -719,14 +734,14 @@ export default function App() {
 
   const sectionOutils: SidebarSection = {
     titre: 'Outils',
-    icon: <Sparkles size={17} />,
+    icon: <Sparkles size={17} color={COULEUR_SECTION.outils} />,
     groupes: [
       {
         liens: OUTILS_SUBS.map((sub) => ({
           key: sub.sub,
           label: sub.label,
           hash: sub.hash,
-          icon: <sub.icon size={17} />,
+          icon: <sub.icon size={17} color={sub.couleur} />,
           actif: route === 'outils' && toolSub === sub.sub,
         })),
       },
@@ -756,7 +771,7 @@ export default function App() {
         ...NAV.map((item) => ({
           key: item.key,
           label: item.label,
-          icon: <item.icon size={17} />,
+          icon: <item.icon size={17} color={item.couleur} />,
           // ⚠️ Le Siège OUVRE sa section au lieu de naviguer : on choisit
           // Défense, Offense ou Recommandations avant de charger une page.
           ...(item.key === 'siege' ? { ouvre: sectionSiege } : { hash: item.hash }),
@@ -765,14 +780,14 @@ export default function App() {
         {
           key: 'compte',
           label: 'Mon compte',
-          icon: <CircleUserRound size={17} />,
+          icon: <CircleUserRound size={17} color={COULEUR_SECTION.compte} />,
           ouvre: sectionCompte,
           actif: route === 'compte',
         },
         {
           key: 'outils',
           label: 'Outils',
-          icon: <Sparkles size={17} />,
+          icon: <Sparkles size={17} color={COULEUR_SECTION.outils} />,
           ouvre: sectionOutils,
           actif: route === 'outils',
         },
@@ -780,7 +795,7 @@ export default function App() {
           key: ARENE_ITEM.key,
           label: ARENE_ITEM.label,
           hash: ARENE_ITEM.hash,
-          icon: <ARENE_ITEM.icon size={17} />,
+          icon: <ARENE_ITEM.icon size={17} color={ARENE_ITEM.couleur} />,
           actif: route === 'arene',
         },
       ],
@@ -791,7 +806,7 @@ export default function App() {
         key: item.key,
         label: item.label,
         hash: item.hash,
-        icon: <item.icon size={17} />,
+        icon: <item.icon size={17} color={item.couleur} />,
         actif: route === item.key,
       })),
     },
@@ -833,12 +848,12 @@ export default function App() {
   // ⚠️ Deux branches : l'icône d'inventaire (`InventaireIcon`, au trait comme le
   // reste) et la vue de siège (lucide) n'ont pas la même API — mais le MÊME style.
   const iconeSection = compteSub ? (
-    <InventaireIcon name={compteSub.icon} size={16} />
+    <InventaireIcon name={compteSub.icon} size={16} couleur={compteSub.couleur} />
   ) : siegeSub ? (
-    <siegeSub.icon size={16} />
+    <siegeSub.icon size={16} color={siegeSub.couleur} />
   ) : (
     sectionOuverte?.icon ??
-    (entreeCourante ? <entreeCourante.icon size={16} /> : null) ??
+    (entreeCourante ? <entreeCourante.icon size={16} color={entreeCourante.couleur} /> : null) ??
     (route === 'parametres' ? <Settings size={16} /> : null)
   );
 
@@ -857,13 +872,13 @@ export default function App() {
       key: i.key,
       label: i.label,
       hash: i.hash,
-      icon: <i.icon size={15} />,
+      icon: <i.icon size={15} color={i.couleur} />,
     })),
     ...SIEGE_SUBS.map((t) => ({
       key: `siege-${t.tab}`,
       label: t.label,
       hash: t.hash,
-      icon: <t.icon size={15} />,
+      icon: <t.icon size={15} color={t.couleur} />,
       contexte: 'Siège',
     })),
     // ⚠️ Chaque VUE de chaque inventaire, pas seulement les trois inventaires :
@@ -876,7 +891,7 @@ export default function App() {
         key: `compte-${sub.sub}-${v.key}`,
         label: v.label,
         hash: hashVue(sub.sub, v.key),
-        icon: <v.icon size={15} />,
+        icon: <v.icon size={15} color={sub.couleur} />,
         contexte: sub.label,
       }))
     ),
@@ -884,20 +899,20 @@ export default function App() {
       key: `outils-${sub.sub}`,
       label: sub.label,
       hash: sub.hash,
-      icon: <sub.icon size={15} />,
+      icon: <sub.icon size={15} color={sub.couleur} />,
       contexte: 'Outils',
     })),
     {
       key: ARENE_ITEM.key,
       label: ARENE_ITEM.label,
       hash: ARENE_ITEM.hash,
-      icon: <ARENE_ITEM.icon size={15} />,
+      icon: <ARENE_ITEM.icon size={15} color={ARENE_ITEM.couleur} />,
     },
     ...RESOURCES.map((i) => ({
       key: i.key,
       label: i.label,
       hash: i.hash,
-      icon: <i.icon size={15} />,
+      icon: <i.icon size={15} color={i.couleur} />,
       contexte: 'Ressources',
     })),
     {
@@ -922,11 +937,11 @@ export default function App() {
   // ⚠️ « Outils » n'a qu'une sous-section : il reste un LIEN. Un panneau pour un
   // seul choix ajoute un geste sans rien donner à décider.
   const ongletsMobile: OngletMobile[] = [
-    { key: 'home', label: 'Accueil', hash: '#/', icon: <Home size={17} />, actif: route === 'home' },
-    { key: 'rta', label: 'RTA', hash: '#/rta', icon: <Swords size={17} />, actif: route === 'rta' },
-    { key: 'siege', label: 'Siège', ouvre: sectionSiege.titre, icon: <Castle size={17} />, actif: route === 'siege' },
-    { key: 'compte', label: 'Compte', ouvre: sectionCompte.titre, icon: <CircleUserRound size={17} />, actif: route === 'compte' },
-    { key: 'outils', label: 'Outils', hash: '#/outils/optimizer', icon: <Sparkles size={17} />, actif: route === 'outils' || route === 'bestiary' || route === 'mecaniques' || route === 'releases' || route === 'arene' },
+    { key: 'home', label: 'Accueil', hash: '#/', icon: <Home size={17} color={COULEUR_SECTION.home} />, actif: route === 'home' },
+    { key: 'rta', label: 'RTA', hash: '#/rta', icon: <Swords size={17} color={COULEUR_SECTION.rta} />, actif: route === 'rta' },
+    { key: 'siege', label: 'Siège', ouvre: sectionSiege.titre, icon: <Castle size={17} color={COULEUR_SECTION.siege} />, actif: route === 'siege' },
+    { key: 'compte', label: 'Compte', ouvre: sectionCompte.titre, icon: <CircleUserRound size={17} color={COULEUR_SECTION.compte} />, actif: route === 'compte' },
+    { key: 'outils', label: 'Outils', hash: '#/outils/optimizer', icon: <Sparkles size={17} color={COULEUR_SECTION.outils} />, actif: route === 'outils' || route === 'bestiary' || route === 'mecaniques' || route === 'releases' || route === 'arene' },
   ];
 
   // La section dont on choisit la sous-section, sur téléphone.

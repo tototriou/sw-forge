@@ -475,10 +475,13 @@ function LienBarre({
           change de couleur brutalement fait sursauter la colonne entière.
           `group-hoverable` : le mouvement part du LIEN, pas de chaque élément —
           ils doivent bouger d'un bloc. */}
-      {/* ⚠️ L'icône ne se teinte PLUS en `ctx` sur l'entrée active : le contour
-          porte l'état, et une icône colorée par-dessus faisait un troisième
-          signal pour dire la même chose (spec/shared/design.md — un seul
-          marqueur). Elle suit l'encre du libellé, qui passe à `ink`. */}
+      {/* ⚠️ L'icône porte la COULEUR DE SIGNATURE de sa section (posée à la
+          source dans App.tsx, voir data/couleursSection) — la même que la carte
+          de l'accueil. Elle est CONSTANTE, active ou non : ce n'est pas un
+          marqueur d'état (celui-ci reste le contour d'accent — un seul marqueur,
+          spec/shared/design.md), c'est l'identité de la section. La couleur est
+          posée en `color` inline sur l'icône, donc l'encre du libellé
+          (`ink`/`ink-dim`) ne la déteint pas. */}
       <span className="relative flex-none transition-transform group-hoverable:translate-x-0.5">
         {lien.icon}
       </span>

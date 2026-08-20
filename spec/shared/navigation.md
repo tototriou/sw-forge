@@ -74,9 +74,17 @@ l'appuyer.
 - ⚠️ Le contour vit sur le **calque en `absolute`**, pas sur l'entrée elle-même :
   posé sur elle, il décalerait l'icône et le libellé de 1 px au changement de
   page — un clic déplacerait ce qu'on vient de cliquer.
-- ⚠️ **L'icône ne se teinte plus.** Elle portait `text-ctx` sur l'entrée active :
-  avec le contour, cela faisait un **troisième signal** pour dire la même chose.
-  Elle suit l'encre du libellé, qui passe à `ink`.
+- ⚠️ **L'icône porte la couleur de SIGNATURE de sa section**, la même que la
+  carte de l'accueil (`src/data/couleursSection.ts` — une seule source pour
+  l'accueil et la nav). RTA en violet, Siège en rouge, Mon compte en cyan… La
+  teinte est **constante, active ou non** : elle dit *quelle* section, pas *si*
+  on y est. Ce n'est donc pas un second marqueur d'état — l'actif reste le
+  contour d'accent (« un seul marqueur », [design.md](design.md)). La couleur
+  est posée en `color` inline sur l'icône, à la source dans `App.tsx` : elle
+  voyage avec l'entrée jusqu'à la barre latérale, aux onglets du bas, au panneau
+  mobile, à la barre supérieure et à la recherche de navigation, sans être
+  ressaisie nulle part. (Elle a longtemps été monochrome et suivait l'encre du
+  libellé ; la refonte lui rend l'identité colorée de l'accueil.)
 - Le **survol** est un calque distinct rendu **dessous** : une entrée déjà
   sélectionnée ne change pas d'aspect quand la souris la traverse.
 

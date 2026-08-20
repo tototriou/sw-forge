@@ -48,10 +48,14 @@ export default function InventaireIcon({
   name,
   size = 16,
   className = '',
+  couleur,
 }: {
   name: InventaireIconKey;
   size?: number;
   className?: string;
+  // Teinte de SIGNATURE de l'inventaire (voir data/couleursSection). Absente,
+  // l'icône suit l'encre du texte (`currentColor`) comme avant.
+  couleur?: string;
 }) {
   return (
     <svg
@@ -60,6 +64,7 @@ export default function InventaireIcon({
       viewBox="0 0 24 24"
       fill="none"
       stroke="currentColor"
+      style={couleur ? { color: couleur } : undefined}
       strokeWidth={2}
       strokeLinecap="round"
       strokeLinejoin="round"

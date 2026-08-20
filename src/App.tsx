@@ -86,7 +86,7 @@ const DISCORD_INVITE = 'https://discord.gg/R2Fe4GJZET';
 // ⚠️ Même chose pour Accueil, Mécaniques, Nouveautés et Paramètres : aucune
 // action à y loger. Leur ouvrir un panneau vide serait pire que ne rien
 // proposer — c'est la règle qui décide de l'appartenance à cette liste.
-const PAGES_AVEC_MENU = new Set<Route>(['rta', 'siege', 'bestiary', 'compte']);
+const PAGES_AVEC_MENU = new Set<Route>(['rta', 'siege', 'bestiary', 'compte', 'outils']);
 
 type Route =
   | 'home'
@@ -337,15 +337,21 @@ export default function App() {
     (route !== 'compte' ||
       accountSub === 'monstres' ||
       accountView === 'liste' ||
-      accountView === 'optimisation');
+      accountView === 'optimisation') &&
+    // ⚠️ Un seul outil aujourd'hui (Optimizer), mais la vérification
+    // reste écrite : un futur outil sans réglages avancés n'hériterait pas
+    // du bouton par accident (même raison que la garde ci-dessus sur
+    // « Mon compte »).
+    (route !== 'outils' || toolSub === 'optimizer');
 
   // Le panneau se referme à chaque changement d'écran : ses actions portent sur
-  // celui qu'on vient de quitter. ⚠️ `accountSub`/`accountView`/`siegeTab` en
-  // font partie — ce sont des écrans à part entière, avec chacun ses filtres, et
-  // rester ouvert sur ceux du précédent afficherait des contrôles sans rapport.
+  // celui qu'on vient de quitter. ⚠️ `accountSub`/`accountView`/`siegeTab`/
+  // `toolSub` en font partie — ce sont des écrans à part entière, avec chacun
+  // ses filtres, et rester ouvert sur ceux du précédent afficherait des
+  // contrôles sans rapport.
   useEffect(
     () => setMenuPageOuvert(false),
-    [route, accountSub, accountView, siegeTab]
+    [route, accountSub, accountView, siegeTab, toolSub]
   );
 
   // ⚠️ Le panneau de NAVIGATION se referme aux mêmes changements. Il se ferme
@@ -1146,6 +1152,8 @@ export default function App() {
             rtaEntries={rta.state.entries}
             siegeDefenseTeams={siegeDef.state.teams}
             siegeOffenseTeams={siegeOff.state.teams}
+            menuOuvert={menuPageOuvert}
+            onFermerMenu={() => setMenuPageOuvert(false)}
           />
         ) : route === 'releases' ? (
           <ReleasesPage />

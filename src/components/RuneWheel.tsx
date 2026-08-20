@@ -18,7 +18,9 @@ import { ZoneCliquable } from '../ui';
 // set) sont calibrés pour `BASE_WHEEL_W` et multipliés par `scale` — seul
 // `WHEEL_POS` (des pourcentages) reste indépendant de l'échelle.
 
-const WHEEL_IMG = `${import.meta.env.BASE_URL}rune-wheel.png`;
+// Exporté : réutilisé tel quel comme icône (OptimizerSection.tsx, « Exclure
+// les runes déjà utilisées ») — la même image de fond, jamais recopiée.
+export const WHEEL_IMG = `${import.meta.env.BASE_URL}rune-wheel.png`;
 const RUNE_FRAME = `${import.meta.env.BASE_URL}rune-blank.png`;
 
 // Taille de référence (ratio de l'image 219×249) — celle de MonsterGear à

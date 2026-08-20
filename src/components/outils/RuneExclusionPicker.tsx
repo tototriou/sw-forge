@@ -25,13 +25,17 @@ interface Props {
   excludeOwnCom2usId: number | null;
   selected: ExclusionSelector[];
   onChange: (next: ExclusionSelector[]) => void;
+  // ⚠️ Panneau « Options » mobile, resserré : texte/rembourrage réduits pour
+  // que les 4 options tiennent sur UNE seule ligne malgré « Défenses siège »/
+  // « Offenses siège » — voir Segmented.tsx, prop `dense`.
+  denseSourceTabs?: boolean;
 }
 
 const SOURCE_OPTIONS: { key: ExclusionSource; label: string }[] = [
   { key: 'box', label: 'Box' },
   { key: 'rta', label: 'RTA' },
-  { key: 'siege-defense', label: 'Siège défense' },
-  { key: 'siege-offense', label: 'Siège offense' },
+  { key: 'siege-defense', label: 'Défenses siège' },
+  { key: 'siege-offense', label: 'Offenses siège' },
 ];
 
 // Même étiquette que le comptage « Défense N »/« Offense N » déjà utilisé
@@ -42,7 +46,7 @@ function sourceLabel(sel: ExclusionSelector, data: ExclusionSourceData): string 
   if (sel.source === 'rta') return 'RTA';
   const teams = sel.source === 'siege-defense' ? data.siegeDefenseTeams : data.siegeOffenseTeams;
   const idx = teams.findIndex((t) => t.id === sel.teamId);
-  const base = sel.source === 'siege-defense' ? 'Siège défense' : 'Siège offense';
+  const base = sel.source === 'siege-defense' ? 'Défenses siège' : 'Offenses siège';
   return idx === -1 ? base : `${base} · équipe ${idx + 1}`;
 }
 
@@ -51,7 +55,7 @@ function sourceLabel(sel: ExclusionSelector, data: ExclusionSourceData): string 
 // défense/offense), une entrée précise par choix (pas juste un monstre :
 // voir optimizerExclusion.ts). Même grammaire de navigation clavier que
 // MonsterGearPicker (choix du monstre à optimiser).
-export default function RuneExclusionPicker({ data, excludeOwnUnitKey, excludeOwnCom2usId, selected, onChange }: Props) {
+export default function RuneExclusionPicker({ data, excludeOwnUnitKey, excludeOwnCom2usId, selected, onChange, denseSourceTabs = false }: Props) {
   const [activeSource, setActiveSource] = useState<ExclusionSource>('box');
   const [query, setQuery] = useState('');
   const idBase = useId();
@@ -86,7 +90,14 @@ export default function RuneExclusionPicker({ data, excludeOwnUnitKey, excludeOw
 
   return (
     <div>
-      <Segmented options={SOURCE_OPTIONS} value={activeSource} onChange={setActiveSource} className="mb-2" size="lg" />
+      <Segmented
+        options={SOURCE_OPTIONS}
+        value={activeSource}
+        onChange={setActiveSource}
+        className="mb-2"
+        size="lg"
+        dense={denseSourceTabs}
+      />
 
       <div className="relative">
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-ink-dim" />
@@ -146,12 +157,16 @@ export default function RuneExclusionPicker({ data, excludeOwnUnitKey, excludeOw
                           espèce = même portrait dans les deux équipes), mais le
                           NUMÉRO d'équipe et SES COÉQUIPIERS — signalé
                           directement, à une échelle proche de celle de l'écran
-                          Siège (pas de simples pastilles), sur UNE seule ligne
-                          quitte à défiler horizontalement plutôt que se casser. */}
+                          Siège (pas de simples pastilles). ⚠️ `flex-wrap`, PAS
+                          `overflow-x-auto` : un glissement horizontal dans un
+                          panneau déjà scrollable verticalement est
+                          quasi-inutilisable au doigt (les deux gestes se
+                          concurrencent) — l'équipe entière doit rester visible
+                          d'un coup, quitte à passer sur une deuxième ligne. */}
                       {c.teamContext && (
-                        <div className="flex items-center gap-2 text-[11px] text-ink-dim">
+                        <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-[11px] text-ink-dim">
                           <span className="flex-none">Équipe {c.teamContext.teamNumber}</span>
-                          <span className="flex items-center gap-2.5 min-w-0 overflow-x-auto">
+                          <span className="flex flex-wrap items-center gap-2.5 min-w-0">
                             {c.teamContext.slots.map((m, slotIdx) => {
                               const estSlotCourant = 'slotIndex' in c.selector && c.selector.slotIndex === slotIdx;
                               return (

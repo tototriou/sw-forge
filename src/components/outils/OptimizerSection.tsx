@@ -10,8 +10,6 @@ import {
   ChevronLeft,
   ChevronRight,
   ChevronDown,
-  Layers,
-  UserX,
   Ban,
   SlidersHorizontal,
   Wrench,
@@ -50,9 +48,11 @@ import NumberField from '../../ui/NumberField';
 import GameIcon from '../GameIcon';
 import MonsterAvatar from '../MonsterAvatar';
 import MonsterGear from '../MonsterGear';
+import { WHEEL_IMG } from '../RuneWheel';
 import Segmented from '../../ui/Segmented';
 import Switch from '../Switch';
 import HelpPopover from '../HelpPopover';
+import MobileSheet from '../../ui/MobileSheet';
 import MonsterGearPicker, { GearedMonster } from './MonsterGearPicker';
 import RuneExclusionPicker from './RuneExclusionPicker';
 import SetComboPicker from './SetComboPicker';
@@ -72,6 +72,11 @@ interface Props {
   rtaEntries: Record<string, RtaEntry>;
   siegeDefenseTeams: SiegeTeam[];
   siegeOffenseTeams: SiegeTeam[];
+  // Panneau d'actions mobile « Options » — piloté par le bouton de la barre
+  // de nav (voir App.tsx), même patron que RunesOptim.tsx. Réglages avancés
+  // et Exclusion de runes y vivent au doigt ; en ligne (cartes) au bureau.
+  menuOuvert: boolean;
+  onFermerMenu: () => void;
 }
 
 // ⚠️ Le plafond de CAPPED_STATS (voir lib/effects.ts) ne s'applique QU'À la
@@ -110,7 +115,7 @@ function download(filename: string, text: string) {
 // Outil « Optimizer » : cherche, parmi les runes du compte, la (les)
 // meilleure(s) combinaison(s) de 6 pour un monstre, un combo de sets et des
 // minimums de stats donnés. Voir spec/outils/optimizer/.
-export default function OptimizerSection({ box, runes, optimizer, allMonsters, rtaEntries, siegeDefenseTeams, siegeOffenseTeams }: Props) {
+export default function OptimizerSection({ box, runes, optimizer, allMonsters, rtaEntries, siegeDefenseTeams, siegeOffenseTeams, menuOuvert, onFermerMenu }: Props) {
   const metric = useRuneMetric();
   const {
     selectedId,
@@ -949,43 +954,48 @@ export default function OptimizerSection({ box, runes, optimizer, allMonsters, r
         </div>
       </div>
 
-      <div className="rounded-xl border border-border bg-panel p-3">
-        <button
-          type="button"
-          onClick={() => setShowAdvanced((v) => !v)}
-          aria-expanded={showAdvanced}
-          className="flex w-full items-center gap-1.5 text-[13px] font-bold text-ink"
-        >
-          {/* Clé à molette, distincte des curseurs de « Critères de
-              recherche » (forme différente, pas seulement une couleur) —
-              même traitement accent que les autres en-têtes de carte. */}
-          <div className="flex h-6 w-6 flex-none items-center justify-center rounded-md border border-accent/40 bg-accent-soft">
-            <Wrench size={13} className="text-accent" />
-          </div>
-          Réglages avancés
-          <ChevronDown
-            size={14}
-            className={`ml-auto text-ink-dim transition-transform ${showAdvanced ? 'rotate-180' : ''}`}
-          />
-        </button>
-        {showAdvanced && (
-          <div className="mt-3 rounded-lg border border-border bg-panel2 p-3">
+      {/* ── Réglages avancés + Exclusion de runes ──────────────────────
+          Contenu factorisé une fois, affiché deux fois : en cartes en
+          ligne au bureau (ordre : Exclusion de runes, puis Réglages
+          avancés), dans le panneau « Options » au doigt — jamais dupliqué.
+          Même patron que RunesOptim.tsx (voir MobileSheet plus bas). */}
+      {(() => {
+        // ⚠️ `dansPanneau` : seule la version DANS LE PANNEAU affiche « Pool de
+        // runes = X » à côté du pré-filtrage — sur la page principale, la
+        // même info existe déjà juste en dessous (voir plus bas), à un
+        // défilement de distance. Dans le panneau, cette page est masquée par
+        // le voile : sans ce doublon local, aucun moyen de voir l'effet du
+        // réglage qu'on vient de toucher sans d'abord refermer le panneau.
+        const reglagesAvancesInner = (dansPanneau: boolean) => (
+          <>
             <p className="text-[11.5px] text-ink-dim mb-1">Pré-filtrage par emplacement</p>
-            <div className="flex items-center gap-1 bg-panel2 border border-border rounded-lg p-0.5 w-fit">
-              {SLOT_FILTER_PRESETS.map((p) => (
-                <button
-                  key={p.key}
-                  type="button"
-                  onClick={() => setSlotFilterPreset(p.key)}
-                  title={p.hint}
-                  aria-pressed={slotFilterPreset === p.key}
-                  className={`rounded-md px-2.5 py-1 text-xs font-semibold transition ${
-                    slotFilterPreset === p.key ? 'bg-accent-soft text-ink' : 'text-ink-dim hoverable:text-ink'
-                  }`}
-                >
-                  {p.label}
-                </button>
-              ))}
+            <div className="flex flex-wrap items-center gap-2">
+              <div className="flex items-center gap-0 bg-panel2 border border-border rounded-lg p-0.5 w-fit">
+                {SLOT_FILTER_PRESETS.map((p, i) => (
+                  <div key={p.key} className="flex items-stretch">
+                    {/* ⚠️ Élément à part, PAS un `border-l` sur le bouton
+                        arrondi — même raison que Segmented.tsx : un
+                        `border-l` sur un `rounded-md` se courbe aux coins. */}
+                    {i > 0 && <span className="w-px self-stretch bg-border" />}
+                    <button
+                      type="button"
+                      onClick={() => setSlotFilterPreset(p.key)}
+                      title={p.hint}
+                      aria-pressed={slotFilterPreset === p.key}
+                      className={`rounded-md px-2.5 py-1 text-xs font-semibold transition ${
+                        slotFilterPreset === p.key ? 'bg-accent-soft text-ink' : 'text-ink-dim hoverable:text-ink'
+                      }`}
+                    >
+                      {p.label}
+                    </button>
+                  </div>
+                ))}
+              </div>
+              {dansPanneau && estimate && (
+                <span className="font-mono text-micro text-ink-dim">
+                  Pool de runes = {formatBig(estimate.perSlot.reduce((a, b) => a + b, 0))}
+                </span>
+              )}
             </div>
             <p className="mt-1 text-micro text-warn max-w-[280px]">
               ⚠️ {SLOT_FILTER_PRESETS.find((p) => p.key === slotFilterPreset)?.hint}
@@ -1049,46 +1059,32 @@ export default function OptimizerSection({ box, runes, optimizer, allMonsters, r
                 label="Prioriser les stats les plus difficiles"
               />
             </div>
-          </div>
-        )}
-      </div>
+          </>
+        );
 
-      {estimate && (
-        <p className="font-mono text-micro text-ink-dim">
-          ≈ {formatBig(estimate.product)} combinaisons brutes après filtrage (pool par emplacement :{' '}
-          {estimate.perSlot.join(' × ')}) — un ordre de grandeur, pas le nombre réellement exploré par
-          l'algorithme.
-        </p>
-      )}
+        const reglagesAvancesTitre = (
+          <>
+            {/* Clé à molette, distincte des curseurs de « Critères de
+                recherche » (forme différente, pas seulement une couleur) —
+                même traitement accent que les autres en-têtes de carte. */}
+            <div className="flex h-6 w-6 flex-none items-center justify-center rounded-md border border-accent/40 bg-accent-soft">
+              <Wrench size={13} className="text-accent" />
+            </div>
+            Réglages avancés
+          </>
+        );
 
-      {/* Catégorie « Exclusion de runes » — les deux réglages ci-dessous
-          existaient déjà séparément (voir git blame), simplement regroupés
-          sous un en-tête commun ; comportement/logique INCHANGÉS. Se
-          superposent l'un à l'autre (voir optimizerExclusion.ts), jamais
-          l'un ne remplace l'autre. */}
-      <div className="rounded-xl border border-accent/50 bg-panel p-3">
-        <div className="mb-0.5 flex items-center gap-2">
-          {/* Icône « Runes » de Mon compte (même GameIcon que le menu),
-              barrée du vrai symbole « interdit » (cercle barré, comme le
-              curseur non-cliquable) plutôt qu'un simple trait — l'exclusion
-              RETIRE des runes de la recherche. */}
-          <div className="relative flex h-6 w-6 flex-none items-center justify-center rounded-md border border-border-soft bg-panel2">
-            <GameIcon name="rune" size={13} />
-            <Ban size={22} strokeWidth={1.75} className="pointer-events-none absolute text-bad/85" />
-          </div>
-          <p className="text-[13.5px] font-bold text-ink">Exclusion de runes</p>
-        </div>
-        <p className="mb-3 pl-8 text-[11px] text-ink-dim">Deux réglages indépendants, qui se superposent.</p>
-
-        {/* Côte à côte à partir de `sm` (les deux tiennent dans les 768px du
-            conteneur) ; empilés en dessous, comme avant, pour rester
-            praticable sur mobile. Colonne de gauche plus étroite (toggle +
-            3 options) que celle de droite (recherche + liste), pas un
-            50/50 aveugle. */}
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-[minmax(200px,260px)_1fr] sm:gap-5">
-          <div className="sm:border-r sm:border-border-soft sm:pr-5">
+        const dejaUtiliseesBlock = (
+          <div>
             <div className="flex flex-wrap items-center gap-1.5 mb-2">
-              <Layers size={15} className="text-ink-dim" />
+              {/* Roue de runes (le fond derrière les runes des résultats de
+                  build, RuneWheel.tsx), barrée du symbole « interdit » —
+                  même traitement que l'icône « Exclusion de runes » : ce
+                  réglage retire des runes DÉJÀ PORTÉES de la recherche. */}
+              <div className="relative flex h-6 w-6 flex-none items-center justify-center rounded-md border border-border-soft bg-panel2">
+                <img src={WHEEL_IMG} alt="" className="h-4 w-4 object-contain" />
+                <Ban size={20} strokeWidth={1.75} className="pointer-events-none absolute text-bad/85" />
+              </div>
               <span className="text-[12.5px] font-semibold text-ink-dim">Exclure les runes déjà utilisées</span>
               <HelpPopover title="Exclure les runes déjà utilisées">
                 Par défaut, la recherche considère TOUT l'inventaire, runes déjà portées ailleurs comprises. Active ce
@@ -1106,21 +1102,38 @@ export default function OptimizerSection({ box, runes, optimizer, allMonsters, r
               size="lg"
             />
           </div>
+        );
 
-          {/* Exclusion MANUELLE — se superpose à « Exclure les runes déjà
-              utilisées » à gauche, ne la remplace pas (voir
-              optimizerExclusion.ts). Choisir un monstre ici, dans n'importe
-              laquelle des 4 sources, retire ses runes ACTUELLEMENT équipées
-              du pool considéré, en plus de l'exclusion automatique
-              éventuelle. */}
+        // Exclusion MANUELLE — se superpose à « Exclure les runes déjà
+        // utilisées », ne la remplace pas (voir optimizerExclusion.ts).
+        // Choisir un monstre ici, dans n'importe laquelle des 4 sources,
+        // retire ses runes ACTUELLEMENT équipées du pool considéré, en plus
+        // de l'exclusion automatique éventuelle.
+        // ⚠️ `dansPanneau` : dans le panneau resserré, les 4 onglets de
+        // source (Box/RTA/Défenses siège/Offenses siège) restent sur UNE
+        // seule ligne mais en texte/rembourrage réduits (voir
+        // Segmented.tsx `dense`) — au bureau, la carte a la largeur pour le
+        // rendu normal.
+        const monstrePrecisBlock = (dansPanneau: boolean) => (
           <div>
             <div className="mb-2.5 flex items-center gap-1.5">
-              <UserX size={15} className="text-ink-dim" />
+              {/* Même icône que « Monstre & équipement » (GameIcon
+                  "monster"), barrée du symbole « interdit » — même
+                  traitement que l'icône « Exclusion de runes » plus bas :
+                  cette action RETIRE le monstre choisi du pool de runes. */}
+              <div className="relative flex h-6 w-6 flex-none items-center justify-center rounded-md border border-border-soft bg-panel2">
+                {/* ⚠️ L'artwork du monstre n'est pas parfaitement centré dans
+                    son canevas — invisible seul, ça se voit à côté du cercle
+                    « interdit », lui parfaitement centré par positionnement
+                    absolu. Léger recalage manuel, propre à cet usage précis. */}
+                <GameIcon name="monster" size={13} className="-translate-x-[1.5px]" />
+                <Ban size={20} strokeWidth={1.75} className="pointer-events-none absolute text-bad/85" />
+              </div>
               <span className="text-[12.5px] font-semibold text-ink-dim">Exclure les runes d'un monstre</span>
               <HelpPopover title="Exclure les runes d'un monstre">
-                Choisis un monstre (box, RTA, siège défense ou offense) pour retirer SES runes actuellement équipées de
-                la recherche — utile pour un build que tu ne veux pas défaire, en plus de{' '}
-                <b className="text-ink">« Exclure les runes déjà utilisées »</b> à gauche.
+                Choisis un monstre (box, RTA, défenses ou offenses de siège) pour retirer SES runes actuellement
+                équipées de la recherche — utile pour un build que tu ne veux pas défaire, en plus de{' '}
+                <b className="text-ink">« Exclure les runes déjà utilisées »</b>.
               </HelpPopover>
             </div>
             <RuneExclusionPicker
@@ -1129,10 +1142,112 @@ export default function OptimizerSection({ box, runes, optimizer, allMonsters, r
               excludeOwnCom2usId={selected?.monster.com2usId ?? null}
               selected={excludedSelectors}
               onChange={setExcludedSelectors}
+              denseSourceTabs={dansPanneau}
             />
           </div>
-        </div>
-      </div>
+        );
+
+        // ⚠️ `dansPanneau` : dans le panneau, « Exclure les runes d'un
+        // monstre » passe AU-DESSUS de « Exclure les runes déjà utilisées »
+        // (demande explicite — c'est le réglage le plus utilisé au doigt),
+        // et les deux restent EMPILÉS (jamais côte à côte, même sur un
+        // panneau assez large pour `sm:` — la largeur calibrée de la
+        // colonne de gauche, pensée pour la carte du bureau, ne vaudrait
+        // plus rien ici). Au bureau, ordre et grille inchangés.
+        const exclusionRunesInner = (dansPanneau: boolean) => (
+          <>
+            <p className="mb-3 pl-8 text-[11px] text-ink-dim">Deux réglages indépendants, qui se superposent.</p>
+
+            {dansPanneau ? (
+              <div className="flex flex-col gap-4">
+                {monstrePrecisBlock(true)}
+                {dejaUtiliseesBlock}
+              </div>
+            ) : (
+              // Côte à côte à partir de `sm` (les deux tiennent dans les
+              // 768px du conteneur) ; empilés en dessous. Colonne de gauche
+              // plus étroite (toggle + 3 options) que celle de droite
+              // (recherche + liste), pas un 50/50 aveugle.
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-[minmax(200px,260px)_1fr] sm:gap-5">
+                <div className="sm:border-r sm:border-border-soft sm:pr-5">{dejaUtiliseesBlock}</div>
+                {monstrePrecisBlock(false)}
+              </div>
+            )}
+          </>
+        );
+
+        const exclusionRunesTitre = (
+          <>
+            {/* Icône « Runes » de Mon compte (même GameIcon que le menu),
+                barrée du vrai symbole « interdit » (cercle barré, comme le
+                curseur non-cliquable) plutôt qu'un simple trait — l'exclusion
+                RETIRE des runes de la recherche. */}
+            <div className="relative flex h-6 w-6 flex-none items-center justify-center rounded-md border border-border-soft bg-panel2">
+              <GameIcon name="rune" size={13} />
+              <Ban size={22} strokeWidth={1.75} className="pointer-events-none absolute text-bad/85" />
+            </div>
+            <p className="text-[13.5px] font-bold text-ink">Exclusion de runes</p>
+          </>
+        );
+
+        return (
+          <>
+            {/* Bureau : deux cartes en ligne, masquées au doigt (voir le
+                panneau plus bas). Exclusion de runes en tête — fonctionnalité
+                vedette, Réglages avancés en second. */}
+            <div className="hidden lg:block rounded-xl border border-accent/50 bg-panel p-3">
+              <div className="mb-0.5 flex items-center gap-2">{exclusionRunesTitre}</div>
+              {exclusionRunesInner(false)}
+            </div>
+
+            <div className="hidden lg:block rounded-xl border border-border bg-panel p-3">
+              <button
+                type="button"
+                onClick={() => setShowAdvanced((v) => !v)}
+                aria-expanded={showAdvanced}
+                className="flex w-full items-center gap-1.5 text-[13px] font-bold text-ink"
+              >
+                {reglagesAvancesTitre}
+                <ChevronDown
+                  size={14}
+                  className={`ml-auto text-ink-dim transition-transform ${showAdvanced ? 'rotate-180' : ''}`}
+                />
+              </button>
+              {showAdvanced && (
+                <div className="mt-3 rounded-lg border border-border bg-panel2 p-3">{reglagesAvancesInner(false)}</div>
+              )}
+            </div>
+
+            {estimate && (
+              <p className="font-mono text-micro text-ink-dim">
+                {formatBig(estimate.perSlot.reduce((a, b) => a + b, 0))} runes gardées après pré-filtrage
+                (pool par emplacement : {estimate.perSlot.join(' + ')})
+              </p>
+            )}
+
+            {/* Doigt : panneau « Options de recherche », ordre Exclusion de
+                runes → Réglages avancés, jamais replié (ouvrir le panneau EST
+                déjà le geste « je veux voir les options »). Chaque groupe
+                dans son propre cadre (`bg-panel2`) : deux unités visuelles
+                distinctes, pas juste un trait de séparation entre deux blocs
+                de texte. */}
+            <MobileSheet ouvert={menuOuvert} onFermer={onFermerMenu} titre="Options de recherche">
+              <div className="flex flex-col gap-3">
+                <div className="rounded-lg border border-border-soft bg-panel2 p-3">
+                  <div className="mb-0.5 flex items-center gap-2">{exclusionRunesTitre}</div>
+                  {exclusionRunesInner(true)}
+                </div>
+                <div className="rounded-lg border border-border-soft bg-panel2 p-3">
+                  <div className="mb-3 flex items-center gap-1.5 text-[13px] font-bold text-ink">
+                    {reglagesAvancesTitre}
+                  </div>
+                  {reglagesAvancesInner(true)}
+                </div>
+              </div>
+            </MobileSheet>
+          </>
+        );
+      })()}
 
       <div className="flex flex-wrap items-center gap-3 rounded-xl border border-border bg-panel p-3 shadow-lg">
         {/* ⚠️ `comboSets.length === 0` reste HORS de `disabled` — un bouton

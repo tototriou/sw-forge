@@ -76,9 +76,11 @@ export default {
         // une valeur sans être lues pour elles-mêmes (« base 107 », un libellé
         // de pastille), là où 11 px les faisait rivaliser avec le nom du
         // monstre à côté. En dessous, on ne lit plus.
-        // Deux emplois, et deux seulement : sous `compact:` (tactile), et dans
-        // le rendu ÉTROIT de la carte de pièce — la liste de runes à deux
-        // colonnes sur téléphone (voir PieceDetail, `etroit`).
+        // Trois emplois, et trois seulement : sous `compact:` (tactile), le
+        // rendu ÉTROIT de la carte de pièce — la liste de runes à deux
+        // colonnes sur téléphone (voir PieceDetail, `etroit`) — et
+        // `Segmented` en mode `dense` (4 options à libellé long sur une
+        // seule ligne, panneau mobile resserré).
         nano: ['10px', { lineHeight: '1.4' }],
         micro: ['11px', { lineHeight: '1.45' }],
         xs: ['12px', { lineHeight: '1.5' }],

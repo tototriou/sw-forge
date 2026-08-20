@@ -17,12 +17,17 @@ interface Props {
   rtaEntries: Record<string, RtaEntry>;
   siegeDefenseTeams: SiegeTeam[];
   siegeOffenseTeams: SiegeTeam[];
+  // Panneau « Options » mobile — voir App.tsx (pageAPanneau) et
+  // OptimizerSection.tsx. Simple relais : ce shell ne connaît pas son
+  // contenu, seul l'outil actif (Optimizer aujourd'hui) le remplit.
+  menuOuvert: boolean;
+  onFermerMenu: () => void;
 }
 
 // Shell fin, miroir d'AccountPage.tsx : un seul outil aujourd'hui
 // (Optimizer), structuré pour en accueillir d'autres sans retoucher la nav
 // ni ce fichier (ajouter une branche = ajouter un outil).
-export default function OutilsPage({ sub, box, runes, loadState, hydrating, optimizer, allMonsters, rtaEntries, siegeDefenseTeams, siegeOffenseTeams }: Props) {
+export default function OutilsPage({ sub, box, runes, loadState, hydrating, optimizer, allMonsters, rtaEntries, siegeDefenseTeams, siegeOffenseTeams, menuOuvert, onFermerMenu }: Props) {
   const empty = box.length === 0;
 
   if (empty && hydrating) {
@@ -59,6 +64,8 @@ export default function OutilsPage({ sub, box, runes, loadState, hydrating, opti
           rtaEntries={rtaEntries}
           siegeDefenseTeams={siegeDefenseTeams}
           siegeOffenseTeams={siegeOffenseTeams}
+          menuOuvert={menuOuvert}
+          onFermerMenu={onFermerMenu}
         />
       )}
     </div>

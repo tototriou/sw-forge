@@ -153,8 +153,23 @@ retour.
 9. **« Réglages avancés »** (repliés par défaut) : **pré-filtrage par
    emplacement**, en **presets** plutôt qu'un curseur libre — Bas / Moyen
    (défaut) / Haut / Extrême, du plus rapide au plus large (et donc plus
-   lent, mais capable de retrouver un build sur un très gros compte). Sous ce
-   réglage :
+   lent, mais capable de retrouver un build sur un très gros compte),
+   **séparés par un liseré vertical** (même patron que `Segmented.tsx`,
+   PC et mobile).
+   ⚠️ **Au doigt, dans le panneau « Options »** (bouton de la barre de nav,
+   voir App.tsx/`pageAPanneau` — même patron que la Liste et l'Optimisation
+   de runes de « Mon compte », voir RunesOptim.tsx), **sous** « Exclusion de
+   runes » — **jamais replié** dans ce panneau : ouvrir le panneau EST déjà
+   le geste « je veux voir les options ». Chaque groupe dans son propre
+   cadre, deux unités visuelles distinctes plutôt qu'un simple trait entre
+   deux blocs de texte. ⚠️ **« Pool de runes = X » s'affiche à droite des
+   presets**, dans le panneau SEULEMENT (pas la carte du bureau, où
+   l'estimation détaillée du point 10 est déjà visible juste en dessous,
+   sans qu'un panneau ne la masque) — sans ce rappel local, aucun moyen de
+   voir l'effet du preset qu'on vient de toucher sans d'abord fermer le
+   panneau. **Passe sous les presets si la largeur manque** (le message
+   est assez long pour ne pas toujours tenir à côté sur un téléphone
+   étroit) — adaptatif, jamais coupé ni superposé. Sous ce réglage :
    - **« Rechercher jusqu'à épuisement complet »**, décoché par défaut :
      retire le filet de temps de 10 minutes (voir « Interruption ») — la
      recherche continue tant qu'il reste des combinaisons à examiner, plutôt
@@ -169,12 +184,15 @@ retour.
      exportés/importés dans une recette (voir plus bas).
    - **« Diagnostic approfondi sur 0 résultat »**, décoché par défaut (plus
      coûteux qu'un diagnostic simple, voir « Résultats »).
-10. **Estimation du nombre de builds** — dès qu'un monstre et un set sont
-    choisis, une ligne affiche un ordre de grandeur du pool considéré,
-    recalculée en direct à chaque changement de critère. ⚠️ Un ordre de
-    grandeur, pas le nombre réellement exploré — c'est un repère pour juger
-    si les critères actuels sont trop larges ou trop stricts, pas une
-    promesse de temps de calcul.
+10. **Estimation du pool retenu** — dès qu'un monstre et un set sont choisis,
+    une ligne affiche le nombre **exact** de runes gardées après
+    pré-filtrage, détaillé par emplacement (une **somme**, pas un produit),
+    recalculée en direct à chaque changement de critère. ⚠️ **Le pool, pas
+    l'espace de recherche** : le nombre de combinaisons brutes (produit des
+    tailles de pool par emplacement) est un ordre de grandeur bien trop
+    éloigné du nombre réel de demi-builds construits ou de paires visitées
+    par le meet-in-the-middle pour servir de repère — seul le pool retenu,
+    lui, est un nombre exact et directement lisible.
 11. **« Rechercher »** — lance le calcul. Changer un des critères ci-dessus
     ne relance rien automatiquement : il faut recliquer. Un bouton
     **« Arrêter »** apparaît pendant le calcul — il interrompt la recherche
@@ -214,9 +232,16 @@ jeu) : c'est au joueur de re-runer dans Summoners War.
 
 ## Exclusion des runes déjà portées ailleurs
 
+⚠️ **Au doigt, dans le panneau « Options »** (bouton de la barre de nav),
+EN TÊTE — avant « Réglages avancés » (voir item 9 ci-dessus) : fonctionnalité
+vedette, mise en avant côté bureau par sa carte à bordure accentuée.
+
 **« Exclure les runes déjà utilisées »**, DÉCOCHÉE par défaut, porte la
 recherche sur l'**inventaire entier** — y compris des runes qu'il faudrait
-retirer d'un autre monstre pour composer le build proposé.
+retirer d'un autre monstre pour composer le build proposé. ⚠️ **Icône** : la
+roue de runes (le fond derrière les runes des cartes de résultat, voir
+`RuneWheel.tsx`), barrée du symbole « interdit » — même traitement que les
+deux autres icônes de cette section.
 
 Cochée, la recherche **exclut** les runes déjà portées ailleurs, dans **un
 seul périmètre au choix** (jamais plusieurs à la fois) : **RTA** (défaut),
@@ -239,13 +264,33 @@ deux autres périmètres).
 
 ### Exclusion manuelle — un monstre précis, dans n'importe quelle source
 
-**« Exclure les runes d'un monstre »**, sous « Exclure les runes déjà
-utilisées » : recherche par nom un monstre déjà connu du compte, dans l'une
-de quatre sources (Box / RTA / Siège défense / Siège offense), et retire SES
-runes **actuellement équipées** du pool considéré — utile pour un build
-qu'on ne veut pas défaire, sans dépendre du périmètre choisi ci-dessus. Se
-**superpose** à « Exclure les runes déjà utilisées », ne le remplace pas :
-les deux exclusions s'additionnent.
+**« Exclure les runes d'un monstre »** : recherche par nom un monstre déjà
+connu du compte, dans l'une de quatre sources (Box / RTA / Défenses siège /
+Offenses siège), et retire SES runes **actuellement équipées** du pool
+considéré — utile pour un build qu'on ne veut pas défaire, sans dépendre du
+périmètre choisi pour « Exclure les runes déjà utilisées ». Se **superpose**
+à ce dernier, ne le remplace pas : les deux exclusions s'additionnent.
+⚠️ **Icône** : même pictogramme que « Monstre & équipement » (le monstre),
+barré du symbole « interdit » — même traitement que l'icône « Exclusion de
+runes » elle-même, cette action-ci RETIRE un monstre précis du pool.
+
+Ordre relatif à « Exclure les runes déjà utilisées » : **au-dessus** dans le
+panneau « Options » au doigt (c'est le réglage le plus utilisé sur cet
+écran) ; à **droite**, côte à côte, au bureau (voir la carte ci-dessus).
+
+⚠️ **Les quatre onglets de source restent sur UNE seule ligne au doigt**,
+texte/rembourrage réduits (`Segmented.tsx`, prop `dense`) — à 4 options
+aussi longues que « Défenses siège », même resserré, le libellé passe sur
+DEUX lignes DANS le bouton plutôt que déborder (`dense` ne force pas
+`whitespace-nowrap`, contrairement aux autres tailles). Au bureau, rendu
+normal, une ligne, texte sur une ligne.
+
+⚠️ **L'équipe complète d'un résultat de siège reste visible sans défiler**
+(`c.teamContext`, résultats de recherche par nom) : les coéquipiers passent
+à la ligne (`flex-wrap`) plutôt que de glisser horizontalement — un
+glissement horizontal DANS un panneau déjà scrollable verticalement
+concurrence le geste de défilement de la page, quasi inutilisable au
+doigt.
 
 ⚠️ Chaque sélection porte sur une **entrée précise**, pas un monstre en
 général — un même monstre peut avoir un runage différent en box, en RTA et

@@ -18,6 +18,7 @@ export default function Segmented<T extends string>({
   className = '',
   size = 'sm',
   disabled = false,
+  dense = false,
 }: {
   options: { key: T; label: string; hint?: string; icon?: React.ReactNode; suffix?: React.ReactNode }[];
   value: T;
@@ -36,13 +37,21 @@ export default function Segmented<T extends string>({
   // cliquable ni atteignable au clavier tant qu'un réglage parent (ex. « Exclure
   // les runes déjà utilisées ») n'est pas actif — voir OptimizerSection.tsx.
   disabled?: boolean;
+  // ⚠️ **Une seule ligne, texte resserré.** `lg` force toutes les options
+  // sur une ligne, mais avec 4 options à libellé long (« Défenses siège »)
+  // dans un panneau mobile resserré, le rembourrage/texte normal de `lg`
+  // les coupait. `dense` garde tout sur une seule ligne, pleine largeur
+  // (jamais empilé), avec un rembourrage/texte réduits (`nano`, le cran de
+  // secours des rendus contraints — voir tailwind.config.js) plutôt que de
+  // passer à deux lignes.
+  dense?: boolean;
 }) {
   const large = size === 'lg' || size === 'md';
   return (
     <div
-      className={`flex items-center ${size === 'lg' ? 'w-full gap-0' : 'gap-0.5 flex-none'} bg-panel2 border border-border rounded-lg p-0.5 ${
-        disabled ? 'opacity-40' : ''
-      } ${className}`}
+      className={`flex items-center ${
+        size === 'lg' ? 'w-full gap-0' : 'gap-0.5 flex-none'
+      } bg-panel2 border border-border rounded-lg p-0.5 ${disabled ? 'opacity-40' : ''} ${className}`}
     >
       {options.map((o, i) => {
         const active = value === o.key;
@@ -60,9 +69,19 @@ export default function Segmented<T extends string>({
               disabled={disabled}
               title={o.hint}
               aria-pressed={active}
-              className={`flex flex-1 items-center justify-center gap-1.5 rounded-md font-semibold
-                          transition whitespace-nowrap disabled:cursor-not-allowed ${
-                            large ? 'px-3 py-1.5 text-xs' : 'px-2 py-1 text-micro'
+              className={`flex flex-1 items-center justify-center gap-1.5 rounded-md font-semibold text-center
+                          transition disabled:cursor-not-allowed ${
+                            // ⚠️ `dense` NE force PAS `whitespace-nowrap` : à 4
+                            // options longues sur une seule ligne, même à
+                            // `nano` (10 px) le texte se chevauchait faute de
+                            // place — le libellé passe sur deux lignes plutôt
+                            // que déborder. Les trois autres tailles gardent
+                            // `whitespace-nowrap`, elles ont la place.
+                            dense
+                              ? 'px-1 py-1 text-nano leading-tight'
+                              : large
+                                ? 'px-3 py-1.5 text-xs whitespace-nowrap'
+                                : 'px-2 py-1 text-micro whitespace-nowrap'
                           } ${
                             // ⚠️ Le fond SEUL marque le cran posé — pas d'ombre
                             // en plus, elle faisait décoller le bouton de son

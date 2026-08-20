@@ -1092,6 +1092,14 @@ export interface Bucket {
   combos: HalfCombo[]; // fusion dédupliquée des tranches de rétention, triée par potentiel NORMALISÉ décroissant (toutes tranches confondues, pas seulement relevanceScore — voir buildBuckets)
   maxPct: Record<string, number>; // borne SÛRE (jamais sous-estimée) par stat contrainte
   maxFlat: Record<string, number>;
+  // PROTOTYPE (ordre d'appariement) — le score « potentiel normalisé » déjà
+  // calculé par buildBuckets pour trier les compartiments entre eux (Étape
+  // « ordonnancement conscient des tranches »), conservé ici au lieu d'être
+  // jeté après le tri — sert à pairBuckets pour explorer les paires de
+  // compartiments par potentiel combiné décroissant plutôt qu'en boucle
+  // imbriquée séquentielle. Toujours défini (jamais optionnel) : calculé pour
+  // CHAQUE compartiment avant le tri final, quel que soit combosOrderMode.
+  potential: number;
   // ⚠️ PROTOTYPE EN MESURE, absent (`undefined`) sauf si `buildBuckets` reçoit
   // `skylineKeys` — voir son commentaire. La frontière de Pareto EXACTE de ce
   // compartiment sur `skylineKeys` (voir `insertIntoSkyline`), calculée EN
@@ -1612,7 +1620,7 @@ export function* buildBuckets(
         let b = buckets.get(key);
         let bucketSlices = slices.get(key);
         if (!b) {
-          b = { counts, jokers, combos: [], maxPct: {}, maxFlat: {} };
+          b = { counts, jokers, combos: [], maxPct: {}, maxFlat: {}, potential: 0 };
           buckets.set(key, b);
           // [générique, combinée éventuelle, une par retentionKey…] — même
           // ordre que la boucle d'insertion ci-dessous.
@@ -1739,20 +1747,21 @@ export function* buildBuckets(
   // défaut, dès que `maxCollected`/`maxNodes` interrompt la recherche avant
   // de tout explorer (le cas courant, voir « Suite — augmenter le budget de
   // recherche » dans spec/outils/optimizer/).
-  out.sort((x, y) => {
-    const bx = bucketBestBySlice.get(bucketKeyOf(x.counts, x.jokers))!;
-    const by = bucketBestBySlice.get(bucketKeyOf(y.counts, y.jokers))!;
-    let potX = -Infinity;
-    let potY = -Infinity;
+  // PROTOTYPE (ordre d'appariement) — calculé UNE FOIS par compartiment ici
+  // (au lieu d'être recalculé à chaque comparaison puis jeté) et conservé sur
+  // `Bucket.potential` : sert à `pairBuckets` pour ordonner les PAIRES de
+  // compartiments, pas seulement chaque moitié séparément.
+  for (const b of out) {
+    const bx = bucketBestBySlice.get(bucketKeyOf(b.counts, b.jokers))!;
+    let pot = -Infinity;
     for (let s = 0; s < sliceCount; s++) {
       const g = globalBestBySlice[s];
       const nx = g > 0 ? bx[s] / g : bx[s];
-      const ny = g > 0 ? by[s] / g : by[s];
-      if (nx > potX) potX = nx;
-      if (ny > potY) potY = ny;
+      if (nx > pot) pot = nx;
     }
-    return potY - potX;
-  });
+    b.potential = pot;
+  }
+  out.sort((x, y) => y.potential - x.potential);
   return out;
 }
 
@@ -2504,6 +2513,67 @@ export function prepareSearch(params: SearchParams): PreparedSearch | null {
   };
 }
 
+// PROTOTYPE (ordre d'appariement) — visite les paires de compartiments
+// (bA,bB) par potentiel COMBINÉ décroissant (bA.potential+bB.potential) au
+// lieu du balayage séquentiel `for bA { for bB } }` (bA#1 croisé avec TOUTE
+// la moitié B avant bA#2). Même mécanique que `bestFeasiblePair`
+// (scripts/optimum-retention-rate.ts, « k plus grandes sommes ») portée un
+// cran plus haut — compartiments au lieu de demi-builds — mais SANS son
+// arrêt à la première paire faisable : ici on veut visiter TOUTES les
+// paires, juste dans un meilleur ordre, pour rester compatible avec le
+// produit actuel (collecter jusqu'à maxCollected sur tout l'espace, pas une
+// preuve d'optimalité avec arrêt anticipé — voir spec/outils/optimizer/
+// pistes.md, « Branch & Bound au niveau des paires », gated derrière une
+// décision produit non prise). `bucketsA`/`bucketsB` DOIVENT déjà être
+// triés par potentiel décroissant (comportement existant de `buildBuckets`,
+// inchangé).
+function* orderedCompartmentPairs(bucketsA: Bucket[], bucketsB: Bucket[]): Generator<readonly [Bucket, Bucket], void, void> {
+  interface Entry { i: number; j: number; sum: number }
+  const heap: Entry[] = [];
+  const seen = new Set<string>();
+  function push(i: number, j: number): void {
+    if (i >= bucketsA.length || j >= bucketsB.length) return;
+    const key = `${i},${j}`;
+    if (seen.has(key)) return;
+    seen.add(key);
+    const entry: Entry = { i, j, sum: bucketsA[i].potential + bucketsB[j].potential };
+    heap.push(entry);
+    let idx = heap.length - 1;
+    while (idx > 0) {
+      const parent = (idx - 1) >> 1;
+      if (heap[parent].sum >= heap[idx].sum) break;
+      [heap[parent], heap[idx]] = [heap[idx], heap[parent]];
+      idx = parent;
+    }
+  }
+  function pop(): Entry {
+    const top = heap[0];
+    const last = heap.pop()!;
+    if (heap.length > 0) {
+      heap[0] = last;
+      let idx = 0;
+      for (;;) {
+        const l = 2 * idx + 1;
+        const r = 2 * idx + 2;
+        let largest = idx;
+        if (l < heap.length && heap[l].sum > heap[largest].sum) largest = l;
+        if (r < heap.length && heap[r].sum > heap[largest].sum) largest = r;
+        if (largest === idx) break;
+        [heap[largest], heap[idx]] = [heap[idx], heap[largest]];
+        idx = largest;
+      }
+    }
+    return top;
+  }
+  push(0, 0);
+  while (heap.length > 0) {
+    const { i, j } = pop();
+    yield [bucketsA[i], bucketsB[j]] as const;
+    push(i + 1, j);
+    push(i, j + 1);
+  }
+}
+
 // Phase d'appariement : reprend EXACTEMENT le comportement historique de
 // `searchBuildsSteps`, une fois les deux moitiés déjà construites (par
 // `buildBuckets`, séquentiellement OU en parallèle — cette fonction ne sait
@@ -2538,8 +2608,8 @@ export function* pairBuckets(
   let explored = 0;
   let truncated = false;
 
-  outer: for (const bA of bucketsA) {
-    for (const bB of bucketsB) {
+  outer: for (const [bA, bB] of orderedCompartmentPairs(bucketsA, bucketsB)) {
+    {
       if (!satisfiesSets(bA.counts, bA.jokers, bB.counts, bB.jokers, distinctKeys, requirement)) continue;
       // ⚠️ Une seule rune Intangible peut être sertie par monstre (règle du
       // jeu, voir activeSets dans effects.ts) : deux jokers répartis entre

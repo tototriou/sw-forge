@@ -1519,12 +1519,27 @@ export function* buildBuckets(
       // n'est NI ce set NI un joker aboutit à un demi-build mort — coupé
       // de toute façon par le repli final, mais en évitant de l'itérer.
       const jokersR01 = (p0.isJoker ? 1 : 0) + (p1.isJoker ? 1 : 0);
+      // ⚠️ Élagage SÛR, pas une heuristique — `pairBuckets` écarte toute
+      // paire où `bA.jokers + bB.jokers > 1` (une seule rune Intangible
+      // équipable par monstre, voir plus bas) : `jokersR01 ≥ 2` ICI garantit
+      // qu'AUCUN choix de r2 ne pourra jamais rendre ce demi-build appariable,
+      // quelle que soit l'autre moitié — inutile de construire, scorer et
+      // retenir un compartiment qui ne sera de toute façon jamais apparié.
+      // Mesuré sur un compte réel (Lushen deck 10, Rage/Rage+Blade/Energy+
+      // Shield+Guard) : ~11 % des demi-builds construits tombaient dans ce
+      // cas, pour 0 effet sur `pairBuckets` (déjà écarté au niveau du
+      // compartiment) — voir spec/outils/optimizer/historique-dimensionnement.md,
+      // « Suite — élagage jokers≥2 ».
+      if (jokersR01 >= 2) continue;
       const mustRescue = hasFourPieceRequirement && jokersR01 === 0 && fourPieceKeys.some((is4p, k) => is4p && haveR01[k] === 0);
       const total2 = mustRescue ? rescueIdxI2.length : filtered[i2].length;
       for (let j2 = 0; j2 < total2; j2++) {
         const idx2 = mustRescue ? rescueIdxI2[j2] : j2;
         const r2 = filtered[i2][idx2];
         const p2 = precompI2[idx2];
+        // Même raisonnement que ci-dessus : cas où jokersR01 ≤ 1 mais r2 lui
+        // -même est un joker qui fait passer le total à 2.
+        if (jokersR01 + (p2.isJoker ? 1 : 0) >= 2) continue;
         const runes: [RuneDetail, RuneDetail, RuneDetail] = [r0, r1, r2];
         // ⚠️ Réutilise `haveR01` (déjà accumulé pour `stillFeasible`) au
         // lieu de recalculer via `runes.filter(...)` — même résultat, sans

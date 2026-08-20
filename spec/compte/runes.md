@@ -921,6 +921,11 @@ l'aide restent dans la page**, à tous les formats.
   endroits : **en ligne au bureau** (`hidden lg:flex`), **dans le panneau au
   doigt** (`MobileSheet`). L'argument `large` élargit les segmentés à toute la
   largeur du panneau (`size="lg"`) ; en ligne ils restent serrés.
+- ⚠️ **Le filtre antique passe en `dense` sous le panneau.** En `lg`, ses trois
+  crans se partagent la largeur à égalité et « Antiques uniquement » débordait
+  son tiers (que `whitespace-nowrap` interdisait de couper) ; `AncientFilter`
+  active donc `dense` dès `size="lg"` (texte réduit, retour à la ligne autorisé),
+  voir [AncientFilter](src/components/account/AncientFilter.tsx).
 - ⚠️ Au **bureau, rien ne change** : les quatre restent visibles dans la rangée
   de filtres. Le panneau n'existe que sous `lg`.
 

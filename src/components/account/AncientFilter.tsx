@@ -39,6 +39,13 @@ export function normFiltreAntique(v: unknown): AncientFilter {
 // Le contrôle : le `Segmented` à trois crans. `size` reste ouvert — `lg` pour
 // qu'il prenne toute la largeur dans le panneau « Options » du téléphone, défaut
 // serré dans une rangée de filtres au bureau.
+//
+// ⚠️ **En `lg`, on passe en `dense`.** `lg` répartit la largeur en trois parts
+// ÉGALES ; « Antiques uniquement » (le plus long des trois) débordait alors son
+// tiers, que `whitespace-nowrap` interdisait de couper. `dense` est le mécanisme
+// prévu par `Segmented` pour ce cas : texte réduit et retour à la ligne autorisé
+// plutôt qu'un libellé tronqué. `lg` n'existe QUE dans le panneau mobile (voir
+// ci-dessus), donc on les lie ici plutôt que de le redemander à chaque appel.
 export default function AncientFilter({
   value,
   onChange,
@@ -48,5 +55,7 @@ export default function AncientFilter({
   onChange: (v: AncientFilter) => void;
   size?: 'sm' | 'md' | 'lg';
 }) {
-  return <Segmented value={value} onChange={onChange} options={ANCIENTS} size={size} />;
+  return (
+    <Segmented value={value} onChange={onChange} options={ANCIENTS} size={size} dense={size === 'lg'} />
+  );
 }

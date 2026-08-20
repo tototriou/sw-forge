@@ -44,15 +44,23 @@ import {
 import { buildOptimizerRecipe, parseOptimizerRecipe } from '../../lib/optimizerRecipe';
 import { ArtifactMainChoice, OptimizerState, OptimizerSortKey } from '../../hooks/useOptimizerState';
 import { useRuneMetric } from '../../hooks/useRuneMetric';
-import NumberField from '../../ui/NumberField';
 import GameIcon from '../GameIcon';
 import MonsterAvatar from '../MonsterAvatar';
 import MonsterGear from '../MonsterGear';
 import { WHEEL_IMG } from '../RuneWheel';
 import Segmented from '../../ui/Segmented';
-import Switch from '../Switch';
 import HelpPopover from '../HelpPopover';
-import MobileSheet from '../../ui/MobileSheet';
+import {
+  Bouton,
+  BoutonIcone,
+  Champ,
+  Interrupteur,
+  MobileSheet,
+  NumberField,
+  Pastille,
+  Selecteur,
+  ZoneCliquable,
+} from '../../ui';
 import MonsterGearPicker, { GearedMonster } from './MonsterGearPicker';
 import RuneExclusionPicker from './RuneExclusionPicker';
 import SetComboPicker from './SetComboPicker';
@@ -709,7 +717,7 @@ export default function OptimizerSection({ box, runes, optimizer, allMonsters, r
         ref={setPickerSectionRef}
         className={
           setPickerInvalid
-            ? 'rounded-lg border border-red-500 bg-red-500/15 p-2 -m-2 transition'
+            ? 'rounded-lg border border-bad bg-bad/15 p-2 -m-2 transition'
             : 'transition'
         }
       >
@@ -722,7 +730,7 @@ export default function OptimizerSection({ box, runes, optimizer, allMonsters, r
           }}
         />
         {setPickerInvalid && (
-          <p className="mt-1.5 text-micro font-semibold text-red-500">
+          <p className="mt-1.5 text-micro font-semibold text-bad">
             Sélectionne au moins un set avant de lancer la recherche.
           </p>
         )}
@@ -744,23 +752,12 @@ export default function OptimizerSection({ box, runes, optimizer, allMonsters, r
               {SLOT_MAIN_OPTIONS[slot].map((code) => {
                 const active = (mainStatsBySlot[slot] ?? []).includes(code);
                 return (
-                  <button
+                  <Pastille
                     key={code}
-                    type="button"
+                    actif={active}
                     onClick={() => toggleMainStat(slot, code)}
-                    aria-pressed={active}
-                    className={`rounded-full border px-2.5 py-1 text-micro font-semibold transition select-none ${
-                      active
-                        // ⚠️ Pas d'ombre : un élément SÉLECTIONNÉ ne décolle pas
-                        // de la page — l'élévation est réservée à ce qui flotte
-                        // au-dessus d'elle. Le fond et la bordure disent déjà
-                        // l'état, l'ombre en faisait un troisième signal.
-                        ? 'border-accent bg-accent-soft text-ink'
-                        : 'border-border bg-panel text-ink-dim hoverable:text-ink hoverable:border-accent'
-                    }`}
-                  >
-                    {RUNE_EFFECT[code]?.label ?? code}
-                  </button>
+                    libelle={RUNE_EFFECT[code]?.label ?? code}
+                  />
                 );
               })}
             </div>
@@ -801,10 +798,10 @@ export default function OptimizerSection({ box, runes, optimizer, allMonsters, r
               monstre n'en portait pas). Désactivé, choisis la statistique principale à supposer pour chaque
               emplacement ci-dessous.
             </HelpPopover>
-            <Switch
-              checked={ignoreArtifacts}
+            <Interrupteur
+              actif={ignoreArtifacts}
               onChange={setIgnoreArtifacts}
-              label="Ignorer les statistiques des artéfacts"
+              aria-label="Ignorer les statistiques des artéfacts"
             />
           </div>
         </div>
@@ -813,14 +810,16 @@ export default function OptimizerSection({ box, runes, optimizer, allMonsters, r
             {ARTIFACT_KINDS.map(({ key, label }) => (
               <div key={key} className="flex items-center gap-1.5">
                 <span className="text-xs text-ink w-14">{label}</span>
-                <select
+                <Selecteur
                   value={String(artifactMainByKind[key] ?? 'equipped')}
                   onChange={(e) => {
                     const raw = e.target.value;
                     const next: ArtifactMainChoice = raw === 'equipped' || raw === 'none' ? raw : (Number(raw) as 100 | 101 | 102);
                     setArtifactMainByKind((prev) => ({ ...prev, [key]: next }));
                   }}
-                  className="bg-panel border border-border text-ink rounded-lg px-2.5 py-1.5 text-sm outline-none"
+                  taille="sm"
+                  surface="panel2"
+                  pleineLargeur={false}
                 >
                   <option value="equipped">Comme équipé</option>
                   {ARTIFACT_MAIN_OPTIONS.map((o) => (
@@ -829,7 +828,7 @@ export default function OptimizerSection({ box, runes, optimizer, allMonsters, r
                     </option>
                   ))}
                   <option value="none">Aucun</option>
-                </select>
+                </Selecteur>
               </div>
             ))}
           </div>
@@ -847,10 +846,10 @@ export default function OptimizerSection({ box, runes, optimizer, allMonsters, r
               elle porte sur le total. <b className="text-ink">Taux Crit/Dgts Crit/RES/Précision</b> restent toujours
               en total, quel que soit ce réglage — ils partent de la valeur d'éveil du monstre.
             </HelpPopover>
-            <Switch
-              checked={excludeBase}
+            <Interrupteur
+              actif={excludeBase}
               onChange={setExcludeBase}
-              label="Stats de base exclues des conditions PV/ATQ/DEF/VIT"
+              aria-label="Stats de base exclues des conditions PV/ATQ/DEF/VIT"
             />
           </div>
         </div>
@@ -939,16 +938,18 @@ export default function OptimizerSection({ box, runes, optimizer, allMonsters, r
           })}
         </div>
         <div className="flex justify-end mt-1.5">
-          <button
-            type="button"
+          <Bouton
+            fond="vide"
+            trait="aucun"
+            taille="sm"
             onClick={() => {
               setMinStats({});
               setMaxStats({});
             }}
-            className="flex items-center gap-1.5 text-xs font-semibold text-ink-dim transition hoverable:text-bad"
-          >
-            <RotateCcw size={13} /> Réinitialiser les conditions
-          </button>
+            icone={<RotateCcw size={13} />}
+            libelle="Réinitialiser les conditions"
+            className="text-ink-dim hoverable:text-bad"
+          />
         </div>
       </div>
         </div>
@@ -970,27 +971,12 @@ export default function OptimizerSection({ box, runes, optimizer, allMonsters, r
           <>
             <p className="text-[11.5px] text-ink-dim mb-1">Pré-filtrage par emplacement</p>
             <div className="flex flex-wrap items-center gap-2">
-              <div className="flex items-center gap-0 bg-panel2 border border-border rounded-lg p-0.5 w-fit">
-                {SLOT_FILTER_PRESETS.map((p, i) => (
-                  <div key={p.key} className="flex items-stretch">
-                    {/* ⚠️ Élément à part, PAS un `border-l` sur le bouton
-                        arrondi — même raison que Segmented.tsx : un
-                        `border-l` sur un `rounded-md` se courbe aux coins. */}
-                    {i > 0 && <span className="w-px self-stretch bg-border" />}
-                    <button
-                      type="button"
-                      onClick={() => setSlotFilterPreset(p.key)}
-                      title={p.hint}
-                      aria-pressed={slotFilterPreset === p.key}
-                      className={`rounded-md px-2.5 py-1 text-xs font-semibold transition ${
-                        slotFilterPreset === p.key ? 'bg-accent-soft text-ink' : 'text-ink-dim hoverable:text-ink'
-                      }`}
-                    >
-                      {p.label}
-                    </button>
-                  </div>
-                ))}
-              </div>
+              <Segmented
+                options={SLOT_FILTER_PRESETS}
+                value={slotFilterPreset}
+                onChange={setSlotFilterPreset}
+                className="w-fit"
+              />
               {dansPanneau && estimate && (
                 <span className="font-mono text-micro text-ink-dim">
                   Pool de runes = {formatBig(estimate.perSlot.reduce((a, b) => a + b, 0))}
@@ -1015,10 +1001,10 @@ export default function OptimizerSection({ box, runes, optimizer, allMonsters, r
                   Le plafond de 100 000 résultats collectés, lui, reste actif.
                 </HelpPopover>
               </div>
-              <Switch
-                checked={exhaustiveSearch}
+              <Interrupteur
+                actif={exhaustiveSearch}
                 onChange={setExhaustiveSearch}
-                label="Rechercher jusqu'à épuisement complet"
+                aria-label="Rechercher jusqu'à épuisement complet"
               />
             </div>
 
@@ -1031,10 +1017,10 @@ export default function OptimizerSection({ box, runes, optimizer, allMonsters, r
                   pré-filtrage au lieu d'une seule, jamais une recherche complète.
                 </HelpPopover>
               </div>
-              <Switch
-                checked={diagnoseBlockingEnabled}
+              <Interrupteur
+                actif={diagnoseBlockingEnabled}
                 onChange={setDiagnoseBlockingEnabled}
-                label="Diagnostic approfondi sur 0 résultat"
+                aria-label="Diagnostic approfondi sur 0 résultat"
               />
             </div>
 
@@ -1053,10 +1039,10 @@ export default function OptimizerSection({ box, runes, optimizer, allMonsters, r
                   qu'une recherche normale rate, au prix d'une recherche plus longue.
                 </HelpPopover>
               </div>
-              <Switch
-                checked={adaptiveTrancheWeighting}
+              <Interrupteur
+                actif={adaptiveTrancheWeighting}
                 onChange={setAdaptiveTrancheWeighting}
-                label="Prioriser les stats les plus difficiles"
+                aria-label="Prioriser les stats les plus difficiles"
               />
             </div>
           </>
@@ -1092,7 +1078,7 @@ export default function OptimizerSection({ box, runes, optimizer, allMonsters, r
                 choisi ci-dessous (un seul à la fois) — un build réellement montable sans déruner quelqu'un. Le monstre
                 recherché lui-même n'est jamais exclu de ses propres runes.
               </HelpPopover>
-              <Switch checked={excludeUsedRunes} onChange={setExcludeUsedRunes} label="Exclure les runes déjà utilisées" />
+              <Interrupteur actif={excludeUsedRunes} onChange={setExcludeUsedRunes} aria-label="Exclure les runes déjà utilisées" />
             </div>
             <Segmented
               options={AUTO_EXCLUSION_SCOPES}
@@ -1201,18 +1187,17 @@ export default function OptimizerSection({ box, runes, optimizer, allMonsters, r
             </div>
 
             <div className="hidden lg:block rounded-xl border border-border bg-panel p-3">
-              <button
-                type="button"
+              <ZoneCliquable
                 onClick={() => setShowAdvanced((v) => !v)}
                 aria-expanded={showAdvanced}
-                className="flex w-full items-center gap-1.5 text-[13px] font-bold text-ink"
+                className="flex w-full items-center gap-1.5 text-sm font-bold text-ink"
               >
                 {reglagesAvancesTitre}
                 <ChevronDown
                   size={14}
                   className={`ml-auto text-ink-dim transition-transform ${showAdvanced ? 'rotate-180' : ''}`}
                 />
-              </button>
+              </ZoneCliquable>
               {showAdvanced && (
                 <div className="mt-3 rounded-lg border border-border bg-panel2 p-3">{reglagesAvancesInner(false)}</div>
               )}
@@ -1259,52 +1244,40 @@ export default function OptimizerSection({ box, runes, optimizer, allMonsters, r
             appliquées manuellement) tout en restant cliquable, pour que le
             clic sur un set manquant décale toujours vers la section fautive
             plutôt que de ne rien faire silencieusement. */}
-        <button
-          type="button"
+        <Bouton
+          ton="accent"
           onClick={handleSearch}
           disabled={!selected || status === 'running'}
           title={selected && status !== 'running' && comboSets.length === 0 ? 'Choisis d\'abord un set de runes recherché' : undefined}
-          className={`flex items-center gap-1.5 rounded-lg border border-accent bg-accent-soft px-3.5 py-2 text-sm font-semibold
-                     text-ink transition hoverable:shadow disabled:opacity-40 disabled:cursor-not-allowed ${
-                       comboSets.length === 0 ? 'opacity-40 cursor-not-allowed' : ''
-                     }`}
-        >
-          <Search size={15} />
-          {status === 'running' ? 'Recherche…' : 'Rechercher'}
-        </button>
+          icone={<Search size={15} />}
+          libelle={status === 'running' ? 'Recherche…' : 'Rechercher'}
+          className={comboSets.length === 0 ? 'opacity-40 cursor-not-allowed' : ''}
+        />
 
         {/* Exporte les réglages de CETTE recherche (set, minimums, objectif…),
             jamais le pool de runes ni le compte — pour reproduire fidèlement
             un cas signalé, partager une recherche entre joueurs (chacun
             l'applique à son propre inventaire), ou la réutiliser depuis un
             script. Voir src/lib/optimizerRecipe.ts. */}
-        <button
-          type="button"
+        <Bouton
           onClick={exportRecipe}
           disabled={!selected || comboSets.length === 0}
           title="Télécharger les réglages de cette recherche en fichier .json (set, minimums, objectif…) — pour la partager ou la reproduire, jamais tes runes ni ton compte."
-          className="flex items-center gap-1.5 rounded-lg border border-border bg-panel px-3 py-2 text-[12.5px]
-                     text-ink-dim transition hoverable:text-ink hoverable:border-accent disabled:opacity-40 disabled:cursor-not-allowed"
-        >
-          <Upload size={14} />
-          Exporter les paramètres de recherche
-        </button>
+          icone={<Upload size={14} />}
+          libelle="Exporter les paramètres de recherche"
+        />
 
         {/* Reprend une recette importée (fichier reçu d'un autre joueur, ou
             gardée de côté) — remplit les réglages et sélectionne le monstre
             si son com2usId existe dans CETTE box. Aucune confirmation :
             remplacer les réglages en cours n'est pas plus destructeur que
             les modifier à la main un par un. */}
-        <button
-          type="button"
+        <Bouton
           onClick={() => importFileRef.current?.click()}
           title="Reprendre les réglages d'un fichier .json exporté depuis l'Optimizer (le tien ou celui d'un autre joueur)."
-          className="flex items-center gap-1.5 rounded-lg border border-border bg-panel px-3 py-2 text-[12.5px]
-                     text-ink-dim transition hoverable:text-ink hoverable:border-accent"
-        >
-          <Download size={14} />
-          Importer les paramètres de recherche
-        </button>
+          icone={<Download size={14} />}
+          libelle="Importer les paramètres de recherche"
+        />
         <input
           ref={importFileRef}
           type="file"
@@ -1318,18 +1291,17 @@ export default function OptimizerSection({ box, runes, optimizer, allMonsters, r
         />
 
         {status === 'running' && (
-          <button
-            type="button"
+          <Bouton
+            ton="danger"
+            fond="vide"
             onClick={() => {
               setStoppedManually(true);
               stop();
             }}
             title="Arrêter la recherche et garder ce qui a déjà été trouvé"
-            className="flex items-center gap-1.5 rounded-lg border border-border bg-panel px-3.5 py-2 text-sm font-semibold
-                       text-ink-dim transition hoverable:text-bad hoverable:border-bad"
-          >
-            <Square size={13} /> Arrêter
-          </button>
+            icone={<Square size={13} />}
+            libelle="Arrêter"
+          />
         )}
       </div>
 
@@ -1435,7 +1407,7 @@ export default function OptimizerSection({ box, runes, optimizer, allMonsters, r
                   )} combinaison(s) trouvée(s) pour l'instant — recherche en cours…`}
             </p>
             {(result ? result.candidates.length > 0 : true) && (
-              <select
+              <Selecteur
                 value={sortBy}
                 onChange={(e) => {
                   setSortBy(e.target.value as OptimizerSortKey);
@@ -1443,8 +1415,9 @@ export default function OptimizerSection({ box, runes, optimizer, allMonsters, r
                   // n'a plus le même sens, on repart du meilleur résultat.
                   setResultsPage(1);
                 }}
-                className="bg-panel border border-border rounded-lg px-2 py-1 text-[12px] text-ink outline-none
-                           focus:border-accent"
+                taille="sm"
+                surface="panel"
+                pleineLargeur={false}
               >
                 <optgroup label="Stats">
                   {RECO_STATS.map((st) => (
@@ -1460,7 +1433,7 @@ export default function OptimizerSection({ box, runes, optimizer, allMonsters, r
                     </option>
                   ))}
                 </optgroup>
-              </select>
+              </Selecteur>
             )}
           </div>
 
@@ -1588,26 +1561,22 @@ export default function OptimizerSection({ box, runes, optimizer, allMonsters, r
               NumberField.tsx). */}
           {totalResultsPages > 1 && (
             <div className="mt-4 flex items-center justify-center gap-3">
-              <button
-                type="button"
+              <BoutonIcone
+                cadre
+                libelle="Page précédente"
+                icone={<ChevronLeft size={16} />}
                 onClick={() => setResultsPage((p) => Math.max(1, p - 1))}
                 disabled={resultsPage <= 1}
-                aria-label="Page précédente"
-                title="Page précédente"
-                className="flex h-8 w-8 flex-none items-center justify-center rounded-lg border border-border
-                           bg-panel text-ink-dim transition hoverable:text-ink hoverable:border-accent
-                           disabled:opacity-30 disabled:cursor-not-allowed"
-              >
-                <ChevronLeft size={16} />
-              </button>
+                className="h-8 w-8"
+              />
 
               <div className="flex items-center gap-1.5 font-mono text-[12.5px] text-ink-dim">
                 <span>Page</span>
-                <input
-                  type="text"
+                <Champ
                   inputMode="numeric"
                   value={pageDraft ?? String(resultsPage)}
                   aria-label="Aller à la page"
+                  pleineLargeur={false}
                   onChange={(e) => {
                     const brut = e.target.value.trim();
                     // ⚠️ La chaîne VIDE est un état de brouillon valide (tout
@@ -1627,24 +1596,19 @@ export default function OptimizerSection({ box, runes, optimizer, allMonsters, r
                   onKeyDown={(e) => {
                     if (e.key === 'Enter') (e.target as HTMLInputElement).blur();
                   }}
-                  className="w-11 rounded-md border border-border bg-panel px-1 py-1 text-center text-ink
-                             outline-none focus:border-accent"
+                  className="w-11 px-1 py-1 text-center"
                 />
                 <span>/ {totalResultsPages}</span>
               </div>
 
-              <button
-                type="button"
+              <BoutonIcone
+                cadre
+                libelle="Page suivante"
+                icone={<ChevronRight size={16} />}
                 onClick={() => setResultsPage((p) => Math.min(totalResultsPages, p + 1))}
                 disabled={resultsPage >= totalResultsPages}
-                aria-label="Page suivante"
-                title="Page suivante"
-                className="flex h-8 w-8 flex-none items-center justify-center rounded-lg border border-border
-                           bg-panel text-ink-dim transition hoverable:text-ink hoverable:border-accent
-                           disabled:opacity-30 disabled:cursor-not-allowed"
-              >
-                <ChevronRight size={16} />
-              </button>
+                className="h-8 w-8"
+              />
             </div>
           )}
         </div>

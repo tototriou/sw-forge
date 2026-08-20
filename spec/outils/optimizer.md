@@ -23,6 +23,16 @@ saisie de l'écran, remontée dans App.tsx) ·
 partagés avec `MonsterGear.tsx` (RTA/Siège/« Équipement actuel »), voir
 [README.md](../README.md).
 
+⚠️ **Tous les contrôles viennent de la librairie `src/ui/`**, comme partout
+dans l'app (« rien de custom », voir [design.md](../shared/design.md)) : les
+minimums en `NumberField`, l'objectif et le pré-filtrage en `Segmented`, les
+statistiques principales imposées en `Pastille`, les artéfacts et le tri en
+`Selecteur`, les bascules en `Interrupteur`, Rechercher/Exporter/Importer/
+Arrêter en `Bouton`, les flèches de pagination en `BoutonIcone`, les champs de
+recherche des sélecteurs en `Champ` + `Flottant` (même patron combobox que
+RtaSearch), et les sets/exclusions choisis en `Jeton` (la pilule supprimable de
+la lib). La grille de sets à ajouter est en `BoutonIcone cadre`.
+
 ⚠️ **Survit à un changement d'onglet.** Comme les autres pages de l'app,
 `OutilsPage` (et donc `OptimizerSection`) est **démontée** à chaque
 navigation — un simple `useState` local y perdrait tout (monstre choisi,

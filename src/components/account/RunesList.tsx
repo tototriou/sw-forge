@@ -4,10 +4,17 @@ import { RUNE_EFFECT, runeEfficiency, runeScore } from '../../lib/effects';
 import SetFilter from './SetFilter';
 import SlotFilter from './SlotFilter';
 import RuneSlotIcon from '../RuneSlotIcon';
-import { RuneDetailBox } from '../MonsterGear';
+import { RuneDetailBox } from '../PieceDetail';
 import Pager from './Pager';
 import { Critere } from './SubSearchDialog';
 import SubSearchBar from './SubSearchBar';
+import MobileSheet from '../../ui/MobileSheet';
+import Selecteur from '../../ui/Selecteur';
+import AncientFilter, {
+  AncientFilter as AncientFilterValue,
+  keepAncient,
+  normFiltreAntique,
+} from './AncientFilter';
 import {
   RUNE_SORTS,
   RuneSortMode,
@@ -17,9 +24,13 @@ import {
 } from '../../lib/runeSort';
 import { useStickyState } from '../../hooks/useStickyState';
 import { useRuneMetric } from '../../hooks/useRuneMetric';
+import { useMediaQuery, SOUS_LG } from '../../hooks/useMediaQuery';
 
 interface Props {
   runes: RuneDetail[];
+  // Panneau d'actions mobile — piloté par le bouton « Options » (voir App.tsx).
+  menuOuvert: boolean;
+  onFermerMenu: () => void;
 }
 
 // Une rune enrichie de ses deux mesures (calculées une fois).
@@ -45,10 +56,15 @@ const SUBS_OPTIONS = Object.entries(RUNE_EFFECT).map(([code, def]) => ({
   label: def.label,
 }));
 
-export default function RunesList({ runes }: Props) {
-  const [sets, setSets] = useStickyState<Set<string>>('runesList.sets', new Set());
-  const [slots, setSlots] = useStickyState<Set<number>>('runesList.slots', new Set());
-  const [ancientOnly, setAncientOnly] = useStickyState('runesList.ancient', false);
+export default function RunesList({ runes, menuOuvert, onFermerMenu }: Props) {
+  // ⚠️ **Filtres en LISTE BLANCHE : tout coché par défaut.** Un set/slot coché
+  // est AFFICHÉ ; par défaut tous le sont (tout est montré), et n'en cocher aucun
+  // revient à ne rien vouloir voir. Défaut sets = tous les sets présents à
+  // l'ouverture, défaut slots = les six.
+  const [sets, setSets] = useStickyState<Set<string>>('runesList.sets', new Set(runes.map((r) => r.set)));
+  const [slots, setSlots] = useStickyState<Set<number>>('runesList.slots', new Set([1, 2, 3, 4, 5, 6]));
+  const [ancientBrut, setAncient] = useStickyState<AncientFilterValue>('runesList.ancient', 'all');
+  const ancient = normFiltreAntique(ancientBrut);
   const [sortBrut, setSort] = useStickyState<RuneSortMode>('runesList.sort', 'score');
   // ⚠️ Un tri mémorisé qui n'existe plus (les clés ont changé avec les libellés
   // du jeu) retombe sur le défaut : sinon `sortFn` renvoie `undefined` et le
@@ -67,6 +83,10 @@ export default function RunesList({ runes }: Props) {
   const cherches = useMemo(() => new Set(actifs.map((c) => c.code)), [actifs]);
   const metric = useRuneMetric(); // choix PARTAGÉ avec les autres vues
   const [page, setPage] = useState(0);
+  // Sous `lg`, la grille passe à DEUX colonnes et les tuiles au rendu étroit.
+  // ⚠️ Lu ICI, une seule fois, et passé aux tuiles : ce qui change n'est pas un
+  // style mais le CONTENU rendu, ce qu'aucune classe `lg:` ne peut exprimer.
+  const deuxColonnes = useMediaQuery(SOUS_LG);
   // ⚠️ Plus d'état « rune ouverte » : la tuile EST la carte de détail, il n'y a
   // plus rien à ouvrir. Voir RuneTile.
 
@@ -82,9 +102,10 @@ export default function RunesList({ runes }: Props) {
   const filtered = useMemo(() => {
     return rows.filter((row) => {
       const r = row.rune;
-      if (sets.size && !sets.has(r.set)) return false;
-      if (slots.size && !slots.has(r.slot)) return false;
-      if (ancientOnly && !(r.rank > 10)) return false;
+      // Liste blanche : seul ce qui est coché passe (aucun coché → rien).
+      if (!sets.has(r.set)) return false;
+      if (!slots.has(r.slot)) return false;
+      if (!keepAncient(r, ancient)) return false;
       // ⚠️ Les critères se cumulent en ET, bornes comprises : la rune doit
       // porter TOUTES les propriétés cherchées, chacune dans son intervalle.
       // Même règle que la recherche détaillée du jeu.
@@ -96,7 +117,7 @@ export default function RunesList({ runes }: Props) {
       }
       return true;
     });
-  }, [rows, sets, slots, ancientOnly, actifs]);
+  }, [rows, sets, slots, ancient, actifs]);
 
   // Tri appliqué après filtrage (copie pour ne pas muter `filtered`).
   // Le 1ᵉʳ critère posé sert aux deux tris « propriété secondaire ».
@@ -114,10 +135,10 @@ export default function RunesList({ runes }: Props) {
   const safePage = Math.min(page, pageCount - 1);
   const shown = sorted.slice(safePage * PAGE, safePage * PAGE + PAGE);
 
-  return (
-    <div>
-      {/* Filtres */}
-      <div className="flex flex-col gap-3 mb-4">
+  // Les filtres, rendus une seule fois et posés à DEUX endroits selon la
+  // largeur. Deux copies auraient divergé au premier filtre ajouté.
+  const filtres = (
+    <>
         {/* Sets : multi-sélection, icônes seules (voir SetFilter) */}
         <SetFilter
           runes={runes}
@@ -137,25 +158,13 @@ export default function RunesList({ runes }: Props) {
               setPage(0);
             }}
           />
-          <button
-            onClick={() => {
-              setAncientOnly((v) => !v);
+          <AncientFilter
+            value={ancient}
+            onChange={(v) => {
+              setAncient(v);
               setPage(0);
             }}
-            className={`ml-1 rounded-full border px-3 py-1 text-[12.5px] font-semibold transition select-none
-              ${
-                // ⚠️ La BORDURE seule (voir spec/shared/design.md). Elle
-                // cumulait fond + bordure + encre d'accent + ombre : quatre
-                // signaux pour un seul état. L'outline est plus discret que
-                // l'aplat sur une pastille isolée en bout de rangée — le fond
-                // la faisait ressortir comme un bouton d'action.
-                ancientOnly
-                  ? 'bg-panel border-accent text-ink'
-                  : 'bg-panel border-border text-ink-dim hoverable:text-ink hoverable:border-accent'
-              }`}
-          >
-            Antiques
-          </button>
+          />
         </div>
 
         {/* Propriété secondaire — la barre du JEU : quatre cases de rappel
@@ -179,36 +188,57 @@ export default function RunesList({ runes }: Props) {
         </div>
 
         {/* Tri — les entrées du JEU, dans son ordre. La MESURE (efficience /
-            score) reste un réglage global, dans la barre de nav. */}
-        <div className="flex items-center gap-2 flex-wrap">
+            score) reste un réglage global, dans la barre de nav.
+            ⚠️ `data-tri-bloc` : dans le PANNEAU mobile, ce bloc remonte en tête
+            (voir index.css) — trier vient avant filtrer. Au desktop il garde sa
+            place, en bas de la colonne de filtres. */}
+        <div data-tri-bloc className="flex items-center gap-2 flex-wrap">
           <span className="w-[86px] flex-none label">Trier par</span>
-          <select
+          <Selecteur
             value={sort}
             onChange={(e) => {
               setSort(e.target.value as RuneSortMode);
               setPage(0);
             }}
             title={RUNE_SORTS.find((s) => s.key === sort)?.hint}
-            className="bg-panel border border-border text-ink rounded-lg px-2.5 py-1 text-[13px] outline-none"
+            pleineLargeur={false}
           >
             {RUNE_SORTS.map((s) => (
               <option key={s.key} value={s.key} title={s.hint}>
                 {s.label}
               </option>
             ))}
-          </select>
+          </Selecteur>
           {/* ⚠️ Les deux tris « propriété » n'ont rien à classer sans critère :
               le dire ici évite de croire que le tri est cassé. */}
           {(sort === 'sub_desc' || sort === 'sub_brut_desc') && !premierCode && (
-            <span className="text-[12px] text-warn">
+            <span className="text-xs text-warn">
               Choisis une propriété ci-dessus pour trier dessus.
             </span>
           )}
         </div>
-      </div>
+    </>
+  );
+
+  return (
+    <div>
+      {/* ⚠️ CINQ rangées de filtres — sets, slots, propriété secondaire, tri —
+          soit près de la moitié d'un écran de téléphone avant la première rune.
+          Sous `lg` elles descendent dans le panneau « Options ». */}
+      <div className="hidden lg:flex lg:flex-col gap-3 mb-4">{filtres}</div>
+
+      <MobileSheet ouvert={menuOuvert} onFermer={onFermerMenu} titre="Filtrer mes runes">
+        {/* ⚠️ `data-filtres-runes` : dans le PANNEAU, les contrôles prennent toute
+            la largeur (voir index.css). Le même bloc sert au desktop (ci-dessus,
+            hors tiroir), où il reste compact — d'où le marqueur, lu uniquement
+            sous `[data-tiroir]`. */}
+        <div className="flex flex-col gap-3" data-filtres-runes>
+          {filtres}
+        </div>
+      </MobileSheet>
 
       <div className="flex items-center justify-between gap-3 mb-3 flex-wrap">
-        <p className="font-mono text-[12px] text-ink-dim">
+        <p className="font-mono text-xs text-ink-dim">
           {filtered.length} rune{filtered.length > 1 ? 's' : ''}
           {filtered.length !== runes.length && ` sur ${runes.length}`}
           {filtered.length > 0 && (
@@ -226,13 +256,26 @@ export default function RunesList({ runes }: Props) {
           Clé POSITIONNELLE (et non `row.id`) : la tuile est réutilisée quand la
           page/le filtre change, donc le cadre pivote vers son nouveau slot au
           lieu d'être remonté d'un coup. Voir SPIN dans RuneSlotIcon. */}
-      {/* ⚠️ 215 px : c'est la largeur en dessous de laquelle la bannière de
-          rareté passe SOUS la stat principale — chaque tuile gagne alors une
-          ligne, l'inverse du but. La bannière est resserrée en mode compact
-          justement pour descendre jusque-là (voir RuneDetailBox). */}
-      <div className="grid grid-cols-[repeat(auto-fill,minmax(215px,1fr))] gap-2 items-start">
+      {/* ⚠️ **DEUX grilles, une par format** — pas un seul `auto-fill` pour les
+          deux (voir spec/shared/deux-applications.md).
+          - Sous `lg` (téléphone) : **deux colonnes fixes**. Une seule tuile par
+            rangée ne montrait qu'une rune par écran et demandait un défilement
+            interminable sur 3 000 runes. `auto-fill` ne pouvait pas y arriver :
+            à 390 px d'écran il reste ~358 px utiles, soit moins que deux fois
+            215 px, et il retombait donc toujours sur une colonne.
+          - À partir de `lg` : l'`auto-fill` d'origine, INCHANGÉ. ⚠️ 215 px est
+            la largeur en dessous de laquelle la bannière de rareté passe SOUS
+            la stat principale — chaque tuile gagne alors une ligne, l'inverse
+            du but. La bannière est resserrée en mode compact justement pour
+            descendre jusque-là (voir RuneDetailBox).
+          C'est le rendu ÉTROIT de la tuile qui rend les deux colonnes tenables
+          à ~175 px — voir `RuneTile`. */}
+      <div
+        className="grid grid-cols-2 gap-2 items-start
+                   lg:grid-cols-[repeat(auto-fill,minmax(min(215px,100%),1fr))]"
+      >
         {shown.map((row, i) => (
-          <RuneTile key={i} row={row} cherches={cherches} />
+          <RuneTile key={i} row={row} cherches={cherches} etroit={deuxColonnes} />
         ))}
       </div>
 
@@ -254,30 +297,50 @@ export default function RunesList({ runes }: Props) {
 // substats obligeait à ouvrir les runes une par une pour comparer, ce qui est
 // exactement ce qu'on fait en parcourant 2 000 runes.
 //
-// ⚠️ Plus de popover au clic : il n'aurait rien montré de plus. La tuile n'est
-// donc plus cliquable — un bouton qui ne fait rien se lit comme un défaut.
+// ⚠️ Plus de popover au clic : il n'aurait rien montré de plus. Le seul clic qui
+// reste est celui de `RuneDetailBox` — la bascule détail ↔ total sur une rune
+// meulée, sur place. `imbrique={false}` : à plat dans la grille, la tuile est un
+// VRAI `<button>`, sans quoi le tap déclenchait une sélection de texte sur
+// téléphone au lieu de basculer.
 //
 // Mémoïsée : ne se re-rend pas quand seuls les filtres/la page changent ailleurs.
 const RuneTile = memo(function RuneTile({
   row,
   cherches,
+  etroit,
 }: {
   row: RuneRow;
   cherches: Set<number>; // codes recherchés → la ligne est surlignée
+  // ⚠️ Reçu en PROP, jamais lu ici : la liste en rend jusqu'à soixante d'un
+  // coup, et un `useMediaQuery` par tuile aurait posé soixante écouteurs
+  // `matchMedia` pour une seule et même réponse. La liste le lit une fois.
+  etroit: boolean;
 }) {
   const { rune } = row;
   return (
     <RuneDetailBox
       rune={rune}
       compact
+      etroit={etroit}
       cherches={cherches}
+      // ⚠️ À PLAT dans la grille (pas dans un flottant) → VRAI `<button>`. Un
+      // `<div role="button">` rempli de texte laissait le tap déclencher une
+      // sélection au lieu de la bascule détail/total sur téléphone. Voir
+      // `RuneDetailBox`/`ZoneCliquable`.
+      imbrique={false}
       icone={
         <RuneSlotIcon
           slot={rune.slot}
           setKey={rune.set}
           rarity={rune.rarity}
           ancient={rune.rank > 10}
-          height={36}
+          // ⚠️ 30 px en rendu ÉTROIT, 36 ailleurs. À deux colonnes, le cadre de
+          // rune est le dernier poste de largeur de l'en-tête une fois la
+          // bannière abrégée et la mesure réduite à sa valeur : les 6 px rendus
+          // ici vont à la stat principale. En dessous de 30 le symbole de set
+          // gravé dans le cadre cesse de se reconnaître — c'est lui qui dit à
+          // quel set appartient la rune, l'abréviation de rareté ne le dit pas.
+          height={etroit ? 30 : 36}
         />
       }
     />

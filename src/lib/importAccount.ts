@@ -67,6 +67,23 @@ export function parseAccountExportDate(src: AccountSource): number | null {
   return ms;
 }
 
+// Nom du joueur (`wizard_info.wizard_name`), pour dire QUEL compte est chargé.
+//
+// ⚠️ On peut jongler entre plusieurs exports — le sien, celui d'un ami dont on
+// compare les runes — et rien ne disait lequel était affiché. Une date d'import
+// ne suffit pas : deux comptes importés le même jour se ressemblent.
+//
+// ⚠️ **Le nom seulement, jamais l'identifiant.** `wizard_id` est un numéro de
+// compte : il n'apprend rien à qui lit son propre écran, et c'est une donnée
+// qu'on n'a aucune raison d'afficher.
+export function parseAccountWizardName(src: AccountSource): string | null {
+  const data = parseAccountSource(src);
+  const nom = data?.wizard_info?.wizard_name;
+  if (typeof nom !== 'string') return null;
+  const propre = nom.trim();
+  return propre.length > 0 ? propre : null;
+}
+
 // Identifiant STABLE du compte (pas de l'export) — le même joueur réexporté
 // deux fois porte le même `wizard_id`, contrairement à `tvalue`
 // (parseAccountExportDate) qui change à chaque export. Sert à distinguer

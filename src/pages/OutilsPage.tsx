@@ -17,19 +17,24 @@ interface Props {
   rtaEntries: Record<string, RtaEntry>;
   siegeDefenseTeams: SiegeTeam[];
   siegeOffenseTeams: SiegeTeam[];
+  // Panneau « Options » mobile — voir App.tsx (pageAPanneau) et
+  // OptimizerSection.tsx. Simple relais : ce shell ne connaît pas son
+  // contenu, seul l'outil actif (Optimizer aujourd'hui) le remplit.
+  menuOuvert: boolean;
+  onFermerMenu: () => void;
 }
 
 // Shell fin, miroir d'AccountPage.tsx : un seul outil aujourd'hui
 // (Optimizer), structuré pour en accueillir d'autres sans retoucher la nav
 // ni ce fichier (ajouter une branche = ajouter un outil).
-export default function OutilsPage({ sub, box, runes, loadState, hydrating, optimizer, allMonsters, rtaEntries, siegeDefenseTeams, siegeOffenseTeams }: Props) {
+export default function OutilsPage({ sub, box, runes, loadState, hydrating, optimizer, allMonsters, rtaEntries, siegeDefenseTeams, siegeOffenseTeams, menuOuvert, onFermerMenu }: Props) {
   const empty = box.length === 0;
 
   if (empty && hydrating) {
     return (
       <div className="mt-10 flex flex-col items-center text-center text-ink-dim">
         <Wrench size={34} className="mb-3 opacity-40" />
-        <p className="text-[13px]">Chargement de ton compte…</p>
+        <p className="text-sm">Chargement de ton compte…</p>
       </div>
     );
   }
@@ -38,18 +43,18 @@ export default function OutilsPage({ sub, box, runes, loadState, hydrating, opti
     return (
       <div className="mt-10 flex flex-col items-center text-center text-ink-dim">
         <Wrench size={34} className="mb-3 opacity-70" />
-        <p className="text-[15px] font-semibold text-ink">Aucune donnée de compte chargée</p>
-        <p className="mt-1 text-[13px] max-w-sm">
-          Importe ton compte (bouton en haut à droite) pour rechercher des combinaisons de runes
+        <p className="text-base font-semibold text-ink">Aucune donnée de compte chargée</p>
+        <p className="mt-1 text-sm max-w-sm">
+          Importe ton compte (bouton « Importer un JSON ») pour rechercher des combinaisons de runes
           parmi celles que tu possèdes déjà.
         </p>
-        {loadState === 'loading' && <p className="mt-3 text-[12px]">Chargement des monstres…</p>}
+        {loadState === 'loading' && <p className="mt-3 text-xs">Chargement des monstres…</p>}
       </div>
     );
   }
 
   return (
-    <div className="mt-6">
+    <div>
       {sub === 'optimizer' && (
         <OptimizerSection
           box={box}
@@ -59,6 +64,8 @@ export default function OutilsPage({ sub, box, runes, loadState, hydrating, opti
           rtaEntries={rtaEntries}
           siegeDefenseTeams={siegeDefenseTeams}
           siegeOffenseTeams={siegeOffenseTeams}
+          menuOuvert={menuOuvert}
+          onFermerMenu={onFermerMenu}
         />
       )}
     </div>

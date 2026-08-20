@@ -127,12 +127,17 @@ export const RELIC_MAIN: Record<number, { label: string; stat: StatKey }> = {
 //     illisible.
 // D'où `color` (bannière, fixe) et `ink` (texte, variable de thème). Les valeurs
 // claires vivent dans index.css. Voir spec/shared/design.md.
+// ⚠️ `court` : l'abréviation de la bannière, réservée aux tuiles TROP ÉTROITES
+// pour le mot entier — la liste de runes à deux colonnes sur téléphone, où
+// « LÉGENDAIRE » à lui seul mangeait la moitié de la largeur utile. Partout
+// ailleurs c'est `label`, le mot du jeu. Le mot entier reste en `title`.
 export const RARITY_META: Record<
   number,
-  { label: string; color: string; bg: string; ink: string }
+  { label: string; court: string; color: string; bg: string; ink: string }
 > = {
   5: {
     label: 'Légendaire',
+    court: 'Lég',
     color: '#f8b24a',
     bg: 'linear-gradient(180deg,#7a2a1c,#431310)',
     ink: 'rgb(var(--rarity-5))',
@@ -146,24 +151,28 @@ export const RARITY_META: Record<
   // L'héroïque garde son violet : essayé en #691d42, le rendu ne passait pas.
   4: {
     label: 'Héroïque',
+    court: 'Hér',
     color: '#c88cff',
     bg: 'linear-gradient(180deg,#3f2270,#241145)',
     ink: 'rgb(var(--rarity-4))',
   },
   3: {
     label: 'Rare',
+    court: 'Rare',
     color: '#6fa3cf',
     bg: 'linear-gradient(180deg,#154c79,#0d2c47)',
     ink: 'rgb(var(--rarity-3))',
   },
   2: {
     label: 'Magique',
+    court: 'Mag',
     color: '#7cf0a6',
     bg: 'linear-gradient(180deg,#1f5a39,#0f3121)',
     ink: 'rgb(var(--rarity-2))',
   },
   1: {
     label: 'Commun',
+    court: 'Com',
     color: '#e6e6e6',
     bg: 'linear-gradient(180deg,#4a4a4a,#2a2a2a)',
     ink: 'rgb(var(--rarity-1))',
@@ -182,6 +191,22 @@ export const RARITY_FILTER: Record<number, string> = {
   2: `sepia(1) saturate(7.5) hue-rotate(80deg) brightness(0.9) contrast(1.18) ${SET_SHADOW}`, // Magique → vert
   1: `saturate(0) brightness(1.7) contrast(1.05) ${SET_SHADOW}`, // Normal → blanc
 };
+
+// Colorisation DORÉE des symboles de set dans les RANGÉES DE FILTRE (SetFilter,
+// SetComboPicker). Les PNG du jeu sont multicolores : alignés par dizaines ils
+// font une frise bruyante où rien ne ressort, et en thème clair leurs teintes
+// pâles se fondent dans le panneau. Ramenés à une seule teinte dorée, la rangée
+// se lit d'un coup et l'icône ressort sur les deux thèmes.
+//
+// ⚠️ **Un FILTRE CSS, pas un masque** (contrairement au `tintColor` de
+// RuneIcon) : masquer l'alpha remplit le glyphe d'aplat et l'icône paraît floue
+// à 18 px. Le filtre conserve la luminance d'origine — le dessin reste net.
+// Même technique que `RARITY_FILTER` ci-dessus.
+//
+// `accentue` : légèrement plus clair quand l'entrée porte l'emphase (état actif
+// d'un filtre), un cran plus sombre au repos.
+export const runeSetIconFilter = (accentue: boolean) =>
+  `sepia(1) saturate(3.2) hue-rotate(-12deg) brightness(${accentue ? 1.15 : 0.95}) contrast(1.05)`;
 
 // Bonus de set (nombre de pièces + effet), pour la ligne « X Set : … ».
 export const SET_BONUS: Record<string, { pieces: number; label: string }> = {

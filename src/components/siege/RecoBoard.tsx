@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Plus, Download, Upload, Trash2, Lightbulb, AlertTriangle, XCircle, X } from 'lucide-react';
+import { Plus, Download, Upload, Trash2, Lightbulb, AlertTriangle, XCircle, X, Gauge } from 'lucide-react';
 import { Monster, Reco } from '../../types';
 import { UseRecoState } from '../../hooks/useSiegeRecos';
 import { UseSiegeState } from '../../hooks/useSiegeState';
@@ -8,13 +8,15 @@ import { teamSummary, isTeamUsable } from '../../lib/recoFromSiege';
 import { encodeRecosJson, validateRecosImport, ImportReport, slugify } from '../../lib/recoShare';
 import { matchReco, RecoMatch } from '../../lib/recoMatch';
 import { chercheMonstre, RecoHit, RecoSearchMode } from '../../lib/recoSearch';
-import { ConfirmDialog } from '../Dialogs';
+import { ConfirmDialog } from '../../ui/Dialogs';
 import { OwnedBuild, OwnedTeam, indexBuildsByCom2us } from '../../lib/ownedBuilds';
 import { formesJouables } from '../../lib/monsterForms';
-import Segmented from '../Segmented';
+import Segmented from '../../ui/Segmented';
+import MobileSheet from '../../ui/MobileSheet';
 import MonsterAvatar from '../MonsterAvatar';
 import MonsterPicker from '../MonsterPicker';
 import RecoCard from './RecoCard';
+import { Bouton, BoutonIcone, Selecteur, ZoneCliquable } from '../../ui';
 
 interface Props {
   recos: UseRecoState;
@@ -25,6 +27,9 @@ interface Props {
   // deck en parallèle ». Vient de la BOX seule (voir countCopiesByCom2us).
   copies6: Map<number, number>;
   offense: UseSiegeState; // équipes d'attaque de siège, réutilisables comme decks
+  // Panneau d'actions mobile — piloté par le bouton « Options » (voir App.tsx).
+  menuOuvert: boolean;
+  onFermerMenu: () => void;
 }
 
 // Télécharge un texte en fichier (aucun envoi réseau).
@@ -73,7 +78,16 @@ const LIBELLE_VIDE: Record<RecoSearchMode, string> = {
   offense: 'Aucun deck d’offense',
 };
 
-export default function RecoBoard({ recos, monsters, builds, teams, copies6, offense }: Props) {
+export default function RecoBoard({
+  recos,
+  monsters,
+  builds,
+  teams,
+  copies6,
+  offense,
+  menuOuvert,
+  onFermerMenu,
+}: Props) {
   const [filter, setFilter] = useStickyState<OriginFilter>('recos.filter', 'all');
   // Recherche par monstre : jusqu'à TROIS, autant qu'une composition.
   //
@@ -200,6 +214,24 @@ export default function RecoBoard({ recos, monsters, builds, teams, copies6, off
   const analyzeReco = (reco: Reco) =>
     setAnalyses((m) => new Map(m).set(reco.id, { match: matchReco(reco, matchCtx), reco, builds }));
 
+  // ⚠️ **Lancée depuis le panneau « Options », au DOIGT.** Le bouton « Analyser
+  // mes decks » de l'en-tête vit sur la carte elle-même — mais au doigt il
+  // faut d'abord faire défiler jusqu'à la bonne recommandation pour l'atteindre.
+  // Le panneau propose donc le même geste sans quitter le haut de l'écran : un
+  // menu choisit LAQUELLE (il n'y a pas de carte sous les yeux pour le dire),
+  // puis « Analyser » fait le reste — et ouvre la carte visée, pour que le
+  // résultat soit là au premier défilement plutôt que caché repliée.
+  const [pickAnalyse, setPickAnalyse] = useState('');
+  function analyserDepuisPanneau() {
+    const reco = list.find((r) => r.id === pickAnalyse);
+    if (!reco) return;
+    analyzeReco(reco);
+    setChoixOuverture((m) => new Map(m).set(reco.id, true));
+    setPickAnalyse('');
+    onFermerMenu();
+    setMsg({ text: `Analyse lancée pour « ${reco.name || 'cette recommandation'} ».` });
+  }
+
   // Effacer le résultat : la carte redevient neutre (plus d'aura ni de pastille).
   const clearAnalysis = (id: string) =>
     setAnalyses((m) => {
@@ -213,12 +245,25 @@ export default function RecoBoard({ recos, monsters, builds, teams, copies6, off
     return entry && entry.reco === reco && entry.builds === builds ? entry.match : null;
   };
 
-  function handleExport(list: Reco[], label: string) {
+  // ⚠️ **Confirmation avant l'export**, même s'il ne détruit rien sur place :
+  // c'est un geste vers l'EXTÉRIEUR (un fichier qui part sur le disque, prêt à
+  // être partagé), et la confirmation dit CE QUI VA SORTIR — combien de
+  // recommandations, combien de decks — avant que ça parte, plutôt qu'un
+  // message après coup qu'on ne lit qu'une fois le fichier déjà écrit.
+  const [exportAConfirmer, setExportAConfirmer] = useState<{
+    list: Reco[];
+    label: string;
+    usable: Reco[];
+    decks: number;
+  } | null>(null);
+
+  function requestExport(list: Reco[], label: string) {
     // Une reco n'est exportable que si au moins un de ses decks a un monstre.
     const usable = list.filter((r) =>
       r.decks.some((d) => d.slots.some((s) => s.com2usId != null))
     );
     if (usable.length === 0) {
+      // Rien à confirmer : l'export échouerait de toute façon.
       setMsg({ text: 'Rien à exporter : ajoute au moins un monstre.', error: true });
       return;
     }
@@ -226,12 +271,19 @@ export default function RecoBoard({ recos, monsters, builds, teams, copies6, off
       (n, r) => n + r.decks.filter((d) => d.slots.some((s) => s.com2usId != null)).length,
       0
     );
+    setExportAConfirmer({ list, label, usable, decks });
+  }
+
+  function handleExport() {
+    if (!exportAConfirmer) return;
+    const { usable, label, decks } = exportAConfirmer;
     // Un seul format ET un seul support : le fichier .json. Plus de copie au
     // presse-papier — l'import ne lit que des fichiers, un contenu collé
     // n'aurait nulle part où aller.
     const what = `${usable.length} recommandation(s) · ${decks} deck(s)`;
     download(`swforge-reco-${slugify(label)}.json`, encodeRecosJson(usable));
     setMsg({ text: `${what} · fichier .json téléchargé.` });
+    setExportAConfirmer(null);
   }
 
   // JSON uniquement, et **par fichier uniquement** : pas de zone de collage.
@@ -306,61 +358,212 @@ export default function RecoBoard({ recos, monsters, builds, teams, copies6, off
     return m;
   }, [hits]);
 
+  // ⚠️ Rendues une seule fois, posées à DEUX endroits selon la largeur. Deux
+  // copies auraient divergé au premier bouton ajouté.
+  // ⚠️ Boutons de la librairie, pas des `<button>` redessinés — même geste que
+  // SiegeBoard (`Bouton` porte déjà `icone`+`libelle`+`libelleCourt`).
+  const actions = (
+    <>
+      <Bouton
+        onClick={() => {
+          const id = recos.addReco();
+          setEditingId(id);
+          setScrollToLast(true);
+          // La nouvelle est « à moi » : ne pas la créer dans une vue qui la cache.
+          if (filter === 'imported') setFilter('mine');
+          // ⚠️ Même geste que « Ajouter une équipe » (SiegeBoard) : le panneau
+          // « Options » se referme et la page défile jusqu'à la nouvelle carte.
+          // Créer une reco est le geste principal de cet écran, comme composer
+          // une équipe l'est en défense/offense — il doit se voir tout de suite,
+          // pas rester caché derrière un panneau resté ouvert.
+          onFermerMenu();
+        }}
+        icone={<Plus size={15} />}
+        libelle="Créer une recommandation"
+        libelleCourt="Créer"
+      />
+
+      <Bouton
+        onClick={() => fileRef.current?.click()}
+        icone={<Download size={15} />}
+        libelle="Importer"
+        title="Charger un fichier .json reçu d'un ami"
+      />
+
+      {/* ⚠️ **Toujours affiché, désactivé plutôt que retiré.** Un bouton qui
+          apparaît une fois la première recommandation créée surprend : on ne
+          comprend pas D'OÙ il sort, puisqu'on ne l'a jamais vu absent d'un
+          geste volontaire. Désactivé, il reste un repère fixe de la barre —
+          on sait qu'exporter est possible, juste pas encore. Même règle
+          partout dans l'app : voir `boutonEffacer` ci-dessous. */}
+      <Bouton
+        onClick={() => requestExport(list, filter === 'all' ? 'toutes' : filter)}
+        disabled={list.length === 0}
+        icone={<Upload size={15} />}
+        // ⚠️ Le LIBELLÉ NE CHANGE PAS avec le filtre. Un bouton qui se
+        // renomme sous le curseur se lit comme un autre bouton : on cesse de
+        // le reconnaître d'un écran à l'autre, et on relit une barre
+        // d'actions qu'on connaissait. Ce qui part réellement se dit dans
+        // l'infobulle, et le message de retour le récapitule.
+        libelle="Tout exporter"
+        libelleCourt="Exporter"
+        title={
+          list.length === 0
+            ? 'Aucune recommandation à exporter'
+            : filter === 'all'
+              ? 'Exporter toutes les recommandations en un seul fichier'
+              : "Exporter les recommandations affichées (celles du filtre actif)"
+        }
+      />
+    </>
+  );
+
+  // Origine — le VRAI Segmented, pas une copie : deux contrôles à cran dans la
+  // même page doivent avoir le même cadre, le même rayon et la même taille de
+  // texte. Rendu une seule fois, posé à deux endroits selon la largeur (voir
+  // plus bas) — même geste que `actions` et `effacer`.
+  // ⚠️ `pleineLargeur` : au doigt, dans le panneau « Options », le cran prend
+  // TOUTE la largeur (`Segmented` en `size="lg"`, intitulé au-dessus plutôt
+  // qu'à côté) — c'est le seul contrôle de cette ligne, le laisser à sa
+  // largeur propre le fait flotter dans une bande vide. À la souris, il garde
+  // sa place à côté de son intitulé, dans la rangée des autres filtres.
+  const origineFilter = (pleineLargeur: boolean) => {
+    const segmented = (
+      <Segmented
+        value={filter}
+        onChange={setFilter}
+        // ⚠️ `md` à la souris, pas `sm` : posé seul sur sa ligne depuis qu'il
+        // est sorti du bloc de filtres, ce contrôle a la place d'être aussi
+        // lisible qu'un réglage structurant — `md` porte le texte et le
+        // rembourrage de `lg` sans forcer sa largeur, contrairement à `lg`
+        // (réservé au panneau, où il n'y a que lui sur la ligne).
+        size={pleineLargeur ? 'lg' : 'md'}
+        options={FILTERS.map((f) => ({
+          key: f.key,
+          label: f.label,
+          // Le compteur vit DANS le cran, APRÈS le libellé, en mono comme tout
+          // ce qui se compare d'une ligne à l'autre. Il reste `ink-dim` posé
+          // comme au repos : c'est une quantité, pas l'état du cran — le fond
+          // dit déjà lequel est choisi (design.md).
+          suffix: <span className="font-mono text-micro text-ink-dim">{counts[f.key]}</span>,
+        }))}
+      />
+    );
+    // ⚠️ **Pas d'intitulé « Origine » à la SOURIS.** Il avait sa raison d'être
+    // DANS le bloc de filtres, aligné sur « Monstres » et « Rôle » en dessous
+    // (même largeur `w-[76px]`, même grammaire intitulé+contrôle) — mais
+    // Origine est sortie de ce bloc, seule sur sa ligne : les trois crans
+    // (Toutes/Mes recos/Importées) se lisent d'eux-mêmes, rien ne les précède
+    // plus à quoi l'intitulé pourrait s'aligner. Gardé au DOIGT (`mb-1 block`)
+    // où il n'accompagne aucune autre rangée : c'est le seul repère du panneau
+    // pour ce contrôle.
+    return pleineLargeur ? (
+      <div className="w-full">
+        <span className="label mb-1 block">Origine</span>
+        {segmented}
+      </div>
+    ) : (
+      segmented
+    );
+  };
+
+  // ⚠️ « Tout effacer » reste SÉPARÉ : dans la page il se pose à l'opposé
+  // (`ml-auto`), loin des gestes de construction. Un bouton destructeur ne se
+  // met pas à côté de celui qu'on presse en boucle — dans le panneau il garde
+  // cette distance, détaché en bas.
+  // ⚠️ Même habillage à deux visages que RTA/SiegeBoard (`boutonEffacer`) :
+  // nu dans la page, fond + contour rouges et pleine largeur dans le panneau.
+  // ⚠️ **Toujours affiché, désactivé s'il n'y a rien à effacer** — jamais
+  // retiré. Un bouton qui surgit dès qu'on a créé une première recommandation
+  // ne s'explique pas : on ne l'a jamais vu apparaître d'un geste, il était
+  // juste absent. Désactivé, c'est un repère fixe de la page, dont l'état
+  // dit lui-même pourquoi il ne répond pas — même règle partout dans l'app.
+  const effacer = (dansLePanneau: boolean) => (
+    <Bouton
+      onClick={() => {
+        setEffacementAConfirmer(true);
+        onFermerMenu();
+      }}
+      disabled={all.length === 0}
+      ton="danger"
+      fond={dansLePanneau ? 'doux' : 'vide'}
+      trait={dansLePanneau ? 'plein' : 'aucun'}
+      pleineLargeur={dansLePanneau}
+      taille="sm"
+      icone={<Trash2 size={13} />}
+      libelle="Tout effacer"
+      title={all.length === 0 ? 'Aucune recommandation à effacer' : undefined}
+      className="leading-none"
+    />
+  );
+
   return (
     <div>
-      <div className="flex items-center gap-3 mt-5 flex-wrap">
-        <button
-          onClick={() => {
-            const id = recos.addReco();
-            setEditingId(id);
-            setScrollToLast(true);
-            // La nouvelle est « à moi » : ne pas la créer dans une vue qui la cache.
-            if (filter === 'imported') setFilter('mine');
-          }}
-          className="flex items-center gap-1.5 rounded-lg border border-border bg-panel px-3.5 py-2 text-[13px]
-                     text-ink hoverable:border-accent transition"
-        >
-          <Plus size={15} /> Créer une recommandation
-        </button>
-
-        <button
-          onClick={() => fileRef.current?.click()}
-          className="flex items-center gap-1.5 rounded-lg border border-border bg-panel px-3.5 py-2 text-[13px]
-                     text-ink-dim hoverable:text-ink hoverable:border-accent transition"
-          title="Charger un fichier .json reçu d'un ami"
-        >
-          <Download size={15} /> Importer
-        </button>
-
-        {list.length > 0 && (
-          <button
-            onClick={() => handleExport(list, filter === 'all' ? 'toutes' : filter)}
-            className="flex items-center gap-1.5 rounded-lg border border-border bg-panel px-3.5 py-2 text-[13px]
-                       text-ink-dim hoverable:text-ink hoverable:border-accent transition"
-            // ⚠️ Le LIBELLÉ NE CHANGE PAS avec le filtre. Un bouton qui se
-            // renomme sous le curseur se lit comme un autre bouton : on cesse de
-            // le reconnaître d'un écran à l'autre, et on relit une barre
-            // d'actions qu'on connaissait. Ce qui part réellement se dit dans
-            // l'infobulle, et le message de retour le récapitule.
-            title={
-              filter === 'all'
-                ? 'Exporter toutes les recommandations en un seul fichier'
-                : "Exporter les recommandations affichées (celles du filtre actif)"
-            }
-          >
-            <Upload size={15} /> Tout exporter
-          </button>
-        )}
-
-        {all.length > 0 && (
-          <button
-            onClick={() => setEffacementAConfirmer(true)}
-            className="ml-auto flex items-center gap-1.5 text-[12px] text-ink-dim hoverable:text-fire transition"
-          >
-            <Trash2 size={13} /> Tout effacer
-          </button>
-        )}
+      {/* ⚠️ Sous `lg`, les actions descendent dans le panneau « Options » :
+          quatre boutons à libellé complet remplissaient deux rangées avant la
+          première recommandation. */}
+      <div className="mt-5 flex flex-wrap items-center gap-3 empty:mt-0">
+        <div className="hidden lg:contents">{actions}</div>
+        <div className="ml-auto hidden lg:contents">{effacer(false)}</div>
       </div>
+
+      <MobileSheet ouvert={menuOuvert} onFermer={onFermerMenu} titre="Actions — recommandations">
+        <div data-rangee-actions>{actions}</div>
+
+        {/* ⚠️ « Analyser mes decks », AU DOIGT : le bouton de l'en-tête d'une
+            carte demande d'abord d'y faire défiler. Le panneau propose le même
+            geste d'ici — un menu choisit LAQUELLE, puisqu'aucune carte n'est
+            sous les yeux pour le dire — voir `analyserDepuisPanneau` plus haut.
+            ⚠️ **Toujours affiché**, désactivé sans recommandation ni compte
+            importé plutôt que retiré — même règle que « Tout exporter » et
+            « Tout effacer » : un contrôle qui apparaît une fois qu'on a de
+            quoi l'utiliser surprend, on ne l'a jamais vu absent d'un geste. */}
+        <div className="mt-4 flex flex-col gap-1.5 border-t border-border pt-3">
+          <span className="label">Analyser une recommandation</span>
+          <div className="flex items-center gap-1.5">
+            <Selecteur
+              value={pickAnalyse}
+              onChange={(e) => setPickAnalyse(e.target.value)}
+              disabled={list.length === 0 || builds.length === 0}
+              className="flex-1"
+            >
+              <option value="">
+                {list.length === 0
+                  ? 'Aucune recommandation'
+                  : builds.length === 0
+                    ? 'Importe ton compte pour analyser'
+                    : 'Choisir…'}
+              </option>
+              {list.map((r, i) => (
+                <option key={r.id} value={r.id}>
+                  {r.name || `Recommandation ${i + 1}`}
+                </option>
+              ))}
+            </Selecteur>
+            <Bouton
+              onClick={analyserDepuisPanneau}
+              disabled={!pickAnalyse || list.length === 0 || builds.length === 0}
+              icone={<Gauge size={14} />}
+              libelle="Analyser"
+              taille="sm"
+            />
+          </div>
+        </div>
+
+        {/* ⚠️ Origine AU DOIGT : descendue ici plutôt que sur la page, qui garde
+            la carte pour la recherche — voir `origineFilter` plus haut.
+            ⚠️ **Toujours affiché, actif même sans recommandation** — comme
+            « Tout exporter » et « Tout effacer » un peu plus haut, ce n'est
+            pas un bouton d'action qui perd son sens à vide : les trois crans
+            (Toutes/Mes recos/Importées) restent de vrais filtres, juste tous
+            à zéro. Le retirer avait le même défaut que les retirer, eux : il
+            réapparaît une fois la première recommandation créée, sans qu'on
+            comprenne d'où il sort. */}
+        <div className="mt-4 border-t border-border pt-3">{origineFilter(true)}</div>
+        <div data-zone-destructive className="mt-4 border-t border-border pt-3">
+          {effacer(true)}
+        </div>
+      </MobileSheet>
 
       {effacementAConfirmer && (
         <ConfirmDialog
@@ -373,6 +576,27 @@ export default function RecoBoard({ recos, monsters, builds, teams, copies6, off
             setEffacementAConfirmer(false);
             recos.clearAll();
           }}
+        />
+      )}
+
+      {/* ⚠️ Pas `destructif` : rien ne disparaît sur cet appareil, un fichier
+          part seulement sur le disque. Le ton neutre le distingue d'un
+          effacement — même si les deux se confirment. */}
+      {exportAConfirmer && (
+        <ConfirmDialog
+          titre={
+            exportAConfirmer.usable.length > 1
+              ? `Exporter ${exportAConfirmer.usable.length} recommandations ?`
+              : `Exporter « ${exportAConfirmer.usable[0].name || 'cette recommandation'} » ?`
+          }
+          message={`${exportAConfirmer.usable.length} recommandation${
+            exportAConfirmer.usable.length > 1 ? 's' : ''
+          } · ${exportAConfirmer.decks} deck${
+            exportAConfirmer.decks > 1 ? 's' : ''
+          } seront réunis dans un fichier .json téléchargé sur cet appareil.`}
+          libelleAction="Exporter"
+          onCancel={() => setExportAConfirmer(null)}
+          onConfirm={handleExport}
         />
       )}
 
@@ -392,55 +616,83 @@ export default function RecoBoard({ recos, monsters, builds, teams, copies6, off
       />
 
       {msg && (
-        <p className={`mt-3 text-[13px] ${msg.error ? 'text-fire' : 'text-good'}`}>{msg.text}</p>
+        <p className={`mt-3 text-sm ${msg.error ? 'text-fire' : 'text-good'}`}>{msg.text}</p>
       )}
 
       {report && (report.errors.length > 0 || report.warnings.length > 0) && (
         <ValidationReport report={report} onClose={() => setReport(null)} />
       )}
 
-      {/* Bloc de filtres — origine, composition cherchée, rôle.
-          ⚠️ UN SEUL bloc, et des RANGÉES INTITULÉES (même grammaire que
-          l'inventaire d'artéfacts, voir account/ArtifactsList.tsx) : les trois
-          contrôles filtrent tous la même liste, les poser à trois niveaux et
-          sans intitulé donnait trois objets flottants dont rien ne disait qu'ils
-          se combinaient. L'intitulé de largeur fixe aligne les contrôles entre
-          eux, quelle que soit la longueur du mot.
-          ⚠️ N'apparaît que s'il y a des recommandations : un filtre au-dessus
-          d'une page vide n'a rien à filtrer, et laisse croire qu'on n'a rien
-          trouvé alors qu'il n'y a rien. */}
-      {all.length > 0 && (
-        <div className="mt-4 flex flex-col gap-2.5 rounded-xl border border-border bg-panel/40 px-3 py-3">
-          {/* Origine — le VRAI Segmented, pas une copie : deux contrôles à cran
-              dans la même page doivent avoir le même cadre, le même rayon et la
-              même taille de texte. */}
-          <div className="flex flex-wrap items-center gap-2">
-            <span className="w-[76px] flex-none label">Origine</span>
-            <Segmented
-              value={filter}
-              onChange={setFilter}
-              options={FILTERS.map((f) => ({
-                key: f.key,
-                label: f.label,
-                // Le compteur vit DANS le cran, APRÈS le libellé, en mono comme
-                // tout ce qui se compare d'une ligne à l'autre. Il reste
-                // `ink-dim` posé comme au repos : c'est une quantité, pas l'état
-                // du cran — le fond dit déjà lequel est choisi (design.md).
-                suffix: <span className="font-mono text-[11px] text-ink-dim">{counts[f.key]}</span>,
-              }))}
-            />
-          </div>
+      {/* ⚠️ **Origine, à la SOURIS : SORTIE du bloc de filtres, toujours
+          affichée et active.** Contrairement à la recherche par composition
+          (Monstres/Rôle, plus bas), qui n'a effectivement rien à filtrer sur
+          une liste vide, Origine reste un vrai filtre même à zéro — les trois
+          crans (Toutes/Mes recos/Importées) ont un sens dès qu'on en crée une
+          première. Rendu une seule fois (`origineFilter`), posé aux deux
+          endroits (ici et dans le panneau « Options » au doigt). */}
+      <div className="mt-4 hidden lg:flex flex-wrap items-center gap-2">
+        {origineFilter(false)}
+      </div>
 
+      {/* Bloc de filtres — composition cherchée, rôle.
+          ⚠️ **Sans cadre ni intitulé « Monstres »** : les trois cases ET le
+          champ de recherche disent déjà par leur FORME ce qu'on y fait — une
+          composition de 3 monstres à composer —, un mot devant n'ajoutait
+          rien. Le cadre (bordure + fond) enfermait un contenu qui n'a pas
+          besoin d'être distingué du reste de la page : Origine, juste
+          au-dessus, n'en a pas non plus.
+          ⚠️ « Rôle » garde son intitulé, lui : contrairement aux cases, un
+          `Segmented` Partout/Défense/Offense ne dit pas de lui-même sur QUOI
+          il porte.
+          ⚠️ N'apparaît que s'il y a des recommandations : à la différence
+          d'Origine, il n'y a RIEN à chercher dans une liste vide — poser le
+          bloc quand même laisserait croire qu'on n'a rien trouvé alors qu'il
+          n'y a rien. */}
+      {all.length > 0 && (
+        <div className="mt-2.5 flex flex-col gap-2.5">
           {/* Composition cherchée. */}
           <div className="flex flex-wrap items-center gap-2">
-            <span className="w-[76px] flex-none label">Monstres</span>
-            {/* ⚠️ TROIS CASES, et non trois champs texte : elles montrent la
-                forme de ce qu'on cherche — une composition de 3 monstres — avant
-                même qu'on ait tapé quoi que ce soit, et reprennent le langage
-                des slots de deck de la page. Un champ unique à côté les remplit
-                dans l'ordre : on enchaîne les trois noms sans avoir à viser une
-                case entre chaque. */}
-            <div className="flex items-center gap-1.5">
+            {/* ⚠️ **La recherche à GAUCHE, les portraits à DROITE.** C'est le
+                champ qu'on utilise en premier — le regard commence par lui,
+                pas par des cases encore vides. Les cases suivent CE QU'ON A
+                TAPÉ, elles se lisent après.
+                ⚠️ `min(180px, 100%)` et non `180px` nu : un minimum rigide
+                empêche le champ de se réduire dans un conteneur plus étroit,
+                et c'est toute la page qui gagne un défilement latéral. Même
+                garde que RecoCard et ReleasesPage. */}
+            {!casesPleines ? (
+              <div className="min-w-[min(180px,100%)] flex-1 sm:max-w-[260px]">
+                <MonsterPicker
+                  monsters={monsters}
+                  // ⚠️ Les monstres déjà posés sont retirés des suggestions : le
+                  // ET exige des monstres DISTINCTS (voir recoSearch.ts), poser
+                  // deux fois le même garantirait zéro résultat.
+                  excludeIds={dejaPoses}
+                  placeholder="Nom du monstre…"
+                  onPick={(id) => {
+                    const m = monsters.find((x) => String(x.id) === id);
+                    if (m) poserMonstre(m.name);
+                  }}
+                />
+              </div>
+            ) : (
+              <p className="flex-1 text-xs text-ink-dim">
+                Trois monstres posés — clique un portrait pour le retirer.
+              </p>
+            )}
+
+            {/* TROIS CASES, et non trois champs texte : elles montrent la
+                forme de ce qu'on cherche — une composition de 3 monstres —, et
+                reprennent le langage des slots de deck de la page.
+                ⚠️ **`ml-auto`, sauf à la SOURIS (`lg:ml-0`).** Au doigt, la
+                largeur manque et la rangée passe vite à la ligne : pousser les
+                cases au bord droit les sépare proprement du champ. À la
+                souris, le champ est plafonné à 260 px
+                (`sm:max-w-[260px]` ci-dessus) — sur une page bien plus large,
+                `ml-auto` les envoyait loin de lui, à l'autre bout d'une rangée
+                vide. Sans la marge auto, elles collent au champ dont elles
+                sont le résultat. */}
+            <div className="ml-auto flex items-center gap-1.5 lg:ml-0">
               {queries.map((nom, i) => {
                 // ⚠️ Résolu dans les formes JOUABLES, pas dans la liste
                 // complète : plusieurs entrées portent le même nom (forme
@@ -461,7 +713,7 @@ export default function RecoBoard({ recos, monsters, builds, teams, copies6, off
                   );
                 }
                 return (
-                  <button
+                  <ZoneCliquable
                     key={i}
                     onClick={() => retirerMonstre(i)}
                     className="group relative flex h-[40px] w-[40px] flex-none items-center justify-center
@@ -481,50 +733,28 @@ export default function RecoBoard({ recos, monsters, builds, teams, copies6, off
                     >
                       <X size={10} />
                     </span>
-                  </button>
+                  </ZoneCliquable>
                 );
               })}
             </div>
 
-            {/* Le champ unique, sur la MÊME rangée que les cases qu'il remplit :
-                empilé dessous, rien ne disait qu'il les alimentait. Il disparaît
-                quand les trois sont prises — un champ de saisie qui n'a plus où
-                poser ce qu'on y tape se lit comme un bug. */}
-            {!casesPleines ? (
-              <div className="min-w-[180px] flex-1 sm:max-w-[260px]">
-                <MonsterPicker
-                  monsters={monsters}
-                  // ⚠️ Les monstres déjà posés sont retirés des suggestions : le
-                  // ET exige des monstres DISTINCTS (voir recoSearch.ts), poser
-                  // deux fois le même garantirait zéro résultat.
-                  excludeIds={dejaPoses}
-                  placeholder="Nom du monstre…"
-                  onPick={(id) => {
-                    const m = monsters.find((x) => String(x.id) === id);
-                    if (m) poserMonstre(m.name);
-                  }}
-                />
-              </div>
-            ) : (
-              <p className="text-[12px] text-ink-dim">
-                Trois monstres posés — clique un portrait pour le retirer.
-              </p>
-            )}
-
             {/* Vider les trois cases d'un coup — distinct du retrait d'un seul
                 portrait, qui sert à affiner. Il vit AVEC les cases qu'il vide,
                 et non avec le sélecteur de rôle, qui ne les touche pas. */}
+            {/* ⚠️ Ton NEUTRE, pas `danger` : vider une recherche se repose en un
+                geste, ça ne se confirme pas (voir spec/README.md) — la
+                surestimer en rouge permanent la ferait paraître plus grave
+                qu'elle ne l'est. */}
             {aUneRecherche && (
-              <button
+              <Bouton
                 onClick={effacerRecherche}
-                className="flex flex-none items-center gap-1 rounded-lg border border-border px-2 py-1
-                           text-[12px] font-semibold text-ink-dim transition
-                           hoverable:border-fire hoverable:text-fire"
+                taille="sm"
+                icone={<X size={13} />}
+                libelle="Vider"
                 title="Vider la recherche"
                 aria-label="Vider la recherche"
-              >
-                <X size={13} /> Vider
-              </button>
+                className="flex-none"
+              />
             )}
           </div>
 
@@ -543,7 +773,7 @@ export default function RecoBoard({ recos, monsters, builds, teams, copies6, off
                 options={SEARCH_MODES.map((m) => ({ key: m.key, label: m.label, hint: m.hint }))}
               />
               {hits && (
-                <span className="font-mono text-[11px] text-ink-dim">
+                <span className="font-mono text-micro text-ink-dim">
                   {hits.length === 0
                     ? 'aucun résultat'
                     : `${hits.length} reco${hits.length > 1 ? 's' : ''}`}
@@ -559,7 +789,7 @@ export default function RecoBoard({ recos, monsters, builds, teams, copies6, off
           <div className="flex items-center justify-center w-14 h-14 rounded-2xl bg-panel2 border border-border mb-4">
             <Lightbulb size={26} className="text-ink-dim" />
           </div>
-          <p className="text-ink-dim text-[14px] max-w-md">
+          <p className="text-ink-dim text-sm max-w-md">
             Aucune recommandation. <b className="text-ink">Crée-en une</b> pour proposer un{' '}
             <b className="text-ink">ensemble de decks</b> avec les sets, les artéfacts et les stats à
             viser sur chaque monstre, ou <b className="text-ink">importe</b> celle d'un autre joueur pour vérifier
@@ -571,7 +801,7 @@ export default function RecoBoard({ recos, monsters, builds, teams, copies6, off
         // Dire « tu n'as créé aucune recommandation » alors qu'on vient de taper
         // un nom ferait croire à une perte de données.
         <div className="mt-6 rounded-xl border border-dashed border-border bg-panel/40 py-8 px-6 text-center">
-          <p className="text-[13px] text-ink-dim">
+          <p className="text-sm text-ink-dim">
             {/* ⚠️ Le message dit LA RÈGLE quand il y a plusieurs monstres : les
                 trois doivent être dans la MÊME composition. Sans ça, une
                 recherche à trois termes qui ne renvoie rien se lit comme un bug
@@ -618,7 +848,7 @@ export default function RecoBoard({ recos, monsters, builds, teams, copies6, off
       ) : list.length === 0 ? (
         // Il y a des recommandations, mais aucune dans le filtre actif.
         <div className="mt-6 rounded-xl border border-dashed border-border bg-panel/40 py-8 px-6 text-center">
-          <p className="text-ink-dim text-[13px]">
+          <p className="text-ink-dim text-sm">
             {filter === 'mine'
               ? "Tu n'as créé aucune recommandation pour l'instant."
               : "Tu n'as importé aucune recommandation pour l'instant."}{' '}
@@ -653,7 +883,7 @@ export default function RecoBoard({ recos, monsters, builds, teams, copies6, off
                 hit={hitPar.get(reco.id) ?? null}
                 editing={editingId === reco.id}
                 onToggleEdit={(id) => setEditingId((cur) => (cur === id ? null : id))}
-                onExport={(r) => handleExport([r], r.name || `reco-${i + 1}`)}
+                onExport={(r) => requestExport([r], r.name || `reco-${i + 1}`)}
                 recos={recos}
               />
             </div>
@@ -680,35 +910,34 @@ function ValidationReport({ report, onClose }: { report: ImportReport; onClose: 
         ) : (
           <AlertTriangle size={15} className="flex-none text-warn" />
         )}
-        <span className={`text-[12.5px] font-semibold ${bloque ? 'text-fire' : 'text-warn'}`}>
+        <span className={`text-xs font-semibold ${bloque ? 'text-fire' : 'text-warn'}`}>
           {bloque
             ? "Import refusé — le contenu n'est pas valide"
             : `Import effectué avec ${report.warnings.length} correction${report.warnings.length > 1 ? 's' : ''}`}
         </span>
-        <button
+        <BoutonIcone
           onClick={onClose}
-          className="ml-auto text-ink-dim hoverable:text-ink transition"
-          title="Fermer le rapport"
-        >
-          <X size={14} />
-        </button>
+          libelle="Fermer le rapport"
+          icone={<X size={14} />}
+          className="ml-auto"
+        />
       </div>
 
       <ul className="space-y-0.5 max-h-[220px] overflow-y-auto">
         {report.errors.map((e, i) => (
-          <li key={`e${i}`} className="text-[12px] text-fire leading-snug">
+          <li key={`e${i}`} className="text-xs text-fire leading-snug">
             • {e}
           </li>
         ))}
         {report.warnings.map((w, i) => (
-          <li key={`w${i}`} className="text-[12px] text-warn/90 leading-snug">
+          <li key={`w${i}`} className="text-xs text-warn/90 leading-snug">
             • {w}
           </li>
         ))}
       </ul>
 
       {!bloque && (
-        <p className="mt-1.5 font-mono text-[11px] text-ink-dim">
+        <p className="mt-1.5 font-mono text-micro text-ink-dim">
           {report.counts.recos} recommandation(s) · {report.counts.decks} deck(s) ·{' '}
           {report.counts.monstres} monstre(s) retenus.
         </p>

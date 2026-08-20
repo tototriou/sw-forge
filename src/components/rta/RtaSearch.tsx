@@ -4,6 +4,7 @@ import { Monster } from '../../types';
 import MonsterAvatar from '../MonsterAvatar';
 import { formesJouables } from '../../lib/monsterForms';
 import { useComboboxNav } from '../../hooks/useComboboxNav';
+import { Champ, Flottant } from '../../ui';
 
 interface Props {
   monsters: Monster[];
@@ -57,27 +58,36 @@ export default function RtaSearch({ monsters, addedIds, onAdd }: Props) {
 
   return (
     <div className="relative">
-      <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-[18px] h-[18px] text-ink-dim" />
-      <input
+      {/* ⚠️ Le champ est celui de la librairie, mais il garde ici trois écarts
+          assumés, tous liés au fait que c'est LE champ de la page : plus haut au
+          repos (`py-3.5`), fond `bg-panel` plutôt que `panel2` parce qu'il est
+          posé sur la page et non dans une carte, et coins `rounded-xl`.
+          ⚠️ Plus BAS au doigt (40 px contre 56) : à `py-3.5` et `text-base` il
+          mangeait un sixième de la hauteur utile d'un téléphone, avant même le
+          premier monstre. 40 px reste la cible tactile pleine — c'est le
+          rembourrage décoratif qui tombe, pas la zone touchable. */}
+      <Champ
         {...nav.inputProps}
-        type="text"
         value={query}
         onChange={(e) => setQuery(e.target.value)}
         placeholder="Rechercher un monstre à ajouter à ta prépa RTA…"
-        // Bordure seule au focus, sans halo : voir spec/shared/design.md.
-        className="w-full bg-panel border border-border rounded-xl py-3.5 pl-11 pr-4 text-[15px]
-                   text-ink placeholder:text-ink-dim transition focus:border-accent"
+        icone={<Search className="h-[18px] w-[18px] compact:h-4 compact:w-4" />}
+        className="rounded-xl bg-panel py-3.5 pl-11 pr-4 text-base
+                   compact:py-2 compact:pl-9 compact:pr-3"
       />
 
+      {/* ⚠️ `rembourrage="aucun"` : les entrées d'une liste doivent toucher les
+          bords. Un rembourrage y laisse une bande morte au survol, et l'entrée
+          surlignée paraît décalée de son propre cadre. */}
       {nav.open && (
-        <div
+        <Flottant
           {...nav.listProps}
           aria-label="Résultats de la recherche"
-          className="absolute z-20 mt-2 w-full max-h-[360px] overflow-y-auto rounded-xl border border-border
-                     bg-panel shadow-glow shadow-black/60"
+          rembourrage="aucun"
+          className="max-h-[360px] overflow-y-auto"
         >
           {results.length === 0 ? (
-            <div className="px-4 py-3 text-ink-dim text-[13px]">Aucun monstre trouvé.</div>
+            <div className="px-4 py-3 text-ink-dim text-sm">Aucun monstre trouvé.</div>
           ) : (
             results.map((m, i) => {
               const added = addedIds.has(String(m.id));
@@ -101,11 +111,11 @@ export default function RtaSearch({ monsters, addedIds, onAdd }: Props) {
                   {/* Portrait : le nom ne suffit pas à distinguer les formes
                       d'un même monstre (voir MonsterAvatar). */}
                   <MonsterAvatar monster={m} size={30} />
-                  <span className="text-[13.5px] font-medium truncate flex-1">{m.name}</span>
+                  <span className="text-sm font-medium truncate flex-1">{m.name}</span>
                   {m.stars ? (
-                    <span className="font-mono text-[11px] text-star">{m.stars}★</span>
+                    <span className="font-mono text-micro text-star">{m.stars}★</span>
                   ) : null}
-                  <span className="font-mono text-[11px] text-ink-dim w-16 text-right">
+                  <span className="font-mono text-micro text-ink-dim w-16 text-right">
                     SPD {m.stats.speed ?? '—'}
                   </span>
                   {added ? (
@@ -117,7 +127,7 @@ export default function RtaSearch({ monsters, addedIds, onAdd }: Props) {
               );
             })
           )}
-        </div>
+        </Flottant>
       )}
     </div>
   );

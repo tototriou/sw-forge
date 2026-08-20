@@ -6,7 +6,9 @@ import { SiegeSide, UseSiegeState } from '../../hooks/useSiegeState';
 import { useStickyState } from '../../hooks/useStickyState';
 import SiegeTeam from './SiegeTeam';
 import CreateMonster from '../CreateMonster';
-import { ConfirmDialog } from '../Dialogs';
+import { ConfirmDialog } from '../../ui/Dialogs';
+import MobileSheet from '../../ui/MobileSheet';
+import { Bouton } from '../../ui';
 import { CustomLead } from '../../hooks/useCustomMonsters';
 
 interface Props {
@@ -17,6 +19,10 @@ interface Props {
   onCreateMonster: (name: string, element: ElementKey, speed: number, lead?: CustomLead | null) => Monster;
   customMonsters: Monster[];
   onDeleteMonster: (id: string) => void;
+  // Panneau d'actions mobile — piloté par le bouton « Options » de la barre
+  // d'onglets (voir App.tsx).
+  menuOuvert: boolean;
+  onFermerMenu: () => void;
 }
 
 // L'import se fait globalement depuis la barre de nav (voir AccountImportControl) :
@@ -30,6 +36,8 @@ export default function SiegeBoard({
   onCreateMonster,
   customMonsters,
   onDeleteMonster,
+  menuOuvert,
+  onFermerMenu,
 }: Props) {
   const noun = side === 'defense' ? 'défense' : 'attaque';
 
@@ -63,60 +71,117 @@ export default function SiegeBoard({
     return m;
   }, [monsters]);
 
+  // Les actions du board, rendues une seule fois et posées à DEUX endroits
+  // selon la largeur : dans la page au-dessus de `lg`, dans le panneau en
+  // dessous. Deux copies auraient divergé au premier bouton ajouté.
+  // ⚠️ « Tout effacer » est SÉPARÉ des autres actions : dans la page il se pose
+  // à l'opposé (`ml-auto`), loin des gestes de construction — un bouton
+  // destructeur ne se met pas à côté de celui qu'on presse en boucle. Dans le
+  // panneau il garde la même distance, en bas et détaché.
+  // ⚠️ **Boutons de la librairie, pas des `<button>` redessinés.** Ce board les
+  // écrivait à la main — trois fois la même paire de classes, un `lg:hidden` /
+  // `hidden lg:inline` recopié pour chaque libellé court. `Bouton` porte déjà
+  // ça par ses axes (`icone`+`libelle`+`libelleCourt`, `actif` pour un
+  // interrupteur) : voir le même geste sur RTA (`RtaBackupBar`).
+  // ⚠️ **Même bouton que RTA (`boutonEffacer` dans RtaPage.tsx), au trait
+  // près.** Deux habillages selon le contenant, pas deux boutons : nu dans la
+  // page, où il vit au bout d'une rangée d'actions déjà cadrées (un cadre de
+  // plus y ferait du bruit) ; fond + contour rouges et PLEINE LARGEUR dans le
+  // panneau, où il est seul sur sa ligne sous un filet — à sa largeur propre,
+  // il y flottait au milieu d'une bande vide dont rien n'expliquait la
+  // présence.
+  // ⚠️ **Toujours affiché, désactivé s'il n'y a rien à effacer** — jamais
+  // retiré. Un bouton qui apparaît une fois la première équipe créée ne
+  // s'explique pas : on ne l'a jamais vu apparaître d'un geste, il était
+  // juste absent. Désactivé, c'est un repère fixe de la page — même règle
+  // partout dans l'app, voir RecoBoard.tsx.
+  const effacer = (dansLePanneau: boolean) => (
+    <Bouton
+      onClick={() => {
+        setEffacementAConfirmer(true);
+        onFermerMenu();
+      }}
+      disabled={siege.state.teams.length === 0}
+      ton="danger"
+      fond={dansLePanneau ? 'doux' : 'vide'}
+      trait={dansLePanneau ? 'plein' : 'aucun'}
+      pleineLargeur={dansLePanneau}
+      taille="sm"
+      icone={<Trash2 size={13} />}
+      libelle="Tout effacer"
+      title={siege.state.teams.length === 0 ? "Aucune équipe à effacer" : undefined}
+      // ⚠️ `leading-none` : l'interligne du libellé donne au texte une boîte
+      // plus haute que sa lettre. Centrées boîte contre boîte, la poubelle et
+      // le mot ne le sont plus à l'œil.
+      className="leading-none"
+    />
+  );
+
+  const actions = (
+    <>
+      {/* ⚠️ Deux longueurs : en grille à trois colonnes, un bouton dispose d'un
+          tiers de 348 px. « Ajouter une équipe » y passait à la ligne et
+          déformait la rangée. `libelleCourt` porte « Équipe » sous `lg`,
+          l'infobulle et `aria-label` gardent la phrase entière. */}
+      <Bouton
+        onClick={() => {
+          siege.addTeam();
+          setScrollToLast(true);
+          onFermerMenu();
+        }}
+        aria-label="Ajouter une équipe"
+        icone={<Plus size={15} />}
+        libelle="Ajouter une équipe"
+        libelleCourt="Équipe"
+      />
+
+      {/* ⚠️ Toujours affiché, désactivé sans équipe — même règle que
+          « Tout effacer » juste au-dessus. */}
+      <Bouton
+        onClick={() => setCheckTicks((v) => !v)}
+        actif={checkTicks}
+        disabled={siege.state.teams.length === 0}
+        title={
+          siege.state.teams.length === 0
+            ? 'Aucune équipe à vérifier'
+            : checkTicks
+              ? 'Masquer les auras de vérification'
+              : 'Colorer les équipes selon leur calage sur les ticks ATB'
+        }
+        icone={<Gauge size={15} />}
+        libelle="Vérifier mes tick ATB"
+        libelleCourt="Ticks"
+      />
+
+      {/* En dernier des actions : c'est le geste le plus rare. */}
+      <CreateMonster
+        onCreate={onCreateMonster}
+        customMonsters={customMonsters}
+        onDelete={onDeleteMonster}
+      />
+    </>
+  );
+
   return (
     <div>
-      <div className="flex items-center gap-3 mt-5 flex-wrap">
-        <button
-          onClick={() => {
-            siege.addTeam();
-            setScrollToLast(true);
-          }}
-          className="flex items-center gap-1.5 rounded-lg border border-border bg-panel px-3.5 py-2 text-[13px]
-                     text-ink hoverable:border-accent transition"
-        >
-          <Plus size={15} /> Ajouter une équipe
-        </button>
-
-        {siege.state.teams.length > 0 && (
-          <button
-            onClick={() => setCheckTicks((v) => !v)}
-            aria-pressed={checkTicks}
-            title={
-              checkTicks
-                ? 'Masquer les auras de vérification'
-                : 'Colorer les équipes selon leur calage sur les ticks ATB'
-            }
-            className={`flex items-center gap-1.5 rounded-lg border px-3.5 py-2 text-[13px] font-semibold transition ${
-              // Fond seul (voir spec/shared/design.md) : ce bouton-bascule
-              // cumulait bordure d'accent + fond + ombre pour dire « activé ».
-              checkTicks
-                ? 'border-border bg-accent-soft text-ink'
-                : 'border-border bg-panel text-ink-dim hoverable:text-ink hoverable:border-accent'
-            }`}
-          >
-            <Gauge size={15} /> Vérifier mes tick ATB
-          </button>
-        )}
-
-        {/* En dernier des actions : c'est le geste le plus rare. */}
-        <CreateMonster
-          onCreate={onCreateMonster}
-          customMonsters={customMonsters}
-          onDelete={onDeleteMonster}
-        />
-
-        <span className="font-mono text-[12px] text-ink-dim">
+      {/* ⚠️ Sous `lg`, les trois actions descendent dans le panneau
+          « Options » : à 40 px avec leur libellé complet, elles remplissaient
+          deux rangées avant la première équipe. Le COMPTEUR reste, lui — c'est
+          une information, pas une action, et elle tient sur une ligne. */}
+      <div className="mt-5 flex items-center gap-3 flex-wrap">
+        <div className="hidden lg:contents">{actions}</div>
+        <span className="font-mono text-xs text-ink-dim">
           {siege.state.teams.length} équipe{siege.state.teams.length > 1 ? 's' : ''}
         </span>
-        {siege.state.teams.length > 0 && (
-          <button
-            onClick={() => setEffacementAConfirmer(true)}
-            className="ml-auto flex items-center gap-1.5 text-[12px] text-ink-dim hoverable:text-fire transition"
-          >
-            <Trash2 size={13} /> Tout effacer
-          </button>
-        )}
+        <div className="ml-auto hidden lg:contents">{effacer(false)}</div>
       </div>
+
+      <MobileSheet ouvert={menuOuvert} onFermer={onFermerMenu} titre={`Actions — ${noun}`}>
+        <div data-rangee-actions>{actions}</div>
+        <div data-zone-destructive className="mt-4 border-t border-border pt-3">
+          {effacer(true)}
+        </div>
+      </MobileSheet>
 
       {effacementAConfirmer && (
         <ConfirmDialog
@@ -133,7 +198,7 @@ export default function SiegeBoard({
       )}
 
       {loadState === 'loading' && monsters.length === 0 && (
-        <p className="mt-4 text-ink-dim text-[13px]">Chargement des monstres…</p>
+        <p className="mt-4 text-ink-dim text-sm">Chargement des monstres…</p>
       )}
 
       {siege.state.teams.length === 0 ? (
@@ -141,7 +206,7 @@ export default function SiegeBoard({
           <div className="flex items-center justify-center w-14 h-14 rounded-2xl bg-panel2 border border-border mb-4">
             <Castle size={26} className="text-ink-dim" />
           </div>
-          <p className="text-ink-dim text-[14px] max-w-md">
+          <p className="text-ink-dim text-sm max-w-md">
             Aucune équipe d'{noun} pour l'instant. Clique sur{' '}
             <b className="text-ink">Ajouter une équipe</b> pour composer, ou importe ton compte
             depuis la barre du haut.
@@ -150,7 +215,10 @@ export default function SiegeBoard({
       ) : (
         // 2 équipes par ligne sur grand écran ; une équipe en édition reprend
         // toute la largeur. `items-start` évite d'étirer les cartes basses.
-        <div className="mt-6 grid grid-cols-1 xl:grid-cols-2 gap-4 items-start">
+        // ⚠️ Écarts réduits sous `sm` : la page empile jusqu'à huit équipes, et
+        // chaque `gap-4` se paie autant de fois — un écran entier de vide sur un
+        // téléphone.
+        <div className="mt-3 grid grid-cols-1 gap-2 items-start sm:mt-6 sm:gap-4 xl:grid-cols-2">
           {siege.state.teams.map((team, i) => (
             <div
               key={team.id}

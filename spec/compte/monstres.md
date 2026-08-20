@@ -22,6 +22,27 @@ Affiche **tous les monstres montés 6★** du compte importé. Composant :
     rangée d'**étoiles**, masquée ici puisque tout est 6★.
 - En-tête : « N monstres différents · M au total · 6★ ».
 
+## Pagination & performance
+
+- ⚠️ **La box est PAGINÉE** (`Pager`, **60 cartes par page**, comme le
+  bestiaire — même taille pour la même sensation d'un écran à l'autre). Un
+  compte entier fait des centaines de 6★ : toutes rendues d'un coup, le DOM
+  gonfle et l'animation de disposition (le FLIP de framer-motion) **saccade à
+  chaque filtre**. Le `Pager` est posé **en tête** (changer de page ne renvoie
+  pas au bas de l'écran) et **répété en bas**. Il se masque seul à une seule
+  page. La page revient à **1 dès qu'un filtre, la recherche ou le tri change** :
+  rester en page 5 après un filtre qui n'en rend qu'une afficherait un écran vide.
+- ⚠️ **Au-delà de `SEUIL_ANIMATION_GRILLE` cartes (48), l'animation est COUPÉE**
+  pour toute la page ([MonsterCard.tsx](src/components/MonsterCard.tsx)). Une
+  carte animée est un `motion.div layout` : le FLIP remesure et fait glisser
+  **toutes** les cartes à chaque changement. Délicieux sur vingt cartes, saccadé
+  sur soixante — une page pleine devient donc **instantanée**, une dernière page
+  courte garde le fondu. Le parent (box **et** bestiaire) compare la taille de sa
+  grille au seuil et passe `anime={false}` au-dessus ; sans animation, la carte
+  n'est plus un `motion.div` du tout et le survol se fait en CSS. `MonsterCard`
+  est aussi **mémoïsé** (`React.memo`) : sans ça, toute carte se re-render à
+  chaque frappe.
+
 ## Tri
 
 Un contrôle **à cran** (`Segmented`) à côté de la recherche : **Sortie**
@@ -212,12 +233,25 @@ l'unique point d'entrée [monsterSkills.ts](src/lib/monsterSkills.ts).
 
 ## Recherche & filtres
 
+Recherche et pastilles passent par la **librairie partagée** (voir
+[../shared/librairie-ui.md](../shared/librairie-ui.md)) : la recherche est un
+`Champ`, chaque filtre une `Pastille`. Aucun `<input>` ni `<button>` dessiné à la
+main — le même JSX sert dans la page (desktop) et dans le tiroir « Options »
+(mobile).
+
+⚠️ **Liste BLANCHE, tout coché par défaut** (Élément et Nat) — même règle que
+les filtres de runes ([runes.md](runes.md)) : une chip cochée est **affichée**,
+n'en cocher **aucune** revient à **ne rien vouloir voir**. Les interrupteurs
+**Doublons** et **2A**, eux, restent des restrictions qu'on ajoute.
+
 - **Recherche** par nom (insensible à la casse).
 - **Élément** : chips multi-sélection (Eau/Feu/Vent/Lumière/Ténèbres ; « Autre »
   exclu du filtre).
 - **Nat** (rareté naturelle) : chips **5★ · 4★ · 3★ · 2★**. Utilise
   `monster.naturalStars` — la **vraie** rareté naturelle SWARFARM, distincte de
   `stars` (grade obtenable / `base_stars`). Ex. Racuni = nat 3 même si base_stars 4.
+  - ⚠️ Un monstre **sans rareté naturelle** échappe à ce filtre : aucune chip ne
+    peut le désigner, le masquer le rendrait introuvable.
 - **Doublons** : ne montre que les monstres possédés en plusieurs exemplaires
   (`count ≥ 2`).
 - **2A** : ne montre que les monstres à **second éveil** (`monster.secondAwaken`,
@@ -234,11 +268,13 @@ Les filtres se combinent avec la recherche.
 >   ⚠️ **Une teinte, pas un aplat plein** : sur des chips de 12 px, du texte
 >   sombre sur rouge ou violet vif devient illisible. Ce sont la bordure et le
 >   texte colorés qui portent l'information, le fond ne fait que la confirmer.
-> - **Nat, Doublons, 2A** : **un seul** style actif, le jaune plein des étoiles.
->   Chaque bouton avait le sien — bleu-violet pour Doublons, doré sombre pour 2A
->   — et trois surbrillances différentes côte à côte se lisent comme trois
->   **natures** de filtre différentes, alors qu'ils font tous la même chose. Le
->   plein tient ici : ces filtres n'ont pas de couleur propre à respecter.
+> - **Nat, Doublons, 2A** : **un seul** style actif, l'**accent de l'app** (le
+>   défaut d'une `Pastille` sans `couleurs`). Chaque bouton avait le sien —
+>   bleu-violet pour Doublons, doré sombre pour 2A — et trois surbrillances
+>   différentes côte à côte se lisent comme trois **natures** de filtre
+>   différentes, alors qu'ils font tous la même chose. L'accent tient ici : ces
+>   filtres n'ont pas de couleur propre à respecter, et c'est le marqueur d'état
+>   commun au reste des contrôles enclenchables.
 
 ## Données sous-jacentes
 

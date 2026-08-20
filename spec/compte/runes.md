@@ -159,17 +159,99 @@ en parcourant 2 000 runes.
     sont identiques, et un clic sans effet se lit comme un défaut.
   - L'état est **propre à chaque carte** et n'est pas mémorisé : c'est un coup
     d'œil, pas un réglage.
+  - ⚠️ **La tuile est un VRAI `<button>`** (`RuneDetailBox imbrique={false}`), pas
+    le `<div role="button">` qu'emploie la même carte **en popover** (siège, prépa
+    RTA, optimiseur), où un `<button>` imbriqué dans le flottant cliquable serait
+    du HTML invalide. À plat dans la grille, rien n'impose ce détour — et sur
+    téléphone il **coûtait le clic** : un `<div>` rempli de texte laisse le tap
+    déclencher une **sélection de texte** (`user-select` par défaut) au lieu de la
+    bascule. Voir [librairie-ui.md](../shared/librairie-ui.md) (`ZoneCliquable`).
 - La ligne **recherchée** prend un **liseré d'accent + un fond à 8 %**, avec les
   compensations qui l'annulent exactement — sinon elle se décale par rapport aux
   autres, et c'est ce décalage qu'on voit en premier.
 - **Bonus de set** en pied, comme dans le jeu.
 - ⚠️ **Plus de popover au clic** : il n'aurait rien montré de plus, tout étant
   déjà sur la tuile. Le clic sert désormais à basculer détail ↔ total.
-- Grille à **215 px** : c'est la largeur en dessous de laquelle la bannière de
+
+#### ⚠️ Deux grilles, une par format
+
+| Format | Grille | Tuile |
+|---|---|---|
+| **Bureau** (`lg` et au-delà) | `auto-fill` à **215 px** | carte entière |
+| **Téléphone** (sous `lg`) | **deux colonnes fixes** | rendu **étroit** |
+
+- Le **215 px** du bureau est la largeur en dessous de laquelle la bannière de
   rareté passe **sous** la stat principale — chaque tuile gagne alors une ligne,
   l'inverse du but. En mode compact, la bannière perd son espacement de lettres
   et se resserre **justement pour descendre jusque-là** : c'est elle qui dictait
   la largeur minimale de toute la grille.
+- ⚠️ **Sur téléphone, `auto-fill` ne pouvait pas donner deux colonnes** : à
+  390 px d'écran il reste ~358 px utiles, soit moins que deux fois 215 px, et il
+  retombait donc toujours sur **une seule rune par rangée** — un défilement
+  interminable sur 3 000 runes. D'où deux colonnes **fixes**, et non un seuil de
+  plus.
+
+#### Le rendu ÉTROIT — le seul endroit où la carte montre moins
+
+À deux colonnes, la tuile tombe à **~175 px** (159 px de contenu). L'en-tête y
+tient sur une ligne : icône 36 px + stat principale + bloc rareté/mesure. Trois
+retraits, et trois seulement — chacun rendu nécessaire par le précédent :
+
+1. **La bannière prend son abréviation** (`RARITY_META.court` — « Lég », « Hér »,
+   « Rare », « Mag », « Com »). ⚠️ **Le seul libellé du jeu abrégé de toute
+   l'app** ; le mot entier reste en `title`. « LÉGENDAIRE » seul prenait la
+   moitié de la largeur utile.
+2. **La mesure abrège son libellé** — « Effi » / « Score », le début du mot
+   entier et non un autre mot. « Score SW » dictait la largeur du bloc de droite
+   (~66 px contre ~47 px pour la bannière abrégée). ⚠️ **Le libellé est gardé,
+   pas supprimé** : la mesure est un réglage *global*, elle ne se lit nulle part
+   ailleurs sur la page, et une valeur nue ne dirait pas ce qu'on mesure.
+3. **Le bonus de set n'est pas rendu.** C'est la ligne la plus longue de la carte
+   (« Chance de tour supplémentaire 22% »), et la seule qui se **déduit
+   d'ailleurs** : le symbole de set est déjà porté par l'icône.
+
+Et deux ajustements, qui ne sont pas des retraits :
+
+- Le **cadre de rune passe de 36 à 30 px**. ⚠️ **Pas en dessous de 30** : le
+  symbole de set gravé dans le cadre cesse alors de se reconnaître, or c'est lui
+  qui dit à quel set appartient la rune — l'abréviation de rareté ne le dit pas,
+  et le bonus de set n'est plus là.
+- **Tout l'en-tête descend au cran `nano`** : stat principale, innée, mesure et
+  bannière. C'est ce qui permet de **garder** le libellé de la mesure plutôt que
+  de le supprimer. ⚠️ La stat principale y rejoint l'innée en TAILLE, mais leur
+  hiérarchie tient toujours par le **poids** et la **couleur** (`font-black` +
+  `ink` contre `font-semibold` + `water`) — la taille n'était que le troisième
+  marqueur. La bannière resserre aussi son rembourrage (`px-1`) : à cette
+  échelle, `px-1.5` autour de « LÉG » se lisait comme une pastille de filtre.
+
+| | Bureau | Étroit |
+|---|---|---|
+| Cadre de rune | 36 px | **30 px** |
+| Stat principale | `sm` (13 px) | **`nano`** (10 px) |
+| Innée | `micro` (11 px) | **`nano`** (10 px) |
+| Mesure | `micro`, « Score SW » | **`nano`**, « Score » |
+| Bannière | `micro`, « LÉGENDAIRE » | **`nano` `px-1`**, « LÉG » |
+| Bonus de set | en pied | — |
+
+##### ⚠️ Les libellés longs restent sur deux lignes — c'est assumé
+
+À ~175 px de tuile il reste **~59 px** à gauche de la colonne rareté/mesure
+(159 de contenu − 30 de cadre − 16 d'écarts − 54 pour « Score 293 », le plus
+long des deux éléments empilés à droite). Or « Taux Crit +58% » occupe ~84 px
+même à 10 px : une ligne unique demanderait ~7 px, illisible.
+
+Ce qui la donnerait, c'est de faire **descendre rareté et mesure sous le
+texte** — 121 px alors disponibles, « Taux Crit +58% » tiendrait en 12 px.
+**Écarté volontairement** : l'en-tête resterait sur deux lignes de toute façon
+(bannière et mesure sont déjà empilées), pour un gain qui ne porte que sur les
+trois libellés de 14 caractères — « Taux Crit », « Précision », « Dmg Crit ».
+Les autres (`PV +2448`, `VIT +42`, `DEF +160`) tiennent déjà sur une ligne.
+
+⚠️ **`etroit` et `resserre` sont deux axes distincts, qui se cumulent.**
+`resserre` rogne les corps, les marges et les interlignes — il ne retire jamais
+rien. `etroit` retire. Confondre les deux aurait fait disparaître le bonus de set
+partout où la carte est déjà compacte (siège, prépa RTA), où la place ne manque
+pas.
 > La même carte sert **en popover** ailleurs dans l'app (détail d'un monstre,
 > candidat de l'Optimizer) : elle y est rendue **sans `compact`** et sans image,
 > celle-ci étant déjà sur l'élément qui a ouvert le flottant.
@@ -331,6 +413,124 @@ Détails :
   - Le nom est **borné à 16 caractères** (le complet reste dans la légende) et la
     **largeur de la boîte est mesurée sur le contenu réel** : en dur, les noms
     débordaient.
+### ⚠️ Interactif au DOIGT, et lisible en plein écran
+
+Le graphe garde son gabarit de **820 × 380** sur les deux formats. Sur un
+téléphone de 390 px il est donc réduit à **42 %**, et ses graduations écrites en
+11 px arrivent à l'écran en **4,6**. Plutôt qu'un second graphe pour l'écran
+étroit, on donne le moyen de lire celui-ci **en grand**.
+
+- ⚠️ **`touch-action: pan-y` sur le SVG — c'est lui qui rend le graphe
+  interactif au doigt.** Sans lui le navigateur prend le glissement horizontal
+  pour un début de défilement, s'approprie le geste et n'envoie plus aucun
+  `pointermove` : le graphe était **muet sur téléphone** alors que tout le code
+  d'interaction était là. `pan-y` et non `none` : le défilement **vertical** de
+  la page doit continuer de passer, sinon on reste coincé en travers du graphe.
+- **Bouton plein écran**, en bas à **droite** du cadre, **sous `lg` seulement** :
+  à la souris, le graphe a déjà la largeur pour laquelle il est dessiné. Sur le
+  même bord que le bouton d'aide, qui occupe le haut : les deux commandes du
+  graphe se lisent sur une même verticale, du côté du pouce, plutôt que dans
+  deux angles opposés.
+- ⚠️ **Les deux boutons font 28 px, et portent `data-cible-fine` +
+  `cible-tactile` ENSEMBLE.** Le premier exempte de la règle tactile globale
+  (`min-height: 40px` au doigt), qui aurait étiré un bouton de 28 px en **ovale
+  de 28 × 40** — le piège que documente index.css. Le second lui rend ses 44 px
+  de zone touchable par un pseudo-élément qui déborde : la cible reste
+  réglementaire, le dessin reste petit. Retirer l'un des deux casse soit la
+  forme, soit la visée.
+- ⚠️ **On TOURNE le graphe, on ne force pas l'appareil.** Verrouiller
+  l'orientation (`screen.orientation.lock`) exige le plein écran natif, que
+  Safari iOS n'accorde qu'à la vidéo : le geste aurait marché sur un téléphone
+  et pas sur l'autre. Une rotation CSS donne le même résultat partout — et on ne
+  tourne **que si l'écran est encore en portrait**, l'appareil tourné
+  physiquement restant correct.
+  - La boîte tournée **échange largeur et hauteur** : après un quart de tour, la
+    largeur du dessin longe la hauteur de l'écran. Sans cet échange, le graphe
+    dépasserait des deux côtés.
+  - Centrage `translate(-50%, -50%)` **avant** la rotation — tourner d'abord
+    ferait pivoter aussi le déplacement.
+- ⚠️ **Le pointeur se convertit par `getScreenCTM()`, plus par le cadre du
+  SVG.** `getBoundingClientRect()` rend un rectangle **aligné sur l'écran** :
+  dès que le graphe est tourné, il décrit la boîte englobante de la rotation et
+  le point visé tombait n'importe où. La matrice inverse ramène un point de
+  l'écran dans le repère du dessin, quelles que soient les transformations
+  traversées.
+- Plein écran en `z-[70]`, le niveau des **dialogues** : sans quoi la barre
+  d'onglets et le panneau de navigation resteraient posés dessus.
+- ⚠️ **En plein écran, le clic n'ouvre plus de rune.** On y vient lire la courbe
+  en grand, et le geste s'y confond avec le pincement : un doigt qui se pose
+  pour zoomer ouvrait une carte de rune par-dessus le graphe. Le détail reste à
+  sa place, dans la page.
+
+#### ⚠️ Le zoom est fait DANS le graphe, pas délégué au navigateur
+
+`index.html` pose `maximum-scale=1` pour empêcher Safari iOS de zoomer tout seul
+à la mise au point d'un champ — une contrainte pesée et documentée là-bas, qu'on
+ne défait pas pour un graphe. Le pincement agit donc sur la **fenêtre de rangs**
+du dessin : même résultat à l'œil, identique sur tous les navigateurs, et rien
+n'est retiré au reste de l'application.
+
+- **Un doigt lit la courbe, deux la zooment.** C'est le nombre de pointeurs
+  posés qui départage les deux gestes.
+- ⚠️ **Le zoom porte sur l'axe des RANGS seul**, jamais sur la hauteur. Les
+  trois mille runes s'écrasent en largeur, pas en hauteur ; et une échelle
+  verticale qui bougerait ferait mentir la comparaison entre courbes — deux
+  points à la même hauteur doivent valoir la même chose.
+- Le rang sous le **milieu des doigts ne bouge pas** : on zoome là où l'on
+  regarde, et non vers le centre du graphe. Le déplacement de ce milieu fait
+  glisser la fenêtre, ce qui donne le **panoramique dans le même geste**.
+- Plancher à **5 rangs** : en dessous, la courbe n'est plus qu'un segment entre
+  deux runes et le lissage n'a plus rien à lisser.
+- ⚠️ **Détourage de l'aire de tracé** (`clipPath`) : zoomé, le classement déborde
+  des deux côtés de la fenêtre. `downsample` parcourt **toutes** les runes, et
+  celles hors fenêtre se dessinaient par-dessus les graduations Y et jusque dans
+  les marges.
+- Le zoom **se remet à plat en quittant le plein écran** : gardé, on serait
+  revenu à la page sur un graphe montrant cinquante runes sans rien qui dise
+  pourquoi.
+
+#### ⚠️ L'aide « Comment lire ce graphe ? » a DEUX supports
+
+Le texte fait une demi-page. Ancré à un bouton de 28 px, il descendait sous le
+bas de l'écran et ses dernières lignes passaient **derrière la barre
+d'onglets** (`z-40` contre le `z-20` du popover). Le plafonner à `60dvh` et le
+faire défiler n'a pas suffi : un pavé de texte dans une bulle flottante reste
+illisible sur un téléphone.
+
+| Format | Support |
+|---|---|
+| **Bureau** | popover ancré au bouton — l'écran est haut, le texte tient, et le geste (clic hors zone) est celui d'un popover |
+| **Téléphone** | **`MobileSheet`** — il monte du bas, se pose au-dessus de la barre d'onglets, prend toute la largeur et défile |
+
+- Le texte est **écrit une fois** et passé aux deux : deux copies auraient
+  divergé à la première correction.
+- ⚠️ L'écouteur de **clic extérieur** ne vaut que pour le popover : le panneau
+  a son propre voile et sa croix, et cet écouteur l'aurait refermé au premier
+  appui à l'intérieur.
+- ⚠️ **Ce patron est le composant partagé [HelpPopover.tsx](src/components/HelpPopover.tsx)** :
+  bouton `BoutonIcone` + bulle `FlottantAuto` (souris) + `MobileSheet` (doigt),
+  le tout écrit une seule fois. Il sert ici, à l'onglet **Optimisation**
+  (« Comment est-ce calculé ? ») et à l'**Optimiseur d'Outils**. Trois aides qui
+  redessinaient chacune leur bouton et leur bulle à la main — dont deux avec un
+  `z-index` et une ombre posés en dur, hors `FlottantAuto` — ont convergé dessus.
+  `title` sert de titre au panneau et d'en-tête à la bulle ; `ariaLabel` donne au
+  bouton un libellé distinct quand il diffère (« Comment lire ce graphe ? »).
+
+#### ⚠️ Pas de panneau « Options » ici — les filtres restent dans la page
+
+Les Courbes portent pourtant les mêmes filtres que la Liste (sets, slots,
+antiques). Ils ont été descendus dans le tiroir, puis **remontés** : l'écran ne
+porte alors plus qu'un graphe et deux réglages, la page paraît **vide**, et le
+bouton flottant annonce un contenu qu'on ne devine pas.
+
+La Liste, elle, a **3 000 tuiles** à montrer : chaque rangée de filtre lui prend
+un écran de résultats, et la place libérée profite immédiatement.
+
+> ⚠️ **Avoir des filtres ne suffit pas à mériter le panneau.** Il faut aussi
+> que la page ait de quoi remplir la place qu'ils libèrent. C'est ce qui décide
+> de l'appartenance à `pageAPanneau` ([App.tsx](src/App.tsx)) — au même titre
+> que l'Optimiseur, dont les réglages SONT le contenu.
+
 - ⚠️ **Cliquer un point ouvre la rune correspondante**, sous le graphe. On lit
   « ma 12ᵉ meilleure rune vaut 78 % » ; la question suivante est toujours
   « laquelle ? », et il fallait aller la chercher à la main dans la liste.
@@ -392,8 +592,12 @@ Détails :
   - On mémorise le **rang**, jamais les runes : les séries se recalculent à
     chaque changement de filtre ou de mesure, et des runes figées désigneraient
     un point disparu.
-- **Légende sous le graphe** : cliquer un nom **masque/affiche** sa courbe.
-- **Filtres** : sets (`SetFilter`), slot (`SlotFilter`), antiques.
+- **Légende sous le graphe** : en **rangée horizontale** (les entrées côte à
+  côte), **pastille de couleur + nom** uniquement — pas de valeurs. Cliquer un
+  nom **masque/affiche** sa courbe. Composant **partagé avec la Comparaison**,
+  [CurveLegend.tsx](src/components/account/CurveLegend.tsx) (voir plus bas).
+- **Filtres** : sets (`SetFilter`), slot (`SlotFilter`), antiques (`AncientFilter`,
+  le **3 états** commun — voir l'onglet Optimisation).
 - **Nombre de runes** : champ libre (défaut **400**) + **Tout**.
 - **Mode** : **Gemme + meule** / **Meule seule** (voir Optimisation).
 - **Aide « ? »** superposée en coin du graphe (popup fermable au clic extérieur)
@@ -450,7 +654,8 @@ sinon on la prend pour un oubli.
   extraites à la volée (`parseAccountInventory`). **Lu dans la page, jamais
   envoyé.**
 - Filtres identiques à l'onglet **Courbes** (`SetFilter`, `SlotFilter`,
-  « Antiques », nombre de runes), **appliqués à toutes les courbes à la fois**.
+  `AncientFilter` **3 états**, nombre de runes), **appliqués à toutes les courbes
+  à la fois**.
 - ⚠️ Le filtre de sets propose les sets présents **chez moi OU chez un ami** :
   sinon on ne pourrait pas filtrer sur un set qu'on ne possède pas encore.
 - Pas de « gemme + meule / meule seule » : la comparaison porte sur l'**état
@@ -509,8 +714,27 @@ sous-onglet : c'est ce qui permet un bouton unique qui les vide toutes les deux.
     tracé de 1 px. Au-delà de la palette (8 courbes), l'unicité n'est plus
     tenable et le cycle reprend — un doublon entre la 1re et la 9e vaut mieux
     qu'entre deux voisines.
-- **Légende** : pastille + nom + (max · médiane · nb) ; **cliquer le nom
-  masque/affiche** ; la croix (✕) **retire** une courbe importée.
+- **Légende** : **sous le graphe**, en **rangée horizontale** (les entrées côte à
+  côte), réduite à la **pastille de couleur + le nom** — pas de valeurs
+  (max/médiane/nb), qui se lisent au survol du graphe et alourdissaient une zone
+  servant seulement à identifier et masquer les courbes. **Cliquer le nom**
+  masque/affiche ; la croix (✕) **retire** une courbe importée.
+  - ⚠️ **Composant unique**, [CurveLegend.tsx](src/components/account/CurveLegend.tsx),
+    partagé avec l'onglet **Courbes** : les deux affichaient la même pastille,
+    écrite deux fois à la main — celle de Comparaison sans le soin responsive de
+    l'autre (troncature, corps qui suit l'écran). Une seule source évite qu'elles
+    redivergent.
+  - ⚠️ Chaque pastille est une **`ZoneCliquable`** (surface nue), pas un
+    `Bouton` : une légende n'est pas une rangée de boutons encadrés. C'est le
+    seul contrôle de la page qui échappait encore à la librairie ; il n'y a
+    **plus aucun `<button>` custom** dans la Comparaison.
+  - ⚠️ L'exemption tactile passe par **`data-cible-fine`**, pas par un `min-h-0` :
+    la règle des 40 px vit **hors `@layer`** ([index.css](src/index.css)), donc
+    elle bat toute classe utilitaire quelle que soit la spécificité — un `min-h-0`
+    n'y pouvait rien, et l'ancienne légende de Comparaison, sans exemption du
+    tout, était **étirée à 40 px au doigt**. La cible fait déjà toute la largeur
+    de son texte, on ne la rate pas à ~28 px de haut. Même exemption que les
+    boutons du graphe, sans le `cible-tactile` (la largeur du texte suffit).
 - Deux courbes homonymes sont **renommées** (« Ami (2) »), **en tenant compte des
   deux listes à la fois** puisqu'elles cohabitent dans l'onglet Courbes : sinon
   la légende serait illisible et la croix ambiguë.
@@ -543,23 +767,46 @@ nombre de sets visibles sans défilement. Le nom reste en `title` et en
   et non en boutons détachés : les symboles se lisent comme une rangée
   d'icônes du jeu, et l'ensemble tient sur une ligne même avec 25 sets. Seul
   l'**état actif** porte un cadre ; l'inactif est simplement atténué.
-- Multi-sélection ; aucun set coché = aucun filtre.
+- ⚠️ **Liste BLANCHE, tout coché par défaut.** Un set coché est un set
+  **affiché** ; à l'ouverture, tous les présents le sont (tout est montré), et
+  n'en cocher **aucun** revient à **ne rien vouloir voir** (liste vide). C'est la
+  même logique partout dans l'app. (Avant : « aucun coché = aucun filtre » —
+  l'inverse.)
 - **Seuls les sets réellement présents** dans l'inventaire sont proposés : un
-  filtre qui ne peut rien renvoyer n'aide personne.
-- Bouton **« ✕ tout »** pour tout décocher, affiché seulement s'il y a une
-  sélection. **Même gabarit que les pastilles de set** (32 px, même rayon,
-  même bordure) pour ne pas casser la rangée, mais sans fond actif et virant
-  au rouge au survol : c'est une action, pas un set de plus.
+  filtre qui ne peut rien renvoyer n'aide personne. ⚠️ En **Comparaison**, les
+  sets d'un compte d'ami importé **rejoignent la sélection** : sans ça, un set
+  qu'il possède et pas moi serait masqué d'emblée et sa courbe faussée.
+- Bascule **« Tous »** : sélectionne tous les sets présents, ou les
+  déselectionne tous d'un coup (indispensable à vingt-cinq sets). **Tuile EN
+  TÊTE de la même grille**, au même gabarit que les pastilles de set — comme la
+  case « Tous » du jeu — et non un bouton texte greffé à côté de la barre.
+  Icône `Layers` (lucide), pas de nom de set possible pour ce rôle.
+- ⚠️ **Au doigt (`pointer: coarse`), les symboles passent de 18 à 24 px** et leur
+  case de 28 à 36 px : 28 px se visaient mal du pouce. À la souris, inchangé.
 
 ### Filtrer par slot — `SlotFilter`
 
 [SlotFilter.tsx](src/components/account/SlotFilter.tsx), même grammaire visuelle
-que `SetFilter` (hauteur 32 px, même bordure, même bouton « ✕ tout ») pour que
-les deux se lisent comme une seule barre.
+que `SetFilter` (hauteur 32 px, même bordure) pour que les deux se lisent comme
+une seule barre. **Même logique de liste blanche** : les six slots cochés par
+défaut, aucun coché = rien affiché.
 
-Différence assumée : les **six slots sont toujours proposés**, alors que les sets
-se limitent à ceux présents. Un slot sans rune reste une information utile
-(« je n'ai rien en 2 »), là où un set absent n'est qu'un bouton mort.
+- ⚠️ **Pas de bouton « Tout / Rien ».** Six cases se cochent d'un geste ; le
+  raccourci n'y gagnait rien, là où il est utile côté SETS (vingt-cinq).
+- Différence assumée : les **six slots sont toujours proposés**, alors que les
+  sets se limitent à ceux présents. Un slot sans rune reste une information utile
+  (« je n'ai rien en 2 »), là où un set absent n'est qu'un bouton mort.
+
+### ⚠️ Dans le panneau « Options » (mobile), les filtres prennent toute la largeur
+
+Le bloc de filtres est le **même** qu'au desktop (rendu une fois, posé à deux
+endroits selon la largeur). Dans le panneau, il s'étire pour occuper toute la
+largeur, comme les autres popups — au lieu de rester compact, aligné à gauche :
+les **six emplacements se répartissent** sur la ligne (`SlotFilter`), les **cases
+de propriété** remplissent la largeur (une par ligne en mode 2, **grille 2×2** en
+mode 4), et le **tri** occupe toute la largeur. Ciblé par `data-filtres-runes`
+sous `[data-tiroir]` (voir index.css) ; le desktop garde ses contrôles à la
+largeur de leur contenu.
 
 ## Onglet Optimisation — `RunesOptim`
 
@@ -622,29 +869,70 @@ classiques/antiques, héro/légend) et l'**algorithme complet** `best()` sont da
     liste se remplirait toute seule au changement d'unité.
 - **Sets** (`SetFilter`) et **slot** (`SlotFilter`) : mêmes composants que les
   autres onglets.
-- **Runes** (segmenté) : **Toutes** (défaut) · **Antiques uniquement** ·
-  **Aucune antique**.
-  Pourquoi les trois et pas seulement un filtre « antiques » comme dans les
-  autres onglets : les antiques ont leurs **propres tables de max**, donc un
-  potentiel qui **ne se compare pas** à celui d'une rune normale. Les mélanger
-  dans un même classement fausse la lecture des tris « potentiel » et « gain » —
-  on veut pouvoir **écarter** les antiques autant que les isoler.
-  Le compteur et le message de liste vide rappellent le filtre actif
-  (« hors antiques » / « antiques seules »), pour qu'un résultat vide ne passe
-  pas pour une absence de runes.
+- **Runes** — le filtre antique **commun à toutes les pages de runes**,
+  [AncientFilter](src/components/account/AncientFilter.tsx) : **Toutes** (défaut) ·
+  **Antiques uniquement** · **Aucune antique**.
+  - ⚠️ **Trois états PARTOUT, plus une bascule on/off.** La Liste, la Comparaison
+    et les Courbes portaient un simple bouton « Antiques » (garder / masquer) ; il
+    manquait « n'afficher QU'ELLES ». Les antiques ont leurs **propres tables de
+    max**, donc un potentiel et une efficience qui **ne se comparent pas** à ceux
+    d'une rune normale : pouvoir les **isoler** autant que les écarter vaut sur
+    chaque page, pas seulement ici. D'où un `Segmented` à trois crans, **unique et
+    partagé** (le type, les options et `keepAncient` vivent dans le composant).
+  - Le compteur et le message de liste vide rappellent le filtre actif
+    (« hors antiques » / « antiques seules »), pour qu'un résultat vide ne passe
+    pas pour une absence de runes.
 - **Tuiles** : efficience **actuelle**, puis **Héro** et **Légend** avec leur gain
   et l'efficience cible colorée **vert** (au-dessus de l'actuelle) / **rouge** (en
   dessous — seulement hors filtre de réserve, voir `noDowngrade`).
   Pagination 60/page.
+  - ⚠️ **DEUX grilles, une par format** (même patron que l'onglet Liste) : sous
+    `lg`, **deux colonnes fixes** ; à partir de `lg`, l'`auto-fill` à 230 px. Sur
+    téléphone, l'`auto-fill` retombait toujours sur **une** colonne (une rune par
+    écran) ; les deux colonnes tiennent jusqu'à ~360 px de large.
+  - ⚠️ **Rendu resserré `etroit`** sous `lg` — police (`text-nano` au lieu de
+    `text-xs`/`text-micro`) et cadre de rune (**34 px** au lieu de 46) réduits, pour
+    que la tuile tienne à ~175 px sans se disloquer. Pas sous 30 px : le symbole de
+    set gravé cesse de se reconnaître. `useMediaQuery(SOUS_LG)` est lu **une fois**
+    par la liste et passé en prop — un lecteur par tuile poserait soixante
+    écouteurs `matchMedia` pour la même réponse.
 - **Rotation animée** des cadres, même mécanique que l'onglet Liste (clé
   positionnelle + `SPIN`).
 - **Détail au clic** : plan **« Actuel | Optimisé »** (`OptimPlanBox`) — substats
   actuels à gauche (base blanche + meule orange), optimisés à droite avec **seul ce
   qui change en violet** (grind posé ou 💎 gemme/proc max).
-- **Aide « ? »** sur la ligne des filtres (popup fermable au clic extérieur).
-  Elle détaille les deux modes, le choix de la gemme, le gain, **le palier** (ce
-  qu'il mesure et sa reconversion), **les icônes marteau/gemme** du plan, et le
-  filtre de réserve.
+- **Aide « ? »** sur la ligne des filtres — le composant partagé
+  [HelpPopover](src/components/HelpPopover.tsx) (bulle à la souris, **panneau
+  montant** au doigt), voir l'onglet Courbes § « L'aide a DEUX supports ». Elle
+  détaille les deux modes, le choix de la gemme, le gain, **le palier** (ce qu'il
+  mesure et sa reconversion), **les icônes marteau/gemme** du plan, et le filtre
+  de réserve.
+
+#### ⚠️ Le panneau « Options » (mobile) ne prend que quatre contrôles
+
+Comme la Liste, l'Optimisation gagne le bouton « Options » de la barre de nav sur
+téléphone (`pageAPanneau` dans [App.tsx](src/App.tsx) — les vues qui étalent une
+**grille de tuiles** y ont droit, pas le résumé ni les courbes). Mais **seuls
+quatre** contrôles y descendent : **palier**, **gemme + meule / meule seule**,
+**filtre antique** et **« Faisable avec ma réserve »**. **Sets, slot, tri et
+l'aide restent dans la page**, à tous les formats.
+
+- Les quatre sont écrits **une fois** (`optionsControls`) et posés à deux
+  endroits : **en ligne au bureau** (`hidden lg:flex`), **dans le panneau au
+  doigt** (`MobileSheet`). L'argument `large` élargit les segmentés à toute la
+  largeur du panneau (`size="lg"`) ; en ligne ils restent serrés.
+- ⚠️ **Dans le panneau, tout occupe la largeur — le bouton « Faisable » aussi.**
+  Les segmentés sont pleins (`size="lg"`) ; « Faisable avec ma réserve » prend
+  donc lui aussi toute la colonne (`pleineLargeur={large}`), sinon il pendait
+  seul, à la largeur de son texte, sous des contrôles pleins. En ligne au bureau
+  (`large` faux) il reste serré.
+- ⚠️ **Le filtre antique passe en `dense` sous le panneau.** En `lg`, ses trois
+  crans se partagent la largeur à égalité et « Antiques uniquement » débordait
+  son tiers (que `whitespace-nowrap` interdisait de couper) ; `AncientFilter`
+  active donc `dense` dès `size="lg"` (texte réduit, retour à la ligne autorisé),
+  voir [AncientFilter](src/components/account/AncientFilter.tsx).
+- ⚠️ Au **bureau, rien ne change** : les quatre restent visibles dans la rangée
+  de filtres. Le panneau n'existe que sous `lg`.
 
 ### « Faisable avec ma réserve » — le filtre qui regarde le sac
 

@@ -3,6 +3,7 @@ import { ArrowRight } from 'lucide-react';
 import { StatRow } from '../lib/stats';
 import { CAPPED_STATS } from '../lib/effects';
 import { displayedTotal, useOvercapDisplay } from '../hooks/useOvercapDisplay';
+import { ZoneCliquable } from '../ui';
 
 // Nombres compacts (39051 → « 39 051 »).
 function fmt(n: number): string {
@@ -36,22 +37,27 @@ export default function StatPanel({ stats, spdCible = null }: Props) {
   const showOvercap = useOvercapDisplay();
 
   return (
-    <div
-      role="button"
-      tabIndex={0}
+    // ⚠️ `imbrique` : ce panneau est posé DANS la fiche d'un monstre, elle-même
+    // cliquable par endroits — un `<button>` dans un `<button>` est du HTML
+    // invalide. Le composant remet à la main le focus clavier et l'activation à
+    // Entrée/Espace, que le navigateur donnait gratuitement. Voir ZoneCliquable.
+    <ZoneCliquable
+      imbrique
       onClick={() => setShowTotal((v) => !v)}
-      onKeyDown={(e) => {
-        if (e.key === 'Enter' || e.key === ' ') {
-          e.preventDefault();
-          setShowTotal((v) => !v);
-        }
-      }}
       title={showTotal ? 'Afficher base + bonus' : 'Afficher le total'}
       aria-pressed={showTotal}
+      // ⚠️ Rembourrage réduit au doigt : le panneau porte HUIT lignes, et
+      // chaque pixel de marge s'y multiplie par huit.
       className={`rounded-lg border border-border bg-panel/50 p-3 self-start ${PANEL_WIDTH} cursor-pointer
-                 transition hoverable:border-accent`}
+                 transition hoverable:border-accent compact:p-2`}
     >
-      <table className="w-full text-[12px]">
+      {/* ⚠️ **Resserré d'un cran au doigt.** Huit lignes à 12 px plus 8 px
+          d'interligne faisaient un bloc de ~190 px de haut : il pesait plus lourd
+          que les trois monstres au-dessus, alors qu'il ne fait que les détailler.
+          Le texte descend à 11 px et l'interligne de moitié — le nom du monstre
+          reste au-dessus, ce qui remet le panneau à sa place dans la hiérarchie.
+          À la souris, rien ne change : la place ne manque pas. */}
+      <table className="w-full text-xs compact:text-micro">
         <tbody>
           {stats.map((row) => {
             // ⚠️ Le plafond de 100 % (Taux Crit/RES/Précision) n'a de sens à
@@ -61,19 +67,22 @@ export default function StatPanel({ stats, spdCible = null }: Props) {
             const greenOrRed = atCap ? 'text-red-500' : 'text-good';
             return (
               <tr key={row.key} className="border-b border-border/40 last:border-0">
-                <td className="py-1 pr-2 text-ink-dim">{row.label}</td>
+                <td className="py-1 pr-2 text-ink-dim compact:py-0.5">{row.label}</td>
                 {showTotal ? (
-                  <td colSpan={2} className={`py-1 text-right font-mono font-semibold tabular-nums ${greenOrRed}`}>
+                  <td
+                    colSpan={2}
+                    className={`py-1 text-right font-mono font-semibold tabular-nums compact:py-0.5 ${greenOrRed}`}
+                  >
                     {fmt(displayedTotal(row.key, row.total, showOvercap))}
                     {row.suffix}
                   </td>
                 ) : (
                   <>
-                    <td className="py-1 pr-3 text-right font-mono font-semibold text-ink tabular-nums">
+                    <td className="py-1 pr-3 text-right font-mono font-semibold text-ink tabular-nums compact:py-0.5">
                       {fmt(row.base)}
                       {row.suffix}
                     </td>
-                    <td className="py-1 text-left font-mono font-semibold text-good tabular-nums">
+                    <td className="py-1 text-left font-mono font-semibold text-good tabular-nums compact:py-0.5">
                       {row.bonus > 0 ? `+${fmt(row.bonus)}${row.suffix}` : '—'}
                       {/* Objectif de vitesse : ce que les runes doivent donner
                           pour coller à la valeur saisie dans l'ordre de tour. */}
@@ -94,6 +103,6 @@ export default function StatPanel({ stats, spdCible = null }: Props) {
           })}
         </tbody>
       </table>
-    </div>
+    </ZoneCliquable>
   );
 }

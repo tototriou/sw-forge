@@ -1,6 +1,90 @@
-# Instructions pour l'agent (Claude Code) sur ce dépôt
+# SW Forge — consignes
 
-## Déclarer l'application d'un skill avant d'agir
+Boîte à outils Summoners War. React + TypeScript + Vite + Tailwind, 100 % local.
+
+📐 **Où se trouve quoi : [ARCHITECTURE.md](ARCHITECTURE.md).** Le consulter
+**avant** de chercher dans la codebase — il donne, par page, les fichiers à
+ouvrir. Ne pas explorer `src/` à l'aveugle.
+
+## Travail
+
+- **Français partout** : réponses, commits, libellés d'interface, commentaires,
+  specs (`spec/`) et skills (`.claude/skills/`) — même un diff isolé de
+  quelques lignes.
+- **La spec avant le code.** Lire le `spec/` de la zone touchée avant de coder,
+  la mettre à jour dans le **même commit**. Index : [spec/README.md](spec/README.md)
+  — c'est là que vivent les conventions produit détaillées (interface,
+  persistance, releases…), pas ici : ce fichier-ci reste le résumé chargé
+  automatiquement à chaque session.
+- **Tests ciblés** (`node tests/run.mjs`) pendant le travail. La suite complète
+  seulement au moment de publier une version.
+- **Branches `forge/<sujet>`**, jamais `release/x.y.z` : le numéro se décide à la
+  fusion.
+- **Toute page ou section ajoutée / renommée / supprimée** se répercute sur
+  l'accueil et sur la nav de `App.tsx`, dans le même commit.
+- **Une décision prise ensemble s'applique jusqu'au bout.** Si le chantier dérive
+  et qu'une étape validée reste en attente, le dire explicitement.
+- **Commits atomiques — un commit = une chose reviewable.** Jamais un
+  fourre-tout de fin de tâche qui regroupe tout ce qui a été touché depuis le
+  dernier commit sous prétexte que c'est la même « session » de travail. Un
+  changement qui touche plusieurs fichiers pour UNE SEULE raison logique (ex.
+  renommer un champ dans l'écran ET la recette ET les scripts CLI) reste UN
+  commit — l'atomicité se juge sur la cohérence du POURQUOI, pas sur le nombre
+  de fichiers. Quand plusieurs sujets indépendants ont été traités dans le même
+  tour de conversation, proposer/faire PLUSIEURS commits, pas un seul.
+- **Un type partagé entre l'écran et un script a PLUSIEURS constructeurs**
+  (ex. `OptimizerRecipe`/`recipeToSearchParams.ts`). Un champ ajouté ou
+  renommé doit être répercuté dans TOUS — `tsc` ne détecte JAMAIS un champ
+  oublié dans l'un d'eux (reste un accès optionnel valide). Avant de
+  considérer un champ ajouté/renommé comme terminé : `grep -rn` du nom du
+  type/champ sur TOUT le dépôt (`src/` ET `scripts/` ET `tests/`), pas
+  seulement le fichier qu'on vient d'éditer. Détail : [spec/README.md](spec/README.md),
+  « Conventions communes ».
+
+## Interface
+
+- **Deux formats de premier rang** : téléphone et ordinateur. Aucun n'est le cas
+  dégradé de l'autre — **une correction destinée à l'un ne touche pas l'autre**.
+- **Rien de custom.** Tout contrôle vient de `src/ui/`. On n'ajoute à la
+  librairie que quand un **axe** manque, jamais une variante de plus.
+- ⚠️ **Un clic ne déplace jamais ce qu'on vient de cliquer.** La place de ce qui
+  s'ouvre est réservée d'avance, ou bien ce qui s'ouvre sort du flux (flottant,
+  dialogue, panneau). Détail et exceptions : [spec/shared/design.md](spec/shared/design.md).
+- **Contours : 1 px, et un seul.** Jamais deux superposés. Vaut pour les éléments
+  d'**interface** ; runes, artéfacts et reliques se marquent comme dans le jeu.
+- **Grammaire des modales** : titre en haut à gauche, croix en haut à droite,
+  actions en bas à droite (empilées pleine largeur si elles ne tiennent pas sur
+  une ligne), corps qui prend toute la largeur ou centré.
+- **Les libellés sont ceux du jeu**, jamais reformulés.
+- **Jamais un `confirm()` dont OK détruit** : le défaut est l'action sans perte.
+- **Aucune couleur Tailwind native**, aucune valeur en dur : tout passe par les
+  tokens ([spec/shared/design.md](spec/shared/design.md)).
+- **Passe responsive en cours** — ne pas rustiner le mobile écran par écran.
+
+Détail complet des conventions produit (persistance, réglages, champs
+numériques, etc.) : [spec/README.md](spec/README.md), section « Conventions
+communes ».
+
+## Vérifier
+
+Vérification standard avant de considérer un changement de code terminé,
+dans cet ordre :
+
+```
+npx tsc --noEmit     # types
+npm test              # vérifications ciblées
+npm run build         # Tailwind n'émet que ce qu'il trouve dans le SOURCE
+```
+
+⚠️ Une classe Tailwind « correcte » dans le TSX peut n'être **jamais émise**
+(`[&>*]:w-full` ne l'a pas été). Quand un style ne s'applique pas, vérifier dans
+le **CSS construit**, pas dans le composant. Pour un algorithme de
+recherche/optimisation combinatoire, voir en plus la checklist dédiée du skill
+`algo-verify`.
+
+## Consignes pour l'agent (Claude Code)
+
+### Déclarer l'application d'un skill avant d'agir
 
 Quand un skill (`.claude/skills/*` ou un skill intégré, ex. `artifact-design`)
 s'applique à l'action qui va suivre, dire en **une ligne** comment il
@@ -11,21 +95,15 @@ Exemple : *« algo-verify s'applique ici : ce script ad hoc appelle
 `buildBuckets`/`pairBuckets` directement, je vérifie sa fidélité au vrai
 chemin de prod avant de faire confiance à son résultat. »*
 
-**Pourquoi** : repris du skill externe `design-taste-frontend`
-(`.agents/skills/`, section « Design Read » — une phrase déclarée avant de
-générer du code). Sans cette ligne, invoquer un skill une fois en tête de
-tâche peut être traité — à tort — comme suffisant pour toute la tâche, alors
-que le déclencheur d'un skill est souvent plus fin qu'« une fois par
-tâche » (ex. `algo-verify` se redéclenche à CHAQUE script ad hoc qui touche
-`runeBuildOptim.ts`, pas une seule fois pour la conversation).
+Sans cette ligne, invoquer un skill une fois en tête de tâche peut être traité
+— à tort — comme suffisant pour toute la tâche, alors que le déclencheur d'un
+skill est souvent plus fin qu'« une fois par tâche » (ex. `algo-verify` se
+redéclenche à CHAQUE script ad hoc qui touche `runeBuildOptim.ts`, pas une
+seule fois pour la conversation). À appliquer au moment précis où une action
+qualifie pour un skill déjà invoqué ou non (nouveau script, nouvelle
+vérification, nouveau rendu visuel…), écrit AVANT l'action elle-même.
 
-**Comment l'appliquer** : au moment précis où une action qualifie pour un
-skill déjà invoqué ou non (nouveau script, nouvelle vérification, nouveau
-rendu visuel…), écrire la ligne AVANT l'action elle-même, pas après coup
-dans un résumé. Vaut pour tout skill dont la section « Quand ce skill
-s'applique » désigne une granularité plus fine que la tâche globale.
-
-## Windows : `TaskStop` ne tue pas le vrai process
+### Windows : `TaskStop` ne tue pas le vrai process
 
 Pour libérer un port (ex. le serveur de dev bloqué par un process
 précédent), `TaskStop` ne termine que le wrapper/shell — le vrai
@@ -38,7 +116,7 @@ Vérifier ensuite que le port est bien libre (`try { Get-NetTCPConnection
 -LocalPort <port> -State Listen -ErrorAction Stop } catch { 'PORT_FREE' }`)
 avant de relancer `npm run dev`.
 
-## Rendu visuel demandé, aucun outil de pilotage de navigateur disponible
+### Rendu visuel demandé, aucun outil de pilotage de navigateur disponible
 
 Si l'environnement ne fournit aucun outil de pilotage de navigateur
 (Playwright/`chromium-cli`/etc.) au moment où l'utilisateur demande un rendu
@@ -50,61 +128,3 @@ design réels extraits de `tailwind.config.js`/`src/index.css`, structure de
 composant réelle) reste un repli honnête acceptable si l'utilisateur ne
 souhaite pas mettre en place l'outil, mais ne doit jamais être le choix par
 défaut silencieux.
-
-## Un type partagé entre l'écran et un script a PLUSIEURS constructeurs
-
-Règle déjà écrite dans [spec/README.md](spec/README.md), « Conventions
-communes », mais ce fichier n'est PAS chargé automatiquement contrairement
-à celui-ci — un pointeur ici pour qu'elle reste présente à chaque session
-plutôt que dépendante du hasard d'aller la relire.
-
-Un champ ajouté à un type consommé par PLUSIEURS constructeurs (l'écran ET
-un script CLI, ex. `OptimizerRecipe`/`recipeToSearchParams.ts`) doit être
-répercuté dans TOUS — `tsc` ne détecte JAMAIS un champ oublié dans l'un
-d'eux (reste un accès optionnel valide). Incident vécu deux fois : une fois
-avec `exhaustiveSearch` (voir `spec/README.md`), une fois en renommant
-`exploreAll` (voir le skill `optimizer-field-propagation`, créé
-spécifiquement pour l'Optimizer — cette règle-ci est la version générale,
-valable pour tout format exportable/rejouable ailleurs dans l'app : RTA,
-Siège, etc.). Avant de considérer un champ ajouté/renommé comme terminé :
-`grep -rn` du nom du type/champ sur TOUT le dépôt (`src/` ET `scripts/` ET
-`tests/`), pas seulement le fichier qu'on vient d'éditer.
-
-## Vérification standard avant de considérer un changement de code terminé
-
-`npx tsc --noEmit`, `npm test`, `npm run build` — les trois, dans cet
-ordre, avant de rapporter un changement comme fini. Déjà la pratique
-constante de cette session (algorithmes, UI, scripts CLI confondus) ; formalisé
-ici pour ne pas dépendre du souvenir de l'avoir fait la fois précédente. Pour
-un algorithme de recherche/optimisation combinatoire, voir en plus la
-checklist dédiée du skill `algo-verify`.
-
-## Langue
-
-Code, commentaires, specs (`spec/`) et skills (`.claude/skills/`) : en
-français, comme le reste du dépôt — même un diff isolé de quelques lignes.
-
-## Commits atomiques — un commit = une chose reviewable
-
-Chaque commit doit correspondre à UN changement logique explicable en une
-phrase — jamais un fourre-tout de fin de tâche qui regroupe tout ce qui a
-été touché depuis le dernier commit sous prétexte que c'est la même
-« session » de travail.
-
-⚠️ **Incident vécu** : le commit `docs(agent): CLAUDE.md, skill
-optimizer-field-propagation, mise à jour algo-verify/optimizer-perf-testing`
-mélangeait trois changements indépendants (création de `CLAUDE.md`,
-création d'un nouveau skill, correction de deux skills existants face au
-code actuel) — chacun aurait mérité son propre commit, avec son propre
-message précis. La discipline avait été respectée en tout début de session
-(des commits scindés par sujet) puis abandonnée progressivement au profit
-d'un seul commit groupé à la demande « commit » de fin de tour.
-
-**Comment l'appliquer** : quand plusieurs sujets indépendants ont été
-traités dans le même tour de conversation et que l'utilisateur demande de
-committer, proposer/faire PLUSIEURS commits (un par sujet), pas un seul —
-même si ça veut dire enchaîner 2-3 `git add`/`git commit` à la suite plutôt
-qu'un seul. Un changement qui touche plusieurs fichiers pour UNE SEULE
-raison logique (ex. renommer un champ dans l'écran ET la recette ET les
-scripts CLI) reste UN commit — l'atomicité se juge sur la cohérence du
-POURQUOI, pas sur le nombre de fichiers.

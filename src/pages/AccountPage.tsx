@@ -1,17 +1,26 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { AnimatePresence } from 'framer-motion';
-import { Search, Copy, Star } from 'lucide-react';
-import GameIcon from '../components/GameIcon';
+import { Search, Copy, Star, CircleUserRound } from 'lucide-react';
+import InventaireIcon from '../components/InventaireIcon';
 import { BoxItem } from '../lib/applyAccount';
-import { ELEMENTS, ElementKey, Monster, RuneDetail, ArtifactDetail, CraftLine } from '../types';
+import {
+  ELEMENTS,
+  STAR_OPTIONS,
+  ElementKey,
+  Monster,
+  RuneDetail,
+  ArtifactDetail,
+  CraftLine,
+} from '../types';
 import { LoadState } from '../hooks/useMonsters';
 import ElementIcon from '../components/ElementIcon';
-import MonsterCard from '../components/MonsterCard';
+import MonsterCard, { SEUIL_ANIMATION_GRILLE } from '../components/MonsterCard';
+import Pager from '../components/account/Pager';
 import { ELEMENT_FILTER_STYLES } from '../components/elementStyles';
 import RunesSection from '../components/account/RunesSection';
 import ArtifactsSection from '../components/account/ArtifactsSection';
 import { useStickyState } from '../hooks/useStickyState';
-import Segmented from '../components/Segmented';
+import Segmented from '../ui/Segmented';
 import { MonsterSortMode, comparateurMonstres } from '../lib/monsterSort';
 import {
   autreForme,
@@ -20,11 +29,19 @@ import {
   sansDoublonDeTransformation,
 } from '../lib/monsterForms';
 import MonsterDetailDialog from '../components/MonsterDetailDialog';
+import MobileSheet from '../ui/MobileSheet';
+import Champ from '../ui/Champ';
+import Pastille from '../ui/Pastille';
+import type { AccountView } from '../App';
 
 type Sub = 'monstres' | 'runes' | 'artefacts';
 
 interface Props {
-  sub: Sub; // sous-section pilotée par le dropdown de nav (« Mon compte »)
+  sub: Sub; // inventaire courant, piloté par la barre latérale
+  // Vue à l'intérieur de l'inventaire (Résumé, Liste, Courbes…).
+  // ⚠️ Elle vient de l'URL, plus d'un état local : c'est ce qui permet à la
+  // barre latérale de la porter et à un lien direct de fonctionner.
+  vue: AccountView;
   box: BoxItem[];
   runes: RuneDetail[];
   artifacts: ArtifactDetail[];
@@ -36,6 +53,9 @@ interface Props {
   // Bestiaire COMPLET. Sert à retrouver la seconde forme d'un monstre
   // transformable, que la box ne contient pas forcément.
   allMonsters?: Monster[];
+  // Tiroir d'actions mobile — piloté par la barre supérieure (voir App.tsx).
+  menuOuvert: boolean;
+  onFermerMenu: () => void;
 }
 
 // Un monstre unique de la box + son nombre d'exemplaires possédés.
@@ -45,10 +65,29 @@ interface BoxEntry {
 }
 
 // Sous-section « Box de monstres » (tous les 6★, dédupliqués, filtrables).
-function MonsterBoxSection({ box, allMonsters = [] }: { box: BoxItem[]; allMonsters?: Monster[] }) {
+function MonsterBoxSection({
+  box,
+  allMonsters = [],
+  menuOuvert,
+  onFermerMenu,
+}: {
+  box: BoxItem[];
+  allMonsters?: Monster[];
+  menuOuvert: boolean;
+  onFermerMenu: () => void;
+}) {
   const [query, setQuery] = useStickyState('box.query', '');
-  const [activeElements, setActiveElements] = useStickyState<Set<ElementKey>>('box.elements', new Set());
-  const [activeStars, setActiveStars] = useStickyState<Set<number>>('box.stars', new Set());
+  // ⚠️ **Liste BLANCHE, tout coché par défaut** — même règle que les filtres de
+  // runes : une pastille cochée est AFFICHÉE, n'en cocher aucune revient à ne
+  // rien vouloir voir.
+  const [activeElements, setActiveElements] = useStickyState<Set<ElementKey>>(
+    'box.elements',
+    new Set(ELEMENTS.map((el) => el.key))
+  );
+  const [activeStars, setActiveStars] = useStickyState<Set<number>>(
+    'box.stars',
+    new Set(STAR_OPTIONS)
+  );
   const [dupesOnly, setDupesOnly] = useStickyState('box.dupes', false);
   // ⚠️ Défaut : l'ordre du JEU. C'est celui qu'on a en tête en parcourant sa
   // collection ; l'alphabétique sert à retrouver UN monstre dont on connaît le
@@ -58,6 +97,9 @@ function MonsterBoxSection({ box, allMonsters = [] }: { box: BoxItem[]; allMonst
   // Fiche ouverte. ⚠️ État LOCAL et non persisté : rouvrir la page sur une fiche
   // qu'on avait consultée la veille serait déroutant.
   const [fiche, setFiche] = useState<Monster | null>(null);
+  // Page courante. ⚠️ Non persistée : revenir sur la box en page 5 serait
+  // déroutant. Elle se remet à 0 dès qu'un filtre change (voir plus bas).
+  const [page, setPage] = useState(0);
 
   function toggleElement(k: ElementKey) {
     setActiveElements((prev) => {
@@ -135,34 +177,112 @@ function MonsterBoxSection({ box, allMonsters = [] }: { box: BoxItem[]; allMonst
         const noms = [e.monster.name, jumeau?.name].filter(Boolean) as string[];
         if (!noms.some((n) => n.toLowerCase().includes(q))) return false;
       }
-      if (activeElements.size && !activeElements.has(e.monster.element)) return false;
-      if (activeStars.size && !(e.monster.naturalStars != null && activeStars.has(e.monster.naturalStars)))
-        return false;
+      if (!activeElements.has(e.monster.element)) return false;
+      // ⚠️ Un monstre SANS grade naturel échappe au filtre d'étoiles : aucune
+      // case ne peut le désigner, le masquer serait le rendre introuvable.
+      if (e.monster.naturalStars != null && !activeStars.has(e.monster.naturalStars)) return false;
       if (dupesOnly && e.count < 2) return false;
       if (secondOnly && !e.monster.secondAwaken) return false;
       return true;
     });
   }, [entries, query, activeElements, activeStars, dupesOnly, secondOnly, allMonsters]);
 
+  // Pagination — contrairement au bestiaire, la box n'est PAS bornée : un compte
+  // entier fait des centaines de 6★, toutes rendues d'un coup, et l'animation de
+  // disposition (FLIP) saccade à chaque filtre. On découpe donc en pages, comme
+  // le bestiaire et avec la même taille, pour une sensation identique.
+  const PAGE = 60;
+  const pageCount = Math.max(1, Math.ceil(filtered.length / PAGE));
+  const safePage = Math.min(page, pageCount - 1);
+  const pageItems = filtered.slice(safePage * PAGE, safePage * PAGE + PAGE);
+  // ⚠️ Au-delà du seuil, l'animation est coupée pour toute la page — voir
+  // SEUIL_ANIMATION_GRILLE. Une page pleine (60) devient donc instantanée, une
+  // dernière page courte garde le fondu.
+  const anime = pageItems.length <= SEUIL_ANIMATION_GRILLE;
+
+  // Retour en première page dès que le RÉSULTAT change : rester en page 5 après
+  // un filtre qui n'en rend qu'une laisserait un écran vide, lu comme « aucun
+  // résultat ».
+  useEffect(() => {
+    setPage(0);
+  }, [query, activeElements, activeStars, dupesOnly, secondOnly, sortMode]);
+
+  // Les rangées de filtres, rendues une seule fois et posées à DEUX endroits
+  // selon la largeur : dans la page au-dessus de `lg`, dans le tiroir en
+  // dessous. C'est le même JSX — deux copies auraient divergé.
+  const filtres = (
+    <>
+        {/* Filtre élément — la teinte de l'élément est portée par l'appelant
+            (tokens partagés avec le Bestiaire), pas par la librairie. */}
+        <div className="flex flex-wrap items-center gap-2">
+          <span className="label mr-1">Élément</span>
+          {ELEMENTS.filter((el) => el.key !== 'unknown').map((el) => (
+            <Pastille
+              key={el.key}
+              actif={activeElements.has(el.key)}
+              couleurs={ELEMENT_FILTER_STYLES[el.key]}
+              onClick={() => toggleElement(el.key)}
+              icone={<ElementIcon element={el.key} size={15} />}
+              libelle={el.label}
+            />
+          ))}
+        </div>
+
+        {/* Filtre rareté naturelle + doublons + 2A.
+            ⚠️ **Un seul style actif pour toute la rangée** — le jaune des
+            étoiles. Chaque bouton avait le sien (bleu-violet pour Doublons,
+            doré sombre pour 2A) : trois surbrillances différentes dans une même
+            rangée se lisent comme trois natures de filtre différentes, alors
+            qu'ils font tous la même chose. */}
+        <div className="flex flex-wrap items-center gap-2">
+          <span className="label mr-1">Nat</span>
+          {[5, 4, 3, 2].map((s) => (
+            <Pastille
+              key={s}
+              actif={activeStars.has(s)}
+              onClick={() => toggleStar(s)}
+              className="font-mono"
+              libelle={`${s}★`}
+            />
+          ))}
+          <Pastille
+            actif={dupesOnly}
+            onClick={() => setDupesOnly((v) => !v)}
+            className="ml-1"
+            icone={<Copy size={13} />}
+            libelle="Doublons"
+          />
+          <Pastille
+            actif={secondOnly}
+            onClick={() => setSecondOnly((v) => !v)}
+            icone={<Star size={13} />}
+            libelle="2A"
+            title="Monstres à second éveil (double éveil)"
+          />
+        </div>
+    </>
+  );
+
   return (
     <div>
-      <p className="font-mono text-ink-dim text-xs mb-4">
+      <p className="mb-4 font-mono text-ink-dim text-xs">
         {entries.length} monstre{entries.length > 1 ? 's' : ''} différent{entries.length > 1 ? 's' : ''}
         {box.length !== entries.length && ` · ${box.length} au total`} · 6★
       </p>
 
+      {/* ⚠️ La RECHERCHE et le TRI restent visibles ; les trois rangées de
+          filtres (élément, étoiles, doublons/2A) passent dans le tiroir sous
+          `lg`. Elles occupaient quatre lignes avant la première carte sur un
+          téléphone — plus que la grille qu'elles filtrent. */}
       <div className="flex flex-col gap-3 mb-4">
         <div className="flex flex-wrap items-center gap-2">
-          <div className="relative max-w-xs flex-1">
-            <Search size={15} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-ink-dim" />
-            <input
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-              placeholder="Rechercher un monstre…"
-              className="w-full bg-panel border border-border rounded-lg pl-8 pr-3 py-1.5 text-[13px]
-                         text-ink outline-none focus:border-accent"
-            />
-          </div>
+          <Champ
+            icone={<Search size={15} />}
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder="Rechercher un monstre…"
+            classNameConteneur="max-w-xs flex-1"
+          />
 
           {/* ⚠️ Un contrôle à CRAN (`Segmented`) et non une pastille : les deux
               ordres s'excluent. Et il est posé à côté de la RECHERCHE, pas dans
@@ -189,105 +309,65 @@ function MonsterBoxSection({ box, allMonsters = [] }: { box: BoxItem[]; allMonst
           />
         </div>
 
-        {/* Filtre élément */}
-        <div className="flex flex-wrap items-center gap-2">
-          <span className="label mr-1">Élément</span>
-          {ELEMENTS.filter((el) => el.key !== 'unknown').map((el) => {
-            const active = activeElements.has(el.key);
-            return (
-              <button
-                key={el.key}
-                data-active={active}
-                onClick={() => toggleElement(el.key)}
-                // L'opacité est le marqueur, sans ombre — voir design.md.
-                className={`flex items-center gap-1.5 rounded-full border bg-panel px-3 py-1 text-[12.5px] font-semibold
-                  transition select-none ${ELEMENT_FILTER_STYLES[el.key]}
-                  ${active ? '' : 'opacity-70 hoverable:opacity-100'}`}
-              >
-                <ElementIcon element={el.key} size={15} />
-                {el.label}
-              </button>
-            );
-          })}
-        </div>
-
-        {/* Filtre rareté naturelle + doublons + 2A.
-            ⚠️ **Un seul style actif pour toute la rangée** — le jaune des
-            étoiles. Chaque bouton avait le sien (bleu-violet pour Doublons,
-            doré sombre pour 2A) : trois surbrillances différentes dans une même
-            rangée se lisent comme trois natures de filtre différentes, alors
-            qu'ils font tous la même chose. */}
-        <div className="flex flex-wrap items-center gap-2">
-          <span className="label mr-1">Nat</span>
-          {[5, 4, 3, 2].map((s) => {
-            const active = activeStars.has(s);
-            return (
-              <button
-                key={s}
-                onClick={() => toggleStar(s)}
-                className={`rounded-full border px-3 py-1 text-[12.5px] font-mono font-semibold transition select-none
-                  ${
-                    active
-                      ? 'bg-gradient-to-br from-star to-yellow-200 text-bg border-star'
-                      : 'bg-panel border-border text-ink-dim hoverable:text-ink hoverable:border-accent'
-                  }`}
-              >
-                {s}★
-              </button>
-            );
-          })}
-          <button
-            onClick={() => setDupesOnly((v) => !v)}
-            className={`ml-1 flex items-center gap-1.5 rounded-full border px-3 py-1 text-[12.5px] font-semibold transition select-none
-              ${
-                dupesOnly
-                  ? 'bg-gradient-to-br from-star to-yellow-200 text-bg border-star'
-                  : 'bg-panel border-border text-ink-dim hoverable:text-ink hoverable:border-accent'
-              }`}
-          >
-            <Copy size={13} /> Doublons
-          </button>
-          <button
-            onClick={() => setSecondOnly((v) => !v)}
-            className={`flex items-center gap-1.5 rounded-full border px-3 py-1 text-[12.5px] font-semibold transition select-none
-              ${
-                secondOnly
-                  ? 'bg-gradient-to-br from-star to-yellow-200 text-bg border-star'
-                  : 'bg-panel border-border text-ink-dim hoverable:text-ink hoverable:border-accent'
-              }`}
-            title="Monstres à second éveil (double éveil)"
-          >
-            <Star size={13} /> 2A
-          </button>
-        </div>
+        <div className="hidden lg:contents">{filtres}</div>
       </div>
 
+      <MobileSheet ouvert={menuOuvert} onFermer={onFermerMenu} titre="Filtrer ma box">
+        <div className="flex flex-col gap-3">{filtres}</div>
+      </MobileSheet>
+
       {filtered.length === 0 ? (
-        <p className="text-ink-dim text-[13px]">Aucun monstre ne correspond aux filtres.</p>
+        <p className="text-ink-dim text-sm">Aucun monstre ne correspond aux filtres.</p>
       ) : (
-        // La MÊME grille que le Bestiaire (`MonsterGrid`) : c'est ce gabarit-ci
-        // qui sert de référence aux deux, et non l'inverse.
-        <div className="grid grid-cols-[repeat(auto-fill,minmax(104px,1fr))] gap-2 items-start">
-          {/* `AnimatePresence` comme dans MonsterGrid : sans lui, la carte
-              s'anime à l'entrée mais disparaît sèchement au filtrage — la
-              moitié d'une animation se remarque plus que pas d'animation. */}
-          <AnimatePresence mode="popLayout">
-            {filtered.map((e) => (
-              <MonsterCard
-                key={e.monster.id}
-                monster={e.monster}
-                jumeau={jumeauDeCollab(e.monster, allMonsters)}
-                possede={e.monster.com2usId == null || possedes.has(e.monster.com2usId)}
-                jumeauPossede={e.monster.jumeauCollab == null || possedes.has(e.monster.jumeauCollab)}
-                count={e.count}
-                // Tout est 6★ dans la box : la rangée d'étoiles n'apprendrait
-                // rien et se répéterait 300 fois.
-                showStars={false}
-                onOpen={setFiche}
-              />
-            ))}
-          </AnimatePresence>
-        </div>
+        <>
+          {/* Pagination JUSTE AU-DESSUS de la grille : le sélecteur de page se
+              lit avec les cartes qu'il découpe, pas avec le compteur en tête.
+              Répétée en bas plus loin. Le `Pager` se masque seul à une seule
+              page. */}
+          {pageCount > 1 && (
+            <div className="mb-3 flex justify-end">
+              <Pager page={safePage} pageCount={pageCount} onChange={setPage} />
+            </div>
+          )}
+
+          {/* La MÊME grille que le Bestiaire (`MonsterGrid`) : c'est ce gabarit-ci
+              qui sert de référence aux deux, et non l'inverse.
+              ⚠️ `AnimatePresence` SEULEMENT sous le seuil : au-dessus, les cartes
+              sont des `<div>` ordinaires (voir MonsterCard), l'envelopper ne
+              ferait que retenir dans le DOM les cartes qui sortent. */}
+          <div className="grid grid-cols-[repeat(auto-fill,minmax(min(100%,104px),1fr))] gap-2 items-start">
+            {(() => {
+              const cartes = pageItems.map((e) => (
+                <MonsterCard
+                  key={e.monster.id}
+                  monster={e.monster}
+                  jumeau={jumeauDeCollab(e.monster, allMonsters)}
+                  possede={e.monster.com2usId == null || possedes.has(e.monster.com2usId)}
+                  jumeauPossede={e.monster.jumeauCollab == null || possedes.has(e.monster.jumeauCollab)}
+                  count={e.count}
+                  // Tout est 6★ dans la box : la rangée d'étoiles n'apprendrait
+                  // rien et se répéterait 300 fois.
+                  showStars={false}
+                  onOpen={setFiche}
+                  anime={anime}
+                />
+              ));
+              return anime ? (
+                <AnimatePresence mode="popLayout">{cartes}</AnimatePresence>
+              ) : (
+                cartes
+              );
+            })()}
+          </div>
+
+          {/* Répété en bas : après 60 cartes on est loin du haut, et remonter
+              pour cliquer « suivant » découragerait de parcourir. */}
+          {pageCount > 1 && (
+            <div className="mt-6 flex justify-center">
+              <Pager page={safePage} pageCount={pageCount} onChange={setPage} />
+            </div>
+          )}
+        </>
       )}
 
       {/* ⚠️  est cherché dans le bestiaire COMPLET : la box ne contient
@@ -306,6 +386,7 @@ function MonsterBoxSection({ box, allMonsters = [] }: { box: BoxItem[]; allMonst
 
 export default function AccountPage({
   sub,
+  vue,
   box,
   runes,
   artifacts,
@@ -313,6 +394,8 @@ export default function AccountPage({
   loadState,
   hydrating,
   allMonsters,
+  menuOuvert,
+  onFermerMenu,
 }: Props) {
   const empty = box.length === 0 && runes.length === 0 && artifacts.length === 0;
 
@@ -320,11 +403,11 @@ export default function AccountPage({
     return (
       <div className="mt-10 flex flex-col items-center text-center text-ink-dim">
         <div className="mb-3 flex items-center gap-3 opacity-40">
-          <GameIcon name="monster" size={34} />
-          <GameIcon name="rune" size={34} />
-          <GameIcon name="artifact" size={34} />
+          <InventaireIcon name="monster" size={34} />
+          <InventaireIcon name="rune" size={34} />
+          <InventaireIcon name="artifact" size={34} />
         </div>
-        <p className="text-[13px]">Chargement de ton compte…</p>
+        <p className="text-sm">Chargement de ton compte…</p>
       </div>
     );
   }
@@ -334,26 +417,56 @@ export default function AccountPage({
       <div className="mt-10 flex flex-col items-center text-center text-ink-dim">
         {/* Les trois icônes du jeu : l'écran vide annonce ce qu'on va y trouver. */}
         <div className="mb-3 flex items-center gap-3 opacity-70">
-          <GameIcon name="monster" size={34} />
-          <GameIcon name="rune" size={34} />
-          <GameIcon name="artifact" size={34} />
+          <InventaireIcon name="monster" size={34} />
+          <InventaireIcon name="rune" size={34} />
+          <InventaireIcon name="artifact" size={34} />
         </div>
-        <p className="text-[15px] font-semibold text-ink">Aucune donnée de compte chargée</p>
-        <p className="mt-1 text-[13px] max-w-sm">
-          Importe ton compte (bouton en haut à droite) pour afficher tes monstres 6★, tes runes et
+        <p className="text-base font-semibold text-ink">Aucune donnée de compte chargée</p>
+        <p className="mt-1 text-sm max-w-sm">
+          Importe ton compte (bouton « Importer un JSON ») pour afficher tes monstres 6★, tes runes et
           tes artéfacts. Active « Garder mon compte » dans le menu ⚙ pour ne pas avoir à le
           redéposer à chaque visite.
         </p>
-        {loadState === 'loading' && <p className="mt-3 text-[12px]">Chargement des monstres…</p>}
+        {loadState === 'loading' && <p className="mt-3 text-xs">Chargement des monstres…</p>}
       </div>
     );
   }
 
   return (
-    <div className="mt-6">
-      {sub === 'monstres' && <MonsterBoxSection box={box} allMonsters={allMonsters} />}
-      {sub === 'runes' && <RunesSection runes={runes} crafts={crafts} />}
-      {sub === 'artefacts' && <ArtifactsSection artifacts={artifacts} />}
+    <div>
+      {/* ⚠️ **Plus d'onglets de navigation ICI.** La page en portait deux
+          rangées sous `lg` — l'inventaire, puis sa vue — soit onze destinations
+          empilées avant le premier résultat, et invisibles tant qu'on n'était
+          pas déjà sur la page. Elles sont passées dans le panneau qu'ouvre
+          l'onglet « Compte » de la barre du bas (voir MobileNavSheet) : une
+          seule liste, sous le pouce, alimentée par les mêmes sections que la
+          barre latérale. Le titre de la barre du haut dit la vue courante. */}
+
+      {sub === 'monstres' && (
+        <MonsterBoxSection
+          box={box}
+          allMonsters={allMonsters}
+          menuOuvert={menuOuvert}
+          onFermerMenu={onFermerMenu}
+        />
+      )}
+      {sub === 'runes' && (
+        <RunesSection
+          runes={runes}
+          crafts={crafts}
+          vue={vue}
+          menuOuvert={menuOuvert}
+          onFermerMenu={onFermerMenu}
+        />
+      )}
+      {sub === 'artefacts' && (
+        <ArtifactsSection
+          artifacts={artifacts}
+          vue={vue}
+          menuOuvert={menuOuvert}
+          onFermerMenu={onFermerMenu}
+        />
+      )}
     </div>
   );
 }

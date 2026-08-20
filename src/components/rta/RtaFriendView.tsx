@@ -8,6 +8,7 @@ import MonsterGear from '../MonsterGear';
 import AccordionGrid from '../AccordionGrid';
 import CategoryRing from './CategoryRing';
 import TurnOrder from './TurnOrder';
+import { Bouton, ZoneCliquable } from '../../ui';
 
 /* --------------------------------------------------------------------------
  * Consultation de la prépa d'un ami
@@ -110,14 +111,17 @@ function CarteAmi({
         </div>
 
         <div className="min-w-0 flex-1">
-          <button
-            type="button"
+          {/* ⚠️ Une ZONE, pas un bouton : c'est la ligne entière de la carte qui
+              déplie le détail. Un cadre ou un fond y ferait un objet de plus sur
+              une carte qui porte déjà un portrait, un nom, une vitesse et des
+              icônes de set. */}
+          <ZoneCliquable
             onClick={hasGear ? onToggle : undefined}
             disabled={!hasGear}
-            className="flex w-full items-center gap-1 text-left disabled:cursor-default"
+            className="flex w-full items-center gap-1"
             title={hasGear ? 'Voir son équipement' : undefined}
           >
-            <span className="text-[12px] font-semibold leading-tight truncate flex-1">
+            <span className="text-xs font-semibold leading-tight truncate flex-1">
               {monster.name}
             </span>
             {/* ⚠️ L'ICÔNE part avec le chiffre. Ne masquer que la valeur laissait
@@ -126,7 +130,7 @@ function CarteAmi({
             {avecVitesses && (
               <>
                 <img src={SPD_ICON} alt="SPD" width={15} height={15} className="flex-none" />
-                <span className="font-mono text-[14px] font-black leading-none text-ink">
+                <span className="font-mono text-sm font-black leading-none text-ink">
                   {total !== null ? total : '—'}
                 </span>
               </>
@@ -137,7 +141,7 @@ function CarteAmi({
                 className={`flex-none text-ink-dim transition-transform ${open ? 'rotate-180' : ''}`}
               />
             )}
-          </button>
+          </ZoneCliquable>
           <div className="mt-1 flex items-center gap-1">
             {(entry.sets ?? []).slice(0, 3).map((s, i) => (
               <RuneIcon key={i} setKey={s} size={16} className="flex-none" />
@@ -242,8 +246,8 @@ export default function RtaFriendView({ vue, onClose }: { vue: RtaVueAmi; onClos
           ) : (
             <RuneIcon setKey={key} size={22} className="flex-none" />
           )}
-          <h3 className="font-display text-[16px] tracking-wide">{sectionLabel(key)}</h3>
-          <span className="font-mono text-ink-dim text-[11px]">{items.length}</span>
+          <h3 className="font-display text-base tracking-wide">{sectionLabel(key)}</h3>
+          <span className="font-mono text-ink-dim text-micro">{items.length}</span>
         </div>
 
         <AccordionGrid
@@ -284,26 +288,29 @@ export default function RtaFriendView({ vue, onClose }: { vue: RtaVueAmi; onClos
         <span className="flex items-center gap-1.5 text-accent">
           <Users size={16} />
         </span>
-        <h2 className="font-display text-[19px] tracking-wide">{titre}</h2>
+        <h2 className="font-display text-lg tracking-wide">{titre}</h2>
         {vue.auteur && vue.nom && (
-          <span className="font-mono text-[11px] text-ink-dim">par {vue.auteur}</span>
+          <span className="font-mono text-micro text-ink-dim">par {vue.auteur}</span>
         )}
-        <span className="font-mono text-[11px] text-ink-dim">
+        <span className="font-mono text-micro text-ink-dim">
           {vue.entries.length} monstre{vue.entries.length > 1 ? 's' : ''}
         </span>
-        <button
+        <Bouton
           onClick={onClose}
-          className="ml-auto flex items-center gap-1.5 text-[12px] text-ink-dim hoverable:text-ink transition"
+          fond="vide"
+          trait="aucun"
+          taille="sm"
+          icone={<X size={14} />}
+          libelle="Fermer"
           title="Fermer la consultation"
-        >
-          <X size={14} /> Fermer
-        </button>
+          className="ml-auto"
+        />
       </div>
 
       {/* ⚠️ Dit à voix haute que rien n'est comparé ni modifié : sans ça, on
           cherche un verdict (« est-ce que je peux jouer ça ? ») qui n'existe pas
           sur cet écran, et on se demande si sa propre prépa a bougé. */}
-      <p className="mb-4 text-[12.5px] leading-relaxed text-ink-dim">
+      <p className="mb-4 text-xs leading-relaxed text-ink-dim">
         Tu regardes la prépa de quelqu'un d'autre. <b className="text-ink">Ta prépa n'a pas bougé</b>{' '}
         et rien n'est comparé à tes monstres.
         {vue.niveau === 'complet' && <> Clique un monstre pour voir ses runes et ses artéfacts.</>}
@@ -312,7 +319,7 @@ export default function RtaFriendView({ vue, onClose }: { vue: RtaVueAmi; onClos
       {/* Dire CE QUI a été partagé, et non seulement ce qui manque : sans ça on
           cherche des runes absentes en croyant à un bug. */}
       {vue.niveau !== 'complet' && (
-        <p className="mb-4 flex items-start gap-2 rounded-lg border border-border bg-panel px-3 py-2 text-[11.5px] leading-relaxed text-ink-dim">
+        <p className="mb-4 flex items-start gap-2 rounded-lg border border-border bg-panel px-3 py-2 text-micro leading-relaxed text-ink-dim">
           <EyeOff size={14} className="mt-[1px] flex-none text-ink-dim" />
           {vue.niveau === 'vitesses' ? (
             <span>
@@ -329,7 +336,7 @@ export default function RtaFriendView({ vue, onClose }: { vue: RtaVueAmi; onClos
       )}
 
       {vue.inconnus.length > 0 && (
-        <p className="mb-4 text-[11.5px] text-warn">
+        <p className="mb-4 text-micro text-warn">
           {vue.inconnus.length} monstre(s) de cette prépa sont absents des données chargées et ne
           sont pas affichés.
         </p>
@@ -342,7 +349,7 @@ export default function RtaFriendView({ vue, onClose }: { vue: RtaVueAmi; onClos
 
       <section className={avecSections ? 'mt-8' : ''}>
         <div className="flex items-baseline gap-x-3 gap-y-1 flex-wrap pb-2.5 mb-4 border-b border-border">
-          <h3 className="font-display text-[17px] tracking-wide">Son ordre de tour</h3>
+          <h3 className="font-display text-lg tracking-wide">Son ordre de tour</h3>
           <span className="font-mono text-ink-dim text-xs">par vitesse combat totale</span>
         </div>
 
@@ -385,7 +392,7 @@ export default function RtaFriendView({ vue, onClose }: { vue: RtaVueAmi; onClos
 function OrdreTransmis({ items }: { items: { monster: Monster; rang?: number }[] }) {
   if (items.length === 0) {
     return (
-      <p className="rounded-xl border border-dashed border-border bg-panel/40 px-3 py-4 text-center text-[12.5px] text-ink-dim">
+      <p className="rounded-xl border border-dashed border-border bg-panel/40 px-3 py-4 text-center text-xs text-ink-dim">
         Ce fichier ne contient pas d'ordre de tour.
       </p>
     );
@@ -403,7 +410,7 @@ function OrdreTransmis({ items }: { items: { monster: Monster; rang?: number }[]
             <span
               className="absolute -top-2 -left-2 z-10 flex items-center justify-center min-w-[20px] h-5 px-1
                          rounded-full bg-accent-soft border border-border
-                         font-mono text-[10px] font-bold text-ink shadow"
+                         font-mono text-micro font-bold text-ink shadow"
             >
               {it.rang ?? i + 1}
             </span>
@@ -430,7 +437,7 @@ function OrdreTransmis({ items }: { items: { monster: Monster; rang?: number }[]
                 />
               </div>
               <span
-                className="w-full text-center text-[11.5px] font-semibold leading-tight truncate"
+                className="w-full text-center text-micro font-semibold leading-tight truncate"
                 title={m.name}
               >
                 {m.name}

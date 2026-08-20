@@ -1,13 +1,17 @@
 import { useMemo, useState } from 'react';
-import { Eye, EyeOff, X } from 'lucide-react';
+import { X } from 'lucide-react';
 import { Monster, RtaEntry } from '../../types';
 import ElementIcon from '../ElementIcon';
 import CategoryRing from './CategoryRing';
-import NumberField from '../NumberField';
+import NumberField from '../../ui/NumberField';
 import { RtaCategory } from '../../hooks/useRtaCategories';
 import RuneIcon from '../RuneIcon';
 import { SPEED_LEADS, speedLeadOf } from '../../lib/speed';
 import { useStickyState } from '../../hooks/useStickyState';
+import { InterrupteurAffichage } from './CategoryBar';
+import { COMPACT, useMediaQuery } from '../../hooks/useMediaQuery';
+import { Bouton, BoutonGroupe, BoutonIcone, Interrupteur } from '../../ui';
+import { ConfirmDialog } from '../../ui/Dialogs';
 
 const SPD_ICON = `${import.meta.env.BASE_URL}stats/spd.png`;
 
@@ -136,6 +140,9 @@ export default function TurnOrder({
   onToggleSpeed,
 }: Props) {
   const [lead, setLead] = useState(0);
+  // Les deux interrupteurs d'affichage sont ceux de la barre de catégories —
+  // même composant, donc même rendu au doigt qu'à la souris.
+  const surMobile = useMediaQuery(COMPACT);
 
   // Leads ajoutés à la main, et leads proposés que l'utilisateur a retirés.
   // ⚠️ Deux listes plutôt qu'une liste modifiable : la prépa change (import,
@@ -164,6 +171,13 @@ export default function TurnOrder({
     ? categories.filter((c) => items.some((it) => c.members.includes(String(it.monster.id))))
     : [];
   const [highlightMovers, setHighlightMovers] = useState(false);
+  // ⚠️ Le retrait d'un lead demande une CONFIRMATION, alors qu'il ne détruit
+  // rien d'irremplaçable — le pourcentage se retape dans le champ « Ajouter ».
+  // Ce qu'on protège ici est plus discret : la rangée se RÉORDONNE au retrait, et
+  // le bouton voisin vient prendre la place de celui qu'on a visé. Un clic
+  // légèrement à côté enlève donc le mauvais lead, et on ne s'en aperçoit
+  // qu'après. Voir spec/README.md — toute suppression se confirme.
+  const [leadASupprimer, setLeadASupprimer] = useState<number | null>(null);
 
   const leads = useMemo(() => {
     const proposes = leadsDeLaPrepa(items);
@@ -207,51 +221,43 @@ export default function TurnOrder({
         </span>
         {leads.map((pct) => {
           const active = lead === pct;
+          // ⚠️ Le dégradé `star` EST le marqueur (c'est le code couleur du lead,
+          // pas l'accent d'interface) : il passe par `classNameActif`, qui
+          // REMPLACE l'habillage du ton au lieu de s'y ajouter.
           return (
-            <span
+            <BoutonGroupe
               key={pct}
-              className={`group inline-flex items-center rounded-full border transition select-none
-                ${
-                  active
-                    ? // Le dégradé `star` EST le marqueur (c'est le code couleur
-                      // du lead, pas l'accent) : pas d'ombre en plus.
-                      'bg-gradient-to-br from-star to-yellow-200 text-bg border-star'
-                    : 'bg-panel border-border text-ink-dim hoverable:text-ink hoverable:border-accent'
-                }`}
-            >
-              <button
-                onClick={() => setLead(active ? 0 : pct)}
-                className="pl-3 pr-1 py-1 text-[12.5px] font-mono font-semibold"
-              >
-                +{pct}%
-              </button>
-              {/* ⚠️ Le × reste VISIBLE. Ne l'afficher qu'au survol laissait un
-                  vide à droite du pourcentage, qu'on lit comme un défaut
-                  d'alignement — et un bouton qui apparaît sous le curseur se
-                  clique par accident. */}
-              <button
-                onClick={() => retirerLead(pct)}
-                aria-label={`Retirer le lead +${pct}%`}
-                title={`Retirer le lead +${pct}%`}
-                className="pr-2 pl-0.5 py-1 opacity-50 transition hoverable:opacity-100 hoverable:text-fire"
-              >
-                <X size={11} strokeWidth={3} />
-              </button>
-            </span>
+              actif={active}
+              onClick={() => setLead(active ? 0 : pct)}
+              classNameActif="border-star bg-gradient-to-br from-star to-yellow-200 text-bg"
+              libelle={<span className="font-mono">+{pct}%</span>}
+              actions={
+                /* ⚠️ Le × reste VISIBLE. Ne l'afficher qu'au survol laissait un
+                   vide à droite du pourcentage, qu'on lit comme un défaut
+                   d'alignement — et un bouton qui apparaît sous le curseur se
+                   clique par accident.
+                   ⚠️ `text-current` : la croix HÉRITE de la couleur de sa pilule
+                   — encre sombre sur la pilule active (dégradé doré), encre
+                   atténuée sur les autres. Lui donner un ton propre la
+                   découperait du fond sur lequel elle est posée. Le voile de
+                   survol est neutralisé pour la même raison : il tacherait le
+                   dégradé au lieu de le désigner. */
+                <BoutonIcone
+                  onClick={() => setLeadASupprimer(pct)}
+                  libelle={`Retirer le lead +${pct}%`}
+                  taille="serre"
+                  icone={<X size={11} strokeWidth={3} />}
+                  className="text-current opacity-50 hoverable:bg-transparent hoverable:text-current hoverable:opacity-100"
+                />
+              }
+            />
           );
         })}
-        <button
-          onClick={() => setLead(0)}
-          className={`rounded-full border px-3 py-1 text-[12.5px] font-semibold transition select-none
-            ${
-              // Fond seul — voir spec/shared/design.md.
-              lead === 0
-                ? 'bg-accent-soft border-border text-ink'
-                : 'bg-panel border-border text-ink-dim hoverable:text-ink'
-            }`}
-        >
-          Sans lead
-        </button>
+        {/* ⚠️ Le MÊME composant que les pilules de lead juste à gauche, sans ses
+            actions : c'est ce qui garantit qu'il ne fait pas une dent de scie au
+            bout de la rangée. Fond seul comme marqueur d'état — la règle vient
+            du composant, rien n'est redit ici. */}
+        <BoutonGroupe actif={lead === 0} onClick={() => setLead(0)} libelle="Sans lead" />
 
         {/* Ajout d'un lead absent de la prépa : il REJOINT la rangée au lieu de
             vivre dans un champ à part — une fois ajouté, il se clique comme les
@@ -267,81 +273,53 @@ export default function TurnOrder({
             allowEmpty
             ariaLabel="Lead de vitesse à ajouter, en pourcentage"
           />
-          <button
+          <Bouton
             onClick={ajouterLead}
             disabled={saisie === null || saisie <= 0}
-            className="px-1 py-0.5 text-[11.5px] font-semibold text-ink-dim underline-offset-2 transition
-                       hoverable:text-ink hoverable:underline disabled:opacity-40 disabled:hover:text-ink-dim
-                       disabled:hover:no-underline"
-          >
-            Ajouter
-          </button>
+            fond="vide"
+            trait="aucun"
+            taille="xs"
+            libelle="Ajouter"
+            className="underline-offset-2 hoverable:underline"
+          />
         </span>
 
         {/* Interrupteurs d'AFFICHAGE, au contact des vignettes qu'ils modifient
             — et non en tête de panneau, où l'on ne fait pas le lien. */}
         {onToggleSpeed && (
-          <button
-            onClick={() => onToggleSpeed(!showSpeed)}
-            aria-pressed={showSpeed}
-            title={
-              showSpeed
-                ? "Masquer les vitesses (l'ordre reste le même)"
-                : 'Réafficher les vitesses'
-            }
-            className={`flex h-7 items-center gap-1.5 rounded-full border px-2.5 text-[12px] transition ${
-              showSpeed
-                ? 'border-border bg-panel text-ink-dim hoverable:text-ink hoverable:border-accent'
-                : // Fond seul — voir spec/shared/design.md.
-                  'border-border bg-accent-soft text-ink'
-            }`}
-          >
-            {showSpeed ? <Eye size={12} /> : <EyeOff size={12} />}
-            Vitesses
-          </button>
+          <InterrupteurAffichage
+            actif={showSpeed}
+            onToggle={() => onToggleSpeed(!showSpeed)}
+            libelle="Vitesses"
+            titreActif="Masquer les vitesses (l'ordre reste le même)"
+            titreInactif="Réafficher les vitesses"
+            surMobile={surMobile}
+          />
+
         )}
 
         {onToggleCategories && (
-          <button
-            onClick={() => onToggleCategories(!categoriesVisible)}
-            aria-pressed={categoriesVisible}
-            title={
-              categoriesVisible
-                ? 'Masquer les couleurs de catégories'
-                : 'Réafficher les couleurs de catégories'
-            }
-            className={`flex h-7 items-center gap-1.5 rounded-full border px-2.5 text-[12px] transition ${
-              categoriesVisible
-                ? 'border-border bg-panel text-ink-dim hoverable:text-ink hoverable:border-accent'
-                : // Fond seul — voir spec/shared/design.md.
-                  'border-border bg-accent-soft text-ink'
-            }`}
-          >
-            {categoriesVisible ? <Eye size={12} /> : <EyeOff size={12} />}
-            Catégories
-          </button>
+          <InterrupteurAffichage
+            actif={categoriesVisible}
+            onToggle={() => onToggleCategories(!categoriesVisible)}
+            libelle="Catégories"
+            titreActif="Masquer les couleurs de catégories"
+            titreInactif="Réafficher les couleurs de catégories"
+            surMobile={surMobile}
+          />
         )}
 
-        <button
-          onClick={() => setHighlightMovers((v) => !v)}
-          role="switch"
-          aria-checked={highlightMovers}
+        {/* ⚠️ Ton `star` : ce réglage ne fait pas qu'être actif, il ALLUME
+            quelque chose à l'écran. La teinte de la piste est celle du
+            surlignage qu'elle déclenche. */}
+        <Interrupteur
+          actif={highlightMovers}
+          onChange={setHighlightMovers}
+          ton="star"
+          libelle="Surligner les changements"
           title="Surligner les monstres dont la place change avec le lead actif"
-          className="ml-1 flex items-center gap-2 select-none"
-        >
-          <span
-            className={`relative inline-flex h-5 w-9 flex-none items-center rounded-full transition-colors
-              ${highlightMovers ? 'bg-star' : 'bg-panel2 border border-border'}`}
-          >
-            <span
-              className={`inline-block h-3.5 w-3.5 rounded-full bg-white shadow transition-transform
-                ${highlightMovers ? 'translate-x-[19px]' : 'translate-x-[3px]'}`}
-            />
-          </span>
-          <span className={`text-[12px] font-semibold ${highlightMovers ? 'text-ink' : 'text-ink-dim'}`}>
-            Surligner les changements
-          </span>
-        </button>
+          className="ml-1"
+        />
       </div>
 
       {/* Rappel des couleurs : sans légende, un anneau coloré ne veut rien dire
@@ -357,47 +335,73 @@ export default function TurnOrder({
         <div className="mb-2 flex flex-wrap items-center gap-x-3 gap-y-1">
           {legende.map((c) => {
             const off = !affichee(c.id);
-            const cliquable = !!onToggleCategorie;
-            const contenu = (
-              <>
-                <span
-                  className="w-2.5 h-2.5 rounded-full flex-none border-2 transition"
-                  style={{
-                    borderColor: c.color,
-                    // Éteinte, la pastille devient un cercle CREUX : la couleur
-                    // reste reconnaissable, le plein dit « affichée ».
-                    backgroundColor: off ? 'transparent' : c.color,
-                  }}
-                />
-                <span className={off ? 'line-through' : ''}>{c.label}</span>
-              </>
+            // Éteinte, la pastille devient un cercle CREUX : la couleur reste
+            // reconnaissable, le plein dit « affichée ».
+            const puce = (
+              <span
+                // ⚠️ 1 px comme tout contour de l'app. À 2 px sur une puce de
+                // 10, le trait mangeait la moitié du disque : la version creuse
+                // et la version pleine se ressemblaient, alors que c'est
+                // justement ce qui distingue une catégorie affichée d'une
+                // catégorie coupée.
+                className="h-2.5 w-2.5 flex-none rounded-full border transition"
+                style={{ borderColor: c.color, backgroundColor: off ? 'transparent' : c.color }}
+              />
             );
-            return cliquable ? (
-              <button
+            const libelle = <span className={off ? 'line-through' : ''}>{c.label}</span>;
+
+            // ⚠️ En LECTURE SEULE (prépa d'un ami), la légende reste un simple
+            // rappel des couleurs : un bouton y promettrait un réglage qui
+            // n'existe pas sur cet écran.
+            if (!onToggleCategorie) {
+              return (
+                <span
+                  key={c.id}
+                  className="inline-flex items-center gap-1.5 text-micro text-ink-dim"
+                >
+                  {puce}
+                  {libelle}
+                </span>
+              );
+            }
+
+            // ⚠️ Sans fond ni trait : cette légende est posée sous l'ordre de
+            // tour, et douze cadres y feraient une seconde barre de filtres
+            // au-dessous de celle du haut. C'est l'ÉTAT DE LA PUCE qui porte
+            // l'information, pas l'habillage du bouton.
+            return (
+              <Bouton
                 key={c.id}
                 onClick={() => onToggleCategorie(c.id)}
+                // ⚠️ `aria-pressed` posé à la main plutôt que par `actif` : ce
+                // dernier peindrait un fond d'accent, or ici l'état se lit à la
+                // PUCE (pleine ou creuse) et au libellé barré. Un fond en plus
+                // ferait un troisième marqueur pour la même information.
                 aria-pressed={!off}
+                fond="vide"
+                trait="aucun"
+                taille="xs"
                 title={off ? `Réafficher « ${c.label} »` : `Masquer « ${c.label} »`}
-                className={`inline-flex items-center gap-1.5 text-[11px] transition ${
-                  off ? 'text-ink-dim opacity-60' : 'text-ink-dim hoverable:text-ink'
-                }`}
-              >
-                {contenu}
-              </button>
-            ) : (
-              <span key={c.id} className="inline-flex items-center gap-1.5 text-[11px] text-ink-dim">
-                {contenu}
-              </span>
+                icone={puce}
+                libelle={libelle}
+                className={`px-0 font-normal ${off ? 'opacity-60' : ''}`}
+              />
             );
           })}
         </div>
       )}
 
       {ordered.length === 0 ? (
-        <div className="rounded-xl border border-dashed border-border/70 py-8 text-center text-ink-dim text-[13px]">
+        <div className="rounded-xl border border-dashed border-border/70 py-8 text-center text-ink-dim text-sm">
           Ajoute des monstres pour visualiser l'ordre de tour.
         </div>
       ) : (
+        // ⚠️ **Grille qui se replie, MÊME rendu qu'en bureau — plus de
+        // défilement latéral.** Une ligne qui défile avait paru juste pour une
+        // SÉQUENCE : replié sur plusieurs rangées, on croyait perdre l'ordre
+        // dans lequel les monstres jouent. Mais le NUMÉRO posé sur chaque carte
+        // porte déjà cet ordre, quel que soit son rang dans la grille — rien ne
+        // se perdait vraiment au retour à la ligne.
         <div className="flex flex-wrap gap-2.5 pb-3">
           {ordered.map((it, i) => {
             const eff = effective(it, lead);
@@ -408,91 +412,194 @@ export default function TurnOrder({
             return (
               <div
                 key={m.id}
+                // ⚠️ Sur MOBILE, le nom rejoint le `title` : il n'a plus de
+                // ligne à lui, mais reste à l'appui long et pour le lecteur
+                // d'écran. Sur bureau il reste écrit — voir plus bas.
                 title={
-                  catsOf(String(m.id)).length > 0
-                    ? catsOf(String(m.id))
-                        .map((c) => c.label)
-                        .join(' · ')
-                    : undefined
+                  surMobile
+                    ? catsOf(String(m.id)).length > 0
+                      ? `${m.name} — ${catsOf(String(m.id))
+                          .map((c) => c.label)
+                          .join(' · ')}`
+                      : m.name
+                    : catsOf(String(m.id)).length > 0
+                      ? catsOf(String(m.id))
+                          .map((c) => c.label)
+                          .join(' · ')
+                      : undefined
                 }
                 // ⚠️ Un monstre qui change de place se signale par son FOND
                 // orange, et rien d'autre. Repeindre la bordure entrait en
                 // concurrence avec l'anneau de catégories : deux informations
                 // au même endroit, on ne lisait plus ni l'une ni l'autre.
-                className={`relative flex-none w-[168px] rounded-xl border border-border p-2 flex flex-col gap-1.5 transition-colors
-                  ${moved ? 'bg-warn/20' : 'bg-panel2'}`}
+                //
+                // ⚠️ **Deux gabarits selon le POINTEUR, la refonte de cette
+                // section ne visant QUE le doigt.** Au clavier/à la souris, la
+                // carte garde son rendu d'avant, à l'identique — voir
+                // spec/shared/deux-applications.md.
+                className={`relative flex-none rounded-xl border border-border transition-colors ${
+                  surMobile
+                    ? 'w-[104px] p-1.5 flex flex-col items-center gap-1'
+                    : 'w-[168px] p-2 flex flex-col gap-1.5'
+                } ${moved ? 'bg-warn/20' : 'bg-panel2'}`}
               >
                 <CategoryRing colors={catsOf(String(m.id)).map((c) => c.color)} radius="rounded-xl" />
                 {/* numéro d'ordre superposé en haut à gauche */}
                 <span
                   className="absolute -top-2 -left-2 z-10 flex items-center justify-center min-w-[20px] h-5 px-1
                              rounded-full bg-accent-soft border border-border
-                             font-mono text-[10px] font-bold text-ink shadow"
+                             font-mono text-micro font-bold text-ink shadow"
                 >
                   {i + 1}
                 </span>
 
-                <div className="flex items-center gap-2">
-                  {/* portrait */}
-                  <div className="relative flex-none">
-                    <div
-                      className={`hex-frame w-[42px] h-[42px] p-[2px] bg-gradient-to-br ${RING[m.element]}`}
-                    >
-                      <div className="hex-frame w-full h-full bg-panel flex items-center justify-center overflow-hidden">
-                        {m.image ? (
-                          <img src={m.image} alt={m.name} className="w-full h-full object-cover" />
-                        ) : (
-                          <span className={`font-display font-bold text-sm ${TEXT[m.element]}`}>
-                            {initials(m.name)}
-                          </span>
-                        )}
+                {surMobile ? (
+                  <>
+                    {/* ⚠️ **Portrait CENTRÉ, le nom retiré.** Ce qu'on identifie
+                        d'un coup d'œil dans une grille dense, c'est l'image —
+                        comme dans le jeu, comme la grille de choix de catégorie
+                        (voir CategoryBar). Le nom reste dans le `title`. */}
+                    <div className="relative flex-none">
+                      <div
+                        className={`hex-frame w-[42px] h-[42px] p-[2px] bg-gradient-to-br ${RING[m.element]}`}
+                      >
+                        <div className="hex-frame w-full h-full bg-panel flex items-center justify-center overflow-hidden">
+                          {m.image ? (
+                            <img src={m.image} alt={m.name} className="w-full h-full object-cover" />
+                          ) : (
+                            <span className={`font-display font-bold text-sm ${TEXT[m.element]}`}>
+                              {initials(m.name)}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                      <ElementIcon
+                        element={m.element}
+                        size={15}
+                        className="absolute -top-1 -right-1 drop-shadow-[0_1px_2px_rgba(0,0,0,0.7)]"
+                      />
+                    </div>
+
+                    {showSpeed && (
+                      <div className="flex items-center gap-1">
+                        <img src={SPD_ICON} alt="SPD" width={13} height={13} className="flex-none" />
+                        <span className="font-mono text-sm font-black text-ink leading-none">
+                          {eff ?? '—'}
+                        </span>
+                      </div>
+                    )}
+
+                    {(it.entry.sets ?? []).length > 0 && (
+                      <div className="flex items-center justify-center gap-0.5">
+                        {(it.entry.sets ?? []).slice(0, 3).map((s, si) => (
+                          <RuneIcon key={si} setKey={s} size={14} className="flex-none" />
+                        ))}
+                      </div>
+                    )}
+
+                    {/* Saisie de la vitesse des runes — seulement sur SA prépa.
+                        ⚠️ **`boxWidth="w-full"`, pas `width`.** Les deux
+                        boutons − / + font 24 px chacun, FIXES quelle que soit
+                        la largeur demandée : avec `width="w-12"`, le contrôle
+                        entier (boutons + champ) dépassait la carte. `boxWidth`
+                        rend le CHAMP flexible et laisse les boutons imposer
+                        leur taille — c'est le contrôle entier qui se cale sur
+                        la carte, pas l'inverse.
+                        ⚠️ **La carte fait 104 px, pas 86** : à 86, le champ
+                        avait tout juste la place d'un chiffre — la vitesse des
+                        runes va jusqu'à trois (ex. 180), et un champ qui ne
+                        montre pas ce qu'on y tape est pire qu'un champ large. */}
+                    {onRuneSpeed && (
+                      <NumberField
+                        value={it.entry.runeSpeed}
+                        allowEmpty
+                        min={0}
+                        placeholder="+ runes"
+                        boxWidth="w-full"
+                        ariaLabel={`SPD des runes de ${m.name}`}
+                        onChange={(v) => onRuneSpeed(String(m.id), v)}
+                      />
+                    )}
+                  </>
+                ) : (
+                  <>
+                    <div className="flex items-center gap-2">
+                      {/* portrait */}
+                      <div className="relative flex-none">
+                        <div
+                          className={`hex-frame w-[42px] h-[42px] p-[2px] bg-gradient-to-br ${RING[m.element]}`}
+                        >
+                          <div className="hex-frame w-full h-full bg-panel flex items-center justify-center overflow-hidden">
+                            {m.image ? (
+                              <img src={m.image} alt={m.name} className="w-full h-full object-cover" />
+                            ) : (
+                              <span className={`font-display font-bold text-sm ${TEXT[m.element]}`}>
+                                {initials(m.name)}
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                        <ElementIcon
+                          element={m.element}
+                          size={15}
+                          className="absolute -top-1 -right-1 drop-shadow-[0_1px_2px_rgba(0,0,0,0.7)]"
+                        />
+                      </div>
+
+                      <div className="min-w-0 flex-1">
+                        <div className="text-xs font-semibold leading-tight truncate" title={m.name}>
+                          {m.name}
+                        </div>
+                        <div className="flex items-center gap-1 mt-1">
+                          {showSpeed && (
+                            <>
+                              <img src={SPD_ICON} alt="SPD" width={15} height={15} className="flex-none" />
+                              <span className="font-mono text-base font-black text-ink leading-none">
+                                {eff ?? '—'}
+                              </span>
+                            </>
+                          )}
+                          {(it.entry.sets ?? []).slice(0, 3).map((s, si) => (
+                            <RuneIcon key={si} setKey={s} size={16} className="flex-none" />
+                          ))}
+                        </div>
                       </div>
                     </div>
-                    <ElementIcon
-                      element={m.element}
-                      size={15}
-                      className="absolute -top-1 -right-1 drop-shadow-[0_1px_2px_rgba(0,0,0,0.7)]"
-                    />
-                  </div>
 
-                  <div className="min-w-0 flex-1">
-                    <div className="text-[12px] font-semibold leading-tight truncate" title={m.name}>
-                      {m.name}
-                    </div>
-                    <div className="flex items-center gap-1 mt-1">
-                      {showSpeed && (
-                        <>
-                          <img src={SPD_ICON} alt="SPD" width={15} height={15} className="flex-none" />
-                          <span className="font-mono text-[16px] font-black text-ink leading-none">
-                            {eff ?? '—'}
-                          </span>
-                        </>
-                      )}
-                      {(it.entry.sets ?? []).slice(0, 3).map((s, si) => (
-                        <RuneIcon key={si} setKey={s} size={16} className="flex-none" />
-                      ))}
-                    </div>
-                  </div>
-                </div>
-
-                {/* Saisie de la vitesse des runes — seulement sur SA prépa. */}
-                {onRuneSpeed && (
-                  <div className="flex justify-center">
-                    <NumberField
-                      value={it.entry.runeSpeed}
-                      allowEmpty
-                      min={0}
-                      placeholder="+ runes"
-                      width="w-14"
-                      ariaLabel={`SPD des runes de ${m.name}`}
-                      onChange={(v) => onRuneSpeed(String(m.id), v)}
-                    />
-                  </div>
+                    {/* Saisie de la vitesse des runes — seulement sur SA prépa. */}
+                    {onRuneSpeed && (
+                      <div className="flex justify-center">
+                        <NumberField
+                          value={it.entry.runeSpeed}
+                          allowEmpty
+                          min={0}
+                          placeholder="+ runes"
+                          width="w-14"
+                          ariaLabel={`SPD des runes de ${m.name}`}
+                          onChange={(v) => onRuneSpeed(String(m.id), v)}
+                        />
+                      </div>
+                    )}
+                  </>
                 )}
               </div>
             );
           })}
         </div>
+      )}
+
+      {leadASupprimer !== null && (
+        <ConfirmDialog
+          titre={`Retirer le lead +${leadASupprimer} % de la rangée ?`}
+          message="Il disparaît des boutons de lead, mais rien n'est perdu : retape-le dans le champ à droite pour le faire revenir. Les vitesses de tes monstres ne changent pas."
+          libelleAction="Retirer"
+          destructif
+          onCancel={() => setLeadASupprimer(null)}
+          onConfirm={() => {
+            retirerLead(leadASupprimer);
+            setLeadASupprimer(null);
+          }}
+        />
       )}
     </div>
   );

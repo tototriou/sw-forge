@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Plus, Trash2 } from 'lucide-react';
+import { Plus, Trash2, Swords } from 'lucide-react';
 import {
   Monster,
   ElementKey,
@@ -15,9 +15,10 @@ import RtaSearch from '../components/rta/RtaSearch';
 import RtaSection from '../components/rta/RtaSection';
 import CategoryBar from '../components/rta/CategoryBar';
 import RtaBackupBar from '../components/rta/RtaBackupBar';
+import MobileSheet from '../ui/MobileSheet';
 import RtaFriendView from '../components/rta/RtaFriendView';
 import { RtaVueAmi } from '../lib/rtaShare';
-import { ConfirmDialog } from '../components/Dialogs';
+import { ConfirmDialog } from '../ui/Dialogs';
 import { useRtaCategories } from '../hooks/useRtaCategories';
 import { useRtaBackup } from '../hooks/useRtaBackup';
 import { gearSpeedMismatch } from '../lib/gearSync';
@@ -27,6 +28,7 @@ import MonsterGear from '../components/MonsterGear';
 import TurnOrder, { TurnItem } from '../components/rta/TurnOrder';
 import CreateMonster from '../components/CreateMonster';
 import { CustomLead } from '../hooks/useCustomMonsters';
+import { Bouton, Selecteur } from '../ui';
 
 interface Props {
   rta: UseRtaState;
@@ -35,6 +37,9 @@ interface Props {
   onCreateMonster: (name: string, element: ElementKey, speed: number, lead?: CustomLead | null) => Monster;
   customMonsters: Monster[];
   onDeleteMonster: (id: string) => void;
+  // Tiroir d'actions mobile — piloté par la barre supérieure (voir App.tsx).
+  menuOuvert: boolean;
+  onFermerMenu: () => void;
 }
 
 function totalSpeed(it: TurnItem): number | null {
@@ -50,6 +55,8 @@ export default function RtaPage({
   onCreateMonster,
   customMonsters,
   onDeleteMonster,
+  menuOuvert,
+  onFermerMenu,
 }: Props) {
   const [draggingId, setDraggingId] = useState<string | null>(null);
   const [newSection, setNewSection] = useState('');
@@ -205,31 +212,70 @@ export default function RtaPage({
 
   const runeSections = rta.state.sections;
 
+  // ⚠️ Rendus une seule fois, posés à DEUX endroits selon la largeur : dans la
+  // page au-dessus de `lg`, dans le panneau en dessous. Deux copies auraient
+  // divergé au premier ajustement.
+  const creation = (
+    <CreateMonster
+      onCreate={handleCreateMonster}
+      customMonsters={customMonsters}
+      onDelete={onDeleteMonster}
+    />
+  );
+
+  // ⚠️ « Tout effacer » reste SÉPARÉ des gestes de construction : dans la page
+  // il se pose à l'opposé (`ml-auto`), dans le panneau il est détaché en bas
+  // sous un filet. Un bouton destructeur ne se met pas au contact de celui
+  // qu'on presse en boucle.
+  //
+  // ⚠️ **Deux habillages, un seul bouton.** Dans le PANNEAU il porte fond et
+  // contour d'alerte : posé seul en bas, sous un filet, un bouton transparent ne
+  // se distinguait plus d'une ligne de texte — rien ne disait qu'on pouvait le
+  // presser, ni que ce qu'il fait est irréversible. Dans la PAGE il reste nu,
+  // comme avant : il y vit au bout d'une rangée d'actions déjà cadrées, où un
+  // cadre de plus ferait du bruit.
+  const boutonEffacer = (dansLePanneau: boolean) =>
+    addedIds.size > 0 && (
+    <Bouton
+      onClick={() => {
+        setEffacementAConfirmer(true);
+        onFermerMenu();
+      }}
+      ton="danger"
+      fond={dansLePanneau ? 'doux' : 'vide'}
+      trait={dansLePanneau ? 'plein' : 'aucun'}
+      // ⚠️ PLEINE LARGEUR dans le panneau : il y est seul sur sa ligne, sous un
+      // filet. À sa largeur propre, il flottait au milieu d'une bande vide dont
+      // rien n'expliquait la présence. Dans la PAGE il garde sa taille — il y
+      // vit au bout d'une rangée d'autres actions.
+      pleineLargeur={dansLePanneau}
+      taille="sm"
+      icone={<Trash2 size={13} />}
+      libelle="Tout effacer"
+      // ⚠️ `leading-none` : l'interligne du libellé (1,5) donne au texte une
+      // boîte plus haute que sa lettre. Centrées boîte contre boîte, la poubelle
+      // et le mot ne le sont plus à l'œil — l'icône paraît remonter. Sans
+      // interligne, la boîte épouse la lettre et les deux s'alignent vraiment.
+      className="leading-none"
+    />
+  );
+
   return (
     <div>
-      <div className="mt-6">
+      <div>
         <RtaSearch monsters={monsters} addedIds={addedIds} onAdd={rta.addMonster} />
       </div>
 
-      <div className="flex items-center gap-3 mt-4 flex-wrap">
-        <span className="font-mono text-[12px] text-ink-dim">
+      {/* ⚠️ Seul le COMPTEUR reste dans la page — c'est une information, pas
+          une action. La création et l'effacement descendent dans le panneau
+          « Options » sous `lg`. */}
+      <div className="mt-4 flex flex-wrap items-center gap-3">
+        <span className="font-mono text-xs text-ink-dim">
           {addedIds.size} monstre{addedIds.size > 1 ? 's' : ''} en prépa
         </span>
 
-        <CreateMonster
-          onCreate={handleCreateMonster}
-          customMonsters={customMonsters}
-          onDelete={onDeleteMonster}
-        />
-
-        {addedIds.size > 0 && (
-          <button
-            onClick={() => setEffacementAConfirmer(true)}
-            className="ml-auto flex items-center gap-1.5 text-[12px] text-ink-dim hoverable:text-fire transition"
-          >
-            <Trash2 size={13} /> Tout effacer
-          </button>
-        )}
+        <div className="hidden lg:contents">{creation}</div>
+        <div className="ml-auto hidden lg:contents">{boutonEffacer(false)}</div>
       </div>
 
       {effacementAConfirmer && (
@@ -261,24 +307,78 @@ export default function RtaPage({
         />
       )}
 
-      <RtaBackupBar
-        rta={rta}
-        cats={cats}
-        backup={backup}
-        monsters={monsters}
-        onConsulter={setVueAmi}
-        onCreateMonster={onCreateMonster}
-      />
+      {/* ⚠️ La barre d'actions vit à DEUX endroits selon la largeur, mais
+          c'est le MÊME composant rendu une seule fois — pas une copie. Au-dessus
+          de `lg` elle est en tête de page ; en dessous elle passe dans le
+          tiroir, faute de place : six boutons, deux rangées de catégories et un
+          champ de recherche repoussaient la prépa de trois écrans. */}
+      <div className="hidden lg:block">
+        <RtaBackupBar
+          rta={rta}
+          cats={cats}
+          backup={backup}
+          monsters={monsters}
+          onConsulter={setVueAmi}
+          onCreateMonster={onCreateMonster}
+        />
+      </div>
+
+      {/* ⚠️ **Une rangée par TYPE d'action.** Empilés en une seule colonne, six
+          boutons de nature différente se lisaient comme une liste indifférenciée
+          où il fallait relire chaque libellé. Regroupés — créer, puis sauver et
+          revenir, puis échanger un fichier — on vise la bonne rangée d'abord et
+          le bon bouton ensuite. `RtaBackupBar` porte ses deux rangées ; celle-ci
+          ajoute la création avant, les catégories et l'effacement après. */}
+      <MobileSheet ouvert={menuOuvert} onFermer={onFermerMenu} titre="Ma prépa RTA">
+        <div className="flex flex-col gap-3">
+          {/* ⚠️ **La création est SEULE sur sa ligne**, hors de la grille des
+              six autres. Elle ne relève pas du même geste : les six échangent ou
+              figent un fichier de prépa, elle ajoute un monstre qui n'existe pas
+              dans les données. La mêler à eux en faisait une action de
+              sauvegarde de plus.
+              Elle garde le gabarit des autres — même hauteur, même corps — pour
+              qu'aucune ne paraisse plus importante. */}
+          {creation}
+
+          <div data-grille-actions className="flex flex-col gap-1.5">
+            <RtaBackupBar
+              rta={rta}
+              cats={cats}
+              backup={backup}
+              monsters={monsters}
+              onConsulter={(v) => {
+                setVueAmi(v);
+                onFermerMenu();
+              }}
+              onCreateMonster={onCreateMonster}
+            />
+          </div>
+
+          <CategoryBar cats={cats} monsters={pageMonsters} />
+        </div>
+
+        {addedIds.size > 0 && (
+          <div data-zone-destructive className="mt-4 border-t border-border pt-3">
+            {boutonEffacer(true)}
+          </div>
+        )}
+      </MobileSheet>
 
       {/* ⚠️ La prépa consultée s'affiche AVANT la sienne, et encadrée : c'est ce
           qu'on vient d'ouvrir, on doit la voir sans chercher. Elle se ferme d'un
           bouton et ne laisse aucune trace. */}
       {vueAmi && <RtaFriendView vue={vueAmi} onClose={() => setVueAmi(null)} />}
 
-      <CategoryBar cats={cats} monsters={pageMonsters} />
+      {/* ⚠️ Les catégories descendent AUSSI dans le panneau sous `lg` : deux
+          rangées de pastilles plus le bouton de création, soit un tiers d'écran
+          de téléphone consacré à un outil d'ORGANISATION — pas au contenu qu'on
+          vient organiser. */}
+      <div className="hidden lg:block">
+        <CategoryBar cats={cats} monsters={pageMonsters} />
+      </div>
 
       {loadState === 'loading' && monsters.length === 0 && (
-        <p className="mt-4 text-ink-dim text-[13px]">Chargement des monstres…</p>
+        <p className="mt-4 text-ink-dim text-sm">Chargement des monstres…</p>
       )}
 
       {/* Zone tampon : les monstres ajoutés y arrivent avant classement */}
@@ -319,10 +419,12 @@ export default function RtaPage({
         <span className="label">
           Ajouter une section
         </span>
-        <select
+        <Selecteur
           value={newSection}
           onChange={(e) => setNewSection(e.target.value)}
-          className="bg-panel border border-border text-ink rounded-lg px-2.5 py-1.5 text-[13px] outline-none"
+          taille="sm"
+          pleineLargeur={false}
+          surface="panel"
         >
           <option value="">Choisir un set de runes…</option>
           {availableSets.map((s) => (
@@ -330,25 +432,23 @@ export default function RtaPage({
               {s.label}
             </option>
           ))}
-        </select>
-        <button
+        </Selecteur>
+        <Bouton
           disabled={!newSection}
           onClick={() => {
             rta.addSection(newSection);
             setNewSection('');
           }}
-          className="flex items-center gap-1.5 rounded-lg border border-border bg-panel px-3 py-1.5 text-[13px]
-                     text-ink-dim hoverable:text-ink hoverable:border-accent transition
-                     disabled:opacity-40 disabled:cursor-not-allowed"
-        >
-          <Plus size={14} /> Créer
-        </button>
+          taille="sm"
+          icone={<Plus size={14} />}
+          libelle="Créer"
+        />
       </div>
 
       {/* Ordre de tour global, trié par vitesse totale */}
       <section className="mt-10">
         <div className="flex items-baseline gap-x-3 gap-y-1 flex-wrap pb-2.5 mb-4 border-b border-border">
-          <h2 className="font-display text-[19px] tracking-wide">Ordre de tour</h2>
+          <h2 className="font-display text-lg tracking-wide">Ordre de tour</h2>
           <span className="font-mono text-ink-dim text-xs">par vitesse combat totale</span>
         </div>
         {/* ⚠️ Les catégories sont passées ENTIÈRES, le masquage est le rôle de

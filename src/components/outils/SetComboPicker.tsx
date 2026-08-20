@@ -1,7 +1,7 @@
-import { X } from 'lucide-react';
 import { RUNE_SETS } from '../../types';
-import { canAddSet, setsCost, FOUR_PIECE_SETS } from '../../lib/effects';
+import { canAddSet, setsCost, FOUR_PIECE_SETS, runeSetIconFilter } from '../../lib/effects';
 import RuneIcon from '../RuneIcon';
+import { Jeton, BoutonIcone } from '../../ui';
 
 interface Props {
   sets: string[]; // combo courant (une entrée par activation, ex. ['violent','will'])
@@ -35,55 +35,60 @@ export default function SetComboPicker({ sets, onChange }: Props) {
         {sets.map((key, i) => {
           const def = RUNE_SETS.find((s) => s.key === key);
           return (
-            <span
+            <Jeton
               key={`${key}-${i}`}
-              className="flex items-center gap-1 rounded-full border border-border bg-panel2 pl-1.5 pr-1 py-0.5 text-[11.5px] font-semibold"
-            >
-              <RuneIcon setKey={key} size={14} />
-              {def?.label ?? key}
-              <button
-                type="button"
-                onClick={() => onChange(sets.filter((_, j) => j !== i))}
-                aria-label={`Retirer ${def?.label ?? key}`}
-                className="rounded-full p-0.5 text-ink-dim transition hoverable:text-bad"
-              >
-                <X size={11} />
-              </button>
-            </span>
+              icone={<RuneIcon setKey={key} size={14} filter={runeSetIconFilter(false)} />}
+              libelle={def?.label ?? key}
+              onRetirer={() => onChange(sets.filter((_, j) => j !== i))}
+              libelleRetrait={`Retirer ${def?.label ?? key}`}
+            />
           );
         })}
 
         {full && (
-          <span className="rounded-full border border-border bg-panel px-2 py-1 text-[11px] font-semibold text-ink-dim opacity-40">
+          <span className="rounded-full border border-border bg-panel px-2 py-1 text-micro font-semibold text-ink-dim opacity-40">
             Plus de place (6 runes)
           </span>
         )}
-        <span className="font-mono text-[11px] text-ink-dim">{used}/6 runes</span>
+        <span className="font-mono text-micro text-ink-dim">{used}/6 runes</span>
       </div>
 
       {!full && (
-        <div className="mt-2 grid grid-cols-1 gap-3 rounded-lg border border-border bg-panel p-2 sm:grid-cols-2 sm:gap-0">
+        <div className="mt-2 grid grid-cols-2 compact:grid-cols-[auto_1fr] gap-0 rounded-lg border border-border bg-panel p-2">
+          {/* ⚠️ Toujours 2 colonnes, jamais empilé sous un seuil de largeur :
+              chaque groupe passe déjà à la ligne en interne (`flex-wrap`), la
+              séparation verticale gagne de la place sur le plan VERTICAL —
+              le rare qui manque sur téléphone — plutôt que de dupliquer la
+              hauteur pour rien.
+              ⚠️ **Au doigt, colonnes ASYMÉTRIQUES** (`auto` / `1fr`) : Set
+              principal a EXACTEMENT 6 sets (`grid-cols-3` ci-dessous, deux
+              lignes de trois, jamais plus) — lui laisser une colonne égale
+              gaspillait une largeur qu'il n'utilise pas. Set secondaire (17
+              sets) récupère cette largeur libérée, ce qui réduit son nombre
+              de lignes — c'est lui qui pèse sur la hauteur. */}
           {([
             ['Set principal', FOUR_PIECE],
             ['Set secondaire', TWO_PIECE],
           ] as const).map(([groupLabel, group], i) => (
-            <div key={groupLabel} className={i > 0 ? 'border-t border-border-soft pt-2 sm:border-t-0 sm:border-l sm:pl-3 sm:pt-0' : 'sm:pr-3'}>
+            <div key={groupLabel} className={i > 0 ? 'border-l border-border-soft pl-3' : 'pr-3'}>
               <p className="mb-1 text-[10.5px] font-semibold uppercase tracking-wide text-ink-dimmer">{groupLabel}</p>
-              <div className="flex flex-wrap gap-1">
+              <div className={i === 0 ? 'flex flex-wrap gap-1 compact:grid compact:grid-cols-3' : 'flex flex-wrap gap-1'}>
                 {group.map((s) => {
                   const fits = canAddSet(sets, s.key);
                   return (
-                    <button
+                    // ⚠️ `data-cible-fine` : grille serrée d'icônes de set, où
+                    // une cible de 44 px déborderait sur la voisine. L'icône reste
+                    // reconnaissable à 32 px, c'est ce qui compte.
+                    <BoutonIcone
                       key={s.key}
-                      type="button"
+                      cadre
+                      libelle={s.label}
+                      icone={<RuneIcon setKey={s.key} size={20} filter={runeSetIconFilter(false)} />}
                       disabled={!fits}
                       onClick={() => onChange([...sets, s.key])}
-                      title={s.label}
-                      className="flex items-center justify-center w-8 h-8 rounded-lg border border-border bg-panel2
-                                 transition hoverable:border-accent disabled:opacity-25 disabled:cursor-not-allowed"
-                    >
-                      <RuneIcon setKey={s.key} size={20} />
-                    </button>
+                      data-cible-fine
+                      className="h-8 w-8"
+                    />
                   );
                 })}
               </div>

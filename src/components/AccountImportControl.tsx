@@ -41,11 +41,11 @@ export default function AccountImportControl({ onImport, variant }: Props) {
         title="Importer un export de compte SWEX (traité localement, rien n'est envoyé)"
         className={
           isMobile
-            ? 'flex items-center gap-2 rounded-lg border border-border bg-panel2 px-3 py-3 text-[15px] font-semibold text-ink'
-            : 'flex items-center gap-1.5 rounded-lg border border-border bg-panel px-2.5 py-1.5 text-[13px] font-semibold text-ink-dim hoverable:text-ink hoverable:border-accent transition whitespace-nowrap'
+            ? 'flex items-center gap-2 rounded-lg border border-border bg-panel2 px-3 py-3 text-base font-semibold text-ink'
+            : 'flex items-center gap-1.5 rounded-lg border border-border bg-panel px-2.5 py-1.5 text-sm font-semibold text-ink-dim hoverable:text-ink hoverable:border-accent transition whitespace-nowrap'
         }
       >
-        <Import size={isMobile ? 18 : 14} /> Importer un JSON
+        <Import size={isMobile ? 18 : 14} className="flex-none" /> Importer un JSON
       </button>
 
     </div>

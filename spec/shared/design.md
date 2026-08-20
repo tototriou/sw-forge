@@ -1,5 +1,10 @@
 # Système visuel — thèmes, tokens, échelles
 
+> ⚠️ **Ce document décrit le système visuel COMMUN aux deux formats** (couleurs,
+> échelle typographique, animations). La façon dont chaque écran l'emploie, elle,
+> diffère entre mobile et bureau — voir
+> [deux-applications.md](deux-applications.md), qui prime en cas de doute.
+
 > **Source de vérité** pour toute décision d'apparence. Une valeur qui n'est pas
 > ici n'a pas à être écrite en dur dans un composant.
 
@@ -85,12 +90,13 @@ filtres sont posés.
 | Support | Marqueur | Pourquoi pas l'autre |
 |---------|----------|----------------------|
 | **Champ de saisie** (`select`, `input`, `textarea`) | `border-accent` | Un fond coloré passe derrière du texte qu'on doit lire, et concurrence le curseur |
-| **Pastille de filtre** (chip bordée) | `border-accent` | L'outline entoure la pastille sans passer derrière son icône ; l'aplat la faisait ressortir comme un bouton d'action |
-| **Cran d'un `Segmented`, onglet** | `bg-accent-soft` | Ils vivent dans un cadre commun où toutes les bordures sont déjà posées : seul le fond peut distinguer l'élu |
+| **Pastille de filtre** (chip, cran de `Segmented`, onglet) | `border-accent bg-accent-soft` | Le marqueur unique de l'app : le contour porte l'état, le fond l'appuie. Un cran dans un cadre commun (`SlotFilter`, `Segmented`) peut n'en garder que le fond, la bordure étant déjà celle du cadre |
 
 ⚠️ **Les pastilles voisines partagent le même marqueur.** Les numéros de
-`SlotFilter` et le bouton « Antiques » sont dans la même rangée : deux
-marqueurs différents côte à côte se lisent comme deux natures de filtre.
+`SlotFilter`, le bouton « Antiques » et les filtres de Ma box (Nat / Doublons /
+2A) portent tous le **même fond d'accent** — deux marqueurs différents côte à
+côte se liraient comme deux natures de filtre. C'est la brique `Pastille`
+([librairie-ui.md](librairie-ui.md)), qui pose ce marqueur une fois pour toutes.
 
 **Corollaires :**
 
@@ -101,6 +107,20 @@ marqueurs différents côte à côte se lisent comme deux natures de filtre.
   d'accent perd du contraste au lieu d'en gagner : le libellé d'un élément
   sélectionné devient moins lisible que ses voisins non sélectionnés. Le texte
   passe à `ink` sur fond actif.
+- ⚠️ **Le marqueur d'état est UNIQUE : `border-accent bg-accent-soft text-ink`**
+  — un contour d'accent et un fond très léger. Le contour porte l'état, le fond
+  ne fait que l'appuyer : `accent-soft` seul ne se voyait pas, étant un fond de
+  panneau trop proche du gris ambiant.
+  ⚠️ Il a remplacé un **dégradé doré plein** sur les filtres d'étoiles, les
+  pastilles de tick et les filtres de la box. Celui-ci criait plus fort que le
+  réglage ne le mérite, et faisait surtout **deux vocabulaires selon l'écran** —
+  un filtre actif ne doit pas se lire différemment ici et là.
+  **Deux exceptions**, qui n'en sont pas vraiment :
+  - La **case à cocher** d'un dialogue (15 px) garde son remplissage plein : un
+    contour de 1 px y disparaît, et une case cochée se lit par son remplissage.
+  - Les boutons de **lead SPD** (ordre de tour) gardent le doré : ce n'est pas un
+    marqueur d'état mais le **code couleur du lead** lui-même, celui de
+    `LeadPill`.
 - Le **survol** garde `hoverable:border-accent` sur les contrôles à fond : il
   agit au repos, quand aucun marqueur n'occupe la bordure — il n'y a donc pas de
   cumul.
@@ -247,6 +267,309 @@ Quatre keyframes, déclarés une fois dans `index.css` :
   centre, on cherche des yeux une origine qui ne correspond à rien.
 - ⚠️ **La boîte de dialogue fait exception** et reste centrée : elle n'a pas
   d'ancre, elle ne sort d'aucun bouton.
+
+### ⚠️ Un clic ne déplace JAMAIS ce qu'on vient de cliquer
+
+**Règle globale, mobile et bureau.** Quand une action ouvre quelque chose — le
+détail d'une rune, la grille de monstres d'une catégorie, un panneau dépliant —
+l'élément **sur lequel on a cliqué reste exactement où il était**. On doit
+pouvoir basculer l'état plusieurs fois d'affilée **sans bouger la souris ni le
+regard**.
+
+Ce que cela interdit :
+
+| Motif | Pourquoi il déplace |
+|-------|---------------------|
+| Insérer le détail **au-dessus** de la ligne cliquée | Tout ce qui est en dessous descend, la ligne cliquée avec |
+| Faire pousser un conteneur qui **précède** la cible dans le flux | Même effet, un cran plus haut |
+| Ouvrir un panneau qui **change la hauteur de la page** et fait défiler | Le pointeur ne vise plus rien |
+| Réserver la place **seulement quand c'est ouvert** | La réservation arrive trop tard : le saut a déjà eu lieu |
+
+Ce que cela impose — trois réponses, dans cet ordre de préférence :
+
+1. **La place est réservée d'avance.** Le détail d'une rune a sa colonne (ou son
+   bloc) présente en permanence, vide tant qu'on n'a rien choisi. Ouvrir ne fait
+   que la remplir. ⚠️ C'est la seule réponse qui tient quand on **enchaîne** les
+   clics d'un élément à l'autre : la place ne change pas d'une rune à la suivante.
+2. **Ce qui s'ouvre sort du flux** — un flottant ancré, un dialogue, un panneau
+   mobile. Rien de ce qui est en dessous ne bouge, parce que rien n'est poussé.
+3. **Ce qui s'ouvre pousse vers le BAS uniquement**, jamais vers le haut, et
+   l'ancre reste au-dessus du point d'insertion (un accordéon dont l'en-tête ne
+   bouge pas).
+
+⚠️ **Le tactile n'en est pas dispensé.** Le doigt ne « reste » pas sur sa cible,
+mais l'écran, lui, saute.
+
+⚠️ **La réponse n° 3 est souvent la bonne au doigt**, et la n° 2 souvent la
+mauvaise : un flottant ancré s'ouvre exactement là où le doigt vient de se poser,
+et la main masque ce qu'on voulait lire. Le détail d'une rune se pose donc SOUS
+la roue au doigt, et dans un flottant ancré à la souris — même composant, deux
+placements.
+
+⚠️ **Attention à ce qui CONTIENT la cible.** Un panneau collé au bas de l'écran
+ne peut grandir que vers le haut : déplier quoi que ce soit dedans remonte tout
+son contenu, alors même que ce qui s'ouvre est bien placé — en dessous de ce
+qu'on a touché. C'est ce qui se passait en choisissant les monstres d'une
+catégorie RTA depuis « Options ». Le panneau lui-même était bon ; c'est le tiroir
+qui bougeait. **`MobileSheet` fige donc sa hauteur à l'ouverture** (mesure en
+`useLayoutEffect`) : le bord supérieur ne bouge plus, et un contenu qui grandit
+se lit en faisant défiler.
+
+⚠️ **Ne pas confondre avec « le contenu ne change pas ».** Le contenu *doit*
+changer, et peut s'animer (voir plus haut) ; c'est la **géométrie autour de la
+cible** qui est figée.
+
+### ⚠️ Un bouton d'action ne disparaît jamais — il se désactive
+
+Un bouton dont l'existence dépend des données (« Tout exporter » sans rien à
+exporter, « Tout effacer » sans rien à effacer, « Analyser » sans compte
+importé) reste **toujours affiché**, et se pose en `disabled` avec un `title`
+qui dit pourquoi — il ne sort jamais du rendu conditionnel `{condition &&
+<Bouton />}`.
+
+⚠️ **Un bouton qui apparaît une fois qu'on a de quoi l'utiliser surprend** : on
+ne l'a jamais vu apparaître d'un geste volontaire, il était juste absent, et
+rien n'explique d'où il sort. Désactivé, c'est un repère fixe de l'interface —
+on sait que l'action existe, juste pas encore qu'elle s'applique.
+
+Cette règle vaut pour les **boutons d'action**, pas pour tout ce qui se
+rend conditionnellement :
+- **Les changements de MODE restent conditionnels** — un panneau d'édition qui
+  remplace un contrôle par un autre (le titre d'une recommandation devient un
+  champ de saisie) n'est pas la même nature de disparition.
+- **Un bloc de filtre/recherche entier** peut rester absent d'une page vide,
+  si ce choix est documenté et réfléchi (voir « UN SEUL bloc de filtres » dans
+  [rta/categories.md](../rta/categories.md) et
+  [siege/recommandations.md](../siege/recommandations.md)) : un filtre
+  au-dessus d'une liste vide n'a rien à filtrer, et laisse parfois croire
+  qu'on n'a rien trouvé alors qu'il n'y a rien.
+
+### Ce qui se confirme, et ce qui ne se confirme pas
+
+⚠️ **Un geste se confirme quand ce qu'il détruit ne se retrouve pas.** Le critère
+n'est pas le mot « supprimer » sur le bouton, c'est le coût de l'erreur.
+
+**Se confirme** — la donnée est saisie à la main et perdue sans retour :
+
+| Geste | Ce qui part |
+|-------|-------------|
+| Retirer un monstre d'une prépa RTA ou d'un slot de siège | Sa vitesse saisie, son tick, son classement |
+| Supprimer un monstre créé à la main | Le monstre entier : il n'existe pas dans les données du jeu |
+| Supprimer une section RTA | Le classement — les monstres, eux, reviennent en « Non classé » |
+| Supprimer / vider une catégorie | L'appartenance, cochée un monstre à la fois |
+| Supprimer une équipe, un deck, une recommandation | Leur composition |
+| Effacer les données du compte | Tout |
+
+**Ne se confirme PAS** — l'état se repose en un geste :
+
+| Geste | Pourquoi |
+|-------|----------|
+| Effacer un filtre (sets, slots, éléments) | Un clic pour le reposer |
+| Vider une recherche | Idem |
+| Retirer un critère de recherche | C'est un critère, pas une donnée |
+| Retirer un lead de l'ordre de tour | Il revient en le retapant |
+| Retirer un set d'une combinaison en édition | Le geste EST le sujet de l'écran |
+
+⚠️ **Confirmer partout est pire que ne confirmer nulle part.** À force d'en voir,
+on valide sans lire — et celle qui compte vraiment passe inaperçue. Deux clics
+pour annuler un filtre useraient la patience qu'on veut garder pour l'effacement
+d'une prépa.
+
+### Bloquer le défilement derrière un flottant
+
+⚠️ **Par `useScrollBloque`, jamais à la main.** Chaque composant mémorisait la
+valeur d'`overflow` à son ouverture pour la restaurer à sa fermeture. Avec un
+seul flottant, cela marche ; imbriqués, non :
+
+1. le panneau d'actions s'ouvre, mémorise `''`, pose `hidden` ;
+2. une confirmation s'ouvre par-dessus, mémorise `hidden`, repose `hidden` ;
+3. on confirme — le panneau se ferme d'abord et restaure `''` ;
+4. le dialogue se ferme ensuite et restaure… `hidden`.
+
+La page restait bloquée, **sans qu'aucun flottant ne soit visible pour
+l'expliquer**. Le hook tient un compteur : le blocage tombe quand le dernier
+verrou est relâché, jamais avant, jamais après — et le résultat ne dépend plus de
+l'ordre de démontage.
+
+### L'échelle des plans
+
+⚠️ Deux éléments au **même `z-index`** se départagent par leur ordre dans le
+DOM — celui monté en dernier passe devant. C'est ainsi qu'une confirmation
+ouverte depuis le panneau d'actions se retrouvait **derrière lui** : tous deux à
+`z-50`, et le panneau monté après. On cliquait « Supprimer », rien ne semblait se
+produire, et le geste paraissait dépourvu de confirmation.
+
+| Plan | Niveau | Qui |
+|------|--------|-----|
+| Contenu | — | La page |
+| Barre supérieure | `z-20` | Elle passe sous la barre latérale |
+| Barre latérale, bouton « Options » | `z-30` | La navigation |
+| Barre d'onglets | `z-40` | Sous le panneau qui la recouvre |
+| Panneau d'actions | `z-50` | Recouvre la navigation |
+| Panneau de second niveau | `z-60` | Recouvre le panneau d'où il sort |
+| **Dialogues** | **`z-70`** | **Au-dessus de tout** |
+
+⚠️ **Une confirmation est le dernier mot de l'interface : rien ne se met devant
+elle.** Tout dialogue modal — `Modale`, `ConfirmDialog`, et les voiles écrits à
+la main comme celui de l'export RTA — porte `z-[70]`.
+
+### Un flottant ne sort jamais de l'écran
+
+⚠️ **`max-width` ne suffit pas.** Il borne la LARGEUR ; un panneau ancré à gauche
+d'un déclencheur déjà proche du bord droit sort quand même, parce que c'est sa
+POSITION qui dépasse. Le cas se produit dès que la place du déclencheur varie :
+une pilule de catégorie au bout d'une rangée, un bouton qui a bougé parce qu'un
+libellé s'est allongé, une vignette en fin de ligne. Aucune règle CSS statique ne
+peut savoir où ce déclencheur-là se trouve.
+
+Tout flottant **de largeur fixe ancré à gauche** passe donc par
+`useRecalageEcran` (`src/hooks/`), qui mesure sa position réelle après rendu et
+le ramène dans l'écran :
+
+| Flottant | Ancré sur |
+|----------|-----------|
+| Création / édition de catégorie | Une pilule, ou « + Catégorie » |
+| Création de monstre | Un bouton de barre d'outils ou de panneau |
+| Note d'une défense (recommandations) | Une vignette de rangée |
+
+- **`left`, jamais `transform: translateX()`.** Une transformée déplace ce qu'on
+  VOIT, mais la boîte de mise en page reste où elle était : le débordement
+  subsiste et la page garde son défilement latéral — le bug qu'on prétendait
+  corriger. `left` déplace la boîte elle-même.
+- Le flottant doit donc porter **`left-0` explicite**. Sans ancrage horizontal
+  posé (`left: auto`), une valeur négative ne décale pas : elle repositionne
+  depuis un bord que le navigateur choisit seul.
+- Le hook pose aussi un **`max-width` mesuré**, car sur un écran plus étroit que
+  le flottant le décalage ne suffit pas — il faut le rétrécir.
+- **`useLayoutEffect`, pas `useEffect`** : la mesure a lieu avant peinture, le
+  flottant ne s'affiche jamais hors cadre, même une image.
+- **L'état d'ouverture est passé au hook.** Le flottant n'est monté que lorsqu'il
+  est ouvert ; une `ref` ne provoque pas de rendu, donc rien ne redéclencherait
+  la mesure à l'ouverture.
+- **Remesure au redimensionnement** : une rotation de téléphone change la largeur
+  sous un flottant déjà ouvert.
+- Les flottants **ancrés à droite** (`right-0`) et ceux **larges comme leur
+  ancre** (`w-full`) n'en ont pas besoin — leur position ne peut pas dépasser.
+
+### Jamais de défilement latéral
+
+`html` et `body` portent `overflow-x: hidden` (`index.css`) — **les deux**, car
+le navigateur propage le débordement de `body` à `html` quand `body` est seul à
+le masquer. Mais ce n'est **qu'un filet de sécurité** : le contenu déborde
+toujours, il est simplement coupé, donc inatteignable.
+
+Les quatre causes rencontrées, par ordre de fréquence :
+
+| Cause | Correctif |
+|-------|-----------|
+| `min-w-[Npx]` rigide | S'écrit `min-w-[min(Npx,100%)]` |
+| `minmax(Npx, 1fr)` dans une grille | S'écrit `minmax(min(100%,Npx), 1fr)` |
+| Enfant flex qui refuse de se réduire | `min-w-0` — la valeur par défaut est `auto`, qui interdit de passer sous la largeur du contenu |
+| Flottant de largeur fixe ancré à gauche | `useRecalageEcran` (voir plus haut) |
+
+⚠️ Le symptôme apparaît **loin de sa cause** : un `min-width` calibré pour une
+carte fait défiler la page entière, et on le constate sur un écran qui n'a rien à
+voir avec le composant fautif. C'est ce qui rend ces bugs coûteux à chercher — et
+pourquoi ils reviennent.
+
+### Le zoom iOS se règle sur le `viewport`, pas sur la taille du texte
+
+⚠️ **`maximum-scale=1` sur la balise `viewport`** ([index.html](../../index.html)).
+C'est là qu'est sa place, et deux tentatives précédentes ont montré pourquoi :
+
+| Tentative | Ce qu'elle donnait |
+|-----------|--------------------|
+| 16 px sur tous les champs, en permanence | Une barre de recherche qui écrit plus gros que le menu déroulant posé à côté — un même écran à deux échelles |
+| 16 px en `:focus` seulement | Le champ **change de taille sous le doigt** en s'activant, texte et cadre compris : ça se lit comme un défaut, pas comme une protection |
+
+Le seuil de 16 px contaminait une décision d'interface (la taille du texte) avec
+une contrainte de plateforme. Sorti du CSS, les champs de saisie se posent à
+**13 px** — la taille des menus déroulants voisins, un champ ne devant écrire ni
+plus gros ni plus petit qu'eux.
+
+⚠️ **Le zoom à deux doigts reste possible.** Depuis iOS 10, Safari ignore cette
+restriction pour un geste de l'utilisateur et ne l'applique qu'au zoom qu'il
+déclenche lui-même. C'est ce qui rend la valeur acceptable, là où un
+`user-scalable=no` — qui bloque vraiment — ne le serait pas.
+
+### Les trois pièges d'iOS
+
+⚠️ **`overflow-x: hidden` ne retient PAS un élément `fixed`.** Safari laisse la
+page défiler latéralement dès qu'un flottant dépasse la largeur du viewport : la
+règle ne borne que le flux normal, pas ce qui en est sorti. `body` porte donc
+`position: relative` et `width: 100%`, et un dernier filet plafonne les `.fixed`
+et `.sticky`.
+
+⚠️ **`100vh` inclut la barre d'adresse**, qui se replie au défilement : la page
+devenait alors plus haute que l'écran, d'où un saut de mise en page à chaque
+changement de sens. Toutes les hauteurs de viewport sont en **`dvh`**, avec
+`vh` en repli pour les navigateurs qui l'ignorent.
+
+⚠️ **`viewport-fit=cover` est obligatoire** dans le `<meta viewport>`. Sans lui,
+`env(safe-area-inset-*)` vaut **zéro** : toutes les gardes posées sur l'encoche
+ou sur la barre de geste sont alors inertes, sans que rien ne le signale. La
+barre supérieure passait ainsi sous l'encoche, et l'on ne pouvait pas remonter
+jusqu'aux premiers éléments de la page.
+
+⚠️ La barre supérieure **descend sous l'encoche** (`height: calc(3rem +
+env(safe-area-inset-top))` + `padding-top`), et le dégagement du contenu suit.
+Une valeur fixe laissait le haut de la page sous la barre.
+
+
+
+⚠️ **Le « tirer pour recharger » est CONSERVÉ** — c'est un geste attendu sur un
+téléphone. Il a été bloqué un temps parce qu'il se déclenchait *avant* que le
+contenu n'ait atteint le haut, mais c'était traiter le symptôme.
+
+⚠️ Deux causes se cumulaient pour le déclencher trop tôt.
+
+**La hauteur de `body` était en `dvh`** : cette unité suit la hauteur courante du
+viewport, donc elle **change** quand la barre d'adresse se replie ou se déplie.
+En remontant, la barre se déplie, `dvh` diminue et la page raccourcit sous le
+doigt — le défilement se retrouve poussé au-delà du haut.
+
+**La page ne pouvait pas défiler sous la barre supérieure.** Quand son contenu
+tient dans l'écran, il n'y a rien à faire défiler : le navigateur est « en haut »
+dès le départ, et le moindre geste vers le bas déclenche le rechargement — avant
+même qu'on ait vu le premier bloc, qui se trouve pourtant **derrière la barre**.
+La hauteur minimale de `body` ajoute donc celle de la barre : il reste toujours
+de quoi remonter, et « en haut » signifie bien « je vois le début du contenu ».
+
+`svh` est la hauteur du plus **petit** état (barre dépliée) et ne bouge jamais.
+C'est la bonne unité pour une hauteur de page. `dvh` reste correct sur les
+**plafonds** d'éléments fixes (`max-h` d'un panneau, d'un dialogue), qui doivent
+au contraire suivre la hauteur visible.
+
+⚠️ **`overflow-x: hidden` vit sur `html`, jamais sur `body`.** C'est `html` qui
+défile ; sur `body`, la propriété en fait un **second conteneur de défilement**
+dont la hauteur se borne au viewport — la molette n'a alors plus rien à faire
+défiler sur un écran de bureau.
+
+| Propriété | Sur `html` | Sur `body` |
+|-----------|-----------|------------|
+| `overflow-x: hidden` | ✅ la garde | ❌ immobilise la page |
+| `min-height: 100svh` | — | ✅ hauteur de page |
+| `position: relative` + `width: 100%` | — | ✅ largeur de référence des `fixed` |
+
+⚠️ **Safari grossit les polices en paysage** (« text autosizing ») si rien ne
+l'en empêche : les tailles calculées ne valent alors plus rien et un bloc dessiné
+pour tenir déborde. `html` porte `-webkit-text-size-adjust: 100%`.
+
+⚠️ **Un détecteur nomme le coupable en développement**
+(`src/lib/detecteurDebordement.ts`). Il parcourt le DOM après chaque changement,
+ne retient que l'élément **le plus profond** qui dépasse — un enfant trop large
+déborde tous ses parents, les signaler tous noierait le vrai coupable — et
+l'écrit dans la console avec le nombre de pixels en cause. Il est éliminé du
+bundle de production (`import.meta.env.DEV`).
+
+⚠️ Il compare à `documentElement.clientWidth`, **jamais** à `window.innerWidth` :
+le second inclut la barre de défilement verticale, et tout paraîtrait déborder de
+~15 px sur desktop. C'est aussi pourquoi `100vw` est trompeur dans un `calc()`.
+
+⚠️ Le **panneau d'actions mobile** reçoit une garde supplémentaire : ses enfants
+flex et grid ont `min-width: 0` d'office. Il accueille des contrôles dessinés
+pour une rangée desktop de 900 px, où un `min-width` calibré là-bas déborde
+systématiquement.
 - ⚠️ **Jamais depuis `scale(0)`** : rien n'apparaît de nulle part. `.96` au
   minimum.
 - ⚠️ **Pas de `scale` sur du texte** (`apparition`) : la mise à l'échelle
@@ -396,7 +719,7 @@ bouton situé **sous une longue liste** ouvre donc la boîte **tout en bas**, su
 ses boutons, le contenu invisible — c'est ce qui est arrivé à la recherche
 détaillée de sous-propriétés, où le bouton « OK » suit 40 lignes.
 
-La coquille `Modale` ([Dialogs.tsx](../../src/components/Dialogs.tsx)) pose donc
+La coquille `Modale` ([Dialogs.tsx](../../src/ui/Dialogs.tsx)) pose donc
 le focus initial sur **la boîte elle-même** (`tabIndex={-1}` +
 `focus({ preventScroll: true })`), et remet son défilement en haut. Elle ne le
 fait **que si rien à l'intérieur n'a déjà pris le focus** : un `autoFocus`
@@ -434,18 +757,143 @@ n'indique par où sortir, et on cherche.
 - Elle vit **dans la coquille**, pas dans chaque fiche : posée au cas par cas,
   elle aurait fini à trois endroits différents selon la modale.
 
+### Cibles tactiles — 40 px au doigt
+
+```css
+@media (pointer: coarse) {
+  button, a[role='button'], [role='tab'], summary,
+  input, select { min-height: 40px; }
+  button.aspect-square, a.aspect-square { min-width: 40px; }
+}
+```
+
+L'app est dessinée pour la **souris**, qui vise au pixel : les pastilles de
+filtre tombent à 26 px, les boutons d'icône à 32. Au doigt on tape à côté, et
+sur une rangée de filtres serrée on active le **voisin**.
+
+- ⚠️ Conditionné à **`(pointer: coarse)`**, jamais à une largeur : ce n'est pas
+  l'écran qui est petit, c'est le doigt qui est gros. Une tablette au stylet
+  garde les tailles fines ; un téléphone en paysage les agrandit quand même.
+  C'est le pendant de la variante `hoverable`, qui règle le même problème pour
+  le survol.
+- ⚠️ Seuls la **hauteur** et la largeur changent — jamais la taille du texte ni
+  les couleurs. Une interface qui se réécrit au doigt devient une autre
+  interface, et on ne retrouve plus ce qu'on connaît.
+- ⚠️ Les boutons **carrés** (icône seule) portent `aspect-square` et gagnent
+  aussi en largeur : agrandis en hauteur seulement, ils devenaient des
+  rectangles avec l'icône flottant dans un vide vertical.
+- ⚠️ **Un bouton qui perd son libellé sous `sm` perd aussi son CADRE.** Il
+  devient une icône nue : ni bordure, ni fond. Le cadre était dimensionné pour un
+  mot qui n'est plus là — gardé, il fait un rectangle vertical où l'icône flotte ;
+  rendu carré, il déclenche les 40 px de la règle tactile et l'on obtient six
+  gros carrés dans une barre qu'on cherchait à compacter.
+  Le cadre n'apprend d'ailleurs rien : **l'icône dit l'action, sa présence dit
+  qu'on peut la toucher.** Il revient à la souris, où la barre a la place et où
+  le survol a besoin d'une surface à colorer.
+- ⚠️ Une icône nue reste **exemptée** (`data-cible-fine`) et reçoit
+  `.cible-tactile` : 20 px dessinés, 44 touchables.
+- ⚠️ **L'écart entre icônes nues double** (`gap-4` contre `gap-2`). Sans cadre
+  pour les délimiter, six icônes à 8 px d'intervalle se lisent comme une frise
+  continue — c'est l'espace qui remplace le trait.
+- ⚠️ …mais dans le **panneau d'actions mobile**, le libellé revient (voir
+  navigation.md) : la règle `[data-tiroir] button.aspect-square` relâche alors la
+  contrainte de forme, sinon le mot déborderait d'un carré. Le marqueur est
+  `aspect-square` et non `.h-8` — un sélecteur sur le nom de classe Tailwind
+  aurait cassé au premier ajustement de taille.
+#### Le nom du monstre est la RÉFÉRENCE
+
+⚠️ Sur une carte de monstre, **rien ne doit peser plus lourd que son nom** sauf
+la valeur principale — et celle-ci reste dans un rapport de **1,3** avec lui, pas
+davantage. À 2,2 (26 px contre 12), la vitesse était le seul élément qu'on
+voyait ; le reste de la carte devenait un décor.
+
+⚠️ Les **capitales espacées** pèsent plus lourd que leur taille ne le dit :
+`.label` à 11 px avec `letter-spacing: 0.08em` occupe autant qu'un mot de 13 px
+en bas de casse. Au doigt, la classe descend à 10 px et son espacement de moitié
+— le rôle d'un libellé est de nommer, pas de rivaliser.
+
+⚠️ Le cran **`nano` (10 px) n'existe que sous `compact:`** : c'est le secours du
+tactile, pas une taille de l'échelle générale. Il sert aux mentions qui
+accompagnent une valeur sans être lues pour elles-mêmes (« base 107 »). En
+dessous, on ne lit plus.
+
+#### Densité d'un bloc répétitif
+
+⚠️ **Ce qui compte n'est pas la taille du texte mais la HAUTEUR DU BLOC.** Le
+panneau de stats en est l'exemple : huit lignes à 12 px plus 8 px d'interligne
+font ~190 px de haut — il pesait plus lourd que les trois monstres au-dessus,
+alors qu'il ne fait que les détailler. Le texte n'était pourtant pas gros.
+
+Au doigt, un bloc de plus de cinq lignes descend donc d'un cran (`compact:`) :
+texte à 11 px, interligne de moitié, rembourrage du cadre réduit. À la souris,
+rien ne change — la place ne manque pas.
+
+⚠️ Le repère de référence est le **nom du monstre** juste au-dessus : le panneau
+doit rester en dessous de lui dans la hiérarchie, puisqu'il le détaille.
+
+#### Quand la taille EST le dessin
+
+⚠️ **Certains contrôles ne peuvent pas grandir sans cesser d'être eux-mêmes.**
+Un interrupteur de 22 px porté à 40 devient un cercle dont la pastille pend en
+haut ; une pastille ronde devient un ovale. La règle les cassait au lieu de les
+servir.
+
+Trois réponses, selon ce qui gêne :
+
+| Marqueur | Effet | Pour qui |
+|----------|-------|----------|
+| `.cible-tactile` | Zone touchable de 44 px par pseudo-élément, **dessin inchangé** | `Switch` — la hauteur est sa forme, mais il est isolé |
+| `data-cible-fine` | Exempté, **aucune** zone étendue — vaut pour les boutons **comme pour les champs** (`input`, `select`) | Le crayon et la corbeille d'une pilule de catégorie : collés l'un à l'autre, une zone de 44 px les ferait se chevaucher et on supprimerait en voulant éditer |
+| `data-carte-dense` | 32 px au lieu de 40 | Un contrôle seul sur la largeur de sa carte — rater y est improbable |
+
+⚠️ **`.cible-tactile` est la réponse par défaut** dès qu'un contrôle a une forme
+qui porte du sens : elle rend la cible utilisable sans rien déformer. Les deux
+autres sont des exceptions qu'il faut justifier — la première parce qu'un
+voisinage serré rend la grande cible dangereuse, la seconde parce que le contexte
+protège déjà du ratage.
+
+- Les **champs de saisie** aussi : viser un `<input>` de 28 px au doigt demande
+  autant de précision qu'un bouton, et rater ouvre le clavier au mauvais
+  endroit.
+
+⚠️ **Incident vécu** : les cadres de rune (`RuneWheel.tsx`) et d'artéfact
+(`ArtifactSlots.tsx`), à échelle réduite dans les cartes de résultat de
+l'Optimizer (`BuildCandidateCard.tsx`), n'avaient PAS `data-cible-fine` —
+hérités de `main` sans cet attribut lors de la fusion de `forge/refonte-ui`.
+`min-height: 40px` gagnait contre la hauteur fixée en ligne : le cadre
+s'étirait (une roue de 6 runes ne tient que 94 px, une cible de 44 px par
+rune aurait de toute façon chevauché ses voisines — même cas que la pilule
+de catégorie ci-dessus, à vérifier en premier sur tout futur cadre de jeu
+réduit sous `compact:`).
+
 ### Focus — une règle globale, pas 24 exceptions
 
 ```css
 :focus-visible {
-  outline: 2px solid var(--accent);
-  outline-offset: 2px;
+  outline: 1px solid var(--accent);
+  outline-offset: 1px;
 }
 ```
 
 ⚠️ **`outline-none` est interdit sans remplacement visible.** L'app comptait 24
 `outline-none` et zéro `focus-visible` : en tabulant, on ne savait jamais où on
 était.
+
+⚠️ **1 px, comme tout contour de l'app.** L'anneau en faisait 2, détachés de 2 px
+de plus : un halo de quatre pixels autour de chaque contrôle atteint au clavier,
+qui bavait sur ses voisins dans une rangée serrée. C'est le **contraste** qui
+fait un marqueur de focus, pas l'épaisseur.
+
+⚠️ **Un contrôle qui marque déjà le focus par sa BORDURE n'a pas d'anneau du
+tout.** Un `<select>` ou un champ en `focus:border-accent` teinte sa propre
+bordure à la mise au point ; l'anneau par-dessus faisait un second trait d'accent
+collé au premier, soit 3 px autour d'un contrôle qui n'en demandait qu'un. Le
+focus reste porté par la bordure, qui change de couleur au moment précis où le
+clavier arrive.
+
+⚠️ En revanche, une bordure d'accent **permanente** (un critère posé, un filtre
+actif) ne dit rien du clavier — elle est là avant et après. L'anneau reste donc,
+mais collé à elle.
 
 ### Survol — toujours derrière une media query
 

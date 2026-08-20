@@ -1,21 +1,19 @@
-import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import { CSSProperties, useEffect, useMemo, useRef, useState } from 'react';
 import {
   Swords,
   BookOpen,
   Home,
   Castle,
   Trophy,
-  Menu,
-  X,
   Calculator,
-  Library,
-  ChevronDown,
   CircleUserRound,
   Github,
   MessageCircle,
   Tag,
-  Wrench,
   Sparkles,
+  Shield,
+  Lightbulb,
+  Settings,
 } from 'lucide-react';
 import HomePage from './pages/HomePage';
 import BestiaryPage from './pages/BestiaryPage';
@@ -26,8 +24,21 @@ import ReleasesPage from './pages/ReleasesPage';
 import AccountPage from './pages/AccountPage';
 import OutilsPage from './pages/OutilsPage';
 import ComingSoon from './pages/ComingSoon';
+import SettingsPage from './pages/SettingsPage';
 import AccountImportControl from './components/AccountImportControl';
 import SettingsMenu from './components/SettingsMenu';
+import Sidebar, {
+  LARGEUR_SIDEBAR,
+  LARGEUR_SIDEBAR_RETRACTEE,
+  SidebarGroupe,
+  SidebarSection,
+  useSidebarRetractee,
+} from './components/Sidebar';
+import MobileTabs, { OngletMobile } from './components/MobileTabs';
+import MobileNavSheet from './components/MobileNavSheet';
+import TopBar from './components/TopBar';
+import SidebarCompte from './components/SidebarCompte';
+import SidebarSearch, { CibleNav } from './components/SidebarSearch';
 import MobileNotice from './components/MobileNotice';
 import { loadAccount, saveAccount } from './lib/accountStore';
 import {
@@ -38,8 +49,13 @@ import {
   setPersistence,
   storageAvailable,
 } from './hooks/usePersistence';
-import { ConfirmDialog, KeepAccountDialog } from './components/Dialogs';
-import GameIcon, { GameIconKey } from './components/GameIcon';
+import { ConfirmDialog, KeepAccountDialog } from './ui/Dialogs';
+import InventaireIcon, { InventaireIconKey } from './components/InventaireIcon';
+import {
+  COULEUR_SECTION,
+  COULEUR_SIEGE_SUB,
+  COULEUR_COMPTE_SUB,
+} from './data/couleursSection';
 import { ArtifactDetail, CraftLine, Monster, RuneDetail } from './types';
 import { useMonsters } from './hooks/useMonsters';
 import { useCustomMonsters } from './hooks/useCustomMonsters';
@@ -52,6 +68,7 @@ import {
   BoxMonster,
   parseAccountJson,
   parseAccountExportDate,
+  parseAccountWizardName,
   parseAccountSource,
   parseSiegeDefense,
   parseSiegeOffense,
@@ -60,8 +77,21 @@ import {
   parseWizardId,
 } from './lib/importAccount';
 import { mapRtaItems, mapSiegeTeams, mapBoxMonsters, BoxItem } from './lib/applyAccount';
+import { VUES_INVENTAIRE, hashVue, vueValide } from './lib/accountViews';
 
 const DISCORD_INVITE = 'https://discord.gg/R2Fe4GJZET';
+
+// Pages dont les actions et les filtres passent dans le panneau mobile
+// (`MobileSheet`), ouvert par le bouton « Options » au-dessus de la barre
+// d'onglets.
+// ⚠️ L'OPTIMISEUR en est absent, et ce n'est pas un oubli : ses réglages SONT
+// son contenu — la page est une suite de champs lus de haut en bas (voir la
+// largeur bornée à 768 px dans navigation.md). Les descendre dans un panneau
+// laisserait une page vide au-dessus d'un bouton.
+// ⚠️ Même chose pour Accueil, Mécaniques, Nouveautés et Paramètres : aucune
+// action à y loger. Leur ouvrir un panneau vide serait pire que ne rien
+// proposer — c'est la règle qui décide de l'appartenance à cette liste.
+const PAGES_AVEC_MENU = new Set<Route>(['rta', 'siege', 'bestiary', 'compte', 'outils']);
 
 type Route =
   | 'home'
@@ -72,8 +102,24 @@ type Route =
   | 'mecaniques'
   | 'compte'
   | 'outils'
-  | 'releases';
+  | 'releases'
+  | 'parametres';
 export type AccountSub = 'monstres' | 'runes' | 'artefacts';
+
+// Vue à l'intérieur d'un inventaire — troisième niveau de navigation.
+//
+// ⚠️ **Dans l'URL, pas dans un état local.** Elles y vivaient
+// (`useStickyState('runes.view')`), ce qui les rendait impossibles à mettre dans
+// la barre latérale : rien n'aurait dit laquelle est active, et un lien direct
+// vers « Courbes » n'existait pas. Le hash devient `#/compte/runes/courbes`.
+export type AccountView =
+  | 'resume'
+  | 'liste'
+  | 'courbes'
+  | 'comparaison'
+  | 'optimisation'
+  | 'meules'
+  | 'gemmes';
 export type ToolSub = 'optimizer';
 
 // Route + sous-route de siège (offense/défense) + sous-section « Mon compte »
@@ -82,67 +128,100 @@ function parseHash(): {
   route: Route;
   siegeTab: SiegeTab;
   accountSub: AccountSub;
+  accountView: AccountView;
   toolSub: ToolSub;
 } {
   const h = window.location.hash.replace(/^#\/?/, '');
   const base = {
     siegeTab: 'defense' as SiegeTab,
     accountSub: 'monstres' as AccountSub,
+    accountView: 'resume' as AccountView,
     toolSub: 'optimizer' as ToolSub,
   };
   if (h === 'rta') return { route: 'rta', ...base };
   if (h === 'bestiary') return { route: 'bestiary', ...base };
   if (h === 'arene') return { route: 'arene', ...base };
   if (h === 'compte' || h.startsWith('compte/')) {
+    // `compte/runes/courbes` → sous-section « runes », vue « courbes ».
+    const [, sub, vue] = h.split('/');
     const accountSub: AccountSub =
-      h === 'compte/runes' ? 'runes' : h === 'compte/artefacts' ? 'artefacts' : 'monstres';
-    return { route: 'compte', siegeTab: 'defense', accountSub, toolSub: 'optimizer' };
+      sub === 'runes' ? 'runes' : sub === 'artefacts' ? 'artefacts' : 'monstres';
+    return {
+      route: 'compte',
+      siegeTab: 'defense',
+      accountSub,
+      // ⚠️ Défaut « resume » : on arrive sur l'état du stock, pas sur 2 000
+      // tuiles. C'était déjà le défaut des onglets internes.
+      accountView: (vue as AccountView) || 'resume',
+      toolSub: 'optimizer',
+    };
   }
   if (h === 'outils' || h.startsWith('outils/')) {
-    return { route: 'outils', siegeTab: 'defense', accountSub: 'monstres', toolSub: 'optimizer' };
+    return { route: 'outils', ...base };
   }
   if (h === 'mecaniques') return { route: 'mecaniques', ...base };
   if (h === 'releases') return { route: 'releases', ...base };
+  if (h === 'parametres') return { route: 'parametres', ...base };
   if (h === 'siege' || h.startsWith('siege/')) {
     const siegeTab: SiegeTab =
       h === 'siege/offense' ? 'offense' : h === 'siege/recommandations' ? 'recos' : 'defense';
-    return { route: 'siege', siegeTab, accountSub: 'monstres', toolSub: 'optimizer' };
+    return { route: 'siege', ...base, siegeTab };
   }
   return { route: 'home', ...base };
 }
 
-type NavItem = { key: Route; label: string; icon: typeof BookOpen; hash: string };
+// ⚠️ `couleur` : la teinte de SIGNATURE de la section (data/couleursSection),
+// posée sur l'ICÔNE partout où la nav l'affiche — barre latérale, onglets du
+// bas, panneau mobile, barre supérieure, recherche. La MÊME couleur que la
+// carte de l'accueil ; elle voyage avec l'item plutôt que d'être ressaisie à
+// chaque point de rendu. Elle ne marque PAS l'état (l'actif reste le contour
+// d'accent, spec/shared/design.md « un seul marqueur ») : elle est constante,
+// actif ou non.
+type NavItem = { key: Route; label: string; icon: typeof BookOpen; hash: string; couleur: string };
 
 // Onglets principaux (outils). Arène est à part (voir ARENE_ITEM) : elle se
 // positionne entre les dropdowns Outils et Ressources, pas dans ce groupe.
 const NAV: NavItem[] = [
-  { key: 'home', label: 'Accueil', icon: Home, hash: '#/' },
-  { key: 'rta', label: 'RTA', icon: Swords, hash: '#/rta' },
-  { key: 'siege', label: 'Siège', icon: Castle, hash: '#/siege/defense' },
+  { key: 'home', label: 'Accueil', icon: Home, hash: '#/', couleur: COULEUR_SECTION.home },
+  { key: 'rta', label: 'RTA', icon: Swords, hash: '#/rta', couleur: COULEUR_SECTION.rta },
+  { key: 'siege', label: 'Siège', icon: Castle, hash: '#/siege/defense', couleur: COULEUR_SECTION.siege },
 ];
 
-const ARENE_ITEM: NavItem = { key: 'arene', label: 'Arène', icon: Trophy, hash: '#/arene' };
+const ARENE_ITEM: NavItem = { key: 'arene', label: 'Arène', icon: Trophy, hash: '#/arene', couleur: COULEUR_SECTION.arene };
 
 // Sous-sections de « Mon compte » (dropdown de nav).
-// ⚠️ Icônes DU JEU (voir GameIcon), pas des pictogrammes de bibliothèque : un
-// joueur reconnaît ses trois inventaires instantanément à celles-ci.
-const ACCOUNT_SUBS: { sub: AccountSub; label: string; icon: GameIconKey; hash: string }[] = [
-  { sub: 'monstres', label: 'Monstres', icon: 'monster', hash: '#/compte' },
-  { sub: 'runes', label: 'Runes', icon: 'rune', hash: '#/compte/runes' },
-  { sub: 'artefacts', label: 'Artéfacts', icon: 'artifact', hash: '#/compte/artefacts' },
+// ⚠️ Icônes AU TRAIT dans le style de la librairie (voir InventaireIcon) : les
+// silhouettes du jeu (tête de monstre, rune, médaillon) redessinées au contour
+// monochrome, pour ne pas jurer à côté des icônes lucide de la nav.
+// ⚠️ Plus de `hash` ici : les liens passent par `hashVue`, qui compose
+// `#/compte/<inventaire>/<vue>`. Deux façons d'écrire la même URL auraient
+// divergé — l'une menant à la vue par défaut, l'autre à la vue courante.
+const ACCOUNT_SUBS: { sub: AccountSub; label: string; icon: InventaireIconKey; couleur: string }[] = [
+  { sub: 'monstres', label: 'Monstres', icon: 'monster', couleur: COULEUR_COMPTE_SUB.monstres },
+  { sub: 'runes', label: 'Runes', icon: 'rune', couleur: COULEUR_COMPTE_SUB.runes },
+  { sub: 'artefacts', label: 'Artéfacts', icon: 'artifact', couleur: COULEUR_COMPTE_SUB.artefacts },
 ];
 
 // Sous-sections d'« Outils » (dropdown de nav) — un seul outil pour l'instant,
 // structuré pour en accueillir d'autres sans retoucher la nav.
-const OUTILS_SUBS: { sub: ToolSub; label: string; icon: typeof Sparkles; hash: string }[] = [
-  { sub: 'optimizer', label: 'Optimizer', icon: Sparkles, hash: '#/outils/optimizer' },
+const OUTILS_SUBS: { sub: ToolSub; label: string; icon: typeof Sparkles; hash: string; couleur: string }[] = [
+  { sub: 'optimizer', label: 'Optimizer', icon: Sparkles, hash: '#/outils/optimizer', couleur: COULEUR_SECTION.outils },
+];
+
+// Sous-sections de « Siège ». ⚠️ Remontées ICI depuis SiegePage : elles
+// étaient des onglets posés en haut de la page, et chaque section avait le sien
+// avec son propre rendu. La barre latérale les porte toutes de la même façon.
+const SIEGE_SUBS: { tab: SiegeTab; label: string; icon: typeof Shield; hash: string; couleur: string }[] = [
+  { tab: 'defense', label: 'Défense', icon: Shield, hash: '#/siege/defense', couleur: COULEUR_SIEGE_SUB.defense },
+  { tab: 'offense', label: 'Offense', icon: Swords, hash: '#/siege/offense', couleur: COULEUR_SIEGE_SUB.offense },
+  { tab: 'recos', label: 'Recommandations', icon: Lightbulb, hash: '#/siege/recommandations', couleur: COULEUR_SIEGE_SUB.recos },
 ];
 
 // Regroupées sous « Ressources ».
 const RESOURCES: NavItem[] = [
-  { key: 'bestiary', label: 'Bestiaire', icon: BookOpen, hash: '#/bestiary' },
-  { key: 'mecaniques', label: 'Mécaniques', icon: Calculator, hash: '#/mecaniques' },
-  { key: 'releases', label: 'Nouveautés', icon: Tag, hash: '#/releases' },
+  { key: 'bestiary', label: 'Bestiaire', icon: BookOpen, hash: '#/bestiary', couleur: COULEUR_SECTION.bestiary },
+  { key: 'mecaniques', label: 'Mécaniques', icon: Calculator, hash: '#/mecaniques', couleur: COULEUR_SECTION.mecaniques },
+  { key: 'releases', label: 'Nouveautés', icon: Tag, hash: '#/releases', couleur: COULEUR_SECTION.releases },
 ];
 
 export default function App() {
@@ -214,14 +293,26 @@ export default function App() {
   // l'enregistrement.
   const [accountExportedAt, setAccountExportedAt] = useState<number | null>(null);
 
-  const [{ route, siegeTab, accountSub, toolSub }, setNav] = useState(parseHash);
-  const [menuOpen, setMenuOpen] = useState(false);
-  const [resourcesOpen, setResourcesOpen] = useState(false);
-  const resourcesRef = useRef<HTMLDivElement>(null);
-  const [accountOpen, setAccountOpen] = useState(false);
-  const accountRef = useRef<HTMLDivElement>(null);
-  const [outilsOpen, setOutilsOpen] = useState(false);
-  const outilsRef = useRef<HTMLDivElement>(null);
+  // Nom du joueur dont le compte est chargé (`wizard_info.wizard_name`).
+  // ⚠️ On peut jongler entre plusieurs exports — le sien, celui d'un ami dont
+  // on compare les runes — et rien ne disait lequel était affiché.
+  const [accountName, setAccountName] = useState<string | null>(null);
+
+  const [{ route, siegeTab, accountSub, accountView, toolSub }, setNav] = useState(parseHash);
+
+  // Écran d'où l'on vient, pour que le bouton ⚙ RAMÈNE là où on était.
+  //
+  // ⚠️ Un lien seul ne permettait pas de sortir des paramètres : on y entrait
+  // sans pouvoir en revenir autrement qu'en choisissant une autre destination.
+  // Le bouton bascule donc — il ouvre, puis il referme.
+  //
+  // ⚠️ Une `ref` et non un état : sa mise à jour ne doit RIEN redessiner, et
+  // elle se fait dans l'effet de navigation lui-même.
+  const avantParametres = useRef<string>('#/');
+  // Hash courant, tenu à jour par l'effet de navigation : c'est LUI qu'on
+  // mémorise en entrant dans les paramètres, pas `window.location.hash`, qui
+  // porte déjà la destination au moment où l'événement arrive.
+  const hashCourant = useRef<string>(window.location.hash || '#/');
   const [importMsg, setImportMsg] = useState<{ ok: boolean; text: string } | null>(null);
   const [askKeep, setAskKeep] = useState(false);
   // Fichier déposé, en attente de confirmation de remplacement.
@@ -229,19 +320,68 @@ export default function App() {
   // Confirmations à l'écran : purge globale (⚙), et refus de conservation alors
   // qu'on conservait déjà (la valeur portée est « ne plus me montrer »).
   const [purgeGlobale, setPurgeGlobale] = useState(false);
+
+  // Panneau d'actions de la page, sous `lg`. ⚠️ L'état vit ICI parce que le
+  // bouton (barre d'onglets) et le contenu (la page) sont deux sous-arbres
+  // distincts : seul leur ancêtre commun peut les relier.
+  const [menuPageOuvert, setMenuPageOuvert] = useState(false);
+
+  // Navigation de second niveau sur téléphone : le TITRE de la section dont on
+  // choisit la sous-section, `null` si le panneau est fermé (voir
+  // MobileNavSheet). ⚠️ Même raison que ci-dessus : le déclencheur est dans la
+  // barre d'onglets, le contenu vient des sections — seul leur ancêtre commun
+  // peut les relier.
+  const [navMobileOuverte, setNavMobileOuverte] = useState<string | null>(null);
+
+  // ⚠️ La page ne suffit pas à décider si le bouton « Options » s'affiche : sur
+  // « Mon compte », seules les vues qui étalent une GRILLE de tuiles y gagnent —
+  // la Liste et l'Optimisation. Le résumé et la comparaison n'ont pas de quoi
+  // remplir la place, et les courbes se réduiraient à un graphe et deux réglages.
+  // ⚠️ Les COURBES en sont exclues, alors qu'elles ont des filtres. Descendus
+  // dans le tiroir, ils laissaient un écran qui ne porte plus qu'un graphe et
+  // deux réglages : la page paraît vide, et le bouton flottant annonce un
+  // contenu qu'on ne devine pas. La Liste et l'Optimisation, elles, ont des
+  // milliers de tuiles à montrer — chaque rangée de filtre leur prend un écran de
+  // résultats. **Avoir des filtres ne suffit donc pas : il faut aussi que la page
+  // ait de quoi remplir la place qu'ils libèrent.**
+  const pageAPanneau =
+    PAGES_AVEC_MENU.has(route) &&
+    (route !== 'compte' ||
+      accountSub === 'monstres' ||
+      accountView === 'liste' ||
+      accountView === 'optimisation') &&
+    // ⚠️ Un seul outil aujourd'hui (Optimizer), mais la vérification
+    // reste écrite : un futur outil sans réglages avancés n'hériterait pas
+    // du bouton par accident (même raison que la garde ci-dessus sur
+    // « Mon compte »).
+    (route !== 'outils' || toolSub === 'optimizer');
+
+  // Le panneau se referme à chaque changement d'écran : ses actions portent sur
+  // celui qu'on vient de quitter. ⚠️ `accountSub`/`accountView`/`siegeTab`/
+  // `toolSub` en font partie — ce sont des écrans à part entière, avec chacun
+  // ses filtres, et rester ouvert sur ceux du précédent afficherait des
+  // contrôles sans rapport.
+  useEffect(
+    () => setMenuPageOuvert(false),
+    [route, accountSub, accountView, siegeTab, toolSub]
+  );
+
+  // ⚠️ Le panneau de NAVIGATION se referme aux mêmes changements. Il se ferme
+  // déjà au clic sur une destination (voir MobileNavSheet), mais pas quand la
+  // page change autrement — retour arrière du navigateur, lien depuis l'accueil,
+  // recherche de navigation. Il serait alors resté ouvert par-dessus l'écran
+  // qu'on vient d'atteindre.
+  useEffect(
+    () => setNavMobileOuverte(null),
+    [route, accountSub, accountView, siegeTab]
+  );
+
+  // Repli de la barre latérale. Vit ici et non dans `Sidebar` : le CONTENU doit
+  // décaler sa marge en même temps, sinon la barre se replie sur une colonne de
+  // vide.
+  const [sidebarRetractee, setSidebarRetractee] = useSidebarRetractee();
   const [purgeApresRefus, setPurgeApresRefus] = useState<boolean | null>(null);
 
-  // Barre du haut : si la rangée complète (onglets + import + réglages) ne tient
-  // pas sur UNE ligne, on bascule sur le menu hamburger plutôt que de laisser
-  // les boutons passer à la ligne. Mesuré, pas fixé à un breakpoint : le nombre
-  // d'onglets change à chaque nouvelle section, un seuil en dur serait périmé.
-  const barRef = useRef<HTMLDivElement>(null);
-  const navRef = useRef<HTMLElement>(null);
-  const toolsRef = useRef<HTMLDivElement>(null);
-  const neededRef = useRef(0); // largeur d'une ligne complète, dernière mesure
-  const [compactNav, setCompactNav] = useState(false);
-
-  const resourcesActive = RESOURCES.some((r) => r.key === route);
 
   // Monstres officiels + monstres créés à la main (RTA & Siège).
   const allMonsters = useMemo(
@@ -281,6 +421,7 @@ export default function App() {
         setArtifacts(rec.artifacts);
         setCrafts(rec.crafts);
         setAccountExportedAt(rec.exportedAt);
+        setAccountName(rec.wizardName ?? null);
       }
       setAccountHydrating(false);
     });
@@ -352,6 +493,7 @@ export default function App() {
     }
 
     const exporte = parseAccountExportDate(data);
+    const nomJoueur = parseAccountWizardName(data);
     const rtaRes = parseAccountJson(data);
     const defRes = parseSiegeDefense(data);
     const offRes = parseSiegeOffense(data);
@@ -405,6 +547,7 @@ export default function App() {
     importedManuallyRef.current = true;
     rawBoxRef.current = boxRes.monsters ?? [];
     setAccountExportedAt(exporte);
+    setAccountName(nomJoueur);
     setBox(boxItems);
     setRunes(invRes.runes ?? []);
     setArtifacts(invRes.artifacts ?? []);
@@ -421,6 +564,7 @@ export default function App() {
         artifacts: invRes.artifacts ?? [],
         crafts: invRes.crafts ?? [],
         exportedAt: exporte,
+        wizardName: nomJoueur,
       });
     }
 
@@ -491,58 +635,43 @@ export default function App() {
   // en mémoire, sinon il faudrait réimporter le même fichier pour rien.
   function persistCurrentAccount() {
     if (rawBoxRef.current.length === 0 && runes.length === 0 && artifacts.length === 0) return;
-    void saveAccount({ box: rawBoxRef.current, runes, artifacts, crafts, exportedAt: accountExportedAt });
+    void saveAccount({
+      box: rawBoxRef.current,
+      runes,
+      artifacts,
+      crafts,
+      exportedAt: accountExportedAt,
+      wizardName: accountName,
+    });
   }
 
   useEffect(() => {
     const onHash = () => {
+      // ⚠️ Mémorisé AVANT la mise à jour : `window.location.hash` porte déjà la
+      // nouvelle valeur, mais `route` tient encore l'ancienne. On enregistre
+      // donc l'écran qu'on QUITTE, et jamais les paramètres eux-mêmes — sinon
+      // le bouton n'aurait nulle part où ramener.
+      const cible = parseHash().route;
+      if (cible === 'parametres' && route !== 'parametres') {
+        avantParametres.current = hashCourant.current;
+      }
+      hashCourant.current = window.location.hash || '#/';
       setNav(parseHash());
-      setMenuOpen(false); // referme le menu mobile à chaque navigation
-      setResourcesOpen(false); // referme le dropdown Ressources
-      setAccountOpen(false); // referme le dropdown Mon compte
-      setOutilsOpen(false); // referme le dropdown Outils
+      // ⚠️ **Retour en HAUT à chaque changement d'écran.** Le routage par hash
+      // ne fait défiler nulle part : on arrivait sur une nouvelle page à la
+      // position qu'on occupait sur la précédente — au milieu du bestiaire
+      // après avoir quitté une longue liste de runes, sans rien y comprendre.
+      // C'est le comportement d'une navigation classique, que le hash nous fait
+      // perdre.
+      //
+      // ⚠️ `instant` et non `smooth` : ce n'est pas un déplacement DANS la page
+      // qu'on suit du regard, mais un changement de page. Une animation
+      // donnerait à croire qu'on défile encore dans l'écran d'avant.
+      window.scrollTo({ top: 0, behavior: 'instant' });
     };
     window.addEventListener('hashchange', onHash);
     return () => window.removeEventListener('hashchange', onHash);
-  }, []);
-
-  // Ferme les dropdowns (Ressources / Mon compte / Outils) au clic à l'extérieur.
-  useEffect(() => {
-    if (!resourcesOpen && !accountOpen && !outilsOpen) return;
-    const onDown = (e: MouseEvent) => {
-      const t = e.target as Node;
-      if (resourcesRef.current && !resourcesRef.current.contains(t)) setResourcesOpen(false);
-      if (accountRef.current && !accountRef.current.contains(t)) setAccountOpen(false);
-      if (outilsRef.current && !outilsRef.current.contains(t)) setOutilsOpen(false);
-    };
-    document.addEventListener('mousedown', onDown);
-    return () => document.removeEventListener('mousedown', onDown);
-  }, [resourcesOpen, accountOpen, outilsOpen]);
-
-  // Mesure de la barre du haut. En mode complet on RETIENT la largeur nécessaire
-  // (`neededRef`) : une fois replié, la rangée ne contient plus la nav et ne
-  // peut donc plus la mesurer — sans cette mémoire on ne saurait jamais quand
-  // redéployer. `useLayoutEffect` : le repli est décidé avant peinture, donc
-  // aucune image de barre débordante.
-  useLayoutEffect(() => {
-    const bar = barRef.current;
-    if (!bar) return;
-    const measure = () => {
-      if (navRef.current && toolsRef.current) {
-        // +12 : le `gap-3` entre la nav et le bloc import/réglages.
-        neededRef.current = navRef.current.offsetWidth + toolsRef.current.offsetWidth + 12;
-      }
-      // clientWidth 0 = barre masquée (mobile) : c'est le hamburger natif qui joue.
-      setCompactNav(bar.clientWidth > 0 && bar.clientWidth < neededRef.current);
-    };
-    measure();
-    const ro = new ResizeObserver(measure);
-    ro.observe(bar);
-    // La nav aussi : la largeur de la barre ne bouge pas quand c'est son
-    // CONTENU qui s'élargit (police chargée après coup, libellé plus long).
-    if (navRef.current) ro.observe(navRef.current);
-    return () => ro.disconnect();
-  }, [compactNav]);
+  }, [route]);
 
   // Message d'import éphémère : il disparaît tout seul (un peu plus long pour une erreur).
   useEffect(() => {
@@ -551,327 +680,395 @@ export default function App() {
     return () => clearTimeout(t);
   }, [importMsg]);
 
+  // ⚠️ **La SECTION OUVERTE, si elle a des sous-sections.** Quand elle existe,
+  // elle REMPLACE la liste des sections dans la barre latérale (voir Sidebar) :
+  // une seule liste à lire, et la place revient aux sous-sections.
+  //
+  // Trois sections en ont : Siège, Mon compte, Outils. Les autres (Accueil,
+  // RTA, Bestiaire…) n'ont qu'un écran — la barre y garde son premier niveau.
+  // Les trois sections à sous-sections, déclarées une fois : elles servent à la
+  // fois de niveau ouvert par la route ET de cible des entrées du premier
+  // niveau (`ouvre`). Deux définitions auraient divergé.
+  const sectionSiege: SidebarSection = {
+    titre: 'Siège',
+    icon: <Castle size={17} color={COULEUR_SECTION.siege} />,
+    groupes: [
+      {
+        liens: SIEGE_SUBS.map((t) => ({
+          key: t.tab,
+          label: t.label,
+          hash: t.hash,
+          icon: <t.icon size={17} color={t.couleur} />,
+          actif: route === 'siege' && siegeTab === t.tab,
+        })),
+      },
+    ],
+  };
+
+  const sectionCompte: SidebarSection = {
+    titre: 'Mon compte',
+    icon: <CircleUserRound size={17} color={COULEUR_SECTION.compte} />,
+    // ⚠️ **Un groupe par INVENTAIRE, ses vues en entrées.** Les trois
+    // inventaires étaient trois liens, et leurs vues (Résumé, Liste, Courbes…)
+    // vivaient dans une rangée d'onglets en haut de page — invisible tant qu'on
+    // n'y était pas. Onze destinations dont huit cachées derrière un clic.
+    // Le nom de l'inventaire devient un TITRE de groupe, comme « Ressources »
+    // au premier niveau : il annonce, il ne mène nulle part. C'est la vue qu'on
+    // choisit, pas l'inventaire.
+    groupes: ACCOUNT_SUBS.map((sub) => ({
+      titre: sub.label,
+      // Pour le panneau mobile, qui fait choisir l'inventaire AVANT sa vue.
+      icone: <InventaireIcon name={sub.icon} size={17} couleur={sub.couleur} />,
+      // ⚠️ Les VUES d'un inventaire portent la couleur de leur inventaire :
+      // une même famille de teinte pour tout le groupe (Runes → Résumé, Liste,
+      // Courbes… toutes en cyan), pas neuf teintes sans lien entre elles.
+      liens: VUES_INVENTAIRE[sub.sub].map((v) => ({
+        key: `${sub.sub}-${v.key}`,
+        label: v.label,
+        hash: hashVue(sub.sub, v.key),
+        icon: <v.icon size={17} color={sub.couleur} />,
+        actif: route === 'compte' && accountSub === sub.sub && accountView === v.key,
+      })),
+    })),
+  };
+
+  const sectionOutils: SidebarSection = {
+    titre: 'Outils',
+    icon: <Sparkles size={17} color={COULEUR_SECTION.outils} />,
+    groupes: [
+      {
+        liens: OUTILS_SUBS.map((sub) => ({
+          key: sub.sub,
+          label: sub.label,
+          hash: sub.hash,
+          icon: <sub.icon size={17} color={sub.couleur} />,
+          actif: route === 'outils' && toolSub === sub.sub,
+        })),
+      },
+    ],
+  };
+
+  // ⚠️ **La SECTION OUVERTE PAR LA ROUTE.** Arriver sur `#/siege/offense`
+  // montre les sous-sections du Siège ; la barre peut ensuite en ouvrir une
+  // autre à la main, sans naviguer (voir Sidebar).
+  const sectionOuverte: SidebarSection | null =
+    route === 'siege'
+      ? sectionSiege
+      : route === 'compte'
+        ? sectionCompte
+        : route === 'outils'
+          ? sectionOutils
+          : null;
+
+  // Premier niveau — les sections. ⚠️ Le MÊME ordre d'importance que la nav
+  // précédente (spec/README.md) : Accueil → RTA → Siège → Mon compte → Outils
+  // → Arène, puis les ressources. La refonte change la FORME de la navigation,
+  // pas la hiérarchie, qui elle est le fruit de l'usage.
+
+  const groupesNav: SidebarGroupe[] = [
+    {
+      liens: [
+        ...NAV.map((item) => ({
+          key: item.key,
+          label: item.label,
+          icon: <item.icon size={17} color={item.couleur} />,
+          // ⚠️ Le Siège OUVRE sa section au lieu de naviguer : on choisit
+          // Défense, Offense ou Recommandations avant de charger une page.
+          ...(item.key === 'siege' ? { ouvre: sectionSiege } : { hash: item.hash }),
+          actif: route === item.key,
+        })),
+        {
+          key: 'compte',
+          label: 'Mon compte',
+          icon: <CircleUserRound size={17} color={COULEUR_SECTION.compte} />,
+          ouvre: sectionCompte,
+          actif: route === 'compte',
+        },
+        {
+          key: 'outils',
+          label: 'Outils',
+          icon: <Sparkles size={17} color={COULEUR_SECTION.outils} />,
+          ouvre: sectionOutils,
+          actif: route === 'outils',
+        },
+        {
+          key: ARENE_ITEM.key,
+          label: ARENE_ITEM.label,
+          hash: ARENE_ITEM.hash,
+          icon: <ARENE_ITEM.icon size={17} color={ARENE_ITEM.couleur} />,
+          actif: route === 'arene',
+        },
+      ],
+    },
+    {
+      titre: 'Ressources',
+      liens: RESOURCES.map((item) => ({
+        key: item.key,
+        label: item.label,
+        hash: item.hash,
+        icon: <item.icon size={17} color={item.couleur} />,
+        actif: route === item.key,
+      })),
+    },
+  ];
+
+  // Titre de la barre supérieure — la section courante.
+  //
+  // ⚠️ DÉRIVÉ des mêmes constantes que la navigation, jamais une table de plus :
+  // une seconde liste de libellés aurait divergé au premier renommage, et le
+  // titre aurait annoncé une page qui n'existe plus sous ce nom.
+  //
+  // ⚠️ **Le titre montre la SOUS-SECTION courante**, pas le nom de la section,
+  // quand celle-ci en a : l'inventaire sur « Mon compte » (Monstres / Runes /
+  // Artéfacts), la vue sur le « Siège » (Défense / Offense / Recommandations).
+  // Répéter « Mon compte » ou « Siège » faisait DOUBLON avec la navigation —
+  // l'onglet du bas au doigt, l'en-tête de section de la barre latérale à la
+  // souris. Nommer la sous-section apprend où l'on est au lieu de répéter le
+  // niveau au-dessus.
+  const entreeCourante = [...NAV, ARENE_ITEM, ...RESOURCES].find((i) => i.key === route);
+  const compteSub = route === 'compte' ? ACCOUNT_SUBS.find((s) => s.sub === accountSub) : null;
+  const siegeSub = route === 'siege' ? SIEGE_SUBS.find((s) => s.tab === siegeTab) : null;
+  // ⚠️ Sur « Mon compte », le titre nomme l'inventaire ET SA VUE
+  // (« Runes · Liste »). Il ne disait que l'inventaire : la vue était portée par
+  // une rangée d'onglets dans la page, qui est passée dans le panneau de
+  // navigation (voir MobileNavSheet). Sans elle, plus rien à l'écran ne disait
+  // laquelle des sept vues de Runes on regardait.
+  // La vue n'est ajoutée que s'il y a un CHOIX : la box de monstres n'en a
+  // qu'une, « Monstres · Ma box » répéterait la même chose deux fois.
+  const compteVue =
+    compteSub && VUES_INVENTAIRE[accountSub].length > 1
+      ? VUES_INVENTAIRE[accountSub].find((v) => v.key === vueValide(accountSub, accountView))?.label
+      : null;
+  const titreSection =
+    (compteSub ? `${compteSub.label}${compteVue ? ` · ${compteVue}` : ''}` : null) ??
+    siegeSub?.label ??
+    sectionOuverte?.titre ??
+    entreeCourante?.label ??
+    (route === 'parametres' ? 'Paramètres' : 'SW Forge');
+  // ⚠️ Deux branches : l'icône d'inventaire (`InventaireIcon`, au trait comme le
+  // reste) et la vue de siège (lucide) n'ont pas la même API — mais le MÊME style.
+  const iconeSection = compteSub ? (
+    <InventaireIcon name={compteSub.icon} size={16} couleur={compteSub.couleur} />
+  ) : siegeSub ? (
+    <siegeSub.icon size={16} color={siegeSub.couleur} />
+  ) : (
+    sectionOuverte?.icon ??
+    (entreeCourante ? <entreeCourante.icon size={16} color={entreeCourante.couleur} /> : null) ??
+    (route === 'parametres' ? <Settings size={16} /> : null)
+  );
+
+  // TOUTES les destinations pour la recherche de navigation — sections ET
+  // sous-sections, à plat.
+  //
+  // ⚠️ **Dérivée des mêmes constantes que la barre** (`NAV`, `ACCOUNT_SUBS`…),
+  // pas ressaisie : une seconde liste écrite à la main aurait divergé au premier
+  // écran ajouté, et le manque serait passé inaperçu — on ne cherche pas ce dont
+  // on ignore l'existence.
+  //
+  // ⚠️ Les sous-sections portent leur SECTION en contexte : « Défense » seul ne
+  // dit pas de quel écran il s'agit.
+  const ciblesRecherche: CibleNav[] = [
+    ...NAV.map((i) => ({
+      key: i.key,
+      label: i.label,
+      hash: i.hash,
+      icon: <i.icon size={15} color={i.couleur} />,
+    })),
+    ...SIEGE_SUBS.map((t) => ({
+      key: `siege-${t.tab}`,
+      label: t.label,
+      hash: t.hash,
+      icon: <t.icon size={15} color={t.couleur} />,
+      contexte: 'Siège',
+    })),
+    // ⚠️ Chaque VUE de chaque inventaire, pas seulement les trois inventaires :
+    // c'est tout l'intérêt du champ. On tape « courbes » pour y aller, sans
+    // passer par Mon compte puis Runes.
+    // Le contexte porte l'inventaire (« Runes »), sinon « Résumé » et « Liste »
+    // apparaîtraient trois fois sans qu'on sache lesquels.
+    ...ACCOUNT_SUBS.flatMap((sub) =>
+      VUES_INVENTAIRE[sub.sub].map((v) => ({
+        key: `compte-${sub.sub}-${v.key}`,
+        label: v.label,
+        hash: hashVue(sub.sub, v.key),
+        icon: <v.icon size={15} color={sub.couleur} />,
+        contexte: sub.label,
+      }))
+    ),
+    ...OUTILS_SUBS.map((sub) => ({
+      key: `outils-${sub.sub}`,
+      label: sub.label,
+      hash: sub.hash,
+      icon: <sub.icon size={15} color={sub.couleur} />,
+      contexte: 'Outils',
+    })),
+    {
+      key: ARENE_ITEM.key,
+      label: ARENE_ITEM.label,
+      hash: ARENE_ITEM.hash,
+      icon: <ARENE_ITEM.icon size={15} color={ARENE_ITEM.couleur} />,
+    },
+    ...RESOURCES.map((i) => ({
+      key: i.key,
+      label: i.label,
+      hash: i.hash,
+      icon: <i.icon size={15} color={i.couleur} />,
+      contexte: 'Ressources',
+    })),
+    {
+      key: 'parametres',
+      label: 'Paramètres',
+      hash: '#/parametres',
+      icon: <Settings size={15} />,
+    },
+  ];
+
+  // ⚠️ CINQ onglets mobiles au maximum — au-delà, les cibles passent sous 44 px.
+  // Les quatre premiers sont les destinations de travail ; « Compte » ouvre la
+  // section dont dépendent toutes les autres.
+  //
+  // ⚠️ **Un onglet qui a des SOUS-SECTIONS les fait choisir** (`ouvre`) au lieu
+  // de mener droit à l'une d'elles — voir MobileNavSheet. « Siège » ouvrait la
+  // Défense et « Compte » l'inventaire de monstres ; les dix autres vues du
+  // compte n'étaient atteignables que par des rangées d'onglets posées DANS la
+  // page, une par écran, invisibles tant qu'on n'y était pas. C'est la règle de
+  // la barre latérale portée au tactile : on choisit d'abord OÙ.
+  //
+  // ⚠️ « Outils » n'a qu'une sous-section : il reste un LIEN. Un panneau pour un
+  // seul choix ajoute un geste sans rien donner à décider.
+  const ongletsMobile: OngletMobile[] = [
+    { key: 'home', label: 'Accueil', hash: '#/', icon: <Home size={17} color={COULEUR_SECTION.home} />, actif: route === 'home' },
+    { key: 'rta', label: 'RTA', hash: '#/rta', icon: <Swords size={17} color={COULEUR_SECTION.rta} />, actif: route === 'rta' },
+    { key: 'siege', label: 'Siège', ouvre: sectionSiege.titre, icon: <Castle size={17} color={COULEUR_SECTION.siege} />, actif: route === 'siege' },
+    { key: 'compte', label: 'Compte', ouvre: sectionCompte.titre, icon: <CircleUserRound size={17} color={COULEUR_SECTION.compte} />, actif: route === 'compte' },
+    { key: 'outils', label: 'Outils', hash: '#/outils/optimizer', icon: <Sparkles size={17} color={COULEUR_SECTION.outils} />, actif: route === 'outils' || route === 'bestiary' || route === 'mecaniques' || route === 'releases' || route === 'arene' },
+  ];
+
+  // La section dont on choisit la sous-section, sur téléphone.
+  // ⚠️ Son TITRE, jamais son objet : un objet mémorisé se fige à l'instant du
+  // clic et son surlignage reste en arrière de la navigation — la barre
+  // latérale a déjà payé cette leçon (voir Sidebar, `ouverte`).
+  const sectionMobile =
+    [sectionSiege, sectionCompte].find((s) => s.titre === navMobileOuverte) ?? null;
+
   return (
-    <div className="max-w-[1180px] mx-auto px-4 sm:px-5 py-5 sm:py-6 pb-16">
-        {/* ---- Barre repliée : logo + menu hamburger ----
-            Sur mobile par CSS, et sur desktop dès que la rangée complète ne
-            tient plus sur une ligne (`compactNav`). */}
-        <div className={`mb-4 ${compactNav ? '' : 'sm:hidden'}`}>
-          <div className="flex items-center justify-between">
-            <a href="#/" className="flex items-center gap-2">
-              <img src={`${import.meta.env.BASE_URL}favicon.svg`} alt="" className="w-7 h-7" />
-              <span className="font-display text-[18px] tracking-wide">SW Forge</span>
-            </a>
-            {/* Les réglages restent EN DEHORS du menu : accessibles en un geste
-                quelle que soit la largeur, jamais enfouis derrière le hamburger. */}
-            <div className="flex items-center gap-1.5">
-              <SettingsMenu
-                variant="bar"
-                onClearData={() => setPurgeGlobale(true)}
-                onKeepAccount={persistCurrentAccount}
-                accountExportedAt={accountExportedAt}
-              />
-              <button
-                onClick={() => setMenuOpen((o) => !o)}
-                aria-label="Menu"
-                aria-expanded={menuOpen}
-                className="flex items-center justify-center w-11 h-11 rounded-lg border border-border bg-panel text-ink"
-              >
-                {menuOpen ? <X size={22} /> : <Menu size={22} />}
-              </button>
-            </div>
-          </div>
+    // ⚠️ `data-ctx` sur la RACINE : c'est lui qui décide de l'accent contextuel
+    // de tout l'écran (voir index.css). Une page qui parle d'un monstre le
+    // posera à son élément ; partout ailleurs il reste absent, et `--ctx`
+    // retombe sur l'accent de l'app.
+    <div
+      // ⚠️ La marge suit le REPLI de la barre, et à la même courbe : sans ça,
+      // la barre se replierait sur une colonne de vide. `--pad-nav` n'est posé
+      // qu'au-dessus de `lg` (voir index.css) — sous cette largeur la barre
+      // n'existe pas.
+      style={
+        {
+          '--pad-nav': `${sidebarRetractee ? LARGEUR_SIDEBAR_RETRACTEE : LARGEUR_SIDEBAR}px`,
+        } as CSSProperties
+      }
+      className="pad-nav"
+    >
+      {/* La sidebar est FIXE et hors flux : le contenu se décale d'autant
+          au lieu d'être encapsulé dans une grille. Un
+          `position: sticky` aurait suffi visuellement, mais la barre doit
+          rester en place quand le contenu défile sur 3 000 monstres. */}
+      <Sidebar
+        groupes={groupesNav}
+        section={sectionOuverte}
+        recherche={
+          <SidebarSearch
+            cibles={ciblesRecherche}
+            retractee={sidebarRetractee}
+            onDeplier={() => setSidebarRetractee(false)}
+          />
+        }
+        retractee={sidebarRetractee}
+        onToggleRetract={() => setSidebarRetractee((r) => !r)}
+        pied={
+          /* ⚠️ Le pied dit QUI est chargé, et porte les deux gestes qui s'y
+             rapportent : changer de compte, régler l'app. Il a d'abord affiché
+             la date du dernier import dans une carte — une information qu'on ne
+             lit qu'une fois, occupant en permanence le bas de l'écran. Elle vit
+             maintenant dans les paramètres, à côté du réglage de conservation,
+             là où on se pose la question. */
+          <SidebarCompte
+            nom={accountName}
+            retractee={sidebarRetractee}
+            parametresActifs={route === 'parametres'}
+            onImport={importAccount}
+          />
+        }
+      />
 
-          {menuOpen && (
-            <nav className="mt-2 flex flex-col gap-1 bg-panel border border-border rounded-xl p-2">
-              {NAV.map((item) => {
-                const active = route === item.key;
-                const Icon = item.icon;
-                return (
-                  <a
-                    key={item.key}
-                    href={item.hash}
-                    onClick={() => setMenuOpen(false)}
-                    className={`flex items-center gap-3 rounded-lg px-3 py-3 text-[16px] font-semibold transition
-                      ${active ? 'bg-accent-soft text-ink' : 'text-ink-dim'}`}
-                  >
-                    <Icon size={18} /> {item.label}
-                  </a>
-                );
-              })}
+      <MobileTabs
+        onglets={ongletsMobile}
+        // ⚠️ **BASCULE, pas ouverture.** Retoucher l'onglet déjà ouvert le
+        // referme. Le geste qui ouvre doit pouvoir défaire ce qu'il vient de
+        // faire : sans ça, on ouvrait « Compte » par erreur et il fallait viser
+        // la croix ou le voile pour en sortir — deux cibles ailleurs sur
+        // l'écran, alors que le doigt est encore sur l'onglet.
+        onOuvrirSection={(titre) =>
+          setNavMobileOuverte((cur) => (cur === titre ? null : titre))
+        }
+        sectionOuverte={navMobileOuverte}
+        onOuvrirActions={
+          pageAPanneau ? () => setMenuPageOuvert(true) : undefined
+        }
+        actionsOuvertes={menuPageOuvert}
+      />
 
-              {/* Mon compte */}
-              <div className="mt-1 pt-2 border-t border-border">
-                <div className="px-3 pb-1 label">
-                  Mon compte
-                </div>
-                {ACCOUNT_SUBS.map((item) => {
-                  const active = route === 'compte' && accountSub === item.sub;
-                  return (
-                    <a
-                      key={item.sub}
-                      href={item.hash}
-                      onClick={() => setMenuOpen(false)}
-                      className={`flex items-center gap-3 rounded-lg px-3 py-3 text-[16px] font-semibold transition
-                        ${active ? 'bg-accent-soft text-ink' : 'text-ink-dim'}`}
-                    >
-                      <GameIcon name={item.icon} size={20} /> {item.label}
-                    </a>
-                  );
-                })}
-              </div>
+      {/* Choix de la sous-section, sur téléphone. Alimenté par les MÊMES
+          sections que la barre latérale — pas une seconde liste. */}
+      <MobileNavSheet section={sectionMobile} onFermer={() => setNavMobileOuverte(null)} />
 
-              {/* Outils */}
-              <div className="mt-1 pt-2 border-t border-border">
-                <div className="px-3 pb-1 label">
-                  Outils
-                </div>
-                {OUTILS_SUBS.map((item) => {
-                  const active = route === 'outils' && toolSub === item.sub;
-                  const Icon = item.icon;
-                  return (
-                    <a
-                      key={item.sub}
-                      href={item.hash}
-                      onClick={() => setMenuOpen(false)}
-                      className={`flex items-center gap-3 rounded-lg px-3 py-3 text-[16px] font-semibold transition
-                        ${active ? 'bg-accent-soft text-ink' : 'text-ink-dim'}`}
-                    >
-                      <Icon size={18} /> {item.label}
-                    </a>
-                  );
-                })}
-              </div>
+      {/* ⚠️ Montée APRÈS la barre latérale dans le DOM, mais posée au-dessus
+          (`z-40` contre `z-30`) : elle traverse toute la largeur, y compris
+          au-dessus de la barre. */}
+      <TopBar
+        titre={titreSection}
+        icone={iconeSection}
+        decalage={sidebarRetractee ? LARGEUR_SIDEBAR_RETRACTEE : LARGEUR_SIDEBAR}
+        // ⚠️ Le burger n'apparaît que sur les pages qui ONT des actions : un
+        // bouton qui ouvre un panneau vide est pire que pas de bouton.
+        parametresActifs={route === 'parametres'}
+        // ⚠️ Le MÊME geste que « Effacer mes données » des paramètres, pas un
+        // second chemin : deux façons de purger auraient divergé à la première
+        // garde ajoutée (le dialogue de conservation, par exemple).
+        onDeconnexion={() => setPurgeGlobale(true)}
+        onToggleParametres={() => {
+          window.location.hash =
+            route === 'parametres' ? avantParametres.current : '#/parametres';
+        }}
+        gauche={
+          /* ⚠️ Le LOGO SEUL, et seulement sous `lg` — au-dessus, la barre
+             latérale porte déjà l'identité. La zone a porté l'import et les
+             réglages : trois éléments qui poussaient le titre centré en absolu
+             SOUS eux, et le bouton ⚙ chevauchait « RTA ». */
+          <a href="#/" className="flex items-center gap-2 lg:hidden">
+            <img src={`${import.meta.env.BASE_URL}favicon.svg`} alt="" className="h-6 w-6" />
+          </a>
+        }
+      />
 
-              {/* Arène — entre Outils et Ressources, voir la nav desktop plus bas. */}
-              <a
-                href={ARENE_ITEM.hash}
-                onClick={() => setMenuOpen(false)}
-                className={`mt-1 pt-2 border-t border-border flex items-center gap-3 rounded-lg px-3 py-3 text-[16px] font-semibold transition
-                  ${route === 'arene' ? 'bg-accent-soft text-ink' : 'text-ink-dim'}`}
-              >
-                <Trophy size={18} /> {ARENE_ITEM.label}
-              </a>
-
-              {/* Ressources */}
-              <div className="mt-1 pt-2 border-t border-border">
-                <div className="px-3 pb-1 label">
-                  Ressources
-                </div>
-                {RESOURCES.map((item) => {
-                  const active = route === item.key;
-                  const Icon = item.icon;
-                  return (
-                    <a
-                      key={item.key}
-                      href={item.hash}
-                      onClick={() => setMenuOpen(false)}
-                      className={`flex items-center gap-3 rounded-lg px-3 py-3 text-[16px] font-semibold transition
-                        ${active ? 'bg-accent-soft text-ink' : 'text-ink-dim'}`}
-                    >
-                      <Icon size={18} /> {item.label}
-                    </a>
-                  );
-                })}
-              </div>
-
-              {/* Pas de section « Réglages » ici : le ⚙ est resté dans la barre. */}
-
-              {/* Import unique, sous les liens de navigation */}
-              <div className="mt-1 pt-2 border-t border-border">
-                <AccountImportControl onImport={importAccount} variant="mobile" />
-              </div>
-            </nav>
-          )}
-        </div>
-
-        {/* ---- Barre desktop : onglets + import ----
-            Reste MONTÉE même repliée (hauteur nulle) : c'est elle qui mesure la
-            largeur disponible, donc qui sait quand redéployer. */}
-        <div
-          ref={barRef}
-          className={`hidden sm:flex items-center gap-3 flex-wrap ${compactNav ? '' : 'mb-3'}`}
-        >
-          {!compactNav && (
-            <>
-          {/* `flex-nowrap` : la nav ne doit JAMAIS passer à la ligne toute
-              seule — c'est son débordement qui déclenche le hamburger. */}
-          <nav
-            ref={navRef}
-            className="flex flex-nowrap items-center gap-1 bg-panel border border-border rounded-xl p-1"
-          >
-            {NAV.map((item) => {
-              const active = route === item.key;
-              const Icon = item.icon;
-              return (
-                <a
-                  key={item.key}
-                  href={item.hash}
-                  className={`flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-[13px] font-semibold transition flex-none whitespace-nowrap
-                    ${
-                      // ⚠️ Le fond SEUL marque l'onglet courant. L'ombre qu'il
-                      // portait était une fausse élévation : une ombre dit
-                      // « ceci flotte au-dessus du reste », or un onglet actif
-                      // est dans le plan de la barre. Voir spec/shared/design.md.
-                      active
-                        ? 'bg-accent-soft text-ink'
-                        : 'text-ink-dim hoverable:text-ink'
-                    }`}
-                >
-                  <Icon size={14} /> {item.label}
-                </a>
-              );
-            })}
-
-            {/* Mon compte (Monstres + Runes + Artéfacts) */}
-            <div className="relative" ref={accountRef}>
-              <button
-                onClick={() => setAccountOpen((o) => !o)}
-                aria-expanded={accountOpen}
-                className={`flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-[13px] font-semibold transition flex-none whitespace-nowrap
-                  ${
-                    // Fond seul, sans fausse élévation — voir design.md.
-                    route === 'compte'
-                      ? 'bg-accent-soft text-ink'
-                      : 'text-ink-dim hoverable:text-ink'
-                  }`}
-              >
-                {/* Le bouton ouvre le compte entier, pas un inventaire : une icône
-                    de profil, et les icônes du jeu restent sur les trois sous-onglets. */}
-                <CircleUserRound size={16} /> Mon compte
-                <ChevronDown size={12} className={`transition-transform ${accountOpen ? 'rotate-180' : ''}`} />
-              </button>
-              {accountOpen && (
-                <div
-                  // Le menu grandit depuis SON BOUTON (coin haut gauche), pas
-                  // depuis son centre : il sort de l'onglet qu'on vient de
-                  // cliquer. Même règle que DetailPopover.
-                  className="absolute z-30 left-0 mt-1.5 min-w-[168px] rounded-xl border border-border bg-panel p-1 shadow-glow shadow-black/60
-                             origin-top-left animate-[popover_150ms_var(--ease-out)]"
-                >
-                  {ACCOUNT_SUBS.map((item) => {
-                    const active = route === 'compte' && accountSub === item.sub;
-                    return (
-                      <a
-                        key={item.sub}
-                        href={item.hash}
-                        onClick={() => setAccountOpen(false)}
-                        className={`flex items-center gap-2 rounded-lg px-2.5 py-2 text-[13px] font-semibold transition
-                          ${active ? 'bg-panel2 text-ink' : 'text-ink-dim hoverable:text-ink hoverable:bg-panel2'}`}
-                      >
-                        <GameIcon name={item.icon} size={17} /> {item.label}
-                      </a>
-                    );
-                  })}
-                </div>
-              )}
-            </div>
-
-            {/* Outils (Optimizer) */}
-            <div className="relative" ref={outilsRef}>
-              <button
-                onClick={() => setOutilsOpen((o) => !o)}
-                aria-expanded={outilsOpen}
-                className={`flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-[13px] font-semibold transition flex-none whitespace-nowrap
-                  ${
-                    route === 'outils'
-                      ? 'bg-accent-soft text-ink shadow'
-                      : 'text-ink-dim hoverable:text-ink'
-                  }`}
-              >
-                <Wrench size={14} /> Outils
-                <ChevronDown size={12} className={`transition-transform ${outilsOpen ? 'rotate-180' : ''}`} />
-              </button>
-              {outilsOpen && (
-                <div className="absolute z-30 left-0 mt-1.5 min-w-[168px] rounded-xl border border-border bg-panel p-1 shadow-glow shadow-black/60">
-                  {OUTILS_SUBS.map((item) => {
-                    const active = route === 'outils' && toolSub === item.sub;
-                    const Icon = item.icon;
-                    return (
-                      <a
-                        key={item.sub}
-                        href={item.hash}
-                        onClick={() => setOutilsOpen(false)}
-                        className={`flex items-center gap-2 rounded-lg px-2.5 py-2 text-[13px] font-semibold transition
-                          ${active ? 'bg-panel2 text-ink' : 'text-ink-dim hoverable:text-ink hoverable:bg-panel2'}`}
-                      >
-                        <Icon size={14} /> {item.label}
-                      </a>
-                    );
-                  })}
-                </div>
-              )}
-            </div>
-
-            {/* Arène — entre Outils et Ressources. */}
-            <a
-              href={ARENE_ITEM.hash}
-              className={`flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-[13px] font-semibold transition flex-none whitespace-nowrap
-                ${route === 'arene' ? 'bg-accent-soft text-ink shadow' : 'text-ink-dim hoverable:text-ink'}`}
-            >
-              <Trophy size={14} /> {ARENE_ITEM.label}
-            </a>
-
-            {/* Ressources (Bestiaire + Mécaniques) */}
-            <div className="relative" ref={resourcesRef}>
-              <button
-                onClick={() => setResourcesOpen((o) => !o)}
-                aria-expanded={resourcesOpen}
-                className={`flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-[13px] font-semibold transition flex-none whitespace-nowrap
-                  ${
-                    // Fond seul, sans fausse élévation — voir design.md.
-                    resourcesActive
-                      ? 'bg-accent-soft text-ink'
-                      : 'text-ink-dim hoverable:text-ink'
-                  }`}
-              >
-                <Library size={14} /> Ressources
-                <ChevronDown size={12} className={`transition-transform ${resourcesOpen ? 'rotate-180' : ''}`} />
-              </button>
-              {resourcesOpen && (
-                <div
-                  // Le menu grandit depuis SON BOUTON (coin haut gauche), pas
-                  // depuis son centre : il sort de l'onglet qu'on vient de
-                  // cliquer. Même règle que DetailPopover.
-                  className="absolute z-30 left-0 mt-1.5 min-w-[168px] rounded-xl border border-border bg-panel p-1 shadow-glow shadow-black/60
-                             origin-top-left animate-[popover_150ms_var(--ease-out)]"
-                >
-                  {RESOURCES.map((item) => {
-                    const active = route === item.key;
-                    const Icon = item.icon;
-                    return (
-                      <a
-                        key={item.key}
-                        href={item.hash}
-                        onClick={() => setResourcesOpen(false)}
-                        className={`flex items-center gap-2 rounded-lg px-2.5 py-2 text-[13px] font-semibold transition
-                          ${active ? 'bg-panel2 text-ink' : 'text-ink-dim hoverable:text-ink hoverable:bg-panel2'}`}
-                      >
-                        <Icon size={14} /> {item.label}
-                      </a>
-                    );
-                  })}
-                </div>
-              )}
-            </div>
-          </nav>
-          {/* Réglages tout à droite, après l'import : c'est le geste le plus rare. */}
-          <div ref={toolsRef} className="ml-auto flex items-center gap-1">
-            {/* ⚠️ Masqué sur l'ACCUEIL : la zone de dépôt y est déjà au centre
-                de l'écran, deux points d'entrée pour le même geste sèment le
-                doute sur celui qui « compte vraiment ». */}
-            {route !== 'home' && (
-              <AccountImportControl onImport={importAccount} variant="desktop" />
-            )}
-            <SettingsMenu
-              onClearData={() => setPurgeGlobale(true)}
-              onKeepAccount={persistCurrentAccount}
-              accountExportedAt={accountExportedAt}
-            />
-          </div>
-            </>
-          )}
-        </div>
+      {/* ⚠️ `pb-24` sous `lg` : la barre d'onglets est fixée en bas et
+          recouvrirait le pied de page. */}
+      {/* ⚠️ **Toute la largeur disponible**, plus de plafond à 1180 px. Celui-ci
+          datait de la navigation horizontale : le contenu était centré sous une
+          barre elle-même centrée. Avec une barre latérale, la page commence à
+          son bord droit et doit aller jusqu'au bout — les grilles de monstres,
+          les tableaux de runes et l'optimiseur gagnent une à deux colonnes.
+          ⚠️ `pt-[68px]` : la barre supérieure est FIXE (48 px) et recouvrirait
+          le haut du contenu. `pb-24` sous `lg` : la barre d'onglets est fixée
+          en bas. */}
+      {/* ⚠️ Le dégagement du haut inclut l'ENCOCHE : la barre supérieure
+          descend sous elle (voir TopBar), donc le contenu doit descendre
+          d'autant.
+          ⚠️ **En `padding`, pas en `margin`** : une marge s'effondrerait hors du
+          conteneur et la barre recouvrirait de nouveau le début de la page. */}
+      <div
+        className="px-4 pb-24 sm:px-6 lg:pb-16"
+        style={{ paddingTop: 'calc(68px + env(safe-area-inset-top))' }}
+      >
 
         {/* Avertissement petit écran : au-dessus du contenu, avant qu'on se soit
             fait une idée sur un affichage à l'étroit. */}
@@ -889,7 +1086,7 @@ export default function App() {
             // apparaît d'un coup sous le curseur se lit comme une erreur de
             // rendu. Voir spec/shared/design.md.
             <p
-              className={`mb-3 text-[12.5px] animate-[apparition_200ms_var(--ease-out)] ${
+              className={`mb-3 text-xs animate-[apparition_200ms_var(--ease-out)] ${
                 importMsg.ok ? 'text-good' : 'text-bad'
               }`}
             >
@@ -906,9 +1103,16 @@ export default function App() {
             onCreateMonster={custom.addCustomMonster}
             customMonsters={custom.customMonsters}
             onDeleteMonster={custom.removeCustomMonster}
+            menuOuvert={menuPageOuvert}
+            onFermerMenu={() => setMenuPageOuvert(false)}
           />
         ) : route === 'bestiary' ? (
-          <BestiaryPage monsters={data.monsters} loadState={data.loadState} />
+          <BestiaryPage
+            monsters={data.monsters}
+            loadState={data.loadState}
+            menuOuvert={menuPageOuvert}
+            onFermerMenu={() => setMenuPageOuvert(false)}
+          />
         ) : route === 'siege' ? (
           <SiegePage
             tab={siegeTab}
@@ -923,6 +1127,8 @@ export default function App() {
             onCreateMonster={custom.addCustomMonster}
             customMonsters={custom.customMonsters}
             onDeleteMonster={custom.removeCustomMonster}
+            menuOuvert={menuPageOuvert}
+            onFermerMenu={() => setMenuPageOuvert(false)}
           />
         ) : route === 'arene' ? (
           <ComingSoon
@@ -933,6 +1139,9 @@ export default function App() {
         ) : route === 'compte' ? (
           <AccountPage
             sub={accountSub}
+            // ⚠️ `vueValide` : passer des Runes (sur « Courbes ») aux Artéfacts,
+            // qui n'ont pas de courbes, laissait sinon un écran blanc.
+            vue={vueValide(accountSub, accountView)}
             box={box}
             runes={runes}
             artifacts={artifacts}
@@ -943,6 +1152,8 @@ export default function App() {
             // monstre transformable doit pouvoir montrer sa seconde forme, que
             // la box ne contient pas forcément (voir `autreForme`).
             allMonsters={allMonsters}
+            menuOuvert={menuPageOuvert}
+            onFermerMenu={() => setMenuPageOuvert(false)}
           />
         ) : route === 'outils' ? (
           <OutilsPage
@@ -956,11 +1167,21 @@ export default function App() {
             rtaEntries={rta.state.entries}
             siegeDefenseTeams={siegeDef.state.teams}
             siegeOffenseTeams={siegeOff.state.teams}
+            menuOuvert={menuPageOuvert}
+            onFermerMenu={() => setMenuPageOuvert(false)}
           />
         ) : route === 'releases' ? (
           <ReleasesPage />
         ) : route === 'mecaniques' ? (
           <MechanicsPage />
+        ) : route === 'parametres' ? (
+          <SettingsPage
+            onClearData={() => setPurgeGlobale(true)}
+            onKeepAccount={persistCurrentAccount}
+            onImport={importAccount}
+            accountExportedAt={accountExportedAt}
+            accountName={accountName}
+          />
         ) : (
           <HomePage
             stats={{
@@ -1062,5 +1283,6 @@ export default function App() {
           />
         )}
       </div>
+    </div>
   );
 }

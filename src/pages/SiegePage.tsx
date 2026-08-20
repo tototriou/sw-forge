@@ -1,4 +1,3 @@
-import { Shield, Swords, Lightbulb } from 'lucide-react';
 import { Monster, ElementKey } from '../types';
 import { LoadState } from '../hooks/useMonsters';
 import { SiegeSide, UseSiegeState } from '../hooks/useSiegeState';
@@ -24,13 +23,11 @@ interface Props {
   onCreateMonster: (name: string, element: ElementKey, speed: number, lead?: CustomLead | null) => Monster;
   customMonsters: Monster[];
   onDeleteMonster: (id: string) => void;
+  // Panneau d'actions mobile — piloté par le bouton « Options » (voir App.tsx).
+  menuOuvert: boolean;
+  onFermerMenu: () => void;
 }
 
-const SUB_TABS: { tab: SiegeTab; label: string; icon: typeof Shield; hash: string }[] = [
-  { tab: 'defense', label: 'Défense', icon: Shield, hash: '#/siege/defense' },
-  { tab: 'offense', label: 'Offense', icon: Swords, hash: '#/siege/offense' },
-  { tab: 'recos', label: 'Recommandations', icon: Lightbulb, hash: '#/siege/recommandations' },
-];
 
 // ⚠️ `copies6` est extrait explicitement : laissé dans `...boardProps`, il
 // partait dans `SiegeBoard`, qui ne le connaît pas.
@@ -42,34 +39,18 @@ export default function SiegePage({
   builds,
   teams,
   copies6,
+  menuOuvert,
+  onFermerMenu,
   ...boardProps
 }: Props) {
   return (
     <div>
-      {/* Sous-onglets Défense / Offense / Recommandations */}
-      <div className="mt-4">
-        <nav className="inline-flex items-center gap-1 bg-panel border border-border rounded-xl p-1">
-          {SUB_TABS.map((t) => {
-            const active = tab === t.tab;
-            const Icon = t.icon;
-            return (
-              <a
-                key={t.tab}
-                href={t.hash}
-                className={`flex items-center gap-1.5 rounded-lg px-3.5 py-1.5 text-[13px] font-semibold transition
-                  ${
-                    // Fond seul, sans fausse élévation — voir design.md.
-                    active
-                      ? 'bg-accent-soft text-ink'
-                      : 'text-ink-dim hoverable:text-ink'
-                  }`}
-              >
-                <Icon size={14} /> {t.label}
-              </a>
-            );
-          })}
-        </nav>
-      </div>
+      {/* ⚠️ **Plus de sous-onglets ICI.** Défense / Offense / Recommandations
+          étaient une rangée posée en haut de la page sous `lg`, invisible tant
+          qu'on n'était pas déjà dessus. Elles sont passées dans le panneau
+          qu'ouvre l'onglet « Siège » de la barre du bas (voir MobileNavSheet) :
+          sous le pouce, et alimentées par les mêmes sections que la barre
+          latérale. Le titre de la barre du haut dit la vue courante. */}
 
       {tab === 'recos' ? (
         <RecoBoard
@@ -79,10 +60,19 @@ export default function SiegePage({
           teams={teams}
           copies6={copies6}
           offense={offense}
+          menuOuvert={menuOuvert}
+          onFermerMenu={onFermerMenu}
         />
       ) : (
         // key={tab} pour réinitialiser l'état du board au changement de côté
-        <SiegeBoard key={tab} side={tab as SiegeSide} siege={siege} {...boardProps} />
+        <SiegeBoard
+          key={tab}
+          side={tab as SiegeSide}
+          siege={siege}
+          menuOuvert={menuOuvert}
+          onFermerMenu={onFermerMenu}
+          {...boardProps}
+        />
       )}
     </div>
   );

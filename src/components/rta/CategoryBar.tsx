@@ -3,7 +3,10 @@ import { Plus, Pencil, Trash2, Check, X, Eye, EyeOff } from 'lucide-react';
 import { Monster } from '../../types';
 import MonsterAvatar from '../MonsterAvatar';
 import { RtaCategory, UseRtaCategories, MAX_CATEGORIES_PER_MONSTER } from '../../hooks/useRtaCategories';
-import { ConfirmDialog } from '../Dialogs';
+import { ConfirmDialog, Modale } from '../../ui/Dialogs';
+import { useRecalageEcran } from '../../hooks/useRecalageEcran';
+import { useMediaQuery, SOUS_LG } from '../../hooks/useMediaQuery';
+import { Bouton, BoutonGroupe, BoutonIcone, Champ, Flottant, Vignette } from '../../ui';
 
 // Palette FERMÉE plutôt qu'un sélecteur de couleur libre : le contrôle natif
 // (`<input type="color">`) est un composant du système, hors charte, et un choix
@@ -38,6 +41,16 @@ export default function CategoryBar({ cats, monsters }: Props) {
   const [editId, setEditId] = useState<string | null>(null); // catégorie en édition
   const [creating, setCreating] = useState(false);
   const [aSupprimer, setASupprimer] = useState<{ id: string; label: string } | null>(null);
+  // ⚠️ « Tout décocher » demande une CONFIRMATION : il retire d'un coup ce qu'on
+  // a coché un monstre à la fois, et il n'y a pas d'annulation.
+  const [viderAConfirmer, setViderAConfirmer] = useState<
+    { id: string; label: string; n: number } | null
+  >(null);
+  // ⚠️ La refonte de cette barre ne vise QUE le téléphone : le rendu de bureau
+  // reste celui d'avant, à l'identique. Ce qui change tient à la place et au
+  // doigt — un écran large n'a ni l'une ni l'autre contrainte, et déplacer ses
+  // repères aurait changé ce qui n'était pas en cause.
+  const surMobile = useMediaQuery(SOUS_LG);
 
   const open = cats.categories.find((c) => c.id === openId) ?? null;
   // Effectif AFFICHÉ = membres réellement présents dans la prépa. Un monstre
@@ -57,47 +70,40 @@ export default function CategoryBar({ cats, monsters }: Props) {
           /* Pilule : point de couleur, nom, puis édition et suppression.
              ⚠️ **Tous les éléments de la barre font la même hauteur (`h-7`)** —
              pilules, bouton d'ajout, interrupteur. Des hauteurs différentes
-             donnaient une rangée en dents de scie.
-             Le cadre porte le style et les boutons sont transparents à
-             l'intérieur : aucune couture entre eux, et pas de bouton imbriqué
-             dans un bouton (HTML invalide). */
+             donnaient une rangée en dents de scie. C'est `BoutonGroupe` qui la
+             tient désormais, avec la même structure que la pilule de lead SPD de
+             l'ordre de tour. */
           <div key={c.id} className="relative">
-            <div
-              className={`inline-flex h-7 items-center gap-1.5 rounded-full border pl-2.5 pr-1 transition ${
-                openId === c.id
-                  ? 'border-accent bg-panel2'
-                  : 'border-border bg-panel hoverable:border-accent'
-              }`}
-            >
-              <button
-                onClick={() => setOpenId((o) => (o === c.id ? null : c.id))}
-                aria-expanded={openId === c.id}
-                title="Choisir les monstres de cette catégorie"
-                className="flex h-full items-center gap-1.5 text-[12px] font-semibold text-ink"
-              >
+            <BoutonGroupe
+              actif={openId === c.id}
+              onClick={() => setOpenId((o) => (o === c.id ? null : c.id))}
+              aria-expanded={openId === c.id}
+              title="Choisir les monstres de cette catégorie"
+              icone={
                 <span
-                  className="w-2.5 h-2.5 rounded-full flex-none"
+                  className="h-2.5 w-2.5 flex-none rounded-full"
                   style={{ backgroundColor: c.color }}
                 />
-                {c.label}
-              </button>
-              <button
-                onClick={() => setEditId((e) => (e === c.id ? null : c.id))}
-                title="Renommer / changer la couleur"
-                aria-label={`Éditer ${c.label}`}
-                className="flex items-center justify-center w-5 h-5 rounded-full text-ink-dim transition hoverable:text-ink hoverable:bg-black/25"
-              >
-                <Pencil size={11} />
-              </button>
-              <button
-                onClick={() => setASupprimer({ id: c.id, label: c.label })}
-                title="Supprimer la catégorie"
-                aria-label={`Supprimer ${c.label}`}
-                className="flex items-center justify-center w-5 h-5 rounded-full text-ink-dim transition hoverable:text-fire hoverable:bg-black/25"
-              >
-                <Trash2 size={11} />
-              </button>
-            </div>
+              }
+              libelle={c.label}
+              actions={
+                <>
+                  <BoutonIcone
+                    onClick={() => setEditId((e) => (e === c.id ? null : c.id))}
+                    libelle={`Éditer ${c.label}`}
+                    taille="serre"
+                    icone={<Pencil size={11} />}
+                  />
+                  <BoutonIcone
+                    onClick={() => setASupprimer({ id: c.id, label: c.label })}
+                    libelle={`Supprimer ${c.label}`}
+                    taille="serre"
+                    ton="danger"
+                    icone={<Trash2 size={11} />}
+                  />
+                </>
+              }
+            />
 
             {editId === c.id && (
               <CategoryPopover
@@ -113,15 +119,19 @@ export default function CategoryBar({ cats, monsters }: Props) {
         ))}
 
         <div className="relative">
-          <button
+          {/* ⚠️ Le POINTILLÉ dit « contenant pas encore rempli » — c'est ce qui
+              distingue « ajouter » des catégories déjà là, sans un mot de plus.
+              C'est une prop du composant, pas un bouton d'un autre genre : il
+              partage donc la hauteur de ses voisins de rangée. */}
+          <BoutonGroupe
             onClick={() => setCreating((v) => !v)}
             aria-expanded={creating}
-            className="flex h-7 items-center gap-1 rounded-full border border-dashed border-border
-                       bg-transparent px-2.5 text-[12px] text-ink-dim transition
-                       hoverable:text-ink hoverable:border-accent hoverable:bg-panel2"
-          >
-            <Plus size={12} /> Catégorie
-          </button>
+            pointille
+            fond="vide"
+            icone={<Plus size={12} />}
+            libelle="Catégorie"
+            className="font-normal hoverable:bg-panel2"
+          />
           {creating && (
             <CategoryPopover
               initial={{ label: '', color: nextColor(cats.categories.map((x) => x.color.toLowerCase())) }}
@@ -134,72 +144,90 @@ export default function CategoryBar({ cats, monsters }: Props) {
           )}
         </div>
 
-        {/* Interrupteurs d'affichage, poussés à droite. On coupe le bruit sans
-            rien perdre : les catégories et les vitesses restent, seul le rendu
-            disparaît. */}
-        <button
-          onClick={() => cats.setShowSpeeds(!cats.showSpeeds)}
-          aria-pressed={cats.showSpeeds}
-          title={
-            cats.showSpeeds
-              ? 'Masquer les vitesses sur les cartes'
-              : 'Réafficher les vitesses sur les cartes'
-          }
-          className={`ml-auto flex h-7 items-center gap-1.5 rounded-full border px-2.5 text-[12px] transition ${
-            cats.showSpeeds
-              ? 'border-border bg-panel text-ink-dim hoverable:text-ink hoverable:border-accent'
-              : // Fond seul — voir spec/shared/design.md.
-                'border-border bg-accent-soft text-ink'
-          }`}
-        >
-          {cats.showSpeeds ? <Eye size={12} /> : <EyeOff size={12} />}
-          Vitesses
-        </button>
-
-        <button
-          onClick={() => cats.setMarkDesync(!cats.markDesync)}
-          aria-pressed={cats.markDesync}
-          title={
-            cats.markDesync
-              ? 'Ne plus signaler les monstres dont les runes ne suivent plus la vitesse demandée'
-              : 'Signaler en orange les monstres dont les runes ne suivent plus'
-          }
-          className={`flex h-7 items-center gap-1.5 rounded-full border px-2.5 text-[12px] transition ${
-            cats.markDesync
-              ? 'border-border bg-panel text-ink-dim hoverable:text-ink hoverable:border-accent'
-              : // Fond seul — voir spec/shared/design.md.
-                'border-border bg-accent-soft text-ink'
-          }`}
-        >
-          {cats.markDesync ? <Eye size={12} /> : <EyeOff size={12} />}
-          Modifiés
-        </button>
-
-        {/* ⚠️ Toujours affiché, même sans aucune catégorie : les trois
-            interrupteurs forment un groupe fixe. Un bouton qui apparaît et
-            disparaît fait sauter la rangée et donne l'impression d'un réglage
-            qu'on aurait perdu. */}
-        <button
-          onClick={() => cats.setVisible(!cats.visible)}
-          aria-pressed={cats.visible}
-          title={
-            cats.visible
-              ? 'Masquer les couleurs sur les cartes et l’ordre de tour'
-              : 'Réafficher les couleurs'
-          }
-          className={`flex h-7 items-center gap-1.5 rounded-full border px-2.5 text-[12px] transition ${
-            cats.visible
-              ? 'border-border bg-panel text-ink-dim hoverable:text-ink hoverable:border-accent'
-              : // Fond seul — voir spec/shared/design.md.
-                'border-border bg-accent-soft text-ink'
-          }`}
-        >
-          {cats.visible ? <Eye size={12} /> : <EyeOff size={12} />}
-          Catégories
-        </button>
+        {/* Sur BUREAU seulement : poussés à droite de cette rangée, comme
+            avant la refonte mobile. */}
+        {!surMobile && (
+          <>
+          <InterrupteurAffichage
+            actif={cats.showSpeeds}
+            onToggle={() => cats.setShowSpeeds(!cats.showSpeeds)}
+            libelle="Vitesses"
+            titreActif="Masquer les vitesses sur les cartes"
+            titreInactif="Réafficher les vitesses sur les cartes"
+            surMobile={surMobile}
+            premier
+          />
+          <InterrupteurAffichage
+            actif={cats.markDesync}
+            onToggle={() => cats.setMarkDesync(!cats.markDesync)}
+            libelle="Modifiés"
+            titreActif="Ne plus signaler les monstres dont les runes ne suivent plus la vitesse demandée"
+            titreInactif="Signaler en orange les monstres dont les runes ne suivent plus"
+            surMobile={surMobile}
+          />
+          {/* ⚠️ Toujours affiché, même sans aucune catégorie : les trois
+              interrupteurs forment un groupe fixe. Un bouton qui apparaît et
+              disparaît fait sauter la rangée et donne l'impression d'un
+              réglage qu'on aurait perdu. */}
+          <InterrupteurAffichage
+            actif={cats.visible}
+            onToggle={() => cats.setVisible(!cats.visible)}
+            libelle="Catégories"
+            titreActif="Masquer les couleurs sur les cartes et l’ordre de tour"
+            titreInactif="Réafficher les couleurs"
+            surMobile={surMobile}
+          />
+          </>
+        )}
       </div>
 
-      {/* Panneau d'affectation : tous les monstres de la page. */}
+      {/* ⚠️ **Rangée propre SOUS `lg` seulement.** Sur téléphone, la rangée des
+          catégories comptait déjà quatre éléments avant eux : les interrupteurs
+          y passaient à la ligne dès qu'une catégorie de plus existait, et se
+          retrouvaient un coup à droite, un coup en dessous.
+          Au-dessus de `lg` ils restent poussés à DROITE de cette rangée, comme
+          avant — la largeur y suffit. */}
+      {surMobile && (
+        <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
+          <InterrupteurAffichage
+            actif={cats.showSpeeds}
+            onToggle={() => cats.setShowSpeeds(!cats.showSpeeds)}
+            libelle="Vitesses"
+            titreActif="Masquer les vitesses sur les cartes"
+            titreInactif="Réafficher les vitesses sur les cartes"
+            surMobile={surMobile}
+            premier
+          />
+          <InterrupteurAffichage
+            actif={cats.markDesync}
+            onToggle={() => cats.setMarkDesync(!cats.markDesync)}
+            libelle="Modifiés"
+            titreActif="Ne plus signaler les monstres dont les runes ne suivent plus la vitesse demandée"
+            titreInactif="Signaler en orange les monstres dont les runes ne suivent plus"
+            surMobile={surMobile}
+          />
+          {/* ⚠️ Toujours affiché, même sans aucune catégorie : les trois
+              interrupteurs forment un groupe fixe. Un bouton qui apparaît et
+              disparaît fait sauter la rangée et donne l'impression d'un
+              réglage qu'on aurait perdu. */}
+          <InterrupteurAffichage
+            actif={cats.visible}
+            onToggle={() => cats.setVisible(!cats.visible)}
+            libelle="Catégories"
+            titreActif="Masquer les couleurs sur les cartes et l’ordre de tour"
+            titreInactif="Réafficher les couleurs"
+            surMobile={surMobile}
+          />
+        </div>
+      )}
+
+      {/* Panneau d'affectation : tous les monstres de la page.
+          ⚠️ Il s'ouvre EN DESSOUS de la rangée, dans les deux formats : les
+          pilules sont AVANT le point d'insertion, donc celle qu'on vient de
+          toucher ne bouge pas. C'est la bonne place — voir la règle dans
+          spec/shared/design.md. Le saut ressenti au doigt ne venait pas d'ici
+          mais du tiroir « Options » qui le contient, et qui grandissait vers le
+          haut ; il est corrigé dans MobileSheet. */}
       {open && (
         <div
           // Le panneau se pose au lieu de surgir : il s'ouvre SOUS la rangée de
@@ -215,36 +243,63 @@ export default function CategoryBar({ cats, monsters }: Props) {
         >
           <div className="flex items-center gap-2 mb-2 flex-wrap">
             <span className="w-2.5 h-2.5 rounded-full flex-none" style={{ backgroundColor: open.color }} />
-            <span className="text-[13px] font-semibold text-ink">{open.label}</span>
-            <span className="font-mono text-[11px] text-ink-dim">
+            <span className="text-sm font-semibold text-ink">{open.label}</span>
+            <span className="font-mono text-micro text-ink-dim">
               {countOf(open)} monstre{countOf(open) > 1 ? 's' : ''}
             </span>
+            {/* ⚠️ Ton `danger` : elle décoche d'un coup ce qu'on a coché un
+                monstre à la fois. Le ton porte l'avertissement, la confirmation
+                porte le reste. */}
             {countOf(open) > 0 && (
-              <button
-                onClick={() => cats.clearMembers(open.id)}
-                className="ml-auto flex h-6 items-center gap-1 rounded-full border border-border bg-panel
-                           px-2 text-[11px] text-ink-dim transition hoverable:border-fire/60 hoverable:text-fire"
+              <Bouton
+                ton="danger"
+                fond="vide"
+                taille="xs"
+                forme="pilule"
+                onClick={() => setViderAConfirmer({ id: open.id, label: open.label, n: countOf(open) })}
                 title="Retirer tous les monstres de cette catégorie"
-              >
-                <X size={11} /> Tout décocher
-              </button>
+                icone={<X size={11} />}
+                libelle="Tout décocher"
+                className="ml-auto h-6"
+              />
             )}
-            <button
+            <BoutonIcone
               onClick={() => setOpenId(null)}
-              className={`${countOf(open) > 0 ? '' : 'ml-auto '}text-ink-dim hoverable:text-ink transition`}
-              title="Fermer"
-              aria-label="Fermer"
-            >
-              <X size={14} />
-            </button>
+              libelle="Fermer"
+              icone={<X size={14} />}
+              className={countOf(open) > 0 ? '' : 'ml-auto'}
+            />
           </div>
 
           {monsters.length === 0 ? (
-            <p className="text-[12.5px] text-ink-dim">
+            <p className="text-xs text-ink-dim">
               Aucun monstre dans ta prépa : ajoute-en d'abord ci-dessus.
             </p>
           ) : (
-            <div className="flex flex-wrap gap-1.5">
+            // ⚠️ **Une GRILLE au doigt, une rangée qui se replie à la souris.**
+            // En `flex-wrap` avec des cases de largeur fixe, la dernière colonne
+            // laissait un vide à droite et chaque portrait se retrouvait décalé de
+            // l'axe de sa colonne — l'œil ne suivait plus de verticale en
+            // parcourant la liste. La grille répartit la largeur restante entre
+            // les colonnes : chaque case fait le même pas, et le portrait s'y
+            // centre.
+            // ⚠️ `auto-fill` : le nombre de colonnes suit la largeur disponible
+            // au lieu d'être écrit en dur.
+            // ⚠️ **Colonne minimale au plus près du PORTRAIT (44 px pour 36).**
+            // Elle valait 58 quand le nom vivait sous l'image : quatre colonnes
+            // se partageaient alors la largeur et chacune faisait près de 80 px,
+            // le portrait flottant au milieu de vingt pixels de vide. Sans nom,
+            // la case n'a plus à loger que l'image — six par rangée au lieu de
+            // quatre, et chaque portrait cadré dans sa colonne.
+            // ⚠️ Le rendu de BUREAU garde son `flex-wrap` : ses cases y ont une
+            // largeur propre, et la place ne manque pas.
+            <div
+              className={
+                surMobile
+                  ? 'grid grid-cols-[repeat(auto-fill,minmax(44px,1fr))] gap-1'
+                  : 'flex flex-wrap gap-1.5'
+              }
+            >
               {monsters.map((m) => {
                 const id = String(m.id);
                 const dedans = open.members.includes(id);
@@ -252,11 +307,21 @@ export default function CategoryBar({ cats, monsters }: Props) {
                 // explique pourquoi il est refusé, plutôt que de le cacher.
                 const bloque = !dedans && !cats.canAssign(id);
                 return (
-                  <button
+                  <Vignette
                     key={id}
+                    // ⚠️ Dans la grille du doigt, la case prend TOUTE sa colonne
+                    // (`w-full`) : c'est la grille qui fixe le pas, et une
+                    // largeur propre y laisserait le portrait décalé de son axe.
+                    // Sur bureau, la case garde sa largeur — elle vit dans une
+                    // rangée qui se replie, sans colonne à respecter.
+                    largeur={surMobile ? 'w-full' : undefined}
                     onClick={() => cats.toggleMember(open.id, id)}
                     disabled={bloque}
-                    aria-pressed={dedans}
+                    choisi={dedans}
+                    teinte={open.color}
+                    // ⚠️ Fond plus soutenu sous `lg`, où la coche ne s'affiche
+                    // pas : il y porte seul l'état de sélection.
+                    fondAppuye={surMobile}
                     title={
                       bloque
                         ? `${m.name} — déjà ${MAX_CATEGORIES_PER_MONSTER} catégories (maximum)`
@@ -264,41 +329,55 @@ export default function CategoryBar({ cats, monsters }: Props) {
                           ? `Retirer ${m.name} de « ${open.label} »`
                           : `Ajouter ${m.name} à « ${open.label} »`
                     }
-                    className={`relative flex w-[72px] flex-col items-center gap-1 rounded-lg px-1 py-1.5 transition ${
-                      bloque
-                        ? 'opacity-25 cursor-not-allowed'
-                        : dedans
-                          ? ''
-                          : 'opacity-70 hoverable:opacity-100 hoverable:bg-panel2'
-                    }`}
-                    style={
-                      dedans
-                        ? { boxShadow: `0 0 0 1.5px ${open.color}`, backgroundColor: withAlpha(open.color, 0.2) }
-                        : undefined
+                    contenu={<MonsterAvatar monster={m} size={36} element={false} />}
+                    // ⚠️ **Pas de nom au DOIGT.** Il n'y tenait pas : « Mei Hou
+                    // Wang » se coupait en « Mei Hou … », et une rangée où
+                    // certains noms sont entiers et d'autres tronqués n'a plus
+                    // de masse visuelle régulière — c'est ce qui donnait à la
+                    // grille son air désordonné, plus que la position des
+                    // portraits.
+                    // Le portrait suffit à reconnaître un monstre : c'est
+                    // l'image du jeu, celle qu'on voit dans sa box. Le nom
+                    // complet reste dans l'infobulle et pour le lecteur d'écran
+                    // (`title` ci-dessus), donc rien n'est perdu pour qui en a
+                    // besoin.
+                    // ⚠️ Sur BUREAU il reste : la case y est plus large, les
+                    // noms tiennent, et rien ne les gênait.
+                    libelle={surMobile ? undefined : m.name}
+                    // ⚠️ Coche masquée SOUS `lg` seulement : 12 px posés dans le
+                    // coin d'un portrait de 36, elle en masquait un bout au
+                    // doigt, là où le fond teinté et le liseré disent déjà la
+                    // sélection. Sur bureau elle reste — rien ne l'y gênait.
+                    coin={
+                      dedans && !surMobile ? (
+                        <span
+                          className="absolute right-0.5 top-0.5 flex h-3 w-3 items-center justify-center rounded-full"
+                          style={{ backgroundColor: open.color }}
+                        >
+                          <Check size={8} className="text-bg" />
+                        </span>
+                      ) : undefined
                     }
-                  >
-                    {/* ⚠️ Pas de pastille d'élément ici, mais le NOM sous le
-                        portrait : l'élément ne se distingue que par sa couleur,
-                        illisible pour un daltonien. Le nom, lui, identifie le
-                        monstre quelle que soit la vision des couleurs. */}
-                    <MonsterAvatar monster={m} size={36} element={false} />
-                    <span className="w-full truncate text-center text-[10px] leading-tight text-ink-dim">
-                      {m.name}
-                    </span>
-                    {dedans && (
-                      <span
-                        className="absolute top-0.5 right-0.5 flex items-center justify-center w-3 h-3 rounded-full"
-                        style={{ backgroundColor: open.color }}
-                      >
-                        <Check size={8} className="text-bg" />
-                      </span>
-                    )}
-                  </button>
+                  />
                 );
               })}
             </div>
           )}
         </div>
+      )}
+
+      {viderAConfirmer && (
+        <ConfirmDialog
+          titre={`Retirer les ${viderAConfirmer.n} monstres de « ${viderAConfirmer.label} » ?`}
+          message="La catégorie reste, mais elle se vide. Les monstres ne sont pas retirés de ta prépa — c'est leur appartenance à cette catégorie qui part, et elle se recoche un monstre à la fois."
+          libelleAction="Tout retirer"
+          destructif
+          onCancel={() => setViderAConfirmer(null)}
+          onConfirm={() => {
+            cats.clearMembers(viderAConfirmer.id);
+            setViderAConfirmer(null);
+          }}
+        />
       )}
 
       {aSupprimer && (
@@ -319,11 +398,91 @@ export default function CategoryBar({ cats, monsters }: Props) {
   );
 }
 
-// Saisie d'une catégorie : titre + couleur, dans une **popup flottante**.
+// Interrupteur d'affichage : « ce que la page montre », pas « ce que le bouton
+// fait ». Les trois de la barre RTA en sont des instances — ils étaient trois
+// copies du même bouton, à trois endroits, avec les mêmes vingt lignes.
 //
-// ⚠️ **Elle est en `absolute`, hors du flux.** Un formulaire inséré dans la
-// rangée poussait les pilules suivantes et décalait toute la page à chaque
-// ouverture — désagréable, et on perdait de vue la pilule qu'on éditait.
+// ⚠️ **Ce n'est plus qu'un RÉGLAGE de [BoutonGroupe](../../ui/BoutonGroupe.tsx),
+// pas un composant.** Il en dessinait un second, avec ses propres classes — d'où
+// des rangées en dents de scie dès qu'il voisinait une pilule de catégorie. Il
+// ne reste ici que ce qui est propre au SENS de ces trois interrupteurs ; tout
+// le dessin vient de la librairie.
+//
+// Deux écarts subsistent entre les formats, et ils sont réels :
+//
+// - **Le sens de l'accent s'inverse.** Sur bureau il marque l'état MASQUÉ (la
+//   chose coupée ressort, celle qu'on voit s'efface) ; au doigt il marque l'état
+//   affiché. Sur un écran large on embrasse la rangée d'un regard et l'inversion
+//   se rattrape ; sur trois pastilles serrées, elle se lit à l'envers.
+// - **Une PUCE plutôt qu'un œil barré au doigt.** Ce pictogramme demande de se
+//   rappeler s'il montre l'état courant ou l'action à venir. À 12 px sur un
+//   téléphone, l'ambiguïté ne se lève plus ; un point plein ou creux se lit sans
+//   être interprété.
+export function InterrupteurAffichage({
+  actif,
+  onToggle,
+  libelle,
+  titreActif,
+  titreInactif,
+  surMobile,
+  premier = false,
+}: {
+  actif: boolean;
+  onToggle: () => void;
+  libelle: string;
+  titreActif: string;
+  titreInactif: string;
+  surMobile: boolean;
+  // Premier des trois : sur bureau il porte le `ml-auto` qui pousse le groupe à
+  // droite de la rangée des catégories.
+  premier?: boolean;
+}) {
+  // ⚠️ **UN SEUL composant pour les deux formats**, avec deux réglages qui
+  // diffèrent — et non deux écritures. Les deux se ramènent à un `BoutonGroupe`,
+  // donc la hauteur, la pression au clic et `aria-pressed` viennent du même
+  // endroit ; seuls la DÉCORATION et le SENS de l'accent changent.
+  //
+  // ⚠️ `actif={!actif}` sur bureau, et c'est tout l'écart : l'accent y marque
+  // l'état MASQUÉ (la chose coupée ressort, celle qu'on voit s'efface). Sur un
+  // écran large on embrasse la rangée d'un regard et l'inversion se rattrape ;
+  // sur trois pastilles serrées au doigt, elle se lit à l'envers — d'où le sens
+  // droit en mobile. C'est une inversion de la VALEUR passée, pas un drapeau
+  // ajouté au composant partagé : lui n'a rien à savoir de cette convention.
+  return (
+    <BoutonGroupe
+      actif={surMobile ? actif : !actif}
+      onClick={onToggle}
+      title={actif ? titreActif : titreInactif}
+      libelle={libelle}
+      // Une PUCE au doigt plutôt qu'un œil barré : ce pictogramme demande de se
+      // rappeler s'il montre l'état courant ou l'action à venir. À 12 px sur un
+      // téléphone, l'ambiguïté ne se lève plus ; un point plein ou creux se lit
+      // sans être interprété.
+      puce={surMobile}
+      icone={surMobile ? undefined : actif ? <Eye size={12} /> : <EyeOff size={12} />}
+      // Premier des trois : sur bureau il porte le `ml-auto` qui pousse le
+      // groupe à droite de la rangée des catégories.
+      className={!surMobile && premier ? 'ml-auto' : ''}
+    />
+  );
+}
+
+// Saisie d'une catégorie : titre + couleur.
+//
+// ⚠️ **Deux contenants selon la largeur, un seul formulaire.**
+//
+// - Au-dessus de `lg` : une **popup ancrée** à la pilule qu'on édite. On voit
+//   la rangée derrière, on sait sur quoi on agit, et la souris est déjà là.
+// - En dessous : un **panneau montant** (`MobileSheet`), comme partout ailleurs
+//   dans l'app sur téléphone. Une popup ancrée y était le mauvais objet : elle
+//   s'ouvre là où le doigt a tapé — souvent en haut de l'écran, hors de portée
+//   du pouce pour la valider — et flotte hors de tout cadre, d'où les
+//   débordements qu'il a fallu rattraper à la mesure. Le panneau, lui, arrive
+//   sous le pouce et occupe une largeur connue.
+//
+// ⚠️ Le formulaire est le **même JSX** dans les deux cas. Deux copies auraient
+// divergé au premier champ ajouté — et c'est le genre de divergence qu'on ne
+// voit pas, puisqu'on ne teste jamais les deux largeurs à la fois.
 function CategoryPopover({
   initial,
   onSubmit,
@@ -335,10 +494,19 @@ function CategoryPopover({
 }) {
   const [label, setLabel] = useState(initial.label);
   const [color, setColor] = useState(initial.color);
-  const ref = useRef<HTMLFormElement>(null);
+  // Sur la surface FLOTTANTE, pas sur le formulaire : voir plus bas.
+  const ref = useRef<HTMLDivElement>(null);
+  const surMobile = useMediaQuery(SOUS_LG);
+  // Popup ancrée seulement : le panneau montant occupe une largeur connue et
+  // n'a rien à recaler.
+  const { style: recalage } = useRecalageEcran(ref, !surMobile);
 
   // Fermeture au clic extérieur et à Échap, comme les autres menus de l'app.
+  // ⚠️ Le clic extérieur ne vaut QUE pour la popup : le panneau montant a son
+  // propre voile, qui ferme déjà au clic — écouter en plus fermerait deux fois,
+  // et le clic sur le voile aurait traversé jusqu'au formulaire.
   useEffect(() => {
+    if (surMobile) return;
     const onDown = (e: MouseEvent) => {
       if (ref.current && !ref.current.contains(e.target as Node)) onClose();
     };
@@ -349,76 +517,152 @@ function CategoryPopover({
       document.removeEventListener('mousedown', onDown);
       document.removeEventListener('keydown', onEsc);
     };
-  }, [onClose]);
+  }, [onClose, surMobile]);
 
-  return (
+  const formulaire = (
     <form
-      ref={ref}
+      id="categorie-form"
       onSubmit={(e) => {
         e.preventDefault();
         onSubmit(label, color);
       }}
-      className="absolute z-30 left-0 top-full mt-1.5 w-[220px] rounded-xl border border-border
-                 bg-panel p-2.5 shadow-glow shadow-black/60"
     >
       <div className="flex items-center gap-1.5">
+        {/* ⚠️ Masquée au doigt : la palette juste en dessous montre déjà la
+            couleur choisie, d'un cadre autour de sa case. Deux rappels de la
+            même chose à 40 px l'un de l'autre, dont un qui rogne la largeur du
+            champ qu'on vient remplir. */}
         <span
-          className="w-4 h-4 rounded-full flex-none border border-black/30"
+          className="w-4 h-4 rounded-full flex-none border border-black/30 compact:hidden"
           style={{ backgroundColor: color }}
           aria-hidden
         />
-        <input
+        {/* ⚠️ Le grossissement au doigt (16 px, contre le zoom iOS à la mise au
+            point) vit dans [Champ](../../ui/Champ.tsx), pas ici : c'est un piège
+            de plateforme, pas une décision de ce formulaire. */}
+        <Champ
           autoFocus
           value={label}
           onChange={(e) => setLabel(e.target.value)}
           placeholder="Striper, Lead SPD…"
           maxLength={24}
-          className="min-w-0 flex-1 bg-panel2 border border-border rounded-md px-2 py-1 text-[12px] text-ink
-                     outline-none focus:border-accent placeholder:text-ink-dim"
+          // ⚠️ `pleineLargeur={false}` avec `flex-1` : les deux ensemble
+          // (`w-full` et `flex-1`) se contredisent dans un conteneur flex, et le
+          // champ refusait de rétrécir sous son contenu.
+          pleineLargeur={false}
+          className="flex-1 py-1 text-xs compact:py-2.5"
         />
       </div>
 
-      <div className="mt-2 grid grid-cols-6 gap-1">
+      {/* ⚠️ Palette à SIX colonnes partout, mais des cases plus hautes au doigt
+          (voir plus bas) : douze couleurs en deux rangées se comparent d'un coup
+          d'œil, là où trois rangées de quatre obligeraient à balayer. */}
+      <div className="mt-2 grid grid-cols-6 gap-1 compact:mt-3 compact:gap-1.5">
         {PALETTE.map((c) => {
           const actif = c.toLowerCase() === color.toLowerCase();
           return (
-            <button
+            <Vignette
               key={c}
-              type="button"
+              aplat
+              teinte={c}
+              choisi={actif}
               onClick={() => setColor(c)}
               aria-label={`Couleur ${c}`}
-              aria-pressed={actif}
-              className={`flex items-center justify-center h-6 rounded-md transition ${
-                actif
-                  ? 'ring-2 ring-ink ring-offset-2 ring-offset-panel'
-                  : 'opacity-80 hoverable:opacity-100 hoverable:-translate-y-px'
-              }`}
-              style={{ backgroundColor: c }}
-            >
-              {actif && <Check size={12} className="text-bg drop-shadow" />}
-            </button>
+              // ⚠️ 44 px de haut au doigt contre 24 à la souris : douze cases
+              // côte à côte, une erreur de visée choisit la voisine et il faut
+              // recommencer. C'est plus que la cible tactile ordinaire, d'où une
+              // hauteur écrite ici et non héritée de la règle globale.
+              hauteur="h-6 compact:h-11"
+              contenu={actif ? <Check size={12} className="text-bg drop-shadow" /> : undefined}
+            />
           );
         })}
       </div>
 
-      <div className="mt-2.5 flex items-center gap-1.5">
-        <button
+      {/* ⚠️ Les boutons ne sont ICI que pour la popup de BUREAU, où le
+          formulaire est tout le contenu. Sur téléphone ils vivent dans le pied
+          de la modale (voir `actions` plus bas) : `lg:` les garde côté souris,
+          `hidden` les retire au doigt pour ne pas les afficher deux fois. */}
+      {/* ⚠️ **« Valider » taqué à DROITE, « Annuler » à sa gauche** — le même
+          ordre que dans le pied de la modale, donc la même main au même endroit
+          quel que soit le format. Il était inversé ici, et « Valider » y était
+          de surcroît ÉTIRÉ (`flex-1`) : une action étirée occupe toute la
+          largeur, elle ne peut donc plus être taquée. */}
+      <div className="mt-2.5 hidden items-center justify-end gap-1.5 lg:flex">
+        {/* ⚠️ Sans fond ni trait : l'action à côté de « Valider » ne doit pas lui
+            disputer le regard — elle est là pour être trouvée, pas pour être
+            proposée. */}
+        <Bouton fond="vide" trait="aucun" taille="sm" onClick={onClose} libelle="Annuler" />
+        <Bouton
           type="submit"
+          ton="accent"
+          fond="doux"
           disabled={!label.trim()}
-          className="flex-1 rounded-md bg-accent-soft px-2 py-1
-                     text-[12px] font-semibold text-ink transition disabled:opacity-40"
-        >
-          Valider
-        </button>
-        <button
-          type="button"
-          onClick={onClose}
-          className="rounded-md border border-border px-2 py-1 text-[12px] text-ink-dim
-                     transition hoverable:text-ink hoverable:border-accent"
-        >
-          Annuler
-        </button>
+          taille="sm"
+          libelle="Valider"
+        />
       </div>
     </form>
+  );
+
+  // Actions du PIED de la modale — téléphone seulement.
+  //
+  // ⚠️ `form="categorie-form"` sur « Valider » : le bouton vit dans le pied,
+  // hors du `<form>` qui est dans le corps. Cet attribut les relie — sans lui,
+  // « Valider » ne soumettrait rien.
+  const actions = (
+    <>
+      <Bouton fond="vide" trait="aucun" taille="sm" onClick={onClose} libelle="Annuler" />
+      <Bouton
+        type="submit"
+        form="categorie-form"
+        ton="accent"
+        fond="doux"
+        disabled={!label.trim()}
+        taille="sm"
+        libelle="Valider"
+      />
+    </>
+  );
+
+  // ⚠️ **Sur téléphone : une MODALE**, la même grammaire que la création de
+  // monstre — titre à gauche, croix en haut à droite, actions taquées à droite
+  // en bas. Le panneau montant y servait de contenant, mais il dessinait son
+  // propre en-tête : deux formulaires voisins, deux façons d'être coiffés.
+  //
+  // Une popup ancrée, elle, était le mauvais geste au doigt : elle s'ouvre là
+  // où le doigt a tapé, souvent hors de portée du pouce pour la valider.
+  //
+  // ⚠️ Le rendu de BUREAU ne change pas : il garde sa popup ancrée à la pilule
+  // qu'on édite (voir plus bas). On y voit la rangée derrière, on sait sur quoi
+  // on agit, et la souris est déjà là.
+  if (surMobile) {
+    return (
+      <Modale
+        onClose={onClose}
+        labelledBy="categorie-titre"
+        titre={initial.label ? 'Modifier la catégorie' : 'Nouvelle catégorie'}
+        largeur="max-w-[340px]"
+        croix
+        actions={actions}
+      >
+        {formulaire}
+      </Modale>
+    );
+  }
+
+  // ⚠️ La popup est ancrée à gauche d'un bouton dont la position dépend du
+  // nombre de catégories et de la largeur de leurs noms : elle sortait de
+  // l'écran dès que ce bouton se trouvait sur la droite, d'où le recalage. Le
+  // panneau montant, lui, n'a pas de position à corriger.
+  // ⚠️ `ref` sur le FLOTTANT et non sur le formulaire : c'est la surface
+  // visible qu'on mesure pour le recalage, et c'est elle dont on teste si le
+  // clic est tombé dedans. Posée sur le formulaire, la bordure et le
+  // rembourrage échappaient aux deux — un clic sur le bord de la popup la
+  // refermait.
+  return (
+    <Flottant ref={ref} largeur="w-[220px]" rembourrage="sm" style={recalage}>
+      {formulaire}
+    </Flottant>
   );
 }

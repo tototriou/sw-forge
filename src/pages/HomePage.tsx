@@ -21,6 +21,7 @@ import {
 import ElementIcon from '../components/ElementIcon';
 import { ElementKey } from '../types';
 import { RELEASES, libelleVersion } from '../data/releases';
+import { COULEUR_SECTION, COULEUR_SIEGE_SUB, COULEUR_COMPTE_SUB } from '../data/couleursSection';
 
 const ELEMENT_ORDER: ElementKey[] = ['fire', 'water', 'wind', 'light', 'dark'];
 const SW_EXPORTER = 'https://github.com/Xzandro/sw-exporter';
@@ -104,7 +105,7 @@ export default function HomePage({ stats, onImport }: Props) {
             La boîte à outils pour Summoners&nbsp;War.
           </p>
 
-          <p className="mt-3 max-w-lg text-[15px] leading-relaxed text-ink-dim">
+          <p className="mt-3 max-w-lg text-base leading-relaxed text-ink-dim">
             Runes, RTA, siège, analyse de compte. Importe ton export SWEX et tout est calculé{' '}
             <b className="text-ink">dans ton navigateur</b>.
           </p>
@@ -137,10 +138,10 @@ export default function HomePage({ stats, onImport }: Props) {
               un débutant en lui parlant d'un passé qu'il n'a pas. */}
           <SectionTitle icon={LayoutGrid} title="Ton espace" />
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5">
-            <Resume href="#/rta" icon={Swords} accent="#A15FE0" value={stats.rta} unit={stats.rta > 1 ? 'monstres' : 'monstre'} label="Prépa RTA" />
-            <Resume href="#/siege/defense" icon={Castle} accent="#E4463A" value={stats.defense} unit={stats.defense > 1 ? 'équipes' : 'équipe'} label="Défense de siège" />
-            <Resume href="#/siege/offense" icon={Swords} accent="#F2884C" value={stats.offense} unit={stats.offense > 1 ? 'équipes' : 'équipe'} label="Offense de siège" />
-            <Resume href="#/siege/recommandations" icon={Lightbulb} accent="#5EDB8F" value={stats.recos} unit={stats.recos > 1 ? 'recos' : 'reco'} label="Recommandations" />
+            <Resume href="#/rta" icon={Swords} accent={COULEUR_SECTION.rta} value={stats.rta} unit={stats.rta > 1 ? 'monstres' : 'monstre'} label="Prépa RTA" />
+            <Resume href="#/siege/defense" icon={Castle} accent={COULEUR_SIEGE_SUB.defense} value={stats.defense} unit={stats.defense > 1 ? 'équipes' : 'équipe'} label="Défense de siège" />
+            <Resume href="#/siege/offense" icon={Swords} accent={COULEUR_SIEGE_SUB.offense} value={stats.offense} unit={stats.offense > 1 ? 'équipes' : 'équipe'} label="Offense de siège" />
+            <Resume href="#/siege/recommandations" icon={Lightbulb} accent={COULEUR_SIEGE_SUB.recos} value={stats.recos} unit={stats.recos > 1 ? 'recos' : 'reco'} label="Recommandations" />
           </div>
         </motion.section>
       )}
@@ -185,23 +186,23 @@ export default function HomePage({ stats, onImport }: Props) {
       <motion.section variants={item} id="features" className="py-12">
         <h2 className="font-display text-[26px] tracking-wide mb-6">Fonctionnalités</h2>
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5">
-          <Feature href="#/rta" icon={Swords} accent="#A15FE0" kicker="RTA" title="Préparation RTA" body="Classe ta box par set en glisser-déposer, lis l'ordre de tour recalculé selon les leads, et consulte la prépa de tes amis." />
-          <Feature href="#/siege/defense" icon={Castle} accent="#E4463A" kicker="Siège" title="Défenses et offenses" body="Compose tes équipes et vérifie tes speed tune sur les ticks 239 et 286." />
-          <Feature href="#/siege/recommandations" icon={Lightbulb} accent="#5EDB8F" kicker="Partage" title="Recommandations" body="Décris tes decks, partage-les en JSON, et vois ce que ton compte peut jouer." />
-          <Feature href="#/compte/runes" icon={UserRound} accent="#4AD8D8" kicker="Compte" title="Analyse de runes" body="Résumé chiffré, efficience ou score SW, courbes, et ce que tes meules et gemmes en réserve permettent d'améliorer dès maintenant." />
-          <Feature href="#/compte/artefacts" icon={Gem} accent="#E08A3C" kicker="Compte" title="Analyse d'artéfacts" body="Le score du jeu et l'efficience de chaque pièce, la distribution de ton stock et les propriétés que tu possèdes le plus." />
-          <Feature href="#/outils/optimizer" icon={Sparkles} accent="#FFA94D" kicker="Outils" title="Optimiseur de runes" body="Cherche, parmi les runes que tu possèdes déjà, la meilleure combinaison de 6 pour un monstre, un set et des minimums donnés." />
-          <Feature href="#/bestiary" icon={BookOpen} accent="#2FA0E0" kicker="Données" title="Bestiaire" body="Recherche et filtres par élément et étoiles naturelles, stats de base à portée de main." />
-          <Feature href="#/mecaniques" icon={Calculator} accent="#8890B8" kicker="Doc" title="Mécaniques" body="Vitesse de combat, barre d'action, équation des dégâts et facteur de défense." />
-          <Feature href="#/releases" icon={Tag} accent="#C79BFF" kicker="Suivi" title="Nouveautés" body="Ce qui change à chaque version : ajouts, corrections et calculs revus." />
-          <Feature href="#/arene" icon={Trophy} accent="#F2C24C" kicker="Arène" title="Arène classique" body="Préparation des équipes d'offense et de défense." soon />
+          <Feature href="#/rta" icon={Swords} accent={COULEUR_SECTION.rta} kicker="RTA" title="Préparation RTA" body="Classe ta box par set en glisser-déposer, lis l'ordre de tour recalculé selon les leads, et consulte la prépa de tes amis." />
+          <Feature href="#/siege/defense" icon={Castle} accent={COULEUR_SECTION.siege} kicker="Siège" title="Défenses et offenses" body="Compose tes équipes et vérifie tes speed tune sur les ticks 239 et 286." />
+          <Feature href="#/siege/recommandations" icon={Lightbulb} accent={COULEUR_SIEGE_SUB.recos} kicker="Partage" title="Recommandations" body="Décris tes decks, partage-les en JSON, et vois ce que ton compte peut jouer." />
+          <Feature href="#/compte/runes" icon={UserRound} accent={COULEUR_COMPTE_SUB.runes} kicker="Compte" title="Analyse de runes" body="Résumé chiffré, efficience ou score SW, courbes, et ce que tes meules et gemmes en réserve permettent d'améliorer dès maintenant." />
+          <Feature href="#/compte/artefacts" icon={Gem} accent={COULEUR_COMPTE_SUB.artefacts} kicker="Compte" title="Analyse d'artéfacts" body="Le score du jeu et l'efficience de chaque pièce, la distribution de ton stock et les propriétés que tu possèdes le plus." />
+          <Feature href="#/outils/optimizer" icon={Sparkles} accent={COULEUR_SECTION.outils} kicker="Outils" title="Optimiseur de runes" body="Cherche, parmi les runes que tu possèdes déjà, la meilleure combinaison de 6 pour un monstre, un set et des minimums donnés." />
+          <Feature href="#/bestiary" icon={BookOpen} accent={COULEUR_SECTION.bestiary} kicker="Données" title="Bestiaire" body="Recherche et filtres par élément et étoiles naturelles, stats de base à portée de main." />
+          <Feature href="#/mecaniques" icon={Calculator} accent={COULEUR_SECTION.mecaniques} kicker="Doc" title="Mécaniques" body="Vitesse de combat, barre d'action, équation des dégâts et facteur de défense." />
+          <Feature href="#/releases" icon={Tag} accent={COULEUR_SECTION.releases} kicker="Suivi" title="Nouveautés" body="Ce qui change à chaque version : ajouts, corrections et calculs revus." />
+          <Feature href="#/arene" icon={Trophy} accent={COULEUR_SECTION.arene} kicker="Arène" title="Arène classique" body="Préparation des équipes d'offense et de défense." soon />
         </div>
       </motion.section>
 
       {/* ---- Dernier appel -------------------------------------------------- */}
       <motion.section variants={item} className="py-12 max-w-xl">
         <h2 className="font-display text-[26px] tracking-wide">Prêt à préparer tes équipes ?</h2>
-        <p className="mt-2 text-[14.5px] leading-relaxed text-ink-dim">
+        <p className="mt-2 text-sm leading-relaxed text-ink-dim">
           Importe ton fichier SWEX et retrouve ta box, tes runes, ta prépa RTA et tes équipes de siège
           en quelques secondes.
         </p>
@@ -212,7 +213,7 @@ export default function HomePage({ stats, onImport }: Props) {
         <button
           onClick={() => ctaRef.current?.click()}
           className="mt-4 inline-flex items-center gap-2 rounded-lg bg-accent-soft
-                     border border-accent px-4 py-2.5 text-[14px] font-semibold text-ink
+                     border border-accent px-4 py-2.5 text-sm font-semibold text-ink
                      transition hoverable:border-accent"
         >
           <Upload size={15} /> Importer mon compte
@@ -240,8 +241,8 @@ export default function HomePage({ stats, onImport }: Props) {
         <span className="rounded-full bg-star/15 px-2 py-0.5 label text-star">
           {libelleVersion(derniere.version)}
         </span>
-        <span className="text-[13.5px] text-ink">{derniere.title}</span>
-        <span className="ml-auto inline-flex items-center gap-1 text-[12.5px] text-ink-dim">
+        <span className="text-sm text-ink">{derniere.title}</span>
+        <span className="ml-auto inline-flex items-center gap-1 text-xs text-ink-dim">
           Voir les nouveautés <ArrowRight size={13} />
         </span>
       </motion.a>
@@ -290,14 +291,14 @@ function Dropzone({ onImport }: { onImport: (text: string) => void }) {
                   }`}
     >
       <Upload size={30} className="text-accent" />
-      <div className="font-display text-[16px] tracking-wide text-ink">
+      <div className="font-display text-base tracking-wide text-ink">
         Dépose ton fichier .json ici
       </div>
-      <div className="text-[13px] text-ink-dim">ou clique pour parcourir</div>
+      <div className="text-sm text-ink-dim">ou clique pour parcourir</div>
       <span className="mt-1 rounded-full border border-border bg-panel2 px-2.5 py-1 label">
         Export SWEX (.json)
       </span>
-      <span className="mt-1 inline-flex items-center gap-1.5 text-[11.5px] text-ink-dim">
+      <span className="mt-1 inline-flex items-center gap-1.5 text-micro text-ink-dim">
         <ShieldCheck size={12} /> lu dans la page, jamais envoyé
       </span>
       <input
@@ -323,7 +324,7 @@ function SectionTitle({ icon: Icon, title }: { icon: typeof BookOpen; title: str
   return (
     <div className="flex items-center gap-2 mb-2.5">
       <Icon size={15} className="text-ink-dim" />
-      <h2 className="font-display text-[17px] tracking-wide">{title}</h2>
+      <h2 className="font-display text-lg tracking-wide">{title}</h2>
     </div>
   );
 }
@@ -360,7 +361,7 @@ function Resume({
       </div>
       <div className="flex items-baseline gap-1.5">
         <span className="font-mono text-[24px] font-black leading-none text-ink">{value}</span>
-        <span className="text-[11.5px] text-ink-dim">{unit}</span>
+        <span className="text-micro text-ink-dim">{unit}</span>
       </div>
     </motion.a>
   );
@@ -396,7 +397,7 @@ function Etape({
             invalide — le cadre disparaissait purement et simplement sur l'étape
             qui l'utilisait. `color-mix` marche avec les deux formes. */}
         <span
-          className="flex h-8 w-8 flex-none items-center justify-center rounded-lg font-mono text-[13px] font-bold"
+          className="flex h-8 w-8 flex-none items-center justify-center rounded-lg font-mono text-sm font-bold"
           style={{
             background: `linear-gradient(135deg, color-mix(in srgb, ${accent} 22%, transparent), transparent)`,
             border: `1px solid color-mix(in srgb, ${accent} 45%, transparent)`,
@@ -407,14 +408,14 @@ function Etape({
         </span>
         <Icon size={17} style={{ color: accent }} />
       </div>
-      <h3 className="mt-2.5 font-display text-[16px] tracking-wide">{title}</h3>
-      <p className="mt-1.5 text-[13px] leading-relaxed text-ink-dim">{desc}</p>
+      <h3 className="mt-2.5 font-display text-base tracking-wide">{title}</h3>
+      <p className="mt-1.5 text-sm leading-relaxed text-ink-dim">{desc}</p>
       {lien && (
         <a
           href={lien.href}
           target="_blank"
           rel="noreferrer"
-          className="mt-1.5 inline-flex items-center gap-1 text-[13px] text-accent transition hoverable:text-ink"
+          className="mt-1.5 inline-flex items-center gap-1 text-sm text-accent transition hoverable:text-ink"
         >
           {lien.label} <ExternalLink size={11} />
         </a>
@@ -459,8 +460,8 @@ function Feature({
         {kicker}
         {soon && ' · bientôt'}
       </div>
-      <div className="mt-0.5 text-[14px] font-semibold text-ink">{title}</div>
-      <p className="mt-1.5 text-[12.5px] leading-relaxed text-ink-dim">{body}</p>
+      <div className="mt-0.5 text-sm font-semibold text-ink">{title}</div>
+      <p className="mt-1.5 text-xs leading-relaxed text-ink-dim">{body}</p>
     </motion.a>
   );
 }

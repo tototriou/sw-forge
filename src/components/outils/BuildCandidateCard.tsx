@@ -3,11 +3,12 @@ import { ArtifactDetail, RuneDetail, RUNE_SETS } from '../../types';
 import { BuildCandidate, candidateMetricTotal } from '../../lib/runeBuildOptim';
 import { activeSets } from '../../lib/effects';
 import { RuneMetric, formatRuneMetric } from '../../hooks/useRuneMetric';
-import { ArtifactDetailBox, RuneDetailBox } from '../MonsterGear';
+import { ArtifactDetailBox, RuneDetailBox } from '../PieceDetail';
 import RuneWheel from '../RuneWheel';
 import ArtifactSlots from '../ArtifactSlots';
 import StatPanel from '../StatPanel';
-import DetailPopover from '../account/DetailPopover';
+import { COMPACT, useMediaQuery } from '../../hooks/useMediaQuery';
+import { FlottantAuto } from '../../ui';
 
 interface Props {
   rank: number;
@@ -69,6 +70,14 @@ export default function BuildCandidateCard({
   const [openArtifactKind, setOpenArtifactKind] = useState<string | null>(null);
   const runeOpenHere = openRuneKey?.startsWith(`${candidateKey}-`) ?? false;
 
+  // ⚠️ Même bascule flottant (souris) / en ligne (doigt) que MonsterGear.tsx —
+  // voir sa justification. Le flottant, à taille fixe (260×320), débordait de
+  // l'écran sur une carte de résultat déjà compacte en mobile.
+  const auDoigt = useMediaQuery(COMPACT);
+  const openArtifact = openArtifactKind ? artifacts.find((a) => a.kind === openArtifactKind) : undefined;
+  const openRuneSlot = runeOpenHere ? Number(openRuneKey!.slice(candidateKey.length + 1)) : null;
+  const openRune = openRuneSlot !== null ? runes.find((r) => r.slot === openRuneSlot) : undefined;
+
   return (
     <div
       // ⚠️ `relative` + `z-10` UNIQUEMENT quand cette carte a un popover
@@ -82,14 +91,14 @@ export default function BuildCandidateCard({
       }`}
     >
       <div className="flex items-center justify-between mb-2">
-        <span className="font-mono text-[12px] font-bold text-star">#{rank}</span>
-        <span className="font-mono text-[12px] text-ink-dim">
+        <span className="font-mono text-xs font-bold text-star">#{rank}</span>
+        <span className="font-mono text-xs text-ink-dim">
           {formatRuneMetric(liveTotal / 6, metric)} en moyenne
         </span>
       </div>
 
       {sets.length > 0 && (
-        <p className="mb-2 flex flex-wrap items-center gap-1 text-[11.5px] text-ink-dim">
+        <p className="mb-2 flex flex-wrap items-center gap-1 text-micro text-ink-dim">
           {sets.map((key, i) => (
             <span key={`${key}-${i}`}>{RUNE_SETS.find((s) => s.key === key)?.label ?? key}</span>
           ))}
@@ -100,33 +109,72 @@ export default function BuildCandidateCard({
           compacte, en ligne plutôt qu'empilée verticalement (demande
           explicite : « les runes et les artefacts affichés à droite de la
           fiche de statistiques »). */}
-      <div className="flex items-center justify-center gap-2">
+      {/* ⚠️ EN PILE sous `sm` : la table de stats, les artéfacts et la roue de
+          runes tiennent sur une ligne à partir de 360 px de carte, pas en
+          dessous — les trois blocs s'y écrasaient jusqu'à devenir illisibles.
+          Empilés, chacun garde sa taille de lecture. */}
+      <div className="flex flex-col items-center justify-center gap-2 sm:flex-row">
         <StatPanel stats={candidate.stats} />
-        <div className="flex items-center gap-1 flex-none">
+        <div className="flex flex-none items-center gap-1">
           <ArtifactSlots
             artifacts={artifacts}
             scale={ARTIFACT_SCALE}
             isSelected={(a) => openArtifactKind === a.kind}
             onSelectArtifact={(a) => setOpenArtifactKind((cur) => (cur === a.kind ? null : a.kind))}
-            renderOverlay={(a, _i, anchorRef) => (
-              <DetailPopover open={openArtifactKind === a.kind} anchorRef={anchorRef} width={240} height={260}>
-                <ArtifactDetailBox artifact={a} />
-              </DetailPopover>
-            )}
+            // Mêmes dimensions que pour une rune : les deux cartes partagent la
+            // même coquille (voir PieceDetail.tsx), donc le même encombrement.
+            // ⚠️ `rembourrage="md"` + `encadre={false}` : le flottant pose déjà
+            // le cadre, la carte n'a plus à poser le sien — sinon carte dans
+            // une carte, à deux rayons de coin différents.
+            renderOverlay={
+              auDoigt
+                ? undefined
+                : (a, _i, anchorRef) => (
+                    <FlottantAuto
+                      ouvert={openArtifactKind === a.kind}
+                      ancre={anchorRef}
+                      largeur={260}
+                      hauteur={320}
+                      rembourrage="md"
+                    >
+                      <ArtifactDetailBox artifact={a} encadre={false} />
+                    </FlottantAuto>
+                  )
+            }
           />
           <RuneWheel
             runes={runes}
             scale={WHEEL_SCALE}
             isSelected={(r) => openRuneKey === `${candidateKey}-${r.slot}`}
             onSelectRune={(r) => onToggleRune(`${candidateKey}-${r.slot}`)}
-            renderOverlay={(r, _i, anchorRef) => (
-              <DetailPopover open={openRuneKey === `${candidateKey}-${r.slot}`} anchorRef={anchorRef} width={260} height={320}>
-                <RuneDetailBox rune={r} />
-              </DetailPopover>
-            )}
+            renderOverlay={
+              auDoigt
+                ? undefined
+                : (r, _i, anchorRef) => (
+                    <FlottantAuto
+                      ouvert={openRuneKey === `${candidateKey}-${r.slot}`}
+                      ancre={anchorRef}
+                      largeur={260}
+                      hauteur={320}
+                      rembourrage="md"
+                    >
+                      <RuneDetailBox rune={r} encadre={false} />
+                    </FlottantAuto>
+                  )
+            }
           />
         </div>
       </div>
+
+      {/* Au DOIGT : le détail sur sa propre ligne, sous artéfacts/roue — voir
+          MonsterGear.tsx. Artéfact et rune peuvent être ouverts en même temps
+          (états indépendants) : les deux s'empilent plutôt que de s'exclure. */}
+      {auDoigt && (openArtifact || openRune) && (
+        <div className="mx-auto mt-2 w-full max-w-[280px] space-y-2">
+          {openArtifact && <ArtifactDetailBox artifact={openArtifact} />}
+          {openRune && <RuneDetailBox rune={openRune} />}
+        </div>
+      )}
     </div>
   );
 }

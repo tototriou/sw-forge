@@ -45,7 +45,7 @@ export default function AccountFreshness({
 
   return (
     <p
-      className={`flex items-center gap-1.5 text-[12px] leading-snug ${
+      className={`flex items-center gap-1.5 text-xs leading-snug ${
         vieux ? 'text-warn' : 'text-ink-dim'
       } ${className}`}
     >

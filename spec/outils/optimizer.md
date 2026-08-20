@@ -23,6 +23,44 @@ saisie de l'écran, remontée dans App.tsx) ·
 partagés avec `MonsterGear.tsx` (RTA/Siège/« Équipement actuel »), voir
 [README.md](../README.md).
 
+⚠️ **Tous les contrôles viennent de la librairie `src/ui/`**, comme partout
+dans l'app (« rien de custom », voir [design.md](../shared/design.md)) : les
+minimums en `NumberField`, l'objectif et le pré-filtrage en `Segmented`, les
+statistiques principales imposées en `Pastille`, les artéfacts et le tri en
+`Selecteur`, les bascules en `Interrupteur`, Rechercher/Exporter/Importer/
+Arrêter en `Bouton`, les flèches de pagination en `BoutonIcone`, les champs de
+recherche des sélecteurs en `Champ` + `Flottant` (même patron combobox que
+RtaSearch), et les sets/exclusions choisis en `Jeton` (la pilule supprimable de
+la lib). La grille de sets à ajouter est en `BoutonIcone cadre`, ses symboles
+colorisés par le **filtre doré partagé** `runeSetIconFilter` (effects.ts) — le
+même que les barres de filtre par set (`SetFilter`), pour que l'icône ressorte
+sur les deux thèmes au lieu de se fondre, en clair, dans le panneau.
+
+⚠️ **Responsive — pas de débordement, et les contrôles du panneau prennent
+toute la largeur.** Points tenus au format étroit (l'écran n'avait jamais été
+audité en mobile) :
+- **Grille Conditions** : « Min »/« Max » collés à chaque champ faisaient
+  déborder la rangée (libellé + deux `NumberField` + deux mots > largeur utile).
+  Au doigt, ces mots sont masqués et remplacés par **deux en-têtes de colonne**
+  posés une fois ; au bureau (`sm:`), chaque champ garde son libellé à côté et
+  les en-têtes disparaissent — rendu inchangé.
+- **Objectif de recherche** : le `Segmented` pleine largeur passe en **`dense`**
+  sous `sm` (`useMediaQuery(SOUS_SM)`), sinon « PV effectifs » débordait son
+  quart de rangée que `whitespace-nowrap` interdit de couper.
+- **Panneau « Options » — tout prend la largeur.** Les conteneurs empilés du
+  panneau sont en **`space-y-*` (blocs), pas `flex flex-col`** : le corps du
+  panneau porte `data-tiroir`, où index.css pose
+  `[data-tiroir] .flex-col { align-items: flex-start }` (écrit pour les rangées
+  d'actions). Sur `flex flex-col`, cette règle raboterait les deux cartes — et
+  donc leurs contrôles — à la largeur de leur contenu, laissant une colonne vide
+  à droite sur tablette. En blocs, cartes et contrôles reprennent toute la
+  largeur. Même piège que MobileNavSheet. Les `Segmented` y sont en outre
+  `size="lg"`, dont le **pré-filtrage par emplacement** (serré à son contenu en
+  ligne au bureau, plein dans le panneau).
+- **Barre d'actions** : Exporter/Importer portent un `libelleCourt`
+  (« Exporter »/« Importer ») sous `lg`, pour ne pas étaler deux boutons à
+  libellé long au doigt.
+
 ⚠️ **Survit à un changement d'onglet.** Comme les autres pages de l'app,
 `OutilsPage` (et donc `OptimizerSection`) est **démontée** à chaque
 navigation — un simple `useState` local y perdrait tout (monstre choisi,
@@ -150,11 +188,26 @@ retour.
      autres réglages de l'écran.
 8. **« Utiliser tout l'inventaire »** — case à cocher, **cochée par défaut**
    (voir « Exclusion des runes » ci-dessous).
-9. **« Options avancées »** (repliées par défaut) : **pré-filtrage par
+9. **« Réglages avancés »** (repliés par défaut) : **pré-filtrage par
    emplacement**, en **presets** plutôt qu'un curseur libre — Bas / Moyen
    (défaut) / Haut / Extrême, du plus rapide au plus large (et donc plus
-   lent, mais capable de retrouver un build sur un très gros compte). Sous ce
-   réglage :
+   lent, mais capable de retrouver un build sur un très gros compte),
+   **séparés par un liseré vertical** (même patron que `Segmented.tsx`,
+   PC et mobile).
+   ⚠️ **Au doigt, dans le panneau « Options »** (bouton de la barre de nav,
+   voir App.tsx/`pageAPanneau` — même patron que la Liste et l'Optimisation
+   de runes de « Mon compte », voir RunesOptim.tsx), **sous** « Exclusion de
+   runes » — **jamais replié** dans ce panneau : ouvrir le panneau EST déjà
+   le geste « je veux voir les options ». Chaque groupe dans son propre
+   cadre, deux unités visuelles distinctes plutôt qu'un simple trait entre
+   deux blocs de texte. ⚠️ **« Pool de runes = X » s'affiche à droite des
+   presets**, dans le panneau SEULEMENT (pas la carte du bureau, où
+   l'estimation détaillée du point 10 est déjà visible juste en dessous,
+   sans qu'un panneau ne la masque) — sans ce rappel local, aucun moyen de
+   voir l'effet du preset qu'on vient de toucher sans d'abord fermer le
+   panneau. **Passe sous les presets si la largeur manque** (le message
+   est assez long pour ne pas toujours tenir à côté sur un téléphone
+   étroit) — adaptatif, jamais coupé ni superposé. Sous ce réglage :
    - **« Rechercher jusqu'à épuisement complet »**, décoché par défaut :
      retire le filet de temps de 10 minutes (voir « Interruption ») — la
      recherche continue tant qu'il reste des combinaisons à examiner, plutôt
@@ -169,12 +222,15 @@ retour.
      exportés/importés dans une recette (voir plus bas).
    - **« Diagnostic approfondi sur 0 résultat »**, décoché par défaut (plus
      coûteux qu'un diagnostic simple, voir « Résultats »).
-10. **Estimation du nombre de builds** — dès qu'un monstre et un set sont
-    choisis, une ligne affiche un ordre de grandeur du pool considéré,
-    recalculée en direct à chaque changement de critère. ⚠️ Un ordre de
-    grandeur, pas le nombre réellement exploré — c'est un repère pour juger
-    si les critères actuels sont trop larges ou trop stricts, pas une
-    promesse de temps de calcul.
+10. **Estimation du pool retenu** — dès qu'un monstre et un set sont choisis,
+    une ligne affiche le nombre **exact** de runes gardées après
+    pré-filtrage, détaillé par emplacement (une **somme**, pas un produit),
+    recalculée en direct à chaque changement de critère. ⚠️ **Le pool, pas
+    l'espace de recherche** : le nombre de combinaisons brutes (produit des
+    tailles de pool par emplacement) est un ordre de grandeur bien trop
+    éloigné du nombre réel de demi-builds construits ou de paires visitées
+    par le meet-in-the-middle pour servir de repère — seul le pool retenu,
+    lui, est un nombre exact et directement lisible.
 11. **« Rechercher »** — lance le calcul. Changer un des critères ci-dessus
     ne relance rien automatiquement : il faut recliquer. Un bouton
     **« Arrêter »** apparaît pendant le calcul — il interrompt la recherche
@@ -192,8 +248,14 @@ retour.
 13. **Résultats** — jusqu'à 20 combinaisons affichées, chacune : rang, les
     sets obtenus, le **panneau de stats** (`StatPanel.tsx`, le même composant
     que dans « Équipement actuel ») et les artéfacts + les 6 runes sur une
-    roue à échelle réduite, cliquables pour ouvrir le détail complet de
-    chaque rune. Puis la valeur **moyenne par rune** dans la mesure choisie.
+    roue à échelle réduite (`BuildCandidateCard.tsx`), tous deux cliquables
+    pour ouvrir le détail complet de la pièce. Puis la valeur **moyenne par
+    rune** dans la mesure choisie.
+    ⚠️ **Détail à la souris vs au doigt — même bascule que « Équipement
+    actuel »/RTA/Siège** (voir `MonsterGear.tsx`) : à la souris, un flottant
+    ancré à la pièce ; au doigt, le détail s'affiche **en ligne sous la
+    carte**, sur sa propre ligne. Un flottant à taille fixe débordait de
+    l'écran sur une carte de résultat déjà compacte en mobile.
     ⚠️ **Sur 0 résultat**, un encadré diagnostic apparaît : soit une liste de
     conditions mathématiquement hors de portée (avec leur borne exacte), soit
     un message neutre orientant vers la conjonction des contraintes ou un
@@ -201,8 +263,6 @@ retour.
     client, instantanément**, sans relancer la recherche : le moteur a déjà
     calculé les stats complètes de chaque combinaison retenue. Deux groupes
     d'options — les 8 stats brutes, et les 4 mêmes objectifs qu'à l'étape 5.
-    Cliquer sur une rune d'un résultat ouvre le même popover que dans Mon
-    compte → Runes.
 
 ⚠️ **Rien n'est appliqué au compte.** L'outil est en lecture seule et
 purement indicatif, comme le reste de SW Forge (aucune écriture vers le
@@ -210,9 +270,16 @@ jeu) : c'est au joueur de re-runer dans Summoners War.
 
 ## Exclusion des runes déjà portées ailleurs
 
+⚠️ **Au doigt, dans le panneau « Options »** (bouton de la barre de nav),
+EN TÊTE — avant « Réglages avancés » (voir item 9 ci-dessus) : fonctionnalité
+vedette, mise en avant côté bureau par sa carte à bordure accentuée.
+
 **« Exclure les runes déjà utilisées »**, DÉCOCHÉE par défaut, porte la
 recherche sur l'**inventaire entier** — y compris des runes qu'il faudrait
-retirer d'un autre monstre pour composer le build proposé.
+retirer d'un autre monstre pour composer le build proposé. ⚠️ **Icône** : la
+roue de runes (le fond derrière les runes des cartes de résultat, voir
+`RuneWheel.tsx`), barrée du symbole « interdit » — même traitement que les
+deux autres icônes de cette section.
 
 Cochée, la recherche **exclut** les runes déjà portées ailleurs, dans **un
 seul périmètre au choix** (jamais plusieurs à la fois) : **RTA** (défaut),
@@ -235,13 +302,33 @@ deux autres périmètres).
 
 ### Exclusion manuelle — un monstre précis, dans n'importe quelle source
 
-**« Exclure les runes d'un monstre »**, sous « Exclure les runes déjà
-utilisées » : recherche par nom un monstre déjà connu du compte, dans l'une
-de quatre sources (Box / RTA / Siège défense / Siège offense), et retire SES
-runes **actuellement équipées** du pool considéré — utile pour un build
-qu'on ne veut pas défaire, sans dépendre du périmètre choisi ci-dessus. Se
-**superpose** à « Exclure les runes déjà utilisées », ne le remplace pas :
-les deux exclusions s'additionnent.
+**« Exclure les runes d'un monstre »** : recherche par nom un monstre déjà
+connu du compte, dans l'une de quatre sources (Box / RTA / Défenses siège /
+Offenses siège), et retire SES runes **actuellement équipées** du pool
+considéré — utile pour un build qu'on ne veut pas défaire, sans dépendre du
+périmètre choisi pour « Exclure les runes déjà utilisées ». Se **superpose**
+à ce dernier, ne le remplace pas : les deux exclusions s'additionnent.
+⚠️ **Icône** : même pictogramme que « Monstre & équipement » (le monstre),
+barré du symbole « interdit » — même traitement que l'icône « Exclusion de
+runes » elle-même, cette action-ci RETIRE un monstre précis du pool.
+
+Ordre relatif à « Exclure les runes déjà utilisées » : **au-dessus** dans le
+panneau « Options » au doigt (c'est le réglage le plus utilisé sur cet
+écran) ; à **droite**, côte à côte, au bureau (voir la carte ci-dessus).
+
+⚠️ **Les quatre onglets de source restent sur UNE seule ligne au doigt**,
+texte/rembourrage réduits (`Segmented.tsx`, prop `dense`) — à 4 options
+aussi longues que « Défenses siège », même resserré, le libellé passe sur
+DEUX lignes DANS le bouton plutôt que déborder (`dense` ne force pas
+`whitespace-nowrap`, contrairement aux autres tailles). Au bureau, rendu
+normal, une ligne, texte sur une ligne.
+
+⚠️ **L'équipe complète d'un résultat de siège reste visible sans défiler**
+(`c.teamContext`, résultats de recherche par nom) : les coéquipiers passent
+à la ligne (`flex-wrap`) plutôt que de glisser horizontalement — un
+glissement horizontal DANS un panneau déjà scrollable verticalement
+concurrence le geste de défilement de la page, quasi inutilisable au
+doigt.
 
 ⚠️ Chaque sélection porte sur une **entrée précise**, pas un monstre en
 général — un même monstre peut avoir un runage différent en box, en RTA et
@@ -279,11 +366,11 @@ plus du plafond de candidats collectés :
 - **Filet de temps** — 10 minutes par défaut, pas un réglage direct : une
   garde-fou en cas de recherche anormalement longue. Le vrai moyen de
   reprendre la main **avant** reste le bouton « Arrêter ». Peut être retiré
-  via « Rechercher jusqu'à épuisement complet » (Options avancées, décoché
+  via « Rechercher jusqu'à épuisement complet » (Réglages avancés, décoché
   par défaut) — la recherche continue alors jusqu'à épuisement des
   combinaisons à examiner (ou du plafond de candidats collectés, voir
   ci-dessous), sans limite de temps automatique.
-- **Pré-filtrage par emplacement** — les presets « Options avancées »
+- **Pré-filtrage par emplacement** — les presets « Réglages avancés »
   ci-dessus, calibrés par mesure sur des comptes réels : plus le preset est
   large, plus le pool considéré par emplacement grandit, et plus la
   recherche peut prendre de temps (jusqu'à plusieurs dizaines de secondes au
@@ -427,8 +514,8 @@ plusieurs milliers de runes.
   sur les runes.
 - L'exclusion v1 ne connaît que la **box** (6★ équipés) ; RTA, Siège et
   l'exclusion ciblée par monstre/rune sont prévus mais pas construits.
-- Le preset de pré-filtrage par emplacement et le filet de temps (« Options
-  avancées ») sont réglables ; le plafond de candidats collectés et le
+- Le preset de pré-filtrage par emplacement et le filet de temps (« Réglages
+  avancés ») sont réglables ; le plafond de candidats collectés et le
   budget de paires restent des paramètres internes du moteur, non exposés
   dans l'UI — **« Rechercher jusqu'à épuisement complet » ne les retire
   pas**. Sur une recherche assez large pour atteindre le plafond de

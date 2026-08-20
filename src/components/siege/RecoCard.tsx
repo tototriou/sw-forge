@@ -6,7 +6,6 @@ import {
   X,
   Check,
   AlertTriangle,
-  HelpCircle,
   Plus,
   StickyNote,
   Download,
@@ -16,6 +15,7 @@ import {
   Gauge,
 } from 'lucide-react';
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { useRecalageEcran } from '../../hooks/useRecalageEcran';
 import {
   ARTIFACT_KINDS,
   ArtifactKind,
@@ -33,7 +33,8 @@ import {
 } from '../../types';
 import { DeckMatch, FaultCause, RecoMatch, SlotMatch, deckFaults, fmtStat, slotFaults } from '../../lib/recoMatch';
 import { DeckHit, RecoHit } from '../../lib/recoSearch';
-import { ConfirmDialog } from '../Dialogs';
+import { ConfirmDialog } from '../../ui/Dialogs';
+import { Bouton, BoutonIcone, Champ, Selecteur, ZoneCliquable } from '../../ui';
 import { NOTE_MAX, DECK_NOTE_MAX, COUNTER_NOTE_MAX } from '../../lib/recoShare';
 import { deckFromSiegeTeam } from '../../lib/recoFromSiege';
 import {
@@ -78,19 +79,22 @@ function spdLeadBonus(
 }
 
 
-// Nom AUTOMATIQUE d'un deck : les noms de ses monstres séparés par un tiret
-// (« Trevor - Bella - Loren »), sinon « Deck N » tant qu'il est vide. On se rabat
-// sur le nom stocké dans le slot si le monstre est absent des données chargées.
-function autoDeckName(deck: RecoDeck, byCom2us: Map<number, Monster>, index: number): string {
+// Nom d'un deck : les noms de ses monstres séparés par un tiret
+// (« Trevor - Bella - Loren »), sinon « Deck N » tant qu'il est vide. On se
+// rabat sur le nom stocké dans le slot si le monstre est absent des données
+// chargées.
+//
+// ⚠️ **Plus de titre saisi par l'auteur.** `deck.name` existait pour un titre
+// libre (« Def anti-Chloé ») ; il pouvait dater une fois le deck modifié,
+// redoubler ce que les portraits montrent déjà, ou rester vide et donc
+// identique à ce nom automatique. `deckLabel` calcule toujours ce nom, sans
+// jamais lire `deck.name` — le champ reste dans le TYPE et le stockage pour
+// la rétrocompatibilité d'un import, mais n'est plus affiché.
+function deckLabel(deck: RecoDeck, byCom2us: Map<number, Monster>, index: number): string {
   const noms = deck.slots
     .map((s) => (s.com2usId != null ? byCom2us.get(s.com2usId)?.name ?? s.name : ''))
     .filter(Boolean);
   return noms.length ? noms.join(' - ') : `Deck ${index + 1}`;
-}
-
-// Nom affiché : celui saisi par l'auteur s'il en a mis un, sinon l'automatique.
-function deckLabel(deck: RecoDeck, byCom2us: Map<number, Monster>, index: number): string {
-  return deck.name.trim() || autoDeckName(deck, byCom2us, index);
 }
 
 // Une équipe d'offense proposée à l'import : son rang, ses 3 monstres résolus
@@ -129,9 +133,9 @@ interface Props {
 // ⚠️ Fonds à /10 et non /5 : sur fond clair, un aplat à 5 % ne se distingue pas
 // du panneau. Même langage visuel que SiegeTeam.
 const AURA: Record<string, string> = {
-  ok: 'border-good/70 bg-good/10 ring-1 ring-good/40',
-  partial: 'border-warn bg-warn/10 ring-2 ring-warn/50',
-  missing: 'border-fire bg-fire/10 ring-2 ring-fire/50',
+  ok: 'border-good/70 bg-good/10',
+  partial: 'border-warn bg-warn/10',
+  missing: 'border-fire bg-fire/10',
   unknown: 'border-border bg-panel/50',
 };
 
@@ -252,19 +256,24 @@ export default function RecoCard({
   }, [deckAViser]);
 
   return (
-    <section className={`rounded-2xl border p-4 transition-colors ${AURA[status]}`}>
+    // ⚠️ `compact:p-2.5` : même resserrement qu'une équipe de siège
+    // (SiegeTeam.tsx) — au doigt, la page empile plusieurs recommandations,
+    // et chaque `p-4` coûte 32 px de haut multipliés par leur nombre.
+    <section className={`rounded-2xl border p-4 compact:p-2.5 transition-colors ${AURA[status]}`}>
       {/* En-tête de la recommandation.
-          ⚠️ DEUX zones, et non un seul `flex-wrap` : le titre et ses
-          métadonnées à gauche (elles peuvent passer à la ligne), les actions
-          ancrées **en haut à droite** (`items-start` + `ml-auto` sur le groupe).
-          Dans un `flex-wrap` unique, les icônes Exporter/Éditer/Supprimer
-          suivaient le flux et retombaient sous le titre dès que la ligne était
-          pleine — on les cherchait des yeux d'une carte à l'autre. Elles sont
-          maintenant TOUJOURS dans l'angle supérieur droit. */}
-      <div className="flex items-start gap-2 mb-3">
-        <div className="flex flex-1 min-w-0 items-center gap-2 flex-wrap">
+          ⚠️ **TROIS zones, pas deux.** Le titre et les icônes d'action
+          vivaient chacun dans leur propre bloc (titre + badges à gauche,
+          actions à droite), alignés `items-start` — mais dès que les badges
+          poussaient le titre à occuper toute sa ligne à lui, l'alignement ne
+          répondait plus qu'à une COÏNCIDENCE de hauteurs entre deux éléments
+          sans rapport (la boîte de ligne du texte, la boîte de l'icône).
+          Le titre et les icônes sont maintenant sur LEUR PROPRE rangée
+          (`items-center`), toujours à deux, jamais perturbée par la longueur
+          des badges — qui passent en dessous, sur une deuxième rangée qui
+          leur est propre et peut s'enrouler librement. */}
+      <div className="mb-1.5 flex items-center gap-2">
         {editing ? (
-          <input
+          <Champ
             value={reco.name}
             onChange={(e) => recos.setMeta(reco.id, { name: e.target.value })}
             // ⚠️ Trim à la SORTIE du champ, jamais à la frappe : trimer pendant
@@ -274,15 +283,109 @@ export default function RecoCard({
               if (t !== reco.name) recos.setMeta(reco.id, { name: t });
             }}
             placeholder={`Recommandation ${index + 1}`}
-            className="flex-1 min-w-[160px] bg-panel border border-border rounded-lg px-2.5 py-1 text-[15px]
-                       font-semibold text-ink outline-none focus:border-accent"
+            pleineLargeur={false}
+            className="min-w-[min(160px,100%)] flex-1 bg-panel py-1 text-base font-semibold"
           />
         ) : (
-          <h3 className="font-display text-[17px] tracking-wide">
-            {reco.name || `Recommandation ${index + 1}`}
-          </h3>
+          // ⚠️ **Le TITRE bascule la carte**, comme le bouton « Consulter » qui
+          // reste à côté : deux cibles pour le même geste, pas deux gestes
+          // différents. Sur une liste de recommandations qu'on parcourt au
+          // pouce, le titre est la cible la plus large et la plus naturelle —
+          // on ne vise plus le petit bouton du coin.
+          <ZoneCliquable
+            onClick={() => onToggleOpen(reco.id)}
+            aria-expanded={expanded}
+            title={open ? 'Replier' : `Voir les ${reco.decks.length} deck(s)`}
+            // ⚠️ `p-0` explicite : un `<button>` porte un rembourrage par
+            // défaut du navigateur, invisible à l'œil mais qui élargit sa
+            // boîte au-delà du texte.
+            className="min-w-0 flex-1 truncate p-0 text-left transition hoverable:text-ctx"
+          >
+            {/* ⚠️ `compact:text-base` : même resserrement que le titre d'une
+                équipe de siège (SiegeTeam.tsx) — au doigt, `text-lg` pesait
+                trop lourd. `leading-none` : sans lui, la boîte de ligne du
+                texte (interligne 1,6 de l'échelle) dépassait la hauteur des
+                icônes juste à côté, et l'écart se lisait comme un défaut. */}
+            <h3 className="truncate font-display text-lg leading-none tracking-wide compact:text-base">
+              {reco.name || `Recommandation ${index + 1}`}
+            </h3>
+          </ZoneCliquable>
         )}
 
+        {/* Actions — sur la MÊME rangée que le titre, à sa hauteur. */}
+        <div className="flex flex-none items-center gap-1.5">
+          {/* En édition, la carte est forcément dépliée → le bouton n'a pas de sens.
+              ⚠️ **Masqué au DOIGT** (`compact:hidden`) : le titre bascule
+              désormais la carte lui-même (voir plus haut), et ce petit bouton
+              du coin devenait une seconde cible pour le même geste — sur un
+              écran qu'on parcourt au pouce, la plus petite des deux. Il reste
+              à la SOURIS, où viser un bouton précis ne coûte rien et où le
+              chevron confirme l'état d'un coup d'œil. */}
+          {!editing && (
+            <Bouton
+              onClick={() => onToggleOpen(reco.id)}
+              actif={open}
+              aria-expanded={expanded}
+              taille="sm"
+              icone={
+                <ChevronDown size={13} className={`transition-transform ${expanded ? 'rotate-180' : ''}`} />
+              }
+              libelle={open ? 'Réduire' : 'Consulter'}
+              title={open ? 'Replier' : `Voir les ${reco.decks.length} deck(s)`}
+              className="compact:hidden"
+            />
+          )}
+          {/* Exporter / Éditer / Supprimer : icônes nues (ni cadre ni fond), comme
+              la corbeille — l'en-tête est déjà chargé. Groupées pour se lire
+              comme UNE barre d'outils, pas comme trois actions éparses. Le sens
+              passe par l'infobulle et l'`aria-label`.
+              ⚠️ `taille="serre"` sur les quatre (garde `data-cible-fine`, donc
+              l'exemption de la règle tactile des 40 px) — mais la BOÎTE est
+              élargie à 24 px (`h-6 w-6`, contre 20 par défaut) pour leur
+              redonner un peu d'air autour de l'icône. `h-6` gagne sur le `h-5`
+              du composant car il est plus loin dans la feuille de style
+              (valeurs Tailwind rangées par ordre croissant) — vérifié dans le
+              CSS construit, pas supposé. */}
+          <div className="flex items-center gap-1 -mr-1">
+            <BoutonIcone
+              onClick={() => onExport(reco)}
+              taille="serre"
+              icone={<Upload size={13} />}
+              libelle="Exporter cette recommandation (tous ses decks)"
+              className="h-6 w-6"
+            />
+            {/* ⚠️ Pas `actif` (le marqueur d'état standard) : le ✓ DORÉ
+                (`text-star`) est la convention DOCUMENTÉE de l'édition en
+                cours sur cette page entière (voir spec/siege/recommandations.md
+                §« icônes d'action »), reprise plus bas sur chaque deck et
+                chaque défense — la changer ici la briserait partout ailleurs. */}
+            <button
+              onClick={() => onToggleEdit(reco.id)}
+              data-cible-fine
+              className={`flex h-6 w-6 items-center justify-center transition ${
+                editing ? 'text-star' : 'text-ink-dim hoverable:text-ink'
+              }`}
+              title={editing ? "Terminer l'édition" : 'Éditer la recommandation'}
+              aria-label={editing ? "Terminer l'édition" : 'Éditer la recommandation'}
+              aria-pressed={editing}
+            >
+              {editing ? <Check size={14} /> : <Pencil size={13} />}
+            </button>
+            <BoutonIcone
+              onClick={() => setSuppressionAConfirmer(true)}
+              ton="danger"
+              taille="serre"
+              icone={<Trash2 size={13} />}
+              libelle="Supprimer cette recommandation"
+              className="h-6 w-6"
+            />
+          </div>
+        </div>
+      </div>
+
+      {/* Métadonnées — SOUS le titre, sur leur propre rangée qui s'enroule
+          librement sans jamais perturber l'alignement titre/icônes. */}
+      <div className="mb-3 flex flex-wrap items-center gap-2">
         {reco.origin === 'imported' && (
           <span
             className="inline-flex items-center gap-1 rounded-full border border-accent bg-panel2 px-2 py-0.5
@@ -296,18 +399,23 @@ export default function RecoCard({
             total alors qu'un seul deck est à l'écran se lit comme un bug
             d'affichage — on cherche les cinq autres. Même règle que le compteur
             filtré de l'inventaire d'artéfacts. */}
-        <span className="font-mono text-[11px] text-ink-dim">
+        <span className="font-mono text-micro text-ink-dim">
           {decksFiltres
             ? `${decksTrouves.size} sur ${reco.decks.length} deck${reco.decks.length > 1 ? 's' : ''}`
             : `${reco.decks.length} deck${reco.decks.length > 1 ? 's' : ''}`}
         </span>
         {!editing && reco.author && (
-          <span className="font-mono text-[11px] text-ink-dim">· par {reco.author}</span>
+          <span className="font-mono text-micro text-ink-dim">· par {reco.author}</span>
         )}
-        {!editing && match && <StatusPill match={match} onClear={onClearAnalysis} />}
 
+        {/* ⚠️ **À la SOURIS seulement** (`compact:hidden`) : au doigt, ce bouton
+            étiqueté crowdait le titre sur une carte étroite, à côté d'une
+            pastille qui redisait déjà ce que l'encart d'analyse affiche juste
+            en dessous (voir plus bas — `StatusPill` a été retiré pour ça). Sa
+            version au doigt vit désormais en icône, groupée avec Exporter /
+            Éditer / Supprimer — voir plus bas. */}
         {!editing && (
-          <button
+          <Bouton
             onClick={onAnalyze}
             disabled={!canAnalyze}
             title={
@@ -315,69 +423,12 @@ export default function RecoCard({
                 ? 'Confronter toute la recommandation à tes monstres'
                 : 'Importe ton compte pour analyser'
             }
-            className="flex items-center gap-1.5 rounded-md border border-border bg-panel px-2.5 py-1
-                       text-[12px] font-semibold text-ink-dim hoverable:text-ink hoverable:border-accent
-                       transition disabled:opacity-40 disabled:cursor-not-allowed"
-          >
-            <Gauge size={13} /> {match ? 'Réanalyser mes decks' : 'Analyser mes decks'}
-          </button>
+            taille="sm"
+            icone={<Gauge size={13} />}
+            libelle={match ? 'Réanalyser mes decks' : 'Analyser mes decks'}
+            className="compact:hidden"
+          />
         )}
-
-        </div>
-
-        {/* Actions — ancrées en haut à droite, hors du flux du titre. */}
-        <div className="flex flex-none items-center gap-1.5">
-          {/* En édition, la carte est forcément dépliée → le bouton n'a pas de sens. */}
-          {!editing && (
-            <button
-              onClick={() => onToggleOpen(reco.id)}
-              aria-expanded={expanded}
-              className={`flex items-center gap-1.5 rounded-md border px-2.5 py-1 text-[12px] font-semibold transition ${
-                open
-                  ? 'border-accent bg-panel2 text-ink'
-                  : 'border-border bg-panel text-ink hoverable:border-accent'
-              }`}
-              title={open ? 'Replier' : `Voir les ${reco.decks.length} deck(s)`}
-            >
-              <ChevronDown size={13} className={`transition-transform ${expanded ? 'rotate-180' : ''}`} />
-              {open ? 'Réduire' : 'Consulter'}
-            </button>
-          )}
-          {/* Exporter / Éditer / Supprimer : icônes nues (ni cadre ni fond), comme
-              la corbeille — l'en-tête est déjà chargé. Groupées et resserrées pour
-              se lire comme UNE barre d'outils, pas comme trois actions éparses.
-              Le sens passe par l'infobulle et l'`aria-label` ; l'édition active se
-              lit au ✓ doré. */}
-          <div className="flex items-center gap-0.5 -mr-1">
-            <button
-              onClick={() => onExport(reco)}
-              className="flex items-center justify-center w-6 h-6 text-ink-dim hoverable:text-ink transition"
-              title="Exporter cette recommandation (tous ses decks)"
-              aria-label="Exporter cette recommandation"
-            >
-              <Upload size={13} />
-            </button>
-            <button
-              onClick={() => onToggleEdit(reco.id)}
-              className={`flex items-center justify-center w-6 h-6 transition ${
-                editing ? 'text-star' : 'text-ink-dim hoverable:text-ink'
-              }`}
-              title={editing ? "Terminer l'édition" : 'Éditer la recommandation'}
-              aria-label={editing ? "Terminer l'édition" : 'Éditer la recommandation'}
-              aria-pressed={editing}
-            >
-              {editing ? <Check size={14} /> : <Pencil size={13} />}
-            </button>
-            <button
-              onClick={() => setSuppressionAConfirmer(true)}
-              className="flex items-center justify-center w-6 h-6 text-ink-dim hoverable:text-fire transition"
-              title="Supprimer cette recommandation"
-              aria-label="Supprimer cette recommandation"
-            >
-              <Trash2 size={13} />
-            </button>
-          </div>
-        </div>
       </div>
 
       {suppressionAConfirmer && (
@@ -396,7 +447,7 @@ export default function RecoCard({
 
       {editing && (
         <div className="flex flex-col gap-2 mb-3">
-          <input
+          <Champ
             value={reco.author}
             onChange={(e) => recos.setMeta(reco.id, { author: e.target.value })}
             onBlur={(e) => {
@@ -404,8 +455,7 @@ export default function RecoCard({
               if (t !== reco.author) recos.setMeta(reco.id, { author: t });
             }}
             placeholder="Ton pseudo (auteur)"
-            className="bg-panel border border-border rounded-lg px-2.5 py-1.5 text-[12.5px] text-ink
-                       outline-none focus:border-accent"
+            className="bg-panel py-1.5 text-xs"
           />
           <NoteEditor
             value={reco.note}
@@ -434,9 +484,9 @@ export default function RecoCard({
       {/* Repliée : un aperçu d'une ligne — le nom de chaque deck et sa pastille
           de statut, pour savoir quoi ouvrir sans tout déplier. */}
       {!expanded && (
-        <button
+        <ZoneCliquable
           onClick={() => onToggleOpen(reco.id)}
-          className="w-full flex flex-wrap items-center gap-1.5 text-left"
+          className="w-full flex flex-wrap items-center gap-1.5"
           title="Consulter cette recommandation"
         >
           {reco.decks.map((deck, di) => {
@@ -445,7 +495,7 @@ export default function RecoCard({
               <span
                 key={di}
                 className="inline-flex items-center gap-1.5 rounded-full border border-border bg-panel2/60
-                           px-2 py-0.5 text-[11.5px] text-ink-dim"
+                           px-2 py-0.5 text-micro text-ink-dim"
               >
                 <span className={`w-1.5 h-1.5 rounded-full flex-none ${DOT[st]}`} />
                 {deckLabel(deck, monsterByCom2us, di)}
@@ -453,11 +503,11 @@ export default function RecoCard({
             );
           })}
           {reco.note && (
-            <span className="inline-flex items-center gap-1 text-[11.5px] text-ink-dim">
+            <span className="inline-flex items-center gap-1 text-micro text-ink-dim">
               <StickyNote size={11} className="text-star" /> consignes
             </span>
           )}
-        </button>
+        </ZoneCliquable>
       )}
 
       {/* Les decks de la recommandation */}
@@ -474,7 +524,7 @@ export default function RecoCard({
                     s.size === reco.decks.length ? new Set() : new Set(reco.decks.map((_, i) => i))
                   )
                 }
-                className="font-mono text-[11px] text-ink-dim hoverable:text-ink transition underline"
+                className="font-mono text-micro text-ink-dim hoverable:text-ink transition underline"
               >
                 {openDecks.size === reco.decks.length ? 'Replier tous les decks' : 'Déplier tous les decks'}
               </button>
@@ -483,8 +533,17 @@ export default function RecoCard({
           {/* Les decks se posent au dépliage plutôt que d'apparaître d'un bloc.
               ⚠️ L'animation est sur CE conteneur, déjà présent, et non sur un
               `<div>` ajouté autour du fragment : un wrapper de plus casserait
-              l'espacement du parent pour un simple effet. */}
-          <div className="flex flex-col gap-2.5 animate-[apparition_180ms_var(--ease-out)]">
+              l'espacement du parent pour un simple effet.
+              ⚠️ **Grille à la SOURIS** (`lg:grid-cols-2`), une colonne en
+              dessous — même seuil que la grille d'équipes de siège
+              (SiegeBoard.tsx). Une recommandation porte souvent une demi-douzaine
+              de decks : les empiler sur une seule colonne, à la souris, laissait
+              la moitié de la largeur de l'écran vide.
+              ⚠️ **Le deck en ÉDITION reprend toute la largeur** (`col-span-2`) :
+              ses 3 emplacements de monstres plus le picker de chacun seraient à
+              l'étroit sur une demi-colonne — même raison que pour une équipe de
+              siège dépliée. */}
+          <div className="grid grid-cols-1 gap-2.5 lg:grid-cols-2 lg:items-start animate-[apparition_180ms_var(--ease-out)]">
             {/* ⚠️ Pendant une recherche, SEULS les decks trouvés sont rendus —
                 les autres disparaissent complètement. Sans ça la carte remontait
                 dans les résultats en affichant ses six decks, et il fallait
@@ -503,6 +562,7 @@ export default function RecoCard({
                     if (el) deckRefs.current.set(di, el);
                     else deckRefs.current.delete(di);
                   }}
+                  className={editingDeck === di ? 'lg:col-span-2' : undefined}
                 >
                   <DeckBlock
                     reco={reco}
@@ -528,35 +588,38 @@ export default function RecoCard({
       {editing && (
         <div className="mt-2.5">
           <div className="flex items-center gap-2 flex-wrap">
-            <button
+            <Bouton
               onClick={() => {
                 recos.addDeck(reco.id);
                 setEditingDeck(reco.decks.length); // le nouveau deck s'ouvre en édition
               }}
-              className="flex items-center gap-1.5 rounded-lg border border-dashed border-border bg-panel/50
-                         px-3 py-1.5 text-[12.5px] text-ink-dim hoverable:text-ink hoverable:border-accent transition"
-            >
-              <Plus size={14} /> Ajouter un deck vide
-            </button>
-            <button
+              trait="pointille"
+              taille="sm"
+              icone={<Plus size={14} />}
+              libelle="Ajouter un deck vide"
+            />
+            {/* ⚠️ `trait` bascule pointillé → plein avec l'état, comme le fond :
+                le pointillé dit « pas encore rempli », et perd son sens une fois
+                le choix ouvert. `actif` seul ne pilote que le fond dans `Bouton`. */}
+            <Bouton
               onClick={() => setPickOffense((v) => !v)}
               disabled={offenseTeams.length === 0}
+              actif={pickOffense}
+              trait={pickOffense ? 'plein' : 'pointille'}
               title={
                 offenseTeams.length === 0
                   ? "Aucune équipe d'offense : importe ton compte (barre du haut) après avoir sauvegardé tes attaques en jeu."
                   : "Partir d'une de tes équipes d'offense (monstres, sets, artéfacts et stats réels pré-remplis)"
               }
-              className={`flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-[12.5px] transition
-                disabled:opacity-40 disabled:cursor-not-allowed ${
-                  // Fond seul — voir spec/shared/design.md.
-                  pickOffense
-                    ? 'border-border bg-accent-soft text-ink'
-                    : 'border-dashed border-border bg-panel/50 text-ink-dim hoverable:text-ink hoverable:border-accent'
-                }`}
-            >
-              <Swords size={14} /> Importer un deck d'offense
-              <span className="font-mono text-[11px] opacity-70">{offenseTeams.length}</span>
-            </button>
+              taille="sm"
+              icone={<Swords size={14} />}
+              libelle={
+                <>
+                  Importer un deck d'offense{' '}
+                  <span className="font-mono text-micro opacity-70">{offenseTeams.length}</span>
+                </>
+              }
+            />
           </div>
 
           {pickOffense && offenseTeams.length > 0 && (
@@ -567,23 +630,17 @@ export default function RecoCard({
 
               {/* Recherche par monstre : avec ~50 attaques sauvegardées, c'est
                   le seul moyen de retrouver une équipe. */}
-              <div className="relative mb-1.5">
-                <Search
-                  size={13}
-                  className="absolute left-2 top-1/2 -translate-y-1/2 text-ink-dim pointer-events-none"
-                />
-                <input
-                  value={offenseQuery}
-                  onChange={(e) => setOffenseQuery(e.target.value)}
-                  placeholder="Filtrer par monstre…"
-                  className="w-full bg-panel border border-border rounded-lg pl-7 pr-2 py-1 text-[12px]
-                             text-ink placeholder:text-ink-dim outline-none focus:border-accent"
-                />
-              </div>
+              <Champ
+                value={offenseQuery}
+                onChange={(e) => setOffenseQuery(e.target.value)}
+                placeholder="Filtrer par monstre…"
+                icone={<Search size={13} />}
+                className="mb-1.5 py-1 text-xs"
+              />
 
               <div className="max-h-[240px] overflow-y-auto flex flex-col gap-1">
                 {filteredOffense.map(({ team, index, summary, monsters: trio }) => (
-                  <button
+                  <ZoneCliquable
                     key={team.id}
                     onClick={() => {
                       // Nom laissé vide → il reprend les noms des monstres.
@@ -596,17 +653,17 @@ export default function RecoCard({
                     className="flex items-center gap-2 rounded-lg border border-border bg-panel px-2.5 py-1.5
                                hoverable:border-accent transition"
                   >
-                    <span className="font-mono text-[11px] text-ink-dim flex-none">#{index + 1}</span>
+                    <span className="font-mono text-micro text-ink-dim flex-none">#{index + 1}</span>
                     <span className="flex items-center gap-1.5 flex-1">
                       {trio.map((m, i) => (
                         <MiniMonster key={i} monster={m} size={30} />
                       ))}
                     </span>
                     <Plus size={13} className="flex-none text-ink-dim" />
-                  </button>
+                  </ZoneCliquable>
                 ))}
                 {filteredOffense.length === 0 && (
-                  <p className="px-1 py-2 text-[12px] text-ink-dim">Aucune équipe avec ce monstre.</p>
+                  <p className="px-1 py-2 text-xs text-ink-dim">Aucune équipe avec ce monstre.</p>
                 )}
               </div>
             </div>
@@ -800,20 +857,18 @@ function AnalysisSummary({
 
   // Referme le résultat : la carte redevient neutre (halo et pastille compris).
   const closeBtn = (
-    <button
+    <BoutonIcone
       onClick={onClear}
-      className="ml-auto flex-none text-ink-dim hoverable:text-ink transition"
-      title="Masquer le résultat de l'analyse"
-      aria-label="Masquer le résultat de l'analyse"
-    >
-      <X size={14} />
-    </button>
+      libelle="Masquer le résultat de l'analyse"
+      icone={<X size={14} />}
+      className="ml-auto"
+    />
   );
 
   if (match.totalDecks === 0) {
     return (
       <div className="mb-3 flex items-center gap-2 rounded-lg border border-border bg-panel/60 px-3 py-2">
-        <p className="text-[13px] text-ink-dim">Rien à analyser : aucun deck rempli.</p>
+        <p className="text-sm text-ink-dim">Rien à analyser : aucun deck rempli.</p>
         {closeBtn}
       </div>
     );
@@ -836,7 +891,7 @@ function AnalysisSummary({
         ) : (
           <AlertTriangle size={15} className="flex-none text-warn" />
         )}
-        <p className={`text-[13px] font-semibold ${toutPasse ? 'text-good' : 'text-warn'}`}>
+        <p className={`text-sm font-semibold ${toutPasse ? 'text-good' : 'text-warn'}`}>
           {toutPasse
             ? `Tout est respecté : les ${match.totalDecks} deck(s) sont jouables avec tes monstres.`
             : `${match.okDecks}/${match.totalDecks} deck(s) au niveau · ${rates.length} à corriger`}
@@ -846,11 +901,15 @@ function AnalysisSummary({
 
       {/* Filtres de verdict — pastilles CUMULABLES (plusieurs couleurs à la
           fois), d'où des boutons indépendants et non un `Segmented`, qui dirait
-          que les choix s'excluent (voir components/Segmented.tsx).
+          que les choix s'excluent (voir ui/Segmented.tsx).
           ⚠️ La BORDURE marque l'actif, jamais un aplat plein : c'est la règle
           des pastilles de filtre (voir spec/shared/design.md).
           Un verdict sans aucun deck est affiché GRISÉ et non retiré : on voit
-          qu'il n'y en a aucun, au lieu de chercher un bouton disparu. */}
+          qu'il n'y en a aucun, au lieu de chercher un bouton disparu.
+          ⚠️ Pas un `Bouton` de la librairie : chaque verdict porte SA couleur
+          sémantique (bon/à composer/à revoir/manquant), et aucune n'est un ton
+          de bouton (accent, danger…) — même exception que les pastilles
+          manque/surplus de siège et « Recommandation ignorée ». */}
       <div className="mt-2 flex flex-wrap items-center gap-1.5">
         {VERDICTS.map((v) => {
           const n = compte(v.key);
@@ -868,7 +927,7 @@ function AnalysisSummary({
                     ? `Ne plus isoler « ${v.label} »`
                     : `N'afficher que « ${v.label} »`
               }
-              className={`flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-[12px]
+              className={`flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-xs
                           font-semibold transition ${
                             n === 0
                               ? 'border-border text-ink-dim opacity-40 cursor-not-allowed'
@@ -881,14 +940,14 @@ function AnalysisSummary({
                   1.5 px ne se lit pas, son intérieur disparaît. */}
               <span className={`h-2 w-2 flex-none rounded-full ${v.dot}`} />
               {v.label}
-              <span className="font-mono text-[11px] text-ink-dim">{n}</span>
+              <span className="font-mono text-micro text-ink-dim">{n}</span>
             </button>
           );
         })}
         {vus.size > 0 && (
           <button
             onClick={() => setVus(new Set())}
-            className="text-[12px] text-ink-dim underline transition hoverable:text-ink"
+            className="text-xs text-ink-dim underline transition hoverable:text-ink"
           >
             Tout afficher
           </button>
@@ -909,10 +968,10 @@ function AnalysisSummary({
                   parmi six, puis l'ouvrir — alors que la ligne le désigne déjà.
                   ⚠️ Le DÉTAIL par monstre reste HORS du bouton : c'est du texte
                   qu'on lit et qu'on veut pouvoir sélectionner, pas une cible. */}
-              <button
+              <ZoneCliquable
                 onClick={() => onGoToDeck(i)}
                 className="flex w-full items-baseline gap-1.5 flex-wrap rounded-md px-1 py-0.5 -mx-1
-                           text-left transition hoverable:bg-panel2/60"
+                           transition hoverable:bg-panel2/60"
                 title={`Voir le deck « ${deckLabel(deck, monsterByCom2us, i)} »`}
               >
                 {/* Le point du VERDICT, pas `DOT[status]` : il doit être le
@@ -921,10 +980,10 @@ function AnalysisSummary({
                     `DOT` reste la table de l'aperçu replié, où le vocabulaire à
                     trois couleurs suffit. */}
                 <span className={`w-2 h-2 rounded-full flex-none self-center ${v.dot}`} />
-                <span className="text-[12px] font-semibold text-ink">
+                <span className="text-xs font-semibold text-ink">
                   {deckLabel(deck, monsterByCom2us, i)}
                 </span>
-                <span className={`font-mono text-[11px] ${v.texte}`}>
+                <span className={`font-mono text-micro ${v.texte}`}>
                   {/* Un deck bon annonce ce qui le rend jouable — l'équipe
                       retenue —, pas un simple « ok » : c'est elle qu'on va
                       chercher en jeu. */}
@@ -942,7 +1001,7 @@ function AnalysisSummary({
                     savoir qu'un deck à revoir n'existe de toute façon qu'en un
                     exemplaire change ce qu'on décide d'aller corriger. */}
                 <CopiesBadge copies={dm.copies} />
-              </button>
+              </ZoneCliquable>
               {/* Détail par monstre : sur les deux verdicts rouges. « à
                   revoir » dit quoi corriger, « monstre manquant » dit LEQUEL
                   manque — sans quoi on saurait le deck bloqué sans savoir par
@@ -953,7 +1012,7 @@ function AnalysisSummary({
                   {deck.slots.map((slot, si) => {
                     const txt = dm.slots[si] ? slotProblem(slot, dm.slots[si], monsterByCom2us) : null;
                     return txt ? (
-                      <li key={si} className="text-[12px] text-ink-dim leading-snug">
+                      <li key={si} className="text-xs text-ink-dim leading-snug">
                         • {txt}
                       </li>
                     ) : null;
@@ -1037,90 +1096,104 @@ function DeckBlock({
   const leadInfo = leaderId != null ? speedLeadOf(monsterByCom2us.get(leaderId)) : null;
 
   return (
-    <div className={`rounded-xl border p-2.5 ${DECK_AURA[empty ? 'unknown' : status]}`}>
-      <div className="flex items-center gap-2 mb-2 flex-wrap">
-        {/* Chevron de repli : indispensable en édition avec plusieurs decks */}
-        <button
-          onClick={onToggleFold}
-          aria-expanded={!folded}
-          className="flex-none text-ink-dim hoverable:text-ink transition"
-          title={folded ? 'Déplier ce deck' : 'Replier ce deck'}
-        >
-          <ChevronDown size={14} className={`transition-transform ${folded ? '-rotate-90' : ''}`} />
-        </button>
-
-        {editing && !folded ? (
-          // Vide = nom automatique (visible en placeholder) ; on ne stocke que
-          // ce que l'auteur choisit explicitement.
-          <input
-            value={deck.name}
-            onChange={(e) => recos.setDeckMeta(reco.id, deckIndex, { name: e.target.value })}
-            onBlur={(e) => {
-              const t = e.target.value.trim();
-              if (t !== deck.name) recos.setDeckMeta(reco.id, deckIndex, { name: t });
-            }}
-            placeholder={autoDeckName(deck, monsterByCom2us, deckIndex)}
-            title="Laisse vide pour reprendre les noms des monstres"
-            className="min-w-[180px] flex-1 bg-panel border border-border rounded px-2 py-0.5 text-[12px]
-                       text-ink outline-none focus:border-accent"
+    <div className={`rounded-xl border p-2.5 compact:p-1 ${DECK_AURA[empty ? 'unknown' : status]}`}>
+      <div className="mb-2">
+        {/* ⚠️ **Rangée à part, jamais mêlée au verdict/copies en dessous** :
+            le crayon doit rester en HAUT À DROITE quel que soit l'état du
+            deck. Le mettre dans la même rangée flex-wrap que le verdict le
+            faisait suivre le badge sur sa ligne (repoussé en bas dès que
+            « réalisable N fois » prenait sa propre ligne, voir plus bas) —
+            un bouton d'action ne doit pas se déplacer selon ce qui s'affiche
+            à côté de lui. */}
+        <div className="flex items-center gap-2">
+          {/* Chevron de repli : indispensable en édition avec plusieurs decks */}
+          <BoutonIcone
+            onClick={onToggleFold}
+            aria-expanded={!folded}
+            taille="serre"
+            icone={<ChevronDown size={14} className={`transition-transform ${folded ? '-rotate-90' : ''}`} />}
+            libelle={folded ? 'Déplier ce deck' : 'Replier ce deck'}
           />
-        ) : (
-          <button
-            onClick={onToggleFold}
-            className="label hoverable:text-ink transition text-left"
-          >
-            {deckLabel(deck, monsterByCom2us, deckIndex)}
-          </button>
-        )}
-        {!editing && match && !empty && <DeckBadge match={match} />}
-        {!editing && match && !empty && <CopiesBadge copies={match.copies} />}
-        {/* Le lead n'est pas dans l'en-tête : il est posé sur le leader lui-même
-            (aperçu replié ci-dessous, ou slot 0 déplié) — comme en siège. */}
 
-        {/* Replié : aperçu des 3 monstres en icônes, pour s'y retrouver */}
-        {folded && (
-          <button
+          {/* ⚠️ **Plus de titre texte : les portraits SEULS identifient le
+              deck**, plus grands (34 px, contre 26 pour l'ancien aperçu replié
+              seul) pour porter ce que le mot enlevé portait. Un titre — libre ou
+              calculé — redoublait ce que ces portraits montrent déjà ; les
+              garder seuls, agrandis, évite la redite plutôt que de biffer un mot
+              de plus dans un en-tête déjà chargé. Toujours affichés, replié ou
+              non : c'est le seul repère du deck quel que soit son état.
+              ⚠️ `deck.name` reste dans le TYPE et le stockage (retrocompat) :
+              une recommandation exportée avant ce changement, ou reçue d'un ami
+              qui n'a pas encore mis à jour l'app, garde son champ `name` — il
+              n'a jamais été lu ici, et n'est pas rejeté à l'import. */}
+          <ZoneCliquable
             onClick={onToggleFold}
-            className="flex items-center gap-1 flex-1 min-w-0"
-            title="Déplier ce deck"
+            className="flex items-center gap-1.5 flex-1 min-w-0"
+            title={folded ? 'Déplier ce deck' : 'Replier ce deck'}
           >
             {deck.slots.map((sl, i) => (
               <MiniMonster
                 key={i}
                 monster={sl.com2usId != null ? monsterByCom2us.get(sl.com2usId) ?? null : null}
                 fallback={sl.name}
-                size={26}
+                size={34}
                 lead={i === 0 ? leaderLead : null}
               />
             ))}
-          </button>
-        )}
+          </ZoneCliquable>
+          {/* Le lead n'est pas dans l'en-tête : il est posé sur le leader lui-même
+              (aperçu replié ci-dessous, ou slot 0 déplié) — comme en siège. */}
 
-        {/* Édition PROPRE au deck (monstres, sets, stats, consignes) : icônes
-            nues et resserrées, comme dans l'en-tête de la recommandation. */}
-        <div className="ml-auto flex items-center gap-0.5">
-          <button
-            onClick={onToggleEdit}
-            className={`flex items-center justify-center w-6 h-6 transition ${
-              editing ? 'text-star' : 'text-ink-dim hoverable:text-ink'
-            }`}
-            title={editing ? "Terminer l'édition de ce deck" : 'Éditer ce deck'}
-            aria-label={editing ? "Terminer l'édition de ce deck" : 'Éditer ce deck'}
-            aria-pressed={editing}
-          >
-            {editing ? <Check size={13} /> : <Pencil size={12} />}
-          </button>
-          {editing && (
+          {/* Édition PROPRE au deck (monstres, sets, stats, consignes) : icônes
+              nues et resserrées, comme dans l'en-tête de la recommandation. */}
+          <div className="ml-auto flex items-center gap-0.5">
+            {/* ⚠️ Même exception que l'en-tête de la recommandation : le ✓ doré
+                est la convention documentée de l'édition en cours sur toute
+                cette page (spec/siege/recommandations.md), pas le marqueur
+                d'état standard. */}
             <button
-              onClick={() => setDeckAConfirmer(true)}
-              className="flex items-center justify-center w-6 h-6 text-ink-dim hoverable:text-fire transition"
-              title="Supprimer ce deck"
-              aria-label="Supprimer ce deck"
+              onClick={onToggleEdit}
+              data-cible-fine
+              className={`flex h-5 w-5 items-center justify-center transition ${
+                editing ? 'text-star' : 'text-ink-dim hoverable:text-ink'
+              }`}
+              title={editing ? "Terminer l'édition de ce deck" : 'Éditer ce deck'}
+              aria-label={editing ? "Terminer l'édition de ce deck" : 'Éditer ce deck'}
+              aria-pressed={editing}
             >
-              <Trash2 size={12} />
+              {editing ? <Check size={13} /> : <Pencil size={12} />}
             </button>
-          )}
+            {editing && (
+              <BoutonIcone
+                onClick={() => setDeckAConfirmer(true)}
+                ton="danger"
+                taille="serre"
+                icone={<Trash2 size={12} />}
+                libelle="Supprimer ce deck"
+              />
+            )}
+          </div>
         </div>
+
+        {/* ⚠️ `basis-full` sur mobile, PAS un simple `flex-wrap` sur le
+            conteneur : un item flex qui a un peu de place restante sur la
+            ligne s'y installe et enroule son PROPRE texte au mot
+            (« indis- » collé, « ponible... » en dessous) au lieu de
+            descendre entier à la ligne suivante — c'est ce qui rendait le
+            repli imprévisible (bon tantôt, tronqué tantôt). `basis-full`
+            force CHAQUE ligne (verdict, puis nombre de copies) à démarrer sa
+            propre ligne, systématique. `sm:basis-auto` : au-delà, la place ne
+            manque plus, elles reprennent leur place naturelle côte à côte. */}
+        {!editing && match && !empty && (
+          <div className="flex flex-wrap items-center gap-2 compact:gap-1 mt-1 compact:mt-0.5">
+            <span className="basis-full sm:basis-auto">
+              <DeckBadge match={match} />
+            </span>
+            <span className="basis-full sm:basis-auto">
+              <CopiesBadge copies={match.copies} />
+            </span>
+          </div>
+        )}
       </div>
 
       {deckAConfirmer && (
@@ -1148,7 +1221,7 @@ function DeckBlock({
             max={DECK_NOTE_MAX}
             rows={2}
             label="Consignes du deck"
-            placeholder="Consignes pour ce deck (ex. « ne pas ouvrir sur le leader », « garder le strip pour le tour 2 »)…"
+            placeholder="Consignes pour ce deck (ex. « ne pas ouvrir sur le leader »)…"
             onChange={(v) => recos.setDeckMeta(reco.id, deckIndex, { note: v })}
           />
         </div>
@@ -1166,10 +1239,10 @@ function DeckBlock({
               // `min-w-0` : sans lui une cellule de grille refuse de descendre
               // sous la largeur de son contenu, et la carte déborde sur sa
               // voisine au lieu de laisser la table défiler à l'intérieur.
-              className={`min-w-0 rounded-xl border p-2.5 ${
+              className={`min-w-0 rounded-xl border p-2.5 compact:p-2 ${
                 // Indisponible ET stats insuffisantes sont tous deux bloquants → rouge.
                 sm?.status === 'absent' || sm?.status === 'ko'
-                  ? 'border-fire/70 ring-1 ring-fire/40 bg-fire/5'
+                  ? 'border-fire/70 bg-fire/5'
                   : sm?.status === 'ok'
                     ? 'border-good/50 bg-good/[0.04]'
                     : 'border-border bg-panel2/60'
@@ -1201,7 +1274,7 @@ function DeckBlock({
                     />
                   </div>
                 ) : (
-                  <p className="text-[12px] text-ink-dim py-4 text-center">
+                  <p className="text-xs text-ink-dim py-4 text-center">
                     {idx === 0 ? 'Leader' : 'Slot'} vide
                   </p>
                 )
@@ -1220,7 +1293,7 @@ function DeckBlock({
                         ))}
                     </MonsterAvatar>
                     <div className="min-w-0 flex-1">
-                      <div className="text-[12.5px] font-semibold leading-tight truncate">
+                      <div className="text-xs font-semibold leading-tight truncate">
                         {monster?.name ?? slot.name ?? '—'}
                       </div>
                       {/* Pastille complète sous le nom du leader : ici on a la
@@ -1231,16 +1304,15 @@ function DeckBlock({
                         </div>
                       )}
                       {sm && <SlotBadge sm={sm} />}
-                      {!monster && <div className="font-mono text-[10px] text-ink-dim">monstre inconnu</div>}
+                      {!monster && <div className="font-mono text-micro text-ink-dim">monstre inconnu</div>}
                     </div>
                     {editing && (
-                      <button
+                      <BoutonIcone
                         onClick={() => recos.setSlotMonster(reco.id, deckIndex, idx, null, '')}
-                        className="flex-none text-ink-dim hoverable:text-fire transition"
-                        title="Vider le slot"
-                      >
-                        <X size={14} />
-                      </button>
+                        ton="danger"
+                        libelle="Vider le slot"
+                        icone={<X size={14} />}
+                      />
                     )}
                   </div>
 
@@ -1478,7 +1550,7 @@ function CounterBlock({
         <Swords size={13} className="flex-none text-ink-dim" />
         <span className="label">Fort contre</span>
         {deck.counters.length > 1 && (
-          <span className="font-mono text-[11px] text-ink-dim">{deck.counters.length}</span>
+          <span className="font-mono text-micro text-ink-dim">{deck.counters.length}</span>
         )}
       </div>
 
@@ -1513,16 +1585,15 @@ function CounterBlock({
             où la prochaine se posera. Le bloc restant visible même vide, c'est
             aussi lui qui rend la fonctionnalité découvrable sur un deck qui n'en
             porte encore aucune. */}
-        <button
+        <Bouton
           onClick={ajouter}
-          className="flex h-[44px] flex-none items-center gap-1 rounded-lg border border-dashed border-border
-                     px-2.5 text-[12px] font-semibold text-ink-dim transition
-                     hoverable:border-accent hoverable:text-ink"
-          title="Ajouter une défense que ce deck bat"
+          trait="pointille"
+          className="h-[44px]"
+          icone={<Plus size={14} />}
+          libelle="Défense"
           aria-label="Ajouter une défense que ce deck bat"
-        >
-          <Plus size={14} /> Défense
-        </button>
+          title="Ajouter une défense que ce deck bat"
+        />
       </div>
     </div>
   );
@@ -1558,6 +1629,11 @@ function CounterRow({
   noteOuverte: boolean;
   onToggleNote: () => void;
 }) {
+  // La note dépliée est ancrée à gauche d'une vignette qui peut être la dernière
+  // de sa rangée : sans recalage, elle sortait de l'écran par la droite.
+  const noteRef = useRef<HTMLDivElement>(null);
+  const { style: recalageNote } = useRecalageEcran(noteRef, noteOuverte);
+
   // Un même monstre ne peut pas occuper deux emplacements de LA MÊME défense —
   // même règle que les slots d'un deck. Il peut revenir dans une autre défense.
   const usedIds = new Set(
@@ -1620,27 +1696,31 @@ function CounterRow({
             rangée qu'on parcourt du regard, mais TOUJOURS visible au tactile,
             où il n'y a pas de survol — voir la règle « un élément atteignable
             ne dépend jamais du survol » de spec/shared/design.md. */}
-        <button
+        {/* ⚠️ `taille="serre"` + `cadre` + `auSurvol` : posé SUR le coin de la
+            vignette, hors du flux — agrandi par la règle tactile, il la
+            déborde et recouvre le portrait, même cas que la croix de
+            suppression d'une carte RTA. `auSurvol` reproduit exactement le
+            même trio de classes qu'avant (masqué au repos, visible au survol,
+            au focus, et D'OFFICE sans survol possible — voir BoutonIcone.tsx). */}
+        <BoutonIcone
           onClick={onToggleEdit}
-          className="absolute -right-1 -top-1 z-10 flex h-5 w-5 items-center justify-center rounded-full
-                     border border-border bg-panel text-ink-dim opacity-0 transition
-                     hoverable:text-ink no-hover:opacity-100 group-hoverable:opacity-100
-                     focus-visible:opacity-100"
-          title="Modifier cette défense"
-          aria-label="Modifier cette défense"
-        >
-          <Pencil size={10} />
-        </button>
+          taille="serre"
+          cadre
+          auSurvol
+          icone={<Pencil size={10} />}
+          libelle="Modifier cette défense"
+          className="absolute -right-1 -top-1 z-10"
+        />
 
         {aUneNote ? (
-          <button
+          <ZoneCliquable
             onClick={onToggleNote}
             aria-expanded={noteOuverte}
             className="flex w-full items-center rounded-lg px-2 py-1.5 transition hoverable:brightness-110"
             title={noteOuverte ? 'Masquer la précision' : 'Voir la précision'}
           >
             {portraits}
-          </button>
+          </ZoneCliquable>
         ) : (
           <div className="px-2 py-1.5">{portraits}</div>
         )}
@@ -1655,11 +1735,16 @@ function CounterRow({
             comme sa suite ; `w-max` + plafond au-delà, la note étant courte. */}
         {noteOuverte && (
           <div
+            ref={noteRef}
+            // ⚠️ Ancrée à gauche d'une vignette qui peut être la DERNIÈRE de sa
+            // rangée : la note sortait alors de l'écran par la droite. Le
+            // `max-w` borne sa largeur, pas sa position. Voir le hook.
+            style={recalageNote}
             className="absolute left-0 top-full z-20 mt-1 w-max min-w-full max-w-[280px] origin-top-left
                        rounded-lg border border-accent bg-panel px-2.5 py-1.5 shadow-xl shadow-black/50
                        animate-[popover_150ms_var(--ease-out)]"
           >
-            <p className="text-[12px] leading-snug text-ink-dim">{counter.note}</p>
+            <p className="text-xs leading-snug text-ink-dim">{counter.note}</p>
           </div>
         )}
       </div>
@@ -1701,19 +1786,18 @@ function CounterRow({
                 ) : (
                   <div className="flex items-center gap-1.5 rounded border border-border bg-panel px-1.5 py-1">
                     <MiniMonster monster={monster} fallback={m.name} size={26} />
-                    <span className="min-w-0 flex-1 truncate text-[11.5px] text-ink">
+                    <span className="min-w-0 flex-1 truncate text-micro text-ink">
                       {monster?.name ?? m.name}
                     </span>
-                    <button
+                    <BoutonIcone
                       onClick={() =>
                         recos.setCounterMonster(reco.id, deckIndex, counterIndex, i, null, '')
                       }
-                      className="flex-none text-ink-dim transition hoverable:text-fire"
-                      title="Retirer ce monstre"
-                      aria-label="Retirer ce monstre"
-                    >
-                      <X size={12} />
-                    </button>
+                      ton="danger"
+                      taille="serre"
+                      icone={<X size={12} />}
+                      libelle="Retirer ce monstre"
+                    />
                   </div>
                 )}
               </div>
@@ -1733,21 +1817,18 @@ function CounterRow({
           >
             <Check size={14} />
           </button>
-          <button
+          <BoutonIcone
             onClick={() => recos.removeCounter(reco.id, deckIndex, counterIndex)}
-            className="text-ink-dim transition hoverable:text-fire"
-            title="Retirer cette défense"
-            aria-label="Retirer cette défense"
-          >
-            <Trash2 size={13} />
-          </button>
+            ton="danger"
+            libelle="Retirer cette défense"
+            icone={<Trash2 size={13} />}
+          />
         </div>
       </div>
 
       {/* Condition éventuelle — une ligne, pas un pavé : elle précise QUAND ça
           marche, elle ne redit pas comment jouer (c'est la consigne du deck). */}
-      <input
-        type="text"
+      <Champ
         value={counter.note}
         maxLength={COUNTER_NOTE_MAX}
         onChange={(e) =>
@@ -1758,8 +1839,7 @@ function CounterRow({
           if (t !== counter.note) recos.setCounterNote(reco.id, deckIndex, counterIndex, t);
         }}
         placeholder="Précision (ex. « si le Chloe est en lead »)…"
-        className="mt-1.5 w-full rounded border border-border bg-panel px-1.5 py-1 text-[11.5px]
-                   text-ink placeholder:text-ink-dim transition focus:border-accent"
+        className="mt-1.5 bg-panel py-1 text-micro"
       />
     </div>
   );
@@ -1822,79 +1902,74 @@ function StatEditor({
   spdLead: number; // points de VIT ajoutés par le siège, au TOTAL seulement
   onSet: (key: RecoStatKey, total: number | null) => void;
 }) {
-  // ⚠️ La table ne doit JAMAIS se comprimer : en dessous de sa largeur mini elle
-  // fait défiler DANS la carte, au lieu d'écraser les colonnes (le champ de
-  // bonus finissait masqué) ou de déborder sur la carte voisine.
+  // ⚠️ **PLUS de table qui défile.** Une table à colonnes fixes, sous sa
+  // largeur mini, faisait défiler HORIZONTALEMENT dans la carte — et une
+  // barre de défilement horizontale, sur trois ou quatre chiffres, est
+  // illisible : on ne voit plus la ligne entière d'un coup d'œil. Chaque
+  // stat est maintenant une ligne `flex-wrap` : label, base, bonus, total —
+  // si la largeur manque, le TOTAL passe à la ligne suivante plutôt que de
+  // sortir du cadre. Chaque valeur porte son propre petit mot (« base »,
+  // « total ») puisqu'il n'y a plus d'en-tête de colonne au-dessus pour le
+  // dire.
   return (
-    <div className="overflow-x-auto">
-    <table className="w-full min-w-[236px] text-[11.5px]">
-      <thead>
-        <tr className="label">
-          <th className="pb-1 pr-2 text-left font-normal">Stat</th>
-          <th className="pb-1 pr-2 text-right font-normal" title="Stat du monstre 6★ nu, sans runes">
-            base
-          </th>
-          <th className="pb-1 pr-2 text-left font-normal">bonus</th>
-          <th className="pb-1 text-right font-normal">total</th>
-        </tr>
-      </thead>
-      <tbody>
-        {RECO_STATS.map((st) => {
-          const known = baseFor(st.key, monster);
-          const base = known ?? 0; // base inconnue → le champ vaut le total
-          const total = slot.stats[st.key];
-          const bonus = total != null ? total - base : null;
-          return (
-            <tr key={st.key} className="border-b border-border/40 last:border-0">
-              <td
-                className="py-0.5 pr-2 text-ink-dim"
-                title={st.key === 'spd' && spdLead > 0 ? SPD_HINT : undefined}
-              >
-                {st.label}
-              </td>
-              <td className="py-0.5 pr-2 text-right font-mono text-ink-dim tabular-nums">
-                {known != null ? fmtStat(known) : '—'}
-              </td>
-              <td className="py-0.5 pr-2">
-                <div className="flex items-center gap-1">
-                  <span className="font-mono text-[10px] text-good/70">+</span>
-                  {/* Champ texte (et non `type=number`) : pas de boutons +/- à
-                      droite, qui mangent la largeur d'une colonne déjà étroite.
-                      `inputMode=numeric` garde le pavé numérique sur mobile.
-                      `min-w-[5ch]` : 5 chiffres visibles au minimum — la plupart
-                      des stats en ont autant (PV ~35 000), et sans ce plancher la
-                      colonne se refermait jusqu'à masquer la valeur saisie. */}
-                  <input
-                    type="text"
-                    inputMode="numeric"
-                    value={bonus ?? ''}
-                    onChange={(e) => {
-                      const raw = e.target.value.trim();
-                      if (raw === '' || raw === '-') return onSet(st.key, null);
-                      if (!/^-?\d+$/.test(raw)) return; // on ignore la frappe invalide
-                      onSet(st.key, base + Number(raw));
-                    }}
-                    placeholder="—"
-                    className="w-full min-w-[5ch] bg-panel border border-border rounded px-1 py-0.5
-                               text-[11px] font-mono tabular-nums text-good
-                               outline-none focus:border-accent"
-                  />
-                </div>
-              </td>
-              <td
-                className={`py-0.5 text-right font-mono tabular-nums ${
-                  total != null ? 'font-semibold text-ink' : 'text-ink-dim'
-                }`}
-              >
-                {total != null
-                  ? `${fmtStat(total + (st.key === 'spd' ? spdLead : 0))}${st.suffix}`
-                  : '—'}
-              </td>
-            </tr>
-          );
-        })}
-      </tbody>
-    </table>
+    <div className="flex flex-col">
+      {RECO_STATS.map((st) => {
+        const known = baseFor(st.key, monster);
+        const base = known ?? 0; // base inconnue → le champ vaut le total
+        const total = slot.stats[st.key];
+        const bonus = total != null ? total - base : null;
+        return (
+          <div
+            key={st.key}
+            className="flex flex-wrap items-center gap-x-2 gap-y-1 border-b border-border/40 py-1 text-micro last:border-0"
+          >
+            <span
+              className="w-14 flex-none text-ink-dim"
+              title={st.key === 'spd' && spdLead > 0 ? SPD_HINT : undefined}
+            >
+              {st.label}
+            </span>
+            <span className="flex-none font-mono text-ink-dim tabular-nums">
+              {known != null ? fmtStat(known) : '—'}
+            </span>
+            <span className="flex flex-none items-center gap-1">
+              <span className="font-mono text-micro text-good/70">+</span>
+              {/* Champ texte (et non `type=number`) : pas de boutons +/- à
+                  droite, qui mangent la largeur d'une colonne déjà étroite.
+                  `inputMode=numeric` garde le pavé numérique sur mobile.
+                  `w-14` : cinq chiffres visibles — la plupart des stats en ont
+                  autant (PV ~35 000).
+                  ⚠️ **`pleineLargeur={false}` obligatoire ici.** `Champ` vaut
+                  `w-full` par défaut : posé tel quel dans une ligne
+                  `flex-wrap`, sans largeur de colonne pour le contenir, il
+                  s'étirait sur presque toute la carte — un champ numérique de
+                  cinq chiffres large comme la ligne entière. */}
+              <Champ
+                inputMode="numeric"
+                value={bonus ?? ''}
+                onChange={(e) => {
+                  const raw = e.target.value.trim();
+                  if (raw === '' || raw === '-') return onSet(st.key, null);
+                  if (!/^-?\d+$/.test(raw)) return; // on ignore la frappe invalide
+                  onSet(st.key, base + Number(raw));
+                }}
+                placeholder="—"
+                pleineLargeur={false}
+                className="w-14 bg-panel px-1 py-0.5 text-micro font-mono tabular-nums text-good"
+              />
+            </span>
+            <span
+              className={`ml-auto flex-none font-mono tabular-nums ${
+                total != null ? 'font-semibold text-ink' : 'text-ink-dim'
+              }`}
+            >
+              {total != null
+                ? `= ${fmtStat(total + (st.key === 'spd' ? spdLead : 0))}${st.suffix}`
+                : '—'}
+            </span>
+          </div>
+        );
+      })}
     </div>
   );
 }
@@ -1924,7 +1999,7 @@ function NoteEditor({
       <div className="flex items-center justify-between mb-0.5">
         <span className="label">{label}</span>
         {left < max / 4 && (
-          <span className={`font-mono text-[10px] ${left <= 0 ? 'text-fire' : 'text-ink-dim'}`}>
+          <span className={`font-mono text-micro ${left <= 0 ? 'text-fire' : 'text-ink-dim'}`}>
             {left} car.
           </span>
         )}
@@ -1943,7 +2018,7 @@ function NoteEditor({
           if (t !== value) onChange(t);
         }}
         placeholder={placeholder}
-        className="w-full bg-panel border border-border rounded-lg px-2.5 py-1.5 text-[12.5px] text-ink
+        className="w-full bg-panel border border-border rounded-lg px-2.5 py-1.5 text-xs text-ink
                    outline-none focus:border-accent resize-y"
       />
     </div>
@@ -1960,7 +2035,7 @@ function NoteBlock({ text, label, compact }: { text: string; label: string; comp
         <StickyNote size={11} className="flex-none text-star" />
         <span className="label">{label}</span>
       </div>
-      <p className="text-[12.5px] text-ink leading-relaxed whitespace-pre-line">{text}</p>
+      <p className="text-xs text-ink leading-relaxed whitespace-pre-line">{text}</p>
     </div>
   );
 }
@@ -2010,7 +2085,7 @@ function SetEditor({
         <span className="label">
           Runage{options.length > 1 ? ` · ${options.length} possibilités` : ''}
         </span>
-        <span className="font-mono text-[10px] text-ink-dim">
+        <span className="font-mono text-micro text-ink-dim">
           {used}/{MAX_SET_PIECES} runes
         </span>
       </div>
@@ -2021,14 +2096,14 @@ function SetEditor({
             const vise = oi === target && options.length > 1;
             return (
               <span key={oi} className="flex flex-wrap items-center gap-1">
-                {oi > 0 && <span className="px-0.5 font-mono text-[12px] text-ink-dim">|</span>}
+                {oi > 0 && <span className="px-0.5 font-mono text-xs text-ink-dim">|</span>}
                 <span
                   className={`flex flex-wrap items-center gap-1 rounded-md ${
                     vise ? 'ring-1 ring-accent px-1 py-0.5' : ''
                   }`}
                 >
                   {sets.length === 0 ? (
-                    <span className="font-mono text-[10px] text-ink-dim italic">vide</span>
+                    <span className="font-mono text-micro text-ink-dim italic">vide</span>
                   ) : (
                     sets.map((key, pos) => (
                       <span
@@ -2038,8 +2113,8 @@ function SetEditor({
                         {/* Cliquer la chip VISE sa possibilité : c'est ainsi
                             qu'on revient compléter une combinaison laissée
                             incomplète. Bouton distinct du ✕ (pas de bouton
-                            imbriqué). */}
-                        <button
+                            imbriqué — les deux sont SIBLINGS dans la puce). */}
+                        <ZoneCliquable
                           onClick={() => setFocus(oi)}
                           title={
                             oi === target
@@ -2049,12 +2124,22 @@ function SetEditor({
                           className="inline-flex items-center gap-1"
                         >
                           <RuneIcon setKey={key} size={14} />
-                          <span className="text-[10.5px] text-ink">×{setPieces(key)}</span>
-                        </button>
+                          <span className="text-micro text-ink">×{setPieces(key)}</span>
+                        </ZoneCliquable>
+                        {/* ⚠️ Pas `BoutonIcone` : sa plus petite taille
+                            (`serre`, 20 px) est le plancher du BOUTON de la
+                            librairie, mais reste plus haute que cette
+                            puce (~16 px) — posée dedans, elle étirait toute
+                            la puce à sa propre hauteur. Un bouton nu, sans
+                            boîte imposée, épouse la hauteur du texte à côté
+                            duquel il vit — exactement ce que cette puce
+                            demande. */}
                         <button
                           onClick={() => onRemove(oi, pos)}
-                          className="text-ink-dim hoverable:text-fire transition"
+                          data-cible-fine
+                          className="flex-none text-ink-dim transition hoverable:text-fire"
                           title="Retirer ce set"
+                          aria-label="Retirer ce set"
                         >
                           <X size={10} />
                         </button>
@@ -2068,20 +2153,30 @@ function SetEditor({
         </div>
       )}
 
-      {/* Les deux actions sur la MÊME ligne : ajouter un set à la combinaison en
-          cours, ou en ouvrir une nouvelle. */}
-      <div className="flex items-center gap-1">
-        <button
+      {/* Les deux actions sur la MÊME ligne, à égalité : chacune la moitié de
+          la largeur de la carte, plutôt que sa largeur de contenu.
+          ⚠️ **`grid grid-cols-2` + `pleineLargeur` sur chaque bouton, pas
+          `flex` + `flex-1`.** `Bouton` pose `flex-none` dans son SOCLE (voir
+          Bouton.tsx) : un `flex-1` posé en `className` ne le bat pas,
+          `flex-none` vient APRÈS dans la feuille de style construite
+          (vérifié, pas supposé). `pleineLargeur` pose `w-full`, qui lui
+          s'applique bien malgré `flex-none` — dans une grille à 2 colonnes
+          égales, chaque bouton remplit alors exactement sa moitié. */}
+      <div className="grid grid-cols-2 gap-1">
+        {/* ⚠️ `icone`, pas un « + » écrit dans le texte : c'était la seule
+            incohérence entre les deux boutons de cette rangée, l'un portait
+            son symbole dans l'icône (comme partout ailleurs dans l'app),
+            l'autre dans le libellé. */}
+        <Bouton
           onClick={() => setOpen((o) => !o)}
           disabled={full}
           aria-expanded={open}
-          className="flex-1 flex items-center justify-center gap-1 rounded border border-border bg-panel
-                     px-1.5 py-1 text-[11px] font-semibold text-ink-dim transition
-                     hoverable:text-ink hoverable:border-accent disabled:opacity-40 disabled:cursor-not-allowed"
-        >
-          {full ? 'Plus de place (6 runes)' : '+ Set'}
-        </button>
-        <button
+          taille="xs"
+          pleineLargeur
+          icone={!full ? <Plus size={11} /> : undefined}
+          libelle={full ? 'Plus de place (6 runes)' : 'Set'}
+        />
+        <Bouton
           onClick={() => {
             onAddOption();
             setFocus(null); // la nouvelle possibilité (la dernière) devient la cible
@@ -2093,18 +2188,26 @@ function SetEditor({
               ? 'Complète la combinaison en cours avant d’en proposer une autre'
               : 'Proposer un autre runage possible — un seul suffira'
           }
-          className="flex items-center justify-center gap-0.5 rounded border border-border bg-panel
-                     px-2 py-1 text-[11px] font-semibold text-ink-dim transition
-                     hoverable:text-ink hoverable:border-accent disabled:opacity-40 disabled:cursor-not-allowed"
-        >
-          <Plus size={11} /> Possibilité
-        </button>
+          taille="xs"
+          pleineLargeur
+          icone={<Plus size={11} />}
+          libelle="Possibilité"
+        />
       </div>
 
       {/* Choix par ICÔNES plutôt que par menu déroulant : on reconnaît un set du
           jeu à son symbole, pas à son nom dans une liste. Le panneau reste
           ouvert pour enchaîner les ajouts, et se referme tout seul dès que les
-          6 runes sont prises — il n'y a alors plus rien à cliquer. */}
+          6 runes sont prises — il n'y a alors plus rien à cliquer.
+          ⚠️ Pas `BoutonIcone` : cette grille est un CHOIX D'ICÔNES DE JEU (les
+          symboles de set), pas une action d'interface — même famille que la
+          roue de runes et les emplacements d'artéfacts, qui restent hors de la
+          librairie.
+          ⚠️ **28 px, pas 32** : le jeu compte plus de vingt sets. À 32 px +
+          `gap-1`, la grille pesait lourd sur une carte de siège déjà étroite —
+          un pavé de cases pour un choix qu'on fait une fois par slot. `RuneIcon`
+          descend à 16 px avec la case, le symbole restant net à cette taille
+          (voir la roue de runes, qui le dessine déjà aussi petit). */}
       {open && !full && (
         <div className="mt-1 rounded-lg border border-border bg-panel p-1.5">
           <div className="flex flex-wrap gap-1">
@@ -2121,14 +2224,17 @@ function SetEditor({
                       : `${st.label} — ${setPieces(st.key)} runes : il ne reste pas la place`
                   }
                   aria-label={st.label}
-                  className={`flex items-center justify-center w-8 h-8 rounded-md border transition
+                  // ⚠️ `data-cible-fine` : grille serrée d'icônes de set, où une
+                  // cible de 44 px déborderait sur la voisine.
+                  data-cible-fine
+                  className={`flex items-center justify-center w-7 h-7 rounded-md border transition
                     ${
                       fits
                         ? 'bg-panel2 border-border hoverable:border-accent'
                         : 'bg-panel border-border opacity-25 cursor-not-allowed'
                     }`}
                 >
-                  <RuneIcon setKey={st.key} size={20} />
+                  <RuneIcon setKey={st.key} size={16} />
                 </button>
               );
             })}
@@ -2172,8 +2278,8 @@ function ArtifactEditor({
         return (
           <div key={key}>
             <div className="flex items-center justify-between gap-2">
-              <span className="font-mono text-[10px] text-ink-dim">{label}</span>
-              <span className="font-mono text-[10px] text-ink-dim">
+              <span className="font-mono text-micro text-ink-dim">{label}</span>
+              <span className="font-mono text-micro text-ink-dim">
                 {choisis.length}/{MAX_ARTIFACT_SUBS}
               </span>
             </div>
@@ -2185,14 +2291,14 @@ function ArtifactEditor({
                     key={code}
                     className="inline-flex items-center gap-1 rounded-full border border-border bg-panel pl-1.5 pr-1 py-0.5"
                   >
-                    <span className="text-[10.5px] text-ink">{artifactSubLabel(code)}</span>
-                    <button
+                    <span className="text-micro text-ink">{artifactSubLabel(code)}</span>
+                    <BoutonIcone
                       onClick={() => onRemove(key, code)}
-                      className="text-ink-dim hoverable:text-fire transition"
-                      title="Retirer cette propriété"
-                    >
-                      <X size={10} />
-                    </button>
+                      ton="danger"
+                      taille="serre"
+                      icone={<X size={10} />}
+                      libelle="Retirer cette propriété"
+                    />
                   </span>
                 ))}
               </div>
@@ -2201,16 +2307,16 @@ function ArtifactEditor({
             {/* `value=""` en permanence : le menu sert à AJOUTER, pas à porter
                 une sélection courante — sinon le dernier ajout resterait
                 affiché comme s'il était encore modifiable là. */}
-            <select
+            <Selecteur
               value=""
               disabled={plein || dispo.length === 0}
               onChange={(e) => {
                 const code = Number(e.target.value);
                 if (code) onAdd(key, code);
               }}
-              className="mt-0.5 w-full rounded border border-border bg-panel px-1.5 py-1 text-[11px]
-                         text-ink-dim transition hoverable:text-ink hoverable:border-accent
-                         disabled:opacity-40 disabled:cursor-not-allowed"
+              taille="dense"
+              surface="panel"
+              className="mt-0.5 text-ink-dim hoverable:text-ink disabled:opacity-40 disabled:cursor-not-allowed"
             >
               <option value="">
                 {plein ? `Les ${MAX_ARTIFACT_SUBS} propriétés sont prises` : '+ Propriété…'}
@@ -2222,7 +2328,7 @@ function ArtifactEditor({
                   {o.label}
                 </option>
               ))}
-            </select>
+            </Selecteur>
           </div>
         );
       })}
@@ -2255,7 +2361,7 @@ function ArtifactList({
         if (codes.length === 0) return null;
         return (
           <div key={key} className="flex flex-wrap items-center gap-1">
-            <span className="font-mono text-[10px] text-ink-dim">{label}</span>
+            <span className="font-mono text-micro text-ink-dim">{label}</span>
             {codes.map((code) => {
               const ok = analyse ? etat.get(`${key}:${code}`) ?? false : null;
               return (
@@ -2276,7 +2382,7 @@ function ArtifactList({
                         : 'border-fire/50 bg-fire/10'
                   }`}
                 >
-                  <span className={`text-[10.5px] ${ok === false ? 'text-fire' : 'text-ink'}`}>
+                  <span className={`text-micro ${ok === false ? 'text-fire' : 'text-ink'}`}>
                     {artifactSubLabel(code)}
                   </span>
                   {ok === true && <Check size={10} className="text-good" />}
@@ -2299,7 +2405,7 @@ function ArtifactList({
 function SetList({ options, sm }: { options: string[][]; sm: SlotMatch | null }) {
   const opts = options?.length ? options : [[]];
   if (opts.every((o) => o.length === 0)) {
-    return <p className="font-mono text-[10.5px] text-ink-dim">Aucun set recommandé</p>;
+    return <p className="font-mono text-micro text-ink-dim">Aucun set recommandé</p>;
   }
   const analysed = !!sm && sm.status !== 'empty';
   const retenue = sm?.matchedOption ?? 0;
@@ -2311,9 +2417,9 @@ function SetList({ options, sm }: { options: string[][]; sm: SlotMatch | null })
         const pool = analysed && oi === retenue ? [...(sm?.missingSets ?? [])] : null;
         return (
           <span key={oi} className="flex flex-wrap items-center gap-1">
-            {oi > 0 && <span className="px-0.5 font-mono text-[12px] text-ink-dim">|</span>}
+            {oi > 0 && <span className="px-0.5 font-mono text-xs text-ink-dim">|</span>}
             {sets.length === 0 ? (
-              <span className="font-mono text-[10.5px] text-ink-dim italic">aucun set</span>
+              <span className="font-mono text-micro text-ink-dim italic">aucun set</span>
             ) : (
               <span className="flex flex-wrap items-center gap-1">
                 {sets.map((key, i) => {
@@ -2340,7 +2446,7 @@ function SetList({ options, sm }: { options: string[][]; sm: SlotMatch | null })
                       }`}
                     >
                       <RuneIcon setKey={key} size={14} />
-                      <span className={`text-[10.5px] ${ok === false ? 'text-fire' : 'text-ink'}`}>
+                      <span className={`text-micro ${ok === false ? 'text-fire' : 'text-ink'}`}>
                         ×{setPieces(key)}
                       </span>
                       {ok === true && <Check size={10} className="text-good" />}
@@ -2359,42 +2465,6 @@ function SetList({ options, sm }: { options: string[][]; sm: SlotMatch | null })
 
 /* ---- Badges de statut --------------------------------------------------- */
 
-// Pastille globale de la recommandation : combien de decks sont jouables.
-// Porte elle aussi une croix : c'est le repère le plus visible une fois la carte
-// repliée, on doit pouvoir effacer l'analyse depuis là.
-function StatusPill({ match, onClear }: { match: RecoMatch; onClear: () => void }) {
-  const map = {
-    ok: {
-      text: `${match.totalDecks} deck${match.totalDecks > 1 ? 's' : ''} jouable${match.totalDecks > 1 ? 's' : ''}`,
-      cls: 'border-good/50 text-good bg-good/10',
-      Icon: Check,
-    },
-    partial: {
-      text: `${match.okDecks}/${match.totalDecks} deck${match.totalDecks > 1 ? 's' : ''} au niveau`,
-      cls: 'border-warn/50 text-warn bg-warn/10',
-      Icon: AlertTriangle,
-    },
-    missing: { text: 'Aucun deck jouable', cls: 'border-fire/50 text-fire bg-fire/10', Icon: X },
-    unknown: { text: '—', cls: 'border-border text-ink-dim', Icon: HelpCircle },
-  }[match.status];
-  const Icon = map.Icon;
-  return (
-    <span
-      className={`inline-flex items-center gap-1 rounded-full border pl-2 pr-1 py-0.5 text-[11px] font-semibold ${map.cls}`}
-    >
-      <Icon size={11} /> {map.text}
-      <button
-        onClick={onClear}
-        className="ml-0.5 flex items-center justify-center w-4 h-4 rounded-full opacity-60 hoverable:opacity-100 transition"
-        title="Masquer le résultat de l'analyse"
-        aria-label="Masquer le résultat de l'analyse"
-      >
-        <X size={11} />
-      </button>
-    </span>
-  );
-}
-
 // Badge d'un deck : le verdict en trois mots, + l'équipe retenue si trouvée.
 function DeckBadge({ match }: { match: DeckMatch }) {
   const map: Record<string, { cls: string; text: string }> = {
@@ -2408,7 +2478,7 @@ function DeckBadge({ match }: { match: DeckMatch }) {
   };
   const m = map[match.status];
   if (!m) return null;
-  return <span className={`font-mono text-[10.5px] ${m.cls}`}>· {m.text}</span>;
+  return <span className={`font-mono text-micro ${m.cls}`}>· {m.text}</span>;
 }
 
 // Combien de fois le deck est montable EN PARALLÈLE avec la réserve 6★.
@@ -2429,7 +2499,7 @@ function CopiesBadge({ copies }: { copies: number | null }) {
   if (copies === 0) {
     return (
       <span
-        className="font-mono text-[11px] text-fire"
+        className="font-mono text-micro text-fire"
         title="Il manque au moins un monstre 6★ en réserve pour monter ce deck"
       >
         · réalisable 0 fois
@@ -2438,7 +2508,7 @@ function CopiesBadge({ copies }: { copies: number | null }) {
   }
   return (
     <span
-      className="font-mono text-[11px] text-ink-dim"
+      className="font-mono text-micro text-ink-dim"
       title={
         copies > 1
           ? `Tes monstres 6★ permettent de monter ce deck ${copies} fois en parallèle`
@@ -2486,19 +2556,19 @@ function libelleCausesDeck(causes: FaultCause[]): string {
 // (box, RTA, défense/offense de siège) — utile quand plusieurs presets existent.
 function SlotBadge({ sm }: { sm: SlotMatch }) {
   if (sm.status === 'absent')
-    return <div className="font-mono text-[10px] text-fire">monstre indisponible</div>;
+    return <div className="font-mono text-micro text-fire">monstre indisponible</div>;
   if (sm.status === 'unknown')
     // Possédé, mais aucun deck existant ne le réunit aux autres → rien à comparer.
-    return <div className="font-mono text-[10px] text-ink-dim">possédé</div>;
+    return <div className="font-mono text-micro text-ink-dim">possédé</div>;
   if (sm.status === 'ok')
     return (
-      <div className="font-mono text-[10px] text-good" title={`Deck retenu : ${sm.owned?.label}`}>
+      <div className="font-mono text-micro text-good" title={`Deck retenu : ${sm.owned?.label}`}>
         au niveau
       </div>
     );
   if (sm.status === 'ko')
     return (
-      <div className="font-mono text-[10px] text-fire" title={`Deck retenu : ${sm.owned?.label}`}>
+      <div className="font-mono text-micro text-fire" title={`Deck retenu : ${sm.owned?.label}`}>
         {libelleCausesSlot(slotFaults(sm)) || 'critères non respectés'}
       </div>
     );
@@ -2507,6 +2577,14 @@ function SlotBadge({ sm }: { sm: SlotMatch }) {
 
 // Liste « stat : minimum » avec, si un compte est chargé, la valeur réelle et
 // l'écart (vert = atteint, rouge = il manque X).
+//
+// ⚠️ **Pas de colonne « total » permanente.** Base et bonus se lisent
+// séparément par défaut ; un clic sur la table bascule vers le total —
+// même geste que le détail d'une rune ou d'un artéfact équipé
+// (`RuneDetailBox`/`ArtifactDetailBox` dans PieceDetail.tsx) : la carte du
+// jeu montre « VIT +26 +5 » au repos, le total au clic. Trois colonnes
+// affichées en permanence pour dire la même chose deux fois (bonus ET total)
+// pesaient plus lourd que ce qu'elles ajoutaient.
 function StatList({
   slot,
   monster,
@@ -2519,87 +2597,96 @@ function StatList({
   spdLead: number; // points de VIT ajoutés par le siège, au TOTAL seulement
 }) {
   const entries = RECO_STATS.filter((st) => (slot.stats[st.key] ?? 0) > 0);
+  const [total, setTotal] = useState(false);
   if (entries.length === 0) {
-    return <p className="font-mono text-[10.5px] text-ink-dim">Aucune stat recommandée</p>;
+    return <p className="font-mono text-micro text-ink-dim">Aucune stat recommandée</p>;
   }
   const checkOf = (key: RecoStatKey) => sm?.checks.find((c) => c.key === key) ?? null;
   // La colonne « toi » n'a de sens qu'après une analyse.
   const analyse = !!sm && sm.checks.some((c) => c.actual !== null);
 
+  // ⚠️ **PLUS de table qui défile** — même règle que `StatEditor` juste
+  // au-dessus : chaque stat est une ligne `flex-wrap`, et la colonne
+  // « actuel » passe à la ligne suivante plutôt que de sortir du cadre.
+  // ⚠️ **Un seul en-tête « actuel », pas un mot répété à chaque ligne.**
+  // Écrire « toi » devant chaque valeur pesait plus lourd que la colonne
+  // qu'il remplaçait ; une seule étiquette au-dessus, alignée comme la
+  // colonne l'était dans la table, suffit à la nommer une fois pour toutes.
   return (
-    <div className="overflow-x-auto">
-    <table className="w-full min-w-[236px] text-[11px]">
-      <thead>
-        <tr className="label">
-          <th className="pb-1 pr-1.5 text-left font-normal">Stat</th>
-          <th className="pb-1 pr-1.5 text-right font-normal" title="Stat du monstre 6★ nu">
-            base
-          </th>
-          <th className="pb-1 pr-1.5 text-right font-normal">bonus</th>
-          <th className="pb-1 text-right font-normal">total</th>
-          {analyse && <th className="pb-1 pl-1.5 text-right font-normal">toi</th>}
-        </tr>
-      </thead>
-      <tbody>
-        {entries.map((st) => {
-          const req = slot.stats[st.key]!;
-          const known = baseFor(st.key, monster);
-          const bonus = known != null ? req - known : null;
-          const c = checkOf(st.key);
-          // Stat non respectée → ligne mise en évidence (fond rouge léger), pour
-          // qu'on voie d'un coup CE qui bloque sans lire les chiffres.
-          const rate = analyse && c && c.actual !== null && !c.ok;
-          // Le bonus du siege (totem + lead) n'entre que dans les TOTAUX : la base
-          // et le bonus affiches restent les valeurs visibles du build.
-          const add = st.key === 'spd' ? spdLead : 0;
-          return (
-            <tr
-              key={st.key}
-              className={`border-b border-border/40 last:border-0 ${rate ? 'bg-fire/10' : ''}`}
+    <ZoneCliquable
+      onClick={() => setTotal((v) => !v)}
+      aria-pressed={total}
+      title={total ? 'Voir le détail (base + bonus)' : 'Voir les valeurs totales'}
+      className="flex w-full flex-col text-left"
+    >
+      {analyse && (
+        <div className="flex items-center pb-1">
+          <span className="ml-auto label">actuel</span>
+        </div>
+      )}
+      {entries.map((st) => {
+        const req = slot.stats[st.key]!;
+        const known = baseFor(st.key, monster);
+        const bonus = known != null ? req - known : null;
+        const c = checkOf(st.key);
+        // Stat non respectée → ligne mise en évidence (fond rouge léger), pour
+        // qu'on voie d'un coup CE qui bloque sans lire les chiffres.
+        const rate = analyse && c && c.actual !== null && !c.ok;
+        // Le bonus du siege (totem + lead) n'entre que dans les TOTAUX : la base
+        // et le bonus affiches restent les valeurs visibles du build.
+        const add = st.key === 'spd' ? spdLead : 0;
+        return (
+          <div
+            key={st.key}
+            className={`flex flex-wrap items-center gap-x-2 gap-y-1 border-b border-border/40 py-1
+              text-micro last:border-0 ${rate ? 'bg-fire/10' : ''}`}
+          >
+            <span
+              className={`w-14 flex-none ${rate ? 'text-fire font-semibold' : 'text-ink-dim'}`}
+              title={add > 0 ? SPD_HINT : undefined}
             >
-              <td
-                className={`py-0.5 pr-1.5 ${rate ? 'text-fire font-semibold' : 'text-ink-dim'}`}
-                title={add > 0 ? SPD_HINT : undefined}
-              >
-                {st.label}
-              </td>
-              <td className="py-0.5 pr-1.5 text-right font-mono text-ink-dim tabular-nums">
-                {known != null ? fmtStat(known) : '—'}
-              </td>
-              <td className="py-0.5 pr-1.5 text-right font-mono text-good tabular-nums">
-                {bonus != null ? `+${fmtStat(bonus)}` : '—'}
-              </td>
-              <td className="py-0.5 text-right font-mono font-semibold text-ink tabular-nums">
+              {st.label}
+            </span>
+            {total ? (
+              <span className="flex-none font-mono font-semibold text-ink tabular-nums">
                 {fmtStat(req + add)}
                 {st.suffix}
-              </td>
-              {analyse && (
-                <td
-                  className={`py-0.5 pl-1.5 text-right font-mono font-semibold tabular-nums ${
-                    c ? (c.ok ? 'text-good' : 'text-fire') : 'text-ink-dim'
-                  }`}
-                  title={
-                    c && c.actual !== null && !c.ok
-                      ? `Il te manque ${fmtStat(-c.diff)}${st.suffix}`
-                      : undefined
-                  }
-                >
-                  {c && c.actual !== null ? (
-                    <>
-                      {fmtStat(c.actual + add)}
-                      {st.suffix}
-                      {!c.ok && <span className="text-fire/70"> (−{fmtStat(-c.diff)})</span>}
-                    </>
-                  ) : (
-                    '—'
-                  )}
-                </td>
-              )}
-            </tr>
-          );
-        })}
-      </tbody>
-    </table>
-    </div>
+              </span>
+            ) : (
+              <>
+                <span className="flex-none font-mono text-ink-dim tabular-nums">
+                  {known != null ? fmtStat(known) : '—'}
+                </span>
+                <span className="flex-none font-mono text-good tabular-nums">
+                  {bonus != null ? `+${fmtStat(bonus)}` : '—'}
+                </span>
+              </>
+            )}
+            {analyse && (
+              <span
+                className={`ml-auto flex-none font-mono tabular-nums ${
+                  c ? (c.ok ? 'text-good' : 'text-fire') : 'text-ink-dim'
+                }`}
+                title={
+                  c && c.actual !== null && !c.ok
+                    ? `Il te manque ${fmtStat(-c.diff)}${st.suffix}`
+                    : undefined
+                }
+              >
+                {c && c.actual !== null ? (
+                  <>
+                    {fmtStat(c.actual + add)}
+                    {st.suffix}
+                    {!c.ok && <span className="text-fire/70"> (−{fmtStat(-c.diff)})</span>}
+                  </>
+                ) : (
+                  '—'
+                )}
+              </span>
+            )}
+          </div>
+        );
+      })}
+    </ZoneCliquable>
   );
 }

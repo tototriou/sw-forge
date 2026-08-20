@@ -1,7 +1,8 @@
 import { useId, useMemo, useState } from 'react';
-import { Search, X } from 'lucide-react';
+import { Search } from 'lucide-react';
 import MonsterAvatar from '../MonsterAvatar';
-import Segmented from '../Segmented';
+import { Champ, Flottant, Jeton } from '../../ui';
+import Segmented from '../../ui/Segmented';
 import { useComboboxNav } from '../../hooks/useComboboxNav';
 import { useNameFilteredResults } from '../../hooks/useNameFilteredResults';
 import {
@@ -25,13 +26,17 @@ interface Props {
   excludeOwnCom2usId: number | null;
   selected: ExclusionSelector[];
   onChange: (next: ExclusionSelector[]) => void;
+  // ⚠️ Panneau « Options » mobile, resserré : texte/rembourrage réduits pour
+  // que les 4 options tiennent sur UNE seule ligne malgré « Défenses siège »/
+  // « Offenses siège » — voir Segmented.tsx, prop `dense`.
+  denseSourceTabs?: boolean;
 }
 
 const SOURCE_OPTIONS: { key: ExclusionSource; label: string }[] = [
   { key: 'box', label: 'Box' },
   { key: 'rta', label: 'RTA' },
-  { key: 'siege-defense', label: 'Siège défense' },
-  { key: 'siege-offense', label: 'Siège offense' },
+  { key: 'siege-defense', label: 'Défenses siège' },
+  { key: 'siege-offense', label: 'Offenses siège' },
 ];
 
 // Même étiquette que le comptage « Défense N »/« Offense N » déjà utilisé
@@ -42,7 +47,7 @@ function sourceLabel(sel: ExclusionSelector, data: ExclusionSourceData): string 
   if (sel.source === 'rta') return 'RTA';
   const teams = sel.source === 'siege-defense' ? data.siegeDefenseTeams : data.siegeOffenseTeams;
   const idx = teams.findIndex((t) => t.id === sel.teamId);
-  const base = sel.source === 'siege-defense' ? 'Siège défense' : 'Siège offense';
+  const base = sel.source === 'siege-defense' ? 'Défenses siège' : 'Offenses siège';
   return idx === -1 ? base : `${base} · équipe ${idx + 1}`;
 }
 
@@ -51,7 +56,7 @@ function sourceLabel(sel: ExclusionSelector, data: ExclusionSourceData): string 
 // défense/offense), une entrée précise par choix (pas juste un monstre :
 // voir optimizerExclusion.ts). Même grammaire de navigation clavier que
 // MonsterGearPicker (choix du monstre à optimiser).
-export default function RuneExclusionPicker({ data, excludeOwnUnitKey, excludeOwnCom2usId, selected, onChange }: Props) {
+export default function RuneExclusionPicker({ data, excludeOwnUnitKey, excludeOwnCom2usId, selected, onChange, denseSourceTabs = false }: Props) {
   const [activeSource, setActiveSource] = useState<ExclusionSource>('box');
   const [query, setQuery] = useState('');
   const idBase = useId();
@@ -86,26 +91,32 @@ export default function RuneExclusionPicker({ data, excludeOwnUnitKey, excludeOw
 
   return (
     <div>
-      <Segmented options={SOURCE_OPTIONS} value={activeSource} onChange={setActiveSource} className="mb-2" size="lg" />
+      <Segmented
+        options={SOURCE_OPTIONS}
+        value={activeSource}
+        onChange={setActiveSource}
+        className="mb-2"
+        size="lg"
+        dense={denseSourceTabs}
+      />
 
       <div className="relative">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-ink-dim" />
-        <input
+        <Champ
           {...nav.inputProps}
-          type="text"
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           placeholder="Rechercher un monstre à exclure…"
-          className="w-full bg-panel border border-border rounded-lg py-2 pl-9 pr-3 text-[13px]
-                     text-ink placeholder:text-ink-dim outline-none transition
-                     focus:border-accent focus:shadow-[0_0_0_3px_rgb(var(--accent)/0.25)]"
+          icone={<Search className="h-4 w-4" />}
         />
 
+        {/* ⚠️ Même pattern combobox que RtaSearch/MonsterGearPicker : Champ +
+            Flottant, entrées sans rembourrage (elles touchent les bords). */}
         {nav.open && (
-          <div
+          <Flottant
             {...nav.listProps}
             aria-label="Résultats de la recherche"
-            className="absolute z-30 mt-1.5 w-full max-h-[300px] overflow-y-auto rounded-lg border border-border bg-panel shadow-glow shadow-black/60"
+            rembourrage="aucun"
+            className="max-h-[300px] overflow-y-auto"
           >
             {results.length === 0 ? (
               <div className="px-3 py-2 text-ink-dim text-[12.5px]">
@@ -146,12 +157,16 @@ export default function RuneExclusionPicker({ data, excludeOwnUnitKey, excludeOw
                           espèce = même portrait dans les deux équipes), mais le
                           NUMÉRO d'équipe et SES COÉQUIPIERS — signalé
                           directement, à une échelle proche de celle de l'écran
-                          Siège (pas de simples pastilles), sur UNE seule ligne
-                          quitte à défiler horizontalement plutôt que se casser. */}
+                          Siège (pas de simples pastilles). ⚠️ `flex-wrap`, PAS
+                          `overflow-x-auto` : un glissement horizontal dans un
+                          panneau déjà scrollable verticalement est
+                          quasi-inutilisable au doigt (les deux gestes se
+                          concurrencent) — l'équipe entière doit rester visible
+                          d'un coup, quitte à passer sur une deuxième ligne. */}
                       {c.teamContext && (
-                        <div className="flex items-center gap-2 text-[11px] text-ink-dim">
+                        <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-[11px] text-ink-dim">
                           <span className="flex-none">Équipe {c.teamContext.teamNumber}</span>
-                          <span className="flex items-center gap-2.5 min-w-0 overflow-x-auto">
+                          <span className="flex flex-wrap items-center gap-2.5 min-w-0">
                             {c.teamContext.slots.map((m, slotIdx) => {
                               const estSlotCourant = 'slotIndex' in c.selector && c.selector.slotIndex === slotIdx;
                               return (
@@ -171,7 +186,7 @@ export default function RuneExclusionPicker({ data, excludeOwnUnitKey, excludeOw
                 );
               })
             )}
-          </div>
+          </Flottant>
         )}
       </div>
 
@@ -180,29 +195,22 @@ export default function RuneExclusionPicker({ data, excludeOwnUnitKey, excludeOw
           {selected.map((sel) => {
             const resolved = resolveExclusionEntry(sel, data);
             const key = exclusionSelectorKey(sel);
-            return (
-              <span
+            return resolved ? (
+              <Jeton
                 key={key}
-                className="flex items-center gap-1.5 rounded-full border border-border bg-panel2 pl-1 pr-1.5 py-0.5 text-[12px] text-ink"
-              >
-                {resolved ? (
-                  <>
-                    <MonsterAvatar monster={resolved.monster} size={18} />
-                    <span className="font-medium">{resolved.monster.name}</span>
-                    <span className="text-ink-dim">· {sourceLabel(sel, data)}</span>
-                  </>
-                ) : (
-                  <span className="text-ink-dim italic">exclusion introuvable ({sourceLabel(sel, data)})</span>
-                )}
-                <button
-                  type="button"
-                  onClick={() => remove(sel)}
-                  title="Retirer cette exclusion"
-                  className="ml-0.5 text-ink-dim hoverable:text-ink"
-                >
-                  <X size={12} />
-                </button>
-              </span>
+                icone={<MonsterAvatar monster={resolved.monster} size={18} />}
+                libelle={resolved.monster.name}
+                detail={`· ${sourceLabel(sel, data)}`}
+                onRetirer={() => remove(sel)}
+                libelleRetrait="Retirer cette exclusion"
+              />
+            ) : (
+              <Jeton
+                key={key}
+                libelle={<span className="italic text-ink-dim">exclusion introuvable ({sourceLabel(sel, data)})</span>}
+                onRetirer={() => remove(sel)}
+                libelleRetrait="Retirer cette exclusion"
+              />
             );
           })}
         </div>

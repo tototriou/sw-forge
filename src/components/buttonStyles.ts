@@ -2,7 +2,7 @@
 //
 // Elles vivaient en constantes locales dans [Dialogs.tsx](Dialogs.tsx). Remontées
 // ici au deuxième usage plutôt que recopiées — même trajet que
-// [Segmented.tsx](Segmented.tsx) et [elementStyles.ts](elementStyles.ts) : deux
+// [Segmented.tsx](../ui/Segmented.tsx) et [elementStyles.ts](elementStyles.ts) : deux
 // copies auraient divergé.
 //
 // ⚠️ C'est ICI que se pose la pression au clic (`active:scale-[0.97]`). Un seul

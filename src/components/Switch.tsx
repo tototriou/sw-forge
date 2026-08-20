@@ -6,7 +6,7 @@
 // le premier à en avoir besoin (« Garder mes données ») ; remonté ici au
 // deuxième usage plutôt que recopié — deux copies auraient divergé, comme les
 // chips d'élément avant [elementStyles.ts](src/components/elementStyles.ts) et
-// le contrôle à choix unique avant [Segmented.tsx](src/components/Segmented.tsx).
+// le contrôle à choix unique avant [Segmented.tsx](src/ui/Segmented.tsx).
 export default function Switch({
   checked,
   onChange,
@@ -25,7 +25,18 @@ export default function Switch({
       aria-label={label}
       disabled={disabled}
       onClick={() => onChange(!checked)}
-      className={`relative h-[22px] w-[40px] flex-none rounded-full border transition
+      // ⚠️ **`data-cible-fine` : la règle tactile globale ne s'applique PAS
+      // ici.** Elle porte tout bouton à 40 px de haut au doigt (voir
+      // index.css) ; sur cet interrupteur, dont la hauteur EST le dessin, elle
+      // transformait la piste de 22 px en un cercle de 40, avec la pastille
+      // collée en haut. Un interrupteur qui grossit n'est plus un interrupteur.
+      //
+      // ⚠️ La cible tactile est rétablie AUTREMENT, par un pseudo-élément qui
+      // déborde de chaque côté (`.cible-tactile` dans index.css) : la zone
+      // touchable atteint 44 px sans qu'un pixel du dessin ne bouge. C'est la
+      // bonne réponse chaque fois que la forme d'un contrôle porte du sens.
+      data-cible-fine
+      className={`cible-tactile relative h-[22px] w-[40px] flex-none rounded-full border transition
         ${disabled ? 'cursor-not-allowed opacity-40' : ''}
         ${checked ? 'border-star/70 bg-star/30' : 'border-border bg-panel2'}`}
     >

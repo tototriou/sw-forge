@@ -5,7 +5,7 @@ import { setPersistence, storageAvailable, usePersistence } from '../hooks/usePe
 import { THEME_CHOICES, setTheme, useTheme } from '../hooks/useTheme';
 import { setOvercapDisplay, useOvercapDisplay } from '../hooks/useOvercapDisplay';
 import AccountFreshness from './AccountFreshness';
-import Segmented from './Segmented';
+import Segmented from '../ui/Segmented';
 import Switch from './Switch';
 
 /* --------------------------------------------------------------------------
@@ -19,10 +19,10 @@ function Setting({ title, hint, children }: { title: string; hint?: string; chil
   return (
     <div className="py-2.5 border-b border-border/60 last:border-0">
       <div className="flex items-center justify-between gap-3">
-        <span className="text-[13px] font-semibold text-ink">{title}</span>
+        <span className="text-sm font-semibold text-ink">{title}</span>
         {children}
       </div>
-      {hint && <p className="mt-1 text-[11px] text-ink-dim leading-snug">{hint}</p>}
+      {hint && <p className="mt-1 text-micro text-ink-dim leading-snug">{hint}</p>}
     </div>
   );
 }
@@ -34,7 +34,12 @@ function Setting({ title, hint, children }: { title: string; hint?: string; chil
 // Réglages GLOBAUX de l'application : on les pose une fois, ils valent partout.
 // Règle (voir spec/README.md) : un réglage qui concerne plusieurs pages vient
 // ICI, jamais dupliqué en sélecteur sur chaque page.
-function SettingsList({
+//
+// ⚠️ **Exportée** : la PAGE de réglages (`#/parametres`) affiche exactement la
+// même liste que le popover. Deux copies auraient divergé au premier réglage
+// ajouté — et c'est le genre de divergence qu'on ne voit pas, puisqu'on n'ouvre
+// jamais les deux à la fois.
+export function SettingsList({
   onClearData,
   onKeepAccount,
   accountExportedAt,
@@ -104,7 +109,7 @@ function SettingsList({
             onClick={onClearData}
             title="Efface la prépa RTA, les équipes de siège, les recommandations, les monstres perso et le compte importé"
             className="flex flex-none items-center gap-1.5 rounded-lg border border-border bg-panel2
-                       px-2.5 py-1 text-[11.5px] font-semibold text-ink-dim transition
+                       px-2.5 py-1 text-micro font-semibold text-ink-dim transition
                        hoverable:border-fire/60 hoverable:text-fire"
           >
             <Trash2 size={12} /> Tout supprimer
@@ -119,12 +124,10 @@ function SettingsList({
 // rester accessibles en UN geste, donc jamais enfouis dans le menu. Même gabarit
 // que le bouton hamburger (44 px, encadré) pour former une paire.
 export default function SettingsMenu({
-  variant = 'desktop',
   onClearData,
   onKeepAccount,
   accountExportedAt,
 }: {
-  variant?: 'desktop' | 'bar';
   onClearData?: () => void;
   onKeepAccount?: () => void;
   accountExportedAt?: number | null;
@@ -146,10 +149,12 @@ export default function SettingsMenu({
     };
   }, [open]);
 
-  const btnClass =
-    variant === 'bar'
-      ? `w-11 h-11 rounded-lg border border-border ${open ? 'bg-panel2' : 'bg-panel'} text-ink`
-      : `w-9 h-9 rounded-lg ${open ? 'bg-panel2 text-ink' : 'text-ink-dim hoverable:text-ink hoverable:bg-panel2'}`;
+  // ⚠️ La variante `bar` (44 px, encadrée) a disparu avec la barre mobile
+  // qu'elle accompagnait : sur mobile, les réglages sont désormais une ICÔNE de
+  // la barre supérieure menant à leur page, pas un popover.
+  const btnClass = `aspect-square w-9 h-9 rounded-lg ${
+    open ? 'bg-panel2 text-ink' : 'text-ink-dim hoverable:text-ink hoverable:bg-panel2'
+  }`;
 
   return (
     <div className="relative" ref={ref}>
@@ -160,17 +165,30 @@ export default function SettingsMenu({
         title="Réglages"
         className={`flex items-center justify-center transition ${btnClass}`}
       >
-        <Settings size={variant === 'bar' ? 20 : 16} />
+        <Settings size={16} />
       </button>
       {open && (
         <div
           // Ancré à DROITE de son bouton, donc origine en haut à droite : le
           // menu sort de l'engrenage, pas de son propre centre.
-          className="absolute z-30 right-0 mt-1.5 w-fit min-w-[260px] rounded-xl border border-border bg-panel px-3 py-2 shadow-glow shadow-black/60
+          // ⚠️ `max-w-[calc(100vw-2rem)]` : ancré à droite de son bouton, le
+          // popover sortait de l'écran sur un téléphone — les réglages les plus
+          // à gauche devenaient inatteignables. `min-w` seul ne borne rien.
+          className="absolute z-30 right-0 mt-1.5 w-fit min-w-[260px] max-w-[calc(100vw-2rem)] rounded-xl border border-border bg-panel px-3 py-2 shadow-glow shadow-black/60
                      origin-top-right animate-[popover_150ms_var(--ease-out)]"
         >
-          <div className="label pb-1.5 border-b border-border">
-            Réglages
+          <div className="flex items-baseline gap-3 border-b border-border pb-1.5">
+            <span className="label">Réglages</span>
+            {/* ⚠️ Vers la PAGE : ce popover porte sept réglages dont deux à
+                explication longue, et 260 px ne suffisent pas à les lire. Il
+                reste le geste rapide ; la page est là pour s'y attarder. */}
+            <a
+              href="#/parametres"
+              onClick={() => setOpen(false)}
+              className="ml-auto text-micro text-accent transition hoverable:text-ink"
+            >
+              Tout voir
+            </a>
           </div>
           <SettingsList
             onClearData={onClearData}

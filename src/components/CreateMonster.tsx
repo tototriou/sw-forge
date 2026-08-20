@@ -1,9 +1,11 @@
-import { useEffect, useRef, useState } from 'react';
+import { useState } from 'react';
+import { ConfirmDialog, Modale } from '../ui/Dialogs';
 import { Plus, X, Wand2 } from 'lucide-react';
 import { ELEMENTS, ElementKey, Monster } from '../types';
 import { CustomLead } from '../hooks/useCustomMonsters';
 import ElementIcon from './ElementIcon';
-import NumberField from './NumberField';
+import NumberField from '../ui/NumberField';
+import { Bouton, BoutonIcone, Champ, Selecteur } from '../ui';
 
 const ELEMENT_CHOICES = ELEMENTS.filter((e) => e.key !== 'unknown');
 
@@ -27,6 +29,13 @@ interface Props {
 
 // Bouton + formulaire pour créer un monstre perso (nom, élément, SPD de base).
 export default function CreateMonster({ onCreate, customMonsters, onDelete }: Props) {
+  // ⚠️ La suppression d'un monstre créé à la main demande une CONFIRMATION : il
+  // n'existe nulle part ailleurs. Contrairement à un monstre du jeu, qu'on
+  // retrouve dans les données, celui-ci part avec son nom, son élément et sa
+  // vitesse — il faut le ressaisir en entier.
+  const [suppressionAConfirmer, setSuppressionAConfirmer] = useState<
+    { id: string; nom: string } | null
+  >(null);
   const [open, setOpen] = useState(false);
   const [name, setName] = useState('');
   const [element, setElement] = useState<ElementKey>('fire');
@@ -34,24 +43,12 @@ export default function CreateMonster({ onCreate, customMonsters, onDelete }: Pr
   const [leadStat, setLeadStat] = useState('');
   const [lead, setLead] = useState('');
   const [scope, setScope] = useState<'General' | 'Element'>('General');
-  const ref = useRef<HTMLDivElement>(null);
-
-  // Ferme la popup au clic à l'extérieur ou sur Échap.
-  useEffect(() => {
-    if (!open) return;
-    function onDown(e: MouseEvent) {
-      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
-    }
-    function onKey(e: KeyboardEvent) {
-      if (e.key === 'Escape') setOpen(false);
-    }
-    document.addEventListener('mousedown', onDown);
-    document.addEventListener('keydown', onKey);
-    return () => {
-      document.removeEventListener('mousedown', onDown);
-      document.removeEventListener('keydown', onKey);
-    };
-  }, [open]);
+  // ⚠️ **Trente lignes retirées ici** en passant à `Modale` : deux refs, un hook
+  // de recalage à l'écran, et un écouteur de clic extérieur doublé d'un écouteur
+  // d'Échap. Tout cela servait à rattraper une popup ancrée qui sortait de
+  // l'écran ou se faisait clipper par le panneau d'où elle sortait. Une modale
+  // ne s'ancre à rien : elle porte déjà sa fermeture au clic extérieur, à Échap,
+  // son piège à focus et son blocage du défilement.
 
   const speedNum = Number(speed);
   const valid = name.trim().length > 0 && speed !== '' && Number.isFinite(speedNum) && speedNum > 0;
@@ -73,140 +70,196 @@ export default function CreateMonster({ onCreate, customMonsters, onDelete }: Pr
     setLead('');
   }
 
-  return (
-    <div className="relative" ref={ref}>
-      {/* Même gabarit que les autres boutons d'action (RTA & siège) :
-          px-3.5 py-2 / 13px, sinon il paraît rabougri à côté d'eux. */}
-      <button
-        onClick={() => setOpen((o) => !o)}
-        className="flex items-center gap-1.5 rounded-lg border border-border bg-panel px-3.5 py-2 text-[13px]
-                   text-ink-dim hoverable:text-ink hoverable:border-accent transition"
-      >
-        <Wand2 size={15} /> Créer un monstre
-      </button>
+  // ⚠️ **Un seul formulaire pour les deux contenants.** Il était écrit DEUX
+  // FOIS, une fois dans le panneau mobile et une fois dans la popup de bureau —
+  // quarante lignes identiques, et le genre de duplication qui ne se voit pas :
+  // on ne teste jamais les deux largeurs à la fois, donc un champ ajouté d'un
+  // côté manque de l'autre sans que rien ne le signale. Même trajet que le
+  // formulaire de catégorie (voir CategoryBar).
+  const formulaire = (
+    <>
+      <Champ
+        value={name}
+        onChange={(e) => setName(e.target.value)}
+        placeholder="Nom du monstre"
+        className="mb-2 compact:py-2.5"
+      />
 
-      {open && (
-        <div
-          className="absolute z-30 mt-2 w-[300px] max-w-[calc(100vw-2rem)] rounded-xl border border-border bg-panel p-3 shadow-glow shadow-black/60
-                     origin-top-left animate-[popover_150ms_var(--ease-out)]"
+      <div className="mb-2.5 flex gap-2">
+        <Selecteur
+          value={element}
+          onChange={(e) => setElement(e.target.value as ElementKey)}
+          pleineLargeur={false}
+          className="flex-1 compact:py-2.5"
         >
-          <div className="flex items-center justify-between mb-2.5">
-            <span className="label">
-              Nouveau monstre
-            </span>
-            <button onClick={() => setOpen(false)} className="text-ink-dim hoverable:text-ink" aria-label="Fermer">
-              <X size={14} />
-            </button>
-          </div>
+          {ELEMENT_CHOICES.map((el) => (
+            <option key={el.key} value={el.key}>
+              {el.label}
+            </option>
+          ))}
+        </Selecteur>
+        {/* La valeur est stockée en TEXTE ici (champ libre du formulaire) :
+            on convertit aux bornes du composant. */}
+        <NumberField
+          value={speed === '' ? null : Number(speed)}
+          allowEmpty
+          min={0}
+          width="w-16"
+          placeholder="SPD"
+          ariaLabel="Vitesse de base"
+          onChange={(v) => setSpeed(v == null ? '' : String(v))}
+        />
+      </div>
 
-          <input
-            type="text"
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            placeholder="Nom du monstre"
-            className="w-full bg-panel2 border border-border rounded-lg px-3 py-2 text-[13px] text-ink
-                       placeholder:text-ink-dim outline-none focus:border-accent mb-2"
+      {/* Lead (optionnel). Affiché en Siège ; seul un lead de vitesse alimente le tick. */}
+      <Selecteur
+        value={leadStat}
+        onChange={(e) => setLeadStat(e.target.value)}
+        title="Type de lead (optionnel)"
+        className="mb-2.5"
+      >
+        <option value="">Lead : aucun</option>
+        {LEAD_STATS.map((s) => (
+          <option key={s.value} value={s.value}>
+            Lead {s.label}
+          </option>
+        ))}
+      </Selecteur>
+
+      {leadStat !== '' && (
+        <div className="mb-2.5 flex gap-2">
+          <NumberField
+            value={lead === '' ? null : Number(lead)}
+            allowEmpty
+            min={0}
+            max={100}
+            width="w-14"
+            placeholder="%"
+            ariaLabel="Valeur du lead en %"
+            onChange={(v) => setLead(v == null ? '' : String(v))}
           />
-
-          <div className="flex gap-2 mb-2.5">
-            <select
-              value={element}
-              onChange={(e) => setElement(e.target.value as ElementKey)}
-              className="flex-1 bg-panel2 border border-border rounded-lg px-2.5 py-2 text-[13px] text-ink outline-none"
-            >
-              {ELEMENT_CHOICES.map((el) => (
-                <option key={el.key} value={el.key}>
-                  {el.label}
-                </option>
-              ))}
-            </select>
-            {/* La valeur est stockée en TEXTE ici (champ libre du formulaire) :
-                on convertit aux bornes du composant. */}
-            <NumberField
-              value={speed === '' ? null : Number(speed)}
-              allowEmpty
-              min={0}
-              width="w-16"
-              placeholder="SPD"
-              ariaLabel="Vitesse de base"
-              onChange={(v) => setSpeed(v == null ? '' : String(v))}
-            />
-          </div>
-
-          {/* Lead (optionnel). Affiché en Siège ; seul un lead de vitesse alimente le tick. */}
-          <select
-            value={leadStat}
-            onChange={(e) => setLeadStat(e.target.value)}
-            title="Type de lead (optionnel)"
-            className="w-full bg-panel2 border border-border rounded-lg px-2.5 py-2 text-[13px] text-ink outline-none mb-2.5"
+          <Selecteur
+            value={scope}
+            onChange={(e) => setScope(e.target.value as 'General' | 'Element')}
+            title="Portée du lead"
+            pleineLargeur={false}
+            className="flex-1"
           >
-            <option value="">Lead : aucun</option>
-            {LEAD_STATS.map((s) => (
-              <option key={s.value} value={s.value}>
-                Lead {s.label}
-              </option>
-            ))}
-          </select>
-
-          {leadStat !== '' && (
-            <div className="flex gap-2 mb-2.5">
-              <NumberField
-                value={lead === '' ? null : Number(lead)}
-                allowEmpty
-                min={0}
-                max={100}
-                width="w-14"
-                placeholder="%"
-                ariaLabel="Valeur du lead en %"
-                onChange={(v) => setLead(v == null ? '' : String(v))}
-              />
-              <select
-                value={scope}
-                onChange={(e) => setScope(e.target.value as 'General' | 'Element')}
-                title="Portée du lead"
-                className="flex-1 bg-panel2 border border-border rounded-lg px-2.5 py-2 text-[13px] text-ink outline-none"
-              >
-                <option value="General">Toutes cibles</option>
-                <option value="Element">Même élément</option>
-              </select>
-            </div>
-          )}
-
-          <button
-            onClick={submit}
-            disabled={!valid}
-            className="w-full flex items-center justify-center gap-1.5 rounded-lg bg-accent-soft
-                       px-3 py-2 text-[13px] font-semibold text-ink disabled:opacity-40 disabled:cursor-not-allowed"
-          >
-            <Plus size={14} /> Créer
-          </button>
-
-          {customMonsters.length > 0 && (
-            <div className="mt-3 pt-2.5 border-t border-border">
-              <span className="label">
-                Mes monstres perso
-              </span>
-              <ul className="mt-1.5 flex flex-col gap-1 max-h-40 overflow-y-auto">
-                {customMonsters.map((m) => (
-                  <li key={m.id} className="flex items-center gap-2 text-[12.5px]">
-                    <ElementIcon element={m.element} size={15} className="flex-none" />
-                    <span className="truncate flex-1">{m.name}</span>
-                    <span className="font-mono text-ink-dim">SPD {m.stats.speed ?? '—'}</span>
-                    <button
-                      onClick={() => onDelete(String(m.id))}
-                      className="text-ink-dim hoverable:text-fire flex-none"
-                      title="Supprimer"
-                      aria-label="Supprimer"
-                    >
-                      <X size={13} />
-                    </button>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          )}
+            <option value="General">Toutes cibles</option>
+            <option value="Element">Même élément</option>
+          </Selecteur>
         </div>
       )}
+
+    </>
+  );
+
+  // ⚠️ L'action vit dans le PIED de la modale, pas au bout du formulaire : la
+  // liste des monstres perso s'affiche en dessous, et « Créer » s'y retrouvait
+  // au milieu du contenu — au-dessus d'une liste de dix monstres, on ne le
+  // trouvait plus.
+  // ⚠️ **PAS de `pleineLargeur`** : le pied taque ses boutons à DROITE, et un
+  // bouton étiré occupe toute la largeur — il ne peut donc plus l'être.
+  // « Créer » est un verbe court : il n'a rien à gagner à s'étaler d'un bord à
+  // l'autre. L'empilement pleine largeur est réservé aux libellés qui sont des
+  // PHRASES (voir `actionsEmpilees` dans PiedDeDialogue).
+  const actionCreer = (
+    <Bouton
+      onClick={submit}
+      disabled={!valid}
+      ton="accent"
+      fond="doux"
+      trait="aucun"
+      icone={<Plus size={14} />}
+      libelle="Créer"
+    />
+  );
+
+  // Liste des monstres déjà créés, partagée elle aussi par les deux contenants.
+  const listePerso = customMonsters.length > 0 && (
+    <div className="mt-3 border-t border-border pt-2.5">
+      <span className="label">Mes monstres perso</span>
+      <ul className="mt-1.5 flex max-h-40 flex-col gap-1 overflow-y-auto">
+        {customMonsters.map((m) => (
+          <li key={m.id} className="flex items-center gap-2 text-xs">
+            <ElementIcon element={m.element} size={15} className="flex-none" />
+            <span className="flex-1 truncate">{m.name}</span>
+            <span className="font-mono text-ink-dim">SPD {m.stats.speed ?? '—'}</span>
+            <BoutonIcone
+              onClick={() => setSuppressionAConfirmer({ id: String(m.id), nom: m.name })}
+              libelle={`Supprimer ${m.name}`}
+              taille="serre"
+              ton="danger"
+              icone={<X size={13} />}
+            />
+          </li>
+        ))}
+      </ul>
     </div>
+  );
+
+  return (
+    // ⚠️ Plus de `<div className="relative">` : il ancrait la popup, qui n'existe
+    // plus. Une modale se pose par rapport à l'ÉCRAN, et un conteneur inutile
+    // dans une grille d'actions y occupe une cellule pour rien.
+    <>
+      {/* ⚠️ Même gabarit (`taille="md"`) que les autres boutons d'action de RTA
+          et du siège : ils se retrouvent côte à côte dans le panneau mobile, et
+          celui-ci y paraissait rabougri à côté d'eux.
+          ⚠️ Deux longueurs : dans le panneau mobile ce bouton occupe une cellule
+          d'un tiers de 348 px, où « Créer un monstre » passe à la ligne.
+          `aria-label` et l'infobulle portent la phrase entière. */}
+      <Bouton
+        onClick={() => setOpen((o) => !o)}
+        aria-label="Créer un monstre"
+        title="Créer un monstre qui n'existe pas dans les données chargées"
+        icone={<Wand2 size={15} />}
+        libelle="Créer un monstre"
+        libelleCourt="Monstre"
+      />
+
+      {/* ⚠️ **Une MODALE, et la même aux deux formats.** Ce formulaire vivait
+          dans deux contenants distincts — un panneau montant au doigt, une popup
+          ancrée à la souris — avec deux en-têtes différents et aucune des deux
+          grammaires de l'app.
+          La popup ancrée était de surcroît le mauvais objet : posée en
+          `absolute` dans le flux, elle se retrouvait CLIPPÉE dès qu'on ouvrait
+          le formulaire depuis le panneau « Options », qui défile — on n'en
+          voyait qu'une bande. Il avait fallu un hook de recalage pour la
+          rattraper à la mesure.
+          Une modale ne s'ancre à rien : elle se pose au centre de l'ÉCRAN, hors
+          du flux de la page. Le problème disparaît au lieu d'être corrigé, et
+          les deux formats reçoivent le même objet — titre à gauche, croix à
+          droite, actions en bas. */}
+      {open && (
+        <Modale
+          onClose={() => setOpen(false)}
+          labelledBy="creer-monstre-titre"
+          titre="Nouveau monstre"
+          largeur="max-w-[340px]"
+          croix
+          actions={actionCreer}
+        >
+          {formulaire}
+          {listePerso}
+        </Modale>
+      )}
+
+      {/* ⚠️ Hors des deux blocs conditionnels : le même dialogue sert la popup
+          de bureau ET le panneau mobile, qui affichent chacun leur liste. */}
+      {suppressionAConfirmer && (
+        <ConfirmDialog
+          titre={`Supprimer ${suppressionAConfirmer.nom} ?`}
+          message="Ce monstre a été créé à la main : il n'existe pas dans les données du jeu et devra être ressaisi en entier. Les équipes qui l'utilisaient perdent leur emplacement."
+          libelleAction="Supprimer"
+          destructif
+          onCancel={() => setSuppressionAConfirmer(null)}
+          onConfirm={() => {
+            onDelete(suppressionAConfirmer.id);
+            setSuppressionAConfirmer(null);
+          }}
+        />
+      )}
+    </>
   );
 }

@@ -6,7 +6,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 // avaient chacune la leur, et la même faute : Entrée agissait sur « le premier
 // résultat » sans que rien à l'écran ne dise lequel — on validait à l'aveugle.
 // Extrait ici au deuxième usage plutôt que recopié, comme
-// [Segmented](../components/Segmented.tsx) et
+// [Segmented](../ui/Segmented.tsx) et
 // [buttonStyles](../components/buttonStyles.ts).
 //
 // Conventions **combobox** (ARIA), respectées telles quelles :

@@ -7,6 +7,10 @@ ce qu'il peut faire, et les règles de calcul appliquées.
 > Ces specs décrivent l'existant. Elles servent de référence pour faire évoluer
 > l'outil sans casser les comportements établis.
 
+> 📐 **Où se trouve quoi** : [../ARCHITECTURE.md](../ARCHITECTURE.md) — la carte
+> des fichiers, par écran. Ce dossier-ci dit le **comportement attendu**,
+> `ARCHITECTURE.md` dit **quels fichiers ouvrir** pour le changer.
+>
 > Ce dossier documente le **produit** (ce que l'utilisateur voit/fait). Les
 > instructions destinées à l'agent Claude Code lui-même (comment travailler
 > sur ce dépôt — déclencheurs de skills, gotchas d'environnement,
@@ -39,10 +43,22 @@ centraux de l'outil).
 > carte + ordre) **et** dans la nav de [App.tsx](src/App.tsx), **dans le même
 > commit** que la fonctionnalité.
 
+## Règle de cadre
+
+> ⚠️ **Une application responsive, mais DEUX plateformes de premier rang** :
+> téléphone et ordinateur, dont aucune n'est le cas dégradé de l'autre. On ne
+> dessine pas pour le bureau avant de rétrécir. **Une correction destinée à un
+> format ne touche pas l'autre.** Cette règle prime sur tout arbitrage
+> d'interface : lire [shared/deux-applications.md](shared/deux-applications.md)
+> **avant** de modifier un écran.
+
 ## Briques transverses
 
 Concepts partagés par plusieurs pages, documentés une seule fois :
 
+- [shared/deux-applications.md](shared/deux-applications.md) — **mobile et
+  bureau, deux formats de premier rang** : où passe la frontière, comment
+  l'écrire, ce qui reste global
 - [shared/calcul-vitesse.md](shared/calcul-vitesse.md) — le modèle de vitesse SW
   (base, runes, totem, lead, ticks). **Source de vérité** pour RTA et Siège.
 - [shared/donnees-monstres.md](shared/donnees-monstres.md) — d'où viennent les
@@ -64,6 +80,15 @@ Concepts partagés par plusieurs pages, documentés une seule fois :
   les règles de focus, de survol et de mouvement. **Source de vérité** pour toute
   décision d'apparence : une valeur qui n'y est pas n'a pas à être écrite en dur
   dans un composant.
+- [shared/librairie-ui.md](shared/librairie-ui.md) — les **composants partagés**
+  (`src/ui/`) : bouton, pastille, champ, sélecteur, interrupteur, option,
+  vignette. Dit **quels composants existent** et **comment choisir entre eux**,
+  là où `design.md` dit quelles valeurs ils emploient. ⚠️ Un composant dessiné
+  là-bas ne se redessine nulle part ailleurs — c'est ce qui permet de changer un
+  bouton une fois pour toute l'app.
+- [shared/navigation.md](shared/navigation.md) — la **barre latérale** et les
+  **onglets mobiles**, et l'**accent contextuel** (`--ctx`) qui prend la couleur
+  de l'élément du monstre consulté.
 
 ## Conventions communes (toutes les pages)
 
@@ -84,7 +109,7 @@ Concepts partagés par plusieurs pages, documentés une seule fois :
     espaces.
   - ⚠️ **Un champ numérique s'écrit `type="text"` + `inputMode="numeric"`,
     jamais `type="number"`.** Outre les flèches natives inutilisables (voir
-    [NumberField.tsx](src/components/NumberField.tsx)), un champ `number` garde
+    [NumberField.tsx](src/ui/NumberField.tsx)), un champ `number` garde
     le **texte tapé tel quel** : saisir « 015 » donne bien `15` dans l'état, mais
     la valeur ne changeant plus au caractère suivant, React ne réécrit pas le DOM
     et le **zéro de tête reste affiché**. En `text`, la valeur rendue est
@@ -224,7 +249,7 @@ Concepts partagés par plusieurs pages, documentés une seule fois :
   ordinateur partagé, l'oubli au rechargement est une propriété. Les états sont
   remontés dans [App.tsx](src/App.tsx). Voir
   [shared/import-compte.md](shared/import-compte.md).
-- **Fenêtres modales** — [Dialogs.tsx](src/components/Dialogs.tsx) :
+- **Fenêtres modales** — [Dialogs.tsx](src/ui/Dialogs.tsx) :
   `ConfirmDialog` (confirmation) et `PromptDialog` (saisie).
   - ⚠️ **Aucun `confirm()` ni `prompt()` du navigateur.** La boîte native
     s'affiche hors de la page, sans sa typographie ni ses couleurs, colle le nom
@@ -256,14 +281,17 @@ Concepts partagés par plusieurs pages, documentés une seule fois :
   blanc, Ténèbres = violet. Icônes officielles servies en local depuis
   `public/elements/`. Voir [ElementIcon.tsx](src/components/ElementIcon.tsx).
 - **Icônes d'inventaire** : les trois sous-onglets de « Mon compte » (Monstres,
-  Runes, Artéfacts) portent les **icônes du jeu**, servies en local depuis
-  `public/icons/` — voir [GameIcon.tsx](src/components/GameIcon.tsx). Le bouton
-  de nav « Mon compte », lui, garde une icône de **profil** : il ouvre le compte
-  entier, pas un inventaire en particulier.
+  Runes, Artéfacts) portent des **icônes au trait** dans le style de la librairie
+  (lucide) — les silhouettes du jeu (tête de monstre, hexagone de rune, médaillon
+  d'artéfact) redessinées au contour monochrome (`currentColor`), pour ne pas
+  jurer à côté des icônes de la nav. Voir
+  [InventaireIcon.tsx](src/components/InventaireIcon.tsx). Le bouton de nav « Mon
+  compte », lui, garde une icône de **profil** : il ouvre le compte entier, pas
+  un inventaire en particulier.
 - **Monstres perso** : sur RTA et Siège, l'utilisateur peut créer un monstre
   absent des données (nom, élément, SPD base, lead optionnel). Voir
   [shared/donnees-monstres.md](shared/donnees-monstres.md).
-- **Champs numériques** — [NumberField.tsx](src/components/NumberField.tsx),
+- **Champs numériques** — [NumberField.tsx](src/ui/NumberField.tsx),
   **partout dans l'app**. ⚠️ **Jamais `type="number"`** : les flèches natives du
   navigateur sont deux triangles gris minuscules, hors charte, impossibles à
   styler et pénibles à viser (surtout au tactile). Le composant dessine ses
@@ -271,6 +299,17 @@ Concepts partagés par plusieurs pages, documentés une seule fois :
   `inputMode="numeric"` (qui fait remonter le pavé numérique sur mobile). La
   frappe non numérique est **ignorée** : plus prévisible qu'un champ qui se vide
   ou se corrige pendant qu'on tape.
+  - ⚠️ **Un appui PROLONGÉ sur − ou + fait défiler la valeur en continu**, et la
+    cadence **accélère**. Ces champs portent des valeurs qui varient sur des
+    dizaines d'unités (une vitesse de 180 à 240, un minimum de crit de 15 à 85) :
+    un pas par clic imposait soixante clics, ou de repasser par le clavier alors
+    qu'on avait déjà le doigt sur le bouton. À cadence fixe, il fallait choisir
+    entre trop lent pour traverser 60 unités et si vif qu'on dépassait toujours
+    sa cible.
+    - Le défilement démarre après **400 ms** — assez pour qu'un clic ordinaire,
+      même mou, n'en déclenche jamais un et ne fasse pas sauter la valeur de deux.
+    - Il **s'arrête à la butée** (`min`/`max`), au relâchement **même hors du
+      bouton** (on glisse souvent le doigt à côté), et si l'on quitte l'onglet.
   - ⚠️ **`min`/`max` ne sont appliqués qu'à la SORTIE du champ** (`onBlur`) et
     sur les boutons ± — jamais à chaque frappe. Border chaque frappe casse la
     saisie dès qu'un `min` positif dépasse un chiffre isolé : avec `min={15}`

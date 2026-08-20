@@ -85,6 +85,16 @@ inutilisable avant tout import.
   qu'on lit comme un défaut d'alignement — et un bouton qui apparaît sous le
   curseur se clique par accident. Retirer le lead actif remet « Sans lead » :
   laisser un lead appliqué sans bouton pour l'annuler serait un piège.
+- ⚠️ **Le retrait demande une CONFIRMATION**, alors qu'il ne détruit rien
+  d'irremplaçable — le pourcentage se retape dans le champ « Ajouter ». Ce qu'on
+  protège est plus discret : la rangée **se réordonne** au retrait, et le bouton
+  voisin vient prendre la place de celui qu'on visait. Un clic légèrement à côté
+  enlève donc le mauvais lead, et on ne s'en aperçoit qu'après.
+- ⚠️ **`data-cible-fine` sur le bouton du pourcentage.** Sans lui, la règle
+  tactile globale le portait à 40 px — et avec lui **toute la pilule**, qui
+  doublait de hauteur au doigt. La cible reste petite mais rien n'est perdu : ce
+  bouton occupe toute la surface de la pilule sauf la croix. Voir le piège décrit
+  dans [librairie-ui.md](../shared/librairie-ui.md).
 - ⚠️ **Deux listes** (`leadsAjoutes`, `leadsRetires`) plutôt qu'une liste
   modifiable : la prépa change (import, ajout d'un monstre) et les boutons
   doivent suivre — sans effacer les ajouts, ni faire réapparaître ce qui a été
@@ -120,12 +130,26 @@ vitesse_effective = (base + runes) + ceil( base × (15 + lead) / 100 )
 
 ## Rendu des cartes
 
-- Disposition **multi-lignes** (`flex flex-wrap`), cartes **horizontales** (~168 px),
-  style uniforme avec le siège.
-- Chaque carte : **badge de rang superposé** en haut à gauche, portrait hexagonal
-  + badge élément, nom, puis **icône vitesse + vitesse effective (blanc)** et les
-  **icônes de sets de runes** (4 pièces en premier). Champ SPD runes éditable **en
-  bas** (placeholder « + runes »).
+- Disposition **multi-lignes** (`flex flex-wrap`), **jamais de défilement
+  latéral** — y compris sous `lg` : le numéro d'ordre porte déjà la séquence,
+  quel que soit le rang de la carte dans la grille.
+- **Deux gabarits selon le POINTEUR** (`compact:`, pas une largeur d'écran) —
+  voir [shared/deux-applications.md](../shared/deux-applications.md) :
+  - **Souris** — carte **horizontale** (~168 px), style uniforme avec le siège.
+    Badge de rang superposé en haut à gauche, portrait hexagonal + badge élément,
+    **nom**, puis icône vitesse + vitesse effective (blanc) et les icônes de sets
+    de runes (4 pièces en premier). Champ SPD runes éditable en bas
+    (placeholder « + runes »).
+  - **Doigt** — carte **verticale et resserrée** (~104 px), portrait **centré**.
+    ⚠️ Pas plus resserrée : le champ SPD runes doit garder la place d'au moins
+    trois chiffres (la valeur va jusqu'à ~180) — un champ qui ne montre pas ce
+    qu'on y tape est pire qu'une carte un peu plus large.
+    ⚠️ **Le nom n'a plus sa propre ligne** : douze cartes par écran avec un nom
+    tronqué chacune faisaient une grille dense et illisible, là où le portrait
+    seul se reconnaît d'un coup d'œil — comme le choix des monstres d'une
+    catégorie (voir [categories.md](categories.md)). Le nom reste dans le
+    `title` de la carte (combiné aux catégories), pour l'appui long et le
+    lecteur d'écran.
 - Pas d'icône éclair ; « base X » retiré pour épurer.
 
 ## Attendus
@@ -134,3 +158,12 @@ vitesse_effective = (base + runes) + ceil( base × (15 + lead) / 100 )
   de section (`onRuneSpeed` → `setRuneSpeed`) : modifier ici met à jour partout.
 - Change de lead ⇒ le tri et les rangs se réordonnent en direct.
 - Vide ⇒ « Ajoute des monstres pour visualiser l'ordre de tour. »
+
+## Interrupteurs d'affichage
+
+⚠️ « Vitesses » et « Catégories » sont le **même composant** que les trois de la
+barre de catégories (`InterrupteurAffichage`, voir
+[categories.md](categories.md)). Ils portaient auparavant leur propre style :
+l'accent y marquait l'état *masqué* et l'œil barré demandait d'être décodé —
+deux défauts déjà corrigés à côté, mais pas ici, si bien que le même geste se
+lisait différemment d'un bloc à l'autre.

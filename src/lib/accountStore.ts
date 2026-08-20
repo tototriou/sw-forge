@@ -41,6 +41,14 @@ export interface StoredAccount {
   // Réimporter un fichier de trois semaines annoncerait sinon « aujourd'hui ».
   // `null` si le fichier ne la porte pas (export ancien ou retouché).
   exportedAt: number | null;
+  // Nom du joueur (`wizard_info.wizard_name`), pour dire QUEL compte est chargé.
+  //
+  // ⚠️ **Facultatif, et c'est délibéré.** Le rendre obligatoire aurait imposé
+  // d'incrémenter `ACCOUNT_SCHEMA`, donc de REJETER tous les comptes déjà
+  // conservés — un réimport forcé pour un simple libellé. Un compte enregistré
+  // avant cette version n'a pas de nom : l'app affiche « Compte importé », et
+  // le nom apparaît au prochain import.
+  wizardName?: string | null;
   box: BoxMonster[];
   runes: RuneDetail[];
   artifacts: ArtifactDetail[];
@@ -165,13 +173,17 @@ export function loadAccount(): Promise<StoredAccount | null> {
 // `false` = non enregistré (stockage indisponible ou plein). L'import reste
 // valide en mémoire : on ne casse jamais l'usage courant pour un échec d'écriture.
 export function saveAccount(
-  data: Pick<StoredAccount, 'box' | 'runes' | 'artifacts' | 'crafts' | 'exportedAt'>
+  data: Pick<
+    StoredAccount,
+    'box' | 'runes' | 'artifacts' | 'crafts' | 'exportedAt' | 'wizardName'
+  >
 ): Promise<boolean> {
   return enqueue(async () => {
     const rec: StoredAccount = {
       schema: ACCOUNT_SCHEMA,
       savedAt: Date.now(),
       exportedAt: data.exportedAt,
+      wizardName: data.wizardName ?? null,
       box: data.box,
       runes: data.runes,
       artifacts: data.artifacts,

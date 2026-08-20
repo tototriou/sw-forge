@@ -1,6 +1,6 @@
 import { useState } from 'react';
-import { Modale } from '../Dialogs';
-import { BOUTON_PRIMAIRE, BOUTON_SECONDAIRE } from '../buttonStyles';
+import { Modale } from '../../ui/Dialogs';
+import Bouton from '../../ui/Bouton';
 
 // Un critère de recherche : une propriété et son intervalle.
 //
@@ -101,10 +101,10 @@ export default function SubSearchDialog({
       {/* Titre et compteur sur la MÊME ligne : le compteur est une jauge de ce
           qu'on est en train de faire, pas une phrase à lire. */}
       <div className="mb-2 flex items-baseline gap-2">
-        <h2 id="sub-search-titre" className="text-[14px] font-bold text-ink">
+        <h2 id="sub-search-titre" className="text-sm font-bold text-ink">
           Sous-propriétés
         </h2>
-        <span className="ml-auto flex-none font-mono text-[11px] text-ink-dim">
+        <span className="ml-auto flex-none font-mono text-micro text-ink-dim">
           {brouillon.length}/{max}
         </span>
       </div>
@@ -136,7 +136,7 @@ export default function SubSearchDialog({
                   onChange={() => basculer(o.code)}
                   className="h-3.5 w-3.5 flex-none accent-accent"
                 />
-                <span className={`truncate text-[12px] ${actif ? 'text-ink' : 'text-ink-dim'}`}>
+                <span className={`truncate text-xs ${actif ? 'text-ink' : 'text-ink-dim'}`}>
                   {o.label}
                 </span>
               </label>
@@ -164,7 +164,7 @@ export default function SubSearchDialog({
                   disabled={bloque}
                   onChange={(v) => poserBorne(o.code, 'min', v)}
                 />
-                <span className="font-mono text-[11px] text-ink-dim">~</span>
+                <span className="font-mono text-micro text-ink-dim">~</span>
                 <Borne
                   valeur={c?.max}
                   placeholder="Max"
@@ -185,21 +185,23 @@ export default function SubSearchDialog({
         <button
           onClick={() => setBrouillon([])}
           disabled={brouillon.length === 0}
-          className="text-[12px] text-ink-dim underline transition hoverable:text-fire
+          className="text-xs text-ink-dim underline transition hoverable:text-fire
                      disabled:cursor-not-allowed disabled:no-underline disabled:opacity-30"
         >
           Réinitialiser
         </button>
-        <button onClick={onClose} className={`${BOUTON_SECONDAIRE} ml-auto`}>
-          Annuler
-        </button>
+        <Bouton onClick={onClose} fond="plein" taille="sm" libelle="Annuler" className="ml-auto" />
         {/* ⚠️ PAS d'`autoFocus` ici : le bouton est en bas d'une liste de 40
             propriétés, et le navigateur défile jusqu'à l'élément focalisé —
             la modale s'ouvrait donc tout en bas, sur ses boutons, la liste
             invisible. Le focus initial est posé en tête (voir plus haut). */}
-        <button onClick={() => onValider(brouillon)} className={BOUTON_PRIMAIRE}>
-          OK
-        </button>
+        <Bouton
+          onClick={() => onValider(brouillon)}
+          ton="accent"
+          fond="doux"
+          taille="sm"
+          libelle="OK"
+        />
       </div>
     </Modale>
   );
@@ -236,8 +238,13 @@ function Borne({
         if (!/^\d+$/.test(brut)) return; // frappe invalide ignorée
         onChange(Number(brut));
       }}
+      // ⚠️ `data-cible-fine` : ce champ de 22 px est posé DANS une ligne de
+      // critère, aligné sur un libellé et une case. Porté à 40 px par la règle
+      // tactile, il déformait la ligne entière — et il n'est pas la cible qu'on
+      // vise en premier, c'est la case à cocher à côté qui l'est.
+      data-cible-fine
       className="h-[22px] w-[52px] rounded border border-border bg-panel px-1 text-center
-                 font-mono text-[11px] text-ink outline-none transition tabular-nums
+                 font-mono text-micro text-ink outline-none transition tabular-nums
                  placeholder:text-ink-dim focus:border-accent
                  disabled:cursor-not-allowed disabled:opacity-50"
     />

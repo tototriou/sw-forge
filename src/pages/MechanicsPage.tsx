@@ -21,7 +21,7 @@ function Section({ id, title, children }: { id: string; title: string; children:
   return (
     <section id={id} className="scroll-mt-24 rounded-2xl border border-border bg-panel/50 p-5">
       <h2 className="font-display text-[22px] tracking-wide mb-3">{title}</h2>
-      <div className="space-y-3 text-[14px] leading-relaxed text-ink-dim">{children}</div>
+      <div className="space-y-3 text-sm leading-relaxed text-ink-dim">{children}</div>
     </section>
   );
 }
@@ -30,24 +30,27 @@ function Section({ id, title, children }: { id: string; title: string; children:
 function F({ children }: { children: ReactNode }) {
   return (
     <div className="overflow-x-auto rounded-lg border border-border bg-panel2 px-3.5 py-2.5">
-      <code className="font-mono text-[13px] text-ink whitespace-pre">{children}</code>
+      <code className="font-mono text-sm text-ink whitespace-pre">{children}</code>
     </div>
   );
 }
 
 // Terme mis en avant dans le texte.
 function K({ children }: { children: ReactNode }) {
-  return <span className="font-mono text-[12.5px] text-ink">{children}</span>;
+  return <span className="font-mono text-xs text-ink">{children}</span>;
 }
 
 export default function MechanicsPage() {
+  // ⚠️ Colonne BORNÉE, contrairement aux autres pages : c'est du texte suivi,
+  // pas une grille. Une ligne de 2 000 px se lit mal — l'œil perd le début de
+  // la suivante. Voir spec/shared/design.md.
   return (
-    <div className="mt-4">
+    <div className="mx-auto max-w-[1100px]">
       <header>
         <h1 className="font-display font-black text-[clamp(28px,4vw,42px)] title-gradient mb-1.5">
           Mécaniques du jeu
         </h1>
-        <p className="text-ink-dim text-[14.5px] leading-relaxed max-w-2xl">
+        <p className="text-ink-dim text-sm leading-relaxed max-w-2xl">
           Les formules qui régissent Summoners War : vitesse et ordre de tour, et l&apos;équation
           complète des dégâts. Ce sont des <b className="text-ink">modèles communautaires</b>
           (prédictifs, pas le code du jeu) — très précis mais indicatifs.
@@ -61,7 +64,7 @@ export default function MechanicsPage() {
         </div>
         <ol className="grid sm:grid-cols-2 gap-x-6 gap-y-1 list-decimal list-inside">
           {TOC.map((t) => (
-            <li key={t.id} className="text-[13.5px] text-ink-dim">
+            <li key={t.id} className="text-sm text-ink-dim">
               <button onClick={() => goTo(t.id)} className="text-left hoverable:text-ink transition">
                 {t.label}
               </button>
@@ -92,7 +95,7 @@ export default function MechanicsPage() {
               <K>Slow</K> = 0,7 si le monstre est ralenti, sinon 1.
             </li>
           </ul>
-          <p className="text-[13px]">
+          <p className="text-sm">
             La vitesse ne dépend pas du niveau ni des étoiles : elle est fixe par monstre.
           </p>
         </Section>
@@ -190,7 +193,7 @@ export default function MechanicsPage() {
             <li>Bonus paliers de vitesse (Sonia à +50, Leah à +150…).</li>
             <li>Vol de stats basé sur une stat de base et la « knowledge » (Herteit S3).</li>
           </ul>
-          <p className="text-[13px]">
+          <p className="text-sm">
             Ces effets ne sont pas modélisés dans SW Forge (qui se concentre sur la vitesse, les
             ticks et les runes).
           </p>

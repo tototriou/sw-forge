@@ -74,6 +74,18 @@
   --el-dark: 118 36 190;
   --el-unknown: 86 95 122;
 
+  /* Fonds DOUX par élément — la teinte fondue dans la surface, exactement comme
+     `--accent-soft` l'est pour l'accent. Ils portent l'élément sans crier :
+     une pastille sélectionnée, un en-tête d'écran, une carte de résumé.
+     ⚠️ Assez pâles pour que `--ink` reste lisible dessus — ce sont des FONDS,
+     jamais du texte. */
+  --el-fire-soft: 250 232 230;
+  --el-water-soft: 226 238 247;
+  --el-wind-soft: 246 240 222;
+  --el-light-soft: 246 240 226;
+  --el-dark-soft: 240 231 250;
+  --el-unknown-soft: 234 237 244;
+
   --star: 138 87 12;
 
   /* Palette du résumé de compte (paliers d'efficience, qualité du stock).
@@ -98,11 +110,42 @@
   --rarity-2: 20 110 66;
   --rarity-1: 90 96 112;
 
+  /* ⚠️ Chevron de remplacement pour un `<select>` dont on retire l'habillage
+     natif (`appearance-none`). C'est le seul moyen d'en réduire la HAUTEUR : un
+     `<select>` natif garde un socle imposé par le navigateur, que ni le
+     rembourrage ni la classe ne franchissent. Encodé en `url()` plutôt qu'en
+     élément séparé — il n'y a rien à cliquer dessus, le `<select>` capte tout.
+     ⚠️ La couleur est écrite en dur (`%238890b8` = `--ink-dim` du thème sombre)
+     : une `data:` URI ne peut pas lire une variable CSS. Elle reste lisible sur
+     les deux thèmes, étant une teinte moyenne. */
+  --chevron-select: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 12' fill='none' stroke='%238890b8' stroke-width='1.8' stroke-linecap='round'%3E%3Cpath d='M3 4.5 6 7.5 9 4.5'/%3E%3C/svg%3E");
   --radius: 5px;
   --radius-lg: 7px;
 
   --page-veil: radial-gradient(ellipse 80% 50% at 50% -10%, #dfe3f5 0%, transparent 60%);
+
+  /* ---- Accent CONTEXTUEL (refonte UI) --------------------------------- */
+  /* ⚠️ **Un alias, pas une couleur.** `--ctx` ne vaut jamais une valeur
+     nouvelle : il POINTE vers un token qui existe déjà — un élément
+     (`--el-water`) quand l'écran parle d'un monstre, l'accent de l'app sinon.
+     Chaque teinte reste donc celle dont le contraste a été mesuré, et il n'y a
+     rien de plus à vérifier.
+     ⚠️ Défini pour les DEUX thèmes du seul fait qu'il est un alias : la valeur
+     suit automatiquement `--accent`, qui change avec le thème. */
+  --ctx: var(--accent);
+  --ctx-soft: var(--accent-soft);
 }
+
+/* L'élément d'un écran est porté par un attribut `data-ctx` sur un conteneur.
+   Toute la sous-arborescence prend la teinte — barre latérale, titres, boutons.
+   ⚠️ Ces règles sont hors des blocs de thème : elles ne redéfinissent que des
+   ALIAS, dont les cibles, elles, sont déjà propres à chaque thème. */
+[data-ctx='fire'] { --ctx: var(--el-fire); --ctx-soft: var(--el-fire-soft); }
+[data-ctx='water'] { --ctx: var(--el-water); --ctx-soft: var(--el-water-soft); }
+[data-ctx='wind'] { --ctx: var(--el-wind); --ctx-soft: var(--el-wind-soft); }
+[data-ctx='light'] { --ctx: var(--el-light); --ctx-soft: var(--el-light-soft); }
+[data-ctx='dark'] { --ctx: var(--el-dark); --ctx-soft: var(--el-dark-soft); }
+[data-ctx='unknown'] { --ctx: var(--el-unknown); --ctx-soft: var(--el-unknown-soft); }
 
 /* ---- Forge (sombre) : les valeurs, définies UNE SEULE FOIS ----
    ⚠️ Volontairement plus clair que la maquette d'origine (#0c0b0f) : sur une
@@ -131,6 +174,16 @@
   --forge-warn: 217 164 65;
   /* Éclairci : `bad` passait sous 4.0 sur panel2, or il porte les alertes. */
   --forge-bad: 226 116 104;
+
+  /* Fonds doux — la teinte fondue dans `--forge-panel` (25 26 38), la même
+     construction que `--forge-accent-soft` (48 38 34), qui est le cuivre fondu
+     dans ce fond-là. */
+  --forge-el-fire-soft: 46 27 33;
+  --forge-el-water-soft: 23 40 51;
+  --forge-el-wind-soft: 45 40 32;
+  --forge-el-light-soft: 41 42 53;
+  --forge-el-dark-soft: 38 29 52;
+  --forge-el-unknown-soft: 34 37 48;
 
   --forge-el-fire: 232 92 80;
   --forge-el-water: 47 160 224;
@@ -185,6 +238,12 @@
     --el-light: var(--forge-el-light);
     --el-dark: var(--forge-el-dark);
     --el-unknown: var(--forge-el-unknown);
+    --el-fire-soft: var(--forge-el-fire-soft);
+    --el-water-soft: var(--forge-el-water-soft);
+    --el-wind-soft: var(--forge-el-wind-soft);
+    --el-light-soft: var(--forge-el-light-soft);
+    --el-dark-soft: var(--forge-el-dark-soft);
+    --el-unknown-soft: var(--forge-el-unknown-soft);
     --star: var(--forge-star);
     --pal-1: var(--forge-pal-1);
   --pal-2: var(--forge-pal-2);
@@ -228,6 +287,12 @@
   --el-light: var(--forge-el-light);
   --el-dark: var(--forge-el-dark);
   --el-unknown: var(--forge-el-unknown);
+  --el-fire-soft: var(--forge-el-fire-soft);
+  --el-water-soft: var(--forge-el-water-soft);
+  --el-wind-soft: var(--forge-el-wind-soft);
+  --el-light-soft: var(--forge-el-light-soft);
+  --el-dark-soft: var(--forge-el-dark-soft);
+  --el-unknown-soft: var(--forge-el-unknown-soft);
   --star: var(--forge-star);
   --pal-1: var(--forge-pal-1);
   --pal-2: var(--forge-pal-2);
@@ -262,6 +327,21 @@ html {
   background: rgb(var(--bg));
   /* Formulaires natifs (scrollbar, sélection) rendus dans le bon thème. */
   color-scheme: light;
+  /* ⚠️ **Sur `html` SEUL.** Il l'a d'abord été sur `body` seul, où le navigateur
+     propageait le débordement à `html` qui l'affichait quand même ; puis sur les
+     deux, ce qui faisait de `body` un conteneur de défilement à part entière —
+     sa hauteur se bornait au viewport et la molette n'avait plus rien à faire
+     défiler sur un écran de bureau. `html` est celui que le navigateur consulte.
+     ⚠️ Ce n'est qu'un filet de sécurité. Un débordement se corrige à sa
+     source — le masquer rend le contenu coupé inatteignable. */
+  overflow-x: hidden;
+  /* ⚠️ **Le « tirer pour recharger » est CONSERVÉ.** Il a été bloqué un temps
+     (`overscroll-behavior-y: none`) parce qu'il se déclenchait avant que le
+     contenu n'ait atteint le haut — mais le geste lui-même est attendu sur un
+     téléphone, et le supprimer coûtait plus qu'il ne réglait.
+     ⚠️ Ce qui le déclenchait trop tôt est corrigé à sa source : la hauteur de
+     `body` était en `dvh`, qui change quand la barre d'adresse se replie (voir
+     plus bas). La page raccourcissait sous le doigt pendant qu'on remontait. */
 }
 @media (prefers-color-scheme: dark) {
   html:not([data-theme='light']) {
@@ -275,35 +355,114 @@ html[data-theme='dark'] {
 body {
   background: var(--page-veil), rgb(var(--bg));
   color: rgb(var(--ink));
+  /* ⚠️ **`svh`, ni `vh` ni `dvh`.**
+     — `vh` vaut la hauteur avec la barre d'adresse REPLIÉE : la page dépassait
+       l'écran tant qu'elle était dépliée.
+     — `dvh` suit la hauteur courante, donc il CHANGE quand la barre se replie ou
+       se déplie. En remontant, la barre se déplie, `dvh` diminue et la page
+       raccourcit sous le doigt — le défilement se retrouve poussé au-delà du
+       haut, et le « tirer pour recharger » se déclenche avant qu'on y soit.
+     — `svh` est la hauteur du plus PETIT état (barre dépliée). Elle ne bouge
+       jamais : la page garde la même hauteur quel que soit le sens du geste.
+     `100vh` reste en repli pour les navigateurs qui ignorent `svh`. */
   min-height: 100vh;
-  /* Garde-fou : aucun débordement horizontal sur mobile. */
-  overflow-x: hidden;
+  /* ⚠️ **La page doit toujours pouvoir DÉFILER sous la barre supérieure.**
+     Quand son contenu tient dans l'écran, il n'y a rien à faire défiler : le
+     navigateur est « en haut » dès le départ, et le moindre geste vers le bas
+     déclenche le rechargement — avant même qu'on ait vu le premier bloc, qui se
+     trouve pourtant sous la barre.
+     La hauteur minimale ajoute donc la hauteur de la barre : il reste toujours
+     de quoi remonter, et « en haut » signifie bien « je vois le début du
+     contenu ». */
+  min-height: calc(100svh + 3rem + env(safe-area-inset-top));
+  /* ⚠️ **`overflow-x` reste sur `html` SEUL.** Le poser aussi sur `body` faisait
+     de celui-ci un conteneur de défilement à part entière : sa hauteur se
+     bornait alors au viewport, et la molette n'avait plus rien à faire défiler
+     sur un écran de bureau. Un seul des deux éléments doit porter la garde, et
+     `html` est celui que le navigateur consulte.
+     ⚠️ `position: relative` + `width: 100%` restent, eux : ils donnent aux
+     éléments `fixed` une largeur de référence, sans quoi Safari les laisse
+     dépasser et la page défile latéralement. Ni l'un ni l'autre ne crée de
+     contexte de défilement. */
+  position: relative;
+  width: 100%;
+}
+
+/* ⚠️ **Le texte ne se redimensionne pas tout seul.** Sans cette règle, iOS
+   Safari grossit les polices quand la page passe en paysage (« text
+   autosizing ») : les tailles calculées ici ne valent plus rien, et un bloc
+   dessiné pour tenir déborde. */
+html {
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+}
+
+/* ⚠️ **Aucun élément hors du flux ne dépasse la largeur de l'écran.** Dernier
+   filet, posé sur les `.fixed` et `.sticky` de Tailwind : ce sont les seuls que
+   `overflow-x: hidden` ne retient pas, et une barre d'onglets ou un panneau trop
+   large y provoque un défilement latéral que rien n'explique dans le flux.
+
+   ⚠️ Sélecteur sur la classe EXACTE, jamais `[class*='fixed']` : cette forme
+   attraperait tout attribut contenant la sous-chaîne, et `100vw` inclut la barre
+   de défilement — on créerait le débordement qu'on prétend corriger. */
+.fixed,
+.sticky {
+  max-width: 100%;
 }
 
 /* ---- Focus : UNE règle globale ----------------------------------------- */
 /* ⚠️ Remplace 24 `outline-none` sans marqueur : en tabulant, on ne savait
    jamais où on était. Un composant peut redéfinir l'anneau, jamais le
    supprimer. Voir spec/shared/design.md. */
+/* ⚠️ **1 px, comme tout contour de l'app.** Il en faisait 2, détachés de 2 px
+   de plus : un halo de quatre pixels autour de chaque contrôle atteint au
+   clavier, qui bavait sur ses voisins dans une rangée serrée. La couleur
+   d'accent suffit à le repérer — c'est le contraste qui fait un marqueur de
+   focus, pas l'épaisseur. Voir spec/shared/librairie-ui.md § contours. */
 :focus-visible {
-  outline: 2px solid rgb(var(--accent));
-  outline-offset: 2px;
+  outline: 1px solid rgb(var(--accent));
+  outline-offset: 1px;
   border-radius: 3px;
 }
 
-/* ⚠️ Sur un champ DÉJÀ marqué d'une bordure d'accent (un critère posé, un
-   filtre actif), l'anneau se COLLE à la bordure au lieu de flotter 2 px plus
-   loin. Détaché, il donnait deux traits d'accent séparés par un vide : on
-   lisait un halo épais qui bavait sur les contrôles voisins, au lieu de deux
-   informations distinctes (« ce critère est posé » et « le clavier est ici »).
-   Collé, il épaissit simplement la bordure existante.
+/* ⚠️ **Un contrôle qui marque DÉJÀ le focus par sa bordure n'a pas d'anneau.**
+   Un `<select>` ou un champ en `focus:border-accent` teinte sa propre bordure à
+   la mise au point : l'anneau par-dessus faisait un second trait d'accent collé
+   au premier — 3 px d'accent autour d'un contrôle qui n'en demandait qu'un.
 
-   L'anneau n'est pas supprimé pour autant — la règle du dessus tient : le
-   focus reste visible, il cesse juste de se dédoubler.
+   Le focus reste parfaitement visible : c'est la BORDURE qui le porte, et elle
+   change de couleur au moment précis où le clavier arrive. Même raisonnement
+   qu'en dessous pour un champ dans un cadre qui réagit — un seul contour, celui
+   qui a déjà quelque chose à dire.
    Voir la section « UN SEUL marqueur de sélection » dans spec/shared/design.md. */
-.border-accent:focus-visible,
 .focus\:border-accent:focus-visible,
-.focus-within\:border-accent:focus-within:has(:focus-visible) {
+.focus\:border-ctx:focus-visible {
+  outline: none;
+}
+
+/* ⚠️ En revanche, une bordure d'accent PERMANENTE (un critère posé, un filtre
+   actif) ne dit rien du clavier : elle est là avant et après. L'anneau reste
+   donc, mais COLLÉ à elle — détaché, il donnait deux traits d'accent séparés
+   par un vide, qu'on lit comme un halo épais plutôt que comme deux
+   informations distinctes. */
+.border-accent:focus-visible,
+.border-ctx:focus-visible,
+.focus-within\:border-accent:focus-within:has(:focus-visible),
+.focus-within\:border-ctx:focus-within:has(:focus-visible) {
   outline-offset: 0;
+}
+
+/* ⚠️ **UN SEUL contour, celui du PARENT.** Un champ posé dans un cadre qui
+   réagit déjà au focus (`focus-within:border-…`) ne doit pas porter son propre
+   anneau : on obtenait un contour DANS un contour, à 2 px l'un de l'autre.
+   C'est le cadre qui marque le focus — le champ, lui, remplit le cadre.
+
+   Le focus reste donc parfaitement visible : il a simplement cessé d'être
+   dessiné deux fois. La règle vaut pour toute l'app, pas pour un composant.
+   Voir spec/shared/design.md § « UN SEUL marqueur de sélection ». */
+.focus-within\:border-accent :focus-visible,
+.focus-within\:border-ctx :focus-visible {
+  outline: none;
 }
 
 /* ---- Pression au clic --------------------------------------------------- */
@@ -383,6 +542,275 @@ button:not(:disabled):not([draggable]):not([role='switch']):active,
   }
 }
 
+/* Décalage du contenu sous la barre latérale FIXE.
+   ⚠️ Au-dessus de `lg` seulement : sous cette largeur la barre n'existe pas
+   (c'est la barre d'onglets du bas qui prend le relais).
+   La transition suit la même courbe et la même durée que le repli de la barre
+   elle-même — les deux doivent bouger ensemble, sinon on voit une colonne de
+   vide apparaître puis se combler. */
+@media (min-width: 1024px) {
+  .pad-nav {
+    padding-left: var(--pad-nav, 224px);
+    transition: padding-left 180ms var(--ease-out);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pad-nav {
+    transition: none;
+  }
+}
+
+/* ---- Cibles TACTILES ---------------------------------------------------- */
+/* ⚠️ **Au doigt, une cible fait au moins 40 px de haut.** L'app est dessinée
+   pour la souris, qui vise au pixel : les pastilles de filtre tombent à 26 px,
+   les boutons d'icône à 32. Au doigt on tape à côté, et sur une rangée de
+   filtres serrée on active le voisin.
+
+   ⚠️ Conditionné à `(pointer: coarse)`, JAMAIS à une largeur : ce n'est pas
+   l'écran qui est petit, c'est le doigt qui est gros. Une tablette au stylet
+   garde les tailles fines ; un téléphone en paysage les agrandit quand même.
+   C'est le pendant de la variante `hoverable` (voir tailwind.config.js), qui
+   règle le même problème pour le survol.
+
+   ⚠️ Seuls la HAUTEUR et l'espacement changent — jamais la taille du texte ni
+   les couleurs. Une interface qui se réécrit au doigt devient une autre
+   interface, et on ne retrouve plus ce qu'on connaît. */
+@media (pointer: coarse) {
+  button:not([data-cible-fine]),
+  a[role='button'],
+  [role='tab'],
+  summary {
+    min-height: 40px;
+  }
+
+  /* ⚠️ **Agrandir la ZONE DE TOUCHE sans toucher au dessin.** Certains contrôles
+     ont une taille qui EST leur forme — un interrupteur de 22 px, une pastille
+     ronde. Les porter à 40 px les déforme : la piste de l'interrupteur devenait
+     un cercle avec sa pastille collée en haut.
+     `.cible-tactile` ajoute un pseudo-élément qui déborde de chaque côté :
+     la zone touchable atteint 44 px, le dessin ne bouge pas d'un pixel.
+     ⚠️ `position: absolute` sur le pseudo, donc l'élément doit être `relative` —
+     ce que tous les porteurs sont déjà, ayant du contenu positionné. */
+  .cible-tactile::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    min-width: 44px;
+    min-height: 44px;
+    width: 100%;
+    height: 100%;
+    transform: translate(-50%, -50%);
+  }
+
+  /* Les champs de saisie AUSSI : viser un `<input>` de 28 px au doigt demande
+     autant de précision qu'un bouton, et rater ouvre le clavier au mauvais
+     endroit.
+     ⚠️ `data-cible-fine` les exempte, comme les boutons — l'attribut manquait
+     ici, et un `<select>` marqué gardait donc ses 40 px sans qu'on comprenne
+     pourquoi. Il vaut pour tout ce que la règle touche, jamais pour une seule
+     famille d'éléments. */
+  input:not([type='checkbox']):not([type='radio']):not([data-cible-fine]),
+  select:not([data-cible-fine]) {
+    min-height: 40px;
+  }
+
+  /* ⚠️ **16 px sur tout ce qui se saisit — et ce n'est PAS un choix de taille.**
+     Safari iOS ZOOME sur un champ dont le texte fait moins de 16 px au moment où
+     on le met au point, et la page ne revient pas seule de ce zoom : on se
+     retrouve décalé sur un formulaire dont on ne voit plus les boutons.
+
+     ⚠️ L'échelle de l'app plafonne à 15 px pour `text-base` : **aucune classe
+     Tailwind ne peut donc éviter le zoom**, et le `compact:text-base` que
+     portaient certains champs n'a jamais rien empêché. C'est un seuil de
+     PLATEFORME, pas un cran de l'échelle — il se pose ici, une fois, sur les
+     éléments et non sur les composants.
+
+     ⚠️ `!important` : ce seuil ne doit jamais être repris par une classe
+     utilitaire posée au point d'appel (`text-sm`, `text-xs`). C'est exactement
+     le genre de valeur qu'on ré-arbitre sans savoir ce qu'elle protège.
+
+     ⚠️ **Les `select` en sont EXCLUS.** Le zoom se déclenche à la SAISIE, quand
+     le clavier monte — un menu déroulant ouvre une roue de choix, pas un
+     clavier, et ne zoome pas. Les y avoir inclus a fait grossir tous les menus
+     de l'app d'un coup : celui du classement d'une carte RTA passait de 11 à
+     16 px dans une tuile de 150 px, ce qui défaisait toute la compaction.
+     Les cases et boutons radio en sont exclus pour la même raison. */
+  /* ⚠️ **13 px, et la même taille au repos qu'à la saisie.** Le seuil des 16 px
+     a d'abord été posé en permanence : une barre de recherche écrivait alors
+     plus gros que le menu déroulant juste à côté, un même écran à deux
+     échelles. Puis en `:focus` seulement, pour n'être à 16 px qu'à l'instant où
+     Safari regarde — mais le champ CHANGEAIT DE TAILLE sous le doigt en
+     s'activant, texte et cadre compris. Un champ qui grandit quand on le touche
+     se lit comme un défaut, pas comme une protection.
+     Le zoom iOS est donc empêché ailleurs, là où c'est sa place : par
+     `maximum-scale=1` sur la balise `viewport` (voir index.html). La taille du
+     texte redevient une décision d'interface, et rien d'autre.
+     ⚠️ 13 px et non 12 : c'est la taille des menus déroulants voisins, et un
+     champ de saisie ne doit pas écrire PLUS PETIT qu'eux non plus. */
+  input:not([type='checkbox']):not([type='radio']),
+  textarea {
+    font-size: 13px !important;
+  }
+
+  /* ⚠️ Les boutons CARRÉS (icône seule) gagnent aussi en LARGEUR : agrandis en
+     hauteur seulement, ils devenaient des rectangles et l'icône flottait au
+     milieu d'un vide vertical.
+     `aspect-square` les désigne tous, quelle que soit leur taille — un
+     sélecteur sur `.h-8` aurait dépendu du nom de classe Tailwind, donc cassé
+     au premier ajustement de taille. */
+  button.aspect-square,
+  a.aspect-square {
+    min-width: 40px;
+  }
+
+  /* ⚠️ **Contrôles IMBRIQUÉS dans une carte : 32 px, pas 40.** Les 40 px valent
+     pour une cible autonome, posée dans une barre ou une page, où rater signifie
+     ne rien déclencher. Le sélecteur de section d'une carte RTA, lui, vit DANS
+     une tuile de 150 px avec un portrait, un nom, une vitesse et trois icônes de
+     set : à 40 px il pesait plus lourd que le monstre qu'il classe, et deux
+     cartes ne tenaient plus dans un écran.
+     Ce qui protège du ratage ici n'est pas la taille mais l'isolement — le
+     contrôle occupe toute la largeur de sa carte, et il n'y a rien d'autre à
+     toucher sur cette ligne. */
+  [data-carte-dense] select,
+  [data-carte-dense] input:not([type='checkbox']):not([type='radio']),
+  [data-carte-dense] button:not([data-cible-fine]) {
+    min-height: 32px;
+  }
+}
+
+/* ---- Panneau d'actions mobile ------------------------------------------------------ */
+/* ⚠️ Les libellés masqués par `compact:hidden` REDEVIENNENT visibles dans le
+   tiroir. Ils disparaissent dans la page faute de place — six boutons à
+   libellé complet y remplissaient trois rangées —, mais le tiroir est un
+   panneau dédié qui tient toute la largeur : une rangée d'icônes sans mots y
+   serait un rébus.
+
+   ⚠️ La règle vit ICI et non dans chaque composant : les boutons ne savent pas
+   où ils sont rendus, et c'est très bien — ils déclarent leur libellé une fois,
+   le contexte décide s'il tient. */
+/* ⚠️ Limité aux `<span>` DANS UN BOUTON : la règle révélait tout ce qui porte
+   `compact:hidden`, y compris ce qu'un composant masque pour de bonnes raisons
+   — la pastille de rappel du formulaire de catégorie, par exemple, réapparaissait
+   dans le panneau alors qu'elle y fait doublon avec la palette. Ce qu'on veut
+   rendre ici, ce sont les LIBELLÉS que les boutons ont laissés tomber faute de
+   place dans la barre. */
+[data-tiroir] button > span.compact\:hidden {
+  display: inline !important;
+}
+
+/* ⚠️ …et le bouton REPREND son cadre. Dans la page il est réduit à une icône
+   nue (`compact:` retire bordure, fond et rembourrage) : six cadres y feraient
+   six carrés dans une barre serrée. Ici il occupe une cellule de grille, avec
+   son libellé — sans cadre, on ne verrait plus où finit un bouton et où
+   commence le suivant.
+   ⚠️ Écrit en CSS et non dans le composant : celui-ci ne sait pas où il est
+   rendu, et c'est très bien. */
+/* ⚠️ Limité aux RANGÉES D'ACTIONS : les pastilles de filtre et les cases de
+   couleur d'un formulaire ont leur propre habillage, leur imposer celui-ci les
+   déformerait. */
+/* ⚠️ `:not([aria-pressed])` : un bouton-BASCULE porte déjà son propre fond
+   (`accent-soft` quand il est actif). Lui imposer celui du panneau écrasait son
+   état — les trois interrupteurs d'affichage de la prépa RTA s'y affichaient
+   tous éteints, quel que soit le réglage. `aria-pressed` désigne exactement les
+   boutons concernés, et il est déjà là pour l'accessibilité. */
+[data-tiroir] [data-rangee-actions] > button:not([aria-pressed]) {
+  gap: 0.375rem;
+  border-width: 1px;
+  border-color: rgb(var(--border));
+  background-color: rgb(var(--panel));
+  border-radius: var(--radius);
+  padding-left: 0.5rem;
+  padding-right: 0.5rem;
+}
+
+/* ⚠️ …et la zone tactile étendue n'a plus lieu d'être ici. Elle compense la
+   petitesse d'un bouton réduit à son icône dans une barre serrée ; dans le
+   panneau, le bouton occupe une cellule de grille entière et dépasse déjà
+   largement les 44 px. Le pseudo-élément y déborderait sur la cellule voisine,
+   et un appui près du bord activerait le mauvais bouton. */
+[data-tiroir] .cible-tactile::after {
+  display: none;
+}
+
+
+/* ⚠️ Les boutons empilés s'alignent à GAUCHE : un libellé centré dans un bouton
+   large flotte au milieu du vide, et l'œil doit repartir chercher le début de
+   chaque ligne. Alignés, ils forment une colonne dont tous les mots commencent
+   au même endroit.
+   ⚠️ **Seulement les boutons EMPILÉS**, jamais ceux d'une rangée. Les pastilles
+   de filtre (élément, étoiles) vivent dans un `flex-wrap` et doivent garder leur
+   largeur propre : alignées de force, chacune s'étirerait sur toute la ligne et
+   la rangée deviendrait une colonne de six pastilles géantes.
+   D'où `.flex-col > button` — seul un conteneur qui empile est visé.
+
+   ⚠️ **Plus de `width: 100%`.** Une colonne de barres pleine largeur donnait à
+   quatre actions le poids visuel d'un menu principal, alors que le panneau en
+   est un accessoire. `align-items: flex-start` sur le conteneur suffit : les
+   boutons reprennent la largeur de leur texte, alignés au même bord gauche. */
+[data-tiroir] .flex-col {
+  align-items: flex-start;
+}
+
+[data-tiroir] .flex-col > button {
+  justify-content: flex-start;
+}
+
+/* ⚠️ …sauf un bouton PLEINE LARGEUR. Aligné à gauche, un bouton qui occupe
+   toute la colonne (`w-full`) laisse son libellé collé au bord alors que rien
+   ne le suit — il se lit comme une ligne de menu bancale. Un tel bouton est une
+   action principale (« Faisable avec ma réserve »), pas un item de liste : son
+   contenu se centre, même logique que le couple valider/annuler d'un formulaire
+   ci-dessous. */
+[data-tiroir] .flex-col > button.w-full {
+  justify-content: center;
+}
+
+/* ⚠️ …sauf dans un FORMULAIRE. Le panneau accueille aussi des formulaires (la
+   création d'une catégorie RTA), où les boutons ne sont pas une liste d'actions
+   à parcourir mais un couple valider/annuler : le premier occupe toute la
+   largeur et son libellé se centre, comme sur n'importe quel bouton principal.
+   Aligné à gauche, il ressemblait à une ligne de menu de plus. */
+[data-tiroir] form .flex-col > button,
+[data-tiroir] form .flex-col-reverse > button {
+  justify-content: center;
+}
+
+/* ⚠️ **Boutons plus BAS dans le panneau qu'ailleurs.** Le minimum tactile de
+   40 px vaut pour un bouton perdu dans une page, entouré d'autre chose à
+   toucher. Ici ils sont seuls, empilés dans un panneau qui ne contient rien
+   d'autre : il n'y a rien à rater autour. À 40 px plus leur rembourrage propre,
+   quatre actions remplissaient la moitié de l'écran.
+   ⚠️ Le rembourrage n'est retouché que sur les boutons EMPILÉS. Les pastilles
+   d'une rangée sont rondes (`rounded-full`) et calibrées au texte : leur imposer
+   un autre padding les déforme en ovales inégaux.
+
+   ⚠️ Les éléments à hauteur EXPLICITE (`.h-7`, `.h-8`…) sont exclus. Une
+   `min-height` supérieure gagne contre un `height` fixe et les étire : les trois
+   interrupteurs d'affichage de la prépa RTA, dessinés en pastilles de 28 px,
+   devenaient des ovales de 34. Une hauteur écrite dans le composant est un
+   choix de forme, pas un oubli — ce n'est pas au panneau de la contredire.
+
+   ⚠️ Marqué par `data-hauteur-fixe`, et non détecté sur la classe. Un
+   `:not([class*='h-'])` aurait aussi exclu tout ce qui porte `hoverable:`,
+   `shadow-…` ou `flex-…` : la sous-chaîne « h- » se retrouve partout, et la
+   règle n'aurait plus rien couvert. */
+[data-tiroir] button:not([data-cible-fine]):not([data-hauteur-fixe]),
+[data-tiroir] a[role='button']:not([data-hauteur-fixe]),
+[data-tiroir] select:not([data-hauteur-fixe]),
+[data-tiroir] input:not([type='checkbox']):not([type='radio']):not([data-hauteur-fixe]) {
+  min-height: 34px;
+}
+
+[data-tiroir] .flex-col > button {
+  padding-top: 0.25rem;
+  padding-bottom: 0.25rem;
+  padding-left: 0.625rem;
+  padding-right: 0.625rem;
+}
+
 ::-webkit-scrollbar {
   width: 10px;
   height: 10px;
@@ -441,6 +869,11 @@ button:not(:disabled):not([draggable]):not([role='switch']):active,
    La mono reste réservée aux CHIFFRES, qui doivent s'aligner.
    Voir spec/shared/design.md. */
 @layer components {
+  /* ⚠️ Les CAPITALES espacées pèsent plus lourd que leur taille ne le dit :
+     à 11 px avec `letter-spacing: 0.08em`, « POSITION » occupe autant qu'un mot
+     de 13 px en bas de casse, et paraît plus gros que le nom du monstre qu'il
+     accompagne. Au doigt, la taille descend d'un cran et l'espacement de
+     moitié — le rôle du libellé est de nommer, pas de rivaliser. */
   .label {
     font-family: 'Inter', sans-serif;
     font-size: 11px;
@@ -449,6 +882,13 @@ button:not(:disabled):not([draggable]):not([role='switch']):active,
     letter-spacing: 0.08em;
     text-transform: uppercase;
     color: rgb(var(--ink-dim));
+  }
+
+  @media (pointer: coarse) {
+    .label {
+      font-size: 10px;
+      letter-spacing: 0.04em;
+    }
   }
 }
 
@@ -461,4 +901,254 @@ button:not(:disabled):not([draggable]):not([role='switch']):active,
 
 .hex-frame {
   clip-path: polygon(50% 0%, 95% 25%, 95% 75%, 50% 100%, 5% 75%, 5% 25%);
+}
+
+/* ⚠️ Les intitulés de rangée à largeur FIXE (`w-[86px]` dans les listes de
+   runes et d'artéfacts) sont dimensionnés pour le desktop, où la rangée fait
+   900 px. Dans le panneau mobile ils amputent d'un quart la largeur du contrôle
+   qu'ils désignent — un `SubSearchBar` de quatre cases tombait à deux par
+   ligne. Ils reprennent leur largeur naturelle, et la rangée passe à la ligne
+   d'elle-même. */
+[data-tiroir] .w-\[86px\] {
+  width: auto;
+}
+
+/* ⚠️ **Les INTITULÉS de rangée disparaissent dans le panneau.** « Élément »,
+   « Trier par », « Stat principale » : sur une rangée desktop de 900 px ils
+   coûtent 86 px et nomment ce qui suit. Sur 348 px ils prennent le quart de la
+   largeur pour un mot que les pastilles elles-mêmes disent déjà — on ne se
+   demande pas de quoi parle une rangée de six éléments du jeu.
+
+   ⚠️ Masqués, pas supprimés du DOM : `.label` reste lisible par un lecteur
+   d'écran, qui n'a pas la vue d'ensemble qui rend le mot superflu. */
+[data-tiroir] .label {
+  display: none;
+}
+
+/* ⚠️ **Exception : un intitulé que son contrôle ne redit pas.** « Palier »
+   nomme un simple champ numérique — « 100 % » seul ne dit pas qu'il s'agit d'un
+   seuil, là où « Toutes / Antiques » ou « Feu / Eau » se lisent d'eux-mêmes. Il
+   reste donc affiché dans le panneau, marqué à la source (voir RunesOptim). */
+[data-tiroir] .label[data-intitule-conserve] {
+  display: revert;
+}
+
+/* ⚠️ **UNE SEULE taille de texte dans le panneau : 12 px.** Il en portait trois
+   — 13 px pour les six boutons d'action, 12 pour les pilules de catégorie et les
+   interrupteurs, 11 pour la ligne du point de sauvegarde. Trois tailles à un
+   pixel d'écart ne créent aucune hiérarchie : elles se lisent comme un défaut
+   d'alignement, et sur un panneau qui n'empile qu'une dizaine de lignes, la
+   régularité vaut mieux qu'une gradation qu'on ne perçoit pas.
+
+   ⚠️ Le GRAS reste : c'est lui qui distingue une action d'une ligne
+   d'information, et il le fait sans changer la hauteur de la ligne.
+
+   ⚠️ Posé sur les ÉLÉMENTS (`button`, `p`) et non sur le conteneur : hérité, il
+   toucherait aussi les valeurs en `font-mono`, dont l'alignement en colonnes
+   dépend de leur propre taille. */
+[data-tiroir] button,
+[data-tiroir] p {
+  font-size: 12px;
+}
+
+/* ⚠️ **Les boutons d'une rangée forment une GRILLE**, pas une file qui se
+   replie. En `flex-wrap`, chaque bouton prend la largeur de son texte :
+   « Sauvegarder » et « Ami » finissaient côte à côte à des tailles différentes,
+   et la dernière ligne restait à moitié vide. En grille à trois colonnes égales,
+   tous font la même taille et s'alignent verticalement d'une rangée à l'autre —
+   c'est ce qui rend le groupement par type lisible d'un coup d'œil.
+
+   ⚠️ Trois colonnes : c'est ce que portent les rangées d'actions (sauver /
+   reprendre / réinitialiser, exporter / importer / ami). À deux, elles
+   passeraient à la ligne ; à quatre, le libellé ne tiendrait plus.
+
+   ⚠️ Ciblé par `data-rangee-actions`, **pas** par la forme du conteneur. Un
+   sélecteur sur `.flex-wrap` aurait aussi attrapé les rangées de PASTILLES —
+   six éléments du jeu, cinq niveaux d'étoiles — qu'il aurait forcées à trois par
+   ligne, soit deux lignes au lieu d'une : l'inverse du but. La grille ne vaut
+   que pour des boutons de même nature, en nombre connu.
+
+   ⚠️ **Trois colonnes FIXES, partagées par toutes les rangées.** Un
+   `grid-auto-flow: column` faisait calculer à chaque rangée ses propres
+   colonnes : une rangée de deux boutons les étalait en moitiés, celle de trois
+   en tiers, et rien ne s'alignait d'une ligne à l'autre — le contraire d'une
+   grille. Avec `repeat(3, 1fr)` posé identiquement partout, un bouton occupe la
+   même largeur où qu'il soit, et les colonnes se superposent verticalement.
+
+   ⚠️ Une rangée incomplète laisse donc une cellule vide en bout de ligne. C'est
+   voulu : l'alignement des colonnes vaut mieux qu'un remplissage qui décale
+   tout. Les boutons absents (« Réinitialiser » sans import de compte) manquent
+   à la fin, là où leur absence ne déplace rien. */
+[data-tiroir] [data-rangee-actions] {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  align-items: stretch;
+  gap: 0.5rem;
+}
+
+/* Les boutons remplissent leur cellule et centrent leur contenu : à taille
+   égale, un libellé calé à gauche laisserait des vides irréguliers d'une
+   colonne à l'autre.
+
+   ⚠️ Le second sélecteur vise les boutons ENVELOPPÉS : `CreateMonster` place le
+   sien dans un `div.relative` qui ancre son popover. Sans lui, c'est le div qui
+   remplissait la cellule et le bouton flottait dedans à sa taille propre. */
+[data-tiroir] [data-rangee-actions] > button,
+[data-tiroir] [data-rangee-actions] > * > button {
+  width: 100%;
+  /* ⚠️ **Hauteur ÉCRITE, jamais `height: 100%`.** Ce dernier paraissait la
+     bonne réponse pour égaliser les cellules ; il a fait exploser la grille —
+     les rangées étant en `display: contents`, il n'y a aucune ligne dont hériter
+     et le pourcentage s'étirait sans borne, un bouton par écran.
+     Une valeur fixe les égalise sans dépendre de rien. */
+  min-height: 38px;
+  justify-content: center;
+  padding-left: 0.375rem;
+  padding-right: 0.375rem;
+}
+
+/* ⚠️ **« Tout effacer » occupe TOUTE LA LARGEUR en bas du panneau**, alors que
+   les actions au-dessus gardent la largeur de leur texte. Il n'appartient pas à
+   leur colonne : il est détaché sous un filet, en dernier, et c'est le seul
+   geste destructeur de l'écran.
+   Il a d'abord été CENTRÉ à sa largeur propre — il y flottait alors au milieu
+   d'une bande vide dont rien n'expliquait la présence. Étalé, il se lit comme
+   une barre de sortie plutôt que comme une action de plus dans la liste, et
+   rien ne se trouve à côté de lui qu'on pourrait toucher à sa place. */
+[data-tiroir] [data-zone-destructive] {
+  display: flex;
+}
+
+[data-tiroir] [data-zone-destructive] > button {
+  justify-content: center;
+}
+
+/* ⚠️ **Les rangées d'actions successives fusionnent en UNE grille** dans le
+   panneau. Chacune y formait sa propre grille de trois colonnes : quand l'une
+   perdait un bouton conditionnel (« Réinitialiser » n'existe qu'après un import
+   de compte), sa dernière cellule s'étirait et plus rien ne s'alignait d'une
+   rangée à l'autre. Le conteneur qui les empile devient la grille, et les
+   rangées s'y effacent — six boutons, six cellules égales.
+   ⚠️ `display: contents` : la rangée disparaît de la mise en page sans
+   disparaître du DOM, donc ses enfants deviennent ceux de la grille.
+   ⚠️ Marqué par `data-grille-actions`, jamais déduit de la structure : le
+   panneau RTA empile aussi la création, la barre de sauvegarde et les
+   catégories dans un `flex-col` — les fusionner toutes aurait mêlé des
+   pastilles de catégorie à des boutons d'action. */
+[data-tiroir] [data-grille-actions] {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.5rem;
+}
+
+/* ⚠️ Les rangées s'effacent à TOUTE profondeur (` ` et non `>`) : la barre de
+   sauvegarde rend son propre conteneur autour de ses deux rangées, et le
+   panneau RTA l'imbrique dans la grille commune avec le bouton de création.
+   Un sélecteur d'enfant direct n'aurait vu que le conteneur intermédiaire, qui
+   serait resté une grille dans la grille. */
+/* ⚠️ Le bouton de création fait **UN TIERS de largeur**, comme les six autres :
+   il est seul sur sa ligne mais garde leur taille — un bouton d'action n'a pas
+   de raison de peser plus qu'un autre, et pleine largeur il redevenait le plus
+   gros du panneau. Sa ligne à lui reste donc aux deux tiers vide, ce qui dit
+   justement qu'il n'appartient pas au groupe en dessous.
+   `CreateMonster` s'enveloppe dans un `div.relative` qui ancre son popover —
+   d'où le sélecteur en deux temps. */
+[data-tiroir] > * > .relative {
+  width: calc((100% - 1rem) / 3);
+}
+
+[data-tiroir] > * > .relative > button {
+  width: 100%;
+  justify-content: center;
+  min-height: 38px;
+}
+
+/* ⚠️ Les rangées ET les conteneurs qui les enveloppent s'effacent
+   (`data-passe-grille`) : `RtaBackupBar` empile ses deux rangées dans un `div`
+   de marge, qui restait sinon l'enfant unique de la grille et absorbait à lui
+   seul une cellule — les six boutons s'y retrouvaient empilés, un par écran.
+   ⚠️ Marqué, jamais déduit : une règle sur « tout div intermédiaire » aurait
+   effacé aussi ceux qu'on ajoutera demain pour une autre raison. */
+[data-tiroir] [data-grille-actions] [data-rangee-actions],
+[data-tiroir] [data-grille-actions] [data-passe-grille] {
+  display: contents;
+}
+
+/* ⚠️ **Tout ce qui n'est PAS un bouton traverse la grille.** Effacer les
+   conteneurs (`display: contents`) fait remonter TOUS leurs enfants en cellules,
+   pas seulement les boutons : la ligne « Point de sauvegarde · hier », les
+   messages d'import et le rapport de validation se retrouvaient chacun dans une
+   colonne d'un tiers, à se replier sur trois lignes au milieu d'un vide.
+
+   Une largeur en `w-full` ne les sauvait pas — elle remplit la CELLULE, qui fait
+   un tiers. Il faut traverser les trois colonnes, ce que seul `grid-column` sait
+   faire.
+
+   ⚠️ Formulé en négatif (« tout sauf une rangée d'actions ») plutôt qu'en
+   listant les éléments concernés : la barre gagnera un message de plus, et il
+   doit se comporter correctement sans qu'on ait à revenir ici. */
+[data-tiroir] [data-grille-actions] [data-passe-grille] > *:not([data-rangee-actions]) {
+  grid-column: 1 / -1;
+}
+
+/* ⚠️ Les marges hautes des barres d'outils sont annulées dans le panneau. Elles
+   les détachent du contenu qui les précède DANS LA PAGE ; empilées dans un
+   panneau qui gère déjà ses écarts (`gap-3`), elles s'y ajoutent et creusent le
+   double du vide voulu entre deux rangées. */
+[data-tiroir] > * > .mt-4 {
+  margin-top: 0;
+}
+
+/* ⚠️ **Le panneau d'actions ne défile jamais latéralement.** Il accueille des
+   contrôles dessinés pour une rangée desktop de 900 px : un `min-width` calibré
+   là-bas y déborde. `overflow-x: hidden` couperait le contenu ; on force plutôt
+   les enfants à se réduire.
+
+   `min-width: 0` sur les descendants directs d'un conteneur flex : sans lui, un
+   élément flex refuse de passer sous la largeur de son contenu — c'est la
+   valeur par défaut (`auto`), et la cause la plus fréquente d'un débordement
+   qu'aucune classe ne semble expliquer. */
+[data-tiroir] .flex > *,
+[data-tiroir] .grid > * {
+  min-width: 0;
+}
+
+/* Les images ne dépassent pas non plus leur conteneur. */
+[data-tiroir] img {
+  max-width: 100%;
+}
+
+/* ⚠️ **Les filtres de la LISTE de runes prennent TOUTE LA LARGEUR dans le
+   panneau**, comme les autres popups — au lieu de rester compacts, alignés à
+   gauche, avec du vide à droite. Le bloc `filtres` sert AUSSI au desktop (hors
+   tiroir), où il garde la largeur de son contenu : d'où le ciblage `[data-tiroir]
+   [data-filtres-runes]`, qui n'existe que dans le panneau.
+   (Sans rapport avec le `width:100%` retiré plus haut sur les LISTES D'ACTIONS :
+   là c'était une colonne de barres qui pesait comme un menu principal ; ici ce
+   sont des contrôles de formulaire, qu'on veut pleins comme dans un dialogue.) */
+[data-tiroir] [data-filtres-runes] > * {
+  width: 100%;
+}
+[data-tiroir] [data-filtres-runes] select {
+  width: 100%;
+}
+[data-tiroir] [data-filtres-runes] .max-w-\[480px\] {
+  max-width: none;
+}
+/* ⚠️ Le TRI remonte en tête du panneau (trier vient avant filtrer). Uniquement
+   dans le tiroir : au desktop, le bloc garde sa place en bas de la colonne. */
+[data-tiroir] [data-filtres-runes] [data-tri-bloc] {
+  order: -1;
+}
+
+/* Les six emplacements se répartissent sur toute la largeur ; « Antiques » et le
+   bouton « ✕ tout » gardent leur taille à côté. */
+[data-tiroir] [data-filtres-runes] [data-filtre-slots] {
+  flex: 1 1 auto;
+}
+[data-tiroir] [data-filtres-runes] [data-filtre-slots] > div {
+  flex: 1 1 auto;
+}
+[data-tiroir] [data-filtres-runes] [data-filtre-slots] > div > button {
+  flex: 1 1 0;
 }

@@ -3,10 +3,12 @@
 // Réutilisé par « Courbes » (une série) et « Comparaison » (plusieurs séries).
 
 import { useEffect, useRef, useState } from 'react';
-import { ChevronLeft, ChevronRight, X } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Maximize2, Minimize2, X } from 'lucide-react';
 import { RuneDetail, RUNE_SETS } from '../../types';
-import { RuneDetailBox } from '../MonsterGear';
+import { RuneDetailBox } from '../PieceDetail';
 import RuneSlotIcon from '../RuneSlotIcon';
+import { useScrollBloque } from '../../hooks/useScrollBloque';
+import { BoutonIcone } from '../../ui';
 
 export interface CurveSeries {
   name: string;
@@ -97,6 +99,81 @@ export default function CurveChart({
   // c'est cette position qu'on lit sur toutes les courbes à la fois.
   const [choisi, setChoisi] = useState<{ rang: number } | null>(null);
 
+  // ── Plein écran ────────────────────────────────────────────────────────────
+  //
+  // ⚠️ **Le graphe garde son gabarit de 820 × 380**, sur téléphone comme sur
+  // bureau. Il y est donc réduit à 42 % — les graduations écrites en 11 px
+  // arrivent à 4,6 px. Plutôt que de redessiner un second graphe pour l'écran
+  // étroit, on donne le moyen de le lire EN GRAND : un téléphone tourné offre
+  // 844 px de large, soit à peu près la largeur pour laquelle ce graphe est
+  // dessiné.
+  const [pleinEcran, setPleinEcran] = useState(false);
+
+  // Dimensions de l'écran, relues aux changements d'orientation.
+  // ⚠️ `orientationchange` NE SUFFIT PAS, et `resize` non plus tout seul :
+  // suivant les navigateurs, l'un des deux arrive avant que les dimensions
+  // soient à jour. On écoute les deux — la lecture est idempotente.
+  const [ecran, setEcran] = useState(() =>
+    typeof window === 'undefined'
+      ? { w: 820, h: 380 }
+      : { w: window.innerWidth, h: window.innerHeight }
+  );
+  useEffect(() => {
+    if (!pleinEcran) return;
+    const relire = () => setEcran({ w: window.innerWidth, h: window.innerHeight });
+    relire();
+    window.addEventListener('resize', relire);
+    window.addEventListener('orientationchange', relire);
+    return () => {
+      window.removeEventListener('resize', relire);
+      window.removeEventListener('orientationchange', relire);
+    };
+  }, [pleinEcran]);
+
+  // ⚠️ **On TOURNE le graphe plutôt que de forcer l'appareil.** Verrouiller
+  // l'orientation (`screen.orientation.lock`) exige le plein écran natif, que
+  // Safari iOS n'accorde qu'à la vidéo : le geste aurait marché sur un
+  // téléphone et pas sur l'autre. Une rotation CSS donne le même résultat
+  // partout, et l'appareil tourné physiquement reste correct — on ne tourne
+  // QUE si l'écran est encore en portrait.
+  const tourne = pleinEcran && ecran.h > ecran.w;
+
+  // ── Zoom, en plein écran seulement ─────────────────────────────────────────
+  //
+  // ⚠️ **Le zoom est FAIT ICI, pas délégué au navigateur.** `index.html` pose
+  // `maximum-scale=1` pour empêcher Safari iOS de zoomer tout seul quand on
+  // met un champ au point — une contrainte pesée et documentée là-bas, qu'on
+  // ne défait pas pour un graphe. Le pincement agit donc sur la FENÊTRE DE
+  // RANGS du dessin : le résultat est le même à l'œil, il est identique sur
+  // tous les navigateurs, et rien n'est retiré au reste de l'application.
+  const [vue, setVue] = useState<{ i0: number; i1: number } | null>(null);
+
+  // ⚠️ Le zoom se remet à plat en QUITTANT le plein écran : la fenêtre réduite
+  // n'a de sens que dans le grand format. Gardée, on serait revenu à la page
+  // sur un graphe montrant cinquante runes sans rien qui dise pourquoi.
+  useEffect(() => {
+    if (!pleinEcran) setVue(null);
+  }, [pleinEcran]);
+
+  // Doigts posés, par identifiant de pointeur — c'est le nombre de doigts qui
+  // départage les deux gestes : UN doigt lit la courbe, DEUX la zooment.
+  const doigts = useRef(new Map<number, { x: number; y: number }>());
+  const pince = useRef<{ ecart: number; milieu: number } | null>(null);
+
+  useScrollBloque(pleinEcran);
+
+  // Échap ferme le plein écran avant le détail : c'est la couche du dessus.
+  useEffect(() => {
+    if (!pleinEcran) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key !== 'Escape') return;
+      e.stopImmediatePropagation();
+      setPleinEcran(false);
+    };
+    document.addEventListener('keydown', onKey);
+    return () => document.removeEventListener('keydown', onKey);
+  }, [pleinEcran]);
+
   // Échap ferme ; les flèches ← → parcourent le classement. Le clavier double
   // les boutons plutôt que de les remplacer : on garde la main sur la souris
   // quand on vient de cliquer un point.
@@ -119,7 +196,7 @@ export default function CurveChart({
 
   const active = series.filter((s) => s.effs.length > 0);
   if (active.length === 0) {
-    return <p className="text-ink-dim text-[13px]">Aucune rune à afficher.</p>;
+    return <p className="text-ink-dim text-sm">Aucune rune à afficher.</p>;
   }
 
   // Bornes X (nb max de runes) et Y (min→max global, arrondis).
@@ -135,28 +212,108 @@ export default function CurveChart({
   hi = Math.ceil(hi / 10) * 10;
   if (hi <= lo) hi = lo + 10;
 
-  const x = (i: number) => PAD_L + (maxLen <= 1 ? IW / 2 : (i / (maxLen - 1)) * IW);
+  // Fenêtre de rangs visible. `null` = tout le classement.
+  //
+  // ⚠️ **Le zoom porte sur l'axe des RANGS seul**, jamais sur la hauteur. Les
+  // trois mille runes s'écrasent en largeur, pas en hauteur : c'est le début du
+  // classement qu'on veut détailler (« mes cinquante meilleures »), et une
+  // échelle verticale qui bougerait avec ferait mentir la comparaison entre
+  // courbes — deux points à la même hauteur doivent valoir la même chose.
+  const i0 = vue ? vue.i0 : 0;
+  const i1 = vue ? vue.i1 : maxLen - 1;
+  const span = Math.max(1e-6, i1 - i0);
+
+  const x = (i: number) => PAD_L + (maxLen <= 1 ? IW / 2 : ((i - i0) / span) * IW);
   const y = (e: number) => PAD_T + IH - ((e - lo) / (hi - lo)) * IH;
 
   const yStep = niceStep(hi - lo);
   const yTicks: number[] = [];
   for (let v = lo; v <= hi + 0.001; v += yStep) yTicks.push(v);
   const xTickCount = Math.min(6, maxLen);
+  // Graduations réparties sur la FENÊTRE visible, pas sur tout le classement :
+  // zoomé sur les cent premières runes, l'axe doit les compter, pas continuer à
+  // afficher « 3 000 » à droite.
   const xTicks = Array.from({ length: xTickCount }, (_, k) =>
-    Math.round((k / (xTickCount - 1 || 1)) * (maxLen - 1))
+    Math.round(i0 + (k / (xTickCount - 1 || 1)) * span)
   );
 
   const me = active.find((s) => s.own);
 
   // Survol : convertit la position pointeur en index de rune (X).
-  function onMove(e: React.PointerEvent<SVGSVGElement>) {
+  //
+  // ⚠️ **Par la matrice du SVG (`getScreenCTM`), pas par son cadre.** Le calcul
+  // passait par `getBoundingClientRect()`, qui rend un rectangle ALIGNÉ SUR
+  // L'ÉCRAN : dès que le graphe est tourné — ce que fait le plein écran sur un
+  // téléphone tenu à la verticale — ce rectangle décrit la boîte englobante de
+  // la rotation, pas le graphe, et le point visé tombait n'importe où. La
+  // matrice inverse, elle, ramène un point de l'écran dans le repère du dessin
+  // quelles que soient les transformations traversées.
+  // Abscisse d'un pointeur, dans le repère du DESSIN.
+  function versDessin(clientX: number, clientY: number): number | null {
     const svg = svgRef.current;
-    if (!svg) return;
-    const rect = svg.getBoundingClientRect();
-    if (!rect.width) return;
-    const px = ((e.clientX - rect.left) / rect.width) * W;
+    const ctm = svg?.getScreenCTM();
+    if (!svg || !ctm) return null;
+    return new DOMPoint(clientX, clientY).matrixTransform(ctm.inverse()).x;
+  }
+
+  function onMove(e: React.PointerEvent<SVGSVGElement>) {
+    if (doigts.current.has(e.pointerId)) {
+      doigts.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
+    }
+
+    // ── DEUX doigts : on zoome, on ne survole plus ──────────────────────────
+    if (pleinEcran && doigts.current.size === 2) {
+      const [a, b] = [...doigts.current.values()];
+      const ecart = Math.hypot(a.x - b.x, a.y - b.y);
+      const milieu = versDessin((a.x + b.x) / 2, (a.y + b.y) / 2);
+      if (milieu == null || ecart < 1) return;
+      const prec = pince.current;
+      pince.current = { ecart, milieu };
+      if (!prec) return;
+
+      // Écarter les doigts RÉDUIT la fenêtre de rangs : c'est ce qui agrandit
+      // le dessin. D'où le rapport dans ce sens.
+      const facteur = prec.ecart / ecart;
+      // ⚠️ Plancher à 5 rangs : en dessous, la courbe n'est plus qu'un segment
+      // entre deux runes et le lissage n'a plus rien à lisser.
+      const nouveauSpan = Math.min(maxLen - 1, Math.max(5, span * facteur));
+
+      // ⚠️ Le rang sous le MILIEU DES DOIGTS ne bouge pas : c'est ce qui fait
+      // qu'on zoome là où l'on regarde, et non vers le centre du graphe.
+      const fr = (milieu - PAD_L) / IW;
+      const rangFocal = i0 + fr * span;
+      // …et le déplacement du milieu fait glisser la fenêtre, ce qui donne le
+      // panoramique dans le même geste.
+      const glissement = ((prec.milieu - milieu) / IW) * nouveauSpan;
+      let n0 = rangFocal - fr * nouveauSpan + glissement;
+      n0 = Math.max(0, Math.min(maxLen - 1 - nouveauSpan, n0));
+      setVue({ i0: n0, i1: n0 + nouveauSpan });
+      setHover(null);
+      return;
+    }
+
+    // ── UN doigt (ou la souris) : survol ────────────────────────────────────
+    //
+    // ⚠️ **Par la matrice du SVG (`getScreenCTM`), pas par son cadre.** Le
+    // calcul passait par `getBoundingClientRect()`, qui rend un rectangle
+    // ALIGNÉ SUR L'ÉCRAN : dès que le graphe est tourné — ce que fait le plein
+    // écran sur un téléphone tenu à la verticale — ce rectangle décrit la boîte
+    // englobante de la rotation, pas le graphe, et le point visé tombait
+    // n'importe où. La matrice inverse ramène un point de l'écran dans le
+    // repère du dessin quelles que soient les transformations traversées.
+    const px = versDessin(e.clientX, e.clientY);
+    if (px == null) return;
     const frac = maxLen <= 1 ? 0 : (px - PAD_L) / IW;
-    setHover(Math.max(0, Math.min(maxLen - 1, Math.round(frac * (maxLen - 1)))));
+    setHover(Math.max(0, Math.min(maxLen - 1, Math.round(i0 + frac * span))));
+  }
+
+  function onDown(e: React.PointerEvent<SVGSVGElement>) {
+    doigts.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
+    if (doigts.current.size === 2) pince.current = null;
+  }
+  function onUp(e: React.PointerEvent<SVGSVGElement>) {
+    doigts.current.delete(e.pointerId);
+    if (doigts.current.size < 2) pince.current = null;
   }
 
   // Séries disposant d'une valeur au point survolé, ordonnées comme les courbes
@@ -195,21 +352,50 @@ export default function CurveChart({
   const rangMax = ouvrables.reduce((m, s) => Math.max(m, s.effs.length), 0);
 
   function onClick() {
-    if (!cliquable || hover == null) return;
+    // ⚠️ **Pas d'ouverture de rune en PLEIN ÉCRAN.** On y vient lire la courbe
+    // en grand, et le geste s'y confond avec le pincement : un doigt qui se
+    // pose pour zoomer ouvrait une carte de rune par-dessus le graphe. Le
+    // détail reste à sa place, dans la page.
+    if (pleinEcran || !cliquable || hover == null) return;
     // Re-cliquer le même rang referme : le geste est son propre inverse.
     setChoisi((cur) => (cur && cur.rang === hover ? null : { rang: hover }));
   }
 
-  return (
-    <div className="rounded-xl border border-border bg-panel/50 p-2">
+  // ⚠️ **Largeur BORNÉE et centrée.** Le graphe suit son conteneur, et depuis
+  // que le contenu occupe tout l'écran il s'étirait sur 2 000 px : la courbe
+  // s'aplatissait jusqu'à devenir une ligne droite, et les écarts entre runes —
+  // la seule chose qu'on vient y lire — disparaissaient.
+  // 980 px : au-delà, l'amplitude verticale ne suit plus la largeur (le
+  // `viewBox` est à ratio fixe) et chaque pixel gagné écrase la lecture.
+  const graphe = (
+    <div
+      className={
+        pleinEcran
+          ? 'flex h-full w-full flex-col overflow-y-auto overscroll-contain p-2'
+          : 'w-full rounded-xl border border-border bg-panel/50 p-2'
+      }
+    >
       <svg
         ref={svgRef}
         viewBox={`0 0 ${W} ${H}`}
         // Le curseur dit que le graphe répond au clic — mais seulement quand il
         // y a réellement des runes derrière les points.
-        className={`w-full h-auto ${cliquable ? 'cursor-pointer' : ''}`}
+        // ⚠️ **`touch-pan-y` : c'est LUI qui rend le graphe interactif au
+        // doigt.** Sans lui, le navigateur interprète le glissement horizontal
+        // comme un début de défilement, s'approprie le geste et n'envoie plus
+        // aucun `pointermove` : le graphe était muet sur téléphone alors que le
+        // code d'interaction était là. `pan-y` et non `none` : le défilement
+        // VERTICAL de la page doit continuer de passer, sinon on reste coincé
+        // en travers du graphe. En plein écran il n'y a rien à faire défiler,
+        // et c'est `touch-none` qui s'applique (voir plus bas).
+        className={`w-full h-auto touch-pan-y ${
+          cliquable && !pleinEcran ? 'cursor-pointer' : ''
+        } ${pleinEcran ? 'touch-none' : ''}`}
         preserveAspectRatio="xMidYMid meet"
+        onPointerDown={onDown}
         onPointerMove={onMove}
+        onPointerUp={onUp}
+        onPointerCancel={onUp}
         onPointerLeave={() => setHover(null)}
         onClick={onClick}
       >
@@ -218,6 +404,14 @@ export default function CurveChart({
             <stop offset="0%" stopColor={OWN_COLOR} stopOpacity="0.14" />
             <stop offset="100%" stopColor={OWN_COLOR} stopOpacity="0" />
           </linearGradient>
+          {/* ⚠️ **Détourage de l'aire de tracé.** Zoomé, le classement déborde
+              des deux côtés de la fenêtre visible : `downsample` parcourt TOUTES
+              les runes, et celles hors fenêtre se dessinaient par-dessus les
+              graduations Y et jusque dans les marges. Le détourage les coupe au
+              cadre — c'est l'aire de tracé qui définit ce qui existe. */}
+          <clipPath id="rcClip">
+            <rect x={PAD_L} y={PAD_T} width={IW} height={IH} />
+          </clipPath>
         </defs>
 
         {/* Grille + graduations Y */}
@@ -255,6 +449,8 @@ export default function CurveChart({
           </g>
         ))}
 
+        {/* Aire + courbes, DANS l'aire de tracé (voir `rcClip`). */}
+        <g clipPath="url(#rcClip)">
         {/* Aire sous ma courbe */}
         {me &&
           (() => {
@@ -278,6 +474,7 @@ export default function CurveChart({
               strokeLinejoin="round"
             />
           ))}
+        </g>
 
         {/* Titres des axes */}
         <text x={PAD_L + IW / 2} y={H - 5} textAnchor="middle" fontSize="11" fill="#9aa2d0" fontFamily="monospace">
@@ -452,7 +649,7 @@ export default function CurveChart({
             {/* Le rang ENTRE les deux flèches : c'est lui qu'elles font défiler,
                 et il dit où l'on en est dans le classement. Largeur fixe, sinon
                 les flèches se déplacent au passage de « 9 » à « 10 ». */}
-            <span className="w-[92px] text-center font-mono text-[11px] text-ink-dim">
+            <span className="w-[92px] text-center font-mono text-micro text-ink-dim">
               n° {choisi.rang + 1} / {rangMax}
             </span>
             <button
@@ -493,13 +690,13 @@ export default function CurveChart({
                     height={46}
                   />
                   <div className="min-w-0">
-                    <div className="truncate text-[13px] font-bold leading-tight text-ink">
+                    <div className="truncate text-sm font-bold leading-tight text-ink">
                       {RUNE_SETS.find((s) => s.key === rune.set)?.label ?? rune.set} ·{' '}
                       <span className="text-ink-dim">slot {rune.slot}</span>
                     </div>
                     {/* Le rang n'est PAS répété ici : il vit dans la barre de
                         navigation au-dessus, entre les deux flèches. */}
-                    <div className="font-mono text-[11px] text-ink-dim">
+                    <div className="font-mono text-micro text-ink-dim">
                       {unit === '%' ? val.toFixed(1) : String(Math.round(val))}
                       {unit}
                     </div>
@@ -507,7 +704,7 @@ export default function CurveChart({
                         plusieurs d'ouvrables : sur l'onglet Courbes, où seule la
                         mienne l'est, il n'apprend rien. */}
                     {ouvrables.length > 1 && (
-                      <div className="mt-0.5 flex items-center gap-1.5 font-mono text-[11px]">
+                      <div className="mt-0.5 flex items-center gap-1.5 font-mono text-micro">
                         <span
                           className="inline-block h-1.5 w-3 flex-none rounded-full"
                           style={{ background: serie.color }}
@@ -526,6 +723,77 @@ export default function CurveChart({
           </div>
         </div>
       )}
+    </div>
+  );
+
+  // Le bouton d'agrandissement, posé DANS le cadre du graphe.
+  //
+  // ⚠️ **Sous `lg` seulement.** À la souris, le graphe a déjà la largeur pour
+  // laquelle il est dessiné ; un bouton de plus n'y ouvrirait rien de mieux.
+  // ⚠️ **En bas à DROITE**, sous le bouton d'aide qui occupe le haut du même
+  // bord : les deux commandes du graphe se retrouvent ainsi sur la même
+  // verticale, du côté du pouce, au lieu d'être réparties dans deux angles
+  // opposés.
+  //
+  // ⚠️ **`data-cible-fine` + `cible-tactile` vont ENSEMBLE.** Le premier
+  // exempte de la règle tactile globale (`min-height: 40px` au doigt), qui
+  // aurait étiré ce bouton de 28 px en un ovale de 28 × 40 — le piège que
+  // index.css documente. Le second lui rend ses 44 px de zone touchable par un
+  // pseudo-élément qui déborde : la cible reste réglementaire, le dessin reste
+  // petit. Retirer l'un des deux casse soit la forme, soit la visée.
+  const bouton = (
+    <BoutonIcone
+      onClick={() => setPleinEcran((v) => !v)}
+      libelle={pleinEcran ? 'Quitter le plein écran' : 'Afficher le graphe en plein écran'}
+      icone={pleinEcran ? <Minimize2 size={14} /> : <Maximize2 size={14} />}
+      cadre
+      forme="pilule"
+      zoneEtendue
+      // ⚠️ **Même écart au bord que le bouton d'aide** (`right-2`), qui est
+      // posé par l'onglet Courbes sur une boîte de même largeur : ce sont les
+      // deux commandes du même dessin, sur la même verticale. À `right-3` ils
+      // étaient décalés de 4 px l'un de l'autre — assez pour se voir, pas assez
+      // pour passer pour une intention.
+      className={`absolute bottom-2 right-2 z-10 ${pleinEcran ? '' : 'lg:hidden'}`}
+    />
+  );
+
+  if (!pleinEcran) {
+    return (
+      // ⚠️ Le centrage et le plafond de largeur vivent SUR LE CONTENEUR
+      // RELATIF, plus sur la carte : les boutons sont posés en `absolute` par
+      // rapport à lui, et tant qu'il débordait la carte (au-delà de 980 px, où
+      // elle se centre), ils flottaient à côté du graphe au lieu d'être dans son
+      // coin.
+      <div className="relative mx-auto w-full max-w-[980px]">
+        {graphe}
+        {bouton}
+      </div>
+    );
+  }
+
+  // ⚠️ `z-[70]`, le même niveau que les DIALOGUES : le plein écran doit passer
+  // au-dessus des panneaux mobiles, sans quoi la barre d'onglets et le panneau
+  // de navigation resteraient posés sur un graphe qui occupe tout l'écran.
+  return (
+    <div className="fixed inset-0 z-[70] bg-bg">
+      {/* ⚠️ La boîte TOURNÉE échange largeur et hauteur : après un quart de tour,
+          la largeur du dessin longe la hauteur de l'écran. Sans cet échange
+          elle garderait la largeur du téléphone et le graphe dépasserait des
+          deux côtés.
+          Centrée par `translate(-50%, -50%)` AVANT la rotation — l'ordre compte :
+          tourner d'abord ferait pivoter aussi le déplacement. */}
+      <div
+        className="absolute left-1/2 top-1/2"
+        style={{
+          width: tourne ? ecran.h : ecran.w,
+          height: tourne ? ecran.w : ecran.h,
+          transform: `translate(-50%, -50%) ${tourne ? 'rotate(90deg)' : ''}`,
+        }}
+      >
+        {graphe}
+        {bouton}
+      </div>
     </div>
   );
 }

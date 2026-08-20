@@ -1,19 +1,9 @@
 import { useMemo } from 'react';
-import { X } from 'lucide-react';
+import { Layers } from 'lucide-react';
 import { RuneDetail, RUNE_SETS } from '../../types';
 import RuneIcon from '../RuneIcon';
-
-// Colorisation DORÉE des symboles de set dans les barres de filtre. Les PNG du
-// jeu sont multicolores : alignés par vingt-cinq ils font une rangée bruyante où
-// rien ne ressort. Ramenés à une seule teinte, la barre se lit comme une frise
-// et seul l'état actif se détache.
-//
-// ⚠️ **Un FILTRE CSS, pas un masque.** Masquer l'alpha du PNG remplit le glyphe
-// d'aplat : on perd tout le relief interne et l'icône paraît floue à 18 px. Le
-// filtre, lui, conserve la luminance d'origine — donc le dessin reste net.
-// Même technique que `RARITY_FILTER` (voir lib/effects.ts).
-const OR = (clair: boolean) =>
-  `sepia(1) saturate(3.2) hue-rotate(-12deg) brightness(${clair ? 1.15 : 0.95}) contrast(1.05)`;
+import { runeSetIconFilter } from '../../lib/effects';
+import { useMediaQuery, COMPACT } from '../../hooks/useMediaQuery';
 
 // Filtre multi-sélection par set de runes, **icônes seules**.
 //
@@ -33,12 +23,20 @@ export default function SetFilter({
   onChange: (next: Set<string>) => void;
   label?: string;
 }) {
+  // Pointeur grossier (téléphone) → icônes de set agrandies pour la visée.
+  const auDoigt = useMediaQuery(COMPACT);
+
   // Seulement les sets réellement présents dans l'inventaire : proposer un
   // filtre qui ne peut rien renvoyer n'aide personne.
   const present = useMemo(() => {
     const s = new Set(runes.map((r) => r.set));
     return RUNE_SETS.filter((rs) => s.has(rs.key));
   }, [runes]);
+
+  // ⚠️ **Sémantique en LISTE BLANCHE** : un set coché est un set AFFICHÉ. Par
+  // défaut tous les présents sont cochés (tout est montré) ; n'en cocher aucun,
+  // c'est ne rien vouloir voir. Le bouton bascule entre ces deux extrêmes.
+  const toutSelectionne = present.length > 0 && present.every((s) => value.has(s.key));
 
   const toggle = (key: string) => {
     const next = new Set(value);
@@ -52,7 +50,27 @@ export default function SetFilter({
       {/* Une SEULE barre continue plutôt que des boutons détachés : les symboles
           se lisent comme une rangée d'icônes du jeu, et l'ensemble tient sur une
           ligne même avec 25 sets. Seul l'état actif porte un cadre. */}
-      <div className="flex flex-wrap items-center gap-0.5 rounded-lg border border-border bg-panel p-1">
+      <div className="flex flex-wrap items-center gap-0.5 rounded-lg border border-border bg-panel p-1 coarse:gap-1">
+        {/* Bascule TOUT / RIEN, EN TÊTE de la grille et au même gabarit que les
+            sets — comme la tuile « Tous » du jeu, pas un bouton à part greffé
+            sur le côté. */}
+        {present.length > 0 && (
+          <button
+            onClick={() => onChange(toutSelectionne ? new Set() : new Set(present.map((s) => s.key)))}
+            title={toutSelectionne ? 'Tout désélectionner' : 'Tout sélectionner'}
+            aria-label={toutSelectionne ? 'Tout désélectionner' : 'Tout sélectionner'}
+            aria-pressed={toutSelectionne}
+            data-cible-fine
+            className={`flex items-center justify-center w-7 h-7 coarse:w-9 coarse:h-9 rounded-md border transition select-none
+              ${
+                toutSelectionne
+                  ? 'bg-accent-soft border-transparent'
+                  : 'border-transparent opacity-50 hoverable:opacity-100 hoverable:bg-panel2'
+              }`}
+          >
+            <Layers size={auDoigt ? 24 : 18} strokeWidth={1.75} />
+          </button>
+        )}
         {present.map((s) => {
           const active = value.has(s.key);
           return (
@@ -62,7 +80,17 @@ export default function SetFilter({
               title={s.label}
               aria-label={s.label}
               aria-pressed={active}
-              className={`flex items-center justify-center w-7 h-7 rounded-md border transition select-none
+              // ⚠️ `data-cible-fine` : la règle tactile globale (40 px) ne
+              // s'applique pas à cette GRILLE. Vingt-six sets à 40 px feraient
+              // quatre lignes de pastilles avant le premier résultat — la
+              // liste qu'on vient filtrer se retrouvait hors écran. C'est
+              // l'ESPACEMENT entre cibles alignées qui évite d'activer le
+              // voisin, pas leur taille.
+              // ⚠️ Au DOIGT (`coarse:`), la case passe tout de même à 36 px et
+              // l'icône grossit un peu : 28 px se visaient mal du pouce. À la
+              // souris elles restent compactes.
+              data-cible-fine
+              className={`flex items-center justify-center w-7 h-7 coarse:w-9 coarse:h-9 rounded-md border transition select-none
                 ${
                   // ⚠️ Fond seul (voir spec/shared/design.md). La bordure reste
                   // TRANSPARENTE et non `border`, comme au repos : ces pastilles
@@ -73,25 +101,14 @@ export default function SetFilter({
                     : 'border-transparent opacity-50 hoverable:opacity-100 hoverable:bg-panel2'
                 }`}
             >
-              <RuneIcon setKey={s.key} size={18} filter={OR(active)} />
+              {/* ⚠️ Taille selon le POINTEUR : 24 px au doigt (visée du pouce),
+                  18 px à la souris — la taille est posée en `style` inline par
+                  RuneIcon, donc un `coarse:` en `className` serait ignoré. */}
+              <RuneIcon setKey={s.key} size={auDoigt ? 24 : 18} filter={runeSetIconFilter(active)} />
             </button>
           );
         })}
       </div>
-      {/* Réinitialisation : même gabarit que les pastilles de set (32 px, même
-          rayon, même bordure) pour ne pas casser la rangée, mais sans fond actif
-          et virant au rouge au survol — c'est une action, pas un set de plus. */}
-      {value.size > 0 && (
-        <button
-          onClick={() => onChange(new Set())}
-          title="Effacer le filtre de sets"
-          className="ml-1 flex h-8 items-center gap-1 rounded-md border border-border bg-panel px-2.5
-                     text-[11px] font-semibold text-ink-dim transition
-                     hoverable:border-fire/60 hoverable:text-fire"
-        >
-          <X size={12} className="flex-none" /> tout
-        </button>
-      )}
     </div>
   );
 }

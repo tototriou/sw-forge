@@ -45,8 +45,13 @@ vitesse.
 
 ## Interrupteurs d'affichage
 
-Trois boutons, poussés à droite de la barre : **Vitesses**, **Modifiés** et
-**Catégories**. Ils coupent le bruit **sans rien perdre** — les données restent,
+Trois boutons : **Vitesses**, **Modifiés** et **Catégories**.
+
+⚠️ **Deux emplacements selon la largeur.** Sur bureau ils sont poussés à droite
+de la rangée des catégories — la largeur y suffit. Sous `lg` ils prennent leur
+propre rangée : la rangée des catégories comptait déjà quatre éléments avant eux,
+ils y passaient à la ligne dès qu'une catégorie de plus existait et se
+retrouvaient un coup à droite, un coup en dessous. Ils coupent le bruit **sans rien perdre** — les données restent,
 seul le rendu disparaît. Les trois états sont **persistés**.
 
 - ⚠️ **Les trois sont TOUJOURS affichés**, même quand ils ne servent à rien (pas
@@ -54,14 +59,32 @@ seul le rendu disparaît. Les trois états sont **persistés**.
   bouton qui apparaît et disparaît fait sauter la rangée et donne l'impression
   d'un réglage qu'on aurait perdu.
 - Le libellé nomme **ce qu'on affiche**, pas l'état du réglage — « Couleurs
-  masquées » obligeait à relire le bouton pour savoir ce qu'il pilote. C'est
-  l'**icône œil barré** qui porte l'état.
+  masquées » obligeait à relire le bouton pour savoir ce qu'il pilote.
+- Sur **bureau**, l'icône **œil ouvert / barré** porte l'état et l'accent marque
+  l'état *masqué*.
+- Sous `lg`, deux écarts que la petite taille impose :
+  - ⚠️ **L'accent marque l'état ACTIF.** Sur un écran large on embrasse la
+    rangée d'un regard et l'inversion se rattrape ; sur trois pastilles serrées,
+    elle se lit à l'envers — trois pastilles ternes voudraient dire « tout est
+    affiché », une pastille colorée « ceci manque ».
+  - ⚠️ **Une PUCE plutôt qu'un œil barré.** Ce pictogramme demande de se
+    rappeler s'il montre l'état courant ou l'action à venir ; à 12 px sur un
+    téléphone, l'ambiguïté ne se lève plus. Un point plein ou creux se lit sans
+    être interprété.
+- Les trois sont **un seul composant** (`InterrupteurAffichage`) à deux rendus,
+  pas trois copies du même bouton.
+
+⚠️ **Le rendu de bureau n'a pas changé.** Ce n'est pas qu'il soit meilleur —
+c'est qu'il n'était pas en cause : la refonte visait le téléphone, et déplacer
+au passage les repères d'un écran qui ne souffrait de rien aurait été un coût
+sans contrepartie.
 - **Vitesses** — masque la vitesse sur les cartes de classement. Utile quand on
   range sa box par rôle et que les chiffres n'apportent rien à ce moment-là.
-- **Modifiés** — écrit en **orange le nom ET la vitesse** des monstres dont les
+- **Modifiés** — écrit en **orange le nom et la vitesse** des monstres dont les
   runes ne suivent plus la vitesse demandée dans l'ordre de tour (voir
   [ordre-de-tour.md](ordre-de-tour.md)). On repère ainsi ceux à re-runer **sans
-  ouvrir chaque fiche**.
+  ouvrir chaque fiche**. ⚠️ Sous `sm` le nom n'est pas affiché (voir plus bas) :
+  seule la vitesse porte l'orange, ce qui suffit — c'est elle qui est en cause.
 - **Catégories** — masque les anneaux de couleur.
 
 Le bouton **Catégories** coupe les anneaux **sans rien perdre** : les catégories,
@@ -221,3 +244,63 @@ catégorie » plus haut.
   définitions du joueur, pas des données de compte.
 - Aucune catégorie créée → la barre n'affiche que « + Catégorie », et aucune
   carte n'a d'anneau.
+
+## La carte sur téléphone
+
+⚠️ **Le nom du monstre n'est pas affiché sous `sm`.** Sur deux colonnes de
+150 px, la ligne porte déjà la vitesse, le badge de désynchronisation et trois
+icônes de set : il ne restait au nom qu'une quarantaine de pixels, de quoi
+afficher « Sath… » — qui ne distingue rien.
+
+Le **portrait** identifie le monstre bien mieux qu'un nom tronqué, et il est déjà
+là. La **vitesse** prend la place libérée, calée à gauche : c'est la donnée qu'on
+vient lire sur cet écran, la prépa RTA se réglant au point de vitesse.
+
+⚠️ Le nom complet passe dans l'**infobulle de la carte**, en tête des catégories.
+Sans cela il n'existerait plus nulle part sur téléphone.
+
+⚠️ Dans le panneau d'affectation, un monstre sélectionné se marque par son
+**fond** teinté à la couleur de la catégorie, plus le liseré. La coche de 12 px
+posée dans son coin ne s'affiche plus **sous `lg`** : sur un portrait de 36 px
+elle en masquait un bout au doigt, là où le fond et le liseré disent déjà la
+sélection — et le fond porte en outre la COULEUR de la catégorie, ce qu'une
+coche ne dit pas. Sur bureau elle reste, rien ne l'y gênant.
+
+⚠️ Le formulaire de catégorie devient un panneau **de second niveau** sous `lg`
+(`MobileSheet centre`), et reste une popup ancrée au-dessus. Une popup ancrée sur
+téléphone s'ouvre là où le doigt a tapé — souvent en haut de l'écran, hors de
+portée du pouce pour la valider — et flotte hors de tout cadre, d'où les
+débordements qu'il fallait rattraper à la mesure. Le formulaire est le **même JSX** dans les deux cas ; seuls le contenant et les
+tailles changent :
+
+| | Bureau | Doigt |
+|---|---|---|
+| Largeur | 220 px, ancrée | Toute celle du panneau |
+| Champ de nom | 12 px | **16 px** — en dessous, iOS zoome à la mise au point et la page n'en revient pas seule |
+| Cases de couleur | 24 px de haut | **44 px** — douze côte à côte, une erreur de visée choisit la voisine |
+| Pastille de rappel à côté du champ | Affichée | **Masquée** — la palette montre déjà la couleur choisie, d'un cadre autour de sa case ; deux rappels à 40 px l'un de l'autre, dont un qui rogne le champ |
+| Valider / Annuler | Sur une ligne | **Empilés, pleine largeur**, « Valider » en bas — dans le pouce |
+
+⚠️ La palette garde **six colonnes** dans les deux cas : douze couleurs en deux
+rangées se comparent d'un coup d'œil, là où trois rangées de quatre obligeraient
+à balayer.
+
+⚠️ Il s'ouvre **depuis** le panneau « Options », donc **par-dessus** lui : voile
+opaque et `z-index` supérieur, sinon on voyait deux panneaux empilés, deux
+titres et deux croix, sans savoir laquelle ferme quoi. Il est aussi **centré**
+verticalement et non collé en bas — ce n'est pas une liste d'actions qu'on
+parcourt du pouce mais un formulaire court, dont il ne restait qu'une bande sous
+le clavier. Il paraît en fondu plutôt qu'en glissant : le glissement dit « je
+viens du bord », or celui-ci ne vient de nulle part, il interrompt.
+
+⚠️ Les icônes de set sont **collées** et la ligne entière resserrée — **sous
+`sm` seulement**. À trois sets — le maximum — les écarts suffisaient à
+faire déborder la dernière icône de la carte. Elles restent lisibles au
+contact : ce sont des pastilles rondes cerclées, chacune se détache de sa
+voisine sans qu'il faille un blanc entre elles. Sur bureau la carte est deux
+fois plus large : l'écart y tient sans rien coûter.
+
+⚠️ Les icônes de set réservent `pr-3` sous `sm`. La croix de suppression est
+posée **sur** le coin haut-droit, hors du flux : rien ne la repousse, et la
+dernière icône passait dessous dès que le nom masqué eut libéré assez de place
+pour que les trois atteignent le bord.

@@ -21,7 +21,7 @@ export default function ComingSoon({ title, icon: Icon, description }: Props) {
           <Icon size={28} className="text-ink-dim" />
         </div>
         <h2 className="font-display text-[22px] tracking-wide mb-2">Bientôt disponible</h2>
-        <p className="text-ink-dim text-[14px] max-w-md leading-relaxed">Cet outil est en cours de construction.</p>
+        <p className="text-ink-dim text-sm max-w-md leading-relaxed">Cet outil est en cours de construction.</p>
       </motion.div>
     </div>
   );

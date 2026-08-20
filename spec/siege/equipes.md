@@ -16,7 +16,14 @@ Fichiers : [SiegeTeam.tsx](src/components/siege/SiegeTeam.tsx) ·
   reçoit en prop et remonte le clic (`onToggleExpand`).
 
 ### Vue compacte (repliée)
-Une ligne par équipe, très basse : les **3 monstres** côte à côte. Chaque monstre
+Une ligne par équipe, très basse : les **3 monstres** côte à côte.
+
+⚠️ **Côte à côte À TOUTE largeur**, y compris sur téléphone. Ils s'y empilaient
+en colonne : trois cartes de 52 px plus les écarts, soit 170 px par équipe avant
+même l'en-tête — on voyait une équipe et demie là où le siège en compte huit à
+comparer. **Une équipe EST une rangée de trois** ; l'empiler défait ce qu'on
+vient lire. Sous `sm`, le portrait descend à 30 px et le nom à 11 px pour que
+les trois tiennent sur 348 px. Chaque monstre
 = portrait hexagonal + **icône d'élément** + (couronne si leader), puis un bloc
 texte **sur deux lignes** :
 
@@ -130,3 +137,74 @@ Idéale avec beaucoup d'équipes (import offense ~50).
 - Un monstre **perso** est sélectionnable comme les autres.
 - Vider/retirer un slot le remet à l'état vide (pas de décalage des autres).
 - Le nombre d'équipes est illimité ; chaque équipe est indépendante.
+
+## Retirer un monstre d'un slot
+
+La croix d'un slot demande une **confirmation**, sur les deux formats — la même
+règle que la croix d'une carte de prépa RTA (voir
+[../rta/sections-runes.md](../rta/sections-runes.md)).
+
+⚠️ Ce qui part avec le monstre ne se retrouve pas : sa **vitesse saisie** et son
+**tick visé**. Ni annulation ni corbeille, alors que ces deux valeurs sont
+justement ce qu'on vient régler sur cet écran.
+
+⚠️ La suppression d'une **équipe entière** en demandait déjà une ; celle d'un
+monstre n'en avait aucune. L'écart n'avait pas de justification : c'est la même
+perte, à une échelle plus petite.
+
+## Le slot en édition, sur téléphone
+
+⚠️ La **poignée de glissement est masquée au doigt** (`coarse:hidden`) : le
+glisser-déposer HTML5 n'y fonctionne pas, et le sélecteur « Position » en bas du
+slot fait déjà le travail. Elle prenait 15 px sur une ligne qui porte aussi le
+portrait, le nom, les sets et la croix. Même traitement que la poignée d'une
+carte RTA.
+
+⚠️ Le **sélecteur de position** est exempté de la règle tactile
+(`data-cible-fine`) et ramené à **20 px** : porté à 40 dans un slot qui en fait
+110, il pesait autant que la vitesse qu'on vient régler. Il occupe toute la
+largeur restante de sa ligne — rien d'autre à toucher autour, donc rien à rater.
+
+⚠️ Y parvenir demande `appearance-none` **et** une hauteur explicite : un
+`<select>` natif garde un socle imposé par le navigateur, que ni le rembourrage
+ni la classe ne franchissent. Le chevron natif part avec l'habillage ; celui qui
+le remplace est une `data:` URI (`--chevron-select`), posée en image de fond —
+il n'y a rien à cliquer dessus, le `<select>` capte tout.
+
+## Densité sur téléphone
+
+La page empile jusqu'à huit équipes : tout rembourrage s'y paie autant de fois.
+Sous `sm` :
+
+| | Bureau | Mobile |
+|---|---|---|
+| Carte d'équipe | `p-4` | `p-2.5` |
+| Écart entre équipes | `gap-4` | `gap-2` |
+| Portrait en vue compacte | 36 px | 30 px |
+| Nom du monstre | 12 px | 11 px |
+| Icônes de set | 17 px | 14 px |
+| Badge de lead | 22 px | 17 px |
+| Icône de vitesse | Affichée | Masquée |
+| Titre « Équipe N » | 17 px | 15 px |
+| « Éditer » / « Supprimer » | Libellé + icône | Icône seule |
+
+⚠️ Les libellés des deux boutons d'en-tête tombent sous `sm` : la ligne y porte
+déjà le titre, la pastille d'état et la pastille de lead. Le crayon et la
+corbeille se reconnaissent seuls, et `aria-label` porte le sens complet.
+
+⚠️ **Le budget de la ligne « vitesse + sets » est COMPTÉ**, pas estimé. Sur
+348 px, une carte compacte fait `(348 − 2×4) ÷ 3 ≈ 113 px` ; moins le
+rembourrage et le portrait de 30, il reste **~73 px**. Une icône de vitesse (12)
+plus un nombre à trois chiffres (~22) plus trois icônes de set (3×14) font déjà
+76 : l'icône de vitesse tombe, parce qu'elle est **ce qui apporte le moins** —
+le gros chiffre en gras se lit comme une vitesse sans elle, c'est la seule de la
+carte.
+
+⚠️ Le carré du slot **vide** suit exactement la taille du portrait rempli. À
+34 px fixes, une carte vide était plus haute qu'une carte pleine et la rangée de
+trois partait en dents de scie.
+
+⚠️ Le sous-onglet **« Recommandations » devient « Recos »** sous `sm`. À sa
+longueur complète, les trois onglets ne tenaient pas sur une ligne et la rangée
+passait à la ligne — une navigation à trois entrées ne doit pas occuper deux
+lignes. C'est en outre le mot qu'on emploie.

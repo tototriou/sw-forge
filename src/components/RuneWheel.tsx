@@ -1,13 +1,15 @@
 import { ReactNode, useRef } from 'react';
+import { COMPACT, useMediaQuery } from '../hooks/useMediaQuery';
 import { RuneDetail } from '../types';
 import { RARITY_FILTER } from '../lib/effects';
 import RuneIcon from './RuneIcon';
 import { SPIN } from './RuneSlotIcon';
+import { ZoneCliquable } from '../ui';
 
 // Roue de runes « façon jeu » — extraite de [MonsterGear.tsx](src/components/MonsterGear.tsx)
 // à son deuxième usage (cartes de résultat de l'Optimizer, voir
 // BuildCandidateCard.tsx) plutôt que recopiée, même principe que
-// [Segmented.tsx](src/components/Segmented.tsx)/[Switch.tsx](src/components/Switch.tsx).
+// [Segmented.tsx](src/ui/Segmented.tsx)/[Switch.tsx](src/components/Switch.tsx).
 //
 // ⚠️ Paramétrée par `scale` : MonsterGear l'utilise à `scale=1` (taille
 // historique, inchangée) pour la fiche pleine (RTA/Siège/Optimizer), et
@@ -16,7 +18,9 @@ import { SPIN } from './RuneSlotIcon';
 // set) sont calibrés pour `BASE_WHEEL_W` et multipliés par `scale` — seul
 // `WHEEL_POS` (des pourcentages) reste indépendant de l'échelle.
 
-const WHEEL_IMG = `${import.meta.env.BASE_URL}rune-wheel.png`;
+// Exporté : réutilisé tel quel comme icône (OptimizerSection.tsx, « Exclure
+// les runes déjà utilisées ») — la même image de fond, jamais recopiée.
+export const WHEEL_IMG = `${import.meta.env.BASE_URL}rune-wheel.png`;
 const RUNE_FRAME = `${import.meta.env.BASE_URL}rune-blank.png`;
 
 // Taille de référence (ratio de l'image 219×249) — celle de MonsterGear à
@@ -64,8 +68,10 @@ const SET_OFFSET: Record<number, { x: number; y: number }> = {
 
 export interface RuneWheelProps {
   runes: RuneDetail[];
-  // 1 = taille pleine (MonsterGear à scale=1) ; plus petit pour une carte
-  // compacte (voir BuildCandidateCard.tsx).
+  // Taille de la roue. **Absent = responsive** : pleine taille à partir de
+  // `sm`, réduite en dessous (voir `SCALE_MOBILE`). Une valeur explicite
+  // l'emporte et vaut à toutes les largeurs — c'est le cas des cartes de build,
+  // déjà calibrées pour leur conteneur.
   scale?: number;
   isSelected?: (rune: RuneDetail, index: number) => boolean;
   onSelectRune?: (rune: RuneDetail, index: number) => void;
@@ -76,14 +82,24 @@ export interface RuneWheelProps {
   renderOverlay?: (rune: RuneDetail, index: number, anchorRef: { current: HTMLElement | null }) => ReactNode;
 }
 
-export default function RuneWheel({ runes, scale = 1, isSelected, onSelectRune, renderOverlay }: RuneWheelProps) {
-  const refs = useRef<(HTMLDivElement | null)[]>([]);
+// ⚠️ **0,72 sous `sm`** — 150 px au lieu de 208. La roue est un dessin dont
+// tout est calculé en PIXELS (cadres, icônes de set, décalages) : elle ne peut
+// pas se réduire toute seule comme une image, et à 208 px elle occupait plus de
+// la moitié des 348 px utiles d'un téléphone, poussant les stats hors écran.
+// En dessous de 0,72, les icônes de set passent sous 14 px et le set ne se
+// reconnaît plus — c'est le plancher de lisibilité, pas un chiffre rond.
+const SCALE_MOBILE = 0.72;
 
-  const wheelW = Math.round(BASE_WHEEL_W * scale);
-  const wheelH = Math.round(BASE_WHEEL_H * scale);
-  const fw = Math.round(BASE_FW * scale);
-  const fh = Math.round(BASE_FH * scale);
-  const setIconSize = Math.max(10, Math.round(BASE_SET_ICON * scale));
+export default function RuneWheel({ runes, scale, isSelected, onSelectRune, renderOverlay }: RuneWheelProps) {
+  const refs = useRef<(HTMLDivElement | null)[]>([]);
+  const petitEcran = useMediaQuery(COMPACT);
+  const echelle = scale ?? (petitEcran ? SCALE_MOBILE : 1);
+
+  const wheelW = Math.round(BASE_WHEEL_W * echelle);
+  const wheelH = Math.round(BASE_WHEEL_H * echelle);
+  const fw = Math.round(BASE_FW * echelle);
+  const fh = Math.round(BASE_FH * echelle);
+  const setIconSize = Math.max(10, Math.round(BASE_SET_ICON * echelle));
 
   return (
     <div
@@ -113,13 +129,22 @@ export default function RuneWheel({ runes, scale = 1, isSelected, onSelectRune, 
               top: pos.top,
               width: fw,
               height: fh,
-              transform: `translate(calc(-50% + ${nudge.x * scale}px), calc(-50% + ${nudge.y * scale}px))`,
+              transform: `translate(calc(-50% + ${nudge.x * echelle}px), calc(-50% + ${nudge.y * echelle}px))`,
             }}
           >
-            <button
-              type="button"
+            {/* ⚠️ Une ZONE et non un bouton : la cible est l'image de la rune
+                elle-même, posée en `absolute inset-0` sur son emplacement de la
+                roue. Un cadre ou un rembourrage y dessinerait un second objet
+                par-dessus le premier. */}
+            <ZoneCliquable
               onClick={() => onSelectRune?.(r, i)}
               title={`Slot ${r.slot}${ancient ? ' · antique' : ''} · voir le détail`}
+              // ⚠️ `data-cible-fine` : sans lui, `min-height: 40px` (cibles
+              // tactiles, index.css) gagne contre la hauteur du cadre
+              // (`inset-0` sur son emplacement de la roue) et décale la rune
+              // vers le bas — le `top` reste ancré, c'est le bas qui s'étire.
+              // Même cas que SetComboPicker.tsx.
+              data-cible-fine
               className="absolute inset-0"
             >
               {/* cadre de rune, tourné pour épouser le slot — runes antiques →
@@ -127,7 +152,7 @@ export default function RuneWheel({ runes, scale = 1, isSelected, onSelectRune, 
               <img
                 src={RUNE_FRAME}
                 draggable={false}
-                className="absolute inset-0 w-full h-full transition duration-300 ease-out"
+                className="absolute inset-0 w-full h-full object-contain transition duration-300 ease-out"
                 style={{
                   transform: `rotate(${rot}deg)`,
                   filter:
@@ -144,11 +169,11 @@ export default function RuneWheel({ runes, scale = 1, isSelected, onSelectRune, 
               {/* icône de set, décalée vers le centre (glissée dans le pétale) */}
               <span
                 className={`absolute inset-0 flex items-center justify-center ${SPIN}`}
-                style={{ transform: `translate(${setOff.x * scale}px, ${setOff.y * scale}px)` }}
+                style={{ transform: `translate(${setOff.x * echelle}px, ${setOff.y * echelle}px)` }}
               >
                 <RuneIcon setKey={r.set} size={setIconSize} filter={RARITY_FILTER[r.rarity] ?? RARITY_FILTER[1]} />
               </span>
-            </button>
+            </ZoneCliquable>
             {renderOverlay?.(r, i, { current: refs.current[i] })}
           </div>
         );

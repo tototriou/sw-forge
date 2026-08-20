@@ -1,11 +1,13 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Sparkles } from 'lucide-react';
+import { Sparkles, BookOpen } from 'lucide-react';
 import SearchBar from '../components/SearchBar';
+import MobileSheet from '../ui/MobileSheet';
 import FilterBar from '../components/FilterBar';
 import MonsterGrid from '../components/MonsterGrid';
+import { SEUIL_ANIMATION_GRILLE } from '../components/MonsterCard';
 import MonsterDetailDialog from '../components/MonsterDetailDialog';
 import Pager from '../components/account/Pager';
-import { ELEMENTS, ElementKey, Monster } from '../types';
+import { ELEMENTS, STAR_OPTIONS, ElementKey, Monster } from '../types';
 import { LoadState } from '../hooks/useMonsters';
 import {
   autreForme,
@@ -17,6 +19,9 @@ import {
 interface Props {
   monsters: Monster[];
   loadState: LoadState;
+  // Tiroir d'actions mobile — piloté par la barre supérieure (voir App.tsx).
+  menuOuvert: boolean;
+  onFermerMenu: () => void;
 }
 
 // Cartes par page. ⚠️ Le bestiaire porte ~3 000 monstres, et chaque carte est un
@@ -28,10 +33,15 @@ interface Props {
 // l'autre.
 const PAGE = 60;
 
-export default function BestiaryPage({ monsters }: Props) {
+export default function BestiaryPage({ monsters, menuOuvert, onFermerMenu }: Props) {
   const [query, setQuery] = useState('');
-  const [activeElements, setActiveElements] = useState<Set<ElementKey>>(new Set());
-  const [activeStars, setActiveStars] = useState<Set<number>>(new Set());
+  // ⚠️ **Liste BLANCHE, tout coché par défaut** — même règle que les filtres de
+  // runes : une pastille cochée est AFFICHÉE, n'en cocher aucune revient à ne
+  // rien vouloir voir.
+  const [activeElements, setActiveElements] = useState<Set<ElementKey>>(
+    () => new Set(ELEMENTS.map((el) => el.key))
+  );
+  const [activeStars, setActiveStars] = useState<Set<number>>(() => new Set(STAR_OPTIONS));
   const [sortMode, setSortMode] = useState('stars_desc');
   // Fiche ouverte — état local, non persisté : rouvrir la page sur une fiche
   // consultée la veille serait déroutant.
@@ -78,8 +88,10 @@ export default function BestiaryPage({ monsters }: Props) {
         const noms = [m.name, jumeau?.name].filter(Boolean) as string[];
         if (!noms.some((n) => n.toLowerCase().includes(q))) return false;
       }
-      if (activeElements.size && !activeElements.has(m.element)) return false;
-      if (activeStars.size && !(m.stars !== null && activeStars.has(m.stars))) return false;
+      if (!activeElements.has(m.element)) return false;
+      // ⚠️ Un monstre SANS grade naturel échappe au filtre d'étoiles : aucune
+      // case ne peut le désigner, le masquer serait le rendre introuvable.
+      if (m.stars !== null && !activeStars.has(m.stars)) return false;
       return true;
     });
 
@@ -111,6 +123,13 @@ export default function BestiaryPage({ monsters }: Props) {
   const pageCount = Math.max(1, Math.ceil(totalShown / PAGE));
   const safePage = Math.min(page, pageCount - 1);
 
+  // Cartes réellement affichées sur cette page. ⚠️ Au-delà du seuil, l'animation
+  // de disposition est coupée pour toute la page — voir SEUIL_ANIMATION_GRILLE :
+  // une page pleine (60) saccaderait au FLIP, une dernière page courte garde le
+  // fondu.
+  const nbPage = Math.max(0, Math.min(PAGE, totalShown - safePage * PAGE));
+  const animePage = nbPage <= SEUIL_ANIMATION_GRILLE;
+
   // ⚠️ On pagine AVANT de grouper, et non l'inverse : paginer chaque élément
   // séparément donnerait cinq paginations à l'écran, et « page 2 » ne voudrait
   // plus rien dire. Ici la page découpe la liste entière ; les blocs d'élément
@@ -132,8 +151,26 @@ export default function BestiaryPage({ monsters }: Props) {
 
   return (
     <div>
-      <div className="mt-6">
+      <div>
+        {/* ⚠️ La RECHERCHE reste toujours visible : c'est le geste principal de
+            cette page — on vient y chercher un monstre par son nom. Seuls les
+            FILTRES passent dans le tiroir sous `lg` : six pastilles d'élément,
+            six d'étoiles et un tri, soit trois rangées avant la première carte
+            sur un téléphone. */}
         <SearchBar value={query} onChange={setQuery} />
+        <div className="hidden lg:block">
+          <FilterBar
+            activeElements={activeElements}
+            toggleElement={toggleElement}
+            activeStars={activeStars}
+            toggleStar={toggleStar}
+            sortMode={sortMode}
+            setSortMode={setSortMode}
+          />
+        </div>
+      </div>
+
+      <MobileSheet ouvert={menuOuvert} onFermer={onFermerMenu} titre="Filtrer le bestiaire">
         <FilterBar
           activeElements={activeElements}
           toggleElement={toggleElement}
@@ -142,7 +179,7 @@ export default function BestiaryPage({ monsters }: Props) {
           sortMode={sortMode}
           setSortMode={setSortMode}
         />
-      </div>
+      </MobileSheet>
 
       {/* Compteur + pagination en TÊTE : sur une page de 60 cartes, renvoyer en
           bas de page pour changer de page ferait remonter à chaque fois.
@@ -153,7 +190,7 @@ export default function BestiaryPage({ monsters }: Props) {
           ref={listeRef}
           className="mt-4 flex flex-wrap items-center justify-between gap-3"
         >
-          <p className="font-mono text-[12px] text-ink-dim">
+          <p className="font-mono text-xs text-ink-dim">
             {totalShown} monstre{totalShown > 1 ? 's' : ''}
             {totalShown !== totalBase && ` sur ${totalBase}`}
           </p>
@@ -174,6 +211,7 @@ export default function BestiaryPage({ monsters }: Props) {
             monsters={grouped.get(el.key) ?? []}
             allMonsters={monsters}
             onOpen={setFiche}
+            anime={animePage}
           />
         ))
       )}

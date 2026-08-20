@@ -3,6 +3,8 @@ import { X } from 'lucide-react';
 import { RTA_OTHER, RTA_UNASSIGNED } from '../../types';
 import RuneIcon from '../RuneIcon';
 import AccordionGrid from '../AccordionGrid';
+import { ConfirmDialog } from '../../ui/Dialogs';
+import { BoutonIcone } from '../../ui';
 
 interface Props {
   sectionKey: string;
@@ -52,43 +54,82 @@ export default function RtaSection({
     if (id) onDropMonster(sectionKey, id);
   }
 
+  // ⚠️ La suppression d'une section demande une CONFIRMATION. Elle ne perd
+  // aucun monstre — ils reviennent en « Non classé » —, mais elle perd le
+  // CLASSEMENT, qui est le travail qu'on vient faire sur cet écran : une section
+  // de vingt monstres se reconstitue un par un.
+  const [suppressionAConfirmer, setSuppressionAConfirmer] = useState(false);
+
   return (
     <section
       onDragOver={(e) => e.preventDefault()}
       onDragEnter={onDragEnter}
       onDragLeave={onDragLeave}
       onDrop={onDrop}
-      className={`rounded-2xl border p-3 transition-colors ${
+      // ⚠️ Rembourrage réduit sous `sm` : la page empile trois à six sections,
+      // et chaque `p-3` coûte 24 px de haut multipliés par le nombre de
+      // sections — soit un écran entier de vide sur un téléphone.
+      className={`rounded-2xl border p-3 transition-colors compact:p-2 ${
         over ? 'border-transparent bg-panel2/80' : 'border-border bg-panel/40'
       }`}
-      style={over ? { boxShadow: `0 0 0 2px ${accent}`, borderColor: accent } : undefined}
+      // ⚠️ 1 px, pas 2 : la bordure de la section est DÉJÀ teintée juste en
+      // dessous (`borderColor`), donc l'ombre s'ajoute à elle. À 2 px, la cible
+      // de dépôt se cernait d'un trait de 3 px qui pesait plus que la section
+      // elle-même. Voir la règle du marqueur unique dans spec/shared/design.md.
+      style={over ? { boxShadow: `0 0 0 1px ${accent}`, borderColor: accent } : undefined}
     >
-      <div className="flex items-center gap-2.5 mb-3">
+      <div className="flex items-center gap-2.5 mb-3 compact:gap-2 compact:mb-2">
         {sectionKey === RTA_OTHER || sectionKey === RTA_UNASSIGNED ? (
           <span className="w-3 h-3 rounded-[3px] rotate-45 flex-none" style={{ background: accent }} />
         ) : (
           <RuneIcon setKey={sectionKey} size={22} className="flex-none" />
         )}
-        <h3 className="font-display text-[16px] tracking-wide">{label}</h3>
-        <span className="font-mono text-ink-dim text-[11px]">{count}</span>
+        <h3 className="font-display text-base tracking-wide">{label}</h3>
+        <span className="font-mono text-ink-dim text-micro">{count}</span>
         {removable && onRemoveSection && (
-          <button
-            onClick={() => onRemoveSection(sectionKey)}
-            className="ml-auto flex items-center gap-1 text-ink-dim hoverable:text-fire text-[11px] transition"
-            title="Supprimer la section (les monstres reviennent en Non classé)"
-          >
-            <X size={13} />
-          </button>
+          <BoutonIcone
+            onClick={() => setSuppressionAConfirmer(true)}
+            libelle="Supprimer la section (les monstres reviennent en Non classé)"
+            ton="danger"
+            icone={<X size={13} />}
+            className="ml-auto"
+          />
         )}
       </div>
 
+      {suppressionAConfirmer && (
+        <ConfirmDialog
+          titre={`Supprimer la section « ${label} » ?`}
+          message={
+            count > 0
+              ? `Ses ${count} monstre(s) reviennent en « Non classé » — aucun n'est retiré de ta prépa. C'est le CLASSEMENT qui est perdu, et il se refait un monstre à la fois.`
+              : 'Cette section est vide. Les autres ne sont pas touchées.'
+          }
+          libelleAction="Supprimer"
+          destructif
+          onCancel={() => setSuppressionAConfirmer(false)}
+          onConfirm={() => {
+            setSuppressionAConfirmer(false);
+            onRemoveSection?.(sectionKey);
+          }}
+        />
+      )}
+
       {count === 0 ? (
-        <div className="rounded-xl border border-dashed border-border/70 py-6 text-center text-ink-dim text-[12.5px]">
+        <div className="rounded-xl border border-dashed border-border/70 py-6 text-center text-ink-dim text-xs">
           Glisse des monstres ici
         </div>
       ) : (
         <AccordionGrid
-          className="grid grid-cols-[repeat(auto-fill,minmax(min(100%,210px),1fr))] gap-2.5"
+          // ⚠️ **150 px de colonne minimale, pas 210.** À 210, une seule carte
+          // tenait sur 320 px utiles : une prépa de trente monstres devenait
+          // trente lignes, et l'ordre de tour — qui se lit en balayant — n'était
+          // plus lisible d'un coup d'œil. À 150, deux colonnes tiennent dès
+          // 320 px et trois à partir de 480.
+          // La carte s'y adapte : le sélecteur de section passe sous le nom
+          // plutôt qu'à côté (voir RtaCard).
+          className="grid grid-cols-[repeat(auto-fill,minmax(min(100%,150px),1fr))] gap-2
+                     sm:grid-cols-[repeat(auto-fill,minmax(min(100%,210px),1fr))] sm:gap-2.5"
           openIndex={openIndex}
           detail={detail}
         >

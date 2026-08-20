@@ -6,10 +6,11 @@
 // leur forme ne dit qu'en activer une désactive les autres. Le cadre commun le
 // dit sans un mot.
 //
-// Il vivait dans [SettingsMenu.tsx](src/components/SettingsMenu.tsx), qui a été
-// le premier à en avoir besoin ; il en a été **remonté** au deuxième usage
-// plutôt que recopié — deux copies auraient divergé, comme les chips d'élément
-// avant [elementStyles.ts](src/components/elementStyles.ts).
+// Il est né dans [SettingsMenu.tsx](src/components/SettingsMenu.tsx), qui a été
+// le premier à en avoir besoin ; **remonté** dans `components/` au deuxième
+// usage plutôt que recopié — deux copies auraient divergé, comme les chips
+// d'élément avant [elementStyles.ts](src/components/elementStyles.ts) — puis ici
+// dans la librairie une fois ses neuf appelants avérés.
 export default function Segmented<T extends string>({
   options,
   value,
@@ -17,6 +18,7 @@ export default function Segmented<T extends string>({
   className = '',
   size = 'sm',
   disabled = false,
+  dense = false,
 }: {
   options: { key: T; label: string; hint?: string; icon?: React.ReactNode; suffix?: React.ReactNode }[];
   value: T;
@@ -25,17 +27,31 @@ export default function Segmented<T extends string>({
   // 'lg' : chaque option se partage la largeur à égalité, sur une seule
   // ligne bien visible — pour un choix structurant (peu d'options, chacune
   // méritant d'être lue d'un coup d'œil), pas un réglage secondaire.
-  size?: 'sm' | 'lg';
+  // 'md' : le texte et le rembourrage de `lg`, mais SANS forcer la largeur —
+  // le cadre reste à sa taille de contenu, posé au milieu d'une rangée de
+  // filtres plutôt que seul sur sa ligne. Pour un choix qu'on veut plus lisible
+  // à la souris, où la place ne manque pas, sans lui donner le poids visuel
+  // d'un choix structurant.
+  size?: 'sm' | 'md' | 'lg';
   // Un vrai `disabled` sur chaque bouton (pas juste grisé en CSS) : ni
   // cliquable ni atteignable au clavier tant qu'un réglage parent (ex. « Exclure
   // les runes déjà utilisées ») n'est pas actif — voir OptimizerSection.tsx.
   disabled?: boolean;
+  // ⚠️ **Une seule ligne, texte resserré.** `lg` force toutes les options
+  // sur une ligne, mais avec 4 options à libellé long (« Défenses siège »)
+  // dans un panneau mobile resserré, le rembourrage/texte normal de `lg`
+  // les coupait. `dense` garde tout sur une seule ligne, pleine largeur
+  // (jamais empilé), avec un rembourrage/texte réduits (`nano`, le cran de
+  // secours des rendus contraints — voir tailwind.config.js) plutôt que de
+  // passer à deux lignes.
+  dense?: boolean;
 }) {
+  const large = size === 'lg' || size === 'md';
   return (
     <div
-      className={`flex items-center ${size === 'lg' ? 'w-full gap-0' : 'gap-0.5 flex-none'} bg-panel2 border border-border rounded-lg p-0.5 ${
-        disabled ? 'opacity-40' : ''
-      } ${className}`}
+      className={`flex items-center ${
+        size === 'lg' ? 'w-full gap-0' : 'gap-0.5 flex-none'
+      } bg-panel2 border border-border rounded-lg p-0.5 ${disabled ? 'opacity-40' : ''} ${className}`}
     >
       {options.map((o, i) => {
         const active = value === o.key;
@@ -53,9 +69,19 @@ export default function Segmented<T extends string>({
               disabled={disabled}
               title={o.hint}
               aria-pressed={active}
-              className={`flex flex-1 items-center justify-center gap-1.5 rounded-md font-semibold
-                          transition whitespace-nowrap disabled:cursor-not-allowed ${
-                            size === 'lg' ? 'px-2 py-1.5 text-[12px]' : 'px-2 py-1 text-[11.5px]'
+              className={`flex flex-1 items-center justify-center gap-1.5 rounded-md font-semibold text-center
+                          transition disabled:cursor-not-allowed ${
+                            // ⚠️ `dense` NE force PAS `whitespace-nowrap` : à 4
+                            // options longues sur une seule ligne, même à
+                            // `nano` (10 px) le texte se chevauchait faute de
+                            // place — le libellé passe sur deux lignes plutôt
+                            // que déborder. Les trois autres tailles gardent
+                            // `whitespace-nowrap`, elles ont la place.
+                            dense
+                              ? 'px-1 py-1 text-nano leading-tight'
+                              : large
+                                ? 'px-3 py-1.5 text-xs whitespace-nowrap'
+                                : 'px-2 py-1 text-micro whitespace-nowrap'
                           } ${
                             // ⚠️ Le fond SEUL marque le cran posé — pas d'ombre
                             // en plus, elle faisait décoller le bouton de son

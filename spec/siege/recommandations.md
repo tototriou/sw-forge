@@ -45,17 +45,29 @@ lesquelles il peut jouer.
   en recrée un vide).
 - Un même monstre ne peut pas occuper deux slots **du même deck**, mais peut
   revenir dans **un autre deck** de la recommandation.
-- Chaque deck a un **nom facultatif**. **Laissé vide, il reprend les noms de ses
-  monstres séparés par un tiret** (« Trevor - Bella - Loren ») ; « Deck N » tant
-  qu'aucun monstre n'est choisi.
-  - Le nom automatique est **dérivé à l'affichage** (`autoDeckName` /
-    `deckLabel` dans [RecoCard.tsx](src/components/siege/RecoCard.tsx)), **jamais
-    stocké** : il suit les changements de monstres, et se recalcule chez celui qui
-    importe (mêmes `com2usId` → mêmes noms).
-  - En édition, il apparaît en **placeholder** du champ : taper quelque chose le
-    remplace, vider le champ le rétablit.
+- Chaque deck se nomme par **les noms de ses monstres, séparés par un tiret**
+  (« Trevor - Bella - Loren ») ; « Deck N » tant qu'aucun monstre n'est choisi.
+  **Pas de titre libre à saisir** — `deckLabel` (dans
+  [RecoCard.tsx](src/components/siege/RecoCard.tsx)) calcule toujours ce nom,
+  **dérivé à l'affichage, jamais stocké** : il suit les changements de
+  monstres, et se recalcule chez celui qui importe (mêmes `com2usId` → mêmes
+  noms).
   - Si un monstre est absent des données chargées, on retombe sur le nom stocké
     dans le slot au moment du partage.
+  - ⚠️ **Ce nom calculé sert de TEXTE** dans l'aperçu replié de la
+    recommandation et la ligne « aller au deck » de l'encart de synthèse — pas
+    dans l'en-tête du deck lui-même (voir plus bas, « Repli deck par deck ») :
+    aux deux formats, l'en-tête montre les **portraits des monstres**, jamais
+    de texte.
+  - ⚠️ **`RecoDeck.name` existe encore dans le type et le stockage, pour la
+    RÉTROCOMPATIBILITÉ d'un import** : une recommandation exportée avant ce
+    changement — ou reçue d'un ami dont l'app n'est pas à jour — porte encore
+    un titre dans ce champ. Il n'est **jamais rejeté** par le validateur
+    d'import ([recoShare.ts](src/lib/recoShare.ts)), simplement **plus lu ni
+    affiché** : `deckLabel` ne le consulte plus. Un titre libre pouvait dater
+    une fois le deck modifié, redoubler ce que les portraits montrent déjà, ou
+    rester vide et donc identique au nom automatique — trois façons de ne rien
+    apporter.
 - Les **decks totalement vides** ne sont ni exportés ni comptés dans les statuts.
 
 ## Origine & filtre
@@ -73,9 +85,10 @@ chez l'auteur devient « importée » chez celui qui la reçoit — y compris si
 réimporte mon propre export.
 
 **Filtre** : **Toutes · Mes recos · Importées**, chacun avec son effectif.
-N'apparaît **que s'il existe au moins une recommandation**. Persistance via
-`useStickyState` (survit à la navigation, remis à « Toutes » au reload). Il vit
-dans le **bloc de filtres** décrit plus bas, sur la rangée « Origine ».
+**Toujours affiché et actif**, même sans aucune recommandation (tous les
+effectifs à zéro) — voir plus bas pourquoi il ne suit pas la règle du bloc de
+filtres. Persistance via `useStickyState` (survit à la navigation, remis à
+« Toutes » au reload).
 
 Garde-fous pour ne jamais « perdre » ce qu'on vient de faire :
 - **créer** une recommandation depuis la vue « Importées » bascule le filtre sur
@@ -92,23 +105,80 @@ Garde-fous pour ne jamais « perdre » ce qu'on vient de faire :
 C'est elle qui décide de ce que la liste montre, elle doit donc être collée à ce
 qu'elle filtre.
 
-### ⚠️ UN SEUL bloc de filtres, à rangées intitulées
+### Origine — SORTIE du bloc de filtres, toujours affichée
 
-Origine, monstres cherchés et rôle **filtrent tous la même liste** et se
-**combinent**. Ils sont donc réunis dans **un seul encart** (`border` +
-`bg-panel/40`), en **rangées `intitulé + contrôle`** — même grammaire que
-l'inventaire d'artéfacts (voir [../compte/artefacts.md](../compte/artefacts.md)) :
+⚠️ **Origine ne suit pas la règle du bloc de filtres** (ci-dessous), et c'est
+volontaire. Un filtre au-dessus d'une liste vide n'a normalement rien à
+filtrer — c'est vrai pour la recherche par monstre, qui n'a RIEN à chercher
+sans recommandation. Ce n'est **pas** vrai pour Origine : ses trois crans
+(Toutes/Mes recos/Importées) restent un choix qui a un sens dès qu'on **crée**
+la première recommandation, et un bouton d'action qui apparaît une fois qu'on
+en a besoin surprend — on ne l'a jamais vu apparaître d'un geste, il était
+juste absent (voir la règle générale dans
+[shared/design.md](../shared/design.md#-un-bouton-daction-ne-disparaît-jamais--il-se-désactive)).
+Origine est donc **posée hors du bloc**, sur sa propre ligne, **toujours
+affichée et active** — aux deux formats.
+
+Rendu **une seule fois** (`origineFilter(pleineLargeur)`), posé aux deux
+endroits — même geste que `actions` et `effacer` :
+- **à la souris** : sur la page, juste au-dessus du bloc de filtres, `hidden
+  lg:flex` ;
+- **au doigt** : dans le panneau « Options » (sous un filet, sous les
+  actions) — la carte reste à la **recherche**, le contrôle qu'on veut sous
+  le pouce sans ouvrir un panneau.
+
+⚠️ **Pleine largeur dans le panneau**, pas à sa taille propre : seul contrôle
+de sa ligne, il y flotterait sinon dans une bande vide. `Segmented` passe en
+`size="lg"` (chaque cran se partage la largeur à égalité).
+
+⚠️ **Intitulé « Origine » : au DOIGT seulement.** Dans le panneau, c'est le
+seul repère de ce contrôle — rien d'autre à côté pour dire ce qu'il fait.
+À la SOURIS, plus d'intitulé : il avait sa raison d'être DANS le bloc de
+filtres, aligné sur « Monstres » et « Rôle » en dessous (même largeur
+`w-[76px]`, grammaire intitulé+contrôle) ; sorti de ce bloc et seul sur sa
+ligne, rien ne le précède plus à quoi l'intitulé pourrait s'aligner — les trois
+crans (Toutes/Mes recos/Importées) se lisent d'eux-mêmes.
+
+⚠️ **`size="md"` à la souris, pas `sm`** — troisième palier ajouté à
+[Segmented.tsx](../../src/components/Segmented.tsx) : le texte et le
+rembourrage de `lg`, sans forcer sa largeur (`lg` reste réservé au panneau, où
+le cran est seul sur sa ligne). Posé seul sur sa propre ligne depuis qu'il est
+sorti du bloc de filtres, ce contrôle a la place d'être aussi lisible qu'un
+réglage structurant.
+
+### La recherche par composition — sans cadre, sans intitulé « Monstres »
+
+Monstres cherchés et rôle **filtrent tous la même liste** et se
+**combinent**. Deux rangées empilées, **sans encart** (ni bordure ni fond) et
+**sans intitulé sur la première** :
 
 | Rangée | Contrôle | Visible |
 |--------|----------|---------|
-| **Origine** | `Segmented` Toutes · Mes recos · Importées, effectif dans chaque cran | dès 1 recommandation |
-| **Monstres** | les 3 cases + le champ + « Vider » | dès 1 recommandation |
+| **(sans intitulé)** | le champ, puis les 3 cases (`ml-auto`), puis « Vider » | dès 1 recommandation |
 | **Rôle** | `Segmented` Partout · Défense à taper · Offense à runer + le compteur de résultats | une fois un monstre posé |
 
-- ⚠️ **Ils étaient posés à trois niveaux différents, sans intitulé** : trois
-  objets flottants dont rien ne disait qu'ils portaient sur la même liste ni
-  qu'ils se cumulaient. L'intitulé de **largeur fixe** (`w-[76px]`) aligne les
-  contrôles entre eux quelle que soit la longueur du mot.
+⚠️ **Pas de cadre.** Il enfermait un contenu qui n'a pas besoin d'être distingué
+du reste de la page — Origine, juste au-dessus, n'en a pas non plus.
+
+⚠️ **Pas d'intitulé « Monstres ».** Les trois cases et le champ disent déjà par
+leur FORME ce qu'on y fait — une composition de 3 monstres à composer —, un mot
+devant n'ajoutait rien. « Rôle » garde le sien : contrairement aux cases, un
+`Segmented` Partout/Défense/Offense ne dit pas de lui-même sur QUOI il porte.
+
+Ce bloc **n'apparaît que s'il existe au moins une recommandation** : sans rien
+à chercher, la recherche n'a pas sa place — à la différence d'Origine, qui
+reste affichée à vide (voir plus haut).
+
+⚠️ **Le champ de recherche à GAUCHE, les portraits des monstres posés à
+DROITE (`ml-auto`).** C'est le champ qu'on utilise en premier — le regard
+commence par lui, pas par des cases encore vides — et les portraits sont son
+RÉSULTAT : ils se lisent après ce qu'on vient de taper, jamais avant.
+
+- ⚠️ **Origine, Monstres et Rôle étaient posés à trois niveaux différents, sans
+  intitulé** : trois objets flottants dont rien ne disait qu'ils portaient sur
+  la même liste ni qu'ils se cumulaient. L'intitulé de **largeur fixe**
+  (`w-[76px]`) aligne les contrôles entre eux quelle que soit la longueur du
+  mot.
 - ⚠️ **Le filtre d'origine utilise le VRAI [Segmented](src/components/Segmented.tsx)**,
   et non une copie écrite à la main. La copie avait dérivé — `bg-panel` au lieu de
   `bg-panel2`, `rounded-xl p-1` au lieu de `rounded-lg p-0.5`, texte plus grand :
@@ -312,33 +382,79 @@ PV        10 050  + [24 950]  35 000
 - Base inconnue (monstre absent des données) → base affichée « — » et base
   traitée comme 0 : le champ vaut alors directement le total.
 
-**Lecture** — **mêmes colonnes** que la saisie (`base` / `bonus` / `total`), pour
-qu'on lise une recommandation exactement comme on l'écrit. Le **bonus est
-recalculé** (`total − base`), il n'est jamais stocké :
+**Lecture** — ⚠️ **pas de colonne « total » permanente**, contrairement à la
+saisie : `base` et `bonus` par défaut, le total au clic — même geste que le
+détail d'une rune ou d'un artéfact équipé (`RuneDetailBox`/`ArtifactDetailBox`
+dans [PieceDetail.tsx](../../src/components/PieceDetail.tsx)), qui bascule
+pareillement entre « valeur + meule » et le total cumulé. Trois colonnes en
+permanence pour dire deux fois la même chose (le bonus ET le total qui
+l'inclut) pesaient plus que ce qu'elles ajoutaient. Le **bonus est recalculé**
+(`total − base`), il n'est jamais stocké :
 
 ```
-Stat        base    bonus     total       toi
-VIT          107     +105       212       220          ← vert : atteint
-PV        10 050  +24 950    35 000   28 400 (−6 600)  ← rouge : écart affiché
+                                    actuel                              actuel
+Stat        base    bonus                        Stat        total
+VIT          107     +105          220 ← atteint     ⇄        VIT      212        220
+PV        10 050  +24 950      28 400 (−6 600)                PV    35 000    28 400 (−6 600)
 ```
 
-#### ⚠️ Les tables de stats ne se compriment jamais
+⚠️ **« actuel » reste affichée dans les deux états** : c'est la seule colonne qui
+compare à mon compte, elle ne dépend pas de la question détail/total. Son
+en-tête est écrit **une seule fois**, au-dessus de la liste — répéter le mot
+sur chaque ligne (l'essai précédent, « toi 220 ») pesait plus lourd que la
+colonne qu'il remplaçait.
 
-Sur écran étroit, les colonnes se refermaient jusqu'à **masquer la valeur saisie**
-dans le champ de bonus, et les cartes de slot finissaient par se chevaucher.
-Trois garde-fous, à conserver ensemble :
+#### ⚠️ Pas de table, pas de défilement horizontal — des lignes `flex-wrap`
 
-- le **champ de bonus** a un plancher de **`min-w-[5ch]`** — cinq chiffres
-  visibles, la taille de la plupart des stats (PV ~35 000) ;
-- chaque table porte une **largeur minimale** (`min-w-[236px]`) et défile
-  **horizontalement dans sa propre carte** (`overflow-x-auto`) au lieu d'écraser
-  ses colonnes ;
-- les cartes de slot sont en **`min-w-0`** : sans ça une cellule de grille refuse
-  de descendre sous la largeur de son contenu et **déborde sur sa voisine**
-  plutôt que de laisser la table défiler.
+Une table à colonnes fixes, sous sa largeur minimale, défilait
+**horizontalement DANS la carte** (`overflow-x-auto`) — et une barre de
+défilement horizontale, sur trois ou quatre chiffres, est **illisible** : on
+ne voit plus la ligne entière d'un coup d'œil, et il faut deviner qu'il y a
+quelque chose à faire glisser.
 
-La colonne **« toi » n'apparaît qu'après une analyse** (sinon la table s'arrête à
-`total`), cohérent avec le fait que rien n'est confronté par défaut.
+**Chaque stat est une ligne `flex flex-wrap`** (label, base, bonus, total)
+plutôt qu'une rangée de `<td>` : si la largeur manque, la **colonne « actuel »
+passe à la ligne suivante** au lieu de sortir du cadre.
+
+⚠️ **« actuel » garde un en-tête, écrit UNE SEULE fois au-dessus de la
+liste** (`label`, aligné comme la colonne l'était dans la table) — un premier
+essai l'écrivait devant chaque valeur (« toi 220 » répété sur chaque ligne),
+plus lourd que la colonne qu'il remplaçait. Les autres colonnes (`Stat`,
+`base`/`bonus`/`total`), elles, n'ont plus d'en-tête du tout : leur ordre
+suffit à les nommer, et « actuel » est la seule à valoir la peine d'un mot
+au-dessus puisqu'elle n'apparaît qu'après une analyse.
+
+- le **champ de bonus** est **`w-14`, `pleineLargeur={false}`** — cinq
+  chiffres visibles, la taille de la plupart des stats (PV ~35 000).
+  ⚠️ **`pleineLargeur={false}` n'est pas optionnel** : `Champ` (la librairie)
+  vaut `w-full` par défaut, pensé pour un champ posé seul dans un formulaire.
+  Sans l'annuler ici, un champ de cinq chiffres s'étirait sur presque toute
+  la largeur de la carte, posé sans colonne de table pour le contenir ;
+- les cartes de slot restent en **`min-w-0`** : une cellule de grille refuse
+  sinon de descendre sous la largeur de son contenu et **déborde sur sa
+  voisine**.
+- ⚠️ **« + Set » / « + Possibilité » (éditeur de sets) : `grid grid-cols-2` +
+  `pleineLargeur` sur les DEUX boutons, jamais `flex` + `flex-1`.** `Bouton`
+  pose `flex-none` dans son socle — un `flex-1` en `className` ne le bat pas
+  (vérifié dans le CSS construit : `flex-none` est plus loin dans la feuille
+  de style, donc gagne). `pleineLargeur`, lui, pose `w-full` et s'applique
+  bien malgré `flex-none`. Un essai intermédiaire l'avait posé sur un seul
+  des deux boutons + `flex-wrap` : celui-ci revendiquait alors toute la
+  rangée et poussait l'autre à la ligne suivante — les deux actions
+  n'étaient plus lisibles d'un coup d'œil comme une paire. La grille à deux
+  colonnes égales fait que chaque `w-full` remplit sa propre moitié : les
+  deux boutons restent côte à côte, à égalité de largeur.
+- le **panneau de choix des sets** (ouvert par « + Set ») affiche chaque set
+  du jeu en **case `w-7 h-7` (28 px)** avec `RuneIcon size={16}` — pas
+  `w-8 h-8`/20 px comme au premier jet. Le jeu compte plus de vingt sets ; à
+  32 px + `gap-1`, la grille pesait lourd sur une carte de siège déjà
+  étroite, pour un choix qu'on fait une fois par slot. Le symbole reste net
+  à 16 px (même échelle que la roue de runes, qui le dessine déjà aussi
+  petit).
+
+La colonne **« actuel » n'apparaît qu'après une analyse**, cohérent avec le
+fait que rien n'est confronté par défaut — mais une fois là, elle reste
+affichée dans les deux états détail/total (voir plus haut).
 
 #### ⚠️ VIT : le lead entre dans le TOTAL, pas dans le bonus
 
@@ -347,7 +463,7 @@ En siège, la vitesse gagne un bonus en % de la **base** : **totem de guilde
 la vitesse de combat lue sur les cartes d'équipe, et donc la seule valeur qu'on
 puisse rapprocher d'une consigne (« Trevor 352 »).
 
-Ce bonus est appliqué **uniquement à l'affichage du total** (et de « toi »),
+Ce bonus est appliqué **uniquement à l'affichage du total** (et de « actuel »),
 jamais à la base ni au bonus saisi — **base et bonus restent les valeurs
 visibles du build** :
 
@@ -759,6 +875,13 @@ y a quelque chose à lire — et se ferme par une croix.
   **ou** « Tout exporter ». Produit le **fichier `.json`**. Une recommandation
   dont **aucun deck** n'a de monstre n'est pas exportable ; le message récapitule
   « N recommandation(s) · M deck(s) ».
+  - ⚠️ **Se confirme, malgré l'absence de perte locale.** Rien ne disparaît sur
+    l'appareil — mais c'est un geste vers l'EXTÉRIEUR : un fichier écrit sur le
+    disque, prêt à être partagé. La modale dit CE QUI VA SORTIR (combien de
+    recommandations, combien de decks) **avant** que ça parte, plutôt qu'un
+    message après coup qu'on ne lit qu'une fois le fichier déjà sur le disque.
+    Ton **neutre**, pas `destructif` : ce n'est pas la même nature de geste
+    qu'un effacement, même si les deux se confirment.
 - **Importer** (icône **Download ↓**) : ouvre **directement le sélecteur de
   fichier** `.json` — pas d'écran intermédiaire, pas de zone de collage. Le
   contenu passe par le validateur (voir ci-dessous) ; espaces et retours ligne
@@ -794,6 +917,14 @@ recommandation**, via le bouton **« Analyser mes decks »** de son en-tête (il
 devient « Réanalyser mes decks » ensuite) — le libellé dit bien que la
 confrontation porte sur **l'ensemble des decks**, pas sur un seul.
 
+⚠️ **À la SOURIS seulement** (`compact:hidden`), étiqueté, à côté du titre — la
+place ne manque pas. Au doigt, il n'est plus sur la carte du tout : il vivait en
+icône dans le coin supérieur droit, groupée avec Exporter / Éditer / Supprimer,
+mais choisir SA carte demandait d'abord d'y faire défiler — un geste que le
+panneau « Options » fait maintenant sans quitter le haut de l'écran (voir plus
+bas). Une icône de plus dans un coin déjà chargé pour un geste qui a un meilleur
+endroit ne se justifiait plus.
+
 - Le bouton est **désactivé sans compte importé** (rien à quoi comparer).
 - Le résultat est **mémorisé dans le board** avec la reco et les builds qui ont
   servi ; il devient **périmé** dès que l'un des deux change (comparaison par
@@ -801,6 +932,22 @@ confrontation porte sur **l'ensemble des decks**, pas sur un seul.
   à l'état non analysé et le bouton réaffiche « Analyser ».
 - Motivation : confronter *toutes* les recos à *tous* les builds à chaque rendu
   était un coût permanent pour une information qu'on ne consulte que ponctuellement.
+
+### Analyser depuis le panneau « Options » — LE chemin au doigt
+
+⚠️ Au doigt, analyser n'est plus un bouton sur la carte : c'est le panneau
+« Options » qui porte le geste, avec un menu déroulant qui choisit **laquelle**
+analyser (aucune carte n'est sous les yeux pour le dire), puis « Analyser » qui
+fait le reste.
+
+- Le menu liste les recommandations **affichées** (`list` — filtre d'origine et
+  recherche déjà appliqués), avec le même nom de repli
+  (« Recommandation N ») que sur les cartes.
+- **Désactivé sans compte importé**, même condition que le bouton de la souris.
+- Au clic sur « Analyser » : l'analyse se lance, la carte visée **s'ouvre**
+  (elle serait sinon repliée et le résultat invisible au premier défilement),
+  le panneau se referme, et un message éphémère confirme sur quelle
+  recommandation.
 
 ### Ce que l'analyse affiche
 
@@ -952,16 +1099,18 @@ façon qu'en un exemplaire change ce qu'on décide d'aller corriger.
   le deck mais une information de **stock**. Les fondre ferait lire
   « jouable ×2 » comme un degré de conformité.
 
-**Fermer le résultat** : une **croix** efface l'analyse et la carte **redevient
-neutre** — halo, pastille, badges et colonne « toi » disparaissent d'un coup.
-Utile quand tout est vert : l'information a été lue, le halo n'a plus rien à dire.
-Il suffit de relancer « Analyser mes decks » pour la revoir.
+**Fermer le résultat** : une **croix**, sur l'**encart de synthèse** (ses trois
+états : vert, orange, « rien à analyser »), efface l'analyse et la carte
+**redevient neutre** — halo, encart et badges disparaissent d'un coup. Utile
+quand tout est vert : l'information a été lue, le halo n'a plus rien à dire. Il
+suffit de relancer « Analyser mes decks » pour la revoir.
 
-La croix est présente **aux deux endroits** où le résultat s'affiche :
-- sur l'**encart de synthèse** (ses trois états : vert, orange, « rien à
-  analyser ») ;
-- **dans la pastille d'en-tête** (« 1/4 decks au niveau ») — c'est le seul repère
-  visible quand la carte est repliée, il doit donc être refermable de là aussi.
+⚠️ **Pas de pastille en-tête redondante.** L'en-tête portait une seconde
+pastille (« 1/4 decks au niveau »), avec sa propre croix — reprenant, un cran
+plus haut, exactement ce que dit déjà l'encart de synthèse juste en dessous,
+lui-même visible carte repliée (voir plus haut). Deux endroits pour la même
+phrase, sur une carte déjà chargée, sans qu'aucun n'apprenne quoi que ce soit
+que l'autre ne dise pas.
 
 ### ⚠️ Source : TOUS les builds, pas seulement la box
 
@@ -1065,14 +1214,15 @@ lire les chiffres. Le slot fautif prend une bordure rouge, comme un slot dont le
 monstre est indisponible : les deux sont bloquants.
 
 - Statut **de la recommandation** (`matchReco`) = **agrégat de ses decks non
-  vides**, aura de la carte + pastille d'en-tête :
+  vides**, aura de la carte SEULE (voir `AURA` dans RecoCard.tsx) — le résumé en
+  mots ne vit plus qu'à l'encart de synthèse, voir plus haut :
 
-| Statut | Couleur | Condition | Pastille |
-|--------|---------|-----------|----------|
-| `ok` | `emerald` | **tous** les decks jouables | « N decks jouables » |
-| `partial` | `amber` | une partie seulement | « N/M decks au niveau » |
-| `missing` | `fire` | **aucun** deck jouable, tous bloqués par un monstre manquant | « Aucun deck jouable » |
-| `unknown` | neutre | **pas encore analysée**, ou aucun deck rempli | — |
+| Statut | Couleur | Condition |
+|--------|---------|-----------|
+| `ok` | `emerald` | **tous** les decks jouables |
+| `partial` | `amber` | une partie seulement |
+| `missing` | `fire` | **aucun** deck jouable, tous bloqués par un monstre manquant |
+| `unknown` | neutre | **pas encore analysée**, ou aucun deck rempli |
 
 - Sans compte importé : bouton « Analyser » **désactivé**, cartes neutres. Les
   recommandations restent consultables, éditables et exportables.
@@ -1088,13 +1238,20 @@ monstre est indisponible : les deux sont bloquants.
 Une recommandation contenant plusieurs decks de 3 monstres, la liste serait
 illisible tout déplié. Chaque carte est donc **repliée par défaut** :
 
-- **Repliée** : l'en-tête (nom, puce « Importée », nombre de decks, auteur,
-  pastille de statut) **+ un aperçu d'une ligne** — une puce par deck avec son
+- **Repliée** : l'en-tête (nom, puce « Importée », nombre de decks, auteur)
+  **+ un aperçu d'une ligne** — une puce par deck avec son
   **nom** et un **point de couleur** (vert/orange/rouge/neutre) reprenant son
   statut, plus un repère « consignes » si la recommandation en porte. On voit
   donc quoi ouvrir **sans rien déplier**. Cliquer l'aperçu déplie aussi.
 - **Bouton « Consulter »** (chevron) dans l'en-tête → déplie et affiche les
   consignes générales puis tous les decks ; devient **« Réduire »**.
+  ⚠️ **À la SOURIS seulement.** Au doigt, ce petit bouton du coin devenait une
+  seconde cible pour le même geste que le titre — sur un écran qu'on parcourt
+  au pouce, la plus petite des deux. À la souris, viser un bouton précis ne
+  coûte rien, et le chevron confirme l'état d'un coup d'œil.
+- **Le TITRE bascule aussi la carte** — même geste que « Consulter », pas un
+  second, et le SEUL au doigt. Masqué en édition, comme « Consulter » : le
+  titre devient alors le champ de saisie du nom.
 - **Plusieurs recommandations peuvent être dépliées** en même temps (état local
   au board, non persisté).
 - **Éditer implique déplier** : une carte en édition (recommandation **ou** l'un
@@ -1109,14 +1266,50 @@ Indépendamment du repli de la carte, **chaque deck a son propre chevron**.
 - ⚠️ **Les decks sont repliés par défaut** : déplier une recommandation montre la
   **liste de ses decks**, pas leur contenu. On ouvre ensuite celui qui intéresse.
   Sans ça, une reco de 6 decks déroulait tout l'écran d'un coup.
+- ⚠️ **Grille à 2 colonnes à la SOURIS** (`lg:grid-cols-2`), une colonne en
+  dessous — même seuil que la grille d'équipes de siège (SiegeBoard.tsx). Une
+  recommandation porte souvent une demi-douzaine de decks : les empiler sur
+  une seule colonne, à la souris, laissait la moitié de la largeur de l'écran
+  vide. **Le deck en édition reprend toute la largeur** (`col-span-2`) : ses 3
+  emplacements de monstres plus le picker de chacun seraient à l'étroit sur
+  une demi-colonne — même raison que pour une équipe de siège dépliée.
 - **Lead du leader** : affiché **sur le monstre** en slot 0, comme en siège et
   avec les mêmes composants ([LeadPill.tsx](src/components/siege/LeadPill.tsx)) —
   `LeadBadge` sur son portrait dans l'aperçu replié, `LeadPill` (icône +
   montant) sous son nom dans le deck déplié. **Pas** dans l'en-tête du deck :
   on doit voir de quel monstre vient le lead. Voir [equipes.md](equipes.md).
-- **Deck replié** : chevron + nom (cliquable) + **les 3 monstres en icônes**
-  (portrait hexagonal + badge d'élément, **sans nom**) pour s'y retrouver d'un
-  coup d'œil, + le badge de statut et le bouton **Éditer**.
+- **En-tête du deck, replié OU déplié** : chevron + **les 3 monstres en
+  icônes** (portrait hexagonal 34 px + badge d'élément, **sans nom, sans
+  titre texte**), cliquables pour basculer le repli, + le badge de statut et
+  les icônes **Éditer**/Supprimer. ⚠️ **Aucun texte n'identifie plus le
+  deck** : les portraits, agrandis (34 px, contre 26 dans l'ancien aperçu
+  replié seul), portent seuls ce qu'un titre — libre ou calculé — redoublait.
+  Toujours affichés, quel que soit l'état de repli : c'est le seul repère du
+  deck qu'on garde en le dépliant, avant que sets/artéfacts/stats n'arrivent
+  plus bas.
+- ⚠️ **Sur mobile, le verdict et le nombre de copies passent chacun à la
+  ligne** (`basis-full sm:basis-auto` sur les deux `span` qui les portent) :
+  icônes des monstres sur une ligne, verdict sur la suivante, « réalisable N
+  fois » sur la dernière. Un simple `flex-wrap` sur la rangée ne suffisait
+  pas — un item flex qui trouve un peu de place restante après les icônes s'y
+  installe et enroule son PROPRE texte au mot (« indis- » collé aux icônes,
+  « ponible… » en dessous) au lieu de descendre entier à la ligne suivante :
+  le repli semblait aléatoire (net sur un deck, tronqué sur le suivant) selon
+  la largeur qu'occupaient les icônes déjà posées. `basis-full` force chaque
+  ligne à démarrer la sienne, systématiquement, tant qu'il n'y a pas la place
+  de tout tenir sur une seule (`sm:basis-auto` au-delà).
+- ⚠️ **Le crayon Éditer/Supprimer reste dans SA PROPRE rangée** (chevron +
+  portraits + crayon), séparée du verdict/copies en dessous, plutôt que dans
+  la même rangée `flex-wrap` qu'eux. Un bouton d'action ne doit pas changer de
+  position selon ce qui s'affiche à côté de lui : mêlé au verdict, le crayon
+  suivait le badge sur sa ligne et se retrouvait repoussé en bas dès que
+  « réalisable N fois » gagnait sa propre ligne (voir ci-dessus) — il devait
+  rester en haut à droite, toujours.
+- **Padding réduit au tactile** (`compact:p-1`, contre `p-2.5` à la souris ;
+  resserré une seconde fois après un premier `compact:p-1.5` jugé encore trop
+  généreux) : les cartes de deck sont dans une liste déjà dense (jusqu'à une
+  demi-douzaine par recommandation) sur un écran étroit. Même resserrement
+  sur l'espacement de la rangée verdict/copies (`compact:gap-1 compact:mt-0.5`).
 - **« Déplier / Replier tous les decks »** : lien en haut à droite de la liste,
   affiché dès **2 decks**.
 - Un deck **en édition est toujours déplié**, quel que soit son état de repli.
@@ -1134,7 +1327,7 @@ Indépendamment du repli de la carte, **chaque deck a son propre chevron**.
 | Bouton | Où | Ce qu'il ouvre |
 |--------|----|----------------|
 | ✏️ (en-tête de la carte) | recommandation | **nom, auteur, consignes générales** + **Ajouter un deck vide** / **Importer un deck d'offense** |
-| ✏️ (en-tête de chaque deck) | deck | **nom du deck, ses consignes, ses monstres, sets, artéfacts et stats** + 🗑 **Supprimer ce deck** |
+| ✏️ (en-tête de chaque deck) | deck | **ses consignes, ses monstres, sets, artéfacts et stats** + 🗑 **Supprimer ce deck** (le nom n'est plus saisi, voir plus haut) |
 | **+ Défense** / ✏️ sur une vignette | défenses visées | **une** défense que ce deck bat — indépendant du deck |
 
 ⚠️ Le troisième est **volontairement détaché** du deuxième : ajouter une défense
@@ -1143,27 +1336,56 @@ est un **travail de fond**. Il n'a d'ailleurs **pas de mode édition de bloc** �
 juste un « + » qui ajoute et ouvre l'entrée créée. Voir « Défenses visées » plus
 haut.
 
-#### ⚠️ Les icônes d'action sont TOUJOURS dans l'angle supérieur droit
+#### ⚠️ Le titre et les icônes d'action partagent LEUR PROPRE rangée
 
-L'en-tête est **deux zones**, pas un `flex-wrap` unique :
+L'en-tête est **trois zones empilées**, pas deux côte à côte :
 
-| Zone | Contenu | Comportement |
-|------|---------|--------------|
-| gauche (`flex-1 min-w-0`) | nom, puce « Importée », compteur de decks, auteur, pastille de statut, « Analyser mes decks » | passe à la ligne librement |
-| droite (`flex-none`) | « Consulter », puis Exporter ↑ · Éditer ✏️ · Supprimer 🗑 | **ancrée en haut à droite** (`items-start`) |
+| Rangée | Contenu | Comportement |
+|--------|---------|--------------|
+| 1 — titre + actions | titre (cliquable, bascule la carte, tronqué s'il déborde) et, sur la MÊME ligne : « Consulter » (souris seulement), Exporter ↑, Éditer ✏️, Supprimer 🗑 | `items-center`, une seule ligne |
+| 2 — métadonnées | puce « Importée », compteur de decks, auteur, « Analyser mes decks » (souris seulement) | passe à la ligne librement, sous la rangée 1 |
 
-Dans un `flex-wrap` unique, les trois icônes suivaient le flux et **retombaient
-sous le titre** dès que la ligne était pleine — leur position changeait d'une
-carte à l'autre selon la longueur du nom et la présence de la pastille, et il
-fallait les chercher des yeux à chaque fois. Une barre d'outils se trouve à un
-endroit fixe, ou elle n'en est pas une.
+⚠️ **Historique : deux zones côte à côte (titre+badges à gauche, icônes à
+droite), essayé et défait deux fois.**
+- `items-start` : correct tant que le titre est seul sur sa ligne, mais la
+  zone de gauche passe couramment sur DEUX lignes dès que le nom n'est pas très
+  court (badges qui débordent en dessous) — pas un cas rare, le cas courant sur
+  une carte de largeur mobile.
+- `items-center` sur ce même agencement à deux zones plaçait alors les icônes
+  **entre** les deux lignes de gauche : ni alignées sur le titre, ni sur les
+  badges — pire que l'écart qu'on corrigeait.
+
+Le problème n'était pas l'alignement CSS mais la STRUCTURE : titre et badges
+n'ont aucune raison de partager une hauteur commune avec les icônes, ce sont
+deux informations différentes. Les séparer en deux rangées résout tout d'un
+coup — la rangée 1 ne contient plus QUE le titre et les icônes, qui peuvent
+alors se centrer l'un sur l'autre sans qu'un troisième élément interfère.
+
+⚠️ Le titre porte `leading-none` (sa boîte de ligne, interligne 1,6 de
+l'échelle, dépassait sinon la hauteur des icônes) et `p-0` explicite (un
+`<button>` a un rembourrage par défaut du navigateur, invisible à l'œil mais
+qui élargit sa boîte au-delà du texte).
+
+⚠️ **Icônes en 24 px (`h-6 w-6`), pas 20**, pour respirer un peu plus, sans
+perdre l'exemption tactile (`taille="serre"` garde `data-cible-fine`, donc les
+40 px de la règle au doigt ne s'appliquent pas). L'override passe par
+`className`, et ça tient parce que `h-6` est PLUS LOIN que le `h-5` du
+composant dans la feuille de style construite (Tailwind range ses valeurs par
+ordre croissant) — vérifié dans le CSS, pas supposé.
+
+Dans un `flex-wrap` unique (l'agencement d'avant tout ça), les trois icônes
+suivaient le flux et **retombaient sous le titre** dès que la ligne était
+pleine — leur position changeait d'une carte à l'autre selon la longueur du
+nom, et il fallait les chercher des yeux à chaque fois. Une barre d'outils se
+trouve à un endroit fixe, ou elle n'en est pas une.
 
 **Icônes nues partout** dans les en-têtes — carrés de 24 px, **sans cadre ni
 fond**, groupés et resserrés (`gap-0.5`) à droite de la ligne :
 
 - **recommandation** : Exporter ↑, Éditer ✏️, Supprimer 🗑 — la ligne porte déjà
-  le nom, la puce « Importée », le compteur de decks, l'auteur, la pastille de
-  statut, « Analyser mes decks » et « Consulter ».
+  le titre, la puce « Importée », le compteur de decks, l'auteur, et
+  « Analyser mes decks » / « Consulter » à la souris. Analyser vit au doigt
+  dans le panneau « Options » (voir plus haut), pas dans ce groupe.
 - **deck** : Éditer ✏️, puis Supprimer 🗑 (visible seulement en édition).
 - Le sens passe par l'**infobulle** et l'`aria-label` (obligatoire : une icône
   seule n'est pas lisible au lecteur d'écran).

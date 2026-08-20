@@ -10,8 +10,6 @@ import {
   ChevronLeft,
   ChevronRight,
   ChevronDown,
-  Layers,
-  UserX,
   Ban,
   SlidersHorizontal,
   Wrench,
@@ -46,13 +44,24 @@ import {
 import { buildOptimizerRecipe, parseOptimizerRecipe } from '../../lib/optimizerRecipe';
 import { ArtifactMainChoice, OptimizerState, OptimizerSortKey } from '../../hooks/useOptimizerState';
 import { useRuneMetric } from '../../hooks/useRuneMetric';
-import NumberField from '../NumberField';
+import { useMediaQuery, SOUS_SM } from '../../hooks/useMediaQuery';
 import GameIcon from '../GameIcon';
 import MonsterAvatar from '../MonsterAvatar';
 import MonsterGear from '../MonsterGear';
-import Segmented from '../Segmented';
-import Switch from '../Switch';
+import { WHEEL_IMG } from '../RuneWheel';
+import Segmented from '../../ui/Segmented';
 import HelpPopover from '../HelpPopover';
+import {
+  Bouton,
+  BoutonIcone,
+  Champ,
+  Interrupteur,
+  MobileSheet,
+  NumberField,
+  Pastille,
+  Selecteur,
+  ZoneCliquable,
+} from '../../ui';
 import MonsterGearPicker, { GearedMonster } from './MonsterGearPicker';
 import RuneExclusionPicker from './RuneExclusionPicker';
 import SetComboPicker from './SetComboPicker';
@@ -72,6 +81,11 @@ interface Props {
   rtaEntries: Record<string, RtaEntry>;
   siegeDefenseTeams: SiegeTeam[];
   siegeOffenseTeams: SiegeTeam[];
+  // Panneau d'actions mobile « Options » — piloté par le bouton de la barre
+  // de nav (voir App.tsx), même patron que RunesOptim.tsx. Réglages avancés
+  // et Exclusion de runes y vivent au doigt ; en ligne (cartes) au bureau.
+  menuOuvert: boolean;
+  onFermerMenu: () => void;
 }
 
 // ⚠️ Le plafond de CAPPED_STATS (voir lib/effects.ts) ne s'applique QU'À la
@@ -110,8 +124,14 @@ function download(filename: string, text: string) {
 // Outil « Optimizer » : cherche, parmi les runes du compte, la (les)
 // meilleure(s) combinaison(s) de 6 pour un monstre, un combo de sets et des
 // minimums de stats donnés. Voir spec/outils/optimizer/.
-export default function OptimizerSection({ box, runes, optimizer, allMonsters, rtaEntries, siegeDefenseTeams, siegeOffenseTeams }: Props) {
+export default function OptimizerSection({ box, runes, optimizer, allMonsters, rtaEntries, siegeDefenseTeams, siegeOffenseTeams, menuOuvert, onFermerMenu }: Props) {
   const metric = useRuneMetric();
+  // ⚠️ Sous `sm`, les `Segmented` pleine largeur à libellés longs (l'objectif :
+  // « PV effectifs ») débordent leur quart de rangée que `whitespace-nowrap`
+  // interdit de couper. `dense` (texte réduit, retour à la ligne) est le
+  // mécanisme prévu pour ça — activé seulement au format étroit, le bureau garde
+  // le rendu normal.
+  const etroit = useMediaQuery(SOUS_SM);
   const {
     selectedId,
     setSelectedId,
@@ -610,6 +630,9 @@ export default function OptimizerSection({ box, runes, optimizer, allMonsters, r
   }
 
   return (
+    // ⚠️ 768 px : l'optimiseur est une SUITE DE RÉGLAGES qu'on lit de haut en
+    // bas, pas un tableau. Étalé sur tout l'écran, chaque ligne « libellé …
+    // champ » devenait un aller-retour du regard.
     <div className="max-w-3xl space-y-5">
       {/* ⚠️ Pas de `useStickyState`/case à fermer, contrairement à
           MobileNotice : ce n'est pas un avertissement ponctuel mais un statut
@@ -617,14 +640,14 @@ export default function OptimizerSection({ box, runes, optimizer, allMonsters, r
           visible à chaque visite, pas disparaître après un premier clic. */}
       <div className="flex items-start gap-2.5 rounded-xl border border-warn/60 bg-warn/10 px-3 py-2.5">
         <FlaskConical size={16} className="mt-0.5 flex-none text-warn" />
-        <p className="flex-1 text-[12px] leading-relaxed text-ink-dim">
+        <p className="flex-1 text-xs leading-relaxed text-ink-dim">
           <b className="text-ink">Optimizer en bêta.</b> L'outil est encore en rodage : le moteur de
           recherche peut mettre du temps sur des critères serrés ou manquer un build sur un cas
           inhabituel — vérifie toujours le résultat avant de re-runer.
         </p>
       </div>
 
-      <p className="text-[13px] text-ink-dim">
+      <p className="text-sm text-ink-dim">
         Recherche parmi tes runes possédées ; rien n'est appliqué à ton compte, l'outil est purement
         indicatif — c'est à toi de re-runer dans le jeu.
       </p>
@@ -701,7 +724,7 @@ export default function OptimizerSection({ box, runes, optimizer, allMonsters, r
         ref={setPickerSectionRef}
         className={
           setPickerInvalid
-            ? 'rounded-lg border-2 border-red-500 bg-red-500/15 ring-4 ring-red-500/50 p-2 -m-2 transition'
+            ? 'rounded-lg border border-bad bg-bad/15 p-2 -m-2 transition'
             : 'transition'
         }
       >
@@ -714,7 +737,7 @@ export default function OptimizerSection({ box, runes, optimizer, allMonsters, r
           }}
         />
         {setPickerInvalid && (
-          <p className="mt-1.5 text-[11.5px] font-semibold text-red-500">
+          <p className="mt-1.5 text-micro font-semibold text-bad">
             Sélectionne au moins un set avant de lancer la recherche.
           </p>
         )}
@@ -732,23 +755,16 @@ export default function OptimizerSection({ box, runes, optimizer, allMonsters, r
         <div className="flex flex-col gap-1.5">
           {CONFIGURABLE_SLOTS.map((slot) => (
             <div key={slot} className="flex items-center gap-2 flex-wrap">
-              <span className="text-[11.5px] text-ink-dim w-14">Slot {slot}</span>
+              <span className="text-micro text-ink-dim w-14">Slot {slot}</span>
               {SLOT_MAIN_OPTIONS[slot].map((code) => {
                 const active = (mainStatsBySlot[slot] ?? []).includes(code);
                 return (
-                  <button
+                  <Pastille
                     key={code}
-                    type="button"
+                    actif={active}
                     onClick={() => toggleMainStat(slot, code)}
-                    aria-pressed={active}
-                    className={`rounded-full border px-2.5 py-1 text-[11.5px] font-semibold transition select-none ${
-                      active
-                        ? 'border-accent bg-accent-soft text-ink shadow'
-                        : 'border-border bg-panel text-ink-dim hoverable:text-ink hoverable:border-accent'
-                    }`}
-                  >
-                    {RUNE_EFFECT[code]?.label ?? code}
-                  </button>
+                    libelle={RUNE_EFFECT[code]?.label ?? code}
+                  />
                 );
               })}
             </div>
@@ -767,7 +783,7 @@ export default function OptimizerSection({ box, runes, optimizer, allMonsters, r
             <b className="text-ink">Dgts Crit</b> ensemble (espérance moyenne).
           </HelpPopover>
         </div>
-        <Segmented options={OBJECTIVE_LABELS} value={objective} onChange={setObjective} size="lg" />
+        <Segmented options={OBJECTIVE_LABELS} value={objective} onChange={setObjective} size="lg" dense={etroit} />
       </div>
 
       <div>
@@ -783,16 +799,16 @@ export default function OptimizerSection({ box, runes, optimizer, allMonsters, r
             </HelpPopover>
           </div>
           <div className="flex items-center gap-1.5">
-            <span className="text-[12px] font-semibold text-ink-dim">Ignorer les statistiques des artéfacts</span>
+            <span className="text-xs font-semibold text-ink-dim">Ignorer les statistiques des artéfacts</span>
             <HelpPopover title="Ignorer les statistiques des artéfacts">
               Activé, la recherche ne compte <b className="text-ink">aucune</b> statistique d'artéfact (comme si le
               monstre n'en portait pas). Désactivé, choisis la statistique principale à supposer pour chaque
               emplacement ci-dessous.
             </HelpPopover>
-            <Switch
-              checked={ignoreArtifacts}
+            <Interrupteur
+              actif={ignoreArtifacts}
               onChange={setIgnoreArtifacts}
-              label="Ignorer les statistiques des artéfacts"
+              aria-label="Ignorer les statistiques des artéfacts"
             />
           </div>
         </div>
@@ -800,15 +816,17 @@ export default function OptimizerSection({ box, runes, optimizer, allMonsters, r
           <div className="flex flex-wrap gap-3">
             {ARTIFACT_KINDS.map(({ key, label }) => (
               <div key={key} className="flex items-center gap-1.5">
-                <span className="text-[12.5px] text-ink w-14">{label}</span>
-                <select
+                <span className="text-xs text-ink w-14">{label}</span>
+                <Selecteur
                   value={String(artifactMainByKind[key] ?? 'equipped')}
                   onChange={(e) => {
                     const raw = e.target.value;
                     const next: ArtifactMainChoice = raw === 'equipped' || raw === 'none' ? raw : (Number(raw) as 100 | 101 | 102);
                     setArtifactMainByKind((prev) => ({ ...prev, [key]: next }));
                   }}
-                  className="bg-panel border border-border text-ink rounded-lg px-2.5 py-1.5 text-[13px] outline-none"
+                  taille="sm"
+                  surface="panel2"
+                  pleineLargeur={false}
                 >
                   <option value="equipped">Comme équipé</option>
                   {ARTIFACT_MAIN_OPTIONS.map((o) => (
@@ -817,7 +835,7 @@ export default function OptimizerSection({ box, runes, optimizer, allMonsters, r
                     </option>
                   ))}
                   <option value="none">Aucun</option>
-                </select>
+                </Selecteur>
               </div>
             ))}
           </div>
@@ -828,17 +846,17 @@ export default function OptimizerSection({ box, runes, optimizer, allMonsters, r
         <div className="flex items-center justify-between mb-2 flex-wrap gap-2">
           <p className="label">Conditions</p>
           <div className="flex items-center gap-1.5">
-            <span className="text-[12px] font-semibold text-ink-dim">Stats de base exclues</span>
+            <span className="text-xs font-semibold text-ink-dim">Stats de base exclues</span>
             <HelpPopover title="Stats de base exclues">
               <b className="text-ink">PV/ATQ/DEF/VIT</b> : activé, la valeur est ce que l'équipement (runes ET
               artéfacts comptés) doit apporter <b className="text-ink">au-dessus de la base</b> du monstre. Désactivé,
               elle porte sur le total. <b className="text-ink">Taux Crit/Dgts Crit/RES/Précision</b> restent toujours
               en total, quel que soit ce réglage — ils partent de la valeur d'éveil du monstre.
             </HelpPopover>
-            <Switch
-              checked={excludeBase}
+            <Interrupteur
+              actif={excludeBase}
               onChange={setExcludeBase}
-              label="Stats de base exclues des conditions PV/ATQ/DEF/VIT"
+              aria-label="Stats de base exclues des conditions PV/ATQ/DEF/VIT"
             />
           </div>
         </div>
@@ -847,7 +865,18 @@ export default function OptimizerSection({ box, runes, optimizer, allMonsters, r
             TOUJOURS plus large qu'un champ sans suffixe à largeur de texte
             égale (le suffixe prend de la place en plus), et les colonnes
             Min/Max ne s'aligneraient pas d'une stat à l'autre. */}
-        <div className="grid grid-cols-[minmax(90px,auto)_auto_auto] gap-y-1.5 gap-x-4 items-center">
+        {/* ⚠️ `gap-x` réduit sous `sm` : trois colonnes plus deux écarts de
+            16 px ne laissaient plus de place aux champs sur 348 px utiles. */}
+        <div className="grid grid-cols-[minmax(76px,auto)_auto_auto] items-center gap-x-2 gap-y-1.5 sm:grid-cols-[minmax(90px,auto)_auto_auto] sm:gap-x-4">
+          {/* ⚠️ En-têtes Min/Max AU DOIGT seulement. Sur téléphone, le libellé
+              « Min »/« Max » collé à chaque champ faisait déborder la rangée
+              (label + 2 champs + 2 mots > largeur utile) ; on les masque et on
+              pose ces deux en-têtes une seule fois. Au bureau (`sm:`), chaque
+              champ garde son libellé à côté et ces en-têtes disparaissent —
+              rendu inchangé. */}
+          <span className="sm:hidden" aria-hidden />
+          <span className="label sm:hidden text-center">Min</span>
+          <span className="label sm:hidden text-center">Max</span>
           {RECO_STATS.map((st) => {
             const affectedByToggle = BASE_TOGGLE_STATS.has(st.key);
             const base = baseOf(st.key);
@@ -871,7 +900,7 @@ export default function OptimizerSection({ box, runes, optimizer, allMonsters, r
 
             return (
               <Fragment key={st.key}>
-                <span className="text-[12.5px] text-ink">{st.label}</span>
+                <span className="text-xs text-ink">{st.label}</span>
                 <div className="flex items-center gap-1.5">
                   <NumberField
                     value={minDisplayed}
@@ -896,7 +925,7 @@ export default function OptimizerSection({ box, runes, optimizer, allMonsters, r
                     ariaLabel={`${st.label} minimum`}
                     title="Minimum"
                   />
-                  <span className="text-ink-dim text-[11px]">Min</span>
+                  <span className="hidden sm:inline text-ink-dim text-micro">Min</span>
                 </div>
                 <div className="flex items-center gap-1.5">
                   <NumberField
@@ -918,67 +947,62 @@ export default function OptimizerSection({ box, runes, optimizer, allMonsters, r
                     ariaLabel={`${st.label} maximum`}
                     title="Maximum"
                   />
-                  <span className="text-ink-dim text-[11px]">Max</span>
+                  <span className="hidden sm:inline text-ink-dim text-micro">Max</span>
                 </div>
               </Fragment>
             );
           })}
         </div>
         <div className="flex justify-end mt-1.5">
-          <button
-            type="button"
+          <Bouton
+            fond="vide"
+            trait="aucun"
+            taille="sm"
             onClick={() => {
               setMinStats({});
               setMaxStats({});
             }}
-            className="flex items-center gap-1.5 text-[12px] font-semibold text-ink-dim transition hoverable:text-bad"
-          >
-            <RotateCcw size={13} /> Réinitialiser les conditions
-          </button>
+            icone={<RotateCcw size={13} />}
+            libelle="Réinitialiser les conditions"
+            className="text-ink-dim hoverable:text-bad"
+          />
         </div>
       </div>
         </div>
       </div>
 
-      <div className="rounded-xl border border-border bg-panel p-3">
-        <button
-          type="button"
-          onClick={() => setShowAdvanced((v) => !v)}
-          aria-expanded={showAdvanced}
-          className="flex w-full items-center gap-1.5 text-[13px] font-bold text-ink"
-        >
-          {/* Clé à molette, distincte des curseurs de « Critères de
-              recherche » (forme différente, pas seulement une couleur) —
-              même traitement accent que les autres en-têtes de carte. */}
-          <div className="flex h-6 w-6 flex-none items-center justify-center rounded-md border border-accent/40 bg-accent-soft">
-            <Wrench size={13} className="text-accent" />
-          </div>
-          Réglages avancés
-          <ChevronDown
-            size={14}
-            className={`ml-auto text-ink-dim transition-transform ${showAdvanced ? 'rotate-180' : ''}`}
-          />
-        </button>
-        {showAdvanced && (
-          <div className="mt-3 rounded-lg border border-border bg-panel2 p-3">
+      {/* ── Réglages avancés + Exclusion de runes ──────────────────────
+          Contenu factorisé une fois, affiché deux fois : en cartes en
+          ligne au bureau (ordre : Exclusion de runes, puis Réglages
+          avancés), dans le panneau « Options » au doigt — jamais dupliqué.
+          Même patron que RunesOptim.tsx (voir MobileSheet plus bas). */}
+      {(() => {
+        // ⚠️ `dansPanneau` : seule la version DANS LE PANNEAU affiche « Pool de
+        // runes = X » à côté du pré-filtrage — sur la page principale, la
+        // même info existe déjà juste en dessous (voir plus bas), à un
+        // défilement de distance. Dans le panneau, cette page est masquée par
+        // le voile : sans ce doublon local, aucun moyen de voir l'effet du
+        // réglage qu'on vient de toucher sans d'abord refermer le panneau.
+        const reglagesAvancesInner = (dansPanneau: boolean) => (
+          <>
             <p className="text-[11.5px] text-ink-dim mb-1">Pré-filtrage par emplacement</p>
-            <div className="flex items-center gap-1 bg-panel2 border border-border rounded-lg p-0.5 w-fit">
-              {SLOT_FILTER_PRESETS.map((p) => (
-                <button
-                  key={p.key}
-                  type="button"
-                  onClick={() => setSlotFilterPreset(p.key)}
-                  title={p.hint}
-                  aria-pressed={slotFilterPreset === p.key}
-                  className={`rounded-md px-2.5 py-1 text-[12px] font-semibold transition ${
-                    slotFilterPreset === p.key ? 'bg-accent-soft text-ink' : 'text-ink-dim hoverable:text-ink'
-                  }`}
-                >
-                  {p.label}
-                </button>
-              ))}
+            <div className="flex flex-wrap items-center gap-2">
+              <Segmented
+                options={SLOT_FILTER_PRESETS}
+                value={slotFilterPreset}
+                onChange={setSlotFilterPreset}
+                // Dans le panneau « Options » : pleine largeur, comme les autres
+                // contrôles du tiroir. En ligne au bureau : serré à son contenu.
+                size={dansPanneau ? 'lg' : undefined}
+                className={dansPanneau ? '' : 'w-fit'}
+              />
+              {dansPanneau && estimate && (
+                <span className="font-mono text-micro text-ink-dim">
+                  Pool de runes = {formatBig(estimate.perSlot.reduce((a, b) => a + b, 0))}
+                </span>
+              )}
             </div>
-            <p className="mt-1 text-[11.5px] text-warn max-w-[280px]">
+            <p className="mt-1 text-micro text-warn max-w-[280px]">
               ⚠️ {SLOT_FILTER_PRESETS.find((p) => p.key === slotFilterPreset)?.hint}
             </p>
 
@@ -996,10 +1020,10 @@ export default function OptimizerSection({ box, runes, optimizer, allMonsters, r
                   Le plafond de 100 000 résultats collectés, lui, reste actif.
                 </HelpPopover>
               </div>
-              <Switch
-                checked={exhaustiveSearch}
+              <Interrupteur
+                actif={exhaustiveSearch}
                 onChange={setExhaustiveSearch}
-                label="Rechercher jusqu'à épuisement complet"
+                aria-label="Rechercher jusqu'à épuisement complet"
               />
             </div>
 
@@ -1012,10 +1036,10 @@ export default function OptimizerSection({ box, runes, optimizer, allMonsters, r
                   pré-filtrage au lieu d'une seule, jamais une recherche complète.
                 </HelpPopover>
               </div>
-              <Switch
-                checked={diagnoseBlockingEnabled}
+              <Interrupteur
+                actif={diagnoseBlockingEnabled}
                 onChange={setDiagnoseBlockingEnabled}
-                label="Diagnostic approfondi sur 0 résultat"
+                aria-label="Diagnostic approfondi sur 0 résultat"
               />
             </div>
 
@@ -1034,52 +1058,38 @@ export default function OptimizerSection({ box, runes, optimizer, allMonsters, r
                   qu'une recherche normale rate, au prix d'une recherche plus longue.
                 </HelpPopover>
               </div>
-              <Switch
-                checked={adaptiveTrancheWeighting}
+              <Interrupteur
+                actif={adaptiveTrancheWeighting}
                 onChange={setAdaptiveTrancheWeighting}
-                label="Prioriser les stats les plus difficiles"
+                aria-label="Prioriser les stats les plus difficiles"
               />
             </div>
-          </div>
-        )}
-      </div>
+          </>
+        );
 
-      {estimate && (
-        <p className="font-mono text-[11.5px] text-ink-dim">
-          ≈ {formatBig(estimate.product)} combinaisons brutes après filtrage (pool par emplacement :{' '}
-          {estimate.perSlot.join(' × ')}) — un ordre de grandeur, pas le nombre réellement exploré par
-          l'algorithme.
-        </p>
-      )}
+        const reglagesAvancesTitre = (
+          <>
+            {/* Clé à molette, distincte des curseurs de « Critères de
+                recherche » (forme différente, pas seulement une couleur) —
+                même traitement accent que les autres en-têtes de carte. */}
+            <div className="flex h-6 w-6 flex-none items-center justify-center rounded-md border border-accent/40 bg-accent-soft">
+              <Wrench size={13} className="text-accent" />
+            </div>
+            Réglages avancés
+          </>
+        );
 
-      {/* Catégorie « Exclusion de runes » — les deux réglages ci-dessous
-          existaient déjà séparément (voir git blame), simplement regroupés
-          sous un en-tête commun ; comportement/logique INCHANGÉS. Se
-          superposent l'un à l'autre (voir optimizerExclusion.ts), jamais
-          l'un ne remplace l'autre. */}
-      <div className="rounded-xl border border-accent/50 bg-panel p-3">
-        <div className="mb-0.5 flex items-center gap-2">
-          {/* Icône « Runes » de Mon compte (même GameIcon que le menu),
-              barrée du vrai symbole « interdit » (cercle barré, comme le
-              curseur non-cliquable) plutôt qu'un simple trait — l'exclusion
-              RETIRE des runes de la recherche. */}
-          <div className="relative flex h-6 w-6 flex-none items-center justify-center rounded-md border border-border-soft bg-panel2">
-            <GameIcon name="rune" size={13} />
-            <Ban size={22} strokeWidth={1.75} className="pointer-events-none absolute text-bad/85" />
-          </div>
-          <p className="text-[13.5px] font-bold text-ink">Exclusion de runes</p>
-        </div>
-        <p className="mb-3 pl-8 text-[11px] text-ink-dim">Deux réglages indépendants, qui se superposent.</p>
-
-        {/* Côte à côte à partir de `sm` (les deux tiennent dans les 768px du
-            conteneur) ; empilés en dessous, comme avant, pour rester
-            praticable sur mobile. Colonne de gauche plus étroite (toggle +
-            3 options) que celle de droite (recherche + liste), pas un
-            50/50 aveugle. */}
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-[minmax(200px,260px)_1fr] sm:gap-5">
-          <div className="sm:border-r sm:border-border-soft sm:pr-5">
+        const dejaUtiliseesBlock = (
+          <div>
             <div className="flex flex-wrap items-center gap-1.5 mb-2">
-              <Layers size={15} className="text-ink-dim" />
+              {/* Roue de runes (le fond derrière les runes des résultats de
+                  build, RuneWheel.tsx), barrée du symbole « interdit » —
+                  même traitement que l'icône « Exclusion de runes » : ce
+                  réglage retire des runes DÉJÀ PORTÉES de la recherche. */}
+              <div className="relative flex h-6 w-6 flex-none items-center justify-center rounded-md border border-border-soft bg-panel2">
+                <img src={WHEEL_IMG} alt="" className="h-4 w-4 object-contain" />
+                <Ban size={20} strokeWidth={1.75} className="pointer-events-none absolute text-bad/85" />
+              </div>
               <span className="text-[12.5px] font-semibold text-ink-dim">Exclure les runes déjà utilisées</span>
               <HelpPopover title="Exclure les runes déjà utilisées">
                 Par défaut, la recherche considère TOUT l'inventaire, runes déjà portées ailleurs comprises. Active ce
@@ -1087,7 +1097,7 @@ export default function OptimizerSection({ box, runes, optimizer, allMonsters, r
                 choisi ci-dessous (un seul à la fois) — un build réellement montable sans déruner quelqu'un. Le monstre
                 recherché lui-même n'est jamais exclu de ses propres runes.
               </HelpPopover>
-              <Switch checked={excludeUsedRunes} onChange={setExcludeUsedRunes} label="Exclure les runes déjà utilisées" />
+              <Interrupteur actif={excludeUsedRunes} onChange={setExcludeUsedRunes} aria-label="Exclure les runes déjà utilisées" />
             </div>
             <Segmented
               options={AUTO_EXCLUSION_SCOPES}
@@ -1097,21 +1107,38 @@ export default function OptimizerSection({ box, runes, optimizer, allMonsters, r
               size="lg"
             />
           </div>
+        );
 
-          {/* Exclusion MANUELLE — se superpose à « Exclure les runes déjà
-              utilisées » à gauche, ne la remplace pas (voir
-              optimizerExclusion.ts). Choisir un monstre ici, dans n'importe
-              laquelle des 4 sources, retire ses runes ACTUELLEMENT équipées
-              du pool considéré, en plus de l'exclusion automatique
-              éventuelle. */}
+        // Exclusion MANUELLE — se superpose à « Exclure les runes déjà
+        // utilisées », ne la remplace pas (voir optimizerExclusion.ts).
+        // Choisir un monstre ici, dans n'importe laquelle des 4 sources,
+        // retire ses runes ACTUELLEMENT équipées du pool considéré, en plus
+        // de l'exclusion automatique éventuelle.
+        // ⚠️ `dansPanneau` : dans le panneau resserré, les 4 onglets de
+        // source (Box/RTA/Défenses siège/Offenses siège) restent sur UNE
+        // seule ligne mais en texte/rembourrage réduits (voir
+        // Segmented.tsx `dense`) — au bureau, la carte a la largeur pour le
+        // rendu normal.
+        const monstrePrecisBlock = (dansPanneau: boolean) => (
           <div>
             <div className="mb-2.5 flex items-center gap-1.5">
-              <UserX size={15} className="text-ink-dim" />
+              {/* Même icône que « Monstre & équipement » (GameIcon
+                  "monster"), barrée du symbole « interdit » — même
+                  traitement que l'icône « Exclusion de runes » plus bas :
+                  cette action RETIRE le monstre choisi du pool de runes. */}
+              <div className="relative flex h-6 w-6 flex-none items-center justify-center rounded-md border border-border-soft bg-panel2">
+                {/* ⚠️ L'artwork du monstre n'est pas parfaitement centré dans
+                    son canevas — invisible seul, ça se voit à côté du cercle
+                    « interdit », lui parfaitement centré par positionnement
+                    absolu. Léger recalage manuel, propre à cet usage précis. */}
+                <GameIcon name="monster" size={13} className="-translate-x-[1.5px]" />
+                <Ban size={20} strokeWidth={1.75} className="pointer-events-none absolute text-bad/85" />
+              </div>
               <span className="text-[12.5px] font-semibold text-ink-dim">Exclure les runes d'un monstre</span>
               <HelpPopover title="Exclure les runes d'un monstre">
-                Choisis un monstre (box, RTA, siège défense ou offense) pour retirer SES runes actuellement équipées de
-                la recherche — utile pour un build que tu ne veux pas défaire, en plus de{' '}
-                <b className="text-ink">« Exclure les runes déjà utilisées »</b> à gauche.
+                Choisis un monstre (box, RTA, défenses ou offenses de siège) pour retirer SES runes actuellement
+                équipées de la recherche — utile pour un build que tu ne veux pas défaire, en plus de{' '}
+                <b className="text-ink">« Exclure les runes déjà utilisées »</b>.
               </HelpPopover>
             </div>
             <RuneExclusionPicker
@@ -1120,12 +1147,123 @@ export default function OptimizerSection({ box, runes, optimizer, allMonsters, r
               excludeOwnCom2usId={selected?.monster.com2usId ?? null}
               selected={excludedSelectors}
               onChange={setExcludedSelectors}
+              denseSourceTabs={dansPanneau}
             />
           </div>
-        </div>
-      </div>
+        );
 
-      <div className="sticky bottom-3 z-10 flex flex-wrap items-center gap-3 rounded-xl border border-border bg-panel/95 p-3 shadow-lg backdrop-blur">
+        // ⚠️ `dansPanneau` : dans le panneau, « Exclure les runes d'un
+        // monstre » passe AU-DESSUS de « Exclure les runes déjà utilisées »
+        // (demande explicite — c'est le réglage le plus utilisé au doigt),
+        // et les deux restent EMPILÉS (jamais côte à côte, même sur un
+        // panneau assez large pour `sm:` — la largeur calibrée de la
+        // colonne de gauche, pensée pour la carte du bureau, ne vaudrait
+        // plus rien ici). Au bureau, ordre et grille inchangés.
+        const exclusionRunesInner = (dansPanneau: boolean) => (
+          <>
+            <p className="mb-3 pl-8 text-[11px] text-ink-dim">Deux réglages indépendants, qui se superposent.</p>
+
+            {dansPanneau ? (
+              // ⚠️ `space-y-4` (blocs) et non `flex flex-col` : sous
+              // `[data-tiroir]`, `align-items: flex-start` raboterait ces deux
+              // blocs — et donc leurs contrôles pleine largeur — à leur contenu.
+              <div className="space-y-4">
+                {monstrePrecisBlock(true)}
+                {dejaUtiliseesBlock}
+              </div>
+            ) : (
+              // Côte à côte à partir de `sm` (les deux tiennent dans les
+              // 768px du conteneur) ; empilés en dessous. Colonne de gauche
+              // plus étroite (toggle + 3 options) que celle de droite
+              // (recherche + liste), pas un 50/50 aveugle.
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-[minmax(200px,260px)_1fr] sm:gap-5">
+                <div className="sm:border-r sm:border-border-soft sm:pr-5">{dejaUtiliseesBlock}</div>
+                {monstrePrecisBlock(false)}
+              </div>
+            )}
+          </>
+        );
+
+        const exclusionRunesTitre = (
+          <>
+            {/* Icône « Runes » de Mon compte (même GameIcon que le menu),
+                barrée du vrai symbole « interdit » (cercle barré, comme le
+                curseur non-cliquable) plutôt qu'un simple trait — l'exclusion
+                RETIRE des runes de la recherche. */}
+            <div className="relative flex h-6 w-6 flex-none items-center justify-center rounded-md border border-border-soft bg-panel2">
+              <GameIcon name="rune" size={13} />
+              <Ban size={22} strokeWidth={1.75} className="pointer-events-none absolute text-bad/85" />
+            </div>
+            <p className="text-[13.5px] font-bold text-ink">Exclusion de runes</p>
+          </>
+        );
+
+        return (
+          <>
+            {/* Bureau : deux cartes en ligne, masquées au doigt (voir le
+                panneau plus bas). Exclusion de runes en tête — fonctionnalité
+                vedette, Réglages avancés en second. */}
+            <div className="hidden lg:block rounded-xl border border-accent/50 bg-panel p-3">
+              <div className="mb-0.5 flex items-center gap-2">{exclusionRunesTitre}</div>
+              {exclusionRunesInner(false)}
+            </div>
+
+            <div className="hidden lg:block rounded-xl border border-border bg-panel p-3">
+              <ZoneCliquable
+                onClick={() => setShowAdvanced((v) => !v)}
+                aria-expanded={showAdvanced}
+                className="flex w-full items-center gap-1.5 text-sm font-bold text-ink"
+              >
+                {reglagesAvancesTitre}
+                <ChevronDown
+                  size={14}
+                  className={`ml-auto text-ink-dim transition-transform ${showAdvanced ? 'rotate-180' : ''}`}
+                />
+              </ZoneCliquable>
+              {showAdvanced && (
+                <div className="mt-3 rounded-lg border border-border bg-panel2 p-3">{reglagesAvancesInner(false)}</div>
+              )}
+            </div>
+
+            {estimate && (
+              <p className="font-mono text-micro text-ink-dim">
+                {formatBig(estimate.perSlot.reduce((a, b) => a + b, 0))} runes gardées après pré-filtrage
+                (pool par emplacement : {estimate.perSlot.join(' + ')})
+              </p>
+            )}
+
+            {/* Doigt : panneau « Options de recherche », ordre Exclusion de
+                runes → Réglages avancés, jamais replié (ouvrir le panneau EST
+                déjà le geste « je veux voir les options »). Chaque groupe
+                dans son propre cadre (`bg-panel2`) : deux unités visuelles
+                distinctes, pas juste un trait de séparation entre deux blocs
+                de texte. */}
+            <MobileSheet ouvert={menuOuvert} onFermer={onFermerMenu} titre="Options de recherche">
+              {/* ⚠️ `space-y-3` et NON `flex flex-col` : le corps du panneau
+                  porte `data-tiroir`, et index.css y pose
+                  `[data-tiroir] .flex-col { align-items: flex-start }` — écrit
+                  pour les rangées d'actions, mais qui rabote ici les deux cartes
+                  à la largeur de leur contenu au lieu de les étirer. En blocs
+                  (`space-y`), les cartes reprennent d'elles-mêmes toute la
+                  largeur du panneau. Même piège que MobileNavSheet. */}
+              <div className="space-y-3">
+                <div className="rounded-lg border border-border-soft bg-panel2 p-3">
+                  <div className="mb-0.5 flex items-center gap-2">{exclusionRunesTitre}</div>
+                  {exclusionRunesInner(true)}
+                </div>
+                <div className="rounded-lg border border-border-soft bg-panel2 p-3">
+                  <div className="mb-3 flex items-center gap-1.5 text-[13px] font-bold text-ink">
+                    {reglagesAvancesTitre}
+                  </div>
+                  {reglagesAvancesInner(true)}
+                </div>
+              </div>
+            </MobileSheet>
+          </>
+        );
+      })()}
+
+      <div className="flex flex-wrap items-center gap-3 rounded-xl border border-border bg-panel p-3 shadow-lg">
         {/* ⚠️ `comboSets.length === 0` reste HORS de `disabled` — un bouton
             HTML natif `disabled` ne déclenche JAMAIS `onClick` (règle du
             DOM, pas un oubli), ce qui aurait rendu le défilement vers « Set
@@ -1135,52 +1273,42 @@ export default function OptimizerSection({ box, runes, optimizer, allMonsters, r
             appliquées manuellement) tout en restant cliquable, pour que le
             clic sur un set manquant décale toujours vers la section fautive
             plutôt que de ne rien faire silencieusement. */}
-        <button
-          type="button"
+        <Bouton
+          ton="accent"
           onClick={handleSearch}
           disabled={!selected || status === 'running'}
           title={selected && status !== 'running' && comboSets.length === 0 ? 'Choisis d\'abord un set de runes recherché' : undefined}
-          className={`flex items-center gap-1.5 rounded-lg border border-accent bg-accent-soft px-3.5 py-2 text-[13px] font-semibold
-                     text-ink transition hoverable:shadow disabled:opacity-40 disabled:cursor-not-allowed ${
-                       comboSets.length === 0 ? 'opacity-40 cursor-not-allowed' : ''
-                     }`}
-        >
-          <Search size={15} />
-          {status === 'running' ? 'Recherche…' : 'Rechercher'}
-        </button>
+          icone={<Search size={15} />}
+          libelle={status === 'running' ? 'Recherche…' : 'Rechercher'}
+          className={comboSets.length === 0 ? 'opacity-40 cursor-not-allowed' : ''}
+        />
 
         {/* Exporte les réglages de CETTE recherche (set, minimums, objectif…),
             jamais le pool de runes ni le compte — pour reproduire fidèlement
             un cas signalé, partager une recherche entre joueurs (chacun
             l'applique à son propre inventaire), ou la réutiliser depuis un
             script. Voir src/lib/optimizerRecipe.ts. */}
-        <button
-          type="button"
+        <Bouton
           onClick={exportRecipe}
           disabled={!selected || comboSets.length === 0}
           title="Télécharger les réglages de cette recherche en fichier .json (set, minimums, objectif…) — pour la partager ou la reproduire, jamais tes runes ni ton compte."
-          className="flex items-center gap-1.5 rounded-lg border border-border bg-panel px-3 py-2 text-[12.5px]
-                     text-ink-dim transition hoverable:text-ink hoverable:border-accent disabled:opacity-40 disabled:cursor-not-allowed"
-        >
-          <Upload size={14} />
-          Exporter les paramètres de recherche
-        </button>
+          icone={<Upload size={14} />}
+          libelle="Exporter les paramètres de recherche"
+          libelleCourt="Exporter"
+        />
 
         {/* Reprend une recette importée (fichier reçu d'un autre joueur, ou
             gardée de côté) — remplit les réglages et sélectionne le monstre
             si son com2usId existe dans CETTE box. Aucune confirmation :
             remplacer les réglages en cours n'est pas plus destructeur que
             les modifier à la main un par un. */}
-        <button
-          type="button"
+        <Bouton
           onClick={() => importFileRef.current?.click()}
           title="Reprendre les réglages d'un fichier .json exporté depuis l'Optimizer (le tien ou celui d'un autre joueur)."
-          className="flex items-center gap-1.5 rounded-lg border border-border bg-panel px-3 py-2 text-[12.5px]
-                     text-ink-dim transition hoverable:text-ink hoverable:border-accent"
-        >
-          <Download size={14} />
-          Importer les paramètres de recherche
-        </button>
+          icone={<Download size={14} />}
+          libelle="Importer les paramètres de recherche"
+          libelleCourt="Importer"
+        />
         <input
           ref={importFileRef}
           type="file"
@@ -1194,18 +1322,17 @@ export default function OptimizerSection({ box, runes, optimizer, allMonsters, r
         />
 
         {status === 'running' && (
-          <button
-            type="button"
+          <Bouton
+            ton="danger"
+            fond="vide"
             onClick={() => {
               setStoppedManually(true);
               stop();
             }}
             title="Arrêter la recherche et garder ce qui a déjà été trouvé"
-            className="flex items-center gap-1.5 rounded-lg border border-border bg-panel px-3.5 py-2 text-[13px] font-semibold
-                       text-ink-dim transition hoverable:text-bad hoverable:border-bad"
-          >
-            <Square size={13} /> Arrêter
-          </button>
+            icone={<Square size={13} />}
+            libelle="Arrêter"
+          />
         )}
       </div>
 
@@ -1243,7 +1370,7 @@ export default function OptimizerSection({ box, runes, optimizer, allMonsters, r
                     style={{ width: `${Math.round((h?.pct ?? 0) * 100)}%` }}
                   />
                 </div>
-                <p className="mt-1 font-mono text-[11px] text-ink-dim">
+                <p className="mt-1 font-mono text-micro text-ink-dim">
                   Préparation — moitié {half} :{' '}
                   {h ? `${h.scanned.toLocaleString('fr-FR')} / ${h.total.toLocaleString('fr-FR')} runes` : 'en attente…'}
                 </p>
@@ -1268,13 +1395,13 @@ export default function OptimizerSection({ box, runes, optimizer, allMonsters, r
               la ligne « Espace de recherche à épuiser » juste en dessous,
               qui montre TOUJOURS `totalPairs`. Les deux lignes partagent
               maintenant le même chiffre. */}
-          <p className="mt-1 font-mono text-[11px] text-ink-dim">
+          <p className="mt-1 font-mono text-micro text-ink-dim">
             {progress === null
               ? 'Préparation…'
               : `${progress.explored.toLocaleString('fr-FR')} / ${progress.totalPairs.toLocaleString('fr-FR')} combinaisons examinées · ${progress.found.toLocaleString('fr-FR')} trouvée(s)`}
           </p>
           {progress !== null && (
-            <p className="mt-0.5 font-mono text-[11px] text-ink-dimmer">
+            <p className="mt-0.5 font-mono text-micro text-ink-dimmer">
               Espace de recherche à épuiser (au pire) : {progress.totalPairs.toLocaleString('fr-FR')} combinaisons
             </p>
           )}
@@ -1288,7 +1415,7 @@ export default function OptimizerSection({ box, runes, optimizer, allMonsters, r
       )}
 
       {status === 'error' && (
-        <p className="text-[12.5px] text-bad">La recherche a échoué. Réessaie avec des critères moins stricts.</p>
+        <p className="text-xs text-bad">La recherche a échoué. Réessaie avec des critères moins stricts.</p>
       )}
 
       {/* ⚠️ S'affiche AUSSI pendant la phase d'appariement, dès qu'au moins
@@ -1311,7 +1438,7 @@ export default function OptimizerSection({ box, runes, optimizer, allMonsters, r
                   )} combinaison(s) trouvée(s) pour l'instant — recherche en cours…`}
             </p>
             {(result ? result.candidates.length > 0 : true) && (
-              <select
+              <Selecteur
                 value={sortBy}
                 onChange={(e) => {
                   setSortBy(e.target.value as OptimizerSortKey);
@@ -1319,8 +1446,9 @@ export default function OptimizerSection({ box, runes, optimizer, allMonsters, r
                   // n'a plus le même sens, on repart du meilleur résultat.
                   setResultsPage(1);
                 }}
-                className="bg-panel border border-border rounded-lg px-2 py-1 text-[12px] text-ink outline-none
-                           focus:border-accent"
+                taille="sm"
+                surface="panel"
+                pleineLargeur={false}
               >
                 <optgroup label="Stats">
                   {RECO_STATS.map((st) => (
@@ -1336,7 +1464,7 @@ export default function OptimizerSection({ box, runes, optimizer, allMonsters, r
                     </option>
                   ))}
                 </optgroup>
-              </select>
+              </Selecteur>
             )}
           </div>
 
@@ -1351,7 +1479,7 @@ export default function OptimizerSection({ box, runes, optimizer, allMonsters, r
             <div className="mb-3 rounded-lg border border-border bg-panel p-3">
               {impossibleFeasibility.length > 0 ? (
                 <>
-                  <p className="mb-1.5 text-[12px] font-semibold text-bad">
+                  <p className="mb-1.5 text-xs font-semibold text-bad">
                     {impossibleFeasibility.length === 1
                       ? 'Une condition est'
                       : `${impossibleFeasibility.length} conditions sont`}{' '}
@@ -1361,7 +1489,7 @@ export default function OptimizerSection({ box, runes, optimizer, allMonsters, r
                     {impossibleFeasibility.map((f) => {
                       const st = RECO_STATS.find((s) => s.key === f.key)!;
                       return (
-                        <li key={`${f.key}-${f.kind}`} className="text-[12px] text-ink-dim">
+                        <li key={`${f.key}-${f.kind}`} className="text-xs text-ink-dim">
                           <span className="font-semibold text-ink">{st.label}</span>{' '}
                           {f.kind === 'min'
                             ? `minimum demandé ${f.requested}${st.suffix} — maximum atteignable ${f.bound}${st.suffix} avec ce pool, ce set et ces statistiques principales.`
@@ -1372,7 +1500,7 @@ export default function OptimizerSection({ box, runes, optimizer, allMonsters, r
                   </ul>
                 </>
               ) : (
-                <p className="text-[12px] text-ink-dim">
+                <p className="text-xs text-ink-dim">
                   Aucune condition n'est, à elle seule, mathématiquement hors de portée — le blocage
                   vient probablement de leur <b className="text-ink">combinaison</b> (rare qu'un seul
                   build satisfasse tout à la fois), ou du pré-filtrage de la recherche elle-même. Essaie
@@ -1390,7 +1518,7 @@ export default function OptimizerSection({ box, runes, optimizer, allMonsters, r
           {result?.candidates.length === 0 &&
             (blockingDiagnosis && blockingDiagnosis.impacts.length > 0 ? (
               <div className="mb-3 rounded-lg border border-border bg-panel p-3">
-                <p className="mb-1.5 text-[12px] font-semibold text-ink">
+                <p className="mb-1.5 text-xs font-semibold text-ink">
                   Diagnostic approfondi — pool le plus restreint : {blockingDiagnosis.baselineMinSlot} candidat(s)
                   actuellement.
                 </p>
@@ -1399,7 +1527,7 @@ export default function OptimizerSection({ box, runes, optimizer, allMonsters, r
                     const st = RECO_STATS.find((s) => s.key === imp.key)!;
                     const gain = imp.poolMinSlotWithout - blockingDiagnosis.baselineMinSlot;
                     return (
-                      <li key={`${imp.key}-${imp.kind}`} className="text-[12px] text-ink-dim">
+                      <li key={`${imp.key}-${imp.kind}`} className="text-xs text-ink-dim">
                         Retirer <span className="font-semibold text-ink">{st.label}</span> (
                         {imp.kind === 'min' ? '≥' : '≤'} {imp.requested}
                         {st.suffix}) : {imp.poolMinSlotWithout} candidat(s){gain > 0 ? ` (+${gain})` : ' (aucun gain)'}.
@@ -1407,7 +1535,7 @@ export default function OptimizerSection({ box, runes, optimizer, allMonsters, r
                     );
                   })}
                 </ul>
-                <p className="mt-1.5 text-[11px] text-ink-dim">
+                <p className="mt-1.5 text-micro text-ink-dim">
                   Un indice, pas une preuve — basé sur le pré-filtrage sûr, pas sur une recherche complète.
                 </p>
               </div>
@@ -1421,7 +1549,7 @@ export default function OptimizerSection({ box, runes, optimizer, allMonsters, r
             ))}
 
           {result?.truncated && (
-            <p className="mb-2 text-[11.5px] text-warn">
+            <p className="mb-2 text-micro text-warn">
               {stoppedManually
                 ? `Recherche arrêtée après examen de ${result.explored.toLocaleString('fr-FR')} combinaisons — voici le meilleur trouvé jusque-là.`
                 : `Recherche interrompue après examen de ${result.explored.toLocaleString('fr-FR')} combinaisons — resserre tes critères pour un résultat exhaustif.`}
@@ -1434,7 +1562,7 @@ export default function OptimizerSection({ box, runes, optimizer, allMonsters, r
               cartes affichent stats + artéfacts + roue sur une seule LIGNE
               (voir BuildCandidateCard.tsx), calibrées pour tenir dans cette
               largeur (`WHEEL_SCALE`/`ARTIFACT_SCALE` = 0,45). */}
-          <div className="grid grid-cols-[repeat(auto-fill,minmax(360px,1fr))] gap-3">
+          <div className="grid grid-cols-[repeat(auto-fill,minmax(min(360px,100%),1fr))] gap-3">
             {pageCandidates.map((c, i) => (
               <BuildCandidateCard
                 key={c.runeIds.join('-')}
@@ -1464,26 +1592,22 @@ export default function OptimizerSection({ box, runes, optimizer, allMonsters, r
               NumberField.tsx). */}
           {totalResultsPages > 1 && (
             <div className="mt-4 flex items-center justify-center gap-3">
-              <button
-                type="button"
+              <BoutonIcone
+                cadre
+                libelle="Page précédente"
+                icone={<ChevronLeft size={16} />}
                 onClick={() => setResultsPage((p) => Math.max(1, p - 1))}
                 disabled={resultsPage <= 1}
-                aria-label="Page précédente"
-                title="Page précédente"
-                className="flex h-8 w-8 flex-none items-center justify-center rounded-lg border border-border
-                           bg-panel text-ink-dim transition hoverable:text-ink hoverable:border-accent
-                           disabled:opacity-30 disabled:cursor-not-allowed"
-              >
-                <ChevronLeft size={16} />
-              </button>
+                className="h-8 w-8"
+              />
 
               <div className="flex items-center gap-1.5 font-mono text-[12.5px] text-ink-dim">
                 <span>Page</span>
-                <input
-                  type="text"
+                <Champ
                   inputMode="numeric"
                   value={pageDraft ?? String(resultsPage)}
                   aria-label="Aller à la page"
+                  pleineLargeur={false}
                   onChange={(e) => {
                     const brut = e.target.value.trim();
                     // ⚠️ La chaîne VIDE est un état de brouillon valide (tout
@@ -1503,24 +1627,19 @@ export default function OptimizerSection({ box, runes, optimizer, allMonsters, r
                   onKeyDown={(e) => {
                     if (e.key === 'Enter') (e.target as HTMLInputElement).blur();
                   }}
-                  className="w-11 rounded-md border border-border bg-panel px-1 py-1 text-center text-ink
-                             outline-none focus:border-accent"
+                  className="w-11 px-1 py-1 text-center"
                 />
                 <span>/ {totalResultsPages}</span>
               </div>
 
-              <button
-                type="button"
+              <BoutonIcone
+                cadre
+                libelle="Page suivante"
+                icone={<ChevronRight size={16} />}
                 onClick={() => setResultsPage((p) => Math.min(totalResultsPages, p + 1))}
                 disabled={resultsPage >= totalResultsPages}
-                aria-label="Page suivante"
-                title="Page suivante"
-                className="flex h-8 w-8 flex-none items-center justify-center rounded-lg border border-border
-                           bg-panel text-ink-dim transition hoverable:text-ink hoverable:border-accent
-                           disabled:opacity-30 disabled:cursor-not-allowed"
-              >
-                <ChevronRight size={16} />
-              </button>
+                className="h-8 w-8"
+              />
             </div>
           )}
         </div>

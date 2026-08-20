@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { AlertTriangle } from 'lucide-react';
-import DetailPopover from '../account/DetailPopover';
+import { BoutonIcone, FlottantAuto } from '../../ui';
 
 // Avertissement « vitesse modifiée à la main » : triangle orange, et le détail
 // **au CLIC**, pas au survol.
@@ -39,25 +39,45 @@ export default function DesyncBadge({
        `top-full` se calcule sur sa hauteur — le panneau atterrissait à côté de
        l'icône au lieu d'être dessous. */
     <span ref={ref} className="relative inline-flex flex-none">
-      <button
+      {/* ⚠️ Ton `alerte` : sa couleur ne dit pas ce que le bouton FAIT mais
+          l'état des données — d'où une teinte présente dès le repos, qui ne
+          bouge pas au survol. Voir Bouton.
+          ⚠️ `taille="serre"` : le badge est posé dans la ligne d'une carte de
+          150 px, entre la vitesse et les icônes de set. Porté à 40 px par la
+          règle tactile, il faisait déborder la ligne. */}
+      <BoutonIcone
         onClick={(e) => {
           e.stopPropagation(); // sinon la carte s'ouvrirait (clic = voir les runes)
           setOpen((v) => !v);
         }}
         aria-expanded={open}
-        aria-label="Vitesse modifiée à la main"
-        className="flex items-center justify-center text-warn transition hoverable:text-warn"
-      >
-        <AlertTriangle size={size} />
-      </button>
+        libelle="Vitesse modifiée à la main"
+        // Le panneau qui s'ouvre au clic EST l'explication : une infobulle
+        // native ferait doublon, et s'afficherait par-dessus lui.
+        sansInfobulle
+        ton="alerte"
+        taille="serre"
+        icone={<AlertTriangle size={size} />}
+        className="hoverable:bg-transparent"
+      />
 
-      {/* ⚠️ Placement AUTOMATIQUE (`DetailPopover`) : les cartes vont jusqu'au
-          bord droit de la page, un panneau ancré en dur en sortait. Il bascule
-          vers la gauche ou vers le haut selon la place disponible. */}
-      <DetailPopover open={open} anchorRef={ref} width={230} height={130}>
+      {/* ⚠️ Placement AUTOMATIQUE : les cartes vont jusqu'au bord droit de la
+          page, et un panneau ancré en dur en sortait. `FlottantAuto` bascule
+          vers la gauche ou vers le haut selon la place disponible.
+          ⚠️ **Un seul cadre.** Le contenu posait le sien (`rounded-lg border`)
+          par-dessus celui du flottant : deux traits concentriques à 1 px l'un de
+          l'autre, qui se lisent comme un contour flou. Seule la TEINTE d'alerte
+          reste, portée par le flottant lui-même. */}
+      <FlottantAuto
+        ouvert={open}
+        ancre={ref}
+        largeur={230}
+        hauteur={130}
+        rembourrage="sm"
+        className="border-warn/50"
+      >
         <div
-          className="rounded-lg border border-warn/50 bg-panel p-2.5 text-left text-[11.5px]
-                     leading-relaxed text-ink-dim"
+          className="text-left text-micro leading-relaxed text-ink-dim"
           onClick={(e) => e.stopPropagation()}
         >
           <span className="mb-1 block font-semibold text-warn">Runes plus à jour</span>
@@ -66,7 +86,7 @@ export default function DesyncBadge({
           <b className="text-fire">{ecart.saisi}</b>. Cette vitesse demandée apparaît{' '}
           <b className="text-fire">en rouge</b> sur la ligne VIT de la fiche.
         </div>
-      </DetailPopover>
+      </FlottantAuto>
     </span>
   );
 }

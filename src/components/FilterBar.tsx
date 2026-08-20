@@ -37,7 +37,7 @@ export default function FilterBar({
               // l'élément est déjà là au repos, c'est sa pleine intensité qui
               // dit « posé ». L'ombre qui s'y ajoutait faisait décoller la
               // pastille de la page. Voir spec/shared/design.md.
-              className={`flex items-center gap-1.5 rounded-full border bg-panel px-3.5 py-1.5 text-[13px] font-semibold
+              className={`flex items-center gap-1.5 rounded-full border bg-panel px-3.5 py-1.5 text-sm font-semibold
                 transition select-none ${ELEMENT_FILTER_STYLES[el.key]}
                 ${active ? '' : 'opacity-70 hoverable:opacity-100'}`}
             >
@@ -58,13 +58,16 @@ export default function FilterBar({
             <button
               key={s}
               onClick={() => toggleStar(s)}
-              className={`rounded-full border px-3.5 py-1.5 text-[13px] font-mono font-semibold transition select-none
+              className={`rounded-full border px-3.5 py-1.5 text-sm font-mono font-semibold transition select-none
                 ${
-                  // Le dégradé `star` EST le marqueur : pas de `shadow-lg` en
-                  // plus, qui faisait flotter la pastille au-dessus de sa
-                  // rangée. Voir spec/shared/design.md.
+                  // ⚠️ **Contour d'accent + fond très léger**, le marqueur
+                  // d'état unique de l'app (voir spec/shared/design.md). Le
+                  // dégradé doré plein qu'elles portaient criait plus fort que
+                  // le réglage ne le mérite, et faisait deux vocabulaires selon
+                  // l'écran — un filtre actif ne doit pas se lire différemment
+                  // ici et là.
                   active
-                    ? 'bg-gradient-to-br from-star to-yellow-200 text-bg border-star'
+                    ? 'border-accent bg-accent-soft text-ink'
                     : 'bg-panel border-border text-ink-dim hoverable:text-ink hoverable:border-accent'
                 }`}
             >
@@ -81,7 +84,7 @@ export default function FilterBar({
         <select
           value={sortMode}
           onChange={(e) => setSortMode(e.target.value)}
-          className="bg-panel border border-border text-ink rounded-lg px-2.5 py-1.5 text-[13px] outline-none"
+          className="bg-panel border border-border text-ink rounded-lg px-2.5 py-1.5 text-sm outline-none"
         >
           <option value="stars_desc">Étoiles ↓ puis nom</option>
           <option value="stars_asc">Étoiles ↑ puis nom</option>

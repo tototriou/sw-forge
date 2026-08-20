@@ -175,3 +175,20 @@ par nom. (Le tri ne dépend pas des leads.)
 - Déplacer un monstre ne change que sa `section` (garde sa SPD runes).
 - La SPD runes est partagée avec l'affichage de l'ordre de tour (même `entry`).
 - Ajouter une section déjà visible est sans effet (idempotent).
+
+## Retirer un monstre
+
+La croix du coin haut-droit d'une carte demande une **confirmation**
+(`ConfirmDialog`), sur les deux formats.
+
+⚠️ Elle n'en demandait aucune : le monstre partait au premier contact. Or cette
+croix est posée **sur le coin de la carte**, à quelques pixels du portrait qu'on
+touche pour ouvrir le détail des runes — au doigt, on la déclenche par accident
+en faisant défiler une grille. Et ce qui part avec le monstre ne se retrouve
+pas : sa vitesse saisie, son classement en section, ses catégories. Ni
+annulation, ni corbeille.
+
+⚠️ **Sur les deux formats**, alors que le geste est plus risqué au doigt : la
+même croix ne peut pas signifier deux choses selon l'écran. C'est la règle
+générale du projet — un geste sans retour possible se confirme (voir les 24
+autres `ConfirmDialog` de l'app).

@@ -1,24 +1,13 @@
-import { ReactNode, useRef, useState } from 'react';
-import { RotateCw, Gauge } from 'lucide-react';
-import { ArtifactDetail, GearSet, RelicDetail, RuneDetail } from '../types';
+import { useRef, useState } from 'react';
+import { GearSet, RelicDetail } from '../types';
 import { computeStats } from '../lib/stats';
-import {
-  formatRuneEffect,
-  formatArtifactMain,
-  splitArtifactSub,
-  formatRelicMain,
-  RARITY_META,
-  SET_BONUS,
-  RUNE_EFFECT,
-  runeEfficiency,
-  runeScore,
-} from '../lib/effects';
+import { formatRelicMain } from '../lib/effects';
 import RuneWheel from './RuneWheel';
+import { COMPACT, useMediaQuery } from '../hooks/useMediaQuery';
 import ArtifactSlots from './ArtifactSlots';
 import StatPanel from './StatPanel';
-import DetailPopover from './account/DetailPopover';
-import { RUNE_METRICS, formatRuneMetric, useRuneMetric } from '../hooks/useRuneMetric';
-import { artifactScore, artifactEfficiency } from '../lib/artifacts';
+import { ArtifactDetailBox, RuneDetailBox } from './PieceDetail';
+import { FlottantAuto, ZoneCliquable } from '../ui';
 
 type Selected =
   | { kind: 'rune'; i: number }
@@ -26,332 +15,14 @@ type Selected =
   | { kind: 'relic' }
   | null;
 
-// Marque « Antique » : A droit, pieds plats, barre centrale = triangle plein
-// qui ne touche pas les bords. Intégrée dans la bannière de rareté.
-function AncientMark({ size = 12, color = 'currentColor' }: { size?: number; color?: string }) {
+// ⚠️ `encadre=false` dans un `Flottant`, qui pose déjà bord + fond + coins
+// arrondis — voir `PieceDetailBox`, même règle.
+function RelicDetailBox({ relic, encadre = true }: { relic: RelicDetail; encadre?: boolean }) {
   return (
-    <svg viewBox="0 0 24 24" width={size} height={size} className="flex-none" aria-hidden="true">
-      <g stroke={color} strokeWidth="2.2" strokeLinecap="butt" strokeLinejoin="miter" fill="none">
-        <path d="M12 3.5 L4.5 20.5" />
-        <path d="M12 3.5 L19.5 20.5" />
-        <path d="M8 14.5 H16" />
-        <path d="M2.6 20.5 H7" />
-        <path d="M17 20.5 H21.4" />
-      </g>
-      {/* triangle plein central, détaché des bords */}
-      <path d="M12 8.8 L14.4 13.4 L9.6 13.4 Z" fill={color} />
-    </svg>
-  );
-}
-
-// Détail d'une rune, façon jeu : stat principale (gros), innée, substats, set.
-export function RuneDetailBox({
-  rune,
-  icone,
-  compact = false,
-  cherches,
-}: {
-  rune: RuneDetail;
-  // Image de la rune (cadre du slot + symbole du set), posée à gauche de
-  // l'en-tête. Fournie par l'appelant : la carte sert aussi dans un popover où
-  // l'image est déjà à côté, sur la tuile qui l'a ouvert.
-  icone?: ReactNode;
-  // Rendu resserré pour une TUILE de liste : corps réduits, interlignes et
-  // marges rognés. Le contenu reste le même — c'est la carte du jeu, et elle
-  // vaut d'être lue entière ; seule la place qu'elle prend change.
-  compact?: boolean;
-  // Codes recherchés → la ligne correspondante est surlignée (écho du filtre).
-  cherches?: Set<number>;
-}) {
-  const rarity = RARITY_META[rune.rarity] ?? RARITY_META[1];
-  const bonus = SET_BONUS[rune.set];
-  const ancient = rune.rank > 10;
-  const metric = useRuneMetric();
-  const metricHint = RUNE_METRICS.find((m) => m.key === metric)?.hint;
-
-  // ── Détail / total, au clic ─────────────────────────────────────────────
-  //
-  // Le jeu montre « VIT +26 +5 » : la valeur d'origine et ce que la meule a
-  // ajouté. C'est ce qu'il faut pour juger une rune — mais pas pour la comparer
-  // à un minimum, où seul le TOTAL compte. Un clic bascule donc entre les deux
-  // lectures, sur toute la carte.
-  //
-  // ⚠️ Le total prend la couleur du BONUS (orange), pas celle de la base : il
-  // n'est plus la valeur d'origine, et le garder en blanc laisserait croire
-  // qu'on lit toujours la base. La couleur dit « ce nombre inclut la meule ».
-  const [total, setTotal] = useState(false);
-  // Une rune sans aucune meule n'a rien à basculer : les deux lectures y sont
-  // identiques, et un clic sans effet se lit comme un défaut.
-  const aDeLaMeule = rune.subs.some((s) => (s.grind ?? 0) > 0);
-
-  return (
-    // ⚠️ Fond OPAQUE : cette carte s'affiche dans un popover flottant au-dessus
-    // de la grille de runes. Un fond translucide laissait voir les tuiles
-    // derrière et rendait le détail illisible.
-    <div
-      // ⚠️ `role="button"` sur le conteneur plutôt qu'un `<button>` autour :
-      // la carte contient déjà des éléments interactifs ailleurs (le popover
-      // l'utilise dans un contexte cliquable), et imbriquer des boutons est
-      // invalide. Ici la carte entière est la cible — c'est le geste du jeu.
-      // ⚠️ `stopPropagation` : dans un popover, la carte est posée à l'intérieur
-      // d'une zone dont le clic referme le flottant. Sans ça, basculer les
-      // valeurs fermait le détail qu'on est en train de lire.
-      onClick={
-        aDeLaMeule
-          ? (e) => {
-              e.stopPropagation();
-              setTotal((v) => !v);
-            }
-          : undefined
-      }
-      onKeyDown={
-        aDeLaMeule
-          ? (e) => {
-              if (e.key === 'Enter' || e.key === ' ') {
-                e.preventDefault();
-                setTotal((v) => !v);
-              }
-            }
-          : undefined
-      }
-      role={aDeLaMeule ? 'button' : undefined}
-      tabIndex={aDeLaMeule ? 0 : undefined}
-      aria-pressed={aDeLaMeule ? total : undefined}
-      title={
-        aDeLaMeule
-          ? total
-            ? 'Voir le détail (valeur d’origine + meule)'
-            : 'Voir les valeurs totales, meule comprise'
-          : undefined
-      }
-      className={`rounded-lg border border-border bg-panel2 ${compact ? 'p-2' : 'p-3'} ${
-        aDeLaMeule ? 'cursor-pointer transition hoverable:border-accent' : ''
-      }`}
-    >
-      {/* En-tête : l'image à gauche, la stat principale au centre, la rareté et
-          la mesure à droite. ⚠️ Sur une seule ligne en compact : la rareté et
-          l'efficience occupaient leur propre bloc en haut à droite, soit deux
-          lignes rien que pour elles. */}
-      <div className="flex items-start gap-2">
-        {icone}
-        <div className="min-w-0 flex-1">
-          {/* stat principale + innée */}
-          <div
-            className={`font-black text-ink leading-tight ${compact ? 'text-[13px]' : 'text-[15px]'}`}
-          >
-            {formatRuneEffect(rune.main)}
-          </div>
-          {rune.innate && (
-            <div
-              className={`font-semibold text-water leading-tight ${
-                compact ? 'text-[11px]' : 'text-[13px]'
-              }`}
-            >
-              {formatRuneEffect(rune.innate)}
-            </div>
-          )}
-        </div>
-        <div className="flex flex-none flex-col items-end">
-          {/* ⚠️ En compact, la bannière perd son espacement de lettres et se
-              resserre : c'est ELLE qui dictait la largeur minimale de la tuile
-              (« LÉGENDAIRE » en capitales espacées), donc celle de toute la
-              grille. Les couleurs et le mot restent — c'est le vocabulaire du
-              jeu —, seule la place qu'ils prennent change. */}
-          <span
-            className={`inline-flex items-center gap-1 rounded font-bold uppercase ${
-              compact ? 'px-1.5 py-px text-[9.5px]' : 'px-2 py-0.5 text-[10px] tracking-wide'
-            }`}
-            style={{ background: rarity.bg, color: rarity.color }}
-            title={ancient ? 'Rune antique' : undefined}
-          >
-            {ancient && <AncientMark size={compact ? 10 : 12} color={rarity.color} />}
-            {rarity.label}
-          </span>
-          {/* Mesure choisie globalement (sélecteur dans la liste des runes et en
-              pied de ce panneau) — même couleur dans les deux cas. */}
-          <span className="mt-0.5 font-mono text-[11px] text-ink-dim" title={metricHint}>
-            {metric === 'eff' ? 'Efficience' : 'Score SW'}{' '}
-            <b className="text-star">
-              {formatRuneMetric(metric === 'eff' ? runeEfficiency(rune) : runeScore(rune), metric)}
-            </b>
-          </span>
-        </div>
-      </div>
-      {/* Substats : base (blanc) + meule (orange) + ↻ si gemme.
-          ⚠️ Tout ALIGNÉ À GAUCHE, valeur collée à son libellé — et non la valeur
-          poussée au bord droit de la case. C'est le rendu du jeu, et c'est le
-          bon : « VIT +26 +5 » se lit d'un bloc, là où une valeur cadrée à droite
-          oblige l'œil à traverser du vide sur chaque ligne. */}
-      <div
-        className={`border-t border-border/40 ${
-          compact ? 'mt-1.5 space-y-px pt-1.5' : 'mt-2 space-y-1 pt-2'
-        }`}
-      >
-        {rune.subs.map((s, i) => {
-          const def = RUNE_EFFECT[s.code];
-          const label = def ? (def.label.endsWith('%') ? def.label.slice(0, -1) : def.label) : `#${s.code}`;
-          const suffix = def?.suffix ?? '';
-          const grind = s.grind ?? 0;
-          const base = s.value - grind;
-          // Ligne recherchée : liseré d'accent + fond léger, comme sur une tuile
-          // d'artéfact. Les compensations annulent exactement le liseré, sinon
-          // la ligne visée se décale par rapport aux autres.
-          const vise = cherches?.has(s.code) ?? false;
-          return (
-            <div
-              key={i}
-              className={`flex items-center gap-1 leading-tight ${
-                compact ? 'text-[11.5px]' : 'text-[12.5px]'
-              } ${vise ? '-mx-1 rounded border-l-2 border-accent bg-accent/[0.08] pl-[2px] pr-1' : ''}`}
-            >
-              {total ? (
-                // Cumulé. ⚠️ En ORANGE (la couleur du bonus) dès qu'une meule
-                // entre dedans : le nombre n'est plus la valeur d'origine, et le
-                // laisser en blanc ferait croire qu'on lit toujours la base.
-                <span className={grind > 0 ? 'font-semibold text-orange-400' : 'text-ink'}>
-                  {label} {s.value}
-                  {suffix}
-                </span>
-              ) : (
-                <>
-                  <span className="text-ink">
-                    {label} {base}
-                    {suffix}
-                  </span>
-                  {grind > 0 && (
-                    <span className="text-orange-400 font-semibold">
-                      +{grind}
-                      {suffix}
-                    </span>
-                  )}
-                </>
-              )}
-              {s.enchant && <RotateCw size={11} className="text-orange-400" />}
-            </div>
-          );
-        })}
-      </div>
-      {/* Bonus de set — comme dans le jeu, en pied de carte. */}
-      {bonus && (
-        <div
-          className={`border-t border-border/40 text-good ${
-            compact ? 'mt-1.5 pt-1.5 text-[11px] leading-tight' : 'mt-2 pt-2 text-[12px]'
-          }`}
-        >
-          {bonus.pieces} Set : {bonus.label}
-        </div>
-      )}
-    </div>
-  );
-}
-
-// Libellé de la catégorie d'artéfact, pour la ligne du bas. Les noms du JEU :
-// **Attribut** et **Type** — `element` / `archetype` ne sont que les clés des
-// données com2us et ne doivent pas remonter à l'écran.
-const ELEMENT_FR: Record<string, string> = {
-  fire: 'Feu', water: 'Eau', wind: 'Vent', light: 'Lumière', dark: 'Ténèbres', unknown: '—',
-};
-const ARCHETYPE_FR: Record<string, string> = {
-  attack: 'Attaque', defense: 'Défense', hp: 'PV', support: 'Support',
-};
-function artifactTypeLabel(a: ArtifactDetail): string {
-  return a.kind === 'element'
-    ? `Attribut · ${ELEMENT_FR[a.element ?? 'unknown'] ?? '—'}`
-    : `Type · ${ARCHETYPE_FR[a.archetype ?? ''] ?? '—'}`;
-}
-
-// Détail d'un artéfact, façon jeu : stat principale (gros) + substats + type.
-// ⚠️ Ré-exportée (retiré côté artéfacts — la liste montre désormais les
-// substats et leurs procs en clair, le détail n'y ajoutait plus rien) : reste
-// nécessaire ICI (la roue montre les artéfacts en petit, sans leurs lignes)
-// ET pour BuildCandidateCard.tsx (Optimizer), qui l'utilise telle quelle.
-export function ArtifactDetailBox({ artifact }: { artifact: ArtifactDetail }) {
-  const rarity = RARITY_META[artifact.rarity] ?? RARITY_META[1];
-  // Réglage global (menu ⚙), partagé avec les runes — pas un état local.
-  const metric = useRuneMetric();
-  return (
-    // Fond opaque : carte affichée en popover, au-dessus de la grille.
-    <div className="rounded-lg border border-border bg-panel2 p-3">
-      {/* badge de rareté + SCORE, disposés comme sur la fiche du jeu : la
-          rareté, et le score juste en dessous. */}
-      <div className="flex flex-col items-end mb-1.5 gap-1">
-        <span
-          className="rounded px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide"
-          style={{ background: rarity.bg, color: rarity.color }}
-        >
-          {rarity.label}
-        </span>
-        {/* La mesure choisie dans le menu ⚙ — la même que sur les tuiles et que
-            pour les runes. L'autre reste en infobulle : les deux sont la même
-            somme à un facteur près (spec/compte/calcul-artefacts.md §3). */}
-        <span
-          className="font-mono text-[11px] text-ink-dim tabular-nums"
-          title={`Score ${artifactScore(artifact)} · efficience ${artifactEfficiency(artifact).toFixed(1)} %`}
-        >
-          <Gauge size={10} className="inline-block mr-0.5 -mt-0.5" />
-          <b className="text-star">
-            {metric === 'eff'
-              ? `${artifactEfficiency(artifact).toFixed(1)} %`
-              : artifactScore(artifact)}
-          </b>
-        </span>
-      </div>
-      {/* stat principale */}
-      <div className="text-[15px] font-black text-ink leading-tight">{formatArtifactMain(artifact.main)}</div>
-      {/* Substats, disposés comme dans le JEU : le nombre de PROCS dans une
-          pastille à GAUCHE, puis le libellé dont la **valeur est teintée**
-          différemment du texte qui l'entoure.
-          ⚠️ Les procs sont ce qui sépare un bon artéfact d'un mauvais — deux
-          pièces aux mêmes lignes ne valent pas pareil selon où les
-          améliorations sont tombées. Sans eux, la fiche n'expliquait pas le
-          score affiché juste au-dessus. */}
-      <div className="mt-2 pt-2 border-t border-border/40 space-y-1">
-        {artifact.subs.map((s, j) => {
-          const procs = s.rolls ?? 0;
-          const { avant, valeur, apres } = splitArtifactSub(s);
-          return (
-            <div key={j} className="flex items-start gap-1.5 text-[12px] leading-snug">
-              {/* Pastille de procs : verte dès qu'une amélioration est tombée,
-                  neutre à zéro — on repère les lignes travaillées d'un coup
-                  d'œil, sans lire les chiffres. */}
-              <span
-                className={`mt-px flex-none rounded px-1 font-mono text-[10.5px] font-bold tabular-nums ${
-                  procs > 0 ? 'bg-good/20 text-good' : 'bg-ink-dim/15 text-ink-dim'
-                }`}
-                title={`${procs} amélioration${procs > 1 ? 's' : ''} sur cette ligne`}
-              >
-                {procs}
-              </span>
-              <span className="flex-1 text-ink-dim">
-                {avant}
-                {/* La VALEUR se détache du libellé : c'est elle qu'on compare
-                    d'un artéfact à l'autre, le texte ne fait que la nommer. */}
-                <b className="text-ink">{valeur}</b>
-                {apres}
-              </span>
-              {s.enchant && <RotateCw size={11} className="text-orange-400 mt-0.5 flex-none" />}
-            </div>
-          );
-        })}
-      </div>
-      {/* type */}
-      <div className="mt-2 pt-2 border-t border-border/40 text-[12px] text-good">
-        {artifactTypeLabel(artifact)}
-      </div>
-    </div>
-  );
-}
-
-function RelicDetailBox({ relic }: { relic: RelicDetail }) {
-  return (
-    // Fond opaque (pas `bg-panel/70`) : affichée dans un popover flottant,
-    // voir DetailPopover.tsx — un fond translucide laisserait voir le
-    // contenu derrière et rendrait le détail illisible, même remarque que
-    // RuneDetailBox/ArtifactDetailBox ci-dessus.
-    <div className="rounded-lg border border-border bg-panel2 p-2.5">
-      <div className="text-[12px] font-bold text-ink">{formatRelicMain(relic.main)}</div>
+    <div className={encadre ? 'rounded-lg border border-border bg-panel/70 p-2.5' : ''}>
+      <div className="text-xs font-bold text-ink">{formatRelicMain(relic.main)}</div>
       {relic.sub && (
-        <div className="text-[11px] text-ink-dim mt-0.5">Effet secondaire · {relic.sub.value}</div>
+        <div className="text-micro text-ink-dim mt-0.5">Effet secondaire · {relic.sub.value}</div>
       )}
     </div>
   );
@@ -368,7 +39,11 @@ interface Props {
 export default function MonsterGear({ gear, spdCible = null }: Props) {
   const stats = computeStats(gear);
   const [sel, setSel] = useState<Selected>(null);
-  const relicRef = useRef<HTMLButtonElement>(null);
+  const auDoigt = useMediaQuery(COMPACT);
+  // Ancre du détail de la relique. Les runes et les artéfacts fournissent la
+  // leur (`renderOverlay`) ; la relique est dessinée ici, elle porte donc sa
+  // propre référence.
+  const ancreRelique = useRef<HTMLDivElement>(null);
 
   const isSel = (s: Selected) =>
     !!sel &&
@@ -377,88 +52,170 @@ export default function MonsterGear({ gear, spdCible = null }: Props) {
     (sel.kind === 'relic' || (s as { i: number }).i === (sel as { i: number }).i);
   const toggle = (s: Exclude<Selected, null>) => setSel((cur) => (isSel(s) ? null : s));
 
+  // ⚠️ **Deux placements du détail, selon le POINTEUR.**
+  //
+  // - **À la souris, il SORT DU FLUX** : un flottant ancré à la pièce. Il
+  //   s'affichait en dessous, sur sa propre ligne — la carte grandissait, la
+  //   grille se réorganisait, et tout ce qui entourait la pièce cliquée se
+  //   déplaçait. Pire d'une pièce à l'autre : une rune à trois substats et un
+  //   artéfact à quatre lignes n'ont pas la même hauteur, donc enchaîner les
+  //   clics faisait respirer la page à chaque fois.
+  // - **Au doigt, il reste EN LIGNE, sous la roue.** C'est déjà la bonne
+  //   place : il s'insère APRÈS ce qu'on a touché, qui ne bouge donc pas. Un
+  //   flottant y serait le mauvais objet — il s'ouvrirait exactement là où le
+  //   doigt vient de se poser, et la main masquerait ce qu'on voulait lire.
+  //
+  // Voir la règle générale dans spec/shared/design.md.
+  const detail =
+    sel?.kind === 'rune' && gear.runes[sel.i] ? (
+      <RuneDetailBox rune={gear.runes[sel.i]} />
+    ) : sel?.kind === 'artifact' && gear.artifacts[sel.i] ? (
+      <ArtifactDetailBox artifact={gear.artifacts[sel.i]} />
+    ) : sel?.kind === 'relic' && gear.relic ? (
+      <RelicDetailBox relic={gear.relic} />
+    ) : null;
+
   return (
-    // ⚠️ `relative` + `z-10` UNIQUEMENT quand un popover est ouvert : même
-    // raison que BuildCandidateCard.tsx (cartes de résultat de l'Optimizer,
-    // qui utilisent le même DetailPopover) — sans ça, le popover flottant
-    // pouvait se retrouver visuellement recouvert par une fiche VOISINE plus
-    // tard dans l'ordre du DOM (ex. la ligne suivante d'un AccordionGrid),
-    // même sans chevauchement apparent : l'empilement par défaut suit
-    // l'ordre du DOM, pas la position à l'écran.
-    <div className={`flex flex-wrap items-center justify-center gap-2 ${sel ? 'relative z-10' : ''}`}>
+    <div className="flex flex-row flex-wrap items-center justify-center gap-2 compact:flex-col">
       {/* Panneau de stats — voir StatPanel.tsx (base+bonus ↔ total au clic,
-          largeur fixe pour ne jamais déplacer artéfacts/roue/relique). */}
+          largeur fixe pour ne jamais déplacer artéfacts/roue/relique).
+          ⚠️ Sur sa PROPRE ligne sous `sm`. À 200 px il occupait plus de la
+          moitié des 348 px utiles et poussait la roue à la ligne suivante,
+          laissant les artéfacts seuls à côté de lui : l'équipement se lisait en
+          trois morceaux séparés, alors qu'on le compare d'un coup d'œil. */}
       <StatPanel stats={stats} spdCible={spdCible} />
 
-      {/* Artéfacts. ⚠️ **`ArtifactSlots` et non une boucle sur
-          `gear.artifacts`.** Ce composant affiche TOUJOURS les deux
-          emplacements (Attribut, Type), et grise celui qui est vide. La
-          boucle, elle, ne rendait que les artéfacts PRÉSENTS : un monstre
-          sans artéfact de type n'en montrait qu'un, sans qu'on sache s'il en
-          manquait un ou si le monstre n'en portait qu'un — et sans artéfact
-          du tout, le bloc disparaissait. C'est le même composant que
-          l'Optimiseur utilise déjà.
-          Détail en **popover flottant** (`renderOverlay`), pas EN LIGNE :
-          MonsterGear utilisait un bloc `sel` poussant tout le reste de la
-          fiche vers le bas à chaque clic — gênant sur une fiche déjà dense
-          (RTA/Siège/Optimizer). Même dispositif que BuildCandidateCard.tsx,
-          qui l'utilisait déjà pour cette exacte raison (grille compacte, pas
-          de place pour pousser). */}
+      {/* ⚠️ Artéfacts, roue et relique sur UNE SEULE ligne, quelle que soit la
+          largeur : ce sont les trois faces d'un même équipement. Séparés, on
+          perd la vue d'ensemble qu'on vient chercher. Ils tiennent sur 348 px
+          une fois le panneau de stats sorti de la rangée — voir les tailles
+          réduites de chaque bloc sous `sm`. */}
+      <div className="contents compact:flex compact:w-full compact:items-center compact:justify-center compact:gap-1.5">
+      {/* Artéfacts — détail dans un flottant ANCRÉ à l'emplacement (souris) ou
+          en ligne sous la roue (doigt) : voir `detail` plus haut.
+          ⚠️ **`ArtifactSlots` et non une boucle sur `gear.artifacts`.** Ce
+          composant affiche TOUJOURS les deux emplacements (Attribut, Type), et
+          grise celui qui est vide. La boucle, elle, ne rendait que les
+          artéfacts PRÉSENTS : un monstre sans artéfact de type n'en montrait
+          qu'un, sans qu'on sache s'il en manquait un ou si le monstre n'en
+          portait qu'un — et sans artéfact du tout, le bloc disparaissait.
+          C'est le même composant que l'Optimiseur utilise déjà. */}
       <ArtifactSlots
         artifacts={gear.artifacts}
         isSelected={(_a, i) => isSel({ kind: 'artifact', i })}
         onSelectArtifact={(_a, i) => toggle({ kind: 'artifact', i })}
-        renderOverlay={(a, i, anchorRef) => (
-          <DetailPopover open={isSel({ kind: 'artifact', i })} anchorRef={anchorRef} width={260} height={280}>
-            <ArtifactDetailBox artifact={a} />
-          </DetailPopover>
-        )}
+        // ⚠️ Aucun flottant au DOIGT : le bloc en ligne s'en charge. Rendre les
+        // deux donnerait deux détails ouverts pour un seul clic.
+        // ⚠️ **Mêmes dimensions que pour une rune** (260 × 320) : les deux
+        // cartes ont désormais la même coquille, donc le même encombrement — un
+        // flottant plus étroit pour l'artéfact recréerait la différence de
+        // gabarit qu'on vient de supprimer.
+        renderOverlay={
+          auDoigt
+            ? undefined
+            : (a, i, ancre) => (
+                // ⚠️ `rembourrage="md"` + `encadre={false}` : le flottant pose
+                // DÉJÀ bord + fond + coins arrondis, la carte n'a plus à poser
+                // les siens — sans quoi les deux cadres, à des rayons
+                // différents, se lisaient comme une carte dans une carte.
+                <FlottantAuto
+                  ouvert={isSel({ kind: 'artifact', i })}
+                  ancre={ancre}
+                  largeur={260}
+                  hauteur={320}
+                  rembourrage="md"
+                >
+                  <ArtifactDetailBox artifact={a} encadre={false} />
+                </FlottantAuto>
+              )
+        }
       />
 
-      {/* Roue de runes — voir RuneWheel.tsx. Détail en popover flottant,
-          même raison que les artéfacts ci-dessus.
+      {/* Roue de runes — voir RuneWheel.tsx.
           ⚠️ TOUJOURS rendue, même à 0 rune — pas conditionnée sur
           `gear.runes.length > 0`. `RuneWheel` se contente de `runes.map`,
           donc un slot sans rune montre déjà juste le fond de la roue, sans
           cadre dessus : même mécanique qu'un build partiel (une rune sur
           deux, par exemple), pas un état grisé à part à inventer. Un
           monstre sans aucune rune importée doit quand même montrer le
-          fond de la roue, pas rien du tout — même principe que les 2
+          fond de la roue, pas rien du tout — même principe que les
           emplacements d'`ArtifactSlots` toujours affichés au-dessus. */}
       <RuneWheel
         runes={gear.runes}
         isSelected={(_r, i) => isSel({ kind: 'rune', i })}
         onSelectRune={(_r, i) => toggle({ kind: 'rune', i })}
-        renderOverlay={(r, i, anchorRef) => (
-          <DetailPopover open={isSel({ kind: 'rune', i })} anchorRef={anchorRef} width={280} height={320}>
-            <RuneDetailBox rune={r} />
-          </DetailPopover>
-        )}
+        renderOverlay={
+          auDoigt
+            ? undefined
+            : (r, i, ancre) => (
+                <FlottantAuto
+                  ouvert={isSel({ kind: 'rune', i })}
+                  ancre={ancre}
+                  largeur={260}
+                  hauteur={320}
+                  rembourrage="md"
+                >
+                  {/* Pleine taille : ce flottant n'existe qu'à la souris, où
+                      la carte ne se resserre pas d'elle-même.
+                      `encadre={false}` : voir la même remarque sur l'artéfact
+                      juste au-dessus. */}
+                  <RuneDetailBox rune={r} encadre={false} />
+                </FlottantAuto>
+              )
+        }
       />
 
-      {/* Relique à droite — pas de composant partagé (un seul emplacement,
-          contrairement aux runes/artéfacts) : popover posé à la main dans un
-          wrapper `relative`, même ancrage que RuneWheel/ArtifactSlots. */}
+      {/* Relique à droite.
+          ⚠️ La teinte `star` est le code du JEU pour ce qui a de la valeur, pas
+          un accent d'interface — et la ÉQUIPEMENT échappe à la règle du contour
+          unique de 1 px, qui ne vaut que pour les composants d'INTERFACE. Une
+          rune, un artéfact, une relique sélectionnés se mettent en valeur comme
+          dans le jeu : halo doré, éclat, liseré appuyé. Voir la roue de runes et
+          les emplacements d'artéfacts, qui font de même.
+          ⚠️ Resserrée sous `sm` : elle partage la rangée avec les artéfacts et
+          la roue, et son rembourrage de 10 px de chaque côté était le plus
+          facile à rendre — le contenu, lui, ne se réduit pas. */}
       {gear.relic && (
-        <div className={`relative ${isSel({ kind: 'relic' }) ? 'z-10' : ''}`}>
-          <button
-            ref={relicRef}
+        // ⚠️ `relative` : c'est l'ancre du flottant, qui s'y place en `absolute`.
+        // Et `z-10` quand elle est ouverte, comme les emplacements d'artéfacts —
+        // sans quoi la roue juste à côté recouvrirait le détail.
+        <div
+          ref={ancreRelique}
+          className={`relative ${isSel({ kind: 'relic' }) ? 'z-10' : ''}`}
+        >
+          <ZoneCliquable
             onClick={() => toggle({ kind: 'relic' })}
             title="Voir la relique"
-            className={`rounded-lg border px-2.5 py-2 text-center transition ${
+            aria-pressed={isSel({ kind: 'relic' })}
+            className={`rounded-lg border px-2.5 py-2 text-center compact:px-1.5 compact:py-1.5 ${
               isSel({ kind: 'relic' })
-                ? 'border-star ring-1 ring-star/50 bg-star/10'
+                ? 'border-star bg-star/10 ring-1 ring-star/50'
                 : 'border-border bg-panel/60 hoverable:border-accent'
             }`}
           >
             <div className="label">Relique</div>
-            <div className="text-[12px] font-bold text-ink mt-0.5">{formatRelicMain(gear.relic.main)}</div>
-          </button>
-          <DetailPopover open={isSel({ kind: 'relic' })} anchorRef={relicRef} width={220} height={110}>
-            <RelicDetailBox relic={gear.relic} />
-          </DetailPopover>
+            <div className="mt-0.5 text-xs font-bold text-ink compact:text-micro">
+              {formatRelicMain(gear.relic.main)}
+            </div>
+          </ZoneCliquable>
+          {!auDoigt && (
+            <FlottantAuto
+              ouvert={isSel({ kind: 'relic' })}
+              ancre={ancreRelique}
+              largeur={220}
+              hauteur={120}
+              rembourrage="md"
+            >
+              <RelicDetailBox relic={gear.relic} encadre={false} />
+            </FlottantAuto>
+          )}
         </div>
       )}
+      </div>
+
+      {/* Au DOIGT : le détail sur sa propre ligne, sous la roue — voir plus
+          haut. La souris, elle, le reçoit dans un flottant ancré à la pièce. */}
+      {auDoigt && detail && <div className="mx-auto w-full max-w-[280px]">{detail}</div>}
     </div>
   );
 }

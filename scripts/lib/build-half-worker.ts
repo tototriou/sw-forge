@@ -31,6 +31,8 @@ export interface BuildHalfWorkerData {
   // ⚠️ Nécessaire à `retentionScore`/`combinedRetentionScore` (pondération
   // pct/flat par base) — voir BuildBucketsContext dans runeBuildOptim.ts.
   base: BaseStats;
+  // PROTOTYPE (combosOrderMode='objective') — même discipline que `base`.
+  objectiveKeys: StatKey[];
   // ⚠️ Manquaient tous les deux jusqu'ici — ce worker (utilisé par
   // perf-battery.ts pour mesurer la construction « comme en prod ») ignorait
   // silencieusement adaptiveTrancheWeighting ET combosOrderMode, retombant
@@ -39,7 +41,7 @@ export interface BuildHalfWorkerData {
   // src/workers/buildHalf.worker.ts (voir spec/outils/optimizer/
   // historique-dimensionnement.md, « revue de code externe »).
   adaptiveTrancheWeighting?: boolean;
-  combosOrderMode?: 'potential' | 'relevance' | 'combined';
+  combosOrderMode?: 'potential' | 'relevance' | 'combined' | 'objective';
 }
 export interface BuildHalfWorkerResult {
   buckets: Bucket[];

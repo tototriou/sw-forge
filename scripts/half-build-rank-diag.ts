@@ -81,8 +81,9 @@ const requiredPieces = distinctKeys.map((key) => setPieces(key) * requirement.se
 const jokerCredit = anyJokerAvailable(filtered) ? 1 : 0;
 const maxSetsForB = maxSetCountsForSlots(filtered, [0, 1, 2], distinctKeys);
 
+const objectiveKeys: StatKey[] = objective ? OBJECTIVE_RELEVANT_STATS[objective] : [];
 const bucketsB = drain(
-  buildBuckets('B', [3, 4, 5], { filtered, distinctKeys, constrainedKeys, retentionKeys, minEntries, bucketCap, jokerCredit, requiredPieces, base }, maxSetsForB)
+  buildBuckets('B', [3, 4, 5], { filtered, distinctKeys, constrainedKeys, retentionKeys, minEntries, bucketCap, jokerCredit, requiredPieces, base, objectiveKeys }, maxSetsForB)
 );
 
 const targetIdsB = gear.runes.filter((r) => r.slot >= 4).map((r) => r.id);

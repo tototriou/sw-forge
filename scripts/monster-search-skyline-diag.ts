@@ -103,7 +103,8 @@ const maxSetsForB = maxSetCountsForSlots(filtered, [0, 1, 2], distinctKeys);
 // production actuel, inchangé) puis AVEC (`skylineKeys=retentionKeys`) — le
 // delta de temps est le VRAI surcoût de cette piste, pas une estimation.
 const t0 = performance.now();
-const buildBucketsCtx = { filtered, distinctKeys, constrainedKeys, retentionKeys, minEntries, bucketCap, jokerCredit, requiredPieces, base };
+const objectiveKeys: StatKey[] = objective ? OBJECTIVE_RELEVANT_STATS[objective] : [];
+const buildBucketsCtx = { filtered, distinctKeys, constrainedKeys, retentionKeys, minEntries, bucketCap, jokerCredit, requiredPieces, base, objectiveKeys };
 const bucketsA_noSkyline = drain(
   buildBuckets('A', [0, 1, 2], buildBucketsCtx, maxSetsForA)
 );

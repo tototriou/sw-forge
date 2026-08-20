@@ -99,7 +99,8 @@ const maxSetsForB = maxSetCountsForSlots(filtered, [0, 1, 2], distinctKeys);
 // muette » (voir spec/outils/optimizer/) — le drainer jusqu'au bout donne
 // le Bucket[] final via sa valeur de retour, exactement comme searchBuilds
 // draine searchBuildsSteps.
-const ctx = { filtered, distinctKeys, constrainedKeys, retentionKeys, minEntries, bucketCap, jokerCredit, requiredPieces, base };
+const objectiveKeys: StatKey[] = objective ? OBJECTIVE_RELEVANT_STATS[objective] : [];
+const ctx = { filtered, distinctKeys, constrainedKeys, retentionKeys, minEntries, bucketCap, jokerCredit, requiredPieces, base, objectiveKeys };
 const bucketsA = drain(buildBuckets('A', [0, 1, 2], ctx, maxSetsForA));
 const bucketsB = drain(buildBuckets('B', [3, 4, 5], ctx, maxSetsForB));
 

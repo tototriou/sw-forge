@@ -52,7 +52,7 @@ function sameIds(a: number[], b: number[]): boolean {
 
 const CHECKPOINTS = [0.01, 0.05, 0.1, 0.25, 0.5, 0.75, 1.0];
 
-function measure(combosOrderMode: 'potential' | 'relevance' | 'combined') {
+function measure(combosOrderMode: 'potential' | 'relevance' | 'combined' | 'objective') {
   const params = { ...baseParams, maxMs: MAX_MS, combosOrderMode, maxCollected: 1_500_000 };
   const prepared = prepareSearch(params);
   if (!prepared) return null;
@@ -95,7 +95,7 @@ function measure(combosOrderMode: 'potential' | 'relevance' | 'combined') {
   };
 }
 
-for (const mode of ['potential', 'relevance', 'combined'] as const) {
+for (const mode of ['potential', 'relevance', 'combined', 'objective'] as const) {
   const t0 = performance.now();
   const r = measure(mode);
   const ms = performance.now() - t0;

@@ -54,7 +54,7 @@ interface Result {
   yieldCurve: (number | null)[];
 }
 
-function measure(base: BaseStats, artifacts: ArtifactDetail[], relic: RelicDetail | undefined, pool: ReturnType<typeof loadCase>['allRunes'], requirement: ReturnType<typeof loadCase>['requirement'], objective: SearchParams['objective'], targetRuneIds: number[], combosOrderMode: 'potential' | 'relevance' | 'combined'): Result | null {
+function measure(base: BaseStats, artifacts: ArtifactDetail[], relic: RelicDetail | undefined, pool: ReturnType<typeof loadCase>['allRunes'], requirement: ReturnType<typeof loadCase>['requirement'], objective: SearchParams['objective'], targetRuneIds: number[], combosOrderMode: 'potential' | 'relevance' | 'combined' | 'objective'): Result | null {
   const params: SearchParams = { base, artifacts, relic, pool, requirement, metric: 'eff', objective, combosOrderMode, maxCollected: 1_500_000, slotFilterCap: 80, maxMs: MAX_MS };
   const prepared = prepareSearch(params);
   if (!prepared) return null;
@@ -111,8 +111,9 @@ for (const c of SELECTED_CASES) {
   const potential = measure(gear.base, gear.artifacts, gear.relic, allRunes, requirement, c.objective, target, 'potential');
   const relevance = measure(gear.base, gear.artifacts, gear.relic, allRunes, requirement, c.objective, target, 'relevance');
   const combined = measure(gear.base, gear.artifacts, gear.relic, allRunes, requirement, c.objective, target, 'combined');
+  const objectiveMode = measure(gear.base, gear.artifacts, gear.relic, allRunes, requirement, c.objective, target, 'objective');
   console.log(`${c.label} (objective=${c.objective ?? '—'})`);
-  if (!potential || !relevance || !combined) {
+  if (!potential || !relevance || !combined || !objectiveMode) {
     console.log('  infaisable (prepareSearch a échoué) — ignoré');
     continue;
   }
@@ -120,6 +121,7 @@ for (const c of SELECTED_CASES) {
   console.log(`  potential : ${fmtRank(potential)}`);
   console.log(`  relevance : ${fmtRank(relevance)}`);
   console.log(`  combined  : ${fmtRank(combined)}`);
+  console.log(`  objective : ${fmtRank(objectiveMode)}`);
   if (potential.foundRank != null && relevance.foundRank != null) {
     const ratio = relevance.foundRank / Math.max(potential.foundRank, 1e-12);
     console.log(`  ratio rang relevance/potential : ${ratio.toFixed(3)}× ${ratio > 1.05 ? '⚠️ RELEVANCE PLUS TARD' : ratio < 0.95 ? '(relevance plus tôt)' : '(quasi égal)'}`);
@@ -136,9 +138,18 @@ for (const c of SELECTED_CASES) {
   } else if (relevance.foundRank == null && combined.foundRank != null) {
     console.log('  combined trouve la cible, relevance non — dans le budget donné');
   }
+  if (relevance.foundRank != null && objectiveMode.foundRank != null) {
+    const ratioO = objectiveMode.foundRank / Math.max(relevance.foundRank, 1e-12);
+    console.log(`  ratio rang objective/relevance : ${ratioO.toFixed(3)}× ${ratioO > 1.05 ? '⚠️ OBJECTIVE PLUS TARD' : ratioO < 0.95 ? '(objective plus tôt)' : '(quasi égal)'}`);
+  } else if (relevance.foundRank != null && objectiveMode.foundRank == null) {
+    console.log('  ⚠️⚠️ OBJECTIVE NE TROUVE PAS LA CIBLE DANS LE BUDGET (relevance la trouve)');
+  } else if (relevance.foundRank == null && objectiveMode.foundRank != null) {
+    console.log('  objective trouve la cible, relevance non — dans le budget donné');
+  }
   console.log(`  courbe de rendement (candidats cumulés à 1/5/10/25/50/75/100% de l'espace) :`);
   console.log(`    potential : ${potential.yieldCurve.map((v) => v ?? '—').join(', ')}`);
   console.log(`    relevance : ${relevance.yieldCurve.map((v) => v ?? '—').join(', ')}`);
   console.log(`    combined  : ${combined.yieldCurve.map((v) => v ?? '—').join(', ')}`);
+  console.log(`    objective : ${objectiveMode.yieldCurve.map((v) => v ?? '—').join(', ')}`);
   console.log('');
 }

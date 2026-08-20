@@ -128,7 +128,7 @@ export interface SearchParams {
   // PROTOTYPE (forge/order-as-weight-contrib) — trie uniquement par
   // combinedRetentionScore, repli sur relevanceScore si aucun minimum posé.
   // Jamais exposé dans l'UI.
-  combosOrderMode?: 'potential' | 'relevance' | 'combined';
+  combosOrderMode?: 'potential' | 'relevance' | 'combined' | 'objective';
 }
 
 export interface SearchResult {
@@ -1304,6 +1304,23 @@ function combinedRetentionScore(base: BaseStats, pct: Record<string, number>, fl
   return score;
 }
 
+// PROTOTYPE (forge/order-as-weight-contrib, combosOrderMode='objective') —
+// même principe que `combinedRetentionScore` (somme de contributions
+// pondérées par `base`), mais sur les stats de l'OBJECTIF choisi
+// (`objectiveKeys` — ex. ATQ+Dmg Crit pour Dégâts), jamais les minimums
+// posés. Pas de division par un seuil ici (une stat de l'objectif n'a pas
+// forcément de minimum posé dessus — rien à normaliser par) : simple somme
+// des contributions réelles. Vide (`objectiveKeys.length === 0`, ex.
+// objectif « Efficience ») → score toujours 0 pour tout le monde, le tri
+// retombe alors sur `relevanceScore` (voir son site d'appel).
+function objectiveRetentionScore(base: BaseStats, pct: Record<string, number>, flat: Record<string, number>, objectiveKeys: StatKey[]): number {
+  let score = 0;
+  for (const k of objectiveKeys) {
+    score += weightedContribution(base, k, pct[k] ?? 0, flat[k] ?? 0);
+  }
+  return score;
+}
+
 // ⚠️ Regroupe 8 des paramètres de `buildBuckets` — tous déjà des champs de
 // `PreparedSearch` (voir plus bas), passés SÉPARÉMENT jusqu'ici (signature à
 // 14 paramètres positionnels, revue de code externe point 9 — 67 sites
@@ -1331,6 +1348,9 @@ export interface BuildBucketsContext {
   // — voir spec/outils/optimizer/historique-dimensionnement.md, « Suite —
   // pct/flat pondérés par base ».
   base: BaseStats;
+  // PROTOTYPE (combosOrderMode='objective') — voir son commentaire dans
+  // prepareSearch. Même discipline de propagation que `base` ci-dessus.
+  objectiveKeys: StatKey[];
 }
 
 // ⚠️ GÉNÉRATEUR, comme `searchBuildsSteps` — la construction d'un
@@ -1379,9 +1399,9 @@ export function* buildBuckets(
   // ancien comportement (tri par potentiel normalisé aussi au sein d'un
   // compartiment), conservé comme échappatoire de mesure/comparaison —
   // jamais exposé dans l'UI, aucun appel de production ne le passe.
-  combosOrderMode: 'potential' | 'relevance' | 'combined' = 'relevance'
+  combosOrderMode: 'potential' | 'relevance' | 'combined' | 'objective' = 'combined'
 ): Generator<BuildingProgress, Bucket[], void> {
-  const { filtered, distinctKeys, constrainedKeys, retentionKeys, minEntries, bucketCap, jokerCredit, requiredPieces, base } = ctx;
+  const { filtered, distinctKeys, constrainedKeys, retentionKeys, minEntries, bucketCap, jokerCredit, requiredPieces, base, objectiveKeys } = ctx;
   const [i0, i1, i2] = slotIdxs;
   const buckets = new Map<string, Bucket>();
   // Tas de construction, PAS le contrat final (`Bucket.combos`) : une entrée
@@ -1714,6 +1734,7 @@ export function* buildBuckets(
     const combos = bucketSeen.get(key)!;
     const scored = combos.map((combo) => {
       const combined = hasCombined ? combinedRetentionScore(base, combo.pct, combo.flat, minEntries) : null;
+      const objectiveVal = objectiveKeys.length > 0 ? objectiveRetentionScore(base, combo.pct, combo.flat, objectiveKeys) : null;
       const sliceScores: number[] = [combo.relevanceScore];
       if (combined != null) sliceScores.push(combined);
       for (const k of retentionKeys) sliceScores.push(retentionScore(base, combo.pct, combo.flat, k));
@@ -1723,7 +1744,7 @@ export function* buildBuckets(
         const normalized = g > 0 ? sliceScores[s] / g : sliceScores[s];
         if (normalized > potential) potential = normalized;
       }
-      return { combo, potential, combined };
+      return { combo, potential, combined, objectiveVal };
     });
     if (combosOrderMode === 'relevance') {
       scored.sort((x, y) => y.combo.relevanceScore - x.combo.relevanceScore);
@@ -1735,6 +1756,14 @@ export function* buildBuckets(
       // (`combined` vaut alors `null` pour tous les demi-builds — rien à
       // comparer sinon, un tri par `undefined - undefined` serait instable).
       scored.sort((x, y) => (y.combined ?? y.combo.relevanceScore) - (x.combined ?? x.combo.relevanceScore));
+    } else if (combosOrderMode === 'objective') {
+      // PROTOTYPE (forge/order-as-weight-contrib) — trie UNIQUEMENT par
+      // objectiveRetentionScore (Σ contribution réelle sur les stats de
+      // L'OBJECTIF choisi, ex. ATQ+Dmg Crit pour Dégâts) — jamais les
+      // minimums posés, jamais l'efficience générique. Repli sur
+      // relevanceScore si aucun objectif n'est choisi (« Efficience »,
+      // `objectiveVal` vaut alors `null` pour tout le monde).
+      scored.sort((x, y) => (y.objectiveVal ?? y.combo.relevanceScore) - (x.objectiveVal ?? x.combo.relevanceScore));
     } else {
       scored.sort((x, y) => y.potential - x.potential);
     }
@@ -2447,6 +2476,10 @@ export interface PreparedSearch {
   maxEntries: { k: StatKey; max: number }[];
   constrainedKeys: StatKey[];
   retentionKeys: StatKey[];
+  // PROTOTYPE (combosOrderMode='objective') — voir son commentaire dans
+  // prepareSearch : UNIQUEMENT les stats de l'objectif, jamais les minimums
+  // posés (contrairement à retentionKeys, qui mélange les deux).
+  objectiveKeys: StatKey[];
   distinctKeys: string[];
   guaranteed: { pct: Record<string, number>; flat: Record<string, number> };
   guaranteedMin: { pct: Record<string, number>; flat: Record<string, number> };
@@ -2483,6 +2516,13 @@ export function prepareSearch(params: SearchParams): PreparedSearch | null {
   const retentionKeys = Array.from(
     new Set<StatKey>([...minEntries.map((e) => e.k), ...(params.objective ? OBJECTIVE_RELEVANT_STATS[params.objective] : [])])
   );
+  // PROTOTYPE (forge/order-as-weight-contrib, combosOrderMode='objective') —
+  // UNIQUEMENT les stats de l'objectif choisi, contrairement à
+  // `retentionKeys` ci-dessus qui mélange aussi les minimums posés (même
+  // hors sujet par rapport à l'objectif). Vide si aucun objectif choisi
+  // (« Efficience ») — voir objectiveRetentionScore, qui retombe alors sur
+  // relevanceScore.
+  const objectiveKeys: StatKey[] = params.objective ? OBJECTIVE_RELEVANT_STATS[params.objective] : [];
 
   const distinctKeys = Array.from(new Set(requirement.sets));
 
@@ -2518,7 +2558,7 @@ export function prepareSearch(params: SearchParams): PreparedSearch | null {
   return {
     base, artifacts, relic, requirement, metric,
     maxNodes, maxCollected, maxMs, startedAt,
-    minEntries, maxEntries, constrainedKeys, retentionKeys, distinctKeys,
+    minEntries, maxEntries, constrainedKeys, retentionKeys, objectiveKeys, distinctKeys,
     guaranteed, guaranteedMin, artFlat, relPct, totalOf,
     filtered, requiredPieces, jokerCredit, maxSetsForA, maxSetsForB, bucketCap,
   };

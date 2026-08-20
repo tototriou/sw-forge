@@ -84,10 +84,12 @@ const DISCORD_INVITE = 'https://discord.gg/R2Fe4GJZET';
 // Pages dont les actions et les filtres passent dans le panneau mobile
 // (`MobileSheet`), ouvert par le bouton « Options » au-dessus de la barre
 // d'onglets.
-// ⚠️ L'OPTIMISEUR en est absent, et ce n'est pas un oubli : ses réglages SONT
-// son contenu — la page est une suite de champs lus de haut en bas (voir la
-// largeur bornée à 768 px dans navigation.md). Les descendre dans un panneau
-// laisserait une page vide au-dessus d'un bouton.
+// ⚠️ **L'OPTIMISEUR y est revenu** — Réglages avancés et Exclusion de runes
+// SEULS (voir OptimizerSection.tsx), pas l'écran entier : Monstre &
+// équipement, Critères de recherche et Résultats restent dans la page, qui
+// n'est donc jamais vide au-dessus du bouton. Réglages avancés/Exclusion de
+// runes, eux, sont des réglages secondaires consultés une fois puis oubliés
+// — exactement le profil qui gagne à sortir du défilement principal.
 // ⚠️ Même chose pour Accueil, Mécaniques, Nouveautés et Paramètres : aucune
 // action à y loger. Leur ouvrir un panneau vide serait pire que ne rien
 // proposer — c'est la règle qui décide de l'appartenance à cette liste.

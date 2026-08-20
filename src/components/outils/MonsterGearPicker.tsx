@@ -2,6 +2,7 @@ import { useId, useState } from 'react';
 import { Search } from 'lucide-react';
 import { GearSet, Monster } from '../../types';
 import MonsterAvatar from '../MonsterAvatar';
+import { Champ, Flottant } from '../../ui';
 import { useComboboxNav } from '../../hooks/useComboboxNav';
 import { useNameFilteredResults } from '../../hooks/useNameFilteredResults';
 
@@ -37,28 +38,23 @@ export default function MonsterGearPicker({ items, onPick, placeholder }: Props)
 
   return (
     <div className="relative">
-      <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-ink-dim" />
-      <input
+      <Champ
         {...nav.inputProps}
-        type="text"
         value={query}
         onChange={(e) => setQuery(e.target.value)}
         placeholder={placeholder ?? 'Rechercher un monstre…'}
-        // ⚠️ **Bordure seule au focus, sans halo.** Ce champ posait en plus une
-        // ombre de 3 px en accent translucide : deux contours superposés autour
-        // du même cadre, dont le plus large déborde sur ce qui l'entoure. C'est
-        // la règle de spec/shared/design.md, que tous les autres champs de l'app
-        // suivaient déjà.
-        className="w-full bg-panel border border-border rounded-lg py-2 pl-9 pr-3 text-sm
-                   text-ink placeholder:text-ink-dim outline-none transition
-                   focus:border-accent"
+        icone={<Search className="h-4 w-4" />}
       />
 
+      {/* ⚠️ `rembourrage="aucun"` : les entrées d'une liste touchent les bords —
+          un rembourrage y laisserait une bande morte au survol. Même pattern
+          combobox que RtaSearch (Champ + Flottant). */}
       {nav.open && (
-        <div
+        <Flottant
           {...nav.listProps}
           aria-label="Résultats de la recherche"
-          className="absolute z-30 mt-1.5 w-full max-h-[300px] overflow-y-auto rounded-lg border border-border bg-panel shadow-glow shadow-black/60"
+          rembourrage="aucun"
+          className="max-h-[300px] overflow-y-auto"
         >
           {results.length === 0 ? (
             <div className="px-3 py-2 text-ink-dim text-xs">Aucun monstre trouvé.</div>
@@ -86,7 +82,7 @@ export default function MonsterGearPicker({ items, onPick, placeholder }: Props)
               );
             })
           )}
-        </div>
+        </Flottant>
       )}
     </div>
   );

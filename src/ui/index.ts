@@ -91,6 +91,12 @@ export type { VignetteProps } from './Vignette';
 export { default as Pastille } from './Pastille';
 export type { PastilleProps } from './Pastille';
 
+// JETON : la pilule qui nomme un choix AJOUTÉ, avec sa croix pour le défaire (un
+// set d'un combo, un monstre exclu). ⚠️ Distinct de `Pastille` — un filtre à
+// deux états qu'on relâche en place — : un jeton n'existe que tant qu'il est là.
+export { default as Jeton } from './Jeton';
+export type { JetonProps } from './Jeton';
+
 // SURFACE rendue cliquable (ligne de carte, poignée de glissement) : un
 // <button> volontairement NU. Voir le composant — la nudité y est la règle, pas
 // un oubli.

@@ -1,7 +1,7 @@
-import { X } from 'lucide-react';
 import { RUNE_SETS } from '../../types';
 import { canAddSet, setsCost, FOUR_PIECE_SETS } from '../../lib/effects';
 import RuneIcon from '../RuneIcon';
+import { Jeton, BoutonIcone } from '../../ui';
 
 interface Props {
   sets: string[]; // combo courant (une entrée par activation, ex. ['violent','will'])
@@ -35,21 +35,13 @@ export default function SetComboPicker({ sets, onChange }: Props) {
         {sets.map((key, i) => {
           const def = RUNE_SETS.find((s) => s.key === key);
           return (
-            <span
+            <Jeton
               key={`${key}-${i}`}
-              className="flex items-center gap-1 rounded-full border border-border bg-panel2 pl-1.5 pr-1 py-0.5 text-micro font-semibold"
-            >
-              <RuneIcon setKey={key} size={14} />
-              {def?.label ?? key}
-              <button
-                type="button"
-                onClick={() => onChange(sets.filter((_, j) => j !== i))}
-                aria-label={`Retirer ${def?.label ?? key}`}
-                className="rounded-full p-0.5 text-ink-dim transition hoverable:text-bad"
-              >
-                <X size={11} />
-              </button>
-            </span>
+              icone={<RuneIcon setKey={key} size={14} />}
+              libelle={def?.label ?? key}
+              onRetirer={() => onChange(sets.filter((_, j) => j !== i))}
+              libelleRetrait={`Retirer ${def?.label ?? key}`}
+            />
           );
         })}
 
@@ -84,21 +76,19 @@ export default function SetComboPicker({ sets, onChange }: Props) {
                 {group.map((s) => {
                   const fits = canAddSet(sets, s.key);
                   return (
-                    <button
+                    // ⚠️ `data-cible-fine` : grille serrée d'icônes de set, où
+                    // une cible de 44 px déborderait sur la voisine. L'icône reste
+                    // reconnaissable à 32 px, c'est ce qui compte.
+                    <BoutonIcone
                       key={s.key}
-                      type="button"
+                      cadre
+                      libelle={s.label}
+                      icone={<RuneIcon setKey={s.key} size={20} />}
                       disabled={!fits}
                       onClick={() => onChange([...sets, s.key])}
-                      title={s.label}
-                      // ⚠️ `data-cible-fine` : grille serrée d'icônes de set, où
-                      // une cible de 44 px déborderait sur la voisine. L'icône reste
-                      // reconnaissable à 32 px, c'est ce qui compte.
                       data-cible-fine
-                      className="flex items-center justify-center w-8 h-8 rounded-lg border border-border bg-panel2
-                                 transition hoverable:border-accent disabled:opacity-25 disabled:cursor-not-allowed"
-                    >
-                      <RuneIcon setKey={s.key} size={20} />
-                    </button>
+                      className="h-8 w-8"
+                    />
                   );
                 })}
               </div>

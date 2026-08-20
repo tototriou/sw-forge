@@ -253,6 +253,22 @@ fois.
 > valeur en dur dans la librairie. La bordure colorée reste visible au repos, le
 > fond teinté ne fait que confirmer l'état posé.
 
+**`Jeton`** — pilule qui NOMME un choix déjà posé, avec une croix pour le
+retirer : un set ajouté à un combo (SetComboPicker), un monstre exclu d'une
+recherche (RuneExclusionPicker). Icône optionnelle à gauche, `detail` atténué
+après le libellé (« · Box »), `onRetirer` qui décide de la présence de la croix.
+
+> ⚠️ **Distinct de `Pastille`.** Une pastille est un FILTRE à deux états qu'on
+> enclenche et relâche en place, dans une grille de critères fixes ; un jeton
+> représente une entrée AJOUTÉE, qui n'existe que tant qu'elle est là et
+> disparaît quand on la retire — d'où la croix, qui n'a de sens que sur lui, et
+> une liste qui grandit au lieu d'une rangée figée.
+
+> ⚠️ **La croix est un `BoutonIcone` `serre`**, pas une croix dessinée à la
+> main : sa cible tactile et son `aria-label` viennent de la librairie, comme les
+> deux boutons d'une pilule de catégorie. `serre` parce qu'elle vit DANS le
+> jeton, plus petit que la cible de 40 px.
+
 **`Option`** — choix riche : icône, titre, description. ⚠️ Distinct de `Bouton`
 parce qu'il **ne se lit pas pareil** : un bouton s'identifie d'un coup d'œil, une
 option se LIT. D'où le texte aligné à gauche et l'icône calée en haut — sur deux

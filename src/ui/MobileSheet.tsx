@@ -1,4 +1,5 @@
 import { ReactNode, useEffect, useLayoutEffect, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { X } from 'lucide-react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { SOUS_LG, useMediaQuery } from '../hooks/useMediaQuery';
@@ -134,7 +135,18 @@ export default function MobileSheet({
     };
   }, [visible, onFermer]);
 
-  return (
+  // ⚠️ **Portalisé dans `<body>`, comme la `Modale` (dont ce panneau est un
+  // cousin).** Un MobileSheet peut s'ouvrir DEPUIS un autre — l'aide « ? » ou le
+  // formulaire de catégorie ouverts depuis le panneau « Options ». Rendu en
+  // place, il hérite alors des règles descendantes de `[data-tiroir]` du panneau
+  // parent : `align-items: flex-start` rabotait son en-tête (barrette décentrée,
+  // croix collée au titre au lieu d'être poussée à droite), et son
+  // `position: fixed` se calait sur le `transform` du panneau parent plutôt que
+  // sur le viewport. Le portail le détache des deux. Transparent pour les usages
+  // non imbriqués — le panneau est déjà `fixed`.
+  if (typeof document === 'undefined') return null;
+
+  return createPortal(
     <AnimatePresence>
       {visible && (
         <>
@@ -269,6 +281,7 @@ export default function MobileSheet({
           </motion.div>
         </>
       )}
-    </AnimatePresence>
+    </AnimatePresence>,
+    document.body,
   );
 }

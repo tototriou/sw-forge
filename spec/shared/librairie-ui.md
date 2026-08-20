@@ -453,6 +453,15 @@ pas — il remplit trois emplacements :
 il coexiste avec la page, monte du bas, et se pose **sous** les dialogues dans
 l'échelle des `z-index`. Il porte son propre voile pour cette raison.
 
+> ⚠️ **Portalisé dans `<body>`, comme la `Modale`.** Un MobileSheet peut s'ouvrir
+> DEPUIS un autre — l'aide « ? » ou le formulaire de catégorie, ouverts depuis le
+> panneau « Options ». Rendu en place, il hériterait des règles descendantes de
+> `[data-tiroir]` du panneau parent (`align-items: flex-start` rabotait son
+> en-tête : barrette décentrée, croix collée au titre au lieu d'être poussée à
+> droite), et son `position: fixed` se calerait sur le `transform` du parent
+> plutôt que sur le viewport. Le portail le détache des deux — transparent pour
+> les usages non imbriqués, le panneau étant déjà `fixed`.
+
 **`Case`** — case à cocher avec son libellé. ⚠️ **La case native est là, seulement
 invisible** (`sr-only`) — jamais remplacée par un `<div>` cliquable. C'est elle
 qui porte l'état, le focus clavier, la barre d'espace et l'annonce du lecteur

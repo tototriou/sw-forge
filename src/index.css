@@ -758,6 +758,16 @@ button:not(:disabled):not([draggable]):not([role='switch']):active,
   justify-content: flex-start;
 }
 
+/* ⚠️ …sauf un bouton PLEINE LARGEUR. Aligné à gauche, un bouton qui occupe
+   toute la colonne (`w-full`) laisse son libellé collé au bord alors que rien
+   ne le suit — il se lit comme une ligne de menu bancale. Un tel bouton est une
+   action principale (« Faisable avec ma réserve »), pas un item de liste : son
+   contenu se centre, même logique que le couple valider/annuler d'un formulaire
+   ci-dessous. */
+[data-tiroir] .flex-col > button.w-full {
+  justify-content: center;
+}
+
 /* ⚠️ …sauf dans un FORMULAIRE. Le panneau accueille aussi des formulaires (la
    création d'une catégorie RTA), où les boutons ne sont pas une liste d'actions
    à parcourir mais un couple valider/annuler : le premier occupe toute la
@@ -913,6 +923,14 @@ button:not(:disabled):not([draggable]):not([role='switch']):active,
    d'écran, qui n'a pas la vue d'ensemble qui rend le mot superflu. */
 [data-tiroir] .label {
   display: none;
+}
+
+/* ⚠️ **Exception : un intitulé que son contrôle ne redit pas.** « Palier »
+   nomme un simple champ numérique — « 100 % » seul ne dit pas qu'il s'agit d'un
+   seuil, là où « Toutes / Antiques » ou « Feu / Eau » se lisent d'eux-mêmes. Il
+   reste donc affiché dans le panneau, marqué à la source (voir RunesOptim). */
+[data-tiroir] .label[data-intitule-conserve] {
+  display: revert;
 }
 
 /* ⚠️ **UNE SEULE taille de texte dans le panneau : 12 px.** Il en portait trois

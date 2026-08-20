@@ -204,7 +204,14 @@ export default function RunesOptim({ runes, crafts, menuOuvert, onFermerMenu }: 
   const optionsControls = (large: boolean) => (
     <>
       <div className="flex items-center gap-2">
-        <span className="label">Palier</span>
+        {/* ⚠️ `data-intitule-conserve` : le panneau « Options » masque les
+            intitulés de rangée (`[data-tiroir] .label`), redondants avec leurs
+            pastilles. Celui-ci ne l'est pas — « 100 % » seul ne dit pas qu'il
+            s'agit d'un seuil, là où « Toutes / Antiques » se passent de titre.
+            Il reste donc affiché au doigt (voir index.css). */}
+        <span className="label" data-intitule-conserve>
+          Palier
+        </span>
         <NumberField
           value={threshold}
           min={0}
@@ -253,6 +260,11 @@ export default function RunesOptim({ runes, crafts, menuOuvert, onFermerMenu }: 
           soir**, sans rien retirer des colonnes. Désactivé sans réserve connue
           (compte importé avant cette version) : un bouton qui viderait la liste
           sans explication vaut moins qu'un bouton grisé qui dit pourquoi. */}
+      {/* ⚠️ **Pleine largeur au DOIGT seulement.** Dans le panneau « Options »,
+          les segmentés au-dessus prennent toute la largeur (`lg`) ; un bouton à
+          la largeur de son texte pendait, seul et à gauche, sous des contrôles
+          pleins. Il reprend donc la largeur de la colonne, comme eux. Au BUREAU
+          (`large` faux), il reste serré dans la rangée en ligne. */}
       <Bouton
         onClick={() => {
           setCheckStock((v) => !v);
@@ -261,6 +273,7 @@ export default function RunesOptim({ runes, crafts, menuOuvert, onFermerMenu }: 
         disabled={!stockDispo}
         actif={verifie}
         taille="sm"
+        pleineLargeur={large}
         title={
           stockDispo
             ? `Ne garder que les runes applicables avec tes ${stock.total} meules et gemmes en réserve`
@@ -551,7 +564,11 @@ export const OptimTile = memo(function OptimTile({
       {/* ⚠️ `rembourrage="md"` : le flottant pose bord + fond + coins arrondis,
           `OptimPlanBox` n'a plus les siens (voir plus bas) — sinon carte dans
           une carte, à deux rayons de coin différents. Même règle que
-          `DesyncBadge` et le détail d'une pièce équipée (PieceDetail.tsx). */}
+          `DesyncBadge` et le détail d'une pièce équipée (PieceDetail.tsx).
+          ⚠️ La popup reste ANCRÉE à la tuile aux deux formats : `FlottantAuto`
+          se cale dans l'écran (voir son clamp horizontal) au lieu de déborder —
+          sur la grille à deux colonnes du téléphone, une tuile de ~170 px ne
+          laissait sinon pas la place à ses 340 px. */}
       <FlottantAuto ouvert={open} ancre={ref} hauteur={300} largeur={340} rembourrage="md">
         <OptimPlanBox
           rune={rune}

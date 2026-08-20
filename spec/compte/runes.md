@@ -921,6 +921,11 @@ l'aide restent dans la page**, à tous les formats.
   endroits : **en ligne au bureau** (`hidden lg:flex`), **dans le panneau au
   doigt** (`MobileSheet`). L'argument `large` élargit les segmentés à toute la
   largeur du panneau (`size="lg"`) ; en ligne ils restent serrés.
+- ⚠️ **Dans le panneau, tout occupe la largeur — le bouton « Faisable » aussi.**
+  Les segmentés sont pleins (`size="lg"`) ; « Faisable avec ma réserve » prend
+  donc lui aussi toute la colonne (`pleineLargeur={large}`), sinon il pendait
+  seul, à la largeur de son texte, sous des contrôles pleins. En ligne au bureau
+  (`large` faux) il reste serré.
 - ⚠️ **Le filtre antique passe en `dense` sous le panneau.** En `lg`, ses trois
   crans se partagent la largeur à égalité et « Antiques uniquement » débordait
   son tiers (que `whitespace-nowrap` interdisait de couper) ; `AncientFilter`

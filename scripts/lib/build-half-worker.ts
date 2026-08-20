@@ -39,7 +39,7 @@ export interface BuildHalfWorkerData {
   // src/workers/buildHalf.worker.ts (voir spec/outils/optimizer/
   // historique-dimensionnement.md, « revue de code externe »).
   adaptiveTrancheWeighting?: boolean;
-  combosOrderMode?: 'potential' | 'relevance';
+  combosOrderMode?: 'potential' | 'relevance' | 'combined';
 }
 export interface BuildHalfWorkerResult {
   buckets: Bucket[];

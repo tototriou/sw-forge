@@ -124,9 +124,11 @@ export interface SearchParams {
   // production) : tri des demi-builds par `relevanceScore` au sein d'un
   // compartiment (mesuré ~2× plus rapide, 0 régression — voir
   // historique-dimensionnement.md). `'potential'` : ancien comportement,
-  // conservé comme échappatoire de mesure/comparaison. Jamais exposé dans
-  // l'UI.
-  combosOrderMode?: 'potential' | 'relevance';
+  // conservé comme échappatoire de mesure/comparaison. `'combined'` :
+  // PROTOTYPE (forge/order-as-weight-contrib) — trie uniquement par
+  // combinedRetentionScore, repli sur relevanceScore si aucun minimum posé.
+  // Jamais exposé dans l'UI.
+  combosOrderMode?: 'potential' | 'relevance' | 'combined';
 }
 
 export interface SearchResult {
@@ -1377,7 +1379,7 @@ export function* buildBuckets(
   // ancien comportement (tri par potentiel normalisé aussi au sein d'un
   // compartiment), conservé comme échappatoire de mesure/comparaison —
   // jamais exposé dans l'UI, aucun appel de production ne le passe.
-  combosOrderMode: 'potential' | 'relevance' = 'relevance'
+  combosOrderMode: 'potential' | 'relevance' | 'combined' = 'relevance'
 ): Generator<BuildingProgress, Bucket[], void> {
   const { filtered, distinctKeys, constrainedKeys, retentionKeys, minEntries, bucketCap, jokerCredit, requiredPieces, base } = ctx;
   const [i0, i1, i2] = slotIdxs;
@@ -1711,8 +1713,9 @@ export function* buildBuckets(
     const key = bucketKeyOf(b.counts, b.jokers);
     const combos = bucketSeen.get(key)!;
     const scored = combos.map((combo) => {
+      const combined = hasCombined ? combinedRetentionScore(base, combo.pct, combo.flat, minEntries) : null;
       const sliceScores: number[] = [combo.relevanceScore];
-      if (hasCombined) sliceScores.push(combinedRetentionScore(base, combo.pct, combo.flat, minEntries));
+      if (combined != null) sliceScores.push(combined);
       for (const k of retentionKeys) sliceScores.push(retentionScore(base, combo.pct, combo.flat, k));
       let potential = -Infinity;
       for (let s = 0; s < sliceCount; s++) {
@@ -1720,10 +1723,18 @@ export function* buildBuckets(
         const normalized = g > 0 ? sliceScores[s] / g : sliceScores[s];
         if (normalized > potential) potential = normalized;
       }
-      return { combo, potential };
+      return { combo, potential, combined };
     });
     if (combosOrderMode === 'relevance') {
       scored.sort((x, y) => y.combo.relevanceScore - x.combo.relevanceScore);
+    } else if (combosOrderMode === 'combined') {
+      // PROTOTYPE (forge/order-as-weight-contrib) — trie UNIQUEMENT par
+      // combinedRetentionScore (Σ contribution/seuil sur TOUS les minimums
+      // posés à la fois), jamais par relevanceScore ni par une tranche par
+      // stat isolée. Repli sur relevanceScore si aucun minimum n'est posé
+      // (`combined` vaut alors `null` pour tous les demi-builds — rien à
+      // comparer sinon, un tri par `undefined - undefined` serait instable).
+      scored.sort((x, y) => (y.combined ?? y.combo.relevanceScore) - (x.combined ?? x.combo.relevanceScore));
     } else {
       scored.sort((x, y) => y.potential - x.potential);
     }

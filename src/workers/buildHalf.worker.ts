@@ -44,7 +44,7 @@ export interface BuildHalfRequest {
   // soit ce que l'appelant avait demandé — trouvé par une revue de code
   // externe, voir spec/outils/optimizer/historique-dimensionnement.md,
   // « revue de code externe ».
-  combosOrderMode?: 'potential' | 'relevance';
+  combosOrderMode?: 'potential' | 'relevance' | 'combined';
 }
 export interface BuildHalfProgressMessage {
   type: 'progress';

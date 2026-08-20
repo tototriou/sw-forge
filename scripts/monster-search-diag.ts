@@ -33,7 +33,7 @@ for (const lr of gear.runes) {
   const allowed = requirement.mainStats?.[lr.slot];
   const raw = bySlot[lr.slot - 1];
   const pool = allowed ? raw.filter((r) => allowed.includes(r.main.code)) : raw;
-  const filtered = filterSlot(pool, requirement, cap, cap);
+  const filtered = filterSlot(pool, requirement, gear.base, cap, cap);
   const survit = filtered.some((r) => r.id === lr.id);
   console.log(
     `slot ${lr.slot} (id ${lr.id}, set ${lr.set}) : brut=${raw.length} → après mainstat=${pool.length} → pré-filtré=${filtered.length} → survit=${survit ? 'OUI' : 'NON'}`

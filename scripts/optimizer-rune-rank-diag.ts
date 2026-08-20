@@ -42,7 +42,7 @@ for (const slot of [1, 2, 3, 4, 5, 6]) {
     continue;
   }
   const slotPool = params.pool.filter((r) => r.slot === slot);
-  const scored = slotPool.map((r) => ({ r, s: relevance(r, params.requirement) })).sort((a, b) => b.s - a.s);
+  const scored = slotPool.map((r) => ({ r, s: relevance(r, params.requirement, params.base) })).sort((a, b) => b.s - a.s);
   const rank = scored.findIndex((e) => e.r.id === targetId) + 1;
   const top = scored[0];
   console.log(

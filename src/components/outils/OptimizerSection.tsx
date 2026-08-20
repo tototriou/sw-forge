@@ -369,7 +369,7 @@ export default function OptimizerSection({ box, runes, optimizer, allMonsters, r
   // stricts avant d'attendre un résultat.
   const estimate = useMemo(() => {
     if (!selected || comboSets.length === 0) return null;
-    return estimateSearchSpace(pool, requirement, slotFilterCap, objective);
+    return estimateSearchSpace(pool, requirement, selected.gear.base, slotFilterCap, objective);
   }, [selected, comboSets, pool, requirement, slotFilterCap, objective]);
 
   // Diagnostic affiché UNIQUEMENT si une recherche aboutit à 0 résultat (voir

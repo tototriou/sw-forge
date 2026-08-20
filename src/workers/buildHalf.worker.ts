@@ -16,7 +16,7 @@
 
 import { buildBuckets, Bucket } from '../lib/runeBuildOptim';
 import { StatKey } from '../lib/effects';
-import { RuneDetail } from '../types';
+import { RuneDetail, BaseStats } from '../types';
 
 export interface BuildHalfRequest {
   half: 'A' | 'B';
@@ -30,6 +30,9 @@ export interface BuildHalfRequest {
   otherHalfMaxSets: number[];
   jokerCredit: number;
   requiredPieces: number[];
+  // ⚠️ Nécessaire à `retentionScore`/`combinedRetentionScore` (pondération
+  // pct/flat par base — voir BuildBucketsContext dans runeBuildOptim.ts).
+  base: BaseStats;
   // Bouton « Prioriser les stats les plus difficiles » — voir SearchParams
   // dans runeBuildOptim.ts, même paramètre relayé tel quel jusqu'ici.
   adaptiveTrancheWeighting?: boolean;

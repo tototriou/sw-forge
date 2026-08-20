@@ -13,7 +13,7 @@
 import { parentPort, workerData } from 'worker_threads';
 import { buildBuckets, Bucket } from '../../src/lib/runeBuildOptim';
 import { StatKey } from '../../src/lib/effects';
-import { RuneDetail } from '../../src/types';
+import { RuneDetail, BaseStats } from '../../src/types';
 import { drain } from './drain';
 
 export interface BuildHalfWorkerData {
@@ -28,6 +28,9 @@ export interface BuildHalfWorkerData {
   otherHalfMaxSets: number[];
   jokerCredit: number;
   requiredPieces: number[];
+  // ⚠️ Nécessaire à `retentionScore`/`combinedRetentionScore` (pondération
+  // pct/flat par base) — voir BuildBucketsContext dans runeBuildOptim.ts.
+  base: BaseStats;
   // ⚠️ Manquaient tous les deux jusqu'ici — ce worker (utilisé par
   // perf-battery.ts pour mesurer la construction « comme en prod ») ignorait
   // silencieusement adaptiveTrancheWeighting ET combosOrderMode, retombant

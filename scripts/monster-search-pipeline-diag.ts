@@ -90,7 +90,7 @@ const step3 = eliminateInfeasible(step2, minEntries, maxEntries, constrainedKeys
 report('3. eliminateInfeasible', step3);
 
 // Étape 4 — filterSlot, aux réglages réels de l'écran (cap + objectif)
-const step4 = step3.map((list) => filterSlot(list, requirement, slotFilterCap, slotFilterCap, objective));
+const step4 = step3.map((list) => filterSlot(list, requirement, base, slotFilterCap, slotFilterCap, objective));
 report(`4. filterSlot (cap ${slotFilterCap}, objective=${objective ?? '(aucun)'})`, step4);
 
 console.log('\nTailles par slot à chaque étape :');

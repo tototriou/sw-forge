@@ -182,8 +182,13 @@ function dispersion(values: number[]) {
   const variance = values.reduce((a, b) => a + (b - mean) ** 2, 0) / values.length;
   return { mean, stdev: Math.sqrt(variance), cv: mean !== 0 ? Math.sqrt(variance) / mean : 0 };
 }
+// Pondéré par `base` (module-scope, ligne ~123), comme `weightedContribution`/
+// `retentionScore` réels depuis le correctif pct/flat.
 function retentionScoreLocal(pct: Record<string, number>, flat: Record<string, number>, key: string) {
-  return (pct[key] ?? 0) + (flat[key] ?? 0);
+  const b = (base as unknown as Record<string, number>)[key] ?? 0;
+  const p = pct[key] ?? 0;
+  const f = flat[key] ?? 0;
+  return key === 'hp' || key === 'atk' || key === 'def' ? Math.ceil((b * p) / 100) + f : f;
 }
 for (const [label, combos] of [['A', combosA], ['B', combosB]] as const) {
   const sorted = [...combos].sort((a, b) => b.relevanceScore - a.relevanceScore);

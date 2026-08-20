@@ -601,6 +601,23 @@ function valueOf(rune: RuneDetail, metric: OptimMetric): number {
 /* --------------------------------------------------------------------------
  * Pré-filtrage par slot
  * ----------------------------------------------------------------------- */
+// ⚠️ Un `pct` et un `flat` de la MÊME stat ne sont PAS la même unité — un `%`
+// s'applique à `base[key]` (PV/ATQ/DEF seulement, voir `RUNE_EFFECT`), un
+// plat s'ajoute tel quel. Additionner `pct+flat` directement (ex. `pct=10,
+// flat=0` traité comme égal à `pct=0,flat=10`) mélange deux échelles —
+// mesuré : sur le pool réel d'un slot, jusqu'à ~47 % du top-40 par
+// `relevance()` change entre l'ancien classement et celui-ci (Lushen deck 10,
+// slot 2 — voir spec/outils/optimizer/historique-dimensionnement.md, « Suite
+// — pct/flat pondérés par base »). Même principe que `totalOf` (résultat
+// EXACT, avec le terme `base` additif en plus) et déjà appliqué par
+// `isDominated` (comparaison composante par composante) — seul son propre
+// commentaire n'avait pas essaimé jusqu'à `relevance`/`retentionScore`/
+// `combinedRetentionScore`.
+function weightedContribution(base: BaseStats, key: StatKey, pct: number, flat: number): number {
+  const b = (base as unknown as Record<string, number>)[key] ?? 0;
+  return key === 'hp' || key === 'atk' || key === 'def' ? Math.ceil((b * pct) / 100) + flat : flat;
+}
+
 // ⚠️ **Ne dépend JAMAIS de `objective`** — vérifié précisément cette session
 // (voir spec/outils/optimizer/, « Piste écartée — un objectif de
 // recherche mieux aligné… ») après avoir supposé le contraire par erreur.
@@ -614,12 +631,12 @@ function valueOf(rune: RuneDetail, metric: OptimMetric): number {
 // objectif « Dégâts » ne fait donc PAS que la recherche privilégie les
 // demi-builds les plus offensifs pendant la rétention — seulement qu'elle
 // leur garde une place plus large au pré-filtrage.
-export function relevance(rune: RuneDetail, requirement: BuildRequirement): number {
+export function relevance(rune: RuneDetail, requirement: BuildRequirement, base: BaseStats): number {
   let score = 0;
   for (const [key, min] of Object.entries(requirement.minStats)) {
     if (min == null || min <= 0) continue;
     const c = runeContribution(rune, key as StatKey);
-    score += (c.pct + c.flat) / min;
+    score += weightedContribution(base, key as StatKey, c.pct, c.flat) / min;
   }
   // Tie-break générique : une rune globalement meilleure reste préférable
   // quand rien ne la distingue sur les stats demandées.
@@ -649,6 +666,7 @@ const FILTER_SLOT_WIDENING_PER_CONDITION = 20;
 export function filterSlot(
   candidates: RuneDetail[],
   requirement: BuildRequirement,
+  base: BaseStats,
   matchCap = MAX_PER_SLOT_MATCH,
   fillCap = MAX_PER_SLOT_FILL,
   objective?: Objective
@@ -677,7 +695,7 @@ export function filterSlot(
   const isRelevantToCombo = (r: RuneDetail): boolean => requiredKeys.has(r.set) || r.set === 'intangible';
   const pool = hasFreeSlots ? candidates : candidates.filter(isRelevantToCombo);
   const scored = pool
-    .map((r) => ({ r, s: relevance(r, requirement) }))
+    .map((r) => ({ r, s: relevance(r, requirement, base) }))
     .sort((a, b) => b.s - a.s);
 
   const conditionCount = Object.values(requirement.minStats).filter((v) => v != null && v > 0).length;
@@ -713,7 +731,7 @@ export function filterSlot(
   // ⚠️ Top-K via le tas borné (`heapPush`, déjà utilisé pour la rétention par
   // compartiment dans `buildBuckets`) au lieu d'un tri complet de tout
   // `candidates` suivi d'un `.slice()` — même sémantique top-K (les `keepN`
-  // plus grandes valeurs de `c.pct + c.flat` sont gardées), coût ramené de
+  // plus grandes valeurs de `weightedContribution(base, k, c[k].pct, c[k].flat)` sont gardées), coût ramené de
   // O(n log n) à O(n log keepN) par stat, `keepN` (6 ou 24) restant petit
   // devant `n` (jusqu'à plusieurs milliers de runes par slot sur un gros
   // compte). Un seul passage sur `candidates` par stat, aucun tableau
@@ -729,7 +747,7 @@ export function filterSlot(
     const keepN = objectiveKeys.includes(k) ? PER_STAT_KEEP_OBJECTIVE : PER_STAT_KEEP;
     const heap: ScoredEntry<RuneDetail>[] = [];
     for (const { r, c } of contribByRune) {
-      heapPush(heap, { item: r, score: c[k].pct + c[k].flat }, keepN);
+      heapPush(heap, { item: r, score: weightedContribution(base, k, c[k].pct, c[k].flat) }, keepN);
     }
     for (const { item } of heap) kept.set(item.id, item);
   }
@@ -1251,12 +1269,12 @@ export function anyJokerAvailable(filtered: RuneDetail[][]): boolean {
 // `PER_STAT_KEEP`/`PER_STAT_KEEP_OBJECTIVE` dans `filterSlot` (réserver une
 // tranche par critère plutôt qu'un seul tri global), appliqué ici aux
 // demi-builds plutôt qu'aux runes individuelles.
-function retentionScore(pct: Record<string, number>, flat: Record<string, number>, key: StatKey): number {
-  // Somme pct+flat comme repère de classement, PAS une valeur totale exacte
-  // (mélanger les deux échelles serait faux pour un total réel — voir
-  // `totalOf` — mais suffit à trier des demi-builds entre eux sur cette même
-  // stat). Même heuristique que `relevance()` dans `filterSlot`.
-  return (pct[key] ?? 0) + (flat[key] ?? 0);
+function retentionScore(base: BaseStats, pct: Record<string, number>, flat: Record<string, number>, key: StatKey): number {
+  // Pondéré par `base` (voir `weightedContribution`) — PAS une valeur totale
+  // exacte (le terme `base` additif de `totalOf` manque encore), mais un
+  // repère de classement qui respecte au moins le bon poids relatif entre
+  // `pct` et `flat` sur cette même stat.
+  return weightedContribution(base, key, pct[key] ?? 0, flat[key] ?? 0);
 }
 
 // ⚠️ Score COMBINÉ, normalisé par le seuil de chaque minimum — pas la simple
@@ -1267,11 +1285,11 @@ function retentionScore(pct: Record<string, number>, flat: Record<string, number
 // supplémentaire, triée par la somme des contributions rapportées à leur
 // propre seuil, le protège. Même heuristique que `relevance()` dans
 // `filterSlot`, appliquée ici aux demi-builds.
-function combinedRetentionScore(pct: Record<string, number>, flat: Record<string, number>, minEntries: { k: StatKey; min: number }[]): number {
+function combinedRetentionScore(base: BaseStats, pct: Record<string, number>, flat: Record<string, number>, minEntries: { k: StatKey; min: number }[]): number {
   let score = 0;
   for (const { k, min } of minEntries) {
     if (min <= 0) continue;
-    score += ((pct[k] ?? 0) + (flat[k] ?? 0)) / min;
+    score += weightedContribution(base, k, pct[k] ?? 0, flat[k] ?? 0) / min;
   }
   return score;
 }
@@ -1282,7 +1300,7 @@ function combinedRetentionScore(pct: Record<string, number>, flat: Record<string
 // d'appel dans 29 fichiers, aucun bug d'ordre trouvé en les auditant, mais
 // un vrai risque latent : la plupart de ces sites sont dans `scripts/`, hors
 // périmètre `tsc`, où un paramètre inversé ne serait détecté qu'à
-// l'exécution). N'importe quel objet qui a STRUCTURELLEMENT ces 8 champs
+// l'exécution). N'importe quel objet qui a STRUCTURELLEMENT ces 9 champs
 // convient — un `PreparedSearch` complet (le cas normal, `searchBuildsSteps`)
 // ou un objet plus étroit comme `BuildHalfRequest` (buildHalf.worker.ts, qui
 // ne peut pas recevoir un `PreparedSearch` tel quel — sa fonction `totalOf`
@@ -1296,6 +1314,13 @@ export interface BuildBucketsContext {
   bucketCap: number;
   jokerCredit: number;
   requiredPieces: number[];
+  // ⚠️ Nécessaire à `retentionScore`/`combinedRetentionScore` (pondération
+  // pct/flat, voir `weightedContribution`) — absent avant, ces deux
+  // fonctions mélangeaient les deux échelles. Propagé à TOUS les chemins
+  // structurellement compatibles (`BuildHalfRequest`, `BuildHalfWorkerData`)
+  // — voir spec/outils/optimizer/historique-dimensionnement.md, « Suite —
+  // pct/flat pondérés par base ».
+  base: BaseStats;
 }
 
 // ⚠️ GÉNÉRATEUR, comme `searchBuildsSteps` — la construction d'un
@@ -1346,7 +1371,7 @@ export function* buildBuckets(
   // jamais exposé dans l'UI, aucun appel de production ne le passe.
   combosOrderMode: 'potential' | 'relevance' = 'relevance'
 ): Generator<BuildingProgress, Bucket[], void> {
-  const { filtered, distinctKeys, constrainedKeys, retentionKeys, minEntries, bucketCap, jokerCredit, requiredPieces } = ctx;
+  const { filtered, distinctKeys, constrainedKeys, retentionKeys, minEntries, bucketCap, jokerCredit, requiredPieces, base } = ctx;
   const [i0, i1, i2] = slotIdxs;
   const buckets = new Map<string, Bucket>();
   // Tas de construction, PAS le contrat final (`Bucket.combos`) : une entrée
@@ -1417,7 +1442,7 @@ export function* buildBuckets(
         let sumSq = 0;
         for (const r of slotPool) {
           const c = runeSubOnlyContribution(r, k as StatKey);
-          const v = c.pct + c.flat;
+          const v = weightedContribution(base, k as StatKey, c.pct, c.flat);
           sum += v;
           sumSq += v * v;
         }
@@ -1608,11 +1633,11 @@ export function* buildBuckets(
         heapPush(bucketSlices![0], { item: combo, score }, genericCap);
         const retentionOffset = hasCombined ? 2 : 1;
         if (hasCombined) {
-          heapPush(bucketSlices![1], { item: combo, score: combinedRetentionScore(pct, flat, minEntries) }, perOtherSliceCap);
+          heapPush(bucketSlices![1], { item: combo, score: combinedRetentionScore(base, pct, flat, minEntries) }, perOtherSliceCap);
         }
         for (let i = 0; i < retentionKeys.length; i++) {
           const cap = adaptiveTrancheWeighting ? reallocatedCap[retentionKeys[i]] : perOtherSliceCap;
-          heapPush(bucketSlices![retentionOffset + i], { item: combo, score: retentionScore(pct, flat, retentionKeys[i]) }, cap);
+          heapPush(bucketSlices![retentionOffset + i], { item: combo, score: retentionScore(base, pct, flat, retentionKeys[i]) }, cap);
         }
         if (skylines) {
           let skyline = skylines.get(key);
@@ -1679,8 +1704,8 @@ export function* buildBuckets(
     const combos = bucketSeen.get(key)!;
     const scored = combos.map((combo) => {
       const sliceScores: number[] = [combo.relevanceScore];
-      if (hasCombined) sliceScores.push(combinedRetentionScore(combo.pct, combo.flat, minEntries));
-      for (const k of retentionKeys) sliceScores.push(retentionScore(combo.pct, combo.flat, k));
+      if (hasCombined) sliceScores.push(combinedRetentionScore(base, combo.pct, combo.flat, minEntries));
+      for (const k of retentionKeys) sliceScores.push(retentionScore(base, combo.pct, combo.flat, k));
       let potential = -Infinity;
       for (let s = 0; s < sliceCount; s++) {
         const g = globalBestBySlice[s];
@@ -1932,11 +1957,12 @@ export function mainStatFilteredBySlot(pool: RuneDetail[], requirement: BuildReq
 function buildFilteredBySlot(
   pool: RuneDetail[],
   requirement: BuildRequirement,
+  base: BaseStats,
   slotCap: number,
   objective?: Objective
 ): RuneDetail[][] {
   const bySlot = mainStatFilteredBySlot(pool, requirement);
-  return bySlot.map((list) => filterSlot(list, requirement, slotCap, slotCap, objective));
+  return bySlot.map((list) => filterSlot(list, requirement, base, slotCap, slotCap, objective));
 }
 
 // Estimation, AVANT de lancer la recherche, du nombre de combinaisons brutes
@@ -1948,10 +1974,11 @@ function buildFilteredBySlot(
 export function estimateSearchSpace(
   pool: RuneDetail[],
   requirement: BuildRequirement,
+  base: BaseStats,
   slotCap: number,
   objective?: Objective
 ): { perSlot: number[]; product: number } {
-  const filtered = buildFilteredBySlot(pool, requirement, slotCap, objective);
+  const filtered = buildFilteredBySlot(pool, requirement, base, slotCap, objective);
   const perSlot = filtered.map((l) => l.length);
   const product = perSlot.reduce((a, b) => a * b, 1);
   return { perSlot, product };
@@ -2454,7 +2481,7 @@ export function prepareSearch(params: SearchParams): PreparedSearch | null {
   let bySlot = mainStatFilteredBySlot(pool, requirement);
   bySlot = bySlot.map((list) => pruneDominated(list, requiredKeys, maxKeys));
   bySlot = eliminateInfeasible(bySlot, minEntries, maxEntries, constrainedKeys, guaranteed, artFlat, relPct, totalOf, guaranteedMin);
-  const filtered = bySlot.map((list) => filterSlot(list, requirement, slotCap, slotCap, params.objective));
+  const filtered = bySlot.map((list) => filterSlot(list, requirement, base, slotCap, slotCap, params.objective));
   if (filtered.some((list) => list.length === 0)) {
     return null;
   }

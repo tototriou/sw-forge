@@ -80,7 +80,7 @@ const maxKeys = new Set(maxEntries.map((e) => e.k));
 let bySlot = mainStatFilteredBySlot(allRunes, requirement);
 bySlot = bySlot.map((list) => pruneDominated(list, requiredKeys, maxKeys));
 bySlot = eliminateInfeasible(bySlot, minEntries, maxEntries, constrainedKeys, guaranteed, artFlat, relPct, totalOf);
-const filtered = bySlot.map((list) => filterSlot(list, requirement, slotFilterCap, slotFilterCap, objective));
+const filtered = bySlot.map((list) => filterSlot(list, requirement, base, slotFilterCap, slotFilterCap, objective));
 
 console.log(`objective=${objective ?? '(aucun)'} · slotFilterCap=${slotFilterCap} · bucketCap=${bucketCap}`);
 console.log('retentionKeys (= skylineKeys pour cette mesure) :', retentionKeys);
@@ -103,7 +103,7 @@ const maxSetsForB = maxSetCountsForSlots(filtered, [0, 1, 2], distinctKeys);
 // production actuel, inchangé) puis AVEC (`skylineKeys=retentionKeys`) — le
 // delta de temps est le VRAI surcoût de cette piste, pas une estimation.
 const t0 = performance.now();
-const buildBucketsCtx = { filtered, distinctKeys, constrainedKeys, retentionKeys, minEntries, bucketCap, jokerCredit, requiredPieces };
+const buildBucketsCtx = { filtered, distinctKeys, constrainedKeys, retentionKeys, minEntries, bucketCap, jokerCredit, requiredPieces, base };
 const bucketsA_noSkyline = drain(
   buildBuckets('A', [0, 1, 2], buildBucketsCtx, maxSetsForA)
 );

@@ -1,5 +1,5 @@
 import { RUNE_SETS } from '../../types';
-import { canAddSet, setsCost, FOUR_PIECE_SETS } from '../../lib/effects';
+import { canAddSet, setsCost, FOUR_PIECE_SETS, runeSetIconFilter } from '../../lib/effects';
 import RuneIcon from '../RuneIcon';
 import { Jeton, BoutonIcone } from '../../ui';
 
@@ -37,7 +37,7 @@ export default function SetComboPicker({ sets, onChange }: Props) {
           return (
             <Jeton
               key={`${key}-${i}`}
-              icone={<RuneIcon setKey={key} size={14} />}
+              icone={<RuneIcon setKey={key} size={14} filter={runeSetIconFilter(false)} />}
               libelle={def?.label ?? key}
               onRetirer={() => onChange(sets.filter((_, j) => j !== i))}
               libelleRetrait={`Retirer ${def?.label ?? key}`}
@@ -83,7 +83,7 @@ export default function SetComboPicker({ sets, onChange }: Props) {
                       key={s.key}
                       cadre
                       libelle={s.label}
-                      icone={<RuneIcon setKey={s.key} size={20} />}
+                      icone={<RuneIcon setKey={s.key} size={20} filter={runeSetIconFilter(false)} />}
                       disabled={!fits}
                       onClick={() => onChange([...sets, s.key])}
                       data-cible-fine

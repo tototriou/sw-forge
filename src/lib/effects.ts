@@ -192,6 +192,22 @@ export const RARITY_FILTER: Record<number, string> = {
   1: `saturate(0) brightness(1.7) contrast(1.05) ${SET_SHADOW}`, // Normal → blanc
 };
 
+// Colorisation DORÉE des symboles de set dans les RANGÉES DE FILTRE (SetFilter,
+// SetComboPicker). Les PNG du jeu sont multicolores : alignés par dizaines ils
+// font une frise bruyante où rien ne ressort, et en thème clair leurs teintes
+// pâles se fondent dans le panneau. Ramenés à une seule teinte dorée, la rangée
+// se lit d'un coup et l'icône ressort sur les deux thèmes.
+//
+// ⚠️ **Un FILTRE CSS, pas un masque** (contrairement au `tintColor` de
+// RuneIcon) : masquer l'alpha remplit le glyphe d'aplat et l'icône paraît floue
+// à 18 px. Le filtre conserve la luminance d'origine — le dessin reste net.
+// Même technique que `RARITY_FILTER` ci-dessus.
+//
+// `accentue` : légèrement plus clair quand l'entrée porte l'emphase (état actif
+// d'un filtre), un cran plus sombre au repos.
+export const runeSetIconFilter = (accentue: boolean) =>
+  `sepia(1) saturate(3.2) hue-rotate(-12deg) brightness(${accentue ? 1.15 : 0.95}) contrast(1.05)`;
+
 // Bonus de set (nombre de pièces + effet), pour la ligne « X Set : … ».
 export const SET_BONUS: Record<string, { pieces: number; label: string }> = {
   swift: { pieces: 4, label: 'VIT +25%' },

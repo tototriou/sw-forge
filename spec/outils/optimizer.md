@@ -31,7 +31,10 @@ statistiques principales imposées en `Pastille`, les artéfacts et le tri en
 Arrêter en `Bouton`, les flèches de pagination en `BoutonIcone`, les champs de
 recherche des sélecteurs en `Champ` + `Flottant` (même patron combobox que
 RtaSearch), et les sets/exclusions choisis en `Jeton` (la pilule supprimable de
-la lib). La grille de sets à ajouter est en `BoutonIcone cadre`.
+la lib). La grille de sets à ajouter est en `BoutonIcone cadre`, ses symboles
+colorisés par le **filtre doré partagé** `runeSetIconFilter` (effects.ts) — le
+même que les barres de filtre par set (`SetFilter`), pour que l'icône ressorte
+sur les deux thèmes au lieu de se fondre, en clair, dans le panneau.
 
 ⚠️ **Responsive — pas de débordement, et les contrôles du panneau prennent
 toute la largeur.** Points tenus au format étroit (l'écran n'avait jamais été

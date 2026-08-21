@@ -58,7 +58,7 @@ export const CHANGE_META: Record<ChangeKind, { label: string; color: string }> =
 // Si une ligne dépasse ~15 mots, c'est qu'elle raconte l'implémentation.
 export const RELEASES: Release[] = [
   {
-    version: null,
+    version: '1.8.1',
     date: '2026-08-21',
     title: 'Nouvel objectif Speed nuker, et un bug de clics sur mobile corrigé',
     highlights: [

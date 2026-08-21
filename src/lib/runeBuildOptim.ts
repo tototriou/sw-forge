@@ -140,18 +140,19 @@ export interface SearchResult {
 // Objectifs : choisis AVANT de lancer la recherche (OptimizerSection.tsx),
 // un grand bouton à choix unique — pour orienter le type de rune étudié dès
 // le pré-filtrage, pas seulement trier les résultats après coup.
-// ⚠️ `'speed_nuker'` : SONDE EXPÉRIMENTALE, pas un objectif produit.
-// Ajoutée pour tester l'hypothèse « un objectif mal aligné force un
-// `bucketCap` plus grand » (voir spec/outils/optimizer/, section « Piste
-// écartée — un objectif de recherche mieux aligné ») — union des stats
-// pertinentes de Dégâts et Vitesse (ATQ+Dmg Crit+VIT). Hypothèse écartée
-// par la mesure (l'inverse s'est produit — voir cette même section) ;
-// conservée volontairement dans le code comme sonde réutilisable si la
-// question revient, mais ABSENTE de `OBJECTIVE_LABELS` (jamais affichée à
-// l'écran) et de `objectiveScore` (jamais utilisée pour trier un résultat
-// final) — aucun script permanent ne s'en sert aujourd'hui, les scripts
-// `_tmp-*` qui l'ont mesurée ont été nettoyés une fois la conclusion tirée
-// (convention de ce dépôt pour les scripts jetables).
+// `'speed_nuker'` : archétype « passe avant l'ennemi, tape fort » (ATQ+Dmg
+// Crit+VIT). Le pré-filtrage/rétention (`OBJECTIVE_RELEVANT_STATS`) est
+// resté câblé tel quel depuis une sonde expérimentale antérieure (voir
+// spec/outils/optimizer/, « Piste écartée — un objectif de recherche mieux
+// aligné » : cette sonde a été écartée comme correctif de `bucketCap`, mais
+// le câblage lui-même restait correct et neutre). Le TRI des résultats,
+// lui, réutilise directement la formule de `'degats'` (voir `objectiveScore`
+// ci-dessous) plutôt qu'une formule dédiée : VIT ne sert qu'à orienter QUELS
+// candidats la recherche retient, jamais à les départager entre eux au tri
+// final — cohérent avec l'intention de remplacer un jour la formule Dégâts
+// standard par une formule personnalisée par monstre (sort utilisé,
+// conditions de jeu), qui bénéficiera alors aussi à cet objectif sans
+// modification supplémentaire.
 export type Objective = 'efficience' | 'degats' | 'ehp' | 'vitesse' | 'speed_nuker';
 
 export const OBJECTIVE_LABELS: { key: Objective; label: string }[] = [
@@ -159,6 +160,7 @@ export const OBJECTIVE_LABELS: { key: Objective; label: string }[] = [
   { key: 'degats', label: 'Dégâts' },
   { key: 'ehp', label: 'PV effectifs' },
   { key: 'vitesse', label: 'Vitesse' },
+  { key: 'speed_nuker', label: 'Speed nuker' },
 ];
 
 // ⚠️ Constantes de RÈGLE DU JEU (pas d'affichage) déplacées ici depuis
@@ -231,7 +233,6 @@ export const OBJECTIVE_RELEVANT_STATS: Record<Objective, StatKey[]> = {
   degats: ['atk', 'cd'],
   ehp: ['hp', 'def'],
   vitesse: ['spd'],
-  // ⚠️ Sonde expérimentale — voir le commentaire de `Objective`.
   speed_nuker: ['atk', 'cd', 'spd'],
 };
 
@@ -256,7 +257,17 @@ export function objectiveScore(candidate: BuildCandidate, objective: Objective):
   if (objective === 'efficience') return candidate.effTotal;
   const { stats } = candidate;
   if (objective === 'vitesse') return statTotal(stats, 'spd');
-  if (objective === 'degats') {
+  if (objective === 'degats' || objective === 'speed_nuker') {
+    // ⚠️ `speed_nuker` réutilise ICI la même formule que `degats` — PLACEHOLDER
+    // assumé, pas une formule dédiée. Pour un vrai speed nuker (ex. Lagmaron,
+    // sort n°2 : Multiplier = ATQ×(VIT+70)/30), VIT participe RÉELLEMENT au
+    // multiplicateur de dégâts du sort — cette formule générique l'ignore
+    // totalement ici. VIT reste pris en compte en amont, dans le
+    // pré-filtrage/la rétention (voir `OBJECTIVE_RELEVANT_STATS.speed_nuker`),
+    // juste pas dans CE score. À remplacer quand une formule de dégâts
+    // personnalisée par monstre/sort existera (projet plus large, pas encore
+    // construit) — ce jour-là, `speed_nuker` en bénéficiera automatiquement
+    // sans modification supplémentaire de cette fonction.
     const atk = statTotal(stats, 'atk');
     // ⚠️ Le Taux Crit est PLAFONNÉ à 100 % dans le jeu — passer 100 % ne
     // rapporte plus rien (la formule utiliserait sinon une chance de critique
@@ -267,19 +278,10 @@ export function objectiveScore(candidate: BuildCandidate, objective: Objective):
     const cr = Math.min(statTotal(stats, 'cr'), 100);
     return atk * (1 + (cr / 100) * (statTotal(stats, 'cd') / 100));
   }
-  // ⚠️ `speed_nuker` (sonde expérimentale, voir le commentaire du type
-  // `Objective`) N'A JAMAIS eu de formule de score — délibérément absente
-  // de `OBJECTIVE_LABELS` ET d'ici, seulement câblée dans
-  // `OBJECTIVE_RELEVANT_STATS` (rétention/filtrage, pas le score final).
-  // Avant cette garde, un objectif non géré retombait SILENCIEUSEMENT sur
-  // la formule EHP ci-dessous — repéré par une revue de code externe
-  // (2026-08-19) : `OptimizerSection.tsx` a un site d'appel qui route
-  // `speed_nuker` ici (aujourd'hui inatteignable, absent de
-  // `OBJECTIVE_LABELS`), et `Objective` fait partie du contrat de recette
-  // rejouable (`OptimizerRecipe.objective`) — un score EHP incohérent avec
-  // la rétention atk/cd/spd aurait été un vrai bug silencieux si l'un ou
-  // l'autre chemin devenait un jour atteignable. Échoue bruyamment plutôt
-  // que de renvoyer un nombre plausible mais faux.
+  // Filet de sécurité : tout objectif futur sans branche dédiée ci-dessus
+  // échoue bruyamment plutôt que de retomber silencieusement sur EHP (voir
+  // historique-acceleration-et-outillage.md, « revue de code externe » —
+  // c'est ce garde-fou qui a justement rendu visible le trou comblé ici).
   if (objective !== 'ehp') {
     throw new Error(`objectiveScore : aucune formule de score pour l'objectif "${objective}".`);
   }

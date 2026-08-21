@@ -154,6 +154,11 @@ retour.
      rien en jeu, donc pas plus de dégâts espérés dans ce calcul non plus.
    - **PV effectifs** — considère PV et DEF ensemble.
    - **Vitesse** — VIT seule.
+   - **Speed nuker** — pré-filtrage/rétention élargis sur ATQ, Dmg Crit **et**
+     VIT ensemble (archétype « passe avant l'ennemi, tape fort »). ⚠️ Le
+     **tri**, lui, réutilise pour l'instant la même formule que Dégâts (VIT
+     n'y participe pas) — une formule de dégâts par monstre/sort (ex.
+     Lagmaron : `ATQ × (VIT + 70) / 30`) remplacera ce placeholder plus tard.
    ⚠️ L'objectif choisi oriente le **pré-filtrage** (quelles runes ont une
    vraie chance d'être considérées) et le **tri par défaut** des résultats
    (modifiable ensuite) — il **n'influence pas** le classement des candidats

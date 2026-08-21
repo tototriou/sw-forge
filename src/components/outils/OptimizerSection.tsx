@@ -574,10 +574,9 @@ export default function OptimizerSection({ box, runes, optimizer, allMonsters, r
       // bascule Efficience ↔ Score après coup sans relancer.
       list.sort((a, b) => candidateMetricTotal(b, runeById, metric) - candidateMetricTotal(a, runeById, metric));
     } else if (sortBy === 'degats' || sortBy === 'ehp' || sortBy === 'vitesse' || sortBy === 'speed_nuker') {
-      // ⚠️ `speed_nuker` : sonde expérimentale (voir Objective dans
-      // runeBuildOptim.ts), jamais réellement sélectionnable ici (absente
-      // de OBJECTIVE_LABELS) — cette branche n'existe que pour que le
-      // typeur narrove correctement le `else` ci-dessous en StatKey pur.
+      // ⚠️ `speed_nuker` retombe sur la même formule que `degats` dans
+      // `objectiveScore` — voir son commentaire dans runeBuildOptim.ts (VIT
+      // n'y participe pas encore, en attendant une formule par monstre/sort).
       list.sort((a, b) => objectiveScore(b, sortBy) - objectiveScore(a, sortBy));
     } else {
       list.sort((a, b) => statTotal(b.stats, sortBy) - statTotal(a.stats, sortBy));

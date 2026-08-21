@@ -1391,17 +1391,31 @@ export function* buildBuckets(
   adaptiveTrancheWeighting = false,
   // Voir spec/outils/optimizer/historique-dimensionnement.md, « Suite —
   // vitesse de convergence : ordre au sein d'un compartiment » et « Suite —
-  // rétention re-vérifiée EMPIRIQUEMENT avec le prototype ». `'relevance'`
-  // (défaut depuis le 2026-08-18, tous les appels de production) : garde le
-  // tri des COMPARTIMENTS entre eux par potentiel normalisé (mesuré comme
-  // un vrai gain, deck 10), mais trie les demi-builds À L'INTÉRIEUR d'un
-  // même compartiment par `relevanceScore` seul — mesuré ~2× plus rapide en
-  // paires explorées pour un même objectif, sans coût de rang relatif ni de
-  // rétention (696/696 scénarios synthétiques, 0 régression). `'potential'` :
-  // ancien comportement (tri par potentiel normalisé aussi au sein d'un
-  // compartiment), conservé comme échappatoire de mesure/comparaison —
-  // jamais exposé dans l'UI, aucun appel de production ne le passe.
-  combosOrderMode: 'potential' | 'relevance' | 'combined' | 'objective' = 'combined'
+  // rétention re-vérifiée EMPIRIQUEMENT avec le prototype ». Quatre valeurs,
+  // toutes INTERNES — jamais exposées dans l'UI, aucun appel de production
+  // n'en passe une explicitement (le défaut ci-dessous s'applique donc
+  // partout). Trient les demi-builds À L'INTÉRIEUR d'un même compartiment
+  // (le tri des COMPARTIMENTS entre eux, par potentiel normalisé, reste
+  // inchangé quel que soit ce réglage) :
+  // - `'relevance'` : `relevanceScore` seul — mesuré ~2× plus rapide en
+  //   paires explorées pour un même objectif que l'ancien `'potential'`,
+  //   sans coût de rang relatif ni de rétention (696/696 scénarios
+  //   synthétiques, 0 régression). Défaut de production du 2026-08-18 au
+  //   passage à `'combined'` (voir plus bas).
+  // - `'potential'` : ancien comportement (tri par potentiel normalisé
+  //   aussi au sein d'un compartiment) — conservé comme échappatoire de
+  //   mesure/comparaison.
+  // - `'combined'` : `combinedRetentionScore` (somme pondérée par `base` de
+  //   TOUTES les stats à minimum posé), retombe sur `relevanceScore` si
+  //   aucun minimum n'est posé.
+  // - `'objective'` (DÉFAUT ACTUEL) : comme `'combined'` mais ne pondère
+  //   QUE les stats de l'objectif de recherche choisi
+  //   (`OBJECTIVE_RELEVANT_STATS`), pas les minimums posés — retombe sur
+  //   `relevanceScore` si aucun objectif n'est choisi (Efficience). Choisi
+  //   après comparaison manuelle par l'utilisateur (dev server, branche
+  //   `forge/order-as-weight-contrib`) — pas (encore) un benchmark
+  //   automatisé committé comme la mesure `'relevance'` ci-dessus.
+  combosOrderMode: 'potential' | 'relevance' | 'combined' | 'objective' = 'objective'
 ): Generator<BuildingProgress, Bucket[], void> {
   const { filtered, distinctKeys, constrainedKeys, retentionKeys, minEntries, bucketCap, jokerCredit, requiredPieces, base, objectiveKeys } = ctx;
   const [i0, i1, i2] = slotIdxs;

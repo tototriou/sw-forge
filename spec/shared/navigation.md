@@ -590,6 +590,22 @@ bas** de l'écran.
   à une main, le coin haut-gauche est le point le plus éloigné du pouce, pour un
   bouton qu'on ouvre et referme plusieurs fois par écran.
 
+⚠️ **Le contenu de page doit réserver assez de marge basse pour dégager
+CE bouton, pas seulement la barre d'onglets.** Le conteneur principal
+(`App.tsx`, `pb-[calc(116px+env(safe-area-inset-bottom))]` sous `lg`) doit
+couvrir `HAUTEUR_ONGLETS` (52 px) + le décalage du bouton Options (16 px) +
+sa propre hauteur (~40 px) + une marge de respiration, PLUS
+`env(safe-area-inset-bottom)` — le même terme que celui déjà appliqué au
+`bottom` du bouton (`MobileTabs.tsx`), sinon les deux dérivent l'un de
+l'autre. Un ancien `pb-24` (96 px fixe, sans marge de sécurité) était
+inférieur au strict nécessaire (108 px avant marge de sécurité) : sur les
+pages à contenu dense proche du bas d'écran (ex. les tuiles de
+`RunesOptim.tsx`), la dernière rangée pouvait finir partiellement sous ces
+deux éléments fixes, difficile voire impossible à atteindre au doigt selon
+la position de défilement — signalé par un utilisateur (« impossible de
+cliquer sur une rune » en mobile), confirmé par mesure directe des
+rectangles réels (pas seulement visuel).
+
 ⚠️ Le panneau **monte du bas**, du côté du doigt qui l'a demandé. Le tiroir
 glissait de la gauche tant que son déclencheur était en haut à gauche ; le
 déclencheur ayant bougé, le mouvement suit — un panneau qui surgit à l'opposé

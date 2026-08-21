@@ -227,6 +227,21 @@ export default function OptimizerSection({ box, runes, optimizer, allMonsters, r
     });
   }
 
+  // Basculer sur Haut/Extrême active « Rechercher jusqu'à épuisement complet »
+  // et « Prioriser les stats les plus difficiles » — un novice qui choisit un
+  // pré-filtrage large n'a aucune raison de savoir que ces deux réglages sont
+  // ce qui le rend réellement utile. Reste un COUP DE POUCE, pas un
+  // verrouillage : chaque interrupteur garde son `onChange` propre, remettre
+  // à false ensuite reste un clic normal dessus. Bas/Moyen ne les touchent
+  // pas dans l'autre sens — décochés une fois, ils le restent.
+  function handleSlotFilterPresetChange(preset: typeof slotFilterPreset) {
+    setSlotFilterPreset(preset);
+    if (preset === 'haut' || preset === 'extreme') {
+      setExhaustiveSearch(true);
+      setAdaptiveTrancheWeighting(true);
+    }
+  }
+
   const slotFilterCap = SLOT_FILTER_PRESETS.find((p) => p.key === slotFilterPreset)!.cap;
   // Filet de sécurité fixe, large, PAS un réglage utilisateur : le bouton
   // « Arrêter » reste le vrai moyen de reprendre la main. 10 min, pas 15 s :
@@ -989,7 +1004,7 @@ export default function OptimizerSection({ box, runes, optimizer, allMonsters, r
               <Segmented
                 options={SLOT_FILTER_PRESETS}
                 value={slotFilterPreset}
-                onChange={setSlotFilterPreset}
+                onChange={handleSlotFilterPresetChange}
                 // Dans le panneau « Options » : pleine largeur, comme les autres
                 // contrôles du tiroir. En ligne au bureau : serré à son contenu.
                 size={dansPanneau ? 'lg' : undefined}

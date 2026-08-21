@@ -262,13 +262,17 @@ retour.
     automatiquement le monstre de la box courante si son `com2usId` s'y
     trouve.
 12. **Barre de progression** — se remplit progressivement (pas une roue qui
-    tourne), avec le nombre de combinaisons déjà examinées et déjà trouvées.
+    tourne), avec le nombre de combinaisons déjà examinées et déjà trouvées,
+    suivi d'un message **en gras, couleur dorée** (même que le rang `#X`
+    d'un résultat) : « Attendez la fin de la recherche pour être sûr de
+    trouver votre build optimal ».
 13. **Résultats** — jusqu'à 20 combinaisons affichées, chacune : rang, les
     sets obtenus, le **panneau de stats** (`StatPanel.tsx`, le même composant
     que dans « Équipement actuel ») et les artéfacts + les 6 runes sur une
     roue à échelle réduite (`BuildCandidateCard.tsx`), tous deux cliquables
     pour ouvrir le détail complet de la pièce. Puis la valeur **moyenne par
-    rune** dans la mesure choisie.
+    rune** dans la mesure choisie — « Efficience moyenne : X » ou « Score
+    moyen : X » selon le réglage global (Efficience/Score SW).
     ⚠️ **Détail à la souris vs au doigt — même bascule que « Équipement
     actuel »/RTA/Siège** (voir `MonsterGear.tsx`) : à la souris, un flottant
     ancré à la pièce ; au doigt, le détail s'affiche **en ligne sous la

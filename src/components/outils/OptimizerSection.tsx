@@ -1405,18 +1405,16 @@ export default function OptimizerSection({ box, runes, optimizer, allMonsters, r
               PAS `nodeBudgetMax` (le plafond de nœuds, qui grandit avec
               l'escalade — voir « Suite — escalade automatique du budget de
               nœuds ») : les deux racontent des choses différentes, et
-              afficher `nodeBudgetMax` ici créait un désaccord visible avec
-              la ligne « Espace de recherche à épuiser » juste en dessous,
-              qui montre TOUJOURS `totalPairs`. Les deux lignes partagent
-              maintenant le même chiffre. */}
+              `nodeBudgetMax` grandissant en cours de route ferait reculer la
+              barre au lieu d'avancer. */}
           <p className="mt-1 font-mono text-micro text-ink-dim">
             {progress === null
               ? 'Préparation…'
               : `${progress.explored.toLocaleString('fr-FR')} / ${progress.totalPairs.toLocaleString('fr-FR')} combinaisons examinées · ${progress.found.toLocaleString('fr-FR')} trouvée(s)`}
           </p>
           {progress !== null && (
-            <p className="mt-0.5 font-mono text-micro text-ink-dimmer">
-              Espace de recherche à épuiser (au pire) : {progress.totalPairs.toLocaleString('fr-FR')} combinaisons
+            <p className="mt-0.5 font-mono text-[11px] font-bold text-star">
+              Attendez la fin de la recherche pour être sûr de trouver votre build optimal.
             </p>
           )}
           {progress !== null && (

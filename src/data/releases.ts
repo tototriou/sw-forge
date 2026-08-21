@@ -58,6 +58,42 @@ export const CHANGE_META: Record<ChangeKind, { label: string; color: string }> =
 // Si une ligne dépasse ~15 mots, c'est qu'elle raconte l'implémentation.
 export const RELEASES: Release[] = [
   {
+    version: null,
+    date: '2026-08-21',
+    title: 'Nouvel objectif Speed nuker, et un bug de clics sur mobile corrigé',
+    highlights: [
+      'Nouvel objectif de recherche « Speed nuker »',
+      'Correction d’un bug de clics sur mobile (plusieurs pages)',
+    ],
+    changes: [
+      {
+        kind: 'feat',
+        scope: 'Optimiseur',
+        text: 'Nouvel objectif de recherche « Speed nuker ».',
+      },
+      {
+        kind: 'feat',
+        scope: 'Optimiseur',
+        text: 'Choisir un pré-filtrage Haut ou Extrême active automatiquement les réglages avancés recommandés.',
+      },
+      {
+        kind: 'fix',
+        scope: 'Mon compte',
+        text: 'Sur mobile, certains boutons et cartes (runes, artéfacts, monstres…) pouvaient devenir difficiles ou impossibles à toucher — corrigé.',
+      },
+      {
+        kind: 'fix',
+        scope: 'Optimiseur',
+        text: 'Le calcul de rétention des runes pondère désormais correctement les statistiques en pourcentage — peut légèrement changer les runes retenues pendant la recherche.',
+      },
+      {
+        kind: 'fix',
+        scope: 'Optimiseur',
+        text: 'Message d’attente et affichage de la mesure sur les cartes de résultat clarifiés.',
+      },
+    ],
+  },
+  {
     version: '1.8.0',
     date: '2026-08-19',
     title: 'Une nouvelle navigation',

@@ -600,11 +600,14 @@ sa propre hauteur (~40 px) + une marge de respiration, PLUS
 l'autre. Un ancien `pb-24` (96 px fixe, sans marge de sécurité) était
 inférieur au strict nécessaire (108 px avant marge de sécurité) : sur les
 pages à contenu dense proche du bas d'écran (ex. les tuiles de
-`RunesOptim.tsx`), la dernière rangée pouvait finir partiellement sous ces
-deux éléments fixes, difficile voire impossible à atteindre au doigt selon
-la position de défilement — signalé par un utilisateur (« impossible de
-cliquer sur une rune » en mobile), confirmé par mesure directe des
-rectangles réels (pas seulement visuel).
+`RunesOptim.tsx`), la toute dernière rangée pouvait finir partiellement
+sous ces deux éléments fixes, une fois défilé au maximum. Corrigé — mais
+⚠️ **cause SECONDAIRE**, pas la cause principale d'un signalement
+utilisateur plus large (« impossible de cliquer sur une rune », touchant
+aussi Compte > Runes > Liste, Artéfacts > Liste, Monstres — pas seulement
+la dernière rangée d'une page dense) : la vraie cause était
+`.cible-tactile` sans `position: relative`, voir
+[design.md](design.md), section « cible-tactile ».
 
 ⚠️ Le panneau **monte du bas**, du côté du doigt qui l'a demandé. Le tiroir
 glissait de la gauche tant que son déclencheur était en haut à gauche ; le

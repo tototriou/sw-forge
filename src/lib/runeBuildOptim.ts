@@ -124,9 +124,11 @@ export interface SearchParams {
   // production) : tri des demi-builds par `relevanceScore` au sein d'un
   // compartiment (mesuré ~2× plus rapide, 0 régression — voir
   // historique-dimensionnement.md). `'potential'` : ancien comportement,
-  // conservé comme échappatoire de mesure/comparaison. Jamais exposé dans
-  // l'UI.
-  combosOrderMode?: 'potential' | 'relevance';
+  // conservé comme échappatoire de mesure/comparaison. `'combined'` :
+  // PROTOTYPE (forge/order-as-weight-contrib) — trie uniquement par
+  // combinedRetentionScore, repli sur relevanceScore si aucun minimum posé.
+  // Jamais exposé dans l'UI.
+  combosOrderMode?: 'potential' | 'relevance' | 'combined' | 'objective';
 }
 
 export interface SearchResult {
@@ -138,18 +140,19 @@ export interface SearchResult {
 // Objectifs : choisis AVANT de lancer la recherche (OptimizerSection.tsx),
 // un grand bouton à choix unique — pour orienter le type de rune étudié dès
 // le pré-filtrage, pas seulement trier les résultats après coup.
-// ⚠️ `'speed_nuker'` : SONDE EXPÉRIMENTALE, pas un objectif produit.
-// Ajoutée pour tester l'hypothèse « un objectif mal aligné force un
-// `bucketCap` plus grand » (voir spec/outils/optimizer/, section « Piste
-// écartée — un objectif de recherche mieux aligné ») — union des stats
-// pertinentes de Dégâts et Vitesse (ATQ+Dmg Crit+VIT). Hypothèse écartée
-// par la mesure (l'inverse s'est produit — voir cette même section) ;
-// conservée volontairement dans le code comme sonde réutilisable si la
-// question revient, mais ABSENTE de `OBJECTIVE_LABELS` (jamais affichée à
-// l'écran) et de `objectiveScore` (jamais utilisée pour trier un résultat
-// final) — aucun script permanent ne s'en sert aujourd'hui, les scripts
-// `_tmp-*` qui l'ont mesurée ont été nettoyés une fois la conclusion tirée
-// (convention de ce dépôt pour les scripts jetables).
+// `'speed_nuker'` : archétype « passe avant l'ennemi, tape fort » (ATQ+Dmg
+// Crit+VIT). Le pré-filtrage/rétention (`OBJECTIVE_RELEVANT_STATS`) est
+// resté câblé tel quel depuis une sonde expérimentale antérieure (voir
+// spec/outils/optimizer/, « Piste écartée — un objectif de recherche mieux
+// aligné » : cette sonde a été écartée comme correctif de `bucketCap`, mais
+// le câblage lui-même restait correct et neutre). Le TRI des résultats,
+// lui, réutilise directement la formule de `'degats'` (voir `objectiveScore`
+// ci-dessous) plutôt qu'une formule dédiée : VIT ne sert qu'à orienter QUELS
+// candidats la recherche retient, jamais à les départager entre eux au tri
+// final — cohérent avec l'intention de remplacer un jour la formule Dégâts
+// standard par une formule personnalisée par monstre (sort utilisé,
+// conditions de jeu), qui bénéficiera alors aussi à cet objectif sans
+// modification supplémentaire.
 export type Objective = 'efficience' | 'degats' | 'ehp' | 'vitesse' | 'speed_nuker';
 
 export const OBJECTIVE_LABELS: { key: Objective; label: string }[] = [
@@ -157,6 +160,7 @@ export const OBJECTIVE_LABELS: { key: Objective; label: string }[] = [
   { key: 'degats', label: 'Dégâts' },
   { key: 'ehp', label: 'PV effectifs' },
   { key: 'vitesse', label: 'Vitesse' },
+  { key: 'speed_nuker', label: 'Speed nuker' },
 ];
 
 // ⚠️ Constantes de RÈGLE DU JEU (pas d'affichage) déplacées ici depuis
@@ -229,7 +233,6 @@ export const OBJECTIVE_RELEVANT_STATS: Record<Objective, StatKey[]> = {
   degats: ['atk', 'cd'],
   ehp: ['hp', 'def'],
   vitesse: ['spd'],
-  // ⚠️ Sonde expérimentale — voir le commentaire de `Objective`.
   speed_nuker: ['atk', 'cd', 'spd'],
 };
 
@@ -254,7 +257,17 @@ export function objectiveScore(candidate: BuildCandidate, objective: Objective):
   if (objective === 'efficience') return candidate.effTotal;
   const { stats } = candidate;
   if (objective === 'vitesse') return statTotal(stats, 'spd');
-  if (objective === 'degats') {
+  if (objective === 'degats' || objective === 'speed_nuker') {
+    // ⚠️ `speed_nuker` réutilise ICI la même formule que `degats` — PLACEHOLDER
+    // assumé, pas une formule dédiée. Pour un vrai speed nuker (ex. Lagmaron,
+    // sort n°2 : Multiplier = ATQ×(VIT+70)/30), VIT participe RÉELLEMENT au
+    // multiplicateur de dégâts du sort — cette formule générique l'ignore
+    // totalement ici. VIT reste pris en compte en amont, dans le
+    // pré-filtrage/la rétention (voir `OBJECTIVE_RELEVANT_STATS.speed_nuker`),
+    // juste pas dans CE score. À remplacer quand une formule de dégâts
+    // personnalisée par monstre/sort existera (projet plus large, pas encore
+    // construit) — ce jour-là, `speed_nuker` en bénéficiera automatiquement
+    // sans modification supplémentaire de cette fonction.
     const atk = statTotal(stats, 'atk');
     // ⚠️ Le Taux Crit est PLAFONNÉ à 100 % dans le jeu — passer 100 % ne
     // rapporte plus rien (la formule utiliserait sinon une chance de critique
@@ -265,19 +278,10 @@ export function objectiveScore(candidate: BuildCandidate, objective: Objective):
     const cr = Math.min(statTotal(stats, 'cr'), 100);
     return atk * (1 + (cr / 100) * (statTotal(stats, 'cd') / 100));
   }
-  // ⚠️ `speed_nuker` (sonde expérimentale, voir le commentaire du type
-  // `Objective`) N'A JAMAIS eu de formule de score — délibérément absente
-  // de `OBJECTIVE_LABELS` ET d'ici, seulement câblée dans
-  // `OBJECTIVE_RELEVANT_STATS` (rétention/filtrage, pas le score final).
-  // Avant cette garde, un objectif non géré retombait SILENCIEUSEMENT sur
-  // la formule EHP ci-dessous — repéré par une revue de code externe
-  // (2026-08-19) : `OptimizerSection.tsx` a un site d'appel qui route
-  // `speed_nuker` ici (aujourd'hui inatteignable, absent de
-  // `OBJECTIVE_LABELS`), et `Objective` fait partie du contrat de recette
-  // rejouable (`OptimizerRecipe.objective`) — un score EHP incohérent avec
-  // la rétention atk/cd/spd aurait été un vrai bug silencieux si l'un ou
-  // l'autre chemin devenait un jour atteignable. Échoue bruyamment plutôt
-  // que de renvoyer un nombre plausible mais faux.
+  // Filet de sécurité : tout objectif futur sans branche dédiée ci-dessus
+  // échoue bruyamment plutôt que de retomber silencieusement sur EHP (voir
+  // historique-acceleration-et-outillage.md, « revue de code externe » —
+  // c'est ce garde-fou qui a justement rendu visible le trou comblé ici).
   if (objective !== 'ehp') {
     throw new Error(`objectiveScore : aucune formule de score pour l'objectif "${objective}".`);
   }
@@ -601,6 +605,23 @@ function valueOf(rune: RuneDetail, metric: OptimMetric): number {
 /* --------------------------------------------------------------------------
  * Pré-filtrage par slot
  * ----------------------------------------------------------------------- */
+// ⚠️ Un `pct` et un `flat` de la MÊME stat ne sont PAS la même unité — un `%`
+// s'applique à `base[key]` (PV/ATQ/DEF seulement, voir `RUNE_EFFECT`), un
+// plat s'ajoute tel quel. Additionner `pct+flat` directement (ex. `pct=10,
+// flat=0` traité comme égal à `pct=0,flat=10`) mélange deux échelles —
+// mesuré : sur le pool réel d'un slot, jusqu'à ~47 % du top-40 par
+// `relevance()` change entre l'ancien classement et celui-ci (Lushen deck 10,
+// slot 2 — voir spec/outils/optimizer/historique-dimensionnement.md, « Suite
+// — pct/flat pondérés par base »). Même principe que `totalOf` (résultat
+// EXACT, avec le terme `base` additif en plus) et déjà appliqué par
+// `isDominated` (comparaison composante par composante) — seul son propre
+// commentaire n'avait pas essaimé jusqu'à `relevance`/`retentionScore`/
+// `combinedRetentionScore`.
+function weightedContribution(base: BaseStats, key: StatKey, pct: number, flat: number): number {
+  const b = (base as unknown as Record<string, number>)[key] ?? 0;
+  return key === 'hp' || key === 'atk' || key === 'def' ? Math.ceil((b * pct) / 100) + flat : flat;
+}
+
 // ⚠️ **Ne dépend JAMAIS de `objective`** — vérifié précisément cette session
 // (voir spec/outils/optimizer/, « Piste écartée — un objectif de
 // recherche mieux aligné… ») après avoir supposé le contraire par erreur.
@@ -614,12 +635,12 @@ function valueOf(rune: RuneDetail, metric: OptimMetric): number {
 // objectif « Dégâts » ne fait donc PAS que la recherche privilégie les
 // demi-builds les plus offensifs pendant la rétention — seulement qu'elle
 // leur garde une place plus large au pré-filtrage.
-export function relevance(rune: RuneDetail, requirement: BuildRequirement): number {
+export function relevance(rune: RuneDetail, requirement: BuildRequirement, base: BaseStats): number {
   let score = 0;
   for (const [key, min] of Object.entries(requirement.minStats)) {
     if (min == null || min <= 0) continue;
     const c = runeContribution(rune, key as StatKey);
-    score += (c.pct + c.flat) / min;
+    score += weightedContribution(base, key as StatKey, c.pct, c.flat) / min;
   }
   // Tie-break générique : une rune globalement meilleure reste préférable
   // quand rien ne la distingue sur les stats demandées.
@@ -649,6 +670,7 @@ const FILTER_SLOT_WIDENING_PER_CONDITION = 20;
 export function filterSlot(
   candidates: RuneDetail[],
   requirement: BuildRequirement,
+  base: BaseStats,
   matchCap = MAX_PER_SLOT_MATCH,
   fillCap = MAX_PER_SLOT_FILL,
   objective?: Objective
@@ -677,7 +699,7 @@ export function filterSlot(
   const isRelevantToCombo = (r: RuneDetail): boolean => requiredKeys.has(r.set) || r.set === 'intangible';
   const pool = hasFreeSlots ? candidates : candidates.filter(isRelevantToCombo);
   const scored = pool
-    .map((r) => ({ r, s: relevance(r, requirement) }))
+    .map((r) => ({ r, s: relevance(r, requirement, base) }))
     .sort((a, b) => b.s - a.s);
 
   const conditionCount = Object.values(requirement.minStats).filter((v) => v != null && v > 0).length;
@@ -713,7 +735,7 @@ export function filterSlot(
   // ⚠️ Top-K via le tas borné (`heapPush`, déjà utilisé pour la rétention par
   // compartiment dans `buildBuckets`) au lieu d'un tri complet de tout
   // `candidates` suivi d'un `.slice()` — même sémantique top-K (les `keepN`
-  // plus grandes valeurs de `c.pct + c.flat` sont gardées), coût ramené de
+  // plus grandes valeurs de `weightedContribution(base, k, c[k].pct, c[k].flat)` sont gardées), coût ramené de
   // O(n log n) à O(n log keepN) par stat, `keepN` (6 ou 24) restant petit
   // devant `n` (jusqu'à plusieurs milliers de runes par slot sur un gros
   // compte). Un seul passage sur `candidates` par stat, aucun tableau
@@ -729,7 +751,7 @@ export function filterSlot(
     const keepN = objectiveKeys.includes(k) ? PER_STAT_KEEP_OBJECTIVE : PER_STAT_KEEP;
     const heap: ScoredEntry<RuneDetail>[] = [];
     for (const { r, c } of contribByRune) {
-      heapPush(heap, { item: r, score: c[k].pct + c[k].flat }, keepN);
+      heapPush(heap, { item: r, score: weightedContribution(base, k, c[k].pct, c[k].flat) }, keepN);
     }
     for (const { item } of heap) kept.set(item.id, item);
   }
@@ -1074,6 +1096,14 @@ export interface Bucket {
   combos: HalfCombo[]; // fusion dédupliquée des tranches de rétention, triée par potentiel NORMALISÉ décroissant (toutes tranches confondues, pas seulement relevanceScore — voir buildBuckets)
   maxPct: Record<string, number>; // borne SÛRE (jamais sous-estimée) par stat contrainte
   maxFlat: Record<string, number>;
+  // PROTOTYPE (ordre d'appariement) — le score « potentiel normalisé » déjà
+  // calculé par buildBuckets pour trier les compartiments entre eux (Étape
+  // « ordonnancement conscient des tranches »), conservé ici au lieu d'être
+  // jeté après le tri — sert à pairBuckets pour explorer les paires de
+  // compartiments par potentiel combiné décroissant plutôt qu'en boucle
+  // imbriquée séquentielle. Toujours défini (jamais optionnel) : calculé pour
+  // CHAQUE compartiment avant le tri final, quel que soit combosOrderMode.
+  potential: number;
   // ⚠️ PROTOTYPE EN MESURE, absent (`undefined`) sauf si `buildBuckets` reçoit
   // `skylineKeys` — voir son commentaire. La frontière de Pareto EXACTE de ce
   // compartiment sur `skylineKeys` (voir `insertIntoSkyline`), calculée EN
@@ -1251,12 +1281,12 @@ export function anyJokerAvailable(filtered: RuneDetail[][]): boolean {
 // `PER_STAT_KEEP`/`PER_STAT_KEEP_OBJECTIVE` dans `filterSlot` (réserver une
 // tranche par critère plutôt qu'un seul tri global), appliqué ici aux
 // demi-builds plutôt qu'aux runes individuelles.
-function retentionScore(pct: Record<string, number>, flat: Record<string, number>, key: StatKey): number {
-  // Somme pct+flat comme repère de classement, PAS une valeur totale exacte
-  // (mélanger les deux échelles serait faux pour un total réel — voir
-  // `totalOf` — mais suffit à trier des demi-builds entre eux sur cette même
-  // stat). Même heuristique que `relevance()` dans `filterSlot`.
-  return (pct[key] ?? 0) + (flat[key] ?? 0);
+function retentionScore(base: BaseStats, pct: Record<string, number>, flat: Record<string, number>, key: StatKey): number {
+  // Pondéré par `base` (voir `weightedContribution`) — PAS une valeur totale
+  // exacte (le terme `base` additif de `totalOf` manque encore), mais un
+  // repère de classement qui respecte au moins le bon poids relatif entre
+  // `pct` et `flat` sur cette même stat.
+  return weightedContribution(base, key, pct[key] ?? 0, flat[key] ?? 0);
 }
 
 // ⚠️ Score COMBINÉ, normalisé par le seuil de chaque minimum — pas la simple
@@ -1267,11 +1297,28 @@ function retentionScore(pct: Record<string, number>, flat: Record<string, number
 // supplémentaire, triée par la somme des contributions rapportées à leur
 // propre seuil, le protège. Même heuristique que `relevance()` dans
 // `filterSlot`, appliquée ici aux demi-builds.
-function combinedRetentionScore(pct: Record<string, number>, flat: Record<string, number>, minEntries: { k: StatKey; min: number }[]): number {
+function combinedRetentionScore(base: BaseStats, pct: Record<string, number>, flat: Record<string, number>, minEntries: { k: StatKey; min: number }[]): number {
   let score = 0;
   for (const { k, min } of minEntries) {
     if (min <= 0) continue;
-    score += ((pct[k] ?? 0) + (flat[k] ?? 0)) / min;
+    score += weightedContribution(base, k, pct[k] ?? 0, flat[k] ?? 0) / min;
+  }
+  return score;
+}
+
+// PROTOTYPE (forge/order-as-weight-contrib, combosOrderMode='objective') —
+// même principe que `combinedRetentionScore` (somme de contributions
+// pondérées par `base`), mais sur les stats de l'OBJECTIF choisi
+// (`objectiveKeys` — ex. ATQ+Dmg Crit pour Dégâts), jamais les minimums
+// posés. Pas de division par un seuil ici (une stat de l'objectif n'a pas
+// forcément de minimum posé dessus — rien à normaliser par) : simple somme
+// des contributions réelles. Vide (`objectiveKeys.length === 0`, ex.
+// objectif « Efficience ») → score toujours 0 pour tout le monde, le tri
+// retombe alors sur `relevanceScore` (voir son site d'appel).
+function objectiveRetentionScore(base: BaseStats, pct: Record<string, number>, flat: Record<string, number>, objectiveKeys: StatKey[]): number {
+  let score = 0;
+  for (const k of objectiveKeys) {
+    score += weightedContribution(base, k, pct[k] ?? 0, flat[k] ?? 0);
   }
   return score;
 }
@@ -1282,7 +1329,7 @@ function combinedRetentionScore(pct: Record<string, number>, flat: Record<string
 // d'appel dans 29 fichiers, aucun bug d'ordre trouvé en les auditant, mais
 // un vrai risque latent : la plupart de ces sites sont dans `scripts/`, hors
 // périmètre `tsc`, où un paramètre inversé ne serait détecté qu'à
-// l'exécution). N'importe quel objet qui a STRUCTURELLEMENT ces 8 champs
+// l'exécution). N'importe quel objet qui a STRUCTURELLEMENT ces 9 champs
 // convient — un `PreparedSearch` complet (le cas normal, `searchBuildsSteps`)
 // ou un objet plus étroit comme `BuildHalfRequest` (buildHalf.worker.ts, qui
 // ne peut pas recevoir un `PreparedSearch` tel quel — sa fonction `totalOf`
@@ -1296,6 +1343,16 @@ export interface BuildBucketsContext {
   bucketCap: number;
   jokerCredit: number;
   requiredPieces: number[];
+  // ⚠️ Nécessaire à `retentionScore`/`combinedRetentionScore` (pondération
+  // pct/flat, voir `weightedContribution`) — absent avant, ces deux
+  // fonctions mélangeaient les deux échelles. Propagé à TOUS les chemins
+  // structurellement compatibles (`BuildHalfRequest`, `BuildHalfWorkerData`)
+  // — voir spec/outils/optimizer/historique-dimensionnement.md, « Suite —
+  // pct/flat pondérés par base ».
+  base: BaseStats;
+  // PROTOTYPE (combosOrderMode='objective') — voir son commentaire dans
+  // prepareSearch. Même discipline de propagation que `base` ci-dessus.
+  objectiveKeys: StatKey[];
 }
 
 // ⚠️ GÉNÉRATEUR, comme `searchBuildsSteps` — la construction d'un
@@ -1334,19 +1391,33 @@ export function* buildBuckets(
   adaptiveTrancheWeighting = false,
   // Voir spec/outils/optimizer/historique-dimensionnement.md, « Suite —
   // vitesse de convergence : ordre au sein d'un compartiment » et « Suite —
-  // rétention re-vérifiée EMPIRIQUEMENT avec le prototype ». `'relevance'`
-  // (défaut depuis le 2026-08-18, tous les appels de production) : garde le
-  // tri des COMPARTIMENTS entre eux par potentiel normalisé (mesuré comme
-  // un vrai gain, deck 10), mais trie les demi-builds À L'INTÉRIEUR d'un
-  // même compartiment par `relevanceScore` seul — mesuré ~2× plus rapide en
-  // paires explorées pour un même objectif, sans coût de rang relatif ni de
-  // rétention (696/696 scénarios synthétiques, 0 régression). `'potential'` :
-  // ancien comportement (tri par potentiel normalisé aussi au sein d'un
-  // compartiment), conservé comme échappatoire de mesure/comparaison —
-  // jamais exposé dans l'UI, aucun appel de production ne le passe.
-  combosOrderMode: 'potential' | 'relevance' = 'relevance'
+  // rétention re-vérifiée EMPIRIQUEMENT avec le prototype ». Quatre valeurs,
+  // toutes INTERNES — jamais exposées dans l'UI, aucun appel de production
+  // n'en passe une explicitement (le défaut ci-dessous s'applique donc
+  // partout). Trient les demi-builds À L'INTÉRIEUR d'un même compartiment
+  // (le tri des COMPARTIMENTS entre eux, par potentiel normalisé, reste
+  // inchangé quel que soit ce réglage) :
+  // - `'relevance'` : `relevanceScore` seul — mesuré ~2× plus rapide en
+  //   paires explorées pour un même objectif que l'ancien `'potential'`,
+  //   sans coût de rang relatif ni de rétention (696/696 scénarios
+  //   synthétiques, 0 régression). Défaut de production du 2026-08-18 au
+  //   passage à `'combined'` (voir plus bas).
+  // - `'potential'` : ancien comportement (tri par potentiel normalisé
+  //   aussi au sein d'un compartiment) — conservé comme échappatoire de
+  //   mesure/comparaison.
+  // - `'combined'` : `combinedRetentionScore` (somme pondérée par `base` de
+  //   TOUTES les stats à minimum posé), retombe sur `relevanceScore` si
+  //   aucun minimum n'est posé.
+  // - `'objective'` (DÉFAUT ACTUEL) : comme `'combined'` mais ne pondère
+  //   QUE les stats de l'objectif de recherche choisi
+  //   (`OBJECTIVE_RELEVANT_STATS`), pas les minimums posés — retombe sur
+  //   `relevanceScore` si aucun objectif n'est choisi (Efficience). Choisi
+  //   après comparaison manuelle par l'utilisateur (dev server, branche
+  //   `forge/order-as-weight-contrib`) — pas (encore) un benchmark
+  //   automatisé committé comme la mesure `'relevance'` ci-dessus.
+  combosOrderMode: 'potential' | 'relevance' | 'combined' | 'objective' = 'objective'
 ): Generator<BuildingProgress, Bucket[], void> {
-  const { filtered, distinctKeys, constrainedKeys, retentionKeys, minEntries, bucketCap, jokerCredit, requiredPieces } = ctx;
+  const { filtered, distinctKeys, constrainedKeys, retentionKeys, minEntries, bucketCap, jokerCredit, requiredPieces, base, objectiveKeys } = ctx;
   const [i0, i1, i2] = slotIdxs;
   const buckets = new Map<string, Bucket>();
   // Tas de construction, PAS le contrat final (`Bucket.combos`) : une entrée
@@ -1417,7 +1488,7 @@ export function* buildBuckets(
         let sumSq = 0;
         for (const r of slotPool) {
           const c = runeSubOnlyContribution(r, k as StatKey);
-          const v = c.pct + c.flat;
+          const v = weightedContribution(base, k as StatKey, c.pct, c.flat);
           sum += v;
           sumSq += v * v;
         }
@@ -1519,12 +1590,27 @@ export function* buildBuckets(
       // n'est NI ce set NI un joker aboutit à un demi-build mort — coupé
       // de toute façon par le repli final, mais en évitant de l'itérer.
       const jokersR01 = (p0.isJoker ? 1 : 0) + (p1.isJoker ? 1 : 0);
+      // ⚠️ Élagage SÛR, pas une heuristique — `pairBuckets` écarte toute
+      // paire où `bA.jokers + bB.jokers > 1` (une seule rune Intangible
+      // équipable par monstre, voir plus bas) : `jokersR01 ≥ 2` ICI garantit
+      // qu'AUCUN choix de r2 ne pourra jamais rendre ce demi-build appariable,
+      // quelle que soit l'autre moitié — inutile de construire, scorer et
+      // retenir un compartiment qui ne sera de toute façon jamais apparié.
+      // Mesuré sur un compte réel (Lushen deck 10, Rage/Rage+Blade/Energy+
+      // Shield+Guard) : ~11 % des demi-builds construits tombaient dans ce
+      // cas, pour 0 effet sur `pairBuckets` (déjà écarté au niveau du
+      // compartiment) — voir spec/outils/optimizer/historique-dimensionnement.md,
+      // « Suite — élagage jokers≥2 ».
+      if (jokersR01 >= 2) continue;
       const mustRescue = hasFourPieceRequirement && jokersR01 === 0 && fourPieceKeys.some((is4p, k) => is4p && haveR01[k] === 0);
       const total2 = mustRescue ? rescueIdxI2.length : filtered[i2].length;
       for (let j2 = 0; j2 < total2; j2++) {
         const idx2 = mustRescue ? rescueIdxI2[j2] : j2;
         const r2 = filtered[i2][idx2];
         const p2 = precompI2[idx2];
+        // Même raisonnement que ci-dessus : cas où jokersR01 ≤ 1 mais r2 lui
+        // -même est un joker qui fait passer le total à 2.
+        if (jokersR01 + (p2.isJoker ? 1 : 0) >= 2) continue;
         const runes: [RuneDetail, RuneDetail, RuneDetail] = [r0, r1, r2];
         // ⚠️ Réutilise `haveR01` (déjà accumulé pour `stillFeasible`) au
         // lieu de recalculer via `runes.filter(...)` — même résultat, sans
@@ -1572,7 +1658,7 @@ export function* buildBuckets(
         let b = buckets.get(key);
         let bucketSlices = slices.get(key);
         if (!b) {
-          b = { counts, jokers, combos: [], maxPct: {}, maxFlat: {} };
+          b = { counts, jokers, combos: [], maxPct: {}, maxFlat: {}, potential: 0 };
           buckets.set(key, b);
           // [générique, combinée éventuelle, une par retentionKey…] — même
           // ordre que la boucle d'insertion ci-dessous.
@@ -1593,11 +1679,11 @@ export function* buildBuckets(
         heapPush(bucketSlices![0], { item: combo, score }, genericCap);
         const retentionOffset = hasCombined ? 2 : 1;
         if (hasCombined) {
-          heapPush(bucketSlices![1], { item: combo, score: combinedRetentionScore(pct, flat, minEntries) }, perOtherSliceCap);
+          heapPush(bucketSlices![1], { item: combo, score: combinedRetentionScore(base, pct, flat, minEntries) }, perOtherSliceCap);
         }
         for (let i = 0; i < retentionKeys.length; i++) {
           const cap = adaptiveTrancheWeighting ? reallocatedCap[retentionKeys[i]] : perOtherSliceCap;
-          heapPush(bucketSlices![retentionOffset + i], { item: combo, score: retentionScore(pct, flat, retentionKeys[i]) }, cap);
+          heapPush(bucketSlices![retentionOffset + i], { item: combo, score: retentionScore(base, pct, flat, retentionKeys[i]) }, cap);
         }
         if (skylines) {
           let skyline = skylines.get(key);
@@ -1663,19 +1749,37 @@ export function* buildBuckets(
     const key = bucketKeyOf(b.counts, b.jokers);
     const combos = bucketSeen.get(key)!;
     const scored = combos.map((combo) => {
+      const combined = hasCombined ? combinedRetentionScore(base, combo.pct, combo.flat, minEntries) : null;
+      const objectiveVal = objectiveKeys.length > 0 ? objectiveRetentionScore(base, combo.pct, combo.flat, objectiveKeys) : null;
       const sliceScores: number[] = [combo.relevanceScore];
-      if (hasCombined) sliceScores.push(combinedRetentionScore(combo.pct, combo.flat, minEntries));
-      for (const k of retentionKeys) sliceScores.push(retentionScore(combo.pct, combo.flat, k));
+      if (combined != null) sliceScores.push(combined);
+      for (const k of retentionKeys) sliceScores.push(retentionScore(base, combo.pct, combo.flat, k));
       let potential = -Infinity;
       for (let s = 0; s < sliceCount; s++) {
         const g = globalBestBySlice[s];
         const normalized = g > 0 ? sliceScores[s] / g : sliceScores[s];
         if (normalized > potential) potential = normalized;
       }
-      return { combo, potential };
+      return { combo, potential, combined, objectiveVal };
     });
     if (combosOrderMode === 'relevance') {
       scored.sort((x, y) => y.combo.relevanceScore - x.combo.relevanceScore);
+    } else if (combosOrderMode === 'combined') {
+      // PROTOTYPE (forge/order-as-weight-contrib) — trie UNIQUEMENT par
+      // combinedRetentionScore (Σ contribution/seuil sur TOUS les minimums
+      // posés à la fois), jamais par relevanceScore ni par une tranche par
+      // stat isolée. Repli sur relevanceScore si aucun minimum n'est posé
+      // (`combined` vaut alors `null` pour tous les demi-builds — rien à
+      // comparer sinon, un tri par `undefined - undefined` serait instable).
+      scored.sort((x, y) => (y.combined ?? y.combo.relevanceScore) - (x.combined ?? x.combo.relevanceScore));
+    } else if (combosOrderMode === 'objective') {
+      // PROTOTYPE (forge/order-as-weight-contrib) — trie UNIQUEMENT par
+      // objectiveRetentionScore (Σ contribution réelle sur les stats de
+      // L'OBJECTIF choisi, ex. ATQ+Dmg Crit pour Dégâts) — jamais les
+      // minimums posés, jamais l'efficience générique. Repli sur
+      // relevanceScore si aucun objectif n'est choisi (« Efficience »,
+      // `objectiveVal` vaut alors `null` pour tout le monde).
+      scored.sort((x, y) => (y.objectiveVal ?? y.combo.relevanceScore) - (x.objectiveVal ?? x.combo.relevanceScore));
     } else {
       scored.sort((x, y) => y.potential - x.potential);
     }
@@ -1699,20 +1803,21 @@ export function* buildBuckets(
   // défaut, dès que `maxCollected`/`maxNodes` interrompt la recherche avant
   // de tout explorer (le cas courant, voir « Suite — augmenter le budget de
   // recherche » dans spec/outils/optimizer/).
-  out.sort((x, y) => {
-    const bx = bucketBestBySlice.get(bucketKeyOf(x.counts, x.jokers))!;
-    const by = bucketBestBySlice.get(bucketKeyOf(y.counts, y.jokers))!;
-    let potX = -Infinity;
-    let potY = -Infinity;
+  // PROTOTYPE (ordre d'appariement) — calculé UNE FOIS par compartiment ici
+  // (au lieu d'être recalculé à chaque comparaison puis jeté) et conservé sur
+  // `Bucket.potential` : sert à `pairBuckets` pour ordonner les PAIRES de
+  // compartiments, pas seulement chaque moitié séparément.
+  for (const b of out) {
+    const bx = bucketBestBySlice.get(bucketKeyOf(b.counts, b.jokers))!;
+    let pot = -Infinity;
     for (let s = 0; s < sliceCount; s++) {
       const g = globalBestBySlice[s];
       const nx = g > 0 ? bx[s] / g : bx[s];
-      const ny = g > 0 ? by[s] / g : by[s];
-      if (nx > potX) potX = nx;
-      if (ny > potY) potY = ny;
+      if (nx > pot) pot = nx;
     }
-    return potY - potX;
-  });
+    b.potential = pot;
+  }
+  out.sort((x, y) => y.potential - x.potential);
   return out;
 }
 
@@ -1917,11 +2022,12 @@ export function mainStatFilteredBySlot(pool: RuneDetail[], requirement: BuildReq
 function buildFilteredBySlot(
   pool: RuneDetail[],
   requirement: BuildRequirement,
+  base: BaseStats,
   slotCap: number,
   objective?: Objective
 ): RuneDetail[][] {
   const bySlot = mainStatFilteredBySlot(pool, requirement);
-  return bySlot.map((list) => filterSlot(list, requirement, slotCap, slotCap, objective));
+  return bySlot.map((list) => filterSlot(list, requirement, base, slotCap, slotCap, objective));
 }
 
 // Estimation, AVANT de lancer la recherche, du nombre de combinaisons brutes
@@ -1933,10 +2039,11 @@ function buildFilteredBySlot(
 export function estimateSearchSpace(
   pool: RuneDetail[],
   requirement: BuildRequirement,
+  base: BaseStats,
   slotCap: number,
   objective?: Objective
 ): { perSlot: number[]; product: number } {
-  const filtered = buildFilteredBySlot(pool, requirement, slotCap, objective);
+  const filtered = buildFilteredBySlot(pool, requirement, base, slotCap, objective);
   const perSlot = filtered.map((l) => l.length);
   const product = perSlot.reduce((a, b) => a * b, 1);
   return { perSlot, product };
@@ -2385,6 +2492,10 @@ export interface PreparedSearch {
   maxEntries: { k: StatKey; max: number }[];
   constrainedKeys: StatKey[];
   retentionKeys: StatKey[];
+  // PROTOTYPE (combosOrderMode='objective') — voir son commentaire dans
+  // prepareSearch : UNIQUEMENT les stats de l'objectif, jamais les minimums
+  // posés (contrairement à retentionKeys, qui mélange les deux).
+  objectiveKeys: StatKey[];
   distinctKeys: string[];
   guaranteed: { pct: Record<string, number>; flat: Record<string, number> };
   guaranteedMin: { pct: Record<string, number>; flat: Record<string, number> };
@@ -2421,6 +2532,13 @@ export function prepareSearch(params: SearchParams): PreparedSearch | null {
   const retentionKeys = Array.from(
     new Set<StatKey>([...minEntries.map((e) => e.k), ...(params.objective ? OBJECTIVE_RELEVANT_STATS[params.objective] : [])])
   );
+  // PROTOTYPE (forge/order-as-weight-contrib, combosOrderMode='objective') —
+  // UNIQUEMENT les stats de l'objectif choisi, contrairement à
+  // `retentionKeys` ci-dessus qui mélange aussi les minimums posés (même
+  // hors sujet par rapport à l'objectif). Vide si aucun objectif choisi
+  // (« Efficience ») — voir objectiveRetentionScore, qui retombe alors sur
+  // relevanceScore.
+  const objectiveKeys: StatKey[] = params.objective ? OBJECTIVE_RELEVANT_STATS[params.objective] : [];
 
   const distinctKeys = Array.from(new Set(requirement.sets));
 
@@ -2439,7 +2557,7 @@ export function prepareSearch(params: SearchParams): PreparedSearch | null {
   let bySlot = mainStatFilteredBySlot(pool, requirement);
   bySlot = bySlot.map((list) => pruneDominated(list, requiredKeys, maxKeys));
   bySlot = eliminateInfeasible(bySlot, minEntries, maxEntries, constrainedKeys, guaranteed, artFlat, relPct, totalOf, guaranteedMin);
-  const filtered = bySlot.map((list) => filterSlot(list, requirement, slotCap, slotCap, params.objective));
+  const filtered = bySlot.map((list) => filterSlot(list, requirement, base, slotCap, slotCap, params.objective));
   if (filtered.some((list) => list.length === 0)) {
     return null;
   }
@@ -2456,10 +2574,71 @@ export function prepareSearch(params: SearchParams): PreparedSearch | null {
   return {
     base, artifacts, relic, requirement, metric,
     maxNodes, maxCollected, maxMs, startedAt,
-    minEntries, maxEntries, constrainedKeys, retentionKeys, distinctKeys,
+    minEntries, maxEntries, constrainedKeys, retentionKeys, objectiveKeys, distinctKeys,
     guaranteed, guaranteedMin, artFlat, relPct, totalOf,
     filtered, requiredPieces, jokerCredit, maxSetsForA, maxSetsForB, bucketCap,
   };
+}
+
+// PROTOTYPE (ordre d'appariement) — visite les paires de compartiments
+// (bA,bB) par potentiel COMBINÉ décroissant (bA.potential+bB.potential) au
+// lieu du balayage séquentiel `for bA { for bB } }` (bA#1 croisé avec TOUTE
+// la moitié B avant bA#2). Même mécanique que `bestFeasiblePair`
+// (scripts/optimum-retention-rate.ts, « k plus grandes sommes ») portée un
+// cran plus haut — compartiments au lieu de demi-builds — mais SANS son
+// arrêt à la première paire faisable : ici on veut visiter TOUTES les
+// paires, juste dans un meilleur ordre, pour rester compatible avec le
+// produit actuel (collecter jusqu'à maxCollected sur tout l'espace, pas une
+// preuve d'optimalité avec arrêt anticipé — voir spec/outils/optimizer/
+// pistes.md, « Branch & Bound au niveau des paires », gated derrière une
+// décision produit non prise). `bucketsA`/`bucketsB` DOIVENT déjà être
+// triés par potentiel décroissant (comportement existant de `buildBuckets`,
+// inchangé).
+function* orderedCompartmentPairs(bucketsA: Bucket[], bucketsB: Bucket[]): Generator<readonly [Bucket, Bucket], void, void> {
+  interface Entry { i: number; j: number; sum: number }
+  const heap: Entry[] = [];
+  const seen = new Set<string>();
+  function push(i: number, j: number): void {
+    if (i >= bucketsA.length || j >= bucketsB.length) return;
+    const key = `${i},${j}`;
+    if (seen.has(key)) return;
+    seen.add(key);
+    const entry: Entry = { i, j, sum: bucketsA[i].potential + bucketsB[j].potential };
+    heap.push(entry);
+    let idx = heap.length - 1;
+    while (idx > 0) {
+      const parent = (idx - 1) >> 1;
+      if (heap[parent].sum >= heap[idx].sum) break;
+      [heap[parent], heap[idx]] = [heap[idx], heap[parent]];
+      idx = parent;
+    }
+  }
+  function pop(): Entry {
+    const top = heap[0];
+    const last = heap.pop()!;
+    if (heap.length > 0) {
+      heap[0] = last;
+      let idx = 0;
+      for (;;) {
+        const l = 2 * idx + 1;
+        const r = 2 * idx + 2;
+        let largest = idx;
+        if (l < heap.length && heap[l].sum > heap[largest].sum) largest = l;
+        if (r < heap.length && heap[r].sum > heap[largest].sum) largest = r;
+        if (largest === idx) break;
+        [heap[largest], heap[idx]] = [heap[idx], heap[largest]];
+        idx = largest;
+      }
+    }
+    return top;
+  }
+  push(0, 0);
+  while (heap.length > 0) {
+    const { i, j } = pop();
+    yield [bucketsA[i], bucketsB[j]] as const;
+    push(i + 1, j);
+    push(i, j + 1);
+  }
 }
 
 // Phase d'appariement : reprend EXACTEMENT le comportement historique de
@@ -2496,8 +2675,8 @@ export function* pairBuckets(
   let explored = 0;
   let truncated = false;
 
-  outer: for (const bA of bucketsA) {
-    for (const bB of bucketsB) {
+  outer: for (const [bA, bB] of orderedCompartmentPairs(bucketsA, bucketsB)) {
+    {
       if (!satisfiesSets(bA.counts, bA.jokers, bB.counts, bB.jokers, distinctKeys, requirement)) continue;
       // ⚠️ Une seule rune Intangible peut être sertie par monstre (règle du
       // jeu, voir activeSets dans effects.ts) : deux jokers répartis entre

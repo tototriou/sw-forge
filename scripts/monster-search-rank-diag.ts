@@ -63,7 +63,7 @@ function totalOf(k: StatKey, pct: number, flat: number): number {
 }
 const minEntries = statKeys.map((k) => ({ k, min: minStats[k]! })).filter((e) => e.min > 0);
 const step3 = eliminateInfeasible(step2, minEntries, [], statKeys, guaranteed, artFlat, relPct, totalOf);
-const filtered = step3.map((l) => filterSlot(l, requirement, slotFilterCap, slotFilterCap, objective));
+const filtered = step3.map((l) => filterSlot(l, requirement, base, slotFilterCap, slotFilterCap, objective));
 
 console.log(`objective = ${objective ?? '(aucun)'} · slotFilterCap = ${slotFilterCap}`);
 console.log('Tailles après pipeline complet :', filtered.map((l) => l.length));
@@ -118,10 +118,15 @@ function rankInBucket(slotIdxs: [number, number, number], targetIds: number[]) {
           pct[k] = p;
           flat[k] = f;
         }
+        // Pondéré par base (comme weightedContribution/retentionScore réels
+        // depuis le correctif pct/flat) — un % s'applique à baseRec[k], pas
+        // la même échelle qu'un plat.
+        const weighted = (k: string, p: number, f: number) =>
+          k === 'hp' || k === 'atk' || k === 'def' ? Math.ceil(((baseRec[k] ?? 0) * p) / 100) + f : f;
         let combined = 0;
-        for (const { k, min } of minEntries) combined += ((pct[k] ?? 0) + (flat[k] ?? 0)) / min;
+        for (const { k, min } of minEntries) combined += weighted(k, pct[k] ?? 0, flat[k] ?? 0) / min;
         const perKey: Record<string, number> = {};
-        for (const k of statKeys) perKey[k] = (pct[k] ?? 0) + (flat[k] ?? 0);
+        for (const k of statKeys) perKey[k] = weighted(k, pct[k] ?? 0, flat[k] ?? 0);
         scored.push({ ids: runes.map((r) => r.id), counts, jokers, generic, combined, perKey });
       }
     }

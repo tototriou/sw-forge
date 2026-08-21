@@ -590,6 +590,25 @@ bas** de l'écran.
   à une main, le coin haut-gauche est le point le plus éloigné du pouce, pour un
   bouton qu'on ouvre et referme plusieurs fois par écran.
 
+⚠️ **Le contenu de page doit réserver assez de marge basse pour dégager
+CE bouton, pas seulement la barre d'onglets.** Le conteneur principal
+(`App.tsx`, `pb-[calc(116px+env(safe-area-inset-bottom))]` sous `lg`) doit
+couvrir `HAUTEUR_ONGLETS` (52 px) + le décalage du bouton Options (16 px) +
+sa propre hauteur (~40 px) + une marge de respiration, PLUS
+`env(safe-area-inset-bottom)` — le même terme que celui déjà appliqué au
+`bottom` du bouton (`MobileTabs.tsx`), sinon les deux dérivent l'un de
+l'autre. Un ancien `pb-24` (96 px fixe, sans marge de sécurité) était
+inférieur au strict nécessaire (108 px avant marge de sécurité) : sur les
+pages à contenu dense proche du bas d'écran (ex. les tuiles de
+`RunesOptim.tsx`), la toute dernière rangée pouvait finir partiellement
+sous ces deux éléments fixes, une fois défilé au maximum. Corrigé — mais
+⚠️ **cause SECONDAIRE**, pas la cause principale d'un signalement
+utilisateur plus large (« impossible de cliquer sur une rune », touchant
+aussi Compte > Runes > Liste, Artéfacts > Liste, Monstres — pas seulement
+la dernière rangée d'une page dense) : la vraie cause était
+`.cible-tactile` sans `position: relative`, voir
+[design.md](design.md), section « cible-tactile ».
+
 ⚠️ Le panneau **monte du bas**, du côté du doigt qui l'a demandé. Le tiroir
 glissait de la gauche tant que son déclencheur était en haut à gauche ; le
 déclencheur ayant bougé, le mouvement suit — un panneau qui surgit à l'opposé

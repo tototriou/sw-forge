@@ -852,6 +852,23 @@ autres sont des exceptions qu'il faut justifier — la première parce qu'un
 voisinage serré rend la grande cible dangereuse, la seconde parce que le contexte
 protège déjà du ratage.
 
+⚠️ **`.cible-tactile` pose `position: relative` sur ELLE-MÊME** (`index.css`)
+— pas seulement sur son `::after`. Incident vécu : deux porteurs
+(`Pager.tsx`, et `BoutonIcone.tsx` via `zoneEtendue` — utilisé par
+`HelpPopover.tsx`, donc quasiment partout dans l'app) posaient la classe sur
+un élément resté `position: static`, en comptant sur la convention « tous
+les porteurs sont déjà `relative` » sans l'appliquer. Le `::after` (`position:
+absolute`) remontait alors jusqu'au premier ancêtre RÉELLEMENT positionné —
+souvent `<body>` — et calculait `width/height: 100%` de LUI, pas du petit
+bouton : un pseudo-élément invisible de la taille de la page entière
+(mesuré : 390×4670 px sur un cas réel), centré dessus, interceptant les
+clics/survols d'éléments sans aucun rapport ailleurs sur l'écran — un
+utilisateur l'a décrit comme « impossible de cliquer sur une rune », et
+« l'infobulle du bouton Page suivante apparaît en survolant une carte de
+rune ». Poser `relative` sur la classe elle-même ferme la catégorie entière
+plutôt qu'un seul appelant — ne plus compter sur chaque appelant pour s'en
+souvenir.
+
 - Les **champs de saisie** aussi : viser un `<input>` de 28 px au doigt demande
   autant de précision qu'un bouton, et rater ouvre le clavier au mauvais
   endroit.

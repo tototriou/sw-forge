@@ -590,8 +590,23 @@ button:not(:disabled):not([draggable]):not([role='switch']):active,
      un cercle avec sa pastille collée en haut.
      `.cible-tactile` ajoute un pseudo-élément qui déborde de chaque côté :
      la zone touchable atteint 44 px, le dessin ne bouge pas d'un pixel.
-     ⚠️ `position: absolute` sur le pseudo, donc l'élément doit être `relative` —
-     ce que tous les porteurs sont déjà, ayant du contenu positionné. */
+     ⚠️ **`position: relative` posé ICI, sur la classe elle-même** — pas laissé
+     à la charge de chaque appelant. `position: absolute` sur le pseudo exige
+     un référentiel `relative` ; compter sur « tous les porteurs le sont déjà »
+     s'est révélé faux à deux reprises (`Pager.tsx` : bouton `static`,
+     `BoutonIcone.tsx`/`zoneEtendue`, utilisé par `HelpPopover.tsx` partout
+     dans l'app : idem) — le référentiel remontait alors jusqu'à `<body>`
+     (premier ancêtre `relative` trouvé), donnant un pseudo-élément de la
+     taille de LA PAGE ENTIÈRE (mesuré : 390×4670 px sur un cas réel),
+     centré dessus. Ce pseudo invisible interceptait les clics/survols
+     d'éléments sans aucun rapport, ailleurs sur la page — symptôme signalé
+     par un utilisateur (« impossible de cliquer sur une rune », clics sur
+     une carte déclenchant la pagination, infobulle du bouton « Page
+     suivante » apparaissant en survolant une carte de rune). Rendre la
+     classe auto-suffisante ferme la catégorie de bug plutôt qu'un seul cas. */
+  .cible-tactile {
+    position: relative;
+  }
   .cible-tactile::after {
     content: '';
     position: absolute;

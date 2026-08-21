@@ -26,8 +26,14 @@ import { loadDeckMonster } from './lib/deckMonster';
 import { readFileSync } from 'fs';
 import { drain } from './lib/drain';
 
-function retentionScoreLocal(pct: Record<string, number>, flat: Record<string, number>, key: string): number {
-  return (pct[key] ?? 0) + (flat[key] ?? 0);
+// Pondéré par `base`, comme `weightedContribution`/`retentionScore` réels
+// (runeBuildOptim.ts) depuis le correctif pct/flat — un `%` (PV/ATQ/DEF)
+// s'applique à `base[key]`, pas la même échelle qu'un plat.
+function retentionScoreLocal(base: BaseStats, pct: Record<string, number>, flat: Record<string, number>, key: string): number {
+  const b = (base as unknown as Record<string, number>)[key] ?? 0;
+  const p = pct[key] ?? 0;
+  const f = flat[key] ?? 0;
+  return key === 'hp' || key === 'atk' || key === 'def' ? Math.ceil((b * p) / 100) + f : f;
 }
 
 function dispersion(values: number[]): { mean: number; stdev: number; cv: number; min: number; max: number } {
@@ -37,12 +43,12 @@ function dispersion(values: number[]): { mean: number; stdev: number; cv: number
   return { mean, stdev, cv: mean !== 0 ? stdev / mean : 0, min: Math.min(...values), max: Math.max(...values) };
 }
 
-function reportHalf(label: string, half: 'A' | 'B', combos: HalfCombo[], bucketCap: number, retentionKeys: string[]) {
+function reportHalf(label: string, half: 'A' | 'B', combos: HalfCombo[], bucketCap: number, retentionKeys: string[], base: BaseStats) {
   const sorted = [...combos].sort((a, b) => b.relevanceScore - a.relevanceScore);
   const pop = sorted.slice(0, Math.min(bucketCap, sorted.length));
   console.log(`  Moitié ${half} — population générique reconstituée : ${pop.length}/${combos.length} demi-builds`);
   for (const key of retentionKeys) {
-    const values = pop.map((c) => retentionScoreLocal(c.pct, c.flat, key));
+    const values = pop.map((c) => retentionScoreLocal(base, c.pct, c.flat, key));
     const d = dispersion(values);
     console.log(
       `    ${key.padEnd(4)} moyenne=${d.mean.toFixed(2)}  écart-type=${d.stdev.toFixed(2)}  CV=${d.cv.toFixed(3)}  [min=${d.min.toFixed(2)} max=${d.max.toFixed(2)}]`
@@ -70,8 +76,8 @@ function runPrepared(label: string, params: SearchParams) {
   );
   const combosA = bucketsA.flatMap((b) => b.combos);
   const combosB = bucketsB.flatMap((b) => b.combos);
-  reportHalf(label, 'A', combosA, prepared.bucketCap, prepared.retentionKeys);
-  reportHalf(label, 'B', combosB, prepared.bucketCap, prepared.retentionKeys);
+  reportHalf(label, 'A', combosA, prepared.bucketCap, prepared.retentionKeys, prepared.base);
+  reportHalf(label, 'B', combosB, prepared.bucketCap, prepared.retentionKeys, prepared.base);
 }
 
 // ── Les deux scénarios synthétiques (même pool réel, seul le mainstat du

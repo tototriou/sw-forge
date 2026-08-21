@@ -154,6 +154,11 @@ retour.
      rien en jeu, donc pas plus de dégâts espérés dans ce calcul non plus.
    - **PV effectifs** — considère PV et DEF ensemble.
    - **Vitesse** — VIT seule.
+   - **Speed nuker** — pré-filtrage/rétention élargis sur ATQ, Dmg Crit **et**
+     VIT ensemble (archétype « passe avant l'ennemi, tape fort »). ⚠️ Le
+     **tri**, lui, réutilise pour l'instant la même formule que Dégâts (VIT
+     n'y participe pas) — une formule de dégâts par monstre/sort (ex.
+     Lagmaron : `ATQ × (VIT + 70) / 30`) remplacera ce placeholder plus tard.
    ⚠️ L'objectif choisi oriente le **pré-filtrage** (quelles runes ont une
    vraie chance d'être considérées) et le **tri par défaut** des résultats
    (modifiable ensuite) — il **n'influence pas** le classement des candidats
@@ -207,7 +212,14 @@ retour.
    voir l'effet du preset qu'on vient de toucher sans d'abord fermer le
    panneau. **Passe sous les presets si la largeur manque** (le message
    est assez long pour ne pas toujours tenir à côté sur un téléphone
-   étroit) — adaptatif, jamais coupé ni superposé. Sous ce réglage :
+   étroit) — adaptatif, jamais coupé ni superposé. ⚠️ **Choisir Haut ou
+   Extrême active automatiquement** « Rechercher jusqu'à épuisement
+   complet » et « Prioriser les stats les plus difficiles » ci-dessous — un
+   pré-filtrage large n'a de sens que combiné à ces deux réglages, qu'un
+   utilisateur novice n'a aucune raison de connaître. Un COUP DE POUCE, pas
+   un verrouillage : chaque interrupteur reste cliquable normalement
+   ensuite pour revenir à décoché. Choisir Bas ou Moyen ne les décoche PAS
+   automatiquement dans l'autre sens. Sous ce réglage :
    - **« Rechercher jusqu'à épuisement complet »**, décoché par défaut :
      retire le filet de temps de 10 minutes (voir « Interruption ») — la
      recherche continue tant qu'il reste des combinaisons à examiner, plutôt
@@ -222,6 +234,12 @@ retour.
      exportés/importés dans une recette (voir plus bas).
    - **« Diagnostic approfondi sur 0 résultat »**, décoché par défaut (plus
      coûteux qu'un diagnostic simple, voir « Résultats »).
+   - **« Prioriser les stats les plus difficiles »**, décoché par défaut :
+     réalloue le budget de rétention vers les stats demandées les plus
+     rares/difficiles à combiner plutôt qu'un partage égal entre toutes —
+     peut retrouver un build qu'une recherche normale rate, au prix d'une
+     recherche plus longue. Fait partie des réglages exportés/importés dans
+     une recette (voir plus bas).
 10. **Estimation du pool retenu** — dès qu'un monstre et un set sont choisis,
     une ligne affiche le nombre **exact** de runes gardées après
     pré-filtrage, détaillé par emplacement (une **somme**, pas un produit),
@@ -244,13 +262,17 @@ retour.
     automatiquement le monstre de la box courante si son `com2usId` s'y
     trouve.
 12. **Barre de progression** — se remplit progressivement (pas une roue qui
-    tourne), avec le nombre de combinaisons déjà examinées et déjà trouvées.
+    tourne), avec le nombre de combinaisons déjà examinées et déjà trouvées,
+    suivi d'un message **en gras, couleur dorée** (même que le rang `#X`
+    d'un résultat) : « Attendez la fin de la recherche pour être sûr de
+    trouver votre build optimal ».
 13. **Résultats** — jusqu'à 20 combinaisons affichées, chacune : rang, les
     sets obtenus, le **panneau de stats** (`StatPanel.tsx`, le même composant
     que dans « Équipement actuel ») et les artéfacts + les 6 runes sur une
     roue à échelle réduite (`BuildCandidateCard.tsx`), tous deux cliquables
     pour ouvrir le détail complet de la pièce. Puis la valeur **moyenne par
-    rune** dans la mesure choisie.
+    rune** dans la mesure choisie — « Efficience moyenne : X » ou « Score
+    moyen : X » selon le réglage global (Efficience/Score SW).
     ⚠️ **Détail à la souris vs au doigt — même bascule que « Équipement
     actuel »/RTA/Siège** (voir `MonsterGear.tsx`) : à la souris, un flottant
     ancré à la pièce ; au doigt, le détail s'affiche **en ligne sous la

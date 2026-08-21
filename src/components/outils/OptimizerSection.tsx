@@ -227,6 +227,21 @@ export default function OptimizerSection({ box, runes, optimizer, allMonsters, r
     });
   }
 
+  // Basculer sur Haut/Extrême active « Rechercher jusqu'à épuisement complet »
+  // et « Prioriser les stats les plus difficiles » — un novice qui choisit un
+  // pré-filtrage large n'a aucune raison de savoir que ces deux réglages sont
+  // ce qui le rend réellement utile. Reste un COUP DE POUCE, pas un
+  // verrouillage : chaque interrupteur garde son `onChange` propre, remettre
+  // à false ensuite reste un clic normal dessus. Bas/Moyen ne les touchent
+  // pas dans l'autre sens — décochés une fois, ils le restent.
+  function handleSlotFilterPresetChange(preset: typeof slotFilterPreset) {
+    setSlotFilterPreset(preset);
+    if (preset === 'haut' || preset === 'extreme') {
+      setExhaustiveSearch(true);
+      setAdaptiveTrancheWeighting(true);
+    }
+  }
+
   const slotFilterCap = SLOT_FILTER_PRESETS.find((p) => p.key === slotFilterPreset)!.cap;
   // Filet de sécurité fixe, large, PAS un réglage utilisateur : le bouton
   // « Arrêter » reste le vrai moyen de reprendre la main. 10 min, pas 15 s :
@@ -369,7 +384,7 @@ export default function OptimizerSection({ box, runes, optimizer, allMonsters, r
   // stricts avant d'attendre un résultat.
   const estimate = useMemo(() => {
     if (!selected || comboSets.length === 0) return null;
-    return estimateSearchSpace(pool, requirement, slotFilterCap, objective);
+    return estimateSearchSpace(pool, requirement, selected.gear.base, slotFilterCap, objective);
   }, [selected, comboSets, pool, requirement, slotFilterCap, objective]);
 
   // Diagnostic affiché UNIQUEMENT si une recherche aboutit à 0 résultat (voir
@@ -574,10 +589,9 @@ export default function OptimizerSection({ box, runes, optimizer, allMonsters, r
       // bascule Efficience ↔ Score après coup sans relancer.
       list.sort((a, b) => candidateMetricTotal(b, runeById, metric) - candidateMetricTotal(a, runeById, metric));
     } else if (sortBy === 'degats' || sortBy === 'ehp' || sortBy === 'vitesse' || sortBy === 'speed_nuker') {
-      // ⚠️ `speed_nuker` : sonde expérimentale (voir Objective dans
-      // runeBuildOptim.ts), jamais réellement sélectionnable ici (absente
-      // de OBJECTIVE_LABELS) — cette branche n'existe que pour que le
-      // typeur narrove correctement le `else` ci-dessous en StatKey pur.
+      // ⚠️ `speed_nuker` retombe sur la même formule que `degats` dans
+      // `objectiveScore` — voir son commentaire dans runeBuildOptim.ts (VIT
+      // n'y participe pas encore, en attendant une formule par monstre/sort).
       list.sort((a, b) => objectiveScore(b, sortBy) - objectiveScore(a, sortBy));
     } else {
       list.sort((a, b) => statTotal(b.stats, sortBy) - statTotal(a.stats, sortBy));
@@ -990,7 +1004,7 @@ export default function OptimizerSection({ box, runes, optimizer, allMonsters, r
               <Segmented
                 options={SLOT_FILTER_PRESETS}
                 value={slotFilterPreset}
-                onChange={setSlotFilterPreset}
+                onChange={handleSlotFilterPresetChange}
                 // Dans le panneau « Options » : pleine largeur, comme les autres
                 // contrôles du tiroir. En ligne au bureau : serré à son contenu.
                 size={dansPanneau ? 'lg' : undefined}
@@ -1391,18 +1405,16 @@ export default function OptimizerSection({ box, runes, optimizer, allMonsters, r
               PAS `nodeBudgetMax` (le plafond de nœuds, qui grandit avec
               l'escalade — voir « Suite — escalade automatique du budget de
               nœuds ») : les deux racontent des choses différentes, et
-              afficher `nodeBudgetMax` ici créait un désaccord visible avec
-              la ligne « Espace de recherche à épuiser » juste en dessous,
-              qui montre TOUJOURS `totalPairs`. Les deux lignes partagent
-              maintenant le même chiffre. */}
+              `nodeBudgetMax` grandissant en cours de route ferait reculer la
+              barre au lieu d'avancer. */}
           <p className="mt-1 font-mono text-micro text-ink-dim">
             {progress === null
               ? 'Préparation…'
               : `${progress.explored.toLocaleString('fr-FR')} / ${progress.totalPairs.toLocaleString('fr-FR')} combinaisons examinées · ${progress.found.toLocaleString('fr-FR')} trouvée(s)`}
           </p>
           {progress !== null && (
-            <p className="mt-0.5 font-mono text-micro text-ink-dimmer">
-              Espace de recherche à épuiser (au pire) : {progress.totalPairs.toLocaleString('fr-FR')} combinaisons
+            <p className="mt-0.5 font-mono text-[11px] font-bold text-star">
+              Attendez la fin de la recherche pour être sûr de trouver votre build optimal.
             </p>
           )}
           {progress !== null && (

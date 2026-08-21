@@ -195,6 +195,14 @@ type est la seule façon de ne plus avoir à y penser.
   les 44 px réglementaires, le second seul laisse la règle globale étirer le
   bouton en **ovale de 28 × 40**. Les séparer casse soit la visée, soit la forme
   — c'est arrivé deux fois avant que l'axe existe.
+  ⚠️ **Incident réel, corrigé** : `zoneEtendue` posait `cible-tactile` sans que
+  l'élément soit `position: relative` — utilisé par `HelpPopover` (donc
+  quasiment partout dans l'app), ça a produit une zone tactile invisible de la
+  taille de LA PAGE ENTIÈRE (le référentiel du pseudo-élément remontait jusqu'à
+  `<body>`), interceptant clics/survols ailleurs sur l'écran. Corrigé à la
+  source (`.cible-tactile { position: relative }` dans `index.css`, plus
+  seulement sur `::after`) — voir [design.md](design.md), section
+  « cible-tactile », pour le détail complet de l'incident et la mesure.
 - `forme` — **transmise, alors qu'elle était seulement annoncée.** L'en-tête du
   composant dit depuis toujours que les axes du bouton restent ouverts, `forme`
   comprise ; elle ne l'était pas, et se déduisait de `taille`. Un bouton d'icône

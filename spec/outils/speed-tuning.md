@@ -23,8 +23,15 @@ vitesse_combat = base + runes + ⌈ base × (15 + lead) / 100 ⌉
 - Le **totem +15 %** est **toujours** inclus (présent dans tous les contenus) —
   il est dans `combatSpeed` de speed.ts, pas un réglage.
 - Le **lead** est saisi **par camp** (ton équipe / en face) : chaque camp a son
-  leader. Le Swift n'est pas modélisé en v1 (la vitesse des runes se saisit
-  directement).
+  leader.
+- ⚠️ **Le set RAPIDITÉ (Swift) se coche par monstre**, et il compte. Ses 25 %
+  entrent dans la **somme** des pourcentages (totem + lead + swift) alors que la
+  « SPD runes » saisie les porte déjà **à plat** — `combatSpeed` retire donc le
+  forfait avant de réinjecter le pourcentage (voir
+  [../shared/calcul-vitesse.md](../shared/calcul-vitesse.md)). L'écart n'est que
+  d'**un point**, et un point suffit à rater un tick : sur le deck de contrôle
+  Mihyang / Adriana / Sonia, l'oublier donnait 374 et 350 au lieu de 373 et 349.
+  Un deck importé du siège coche la case tout seul (le slot porte ses sets).
 - La **vitesse de combat minimale pour agir au tick n** est
   `⌈ 10000 / (7n) ⌉` (`speedForTick`) : 130 au tick 11, **239 au tick 6**
   (« Lent » en siège), **286 au tick 5** (« Rapide »), 477 au tick 3.
@@ -88,10 +95,8 @@ trois vitesses de runes. Calcul pur dans
   camp, l'appliquer à tous gonflerait la vitesse des monstres d'un autre
   élément : le lead saisi reste alors inchangé. Un lead absent des raccourcis de
   `SPEED_LEADS` est **ajouté au menu** du camp, sinon il s'afficherait vide.
-- ⚠️ **Swift** : la « SPD runes » d'un slot de siège contient déjà le Swift **à
-  plat** (convention de l'app, voir [../shared/calcul-vitesse.md](../shared/calcul-vitesse.md)),
-  mais le speed tuning ne modélise pas le set. La vitesse de combat importée peut
-  donc différer de celle du siège de **1 point** au plus (arrondi du bonus %).
+- **Le set Rapidité est repris** du slot (`sets` contient `swift`) : la vitesse
+  de combat importée est alors identique à celle qu'affiche le siège.
 
 ## Le combo passe-t-il ? (chaîne d'ouverture)
 
@@ -415,6 +420,15 @@ Aucune persistance disque (comme tout Outils). Les choix (monstres ajoutés,
 vitesses de runes, leads, boosts d'ATB, buffs de vitesse, artéfacts, état
 masqué, compétences) vivent en `useStickyState` : conservés le temps de la session (survivent
 à la navigation), remis à zéro au rechargement.
+
+## Cas de contrôle
+
+Un **deck réel** (Mihyang / Adriana / Sonia, lead 28 %, tous en Swift) est figé
+dans [tests/speed-tune.test.ts](tests/speed-tune.test.ts) : vitesses de combat,
+trajectoires **au millième** et ordre des tours, comparés à un outil de speed
+tune de la communauté. C'est ce cas qui a fait apparaître que le Swift manquait —
+et il garantit que le modèle (remise à zéro sans report, un seul monstre par
+tick, buff au tick marqué) reste conforme.
 
 ## Attendus
 

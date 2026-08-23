@@ -76,6 +76,11 @@ interface Ligne {
   // Bonus d'artéfact « augmente l'effet du buff de vitesse » (%). Renseigné pour
   // les alliés seulement (on ne connaît pas les artéfacts d'en face).
   artefactBuff: number | null;
+  // Le monstre porte le set RAPIDITÉ (Swift). ⚠️ Ce n'est pas un détail : ses
+  // 25 % entrent dans la somme des pourcentages (totem + lead + swift) alors que
+  // la « SPD runes » saisie les porte déjà à plat — d'où un écart d'UN point sur
+  // la vitesse de combat, et un point suffit à rater un tick.
+  swift?: boolean;
   // Adversaire de RÉFÉRENCE posé par l'analyse automatique (copie du monstre le
   // plus rapide de l'équipe au moment du clic).
   //
@@ -287,7 +292,7 @@ export default function SpeedTuningSection({ allMonsters, siegeDefenseTeams, sie
       // copiait une équipe qui vient de changer. L'analyse s'arrête, le bouton
       // redevient actif.
       ...prev.filter((l) => l.camp !== camp && !l.reference),
-      ...monstres.map(({ monster, runeSpeed, artefactBuff }) => ({
+      ...monstres.map(({ monster, runeSpeed, artefactBuff, swift }) => ({
         uid: uidDe(camp, String(monster.id)),
         monster,
         runeSpeed,
@@ -295,6 +300,7 @@ export default function SpeedTuningSection({ allMonsters, siegeDefenseTeams, sie
         atbMod: {},
         speedMod: {},
         artefactBuff,
+        swift,
         // Les compétences se relisent dans le kit (voir l'effet plus haut).
         masque: false,
       })),
@@ -331,6 +337,7 @@ export default function SpeedTuningSection({ allMonsters, siegeDefenseTeams, sie
       atbMod: {},
       speedMod: {},
       artefactBuff: modele.artefactBuff,
+      swift: modele.swift,
       reference: true,
       masque: false,
     };
@@ -359,6 +366,9 @@ export default function SpeedTuningSection({ allMonsters, siegeDefenseTeams, sie
   function setRuneSpeed(uid: string, v: number | null) {
     setLignes((prev) => prev.map((l) => (l.uid === uid ? { ...aLaMain(l), runeSpeed: v } : l)));
   }
+  function basculerSwift(uid: string) {
+    setLignes((prev) => prev.map((l) => (l.uid === uid ? { ...aLaMain(l), swift: !l.swift } : l)));
+  }
   function setArtefact(uid: string, v: number | null) {
     setLignes((prev) => prev.map((l) => (l.uid === uid ? { ...aLaMain(l), artefactBuff: v } : l)));
   }
@@ -386,7 +396,7 @@ export default function SpeedTuningSection({ allMonsters, siegeDefenseTeams, sie
   // `null` si la base est inconnue. Les buffs de vitesse sont appliqués PAR TICK
   // dans la simulation, pas ici.
   const combatDe = (l: Ligne): number | null =>
-    combatSpeed(l.monster.stats.speed, l.runeSpeed, leadDe(l.camp), false);
+    combatSpeed(l.monster.stats.speed, l.runeSpeed, leadDe(l.camp), l.swift ?? false);
 
   // Monstres visibles (non masqués) : seuls eux entrent dans les calculs et les
   // tableaux. Les masqués restent affichés dans leur camp pour être réaffichés.
@@ -711,6 +721,7 @@ export default function SpeedTuningSection({ allMonsters, siegeDefenseTeams, sie
           onRetirer={retirer}
           onMasquer={basculerMasque}
           onRuneSpeed={setRuneSpeed}
+          onSwift={basculerSwift}
           kits={kits}
           onArtefact={setArtefact}
           decks={decks}
@@ -729,6 +740,7 @@ export default function SpeedTuningSection({ allMonsters, siegeDefenseTeams, sie
           onRetirer={retirer}
           onMasquer={basculerMasque}
           onRuneSpeed={setRuneSpeed}
+          onSwift={basculerSwift}
           kits={kits}
           onArtefact={setArtefact}
           decks={decks}
@@ -1174,6 +1186,7 @@ interface CampProps {
   onRetirer: (uid: string) => void;
   onMasquer: (uid: string) => void;
   onRuneSpeed: (uid: string, v: number | null) => void;
+  onSwift: (uid: string) => void;
   // Ce que le kit de chaque monstre pose (par com2usId) : sert à dire d'OÙ vient
   // la valeur pré-remplie.
   kits: Map<number, KitVitesse>;
@@ -1203,6 +1216,7 @@ function CampPanneau({
   onRetirer,
   onMasquer,
   onRuneSpeed,
+  onSwift,
   kits,
   onArtefact,
   decks,
@@ -1311,6 +1325,22 @@ function CampPanneau({
                         width="w-12"
                         placeholder="+"
                         ariaLabel={`Vitesse des runes de ${l.monster.name}`}
+                      />
+                    </label>
+                    {/* ⚠️ Set RAPIDITÉ : ses 25 % entrent dans la somme des
+                        pourcentages alors que la « SPD runes » les porte déjà à
+                        plat — d'où un point d'écart sur la vitesse de combat, et
+                        un point suffit à rater un tick. */}
+                    <label className="flex flex-col gap-0.5">
+                      <span className="text-micro font-semibold uppercase tracking-wide text-ink-dimmer">
+                        Set
+                      </span>
+                      <Bouton
+                        taille="sm"
+                        actif={!!l.swift}
+                        onClick={() => onSwift(l.uid)}
+                        libelle="Swift"
+                        title="Le monstre porte le set Rapidité (VIT +25 %) — sa vitesse de combat se calcule alors autrement (d'un point près)."
                       />
                     </label>
                     <label className="flex flex-col gap-0.5">

@@ -27,6 +27,7 @@ import { deckPourSpeedTune } from '../src/lib/speedTuneDeck';
 import { kitVitesse, sortsVitesse, BUFF_SPD_JEU } from '../src/lib/speedTuneKit';
 import { DetailMonstre, Competence, EffetCompetence } from '../src/lib/monsterSkills';
 import { Monster, SiegeTeam } from '../src/types';
+import { combatSpeed } from '../src/lib/speed';
 import { egal, ok, titre } from './outils';
 
 export default function testSpeedTune() {
@@ -226,6 +227,19 @@ export function testSpeedTuneDeck() {
     egal(d.lead, null, 'pas de leader → pas de lead imposé');
   }
 
+  // Set RAPIDITÉ : repris du slot, parce qu'il change la vitesse de combat.
+  {
+    const equipeSwift = (sets: string[]): SiegeTeam =>
+      ({
+        id: 't',
+        lead: 0,
+        tickAlertDismissed: false,
+        slots: [{ monsterId: '1', runeSpeed: 200, tick: 0, sets }],
+      }) as unknown as SiegeTeam;
+    egal(deckPourSpeedTune(equipeSwift(['swift']), parId).monstres[0].swift, true, 'un slot en Swift est repris comme tel');
+    egal(deckPourSpeedTune(equipeSwift(['violent']), parId).monstres[0].swift, false, 'un autre set ne coche pas Swift');
+  }
+
   // Artéfact « Effet aug. VIT » : lu sur le gear du slot, pas à ressaisir.
   {
     const d = deckPourSpeedTune(
@@ -354,6 +368,58 @@ function artefactsRequisNaif(monstres: TuneMonstre[], horizon = HORIZON_TICKS): 
     artefactActuel: r.actuel,
     artefactRequis: r.requis,
   }));
+}
+
+// Cas de terrain (deck Mihyang / Adriana / Sonia, lead 28 %, tous en Swift) :
+// nos trajectoires doivent tomber au millième sur celles de l'outil de référence
+// de la communauté — c'est ce qui a fait apparaître que le Swift manquait.
+export function testSpeedTuneReference() {
+  titre('Speed tuning — cas de référence (Mihyang / Adriana / Sonia)');
+
+  // Vitesses de combat, Swift compris (voir tests/vitesse.test.ts pour le calcul).
+  egal(combatSpeed(111, 228, 28, true), 387, 'Adriana : 111 base + 228 runes, lead 28 %, Swift → 387');
+  egal(combatSpeed(119, 203, 28, true), 373, 'Sonia : 373 (374 si l’on oublie le Swift)');
+  egal(combatSpeed(101, 205, 28, true), 349, 'Mihyang : 349 (350 sans le Swift)');
+
+  const buff = { 5: 30, 6: 30 };
+  const sim = simuler(
+    [
+      { id: 'adriana', combat: 387, camp: 'allie', speedMod: buff },
+      { id: 'sonia', combat: 373, camp: 'allie', speedMod: buff },
+      { id: 'mihyang', combat: 349, camp: 'allie', speedMod: buff },
+      { id: 'adv', combat: 387, camp: 'ennemi' },
+    ],
+    12
+  );
+  const traj = (id: string) =>
+    sim.lignes
+      .find((l) => l.id === id)!
+      .trajectoire.slice(0, 8)
+      .map((v) => v.toFixed(3))
+      .join(' ');
+
+  egal(
+    traj('adriana'),
+    '27.090 54.180 81.270 108.360 35.217 70.434 97.524 124.614',
+    'Adriana : barre identique à la référence, au millième'
+  );
+  egal(
+    traj('sonia'),
+    '26.110 52.220 78.330 104.440 138.383 33.943 60.053 86.163',
+    'Sonia : barre identique à la référence'
+  );
+  egal(
+    traj('mihyang'),
+    '24.430 48.860 73.290 97.720 129.479 161.238 185.668 24.430',
+    'Mihyang : barre identique à la référence'
+  );
+  egal(
+    premiersTours(sim)
+      .map((a) => `${a.id}@${a.tick}`)
+      .join(' '),
+    'adriana@4 sonia@5 adv@6 mihyang@7',
+    "ordre des tours identique : un seul monstre par tick, l'adverse s'intercale au 6"
+  );
 }
 
 export function testSpeedTuneChaine() {

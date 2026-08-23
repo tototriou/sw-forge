@@ -7,6 +7,10 @@
 // Un tick fait monter l'ATB de 7 % de la vitesse de combat.
 export const ATB_PAR_TICK = 7;
 
+// Horizon de simulation par défaut : on déroule 40 ticks pour voir plusieurs
+// TOURS de chaque monstre, pas seulement le premier.
+export const HORIZON_TICKS = 40;
+
 // ATB gagnée par tick pour une vitesse de combat donnée.
 export function atbParTick(combat: number): number {
   return (combat * ATB_PAR_TICK) / 100;
@@ -25,29 +29,13 @@ export function speedForTick(n: number): number {
 export type Camp = 'allie' | 'ennemi';
 
 // Modificateurs saisis dans les deux grilles éditables, indexés PAR TICK.
-//   - atbMod[t]   : boost PONCTUEL de barre d'action au tick t (+% appliqué une
-//                   fois, ce tick-là). Peut être négatif (réduction d'ATB).
-//   - speedMod[t] : buff/ralenti de VITESSE posé au tick t. ⚠️ **SOUTENU** : il
-//                   reste actif du tick t jusqu'à la fin (ou jusqu'à un autre
-//                   `speedMod` posé plus tard) — un buff « +30 % » ne se saisit
-//                   qu'une fois, au tick où il tombe, pas sur chaque tick suivant.
+//   - atbMod[t]   : modification PONCTUELLE de la barre au tick t (+% pour
+//                   remplir, −% pour vider). La barre ne descend jamais sous 0.
+//   - speedMod[t] : buff/ralenti de VITESSE appliqué **UNIQUEMENT au tick t**.
+//                   ⚠️ **Pas de report** : les ticks non marqués calculent l'ATB
+//                   à la vitesse de base. Un buff qui dure plusieurs ticks se
+//                   marque sur chacun des ticks où il est actif.
 export type ModParTick = Record<number, number>;
-
-// Le buff de vitesse ACTIF au tick `t` = le dernier `speedMod` posé à un tick
-// ≤ t (report vers l'avant), ou 0 si aucun.
-export function buffActif(speedMod: ModParTick | undefined, t: number): number {
-  if (!speedMod) return 0;
-  let meilleur = -1;
-  let valeur = 0;
-  for (const cle in speedMod) {
-    const tick = Number(cle);
-    if (tick <= t && tick > meilleur) {
-      meilleur = tick;
-      valeur = speedMod[cle];
-    }
-  }
-  return valeur;
-}
 
 // La vitesse de combat de base (base + runes + totem + lead), calculée par
 // l'appelant (combatSpeed de speed.ts). La simulation lui applique les
@@ -60,36 +48,51 @@ export interface TuneMonstre {
   speedMod?: ModParTick;
 }
 
-export interface OrdreEntree {
+// Un tour pris : quel monstre, à quel tick, et son rang dans la séquence GLOBALE
+// des actions (1 = la toute première action de la simulation).
+export interface Action {
+  id: string;
+  camp: Camp;
+  tick: number;
+  ordre: number;
+}
+
+export interface LigneSim {
   id: string;
   camp: Camp;
   combat: number;
   incBase: number; // ATB/tick de base (sans modificateur), pour repère
-  actTick: number; // tick où ce monstre prend son tour
-  rang: number; // 1 = joue en premier
-  // Barre d'action cumulée à chaque tick, de 1 à `actTick` (index i = tick i+1).
-  // C'est la trajectoire RÉELLE (buffs et boosts inclus) affichée dans le
-  // tableau — plus linéaire dès qu'un modificateur entre en jeu.
+  // Barre d'action à chaque tick, de 1 à `horizon` (index i = tick i+1). Chute à
+  // 0 le tick suivant chaque tour de ce monstre. C'est la trajectoire RÉELLE
+  // (buffs, boosts et remises à zéro inclus) affichée dans le tableau.
   trajectoire: number[];
 }
 
-// Ordre de tour par simulation tick par tick, avec la règle **un seul monstre
-// agit par tick** et les modificateurs par tick.
+export interface Simulation {
+  horizon: number;
+  lignes: LigneSim[];
+  actions: Action[]; // toutes les actions, dans l'ordre chronologique
+}
+
+// Simule `horizon` ticks avec la règle **un seul monstre agit par tick** et les
+// modificateurs par tick. Contrairement à une lecture « premier tour », le
+// monstre qui agit NE SORT PAS : sa barre **repart de 0** (le surplus au-dessus
+// de 100 n'est pas conservé) et se remplit à nouveau — il peut donc rejouer.
+// Cela donne l'enchaînement des tours sur toute la durée. Voir
+// spec/outils/speed-tuning.md.
 //
 // À chaque tick : chaque monstre gagne `atbParTick(combat × (1 + buffActif))`,
-// puis reçoit son boost ponctuel de barre (`atbMod`), sans jamais descendre
-// sous 0. Si au moins un a atteint 100, UN SEUL prend le tour — barre la plus
-// haute, départagée par la vitesse de combat de base puis par l'ordre de
-// placement — et sort de la course (on ne modélise que le PREMIER tour de
-// chacun). Voir spec/outils/speed-tuning.md.
+// puis reçoit sa modification de barre (`atbMod`), sans jamais descendre sous 0.
+// Si au moins un a atteint 100, UN SEUL prend le tour — barre la plus haute,
+// départagée par la vitesse de combat de base puis par l'ordre de placement.
 //
-// ⚠️ Ce N'EST PAS un tri par vitesse : trois monstres pleins au même tick
-// prennent le tour aux ticks n, n+1, n+2. Et un boost d'ATB ou un buff de
-// vitesse posé tôt peut faire passer un monstre devant un plus rapide.
-export function simulerOrdre(monstres: TuneMonstre[], limite = 500): OrdreEntree[] {
-  // Vitesse de base ≤ 0 (base inconnue) → n'agit jamais, écarté de l'ordre
-  // (plutôt que de boucler jusqu'à la limite puis de fausser les rangs).
-  const reste = monstres
+// ⚠️ Ce N'EST PAS un tri par vitesse : trois monstres pleins au même tick jouent
+// aux ticks n, n+1, n+2. Un boost d'ATB ou un buff de vitesse posé tôt peut
+// faire passer un monstre devant un plus rapide.
+export function simuler(monstres: TuneMonstre[], horizon = HORIZON_TICKS): Simulation {
+  // Vitesse de base ≤ 0 (base inconnue) → n'agit jamais, écarté de la
+  // simulation (plutôt que de fausser la lecture avec une barre plate).
+  const etat = monstres
     .map((m, placement) => ({
       ...m,
       incBase: atbParTick(m.combat),
@@ -99,34 +102,49 @@ export function simulerOrdre(monstres: TuneMonstre[], limite = 500): OrdreEntree
     }))
     .filter((m) => m.combat > 0);
 
-  const ordre: OrdreEntree[] = [];
-  let tick = 0;
-  while (reste.length > 0 && tick < limite) {
-    tick++;
-    for (const m of reste) {
-      const buff = buffActif(m.speedMod, tick);
+  const actions: Action[] = [];
+  for (let tick = 1; tick <= horizon; tick++) {
+    for (const m of etat) {
+      // Buff de vitesse UNIQUEMENT sur les ticks marqués ; sinon vitesse de base.
+      const buff = m.speedMod?.[tick] ?? 0;
       m.atb += atbParTick((m.combat * (100 + buff)) / 100);
       const boost = m.atbMod?.[tick] ?? 0;
       if (boost) m.atb += boost;
       if (m.atb < 0) m.atb = 0;
+      // On enregistre AVANT la remise à zéro : la case du tour montre la barre
+      // pleine (≥ 100) qui a déclenché l'action.
       m.traj.push(m.atb);
     }
-    const prets = reste.filter((m) => m.atb >= 100);
+    const prets = etat.filter((m) => m.atb >= 100);
     if (prets.length === 0) continue;
-    prets.sort(
-      (a, b) => b.atb - a.atb || b.combat - a.combat || a.placement - b.placement
-    );
+    prets.sort((a, b) => b.atb - a.atb || b.combat - a.combat || a.placement - b.placement);
     const gagnant = prets[0];
-    ordre.push({
-      id: gagnant.id,
-      camp: gagnant.camp,
-      combat: gagnant.combat,
-      incBase: gagnant.incBase,
-      actTick: tick,
-      rang: ordre.length + 1,
-      trajectoire: gagnant.traj,
-    });
-    reste.splice(reste.indexOf(gagnant), 1);
+    actions.push({ id: gagnant.id, camp: gagnant.camp, tick, ordre: actions.length + 1 });
+    gagnant.atb = 0; // tour pris : la barre repart de 0 au tick suivant
   }
-  return ordre;
+
+  return {
+    horizon,
+    actions,
+    lignes: etat.map((m) => ({
+      id: m.id,
+      camp: m.camp,
+      combat: m.combat,
+      incBase: m.incBase,
+      trajectoire: m.traj,
+    })),
+  };
+}
+
+// Le PREMIER tour de chaque monstre, dans l'ordre où il tombe : c'est « qui joue
+// avant qui ». `ordre` est renuméroté 1..k sur ces premiers tours.
+export function premiersTours(sim: Simulation): Action[] {
+  const vus = new Set<string>();
+  const out: Action[] = [];
+  for (const a of sim.actions) {
+    if (vus.has(a.id)) continue;
+    vus.add(a.id);
+    out.push({ ...a, ordre: out.length + 1 });
+  }
+  return out;
 }

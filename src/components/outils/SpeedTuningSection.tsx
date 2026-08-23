@@ -1,5 +1,5 @@
 import { useEffect, useId, useMemo, useRef, useState } from 'react';
-import { Search, Plus, Timer, Users, Swords, X, Zap, Gauge, Eye, EyeOff, Download, Check, Scissors } from 'lucide-react';
+import { Search, Plus, Timer, Users, Swords, X, Zap, Gauge, Eye, EyeOff, Download, Check, Scissors, Play } from 'lucide-react';
 import { Monster, SiegeTeam } from '../../types';
 import { combatSpeed, runeSpeedForTarget, SPEED_LEADS, SIEGE_TICKS } from '../../lib/speed';
 import {
@@ -212,6 +212,48 @@ export default function SpeedTuningSection({ allMonsters, siegeDefenseTeams, sie
     });
     // Le lead du leader du deck, s'il vaut pour tout le camp (voir speedTuneDeck.ts).
     if (lead != null) (camp === 'allie' ? setLeadAllie : setLeadEnnemi)(lead);
+  }
+
+  // Analyse automatique : quand « En face » est VIDE, on n'a rien à devancer —
+  // l'outil se donne alors un adversaire de référence, la copie du monstre le
+  // plus rapide de l'équipe (même lead, même vitesse de runes). Autrement dit :
+  // « est-ce que toute mon équipe joue avant un monstre aussi rapide que mon
+  // plus rapide ? » — le point de départ d'un speed tune quand on ne sait pas
+  // encore qui on affronte. Le monstre est AJOUTÉ en face, donc réglable et
+  // retirable comme n'importe quel autre.
+  function analyseAuto() {
+    const candidats = lignesVisibles
+      .filter((l) => l.camp === 'allie')
+      .map((l) => ({ l, combat: combatDe(l) }))
+      .filter((x): x is { l: Ligne; combat: number } => x.combat != null && x.combat > 0)
+      .sort((a, b) => b.combat - a.combat);
+    if (candidats.length === 0) return;
+    const modele = candidats[0].l;
+    setLeadEnnemi(leadAllie); // même lead : on compare des vitesses comparables
+    const uid = uidDe('ennemi', String(modele.monster.id));
+    setLignes((prev) => {
+      const i = prev.findIndex((l) => l.uid === uid);
+      if (i >= 0) {
+        const next = [...prev];
+        next[i] = { ...next[i], runeSpeed: modele.runeSpeed, masque: false };
+        return next;
+      }
+      return [
+        ...prev,
+        {
+          uid,
+          monster: modele.monster,
+          runeSpeed: modele.runeSpeed,
+          camp: 'ennemi' as Camp,
+          atbMod: {},
+          speedMod: {},
+          artefactBuff: null,
+          skillAtb: null,
+          skillSpeed: null,
+          masque: false,
+        },
+      ];
+    });
   }
 
   function retirer(uid: string) {
@@ -495,7 +537,8 @@ export default function SpeedTuningSection({ allMonsters, siegeDefenseTeams, sie
                 · toute ton équipe doit jouer AVANT le premier adverse
               </span>
             </div>
-            <div className="px-4 py-3.5">
+            <div className="flex flex-wrap items-start justify-between gap-x-4 gap-y-2.5 px-4 py-3.5">
+              <div className="min-w-0 flex-1">
               {!aAllie || !chaine.coupeur ? (
                 <p className="text-sm text-ink-dim">
                   {aAllie
@@ -555,6 +598,23 @@ export default function SpeedTuningSection({ allMonsters, siegeDefenseTeams, sie
                   </p>
                 </>
               )}
+              </div>
+              {/* L'analyse se recalcule seule à chaque changement : ce bouton
+                  sert au cas où il n'y a personne à devancer — il pose en face
+                  un adversaire de référence. */}
+              <Bouton
+                icone={<Play size={14} />}
+                libelle="Lancer l'analyse"
+                disabled={!aAllie || aEnnemi}
+                title={
+                  !aAllie
+                    ? "Ajoute d'abord des monstres à ton équipe."
+                    : aEnnemi
+                      ? "L'analyse est déjà faite : elle se recalcule à chaque changement."
+                      : 'Pose en face une copie de ton monstre le plus rapide (même lead, même vitesse de runes) et vérifie que toute ton équipe joue avant lui.'
+                }
+                onClick={analyseAuto}
+              />
             </div>
           </section>
 

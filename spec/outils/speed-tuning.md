@@ -209,6 +209,15 @@ De haut en bas :
    à atteindre et les **points de vitesse de runes** qui manquent
    (`runeSpeedForTarget`). Sans adverse (ou sans allié), une phrase neutre le
    dit — la section garde sa place, elle ne surgit pas sous le clic.
+   Un bouton **« Lancer l'analyse »** y est **toujours affiché** : il sert quand
+   « En face » est **vide** — il y pose alors un **adversaire de référence**, la
+   copie du monstre le **plus rapide** de l'équipe (**même lead**, même vitesse
+   de runes). La question devient « toute mon équipe joue-t-elle avant un monstre
+   aussi rapide que mon plus rapide ? », le point de départ d'un speed tune quand
+   on ne sait pas encore qui on affronte. Ce monstre est **ajouté** en face :
+   réglable et retirable comme un autre. Désactivé (avec son `title`) sans équipe,
+   ou quand « En face » est déjà rempli — l'analyse s'y recalcule **à chaque
+   changement**, sans rien demander.
 4. **Barre d'action par tick** (lecture seule) — tableau : lignes triées par
    ordre de tour, colonnes = ticks. Chaque cellule = `% rempli` — la
    **trajectoire réelle** renvoyée par la simulation (`OrdreEntree.trajectoire`),

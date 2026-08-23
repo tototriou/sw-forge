@@ -389,3 +389,183 @@ export function artefactsRequis(monstres: TuneMonstre[], horizon = HORIZON_TICKS
     artefactRequis: r.requis,
   }));
 }
+
+/* ------------------------------------------- Séquence imposée (analyse+) --- */
+
+// Un combo un peu construit ne demande pas seulement « tout le monde avant
+// l'adverse » : il demande un ORDRE PRÉCIS — celui qui remplit la barre part en
+// premier, le nettoyeur de buffs ensuite, le gros dégât en dernier. Vérifier cet
+// ordre est une question différente, avec une conséquence qui l'est aussi :
+//
+// ⚠️ **Ici, un monstre peut avoir besoin d'être RALENTI.** Tenir un rang, ce
+// n'est pas seulement jouer assez tôt, c'est aussi jouer assez tard — d'où des
+// FENÊTRES de vitesse (un minimum ET un maximum), là où l'analyse simple ne
+// cherchait qu'un plancher.
+
+export type RaisonOrdre = 'nagit-pas' | 'apres-adverse' | 'trop-tot' | 'trop-tard';
+
+export interface ProblemeOrdre {
+  id: string;
+  raison: RaisonOrdre;
+  tick: number | null;
+  // Rang réellement obtenu (1 = premier des alliés listés), `null` s'il n'agit pas.
+  rang: number | null;
+}
+
+export interface DiagnosticSequence {
+  coupeur: Action | null;
+  problemes: ProblemeOrdre[];
+  ok: boolean;
+}
+
+// `ordre` : les identifiants alliés, du premier au dernier tour VOULU. Les
+// alliés absents de la liste ne sont pas contraints entre eux (ils restent
+// soumis à « avant l'adverse » par `diagnostiquerChaine`).
+//
+// ⚠️ **La contrainte se juge PAR VOISIN, jamais sur un rang global.** Une
+// première version comparait le rang obtenu au rang voulu : quand plusieurs
+// monstres sont déplacés, ce rang peut retomber juste par accident — un monstre
+// « à sa place » qui joue pourtant avant celui qu'il doit suivre. Le test
+// différentiel des fenêtres l'a attrapé (les deux critères ne décrivaient pas la
+// même chose). Ce qui compte est local : je joue APRÈS mon prédécesseur et
+// AVANT mon successeur.
+export function diagnostiquerSequence(
+  monstres: TuneMonstre[],
+  ordre: string[],
+  horizon = HORIZON_TICKS
+): DiagnosticSequence {
+  const premiers = premiersTours(simuler(monstres, horizon));
+  const coupeur = premiers.find((a) => a.camp === 'ennemi') ?? null;
+  const tickDe = new Map(premiers.map((a) => [a.id, a.tick]));
+
+  // Rang RÉELLEMENT obtenu parmi les alliés listés — pour l'affichage (« il joue
+  // 3ᵉ alors que tu le veux 2ᵉ »), pas pour le verdict.
+  const reel = ordre.filter((id) => tickDe.has(id)).sort((a, b) => tickDe.get(a)! - tickDe.get(b)!);
+  const rangDe = new Map(reel.map((id, i) => [id, i + 1]));
+
+  const problemes: ProblemeOrdre[] = [];
+  ordre.forEach((id, i) => {
+    const tick = tickDe.get(id) ?? null;
+    const rang = rangDe.get(id) ?? null;
+    if (tick == null) {
+      problemes.push({ id, raison: 'nagit-pas', tick: null, rang: null });
+      return;
+    }
+    // Passer après l'adverse prime : l'ordre interne ne sert plus à rien.
+    if (coupeur && tick > coupeur.tick) {
+      problemes.push({ id, raison: 'apres-adverse', tick, rang });
+      return;
+    }
+    const avant = tickDe.get(ordre[i - 1] ?? '') ?? null;
+    const apres = tickDe.get(ordre[i + 1] ?? '') ?? null;
+    if (avant != null && tick < avant) problemes.push({ id, raison: 'trop-tot', tick, rang });
+    else if (apres != null && tick > apres) problemes.push({ id, raison: 'trop-tard', tick, rang });
+  });
+
+  return { coupeur, problemes, ok: problemes.length === 0 };
+}
+
+// La FENÊTRE de vitesse de combat d'un allié : le minimum pour ne pas jouer trop
+// tard (après son successeur ou après l'adverse) et le maximum pour ne pas jouer
+// trop tôt (avant son prédécesseur).
+export interface Fenetre {
+  id: string;
+  combatActuel: number;
+  // `null` = aucune borne de ce côté (rien à respecter, ou hors de portée).
+  min: number | null;
+  max: number | null;
+  // Sa vitesse actuelle tient-elle ses contraintes ?
+  ok: boolean;
+}
+
+// ⚠️ **Une fenêtre se lit « toutes choses égales par ailleurs »** : elle est
+// calculée avec les AUTRES à leur vitesse du moment. C'est le contraire de
+// `vitessesRequises`, qui empile ses corrections — et c'est voulu : un ordre se
+// règle un monstre à la fois, en regardant ce que ça laisse aux autres.
+//
+// Les deux bornes se cherchent par dichotomie sur des prédicats MONOTONES DE
+// SENS OPPOSÉS : « joue avant son successeur / avant l'adverse » se gagne en
+// accélérant, « joue après son prédécesseur » se perd en accélérant. Vérifié par
+// test différentiel contre un balayage exhaustif, qui contrôle en plus que
+// l'ensemble des vitesses valides est bien un INTERVALLE (tests/speed-tune.test.ts).
+export function fenetresRequises(
+  monstres: TuneMonstre[],
+  ordre: string[],
+  horizon = HORIZON_TICKS
+): Fenetre[] {
+  const out: Fenetre[] = [];
+
+  for (const id of ordre) {
+    const original = monstres.find((m) => m.id === id);
+    if (!original) continue;
+    const depart = original.combat;
+
+    // Copie de travail : on ne bouge QUE lui.
+    const essai = monstres.map((m) => ({ ...m }));
+    const moi = essai.find((m) => m.id === id)!;
+    const avant = ordre[ordre.indexOf(id) - 1] ?? null;
+    const apres = ordre[ordre.indexOf(id) + 1] ?? null;
+
+    const positions = (v: number) => {
+      moi.combat = v;
+      const premiers = premiersTours(simuler(essai, horizon));
+      const t = (x: string | null) => (x == null ? null : (premiers.find((a) => a.id === x)?.tick ?? null));
+      return {
+        moi: t(id),
+        avant: t(avant),
+        apres: t(apres),
+        adverse: premiers.find((a) => a.camp === 'ennemi')?.tick ?? null,
+      };
+    };
+
+    // Côté HAUT : assez rapide pour passer avant son successeur et avant l'adverse.
+    const assezRapide = (v: number) => {
+      const p = positions(v);
+      if (p.moi == null) return false;
+      if (p.adverse != null && p.moi > p.adverse) return false;
+      if (p.apres != null && p.moi > p.apres) return false;
+      return true;
+    };
+    // Côté BAS : assez lent pour rester après son prédécesseur. ⚠️ Un
+    // prédécesseur qui n'agit pas ne contraint personne — c'est LUI qui sera
+    // signalé (`nagit-pas`), pas son successeur.
+    const assezLent = (v: number) => {
+      const p = positions(v);
+      if (p.moi == null || p.avant == null) return true;
+      return p.moi > p.avant;
+    };
+
+    let min: number | null = null;
+    if (assezRapide(1)) min = 1;
+    else if (assezRapide(COMBAT_MAX)) {
+      let bas = 2;
+      let haut = COMBAT_MAX;
+      while (bas < haut) {
+        const milieu = Math.floor((bas + haut) / 2);
+        if (assezRapide(milieu)) haut = milieu;
+        else bas = milieu + 1;
+      }
+      min = bas;
+    }
+
+    let max: number | null = null;
+    if (assezLent(COMBAT_MAX)) max = COMBAT_MAX;
+    else if (assezLent(1)) {
+      let bas = 1;
+      let haut = COMBAT_MAX - 1;
+      while (bas < haut) {
+        const milieu = Math.ceil((bas + haut) / 2);
+        if (assezLent(milieu)) bas = milieu;
+        else haut = milieu - 1;
+      }
+      max = bas;
+    }
+
+    moi.combat = depart;
+    const ok = assezRapide(depart) && assezLent(depart);
+    moi.combat = depart;
+    out.push({ id, combatActuel: depart, min, max, ok });
+  }
+
+  return out;
+}

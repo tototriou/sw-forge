@@ -12,6 +12,8 @@ import {
   diagnostiquerChaine,
   vitessesRequises,
   artefactsRequis,
+  diagnostiquerSequence,
+  fenetresRequises,
   COMBAT_MAX,
   ARTE_MAX,
   PASSES_MAX,
@@ -22,7 +24,7 @@ import {
   ArtefactRequis,
 } from '../src/lib/speedTune';
 import { deckPourSpeedTune } from '../src/lib/speedTuneDeck';
-import { kitVitesse, BUFF_SPD_JEU } from '../src/lib/speedTuneKit';
+import { kitVitesse, sortsVitesse, BUFF_SPD_JEU } from '../src/lib/speedTuneKit';
 import { DetailMonstre, Competence, EffetCompetence } from '../src/lib/monsterSkills';
 import { Monster, SiegeTeam } from '../src/types';
 import { egal, ok, titre } from './outils';
@@ -660,10 +662,132 @@ export function testSpeedTuneKit() {
     egal(k.atbSkillUp, 0, 'et rien à annoncer sur le skill-up');
   }
 
+  // La LISTE des sorts (analyse poussée) : le même filtre, mais sans garder
+  // seulement le plus fort — c'est à l'utilisateur de choisir ce qu'il lance.
+  {
+    const d = detail([
+      comp('Petite', [effet('Increase ATB', 15, true)]),
+      comp('Grosse', [effet('Increase ATB', 30, true)], false, ['Attack Bar Recovery +5%']),
+      comp('Frappe', [effet('Increase ATB', 50, false, true)]),
+      comp('Passive', [effet('Increase ATB', 40, true)], true),
+      comp('Cri', [effet('Increase ATK SPD', 2, true)]),
+    ]);
+    const sorts = sortsVitesse(d);
+    egal(sorts.map((x) => x.nom).join(', '), 'Petite, Grosse, Cri', 'seuls les sorts de zone non passifs sont proposés');
+    egal(sorts[1].atb, 35, 'la valeur proposée est celle de la compétence maxée');
+    egal(sorts[2].buff, BUFF_SPD_JEU, 'le buff de vitesse figure dans la liste');
+    egal(sortsVitesse(null).length, 0, 'aucune fiche → aucun sort à proposer');
+  }
+
   // Buff de vitesse : les données ne donnent que sa DURÉE, la valeur du jeu vaut.
   {
     const k = kitVitesse(detail([comp('Cri du prédateur', [effet('Increase ATK SPD', 2, true)])]));
     egal(k.buff, BUFF_SPD_JEU, 'buff de vitesse de zone → +30 % (valeur du jeu)');
     egal(k.buffCompetence, 'Cri du prédateur', 'la compétence source est nommée');
+  }
+}
+
+/* ------------------------------------------ Séquence imposée (analyse+) --- */
+
+// Un combo construit demande un ORDRE précis, pas seulement « tout le monde
+// avant l'adverse ». Conséquence : un monstre peut devoir être RALENTI pour
+// laisser passer celui qui doit jouer avant lui — d'où des FENÊTRES de vitesse.
+export function testSpeedTuneSequence() {
+  titre('Speed tuning — ordre imposé');
+
+  const m = (id: string, combat: number, camp: 'allie' | 'ennemi'): TuneMonstre => ({ id, combat, camp });
+
+  // L'ordre voulu est celui que donnent les vitesses : rien à signaler.
+  {
+    const monstres = [m('a', 300, 'allie'), m('b', 200, 'allie'), m('c', 150, 'allie')];
+    const d = diagnostiquerSequence(monstres, ['a', 'b', 'c']);
+    ok(d.ok, "l'ordre demandé est celui qui sort de la simulation");
+    egal(d.problemes.length, 0, 'aucun problème à signaler');
+  }
+
+  // Ordre inversé demandé : les deux fautifs sont nommés, avec le sens de l'erreur.
+  {
+    const monstres = [m('a', 300, 'allie'), m('b', 200, 'allie')];
+    const d = diagnostiquerSequence(monstres, ['b', 'a']);
+    ok(!d.ok, 'un ordre que les vitesses ne produisent pas est signalé');
+    egal(d.problemes.find((p) => p.id === 'a')?.raison, 'trop-tot', 'le rapide joue trop tôt');
+    egal(d.problemes.find((p) => p.id === 'b')?.raison, 'trop-tard', 'le lent joue trop tard');
+  }
+
+  // Passer après l'adverse prime sur l'ordre interne : l'ordre ne sert plus.
+  {
+    const monstres = [m('a', 300, 'allie'), m('lent', 120, 'allie'), m('e', 250, 'ennemi')];
+    const d = diagnostiquerSequence(monstres, ['a', 'lent']);
+    egal(d.problemes.find((p) => p.id === 'lent')?.raison, 'apres-adverse', "coupé par l'adverse d'abord");
+  }
+
+  // ⚠️ Le cas qui n'existait pas dans l'analyse simple : pour tenir le SECOND
+  // rang, il faut être assez rapide ET assez lent. La fenêtre le dit.
+  {
+    const monstres = [m('a', 300, 'allie'), m('b', 200, 'allie'), m('c', 150, 'allie')];
+    const f = fenetresRequises(monstres, ['a', 'b', 'c']).find((x) => x.id === 'b')!;
+    ok(f.ok, 'à 200, il tient déjà son rang');
+    ok(f.min != null && f.max != null, 'sa fenêtre a bien deux bornes');
+    ok(f.min! <= 200 && 200 <= f.max!, 'sa vitesse actuelle est dans la fenêtre');
+    // Les bornes sont les bonnes : un cran de plus ou de moins casse l'ordre.
+    const avec = (v: number) => monstres.map((x) => (x.id === 'b' ? { ...x, combat: v } : x));
+    ok(!diagnostiquerSequence(avec(f.max! + 1), ['a', 'b', 'c']).ok, 'un point de plus et il passe devant a');
+    ok(!diagnostiquerSequence(avec(f.min! - 1), ['a', 'b', 'c']).ok, 'un point de moins et c le double');
+  }
+
+  // TEST DIFFÉRENTIEL (algo-verify) : les deux bornes trouvées par dichotomie
+  // valent celles d'un BALAYAGE EXHAUSTIF, et l'ensemble des vitesses valides
+  // est bien un INTERVALLE — c'est l'hypothèse qui autorise la dichotomie.
+  {
+    let identiques = 0;
+    let intervalles = 0;
+    const scenarios = 12;
+    for (let s = 0; s < scenarios; s++) {
+      const rng = mulberry32(4200 + s * 61);
+      const monstres: TuneMonstre[] = [];
+      const n = 2 + Math.floor(rng() * 2);
+      for (let i = 0; i < n; i++) {
+        const mm: TuneMonstre = { id: `a${i}`, combat: 90 + Math.floor(rng() * 260), camp: 'allie' };
+        if (rng() < 0.3) mm.skillAtb = 10 + Math.floor(rng() * 30);
+        monstres.push(mm);
+      }
+      if (rng() < 0.7) monstres.push({ id: 'e', combat: 100 + Math.floor(rng() * 250), camp: 'ennemi' });
+      // Ordre voulu : un mélange déterministe des alliés.
+      const ordre = monstres.filter((x) => x.camp === 'allie').map((x) => x.id);
+      for (let i = ordre.length - 1; i > 0; i--) {
+        const j = Math.floor(rng() * (i + 1));
+        [ordre[i], ordre[j]] = [ordre[j], ordre[i]];
+      }
+
+      for (const f of fenetresRequises(monstres, ordre)) {
+        // Balayage exhaustif : toutes les vitesses où CE monstre tient son rang,
+        // les autres inchangés. Pas plus fin que la dichotomie, juste bête.
+        const valides: number[] = [];
+        for (let v = 1; v <= COMBAT_MAX; v++) {
+          const essai = monstres.map((x) => (x.id === f.id ? { ...x, combat: v } : x));
+          const d = diagnostiquerSequence(essai, ordre);
+          if (!d.problemes.some((p) => p.id === f.id)) valides.push(v);
+        }
+        const contigu = valides.every((v, i) => i === 0 || v === valides[i - 1] + 1);
+        if (contigu) intervalles++;
+        else ok(false, `scénario ${s} / ${f.id} : les vitesses valides ne forment pas un intervalle`);
+        if (valides.length === 0) {
+          // Aucune vitesse ne convient : la fenêtre doit être VIDE (bornes
+          // croisées ou absentes), jamais un intervalle qu'on proposerait à tort.
+          const vide = f.min == null || f.max == null || f.min > f.max;
+          if (vide) identiques++;
+          else ok(false, `scénario ${s} / ${f.id} : fenêtre proposée alors qu'aucune vitesse ne convient`);
+          continue;
+        }
+        const attendu = [valides[0], valides[valides.length - 1]];
+        if (f.min === attendu[0] && f.max === attendu[1]) identiques++;
+        else
+          ok(
+            false,
+            `scénario ${s} / ${f.id} : fenêtre ${JSON.stringify([f.min, f.max])} ≠ balayage ${JSON.stringify(attendu)}`
+          );
+      }
+    }
+    ok(intervalles > 0 && identiques > 0, `${intervalles} fenêtres contrôlées au balayage exhaustif (seed fixe)`);
   }
 }

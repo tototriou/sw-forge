@@ -48,6 +48,16 @@ export interface KitVitesse {
   buffCompetence: string | null;
 }
 
+// Une compétence du kit telle qu'on peut la LANCER dans l'analyse poussée : ce
+// qu'elle pose sur le camp, et sous quel nom on la choisit.
+export interface SortVitesse {
+  nom: string;
+  atb: number; // +% de barre sur le camp (compétence maxée)
+  atbNiveau1: number;
+  atbSkillUp: number;
+  buff: number; // +% de vitesse sur le camp (0 ou 30)
+}
+
 export const KIT_VIDE: KitVitesse = {
   atb: 0,
   atbCompetence: null,
@@ -89,6 +99,32 @@ export function kitVitesse(detail: DetailMonstre | null): KitVitesse {
         out.buffCompetence = c.nom;
       }
     }
+  }
+  return out;
+}
+
+// Toutes les compétences qui font quelque chose à la VITESSE du camp, dans
+// l'ordre du kit. Sert à l'analyse poussée, où l'on choisit ce que chaque
+// monstre lance à son tour au lieu de prendre systématiquement la plus forte.
+//
+// Mêmes règles de lecture que `kitVitesse` (zone seulement, passives écartées,
+// skill-ups comptés) : c'est le même filtre, gardé au même endroit pour qu'il ne
+// diverge pas.
+export function sortsVitesse(detail: DetailMonstre | null): SortVitesse[] {
+  if (!detail) return [];
+  const out: SortVitesse[] = [];
+  for (const c of detail.competences) {
+    if (c.passif) continue;
+    let atbNiveau1 = 0;
+    let buff = 0;
+    for (const e of c.effets) {
+      if (!e.aoe || e.surSoi) continue;
+      if (e.nom === EFFET_ATB) atbNiveau1 = Math.max(atbNiveau1, e.quantite ?? 0);
+      else if (e.nom === EFFET_SPD) buff = BUFF_SPD_JEU;
+    }
+    if (atbNiveau1 === 0 && buff === 0) continue;
+    const skillUp = atbNiveau1 > 0 ? bonusSkillUp(c) : 0;
+    out.push({ nom: c.nom, atb: atbNiveau1 + skillUp, atbNiveau1, atbSkillUp: skillUp, buff });
   }
   return out;
 }

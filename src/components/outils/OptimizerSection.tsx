@@ -45,15 +45,18 @@ import {
 import {
   AUTO_EXCLUSION_SCOPES,
   AutoExclusionScope,
+  ExclusionSource,
   ExclusionSourceData,
+  SOURCE_OPTIONS,
   autoExcludedRuneIds,
+  ownGearForSource,
   resolveExcludedRuneIds,
   resolveExclusionEntry,
 } from '../../lib/optimizerExclusion';
 import { buildOptimizerRecipe, parseOptimizerRecipe } from '../../lib/optimizerRecipe';
 import { ArtifactMainChoice, OptimizerState, OptimizerSortKey } from '../../hooks/useOptimizerState';
 import { useRuneMetric } from '../../hooks/useRuneMetric';
-import { useMediaQuery, SOUS_SM, SOUS_XL } from '../../hooks/useMediaQuery';
+import { useMediaQuery, SOUS_SM } from '../../hooks/useMediaQuery';
 import GameIcon from '../GameIcon';
 import MonsterAvatar from '../MonsterAvatar';
 import MonsterGear from '../MonsterGear';
@@ -156,15 +159,6 @@ export default function OptimizerSection({ box, runes, optimizer, allMonsters, r
   // mécanisme prévu pour ça — activé seulement au format étroit, le bureau garde
   // le rendu normal.
   const etroit = useMediaQuery(SOUS_SM);
-  // ⚠️ La carte desktop « Exclusion de runes » (non celle du panneau mobile,
-  // déjà `dense` par construction) se retrouve confinée à la colonne étroite
-  // de la grille (340-400px) à partir de `xl` — SOUS `xl`, la grille de
-  // réglages tient sur une seule colonne et la carte a toute la largeur de
-  // la page. `denseSourceTabs` doit suivre CETTE largeur réelle, pas un
-  // simple bureau/mobile : sans lui, les 4 onglets de source (« Défenses
-  // siège »/« Offenses siège » compris) débordaient de leur cadre une fois
-  // la carte devenue étroite.
-  const colonneEtroiteDesktop = !useMediaQuery(SOUS_XL);
   const {
     selectedId,
     setSelectedId,
@@ -366,6 +360,33 @@ export default function OptimizerSection({ box, runes, optimizer, allMonsters, r
     () => ({ box, rtaEntries, siegeDefenseTeams, siegeOffenseTeams, monsterById }),
     [box, rtaEntries, siegeDefenseTeams, siegeOffenseTeams, monsterById]
   );
+
+  // Quel runage du monstre RECHERCHÉ afficher dans « Monstre & équipement »
+  // — box (défaut), RTA, ou un deck de siège. ⚠️ VUE SEULE : ne change RIEN
+  // à ce que la recherche optimise (toujours `selected.gear`, le build de
+  // BASE box, comme avant) — juste ce qui est prévisualisé, pour un monstre
+  // qui porte un runage différent selon le contexte. État LOCAL (pas dans
+  // `useOptimizerState`) : c'est une préférence d'affichage, pas un critère
+  // de recherche — même statut que `resultsPage` (voir son commentaire dans
+  // useOptimizerState.ts), donc hors recette exportée/scripts CLI.
+  const [gearSource, setGearSource] = useState<ExclusionSource>('box');
+  // Réinitialisé à « Box » sur un changement de monstre : un runage RTA/
+  // siège du monstre PRÉCÉDENT n'a aucun sens pour le nouveau.
+  useEffect(() => {
+    setGearSource('box');
+  }, [selectedId]);
+  const displayedGear = useMemo<GearSet>(() => {
+    if (!selected) return EMPTY_GEAR;
+    if (gearSource === 'box') return selected.gear;
+    // ⚠️ `com2usId == null` : jamais observé en pratique (les monstres de la
+    // box importée en ont TOUJOURS un — voir MonsterGearPicker.tsx/
+    // gearedMonsters, dérivés de `box` seule ; un monstre perso, lui, n'y
+    // figure jamais), mais `Monster.com2usId` reste typé `number | null` —
+    // repli sûr plutôt qu'une assertion non vérifiée.
+    if (selected.monster.com2usId == null) return EMPTY_GEAR;
+    return ownGearForSource(gearSource, selected.monster.com2usId, exclusionData) ?? EMPTY_GEAR;
+  }, [selected, gearSource, exclusionData]);
+  const gearSourceEmpty = !!selected && gearSource !== 'box' && displayedGear.runes.length === 0;
 
   const pool = useMemo(() => {
     if (!selected) return runes;
@@ -779,29 +800,54 @@ export default function OptimizerSection({ box, runes, optimizer, allMonsters, r
         indicatif — c'est à toi de re-runer dans le jeu.
       </p>
 
-      {/* ── Monstre & équipement — PLEINE LARGEUR, au-dessus de la grille
-          de réglages ──────────────────────────────────────────────────
-          Étape 1 de l'ordre d'usage voulu (voir la grille plus bas) :
-          recherche à gauche, fiche d'équipement à DROITE (plus en dessous)
-          — demande explicite de l'utilisateur. ⚠️ **La fiche reste TOUJOURS
-          affichée, vide (`EMPTY_GEAR`) tant qu'aucun monstre n'est choisi**,
-          plutôt que de n'apparaître qu'au clic : l'espace qu'elle occupe est
-          réservé d'avance, jamais un bloc qui pousse le reste de l'écran en
-          apparaissant (voir spec/shared/design.md). */}
-      <div className="rounded-xl border border-border bg-panel p-3">
-        <div className="mb-3 flex items-center gap-2">
-          <div className="flex h-6 w-6 flex-none items-center justify-center rounded-md border border-border-soft bg-panel2">
-            <GameIcon name="monster" size={15} />
+      {/* ── UNE SEULE grille, à partir de `xl`, pour tout l'écran de
+          réglages (Monstre, Exclusion/Réglages avancés, Critères,
+          Objectif) ────────────────────────────────────────────────────
+          ⚠️ **Placement EXPLICITE (`col-start`/`row-start`/`row-span`) sur
+          CHAQUE bloc** — l'ordre du DOM peut alors rester celui de l'ordre
+          d'USAGE (1. monstre, 2. objectif, 3. critères, puis
+          optionnellement exclusion/réglages avancés) SANS dicter l'ordre
+          VISUEL au bureau, qui suit une logique de PAIRES : Monstre à côté
+          d'Exclusion/Réglages avancés (rangées 1-2), Critères à côté
+          d'Objectif (rangée 3). Sous `xl`, une seule colonne : ces classes
+          ne s'appliquent plus, l'ordre du DOM (= l'ordre d'usage) devient
+          l'ordre de lecture.
+          ⚠️ `items-start` : sans lui, chaque bloc s'étire à la hauteur de sa
+          rangée et les cartes courtes se retrouvent avec un grand vide
+          bordé. */}
+      <div className="grid gap-5 items-start xl:grid-cols-[minmax(480px,560px)_1fr]">
+      {/* Étape 1 — carte À PART, en tête du DOM. ⚠️ **La fiche reste
+          TOUJOURS affichée, vide (`EMPTY_GEAR`) tant qu'aucun monstre n'est
+          choisi**, plutôt que de n'apparaître qu'au clic : l'espace qu'elle
+          occupe est réservé d'avance (voir spec/shared/design.md).
+          `row-span-2` : occupe les DEUX rangées où « Exclusion de runes »
+          puis « Réglages avancés » s'empilent à sa droite. */}
+      <div className="rounded-xl border border-border bg-panel p-3 xl:col-start-1 xl:row-start-1 xl:row-span-2">
+        <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+          <div className="flex items-center gap-2">
+            <div className="flex h-6 w-6 flex-none items-center justify-center rounded-md border border-border-soft bg-panel2">
+              <GameIcon name="monster" size={15} />
+            </div>
+            <p className="text-[13.5px] font-bold text-ink">Monstre &amp; équipement</p>
           </div>
-          <p className="text-[13.5px] font-bold text-ink">Monstre &amp; équipement</p>
+          {/* ⚠️ Choix du RUNAGE à prévisualiser — box/RTA/Défenses siège/
+              Offenses siège, EXACTEMENT le même sélecteur (mêmes 4 options,
+              même composant) que la source d'« Exclure les runes d'un
+              monstre » plus bas — `SOURCE_OPTIONS`, remonté dans
+              optimizerExclusion.ts pour ne pas dupliquer ces 4 libellés.
+              ⚠️ VUE SEULE — la recherche continue d'optimiser le build de
+              BASE box, quel que soit l'onglet choisi ici (voir
+              `displayedGear`) : changer d'onglet ne change QUE ce qui est
+              prévisualisé, pas ce que l'Optimizer part optimiser. */}
+          <Segmented options={SOURCE_OPTIONS} value={gearSource} onChange={setGearSource} dense />
         </div>
         <div className="flex flex-col gap-3 lg:flex-row lg:items-start">
-          {/* ⚠️ `lg:w-64 flex-none` : une largeur FIXE, pas `flex-1` — sans
+          {/* ⚠️ `lg:w-56 flex-none` : une largeur FIXE, pas `flex-1` — sans
               ça, sur un très grand écran, le champ de recherche s'étirerait
               autant que la fiche d'équipement à côté, alors que son contenu
               (un mot, quelques suggestions) n'a besoin que d'une largeur de
               champ ordinaire. */}
-          <div className="lg:w-64 lg:flex-none">
+          <div className="lg:w-56 lg:flex-none">
             <p className="label mb-1.5">Monstre à optimiser</p>
             {/* ⚠️ Réinitialise « Critères de recherche » et « Combinaisons
                 trouvées » (`resetSearch`, voir useOptimizerState.ts) AVANT de
@@ -826,87 +872,35 @@ export default function OptimizerSection({ box, runes, optimizer, allMonsters, r
                 <span className="font-semibold text-[14px]">{selected.monster.name}</span>
               </div>
             )}
+            {gearSourceEmpty && (
+              <p className="mt-2 text-micro text-ink-dim">
+                {selected!.monster.name} n&apos;a pas de runage dans cette source — aperçu vide.
+              </p>
+            )}
           </div>
 
           {/* ⚠️ Même composant que RTA/Siège quand on clique un monstre — pas
               une réimplémentation : stats base/bonus, artéfacts, roue de
-              runes et relique tels qu'ACTUELLEMENT équipés, chacun cliquable
-              pour son détail complet (RuneDetailBox/ArtifactDetailBox/
-              RelicDetailBox), inline sous la roue. Ce que l'Optimizer part
-              d'optimiser, visible d'un coup d'œil avant de lancer quoi que
-              ce soit. `flex-1` : occupe tout l'espace restant à droite de la
-              recherche, plutôt que de se tasser à sa propre largeur. */}
+              runes et relique, chacun cliquable pour son détail complet
+              (RuneDetailBox/ArtifactDetailBox/RelicDetailBox), inline sous
+              la roue. `scale` : artéfacts et roue COMPACTÉS (demande
+              explicite) — pour que la carte reste raisonnable une fois
+              « Exclusion de runes » installée à sa droite. `StatPanel`, lui,
+              garde sa largeur fixe (voir le commentaire de `scale` sur
+              `MonsterGear.tsx`). `flex-1` : occupe tout l'espace restant à
+              droite de la recherche. */}
           <div className="rounded-xl border border-border-soft bg-panel2/60 p-3 lg:flex-1">
-            <MonsterGear gear={selected?.gear ?? EMPTY_GEAR} />
+            <MonsterGear gear={displayedGear} scale={0.65} />
           </div>
         </div>
       </div>
 
-      {/* ── Réglages, en DEUX COLONNES au bureau ────────────────────────
-          Colonne large à gauche (les critères, de loin le plus gros bloc),
-          colonne étroite à droite (l'objectif, puis les options de
-          recherche) — étapes 2 et 3 de l'ordre d'usage voulu : 1) monstre
-          (ci-dessus), 2) objectif, 3) critères (set → statistique
-          principale → artéfacts → conditions), puis optionnellement en
-          dernier exclusion de runes et réglages avancés.
-
-          ⚠️ **Placement EXPLICITE (`col-start`/`row-start`), pas un
-          réordonnancement de la source** : les blocs se suivent dans le DOM
-          dans l'ordre objectif → critères → options, qui est aussi l'ordre
-          de lecture voulu au doigt (grille à une seule colonne, où aucune de
-          ces classes ne s'applique).
-          ⚠️ `items-start` : sans lui, chaque bloc s'étire à la hauteur de sa
-          rangée et les cartes courtes se retrouvent avec un grand vide
-          bordé. */}
-      <div className="mt-5 grid gap-5 items-start xl:grid-cols-[1fr_minmax(340px,400px)]">
-      {/* ⚠️ Étape 2 de l'ordre d'usage voulu, une carte À PART, PAS un bloc
-          DANS « Critères de recherche » : l'objectif se choisit avant même
-          de composer le set recherché, ce n'est pas un critère de plus
-          parmi d'autres. */}
-      <div className="rounded-xl border border-border bg-panel p-3 xl:col-start-2 xl:row-start-1">
-        <div className="mb-3 flex items-center gap-2">
-          <div className="flex h-6 w-6 flex-none items-center justify-center rounded-md border border-accent/40 bg-accent-soft">
-            <Target size={13} className="text-accent" />
-          </div>
-          <p className="text-[13.5px] font-bold text-ink">Objectif de recherche</p>
-        </div>
-        <div className="mb-2.5 flex items-center gap-1.5">
-          <HelpPopover title="Objectif de recherche">
-            Élargit la sélection de runes candidates pour ses stats dès le pré-filtrage, avant même de
-            lancer la recherche — les minimums posés plus bas (Conditions) restent ce qui décide quels
-            demi-builds sont conservés pendant la recherche elle-même. <b className="text-ink">Dégâts</b> considère{' '}
-            <b className="text-ink">ATQ</b>, <b className="text-ink">Taux Crit</b> et{' '}
-            <b className="text-ink">Dgts Crit</b> ensemble (espérance moyenne).{' '}
-            <b className="text-ink">Dégâts réels</b> va plus loin : la vraie formule d&apos;un sort précis
-            contre un adversaire configuré.
-          </HelpPopover>
-        </div>
-        <Segmented options={OBJECTIVE_LABELS} value={objective} onChange={setObjective} size="lg" dense={etroit} />
-        {/* ⚠️ Le réglage vit SOUS l'objectif qui l'active, pas dans une
-            section séparée plus bas : c'est le choix « Dégâts réels » qui
-            rend ces champs pertinents, et rien d'autre à l'écran ne les
-            concerne. Un panneau permanent à moitié grisé aurait alourdi les
-            cinq autres objectifs pour rien. */}
-        {objective === 'degats_reels' && (
-          <div className="mt-2.5">
-            <DamageSetupCard
-              skills={damageSkills}
-              resolved={resolvedSkill}
-              setup={damageSetup}
-              setSetup={setDamageSetup}
-              chargement={skillLoading}
-              etroit={etroit}
-            />
-          </div>
-        )}
-      </div>
-
-      {/* ⚠️ `row-span-2` : cette carte occupe les DEUX rangées de la
-          colonne de droite (Objectif, puis Exclusion/Réglages avancés) —
-          c'est elle, et de loin, le plus gros des trois blocs de cette
-          grille (Set + Statistique principale + Artéfacts + Conditions).
-          Sans ça, la grille lui réserverait une seule rangée. */}
-      <div className="rounded-xl border border-border bg-panel p-3 xl:col-start-1 xl:row-start-1 xl:row-span-2">
+      {/* Étape 3 — carte compactée AU MAXIMUM (`w-fit`, voir plus bas) pour
+          laisser de la place visuelle à « Objectif de recherche » à sa
+          droite — demande explicite. `xl:row-start-3` : troisième rangée de
+          la grille, sous le duo Monstre/Exclusion+Réglages avancés
+          (rangées 1-2). */}
+      <div className="w-fit rounded-xl border border-border bg-panel p-3 xl:col-start-1 xl:row-start-3">
         <div className="mb-3 flex items-center gap-2">
           {/* Curseurs de réglage, colorés (accent) — plus parlant qu'une
               cible générique pour « plusieurs critères ajustables », et
@@ -918,16 +912,16 @@ export default function OptimizerSection({ box, runes, optimizer, allMonsters, r
           <p className="text-[13.5px] font-bold text-ink">Critères de recherche</p>
         </div>
         {/* ⚠️ `space-y-4` restaure l'espacement entre blocs (Set/Statistique
-            principale/Objectif/Artéfacts/Conditions) — ces blocs comptaient
-            sur le `space-y-5` du CONTENEUR DE PAGE avant leur regroupement
-            dans cette carte ; devenus des enfants directs de la carte, ils
-            en ont hérité aucun espacement propre sans ce wrapper. */}
+            principale/Artéfacts/Conditions) — ces blocs comptaient sur le
+            `space-y-5` du CONTENEUR DE PAGE avant leur regroupement dans
+            cette carte ; devenus des enfants directs de la carte, ils en
+            ont hérité aucun espacement propre sans ce wrapper. */}
         <div className="space-y-4">
-      {/* ⚠️ `max-w-md` : sans plafond, cette section s'étire à la largeur
-          entière de la carte « Critères de recherche » (large, colonne 1fr)
-          — les icônes de set, elles, ne grandissent pas avec l'espace
-          disponible (`flex-wrap`), donc le bloc ne fait que paraître creux
-          et moins lisible. Demande explicite : « plus compact ». */}
+      {/* ⚠️ `max-w-md` EN PLUS du `w-fit` de la carte (ceinture et
+          bretelles) : `fit-content` se laisse pousser jusqu'à la largeur
+          disponible de la piste de grille (480-560px) si le contenu peut la
+          remplir sans repasser à la ligne — ce plafond garantit que le set
+          reste compact même dans ce cas. */}
       <div
         ref={setPickerSectionRef}
         className={`max-w-md ${
@@ -1173,16 +1167,67 @@ export default function OptimizerSection({ box, runes, optimizer, allMonsters, r
         </div>
       </div>
 
+      {/* Étape 2 de l'ordre d'usage voulu — une carte À PART, PAS un bloc
+          DANS « Critères de recherche » : l'objectif se choisit avant même
+          de composer le set recherché, ce n'est pas un critère de plus
+          parmi d'autres. Placée en TROISIÈME rangée (aux côtés de « Critères
+          de recherche », compactée juste au-dessus) : demande explicite —
+          « à droite des critères de recherche ». `1fr`, colonne large :
+          contrairement à Critères (compactée au maximum), Objectif profite
+          de tout l'espace restant — utile une fois « Dégâts réels » choisi
+          (`DamageSetupCard` a besoin de place pour ses vignettes d'effet). */}
+      <div className="rounded-xl border border-border bg-panel p-3 xl:col-start-2 xl:row-start-3">
+        <div className="mb-3 flex items-center gap-2">
+          <div className="flex h-6 w-6 flex-none items-center justify-center rounded-md border border-accent/40 bg-accent-soft">
+            <Target size={13} className="text-accent" />
+          </div>
+          <p className="text-[13.5px] font-bold text-ink">Objectif de recherche</p>
+        </div>
+        <div className="mb-2.5 flex items-center gap-1.5">
+          <HelpPopover title="Objectif de recherche">
+            Élargit la sélection de runes candidates pour ses stats dès le pré-filtrage, avant même de
+            lancer la recherche — les minimums posés plus bas (Conditions) restent ce qui décide quels
+            demi-builds sont conservés pendant la recherche elle-même. <b className="text-ink">Dégâts</b> considère{' '}
+            <b className="text-ink">ATQ</b>, <b className="text-ink">Taux Crit</b> et{' '}
+            <b className="text-ink">Dgts Crit</b> ensemble (espérance moyenne).{' '}
+            <b className="text-ink">Dégâts réels</b> va plus loin : la vraie formule d&apos;un sort précis
+            contre un adversaire configuré.
+          </HelpPopover>
+        </div>
+        <Segmented options={OBJECTIVE_LABELS} value={objective} onChange={setObjective} size="lg" dense={etroit} />
+        {/* ⚠️ Le réglage vit SOUS l'objectif qui l'active, pas dans une
+            section séparée plus bas : c'est le choix « Dégâts réels » qui
+            rend ces champs pertinents, et rien d'autre à l'écran ne les
+            concerne. Un panneau permanent à moitié grisé aurait alourdi les
+            cinq autres objectifs pour rien. */}
+        {objective === 'degats_reels' && (
+          <div className="mt-2.5">
+            <DamageSetupCard
+              skills={damageSkills}
+              resolved={resolvedSkill}
+              setup={damageSetup}
+              setSetup={setDamageSetup}
+              chargement={skillLoading}
+              etroit={etroit}
+            />
+          </div>
+        )}
+      </div>
+
       {/* ── Réglages avancés + Exclusion de runes ──────────────────────
           Contenu factorisé une fois, affiché deux fois : en cartes en
           ligne au bureau (ordre : Exclusion de runes, puis Réglages
           avancés), dans le panneau « Options » au doigt — jamais dupliqué.
           Même patron que RunesOptim.tsx (voir MobileSheet plus bas).
-          ⚠️ Enveloppé pour ne former qu'UN SEUL élément de grille (le bloc
-          rend plusieurs frères) : `space-y-5` reprend à l'intérieur
-          l'espacement que ces frères tenaient jusqu'ici du conteneur de
-          page. */}
-      <div className="space-y-5 xl:col-start-2 xl:row-start-2">
+          ⚠️ **Fragment, PAS un `<div>`** : les deux cartes desktop qu'il
+          rend (Exclusion de runes, Réglages avancés) doivent devenir des
+          ENFANTS DIRECTS de la grille pour se placer chacune dans sa propre
+          rangée (`xl:row-start-1`/`xl:row-start-2`, à côté du duo
+          Monstre/Critères) — un `<div>` intermédiaire les aurait fait
+          compter comme UNE seule cellule de grille. `MobileSheet` (portail)
+          et le paragraphe d'estimation n'ont pas besoin de cette
+          contrainte, voir leurs commentaires plus bas. */}
+      <>
       {(() => {
         // ⚠️ `dansPanneau` : seule la version DANS LE PANNEAU affiche « Pool de
         // runes = X » à côté du pré-filtrage — sur la page principale, la
@@ -1354,9 +1399,7 @@ export default function OptimizerSection({ box, runes, optimizer, allMonsters, r
               excludeOwnCom2usId={selected?.monster.com2usId ?? null}
               selected={excludedSelectors}
               onChange={setExcludedSelectors}
-              // ⚠️ `dansPanneau` (mobile) est TOUJOURS dense ; la carte
-              // desktop suit `colonneEtroiteDesktop` — voir sa déclaration.
-              denseSourceTabs={dansPanneau || colonneEtroiteDesktop}
+              denseSourceTabs={dansPanneau}
             />
           </div>
         );
@@ -1381,22 +1424,18 @@ export default function OptimizerSection({ box, runes, optimizer, allMonsters, r
                 {dejaUtiliseesBlock}
               </div>
             ) : (
-              // Côte à côte entre `sm` et `xl` (la carte a alors la largeur
-              // ENTIÈRE de la page, une seule colonne de grille sous `xl`,
-              // voir plus haut) ; empilés en dessous, ET de nouveau à partir
-              // de `xl` — c'est là que cette carte se retrouve confinée à la
-              // colonne de droite (340-400px, voir le placement de grille
-              // plus haut), où « toggle + 3 options » à côté de « recherche
-              // + liste » déborderait de son propre cadre. Colonne de gauche
-              // plus étroite (toggle + 3 options) que celle de droite
+              // Côte à côte à partir de `sm` — cette carte vit maintenant
+              // dans la colonne LARGE (`1fr`) de la grille de réglages, aux
+              // côtés de « Monstre & équipement » (voir le commentaire
+              // d'ouverture de la grille), largement assez pour ce layout
+              // interne. ⚠️ Un `xl:grid-cols-1` a existé ici le temps d'une
+              // révision antérieure de la mise en page, où cette carte se
+              // retrouvait confinée à une colonne étroite (340-400px) —
+              // retiré avec cette colonne, voir historique. Colonne de
+              // gauche plus étroite (toggle + 3 options) que celle de droite
               // (recherche + liste), pas un 50/50 aveugle.
-              <div className="grid grid-cols-1 gap-4 sm:grid-cols-[minmax(200px,260px)_1fr] sm:gap-5 xl:grid-cols-1">
-                {/* ⚠️ Liseré annulé à `xl:` avec le retour à une colonne
-                    (voir la grille juste au-dessus) : un `border-r` posé sur
-                    un bloc redevenu pleine largeur se lirait comme une
-                    bordure de carte, pas une séparation entre deux
-                    colonnes. */}
-                <div className="sm:border-r sm:border-border-soft sm:pr-5 xl:border-r-0 xl:pr-0">{dejaUtiliseesBlock}</div>
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-[minmax(200px,260px)_1fr] sm:gap-5">
+                <div className="sm:border-r sm:border-border-soft sm:pr-5">{dejaUtiliseesBlock}</div>
                 {monstrePrecisBlock(false)}
               </div>
             )}
@@ -1419,15 +1458,17 @@ export default function OptimizerSection({ box, runes, optimizer, allMonsters, r
 
         return (
           <>
-            {/* Bureau : deux cartes en ligne, masquées au doigt (voir le
-                panneau plus bas). Exclusion de runes en tête — fonctionnalité
-                vedette, Réglages avancés en second. */}
-            <div className="hidden lg:block rounded-xl border border-accent/50 bg-panel p-3">
+            {/* Bureau : deux cartes empilées à DROITE de « Monstre &
+                équipement » (`xl:col-start-2`, rangées 1 puis 2 — voir le
+                commentaire d'ouverture de la grille), masquées au doigt
+                (voir le panneau plus bas). Exclusion de runes en tête —
+                fonctionnalité vedette, Réglages avancés en second. */}
+            <div className="hidden lg:block rounded-xl border border-accent/50 bg-panel p-3 xl:col-start-2 xl:row-start-1">
               <div className="mb-0.5 flex items-center gap-2">{exclusionRunesTitre}</div>
               {exclusionRunesInner(false)}
             </div>
 
-            <div className="hidden lg:block rounded-xl border border-border bg-panel p-3">
+            <div className="hidden lg:block rounded-xl border border-border bg-panel p-3 xl:col-start-2 xl:row-start-2">
               <ZoneCliquable
                 onClick={() => setShowAdvanced((v) => !v)}
                 aria-expanded={showAdvanced}
@@ -1444,8 +1485,13 @@ export default function OptimizerSection({ box, runes, optimizer, allMonsters, r
               )}
             </div>
 
+            {/* ⚠️ Placée en rangée 4 (`xl:col-span-2`, pleine largeur) : ni
+                dans la paire Monstre/Exclusion+Avancés (rangées 1-2) ni dans
+                la paire Critères/Objectif (rangée 3), cette ligne
+                d'estimation n'a pas sa place dans une cellule précise —
+                simple info sous tout le reste. */}
             {estimate && (
-              <p className="font-mono text-micro text-ink-dim">
+              <p className="font-mono text-micro text-ink-dim xl:col-span-2 xl:row-start-4">
                 {formatBig(estimate.perSlot.reduce((a, b) => a + b, 0))} runes gardées après pré-filtrage
                 (pool par emplacement : {estimate.perSlot.join(' + ')})
               </p>
@@ -1481,7 +1527,7 @@ export default function OptimizerSection({ box, runes, optimizer, allMonsters, r
           </>
         );
       })()}
-      </div>
+      </>
       {/* fin de la grille de réglages — tout ce qui suit reprend la pleine
           largeur : la barre d'actions, la progression et les résultats
           (une grille de cartes qui, elle, PROFITE de la largeur). */}

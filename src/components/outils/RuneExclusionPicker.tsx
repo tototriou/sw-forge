@@ -10,6 +10,7 @@ import {
   ExclusionSelector,
   ExclusionSource,
   ExclusionSourceData,
+  SOURCE_OPTIONS,
   exclusionCandidatesFor,
   exclusionSelectorKey,
   resolveExclusionEntry,
@@ -31,13 +32,6 @@ interface Props {
   // « Offenses siège » — voir Segmented.tsx, prop `dense`.
   denseSourceTabs?: boolean;
 }
-
-const SOURCE_OPTIONS: { key: ExclusionSource; label: string }[] = [
-  { key: 'box', label: 'Box' },
-  { key: 'rta', label: 'RTA' },
-  { key: 'siege-defense', label: 'Défenses siège' },
-  { key: 'siege-offense', label: 'Offenses siège' },
-];
 
 // Même étiquette que le comptage « Défense N »/« Offense N » déjà utilisé
 // ailleurs (voir ownedBuilds.ts, SOURCE_LABEL) — recalculée ici plutôt que

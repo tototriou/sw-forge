@@ -34,9 +34,19 @@ interface Props {
   // plus à cet équipement : on l'affiche en rouge sur la ligne VIT, pour donner
   // directement la valeur à atteindre. `null` quand tout concorde.
   spdCible?: number | null;
+  // ⚠️ Répercutée UNIQUEMENT sur `ArtifactSlots`/`RuneWheel` — les deux
+  // composants qui l'exposent déjà nativement (voir leurs propres fichiers,
+  // déjà utilisés à échelle réduite par `BuildCandidateCard.tsx`). `StatPanel`
+  // reste à sa largeur FIXE (`w-[200px]`, voir son commentaire de tête) : elle
+  // ne bouge JAMAIS, quel que soit l'appelant — un panneau qui rétrécirait ici
+  // recréerait exactement le déplacement au clic base+bonus↔total que sa
+  // largeur fixe existe pour empêcher. `undefined` = taille normale
+  // (comportement historique inchangé pour RTA/Siège, seuls appelants avant
+  // l'Optimizer).
+  scale?: number;
 }
 
-export default function MonsterGear({ gear, spdCible = null }: Props) {
+export default function MonsterGear({ gear, spdCible = null, scale }: Props) {
   const stats = computeStats(gear);
   const [sel, setSel] = useState<Selected>(null);
   const auDoigt = useMediaQuery(COMPACT);
@@ -102,6 +112,7 @@ export default function MonsterGear({ gear, spdCible = null }: Props) {
           C'est le même composant que l'Optimiseur utilise déjà. */}
       <ArtifactSlots
         artifacts={gear.artifacts}
+        scale={scale}
         isSelected={(_a, i) => isSel({ kind: 'artifact', i })}
         onSelectArtifact={(_a, i) => toggle({ kind: 'artifact', i })}
         // ⚠️ Aucun flottant au DOIGT : le bloc en ligne s'en charge. Rendre les
@@ -142,6 +153,7 @@ export default function MonsterGear({ gear, spdCible = null }: Props) {
           emplacements d'`ArtifactSlots` toujours affichés au-dessus. */}
       <RuneWheel
         runes={gear.runes}
+        scale={scale}
         isSelected={(_r, i) => isSel({ kind: 'rune', i })}
         onSelectRune={(_r, i) => toggle({ kind: 'rune', i })}
         renderOverlay={

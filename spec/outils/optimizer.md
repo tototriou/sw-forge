@@ -56,32 +56,55 @@ ordre : Set de runes recherché → Statistique principale imposée (slots
 2/4/6) → Artéfacts → Conditions ; puis, optionnellement et en dernier,
 **Exclusion de runes** et **Réglages avancés**.
 
-1. **Monstre & équipement** — carte **pleine largeur**, seule au-dessus du
-   reste : recherche à **gauche** (largeur fixe, `lg:w-64`), fiche
-   d'équipement à **droite** (`lg:flex-1`) — demande explicite : la fiche se
-   déploie à côté de la recherche, plus en dessous. ⚠️ **La fiche reste
-   TOUJOURS affichée**, vide (stats à zéro, artéfacts grisés, roue vide)
-   tant qu'aucun monstre n'est choisi, plutôt que de n'apparaître qu'au
-   clic — l'espace qu'elle occupe est réservé d'avance (voir
+Depuis `xl`, **une seule grille** (deux colonnes, quatre rangées) porte tout
+l'écran de réglages, organisée en **deux paires** plutôt qu'en un seul bloc
+continu — demande explicite de l'utilisateur :
+
+1. **Rangées 1-2 : Monstre & équipement, à côté d'Exclusion de runes +
+   Réglages avancés.** « Monstre & équipement » (`row-span-2`) : recherche
+   à **gauche** (largeur fixe, `lg:w-56`), fiche d'équipement à **droite**
+   (`lg:flex-1`, artéfacts et roue **compactés** — `scale=0.65`) — la fiche
+   se déploie à côté de la recherche, plus en dessous. Un **sélecteur de
+   runage** (Box / RTA / Défenses siège / Offenses siège, même contrôle
+   qu'« Exclure les runes d'un monstre » plus bas) apparaît à droite du
+   titre : **vue seule**, il choisit QUEL runage du monstre recherché
+   prévisualiser (utile pour un monstre qui porte un équipement différent
+   selon le contexte) — la recherche continue toujours d'optimiser le build
+   de BASE box, quel que soit l'onglet choisi. ⚠️ **La fiche reste TOUJOURS
+   affichée**, vide (stats à zéro, artéfacts grisés, roue vide) tant
+   qu'aucun monstre n'est choisi, plutôt que de n'apparaître qu'au clic —
+   l'espace qu'elle occupe est réservé d'avance (voir
    [shared/design.md](shared/design.md), « un clic ne déplace jamais ce
-   qu'on vient de cliquer »).
-2. **En dessous, à partir de `xl`, DEUX colonnes** : colonne **large à
-   gauche** (**Critères de recherche**, de loin le plus gros bloc — Set →
-   Statistique principale → Artéfacts → Conditions, occupe toute la hauteur
-   de la colonne), colonne **étroite à droite** (**Objectif de recherche**,
-   puis **Exclusion de runes** + **Réglages avancés** empilés dessous).
-   ⚠️ **Placement explicite (`col-start`/`row-start`), jamais un
-   réordonnancement de la source** : l'ordre du DOM suit exactement l'ordre
-   d'usage ci-dessus, qui est donc aussi l'ordre de lecture au doigt
-   (grille à une seule colonne, où aucune de ces classes ne s'applique).
-3. **Densité — deux plafonds de largeur**, pas la carte entière qui
-   s'étire : le **set de runes recherché** (`max-w-md`) et la **grille
-   Conditions** (`w-fit`) restent compacts même si leur carte, elle, est
-   large. ⚠️ Pour Conditions précisément : un conteneur `grid` en bloc
+   qu'on vient de cliquer »). À sa droite : **Exclusion de runes**
+   (rangée 1) puis **Réglages avancés** (rangée 2), empilés.
+2. **Rangée 3 : Critères de recherche, à côté d'Objectif de recherche.**
+   « Critères de recherche » (Set → Statistique principale → Artéfacts →
+   Conditions) est **compactée au maximum** (`w-fit` — la carte hugs son
+   contenu plutôt que de s'étirer sur toute la largeur de sa colonne) pour
+   laisser de la place, visuellement, à « Objectif de recherche » à sa
+   droite.
+   ⚠️ **Densité — deux plafonds de largeur en plus du `w-fit` de la
+   carte** : le **set de runes recherché** (`max-w-md`, ceinture et
+   bretelles — `fit-content` peut encore grandir jusqu'à la largeur
+   disponible de la piste si le contenu peut la remplir sans repasser à la
+   ligne) et la **grille Conditions** (`w-fit` propre, en plus de celui de
+   la carte). ⚠️ Pour Conditions précisément : un conteneur `grid` en bloc
    prend toute la largeur de son parent, et des colonnes `auto` (Min/Max)
    SE PARTAGENT l'espace libre restant dès qu'aucune piste n'est en `fr` —
    sans `w-fit`, Min et Max s'étiraient à des dizaines de pixels l'un de
-   l'autre sur une carte large.
+   l'autre. Le **set principal** (4 pièces) s'affiche sur **deux lignes de
+   trois** en permanence (comme au doigt), pour laisser plus de largeur au
+   set secondaire.
+3. **Rangée 4 : ligne d'estimation**, pleine largeur (`col-span-2`) — ni
+   dans l'une ni l'autre paire.
+
+⚠️ **Placement explicite (`col-start`/`row-start`/`row-span`) sur CHAQUE
+bloc, jamais un réordonnancement de la source** : l'ordre du DOM reste
+celui de l'ordre d'USAGE (1. monstre, 2. objectif, 3. critères, puis
+optionnellement exclusion/réglages avancés) — c'est le placement CSS, pas
+le DOM, qui organise l'écran en paires. Sous `xl`, une seule colonne :
+aucune de ces classes ne s'applique, et l'ordre du DOM (= l'ordre d'usage)
+redevient l'ordre de lecture.
 
 ⚠️ **Responsive — pas de débordement, et les contrôles du panneau prennent
 toute la largeur.** Points tenus au format étroit (l'écran n'avait jamais été
@@ -154,7 +177,13 @@ retour.
 2. **Équipement actuel** — **le composant `MonsterGear`, réutilisé tel quel**
    (pas réimplémenté), le même qu'en RTA/Siège quand on clique un monstre :
    stats base/bonus, artéfacts, roue de runes et relique **tels
-   qu'ACTUELLEMENT équipés** sur le monstre choisi, chacun **cliquable**
+   qu'ACTUELLEMENT équipés** — dans la source choisie par le **sélecteur de
+   runage** (Box, par défaut / RTA / Défenses siège / Offenses siège) accolé
+   au titre, réinitialisé à **Box** à chaque changement de monstre. ⚠️ **Vue
+   seule** : la recherche optimise toujours le build de BASE box, quel que
+   soit l'onglet choisi — changer d'onglet ne change QUE ce qui est
+   prévisualisé. Un monstre absent de la source choisie affiche la fiche
+   vide, avec une note. Chacun de ses éléments reste **cliquable**
    pour ouvrir son détail complet (`RuneDetailBox`/`ArtifactDetailBox`/
    `RelicDetailBox`, tous dans [MonsterGear.tsx](src/components/MonsterGear.tsx)),
    affiché en **popover flottant** ancré sur l'élément cliqué — même

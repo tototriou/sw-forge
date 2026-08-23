@@ -41,12 +41,21 @@ dans la simulation :
   au tick `t`** — ⚠️ **pas de report**, les ticks non marqués calculent l'ATB à
   la vitesse de base. C'est la **vitesse** qui change (l'ATB gagnée ce tick-là),
   pas la barre. Un buff qui dure plusieurs ticks se marque sur chacun d'eux.
-- **Artéfact « augmente l'effet du buff de vitesse »** (`artefactBuff`, par
-  allié) : bonus **ADDITIF** au buff de vitesse, actif **seulement quand un buff
-  (> 0) est présent** ce tick-là — ex. buff +30 % + artéfact +10 % → vitesse
-  × 1,40 ce tick. Ne s'applique **pas** à un ralenti. Modèle communautaire
-  (additif, pas multiplicatif — [Ellia's Wiki](https://elliabot.neocities.org/game_mechanics/artifacts/)) ;
-  renseigné pour les alliés seulement (artéfacts d'en face inconnus).
+- **Artéfact « Effet aug. VIT »** (`artefactBuff`) : il amplifie le **buff de
+  vitesse**, et n'agit **que si un buff (> 0) est présent** ce tick-là (rien à
+  amplifier sinon ; il ne s'applique **pas** à un ralenti).
+  ⚠️ **MULTIPLICATIF sur la VALEUR DU BUFF**, pas additif à la vitesse :
+  buff 30 % + artéfact 10 % → **buff 33 %**, pas 40 %.
+  > « Increase SPD Effect +N% | Multiplicative | The buff value | 10% artifact
+  > makes SPD buff being 33% instead of 30% » —
+  > [Ellia's Wiki](https://elliabot.neocities.org/game_mechanics/artifacts/)
+
+  ⚠️ **Cette spec a affirmé le contraire** (« additif, pas multiplicatif ») et le
+  code suivait : l'artéfact valait alors trois à quatre fois son effet réel, ce
+  qui faussait les vitesses proposées. Corrigé après un signalement de terrain
+  (un deck où 10 d'artéfact valent ~3 de vitesse, pas ~20) et **re-vérification à
+  la source**. Retenir la leçon : une valeur de mécanique se relit à la source
+  avant d'être écrite ici comme acquise.
 
 ## Importer un deck de siège
 
@@ -368,6 +377,9 @@ De haut en bas :
 5. **Barre d'action par tick** (lecture seule) — tableau : lignes triées par
    ordre de tour, colonnes = ticks. Chaque cellule = `% rempli` — la
    **trajectoire réelle** renvoyée par la simulation (`OrdreEntree.trajectoire`),
+   affichée à **trois décimales** — ⚠️ à deux, une barre à 99,996 % s'affichait
+   « 100.00 » sans que le monstre agisse, et on cherchait un bug là où il n'y en
+   avait pas ; le tick se joue au millième,
    qui n'est plus linéaire dès qu'un modificateur entre en jeu. La case où le
    monstre **prend le tour** est surlignée (**fond** + badge de rang, jamais un
    contour de plus par-dessus la grille) ; les ticks après l'action restent

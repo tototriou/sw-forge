@@ -133,12 +133,17 @@ const LIBELLE_RAISON: Record<RaisonOrdre, string> = {
 const RULER_TICKS = [11, 10, 9, 8, 7, 6, 5, 4, 3];
 const TICKS_SIEGE = new Set(SIEGE_TICKS.map((t) => t.value));
 
+// ⚠️ **Les barres se lisent à TROIS décimales.** À deux, une barre à 99,996 %
+// s'affichait « 100.00 » sans que le monstre agisse : on cherchait un bug là où
+// il n'y en avait pas. Le tick se joue à un millième près, l'affichage doit le
+// montrer.
+//
 // ⚠️ **Les trois tableaux (barres, boost, buff) partagent EXACTEMENT la même
 // grille de colonnes** — même largeur de colonne « cible », même largeur de
 // tick, mêmes 40 ticks — et leur défilement horizontal est synchronisé. Sans
 // ça, tick 12 du boost ne tombait pas sous tick 12 des barres : on se perdait.
 const LARGEUR_CIBLE = 210; // colonne de gauche (portrait + nom)
-const LARGEUR_TICK = 86; // chaque colonne de tick
+const LARGEUR_TICK = 92; // chaque colonne de tick (3 décimales, voir plus bas)
 const TICKS = Array.from({ length: HORIZON_TICKS }, (_, i) => i + 1);
 const LARGEUR_TABLE = LARGEUR_CIBLE + HORIZON_TICKS * LARGEUR_TICK;
 
@@ -1034,7 +1039,7 @@ export default function SpeedTuningSection({ allMonsters, siegeDefenseTeams, sie
                                   </span>
                                 )}
                               </span>
-                              <span className="block text-micro text-ink-dim">{e.incBase.toFixed(2)} %/tick</span>
+                              <span className="block text-micro text-ink-dim">{e.incBase.toFixed(3)} %/tick</span>
                             </span>
                           </span>
                         </th>
@@ -1050,7 +1055,7 @@ export default function SpeedTuningSection({ allMonsters, siegeDefenseTeams, sie
                               : 'text-ink-dim';
                           return (
                             <td key={t} className={`relative py-1.5 text-center ${fond} ${encre}`}>
-                              {atb == null ? '' : atb.toFixed(2)}
+                              {atb == null ? '' : atb.toFixed(3)}
                               {estAction && (
                                 <span
                                   className={`absolute -right-0.5 -top-1 flex h-4 min-w-[1rem] items-center justify-center rounded-full px-0.5 text-micro font-bold text-bg ${

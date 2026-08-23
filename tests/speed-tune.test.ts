@@ -103,14 +103,24 @@ export default function testSpeedTune() {
     egal(pt[0].tick, 13, 'buff marqué sur les ticks 1→5 → agit au tick 13');
   }
 
-  // Artéfact « augmente l'effet du buff de vitesse » : ADDITIF au buff, actif
-  // seulement quand un buff est posé ce tick-là.
+  // Artéfact « Effet aug. VIT » : ⚠️ MULTIPLICATIF sur la VALEUR DU BUFF, pas
+  // additif à la vitesse — « 10% artifact makes SPD buff being 33% instead of
+  // 30% » (Ellia's Wiki). Actif seulement quand un buff est posé ce tick-là.
   {
-    // buff +30 % au tick 1 + artéfact +20 % → vitesse ×1,50 → 10,5 %/tick au tick 1.
+    // buff +30 % au tick 1 + artéfact +20 % → buff 36 % → vitesse ×1,36 → 9,52.
     const sim = simuler([
       { id: 'arte', combat: 100, camp: 'allie', speedMod: { 1: 30 }, artefactBuff: 20 },
     ]);
-    egal(sim.lignes[0].trajectoire[0], 10.5, 'buff +30 % + artéfact +20 % → 10,5 au tick 1');
+    egal(
+      sim.lignes[0].trajectoire[0].toFixed(3),
+      '9.520',
+      'buff +30 % + artéfact +20 % → buff 36 %, soit 9,52 au tick 1 (et non 10,5 : ce serait additif)'
+    );
+    // Le cas de la source, vérifié tel quel : 10 % d'artéfact → buff 33 %.
+    const wiki = simuler([
+      { id: 'wiki', combat: 100, camp: 'allie', speedMod: { 1: 30 }, artefactBuff: 10 },
+    ]);
+    egal(wiki.lignes[0].trajectoire[0].toFixed(3), '9.310', "10 % d'artéfact → buff 33 % (9,31 au tick 1)");
   }
   {
     // Sans buff ce tick-là, l'artéfact ne fait RIEN (vitesse de base).

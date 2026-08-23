@@ -82,11 +82,16 @@ export interface TuneMonstre {
   sort?: EffetSort;
   rejoue?: boolean;
   sort2?: EffetSort;
-  // Bonus d'artéfact « augmente l'effet du buff de vitesse » (%), ADDITIF au
-  // buff appliqué et actif UNIQUEMENT quand un buff de vitesse (> 0) est présent
-  // ce tick-là. Ex. buff +30 % + artéfact +10 % → vitesse × 1,40 ce tick.
-  // (Ne s'applique pas à un ralenti.) Modèle communautaire, voir
-  // spec/outils/speed-tuning.md.
+  // Bonus d'artéfact « Effet aug. VIT » (%), actif UNIQUEMENT quand un buff de
+  // vitesse (> 0) est présent ce tick-là (il n'a rien à amplifier sinon, et il ne
+  // s'applique pas à un ralenti).
+  //
+  // ⚠️ **MULTIPLICATIF sur la VALEUR DU BUFF**, pas additif à la vitesse :
+  // « 10% artifact makes SPD buff being 33% instead of 30% »
+  // ([Ellia's Wiki](https://elliabot.neocities.org/game_mechanics/artifacts/)).
+  // Une version précédente ajoutait les deux (30 + 10 = 40 %), ce qui rendait
+  // l'artéfact TROIS À QUATRE FOIS trop fort — signalé par l'utilisateur sur un
+  // deck où 10 d'artéfact valent ~3 de vitesse, pas ~20.
   artefactBuff?: number;
 }
 
@@ -184,7 +189,7 @@ export function simuler(monstres: TuneMonstre[], horizon = HORIZON_TICKS): Simul
       if (parSort !== 0) m.effetSpeed[tick] = parSort;
       // Un buff (> 0) est amplifié par le bonus d'artéfact, additivement ; un
       // ralenti (< 0) n'est pas concerné.
-      const buff = buffBase > 0 ? buffBase + (m.artefactBuff ?? 0) : buffBase;
+      const buff = buffBase > 0 ? buffBase * (1 + (m.artefactBuff ?? 0) / 100) : buffBase;
       m.atb += atbParTick((m.combat * (100 + buff)) / 100);
       const boost = m.atbMod?.[tick] ?? 0;
       if (boost) m.atb += boost;

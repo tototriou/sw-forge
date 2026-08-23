@@ -143,12 +143,18 @@ celui qu'on cherche à devancer.
 
 ### Lues automatiquement dans le kit
 
-⚠️ **L'utilisateur n'a pas à aller chercher lui-même ce que fait le monstre.**
-Les deux champs sont **pré-remplis** à partir des compétences pré-générées
-(`public/data/skills/<com2usId>.json`, un seul point d'entrée `chargerDetail`) —
-lecture pure dans [speedTuneKit.ts](src/lib/speedTuneKit.ts), **testée**
-([tests/speed-tune.test.ts](tests/speed-tune.test.ts)). Le `title` du champ dit
-**de quelle compétence** vient la valeur (« Lu dans son kit : Tailwind… »).
+⚠️ **Rien ne se saisit : l'utilisateur n'a pas à aller chercher ce que fait le
+monstre, et la card n'a AUCUN champ pour ça.** Les deux valeurs sont lues dans
+les compétences pré-générées (`public/data/skills/<com2usId>.json`, un seul point
+d'entrée `chargerDetail`) — lecture pure dans
+[speedTuneKit.ts](src/lib/speedTuneKit.ts), **testée**
+([tests/speed-tune.test.ts](tests/speed-tune.test.ts)).
+
+⚠️ **Deux champs de saisie (« Boost ATB », « Buff SPD ») ont existé sur la card
+et ont été RETIRÉS** : une fois la détection automatique en place, ils ne
+servaient plus à rien. Un cas que la détection ne couvre pas (effet sur un seul
+allié, passive, compétence qu'on ne jouera pas) se pose **dans les deux grilles
+par tick**, qui restent la porte de sortie manuelle.
 
 - **Seuls les effets DE ZONE** (`aoe`) sont retenus : `Increase ATB` → boost,
   `Increase ATK SPD` → buff (+30 %, la valeur du jeu — les données ne donnent
@@ -166,8 +172,7 @@ lecture pure dans [speedTuneKit.ts](src/lib/speedTuneKit.ts), **testée**
   joue maxé. **L'écran le DIT** — une ligne d'avertissement sur la card («
   Tailwind compte MAXÉE : 45 %, dont +15 % de skill-up ») — sans quoi on
   règlerait sa vitesse sur un gain qu'on n'a pas encore.
-- **La détection propose, elle n'impose pas** : les deux champs restent
-  modifiables, et une valeur saisie n'est **jamais** écrasée (`kitLu`).
+- Une valeur déjà posée n'est **jamais** réécrite par une relecture (`kitLu`).
 
 Deux champs par monstre (`skillAtb`, `skillSpeed` dans `TuneMonstre`), appliqués
 à **tout son camp, lui compris** (dans le jeu, « augmente la barre d'attaque de

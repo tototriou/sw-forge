@@ -72,8 +72,9 @@ interface Ligne {
   artefactBuff: number | null;
   // Compétence de ce monstre, posée sur TOUT SON CAMP quand il joue (voir
   // speedTune.ts) : +% de barre d'attaque au tick de son tour, +% de vitesse à
-  // partir du tick suivant. C'est ce qui rend l'analyse automatique — un Eshir
-  // n'a plus à être posé tick par tick dans les grilles.
+  // partir du tick suivant. ⚠️ **Lu dans son kit, jamais saisi** — la card n'a
+  // pas de champ pour ça (voir speedTuneKit.ts). Pour un cas que la détection ne
+  // couvre pas, les deux grilles par tick restent là.
   skillAtb: number | null;
   skillSpeed: number | null;
   // Le kit du monstre a déjà été lu (et les deux champs pré-remplis). Empêche
@@ -313,9 +314,6 @@ export default function SpeedTuningSection({ allMonsters, siegeDefenseTeams, sie
   function setArtefact(uid: string, v: number | null) {
     setLignes((prev) => prev.map((l) => (l.uid === uid ? { ...l, artefactBuff: v } : l)));
   }
-  function setSkill(uid: string, champ: 'skillAtb' | 'skillSpeed', v: number | null) {
-    setLignes((prev) => prev.map((l) => (l.uid === uid ? { ...l, [champ]: v } : l)));
-  }
 
   // Écrit une valeur de modificateur dans la grille `champ`, pour un tick donné.
   // 0/null efface l'entrée (une case vide = pas de modificateur).
@@ -540,7 +538,6 @@ export default function SpeedTuningSection({ allMonsters, siegeDefenseTeams, sie
           onRetirer={retirer}
           onMasquer={basculerMasque}
           onRuneSpeed={setRuneSpeed}
-          onSkill={setSkill}
           kits={kits}
           onArtefact={setArtefact}
           decks={decks}
@@ -559,7 +556,6 @@ export default function SpeedTuningSection({ allMonsters, siegeDefenseTeams, sie
           onRetirer={retirer}
           onMasquer={basculerMasque}
           onRuneSpeed={setRuneSpeed}
-          onSkill={setSkill}
           kits={kits}
           onArtefact={setArtefact}
           decks={decks}
@@ -835,7 +831,6 @@ interface CampProps {
   onRetirer: (uid: string) => void;
   onMasquer: (uid: string) => void;
   onRuneSpeed: (uid: string, v: number | null) => void;
-  onSkill: (uid: string, champ: 'skillAtb' | 'skillSpeed', v: number | null) => void;
   // Ce que le kit de chaque monstre pose (par com2usId) : sert à dire d'OÙ vient
   // la valeur pré-remplie.
   kits: Map<number, KitVitesse>;
@@ -865,7 +860,6 @@ function CampPanneau({
   onRetirer,
   onMasquer,
   onRuneSpeed,
-  onSkill,
   kits,
   onArtefact,
   decks,
@@ -913,6 +907,10 @@ function CampPanneau({
           {lignes.map((l) => {
             const combat = combatDe(l);
             const masque = l.masque;
+            // ⚠️ Ce que le monstre pose sur son camp (barre d'attaque, buff de
+            // vitesse) ne se SAISIT PAS : c'est lu dans son kit. La card ne
+            // montre que ce qui reste à décider — vitesse de runes et artéfact —
+            // plus l'avertissement de skill-up quand le chiffre le suppose.
             const kit = (l.monster.com2usId != null ? kits.get(l.monster.com2usId) : null) ?? KIT_VIDE;
             return (
               <div
@@ -961,75 +959,6 @@ function CampPanneau({
                         placeholder="+"
                         ariaLabel={`Vitesse des runes de ${l.monster.name}`}
                       />
-                    </label>
-                    {/* Compétence : ce que ce monstre pose sur SON camp quand
-                        il joue. Les deux camps y ont droit — l'adversaire qui
-                        remplit la barre des siens est précisément celui qu'on
-                        cherche à devancer. */}
-                    <label className="flex flex-col gap-0.5">
-                      <span
-                        className="text-micro font-semibold uppercase tracking-wide text-ink-dimmer"
-                        title={
-                          kit.atbCompetence
-                            ? `Lu dans son kit : « ${kit.atbCompetence} » remplit la barre de tout son camp de ${kit.atb} %${
-                                kit.atbSkillUp > 0
-                                  ? ` — compétence MAXÉE (${kit.atbNiveau1} % au niveau 1, +${kit.atbSkillUp} % de skill-up)`
-                                  : ''
-                              }.`
-                            : "Compétence : +% de barre d'attaque posé sur tout son camp au tick où il joue. Rien trouvé dans son kit — à saisir si besoin."
-                        }
-                      >
-                        Boost ATB
-                      </span>
-                      <NumberField
-                        value={l.skillAtb}
-                        onChange={(v) => onSkill(l.uid, 'skillAtb', v)}
-                        min={0}
-                        max={100}
-                        allowEmpty
-                        width="w-12"
-                        placeholder="+%"
-                        ariaLabel={`Boost de barre d'attaque posé par ${l.monster.name} sur son camp`}
-                      />
-                    </label>
-                    <label className="flex flex-col gap-0.5">
-                      <span
-                        className="text-micro font-semibold uppercase tracking-wide text-ink-dimmer"
-                        title={
-                          kit.buffCompetence
-                            ? `Lu dans son kit : « ${kit.buffCompetence} » pose un buff de vitesse sur tout son camp.`
-                            : 'Compétence : buff de vitesse posé sur tout son camp à partir du tick suivant son tour. Rien trouvé dans son kit — à saisir si besoin.'
-                        }
-                      >
-                        Buff SPD
-                      </span>
-                      <span className="flex items-center gap-1">
-                        <BoutonIcone
-                          cadre
-                          taille="serre"
-                          actif={!!l.skillSpeed}
-                          onClick={() => onSkill(l.uid, 'skillSpeed', l.skillSpeed ? null : BUFF_SPD)}
-                          libelle={`${l.monster.name} pose un buff de vitesse +30 % sur son camp`}
-                          icone={
-                            <img
-                              src={SPD_ICON}
-                              alt=""
-                              width={13}
-                              height={13}
-                              className={l.skillSpeed ? '' : 'opacity-40'}
-                            />
-                          }
-                        />
-                        <NumberField
-                          sansBoutons
-                          value={l.skillSpeed}
-                          onChange={(v) => onSkill(l.uid, 'skillSpeed', v)}
-                          allowEmpty
-                          boxWidth="w-11"
-                          placeholder="·"
-                          ariaLabel={`Buff de vitesse posé par ${l.monster.name} sur son camp`}
-                        />
-                      </span>
                     </label>
                     <label className="flex flex-col gap-0.5">
                       <span

@@ -868,86 +868,6 @@ export default function SpeedTuningSection({ allMonsters, siegeDefenseTeams, sie
             </div>
           </section>
 
-          {/* Barre d'action par tick (résultat, lecture seule) */}
-          <section className="rounded-lg border border-border bg-panel">
-            <div className="border-b border-border-soft px-4 py-2.5 text-micro font-semibold uppercase tracking-wider text-ink-dimmer">
-              Barre d'action par tick
-              <span className="ml-2 font-normal normal-case tracking-normal text-ink-dimmer">
-                · % rempli sur {HORIZON_TICKS} ticks — la case surlignée = ce monstre prend le tour (la barre repart de 0)
-              </span>
-            </div>
-            <div className="overflow-x-auto" ref={enregistrer(0)} onScroll={synchro}>
-              <table
-                className="table-fixed border-collapse font-mono text-xs [font-variant-numeric:tabular-nums]"
-                style={{ width: LARGEUR_TABLE }}
-              >
-                <Colonnes />
-                <TeteTicks premiere="Monstre" />
-                <tbody>
-                  {lignesTableau.map((e) => {
-                    const l = ligneParUid.get(e.id);
-                    if (!l) return null;
-                    const adv = e.camp === 'ennemi';
-                    return (
-                      <tr key={e.id} className="border-b border-border-soft">
-                        <th className="sticky left-0 z-[2] border-r border-border-soft bg-panel px-3 py-1.5 text-left font-normal">
-                          <span className="flex items-center gap-2">
-                            <MonsterAvatar monster={l.monster} size={24} element={false} />
-                            <span className="min-w-0 flex-1">
-                              <span className="flex items-center gap-1.5">
-                                <span className="truncate font-sans text-sm">{l.monster.name}</span>
-                                {adv && (
-                                  <span className="flex-none rounded border border-bad/50 px-1 text-micro font-bold uppercase tracking-wide text-bad">
-                                    adv
-                                  </span>
-                                )}
-                              </span>
-                              <span className="block text-micro text-ink-dim">{e.incBase.toFixed(2)} %/tick</span>
-                            </span>
-                          </span>
-                        </th>
-                        {TICKS.map((t) => {
-                          const num = numAction.get(`${e.id}@${t}`);
-                          const estAction = num != null;
-                          const atb = e.trajectoire[t - 1];
-                          const fond = estAction ? (adv ? 'bg-bad/15' : 'bg-accent-soft') : '';
-                          const encre = estAction
-                            ? 'font-bold text-ink'
-                            : atb != null && atb >= 100
-                              ? 'text-ink' // barre pleine en attente de son tour
-                              : 'text-ink-dim';
-                          return (
-                            <td key={t} className={`relative py-1.5 text-center ${fond} ${encre}`}>
-                              {atb == null ? '' : atb.toFixed(2)}
-                              {estAction && (
-                                <span
-                                  className={`absolute -right-0.5 -top-1 flex h-4 min-w-[1rem] items-center justify-center rounded-full px-0.5 text-micro font-bold text-bg ${
-                                    adv ? 'bg-bad' : 'bg-accent'
-                                  }`}
-                                >
-                                  {num}
-                                </span>
-                              )}
-                            </td>
-                          );
-                        })}
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
-            <div className="flex flex-wrap gap-x-5 gap-y-1 border-t border-border-soft px-4 py-2.5 text-xs text-ink-dim">
-              <span className="flex items-center gap-1.5">
-                <span className="inline-block h-3 w-3 rounded bg-accent-soft" /> Ton équipe agit
-              </span>
-              <span className="flex items-center gap-1.5">
-                <span className="inline-block h-3 w-3 rounded bg-bad/25" /> Adversaire agit
-              </span>
-              <span>Un seul monstre par tick ; le numéro donne l'ordre des tours.</span>
-            </div>
-          </section>
-
           {/* Analyse poussée : l'ordre des tours et le sort de chacun */}
           {poussee && (
             <section className="rounded-lg border border-border bg-panel">
@@ -1079,6 +999,86 @@ export default function SpeedTuningSection({ allMonsters, siegeDefenseTeams, sie
               </div>
             </section>
           )}
+
+          {/* Barre d'action par tick (résultat, lecture seule) */}
+          <section className="rounded-lg border border-border bg-panel">
+            <div className="border-b border-border-soft px-4 py-2.5 text-micro font-semibold uppercase tracking-wider text-ink-dimmer">
+              Barre d'action par tick
+              <span className="ml-2 font-normal normal-case tracking-normal text-ink-dimmer">
+                · % rempli sur {HORIZON_TICKS} ticks — la case surlignée = ce monstre prend le tour (la barre repart de 0)
+              </span>
+            </div>
+            <div className="overflow-x-auto" ref={enregistrer(0)} onScroll={synchro}>
+              <table
+                className="table-fixed border-collapse font-mono text-xs [font-variant-numeric:tabular-nums]"
+                style={{ width: LARGEUR_TABLE }}
+              >
+                <Colonnes />
+                <TeteTicks premiere="Monstre" />
+                <tbody>
+                  {lignesTableau.map((e) => {
+                    const l = ligneParUid.get(e.id);
+                    if (!l) return null;
+                    const adv = e.camp === 'ennemi';
+                    return (
+                      <tr key={e.id} className="border-b border-border-soft">
+                        <th className="sticky left-0 z-[2] border-r border-border-soft bg-panel px-3 py-1.5 text-left font-normal">
+                          <span className="flex items-center gap-2">
+                            <MonsterAvatar monster={l.monster} size={24} element={false} />
+                            <span className="min-w-0 flex-1">
+                              <span className="flex items-center gap-1.5">
+                                <span className="truncate font-sans text-sm">{l.monster.name}</span>
+                                {adv && (
+                                  <span className="flex-none rounded border border-bad/50 px-1 text-micro font-bold uppercase tracking-wide text-bad">
+                                    adv
+                                  </span>
+                                )}
+                              </span>
+                              <span className="block text-micro text-ink-dim">{e.incBase.toFixed(2)} %/tick</span>
+                            </span>
+                          </span>
+                        </th>
+                        {TICKS.map((t) => {
+                          const num = numAction.get(`${e.id}@${t}`);
+                          const estAction = num != null;
+                          const atb = e.trajectoire[t - 1];
+                          const fond = estAction ? (adv ? 'bg-bad/15' : 'bg-accent-soft') : '';
+                          const encre = estAction
+                            ? 'font-bold text-ink'
+                            : atb != null && atb >= 100
+                              ? 'text-ink' // barre pleine en attente de son tour
+                              : 'text-ink-dim';
+                          return (
+                            <td key={t} className={`relative py-1.5 text-center ${fond} ${encre}`}>
+                              {atb == null ? '' : atb.toFixed(2)}
+                              {estAction && (
+                                <span
+                                  className={`absolute -right-0.5 -top-1 flex h-4 min-w-[1rem] items-center justify-center rounded-full px-0.5 text-micro font-bold text-bg ${
+                                    adv ? 'bg-bad' : 'bg-accent'
+                                  }`}
+                                >
+                                  {num}
+                                </span>
+                              )}
+                            </td>
+                          );
+                        })}
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+            <div className="flex flex-wrap gap-x-5 gap-y-1 border-t border-border-soft px-4 py-2.5 text-xs text-ink-dim">
+              <span className="flex items-center gap-1.5">
+                <span className="inline-block h-3 w-3 rounded bg-accent-soft" /> Ton équipe agit
+              </span>
+              <span className="flex items-center gap-1.5">
+                <span className="inline-block h-3 w-3 rounded bg-bad/25" /> Adversaire agit
+              </span>
+              <span>Un seul monstre par tick ; le numéro donne l'ordre des tours.</span>
+            </div>
+          </section>
 
           {/* Grille éditable : boost de barre d'attaque (ponctuel) */}
           <GrilleMod

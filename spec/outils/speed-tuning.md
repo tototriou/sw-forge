@@ -254,8 +254,9 @@ De haut en bas :
    d'un clic sur l'œil.
 3. **Le combo passe-t-il ?** — le verdict, posé AVANT les tableaux : c'est la
    question à laquelle sert l'outil. Vert quand toute l'équipe joue avant le
-   premier adverse (il est nommé, avec son tick) ; rouge sinon — l'adverse qui
-   coupe, puis **une ligne par allié coupé** : son tick, la **vitesse de combat**
+   premier adverse (il est **nommé** ; ⚠️ **sans son tick** — le numéro n'apprend
+   rien de plus que le nom, et le tableau des barres le donne déjà) ; rouge
+   sinon — l'adverse qui coupe, puis **une ligne par allié coupé** : son tick, la **vitesse de combat**
    à atteindre et les **points de vitesse de runes** qui manquent
    (`runeSpeedForTarget`). Sans adverse (ou sans allié), une phrase neutre le
    dit — la section garde sa place, elle ne surgit pas sous le clic.

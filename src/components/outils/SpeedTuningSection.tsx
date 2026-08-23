@@ -620,13 +620,13 @@ export default function SpeedTuningSection({ allMonsters, siegeDefenseTeams, sie
               ) : chaine.ok ? (
                 <p className="flex items-center gap-2 text-sm font-semibold text-good">
                   <Check size={16} className="flex-none" />
-                  Toute ton équipe joue avant {nomDe(chaine.coupeur.id)} (tick {chaine.coupeur.tick}).
+                  Toute ton équipe joue avant {nomDe(chaine.coupeur.id)}.
                 </p>
               ) : (
                 <>
                   <p className="flex items-center gap-2 text-sm font-semibold text-bad">
                     <Scissors size={16} className="flex-none" />
-                    {nomDe(chaine.coupeur.id)} agit au tick {chaine.coupeur.tick} : il coupe ton combo.
+                    {nomDe(chaine.coupeur.id)} coupe ton combo.
                   </p>
                   <ul className="mt-2.5 space-y-1.5">
                     {chaine.coupes.map((c) => {

@@ -1,17 +1,22 @@
 import { Dispatch, SetStateAction } from 'react';
 import {
+  ATK_BUFF_ICON,
+  BRAND_ICON,
   CRIT_MODE_LABELS,
   CritMode,
   DamageSetup,
   DamageVariable,
+  DEF_BREAK_ICON,
+  DEF_BUFF_ICON,
+  SPD_BUFF_ICON,
   SkillDamageProfile,
   SkillDamageUnsupported,
   estPrisEnCharge,
 } from '../../lib/damage';
-import Interrupteur from '../../ui/Interrupteur';
 import NumberField from '../../ui/NumberField';
 import Option from '../../ui/Option';
 import Segmented from '../../ui/Segmented';
+import Vignette from '../../ui/Vignette';
 import HelpPopover from '../HelpPopover';
 
 // Réglage de l'objectif « Dégâts réels » — voir spec/outils/degats-reels.md
@@ -30,9 +35,13 @@ import HelpPopover from '../HelpPopover';
 //    il fait croire à une action.
 //
 // ⚠️ Aucun contrôle dessiné ici : tout vient de `src/ui/` (« rien de
-// custom », voir spec/shared/design.md). Le seul élément propre est
-// l'icône de sort, une image des données SWARFARM — même rendu que la fiche
-// de monstre (MonsterDetailDialog.tsx).
+// custom », voir spec/shared/design.md). Les icônes (sort, effets) sont des
+// DONNÉES affichées dedans, pas des contrôles maison — même rendu que la
+// fiche de monstre (MonsterDetailDialog.tsx). Les effets se choisissent via
+// `Vignette` (la case sélectionnable de la librairie, déjà utilisée pour la
+// palette de couleurs de catégorie RTA) : l'icône EST le contrôle, avec le
+// même liseré + fond teinté qu'une catégorie choisie — pas une case à cocher
+// séparée à côté d'une icône décorative.
 
 interface Props {
   skills: (SkillDamageProfile | SkillDamageUnsupported)[];
@@ -190,24 +199,30 @@ export default function DamageSetupCard({ skills, resolved, setup, setSetup, cha
             Seuls ceux qui changent quelque chose pour ce sort sont proposés.
           </HelpPopover>
         </div>
-        <div className="flex flex-col gap-1.5">
+        {/* ⚠️ L'ICÔNE est le contrôle — pas une icône décorative à côté
+            d'une case à cocher. `choisi` porte le liseré + fond teinté de
+            `Vignette` (la même case sélectionnable que la palette de
+            couleurs RTA) : l'état actif/inactif se voit d'un coup d'œil,
+            sans lire le libellé. */}
+        <div className="flex flex-wrap gap-1.5">
           {utilise('ATK') && (
-            <BasculeEffet libelle="Buff d'attaque (+50 %)" actif={setup.atkBuff} onChange={(v) => maj({ atkBuff: v })} />
+            <EffetVignette icone={ATK_BUFF_ICON} libelle="Buff ATQ" onClick={() => maj({ atkBuff: !setup.atkBuff })} actif={setup.atkBuff} />
           )}
           {utilise('DEF') && (
-            <BasculeEffet libelle="Buff de défense (+70 %)" actif={setup.defBuff} onChange={(v) => maj({ defBuff: v })} />
+            <EffetVignette icone={DEF_BUFF_ICON} libelle="Buff DEF" onClick={() => maj({ defBuff: !setup.defBuff })} actif={setup.defBuff} />
           )}
           {utilise('SPD') && (
-            <BasculeEffet libelle="Buff de vitesse (+30 %)" actif={setup.spdBuff} onChange={(v) => maj({ spdBuff: v })} />
+            <EffetVignette icone={SPD_BUFF_ICON} libelle="Buff VIT" onClick={() => maj({ spdBuff: !setup.spdBuff })} actif={setup.spdBuff} />
           )}
           {montreDefEnnemie && (
-            <BasculeEffet
-              libelle="Réduction de défense sur la cible"
+            <EffetVignette
+              icone={DEF_BREAK_ICON}
+              libelle="Def break"
+              onClick={() => maj({ defBreak: !setup.defBreak })}
               actif={setup.defBreak}
-              onChange={(v) => maj({ defBreak: v })}
             />
           )}
-          <BasculeEffet libelle="Marque sur la cible (+25 %)" actif={setup.brand} onChange={(v) => maj({ brand: v })} />
+          <EffetVignette icone={BRAND_ICON} libelle="Marque" onClick={() => maj({ brand: !setup.brand })} actif={setup.brand} />
         </div>
       </div>
 
@@ -235,21 +250,30 @@ export default function DamageSetupCard({ skills, resolved, setup, setSetup, cha
   );
 }
 
-// Une ligne « intitulé à gauche, interrupteur à droite » — même grammaire que
-// les réglages du menu ⚙ (voir spec/README.md, « Réglages globaux »).
-function BasculeEffet({
+// Un effet de combat = une icône de jeu cliquable, choisie/non choisie —
+// `Vignette` porte déjà tout le highlight (liseré + fond teinté), rien à
+// redessiner. Sans `teinte` : reprend l'accent par défaut de la librairie,
+// cohérent avec le reste de l'écran (aucune couleur de jeu propre à un
+// effet de combat, contrairement à une catégorie RTA).
+function EffetVignette({
+  icone,
   libelle,
   actif,
-  onChange,
+  onClick,
 }: {
+  icone: string;
   libelle: string;
   actif: boolean;
-  onChange: (v: boolean) => void;
+  onClick: () => void;
 }) {
   return (
-    <label className="flex items-center justify-between gap-3">
-      <span className="text-xs text-ink-dim">{libelle}</span>
-      <Interrupteur actif={actif} onChange={onChange} aria-label={libelle} />
-    </label>
+    <Vignette
+      choisi={actif}
+      onClick={onClick}
+      largeur="w-16"
+      aria-label={`${libelle} — ${actif ? 'actif' : 'inactif'}`}
+      contenu={<img src={icone} alt="" className="h-7 w-7" loading="lazy" />}
+      libelle={libelle}
+    />
   );
 }

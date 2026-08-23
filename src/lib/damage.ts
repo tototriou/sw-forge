@@ -41,15 +41,28 @@ export function defenseFactor(def: number): number {
 // Potences de base des buffs, tronquées vers le bas selon le bonus d'effet
 // (`⌊base × (1 + effet/100)⌋`, voir spec/mecaniques.md). v1 n'expose PAS de
 // bonus d'effet : la potence de base s'applique telle quelle.
+//
+// ⚠️ Chaque effet porte ici son ICÔNE de jeu (même hébergement SWARFARM que
+// `EffetCompetence.icone`, voir monsterSkills.ts — pas de fichier local,
+// affichée telle quelle en `<img>` comme partout ailleurs dans l'app) : ce
+// sont ces icônes qui SERVENT DE CONTRÔLE dans DamageSetupCard.tsx (une
+// vignette cliquable, pas une case à cocher séparée) — les garder à côté de
+// la constante qu'elles illustrent évite qu'elles divergent silencieusement
+// si une constante change un jour.
 export const ATK_BUFF_PCT = 50;
+export const ATK_BUFF_ICON = 'https://swarfarm.com/static/herders/images/buffs/buff_attack_up.png';
 export const DEF_BUFF_PCT = 70;
+export const DEF_BUFF_ICON = 'https://swarfarm.com/static/herders/images/buffs/buff_defence_up.png';
 export const SPD_BUFF_PCT = 30;
+export const SPD_BUFF_ICON = 'https://swarfarm.com/static/herders/images/buffs/buff_speed.png';
 // Réduction de défense (« def break ») : la DEF de la cible est multipliée
 // par ce facteur.
 export const DEF_BREAK_FACTOR = 0.3;
+export const DEF_BREAK_ICON = 'https://swarfarm.com/static/herders/images/buffs/debuff_defence_down.png';
 // Marque (« Branding ») : +25 % de dégâts subis. Additif dans le terme
 // « Réductions » de l'équation finale, pas un multiplicateur du DMG%.
 export const BRAND_BONUS_PCT = 25;
+export const BRAND_ICON = 'https://swarfarm.com/static/herders/images/buffs/debuff_brand.png';
 
 // ── Formules de compétence ───────────────────────────────────────────────
 // Les variables que ce module sait évaluer. Toute autre variable rencontrée

@@ -159,17 +159,20 @@ export default function SpeedTuningSection({ allMonsters, siegeDefenseTeams, sie
       { uid, monster, runeSpeed: null, camp, atbMod: {}, speedMod: {}, artefactBuff: null, masque: false },
     ]);
   }
-  // Import d'un deck de siège dans « Ton équipe » : les monstres du deck
-  // rejoignent le camp allié avec LEUR vitesse de runes — celle du deck fait
-  // foi, un monstre déjà présent voit donc la sienne remplacée (et réapparaît
-  // s'il était masqué). Rien n'est retiré : ce qui est déjà là reste.
-  function importerDeck(team: SiegeTeam) {
+  // Import d'un deck de siège dans un camp : les monstres du deck y rejoignent
+  // la liste avec LEUR vitesse de runes — celle du deck fait foi, un monstre
+  // déjà présent dans CE camp voit donc la sienne remplacée (et réapparaît s'il
+  // était masqué). Rien n'est retiré : ce qui est déjà là reste.
+  //
+  // Les deux camps y ont droit : une défense de siège se joue aussi bien depuis
+  // l'autre bord, et c'est même là qu'on la connaît le mieux (on l'a affrontée).
+  function importerDeck(camp: Camp, team: SiegeTeam) {
     const { monstres, lead } = deckPourSpeedTune(team, monsterById);
     if (monstres.length === 0) return;
     setLignes((prev) => {
       const next = [...prev];
       for (const { monster, runeSpeed } of monstres) {
-        const uid = uidDe('allie', String(monster.id));
+        const uid = uidDe(camp, String(monster.id));
         const i = next.findIndex((l) => l.uid === uid);
         if (i >= 0) next[i] = { ...next[i], runeSpeed, masque: false };
         else
@@ -177,7 +180,7 @@ export default function SpeedTuningSection({ allMonsters, siegeDefenseTeams, sie
             uid,
             monster,
             runeSpeed,
-            camp: 'allie',
+            camp,
             atbMod: {},
             speedMod: {},
             artefactBuff: null,
@@ -187,7 +190,7 @@ export default function SpeedTuningSection({ allMonsters, siegeDefenseTeams, sie
       return next;
     });
     // Le lead du leader du deck, s'il vaut pour tout le camp (voir speedTuneDeck.ts).
-    if (lead != null) setLeadAllie(lead);
+    if (lead != null) (camp === 'allie' ? setLeadAllie : setLeadEnnemi)(lead);
   }
 
   function retirer(uid: string) {
@@ -371,7 +374,7 @@ export default function SpeedTuningSection({ allMonsters, siegeDefenseTeams, sie
           onRuneSpeed={setRuneSpeed}
           onArtefact={setArtefact}
           decks={decks}
-          onImporterDeck={importerDeck}
+          onImporterDeck={(team) => importerDeck('allie', team)}
         />
         <CampPanneau
           camp="ennemi"
@@ -386,6 +389,8 @@ export default function SpeedTuningSection({ allMonsters, siegeDefenseTeams, sie
           onRetirer={retirer}
           onMasquer={basculerMasque}
           onRuneSpeed={setRuneSpeed}
+          decks={decks}
+          onImporterDeck={(team) => importerDeck('ennemi', team)}
         />
       </div>
 
@@ -569,8 +574,8 @@ interface CampProps {
   // Présent (alliés) = une saisie « bonus d'artéfact au buff de vitesse » par
   // monstre. Absent (en face) = pas de champ : on ignore les artéfacts adverses.
   onArtefact?: (uid: string, v: number | null) => void;
-  // Présents (alliés) = le bouton d'import d'un deck de siège. Absents (en
-  // face) = pas de bouton : on n'importe que SA propre composition.
+  // Le bouton d'import d'un deck de siège, dans les DEUX camps : on reprend sa
+  // propre compo d'un côté, la défense qu'on affronte de l'autre.
   decks?: DeckDispo[];
   onImporterDeck?: (team: SiegeTeam) => void;
 }
@@ -723,7 +728,7 @@ function CampPanneau({
           onAdd={onAjouter}
           placeholder={adv ? 'Ajouter un monstre adverse…' : 'Ajouter un monstre à ton équipe…'}
         />
-        {decks && onImporterDeck && <ImportDeck decks={decks} onImporter={onImporterDeck} />}
+        {decks && onImporterDeck && <ImportDeck decks={decks} onImporter={onImporterDeck} adv={adv} />}
       </div>
     </section>
   );
@@ -905,7 +910,15 @@ const LIBELLE_SOURCE: Record<DeckDispo['source'], string> = {
 // monstres et trois vitesses de runes. Le bouton reste TOUJOURS affiché, même
 // sans compte chargé : désactivé, il dit que la possibilité existe (voir
 // spec/shared/design.md).
-function ImportDeck({ decks, onImporter }: { decks: DeckDispo[]; onImporter: (team: SiegeTeam) => void }) {
+function ImportDeck({
+  decks,
+  onImporter,
+  adv,
+}: {
+  decks: DeckDispo[];
+  onImporter: (team: SiegeTeam) => void;
+  adv: boolean;
+}) {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement | null>(null);
 
@@ -939,7 +952,9 @@ function ImportDeck({ decks, onImporter }: { decks: DeckDispo[]; onImporter: (te
         title={
           vide
             ? "Aucune équipe de siège enregistrée — importe ton compte, ou compose une défense / offense dans Siège."
-            : 'Reprendre une de tes équipes de siège dans ton équipe'
+            : adv
+              ? 'Reprendre une de tes équipes de siège comme composition adverse'
+              : 'Reprendre une de tes équipes de siège dans ton équipe'
         }
         aria-expanded={open}
         onClick={() => setOpen((v) => !v)}

@@ -55,18 +55,22 @@ trois vitesses de runes. Calcul pur dans
 [speedTuneDeck.ts](src/lib/speedTuneDeck.ts), **testé**
 ([tests/speed-tune.test.ts](tests/speed-tune.test.ts)).
 
-- **Côté allié seulement** : on n'importe que SA propre composition (les decks
-  d'en face, on ne les a pas). Le bouton ouvre un **flottant** listant les
-  équipes de **Défense** puis d'**Offense** du siège (portraits + noms des
-  monstres, `teamSummary`) — une équipe sans aucun monstre connu n'y figure pas.
+- **Les deux camps** ont le bouton, sur la même liste : à gauche on reprend sa
+  propre composition, à droite la **défense qu'on affronte** — c'est là qu'une
+  équipe de siège enregistrée sert le plus (on l'a déjà rencontrée). Il ouvre un
+  **flottant** listant les équipes de **Défense** puis d'**Offense** du siège
+  (portraits + noms des monstres, `teamSummary`) — une équipe sans aucun monstre
+  connu n'y figure pas.
 - **Toujours affiché, désactivé** sans compte chargé (aucune équipe) : son
   `title` dit pourquoi.
-- **L'import n'enlève rien** : les monstres du deck rejoignent le camp allié
-  avec **la vitesse de runes du deck** ; un monstre déjà présent voit la sienne
-  **remplacée** (le deck fait foi) et **réapparaît** s'il était masqué. Ce qui
-  était là avant reste — à retirer d'un clic sur la croix si on ne le veut pas.
+- **L'import n'enlève rien** : les monstres du deck rejoignent **le camp d'où
+  on a cliqué** avec **la vitesse de runes du deck** ; un monstre déjà présent
+  **dans ce camp** voit la sienne **remplacée** (le deck fait foi) et
+  **réapparaît** s'il était masqué. Ce qui était là avant reste — à retirer d'un
+  clic sur la croix si on ne le veut pas. Le même deck peut être importé **des
+  deux côtés** (`uid = camp:id`), pour se comparer à soi-même.
 - **Lead** : celui du **leader du deck** (slot 0, convention du siège), appliqué
-  au camp **seulement s'il vaut pour tout le monde** (`General` / `Guild`). ⚠️ Un
+  au camp qui reçoit l'import **seulement s'il vaut pour tout le monde** (`General` / `Guild`). ⚠️ Un
   lead d'**élément** ne se transpose PAS — le speed tuning n'a qu'un lead par
   camp, l'appliquer à tous gonflerait la vitesse des monstres d'un autre
   élément : le lead saisi reste alors inchangé. Un lead absent des raccourcis de
@@ -116,8 +120,8 @@ De haut en bas :
    **allié uniquement**, chaque monstre a en plus un champ **« Arté buff »** — le
    bonus d'artéfact au buff de vitesse (voir Formule). Un même monstre peut
    figurer des DEUX côtés (`uid = camp:id`), pas deux fois dans le même camp.
-   Côté **allié uniquement**, un bouton **« Importer un deck de siège »** sous
-   la barre de recherche (voir plus bas). Chaque monstre est une **card** avec, en **haut à droite** (convention app),
+   **Chaque camp** porte sous sa barre de recherche un bouton **« Importer un
+   deck de siège »** (voir plus bas). Chaque monstre est une **card** avec, en **haut à droite** (convention app),
    l'**œil** (masquer / afficher) et la **croix** de suppression. Un monstre
    **masqué** reste dans son camp (grisé) mais quitte les calculs et les trois
    tableaux — pour tester une compo sans perdre son réglage ; on le réaffiche

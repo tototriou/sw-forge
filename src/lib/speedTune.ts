@@ -189,7 +189,15 @@ export function simuler(monstres: TuneMonstre[], horizon = HORIZON_TICKS): Simul
       if (parSort !== 0) m.effetSpeed[tick] = parSort;
       // Un buff (> 0) est amplifié par le bonus d'artéfact, additivement ; un
       // ralenti (< 0) n'est pas concerné.
-      const buff = buffBase > 0 ? buffBase * (1 + (m.artefactBuff ?? 0) / 100) : buffBase;
+      // ⚠️ **La valeur du buff est un ENTIER de pourcentage.** Le jeu affiche
+      // « +30 % », « +33 % » — pas 32,7 %. Un artéfact de 9 % donne
+      // 30 × 1,09 = 32,7 → **32 %**, tronqué, quand 10 % donne 33 % tout rond :
+      // c'est exactement ce qui a été mesuré en jeu (9 ne passait pas, 10 oui)
+      // alors que le calcul décimal disait que 9 suffisait. On TRONQUE (et non
+      // arrondit) : arrondir donnerait 33 % à 9 d'artéfact, ce que le jeu
+      // dément.
+      const buff =
+        buffBase > 0 ? Math.floor(buffBase * (1 + (m.artefactBuff ?? 0) / 100)) : buffBase;
       m.atb += atbParTick((m.combat * (100 + buff)) / 100);
       const boost = m.atbMod?.[tick] ?? 0;
       if (boost) m.atb += boost;

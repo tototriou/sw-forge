@@ -53,6 +53,13 @@ dans la simulation :
   amplifier sinon ; il ne s'applique **pas** à un ralenti).
   ⚠️ **MULTIPLICATIF sur la VALEUR DU BUFF**, pas additif à la vitesse :
   buff 30 % + artéfact 10 % → **buff 33 %**, pas 40 %.
+  ⚠️ **Et la valeur du buff est un ENTIER de pourcentage** : le jeu affiche
+  « +30 % », « +33 % », jamais 32,7 %. On **tronque** — 9 d'artéfact donne
+  30 × 1,09 = 32,7 → **32 %**, quand 10 donne 33 % tout rond. Mesuré en jeu :
+  9 ne passait pas, 10 oui, alors que le calcul décimal disait que 9 suffisait.
+  Arrondir au lieu de tronquer donnerait 33 % dès 9, ce que le jeu dément.
+  Conséquence utile : l'artéfact avance **par paliers**, et l'outil propose le
+  premier palier qui change quelque chose.
   > « Increase SPD Effect +N% | Multiplicative | The buff value | 10% artifact
   > makes SPD buff being 33% instead of 30% » —
   > [Ellia's Wiki](https://elliabot.neocities.org/game_mechanics/artifacts/)

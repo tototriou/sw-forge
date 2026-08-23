@@ -117,6 +117,19 @@ export default function testSpeedTune() {
       '9.520',
       'buff +30 % + artéfact +20 % → buff 36 %, soit 9,52 au tick 1 (et non 10,5 : ce serait additif)'
     );
+    // ⚠️ Cas MESURÉ EN JEU : 9 d'artéfact ne passait pas, 10 oui. La valeur du
+    // buff est un ENTIER de pourcentage — 30 × 1,09 = 32,7 → 32 % (tronqué),
+    // alors que 30 × 1,10 = 33 % tout rond. Le calcul décimal faisait croire
+    // que 9 suffisait.
+    const neuf = simuler([{ id: 'a9', combat: 100, camp: 'allie', speedMod: { 1: 30 }, artefactBuff: 9 }]);
+    const dix = simuler([{ id: 'a10', combat: 100, camp: 'allie', speedMod: { 1: 30 }, artefactBuff: 10 }]);
+    egal(neuf.lignes[0].trajectoire[0].toFixed(3), '9.240', '9 % d’artéfact → buff 32 % (tronqué), pas 32,7');
+    egal(dix.lignes[0].trajectoire[0].toFixed(3), '9.310', '10 % d’artéfact → buff 33 %');
+    ok(
+      dix.lignes[0].trajectoire[0] > neuf.lignes[0].trajectoire[0],
+      "le dixième point d'artéfact fait bien un saut, le neuvième non"
+    );
+
     // Le cas de la source, vérifié tel quel : 10 % d'artéfact → buff 33 %.
     const wiki = simuler([
       { id: 'wiki', combat: 100, camp: 'allie', speedMod: { 1: 30 }, artefactBuff: 10 },

@@ -80,6 +80,12 @@ interface Ligne {
   // Le kit du monstre a déjà été lu (et les deux champs pré-remplis). Empêche
   // d'écraser une valeur corrigée à la main au retour sur l'écran.
   kitLu?: boolean;
+  // Adversaire de RÉFÉRENCE posé par l'analyse automatique (copie du monstre le
+  // plus rapide de l'équipe). ⚠️ Tant qu'il porte ce drapeau, il SUIT l'équipe :
+  // changer de deck refait l'analyse sur le nouveau plus rapide, au lieu de la
+  // laisser tourner sur l'ancien. Le premier réglage à la main le débarrasse du
+  // drapeau — il devient un adversaire ordinaire, qu'on garde tel quel.
+  reference?: boolean;
   // Masqué : gardé dans la liste (avec sa config) mais retiré des calculs et des
   // tableaux — pour tester une composition sans perdre le réglage d'un monstre.
   masque: boolean;
@@ -260,45 +266,74 @@ export default function SpeedTuningSection({ allMonsters, siegeDefenseTeams, sie
   // plus rapide ? » — le point de départ d'un speed tune quand on ne sait pas
   // encore qui on affronte. Le monstre est AJOUTÉ en face, donc réglable et
   // retirable comme n'importe quel autre.
-  function analyseAuto() {
+  // Le monstre le plus rapide de l'équipe (visible, vitesse connue) : le modèle
+  // de l'adversaire de référence.
+  function plusRapideAllie(): Ligne | null {
     const candidats = lignesVisibles
       .filter((l) => l.camp === 'allie')
       .map((l) => ({ l, combat: combatDe(l) }))
       .filter((x): x is { l: Ligne; combat: number } => x.combat != null && x.combat > 0)
       .sort((a, b) => b.combat - a.combat);
-    if (candidats.length === 0) return;
-    const modele = candidats[0].l;
-    setLeadEnnemi(leadAllie); // même lead : on compare des vitesses comparables
-    const uid = uidDe('ennemi', String(modele.monster.id));
-    setLignes((prev) => {
-      const i = prev.findIndex((l) => l.uid === uid);
-      if (i >= 0) {
-        const next = [...prev];
-        next[i] = {
-          ...next[i],
-          runeSpeed: modele.runeSpeed,
-          artefactBuff: modele.artefactBuff,
-          masque: false,
-        };
-        return next;
-      }
-      return [
-        ...prev,
-        {
-          uid,
-          monster: modele.monster,
-          runeSpeed: modele.runeSpeed,
-          camp: 'ennemi' as Camp,
-          atbMod: {},
-          speedMod: {},
-          artefactBuff: modele.artefactBuff,
-          skillAtb: null,
-          skillSpeed: null,
-          masque: false,
-        },
-      ];
-    });
+    return candidats[0]?.l ?? null;
   }
+
+  // La ligne « adversaire de référence » construite à partir d'un modèle allié.
+  function ligneReference(modele: Ligne): Ligne {
+    return {
+      uid: uidDe('ennemi', String(modele.monster.id)),
+      monster: modele.monster,
+      runeSpeed: modele.runeSpeed,
+      camp: 'ennemi',
+      atbMod: {},
+      speedMod: {},
+      artefactBuff: modele.artefactBuff,
+      skillAtb: null,
+      skillSpeed: null,
+      reference: true,
+      masque: false,
+    };
+  }
+
+  function analyseAuto() {
+    const modele = plusRapideAllie();
+    if (!modele) return;
+    setLeadEnnemi(leadAllie); // même lead : on compare des vitesses comparables
+    const ref = ligneReference(modele);
+    setLignes((prev) => [...prev.filter((l) => !l.reference && l.uid !== ref.uid), ref]);
+  }
+
+  // ⚠️ L'adversaire de référence SUIT l'équipe. Sans ça, analyser un deck puis en
+  // importer un autre laissait l'analyse tourner sur le monstre le plus rapide de
+  // l'ANCIEN deck — le verdict paraissait juste et ne l'était plus.
+  useEffect(() => {
+    const ref = lignes.find((l) => l.reference);
+    if (!ref) return;
+    const modele = plusRapideAllie();
+    // Plus personne à comparer : la référence n'a plus d'objet.
+    if (!modele) {
+      setLignes((prev) => prev.filter((l) => !l.reference));
+      return;
+    }
+    const cible = ligneReference(modele);
+    if (
+      ref.uid === cible.uid &&
+      ref.runeSpeed === cible.runeSpeed &&
+      ref.artefactBuff === cible.artefactBuff
+    ) {
+      return;
+    }
+    // On garde son état masqué : la référence se met à jour, elle ne se
+    // réaffiche pas dans le dos de qui l'avait mise de côté.
+    setLignes((prev) => [
+      ...prev.filter((l) => !l.reference && l.uid !== cible.uid),
+      { ...cible, masque: ref.masque },
+    ]);
+  }, [lignes, leadAllie]);
+
+  // Le lead d'en face suit celui de l'équipe tant qu'on compare à une référence.
+  useEffect(() => {
+    if (lignes.some((l) => l.reference) && leadEnnemi !== leadAllie) setLeadEnnemi(leadAllie);
+  }, [lignes, leadAllie, leadEnnemi]);
 
   function retirer(uid: string) {
     setLignes((prev) => prev.filter((l) => l.uid !== uid));
@@ -306,11 +341,17 @@ export default function SpeedTuningSection({ allMonsters, siegeDefenseTeams, sie
   function basculerMasque(uid: string) {
     setLignes((prev) => prev.map((l) => (l.uid === uid ? { ...l, masque: !l.masque } : l)));
   }
+  // ⚠️ Toute saisie sur une ligne lui retire le drapeau « référence » : à partir
+  // du moment où on la règle, elle n'est plus une copie qui suit l'équipe mais un
+  // adversaire à part entière — et l'écraser au prochain changement serait une
+  // perte de travail silencieuse.
+  const aLaMain = (l: Ligne): Ligne => (l.reference ? { ...l, reference: false } : l);
+
   function setRuneSpeed(uid: string, v: number | null) {
-    setLignes((prev) => prev.map((l) => (l.uid === uid ? { ...l, runeSpeed: v } : l)));
+    setLignes((prev) => prev.map((l) => (l.uid === uid ? { ...aLaMain(l), runeSpeed: v } : l)));
   }
   function setArtefact(uid: string, v: number | null) {
-    setLignes((prev) => prev.map((l) => (l.uid === uid ? { ...l, artefactBuff: v } : l)));
+    setLignes((prev) => prev.map((l) => (l.uid === uid ? { ...aLaMain(l), artefactBuff: v } : l)));
   }
 
   // Écrit une valeur de modificateur dans la grille `champ`, pour un tick donné.
@@ -322,7 +363,9 @@ export default function SpeedTuningSection({ allMonsters, siegeDefenseTeams, sie
     return next;
   };
   function setMod(champ: ChampMod, uid: string, tick: number, v: number | null) {
-    setLignes((prev) => prev.map((l) => (l.uid === uid ? { ...l, [champ]: majMap(l[champ], tick, v) } : l)));
+    setLignes((prev) =>
+      prev.map((l) => (l.uid === uid ? { ...aLaMain(l), [champ]: majMap(l[champ], tick, v) } : l))
+    );
   }
   function setModEquipe(champ: ChampMod, camp: Camp, tick: number, v: number | null) {
     setLignes((prev) => prev.map((l) => (l.camp === camp ? { ...l, [champ]: majMap(l[champ], tick, v) } : l)));
@@ -465,6 +508,10 @@ export default function SpeedTuningSection({ allMonsters, siegeDefenseTeams, sie
   // Grilles et repère ne comptent que les visibles.
   const aAllie = lignesVisibles.some((l) => l.camp === 'allie');
   const aEnnemi = lignesVisibles.some((l) => l.camp === 'ennemi');
+  // Un adversaire de RÉFÉRENCE ne compte pas comme un vrai adversaire : tant
+  // qu'il n'y a que lui en face, « Lancer l'analyse » reste actif — c'est ce qui
+  // permet de la relancer après avoir changé d'équipe.
+  const aVraiEnnemi = lignesVisibles.some((l) => l.camp === 'ennemi' && !l.reference);
 
   return (
     <div className="space-y-4">
@@ -647,12 +694,12 @@ export default function SpeedTuningSection({ allMonsters, siegeDefenseTeams, sie
               <Bouton
                 icone={<Play size={14} />}
                 libelle="Lancer l'analyse"
-                disabled={!aAllie || aEnnemi}
+                disabled={!aAllie || aVraiEnnemi}
                 title={
                   !aAllie
                     ? "Ajoute d'abord des monstres à ton équipe."
-                    : aEnnemi
-                      ? "L'analyse est déjà faite : elle se recalcule à chaque changement."
+                    : aVraiEnnemi
+                      ? "L'analyse est déjà faite sur les monstres d'en face : elle se recalcule à chaque changement."
                       : 'Pose en face une copie de ton monstre le plus rapide (même lead, même vitesse de runes) et vérifie que toute ton équipe joue avant lui.'
                 }
                 onClick={analyseAuto}
@@ -939,7 +986,17 @@ function CampPanneau({
                   <div className="flex items-center gap-2.5">
                     <MonsterAvatar monster={l.monster} size={34} />
                     <div className="min-w-0 flex-1">
-                      <div className="truncate text-sm font-semibold">{l.monster.name}</div>
+                      <div className="flex items-center gap-1.5">
+                        <span className="truncate text-sm font-semibold">{l.monster.name}</span>
+                        {l.reference && (
+                          <span
+                            className="flex-none rounded border border-border px-1 text-micro font-bold uppercase tracking-wide text-ink-dim"
+                            title="Adversaire de référence : copie de ton monstre le plus rapide. Il SUIT ton équipe — jusqu'au premier réglage à la main, qui en fait un adversaire ordinaire."
+                          >
+                            réf
+                          </span>
+                        )}
+                      </div>
                       <div className="font-mono text-micro text-ink-dim">base {l.monster.stats.speed ?? '—'}</div>
                     </div>
                   </div>

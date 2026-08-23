@@ -255,10 +255,23 @@ De haut en bas :
    copie du monstre le **plus rapide** de l'équipe (**même lead**, même vitesse
    de runes, **même artéfact « Effet aug. VIT »**). La question devient « toute mon équipe joue-t-elle avant un monstre
    aussi rapide que mon plus rapide ? », le point de départ d'un speed tune quand
-   on ne sait pas encore qui on affronte. Ce monstre est **ajouté** en face :
-   réglable et retirable comme un autre. Désactivé (avec son `title`) sans équipe,
-   ou quand « En face » est déjà rempli — l'analyse s'y recalcule **à chaque
-   changement**, sans rien demander.
+   on ne sait pas encore qui on affronte. Ce monstre est **ajouté** en face,
+   marqué d'un badge **« réf »**, réglable et retirable comme un autre.
+
+   ⚠️ **La référence SUIT l'équipe.** Sans ça, analyser un deck puis en importer
+   un autre laissait l'analyse tourner sur le monstre le plus rapide de
+   l'**ancien** deck : le verdict paraissait juste et ne l'était plus. Tant
+   qu'elle porte son drapeau, elle se recale sur le plus rapide du moment
+   (monstre, vitesse de runes, artéfact ; le lead d'en face suit celui de
+   l'équipe), et disparaît si l'équipe se vide. Son état **masqué** est préservé.
+
+   ⚠️ **Le premier réglage à la main lui retire le drapeau** (vitesse de runes,
+   artéfact, ou une cellule de grille) : elle devient un adversaire ordinaire,
+   qu'on ne réécrit plus — écraser un réglage serait une perte silencieuse.
+
+   Le bouton est **désactivé** sans équipe, ou quand « En face » porte un
+   **vrai** adversaire (l'analyse s'y recalcule à chaque changement). Une
+   référence seule ne le désactive pas : c'est ce qui permet de la relancer.
 4. **Barre d'action par tick** (lecture seule) — tableau : lignes triées par
    ordre de tour, colonnes = ticks. Chaque cellule = `% rempli` — la
    **trajectoire réelle** renvoyée par la simulation (`OrdreEntree.trajectoire`),

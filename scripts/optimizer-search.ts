@@ -25,6 +25,8 @@ import {
   printMonsterSummary,
 } from './lib/loadMonster';
 import { recipeToSearchParams } from './lib/recipeToSearchParams';
+import { loadMonsterSkills } from './lib/skillsData';
+import { DEFAULT_DAMAGE_SETUP, damageRelevantStats, monsterDamageSkills, resolveDamageSkill } from '../src/lib/damage';
 import { runSearchToCompletion } from './lib/runSearch';
 import { ExclusionSourceData, autoExcludedRuneIds, resolveExcludedRuneIds } from '../src/lib/optimizerExclusion';
 
@@ -129,6 +131,36 @@ if (recipe.excludedSelectors && recipe.excludedSelectors.length > 0 && exclusion
   // qu'à la box, où `unitId` est toujours réel.
   const resolved = resolveExcludedRuneIds(recipe.excludedSelectors, exclusionData, String(loaded.unitId), loaded.com2usId);
   console.log(`Exclusion manuelle : ${recipe.excludedSelectors.length} sélection(s) dans la recette, ${resolved.size} rune(s) réellement exclue(s) sur ce compte.`);
+}
+
+// Objectif « Dégâts réels » : dire QUEL sort a réellement été retenu et sur
+// quelles stats le pré-filtrage va être orienté. Une recette reçue d'un autre
+// joueur peut désigner un sort absent du monstre chargé ici — le repli sur le
+// sort par défaut est silencieux côté code (voir `resolveDamageSkill`), il ne
+// doit pas l'être côté console.
+if (recipe.objective === 'degats_reels') {
+  const skills = monsterDamageSkills(loadMonsterSkills(loaded.com2usId));
+  const profile = resolveDamageSkill(skills, recipe.damageSetup?.skillCom2usId ?? null);
+  const s = recipe.damageSetup ?? DEFAULT_DAMAGE_SETUP;
+  if (!profile) {
+    console.warn(
+      `⚠️ Objectif « Dégâts réels » mais AUCUN sort calculable pour ${loaded.monsterName} (fiche absente ou formules hors modèle) — ` +
+        `le pré-filtrage retombe sur le biais « Dégâts » (ATQ + Dgts Crit).`
+    );
+  } else {
+    if (s.skillCom2usId != null && s.skillCom2usId !== profile.skillCom2usId) {
+      console.warn(`⚠️ Sort ${s.skillCom2usId} de la recette introuvable ici — repli sur « ${profile.nom} ».`);
+    }
+    console.log(
+      `Dégâts réels : sort « ${profile.nom} » (S${profile.slot}, ${profile.hits} coup(s)` +
+        `${profile.aoe ? ', zone' : ''}${profile.ignoreDef ? ', ignore la DEF' : ''}` +
+        `${profile.skillupDamagePct ? `, +${profile.skillupDamagePct} % d'améliorations` : ''}) — ` +
+        `cible ${s.enemyHp} PV / ${s.enemyDef} DEF — crit ${s.critMode}` +
+        `${s.atkBuff ? ' — buff ATQ' : ''}${s.defBuff ? ' — buff DEF' : ''}${s.spdBuff ? ' — buff VIT' : ''}` +
+        `${s.defBreak ? ' — def break' : ''}${s.brand ? ' — marque' : ''} — ` +
+        `stats privilégiées [${damageRelevantStats(profile).join(', ')}]`
+    );
+  }
 }
 
 const params = recipeToSearchParams(recipe, loaded, exclusionData);

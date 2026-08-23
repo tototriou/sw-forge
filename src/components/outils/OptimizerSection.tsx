@@ -29,10 +29,19 @@ import {
   objectiveScore,
   candidateMetricTotal,
   OBJECTIVE_LABELS,
+  RealDamageContext,
   SLOT_FILTER_PRESETS,
   ARTIFACT_MAIN_VALUE,
   ARTIFACT_MAIN_OPTIONS,
 } from '../../lib/runeBuildOptim';
+import { DetailMonstre, chargerDetail } from '../../lib/monsterSkills';
+import {
+  DEFAULT_DAMAGE_SETUP,
+  computeSkillDamage,
+  damageRelevantStats,
+  monsterDamageSkills,
+  resolveDamageSkill,
+} from '../../lib/damage';
 import {
   AUTO_EXCLUSION_SCOPES,
   AutoExclusionScope,
@@ -66,6 +75,7 @@ import MonsterGearPicker, { GearedMonster } from './MonsterGearPicker';
 import RuneExclusionPicker from './RuneExclusionPicker';
 import SetComboPicker from './SetComboPicker';
 import BuildCandidateCard from './BuildCandidateCard';
+import DamageSetupCard from './DamageSetupCard';
 
 interface Props {
   box: BoxItem[];
@@ -153,6 +163,8 @@ export default function OptimizerSection({ box, runes, optimizer, allMonsters, r
     setMainStatsBySlot,
     objective,
     setObjective,
+    damageSetup,
+    setDamageSetup,
     excludeUsedRunes,
     setExcludeUsedRunes,
     excludeUsedScope,
@@ -214,6 +226,55 @@ export default function OptimizerSection({ box, runes, optimizer, allMonsters, r
   // sens) — simple lookup O(1) dans la Map déjà calculée ci-dessus, pas un
   // nouveau balayage de `box`.
   const selectedUnitKey = selected ? (bestUnitKeyByMonsterId.get(String(selected.monster.id)) ?? null) : null;
+
+  // ── Objectif « Dégâts réels » ────────────────────────────────────────
+  // Fiche de compétences du monstre choisi. ⚠️ Chargée pour TOUT monstre
+  // sélectionné, pas seulement quand l'objectif est « Dégâts réels » : sans
+  // ça, choisir l'objectif afficherait un panneau vide le temps d'un
+  // aller-retour réseau, juste après le clic. `chargerDetail` met en cache
+  // (y compris les absences), donc ce préchargement ne coûte rien à la
+  // seconde visite.
+  const [skillDetail, setSkillDetail] = useState<DetailMonstre | null>(null);
+  const [skillLoading, setSkillLoading] = useState(false);
+  const selectedCom2usId = selected?.monster.com2usId ?? null;
+  useEffect(() => {
+    let vivant = true;
+    setSkillLoading(true);
+    chargerDetail(selectedCom2usId).then((d) => {
+      // ⚠️ Garde de démontage/changement de monstre : on peut changer de
+      // monstre avant la fin du chargement, et écrire l'ancienne fiche
+      // écraserait la bonne (même garde que MonsterDetailDialog.tsx).
+      if (!vivant) return;
+      setSkillDetail(d);
+      setSkillLoading(false);
+    });
+    return () => {
+      vivant = false;
+    };
+  }, [selectedCom2usId]);
+
+  const damageSkills = useMemo(() => monsterDamageSkills(skillDetail), [skillDetail]);
+  // Le sort RÉELLEMENT retenu — `resolveDamageSkill` est la source unique de
+  // cette résolution, partagée avec la relecture d'une recette en ligne de
+  // commande (scripts/lib/recipeToSearchParams.ts).
+  const resolvedSkill = useMemo(
+    () => resolveDamageSkill(damageSkills, damageSetup.skillCom2usId),
+    [damageSkills, damageSetup.skillCom2usId]
+  );
+  // Stats que le pré-filtrage doit privilégier — `undefined` hors de cet
+  // objectif, auquel cas le moteur retombe sur `OBJECTIVE_RELEVANT_STATS`
+  // (comportement strictement inchangé pour les cinq autres objectifs).
+  const objectiveStats = useMemo(
+    () => (objective === 'degats_reels' ? damageRelevantStats(resolvedSkill) : undefined),
+    [objective, resolvedSkill]
+  );
+  // Contexte de score, exigé par `objectiveScore` pour cet objectif — `null`
+  // si aucun sort n'est calculable, auquel cas l'écran ne propose jamais le
+  // tri « Dégâts réels » (voir `sortOptions`).
+  const realDamage = useMemo<RealDamageContext | null>(
+    () => (resolvedSkill ? { profile: resolvedSkill, setup: damageSetup } : null),
+    [resolvedSkill, damageSetup]
+  );
 
   // Statistiques principales autorisées sur les slots 2/4/6 — vide = libre.
   // Voir spec/outils/optimizer/ : pour un Lushen, ATQ% en 2, Dmg Crit en 4,
@@ -384,8 +445,8 @@ export default function OptimizerSection({ box, runes, optimizer, allMonsters, r
   // stricts avant d'attendre un résultat.
   const estimate = useMemo(() => {
     if (!selected || comboSets.length === 0) return null;
-    return estimateSearchSpace(pool, requirement, selected.gear.base, slotFilterCap, objective);
-  }, [selected, comboSets, pool, requirement, slotFilterCap, objective]);
+    return estimateSearchSpace(pool, requirement, selected.gear.base, slotFilterCap, objective, objectiveStats);
+  }, [selected, comboSets, pool, requirement, slotFilterCap, objective, objectiveStats]);
 
   // Diagnostic affiché UNIQUEMENT si une recherche aboutit à 0 résultat (voir
   // le rendu plus bas) : pour chaque condition posée, le meilleur cas
@@ -455,6 +516,9 @@ export default function OptimizerSection({ box, runes, optimizer, allMonsters, r
       maxMs: exhaustiveSearch ? Number.POSITIVE_INFINITY : HARD_TIMEOUT_MS,
       slotFilterCap,
       objective,
+      // ⚠️ `undefined` hors de « Dégâts réels » — le moteur retombe alors sur
+      // `OBJECTIVE_RELEVANT_STATS[objective]`, comportement inchangé.
+      objectiveStats,
       adaptiveTrancheWeighting,
     });
   }
@@ -475,6 +539,7 @@ export default function OptimizerSection({ box, runes, optimizer, allMonsters, r
       monsterName: selected.monster.name,
       requirement,
       objective,
+      damageSetup,
       metric,
       slotFilterPreset,
       adaptiveTrancheWeighting,
@@ -529,6 +594,12 @@ export default function OptimizerSection({ box, runes, optimizer, allMonsters, r
       setMaxStats(recipe.requirement.maxStats ?? {});
       setMainStatsBySlot(recipe.requirement.mainStats ?? {});
       setObjective(recipe.objective);
+      // ⚠️ `?? DEFAULT_DAMAGE_SETUP` : une recette exportée AVANT ce champ n'a
+      // pas de `damageSetup`. Le `skillCom2usId` qu'elle porte, lui, peut
+      // désigner un sort d'un AUTRE monstre que celui de cette box — c'est
+      // `resolveDamageSkill` qui retombe alors sur le sort par défaut, pas
+      // une erreur d'import (même tolérance que le monstre lui-même, plus bas).
+      setDamageSetup(recipe.damageSetup ?? DEFAULT_DAMAGE_SETUP);
       setSlotFilterPreset(recipe.slotFilterPreset);
       setAdaptiveTrancheWeighting(recipe.adaptiveTrancheWeighting);
       // ⚠️ `?? false` : une recette exportée AVANT ce réglage ne porte pas ce
@@ -588,16 +659,25 @@ export default function OptimizerSection({ box, runes, optimizer, allMonsters, r
       // avec le popover d'une rune (recalculé en direct) si l'utilisateur
       // bascule Efficience ↔ Score après coup sans relancer.
       list.sort((a, b) => candidateMetricTotal(b, runeById, metric) - candidateMetricTotal(a, runeById, metric));
+    } else if (sortBy === 'degats_reels') {
+      // ⚠️ `realDamage` peut être `null` (aucun sort calculable pour ce
+      // monstre) : ce tri n'est alors même pas proposé (voir `sortOptions`),
+      // mais un `sortBy` hérité d'un monstre précédent pourrait encore le
+      // porter — on laisse l'ordre en place plutôt que de lever.
+      if (realDamage) {
+        list.sort((a, b) => objectiveScore(b, sortBy, realDamage) - objectiveScore(a, sortBy, realDamage));
+      }
     } else if (sortBy === 'degats' || sortBy === 'ehp' || sortBy === 'vitesse' || sortBy === 'speed_nuker') {
       // ⚠️ `speed_nuker` retombe sur la même formule que `degats` dans
       // `objectiveScore` — voir son commentaire dans runeBuildOptim.ts (VIT
-      // n'y participe pas encore, en attendant une formule par monstre/sort).
+      // n'y participe pas ; c'est l'objectif « Dégâts réels » qui répond
+      // réellement à ce cas, avec la formule du sort choisi).
       list.sort((a, b) => objectiveScore(b, sortBy) - objectiveScore(a, sortBy));
     } else {
       list.sort((a, b) => statTotal(b.stats, sortBy) - statTotal(a.stats, sortBy));
     }
     return list;
-  }, [candidatesSource, sortBy, runeById, metric]);
+  }, [candidatesSource, sortBy, runeById, metric, realDamage]);
 
   const RESULTS_PAGE_SIZE = 20;
   const totalResultsPages = Math.max(1, Math.ceil(fullSortedCandidates.length / RESULTS_PAGE_SIZE));
@@ -794,10 +874,29 @@ export default function OptimizerSection({ box, runes, optimizer, allMonsters, r
             lancer la recherche — les minimums posés plus bas (Conditions) restent ce qui décide quels
             demi-builds sont conservés pendant la recherche elle-même. <b className="text-ink">Dégâts</b> considère{' '}
             <b className="text-ink">ATQ</b>, <b className="text-ink">Taux Crit</b> et{' '}
-            <b className="text-ink">Dgts Crit</b> ensemble (espérance moyenne).
+            <b className="text-ink">Dgts Crit</b> ensemble (espérance moyenne).{' '}
+            <b className="text-ink">Dégâts réels</b> va plus loin : la vraie formule d&apos;un sort précis
+            contre un adversaire configuré.
           </HelpPopover>
         </div>
         <Segmented options={OBJECTIVE_LABELS} value={objective} onChange={setObjective} size="lg" dense={etroit} />
+        {/* ⚠️ Le réglage vit SOUS l'objectif qui l'active, pas dans une
+            section séparée plus bas : c'est le choix « Dégâts réels » qui
+            rend ces champs pertinents, et rien d'autre à l'écran ne les
+            concerne. Un panneau permanent à moitié grisé aurait alourdi les
+            cinq autres objectifs pour rien. */}
+        {objective === 'degats_reels' && (
+          <div className="mt-2.5">
+            <DamageSetupCard
+              skills={damageSkills}
+              resolved={resolvedSkill}
+              setup={damageSetup}
+              setSetup={setDamageSetup}
+              chargement={skillLoading}
+              etroit={etroit}
+            />
+          </div>
+        )}
       </div>
 
       <div>
@@ -1470,7 +1569,11 @@ export default function OptimizerSection({ box, runes, optimizer, allMonsters, r
                   ))}
                 </optgroup>
                 <optgroup label="Objectifs">
-                  {OBJECTIVE_LABELS.map((o) => (
+                  {/* ⚠️ « Dégâts réels » n'est proposé que si un sort est
+                      réellement calculable pour ce monstre : sans sort, ce
+                      tri n'aurait aucune formule à appliquer et laisserait la
+                      liste dans son ordre précédent, sans rien dire. */}
+                  {OBJECTIVE_LABELS.filter((o) => o.key !== 'degats_reels' || realDamage).map((o) => (
                     <option key={o.key} value={o.key}>
                       {o.label}
                     </option>
@@ -1591,6 +1694,20 @@ export default function OptimizerSection({ box, runes, optimizer, allMonsters, r
                 metric={metric}
                 openRuneKey={openRuneKey}
                 onToggleRune={(key) => setOpenRuneKey((cur) => (cur === key ? null : key))}
+                // ⚠️ Affiché dès qu'un sort est résolu ET que c'est bien le
+                // critère de classement courant (objectif OU tri) — pas
+                // seulement quand `objective` vaut « Dégâts réels » : on peut
+                // avoir lancé la recherche sur un autre objectif puis re-trier
+                // par dégâts réels, auquel cas le chiffre qui ordonne les
+                // cartes doit être visible dessus.
+                degatsReels={
+                  realDamage && (objective === 'degats_reels' || sortBy === 'degats_reels')
+                    ? (() => {
+                        const total = computeSkillDamage(realDamage.profile, c.stats, realDamage.setup);
+                        return { total, partPvCible: damageSetup.enemyHp > 0 ? (total / damageSetup.enemyHp) * 100 : 0 };
+                      })()
+                    : undefined
+                }
               />
             ))}
           </div>

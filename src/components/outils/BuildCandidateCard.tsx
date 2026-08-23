@@ -27,6 +27,12 @@ interface Props {
   // autre rune, même dans une autre carte, ferme le popover déjà ouvert.
   openRuneKey: string | null;
   onToggleRune: (key: string) => void;
+  // Dégâts du sort visé pour CE candidat, quand l'objectif « Dégâts réels »
+  // est actif — `undefined` sinon. ⚠️ Calculé par le PARENT (qui détient le
+  // sort résolu et l'adversaire) plutôt que reconstruit ici : cette carte
+  // n'a aucune raison de connaître le modèle de dégâts, et le parent trie
+  // déjà sur exactement la même valeur.
+  degatsReels?: { total: number; partPvCible: number };
 }
 
 // ⚠️ Même FORME que l'affichage de l'équipement actuellement équipé (RTA/
@@ -50,6 +56,7 @@ export default function BuildCandidateCard({
   metric,
   openRuneKey,
   onToggleRune,
+  degatsReels,
 }: Props) {
   const runes = candidate.runeIds.map((id) => runeById.get(id)).filter((r): r is RuneDetail => !!r);
   const sets = activeSets(runes.map((r) => r.set));
@@ -96,6 +103,23 @@ export default function BuildCandidateCard({
           {metric === 'eff' ? 'Efficience moyenne' : 'Score moyen'} : {formatRuneMetric(liveTotal / 6, metric)}
         </span>
       </div>
+
+      {/* ⚠️ Le chiffre qui a servi à CLASSER ce candidat passe devant la
+          mesure par rune : quand on optimise des dégâts, c'est lui qu'on
+          compare d'une carte à l'autre. La part des PV de la cible le rend
+          lisible sans calcul mental (« ça tue ou pas »), le seul rôle des PV
+          adverses saisis — ils n'entrent jamais dans le classement. */}
+      {degatsReels && (
+        <p className="mb-2 flex flex-wrap items-baseline justify-between gap-x-2 rounded-lg border border-border-soft bg-panel2 px-2 py-1">
+          <span className="text-micro text-ink-dim">Dégâts</span>
+          <span className="font-mono text-sm font-bold text-star">
+            {Math.round(degatsReels.total).toLocaleString('fr-FR')}
+            <span className="ml-1.5 font-normal text-micro text-ink-dim">
+              {degatsReels.partPvCible >= 100 ? 'tue la cible' : `${Math.round(degatsReels.partPvCible)} % des PV`}
+            </span>
+          </span>
+        </p>
+      )}
 
       {sets.length > 0 && (
         <p className="mb-2 flex flex-wrap items-center gap-1 text-micro text-ink-dim">

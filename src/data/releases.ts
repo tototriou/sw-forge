@@ -58,6 +58,42 @@ export const CHANGE_META: Record<ChangeKind, { label: string; color: string }> =
 // Si une ligne dépasse ~15 mots, c'est qu'elle raconte l'implémentation.
 export const RELEASES: Release[] = [
   {
+    version: null,
+    date: '2026-08-23',
+    title: 'Optimiser sur les dégâts réels d’un sort',
+    highlights: [
+      'Nouvel objectif de recherche « Dégâts réels »',
+      'Le sort, l’adversaire et les buffs se règlent ; le reste est déduit',
+    ],
+    changes: [
+      {
+        kind: 'feat',
+        scope: 'Optimiseur',
+        text: 'Nouvel objectif « Dégâts réels » : la vraie formule d’un sort, pas une estimation générique.',
+      },
+      {
+        kind: 'feat',
+        scope: 'Optimiseur',
+        text: 'Choisis la compétence, les PV et la DEF de l’adversaire, les buffs et la marque.',
+      },
+      {
+        kind: 'feat',
+        scope: 'Optimiseur',
+        text: 'Coups, zone, ignore défense et bonus de compétence sont lus dans le jeu — rien à saisir.',
+      },
+      {
+        kind: 'feat',
+        scope: 'Optimiseur',
+        text: 'Chaque résultat affiche ses dégâts et la part des PV de la cible emportée.',
+      },
+      {
+        kind: 'docs',
+        scope: 'Mécaniques',
+        text: 'La page détaille en plus la correction Swift, les dégâts fixes et la variance.',
+      },
+    ],
+  },
+  {
     version: '1.8.1',
     date: '2026-08-21',
     title: 'Nouvel objectif Speed nuker, et un bug de clics sur mobile corrigé',

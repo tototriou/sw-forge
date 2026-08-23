@@ -47,7 +47,7 @@ import { MAX_SET_PIECES, RUNE_EFFECT, SET_STAT_BONUS, StatKey, activeSets, runeE
 import { computeStats, StatRow } from './stats';
 import { missingSets } from './recoMatch';
 import { OptimMetric } from './runeOptim';
-import { DEF_FACTOR_CONST, DEF_FACTOR_COEF } from './damage';
+import { DEF_FACTOR_CONST, DEF_FACTOR_COEF, DamageSetup, SkillDamageProfile, computeSkillDamage } from './damage';
 
 // Statistiques principales possibles, par emplacement — RÈGLES DU JEU. Les
 // slots 1/3/5 ont une principale FIXE (ATQ plat / DEF plat / PV plat) : pas
@@ -111,6 +111,14 @@ export interface SearchParams {
   // en plus de servir de tri par défaut des résultats. Absent = aucun biais
   // (le pré-filtrage ne suit que minStats/maxStats/l'efficience générale).
   objective?: Objective;
+  // ⚠️ IMPOSE les stats à privilégier au pré-filtrage/à la rétention, en
+  // remplacement de `OBJECTIVE_RELEVANT_STATS[objective]` (voir
+  // `objectiveKeysOf`). Existe pour l'objectif « Dégâts réels », dont les
+  // stats pertinentes dépendent du SORT choisi et ne peuvent donc pas être
+  // écrites dans une table statique — l'écran les calcule via
+  // `damageRelevantStats` (damage.ts) et les transmet ici. Absent =
+  // comportement inchangé.
+  objectiveStats?: StatKey[];
   // Bouton « Prioriser les stats les plus difficiles » (OptimizerSection.tsx)
   // — piste B, spec/outils/optimizer/ « Suite — piste B gatée derrière un
   // paramètre ». `false`/absent (défaut, bouton « Rechercher » normal) :
@@ -154,11 +162,21 @@ export interface SearchResult {
 // standard par une formule personnalisée par monstre (sort utilisé,
 // conditions de jeu), qui bénéficiera alors aussi à cet objectif sans
 // modification supplémentaire.
-export type Objective = 'efficience' | 'degats' | 'ehp' | 'vitesse' | 'speed_nuker';
+// `'degats_reels'` : les dégâts d'un SORT précis contre un adversaire
+// configuré (voir spec/outils/degats-reels.md). Contrairement aux quatre
+// autres, ses stats pertinentes ne sont PAS fixes — elles dépendent du sort
+// choisi (`{ATK}`, `{ATK}*({SPD}+70)/30`, `0.2*{MAX HP}`…). L'écran les
+// calcule via `damageRelevantStats` et les transmet dans
+// `SearchParams.objectiveStats` ; l'entrée ci-dessous n'est que le repli
+// utilisé tant qu'aucun sort n'est résolu. C'est aussi la réponse au
+// PLACEHOLDER assumé de `speed_nuker` (voir son commentaire ci-dessus) : ici
+// VIT participe réellement au score quand le sort en dépend.
+export type Objective = 'efficience' | 'degats' | 'ehp' | 'vitesse' | 'speed_nuker' | 'degats_reels';
 
 export const OBJECTIVE_LABELS: { key: Objective; label: string }[] = [
   { key: 'efficience', label: 'Efficience' },
   { key: 'degats', label: 'Dégâts' },
+  { key: 'degats_reels', label: 'Dégâts réels' },
   { key: 'ehp', label: 'PV effectifs' },
   { key: 'vitesse', label: 'Vitesse' },
   { key: 'speed_nuker', label: 'Speed nuker' },
@@ -232,10 +250,29 @@ export const ARTIFACT_MAIN_OPTIONS: { code: 100 | 101 | 102; label: string }[] =
 export const OBJECTIVE_RELEVANT_STATS: Record<Objective, StatKey[]> = {
   efficience: [],
   degats: ['atk', 'cd'],
+  // ⚠️ REPLI seulement — les vraies stats de « Dégâts réels » dépendent du
+  // sort choisi et arrivent par `SearchParams.objectiveStats` (voir
+  // `objectiveKeysOf` juste en dessous). Cette entrée sert quand aucun sort
+  // n'est résolu (fiche du monstre absente, formule non prise en charge).
+  degats_reels: ['atk', 'cd'],
   ehp: ['hp', 'def'],
   vitesse: ['spd'],
   speed_nuker: ['atk', 'cd', 'spd'],
 };
+
+// Les stats à privilégier au pré-filtrage/à la rétention, avec la
+// possibilité de les IMPOSER indépendamment de l'objectif nommé.
+//
+// ⚠️ **Le moteur reste générique** : il ne sait pas ce qu'est un sort ni
+// comment on calcule des dégâts réels — seulement « ces stats-là comptent
+// plus que les autres pour cette recherche ». C'est ce qui permet à
+// `damage.ts` de rester la seule source du raisonnement métier, sans que ce
+// fichier ait à en dépendre (même principe que `pool`, déjà filtré en amont
+// sans que le moteur connaisse les périmètres d'exclusion).
+export function objectiveKeysOf(objective: Objective | undefined, override: StatKey[] | undefined): StatKey[] {
+  if (override) return override;
+  return objective ? OBJECTIVE_RELEVANT_STATS[objective] : [];
+}
 
 export function statTotal(stats: StatRow[], key: StatKey): number {
   return stats.find((s) => s.key === key)?.total ?? 0;
@@ -254,10 +291,31 @@ export function statTotal(stats: StatRow[], key: StatKey): number {
 //    moyenne sur beaucoup de coups.
 //  - PV effectifs : réutilise le facteur de défense déjà documenté dans
 //    spec/mecaniques.md (1000 / (1140 + 3,5 × DEF)), pas une formule maison.
-export function objectiveScore(candidate: BuildCandidate, objective: Objective): number {
+// Contexte supplémentaire exigé par « Dégâts réels » : contrairement aux
+// autres objectifs, son score ne se déduit PAS des seules stats du candidat —
+// il faut le sort visé et l'adversaire configuré. Passé par l'appelant qui
+// les possède (l'écran, ou un script rejouant une recette).
+export interface RealDamageContext {
+  profile: SkillDamageProfile;
+  setup: DamageSetup;
+}
+
+export function objectiveScore(candidate: BuildCandidate, objective: Objective, realDamage?: RealDamageContext): number {
   if (objective === 'efficience') return candidate.effTotal;
   const { stats } = candidate;
   if (objective === 'vitesse') return statTotal(stats, 'spd');
+  if (objective === 'degats_reels') {
+    // ⚠️ Sans contexte, on ÉCHOUE bruyamment plutôt que de retomber sur la
+    // formule « Dégâts » générique : un score plausible mais calculé sur un
+    // autre modèle que celui affiché à l'utilisateur serait invisible. Même
+    // garde-fou que la branche finale de cette fonction, qui a justement
+    // rendu visible un trou réel (voir spec/outils/optimizer/, revue de code
+    // externe).
+    if (!realDamage) {
+      throw new Error("objectiveScore : l'objectif « Dégâts réels » exige un contexte (sort + adversaire).");
+    }
+    return computeSkillDamage(realDamage.profile, stats, realDamage.setup);
+  }
   if (objective === 'degats' || objective === 'speed_nuker') {
     // ⚠️ `speed_nuker` réutilise ICI la même formule que `degats` — PLACEHOLDER
     // assumé, pas une formule dédiée. Pour un vrai speed nuker (ex. Lagmaron,
@@ -679,7 +737,13 @@ export function filterSlot(
   base: BaseStats,
   matchCap = MAX_PER_SLOT_MATCH,
   fillCap = MAX_PER_SLOT_FILL,
-  objective?: Objective
+  objective?: Objective,
+  // ⚠️ Paramètre AJOUTÉ en fin de liste, jamais un changement de type de
+  // `objective` : les ~7 scripts de diagnostic qui appellent cette fonction
+  // vivent hors du périmètre de `tsconfig.json` — `tsc --noEmit` ne verrait
+  // pas leur rupture (incident déjà vécu deux fois, voir
+  // spec/outils/optimizer/). Omis = comportement strictement inchangé.
+  objectiveStats?: StatKey[]
 ): RuneDetail[] {
   const requiredKeys = new Set(requirement.sets);
   // ⚠️ Élagage SÛR, pas une heuristique : combo à coût COMPLET
@@ -751,7 +815,7 @@ export function filterSlot(
   // (`runeContributionAllKeys`), pas rappelée 8× via `runeContribution` —
   // voir son commentaire pour le motif (même bug que `precomputeSlot`
   // ailleurs dans ce fichier, jamais corrigé ici avant).
-  const objectiveKeys = objective ? OBJECTIVE_RELEVANT_STATS[objective] : [];
+  const objectiveKeys = objectiveKeysOf(objective, objectiveStats);
   const contribByRune = pool.map((r) => ({ r, c: runeContributionAllKeys(r) }));
   for (const k of ALL_STAT_KEYS) {
     const keepN = objectiveKeys.includes(k) ? PER_STAT_KEEP_OBJECTIVE : PER_STAT_KEEP;
@@ -2030,10 +2094,11 @@ function buildFilteredBySlot(
   requirement: BuildRequirement,
   base: BaseStats,
   slotCap: number,
-  objective?: Objective
+  objective?: Objective,
+  objectiveStats?: StatKey[]
 ): RuneDetail[][] {
   const bySlot = mainStatFilteredBySlot(pool, requirement);
-  return bySlot.map((list) => filterSlot(list, requirement, base, slotCap, slotCap, objective));
+  return bySlot.map((list) => filterSlot(list, requirement, base, slotCap, slotCap, objective, objectiveStats));
 }
 
 // Estimation, AVANT de lancer la recherche, du nombre de combinaisons brutes
@@ -2047,9 +2112,10 @@ export function estimateSearchSpace(
   requirement: BuildRequirement,
   base: BaseStats,
   slotCap: number,
-  objective?: Objective
+  objective?: Objective,
+  objectiveStats?: StatKey[]
 ): { perSlot: number[]; product: number } {
-  const filtered = buildFilteredBySlot(pool, requirement, base, slotCap, objective);
+  const filtered = buildFilteredBySlot(pool, requirement, base, slotCap, objective, objectiveStats);
   const perSlot = filtered.map((l) => l.length);
   const product = perSlot.reduce((a, b) => a * b, 1);
   return { perSlot, product };
@@ -2091,10 +2157,15 @@ export function estimateSearchSpace(
 // atteinte en usage courant — voir spec/outils/optimizer/, « BUCKET_CAP mis
 // à l'échelle ». Le nombre affiché à l'écran doit rester lisible comme
 // « au pire », pas comme une prédiction.
-export function estimatePairBound(requirement: BuildRequirement, slotFilterCap: number, objective?: Objective): number {
+export function estimatePairBound(
+  requirement: BuildRequirement,
+  slotFilterCap: number,
+  objective?: Objective,
+  objectiveStats?: StatKey[]
+): number {
   const bucketCap = bucketCapFor(slotFilterCap);
   const minKeys = ALL_STAT_KEYS.filter((k) => (requirement.minStats[k] ?? 0) > 0);
-  const retentionKeys = Array.from(new Set<StatKey>([...minKeys, ...(objective ? OBJECTIVE_RELEVANT_STATS[objective] : [])]));
+  const retentionKeys = Array.from(new Set<StatKey>([...minKeys, ...objectiveKeysOf(objective, objectiveStats)]));
   const numHeaps = 1 + (minKeys.length > 0 ? 1 : 0) + retentionKeys.length;
   const maxPerBucket = bucketCap * numHeaps;
 
@@ -2466,7 +2537,7 @@ export function adaptiveMaxNodes(params: SearchParams): number {
     .map((k) => ({ k, min: params.requirement.minStats[k] }))
     .filter((e): e is { k: StatKey; min: number } => e.min != null && e.min > 0);
   const retentionKeys = Array.from(
-    new Set<StatKey>([...minEntries.map((e) => e.k), ...(params.objective ? OBJECTIVE_RELEVANT_STATS[params.objective] : [])])
+    new Set<StatKey>([...minEntries.map((e) => e.k), ...objectiveKeysOf(params.objective, params.objectiveStats)])
   );
   const sliceCount = 1 + (minEntries.length > 0 ? 1 : 0) + retentionKeys.length;
   const ADAPTIVE_ANCHOR_SLICE_COUNT = 5;
@@ -2536,7 +2607,7 @@ export function prepareSearch(params: SearchParams): PreparedSearch | null {
   // proches du plafond, pas les plus basses. Se limiter aux minimums garde
   // la protection strictement sûre.
   const retentionKeys = Array.from(
-    new Set<StatKey>([...minEntries.map((e) => e.k), ...(params.objective ? OBJECTIVE_RELEVANT_STATS[params.objective] : [])])
+    new Set<StatKey>([...minEntries.map((e) => e.k), ...objectiveKeysOf(params.objective, params.objectiveStats)])
   );
   // PROTOTYPE (forge/order-as-weight-contrib, combosOrderMode='objective') —
   // UNIQUEMENT les stats de l'objectif choisi, contrairement à
@@ -2544,7 +2615,7 @@ export function prepareSearch(params: SearchParams): PreparedSearch | null {
   // hors sujet par rapport à l'objectif). Vide si aucun objectif choisi
   // (« Efficience ») — voir objectiveRetentionScore, qui retombe alors sur
   // relevanceScore.
-  const objectiveKeys: StatKey[] = params.objective ? OBJECTIVE_RELEVANT_STATS[params.objective] : [];
+  const objectiveKeys: StatKey[] = objectiveKeysOf(params.objective, params.objectiveStats);
 
   const distinctKeys = Array.from(new Set(requirement.sets));
 
@@ -2563,7 +2634,7 @@ export function prepareSearch(params: SearchParams): PreparedSearch | null {
   let bySlot = mainStatFilteredBySlot(pool, requirement);
   bySlot = bySlot.map((list) => pruneDominated(list, requiredKeys, maxKeys));
   bySlot = eliminateInfeasible(bySlot, minEntries, maxEntries, constrainedKeys, guaranteed, artFlat, relPct, totalOf, guaranteedMin);
-  const filtered = bySlot.map((list) => filterSlot(list, requirement, base, slotCap, slotCap, params.objective));
+  const filtered = bySlot.map((list) => filterSlot(list, requirement, base, slotCap, slotCap, params.objective, params.objectiveStats));
   if (filtered.some((list) => list.length === 0)) {
     return null;
   }

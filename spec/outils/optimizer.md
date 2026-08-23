@@ -17,6 +17,9 @@ saisie de l'écran, remontée dans App.tsx) ·
 [MonsterGearPicker.tsx](src/components/outils/MonsterGearPicker.tsx) ·
 [SetComboPicker.tsx](src/components/outils/SetComboPicker.tsx) ·
 [BuildCandidateCard.tsx](src/components/outils/BuildCandidateCard.tsx) ·
+[DamageSetupCard.tsx](src/components/outils/DamageSetupCard.tsx) +
+[damage.ts](src/lib/damage.ts) (objectif « Dégâts réels », voir
+[degats-reels.md](degats-reels.md)) ·
 [StatPanel.tsx](src/components/StatPanel.tsx) ·
 [ArtifactSlots.tsx](src/components/ArtifactSlots.tsx) ·
 [RuneWheel.tsx](src/components/RuneWheel.tsx) — ces trois derniers
@@ -154,11 +157,50 @@ retour.
      rien en jeu, donc pas plus de dégâts espérés dans ce calcul non plus.
    - **PV effectifs** — considère PV et DEF ensemble.
    - **Vitesse** — VIT seule.
+   - **Dégâts réels** — la **vraie formule d'un sort précis** contre un
+     adversaire configuré, pas une espérance générique. Modèle de calcul
+     détaillé : [degats-reels.md](degats-reels.md). Choisir cet objectif
+     déplie, **juste en dessous**, son propre réglage
+     ([DamageSetupCard.tsx](src/components/outils/DamageSetupCard.tsx)) —
+     et rien ailleurs à l'écran ne change :
+     - **Compétence utilisée** — les sorts offensifs du monstre, chacun
+       accompagné de ce que ses données disent déjà (« 3 coups · Zone ·
+       Ignore la DEF · +30 % (compétence maxée) »). ⚠️ **Rien de tout cela
+       ne se saisit** : coefficient, coups, portée, ignore défense, dégâts
+       fixes et bonus des améliorations sont lus dans la fiche du sort. Par
+       défaut, le dernier slot calculable (S3 avant S2 avant S1). Un sort
+       dont la formule sort du modèle reste **affiché, grisé, avec son
+       motif** — jamais absent sans explication.
+     - **Adversaire** — PV et DEF. ⚠️ Les **PV ne classent rien** : ils ne
+       servent qu'à lire le résultat (« 42 % des PV », « tue la cible »).
+       Un champ **PV restants** n'apparaît que pour les sorts dont la
+       formule lit les PV courants de la cible.
+     - **Effets actifs** — buffs du monstre (ATQ +50 %, DEF +70 %, VIT
+       +30 %) et effets subis par la cible (réduction de défense ×0,3,
+       marque +25 %).
+     - **Coup critique** — Moyenne (défaut, espérance sur le Taux Crit
+       réellement atteint — le seul mode où le Taux Crit pèse sur le
+       classement) / Critique / Non critique.
+     ⚠️ **On n'affiche que ce que le sort CONSOMME** : un sort qui ignore la
+     défense ne montre ni la DEF ennemie ni la réduction de défense ; un
+     sort qui ne dépend pas de la VIT ne montre pas le buff de vitesse. Un
+     champ visible mais sans effet est pire qu'un champ absent — il fait
+     croire à une action.
+     ⚠️ Contrairement aux cinq autres objectifs, ses stats pertinentes
+     **dépendent du sort** (`{ATK}`, `{ATK}×({SPD}+70)/30`, `0.2×{MAX HP}`…)
+     et ne tiennent donc pas dans une table statique : l'écran les calcule
+     (`damageRelevantStats`) et les transmet au moteur via
+     `SearchParams.objectiveStats`. Le moteur, lui, reste générique — il
+     reçoit « ces stats comptent plus », jamais la notion de sort.
+     ⚠️ **Aucun sort calculable** (monstre perso, fiche absente, formules
+     hors modèle) : la recherche reste possible et se rabat sur le biais de
+     **Dégâts** ; le tri « Dégâts réels » n'est alors pas proposé.
    - **Speed nuker** — pré-filtrage/rétention élargis sur ATQ, Dmg Crit **et**
      VIT ensemble (archétype « passe avant l'ennemi, tape fort »). ⚠️ Le
-     **tri**, lui, réutilise pour l'instant la même formule que Dégâts (VIT
-     n'y participe pas) — une formule de dégâts par monstre/sort (ex.
-     Lagmaron : `ATQ × (VIT + 70) / 30`) remplacera ce placeholder plus tard.
+     **tri**, lui, réutilise la même formule que Dégâts (VIT n'y participe
+     pas) — placeholder historique. C'est **Dégâts réels** qui répond
+     réellement à ce cas (ex. Lagmaron, `ATQ × (VIT + 70) / 30` : VIT entre
+     alors vraiment dans le score, puisque la formule du sort la contient).
    ⚠️ L'objectif choisi oriente le **pré-filtrage** (quelles runes ont une
    vraie chance d'être considérées) et le **tri par défaut** des résultats
    (modifiable ensuite) — il **n'influence pas** le classement des candidats
@@ -284,7 +326,14 @@ retour.
     pré-filtrage plus large. Un sélecteur **« Trier par »** re-trie **côté
     client, instantanément**, sans relancer la recherche : le moteur a déjà
     calculé les stats complètes de chaque combinaison retenue. Deux groupes
-    d'options — les 8 stats brutes, et les 4 mêmes objectifs qu'à l'étape 5.
+    d'options — les 8 stats brutes, et les mêmes objectifs qu'à l'étape 5
+    (« Dégâts réels » n'y figure que si un sort est réellement calculable
+    pour ce monstre).
+    ⚠️ **Objectif « Dégâts réels »** : chaque carte affiche en tête le
+    **nombre de dégâts** qui a servi à la classer, et la part des PV de la
+    cible qu'il emporte (« tue la cible » au-delà de 100 %). Visible dès que
+    ce critère ordonne la liste — que ce soit l'objectif de la recherche ou
+    un tri choisi après coup.
 
 ⚠️ **Rien n'est appliqué au compte.** L'outil est en lecture seule et
 purement indicatif, comme le reste de SW Forge (aucune écriture vers le
@@ -554,3 +603,10 @@ plusieurs milliers de runes.
   qu'il mériterait. Piste connue, pas encore corrigée dans tous les cas.
 - L'objectif « Dégâts » est une **formule communautaire prédictive**, comme
   celles de la page Mécaniques — pas une simulation de combat réel.
+- **« Dégâts réels » l'est aussi** — plus fidèle (vraie formule du sort,
+  vrai adversaire), mais toujours prédictif. Restent **hors modèle**, et
+  jamais approximés en silence : variance, avantage élémentaire et glancing,
+  lignes de dégâts d'artéfact, réductions autres que la marque, mécaniques
+  propres à certains monstres. Environ **200 sorts du corpus** (sur ~6 000)
+  ont une formule hors modèle et sont refusés explicitement plutôt que
+  calculés de travers — détail dans [degats-reels.md](degats-reels.md).

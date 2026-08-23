@@ -289,6 +289,28 @@ export function defaultDamageSkill(skills: (SkillDamageProfile | SkillDamageUnsu
   return ok.length > 0 ? ok[ok.length - 1] : null;
 }
 
+/**
+ * Le sort effectivement retenu pour le calcul : celui demandé s'il existe et
+ * qu'il est calculable, sinon le sort par défaut.
+ *
+ * ⚠️ **Source UNIQUE de cette résolution**, appelée par l'écran ET par la
+ * relecture d'une recette en ligne de commande. Un sort introuvable (recette
+ * reçue d'un autre joueur, donc écrite pour un autre monstre) retombe
+ * silencieusement sur le défaut plutôt que d'échouer — même tolérance que le
+ * `monsterCom2usId` d'une recette, qui se re-résout lui aussi contre la box
+ * de qui l'importe.
+ */
+export function resolveDamageSkill(
+  skills: (SkillDamageProfile | SkillDamageUnsupported)[],
+  skillCom2usId: number | null
+): SkillDamageProfile | null {
+  if (skillCom2usId != null) {
+    const voulu = skills.find((s) => s.skillCom2usId === skillCom2usId);
+    if (voulu && estPrisEnCharge(voulu)) return voulu;
+  }
+  return defaultDamageSkill(skills);
+}
+
 // ── Réglage de combat (saisi par l'utilisateur) ──────────────────────────
 
 // Comment traiter le coup critique dans le score.

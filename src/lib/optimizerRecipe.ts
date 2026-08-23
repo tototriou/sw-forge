@@ -14,6 +14,7 @@
 // à connaître la base du monstre pour le réinterpréter, une source d'erreur
 // de plus, pas de moins.
 import { BuildRequirement, Objective } from './runeBuildOptim';
+import { DamageSetup } from './damage';
 import { AutoExclusionScope, ExclusionSelector } from './optimizerExclusion';
 import { ArtifactKind } from '../types';
 import { ArtifactMainChoice, SlotFilterPresetKey } from '../hooks/useOptimizerState';
@@ -41,6 +42,14 @@ export interface OptimizerRecipe {
   monsterName: string;
   requirement: BuildRequirement;
   objective: Objective;
+  // Réglage de l'objectif « Dégâts réels » — voir spec/outils/degats-reels.md.
+  // ⚠️ Ne porte que le com2usId du SORT et les valeurs d'adversaire saisies,
+  // jamais le profil de dégâts calculé : celui-ci se redéduit de la fiche du
+  // monstre chez qui importe la recette, exactement comme `monsterCom2usId`
+  // se re-résout contre sa box. Un sort introuvable (autre monstre, données
+  // régénérées) retombe silencieusement sur le sort par défaut, jamais une
+  // erreur — même tolérance que le reste de ce fichier.
+  damageSetup: DamageSetup;
   metric: RuneMetric;
   slotFilterPreset: SlotFilterPresetKey;
   adaptiveTrancheWeighting: boolean;

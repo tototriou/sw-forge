@@ -14,6 +14,14 @@ import { resolve } from 'path';
 import { ok, egal, titre } from './outils';
 import { StatRow } from '../src/lib/stats';
 import { StatKey } from '../src/lib/effects';
+import {
+  BuildCandidate,
+  OBJECTIVE_LABELS,
+  OBJECTIVE_RELEVANT_STATS,
+  objectiveKeysOf,
+  objectiveScore,
+} from '../src/lib/runeBuildOptim';
+import { buildOptimizerRecipe, parseOptimizerRecipe } from '../src/lib/optimizerRecipe';
 import { Competence, DetailMonstre } from '../src/lib/monsterSkills';
 import {
   DEFAULT_DAMAGE_SETUP,
@@ -25,6 +33,7 @@ import {
   defenseFactor,
   estPrisEnCharge,
   monsterDamageSkills,
+  resolveDamageSkill,
   skillDamageProfile,
 } from '../src/lib/damage';
 
@@ -174,6 +183,67 @@ export default function testDegats() {
   // Le Taux Crit n'y figure JAMAIS (plafonné en jeu : une condition, pas une
   // cible) — même règle que l'objectif « Dégâts ».
   ok(!damageRelevantStats(s3).includes('cr'), 'le Taux Crit n’est jamais une stat à maximiser');
+
+  titre('Dégâts réels — propagation dans la recherche');
+
+  // ⚠️ Ce bloc existe parce que `tsc --noEmit` ne peut PAS voir ces erreurs :
+  // un champ non lu reste un accès optionnel valide, et `scripts/` est même
+  // hors de son périmètre (voir le skill optimizer-field-propagation, né de
+  // trois incidents de ce type exactement).
+
+  // Le repli doit rester STRICTEMENT le comportement d'avant pour les cinq
+  // autres objectifs : sans override, la table statique fait foi.
+  for (const o of OBJECTIVE_LABELS) {
+    egal(objectiveKeysOf(o.key, undefined), OBJECTIVE_RELEVANT_STATS[o.key], `sans override, « ${o.label} » garde ses stats d'origine`);
+  }
+  egal(objectiveKeysOf('degats', ['spd']), ['spd'], "l'override remplace la table, il ne s'y ajoute pas");
+  egal(objectiveKeysOf(undefined, undefined), [], 'aucun objectif, aucun override → aucun biais');
+  // ⚠️ Un override VIDE doit rester un override (« ce sort ne privilégie
+  // rien »), pas retomber sur la table — un `??`/`||` mal placé confondrait
+  // les deux, sans que rien ne le signale.
+  egal(objectiveKeysOf('degats', []), [], 'un override vide reste un override');
+
+  // Sans contexte, le score échoue BRUYAMMENT — jamais un repli silencieux
+  // sur une autre formule que celle affichée à l'utilisateur.
+  const bidon = { stats: stats({ atk: 1000, cd: 100 }), effTotal: 0 } as unknown as BuildCandidate;
+  let aLeve = false;
+  try {
+    objectiveScore(bidon, 'degats_reels');
+  } catch {
+    aLeve = true;
+  }
+  ok(aLeve, '« Dégâts réels » sans contexte lève, plutôt que de retomber sur une autre formule');
+  egal(
+    objectiveScore(bidon, 'degats_reels', { profile: s3!, setup: DEFAULT_DAMAGE_SETUP }),
+    computeSkillDamage(s3!, bidon.stats, DEFAULT_DAMAGE_SETUP),
+    'avec contexte, le tri utilise exactement la formule du sort'
+  );
+
+  // La recette doit porter le réglage : c'est elle que rejoue le script CLI,
+  // et un champ oublié ici ferait diverger le script de l'écran en silence.
+  const recette = buildOptimizerRecipe({
+    monsterCom2usId: LUSHEN,
+    monsterName: 'Lushen',
+    requirement: { sets: ['rage'], minStats: {} },
+    objective: 'degats_reels',
+    damageSetup: { ...DEFAULT_DAMAGE_SETUP, skillCom2usId: s3!.skillCom2usId, defBreak: true },
+    metric: 'eff',
+    slotFilterPreset: 'bas',
+    adaptiveTrancheWeighting: false,
+    exhaustiveSearch: false,
+    excludeUsedRunes: false,
+    excludeUsedScope: 'rta',
+    excludedSelectors: [],
+    ignoreArtifacts: false,
+    artifactMainByKind: {},
+  });
+  const relue = parseOptimizerRecipe(JSON.stringify(recette)).recipe;
+  egal(relue?.damageSetup, recette.damageSetup, 'le réglage survit à un aller-retour export/import de recette');
+
+  // Résolution du sort : la MÊME fonction sert à l'écran et au CLI.
+  egal(resolveDamageSkill(sorts, s3!.skillCom2usId)?.nom, 'Amputation Magic', 'un sort demandé et calculable est retenu tel quel');
+  egal(resolveDamageSkill(sorts, 999999)?.nom, s3?.nom, 'un sort introuvable retombe sur le défaut, sans erreur');
+  egal(resolveDamageSkill([], 999999), null, 'aucun sort calculable → null, jamais une exception');
 
   titre('Dégâts réels — balayage du corpus complet');
 

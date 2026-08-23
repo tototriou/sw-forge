@@ -1,4 +1,5 @@
 import { Dispatch, SetStateAction } from 'react';
+import { Check } from 'lucide-react';
 import {
   ATK_BUFF_ICON,
   BRAND_ICON,
@@ -201,18 +202,19 @@ export default function DamageSetupCard({ skills, resolved, setup, setSetup, cha
         </div>
         {/* ⚠️ L'ICÔNE est le contrôle — pas une icône décorative à côté
             d'une case à cocher. `choisi` porte le liseré + fond teinté de
-            `Vignette` (la même case sélectionnable que la palette de
-            couleurs RTA) : l'état actif/inactif se voit d'un coup d'œil,
-            sans lire le libellé. */}
+            `Vignette`, complété d'une COCHE en médaillon (comme la palette
+            de couleurs RTA) : sur des icônes déjà très colorées, le
+            liseré/fond seuls se voient mal — la coche est le signal qui
+            reste net quelle que soit la couleur dessous. */}
         <div className="flex flex-wrap gap-1.5">
           {utilise('ATK') && (
-            <EffetVignette icone={ATK_BUFF_ICON} libelle="Buff ATQ" onClick={() => maj({ atkBuff: !setup.atkBuff })} actif={setup.atkBuff} />
+            <EffetVignette icone={ATK_BUFF_ICON} libelle="Buff ATQ" onClick={() => maj({ atkBuff: !setup.atkBuff })} actif={setup.atkBuff} etroit={etroit} />
           )}
           {utilise('DEF') && (
-            <EffetVignette icone={DEF_BUFF_ICON} libelle="Buff DEF" onClick={() => maj({ defBuff: !setup.defBuff })} actif={setup.defBuff} />
+            <EffetVignette icone={DEF_BUFF_ICON} libelle="Buff DEF" onClick={() => maj({ defBuff: !setup.defBuff })} actif={setup.defBuff} etroit={etroit} />
           )}
           {utilise('SPD') && (
-            <EffetVignette icone={SPD_BUFF_ICON} libelle="Buff VIT" onClick={() => maj({ spdBuff: !setup.spdBuff })} actif={setup.spdBuff} />
+            <EffetVignette icone={SPD_BUFF_ICON} libelle="Buff VIT" onClick={() => maj({ spdBuff: !setup.spdBuff })} actif={setup.spdBuff} etroit={etroit} />
           )}
           {montreDefEnnemie && (
             <EffetVignette
@@ -220,9 +222,10 @@ export default function DamageSetupCard({ skills, resolved, setup, setSetup, cha
               libelle="Def break"
               onClick={() => maj({ defBreak: !setup.defBreak })}
               actif={setup.defBreak}
+              etroit={etroit}
             />
           )}
-          <EffetVignette icone={BRAND_ICON} libelle="Marque" onClick={() => maj({ brand: !setup.brand })} actif={setup.brand} />
+          <EffetVignette icone={BRAND_ICON} libelle="Marque" onClick={() => maj({ brand: !setup.brand })} actif={setup.brand} etroit={etroit} />
         </div>
       </div>
 
@@ -250,21 +253,26 @@ export default function DamageSetupCard({ skills, resolved, setup, setSetup, cha
   );
 }
 
-// Un effet de combat = une icône de jeu cliquable, choisie/non choisie —
-// `Vignette` porte déjà tout le highlight (liseré + fond teinté), rien à
-// redessiner. Sans `teinte` : reprend l'accent par défaut de la librairie,
-// cohérent avec le reste de l'écran (aucune couleur de jeu propre à un
-// effet de combat, contrairement à une catégorie RTA).
+// Un effet de combat = une icône de jeu cliquable, choisie/non choisie.
+// `Vignette` porte le liseré + fond teinté standard, mais sur une icône déjà
+// très colorée (le PNG du jeu, pas un aplat neutre comme un portrait), ce
+// signal seul se voit mal — d'où la COCHE en médaillon, même patron que la
+// palette de couleurs de catégorie RTA (CategoryBar.tsx) : un signal net,
+// indépendant de la couleur de l'icône en dessous. Sans `teinte` propre à
+// l'effet (contrairement à une catégorie) : le médaillon reprend directement
+// l'accent de l'app (`bg-accent`), pas une couleur de jeu inventée ici.
 function EffetVignette({
   icone,
   libelle,
   actif,
   onClick,
+  etroit,
 }: {
   icone: string;
   libelle: string;
   actif: boolean;
   onClick: () => void;
+  etroit: boolean;
 }) {
   return (
     <Vignette
@@ -274,6 +282,18 @@ function EffetVignette({
       aria-label={`${libelle} — ${actif ? 'actif' : 'inactif'}`}
       contenu={<img src={icone} alt="" className="h-7 w-7" loading="lazy" />}
       libelle={libelle}
+      // ⚠️ Coche masquée au DOIGT (même raison que CategoryBar) : à cette
+      // taille de vignette, un médaillon de plus dans le coin serait une
+      // cible de trop à côté de la cible déjà fine du bouton lui-même — le
+      // fond renforcé (`fondAppuye`) y porte seul l'état.
+      fondAppuye={etroit}
+      coin={
+        actif && !etroit ? (
+          <span className="absolute right-0.5 top-0.5 flex h-3.5 w-3.5 items-center justify-center rounded-full bg-accent">
+            <Check size={9} className="text-bg" />
+          </span>
+        ) : undefined
+      }
     />
   );
 }

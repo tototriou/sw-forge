@@ -14,6 +14,8 @@ import {
   ModParTick,
 } from '../../lib/speedTune';
 import { deckPourSpeedTune } from '../../lib/speedTuneDeck';
+import { kitVitesse, KitVitesse, KIT_VIDE } from '../../lib/speedTuneKit';
+import { chargerDetail } from '../../lib/monsterSkills';
 import { teamSummary } from '../../lib/recoFromSiege';
 import { formesJouables } from '../../lib/monsterForms';
 import { useComboboxNav } from '../../hooks/useComboboxNav';
@@ -74,6 +76,9 @@ interface Ligne {
   // n'a plus à être posé tick par tick dans les grilles.
   skillAtb: number | null;
   skillSpeed: number | null;
+  // Le kit du monstre a déjà été lu (et les deux champs pré-remplis). Empêche
+  // d'écraser une valeur corrigée à la main au retour sur l'écran.
+  kitLu?: boolean;
   // Masqué : gardé dans la liste (avec sa config) mais retiré des calculs et des
   // tableaux — pour tester une composition sans perdre le réglage d'un monstre.
   masque: boolean;
@@ -133,6 +138,41 @@ export default function SpeedTuningSection({ allMonsters, siegeDefenseTeams, sie
   const [leadEnnemi, setLeadEnnemi] = useStickyState<number>('speedTune.leadEnnemi', 0);
 
   const jouables = useMemo(() => formesJouables(allMonsters), [allMonsters]);
+
+  // Ce que le KIT de chaque monstre pose sur son camp (barre d'attaque de zone,
+  // buff de vitesse de zone), lu dans les compétences pré-générées. Sert à
+  // pré-remplir les deux champs de la card — l'utilisateur n'a pas à aller
+  // chercher lui-même ce que fait le monstre — et à dire d'où vient la valeur.
+  const [kits, setKits] = useState<Map<number, KitVitesse>>(new Map());
+
+  useEffect(() => {
+    const aLire = lignes.filter((l) => !l.kitLu);
+    if (aLire.length === 0) return;
+    let annule = false;
+    const ids = [...new Set(aLire.map((l) => l.monster.com2usId).filter((id): id is number => id != null))];
+    Promise.all(ids.map((id) => chargerDetail(id).then((d) => [id, kitVitesse(d)] as const))).then((paires) => {
+      if (annule) return;
+      const trouves = new Map(paires);
+      setKits((prev) => new Map([...prev, ...trouves]));
+      setLignes((prev) =>
+        prev.map((l) => {
+          if (l.kitLu) return l;
+          const kit = l.monster.com2usId != null ? trouves.get(l.monster.com2usId) : undefined;
+          if (!kit) return { ...l, kitLu: true };
+          return {
+            ...l,
+            // On ne remplit que ce qui est VIDE : une valeur saisie l'emporte.
+            skillAtb: l.skillAtb ?? (kit.atb > 0 ? kit.atb : null),
+            skillSpeed: l.skillSpeed ?? (kit.buff > 0 ? kit.buff : null),
+            kitLu: true,
+          };
+        })
+      );
+    });
+    return () => {
+      annule = true;
+    };
+  }, [lignes, setLignes]);
   const monsterById = useMemo(
     () => new Map(allMonsters.map((m) => [String(m.id), m])),
     [allMonsters]
@@ -190,10 +230,10 @@ export default function SpeedTuningSection({ allMonsters, siegeDefenseTeams, sie
     if (monstres.length === 0) return;
     setLignes((prev) => {
       const next = [...prev];
-      for (const { monster, runeSpeed } of monstres) {
+      for (const { monster, runeSpeed, artefactBuff } of monstres) {
         const uid = uidDe(camp, String(monster.id));
         const i = next.findIndex((l) => l.uid === uid);
-        if (i >= 0) next[i] = { ...next[i], runeSpeed, masque: false };
+        if (i >= 0) next[i] = { ...next[i], runeSpeed, artefactBuff, masque: false };
         else
           next.push({
             uid,
@@ -202,7 +242,7 @@ export default function SpeedTuningSection({ allMonsters, siegeDefenseTeams, sie
             camp,
             atbMod: {},
             speedMod: {},
-            artefactBuff: null,
+            artefactBuff,
             skillAtb: null,
             skillSpeed: null,
             masque: false,
@@ -235,7 +275,12 @@ export default function SpeedTuningSection({ allMonsters, siegeDefenseTeams, sie
       const i = prev.findIndex((l) => l.uid === uid);
       if (i >= 0) {
         const next = [...prev];
-        next[i] = { ...next[i], runeSpeed: modele.runeSpeed, masque: false };
+        next[i] = {
+          ...next[i],
+          runeSpeed: modele.runeSpeed,
+          artefactBuff: modele.artefactBuff,
+          masque: false,
+        };
         return next;
       }
       return [
@@ -247,7 +292,7 @@ export default function SpeedTuningSection({ allMonsters, siegeDefenseTeams, sie
           camp: 'ennemi' as Camp,
           atbMod: {},
           speedMod: {},
-          artefactBuff: null,
+          artefactBuff: modele.artefactBuff,
           skillAtb: null,
           skillSpeed: null,
           masque: false,
@@ -496,6 +541,7 @@ export default function SpeedTuningSection({ allMonsters, siegeDefenseTeams, sie
           onMasquer={basculerMasque}
           onRuneSpeed={setRuneSpeed}
           onSkill={setSkill}
+          kits={kits}
           onArtefact={setArtefact}
           decks={decks}
           onImporterDeck={(team) => importerDeck('allie', team)}
@@ -514,6 +560,8 @@ export default function SpeedTuningSection({ allMonsters, siegeDefenseTeams, sie
           onMasquer={basculerMasque}
           onRuneSpeed={setRuneSpeed}
           onSkill={setSkill}
+          kits={kits}
+          onArtefact={setArtefact}
           decks={decks}
           onImporterDeck={(team) => importerDeck('ennemi', team)}
         />
@@ -788,9 +836,16 @@ interface CampProps {
   onMasquer: (uid: string) => void;
   onRuneSpeed: (uid: string, v: number | null) => void;
   onSkill: (uid: string, champ: 'skillAtb' | 'skillSpeed', v: number | null) => void;
-  // Présent (alliés) = une saisie « bonus d'artéfact au buff de vitesse » par
-  // monstre. Absent (en face) = pas de champ : on ignore les artéfacts adverses.
-  onArtefact?: (uid: string, v: number | null) => void;
+  // Ce que le kit de chaque monstre pose (par com2usId) : sert à dire d'OÙ vient
+  // la valeur pré-remplie.
+  kits: Map<number, KitVitesse>;
+  // Saisie « bonus d'artéfact au buff de vitesse », dans les DEUX camps.
+  //
+  // ⚠️ Il fut un temps réservé aux alliés (« on ne connaît pas les artéfacts
+  // d'en face ») : ça ne tient plus, puisqu'un deck importé ou l'adversaire de
+  // référence y POSENT une valeur lue sur nos propres artéfacts. Un chiffre qui
+  // compte dans le calcul doit se voir et se corriger là où il est.
+  onArtefact: (uid: string, v: number | null) => void;
   // Le bouton d'import d'un deck de siège, dans les DEUX camps : on reprend sa
   // propre compo d'un côté, la défense qu'on affronte de l'autre.
   decks?: DeckDispo[];
@@ -811,6 +866,7 @@ function CampPanneau({
   onMasquer,
   onRuneSpeed,
   onSkill,
+  kits,
   onArtefact,
   decks,
   onImporterDeck,
@@ -857,6 +913,7 @@ function CampPanneau({
           {lignes.map((l) => {
             const combat = combatDe(l);
             const masque = l.masque;
+            const kit = (l.monster.com2usId != null ? kits.get(l.monster.com2usId) : null) ?? KIT_VIDE;
             return (
               <div
                 key={l.uid}
@@ -912,7 +969,15 @@ function CampPanneau({
                     <label className="flex flex-col gap-0.5">
                       <span
                         className="text-micro font-semibold uppercase tracking-wide text-ink-dimmer"
-                        title="Compétence : +% de barre d'attaque posé sur tout son camp au tick où il joue"
+                        title={
+                          kit.atbCompetence
+                            ? `Lu dans son kit : « ${kit.atbCompetence} » remplit la barre de tout son camp de ${kit.atb} %${
+                                kit.atbSkillUp > 0
+                                  ? ` — compétence MAXÉE (${kit.atbNiveau1} % au niveau 1, +${kit.atbSkillUp} % de skill-up)`
+                                  : ''
+                              }.`
+                            : "Compétence : +% de barre d'attaque posé sur tout son camp au tick où il joue. Rien trouvé dans son kit — à saisir si besoin."
+                        }
                       >
                         Boost ATB
                       </span>
@@ -930,7 +995,11 @@ function CampPanneau({
                     <label className="flex flex-col gap-0.5">
                       <span
                         className="text-micro font-semibold uppercase tracking-wide text-ink-dimmer"
-                        title="Compétence : buff de vitesse posé sur tout son camp à partir du tick suivant son tour"
+                        title={
+                          kit.buffCompetence
+                            ? `Lu dans son kit : « ${kit.buffCompetence} » pose un buff de vitesse sur tout son camp.`
+                            : 'Compétence : buff de vitesse posé sur tout son camp à partir du tick suivant son tour. Rien trouvé dans son kit — à saisir si besoin.'
+                        }
                       >
                         Buff SPD
                       </span>
@@ -962,26 +1031,24 @@ function CampPanneau({
                         />
                       </span>
                     </label>
-                    {onArtefact && (
-                      <label className="flex flex-col gap-0.5">
-                        <span
-                          className="text-micro font-semibold uppercase tracking-wide text-ink-dimmer"
-                          title="Bonus d'artéfact « augmente l'effet du buff de vitesse » — s'ajoute au buff quand il est actif"
-                        >
-                          Arté buff
-                        </span>
-                        <NumberField
-                          value={l.artefactBuff}
-                          onChange={(v) => onArtefact(l.uid, v)}
-                          min={0}
-                          max={99}
-                          allowEmpty
-                          width="w-12"
-                          placeholder="+%"
-                          ariaLabel={`Bonus d'artéfact au buff de vitesse de ${l.monster.name}`}
-                        />
-                      </label>
-                    )}
+                    <label className="flex flex-col gap-0.5">
+                      <span
+                        className="text-micro font-semibold uppercase tracking-wide text-ink-dimmer"
+                        title="Bonus d'artéfact « Effet aug. VIT » — s'ajoute au buff de vitesse quand il est actif. Repris tel quel d'un deck importé ou de l'adversaire de référence."
+                      >
+                        Arté buff
+                      </span>
+                      <NumberField
+                        value={l.artefactBuff}
+                        onChange={(v) => onArtefact(l.uid, v)}
+                        min={0}
+                        max={99}
+                        allowEmpty
+                        width="w-12"
+                        placeholder="+%"
+                        ariaLabel={`Bonus d'artéfact au buff de vitesse de ${l.monster.name}`}
+                      />
+                    </label>
                     <div className="ml-auto text-right">
                       <div className={`font-mono text-lg font-black leading-none ${adv ? 'text-bad' : 'text-ink'}`}>
                         {combat ?? '—'}
@@ -989,6 +1056,17 @@ function CampPanneau({
                       <div className="text-micro uppercase tracking-wide text-ink-dimmer">combat</div>
                     </div>
                   </div>
+
+                  {/* ⚠️ Le gain de barre retenu suppose la compétence MONTÉE
+                      (Tailwind de Bernard : 30 % au niveau 1, 45 % maxé). On le
+                      dit à l'écran : autrement on règle sa vitesse sur un gain
+                      qu'on n'a pas encore. */}
+                  {kit.atbSkillUp > 0 && (
+                    <p className="mt-1.5 text-micro leading-snug text-warn">
+                      ⚠ « {kit.atbCompetence} » compte MAXÉE : {kit.atb} % de barre, dont +{kit.atbSkillUp} % de
+                      skill-up — sans les skill-up, {kit.atbNiveau1} %.
+                    </p>
+                  )}
                 </div>
               </div>
             );

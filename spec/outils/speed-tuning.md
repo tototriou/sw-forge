@@ -63,6 +63,9 @@ trois vitesses de runes. Calcul pur dans
   connu n'y figure pas.
 - **Toujours affiché, désactivé** sans compte chargé (aucune équipe) : son
   `title` dit pourquoi.
+- **L'artéfact « Effet aug. VIT » est repris** du `gear` du slot (code `206`
+  dans `ARTIFACT_SUB`, sommé sur les deux artéfacts) : c'est lui qui amplifie le
+  buff de vitesse, il n'a pas à être ressaisi.
 - **L'import n'enlève rien** : les monstres du deck rejoignent **le camp d'où
   on a cliqué** avec **la vitesse de runes du deck** ; un monstre déjà présent
   **dans ce camp** voit la sienne **remplacée** (le deck fait foi) et
@@ -138,6 +141,34 @@ là où sa vitesse le fait jouer, et **suit** quand les vitesses changent. Saisi
 dans les **deux camps** — l'adverse qui remplit la barre des siens est justement
 celui qu'on cherche à devancer.
 
+### Lues automatiquement dans le kit
+
+⚠️ **L'utilisateur n'a pas à aller chercher lui-même ce que fait le monstre.**
+Les deux champs sont **pré-remplis** à partir des compétences pré-générées
+(`public/data/skills/<com2usId>.json`, un seul point d'entrée `chargerDetail`) —
+lecture pure dans [speedTuneKit.ts](src/lib/speedTuneKit.ts), **testée**
+([tests/speed-tune.test.ts](tests/speed-tune.test.ts)). Le `title` du champ dit
+**de quelle compétence** vient la valeur (« Lu dans son kit : Tailwind… »).
+
+- **Seuls les effets DE ZONE** (`aoe`) sont retenus : `Increase ATB` → boost,
+  `Increase ATK SPD` → buff (+30 %, la valeur du jeu — les données ne donnent
+  que sa **durée**). ⚠️ Un « remplit **TA** barre » (`surSoi`) ou un boost sur
+  **un** allié est **écarté** : le modèle applique l'effet à tout le camp, les y
+  verser gonflerait l'équipe entière.
+- **Les compétences PASSIVES sont écartées** : elles partent sur une condition
+  (quand il est attaqué, à la mort d'un allié…), pas au tour du monstre.
+- **La plus forte l'emporte** quand plusieurs compétences remplissent la barre :
+  c'est celle qu'on joue pour lancer le combo.
+- ⚠️ **SKILL-UPS : la compétence compte MAXÉE.** La valeur de SWARFARM est celle
+  du **niveau 1** ; les améliorations « Attack Bar Recovery +N% » s'y ajoutent —
+  le **Tailwind de Bernard 2A** remplit **30 %** au niveau 1 et **45 %** maxé
+  (+5 puis +10). Même convention que les rechargements (`paliersCooldown`) : on
+  joue maxé. **L'écran le DIT** — une ligne d'avertissement sur la card («
+  Tailwind compte MAXÉE : 45 %, dont +15 % de skill-up ») — sans quoi on
+  règlerait sa vitesse sur un gain qu'on n'a pas encore.
+- **La détection propose, elle n'impose pas** : les deux champs restent
+  modifiables, et une valeur saisie n'est **jamais** écrasée (`kitLu`).
+
 Deux champs par monstre (`skillAtb`, `skillSpeed` dans `TuneMonstre`), appliqués
 à **tout son camp, lui compris** (dans le jeu, « augmente la barre d'attaque de
 tous les alliés » inclut le lanceur, dont la barre vient de retomber à 0) :
@@ -192,9 +223,13 @@ De haut en bas :
    monstres (portrait, **SPD de base seule**, champ vitesse de runes, vitesse de
    combat) et sa **barre de recherche** d'ajout (combobox `Champ` + `Flottant`,
    même grammaire que RtaSearch — voir
-   [../shared/recherche-clavier.md](../shared/recherche-clavier.md)). Côté
-   **allié uniquement**, chaque monstre a en plus un champ **« Arté buff »** — le
-   bonus d'artéfact au buff de vitesse (voir Formule). Un même monstre peut
+   [../shared/recherche-clavier.md](../shared/recherche-clavier.md)). Chaque monstre
+   a un champ **« Arté buff »** — le bonus d'artéfact « Effet aug. VIT » (voir
+   Formule), **dans les deux camps** : ⚠️ il fut réservé aux alliés (« on ne
+   connaît pas les artéfacts d'en face »), ce qui ne tient plus depuis qu'un deck
+   importé et l'adversaire de référence y **posent** une valeur lue sur nos
+   propres artéfacts — un chiffre qui compte dans le calcul doit se voir et se
+   corriger là où il est. Un même monstre peut
    figurer des DEUX côtés (`uid = camp:id`), pas deux fois dans le même camp.
    **Chaque camp** porte sous sa barre de recherche un bouton **« Importer un
    deck de siège »** (voir plus bas). Chaque monstre est une **card** avec, en **haut à droite** (convention app),
@@ -212,7 +247,7 @@ De haut en bas :
    Un bouton **« Lancer l'analyse »** y est **toujours affiché** : il sert quand
    « En face » est **vide** — il y pose alors un **adversaire de référence**, la
    copie du monstre le **plus rapide** de l'équipe (**même lead**, même vitesse
-   de runes). La question devient « toute mon équipe joue-t-elle avant un monstre
+   de runes, **même artéfact « Effet aug. VIT »**). La question devient « toute mon équipe joue-t-elle avant un monstre
    aussi rapide que mon plus rapide ? », le point de départ d'un speed tune quand
    on ne sait pas encore qui on affronte. Ce monstre est **ajouté** en face :
    réglable et retirable comme un autre. Désactivé (avec son `title`) sans équipe,

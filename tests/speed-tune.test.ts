@@ -19,6 +19,8 @@ import {
   VitesseRequise,
 } from '../src/lib/speedTune';
 import { deckPourSpeedTune } from '../src/lib/speedTuneDeck';
+import { kitVitesse, BUFF_SPD_JEU } from '../src/lib/speedTuneKit';
+import { DetailMonstre, Competence, EffetCompetence } from '../src/lib/monsterSkills';
 import { Monster, SiegeTeam } from '../src/types';
 import { egal, ok, titre } from './outils';
 
@@ -148,13 +150,28 @@ export function testSpeedTuneDeck() {
   const monstre = (id: string, name: string, lead?: { amount: number; area: string; element: string | null }) =>
     ({ id, name, stats: { speed: 100 }, leaderSkill: lead ? { stat: 'Attack Speed', ...lead } : undefined }) as unknown as Monster;
 
-  const equipe = (slots: { monsterId: string | null; runeSpeed: number | null }[]): SiegeTeam =>
+  const equipe = (
+    slots: { monsterId: string | null; runeSpeed: number | null; arte?: number[] }[]
+  ): SiegeTeam =>
     ({
       id: 't',
       lead: 0,
       tickAlertDismissed: false,
-      slots: slots.map((s) => ({ ...s, tick: 0, sets: [] })),
-    }) as SiegeTeam;
+      slots: slots.map(({ arte, ...s }) => ({
+        ...s,
+        tick: 0,
+        sets: [],
+        // Un artéfact par valeur : la propriété « Effet aug. VIT » porte le
+        // code 206 (voir ARTIFACT_SUB dans lib/effects.ts).
+        gear: arte
+          ? {
+              base: {},
+              runes: [],
+              artifacts: arte.map((v) => ({ subs: [{ code: 206, value: v }] })),
+            }
+          : undefined,
+      })),
+    }) as unknown as SiegeTeam;
 
   const trevor = monstre('1', 'Trevor', { amount: 24, area: 'Guild', element: null });
   const bella = monstre('2', 'Bella');
@@ -192,6 +209,21 @@ export function testSpeedTuneDeck() {
     egal(d.monstres.length, 1, 'slot vide et monstre inconnu écartés');
     egal(d.monstres[0].monster.name, 'Loren', 'le slot rempli est bien celui qui reste');
     egal(d.lead, null, 'pas de leader → pas de lead imposé');
+  }
+
+  // Artéfact « Effet aug. VIT » : lu sur le gear du slot, pas à ressaisir.
+  {
+    const d = deckPourSpeedTune(
+      equipe([
+        { monsterId: '1', runeSpeed: 155, arte: [12] },
+        { monsterId: '2', runeSpeed: 92, arte: [8, 5] },
+        { monsterId: '3', runeSpeed: 88 },
+      ]),
+      parId
+    );
+    egal(d.monstres[0].artefactBuff, 12, "l'artéfact « Effet aug. VIT » est repris");
+    egal(d.monstres[1].artefactBuff, 13, 'deux artéfacts porteurs → leurs effets s’additionnent');
+    egal(d.monstres[2].artefactBuff, null, 'aucun artéfact porteur → rien à reprendre');
   }
 
   // ⚠️ Un lead d'ÉLÉMENT ne se transpose pas au modèle « un lead par camp ».
@@ -436,5 +468,140 @@ export function testSpeedTuneChaine() {
       identiques === scenarios,
       `dichotomie identique au balayage linéaire exhaustif sur ${scenarios} scénarios aléatoires avec compétences (seed fixe)`
     );
+  }
+}
+
+/* --------------------------------------- Kit : détection automatique ----- */
+
+// Ce que l'outil lit tout seul dans le kit d'un monstre (public/data/skills) :
+// remplissage de barre de ZONE et buff de vitesse de ZONE. L'utilisateur n'a pas
+// à aller chercher lui-même — d'où l'importance de ne retenir QUE ce qui touche
+// tout le camp.
+export function testSpeedTuneKit() {
+  titre('Speed tuning — lecture du kit');
+
+  const effet = (nom: string, quantite: number, aoe: boolean, surSoi = false): EffetCompetence =>
+    ({
+      nom,
+      type: 'Neutral',
+      bonus: true,
+      description: null,
+      icone: null,
+      chance: 0,
+      quantite,
+      surSoi,
+      aoe,
+      surCritique: false,
+      surMort: false,
+      note: null,
+    }) as EffetCompetence;
+
+  const comp = (
+    nom: string,
+    effets: EffetCompetence[],
+    passif = false,
+    ameliorations: string[] = []
+  ): Competence =>
+    ({
+      id: 1,
+      com2usId: null,
+      nom,
+      description: null,
+      slot: 2,
+      passif,
+      aoe: true,
+      cooldown: null,
+      coups: 1,
+      niveauMax: 5,
+      formule: null,
+      scale: [],
+      ameliorations,
+      icone: null,
+      effets,
+    }) as Competence;
+
+  const detail = (competences: Competence[]): DetailMonstre =>
+    ({
+      com2usId: 1,
+      archetype: null,
+      skillUpsToMax: null,
+      awakensFrom: null,
+      awakensTo: null,
+      source: [],
+      competences,
+    }) as DetailMonstre;
+
+  egal(kitVitesse(null).atb, 0, 'aucune fiche → rien de détecté');
+
+  // Barre d'attaque de zone : détectée, avec la compétence d'où elle vient.
+  {
+    const k = kitVitesse(detail([comp('Vent du changement', [effet('Increase ATB', 30, true)])]));
+    egal(k.atb, 30, 'remplissage de barre de zone détecté');
+    egal(k.atbCompetence, 'Vent du changement', 'la compétence source est nommée');
+  }
+
+  // ⚠️ Ce qui ne touche PAS tout le camp est écarté : le modèle applique l'effet
+  // à toute l'équipe, un « remplit TA barre » la gonflerait en entier.
+  {
+    egal(
+      kitVitesse(detail([comp('Lames', [effet('Increase ATB', 50, false, true)])])).atb,
+      0,
+      'un remplissage sur SOI est écarté'
+    );
+    egal(
+      kitVitesse(detail([comp('Purifier', [effet('Increase ATB', 25, false)])])).atb,
+      0,
+      "un remplissage sur UN allié est écarté"
+    );
+    egal(
+      kitVitesse(detail([comp('Hostilité', [effet('Increase ATB', 30, true)], true)])).atb,
+      0,
+      'une compétence PASSIVE est écartée (elle ne part pas au tour du monstre)'
+    );
+  }
+
+  // Plusieurs compétences qui remplissent la barre : la plus forte l'emporte.
+  {
+    const k = kitVitesse(
+      detail([
+        comp('Petite', [effet('Increase ATB', 15, true)]),
+        comp('Grosse', [effet('Increase ATB', 40, true)]),
+      ])
+    );
+    egal(k.atb, 40, 'la plus forte des deux est retenue');
+    egal(k.atbCompetence, 'Grosse', "et c'est bien elle qui est nommée");
+  }
+
+  // ⚠️ SKILL-UPS : la valeur de SWARFARM est celle du NIVEAU 1. Le Tailwind de
+  // Bernard 2A remplit 30 % au niveau 1 et 45 % maxé (+5 puis +10) — c'est maxé
+  // qu'on le joue, et l'écran doit dire que le chiffre le suppose.
+  {
+    const k = kitVitesse(
+      detail([
+        comp('Tailwind', [effet('Increase ATB', 30, true)], false, [
+          'Attack Bar Recovery +5%',
+          'Attack Bar Recovery +10%',
+        ]),
+      ])
+    );
+    egal(k.atb, 45, 'Tailwind maxé remplit 45 % de barre, pas 30');
+    egal(k.atbNiveau1, 30, 'la valeur du niveau 1 reste lisible');
+    egal(k.atbSkillUp, 15, "ce que les skill-ups ajoutent est isolé (pour l'annoncer à l'écran)");
+  }
+
+  // Une amélioration qui ne touche pas la barre ne change rien.
+  {
+    const k = kitVitesse(
+      detail([comp('Vent', [effet('Increase ATB', 30, true)], false, ['Cooltime Turn -1', 'Damage +10%'])])
+    );
+    egal(k.atb, 30, 'les autres skill-ups (rechargement, dégâts) ne gonflent pas la barre');
+    egal(k.atbSkillUp, 0, 'et rien à annoncer sur le skill-up');
+  }
+
+  // Buff de vitesse : les données ne donnent que sa DURÉE, la valeur du jeu vaut.
+  {
+    const k = kitVitesse(detail([comp('Cri du prédateur', [effet('Increase ATK SPD', 2, true)])]));
+    egal(k.buff, BUFF_SPD_JEU, 'buff de vitesse de zone → +30 % (valeur du jeu)');
+    egal(k.buffCompetence, 'Cri du prédateur', 'la compétence source est nommée');
   }
 }

@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Minus, Plus } from 'lucide-react';
 
 // Champ numérique de l'app : **deux boutons − / +** encadrant la valeur.
@@ -81,6 +81,15 @@ export default function NumberField({
     if (max != null && v > max) v = max;
     return v;
   };
+
+  // ⚠️ **Brouillon transitoire pour la saisie d'un négatif.** La valeur est un
+  // `number | null` : elle ne peut pas retenir un « - » seul, tapé avant le
+  // premier chiffre. Sans ça, la frappe « - » était rejetée (regex sans chiffre)
+  // et le champ revenait aussitôt à sa valeur — impossible d'écrire « -30 ». Le
+  // brouillon ne vit QUE le temps de cette saisie incomplète, puis s'efface dès
+  // qu'un nombre valide est parsé ou à la sortie du champ.
+  const [brouillon, setBrouillon] = useState<string | null>(null);
+  const affiche = brouillon ?? (value == null ? '' : String(value));
 
   // ⚠️ **La valeur courante est tenue dans une `ref`, pas lue dans la closure.**
   // La répétition vit dans un `setTimeout` : la fonction qu'il rappelle a
@@ -209,13 +218,22 @@ export default function NumberField({
       <input
         type="text"
         inputMode="numeric"
-        value={value ?? ''}
+        value={affiche}
         placeholder={placeholder}
         aria-label={ariaLabel}
         disabled={disabled}
         onChange={(e) => {
           const brut = e.target.value.trim();
-          if (brut === '') return onChange(allowEmpty ? null : 0);
+          if (brut === '') {
+            setBrouillon(null);
+            return onChange(allowEmpty ? null : 0);
+          }
+          // « - » seul : négatif en cours de frappe, on le garde à l'écran sans
+          // encore produire de valeur (voir `brouillon`).
+          if (brut === '-') {
+            setBrouillon('-');
+            return;
+          }
           if (!/^-?\d+$/.test(brut)) return; // frappe invalide ignorée
           // ⚠️ PAS de `borne()` ici : borner CHAQUE frappe casse la saisie dès
           // qu'un `min` positif dépasse un chiffre isolé. Exemple vécu : min 15,
@@ -223,9 +241,11 @@ export default function NumberField({
           // saute à 100. On ne peut alors plus jamais écrire « 50 ». La borne
           // s'applique donc seulement en sortie de champ (`onBlur`) et sur les
           // boutons ± (des pas discrets, pas de composition de chiffres).
+          setBrouillon(null);
           onChange(Number(brut));
         }}
         onBlur={() => {
+          setBrouillon(null); // un « - » resté seul disparaît, le champ suit la valeur
           if (value == null) return; // vide autorisé : rien à borner
           const b = borne(value);
           if (b !== value) onChange(b);

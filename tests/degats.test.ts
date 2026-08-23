@@ -36,6 +36,7 @@ import {
   monsterDamageSkills,
   resolveDamageSkill,
   skillDamageProfile,
+  summonerSkillBonus,
 } from '../src/lib/damage';
 
 const racine = resolve(new URL('..', import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, '$1'));
@@ -136,7 +137,12 @@ export default function testDegats() {
   //   × 1000/1140            ≈ 3936,84   (plancher d’ignore défense)
   //   × 3 coups              ≈ 11810,5
   const build = stats({ atk: 2000, cd: 200, cr: 50 });
-  const critique: DamageSetup = { ...DEFAULT_DAMAGE_SETUP, critMode: 'crit' };
+  // ⚠️ `summonerSkills: 'aucune'` EXPLICITE — ce test épingle l'équation
+  // NUE. Le défaut de l'app est « combat » (ces compétences sont permanentes
+  // en jeu), qui ajoute 25 points de Dgts Crit : s'appuyer sur le défaut
+  // ferait échouer ce test à chaque révision de ce choix produit, alors que
+  // l'équation, elle, n'aurait pas bougé.
+  const critique: DamageSetup = { ...DEFAULT_DAMAGE_SETUP, critMode: 'crit', summonerSkills: 'aucune' };
   const attendu = 0.68 * 2000 * (1 + 0.3 + 2.0) * (1000 / 1140) * 3;
   ok(s3 !== null && Math.abs(computeSkillDamage(s3, build, critique) - attendu) < 0.01, 'le total suit l’équation de spec/mecaniques.md');
 
@@ -174,6 +180,42 @@ export default function testDegats() {
   );
 
   ok(Math.abs(defenseFactor(0) - 1000 / 1140) < 1e-9, 'à DEF = 0 le facteur vaut ~0,877, jamais 1');
+
+  titre('Dégâts réels — compétences d’invocateur');
+
+  // ⚠️ Les compétences d'invocateur portent sur la stat de BASE (comme le
+  // totem de vitesse), pas sur le total runé — un build à grosse ATQ runée
+  // n'en tire pas plus qu'un build nu de même base.
+  egal(summonerSkillBonus('aucune', 'fire'), { pct: { atk: 0, def: 0, hp: 0, spd: 0 }, cdPoints: 0 }, '« Aucune » n’apporte rien');
+  egal(
+    summonerSkillBonus('combat', 'fire'),
+    { pct: { atk: 41, def: 20, hp: 20, spd: 15 }, cdPoints: 25 },
+    'Combat : +20 % ATQ + 21 % élémentaire, et 25 points de Dgts Crit'
+  );
+  egal(
+    summonerSkillBonus('guilde', 'fire'),
+    { pct: { atk: 61, def: 40, hp: 40, spd: 15 }, cdPoints: 50 },
+    'Guilde s’AJOUTE à Combat, jamais à la place'
+  );
+  egal(summonerSkillBonus('combat', null).pct.atk, 20, 'sans élément connu, la compétence élémentaire ne s’applique pas');
+  egal(summonerSkillBonus('combat', 'unknown').pct.atk, 20, '« unknown » n’est pas un élément du jeu : aucune compétence élémentaire');
+  // La VIT ne fait pas partie de l'onglet Guilde : elle ne doit PAS doubler.
+  egal(summonerSkillBonus('guilde', 'fire').pct.spd, 15, 'la VIT ne vient que de Combat, jamais doublée par Guilde');
+
+  // Effet réel sur les dégâts, base et total distincts pour attraper une
+  // application au mauvais étage (total au lieu de base).
+  const buildInvoc: StatRow[] = stats({ atk: 2000, cd: 200, cr: 50 }).map((r) =>
+    r.key === 'atk' ? { ...r, base: 800, bonus: 1200, total: 2000 } : r
+  );
+  const sansInvoc = computeSkillDamage(s3!, buildInvoc, { ...DEFAULT_DAMAGE_SETUP, summonerSkills: 'aucune' });
+  const avecCombat = computeSkillDamage(s3!, buildInvoc, { ...DEFAULT_DAMAGE_SETUP, summonerSkills: 'combat' }, 'wind');
+  ok(avecCombat > sansInvoc, 'activer les compétences de Combat augmente les dégâts');
+  // 800 de base × 41 % = 328 (arrondi supérieur) — sur la BASE, pas sur 2000.
+  const attenduAtk = 2000 + Math.ceil((800 * 41) / 100);
+  ok(
+    Math.abs(avecCombat / sansInvoc - ((attenduAtk * (1 + 0.3 + 0.5 * 2.25)) / (2000 * (1 + 0.3 + 0.5 * 2.0)))) < 1e-9,
+    'le bonus porte sur la BASE (800), pas sur le total runé (2000)'
+  );
 
   titre('Dégâts réels — stats à privilégier dans la recherche');
 

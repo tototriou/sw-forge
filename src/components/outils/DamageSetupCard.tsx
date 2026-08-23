@@ -10,8 +10,10 @@ import {
   DEF_BREAK_ICON,
   DEF_BUFF_ICON,
   SPD_BUFF_ICON,
+  SUMMONER_SKILLS_LABELS,
   SkillDamageProfile,
   SkillDamageUnsupported,
+  SummonerSkills,
   estPrisEnCharge,
 } from '../../lib/damage';
 import NumberField from '../../ui/NumberField';
@@ -227,6 +229,28 @@ export default function DamageSetupCard({ skills, resolved, setup, setSetup, cha
           )}
           <EffetVignette icone={BRAND_ICON} libelle="Marque" onClick={() => maj({ brand: !setup.brand })} actif={setup.brand} etroit={etroit} />
         </div>
+      </div>
+
+      <div>
+        <div className="mb-2 flex items-center gap-1.5">
+          <p className="label">Compétences d&apos;invocateur</p>
+          <HelpPopover title="Compétences d'invocateur">
+            Remplacent les anciens <b className="text-ink">totems</b> (onglet Combat) et{' '}
+            <b className="text-ink">drapeaux</b> de Guerre de Guilde (onglet Guilde), toujours supposées{' '}
+            <b className="text-ink">maxées</b>. <b className="text-ink">Combat</b> s&apos;applique partout ;{' '}
+            <b className="text-ink">Combat + Guilde</b> n&apos;a de sens qu&apos;en contenu de guilde, où les
+            compétences de Combat comptent aussi — d&apos;où un choix unique plutôt que deux cases. La
+            compétence <b className="text-ink">« Puis. d&apos;att. de {'<'}élément{'>'} »</b> est appliquée
+            selon l&apos;élément du monstre, sans rien demander.
+          </HelpPopover>
+        </div>
+        <Segmented<SummonerSkills>
+          options={SUMMONER_SKILLS_LABELS}
+          value={setup.summonerSkills}
+          onChange={(v) => maj({ summonerSkills: v })}
+          size="lg"
+          dense={etroit}
+        />
       </div>
 
       {montreCrit && (

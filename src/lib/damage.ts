@@ -20,6 +20,7 @@
 // et les mécaniques propres à certains monstres (Deborah, Herteit…).
 
 import type { Competence, DetailMonstre } from './monsterSkills';
+import type { ElementKey } from '../types';
 import { StatRow } from './stats';
 import { StatKey } from './effects';
 
@@ -63,6 +64,72 @@ export const DEF_BREAK_ICON = 'https://swarfarm.com/static/herders/images/buffs/
 // « Réductions » de l'équation finale, pas un multiplicateur du DMG%.
 export const BRAND_BONUS_PCT = 25;
 export const BRAND_ICON = 'https://swarfarm.com/static/herders/images/buffs/debuff_brand.png';
+
+// ── Compétences d'invocateur ─────────────────────────────────────────────
+// Remplacent les anciens TOTEMS de guilde (onglet « Combat ») et DRAPEAUX de
+// Guerre de Guilde (onglet « Guilde ») — le jeu a fusionné les deux systèmes
+// dans « Comp. d'invocateur ».
+//
+// ⚠️ **Toujours supposées MAXÉES**, comme les améliorations de compétence
+// (voir `skillupDamagePct`) et le rechargement (`paliersRechargement`) : même
+// parti pris dans toute l'app. Ce sont les valeurs Lv.20 des captures du jeu.
+//
+// ⚠️ **Trois états, pas deux interrupteurs indépendants** : l'onglet Guilde ne
+// s'applique qu'en contenu de guilde, où les compétences de Combat comptent
+// AUSSI — « Guilde » implique donc toujours « Combat », et deux cases
+// séparées auraient laissé cocher une combinaison qui n'existe pas en jeu.
+export type SummonerSkills = 'aucune' | 'combat' | 'guilde';
+
+export const SUMMONER_SKILLS_LABELS: { key: SummonerSkills; label: string }[] = [
+  { key: 'aucune', label: 'Aucune' },
+  { key: 'combat', label: 'Combat' },
+  { key: 'guilde', label: 'Combat + Guilde' },
+];
+
+// Onglet « Combat » — s'applique partout.
+const COMBAT_PCT = { atk: 20, def: 20, hp: 20, spd: 15 } as const;
+// ⚠️ Les Dgts Crit sont en POINTS de pourcentage ajoutés à la stat (comme une
+// sous-stat de rune), pas un pourcentage de la base : un monstre à 150 % passe
+// à 175 %, il ne gagne pas 25 % de 150.
+const COMBAT_CD_POINTS = 25;
+// « Puis. d'att. de <élément> » — ne bénéficie qu'aux monstres de CET élément.
+// ⚠️ Déduit de l'élément du monstre optimisé, jamais demandé à l'utilisateur
+// (même principe que le reste de ce module).
+const COMBAT_ELEMENT_ATK_PCT = 21;
+
+// Onglet « Guilde » — EN PLUS de Combat, uniquement en contenu de guilde.
+const GUILDE_PCT = { atk: 20, def: 20, hp: 20 } as const;
+const GUILDE_CD_POINTS = 25;
+
+// Bonus total apporté par les compétences d'invocateur, séparé en un
+// pourcentage (appliqué à la stat de BASE, comme le totem de vitesse l'était
+// déjà — voir `pctSpeedBonus` dans speed.ts et spec/mecaniques.md) et des
+// points plats (Dgts Crit).
+export function summonerSkillBonus(
+  choix: SummonerSkills,
+  element: ElementKey | null
+): { pct: Record<'atk' | 'def' | 'hp' | 'spd', number>; cdPoints: number } {
+  const pct = { atk: 0, def: 0, hp: 0, spd: 0 };
+  let cdPoints = 0;
+  if (choix === 'aucune') return { pct, cdPoints };
+
+  pct.atk += COMBAT_PCT.atk;
+  pct.def += COMBAT_PCT.def;
+  pct.hp += COMBAT_PCT.hp;
+  pct.spd += COMBAT_PCT.spd;
+  cdPoints += COMBAT_CD_POINTS;
+  // ⚠️ `'unknown'` (élément inconnu/monstre perso) ne reçoit RIEN : aucune des
+  // cinq compétences élémentaires ne le couvre en jeu.
+  if (element && element !== 'unknown') pct.atk += COMBAT_ELEMENT_ATK_PCT;
+
+  if (choix === 'guilde') {
+    pct.atk += GUILDE_PCT.atk;
+    pct.def += GUILDE_PCT.def;
+    pct.hp += GUILDE_PCT.hp;
+    cdPoints += GUILDE_CD_POINTS;
+  }
+  return { pct, cdPoints };
+}
 
 // ── Formules de compétence ───────────────────────────────────────────────
 // Les variables que ce module sait évaluer. Toute autre variable rencontrée
@@ -356,6 +423,11 @@ export interface DamageSetup {
   defBreak: boolean;
   brand: boolean;
   critMode: CritMode;
+  // Compétences d'invocateur prises en compte (ex-totems/drapeaux) — voir
+  // `SummonerSkills`. ⚠️ Ne porte QUE le choix : l'élément du monstre, dont
+  // dépend la compétence « Puis. d'att. de <élément> », se redéduit du monstre
+  // optimisé chez qui relit la recette, jamais stocké ici.
+  summonerSkills: SummonerSkills;
 }
 
 // Adversaire de référence : ni un boss ni une cible nue. 1000 DEF et 30 000
@@ -373,6 +445,11 @@ export const DEFAULT_DAMAGE_SETUP: DamageSetup = {
   defBreak: false,
   brand: false,
   critMode: 'moyenne',
+  // ⚠️ « Combat » par défaut, pas « Aucune » : ces compétences sont
+  // PERMANENTES en jeu dès qu'elles sont montées, et le sont chez à peu près
+  // tout joueur qui utilise un optimiseur. Partir d'« Aucune » afficherait
+  // des dégâts que personne n'observe réellement.
+  summonerSkills: 'combat',
 };
 
 // ── Le calcul ────────────────────────────────────────────────────────────
@@ -390,14 +467,35 @@ function total(stats: StatRow[], key: StatKey): number {
  * sort à dégâts FIXES passe par la branche « Additionnel » : ni critique, ni
  * facteur de défense.
  */
-export function computeSkillDamage(profile: SkillDamageProfile, stats: StatRow[], setup: DamageSetup): number {
+export function computeSkillDamage(
+  profile: SkillDamageProfile,
+  stats: StatRow[],
+  setup: DamageSetup,
+  // Élément du monstre optimisé — décide de la compétence « Puis. d'att. de
+  // <élément> ». `null`/omis = aucune compétence élémentaire comptée (monstre
+  // perso, élément inconnu).
+  element: ElementKey | null = null
+): number {
+  const bonus = summonerSkillBonus(setup.summonerSkills, element);
+  // Compétences d'invocateur : un POURCENTAGE de la stat de BASE, ajouté au
+  // total — même modèle que le totem de vitesse déjà en place (voir
+  // `pctSpeedBonus`, speed.ts, et spec/mecaniques.md : le totem entre dans le
+  // `Σ%vit` appliqué à la base, pas au total runé).
+  // ⚠️ Ajouté APRÈS coup plutôt que fondu dans le `Σ%` de `computeStats` (qui
+  // a déjà rendu ses totaux) : l'écart tient au double arrondi supérieur, au
+  // plus 1 point sur la stat, sans effet sur un classement de builds.
+  const avecInvocateur = (key: 'atk' | 'def' | 'hp' | 'spd') => {
+    const row = stats.find((s) => s.key === key);
+    if (!row) return 0;
+    return row.total + Math.ceil((row.base * bonus.pct[key]) / 100);
+  };
   const buff = (valeur: number, actif: boolean, pct: number) => (actif ? (valeur * (100 + pct)) / 100 : valeur);
 
   const valeurs: Record<DamageVariable, number> = {
-    ATK: buff(total(stats, 'atk'), setup.atkBuff, ATK_BUFF_PCT),
-    DEF: buff(total(stats, 'def'), setup.defBuff, DEF_BUFF_PCT),
-    SPD: buff(total(stats, 'spd'), setup.spdBuff, SPD_BUFF_PCT),
-    'MAX HP': total(stats, 'hp'),
+    ATK: buff(avecInvocateur('atk'), setup.atkBuff, ATK_BUFF_PCT),
+    DEF: buff(avecInvocateur('def'), setup.defBuff, DEF_BUFF_PCT),
+    SPD: buff(avecInvocateur('spd'), setup.spdBuff, SPD_BUFF_PCT),
+    'MAX HP': avecInvocateur('hp'),
     'Target MAX HP': Math.max(0, setup.enemyHp),
     // Exprimé en FRACTION (0-1) : le corpus l'écrit toujours multiplié par un
     // coefficient (`{ATK}*(2-1*{Target Current HP %})`), jamais en points.
@@ -409,8 +507,9 @@ export function computeSkillDamage(profile: SkillDamageProfile, stats: StatRow[]
 
   // Terme de dégâts critiques. Les améliorations de compétence s'y ajoutent
   // (elles s'appliquent que le coup soit critique ou non) — voir
-  // spec/mecaniques.md, terme « Crit ».
-  const cd = total(stats, 'cd') / 100;
+  // spec/mecaniques.md, terme « Crit ». Les Dgts Crit d'invocateur sont des
+  // POINTS ajoutés à la stat, pas un pourcentage de celle-ci.
+  const cd = (total(stats, 'cd') + bonus.cdPoints) / 100;
   // ⚠️ Taux Crit PLAFONNÉ à 100 % : `computeStats` renvoie volontairement le
   // total BRUT (un dépassement reste une marge légitime contre la résistance
   // adverse), mais au-delà de 100 % il ne rapporte plus aucun dégât en jeu.

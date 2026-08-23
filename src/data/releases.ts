@@ -87,6 +87,11 @@ export const RELEASES: Release[] = [
         text: 'Chaque résultat affiche ses dégâts et la part des PV de la cible emportée.',
       },
       {
+        kind: 'feat',
+        scope: 'Optimiseur',
+        text: 'Compte les compétences d’invocateur (Combat seul, ou Combat + Guilde) dans les dégâts.',
+      },
+      {
         kind: 'fix',
         scope: 'Optimiseur',
         text: 'L’objectif « Speed nuker » est retiré : « Dégâts réels » couvre ce cas avec la vraie formule du sort.',

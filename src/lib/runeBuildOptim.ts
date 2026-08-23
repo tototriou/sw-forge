@@ -42,7 +42,7 @@
 // du potentiel restant, qui écarterait à tort une combinaison réellement
 // valable) plutôt que maximalement serrées.
 
-import { ArtifactDetail, BaseStats, GearSet, RelicDetail, RuneDetail } from '../types';
+import { ArtifactDetail, BaseStats, ElementKey, GearSet, RelicDetail, RuneDetail } from '../types';
 import { MAX_SET_PIECES, RUNE_EFFECT, SET_STAT_BONUS, StatKey, activeSets, runeEfficiency, runeScore, setPieces, setsCost } from './effects';
 import { computeStats, StatRow } from './stats';
 import { missingSets } from './recoMatch';
@@ -294,6 +294,11 @@ export function statTotal(stats: StatRow[], key: StatKey): number {
 export interface RealDamageContext {
   profile: SkillDamageProfile;
   setup: DamageSetup;
+  // Élément du monstre optimisé — décide de la compétence d'invocateur
+  // « Puis. d'att. de <élément> ». Déduit du monstre, jamais saisi, donc
+  // hors de `setup` (qui ne porte que de la saisie, pour rester partageable
+  // dans une recette).
+  element: ElementKey | null;
 }
 
 export function objectiveScore(candidate: BuildCandidate, objective: Objective, realDamage?: RealDamageContext): number {
@@ -310,7 +315,7 @@ export function objectiveScore(candidate: BuildCandidate, objective: Objective, 
     if (!realDamage) {
       throw new Error("objectiveScore : l'objectif « Dégâts réels » exige un contexte (sort + adversaire).");
     }
-    return computeSkillDamage(realDamage.profile, stats, realDamage.setup);
+    return computeSkillDamage(realDamage.profile, stats, realDamage.setup, realDamage.element);
   }
   if (objective === 'degats') {
     const atk = statTotal(stats, 'atk');

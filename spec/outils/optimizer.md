@@ -182,6 +182,14 @@ retour.
        activée** — l'état se lit sur l'icône elle-même, sans avoir à cliquer
        pour comprendre la légende (au repos, tout est grisé : rien n'est
        encore choisi).
+     - **Compétences d'invocateur** — **Aucune** / **Combat** (défaut) /
+       **Combat + Guilde**. Remplacent les anciens totems et drapeaux,
+       toujours supposées maxées. ⚠️ **Un choix unique, pas deux cases** :
+       l'onglet Guilde ne s'applique qu'en contenu de guilde, où Combat
+       compte aussi — « Guilde » implique donc toujours « Combat ». La
+       compétence « Puis. d'att. de <élément> » suit l'élément du monstre,
+       sans rien demander. Détail des valeurs :
+       [degats-reels.md](degats-reels.md).
      - **Coup critique** — Moyenne (défaut, espérance sur le Taux Crit
        réellement atteint — le seul mode où le Taux Crit pèse sur le
        classement) / Critique / Non critique.

@@ -272,8 +272,8 @@ export default function OptimizerSection({ box, runes, optimizer, allMonsters, r
   // si aucun sort n'est calculable, auquel cas l'écran ne propose jamais le
   // tri « Dégâts réels » (voir `sortOptions`).
   const realDamage = useMemo<RealDamageContext | null>(
-    () => (resolvedSkill ? { profile: resolvedSkill, setup: damageSetup } : null),
-    [resolvedSkill, damageSetup]
+    () => (resolvedSkill ? { profile: resolvedSkill, setup: damageSetup, element: selected?.monster.element ?? null } : null),
+    [resolvedSkill, damageSetup, selected?.monster.element]
   );
 
   // Statistiques principales autorisées sur les slots 2/4/6 — vide = libre.
@@ -1708,7 +1708,7 @@ export default function OptimizerSection({ box, runes, optimizer, allMonsters, r
                 degatsReels={
                   realDamage && (objective === 'degats_reels' || sortBy === 'degats_reels')
                     ? (() => {
-                        const total = computeSkillDamage(realDamage.profile, c.stats, realDamage.setup);
+                        const total = computeSkillDamage(realDamage.profile, c.stats, realDamage.setup, realDamage.element);
                         return { total, partPvCible: damageSetup.enemyHp > 0 ? (total / damageSetup.enemyHp) * 100 : 0 };
                       })()
                     : undefined

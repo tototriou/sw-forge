@@ -26,6 +26,7 @@ import {
 } from './lib/loadMonster';
 import { recipeToSearchParams } from './lib/recipeToSearchParams';
 import { loadMonsterSkills } from './lib/skillsData';
+import { loadMonstersList } from './lib/monstersData';
 import { DEFAULT_DAMAGE_SETUP, damageRelevantStats, monsterDamageSkills, resolveDamageSkill } from '../src/lib/damage';
 import { runSearchToCompletion } from './lib/runSearch';
 import { ExclusionSourceData, autoExcludedRuneIds, resolveExcludedRuneIds } from '../src/lib/optimizerExclusion';
@@ -142,6 +143,9 @@ if (recipe.objective === 'degats_reels') {
   const skills = monsterDamageSkills(loadMonsterSkills(loaded.com2usId));
   const profile = resolveDamageSkill(skills, recipe.damageSetup?.skillCom2usId ?? null);
   const s = recipe.damageSetup ?? DEFAULT_DAMAGE_SETUP;
+  // Élément du monstre RÉELLEMENT chargé (pas celui de la recette) : c'est lui
+  // qui décide de la compétence d'invocateur « Puis. d'att. de <élément> ».
+  const monsterElement = loadMonstersList().find((m) => m.com2usId === loaded.com2usId)?.element ?? null;
   if (!profile) {
     console.warn(
       `⚠️ Objectif « Dégâts réels » mais AUCUN sort calculable pour ${loaded.monsterName} (fiche absente ou formules hors modèle) — ` +
@@ -158,6 +162,9 @@ if (recipe.objective === 'degats_reels') {
         `cible ${s.enemyHp} PV / ${s.enemyDef} DEF — crit ${s.critMode}` +
         `${s.atkBuff ? ' — buff ATQ' : ''}${s.defBuff ? ' — buff DEF' : ''}${s.spdBuff ? ' — buff VIT' : ''}` +
         `${s.defBreak ? ' — def break' : ''}${s.brand ? ' — marque' : ''} — ` +
+        // ⚠️ `?? DEFAULT` : une recette exportée AVANT ce champ n'en a pas.
+        // L'élément vient du monstre CHARGÉ, jamais de la recette.
+        `comp. invocateur ${s.summonerSkills ?? DEFAULT_DAMAGE_SETUP.summonerSkills} (${monsterElement ?? 'élément inconnu'}) — ` +
         `stats privilégiées [${damageRelevantStats(profile).join(', ')}]`
     );
   }

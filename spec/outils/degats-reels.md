@@ -94,6 +94,46 @@ comme le décrit [../mecaniques.md](../mecaniques.md) ; aucun bonus d'effet
 n'est exposé en v1) : buff d'attaque **+50 %**, buff de défense **+70 %**,
 buff de vitesse **+30 %**, réduction de défense **×0,3**, marque **+25 %**.
 
+## Compétences d'invocateur
+
+Remplacent, dans le jeu, les anciens **totems** de guilde (onglet
+« Combat ») et **drapeaux** de Guerre de Guilde (onglet « Guilde »).
+**Toujours supposées maxées** (Lv.20), même parti pris que les améliorations
+de compétence.
+
+⚠️ **Trois états, pas deux interrupteurs indépendants** — « Guilde » implique
+toujours « Combat » : l'onglet Guilde ne s'applique qu'en contenu de guilde,
+où les compétences de Combat comptent aussi. Deux cases séparées auraient
+laissé cocher une combinaison qui n'existe pas en jeu.
+
+| | Combat | + Guilde |
+|---|---|---|
+| ATQ | +20 % | +40 % |
+| ATQ de l'élément du monstre | +21 % | +21 % |
+| DEF | +20 % | +40 % |
+| PV | +20 % | +40 % |
+| VIT | +15 % | +15 % |
+| Dgts Crit | +25 pts | +50 pts |
+
+⚠️ **Le pourcentage porte sur la statistique de BASE**, pas sur le total
+runé — même modèle que le totem de vitesse déjà en place (`pctSpeedBonus`,
+[speed.ts](src/lib/speed.ts) ; le totem entre dans le `Σ%vit` appliqué à la
+base). Un build à grosse ATQ runée n'en tire donc pas plus qu'un build nu de
+même base. Les **Dgts Crit**, eux, sont des **points** ajoutés à la stat
+(150 % → 175 %), pas un pourcentage de celle-ci.
+
+⚠️ **L'élément n'est jamais demandé** : « Puis. d'att. de <élément> » suit
+l'élément du monstre optimisé. Un monstre sans élément connu (`unknown`,
+monstre perso) ne reçoit aucune des cinq compétences élémentaires.
+
+⚠️ Le bonus est appliqué **après** `computeStats` (qui a déjà rendu ses
+totaux), d'où un double arrondi supérieur : au plus 1 point d'écart sur la
+statistique, sans effet sur un classement de builds.
+
+**Défaut : « Combat »**, pas « Aucune » — ces compétences sont permanentes en
+jeu dès qu'elles sont montées ; partir d'« Aucune » afficherait des dégâts
+que personne n'observe réellement.
+
 ## Volontairement hors modèle
 
 Absents du résultat, **jamais approximés en silence** :

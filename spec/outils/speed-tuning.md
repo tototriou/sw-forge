@@ -92,12 +92,12 @@ De haut en bas :
    puis une ligne par monstre. Cellules = `NumberField sansBoutons` (axe dense de
    la lib, voir [../shared/librairie-ui.md](../shared/librairie-ui.md)) ; une case
    vide = pas de modificateur.
-5. **Buff de vitesse** — même grille, mais les cellules sont des **boutons
-   toggle** (c'est presque toujours le même buff qu'on pose) : un clic sur un
-   tick pose un buff **+30 %** (l'icône SPD du jeu — celle des cartes RTA/Siège —
-   marque la case active), un second clic le retire. La ligne équipe pose/retire
-   le buff sur tout le camp. `speedMod` reste **soutenu** (actif du tick posé
-   jusqu'à la fin).
+5. **Buff de vitesse** — même grille, mais chaque cellule combine un **raccourci**
+   et un **champ** : un bouton à l'icône SPD du jeu (celle des cartes RTA/Siège)
+   pose/retire le buff **+30 %** d'un clic — c'est presque toujours celui-là — et
+   un `NumberField` à côté permet de saisir une autre valeur (33 %, un ralenti
+   −30 %…). La ligne équipe agit sur tout le camp. `speedMod` reste **soutenu**
+   (actif du tick posé jusqu'à la fin).
 6. **Ordre de tour** — jetons entrelaçant les deux camps, chacun avec son rang et
    son tick.
 

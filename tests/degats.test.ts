@@ -16,6 +16,7 @@ import { StatRow } from '../src/lib/stats';
 import { StatKey } from '../src/lib/effects';
 import {
   BuildCandidate,
+  Objective,
   OBJECTIVE_LABELS,
   OBJECTIVE_RELEVANT_STATS,
   objectiveKeysOf,
@@ -202,6 +203,11 @@ export default function testDegats() {
   // rien »), pas retomber sur la table — un `??`/`||` mal placé confondrait
   // les deux, sans que rien ne le signale.
   egal(objectiveKeysOf('degats', []), [], 'un override vide reste un override');
+  // ⚠️ `speed_nuker` retiré (v1.8.1 → forge/calcul-degats-reels) : une
+  // recette exportée pendant sa courte durée de vie porte encore cette
+  // valeur, jamais validée par `parseOptimizerRecipe`. Sans repli, le spread
+  // sur `undefined` plus haut dans la pile lève une TypeError.
+  egal(objectiveKeysOf('speed_nuker' as unknown as Objective, undefined), [], 'un objectif retiré (recette ancienne) dégrade vers aucun biais, sans lever');
 
   // Sans contexte, le score échoue BRUYAMMENT — jamais un repli silencieux
   // sur une autre formule que celle affichée à l'utilisateur.

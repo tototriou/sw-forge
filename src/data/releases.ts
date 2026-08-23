@@ -87,6 +87,11 @@ export const RELEASES: Release[] = [
         text: 'Chaque résultat affiche ses dégâts et la part des PV de la cible emportée.',
       },
       {
+        kind: 'fix',
+        scope: 'Optimiseur',
+        text: 'L’objectif « Speed nuker » est retiré : « Dégâts réels » couvre ce cas avec la vraie formule du sort.',
+      },
+      {
         kind: 'docs',
         scope: 'Mécaniques',
         text: 'La page détaille en plus la correction Swift, les dégâts fixes et la variance.',

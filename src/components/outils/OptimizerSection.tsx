@@ -593,7 +593,16 @@ export default function OptimizerSection({ box, runes, optimizer, allMonsters, r
       setMinStats(recipe.requirement.minStats);
       setMaxStats(recipe.requirement.maxStats ?? {});
       setMainStatsBySlot(recipe.requirement.mainStats ?? {});
-      setObjective(recipe.objective);
+      // ⚠️ Repli sur l'objectif « Dégâts » : `speed_nuker` a été RETIRÉ
+      // (branche forge/calcul-degats-reels), remplacé par « Dégâts réels ».
+      // Une recette exportée pendant sa courte durée de vie (v1.8.1) porte
+      // encore cette valeur — `parseOptimizerRecipe` ne valide pas
+      // `objective` contre le type, donc sans ce repli l'état affiché
+      // porterait une valeur qu'aucun bouton ne peut représenter. « Dégâts »
+      // est le choix le plus proche : c'est la formule que `speed_nuker`
+      // réutilisait déjà lui-même au tri (voir historique).
+      const legacyObjective = recipe.objective as unknown as string;
+      setObjective(legacyObjective === 'speed_nuker' ? 'degats' : recipe.objective);
       // ⚠️ `?? DEFAULT_DAMAGE_SETUP` : une recette exportée AVANT ce champ n'a
       // pas de `damageSetup`. Le `skillCom2usId` qu'elle porte, lui, peut
       // désigner un sort d'un AUTRE monstre que celui de cette box — c'est
@@ -667,11 +676,7 @@ export default function OptimizerSection({ box, runes, optimizer, allMonsters, r
       if (realDamage) {
         list.sort((a, b) => objectiveScore(b, sortBy, realDamage) - objectiveScore(a, sortBy, realDamage));
       }
-    } else if (sortBy === 'degats' || sortBy === 'ehp' || sortBy === 'vitesse' || sortBy === 'speed_nuker') {
-      // ⚠️ `speed_nuker` retombe sur la même formule que `degats` dans
-      // `objectiveScore` — voir son commentaire dans runeBuildOptim.ts (VIT
-      // n'y participe pas ; c'est l'objectif « Dégâts réels » qui répond
-      // réellement à ce cas, avec la formule du sort choisi).
+    } else if (sortBy === 'degats' || sortBy === 'ehp' || sortBy === 'vitesse') {
       list.sort((a, b) => objectiveScore(b, sortBy) - objectiveScore(a, sortBy));
     } else {
       list.sort((a, b) => statTotal(b.stats, sortBy) - statTotal(a.stats, sortBy));

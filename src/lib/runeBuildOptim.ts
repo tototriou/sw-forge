@@ -149,29 +149,18 @@ export interface SearchResult {
 // Objectifs : choisis AVANT de lancer la recherche (OptimizerSection.tsx),
 // un grand bouton à choix unique — pour orienter le type de rune étudié dès
 // le pré-filtrage, pas seulement trier les résultats après coup.
-// `'speed_nuker'` : archétype « passe avant l'ennemi, tape fort » (ATQ+Dmg
-// Crit+VIT). Le pré-filtrage/rétention (`OBJECTIVE_RELEVANT_STATS`) est
-// resté câblé tel quel depuis une sonde expérimentale antérieure (voir
-// spec/outils/optimizer/, « Piste écartée — un objectif de recherche mieux
-// aligné » : cette sonde a été écartée comme correctif de `bucketCap`, mais
-// le câblage lui-même restait correct et neutre). Le TRI des résultats,
-// lui, réutilise directement la formule de `'degats'` (voir `objectiveScore`
-// ci-dessous) plutôt qu'une formule dédiée : VIT ne sert qu'à orienter QUELS
-// candidats la recherche retient, jamais à les départager entre eux au tri
-// final — cohérent avec l'intention de remplacer un jour la formule Dégâts
-// standard par une formule personnalisée par monstre (sort utilisé,
-// conditions de jeu), qui bénéficiera alors aussi à cet objectif sans
-// modification supplémentaire.
 // `'degats_reels'` : les dégâts d'un SORT précis contre un adversaire
-// configuré (voir spec/outils/degats-reels.md). Contrairement aux quatre
+// configuré (voir spec/outils/degats-reels.md). Contrairement aux trois
 // autres, ses stats pertinentes ne sont PAS fixes — elles dépendent du sort
 // choisi (`{ATK}`, `{ATK}*({SPD}+70)/30`, `0.2*{MAX HP}`…). L'écran les
 // calcule via `damageRelevantStats` et les transmet dans
 // `SearchParams.objectiveStats` ; l'entrée ci-dessous n'est que le repli
-// utilisé tant qu'aucun sort n'est résolu. C'est aussi la réponse au
-// PLACEHOLDER assumé de `speed_nuker` (voir son commentaire ci-dessus) : ici
-// VIT participe réellement au score quand le sort en dépend.
-export type Objective = 'efficience' | 'degats' | 'ehp' | 'vitesse' | 'speed_nuker' | 'degats_reels';
+// utilisé tant qu'aucun sort n'est résolu (fiche absente — monstre perso —
+// ou formule hors modèle). ⚠️ Remplace `'speed_nuker'` (archétype générique
+// ATQ+Dmg Crit+VIT, retiré : cet objectif calcule la VRAIE formule d'un sort
+// qui dépend de VIT — ex. Lagmaron, `ATQ×(VIT+70)/30` — plutôt qu'une
+// approximation qui ignorait VIT au tri final ; voir historique).
+export type Objective = 'efficience' | 'degats' | 'ehp' | 'vitesse' | 'degats_reels';
 
 export const OBJECTIVE_LABELS: { key: Objective; label: string }[] = [
   { key: 'efficience', label: 'Efficience' },
@@ -179,7 +168,6 @@ export const OBJECTIVE_LABELS: { key: Objective; label: string }[] = [
   { key: 'degats_reels', label: 'Dégâts réels' },
   { key: 'ehp', label: 'PV effectifs' },
   { key: 'vitesse', label: 'Vitesse' },
-  { key: 'speed_nuker', label: 'Speed nuker' },
 ];
 
 // ⚠️ Constantes de RÈGLE DU JEU (pas d'affichage) déplacées ici depuis
@@ -257,7 +245,6 @@ export const OBJECTIVE_RELEVANT_STATS: Record<Objective, StatKey[]> = {
   degats_reels: ['atk', 'cd'],
   ehp: ['hp', 'def'],
   vitesse: ['spd'],
-  speed_nuker: ['atk', 'cd', 'spd'],
 };
 
 // Les stats à privilégier au pré-filtrage/à la rétention, avec la
@@ -271,7 +258,16 @@ export const OBJECTIVE_RELEVANT_STATS: Record<Objective, StatKey[]> = {
 // sans que le moteur connaisse les périmètres d'exclusion).
 export function objectiveKeysOf(objective: Objective | undefined, override: StatKey[] | undefined): StatKey[] {
   if (override) return override;
-  return objective ? OBJECTIVE_RELEVANT_STATS[objective] : [];
+  // ⚠️ `?? []`, pas un accès direct : `objective` peut porter une valeur
+  // ABSENTE de la table — une recette exportée pendant la courte durée de vie
+  // d'un objectif depuis retiré (ex. `speed_nuker`, v1.8.1) est du JSON non
+  // validé, `parseOptimizerRecipe` ne vérifie pas que `objective` fait partie
+  // du type. Sans ce repli, `[...objectiveKeysOf(...)]` plus haut dans la
+  // pile lève une `TypeError` (spread sur `undefined`) au lieu de dégrader
+  // proprement vers « aucun biais » — même esprit de tolérance que le reste
+  // de ce fichier de recette (un identifiant introuvable est ignoré, jamais
+  // une exception).
+  return objective ? (OBJECTIVE_RELEVANT_STATS[objective] ?? []) : [];
 }
 
 export function statTotal(stats: StatRow[], key: StatKey): number {
@@ -316,17 +312,7 @@ export function objectiveScore(candidate: BuildCandidate, objective: Objective, 
     }
     return computeSkillDamage(realDamage.profile, stats, realDamage.setup);
   }
-  if (objective === 'degats' || objective === 'speed_nuker') {
-    // ⚠️ `speed_nuker` réutilise ICI la même formule que `degats` — PLACEHOLDER
-    // assumé, pas une formule dédiée. Pour un vrai speed nuker (ex. Lagmaron,
-    // sort n°2 : Multiplier = ATQ×(VIT+70)/30), VIT participe RÉELLEMENT au
-    // multiplicateur de dégâts du sort — cette formule générique l'ignore
-    // totalement ici. VIT reste pris en compte en amont, dans le
-    // pré-filtrage/la rétention (voir `OBJECTIVE_RELEVANT_STATS.speed_nuker`),
-    // juste pas dans CE score. À remplacer quand une formule de dégâts
-    // personnalisée par monstre/sort existera (projet plus large, pas encore
-    // construit) — ce jour-là, `speed_nuker` en bénéficiera automatiquement
-    // sans modification supplémentaire de cette fonction.
+  if (objective === 'degats') {
     const atk = statTotal(stats, 'atk');
     // ⚠️ Le Taux Crit est PLAFONNÉ à 100 % dans le jeu — passer 100 % ne
     // rapporte plus rien (la formule utiliserait sinon une chance de critique

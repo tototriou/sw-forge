@@ -195,12 +195,12 @@ retour.
      ⚠️ **Aucun sort calculable** (monstre perso, fiche absente, formules
      hors modèle) : la recherche reste possible et se rabat sur le biais de
      **Dégâts** ; le tri « Dégâts réels » n'est alors pas proposé.
-   - **Speed nuker** — pré-filtrage/rétention élargis sur ATQ, Dmg Crit **et**
-     VIT ensemble (archétype « passe avant l'ennemi, tape fort »). ⚠️ Le
-     **tri**, lui, réutilise la même formule que Dégâts (VIT n'y participe
-     pas) — placeholder historique. C'est **Dégâts réels** qui répond
-     réellement à ce cas (ex. Lagmaron, `ATQ × (VIT + 70) / 30` : VIT entre
-     alors vraiment dans le score, puisque la formule du sort la contient).
+   ⚠️ **« Speed nuker » a été retiré** (remplacé par « Dégâts réels ») :
+   c'était un archétype générique (ATQ+Dmg Crit+VIT élargis au pré-filtrage,
+   mais VIT absente du tri final — placeholder jamais résolu). « Dégâts
+   réels » répond mieux à ce besoin quand le sort utilisé dépend
+   effectivement de VIT (ex. Lagmaron, `ATQ × (VIT + 70) / 30`) : la vraie
+   formule, VIT comprise, sert alors au tri — pas seulement au pré-filtrage.
    ⚠️ L'objectif choisi oriente le **pré-filtrage** (quelles runes ont une
    vraie chance d'être considérées) et le **tri par défaut** des résultats
    (modifiable ensuite) — il **n'influence pas** le classement des candidats

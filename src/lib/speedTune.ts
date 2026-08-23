@@ -157,3 +157,111 @@ export function premiersTours(sim: Simulation): Action[] {
   }
   return out;
 }
+
+/* ------------------------------------------------- Chaîne d'ouverture ---- */
+
+// « Est-ce que TOUTE mon équipe joue avant que l'adversaire ne s'intercale ? »
+// C'est la question du speed tune : un seul adverse qui passe au milieu (souvent
+// un monstre à grosse vitesse de base qui remplit la barre des siens) coupe le
+// combo. La cible est le PREMIER adverse à agir — la condition la plus stricte.
+
+// Vitesse de combat au-delà de laquelle il n'y a plus rien à gagner : agir dès
+// le tick 1 (`speedForTick(1)` = 1429). Sert de borne haute à la recherche.
+export const COMBAT_MAX = speedForTick(1);
+
+export interface Coupure {
+  // Le premier adverse à agir, ou `null` s'il n'y en a aucun (rien à vérifier).
+  coupeur: Action | null;
+  // Alliés dont le PREMIER tour tombe APRÈS lui — `tick: null` = n'agit jamais
+  // dans l'horizon simulé.
+  coupes: { id: string; tick: number | null }[];
+  // Tous les alliés simulés jouent avant le coupeur (vrai aussi s'il n'y a pas
+  // d'adverse : rien ne coupe).
+  ok: boolean;
+}
+
+export function diagnostiquerChaine(monstres: TuneMonstre[], horizon = HORIZON_TICKS): Coupure {
+  const sim = simuler(monstres, horizon);
+  const premiers = premiersTours(sim);
+  const coupeur = premiers.find((a) => a.camp === 'ennemi') ?? null;
+
+  const coupes: Coupure['coupes'] = [];
+  for (const l of sim.lignes) {
+    if (l.camp !== 'allie') continue;
+    const mien = premiers.find((a) => a.id === l.id) ?? null;
+    if (!coupeur) continue; // aucun adverse : rien à couper
+    if (!mien) coupes.push({ id: l.id, tick: null });
+    else if (mien.tick > coupeur.tick) coupes.push({ id: l.id, tick: mien.tick });
+  }
+  return { coupeur, coupes, ok: coupes.length === 0 };
+}
+
+// Un allié coupé et la vitesse de combat qui le ferait passer avant le coupeur.
+export interface VitesseRequise {
+  id: string;
+  combatActuel: number;
+  // `null` = même à `COMBAT_MAX`, il reste coupé (trop d'alliés à caser avant
+  // l'adverse : un seul agit par tick).
+  combatRequis: number | null;
+}
+
+// Vitesse de combat minimale, allié par allié, pour que TOUTE l'équipe joue
+// avant le premier adverse.
+//
+// Recherche DICHOTOMIQUE sur la vitesse de combat, avec re-simulation à chaque
+// essai — pas de formule fermée : la règle « un seul monstre par tick », les
+// boosts de barre et les buffs de vitesse par tick s'y mêlent. Le prédicat
+// « cet allié joue avant le premier adverse » est MONOTONE en sa vitesse (plus
+// vite = barre plus haute à chaque tick = tour plus tôt, et l'adverse ne peut
+// qu'être repoussé), ce qui rend la dichotomie valide ; c'est vérifié par test
+// différentiel contre un balayage linéaire exhaustif (tests/speed-tune.test.ts).
+//
+// ⚠️ Les alliés sont traités du PLUS RAPIDE au plus lent, et chaque vitesse
+// trouvée est CONSERVÉE pour les suivants : les ticks avant l'adverse sont une
+// ressource partagée (un seul monstre par tick), donc corriger un allié change
+// ce qu'il faut aux autres. Le résultat est un jeu de vitesses cohérent, pas
+// une somme de corrections indépendantes.
+export function vitessesRequises(monstres: TuneMonstre[], horizon = HORIZON_TICKS): VitesseRequise[] {
+  const diag = diagnostiquerChaine(monstres, horizon);
+  if (diag.ok || !diag.coupeur) return [];
+
+  // État de travail : les vitesses trouvées y sont écrites au fur et à mesure.
+  const courant = monstres.map((m) => ({ ...m }));
+  const parId = new Map(courant.map((m) => [m.id, m]));
+
+  const passeAvant = (id: string): boolean => {
+    const premiers = premiersTours(simuler(courant, horizon));
+    const adverse = premiers.find((a) => a.camp === 'ennemi');
+    const mien = premiers.find((a) => a.id === id);
+    if (!mien) return false;
+    return !adverse || mien.tick < adverse.tick;
+  };
+
+  const aTraiter = diag.coupes
+    .map((c) => parId.get(c.id))
+    .filter((m): m is (typeof courant)[number] => !!m)
+    .sort((a, b) => b.combat - a.combat);
+
+  const out: VitesseRequise[] = [];
+  for (const m of aTraiter) {
+    const depart = m.combat;
+    // Dichotomie sur ]depart, COMBAT_MAX] : la plus petite vitesse qui passe.
+    let bas = depart + 1;
+    let haut = COMBAT_MAX;
+    m.combat = haut;
+    if (!passeAvant(m.id)) {
+      m.combat = depart; // insoluble : on laisse sa vitesse telle quelle
+      out.push({ id: m.id, combatActuel: depart, combatRequis: null });
+      continue;
+    }
+    while (bas < haut) {
+      const milieu = Math.floor((bas + haut) / 2);
+      m.combat = milieu;
+      if (passeAvant(m.id)) haut = milieu;
+      else bas = milieu + 1;
+    }
+    m.combat = bas; // conservé pour les alliés suivants
+    out.push({ id: m.id, combatActuel: depart, combatRequis: bas });
+  }
+  return out;
+}

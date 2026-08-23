@@ -1,11 +1,13 @@
 import { useEffect, useId, useMemo, useRef, useState } from 'react';
-import { Search, Plus, Timer, Users, Swords, X, Zap, Gauge, Eye, EyeOff, Download } from 'lucide-react';
+import { Search, Plus, Timer, Users, Swords, X, Zap, Gauge, Eye, EyeOff, Download, Check, Scissors } from 'lucide-react';
 import { Monster, SiegeTeam } from '../../types';
-import { combatSpeed, SPEED_LEADS, SIEGE_TICKS } from '../../lib/speed';
+import { combatSpeed, runeSpeedForTarget, SPEED_LEADS, SIEGE_TICKS } from '../../lib/speed';
 import {
   simuler,
   premiersTours,
   speedForTick,
+  diagnostiquerChaine,
+  vitessesRequises,
   HORIZON_TICKS,
   Camp,
   TuneMonstre,
@@ -233,13 +235,14 @@ export default function SpeedTuningSection({ allMonsters, siegeDefenseTeams, sie
   // tableaux. Les masqués restent affichés dans leur camp pour être réaffichés.
   const lignesVisibles = useMemo(() => lignes.filter((l) => !l.masque), [lignes]);
 
-  // Simulation multi-tours (40 ticks) avec les modificateurs.
-  const sim = useMemo(() => {
-    const tune: TuneMonstre[] = [];
+  // Entrée du moteur : les monstres visibles dont la vitesse est connue.
+  // Partagée par la simulation ET par le diagnostic de chaîne.
+  const tune = useMemo(() => {
+    const out: TuneMonstre[] = [];
     for (const l of lignesVisibles) {
       const c = combatDe(l);
       if (c != null && c > 0)
-        tune.push({
+        out.push({
           id: l.uid,
           combat: c,
           camp: l.camp,
@@ -248,8 +251,19 @@ export default function SpeedTuningSection({ allMonsters, siegeDefenseTeams, sie
           artefactBuff: l.artefactBuff ?? 0,
         });
     }
-    return simuler(tune, HORIZON_TICKS);
+    return out;
   }, [lignes, leadAllie, leadEnnemi]);
+
+  // Simulation multi-tours (40 ticks) avec les modificateurs.
+  const sim = useMemo(() => simuler(tune, HORIZON_TICKS), [tune]);
+
+  // Chaîne d'ouverture : toute l'équipe joue-t-elle avant le premier adverse ?
+  // Et sinon, quelle vitesse de combat faut-il à ceux qui sont coupés.
+  const chaine = useMemo(() => diagnostiquerChaine(tune, HORIZON_TICKS), [tune]);
+  const requis = useMemo(
+    () => (chaine.ok ? [] : vitessesRequises(tune, HORIZON_TICKS)),
+    [tune, chaine]
+  );
 
   // Premiers tours (ordre de tour) et numéro d'action par (monstre, tick).
   const premiers = useMemo(() => premiersTours(sim), [sim]);
@@ -269,6 +283,13 @@ export default function SpeedTuningSection({ allMonsters, siegeDefenseTeams, sie
   }, [sim, premiers]);
 
   const ligneParUid = useMemo(() => new Map(lignes.map((l) => [l.uid, l])), [lignes]);
+  const requisParUid = useMemo(() => new Map(requis.map((r) => [r.id, r])), [requis]);
+  const nomDe = (uid: string) => ligneParUid.get(uid)?.monster.name ?? '?';
+  // Vitesse de runes qu'il MANQUE pour atteindre une vitesse de combat cible.
+  const runesPour = (l: Ligne, combatCible: number): number | null => {
+    const besoin = runeSpeedForTarget(l.monster.stats.speed, leadDe(l.camp), combatCible, false);
+    return besoin == null ? null : besoin - (l.runeSpeed ?? 0);
+  };
 
   // Défilement horizontal SYNCHRONISÉ entre les trois tableaux : bouger l'un
   // aligne les deux autres, pour que la colonne d'un tick reste sous la même.
@@ -404,6 +425,76 @@ export default function SpeedTuningSection({ allMonsters, siegeDefenseTeams, sie
         </div>
       ) : (
         <>
+          {/* Le combo passe-t-il ? — la question à laquelle sert le speed tune */}
+          <section className="rounded-lg border border-border bg-panel">
+            <div className="border-b border-border-soft px-4 py-2.5 text-micro font-semibold uppercase tracking-wider text-ink-dimmer">
+              Le combo passe-t-il ?
+              <span className="ml-2 font-normal normal-case tracking-normal text-ink-dimmer">
+                · toute ton équipe doit jouer AVANT le premier adverse
+              </span>
+            </div>
+            <div className="px-4 py-3.5">
+              {!aAllie || !chaine.coupeur ? (
+                <p className="text-sm text-ink-dim">
+                  {aAllie
+                    ? "Ajoute un monstre en face pour voir s'il coupe ton combo."
+                    : 'Ajoute des monstres à ton équipe pour vérifier que rien ne la coupe.'}
+                </p>
+              ) : chaine.ok ? (
+                <p className="flex items-center gap-2 text-sm font-semibold text-good">
+                  <Check size={16} className="flex-none" />
+                  Toute ton équipe joue avant {nomDe(chaine.coupeur.id)} (tick {chaine.coupeur.tick}).
+                </p>
+              ) : (
+                <>
+                  <p className="flex items-center gap-2 text-sm font-semibold text-bad">
+                    <Scissors size={16} className="flex-none" />
+                    {nomDe(chaine.coupeur.id)} agit au tick {chaine.coupeur.tick} : il coupe ton combo.
+                  </p>
+                  <ul className="mt-2.5 space-y-1.5">
+                    {chaine.coupes.map((c) => {
+                      const l = ligneParUid.get(c.id);
+                      if (!l) return null;
+                      const r = requisParUid.get(c.id);
+                      const cible = r?.combatRequis ?? null;
+                      const runes = cible == null ? null : runesPour(l, cible);
+                      return (
+                        <li key={c.id} className="flex flex-wrap items-center gap-x-2.5 gap-y-1 text-sm">
+                          <MonsterAvatar monster={l.monster} size={24} element={false} />
+                          <span className="font-semibold">{l.monster.name}</span>
+                          <span className="font-mono text-xs text-ink-dim">
+                            {c.tick == null ? "n'agit pas" : `joue au tick ${c.tick}`}
+                          </span>
+                          {cible == null ? (
+                            <span className="text-xs text-ink-dim">
+                              — hors de portée : un seul monstre agit par tick, ils ne tiennent pas tous avant lui.
+                            </span>
+                          ) : (
+                            <span className="flex items-center gap-2">
+                              <span className="text-ink-dimmer">→</span>
+                              <span className="font-mono text-xs">
+                                {cible} <span className="text-ink-dim">de vitesse de combat</span>
+                              </span>
+                              {runes != null && (
+                                <span className="rounded border border-accent/50 px-1.5 py-0.5 font-mono text-micro font-bold text-accent">
+                                  {runes > 0 ? `+${runes}` : runes} SPD de runes
+                                </span>
+                              )}
+                            </span>
+                          )}
+                        </li>
+                      );
+                    })}
+                  </ul>
+                  <p className="mt-2.5 text-xs text-ink-dim">
+                    Les vitesses proposées tiennent compte des boosts de barre et des buffs déjà posés, et se
+                    lisent ENSEMBLE : un seul monstre agit par tick, corriger l'un change ce qu'il faut aux autres.
+                  </p>
+                </>
+              )}
+            </div>
+          </section>
+
           {/* Barre d'action par tick (résultat, lecture seule) */}
           <section className="rounded-lg border border-border bg-panel">
             <div className="border-b border-border-soft px-4 py-2.5 text-micro font-semibold uppercase tracking-wider text-ink-dimmer">

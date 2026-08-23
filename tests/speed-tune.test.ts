@@ -9,8 +9,13 @@ import {
   simuler,
   premiersTours,
   atbParTick,
+  diagnostiquerChaine,
+  vitessesRequises,
+  COMBAT_MAX,
+  HORIZON_TICKS,
   TuneMonstre,
   Simulation,
+  VitesseRequise,
 } from '../src/lib/speedTune';
 import { deckPourSpeedTune } from '../src/lib/speedTuneDeck';
 import { Monster, SiegeTeam } from '../src/types';
@@ -204,6 +209,148 @@ export function testSpeedTuneDeck() {
       deckPourSpeedTune(equipe([{ monsterId: '2', runeSpeed: 100 }]), parId).lead,
       null,
       'leader sans lead de vitesse → rien à appliquer'
+    );
+  }
+}
+
+/* ------------------------------- Chaîne d'ouverture (combo non coupé) ---- */
+
+// PRNG déterministe (mulberry32) — mêmes scénarios d'une exécution à l'autre.
+function mulberry32(seed: number) {
+  let a = seed;
+  return () => {
+    a |= 0;
+    a = (a + 0x6d2b79f5) | 0;
+    let t = Math.imul(a ^ (a >>> 15), 1 | a);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+
+// RÉFÉRENCE DE CONTRÔLE (algo-verify) : même raisonnement que
+// `vitessesRequises`, mais la vitesse minimale se cherche par BALAYAGE LINÉAIRE
+// exhaustif au lieu d'une dichotomie. Volontairement naïve et lente — elle
+// définit « la bonne réponse » pour le test différentiel.
+function vitessesRequisesNaif(monstres: TuneMonstre[], horizon = HORIZON_TICKS): VitesseRequise[] {
+  const diag = diagnostiquerChaine(monstres, horizon);
+  if (diag.ok || !diag.coupeur) return [];
+  const courant = monstres.map((m) => ({ ...m }));
+  const parId = new Map(courant.map((m) => [m.id, m]));
+  const passeAvant = (id: string): boolean => {
+    const premiers = premiersTours(simuler(courant, horizon));
+    const adverse = premiers.find((a) => a.camp === 'ennemi');
+    const mien = premiers.find((a) => a.id === id);
+    if (!mien) return false;
+    return !adverse || mien.tick < adverse.tick;
+  };
+  const aTraiter = diag.coupes
+    .map((c) => parId.get(c.id))
+    .filter((m): m is (typeof courant)[number] => !!m)
+    .sort((a, b) => b.combat - a.combat);
+  const out: VitesseRequise[] = [];
+  for (const m of aTraiter) {
+    const depart = m.combat;
+    let trouve: number | null = null;
+    for (let c = depart + 1; c <= COMBAT_MAX; c++) {
+      m.combat = c;
+      if (passeAvant(m.id)) {
+        trouve = c;
+        break;
+      }
+    }
+    m.combat = trouve ?? depart;
+    out.push({ id: m.id, combatActuel: depart, combatRequis: trouve });
+  }
+  return out;
+}
+
+export function testSpeedTuneChaine() {
+  titre("Speed tuning — chaîne d'ouverture");
+
+  const m = (id: string, combat: number, camp: 'allie' | 'ennemi'): TuneMonstre => ({ id, combat, camp });
+
+  // Aucun adverse : rien ne peut couper le combo.
+  {
+    const d = diagnostiquerChaine([m('a', 200, 'allie'), m('b', 150, 'allie')]);
+    ok(d.ok, 'sans adverse, la chaîne tient');
+    egal(d.coupeur, null, 'aucun coupeur désigné');
+    egal(vitessesRequises([m('a', 200, 'allie')]).length, 0, 'rien à corriger sans adverse');
+  }
+
+  // Eshir (base 115 rapide) s'intercale entre deux alliés → combo coupé.
+  {
+    const monstres = [m('rapide', 300, 'allie'), m('eshir', 250, 'ennemi'), m('lent', 180, 'allie')];
+    const d = diagnostiquerChaine(monstres);
+    ok(!d.ok, "un adverse plus rapide qu'un allié coupe la chaîne");
+    egal(d.coupeur?.id, 'eshir', 'le coupeur est le premier adverse à agir');
+    egal(d.coupes.length, 1, 'un seul allié coupé');
+    egal(d.coupes[0].id, 'lent', "c'est le plus lent qui passe après");
+
+    const req = vitessesRequises(monstres);
+    egal(req.length, 1, 'une vitesse à trouver');
+    egal(req[0].id, 'lent', "la correction porte sur l'allié coupé");
+    ok(req[0].combatRequis != null && req[0].combatRequis > 180, 'il lui faut plus que sa vitesse actuelle');
+
+    // La vitesse proposée répare VRAIMENT la chaîne, et un point de moins ne suffit pas.
+    const avec = (v: number) => monstres.map((x) => (x.id === 'lent' ? { ...x, combat: v } : x));
+    ok(diagnostiquerChaine(avec(req[0].combatRequis!)).ok, 'à la vitesse proposée, la chaîne tient');
+    ok(!diagnostiquerChaine(avec(req[0].combatRequis! - 1)).ok, "un point de moins et elle est coupée : c'est bien le minimum");
+  }
+
+  // Un boost de barre d'attaque suffit parfois : la vitesse requise en tient compte.
+  {
+    const base = [m('rapide', 300, 'allie'), m('eshir', 250, 'ennemi'), m('lent', 180, 'allie')];
+    const sansBoost = vitessesRequises(base)[0].combatRequis!;
+    const boost = base.map((x) => (x.id === 'lent' ? { ...x, atbMod: { 1: 20 } } : x));
+    const avecBoost = vitessesRequises(boost)[0].combatRequis!;
+    ok(avecBoost < sansBoost, "un boost d'ATB au tick 1 abaisse la vitesse à trouver");
+    // Assez de boost et il n'y a plus rien à corriger du tout.
+    const gros = base.map((x) => (x.id === 'lent' ? { ...x, atbMod: { 1: 30 } } : x));
+    ok(diagnostiquerChaine(gros).ok, 'un boost suffisant répare la chaîne sans toucher aux vitesses');
+  }
+
+  // Un seul monstre agit par tick : cinq alliés ne peuvent pas tous passer
+  // avant un adverse qui agit au tick 3, même à vitesse maximale.
+  {
+    const monstres: TuneMonstre[] = [
+      m('e', COMBAT_MAX, 'ennemi'),
+      ...['a1', 'a2', 'a3', 'a4', 'a5'].map((id) => m(id, 100, 'allie')),
+    ];
+    const req = vitessesRequises(monstres);
+    ok(
+      req.some((r) => r.combatRequis === null),
+      "trop d'alliés à caser avant l'adverse → au moins un cas déclaré insoluble"
+    );
+  }
+
+  // TEST DIFFÉRENTIEL (algo-verify) : la dichotomie retrouve EXACTEMENT ce que
+  // trouve le balayage linéaire exhaustif, sur des scénarios aléatoires à seed
+  // fixe (alliés/adverses, vitesses, boosts d'ATB et buffs de vitesse).
+  {
+    let identiques = 0;
+    const scenarios = 24;
+    for (let s = 0; s < scenarios; s++) {
+      const rng = mulberry32(7000 + s * 97);
+      const nbAllies = 1 + Math.floor(rng() * 3);
+      const nbEnnemis = 1 + Math.floor(rng() * 2);
+      const monstres: TuneMonstre[] = [];
+      const tirer = (camp: 'allie' | 'ennemi', i: number): TuneMonstre => {
+        const combat = 80 + Math.floor(rng() * 320);
+        const mm: TuneMonstre = { id: `${camp}${i}`, combat, camp };
+        if (rng() < 0.3) mm.atbMod = { [1 + Math.floor(rng() * 4)]: Math.floor(rng() * 60) };
+        if (rng() < 0.3) mm.speedMod = { [1 + Math.floor(rng() * 4)]: 30 };
+        return mm;
+      };
+      for (let i = 0; i < nbAllies; i++) monstres.push(tirer('allie', i));
+      for (let i = 0; i < nbEnnemis; i++) monstres.push(tirer('ennemi', i));
+      const a = JSON.stringify(vitessesRequises(monstres));
+      const b = JSON.stringify(vitessesRequisesNaif(monstres));
+      if (a === b) identiques++;
+      else ok(false, `scénario ${s} : dichotomie ${a} ≠ balayage exhaustif ${b}`);
+    }
+    ok(
+      identiques === scenarios,
+      `dichotomie identique au balayage linéaire exhaustif sur ${scenarios} scénarios aléatoires (seed fixe)`
     );
   }
 }

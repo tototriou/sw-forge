@@ -80,6 +80,51 @@ trois vitesses de runes. Calcul pur dans
   mais le speed tuning ne modélise pas le set. La vitesse de combat importée peut
   donc différer de celle du siège de **1 point** au plus (arrondi du bonus %).
 
+## Le combo passe-t-il ? (chaîne d'ouverture)
+
+Le speed tune sert à ça : que **tous** les monstres de l'équipe jouent **avant**
+que l'adversaire ne s'intercale. Un seul adverse qui passe au milieu — souvent
+une grosse vitesse de base qui remplit la barre des siens — coupe le combo.
+Calcul dans [speedTune.ts](src/lib/speedTune.ts), **testé**
+([tests/speed-tune.test.ts](tests/speed-tune.test.ts)).
+
+- **La cible est le PREMIER adverse à agir** (`diagnostiquerChaine`), pas un
+  monstre à désigner : c'est la condition la plus stricte, et celle qui n'oblige
+  à rien saisir. Sont **coupés** les alliés dont le PREMIER tour tombe après lui
+  (ou qui n'agissent pas dans les 40 ticks).
+- **Vitesse à trouver** (`vitessesRequises`) : pour chaque allié coupé, la
+  **vitesse de combat minimale** qui le fait passer avant. L'écran la traduit en
+  points de **vitesse de runes** manquants.
+
+### Comment la vitesse requise est cherchée
+
+⚠️ **Pas de formule fermée.** La règle « un seul monstre par tick », les boosts
+de barre et les buffs de vitesse par tick se mêlent : la vitesse requise se
+cherche par **dichotomie sur la vitesse de combat, avec re-simulation à chaque
+essai**, entre la vitesse actuelle et `COMBAT_MAX` (= `speedForTick(1)` = 1429,
+agir dès le tick 1 — au-delà il n'y a plus rien à gagner).
+
+- **Ce qui rend la dichotomie valide** : le prédicat « cet allié joue avant le
+  premier adverse » est **monotone** en sa vitesse (plus vite = barre plus haute
+  à chaque tick = tour plus tôt, et l'adverse ne peut qu'être repoussé). Vérifié
+  par **test différentiel** contre une référence naïve (balayage linéaire
+  exhaustif) sur 24 scénarios aléatoires à seed fixe — voir le skill
+  `algo-verify`.
+- ⚠️ **Les alliés sont traités du plus rapide au plus lent, et chaque vitesse
+  trouvée est CONSERVÉE pour les suivants** : les ticks avant l'adverse sont une
+  ressource partagée (un seul monstre par tick), donc corriger un allié change
+  ce qu'il faut aux autres. Les vitesses proposées se lisent **ensemble**, ce
+  n'est pas une somme de corrections indépendantes.
+- **« Hors de portée »** (`combatRequis: null`) : même à `COMBAT_MAX` l'allié
+  reste coupé — typiquement plus d'alliés que de ticks disponibles avant
+  l'adverse. L'écran le dit au lieu d'afficher un chiffre inatteignable.
+- **Coût** : ~11 simulations de 40 ticks par allié coupé, recalculé à chaque
+  frappe. Négligeable à cette échelle (une poignée de monstres) — aucun budget
+  ni cache n'a été nécessaire.
+- **Limite héritée du modèle** : le verdict repose sur les **premiers tours**
+  (voir plus bas) ; un adverse très rapide qui rejouerait une deuxième fois
+  avant la fin de la chaîne n'est pas compté comme une coupure supplémentaire.
+
 ## Règle « un seul monstre par tick »
 
 Le cœur de l'outil, dans `simulerOrdre` (speedTune.ts), **testé**
@@ -126,7 +171,14 @@ De haut en bas :
    **masqué** reste dans son camp (grisé) mais quitte les calculs et les trois
    tableaux — pour tester une compo sans perdre son réglage ; on le réaffiche
    d'un clic sur l'œil.
-3. **Barre d'action par tick** (lecture seule) — tableau : lignes triées par
+3. **Le combo passe-t-il ?** — le verdict, posé AVANT les tableaux : c'est la
+   question à laquelle sert l'outil. Vert quand toute l'équipe joue avant le
+   premier adverse (il est nommé, avec son tick) ; rouge sinon — l'adverse qui
+   coupe, puis **une ligne par allié coupé** : son tick, la **vitesse de combat**
+   à atteindre et les **points de vitesse de runes** qui manquent
+   (`runeSpeedForTarget`). Sans adverse (ou sans allié), une phrase neutre le
+   dit — la section garde sa place, elle ne surgit pas sous le clic.
+4. **Barre d'action par tick** (lecture seule) — tableau : lignes triées par
    ordre de tour, colonnes = ticks. Chaque cellule = `% rempli` — la
    **trajectoire réelle** renvoyée par la simulation (`OrdreEntree.trajectoire`),
    qui n'est plus linéaire dès qu'un modificateur entre en jeu. La case où le
@@ -134,20 +186,20 @@ De haut en bas :
    contour de plus par-dessus la grille) ; les ticks après l'action restent
    vides. Adversaires en teinte `bad`, alliés en `accent`. Colonne de gauche
    figée, défilement horizontal.
-4. **Modification de barre d'attaque** — grille **éditable**, même rendu que le
+5. **Modification de barre d'attaque** — grille **éditable**, même rendu que le
    tableau ci-dessus. Chaque camp présent ouvre sur une ligne **« Toute ton
    équipe » / « Tout en face »** (écrit la même valeur sur tous ses monstres au
    tick visé), puis une ligne par monstre. Cellules = `NumberField sansBoutons`
    (axe dense de la lib, voir [../shared/librairie-ui.md](../shared/librairie-ui.md)) ;
    valeur **positive pour remplir, négative pour vider** (la barre reste ≥ 0) ;
    une case vide = pas de modificateur.
-5. **Buff de vitesse** — même grille, mais chaque cellule combine un **raccourci**
+6. **Buff de vitesse** — même grille, mais chaque cellule combine un **raccourci**
    et un **champ** : un bouton à l'icône SPD du jeu (celle des cartes RTA/Siège)
    pose/retire le buff **+30 %** d'un clic — c'est presque toujours celui-là — et
    un `NumberField` à côté permet de saisir une autre valeur (33 %, un ralenti
    −30 %…). La ligne équipe agit sur tout le camp. `speedMod` s'applique **au seul
    tick marqué** (pas de report) : un buff qui dure se marque sur chaque tick.
-6. **Ordre de tour** — jetons entrelaçant les deux camps, chacun avec son rang et
+7. **Ordre de tour** — jetons entrelaçant les deux camps, chacun avec son rang et
    son tick.
 
 Les trois tableaux **partagent les mêmes colonnes de ticks** (1 → au moins 12,

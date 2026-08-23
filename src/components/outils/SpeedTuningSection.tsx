@@ -1,8 +1,8 @@
 import { useId, useMemo, useState } from 'react';
-import { Search, Plus, Timer, Users, Swords, X } from 'lucide-react';
+import { Search, Plus, Timer, Users, Swords, X, Zap, Gauge } from 'lucide-react';
 import { Monster } from '../../types';
 import { combatSpeed, SPEED_LEADS, SIEGE_TICKS } from '../../lib/speed';
-import { simulerOrdre, speedForTick, Camp, TuneMonstre } from '../../lib/speedTune';
+import { simulerOrdre, speedForTick, Camp, TuneMonstre, ModParTick } from '../../lib/speedTune';
 import { formesJouables } from '../../lib/monsterForms';
 import { useComboboxNav } from '../../hooks/useComboboxNav';
 import { useStickyState } from '../../hooks/useStickyState';
@@ -11,35 +11,37 @@ import { Champ, Flottant, NumberField, Selecteur, BoutonIcone } from '../../ui';
 
 // Outils › Speed tuning — voir spec/outils/speed-tuning.md.
 //
-// À chaque tick d'horloge, la barre d'action monte de `vitesse × 7 %` ; un seul
-// monstre agit par tick (règle du jeu). L'écran répond à une question : « est-ce
-// que je joue AVANT tel monstre ? » — d'où les deux camps (ton équipe / en face)
-// et l'ordre de tour qui les entrelace. Tout le calcul vit dans lib/speedTune.ts
-// (pur, testé) ; ce composant n'assemble que la saisie et l'affichage.
+// À chaque tick, la barre d'action monte de `vitesse × 7 %` ; un seul monstre
+// agit par tick (règle du jeu). L'écran répond à « est-ce que je joue AVANT tel
+// monstre ? » — d'où les deux camps (ton équipe / en face) et l'ordre de tour
+// qui les entrelace. Deux grilles éditables (même rendu que la barre d'action)
+// posent, par monstre/par tick ou pour toute une équipe, un BOOST de barre
+// d'attaque (ponctuel) et un BUFF de vitesse (soutenu). Tout le calcul vit dans
+// lib/speedTune.ts (pur, testé) ; ce composant assemble saisie et affichage.
 
 interface Props {
   allMonsters: Monster[];
 }
 
-// Une ligne de la liste : un monstre ajouté, sa vitesse de runes saisie, son
-// camp. `uid` = `camp:id` → un même monstre peut figurer des DEUX côtés (utile :
-// comparer une même unité chez soi et en face), mais pas deux fois dans le même.
+// Une ligne : un monstre ajouté, sa vitesse de runes, son camp, et ses deux
+// grilles de modificateurs indexées par tick. `uid = camp:id` → un même monstre
+// peut figurer des DEUX côtés, pas deux fois dans le même camp.
 interface Ligne {
   uid: string;
   monster: Monster;
   runeSpeed: number | null;
   camp: Camp;
+  atbMod: ModParTick;
+  speedMod: ModParTick;
 }
+
+type ChampMod = 'atbMod' | 'speedMod';
 
 const uidDe = (camp: Camp, id: string) => `${camp}:${id}`;
 
-// Repère des ticks affiché en tête : la vitesse de combat minimale pour agir à
-// chaque tick. On couvre les ticks 11→3 (130 à 477), la plage utile en jeu, et
-// on met en avant les deux ticks canoniques du siège (voir SIEGE_TICKS).
+// Repère des ticks en tête : vitesse de combat minimale pour agir à chaque tick.
+// Plage utile en jeu (11→3), les deux ticks siège (239/286) marqués en couleur.
 const RULER_TICKS = [11, 10, 9, 8, 7, 6, 5, 4, 3];
-// Les deux ticks canoniques du siège (239 « Lent », 286 « Rapide ») : on ne les
-// nomme pas individuellement, on les marque tous les deux « Siège » — c'est le
-// contenu où ces ticks comptent, pas la nuance lent/rapide, qui parle ici.
 const TICKS_SIEGE = new Set(SIEGE_TICKS.map((t) => t.value));
 
 export default function SpeedTuningSection({ allMonsters }: Props) {
@@ -54,7 +56,7 @@ export default function SpeedTuningSection({ allMonsters }: Props) {
     if (lignes.some((l) => l.uid === uid)) return;
     const monster = allMonsters.find((m) => String(m.id) === id);
     if (!monster) return;
-    setLignes((prev) => [...prev, { uid, monster, runeSpeed: null, camp }]);
+    setLignes((prev) => [...prev, { uid, monster, runeSpeed: null, camp, atbMod: {}, speedMod: {} }]);
   }
   function retirer(uid: string) {
     setLignes((prev) => prev.filter((l) => l.uid !== uid));
@@ -63,30 +65,44 @@ export default function SpeedTuningSection({ allMonsters }: Props) {
     setLignes((prev) => prev.map((l) => (l.uid === uid ? { ...l, runeSpeed: v } : l)));
   }
 
+  // Écrit une valeur de modificateur dans la grille `champ`, pour un tick donné.
+  // 0/null efface l'entrée (une case vide = pas de modificateur).
+  const majMap = (m: ModParTick, tick: number, v: number | null): ModParTick => {
+    const next = { ...m };
+    if (v == null || v === 0) delete next[tick];
+    else next[tick] = v;
+    return next;
+  };
+  function setMod(champ: ChampMod, uid: string, tick: number, v: number | null) {
+    setLignes((prev) => prev.map((l) => (l.uid === uid ? { ...l, [champ]: majMap(l[champ], tick, v) } : l)));
+  }
+  function setModEquipe(champ: ChampMod, camp: Camp, tick: number, v: number | null) {
+    setLignes((prev) => prev.map((l) => (l.camp === camp ? { ...l, [champ]: majMap(l[champ], tick, v) } : l)));
+  }
+
   const leadDe = (camp: Camp) => (camp === 'allie' ? leadAllie : leadEnnemi);
 
-  // Vitesse de combat par ligne (base + runes + totem 15 % + lead), via la
-  // source de vérité speed.ts. `null` si la base est inconnue.
+  // Vitesse de combat de base (base + runes + totem 15 % + lead) via speed.ts.
+  // `null` si la base est inconnue. Les buffs de vitesse sont appliqués PAR TICK
+  // dans la simulation, pas ici.
   const combatDe = (l: Ligne): number | null =>
     combatSpeed(l.monster.stats.speed, l.runeSpeed, leadDe(l.camp), false);
 
-  // Simulation « un seul par tick » sur les lignes dont la vitesse est connue.
+  // Simulation « un seul par tick » avec les modificateurs.
   const ordre = useMemo(() => {
-    const tune: (TuneMonstre & { uid: string })[] = [];
+    const tune: TuneMonstre[] = [];
     for (const l of lignes) {
       const c = combatDe(l);
-      if (c != null && c > 0) tune.push({ id: l.uid, uid: l.uid, combat: c, camp: l.camp });
+      if (c != null && c > 0)
+        tune.push({ id: l.uid, combat: c, camp: l.camp, atbMod: l.atbMod, speedMod: l.speedMod });
     }
     return simulerOrdre(tune);
   }, [lignes, leadAllie, leadEnnemi]);
 
   const ligneParUid = useMemo(() => new Map(lignes.map((l) => [l.uid, l])), [lignes]);
 
-  // Regroupement des monstres par tick NATUREL d'action (celui que dicte leur
-  // seule vitesse : `⌈10000/(7×combat)⌉`), pour poser leur portrait dans la case
-  // du repère qui leur correspond. On n'applique PAS ici la règle « un par
-  // tick » : le repère est une lecture de la VITESSE (deux monstres à la même
-  // vitesse tombent dans la même case), pas de l'ordre de tour final.
+  // Regroupement par tick NATUREL (vitesse seule, sans modificateur) pour poser
+  // le portrait dans la case du repère qui correspond à la vitesse du monstre.
   const parTick = useMemo(() => {
     const map = new Map<number, Ligne[]>();
     for (const l of lignes) {
@@ -99,17 +115,17 @@ export default function SpeedTuningSection({ allMonsters }: Props) {
   }, [lignes, leadAllie, leadEnnemi]);
 
   const dernierTick = ordre.length ? Math.max(...ordre.map((e) => e.actTick)) : 0;
-  const ticks = useMemo(() => {
-    const out: number[] = [];
-    for (let t = 1; t <= dernierTick + 1; t++) out.push(t);
-    return out;
-  }, [dernierTick]);
+  // Colonnes partagées par les trois tableaux. Au moins 12 pour laisser de la
+  // place où poser un modificateur avant l'action ; plafonné pour rester lisible.
+  const nbTicks = Math.min(40, Math.max(dernierTick + 1, 12));
+  const ticks = useMemo(() => Array.from({ length: nbTicks }, (_, i) => i + 1), [nbTicks]);
 
   const rien = lignes.length === 0;
+  const aAllie = lignes.some((l) => l.camp === 'allie');
+  const aEnnemi = lignes.some((l) => l.camp === 'ennemi');
 
   return (
     <div className="space-y-4">
-      {/* En-tête : la page explique sa propre règle en une ligne. */}
       <header className="flex items-start gap-3">
         <span className="flex h-8 w-8 flex-none items-center justify-center rounded bg-accent-soft text-accent">
           <Timer size={18} />
@@ -141,16 +157,12 @@ export default function SpeedTuningSection({ allMonsters }: Props) {
                   siege ? 'bg-accent-soft' : ''
                 }`}
               >
-                {/* Ticks siège (239 / 286) : marqués par la COULEUR seule (fond
-                    d'accent + chiffres en accent), sans libellé — voir spec. */}
+                {/* Ticks siège (239 / 286) : couleur seule, sans libellé. */}
                 <div className={`font-mono text-sm font-bold ${siege ? 'text-accent' : 'text-ink'}`}>{n}</div>
                 <div className={`font-mono text-micro ${siege ? 'text-accent' : 'text-ink-dim'}`}>{sp}</div>
                 {ici.length > 0 && (
                   <div className="mt-1.5 flex flex-wrap justify-center gap-1">
                     {ici.map((l) => (
-                      // Portrait dans la case du tick que sa vitesse lui donne.
-                      // Contour `bad` pour un adversaire → on repère d'un coup
-                      // d'œil un ennemi qui tombe au même tick que soi.
                       <MonsterAvatar
                         key={l.uid}
                         monster={l.monster}
@@ -167,8 +179,7 @@ export default function SpeedTuningSection({ allMonsters }: Props) {
         </div>
       </section>
 
-      {/* Camps — flex-wrap : côte à côte quand il y a la place, empilés sinon,
-          sans breakpoint de largeur (la largeur ne pilote que la nav). */}
+      {/* Camps — flex-wrap : côte à côte quand il y a la place, empilés sinon. */}
       <div className="flex flex-wrap gap-4">
         <CampPanneau
           camp="allie"
@@ -204,7 +215,7 @@ export default function SpeedTuningSection({ allMonsters }: Props) {
         </div>
       ) : (
         <>
-          {/* Tableau des ticks */}
+          {/* Barre d'action par tick (résultat, lecture seule) */}
           <section className="rounded-lg border border-border bg-panel">
             <div className="border-b border-border-soft px-4 py-2.5 text-micro font-semibold uppercase tracking-wider text-ink-dimmer">
               Barre d'action par tick
@@ -245,22 +256,16 @@ export default function SpeedTuningSection({ allMonsters }: Props) {
                             )}
                           </span>
                         </th>
-                        <td className="px-2.5 py-1.5 text-ink-dim">{e.inc.toFixed(2)}</td>
+                        <td className="px-2.5 py-1.5 text-ink-dim">{e.incBase.toFixed(2)}</td>
                         {ticks.map((t) => {
-                          const atb = e.inc * t;
                           const estAction = t === e.actTick;
                           const passe = t > e.actTick;
-                          // Marqueur = FOND + badge de rang, jamais un contour
-                          // (un cadre en plus de la grille ferait un double trait).
+                          const atb = passe ? null : e.trajectoire[t - 1];
                           const fond = estAction ? (adv ? 'bg-bad/15' : 'bg-accent-soft') : '';
-                          const encre = estAction
-                            ? 'font-bold text-ink'
-                            : passe
-                              ? 'text-ink-dimmer/60'
-                              : 'text-ink-dim';
+                          const encre = estAction ? 'font-bold text-ink' : 'text-ink-dim';
                           return (
                             <td key={t} className={`relative px-2.5 py-1.5 text-center ${fond} ${encre}`}>
-                              {atb.toFixed(1)}
+                              {atb == null ? '' : atb.toFixed(1)}
                               {estAction && (
                                 <span
                                   className={`absolute -right-1 -top-1 flex h-4 w-4 items-center justify-center rounded-full text-micro font-bold text-bg ${
@@ -289,6 +294,34 @@ export default function SpeedTuningSection({ allMonsters }: Props) {
               <span>Un seul monstre par tick — le suivant attend le tick d'après.</span>
             </div>
           </section>
+
+          {/* Grille éditable : boost de barre d'attaque (ponctuel) */}
+          <GrilleMod
+            champ="atbMod"
+            titre="Boost de barre d'attaque"
+            sousTitre="+% d'ATB donné à un tick précis (compétence, artéfact…)"
+            icone={<Zap size={15} />}
+            lignes={lignes}
+            ticks={ticks}
+            aAllie={aAllie}
+            aEnnemi={aEnnemi}
+            onSet={setMod}
+            onSetEquipe={setModEquipe}
+          />
+
+          {/* Grille éditable : buff de vitesse (soutenu à partir du tick) */}
+          <GrilleMod
+            champ="speedMod"
+            titre="Buff de vitesse"
+            sousTitre="+% de vitesse à partir du tick posé (reste actif ensuite) — pas la barre, la vitesse"
+            icone={<Gauge size={15} />}
+            lignes={lignes}
+            ticks={ticks}
+            aAllie={aAllie}
+            aEnnemi={aEnnemi}
+            onSet={setMod}
+            onSetEquipe={setModEquipe}
+          />
 
           {/* Ordre de tour */}
           <section className="rounded-lg border border-border bg-panel">
@@ -360,10 +393,7 @@ function CampPanneau({
   onRuneSpeed,
 }: CampProps) {
   const adv = camp === 'ennemi';
-  const dejaAjoutes = useMemo(
-    () => new Set(lignes.map((l) => String(l.monster.id))),
-    [lignes]
-  );
+  const dejaAjoutes = useMemo(() => new Set(lignes.map((l) => String(l.monster.id))), [lignes]);
 
   return (
     <section className="min-w-[280px] flex-1 rounded-lg border border-border bg-panel">
@@ -405,15 +435,18 @@ function CampPanneau({
                   <div className="truncate text-sm font-semibold">{l.monster.name}</div>
                   <div className="font-mono text-micro text-ink-dim">base {l.monster.stats.speed ?? '—'}</div>
                 </div>
-                <NumberField
-                  value={l.runeSpeed}
-                  onChange={(v) => onRuneSpeed(l.uid, v)}
-                  min={0}
-                  allowEmpty
-                  width="w-14"
-                  placeholder="runes"
-                  ariaLabel={`Vitesse des runes de ${l.monster.name}`}
-                />
+                <label className="flex flex-col items-end gap-0.5">
+                  <span className="text-micro font-semibold uppercase tracking-wide text-ink-dimmer">Runes</span>
+                  <NumberField
+                    value={l.runeSpeed}
+                    onChange={(v) => onRuneSpeed(l.uid, v)}
+                    min={0}
+                    allowEmpty
+                    width="w-12"
+                    placeholder="+"
+                    ariaLabel={`Vitesse des runes de ${l.monster.name}`}
+                  />
+                </label>
                 <div className="w-12 text-right">
                   <div className={`font-mono text-base font-black leading-none ${adv ? 'text-bad' : 'text-ink'}`}>
                     {combat ?? '—'}
@@ -443,6 +476,147 @@ function CampPanneau({
       </div>
     </section>
   );
+}
+
+/* ------------------------------------------------------- Grille de mods -- */
+
+interface GrilleModProps {
+  champ: ChampMod;
+  titre: string;
+  sousTitre: string;
+  icone: React.ReactNode;
+  lignes: Ligne[];
+  ticks: number[];
+  aAllie: boolean;
+  aEnnemi: boolean;
+  onSet: (champ: ChampMod, uid: string, tick: number, v: number | null) => void;
+  onSetEquipe: (champ: ChampMod, camp: Camp, tick: number, v: number | null) => void;
+}
+
+// Grille éditable au MÊME rendu que la barre d'action : lignes = monstres,
+// colonnes = ticks. Chaque camp présent ouvre sur une ligne « Toute l'équipe »
+// qui écrit la même valeur sur tous ses monstres au tick visé.
+function GrilleMod({
+  champ,
+  titre,
+  sousTitre,
+  icone,
+  lignes,
+  ticks,
+  aAllie,
+  aEnnemi,
+  onSet,
+  onSetEquipe,
+}: GrilleModProps) {
+  // Valeur commune d'un camp à un tick (pour la ligne « Toute l'équipe ») :
+  // la valeur partagée si tous l'ont, sinon null (mélange).
+  const valeurEquipe = (camp: Camp, tick: number): number | null => {
+    const vals = lignes.filter((l) => l.camp === camp).map((l) => l[champ][tick] ?? 0);
+    if (vals.length === 0) return null;
+    return vals.every((v) => v === vals[0]) ? vals[0] || null : null;
+  };
+
+  const camps: { camp: Camp; label: string; present: boolean }[] = [
+    { camp: 'allie', label: 'Toute ton équipe', present: aAllie },
+    { camp: 'ennemi', label: 'Tout en face', present: aEnnemi },
+  ];
+
+  const cellule = (
+    value: number | null,
+    onChange: (v: number | null) => void,
+    aria: string
+  ) => (
+    <NumberField
+      sansBoutons
+      value={value}
+      onChange={onChange}
+      allowEmpty
+      boxWidth="w-14"
+      placeholder="·"
+      ariaLabel={aria}
+    />
+  );
+
+  return (
+    <section className="rounded-lg border border-border bg-panel">
+      <div className="flex items-center gap-2 border-b border-border-soft px-4 py-2.5">
+        <span className="text-accent">{icone}</span>
+        <span className="text-micro font-semibold uppercase tracking-wider text-ink-dimmer">{titre}</span>
+        <span className="text-xs font-normal text-ink-dimmer">· {sousTitre}</span>
+      </div>
+      <div className="overflow-x-auto">
+        <table className="w-full border-collapse [font-variant-numeric:tabular-nums]">
+          <thead>
+            <tr className="border-b border-border text-ink-dimmer">
+              <th className="sticky left-0 z-[2] border-r border-border-soft bg-panel px-3 py-2 text-left text-xs font-semibold">
+                Cible
+              </th>
+              {ticks.map((t) => (
+                <th key={t} className="px-1.5 py-2 text-center font-mono text-xs font-semibold">
+                  {t}
+                </th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {camps.map(({ camp, label, present }) => {
+              if (!present) return null;
+              const adv = camp === 'ennemi';
+              const monstres = lignes.filter((l) => l.camp === camp);
+              return (
+                <FragmentCamp key={camp}>
+                  {/* Ligne équipe */}
+                  <tr className="border-b border-border-soft bg-panel2/40">
+                    <th className="sticky left-0 z-[2] border-r border-border-soft bg-panel2 px-3 py-1.5 text-left">
+                      <span className={`flex items-center gap-1.5 text-xs font-bold ${adv ? 'text-bad' : 'text-accent'}`}>
+                        <span className={`h-2 w-2 rounded-full ${adv ? 'bg-bad' : 'bg-accent'}`} />
+                        {label}
+                      </span>
+                    </th>
+                    {ticks.map((t) => (
+                      <td key={t} className="px-1 py-1 text-center">
+                        {cellule(
+                          valeurEquipe(camp, t),
+                          (v) => onSetEquipe(champ, camp, t, v),
+                          `${label} — tick ${t}`
+                        )}
+                      </td>
+                    ))}
+                  </tr>
+                  {/* Lignes monstres */}
+                  {monstres.map((l) => (
+                    <tr key={l.uid} className="border-b border-border-soft">
+                      <th className="sticky left-0 z-[2] border-r border-border-soft bg-panel px-3 py-1.5 text-left font-normal">
+                        <span className="flex items-center gap-2">
+                          <MonsterAvatar monster={l.monster} size={22} element={false} />
+                          <span className="text-sm">{l.monster.name}</span>
+                        </span>
+                      </th>
+                      {ticks.map((t) => (
+                        <td key={t} className="px-1 py-1 text-center">
+                          {cellule(
+                            l[champ][t] ?? null,
+                            (v) => onSet(champ, l.uid, t, v),
+                            `${l.monster.name} — tick ${t}`
+                          )}
+                        </td>
+                      ))}
+                    </tr>
+                  ))}
+                </FragmentCamp>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
+    </section>
+  );
+}
+
+// Regroupe la ligne équipe et ses monstres sans nœud DOM (un <tbody> par camp
+// romprait la grille visuelle).
+function FragmentCamp({ children }: { children: React.ReactNode }) {
+  return <>{children}</>;
 }
 
 /* ------------------------------------------------------- Recherche ------- */

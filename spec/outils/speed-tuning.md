@@ -36,10 +36,10 @@ dans la simulation :
   artéfact…), **négative** pour vider (réduction d'ATB ennemie). ⚠️ La barre ne
   descend **jamais sous 0** (clampée dans la simulation). Une seule fois, ce
   tick-là. Bornée à ±100 dans la grille.
-- **Buff de vitesse** (`speedMod[t]`) : +% de **vitesse** posé au tick `t`,
-  **soutenu** — actif de `t` jusqu'à la fin (report vers l'avant, `buffActif`),
-  ou jusqu'à un autre `speedMod` posé plus tard. C'est la **vitesse** qui change
-  (l'ATB gagnée par tick), pas la barre. Modélise « X buffe l'équipe au tour N ».
+- **Buff de vitesse** (`speedMod[t]`) : +% de **vitesse** appliqué **uniquement
+  au tick `t`** — ⚠️ **pas de report**, les ticks non marqués calculent l'ATB à
+  la vitesse de base. C'est la **vitesse** qui change (l'ATB gagnée ce tick-là),
+  pas la barre. Un buff qui dure plusieurs ticks se marque sur chacun d'eux.
 
 ## Règle « un seul monstre par tick »
 
@@ -99,8 +99,8 @@ De haut en bas :
    et un **champ** : un bouton à l'icône SPD du jeu (celle des cartes RTA/Siège)
    pose/retire le buff **+30 %** d'un clic — c'est presque toujours celui-là — et
    un `NumberField` à côté permet de saisir une autre valeur (33 %, un ralenti
-   −30 %…). La ligne équipe agit sur tout le camp. `speedMod` reste **soutenu**
-   (actif du tick posé jusqu'à la fin).
+   −30 %…). La ligne équipe agit sur tout le camp. `speedMod` s'applique **au seul
+   tick marqué** (pas de report) : un buff qui dure se marque sur chaque tick.
 6. **Ordre de tour** — jetons entrelaçant les deux camps, chacun avec son rang et
    son tick.
 

@@ -572,49 +572,56 @@ function CampPanneau({
                   />
                 </div>
 
-                <div className={`flex flex-wrap items-center gap-2.5 ${masque ? 'opacity-45' : ''}`}>
-                  <MonsterAvatar monster={l.monster} size={30} />
-                  <div className="min-w-[80px] flex-1">
-                    <div className="truncate text-sm font-semibold">{l.monster.name}</div>
-                    <div className="font-mono text-micro text-ink-dim">base {l.monster.stats.speed ?? '—'}</div>
+                <div className={masque ? 'opacity-45' : ''}>
+                  {/* En-tête : portrait + nom + base. */}
+                  <div className="flex items-center gap-2.5">
+                    <MonsterAvatar monster={l.monster} size={34} />
+                    <div className="min-w-0 flex-1">
+                      <div className="truncate text-sm font-semibold">{l.monster.name}</div>
+                      <div className="font-mono text-micro text-ink-dim">base {l.monster.stats.speed ?? '—'}</div>
+                    </div>
                   </div>
-                  <label className="flex flex-col items-end gap-0.5">
-                    <span className="text-micro font-semibold uppercase tracking-wide text-ink-dimmer">Runes</span>
-                    <NumberField
-                      value={l.runeSpeed}
-                      onChange={(v) => onRuneSpeed(l.uid, v)}
-                      min={0}
-                      allowEmpty
-                      width="w-12"
-                      placeholder="+"
-                      ariaLabel={`Vitesse des runes de ${l.monster.name}`}
-                    />
-                  </label>
-                  {onArtefact && (
-                    <label className="flex flex-col items-end gap-0.5">
-                      <span
-                        className="text-micro font-semibold uppercase tracking-wide text-ink-dimmer"
-                        title="Bonus d'artéfact « augmente l'effet du buff de vitesse » — s'ajoute au buff quand il est actif"
-                      >
-                        Arté buff
-                      </span>
+
+                  {/* Réglages + vitesse de combat, alignée à droite. */}
+                  <div className="mt-2 flex flex-wrap items-end gap-x-3 gap-y-2">
+                    <label className="flex flex-col gap-0.5">
+                      <span className="text-micro font-semibold uppercase tracking-wide text-ink-dimmer">Runes</span>
                       <NumberField
-                        value={l.artefactBuff}
-                        onChange={(v) => onArtefact(l.uid, v)}
+                        value={l.runeSpeed}
+                        onChange={(v) => onRuneSpeed(l.uid, v)}
                         min={0}
-                        max={99}
                         allowEmpty
                         width="w-12"
-                        placeholder="+%"
-                        ariaLabel={`Bonus d'artéfact au buff de vitesse de ${l.monster.name}`}
+                        placeholder="+"
+                        ariaLabel={`Vitesse des runes de ${l.monster.name}`}
                       />
                     </label>
-                  )}
-                  <div className="w-12 text-right">
-                    <div className={`font-mono text-base font-black leading-none ${adv ? 'text-bad' : 'text-ink'}`}>
-                      {combat ?? '—'}
+                    {onArtefact && (
+                      <label className="flex flex-col gap-0.5">
+                        <span
+                          className="text-micro font-semibold uppercase tracking-wide text-ink-dimmer"
+                          title="Bonus d'artéfact « augmente l'effet du buff de vitesse » — s'ajoute au buff quand il est actif"
+                        >
+                          Arté buff
+                        </span>
+                        <NumberField
+                          value={l.artefactBuff}
+                          onChange={(v) => onArtefact(l.uid, v)}
+                          min={0}
+                          max={99}
+                          allowEmpty
+                          width="w-12"
+                          placeholder="+%"
+                          ariaLabel={`Bonus d'artéfact au buff de vitesse de ${l.monster.name}`}
+                        />
+                      </label>
+                    )}
+                    <div className="ml-auto text-right">
+                      <div className={`font-mono text-lg font-black leading-none ${adv ? 'text-bad' : 'text-ink'}`}>
+                        {combat ?? '—'}
+                      </div>
+                      <div className="text-micro uppercase tracking-wide text-ink-dimmer">combat</div>
                     </div>
-                    <div className="text-micro uppercase tracking-wide text-ink-dimmer">combat</div>
                   </div>
                 </div>
               </div>

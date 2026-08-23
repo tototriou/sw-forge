@@ -66,6 +66,32 @@ export default function testSpeedTune() {
     egal(o[0].actTick + 1, o[1].actTick, 'un par tick : le second attend le tick suivant');
   }
 
+  // Boost de barre d'attaque : un +30 % ponctuel au tick 3 fait agir plus tôt
+  // (7×3 + 30 = 51 au tick 3 → 100 au tick 10, contre 15 sans boost).
+  {
+    const o = simulerOrdre([camp(100), { id: 'boost', combat: 100, camp: 'allie', atbMod: { 3: 30 } }]);
+    egal(o[0].id, 'boost', 'le boost d\'ATB fait agir plus tôt');
+    egal(o[0].actTick, 10, 'combat 100 + boost 30 % au tick 3 → agit au tick 10');
+    egal(o[1].actTick, 15, 'sans boost, l\'autre agit toujours au tick 15');
+    // La trajectoire reflète le saut au tick 3 : 14 → 21 → 51.
+    egal(o[0].trajectoire[2], 51, 'la trajectoire montre le saut de barre au tick 3');
+  }
+
+  // Buff de vitesse SOUTENU : posé au tick 1, +30 % de vitesse jusqu'au bout.
+  // 100 × 1,3 = 130 de vitesse effective → 9,1 %/tick → agit au tick 11 (vs 15).
+  {
+    const o = simulerOrdre([camp(100), { id: 'buff', combat: 100, camp: 'allie', speedMod: { 1: 30 } }]);
+    egal(o[0].id, 'buff', 'le buff de vitesse fait agir plus tôt');
+    egal(o[0].actTick, 11, 'combat 100 buffé +30 % dès le tick 1 → agit au tick 11');
+  }
+
+  // Buff posé PLUS TARD : rien avant le tick 5, puis +30 % soutenu.
+  // ticks 1-4 : 7/tick (28). tick 5+ : 9,1/tick. 28 + 9,1×8 = 100,8 → tick 12.
+  {
+    const o = simulerOrdre([{ id: 'tardif', combat: 100, camp: 'allie', speedMod: { 5: 30 } }]);
+    egal(o[0].actTick, 12, 'buff posé au tick 5 : effet seulement à partir de là');
+  }
+
   // Vitesse nulle → n'agit jamais, exclu de l'ordre (pas de boucle infinie).
   {
     const o = simulerOrdre([camp(0), camp(120)]);

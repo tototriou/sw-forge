@@ -142,6 +142,50 @@ agir dès le tick 1 — au-delà il n'y a plus rien à gagner).
   (voir plus bas) ; un adverse très rapide qui rejouerait une deuxième fois
   avant la fin de la chaîne n'est pas compté comme une coupure supplémentaire.
 
+## Analyse poussée (ordre imposé + sort de chacun)
+
+L'analyse simple répond à « est-ce que tout le monde joue avant l'adverse ». Un
+combo construit demande plus : **un ordre précis** — celui qui remplit la barre
+part en premier, le nettoyeur de buffs ensuite, le gros dégât en dernier — et
+il faut savoir **quel sort** chacun lance. Moteur dans
+[speedTune.ts](src/lib/speedTune.ts) (`diagnostiquerSequence`, `fenetresRequises`)
+et [speedTuneKit.ts](src/lib/speedTuneKit.ts) (`sortsVitesse`), **testés**.
+
+- **Ordre voulu** : les alliés se rangent à la main (▲▼), un numéro par rang. La
+  liste suit la composition (un allié ajouté entre à la fin, un retiré en sort)
+  mais ⚠️ **ne se réordonne jamais toute seule** — c'est un choix, pas un reflet
+  de la simulation.
+- **Sort par monstre** : « Sort détecté » (celui que la lecture du kit a retenu),
+  « Aucun sort », ou n'importe quelle **compétence de zone** du kit
+  (`sortsVitesse` : même filtre que la détection — zone, non passive, skill-ups
+  comptés). Le choix entre dans la simulation, donc dans tous les tableaux.
+- **Verdict par monstre** : à sa place, ou ce qui cloche — *n'agit pas*, *joue
+  après l'adverse*, *joue trop tôt*, *joue trop tard*.
+  ⚠️ **La contrainte se juge PAR VOISIN** (je joue après mon prédécesseur, avant
+  mon successeur), jamais sur un rang global : un rang qui retombe juste par
+  accident masquait un monstre qui doublait celui qu'il devait suivre. Le test
+  différentiel des fenêtres a attrapé cette erreur.
+
+### Fenêtres de vitesse
+
+⚠️ **Ici, un monstre peut avoir besoin d'être RALENTI.** Tenir un rang, ce n'est
+pas seulement jouer assez tôt, c'est aussi jouer assez tard. Chaque rang donne
+donc une **fenêtre** `min → max` (affichée « 214 → 231 », « ≥ 240 », « ≤ 198 »),
+et l'écran propose la borne à viser plus les points de vitesse de runes que ça
+représente — **négatifs** s'il faut en retirer.
+
+- Les deux bornes se cherchent par **dichotomie sur des prédicats monotones de
+  sens opposés** : « avant son successeur / avant l'adverse » se gagne en
+  accélérant, « après son prédécesseur » se perd en accélérant.
+- **Test différentiel** (algo-verify) : les bornes sont comparées à un **balayage
+  exhaustif** de toutes les vitesses, qui vérifie en plus que l'ensemble des
+  vitesses valides est bien un **INTERVALLE** — l'hypothèse qui autorise la
+  dichotomie. Une fenêtre **vide** (bornes croisées) est affichée comme telle
+  (« impossible à ce rang sans toucher aux autres »), jamais comme un chiffre.
+- ⚠️ **Une fenêtre se lit « les autres inchangés »** — contrairement à
+  `vitessesRequises`, qui empile ses corrections. C'est voulu : un ordre se règle
+  un monstre à la fois, et corriger l'un déplace les fenêtres des voisins.
+
 ## Compétences (déclenchées par le tour)
 
 ⚠️ **C'est ce qui rend l'outil automatique.** Un Eshir (grosse vitesse de base,
@@ -282,7 +326,11 @@ De haut en bas :
    **vrai** adversaire (l'analyse s'y recalcule à chaque changement, il n'y a
    rien à relancer). Une référence seule ne le désactive pas : c'est ce qui
    permet de la reposer après un changement d'équipe.
-4. **Barre d'action par tick** (lecture seule) — tableau : lignes triées par
+4. **Analyse poussée** (repliée par défaut) — ouverte par le bouton du verdict,
+   elle se pose **sous** lui (le bouton ne bouge pas au clic). Pour les combos
+   construits, où l'on veut un **ordre précis de sorts** : voir « Analyse poussée »
+   plus bas.
+5. **Barre d'action par tick** (lecture seule) — tableau : lignes triées par
    ordre de tour, colonnes = ticks. Chaque cellule = `% rempli` — la
    **trajectoire réelle** renvoyée par la simulation (`OrdreEntree.trajectoire`),
    qui n'est plus linéaire dès qu'un modificateur entre en jeu. La case où le
@@ -290,7 +338,7 @@ De haut en bas :
    contour de plus par-dessus la grille) ; les ticks après l'action restent
    vides. Adversaires en teinte `bad`, alliés en `accent`. Colonne de gauche
    figée, défilement horizontal.
-5. **Modification de barre d'attaque** — grille **éditable**, même rendu que le
+6. **Modification de barre d'attaque** — grille **éditable**, même rendu que le
    tableau ci-dessus. Chaque camp présent ouvre sur une ligne **« Toute ton
    équipe » / « Tout en face »** (écrit la même valeur sur tous ses monstres au
    tick visé), puis une ligne par monstre. Cellules = `NumberField sansBoutons`
@@ -299,7 +347,7 @@ De haut en bas :
    une case vide = pas de modificateur. ⚠️ Une case vide **couverte par une
    compétence** affiche sa valeur en repère (`+35`) : elle dit où le boost tombe,
    sans être une saisie.
-6. **Buff de vitesse** — même grille, mais chaque cellule combine un **raccourci**
+7. **Buff de vitesse** — même grille, mais chaque cellule combine un **raccourci**
    et un **champ** : un bouton à l'icône SPD du jeu (celle des cartes RTA/Siège)
    pose/retire le buff **+30 %** d'un clic — c'est presque toujours celui-là — et
    un `NumberField` à côté permet de saisir une autre valeur (33 %, un ralenti
@@ -307,7 +355,7 @@ De haut en bas :
    tick marqué** (pas de report) : un buff qui dure se marque sur chaque tick.
    Comme pour le boost, une case vide couverte par une **compétence** affiche sa
    valeur en repère.
-7. **Ordre de tour** — jetons entrelaçant les deux camps, chacun avec son rang et
+8. **Ordre de tour** — jetons entrelaçant les deux camps, chacun avec son rang et
    son tick.
 
 Les trois tableaux **partagent les mêmes colonnes de ticks** (1 → au moins 12,

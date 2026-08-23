@@ -1,5 +1,5 @@
 import { useEffect, useId, useMemo, useRef, useState } from 'react';
-import { Search, Plus, Timer, Users, Swords, X, Zap, Gauge, Eye, EyeOff, Download, Check, Scissors, Play } from 'lucide-react';
+import { Search, Plus, Timer, Users, Swords, X, Zap, Gauge, Eye, EyeOff, Download, Check, Scissors, Play, ListOrdered, ChevronUp, ChevronDown } from 'lucide-react';
 import { Monster, SiegeTeam } from '../../types';
 import { combatSpeed, runeSpeedForTarget, SPEED_LEADS, SIEGE_TICKS } from '../../lib/speed';
 import {
@@ -9,13 +9,18 @@ import {
   diagnostiquerChaine,
   vitessesRequises,
   artefactsRequis,
+  diagnostiquerSequence,
+  fenetresRequises,
+  RaisonOrdre,
+  Fenetre,
+  COMBAT_MAX,
   HORIZON_TICKS,
   Camp,
   TuneMonstre,
   ModParTick,
 } from '../../lib/speedTune';
 import { deckPourSpeedTune } from '../../lib/speedTuneDeck';
-import { kitVitesse, KitVitesse, KIT_VIDE } from '../../lib/speedTuneKit';
+import { kitVitesse, sortsVitesse, KitVitesse, SortVitesse, KIT_VIDE } from '../../lib/speedTuneKit';
 import { chargerDetail } from '../../lib/monsterSkills';
 import { teamSummary } from '../../lib/recoFromSiege';
 import { formesJouables } from '../../lib/monsterForms';
@@ -101,6 +106,14 @@ type ChampMod = 'atbMod' | 'speedMod';
 
 const uidDe = (camp: Camp, id: string) => `${camp}:${id}`;
 
+// Ce qui cloche pour un monstre dans l'ordre demandé, dit en clair.
+const LIBELLE_RAISON: Record<RaisonOrdre, string> = {
+  'nagit-pas': "n'agit pas",
+  'apres-adverse': "joue après l'adverse",
+  'trop-tot': 'joue trop tôt',
+  'trop-tard': 'joue trop tard',
+};
+
 // Repère des ticks en tête : vitesse de combat minimale pour agir à chaque tick.
 // Plage utile en jeu (11→3), les deux ticks siège (239/286) marqués en couleur.
 const RULER_TICKS = [11, 10, 9, 8, 7, 6, 5, 4, 3];
@@ -157,16 +170,29 @@ export default function SpeedTuningSection({ allMonsters, siegeDefenseTeams, sie
   // pré-remplir les deux champs de la card — l'utilisateur n'a pas à aller
   // chercher lui-même ce que fait le monstre — et à dire d'où vient la valeur.
   const [kits, setKits] = useState<Map<number, KitVitesse>>(new Map());
+  // Les sorts de zone de chaque monstre (analyse poussée) : même lecture, même
+  // chargement — on ne repasse pas deux fois sur les mêmes fichiers.
+  const [sorts, setSorts] = useState<Map<number, SortVitesse[]>>(new Map());
+
+  // Analyse poussée : l'ordre des tours VOULU (uids, du premier au dernier) et,
+  // par monstre, le sort qu'il lance à son tour ('' = aucun ; absent = celui que
+  // la lecture du kit a retenu).
+  const [poussee, setPoussee] = useStickyState<boolean>('speedTune.poussee', false);
+  const [ordreVoulu, setOrdreVoulu] = useStickyState<string[]>('speedTune.ordre', []);
+  const [sortChoisi, setSortChoisi] = useStickyState<Record<string, string>>('speedTune.sorts', {});
 
   useEffect(() => {
     const aLire = lignes.filter((l) => !l.kitLu);
     if (aLire.length === 0) return;
     let annule = false;
     const ids = [...new Set(aLire.map((l) => l.monster.com2usId).filter((id): id is number => id != null))];
-    Promise.all(ids.map((id) => chargerDetail(id).then((d) => [id, kitVitesse(d)] as const))).then((paires) => {
+    Promise.all(
+      ids.map((id) => chargerDetail(id).then((d) => [id, kitVitesse(d), sortsVitesse(d)] as const))
+    ).then((paires) => {
       if (annule) return;
-      const trouves = new Map(paires);
+      const trouves = new Map(paires.map(([id, kit]) => [id, kit]));
       setKits((prev) => new Map([...prev, ...trouves]));
+      setSorts((prev) => new Map([...prev, ...paires.map(([id, , liste]) => [id, liste] as const)]));
       setLignes((prev) =>
         prev.map((l) => {
           if (l.kitLu) return l;
@@ -359,6 +385,22 @@ export default function SpeedTuningSection({ allMonsters, siegeDefenseTeams, sie
   // tableaux. Les masqués restent affichés dans leur camp pour être réaffichés.
   const lignesVisibles = useMemo(() => lignes.filter((l) => !l.masque), [lignes]);
 
+  // Le sort qu'un monstre lance à son tour. Hors analyse poussée (ou sans choix
+  // explicite), c'est celui que la lecture du kit a retenu ; en analyse poussée,
+  // celui qu'on lui a désigné — '' voulant dire « il ne lance rien de tout ça ».
+  const sortsDe = (l: Ligne): SortVitesse[] =>
+    (l.monster.com2usId != null ? sorts.get(l.monster.com2usId) : null) ?? [];
+
+  const effetDe = (l: Ligne): { atb: number; buff: number } => {
+    const auto = { atb: l.skillAtb ?? 0, buff: l.skillSpeed ?? 0 };
+    if (!poussee) return auto;
+    const choix = sortChoisi[l.uid];
+    if (choix === undefined) return auto;
+    if (choix === '') return { atb: 0, buff: 0 };
+    const s = sortsDe(l).find((x) => x.nom === choix);
+    return s ? { atb: s.atb, buff: s.buff } : { atb: 0, buff: 0 };
+  };
+
   // Entrée du moteur : les monstres visibles dont la vitesse est connue.
   // Partagée par la simulation ET par le diagnostic de chaîne.
   const tune = useMemo(() => {
@@ -373,12 +415,12 @@ export default function SpeedTuningSection({ allMonsters, siegeDefenseTeams, sie
           atbMod: l.atbMod,
           speedMod: l.speedMod,
           artefactBuff: l.artefactBuff ?? 0,
-          skillAtb: l.skillAtb ?? 0,
-          skillSpeed: l.skillSpeed ?? 0,
+          skillAtb: effetDe(l).atb,
+          skillSpeed: effetDe(l).buff,
         });
     }
     return out;
-  }, [lignes, leadAllie, leadEnnemi]);
+  }, [lignes, leadAllie, leadEnnemi, poussee, sortChoisi, sorts]);
 
   // Simulation multi-tours (40 ticks) avec les modificateurs.
   const sim = useMemo(() => simuler(tune, HORIZON_TICKS), [tune]);
@@ -415,6 +457,101 @@ export default function SpeedTuningSection({ allMonsters, siegeDefenseTeams, sie
   }, [sim, premiers]);
 
   const ligneParUid = useMemo(() => new Map(lignes.map((l) => [l.uid, l])), [lignes]);
+
+  // L'ordre voulu suit la composition : un allié ajouté entre à la fin, un allié
+  // retiré en sort. ⚠️ Il n'est PAS réordonné tout seul ensuite — c'est le choix
+  // de l'utilisateur, pas un reflet de la simulation.
+  const alliesVisibles = useMemo(
+    () => lignesVisibles.filter((l) => l.camp === 'allie').map((l) => l.uid),
+    [lignesVisibles]
+  );
+  useEffect(() => {
+    const garde = ordreVoulu.filter((id) => alliesVisibles.includes(id));
+    const manquants = alliesVisibles.filter((id) => !garde.includes(id));
+    if (manquants.length === 0 && garde.length === ordreVoulu.length) return;
+    setOrdreVoulu([...garde, ...manquants]);
+  }, [alliesVisibles, ordreVoulu, setOrdreVoulu]);
+
+  // Verdict de l'analyse poussée : l'ordre est-il tenu, et quelle FENÊTRE de
+  // vitesse laisse chaque rang (un rang se rate aussi en étant trop rapide).
+  const sequence = useMemo(
+    () => diagnostiquerSequence(tune, ordreVoulu, HORIZON_TICKS),
+    [tune, ordreVoulu]
+  );
+  const fenetres = useMemo(
+    () => (poussee ? fenetresRequises(tune, ordreVoulu, HORIZON_TICKS) : []),
+    [poussee, tune, ordreVoulu]
+  );
+  const fenetreParUid = useMemo(() => new Map(fenetres.map((f) => [f.id, f])), [fenetres]);
+  const problemeParUid = useMemo(
+    () => new Map(sequence.problemes.map((p) => [p.id, p])),
+    [sequence]
+  );
+
+  // Les bornes d'une fenêtre, en vitesse de combat : « 214 → 231 », « ≥ 240 »,
+  // « ≤ 198 ». `null` des deux côtés = rien à respecter.
+  function bornesLisibles(f: Fenetre): string {
+    const bas = f.min != null && f.min > 1 ? f.min : null;
+    const haut = f.max != null && f.max < COMBAT_MAX ? f.max : null;
+    if (bas == null && haut == null) return '';
+    if (bas != null && haut != null) return ` (${bas} → ${haut})`;
+    return bas != null ? ` (≥ ${bas})` : ` (≤ ${haut})`;
+  }
+
+  // Ce qu'il faut faire à ce monstre pour qu'il tienne son rang : viser la borne
+  // qu'il dépasse, et ce que ça fait en vitesse de runes. Une fenêtre VIDE (les
+  // bornes se croisent) veut dire qu'on ne s'en sortira pas sans toucher aux
+  // autres — l'écran le dit plutôt que d'inventer un chiffre.
+  function fenetreLisible(l: Ligne, f: Fenetre | undefined) {
+    if (!f) return null;
+    const vide = f.min == null || f.max == null || f.min > f.max;
+    if (vide) {
+      return (
+        <span className="text-ink-dim">
+          — impossible à ce rang sans toucher aux autres.
+        </span>
+      );
+    }
+    const cible = f.combatActuel < f.min! ? f.min! : f.combatActuel > f.max! ? f.max! : null;
+    if (cible == null) return <span className="text-ink-dim">{bornesLisibles(f)}</span>;
+    const runes = runesPour(l, cible);
+    return (
+      <span className="flex items-center gap-2">
+        <span className="text-ink-dimmer">→</span>
+        <span className="font-mono text-xs">
+          {cible} <span className="text-ink-dim">de vitesse de combat</span>
+        </span>
+        {runes != null && (
+          <span className="rounded border border-accent/50 px-1.5 py-0.5 font-mono text-micro font-bold text-accent">
+            {runes > 0 ? `+${runes}` : runes} SPD de runes
+          </span>
+        )}
+        <span className="text-ink-dim">{bornesLisibles(f)}</span>
+      </span>
+    );
+  }
+
+  // '__auto' = on s'en remet à ce que la lecture du kit a retenu : la clé
+  // disparaît de l'état plutôt que d'y rester à `undefined`.
+  function choisirSort(uid: string, valeur: string) {
+    setSortChoisi((prev) => {
+      const next = { ...prev };
+      if (valeur === '__auto') delete next[uid];
+      else next[uid] = valeur;
+      return next;
+    });
+  }
+
+  function deplacer(uid: string, sens: -1 | 1) {
+    setOrdreVoulu((prev) => {
+      const i = prev.indexOf(uid);
+      const j = i + sens;
+      if (i < 0 || j < 0 || j >= prev.length) return prev;
+      const next = [...prev];
+      [next[i], next[j]] = [next[j], next[i]];
+      return next;
+    });
+  }
 
   // Ce que les COMPÉTENCES posent d'elles-mêmes dans les deux grilles : le boost
   // de barre au tick de chaque tour de son lanceur, le buff de vitesse à partir
@@ -711,6 +848,20 @@ export default function SpeedTuningSection({ allMonsters, siegeDefenseTeams, sie
                 }
                 onClick={analyseAuto}
               />
+              {/* ⚠️ Ce qui s'ouvre est posé SOUS ce bouton (section suivante) :
+                  le bouton lui-même ne bouge pas d'un pixel quand on bascule. */}
+              <Bouton
+                icone={<ListOrdered size={14} />}
+                libelle="Analyse poussée"
+                actif={poussee}
+                disabled={!aAllie}
+                title={
+                  aAllie
+                    ? "Imposer l'ordre des tours et le sort lancé par chacun, puis voir la fenêtre de vitesse que chaque rang laisse."
+                    : "Ajoute d'abord des monstres à ton équipe."
+                }
+                onClick={() => setPoussee((v) => !v)}
+              />
             </div>
           </section>
 
@@ -793,6 +944,111 @@ export default function SpeedTuningSection({ allMonsters, siegeDefenseTeams, sie
               <span>Un seul monstre par tick ; le numéro donne l'ordre des tours.</span>
             </div>
           </section>
+
+          {/* Analyse poussée : l'ordre des tours et le sort de chacun */}
+          {poussee && (
+            <section className="rounded-lg border border-border bg-panel">
+              <div className="border-b border-border-soft px-4 py-2.5 text-micro font-semibold uppercase tracking-wider text-ink-dimmer">
+                Analyse poussée · ordre des sorts
+                <span className="ml-2 font-normal normal-case tracking-normal text-ink-dimmer">
+                  · range tes monstres dans l'ordre voulu et dis ce que chacun lance
+                </span>
+              </div>
+              <div className="px-4 py-3.5">
+                {ordreVoulu.length === 0 ? (
+                  <p className="text-sm text-ink-dim">Ajoute des monstres à ton équipe pour composer un ordre.</p>
+                ) : (
+                  <>
+                    <p
+                      className={`flex items-center gap-2 text-sm font-semibold ${
+                        sequence.ok ? 'text-good' : 'text-bad'
+                      }`}
+                    >
+                      {sequence.ok ? <Check size={16} /> : <Scissors size={16} />}
+                      {sequence.ok
+                        ? "L'ordre demandé est bien celui que produisent tes vitesses."
+                        : "Tes vitesses ne produisent pas cet ordre."}
+                    </p>
+                    <ul className="mt-3 space-y-2">
+                      {ordreVoulu.map((uid, i) => {
+                        const l = ligneParUid.get(uid);
+                        if (!l) return null;
+                        const p = problemeParUid.get(uid);
+                        const f = fenetreParUid.get(uid);
+                        const liste = sortsDe(l);
+                        const choix = sortChoisi[uid];
+                        return (
+                          <li
+                            key={uid}
+                            className="flex flex-wrap items-center gap-x-2.5 gap-y-2 rounded-lg border border-border bg-panel2 px-2.5 py-2"
+                          >
+                            <span className="flex flex-none items-center gap-1">
+                              <BoutonIcone
+                                taille="serre"
+                                onClick={() => deplacer(uid, -1)}
+                                disabled={i === 0}
+                                libelle={`Monter ${l.monster.name}`}
+                                icone={<ChevronUp size={13} />}
+                              />
+                              <BoutonIcone
+                                taille="serre"
+                                onClick={() => deplacer(uid, 1)}
+                                disabled={i === ordreVoulu.length - 1}
+                                libelle={`Descendre ${l.monster.name}`}
+                                icone={<ChevronDown size={13} />}
+                              />
+                            </span>
+                            <span className="flex h-5 w-5 flex-none items-center justify-center rounded-full bg-accent text-micro font-bold text-bg">
+                              {i + 1}
+                            </span>
+                            <MonsterAvatar monster={l.monster} size={24} element={false} />
+                            <span className="min-w-0 flex-1 truncate text-sm font-semibold">{l.monster.name}</span>
+                            {/* Ce qu'il LANCE à son tour : la détection propose,
+                                ici on tranche (un sort du kit, ou aucun). */}
+                            <Selecteur
+                              taille="sm"
+                              pleineLargeur={false}
+                              value={choix ?? '__auto'}
+                              onChange={(e) => choisirSort(uid, e.target.value)}
+                              aria-label={`Sort lancé par ${l.monster.name}`}
+                            >
+                              <option value="__auto">Sort détecté</option>
+                              <option value="">Aucun sort</option>
+                              {liste.map((x) => (
+                                <option key={x.nom} value={x.nom}>
+                                  {x.nom}
+                                  {x.atb > 0 ? ` · +${x.atb} % barre` : ''}
+                                  {x.buff > 0 ? ' · buff VIT' : ''}
+                                </option>
+                              ))}
+                            </Selecteur>
+                            <span className="w-full sm:w-auto sm:flex-none">
+                              {p ? (
+                                <span className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs">
+                                  <span className="font-semibold text-bad">{LIBELLE_RAISON[p.raison]}</span>
+                                  {fenetreLisible(l, f)}
+                                </span>
+                              ) : (
+                                <span className="flex items-center gap-1.5 text-xs text-good">
+                                  <Check size={13} /> à sa place
+                                  {f && <span className="text-ink-dim">{bornesLisibles(f)}</span>}
+                                </span>
+                              )}
+                            </span>
+                          </li>
+                        );
+                      })}
+                    </ul>
+                    <p className="mt-2.5 text-xs text-ink-dim">
+                      ⚠️ Une fenêtre se lit <span className="text-ink">les autres inchangés</span> : elle dit ce que
+                      ce rang laisse à CE monstre aujourd'hui. Corriger un monstre déplace celles des voisins — on
+                      règle un ordre un monstre à la fois.
+                    </p>
+                  </>
+                )}
+              </div>
+            </section>
+          )}
 
           {/* Grille éditable : boost de barre d'attaque (ponctuel) */}
           <GrilleMod

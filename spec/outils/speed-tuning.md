@@ -66,12 +66,13 @@ trois vitesses de runes. Calcul pur dans
 - **L'artéfact « Effet aug. VIT » est repris** du `gear` du slot (code `206`
   dans `ARTIFACT_SUB`, sommé sur les deux artéfacts) : c'est lui qui amplifie le
   buff de vitesse, il n'a pas à être ressaisi.
-- **L'import n'enlève rien** : les monstres du deck rejoignent **le camp d'où
-  on a cliqué** avec **la vitesse de runes du deck** ; un monstre déjà présent
-  **dans ce camp** voit la sienne **remplacée** (le deck fait foi) et
-  **réapparaît** s'il était masqué. Ce qui était là avant reste — à retirer d'un
-  clic sur la croix si on ne le veut pas. Le même deck peut être importé **des
-  deux côtés** (`uid = camp:id`), pour se comparer à soi-même.
+- ⚠️ **Le deck REMPLACE la composition du camp** où l'on a cliqué : un deck est
+  une équipe, pas une liste de monstres à empiler — sans ça, importer une
+  deuxième défense entassait six monstres du même côté. Ce qui était dans **ce
+  camp** est donc perdu (vitesses corrigées, modificateurs) ; **l'autre camp
+  garde tout**, et le deck reste dans Siège, réimportable à volonté. Le même deck
+  peut être importé **des deux côtés** (`uid = camp:id`), pour se comparer à
+  soi-même.
 - **Lead** : celui du **leader du deck** (slot 0, convention du siège), appliqué
   au camp qui reçoit l'import **seulement s'il vaut pour tout le monde** (`General` / `Guild`). ⚠️ Un
   lead d'**élément** ne se transpose PAS — le speed tuning n'a qu'un lead par

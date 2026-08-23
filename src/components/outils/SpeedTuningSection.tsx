@@ -219,38 +219,36 @@ export default function SpeedTuningSection({ allMonsters, siegeDefenseTeams, sie
       },
     ]);
   }
-  // Import d'un deck de siège dans un camp : les monstres du deck y rejoignent
-  // la liste avec LEUR vitesse de runes — celle du deck fait foi, un monstre
-  // déjà présent dans CE camp voit donc la sienne remplacée (et réapparaît s'il
-  // était masqué). Rien n'est retiré : ce qui est déjà là reste.
+  // Import d'un deck de siège dans un camp : le deck REMPLACE la composition de
+  // ce camp — un deck est une équipe, pas une liste de monstres à empiler. Sans
+  // ça, importer une deuxième défense entassait six monstres du même côté.
+  //
+  // ⚠️ **Ce qui était dans ce camp est perdu** (vitesses corrigées à la main,
+  // modificateurs, compétences retouchées). C'est le prix du geste demandé, et
+  // il ne touche QUE le camp visé : l'autre garde tout. Le deck reste dans
+  // Siège, réimportable à volonté.
   //
   // Les deux camps y ont droit : une défense de siège se joue aussi bien depuis
   // l'autre bord, et c'est même là qu'on la connaît le mieux (on l'a affrontée).
   function importerDeck(camp: Camp, team: SiegeTeam) {
     const { monstres, lead } = deckPourSpeedTune(team, monsterById);
     if (monstres.length === 0) return;
-    setLignes((prev) => {
-      const next = [...prev];
-      for (const { monster, runeSpeed, artefactBuff } of monstres) {
-        const uid = uidDe(camp, String(monster.id));
-        const i = next.findIndex((l) => l.uid === uid);
-        if (i >= 0) next[i] = { ...next[i], runeSpeed, artefactBuff, masque: false };
-        else
-          next.push({
-            uid,
-            monster,
-            runeSpeed,
-            camp,
-            atbMod: {},
-            speedMod: {},
-            artefactBuff,
-            skillAtb: null,
-            skillSpeed: null,
-            masque: false,
-          });
-      }
-      return next;
-    });
+    setLignes((prev) => [
+      ...prev.filter((l) => l.camp !== camp),
+      ...monstres.map(({ monster, runeSpeed, artefactBuff }) => ({
+        uid: uidDe(camp, String(monster.id)),
+        monster,
+        runeSpeed,
+        camp,
+        atbMod: {},
+        speedMod: {},
+        artefactBuff,
+        // Les compétences se relisent dans le kit (voir l'effet plus haut).
+        skillAtb: null,
+        skillSpeed: null,
+        masque: false,
+      })),
+    ]);
     // Le lead du leader du deck, s'il vaut pour tout le camp (voir speedTuneDeck.ts).
     if (lead != null) (camp === 'allie' ? setLeadAllie : setLeadEnnemi)(lead);
   }
@@ -1247,8 +1245,8 @@ function ImportDeck({
           vide
             ? "Aucune équipe de siège enregistrée — importe ton compte, ou compose une défense / offense dans Siège."
             : adv
-              ? 'Reprendre une de tes équipes de siège comme composition adverse'
-              : 'Reprendre une de tes équipes de siège dans ton équipe'
+              ? 'Reprendre une de tes équipes de siège comme composition adverse — elle REMPLACE ce qui est en face'
+              : 'Reprendre une de tes équipes de siège dans ton équipe — elle REMPLACE ta composition actuelle'
         }
         aria-expanded={open}
         onClick={() => setOpen((v) => !v)}

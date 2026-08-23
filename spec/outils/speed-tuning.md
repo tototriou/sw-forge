@@ -87,6 +87,11 @@ De haut en bas :
    **allié uniquement**, chaque monstre a en plus un champ **« Arté buff »** — le
    bonus d'artéfact au buff de vitesse (voir Formule). Un même monstre peut
    figurer des DEUX côtés (`uid = camp:id`), pas deux fois dans le même camp.
+   Chaque monstre est une **card** avec, en **haut à droite** (convention app),
+   l'**œil** (masquer / afficher) et la **croix** de suppression. Un monstre
+   **masqué** reste dans son camp (grisé) mais quitte les calculs et les trois
+   tableaux — pour tester une compo sans perdre son réglage ; on le réaffiche
+   d'un clic sur l'œil.
 3. **Barre d'action par tick** (lecture seule) — tableau : lignes triées par
    ordre de tour, colonnes = ticks. Chaque cellule = `% rempli` — la
    **trajectoire réelle** renvoyée par la simulation (`OrdreEntree.trajectoire`),
@@ -118,9 +123,9 @@ un tick avant qu'un monstre n'agisse.
 ## État & persistance
 
 Aucune persistance disque (comme tout Outils). Les choix (monstres ajoutés,
-vitesses de runes, leads, boosts d'ATB et buffs de vitesse) vivent en
-`useStickyState` : conservés le temps de la session (survivent à la navigation),
-remis à zéro au rechargement.
+vitesses de runes, leads, boosts d'ATB, buffs de vitesse, artéfacts, état
+masqué) vivent en `useStickyState` : conservés le temps de la session (survivent
+à la navigation), remis à zéro au rechargement.
 
 ## Attendus
 

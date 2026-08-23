@@ -1,5 +1,5 @@
 import { useId, useMemo, useRef, useState } from 'react';
-import { Search, Plus, Timer, Users, Swords, X, Zap, Gauge } from 'lucide-react';
+import { Search, Plus, Timer, Users, Swords, X, Zap, Gauge, Eye, EyeOff } from 'lucide-react';
 import { Monster } from '../../types';
 import { combatSpeed, SPEED_LEADS, SIEGE_TICKS } from '../../lib/speed';
 import {
@@ -50,6 +50,9 @@ interface Ligne {
   // Bonus d'artéfact « augmente l'effet du buff de vitesse » (%). Renseigné pour
   // les alliés seulement (on ne connaît pas les artéfacts d'en face).
   artefactBuff: number | null;
+  // Masqué : gardé dans la liste (avec sa config) mais retiré des calculs et des
+  // tableaux — pour tester une composition sans perdre le réglage d'un monstre.
+  masque: boolean;
 }
 
 type ChampMod = 'atbMod' | 'speedMod';
@@ -114,11 +117,14 @@ export default function SpeedTuningSection({ allMonsters }: Props) {
     if (!monster) return;
     setLignes((prev) => [
       ...prev,
-      { uid, monster, runeSpeed: null, camp, atbMod: {}, speedMod: {}, artefactBuff: null },
+      { uid, monster, runeSpeed: null, camp, atbMod: {}, speedMod: {}, artefactBuff: null, masque: false },
     ]);
   }
   function retirer(uid: string) {
     setLignes((prev) => prev.filter((l) => l.uid !== uid));
+  }
+  function basculerMasque(uid: string) {
+    setLignes((prev) => prev.map((l) => (l.uid === uid ? { ...l, masque: !l.masque } : l)));
   }
   function setRuneSpeed(uid: string, v: number | null) {
     setLignes((prev) => prev.map((l) => (l.uid === uid ? { ...l, runeSpeed: v } : l)));
@@ -150,10 +156,14 @@ export default function SpeedTuningSection({ allMonsters }: Props) {
   const combatDe = (l: Ligne): number | null =>
     combatSpeed(l.monster.stats.speed, l.runeSpeed, leadDe(l.camp), false);
 
+  // Monstres visibles (non masqués) : seuls eux entrent dans les calculs et les
+  // tableaux. Les masqués restent affichés dans leur camp pour être réaffichés.
+  const lignesVisibles = useMemo(() => lignes.filter((l) => !l.masque), [lignes]);
+
   // Simulation multi-tours (40 ticks) avec les modificateurs.
   const sim = useMemo(() => {
     const tune: TuneMonstre[] = [];
-    for (const l of lignes) {
+    for (const l of lignesVisibles) {
       const c = combatDe(l);
       if (c != null && c > 0)
         tune.push({
@@ -204,7 +214,7 @@ export default function SpeedTuningSection({ allMonsters }: Props) {
   // le portrait dans la case du repère qui correspond à la vitesse du monstre.
   const parTick = useMemo(() => {
     const map = new Map<number, Ligne[]>();
-    for (const l of lignes) {
+    for (const l of lignesVisibles) {
       const c = combatDe(l);
       if (c == null || c <= 0) continue;
       const n = Math.ceil(10000 / (7 * c));
@@ -214,8 +224,10 @@ export default function SpeedTuningSection({ allMonsters }: Props) {
   }, [lignes, leadAllie, leadEnnemi]);
 
   const rien = lignes.length === 0;
-  const aAllie = lignes.some((l) => l.camp === 'allie');
-  const aEnnemi = lignes.some((l) => l.camp === 'ennemi');
+  const rienVisible = lignesVisibles.length === 0;
+  // Grilles et repère ne comptent que les visibles.
+  const aAllie = lignesVisibles.some((l) => l.camp === 'allie');
+  const aEnnemi = lignesVisibles.some((l) => l.camp === 'ennemi');
 
   return (
     <div className="space-y-4">
@@ -285,6 +297,7 @@ export default function SpeedTuningSection({ allMonsters }: Props) {
           combatDe={combatDe}
           onAjouter={(id) => ajouter('allie', id)}
           onRetirer={retirer}
+          onMasquer={basculerMasque}
           onRuneSpeed={setRuneSpeed}
           onArtefact={setArtefact}
         />
@@ -299,6 +312,7 @@ export default function SpeedTuningSection({ allMonsters }: Props) {
           combatDe={combatDe}
           onAjouter={(id) => ajouter('ennemi', id)}
           onRetirer={retirer}
+          onMasquer={basculerMasque}
           onRuneSpeed={setRuneSpeed}
         />
       </div>
@@ -306,6 +320,10 @@ export default function SpeedTuningSection({ allMonsters }: Props) {
       {rien ? (
         <div className="rounded-lg border border-dashed border-border/70 py-10 text-center text-sm text-ink-dim">
           Ajoute au moins un monstre pour visualiser le remplissage des barres et l'ordre de tour.
+        </div>
+      ) : rienVisible ? (
+        <div className="rounded-lg border border-dashed border-border/70 py-10 text-center text-sm text-ink-dim">
+          Tous les monstres sont masqués — réaffiche-en un (icône œil) pour voir les barres.
         </div>
       ) : (
         <>
@@ -396,7 +414,7 @@ export default function SpeedTuningSection({ allMonsters }: Props) {
             titre="Modification de barre d'attaque"
             sousTitre="à un tick précis : +% pour remplir, −% pour vider la barre (jamais sous 0)"
             icone={<Zap size={15} />}
-            lignes={lignes}
+            lignes={lignesVisibles}
             aAllie={aAllie}
             aEnnemi={aEnnemi}
             onSet={setMod}
@@ -412,7 +430,7 @@ export default function SpeedTuningSection({ allMonsters }: Props) {
             titre="Buff de vitesse"
             sousTitre="icône SPD = buff +30 % d'un clic, ou saisis une valeur — appliqué seulement aux ticks marqués (la vitesse, pas la barre)"
             icone={<Gauge size={15} />}
-            lignes={lignes}
+            lignes={lignesVisibles}
             aAllie={aAllie}
             aEnnemi={aEnnemi}
             onSet={setMod}
@@ -474,6 +492,7 @@ interface CampProps {
   combatDe: (l: Ligne) => number | null;
   onAjouter: (id: string) => void;
   onRetirer: (uid: string) => void;
+  onMasquer: (uid: string) => void;
   onRuneSpeed: (uid: string, v: number | null) => void;
   // Présent (alliés) = une saisie « bonus d'artéfact au buff de vitesse » par
   // monstre. Absent (en face) = pas de champ : on ignore les artéfacts adverses.
@@ -491,6 +510,7 @@ function CampPanneau({
   combatDe,
   onAjouter,
   onRetirer,
+  onMasquer,
   onRuneSpeed,
   onArtefact,
 }: CampProps) {
@@ -524,64 +544,79 @@ function CampPanneau({
       </div>
 
       {lignes.length > 0 && (
-        <div>
+        <div className="space-y-2 p-2.5 pb-0">
           {lignes.map((l) => {
             const combat = combatDe(l);
+            const masque = l.masque;
             return (
               <div
                 key={l.uid}
-                className="flex flex-wrap items-center gap-2.5 border-b border-border-soft px-3.5 py-2 last:border-b-0"
+                className="relative rounded-lg border border-border bg-panel2 px-3 py-2.5 pr-12"
               >
-                <MonsterAvatar monster={l.monster} size={30} />
-                <div className="min-w-[80px] flex-1">
-                  <div className="truncate text-sm font-semibold">{l.monster.name}</div>
-                  <div className="font-mono text-micro text-ink-dim">base {l.monster.stats.speed ?? '—'}</div>
-                </div>
-                <label className="flex flex-col items-end gap-0.5">
-                  <span className="text-micro font-semibold uppercase tracking-wide text-ink-dimmer">Runes</span>
-                  <NumberField
-                    value={l.runeSpeed}
-                    onChange={(v) => onRuneSpeed(l.uid, v)}
-                    min={0}
-                    allowEmpty
-                    width="w-12"
-                    placeholder="+"
-                    ariaLabel={`Vitesse des runes de ${l.monster.name}`}
+                {/* Cluster en haut à droite de la card : masquer + supprimer,
+                    la croix à sa place habituelle dans l'app. */}
+                <div className="absolute right-1 top-1 flex items-center gap-0.5">
+                  <BoutonIcone
+                    taille="serre"
+                    actif={masque}
+                    onClick={() => onMasquer(l.uid)}
+                    libelle={masque ? `Afficher ${l.monster.name}` : `Masquer ${l.monster.name}`}
+                    icone={masque ? <Eye size={13} /> : <EyeOff size={13} />}
                   />
-                </label>
-                {onArtefact && (
+                  <BoutonIcone
+                    taille="serre"
+                    onClick={() => onRetirer(l.uid)}
+                    libelle={`Retirer ${l.monster.name}`}
+                    icone={<X size={13} />}
+                    className="hoverable:text-bad"
+                  />
+                </div>
+
+                <div className={`flex flex-wrap items-center gap-2.5 ${masque ? 'opacity-45' : ''}`}>
+                  <MonsterAvatar monster={l.monster} size={30} />
+                  <div className="min-w-[80px] flex-1">
+                    <div className="truncate text-sm font-semibold">{l.monster.name}</div>
+                    <div className="font-mono text-micro text-ink-dim">base {l.monster.stats.speed ?? '—'}</div>
+                  </div>
                   <label className="flex flex-col items-end gap-0.5">
-                    <span
-                      className="text-micro font-semibold uppercase tracking-wide text-ink-dimmer"
-                      title="Bonus d'artéfact « augmente l'effet du buff de vitesse » — s'ajoute au buff quand il est actif"
-                    >
-                      Arté buff
-                    </span>
+                    <span className="text-micro font-semibold uppercase tracking-wide text-ink-dimmer">Runes</span>
                     <NumberField
-                      value={l.artefactBuff}
-                      onChange={(v) => onArtefact(l.uid, v)}
+                      value={l.runeSpeed}
+                      onChange={(v) => onRuneSpeed(l.uid, v)}
                       min={0}
-                      max={99}
                       allowEmpty
                       width="w-12"
-                      placeholder="+%"
-                      ariaLabel={`Bonus d'artéfact au buff de vitesse de ${l.monster.name}`}
+                      placeholder="+"
+                      ariaLabel={`Vitesse des runes de ${l.monster.name}`}
                     />
                   </label>
-                )}
-                <div className="w-12 text-right">
-                  <div className={`font-mono text-base font-black leading-none ${adv ? 'text-bad' : 'text-ink'}`}>
-                    {combat ?? '—'}
+                  {onArtefact && (
+                    <label className="flex flex-col items-end gap-0.5">
+                      <span
+                        className="text-micro font-semibold uppercase tracking-wide text-ink-dimmer"
+                        title="Bonus d'artéfact « augmente l'effet du buff de vitesse » — s'ajoute au buff quand il est actif"
+                      >
+                        Arté buff
+                      </span>
+                      <NumberField
+                        value={l.artefactBuff}
+                        onChange={(v) => onArtefact(l.uid, v)}
+                        min={0}
+                        max={99}
+                        allowEmpty
+                        width="w-12"
+                        placeholder="+%"
+                        ariaLabel={`Bonus d'artéfact au buff de vitesse de ${l.monster.name}`}
+                      />
+                    </label>
+                  )}
+                  <div className="w-12 text-right">
+                    <div className={`font-mono text-base font-black leading-none ${adv ? 'text-bad' : 'text-ink'}`}>
+                      {combat ?? '—'}
+                    </div>
+                    <div className="text-micro uppercase tracking-wide text-ink-dimmer">combat</div>
                   </div>
-                  <div className="text-micro uppercase tracking-wide text-ink-dimmer">combat</div>
                 </div>
-                <BoutonIcone
-                  onClick={() => onRetirer(l.uid)}
-                  libelle={`Retirer ${l.monster.name}`}
-                  taille="serre"
-                  icone={<X size={14} />}
-                  className="hoverable:text-bad"
-                />
               </div>
             );
           })}

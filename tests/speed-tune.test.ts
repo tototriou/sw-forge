@@ -88,6 +88,21 @@ export default function testSpeedTune() {
     egal(pt[0].tick, 13, 'buff marqué sur les ticks 1→5 → agit au tick 13');
   }
 
+  // Artéfact « augmente l'effet du buff de vitesse » : ADDITIF au buff, actif
+  // seulement quand un buff est posé ce tick-là.
+  {
+    // buff +30 % au tick 1 + artéfact +20 % → vitesse ×1,50 → 10,5 %/tick au tick 1.
+    const sim = simuler([
+      { id: 'arte', combat: 100, camp: 'allie', speedMod: { 1: 30 }, artefactBuff: 20 },
+    ]);
+    egal(sim.lignes[0].trajectoire[0], 10.5, 'buff +30 % + artéfact +20 % → 10,5 au tick 1');
+  }
+  {
+    // Sans buff ce tick-là, l'artéfact ne fait RIEN (vitesse de base).
+    const sim = simuler([{ id: 'sansbuff', combat: 100, camp: 'allie', artefactBuff: 20 }]);
+    egal(sim.lignes[0].trajectoire[0], 7, 'artéfact ignoré tant qu\'aucun buff n\'est actif');
+  }
+
   // ⚠️ Multi-tours : après avoir joué, la barre repart de 0 et le monstre rejoue.
   // Sur 40 ticks, combat 300 (inc 21) agit d'abord au tick 5, puis tous les ~5.
   {

@@ -46,6 +46,12 @@ export interface TuneMonstre {
   camp: Camp;
   atbMod?: ModParTick;
   speedMod?: ModParTick;
+  // Bonus d'artéfact « augmente l'effet du buff de vitesse » (%), ADDITIF au
+  // buff appliqué et actif UNIQUEMENT quand un buff de vitesse (> 0) est présent
+  // ce tick-là. Ex. buff +30 % + artéfact +10 % → vitesse × 1,40 ce tick.
+  // (Ne s'applique pas à un ralenti.) Modèle communautaire, voir
+  // spec/outils/speed-tuning.md.
+  artefactBuff?: number;
 }
 
 // Un tour pris : quel monstre, à quel tick, et son rang dans la séquence GLOBALE
@@ -106,7 +112,10 @@ export function simuler(monstres: TuneMonstre[], horizon = HORIZON_TICKS): Simul
   for (let tick = 1; tick <= horizon; tick++) {
     for (const m of etat) {
       // Buff de vitesse UNIQUEMENT sur les ticks marqués ; sinon vitesse de base.
-      const buff = m.speedMod?.[tick] ?? 0;
+      // Un buff (> 0) est amplifié par le bonus d'artéfact, additivement ; un
+      // ralenti (< 0) n'est pas concerné.
+      const buffBase = m.speedMod?.[tick] ?? 0;
+      const buff = buffBase > 0 ? buffBase + (m.artefactBuff ?? 0) : buffBase;
       m.atb += atbParTick((m.combat * (100 + buff)) / 100);
       const boost = m.atbMod?.[tick] ?? 0;
       if (boost) m.atb += boost;

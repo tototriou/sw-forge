@@ -47,6 +47,9 @@ interface Ligne {
   camp: Camp;
   atbMod: ModParTick;
   speedMod: ModParTick;
+  // Bonus d'artéfact « augmente l'effet du buff de vitesse » (%). Renseigné pour
+  // les alliés seulement (on ne connaît pas les artéfacts d'en face).
+  artefactBuff: number | null;
 }
 
 type ChampMod = 'atbMod' | 'speedMod';
@@ -109,13 +112,19 @@ export default function SpeedTuningSection({ allMonsters }: Props) {
     if (lignes.some((l) => l.uid === uid)) return;
     const monster = allMonsters.find((m) => String(m.id) === id);
     if (!monster) return;
-    setLignes((prev) => [...prev, { uid, monster, runeSpeed: null, camp, atbMod: {}, speedMod: {} }]);
+    setLignes((prev) => [
+      ...prev,
+      { uid, monster, runeSpeed: null, camp, atbMod: {}, speedMod: {}, artefactBuff: null },
+    ]);
   }
   function retirer(uid: string) {
     setLignes((prev) => prev.filter((l) => l.uid !== uid));
   }
   function setRuneSpeed(uid: string, v: number | null) {
     setLignes((prev) => prev.map((l) => (l.uid === uid ? { ...l, runeSpeed: v } : l)));
+  }
+  function setArtefact(uid: string, v: number | null) {
+    setLignes((prev) => prev.map((l) => (l.uid === uid ? { ...l, artefactBuff: v } : l)));
   }
 
   // Écrit une valeur de modificateur dans la grille `champ`, pour un tick donné.
@@ -147,7 +156,14 @@ export default function SpeedTuningSection({ allMonsters }: Props) {
     for (const l of lignes) {
       const c = combatDe(l);
       if (c != null && c > 0)
-        tune.push({ id: l.uid, combat: c, camp: l.camp, atbMod: l.atbMod, speedMod: l.speedMod });
+        tune.push({
+          id: l.uid,
+          combat: c,
+          camp: l.camp,
+          atbMod: l.atbMod,
+          speedMod: l.speedMod,
+          artefactBuff: l.artefactBuff ?? 0,
+        });
     }
     return simuler(tune, HORIZON_TICKS);
   }, [lignes, leadAllie, leadEnnemi]);
@@ -270,6 +286,7 @@ export default function SpeedTuningSection({ allMonsters }: Props) {
           onAjouter={(id) => ajouter('allie', id)}
           onRetirer={retirer}
           onRuneSpeed={setRuneSpeed}
+          onArtefact={setArtefact}
         />
         <CampPanneau
           camp="ennemi"
@@ -458,6 +475,9 @@ interface CampProps {
   onAjouter: (id: string) => void;
   onRetirer: (uid: string) => void;
   onRuneSpeed: (uid: string, v: number | null) => void;
+  // Présent (alliés) = une saisie « bonus d'artéfact au buff de vitesse » par
+  // monstre. Absent (en face) = pas de champ : on ignore les artéfacts adverses.
+  onArtefact?: (uid: string, v: number | null) => void;
 }
 
 function CampPanneau({
@@ -472,6 +492,7 @@ function CampPanneau({
   onAjouter,
   onRetirer,
   onRuneSpeed,
+  onArtefact,
 }: CampProps) {
   const adv = camp === 'ennemi';
   const dejaAjoutes = useMemo(() => new Set(lignes.map((l) => String(l.monster.id))), [lignes]);
@@ -509,10 +530,10 @@ function CampPanneau({
             return (
               <div
                 key={l.uid}
-                className="flex items-center gap-2.5 border-b border-border-soft px-3.5 py-2 last:border-b-0"
+                className="flex flex-wrap items-center gap-2.5 border-b border-border-soft px-3.5 py-2 last:border-b-0"
               >
                 <MonsterAvatar monster={l.monster} size={30} />
-                <div className="min-w-0 flex-1">
+                <div className="min-w-[80px] flex-1">
                   <div className="truncate text-sm font-semibold">{l.monster.name}</div>
                   <div className="font-mono text-micro text-ink-dim">base {l.monster.stats.speed ?? '—'}</div>
                 </div>
@@ -528,6 +549,26 @@ function CampPanneau({
                     ariaLabel={`Vitesse des runes de ${l.monster.name}`}
                   />
                 </label>
+                {onArtefact && (
+                  <label className="flex flex-col items-end gap-0.5">
+                    <span
+                      className="text-micro font-semibold uppercase tracking-wide text-ink-dimmer"
+                      title="Bonus d'artéfact « augmente l'effet du buff de vitesse » — s'ajoute au buff quand il est actif"
+                    >
+                      Arté buff
+                    </span>
+                    <NumberField
+                      value={l.artefactBuff}
+                      onChange={(v) => onArtefact(l.uid, v)}
+                      min={0}
+                      max={99}
+                      allowEmpty
+                      width="w-12"
+                      placeholder="+%"
+                      ariaLabel={`Bonus d'artéfact au buff de vitesse de ${l.monster.name}`}
+                    />
+                  </label>
+                )}
                 <div className="w-12 text-right">
                   <div className={`font-mono text-base font-black leading-none ${adv ? 'text-bad' : 'text-ink'}`}>
                     {combat ?? '—'}

@@ -40,6 +40,12 @@ dans la simulation :
   au tick `t`** — ⚠️ **pas de report**, les ticks non marqués calculent l'ATB à
   la vitesse de base. C'est la **vitesse** qui change (l'ATB gagnée ce tick-là),
   pas la barre. Un buff qui dure plusieurs ticks se marque sur chacun d'eux.
+- **Artéfact « augmente l'effet du buff de vitesse »** (`artefactBuff`, par
+  allié) : bonus **ADDITIF** au buff de vitesse, actif **seulement quand un buff
+  (> 0) est présent** ce tick-là — ex. buff +30 % + artéfact +10 % → vitesse
+  × 1,40 ce tick. Ne s'applique **pas** à un ralenti. Modèle communautaire
+  (additif, pas multiplicatif — [Ellia's Wiki](https://elliabot.neocities.org/game_mechanics/artifacts/)) ;
+  renseigné pour les alliés seulement (artéfacts d'en face inconnus).
 
 ## Règle « un seul monstre par tick »
 
@@ -77,9 +83,10 @@ De haut en bas :
    monstres (portrait, **SPD de base seule**, champ vitesse de runes, vitesse de
    combat) et sa **barre de recherche** d'ajout (combobox `Champ` + `Flottant`,
    même grammaire que RtaSearch — voir
-   [../shared/recherche-clavier.md](../shared/recherche-clavier.md)). Un même
-   monstre peut figurer des DEUX côtés (`uid = camp:id`), pas deux fois dans le
-   même camp.
+   [../shared/recherche-clavier.md](../shared/recherche-clavier.md)). Côté
+   **allié uniquement**, chaque monstre a en plus un champ **« Arté buff »** — le
+   bonus d'artéfact au buff de vitesse (voir Formule). Un même monstre peut
+   figurer des DEUX côtés (`uid = camp:id`), pas deux fois dans le même camp.
 3. **Barre d'action par tick** (lecture seule) — tableau : lignes triées par
    ordre de tour, colonnes = ticks. Chaque cellule = `% rempli` — la
    **trajectoire réelle** renvoyée par la simulation (`OrdreEntree.trajectoire`),

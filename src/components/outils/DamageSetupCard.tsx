@@ -254,13 +254,27 @@ export default function DamageSetupCard({ skills, resolved, setup, setSetup, cha
 }
 
 // Un effet de combat = une icône de jeu cliquable, choisie/non choisie.
-// `Vignette` porte le liseré + fond teinté standard, mais sur une icône déjà
-// très colorée (le PNG du jeu, pas un aplat neutre comme un portrait), ce
-// signal seul se voit mal — d'où la COCHE en médaillon, même patron que la
-// palette de couleurs de catégorie RTA (CategoryBar.tsx) : un signal net,
-// indépendant de la couleur de l'icône en dessous. Sans `teinte` propre à
-// l'effet (contrairement à une catégorie) : le médaillon reprend directement
-// l'accent de l'app (`bg-accent`), pas une couleur de jeu inventée ici.
+//
+// ⚠️ **La seule PRÉSENCE d'une icône ne dit rien de son état** — signalé par
+// l'utilisateur sur capture d'écran : avant tout clic, rien ne distingue
+// « ce buff est actif » de « voici les buffs qu'on peut activer ». Le liseré
+// + fond teinté de `Vignette` ne suffit pas non plus sur une icône déjà très
+// colorée (le PNG du jeu, pas un aplat neutre comme un portrait). Deux
+// signaux cumulés, tous deux DÉJÀ établis ailleurs dans l'app plutôt
+// qu'inventés ici :
+//  - **L'icône elle-même change d'apparence** — grisée (`grayscale`) au
+//    repos, en couleurs pleines une fois activée. Même patron qu'un
+//    emplacement d'artéfact vide (`ArtifactSlots.tsx`, icône grisée +
+//    pictogramme « interdit ») : l'état se lit sur l'icône, pas seulement
+//    sur un cadre autour.
+//  - **Coche en médaillon** une fois activée, même patron que la palette de
+//    couleurs de catégorie RTA (`CategoryBar.tsx`) : un signal net,
+//    indépendant de la couleur de l'icône en dessous. Sans `teinte` propre à
+//    l'effet (contrairement à une catégorie) : le médaillon reprend
+//    directement l'accent de l'app (`bg-accent`).
+// Résultat : à l'ouverture du panneau, TOUT est grisé — on voit d'un coup
+// d'œil qu'aucun effet n'est encore choisi, sans avoir à cliquer pour
+// comprendre la légende.
 function EffetVignette({
   icone,
   libelle,
@@ -280,7 +294,7 @@ function EffetVignette({
       onClick={onClick}
       largeur="w-16"
       aria-label={`${libelle} — ${actif ? 'actif' : 'inactif'}`}
-      contenu={<img src={icone} alt="" className="h-7 w-7" loading="lazy" />}
+      contenu={<img src={icone} alt="" className={`h-7 w-7 transition ${actif ? '' : 'grayscale'}`} loading="lazy" />}
       libelle={libelle}
       // ⚠️ Coche masquée au DOIGT (même raison que CategoryBar) : à cette
       // taille de vignette, un médaillon de plus dans le coin serait une

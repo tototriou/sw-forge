@@ -177,9 +177,11 @@ retour.
        formule lit les PV courants de la cible.
      - **Effets actifs** — buffs du monstre (ATQ +50 %, DEF +70 %, VIT
        +30 %) et effets subis par la cible (réduction de défense ×0,3,
-       marque +25 %), chacun son **icône de jeu cliquable** (activé/inactif
-       marqué par le liseré + fond teinté standard, pas une case à cocher
-       séparée).
+       marque +25 %), chacun son **icône de jeu cliquable**, pas une case à
+       cocher séparée. ⚠️ **Grisée au repos, en couleurs + coche une fois
+       activée** — l'état se lit sur l'icône elle-même, sans avoir à cliquer
+       pour comprendre la légende (au repos, tout est grisé : rien n'est
+       encore choisi).
      - **Coup critique** — Moyenne (défaut, espérance sur le Taux Crit
        réellement atteint — le seul mode où le Taux Crit pèse sur le
        classement) / Critique / Non critique.

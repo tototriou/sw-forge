@@ -258,20 +258,20 @@ De haut en bas :
    on ne sait pas encore qui on affronte. Ce monstre est **ajouté** en face,
    marqué d'un badge **« réf »**, réglable et retirable comme un autre.
 
-   ⚠️ **La référence SUIT l'équipe.** Sans ça, analyser un deck puis en importer
-   un autre laissait l'analyse tourner sur le monstre le plus rapide de
-   l'**ancien** deck : le verdict paraissait juste et ne l'était plus. Tant
-   qu'elle porte son drapeau, elle se recale sur le plus rapide du moment
-   (monstre, vitesse de runes, artéfact ; le lead d'en face suit celui de
-   l'équipe), et disparaît si l'équipe se vide. Son état **masqué** est préservé.
+   ⚠️ **L'analyse est un INSTANTANÉ, pas un abonnement : importer un deck
+   l'ARRÊTE.** La référence est retirée — des deux camps, quel que soit celui où
+   l'on importe — et il faut **recliquer** sur « Lancer l'analyse ». Sans ça,
+   l'analyse continuait sur le monstre le plus rapide de l'**ancien** deck : le
+   verdict paraissait juste et ne l'était plus.
 
    ⚠️ **Le premier réglage à la main lui retire le drapeau** (vitesse de runes,
    artéfact, ou une cellule de grille) : elle devient un adversaire ordinaire,
    qu'on ne réécrit plus — écraser un réglage serait une perte silencieuse.
 
    Le bouton est **désactivé** sans équipe, ou quand « En face » porte un
-   **vrai** adversaire (l'analyse s'y recalcule à chaque changement). Une
-   référence seule ne le désactive pas : c'est ce qui permet de la relancer.
+   **vrai** adversaire (l'analyse s'y recalcule à chaque changement, il n'y a
+   rien à relancer). Une référence seule ne le désactive pas : c'est ce qui
+   permet de la reposer après un changement d'équipe.
 4. **Barre d'action par tick** (lecture seule) — tableau : lignes triées par
    ordre de tour, colonnes = ticks. Chaque cellule = `% rempli` — la
    **trajectoire réelle** renvoyée par la simulation (`OrdreEntree.trajectoire`),

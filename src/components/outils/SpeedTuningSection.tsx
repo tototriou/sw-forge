@@ -81,10 +81,15 @@ interface Ligne {
   // d'écraser une valeur corrigée à la main au retour sur l'écran.
   kitLu?: boolean;
   // Adversaire de RÉFÉRENCE posé par l'analyse automatique (copie du monstre le
-  // plus rapide de l'équipe). ⚠️ Tant qu'il porte ce drapeau, il SUIT l'équipe :
-  // changer de deck refait l'analyse sur le nouveau plus rapide, au lieu de la
-  // laisser tourner sur l'ancien. Le premier réglage à la main le débarrasse du
-  // drapeau — il devient un adversaire ordinaire, qu'on garde tel quel.
+  // plus rapide de l'équipe au moment du clic).
+  //
+  // ⚠️ **L'analyse est un INSTANTANÉ, pas un abonnement.** Changer de deck
+  // l'ARRÊTE : la référence est retirée et il faut recliquer sur « Lancer
+  // l'analyse » — un adversaire copié d'une équipe qu'on vient de remplacer ne
+  // veut plus rien dire, et le verdict aurait l'air juste sans l'être.
+  //
+  // Le premier réglage à la main retire aussi le drapeau : la ligne devient un
+  // adversaire ordinaire, qu'on garde tel quel.
   reference?: boolean;
   // Masqué : gardé dans la liste (avec sa config) mais retiré des calculs et des
   // tableaux — pour tester une composition sans perdre le réglage d'un monstre.
@@ -240,7 +245,10 @@ export default function SpeedTuningSection({ allMonsters, siegeDefenseTeams, sie
     const { monstres, lead } = deckPourSpeedTune(team, monsterById);
     if (monstres.length === 0) return;
     setLignes((prev) => [
-      ...prev.filter((l) => l.camp !== camp),
+      // ⚠️ La référence saute AUSSI quand on importe dans l'autre camp : elle
+      // copiait une équipe qui vient de changer. L'analyse s'arrête, le bouton
+      // redevient actif.
+      ...prev.filter((l) => l.camp !== camp && !l.reference),
       ...monstres.map(({ monster, runeSpeed, artefactBuff }) => ({
         uid: uidDe(camp, String(monster.id)),
         monster,
@@ -301,39 +309,6 @@ export default function SpeedTuningSection({ allMonsters, siegeDefenseTeams, sie
     const ref = ligneReference(modele);
     setLignes((prev) => [...prev.filter((l) => !l.reference && l.uid !== ref.uid), ref]);
   }
-
-  // ⚠️ L'adversaire de référence SUIT l'équipe. Sans ça, analyser un deck puis en
-  // importer un autre laissait l'analyse tourner sur le monstre le plus rapide de
-  // l'ANCIEN deck — le verdict paraissait juste et ne l'était plus.
-  useEffect(() => {
-    const ref = lignes.find((l) => l.reference);
-    if (!ref) return;
-    const modele = plusRapideAllie();
-    // Plus personne à comparer : la référence n'a plus d'objet.
-    if (!modele) {
-      setLignes((prev) => prev.filter((l) => !l.reference));
-      return;
-    }
-    const cible = ligneReference(modele);
-    if (
-      ref.uid === cible.uid &&
-      ref.runeSpeed === cible.runeSpeed &&
-      ref.artefactBuff === cible.artefactBuff
-    ) {
-      return;
-    }
-    // On garde son état masqué : la référence se met à jour, elle ne se
-    // réaffiche pas dans le dos de qui l'avait mise de côté.
-    setLignes((prev) => [
-      ...prev.filter((l) => !l.reference && l.uid !== cible.uid),
-      { ...cible, masque: ref.masque },
-    ]);
-  }, [lignes, leadAllie]);
-
-  // Le lead d'en face suit celui de l'équipe tant qu'on compare à une référence.
-  useEffect(() => {
-    if (lignes.some((l) => l.reference) && leadEnnemi !== leadAllie) setLeadEnnemi(leadAllie);
-  }, [lignes, leadAllie, leadEnnemi]);
 
   function retirer(uid: string) {
     setLignes((prev) => prev.filter((l) => l.uid !== uid));
@@ -991,7 +966,7 @@ function CampPanneau({
                         {l.reference && (
                           <span
                             className="flex-none rounded border border-border px-1 text-micro font-bold uppercase tracking-wide text-ink-dim"
-                            title="Adversaire de référence : copie de ton monstre le plus rapide. Il SUIT ton équipe — jusqu'au premier réglage à la main, qui en fait un adversaire ordinaire."
+                            title="Adversaire de référence : copie de ton monstre le plus rapide au moment de l'analyse. Changer de deck l'arrête — il faut relancer l'analyse. Un réglage à la main en fait un adversaire ordinaire."
                           >
                             réf
                           </span>

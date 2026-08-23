@@ -37,6 +37,28 @@ export type Camp = 'allie' | 'ennemi';
 //                   marque sur chacun des ticks où il est actif.
 export type ModParTick = Record<number, number>;
 
+// Ce qu'une compétence FAIT à la barre d'action et à la vitesse, cible par
+// cible. Lu dans le kit du monstre (speedTuneKit.ts) ou choisi dans l'analyse
+// poussée — la simulation l'applique au tick où le lanceur joue.
+//
+// ⚠️ **La cible compte autant que la valeur.** Breeze (Kroa) remplit la barre
+// d'UN allié — celui qui l'a la plus basse — pas de toute l'équipe : le
+// confondre avec un boost de zone triplait son effet. Wood Vine, elle, VIDE la
+// barre d'un adverse, ce qui aide tout autant à passer devant lui.
+export interface EffetSort {
+  // Barre d'action, en % (positif = on remplit).
+  atbEquipe?: number; // tout son camp, lui compris
+  atbAllie?: number; // UN allié : celui dont la barre est la plus basse
+  atbSoi?: number; // lui seul
+  atbEnnemi?: number; // RETIRÉ à l'adverse (valeur positive = retrait)
+  atbEnnemiTous?: boolean; // le retrait touche tout le camp adverse
+  // Vitesse, en % (le jeu : +30 en buff, −30 en ralenti).
+  buffEquipe?: number;
+  buffSoi?: number;
+  ralenti?: number; // posé sur l'adverse
+  ralentiTous?: boolean;
+}
+
 // La vitesse de combat de base (base + runes + totem + lead), calculée par
 // l'appelant (combatSpeed de speed.ts). La simulation lui applique les
 // modificateurs par tick.
@@ -50,28 +72,16 @@ export interface TuneMonstre {
   // compris — dans le jeu, « augmente la barre d'attaque de tous les alliés »
   // inclut le lanceur, dont la barre vient de retomber à 0).
   //
-  //   - skillAtb   : +% de barre d'attaque posé au tick OÙ IL JOUE.
-  //   - skillSpeed : +% de vitesse posé sur son camp À PARTIR DU TICK SUIVANT
-  //                  (le gain du tick courant est déjà acquis), et jusqu'à la
-  //                  fin de l'horizon — la durée réelle (2 tours) n'est pas
-  //                  modélisée, voir spec/outils/speed-tuning.md.
+  //   - `sort`  : ce qu'il lance à son tour ;
+  //   - `sort2` : ce qu'il lance à son SECOND tour, quand sa compétence lui rend
+  //               son tour (`rejoue`). Rien par défaut : on ne devine pas.
   //
   // ⚠️ C'est ce qui rend l'outil AUTOMATIQUE : un Eshir qui remplit la barre des
   // siens n'a plus à être posé à la main dans la grille, tick par tick — il
   // frappe là où sa vitesse le fait jouer, et suit quand on change les vitesses.
-  skillAtb?: number;
-  skillSpeed?: number;
-  // ⚠️ **Sa compétence lui REND SON TOUR** (Owl's Hoot de Kroa : buff de vitesse
-  // à toute l'équipe, puis elle rejoue). Le tour supplémentaire tombe **au même
-  // tick** : aucune horloge ne tourne entre les deux, les autres ne gagnent donc
-  // rien — c'est pour ça que « un seul monstre par tick » n'est pas violé, le
-  // même monstre joue deux fois d'affilée.
+  sort?: EffetSort;
   rejoue?: boolean;
-  // Ce que pose son SECOND tour, quand il rejoue : c'est une AUTRE compétence,
-  // désignée dans l'analyse poussée. Rien par défaut — on ne devine pas ce qu'il
-  // lance.
-  skillAtb2?: number;
-  skillSpeed2?: number;
+  sort2?: EffetSort;
   // Bonus d'artéfact « augmente l'effet du buff de vitesse » (%), ADDITIF au
   // buff appliqué et actif UNIQUEMENT quand un buff de vitesse (> 0) est présent
   // ce tick-là. Ex. buff +30 % + artéfact +10 % → vitesse × 1,40 ce tick.
@@ -138,17 +148,28 @@ export function simuler(monstres: TuneMonstre[], horizon = HORIZON_TICKS): Simul
     .filter((m) => m.combat > 0);
 
   const actions: Action[] = [];
-  // Buff de vitesse posé par une COMPÉTENCE, camp par camp : actif à partir du
-  // tick qui suit le tour du lanceur, jusqu'à la fin. Un buff ne s'empile pas
-  // avec celui saisi à la main dans la grille — c'est le plus fort qui vaut.
+  // Modificateurs de vitesse posés par les COMPÉTENCES, camp par camp, actifs à
+  // partir du tick qui suit le tour du lanceur et jusqu'à la fin.
+  //
+  // ⚠️ **Les buffs ne s'empilent pas, les ralentis non plus** (le jeu n'en garde
+  // qu'un de chaque) : on retient le plus fort de chaque côté. En revanche buff
+  // et ralenti **se compensent** — +30 posé sur une cible ralentie de 30 la
+  // ramène à sa vitesse de base, exactement comme en jeu. D'où une somme des
+  // deux, et non un maximum global.
   const buffCamp: Record<Camp, number> = { allie: 0, ennemi: 0 };
+  const ralentiCamp: Record<Camp, number> = { allie: 0, ennemi: 0 };
+  const buffSoi: Record<string, number> = {};
 
   for (let tick = 1; tick <= horizon; tick++) {
     for (const m of etat) {
-      // Buff de vitesse UNIQUEMENT sur les ticks marqués ; sinon vitesse de base.
+      // Buff de vitesse : celui des compétences (camp ou personnel) et celui
+      // saisi à la main sur ce tick, qui ne s'empilent pas non plus.
+      const manuel = m.speedMod?.[tick] ?? 0;
+      const positif = Math.max(manuel > 0 ? manuel : 0, buffCamp[m.camp], buffSoi[m.id] ?? 0);
+      const negatif = Math.max(manuel < 0 ? -manuel : 0, ralentiCamp[m.camp]);
+      const buffBase = positif - negatif;
       // Un buff (> 0) est amplifié par le bonus d'artéfact, additivement ; un
       // ralenti (< 0) n'est pas concerné.
-      const buffBase = Math.max(m.speedMod?.[tick] ?? 0, buffCamp[m.camp]);
       const buff = buffBase > 0 ? buffBase + (m.artefactBuff ?? 0) : buffBase;
       m.atb += atbParTick((m.combat * (100 + buff)) / 100);
       const boost = m.atbMod?.[tick] ?? 0;
@@ -165,21 +186,49 @@ export function simuler(monstres: TuneMonstre[], horizon = HORIZON_TICKS): Simul
     actions.push({ id: gagnant.id, camp: gagnant.camp, tick, ordre: actions.length + 1 });
     gagnant.atb = 0; // tour pris : la barre repart de 0 au tick suivant
 
-    // Sa compétence frappe SON camp au moment où il joue.
-    const poser = (boost: number, buff: number) => {
-      if (boost) {
-        for (const m of etat) {
-          if (m.camp !== gagnant.camp) continue;
-          m.atb += boost;
-          if (m.atb < 0) m.atb = 0;
-          // La case du tick montre la barre APRÈS le boost — sauf pour le
-          // lanceur, dont la case garde la barre pleine qui a déclenché son tour.
-          if (m !== gagnant) m.traj[m.traj.length - 1] = m.atb;
+    // Ce que sa compétence pose, CIBLE PAR CIBLE.
+    const majTraj = (m: (typeof etat)[number]) => {
+      // La case du tick montre la barre APRÈS l'effet — sauf pour le lanceur,
+      // dont la case garde la barre pleine qui a déclenché son tour.
+      if (m !== gagnant) m.traj[m.traj.length - 1] = m.atb;
+    };
+    const ajouter = (m: (typeof etat)[number], v: number) => {
+      m.atb += v;
+      if (m.atb < 0) m.atb = 0;
+      majTraj(m);
+    };
+    const poser = (sort: EffetSort | undefined) => {
+      if (!sort) return;
+      const camp = gagnant.camp;
+      const adverse: Camp = camp === 'allie' ? 'ennemi' : 'allie';
+      if (sort.atbEquipe) for (const m of etat) if (m.camp === camp) ajouter(m, sort.atbEquipe);
+      if (sort.atbSoi) ajouter(gagnant, sort.atbSoi);
+      if (sort.atbAllie) {
+        // ⚠️ **Le lanceur est EXCLU** : sa barre vient de retomber à 0, il serait
+        // systématiquement « celui qui l'a la plus basse » et se rendrait à
+        // lui-même un boost dont personne ne compte.
+        const cibles = etat.filter((m) => m.camp === camp && m !== gagnant);
+        if (cibles.length > 0) {
+          const cible = cibles.reduce((a, b) => (b.atb < a.atb ? b : a));
+          ajouter(cible, sort.atbAllie);
         }
       }
-      if (buff && buff > buffCamp[gagnant.camp]) buffCamp[gagnant.camp] = buff;
+      if (sort.atbEnnemi) {
+        const ennemis = etat.filter((m) => m.camp === adverse);
+        // ⚠️ Cible d'un retrait de barre : celui qui est le PLUS AVANCÉ — c'est
+        // lui qu'on cherche à retarder, et c'est ce qu'un joueur vise.
+        const cibles = sort.atbEnnemiTous
+          ? ennemis
+          : ennemis.length
+            ? [ennemis.reduce((a, b) => (b.atb > a.atb ? b : a))]
+            : [];
+        for (const m of cibles) ajouter(m, -sort.atbEnnemi);
+      }
+      if (sort.buffEquipe && sort.buffEquipe > buffCamp[camp]) buffCamp[camp] = sort.buffEquipe;
+      if (sort.buffSoi && sort.buffSoi > (buffSoi[gagnant.id] ?? 0)) buffSoi[gagnant.id] = sort.buffSoi;
+      if (sort.ralenti && sort.ralenti > ralentiCamp[adverse]) ralentiCamp[adverse] = sort.ralenti;
     };
-    poser(gagnant.skillAtb ?? 0, gagnant.skillSpeed ?? 0);
+    poser(gagnant.sort);
 
     // ⚠️ Tour SUPPLÉMENTAIRE : il rejoue AU MÊME TICK, sans qu'aucune horloge ne
     // tourne — les autres ne gagnent donc rien entre les deux. Son second tour
@@ -187,7 +236,7 @@ export function simuler(monstres: TuneMonstre[], horizon = HORIZON_TICKS): Simul
     // on ne devine pas.
     if (gagnant.rejoue) {
       actions.push({ id: gagnant.id, camp: gagnant.camp, tick, ordre: actions.length + 1, rejoue: true });
-      poser(gagnant.skillAtb2 ?? 0, gagnant.skillSpeed2 ?? 0);
+      poser(gagnant.sort2);
       gagnant.atb = 0;
     }
   }

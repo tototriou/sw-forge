@@ -76,16 +76,6 @@ interface Ligne {
   // Bonus d'artéfact « augmente l'effet du buff de vitesse » (%). Renseigné pour
   // les alliés seulement (on ne connaît pas les artéfacts d'en face).
   artefactBuff: number | null;
-  // Compétence de ce monstre, posée sur TOUT SON CAMP quand il joue (voir
-  // speedTune.ts) : +% de barre d'attaque au tick de son tour, +% de vitesse à
-  // partir du tick suivant. ⚠️ **Lu dans son kit, jamais saisi** — la card n'a
-  // pas de champ pour ça (voir speedTuneKit.ts). Pour un cas que la détection ne
-  // couvre pas, les deux grilles par tick restent là.
-  skillAtb: number | null;
-  skillSpeed: number | null;
-  // Le kit du monstre a déjà été lu (et les deux champs pré-remplis). Empêche
-  // d'écraser une valeur corrigée à la main au retour sur l'écran.
-  kitLu?: boolean;
   // Adversaire de RÉFÉRENCE posé par l'analyse automatique (copie du monstre le
   // plus rapide de l'équipe au moment du clic).
   //
@@ -105,6 +95,25 @@ interface Ligne {
 type ChampMod = 'atbMod' | 'speedMod';
 
 const uidDe = (camp: Camp, id: string) => `${camp}:${id}`;
+
+// Ce qu'un sort fait, en une ligne, pour le menu de l'analyse poussée. Un sort
+// sans effet sur la vitesse reste proposable — c'est un tour où l'on ne fait
+// rien pour le tune, et c'est une information.
+function libelleSort(x: SortVitesse): string {
+  const bouts: string[] = [];
+  const e = x.effet;
+  if (e.atbEquipe) bouts.push(`+${e.atbEquipe} % barre équipe`);
+  if (e.atbAllie) bouts.push(`+${e.atbAllie} % barre 1 allié`);
+  if (e.atbSoi) bouts.push(`+${e.atbSoi} % sa barre`);
+  if (e.atbEnnemi) bouts.push(`−${e.atbEnnemi} % barre adv${e.atbEnnemiTous ? ' (tous)' : ''}`);
+  if (e.buffEquipe) bouts.push('buff VIT équipe');
+  if (e.buffSoi) bouts.push('buff VIT sur soi');
+  if (e.ralenti) bouts.push(`ralenti adv${e.ralentiTous ? ' (tous)' : ''}`);
+  if (x.rejoue) bouts.push('rejoue');
+  if (x.chance != null) bouts.push(`${x.chance} %`);
+  const quoi = bouts.length ? bouts.join(' · ') : 'sans effet sur la vitesse';
+  return `${x.slot ? `S${x.slot} ` : ''}${x.nom} — ${quoi}`;
+}
 
 // Ce qui cloche pour un monstre dans l'ordre demandé, dit en clair.
 const LIBELLE_RAISON: Record<RaisonOrdre, string> = {
@@ -184,37 +193,28 @@ export default function SpeedTuningSection({ allMonsters, siegeDefenseTeams, sie
   // (Kroa) : on ne devine pas ce qu'ils lancent ensuite, c'est à désigner.
   const [sortChoisi2, setSortChoisi2] = useStickyState<Record<string, string>>('speedTune.sorts2', {});
 
+  // ⚠️ Rien n'est écrit dans les lignes : ce qu'un monstre fait se DÉDUIT de son
+  // kit à l'affichage. Une valeur recopiée dans l'état aurait vieilli au premier
+  // changement de sort, et il aurait fallu la protéger de l'écrasement.
   useEffect(() => {
-    const aLire = lignes.filter((l) => !l.kitLu);
-    if (aLire.length === 0) return;
+    const ids = [
+      ...new Set(
+        lignes.map((l) => l.monster.com2usId).filter((id): id is number => id != null && !kits.has(id))
+      ),
+    ];
+    if (ids.length === 0) return;
     let annule = false;
-    const ids = [...new Set(aLire.map((l) => l.monster.com2usId).filter((id): id is number => id != null))];
     Promise.all(
       ids.map((id) => chargerDetail(id).then((d) => [id, kitVitesse(d), sortsVitesse(d)] as const))
     ).then((paires) => {
       if (annule) return;
-      const trouves = new Map(paires.map(([id, kit]) => [id, kit]));
-      setKits((prev) => new Map([...prev, ...trouves]));
+      setKits((prev) => new Map([...prev, ...paires.map(([id, kit]) => [id, kit] as const)]));
       setSorts((prev) => new Map([...prev, ...paires.map(([id, , liste]) => [id, liste] as const)]));
-      setLignes((prev) =>
-        prev.map((l) => {
-          if (l.kitLu) return l;
-          const kit = l.monster.com2usId != null ? trouves.get(l.monster.com2usId) : undefined;
-          if (!kit) return { ...l, kitLu: true };
-          return {
-            ...l,
-            // On ne remplit que ce qui est VIDE : une valeur saisie l'emporte.
-            skillAtb: l.skillAtb ?? (kit.atb > 0 ? kit.atb : null),
-            skillSpeed: l.skillSpeed ?? (kit.buff > 0 ? kit.buff : null),
-            kitLu: true,
-          };
-        })
-      );
     });
     return () => {
       annule = true;
     };
-  }, [lignes, setLignes]);
+  }, [lignes, kits]);
   const monsterById = useMemo(
     () => new Map(allMonsters.map((m) => [String(m.id), m])),
     [allMonsters]
@@ -254,8 +254,6 @@ export default function SpeedTuningSection({ allMonsters, siegeDefenseTeams, sie
         atbMod: {},
         speedMod: {},
         artefactBuff: null,
-        skillAtb: null,
-        skillSpeed: null,
         masque: false,
       },
     ]);
@@ -288,8 +286,6 @@ export default function SpeedTuningSection({ allMonsters, siegeDefenseTeams, sie
         speedMod: {},
         artefactBuff,
         // Les compétences se relisent dans le kit (voir l'effet plus haut).
-        skillAtb: null,
-        skillSpeed: null,
         masque: false,
       })),
     ]);
@@ -325,8 +321,6 @@ export default function SpeedTuningSection({ allMonsters, siegeDefenseTeams, sie
       atbMod: {},
       speedMod: {},
       artefactBuff: modele.artefactBuff,
-      skillAtb: null,
-      skillSpeed: null,
       reference: true,
       masque: false,
     };
@@ -394,31 +388,21 @@ export default function SpeedTuningSection({ allMonsters, siegeDefenseTeams, sie
   const sortsDe = (l: Ligne): SortVitesse[] =>
     (l.monster.com2usId != null ? sorts.get(l.monster.com2usId) : null) ?? [];
 
-  // Le sort effectivement lancé au premier tour, et ce qu'il pose. `rejoue` dit
-  // s'il rend son tour au lanceur (Kroa) — auquel cas un SECOND sort peut être
-  // désigné dans l'analyse poussée.
+  // Le sort effectivement lancé au premier tour. Hors analyse poussée, c'est
+  // celui que la lecture du kit a retenu ; en analyse poussée, celui qu'on a
+  // désigné — '' voulant dire « il ne lance rien de tout ça ».
   const sortActif = (l: Ligne): SortVitesse | null => {
     const liste = sortsDe(l);
     const choix = poussee ? sortChoisi[l.uid] : undefined;
     if (choix === '') return null;
     if (choix != null) return liste.find((x) => x.nom === choix) ?? null;
-    // « Sort détecté » : celui que la lecture du kit a retenu.
     const kit = l.monster.com2usId != null ? kits.get(l.monster.com2usId) : null;
     const nom = kit?.atbCompetence ?? kit?.buffCompetence ?? null;
     return liste.find((x) => x.nom === nom) ?? null;
   };
 
-  const effetDe = (l: Ligne): { atb: number; buff: number; rejoue: boolean; atb2: number; buff2: number } => {
-    const actif = sortActif(l);
-    const base = actif
-      ? { atb: actif.atb, buff: actif.buff, rejoue: actif.rejoue }
-      : // Hors analyse poussée, on garde ce que la lecture du kit a écrit sur la
-        // ligne (elle peut porter une valeur d'une session précédente).
-        { atb: poussee ? 0 : (l.skillAtb ?? 0), buff: poussee ? 0 : (l.skillSpeed ?? 0), rejoue: false };
-    if (!base.rejoue) return { ...base, atb2: 0, buff2: 0 };
-    const second = sortsDe(l).find((x) => x.nom === sortChoisi2[l.uid]);
-    return { ...base, atb2: second?.atb ?? 0, buff2: second?.buff ?? 0 };
-  };
+  const sortSecond = (l: Ligne): SortVitesse | null =>
+    sortsDe(l).find((x) => x.nom === sortChoisi2[l.uid]) ?? null;
 
   // Entrée du moteur : les monstres visibles dont la vitesse est connue.
   // Partagée par la simulation ET par le diagnostic de chaîne.
@@ -426,6 +410,7 @@ export default function SpeedTuningSection({ allMonsters, siegeDefenseTeams, sie
     const out: TuneMonstre[] = [];
     for (const l of lignesVisibles) {
       const c = combatDe(l);
+      const actif = sortActif(l);
       if (c != null && c > 0)
         out.push({
           id: l.uid,
@@ -434,16 +419,9 @@ export default function SpeedTuningSection({ allMonsters, siegeDefenseTeams, sie
           atbMod: l.atbMod,
           speedMod: l.speedMod,
           artefactBuff: l.artefactBuff ?? 0,
-          ...(() => {
-            const e = effetDe(l);
-            return {
-              skillAtb: e.atb,
-              skillSpeed: e.buff,
-              rejoue: e.rejoue,
-              skillAtb2: e.atb2,
-              skillSpeed2: e.buff2,
-            };
-          })(),
+          sort: actif?.effet,
+          rejoue: actif?.rejoue ?? false,
+          sort2: actif?.rejoue ? (sortSecond(l)?.effet ?? undefined) : undefined,
         });
     }
     return out;
@@ -606,29 +584,35 @@ export default function SpeedTuningSection({ allMonsters, siegeDefenseTeams, sie
       atb.set(l.uid, {});
       spd.set(l.uid, {});
     }
+    // ⚠️ Seuls les effets **de camp** se posent dans les grilles : un boost qui
+    // ne vise QU'UN allié (Breeze de Kroa) atterrit sur une cible que la
+    // simulation choisit au dernier moment — l'écrire sur toute la ligne
+    // mentirait. Il reste visible là où il compte : dans la trajectoire.
     for (const a of sim.actions) {
       const source = ligneParUid.get(a.id);
-      if (!source?.skillAtb) continue;
+      const effet = source ? (a.rejoue ? sortSecond(source)?.effet : sortActif(source)?.effet) : null;
+      if (!source || !effet?.atbEquipe) continue;
       for (const l of lignesVisibles) {
         if (l.camp !== source.camp) continue;
         const m = atb.get(l.uid)!;
-        m[a.tick] = (m[a.tick] ?? 0) + source.skillAtb;
+        m[a.tick] = (m[a.tick] ?? 0) + effet.atbEquipe;
       }
     }
     for (const source of lignesVisibles) {
-      if (!source.skillSpeed) continue;
+      const buff = sortActif(source)?.effet.buffEquipe ?? 0;
+      if (!buff) continue;
       const premier = premiers.find((a) => a.id === source.uid);
       if (!premier) continue;
       for (const l of lignesVisibles) {
         if (l.camp !== source.camp) continue;
         const m = spd.get(l.uid)!;
         for (let t = premier.tick + 1; t <= HORIZON_TICKS; t++) {
-          m[t] = Math.max(m[t] ?? 0, source.skillSpeed);
+          m[t] = Math.max(m[t] ?? 0, buff);
         }
       }
     }
     return { atbMod: atb, speedMod: spd };
-  }, [sim, premiers, lignesVisibles, ligneParUid]);
+  }, [sim, premiers, lignesVisibles, ligneParUid, poussee, sortChoisi, sortChoisi2, sorts, kits]);
   const requisParUid = useMemo(() => new Map(requis.map((r) => [r.id, r])), [requis]);
   const arteParUid = useMemo(() => new Map(arteRequis.map((r) => [r.id, r])), [arteRequis]);
   const nomDe = (uid: string) => ligneParUid.get(uid)?.monster.name ?? '?';
@@ -1057,16 +1041,14 @@ export default function SpeedTuningSection({ allMonsters, siegeDefenseTeams, sie
                               <option value="">Aucun sort</option>
                               {liste.map((x) => (
                                 <option key={x.nom} value={x.nom}>
-                                  {x.nom}
-                                  {x.atb > 0 ? ` · +${x.atb} % barre` : ''}
-                                  {x.buff > 0 ? ' · buff VIT' : ''}
+                                  {libelleSort(x)}
                                 </option>
                               ))}
                             </Selecteur>
                             {/* ⚠️ Sa compétence lui REND son tour (Kroa) : il
                                 rejoue au même tick, et lance autre chose. On ne
                                 devine pas quoi — à désigner. */}
-                            {effetDe(l).rejoue && (
+                            {sortActif(l)?.rejoue && (
                               <span className="flex items-center gap-1.5">
                                 <span
                                   className="flex-none rounded border border-accent/50 px-1 text-micro font-bold uppercase tracking-wide text-accent"
@@ -1083,12 +1065,10 @@ export default function SpeedTuningSection({ allMonsters, siegeDefenseTeams, sie
                                 >
                                   <option value="">puis : rien</option>
                                   {liste
-                                    .filter((x) => x.nom !== (sortChoisi[uid] ?? ''))
+                                    .filter((x) => x.nom !== sortActif(l)?.nom)
                                     .map((x) => (
                                       <option key={x.nom} value={x.nom}>
-                                        puis : {x.nom}
-                                        {x.atb > 0 ? ` · +${x.atb} % barre` : ''}
-                                        {x.buff > 0 ? ' · buff VIT' : ''}
+                                        puis : {libelleSort(x)}
                                       </option>
                                     ))}
                                 </Selecteur>

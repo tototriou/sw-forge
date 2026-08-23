@@ -7,6 +7,7 @@
 // Voir spec/outils/speed-tuning.md, « Compétences ».
 
 import { Competence, DetailMonstre } from './monsterSkills';
+import { EffetSort } from './speedTune';
 
 // Le buff de vitesse du jeu vaut toujours +30 % ; les données SWARFARM ne
 // donnent, pour « Increase ATK SPD », que sa DURÉE en tours (`quantite`).
@@ -18,6 +19,12 @@ const EFFET_SPD = 'Increase ATK SPD';
 // « Gains a turn instantly after using this skill » (Owl's Hoot de Kroa…) : le
 // monstre REJOUE dans la foulée, sans qu'un tick ne passe.
 const EFFET_REJOUE = 'Additional Turn';
+const EFFET_ATB_MOINS = 'Decrease ATB';
+const EFFET_SPD_MOINS = 'Decrease ATK SPD';
+
+// Le ralenti du jeu vaut −30 % de vitesse, comme le buff en vaut +30 ; les
+// données SWARFARM ne donnent là encore que sa DURÉE en tours.
+export const RALENTI_SPD_JEU = 30;
 
 // ⚠️ **La valeur donnée par SWARFARM est celle du NIVEAU 1**, comme pour les
 // rechargements (voir `paliersCooldown` dans monsterSkills.ts). Les skill-ups
@@ -53,16 +60,30 @@ export interface KitVitesse {
   rejoue: boolean;
 }
 
-// Une compétence du kit telle qu'on peut la LANCER dans l'analyse poussée : ce
-// qu'elle pose sur le camp, et sous quel nom on la choisit.
+// Une compétence du kit telle qu'on peut la LANCER dans l'analyse poussée : son
+// nom, ce qu'elle fait à la barre et à la vitesse (cible par cible), et le taux
+// de réussite quand elle en a un.
+//
+// ⚠️ **TOUTES les compétences non passives sont listées**, y compris celles qui
+// ne touchent ni la barre ni la vitesse : on doit pouvoir dire « à ce tour-là il
+// lance son S1 » — c'est le sens même d'un ordre de sorts.
 export interface SortVitesse {
   nom: string;
-  atb: number; // +% de barre sur le camp (compétence maxée)
+  slot: number | null;
+  effet: EffetSort;
+  // Ce que la compétence rend au lanceur : un tour de plus, aussitôt.
+  rejoue: boolean;
+  // Détail du remplissage de barre pour l'écran : valeur au niveau 1 et apport
+  // des skill-ups (« Attack Bar Recovery +N% »).
   atbNiveau1: number;
   atbSkillUp: number;
-  buff: number; // +% de vitesse sur le camp (0 ou 30)
-  // La compétence rend son tour au lanceur : il rejoue AUSSITÔT, au même tick.
-  rejoue: boolean;
+  // Taux de réussite de l'effet de barre/vitesse, `null` s'il est garanti.
+  // ⚠️ La simulation applique l'effet COMME S'IL PASSAIT : un speed tune se
+  // règle sur le cas où le sort fait ce qu'on attend.
+  chance: number | null;
+  // Vrai si la compétence ne touche ni la barre ni la vitesse (elle reste
+  // proposable : c'est un tour où l'on ne fait rien pour le tune).
+  neutre: boolean;
 }
 
 export const KIT_VIDE: KitVitesse = {
@@ -114,34 +135,68 @@ export function kitVitesse(detail: DetailMonstre | null): KitVitesse {
   return out;
 }
 
-// Toutes les compétences qui font quelque chose à la VITESSE du camp, dans
-// l'ordre du kit. Sert à l'analyse poussée, où l'on choisit ce que chaque
-// monstre lance à son tour au lieu de prendre systématiquement la plus forte.
-//
-// Mêmes règles de lecture que `kitVitesse` (zone seulement, passives écartées,
-// skill-ups comptés) : c'est le même filtre, gardé au même endroit pour qu'il ne
-// diverge pas.
+// Ce qu'une compétence fait à la barre et à la vitesse, cible par cible.
+function lireEffet(c: Competence): { effet: EffetSort; atbNiveau1: number; atbSkillUp: number; chance: number | null } {
+  const effet: EffetSort = {};
+  let atbNiveau1 = 0;
+  let chance: number | null = null;
+  const skillUp = bonusSkillUp(c);
+
+  for (const e of c.effets) {
+    const q = e.quantite ?? 0;
+    switch (e.nom) {
+      case EFFET_ATB: {
+        // ⚠️ Trois cibles bien différentes : tout le camp, UN allié (Breeze de
+        // Kroa : celui dont la barre est la plus basse), ou soi-même.
+        const v = q + skillUp;
+        atbNiveau1 = Math.max(atbNiveau1, q);
+        if (e.aoe && !e.surSoi) effet.atbEquipe = Math.max(effet.atbEquipe ?? 0, v);
+        else if (e.surSoi) effet.atbSoi = Math.max(effet.atbSoi ?? 0, v);
+        else effet.atbAllie = Math.max(effet.atbAllie ?? 0, v);
+        chance = e.chance && e.chance > 0 && e.chance < 100 ? e.chance : chance;
+        break;
+      }
+      case EFFET_ATB_MOINS:
+        effet.atbEnnemi = Math.max(effet.atbEnnemi ?? 0, q);
+        if (e.aoe) effet.atbEnnemiTous = true;
+        chance = e.chance && e.chance > 0 && e.chance < 100 ? e.chance : chance;
+        break;
+      case EFFET_SPD:
+        if (e.aoe && !e.surSoi) effet.buffEquipe = BUFF_SPD_JEU;
+        else effet.buffSoi = BUFF_SPD_JEU;
+        break;
+      case EFFET_SPD_MOINS:
+        effet.ralenti = RALENTI_SPD_JEU;
+        if (e.aoe) effet.ralentiTous = true;
+        chance = e.chance && e.chance > 0 && e.chance < 100 ? e.chance : chance;
+        break;
+      default:
+        break;
+    }
+  }
+  return { effet, atbNiveau1, atbSkillUp: atbNiveau1 > 0 ? skillUp : 0, chance };
+}
+
+// TOUTES les compétences lançables du monstre (les passives exclues : elles ne
+// partent pas à son tour), avec ce qu'elles posent. C'est la liste de l'analyse
+// poussée — on doit pouvoir désigner n'importe quel sort, même sans effet de
+// vitesse.
 export function sortsVitesse(detail: DetailMonstre | null): SortVitesse[] {
   if (!detail) return [];
   const out: SortVitesse[] = [];
   for (const c of detail.competences) {
     if (c.passif) continue;
-    let atbNiveau1 = 0;
-    let buff = 0;
-    for (const e of c.effets) {
-      if (!e.aoe || e.surSoi) continue;
-      if (e.nom === EFFET_ATB) atbNiveau1 = Math.max(atbNiveau1, e.quantite ?? 0);
-      else if (e.nom === EFFET_SPD) buff = BUFF_SPD_JEU;
-    }
-    if (atbNiveau1 === 0 && buff === 0) continue;
-    const skillUp = atbNiveau1 > 0 ? bonusSkillUp(c) : 0;
+    const { effet, atbNiveau1, atbSkillUp, chance } = lireEffet(c);
+    const neutre = Object.keys(effet).length === 0;
     out.push({
       nom: c.nom,
-      atb: atbNiveau1 + skillUp,
-      atbNiveau1,
-      atbSkillUp: skillUp,
-      buff,
+      slot: c.slot,
+      effet,
       rejoue: c.effets.some((e) => e.nom === EFFET_REJOUE),
+      atbNiveau1,
+      atbSkillUp,
+      chance,
+      neutre,
     });
   }
   return out;

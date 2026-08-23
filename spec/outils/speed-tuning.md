@@ -156,9 +156,13 @@ et [speedTuneKit.ts](src/lib/speedTuneKit.ts) (`sortsVitesse`), **testés**.
   mais ⚠️ **ne se réordonne jamais toute seule** — c'est un choix, pas un reflet
   de la simulation.
 - **Sort par monstre** : « Sort détecté » (celui que la lecture du kit a retenu),
-  « Aucun sort », ou n'importe quelle **compétence de zone** du kit
-  (`sortsVitesse` : même filtre que la détection — zone, non passive, skill-ups
-  comptés). Le choix entre dans la simulation, donc dans tous les tableaux.
+  « Aucun sort », ou **n'importe quelle compétence** du kit — ⚠️ **toutes** sont
+  proposées, y compris celles qui ne touchent ni la barre ni la vitesse : on doit
+  pouvoir dire « à ce tour-là il lance son S1 », c'est le sens même d'un ordre de
+  sorts. Seules les **passives** sont écartées (elles ne partent pas à son tour).
+  Chaque entrée dit ce qu'elle fait (« S3 Tailwind — +45 % barre équipe · buff
+  VIT ») et, s'il y en a un, son **taux de réussite**. Le choix entre dans la
+  simulation, donc dans tous les tableaux et dans le verdict.
 - **Tour RENDU** : quand la compétence choisie rend son tour au lanceur (Kroa,
   *Owl's Hoot* : buff de vitesse à toute l'équipe **puis elle rejoue**), la ligne
   porte un badge **« rejoue »** et un **second `Selecteur`** — ce qu'il lance à ce
@@ -232,23 +236,35 @@ par tick**, qui restent la porte de sortie manuelle.
   règlerait sa vitesse sur un gain qu'on n'a pas encore.
 - Une valeur déjà posée n'est **jamais** réécrite par une relecture (`kitLu`).
 
-Deux champs par monstre (`skillAtb`, `skillSpeed` dans `TuneMonstre`), appliqués
-à **tout son camp, lui compris** (dans le jeu, « augmente la barre d'attaque de
-tous les alliés » inclut le lanceur, dont la barre vient de retomber à 0) :
+### Ce qu'un sort fait, CIBLE par cible
 
-- **Boost ATB** — +% de barre d'attaque **au tick où il joue**, à chacun de ses
-  tours.
-- **Buff SPD** — +% de vitesse sur son camp **à partir du tick SUIVANT** son tour
-  (le gain du tick courant est déjà acquis), jusqu'à la fin de l'horizon.
-  ⚠️ **La durée réelle (2 tours) n'est pas modélisée** : sur une ouverture de
-  combat le buff ne tombe pas, et la grille reste là pour les cas fins.
-- ⚠️ **Un buff ne s'empile pas** avec celui saisi dans la grille : c'est **le plus
-  fort qui vaut** (`Math.max`). Le bonus d'artéfact, lui, s'y ajoute comme
-  ailleurs.
-- Les grilles **montrent** ce que les compétences y posent (voir « Écran »,
-  points 5 et 6) : la valeur apparaît en repère dans la cellule vide, sans jamais
-  être écrite dans l'état — on voit **où la compétence tombe** sans pouvoir la
-  confondre avec une saisie.
+⚠️ **La cible compte autant que la valeur.** *Breeze* (Kroa) remplit la barre
+d'**UN** allié — celui qui l'a la plus basse — pas de toute l'équipe : les
+confondre triplait son effet. *Wood Vine* **vide** la barre d'un adverse, ce qui
+aide tout autant à passer devant lui. D'où `EffetSort`
+([speedTune.ts](src/lib/speedTune.ts)), appliqué au tick où le lanceur joue :
+
+| Champ | Ce que ça fait |
+|---|---|
+| `atbEquipe` | +% de barre à **tout son camp**, lui compris |
+| `atbAllie` | +% de barre à **UN** allié : celui dont la barre est la plus basse |
+| `atbSoi` | +% sur **sa** barre |
+| `atbEnnemi` / `atbEnnemiTous` | −% de barre à l'adverse (le plus avancé), ou à tous |
+| `buffEquipe` / `buffSoi` | +30 % de vitesse, à partir du tick **suivant** |
+| `ralenti` / `ralentiTous` | −30 % de vitesse sur l'adverse (le plus avancé, ou tous) |
+
+- ⚠️ **`atbAllie` exclut le LANCEUR** : sa barre vient de retomber à 0, il serait
+  systématiquement « celui qui l'a la plus basse » et se rendrait à lui-même un
+  boost dont personne ne compte.
+- ⚠️ **Un retrait de barre ou un ralenti vise l'adverse le plus AVANCÉ** : c'est
+  lui qu'on cherche à retarder, et c'est ce qu'un joueur vise.
+- ⚠️ **Buffs et ralentis ne s'empilent pas** (le jeu n'en garde qu'un de chaque) :
+  on retient le plus fort de chaque côté. Mais ils **se compensent** — +30 sur
+  une cible ralentie de 30 la ramène à sa vitesse de base, comme en jeu.
+- ⚠️ **Le taux de réussite est affiché, pas simulé** : un effet à 70 % est
+  appliqué **comme s'il passait**. Un speed tune se règle sur le cas où le sort
+  fait ce qu'on attend ; le taux figure dans le menu pour qu'on sache sur quoi
+  l'on parie.
 
 ### Tour supplémentaire (« rejoue »)
 
@@ -258,7 +274,7 @@ tick » n'est pas violé, c'est le **même** monstre qui joue deux fois d'affil�
 Détecté dans le kit par l'effet `Additional Turn` (`rejoue` sur `SortVitesse`).
 
 - Le second tour lance **une autre compétence**, désignée dans l'analyse poussée
-  (`skillAtb2` / `skillSpeed2`). ⚠️ **Rien par défaut** : reprendre la même
+  (`sort2`). ⚠️ **Rien par défaut** : reprendre la même
   compétence gonflerait le boost d'un facteur deux sans qu'on l'ait demandé.
 - Il n'ajoute **pas** un premier tour de plus : `premiersTours` continue de ne
   retenir que le premier de chaque monstre, donc l'ordre et le verdict de chaîne

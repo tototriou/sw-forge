@@ -410,7 +410,7 @@ export function testSpeedTuneChaine() {
   {
     const sans = premiersTours(simuler([m('boosteur', 300, 'allie'), m('lent', 150, 'allie')]));
     const avec = premiersTours(
-      simuler([{ ...m('boosteur', 300, 'allie'), skillAtb: 40 }, m('lent', 150, 'allie')])
+      simuler([{ ...m('boosteur', 300, 'allie'), sort: { atbEquipe: 40 } }, m('lent', 150, 'allie')])
     );
     const tickDe = (pt: ReturnType<typeof premiersTours>, id: string) => pt.find((a) => a.id === id)!.tick;
     egal(tickDe(avec, 'boosteur'), tickDe(sans, 'boosteur'), 'le lanceur joue au même tick');
@@ -426,7 +426,7 @@ export function testSpeedTuneChaine() {
   // l'autre — sans que sa compétence ne nous ait jamais touchés.
   {
     const barre = (skill?: number) =>
-      simuler([{ ...m('eshir', 300, 'ennemi'), skillAtb: skill }, m('nous', 150, 'allie')]).lignes.find(
+      simuler([{ ...m('eshir', 300, 'ennemi'), sort: { atbEquipe: skill } }, m('nous', 150, 'allie')]).lignes.find(
         (l) => l.id === 'nous'
       )!.trajectoire;
     const sans = barre();
@@ -441,7 +441,7 @@ export function testSpeedTuneChaine() {
   // Buff de vitesse de compétence : à partir du tick SUIVANT le tour du lanceur.
   {
     const sans = simuler([m('buffeur', 300, 'allie'), m('lent', 150, 'allie')]);
-    const avec = simuler([{ ...m('buffeur', 300, 'allie'), skillSpeed: 30 }, m('lent', 150, 'allie')]);
+    const avec = simuler([{ ...m('buffeur', 300, 'allie'), sort: { buffEquipe: 30 } }, m('lent', 150, 'allie')]);
     const traj = (sim: Simulation, id: string) => sim.lignes.find((l) => l.id === id)!.trajectoire;
     const tourBuffeur = premiersTours(sans).find((a) => a.id === 'buffeur')!.tick;
     egal(
@@ -459,7 +459,7 @@ export function testSpeedTuneChaine() {
   // solveur : la vitesse à trouver n'est pas la même sans lui.
   {
     const base = [m('a1', 260, 'allie'), m('a2', 170, 'allie'), m('eshir', 250, 'ennemi')];
-    const avecSkill = base.map((x) => (x.id === 'a1' ? { ...x, skillAtb: 35 } : x));
+    const avecSkill = base.map((x) => (x.id === 'a1' ? { ...x, sort: { atbEquipe: 35 } } : x));
     const sans = vitessesRequises(base);
     const avec = vitessesRequises(avecSkill);
     ok(sans.length > 0, 'sans compétence, un allié est coupé');
@@ -482,7 +482,7 @@ export function testSpeedTuneChaine() {
     // Un allié rapide qui pose un buff de vitesse sur son camp, un allié lent
     // coupé de peu : l'artéfact qui amplifie ce buff peut suffire à le sauver.
     const avecBuff = [
-      { ...m('a1', 250, 'allie'), skillSpeed: 30 },
+      { ...m('a1', 250, 'allie'), sort: { buffEquipe: 30 } },
       m('a2', 105, 'allie'),
       m('eshir', 130, 'ennemi'),
     ];
@@ -499,10 +499,67 @@ export function testSpeedTuneChaine() {
     }
   }
 
+  // ⚠️ CIBLES. Breeze (Kroa) remplit la barre d'UN allié — celui qui l'a la plus
+  // basse — pas de toute l'équipe. Confondre les deux triplait son effet.
+  {
+    const sim = simuler([
+      { ...m('kroa', 300, 'allie'), sort: { atbAllie: 30 } },
+      m('rapide', 250, 'allie'),
+      m('lent', 120, 'allie'),
+    ]);
+    const t = premiersTours(sim);
+    const sans = premiersTours(simuler([m('kroa', 300, 'allie'), m('rapide', 250, 'allie'), m('lent', 120, 'allie')]));
+    const tickDe = (pt: typeof t, id: string) => pt.find((a) => a.id === id)!.tick;
+    ok(tickDe(t, 'lent') < tickDe(sans, 'lent'), "le boost va à l'allié dont la barre est la plus basse");
+    egal(tickDe(t, 'rapide'), tickDe(sans, 'rapide'), "il ne va PAS à toute l'équipe");
+  }
+
+  // Vider la barre de l'adverse est l'autre façon de passer devant lui.
+  {
+    // ⚠️ Il faut jouer AVANT lui pour lui retirer quoi que ce soit : un retrait
+    // posé après son tour ne change évidemment rien à ce tour-là.
+    const sans = premiersTours(simuler([m('moi', 300, 'allie'), m('e', 200, 'ennemi')]));
+    const avec = premiersTours(
+      simuler([{ ...m('moi', 300, 'allie'), sort: { atbEnnemi: 50 } }, m('e', 200, 'ennemi')])
+    );
+    const tickDe = (pt: typeof sans, id: string) => pt.find((a) => a.id === id)?.tick ?? null;
+    ok(
+      tickDe(avec, 'e')! > tickDe(sans, 'e')!,
+      "un retrait de barre repousse le tour de l'adverse visé"
+    );
+  }
+
+  // Ralentir l'adverse : sa vitesse baisse à partir du tick suivant.
+  {
+    const sans = premiersTours(simuler([m('moi', 300, 'allie'), m('e', 150, 'ennemi')]));
+    const avec = premiersTours(
+      simuler([{ ...m('moi', 300, 'allie'), sort: { ralenti: 30 } }, m('e', 150, 'ennemi')])
+    );
+    const tickDe = (pt: typeof sans, id: string) => pt.find((a) => a.id === id)!.tick;
+    ok(tickDe(avec, 'e') > tickDe(sans, 'e'), "un ralenti repousse le tour de l'adverse");
+  }
+
+  // Buff et ralenti se COMPENSENT (ils ne s'empilent pas chacun de leur côté).
+  {
+    const base = m('cible', 200, 'ennemi');
+    const neutre = simuler([base]).lignes[0].trajectoire[0];
+    // Le ralentisseur joue au tick 1 (vitesse maximale) : son ralenti court donc
+    // dès le tick 2, et le buff saisi à la main le compense exactement.
+    const compense = simuler([
+      { ...m('moi', COMBAT_MAX, 'allie'), sort: { ralenti: 30 } },
+      { ...base, speedMod: { 2: 30, 3: 30, 4: 30, 5: 30 } },
+    ]).lignes.find((l) => l.id === 'cible')!;
+    egal(
+      (compense.trajectoire[2] - compense.trajectoire[1]).toFixed(2),
+      neutre.toFixed(2),
+      'un buff +30 sur une cible ralentie de 30 la ramène à sa vitesse de base'
+    );
+  }
+
   // ⚠️ TOUR SUPPLÉMENTAIRE (Kroa : Owl's Hoot buffe toute l'équipe et lui rend
   // son tour). Il tombe AU MÊME TICK : aucune horloge ne tourne entre les deux.
   {
-    const kroa = { ...m('kroa', 300, 'allie'), rejoue: true, skillSpeed: 30 };
+    const kroa = { ...m('kroa', 300, 'allie'), rejoue: true, sort: { buffEquipe: 30 } };
     const sim = simuler([kroa, m('autre', 150, 'allie')]);
     const aTick = sim.actions.filter((a) => a.id === 'kroa' && a.tick === sim.actions[0].tick);
     egal(aTick.length, 2, 'elle joue deux fois au même tick');
@@ -521,7 +578,7 @@ export function testSpeedTuneChaine() {
   // Le SECOND tour lance une autre compétence, quand on la lui a désignée.
   {
     const base = [{ ...m('kroa', 300, 'allie'), rejoue: true }, m('lent', 150, 'allie')];
-    const avecSecond = [{ ...base[0], skillAtb2: 40 }, base[1]];
+    const avecSecond = [{ ...base[0], sort2: { atbEquipe: 40 } }, base[1]];
     const tickDe = (ms: TuneMonstre[]) => premiersTours(simuler(ms)).find((a) => a.id === 'lent')!.tick;
     ok(tickDe(avecSecond) < tickDe(base), 'le boost de son second tour profite bien à son camp');
   }
@@ -544,8 +601,8 @@ export function testSpeedTuneChaine() {
         if (rng() < 0.3) mm.speedMod = { [1 + Math.floor(rng() * 4)]: 30 };
         // Compétences déclenchées par le tour (boost de barre / buff de vitesse
         // sur tout le camp) : c'est exactement ce que le solveur doit suivre.
-        if (rng() < 0.35) mm.skillAtb = 10 + Math.floor(rng() * 40);
-        if (rng() < 0.25) mm.skillSpeed = 30;
+        if (rng() < 0.35) mm.sort = { atbEquipe: 10 + Math.floor(rng() * 40) };
+        if (rng() < 0.25) mm.sort = { ...(mm.sort ?? {}), buffEquipe: 30 };
         return mm;
       };
       for (let i = 0; i < nbAllies; i++) monstres.push(tirer('allie', i));
@@ -700,9 +757,18 @@ export function testSpeedTuneKit() {
       comp('Cri', [effet('Increase ATK SPD', 2, true)]),
     ]);
     const sorts = sortsVitesse(d);
-    egal(sorts.map((x) => x.nom).join(', '), 'Petite, Grosse, Cri', 'seuls les sorts de zone non passifs sont proposés');
-    egal(sorts[1].atb, 35, 'la valeur proposée est celle de la compétence maxée');
-    egal(sorts[2].buff, BUFF_SPD_JEU, 'le buff de vitesse figure dans la liste');
+    // ⚠️ TOUTES les compétences lançables sont proposées — même « Frappe », qui
+    // ne remplit que SA barre : on doit pouvoir dire « à ce tour-là, il joue
+    // ça ». Ce qui change, c'est la CIBLE de l'effet, pas la présence du sort.
+    egal(
+      sorts.map((x) => x.nom).join(', '),
+      'Petite, Grosse, Frappe, Cri',
+      'toutes les compétences non passives sont proposées'
+    );
+    egal(sorts[1].effet.atbEquipe, 35, 'la valeur proposée est celle de la compétence maxée');
+    egal(sorts[2].effet.atbSoi, 50, 'un remplissage sur SOI est rangé comme tel, pas comme un boost de camp');
+    egal(sorts[2].effet.atbEquipe, undefined, "et il ne compte pas pour l'équipe");
+    egal(sorts[3].effet.buffEquipe, BUFF_SPD_JEU, 'le buff de vitesse figure dans la liste');
     egal(sortsVitesse(null).length, 0, 'aucune fiche → aucun sort à proposer');
   }
 
@@ -775,7 +841,7 @@ export function testSpeedTuneSequence() {
       const n = 2 + Math.floor(rng() * 2);
       for (let i = 0; i < n; i++) {
         const mm: TuneMonstre = { id: `a${i}`, combat: 90 + Math.floor(rng() * 260), camp: 'allie' };
-        if (rng() < 0.3) mm.skillAtb = 10 + Math.floor(rng() * 30);
+        if (rng() < 0.3) mm.sort = { atbEquipe: 10 + Math.floor(rng() * 30) };
         monstres.push(mm);
       }
       if (rng() < 0.7) monstres.push({ id: 'e', combat: 100 + Math.floor(rng() * 250), camp: 'ennemi' });

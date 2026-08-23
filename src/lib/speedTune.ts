@@ -46,6 +46,21 @@ export interface TuneMonstre {
   camp: Camp;
   atbMod?: ModParTick;
   speedMod?: ModParTick;
+  // Compétence de ce monstre, déclenchée par SON TOUR, sur TOUT SON CAMP (lui
+  // compris — dans le jeu, « augmente la barre d'attaque de tous les alliés »
+  // inclut le lanceur, dont la barre vient de retomber à 0).
+  //
+  //   - skillAtb   : +% de barre d'attaque posé au tick OÙ IL JOUE.
+  //   - skillSpeed : +% de vitesse posé sur son camp À PARTIR DU TICK SUIVANT
+  //                  (le gain du tick courant est déjà acquis), et jusqu'à la
+  //                  fin de l'horizon — la durée réelle (2 tours) n'est pas
+  //                  modélisée, voir spec/outils/speed-tuning.md.
+  //
+  // ⚠️ C'est ce qui rend l'outil AUTOMATIQUE : un Eshir qui remplit la barre des
+  // siens n'a plus à être posé à la main dans la grille, tick par tick — il
+  // frappe là où sa vitesse le fait jouer, et suit quand on change les vitesses.
+  skillAtb?: number;
+  skillSpeed?: number;
   // Bonus d'artéfact « augmente l'effet du buff de vitesse » (%), ADDITIF au
   // buff appliqué et actif UNIQUEMENT quand un buff de vitesse (> 0) est présent
   // ce tick-là. Ex. buff +30 % + artéfact +10 % → vitesse × 1,40 ce tick.
@@ -109,12 +124,17 @@ export function simuler(monstres: TuneMonstre[], horizon = HORIZON_TICKS): Simul
     .filter((m) => m.combat > 0);
 
   const actions: Action[] = [];
+  // Buff de vitesse posé par une COMPÉTENCE, camp par camp : actif à partir du
+  // tick qui suit le tour du lanceur, jusqu'à la fin. Un buff ne s'empile pas
+  // avec celui saisi à la main dans la grille — c'est le plus fort qui vaut.
+  const buffCamp: Record<Camp, number> = { allie: 0, ennemi: 0 };
+
   for (let tick = 1; tick <= horizon; tick++) {
     for (const m of etat) {
       // Buff de vitesse UNIQUEMENT sur les ticks marqués ; sinon vitesse de base.
       // Un buff (> 0) est amplifié par le bonus d'artéfact, additivement ; un
       // ralenti (< 0) n'est pas concerné.
-      const buffBase = m.speedMod?.[tick] ?? 0;
+      const buffBase = Math.max(m.speedMod?.[tick] ?? 0, buffCamp[m.camp]);
       const buff = buffBase > 0 ? buffBase + (m.artefactBuff ?? 0) : buffBase;
       m.atb += atbParTick((m.combat * (100 + buff)) / 100);
       const boost = m.atbMod?.[tick] ?? 0;
@@ -130,6 +150,22 @@ export function simuler(monstres: TuneMonstre[], horizon = HORIZON_TICKS): Simul
     const gagnant = prets[0];
     actions.push({ id: gagnant.id, camp: gagnant.camp, tick, ordre: actions.length + 1 });
     gagnant.atb = 0; // tour pris : la barre repart de 0 au tick suivant
+
+    // Sa compétence frappe SON camp au moment où il joue.
+    const boost = gagnant.skillAtb ?? 0;
+    if (boost) {
+      for (const m of etat) {
+        if (m.camp !== gagnant.camp) continue;
+        m.atb += boost;
+        if (m.atb < 0) m.atb = 0;
+        // La case du tick montre la barre APRÈS le boost — sauf pour le lanceur,
+        // dont la case garde la barre pleine qui a déclenché son tour.
+        if (m !== gagnant) m.traj[m.traj.length - 1] = m.atb;
+      }
+    }
+    if (gagnant.skillSpeed && gagnant.skillSpeed > buffCamp[gagnant.camp]) {
+      buffCamp[gagnant.camp] = gagnant.skillSpeed;
+    }
   }
 
   return {
@@ -168,6 +204,10 @@ export function premiersTours(sim: Simulation): Action[] {
 // Vitesse de combat au-delà de laquelle il n'y a plus rien à gagner : agir dès
 // le tick 1 (`speedForTick(1)` = 1429). Sert de borne haute à la recherche.
 export const COMBAT_MAX = speedForTick(1);
+
+// Nombre maximal de passes du solveur (voir `vitessesRequises`) : corriger un
+// allié change ce qu'il faut aux autres, on repasse tant que ça avance.
+export const PASSES_MAX = 4;
 
 export interface Coupure {
   // Le premier adverse à agir, ou `null` s'il n'y en a aucun (rien à vérifier).
@@ -222,9 +262,6 @@ export interface VitesseRequise {
 // ce qu'il faut aux autres. Le résultat est un jeu de vitesses cohérent, pas
 // une somme de corrections indépendantes.
 export function vitessesRequises(monstres: TuneMonstre[], horizon = HORIZON_TICKS): VitesseRequise[] {
-  const diag = diagnostiquerChaine(monstres, horizon);
-  if (diag.ok || !diag.coupeur) return [];
-
   // État de travail : les vitesses trouvées y sont écrites au fur et à mesure.
   const courant = monstres.map((m) => ({ ...m }));
   const parId = new Map(courant.map((m) => [m.id, m]));
@@ -237,31 +274,57 @@ export function vitessesRequises(monstres: TuneMonstre[], horizon = HORIZON_TICK
     return !adverse || mien.tick < adverse.tick;
   };
 
-  const aTraiter = diag.coupes
-    .map((c) => parId.get(c.id))
-    .filter((m): m is (typeof courant)[number] => !!m)
-    .sort((a, b) => b.combat - a.combat);
+  for (let passe = 0; passe < PASSES_MAX; passe++) {
+    const diag = diagnostiquerChaine(courant, horizon);
+    if (diag.ok || !diag.coupeur) break;
 
+    // Du PLUS RAPIDE au plus lent : les ticks avant l'adverse sont une ressource
+    // partagée (un seul monstre par tick), les plus rapides prennent les leurs
+    // d'abord. Chaque vitesse trouvée est conservée pour les suivants.
+    const aTraiter = diag.coupes
+      .map((c) => parId.get(c.id))
+      .filter((m): m is (typeof courant)[number] => !!m)
+      .sort((a, b) => b.combat - a.combat);
+
+    let progres = false;
+    for (const m of aTraiter) {
+      if (passeAvant(m.id)) continue; // déjà réglé par la correction d'un autre
+      const depart = m.combat;
+      let bas = depart + 1;
+      let haut = COMBAT_MAX;
+      m.combat = haut;
+      if (!passeAvant(m.id)) {
+        m.combat = depart; // insoluble pour lui : on le laisse tel quel
+        continue;
+      }
+      // Dichotomie sur ]depart, COMBAT_MAX] : la plus petite vitesse qui passe.
+      while (bas < haut) {
+        const milieu = Math.floor((bas + haut) / 2);
+        m.combat = milieu;
+        if (passeAvant(m.id)) haut = milieu;
+        else bas = milieu + 1;
+      }
+      m.combat = bas;
+      progres = true;
+    }
+    // ⚠️ Une passe ne suffit pas toujours : accélérer un allié peut lui faire
+    // prendre le tick d'un autre, ou déplacer le tour de celui qui remplit la
+    // barre de l'équipe. On repasse tant que ça avance, dans une limite fixe.
+    if (!progres) break;
+  }
+
+  // Verdict final sur les vitesses retenues : ce qui reste coupé est déclaré
+  // hors de portée, le reste porte la vitesse trouvée.
+  const fin = diagnostiquerChaine(courant, horizon);
+  const coupesFin = new Set(fin.coupes.map((c) => c.id));
   const out: VitesseRequise[] = [];
-  for (const m of aTraiter) {
-    const depart = m.combat;
-    // Dichotomie sur ]depart, COMBAT_MAX] : la plus petite vitesse qui passe.
-    let bas = depart + 1;
-    let haut = COMBAT_MAX;
-    m.combat = haut;
-    if (!passeAvant(m.id)) {
-      m.combat = depart; // insoluble : on laisse sa vitesse telle quelle
-      out.push({ id: m.id, combatActuel: depart, combatRequis: null });
-      continue;
+  for (const m of monstres) {
+    if (m.camp !== 'allie') continue;
+    if (coupesFin.has(m.id)) out.push({ id: m.id, combatActuel: m.combat, combatRequis: null });
+    else {
+      const trouve = parId.get(m.id)?.combat ?? m.combat;
+      if (trouve > m.combat) out.push({ id: m.id, combatActuel: m.combat, combatRequis: trouve });
     }
-    while (bas < haut) {
-      const milieu = Math.floor((bas + haut) / 2);
-      m.combat = milieu;
-      if (passeAvant(m.id)) haut = milieu;
-      else bas = milieu + 1;
-    }
-    m.combat = bas; // conservé pour les alliés suivants
-    out.push({ id: m.id, combatActuel: depart, combatRequis: bas });
   }
   return out;
 }

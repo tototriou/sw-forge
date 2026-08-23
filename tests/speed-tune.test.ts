@@ -12,6 +12,7 @@ import {
   diagnostiquerChaine,
   vitessesRequises,
   COMBAT_MAX,
+  PASSES_MAX,
   HORIZON_TICKS,
   TuneMonstre,
   Simulation,
@@ -232,8 +233,6 @@ function mulberry32(seed: number) {
 // exhaustif au lieu d'une dichotomie. Volontairement naïve et lente — elle
 // définit « la bonne réponse » pour le test différentiel.
 function vitessesRequisesNaif(monstres: TuneMonstre[], horizon = HORIZON_TICKS): VitesseRequise[] {
-  const diag = diagnostiquerChaine(monstres, horizon);
-  if (diag.ok || !diag.coupeur) return [];
   const courant = monstres.map((m) => ({ ...m }));
   const parId = new Map(courant.map((m) => [m.id, m]));
   const passeAvant = (id: string): boolean => {
@@ -243,23 +242,40 @@ function vitessesRequisesNaif(monstres: TuneMonstre[], horizon = HORIZON_TICKS):
     if (!mien) return false;
     return !adverse || mien.tick < adverse.tick;
   };
-  const aTraiter = diag.coupes
-    .map((c) => parId.get(c.id))
-    .filter((m): m is (typeof courant)[number] => !!m)
-    .sort((a, b) => b.combat - a.combat);
-  const out: VitesseRequise[] = [];
-  for (const m of aTraiter) {
-    const depart = m.combat;
-    let trouve: number | null = null;
-    for (let c = depart + 1; c <= COMBAT_MAX; c++) {
-      m.combat = c;
-      if (passeAvant(m.id)) {
-        trouve = c;
-        break;
+  for (let passe = 0; passe < PASSES_MAX; passe++) {
+    const diag = diagnostiquerChaine(courant, horizon);
+    if (diag.ok || !diag.coupeur) break;
+    const aTraiter = diag.coupes
+      .map((c) => parId.get(c.id))
+      .filter((m): m is (typeof courant)[number] => !!m)
+      .sort((a, b) => b.combat - a.combat);
+    let progres = false;
+    for (const m of aTraiter) {
+      if (passeAvant(m.id)) continue;
+      const depart = m.combat;
+      let trouve: number | null = null;
+      for (let c = depart + 1; c <= COMBAT_MAX; c++) {
+        m.combat = c;
+        if (passeAvant(m.id)) {
+          trouve = c;
+          break;
+        }
       }
+      m.combat = trouve ?? depart;
+      if (trouve != null) progres = true;
     }
-    m.combat = trouve ?? depart;
-    out.push({ id: m.id, combatActuel: depart, combatRequis: trouve });
+    if (!progres) break;
+  }
+  const fin = diagnostiquerChaine(courant, horizon);
+  const coupesFin = new Set(fin.coupes.map((c) => c.id));
+  const out: VitesseRequise[] = [];
+  for (const m of monstres) {
+    if (m.camp !== 'allie') continue;
+    if (coupesFin.has(m.id)) out.push({ id: m.id, combatActuel: m.combat, combatRequis: null });
+    else {
+      const trouve = parId.get(m.id)?.combat ?? m.combat;
+      if (trouve > m.combat) out.push({ id: m.id, combatActuel: m.combat, combatRequis: trouve });
+    }
   }
   return out;
 }
@@ -323,6 +339,70 @@ export function testSpeedTuneChaine() {
     );
   }
 
+  // Compétences déclenchées par le TOUR : un allié qui remplit la barre de son
+  // camp accélère les siens à partir du tick où il joue.
+  {
+    const sans = premiersTours(simuler([m('boosteur', 300, 'allie'), m('lent', 150, 'allie')]));
+    const avec = premiersTours(
+      simuler([{ ...m('boosteur', 300, 'allie'), skillAtb: 40 }, m('lent', 150, 'allie')])
+    );
+    const tickDe = (pt: ReturnType<typeof premiersTours>, id: string) => pt.find((a) => a.id === id)!.tick;
+    egal(tickDe(avec, 'boosteur'), tickDe(sans, 'boosteur'), 'le lanceur joue au même tick');
+    ok(tickDe(avec, 'lent') < tickDe(sans, 'lent'), 'son allié joue plus tôt grâce au boost de barre');
+  }
+
+  // Le boost ne franchit pas les CAMPS : un adverse qui remplit la barre des
+  // siens ne remplit pas la nôtre.
+  //
+  // ⚠️ Ce qu'on vérifie ici est bien la BARRE, pas le tick d'action : la règle
+  // « un seul monstre par tick » fait qu'un adverse qui joue plus souvent occupe
+  // d'autres ticks, ce qui peut décaler notre tour dans un sens comme dans
+  // l'autre — sans que sa compétence ne nous ait jamais touchés.
+  {
+    const barre = (skill?: number) =>
+      simuler([{ ...m('eshir', 300, 'ennemi'), skillAtb: skill }, m('nous', 150, 'allie')]).lignes.find(
+        (l) => l.id === 'nous'
+      )!.trajectoire;
+    const sans = barre();
+    const avec = barre(40);
+    egal(
+      avec.slice(0, 6).map((v) => v.toFixed(2)).join(' '),
+      sans.slice(0, 6).map((v) => v.toFixed(2)).join(' '),
+      "le boost d'un adverse ne remplit pas la barre de notre camp"
+    );
+  }
+
+  // Buff de vitesse de compétence : à partir du tick SUIVANT le tour du lanceur.
+  {
+    const sans = simuler([m('buffeur', 300, 'allie'), m('lent', 150, 'allie')]);
+    const avec = simuler([{ ...m('buffeur', 300, 'allie'), skillSpeed: 30 }, m('lent', 150, 'allie')]);
+    const traj = (sim: Simulation, id: string) => sim.lignes.find((l) => l.id === id)!.trajectoire;
+    const tourBuffeur = premiersTours(sans).find((a) => a.id === 'buffeur')!.tick;
+    egal(
+      traj(avec, 'lent')[tourBuffeur - 1].toFixed(2),
+      traj(sans, 'lent')[tourBuffeur - 1].toFixed(2),
+      'au tick du lanceur, rien ne change encore (le gain est déjà acquis)'
+    );
+    ok(
+      traj(avec, 'lent')[tourBuffeur] > traj(sans, 'lent')[tourBuffeur],
+      'dès le tick suivant, son allié monte plus vite'
+    );
+  }
+
+  // Un adverse qui remplit la barre des siens est pris en compte par le
+  // solveur : la vitesse à trouver n'est pas la même sans lui.
+  {
+    const base = [m('a1', 260, 'allie'), m('a2', 170, 'allie'), m('eshir', 250, 'ennemi')];
+    const avecSkill = base.map((x) => (x.id === 'a1' ? { ...x, skillAtb: 35 } : x));
+    const sans = vitessesRequises(base);
+    const avec = vitessesRequises(avecSkill);
+    ok(sans.length > 0, 'sans compétence, un allié est coupé');
+    ok(
+      avec.length === 0 || (avec[0].combatRequis ?? 0) < (sans[0].combatRequis ?? 0),
+      "la compétence d'un allié abaisse (ou supprime) la vitesse à trouver"
+    );
+  }
+
   // TEST DIFFÉRENTIEL (algo-verify) : la dichotomie retrouve EXACTEMENT ce que
   // trouve le balayage linéaire exhaustif, sur des scénarios aléatoires à seed
   // fixe (alliés/adverses, vitesses, boosts d'ATB et buffs de vitesse).
@@ -339,6 +419,10 @@ export function testSpeedTuneChaine() {
         const mm: TuneMonstre = { id: `${camp}${i}`, combat, camp };
         if (rng() < 0.3) mm.atbMod = { [1 + Math.floor(rng() * 4)]: Math.floor(rng() * 60) };
         if (rng() < 0.3) mm.speedMod = { [1 + Math.floor(rng() * 4)]: 30 };
+        // Compétences déclenchées par le tour (boost de barre / buff de vitesse
+        // sur tout le camp) : c'est exactement ce que le solveur doit suivre.
+        if (rng() < 0.35) mm.skillAtb = 10 + Math.floor(rng() * 40);
+        if (rng() < 0.25) mm.skillSpeed = 30;
         return mm;
       };
       for (let i = 0; i < nbAllies; i++) monstres.push(tirer('allie', i));
@@ -350,7 +434,7 @@ export function testSpeedTuneChaine() {
     }
     ok(
       identiques === scenarios,
-      `dichotomie identique au balayage linéaire exhaustif sur ${scenarios} scénarios aléatoires (seed fixe)`
+      `dichotomie identique au balayage linéaire exhaustif sur ${scenarios} scénarios aléatoires avec compétences (seed fixe)`
     );
   }
 }

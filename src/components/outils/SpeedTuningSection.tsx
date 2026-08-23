@@ -68,6 +68,12 @@ interface Ligne {
   // Bonus d'artéfact « augmente l'effet du buff de vitesse » (%). Renseigné pour
   // les alliés seulement (on ne connaît pas les artéfacts d'en face).
   artefactBuff: number | null;
+  // Compétence de ce monstre, posée sur TOUT SON CAMP quand il joue (voir
+  // speedTune.ts) : +% de barre d'attaque au tick de son tour, +% de vitesse à
+  // partir du tick suivant. C'est ce qui rend l'analyse automatique — un Eshir
+  // n'a plus à être posé tick par tick dans les grilles.
+  skillAtb: number | null;
+  skillSpeed: number | null;
   // Masqué : gardé dans la liste (avec sa config) mais retiré des calculs et des
   // tableaux — pour tester une composition sans perdre le réglage d'un monstre.
   masque: boolean;
@@ -158,7 +164,18 @@ export default function SpeedTuningSection({ allMonsters, siegeDefenseTeams, sie
     if (!monster) return;
     setLignes((prev) => [
       ...prev,
-      { uid, monster, runeSpeed: null, camp, atbMod: {}, speedMod: {}, artefactBuff: null, masque: false },
+      {
+        uid,
+        monster,
+        runeSpeed: null,
+        camp,
+        atbMod: {},
+        speedMod: {},
+        artefactBuff: null,
+        skillAtb: null,
+        skillSpeed: null,
+        masque: false,
+      },
     ]);
   }
   // Import d'un deck de siège dans un camp : les monstres du deck y rejoignent
@@ -186,6 +203,8 @@ export default function SpeedTuningSection({ allMonsters, siegeDefenseTeams, sie
             atbMod: {},
             speedMod: {},
             artefactBuff: null,
+            skillAtb: null,
+            skillSpeed: null,
             masque: false,
           });
       }
@@ -206,6 +225,9 @@ export default function SpeedTuningSection({ allMonsters, siegeDefenseTeams, sie
   }
   function setArtefact(uid: string, v: number | null) {
     setLignes((prev) => prev.map((l) => (l.uid === uid ? { ...l, artefactBuff: v } : l)));
+  }
+  function setSkill(uid: string, champ: 'skillAtb' | 'skillSpeed', v: number | null) {
+    setLignes((prev) => prev.map((l) => (l.uid === uid ? { ...l, [champ]: v } : l)));
   }
 
   // Écrit une valeur de modificateur dans la grille `champ`, pour un tick donné.
@@ -249,6 +271,8 @@ export default function SpeedTuningSection({ allMonsters, siegeDefenseTeams, sie
           atbMod: l.atbMod,
           speedMod: l.speedMod,
           artefactBuff: l.artefactBuff ?? 0,
+          skillAtb: l.skillAtb ?? 0,
+          skillSpeed: l.skillSpeed ?? 0,
         });
     }
     return out;
@@ -283,6 +307,42 @@ export default function SpeedTuningSection({ allMonsters, siegeDefenseTeams, sie
   }, [sim, premiers]);
 
   const ligneParUid = useMemo(() => new Map(lignes.map((l) => [l.uid, l])), [lignes]);
+
+  // Ce que les COMPÉTENCES posent d'elles-mêmes dans les deux grilles : le boost
+  // de barre au tick de chaque tour de son lanceur, le buff de vitesse à partir
+  // du tick suivant son premier tour — sur tout son camp. Affiché en clair dans
+  // les cellules (en repère, pas en saisie) : on voit OÙ la compétence tombe, et
+  // ça suit quand les vitesses changent. Mêmes règles que la simulation.
+  const derives = useMemo(() => {
+    const atb = new Map<string, ModParTick>();
+    const spd = new Map<string, ModParTick>();
+    for (const l of lignesVisibles) {
+      atb.set(l.uid, {});
+      spd.set(l.uid, {});
+    }
+    for (const a of sim.actions) {
+      const source = ligneParUid.get(a.id);
+      if (!source?.skillAtb) continue;
+      for (const l of lignesVisibles) {
+        if (l.camp !== source.camp) continue;
+        const m = atb.get(l.uid)!;
+        m[a.tick] = (m[a.tick] ?? 0) + source.skillAtb;
+      }
+    }
+    for (const source of lignesVisibles) {
+      if (!source.skillSpeed) continue;
+      const premier = premiers.find((a) => a.id === source.uid);
+      if (!premier) continue;
+      for (const l of lignesVisibles) {
+        if (l.camp !== source.camp) continue;
+        const m = spd.get(l.uid)!;
+        for (let t = premier.tick + 1; t <= HORIZON_TICKS; t++) {
+          m[t] = Math.max(m[t] ?? 0, source.skillSpeed);
+        }
+      }
+    }
+    return { atbMod: atb, speedMod: spd };
+  }, [sim, premiers, lignesVisibles, ligneParUid]);
   const requisParUid = useMemo(() => new Map(requis.map((r) => [r.id, r])), [requis]);
   const nomDe = (uid: string) => ligneParUid.get(uid)?.monster.name ?? '?';
   // Vitesse de runes qu'il MANQUE pour atteindre une vitesse de combat cible.
@@ -393,6 +453,7 @@ export default function SpeedTuningSection({ allMonsters, siegeDefenseTeams, sie
           onRetirer={retirer}
           onMasquer={basculerMasque}
           onRuneSpeed={setRuneSpeed}
+          onSkill={setSkill}
           onArtefact={setArtefact}
           decks={decks}
           onImporterDeck={(team) => importerDeck('allie', team)}
@@ -410,6 +471,7 @@ export default function SpeedTuningSection({ allMonsters, siegeDefenseTeams, sie
           onRetirer={retirer}
           onMasquer={basculerMasque}
           onRuneSpeed={setRuneSpeed}
+          onSkill={setSkill}
           decks={decks}
           onImporterDeck={(team) => importerDeck('ennemi', team)}
         />
@@ -487,8 +549,9 @@ export default function SpeedTuningSection({ allMonsters, siegeDefenseTeams, sie
                     })}
                   </ul>
                   <p className="mt-2.5 text-xs text-ink-dim">
-                    Les vitesses proposées tiennent compte des boosts de barre et des buffs déjà posés, et se
-                    lisent ENSEMBLE : un seul monstre agit par tick, corriger l'un change ce qu'il faut aux autres.
+                    Les vitesses proposées tiennent compte des compétences, des boosts de barre et des buffs déjà
+                    posés, et se lisent ENSEMBLE : un seul monstre agit par tick, corriger l'un change ce qu'il faut
+                    aux autres.
                   </p>
                 </>
               )}
@@ -587,6 +650,7 @@ export default function SpeedTuningSection({ allMonsters, siegeDefenseTeams, sie
             aEnnemi={aEnnemi}
             onSet={setMod}
             onSetEquipe={setModEquipe}
+            derives={derives.atbMod}
             refConteneur={enregistrer(1)}
             onScrollSync={synchro}
           />
@@ -603,6 +667,7 @@ export default function SpeedTuningSection({ allMonsters, siegeDefenseTeams, sie
             aEnnemi={aEnnemi}
             onSet={setMod}
             onSetEquipe={setModEquipe}
+            derives={derives.speedMod}
             refConteneur={enregistrer(2)}
             onScrollSync={synchro}
           />
@@ -662,6 +727,7 @@ interface CampProps {
   onRetirer: (uid: string) => void;
   onMasquer: (uid: string) => void;
   onRuneSpeed: (uid: string, v: number | null) => void;
+  onSkill: (uid: string, champ: 'skillAtb' | 'skillSpeed', v: number | null) => void;
   // Présent (alliés) = une saisie « bonus d'artéfact au buff de vitesse » par
   // monstre. Absent (en face) = pas de champ : on ignore les artéfacts adverses.
   onArtefact?: (uid: string, v: number | null) => void;
@@ -684,6 +750,7 @@ function CampPanneau({
   onRetirer,
   onMasquer,
   onRuneSpeed,
+  onSkill,
   onArtefact,
   decks,
   onImporterDeck,
@@ -778,6 +845,63 @@ function CampPanneau({
                         ariaLabel={`Vitesse des runes de ${l.monster.name}`}
                       />
                     </label>
+                    {/* Compétence : ce que ce monstre pose sur SON camp quand
+                        il joue. Les deux camps y ont droit — l'adversaire qui
+                        remplit la barre des siens est précisément celui qu'on
+                        cherche à devancer. */}
+                    <label className="flex flex-col gap-0.5">
+                      <span
+                        className="text-micro font-semibold uppercase tracking-wide text-ink-dimmer"
+                        title="Compétence : +% de barre d'attaque posé sur tout son camp au tick où il joue"
+                      >
+                        Boost ATB
+                      </span>
+                      <NumberField
+                        value={l.skillAtb}
+                        onChange={(v) => onSkill(l.uid, 'skillAtb', v)}
+                        min={0}
+                        max={100}
+                        allowEmpty
+                        width="w-12"
+                        placeholder="+%"
+                        ariaLabel={`Boost de barre d'attaque posé par ${l.monster.name} sur son camp`}
+                      />
+                    </label>
+                    <label className="flex flex-col gap-0.5">
+                      <span
+                        className="text-micro font-semibold uppercase tracking-wide text-ink-dimmer"
+                        title="Compétence : buff de vitesse posé sur tout son camp à partir du tick suivant son tour"
+                      >
+                        Buff SPD
+                      </span>
+                      <span className="flex items-center gap-1">
+                        <BoutonIcone
+                          cadre
+                          taille="serre"
+                          actif={!!l.skillSpeed}
+                          onClick={() => onSkill(l.uid, 'skillSpeed', l.skillSpeed ? null : BUFF_SPD)}
+                          libelle={`${l.monster.name} pose un buff de vitesse +30 % sur son camp`}
+                          icone={
+                            <img
+                              src={SPD_ICON}
+                              alt=""
+                              width={13}
+                              height={13}
+                              className={l.skillSpeed ? '' : 'opacity-40'}
+                            />
+                          }
+                        />
+                        <NumberField
+                          sansBoutons
+                          value={l.skillSpeed}
+                          onChange={(v) => onSkill(l.uid, 'skillSpeed', v)}
+                          allowEmpty
+                          boxWidth="w-11"
+                          placeholder="·"
+                          ariaLabel={`Buff de vitesse posé par ${l.monster.name} sur son camp`}
+                        />
+                      </span>
+                    </label>
                     {onArtefact && (
                       <label className="flex flex-col gap-0.5">
                         <span
@@ -840,6 +964,9 @@ interface GrilleModProps {
   aEnnemi: boolean;
   onSet: (champ: ChampMod, uid: string, tick: number, v: number | null) => void;
   onSetEquipe: (champ: ChampMod, camp: Camp, tick: number, v: number | null) => void;
+  // Ce que les compétences posent d'elles-mêmes, par monstre et par tick :
+  // affiché en repère dans la cellule vide, jamais écrit dans l'état.
+  derives: Map<string, ModParTick>;
   refConteneur: (el: HTMLDivElement | null) => void;
   onScrollSync: (e: React.UIEvent<HTMLDivElement>) => void;
 }
@@ -858,6 +985,7 @@ function GrilleMod({
   aEnnemi,
   onSet,
   onSetEquipe,
+  derives,
   refConteneur,
   onScrollSync,
 }: GrilleModProps) {
@@ -877,7 +1005,12 @@ function GrilleMod({
   // Une cellule. Boost d'ATB : simple champ numérique. Buff de vitesse : le
   // raccourci (icône SPD, pose/retire +30 % d'un clic) ET le champ pour saisir
   // une autre valeur (33 %, un ralenti −30 %…).
-  const cellule = (value: number | null, onChange: (v: number | null) => void, aria: string) =>
+  const cellule = (
+    value: number | null,
+    onChange: (v: number | null) => void,
+    aria: string,
+    derive?: number
+  ) =>
     mode === 'buff' ? (
       <div className="mx-auto flex w-[78px] items-center gap-1">
         <BoutonIcone
@@ -895,8 +1028,9 @@ function GrilleMod({
           onChange={onChange}
           allowEmpty
           boxWidth="w-11"
-          placeholder="·"
+          placeholder={derive ? `+${derive}` : '·'}
           ariaLabel={`${aria} — valeur`}
+          title={derive ? `Posé par une compétence : +${derive} %` : undefined}
         />
       </div>
     ) : (
@@ -910,8 +1044,9 @@ function GrilleMod({
         min={-100}
         max={100}
         boxWidth="w-14"
-        placeholder="·"
+        placeholder={derive ? `+${derive}` : '·'}
         ariaLabel={aria}
+        title={derive ? `Posé par une compétence : +${derive} % de barre` : undefined}
       />
     );
 
@@ -968,7 +1103,8 @@ function GrilleMod({
                           {cellule(
                             l[champ][t] ?? null,
                             (v) => onSet(champ, l.uid, t, v),
-                            `${l.monster.name} — tick ${t}`
+                            `${l.monster.name} — tick ${t}`,
+                            derives.get(l.uid)?.[t]
                           )}
                         </td>
                       ))}

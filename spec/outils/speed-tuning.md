@@ -108,7 +108,7 @@ agir dès le tick 1 — au-delà il n'y a plus rien à gagner).
   premier adverse » est **monotone** en sa vitesse (plus vite = barre plus haute
   à chaque tick = tour plus tôt, et l'adverse ne peut qu'être repoussé). Vérifié
   par **test différentiel** contre une référence naïve (balayage linéaire
-  exhaustif) sur 24 scénarios aléatoires à seed fixe — voir le skill
+  exhaustif) sur 24 scénarios aléatoires **avec compétences** à seed fixe — voir le skill
   `algo-verify`.
 - ⚠️ **Les alliés sont traités du plus rapide au plus lent, et chaque vitesse
   trouvée est CONSERVÉE pour les suivants** : les ticks avant l'adverse sont une
@@ -118,12 +118,43 @@ agir dès le tick 1 — au-delà il n'y a plus rien à gagner).
 - **« Hors de portée »** (`combatRequis: null`) : même à `COMBAT_MAX` l'allié
   reste coupé — typiquement plus d'alliés que de ticks disponibles avant
   l'adverse. L'écran le dit au lieu d'afficher un chiffre inatteignable.
-- **Coût** : ~11 simulations de 40 ticks par allié coupé, recalculé à chaque
-  frappe. Négligeable à cette échelle (une poignée de monstres) — aucun budget
+- ⚠️ **Plusieurs PASSES** (`PASSES_MAX = 4`) : corriger un allié peut lui faire
+  prendre le tick d'un autre, ou déplacer le tour de celui qui remplit la barre
+  de l'équipe. On repasse tant que ça avance ; ce qui reste coupé au bout est
+  déclaré hors de portée.
+- **Coût** : ~11 simulations de 40 ticks par allié coupé et par passe, recalculé
+  à chaque frappe. Négligeable à cette échelle (une poignée de monstres) — aucun budget
   ni cache n'a été nécessaire.
 - **Limite héritée du modèle** : le verdict repose sur les **premiers tours**
   (voir plus bas) ; un adverse très rapide qui rejouerait une deuxième fois
   avant la fin de la chaîne n'est pas compté comme une coupure supplémentaire.
+
+## Compétences (déclenchées par le tour)
+
+⚠️ **C'est ce qui rend l'outil automatique.** Un Eshir (grosse vitesse de base,
+compétence qui remplit la barre des siens) n'a plus à être posé à la main dans
+la grille, tick par tick : on déclare sa compétence **sur sa card**, elle frappe
+là où sa vitesse le fait jouer, et **suit** quand les vitesses changent. Saisie
+dans les **deux camps** — l'adverse qui remplit la barre des siens est justement
+celui qu'on cherche à devancer.
+
+Deux champs par monstre (`skillAtb`, `skillSpeed` dans `TuneMonstre`), appliqués
+à **tout son camp, lui compris** (dans le jeu, « augmente la barre d'attaque de
+tous les alliés » inclut le lanceur, dont la barre vient de retomber à 0) :
+
+- **Boost ATB** — +% de barre d'attaque **au tick où il joue**, à chacun de ses
+  tours.
+- **Buff SPD** — +% de vitesse sur son camp **à partir du tick SUIVANT** son tour
+  (le gain du tick courant est déjà acquis), jusqu'à la fin de l'horizon.
+  ⚠️ **La durée réelle (2 tours) n'est pas modélisée** : sur une ouverture de
+  combat le buff ne tombe pas, et la grille reste là pour les cas fins.
+- ⚠️ **Un buff ne s'empile pas** avec celui saisi dans la grille : c'est **le plus
+  fort qui vaut** (`Math.max`). Le bonus d'artéfact, lui, s'y ajoute comme
+  ailleurs.
+- Les grilles **montrent** ce que les compétences y posent (voir « Écran »,
+  points 5 et 6) : la valeur apparaît en repère dans la cellule vide, sans jamais
+  être écrite dans l'état — on voit **où la compétence tombe** sans pouvoir la
+  confondre avec une saisie.
 
 ## Règle « un seul monstre par tick »
 
@@ -192,13 +223,17 @@ De haut en bas :
    tick visé), puis une ligne par monstre. Cellules = `NumberField sansBoutons`
    (axe dense de la lib, voir [../shared/librairie-ui.md](../shared/librairie-ui.md)) ;
    valeur **positive pour remplir, négative pour vider** (la barre reste ≥ 0) ;
-   une case vide = pas de modificateur.
+   une case vide = pas de modificateur. ⚠️ Une case vide **couverte par une
+   compétence** affiche sa valeur en repère (`+35`) : elle dit où le boost tombe,
+   sans être une saisie.
 6. **Buff de vitesse** — même grille, mais chaque cellule combine un **raccourci**
    et un **champ** : un bouton à l'icône SPD du jeu (celle des cartes RTA/Siège)
    pose/retire le buff **+30 %** d'un clic — c'est presque toujours celui-là — et
    un `NumberField` à côté permet de saisir une autre valeur (33 %, un ralenti
    −30 %…). La ligne équipe agit sur tout le camp. `speedMod` s'applique **au seul
    tick marqué** (pas de report) : un buff qui dure se marque sur chaque tick.
+   Comme pour le boost, une case vide couverte par une **compétence** affiche sa
+   valeur en repère.
 7. **Ordre de tour** — jetons entrelaçant les deux camps, chacun avec son rang et
    son tick.
 
@@ -210,7 +245,7 @@ un tick avant qu'un monstre n'agisse.
 
 Aucune persistance disque (comme tout Outils). Les choix (monstres ajoutés,
 vitesses de runes, leads, boosts d'ATB, buffs de vitesse, artéfacts, état
-masqué) vivent en `useStickyState` : conservés le temps de la session (survivent
+masqué, compétences) vivent en `useStickyState` : conservés le temps de la session (survivent
 à la navigation), remis à zéro au rechargement.
 
 ## Attendus

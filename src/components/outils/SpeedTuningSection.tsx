@@ -7,7 +7,13 @@ import { formesJouables } from '../../lib/monsterForms';
 import { useComboboxNav } from '../../hooks/useComboboxNav';
 import { useStickyState } from '../../hooks/useStickyState';
 import MonsterAvatar from '../MonsterAvatar';
-import { Champ, Flottant, NumberField, Selecteur, BoutonIcone } from '../../ui';
+import { Bouton, Champ, Flottant, NumberField, Selecteur, BoutonIcone } from '../../ui';
+
+// Icône de vitesse du jeu, celle des cartes RTA/Siège. Sert de repère au buff
+// de vitesse dans la grille dédiée.
+const SPD_ICON = `${import.meta.env.BASE_URL}stats/spd.png`;
+// Valeur du buff de vitesse du jeu (+30 %), posée d'un clic.
+const BUFF_SPD = 30;
 
 // Outils › Speed tuning — voir spec/outils/speed-tuning.md.
 //
@@ -298,6 +304,7 @@ export default function SpeedTuningSection({ allMonsters }: Props) {
           {/* Grille éditable : boost de barre d'attaque (ponctuel) */}
           <GrilleMod
             champ="atbMod"
+            mode="nombre"
             titre="Boost de barre d'attaque"
             sousTitre="+% d'ATB donné à un tick précis (compétence, artéfact…)"
             icone={<Zap size={15} />}
@@ -312,8 +319,9 @@ export default function SpeedTuningSection({ allMonsters }: Props) {
           {/* Grille éditable : buff de vitesse (soutenu à partir du tick) */}
           <GrilleMod
             champ="speedMod"
+            mode="buff"
             titre="Buff de vitesse"
-            sousTitre="+% de vitesse à partir du tick posé (reste actif ensuite) — pas la barre, la vitesse"
+            sousTitre="clique un tick pour poser un buff +30 % — actif à partir de là (la vitesse, pas la barre)"
             icone={<Gauge size={15} />}
             lignes={lignes}
             ticks={ticks}
@@ -482,6 +490,9 @@ function CampPanneau({
 
 interface GrilleModProps {
   champ: ChampMod;
+  // 'nombre' : cellule NumberField (boost d'ATB, valeurs variables).
+  // 'buff'   : cellule cliquable qui pose/retire un buff de vitesse (+30 %).
+  mode: 'nombre' | 'buff';
   titre: string;
   sousTitre: string;
   icone: React.ReactNode;
@@ -498,6 +509,7 @@ interface GrilleModProps {
 // qui écrit la même valeur sur tous ses monstres au tick visé.
 function GrilleMod({
   champ,
+  mode,
   titre,
   sousTitre,
   icone,
@@ -521,21 +533,38 @@ function GrilleMod({
     { camp: 'ennemi', label: 'Tout en face', present: aEnnemi },
   ];
 
-  const cellule = (
-    value: number | null,
-    onChange: (v: number | null) => void,
-    aria: string
-  ) => (
-    <NumberField
-      sansBoutons
-      value={value}
-      onChange={onChange}
-      allowEmpty
-      boxWidth="w-14"
-      placeholder="·"
-      ariaLabel={aria}
-    />
-  );
+  // Une cellule : soit un champ numérique (boost d'ATB), soit un bouton qui
+  // pose/retire le buff de vitesse d'un clic — l'icône SPD dit ce qu'on ajoute.
+  const cellule = (value: number | null, onChange: (v: number | null) => void, aria: string) =>
+    mode === 'buff' ? (
+      <Bouton
+        taille="sm"
+        actif={!!value}
+        onClick={() => onChange(value ? null : BUFF_SPD)}
+        aria-label={aria}
+        icone={
+          <img
+            src={SPD_ICON}
+            alt=""
+            width={14}
+            height={14}
+            className={value ? '' : 'opacity-40'}
+          />
+        }
+        libelle={value ? `+${value}` : undefined}
+        className="mx-auto w-14 justify-center font-mono"
+      />
+    ) : (
+      <NumberField
+        sansBoutons
+        value={value}
+        onChange={onChange}
+        allowEmpty
+        boxWidth="w-14"
+        placeholder="·"
+        ariaLabel={aria}
+      />
+    );
 
   return (
     <section className="rounded-lg border border-border bg-panel">

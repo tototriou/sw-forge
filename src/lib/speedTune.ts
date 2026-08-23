@@ -209,6 +209,12 @@ export const COMBAT_MAX = speedForTick(1);
 // allié change ce qu'il faut aux autres, on repasse tant que ça avance.
 export const PASSES_MAX = 4;
 
+// Plafond de l'artéfact « Effet aug. VIT » (code 206) : un proc vaut au mieux
+// 6 % (voir PROC dans artifacts.ts), une ligne encaisse au plus 5 procs (le
+// tirage initial + les 4 améliorations d'un artéfact +15), et un monstre porte
+// DEUX artéfacts → 2 × 30 = 60 %. Au-delà, ce n'est plus une piste à proposer.
+export const ARTE_MAX = 60;
+
 export interface Coupure {
   // Le premier adverse à agir, ou `null` s'il n'y en a aucun (rien à vérifier).
   coupeur: Action | null;
@@ -245,24 +251,52 @@ export interface VitesseRequise {
   combatRequis: number | null;
 }
 
-// Vitesse de combat minimale, allié par allié, pour que TOUTE l'équipe joue
-// avant le premier adverse.
+// Ce qu'il faut trouver, allié par allié, pour que TOUTE l'équipe joue avant le
+// premier adverse.
 //
-// Recherche DICHOTOMIQUE sur la vitesse de combat, avec re-simulation à chaque
-// essai — pas de formule fermée : la règle « un seul monstre par tick », les
-// boosts de barre et les buffs de vitesse par tick s'y mêlent. Le prédicat
-// « cet allié joue avant le premier adverse » est MONOTONE en sa vitesse (plus
-// vite = barre plus haute à chaque tick = tour plus tôt, et l'adverse ne peut
-// qu'être repoussé), ce qui rend la dichotomie valide ; c'est vérifié par test
-// différentiel contre un balayage linéaire exhaustif (tests/speed-tune.test.ts).
+// Recherche DICHOTOMIQUE sur l'axe demandé, avec re-simulation à chaque essai —
+// pas de formule fermée : la règle « un seul monstre par tick », les compétences,
+// les boosts de barre et les buffs par tick s'y mêlent. Le prédicat « cet allié
+// joue avant le premier adverse » est MONOTONE sur les deux axes (plus vite, ou
+// buff plus amplifié = barre plus haute à chaque tick = tour plus tôt, et
+// l'adverse ne peut qu'être repoussé), ce qui rend la dichotomie valide ; c'est
+// vérifié par test différentiel contre un balayage linéaire exhaustif, sur les
+// DEUX axes (tests/speed-tune.test.ts).
 //
-// ⚠️ Les alliés sont traités du PLUS RAPIDE au plus lent, et chaque vitesse
+// ⚠️ Les alliés sont traités du PLUS RAPIDE au plus lent, et chaque valeur
 // trouvée est CONSERVÉE pour les suivants : les ticks avant l'adverse sont une
 // ressource partagée (un seul monstre par tick), donc corriger un allié change
-// ce qu'il faut aux autres. Le résultat est un jeu de vitesses cohérent, pas
-// une somme de corrections indépendantes.
-export function vitessesRequises(monstres: TuneMonstre[], horizon = HORIZON_TICKS): VitesseRequise[] {
-  // État de travail : les vitesses trouvées y sont écrites au fur et à mesure.
+// ce qu'il faut aux autres. Le résultat est un jeu cohérent, pas une somme de
+// corrections indépendantes.
+
+// L'AXE sur lequel on cherche : la vitesse de combat, ou le bonus d'artéfact
+// « Effet aug. VIT ». Deux leviers pour le même but — passer avant l'adverse —
+// et l'écran propose les deux : gagner de la vitesse de runes, OU amplifier le
+// buff de vitesse qu'on reçoit déjà.
+type Axe = 'combat' | 'artefactBuff';
+
+const PLAFOND: Record<Axe, number> = { combat: COMBAT_MAX, artefactBuff: ARTE_MAX };
+
+interface Resolution {
+  id: string;
+  actuel: number;
+  requis: number | null;
+}
+
+// Cœur commun aux deux solveurs. Voir le commentaire de `vitessesRequises` pour
+// la méthode (dichotomie + passes) : seul l'axe cherché change.
+//
+// ⚠️ Sur l'axe `artefactBuff`, un allié qui ne reçoit AUCUN buff de vitesse est
+// insensible au levier (l'artéfact n'amplifie que le buff) : la dichotomie
+// échoue jusqu'au plafond et renvoie `null` — c'est le comportement attendu, il
+// n'y a rien à proposer de ce côté-là.
+function resoudre(monstres: TuneMonstre[], horizon: number, axe: Axe): Resolution[] {
+  const valeur = (m: TuneMonstre): number => (axe === 'combat' ? m.combat : (m.artefactBuff ?? 0));
+  const poser = (m: TuneMonstre, v: number) => {
+    if (axe === 'combat') m.combat = v;
+    else m.artefactBuff = v;
+  };
+
   const courant = monstres.map((m) => ({ ...m }));
   const parId = new Map(courant.map((m) => [m.id, m]));
 
@@ -280,7 +314,7 @@ export function vitessesRequises(monstres: TuneMonstre[], horizon = HORIZON_TICK
 
     // Du PLUS RAPIDE au plus lent : les ticks avant l'adverse sont une ressource
     // partagée (un seul monstre par tick), les plus rapides prennent les leurs
-    // d'abord. Chaque vitesse trouvée est conservée pour les suivants.
+    // d'abord. Chaque valeur trouvée est conservée pour les suivants.
     const aTraiter = diag.coupes
       .map((c) => parId.get(c.id))
       .filter((m): m is (typeof courant)[number] => !!m)
@@ -289,22 +323,23 @@ export function vitessesRequises(monstres: TuneMonstre[], horizon = HORIZON_TICK
     let progres = false;
     for (const m of aTraiter) {
       if (passeAvant(m.id)) continue; // déjà réglé par la correction d'un autre
-      const depart = m.combat;
+      const depart = valeur(m);
       let bas = depart + 1;
-      let haut = COMBAT_MAX;
-      m.combat = haut;
+      let haut = PLAFOND[axe];
+      if (bas > haut) continue; // déjà au plafond de cet axe
+      poser(m, haut);
       if (!passeAvant(m.id)) {
-        m.combat = depart; // insoluble pour lui : on le laisse tel quel
+        poser(m, depart); // insoluble pour lui : on le laisse tel quel
         continue;
       }
-      // Dichotomie sur ]depart, COMBAT_MAX] : la plus petite vitesse qui passe.
+      // Dichotomie sur ]depart, plafond] : la plus petite valeur qui passe.
       while (bas < haut) {
         const milieu = Math.floor((bas + haut) / 2);
-        m.combat = milieu;
+        poser(m, milieu);
         if (passeAvant(m.id)) haut = milieu;
         else bas = milieu + 1;
       }
-      m.combat = bas;
+      poser(m, bas);
       progres = true;
     }
     // ⚠️ Une passe ne suffit pas toujours : accélérer un allié peut lui faire
@@ -313,18 +348,44 @@ export function vitessesRequises(monstres: TuneMonstre[], horizon = HORIZON_TICK
     if (!progres) break;
   }
 
-  // Verdict final sur les vitesses retenues : ce qui reste coupé est déclaré
-  // hors de portée, le reste porte la vitesse trouvée.
+  // Verdict final sur les valeurs retenues : ce qui reste coupé est déclaré hors
+  // de portée, le reste porte la valeur trouvée.
   const fin = diagnostiquerChaine(courant, horizon);
   const coupesFin = new Set(fin.coupes.map((c) => c.id));
-  const out: VitesseRequise[] = [];
+  const out: Resolution[] = [];
   for (const m of monstres) {
     if (m.camp !== 'allie') continue;
-    if (coupesFin.has(m.id)) out.push({ id: m.id, combatActuel: m.combat, combatRequis: null });
+    const depart = valeur(m);
+    if (coupesFin.has(m.id)) out.push({ id: m.id, actuel: depart, requis: null });
     else {
-      const trouve = parId.get(m.id)?.combat ?? m.combat;
-      if (trouve > m.combat) out.push({ id: m.id, combatActuel: m.combat, combatRequis: trouve });
+      const trouve = valeur(parId.get(m.id) ?? m);
+      if (trouve > depart) out.push({ id: m.id, actuel: depart, requis: trouve });
     }
   }
   return out;
+}
+
+export function vitessesRequises(monstres: TuneMonstre[], horizon = HORIZON_TICKS): VitesseRequise[] {
+  return resoudre(monstres, horizon, 'combat').map((r) => ({
+    id: r.id,
+    combatActuel: r.actuel,
+    combatRequis: r.requis,
+  }));
+}
+
+// L'autre levier : l'artéfact « Effet aug. VIT », qui AMPLIFIE le buff de
+// vitesse reçu. `artefactRequis: null` = rien à en attendre pour cet allié —
+// soit il ne reçoit aucun buff, soit même 60 % n'y suffiraient pas.
+export interface ArtefactRequis {
+  id: string;
+  artefactActuel: number;
+  artefactRequis: number | null;
+}
+
+export function artefactsRequis(monstres: TuneMonstre[], horizon = HORIZON_TICKS): ArtefactRequis[] {
+  return resoudre(monstres, horizon, 'artefactBuff').map((r) => ({
+    id: r.id,
+    artefactActuel: r.actuel,
+    artefactRequis: r.requis,
+  }));
 }

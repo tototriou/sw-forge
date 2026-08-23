@@ -11,12 +11,15 @@ import {
   atbParTick,
   diagnostiquerChaine,
   vitessesRequises,
+  artefactsRequis,
   COMBAT_MAX,
+  ARTE_MAX,
   PASSES_MAX,
   HORIZON_TICKS,
   TuneMonstre,
   Simulation,
   VitesseRequise,
+  ArtefactRequis,
 } from '../src/lib/speedTune';
 import { deckPourSpeedTune } from '../src/lib/speedTuneDeck';
 import { kitVitesse, BUFF_SPD_JEU } from '../src/lib/speedTuneKit';
@@ -264,7 +267,19 @@ function mulberry32(seed: number) {
 // `vitessesRequises`, mais la vitesse minimale se cherche par BALAYAGE LINÉAIRE
 // exhaustif au lieu d'une dichotomie. Volontairement naïve et lente — elle
 // définit « la bonne réponse » pour le test différentiel.
-function vitessesRequisesNaif(monstres: TuneMonstre[], horizon = HORIZON_TICKS): VitesseRequise[] {
+type Axe = 'combat' | 'artefactBuff';
+
+// RÉFÉRENCE DE CONTRÔLE (algo-verify) : même raisonnement que le solveur, mais
+// la valeur minimale se cherche par BALAYAGE LINÉAIRE exhaustif au lieu d'une
+// dichotomie. Volontairement naïve et lente — elle définit « la bonne réponse »
+// pour le test différentiel, sur les DEUX axes.
+function resoudreNaif(monstres: TuneMonstre[], axe: Axe, horizon = HORIZON_TICKS) {
+  const plafond = axe === 'combat' ? COMBAT_MAX : ARTE_MAX;
+  const valeur = (m: TuneMonstre) => (axe === 'combat' ? m.combat : (m.artefactBuff ?? 0));
+  const poser = (m: TuneMonstre, v: number) => {
+    if (axe === 'combat') m.combat = v;
+    else m.artefactBuff = v;
+  };
   const courant = monstres.map((m) => ({ ...m }));
   const parId = new Map(courant.map((m) => [m.id, m]));
   const passeAvant = (id: string): boolean => {
@@ -284,32 +299,49 @@ function vitessesRequisesNaif(monstres: TuneMonstre[], horizon = HORIZON_TICKS):
     let progres = false;
     for (const m of aTraiter) {
       if (passeAvant(m.id)) continue;
-      const depart = m.combat;
+      const depart = valeur(m);
       let trouve: number | null = null;
-      for (let c = depart + 1; c <= COMBAT_MAX; c++) {
-        m.combat = c;
+      for (let v = depart + 1; v <= plafond; v++) {
+        poser(m, v);
         if (passeAvant(m.id)) {
-          trouve = c;
+          trouve = v;
           break;
         }
       }
-      m.combat = trouve ?? depart;
+      poser(m, trouve ?? depart);
       if (trouve != null) progres = true;
     }
     if (!progres) break;
   }
   const fin = diagnostiquerChaine(courant, horizon);
   const coupesFin = new Set(fin.coupes.map((c) => c.id));
-  const out: VitesseRequise[] = [];
+  const out: { id: string; actuel: number; requis: number | null }[] = [];
   for (const m of monstres) {
     if (m.camp !== 'allie') continue;
-    if (coupesFin.has(m.id)) out.push({ id: m.id, combatActuel: m.combat, combatRequis: null });
+    const depart = valeur(m);
+    if (coupesFin.has(m.id)) out.push({ id: m.id, actuel: depart, requis: null });
     else {
-      const trouve = parId.get(m.id)?.combat ?? m.combat;
-      if (trouve > m.combat) out.push({ id: m.id, combatActuel: m.combat, combatRequis: trouve });
+      const trouve = valeur(parId.get(m.id) ?? m);
+      if (trouve > depart) out.push({ id: m.id, actuel: depart, requis: trouve });
     }
   }
   return out;
+}
+
+function vitessesRequisesNaif(monstres: TuneMonstre[], horizon = HORIZON_TICKS): VitesseRequise[] {
+  return resoudreNaif(monstres, 'combat', horizon).map((r) => ({
+    id: r.id,
+    combatActuel: r.actuel,
+    combatRequis: r.requis,
+  }));
+}
+
+function artefactsRequisNaif(monstres: TuneMonstre[], horizon = HORIZON_TICKS): ArtefactRequis[] {
+  return resoudreNaif(monstres, 'artefactBuff', horizon).map((r) => ({
+    id: r.id,
+    artefactActuel: r.actuel,
+    artefactRequis: r.requis,
+  }));
 }
 
 export function testSpeedTuneChaine() {
@@ -435,6 +467,36 @@ export function testSpeedTuneChaine() {
     );
   }
 
+  // L'AUTRE levier : l'artéfact « Effet aug. VIT », qui amplifie le buff de
+  // vitesse reçu. Sans buff, il n'y a rien à en attendre.
+  {
+    const sansBuff = [m('a1', 260, 'allie'), m('a2', 170, 'allie'), m('eshir', 250, 'ennemi')];
+    egal(
+      artefactsRequis(sansBuff).every((r) => r.artefactRequis === null),
+      true,
+      "sans buff de vitesse, l'artéfact ne peut rien : aucune valeur proposée"
+    );
+
+    // Un allié rapide qui pose un buff de vitesse sur son camp, un allié lent
+    // coupé de peu : l'artéfact qui amplifie ce buff peut suffire à le sauver.
+    const avecBuff = [
+      { ...m('a1', 250, 'allie'), skillSpeed: 30 },
+      m('a2', 105, 'allie'),
+      m('eshir', 130, 'ennemi'),
+    ];
+    const arte = artefactsRequis(avecBuff).find((r) => r.artefactRequis != null);
+    ok(!!arte, 'avec un buff de vitesse, un artéfact suffisant est proposé');
+    if (arte) {
+      const avec = (v: number) =>
+        avecBuff.map((x) => (x.id === arte.id ? { ...x, artefactBuff: v } : x));
+      ok(diagnostiquerChaine(avec(arte.artefactRequis!)).ok, "à l'artéfact proposé, la chaîne tient");
+      ok(
+        !diagnostiquerChaine(avec(arte.artefactRequis! - 1)).ok,
+        "un point d'artéfact de moins et elle est coupée : c'est bien le minimum"
+      );
+    }
+  }
+
   // TEST DIFFÉRENTIEL (algo-verify) : la dichotomie retrouve EXACTEMENT ce que
   // trouve le balayage linéaire exhaustif, sur des scénarios aléatoires à seed
   // fixe (alliés/adverses, vitesses, boosts d'ATB et buffs de vitesse).
@@ -459,14 +521,14 @@ export function testSpeedTuneChaine() {
       };
       for (let i = 0; i < nbAllies; i++) monstres.push(tirer('allie', i));
       for (let i = 0; i < nbEnnemis; i++) monstres.push(tirer('ennemi', i));
-      const a = JSON.stringify(vitessesRequises(monstres));
-      const b = JSON.stringify(vitessesRequisesNaif(monstres));
+      const a = JSON.stringify([vitessesRequises(monstres), artefactsRequis(monstres)]);
+      const b = JSON.stringify([vitessesRequisesNaif(monstres), artefactsRequisNaif(monstres)]);
       if (a === b) identiques++;
       else ok(false, `scénario ${s} : dichotomie ${a} ≠ balayage exhaustif ${b}`);
     }
     ok(
       identiques === scenarios,
-      `dichotomie identique au balayage linéaire exhaustif sur ${scenarios} scénarios aléatoires avec compétences (seed fixe)`
+      `dichotomie identique au balayage linéaire exhaustif — vitesse ET artéfact — sur ${scenarios} scénarios aléatoires avec compétences (seed fixe)`
     );
   }
 }

@@ -8,6 +8,7 @@ import {
   speedForTick,
   diagnostiquerChaine,
   vitessesRequises,
+  artefactsRequis,
   HORIZON_TICKS,
   Camp,
   TuneMonstre,
@@ -389,6 +390,12 @@ export default function SpeedTuningSection({ allMonsters, siegeDefenseTeams, sie
     () => (chaine.ok ? [] : vitessesRequises(tune, HORIZON_TICKS)),
     [tune, chaine]
   );
+  // L'AUTRE levier quand un buff de vitesse est en jeu : monter l'artéfact
+  // « Effet aug. VIT », qui l'amplifie. Vide s'il n'y a rien à en attendre.
+  const arteRequis = useMemo(
+    () => (chaine.ok ? [] : artefactsRequis(tune, HORIZON_TICKS)),
+    [tune, chaine]
+  );
 
   // Premiers tours (ordre de tour) et numéro d'action par (monstre, tick).
   const premiers = useMemo(() => premiersTours(sim), [sim]);
@@ -445,6 +452,7 @@ export default function SpeedTuningSection({ allMonsters, siegeDefenseTeams, sie
     return { atbMod: atb, speedMod: spd };
   }, [sim, premiers, lignesVisibles, ligneParUid]);
   const requisParUid = useMemo(() => new Map(requis.map((r) => [r.id, r])), [requis]);
+  const arteParUid = useMemo(() => new Map(arteRequis.map((r) => [r.id, r])), [arteRequis]);
   const nomDe = (uid: string) => ligneParUid.get(uid)?.monster.name ?? '?';
   // Vitesse de runes qu'il MANQUE pour atteindre une vitesse de combat cible.
   const runesPour = (l: Ligne, combatCible: number): number | null => {
@@ -627,6 +635,9 @@ export default function SpeedTuningSection({ allMonsters, siegeDefenseTeams, sie
                       const r = requisParUid.get(c.id);
                       const cible = r?.combatRequis ?? null;
                       const runes = cible == null ? null : runesPour(l, cible);
+                      const a = arteParUid.get(c.id);
+                      const arte = a?.artefactRequis ?? null;
+                      const arteDelta = arte == null ? null : arte - (a?.artefactActuel ?? 0);
                       return (
                         <li key={c.id} className="flex flex-wrap items-center gap-x-2.5 gap-y-1 text-sm">
                           <MonsterAvatar monster={l.monster} size={24} element={false} />
@@ -634,19 +645,40 @@ export default function SpeedTuningSection({ allMonsters, siegeDefenseTeams, sie
                           <span className="font-mono text-xs text-ink-dim">
                             {c.tick == null ? "n'agit pas" : `joue au tick ${c.tick}`}
                           </span>
-                          {cible == null ? (
+                          {cible == null && arte == null ? (
                             <span className="text-xs text-ink-dim">
                               — hors de portée : un seul monstre agit par tick, ils ne tiennent pas tous avant lui.
                             </span>
                           ) : (
-                            <span className="flex items-center gap-2">
+                            <span className="flex flex-wrap items-center gap-x-2 gap-y-1">
                               <span className="text-ink-dimmer">→</span>
-                              <span className="font-mono text-xs">
-                                {cible} <span className="text-ink-dim">de vitesse de combat</span>
-                              </span>
-                              {runes != null && (
-                                <span className="rounded border border-accent/50 px-1.5 py-0.5 font-mono text-micro font-bold text-accent">
-                                  {runes > 0 ? `+${runes}` : runes} SPD de runes
+                              {cible != null && (
+                                <span className="flex items-center gap-2">
+                                  <span className="font-mono text-xs">
+                                    {cible} <span className="text-ink-dim">de vitesse de combat</span>
+                                  </span>
+                                  {runes != null && (
+                                    <span className="rounded border border-accent/50 px-1.5 py-0.5 font-mono text-micro font-bold text-accent">
+                                      {runes > 0 ? `+${runes}` : runes} SPD de runes
+                                    </span>
+                                  )}
+                                </span>
+                              )}
+                              {/* L'autre levier : amplifier le buff de vitesse
+                                  qu'il reçoit déjà, au lieu de gagner de la
+                                  vitesse de runes. Absent s'il n'y a pas de buff. */}
+                              {arte != null && (
+                                <span className="flex items-center gap-2">
+                                  {cible != null && <span className="text-ink-dim">ou</span>}
+                                  <span className="font-mono text-xs">
+                                    {arte} % <span className="text-ink-dim">d'« Effet aug. VIT »</span>
+                                  </span>
+                                  <span
+                                    className="rounded border border-accent/50 px-1.5 py-0.5 font-mono text-micro font-bold text-accent"
+                                    title="Artéfact « Effet aug. VIT » : il amplifie le buff de vitesse que ce monstre reçoit"
+                                  >
+                                    {arteDelta! > 0 ? `+${arteDelta}` : arteDelta} d'artéfact
+                                  </span>
                                 </span>
                               )}
                             </span>

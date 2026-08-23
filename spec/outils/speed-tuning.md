@@ -96,9 +96,18 @@ Calcul dans [speedTune.ts](src/lib/speedTune.ts), **testé**
   monstre à désigner : c'est la condition la plus stricte, et celle qui n'oblige
   à rien saisir. Sont **coupés** les alliés dont le PREMIER tour tombe après lui
   (ou qui n'agissent pas dans les 40 ticks).
-- **Vitesse à trouver** (`vitessesRequises`) : pour chaque allié coupé, la
-  **vitesse de combat minimale** qui le fait passer avant. L'écran la traduit en
-  points de **vitesse de runes** manquants.
+- **DEUX leviers proposés**, pour chaque allié coupé :
+  - **la vitesse à trouver** (`vitessesRequises`) — la **vitesse de combat
+    minimale** qui le fait passer avant, traduite à l'écran en points de
+    **vitesse de runes** manquants ;
+  - **l'artéfact « Effet aug. VIT »** (`artefactsRequis`) — le **%** minimal qui
+    suffirait, **quand un buff de vitesse est en jeu** : l'artéfact l'amplifie,
+    donc il remplace parfois des runes qu'on n'a pas. Plafond `ARTE_MAX = 60`
+    (un proc vaut au mieux 6 %, une ligne encaisse 5 procs, un monstre porte deux
+    artéfacts). ⚠️ **Rien n'est proposé sans buff** : l'artéfact n'amplifie que
+    ce qui existe — c'est ce que dit `artefactRequis: null`.
+  L'écran affiche « 251 de vitesse de combat (+71 SPD de runes) **ou** 18 %
+  d'« Effet aug. VIT » (+18 d'artéfact) » ; l'un OU l'autre suffit.
 
 ### Comment la vitesse requise est cherchée
 
@@ -109,11 +118,11 @@ essai**, entre la vitesse actuelle et `COMBAT_MAX` (= `speedForTick(1)` = 1429,
 agir dès le tick 1 — au-delà il n'y a plus rien à gagner).
 
 - **Ce qui rend la dichotomie valide** : le prédicat « cet allié joue avant le
-  premier adverse » est **monotone** en sa vitesse (plus vite = barre plus haute
-  à chaque tick = tour plus tôt, et l'adverse ne peut qu'être repoussé). Vérifié
-  par **test différentiel** contre une référence naïve (balayage linéaire
-  exhaustif) sur 24 scénarios aléatoires **avec compétences** à seed fixe — voir le skill
-  `algo-verify`.
+  premier adverse » est **monotone sur les deux axes** (plus vite, ou buff plus
+  amplifié = barre plus haute à chaque tick = tour plus tôt, et l'adverse ne peut
+  qu'être repoussé). Vérifié par **test différentiel** contre une référence naïve
+  (balayage linéaire exhaustif), **sur les deux axes**, sur 24 scénarios
+  aléatoires **avec compétences** à seed fixe — voir le skill `algo-verify`.
 - ⚠️ **Les alliés sont traités du plus rapide au plus lent, et chaque vitesse
   trouvée est CONSERVÉE pour les suivants** : les ticks avant l'adverse sont une
   ressource partagée (un seul monstre par tick), donc corriger un allié change

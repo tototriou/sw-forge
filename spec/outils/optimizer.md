@@ -45,19 +45,28 @@ L'Optimizer était le seul écran de l'app à s'imposer une colonne bornée
 large resté à moitié vide. La raison d'origine de cette borne (« une ligne
 *libellé … champ* étalée sur tout l'écran devient un aller-retour du
 regard ») reste vraie, et est traitée autrement : ce ne sont pas les lignes
-qui s'étirent, ce sont les **colonnes qui se juxtaposent** —
-- à partir de `xl` : colonne étroite à gauche (**Monstre & équipement**, puis
-  **Exclusion de runes** et **Réglages avancés**), colonne large à droite
-  (**Critères de recherche**, de loin le plus gros bloc) ;
-- à partir de `2xl` : la grille **Conditions** passe à **deux stats par
-  rangée** (quatre rangées au lieu de huit) ;
-- **la barre d'actions, la progression et les résultats restent pleine
-  largeur** — la grille de cartes de résultat, elle, profite directement de
-  la largeur (davantage de cartes par ligne).
-⚠️ **Placement explicite (`col-start`/`row-start`), jamais un
-réordonnancement de la source** : l'ordre du DOM reste monstre → critères →
-options, qui est aussi l'ordre de lecture voulu au doigt (grille à une seule
-colonne, où aucune de ces classes ne s'applique).
+qui s'étirent, ce sont les **colonnes qui se juxtaposent** — à partir de
+`xl`, colonne étroite à gauche, colonne large à droite (**Critères de
+recherche**, de loin le plus gros bloc, occupe toute la hauteur de la
+colonne de droite). **La barre d'actions, la progression et les résultats
+restent pleine largeur** — la grille de cartes de résultat, elle, profite
+directement de la largeur (davantage de cartes par ligne).
+
+⚠️ **L'ordre d'usage voulu, explicite dans la mise en page, pas seulement
+dans le DOM** — demande directe de l'utilisateur : 1) choisir un monstre
+(**Monstre & équipement**) ; 2) choisir l'**Objectif de recherche**, une
+carte à part entière (PAS un champ dans « Critères de recherche » : il se
+choisit avant même de composer le set, ce n'est pas un critère de plus
+parmi d'autres) ; 3) composer les **Critères de recherche**, dans cet
+ordre : Set de runes recherché → Statistique principale imposée (slots
+2/4/6) → Artéfacts → Conditions ; puis, optionnellement et en dernier,
+**Exclusion de runes** et **Réglages avancés**. Colonne de gauche
+(`xl`) : Monstre, puis Objectif, puis Exclusion/Réglages avancés, dans cet
+ordre vertical — la colonne de droite (Critères) s'étire sur toute leur
+hauteur cumulée. ⚠️ **Placement explicite (`col-start`/`row-start`), jamais
+un réordonnancement de la source** : l'ordre du DOM suit exactement cet
+ordre d'usage, qui est donc aussi l'ordre de lecture au doigt (grille à une
+seule colonne, où aucune de ces classes ne s'applique).
 
 ⚠️ **Responsive — pas de débordement, et les contrôles du panneau prennent
 toute la largeur.** Points tenus au format étroit (l'écran n'avait jamais été
@@ -144,27 +153,12 @@ retour.
    plutôt que simplement absent. ⚠️ **L'encadré de stats bascule base+bonus
    ↔ total au clic**, comportement propre à `MonsterGear`, partagé avec RTA
    et Siège (voir [rta/sections-runes.md](../rta/sections-runes.md)).
-3. **Set de runes recherché** — **un seul combo** (contrairement aux
-   recommandations de siège, qui proposent plusieurs possibilités au choix) :
-   grille d'icônes de sets, jamais un menu déroulant (`SetComboPicker.tsx`,
-   même comportement que le picker de `RecoCard.tsx` réécrit en plus simple).
-   Compteur `N/6 runes`, sets qui ne rentrent plus grisés. ⚠️ **Obligatoire** :
-   tenter de lancer une recherche sans set sélectionné met cette zone en
-   **surbrillance rouge marquée** au lieu de silencieusement ne rien faire —
-   on montre OÙ agir. Repasse normale dès qu'un set est ajouté.
-4. **Statistique principale imposée (slots pairs)** — pour chacun des slots
-   **2, 4 et 6** (les seuls dont la statistique principale n'est **pas**
-   fixée par les règles du jeu — 1/3/5 sont toujours ATQ/DEF/PV plats), une
-   rangée de puces à cocher :
-   - slot 2 : PV% · ATQ% · DEF% · VIT
-   - slot 4 : PV% · ATQ% · DEF% · Taux Crit · Dmg Crit
-   - slot 6 : PV% · ATQ% · DEF% · RES · Précision
-   Multi-sélection ; **aucune coche = pas de contrainte** sur ce slot. Exemple
-   donné pour un Lushen : ATQ% en 2, Dmg Crit en 4, ATQ% en 6. Ce filtre
-   s'applique **avant** tout le reste, dans la construction même du pool par
-   slot — il réduit donc le nombre de candidats réellement considérés dès le
-   départ.
-5. **Objectif de recherche** — **un bouton à choix unique** (`<Segmented
+3. **Objectif de recherche** — une **carte à part**, entre « Monstre &amp;
+   équipement » et « Critères de recherche » (pas un champ dans cette
+   dernière) : demande explicite de l'utilisateur pour que l'ordre d'usage
+   soit clair — l'objectif se choisit avant même de composer le set
+   recherché, ce n'est pas un critère de plus parmi d'autres. **Un bouton à
+   choix unique** (`<Segmented
    size="lg">`), choisi **avant** de lancer la recherche, pas seulement un tri
    après coup :
    - **Efficience** (par défaut) — pas de biais particulier, la mesure
@@ -238,6 +232,26 @@ retour.
    (modifiable ensuite) — il **n'influence pas** le classement des candidats
    pendant la recherche elle-même : seuls les minimums/maximums posés
    ci-dessous en décident, quel que soit l'objectif choisi.
+4. **Set de runes recherché** — **un seul combo** (contrairement aux
+   recommandations de siège, qui proposent plusieurs possibilités au choix) :
+   grille d'icônes de sets, jamais un menu déroulant (`SetComboPicker.tsx`,
+   même comportement que le picker de `RecoCard.tsx` réécrit en plus simple).
+   Compteur `N/6 runes`, sets qui ne rentrent plus grisés. ⚠️ **Obligatoire** :
+   tenter de lancer une recherche sans set sélectionné met cette zone en
+   **surbrillance rouge marquée** au lieu de silencieusement ne rien faire —
+   on montre OÙ agir. Repasse normale dès qu'un set est ajouté.
+5. **Statistique principale imposée (slots pairs)** — pour chacun des slots
+   **2, 4 et 6** (les seuls dont la statistique principale n'est **pas**
+   fixée par les règles du jeu — 1/3/5 sont toujours ATQ/DEF/PV plats), une
+   rangée de puces à cocher :
+   - slot 2 : PV% · ATQ% · DEF% · VIT
+   - slot 4 : PV% · ATQ% · DEF% · Taux Crit · Dmg Crit
+   - slot 6 : PV% · ATQ% · DEF% · RES · Précision
+   Multi-sélection ; **aucune coche = pas de contrainte** sur ce slot. Exemple
+   donné pour un Lushen : ATQ% en 2, Dmg Crit en 4, ATQ% en 6. Ce filtre
+   s'applique **avant** tout le reste, dans la construction même du pool par
+   slot — il réduit donc le nombre de candidats réellement considérés dès le
+   départ.
 6. **Artéfacts** — interrupteur **« Ignorer les statistiques des
    artéfacts »**, **décoché par défaut** (les artéfacts réellement équipés
    comptent). Décoché, deux listes déroulantes (Attribut, Type) proposent :

@@ -823,11 +823,55 @@ export default function OptimizerSection({ box, runes, optimizer, allMonsters, r
         )}
       </div>
 
-      {/* ⚠️ `row-span-2` : cette carte occupe les DEUX rangées de la colonne
-          de droite — c'est elle, et de loin, le plus haut des trois blocs.
-          Sans ça, la grille lui réserverait une seule rangée et le bloc
-          « options » repasserait sous elle au lieu de rester à gauche. */}
-      <div className="rounded-xl border border-border bg-panel p-3 xl:col-start-2 xl:row-start-1 xl:row-span-2">
+      {/* ⚠️ Étape 2 de l'ordre d'usage voulu — Monstre → Objectif → Critères
+          (Set → slots → Artéfacts → Conditions) → Exclusion/Réglages
+          avancés (optionnels, en dernier). Une carte À PART, PAS un bloc
+          DANS « Critères de recherche » : l'objectif se choisit avant même
+          de composer le set recherché, ce n'est pas un critère de plus
+          parmi d'autres. */}
+      <div className="rounded-xl border border-border bg-panel p-3 xl:col-start-1 xl:row-start-2">
+        <div className="mb-3 flex items-center gap-2">
+          <div className="flex h-6 w-6 flex-none items-center justify-center rounded-md border border-accent/40 bg-accent-soft">
+            <Target size={13} className="text-accent" />
+          </div>
+          <p className="text-[13.5px] font-bold text-ink">Objectif de recherche</p>
+        </div>
+        <div className="mb-2.5 flex items-center gap-1.5">
+          <HelpPopover title="Objectif de recherche">
+            Élargit la sélection de runes candidates pour ses stats dès le pré-filtrage, avant même de
+            lancer la recherche — les minimums posés plus bas (Conditions) restent ce qui décide quels
+            demi-builds sont conservés pendant la recherche elle-même. <b className="text-ink">Dégâts</b> considère{' '}
+            <b className="text-ink">ATQ</b>, <b className="text-ink">Taux Crit</b> et{' '}
+            <b className="text-ink">Dgts Crit</b> ensemble (espérance moyenne).{' '}
+            <b className="text-ink">Dégâts réels</b> va plus loin : la vraie formule d&apos;un sort précis
+            contre un adversaire configuré.
+          </HelpPopover>
+        </div>
+        <Segmented options={OBJECTIVE_LABELS} value={objective} onChange={setObjective} size="lg" dense={etroit} />
+        {/* ⚠️ Le réglage vit SOUS l'objectif qui l'active, pas dans une
+            section séparée plus bas : c'est le choix « Dégâts réels » qui
+            rend ces champs pertinents, et rien d'autre à l'écran ne les
+            concerne. Un panneau permanent à moitié grisé aurait alourdi les
+            cinq autres objectifs pour rien. */}
+        {objective === 'degats_reels' && (
+          <div className="mt-2.5">
+            <DamageSetupCard
+              skills={damageSkills}
+              resolved={resolvedSkill}
+              setup={damageSetup}
+              setSetup={setDamageSetup}
+              chargement={skillLoading}
+              etroit={etroit}
+            />
+          </div>
+        )}
+      </div>
+
+      {/* ⚠️ `row-span-3` : cette carte occupe les TROIS rangées de la
+          colonne de gauche (Monstre, Objectif, Exclusion/Réglages avancés)
+          — c'est elle, et de loin, le plus haut des quatre blocs. Sans ça,
+          la grille lui réserverait une seule rangée. */}
+      <div className="rounded-xl border border-border bg-panel p-3 xl:col-start-2 xl:row-start-1 xl:row-span-3">
         <div className="mb-3 flex items-center gap-2">
           {/* Curseurs de réglage, colorés (accent) — plus parlant qu'une
               cible générique pour « plusieurs critères ajustables », et
@@ -894,39 +938,6 @@ export default function OptimizerSection({ box, runes, optimizer, allMonsters, r
             </div>
           ))}
         </div>
-      </div>
-
-      <div>
-        <div className="mb-2.5 flex items-center gap-1.5">
-          <p className="label">Objectif de recherche</p>
-          <HelpPopover title="Objectif de recherche">
-            Élargit la sélection de runes candidates pour ses stats dès le pré-filtrage, avant même de
-            lancer la recherche — les minimums posés plus bas (Conditions) restent ce qui décide quels
-            demi-builds sont conservés pendant la recherche elle-même. <b className="text-ink">Dégâts</b> considère{' '}
-            <b className="text-ink">ATQ</b>, <b className="text-ink">Taux Crit</b> et{' '}
-            <b className="text-ink">Dgts Crit</b> ensemble (espérance moyenne).{' '}
-            <b className="text-ink">Dégâts réels</b> va plus loin : la vraie formule d&apos;un sort précis
-            contre un adversaire configuré.
-          </HelpPopover>
-        </div>
-        <Segmented options={OBJECTIVE_LABELS} value={objective} onChange={setObjective} size="lg" dense={etroit} />
-        {/* ⚠️ Le réglage vit SOUS l'objectif qui l'active, pas dans une
-            section séparée plus bas : c'est le choix « Dégâts réels » qui
-            rend ces champs pertinents, et rien d'autre à l'écran ne les
-            concerne. Un panneau permanent à moitié grisé aurait alourdi les
-            cinq autres objectifs pour rien. */}
-        {objective === 'degats_reels' && (
-          <div className="mt-2.5">
-            <DamageSetupCard
-              skills={damageSkills}
-              resolved={resolvedSkill}
-              setup={damageSetup}
-              setSetup={setDamageSetup}
-              chargement={skillLoading}
-              etroit={etroit}
-            />
-          </div>
-        )}
       </div>
 
       <div>
@@ -1010,17 +1021,7 @@ export default function OptimizerSection({ box, runes, optimizer, allMonsters, r
             Min/Max ne s'aligneraient pas d'une stat à l'autre. */}
         {/* ⚠️ `gap-x` réduit sous `sm` : trois colonnes plus deux écarts de
             16 px ne laissaient plus de place aux champs sur 348 px utiles. */}
-        {/* ⚠️ **DEUX stats par rangée à partir de `2xl`** (six colonnes : le
-            triplet libellé/Min/Max, deux fois) : dans la colonne large de la
-            grille de réglages, huit rangées d'un seul triplet laissaient une
-            moitié de carte vide et allongeaient la page pour rien. Chaque
-            stat émet exactement trois cellules, donc elles se répartissent
-            d'elles-mêmes sans toucher au contenu.
-            ⚠️ Les deux en-têtes « Min »/« Max » ci-dessous sont en
-            `sm:hidden` : `display:none` les retire complètement du flux de
-            la grille, ils ne décalent donc PAS l'alignement à six colonnes
-            (ils n'existent qu'au doigt, où la grille n'en a que trois). */}
-        <div className="grid grid-cols-[minmax(76px,auto)_auto_auto] items-center gap-x-2 gap-y-1.5 sm:grid-cols-[minmax(90px,auto)_auto_auto] sm:gap-x-4 2xl:grid-cols-[repeat(2,minmax(90px,auto)_auto_auto)] 2xl:gap-x-4">
+        <div className="grid grid-cols-[minmax(76px,auto)_auto_auto] items-center gap-x-2 gap-y-1.5 sm:grid-cols-[minmax(90px,auto)_auto_auto] sm:gap-x-4">
           {/* ⚠️ En-têtes Min/Max AU DOIGT seulement. Sur téléphone, le libellé
               « Min »/« Max » collé à chaque champ faisait déborder la rangée
               (label + 2 champs + 2 mots > largeur utile) ; on les masque et on
@@ -1133,7 +1134,7 @@ export default function OptimizerSection({ box, runes, optimizer, allMonsters, r
           rend plusieurs frères) : `space-y-5` reprend à l'intérieur
           l'espacement que ces frères tenaient jusqu'ici du conteneur de
           page. */}
-      <div className="space-y-5 xl:col-start-1 xl:row-start-2">
+      <div className="space-y-5 xl:col-start-1 xl:row-start-3">
       {(() => {
         // ⚠️ `dansPanneau` : seule la version DANS LE PANNEAU affiche « Pool de
         // runes = X » à côté du pré-filtrage — sur la page principale, la

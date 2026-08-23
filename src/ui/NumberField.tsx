@@ -51,6 +51,12 @@ interface Props {
   ariaLabel?: string;
   suffix?: string; // affiché statiquement après la valeur, ex. « % »
   disabled?: boolean; // grisé et non interactif — la valeur reste affichée
+  // ⚠️ **Axe pour les GRILLES DENSES** (une cellule par case d'un tableau, ex.
+  // les mods de speed tuning) : masque les deux boutons − / +, ne laisse que le
+  // champ. Deux boutons de 24 px par cellule feraient un tableau illisible ; on
+  // saisit la valeur au clavier/pavé numérique. Le cadre et la logique de
+  // frappe restent ceux du composant — ce n'est pas un input nu.
+  sansBoutons?: boolean;
 }
 
 export default function NumberField({
@@ -67,6 +73,7 @@ export default function NumberField({
   ariaLabel,
   suffix,
   disabled = false,
+  sansBoutons = false,
 }: Props) {
   const borne = (n: number) => {
     let v = n;
@@ -185,17 +192,19 @@ export default function NumberField({
                  focus-within:border-accent ${boxWidth ?? ''} ${disabled ? 'opacity-40' : ''}`}
       title={title}
     >
-      <button
-        type="button"
-        {...gestes(-step)}
-        disabled={disabled || (min != null && (value ?? 0) <= min)}
-        data-cible-fine
-        className={`${btn} border-r border-border`}
-        aria-label="Diminuer"
-        tabIndex={-1}
-      >
-        <Minus size={12} />
-      </button>
+      {!sansBoutons && (
+        <button
+          type="button"
+          {...gestes(-step)}
+          disabled={disabled || (min != null && (value ?? 0) <= min)}
+          data-cible-fine
+          className={`${btn} border-r border-border`}
+          aria-label="Diminuer"
+          tabIndex={-1}
+        >
+          <Minus size={12} />
+        </button>
+      )}
 
       <input
         type="text"
@@ -229,17 +238,19 @@ export default function NumberField({
 
       {suffix && <span className="pr-1.5 font-mono text-xs text-ink-dim">{suffix}</span>}
 
-      <button
-        type="button"
-        {...gestes(step)}
-        disabled={disabled || (max != null && (value ?? 0) >= max)}
-        data-cible-fine
-        className={`${btn} border-l border-border`}
-        aria-label="Augmenter"
-        tabIndex={-1}
-      >
-        <Plus size={12} />
-      </button>
+      {!sansBoutons && (
+        <button
+          type="button"
+          {...gestes(step)}
+          disabled={disabled || (max != null && (value ?? 0) >= max)}
+          data-cible-fine
+          className={`${btn} border-l border-border`}
+          aria-label="Augmenter"
+          tabIndex={-1}
+        >
+          <Plus size={12} />
+        </button>
+      )}
     </div>
   );
 }

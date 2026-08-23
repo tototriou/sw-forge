@@ -14,7 +14,7 @@ import {
   SlidersHorizontal,
   Wrench,
 } from 'lucide-react';
-import { ArtifactDetail, ARTIFACT_KINDS, RECO_STATS, RuneDetail, Monster, RtaEntry, SiegeTeam } from '../../types';
+import { ArtifactDetail, ARTIFACT_KINDS, GearSet, RECO_STATS, RuneDetail, Monster, RtaEntry, SiegeTeam } from '../../types';
 import { BoxItem } from '../../lib/applyAccount';
 import { ARTIFACT_MAIN, CAPPED_STATS, RUNE_EFFECT, StatKey, runeEfficiency } from '../../lib/effects';
 import {
@@ -53,7 +53,7 @@ import {
 import { buildOptimizerRecipe, parseOptimizerRecipe } from '../../lib/optimizerRecipe';
 import { ArtifactMainChoice, OptimizerState, OptimizerSortKey } from '../../hooks/useOptimizerState';
 import { useRuneMetric } from '../../hooks/useRuneMetric';
-import { useMediaQuery, SOUS_SM } from '../../hooks/useMediaQuery';
+import { useMediaQuery, SOUS_SM, SOUS_XL } from '../../hooks/useMediaQuery';
 import GameIcon from '../GameIcon';
 import MonsterAvatar from '../MonsterAvatar';
 import MonsterGear from '../MonsterGear';
@@ -114,6 +114,20 @@ const BASE_TOGGLE_STATS = new Set<StatKey>(['hp', 'atk', 'def', 'spd']);
 
 const CONFIGURABLE_SLOTS: (2 | 4 | 6)[] = [2, 4, 6];
 
+// Équipement NUL, affiché tant qu'aucun monstre n'est choisi — demande
+// explicite de l'utilisateur : la fiche (stats, artéfacts, roue, relique)
+// reste TOUJOURS visible, vide plutôt qu'absente, pour que choisir un
+// monstre ne fasse jamais apparaître un bloc entier là où il n'y avait rien
+// (voir spec/shared/design.md, « un clic ne déplace jamais ce qu'on vient de
+// cliquer »). `MonsterGear` n'a besoin d'aucune adaptation : `computeStats`
+// sur une base à zéro renvoie des lignes à zéro, `ArtifactSlots`/`RuneWheel`
+// gèrent déjà nativement un tableau vide (voir leurs propres commentaires).
+const EMPTY_GEAR: GearSet = {
+  base: { hp: 0, atk: 0, def: 0, spd: 0, cr: 0, cd: 0, res: 0, acc: 0 },
+  runes: [],
+  artifacts: [],
+};
+
 function formatBig(n: number): string {
   if (!Number.isFinite(n)) return '—';
   if (n < 1_000_000_000) return Math.round(n).toLocaleString('fr-FR');
@@ -142,6 +156,15 @@ export default function OptimizerSection({ box, runes, optimizer, allMonsters, r
   // mécanisme prévu pour ça — activé seulement au format étroit, le bureau garde
   // le rendu normal.
   const etroit = useMediaQuery(SOUS_SM);
+  // ⚠️ La carte desktop « Exclusion de runes » (non celle du panneau mobile,
+  // déjà `dense` par construction) se retrouve confinée à la colonne étroite
+  // de la grille (340-400px) à partir de `xl` — SOUS `xl`, la grille de
+  // réglages tient sur une seule colonne et la carte a toute la largeur de
+  // la page. `denseSourceTabs` doit suivre CETTE largeur réelle, pas un
+  // simple bureau/mobile : sans lui, les 4 onglets de source (« Défenses
+  // siège »/« Offenses siège » compris) débordaient de leur cadre une fois
+  // la carte devenue étroite.
+  const colonneEtroiteDesktop = !useMediaQuery(SOUS_XL);
   const {
     selectedId,
     setSelectedId,
@@ -756,80 +779,91 @@ export default function OptimizerSection({ box, runes, optimizer, allMonsters, r
         indicatif — c'est à toi de re-runer dans le jeu.
       </p>
 
-      {/* ── Réglages, en DEUX COLONNES au bureau ────────────────────────
-          Colonne étroite à gauche (le monstre, puis les options de
-          recherche), colonne large à droite (les critères, de loin le plus
-          gros bloc). Empilés, ces trois blocs faisaient ~2 000 px de
-          défilement sur un écran large resté à moitié vide.
-
-          ⚠️ **Placement EXPLICITE (`col-start`/`row-start`), pas un
-          réordonnancement de la source** : les trois blocs se suivent dans
-          le DOM dans l'ordre monstre → critères → options, qui est aussi
-          l'ordre de lecture voulu au doigt (grille à une seule colonne, où
-          aucune de ces classes ne s'applique). Les déplacer dans la source
-          pour satisfaire le bureau aurait cassé cet ordre-là.
-          ⚠️ `items-start` : sans lui, chaque bloc s'étire à la hauteur de sa
-          rangée et les cartes courtes se retrouvent avec un grand vide
-          bordé. */}
-      <div className="grid gap-5 items-start xl:grid-cols-[minmax(340px,400px)_1fr]">
-      {/* Regroupement visuel — voir spec/outils/optimizer/, proposition
-          d'ergonomie 2026-08-18 : la page était une pile plate de ~12
-          sections au même poids visuel. Cette carte et les suivantes
-          regroupent des réglages apparentés sous un en-tête commun,
-          comportement des champs eux-mêmes INCHANGÉ. */}
-      <div className="rounded-xl border border-border bg-panel p-3 xl:col-start-1 xl:row-start-1">
+      {/* ── Monstre & équipement — PLEINE LARGEUR, au-dessus de la grille
+          de réglages ──────────────────────────────────────────────────
+          Étape 1 de l'ordre d'usage voulu (voir la grille plus bas) :
+          recherche à gauche, fiche d'équipement à DROITE (plus en dessous)
+          — demande explicite de l'utilisateur. ⚠️ **La fiche reste TOUJOURS
+          affichée, vide (`EMPTY_GEAR`) tant qu'aucun monstre n'est choisi**,
+          plutôt que de n'apparaître qu'au clic : l'espace qu'elle occupe est
+          réservé d'avance, jamais un bloc qui pousse le reste de l'écran en
+          apparaissant (voir spec/shared/design.md). */}
+      <div className="rounded-xl border border-border bg-panel p-3">
         <div className="mb-3 flex items-center gap-2">
           <div className="flex h-6 w-6 flex-none items-center justify-center rounded-md border border-border-soft bg-panel2">
             <GameIcon name="monster" size={15} />
           </div>
           <p className="text-[13.5px] font-bold text-ink">Monstre &amp; équipement</p>
         </div>
-        <div>
-          <p className="label mb-1.5">Monstre à optimiser</p>
-          {/* ⚠️ Réinitialise « Critères de recherche » et « Combinaisons
-              trouvées » (`resetSearch`, voir useOptimizerState.ts) AVANT de
-              changer de monstre — sinon des critères/résultats posés pour
-              l'ANCIEN monstre resteraient affichés comme s'ils valaient pour
-              le nouveau. Garde `id !== selectedId` : re-cliquer le monstre
-              déjà sélectionné ne doit rien effacer, ce n'est pas un
-              changement. Uniquement dans CE picker, pas dans `setSelectedId`
-              lui-même — l'import d'une recette (plus bas) l'appelle aussi
-              mais pose ses PROPRES critères juste avant : les effacer
-              ensuite les perdrait aussitôt. */}
-          <MonsterGearPicker
-            items={gearedMonsters}
-            onPick={(id) => {
-              if (id !== selectedId) resetSearch();
-              setSelectedId(id);
-            }}
-          />
-        </div>
-
-        {selected && (
-          <div className="mt-3 rounded-xl border border-accent bg-panel/60 p-3">
-            <div className="flex items-center gap-2 mb-2">
-              <MonsterAvatar monster={selected.monster} size={32} />
-              <span className="font-semibold text-[14px]">{selected.monster.name}</span>
-            </div>
-            {/* ⚠️ Même composant que RTA/Siège quand on clique un monstre — pas
-                une réimplémentation : stats base/bonus, artéfacts, roue de
-                runes et relique tels qu'ACTUELLEMENT équipés, chacun cliquable
-                pour son détail complet (RuneDetailBox/ArtifactDetailBox/
-                RelicDetailBox), inline sous la roue. Ce que l'Optimizer part
-                d'optimiser, visible d'un coup d'œil avant de lancer quoi que
-                ce soit. */}
-            <MonsterGear gear={selected.gear} />
+        <div className="flex flex-col gap-3 lg:flex-row lg:items-start">
+          {/* ⚠️ `lg:w-64 flex-none` : une largeur FIXE, pas `flex-1` — sans
+              ça, sur un très grand écran, le champ de recherche s'étirerait
+              autant que la fiche d'équipement à côté, alors que son contenu
+              (un mot, quelques suggestions) n'a besoin que d'une largeur de
+              champ ordinaire. */}
+          <div className="lg:w-64 lg:flex-none">
+            <p className="label mb-1.5">Monstre à optimiser</p>
+            {/* ⚠️ Réinitialise « Critères de recherche » et « Combinaisons
+                trouvées » (`resetSearch`, voir useOptimizerState.ts) AVANT de
+                changer de monstre — sinon des critères/résultats posés pour
+                l'ANCIEN monstre resteraient affichés comme s'ils valaient pour
+                le nouveau. Garde `id !== selectedId` : re-cliquer le monstre
+                déjà sélectionné ne doit rien effacer, ce n'est pas un
+                changement. Uniquement dans CE picker, pas dans `setSelectedId`
+                lui-même — l'import d'une recette (plus bas) l'appelle aussi
+                mais pose ses PROPRES critères juste avant : les effacer
+                ensuite les perdrait aussitôt. */}
+            <MonsterGearPicker
+              items={gearedMonsters}
+              onPick={(id) => {
+                if (id !== selectedId) resetSearch();
+                setSelectedId(id);
+              }}
+            />
+            {selected && (
+              <div className="mt-3 flex items-center gap-2">
+                <MonsterAvatar monster={selected.monster} size={32} />
+                <span className="font-semibold text-[14px]">{selected.monster.name}</span>
+              </div>
+            )}
           </div>
-        )}
+
+          {/* ⚠️ Même composant que RTA/Siège quand on clique un monstre — pas
+              une réimplémentation : stats base/bonus, artéfacts, roue de
+              runes et relique tels qu'ACTUELLEMENT équipés, chacun cliquable
+              pour son détail complet (RuneDetailBox/ArtifactDetailBox/
+              RelicDetailBox), inline sous la roue. Ce que l'Optimizer part
+              d'optimiser, visible d'un coup d'œil avant de lancer quoi que
+              ce soit. `flex-1` : occupe tout l'espace restant à droite de la
+              recherche, plutôt que de se tasser à sa propre largeur. */}
+          <div className="rounded-xl border border-border-soft bg-panel2/60 p-3 lg:flex-1">
+            <MonsterGear gear={selected?.gear ?? EMPTY_GEAR} />
+          </div>
+        </div>
       </div>
 
-      {/* ⚠️ Étape 2 de l'ordre d'usage voulu — Monstre → Objectif → Critères
-          (Set → slots → Artéfacts → Conditions) → Exclusion/Réglages
-          avancés (optionnels, en dernier). Une carte À PART, PAS un bloc
+      {/* ── Réglages, en DEUX COLONNES au bureau ────────────────────────
+          Colonne large à gauche (les critères, de loin le plus gros bloc),
+          colonne étroite à droite (l'objectif, puis les options de
+          recherche) — étapes 2 et 3 de l'ordre d'usage voulu : 1) monstre
+          (ci-dessus), 2) objectif, 3) critères (set → statistique
+          principale → artéfacts → conditions), puis optionnellement en
+          dernier exclusion de runes et réglages avancés.
+
+          ⚠️ **Placement EXPLICITE (`col-start`/`row-start`), pas un
+          réordonnancement de la source** : les blocs se suivent dans le DOM
+          dans l'ordre objectif → critères → options, qui est aussi l'ordre
+          de lecture voulu au doigt (grille à une seule colonne, où aucune de
+          ces classes ne s'applique).
+          ⚠️ `items-start` : sans lui, chaque bloc s'étire à la hauteur de sa
+          rangée et les cartes courtes se retrouvent avec un grand vide
+          bordé. */}
+      <div className="mt-5 grid gap-5 items-start xl:grid-cols-[1fr_minmax(340px,400px)]">
+      {/* ⚠️ Étape 2 de l'ordre d'usage voulu, une carte À PART, PAS un bloc
           DANS « Critères de recherche » : l'objectif se choisit avant même
           de composer le set recherché, ce n'est pas un critère de plus
           parmi d'autres. */}
-      <div className="rounded-xl border border-border bg-panel p-3 xl:col-start-1 xl:row-start-2">
+      <div className="rounded-xl border border-border bg-panel p-3 xl:col-start-2 xl:row-start-1">
         <div className="mb-3 flex items-center gap-2">
           <div className="flex h-6 w-6 flex-none items-center justify-center rounded-md border border-accent/40 bg-accent-soft">
             <Target size={13} className="text-accent" />
@@ -867,11 +901,12 @@ export default function OptimizerSection({ box, runes, optimizer, allMonsters, r
         )}
       </div>
 
-      {/* ⚠️ `row-span-3` : cette carte occupe les TROIS rangées de la
-          colonne de gauche (Monstre, Objectif, Exclusion/Réglages avancés)
-          — c'est elle, et de loin, le plus haut des quatre blocs. Sans ça,
-          la grille lui réserverait une seule rangée. */}
-      <div className="rounded-xl border border-border bg-panel p-3 xl:col-start-2 xl:row-start-1 xl:row-span-3">
+      {/* ⚠️ `row-span-2` : cette carte occupe les DEUX rangées de la
+          colonne de droite (Objectif, puis Exclusion/Réglages avancés) —
+          c'est elle, et de loin, le plus gros des trois blocs de cette
+          grille (Set + Statistique principale + Artéfacts + Conditions).
+          Sans ça, la grille lui réserverait une seule rangée. */}
+      <div className="rounded-xl border border-border bg-panel p-3 xl:col-start-1 xl:row-start-1 xl:row-span-2">
         <div className="mb-3 flex items-center gap-2">
           {/* Curseurs de réglage, colorés (accent) — plus parlant qu'une
               cible générique pour « plusieurs critères ajustables », et
@@ -888,13 +923,18 @@ export default function OptimizerSection({ box, runes, optimizer, allMonsters, r
             dans cette carte ; devenus des enfants directs de la carte, ils
             en ont hérité aucun espacement propre sans ce wrapper. */}
         <div className="space-y-4">
+      {/* ⚠️ `max-w-md` : sans plafond, cette section s'étire à la largeur
+          entière de la carte « Critères de recherche » (large, colonne 1fr)
+          — les icônes de set, elles, ne grandissent pas avec l'espace
+          disponible (`flex-wrap`), donc le bloc ne fait que paraître creux
+          et moins lisible. Demande explicite : « plus compact ». */}
       <div
         ref={setPickerSectionRef}
-        className={
+        className={`max-w-md ${
           setPickerInvalid
             ? 'rounded-lg border border-bad bg-bad/15 p-2 -m-2 transition'
             : 'transition'
-        }
+        }`}
       >
         <p className="label mb-1.5">Set de runes recherché</p>
         <SetComboPicker
@@ -1021,7 +1061,15 @@ export default function OptimizerSection({ box, runes, optimizer, allMonsters, r
             Min/Max ne s'aligneraient pas d'une stat à l'autre. */}
         {/* ⚠️ `gap-x` réduit sous `sm` : trois colonnes plus deux écarts de
             16 px ne laissaient plus de place aux champs sur 348 px utiles. */}
-        <div className="grid grid-cols-[minmax(76px,auto)_auto_auto] items-center gap-x-2 gap-y-1.5 sm:grid-cols-[minmax(90px,auto)_auto_auto] sm:gap-x-4">
+        {/* ⚠️ `w-fit` : sans lui, un conteneur `grid` en bloc prend TOUTE la
+            largeur de son parent, et les colonnes `auto` (Min/Max) SE
+            PARTAGENT l'espace libre restant (comportement CSS Grid par
+            défaut dès qu'aucune piste n'est en `fr`) — sur une carte large,
+            Min et Max se retrouvaient étirés à des dizaines de pixels l'un
+            de l'autre. `w-fit` borne la grille à son contenu réel : les
+            colonnes redeviennent SERRÉES, quelle que soit la largeur de la
+            carte qui l'entoure. Demande explicite : « resserré ». */}
+        <div className="grid w-fit grid-cols-[minmax(76px,auto)_auto_auto] items-center gap-x-2 gap-y-1.5 sm:grid-cols-[minmax(90px,auto)_auto_auto] sm:gap-x-4">
           {/* ⚠️ En-têtes Min/Max AU DOIGT seulement. Sur téléphone, le libellé
               « Min »/« Max » collé à chaque champ faisait déborder la rangée
               (label + 2 champs + 2 mots > largeur utile) ; on les masque et on
@@ -1134,7 +1182,7 @@ export default function OptimizerSection({ box, runes, optimizer, allMonsters, r
           rend plusieurs frères) : `space-y-5` reprend à l'intérieur
           l'espacement que ces frères tenaient jusqu'ici du conteneur de
           page. */}
-      <div className="space-y-5 xl:col-start-1 xl:row-start-3">
+      <div className="space-y-5 xl:col-start-2 xl:row-start-2">
       {(() => {
         // ⚠️ `dansPanneau` : seule la version DANS LE PANNEAU affiche « Pool de
         // runes = X » à côté du pré-filtrage — sur la page principale, la
@@ -1306,7 +1354,9 @@ export default function OptimizerSection({ box, runes, optimizer, allMonsters, r
               excludeOwnCom2usId={selected?.monster.com2usId ?? null}
               selected={excludedSelectors}
               onChange={setExcludedSelectors}
-              denseSourceTabs={dansPanneau}
+              // ⚠️ `dansPanneau` (mobile) est TOUJOURS dense ; la carte
+              // desktop suit `colonneEtroiteDesktop` — voir sa déclaration.
+              denseSourceTabs={dansPanneau || colonneEtroiteDesktop}
             />
           </div>
         );
@@ -1331,12 +1381,22 @@ export default function OptimizerSection({ box, runes, optimizer, allMonsters, r
                 {dejaUtiliseesBlock}
               </div>
             ) : (
-              // Côte à côte à partir de `sm` (les deux tiennent dans les
-              // 768px du conteneur) ; empilés en dessous. Colonne de gauche
+              // Côte à côte entre `sm` et `xl` (la carte a alors la largeur
+              // ENTIÈRE de la page, une seule colonne de grille sous `xl`,
+              // voir plus haut) ; empilés en dessous, ET de nouveau à partir
+              // de `xl` — c'est là que cette carte se retrouve confinée à la
+              // colonne de droite (340-400px, voir le placement de grille
+              // plus haut), où « toggle + 3 options » à côté de « recherche
+              // + liste » déborderait de son propre cadre. Colonne de gauche
               // plus étroite (toggle + 3 options) que celle de droite
               // (recherche + liste), pas un 50/50 aveugle.
-              <div className="grid grid-cols-1 gap-4 sm:grid-cols-[minmax(200px,260px)_1fr] sm:gap-5">
-                <div className="sm:border-r sm:border-border-soft sm:pr-5">{dejaUtiliseesBlock}</div>
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-[minmax(200px,260px)_1fr] sm:gap-5 xl:grid-cols-1">
+                {/* ⚠️ Liseré annulé à `xl:` avec le retour à une colonne
+                    (voir la grille juste au-dessus) : un `border-r` posé sur
+                    un bloc redevenu pleine largeur se lirait comme une
+                    bordure de carte, pas une séparation entre deux
+                    colonnes. */}
+                <div className="sm:border-r sm:border-border-soft sm:pr-5 xl:border-r-0 xl:pr-0">{dejaUtiliseesBlock}</div>
                 {monstrePrecisBlock(false)}
               </div>
             )}

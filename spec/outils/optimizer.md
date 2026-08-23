@@ -39,18 +39,12 @@ colorisés par le **filtre doré partagé** `runeSetIconFilter` (effects.ts) —
 même que les barres de filtre par set (`SetFilter`), pour que l'icône ressorte
 sur les deux thèmes au lieu de se fondre, en clair, dans le panneau.
 
-⚠️ **Largeur de l'écran — pleine largeur, en DEUX COLONNES au bureau.**
-L'Optimizer était le seul écran de l'app à s'imposer une colonne bornée
-(768 px), et empilait ~2 000 px de réglages à faire défiler sur un écran
-large resté à moitié vide. La raison d'origine de cette borne (« une ligne
-*libellé … champ* étalée sur tout l'écran devient un aller-retour du
-regard ») reste vraie, et est traitée autrement : ce ne sont pas les lignes
-qui s'étirent, ce sont les **colonnes qui se juxtaposent** — à partir de
-`xl`, colonne étroite à gauche, colonne large à droite (**Critères de
-recherche**, de loin le plus gros bloc, occupe toute la hauteur de la
-colonne de droite). **La barre d'actions, la progression et les résultats
-restent pleine largeur** — la grille de cartes de résultat, elle, profite
-directement de la largeur (davantage de cartes par ligne).
+⚠️ **Largeur de l'écran — pleine largeur, en deux temps.** L'Optimizer était
+le seul écran de l'app à s'imposer une colonne bornée (768 px), et empilait
+~2 000 px de réglages à faire défiler sur un écran large resté à moitié
+vide. **La barre d'actions, la progression et les résultats restent pleine
+largeur** — la grille de cartes de résultat, elle, profite directement de
+la largeur (davantage de cartes par ligne).
 
 ⚠️ **L'ordre d'usage voulu, explicite dans la mise en page, pas seulement
 dans le DOM** — demande directe de l'utilisateur : 1) choisir un monstre
@@ -60,13 +54,34 @@ choisit avant même de composer le set, ce n'est pas un critère de plus
 parmi d'autres) ; 3) composer les **Critères de recherche**, dans cet
 ordre : Set de runes recherché → Statistique principale imposée (slots
 2/4/6) → Artéfacts → Conditions ; puis, optionnellement et en dernier,
-**Exclusion de runes** et **Réglages avancés**. Colonne de gauche
-(`xl`) : Monstre, puis Objectif, puis Exclusion/Réglages avancés, dans cet
-ordre vertical — la colonne de droite (Critères) s'étire sur toute leur
-hauteur cumulée. ⚠️ **Placement explicite (`col-start`/`row-start`), jamais
-un réordonnancement de la source** : l'ordre du DOM suit exactement cet
-ordre d'usage, qui est donc aussi l'ordre de lecture au doigt (grille à une
-seule colonne, où aucune de ces classes ne s'applique).
+**Exclusion de runes** et **Réglages avancés**.
+
+1. **Monstre & équipement** — carte **pleine largeur**, seule au-dessus du
+   reste : recherche à **gauche** (largeur fixe, `lg:w-64`), fiche
+   d'équipement à **droite** (`lg:flex-1`) — demande explicite : la fiche se
+   déploie à côté de la recherche, plus en dessous. ⚠️ **La fiche reste
+   TOUJOURS affichée**, vide (stats à zéro, artéfacts grisés, roue vide)
+   tant qu'aucun monstre n'est choisi, plutôt que de n'apparaître qu'au
+   clic — l'espace qu'elle occupe est réservé d'avance (voir
+   [shared/design.md](shared/design.md), « un clic ne déplace jamais ce
+   qu'on vient de cliquer »).
+2. **En dessous, à partir de `xl`, DEUX colonnes** : colonne **large à
+   gauche** (**Critères de recherche**, de loin le plus gros bloc — Set →
+   Statistique principale → Artéfacts → Conditions, occupe toute la hauteur
+   de la colonne), colonne **étroite à droite** (**Objectif de recherche**,
+   puis **Exclusion de runes** + **Réglages avancés** empilés dessous).
+   ⚠️ **Placement explicite (`col-start`/`row-start`), jamais un
+   réordonnancement de la source** : l'ordre du DOM suit exactement l'ordre
+   d'usage ci-dessus, qui est donc aussi l'ordre de lecture au doigt
+   (grille à une seule colonne, où aucune de ces classes ne s'applique).
+3. **Densité — deux plafonds de largeur**, pas la carte entière qui
+   s'étire : le **set de runes recherché** (`max-w-md`) et la **grille
+   Conditions** (`w-fit`) restent compacts même si leur carte, elle, est
+   large. ⚠️ Pour Conditions précisément : un conteneur `grid` en bloc
+   prend toute la largeur de son parent, et des colonnes `auto` (Min/Max)
+   SE PARTAGENT l'espace libre restant dès qu'aucune piste n'est en `fr` —
+   sans `w-fit`, Min et Max s'étiraient à des dizaines de pixels l'un de
+   l'autre sur une carte large.
 
 ⚠️ **Responsive — pas de débordement, et les contrôles du panneau prennent
 toute la largeur.** Points tenus au format étroit (l'écran n'avait jamais été
@@ -153,6 +168,14 @@ retour.
    plutôt que simplement absent. ⚠️ **L'encadré de stats bascule base+bonus
    ↔ total au clic**, comportement propre à `MonsterGear`, partagé avec RTA
    et Siège (voir [rta/sections-runes.md](../rta/sections-runes.md)).
+   ⚠️ **Affiché à DROITE de la recherche, TOUJOURS** — vide (stats à zéro,
+   emplacements grisés, roue sans rune) tant qu'aucun monstre n'est choisi,
+   plutôt que de n'apparaître qu'au clic. C'est un `GearSet` NUL construit
+   en local (`EMPTY_GEAR`, [OptimizerSection.tsx](src/components/outils/OptimizerSection.tsx)),
+   pas une variante de `MonsterGear` : le composant partagé n'a besoin
+   d'aucune adaptation, `computeStats` sur une base à zéro renvoie déjà des
+   lignes à zéro, et `ArtifactSlots`/`RuneWheel` gèrent nativement un
+   tableau vide.
 3. **Objectif de recherche** — une **carte à part**, entre « Monstre &amp;
    équipement » et « Critères de recherche » (pas un champ dans cette
    dernière) : demande explicite de l'utilisateur pour que l'ordre d'usage

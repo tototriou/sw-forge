@@ -42,6 +42,7 @@ export function useMediaQuery(query: string): boolean {
 // disséminées dans les composants.
 export const SOUS_SM = '(max-width: 639px)';
 export const SOUS_LG = '(max-width: 1023px)';
+export const SOUS_XL = '(max-width: 1279px)';
 
 // ⚠️ **L'affichage resserré du TACTILE**, quel que soit l'appareil et quelle que
 // soit son orientation.

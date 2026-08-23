@@ -3,6 +3,7 @@ import {
   CRIT_MODE_LABELS,
   CritMode,
   DamageSetup,
+  DamageVariable,
   SkillDamageProfile,
   SkillDamageUnsupported,
   estPrisEnCharge,
@@ -77,7 +78,7 @@ export default function DamageSetupCard({ skills, resolved, setup, setSetup, cha
   }
 
   // Ce que le sort choisi consomme réellement — pilote l'affichage.
-  const utilise = (v: Parameters<typeof resolved.variables.includes>[0]) => resolved.variables.includes(v);
+  const utilise = (v: DamageVariable) => resolved.variables.includes(v);
   const montreDefEnnemie = !resolved.ignoreDef && !resolved.fixed;
   const montreCrit = !resolved.fixed;
 

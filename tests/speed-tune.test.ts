@@ -499,6 +499,33 @@ export function testSpeedTuneChaine() {
     }
   }
 
+  // ⚠️ TOUR SUPPLÉMENTAIRE (Kroa : Owl's Hoot buffe toute l'équipe et lui rend
+  // son tour). Il tombe AU MÊME TICK : aucune horloge ne tourne entre les deux.
+  {
+    const kroa = { ...m('kroa', 300, 'allie'), rejoue: true, skillSpeed: 30 };
+    const sim = simuler([kroa, m('autre', 150, 'allie')]);
+    const aTick = sim.actions.filter((a) => a.id === 'kroa' && a.tick === sim.actions[0].tick);
+    egal(aTick.length, 2, 'elle joue deux fois au même tick');
+    egal(aTick[1].rejoue, true, 'le second tour est marqué comme rendu par la compétence');
+    egal(
+      premiersTours(sim).filter((a) => a.id === 'kroa').length,
+      1,
+      "le tour supplémentaire n'ajoute pas un PREMIER tour de plus"
+    );
+    // Les autres ne gagnent rien pendant ce tour : aucune horloge n'a tourné.
+    const sans = simuler([{ ...kroa, rejoue: false }, m('autre', 150, 'allie')]);
+    const traj = (x: Simulation) => x.lignes.find((l) => l.id === 'autre')!.trajectoire.slice(0, 8).join();
+    egal(traj(sim), traj(sans), 'la barre des autres est identique, avec ou sans son tour rendu');
+  }
+
+  // Le SECOND tour lance une autre compétence, quand on la lui a désignée.
+  {
+    const base = [{ ...m('kroa', 300, 'allie'), rejoue: true }, m('lent', 150, 'allie')];
+    const avecSecond = [{ ...base[0], skillAtb2: 40 }, base[1]];
+    const tickDe = (ms: TuneMonstre[]) => premiersTours(simuler(ms)).find((a) => a.id === 'lent')!.tick;
+    ok(tickDe(avecSecond) < tickDe(base), 'le boost de son second tour profite bien à son camp');
+  }
+
   // TEST DIFFÉRENTIEL (algo-verify) : la dichotomie retrouve EXACTEMENT ce que
   // trouve le balayage linéaire exhaustif, sur des scénarios aléatoires à seed
   // fixe (alliés/adverses, vitesses, boosts d'ATB et buffs de vitesse).

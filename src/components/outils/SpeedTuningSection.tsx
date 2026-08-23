@@ -180,6 +180,9 @@ export default function SpeedTuningSection({ allMonsters, siegeDefenseTeams, sie
   const [poussee, setPoussee] = useStickyState<boolean>('speedTune.poussee', false);
   const [ordreVoulu, setOrdreVoulu] = useStickyState<string[]>('speedTune.ordre', []);
   const [sortChoisi, setSortChoisi] = useStickyState<Record<string, string>>('speedTune.sorts', {});
+  // Le sort du SECOND tour, pour ceux dont la compétence leur rend leur tour
+  // (Kroa) : on ne devine pas ce qu'ils lancent ensuite, c'est à désigner.
+  const [sortChoisi2, setSortChoisi2] = useStickyState<Record<string, string>>('speedTune.sorts2', {});
 
   useEffect(() => {
     const aLire = lignes.filter((l) => !l.kitLu);
@@ -391,14 +394,30 @@ export default function SpeedTuningSection({ allMonsters, siegeDefenseTeams, sie
   const sortsDe = (l: Ligne): SortVitesse[] =>
     (l.monster.com2usId != null ? sorts.get(l.monster.com2usId) : null) ?? [];
 
-  const effetDe = (l: Ligne): { atb: number; buff: number } => {
-    const auto = { atb: l.skillAtb ?? 0, buff: l.skillSpeed ?? 0 };
-    if (!poussee) return auto;
-    const choix = sortChoisi[l.uid];
-    if (choix === undefined) return auto;
-    if (choix === '') return { atb: 0, buff: 0 };
-    const s = sortsDe(l).find((x) => x.nom === choix);
-    return s ? { atb: s.atb, buff: s.buff } : { atb: 0, buff: 0 };
+  // Le sort effectivement lancé au premier tour, et ce qu'il pose. `rejoue` dit
+  // s'il rend son tour au lanceur (Kroa) — auquel cas un SECOND sort peut être
+  // désigné dans l'analyse poussée.
+  const sortActif = (l: Ligne): SortVitesse | null => {
+    const liste = sortsDe(l);
+    const choix = poussee ? sortChoisi[l.uid] : undefined;
+    if (choix === '') return null;
+    if (choix != null) return liste.find((x) => x.nom === choix) ?? null;
+    // « Sort détecté » : celui que la lecture du kit a retenu.
+    const kit = l.monster.com2usId != null ? kits.get(l.monster.com2usId) : null;
+    const nom = kit?.atbCompetence ?? kit?.buffCompetence ?? null;
+    return liste.find((x) => x.nom === nom) ?? null;
+  };
+
+  const effetDe = (l: Ligne): { atb: number; buff: number; rejoue: boolean; atb2: number; buff2: number } => {
+    const actif = sortActif(l);
+    const base = actif
+      ? { atb: actif.atb, buff: actif.buff, rejoue: actif.rejoue }
+      : // Hors analyse poussée, on garde ce que la lecture du kit a écrit sur la
+        // ligne (elle peut porter une valeur d'une session précédente).
+        { atb: poussee ? 0 : (l.skillAtb ?? 0), buff: poussee ? 0 : (l.skillSpeed ?? 0), rejoue: false };
+    if (!base.rejoue) return { ...base, atb2: 0, buff2: 0 };
+    const second = sortsDe(l).find((x) => x.nom === sortChoisi2[l.uid]);
+    return { ...base, atb2: second?.atb ?? 0, buff2: second?.buff ?? 0 };
   };
 
   // Entrée du moteur : les monstres visibles dont la vitesse est connue.
@@ -415,12 +434,20 @@ export default function SpeedTuningSection({ allMonsters, siegeDefenseTeams, sie
           atbMod: l.atbMod,
           speedMod: l.speedMod,
           artefactBuff: l.artefactBuff ?? 0,
-          skillAtb: effetDe(l).atb,
-          skillSpeed: effetDe(l).buff,
+          ...(() => {
+            const e = effetDe(l);
+            return {
+              skillAtb: e.atb,
+              skillSpeed: e.buff,
+              rejoue: e.rejoue,
+              skillAtb2: e.atb2,
+              skillSpeed2: e.buff2,
+            };
+          })(),
         });
     }
     return out;
-  }, [lignes, leadAllie, leadEnnemi, poussee, sortChoisi, sorts]);
+  }, [lignes, leadAllie, leadEnnemi, poussee, sortChoisi, sortChoisi2, sorts, kits]);
 
   // Simulation multi-tours (40 ticks) avec les modificateurs.
   const sim = useMemo(() => simuler(tune, HORIZON_TICKS), [tune]);
@@ -443,7 +470,12 @@ export default function SpeedTuningSection({ allMonsters, siegeDefenseTeams, sie
   const premiers = useMemo(() => premiersTours(sim), [sim]);
   const numAction = useMemo(() => {
     const m = new Map<string, number>();
-    for (const a of sim.actions) m.set(`${a.id}@${a.tick}`, a.ordre);
+    // ⚠️ Un tour RENDU tombe au même tick que celui qui l'a déclenché : on garde
+    // le premier, c'est lui que la case du tableau annonce.
+    for (const a of sim.actions) {
+      const cle = `${a.id}@${a.tick}`;
+      if (!m.has(cle)) m.set(cle, a.ordre);
+    }
     return m;
   }, [sim]);
 
@@ -537,6 +569,15 @@ export default function SpeedTuningSection({ allMonsters, siegeDefenseTeams, sie
     setSortChoisi((prev) => {
       const next = { ...prev };
       if (valeur === '__auto') delete next[uid];
+      else next[uid] = valeur;
+      return next;
+    });
+  }
+
+  function choisirSecond(uid: string, valeur: string) {
+    setSortChoisi2((prev) => {
+      const next = { ...prev };
+      if (valeur === '') delete next[uid];
       else next[uid] = valeur;
       return next;
     });
@@ -1022,6 +1063,37 @@ export default function SpeedTuningSection({ allMonsters, siegeDefenseTeams, sie
                                 </option>
                               ))}
                             </Selecteur>
+                            {/* ⚠️ Sa compétence lui REND son tour (Kroa) : il
+                                rejoue au même tick, et lance autre chose. On ne
+                                devine pas quoi — à désigner. */}
+                            {effetDe(l).rejoue && (
+                              <span className="flex items-center gap-1.5">
+                                <span
+                                  className="flex-none rounded border border-accent/50 px-1 text-micro font-bold uppercase tracking-wide text-accent"
+                                  title="Cette compétence lui rend son tour : il rejoue aussitôt, au même tick."
+                                >
+                                  rejoue
+                                </span>
+                                <Selecteur
+                                  taille="sm"
+                                  pleineLargeur={false}
+                                  value={sortChoisi2[uid] ?? ''}
+                                  onChange={(e) => choisirSecond(uid, e.target.value)}
+                                  aria-label={`Sort du second tour de ${l.monster.name}`}
+                                >
+                                  <option value="">puis : rien</option>
+                                  {liste
+                                    .filter((x) => x.nom !== (sortChoisi[uid] ?? ''))
+                                    .map((x) => (
+                                      <option key={x.nom} value={x.nom}>
+                                        puis : {x.nom}
+                                        {x.atb > 0 ? ` · +${x.atb} % barre` : ''}
+                                        {x.buff > 0 ? ' · buff VIT' : ''}
+                                      </option>
+                                    ))}
+                                </Selecteur>
+                              </span>
+                            )}
                             <span className="w-full sm:w-auto sm:flex-none">
                               {p ? (
                                 <span className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs">

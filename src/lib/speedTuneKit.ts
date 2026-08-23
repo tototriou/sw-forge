@@ -15,6 +15,9 @@ export const BUFF_SPD_JEU = 30;
 // Noms d'effets SWARFARM (ils ne sont pas traduits dans les données).
 const EFFET_ATB = 'Increase ATB';
 const EFFET_SPD = 'Increase ATK SPD';
+// « Gains a turn instantly after using this skill » (Owl's Hoot de Kroa…) : le
+// monstre REJOUE dans la foulée, sans qu'un tick ne passe.
+const EFFET_REJOUE = 'Additional Turn';
 
 // ⚠️ **La valeur donnée par SWARFARM est celle du NIVEAU 1**, comme pour les
 // rechargements (voir `paliersCooldown` dans monsterSkills.ts). Les skill-ups
@@ -46,6 +49,8 @@ export interface KitVitesse {
   // +% de vitesse posé à tout son camp (0 ou 30).
   buff: number;
   buffCompetence: string | null;
+  // Une des compétences retenues rend son tour au lanceur (voir SortVitesse).
+  rejoue: boolean;
 }
 
 // Une compétence du kit telle qu'on peut la LANCER dans l'analyse poussée : ce
@@ -56,6 +61,8 @@ export interface SortVitesse {
   atbNiveau1: number;
   atbSkillUp: number;
   buff: number; // +% de vitesse sur le camp (0 ou 30)
+  // La compétence rend son tour au lanceur : il rejoue AUSSITÔT, au même tick.
+  rejoue: boolean;
 }
 
 export const KIT_VIDE: KitVitesse = {
@@ -65,6 +72,7 @@ export const KIT_VIDE: KitVitesse = {
   atbSkillUp: 0,
   buff: 0,
   buffCompetence: null,
+  rejoue: false,
 };
 
 // ⚠️ **Seuls les effets DE ZONE sur les alliés** (`aoe`) sont retenus : le
@@ -83,6 +91,7 @@ export function kitVitesse(detail: DetailMonstre | null): KitVitesse {
   const out: KitVitesse = { ...KIT_VIDE };
   for (const c of detail.competences) {
     if (c.passif) continue;
+    const rejoue = c.effets.some((e) => e.nom === EFFET_REJOUE);
     for (const e of c.effets) {
       if (!e.aoe || e.surSoi) continue;
       if (e.nom === EFFET_ATB) {
@@ -93,10 +102,12 @@ export function kitVitesse(detail: DetailMonstre | null): KitVitesse {
           out.atbNiveau1 = niveau1;
           out.atbSkillUp = skillUp;
           out.atbCompetence = c.nom;
+          if (rejoue) out.rejoue = true;
         }
       } else if (e.nom === EFFET_SPD && out.buff === 0) {
         out.buff = BUFF_SPD_JEU;
         out.buffCompetence = c.nom;
+        if (rejoue) out.rejoue = true;
       }
     }
   }
@@ -124,7 +135,14 @@ export function sortsVitesse(detail: DetailMonstre | null): SortVitesse[] {
     }
     if (atbNiveau1 === 0 && buff === 0) continue;
     const skillUp = atbNiveau1 > 0 ? bonusSkillUp(c) : 0;
-    out.push({ nom: c.nom, atb: atbNiveau1 + skillUp, atbNiveau1, atbSkillUp: skillUp, buff });
+    out.push({
+      nom: c.nom,
+      atb: atbNiveau1 + skillUp,
+      atbNiveau1,
+      atbSkillUp: skillUp,
+      buff,
+      rejoue: c.effets.some((e) => e.nom === EFFET_REJOUE),
+    });
   }
   return out;
 }

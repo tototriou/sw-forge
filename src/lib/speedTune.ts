@@ -61,6 +61,17 @@ export interface TuneMonstre {
   // frappe là où sa vitesse le fait jouer, et suit quand on change les vitesses.
   skillAtb?: number;
   skillSpeed?: number;
+  // ⚠️ **Sa compétence lui REND SON TOUR** (Owl's Hoot de Kroa : buff de vitesse
+  // à toute l'équipe, puis elle rejoue). Le tour supplémentaire tombe **au même
+  // tick** : aucune horloge ne tourne entre les deux, les autres ne gagnent donc
+  // rien — c'est pour ça que « un seul monstre par tick » n'est pas violé, le
+  // même monstre joue deux fois d'affilée.
+  rejoue?: boolean;
+  // Ce que pose son SECOND tour, quand il rejoue : c'est une AUTRE compétence,
+  // désignée dans l'analyse poussée. Rien par défaut — on ne devine pas ce qu'il
+  // lance.
+  skillAtb2?: number;
+  skillSpeed2?: number;
   // Bonus d'artéfact « augmente l'effet du buff de vitesse » (%), ADDITIF au
   // buff appliqué et actif UNIQUEMENT quand un buff de vitesse (> 0) est présent
   // ce tick-là. Ex. buff +30 % + artéfact +10 % → vitesse × 1,40 ce tick.
@@ -76,6 +87,9 @@ export interface Action {
   camp: Camp;
   tick: number;
   ordre: number;
+  // Ce tour-ci est le tour SUPPLÉMENTAIRE rendu par sa compétence, pris au même
+  // tick que le précédent.
+  rejoue?: boolean;
 }
 
 export interface LigneSim {
@@ -152,19 +166,29 @@ export function simuler(monstres: TuneMonstre[], horizon = HORIZON_TICKS): Simul
     gagnant.atb = 0; // tour pris : la barre repart de 0 au tick suivant
 
     // Sa compétence frappe SON camp au moment où il joue.
-    const boost = gagnant.skillAtb ?? 0;
-    if (boost) {
-      for (const m of etat) {
-        if (m.camp !== gagnant.camp) continue;
-        m.atb += boost;
-        if (m.atb < 0) m.atb = 0;
-        // La case du tick montre la barre APRÈS le boost — sauf pour le lanceur,
-        // dont la case garde la barre pleine qui a déclenché son tour.
-        if (m !== gagnant) m.traj[m.traj.length - 1] = m.atb;
+    const poser = (boost: number, buff: number) => {
+      if (boost) {
+        for (const m of etat) {
+          if (m.camp !== gagnant.camp) continue;
+          m.atb += boost;
+          if (m.atb < 0) m.atb = 0;
+          // La case du tick montre la barre APRÈS le boost — sauf pour le
+          // lanceur, dont la case garde la barre pleine qui a déclenché son tour.
+          if (m !== gagnant) m.traj[m.traj.length - 1] = m.atb;
+        }
       }
-    }
-    if (gagnant.skillSpeed && gagnant.skillSpeed > buffCamp[gagnant.camp]) {
-      buffCamp[gagnant.camp] = gagnant.skillSpeed;
+      if (buff && buff > buffCamp[gagnant.camp]) buffCamp[gagnant.camp] = buff;
+    };
+    poser(gagnant.skillAtb ?? 0, gagnant.skillSpeed ?? 0);
+
+    // ⚠️ Tour SUPPLÉMENTAIRE : il rejoue AU MÊME TICK, sans qu'aucune horloge ne
+    // tourne — les autres ne gagnent donc rien entre les deux. Son second tour
+    // lance une AUTRE compétence, celle qu'on lui a désignée : rien par défaut,
+    // on ne devine pas.
+    if (gagnant.rejoue) {
+      actions.push({ id: gagnant.id, camp: gagnant.camp, tick, ordre: actions.length + 1, rejoue: true });
+      poser(gagnant.skillAtb2 ?? 0, gagnant.skillSpeed2 ?? 0);
+      gagnant.atb = 0;
     }
   }
 

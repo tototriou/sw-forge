@@ -159,6 +159,10 @@ et [speedTuneKit.ts](src/lib/speedTuneKit.ts) (`sortsVitesse`), **testés**.
   « Aucun sort », ou n'importe quelle **compétence de zone** du kit
   (`sortsVitesse` : même filtre que la détection — zone, non passive, skill-ups
   comptés). Le choix entre dans la simulation, donc dans tous les tableaux.
+- **Tour RENDU** : quand la compétence choisie rend son tour au lanceur (Kroa,
+  *Owl's Hoot* : buff de vitesse à toute l'équipe **puis elle rejoue**), la ligne
+  porte un badge **« rejoue »** et un **second `Selecteur`** — ce qu'il lance à ce
+  second tour, qu'on ne devine pas.
 - **Verdict par monstre** : à sa place, ou ce qui cloche — *n'agit pas*, *joue
   après l'adverse*, *joue trop tôt*, *joue trop tard*.
   ⚠️ **La contrainte se juge PAR VOISIN** (je joue après mon prédécesseur, avant
@@ -245,6 +249,21 @@ tous les alliés » inclut le lanceur, dont la barre vient de retomber à 0) :
   points 5 et 6) : la valeur apparaît en repère dans la cellule vide, sans jamais
   être écrite dans l'état — on voit **où la compétence tombe** sans pouvoir la
   confondre avec une saisie.
+
+### Tour supplémentaire (« rejoue »)
+
+⚠️ **Un tour rendu tombe AU MÊME TICK.** Aucune horloge ne tourne entre les deux :
+les autres ne gagnent **rien** — c'est ce qui fait que « un seul monstre par
+tick » n'est pas violé, c'est le **même** monstre qui joue deux fois d'affilée.
+Détecté dans le kit par l'effet `Additional Turn` (`rejoue` sur `SortVitesse`).
+
+- Le second tour lance **une autre compétence**, désignée dans l'analyse poussée
+  (`skillAtb2` / `skillSpeed2`). ⚠️ **Rien par défaut** : reprendre la même
+  compétence gonflerait le boost d'un facteur deux sans qu'on l'ait demandé.
+- Il n'ajoute **pas** un premier tour de plus : `premiersTours` continue de ne
+  retenir que le premier de chaque monstre, donc l'ordre et le verdict de chaîne
+  ne bougent pas.
+- Dans le tableau des barres, la case du tick garde le badge du **premier** tour.
 
 ## Règle « un seul monstre par tick »
 

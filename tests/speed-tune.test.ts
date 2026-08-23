@@ -12,6 +12,8 @@ import {
   TuneMonstre,
   Simulation,
 } from '../src/lib/speedTune';
+import { deckPourSpeedTune } from '../src/lib/speedTuneDeck';
+import { Monster, SiegeTeam } from '../src/types';
 import { egal, ok, titre } from './outils';
 
 export default function testSpeedTune() {
@@ -129,4 +131,79 @@ export default function testSpeedTune() {
   }
 
   ok(simuler([]).lignes.length === 0, 'aucun monstre → simulation vide, pas d\'erreur');
+}
+
+// Import d'un deck de siège dans « Ton équipe » (src/lib/speedTuneDeck.ts) :
+// les monstres du deck avec leur vitesse de runes, et le lead du leader quand
+// il vaut pour TOUT le camp.
+export function testSpeedTuneDeck() {
+  titre('Speed tuning — import d\'un deck de siège');
+
+  const monstre = (id: string, name: string, lead?: { amount: number; area: string; element: string | null }) =>
+    ({ id, name, stats: { speed: 100 }, leaderSkill: lead ? { stat: 'Attack Speed', ...lead } : undefined }) as unknown as Monster;
+
+  const equipe = (slots: { monsterId: string | null; runeSpeed: number | null }[]): SiegeTeam =>
+    ({
+      id: 't',
+      lead: 0,
+      tickAlertDismissed: false,
+      slots: slots.map((s) => ({ ...s, tick: 0, sets: [] })),
+    }) as SiegeTeam;
+
+  const trevor = monstre('1', 'Trevor', { amount: 24, area: 'Guild', element: null });
+  const bella = monstre('2', 'Bella');
+  const loren = monstre('3', 'Loren');
+  const fran = monstre('4', 'Fran', { amount: 33, area: 'Element', element: 'water' });
+  const arene = monstre('5', 'Tyron', { amount: 19, area: 'Arena', element: null });
+  const parId = new Map([trevor, bella, loren, fran, arene].map((m) => [String(m.id), m]));
+
+  {
+    const d = deckPourSpeedTune(
+      equipe([
+        { monsterId: '1', runeSpeed: 155 },
+        { monsterId: '2', runeSpeed: 92 },
+        { monsterId: '3', runeSpeed: null },
+      ]),
+      parId
+    );
+    egal(d.monstres.length, 3, 'les trois slots remplis sont repris');
+    egal(d.monstres[0].monster.name, 'Trevor', 'le leader (slot 0) reste en tête');
+    egal(d.monstres[0].runeSpeed, 155, 'la vitesse de runes du slot est reprise');
+    egal(d.monstres[2].runeSpeed, null, 'un slot sans vitesse de runes reste vide');
+    egal(d.lead, 24, 'un lead de guilde vaut pour tout le camp → appliqué');
+  }
+
+  // Slots vides et monstres absents des données : écartés, sans casser le deck.
+  {
+    const d = deckPourSpeedTune(
+      equipe([
+        { monsterId: null, runeSpeed: null },
+        { monsterId: '404', runeSpeed: 100 },
+        { monsterId: '3', runeSpeed: 88 },
+      ]),
+      parId
+    );
+    egal(d.monstres.length, 1, 'slot vide et monstre inconnu écartés');
+    egal(d.monstres[0].monster.name, 'Loren', 'le slot rempli est bien celui qui reste');
+    egal(d.lead, null, 'pas de leader → pas de lead imposé');
+  }
+
+  // ⚠️ Un lead d'ÉLÉMENT ne se transpose pas au modèle « un lead par camp ».
+  {
+    egal(
+      deckPourSpeedTune(equipe([{ monsterId: '4', runeSpeed: 100 }]), parId).lead,
+      null,
+      'lead d\'élément → le camp garde son lead saisi'
+    );
+    egal(
+      deckPourSpeedTune(equipe([{ monsterId: '5', runeSpeed: 100 }]), parId).lead,
+      null,
+      'lead d\'arène → inactif en siège, pas appliqué'
+    );
+    egal(
+      deckPourSpeedTune(equipe([{ monsterId: '2', runeSpeed: 100 }]), parId).lead,
+      null,
+      'leader sans lead de vitesse → rien à appliquer'
+    );
+  }
 }

@@ -35,11 +35,12 @@ import testMonstreTri from './monstre-tri.test';
 import testMonstreFormes from './monstre-formes.test';
 import testStockage from './stockage.test';
 import testVitesse from './vitesse.test';
-import testSpeedTune from './speed-tune.test';
+import testSpeedTune, { testSpeedTuneDeck } from './speed-tune.test';
 
 async function main() {
   testVitesse();
   testSpeedTune();
+  testSpeedTuneDeck();
   testImport();
   testReco();
   testDefensesVisees();

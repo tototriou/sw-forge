@@ -6,7 +6,8 @@ tick**. L'écran répond à une question précise — « est-ce que je joue **av
 tel monstre ? » — d'où les deux camps et l'ordre de tour qui les entrelace.
 
 Fichiers : [SpeedTuningSection.tsx](src/components/outils/SpeedTuningSection.tsx)
-· calcul pur [speedTune.ts](src/lib/speedTune.ts) · vitesse de combat
+· calcul pur [speedTune.ts](src/lib/speedTune.ts) · import d'un deck de siège
+[speedTuneDeck.ts](src/lib/speedTuneDeck.ts) · vitesse de combat
 [speed.ts](src/lib/speed.ts). Rendu depuis [OutilsPage.tsx](src/pages/OutilsPage.tsx)
 (`sub === 'speed-tuning'`).
 
@@ -46,6 +47,34 @@ dans la simulation :
   × 1,40 ce tick. Ne s'applique **pas** à un ralenti. Modèle communautaire
   (additif, pas multiplicatif — [Ellia's Wiki](https://elliabot.neocities.org/game_mechanics/artifacts/)) ;
   renseigné pour les alliés seulement (artéfacts d'en face inconnus).
+
+## Importer un deck de siège
+
+Reprendre une composition déjà réglée plutôt que retaper trois monstres et
+trois vitesses de runes. Calcul pur dans
+[speedTuneDeck.ts](src/lib/speedTuneDeck.ts), **testé**
+([tests/speed-tune.test.ts](tests/speed-tune.test.ts)).
+
+- **Côté allié seulement** : on n'importe que SA propre composition (les decks
+  d'en face, on ne les a pas). Le bouton ouvre un **flottant** listant les
+  équipes de **Défense** puis d'**Offense** du siège (portraits + noms des
+  monstres, `teamSummary`) — une équipe sans aucun monstre connu n'y figure pas.
+- **Toujours affiché, désactivé** sans compte chargé (aucune équipe) : son
+  `title` dit pourquoi.
+- **L'import n'enlève rien** : les monstres du deck rejoignent le camp allié
+  avec **la vitesse de runes du deck** ; un monstre déjà présent voit la sienne
+  **remplacée** (le deck fait foi) et **réapparaît** s'il était masqué. Ce qui
+  était là avant reste — à retirer d'un clic sur la croix si on ne le veut pas.
+- **Lead** : celui du **leader du deck** (slot 0, convention du siège), appliqué
+  au camp **seulement s'il vaut pour tout le monde** (`General` / `Guild`). ⚠️ Un
+  lead d'**élément** ne se transpose PAS — le speed tuning n'a qu'un lead par
+  camp, l'appliquer à tous gonflerait la vitesse des monstres d'un autre
+  élément : le lead saisi reste alors inchangé. Un lead absent des raccourcis de
+  `SPEED_LEADS` est **ajouté au menu** du camp, sinon il s'afficherait vide.
+- ⚠️ **Swift** : la « SPD runes » d'un slot de siège contient déjà le Swift **à
+  plat** (convention de l'app, voir [../shared/calcul-vitesse.md](../shared/calcul-vitesse.md)),
+  mais le speed tuning ne modélise pas le set. La vitesse de combat importée peut
+  donc différer de celle du siège de **1 point** au plus (arrondi du bonus %).
 
 ## Règle « un seul monstre par tick »
 
@@ -87,7 +116,8 @@ De haut en bas :
    **allié uniquement**, chaque monstre a en plus un champ **« Arté buff »** — le
    bonus d'artéfact au buff de vitesse (voir Formule). Un même monstre peut
    figurer des DEUX côtés (`uid = camp:id`), pas deux fois dans le même camp.
-   Chaque monstre est une **card** avec, en **haut à droite** (convention app),
+   Côté **allié uniquement**, un bouton **« Importer un deck de siège »** sous
+   la barre de recherche (voir plus bas). Chaque monstre est une **card** avec, en **haut à droite** (convention app),
    l'**œil** (masquer / afficher) et la **croix** de suppression. Un monstre
    **masqué** reste dans son camp (grisé) mais quitte les calculs et les trois
    tableaux — pour tester une compo sans perdre son réglage ; on le réaffiche

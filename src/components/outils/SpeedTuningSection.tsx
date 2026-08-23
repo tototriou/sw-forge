@@ -1,6 +1,6 @@
-import { useId, useMemo, useRef, useState } from 'react';
-import { Search, Plus, Timer, Users, Swords, X, Zap, Gauge, Eye, EyeOff } from 'lucide-react';
-import { Monster } from '../../types';
+import { useEffect, useId, useMemo, useRef, useState } from 'react';
+import { Search, Plus, Timer, Users, Swords, X, Zap, Gauge, Eye, EyeOff, Download } from 'lucide-react';
+import { Monster, SiegeTeam } from '../../types';
 import { combatSpeed, SPEED_LEADS, SIEGE_TICKS } from '../../lib/speed';
 import {
   simuler,
@@ -11,11 +11,13 @@ import {
   TuneMonstre,
   ModParTick,
 } from '../../lib/speedTune';
+import { deckPourSpeedTune } from '../../lib/speedTuneDeck';
+import { teamSummary } from '../../lib/recoFromSiege';
 import { formesJouables } from '../../lib/monsterForms';
 import { useComboboxNav } from '../../hooks/useComboboxNav';
 import { useStickyState } from '../../hooks/useStickyState';
 import MonsterAvatar from '../MonsterAvatar';
-import { Champ, Flottant, NumberField, Selecteur, BoutonIcone, Jeton } from '../../ui';
+import { Bouton, Champ, Flottant, NumberField, Selecteur, BoutonIcone, Jeton, ZoneCliquable } from '../../ui';
 
 // Icône de vitesse du jeu, celle des cartes RTA/Siège. Sert de repère au buff
 // de vitesse dans la grille dédiée.
@@ -35,6 +37,20 @@ const BUFF_SPD = 30;
 
 interface Props {
   allMonsters: Monster[];
+  // Équipes de siège du compte : elles s'importent dans « Ton équipe » (voir
+  // DECKS plus bas). Vides tant qu'aucun compte n'est chargé — le reste de
+  // l'outil marche sans.
+  siegeDefenseTeams: SiegeTeam[];
+  siegeOffenseTeams: SiegeTeam[];
+}
+
+// Un deck proposé à l'import : une équipe de siège et le camp d'où elle vient.
+interface DeckDispo {
+  cle: string;
+  source: 'defense' | 'offense';
+  team: SiegeTeam;
+  libelle: string;
+  monstres: Monster[];
 }
 
 // Une ligne : un monstre ajouté, sa vitesse de runes, son camp, et ses deux
@@ -103,12 +119,35 @@ function TeteTicks({ premiere }: { premiere: string }) {
   );
 }
 
-export default function SpeedTuningSection({ allMonsters }: Props) {
+export default function SpeedTuningSection({ allMonsters, siegeDefenseTeams, siegeOffenseTeams }: Props) {
   const [lignes, setLignes] = useStickyState<Ligne[]>('speedTune.lignes', []);
   const [leadAllie, setLeadAllie] = useStickyState<number>('speedTune.leadAllie', 0);
   const [leadEnnemi, setLeadEnnemi] = useStickyState<number>('speedTune.leadEnnemi', 0);
 
   const jouables = useMemo(() => formesJouables(allMonsters), [allMonsters]);
+  const monsterById = useMemo(
+    () => new Map(allMonsters.map((m) => [String(m.id), m])),
+    [allMonsters]
+  );
+
+  // Decks importables : les équipes de siège du compte qui portent au moins un
+  // monstre connu. `cle` porte la source, jamais `team.id` seul — deux équipes
+  // de listes différentes peuvent partager un id (voir OptimizerSection.tsx).
+  const decks = useMemo<DeckDispo[]>(() => {
+    const out: DeckDispo[] = [];
+    const ajouter = (source: 'defense' | 'offense', teams: SiegeTeam[]) => {
+      teams.forEach((team, i) => {
+        const monstres = team.slots
+          .map((sl) => (sl.monsterId ? monsterById.get(sl.monsterId) : null))
+          .filter((m): m is Monster => !!m);
+        if (monstres.length === 0) return;
+        out.push({ cle: `${source}:${i}`, source, team, libelle: teamSummary(team, monsterById), monstres });
+      });
+    };
+    ajouter('defense', siegeDefenseTeams);
+    ajouter('offense', siegeOffenseTeams);
+    return out;
+  }, [siegeDefenseTeams, siegeOffenseTeams, monsterById]);
 
   function ajouter(camp: Camp, id: string) {
     const uid = uidDe(camp, id);
@@ -120,6 +159,37 @@ export default function SpeedTuningSection({ allMonsters }: Props) {
       { uid, monster, runeSpeed: null, camp, atbMod: {}, speedMod: {}, artefactBuff: null, masque: false },
     ]);
   }
+  // Import d'un deck de siège dans « Ton équipe » : les monstres du deck
+  // rejoignent le camp allié avec LEUR vitesse de runes — celle du deck fait
+  // foi, un monstre déjà présent voit donc la sienne remplacée (et réapparaît
+  // s'il était masqué). Rien n'est retiré : ce qui est déjà là reste.
+  function importerDeck(team: SiegeTeam) {
+    const { monstres, lead } = deckPourSpeedTune(team, monsterById);
+    if (monstres.length === 0) return;
+    setLignes((prev) => {
+      const next = [...prev];
+      for (const { monster, runeSpeed } of monstres) {
+        const uid = uidDe('allie', String(monster.id));
+        const i = next.findIndex((l) => l.uid === uid);
+        if (i >= 0) next[i] = { ...next[i], runeSpeed, masque: false };
+        else
+          next.push({
+            uid,
+            monster,
+            runeSpeed,
+            camp: 'allie',
+            atbMod: {},
+            speedMod: {},
+            artefactBuff: null,
+            masque: false,
+          });
+      }
+      return next;
+    });
+    // Le lead du leader du deck, s'il vaut pour tout le camp (voir speedTuneDeck.ts).
+    if (lead != null) setLeadAllie(lead);
+  }
+
   function retirer(uid: string) {
     setLignes((prev) => prev.filter((l) => l.uid !== uid));
   }
@@ -300,6 +370,8 @@ export default function SpeedTuningSection({ allMonsters }: Props) {
           onMasquer={basculerMasque}
           onRuneSpeed={setRuneSpeed}
           onArtefact={setArtefact}
+          decks={decks}
+          onImporterDeck={importerDeck}
         />
         <CampPanneau
           camp="ennemi"
@@ -497,6 +569,10 @@ interface CampProps {
   // Présent (alliés) = une saisie « bonus d'artéfact au buff de vitesse » par
   // monstre. Absent (en face) = pas de champ : on ignore les artéfacts adverses.
   onArtefact?: (uid: string, v: number | null) => void;
+  // Présents (alliés) = le bouton d'import d'un deck de siège. Absents (en
+  // face) = pas de bouton : on n'importe que SA propre composition.
+  decks?: DeckDispo[];
+  onImporterDeck?: (team: SiegeTeam) => void;
 }
 
 function CampPanneau({
@@ -513,9 +589,19 @@ function CampPanneau({
   onMasquer,
   onRuneSpeed,
   onArtefact,
+  decks,
+  onImporterDeck,
 }: CampProps) {
   const adv = camp === 'ennemi';
   const dejaAjoutes = useMemo(() => new Set(lignes.map((l) => String(l.monster.id))), [lignes]);
+
+  // Le lead importé d'un deck peut ne pas figurer dans les raccourcis
+  // (SPEED_LEADS n'est pas exhaustive, voir speed.ts) : on l'ajoute à la liste,
+  // sinon le menu afficherait une valeur qu'il ne contient pas.
+  const leads = useMemo(
+    () => (lead > 0 && !SPEED_LEADS.includes(lead) ? [...SPEED_LEADS, lead].sort((a, b) => b - a) : SPEED_LEADS),
+    [lead]
+  );
 
   return (
     <section className="min-w-[280px] flex-1 rounded-lg border border-border bg-panel">
@@ -534,7 +620,7 @@ function CampPanneau({
             aria-label={`Lead de vitesse — ${titre}`}
           >
             <option value={0}>Sans</option>
-            {SPEED_LEADS.map((v) => (
+            {leads.map((v) => (
               <option key={v} value={v}>
                 +{v}%
               </option>
@@ -630,13 +716,14 @@ function CampPanneau({
         </div>
       )}
 
-      <div className="p-2.5">
+      <div className="space-y-2 p-2.5">
         <RechercheMonstre
           monsters={jouables}
           dejaAjoutes={dejaAjoutes}
           onAdd={onAjouter}
           placeholder={adv ? 'Ajouter un monstre adverse…' : 'Ajouter un monstre à ton équipe…'}
         />
+        {decks && onImporterDeck && <ImportDeck decks={decks} onImporter={onImporterDeck} />}
       </div>
     </section>
   );
@@ -805,6 +892,97 @@ function GrilleMod({
 // romprait la grille visuelle).
 function FragmentCamp({ children }: { children: React.ReactNode }) {
   return <>{children}</>;
+}
+
+/* ------------------------------------------------------- Import deck ----- */
+
+const LIBELLE_SOURCE: Record<DeckDispo['source'], string> = {
+  defense: 'Défense',
+  offense: 'Offense',
+};
+
+// Reprendre une équipe de siège telle quelle plutôt que de retaper trois
+// monstres et trois vitesses de runes. Le bouton reste TOUJOURS affiché, même
+// sans compte chargé : désactivé, il dit que la possibilité existe (voir
+// spec/shared/design.md).
+function ImportDeck({ decks, onImporter }: { decks: DeckDispo[]; onImporter: (team: SiegeTeam) => void }) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement | null>(null);
+
+  // Fermeture au clic ailleurs et à Échap — même patron que les autres
+  // flottants de l'app (DesyncBadge, SettingsMenu).
+  useEffect(() => {
+    if (!open) return;
+    const onDown = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+    };
+    const onEsc = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setOpen(false);
+    };
+    document.addEventListener('mousedown', onDown);
+    document.addEventListener('keydown', onEsc);
+    return () => {
+      document.removeEventListener('mousedown', onDown);
+      document.removeEventListener('keydown', onEsc);
+    };
+  }, [open]);
+
+  const vide = decks.length === 0;
+
+  return (
+    <div ref={ref} className="relative">
+      <Bouton
+        pleineLargeur
+        icone={<Download size={14} />}
+        libelle="Importer un deck de siège"
+        disabled={vide}
+        title={
+          vide
+            ? "Aucune équipe de siège enregistrée — importe ton compte, ou compose une défense / offense dans Siège."
+            : 'Reprendre une de tes équipes de siège dans ton équipe'
+        }
+        aria-expanded={open}
+        onClick={() => setOpen((v) => !v)}
+      />
+      {open && !vide && (
+        <Flottant
+          rembourrage="aucun"
+          className="max-h-[320px] overflow-y-auto"
+          role="listbox"
+          aria-label="Decks de siège"
+        >
+          {decks.map((d, i) => {
+            const nouvelleSource = i === 0 || decks[i - 1].source !== d.source;
+            return (
+              <div key={d.cle}>
+                {nouvelleSource && (
+                  <div className="border-b border-border-soft bg-panel2 px-3 py-1.5 text-micro font-semibold uppercase tracking-wider text-ink-dimmer">
+                    {LIBELLE_SOURCE[d.source]}
+                  </div>
+                )}
+                <ZoneCliquable
+                  role="option"
+                  onClick={() => {
+                    onImporter(d.team);
+                    setOpen(false);
+                  }}
+                  className="flex w-full items-center gap-2.5 px-3 py-2 text-left hoverable:bg-accent-soft"
+                >
+                  <span className="flex flex-none items-center gap-1">
+                    {d.monstres.map((m, j) => (
+                      <MonsterAvatar key={`${m.id}-${j}`} monster={m} size={26} element={false} />
+                    ))}
+                  </span>
+                  <span className="min-w-0 flex-1 truncate text-sm">{d.libelle}</span>
+                  <Plus size={14} className="flex-none text-ink-dim" />
+                </ZoneCliquable>
+              </div>
+            );
+          })}
+        </Flottant>
+      )}
+    </div>
+  );
 }
 
 /* ------------------------------------------------------- Recherche ------- */

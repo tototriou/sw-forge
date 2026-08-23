@@ -33,7 +33,13 @@ export default function OutilsPage({ sub, box, runes, loadState, hydrating, opti
   // monstre du bestiaire et on saisit sa vitesse de runes à la main. Il passe
   // donc AVANT la garde « aucune donnée de compte » (propre à l'Optimizer).
   if (sub === 'speed-tuning') {
-    return <SpeedTuningSection allMonsters={allMonsters} />;
+    return (
+      <SpeedTuningSection
+        allMonsters={allMonsters}
+        siegeDefenseTeams={siegeDefenseTeams}
+        siegeOffenseTeams={siegeOffenseTeams}
+      />
+    );
   }
 
   const empty = box.length === 0;

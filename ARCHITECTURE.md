@@ -113,7 +113,8 @@ sont les deux racines ; dessous : `RunesList`, `RunesSummary`, `RunesCurve` +
 **Speed tuning** — `outils/SpeedTuningSection.tsx` (racine). Calcul pur
 `lib/speedTune.ts` (règle des ticks + simulation « un seul monstre par tick »,
 testé dans `tests/speed-tune.test.ts`), vitesse de combat via `lib/speed.ts`.
-Ne dépend pas d'un compte importé.
+Ne dépend pas d'un compte importé — mais sait **importer une équipe de siège**
+dans « Ton équipe » (`lib/speedTuneDeck.ts`, même fichier de test).
 
 ---
 

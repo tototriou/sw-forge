@@ -94,7 +94,13 @@ export default function MechanicsPage() {
             <li>
               <K>Slow</K> = 0,7 si le monstre est ralenti, sinon 1.
             </li>
+            <li>
+              <K>Correction Swift</K> : avec une rune de vitesse Swift équipée, la part
+              fractionnaire perdue à l&apos;arrondi de <K>Base × 0,25</K> est retranchée du bonus
+              plat de vitesse (évite de compter deux fois le gain déjà capté par l&apos;arrondi).
+            </li>
           </ul>
+          <F>{'frac = (Base × 0,25) mod 1\ncorrection = frac > 0 ? (1 − frac) : 0   (uniquement si Swift)\nΣvitesse_plate effectif = Σvitesse_plate − correction'}</F>
           <p className="text-sm">
             La vitesse ne dépend pas du niveau ni des étoiles : elle est fixe par monstre.
           </p>
@@ -124,7 +130,9 @@ export default function MechanicsPage() {
             <li>
               <b className="text-ink">Mult</b> — mise à l&apos;échelle de base : Σ (stat × coefficient
               de la compétence) sur ATQ / DEF / PV / VIT. Les buffs multiplient la stat (ATQ ×1,5 ;
-              DEF ×1,7).
+              DEF ×1,7), avec la même troncature que <K>BuffVit</K> appliquée à leur potence
+              (base 50 % ATQ / 70 % DEF, tronquée vers le bas selon le bonus d&apos;effet) :
+              <F>{'effet_buff = ⌊ base% × (1 + bonus_effet/100) ⌋      ex. +11 % d’effet sur ATQ (50 %) → ⌊55,5⌋ = 55 %'}</F>
             </li>
             <li>
               <b className="text-ink">Crit</b> — terme de dégâts critiques (voir plus bas) :
@@ -142,7 +150,9 @@ export default function MechanicsPage() {
             </li>
             <li>
               <b className="text-ink">Additionnel</b> — dégâts fixes / dégâts en % d&apos;une stat.
-              Les dégâts fixes suivent DMG% mais <b className="text-ink">ne peuvent pas crit</b> :
+              Les dégâts fixes suivent DMG% mais <b className="text-ink">ne peuvent pas crit ni
+              passer par FacteurDéf</b> ; les <K>add_stat</K> (% d&apos;ATQ/DEF/PV/VIT finaux) ne
+              suivent ni DMG% ni crit :
               <F>{'Additionnel = Σ [ stat × fixe × (1 + DMG%) + stat × add_stat ]'}</F>
             </li>
             <li>
@@ -175,6 +185,13 @@ export default function MechanicsPage() {
               runes, artefacts, bonus) moins les dégâts crit encaissés réduits par la cible.
             </li>
             <li>Un coup <b className="text-ink">glancing</b> (voir élément) ne peut pas être critique.</li>
+            <li>
+              Certaines lignes d&apos;artefact ont une portée limitée : « CD santé haute/basse »
+              reste toujours actif ; « CD Compétence 1/2/3 » ne s&apos;applique qu&apos;à cette
+              compétence ; « CD 1<sup>re</sup> attaque » ne s&apos;applique qu&apos;à la cible
+              principale (le reste d&apos;une AoE en bénéficie quand même) ; « CD propre à
+              1 cible » reste actif tout le tour.
+            </li>
           </ul>
         </Section>
 
@@ -182,6 +199,11 @@ export default function MechanicsPage() {
           <p>Chaque coup applique un aléa (distribution triangulaire), indépendant par « bucket » :</p>
           <F>{'Mise à l’échelle sur stats : ±2.8 %   → [0.972 , 1.028]'}</F>
           <F>{'Mise à l’échelle sur PV max : ±2.35 %  → [0.9765 , 1.0235]'}</F>
+          <p>
+            Tirage par distribution triangulaire (deux tirages uniformes combinés — plus de
+            densité au centre qu&apos;aux bornes, contrairement à une loi uniforme plate) :
+          </p>
+          <F>{'facteur = 1 + (rand() + rand() − 1) × amplitude      amplitude = 0,028 (stats) ou 0,0235 (PV max)'}</F>
         </Section>
 
         <Section id="specifiques" title="Cas particuliers">

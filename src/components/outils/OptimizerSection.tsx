@@ -729,10 +729,15 @@ export default function OptimizerSection({ box, runes, optimizer, allMonsters, r
   }
 
   return (
-    // ⚠️ 768 px : l'optimiseur est une SUITE DE RÉGLAGES qu'on lit de haut en
-    // bas, pas un tableau. Étalé sur tout l'écran, chaque ligne « libellé …
-    // champ » devenait un aller-retour du regard.
-    <div className="max-w-3xl space-y-5">
+    // ⚠️ **Pleine largeur**, comme RTA/Siège/Mon compte — l'ancienne colonne
+    // bornée à 768 px était le seul écran de l'app à s'en imposer une, et
+    // empilait ~2 000 px de réglages à faire défiler sur un écran large à
+    // moitié vide. La raison d'origine (« une ligne "libellé … champ" étalée
+    // sur tout l'écran devient un aller-retour du regard ») reste vraie et
+    // est traitée AUTREMENT : ce ne sont pas les lignes qui s'étirent, ce
+    // sont les COLONNES qui se juxtaposent (voir la grille ci-dessous) — la
+    // longueur de chaque ligne reste courte.
+    <div className="space-y-5">
       {/* ⚠️ Pas de `useStickyState`/case à fermer, contrairement à
           MobileNotice : ce n'est pas un avertissement ponctuel mais un statut
           qui reste vrai tant que l'outil est en rodage — il doit rester
@@ -751,12 +756,28 @@ export default function OptimizerSection({ box, runes, optimizer, allMonsters, r
         indicatif — c'est à toi de re-runer dans le jeu.
       </p>
 
+      {/* ── Réglages, en DEUX COLONNES au bureau ────────────────────────
+          Colonne étroite à gauche (le monstre, puis les options de
+          recherche), colonne large à droite (les critères, de loin le plus
+          gros bloc). Empilés, ces trois blocs faisaient ~2 000 px de
+          défilement sur un écran large resté à moitié vide.
+
+          ⚠️ **Placement EXPLICITE (`col-start`/`row-start`), pas un
+          réordonnancement de la source** : les trois blocs se suivent dans
+          le DOM dans l'ordre monstre → critères → options, qui est aussi
+          l'ordre de lecture voulu au doigt (grille à une seule colonne, où
+          aucune de ces classes ne s'applique). Les déplacer dans la source
+          pour satisfaire le bureau aurait cassé cet ordre-là.
+          ⚠️ `items-start` : sans lui, chaque bloc s'étire à la hauteur de sa
+          rangée et les cartes courtes se retrouvent avec un grand vide
+          bordé. */}
+      <div className="grid gap-5 items-start xl:grid-cols-[minmax(340px,400px)_1fr]">
       {/* Regroupement visuel — voir spec/outils/optimizer/, proposition
           d'ergonomie 2026-08-18 : la page était une pile plate de ~12
           sections au même poids visuel. Cette carte et les suivantes
           regroupent des réglages apparentés sous un en-tête commun,
           comportement des champs eux-mêmes INCHANGÉ. */}
-      <div className="rounded-xl border border-border bg-panel p-3">
+      <div className="rounded-xl border border-border bg-panel p-3 xl:col-start-1 xl:row-start-1">
         <div className="mb-3 flex items-center gap-2">
           <div className="flex h-6 w-6 flex-none items-center justify-center rounded-md border border-border-soft bg-panel2">
             <GameIcon name="monster" size={15} />
@@ -802,7 +823,11 @@ export default function OptimizerSection({ box, runes, optimizer, allMonsters, r
         )}
       </div>
 
-      <div className="rounded-xl border border-border bg-panel p-3">
+      {/* ⚠️ `row-span-2` : cette carte occupe les DEUX rangées de la colonne
+          de droite — c'est elle, et de loin, le plus haut des trois blocs.
+          Sans ça, la grille lui réserverait une seule rangée et le bloc
+          « options » repasserait sous elle au lieu de rester à gauche. */}
+      <div className="rounded-xl border border-border bg-panel p-3 xl:col-start-2 xl:row-start-1 xl:row-span-2">
         <div className="mb-3 flex items-center gap-2">
           {/* Curseurs de réglage, colorés (accent) — plus parlant qu'une
               cible générique pour « plusieurs critères ajustables », et
@@ -985,7 +1010,17 @@ export default function OptimizerSection({ box, runes, optimizer, allMonsters, r
             Min/Max ne s'aligneraient pas d'une stat à l'autre. */}
         {/* ⚠️ `gap-x` réduit sous `sm` : trois colonnes plus deux écarts de
             16 px ne laissaient plus de place aux champs sur 348 px utiles. */}
-        <div className="grid grid-cols-[minmax(76px,auto)_auto_auto] items-center gap-x-2 gap-y-1.5 sm:grid-cols-[minmax(90px,auto)_auto_auto] sm:gap-x-4">
+        {/* ⚠️ **DEUX stats par rangée à partir de `2xl`** (six colonnes : le
+            triplet libellé/Min/Max, deux fois) : dans la colonne large de la
+            grille de réglages, huit rangées d'un seul triplet laissaient une
+            moitié de carte vide et allongeaient la page pour rien. Chaque
+            stat émet exactement trois cellules, donc elles se répartissent
+            d'elles-mêmes sans toucher au contenu.
+            ⚠️ Les deux en-têtes « Min »/« Max » ci-dessous sont en
+            `sm:hidden` : `display:none` les retire complètement du flux de
+            la grille, ils ne décalent donc PAS l'alignement à six colonnes
+            (ils n'existent qu'au doigt, où la grille n'en a que trois). */}
+        <div className="grid grid-cols-[minmax(76px,auto)_auto_auto] items-center gap-x-2 gap-y-1.5 sm:grid-cols-[minmax(90px,auto)_auto_auto] sm:gap-x-4 2xl:grid-cols-[repeat(2,minmax(90px,auto)_auto_auto)] 2xl:gap-x-4">
           {/* ⚠️ En-têtes Min/Max AU DOIGT seulement. Sur téléphone, le libellé
               « Min »/« Max » collé à chaque champ faisait déborder la rangée
               (label + 2 champs + 2 mots > largeur utile) ; on les masque et on
@@ -1093,7 +1128,12 @@ export default function OptimizerSection({ box, runes, optimizer, allMonsters, r
           Contenu factorisé une fois, affiché deux fois : en cartes en
           ligne au bureau (ordre : Exclusion de runes, puis Réglages
           avancés), dans le panneau « Options » au doigt — jamais dupliqué.
-          Même patron que RunesOptim.tsx (voir MobileSheet plus bas). */}
+          Même patron que RunesOptim.tsx (voir MobileSheet plus bas).
+          ⚠️ Enveloppé pour ne former qu'UN SEUL élément de grille (le bloc
+          rend plusieurs frères) : `space-y-5` reprend à l'intérieur
+          l'espacement que ces frères tenaient jusqu'ici du conteneur de
+          page. */}
+      <div className="space-y-5 xl:col-start-1 xl:row-start-2">
       {(() => {
         // ⚠️ `dansPanneau` : seule la version DANS LE PANNEAU affiche « Pool de
         // runes = X » à côté du pré-filtrage — sur la page principale, la
@@ -1380,6 +1420,11 @@ export default function OptimizerSection({ box, runes, optimizer, allMonsters, r
           </>
         );
       })()}
+      </div>
+      {/* fin de la grille de réglages — tout ce qui suit reprend la pleine
+          largeur : la barre d'actions, la progression et les résultats
+          (une grille de cartes qui, elle, PROFITE de la largeur). */}
+      </div>
 
       <div className="flex flex-wrap items-center gap-3 rounded-xl border border-border bg-panel p-3 shadow-lg">
         {/* ⚠️ `comboSets.length === 0` reste HORS de `disabled` — un bouton

@@ -39,6 +39,26 @@ colorisés par le **filtre doré partagé** `runeSetIconFilter` (effects.ts) —
 même que les barres de filtre par set (`SetFilter`), pour que l'icône ressorte
 sur les deux thèmes au lieu de se fondre, en clair, dans le panneau.
 
+⚠️ **Largeur de l'écran — pleine largeur, en DEUX COLONNES au bureau.**
+L'Optimizer était le seul écran de l'app à s'imposer une colonne bornée
+(768 px), et empilait ~2 000 px de réglages à faire défiler sur un écran
+large resté à moitié vide. La raison d'origine de cette borne (« une ligne
+*libellé … champ* étalée sur tout l'écran devient un aller-retour du
+regard ») reste vraie, et est traitée autrement : ce ne sont pas les lignes
+qui s'étirent, ce sont les **colonnes qui se juxtaposent** —
+- à partir de `xl` : colonne étroite à gauche (**Monstre & équipement**, puis
+  **Exclusion de runes** et **Réglages avancés**), colonne large à droite
+  (**Critères de recherche**, de loin le plus gros bloc) ;
+- à partir de `2xl` : la grille **Conditions** passe à **deux stats par
+  rangée** (quatre rangées au lieu de huit) ;
+- **la barre d'actions, la progression et les résultats restent pleine
+  largeur** — la grille de cartes de résultat, elle, profite directement de
+  la largeur (davantage de cartes par ligne).
+⚠️ **Placement explicite (`col-start`/`row-start`), jamais un
+réordonnancement de la source** : l'ordre du DOM reste monstre → critères →
+options, qui est aussi l'ordre de lecture voulu au doigt (grille à une seule
+colonne, où aucune de ces classes ne s'applique).
+
 ⚠️ **Responsive — pas de débordement, et les contrôles du panneau prennent
 toute la largeur.** Points tenus au format étroit (l'écran n'avait jamais été
 audité en mobile) :

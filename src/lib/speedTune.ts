@@ -107,6 +107,14 @@ export interface LigneSim {
   camp: Camp;
   combat: number;
   incBase: number; // ATB/tick de base (sans modificateur), pour repère
+  // ⚠️ **Ce que les COMPÉTENCES ont réellement posé sur CE monstre**, tick par
+  // tick : barre gagnée ou perdue (`effetAtb`), % de vitesse subi
+  // (`effetSpeed`). C'est la simulation qui le dit, pas une reconstitution :
+  // elle seule sait quel allié avait la barre la plus basse quand Breeze est
+  // partie, ou quel adverse Wood Vine a visé. Les grilles s'en servent pour
+  // montrer où l'effet tombe.
+  effetAtb: ModParTick;
+  effetSpeed: ModParTick;
   // Barre d'action à chaque tick, de 1 à `horizon` (index i = tick i+1). Chute à
   // 0 le tick suivant chaque tour de ce monstre. C'est la trajectoire RÉELLE
   // (buffs, boosts et remises à zéro inclus) affichée dans le tableau.
@@ -144,6 +152,8 @@ export function simuler(monstres: TuneMonstre[], horizon = HORIZON_TICKS): Simul
       atb: 0,
       placement,
       traj: [] as number[],
+      effetAtb: {} as ModParTick,
+      effetSpeed: {} as ModParTick,
     }))
     .filter((m) => m.combat > 0);
 
@@ -168,6 +178,10 @@ export function simuler(monstres: TuneMonstre[], horizon = HORIZON_TICKS): Simul
       const positif = Math.max(manuel > 0 ? manuel : 0, buffCamp[m.camp], buffSoi[m.id] ?? 0);
       const negatif = Math.max(manuel < 0 ? -manuel : 0, ralentiCamp[m.camp]);
       const buffBase = positif - negatif;
+      // La part qui vient des COMPÉTENCES (sans la saisie manuelle) : c'est elle
+      // que la grille montre en repère.
+      const parSort = Math.max(buffCamp[m.camp], buffSoi[m.id] ?? 0) - ralentiCamp[m.camp];
+      if (parSort !== 0) m.effetSpeed[tick] = parSort;
       // Un buff (> 0) est amplifié par le bonus d'artéfact, additivement ; un
       // ralenti (< 0) n'est pas concerné.
       const buff = buffBase > 0 ? buffBase + (m.artefactBuff ?? 0) : buffBase;
@@ -195,6 +209,7 @@ export function simuler(monstres: TuneMonstre[], horizon = HORIZON_TICKS): Simul
     const ajouter = (m: (typeof etat)[number], v: number) => {
       m.atb += v;
       if (m.atb < 0) m.atb = 0;
+      m.effetAtb[tick] = (m.effetAtb[tick] ?? 0) + v;
       majTraj(m);
     };
     const poser = (sort: EffetSort | undefined) => {
@@ -250,6 +265,8 @@ export function simuler(monstres: TuneMonstre[], horizon = HORIZON_TICKS): Simul
       combat: m.combat,
       incBase: m.incBase,
       trajectoire: m.traj,
+      effetAtb: m.effetAtb,
+      effetSpeed: m.effetSpeed,
     })),
   };
 }

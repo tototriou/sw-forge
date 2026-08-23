@@ -96,6 +96,11 @@ type ChampMod = 'atbMod' | 'speedMod';
 
 const uidDe = (camp: Camp, id: string) => `${camp}:${id}`;
 
+// Un modificateur signé, tel qu'il se lit dans une grille : « +45 », « −50 ».
+// ⚠️ Les effets posés par les compétences peuvent être NÉGATIFS (une barre
+// vidée, un ralenti) — « +-50 » serait illisible.
+const signe = (v: number) => (v > 0 ? `+${v}` : `−${Math.abs(v)}`);
+
 // Ce qu'un sort fait, en une ligne, pour le menu de l'analyse poussée. Un sort
 // sans effet sur la vitesse reste proposable — c'est un tour où l'on ne fait
 // rien pour le tune, et c'est une information.
@@ -572,47 +577,20 @@ export default function SpeedTuningSection({ allMonsters, siegeDefenseTeams, sie
     });
   }
 
-  // Ce que les COMPÉTENCES posent d'elles-mêmes dans les deux grilles : le boost
-  // de barre au tick de chaque tour de son lanceur, le buff de vitesse à partir
-  // du tick suivant son premier tour — sur tout son camp. Affiché en clair dans
-  // les cellules (en repère, pas en saisie) : on voit OÙ la compétence tombe, et
-  // ça suit quand les vitesses changent. Mêmes règles que la simulation.
+  // Ce que les COMPÉTENCES ont posé, tel que la SIMULATION le rapporte : on ne
+  // le reconstitue plus ici. Elle seule sait quel allié avait la barre la plus
+  // basse quand Breeze est partie, ou quel adverse Wood Vine a visé — un boost
+  // sur un seul allié apparaît donc sur SA ligne, à SON tick, et un retrait de
+  // barre adverse sur la ligne de l'adverse, en négatif.
   const derives = useMemo(() => {
     const atb = new Map<string, ModParTick>();
     const spd = new Map<string, ModParTick>();
-    for (const l of lignesVisibles) {
-      atb.set(l.uid, {});
-      spd.set(l.uid, {});
-    }
-    // ⚠️ Seuls les effets **de camp** se posent dans les grilles : un boost qui
-    // ne vise QU'UN allié (Breeze de Kroa) atterrit sur une cible que la
-    // simulation choisit au dernier moment — l'écrire sur toute la ligne
-    // mentirait. Il reste visible là où il compte : dans la trajectoire.
-    for (const a of sim.actions) {
-      const source = ligneParUid.get(a.id);
-      const effet = source ? (a.rejoue ? sortSecond(source)?.effet : sortActif(source)?.effet) : null;
-      if (!source || !effet?.atbEquipe) continue;
-      for (const l of lignesVisibles) {
-        if (l.camp !== source.camp) continue;
-        const m = atb.get(l.uid)!;
-        m[a.tick] = (m[a.tick] ?? 0) + effet.atbEquipe;
-      }
-    }
-    for (const source of lignesVisibles) {
-      const buff = sortActif(source)?.effet.buffEquipe ?? 0;
-      if (!buff) continue;
-      const premier = premiers.find((a) => a.id === source.uid);
-      if (!premier) continue;
-      for (const l of lignesVisibles) {
-        if (l.camp !== source.camp) continue;
-        const m = spd.get(l.uid)!;
-        for (let t = premier.tick + 1; t <= HORIZON_TICKS; t++) {
-          m[t] = Math.max(m[t] ?? 0, buff);
-        }
-      }
+    for (const l of sim.lignes) {
+      atb.set(l.id, l.effetAtb);
+      spd.set(l.id, l.effetSpeed);
     }
     return { atbMod: atb, speedMod: spd };
-  }, [sim, premiers, lignesVisibles, ligneParUid, poussee, sortChoisi, sortChoisi2, sorts, kits]);
+  }, [sim]);
   const requisParUid = useMemo(() => new Map(requis.map((r) => [r.id, r])), [requis]);
   const arteParUid = useMemo(() => new Map(arteRequis.map((r) => [r.id, r])), [arteRequis]);
   const nomDe = (uid: string) => ligneParUid.get(uid)?.monster.name ?? '?';
@@ -1465,9 +1443,9 @@ function GrilleMod({
           onChange={onChange}
           allowEmpty
           boxWidth="w-11"
-          placeholder={derive ? `+${derive}` : '·'}
+          placeholder={derive ? signe(derive) : '·'}
           ariaLabel={`${aria} — valeur`}
-          title={derive ? `Posé par une compétence : +${derive} %` : undefined}
+          title={derive ? `Posé par une compétence : ${signe(derive)} % de vitesse` : undefined}
         />
       </div>
     ) : (
@@ -1481,9 +1459,9 @@ function GrilleMod({
         min={-100}
         max={100}
         boxWidth="w-14"
-        placeholder={derive ? `+${derive}` : '·'}
+        placeholder={derive ? signe(derive) : '·'}
         ariaLabel={aria}
-        title={derive ? `Posé par une compétence : +${derive} % de barre` : undefined}
+        title={derive ? `Posé par une compétence : ${signe(derive)} % de barre` : undefined}
       />
     );
 

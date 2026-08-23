@@ -1,0 +1,128 @@
+# Dégâts réels — le modèle de calcul
+
+Calcul des **dégâts d'un sort précis** d'un monstre précis contre un
+adversaire configuré. Brique de calcul pure, sans état ni rendu :
+[damage.ts](src/lib/damage.ts), vérifiée par
+[tests/degats.test.ts](tests/degats.test.ts).
+
+Consommée par l'objectif de recherche **« Dégâts réels »** de l'Optimizer
+(comportement d'écran : [optimizer.md](optimizer.md)). Ce fichier-ci décrit
+le **modèle**, pas l'interface.
+
+> Prolonge la formule documentée dans [../mecaniques.md](../mecaniques.md) —
+> même modèle communautaire **prédictif**, pas le code du jeu.
+
+## Principe directeur — ne jamais redemander ce qu'on sait déjà
+
+Les données SWARFARM (`public/data/skills/<com2usId>.json`, voir
+[donnees-monstres.md](../shared/donnees-monstres.md)) portent **déjà**
+l'essentiel. Sont donc **déduits, jamais saisis** :
+
+| Ce qu'on déduit | D'où |
+|---|---|
+| Coefficient du sort | `formule` (ex. `0.68*{ATK}`) |
+| Statistiques qui font travailler le sort | les variables de `formule` |
+| Nombre de coups | `coups` |
+| Portée (zone / cible unique) | `aoe` |
+| Ignore la défense | un effet nommé `Ignore DEF` |
+| Dégâts fixes (ni critique ni mitigation) | marqueur `(Fixed)` de la formule |
+| Bonus de dégâts des améliorations | somme des `Damage +X%` de `ameliorations` |
+
+⚠️ **La compétence est supposée MAXÉE**, comme partout ailleurs dans l'app
+(même parti pris que `paliersRechargement`, voir
+[monsterSkills.ts](src/lib/monsterSkills.ts)) : les `Damage +X%` sont tous
+comptés.
+
+Ne restent donc à saisir que ce qu'aucune donnée ne peut savoir :
+**l'adversaire** et **les effets de combat actifs**.
+
+## Lecture des formules — tout ou rien
+
+Un analyseur descendant récursif sur une grammaire minuscule
+(`+ - * /`, parenthèses, nombres, variables `{…}`).
+
+**Variables reconnues** : `{ATK}`, `{DEF}`, `{SPD}`, `{MAX HP}` (l'attaquant,
+buffs compris), `{Target MAX HP}`, `{Target Current HP %}` (la cible).
+
+⚠️ **Le moindre jeton non compris fait refuser le sort ENTIER**, avec un
+motif affiché — jamais une lecture partielle. Une formule
+`0.15*{ATK}*({Relative SPD}+1)` dont on ne lirait que `0.15*{ATK}`
+produirait un nombre parfaitement plausible, donc jamais remarqué, et
+l'Optimizer classerait les builds sur une base fausse. C'est la seule
+propriété de ce module qui serait **grave et invisible** — d'où le balayage
+du corpus **réel** en test, pas seulement des cas écrits à la main.
+
+Couverture mesurée sur le corpus complet : **5 861 sorts offensifs
+calculables, 207 refusés explicitement** (variables hors modèle —
+`{Relative SPD}`, `{Attacker's Level}`, `ABSORPTION_TOT_CNT`… — ou formules
+hors grammaire).
+
+Un sort dont la formule ne dépend d'**aucune** statistique de l'attaquant
+(dégâts purement fixes) est refusé lui aussi : il est calculable, mais
+optimiser des runes dessus n'a aucun sens — toutes les combinaisons
+donneraient le même nombre.
+
+## L'équation
+
+Reprend celle de [../mecaniques.md](../mecaniques.md) :
+
+```
+Dégâts = ( Mult × Crit × FacteurDéf + Additionnel ) × Réductions × coups
+```
+
+- **Mult** — la formule du sort évaluée sur les stats du build, buffs
+  appliqués.
+- **Crit** — `1 + améliorations% + part_crit × DgtsCrit%`, où `part_crit`
+  dépend du mode choisi : `1` (Critique), `0` (Non critique), ou le **Taux
+  Crit du build** (Moyenne — l'espérance, seul mode où le Taux Crit
+  participe au classement).
+  ⚠️ **Taux Crit écrêté à 100 %** dans le calcul : `computeStats` renvoie
+  volontairement le total brut (un dépassement reste une marge légitime
+  contre la résistance adverse), mais au-delà de 100 % il ne rapporte plus
+  aucun dégât en jeu.
+- **FacteurDéf** — `1000 / (1140 + 3,5 × DEF_effective)`, avec
+  `DEF_effective = DEF_ennemie × (0 si ignore défense) × (0,3 si réduction
+  de défense)`. ⚠️ **Source unique du facteur de défense pour toute l'app** :
+  `objectiveScore('ehp')` ([runeBuildOptim.ts](src/lib/runeBuildOptim.ts))
+  importe ces mêmes constantes plutôt que d'en garder une copie.
+- **Additionnel** — un sort à **dégâts fixes** passe par cette branche : ni
+  critique, ni facteur de défense.
+- **Réductions** — `+25 %` si la **marque** (Branding) est active.
+
+**Effets de combat modélisés** (potences de base, tronquées vers le bas
+comme le décrit [../mecaniques.md](../mecaniques.md) ; aucun bonus d'effet
+n'est exposé en v1) : buff d'attaque **+50 %**, buff de défense **+70 %**,
+buff de vitesse **+30 %**, réduction de défense **×0,3**, marque **+25 %**.
+
+## Volontairement hors modèle
+
+Absents du résultat, **jamais approximés en silence** :
+
+- la **variance** (±2,8 %) — un aléa par coup, sans effet sur un classement ;
+- l'**avantage élémentaire** et les coups **glancing** ;
+- les lignes de **dégâts d'artéfact** (par élément, coopératif) et le
+  **DMG%** en général ;
+- les **réductions** autres que la marque (passifs, reflect, Mirinae S3) ;
+- les **mécaniques propres à certains monstres** (Deborah, Herteit…) ;
+- les sorts qui dépendent de l'**état de combat** au-delà des PV de la cible
+  (`{Relative SPD}`, `{Alive Enemies}`, PV courants de l'attaquant…) — ces
+  sorts-là sont refusés, pas approchés.
+
+## Stats à privilégier dans la recherche
+
+`damageRelevantStats(profil)` renvoie les statistiques que le sort fait
+**réellement** travailler — les variables de sa formule, plus les Dgts Crit
+(sauf sur un sort à dégâts fixes, qui ne critent pas). C'est ce qui oriente
+le pré-filtrage de la recherche (`OBJECTIVE_RELEVANT_STATS`, voir
+[optimizer.md](optimizer.md)).
+
+⚠️ **Source UNIQUE**, appelée par l'écran **et** par la relecture d'une
+recette en ligne de commande — deux calculs séparés divergeraient en
+silence, sans que `tsc` puisse le voir (voir
+[README.md](../README.md), « Conventions communes »).
+
+⚠️ **Le Taux Crit n'y figure jamais**, même en mode Moyenne — même règle que
+l'objectif « Dégâts » : plafonné à 100 % en jeu, c'est une **condition** à
+atteindre (via un minimum posé), pas une cible à maximiser indéfiniment. L'y
+mettre pousserait la rétention à garder des demi-builds pour un potentiel de
+crit qui ne sert plus à rien.

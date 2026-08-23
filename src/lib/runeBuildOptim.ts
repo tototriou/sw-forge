@@ -47,6 +47,7 @@ import { MAX_SET_PIECES, RUNE_EFFECT, SET_STAT_BONUS, StatKey, activeSets, runeE
 import { computeStats, StatRow } from './stats';
 import { missingSets } from './recoMatch';
 import { OptimMetric } from './runeOptim';
+import { DEF_FACTOR_CONST, DEF_FACTOR_COEF } from './damage';
 
 // Statistiques principales possibles, par emplacement — RÈGLES DU JEU. Les
 // slots 1/3/5 ont une principale FIXE (ATQ plat / DEF plat / PV plat) : pas
@@ -287,7 +288,12 @@ export function objectiveScore(candidate: BuildCandidate, objective: Objective):
   }
   const hp = statTotal(stats, 'hp');
   const def = statTotal(stats, 'def');
-  return (hp * (1140 + 3.5 * def)) / 1000;
+  // ⚠️ Constantes importées de damage.ts, seule source du facteur de défense
+  // pour toute l'app — l'arithmétique reste écrite TELLE QUELLE (et non
+  // `hp / defenseFactor(def)`, pourtant mathématiquement identique) : passer
+  // par la division changerait les derniers bits du résultat, donc l'ordre de
+  // deux candidats à égalité près, pour zéro bénéfice.
+  return (hp * (DEF_FACTOR_CONST + DEF_FACTOR_COEF * def)) / 1000;
 }
 
 // Efficience/Score total d'un candidat, recalculé À LA DEMANDE à partir des

@@ -14,6 +14,7 @@ import {
   Shield,
   Lightbulb,
   Settings,
+  Timer,
 } from 'lucide-react';
 import HomePage from './pages/HomePage';
 import BestiaryPage from './pages/BestiaryPage';
@@ -120,7 +121,7 @@ export type AccountView =
   | 'optimisation'
   | 'meules'
   | 'gemmes';
-export type ToolSub = 'optimizer';
+export type ToolSub = 'optimizer' | 'speed-tuning';
 
 // Route + sous-route de siège (offense/défense) + sous-section « Mon compte »
 // + sous-section « Outils » déduites du hash.
@@ -157,7 +158,9 @@ function parseHash(): {
     };
   }
   if (h === 'outils' || h.startsWith('outils/')) {
-    return { route: 'outils', ...base };
+    const [, sub] = h.split('/');
+    const toolSub: ToolSub = sub === 'speed-tuning' ? 'speed-tuning' : 'optimizer';
+    return { route: 'outils', ...base, toolSub };
   }
   if (h === 'mecaniques') return { route: 'mecaniques', ...base };
   if (h === 'releases') return { route: 'releases', ...base };
@@ -206,6 +209,7 @@ const ACCOUNT_SUBS: { sub: AccountSub; label: string; icon: InventaireIconKey; c
 // structuré pour en accueillir d'autres sans retoucher la nav.
 const OUTILS_SUBS: { sub: ToolSub; label: string; icon: typeof Sparkles; hash: string; couleur: string }[] = [
   { sub: 'optimizer', label: 'Optimizer', icon: Sparkles, hash: '#/outils/optimizer', couleur: COULEUR_SECTION.outils },
+  { sub: 'speed-tuning', label: 'Speed tuning', icon: Timer, hash: '#/outils/speed-tuning', couleur: COULEUR_SECTION.outils },
 ];
 
 // Sous-sections de « Siège ». ⚠️ Remontées ICI depuis SiegePage : elles
@@ -934,14 +938,16 @@ export default function App() {
   // page, une par écran, invisibles tant qu'on n'y était pas. C'est la règle de
   // la barre latérale portée au tactile : on choisit d'abord OÙ.
   //
-  // ⚠️ « Outils » n'a qu'une sous-section : il reste un LIEN. Un panneau pour un
-  // seul choix ajoute un geste sans rien donner à décider.
+  // ⚠️ « Outils » compte désormais PLUSIEURS sous-sections (Optimizer, Speed
+  // tuning) : il OUVRE leur choix comme Siège et Compte, au lieu de mener droit
+  // à l'une d'elles. (Tant qu'il n'y en avait qu'une, il restait un simple lien
+  // — un panneau pour un seul choix n'ajoutait qu'un geste.)
   const ongletsMobile: OngletMobile[] = [
     { key: 'home', label: 'Accueil', hash: '#/', icon: <Home size={17} color={COULEUR_SECTION.home} />, actif: route === 'home' },
     { key: 'rta', label: 'RTA', hash: '#/rta', icon: <Swords size={17} color={COULEUR_SECTION.rta} />, actif: route === 'rta' },
     { key: 'siege', label: 'Siège', ouvre: sectionSiege.titre, icon: <Castle size={17} color={COULEUR_SECTION.siege} />, actif: route === 'siege' },
     { key: 'compte', label: 'Compte', ouvre: sectionCompte.titre, icon: <CircleUserRound size={17} color={COULEUR_SECTION.compte} />, actif: route === 'compte' },
-    { key: 'outils', label: 'Outils', hash: '#/outils/optimizer', icon: <Sparkles size={17} color={COULEUR_SECTION.outils} />, actif: route === 'outils' || route === 'bestiary' || route === 'mecaniques' || route === 'releases' || route === 'arene' },
+    { key: 'outils', label: 'Outils', ouvre: sectionOutils.titre, icon: <Sparkles size={17} color={COULEUR_SECTION.outils} />, actif: route === 'outils' || route === 'bestiary' || route === 'mecaniques' || route === 'releases' || route === 'arene' },
   ];
 
   // La section dont on choisit la sous-section, sur téléphone.
@@ -949,7 +955,7 @@ export default function App() {
   // clic et son surlignage reste en arrière de la navigation — la barre
   // latérale a déjà payé cette leçon (voir Sidebar, `ouverte`).
   const sectionMobile =
-    [sectionSiege, sectionCompte].find((s) => s.titre === navMobileOuverte) ?? null;
+    [sectionSiege, sectionCompte, sectionOutils].find((s) => s.titre === navMobileOuverte) ?? null;
 
   return (
     // ⚠️ `data-ctx` sur la RACINE : c'est lui qui décide de l'accent contextuel

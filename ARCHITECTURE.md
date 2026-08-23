@@ -65,7 +65,7 @@ fait apparaître les 16 dans n'importe quelle analyse de dépendances.
 | **RTA** | `#/rta` | `pages/RtaPage.tsx` | tout `components/rta/` | `spec/rta/` |
 | **Siège** | `#/siege/defense`, `/offense`, `/recommandations` | `pages/SiegePage.tsx` | tout `components/siege/` | `spec/siege/` |
 | **Mon compte** | `#/compte`, `/runes`, `/artefacts` | `pages/AccountPage.tsx` | tout `components/account/` | `spec/compte/` |
-| **Outils / Optimiseur** | `#/outils/optimizer` | `pages/OutilsPage.tsx` | tout `components/outils/` | `spec/outils/` |
+| **Outils** | `#/outils/optimizer`, `/speed-tuning` | `pages/OutilsPage.tsx` | tout `components/outils/` | `spec/outils/` |
 | Bestiaire | `#/bestiary` | `pages/BestiaryPage.tsx` | `MonsterGrid`, `FilterBar`, `SearchBar`, `MonsterDetailDialog`, `account/Pager` | `spec/bestiaire.md` |
 | Paramètres | `#/parametres` | `pages/SettingsPage.tsx` | `SettingsMenu`, `AccountImportControl` | `spec/shared/navigation.md` |
 | Mécaniques | `#/mecaniques` | `pages/MechanicsPage.tsx` | — (page statique) | `spec/mecaniques.md` |
@@ -109,6 +109,11 @@ sont les deux racines ; dessous : `RunesList`, `RunesSummary`, `RunesCurve` +
 `useBuildOptimSearch`. Moteur `lib/runeBuildOptim.ts`, exécuté dans
 `workers/runeBuildOptim.worker.ts` et `workers/buildHalf.worker.ts`.
 ⚠️ Jamais audité en mobile.
+
+**Speed tuning** — `outils/SpeedTuningSection.tsx` (racine). Calcul pur
+`lib/speedTune.ts` (règle des ticks + simulation « un seul monstre par tick »,
+testé dans `tests/speed-tune.test.ts`), vitesse de combat via `lib/speed.ts`.
+Ne dépend pas d'un compte importé.
 
 ---
 

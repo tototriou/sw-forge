@@ -17,6 +17,7 @@ import {
   ExternalLink,
   ShieldCheck,
   Gem,
+  Timer,
 } from 'lucide-react';
 import ElementIcon from '../components/ElementIcon';
 import { ElementKey } from '../types';
@@ -192,6 +193,7 @@ export default function HomePage({ stats, onImport }: Props) {
           <Feature href="#/compte/runes" icon={UserRound} accent={COULEUR_COMPTE_SUB.runes} kicker="Compte" title="Analyse de runes" body="Résumé chiffré, efficience ou score SW, courbes, et ce que tes meules et gemmes en réserve permettent d'améliorer dès maintenant." />
           <Feature href="#/compte/artefacts" icon={Gem} accent={COULEUR_COMPTE_SUB.artefacts} kicker="Compte" title="Analyse d'artéfacts" body="Le score du jeu et l'efficience de chaque pièce, la distribution de ton stock et les propriétés que tu possèdes le plus." />
           <Feature href="#/outils/optimizer" icon={Sparkles} accent={COULEUR_SECTION.outils} kicker="Outils" title="Optimiseur de runes" body="Cherche, parmi les runes que tu possèdes déjà, la meilleure combinaison de 6 pour un monstre, un set et des minimums donnés." />
+          <Feature href="#/outils/speed-tuning" icon={Timer} accent={COULEUR_SECTION.outils} kicker="Outils" title="Speed tuning" body="Tick par tick, vois quel monstre remplit sa barre d'action en premier — ton équipe et celle d'en face, pour savoir qui joue avant qui." />
           <Feature href="#/bestiary" icon={BookOpen} accent={COULEUR_SECTION.bestiary} kicker="Données" title="Bestiaire" body="Recherche et filtres par élément et étoiles naturelles, stats de base à portée de main." />
           <Feature href="#/mecaniques" icon={Calculator} accent={COULEUR_SECTION.mecaniques} kicker="Doc" title="Mécaniques" body="Vitesse de combat, barre d'action, équation des dégâts et facteur de défense." />
           <Feature href="#/releases" icon={Tag} accent={COULEUR_SECTION.releases} kicker="Suivi" title="Nouveautés" body="Ce qui change à chaque version : ajouts, corrections et calculs revus." />

@@ -31,9 +31,11 @@ vitesse_combat = base + runes + ⌈ base × (15 + lead) / 100 ⌉
 Deux **modificateurs par tick** (saisis dans les grilles, voir plus bas) entrent
 dans la simulation :
 
-- **Boost de barre d'attaque** (`atbMod[t]`) : +% d'ATB **ponctuel** au tick `t`
-  (compétence de boost, artéfact…). Peut être négatif (réduction). Une seule
-  fois, ce tick-là.
+- **Modification de barre d'attaque** (`atbMod[t]`) : variation **ponctuelle** de
+  la barre au tick `t` — **positive** pour remplir (compétence de boost,
+  artéfact…), **négative** pour vider (réduction d'ATB ennemie). ⚠️ La barre ne
+  descend **jamais sous 0** (clampée dans la simulation). Une seule fois, ce
+  tick-là. Bornée à ±100 dans la grille.
 - **Buff de vitesse** (`speedMod[t]`) : +% de **vitesse** posé au tick `t`,
   **soutenu** — actif de `t` jusqu'à la fin (report vers l'avant, `buffActif`),
   ou jusqu'à un autre `speedMod` posé plus tard. C'est la **vitesse** qui change
@@ -86,12 +88,13 @@ De haut en bas :
    contour de plus par-dessus la grille) ; les ticks après l'action restent
    vides. Adversaires en teinte `bad`, alliés en `accent`. Colonne de gauche
    figée, défilement horizontal.
-4. **Boost de barre d'attaque** — grille **éditable**, même rendu que le tableau
-   ci-dessus. Chaque camp présent ouvre sur une ligne **« Toute ton équipe » /
-   « Tout en face »** (écrit la même valeur sur tous ses monstres au tick visé),
-   puis une ligne par monstre. Cellules = `NumberField sansBoutons` (axe dense de
-   la lib, voir [../shared/librairie-ui.md](../shared/librairie-ui.md)) ; une case
-   vide = pas de modificateur.
+4. **Modification de barre d'attaque** — grille **éditable**, même rendu que le
+   tableau ci-dessus. Chaque camp présent ouvre sur une ligne **« Toute ton
+   équipe » / « Tout en face »** (écrit la même valeur sur tous ses monstres au
+   tick visé), puis une ligne par monstre. Cellules = `NumberField sansBoutons`
+   (axe dense de la lib, voir [../shared/librairie-ui.md](../shared/librairie-ui.md)) ;
+   valeur **positive pour remplir, négative pour vider** (la barre reste ≥ 0) ;
+   une case vide = pas de modificateur.
 5. **Buff de vitesse** — même grille, mais chaque cellule combine un **raccourci**
    et un **champ** : un bouton à l'icône SPD du jeu (celle des cartes RTA/Siège)
    pose/retire le buff **+30 %** d'un clic — c'est presque toujours celui-là — et

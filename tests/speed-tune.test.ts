@@ -77,6 +77,14 @@ export default function testSpeedTune() {
     egal(o[0].trajectoire[2], 51, 'la trajectoire montre le saut de barre au tick 3');
   }
 
+  // Réduction de barre d'attaque : un −50 % au tick 2 vide la barre sans
+  // jamais la rendre NÉGATIVE (14 − 50 → 0), ce qui retarde l'action.
+  {
+    const o = simulerOrdre([{ id: 'reduc', combat: 100, camp: 'allie', atbMod: { 2: -50 } }]);
+    egal(o[0].trajectoire[1], 0, 'la barre tombe à 0 au tick 2, pas en négatif');
+    egal(o[0].actTick, 17, 'après remise à 0 au tick 2, il faut jusqu\'au tick 17');
+  }
+
   // Buff de vitesse SOUTENU : posé au tick 1, +30 % de vitesse jusqu'au bout.
   // 100 × 1,3 = 130 de vitesse effective → 9,1 %/tick → agit au tick 11 (vs 15).
   {

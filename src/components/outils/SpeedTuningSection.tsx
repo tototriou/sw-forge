@@ -305,8 +305,8 @@ export default function SpeedTuningSection({ allMonsters }: Props) {
           <GrilleMod
             champ="atbMod"
             mode="nombre"
-            titre="Boost de barre d'attaque"
-            sousTitre="+% d'ATB donné à un tick précis (compétence, artéfact…)"
+            titre="Modification de barre d'attaque"
+            sousTitre="à un tick précis : +% pour remplir, −% pour vider la barre (jamais sous 0)"
             icone={<Zap size={15} />}
             lignes={lignes}
             ticks={ticks}
@@ -559,11 +559,15 @@ function GrilleMod({
         />
       </div>
     ) : (
+      // Boost d'ATB : positif pour remplir, négatif pour vider (la barre ne
+      // descend jamais sous 0, garanti par la simulation). Bornes ±100.
       <NumberField
         sansBoutons
         value={value}
         onChange={onChange}
         allowEmpty
+        min={-100}
+        max={100}
         boxWidth="w-14"
         placeholder="·"
         ariaLabel={aria}

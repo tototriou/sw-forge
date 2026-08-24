@@ -133,9 +133,23 @@ Comme en **vue compacte du siège**, le panneau de détail (`MonsterGear`) s'ouv
   layout) laisserait derrière lui le vide de la taille pleine.
   ⚠️ **À l'échelle 1 — le cas de très loin le plus courant — aucun style
   n'est posé** : le rendu est alors strictement identique à ce qu'il était
-  avant l'ajout de cette mesure. Et **rien ne change au DOIGT**, où `COMPACT`
-  pilote déjà la taille : une correction pensée pour le bureau ne touche pas
-  l'autre format (voir CLAUDE.md, « deux formats de premier rang »).
+  avant l'ajout de cette mesure.
+  ⚠️ **Au DOIGT, la fiche de stats reste sur la MÊME ligne que le groupe**
+  (demande explicite : « que la fiche de stats, les artéfacts, les runes
+  ainsi que la relique tiennent alignés ensemble pour gagner de l'espace ») —
+  auparavant forcée sur sa propre ligne au-dessus (`compact:flex-col`),
+  retiré. La place disponible pour le groupe se calcule alors DIFFÉREMMENT
+  du bureau : largeur de la racine **moins** la fiche de stats (largeur
+  FIXE, jamais réduite — voir `StatPanel.tsx`) et l'écart entre les deux
+  (8px), pas la largeur de la racine entière — sans quoi le groupe
+  s'afficherait à sa taille naturelle (elle tient dans la racine pleine
+  largeur) sans jamais tenir compte de la place déjà prise par la fiche sur
+  la MÊME ligne, et le vrai `flex-wrap` du navigateur le renverrait à la
+  ligne suivante. ⚠️ **Plancher de lisibilité (0,55)** : sur un téléphone
+  vraiment étroit, la place restante après la fiche de stats peut être trop
+  réduite pour un rendu lisible — en dessous de ce plancher, le calcul
+  repasse à celui du bureau (racine entière), et le `flex-wrap` renvoie
+  alors le groupe à la ligne suivante plutôt que de l'y écraser.
 - **L'encadré de stats entier est cliquable** (`role="button"`, pas un bouton
   séparé) et bascule entre deux affichages du même tableau :
   - **Base + bonus** (par défaut) : base en blanc, bonus en **vert**

@@ -66,12 +66,11 @@ export default function MonsterGear({ gear, spdCible = null, scale }: Props) {
   // ── Mise à l'échelle du groupe artéfacts + roue + relique ─────────────
   // ⚠️ **Sur la largeur RÉELLEMENT reçue, pas sur le type de pointeur.**
   // L'adaptation de ce groupe n'a longtemps eu qu'un seul ressort : `COMPACT`
-  // (`pointer: coarse`) réduisait artéfacts et roue à 0,72 au doigt. Une
-  // question de POINTEUR, jamais de place — sur un bureau, un groupe posé dans
-  // une colonne étroite gardait donc sa taille pleine et débordait. Même
-  // classe de défaut que le `dense` des `Segmented` piloté par un seuil de
-  // FENÊTRE (voir Segmented.tsx) : ni le pointeur ni la fenêtre ne disent quoi
-  // que ce soit de la largeur d'un CONTENEUR.
+  // (`pointer: coarse`) réduisait artéfacts et roue à 0,72 au doigt — une
+  // question de POINTEUR, jamais de place. Même classe de défaut que le
+  // `dense` des `Segmented` piloté par un seuil de FENÊTRE (voir
+  // Segmented.tsx) : ni le pointeur ni la fenêtre ne disent quoi que ce soit
+  // de la largeur d'un CONTENEUR.
   //
   // ⚠️ **`transform: scale()` et non le prop `scale` d'ArtifactSlots/RuneWheel.**
   // Deux raisons. 1) Le prop change la taille de LAYOUT : une fois réduit, le
@@ -84,6 +83,7 @@ export default function MonsterGear({ gear, spdCible = null, scale }: Props) {
   // de la relique, que le prop `scale` ne sait pas atteindre (il ne va qu'aux
   // deux composants qui l'exposent).
   const racineRef = useRef<HTMLDivElement>(null);
+  const statPanelRef = useRef<HTMLDivElement>(null);
   const groupeRef = useRef<HTMLDivElement>(null);
   // ⚠️ **UN SEUL état, et une garde d'égalité qui renvoie `prev` à
   // l'identique** — indispensable, pas une optimisation. La boîte de réserve
@@ -98,11 +98,6 @@ export default function MonsterGear({ gear, spdCible = null, scale }: Props) {
   const [mesure, setMesure] = useState<{ w: number; h: number; s: number } | null>(null);
 
   useLayoutEffect(() => {
-    // Au DOIGT, `COMPACT` pilote déjà la taille (0,72) et `compact:flex-col`
-    // met le groupe sur sa propre ligne : rien à corriger, et une correction
-    // pensée pour le bureau ne doit pas toucher l'autre format (voir
-    // CLAUDE.md, « deux formats de premier rang »).
-    if (auDoigt) return;
     const racine = racineRef.current;
     const groupe = groupeRef.current;
     if (!racine || !groupe) return;
@@ -113,14 +108,40 @@ export default function MonsterGear({ gear, spdCible = null, scale }: Props) {
       // mesure se mordrait la queue.
       const naturelW = groupe.offsetWidth;
       const naturelH = groupe.offsetHeight;
-      // La largeur disponible est celle de la RACINE, pas celle du parent du
-      // groupe : dans ce `flex-wrap`, un groupe trop large pour tenir à côté
-      // du panneau de stats passe à la ligne suivante, où il reçoit toute la
-      // largeur de la racine. Comparer à la racine couvre donc les deux cas
-      // (côte à côte, ou passé à la ligne) d'une seule mesure.
-      const dispo = racine.clientWidth;
+      // ⚠️ **Deux façons de calculer la place disponible, format par format —
+      // demande explicite au doigt (« la fiche de stats, les artéfacts, les
+      // runes ainsi que la relique tiennent alignés ensemble »), jamais
+      // touché sur bureau (voir CLAUDE.md, deux formats de premier rang).
+      // - **Bureau (inchangé)** : la largeur de la RACINE entière. Un groupe
+      //   trop large pour tenir à côté du panneau de stats passe à la ligne
+      //   suivante (le VRAI `flex-wrap` du navigateur en décide, pas ce
+      //   calcul), où il reçoit alors toute la largeur de la racine —
+      //   comparer à la racine couvre donc les deux cas (côte à côte, ou
+      //   passé à la ligne) d'une seule mesure.
+      // - **Au doigt** : la largeur de la racine MOINS le panneau de stats
+      //   (largeur FIXE, jamais réduite — voir StatPanel.tsx) et l'écart
+      //   entre les deux (`gap-2` du conteneur, 8px). Comparer à la racine
+      //   entière, comme au bureau, aurait laissé le groupe s'afficher à sa
+      //   taille naturelle (elle tient dans la racine PLEINE largeur) sans
+      //   jamais tenir compte de la place déjà prise par le panneau de
+      //   stats sur LA MÊME ligne — le vrai `flex-wrap` l'aurait alors
+      //   renvoyé à la ligne suivante, l'empêchant justement de rester
+      //   aligné avec panneau/artéfacts/roue/relique.
+      const dispo = auDoigt ? racine.clientWidth - (statPanelRef.current?.offsetWidth ?? 0) - 8 : racine.clientWidth;
       if (naturelW <= 0 || dispo <= 0) return;
-      const s = Math.round(Math.min(1, dispo / naturelW) * 1000) / 1000;
+      let s = Math.min(1, dispo / naturelW);
+      // ⚠️ **Plancher de lisibilité, au doigt seulement.** Sur un téléphone
+      // vraiment étroit, la place restante après le panneau de stats (fixe)
+      // peut être si réduite que le groupe s'y écraserait à une taille
+      // illisible (roue de runes de quelques dizaines de pixels). Sous ce
+      // plancher, mieux vaut repasser au calcul du BUREAU (largeur de la
+      // racine ENTIÈRE) : le groupe s'affiche alors à une taille lisible,
+      // mais devient trop large pour tenir à côté du panneau de stats — le
+      // VRAI `flex-wrap` du navigateur le renvoie alors à la ligne suivante
+      // (même repli que sur bureau), plutôt que de rester à côté, illisible.
+      const PLANCHER = 0.55;
+      if (auDoigt && s < PLANCHER) s = Math.min(1, racine.clientWidth / naturelW);
+      s = Math.round(s * 1000) / 1000;
       setMesure((prev) =>
         prev && prev.w === naturelW && prev.h === naturelH && prev.s === s ? prev : { w: naturelW, h: naturelH, s }
       );
@@ -161,20 +182,25 @@ export default function MonsterGear({ gear, spdCible = null, scale }: Props) {
     ) : null;
 
   return (
-    <div ref={racineRef} className="flex flex-row flex-wrap items-center justify-center gap-2 compact:flex-col">
+    <div ref={racineRef} className="flex flex-row flex-wrap items-center justify-center gap-2">
       {/* Panneau de stats — voir StatPanel.tsx (base+bonus ↔ total au clic,
           largeur fixe pour ne jamais déplacer artéfacts/roue/relique).
-          ⚠️ Sur sa PROPRE ligne sous `sm`. À 200 px il occupait plus de la
-          moitié des 348 px utiles et poussait la roue à la ligne suivante,
-          laissant les artéfacts seuls à côté de lui : l'équipement se lisait en
-          trois morceaux séparés, alors qu'on le compare d'un coup d'œil. */}
-      <StatPanel stats={stats} spdCible={spdCible} />
+          ⚠️ **Reste sur la MÊME ligne qu'artéfacts/roue/relique, même au
+          doigt** (demande explicite : « la fiche de stats, les artéfacts,
+          les runes ainsi que la relique tiennent alignés ensemble pour
+          gagner de l'espace ») — le groupe voisin s'adapte à la place
+          restante APRÈS ce panneau (voir la mesure ci-dessus), plutôt que
+          l'inverse : ce panneau ne rétrécit JAMAIS (largeur fixe
+          délibérée), c'est lui qui fixe la contrainte. `ref` : sert à
+          mesurer sa largeur réelle pour le calcul ci-dessus plutôt que de
+          recopier sa constante ici, qui pourrait diverger un jour. */}
+      <div ref={statPanelRef} className="flex-none">
+        <StatPanel stats={stats} spdCible={spdCible} />
+      </div>
 
       {/* ⚠️ Artéfacts, roue et relique sur UNE SEULE ligne, quelle que soit la
           largeur : ce sont les trois faces d'un même équipement. Séparés, on
-          perd la vue d'ensemble qu'on vient chercher. Ils tiennent sur 348 px
-          une fois le panneau de stats sorti de la rangée — voir les tailles
-          réduites de chaque bloc sous `sm`. */}
+          perd la vue d'ensemble qu'on vient chercher. */}
       {/* ⚠️ **Un SEUL groupe insécable** (`flex-none`, aucun `flex-wrap` à
           l'intérieur) — artéfacts, roue ET relique. Le `contents` du bureau
           en faisait trois items INDÉPENDANTS du conteneur `flex-wrap`
@@ -202,8 +228,13 @@ export default function MonsterGear({ gear, spdCible = null, scale }: Props) {
         // boîte ci-dessus, dont les dimensions sont calculées depuis ce même
         // coin — un `transform-origin` centré l'en décalerait de la moitié de
         // ce qu'il a perdu.
+        //
+        // ⚠️ **Plus de `compact:w-full`** — cette classe forçait le groupe à
+        // occuper toute la largeur de sa propre ligne, EXACTEMENT ce qui
+        // l'empêchait de rester à côté du panneau de stats au doigt. La mise
+        // à l'échelle ci-dessus s'en charge désormais.
         style={reduit ? { transform: `scale(${mesure!.s})`, transformOrigin: 'top left' } : undefined}
-        className="flex flex-none items-center justify-center gap-2 compact:w-full compact:gap-1.5"
+        className="flex flex-none items-center justify-center gap-2 compact:gap-1.5"
       >
       {/* Artéfacts — détail dans un flottant ANCRÉ à l'emplacement (souris) ou
           en ligne sous la roue (doigt) : voir `detail` plus haut.

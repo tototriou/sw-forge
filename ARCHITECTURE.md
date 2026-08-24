@@ -95,7 +95,9 @@ Lib : `rtaShare`, `speed`, `stats`, `gearSync`, `artifacts`, `monsterForms`.
 **Siège** — `siege/SiegeBoard.tsx` (défense/offense), `siege/SiegeTeam.tsx`,
 `siege/RecoBoard.tsx` + `siege/RecoCard.tsx` (recommandations),
 `siege/LeadPill.tsx`. Hooks `useSiegeState`, `useSiegeRecos`. Lib `recoMatch`,
-`recoSearch`, `recoShare`, `recoFromSiege`, `ownedBuilds`.
+`recoSearch`, `recoShare`, `recoFromSiege`, `ownedBuilds`, **`siegeStatut`**
+(le statut vert/orange/rouge d'une équipe en mode « Vérifier mes tick ATB » —
+pur et testé, il ne vit pas dans la card).
 
 **Mon compte** — `account/RunesSection.tsx` et `account/ArtifactsSection.tsx`
 sont les deux racines ; dessous : `RunesList`, `RunesSummary`, `RunesCurve` +

@@ -16,6 +16,7 @@ import MonsterPicker from '../MonsterPicker';
 import ElementIcon from '../ElementIcon';
 import RuneIcon from '../RuneIcon';
 import MonsterGear from '../MonsterGear';
+import { statutEquipe, raisonSansVerdict } from '../../lib/siegeStatut';
 import { analyseAutomatique, combatAuto, EntreeAuto } from '../../lib/speedTuneAuto';
 import { deckPourSpeedTune } from '../../lib/speedTuneDeck';
 import { useDonneesKit } from '../../hooks/useDonneesKit';
@@ -212,26 +213,22 @@ export default function SiegeTeam({
     slotInfos.map(({ monster }, i) => ({ nom: monster?.name ?? 'Ce monstre', danger: slotDangers[i] }))
   );
 
-  const status: 'neutral' | 'green' | 'orange' | 'red' =
-    !checkTicks || !hasMonsters || hasLeo
-      ? 'neutral'
-      : validated
-        ? 'green'
-        : teamHasSwift
-          ? // ⚠️ Une équipe Swift ne se juge JAMAIS au tick : on regarde son speed
-            // tune, un point c'est tout. Verte si elle est tune, orange sinon —
-            // et NEUTRE tant qu'on ne peut pas répondre (kits en cours de
-            // chargement, un seul monstre renseigné). Elle affichait alors
-            // « pas de tick à viser », une phrase qui parlait justement de ce
-            // qu'on ne lui demande plus.
-            !speedTune
-            ? 'neutral'
-            : speedTune.verdict.ok
-              ? 'green'
-              : 'orange'
-          : anyOffTick
-            ? 'red' // un monstre pas au tick
-            : 'green'; // tous au tick
+  // ⚠️ **La décision n'est plus écrite ici** : elle vit dans
+  // `lib/siegeStatut.ts`, où chaque cas est testé. En ternaires imbriqués dans
+  // ce composant, elle n'était vérifiable qu'à l'œil, sur ses propres équipes.
+  const entreeStatut = {
+    verifier: checkTicks,
+    desMonstres: hasMonsters,
+    leo: hasLeo,
+    ignoree: validated,
+    swift: teamHasSwift,
+    speedTune,
+    horsTick: anyOffTick,
+  };
+  const statut = statutEquipe(entreeStatut);
+  // Ce qu'on dit quand le mode est allumé mais qu'il n'y a pas de verdict : sans
+  // ça, la card ne bouge pas et le bouton semble ne rien faire.
+  const sansVerdict = raisonSansVerdict(entreeStatut);
 
   function handleDrop(to: number) {
     if (dragFrom !== null && dragFrom !== to) onSwap(team.id, dragFrom, to);
@@ -248,15 +245,15 @@ export default function SiegeTeam({
   // pas le thème. Le fond monte à /10 en compensation — sur clair, un /5 ne se
   // voit pas.
   const sectionClass =
-    status === 'red'
+    statut === 'rouge'
       ? 'border-fire bg-fire/10'
-      : status === 'orange'
+      : statut === 'orange'
         ? 'border-warn bg-warn/10'
-        : status === 'green'
+        : statut === 'vert'
           ? 'border-good/70 bg-good/10'
           : 'border-border bg-panel/50';
   const dotClass =
-    status === 'red' ? 'bg-fire' : status === 'orange' ? 'bg-warn' : status === 'green' ? 'bg-good' : '';
+    statut === 'rouge' ? 'bg-fire' : statut === 'orange' ? 'bg-warn' : statut === 'vert' ? 'bg-good' : '';
 
   return (
     // ⚠️ `p-2.5` sous `sm` : la page empile jusqu'à huit équipes, et chaque
@@ -336,7 +333,7 @@ export default function SiegeTeam({
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
         {team.slots.map((slot, idx) => {
           const monster = slot.monsterId ? monsterById.get(slot.monsterId) ?? null : null;
-          const slotDanger = status === 'red' ? slotDangers[idx] : null;
+          const slotDanger = statut === 'rouge' ? slotDangers[idx] : null;
           return (
             <div
               key={idx}
@@ -396,7 +393,7 @@ export default function SiegeTeam({
            les trois tiennent sur 348 px. */
         <div className="flex flex-row gap-1.5 compact:gap-1">
           {slotInfos.map(({ monster, combat }, idx) => {
-            const danger = status === 'red' ? slotDangers[idx] : null;
+            const danger = statut === 'rouge' ? slotDangers[idx] : null;
             const sets = team.slots[idx].sets ?? [];
             const slotGear = team.slots[idx].gear;
             const canDetail = !!slotGear && slotGear.runes.length > 0;
@@ -544,32 +541,32 @@ export default function SiegeTeam({
 
           ⚠️ `flex-wrap` : le message peut nommer deux monstres. Sur un écran
           étroit, il passe au-dessus des boutons plutôt que de se comprimer. */}
-      {(hasMonsters || status !== 'neutral') && (
+      {(hasMonsters || statut !== 'neutre') && (
         <div
           className={`-mx-4 -mb-4 mt-3 flex flex-wrap items-center gap-x-3 gap-y-2 rounded-b-2xl border-t px-4 py-2.5
             compact:-mx-2.5 compact:-mb-2.5 compact:px-2.5 ${
-              status === 'red'
+              statut === 'rouge'
                 ? 'border-fire/40 bg-fire/10'
-                : status === 'orange'
+                : statut === 'orange'
                   ? 'border-warn/40 bg-warn/10'
                   : 'border-border-soft'
             }`}
         >
           <span className="flex min-w-0 flex-1 items-start gap-2">
-            {(status === 'red' || status === 'orange') && (
+            {(statut === 'rouge' || statut === 'orange') && (
               <AlertTriangle
                 size={15}
-                className={`mt-px flex-none ${status === 'red' ? 'text-fire' : 'text-warn'}`}
+                className={`mt-px flex-none ${statut === 'rouge' ? 'text-fire' : 'text-warn'}`}
               />
             )}
             <span
               className={`text-xs ${
-                status === 'red' ? 'text-fire' : status === 'orange' ? 'text-warn' : 'text-ink-dim'
+                statut === 'rouge' ? 'text-fire' : statut === 'orange' ? 'text-warn' : 'text-ink-dim'
               }`}
             >
-              {status === 'red' ? (
+              {statut === 'rouge' ? (
                 (messageTick ?? "Ton équipe n'est pas au tick.")
-              ) : status === 'orange' ? (
+              ) : statut === 'orange' ? (
                 speedTune ? (
                   <>
                     Équipe speed :{' '}
@@ -589,7 +586,7 @@ export default function SiegeTeam({
                     </span>
                   </>
                 ) : null
-              ) : status === 'green' && validated ? (
+              ) : statut === 'vert' && validated ? (
                 <button
                   onClick={() => onDismissAlert(team.id, false)}
                   className="text-good hoverable:text-ink transition"
@@ -598,16 +595,20 @@ export default function SiegeTeam({
                   ✓ Recommandation ignorée ·{' '}
                   <span className="underline underline-offset-2">rétablir</span>
                 </button>
-              ) : status === 'green' ? (
+              ) : statut === 'vert' ? (
                 <span className="text-good">
                   ✓ {speedTune?.verdict.ok ? 'Équipe speed : elle est speed tune' : 'Tous au tick'}
                 </span>
-              ) : null}
+              ) : (
+                // ⚠️ Le mode allumé RÉPOND toujours : un statut neutre muet, et
+                // le bouton « Vérifier mes tick ATB » semble ne rien faire.
+                sansVerdict
+              )}
             </span>
           </span>
 
           <span className="flex flex-none flex-wrap items-center gap-2">
-            {(status === 'red' || status === 'orange') && (
+            {(statut === 'rouge' || statut === 'orange') && (
               <Bouton
                 onClick={() => onDismissAlert(team.id, true)}
                 taille="sm"

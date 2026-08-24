@@ -35,6 +35,7 @@ import testMonstreTri from './monstre-tri.test';
 import testMonstreFormes from './monstre-formes.test';
 import testStockage from './stockage.test';
 import testVitesse from './vitesse.test';
+import testSiegeStatut from './siege-statut.test';
 import testSpeedTune, { testSpeedTuneDeck, testSpeedTuneChaine, testSpeedTuneKit, testSpeedTuneSequence, testSpeedTuneReference, testSpeedTunePassif, testSpeedTuneAuto, testSpeedTuneModele } from './speed-tune.test';
 
 // Chaque vérification sous son NOM, dans l'ordre d'exécution.
@@ -57,6 +58,7 @@ const VERIFICATIONS: [string, () => void | Promise<void>][] = [
   ['testSpeedTunePassif', testSpeedTunePassif],
   ['testSpeedTuneAuto', testSpeedTuneAuto],
   ['testSpeedTuneModele', testSpeedTuneModele],
+  ['testSiegeStatut', testSiegeStatut],
   ['testImport', testImport],
   ['testReco', testReco],
   ['testDefensesVisees', testDefensesVisees],

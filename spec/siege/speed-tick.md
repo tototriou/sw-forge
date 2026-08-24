@@ -169,6 +169,25 @@ inchangée (on y compare des compositions, et une analyse qui repasse écrirait
 par-dessus les grilles qu'on règle). Les deux gestes n'ont pas la même
 intention.
 
+### Le statut d'une équipe
+
+⚠️ **La décision vit dans [siegeStatut.ts](src/lib/siegeStatut.ts)**, pas dans la
+card : `statutEquipe` rend `neutre` / `vert` / `orange` / `rouge`, et chaque cas
+est **testé** ([tests/siege-statut.test.ts](tests/siege-statut.test.ts)). En
+ternaires imbriqués dans le composant, elle n'était vérifiable qu'à l'œil, sur
+ses propres équipes, en cliquant — le jour où le mode a semblé « ne plus rien
+faire », rien ne permettait de dire quel cas répondait quoi.
+
+Dans l'ordre : mode éteint / équipe vide / **Leo** → neutre ; recommandation
+**ignorée** → vert ; équipe **Swift** → son speed tune (vert si tune, orange
+sinon), **jamais** le tick ; sinon le tick (rouge si un monstre est mal calé).
+
+⚠️ **Le mode allumé RÉPOND toujours quelque chose** (`raisonSansVerdict`) : une
+card qui reste grise et muette après qu'on a demandé une vérification, c'est
+exactement « le bouton ne fait rien ». Quand il n'y a pas de verdict, elle dit
+**pourquoi** — équipe vide, Leo, ou moins de deux monstres pour calculer un
+speed tune.
+
 **« Ignorer la recommandation »** →
 `dismissTickAlert(teamId, true)` : l'équipe passe au **vert**
 (`SiegeTeam.tickAlertDismissed`), et affiche « ✓ Recommandation ignorée ·

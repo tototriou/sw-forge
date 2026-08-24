@@ -40,10 +40,11 @@ export default function SiegeBoard({
   menuOuvert,
   onFermerMenu,
 }: Props) {
-  // ⚠️ **Allumé par défaut** : le calcul est automatique, on ne demande rien pour
-  // voir qu'une équipe est mal calée. Le bouton reste pour l'ÉTEINDRE — il y a
-  // des moments où l'on compose et où les couleurs parasitent la lecture.
-  const [checkTicks, setCheckTicks] = useStickyState(`siege.checkTicks.${side}`, true);
+  // ⚠️ **Éteint par défaut** : les équipes s'affichent telles quelles, et c'est
+  // un geste délibéré qui demande la vérification. Tout ce que l'app calcule
+  // ensuite est automatique — statut, message, ordre d'une équipe Swift : le
+  // bouton dit QUAND on veut voir, pas ce qu'il faut recalculer soi-même.
+  const [checkTicks, setCheckTicks] = useStickyState(`siege.checkTicks.${side}`, false);
 
   const noun = side === 'defense' ? 'défense' : 'attaque';
 

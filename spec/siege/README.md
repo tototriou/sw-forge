@@ -73,21 +73,24 @@ pas touchées. Voir la convention des modales dans le [README](README.md).
 Même règle pour les **decks de recommandation** et les recommandations
 elles-mêmes (voir [recommandations.md](recommandations.md)).
 
-### Bouton « Calculer les spd tick »
+### Bouton « Vérifier mes tick ATB »
 
-Interrupteur de la barre d'actions (icône jauge) qui allume les **couleurs de
-calage** des équipes (vert / orange / rouge, voir [speed-tick.md](speed-tick.md)).
+Interrupteur de la barre d'actions (icône jauge) qui **active les auras de
+couleur** des équipes (vert / orange / rouge, voir [speed-tick.md](speed-tick.md)).
 
-- ⚠️ **Allumé par défaut** : une équipe mal calée l'est qu'on ait cliqué ou non,
-  et il fallait auparavant savoir que l'outil existait pour voir un problème
-  qu'on ne cherchait pas. Le bouton sert donc à **éteindre** — il y a des moments
-  où l'on compose et où les couleurs parasitent la lecture.
-- **Éteint** : toutes les équipes redeviennent neutres — aucune aura, aucun
-  anneau, aucun message.
+- **Désactivé par défaut** : les équipes sont affichées **telles quelles**, en
+  neutre — aucune aura, aucun point de statut, aucun anneau rouge sur les slots,
+  aucun message, donc aucune des deux actions (« Ignorer la recommandation »,
+  « Voir le speed tune »).
+- ⚠️ **Une fois allumé, TOUT est automatique** : statut, message nommant les
+  monstres fautifs, et **l'ordre de tours d'une équipe Swift** (voir
+  [speed-tick.md](speed-tick.md)). Le bouton dit **quand on veut voir**, il ne
+  demande jamais de refaire un calcul soi-même.
 - **Par côté** (défense / offense indépendants) et **non persisté sur disque** :
-  `useStickyState`.
-- Les **boutons de tick** de chaque monstre ne dépendent pas de ce mode : c'est
-  un réglage, pas un affichage de statut.
+  `useStickyState` — l'état survit à la navigation, se remet à `false` au reload.
+- Le bouton n'apparaît que s'il y a **au moins une équipe**.
+- Les **boutons de tick** de chaque monstre restent disponibles dans les deux
+  cas : c'est un réglage, pas un affichage de statut.
 
 L'**import est global** (bouton « Importer mon compte » dans la barre de nav) :
 il remplit défense **et** offense **et** RTA d'un coup — pas de bouton d'import

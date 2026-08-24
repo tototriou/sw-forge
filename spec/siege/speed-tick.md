@@ -47,10 +47,12 @@ combat = base + runes + ceil( base × (15 + lead) / 100 )
 
 ## Aura de statut (au tick / à corriger)
 
-> ⚠️ **Calculée d'office** : le bouton « Calculer les spd tick » est **allumé par
-> défaut** (voir [README.md](README.md)) — on ne demande rien pour voir qu'une
-> équipe est mal calée ; il sert à éteindre les couleurs quand elles gênent. Une
-> équipe sans monstre, ou avec **Leo**, reste `neutral`.
+> ⚠️ **Conditionnée au mode « Vérifier mes tick ATB »** (bouton de la barre
+> d'actions, éteint par défaut — voir [README.md](README.md)). Tant qu'il est
+> éteint, le statut de **toute** équipe est forcé à `neutral`.
+> ⚠️ **Mais une fois allumé, rien ne se demande** : statut, message et ordre
+> d'une équipe Swift sont calculés d'office. Une équipe sans monstre, ou avec
+> **Leo**, reste `neutral`.
 
 Détection « mal calé sur un tick » par monstre, via `tickDanger(combat)`
 ([speed.ts](src/lib/speed.ts)) :

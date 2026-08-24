@@ -56,8 +56,8 @@ interface Props {
   onClearSlot: (teamId: string, idx: number) => void;
   onSlotRune: (teamId: string, idx: number, value: number | null) => void;
   onSlotTick: (teamId: string, idx: number, tick: number) => void;
-  // Couleurs de calage allumées (bouton « Calculer les spd tick », allumé par
-  // défaut) : les éteindre rend toutes les équipes neutres.
+  // Mode « Vérifier mes tick ATB » (bouton de la barre d'actions, éteint par
+  // défaut) : sans lui, toutes les équipes restent neutres.
   checkTicks: boolean;
   onDismissAlert: (teamId: string, dismissed: boolean) => void;
   onVoirSpeedTune: (teamId: string) => void;
@@ -102,10 +102,11 @@ export default function SiegeTeam({
   const leaderMonster = leaderId ? monsterById.get(leaderId) ?? null : null;
   const leadInfo = speedLeadOf(leaderMonster);
 
-  // Statut de l'équipe vis-à-vis des ticks. ⚠️ **Calculé d'office** : le bouton
-  // « Calculer les spd tick » est allumé par défaut, on ne demande rien pour voir
-  // qu'une équipe est mal calée. Il reste pour ÉTEINDRE les couleurs quand on
-  // compose et qu'elles parasitent la lecture.
+  // Statut de l'équipe vis-à-vis des ticks — calculé en mode « Vérifier mes tick
+  // ATB » (sinon `neutral` : équipes affichées telles quelles).
+  // ⚠️ Une fois ce mode allumé, TOUT est automatique : statut, message nommant
+  // les monstres fautifs, et l'ordre de tours d'une équipe Swift. Le bouton dit
+  // quand on veut voir, il ne demande pas de calculer soi-même.
   //  - vert   : au tick (aucun monstre mal calé) OU recommandation ignorée
   //  - orange : pas au tick mais les monstres hors-tick sont en Swift (on veut du speed)
   //  - rouge  : pas au tick et pas en Swift → à corriger

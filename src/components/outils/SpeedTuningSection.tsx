@@ -1663,8 +1663,9 @@ function ChoixSort({
   }, [open]);
 
   const choisi = valeur === '__auto' ? auto : valeur === '' ? null : (sorts.find((x) => x.nom === valeur) ?? null);
-  const libelle =
-    valeur === '' ? 'Aucun sort' : (choisi?.nom ?? (valeur === '__auto' ? 'Sort détecté' : valeur));
+  // ⚠️ « Sort détecté » ne veut rien dire quand RIEN n'a été détecté : ce qui
+  // compte, c'est ce que le monstre lance — et il ne lance rien.
+  const libelle = choisi?.nom ?? 'Aucun sort';
 
   const icone = (x: SortVitesse | null, taille: number) =>
     x?.icone ? (

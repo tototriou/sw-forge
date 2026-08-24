@@ -14,7 +14,9 @@ Fichiers : [OptimizerSection.tsx](src/components/outils/OptimizerSection.tsx) ·
 [useBuildOptimSearch.ts](src/hooks/useBuildOptimSearch.ts) (cycle de vie du
 Worker) · [useOptimizerState.ts](src/hooks/useOptimizerState.ts) (toute la
 saisie de l'écran, remontée dans App.tsx) ·
-[MonsterGearPicker.tsx](src/components/outils/MonsterGearPicker.tsx) ·
+[MonsterSourcePicker.tsx](src/components/outils/MonsterSourcePicker.tsx) ·
+[ExclusionCandidateRow.tsx](src/components/outils/ExclusionCandidateRow.tsx)
+(partagé avec [RuneExclusionPicker.tsx](src/components/outils/RuneExclusionPicker.tsx)) ·
 [SetComboPicker.tsx](src/components/outils/SetComboPicker.tsx) ·
 [BuildCandidateCard.tsx](src/components/outils/BuildCandidateCard.tsx) ·
 [DamageSetupCard.tsx](src/components/outils/DamageSetupCard.tsx) +
@@ -53,44 +55,50 @@ carte à part entière (PAS un champ dans « Critères de recherche » : il se
 choisit avant même de composer le set, ce n'est pas un critère de plus
 parmi d'autres) ; 3) composer les **Critères de recherche**, dans cet
 ordre : Set de runes recherché → Statistique principale imposée (slots
-2/4/6) → Runes imposées → Artéfacts → Conditions ; puis, optionnellement et
-en dernier, **Exclusion de runes** et **Réglages avancés**.
+2/4/6) → Artéfacts → Conditions ; puis, optionnellement et en dernier,
+**Exclusion de runes** (Runes imposées y compris, voir plus bas) et
+**Réglages avancés**.
 
 Depuis `xl`, **une seule grille** (deux colonnes, quatre rangées) porte tout
-l'écran de réglages, organisée en **deux paires** plutôt qu'en un seul bloc
+l'écran de réglages, organisée en **paires** plutôt qu'en un seul bloc
 continu — demande explicite de l'utilisateur :
 
-1. **Rangées 1-2 : Monstre & équipement, à côté d'Exclusion de runes +
-   Réglages avancés.** « Monstre & équipement » (`row-span-2`) : recherche
-   à **gauche** (largeur fixe, `lg:w-56`), fiche d'équipement à **droite**
-   (`lg:flex-1`, à taille pleine) — la fiche se déploie à côté de la
+1. **Rangée 1 : Monstre & équipement, à côté d'Exclusion de runes.**
+   « Monstre & équipement » : recherche à **gauche** (`lg:flex-1`, GRANDIT
+   pour occuper l'espace libéré par la fiche d'équipement, désormais serrée
+   sur son propre contenu — demande explicite d'utiliser l'espace libre
+   autour de la roue/fiche de stats pour élargir la recherche, dont le
+   résultat suit la largeur de son parent : une équipe complète de siège
+   s'y lit sans se tasser), fiche d'équipement à **droite** (`lg:flex-none`,
+   à taille pleine, ne s'étire plus) — la fiche se déploie à côté de la
    recherche, plus en dessous. ⚠️ **Artéfacts, roue et relique forment un
    groupe INSÉCABLE** : la roue se lit collée à la droite des emplacements
    d'artéfacts, la relique juste après. Ils se déplacent ensemble ou pas du
    tout — séparés, la roue puis la relique passaient à la ligne dans une
-   colonne étroite, cette dernière pouvant finir hors du cadre. C'est la
-   **largeur de la colonne** qui fait la place (voir la grille), jamais une
-   réduction de ce qu'on vient regarder. Un **sélecteur de source** (Box /
-   RTA / Défenses siège / Offenses siège, même contrôle qu'« Exclure les
-   runes d'un monstre » plus bas) apparaît à droite du titre. ⚠️ **Le champ
-   de recherche « Monstre à optimiser » lui-même se comporte EXACTEMENT
-   comme celui d'« Exclure les runes d'un monstre »** : il cherche par nom
-   PARMI les entrées de la source active (toute la source, pas un monstre
-   déjà choisi ailleurs), équipe complète affichée pour le siège (un même
-   monstre peut apparaître dans plusieurs équipes, indiscernables par le
-   seul nom) — et choisir un résultat fixe **directement** l'exemplaire
-   optimisé, en un seul geste plutôt qu'en deux (espèce, puis exemplaire).
-   **Choisit RÉELLEMENT ce que la recherche optimise**, pas seulement ce qui
-   est prévisualisé. Changer de source vide le choix précédent — un
-   exemplaire d'une autre source n'a aucun sens une fois basculé, mieux vaut
-   repartir d'un choix franc. ⚠️ **La fiche reste TOUJOURS
-   affichée**, vide (stats à zéro, artéfacts grisés, roue vide) tant
-   qu'aucun monstre n'est choisi, plutôt que de n'apparaître qu'au clic —
-   l'espace qu'elle occupe est réservé d'avance (voir
+   colonne étroite, cette dernière pouvant finir hors du cadre. Un
+   **sélecteur de source** (Box / RTA / Défenses siège / Offenses siège,
+   même contrôle qu'« Exclure les runes d'un monstre » plus bas) apparaît
+   entre le libellé « Monstre à optimiser » et son champ de recherche —
+   c'est le premier choix à faire, avant même de taper un nom. ⚠️ **Le champ
+   de recherche lui-même se comporte EXACTEMENT comme celui d'« Exclure les
+   runes d'un monstre »** : il cherche par nom PARMI les entrées de la
+   source active (toute la source, pas un monstre déjà choisi ailleurs),
+   équipe complète affichée pour le siège (un même monstre peut apparaître
+   dans plusieurs équipes, indiscernables par le seul nom) — et choisir un
+   résultat fixe **directement** l'exemplaire optimisé, en un seul geste
+   plutôt qu'en deux (espèce, puis exemplaire). **Choisit RÉELLEMENT ce que
+   la recherche optimise**, pas seulement ce qui est prévisualisé. Changer
+   de source vide le choix précédent — un exemplaire d'une autre source n'a
+   aucun sens une fois basculé, mieux vaut repartir d'un choix franc. ⚠️ **La
+   fiche reste TOUJOURS affichée**, vide (stats à zéro, artéfacts grisés,
+   roue vide) tant qu'aucun monstre n'est choisi, plutôt que de n'apparaître
+   qu'au clic — l'espace qu'elle occupe est réservé d'avance (voir
    [shared/design.md](shared/design.md), « un clic ne déplace jamais ce
-   qu'on vient de cliquer »). À sa droite : **Exclusion de runes**
-   (rangée 1) puis **Réglages avancés** (rangée 2), empilés.
-2. **Rangée 3 : Critères de recherche, à côté d'Objectif de recherche.**
+   qu'on vient de cliquer »). À sa droite : **Exclusion de runes**, qui
+   regroupe désormais aussi **Runes imposées** (verrouiller un emplacement
+   sur une rune précise — déplacé depuis « Critères de recherche », même
+   thème : agir sur le pool de runes à partir de l'exemplaire recherché).
+2. **Rangée 2 : Critères de recherche, à côté d'Objectif de recherche.**
    « Critères de recherche » est **compactée au maximum** (`w-fit` — la
    carte hugs son contenu plutôt que de s'étirer sur toute la largeur de sa
    colonne) pour laisser de la place, visuellement, à « Objectif de
@@ -111,16 +119,25 @@ continu — demande explicite de l'utilisateur :
    l'autre. Le **set principal** (4 pièces) s'affiche sur **deux lignes de
    trois** en permanence (comme au doigt), pour laisser plus de largeur au
    set secondaire.
-3. **Rangée 4 : ligne d'estimation**, pleine largeur (`col-span-2`) — ni
-   dans l'une ni l'autre paire.
+3. **Rangée 3 : Réglages avancés, SEUL** (rien en face côté Monstre/
+   Critères) — placement délibéré. ⚠️ Dérouler cet accordéon (repliés par
+   défaut) grandit sa propre rangée SANS jamais affecter le départ d'aucune
+   rangée antérieure : demande explicite (« la partie critères de recherche
+   ne doit pas se déplacer vers le bas lorsqu'on déroule réglages avancés »)
+   après qu'un empilement précédent (Monstre en `row-span-2` face à
+   Exclusion+Avancés) faisait dépendre la position de « Critères » de la
+   hauteur d'un accordéon sans rapport.
+4. **Rangée 4 : ligne d'estimation**, pleine largeur (`col-span-2`) — après
+   tout le reste ; seule à pouvoir être poussée par l'accordéon Réglages
+   avancés (sans conséquence, un simple texte informatif).
 
-⚠️ **Placement explicite (`col-start`/`row-start`/`row-span`) sur CHAQUE
-bloc, jamais un réordonnancement de la source** : l'ordre du DOM reste
-celui de l'ordre d'USAGE (1. monstre, 2. objectif, 3. critères, puis
-optionnellement exclusion/réglages avancés) — c'est le placement CSS, pas
-le DOM, qui organise l'écran en paires. Sous `xl`, une seule colonne :
-aucune de ces classes ne s'applique, et l'ordre du DOM (= l'ordre d'usage)
-redevient l'ordre de lecture.
+⚠️ **Placement explicite (`col-start`/`row-start`) sur CHAQUE bloc, jamais
+un réordonnancement de la source** : l'ordre du DOM reste celui de l'ordre
+d'USAGE (1. monstre, 2. objectif, 3. critères, puis optionnellement
+exclusion/réglages avancés) — c'est le placement CSS, pas le DOM, qui
+organise l'écran en paires. Sous `xl`, une seule colonne : aucune de ces
+classes ne s'applique, et l'ordre du DOM (= l'ordre d'usage) redevient
+l'ordre de lecture.
 
 ⚠️ **Responsive — pas de débordement, et les contrôles du panneau prennent
 toute la largeur.** Points tenus au format étroit (l'écran n'avait jamais été
@@ -336,29 +353,7 @@ retour.
    s'applique **avant** tout le reste, dans la construction même du pool par
    slot — il réduit donc le nombre de candidats réellement considérés dès le
    départ.
-6. **Runes imposées** — verrouille un emplacement sur **une rune précise** :
-   ce slot n'a plus qu'un seul candidat, les cinq autres restent optimisés
-   normalement. Une pastille par emplacement (1 à 6), montrant le set et la
-   statistique principale de la rune que l'exemplaire affiché porte déjà ;
-   un emplacement sans rune est montré grisé plutôt qu'absent.
-   ⚠️ **Choix limité aux runes DÉJÀ PORTÉES** par l'exemplaire sélectionné —
-   le cas d'usage est « je garde cette rune, cherche les cinq autres
-   autour ». Désigner une rune qu'on ne porte pas n'a pas de sens pour ce
-   geste, et aurait demandé un second sélecteur parmi des milliers de runes.
-   ⚠️ **Techniquement une RÉDUCTION DE POOL, pas une contrainte de plus** :
-   le verrou s'applique tout en amont (`mainStatFilteredBySlot`), avant
-   dominance/faisabilité/pré-filtrage. Le moteur ne connaît pas la notion de
-   verrou — il travaille sur un pool où ce slot ne contient plus qu'une
-   rune, ce qui rend la fonctionnalité **sûre par construction** (elle ne
-   peut pas provoquer de faux rejet : elle ne retire que des candidats
-   explicitement écartés par l'utilisateur).
-   ⚠️ **Un `runeId` est propre à un compte.** Une recette importée d'un
-   autre joueur porte des runes imposées inconnues ici : elles sont
-   **ignorées à l'import**, avec le nombre signalé dans le message — les
-   garder viderait le pool du slot (zéro résultat) sans rien expliquer. En
-   ligne de commande, le script **avertit** au lieu de purger : il est censé
-   rejouer la recette telle quelle.
-7. **Artéfacts** — interrupteur **« Ignorer les statistiques des
+6. **Artéfacts** — interrupteur **« Ignorer les statistiques des
    artéfacts »**, **décoché par défaut** (les artéfacts réellement équipés
    comptent). Décoché, deux listes déroulantes (Attribut, Type) proposent :
    **« Comme équipé »** (défaut, reprend l'artéfact du build de BASE),
@@ -370,7 +365,7 @@ retour.
    explicite permet d'hypothéquer l'artéfact d'un autre contexte sans changer
    de monstre affiché. Ces stats deviennent le PLANCHER des conditions
    ci-dessous.
-8. **Conditions** — les 8 stats (PV, ATQ, DEF, VIT, Taux Crit, Dmg Crit, RES,
+7. **Conditions** — les 8 stats (PV, ATQ, DEF, VIT, Taux Crit, Dmg Crit, RES,
    Précision). Chaque stat porte **deux champs, minimum et maximum**, tous
    deux facultatifs — champ vide = pas de contrainte.
    - **Interrupteur « Stats de base exclues »**, activé par défaut : n'affecte
@@ -385,9 +380,9 @@ retour.
      précision/résistance adverse reste un résultat légitime).
    - **« Réinitialiser les conditions »** vide les 16 champs sans toucher aux
      autres réglages de l'écran.
-9. **« Utiliser tout l'inventaire »** — case à cocher, **cochée par défaut**
+8. **« Utiliser tout l'inventaire »** — case à cocher, **cochée par défaut**
    (voir « Exclusion des runes » ci-dessous).
-10. **« Réglages avancés »** (repliés par défaut) : **pré-filtrage par
+9. **« Réglages avancés »** (repliés par défaut) : **pré-filtrage par
    emplacement**, en **presets** plutôt qu'un curseur libre — Bas / Moyen
    (défaut) / Haut / Extrême, du plus rapide au plus large (et donc plus
    lent, mais capable de retrouver un build sur un très gros compte),
@@ -434,7 +429,7 @@ retour.
      peut retrouver un build qu'une recherche normale rate, au prix d'une
      recherche plus longue. Fait partie des réglages exportés/importés dans
      une recette (voir plus bas).
-11. **Estimation du pool retenu** — dès qu'un monstre et un set sont choisis,
+10. **Estimation du pool retenu** — dès qu'un monstre et un set sont choisis,
     une ligne affiche le nombre **exact** de runes gardées après
     pré-filtrage, détaillé par emplacement (une **somme**, pas un produit),
     recalculée en direct à chaque changement de critère. ⚠️ **Le pool, pas
@@ -443,7 +438,7 @@ retour.
     éloigné du nombre réel de demi-builds construits ou de paires visitées
     par le meet-in-the-middle pour servir de repère — seul le pool retenu,
     lui, est un nombre exact et directement lisible.
-12. **« Rechercher »** — lance le calcul. Changer un des critères ci-dessus
+11. **« Rechercher »** — lance le calcul. Changer un des critères ci-dessus
     ne relance rien automatiquement : il faut recliquer. Un bouton
     **« Arrêter »** apparaît pendant le calcul — il interrompt la recherche
     et garde le **meilleur trouvé jusque-là**, plutôt que de tout perdre
@@ -455,12 +450,12 @@ retour.
     entre joueurs. L'import remplit tous les réglages et sélectionne
     automatiquement le monstre de la box courante si son `com2usId` s'y
     trouve.
-13. **Barre de progression** — se remplit progressivement (pas une roue qui
+12. **Barre de progression** — se remplit progressivement (pas une roue qui
     tourne), avec le nombre de combinaisons déjà examinées et déjà trouvées,
     suivi d'un message **en gras, couleur dorée** (même que le rang `#X`
     d'un résultat) : « Attendez la fin de la recherche pour être sûr de
     trouver votre build optimal ».
-14. **Résultats** — jusqu'à 20 combinaisons affichées, chacune : rang, les
+13. **Résultats** — jusqu'à 20 combinaisons affichées, chacune : rang, les
     sets obtenus, le **panneau de stats** (`StatPanel.tsx`, le même composant
     que dans « Équipement actuel ») et les artéfacts + les 6 runes sur une
     roue à échelle réduite (`BuildCandidateCard.tsx`), tous deux cliquables
@@ -580,6 +575,33 @@ Distingué par l'identité STABLE du compte (`wizard_id`), pas la date
 d'export (qui change à chaque réexport) : réimporter son propre compte,
 même après des heures de jeu, garde les sélections ; importer le fichier
 d'un autre joueur les efface.
+
+### Runes imposées — verrouiller un emplacement sur une rune précise
+
+**Regroupée dans la même carte** que les deux exclusions ci-dessus — même
+thème (agir sur le pool de runes à partir de l'exemplaire recherché),
+mécanisme distinct : ce n'est pas une exclusion mais un **verrou**. Une
+pastille par emplacement (1 à 6) portant une rune sur l'exemplaire de
+« Monstre & équipement » ; cliquer verrouille ce slot sur **exactement
+cette rune** — son pool tombe à 1, les cinq autres emplacements restent
+optimisés normalement. Cas d'usage : « je garde cette rune, cherche les
+cinq autres autour » — d'où un choix limité aux runes que l'exemplaire
+**porte déjà**, plutôt qu'un second sélecteur parmi des milliers de runes.
+Un emplacement sans rune est montré grisé plutôt qu'absent.
+
+⚠️ **Techniquement une RÉDUCTION DE POOL, pas une contrainte de plus** : le
+verrou s'applique tout en amont (avant dominance/faisabilité/pré-filtrage).
+Le moteur ne connaît pas la notion de verrou — il travaille sur un pool où
+ce slot ne contient plus qu'une rune, ce qui rend la fonctionnalité **sûre
+par construction** (elle ne peut pas provoquer de faux rejet, elle ne
+retire que des candidats explicitement écartés par l'utilisateur).
+
+⚠️ **Un `runeId` est propre à un compte.** Une recette importée d'un autre
+joueur porte des runes imposées inconnues ici : elles sont **ignorées à
+l'import**, avec le nombre signalé dans le message — les garder viderait le
+pool du slot (zéro résultat) sans rien expliquer. En ligne de commande, le
+script **avertit** au lieu de purger : il est censé rejouer la recette
+telle quelle.
 
 ## Interruption — filet de temps, pré-filtrage et arrêt manuel
 

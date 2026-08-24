@@ -883,17 +883,27 @@ export default function OptimizerSection({ box, runes, optimizer, allMonsters, r
       </p>
 
       {/* ── UNE SEULE grille, à partir de `xl`, pour tout l'écran de
-          réglages (Monstre, Exclusion/Réglages avancés, Critères,
-          Objectif) ────────────────────────────────────────────────────
-          ⚠️ **Placement EXPLICITE (`col-start`/`row-start`/`row-span`) sur
-          CHAQUE bloc** — l'ordre du DOM peut alors rester celui de l'ordre
+          réglages (Monstre, Exclusion, Critères, Objectif, Réglages
+          avancés) ──────────────────────────────────────────────────────
+          ⚠️ **Placement EXPLICITE (`col-start`/`row-start`) sur CHAQUE
+          bloc** — l'ordre du DOM peut alors rester celui de l'ordre
           d'USAGE (1. monstre, 2. objectif, 3. critères, puis
           optionnellement exclusion/réglages avancés) SANS dicter l'ordre
           VISUEL au bureau, qui suit une logique de PAIRES : Monstre à côté
-          d'Exclusion/Réglages avancés (rangées 1-2), Critères à côté
-          d'Objectif (rangée 3). Sous `xl`, une seule colonne : ces classes
-          ne s'appliquent plus, l'ordre du DOM (= l'ordre d'usage) devient
-          l'ordre de lecture.
+          d'Exclusion (rangée 1), Critères à côté d'Objectif (rangée 2).
+          Sous `xl`, une seule colonne : ces classes ne s'appliquent plus,
+          l'ordre du DOM (= l'ordre d'usage) devient l'ordre de lecture.
+          ⚠️ **Réglages avancés SEUL en rangée 3, sans rien en face côté
+          Monstre/Critères** — placement délibéré, PAS un oubli. Un
+          `row-span-2` posé sur Monstre pour couvrir Exclusion+Avancés
+          (une révision antérieure) forçait Critères/Objectif (rangée
+          suivante) à démarrer APRÈS la hauteur cumulée d'Exclusion ET
+          Avancés — dérouler ce dernier (accordéon) grandissait alors sa
+          rangée et poussait Critères vers le bas alors que rien n'avait
+          été cliqué dedans. En isolant Avancés en DERNIÈRE rangée, sa
+          hauteur ne peut plus affecter le départ d'aucune rangée
+          antérieure — seule la ligne d'estimation, en dessous, peut
+          bouger, ce qui est sans conséquence (un simple texte informatif).
           ⚠️ `items-start` : sans lui, chaque bloc s'étire à la hauteur de sa
           rangée et les cartes courtes se retrouvent avec un grand vide
           bordé.
@@ -909,43 +919,48 @@ export default function OptimizerSection({ box, runes, optimizer, allMonsters, r
       {/* Étape 1 — carte À PART, en tête du DOM. ⚠️ **La fiche reste
           TOUJOURS affichée, vide (`EMPTY_GEAR`) tant qu'aucun monstre n'est
           choisi**, plutôt que de n'apparaître qu'au clic : l'espace qu'elle
-          occupe est réservé d'avance (voir spec/shared/design.md).
-          `row-span-2` : occupe les DEUX rangées où « Exclusion de runes »
-          puis « Réglages avancés » s'empilent à sa droite. */}
-      <div className="rounded-xl border border-border bg-panel p-3 xl:col-start-1 xl:row-start-1 xl:row-span-2">
-        <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
-          <div className="flex items-center gap-2">
-            <div className="flex h-6 w-6 flex-none items-center justify-center rounded-md border border-border-soft bg-panel2">
-              <GameIcon name="monster" size={15} />
-            </div>
-            <p className="text-[13.5px] font-bold text-ink">Monstre &amp; équipement</p>
+          occupe est réservé d'avance (voir spec/shared/design.md). */}
+      <div className="rounded-xl border border-border bg-panel p-3 xl:col-start-1 xl:row-start-1">
+        <div className="mb-3 flex items-center gap-2">
+          <div className="flex h-6 w-6 flex-none items-center justify-center rounded-md border border-border-soft bg-panel2">
+            <GameIcon name="monster" size={15} />
           </div>
-          {/* ⚠️ Choix de la SOURCE recherchée — box/RTA/Défenses siège/
-              Offenses siège, EXACTEMENT le même sélecteur (mêmes 4 options,
-              même composant) que la source d'« Exclure les runes d'un
-              monstre » plus bas — `SOURCE_OPTIONS`, remonté dans
-              optimizerExclusion.ts pour ne pas dupliquer ces 4 libellés.
-              Vide le choix précédent (voir `sourceSelector`) : une
-              nouvelle source se cherche depuis rien, jamais un résidu de
-              l'ancienne. */}
-          <Segmented
-            options={SOURCE_OPTIONS}
-            value={gearSource}
-            onChange={(v) => {
-              setGearSource(v);
-              setSourceSelector(null);
-            }}
-            dense
-          />
+          <p className="text-[13.5px] font-bold text-ink">Monstre &amp; équipement</p>
         </div>
         <div className="flex flex-col gap-3 lg:flex-row lg:items-start">
-          {/* ⚠️ `lg:w-56 flex-none` : une largeur FIXE, pas `flex-1` — sans
-              ça, sur un très grand écran, le champ de recherche s'étirerait
-              autant que la fiche d'équipement à côté, alors que son contenu
-              (un mot, quelques suggestions) n'a besoin que d'une largeur de
-              champ ordinaire. */}
-          <div className="lg:w-56 lg:flex-none">
+          {/* ⚠️ `lg:flex-1` : GRANDIT pour occuper l'espace libéré par la
+              fiche d'équipement (`lg:flex-none` ci-dessous, désormais
+              serrée sur son propre contenu plutôt qu'étirée) — demande
+              explicite : utiliser l'espace libre autour de la roue/fiche de
+              stats pour élargir la recherche, dont le `Flottant` (résultats)
+              suit la largeur de son parent (`w-full` par défaut, voir
+              Flottant.tsx) — une équipe complète de siège s'y lit sans se
+              tasser. `lg:min-w-[224px]` : plancher, l'ancienne largeur fixe
+              — ne redescend JAMAIS en dessous, même si `xl` (le minimum où
+              cette rangée passe en ligne) laisse peu de place. */}
+          <div className="lg:min-w-[224px] lg:flex-1">
             <p className="label mb-1.5">Monstre à optimiser</p>
+            {/* ⚠️ Choix de la SOURCE recherchée — box/RTA/Défenses siège/
+                Offenses siège, EXACTEMENT le même sélecteur (mêmes 4
+                options, même composant) que la source d'« Exclure les
+                runes d'un monstre » plus bas — `SOURCE_OPTIONS`, remonté
+                dans optimizerExclusion.ts pour ne pas dupliquer ces 4
+                libellés. Entre le libellé et le champ de recherche (demande
+                explicite) : c'est le PREMIER choix à faire, avant même de
+                taper un nom — chercher « dans quelle source » avant « quel
+                monstre ». Vide le choix précédent (voir `sourceSelector`) :
+                une nouvelle source se cherche depuis rien, jamais un résidu
+                de l'ancienne. */}
+            <Segmented
+              options={SOURCE_OPTIONS}
+              value={gearSource}
+              onChange={(v) => {
+                setGearSource(v);
+                setSourceSelector(null);
+              }}
+              className="mb-2"
+              dense
+            />
             {/* ⚠️ **Exactement le même mécanisme que « Exclure les runes
                 d'un monstre »** (demande explicite de cohérence) :
                 `MonsterSourcePicker` cherche par nom PARMI les candidats de
@@ -985,9 +1000,12 @@ export default function OptimizerSection({ box, runes, optimizer, allMonsters, r
               l'équipement difficile à lire ET poussait la relique hors du
               cadre dans une colonne étroite. La place se gagne désormais sur
               la LARGEUR de la colonne (voir la grille), pas en rapetissant
-              ce qu'on vient regarder. `flex-1` : occupe tout l'espace
-              restant à droite de la recherche. */}
-          <div className="rounded-xl border border-border-soft bg-panel2/60 p-3 lg:flex-1">
+              ce qu'on vient regarder. ⚠️ `lg:flex-none` (PAS `flex-1`,
+              inversé par rapport à une révision antérieure) : se serre sur
+              son propre contenu, pour que l'espace libéré profite à la
+              recherche à sa gauche plutôt que d'être absorbé ici sans
+              raison. */}
+          <div className="rounded-xl border border-border-soft bg-panel2/60 p-3 lg:flex-none">
             <MonsterGear gear={selected?.gear ?? EMPTY_GEAR} />
           </div>
         </div>
@@ -995,10 +1013,11 @@ export default function OptimizerSection({ box, runes, optimizer, allMonsters, r
 
       {/* Étape 3 — carte compactée AU MAXIMUM (`w-fit`, voir plus bas) pour
           laisser de la place visuelle à « Objectif de recherche » à sa
-          droite — demande explicite. `xl:row-start-3` : troisième rangée de
-          la grille, sous le duo Monstre/Exclusion+Réglages avancés
-          (rangées 1-2). */}
-      <div className="w-fit rounded-xl border border-border bg-panel p-3 xl:col-start-1 xl:row-start-3">
+          droite — demande explicite. `xl:row-start-2` : directement sous
+          « Monstre & équipement » (rangée 1), jamais affectée par
+          « Réglages avancés » (isolé en rangée 3, voir le commentaire
+          d'ouverture de la grille). */}
+      <div className="w-fit rounded-xl border border-border bg-panel p-3 xl:col-start-1 xl:row-start-2">
         <div className="mb-3 flex items-center gap-2">
           {/* Curseurs de réglage, colorés (accent) — plus parlant qu'une
               cible générique pour « plusieurs critères ajustables », et
@@ -1081,74 +1100,6 @@ export default function OptimizerSection({ box, runes, optimizer, allMonsters, r
           ))}
         </div>
       </div>
-      </div>
-
-      {/* ⚠️ **Runes imposées** — verrouille un emplacement sur UNE rune
-          précise : ce slot n'a plus qu'un seul candidat, les cinq autres
-          restent optimisés normalement. Le cas d'usage réel est « je garde
-          CETTE rune, cherche les cinq autres autour » — d'où un choix
-          limité aux runes que le monstre PORTE DÉJÀ (celles de l'exemplaire
-          affiché juste au-dessus), et non un second sélecteur parmi les
-          milliers de runes de l'inventaire : désigner une rune qu'on ne
-          porte pas n'a pas de sens pour ce geste-là.
-          ⚠️ Techniquement une RÉDUCTION DE POOL, pas une contrainte de plus
-          — voir `BuildRequirement.lockedRunes` (runeBuildOptim.ts) : le
-          moteur n'a rien appris de la notion de verrou, il travaille juste
-          sur un pool où ce slot ne contient plus qu'une rune. */}
-      <div>
-        <div className="mb-2.5 flex items-center gap-1.5">
-          <p className="label">Runes imposées</p>
-          <HelpPopover title="Runes imposées">
-            Verrouille un emplacement sur la rune que le monstre porte déjà : la recherche gardera
-            <b className="text-ink"> exactement cette rune</b> et n'optimisera que les autres. Utile pour
-            conserver une rune que tu ne veux pas déruner. Les emplacements laissés libres sont optimisés
-            normalement.
-          </HelpPopover>
-        </div>
-        {!selected || selected.gear.runes.length === 0 ? (
-          <p className="text-micro text-ink-dim">
-            Aucune rune équipée sur cet exemplaire — rien à imposer.
-          </p>
-        ) : (
-          <div className="flex flex-wrap gap-1.5">
-            {[1, 2, 3, 4, 5, 6].map((slot) => {
-              const portee = selected.gear.runes.find((r) => r.slot === slot);
-              const verrouille = lockedRunes[slot] != null;
-              if (!portee) {
-                return (
-                  <span
-                    key={slot}
-                    className="rounded-full border border-border bg-panel2 px-2.5 py-1 text-micro text-ink-dimmer opacity-50"
-                    title={`Aucune rune en emplacement ${slot}`}
-                  >
-                    Slot {slot} —
-                  </span>
-                );
-              }
-              return (
-                <Pastille
-                  key={slot}
-                  actif={verrouille}
-                  onClick={() =>
-                    setLockedRunes((prev) => {
-                      const next = { ...prev };
-                      if (next[slot] != null) delete next[slot];
-                      else next[slot] = portee.id;
-                      return next;
-                    })
-                  }
-                  icone={<RuneIcon setKey={portee.set} size={13} filter={runeSetIconFilter(verrouille)} />}
-                  libelle={`Slot ${slot} · ${RUNE_EFFECT[portee.main.code]?.label ?? portee.main.code}`}
-                  title={
-                    verrouille
-                      ? `Libérer l'emplacement ${slot}`
-                      : `Imposer cette rune en emplacement ${slot} (le pool de ce slot tombe à 1)`
-                  }
-                />
-              );
-            })}
-          </div>
-        )}
       </div>
 
       <div>
@@ -1347,13 +1298,13 @@ export default function OptimizerSection({ box, runes, optimizer, allMonsters, r
       {/* Étape 2 de l'ordre d'usage voulu — une carte À PART, PAS un bloc
           DANS « Critères de recherche » : l'objectif se choisit avant même
           de composer le set recherché, ce n'est pas un critère de plus
-          parmi d'autres. Placée en TROISIÈME rangée (aux côtés de « Critères
-          de recherche », compactée juste au-dessus) : demande explicite —
-          « à droite des critères de recherche ». `1fr`, colonne large :
-          contrairement à Critères (compactée au maximum), Objectif profite
-          de tout l'espace restant — utile une fois « Dégâts réels » choisi
-          (`DamageSetupCard` a besoin de place pour ses vignettes d'effet). */}
-      <div className="rounded-xl border border-border bg-panel p-3 xl:col-start-2 xl:row-start-3">
+          parmi d'autres. Placée en DEUXIÈME rangée (aux côtés de « Critères
+          de recherche ») : demande explicite — « à droite des critères de
+          recherche ». `1fr`, colonne large : contrairement à Critères
+          (compactée au maximum), Objectif profite de tout l'espace restant
+          — utile une fois « Dégâts réels » choisi (`DamageSetupCard` a
+          besoin de place pour ses vignettes d'effet). */}
+      <div className="rounded-xl border border-border bg-panel p-3 xl:col-start-2 xl:row-start-2">
         <div className="mb-3 flex items-center gap-2">
           <div className="flex h-6 w-6 flex-none items-center justify-center rounded-md border border-accent/40 bg-accent-soft">
             <Target size={13} className="text-accent" />
@@ -1581,13 +1532,86 @@ export default function OptimizerSection({ box, runes, optimizer, allMonsters, r
           </div>
         );
 
+        // ⚠️ **Runes imposées** — déplacé depuis « Critères de recherche »
+        // (demande explicite) : verrouille un emplacement sur UNE rune
+        // précise, ce slot n'a plus qu'un seul candidat, les cinq autres
+        // restent optimisés normalement. Le cas d'usage réel est « je garde
+        // CETTE rune, cherche les cinq autres autour » — d'où un choix
+        // limité aux runes que le monstre PORTE DÉJÀ (celles de
+        // « Monstre & équipement »), et non un second sélecteur parmi les
+        // milliers de runes de l'inventaire : désigner une rune qu'on ne
+        // porte pas n'a pas de sens pour ce geste-là.
+        // ⚠️ Techniquement une RÉDUCTION DE POOL, pas une contrainte de plus
+        // — voir `BuildRequirement.lockedRunes` (runeBuildOptim.ts) : le
+        // moteur n'a rien appris de la notion de verrou, il travaille juste
+        // sur un pool où ce slot ne contient plus qu'une rune. Regroupé
+        // avec l'exclusion : même thème (agir sur le POOL de runes à partir
+        // de l'exemplaire recherché), même carte.
+        const runesImposeesBlock = (
+          <div>
+            <div className="mb-2.5 flex items-center gap-1.5">
+              <p className="label">Runes imposées</p>
+              <HelpPopover title="Runes imposées">
+                Verrouille un emplacement sur la rune que le monstre porte déjà : la recherche gardera
+                <b className="text-ink"> exactement cette rune</b> et n'optimisera que les autres. Utile pour
+                conserver une rune que tu ne veux pas déruner. Les emplacements laissés libres sont optimisés
+                normalement.
+              </HelpPopover>
+            </div>
+            {!selected || selected.gear.runes.length === 0 ? (
+              <p className="text-micro text-ink-dim">Aucune rune équipée sur cet exemplaire — rien à imposer.</p>
+            ) : (
+              <div className="flex flex-wrap gap-1.5">
+                {[1, 2, 3, 4, 5, 6].map((slot) => {
+                  const portee = selected.gear.runes.find((r) => r.slot === slot);
+                  const verrouille = lockedRunes[slot] != null;
+                  if (!portee) {
+                    return (
+                      <span
+                        key={slot}
+                        className="rounded-full border border-border bg-panel2 px-2.5 py-1 text-micro text-ink-dimmer opacity-50"
+                        title={`Aucune rune en emplacement ${slot}`}
+                      >
+                        Slot {slot} —
+                      </span>
+                    );
+                  }
+                  return (
+                    <Pastille
+                      key={slot}
+                      actif={verrouille}
+                      onClick={() =>
+                        setLockedRunes((prev) => {
+                          const next = { ...prev };
+                          if (next[slot] != null) delete next[slot];
+                          else next[slot] = portee.id;
+                          return next;
+                        })
+                      }
+                      icone={<RuneIcon setKey={portee.set} size={13} filter={runeSetIconFilter(verrouille)} />}
+                      libelle={`Slot ${slot} · ${RUNE_EFFECT[portee.main.code]?.label ?? portee.main.code}`}
+                      title={
+                        verrouille
+                          ? `Libérer l'emplacement ${slot}`
+                          : `Imposer cette rune en emplacement ${slot} (le pool de ce slot tombe à 1)`
+                      }
+                    />
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        );
+
         // ⚠️ `dansPanneau` : dans le panneau, « Exclure les runes d'un
         // monstre » passe AU-DESSUS de « Exclure les runes déjà utilisées »
         // (demande explicite — c'est le réglage le plus utilisé au doigt),
         // et les deux restent EMPILÉS (jamais côte à côte, même sur un
         // panneau assez large pour `sm:` — la largeur calibrée de la
         // colonne de gauche, pensée pour la carte du bureau, ne vaudrait
-        // plus rien ici). Au bureau, ordre et grille inchangés.
+        // plus rien ici). Au bureau, ordre et grille inchangés. « Runes
+        // imposées », un mécanisme DISTINCT (verrou, pas exclusion), suit en
+        // dernier après un séparateur, pleine largeur dans les deux cas.
         const exclusionRunesInner = (dansPanneau: boolean) => (
           <>
             <p className="mb-3 pl-8 text-[11px] text-ink-dim">Deux réglages indépendants, qui se superposent.</p>
@@ -1616,6 +1640,8 @@ export default function OptimizerSection({ box, runes, optimizer, allMonsters, r
                 {monstrePrecisBlock(false)}
               </div>
             )}
+
+            <div className="mt-4 border-t border-border-soft pt-4">{runesImposeesBlock}</div>
           </>
         );
 
@@ -1635,17 +1661,21 @@ export default function OptimizerSection({ box, runes, optimizer, allMonsters, r
 
         return (
           <>
-            {/* Bureau : deux cartes empilées à DROITE de « Monstre &
-                équipement » (`xl:col-start-2`, rangées 1 puis 2 — voir le
-                commentaire d'ouverture de la grille), masquées au doigt
-                (voir le panneau plus bas). Exclusion de runes en tête —
-                fonctionnalité vedette, Réglages avancés en second. */}
+            {/* Bureau : « Exclusion de runes » à DROITE de « Monstre &
+                équipement » (rangée 1, `xl:col-start-2 xl:row-start-1` —
+                voir le commentaire d'ouverture de la grille), masquée au
+                doigt (voir le panneau plus bas). */}
             <div className="hidden lg:block rounded-xl border border-accent/50 bg-panel p-3 xl:col-start-2 xl:row-start-1">
               <div className="mb-0.5 flex items-center gap-2">{exclusionRunesTitre}</div>
               {exclusionRunesInner(false)}
             </div>
 
-            <div className="hidden lg:block rounded-xl border border-border bg-panel p-3 xl:col-start-2 xl:row-start-2">
+            {/* ⚠️ **Rangée 3, SEULE dans sa rangée** (rien côté Monstre/
+                Critères) — voir le commentaire d'ouverture de la grille :
+                dérouler cet accordéon ne peut alors affecter le départ
+                d'aucune autre rangée, seule la ligne d'estimation en
+                dessous peut bouger. */}
+            <div className="hidden lg:block rounded-xl border border-border bg-panel p-3 xl:col-start-2 xl:row-start-3">
               <ZoneCliquable
                 onClick={() => setShowAdvanced((v) => !v)}
                 aria-expanded={showAdvanced}
@@ -1662,11 +1692,13 @@ export default function OptimizerSection({ box, runes, optimizer, allMonsters, r
               )}
             </div>
 
-            {/* ⚠️ Placée en rangée 4 (`xl:col-span-2`, pleine largeur) : ni
-                dans la paire Monstre/Exclusion+Avancés (rangées 1-2) ni dans
-                la paire Critères/Objectif (rangée 3), cette ligne
-                d'estimation n'a pas sa place dans une cellule précise —
-                simple info sous tout le reste. */}
+            {/* ⚠️ Placée en rangée 4 (`xl:col-span-2`, pleine largeur), après
+                les trois autres : ni dans la paire Monstre/Exclusion
+                (rangée 1), ni dans la paire Critères/Objectif (rangée 2), ni
+                Réglages avancés (rangée 3, seul), cette ligne d'estimation
+                n'a pas sa place dans une cellule précise — simple info sous
+                tout le reste, seule à pouvoir être poussée par l'accordéon
+                Avancés (sans conséquence, un texte informatif). */}
             {estimate && (
               <p className="font-mono text-micro text-ink-dim xl:col-span-2 xl:row-start-4">
                 {formatBig(estimate.perSlot.reduce((a, b) => a + b, 0))} runes gardées après pré-filtrage

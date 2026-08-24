@@ -605,9 +605,9 @@ export default function SiegeTeam({
                 <button
                   onClick={() => onDismissAlert(team.id, false)}
                   className="text-good hoverable:text-ink transition"
-                  title="Réafficher la recommandation"
+                  title="Revenir sur cette validation et réafficher la recommandation"
                 >
-                  ✓ Recommandation ignorée ·{' '}
+                  ✓ {teamHasSwift ? 'Speed tune validé' : 'Tick validé'} ·{' '}
                   <span className="underline underline-offset-2">rétablir</span>
                 </button>
               ) : statut === 'vert' ? (
@@ -624,11 +624,20 @@ export default function SiegeTeam({
 
           <span className="flex flex-none flex-wrap items-center gap-2">
             {(statut === 'rouge' || statut === 'orange') && (
+              // ⚠️ **Le libellé nomme ce qu'on valide, pas un conseil qu'on
+              // écarte.** Une équipe Swift se juge sur son SPEED TUNE, les
+              // autres sur leur TICK : dire « la recommandation » obligeait à
+              // remonter au message pour savoir de quoi il s'agissait.
               <Bouton
                 onClick={() => onDismissAlert(team.id, true)}
                 taille="sm"
-                libelle="Ignorer la recommandation"
-                libelleCourt="Ignorer"
+                libelle={teamHasSwift ? 'Valider le speed tune' : 'Valider le tick'}
+                libelleCourt="Valider"
+                title={
+                  teamHasSwift
+                    ? "Tu prends la responsabilité de ce speed tune : l'équipe passe au vert."
+                    : 'Tu prends la responsabilité de ce calage : l’équipe passe au vert.'
+                }
               />
             )}
             {/* ⚠️ TOUJOURS là, quelle que soit l'équipe : le speed tune n'est pas

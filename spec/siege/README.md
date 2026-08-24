@@ -80,8 +80,8 @@ couleur** des équipes (vert / orange / rouge, voir [speed-tick.md](speed-tick.m
 
 - **Désactivé par défaut** : les équipes sont affichées **telles quelles**, en
   neutre — aucune aura, aucun point de statut, aucun anneau rouge sur les slots,
-  aucun message, donc aucune des deux actions (« Ignorer la recommandation »,
-  « Voir le speed tune »).
+  aucun message, donc aucune des deux actions (« Valider le speed tune » / « Valider
+  le tick », « Voir le speed tune »).
 - ⚠️ **Une fois allumé, TOUT est automatique** : statut, message nommant les
   monstres fautifs, et **l'ordre de tours d'une équipe Swift** (voir
   [speed-tick.md](speed-tick.md)). Le bouton dit **quand on veut voir**, il ne

@@ -198,18 +198,25 @@ exactement « le bouton ne fait rien ». Quand il n'y a pas de verdict, elle dit
 **pourquoi** — équipe vide, Leo, ou moins de deux monstres pour calculer un
 speed tune.
 
-**« Ignorer la recommandation »** →
+**« Valider le speed tune » / « Valider le tick »** →
 `dismissTickAlert(teamId, true)` : l'équipe passe au **vert**
-(`SiegeTeam.tickAlertDismissed`), et affiche « ✓ Recommandation ignorée ·
-rétablir ». **Réinitialisé automatiquement** dès qu'un slot change (rune,
-monstre, position…) : le conseil écarté portait sur l'ancienne composition.
+(`SiegeTeam.tickAlertDismissed`), et affiche « ✓ Speed tune validé · rétablir »
+ou « ✓ Tick validé · rétablir ». **Réinitialisé automatiquement** dès qu'un slot
+change (rune, monstre, position…) : la validation portait sur l'ancienne
+composition.
 
-> ⚠️ **Le libellé dit « ignorer », pas « valider ».** L'app n'a aucun moyen de
-> savoir si un tune est bon — elle constate seulement qu'il s'écarte des ticks
-> connus. « Valider l'équipe » laissait croire à une approbation de l'outil,
-> alors que c'est l'utilisateur qui écarte un conseil et en assume la
-> responsabilité. Le vert qui suit ne dit pas « c'est juste », il dit « tu as
-> tranché ».
+> ⚠️ **Le libellé nomme CE QU'ON VALIDE**, pas un conseil qu'on écarte. Une
+> équipe Swift se juge sur son **speed tune**, les autres sur leur **tick** :
+> « ignorer la recommandation » obligeait à remonter au message pour savoir de
+> quoi il s'agissait, et le même mot couvrait deux questions différentes.
+>
+> ⚠️ **Ceci renverse un choix antérieur**, qui disait « ignorer » précisément
+> pour ne pas laisser croire à une approbation de l'outil. L'argument tenait
+> quand l'app ne savait que constater un écart aux ticks connus ; elle calcule
+> désormais le speed tune d'une équipe Swift et sait donc de quoi elle parle. Le
+> vert reste ce qu'il était : il ne dit pas « c'est juste », il dit « tu as
+> tranché » — l'infobulle le formule (« tu prends la responsabilité de ce speed
+> tune »).
 
 ### ⚠️ Le message NOMME chaque monstre fautif
 

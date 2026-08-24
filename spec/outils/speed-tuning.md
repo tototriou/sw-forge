@@ -207,8 +207,11 @@ sorts, et « Aucun sort ».
   liste ne suit plus les vitesses et se contente de suivre la composition (un
   allié ajouté entre à la fin, un retiré en sort). Le réécrire après coup serait
   une perte silencieuse.
-- **Sort par monstre**, dans un **menu à icônes** (Bouton + `Flottant` +
-  rangées à plat, la grammaire des listes ancrées de l'app) : la ligne reste
+- **Sort par monstre**, dans un **menu à icônes** (Bouton + `FlottantAuto` +
+  rangées à plat, la grammaire des listes ancrées de l'app) — ⚠️ **`FlottantAuto`
+  et non `Flottant`** : le bouton se promène au bout d'une rangée, et un flottant
+  posé toujours du même côté sortait de la page par la droite ; celui-ci mesure
+  la place autour de son ancre et choisit son côté : la ligne reste
   lisible d'un coup d'œil et le détail s'ouvre à la demande. Le bouton porte
   l'icône du sort retenu ; chaque entrée dit ce que le sort fait et son taux de
   réussite. ⚠️ **Pas des cartes `Option` dans le flottant** : elles y font des

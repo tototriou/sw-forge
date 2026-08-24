@@ -31,6 +31,7 @@ import MonsterAvatar from '../MonsterAvatar';
 import {
   Bouton,
   Champ,
+  FlottantAuto,
   Interrupteur,
   Flottant,
   NumberField,
@@ -1898,14 +1899,19 @@ function ChoixSort({
         title={choisi ? libelleSort(choisi) : `Sort lancé par ${nomMonstre}`}
         onClick={() => setOpen((v) => !v)}
       />
-      {open && (
-        <Flottant
-          rembourrage="aucun"
-          largeur="w-[290px]"
-          className="max-h-[320px] overflow-y-auto"
-          role="listbox"
-          aria-label={`Sort lancé par ${nomMonstre}`}
-        >
+      {/* ⚠️ **FlottantAuto**, pas `Flottant` : ce menu est ancré à un bouton qui
+          se promène dans une rangée — au bout d'une ligne, un flottant posé
+          toujours du même côté sortait de la page par la droite. Celui-ci mesure
+          la place autour de son ancre et choisit son côté. */}
+      <FlottantAuto
+        ouvert={open}
+        ancre={ref}
+        largeur={290}
+        hauteur={320}
+        rembourrage="aucun"
+        className="max-h-[320px] overflow-y-auto"
+      >
+        <div role="listbox" aria-label={`Sort lancé par ${nomMonstre}`}>
           {/* ⚠️ Des RANGÉES à plat, pas des cartes : `Option` porte son propre
               cadre arrondi, fait pour un choix empilé dans un dialogue. Dans une
               surface flottante, l'app pose des rangées qui touchent les bords —
@@ -1933,8 +1939,8 @@ function ChoixSort({
               }}
             />
           ))}
-        </Flottant>
-      )}
+        </div>
+      </FlottantAuto>
     </div>
   );
 }

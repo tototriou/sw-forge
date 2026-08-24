@@ -100,7 +100,16 @@ export default function MonsterGear({ gear, spdCible = null, scale }: Props) {
           perd la vue d'ensemble qu'on vient chercher. Ils tiennent sur 348 px
           une fois le panneau de stats sorti de la rangée — voir les tailles
           réduites de chaque bloc sous `sm`. */}
-      <div className="contents compact:flex compact:w-full compact:items-center compact:justify-center compact:gap-1.5">
+      {/* ⚠️ **Un SEUL groupe insécable** (`flex-none`, aucun `flex-wrap` à
+          l'intérieur) — artéfacts, roue ET relique. Le `contents` du bureau
+          en faisait trois items INDÉPENDANTS du conteneur `flex-wrap`
+          ci-dessus : dans une colonne étroite, la roue puis la relique
+          passaient seules à la ligne suivante, et la relique pouvait finir
+          hors du champ visible (signalé en usage réel — « les reliques ont
+          disparu » : elles n'avaient pas disparu des DONNÉES, seulement du
+          cadre). Groupés, ils se déplacent ensemble ou pas du tout, ce que
+          disait déjà l'intention d'origine juste au-dessus. */}
+      <div className="flex flex-none items-center justify-center gap-2 compact:w-full compact:gap-1.5">
       {/* Artéfacts — détail dans un flottant ANCRÉ à l'emplacement (souris) ou
           en ligne sous la roue (doigt) : voir `detail` plus haut.
           ⚠️ **`ArtifactSlots` et non une boucle sur `gear.artifacts`.** Ce

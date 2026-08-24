@@ -867,8 +867,16 @@ export default function OptimizerSection({ box, runes, optimizer, allMonsters, r
           l'ordre de lecture.
           ⚠️ `items-start` : sans lui, chaque bloc s'étire à la hauteur de sa
           rangée et les cartes courtes se retrouvent avec un grand vide
-          bordé. */}
-      <div className="grid gap-5 items-start xl:grid-cols-[minmax(480px,560px)_1fr]">
+          bordé.
+          ⚠️ **Colonne 1 en `1.35fr`, plus une largeur en pixels** : elle
+          était bornée à `minmax(480px,560px)`, trop étroite pour la rangée
+          d'équipement (recherche 224 + stats 200 + artéfacts 58 + roue 208 +
+          relique ≈ 800 px) — la roue puis la relique passaient à la ligne,
+          cette dernière finissant hors du cadre. En `fr`, la colonne suit la
+          largeur réelle de l'écran (≈ 700 px à `xl`, ≈ 965 px sur un 1920)
+          au lieu d'un plafond deviné, et « Critères de recherche » (`w-fit`,
+          même colonne) continue de se serrer sur son contenu. */}
+      <div className="grid gap-5 items-start xl:grid-cols-[1.35fr_1fr]">
       {/* Étape 1 — carte À PART, en tête du DOM. ⚠️ **La fiche reste
           TOUJOURS affichée, vide (`EMPTY_GEAR`) tant qu'aucun monstre n'est
           choisi**, plutôt que de n'apparaître qu'au clic : l'espace qu'elle
@@ -967,14 +975,16 @@ export default function OptimizerSection({ box, runes, optimizer, allMonsters, r
               une réimplémentation : stats base/bonus, artéfacts, roue de
               runes et relique, chacun cliquable pour son détail complet
               (RuneDetailBox/ArtifactDetailBox/RelicDetailBox), inline sous
-              la roue. `scale` : artéfacts et roue COMPACTÉS (demande
-              explicite) — pour que la carte reste raisonnable une fois
-              « Exclusion de runes » installée à sa droite. `StatPanel`, lui,
-              garde sa largeur fixe (voir le commentaire de `scale` sur
-              `MonsterGear.tsx`). `flex-1` : occupe tout l'espace restant à
-              droite de la recherche. */}
+              la roue. ⚠️ **Plus de `scale` ici** : un `0.65` (révision
+              précédente, pour compacter) réduisait les emplacements
+              d'artéfacts à 38 px et la roue à 135 px, ce qui rendait
+              l'équipement difficile à lire ET poussait la relique hors du
+              cadre dans une colonne étroite. La place se gagne désormais sur
+              la LARGEUR de la colonne (voir la grille), pas en rapetissant
+              ce qu'on vient regarder. `flex-1` : occupe tout l'espace
+              restant à droite de la recherche. */}
           <div className="rounded-xl border border-border-soft bg-panel2/60 p-3 lg:flex-1">
-            <MonsterGear gear={selected?.gear ?? EMPTY_GEAR} scale={0.65} />
+            <MonsterGear gear={selected?.gear ?? EMPTY_GEAR} />
           </div>
         </div>
       </div>
@@ -1001,11 +1011,19 @@ export default function OptimizerSection({ box, runes, optimizer, allMonsters, r
             cette carte ; devenus des enfants directs de la carte, ils en
             ont hérité aucun espacement propre sans ce wrapper. */}
         <div className="space-y-4">
+      {/* ⚠️ **Set de runes recherché et Statistique principale imposée CÔTE
+          À CÔTE** (demande explicite) à partir de `lg` — les deux sont les
+          contraintes qu'on pose sur les runes elles-mêmes, avant les
+          artéfacts et les conditions de stats ; empilés, ils étalaient la
+          carte en hauteur pour rien. `items-start` : la colonne la plus
+          courte ne s'étire pas à la hauteur de l'autre. Sous `lg`, retour à
+          l'empilement (ordre du DOM inchangé). */}
+      <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:gap-6">
       {/* ⚠️ `max-w-md` EN PLUS du `w-fit` de la carte (ceinture et
           bretelles) : `fit-content` se laisse pousser jusqu'à la largeur
-          disponible de la piste de grille (480-560px) si le contenu peut la
-          remplir sans repasser à la ligne — ce plafond garantit que le set
-          reste compact même dans ce cas. */}
+          disponible de la piste de grille si le contenu peut la remplir sans
+          repasser à la ligne — ce plafond garantit que le set reste compact
+          même dans ce cas. */}
       <div
         ref={setPickerSectionRef}
         className={`max-w-md ${
@@ -1029,7 +1047,9 @@ export default function OptimizerSection({ box, runes, optimizer, allMonsters, r
         )}
       </div>
 
-      <div>
+      {/* `flex-none` : se serre sur ses trois rangées de pastilles plutôt
+          que d'absorber l'espace restant de la rangée. */}
+      <div className="lg:flex-none">
         <div className="mb-2.5 flex items-center gap-1.5">
           <p className="label">Statistique principale imposée (slots pairs)</p>
           <HelpPopover title="Statistique principale imposée (slots pairs)">
@@ -1056,6 +1076,7 @@ export default function OptimizerSection({ box, runes, optimizer, allMonsters, r
             </div>
           ))}
         </div>
+      </div>
       </div>
 
       <div>

@@ -63,8 +63,14 @@ continu — demande explicite de l'utilisateur :
 1. **Rangées 1-2 : Monstre & équipement, à côté d'Exclusion de runes +
    Réglages avancés.** « Monstre & équipement » (`row-span-2`) : recherche
    à **gauche** (largeur fixe, `lg:w-56`), fiche d'équipement à **droite**
-   (`lg:flex-1`, artéfacts et roue **compactés** — `scale=0.65`) — la fiche
-   se déploie à côté de la recherche, plus en dessous. Un **sélecteur
+   (`lg:flex-1`, à taille pleine) — la fiche se déploie à côté de la
+   recherche, plus en dessous. ⚠️ **Artéfacts, roue et relique forment un
+   groupe INSÉCABLE** : la roue se lit collée à la droite des emplacements
+   d'artéfacts, la relique juste après. Ils se déplacent ensemble ou pas du
+   tout — séparés, la roue puis la relique passaient à la ligne dans une
+   colonne étroite, cette dernière pouvant finir hors du cadre. C'est la
+   **largeur de la colonne** qui fait la place (voir la grille), jamais une
+   réduction de ce qu'on vient regarder. Un **sélecteur
    d'exemplaire** (Box / RTA / Défenses siège / Offenses siège, même
    contrôle qu'« Exclure les runes d'un monstre » plus bas — jusqu'à une
    liste des exemplaires disponibles pour ce monstre dans la source choisie)
@@ -78,11 +84,14 @@ continu — demande explicite de l'utilisateur :
    qu'on vient de cliquer »). À sa droite : **Exclusion de runes**
    (rangée 1) puis **Réglages avancés** (rangée 2), empilés.
 2. **Rangée 3 : Critères de recherche, à côté d'Objectif de recherche.**
-   « Critères de recherche » (Set → Statistique principale → Artéfacts →
-   Conditions) est **compactée au maximum** (`w-fit` — la carte hugs son
-   contenu plutôt que de s'étirer sur toute la largeur de sa colonne) pour
-   laisser de la place, visuellement, à « Objectif de recherche » à sa
-   droite.
+   « Critères de recherche » est **compactée au maximum** (`w-fit` — la
+   carte hugs son contenu plutôt que de s'étirer sur toute la largeur de sa
+   colonne) pour laisser de la place, visuellement, à « Objectif de
+   recherche » à sa droite. Son contenu : **Set de runes recherché et
+   Statistique principale imposée CÔTE À CÔTE** à partir de `lg` (les deux
+   contraintes qui portent sur les runes elles-mêmes ; empilés, ils
+   étalaient la carte en hauteur pour rien), puis **Artéfacts**, puis
+   **Conditions**.
    ⚠️ **Densité — deux plafonds de largeur en plus du `w-fit` de la
    carte** : le **set de runes recherché** (`max-w-md`, ceinture et
    bretelles — `fit-content` peut encore grandir jusqu'à la largeur

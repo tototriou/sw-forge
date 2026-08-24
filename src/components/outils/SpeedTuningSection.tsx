@@ -30,6 +30,7 @@ import MonsterAvatar from '../MonsterAvatar';
 import {
   Bouton,
   Champ,
+  Option,
   Flottant,
   NumberField,
   Selecteur,
@@ -957,18 +958,11 @@ export default function SpeedTuningSection({ allMonsters, siegeDefenseTeams, sie
         </div>
       ) : (
         <>
-          {/* ⚠️ CÔTE À CÔTE : la card d'analyse tient en deux lignes, la laisser
-              seule sur toute la largeur gaspillait l'écran et éloignait le
-              verdict du réglage qui y répond. `flex-wrap` + une largeur minimale
-              par card, sans breakpoint : elles s'empilent dès qu'il n'y a plus
-              la place, comme les deux camps. `items-start` pour que la petite ne
-              soit pas étirée à la hauteur de la grande. */}
-          <div className="flex flex-wrap items-start gap-4">
             {/* ⚠️ UNE SEULE card pour tout ce que l'outil fait de lui-même : le
                 verdict, ses deux boutons, et l'ordre des sorts. Ils étaient dans
                 deux cadres séparés, ce qui laissait croire à deux outils — alors
                 que « Cacher » les coupe ensemble. */}
-            <section className="min-w-[280px] flex-1 rounded-lg border border-border bg-panel">
+          <section className="rounded-lg border border-border bg-panel">
               <div className="flex flex-wrap items-center gap-x-3 gap-y-2 border-b border-border-soft px-4 py-2.5">
                 <span className="text-micro font-semibold uppercase tracking-wider text-ink-dimmer">
                   Analyse automatique
@@ -1039,12 +1033,9 @@ export default function SpeedTuningSection({ allMonsters, siegeDefenseTeams, sie
                 l'analyse, elle est là comme les grilles. L'analyse la REMPLIT — elle
                 y écrit l'ordre des vitesses et le sort de chacun — mais les deux
                 se lisent et se règlent séparément. */}
-            <section className="min-w-[380px] flex-[2] rounded-lg border border-border bg-panel">
+          <section className="rounded-lg border border-border bg-panel">
                 <div className="border-b border-border-soft px-4 py-2.5 text-micro font-semibold uppercase tracking-wider text-ink-dimmer">
                   Ordre des sorts
-                  <span className="ml-2 font-normal normal-case tracking-normal text-ink-dimmer">
-                    · range tes monstres dans l'ordre voulu et dis ce que chacun lance
-                  </span>
                 </div>
                 <div className="px-4 py-3.5">
                       {ordreVoulu.length === 0 ? (
@@ -1095,33 +1086,79 @@ export default function SpeedTuningSection({ allMonsters, siegeDefenseTeams, sie
                                   </span>
                                   <MonsterAvatar monster={l.monster} size={24} element={false} />
                                   <span className="min-w-0 flex-1 truncate text-sm font-semibold">{l.monster.name}</span>
-                                  {/* Ce qu'il LANCE à son tour : la détection propose,
-                                      ici on tranche (un sort du kit, ou aucun). */}
-                                  <ChoixSort
-                                    sorts={liste}
-                                    valeur={choix ?? ''}
-                                    onChoisir={(v) => choisirSort(uid, v)}
-                                    nomMonstre={l.monster.name}
-                                  />
+                                  {/* ⚠️ Ce qu'il lance se CHOISIT dans une liste posée
+                                      à plat, une option par sort : dans un menu
+                                      déroulant, il fallait ouvrir pour voir ce que
+                                      chacun fait, et on ne comparait jamais deux
+                                      sorts d'un coup d'œil. `Option` est le choix
+                                      riche empilé de la librairie — sa place est ici,
+                                      dans une card, pas dans un flottant. */}
+                                  <ul className="w-full space-y-1">
+                                    {[null, ...liste].map((x) => {
+                                      const valeur = x ? x.nom : '';
+                                      return (
+                                        <li key={valeur || '(aucun)'}>
+                                          <Option
+                                            icone={
+                                              x?.icone ? (
+                                                <img
+                                                  src={x.icone}
+                                                  alt=""
+                                                  width={20}
+                                                  height={20}
+                                                  className="rounded-sm"
+                                                  loading="lazy"
+                                                />
+                                              ) : (
+                                                <Sparkles size={20} className="text-ink-dimmer" />
+                                              )
+                                            }
+                                            titre={x ? `${x.slot ? `S${x.slot} · ` : ''}${x.nom}` : 'Aucun sort'}
+                                            description={
+                                              x ? libelleSort(x).split(' — ')[1] : 'il joue, mais rien qui touche la vitesse'
+                                            }
+                                            actif={(choix ?? '') === valeur}
+                                            onClick={() => choisirSort(uid, valeur)}
+                                          />
+                                        </li>
+                                      );
+                                    })}
+                                  </ul>
                                   {/* ⚠️ Sa compétence lui REND son tour (Kroa) : il
-                                      rejoue au même tick, et lance autre chose. On ne
-                                      devine pas quoi — à désigner. */}
+                                      rejoue au même tick, et lance autre chose. */}
                                   {sortActif(l)?.rejoue && (
-                                    <span className="flex items-center gap-1.5">
-                                      <span
-                                        className="flex-none rounded border border-accent/50 px-1 text-micro font-bold uppercase tracking-wide text-accent"
-                                        title="Cette compétence lui rend son tour : il rejoue aussitôt, au même tick."
-                                      >
-                                        rejoue
-                                      </span>
-                                      <ChoixSort
-                                        sorts={liste.filter((x) => x.nom !== sortActif(l)?.nom)}
-                                        valeur={sortChoisi2[uid] ?? ''}
-                                        onChoisir={(v) => choisirSecond(uid, v)}
-                                        prefixe="puis : "
-                                        nomMonstre={l.monster.name}
-                                      />
-                                    </span>
+                                    <ul className="w-full space-y-1 border-t border-border-soft pt-2">
+                                      <li className="text-micro font-semibold uppercase tracking-wide text-ink-dimmer">
+                                        puis, son tour rendu
+                                      </li>
+                                      {[null, ...liste.filter((x) => x.nom !== sortActif(l)?.nom)].map((x) => {
+                                        const valeur = x ? x.nom : '';
+                                        return (
+                                          <li key={`2-${valeur || '(aucun)'}`}>
+                                            <Option
+                                              icone={
+                                                x?.icone ? (
+                                                  <img
+                                                    src={x.icone}
+                                                    alt=""
+                                                    width={20}
+                                                    height={20}
+                                                    className="rounded-sm"
+                                                    loading="lazy"
+                                                  />
+                                                ) : (
+                                                  <Sparkles size={20} className="text-ink-dimmer" />
+                                                )
+                                              }
+                                              titre={x ? `${x.slot ? `S${x.slot} · ` : ''}${x.nom}` : 'Rien'}
+                                              description={x ? libelleSort(x).split(' — ')[1] : undefined}
+                                              actif={(sortChoisi2[uid] ?? '') === valeur}
+                                              onClick={() => choisirSecond(uid, valeur)}
+                                            />
+                                          </li>
+                                        );
+                                      })}
+                                    </ul>
                                   )}
                                   <span className="w-full sm:w-auto sm:flex-none">
                                     {p ? (
@@ -1155,7 +1192,6 @@ export default function SpeedTuningSection({ allMonsters, siegeDefenseTeams, sie
                       )}
               </div>
             </section>
-          </div>
 
           {/* Barre d'action par tick (résultat, lecture seule) */}
           <section className="rounded-lg border border-border bg-panel">
@@ -1774,109 +1810,7 @@ function FragmentCamp({ children }: { children: React.ReactNode }) {
   return <>{children}</>;
 }
 
-/* ------------------------------------------------------- Choix du sort --- */
-
-// Choisir le sort qu'un monstre lance, AVEC son icône — un joueur reconnaît une
-// compétence à son icône avant d'en lire le nom.
-//
-// ⚠️ Pas un `Selecteur` : un `<select>` natif ne montre que du texte. D'où la
-// même grammaire que l'import de deck (Bouton + Flottant + `Option`), qui est
-// déjà celle de l'app pour une liste ancrée à ce qui l'ouvre.
-function ChoixSort({
-  sorts,
-  valeur,
-  onChoisir,
-  prefixe,
-  nomMonstre,
-}: {
-  sorts: SortVitesse[];
-  // '' = aucun sort, sinon le nom du sort lancé.
-  valeur: string;
-  onChoisir: (v: string) => void;
-  prefixe?: string;
-  nomMonstre: string;
-}) {
-  const [open, setOpen] = useState(false);
-  const ref = useRef<HTMLDivElement | null>(null);
-
-  useEffect(() => {
-    if (!open) return;
-    const onDown = (e: MouseEvent) => {
-      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
-    };
-    const onEsc = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') setOpen(false);
-    };
-    document.addEventListener('mousedown', onDown);
-    document.addEventListener('keydown', onEsc);
-    return () => {
-      document.removeEventListener('mousedown', onDown);
-      document.removeEventListener('keydown', onEsc);
-    };
-  }, [open]);
-
-  const choisi = valeur === '' ? null : (sorts.find((x) => x.nom === valeur) ?? null);
-  // ⚠️ « Sort détecté » ne veut rien dire quand RIEN n'a été détecté : ce qui
-  // compte, c'est ce que le monstre lance — et il ne lance rien.
-  const libelle = choisi?.nom ?? 'Aucun sort';
-
-  const icone = (x: SortVitesse | null, taille: number) =>
-    x?.icone ? (
-      <img src={x.icone} alt="" width={taille} height={taille} className="rounded-sm" loading="lazy" />
-    ) : (
-      <Sparkles size={taille} className="text-ink-dimmer" />
-    );
-
-  return (
-    <div ref={ref} className="relative">
-      <Bouton
-        taille="sm"
-        icone={icone(choisi, 16)}
-        libelle={`${prefixe ?? ''}${libelle}`}
-        aria-expanded={open}
-        title={choisi ? libelleSort(choisi) : `Sort lancé par ${nomMonstre}`}
-        onClick={() => setOpen((v) => !v)}
-      />
-      {open && (
-        <Flottant
-          rembourrage="aucun"
-          largeur="w-[290px]"
-          className="max-h-[320px] overflow-y-auto"
-          role="listbox"
-          aria-label={`Sort lancé par ${nomMonstre}`}
-        >
-          {/* ⚠️ Des RANGÉES à plat, pas des cartes : `Option` porte son propre
-              cadre arrondi, fait pour un choix empilé dans un dialogue. Dans une
-              surface flottante, l'app pose des rangées qui touchent les bords —
-              même grammaire que l'import de deck et la recherche de monstre. */}
-          <Rangee
-            icone={<Sparkles size={22} className="text-ink-dimmer" />}
-            titre="Aucun sort"
-            detail="Il joue, mais rien qui touche la vitesse"
-            actif={valeur === ''}
-            onClick={() => {
-              onChoisir('');
-              setOpen(false);
-            }}
-          />
-          {sorts.map((x) => (
-            <Rangee
-              key={x.nom}
-              icone={icone(x, 22)}
-              titre={`${x.slot ? `S${x.slot} · ` : ''}${x.nom}`}
-              detail={libelleSort(x).split(' — ')[1]}
-              actif={valeur === x.nom}
-              onClick={() => {
-                onChoisir(x.nom);
-                setOpen(false);
-              }}
-            />
-          ))}
-        </Flottant>
-      )}
-    </div>
-  );
-}
+/* ------------------------------------------------------- Import deck ----- */
 
 // Une rangée de liste flottante : icône, titre, et ce que ça fait en dessous.
 // Sans cadre ni coins arrondis — c'est la surface flottante qui porte la forme,
@@ -1913,8 +1847,6 @@ function Rangee({
     </ZoneCliquable>
   );
 }
-
-/* ------------------------------------------------------- Import deck ----- */
 
 const LIBELLE_SOURCE: Record<DeckDispo['source'], string> = {
   defense: 'Défense',

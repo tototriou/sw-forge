@@ -201,15 +201,14 @@ sorts, et « Aucun sort ».
   liste ne suit plus les vitesses et se contente de suivre la composition (un
   allié ajouté entre à la fin, un retiré en sort). Le réécrire après coup serait
   une perte silencieuse.
-- **Sort par monstre**, choisi dans une liste à **icônes** — ⚠️ un joueur
-  reconnaît une compétence à son icône avant d'en lire le nom, et un `<select>`
-  natif ne montre que du texte : c'est donc la grammaire Bouton + `Flottant` +
-  **rangées à plat** de la librairie, celle de l'import de deck et de la
-  recherche de monstre. ⚠️ **Pas des cartes `Option`** : elles portent leur propre
-  cadre arrondi, fait pour un choix empilé dans un dialogue — posées dans une
-  surface flottante déjà arrondie, elles font des coins dans des coins. Dans un
-  flottant, c'est la surface qui porte la forme et les rangées la remplissent
-  bord à bord. Le bouton porte l'icône du
+- **Sort par monstre**, en **options empilées** (`Option` de la librairie : le
+  choix riche, avec icône, titre et ce que ça fait) — une par sort, plus
+  « Aucun sort ». ⚠️ **Pas un menu déroulant** : il fallait l'ouvrir pour voir ce
+  que chaque sort fait, et on ne comparait jamais deux sorts d'un coup d'œil.
+  ⚠️ C'est bien la place d'`Option` — **dans une card**, où son cadre arrondi
+  délimite un choix ; ce qu'il ne faut pas, c'est l'empiler dans un `Flottant`,
+  déjà arrondi, où il fait des coins dans des coins (voir l'import de deck, qui
+  utilise des rangées à plat). Le bouton porte l'icône du
   sort retenu. Trois familles d'entrées : « Sort détecté » (celui que la lecture
   du kit a retenu),
   « Aucun sort », ou **n'importe quelle compétence** du kit — ⚠️ **toutes** sont
@@ -482,12 +481,9 @@ De haut en bas :
    - ⚠️ **« Ordre des sorts » est une card INDÉPENDANTE**, pas un sous-bloc et pas
      un panneau qu'on ouvre depuis l'analyse : elle est là comme les grilles.
      L'analyse **la remplit**, mais les deux se lisent et se règlent séparément.
-   - ⚠️ **Les deux cards sont CÔTE À CÔTE** : celle de l'analyse tient en deux
-     lignes, la laisser seule sur toute la largeur gaspillait l'écran et
-     éloignait le verdict du réglage qui y répond. `flex-wrap` + une largeur
-     minimale par card (280 / 380 px) **sans breakpoint**, comme les deux camps :
-     elles s'empilent dès qu'il n'y a plus la place. `items-start`, pour que la
-     petite ne soit pas étirée à la hauteur de la grande.
+   - Les deux cards sont **l'une sous l'autre**, chacune sur toute la largeur :
+     la liste des sorts s'y déploie à plat (voir plus bas), ce qui demande de la
+     place.
    - ⚠️ **« Analyser » REPOSE l'adversaire de référence** sur le plus rapide du
      moment, à chaque fois. Il n'était posé qu'en l'absence de tout adversaire :
      une fois là, il ne bougeait plus jamais — appliquer un passif (Chilling, +20

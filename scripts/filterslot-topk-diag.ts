@@ -15,7 +15,7 @@
 //
 // Usage : filterslot-topk-diag.ts [scenarios=200] [seed=9000]
 
-import { EffectLine, RuneDetail, StatKey } from '../src/types';
+import { BaseStats, EffectLine, RuneDetail, StatKey } from '../src/types';
 import {
   BuildRequirement,
   MAX_PER_SLOT_FILL,
@@ -88,6 +88,12 @@ const FILTER_SLOT_WIDENING_PER_CONDITION = 20;
 // de divergence de ce script sans qu'aucune erreur tsc ne le détecte (voir
 // historique-dimensionnement.md, « revue de code externe »).
 
+// Synthétique mais réaliste (mêmes ordres de grandeur qu'un vrai monstre) —
+// ce script ne teste PAS la pondération pct/flat par base (sujet d'un autre
+// script), juste l'équivalence tas/tri à égalité de score ; toute base fixe
+// non nulle convient tant qu'elle est la MÊME des deux côtés de la comparaison.
+const SYNTHETIC_BASE: BaseStats = { hp: 9000, atk: 900, def: 500, spd: 100, cr: 15, cd: 50, res: 15, acc: 0 };
+
 function filterSlotOld(
   candidates: RuneDetail[],
   requirement: BuildRequirement,
@@ -96,7 +102,7 @@ function filterSlotOld(
   objective?: Objective
 ): RuneDetail[] {
   const requiredKeys = new Set(requirement.sets);
-  const scored = candidates.map((r) => ({ r, s: relevance(r, requirement) })).sort((a, b) => b.s - a.s);
+  const scored = candidates.map((r) => ({ r, s: relevance(r, requirement, SYNTHETIC_BASE) })).sort((a, b) => b.s - a.s);
 
   const conditionCount = Object.values(requirement.minStats).filter((v) => v != null && v > 0).length;
   const extraCap = Math.max(0, conditionCount - FILTER_SLOT_WIDENING_THRESHOLD) * FILTER_SLOT_WIDENING_PER_CONDITION;
@@ -116,7 +122,9 @@ function filterSlotOld(
     const top = candidates
       .map((r) => {
         const c = runeContribution(r, k);
-        return { r, v: c.pct + c.flat };
+        const b = (SYNTHETIC_BASE as unknown as Record<string, number>)[k] ?? 0;
+        const v = k === 'hp' || k === 'atk' || k === 'def' ? Math.ceil((b * c.pct) / 100) + c.flat : c.flat;
+        return { r, v };
       })
       .sort((a, b) => b.v - a.v)
       .slice(0, keepN);
@@ -166,7 +174,7 @@ for (let s = 0; s < SCENARIOS; s++) {
   const requirement: BuildRequirement = { sets, minStats };
   const objective = OBJECTIVES[Math.floor(rng() * OBJECTIVES.length)];
 
-  const newKept = filterSlot(candidates, requirement, MAX_PER_SLOT_MATCH, MAX_PER_SLOT_FILL, objective);
+  const newKept = filterSlot(candidates, requirement, SYNTHETIC_BASE, MAX_PER_SLOT_MATCH, MAX_PER_SLOT_FILL, objective);
   const oldKept = filterSlotOld(candidates, requirement, MAX_PER_SLOT_MATCH, MAX_PER_SLOT_FILL, objective);
 
   const a = idSet(newKept);

@@ -76,7 +76,7 @@ const targetRune = gear.runes.find((r) => r.slot === targetSlot)!;
 console.log(`Slot ${targetSlot} — rune réelle id=${targetRune.id} (${targetRune.set}) — pool avant filterSlot : ${pool.length} runes`);
 console.log(`minStats : ${JSON.stringify(minStats)} · objective=${objective ?? '(aucun)'} · slotFilterCap=${slotFilterCap}`);
 
-const scored = pool.map((r) => ({ r, s: relevance(r, requirement) })).sort((a, b) => b.s - a.s);
+const scored = pool.map((r) => ({ r, s: relevance(r, requirement, base) })).sort((a, b) => b.s - a.s);
 const relRank = scored.findIndex((s) => s.r.id === targetRune.id) + 1;
 console.log(`\nrelevance() combinée (matchCap/fillCap=${slotFilterCap}) : rang #${relRank} / ${pool.length}`);
 console.log(`  score cible=${scored[relRank - 1]?.s.toFixed(3)}, meilleur=${scored[0]?.s.toFixed(3)}`);
@@ -85,7 +85,14 @@ const objectiveKeys = objective ? (objective === 'degats' ? ['atk', 'cd'] : obje
 console.log('\nPar stat individuelle :');
 for (const k of ALL_STAT_KEYS) {
   const keepN = objectiveKeys.includes(k) ? PER_STAT_KEEP_OBJECTIVE : PER_STAT_KEEP;
-  const top = pool.map((r) => ({ r, v: runeContribution(r, k).pct + runeContribution(r, k).flat })).sort((a, b) => b.v - a.v);
+  const top = pool
+    .map((r) => {
+      const c = runeContribution(r, k);
+      const b = (baseRec[k] ?? 0);
+      const v = k === 'hp' || k === 'atk' || k === 'def' ? Math.ceil((b * c.pct) / 100) + c.flat : c.flat;
+      return { r, v };
+    })
+    .sort((a, b) => b.v - a.v);
   const rank = top.findIndex((t) => t.r.id === targetRune.id) + 1;
   const kept = rank > 0 && rank <= keepN;
   console.log(`  ${k.padEnd(4)} (garde ${keepN}) : rang #${rank} / ${pool.length} ${kept ? '✅ retenue' : '❌ hors budget'} (cible=${top[rank - 1]?.v}, meilleur=${top[0]?.v})`);

@@ -334,6 +334,8 @@ async function runOnce(c: Case, maxMs: number = MAX_MS): Promise<CaseOutcome> {
     bucketCap: prepared.bucketCap,
     jokerCredit: prepared.jokerCredit,
     requiredPieces: prepared.requiredPieces,
+    base: prepared.base,
+    objectiveKeys: prepared.objectiveKeys,
     // ⚠️ Relayés depuis params — voir build-half-worker.ts, le worker
     // ignorait ces deux champs jusqu'ici, retombant toujours sur le défaut
     // interne de buildBuckets. CASES ne les fixe pas aujourd'hui (undefined

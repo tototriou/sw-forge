@@ -75,14 +75,15 @@ const maxKeys = new Set(maxEntries.map((e) => e.k));
 let bySlot = mainStatFilteredBySlot(allRunes, requirement);
 bySlot = bySlot.map((list) => pruneDominated(list, requiredKeys, maxKeys));
 bySlot = eliminateInfeasible(bySlot, minEntries, maxEntries, constrainedKeys, guaranteed, artFlat, relPct, totalOf);
-const filtered = bySlot.map((list) => filterSlot(list, requirement, slotFilterCap, slotFilterCap, objective));
+const filtered = bySlot.map((list) => filterSlot(list, requirement, base, slotFilterCap, slotFilterCap, objective));
 
 const requiredPieces = distinctKeys.map((key) => setPieces(key) * requirement.sets.filter((s) => s === key).length);
 const jokerCredit = anyJokerAvailable(filtered) ? 1 : 0;
 const maxSetsForB = maxSetCountsForSlots(filtered, [0, 1, 2], distinctKeys);
 
+const objectiveKeys: StatKey[] = objective ? OBJECTIVE_RELEVANT_STATS[objective] : [];
 const bucketsB = drain(
-  buildBuckets('B', [3, 4, 5], { filtered, distinctKeys, constrainedKeys, retentionKeys, minEntries, bucketCap, jokerCredit, requiredPieces }, maxSetsForB)
+  buildBuckets('B', [3, 4, 5], { filtered, distinctKeys, constrainedKeys, retentionKeys, minEntries, bucketCap, jokerCredit, requiredPieces, base, objectiveKeys }, maxSetsForB)
 );
 
 const targetIdsB = gear.runes.filter((r) => r.slot >= 4).map((r) => r.id);

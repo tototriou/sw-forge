@@ -93,7 +93,7 @@ export default function BuildCandidateCard({
       <div className="flex items-center justify-between mb-2">
         <span className="font-mono text-xs font-bold text-star">#{rank}</span>
         <span className="font-mono text-xs text-ink-dim">
-          {formatRuneMetric(liveTotal / 6, metric)} en moyenne
+          {metric === 'eff' ? 'Efficience moyenne' : 'Score moyen'} : {formatRuneMetric(liveTotal / 6, metric)}
         </span>
       </div>
 

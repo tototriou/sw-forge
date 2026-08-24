@@ -85,10 +85,12 @@ const DISCORD_INVITE = 'https://discord.gg/R2Fe4GJZET';
 // Pages dont les actions et les filtres passent dans le panneau mobile
 // (`MobileSheet`), ouvert par le bouton « Options » au-dessus de la barre
 // d'onglets.
-// ⚠️ L'OPTIMISEUR en est absent, et ce n'est pas un oubli : ses réglages SONT
-// son contenu — la page est une suite de champs lus de haut en bas (voir la
-// largeur bornée à 768 px dans navigation.md). Les descendre dans un panneau
-// laisserait une page vide au-dessus d'un bouton.
+// ⚠️ **L'OPTIMISEUR y est revenu** — Réglages avancés et Exclusion de runes
+// SEULS (voir OptimizerSection.tsx), pas l'écran entier : Monstre &
+// équipement, Critères de recherche et Résultats restent dans la page, qui
+// n'est donc jamais vide au-dessus du bouton. Réglages avancés/Exclusion de
+// runes, eux, sont des réglages secondaires consultés une fois puis oubliés
+// — exactement le profil qui gagne à sortir du défilement principal.
 // ⚠️ Même chose pour Accueil, Mécaniques, Nouveautés et Paramètres : aucune
 // action à y loger. Leur ouvrir un panneau vide serait pire que ne rien
 // proposer — c'est la règle qui décide de l'appartenance à cette liste.
@@ -1056,23 +1058,38 @@ export default function App() {
         }
       />
 
-      {/* ⚠️ `pb-24` sous `lg` : la barre d'onglets est fixée en bas et
-          recouvrirait le pied de page. */}
+      {/* ⚠️ `pb-[calc(...)]` sous `lg` : la barre d'onglets est fixée en bas
+          et recouvrirait le pied de page. */}
       {/* ⚠️ **Toute la largeur disponible**, plus de plafond à 1180 px. Celui-ci
           datait de la navigation horizontale : le contenu était centré sous une
           barre elle-même centrée. Avec une barre latérale, la page commence à
           son bord droit et doit aller jusqu'au bout — les grilles de monstres,
           les tableaux de runes et l'optimiseur gagnent une à deux colonnes.
           ⚠️ `pt-[68px]` : la barre supérieure est FIXE (48 px) et recouvrirait
-          le haut du contenu. `pb-24` sous `lg` : la barre d'onglets est fixée
-          en bas. */}
+          le haut du contenu. `pb-[calc(...)]` sous `lg` : la barre d'onglets
+          est fixée en bas. */}
       {/* ⚠️ Le dégagement du haut inclut l'ENCOCHE : la barre supérieure
           descend sous elle (voir TopBar), donc le contenu doit descendre
           d'autant.
           ⚠️ **En `padding`, pas en `margin`** : une marge s'effondrerait hors du
           conteneur et la barre recouvrirait de nouveau le début de la page. */}
+      {/* ⚠️ **`pb-[calc(116px_+_env(safe-area-inset-bottom))]`, pas `pb-24`
+          (96 px) — mesuré insuffisant.** La barre d'onglets (`HAUTEUR_ONGLETS`,
+          52 px) porte au-dessus d'elle le bouton flottant « Options »
+          (`MobileTabs.tsx` : décalé de `env(safe-area-inset-bottom) + 16px`,
+          haut mesuré 40 px) — son bord SUPÉRIEUR est donc à
+          `env(safe-area-inset-bottom) + 52+16+40 = env(...) + 108px` du bas de
+          l'écran. `pb-24` (96 px fixe, sans `env()`) laissait la dernière
+          rangée de contenu — ex. les tuiles de `RunesOptim.tsx` — en partie
+          SOUS ces deux éléments fixes, jamais atteignable en défilant même sur
+          un appareil SANS encoche basse (108 > 96) : `elementFromPoint` sur
+          une tuile de rune y résolvait le lien de navigation ou le bouton
+          Options en dessous, pas la tuile elle-même (confirmé avec Playwright,
+          viewport mobile réel — voir historique-*.md sous compte/runes.md).
+          `116px` = 108 px + 8 px de respiration, `+ env(safe-area-inset-bottom)`
+          pour rester aligné avec le même terme dans `MobileTabs.tsx`. */}
       <div
-        className="px-4 pb-24 sm:px-6 lg:pb-16"
+        className="px-4 pb-[calc(116px_+_env(safe-area-inset-bottom))] sm:px-6 lg:pb-16"
         style={{ paddingTop: 'calc(68px + env(safe-area-inset-top))' }}
       >
 

@@ -210,14 +210,12 @@ export default function SpeedTuningSection({ allMonsters, siegeDefenseTeams, sie
   // Analyse poussée : l'ordre des tours VOULU (uids, du premier au dernier) et,
   // par monstre, le sort qu'il lance à son tour ('' = aucun ; absent = celui que
   // la lecture du kit a retenu).
-  // ⚠️ L'analyse AUTOMATIQUE, c'est deux choses à la fois, et la couper doit
-  // couper les deux : l'adversaire de référence posé en face, ET les compétences
-  // que l'outil lit dans les kits pour remplir les grilles tout seul. Coupée, la
-  // simulation n'obéit plus qu'à ce qu'on a saisi — c'est bien le but : « je
-  // regarde ce que ça donne, puis je fais ce que je veux ».
-  //
-  // Un sort DÉSIGNÉ dans l'analyse poussée reste appliqué : ce n'est plus une
-  // déduction de l'outil, c'est un choix.
+  // ⚠️ L'analyse AUTOMATIQUE, c'est TOUT ce que l'outil fait de lui-même, et la
+  // couper coupe tout : l'adversaire de référence posé en face, les compétences
+  // lues dans les kits qui remplissent les deux grilles, et **l'analyse poussée**
+  // (ordre imposé + sort désigné), qui en est un raffinement et non un mode à
+  // part. Coupée, la simulation n'obéit plus qu'à ce qu'on a saisi — c'est le
+  // but : « je regarde ce que ça donne, puis je fais ce que je veux ».
   const [auto, setAuto] = useStickyState<boolean>('speedTune.auto', true);
   const [poussee, setPoussee] = useStickyState<boolean>('speedTune.poussee', false);
   const [ordreVoulu, setOrdreVoulu] = useStickyState<string[]>('speedTune.ordre', []);
@@ -380,6 +378,7 @@ export default function SpeedTuningSection({ allMonsters, siegeDefenseTeams, sie
   // donne, on la cache pour travailler tranquille, et on la rappelle d'un clic.
   function cacherAnalyse() {
     setAuto(false);
+    setPoussee(false); // l'analyse poussée fait partie de l'automatique
     setLignes((prev) => prev.map((l) => (l.reference ? { ...l, masque: true } : l)));
   }
 
@@ -902,11 +901,13 @@ export default function SpeedTuningSection({ allMonsters, siegeDefenseTeams, sie
                 icone={<ListOrdered size={14} />}
                 libelle="Analyse poussée"
                 actif={poussee}
-                disabled={!aAllie}
+                disabled={!aAllie || !auto}
                 title={
-                  aAllie
-                    ? "Imposer l'ordre des tours et le sort lancé par chacun, puis voir la fenêtre de vitesse que chaque rang laisse."
-                    : "Ajoute d'abord des monstres à ton équipe."
+                  !aAllie
+                    ? "Ajoute d'abord des monstres à ton équipe."
+                    : !auto
+                      ? "L'analyse est coupée : relance-la pour régler l'ordre et les sorts."
+                      : "Imposer l'ordre des tours et le sort lancé par chacun, puis voir la fenêtre de vitesse que chaque rang laisse."
                 }
                 onClick={() => setPoussee((v) => !v)}
               />
@@ -914,7 +915,7 @@ export default function SpeedTuningSection({ allMonsters, siegeDefenseTeams, sie
           </section>
 
           {/* Analyse poussée : l'ordre des tours et le sort de chacun */}
-          {poussee && (
+          {auto && poussee && (
             <section className="rounded-lg border border-border bg-panel">
               <div className="border-b border-border-soft px-4 py-2.5 text-micro font-semibold uppercase tracking-wider text-ink-dimmer">
                 Analyse poussée · ordre des sorts

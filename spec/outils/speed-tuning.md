@@ -172,6 +172,9 @@ agir dès le tick 1 — au-delà il n'y a plus rien à gagner).
 
 ## Analyse poussée (ordre imposé + sort de chacun)
 
+⚠️ **Elle fait partie de l'analyse automatique** : c'est le même travail, en plus
+fin. Couper l'analyse la coupe aussi (bouton désactivé, panneau refermé).
+
 L'analyse simple répond à « est-ce que tout le monde joue avant l'adverse ». Un
 combo construit demande plus : **un ordre précis** — celui qui remplit la barre
 part en premier, le nettoyeur de buffs ensuite, le gros dégât en dernier — et
@@ -418,16 +421,18 @@ De haut en bas :
    artéfact, ou une cellule de grille) : elle devient un adversaire ordinaire,
    qu'on ne réécrit plus — écraser un réglage serait une perte silencieuse.
 
-   ⚠️ **Le bouton a DEUX temps, et il coupe DEUX choses à la fois.** « Analyse
-   automatique » lit les kits (les deux grilles se remplissent toutes seules) et
-   pose l'adversaire de référence si personne n'est en face ; **« Cacher
-   l'analyse »** coupe les deux : les compétences ne sont plus déduites, les
-   grilles n'obéissent plus qu'à ce qu'on y saisit, et la référence passe de côté
-   (**masquée**, pas supprimée — même état que l'œil d'une card). Ce qu'on a
-   saisi reste. On regarde ce que l'analyse donne, puis on fait ce qu'on veut.
+   ⚠️ **« Analyse automatique » désigne TOUT ce que l'outil fait de lui-même**, et
+   « Cacher l'analyse » coupe tout d'un coup :
+   - les **compétences lues dans les kits** — les deux grilles cessent de se
+     remplir toutes seules et n'obéissent plus qu'à ce qu'on y saisit ;
+   - l'**adversaire de référence**, mis de côté (**masqué**, pas supprimé — même
+     état que l'œil d'une card) ;
+   - l'**analyse poussée**, qui en est un raffinement et non un mode à part : son
+     bouton se désactive et son panneau se referme, donc l'ordre imposé et les
+     sorts désignés ne pèsent plus rien.
 
-   ⚠️ **Un sort DÉSIGNÉ dans l'analyse poussée continue de s'appliquer**, analyse
-   coupée ou non : ce n'est plus une déduction de l'outil, c'est un choix.
+   Ce qu'on a **saisi** reste, dans les deux grilles comme sur les cards. On
+   regarde ce que l'analyse donne, puis on fait ce qu'on veut.
 
    Il est **désactivé** sans équipe, ou quand « En face » porte un **vrai**
    adversaire (l'analyse s'y recalcule à chaque changement, il n'y a rien à

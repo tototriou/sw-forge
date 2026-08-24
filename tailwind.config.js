@@ -37,6 +37,9 @@ export default {
 
         // Sémantique : un état des DONNÉES, jamais « ceci est sélectionné ».
         good: 'rgb(var(--good) / <alpha-value>)',
+        // Fond doux de `good` : avec `bad-soft`, la paire qui oppose deux camps
+        // dans le speed tuning.
+        'good-soft': 'rgb(var(--good-soft) / <alpha-value>)',
         warn: 'rgb(var(--warn) / <alpha-value>)',
         bad: 'rgb(var(--bad) / <alpha-value>)',
         // Fond doux de `bad` : le pendant de `accent-soft`. Le speed tuning s'en

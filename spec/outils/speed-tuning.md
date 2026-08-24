@@ -556,11 +556,13 @@ Le cœur de l'outil, dans `simulerOrdre` (speedTune.ts), **testé**
 ## Les deux camps se voient
 
 ⚠️ **Ton équipe et « En face » se distinguent à la COULEUR, pas à la position.**
-`accent` pour le tien, `bad` pour l'adverse — la sémantique de l'app, où `bad`
-dit déjà « ce qui te coupe ».
+`good` pour le tien, `bad` pour l'adverse — la sémantique de l'app, où `bad` dit
+déjà « ce qui te coupe ». ⚠️ **Pas `accent`** : il dit « ceci est actif ou
+sélectionné », pas à qui appartient une ligne, et sur le thème Forge il est
+cuivre — « ton équipe » y virait à l'orange, à un cheveu du `warn` voisin.
 
-- **Le panneau d'un camp** porte son contour (`border-accent/45` /
-  `border-bad/45`) et son bandeau de titre (`accent-soft` / `bad-soft`).
+- **Le panneau d'un camp** porte son contour (`border-good/45` /
+  `border-bad/45`) et son bandeau de titre (`good-soft` / `bad-soft`).
   ⚠️ Le contour **remplace** celui du panneau au lieu de s'y ajouter : deux
   contours concentriques sont interdits par la charte.
 - **La colonne des noms** des trois tableaux porte la même teinte. C'est la seule

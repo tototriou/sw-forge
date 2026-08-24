@@ -47,6 +47,10 @@
   --accent: 43 54 165;
   --accent-soft: 226 229 247;
   --good: 20 106 65;
+  /* Fond doux de `good`, même construction que `--bad-soft` : la teinte fondue
+     dans la surface. Ils vont par PAIRE — le speed tuning oppose ton équipe
+     (`good`) au camp d'en face (`bad`). */
+  --good-soft: 226 244 233;
   /* `warn` et `star` portent des CHIFFRES qu'on lit (max d'efficience). */
   --warn: 138 87 12;
   --bad: 176 28 28;
@@ -177,6 +181,7 @@
   --forge-accent: 210 122 66;
   --forge-accent-soft: 48 38 34;
   --forge-good: 127 190 127;
+  --forge-good-soft: 27 42 33;
   --forge-warn: 217 164 65;
   /* Éclairci : `bad` passait sous 4.0 sur panel2, or il porte les alertes. */
   --forge-bad: 226 116 104;
@@ -237,6 +242,7 @@
     --accent: var(--forge-accent);
     --accent-soft: var(--forge-accent-soft);
     --good: var(--forge-good);
+    --good-soft: var(--forge-good-soft);
     --warn: var(--forge-warn);
     --bad: var(--forge-bad);
     --bad-soft: var(--forge-bad-soft);
@@ -287,6 +293,7 @@
   --accent: var(--forge-accent);
   --accent-soft: var(--forge-accent-soft);
   --good: var(--forge-good);
+  --good-soft: var(--forge-good-soft);
   --warn: var(--forge-warn);
   --bad: var(--forge-bad);
   --bad-soft: var(--forge-bad-soft);

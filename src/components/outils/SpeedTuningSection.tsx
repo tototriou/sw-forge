@@ -730,7 +730,7 @@ export default function SpeedTuningSection({
                             dessous. */}
                         <th
                           className={`sticky left-0 z-[2] border-r border-border-soft px-3 py-1.5 text-left font-normal ${
-                            adv ? 'bg-bad-soft' : 'bg-accent-soft'
+                            adv ? 'bg-bad-soft' : 'bg-good-soft'
                           }`}
                         >
                           <span className="flex items-center gap-2">
@@ -752,7 +752,10 @@ export default function SpeedTuningSection({
                           const num = numAction.get(`${e.id}@${t}`);
                           const estAction = num != null;
                           const atb = e.trajectoire[t - 1];
-                          const fond = estAction ? (adv ? 'bg-bad/15' : 'bg-accent-soft') : '';
+                          // Les DEUX camps par une transparence de leur couleur : `accent-soft` était
+                        // un fond opaque d'un côté et un voile de l'autre, deux
+                        // intensités pour un même repère.
+                        const fond = estAction ? (adv ? 'bg-bad/15' : 'bg-good/15') : '';
                           const encre = estAction
                             ? 'font-bold text-ink'
                             : atb != null && atb >= 100
@@ -764,7 +767,7 @@ export default function SpeedTuningSection({
                               {estAction && (
                                 <span
                                   className={`absolute -right-0.5 -top-1 flex h-4 min-w-[1rem] items-center justify-center rounded-full px-0.5 text-micro font-bold text-bg ${
-                                    adv ? 'bg-bad' : 'bg-accent'
+                                    adv ? 'bg-bad' : 'bg-good'
                                   }`}
                                 >
                                   {num}
@@ -781,7 +784,7 @@ export default function SpeedTuningSection({
             </div>
             <div className="flex flex-wrap gap-x-5 gap-y-1 border-t border-border-soft px-4 py-2.5 text-xs text-ink-dim">
               <span className="flex items-center gap-1.5">
-                <span className="inline-block h-3 w-3 rounded bg-accent-soft" /> Ton équipe agit
+                <span className="inline-block h-3 w-3 rounded bg-good/25" /> Ton équipe agit
               </span>
               <span className="flex items-center gap-1.5">
                 <span className="inline-block h-3 w-3 rounded bg-bad/25" /> Adversaire agit
@@ -840,7 +843,7 @@ export default function SpeedTuningSection({
                         <span className="flex items-center gap-1.5">
                           <span
                             className={`flex h-5 w-5 items-center justify-center rounded-full text-micro font-bold text-bg ${
-                              adv ? 'bg-bad' : 'bg-accent'
+                              adv ? 'bg-bad' : 'bg-good'
                             }`}
                           >
                             {a.ordre}
@@ -950,16 +953,16 @@ function CampPanneau({
     // teinte une bande existante au lieu d'en ajouter une.
     <section
       className={`min-w-[280px] flex-1 rounded-lg border bg-panel ${
-        adv ? 'border-bad/45' : 'border-accent/45'
+        adv ? 'border-bad/45' : 'border-good/45'
       }`}
     >
       <div
         className={`flex items-center gap-2 border-b px-3.5 py-2.5 ${
-          adv ? 'border-bad/30 bg-bad-soft' : 'border-accent/30 bg-accent-soft'
+          adv ? 'border-bad/30 bg-bad-soft' : 'border-good/30 bg-good-soft'
         }`}
       >
         <span className={`flex items-center gap-1.5 text-sm font-bold ${adv ? 'text-bad' : 'text-ink'}`}>
-          <span className={adv ? 'text-bad' : 'text-accent'}>{icone}</span>
+          <span className={adv ? 'text-bad' : 'text-good'}>{icone}</span>
           {titre}
         </span>
         <span className="ml-auto flex items-center gap-1.5">
@@ -1342,11 +1345,11 @@ function GrilleMod({
                   <tr className="border-b border-border-soft bg-panel2/40">
                     <th
                       className={`sticky left-0 z-[2] border-r border-border-soft px-3 py-1.5 text-left ${
-                        adv ? 'bg-bad-soft' : 'bg-accent-soft'
+                        adv ? 'bg-bad-soft' : 'bg-good-soft'
                       }`}
                     >
-                      <span className={`flex items-center gap-1.5 text-xs font-bold ${adv ? 'text-bad' : 'text-accent'}`}>
-                        <span className={`h-2 w-2 rounded-full ${adv ? 'bg-bad' : 'bg-accent'}`} />
+                      <span className={`flex items-center gap-1.5 text-xs font-bold ${adv ? 'text-bad' : 'text-good'}`}>
+                        <span className={`h-2 w-2 rounded-full ${adv ? 'bg-bad' : 'bg-good'}`} />
                         {label}
                       </span>
                     </th>
@@ -1367,7 +1370,7 @@ function GrilleMod({
                           collante dit à quel camp la ligne appartient. */}
                       <th
                         className={`sticky left-0 z-[2] border-r border-border-soft px-3 py-1.5 text-left font-normal ${
-                          adv ? 'bg-bad-soft' : 'bg-accent-soft'
+                          adv ? 'bg-bad-soft' : 'bg-good-soft'
                         }`}
                       >
                         <span className="flex items-center gap-2">

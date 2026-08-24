@@ -68,16 +68,23 @@ hexadécimal.
 |-------|-------|---------|------|
 | `accent` | `#d2723a` | `#3f4bb8` | Accent unique : état actif, focus, lien |
 | `accent-soft` | `#d2723a1f` | `#3f4bb812` | Fond d'un élément actif |
-| `good` | `#7fbe7f` | `#2f855a` | Au tick, gain, succès |
+| `good` | `#7fbe7f` | `#2f855a` | Au tick, gain, succès — et **ton camp** |
+| `good-soft` | `#1b2a21` | `#e2f4e9` | Fond doux de `good` |
 | `warn` | `#d9a441` | `#b7791f` | Avertissement |
 | `bad` | `#cf5b4e` | `#c53030` | Hors tick, destructif, erreur |
 | `bad-soft` | `#301c20` | `#fae6e6` | Fond doux de `bad` — le pendant d'`accent-soft` |
 
-⚠️ **`bad-soft` comble un AXE, pas une variante de plus** : l'accent et les
-éléments avaient leur fond doux, la sémantique non. Il sert à **opposer deux
-camps** (speed tuning : `accent-soft` = ton équipe, `bad-soft` = en face) là où
-une transparence ne convient pas — une colonne collante passe par-dessus le
-tableau qui défile dessous, il lui faut un fond SOLIDE.
+⚠️ **`good-soft` et `bad-soft` comblent un AXE, pas une variante de plus** :
+l'accent et les éléments avaient leur fond doux, la sémantique non. Ils vont par
+PAIRE et servent à **opposer deux camps** (speed tuning : `good` = ton équipe,
+`bad` = en face) là où une transparence ne convient pas — une colonne collante
+passe par-dessus le tableau qui défile dessous, il lui faut un fond SOLIDE.
+
+⚠️ **Deux camps, c'est de la SÉMANTIQUE, pas de l'accent.** L'accent dit « ceci
+est actif ou sélectionné » — il ne dit pas à qui appartient une ligne. Et sur le
+thème Forge il est cuivre : « ton équipe » y virait à l'orange, à un cheveu du
+`warn` d'à côté. `good`/`bad` disent l'état de la donnée, et `bad` portait déjà
+« ce qui te coupe » : la paire se referme d'elle-même.
 
 ⚠️ **La sémantique n'est pas l'accent.** `good`/`warn`/`bad` disent un état des
 données ; `accent` dit « ceci est actif ou sélectionné ». Les confondre rend un

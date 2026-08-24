@@ -95,6 +95,9 @@ interface Ligne {
   // qui dépend du combat, c'est le nombre de fois — c'est donc la seule chose
   // qu'on demande.
   cumulsPassif?: number | null;
+  // Le gain du passif est-il pris en compte ? Actif par défaut (`undefined`) :
+  // un passif est toujours en vigueur en jeu.
+  passifActif?: boolean;
   // Adversaire de RÉFÉRENCE posé par l'analyse automatique (copie du monstre le
   // plus rapide de l'équipe au moment du clic).
   //
@@ -379,6 +382,8 @@ export default function SpeedTuningSection({ allMonsters, siegeDefenseTeams, sie
       speedMod: {},
       artefactBuff: modele.artefactBuff,
       swift: modele.swift,
+      cumulsPassif: modele.cumulsPassif,
+      passifActif: modele.passifActif,
       reference: true,
       masque: false,
     };
@@ -410,6 +415,31 @@ export default function SpeedTuningSection({ allMonsters, siegeDefenseTeams, sie
     else setLignes((prev) => prev.map((l) => (l.reference ? { ...l, masque: false } : l)));
   }
 
+  // ⚠️ **Un passif change qui est le plus rapide.** Tant que l'analyse tourne, la
+  // référence se recale donc sur le plus rapide du MOMENT — sinon on compare son
+  // équipe à une copie d'un monstre qui ne l'est plus. Elle s'arrête net dès que
+  // l'analyse est coupée (import de deck, bouton « Cacher »).
+  useEffect(() => {
+    if (!auto) return;
+    const ref = lignes.find((l) => l.reference);
+    if (!ref) return;
+    const modele = plusRapideAllie();
+    if (!modele) return;
+    const cible = ligneReference(modele);
+    const identique =
+      ref.uid === cible.uid &&
+      ref.runeSpeed === cible.runeSpeed &&
+      ref.artefactBuff === cible.artefactBuff &&
+      ref.swift === cible.swift &&
+      ref.cumulsPassif === cible.cumulsPassif &&
+      ref.passifActif === cible.passifActif;
+    if (identique) return;
+    setLignes((prev) => [
+      ...prev.filter((l) => !l.reference && l.uid !== cible.uid),
+      { ...cible, masque: ref.masque },
+    ]);
+  }, [lignes, leadAllie, auto]);
+
   function retirer(uid: string) {
     setLignes((prev) => prev.filter((l) => l.uid !== uid));
   }
@@ -424,6 +454,11 @@ export default function SpeedTuningSection({ allMonsters, siegeDefenseTeams, sie
 
   function setRuneSpeed(uid: string, v: number | null) {
     setLignes((prev) => prev.map((l) => (l.uid === uid ? { ...aLaMain(l), runeSpeed: v } : l)));
+  }
+  function basculerPassif(uid: string) {
+    setLignes((prev) =>
+      prev.map((l) => (l.uid === uid ? { ...aLaMain(l), passifActif: l.passifActif === false } : l))
+    );
   }
   function setCumuls(uid: string, v: number | null) {
     setLignes((prev) => prev.map((l) => (l.uid === uid ? { ...aLaMain(l), cumulsPassif: v } : l)));
@@ -461,17 +496,24 @@ export default function SpeedTuningSection({ allMonsters, siegeDefenseTeams, sie
   // Vitesse de combat de base (base + runes + totem 15 % + lead) via speed.ts.
   // `null` si la base est inconnue. Les buffs de vitesse sont appliqués PAR TICK
   // dans la simulation, pas ici.
-  // Le passif de vitesse du monstre (le premier qui en porte un), et ce qu'il
-  // ajoute. ⚠️ Coupée, l'analyse ne l'applique pas non plus : c'est une lecture
-  // automatique comme les autres.
+  // Le passif de vitesse du monstre (le premier qui en porte un).
+  //
+  // ⚠️ **Ce n'est PAS une déduction de l'analyse, mais un réglage de la card** —
+  // comme le set Swift. Le bouton est donc là dès que le monstre a un passif qui
+  // touche la vitesse, analyse lancée ou non : c'est une propriété du monstre,
+  // pas une hypothèse sur le combat.
   const passifDe = (l: Ligne): PassifVitesse | null => {
-    if (!auto || l.monster.com2usId == null) return null;
+    if (l.monster.com2usId == null) return null;
     return (passifs.get(l.monster.com2usId) ?? []).find((p) => p.gain || p.inconnu) ?? null;
   };
 
+  // Actif par défaut : un passif est toujours en vigueur en jeu. On peut le
+  // couper pour voir ce que vaut le tune sans lui.
+  const passifActifDe = (l: Ligne): boolean => l.passifActif !== false;
+
   const gainPassifDe = (l: Ligne): number => {
     const p = passifDe(l);
-    if (!p?.gain) return 0;
+    if (!p?.gain || !passifActifDe(l)) return 0;
     return pointsDeGain(p.gain, l.monster.stats.speed, l.cumulsPassif ?? 0);
   };
 
@@ -829,7 +871,9 @@ export default function SpeedTuningSection({ allMonsters, siegeDefenseTeams, sie
           onRuneSpeed={setRuneSpeed}
           onSwift={basculerSwift}
           onCumuls={setCumuls}
+          onPassif={basculerPassif}
           passifDe={passifDe}
+          passifActifDe={passifActifDe}
           gainPassifDe={gainPassifDe}
           kits={kits}
           onArtefact={setArtefact}
@@ -851,7 +895,9 @@ export default function SpeedTuningSection({ allMonsters, siegeDefenseTeams, sie
           onRuneSpeed={setRuneSpeed}
           onSwift={basculerSwift}
           onCumuls={setCumuls}
+          onPassif={basculerPassif}
           passifDe={passifDe}
+          passifActifDe={passifActifDe}
           gainPassifDe={gainPassifDe}
           kits={kits}
           onArtefact={setArtefact}
@@ -1263,6 +1309,8 @@ interface CampProps {
   onRuneSpeed: (uid: string, v: number | null) => void;
   onSwift: (uid: string) => void;
   onCumuls: (uid: string, v: number | null) => void;
+  onPassif: (uid: string) => void;
+  passifActifDe: (l: Ligne) => boolean;
   // Le passif de vitesse d'une ligne, et ce qu'il ajoute — lus par le parent,
   // qui seul connaît l'état de l'analyse.
   passifDe: (l: Ligne) => PassifVitesse | null;
@@ -1298,7 +1346,9 @@ function CampPanneau({
   onRuneSpeed,
   onSwift,
   onCumuls,
+  onPassif,
   passifDe,
+  passifActifDe,
   gainPassifDe,
   kits,
   onArtefact,
@@ -1353,6 +1403,7 @@ function CampPanneau({
             // plus l'avertissement de skill-up quand le chiffre le suppose.
             const kit = (l.monster.com2usId != null ? kits.get(l.monster.com2usId) : null) ?? KIT_VIDE;
             const passif = passifDe(l);
+            const passifActif = passifActifDe(l);
             const gainPassif = gainPassifDe(l);
             return (
               <div
@@ -1454,26 +1505,34 @@ function CampPanneau({
                     </div>
                   </div>
 
-                  {/* Passif de vitesse : la VALEUR est lue dans son kit, seul le
-                      nombre de déclenchements dépend du combat — c'est donc la
-                      seule chose qu'on demande. */}
+                  {/* Passif de vitesse — une RANGÉE à part, sous les réglages :
+                      c'est une propriété du monstre, pas une saisie de plus.
+                      ⚠️ Le bouton est TOUJOURS là dès qu'un passif touche la
+                      vitesse : on doit pouvoir l'appliquer, ou l'écarter pour
+                      voir ce que vaut le tune sans lui. */}
                   {passif && (
-                    <div className="mt-1.5 flex flex-wrap items-center gap-x-2 gap-y-1">
-                      <span
-                        className="rounded border border-accent/50 px-1.5 py-0.5 text-micro font-bold uppercase tracking-wide text-accent"
-                        title={passif.texte}
-                      >
-                        passif
-                      </span>
+                    <div className="mt-2 flex flex-wrap items-center gap-x-2 gap-y-1.5 rounded border border-border-soft bg-panel px-2 py-1.5">
+                      <Bouton
+                        taille="sm"
+                        icone={<Zap size={12} />}
+                        libelle="Passif"
+                        actif={!!passif.gain && passifActif}
+                        disabled={!passif.gain}
+                        title={
+                          passif.gain
+                            ? `${passif.nom} — ${passif.texte}`
+                            : `${passif.nom} — son passif touche la vitesse, mais aucune valeur n'est connue : à poser à la main dans les grilles. ${passif.texte}`
+                        }
+                        onClick={() => onPassif(l.uid)}
+                      />
                       {passif.gain ? (
                         <>
                           <span className="font-mono text-micro text-ink-dim">
                             +{passif.gain.valeur}
                             {passif.gain.pourcent ? ' %' : ''}
-                            {passif.gain.parCumul ? ' ×' : ' de vitesse'}
-                            {passif.gain.releve ? ' (relevé en jeu)' : ''}
+                            {passif.gain.parCumul ? ' ×' : ''}
                           </span>
-                          {passif.gain.parCumul && (
+                          {passif.gain.parCumul && passifActif && (
                             <NumberField
                               value={l.cumulsPassif ?? null}
                               onChange={(v) => onCumuls(l.uid, v)}
@@ -1485,15 +1544,17 @@ function CampPanneau({
                               ariaLabel={`Déclenchements du passif de ${l.monster.name}`}
                             />
                           )}
-                          {gainPassif > 0 && (
-                            <span className="font-mono text-micro font-bold text-accent">
-                              +{gainPassif} appliqué
-                            </span>
-                          )}
+                          <span
+                            className={`ml-auto font-mono text-micro font-bold ${
+                              gainPassif > 0 ? 'text-accent' : 'text-ink-dimmer'
+                            }`}
+                          >
+                            {gainPassif > 0 ? `+${gainPassif} VIT` : '—'}
+                          </span>
                         </>
                       ) : (
-                        <span className="text-micro text-warn" title={passif.texte}>
-                          son passif touche la vitesse, mais aucune valeur n'est connue — à poser à la main
+                        <span className="min-w-0 flex-1 text-micro leading-snug text-warn">
+                          valeur inconnue — à poser à la main dans les grilles
                         </span>
                       )}
                     </div>

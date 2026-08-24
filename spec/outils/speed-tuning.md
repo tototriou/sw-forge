@@ -339,16 +339,24 @@ L'outil les **lit et les applique** : [speedTunePassif.ts](src/lib/speedTunePass
 - ⚠️ **La VALEUR est lue, le NOMBRE DE FOIS se saisit.** Un gain permanent
   (Shumar) entre tout seul dans la vitesse de combat ; un gain « par
   déclenchement » (buffs portés, tours adverses, attaques) demande un chiffre —
-  c'est la seule chose que les données ne peuvent pas savoir. La card affiche le
-  gain unitaire, le champ de cumuls, et **ce qui est appliqué**.
+  c'est la seule chose que les données ne peuvent pas savoir.
+- **Une rangée à part sur la card**, sous les réglages : bouton **« Passif »**,
+  le gain unitaire, le champ de cumuls s'il y a lieu, et **ce qui est appliqué**
+  (« +30 VIT ») aligné à droite.
+  ⚠️ **Le bouton est TOUJOURS là** dès qu'un passif touche la vitesse, analyse
+  lancée ou non : c'est une **propriété du monstre**, comme le set Swift, pas une
+  hypothèse de l'analyse. Actif par défaut — un passif est toujours en vigueur en
+  jeu — et on le coupe pour voir ce que vaut le tune sans lui.
+- ⚠️ **Un passif change QUI est le plus rapide** : tant que l'analyse tourne,
+  l'adversaire de référence se recale sur le plus rapide du moment (et recopie
+  son set, son artéfact et son passif). Il s'arrête net dès que l'analyse est
+  coupée.
 - **Plafonds respectés** (`up to 100`, `up to 150 %`) ; ⚠️ « up to 10 **times** »
   est un nombre de cumuls, pas un plafond de vitesse.
 - Un gain en **pourcentage** se compte sur la vitesse de **base**, comme le totem
   et le lead.
 - **Aucune valeur connue** → la card le dit en clair plutôt que d'appliquer 0 en
   silence : « son passif touche la vitesse, mais aucune valeur n'est connue ».
-- ⚠️ **L'analyse coupée, les passifs ne s'appliquent plus** : c'est une lecture
-  automatique comme les autres.
 
 ⚠️ **Deux choses très différentes se cachent derrière « attack speed »** dans les
 textes, et les confondre fausse tout :

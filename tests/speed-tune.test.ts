@@ -1522,9 +1522,11 @@ export function testSpeedTuneAuto() {
     );
   }
 
-  // ⚠️ **Ce qui est calculé doit pouvoir être MONTRÉ.** L'analyse rend les
-  // modificateurs de CHACUN, adversaire de référence compris : un effet appliqué
-  // dans la simulation mais absent des grilles serait invérifiable à l'écran.
+  // ⚠️ **Ce qui est calculé doit pouvoir être MONTRÉ**, et un RETRAIT de barre
+  // n'est jamais calculé : le tune se juge sans ce qu'on enlève à l'adverse,
+  // même quand le sort est DÉSIGNÉ à la main. Les deux moitiés se tiennent — la
+  // grille de la référence rend bien ses modificateurs (identifiant demandé
+  // compris), et n'y montre aucun −40 parce qu'aucun −40 n'a été appliqué.
   {
     const videur = monstre(40001, 'Videur', 100);
     const lent = monstre(40002, 'Lent', 100);
@@ -1558,8 +1560,40 @@ export function testSpeedTuneAuto() {
     const modsRef = r.mods.get('monRef');
     ok(!!modsRef, "l'adversaire de référence porte l'identifiant demandé");
     ok(
-      Object.values(modsRef?.atbMod ?? {}).some((v) => v === -40),
-      "et la grille montre le −40 % qu'il subit : rien d'appliqué ne reste invisible"
+      !Object.values(modsRef?.atbMod ?? {}).some((v) => v < 0),
+      "et rien ne lui est retiré : le retrait de barre n'entre pas dans le tune, même désigné"
+    );
+
+    // ⚠️ Le cas qui a mordu : un sort qui fait les DEUX (Madeleine Cookie remplit
+    // la barre du camp ET vide celle d'en face). On garde la moitié qui nous
+    // fait jouer, on jette celle qui freine l'autre — sinon le tune tient grâce
+    // au frein, et se coupe le jour où le frein rate.
+    const mixte = { ...sortVideur, nom: 'Les deux', effet: { atbEquipe: 30, atbEnnemi: 40 } } as SortVitesse;
+    const rMixte = analyseAutomatique(
+      equipe,
+      0,
+      { kits: new Map(), sorts: new Map([[40001, [mixte]]]), passifs: new Map() },
+      { idReference: 'monRef' }
+    );
+    ok(
+      Object.values(rMixte.mods.get('lent')?.atbMod ?? {}).some((v) => v === 30),
+      'le +30 % de barre du camp compte'
+    );
+    ok(
+      !Object.values(rMixte.mods.get('monRef')?.atbMod ?? {}).some((v) => v < 0),
+      "et le −40 % adverse du même sort ne compte pas"
+    );
+
+    // ⚠️ Mais ce que l'utilisateur POSE lui-même dans la grille reste : c'est une
+    // saisie, pas une déduction — le moteur l'applique tel quel.
+    const aLaMain = simuler([
+      { id: 'a', combat: 200, camp: 'allie' },
+      { id: 'b', combat: 200, camp: 'ennemi', atbMod: { 1: -50 } },
+    ]);
+    const barre = (id: string) => aLaMain.lignes.find((l) => l.id === id)!.trajectoire[0];
+    ok(
+      barre('b') < barre('a'),
+      'un retrait écrit à la main dans la grille, lui, est bien appliqué'
     );
   }
 

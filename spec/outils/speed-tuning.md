@@ -332,8 +332,11 @@ aide tout autant à passer devant lui. D'où `EffetSort`
   the Attack Bar of **the target ally** », le S3 de Sapsaree. La barre la plus
   basse n'est qu'un **défaut raisonnable**, pas une règle du jeu : l'ordre des
   sorts porte donc un « sur : … » à côté du sort, listant les alliés du lanceur.
-- ⚠️ **Un retrait de barre ou un ralenti vise l'adverse le plus AVANCÉ** : c'est
-  lui qu'on cherche à retarder, et c'est ce qu'un joueur vise.
+- ⚠️ **Un retrait de barre et un ralenti ne sont JAMAIS appliqués
+  automatiquement** — voir « Ce qu'on retire à l'adverse » ci-dessous. Le moteur
+  sait les jouer (`atbEnnemi`, `ralenti`, sur l'adverse le plus AVANCÉ, celui
+  qu'un joueur vise), mais l'analyse les coupe du sort avant de le lui donner
+  (`sansReductionAdverse`).
 - ⚠️ **Buffs et ralentis ne s'empilent pas** (le jeu n'en garde qu'un de chaque) :
   on retient le plus fort de chaque côté. Mais ils **se compensent** — +30 sur
   une cible ralentie de 30 la ramène à sa vitesse de base, comme en jeu.
@@ -432,16 +435,37 @@ coefficients inventés ne se vérifient nulle part. Du plus large au plus étroi
 
 Et **deux exclusions**, qui ont chacune fait mentir un verdict :
 
-- ⚠️ **Vider la barre de l'adverse n'est JAMAIS retenu.** Une équipe doit jouer
-  d'affilée **sans ça** : compter un retrait d'ATB revient à déclarer un tune bon
-  parce qu'on aura ralenti l'autre — alors que le tune, c'est ce qui tient quand
-  on n'a rien ralenti.
+- ⚠️ **Vider la barre de l'adverse n'est JAMAIS retenu** — et va plus loin que le
+  choix du sort : voir « Ce qu'on retire à l'adverse ».
 - ⚠️ **Un sort à TAUX DE RÉUSSITE n'est jamais retenu.** Le *Glorious Attack* de
   Madeleine vide la barre adverse « avec 30 % de chances » : le compter déclarait
   l'équipe speed tune **sur un coup de dé**.
 
 Les deux restent **choisissables à la main** dans l'ordre des sorts, en
 connaissance de cause — le menu affiche l'effet et le taux.
+
+### Ce qu'on retire à l'adverse
+
+⚠️ **Aucun retrait de barre ni ralenti n'entre dans le calcul du tune, jamais,
+et même quand le sort est DÉSIGNÉ à la main.** Un speed tune, c'est ce qui tient
+quand on n'a rien enlevé à l'autre : les monstres doivent jouer les uns après
+les autres **sans ça**. Compter le −30 % de barre d'une Madeleine Cookie revient
+à déclarer l'équipe tunée parce qu'elle aura freiné l'adverse — et le jour où le
+frein rate, se voit résisté, ou tombe sur un monstre déjà passé, l'équipe se
+coupe.
+
+Concrètement : `sansReductionAdverse` (dans `lib/speedTune.ts`) retire
+`atbEnnemi`, `atbEnnemiTous`, `ralenti` et `ralentiTous` du sort avant que
+l'analyse ne le donne au moteur. Un sort qui fait **les deux** — remplir la
+barre du camp ET vider celle d'en face — garde la moitié qui nous fait jouer et
+perd l'autre. Les grilles n'en portent donc **aucune trace**, ce qui est cohérent
+avec la règle « on affiche exactement ce qui est calculé » ; le menu de l'ordre
+des sorts, lui, annonce l'effet suivi de **« (non compté) »**, pour qu'on ne
+croie pas qu'il pèse.
+
+⚠️ **La seule réduction qui compte est celle que l'utilisateur ÉCRIT lui-même**
+dans la grille du modificateur de barre d'attaque : c'est une saisie, pas une
+déduction, et le moteur l'applique telle quelle.
 
 ⚠️ **Le SECOND sort** (quand le premier rend le tour) suit la même règle sur ce
 qui reste : sans lui, un monstre qui rejoue passait son tour supplémentaire à ne

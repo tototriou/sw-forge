@@ -112,10 +112,14 @@ function libelleSort(x: SortVitesse): string {
   if (e.atbEquipe) bouts.push(`+${e.atbEquipe} % barre équipe`);
   if (e.atbAllie) bouts.push(`+${e.atbAllie} % barre 1 allié`);
   if (e.atbSoi) bouts.push(`+${e.atbSoi} % sa barre`);
-  if (e.atbEnnemi) bouts.push(`−${e.atbEnnemi} % barre adv${e.atbEnnemiTous ? ' (tous)' : ''}`);
+  // ⚠️ Annoncé, mais annoncé comme NON COMPTÉ : le tune se juge sans ce qu'on
+  // retire à l'adverse (voir `sansReductionAdverse`). Le taire laisserait croire
+  // que le calcul en tient compte.
+  if (e.atbEnnemi)
+    bouts.push(`−${e.atbEnnemi} % barre adv${e.atbEnnemiTous ? ' (tous)' : ''} (non compté)`);
   if (e.buffEquipe) bouts.push('buff VIT équipe');
   if (e.buffSoi) bouts.push('buff VIT sur soi');
-  if (e.ralenti) bouts.push(`ralenti adv${e.ralentiTous ? ' (tous)' : ''}`);
+  if (e.ralenti) bouts.push(`ralenti adv${e.ralentiTous ? ' (tous)' : ''} (non compté)`);
   if (x.rejoue) bouts.push('rejoue');
   if (x.cooldown > 0) bouts.push(`recharge ${x.cooldown} tours`);
   if (x.chance != null) bouts.push(`${x.chance} %`);

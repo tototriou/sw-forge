@@ -166,6 +166,28 @@ export interface Simulation {
 // ⚠️ Ce N'EST PAS un tri par vitesse : trois monstres pleins au même tick jouent
 // aux ticks n, n+1, n+2. Un boost d'ATB ou un buff de vitesse posé tôt peut
 // faire passer un monstre devant un plus rapide.
+// Le même sort, PRIVÉ de ce qu'il fait subir à l'adverse (retrait de barre,
+// ralenti).
+//
+// ⚠️ **Un speed tune, c'est ce qui tient quand on n'a rien retiré à l'autre.**
+// Compter le −30 % de barre d'une Madeleine Cookie revient à déclarer une
+// équipe tunée parce qu'elle aura freiné l'adverse : le jour où le retrait
+// rate, se voit résisté, ou tombe sur un monstre déjà passé, l'équipe se coupe.
+// Les monstres doivent jouer les uns après les autres SANS ça — donc la
+// simulation du tune ne voit jamais ces effets, et les grilles n'en montrent
+// aucune trace (ce qui est affiché est exactement ce qui est calculé).
+//
+// Ce que l'utilisateur pose LUI-MÊME dans une case de grille reste intact :
+// c'est une saisie, pas une déduction.
+export function sansReductionAdverse(e: EffetSort): EffetSort {
+  const copie = { ...e };
+  delete copie.atbEnnemi;
+  delete copie.atbEnnemiTous;
+  delete copie.ralenti;
+  delete copie.ralentiTous;
+  return copie;
+}
+
 export function simuler(monstres: TuneMonstre[], horizon = HORIZON_TICKS): Simulation {
   // Vitesse de base ≤ 0 (base inconnue) → n'agit jamais, écarté de la
   // simulation (plutôt que de fausser la lecture avec une barre plate).

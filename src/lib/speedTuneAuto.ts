@@ -27,6 +27,7 @@ import {
   artefactsRequis,
   diagnostiquerChaine,
   premiersTours,
+  sansReductionAdverse,
   simuler,
   vitessesRequises,
 } from './speedTune';
@@ -269,9 +270,13 @@ export function analyseAutomatique(
       combat: combats.get(e.id)!,
       camp: 'allie',
       artefactBuff: (e.artefactBuff ?? 0) + ampli,
-      sort: sort ? { ...sort.effet, cooldown: sort.cooldown, cibleAllie: cible } : undefined,
+      sort: sort
+        ? { ...sansReductionAdverse(sort.effet), cooldown: sort.cooldown, cibleAllie: cible }
+        : undefined,
       rejoue: sort?.rejoue ?? false,
-      sort2: second ? { ...second.effet, cooldown: second.cooldown, cibleAllie: cible } : undefined,
+      sort2: second
+        ? { ...sansReductionAdverse(second.effet), cooldown: second.cooldown, cibleAllie: cible }
+        : undefined,
     };
   });
   if (modele) {

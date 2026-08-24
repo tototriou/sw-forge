@@ -308,10 +308,15 @@ export default function SpeedTuningSection({ allMonsters, siegeDefenseTeams, sie
   function importerDeck(camp: Camp, team: SiegeTeam) {
     const { monstres, lead } = deckPourSpeedTune(team, monsterById);
     if (monstres.length === 0) return;
+    // ⚠️ Changer de deck COUPE l'analyse automatique. Elle portait sur la compo
+    // précédente : la laisser tourner sur la nouvelle donnerait un verdict qui a
+    // l'air juste sans l'être, et remplirait les grilles avec les kits d'une
+    // équipe qu'on vient de remplacer. On relance quand on veut.
+    setAuto(false);
+    setPoussee(false);
     setLignes((prev) => [
       // ⚠️ La référence saute AUSSI quand on importe dans l'autre camp : elle
-      // copiait une équipe qui vient de changer. L'analyse s'arrête, le bouton
-      // redevient actif.
+      // copiait une équipe qui vient de changer.
       ...prev.filter((l) => l.camp !== camp && !l.reference),
       ...monstres.map(({ monster, runeSpeed, artefactBuff, swift }) => ({
         uid: uidDe(camp, String(monster.id)),

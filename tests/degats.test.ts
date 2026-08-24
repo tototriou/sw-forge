@@ -36,6 +36,7 @@ import {
   estPrisEnCharge,
   monsterDamageSkills,
   monsterOffensivePassives,
+  passifActif,
   resolveDamageSkill,
   resolvedHits,
   skillDamageProfile,
@@ -252,7 +253,7 @@ export default function testDegats() {
   const fyPassifs = monsterOffensivePassives(fengYan);
   egal(fyPassifs.length, 1, 'Feng Yan : un seul passif offensif reconnu (Winds and Clouds)');
   egal(fyPassifs[0]?.categorie.type, 'toujours', 'Winds and Clouds est classé « toujours »');
-  egal(fyPassifs[0]?.critique, false, 'Winds and Clouds ne peut jamais critiquer');
+  egal(fyPassifs[0]?.critique, 'jamais', 'Winds and Clouds ne peut jamais critiquer');
   egal(fyPassifs[0]?.coupsDuSortActif, true, 'le bonus DEF suit les coups du sort actif, pas une instance fixe');
   egal(
     fyPassifs[0]?.profile.skillupDamagePct,
@@ -294,7 +295,7 @@ export default function testDegats() {
   ok(siaBase !== null, 'Sia : un sort de dégâts par défaut est trouvé');
   const siaPassifs = monsterOffensivePassives(sia);
   egal(siaPassifs.length, 1, 'Sia : un seul passif offensif reconnu (Great Friends)');
-  egal(siaPassifs[0]?.critique, true, 'Great Friends peut critiquer normalement, contrairement à Winds and Clouds');
+  egal(siaPassifs[0]?.critique, 'suit', 'Great Friends peut critiquer normalement, contrairement à Winds and Clouds');
   egal(
     siaPassifs[0]?.profile.hitsRange,
     { min: 2, max: 3 },
@@ -336,88 +337,163 @@ export default function testDegats() {
     'passer de 2 à 3 coups multiplie la contribution du passif par 3/2, exactement'
   );
 
-  // Roid — « Slash Waves »/« Slash Wind » (Passive), classés « conditionnel » :
-  // condition qui dépend de l'ORDRE des sorts (Roid peut poser lui-même la
-  // réduction de DEF que son propre passif vérifie) — jamais déduite d'un
-  // réglage existant, un bouton dédié par passif, désactivé par défaut.
+  // Roid — « Slash Waves »/« Slash Wind » : branches MUTUELLEMENT EXCLUSIVES
+  // d'une même condition sur la réduction de Défense. Plus aucun bouton par
+  // passif : le couple (réduction déjà active AVANT, le sort en pose une)
+  // les départage entièrement — les trois scénarios décrits par
+  // l'utilisateur sont épinglés un par un ci-dessous.
   const roid = fiche(49003);
   const roidBase = defaultDamageSkill(monsterDamageSkills(roid));
   ok(roidBase !== null, 'Roid : un sort de dégâts par défaut est trouvé');
+  ok(roidBase!.appliqueDefBreak, 'le S1 de Roid est bien détecté comme posant lui-même une réduction de DEF');
   const roidPassifs = monsterOffensivePassives(roid);
-  egal(roidPassifs.length, 2, 'Roid : les deux passifs conditionnels (Slash Waves, Slash Wind) sont reconnus');
+  egal(roidPassifs.length, 2, 'Roid : les deux passifs (Slash Waves, Slash Wind) sont reconnus');
   ok(
-    roidPassifs.every((p) => p.categorie.type === 'conditionnel'),
-    'les deux sont classés « conditionnel », jamais réputés actifs automatiquement'
+    roidPassifs.every((p) => p.categorie.type === 'defBreak'),
+    'les deux sont classés « defBreak » — déclenchement déduit, plus aucun bouton à cocher'
   );
-  const roidStats = stats({ atk: 2000, cd: 200, cr: 100 });
-  const roidSetupOff: DamageSetup = {
+  const slashWaves = roidPassifs.find((p) => p.nom.startsWith('Slash Waves'))!;
+  const slashWind = roidPassifs.find((p) => p.nom.startsWith('Slash Wind'))!;
+  const roidStats = stats({ atk: 2000, cd: 200, cr: 100, hp: 20000 });
+  const roidBaseSetup: DamageSetup = {
     ...DEFAULT_DAMAGE_SETUP,
     skillCom2usId: roidBase!.skillCom2usId,
     summonerSkills: 'aucune',
-    passifsOffensifs: {},
   };
+
+  // Scénario 1 — réduction de DEF DÉJÀ présente : Slash Waves se déclenche,
+  // et tout (sort + passif) profite de la réduction.
+  const roidAvecAvant: DamageSetup = { ...roidBaseSetup, defBreak: true };
+  ok(passifActif(slashWaves, roidAvecAvant), 'def break AVANT → Slash Waves se déclenche');
+  ok(!passifActif(slashWind, roidAvecAvant), 'def break AVANT → Slash Wind ne se déclenche PAS');
   egal(
-    computeTotalDamage(roidBase!, roidPassifs, roidStats, roidSetupOff, null),
-    computeSkillDamage(roidBase!, roidStats, roidSetupOff, null),
-    'par défaut (aucun bouton activé), un passif conditionnel n’ajoute RIEN — jamais deviné actif'
-  );
-  const cible = roidPassifs[0]!;
-  const roidSetupOn: DamageSetup = { ...roidSetupOff, passifsOffensifs: { [cible.skillCom2usId]: true } };
-  egal(
-    computeTotalDamage(roidBase!, roidPassifs, roidStats, roidSetupOn, null),
-    computeSkillDamage(roidBase!, roidStats, roidSetupOn, null) + computeSkillDamage(cible.profile, roidStats, roidSetupOn, null),
-    'activer le bouton d’un passif conditionnel l’ajoute intégralement, comme un second sort'
-  );
-  ok(
-    computeTotalDamage(roidBase!, roidPassifs, roidStats, roidSetupOn, null) >
-      computeTotalDamage(roidBase!, roidPassifs, roidStats, roidSetupOff, null),
-    'activer un des deux boutons augmente le total par rapport aux deux désactivés'
-  );
-  ok(
-    (roidSetupOn.passifsOffensifs as Record<number, boolean>)[roidPassifs[1]!.skillCom2usId] === undefined,
-    'activer un bouton ne touche pas l’état de l’autre — chaque passif a son propre interrupteur'
+    computeTotalDamage(roidBase!, roidPassifs, roidStats, roidAvecAvant, null),
+    computeSkillDamage(roidBase!, roidStats, roidAvecAvant, null) +
+      computeSkillDamage(slashWaves.profile, roidStats, roidAvecAvant, null),
+    'def break AVANT : le sort ET Slash Waves sont tous deux calculés avec la réduction'
   );
 
-  // Dominic — « Improvisation (Passive) », classé « bonus » à pourcentage
-  // fixe : le bouton, une fois activé, ne majore QUE la contribution du
-  // passif lui-même, jamais le sort de base choisi par ailleurs.
+  // Scénario 2 — aucune réduction, et le sort n'en pose pas : Slash Wind se
+  // déclenche, tout est calculé SANS réduction.
+  const roidSansRien: DamageSetup = { ...roidBaseSetup, defBreak: false, defBreakParLeSort: false };
+  ok(!passifActif(slashWaves, roidSansRien), 'aucune réduction → Slash Waves ne se déclenche pas');
+  ok(passifActif(slashWind, roidSansRien), 'aucune réduction → Slash Wind se déclenche');
+  egal(
+    computeTotalDamage(roidBase!, roidPassifs, roidStats, roidSansRien, null),
+    computeSkillDamage(roidBase!, roidStats, roidSansRien, null) +
+      computeSkillDamage(slashWind.profile, roidStats, roidSansRien, null),
+    'aucune réduction : le sort ET Slash Wind sont tous deux calculés sans réduction'
+  );
+
+  // Scénario 3 — le cœur du problème signalé : pas de réduction AVANT, mais
+  // le sort en pose une. Le DÉCLENCHEMENT reste celui de « sans réduction »
+  // (Slash Wind), mais ses DÉGÂTS profitent de la réduction que le sort vient
+  // de poser — alors que le sort lui-même, non.
+  const roidPoseeParLeSort: DamageSetup = { ...roidBaseSetup, defBreak: false, defBreakParLeSort: true };
+  ok(!passifActif(slashWaves, roidPoseeParLeSort), 'réduction posée PAR le sort → Slash Waves ne se déclenche toujours pas');
+  ok(passifActif(slashWind, roidPoseeParLeSort), 'réduction posée PAR le sort → c’est bien Slash Wind qui se déclenche');
+  egal(
+    computeSkillDamage(roidBase!, roidStats, roidPoseeParLeSort, null),
+    computeSkillDamage(roidBase!, roidStats, roidSansRien, null),
+    'le sort qui pose la réduction n’en profite JAMAIS lui-même — elle atterrit après son coup'
+  );
+  egal(
+    computeTotalDamage(roidBase!, roidPassifs, roidStats, roidPoseeParLeSort, null),
+    computeSkillDamage(roidBase!, roidStats, roidSansRien, null) +
+      computeSkillDamage(slashWind.profile, roidStats, { ...roidSansRien, defBreak: true }, null),
+    'mais le passif qui frappe APRÈS en profite : S1 sans réduction, Slash Wind avec'
+  );
+  ok(
+    computeTotalDamage(roidBase!, roidPassifs, roidStats, roidPoseeParLeSort, null) >
+      computeTotalDamage(roidBase!, roidPassifs, roidStats, roidSansRien, null),
+    'poser la réduction avec le sort augmente donc bien le total'
+  );
+
+  // Dominic — « Improvisation (Passive) », passé de `bonus` à `toujours` : la
+  // condition de PV de l'attaquant est IGNORÉE, le passif compte d'office
+  // (sa formule `(Fixed)` correspond déjà au cas majoré).
   const dominic = fiche(25713);
   const dominicBase = defaultDamageSkill(monsterDamageSkills(dominic));
   ok(dominicBase !== null, 'Dominic : un sort de dégâts par défaut est trouvé');
   const dominicPassifs = monsterOffensivePassives(dominic);
   egal(dominicPassifs.length, 1, 'Dominic : un seul passif reconnu (Improvisation)');
-  ok(dominicPassifs[0]?.categorie.type === 'bonus', 'Improvisation est classé « bonus », pas « toujours »');
+  egal(dominicPassifs[0]?.categorie.type, 'toujours', 'Improvisation est désormais « toujours », plus « bonus »');
+  ok(dominicPassifs[0]!.profile.fixed, 'sa formule porte (Fixed) : ni critique ni facteur de défense');
   const dominicStats = stats({ atk: 2000, cd: 200, cr: 100, hp: 20000 });
-  const dominicSetupOff: DamageSetup = {
+  const dominicSetup: DamageSetup = {
     ...DEFAULT_DAMAGE_SETUP,
     skillCom2usId: dominicBase!.skillCom2usId,
     summonerSkills: 'aucune',
   };
   egal(
-    computeTotalDamage(dominicBase!, dominicPassifs, dominicStats, dominicSetupOff, null),
-    computeSkillDamage(dominicBase!, dominicStats, dominicSetupOff, null),
-    'bonus désactivé par défaut : aucune contribution du passif'
+    computeTotalDamage(dominicBase!, dominicPassifs, dominicStats, dominicSetup, null),
+    computeSkillDamage(dominicBase!, dominicStats, dominicSetup, null) +
+      computeSkillDamage(dominicPassifs[0]!.profile, dominicStats, dominicSetup, null),
+    'le passif de Dominic est compté d’office, sans aucun bouton ni condition de PV'
   );
-  const dominicSetupOn: DamageSetup = {
-    ...dominicSetupOff,
-    passifsOffensifs: { [dominicPassifs[0]!.skillCom2usId]: true },
+
+  // Ezio — « Hidden Gun (Passive) », `bonus` : le bouton ne porte QUE le
+  // surplus. ⚠️ Les dégâts de BASE du passif sont comptés même bouton
+  // éteint (« Attacks additionally … when you attack the enemy on your
+  // turn » — inconditionnel), correction d'un cas où tout tombait à zéro.
+  // Et il critique TOUJOURS, quel que soit le mode choisi à l'écran.
+  const ezio = fiche(27415);
+  const ezioBase = defaultDamageSkill(monsterDamageSkills(ezio));
+  const ezioPassifs = monsterOffensivePassives(ezio);
+  egal(ezioPassifs.length, 1, 'Ezio : un seul passif reconnu (Hidden Gun)');
+  egal(ezioPassifs[0]?.critique, 'toujours', 'Hidden Gun critique TOUJOURS — « always lands as a Critical Hit »');
+  const ezioStats = stats({ atk: 2000, cd: 200, cr: 0 });
+  const ezioSansBonus: DamageSetup = {
+    ...DEFAULT_DAMAGE_SETUP,
+    skillCom2usId: ezioBase!.skillCom2usId,
+    summonerSkills: 'aucune',
+    critMode: 'normal',
   };
-  const dominicCategorie = dominicPassifs[0]!.categorie;
-  const dominicPct = dominicCategorie.type === 'bonus' ? dominicCategorie.pct : 0;
+  const contributionSansBonus =
+    computeTotalDamage(ezioBase!, ezioPassifs, ezioStats, ezioSansBonus, null) -
+    computeSkillDamage(ezioBase!, ezioStats, ezioSansBonus, null);
+  ok(contributionSansBonus > 0, 'bouton éteint : la BASE du passif est quand même comptée, jamais zéro');
   egal(
-    computeTotalDamage(dominicBase!, dominicPassifs, dominicStats, dominicSetupOn, null),
-    computeSkillDamage(dominicBase!, dominicStats, dominicSetupOn, null) +
-      computeSkillDamage(dominicPassifs[0]!.profile, dominicStats, dominicSetupOn, null) * (1 + dominicPct / 100),
-    'le bonus multiplie la contribution DU PASSIF par (1 + pct/100), jamais celle du sort de base'
+    contributionSansBonus,
+    computeSkillDamage(ezioPassifs[0]!.profile, ezioStats, { ...ezioSansBonus, critMode: 'crit' }, null),
+    'et elle est calculée en coup CRITIQUE alors que l’écran est en « Non critique »'
   );
+  const ezioAvecBonus: DamageSetup = {
+    ...ezioSansBonus,
+    passifsOffensifs: { [ezioPassifs[0]!.skillCom2usId]: true },
+  };
+  const contributionAvecBonus =
+    computeTotalDamage(ezioBase!, ezioPassifs, ezioStats, ezioAvecBonus, null) -
+    computeSkillDamage(ezioBase!, ezioStats, ezioAvecBonus, null);
+  ok(
+    Math.abs(contributionAvecBonus / contributionSansBonus - 2) < 1e-9,
+    'activer le bouton double la contribution du passif (+100 %), sans toucher au sort de base'
+  );
+
+  // Benedict — confirmé : l'attaque supplémentaire ignore la DEF **et** peut
+  // critiquer. Les deux ne vont pas ensemble d'office, d'où le test.
+  const benedictPassifs = monsterOffensivePassives(fiche(25714));
+  egal(benedictPassifs.length, 1, 'Benedict : un seul passif reconnu (Final Strike)');
+  ok(benedictPassifs[0]!.profile.ignoreDef, 'Final Strike ignore la défense');
+  egal(benedictPassifs[0]?.critique, 'suit', 'Final Strike peut critiquer normalement');
+
+  // Birgitta / Silver : nombre de coups annoncé en PROSE, que
+  // `Competence.coups` contredit — c'est la prose qui fait foi, curée à la
+  // main (Turning Slash porte `coups=1` en donnée pour « 2 more times »).
+  const birgittaPassifs = monsterOffensivePassives(fiche(29714));
+  egal(birgittaPassifs[0]?.profile.hits, 2, 'Turning Slash (Birgitta) compte 2 coups, pas le 1 de la donnée');
+  const silverPassifs = monsterOffensivePassives(fiche(16534));
+  egal(silverPassifs[0]?.profile.hits, 3, 'Ruins (Silver) compte ses 3 coups');
+  egal(silverPassifs[0]?.critique, 'suit', 'Ruins peut critiquer');
 
   // `damageRelevantStats` doit suivre EXACTEMENT le même interrupteur que
   // `computeTotalDamage` — sinon le pré-filtrage de la recherche privilégie
-  // des stats qu'un score différent ignore (ou l'inverse).
-  egal(
-    damageRelevantStats(roidBase, roidPassifs, roidSetupOff),
-    damageRelevantStats(roidBase),
-    'passifs désactivés : les stats à privilégier sont les mêmes qu’en l’absence de passif'
+  // des stats qu'un score différent ignore (ou l'inverse). Roid : quel que
+  // soit le scénario, EXACTEMENT un des deux passifs se déclenche, donc les
+  // PV (`{MAX HP}` de leurs formules) comptent toujours.
+  ok(
+    damageRelevantStats(roidBase, roidPassifs, roidSansRien).includes('hp'),
+    'Roid : les PV entrent dans le pré-filtrage — un de ses deux passifs se déclenche toujours'
   );
   ok(
     damageRelevantStats(fyBase, fyPassifs, fySetup).length >= damageRelevantStats(fyBase).length,

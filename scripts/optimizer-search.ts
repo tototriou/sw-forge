@@ -29,9 +29,11 @@ import { loadMonsterSkills } from './lib/skillsData';
 import { loadMonstersList } from './lib/monstersData';
 import {
   DEFAULT_DAMAGE_SETUP,
+  bonusPassifActif,
   damageRelevantStats,
   monsterDamageSkills,
   monsterOffensivePassives,
+  passifActif,
   resolveDamageSkill,
   resolvedHits,
 } from '../src/lib/damage';
@@ -171,7 +173,8 @@ if (recipe.objective === 'degats_reels') {
         `${profile.skillupDamagePct ? `, +${profile.skillupDamagePct} % d'améliorations` : ''}) — ` +
         `cible ${s.enemyHp} PV / ${s.enemyDef} DEF — crit ${s.critMode}` +
         `${s.atkBuff ? ' — buff ATQ' : ''}${s.defBuff ? ' — buff DEF' : ''}${s.spdBuff ? ' — buff VIT' : ''}` +
-        `${s.defBreak ? ' — def break' : ''}${s.brand ? ' — marque' : ''} — ` +
+        `${s.defBreak ? ' — def break avant' : ''}${s.defBreakParLeSort ? ' — def break posé par le sort' : ''}` +
+        `${s.brand ? ' — marque' : ''} — ` +
         // ⚠️ `?? DEFAULT` : une recette exportée AVANT ce champ n'en a pas.
         // L'élément vient du monstre CHARGÉ, jamais de la recette.
         `comp. invocateur ${s.summonerSkills ?? DEFAULT_DAMAGE_SETUP.summonerSkills} (${monsterElement ?? 'élément inconnu'}) — ` +
@@ -180,10 +183,20 @@ if (recipe.objective === 'degats_reels') {
     if (passifs.length > 0) {
       const detailPassifs = passifs
         .map((p) => {
-          const coups = p.profile.hitsRange ? ` [${resolvedHits(p.profile, s)} coup(s)]` : '';
-          if (p.categorie.type === 'toujours') return `${p.nom} (toujours actif)${coups}`;
-          const actif = s.passifsOffensifs?.[p.skillCom2usId] ?? false;
-          return `${p.nom} (${p.categorie.type}, ${actif ? 'activé' : 'désactivé par défaut'})${coups}`;
+          const coups = ` [${resolvedHits(p.profile, s)} coup(s)]`;
+          switch (p.categorie.type) {
+            case 'toujours':
+              return `${p.nom} (toujours actif)${coups}`;
+            // Déclenchement DÉDUIT des deux réglages de réduction de défense —
+            // aucun bouton, d'où l'état résolu affiché plutôt qu'un réglage.
+            case 'defBreak':
+              return `${p.nom} (def break : ${passifActif(p, s) ? 'DÉCLENCHÉ' : 'non déclenché'})${coups}`;
+            // La base compte toujours ; le bouton ne porte que le surplus.
+            case 'bonus':
+              return `${p.nom} (base comptée, +${p.categorie.pct} % ${bonusPassifActif(p, s) ? 'ACTIVÉ' : 'désactivé par défaut'})${coups}`;
+            default:
+              return `${p.nom} (conditionnel, ${passifActif(p, s) ? 'activé' : 'désactivé par défaut'})${coups}`;
+          }
         })
         .join(', ');
       console.log(`Passifs offensifs pris en compte : ${detailPassifs}`);

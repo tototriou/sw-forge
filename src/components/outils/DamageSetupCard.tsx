@@ -16,6 +16,7 @@ import {
   SkillDamageUnsupported,
   SummonerSkills,
   estPrisEnCharge,
+  passifActif,
   resolvedHits,
 } from '../../lib/damage';
 import { formuleLisible } from '../../lib/monsterSkills';
@@ -133,6 +134,10 @@ export default function DamageSetupCard({ skills, resolved, passifs, setup, setS
   const utilise = (v: DamageVariable) => resolved.variables.includes(v);
   const montreDefEnnemie = !resolved.ignoreDef && !resolved.fixed;
   const montreCrit = !resolved.fixed;
+  // Le réglage « ce sort pose le def break » ne change QUE ce qui frappe
+  // après le sort — inutile d'encombrer l'écran si le monstre n'a aucun
+  // passif, ou si le sort ne pose pas de réduction de défense.
+  const montreDefBreakParLeSort = resolved.appliqueDefBreak && passifs.length > 0;
 
   return (
     <div className="space-y-3 rounded-lg border border-border bg-panel2 p-3">
@@ -204,32 +209,53 @@ export default function DamageSetupCard({ skills, resolved, passifs, setup, setS
             <HelpPopover title="Passifs offensifs">
               Certains monstres infligent des dégâts supplémentaires par un passif (Feng Yan, Sia, Roid…),
               en plus du sort choisi ci-dessus. <b className="text-ink">Toujours actif</b> : le texte du jeu ne
-              pose aucune condition de combat, compté d&apos;office. <b className="text-ink">Bouton</b> :
-              une condition à juger toi-même (cible, PV, effet déjà présent…) — désactivé par défaut,
-              jamais deviné. La condition et le texte du jeu sont affichés sous chaque passif.
+              pose aucune condition de combat, compté d&apos;office.{' '}
+              <b className="text-ink">Selon le def break</b> : la condition porte sur la réduction de défense —
+              entièrement déduite des deux réglages d&apos;effets, rien à cocher ici.{' '}
+              <b className="text-ink">Bouton</b> : une condition à juger toi-même (attribut de la cible, tes
+              PV…) — désactivé par défaut, jamais deviné. Un bouton de <b className="text-ink">bonus</b> ne
+              conditionne que le SURPLUS : l&apos;attaque de base du passif, elle, est comptée dans tous les cas.
             </HelpPopover>
           </div>
           <div className="space-y-2">
             {passifs.map((p) => {
-              if (p.categorie.type === 'toujours') {
+              const nom = p.nom.replace(/\s*\(Passive\)\s*$/i, '');
+              const icone = p.profile.icone ? (
+                <img src={p.profile.icone} alt="" className="h-4 w-4 rounded" loading="lazy" />
+              ) : undefined;
+              const texteJeu = p.description ? (
+                <p className="mt-1 text-xs leading-snug text-ink-dim">{p.description}</p>
+              ) : null;
+
+              // Déclenchement ENTIÈREMENT déduit (`defBreak`) ou inconditionnel
+              // (`toujours`) : pas de bouton, on montre juste l'état courant et
+              // POURQUOI, pour que le joueur puisse le contredire s'il le faut.
+              if (p.categorie.type === 'toujours' || p.categorie.type === 'defBreak') {
+                const declenche = passifActif(p, setup);
                 return (
-                  <div key={p.skillCom2usId}>
+                  <div key={p.skillCom2usId} className={declenche ? '' : 'opacity-50'}>
                     <Jeton
-                      icone={p.profile.icone ? <img src={p.profile.icone} alt="" className="h-4 w-4 rounded" loading="lazy" /> : undefined}
-                      libelle={p.nom.replace(/\s*\(Passive\)\s*$/i, '')}
-                      detail="toujours actif"
+                      icone={icone}
+                      libelle={nom}
+                      detail={p.categorie.type === 'toujours' ? 'toujours actif' : declenche ? 'déclenché' : 'non déclenché'}
                     />
-                    {p.description && <p className="mt-1 text-xs leading-snug text-ink-dim">{p.description}</p>}
-                    {champCoupsVariables(p.profile, setup, maj)}
+                    {p.categorie.type === 'defBreak' && (
+                      <p className="mt-1 text-xs leading-snug text-ink-dim">
+                        Se déclenche si {p.categorie.condition}.
+                      </p>
+                    )}
+                    {texteJeu}
+                    {declenche && champCoupsVariables(p.profile, setup, maj)}
                   </div>
                 );
               }
+
+              // `bonus` : le bouton ne porte QUE le surplus. `conditionnel` :
+              // il porte le passif entier.
               const actif = setup.passifsOffensifs?.[p.skillCom2usId] ?? false;
-              const libelle =
-                p.categorie.type === 'bonus'
-                  ? `${p.nom.replace(/\s*\(Passive\)\s*$/i, '')} (+${p.categorie.pct} %)`
-                  : p.nom.replace(/\s*\(Passive\)\s*$/i, '');
-              const condition = `${p.categorie.condition[0].toUpperCase()}${p.categorie.condition.slice(1)}`;
+              const cat = p.categorie;
+              const libelle = cat.type === 'bonus' ? `${nom} (+${cat.pct} %)` : nom;
+              const condition = `${cat.condition[0].toUpperCase()}${cat.condition.slice(1)}`;
               return (
                 <div key={p.skillCom2usId}>
                   <Pastille
@@ -237,18 +263,17 @@ export default function DamageSetupCard({ skills, resolved, passifs, setup, setS
                     onClick={() =>
                       maj({ passifsOffensifs: { ...(setup.passifsOffensifs ?? {}), [p.skillCom2usId]: !actif } })
                     }
-                    icone={
-                      p.profile.icone ? (
-                        <img src={p.profile.icone} alt="" className="h-4 w-4 rounded" loading="lazy" />
-                      ) : undefined
-                    }
+                    icone={icone}
                     libelle={libelle}
                     title={`${condition}${actif ? ' (activé)' : ' — désactivé par défaut'}`}
                   />
                   <p className="mt-1 text-xs leading-snug text-ink-dim">
-                    {condition}
-                    {p.description && ` — texte du jeu : « ${p.description} »`}
+                    {cat.type === 'bonus'
+                      ? `Dégâts de base toujours comptés ; +${cat.pct} % si `
+                      : 'Se déclenche si '}
+                    {cat.condition}.
                   </p>
+                  {texteJeu}
                   {champCoupsVariables(p.profile, setup, maj)}
                 </div>
               );
@@ -343,9 +368,26 @@ export default function DamageSetupCard({ skills, resolved, passifs, setup, setS
           {montreDefEnnemie && (
             <EffetVignette
               icone={DEF_BREAK_ICON}
-              libelle="Def break"
+              libelle={montreDefBreakParLeSort ? 'Def break avant' : 'Def break'}
               onClick={() => maj({ defBreak: !setup.defBreak })}
               actif={setup.defBreak}
+              etroit={etroit}
+            />
+          )}
+          {/* ⚠️ N'apparaît QUE si le sort choisi pose lui-même une réduction
+              de défense (effet `Decrease DEF`, lu dans les données) ET que ce
+              monstre a un passif — sinon ce réglage ne changerait rien : la
+              réduction atterrit APRÈS le coup du sort lui-même, elle ne peut
+              profiter qu'à ce qui frappe ensuite. C'est ce qui distingue
+              « Roid attaque une cible déjà réduite » de « Roid réduit puis son
+              passif frappe » — deux passifs différents, deux mitigations
+              différentes. */}
+          {montreDefBreakParLeSort && (
+            <EffetVignette
+              icone={DEF_BREAK_ICON}
+              libelle="Ce sort pose le def break"
+              onClick={() => maj({ defBreakParLeSort: !(setup.defBreakParLeSort ?? false) })}
+              actif={setup.defBreakParLeSort ?? false}
               etroit={etroit}
             />
           )}

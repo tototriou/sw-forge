@@ -169,13 +169,52 @@ absent de la liste (immense majorité du corpus) n'est simplement jamais
 proposé : pas de faux négatif dangereux, juste une couverture partielle et
 volontaire.
 
-Trois catégories, sur la seule question « quand ce passif compte-t-il ? » :
+Quatre catégories, sur la seule question « quand ce passif compte-t-il ? » :
 
 | Catégorie | Comportement | Exemple |
 |---|---|---|
-| `toujours` | S'ajoute d'office, aucun bouton — le texte du jeu ne pose aucune condition de combat | Feng Yan (Winds and Clouds), Sia, Weapon Master (Final Strike) |
-| `bonus` | Bouton, désactivé par défaut ; une fois activé, majore la contribution **du passif seul** de `pct` % (jamais le sort de base) | Dominic/Weapon Master (Improvisation, +100 % si PV > 50 %) |
-| `conditionnel` | Bouton, désactivé par défaut ; activé, le passif compte à 100 % comme un second sort | Roid (Slash Waves/Slash Wind) |
+| `toujours` | S'ajoute d'office, aucun bouton — le texte du jeu ne pose aucune condition de combat | Feng Yan (Winds and Clouds), Sia (Great Friends), Benedict (Final Strike), Dominic (Improvisation) |
+| `defBreak` | **Aucun bouton non plus** : le déclenchement est ENTIÈREMENT déduit des deux réglages de réduction de Défense (voir ci-dessous) | Roid (Slash Waves / Slash Wind), Silver (Ruins) |
+| `bonus` | Les dégâts de base sont comptés **dans tous les cas** ; le bouton (désactivé par défaut) ne conditionne QUE le surplus de `pct` %, et seulement sur la contribution de ce passif | Ezio (Hidden Gun, +100 % si cible Lumière) |
+| `conditionnel` | Bouton, désactivé par défaut ; activé, le passif compte à 100 % comme un second sort. Réservé aux conditions qui ne se modélisent PAS | (aucune entrée aujourd'hui) |
+
+⚠️ **`bonus` ne met plus toute la contribution à zéro quand le bouton est
+éteint.** Le texte de ces passifs décrit une attaque supplémentaire
+INCONDITIONNELLE (« Attacks additionally … when you attack the enemy on your
+turn »), dont seule la magnitude est conditionnée. Les confondre
+sous-estimait la base à chaque fois que la condition n'était pas remplie —
+corrigé après relecture du texte du jeu entrée par entrée.
+
+### La réduction de Défense : « avant » n'est pas « après »
+
+Le problème signalé à l'origine (Roid pose lui-même la réduction que son
+propre passif vérifie) ne demandait PAS un bouton par passif, mais **un
+second réglage** :
+
+| Réglage | Sens |
+|---|---|
+| `defBreak` | Une réduction de Défense est **déjà active AVANT** le sort |
+| `defBreakParLeSort` | Le sort choisi **en pose une lui-même** (n'apparaît que si `profile.appliqueDefBreak`, déduit de l'effet `Decrease DEF` des données) |
+
+Le sort actif n'est JAMAIS affecté par la réduction qu'il pose lui-même
+(elle atterrit après son propre coup). Les passifs, eux, frappent **après**
+lui : leurs dégâts utilisent donc toujours l'état « après »
+(`defBreak || defBreakParLeSort`). Le déclenchement d'un passif `defBreak`,
+lui, s'évalue au `moment` que dit son texte — `'avant'` pour Roid (« if you
+attack the enemy with[out] decreased Defense »), `'apres'` pour Silver
+(« if the enemy is under Defense reduction effects AFTER you attack »).
+
+Les trois scénarios de Roid, épinglés en test :
+
+| Réduction avant | Posée par le S1 | Passif déclenché | Dégâts du S1 | Dégâts du passif |
+|---|---|---|---|---|
+| oui | — | Slash Waves | avec réduction | avec réduction |
+| non | non | Slash Wind | sans | sans |
+| non | oui | Slash Wind | **sans** | **avec** |
+
+⚠️ Les deux branches de Roid étant mutuellement exclusives, **exactement une
+des deux se déclenche toujours** — d'où des PV (`{MAX HP}`) qui comptent en
+permanence dans le pré-filtrage pour ce monstre.
 
 ⚠️ **Deux propriétés du calcul lui-même, orthogonales aux trois catégories
 ci-dessus** — quand ce passif compte n'est pas la même question que comment
@@ -183,29 +222,51 @@ il se calcule. Ni SWARFARM ni la formule ne les portent : résolues au cas
 par cas dans `PASSIFS_OFFENSIFS_CONNUS`, **jamais un défaut générique
 appliqué à toute la liste**, chacune confirmée par l'utilisateur pour
 l'entrée où elle est posée :
-- **`critique`** (défaut `true`) — cette contribution peut-elle critiquer ?
-  `false` force le mode « Non critique » pour ELLE SEULE, quel que soit le
-  mode choisi par ailleurs pour le sort actif. Confirmé `false` sur Winds
-  and Clouds (Feng Yan) : le bonus proportionnel à la DEF ne critique
-  jamais en jeu, alors que sa formule (`1.6*{DEF}`) ne porte aucun marqueur
-  `(Fixed)` qui l'exprimerait automatiquement.
-- **`coupsDuSortActif`** (défaut `false`, une seule instance par tour) —
-  `true` fait suivre le nombre d'instances aux coups du **sort actif
-  choisi**, pas une instance fixe. Confirmé `true` sur Winds and Clouds : le
-  bonus DEF s'ajoute à CHAQUE coup du sort utilisé (3 coups pour un sort à
-  3 coups, pas 1).
+- **`critique`** (défaut `'suit'`) — comment cette contribution traite le
+  coup critique, **indépendamment du mode choisi pour le sort actif** :
+  `'jamais'` (Feng Yan — Winds and Clouds ; Miles — Jet Engine : le bonus
+  ne critique jamais, alors qu'aucun marqueur `(Fixed)` ne l'exprimerait) ;
+  `'toujours'` (Ezio — Hidden Gun, Evan — Meticulous Attack : « The
+  additional attack ALWAYS LANDS AS A CRITICAL HIT » — force le critique
+  même quand l'écran est en « Non critique ») ; `'suit'` partout ailleurs.
+- **`coupsDuSortActif`** (défaut `false`) — `true` fait suivre le nombre
+  d'instances aux coups du **sort actif choisi**, pas au nombre propre du
+  passif. Confirmé `true` sur Winds and Clouds : le bonus DEF s'ajoute à
+  CHAQUE coup du sort utilisé (3 coups pour un sort à 3 coups, pas 1).
+- **`coups`** (défaut 1) — nombre d'instances quand le texte l'annonce **en
+  prose** et que la donnée le contredit : Turning Slash / Flash Step portent
+  `coups=1` pour « attacks 2 more times » (curé à 2), Ruins porte 3, Slash
+  Waves porte `2` sur une fiche et `1` sur l'autre pour le MÊME passif (curé
+  à 2). ⚠️ `Competence.coups` n'est **jamais** utilisé pour un passif.
 
 ⚠️ **Les améliorations « Damage +X% » d'un passif comptent, exactement comme
 sur un sort actif** (`skillupDamagePct`, même lecture de
 `Competence.ameliorations`) — une hypothèse antérieure les ignorait pour
 tout passif (« n'existent que pour les sorts actifs »), fausse : Winds and
 Clouds en porte 4 (5+5+10+15 = 35 %, `1.6 × 1,35`), trouvée en vérifiant les
-données brutes plutôt qu'en la supposant. Les autres entrées de la liste
-n'ont **pas** été vérifiées individuellement pour `critique`/
-`coupsDuSortActif` (restent aux défauts ci-dessus, potentiellement faux pour
-tel ou tel monstre) — seules Winds and Clouds (`critique: false,
-coupsDuSortActif: true`) et Great Friends (`critique: true`, défaut — Sia
-critique normalement) ont été confirmées par l'utilisateur à ce jour.
+données brutes plutôt qu'en la supposant.
+
+**État de vérification, entrée par entrée** (revue manuelle menée avec
+l'utilisateur, à partir du fichier de travail listant formule + texte brut
+du jeu de chaque entrée) :
+
+| Passif | Monstres | Vérifié |
+|---|---|---|
+| Winds and Clouds | Feng Yan, Panda Warrior | jamais critique, suit les coups du sort actif, 35 % d'améliorations |
+| Great Friends | Sia | critique normalement, 2 à 3 coups (variable) |
+| Final Strike | Weapon Master, Benedict | ignore la DEF **et** critique normalement |
+| Jet Engine | Sky Surfer, Miles | ignore la DEF, **ne critique jamais** |
+| Eye of the Desert | Desert Warrior, Salah | compté sur la seule cible configurée malgré « random enemy » |
+| Turning Slash / Flash Step | Birgitta, Ciri (Lumière), Magic Order Swordsinger | **2 coups** (prose) ; magnitude croissante avec les PV bas NON modélisée → plancher |
+| Hidden Gun / Meticulous Attack | Ezio, Evan, Steel Commander | **critique toujours** ; base inconditionnelle, seul le +100 % dépend du bouton |
+| Improvisation | Dominic, Weapon Master | condition de PV **ignorée**, compté d'office |
+| Ruins | Silver | **3 coups**, critique normalement, déclenchement `defBreak` |
+| Slash Waves / Slash Wind | Roid | déclenchement `defBreak` (2 coups pour Slash Waves) |
+| Eagle Deception | Bayek | **pas encore vérifié** — défauts |
+
+⚠️ Une entrée « Ruins » sans suffixe `(Passive)` visait un **boss de donjon
+non invocable** (Living Armor 2A) : retirée, elle ne pouvait jamais
+apparaître dans la box d'un joueur.
 
 ### Coups variables — un sort/passif qui frappe un nombre de fois qui change en jeu
 

@@ -276,6 +276,13 @@ export interface SkillDamageProfile {
   hitsRange?: { min: number; max: number };
   aoe: boolean;
   ignoreDef: boolean;
+  // Ce sort pose LUI-MÊME une réduction de Défense sur la cible (effet
+  // `Decrease DEF`) — déduit des données, jamais saisi. Ne change RIEN aux
+  // dégâts du sort lui-même (la réduction atterrit après son propre coup),
+  // mais décide de l'affichage du réglage `defBreakParLeSort`, qui lui
+  // change les passifs déclenchés APRÈS (voir `PassifOffensifCategorie`,
+  // variante `defBreak`).
+  appliqueDefBreak: boolean;
   // Dégâts FIXES (marqueur `(Fixed)` de SWARFARM) : ne peuvent pas être
   // critiques et ne passent PAS par le facteur de défense (voir
   // spec/mecaniques.md, terme « Additionnel »).
@@ -357,6 +364,7 @@ export function skillDamageProfile(c: Competence): SkillDamageProfile | SkillDam
     hitsRange: coupsVariables,
     aoe: c.aoe,
     ignoreDef: c.effets.some((e) => e.nom === 'Ignore DEF'),
+    appliqueDefBreak: c.effets.some((e) => e.nom === 'Decrease DEF' && !e.surSoi),
     fixed,
     skillupDamagePct,
     variables: analyse.variables,
@@ -397,19 +405,40 @@ export function estPrisEnCharge(p: SkillDamageProfile | SkillDamageUnsupported):
 //   un pourcentage de dégâts FIXE sous condition (« +100% si cible
 //   Lumière ») — un bouton bascule CE bonus précis, désactivé par défaut.
 // - `conditionnel` : le texte pose une condition sur le DÉCLENCHEMENT
-//   lui-même, pas seulement sa magnitude (« si la cible a déjà une
-//   réduction de Défense ») — un bouton pour le passif entier, désactivé
-//   par défaut. ⚠️ Délibérément PAS déduit d'un réglage existant
-//   (« Réduction de défense » du panneau) même quand la condition semble
-//   correspondre : le sort qui pose lui-même la réduction de Défense
-//   (Roid) rendrait cette déduction FAUSSE selon l'ORDRE des sorts dans le
-//   tour — l'utilisateur seul sait si la condition est remplie AVANT ce
-//   sort précis, un cas signalé explicitement en discutant cette
-//   fonctionnalité.
+//   lui-même, pas seulement sa magnitude — un bouton pour le passif entier,
+//   désactivé par défaut, quand la condition ne se modélise PAS (attribut de
+//   la cible, PV de l'attaquant…).
+// - `defBreak` : cas particulier ENTIÈREMENT modélisable de `conditionnel`.
+//   La condition porte sur la présence d'une réduction de Défense, et la
+//   difficulté signalée à l'origine (le sort du monstre pose LUI-MÊME cette
+//   réduction, donc « avant » ≠ « après » dans le même tour) se résout avec
+//   UN seul réglage supplémentaire (`defBreakParLeSort`) plutôt qu'un bouton
+//   par passif : `moment` dit à quel instant le texte du jeu évalue la
+//   condition, `exige` dit dans quel sens.
+//     - Roid / Slash Waves — « if you attack the enemy WITH decreased
+//       Defense » → `moment: 'avant'`, `exige: true`.
+//     - Roid / Slash Wind — « with NO decreased Defense » → `'avant'`, `false`.
+//     - Silver / Ruins — « if the enemy is under Defense reduction effects
+//       AFTER you attack » → `moment: 'apres'`, `exige: true`.
+//   ⚠️ Les DÉGÂTS du passif, eux, utilisent TOUJOURS l'état « après » : un
+//   passif se déclenche après le sort, donc il bénéficie d'une réduction que
+//   ce sort vient de poser — c'est exactement le cas « S1 sans réduction puis
+//   passif AVEC réduction » décrit par l'utilisateur.
 export type PassifOffensifCategorie =
   | { type: 'toujours' }
   | { type: 'bonus'; pct: number; condition: string }
-  | { type: 'conditionnel'; condition: string };
+  | { type: 'conditionnel'; condition: string }
+  | { type: 'defBreak'; moment: 'avant' | 'apres'; exige: boolean; condition: string };
+
+// Comment CE composant traite le coup critique — ni SWARFARM ni la formule
+// ne portent l'information, aucun marqueur automatique possible : confirmé
+// au cas par cas par l'utilisateur (joueur), jamais déduit d'un texte.
+//  - `'suit'`     : comme un sort normal, suit `DamageSetup.critMode` (défaut).
+//  - `'jamais'`   : ne critique JAMAIS (Winds and Clouds, Jet Engine).
+//  - `'toujours'` : critique TOUJOURS, même si l'écran est en « Non critique »
+//                   (Hidden Gun / Meticulous Attack — « always lands as a
+//                   Critical Hit » dans le texte du jeu).
+export type PassifCritique = 'suit' | 'jamais' | 'toujours';
 
 interface PassifOffensifConnu {
   // `Competence.nom` EXACT (SWARFARM) — la seule clé fiable : le
@@ -420,15 +449,17 @@ interface PassifOffensifConnu {
   // SANS porter le marqueur `(Fixed)` que `skillDamageProfile` sait détecter
   // seul dans `formule` — à préciser à la main pour ces deux-là.
   ignoreDef?: boolean;
-  // Cette partie peut-elle critiquer ? Défaut `true` (comme un sort normal).
-  // `false` = confirmé par l'utilisateur que le jeu EXCLUT le critique pour
-  // ce passif précis — ni SWARFARM ni `formule` ne portent cette info,
-  // aucun marqueur automatique possible.
-  critique?: boolean;
+  critique?: PassifCritique; // défaut `'suit'`
+  // Nombre d'instances de dégâts, quand le TEXTE l'annonce en prose (« attacks
+  // 2 more times ») — défaut 1. ⚠️ Jamais `Competence.coups`, pas fiable pour
+  // un passif : Turning Slash porte `coups=1` en donnée pour un texte qui dit
+  // « 2 more times », Slash Waves porte `2` sur une fiche et `1` sur l'autre
+  // pour le MÊME passif. Exclusif de `COUPS_VARIABLES_CONNUS` (une plage
+  // ANNONCÉE comme variable en jeu, qui donne un champ de réglage).
+  coups?: number;
   // Le nombre d'instances suit-il les COUPS DU SORT ACTIF (`true`), ou
-  // reste-t-il une seule instance par tour quel que soit le sort choisi
-  // (`false`/absent, comportement historique) ? Confirmé au cas par cas —
-  // ne PAS généraliser sans vérification, voir Winds and Clouds.
+  // reste-t-il fixe quel que soit le sort choisi (`false`/absent) ? Confirmé
+  // au cas par cas — ne PAS généraliser, voir Winds and Clouds.
   coupsDuSortActif?: boolean;
   categorie: PassifOffensifCategorie;
 }
@@ -441,56 +472,82 @@ const PASSIFS_OFFENSIFS_CONNUS: PassifOffensifConnu[] = [
   // quel que soit le mode choisi.
   {
     nom: 'Winds and Clouds (Passive)',
-    critique: false,
+    critique: 'jamais',
     coupsDuSortActif: true,
     categorie: { type: 'toujours' },
   }, // Feng Yan, Panda Warrior
+  // Coups VARIABLES (2 à 3), voir `COUPS_VARIABLES_CONNUS` — critique
+  // normalement (confirmé).
   { nom: 'Great Friends (Passive)', categorie: { type: 'toujours' } }, // Sia
+  // ⚠️ Confirmé : l'attaque supplémentaire ignore la DEF **et** peut
+  // critiquer normalement — les deux ne vont pas ensemble d'office.
   { nom: 'Final Strike (Passive)', ignoreDef: true, categorie: { type: 'toujours' } }, // Weapon Master, Benedict
-  { nom: 'Jet Engine (Passive)', ignoreDef: true, categorie: { type: 'toujours' } }, // Sky Surfer, Miles
+  { nom: 'Jet Engine (Passive)', ignoreDef: true, critique: 'jamais', categorie: { type: 'toujours' } }, // Sky Surfer, Miles
   { nom: 'Eagle Deception (Passive)', categorie: { type: 'toujours' } }, // Bayek
+  // ⚠️ Le texte dit « a random enemy » : confirmé qu'on le compte sur la
+  // SEULE cible configurée (l'écran n'a qu'un adversaire), pas une moyenne.
   { nom: 'Eye of the Desert (Passive)', categorie: { type: 'toujours' } }, // Desert Warrior, Salah
-  // ⚠️ Ces deux-là ont une magnitude qui CROÎT avec les PV restants de la
-  // cible, jamais chiffrée par SWARFARM (aucune formule pour « increases as
-  // the target's HP status decreases ») — la formule de base est donc un
-  // PLANCHER, jamais le vrai total, mais aucune condition BINAIRE à cocher
-  // n'existerait pour l'exprimer : traités comme `toujours` (compte le
-  // plancher, jamais un bouton qui laisserait croire à un chiffre exact).
-  { nom: 'Turning Slash (Passive)', categorie: { type: 'toujours' } }, // Magic Order Swordsinger, Birgitta
-  { nom: 'Flash Step (Passive)', categorie: { type: 'toujours' } }, // Ciri
+  // ⚠️ Ces deux-là ont une magnitude qui CROÎT quand les PV de la cible
+  // baissent, jamais chiffrée par SWARFARM (la formule `1.3*{ATK}` ne porte
+  // AUCUNE variable de PV, contrairement à Weakness Shot) — la formule reste
+  // donc un PLANCHER, jamais le vrai total. Les 2 coups, eux, sont confirmés
+  // (annoncés en prose, `Competence.coups` vaut 1 à tort).
+  { nom: 'Turning Slash (Passive)', coups: 2, categorie: { type: 'toujours' } }, // Magic Order Swordsinger, Birgitta
+  { nom: 'Flash Step (Passive)', coups: 2, categorie: { type: 'toujours' } }, // Ciri (Lumière)
+  // ⚠️ Passé de `bonus` à `toujours` : confirmé qu'on IGNORE la condition de
+  // PV de l'attaquant et qu'on compte le passif d'office. Sa formule
+  // `2.0*{ATK} (Fixed)` correspond déjà au cas majoré (« 100 % de l'ATQ »,
+  // « +100 % si tes PV dépassent 50 % ») — un bouton `bonus` par-dessus
+  // aurait doublé une seconde fois. `(Fixed)` : ni critique ni facteur DEF.
+  { nom: 'Improvisation (Passive)', categorie: { type: 'toujours' } }, // Weapon Master, Dominic
   // — Bonus conditionnel à pourcentage fixe —
-  { nom: 'Hidden Gun (Passive)', categorie: { type: 'bonus', pct: 100, condition: "la cible est de l'attribut Lumière" } }, // Ezio
+  // ⚠️ `critique: 'toujours'` : « The additional attack ALWAYS LANDS AS A
+  // CRITICAL HIT » — l'inverse de Winds and Clouds, et indépendant du mode
+  // choisi à l'écran pour le sort actif.
+  {
+    nom: 'Hidden Gun (Passive)',
+    critique: 'toujours',
+    categorie: { type: 'bonus', pct: 100, condition: "la cible est de l'attribut Lumière" },
+  }, // Ezio
   {
     nom: 'Meticulous Attack (Passive)',
+    critique: 'toujours',
     categorie: { type: 'bonus', pct: 100, condition: "la cible est de l'attribut Lumière" },
   }, // Steel Commander, Evan
-  {
-    nom: 'Improvisation (Passive)',
-    categorie: { type: 'bonus', pct: 100, condition: 'tes PV sont au-dessus de 50 %' },
-  }, // Weapon Master, Dominic
   // — Déclenchement entièrement conditionnel —
+  // 3 coups annoncés en prose (`Competence.coups` vaut 3 ici, cohérent) ;
+  // critique normalement (confirmé).
   {
     nom: 'Ruins (Passive)',
-    categorie: { type: 'conditionnel', condition: 'la cible a déjà une réduction de Défense active AVANT ce sort' },
+    coups: 3,
+    categorie: {
+      type: 'defBreak',
+      moment: 'apres',
+      exige: true,
+      condition: 'la cible a une réduction de Défense APRÈS ce sort (déjà présente, ou posée par le sort lui-même)',
+    },
   }, // Silver
-  {
-    nom: 'Ruins',
-    categorie: { type: 'conditionnel', condition: 'la cible a déjà une réduction de Défense active AVANT ce sort' },
-  },
-  // ⚠️ Roid porte les DEUX (branches mutuellement exclusives d'un même
-  // passif) — deux boutons distincts plutôt qu'un choix unique forcé : le
-  // texte de chacun suffit à ne pas les cocher ensemble, voir la demande
-  // explicite de garder ce jugement à l'utilisateur plutôt que de le
-  // déduire.
+  // ⚠️ Roid porte les DEUX — branches mutuellement exclusives d'un même
+  // passif, dont EXACTEMENT UNE se déclenche toujours. Plus aucun bouton par
+  // passif : le couple (« réduction de DEF » déjà active, « le sort en pose
+  // une ») les départage entièrement, voir `passifActif`.
   {
     nom: 'Slash Waves (Passive)',
-    categorie: { type: 'conditionnel', condition: 'la cible a déjà une réduction de Défense active AVANT ce sort' },
+    coups: 2,
+    categorie: {
+      type: 'defBreak',
+      moment: 'avant',
+      exige: true,
+      condition: 'la cible avait déjà une réduction de Défense AVANT ce sort',
+    },
   }, // Roid
   {
     nom: 'Slash Wind (Passive)',
     categorie: {
-      type: 'conditionnel',
-      condition: "la cible N'A PAS de réduction de Défense active avant ce sort",
+      type: 'defBreak',
+      moment: 'avant',
+      exige: false,
+      condition: "la cible N'AVAIT PAS de réduction de Défense avant ce sort",
     },
   }, // Roid
 ];
@@ -508,7 +565,7 @@ export interface PassifOffensifProfile {
   description: string | null;
   // Voir `PassifOffensifConnu` — résolus depuis la liste curée, jamais
   // déduits de la formule.
-  critique: boolean;
+  critique: PassifCritique;
   coupsDuSortActif: boolean;
   categorie: PassifOffensifCategorie;
   profile: SkillDamageProfile;
@@ -547,7 +604,7 @@ export function monsterOffensivePassives(detail: DetailMonstre | null): PassifOf
       skillCom2usId: c.com2usId,
       nom: c.nom,
       description: c.description,
-      critique: connu.critique ?? true,
+      critique: connu.critique ?? 'suit',
       coupsDuSortActif: connu.coupsDuSortActif ?? false,
       categorie: connu.categorie,
       profile: {
@@ -557,16 +614,20 @@ export function monsterOffensivePassives(detail: DetailMonstre | null): PassifOf
         icone: c.icone,
         formule: brut,
         // ⚠️ **Jamais `c.coups`**, qui ne représente rien de fiable pour un
-        // passif (Great Friends porte `coups=0` ou `1` en donnée pour un
-        // texte qui dit « 2 à 3 fois de plus »). Un passif à coups VARIABLES
-        // connu (`COUPS_VARIABLES_CONNUS`) retombe sur son minimum et gagne
-        // un champ de réglage ; sinon, **1 seule instance** reste le
-        // plancher délibéré pour tout le reste de la liste, jamais un
-        // nombre inventé dans une fourchette non confirmée.
-        hits: COUPS_VARIABLES_CONNUS[c.nom]?.min ?? 1,
+        // passif : Great Friends porte `0` ou `1` selon la fiche pour un texte
+        // qui dit « 2 à 3 fois de plus », Turning Slash porte `1` pour un
+        // texte qui dit « 2 more times », Slash Waves porte `2` sur une fiche
+        // et `1` sur l'autre pour le MÊME passif. Trois sources, dans
+        // l'ordre : plage VARIABLE connue (donne un champ de réglage), puis
+        // nombre FIXE curé depuis la prose, puis 1 par défaut — jamais un
+        // nombre deviné.
+        hits: COUPS_VARIABLES_CONNUS[c.nom]?.min ?? connu.coups ?? 1,
         hitsRange: COUPS_VARIABLES_CONNUS[c.nom],
         aoe: c.aoe,
         ignoreDef: connu.ignoreDef ?? c.effets.some((e) => e.nom === 'Ignore DEF'),
+        // Un passif n'est jamais le « sort choisi » : ce drapeau ne sert qu'à
+        // décider de l'affichage du réglage, qui porte sur le sort ACTIF.
+        appliqueDefBreak: false,
         fixed,
         skillupDamagePct,
         variables: analyse.variables,
@@ -654,7 +715,17 @@ export interface DamageSetup {
   atkBuff: boolean;
   defBuff: boolean;
   spdBuff: boolean;
+  // ⚠️ Réduction de Défense **déjà active AVANT** le sort — c'est le sens
+  // qu'a toujours eu ce réglage, rendu explicite depuis l'ajout de
+  // `defBreakParLeSort`.
   defBreak: boolean;
+  // Le sort choisi pose LUI-MÊME une réduction de Défense (Roid S1, Silver
+  // S2…). Sans effet sur les dégâts du sort lui-même — la réduction atterrit
+  // après son propre coup — mais décide du passif déclenché et de la
+  // mitigation appliquée à CE passif (voir `PassifOffensifCategorie`,
+  // variante `defBreak`). N'a de sens que si `profile.appliqueDefBreak` :
+  // l'écran ne l'affiche que dans ce cas. Optionnel (compatibilité arrière).
+  defBreakParLeSort?: boolean;
   brand: boolean;
   critMode: CritMode;
   // Compétences d'invocateur prises en compte (ex-totems/drapeaux) — voir
@@ -693,6 +764,7 @@ export const DEFAULT_DAMAGE_SETUP: DamageSetup = {
   defBuff: false,
   spdBuff: false,
   defBreak: false,
+  defBreakParLeSort: false,
   brand: false,
   critMode: 'moyenne',
   // ⚠️ « Combat » par défaut, pas « Aucune » : ces compétences sont
@@ -798,10 +870,38 @@ export function computeSkillDamage(
 // désactivé. Factorisé — `computeTotalDamage` et `damageRelevantStats`
 // doivent s'accorder EXACTEMENT sur ce qui compte, sinon le pré-filtrage
 // privilégierait des stats qu'un score différent ignore (ou l'inverse).
-function passifActif(p: PassifOffensifProfile, setup: DamageSetup): boolean {
+export function passifActif(p: PassifOffensifProfile, setup: DamageSetup): boolean {
+  const c = p.categorie;
+  if (c.type === 'toujours' || c.type === 'bonus') return true;
+  // Entièrement DÉDUIT, aucun bouton : le texte du jeu dit à quel instant la
+  // condition s'évalue (`moment`), et les deux réglages de réduction de
+  // Défense suffisent à trancher. Pour Roid, dont les deux branches sont
+  // mutuellement exclusives, exactement UNE des deux ressort toujours vraie.
+  if (c.type === 'defBreak') {
+    const avant = setup.defBreak;
+    const etat = c.moment === 'avant' ? avant : defBreakApres(setup);
+    return etat === c.exige;
+  }
   // `?.` : une recette exportée AVANT ce champ a un `damageSetup` complet
   // par ailleurs mais sans `passifsOffensifs` du tout, pas seulement la clé.
-  return p.categorie.type === 'toujours' || (setup.passifsOffensifs?.[p.skillCom2usId] ?? false);
+  return setup.passifsOffensifs?.[p.skillCom2usId] ?? false;
+}
+
+// Réduction de Défense active APRÈS le sort choisi — celle qui était déjà là,
+// ou celle que le sort vient de poser. C'est l'état que subissent TOUS les
+// passifs, qui se déclenchent après lui.
+function defBreakApres(setup: DamageSetup): boolean {
+  return setup.defBreak || (setup.defBreakParLeSort ?? false);
+}
+
+// Le SURPLUS d'un passif `bonus` est-il acquis ? ⚠️ Distinct de
+// `passifActif` : la formule de base d'un passif `bonus` est TOUJOURS
+// comptée (« Attacks additionally … when you attack the enemy on your
+// turn » — inconditionnel), seul le pourcentage supplémentaire dépend du
+// bouton. Les confondre mettait toute la contribution à zéro quand le
+// bouton était éteint, alors que l'attaque a bien lieu en jeu.
+export function bonusPassifActif(p: PassifOffensifProfile, setup: DamageSetup): boolean {
+  return p.categorie.type === 'bonus' && (setup.passifsOffensifs?.[p.skillCom2usId] ?? false);
 }
 
 /**
@@ -810,23 +910,27 @@ function passifActif(p: PassifOffensifProfile, setup: DamageSetup): boolean {
  *
  * ⚠️ **Chaque passif recalculé par `computeSkillDamage`, jamais une formule
  * séparée** — même équation de spec/mecaniques.md, même adversaire : un
- * passif reste « une attaque de plus », pas un mécanisme à part. DEUX
- * exceptions, résolues au cas par cas dans `PASSIFS_OFFENSIFS_CONNUS`
+ * passif reste « une attaque de plus », pas un mécanisme à part. TROIS
+ * ajustements, résolus au cas par cas dans `PASSIFS_OFFENSIFS_CONNUS`
  * (jamais un défaut générique) :
- * - `critique: false` — force le mode « Non critique » pour CE composant,
- *   quel que soit le mode choisi par ailleurs (ex. Winds and Clouds : le
- *   bonus proportionnel à la DEF ne peut jamais critiquer, confirmé par
- *   l'utilisateur, alors que la formule elle-même n'a aucun marqueur
- *   `(Fixed)` qui l'exprimerait automatiquement).
+ * - `critique` — `'jamais'` force « Non critique » pour CE composant,
+ *   `'toujours'` force le critique même si l'écran est en « Non critique »
+ *   (Hidden Gun), quel que soit le mode choisi pour le sort actif. Aucune
+ *   de ces deux informations n'existe dans SWARFARM ni dans la formule.
  * - `coupsDuSortActif: true` — le nombre d'instances suit celui RÉELLEMENT
  *   retenu pour le sort ACTIF (`resolvedHits(profile, setup)`, qui respecte
- *   lui-même un éventuel réglage manuel de coups variables), pas une
- *   instance unique par tour ; défaut `false` = une seule instance (`hits: 1`,
- *   voir `monsterOffensivePassives`).
+ *   lui-même un éventuel réglage manuel de coups variables), pas le nombre
+ *   fixe du passif.
+ * - `defBreak` (catégorie) — la réduction de Défense que le SORT vient de
+ *   poser s'applique au passif, qui frappe après lui : d'où
+ *   `defBreak: defBreakApres(setup)` sur le réglage transmis, jamais le
+ *   `setup.defBreak` brut (qui, lui, décrit l'état AVANT le sort).
  *
  * ⚠️ **Le bonus `bonus` s'applique SEULEMENT à la contribution du passif
  * concerné**, jamais au total : « +100 % si cible Lumière » double les
- * dégâts DE CE PASSIF précis, pas ceux du sort actif à côté.
+ * dégâts DE CE PASSIF précis, pas ceux du sort actif à côté. Et il ne
+ * conditionne QUE le surplus — la formule de base d'un passif `bonus` est
+ * comptée même bouton éteint (voir `bonusPassifActif`).
  */
 export function computeTotalDamage(
   profile: SkillDamageProfile,
@@ -844,9 +948,16 @@ export function computeTotalDamage(
     const profilPassif = p.coupsDuSortActif
       ? { ...p.profile, hits: resolvedHits(profile, setup), hitsRange: undefined }
       : p.profile;
-    const setupPassif = p.critique ? setup : { ...setup, critMode: 'normal' as const };
+    const setupPassif: DamageSetup = {
+      ...setup,
+      defBreak: defBreakApres(setup),
+      ...(p.critique === 'jamais' ? { critMode: 'normal' as const } : {}),
+      ...(p.critique === 'toujours' ? { critMode: 'crit' as const } : {}),
+    };
     let contribution = computeSkillDamage(profilPassif, stats, setupPassif, element);
-    if (p.categorie.type === 'bonus') contribution *= 1 + p.categorie.pct / 100;
+    if (bonusPassifActif(p, setup) && p.categorie.type === 'bonus') {
+      contribution *= 1 + p.categorie.pct / 100;
+    }
     total += contribution;
   }
   return total;
@@ -894,7 +1005,9 @@ export function damageRelevantStats(
   for (const p of passifs) {
     if (!passifActif(p, setup)) continue;
     ajouter(p.profile.variables);
-    if (!p.profile.fixed && p.critique) peutCriter = true;
+    // `'toujours'` compte AUSSI : ce composant critique à coup sûr, donc les
+    // Dgts Crit pèsent sur lui plus encore que sur un sort ordinaire.
+    if (!p.profile.fixed && p.critique !== 'jamais') peutCriter = true;
   }
   if (peutCriter) keys.push('cd');
   return keys;

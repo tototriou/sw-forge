@@ -82,12 +82,73 @@ const passifDe = (e: EntreeAuto, d: DonneesKit): PassifVitesse | null => {
   return (d.passifs.get(e.monster.com2usId) ?? []).find((p) => p.gain || p.amplifieBuff) ?? null;
 };
 
-// Le sort que la lecture du kit retient pour ce monstre.
+// Le sort qu'un monstre lance par défaut, choisi dans son kit.
+//
+// ⚠️ **Une priorité explicite, pas un score pondéré.** Ce qui pèse sur un tune
+// se classe naturellement, du plus large au plus étroit — et un ordre se
+// discute, alors que des coefficients inventés ne se vérifient nulle part :
+//
+//   1. remplir la barre de TOUT le camp ;
+//   2. buffer la vitesse de TOUT le camp ;
+//   3. se rendre son propre tour (Power of Mirkwood, Legolas) ;
+//   4. se buffer / se remplir soi-même ;
+//   5. remplir la barre d'UN allié.
+//
+// ⚠️ **Vider la barre de l'adverse n'y figure PAS**, et c'est délibéré : une
+// équipe doit jouer d'affilée SANS ça. Compter un retrait d'ATB revient à
+// déclarer un tune bon parce qu'on aura ralenti l'autre — alors que le tune,
+// c'est précisément ce qui tient quand on n'a rien ralenti. Le sort reste
+// choisissable à la main, en connaissance de cause.
+//
+// ⚠️ Une version précédente ne regardait que les effets **de ZONE** : un monstre
+// dont le meilleur sort se buffe lui-même et REJOUE — le cas de Legolas — était
+// alors réputé ne rien lancer. Le siège le déclarait « pas speed tune » là où
+// l'outil, où l'on avait choisi le sort à la main, disait l'inverse.
+function valeurPourLeTune(x: SortVitesse): number {
+  const e = x.effet;
+  if (e.atbEquipe) return 6;
+  if (e.buffEquipe) return 5;
+  if (x.rejoue) return 4;
+  if (e.buffSoi || e.atbSoi) return 3;
+  if (e.atbAllie) return 2;
+  return 0;
+}
+
+function meilleurSort(liste: SortVitesse[], exclu?: string): SortVitesse | null {
+  let meilleur: SortVitesse | null = null;
+  let rang = 0;
+  for (const x of liste) {
+    if (x.nom === exclu) continue;
+    // ⚠️ **Un sort à TAUX DE RÉUSSITE n'est jamais retenu d'office.** Un tune ne
+    // doit pas dépendre d'un effet qui peut se louper : le Glorious Attack de
+    // Madeleine vide la barre adverse « avec 30 % de chances » — le compter par
+    // défaut déclarait l'équipe speed tune sur un coup de dé. On peut toujours
+    // le choisir à la main dans l'ordre des sorts, en connaissance de cause (le
+    // menu affiche le taux).
+    if (x.chance != null) continue;
+    const v = valeurPourLeTune(x);
+    if (v > rang) {
+      rang = v;
+      meilleur = x;
+    }
+  }
+  return meilleur;
+}
+
 export function sortRetenu(e: EntreeAuto, d: DonneesKit): SortVitesse | null {
-  const kit = kitDe(e, d);
-  const nom = kit?.atbCompetence ?? kit?.buffCompetence ?? null;
-  if (!nom || e.monster.com2usId == null) return null;
-  return (d.sorts.get(e.monster.com2usId) ?? []).find((x) => x.nom === nom) ?? null;
+  if (e.monster.com2usId == null) return null;
+  return meilleurSort(d.sorts.get(e.monster.com2usId) ?? []);
+}
+
+// Le sort du SECOND tour, quand le premier rend son tour au lanceur : le
+// meilleur de ce qui reste. ⚠️ Sans lui, un monstre qui rejoue passait son tour
+// supplémentaire à ne rien faire — alors que c'est justement ce tour-là qu'on
+// lui donne pour agir.
+export function sortSecondRetenu(e: EntreeAuto, d: DonneesKit): SortVitesse | null {
+  if (e.monster.com2usId == null) return null;
+  const premier = sortRetenu(e, d);
+  if (!premier?.rejoue) return null;
+  return meilleurSort(d.sorts.get(e.monster.com2usId) ?? [], premier.nom);
 }
 
 // Vitesse de combat d'un monstre, gain de passif compris.
@@ -164,6 +225,7 @@ export function analyseAutomatique(
 
   const avecSorts: TuneMonstre[] = vus.map((e) => {
     const sort = sortRetenu(e, donnees);
+    const second = sortSecondRetenu(e, donnees);
     return {
       id: e.id,
       combat: combats.get(e.id)!,
@@ -171,6 +233,7 @@ export function analyseAutomatique(
       artefactBuff: (e.artefactBuff ?? 0) + ampli,
       sort: sort ? { ...sort.effet, cooldown: sort.cooldown } : undefined,
       rejoue: sort?.rejoue ?? false,
+      sort2: second ? { ...second.effet, cooldown: second.cooldown } : undefined,
     };
   });
   if (modele) {

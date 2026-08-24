@@ -22,7 +22,7 @@ import { deckPourSpeedTune } from '../../lib/speedTuneDeck';
 import { prendreDeck } from '../../lib/speedTuneHandoff';
 import { kitVitesse, sortsVitesse, KitVitesse, SortVitesse, KIT_VIDE } from '../../lib/speedTuneKit';
 import { passifsVitesse, pointsDeGain, PassifVitesse } from '../../lib/speedTunePassif';
-import { analyseAutomatique, cumulsEstimes, EntreeAuto } from '../../lib/speedTuneAuto';
+import { analyseAutomatique, cumulsEstimes, sortRetenu, sortSecondRetenu, EntreeAuto } from '../../lib/speedTuneAuto';
 import { chargerDetail } from '../../lib/monsterSkills';
 import { teamSummary } from '../../lib/recoFromSiege';
 import { formesJouables } from '../../lib/monsterForms';
@@ -616,15 +616,23 @@ export default function SpeedTuningSection({ allMonsters, siegeDefenseTeams, sie
     return sortsDe(l).find((x) => x.nom === nom) ?? null;
   };
 
-  // Ce que la lecture du kit a retenu pour ce monstre — le « Sort détecté ».
-  const sortAuto = (l: Ligne): SortVitesse | null => {
-    const kit = l.monster.com2usId != null ? kits.get(l.monster.com2usId) : null;
-    const nom = kit?.atbCompetence ?? kit?.buffCompetence ?? null;
-    return sortsDe(l).find((x) => x.nom === nom) ?? null;
-  };
+  // Ce que la lecture du kit retient pour ce monstre.
+  //
+  // ⚠️ **La MÊME sélection que la lib** (`sortRetenu`), pas une seconde règle :
+  // l'écran choisissait « le sort qui remplit la barre du camp, sinon celui qui
+  // la buffe » et ignorait donc un sort qui se buffe soi-même ET rend son tour
+  // (Power of Mirkwood, Legolas). Le siège et l'outil désignaient alors des
+  // sorts différents pour le même monstre — donc deux verdicts.
+  const sortAuto = (l: Ligne): SortVitesse | null => sortRetenu(entreeDe(l), donneesKit);
 
-  const sortSecond = (l: Ligne): SortVitesse | null =>
-    sortsDe(l).find((x) => x.nom === sortChoisi2[l.uid]) ?? null;
+  // Le second sort : celui qu'on a désigné, sinon celui que la lib retiendrait —
+  // sans quoi un monstre qui rejoue passait son tour supplémentaire à ne rien
+  // faire dans l'outil, et à agir au siège.
+  const sortSecond = (l: Ligne): SortVitesse | null => {
+    const choisi = sortChoisi2[l.uid];
+    if (choisi !== undefined) return sortsDe(l).find((x) => x.nom === choisi) ?? null;
+    return sortSecondRetenu(entreeDe(l), donneesKit);
+  };
 
   // Entrée du moteur : les monstres visibles dont la vitesse est connue.
   // Partagée par la simulation ET par le diagnostic de chaîne.

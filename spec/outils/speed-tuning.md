@@ -414,6 +414,35 @@ remplies ou vidées hors de son tour (⚠️ une barre « remplie » vaut **100 
 et les montants introuvables — dont quatre passives marquées **AUCUNE donnée
 (vérifié)**, trous définitifs qu'il est inutile de rechercher.
 
+### Quel sort chacun lance par défaut
+
+⚠️ **Une priorité explicite, pas un score pondéré** (`sortRetenu`,
+[speedTuneAuto.ts](src/lib/speedTuneAuto.ts)) — un ordre se discute, des
+coefficients inventés ne se vérifient nulle part. Du plus large au plus étroit :
+
+1. remplir la barre de **tout le camp** ;
+2. **buffer la vitesse** de tout le camp ;
+3. **se rendre son propre tour** (*Power of Mirkwood*, Legolas) ;
+4. se buffer / se remplir **soi-même** ;
+5. remplir la barre d'**un** allié.
+
+Et **deux exclusions**, qui ont chacune fait mentir un verdict :
+
+- ⚠️ **Vider la barre de l'adverse n'est JAMAIS retenu.** Une équipe doit jouer
+  d'affilée **sans ça** : compter un retrait d'ATB revient à déclarer un tune bon
+  parce qu'on aura ralenti l'autre — alors que le tune, c'est ce qui tient quand
+  on n'a rien ralenti.
+- ⚠️ **Un sort à TAUX DE RÉUSSITE n'est jamais retenu.** Le *Glorious Attack* de
+  Madeleine vide la barre adverse « avec 30 % de chances » : le compter déclarait
+  l'équipe speed tune **sur un coup de dé**.
+
+Les deux restent **choisissables à la main** dans l'ordre des sorts, en
+connaissance de cause — le menu affiche l'effet et le taux.
+
+⚠️ **Le SECOND sort** (quand le premier rend le tour) suit la même règle sur ce
+qui reste : sans lui, un monstre qui rejoue passait son tour supplémentaire à ne
+rien faire.
+
 ### Rechargement des compétences
 
 ⚠️ **Un sort ne repart pas à chaque tour.** Le rechargement (`cooldown` sur

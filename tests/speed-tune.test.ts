@@ -25,9 +25,16 @@ import {
   ArtefactRequis,
 } from '../src/lib/speedTune';
 import { deckPourSpeedTune } from '../src/lib/speedTuneDeck';
-import { kitVitesse, sortsVitesse, BUFF_SPD_JEU } from '../src/lib/speedTuneKit';
+import { kitVitesse, sortsVitesse, SortVitesse, BUFF_SPD_JEU } from '../src/lib/speedTuneKit';
 import { passifsVitesse, pointsDeGain } from '../src/lib/speedTunePassif';
-import { analyseAutomatique, cumulsEstimes, EntreeAuto, DonneesKit } from '../src/lib/speedTuneAuto';
+import {
+  analyseAutomatique,
+  cumulsEstimes,
+  sortRetenu,
+  sortSecondRetenu,
+  EntreeAuto,
+  DonneesKit,
+} from '../src/lib/speedTuneAuto';
 import { DetailMonstre, Competence, EffetCompetence } from '../src/lib/monsterSkills';
 import { Monster, SiegeTeam } from '../src/types';
 import { combatSpeed } from '../src/lib/speed';
@@ -1426,6 +1433,79 @@ export function testSpeedTuneAuto() {
       analyseAutomatique(impose, 0, donnees).combats.get('chilling')! - seul,
       20,
       "un cumul saisi à la main l'emporte sur l'estimation"
+    );
+  }
+
+  // ⚠️ QUEL SORT le monstre lance par défaut. La priorité se discute, des
+  // coefficients inventés non : du plus large au plus étroit, et **jamais** un
+  // sort qui vide la barre adverse ni un sort à taux de réussite.
+  {
+    const sorts = (liste: Partial<SortVitesse>[]): DonneesKit => ({
+      kits: new Map(),
+      passifs: new Map(),
+      sorts: new Map([
+        [
+          1,
+          liste.map((x) => ({
+            nom: x.nom ?? '?',
+            slot: null,
+            icone: null,
+            effet: x.effet ?? {},
+            rejoue: x.rejoue ?? false,
+            cooldown: 0,
+            atbNiveau1: 0,
+            atbSkillUp: 0,
+            chance: x.chance ?? null,
+            neutre: false,
+            buffsEquipe: 0,
+          })) as SortVitesse[],
+        ],
+      ]),
+    });
+    const e: EntreeAuto = { id: 'a', monster: monstre(1, 'Test', 100), runeSpeed: 0 };
+
+    egal(
+      sortRetenu(e, sorts([{ nom: 'Soi', effet: { buffSoi: 30 } }, { nom: 'Camp', effet: { atbEquipe: 30 } }]))?.nom,
+      'Camp',
+      "remplir la barre du camp passe avant se buffer soi-même"
+    );
+    egal(
+      sortRetenu(e, sorts([{ nom: 'Rejoue', rejoue: true, effet: { buffSoi: 30 } }, { nom: 'UnAllie', effet: { atbAllie: 15 } }]))
+        ?.nom,
+      'Rejoue',
+      'se rendre son tour passe avant remplir la barre d’un seul allié'
+    );
+    // ⚠️ Les deux exclusions, qui ont chacune fait mentir un verdict.
+    egal(
+      sortRetenu(e, sorts([{ nom: 'Videur', effet: { atbEnnemi: 50 } }])),
+      null,
+      "vider la barre adverse n'est JAMAIS retenu : l'équipe doit jouer d'affilée sans ça"
+    );
+    egal(
+      sortRetenu(e, sorts([{ nom: 'Aleatoire', effet: { atbEquipe: 30 }, chance: 50 }])),
+      null,
+      "un sort à 50 % de chances n'est jamais retenu d'office"
+    );
+
+    // ⚠️ Le SECOND sort n'existe que si le PREMIER rend le tour, et n'est jamais
+    // le même sort. Un sort de camp l'emporte sur un sort qui rejoue : dans ce
+    // cas il n'y a pas de second tour, donc pas de second sort.
+    const rejoueDabord = sorts([
+      { nom: 'Rejoue', rejoue: true, effet: { buffSoi: 30 } },
+      { nom: 'UnAllie', effet: { atbAllie: 15 } },
+    ]);
+    egal(sortRetenu(e, rejoueDabord)?.nom, 'Rejoue', 'le tour rendu est retenu en premier');
+    egal(sortSecondRetenu(e, rejoueDabord)?.nom, 'UnAllie', 'et le second tour prend le suivant');
+
+    const campDabord = sorts([
+      { nom: 'Rejoue', rejoue: true, effet: { buffSoi: 30 } },
+      { nom: 'Camp', effet: { atbEquipe: 30 } },
+    ]);
+    egal(sortRetenu(e, campDabord)?.nom, 'Camp', 'un sort de camp passe devant un tour rendu');
+    egal(
+      sortSecondRetenu(e, campDabord),
+      null,
+      "et sans tour rendu, il n'y a pas de second sort"
     );
   }
 

@@ -47,10 +47,10 @@ combat = base + runes + ceil( base × (15 + lead) / 100 )
 
 ## Aura de statut (au tick / à corriger)
 
-> ⚠️ **Toujours calculée, sans mode à activer.** Le bouton « Vérifier mes tick
-> ATB » a été retiré : une équipe mal calée l'est qu'on ait cliqué ou non, et il
-> fallait savoir que l'outil existait pour voir un problème qu'on ne cherchait
-> pas. Une équipe sans monstre, ou avec **Leo**, reste `neutral`.
+> ⚠️ **Calculée d'office** : le bouton « Calculer les spd tick » est **allumé par
+> défaut** (voir [README.md](README.md)) — on ne demande rien pour voir qu'une
+> équipe est mal calée ; il sert à éteindre les couleurs quand elles gênent. Une
+> équipe sans monstre, ou avec **Leo**, reste `neutral`.
 
 Détection « mal calé sur un tick » par monstre, via `tickDanger(combat)`
 ([speed.ts](src/lib/speed.ts)) :
@@ -69,10 +69,19 @@ par équipe (aura = bordure + halo, + point dans l'en-tête) :
 
 | Statut | Couleur | Condition | Message sous les monstres |
 |--------|---------|-----------|---------------------------|
-| Orange | `amber` | Équipe avec **≥1 Swift** (pas de tick à viser) | « Vérifier le speed tuning » |
+| Orange | `amber` | Équipe avec **≥1 Swift** (pas de tick à viser) | son **ordre de tours**, calculé (voir ci-dessous) |
 | Rouge | `fire` | (Sans Swift) un monstre **pas au tick** (anneau rouge sur le slot fautif) | une phrase par monstre fautif, voir ci-dessous |
 | Vert | `emerald` | (Sans Swift) **tous au tick**, **ou** recommandation ignorée | — |
 | — | neutre | Équipe **vide** ou avec **Leo** | — |
+
+### ⚠️ Une équipe Swift se vérifie AUSSI
+
+Elle n'a pas de tick à viser — mais elle a un **ordre**, et c'est tout ce qui
+compte pour elle : qui joue avant qui. L'app le **calcule** et l'affiche
+(« Équipe speed : elle joue dans cet ordre — Bernard → Tiana → Loren (ticks
+4 · 5 · 7) »), avec le **même moteur que l'outil** ([speedTune.ts](src/lib/speedTune.ts)),
+donc la même réponse. Afficher « Vérifier le speed tuning » et s'arrêter là
+renvoyait l'utilisateur faire à la main un calcul que l'app sait faire.
 
 **DEUX boutons sur orange/rouge**, pas un seul : écarter le conseil, ou aller le
 vérifier. ⚠️ Ne proposer que « Ignorer » revenait à ne laisser que la porte de

@@ -1,8 +1,9 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Plus, Castle, Trash2 } from 'lucide-react';
+import { Plus, Castle, Trash2, Gauge } from 'lucide-react';
 import { Monster, ElementKey } from '../../types';
 import { LoadState } from '../../hooks/useMonsters';
 import { SiegeSide, UseSiegeState } from '../../hooks/useSiegeState';
+import { useStickyState } from '../../hooks/useStickyState';
 import { poserDeck } from '../../lib/speedTuneHandoff';
 import SiegeTeam from './SiegeTeam';
 import CreateMonster from '../CreateMonster';
@@ -39,6 +40,11 @@ export default function SiegeBoard({
   menuOuvert,
   onFermerMenu,
 }: Props) {
+  // ⚠️ **Allumé par défaut** : le calcul est automatique, on ne demande rien pour
+  // voir qu'une équipe est mal calée. Le bouton reste pour l'ÉTEINDRE — il y a
+  // des moments où l'on compose et où les couleurs parasitent la lecture.
+  const [checkTicks, setCheckTicks] = useStickyState(`siege.checkTicks.${side}`, true);
+
   const noun = side === 'defense' ? 'défense' : 'attaque';
 
   // « Voir le speed tune » : on passe l'équipe à l'outil et on y va. ⚠️ Le
@@ -220,6 +226,7 @@ export default function SiegeBoard({
               index={i}
               monsters={monsters}
               monsterById={monsterById}
+              checkTicks={checkTicks}
               onVoirSpeedTune={voirSpeedTune}
               expanded={expandedIds.has(team.id)}
               onToggleExpand={toggleExpand}

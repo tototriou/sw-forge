@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react';
+import { useMemo, useRef, useState } from 'react';
 import { Crown, X, GripVertical, Trash2, AlertTriangle, Pencil, Timer } from 'lucide-react';
 
 const SPD_ICON = `${import.meta.env.BASE_URL}stats/spd.png`; // icône vitesse du jeu (SWARFARM)
@@ -16,6 +16,7 @@ import MonsterPicker from '../MonsterPicker';
 import ElementIcon from '../ElementIcon';
 import RuneIcon from '../RuneIcon';
 import MonsterGear from '../MonsterGear';
+import { premiersTours, simuler, TuneMonstre } from '../../lib/speedTune';
 import NumberField from '../../ui/NumberField';
 import LeadPill, { LeadBadge } from './LeadPill';
 import { ConfirmDialog } from '../../ui/Dialogs';
@@ -55,6 +56,9 @@ interface Props {
   onClearSlot: (teamId: string, idx: number) => void;
   onSlotRune: (teamId: string, idx: number, value: number | null) => void;
   onSlotTick: (teamId: string, idx: number, tick: number) => void;
+  // Couleurs de calage allumées (bouton « Calculer les spd tick », allumé par
+  // défaut) : les éteindre rend toutes les équipes neutres.
+  checkTicks: boolean;
   onDismissAlert: (teamId: string, dismissed: boolean) => void;
   onVoirSpeedTune: (teamId: string) => void;
   onSwap: (teamId: string, from: number, to: number) => void;
@@ -72,6 +76,7 @@ export default function SiegeTeam({
   onClearSlot,
   onSlotRune,
   onSlotTick,
+  checkTicks,
   onDismissAlert,
   onVoirSpeedTune,
   onSwap,
@@ -97,10 +102,10 @@ export default function SiegeTeam({
   const leaderMonster = leaderId ? monsterById.get(leaderId) ?? null : null;
   const leadInfo = speedLeadOf(leaderMonster);
 
-  // Statut de l'équipe vis-à-vis des ticks. ⚠️ **Calculé TOUJOURS**, sans mode à
-  // activer : une équipe mal calée l'est qu'on ait cliqué ou non, et le bouton
-  // « Vérifier mes tick ATB » ne faisait que retarder la réponse — il fallait
-  // savoir que l'outil existait pour voir un problème qu'on ne cherchait pas.
+  // Statut de l'équipe vis-à-vis des ticks. ⚠️ **Calculé d'office** : le bouton
+  // « Calculer les spd tick » est allumé par défaut, on ne demande rien pour voir
+  // qu'une équipe est mal calée. Il reste pour ÉTEINDRE les couleurs quand on
+  // compose et qu'elles parasitent la lecture.
   //  - vert   : au tick (aucun monstre mal calé) OU recommandation ignorée
   //  - orange : pas au tick mais les monstres hors-tick sont en Swift (on veut du speed)
   //  - rouge  : pas au tick et pas en Swift → à corriger
@@ -121,6 +126,27 @@ export default function SiegeTeam({
   const hasLeo = slotInfos.some(({ monster }) => monster?.name === 'Leo');
   const anyOffTick = slotDangers.some(Boolean);
 
+  // ⚠️ **Une équipe Swift se VÉRIFIE, elle aussi.** Elle n'a pas de tick à
+  // viser — mais elle a un ORDRE, et c'est tout ce qui compte pour elle : qui
+  // joue avant qui. Dire « Vérifier le speed tuning » et s'arrêter là revenait à
+  // renvoyer l'utilisateur faire à la main un calcul que l'app sait faire.
+  //
+  // Même moteur que l'outil (règle des ticks, un seul monstre par tick), donc
+  // même réponse — voir lib/speedTune.ts.
+  const ordreSwift = useMemo(() => {
+    const tune: TuneMonstre[] = [];
+    for (const [i, { monster, combat }] of slotInfos.entries()) {
+      if (monster && combat != null && combat > 0)
+        tune.push({ id: `${i}`, combat, camp: 'allie' });
+    }
+    if (tune.length < 2) return [];
+    return premiersTours(simuler(tune)).map((a) => ({
+      nom: slotInfos[Number(a.id)].monster?.name ?? '?',
+      tick: a.tick,
+    }));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [JSON.stringify(slotInfos.map((x) => [x.monster?.id ?? null, x.combat]))]);
+
   const validated = team.tickAlertDismissed; // recommandation écartée par l'utilisateur
 
   // Message d'alerte, construit dans speed.ts : c'est de la logique de tick, pas
@@ -130,7 +156,7 @@ export default function SiegeTeam({
   );
 
   const status: 'neutral' | 'green' | 'orange' | 'red' =
-    !hasMonsters || hasLeo
+    !checkTicks || !hasMonsters || hasLeo
       ? 'neutral'
       : validated
         ? 'green'
@@ -463,9 +489,21 @@ export default function SiegeTeam({
               className={`mt-px flex-none ${status === 'red' ? 'text-fire' : 'text-warn'}`}
             />
             <span className={`text-xs ${status === 'red' ? 'text-fire' : 'text-warn'}`}>
-              {status === 'red'
-                ? messageTick ?? "Ton équipe n'est pas au tick."
-                : 'Vérifier le speed tuning'}
+              {status === 'red' ? (
+                (messageTick ?? "Ton équipe n'est pas au tick.")
+              ) : ordreSwift.length > 0 ? (
+                <>
+                  Équipe speed : elle joue dans cet ordre —{' '}
+                  <span className="font-semibold text-ink">
+                    {ordreSwift.map((o) => o.nom).join(' → ')}
+                  </span>
+                  <span className="ml-1 font-mono text-micro text-ink-dim">
+                    (ticks {ordreSwift.map((o) => o.tick).join(' · ')})
+                  </span>
+                </>
+              ) : (
+                'Équipe speed : pas de tick à viser.'
+              )}
             </span>
           </div>
           {/* ⚠️ DEUX sorties, pas une : écarter le conseil, ou aller le vérifier.

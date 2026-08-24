@@ -133,7 +133,7 @@ Calcul dans [speedTune.ts](src/lib/speedTune.ts), **testé**
     (un proc vaut au mieux 6 %, une ligne encaisse 5 procs, un monstre porte deux
     artéfacts). ⚠️ **Rien n'est proposé sans buff** : l'artéfact n'amplifie que
     ce qui existe — c'est ce que dit `artefactRequis: null`.
-  L'écran affiche « **+71 SPD** ou **+18 arté** » — l'un OU l'autre suffit ; la
+  L'écran affiche « **+71 SPD** ou **+18 spd buff effect** » — l'un OU l'autre suffit ; la
   pastille d'artéfact n'apparaît que si un buff de vitesse court sur son camp.
   Rien à trouver et rien à en attendre → « hors de portée ».
 
@@ -377,8 +377,10 @@ De haut en bas :
    combat) et sa **barre de recherche** d'ajout (combobox `Champ` + `Flottant`,
    même grammaire que RtaSearch — voir
    [../shared/recherche-clavier.md](../shared/recherche-clavier.md)). Chaque monstre
-   a un champ **« Arté buff »** — le bonus d'artéfact « Effet aug. VIT » (voir
-   Formule), **dans les deux camps** : ⚠️ il fut réservé aux alliés (« on ne
+   a un champ **« SPD buff effect »** — le bonus d'artéfact « Effet aug. VIT »
+   (voir Formule), **dans les deux camps** : ⚠️ le libellé retenu est celui que
+   la communauté emploie, pas celui du jeu, parce que c'est sous ce nom qu'on le
+   cherche et qu'on en parle ; ⚠️ il fut réservé aux alliés (« on ne
    connaît pas les artéfacts d'en face »), ce qui ne tient plus depuis qu'un deck
    importé et l'adversaire de référence y **posent** une valeur lue sur nos
    propres artéfacts — un chiffre qui compte dans le calcul doit se voir et se

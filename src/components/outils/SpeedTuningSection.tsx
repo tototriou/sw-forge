@@ -597,7 +597,7 @@ export default function SpeedTuningSection({ allMonsters, siegeDefenseTeams, sie
             className="rounded border border-accent/50 px-1.5 py-0.5 font-mono text-micro font-bold text-accent"
             title="Artéfact « Effet aug. VIT » : il amplifie le buff de vitesse reçu"
           >
-            {signe(arte)} arté
+            {signe(arte)} spd buff effect
           </span>
         )}
       </span>
@@ -1355,7 +1355,7 @@ function CampPanneau({
                         className="text-micro font-semibold uppercase tracking-wide text-ink-dimmer"
                         title="Bonus d'artéfact « Effet aug. VIT » — s'ajoute au buff de vitesse quand il est actif. Repris tel quel d'un deck importé ou de l'adversaire de référence."
                       >
-                        Arté buff
+                        SPD buff effect
                       </span>
                       <NumberField
                         value={l.artefactBuff}

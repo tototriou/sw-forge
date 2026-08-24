@@ -37,6 +37,7 @@ import {
   defenseFactor,
   estPrisEnCharge,
   maVitCombat,
+  monsterBonusDegatsSelonVit,
   monsterCritSiPlusRapide,
   monsterDamageSkills,
   monsterOffensivePassives,
@@ -375,6 +376,51 @@ export default function testDegats() {
   ok(
     computeTotalDamage(concentratedStab, [], rignaStats, { ...rignaSetupNonCrit, enemySpd: 100 }, null, 0, false) === sansCrit100,
     '`critSiPlusRapide=false` (monstre sans ce passif) : aucun effet, même VIT identique'
+  );
+
+  // Sonia — « Evasion (Passive) », TROISIÈME mécanique liée à la VIT,
+  // distincte des deux précédentes : un bonus de dégâts CONTINU (pas un
+  // critique binaire), confirmé linéaire par l'utilisateur — 50 points
+  // d'écart de VIT = +50 %, 3 points = +3 %, 42 points = +42 %.
+  const sonia = fiche(26113);
+  const soniaBase = defaultDamageSkill(monsterDamageSkills(sonia));
+  ok(soniaBase !== null, 'Sonia : un sort de dégâts par défaut est trouvé');
+  ok(!soniaBase!.variables.includes('SPD'), 'aucun sort de Sonia ne dépend directement de la VIT');
+  egal(monsterOffensivePassives(sonia).length, 0, 'Evasion N’EST PAS un passif offensif : aucune formule, aucun dégât propre');
+  egal(
+    monsterBonusDegatsSelonVit(sonia),
+    { ecartMax: 50, pctMax: 50 },
+    'Sonia porte bien le bonus continu (50 points = 50 %, curé)'
+  );
+  ok(!monsterBonusDegatsSelonVit(fiche(LUSHEN)), 'Lushen n’a pas ce mécanisme');
+  ok(!monsterBonusDegatsSelonVit(null), 'fiche absente : null, jamais une exception');
+
+  const soniaStats = stats({ atk: 2000, cd: 200, cr: 100, spd: 200 });
+  const soniaSetup: DamageSetup = {
+    ...DEFAULT_DAMAGE_SETUP,
+    skillCom2usId: soniaBase!.skillCom2usId,
+    summonerSkills: 'aucune',
+    critMode: 'normal',
+  };
+  const soniaConfig = monsterBonusDegatsSelonVit(sonia)!;
+  const soniaSansEcart = computeSkillDamage(soniaBase!, soniaStats, { ...soniaSetup, enemySpd: 200 }, null);
+  const totalMemeVitSonia = computeTotalDamage(soniaBase!, [], soniaStats, { ...soniaSetup, enemySpd: 200 }, null, 0, false, soniaConfig);
+  const total25 = computeTotalDamage(soniaBase!, [], soniaStats, { ...soniaSetup, enemySpd: 175 }, null, 0, false, soniaConfig);
+  const total50 = computeTotalDamage(soniaBase!, [], soniaStats, { ...soniaSetup, enemySpd: 150 }, null, 0, false, soniaConfig);
+  const total100 = computeTotalDamage(soniaBase!, [], soniaStats, { ...soniaSetup, enemySpd: 100 }, null, 0, false, soniaConfig);
+  const totalPlusLente = computeTotalDamage(soniaBase!, [], soniaStats, { ...soniaSetup, enemySpd: 260 }, null, 0, false, soniaConfig);
+  egal(totalMemeVitSonia, soniaSansEcart, 'aussi rapide que la cible : aucun bonus');
+  ok(Math.abs(total25 / soniaSansEcart - 1.25) < 1e-9, '25 points d’écart : exactement +25 %');
+  ok(Math.abs(total50 / soniaSansEcart - 1.5) < 1e-9, '50 points d’écart : exactement +50 % (le plafond)');
+  ok(Math.abs(total100 / soniaSansEcart - 1.5) < 1e-9, '100 points d’écart : plafonné à +50 %, jamais plus');
+  egal(totalPlusLente, soniaSansEcart, 'cible plus rapide que Sonia : le bonus tombe à 0 %, jamais négatif');
+  ok(
+    computeTotalDamage(soniaBase!, [], soniaStats, { ...soniaSetup, enemySpd: 100 }, null, 0, false, null) === soniaSansEcart,
+    'bonusDegatsSelonVit=null (monstre sans ce passif) : aucun effet, même VIT identique'
+  );
+  ok(
+    damageRelevantStats(soniaBase, [], soniaSetup, false, soniaConfig).includes('spd'),
+    'la VIT est privilégiée au pré-filtrage même si AUCUN sort de Sonia ne la lit directement'
   );
 
   titre('Dégâts réels — stats à privilégier dans la recherche');

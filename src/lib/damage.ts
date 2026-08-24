@@ -199,6 +199,25 @@ export function monsterCritSiPlusRapide(detail: DetailMonstre | null): boolean {
   return detail.competences.some((c) => c.passif && CRIT_SI_PLUS_RAPIDE_CONNUS.has(c.nom));
 }
 
+// Passifs qui majorent TOUS les dégâts du monstre proportionnellement à
+// l'écart de VIT avec la cible, plafonné à `pctMax` à `ecartMax` points
+// d'écart ou plus — Sonia/Battle Angel (« Evasion (Passive) », sans formule
+// ni dégâts propres : encore un MODIFICATEUR, pas un
+// `PASSIFS_OFFENSIFS_CONNUS`). Linéaire, confirmé par l'utilisateur : 50
+// points d'écart = +50 %, 3 points = +3 %, 42 points = +42 %.
+const BONUS_DEGATS_SELON_VIT_CONNUS: Record<string, { ecartMax: number; pctMax: number }> = {
+  'Evasion (Passive)': { ecartMax: 50, pctMax: 50 }, // Sonia, Battle Angel
+};
+
+export function monsterBonusDegatsSelonVit(detail: DetailMonstre | null): { ecartMax: number; pctMax: number } | null {
+  if (!detail) return null;
+  for (const c of detail.competences) {
+    const trouve = c.passif && BONUS_DEGATS_SELON_VIT_CONNUS[c.nom];
+    if (trouve) return trouve;
+  }
+  return null;
+}
+
 type Noeud =
   | { type: 'nombre'; valeur: number }
   | { type: 'variable'; nom: DamageVariable }
@@ -1155,6 +1174,15 @@ export function bonusPassifActif(p: PassifOffensifProfile, setup: DamageSetup): 
  * sort actif ET sur chaque passif dont `critique === 'suit'` — un passif
  * avec son propre `'jamais'`/`'toujours'` (fait plus précis sur CETTE
  * contribution précise) garde la priorité.
+ *
+ * ⚠️ **`bonusDegatsSelonVit`** (Sonia, Battle Angel — « Evasion (Passive) »,
+ * voir `monsterBonusDegatsSelonVit`) : même famille de modificateur que
+ * `critSiPlusRapide` (pas un `PASSIFS_OFFENSIFS_CONNUS`, aucune contribution
+ * propre), mais un bonus CONTINU au lieu d'un binaire — `pctMax` % à
+ * `ecartMax` points d'écart de VIT ou plus, linéaire en-dessous (confirmé
+ * par l'utilisateur : 50 pts = +50 %, 3 pts = +3 %). Multiplicatif sur le
+ * TOTAL (sort + tous les passifs), après coup — pas une contribution isolée
+ * comme `bonusPvCible`.
  */
 export function computeTotalDamage(
   profile: SkillDamageProfile,
@@ -1165,11 +1193,13 @@ export function computeTotalDamage(
   // Somme des lignes d'artéfact « Effet aug. VIT » équipées — voir
   // `speedBuffAmpliPct`, fixe pour toute une recherche.
   ampliVitPct = 0,
-  critSiPlusRapide = false
+  critSiPlusRapide = false,
+  // Sonia/Battle Angel (« Evasion (Passive) ») — voir
+  // `monsterBonusDegatsSelonVit`. `null` = comportement inchangé.
+  bonusDegatsSelonVit: { ecartMax: number; pctMax: number } | null = null
 ): number {
-  const forceCrit =
-    critSiPlusRapide &&
-    maVitCombat(stats, setup, element, ampliVitPct) > Math.max(1, setup.enemySpd ?? DEFAULT_DAMAGE_SETUP.enemySpd!);
+  const ecartVit = maVitCombat(stats, setup, element, ampliVitPct) - Math.max(1, setup.enemySpd ?? DEFAULT_DAMAGE_SETUP.enemySpd!);
+  const forceCrit = critSiPlusRapide && ecartVit > 0;
   const setupSort = forceCrit ? { ...setup, critMode: 'crit' as const } : setup;
   // ⚠️ Les PV de la cible sont ENCHAÎNÉS du sort actif vers les passifs :
   // ceux-ci frappent après lui, sur une cible déjà entamée. C'est ce qui
@@ -1205,6 +1235,14 @@ export function computeTotalDamage(
     }
     total += contribution;
   }
+  // ⚠️ Multiplicatif sur le TOTAL (sort actif + tous les passifs), APRÈS
+  // coup — « the damage dealt increases », un modificateur sur l'ensemble de
+  // ce que le monstre inflige, pas une contribution à part (contrairement à
+  // `bonusPvCible`/`bonus`, propres à UN passif précis).
+  if (bonusDegatsSelonVit) {
+    const pct = Math.min(bonusDegatsSelonVit.pctMax, Math.max(0, ecartVit)) * (bonusDegatsSelonVit.pctMax / bonusDegatsSelonVit.ecartMax);
+    total *= 1 + pct / 100;
+  }
   return total;
 }
 
@@ -1230,7 +1268,13 @@ export function computeTotalDamage(
 export function damageRelevantStats(
   profile: SkillDamageProfile | null,
   passifs: PassifOffensifProfile[] = [],
-  setup: DamageSetup = DEFAULT_DAMAGE_SETUP
+  setup: DamageSetup = DEFAULT_DAMAGE_SETUP,
+  // Modificateurs monstre-wide qui font travailler la VIT même quand AUCUN
+  // sort/passif compté n'en lit une variable — Sonia (`Evasion`) n'a par
+  // exemple aucun sort dont la formule dépend de la VIT, mais son bonus de
+  // dégâts continu en dépend quand même. Voir `computeTotalDamage`.
+  critSiPlusRapide = false,
+  bonusDegatsSelonVit: { ecartMax: number; pctMax: number } | null = null
 ): StatKey[] {
   // Sans sort résolu (fiche absente, sort non pris en charge), on retombe sur
   // le biais de l'objectif « Dégâts » — le cas de très loin le plus fréquent.
@@ -1254,6 +1298,13 @@ export function damageRelevantStats(
     // Dgts Crit pèsent sur lui plus encore que sur un sort ordinaire.
     if (!p.profile.fixed && p.critique !== 'jamais') peutCriter = true;
   }
+  if (critSiPlusRapide || bonusDegatsSelonVit) {
+    if (!keys.includes('spd')) keys.push('spd');
+  }
+  // Le critique forcé change la donne — mais SEULEMENT lui : le bonus continu
+  // de Sonia multiplie le total quel que soit son mode de critique, il ne le
+  // FORCE pas.
+  if (critSiPlusRapide) peutCriter = true;
   if (peutCriter) keys.push('cd');
   return keys;
 }

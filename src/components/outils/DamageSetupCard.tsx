@@ -74,6 +74,11 @@ interface Props {
   // variable peut quand même avoir BESOIN de la VIT adverse si ce
   // modificateur existe).
   critSiPlusRapide: boolean;
+  // Ce monstre majore-t-il TOUS ses dégâts selon l'écart de VIT (Sonia —
+  // `monsterBonusDegatsSelonVit`, damage.ts) ? Même rôle que
+  // `critSiPlusRapide` pour l'affichage des champs liés à la VIT — `null` =
+  // aucun effet.
+  bonusDegatsSelonVit: { ecartMax: number; pctMax: number } | null;
   // Somme des lignes d'artéfact « Effet aug. VIT » ÉQUIPÉES
   // (`speedBuffAmpliPct`, damage.ts) — DÉDUIT, jamais saisi ici ; affiché en
   // clair pour que la VIT calculée ne semble pas sortie de nulle part.
@@ -131,6 +136,7 @@ export default function DamageSetupCard({
   chargement,
   etroit,
   critSiPlusRapide,
+  bonusDegatsSelonVit,
   ampliVitPct,
 }: Props) {
   const maj = (patch: Partial<DamageSetup>) => setSetup((prev) => ({ ...prev, ...patch }));
@@ -369,9 +375,11 @@ export default function DamageSetupCard({
           )}
           {/* Pour un sort dont la formule lit `{Relative SPD}` (« Ta VIT −
               VIT cible / VIT cible ») — OU quand ce monstre force le
-              critique s'il est plus rapide (`critSiPlusRapide`), même si le
-              sort CHOISI ne lit pas cette variable (ex. Rigna S1). */}
-          {(utilise('Relative SPD') || critSiPlusRapide) && (
+              critique s'il est plus rapide (`critSiPlusRapide`) OU majore
+              tous ses dégâts selon l'écart de VIT (`bonusDegatsSelonVit`,
+              Sonia), même si le sort CHOISI ne lit pas cette variable
+              (ex. Rigna S1, ou n'importe quel sort de Sonia). */}
+          {(utilise('Relative SPD') || critSiPlusRapide || bonusDegatsSelonVit) && (
             <>
               <label className="flex items-center gap-2">
                 <span className="text-xs text-ink-dim">VIT adversaire</span>
@@ -405,6 +413,12 @@ export default function DamageSetupCard({
               )}
               {critSiPlusRapide && (
                 <span className="text-xs text-ink-dim">Critique garanti si plus rapide que l'adversaire</span>
+              )}
+              {bonusDegatsSelonVit && (
+                <span className="text-xs text-ink-dim">
+                  +{bonusDegatsSelonVit.pctMax} % de dégâts à {bonusDegatsSelonVit.ecartMax} points d'écart de VIT ou
+                  plus (linéaire en-dessous)
+                </span>
               )}
             </>
           )}
@@ -442,7 +456,7 @@ export default function DamageSetupCard({
               {Relative SPD} directement (Rigna S1 « Double Gash » en lit
               une, mais un monstre à `critSiPlusRapide` pourrait très bien
               n'avoir AUCUN sort qui en dépend). */}
-          {(utilise('SPD') || utilise('Relative SPD') || critSiPlusRapide) && (
+          {(utilise('SPD') || utilise('Relative SPD') || critSiPlusRapide || bonusDegatsSelonVit) && (
             <EffetVignette icone={SPD_BUFF_ICON} libelle="Buff VIT" onClick={() => maj({ spdBuff: !setup.spdBuff })} actif={setup.spdBuff} etroit={etroit} />
           )}
           {montreDefEnnemie && (

@@ -332,6 +332,10 @@ export interface RealDamageContext {
   // l'adversaire (voir `monsterCritSiPlusRapide`) ? Déduit de la fiche,
   // jamais saisi. `false` = comportement inchangé.
   critSiPlusRapide: boolean;
+  // Ce monstre majore-t-il TOUS ses dégâts selon l'écart de VIT (Sonia —
+  // voir `monsterBonusDegatsSelonVit`) ? Déduit de la fiche, jamais saisi.
+  // `null` = comportement inchangé.
+  bonusDegatsSelonVit: { ecartMax: number; pctMax: number } | null;
 }
 
 export function objectiveScore(candidate: BuildCandidate, objective: Objective, realDamage?: RealDamageContext): number {
@@ -355,7 +359,8 @@ export function objectiveScore(candidate: BuildCandidate, objective: Objective, 
       realDamage.setup,
       realDamage.element,
       realDamage.ampliVitPct,
-      realDamage.critSiPlusRapide
+      realDamage.critSiPlusRapide,
+      realDamage.bonusDegatsSelonVit
     );
   }
   if (objective === 'degats') {

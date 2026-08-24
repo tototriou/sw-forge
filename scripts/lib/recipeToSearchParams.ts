@@ -12,6 +12,8 @@ import { OptimizerRecipe } from '../../src/lib/optimizerRecipe';
 import {
   DEFAULT_DAMAGE_SETUP,
   damageRelevantStats,
+  monsterBonusDegatsSelonVit,
+  monsterCritSiPlusRapide,
   monsterDamageSkills,
   monsterOffensivePassives,
   resolveDamageSkill,
@@ -106,9 +108,19 @@ export function resolveObjectiveStats(recipe: OptimizerRecipe, loaded: LoadedMon
   const profile = resolveDamageSkill(skills, recipe.damageSetup?.skillCom2usId ?? null);
   // Mêmes passifs offensifs que l'écran (OptimizerSection.tsx) — sinon le
   // pré-filtrage CLI serait plus étroit que celui de l'écran pour la même
-  // recette dès qu'un passif utilise une stat absente du sort de base.
+  // recette dès qu'un passif utilise une stat absente du sort de base. Même
+  // chose pour les deux modificateurs monstre-wide liés à la VIT
+  // (`critSiPlusRapide`/`bonusDegatsSelonVit`) : sans eux, un monstre comme
+  // Sonia (dont AUCUN sort actif ne dépend de la VIT) ne verrait jamais la
+  // VIT privilégiée par le CLI, contrairement à l'écran.
   const passifs = monsterOffensivePassives(detail);
-  return damageRelevantStats(profile, passifs, recipe.damageSetup ?? DEFAULT_DAMAGE_SETUP);
+  return damageRelevantStats(
+    profile,
+    passifs,
+    recipe.damageSetup ?? DEFAULT_DAMAGE_SETUP,
+    monsterCritSiPlusRapide(detail),
+    monsterBonusDegatsSelonVit(detail)
+  );
 }
 
 const HARD_TIMEOUT_MS = 10 * 60 * 1000; // ⚠️ IDENTIQUE à HARD_TIMEOUT_MS (OptimizerSection.tsx).

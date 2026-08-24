@@ -368,11 +368,12 @@ retour.
        formule lit les PV courants de la cible. ⚠️ **VIT adversaire** +
        **leader skill VIT** : apparaissent pour un sort/passif qui dépend de
        l'écart de vitesse (`{Relative SPD}`, ignore-DEF proportionnel à
-       l'écart, ou un monstre qui force le critique s'il est plus rapide —
-       même quand le sort CHOISI ne lit pas cette variable). Le leader skill
-       se saisit (le sien n'agit jamais sur lui-même) ; un artéfact « Effet
-       aug. VIT » équipé et un éventuel critique garanti sont, eux, **déduits
-       et affichés**, jamais redemandés. Détail :
+       l'écart, un monstre qui force le critique s'il est plus rapide, ou
+       majore tous ses dégâts selon cet écart — même quand le sort CHOISI ne
+       lit pas cette variable, ex. n'importe quel sort de Sonia). Le leader
+       skill se saisit (le sien n'agit jamais sur lui-même) ; un artéfact
+       « Effet aug. VIT » équipé et un éventuel critique/bonus de dégâts
+       garanti sont, eux, **déduits et affichés**, jamais redemandés. Détail :
        [degats-reels.md](degats-reels.md), « VIT de l'adversaire ».
      - **Effets actifs** — buffs du monstre (ATQ +50 %, DEF +70 %, VIT
        +30 %) et effets subis par la cible (réduction de défense ×0,3,

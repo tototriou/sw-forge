@@ -40,6 +40,7 @@ import {
   DEFAULT_DAMAGE_SETUP,
   computeTotalDamage,
   damageRelevantStats,
+  monsterBonusDegatsSelonVit,
   monsterCritSiPlusRapide,
   monsterDamageSkills,
   monsterOffensivePassives,
@@ -304,12 +305,22 @@ export default function OptimizerSection({ box, runes, optimizer, allMonsters, r
   // spec/outils/degats-reels.md) — indépendants du sort choisi, calculés dès
   // qu'une fiche est chargée, comme `damageSkills`.
   const offensivePassives = useMemo(() => monsterOffensivePassives(skillDetail), [skillDetail]);
+  // Modificateurs monstre-wide liés à la VIT (Ciri Eau/Rigna/Magic Order
+  // Swordsinger, Sonia/Battle Angel) — ne dépendent que de la fiche, pas des
+  // artéfacts (contrairement à `ampliVitPct`, calculé plus bas après
+  // `searchArtifacts`) : ils font travailler la VIT au pré-filtrage même
+  // pour un sort dont la formule ne la lit pas (voir `damageRelevantStats`).
+  const critSiPlusRapide = useMemo(() => monsterCritSiPlusRapide(skillDetail), [skillDetail]);
+  const bonusDegatsSelonVit = useMemo(() => monsterBonusDegatsSelonVit(skillDetail), [skillDetail]);
   // Stats que le pré-filtrage doit privilégier — `undefined` hors de cet
   // objectif, auquel cas le moteur retombe sur `OBJECTIVE_RELEVANT_STATS`
   // (comportement strictement inchangé pour les cinq autres objectifs).
   const objectiveStats = useMemo(
-    () => (objective === 'degats_reels' ? damageRelevantStats(resolvedSkill, offensivePassives, damageSetup) : undefined),
-    [objective, resolvedSkill, offensivePassives, damageSetup]
+    () =>
+      objective === 'degats_reels'
+        ? damageRelevantStats(resolvedSkill, offensivePassives, damageSetup, critSiPlusRapide, bonusDegatsSelonVit)
+        : undefined,
+    [objective, resolvedSkill, offensivePassives, damageSetup, critSiPlusRapide, bonusDegatsSelonVit]
   );
   // Statistiques principales autorisées sur les slots 2/4/6 — vide = libre.
   // Voir spec/outils/optimizer/ : pour un Lushen, ATQ% en 2, Dmg Crit en 4,
@@ -537,7 +548,6 @@ export default function OptimizerSection({ box, runes, optimizer, allMonsters, r
   // `ampliVitPct` en dépend (mêmes artéfacts que ceux réellement envoyés au
   // moteur, hypothétiques compris — jamais `selected.gear.artifacts`).
   const ampliVitPct = useMemo(() => speedBuffAmpliPct(searchArtifacts), [searchArtifacts]);
-  const critSiPlusRapide = useMemo(() => monsterCritSiPlusRapide(skillDetail), [skillDetail]);
   const realDamage = useMemo<RealDamageContext | null>(
     () =>
       resolvedSkill
@@ -548,9 +558,10 @@ export default function OptimizerSection({ box, runes, optimizer, allMonsters, r
             passifs: offensivePassives,
             ampliVitPct,
             critSiPlusRapide,
+            bonusDegatsSelonVit,
           }
         : null,
-    [resolvedSkill, damageSetup, speciesSelected?.monster.element, offensivePassives, ampliVitPct, critSiPlusRapide]
+    [resolvedSkill, damageSetup, speciesSelected?.monster.element, offensivePassives, ampliVitPct, critSiPlusRapide, bonusDegatsSelonVit]
   );
 
   // Ce que le moteur reçoit réellement — partagé entre la recherche et
@@ -1431,6 +1442,7 @@ export default function OptimizerSection({ box, runes, optimizer, allMonsters, r
               chargement={skillLoading}
               etroit={etroit}
               critSiPlusRapide={critSiPlusRapide}
+              bonusDegatsSelonVit={bonusDegatsSelonVit}
               ampliVitPct={ampliVitPct}
             />
           </div>
@@ -2183,7 +2195,8 @@ export default function OptimizerSection({ box, runes, optimizer, allMonsters, r
                           realDamage.setup,
                           realDamage.element,
                           realDamage.ampliVitPct,
-                          realDamage.critSiPlusRapide
+                          realDamage.critSiPlusRapide,
+                          realDamage.bonusDegatsSelonVit
                         );
                         return { total, partPvCible: damageSetup.enemyHp > 0 ? (total / damageSetup.enemyHp) * 100 : 0 };
                       })()

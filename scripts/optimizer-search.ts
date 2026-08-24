@@ -31,6 +31,7 @@ import {
   DEFAULT_DAMAGE_SETUP,
   bonusPassifActif,
   damageRelevantStats,
+  monsterBonusDegatsSelonVit,
   monsterCritSiPlusRapide,
   monsterDamageSkills,
   monsterOffensivePassives,
@@ -182,7 +183,7 @@ if (recipe.objective === 'degats_reels') {
         // ⚠️ `?? DEFAULT` : une recette exportée AVANT ce champ n'en a pas.
         // L'élément vient du monstre CHARGÉ, jamais de la recette.
         `comp. invocateur ${s.summonerSkills ?? DEFAULT_DAMAGE_SETUP.summonerSkills} (${monsterElement ?? 'élément inconnu'}) — ` +
-        `stats privilégiées [${damageRelevantStats(profile, passifs, s).join(', ')}]`
+        `stats privilégiées [${damageRelevantStats(profile, passifs, s, monsterCritSiPlusRapide(detail), monsterBonusDegatsSelonVit(detail)).join(', ')}]`
     );
     // `resolveArtifacts`, PAS `loaded.gear.artifacts` : ceux réellement
     // envoyés au moteur (réels, hypothétiques ou aucun selon la recette) —
@@ -192,6 +193,12 @@ if (recipe.objective === 'degats_reels') {
     if (ampli > 0) console.log(`Effet aug. VIT (artéfacts) : +${ampli} % — amplifie le buff VIT s'il est actif.`);
     if (monsterCritSiPlusRapide(detail)) {
       console.log(`Ce monstre force le critique quand il est plus rapide que l'adversaire (VIT adverse : ${s.enemySpd ?? DEFAULT_DAMAGE_SETUP.enemySpd}).`);
+    }
+    const bonusVit = monsterBonusDegatsSelonVit(detail);
+    if (bonusVit) {
+      console.log(
+        `Ce monstre majore tous ses dégâts selon l'écart de VIT : +${bonusVit.pctMax} % à ${bonusVit.ecartMax} points d'écart ou plus (VIT adverse : ${s.enemySpd ?? DEFAULT_DAMAGE_SETUP.enemySpd}).`
+      );
     }
     if (passifs.length > 0) {
       const detailPassifs = passifs

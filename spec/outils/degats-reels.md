@@ -424,34 +424,41 @@ un passif avec son propre `'jamais'`/`'toujours'` (fait plus précis sur
 cette contribution précise) garde la priorité sur ce modificateur
 monstre-wide.
 
-⚠️ **Le champ « VIT adversaire » apparaît aussi quand `critSiPlusRapide` est
-vrai**, même si le sort ACTIF choisi ne lit pas `{Relative SPD}` (ex. Rigna
-S1 « Double Gash », qui ne lit que `{SPD}`) : la comparaison de vitesse a
-lieu indépendamment du sort sélectionné.
+⚠️ **Le champ « VIT adversaire », le bouton « Buff VIT » et le leader skill
+apparaissent aussi quand `critSiPlusRapide` OU `bonusDegatsSelonVit` sont
+présents**, même si le sort ACTIF choisi ne lit ni `{SPD}` ni
+`{Relative SPD}` (ex. Rigna S1 « Double Gash » ; ou n'importe quel sort de
+Sonia, voir ci-dessous) : la comparaison de vitesse a lieu indépendamment du
+sort sélectionné. Trouvé après coup sur le bouton « Buff VIT »
+spécifiquement (question directe de l'utilisateur, Ciri Eau/Sonia) — gaté
+sur `utilise('SPD')` seul à l'origine, corrigé à l'identique du champ « VIT
+adversaire » : `utilise('SPD') || utilise('Relative SPD') ||
+critSiPlusRapide || bonusDegatsSelonVit`.
 
-⚠️ **Même chose pour le bouton « Buff VIT »**, trouvé après coup (question
-directe de l'utilisateur) : gaté sur `utilise('SPD')` seul, il n'apparaissait
-ni pour `{Relative SPD}` (Concentrated Stab/Charge Attack, `4.7*{ATK}`
-nu — la variable n'est pas `SPD`) ni pour `critSiPlusRapide` — alors que le
-buff influence `maVitCombat` dans les DEUX cas, exactement comme pour le
-champ « VIT adversaire ». Gating corrigé à l'identique :
-`utilise('SPD') || utilise('Relative SPD') || critSiPlusRapide`.
+### Bonus de dégâts continu selon l'écart de VIT (Sonia, Battle Angel)
 
-### Troisième mécanique dépendante de la VIT, PAS ENCORE modélisée : Sonia
+Sonia/Battle Angel (`Evasion (Passive)`, sans formule ni dégâts propres —
+même famille que `critSiPlusRapide`, PAS un `PASSIFS_OFFENSIFS_CONNUS`) :
+« The faster you are than the enemy… **the damage dealt increases by up to
+50%** » — un TROISIÈME mécanisme lié à la VIT, distinct des deux
+précédents : ni une formule de dégâts (`{Relative SPD}`), ni un critique
+garanti binaire, mais un **bonus de dégâts CONTINU** proportionnel à l'écart
+de VIT. Le texte du jeu ne donne aucun seuil (« up to 50% » seul) — donnée
+**confirmée par l'utilisateur** : **50 points d'écart de VIT = +50 %**,
+LINÉAIRE en-dessous (3 points = +3 %, 42 points = +42 %), 0 % si la cible
+est aussi rapide ou plus. Curé dans `BONUS_DEGATS_SELON_VIT_CONNUS` (`{
+ecartMax, pctMax }`, généralisé au-delà du cas 1:1 de Sonia — un futur
+monstre pourrait plafonner à un pourcentage différent du nombre de points),
+détecté par `monsterBonusDegatsSelonVit(detail)`.
 
-Sonia (`Evasion (Passive)`, sans formule) : « The faster you are than the
-enemy… **the damage dealt increases by up to 50%** » — un TROISIÈME
-mécanisme, distinct des deux ci-dessus : ni `{Relative SPD}` (une formule de
-dégâts), ni un critique garanti (`critSiPlusRapide`), mais un **bonus de
-dégâts continu** qui monte avec l'écart de VIT, plafonné à +50 %. Comme pour
-l'ignore-DEF proportionnel de Rigna, le texte du jeu ne donne AUCUN seuil
-numérique (« up to 50% » seul) — **non implémenté, faute de formule
-confirmée** (à quel écart de VIT atteint-on les +50 % ? linéaire comme
-Rigna ?). Le bouton « Buff VIT »/« VIT adversaire » ne s'affiche donc PAS
-encore pour Sonia : aucun de ses sorts actifs (`1.9*{ATK}`, `3.5*{ATK}`) ne
-lit de variable de VIT, et rien ne modélise encore sa contribution — un
-champ visible mais sans effet serait pire qu'absent (même principe que
-partout ailleurs dans ce panneau).
+`computeTotalDamage(..., bonusDegatsSelonVit)` applique ce bonus
+MULTIPLICATIVEMENT sur le **total** (sort actif + tous les passifs), APRÈS
+coup — « the damage dealt increases », un modificateur sur l'ensemble de ce
+que le monstre inflige, pas une contribution isolée comme `bonusPvCible`
+(propre à UN passif précis). `damageRelevantStats` fait travailler la VIT
+au pré-filtrage MÊME si aucun sort actif de Sonia n'en dépend directement
+(`Guard Crush` : `3.5*{ATK}` nu) — vérifié sur un compte réel : « stats
+privilégiées [atk, spd, cd] ».
 
 ## Stats à privilégier dans la recherche
 

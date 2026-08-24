@@ -188,13 +188,17 @@ export default function SiegeTeam({
       : validated
         ? 'green'
         : teamHasSwift
-          ? // ⚠️ Une équipe Swift est VERTE quand elle est speed tune : c'est sa
-            // façon d'être au tick à elle. L'orange voulait dire « pas de tick à
-            // viser, débrouille-toi » — maintenant qu'on sait répondre, le laisser
-            // orange revenait à signaler un problème qui n'existe pas.
-            speedTune?.verdict.ok
-            ? 'green'
-            : 'orange'
+          ? // ⚠️ Une équipe Swift ne se juge JAMAIS au tick : on regarde son speed
+            // tune, un point c'est tout. Verte si elle est tune, orange sinon —
+            // et NEUTRE tant qu'on ne peut pas répondre (kits en cours de
+            // chargement, un seul monstre renseigné). Elle affichait alors
+            // « pas de tick à viser », une phrase qui parlait justement de ce
+            // qu'on ne lui demande plus.
+            !speedTune
+            ? 'neutral'
+            : speedTune.verdict.ok
+              ? 'green'
+              : 'orange'
           : anyOffTick
             ? 'red' // un monstre pas au tick
             : 'green'; // tous au tick
@@ -553,9 +557,7 @@ export default function SiegeTeam({
                             .join(', ')}
                     </span>
                   </>
-                ) : (
-                  'Équipe speed : pas de tick à viser.'
-                )
+                ) : null
               ) : status === 'green' && validated ? (
                 <button
                   onClick={() => onDismissAlert(team.id, false)}

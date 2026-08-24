@@ -72,13 +72,17 @@ par équipe (aura = bordure + halo, + point dans l'en-tête) :
 | Statut | Couleur | Condition | Message sous les monstres |
 |--------|---------|-----------|---------------------------|
 | Orange | `amber` | Équipe avec **≥1 Swift** qui **n'est PAS speed tune** | ce qui manque, monstre par monstre |
+| — | neutre | Équipe Swift dont le speed tune **ne peut pas encore être calculé** (kits en cours de chargement, un seul monstre renseigné) | — |
 | Rouge | `fire` | (Sans Swift) un monstre **pas au tick** (anneau rouge sur le slot fautif) | une phrase par monstre fautif, voir ci-dessous |
 | Vert | `emerald` | (Sans Swift) **tous au tick** · **ou** équipe Swift **speed tune** · **ou** recommandation ignorée | « ✓ Équipe speed : elle est speed tune » pour le cas Swift |
 | — | neutre | Équipe **vide** ou avec **Leo** | — |
 
 ### ⚠️ Une équipe Swift ne se juge pas au tick : elle se SPEED TUNE
 
-Elle n'a aucun tick à viser. Ce qui compte pour elle, c'est que **toute l'équipe
+Elle n'a aucun tick à viser — **et on ne lui en parle plus jamais** : ni statut
+rouge, ni anneau sur un slot, ni phrase de repli (« pas de tick à viser »).
+Quand la réponse n'est pas encore calculable, la card reste **neutre** plutôt que
+de dire quelque chose sur une question qu'on ne lui pose plus. Ce qui compte pour elle, c'est que **toute l'équipe
 joue avant que l'adversaire ne s'intercale** — la question de l'outil, pas celle
 des ticks. Afficher « Vérifier le speed tuning » et s'arrêter là renvoyait
 l'utilisateur faire à la main un calcul que l'app sait faire.

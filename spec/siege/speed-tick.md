@@ -71,9 +71,9 @@ par équipe (aura = bordure + halo, + point dans l'en-tête) :
 
 | Statut | Couleur | Condition | Message sous les monstres |
 |--------|---------|-----------|---------------------------|
-| Orange | `amber` | Équipe avec **≥1 Swift** (pas de tick à viser) | son **ordre de tours**, calculé (voir ci-dessous) |
+| Orange | `amber` | Équipe avec **≥1 Swift** qui **n'est PAS speed tune** | ce qui manque, monstre par monstre |
 | Rouge | `fire` | (Sans Swift) un monstre **pas au tick** (anneau rouge sur le slot fautif) | une phrase par monstre fautif, voir ci-dessous |
-| Vert | `emerald` | (Sans Swift) **tous au tick**, **ou** recommandation ignorée | — |
+| Vert | `emerald` | (Sans Swift) **tous au tick** · **ou** équipe Swift **speed tune** · **ou** recommandation ignorée | « ✓ Équipe speed : elle est speed tune » pour le cas Swift |
 | — | neutre | Équipe **vide** ou avec **Leo** | — |
 
 ### ⚠️ Une équipe Swift ne se juge pas au tick : elle se SPEED TUNE
@@ -83,8 +83,12 @@ joue avant que l'adversaire ne s'intercale** — la question de l'outil, pas cel
 des ticks. Afficher « Vérifier le speed tuning » et s'arrêter là renvoyait
 l'utilisateur faire à la main un calcul que l'app sait faire.
 
-La card affiche donc le **verdict** : « Équipe speed : elle est speed tune. », ou
-ce qui manque, monstre par monstre (« Bella +71 VIT »).
+La card affiche donc le **verdict**, et sa couleur le suit :
+- **verte** quand l'équipe est speed tune — ⚠️ c'est sa façon d'être « au tick » à
+  elle ; la laisser orange signalait un problème qui n'existe pas. Le vert **se
+  dit** (« ✓ Équipe speed : elle est speed tune »), sans quoi on ne sait pas si
+  la vérification a tourné ou si l'app n'avait rien à dire ;
+- **orange** sinon, avec ce qui manque monstre par monstre (« Bella +71 VIT »).
 
 ⚠️ **C'est le MÊME code que l'outil** — `analyseAutomatique`
 ([speedTuneAuto.ts](src/lib/speedTuneAuto.ts)), partagé par les deux écrans : la

@@ -177,7 +177,13 @@ export default function SiegeTeam({
       : validated
         ? 'green'
         : teamHasSwift
-          ? 'orange' // au moins un Swift → équipe speed, pas de tick à viser
+          ? // ⚠️ Une équipe Swift est VERTE quand elle est speed tune : c'est sa
+            // façon d'être au tick à elle. L'orange voulait dire « pas de tick à
+            // viser, débrouille-toi » — maintenant qu'on sait répondre, le laisser
+            // orange revenait à signaler un problème qui n'existe pas.
+            speedTune?.verdict.ok
+            ? 'green'
+            : 'orange'
           : anyOffTick
             ? 'red' // un monstre pas au tick
             : 'green'; // tous au tick
@@ -564,6 +570,12 @@ export default function SiegeTeam({
           le même `<button>` — cible et infobulle ne changent pas —, mais le
           trait dit où regarder pour comprendre que ça se clique. Même
           convention que les liens de RecoBoard/RecoCard. */}
+      {/* ⚠️ Le vert d'une équipe Swift se DIT : sans un mot, on ne sait pas si
+          la vérification a tourné ou si l'app n'avait rien à dire. Même
+          grammaire que « Recommandation ignorée » juste en dessous. */}
+      {status === 'green' && !validated && speedTune?.verdict.ok && (
+        <p className="mt-3 text-micro text-good">✓ Équipe speed : elle est speed tune</p>
+      )}
       {status === 'green' && validated && (
         <button
           onClick={() => onDismissAlert(team.id, false)}

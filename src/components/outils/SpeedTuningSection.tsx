@@ -881,7 +881,7 @@ export default function SpeedTuningSection({ allMonsters, siegeDefenseTeams, sie
               ) : chaine.ok ? (
                 <p className="flex items-center gap-2 text-sm font-semibold text-good">
                   <Check size={16} className="flex-none" />
-                  Toute ton équipe joue avant {nomDe(chaine.coupeur.id)}.
+                  Ta team est speed tune.
                 </p>
               ) : (
                 <>

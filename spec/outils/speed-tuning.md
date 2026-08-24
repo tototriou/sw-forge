@@ -402,9 +402,11 @@ De haut en bas :
    - **En-tête** : le titre, et les **deux commandes** côte à côte — **« Lancer »
      / « Cacher »** et **« Ordre des sorts »**. Elles pilotent la même chose, et
      ce qu'elles ouvrent est posé **dessous** : elles ne bougent pas d'un pixel.
-   - **Corps** : le verdict — vert quand toute l'équipe joue avant le premier
-     adverse (il est **nommé** ; ⚠️ **sans son tick**), rouge sinon, avec **une
-     ligne par allié coupé** : son nom et **le chiffre qui manque**, rien de plus.
+   - **Corps** : le verdict. Vert, il tient en quatre mots — **« Ta team est
+     speed tune. »** ⚠️ Quand c'est bon, il n'y a rien à ajouter : ni le nom de
+     l'adverse devancé, ni son tick. Rouge, il nomme **l'adverse qui coupe**
+     (toujours sans son tick) puis donne **une ligne par allié coupé** : son nom
+     et **le chiffre qui manque**, rien de plus.
    - **Sous-bloc** (bouton « Ordre des sorts ») : l'ordre imposé et le sort de
      chacun, **dans la même card**, séparé d'un simple filet — c'est le même
      travail, en plus fin. Voir « Analyse poussée ».

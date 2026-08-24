@@ -145,11 +145,19 @@ Comme en **vue compacte du siège**, le panneau de détail (`MonsterGear`) s'ouv
   s'afficherait à sa taille naturelle (elle tient dans la racine pleine
   largeur) sans jamais tenir compte de la place déjà prise par la fiche sur
   la MÊME ligne, et le vrai `flex-wrap` du navigateur le renverrait à la
-  ligne suivante. ⚠️ **Plancher de lisibilité (0,55)** : sur un téléphone
-  vraiment étroit, la place restante après la fiche de stats peut être trop
-  réduite pour un rendu lisible — en dessous de ce plancher, le calcul
-  repasse à celui du bureau (racine entière), et le `flex-wrap` renvoie
-  alors le groupe à la ligne suivante plutôt que de l'y écraser.
+  ligne suivante.
+  ⚠️ **Plancher de lisibilité (0,55) CONTINU, jamais un saut entre deux
+  formules.** Une première version, sous ce plancher, repassait entièrement
+  au calcul du bureau (racine entière) — signalée en usage réel comme un
+  comportement de SACCADE : si le ratio `dispo/naturelW` frôle le seuil, un
+  écart de mesure d'à peine 1px (arrondi de `offsetWidth`) suffit à faire
+  basculer d'un côté du seuil puis de l'autre, et chaque bascule change la
+  présentation du groupe (minuscule ↔ pleine taille passée à la ligne),
+  donc la HAUTEUR de la racine, donc redéclenche l'observateur sur cette
+  même hauteur — un aller-retour sans fin, pas un cas rare. Remplacé par un
+  simple plancher (`Math.max`) sur le calcul déjà en place : la formule
+  reste continue quel que soit l'écart à la place disponible, jamais deux
+  branches qui se disputent le même seuil.
 - **L'encadré de stats entier est cliquable** (`role="button"`, pas un bouton
   séparé) et bascule entre deux affichages du même tableau :
   - **Base + bonus** (par défaut) : base en blanc, bonus en **vert**

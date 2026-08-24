@@ -129,19 +129,18 @@ export default function MonsterGear({ gear, spdCible = null, scale }: Props) {
       //   aligné avec panneau/artéfacts/roue/relique.
       const dispo = auDoigt ? racine.clientWidth - (statPanelRef.current?.offsetWidth ?? 0) - 8 : racine.clientWidth;
       if (naturelW <= 0 || dispo <= 0) return;
-      let s = Math.min(1, dispo / naturelW);
-      // ⚠️ **Plancher de lisibilité, au doigt seulement.** Sur un téléphone
-      // vraiment étroit, la place restante après le panneau de stats (fixe)
-      // peut être si réduite que le groupe s'y écraserait à une taille
-      // illisible (roue de runes de quelques dizaines de pixels). Sous ce
-      // plancher, mieux vaut repasser au calcul du BUREAU (largeur de la
-      // racine ENTIÈRE) : le groupe s'affiche alors à une taille lisible,
-      // mais devient trop large pour tenir à côté du panneau de stats — le
-      // VRAI `flex-wrap` du navigateur le renvoie alors à la ligne suivante
-      // (même repli que sur bureau), plutôt que de rester à côté, illisible.
-      const PLANCHER = 0.55;
-      if (auDoigt && s < PLANCHER) s = Math.min(1, racine.clientWidth / naturelW);
-      s = Math.round(s * 1000) / 1000;
+      // ⚠️ **Formule CONTINUE, sans branche — un saut entre deux calculs
+      // (« serré à côté » / « repli pleine largeur ») a été tenté puis
+      // RETIRÉ : signalé en usage réel comme un comportement de SACCADE.
+      // Cause : si le ratio `dispo/naturelW` frôle le seuil du saut, un écart
+      // de mesure d'à peine 1px (arrondi de `offsetWidth`) suffit à faire
+      // basculer d'un côté puis de l'autre du seuil — chaque bascule change
+      // la présentation du groupe (minuscule ↔ pleine taille + passé à la
+      // ligne), donc la HAUTEUR de la racine, donc redéclenche l'observateur
+      // sur cette même hauteur : un aller-retour sans fin, pas un cas rare.
+      // Un simple `Math.max` (plancher) est CONTINU — jamais deux branches de
+      // calcul qui se disputent le même seuil, jamais de saut.
+      const s = Math.round(Math.max(auDoigt ? 0.55 : 0, Math.min(1, dispo / naturelW)) * 1000) / 1000;
       setMesure((prev) =>
         prev && prev.w === naturelW && prev.h === naturelH && prev.s === s ? prev : { w: naturelW, h: naturelH, s }
       );

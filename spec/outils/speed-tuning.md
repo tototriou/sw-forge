@@ -201,14 +201,12 @@ sorts, et « Aucun sort ».
   liste ne suit plus les vitesses et se contente de suivre la composition (un
   allié ajouté entre à la fin, un retiré en sort). Le réécrire après coup serait
   une perte silencieuse.
-- **Sort par monstre**, en **options empilées** (`Option` de la librairie : le
-  choix riche, avec icône, titre et ce que ça fait) — une par sort, plus
-  « Aucun sort ». ⚠️ **Pas un menu déroulant** : il fallait l'ouvrir pour voir ce
-  que chaque sort fait, et on ne comparait jamais deux sorts d'un coup d'œil.
-  ⚠️ C'est bien la place d'`Option` — **dans une card**, où son cadre arrondi
-  délimite un choix ; ce qu'il ne faut pas, c'est l'empiler dans un `Flottant`,
-  déjà arrondi, où il fait des coins dans des coins (voir l'import de deck, qui
-  utilise des rangées à plat). Le bouton porte l'icône du
+- **Sort par monstre**, dans un **menu à icônes** (Bouton + `Flottant` +
+  rangées à plat, la grammaire des listes ancrées de l'app) : la ligne reste
+  lisible d'un coup d'œil et le détail s'ouvre à la demande. Le bouton porte
+  l'icône du sort retenu ; chaque entrée dit ce que le sort fait et son taux de
+  réussite. ⚠️ **Pas des cartes `Option` dans le flottant** : elles y font des
+  coins dans des coins (voir la note de l'import de deck). Le bouton porte l'icône du
   sort retenu. Trois familles d'entrées : « Sort détecté » (celui que la lecture
   du kit a retenu),
   « Aucun sort », ou **n'importe quelle compétence** du kit — ⚠️ **toutes** sont
@@ -470,10 +468,10 @@ De haut en bas :
      — un autre sort ne pose pas la même chose. Vitesses, artéfacts, sets, cases
      des grilles : ce sont des réglages, l'automatisation n'y revient jamais.
      « Relancer » réécrit tout depuis les kits, et écrase donc les corrections.
-   - **En-tête** : le titre et **« Analyser »**. ⚠️ Une **action**, pas un
-     interrupteur : un interrupteur laissait croire à une couche qui tourne en
-     fond et repasserait sur ce qu'on règle. ⚠️ **Aucune phrase d'explication** :
-     le titre suffit.
+   - **En-tête** : le titre et un **interrupteur « Analyser »**. L'allumer écrit ;
+     l'éteindre ne défait rien — ce qui a été écrit reste (grilles, ordre des
+     sorts, adversaire de référence). ⚠️ **Aucune phrase d'explication** : le
+     titre suffit.
    - **Corps** : rien d'autre que le **verdict**. Vert, il tient en quatre mots —
      **« Ta team est speed tune. »** Rouge, il nomme **l'adverse qui coupe**
      (sans son tick) puis donne **une ligne par allié coupé** : son nom et **le
@@ -481,9 +479,10 @@ De haut en bas :
    - ⚠️ **« Ordre des sorts » est une card INDÉPENDANTE**, pas un sous-bloc et pas
      un panneau qu'on ouvre depuis l'analyse : elle est là comme les grilles.
      L'analyse **la remplit**, mais les deux se lisent et se règlent séparément.
-   - Les deux cards sont **l'une sous l'autre**, chacune sur toute la largeur :
-     la liste des sorts s'y déploie à plat (voir plus bas), ce qui demande de la
-     place.
+   - Les deux cards sont **l'une sous l'autre**, chacune sur toute la largeur, et
+     **chacune porte son interrupteur** : « Analyser » ici, « Afficher » sur
+     l'ordre des sorts. ⚠️ Celui de l'ordre des sorts ne fait que **replier la
+     liste** — les sorts choisis continuent de compter, refermer ne défait rien.
    - ⚠️ **« Analyser » REPOSE l'adversaire de référence** sur le plus rapide du
      moment, à chaque fois. Il n'était posé qu'en l'absence de tout adversaire :
      une fois là, il ne bougeait plus jamais — appliquer un passif (Chilling, +20

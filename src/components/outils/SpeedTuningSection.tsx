@@ -30,7 +30,7 @@ import MonsterAvatar from '../MonsterAvatar';
 import {
   Bouton,
   Champ,
-  Option,
+  Interrupteur,
   Flottant,
   NumberField,
   Selecteur,
@@ -239,6 +239,11 @@ export default function SpeedTuningSection({ allMonsters, siegeDefenseTeams, sie
   // Ce drapeau ne dit qu'une chose : une analyse a déjà été appliquée. Il sert à
   // la REJOUER quand on change un sort — le seul changement qui la rend fausse.
   const [auto, setAuto] = useStickyState<boolean>('speedTune.auto', false);
+  // Affichage de la card « Ordre des sorts ». ⚠️ Ce n'est QUE de l'affichage :
+  // les sorts déjà choisis continuent de compter, refermer la card ne défait
+  // rien. Sinon ce serait un piège — on masque pour gagner de la place, pas pour
+  // annuler un réglage.
+  const [poussee, setPoussee] = useStickyState<boolean>('speedTune.poussee', true);
   const [ordreVoulu, setOrdreVoulu] = useStickyState<string[]>('speedTune.ordre', []);
   // ⚠️ Tant qu'on n'a rien rangé à la main, l'ordre voulu SUIT les vitesses :
   // c'est le point de départ évident (« voilà l'ordre que tu as aujourd'hui »),
@@ -1034,9 +1039,20 @@ export default function SpeedTuningSection({ allMonsters, siegeDefenseTeams, sie
                 y écrit l'ordre des vitesses et le sort de chacun — mais les deux
                 se lisent et se règlent séparément. */}
           <section className="rounded-lg border border-border bg-panel">
-                <div className="border-b border-border-soft px-4 py-2.5 text-micro font-semibold uppercase tracking-wider text-ink-dimmer">
-                  Ordre des sorts
+                <div className="flex flex-wrap items-center gap-x-3 gap-y-2 border-b border-border-soft px-4 py-2.5">
+                  <span className="text-micro font-semibold uppercase tracking-wider text-ink-dimmer">
+                    Ordre des sorts
+                  </span>
+                  <span className="ml-auto">
+                    <Interrupteur
+                      actif={poussee}
+                      onChange={setPoussee}
+                      libelle={<span className="text-xs font-semibold">Afficher</span>}
+                      title="Replie la liste pour gagner de la place. ⚠️ Les sorts déjà choisis continuent de compter : refermer ne défait rien."
+                    />
+                  </span>
                 </div>
+                {poussee && (
                 <div className="px-4 py-3.5">
                       {ordreVoulu.length === 0 ? (
                         <p className="text-sm text-ink-dim">Ajoute des monstres à ton équipe pour composer un ordre.</p>
@@ -1086,79 +1102,33 @@ export default function SpeedTuningSection({ allMonsters, siegeDefenseTeams, sie
                                   </span>
                                   <MonsterAvatar monster={l.monster} size={24} element={false} />
                                   <span className="min-w-0 flex-1 truncate text-sm font-semibold">{l.monster.name}</span>
-                                  {/* ⚠️ Ce qu'il lance se CHOISIT dans une liste posée
-                                      à plat, une option par sort : dans un menu
-                                      déroulant, il fallait ouvrir pour voir ce que
-                                      chacun fait, et on ne comparait jamais deux
-                                      sorts d'un coup d'œil. `Option` est le choix
-                                      riche empilé de la librairie — sa place est ici,
-                                      dans une card, pas dans un flottant. */}
-                                  <ul className="w-full space-y-1">
-                                    {[null, ...liste].map((x) => {
-                                      const valeur = x ? x.nom : '';
-                                      return (
-                                        <li key={valeur || '(aucun)'}>
-                                          <Option
-                                            icone={
-                                              x?.icone ? (
-                                                <img
-                                                  src={x.icone}
-                                                  alt=""
-                                                  width={20}
-                                                  height={20}
-                                                  className="rounded-sm"
-                                                  loading="lazy"
-                                                />
-                                              ) : (
-                                                <Sparkles size={20} className="text-ink-dimmer" />
-                                              )
-                                            }
-                                            titre={x ? `${x.slot ? `S${x.slot} · ` : ''}${x.nom}` : 'Aucun sort'}
-                                            description={
-                                              x ? libelleSort(x).split(' — ')[1] : 'il joue, mais rien qui touche la vitesse'
-                                            }
-                                            actif={(choix ?? '') === valeur}
-                                            onClick={() => choisirSort(uid, valeur)}
-                                          />
-                                        </li>
-                                      );
-                                    })}
-                                  </ul>
+                                  {/* Ce qu'il LANCE à son tour, dans un menu à
+                                      icônes : la ligne reste lisible d'un coup
+                                      d'œil, et le détail s'ouvre à la demande. */}
+                                  <ChoixSort
+                                    sorts={liste}
+                                    valeur={choix ?? ''}
+                                    onChoisir={(v) => choisirSort(uid, v)}
+                                    nomMonstre={l.monster.name}
+                                  />
                                   {/* ⚠️ Sa compétence lui REND son tour (Kroa) : il
                                       rejoue au même tick, et lance autre chose. */}
                                   {sortActif(l)?.rejoue && (
-                                    <ul className="w-full space-y-1 border-t border-border-soft pt-2">
-                                      <li className="text-micro font-semibold uppercase tracking-wide text-ink-dimmer">
-                                        puis, son tour rendu
-                                      </li>
-                                      {[null, ...liste.filter((x) => x.nom !== sortActif(l)?.nom)].map((x) => {
-                                        const valeur = x ? x.nom : '';
-                                        return (
-                                          <li key={`2-${valeur || '(aucun)'}`}>
-                                            <Option
-                                              icone={
-                                                x?.icone ? (
-                                                  <img
-                                                    src={x.icone}
-                                                    alt=""
-                                                    width={20}
-                                                    height={20}
-                                                    className="rounded-sm"
-                                                    loading="lazy"
-                                                  />
-                                                ) : (
-                                                  <Sparkles size={20} className="text-ink-dimmer" />
-                                                )
-                                              }
-                                              titre={x ? `${x.slot ? `S${x.slot} · ` : ''}${x.nom}` : 'Rien'}
-                                              description={x ? libelleSort(x).split(' — ')[1] : undefined}
-                                              actif={(sortChoisi2[uid] ?? '') === valeur}
-                                              onClick={() => choisirSecond(uid, valeur)}
-                                            />
-                                          </li>
-                                        );
-                                      })}
-                                    </ul>
+                                    <span className="flex items-center gap-1.5">
+                                      <span
+                                        className="flex-none rounded border border-accent/50 px-1 text-micro font-bold uppercase tracking-wide text-accent"
+                                        title="Cette compétence lui rend son tour : il rejoue aussitôt, au même tick."
+                                      >
+                                        rejoue
+                                      </span>
+                                      <ChoixSort
+                                        sorts={liste.filter((x) => x.nom !== sortActif(l)?.nom)}
+                                        valeur={sortChoisi2[uid] ?? ''}
+                                        onChoisir={(v) => choisirSecond(uid, v)}
+                                        prefixe="puis : "
+                                        nomMonstre={l.monster.name}
+                                      />
+                                    </span>
                                   )}
                                   <span className="w-full sm:w-auto sm:flex-none">
                                     {p ? (
@@ -1191,6 +1161,7 @@ export default function SpeedTuningSection({ allMonsters, siegeDefenseTeams, sie
                         </>
                       )}
               </div>
+              )}
             </section>
 
           {/* Barre d'action par tick (résultat, lecture seule) */}
@@ -1808,6 +1779,110 @@ function GrilleMod({
 // romprait la grille visuelle).
 function FragmentCamp({ children }: { children: React.ReactNode }) {
   return <>{children}</>;
+}
+
+/* ------------------------------------------------------- Choix du sort --- */
+
+// Choisir le sort qu'un monstre lance, AVEC son icône — un joueur reconnaît une
+// compétence à son icône avant d'en lire le nom.
+//
+// ⚠️ Pas un `Selecteur` : un `<select>` natif ne montre que du texte. D'où la
+// même grammaire que l'import de deck (Bouton + Flottant + `Option`), qui est
+// déjà celle de l'app pour une liste ancrée à ce qui l'ouvre.
+function ChoixSort({
+  sorts,
+  valeur,
+  onChoisir,
+  prefixe,
+  nomMonstre,
+}: {
+  sorts: SortVitesse[];
+  // '' = aucun sort, sinon le nom du sort lancé.
+  valeur: string;
+  onChoisir: (v: string) => void;
+  prefixe?: string;
+  nomMonstre: string;
+}) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    if (!open) return;
+    const onDown = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+    };
+    const onEsc = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setOpen(false);
+    };
+    document.addEventListener('mousedown', onDown);
+    document.addEventListener('keydown', onEsc);
+    return () => {
+      document.removeEventListener('mousedown', onDown);
+      document.removeEventListener('keydown', onEsc);
+    };
+  }, [open]);
+
+  const choisi = valeur === '' ? null : (sorts.find((x) => x.nom === valeur) ?? null);
+  // ⚠️ « Sort détecté » ne veut rien dire quand RIEN n'a été détecté : ce qui
+  // compte, c'est ce que le monstre lance — et il ne lance rien.
+  const libelle = choisi?.nom ?? 'Aucun sort';
+
+  const icone = (x: SortVitesse | null, taille: number) =>
+    x?.icone ? (
+      <img src={x.icone} alt="" width={taille} height={taille} className="rounded-sm" loading="lazy" />
+    ) : (
+      <Sparkles size={taille} className="text-ink-dimmer" />
+    );
+
+  return (
+    <div ref={ref} className="relative">
+      <Bouton
+        taille="sm"
+        icone={icone(choisi, 16)}
+        libelle={`${prefixe ?? ''}${libelle}`}
+        aria-expanded={open}
+        title={choisi ? libelleSort(choisi) : `Sort lancé par ${nomMonstre}`}
+        onClick={() => setOpen((v) => !v)}
+      />
+      {open && (
+        <Flottant
+          rembourrage="aucun"
+          largeur="w-[290px]"
+          className="max-h-[320px] overflow-y-auto"
+          role="listbox"
+          aria-label={`Sort lancé par ${nomMonstre}`}
+        >
+          {/* ⚠️ Des RANGÉES à plat, pas des cartes : `Option` porte son propre
+              cadre arrondi, fait pour un choix empilé dans un dialogue. Dans une
+              surface flottante, l'app pose des rangées qui touchent les bords —
+              même grammaire que l'import de deck et la recherche de monstre. */}
+          <Rangee
+            icone={<Sparkles size={22} className="text-ink-dimmer" />}
+            titre="Aucun sort"
+            detail="Il joue, mais rien qui touche la vitesse"
+            actif={valeur === ''}
+            onClick={() => {
+              onChoisir('');
+              setOpen(false);
+            }}
+          />
+          {sorts.map((x) => (
+            <Rangee
+              key={x.nom}
+              icone={icone(x, 22)}
+              titre={`${x.slot ? `S${x.slot} · ` : ''}${x.nom}`}
+              detail={libelleSort(x).split(' — ')[1]}
+              actif={valeur === x.nom}
+              onClick={() => {
+                onChoisir(x.nom);
+                setOpen(false);
+              }}
+            />
+          ))}
+        </Flottant>
+      )}
+    </div>
+  );
 }
 
 /* ------------------------------------------------------- Import deck ----- */

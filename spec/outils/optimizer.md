@@ -64,13 +64,13 @@ continu — demande explicite de l'utilisateur :
    Réglages avancés.** « Monstre & équipement » (`row-span-2`) : recherche
    à **gauche** (largeur fixe, `lg:w-56`), fiche d'équipement à **droite**
    (`lg:flex-1`, artéfacts et roue **compactés** — `scale=0.65`) — la fiche
-   se déploie à côté de la recherche, plus en dessous. Un **sélecteur de
-   runage** (Box / RTA / Défenses siège / Offenses siège, même contrôle
-   qu'« Exclure les runes d'un monstre » plus bas) apparaît à droite du
-   titre : **vue seule**, il choisit QUEL runage du monstre recherché
-   prévisualiser (utile pour un monstre qui porte un équipement différent
-   selon le contexte) — la recherche continue toujours d'optimiser le build
-   de BASE box, quel que soit l'onglet choisi. ⚠️ **La fiche reste TOUJOURS
+   se déploie à côté de la recherche, plus en dessous. Un **sélecteur
+   d'exemplaire** (Box / RTA / Défenses siège / Offenses siège, même
+   contrôle qu'« Exclure les runes d'un monstre » plus bas — jusqu'à une
+   liste des exemplaires disponibles pour ce monstre dans la source choisie)
+   apparaît à droite du titre : **choisit RÉELLEMENT ce que la recherche
+   optimise** (utile pour un monstre équipé différemment selon le contexte),
+   pas seulement ce qui est prévisualisé. ⚠️ **La fiche reste TOUJOURS
    affichée**, vide (stats à zéro, artéfacts grisés, roue vide) tant
    qu'aucun monstre n'est choisi, plutôt que de n'apparaître qu'au clic —
    l'espace qu'elle occupe est réservé d'avance (voir
@@ -177,13 +177,24 @@ retour.
 2. **Équipement actuel** — **le composant `MonsterGear`, réutilisé tel quel**
    (pas réimplémenté), le même qu'en RTA/Siège quand on clique un monstre :
    stats base/bonus, artéfacts, roue de runes et relique **tels
-   qu'ACTUELLEMENT équipés** — dans la source choisie par le **sélecteur de
-   runage** (Box, par défaut / RTA / Défenses siège / Offenses siège) accolé
-   au titre, réinitialisé à **Box** à chaque changement de monstre. ⚠️ **Vue
-   seule** : la recherche optimise toujours le build de BASE box, quel que
-   soit l'onglet choisi — changer d'onglet ne change QUE ce qui est
-   prévisualisé. Un monstre absent de la source choisie affiche la fiche
-   vide, avec une note. Chacun de ses éléments reste **cliquable**
+   qu'ACTUELLEMENT équipés** — sur l'**exemplaire** choisi par le
+   **sélecteur de runage** (Box, par défaut / RTA / Défenses siège / Offenses
+   siège) accolé au titre, réinitialisé à **Box** à chaque changement de
+   monstre. ⚠️ **C'est bien CET exemplaire que la recherche optimise** — pas
+   systématiquement la box : changer d'onglet change à la fois ce qui est
+   affiché et ce que l'Optimizer part optimiser (base, runes déjà équipées,
+   artéfacts, relique). Choisir RTA/Défenses siège/Offenses siège **liste les
+   exemplaires disponibles** pour ce monstre dans cette source — même
+   présentation que « Exclure les runes d'un monstre » plus bas, équipe
+   complète affichée pour le siège (un même monstre peut apparaître dans
+   plusieurs équipes) — retenu automatiquement s'il n'y en a qu'un, à choisir
+   explicitement sinon (jamais deviné en silence). Un monstre absent de la
+   source choisie affiche la fiche vide, avec une note — rien à optimiser
+   dans ce cas (traité comme un monstre nu, déjà pris en charge ailleurs dans
+   l'app). ⚠️ **Limite connue** : ce choix d'exemplaire ne fait PAS encore
+   partie de la recette exportée (`OptimizerRecipe` ne porte que l'espèce,
+   `monsterCom2usId`) — réimporter une recette lancée sur un exemplaire
+   RTA/siège retombe sur la box par défaut. Chacun de ses éléments reste **cliquable**
    pour ouvrir son détail complet (`RuneDetailBox`/`ArtifactDetailBox`/
    `RelicDetailBox`, tous dans [MonsterGear.tsx](src/components/MonsterGear.tsx)),
    affiché en **popover flottant** ancré sur l'élément cliqué — même

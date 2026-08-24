@@ -45,11 +45,14 @@ import {
 import {
   AUTO_EXCLUSION_SCOPES,
   AutoExclusionScope,
+  ExclusionCandidate,
+  ExclusionSelector,
   ExclusionSource,
   ExclusionSourceData,
   SOURCE_OPTIONS,
   autoExcludedRuneIds,
-  ownGearForSource,
+  exclusionCandidatesFor,
+  exclusionSelectorKey,
   resolveExcludedRuneIds,
   resolveExclusionEntry,
 } from '../../lib/optimizerExclusion';
@@ -70,6 +73,7 @@ import {
   Interrupteur,
   MobileSheet,
   NumberField,
+  Option,
   Pastille,
   Selecteur,
   ZoneCliquable,
@@ -236,13 +240,12 @@ export default function OptimizerSection({ box, runes, optimizer, allMonsters, r
     return { gearedMonsters, bestUnitKeyByMonsterId };
   }, [box]);
 
-  const selected = gearedMonsters.find((g) => String(g.monster.id) === selectedId) ?? null;
-
-  // `unitKey` (box) du monstre RECHERCHÉ, pour l'exclure de ses propres
-  // propositions dans RuneExclusionPicker (s'exclure soi-même n'a pas de
-  // sens) — simple lookup O(1) dans la Map déjà calculée ci-dessus, pas un
-  // nouveau balayage de `box`.
-  const selectedUnitKey = selected ? (bestUnitKeyByMonsterId.get(String(selected.monster.id)) ?? null) : null;
+  // ⚠️ **Identité de l'ESPÈCE recherchée** — le champ de recherche du haut
+  // (« Monstre à optimiser ») ne choisit QUE ça, jamais un exemplaire précis
+  // (voir `speciesSelected` : toujours le meilleur exemplaire box, comme
+  // avant). L'exemplaire RÉELLEMENT optimisé (`selected`, plus bas) peut
+  // provenir d'une AUTRE source — voir le sélecteur de runage.
+  const speciesSelected = gearedMonsters.find((g) => String(g.monster.id) === selectedId) ?? null;
 
   // ── Objectif « Dégâts réels » ────────────────────────────────────────
   // Fiche de compétences du monstre choisi. ⚠️ Chargée pour TOUT monstre
@@ -253,7 +256,7 @@ export default function OptimizerSection({ box, runes, optimizer, allMonsters, r
   // seconde visite.
   const [skillDetail, setSkillDetail] = useState<DetailMonstre | null>(null);
   const [skillLoading, setSkillLoading] = useState(false);
-  const selectedCom2usId = selected?.monster.com2usId ?? null;
+  const selectedCom2usId = speciesSelected?.monster.com2usId ?? null;
   useEffect(() => {
     let vivant = true;
     setSkillLoading(true);
@@ -289,8 +292,8 @@ export default function OptimizerSection({ box, runes, optimizer, allMonsters, r
   // si aucun sort n'est calculable, auquel cas l'écran ne propose jamais le
   // tri « Dégâts réels » (voir `sortOptions`).
   const realDamage = useMemo<RealDamageContext | null>(
-    () => (resolvedSkill ? { profile: resolvedSkill, setup: damageSetup, element: selected?.monster.element ?? null } : null),
-    [resolvedSkill, damageSetup, selected?.monster.element]
+    () => (resolvedSkill ? { profile: resolvedSkill, setup: damageSetup, element: speciesSelected?.monster.element ?? null } : null),
+    [resolvedSkill, damageSetup, speciesSelected?.monster.element]
   );
 
   // Statistiques principales autorisées sur les slots 2/4/6 — vide = libre.
@@ -361,32 +364,82 @@ export default function OptimizerSection({ box, runes, optimizer, allMonsters, r
     [box, rtaEntries, siegeDefenseTeams, siegeOffenseTeams, monsterById]
   );
 
-  // Quel runage du monstre RECHERCHÉ afficher dans « Monstre & équipement »
-  // — box (défaut), RTA, ou un deck de siège. ⚠️ VUE SEULE : ne change RIEN
-  // à ce que la recherche optimise (toujours `selected.gear`, le build de
-  // BASE box, comme avant) — juste ce qui est prévisualisé, pour un monstre
-  // qui porte un runage différent selon le contexte. État LOCAL (pas dans
-  // `useOptimizerState`) : c'est une préférence d'affichage, pas un critère
-  // de recherche — même statut que `resultsPage` (voir son commentaire dans
-  // useOptimizerState.ts), donc hors recette exportée/scripts CLI.
+  // Quel EXEMPLAIRE du monstre recherché optimiser — box (défaut), RTA, ou
+  // un deck de siège. ⚠️ **N'affecte QUE l'équipement** (`gear` : base,
+  // runes, artéfacts, relique) : l'espèce elle-même (`speciesSelected.
+  // monster`) reste celle choisie par la recherche du haut, quel que soit
+  // l'onglet — changer de source ne permet pas de changer de monstre, ça
+  // choisit lequel de SES exemplaires optimiser. État LOCAL (pas dans
+  // `useOptimizerState`) : même statut que `resultsPage` (voir son
+  // commentaire dans useOptimizerState.ts), donc hors recette exportée/
+  // scripts CLI pour l'instant (limite connue, voir spec).
   const [gearSource, setGearSource] = useState<ExclusionSource>('box');
-  // Réinitialisé à « Box » sur un changement de monstre : un runage RTA/
-  // siège du monstre PRÉCÉDENT n'a aucun sens pour le nouveau.
+  // ⚠️ Choix EXPLICITE de l'utilisateur parmi `sourceCandidates` (plus bas) —
+  // jamais un « meilleur exemplaire » deviné en silence (une tentative
+  // précédente choisissait celui à la plus haute efficience de runes ;
+  // explicitement écartée : l'utilisateur veut CHOISIR, pas se voir imposer
+  // un choix).
+  const [sourceSelector, setSourceSelector] = useState<ExclusionSelector | null>(null);
+  // Réinitialisés à « Box » / vide sur un changement de monstre : un
+  // exemplaire RTA/siège du monstre PRÉCÉDENT n'a aucun sens pour le nouveau.
   useEffect(() => {
     setGearSource('box');
+    setSourceSelector(null);
   }, [selectedId]);
-  const displayedGear = useMemo<GearSet>(() => {
-    if (!selected) return EMPTY_GEAR;
-    if (gearSource === 'box') return selected.gear;
-    // ⚠️ `com2usId == null` : jamais observé en pratique (les monstres de la
-    // box importée en ont TOUJOURS un — voir MonsterGearPicker.tsx/
-    // gearedMonsters, dérivés de `box` seule ; un monstre perso, lui, n'y
-    // figure jamais), mais `Monster.com2usId` reste typé `number | null` —
-    // repli sûr plutôt qu'une assertion non vérifiée.
-    if (selected.monster.com2usId == null) return EMPTY_GEAR;
-    return ownGearForSource(gearSource, selected.monster.com2usId, exclusionData) ?? EMPTY_GEAR;
-  }, [selected, gearSource, exclusionData]);
-  const gearSourceEmpty = !!selected && gearSource !== 'box' && displayedGear.runes.length === 0;
+
+  // Exemplaires du monstre recherché disponibles dans la source choisie —
+  // même fonction que « Exclure les runes d'un monstre » (`exclusionCandidatesFor`,
+  // AUCUNE exclusion de soi ici : c'est justement lui qu'on veut lister),
+  // filtrée à la SEULE espèce recherchée. Pour le siège, `teamContext`
+  // affiche l'équipe complète — demande explicite (« afficher les équipes
+  // pour pouvoir sélectionner le bon exemplaire »).
+  const sourceCandidates = useMemo<ExclusionCandidate[]>(() => {
+    if (gearSource === 'box' || !speciesSelected || speciesSelected.monster.com2usId == null) return [];
+    const com2usId = speciesSelected.monster.com2usId;
+    return exclusionCandidatesFor(gearSource, exclusionData, null, null).filter((c) => c.monster.com2usId === com2usId);
+  }, [gearSource, speciesSelected, exclusionData]);
+
+  // Un seul exemplaire possible : le retenir directement, sans exiger un
+  // clic pour une « liste » à une seule entrée — mais il reste affiché (voir
+  // le rendu plus bas), donc toujours visible QUELLE source a été retenue.
+  // ⚠️ `sourceCandidates` est un `useMemo` stable (ne change de RÉFÉRENCE que
+  // si ses dépendances changent réellement) : cet effet ne boucle pas.
+  useEffect(() => {
+    if (gearSource === 'box') return;
+    if (sourceCandidates.length === 1) {
+      setSourceSelector(sourceCandidates[0].selector);
+      return;
+    }
+    // Le sélecteur retenu n'existe plus dans cette liste (changement de
+    // source, ou de compte) — plutôt que de garder un choix caduc.
+    setSourceSelector((prev) => (prev && sourceCandidates.some((c) => exclusionSelectorKey(c.selector) === exclusionSelectorKey(prev)) ? prev : null));
+  }, [gearSource, sourceCandidates]);
+
+  // L'exemplaire RÉELLEMENT optimisé : box (le build de base, comme avant)
+  // ou l'entrée choisie ci-dessus. ⚠️ Monstre SANS exemplaire dans la source
+  // choisie (aucun candidat, ou aucun encore cliqué parmi plusieurs) →
+  // équipement VIDE plutôt que de retomber sur box en silence — même
+  // traitement qu'un monstre nu, déjà pris en charge partout ailleurs dans
+  // l'app (« un monstre nu se recherche tout aussi bien »).
+  const selected = useMemo(() => {
+    if (!speciesSelected) return null;
+    if (gearSource === 'box') return speciesSelected;
+    const gear = sourceSelector ? (resolveExclusionEntry(sourceSelector, exclusionData)?.gear ?? EMPTY_GEAR) : EMPTY_GEAR;
+    return { monster: speciesSelected.monster, gear };
+  }, [speciesSelected, gearSource, sourceSelector, exclusionData]);
+  const gearSourceEmpty = gearSource !== 'box' && !!speciesSelected && selected!.gear.runes.length === 0;
+
+  // `unitKey` (box) de l'entrée à protéger contre sa propre exclusion —
+  // UNIQUEMENT quand c'est ELLE qui est optimisée (`gearSource === 'box'`).
+  // ⚠️ Quand la source est RTA/siège, le build BOX de cette même espèce
+  // n'est PLUS l'exemplaire optimisé : c'est alors une entrée comme une
+  // autre, légitimement excluable — la protéger aurait empêché de l'exclure
+  // à tort. La protection de l'exemplaire RTA/siège réellement optimisé,
+  // elle, passe par `ownCom2usId` (species-level, déjà correct dans
+  // `resolveExcludedRuneIds`/`autoExcludedRuneIds` pour CE cas précis, voir
+  // leurs propres commentaires).
+  const selectedUnitKey =
+    gearSource === 'box' && speciesSelected ? (bestUnitKeyByMonsterId.get(String(speciesSelected.monster.id)) ?? null) : null;
 
   const pool = useMemo(() => {
     if (!selected) return runes;
@@ -830,17 +883,46 @@ export default function OptimizerSection({ box, runes, optimizer, allMonsters, r
             </div>
             <p className="text-[13.5px] font-bold text-ink">Monstre &amp; équipement</p>
           </div>
-          {/* ⚠️ Choix du RUNAGE à prévisualiser — box/RTA/Défenses siège/
+          {/* ⚠️ Choix de l'EXEMPLAIRE optimisé — box/RTA/Défenses siège/
               Offenses siège, EXACTEMENT le même sélecteur (mêmes 4 options,
               même composant) que la source d'« Exclure les runes d'un
               monstre » plus bas — `SOURCE_OPTIONS`, remonté dans
               optimizerExclusion.ts pour ne pas dupliquer ces 4 libellés.
-              ⚠️ VUE SEULE — la recherche continue d'optimiser le build de
-              BASE box, quel que soit l'onglet choisi ici (voir
-              `displayedGear`) : changer d'onglet ne change QUE ce qui est
-              prévisualisé, pas ce que l'Optimizer part optimiser. */}
+              ⚠️ Change RÉELLEMENT ce que la recherche optimise (voir
+              `selected`, plus haut dans le fichier) — PAS une simple
+              prévisualisation. */}
           <Segmented options={SOURCE_OPTIONS} value={gearSource} onChange={setGearSource} dense />
         </div>
+        {/* ⚠️ Liste des EXEMPLAIRES de l'espèce recherchée dans la source
+            choisie — même comportement que « Exclure les runes d'un monstre »
+            (demande explicite) : un choix EXPLICITE, jamais deviné en
+            silence, avec l'équipe complète affichée pour le siège (un même
+            monstre peut apparaître dans plusieurs équipes, indiscernables
+            par le seul nom). Affichée même à UN SEUL candidat (auto-retenu,
+            voir l'effet plus haut) : on voit toujours QUELLE entrée a été
+            choisie. */}
+        {gearSource !== 'box' && sourceCandidates.length > 0 && (
+          <div className="mb-3 flex flex-col gap-1.5">
+            {sourceCandidates.map((c) => {
+              const key = exclusionSelectorKey(c.selector);
+              const actif = !!sourceSelector && exclusionSelectorKey(sourceSelector) === key;
+              return (
+                <Option
+                  key={key}
+                  actif={actif}
+                  onClick={() => setSourceSelector(c.selector)}
+                  icone={<MonsterAvatar monster={c.monster} size={28} />}
+                  titre={c.teamContext ? `Équipe ${c.teamContext.teamNumber}` : c.monster.name}
+                  description={
+                    c.teamContext
+                      ? c.teamContext.slots.map((m) => m?.name ?? '—').join(' · ')
+                      : undefined
+                  }
+                />
+              );
+            })}
+          </div>
+        )}
         <div className="flex flex-col gap-3 lg:flex-row lg:items-start">
           {/* ⚠️ `lg:w-56 flex-none` : une largeur FIXE, pas `flex-1` — sans
               ça, sur un très grand écran, le champ de recherche s'étirerait
@@ -858,7 +940,9 @@ export default function OptimizerSection({ box, runes, optimizer, allMonsters, r
                 changement. Uniquement dans CE picker, pas dans `setSelectedId`
                 lui-même — l'import d'une recette (plus bas) l'appelle aussi
                 mais pose ses PROPRES critères juste avant : les effacer
-                ensuite les perdrait aussitôt. */}
+                ensuite les perdrait aussitôt. ⚠️ Choisit l'ESPÈCE seulement
+                (toujours son meilleur exemplaire box) — voir le sélecteur de
+                source ci-dessus pour choisir un autre exemplaire. */}
             <MonsterGearPicker
               items={gearedMonsters}
               onPick={(id) => {
@@ -874,7 +958,7 @@ export default function OptimizerSection({ box, runes, optimizer, allMonsters, r
             )}
             {gearSourceEmpty && (
               <p className="mt-2 text-micro text-ink-dim">
-                {selected!.monster.name} n&apos;a pas de runage dans cette source — aperçu vide.
+                {selected!.monster.name} n&apos;a pas de runage dans cette source — rien à optimiser.
               </p>
             )}
           </div>
@@ -890,7 +974,7 @@ export default function OptimizerSection({ box, runes, optimizer, allMonsters, r
               `MonsterGear.tsx`). `flex-1` : occupe tout l'espace restant à
               droite de la recherche. */}
           <div className="rounded-xl border border-border-soft bg-panel2/60 p-3 lg:flex-1">
-            <MonsterGear gear={displayedGear} scale={0.65} />
+            <MonsterGear gear={selected?.gear ?? EMPTY_GEAR} scale={0.65} />
           </div>
         </div>
       </div>

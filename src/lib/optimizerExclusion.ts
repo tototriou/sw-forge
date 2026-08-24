@@ -21,7 +21,6 @@
 import { BoxItem } from './applyAccount';
 import { GearSet, Monster, RtaEntry, SiegeTeam } from '../types';
 import { excludedRuneIds } from './runeBuildOptim';
-import { runeEfficiency } from './effects';
 
 export type ExclusionSource = 'box' | 'rta' | 'siege-defense' | 'siege-offense';
 
@@ -250,46 +249,3 @@ export function autoExcludedRuneIds(scope: AutoExclusionScope, data: ExclusionSo
   return out;
 }
 
-/* --------------------------------------------------------------------------
- * Aperçu du runage — « Monstre & équipement » (OptimizerSection.tsx) :
- * quel runage du monstre RECHERCHÉ afficher (box, RTA, un deck de siège),
- * l'INVERSE d'`exclusionCandidatesFor` (qui exclut ce même monstre pour
- * proposer les AUTRES à l'exclusion). Vue seule — ne change RIEN à ce que
- * la recherche optimise (toujours le pool de runes possédées, indépendant
- * de l'aperçu affiché).
- * ----------------------------------------------------------------------- */
-
-// Plusieurs exemplaires possibles pour une espèce donnée dans une même
-// source (RTA : plusieurs unités de box ajoutées individuellement ; siège :
-// la même espèce dans plusieurs équipes) → on retient celui à la plus haute
-// efficience de runes, MÊME convention que `gearedMonsters`
-// (OptimizerSection.tsx) pour départager les doublons de box — pas une
-// règle inventée ici.
-export function ownGearForSource(source: ExclusionSource, com2usId: number, data: ExclusionSourceData): GearSet | null {
-  let best: GearSet | null = null;
-  let bestScore = -Infinity;
-  const consider = (gear: GearSet | undefined) => {
-    if (!gear || gear.runes.length === 0) return;
-    const score = gear.runes.reduce((s, r) => s + runeEfficiency(r), 0);
-    if (score > bestScore) {
-      best = gear;
-      bestScore = score;
-    }
-  };
-  if (source === 'box') {
-    for (const item of data.box) if (item.monster.com2usId === com2usId) consider(item.gear);
-  } else if (source === 'rta') {
-    for (const entry of Object.values(data.rtaEntries)) {
-      if (data.monsterById.get(entry.monsterId)?.com2usId === com2usId) consider(entry.gear);
-    }
-  } else {
-    const teams = source === 'siege-defense' ? data.siegeDefenseTeams : data.siegeOffenseTeams;
-    for (const team of teams) {
-      for (const slot of team.slots) {
-        if (slot.monsterId == null) continue;
-        if (data.monsterById.get(slot.monsterId)?.com2usId === com2usId) consider(slot.gear);
-      }
-    }
-  }
-  return best;
-}

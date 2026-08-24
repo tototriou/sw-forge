@@ -147,21 +147,20 @@ export default function MobileNavSheet({
               {groupeCourant ? (
                 /* ── Second temps : les vues du groupe choisi ─────────────── */
                 <nav className={`grid w-full gap-2 ${GRILLE}`} aria-label={`Vues de ${groupeCourant.titre}`}>
-                  {/* ⚠️ Le RETOUR prend la RANGÉE ENTIÈRE, au-dessus des vues.
-                      Il n'est pas une destination de plus : c'est la sortie du
-                      niveau, et la barre entière est la cible la plus sûre à
-                      atteindre du pouce sans regarder — la même largeur que ses
-                      voisins l'y noyait, à côté de vues qu'on vise justement.
-                      Il garde leur gabarit (44 px, même cadre) et leur encre
-                      atténuée : c'est sa LARGEUR qui le sort du lot, pas une
-                      forme à part.
+                  {/* ⚠️ Le RETOUR est une CELLULE DE LA GRILLE, comme les
+                      autres. Il a d'abord été posé pleine largeur au-dessus,
+                      au motif que c'est une action sur le panneau et non une
+                      destination : le résultat était un bouton deux fois plus
+                      large que ses voisins, dans un panneau qui n'en compte
+                      qu'un seul gabarit. **Toutes les cibles ont la même
+                      taille.** Ce qui le distingue est son encre atténuée et
+                      son chevron vers la gauche, pas son encombrement.
                       ⚠️ Un `<button>` — il ne va nulle part. */}
                   <Case
                     onClick={() => setGroupeOuvert(null)}
                     icone={<ChevronLeft size={16} />}
                     libelle={section.titre}
                     discret
-                    placement="col-span-full"
                   />
                   {groupeCourant.liens.map((l) => (
                     <Case
@@ -253,7 +252,6 @@ function Case({
   actif = false,
   chevron = false,
   discret = false,
-  placement = '',
 }: {
   // Présent = la cible NAVIGUE (`<a>`). Absent = elle agit dans le panneau
   // (`<button>`) : ouvrir un groupe, remonter d'un niveau. Même distinction que
@@ -269,10 +267,6 @@ function Case({
   // au niveau du dessus, elle n'est pas une destination de plus — la donner à
   // lire comme les autres la ferait viser par erreur.
   discret?: boolean;
-  // Classe de PLACEMENT dans la grille, rien d'autre : le retour prend la
-  // rangée entière (`col-span-full`). ⚠️ Pas une porte ouverte à l'habillage —
-  // la cible garde son gabarit, son cadre et sa hauteur.
-  placement?: string;
 }) {
   const Balise = href ? 'a' : 'button';
   return (
@@ -303,7 +297,7 @@ function Case({
       // de 1 px — le marqueur d'état ne fait que le teinter, il n'en ajoute pas
       // un second (spec/shared/design.md).
       className={`flex h-11 w-full items-center gap-2.5 rounded-lg border px-3
-                  text-left text-sm transition-colors ${placement} ${
+                  text-left text-sm transition-colors ${
                     actif
                       ? 'border-ctx bg-ctx-soft text-ink'
                       : `border-border bg-panel2/40 hoverable:border-accent hoverable:text-ink ${

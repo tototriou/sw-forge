@@ -343,16 +343,18 @@ s'orienter.
     gauche (trois inventaires, trois vues de Siège). C'est le comportement d'une
     grille ; l'étirer sur les deux colonnes lui donnerait un poids qu'elle n'a
     pas.
-  - ⚠️ **Toutes les DESTINATIONS ont la même taille.** Le **retour**, lui, prend
-    la **rangée entière** (`col-span-full`) en tête du second temps : ce n'est
-    pas une destination de plus, c'est la sortie du niveau, et la barre entière
-    est la cible la plus sûre à viser du pouce sans regarder. À la largeur d'une
-    vue, il s'y noyait — juste à côté de ce qu'on cherche justement à toucher.
-    Il garde leur **gabarit** (44 px, même cadre) et son **encre atténuée** :
-    c'est sa largeur qui le sort du lot, pas une forme à part.
+  - ⚠️ **Toutes les cibles ont la MÊME taille**, le retour compris — il est une
+    cellule de la grille comme les autres. Posé pleine largeur au-dessus, au
+    motif que c'est une action sur le panneau et non une destination, il faisait
+    un bouton deux fois plus large que ses voisins dans un panneau qui n'a qu'un
+    seul gabarit. Ce qui le distingue est son **encre atténuée** et son chevron
+    **vers la gauche**, pas son encombrement.
 - La **colonne d'icône est à largeur fixe** (18 px) : sans elle les libellés se
   décalent d'une cible à l'autre au gré de la largeur des symboles — et en
   grille, les deux colonnes cessent de s'aligner l'une sur l'autre.
+- Le **retour** est une cible pleine largeur au-dessus de la grille, même cadre
+  et même gabarit, encre atténuée : il ramène au niveau du dessus, il n'est pas
+  une destination de plus.
 - ⚠️ La hauteur du panneau est **re-mesurée au changement de temps**
   (`mesureCle`). Elle est figée à l'ouverture pour qu'un dépliage interne ne
   fasse pas remonter ce qu'on vient de toucher ; mais ici tout le contenu est

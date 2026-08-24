@@ -392,10 +392,14 @@ export default function OptimizerSection({ box, runes, optimizer, allMonsters, r
   const [gearSource, setGearSource] = useState<ExclusionSource>('box');
   // ⚠️ Choix EXPLICITE de l'utilisateur, jamais un « meilleur exemplaire »
   // deviné en silence (une tentative précédente choisissait celui à la plus
-  // haute efficience de runes ; explicitement écartée). Vidé à chaque
-  // changement de source (voir le `onChange` du sélecteur plus bas) : un
-  // exemplaire RTA/siège n'a aucun sens une fois basculé sur une autre
-  // source, mieux vaut repartir d'un choix franc que d'un résidu.
+  // haute efficience de runes ; explicitement écartée). ⚠️ **NE se vide PLUS
+  // au changement de source** (`gearSource`) — bug corrigé (signalement
+  // direct) : un précédent `onChange` vidait ce champ à chaque clic
+  // d'onglet, faisant disparaître le monstre affiché (et ses « Runes
+  // imposées ») sans qu'aucun nouveau monstre n'ait été choisi. `gearSource`
+  // ne fait plus QUE filtrer la liste de recherche ci-dessous — l'exemplaire
+  // actif reste celui du dernier `onPick` explicite, quel que soit l'onglet
+  // affiché depuis, jusqu'à en cliquer un autre.
   const [sourceSelector, setSourceSelector] = useState<ExclusionSelector | null>(null);
 
   // Candidats proposés par `MonsterSourcePicker` pour la source active —
@@ -413,15 +417,16 @@ export default function OptimizerSection({ box, runes, optimizer, allMonsters, r
     return exclusionCandidatesFor(gearSource, exclusionData, null, null);
   }, [gearSource, box, exclusionData]);
 
-  // L'exemplaire RÉELLEMENT optimisé. ⚠️ Si rien n'a encore été choisi dans
-  // CETTE source depuis le dernier montage de la page : repli sur le
-  // meilleur exemplaire box de l'espèce persistée (`speciesSelected`) QUAND
-  // la source active est justement Box — continuité au retour sur l'onglet
-  // (voir le commentaire de `gearSource`), sans jamais faire ce repli pour
-  // RTA/siège (une source explicitement choisie, sans exemplaire encore
-  // pointé dedans, doit rester VIDE plutôt que de montrer discrètement
-  // l'équipement box — même traitement qu'un monstre nu, déjà pris en
-  // charge partout ailleurs dans l'app).
+  // L'exemplaire RÉELLEMENT optimisé — le dernier choisi explicitement
+  // (`sourceSelector`), quel que soit l'onglet de source affiché depuis
+  // (voir son commentaire : changer d'onglet ne le vide plus). ⚠️ Repli sur
+  // le meilleur exemplaire box de l'espèce persistée (`speciesSelected`)
+  // UNIQUEMENT si rien n'a JAMAIS été choisi ce montage-ci (`sourceSelector`
+  // encore `null`, ex. retour sur l'onglet Optimizer après un aller-retour
+  // ailleurs — cet état LOCAL ne survit pas au démontage) ET que la source
+  // affichée est Box — jamais pour RTA/siège dans ce même cas (rien à
+  // deviner, une source jamais explorée doit rester VIDE, même traitement
+  // qu'un monstre nu déjà pris en charge partout ailleurs dans l'app).
   const selected = useMemo(() => {
     if (sourceSelector) {
       const resolved = resolveExclusionEntry(sourceSelector, exclusionData);
@@ -982,20 +987,17 @@ export default function OptimizerSection({ box, runes, optimizer, allMonsters, r
                 réduits. Entre le libellé et le champ de recherche (demande
                 explicite) : c'est le PREMIER choix à faire, avant même de
                 taper un nom — chercher « dans quelle source » avant « quel
-                monstre ». Vide le choix précédent (voir `sourceSelector`) :
-                une nouvelle source se cherche depuis rien, jamais un résidu
-                de l'ancienne. */}
-            <Segmented
-              options={SOURCE_OPTIONS}
-              value={gearSource}
-              onChange={(v) => {
-                setGearSource(v);
-                setSourceSelector(null);
-              }}
-              className="mb-2"
-              size="lg"
-              dense={etroit}
-            />
+                monstre ». ⚠️ **NE vide PLUS `sourceSelector`** : purement le
+                filtre de la LISTE DE RECHERCHE (`sourceSearchCandidates`),
+                pas de l'exemplaire déjà actif — bug trouvé et corrigé
+                (signalement direct) : vider `sourceSelector` ici faisait
+                disparaître le monstre affiché (et ses « Runes imposées »)
+                au moindre clic d'onglet, alors qu'aucun nouveau monstre
+                n'avait été choisi. Le monstre actif ne change QUE quand un
+                résultat est explicitement cliqué dans la liste ci-dessous
+                (voir `onPick`), jamais par le simple fait de changer
+                d'onglet. */}
+            <Segmented options={SOURCE_OPTIONS} value={gearSource} onChange={setGearSource} className="mb-2" size="lg" dense={etroit} />
             {/* ⚠️ **Exactement le même mécanisme que « Exclure les runes
                 d'un monstre »** (demande explicite de cohérence) :
                 `MonsterSourcePicker` cherche par nom PARMI les candidats de

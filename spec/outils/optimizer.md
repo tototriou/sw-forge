@@ -88,9 +88,10 @@ continu — demande explicite de l'utilisateur :
    dans plusieurs équipes, indiscernables par le seul nom) — et choisir un
    résultat fixe **directement** l'exemplaire optimisé, en un seul geste
    plutôt qu'en deux (espèce, puis exemplaire). **Choisit RÉELLEMENT ce que
-   la recherche optimise**, pas seulement ce qui est prévisualisé. Changer
-   de source vide le choix précédent — un exemplaire d'une autre source n'a
-   aucun sens une fois basculé, mieux vaut repartir d'un choix franc. ⚠️ **La
+   la recherche optimise**, pas seulement ce qui est prévisualisé. ⚠️
+   Changer de source ne touche PAS au monstre affiché — le sélecteur filtre
+   uniquement la liste de recherche, l'exemplaire reste actif jusqu'à être
+   explicitement remplacé par un nouveau clic. ⚠️ **La
    fiche reste TOUJOURS affichée**, vide (stats à zéro, artéfacts grisés,
    roue vide) tant qu'aucun monstre n'est choisi, plutôt que de n'apparaître
    qu'au clic — l'espace qu'elle occupe est réservé d'avance (voir
@@ -217,11 +218,15 @@ retour.
    recherchable : construire un build depuis rien est un cas d'usage normal
    de l'outil. Pour RTA/siège, seules les entrées **avec au moins une rune
    équipée** apparaissent (rien à optimiser sur un slot vide de ces sources).
-   ⚠️ **Changer de SOURCE vide le choix précédent** — un exemplaire d'une
-   autre source n'a aucun sens une fois basculé, mieux vaut repartir d'un
-   choix franc que d'un résidu ; la fiche repasse alors à vide (comme si
-   aucun monstre n'était choisi) jusqu'au prochain choix explicite dans
-   cette source. **Changer d'ESPÈCE** (un monstre différent, dans n'importe
+   ⚠️ **Changer de SOURCE ne touche PAS au monstre affiché** — le sélecteur
+   filtre uniquement la LISTE DE RECHERCHE ci-dessous (« dans quelle source
+   chercher »), l'exemplaire réellement optimisé reste celui du dernier
+   choix explicite, quel que soit l'onglet affiché depuis. Bug corrigé
+   (signalement direct) : une version antérieure vidait ce choix à chaque
+   clic d'onglet, faisant disparaître le monstre affiché — et ses
+   « Runes imposées » — sans qu'aucun nouveau monstre n'ait été choisi. Le
+   monstre **reste présent et actif jusqu'à être explicitement remplacé**
+   par un clic sur un autre résultat. **Changer d'ESPÈCE** (un monstre différent, dans n'importe
    quelle source) réinitialise en plus « Critères de recherche » et les
    résultats affichés (set, statistique principale imposée, objectif,
    artéfacts, conditions min/max, tri, pagination) — des critères posés pour

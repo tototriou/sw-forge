@@ -1,7 +1,7 @@
 import { useEffect, useId, useMemo, useRef, useState } from 'react';
 import { Search, Plus, Timer, Users, Swords, X, Zap, Gauge, Eye, EyeOff, Download, Check, Scissors, Play, ChevronUp, ChevronDown, Sparkles } from 'lucide-react';
-import { ELEMENTS, ElementKey, Monster, SiegeTeam } from '../../types';
-import { LeadInfo, combatSpeed, runeSpeedForTarget, SPEED_LEADS, SIEGE_TICKS } from '../../lib/speed';
+import { ELEMENTS, Monster, SiegeTeam } from '../../types';
+import { LeadInfo, combatSpeed, leadsDeVitesse, runeSpeedForTarget, SIEGE_TICKS } from '../../lib/speed';
 import {
   simuler,
   premiersTours,
@@ -257,6 +257,7 @@ export default function SpeedTuningSection({
     leadAllie,
     leadDe,
     leadEnnemi,
+    poserLead,
     leads,
     ligneParUid,
     ligneReference,
@@ -416,7 +417,7 @@ export default function SpeedTuningSection({
           titre="Ton équipe"
           icone={<Users size={15} />}
           lead={leadAllie}
-          onLead={setLeadAllie}
+          onLead={poserLead('allie')}
           lignes={lignes.filter((l) => l.camp === 'allie')}
           jouables={jouables}
           combatDe={combatDe}
@@ -440,7 +441,7 @@ export default function SpeedTuningSection({
           titre="En face"
           icone={<Swords size={15} />}
           lead={leadEnnemi}
-          onLead={setLeadEnnemi}
+          onLead={poserLead('ennemi')}
           lignes={lignes.filter((l) => l.camp === 'ennemi')}
           jouables={jouables}
           combatDe={combatDe}
@@ -916,24 +917,20 @@ function CampPanneau({
   const adv = camp === 'ennemi';
   const dejaAjoutes = useMemo(() => new Set(lignes.map((l) => String(l.monster.id))), [lignes]);
 
-  // Le lead importé d'un deck peut ne pas figurer dans les raccourcis
-  // (SPEED_LEADS n'est pas exhaustive, voir speed.ts) : on l'ajoute à la liste,
-  // sinon le menu afficherait une valeur qu'il ne contient pas.
-  const montant = lead?.amount ?? 0;
-  const leads = useMemo(
-    () =>
-      montant > 0 && !SPEED_LEADS.includes(montant)
-        ? [...SPEED_LEADS, montant].sort((a, b) => b - a)
-        : SPEED_LEADS,
-    [montant]
+  // ⚠️ **Tous les leads du jeu**, lus dans les données (`leadsDeVitesse`) et non
+  // dans une liste écrite à la main : le jeu a des +10, +15, +16, +17, et des
+  // leads d'ÉLÉMENT à +23 et +30 qu'aucun pourcentage seul ne sait dire.
+  // Choisir le lead qu'on a vraiment ne doit pas dépendre de ce qu'on a pensé à
+  // recopier.
+  const leads = useMemo(() => leadsDeVitesse(jouables), [jouables]);
+  // Un lead importé d'un deck figure forcément dans la liste (elle vient des
+  // mêmes données) — mais on ne PARIE pas là-dessus : une valeur absente du menu
+  // s'y afficherait vide, sans que rien ne dise pourquoi.
+  const cleDe = (l: LeadInfo | null) => (l ? `${l.amount}|${l.element ?? ''}` : '');
+  const tous = useMemo(
+    () => (lead && !leads.some((l) => cleDe(l) === cleDe(lead)) ? [...leads, lead] : leads),
+    [leads, lead]
   );
-
-  // ⚠️ **TOUS les leads du jeu se disent ici**, pas seulement les globaux : un
-  // montant ET une portée. « +33 % » et « +33 % alliés Eau » sont deux leads
-  // différents, et les decks imposent l'un comme l'autre — n'offrir que le
-  // montant obligeait à trafiquer les lignes une par une.
-  const poser = (amount: number, element: ElementKey | null) =>
-    onLead(amount > 0 ? { amount, area: element ? 'Element' : 'General', element } : null);
 
   return (
     <section className="min-w-[280px] flex-1 rounded-lg border border-border bg-panel">
@@ -955,39 +952,37 @@ function CampPanneau({
               la même donnée. Elle ne s'affiche que s'il y a un lead — un
               emplacement vide n'apprend rien. */}
           {lead && <LeadPill ls={{ stat: 'Attack Speed', ...lead }} />}
+          {/* ⚠️ **UN seul menu.** Un lead est une chose — « +23 % alliés Eau »
+              n'est pas « +23 % » plus « Eau » : séparer le montant de la portée
+              laissait composer des leads qui n'existent pas dans le jeu. Les
+              deux groupes suffisent à s'y retrouver. */}
           <Selecteur
             taille="sm"
             pleineLargeur={false}
-            value={montant}
-            onChange={(e) => poser(Number(e.target.value), lead?.element ?? null)}
+            value={cleDe(lead)}
+            onChange={(e) => onLead(tous.find((l) => cleDe(l) === e.target.value) ?? null)}
             aria-label={`Lead de vitesse — ${titre}`}
           >
-            <option value={0}>Sans</option>
-            {leads.map((v) => (
-              <option key={v} value={v}>
-                +{v}%
-              </option>
-            ))}
+            <option value="">Sans</option>
+            <optgroup label="Tous les alliés">
+              {tous
+                .filter((l) => !l.element)
+                .map((l) => (
+                  <option key={cleDe(l)} value={cleDe(l)}>
+                    +{l.amount}%
+                  </option>
+                ))}
+            </optgroup>
+            <optgroup label="Par élément">
+              {tous
+                .filter((l) => l.element)
+                .map((l) => (
+                  <option key={cleDe(l)} value={cleDe(l)}>
+                    +{l.amount}% · {ELEMENTS.find((e) => e.key === l.element)?.label ?? '—'}
+                  </option>
+                ))}
+            </optgroup>
           </Selecteur>
-          {/* La PORTÉE du lead, à côté de son montant : sans elle, « +33 % » ne
-              dit pas à qui. Masquée quand il n'y a pas de lead — il n'y a alors
-              rien à porter. */}
-          {montant > 0 && (
-            <Selecteur
-              taille="sm"
-              pleineLargeur={false}
-              value={lead?.element ?? ''}
-              onChange={(e) => poser(montant, (e.target.value || null) as ElementKey | null)}
-              aria-label={`Portée du lead — ${titre}`}
-            >
-              <option value="">Tous</option>
-              {ELEMENTS.filter((el) => el.key !== 'unknown').map((el) => (
-                <option key={el.key} value={el.key}>
-                  {el.label}
-                </option>
-              ))}
-            </Selecteur>
-          )}
         </span>
       </div>
 

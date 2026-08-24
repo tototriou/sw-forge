@@ -10,7 +10,7 @@
 // de sort qui n'existait qu'à l'écran…).
 
 import { Monster } from '../types';
-import { LeadInfo, combatSpeed, siegeLeadFor } from './speed';
+import { LeadInfo, combatSpeed, isSiegeLeadActive, siegeLeadFor, speedLeadOf } from './speed';
 import { Camp, ModParTick, TuneMonstre } from './speedTune';
 import { SortVitesse } from './speedTuneKit';
 import { PassifVitesse, pointsDeGain } from './speedTunePassif';
@@ -218,6 +218,24 @@ export function tuneDe(lignes: Ligne[], leads: Leads, d: DonneesKit, choix: Choi
     });
   }
   return out;
+}
+
+// Le lead de vitesse PRÉSENT dans un camp : celui qu'un de ses monstres porte
+// vraiment. Le plus fort quand plusieurs en ont un — un seul leader agit, et
+// c'est celui-là qu'on placerait.
+//
+// ⚠️ **Un défaut, pas une contrainte.** Poser un monstre à lead de vitesse dans
+// une équipe et devoir ensuite aller le redire dans l'encart était une saisie
+// pour rien : l'information est déjà là. Le choix de l'utilisateur, lui, n'est
+// jamais recouvert (voir `leadChoisi` dans useSpeedTune).
+export function leadPresent(lignes: Ligne[], camp: Camp): LeadInfo | null {
+  let meilleur: LeadInfo | null = null;
+  for (const l of duCamp(lignes, camp)) {
+    const info = speedLeadOf(l.monster);
+    if (!isSiegeLeadActive(info) || !info) continue;
+    if (!meilleur || info.amount > meilleur.amount) meilleur = info;
+  }
+  return meilleur;
 }
 
 // Le monstre le plus rapide de l'équipe : le modèle de l'adversaire de référence.

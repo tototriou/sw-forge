@@ -96,10 +96,25 @@ trois vitesses de runes. Calcul pur dans
 - **Toujours affiché, désactivé** sans compte chargé (aucune équipe) : son
   `title` dit pourquoi.
 - ⚠️ **Le lead du camp est un LEAD DE JEU, pas un pourcentage.** Il porte sa
-  **portée** : l'encart « Lead » a donc **deux** sélecteurs — le montant, et
-  « Tous / Feu / Eau / Vent / Lumière / Ténèbres » — plus la **pastille des
-  decks** (`LeadPill`, icône officielle du jeu comprise) dès qu'un lead est posé.
-  Tous les leads du jeu se disent ainsi, et un deck importé remplit les deux.
+  **portée**. L'encart « Lead » a **un seul menu**, en deux groupes — « Tous les
+  alliés » et « Par élément » —, plus la **pastille des decks** (`LeadPill`,
+  icône officielle du jeu comprise) dès qu'un lead est posé.
+
+  Sa liste est **lue dans les données** (`leadsDeVitesse`), jamais écrite à la
+  main : le jeu a des +10, +15, +16, +17 et des leads d'élément à +23 et +30
+  qu'aucune constante ne contenait. Les portées **Arène** et **Donjon** en sont
+  écartées — elles ne comptent pas en siège.
+
+  ⚠️ **Un seul menu, pas deux** (montant × portée) : « +23 % alliés Eau » n'est
+  pas « +23 % » plus « Eau ». Séparés, les deux sélecteurs laissaient composer
+  des leads qui n'existent pas dans le jeu.
+
+- ⚠️ **Le lead se devine à partir de l'équipe.** Un monstre du camp porte un lead
+  de vitesse ? Il se pose tout seul dans l'encart (le plus fort si plusieurs — un
+  seul leader agit). Aller le redire à la main était une saisie pour rien.
+  Dès qu'on touche au menu **ou** qu'on importe un deck, ce défaut ne repasse
+  plus jamais : « Sans » est un choix comme un autre, et un réglage qu'on ne peut
+  pas poser vaut moins que pas de défaut du tout.
 
   > ⚠️ **Deux détours essayés avant, tous deux faux.** Ne garder que le montant
   > perdait les leads d'élément : le speed tune calculait plus lent que la card

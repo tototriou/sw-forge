@@ -25,6 +25,7 @@ import {
   ArtefactRequis,
 } from '../src/lib/speedTune';
 import { deckPourSpeedTune } from '../src/lib/speedTuneDeck';
+import { leadsDeVitesse } from '../src/lib/speed';
 import { kitVitesse, sortsVitesse, SortVitesse, BUFF_SPD_JEU } from '../src/lib/speedTuneKit';
 import { passifsVitesse, pointsDeGain } from '../src/lib/speedTunePassif';
 import {
@@ -33,6 +34,7 @@ import {
   appliquerMods,
   combatDe as combatDeLigne,
   estimerCumuls,
+  leadPresent,
   ligneReference,
   ligneVierge,
   majMod,
@@ -349,6 +351,49 @@ export function testSpeedTuneDeck() {
       combatSpeed(100, 100, 33, false),
       "quand l'allié Eau vaut exactement ce que donne le lead de 33 %"
     );
+  }
+
+  // ⚠️ **Le menu propose TOUS les leads du jeu**, lus dans les données — pas une
+  // liste écrite à la main. Le jeu a des +10, +15, +16, +17, et des leads
+  // d'ÉLÉMENT à +23 et +30 qu'aucun pourcentage seul ne sait dire.
+  {
+    const bestiaire = [trevor, bella, loren, fran, arene];
+    const dispo = leadsDeVitesse(bestiaire);
+    egal(
+      dispo.some((l) => l.amount === 24 && !l.element),
+      true,
+      'un lead de guilde figure au menu, sans élément'
+    );
+    egal(
+      dispo.some((l) => l.amount === 33 && l.element === 'water'),
+      true,
+      "un lead d'élément aussi, avec le sien"
+    );
+    egal(
+      dispo.some((l) => l.amount === 19),
+      false,
+      "un lead d'ARÈNE n'y figure pas : il ne compte pas en siège"
+    );
+    egal(
+      dispo.filter((l) => l.amount === 24 && !l.element).length,
+      1,
+      'et chaque lead n’apparaît qu’une fois, quel que soit le nombre de monstres qui le portent'
+    );
+  }
+
+  // ⚠️ **Le lead se devine à partir de l'équipe** : un monstre qui en porte un le
+  // pose tout seul dans l'encart — l'information est déjà là.
+  {
+    const ligne = (m: Monster): Ligne => ligneVierge(m, 'allie');
+    egal(leadPresent([ligne(bella), ligne(trevor)], 'allie')?.amount, 24, "le lead d'un allié est repéré");
+    egal(leadPresent([ligne(bella), ligne(loren)], 'allie'), null, 'aucun porteur → aucun lead');
+    egal(
+      leadPresent([ligne(trevor), ligne(fran)], 'allie')?.amount,
+      33,
+      'deux porteurs → le plus fort, un seul leader agit'
+    );
+    egal(leadPresent([ligne(arene)], 'allie'), null, "un lead d'arène ne compte pas en siège");
+    egal(leadPresent([ligne(trevor)], 'ennemi'), null, "et on ne regarde que le camp demandé");
   }
 
   // Un lead qui vaut pour TOUS reste au camp : le sélecteur garde la main.

@@ -28,6 +28,7 @@ import {
   gainPassifDe as gainPassifDeLigne,
   leadDe as leadDeCamp,
   leadPour,
+  leadPresent,
   ligneReference as ligneReferenceDe,
   ligneVierge,
   lignesDeDeck,
@@ -102,6 +103,14 @@ export function useSpeedTune({
     'speedTune.leadEnnemi',
     null
   );
+  // Le lead de ce camp a-t-il été CHOISI ? Tant que non, il suit la composition
+  // (voir l'effet plus bas). ⚠️ Sans ce drapeau, choisir « Sans » alors qu'un
+  // monstre du camp porte un lead se serait défait tout seul au rendu suivant —
+  // un réglage qu'on ne peut pas poser est pire que pas de défaut du tout.
+  const [leadChoisi, setLeadChoisi] = useStickyState<Record<Camp, boolean>>(
+    'speedTune.leadChoisi',
+    { allie: false, ennemi: false }
+  );
 
   const jouables = useMemo(() => formesJouables(allMonsters), [allMonsters]);
   // Réglage d'application : poser l'adversaire de référence à CHAQUE analyse,
@@ -166,6 +175,10 @@ export function useSpeedTune({
   const donneesKit = useMemo(() => ({ kits, sorts, passifs }), [kits, sorts, passifs]);
 
   const leads: Leads = { allie: leadAllie, ennemi: leadEnnemi };
+  const poserLead = (camp: Camp) => (v: LeadInfo | null) => {
+    setLeadChoisi((m) => ({ ...m, [camp]: true }));
+    (camp === 'allie' ? setLeadAllie : setLeadEnnemi)(v);
+  };
   const entreeDe = (l: Ligne) => entreeDeLigne(l);
 
   // ⚠️ Le compte de buffs se pose tout seul (voir `estimerCumuls`) : l'écran ne
@@ -297,7 +310,9 @@ export function useSpeedTune({
     // équipe avec un +28 % qui n'existait plus, et le siège — qui lit `lead ?? 0`
     // — répondait autre chose que l'outil sur la même compo. Importer un deck,
     // c'est importer TOUT ce qui fait ses vitesses.
-    (camp === 'allie' ? setLeadAllie : setLeadEnnemi)(deck.lead);
+    // ⚠️ Un deck IMPOSE son lead : c'est un choix, il ne se fait pas déloger par
+    // le défaut au premier monstre ajouté ensuite.
+    poserLead(camp)(deck.lead);
     return true;
   }
 
@@ -517,6 +532,21 @@ export function useSpeedTune({
     analyser();
   }, [analyseALOuverture, lignesVisibles, kits]);
 
+  // ⚠️ **Le lead d'un camp suit sa composition, tant qu'on ne l'a pas choisi.**
+  // Poser un monstre à lead de vitesse et devoir ensuite aller le redire dans
+  // l'encart était une saisie pour rien : l'information est déjà là. Dès que
+  // l'utilisateur touche au menu (ou importe un deck), le drapeau `leadChoisi`
+  // tombe et plus rien ne repasse dessus — « Sans » compris, qui est un choix.
+  useEffect(() => {
+    for (const camp of ['allie', 'ennemi'] as Camp[]) {
+      if (leadChoisi[camp]) continue;
+      const present = leadPresent(lignes, camp);
+      const actuel = leadDeCamp(leads, camp);
+      if (JSON.stringify(present) === JSON.stringify(actuel)) continue;
+      (camp === 'allie' ? setLeadAllie : setLeadEnnemi)(present);
+    }
+  }, [lignes, leadChoisi, leadAllie, leadEnnemi]);
+
   // Chaîne d'ouverture : toute l'équipe joue-t-elle avant le premier adverse ?
   // Et sinon, quelle vitesse de combat faut-il à ceux qui sont coupés.
   const chaine = useMemo(() => diagnostiquerChaine(tune, HORIZON_TICKS), [tune]);
@@ -726,6 +756,7 @@ export function useSpeedTune({
     leadAllie,
     leadDe,
     leadEnnemi,
+    poserLead,
     leads,
     ligneParUid,
     ligneReference,

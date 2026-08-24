@@ -27,7 +27,13 @@ import {
 import { recipeToSearchParams } from './lib/recipeToSearchParams';
 import { loadMonsterSkills } from './lib/skillsData';
 import { loadMonstersList } from './lib/monstersData';
-import { DEFAULT_DAMAGE_SETUP, damageRelevantStats, monsterDamageSkills, resolveDamageSkill } from '../src/lib/damage';
+import {
+  DEFAULT_DAMAGE_SETUP,
+  damageRelevantStats,
+  monsterDamageSkills,
+  monsterOffensivePassives,
+  resolveDamageSkill,
+} from '../src/lib/damage';
 import { runSearchToCompletion } from './lib/runSearch';
 import { ExclusionSourceData, autoExcludedRuneIds, resolveExcludedRuneIds } from '../src/lib/optimizerExclusion';
 
@@ -140,9 +146,11 @@ if (recipe.excludedSelectors && recipe.excludedSelectors.length > 0 && exclusion
 // sort par défaut est silencieux côté code (voir `resolveDamageSkill`), il ne
 // doit pas l'être côté console.
 if (recipe.objective === 'degats_reels') {
-  const skills = monsterDamageSkills(loadMonsterSkills(loaded.com2usId));
+  const detail = loadMonsterSkills(loaded.com2usId);
+  const skills = monsterDamageSkills(detail);
   const profile = resolveDamageSkill(skills, recipe.damageSetup?.skillCom2usId ?? null);
   const s = recipe.damageSetup ?? DEFAULT_DAMAGE_SETUP;
+  const passifs = monsterOffensivePassives(detail);
   // Élément du monstre RÉELLEMENT chargé (pas celui de la recette) : c'est lui
   // qui décide de la compétence d'invocateur « Puis. d'att. de <élément> ».
   const monsterElement = loadMonstersList().find((m) => m.com2usId === loaded.com2usId)?.element ?? null;
@@ -165,8 +173,18 @@ if (recipe.objective === 'degats_reels') {
         // ⚠️ `?? DEFAULT` : une recette exportée AVANT ce champ n'en a pas.
         // L'élément vient du monstre CHARGÉ, jamais de la recette.
         `comp. invocateur ${s.summonerSkills ?? DEFAULT_DAMAGE_SETUP.summonerSkills} (${monsterElement ?? 'élément inconnu'}) — ` +
-        `stats privilégiées [${damageRelevantStats(profile).join(', ')}]`
+        `stats privilégiées [${damageRelevantStats(profile, passifs, s).join(', ')}]`
     );
+    if (passifs.length > 0) {
+      const detailPassifs = passifs
+        .map((p) => {
+          if (p.categorie.type === 'toujours') return `${p.nom} (toujours actif)`;
+          const actif = s.passifsOffensifs?.[p.skillCom2usId] ?? false;
+          return `${p.nom} (${p.categorie.type}, ${actif ? 'activé' : 'désactivé par défaut'})`;
+        })
+        .join(', ');
+      console.log(`Passifs offensifs pris en compte : ${detailPassifs}`);
+    }
   }
 }
 

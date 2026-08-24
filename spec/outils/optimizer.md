@@ -344,6 +344,17 @@ retour.
        défaut, le dernier slot calculable (S3 avant S2 avant S1). Un sort
        dont la formule sort du modèle reste **affiché, grisé, avec son
        motif** — jamais absent sans explication.
+     - **Passifs offensifs** — n'apparaît que si le monstre en a un
+       (Feng Yan, Sia, Roid, Dominic…) : des dégâts **en plus** du sort
+       choisi ci-dessus, via un passif reconnu (liste à la main, voir
+       [degats-reels.md](degats-reels.md)). Un passif **toujours actif** (le
+       texte du jeu ne pose aucune condition) apparaît en jeton simple, sans
+       bouton. Un passif **bonus** ou **conditionnel** apparaît en bouton,
+       **désactivé par défaut**, avec le texte exact de la condition du jeu
+       dans son infobulle — jamais déduit d'un autre réglage de l'écran
+       (⚠️ le passif d'un monstre peut dépendre de l'état posé par son
+       **propre** sort, avant même que ce sort ne soit lancé : aucun réglage
+       existant ne peut trancher ça à sa place).
      - **Adversaire** — PV et DEF. ⚠️ Les **PV ne classent rien** : ils ne
        servent qu'à lire le résultat (« 42 % des PV », « tue la cible »).
        Un champ **PV restants** n'apparaît que pour les sorts dont la

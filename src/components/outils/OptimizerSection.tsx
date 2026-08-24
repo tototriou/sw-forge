@@ -38,9 +38,10 @@ import {
 import { DetailMonstre, chargerDetail } from '../../lib/monsterSkills';
 import {
   DEFAULT_DAMAGE_SETUP,
-  computeSkillDamage,
+  computeTotalDamage,
   damageRelevantStats,
   monsterDamageSkills,
+  monsterOffensivePassives,
   resolveDamageSkill,
 } from '../../lib/damage';
 import {
@@ -297,19 +298,31 @@ export default function OptimizerSection({ box, runes, optimizer, allMonsters, r
     () => resolveDamageSkill(damageSkills, damageSetup.skillCom2usId),
     [damageSkills, damageSetup.skillCom2usId]
   );
+  // Passifs offensifs de CE monstre (Feng Yan, Sia, Roid… — voir
+  // spec/outils/degats-reels.md) — indépendants du sort choisi, calculés dès
+  // qu'une fiche est chargée, comme `damageSkills`.
+  const offensivePassives = useMemo(() => monsterOffensivePassives(skillDetail), [skillDetail]);
   // Stats que le pré-filtrage doit privilégier — `undefined` hors de cet
   // objectif, auquel cas le moteur retombe sur `OBJECTIVE_RELEVANT_STATS`
   // (comportement strictement inchangé pour les cinq autres objectifs).
   const objectiveStats = useMemo(
-    () => (objective === 'degats_reels' ? damageRelevantStats(resolvedSkill) : undefined),
-    [objective, resolvedSkill]
+    () => (objective === 'degats_reels' ? damageRelevantStats(resolvedSkill, offensivePassives, damageSetup) : undefined),
+    [objective, resolvedSkill, offensivePassives, damageSetup]
   );
   // Contexte de score, exigé par `objectiveScore` pour cet objectif — `null`
   // si aucun sort n'est calculable, auquel cas l'écran ne propose jamais le
   // tri « Dégâts réels » (voir `sortOptions`).
   const realDamage = useMemo<RealDamageContext | null>(
-    () => (resolvedSkill ? { profile: resolvedSkill, setup: damageSetup, element: speciesSelected?.monster.element ?? null } : null),
-    [resolvedSkill, damageSetup, speciesSelected?.monster.element]
+    () =>
+      resolvedSkill
+        ? {
+            profile: resolvedSkill,
+            setup: damageSetup,
+            element: speciesSelected?.monster.element ?? null,
+            passifs: offensivePassives,
+          }
+        : null,
+    [resolvedSkill, damageSetup, speciesSelected?.monster.element, offensivePassives]
   );
 
   // Statistiques principales autorisées sur les slots 2/4/6 — vide = libre.
@@ -1404,6 +1417,7 @@ export default function OptimizerSection({ box, runes, optimizer, allMonsters, r
             <DamageSetupCard
               skills={damageSkills}
               resolved={resolvedSkill}
+              passifs={offensivePassives}
               setup={damageSetup}
               setSetup={setDamageSetup}
               chargement={skillLoading}
@@ -2152,7 +2166,13 @@ export default function OptimizerSection({ box, runes, optimizer, allMonsters, r
                 degatsReels={
                   realDamage && (objective === 'degats_reels' || sortBy === 'degats_reels')
                     ? (() => {
-                        const total = computeSkillDamage(realDamage.profile, c.stats, realDamage.setup, realDamage.element);
+                        const total = computeTotalDamage(
+                          realDamage.profile,
+                          realDamage.passifs,
+                          c.stats,
+                          realDamage.setup,
+                          realDamage.element
+                        );
                         return { total, partPvCible: damageSetup.enemyHp > 0 ? (total / damageSetup.enemyHp) * 100 : 0 };
                       })()
                     : undefined

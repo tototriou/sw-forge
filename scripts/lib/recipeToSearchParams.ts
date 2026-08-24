@@ -9,7 +9,13 @@
 import { SearchParams, SlotFilterPresetKey, SLOT_FILTER_PRESETS, ARTIFACT_MAIN_VALUE } from '../../src/lib/runeBuildOptim';
 import { ExclusionSourceData, autoExcludedRuneIds, resolveExcludedRuneIds } from '../../src/lib/optimizerExclusion';
 import { OptimizerRecipe } from '../../src/lib/optimizerRecipe';
-import { damageRelevantStats, monsterDamageSkills, resolveDamageSkill } from '../../src/lib/damage';
+import {
+  DEFAULT_DAMAGE_SETUP,
+  damageRelevantStats,
+  monsterDamageSkills,
+  monsterOffensivePassives,
+  resolveDamageSkill,
+} from '../../src/lib/damage';
 import { StatKey } from '../../src/lib/effects';
 import { ArtifactDetail, ArtifactKind, RuneDetail } from '../../src/types';
 import { LoadedMonster } from './loadMonster';
@@ -93,11 +99,16 @@ export function resolvePool(
 // (voir spec/README.md, « Conventions communes »).
 export function resolveObjectiveStats(recipe: OptimizerRecipe, loaded: LoadedMonster): StatKey[] | undefined {
   if (recipe.objective !== 'degats_reels') return undefined;
-  const skills = monsterDamageSkills(loadMonsterSkills(loaded.com2usId));
+  const detail = loadMonsterSkills(loaded.com2usId);
+  const skills = monsterDamageSkills(detail);
   // ⚠️ `?? null` : une recette exportée AVANT ce champ n'a pas de
   // `damageSetup` — repli sur le sort par défaut, comme à l'import d'écran.
   const profile = resolveDamageSkill(skills, recipe.damageSetup?.skillCom2usId ?? null);
-  return damageRelevantStats(profile);
+  // Mêmes passifs offensifs que l'écran (OptimizerSection.tsx) — sinon le
+  // pré-filtrage CLI serait plus étroit que celui de l'écran pour la même
+  // recette dès qu'un passif utilise une stat absente du sort de base.
+  const passifs = monsterOffensivePassives(detail);
+  return damageRelevantStats(profile, passifs, recipe.damageSetup ?? DEFAULT_DAMAGE_SETUP);
 }
 
 const HARD_TIMEOUT_MS = 10 * 60 * 1000; // ⚠️ IDENTIQUE à HARD_TIMEOUT_MS (OptimizerSection.tsx).

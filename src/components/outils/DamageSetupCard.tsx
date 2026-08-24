@@ -9,6 +9,7 @@ import {
   DamageVariable,
   DEF_BREAK_ICON,
   DEF_BUFF_ICON,
+  PassifOffensifProfile,
   SPD_BUFF_ICON,
   SUMMONER_SKILLS_LABELS,
   SkillDamageProfile,
@@ -17,8 +18,10 @@ import {
   estPrisEnCharge,
 } from '../../lib/damage';
 import { formuleLisible } from '../../lib/monsterSkills';
+import Jeton from '../../ui/Jeton';
 import NumberField from '../../ui/NumberField';
 import Option from '../../ui/Option';
+import Pastille from '../../ui/Pastille';
 import Segmented from '../../ui/Segmented';
 import Vignette from '../../ui/Vignette';
 import HelpPopover from '../HelpPopover';
@@ -52,6 +55,10 @@ interface Props {
   // Le sort réellement retenu (`resolveDamageSkill`) — `null` si aucun n'est
   // calculable pour ce monstre.
   resolved: SkillDamageProfile | null;
+  // Passifs offensifs de ce monstre reconnus (`monsterOffensivePassives`,
+  // damage.ts) — indépendants du sort choisi, voir la section dédiée
+  // plus bas. Vide = rien à afficher (la plupart des monstres).
+  passifs: PassifOffensifProfile[];
   setup: DamageSetup;
   setSetup: Dispatch<SetStateAction<DamageSetup>>;
   // `true` tant que la fiche du monstre n'est pas arrivée.
@@ -76,7 +83,7 @@ function resumeSort(p: SkillDamageProfile): { ratio: string | null; reste: strin
   return { ratio: formuleLisible(p.formule), reste: bouts.join(' · ') };
 }
 
-export default function DamageSetupCard({ skills, resolved, setup, setSetup, chargement, etroit }: Props) {
+export default function DamageSetupCard({ skills, resolved, passifs, setup, setSetup, chargement, etroit }: Props) {
   const maj = (patch: Partial<DamageSetup>) => setSetup((prev) => ({ ...prev, ...patch }));
 
   if (chargement) {
@@ -157,6 +164,64 @@ export default function DamageSetupCard({ skills, resolved, setup, setSetup, cha
           })}
         </div>
       </div>
+
+      {/* ⚠️ **Indépendant du sort choisi ci-dessus** — un passif s'applique
+          quel que soit S1/S2/S3 en cours d'optimisation, voir
+          spec/outils/degats-reels.md. Absent (la grande majorité des
+          monstres) : rien ne s'affiche, pas même un « aucun passif connu »
+          — un panneau qui parle d'une absence à chaque monstre serait plus
+          bruyant qu'utile. */}
+      {passifs.length > 0 && (
+        <div>
+          <div className="mb-2 flex items-center gap-1.5">
+            <p className="label">Passifs offensifs</p>
+            <HelpPopover title="Passifs offensifs">
+              Certains monstres infligent des dégâts supplémentaires par un passif (Feng Yan, Sia, Roid…),
+              en plus du sort choisi ci-dessus. <b className="text-ink">Toujours actif</b> : le texte du jeu ne
+              pose aucune condition de combat, compté d&apos;office. <b className="text-ink">Bouton</b> :
+              une condition à juger toi-même (cible, PV, effet déjà présent…) — désactivé par défaut,
+              jamais deviné. Le texte exact de la condition est dans l&apos;infobulle de chaque bouton.
+            </HelpPopover>
+          </div>
+          <div className="flex flex-wrap gap-1.5">
+            {passifs.map((p) => {
+              if (p.categorie.type === 'toujours') {
+                return (
+                  <Jeton
+                    key={p.skillCom2usId}
+                    icone={p.profile.icone ? <img src={p.profile.icone} alt="" className="h-4 w-4 rounded" loading="lazy" /> : undefined}
+                    libelle={p.nom.replace(/\s*\(Passive\)\s*$/i, '')}
+                    detail="toujours actif"
+                  />
+                );
+              }
+              const actif = setup.passifsOffensifs?.[p.skillCom2usId] ?? false;
+              const libelle =
+                p.categorie.type === 'bonus'
+                  ? `${p.nom.replace(/\s*\(Passive\)\s*$/i, '')} (+${p.categorie.pct} %)`
+                  : p.nom.replace(/\s*\(Passive\)\s*$/i, '');
+              return (
+                <Pastille
+                  key={p.skillCom2usId}
+                  actif={actif}
+                  onClick={() =>
+                    maj({ passifsOffensifs: { ...(setup.passifsOffensifs ?? {}), [p.skillCom2usId]: !actif } })
+                  }
+                  icone={
+                    p.profile.icone ? (
+                      <img src={p.profile.icone} alt="" className="h-4 w-4 rounded" loading="lazy" />
+                    ) : undefined
+                  }
+                  libelle={libelle}
+                  title={`${p.categorie.condition[0].toUpperCase()}${p.categorie.condition.slice(1)}${
+                    actif ? ' (activé)' : ' — désactivé par défaut'
+                  }`}
+                />
+              );
+            })}
+          </div>
+        </div>
+      )}
 
       <div>
         <div className="mb-2 flex items-center gap-1.5">

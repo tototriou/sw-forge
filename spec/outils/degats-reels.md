@@ -148,6 +148,59 @@ Absents du résultat, **jamais approximés en silence** :
   (`{Relative SPD}`, `{Alive Enemies}`, PV courants de l'attaquant…) — ces
   sorts-là sont refusés, pas approchés.
 
+## Passifs offensifs — dégâts supplémentaires au-delà du sort choisi
+
+Certains monstres infligent des dégâts **en plus** du sort actif choisi, via
+un passif qui a lui-même une formule de dégâts (Feng Yan, Sia, Roid,
+Dominic…). `monsterOffensivePassives(detail)` les détecte et
+`computeTotalDamage(profil, passifs, stats, setup, élément)` additionne leur
+contribution à celle du sort de base — c'est elle, et non `computeSkillDamage`
+seul, que consomme l'objectif « Dégâts réels » (`objectiveScore`,
+[runeBuildOptim.ts](src/lib/runeBuildOptim.ts)) dès qu'au moins un passif est
+reconnu.
+
+⚠️ **Curation à la main, jamais une extraction automatique** —
+`PASSIFS_OFFENSIFS_CONNUS` ([damage.ts](src/lib/damage.ts)) est une liste
+explicite de passifs vérifiés, par leur `Competence.nom` SWARFARM exact. La
+**formule elle-même** reste toujours lue en direct depuis les données (même
+parseur, même discipline tout-ou-rien que le sort actif) — seule l'
+**appartenance à la liste** et sa **catégorie** sont figées en dur. Un passif
+absent de la liste (immense majorité du corpus) n'est simplement jamais
+proposé : pas de faux négatif dangereux, juste une couverture partielle et
+volontaire.
+
+Trois catégories, sur la seule question « quand ce passif compte-t-il ? » :
+
+| Catégorie | Comportement | Exemple |
+|---|---|---|
+| `toujours` | S'ajoute d'office, aucun bouton — le texte du jeu ne pose aucune condition de combat | Feng Yan (Winds and Clouds), Sia, Weapon Master (Final Strike) |
+| `bonus` | Bouton, désactivé par défaut ; une fois activé, majore la contribution **du passif seul** de `pct` % (jamais le sort de base) | Dominic/Weapon Master (Improvisation, +100 % si PV > 50 %) |
+| `conditionnel` | Bouton, désactivé par défaut ; activé, le passif compte à 100 % comme un second sort | Roid (Slash Waves/Slash Wind) |
+
+⚠️ **Jamais déduit d'un réglage d'écran existant, même quand un réglage
+équivalent existe déjà** (ex. le bouton « Réduction de DEF »). Cas identifié
+par l'utilisateur : Roid peut lui-même poser la réduction de DEF via son
+propre S1, et la condition de son passif porte sur l'état **avant** ce sort
+précis — un réglage de combat global ne peut pas savoir « avant » ou
+« après » lequel des sorts du même monstre. D'où un **bouton indépendant par
+passif**, jamais rattaché à un réglage existant, avec le texte exact de la
+condition du jeu affiché dans son infobulle (`DamageSetupCard.tsx`) — c'est au
+joueur de juger, pas à l'app de deviner. Conséquence volontaire : oublier
+d'activer un bouton ne peut que **sous-estimer** les dégâts, jamais les
+surestimer — un défaut d'usage sans risque de classement erroné dans le sens
+dangereux.
+
+`DamageSetup.passifsOffensifs` (`Record<com2usId du passif, boolean>`, clé
+absente = désactivé) porte l'état des boutons ; une recette exportée avant
+l'existence de ce champ n'en a simplement aucun (`?.` en lecture partout,
+jamais supposé présent).
+
+`damageRelevantStats` suit exactement le même interrupteur
+(`passifActif`, factorisé) que `computeTotalDamage` : un passif désactivé
+n'ajoute aucune stat au pré-filtrage, un passif actif y ajoute les siennes —
+les deux fonctions doivent s'accorder EXACTEMENT, sinon la recherche
+privilégierait des stats qu'un score différent ignore (ou l'inverse).
+
 ## Stats à privilégier dans la recherche
 
 `damageRelevantStats(profil)` renvoie les statistiques que le sort fait

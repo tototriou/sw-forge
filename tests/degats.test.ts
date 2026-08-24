@@ -29,11 +29,13 @@ import {
   DamageSetup,
   SkillDamageProfile,
   computeSkillDamage,
+  computeTotalDamage,
   damageRelevantStats,
   defaultDamageSkill,
   defenseFactor,
   estPrisEnCharge,
   monsterDamageSkills,
+  monsterOffensivePassives,
   resolveDamageSkill,
   skillDamageProfile,
   summonerSkillBonus,
@@ -227,6 +229,119 @@ export default function testDegats() {
   // cible) — même règle que l'objectif « Dégâts ».
   ok(!damageRelevantStats(s3).includes('cr'), 'le Taux Crit n’est jamais une stat à maximiser');
 
+  titre('Dégâts réels — passifs offensifs');
+
+  // ⚠️ La liste `PASSIFS_OFFENSIFS_CONNUS` (damage.ts) est une CURATION à la
+  // main — jamais déduite automatiquement d'une condition en jeu (voir
+  // spec/outils/degats-reels.md, cas Roid). Ces tests épinglent le
+  // COMPORTEMENT (toujours actif d'office / bouton désactivé par défaut /
+  // bonus qui ne majore QUE la contribution du passif), pas la liste
+  // elle-même — l'ajout d'un monstre à la liste n'a pas à faire échouer ceci.
+
+  // Feng Yan — « Winds and Clouds (Passive) », classé « toujours » : aucun
+  // bouton, s'ajoute d'office au sort choisi.
+  const fengYan = fiche(21213);
+  const fyBase = defaultDamageSkill(monsterDamageSkills(fengYan));
+  ok(fyBase !== null, 'Feng Yan : un sort de dégâts par défaut est trouvé');
+  const fyPassifs = monsterOffensivePassives(fengYan);
+  egal(fyPassifs.length, 1, 'Feng Yan : un seul passif offensif reconnu (Winds and Clouds)');
+  egal(fyPassifs[0]?.categorie.type, 'toujours', 'Winds and Clouds est classé « toujours »');
+  const fySetup: DamageSetup = { ...DEFAULT_DAMAGE_SETUP, skillCom2usId: fyBase!.skillCom2usId, summonerSkills: 'aucune' };
+  const fyStats = stats({ atk: 2000, cd: 200, cr: 100, hp: 20000, def: 900 });
+  egal(
+    computeTotalDamage(fyBase!, fyPassifs, fyStats, fySetup, null),
+    computeSkillDamage(fyBase!, fyStats, fySetup, null) + computeSkillDamage(fyPassifs[0]!.profile, fyStats, fySetup, null),
+    'un passif « toujours » s’ajoute intégralement, sans qu’aucun bouton n’existe pour le couper'
+  );
+
+  // Roid — « Slash Waves »/« Slash Wind » (Passive), classés « conditionnel » :
+  // condition qui dépend de l'ORDRE des sorts (Roid peut poser lui-même la
+  // réduction de DEF que son propre passif vérifie) — jamais déduite d'un
+  // réglage existant, un bouton dédié par passif, désactivé par défaut.
+  const roid = fiche(49003);
+  const roidBase = defaultDamageSkill(monsterDamageSkills(roid));
+  ok(roidBase !== null, 'Roid : un sort de dégâts par défaut est trouvé');
+  const roidPassifs = monsterOffensivePassives(roid);
+  egal(roidPassifs.length, 2, 'Roid : les deux passifs conditionnels (Slash Waves, Slash Wind) sont reconnus');
+  ok(
+    roidPassifs.every((p) => p.categorie.type === 'conditionnel'),
+    'les deux sont classés « conditionnel », jamais réputés actifs automatiquement'
+  );
+  const roidStats = stats({ atk: 2000, cd: 200, cr: 100 });
+  const roidSetupOff: DamageSetup = {
+    ...DEFAULT_DAMAGE_SETUP,
+    skillCom2usId: roidBase!.skillCom2usId,
+    summonerSkills: 'aucune',
+    passifsOffensifs: {},
+  };
+  egal(
+    computeTotalDamage(roidBase!, roidPassifs, roidStats, roidSetupOff, null),
+    computeSkillDamage(roidBase!, roidStats, roidSetupOff, null),
+    'par défaut (aucun bouton activé), un passif conditionnel n’ajoute RIEN — jamais deviné actif'
+  );
+  const cible = roidPassifs[0]!;
+  const roidSetupOn: DamageSetup = { ...roidSetupOff, passifsOffensifs: { [cible.skillCom2usId]: true } };
+  egal(
+    computeTotalDamage(roidBase!, roidPassifs, roidStats, roidSetupOn, null),
+    computeSkillDamage(roidBase!, roidStats, roidSetupOn, null) + computeSkillDamage(cible.profile, roidStats, roidSetupOn, null),
+    'activer le bouton d’un passif conditionnel l’ajoute intégralement, comme un second sort'
+  );
+  ok(
+    computeTotalDamage(roidBase!, roidPassifs, roidStats, roidSetupOn, null) >
+      computeTotalDamage(roidBase!, roidPassifs, roidStats, roidSetupOff, null),
+    'activer un des deux boutons augmente le total par rapport aux deux désactivés'
+  );
+  ok(
+    (roidSetupOn.passifsOffensifs as Record<number, boolean>)[roidPassifs[1]!.skillCom2usId] === undefined,
+    'activer un bouton ne touche pas l’état de l’autre — chaque passif a son propre interrupteur'
+  );
+
+  // Dominic — « Improvisation (Passive) », classé « bonus » à pourcentage
+  // fixe : le bouton, une fois activé, ne majore QUE la contribution du
+  // passif lui-même, jamais le sort de base choisi par ailleurs.
+  const dominic = fiche(25713);
+  const dominicBase = defaultDamageSkill(monsterDamageSkills(dominic));
+  ok(dominicBase !== null, 'Dominic : un sort de dégâts par défaut est trouvé');
+  const dominicPassifs = monsterOffensivePassives(dominic);
+  egal(dominicPassifs.length, 1, 'Dominic : un seul passif reconnu (Improvisation)');
+  ok(dominicPassifs[0]?.categorie.type === 'bonus', 'Improvisation est classé « bonus », pas « toujours »');
+  const dominicStats = stats({ atk: 2000, cd: 200, cr: 100, hp: 20000 });
+  const dominicSetupOff: DamageSetup = {
+    ...DEFAULT_DAMAGE_SETUP,
+    skillCom2usId: dominicBase!.skillCom2usId,
+    summonerSkills: 'aucune',
+  };
+  egal(
+    computeTotalDamage(dominicBase!, dominicPassifs, dominicStats, dominicSetupOff, null),
+    computeSkillDamage(dominicBase!, dominicStats, dominicSetupOff, null),
+    'bonus désactivé par défaut : aucune contribution du passif'
+  );
+  const dominicSetupOn: DamageSetup = {
+    ...dominicSetupOff,
+    passifsOffensifs: { [dominicPassifs[0]!.skillCom2usId]: true },
+  };
+  const dominicCategorie = dominicPassifs[0]!.categorie;
+  const dominicPct = dominicCategorie.type === 'bonus' ? dominicCategorie.pct : 0;
+  egal(
+    computeTotalDamage(dominicBase!, dominicPassifs, dominicStats, dominicSetupOn, null),
+    computeSkillDamage(dominicBase!, dominicStats, dominicSetupOn, null) +
+      computeSkillDamage(dominicPassifs[0]!.profile, dominicStats, dominicSetupOn, null) * (1 + dominicPct / 100),
+    'le bonus multiplie la contribution DU PASSIF par (1 + pct/100), jamais celle du sort de base'
+  );
+
+  // `damageRelevantStats` doit suivre EXACTEMENT le même interrupteur que
+  // `computeTotalDamage` — sinon le pré-filtrage de la recherche privilégie
+  // des stats qu'un score différent ignore (ou l'inverse).
+  egal(
+    damageRelevantStats(roidBase, roidPassifs, roidSetupOff),
+    damageRelevantStats(roidBase),
+    'passifs désactivés : les stats à privilégier sont les mêmes qu’en l’absence de passif'
+  );
+  ok(
+    damageRelevantStats(fyBase, fyPassifs, fySetup).length >= damageRelevantStats(fyBase).length,
+    'un passif « toujours » ne peut jamais RÉDUIRE l’ensemble des stats à privilégier'
+  );
+
   titre('Dégâts réels — propagation dans la recherche');
 
   // ⚠️ Ce bloc existe parce que `tsc --noEmit` ne peut PAS voir ces erreurs :
@@ -262,7 +377,7 @@ export default function testDegats() {
   }
   ok(aLeve, '« Dégâts réels » sans contexte lève, plutôt que de retomber sur une autre formule');
   egal(
-    objectiveScore(bidon, 'degats_reels', { profile: s3!, setup: DEFAULT_DAMAGE_SETUP }),
+    objectiveScore(bidon, 'degats_reels', { profile: s3!, passifs: [], setup: DEFAULT_DAMAGE_SETUP, element: null }),
     computeSkillDamage(s3!, bidon.stats, DEFAULT_DAMAGE_SETUP),
     'avec contexte, le tri utilise exactement la formule du sort'
   );

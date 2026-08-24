@@ -343,6 +343,175 @@ export function estPrisEnCharge(p: SkillDamageProfile | SkillDamageUnsupported):
   return 'noeud' in p;
 }
 
+// ── Passifs offensifs (dégâts supplémentaires hors des 3 sorts actifs) ───
+// ⚠️ **Beaucoup de monstres infligent des dégâts par un PASSIF** (Feng Yan,
+// Sia, Roid…), jamais comptés jusqu'ici : `skillDamageProfile` exclut
+// explicitement `c.passif`. Le champ `formule` de SWARFARM porte bien le
+// coefficient de certains d'entre eux (`analyser` sait les lire, exactement
+// comme un sort actif) — ce qu'il NE PORTE JAMAIS, c'est la CONDITION de
+// déclenchement, toujours en prose libre dans `description`
+// (« whenever you attack », « if the enemy is under Defense reduction… »).
+// Cette section CURE donc, à la main, PAR NOM DE SORT (jamais par monstre —
+// plusieurs monstres partagent le même passif), quels passifs à formule ont
+// été vérifiés utilisables et COMMENT — voir spec/outils/degats-reels.md
+// pour la liste complète, la méthode (script jetable rejouant `analyser`
+// sur les ~2984 fiches du corpus) et le répertoire des sorts écartés.
+//
+// ⚠️ **La formule elle-même n'est JAMAIS recopiée ici** : elle continue de
+// venir de `Competence.formule`, relue et validée par le même `analyser`
+// que les sorts actifs à chaque appel de `monsterOffensivePassives` — si
+// SWARFARM corrige un coefficient demain, la valeur suit sans toucher cette
+// liste. Seule la CATÉGORISATION (qui ne peut PAS être déduite du champ
+// `formule`) est curée.
+//
+// ⚠️ **Trois catégories, jamais une case « actif » à deviner** :
+// - `toujours` : le texte ne pose AUCUNE condition de combat (« whenever you
+//   attack », « when using a skill on your turn ») — compté d'office, pas de
+//   bouton, comme le sort actif choisi lui-même.
+// - `bonus` : la formule de base est TOUJOURS acquise, mais le texte ajoute
+//   un pourcentage de dégâts FIXE sous condition (« +100% si cible
+//   Lumière ») — un bouton bascule CE bonus précis, désactivé par défaut.
+// - `conditionnel` : le texte pose une condition sur le DÉCLENCHEMENT
+//   lui-même, pas seulement sa magnitude (« si la cible a déjà une
+//   réduction de Défense ») — un bouton pour le passif entier, désactivé
+//   par défaut. ⚠️ Délibérément PAS déduit d'un réglage existant
+//   (« Réduction de défense » du panneau) même quand la condition semble
+//   correspondre : le sort qui pose lui-même la réduction de Défense
+//   (Roid) rendrait cette déduction FAUSSE selon l'ORDRE des sorts dans le
+//   tour — l'utilisateur seul sait si la condition est remplie AVANT ce
+//   sort précis, un cas signalé explicitement en discutant cette
+//   fonctionnalité.
+export type PassifOffensifCategorie =
+  | { type: 'toujours' }
+  | { type: 'bonus'; pct: number; condition: string }
+  | { type: 'conditionnel'; condition: string };
+
+interface PassifOffensifConnu {
+  // `Competence.nom` EXACT (SWARFARM) — la seule clé fiable : le
+  // `com2usId` d'un passif change d'un monstre à l'autre même pour un sort
+  // identique (chaque fiche a ses propres identifiants de compétence).
+  nom: string;
+  // Le texte dit explicitement « ignore la Défense »/« ignores Defense »
+  // SANS porter le marqueur `(Fixed)` que `skillDamageProfile` sait détecter
+  // seul dans `formule` — à préciser à la main pour ces deux-là.
+  ignoreDef?: boolean;
+  categorie: PassifOffensifCategorie;
+}
+
+const PASSIFS_OFFENSIFS_CONNUS: PassifOffensifConnu[] = [
+  // — Toujours actifs —
+  { nom: 'Winds and Clouds (Passive)', categorie: { type: 'toujours' } }, // Feng Yan, Panda Warrior
+  { nom: 'Great Friends (Passive)', categorie: { type: 'toujours' } }, // Sia
+  { nom: 'Final Strike (Passive)', ignoreDef: true, categorie: { type: 'toujours' } }, // Weapon Master, Benedict
+  { nom: 'Jet Engine (Passive)', ignoreDef: true, categorie: { type: 'toujours' } }, // Sky Surfer, Miles
+  { nom: 'Eagle Deception (Passive)', categorie: { type: 'toujours' } }, // Bayek
+  { nom: 'Eye of the Desert (Passive)', categorie: { type: 'toujours' } }, // Desert Warrior, Salah
+  // ⚠️ Ces deux-là ont une magnitude qui CROÎT avec les PV restants de la
+  // cible, jamais chiffrée par SWARFARM (aucune formule pour « increases as
+  // the target's HP status decreases ») — la formule de base est donc un
+  // PLANCHER, jamais le vrai total, mais aucune condition BINAIRE à cocher
+  // n'existerait pour l'exprimer : traités comme `toujours` (compte le
+  // plancher, jamais un bouton qui laisserait croire à un chiffre exact).
+  { nom: 'Turning Slash (Passive)', categorie: { type: 'toujours' } }, // Magic Order Swordsinger, Birgitta
+  { nom: 'Flash Step (Passive)', categorie: { type: 'toujours' } }, // Ciri
+  // — Bonus conditionnel à pourcentage fixe —
+  { nom: 'Hidden Gun (Passive)', categorie: { type: 'bonus', pct: 100, condition: "la cible est de l'attribut Lumière" } }, // Ezio
+  {
+    nom: 'Meticulous Attack (Passive)',
+    categorie: { type: 'bonus', pct: 100, condition: "la cible est de l'attribut Lumière" },
+  }, // Steel Commander, Evan
+  {
+    nom: 'Improvisation (Passive)',
+    categorie: { type: 'bonus', pct: 100, condition: 'tes PV sont au-dessus de 50 %' },
+  }, // Weapon Master, Dominic
+  // — Déclenchement entièrement conditionnel —
+  {
+    nom: 'Ruins (Passive)',
+    categorie: { type: 'conditionnel', condition: 'la cible a déjà une réduction de Défense active AVANT ce sort' },
+  }, // Silver
+  {
+    nom: 'Ruins',
+    categorie: { type: 'conditionnel', condition: 'la cible a déjà une réduction de Défense active AVANT ce sort' },
+  },
+  // ⚠️ Roid porte les DEUX (branches mutuellement exclusives d'un même
+  // passif) — deux boutons distincts plutôt qu'un choix unique forcé : le
+  // texte de chacun suffit à ne pas les cocher ensemble, voir la demande
+  // explicite de garder ce jugement à l'utilisateur plutôt que de le
+  // déduire.
+  {
+    nom: 'Slash Waves (Passive)',
+    categorie: { type: 'conditionnel', condition: 'la cible a déjà une réduction de Défense active AVANT ce sort' },
+  }, // Roid
+  {
+    nom: 'Slash Wind (Passive)',
+    categorie: {
+      type: 'conditionnel',
+      condition: "la cible N'A PAS de réduction de Défense active avant ce sort",
+    },
+  }, // Roid
+];
+
+// Profil de dégâts d'un passif offensif CONNU (voir la liste ci-dessus),
+// prêt à passer par `computeSkillDamage` comme n'importe quel sort actif.
+export interface PassifOffensifProfile {
+  // `Competence.com2usId` du PASSIF (pas du sort actif choisi) — clé de
+  // `DamageSetup.passifsOffensifs`, stable pour CE monstre.
+  skillCom2usId: number;
+  nom: string;
+  categorie: PassifOffensifCategorie;
+  profile: SkillDamageProfile;
+}
+
+/**
+ * Les passifs offensifs de CE monstre reconnus dans `PASSIFS_OFFENSIFS_CONNUS`
+ * et dont la formule, relue depuis sa propre fiche, reste analysable et
+ * dépend d'une stat de l'attaquant — même double garde que
+ * `skillDamageProfile` (une formule qui a changé de forme depuis la
+ * catégorisation ci-dessus est silencieusement ignorée, jamais un plantage
+ * ni un nombre inventé). Liste vide si la fiche est absente.
+ */
+export function monsterOffensivePassives(detail: DetailMonstre | null): PassifOffensifProfile[] {
+  if (!detail) return [];
+  const out: PassifOffensifProfile[] = [];
+  for (const c of detail.competences) {
+    if (!c.passif || !c.formule || c.com2usId == null) continue;
+    const connu = PASSIFS_OFFENSIFS_CONNUS.find((p) => p.nom === c.nom);
+    if (!connu) continue;
+    const brut = c.formule.trim();
+    const fixed = RE_FIXED.test(brut);
+    const analyse = analyser(brut.replace(RE_FIXED, '').trim());
+    if (!analyse || !analyse.variables.some((v) => VARIABLE_STAT[v])) continue;
+    out.push({
+      skillCom2usId: c.com2usId,
+      nom: c.nom,
+      categorie: connu.categorie,
+      profile: {
+        skillCom2usId: c.com2usId,
+        slot: c.slot ?? 0,
+        nom: c.nom,
+        icone: c.icone,
+        formule: brut,
+        // ⚠️ **Toujours 1**, jamais `c.coups` : un passif qui « attaque 2 à 3
+        // fois de plus » (Great Friends) reste compté comme UNE instance de
+        // dégâts — plancher délibéré (voir l'en-tête du fichier, « jamais un
+        // nombre plausible mais faux ») plutôt que de deviner un nombre de
+        // coups réel que le texte donne parfois en fourchette.
+        hits: 1,
+        aoe: c.aoe,
+        ignoreDef: connu.ignoreDef ?? c.effets.some((e) => e.nom === 'Ignore DEF'),
+        fixed,
+        // Les améliorations de compétence (« Damage +X% ») n'existent que
+        // pour les sorts ACTIFS dans ce corpus — jamais rencontrées sur un
+        // passif de cette liste.
+        skillupDamagePct: 0,
+        variables: analyse.variables,
+        noeud: analyse.noeud,
+      },
+    });
+  }
+  return out;
+}
+
 /**
  * Les sorts offensifs d'un monstre, dans l'ordre des slots — pris en charge
  * ou non. Liste vide si la fiche du monstre est absente (monstre perso,
@@ -428,6 +597,16 @@ export interface DamageSetup {
   // dépend la compétence « Puis. d'att. de <élément> », se redéduit du monstre
   // optimisé chez qui relit la recette, jamais stocké ici.
   summonerSkills: SummonerSkills;
+  // Passifs offensifs « bonus »/« conditionnel » activés par l'utilisateur —
+  // voir `PassifOffensifCategorie`. Clé = `Competence.com2usId` DU PASSIF
+  // (pas du sort actif choisi), valeur = la condition est remplie. Absent de
+  // la map = désactivé, le comportement par défaut (jamais un bonus deviné
+  // actif). Ne porte QUE les passifs « bonus »/« conditionnel » : un passif
+  // `toujours` n'a pas de bouton, il n'y figure jamais.
+  // Optionnel : une recette exportée AVANT ce champ a un `damageSetup`
+  // complet par ailleurs mais sans cette clé — jamais supposé présent en
+  // lecture (`?.`), voir `passifActif`.
+  passifsOffensifs?: Record<number, boolean>;
 }
 
 // Adversaire de référence : ni un boss ni une cible nue. 1000 DEF et 30 000
@@ -450,6 +629,7 @@ export const DEFAULT_DAMAGE_SETUP: DamageSetup = {
   // tout joueur qui utilise un optimiseur. Partir d'« Aucune » afficherait
   // des dégâts que personne n'observe réellement.
   summonerSkills: 'combat',
+  passifsOffensifs: {},
 };
 
 // ── Le calcul ────────────────────────────────────────────────────────────
@@ -525,10 +705,54 @@ export function computeSkillDamage(
   return mult * critTerm * mitigation * reductions * profile.hits;
 }
 
+// Un passif de `passifs` doit-il compter dans le total, selon l'état des
+// boutons de `setup` ? `toujours` ne dépend d'aucun bouton (il n'en a pas) ;
+// les deux autres catégories suivent `setup.passifsOffensifs`, absent =
+// désactivé. Factorisé — `computeTotalDamage` et `damageRelevantStats`
+// doivent s'accorder EXACTEMENT sur ce qui compte, sinon le pré-filtrage
+// privilégierait des stats qu'un score différent ignore (ou l'inverse).
+function passifActif(p: PassifOffensifProfile, setup: DamageSetup): boolean {
+  // `?.` : une recette exportée AVANT ce champ a un `damageSetup` complet
+  // par ailleurs mais sans `passifsOffensifs` du tout, pas seulement la clé.
+  return p.categorie.type === 'toujours' || (setup.passifsOffensifs?.[p.skillCom2usId] ?? false);
+}
+
 /**
- * Les stats du build que ce sort fait RÉELLEMENT travailler — ce que la
- * recherche doit privilégier dès le pré-filtrage (voir
- * `OBJECTIVE_RELEVANT_STATS` dans runeBuildOptim.ts).
+ * Dégâts totaux réellement infligés : le sort actif choisi PLUS les passifs
+ * offensifs de ce monstre actuellement retenus (voir `passifActif`).
+ *
+ * ⚠️ **Chaque passif recalculé par `computeSkillDamage`, jamais une formule
+ * séparée** — même équation de spec/mecaniques.md, même adversaire, même
+ * mode de critique : un passif reste « une attaque de plus », pas un
+ * mécanisme à part. Compté en UNE instance par passif (`hits: 1`, voir
+ * `monsterOffensivePassives`), additionné au sort choisi — jamais multiplié
+ * par le nombre de coups du sort choisi, qui n'a rien à voir avec lui.
+ *
+ * ⚠️ **Le bonus `bonus` s'applique SEULEMENT à la contribution du passif
+ * concerné**, jamais au total : « +100 % si cible Lumière » double les
+ * dégâts DE CE PASSIF précis, pas ceux du sort actif à côté.
+ */
+export function computeTotalDamage(
+  profile: SkillDamageProfile,
+  passifs: PassifOffensifProfile[],
+  stats: StatRow[],
+  setup: DamageSetup,
+  element: ElementKey | null = null
+): number {
+  let total = computeSkillDamage(profile, stats, setup, element);
+  for (const p of passifs) {
+    if (!passifActif(p, setup)) continue;
+    let contribution = computeSkillDamage(p.profile, stats, setup, element);
+    if (p.categorie.type === 'bonus') contribution *= 1 + p.categorie.pct / 100;
+    total += contribution;
+  }
+  return total;
+}
+
+/**
+ * Les stats du build que ce sort — ET les passifs offensifs actuellement
+ * retenus — font RÉELLEMENT travailler — ce que la recherche doit privilégier
+ * dès le pré-filtrage (voir `OBJECTIVE_RELEVANT_STATS` dans runeBuildOptim.ts).
  *
  * ⚠️ **Source UNIQUE**, appelée à la fois par l'écran et par la relecture
  * d'une recette en ligne de commande (`recipeToSearchParams.ts`) : deux
@@ -539,17 +763,36 @@ export function computeSkillDamage(
  * c'est une CONDITION à atteindre (via un minimum posé), pas une cible à
  * maximiser indéfiniment. L'y mettre pousserait la rétention à garder des
  * demi-builds pour un potentiel de crit qui ne sert plus à rien.
+ *
+ * ⚠️ **`passifs`/`setup` optionnels** : `damageRelevantStats(profile)` seul
+ * reste valide (comportement strictement inchangé) pour tout appelant qui
+ * n'a pas encore ces deux valeurs sous la main.
  */
-export function damageRelevantStats(profile: SkillDamageProfile | null): StatKey[] {
+export function damageRelevantStats(
+  profile: SkillDamageProfile | null,
+  passifs: PassifOffensifProfile[] = [],
+  setup: DamageSetup = DEFAULT_DAMAGE_SETUP
+): StatKey[] {
   // Sans sort résolu (fiche absente, sort non pris en charge), on retombe sur
   // le biais de l'objectif « Dégâts » — le cas de très loin le plus fréquent.
   if (!profile) return ['atk', 'cd'];
   const keys: StatKey[] = [];
-  for (const v of profile.variables) {
-    const k = VARIABLE_STAT[v];
-    if (k && !keys.includes(k)) keys.push(k);
+  const ajouter = (variables: DamageVariable[]) => {
+    for (const v of variables) {
+      const k = VARIABLE_STAT[v];
+      if (k && !keys.includes(k)) keys.push(k);
+    }
+  };
+  ajouter(profile.variables);
+  // Les dégâts fixes ne critent pas : les Dgts Crit n'y changent rien —
+  // mais si UN SEUL des composants comptés (sort ou passif actif) peut
+  // criter, les Dgts Crit restent pertinents pour le TOTAL.
+  let peutCriter = !profile.fixed;
+  for (const p of passifs) {
+    if (!passifActif(p, setup)) continue;
+    ajouter(p.profile.variables);
+    if (!p.profile.fixed) peutCriter = true;
   }
-  // Les dégâts fixes ne critent pas : les Dgts Crit n'y changent rien.
-  if (!profile.fixed) keys.push('cd');
+  if (peutCriter) keys.push('cd');
   return keys;
 }

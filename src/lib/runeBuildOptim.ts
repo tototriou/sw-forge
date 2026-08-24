@@ -47,7 +47,7 @@ import { MAX_SET_PIECES, RUNE_EFFECT, SET_STAT_BONUS, StatKey, activeSets, runeE
 import { computeStats, StatRow } from './stats';
 import { missingSets } from './recoMatch';
 import { OptimMetric } from './runeOptim';
-import { DEF_FACTOR_CONST, DEF_FACTOR_COEF, DamageSetup, SkillDamageProfile, computeSkillDamage } from './damage';
+import { DEF_FACTOR_CONST, DEF_FACTOR_COEF, DamageSetup, PassifOffensifProfile, SkillDamageProfile, computeTotalDamage } from './damage';
 
 // Statistiques principales possibles, par emplacement — RÈGLES DU JEU. Les
 // slots 1/3/5 ont une principale FIXE (ATQ plat / DEF plat / PV plat) : pas
@@ -319,6 +319,11 @@ export interface RealDamageContext {
   // hors de `setup` (qui ne porte que de la saisie, pour rester partageable
   // dans une recette).
   element: ElementKey | null;
+  // Passifs offensifs de CE monstre (voir `monsterOffensivePassives`,
+  // damage.ts) — additionnés au sort choisi selon `setup.passifsOffensifs`.
+  // Vide = comportement strictement inchangé (aucun passif connu, ou fiche
+  // absente).
+  passifs: PassifOffensifProfile[];
 }
 
 export function objectiveScore(candidate: BuildCandidate, objective: Objective, realDamage?: RealDamageContext): number {
@@ -335,7 +340,7 @@ export function objectiveScore(candidate: BuildCandidate, objective: Objective, 
     if (!realDamage) {
       throw new Error("objectiveScore : l'objectif « Dégâts réels » exige un contexte (sort + adversaire).");
     }
-    return computeSkillDamage(realDamage.profile, stats, realDamage.setup, realDamage.element);
+    return computeTotalDamage(realDamage.profile, realDamage.passifs, stats, realDamage.setup, realDamage.element);
   }
   if (objective === 'degats') {
     const atk = statTotal(stats, 'atk');

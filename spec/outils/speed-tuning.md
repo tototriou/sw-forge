@@ -472,20 +472,22 @@ De haut en bas :
      — un autre sort ne pose pas la même chose. Vitesses, artéfacts, sets, cases
      des grilles : ce sont des réglages, l'automatisation n'y revient jamais.
      « Relancer » réécrit tout depuis les kits, et écrase donc les corrections.
-   - **En-tête** : le titre et les deux commandes — **« Analyser »** et
-     **« Ordre des sorts »**. ⚠️ Une **action**, pas un interrupteur : un
-     interrupteur laissait croire à une couche qui tourne en fond et repasserait
-     sur ce qu'on règle. ⚠️ **Aucune phrase d'explication** : le titre suffit.
+   - **En-tête** : le titre et **« Analyser »**. ⚠️ Une **action**, pas un
+     interrupteur : un interrupteur laissait croire à une couche qui tourne en
+     fond et repasserait sur ce qu'on règle. ⚠️ **Aucune phrase d'explication** :
+     le titre suffit.
    - **Corps** : rien d'autre que le **verdict**. Vert, il tient en quatre mots —
      **« Ta team est speed tune. »** Rouge, il nomme **l'adverse qui coupe**
      (sans son tick) puis donne **une ligne par allié coupé** : son nom et **le
      chiffre qui manque**, rien de plus.
-   - ⚠️ **« Ordre des sorts » est une card À PART**, pas un sous-bloc : l'analyse
-     **se lit**, l'ordre des sorts **se règle**. Ce sont deux objets, et le
-     second est **rempli par le premier** (voir plus bas).
+   - ⚠️ **« Ordre des sorts » est une card INDÉPENDANTE**, pas un sous-bloc et pas
+     un panneau qu'on ouvre depuis l'analyse : elle est là comme les grilles.
+     L'analyse **la remplit**, mais les deux se lisent et se règlent séparément —
+     l'une se lit, l'autre se règle.
    - Sans personne en face, « Analyser » pose en plus l'**adversaire de
      référence**.
-4. **Barre d'action par tick** (lecture seule) — tableau : lignes triées par
+4. **Ordre des sorts** — card à part (voir « Ordre des sorts » plus bas).
+5. **Barre d'action par tick** (lecture seule) — tableau : lignes triées par
    ordre de tour, colonnes = ticks. Chaque cellule = `% rempli` — la
    **trajectoire réelle** renvoyée par la simulation (`OrdreEntree.trajectoire`),
    affichée à **trois décimales** — ⚠️ à deux, une barre à 99,996 % s'affichait
@@ -496,7 +498,7 @@ De haut en bas :
    contour de plus par-dessus la grille) ; les ticks après l'action restent
    vides. Adversaires en teinte `bad`, alliés en `accent`. Colonne de gauche
    figée, défilement horizontal.
-5. **Modification de barre d'attaque** — grille **éditable**, même rendu que le
+6. **Modification de barre d'attaque** — grille **éditable**, même rendu que le
    tableau ci-dessus. Chaque camp présent ouvre sur une ligne **« Toute ton
    équipe » / « Tout en face »** (écrit la même valeur sur tous ses monstres au
    tick visé), puis une ligne par monstre. Cellules = `NumberField sansBoutons`
@@ -506,7 +508,7 @@ De haut en bas :
    valeurs qu'elle pose sont des valeurs comme les autres, qu'on corrige ou qu'on
    efface — c'est ainsi qu'on écarte une réduction d'ATB à 70 % de chances dont
    un lead tune ne doit pas dépendre.
-6. **Buff de vitesse** — même grille, mais chaque cellule combine un **raccourci**
+7. **Buff de vitesse** — même grille, mais chaque cellule combine un **raccourci**
    et un **champ** : un bouton à l'icône SPD du jeu (celle des cartes RTA/Siège)
    pose/retire le buff **+30 %** d'un clic — c'est presque toujours celui-là — et
    un `NumberField` à côté permet de saisir une autre valeur (33 %, un ralenti
@@ -515,7 +517,7 @@ De haut en bas :
    et c'est exactement ce que l'analyse écrit quand un sort buffe l'équipe.
    Comme pour le boost, une case vide laisse la **compétence** décider (valeur en
    repère), une valeur saisie la remplace et `0` l'annule.
-7. **Ordre de tour** — jetons entrelaçant les deux camps, chacun avec son rang et
+8. **Ordre de tour** — jetons entrelaçant les deux camps, chacun avec son rang et
    son tick.
 
 Les trois tableaux **partagent les mêmes colonnes de ticks** (1 → au moins 12,

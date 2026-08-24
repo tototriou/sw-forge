@@ -1,5 +1,5 @@
 import { useEffect, useId, useMemo, useRef, useState } from 'react';
-import { Search, Plus, Timer, Users, Swords, X, Zap, Gauge, Eye, EyeOff, Download, Check, Scissors, Play, ListOrdered, ChevronUp, ChevronDown, Sparkles } from 'lucide-react';
+import { Search, Plus, Timer, Users, Swords, X, Zap, Gauge, Eye, EyeOff, Download, Check, Scissors, Play, ChevronUp, ChevronDown, Sparkles } from 'lucide-react';
 import { Monster, SiegeTeam } from '../../types';
 import { combatSpeed, runeSpeedForTarget, SPEED_LEADS, SIEGE_TICKS } from '../../lib/speed';
 import {
@@ -238,7 +238,6 @@ export default function SpeedTuningSection({ allMonsters, siegeDefenseTeams, sie
   // Ce drapeau ne dit qu'une chose : une analyse a déjà été appliquée. Il sert à
   // la REJOUER quand on change un sort — le seul changement qui la rend fausse.
   const [auto, setAuto] = useStickyState<boolean>('speedTune.auto', false);
-  const [poussee, setPoussee] = useStickyState<boolean>('speedTune.poussee', false);
   const [ordreVoulu, setOrdreVoulu] = useStickyState<string[]>('speedTune.ordre', []);
   // ⚠️ Tant qu'on n'a rien rangé à la main, l'ordre voulu SUIT les vitesses :
   // c'est le point de départ évident (« voilà l'ordre que tu as aujourd'hui »),
@@ -332,12 +331,10 @@ export default function SpeedTuningSection({ allMonsters, siegeDefenseTeams, sie
   function importerDeck(camp: Camp, team: SiegeTeam) {
     const { monstres, lead } = deckPourSpeedTune(team, monsterById);
     if (monstres.length === 0) return;
-    // ⚠️ Changer de deck COUPE l'analyse automatique. Elle portait sur la compo
-    // précédente : la laisser tourner sur la nouvelle donnerait un verdict qui a
-    // l'air juste sans l'être, et remplirait les grilles avec les kits d'une
-    // équipe qu'on vient de remplacer. On relance quand on veut.
+    // ⚠️ Changer de deck OUBLIE l'analyse précédente : elle portait sur une autre
+    // composition, et la relancer toute seule écrirait par-dessus un réglage
+    // qu'on vient d'importer. On reclique quand on veut.
     setAuto(false);
-    setPoussee(false);
     setLignes((prev) => [
       // ⚠️ La référence saute AUSSI quand on importe dans l'autre camp : elle
       // copiait une équipe qui vient de changer.
@@ -545,7 +542,7 @@ export default function SpeedTuningSection({ allMonsters, siegeDefenseTeams, sie
         });
     }
     return out;
-  }, [lignes, leadAllie, leadEnnemi, auto, poussee, sortChoisi, sortChoisi2, sorts, kits, passifs]);
+  }, [lignes, leadAllie, leadEnnemi, auto, sortChoisi, sortChoisi2, sorts, kits, passifs]);
 
   // Simulation multi-tours (40 ticks) avec les modificateurs.
   const sim = useMemo(() => simuler(tune, HORIZON_TICKS), [tune]);
@@ -593,7 +590,6 @@ export default function SpeedTuningSection({ allMonsters, siegeDefenseTeams, sie
       else delete choix[l.uid];
     }
     setSortChoisi(choix);
-    setPoussee(true);
     if (!ordreRange) {
       const parVitesse = premiers.filter((a) => a.camp === 'allie').map((a) => a.id);
       const allies = lignesVisibles.filter((l) => l.camp === 'allie').map((l) => l.uid);
@@ -710,13 +706,13 @@ export default function SpeedTuningSection({ allMonsters, siegeDefenseTeams, sie
     [tune, ordreVoulu]
   );
   const fenetres = useMemo(
-    () => (poussee ? fenetresRequises(tune, ordreVoulu, HORIZON_TICKS) : []),
-    [poussee, tune, ordreVoulu]
+    () => fenetresRequises(tune, ordreVoulu, HORIZON_TICKS),
+    [tune, ordreVoulu]
   );
   // Le même calcul sur l'autre levier : l'artéfact qui amplifie le buff reçu.
   const fenetresArte = useMemo(
-    () => (poussee ? fenetresRequises(tune, ordreVoulu, HORIZON_TICKS, 'artefactBuff') : []),
-    [poussee, tune, ordreVoulu]
+    () => fenetresRequises(tune, ordreVoulu, HORIZON_TICKS, 'artefactBuff'),
+    [tune, ordreVoulu]
   );
   const fenetreParUid = useMemo(() => new Map(fenetres.map((f) => [f.id, f])), [fenetres]);
   const fenetreArteParUid = useMemo(() => new Map(fenetresArte.map((f) => [f.id, f])), [fenetresArte]);
@@ -977,18 +973,6 @@ export default function SpeedTuningSection({ allMonsters, siegeDefenseTeams, sie
                   }
                   onClick={analyser}
                 />
-                <Bouton
-                  icone={<ListOrdered size={14} />}
-                  libelle="Ordre des sorts"
-                  actif={poussee}
-                  disabled={!aAllie}
-                  title={
-                    !aAllie
-                      ? "Ajoute d'abord des monstres à ton équipe."
-                      : "Imposer l'ordre des tours et le sort lancé par chacun. ⚠️ Changer un sort est la SEULE chose qui relance l'analyse."
-                  }
-                  onClick={() => setPoussee((v) => !v)}
-                />
               </span>
             </div>
             {/* ⚠️ Sans adversaire, il n'y a pas de verdict — et rien à dire :
@@ -1036,12 +1020,11 @@ export default function SpeedTuningSection({ allMonsters, siegeDefenseTeams, sie
             )}
           </section>
 
-          {/* ⚠️ Une card À PART, pas un sous-bloc : l'analyse se LIT, l'ordre des
-              sorts se RÈGLE. Ce sont deux objets, et l'analyse REMPLIT le second
-              — elle y écrit l'ordre des vitesses et le sort de chacun, comme
-              elle écrit dans les grilles. */}
-          {poussee && (
-            <section className="rounded-lg border border-border bg-panel">
+          {/* ⚠️ Une card INDÉPENDANTE : elle ne s'ouvre ni ne se ferme depuis
+              l'analyse, elle est là comme les grilles. L'analyse la REMPLIT — elle
+              y écrit l'ordre des vitesses et le sort de chacun — mais les deux
+              se lisent et se règlent séparément. */}
+          <section className="rounded-lg border border-border bg-panel">
               <div className="border-b border-border-soft px-4 py-2.5 text-micro font-semibold uppercase tracking-wider text-ink-dimmer">
                 Ordre des sorts
                 <span className="ml-2 font-normal normal-case tracking-normal text-ink-dimmer">
@@ -1155,9 +1138,8 @@ export default function SpeedTuningSection({ allMonsters, siegeDefenseTeams, sie
                         </p>
                       </>
                     )}
-              </div>
-            </section>
-          )}
+            </div>
+          </section>
 
           {/* Barre d'action par tick (résultat, lecture seule) */}
           <section className="rounded-lg border border-border bg-panel">

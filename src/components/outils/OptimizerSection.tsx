@@ -1046,12 +1046,21 @@ export default function OptimizerSection({ box, runes, optimizer, allMonsters, r
               l'équipement difficile à lire ET poussait la relique hors du
               cadre dans une colonne étroite. La place se gagne désormais sur
               la LARGEUR de la colonne (voir la grille), pas en rapetissant
-              ce qu'on vient regarder. ⚠️ `lg:flex-none` (PAS `flex-1`,
-              inversé par rapport à une révision antérieure) : se serre sur
-              son propre contenu, pour que l'espace libéré profite à la
-              recherche à sa gauche plutôt que d'être absorbé ici sans
-              raison. */}
-          <div className="rounded-xl border border-border-soft bg-panel2/60 p-3 lg:flex-none">
+              ce qu'on vient regarder. ⚠️ `lg:flex-initial` (PAS `flex-1`,
+              inversé par rapport à une révision antérieure) : ne GRANDIT
+              jamais — l'espace libre profite à la recherche à sa gauche
+              plutôt que d'être absorbé ici sans raison — mais accepte de
+              RÉTRÉCIR quand la place manque vraiment.
+              ⚠️ `lg:min-w-0` : sans lui, la largeur minimale d'un élément
+              flex vaut sa taille de CONTENU, donc la carte refuserait de
+              descendre sous ~580 px et déborderait au lieu de se serrer.
+              C'est cette largeur reçue, une fois vraiment contrainte, que
+              `MonsterGear` mesure pour mettre son groupe artéfacts/roue/
+              relique à l'échelle (voir MonsterGear.tsx) — en `flex-none`,
+              `clientWidth` aurait toujours rapporté la largeur du CONTENU,
+              jamais la place disponible, et la mesure n'aurait rien pu
+              détecter. */}
+          <div className="rounded-xl border border-border-soft bg-panel2/60 p-3 lg:min-w-0 lg:flex-initial">
             <MonsterGear gear={selected?.gear ?? EMPTY_GEAR} />
           </div>
         </div>

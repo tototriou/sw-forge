@@ -112,6 +112,30 @@ Comme en **vue compacte du siège**, le panneau de détail (`MonsterGear`) s'ouv
   d'artéfact vide) s'affiche à la place, non cliquable (pas de
   `ZoneCliquable`/`FlottantAuto` — rien à ouvrir). Comportement partagé par
   `MonsterGear` : s'applique aussi en Siège et dans l'Optimizer.
+- **Le groupe artéfacts + roue + relique se met à l'échelle de la largeur
+  REÇUE.** Son adaptation n'a longtemps eu qu'un seul ressort : `COMPACT`
+  (`pointer: coarse`) réduisait artéfacts et roue à 0,72 au doigt — une
+  question de POINTEUR, jamais de place. Sur un bureau, le même groupe posé
+  dans une colonne étroite gardait donc sa taille pleine et débordait. Même
+  classe de défaut que le `dense` des `Segmented` piloté par un seuil de
+  FENÊTRE (voir [shared/librairie-ui.md](../shared/librairie-ui.md)) : ni le
+  pointeur ni la fenêtre ne disent quoi que ce soit de la largeur d'un
+  CONTENEUR. `MonsterGear` mesure désormais (`ResizeObserver`) la largeur
+  qu'il reçoit et réduit le groupe juste ce qu'il faut.
+  ⚠️ **Par `transform: scale()`, pas par le prop `scale`** d'`ArtifactSlots`/
+  `RuneWheel`. Deux raisons : le prop change la taille de LAYOUT, donc une
+  fois réduit le groupe ne déborde plus et on repasserait à l'échelle 1 —
+  l'oscillation sans fin que `Segmented` évite avec une copie de mesure,
+  impossible ici sans dupliquer roue et images ; et le `transform` met à
+  l'échelle TOUT le groupe d'un coup, y compris le rembourrage et le texte de
+  la relique, que le prop ne sait pas atteindre. Une boîte de réserve porte
+  les dimensions réduites, sans quoi un `transform` (qui ne touche pas au
+  layout) laisserait derrière lui le vide de la taille pleine.
+  ⚠️ **À l'échelle 1 — le cas de très loin le plus courant — aucun style
+  n'est posé** : le rendu est alors strictement identique à ce qu'il était
+  avant l'ajout de cette mesure. Et **rien ne change au DOIGT**, où `COMPACT`
+  pilote déjà la taille : une correction pensée pour le bureau ne touche pas
+  l'autre format (voir CLAUDE.md, « deux formats de premier rang »).
 - **L'encadré de stats entier est cliquable** (`role="button"`, pas un bouton
   séparé) et bascule entre deux affichages du même tableau :
   - **Base + bonus** (par défaut) : base en blanc, bonus en **vert**

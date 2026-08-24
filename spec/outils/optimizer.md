@@ -72,8 +72,16 @@ continu — demande explicite de l'utilisateur :
    sur son propre contenu — demande explicite d'utiliser l'espace libre
    autour de la roue/fiche de stats pour élargir la recherche, dont le
    résultat suit la largeur de son parent : une équipe complète de siège
-   s'y lit sans se tasser), fiche d'équipement à **droite** (`lg:flex-none`,
-   à taille pleine, ne s'étire plus) — la fiche se déploie à côté de la
+   s'y lit sans se tasser), fiche d'équipement à **droite**
+   (`lg:flex-initial lg:min-w-0`, à taille pleine — elle ne s'étire jamais,
+   mais accepte de **rétrécir** quand la place manque vraiment ; `min-w-0`
+   est ce qui l'y autorise, la largeur minimale d'un élément flex valant
+   sinon sa taille de CONTENU). C'est cette largeur reçue, une fois
+   contrainte, que `MonsterGear` mesure pour mettre son groupe à l'échelle
+   (voir [rta/sections-runes.md](../rta/sections-runes.md)) — en
+   `lg:flex-none`, la carte aurait toujours rapporté la largeur de son
+   contenu, jamais la place disponible, et la mesure n'aurait rien pu
+   détecter. La fiche se déploie à côté de la
    recherche, plus en dessous. ⚠️ **Artéfacts, roue et relique forment un
    groupe INSÉCABLE** : la roue se lit collée à la droite des emplacements
    d'artéfacts, la relique juste après. Ils se déplacent ensemble ou pas du
@@ -223,15 +231,16 @@ retour.
    celui d'« Exclure les runes d'un monstre ».
    ⚠️ **Mode compact déclenché par la largeur RÉELLE de sa colonne, pas par
    celle de la fenêtre** — cette colonne (`lg:flex-1`) partage l'espace avec
-   la fiche d'équipement juste à côté (`lg:flex-none`, qui prend sa part en
-   premier) : elle peut rester étroite MÊME sur un grand écran (signalement
-   direct : « Offenses siège » débordait à 1080p). `useDebordement`
-   (nouveau hook, `src/hooks/`) mesure via `ResizeObserver` la largeur
-   disponible de cette colonne précise, comparée à la largeur naturelle du
-   sélecteur (un clone invisible, toujours en mode plein) — contrairement
-   au Segmented « Objectif de recherche » plus bas, dont le mode compact
-   suit la largeur de la FENÊTRE (`useMediaQuery`, adapté puisqu'il occupe
-   toute sa colonne de grille sans partager l'espace avec un voisin). ⚠️ **Le champ de recherche cherche PARMI
+   la fiche d'équipement juste à côté, qui prend sa part en
+   premier : elle peut rester étroite MÊME sur un grand écran (signalement
+   direct : « Offenses siège » débordait à 1080p). Aucun réglage à passer
+   ici : **`Segmented` mesure lui-même** la place qu'il reçoit et se
+   resserre tout seul (voir
+   [shared/librairie-ui.md](../shared/librairie-ui.md)), comportement
+   désormais commun à TOUS les sélecteurs de l'app — « Objectif de
+   recherche », les sources d'« Exclure les runes d'un monstre » et le
+   pré-filtrage des réglages avancés compris, qui pilotaient chacun leur
+   `dense` à la main depuis un seuil de fenêtre. ⚠️ **Le champ de recherche cherche PARMI
    les entrées de la source active** — EXACTEMENT le même mécanisme que
    « Exclure les runes d'un monstre » plus bas (même composant de rangée de
    résultat, `ExclusionCandidateRow` : portrait, nom, compte de runes, et

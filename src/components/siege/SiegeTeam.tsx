@@ -148,6 +148,10 @@ export default function SiegeTeam({
                 monster,
                 runeSpeed: team.slots[i].runeSpeed,
                 swift: (team.slots[i].sets ?? []).includes('swift'),
+                // ⚠️ Les sets entiers, pas seulement le Swift : la Volonté pose
+                // un buff dès le premier tour, et certains passifs comptent les
+                // buffs portés (Chilling).
+                sets: team.slots[i].sets ?? [],
               },
             ]
           : []

@@ -361,6 +361,14 @@ L'outil les **lit et les applique** : [speedTunePassif.ts](src/lib/speedTunePass
   (Shumar) entre tout seul dans la vitesse de combat ; un gain « par
   déclenchement » (buffs portés, tours adverses, attaques) demande un chiffre —
   c'est la seule chose que les données ne peuvent pas savoir.
+- ⚠️ **Sauf pour les BUFFS PORTÉS, qui s'estiment** (`cumulsEstimes`) : deux
+  sources se connaissent d'avance — la **Volonté** (elle pose une Immunité dès le
+  premier tour) et les **buffs de zone que les alliés lancent** (bouclier,
+  immunité, ATQ/DEF, buff de vitesse), comptés sur le sort retenu de chacun.
+  Chilling avec la Volonté dans une équipe qui pose un bouclier et un buff de
+  vitesse porte donc **3 buffs → +60 de vitesse**. C'est une **estimation**, pas
+  une vérité : elle suppose ces buffs posés au moment où le passif compte, et un
+  chiffre **saisi n'est jamais écrasé**.
 - **Une rangée à part sur la card**, sous les réglages : bouton **« Passif »**,
   le gain unitaire, le champ de cumuls s'il y a lieu, et **ce qui est appliqué**
   (« +30 VIT ») aligné à droite.

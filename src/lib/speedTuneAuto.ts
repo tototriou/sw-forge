@@ -41,7 +41,12 @@ export interface EntreeAuto {
   swift?: boolean;
   artefactBuff?: number | null;
   // Déclenchements du gain de passif (buffs portés, tours adverses…).
+  // ⚠️ `null`/absent = on ESTIME (voir `cumulsEstimes`) ; un nombre = c'est le
+  // chiffre de l'utilisateur, on n'y touche pas.
   cumulsPassif?: number | null;
+  // Les sets de runes du monstre. Sert au comptage des buffs : la **Volonté**
+  // (`will`) en pose un dès le début du combat (Immunité 1 tour).
+  sets?: string[];
   passifActif?: boolean;
 }
 
@@ -81,11 +86,37 @@ export function sortRetenu(e: EntreeAuto, d: DonneesKit): SortVitesse | null {
 }
 
 // Vitesse de combat d'un monstre, gain de passif compris.
-export function combatAuto(e: EntreeAuto, lead: number, d: DonneesKit): number | null {
+export function combatAuto(
+  e: EntreeAuto,
+  lead: number,
+  d: DonneesKit,
+  equipe: EntreeAuto[] = [e]
+): number | null {
   const base = combatSpeed(e.monster.stats.speed, e.runeSpeed, lead, e.swift ?? false);
   if (base == null) return null;
   const p = passifDe(e, d);
-  return base + pointsDeGain(p?.gain ?? null, e.monster.stats.speed, e.cumulsPassif ?? 0);
+  const cumuls = e.cumulsPassif ?? cumulsEstimes(e, equipe, d);
+  return base + pointsDeGain(p?.gain ?? null, e.monster.stats.speed, cumuls);
+}
+
+// ⚠️ **Combien de BUFFS ce monstre porte**, quand son passif les compte
+// (Chilling : +20 de vitesse par buff). On ne peut pas le deviner en général —
+// mais deux sources sont connues d'avance et suffisent au cas courant :
+//
+//   - la **Volonté** (`will`) : elle pose une Immunité dès le premier tour ;
+//   - les **buffs de zone que ses alliés lancent** (bouclier, immunité, ATQ/DEF,
+//     buff de vitesse), comptés sur le sort que chacun a retenu.
+//
+// ⚠️ C'est une ESTIMATION, pas une vérité : elle suppose que ces buffs sont bien
+// posés au moment où le passif compte. Le chiffre reste modifiable — un nombre
+// saisi n'est jamais écrasé.
+export function cumulsEstimes(e: EntreeAuto, equipe: EntreeAuto[], d: DonneesKit): number {
+  let n = (e.sets ?? []).includes('will') ? 1 : 0;
+  for (const autre of equipe) {
+    if (autre.id === e.id) continue;
+    n += sortRetenu(autre, d)?.buffsEquipe ?? 0;
+  }
+  return n;
 }
 
 // L'amplification des buffs apportée à TOUT le camp (Miriam). Ne s'empile pas :
@@ -107,7 +138,7 @@ export function analyseAutomatique(
 ): ResultatAuto {
   const combats = new Map<string, number>();
   for (const e of equipe) {
-    const c = combatAuto(e, lead, donnees);
+    const c = combatAuto(e, lead, donnees, equipe);
     if (c != null && c > 0) combats.set(e.id, c);
   }
 

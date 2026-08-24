@@ -92,6 +92,11 @@ export interface SortVitesse {
   // Vrai si la compétence ne touche ni la barre ni la vitesse (elle reste
   // proposable : c'est un tour où l'on ne fait rien pour le tune).
   neutre: boolean;
+  // ⚠️ Combien de BUFFS elle pose sur son camp (bouclier, immunité, ATQ/DEF,
+  // buff de vitesse…). Ça n'a rien à voir avec la vitesse — mais certains
+  // passifs COMPTENT les buffs portés (Chilling : +20 de vitesse par buff), et
+  // c'est la seule façon d'estimer ce compte sans le demander.
+  buffsEquipe: number;
 }
 
 export const KIT_VIDE: KitVitesse = {
@@ -210,6 +215,7 @@ export function sortsVitesse(detail: DetailMonstre | null): SortVitesse[] {
       atbSkillUp,
       chance,
       neutre,
+      buffsEquipe: c.effets.filter((e) => e.bonus && e.aoe && !e.surSoi).length,
     });
   }
   return out;

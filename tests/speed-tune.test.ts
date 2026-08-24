@@ -27,7 +27,7 @@ import {
 import { deckPourSpeedTune } from '../src/lib/speedTuneDeck';
 import { kitVitesse, sortsVitesse, BUFF_SPD_JEU } from '../src/lib/speedTuneKit';
 import { passifsVitesse, pointsDeGain } from '../src/lib/speedTunePassif';
-import { analyseAutomatique, EntreeAuto, DonneesKit } from '../src/lib/speedTuneAuto';
+import { analyseAutomatique, cumulsEstimes, EntreeAuto, DonneesKit } from '../src/lib/speedTuneAuto';
 import { DetailMonstre, Competence, EffetCompetence } from '../src/lib/monsterSkills';
 import { Monster, SiegeTeam } from '../src/types';
 import { combatSpeed } from '../src/lib/speed';
@@ -1332,6 +1332,82 @@ export function testSpeedTuneAuto() {
       analyseAutomatique(equipe, 0, donnees).combats.get('allie'),
       analyseAutomatique(equipe, 0, vide).combats.get('allie'),
       "l'amplification ne change AUCUNE vitesse de combat : elle amplifie un buff"
+    );
+  }
+
+  // ⚠️ CHILLING : son passif compte les buffs qu'il PORTE. Deux sources se
+  // connaissent d'avance — la Volonté (Immunité au premier tour) et les buffs de
+  // zone que ses alliés lancent.
+  {
+    const chilling = monstre(20711, 'Chilling', 101);
+    const donneur = monstre(30001, 'Donneur', 100);
+    const donnees: DonneesKit = {
+      kits: new Map([
+        [30001, { atb: 0, atbCompetence: null, atbNiveau1: 0, atbSkillUp: 0, buff: 30, buffCompetence: 'Bouclier', rejoue: false }],
+      ]),
+      sorts: new Map([
+        [
+          30001,
+          [
+            {
+              nom: 'Bouclier',
+              slot: 3,
+              icone: null,
+              effet: { buffEquipe: 30 },
+              rejoue: false,
+              cooldown: 0,
+              atbNiveau1: 0,
+              atbSkillUp: 0,
+              chance: null,
+              neutre: false,
+              // Un bouclier ET un buff de vitesse : DEUX buffs posés.
+              buffsEquipe: 2,
+            },
+          ],
+        ],
+      ]),
+      passifs: new Map([
+        [
+          20711,
+          [
+            {
+              nom: 'The Cunning (Passive)',
+              texte: '',
+              amplifieBuff: null,
+              gain: { valeur: 20, pourcent: false, plafond: null, parCumul: true, releve: true },
+              buff: false,
+              barre: null,
+              tourSupp: false,
+              inconnu: false,
+            },
+          ],
+        ],
+      ]),
+    };
+
+    const equipe: EntreeAuto[] = [
+      { id: 'chilling', monster: chilling, runeSpeed: 100, sets: ['will'] },
+      { id: 'donneur', monster: donneur, runeSpeed: 100 },
+    ];
+    egal(cumulsEstimes(equipe[0], equipe, donnees), 3, 'Volonté (1) + les deux buffs de son allié (2) → 3');
+    egal(
+      cumulsEstimes(equipe[1], equipe, donnees),
+      0,
+      "l'allié ne se compte pas ses propres buffs, et n'a pas de Volonté"
+    );
+
+    // Et ces buffs entrent dans sa vitesse : 3 × 20 = +60.
+    const sansBuffs: EntreeAuto[] = [{ id: 'chilling', monster: chilling, runeSpeed: 100 }];
+    const seul = analyseAutomatique(sansBuffs, 0, donnees).combats.get('chilling')!;
+    const entoure = analyseAutomatique(equipe, 0, donnees).combats.get('chilling')!;
+    egal(entoure - seul, 60, 'trois buffs portés → +60 de vitesse (Chilling)');
+
+    // ⚠️ Un chiffre saisi n'est JAMAIS écrasé par l'estimation.
+    const impose: EntreeAuto[] = [{ ...equipe[0], cumulsPassif: 1 }, equipe[1]];
+    egal(
+      analyseAutomatique(impose, 0, donnees).combats.get('chilling')! - seul,
+      20,
+      "un cumul saisi à la main l'emporte sur l'estimation"
     );
   }
 

@@ -20,6 +20,7 @@ import {
 } from '../../lib/speedTune';
 import { deckPourSpeedTune } from '../../lib/speedTuneDeck';
 import { kitVitesse, sortsVitesse, KitVitesse, SortVitesse, KIT_VIDE } from '../../lib/speedTuneKit';
+import { passifsVitesse, pointsDeGain, PassifVitesse } from '../../lib/speedTunePassif';
 import { chargerDetail } from '../../lib/monsterSkills';
 import { teamSummary } from '../../lib/recoFromSiege';
 import { formesJouables } from '../../lib/monsterForms';
@@ -89,6 +90,11 @@ interface Ligne {
   // la « SPD runes » saisie les porte déjà à plat — d'où un écart d'UN point sur
   // la vitesse de combat, et un point suffit à rater un tick.
   swift?: boolean;
+  // Combien de fois le gain de son PASSIF s'est déclenché (buffs portés, tours
+  // adverses passés, attaques…). ⚠️ La VALEUR du gain est lue dans son kit ; ce
+  // qui dépend du combat, c'est le nombre de fois — c'est donc la seule chose
+  // qu'on demande.
+  cumulsPassif?: number | null;
   // Adversaire de RÉFÉRENCE posé par l'analyse automatique (copie du monstre le
   // plus rapide de l'équipe au moment du clic).
   //
@@ -206,6 +212,7 @@ export default function SpeedTuningSection({ allMonsters, siegeDefenseTeams, sie
   // Les sorts de zone de chaque monstre (analyse poussée) : même lecture, même
   // chargement — on ne repasse pas deux fois sur les mêmes fichiers.
   const [sorts, setSorts] = useState<Map<number, SortVitesse[]>>(new Map());
+  const [passifs, setPassifs] = useState<Map<number, PassifVitesse[]>>(new Map());
 
   // Analyse poussée : l'ordre des tours VOULU (uids, du premier au dernier) et,
   // par monstre, le sort qu'il lance à son tour ('' = aucun ; absent = celui que
@@ -246,11 +253,14 @@ export default function SpeedTuningSection({ allMonsters, siegeDefenseTeams, sie
     if (ids.length === 0) return;
     let annule = false;
     Promise.all(
-      ids.map((id) => chargerDetail(id).then((d) => [id, kitVitesse(d), sortsVitesse(d)] as const))
+      ids.map(
+        (id) => chargerDetail(id).then((d) => [id, kitVitesse(d), sortsVitesse(d), passifsVitesse(d)] as const)
+      )
     ).then((paires) => {
       if (annule) return;
       setKits((prev) => new Map([...prev, ...paires.map(([id, kit]) => [id, kit] as const)]));
       setSorts((prev) => new Map([...prev, ...paires.map(([id, , liste]) => [id, liste] as const)]));
+      setPassifs((prev) => new Map([...prev, ...paires.map(([id, , , ps]) => [id, ps] as const)]));
     });
     return () => {
       annule = true;
@@ -415,6 +425,9 @@ export default function SpeedTuningSection({ allMonsters, siegeDefenseTeams, sie
   function setRuneSpeed(uid: string, v: number | null) {
     setLignes((prev) => prev.map((l) => (l.uid === uid ? { ...aLaMain(l), runeSpeed: v } : l)));
   }
+  function setCumuls(uid: string, v: number | null) {
+    setLignes((prev) => prev.map((l) => (l.uid === uid ? { ...aLaMain(l), cumulsPassif: v } : l)));
+  }
   function basculerSwift(uid: string) {
     setLignes((prev) => prev.map((l) => (l.uid === uid ? { ...aLaMain(l), swift: !l.swift } : l)));
   }
@@ -448,8 +461,24 @@ export default function SpeedTuningSection({ allMonsters, siegeDefenseTeams, sie
   // Vitesse de combat de base (base + runes + totem 15 % + lead) via speed.ts.
   // `null` si la base est inconnue. Les buffs de vitesse sont appliqués PAR TICK
   // dans la simulation, pas ici.
-  const combatDe = (l: Ligne): number | null =>
-    combatSpeed(l.monster.stats.speed, l.runeSpeed, leadDe(l.camp), l.swift ?? false);
+  // Le passif de vitesse du monstre (le premier qui en porte un), et ce qu'il
+  // ajoute. ⚠️ Coupée, l'analyse ne l'applique pas non plus : c'est une lecture
+  // automatique comme les autres.
+  const passifDe = (l: Ligne): PassifVitesse | null => {
+    if (!auto || l.monster.com2usId == null) return null;
+    return (passifs.get(l.monster.com2usId) ?? []).find((p) => p.gain || p.inconnu) ?? null;
+  };
+
+  const gainPassifDe = (l: Ligne): number => {
+    const p = passifDe(l);
+    if (!p?.gain) return 0;
+    return pointsDeGain(p.gain, l.monster.stats.speed, l.cumulsPassif ?? 0);
+  };
+
+  const combatDe = (l: Ligne): number | null => {
+    const base = combatSpeed(l.monster.stats.speed, l.runeSpeed, leadDe(l.camp), l.swift ?? false);
+    return base == null ? null : base + gainPassifDe(l);
+  };
 
   // Monstres visibles (non masqués) : seuls eux entrent dans les calculs et les
   // tableaux. Les masqués restent affichés dans leur camp pour être réaffichés.
@@ -513,7 +542,7 @@ export default function SpeedTuningSection({ allMonsters, siegeDefenseTeams, sie
         });
     }
     return out;
-  }, [lignes, leadAllie, leadEnnemi, auto, poussee, sortChoisi, sortChoisi2, sorts, kits]);
+  }, [lignes, leadAllie, leadEnnemi, auto, poussee, sortChoisi, sortChoisi2, sorts, kits, passifs]);
 
   // Simulation multi-tours (40 ticks) avec les modificateurs.
   const sim = useMemo(() => simuler(tune, HORIZON_TICKS), [tune]);
@@ -799,6 +828,9 @@ export default function SpeedTuningSection({ allMonsters, siegeDefenseTeams, sie
           onMasquer={basculerMasque}
           onRuneSpeed={setRuneSpeed}
           onSwift={basculerSwift}
+          onCumuls={setCumuls}
+          passifDe={passifDe}
+          gainPassifDe={gainPassifDe}
           kits={kits}
           onArtefact={setArtefact}
           decks={decks}
@@ -818,6 +850,9 @@ export default function SpeedTuningSection({ allMonsters, siegeDefenseTeams, sie
           onMasquer={basculerMasque}
           onRuneSpeed={setRuneSpeed}
           onSwift={basculerSwift}
+          onCumuls={setCumuls}
+          passifDe={passifDe}
+          gainPassifDe={gainPassifDe}
           kits={kits}
           onArtefact={setArtefact}
           decks={decks}
@@ -1227,6 +1262,11 @@ interface CampProps {
   onMasquer: (uid: string) => void;
   onRuneSpeed: (uid: string, v: number | null) => void;
   onSwift: (uid: string) => void;
+  onCumuls: (uid: string, v: number | null) => void;
+  // Le passif de vitesse d'une ligne, et ce qu'il ajoute — lus par le parent,
+  // qui seul connaît l'état de l'analyse.
+  passifDe: (l: Ligne) => PassifVitesse | null;
+  gainPassifDe: (l: Ligne) => number;
   // Ce que le kit de chaque monstre pose (par com2usId) : sert à dire d'OÙ vient
   // la valeur pré-remplie.
   kits: Map<number, KitVitesse>;
@@ -1257,6 +1297,9 @@ function CampPanneau({
   onMasquer,
   onRuneSpeed,
   onSwift,
+  onCumuls,
+  passifDe,
+  gainPassifDe,
   kits,
   onArtefact,
   decks,
@@ -1309,6 +1352,8 @@ function CampPanneau({
             // montre que ce qui reste à décider — vitesse de runes et artéfact —
             // plus l'avertissement de skill-up quand le chiffre le suppose.
             const kit = (l.monster.com2usId != null ? kits.get(l.monster.com2usId) : null) ?? KIT_VIDE;
+            const passif = passifDe(l);
+            const gainPassif = gainPassifDe(l);
             return (
               <div
                 key={l.uid}
@@ -1408,6 +1453,51 @@ function CampPanneau({
                       <div className="text-micro uppercase tracking-wide text-ink-dimmer">combat</div>
                     </div>
                   </div>
+
+                  {/* Passif de vitesse : la VALEUR est lue dans son kit, seul le
+                      nombre de déclenchements dépend du combat — c'est donc la
+                      seule chose qu'on demande. */}
+                  {passif && (
+                    <div className="mt-1.5 flex flex-wrap items-center gap-x-2 gap-y-1">
+                      <span
+                        className="rounded border border-accent/50 px-1.5 py-0.5 text-micro font-bold uppercase tracking-wide text-accent"
+                        title={passif.texte}
+                      >
+                        passif
+                      </span>
+                      {passif.gain ? (
+                        <>
+                          <span className="font-mono text-micro text-ink-dim">
+                            +{passif.gain.valeur}
+                            {passif.gain.pourcent ? ' %' : ''}
+                            {passif.gain.parCumul ? ' ×' : ' de vitesse'}
+                            {passif.gain.releve ? ' (relevé en jeu)' : ''}
+                          </span>
+                          {passif.gain.parCumul && (
+                            <NumberField
+                              value={l.cumulsPassif ?? null}
+                              onChange={(v) => onCumuls(l.uid, v)}
+                              min={0}
+                              max={99}
+                              allowEmpty
+                              width="w-12"
+                              placeholder="0"
+                              ariaLabel={`Déclenchements du passif de ${l.monster.name}`}
+                            />
+                          )}
+                          {gainPassif > 0 && (
+                            <span className="font-mono text-micro font-bold text-accent">
+                              +{gainPassif} appliqué
+                            </span>
+                          )}
+                        </>
+                      ) : (
+                        <span className="text-micro text-warn" title={passif.texte}>
+                          son passif touche la vitesse, mais aucune valeur n'est connue — à poser à la main
+                        </span>
+                      )}
+                    </div>
+                  )}
 
                   {/* ⚠️ Le gain de barre retenu suppose la compétence MONTÉE
                       (Tailwind de Bernard : 30 % au niveau 1, 45 % maxé). On le

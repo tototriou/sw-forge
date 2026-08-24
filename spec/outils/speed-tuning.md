@@ -328,19 +328,27 @@ Détecté dans le kit par l'effet `Additional Turn` (`rejoue` sur `SortVitesse`)
   ne bougent pas.
 - Dans le tableau des barres, la case du tick garde le badge du **premier** tour.
 
-### ⚠️ Ce qu'un PASSIF fait, l'outil ne le voit pas
+### Passifs de vitesse
 
 Un passif ne part pas au tour du monstre : la simulation l'écarte (voir plus
-haut). Or certains pèsent lourd sur un tune — **Shumar** gagne **+15 de vitesse
-en permanence**, **Chilling** et **Elsharion** en gagnent selon leurs buffs,
-d'autres remplissent leur barre quand on les frappe.
+haut). Mais certains décident du tune — **Shumar** gagne **+15 de vitesse en
+permanence**, **Elsharion +5 par buff allié**, **Misty +15 % par tour adverse**.
+L'outil les **lit et les applique** : [speedTunePassif.ts](src/lib/speedTunePassif.ts),
+**testé** sur les cas relevés en jeu.
 
-L'inventaire complet, **généré** depuis les données de compétences, vit dans
-[passifs-vitesse.md](passifs-vitesse.md) (`node scripts/passifs-vitesse.mjs`) :
-il classe ce qui n'est pas modélisé par nature de l'effet — vitesse en dur,
-vitesse sous condition, tour supplémentaire, barre gagnée ou retirée hors de son
-tour. **Seule la première catégorie est réglable une fois pour toutes** ; le
-reste dépend de ce qui se passe en combat, et se pose à la main dans les grilles.
+- ⚠️ **La VALEUR est lue, le NOMBRE DE FOIS se saisit.** Un gain permanent
+  (Shumar) entre tout seul dans la vitesse de combat ; un gain « par
+  déclenchement » (buffs portés, tours adverses, attaques) demande un chiffre —
+  c'est la seule chose que les données ne peuvent pas savoir. La card affiche le
+  gain unitaire, le champ de cumuls, et **ce qui est appliqué**.
+- **Plafonds respectés** (`up to 100`, `up to 150 %`) ; ⚠️ « up to 10 **times** »
+  est un nombre de cumuls, pas un plafond de vitesse.
+- Un gain en **pourcentage** se compte sur la vitesse de **base**, comme le totem
+  et le lead.
+- **Aucune valeur connue** → la card le dit en clair plutôt que d'appliquer 0 en
+  silence : « son passif touche la vitesse, mais aucune valeur n'est connue ».
+- ⚠️ **L'analyse coupée, les passifs ne s'appliquent plus** : c'est une lecture
+  automatique comme les autres.
 
 ⚠️ **Deux choses très différentes se cachent derrière « attack speed »** dans les
 textes, et les confondre fausse tout :
@@ -354,20 +362,12 @@ textes, et les confondre fausse tout :
 Le discriminant est dans le texte : un **montant** (« by N ») = gain propre, une
 **durée** seule (« for N turns ») = buff.
 
-⚠️ Le document se termine par **« Montant INCONNU »** — les passives dont ni le
-texte ni les données ne chiffrent la modification. Deux tables les traitent :
-- `RELEVE_EN_JEU` accueille ce qu'on a mesuré soi-même (Chilling : **+20 de
-  vitesse par buff porté**) — mieux vaut une valeur assumée « relevée à la main »
-  qu'un trou silencieux ;
-- `SANS_DONNEE` marque les trous **DÉFINITIFS** : *Atrocity* (Contaminated
-  Dragon), *Beast Man* (Grotau, Minotauros), *Sugar Booster* (Lollipop Warrior,
-  Thomas) et *The Bravest Cookie* (GingerBrave) n'ont **aucune valeur**, ni dans
-  les fiches ni en jeu (vérifié le 2026-08-24). ⚠️ Les marquer évite de repartir
-  les chercher à chaque passe.
-
-⚠️ **Une barre « remplie » vaut 100 %** — le texte ne le chiffre pas parce que
-remplir, c'est remplir. Ces passifs comptent surtout comme des **coupeurs** : un
-adverse qui remplit sa barre hors de son tour joue au milieu du combo.
+L'inventaire complet — **généré par la même lecture**, donc jamais divergent —
+vit dans [passifs-vitesse.md](passifs-vitesse.md) (`node scripts/passifs-vitesse.mjs`).
+Il classe aussi ce que l'outil **n'applique pas** : tours supplémentaires, barres
+remplies ou vidées hors de son tour (⚠️ une barre « remplie » vaut **100 %**),
+et les montants introuvables — dont quatre passives marquées **AUCUNE donnée
+(vérifié)**, trous définitifs qu'il est inutile de rechercher.
 
 ### Rechargement des compétences
 

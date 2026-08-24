@@ -26,6 +26,7 @@ import {
 } from '../src/lib/speedTune';
 import { deckPourSpeedTune } from '../src/lib/speedTuneDeck';
 import { kitVitesse, sortsVitesse, BUFF_SPD_JEU } from '../src/lib/speedTuneKit';
+import { passifsVitesse, pointsDeGain } from '../src/lib/speedTunePassif';
 import { DetailMonstre, Competence, EffetCompetence } from '../src/lib/monsterSkills';
 import { Monster, SiegeTeam } from '../src/types';
 import { combatSpeed } from '../src/lib/speed';
@@ -1053,4 +1054,144 @@ export function testSpeedTuneSequence() {
     }
     ok(intervalles > 0 && identiques > 0, `${intervalles} fenêtres contrôlées au balayage exhaustif (seed fixe)`);
   }
+}
+
+/* ------------------------------------------- Passifs (lecture + gain) ---- */
+
+// Ce qu'un passif fait à la vitesse, lu dans le texte de la compétence. Les cas
+// sont ceux relevés avec l'utilisateur : ce sont eux qui ont corrigé la lecture.
+export function testSpeedTunePassif() {
+  titre('Speed tuning — passifs de vitesse');
+
+  const passif = (nom: string, description: string, effets: string[] = []): DetailMonstre =>
+    ({
+      com2usId: 1,
+      archetype: null,
+      skillUpsToMax: null,
+      awakensFrom: null,
+      awakensTo: null,
+      source: [],
+      competences: [
+        {
+          id: 1,
+          com2usId: null,
+          nom,
+          description,
+          slot: 3,
+          passif: true,
+          aoe: false,
+          cooldown: null,
+          coups: null,
+          niveauMax: 1,
+          formule: null,
+          scale: [],
+          ameliorations: [],
+          icone: null,
+          effets: effets.map((n) => ({
+            nom: n,
+            type: 'Neutral',
+            bonus: true,
+            description: null,
+            icone: null,
+            chance: 0,
+            quantite: 0,
+            surSoi: true,
+            aoe: false,
+            surCritique: false,
+            surMort: false,
+            note: null,
+          })),
+        },
+      ],
+    }) as unknown as DetailMonstre;
+
+  // Shumar : un gain PERMANENT, la seule catégorie réglable une fois pour toutes.
+  {
+    const [p] = passifsVitesse(
+      passif('Spurt (Passive)', 'Increases the attack speed by 15. The attack speed increases as the HP decreases.')
+    );
+    egal(p.gain?.valeur, 15, 'Shumar : +15 de vitesse');
+    egal(p.gain?.parCumul, false, 'et ce gain ne dépend de rien : il est permanent');
+    egal(pointsDeGain(p.gain, 115, 0), 15, 'appliqué tel quel, sans cumul à compter');
+  }
+
+  // Elsharion : +5 par buff allié, plafonné à 100.
+  {
+    const [p] = passifsVitesse(
+      passif(
+        'Master of Magic Power (Passive)',
+        'Also increases your Attack Power by 30% for each beneficial effect you are granted with, and increases your Attack Speed by 5 for each beneficial effect granted on the allies, up to 100.'
+      )
+    );
+    egal(p.gain?.valeur, 5, 'Elsharion : +5 par buff allié');
+    egal(p.gain?.plafond, 100, 'plafonné à 100');
+    egal(pointsDeGain(p.gain, 100, 6), 30, 'six buffs → +30');
+    egal(pointsDeGain(p.gain, 100, 40), 100, "et jamais plus que le plafond");
+  }
+
+  // Misty : le montant se dit dans l'AUTRE sens (« is increased by 15% »).
+  {
+    const [p] = passifsVitesse(
+      passif(
+        'Long Waiting (Passive)',
+        "Becomes immune against inability effects. Your Attack Speed is increased by 15%, up to 150%, whenever an enemy's turn ends.",
+        ['Accumulate SPD']
+      )
+    );
+    egal(p.gain?.valeur, 15, 'Misty : +15 % par tour adverse');
+    egal(p.gain?.pourcent, true, 'en pourcentage');
+    egal(p.gain?.plafond, 150, 'plafonné à 150 %');
+    // ⚠️ Un pourcentage se compte sur la vitesse de BASE, comme le totem.
+    egal(pointsDeGain(p.gain, 100, 2), 30, 'base 100, deux tours adverses → +30');
+  }
+
+  // Ciri : « decreases » parle des PV de la cible, pas de la vitesse.
+  {
+    const [p] = passifsVitesse(
+      passif(
+        'Flash Step (Passive)',
+        "After attacking the enemy on your turn, attacks 2 more times to deal damage that increases as the target's HP status decreases and increases your Attack Speed by 50 each, up to 250."
+      )
+    );
+    egal(p.gain?.valeur, 50, "Ciri : +50 par attaque, malgré le « decreases » de la phrase");
+    egal(p.gain?.plafond, 250, 'plafonné à 250');
+  }
+
+  // Juno : une DURÉE sans montant → c'est le BUFF du jeu, pas un gain propre.
+  {
+    const [p] = passifsVitesse(
+      passif(
+        'Loss of Cause and Effect (Passive)',
+        'Increases your Attack Speed for 2 turns if you get a harmful effect.',
+        ['Increase ATK SPD']
+      )
+    );
+    egal(p.buff, true, 'Juno : le passif pose le buff de vitesse du jeu');
+    egal(p.gain, null, "et surtout PAS un gain propre — l'artéfact l'amplifie, lui");
+  }
+
+  // Chilling : rien dans les données, mais un relevé de terrain.
+  {
+    const [p] = passifsVitesse(
+      passif(
+        'The Cunning (Passive)',
+        'Your Attack Speed increases according to the number of beneficial effects currently on you.',
+        ['Increase ATK SPD']
+      )
+    );
+    egal(p.gain?.valeur, 20, 'Chilling : +20 par buff, relevé en jeu');
+    egal(p.gain?.releve, true, 'et marqué comme relevé, pas comme donnée');
+  }
+
+  // Leshen : une baisse sur l'ADVERSE n'est pas un gain.
+  {
+    const [p] = passifsVitesse(
+      passif('Root Prison (Passive)', "Decreases the stunned enemy's Attack Speed by 90%.")
+    );
+    egal(p?.gain ?? null, null, "un ralenti posé sur l'adverse n'est pas un gain de vitesse");
+  }
+
+  // Un monstre sans passif de vitesse ne remonte rien.
+  egal(passifsVitesse(passif('Bouclier (Passive)', 'Creates a shield.')).length, 0, 'aucun passif de vitesse → rien');
+  egal(passifsVitesse(null).length, 0, 'aucune fiche → rien');
 }

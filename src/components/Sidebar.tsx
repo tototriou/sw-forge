@@ -275,9 +275,19 @@ export default function Sidebar({
                   type="button"
                   onClick={() => setOuverte(null)}
                   title={`${niveauDeux.titre} — revenir à toutes les sections`}
-                  className={`group mx-2.5 mb-1 flex items-center rounded-md py-1.5
+                  // ⚠️ **Toute la largeur de la barre**, bord à bord. C'est la
+                  // SORTIE du niveau, pas une destination de plus : à la
+                  // largeur de son libellé, la zone cliquable s'arrêtait au
+                  // milieu de la barre et rien ne disait où viser. Un
+                  // `<button>` fait `width: auto` même en `display: flex` —
+                  // d'où le `w-full` explicite, et la marge horizontale qui
+                  // devient un rembourrage (une marge aurait débordé de la
+                  // largeur du parent).
+                  // ⚠️ Plus de coins arrondis : ils dessinent une pastille
+                  // posée DANS la barre, alors que la cible EST la barre.
+                  className={`group mb-1 flex w-full items-center py-1.5
                               transition-colors hoverable:bg-panel2 ${
-                                retractee ? 'justify-center px-0' : 'gap-1.5 px-1.5'
+                                retractee ? 'justify-center px-0' : 'gap-1.5 px-2.5'
                               }`}
                 >
                   <ChevronLeft

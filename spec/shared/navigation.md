@@ -56,9 +56,18 @@ Ouvrir et remonter sont donc des **`<button>`**, pas des `<a>` : ils ne vont
 nulle part, ils n'ont rien à faire dans l'historique ni dans un « ouvrir dans un
 nouvel onglet ». Le type l'impose — `hash` **ou** `ouvre`, jamais les deux.
 
-⚠️ **`w-full` sur l'entrée** : un `<button>` ne s'étire pas comme un `<a>`. Sans
-lui, les trois entrées à sous-section étaient larges comme leur texte et leur
-fond au survol s'arrêtait au milieu de la barre.
+⚠️ **`w-full` sur l'entrée** : un `<button>` ne s'étire pas comme un `<a>` — il
+fait `width: auto` même en `display: flex`. Sans lui, les trois entrées à
+sous-section étaient larges comme leur texte et leur fond au survol s'arrêtait au
+milieu de la barre.
+
+⚠️ **Le retour « ‹ Siège » aussi, et BORD À BORD.** Il avait échappé à la règle :
+sa zone cliquable s'arrêtait au milieu de la barre, et rien ne disait où viser.
+C'est la **sortie du niveau**, pas une destination de plus — il prend donc toute
+la largeur, sans marge ni coins arrondis. Un rectangle arrondi posé DANS la barre
+se lit comme une pastille parmi d'autres, alors que la cible **est** la barre.
+(Sa marge horizontale devient un rembourrage : une marge aurait débordé du
+parent, `w-full` ne la déduisant pas.)
 
 ### L'entrée active — contour + fond, le marqueur unique de l'app
 

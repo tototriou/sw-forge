@@ -149,6 +149,26 @@ export default function SiegeBoard({
         libelleCourt="Équipe"
       />
 
+      {/* ⚠️ Toujours affiché, désactivé sans équipe — même règle que
+          « Tout effacer ». */}
+      <Bouton
+        onClick={() => {
+          setCheckTicks((v) => !v);
+          onFermerMenu();
+        }}
+        actif={checkTicks}
+        disabled={siege.state.teams.length === 0}
+        title={
+          siege.state.teams.length === 0
+            ? 'Aucune équipe à vérifier'
+            : checkTicks
+              ? 'Masquer les auras de vérification'
+              : 'Colorer les équipes selon leur calage sur les ticks ATB'
+        }
+        icone={<Gauge size={15} />}
+        libelle="Vérifier mes tick ATB"
+        libelleCourt="Ticks"
+      />
 
       {/* En dernier des actions : c'est le geste le plus rare. */}
       <CreateMonster

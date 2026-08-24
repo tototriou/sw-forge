@@ -70,13 +70,20 @@ continu — demande explicite de l'utilisateur :
    tout — séparés, la roue puis la relique passaient à la ligne dans une
    colonne étroite, cette dernière pouvant finir hors du cadre. C'est la
    **largeur de la colonne** qui fait la place (voir la grille), jamais une
-   réduction de ce qu'on vient regarder. Un **sélecteur
-   d'exemplaire** (Box / RTA / Défenses siège / Offenses siège, même
-   contrôle qu'« Exclure les runes d'un monstre » plus bas — jusqu'à une
-   liste des exemplaires disponibles pour ce monstre dans la source choisie)
-   apparaît à droite du titre : **choisit RÉELLEMENT ce que la recherche
-   optimise** (utile pour un monstre équipé différemment selon le contexte),
-   pas seulement ce qui est prévisualisé. ⚠️ **La fiche reste TOUJOURS
+   réduction de ce qu'on vient regarder. Un **sélecteur de source** (Box /
+   RTA / Défenses siège / Offenses siège, même contrôle qu'« Exclure les
+   runes d'un monstre » plus bas) apparaît à droite du titre. ⚠️ **Le champ
+   de recherche « Monstre à optimiser » lui-même se comporte EXACTEMENT
+   comme celui d'« Exclure les runes d'un monstre »** : il cherche par nom
+   PARMI les entrées de la source active (toute la source, pas un monstre
+   déjà choisi ailleurs), équipe complète affichée pour le siège (un même
+   monstre peut apparaître dans plusieurs équipes, indiscernables par le
+   seul nom) — et choisir un résultat fixe **directement** l'exemplaire
+   optimisé, en un seul geste plutôt qu'en deux (espèce, puis exemplaire).
+   **Choisit RÉELLEMENT ce que la recherche optimise**, pas seulement ce qui
+   est prévisualisé. Changer de source vide le choix précédent — un
+   exemplaire d'une autre source n'a aucun sens une fois basculé, mieux vaut
+   repartir d'un choix franc. ⚠️ **La fiche reste TOUJOURS
    affichée**, vide (stats à zéro, artéfacts grisés, roue vide) tant
    qu'aucun monstre n'est choisi, plutôt que de n'apparaître qu'au clic —
    l'espace qu'elle occupe est réservé d'avance (voir
@@ -163,47 +170,52 @@ retour.
    reste vrai tant que l'outil est en rodage). Rappelle que le moteur de
    recherche peut être lent sur des critères serrés ou manquer un build sur
    un cas inhabituel, et qu'il faut vérifier le résultat avant de re-runer.
-1. **Sélecteur de monstre** — recherche parmi **tous** les monstres 6★ de la
-   box importée (même liste que « Mon compte » → Monstres), **avec ou sans
-   runes actuellement équipées** : un monstre nu se recherche tout aussi bien
-   (même grammaire que [MonsterPicker](../shared/recherche-clavier.md)).
-   Plusieurs exemplaires du même monstre → **une seule entrée** ; on retient
-   l'exemplaire au meilleur équipement (somme d'efficience la plus haute,
-   0 pour un monstre nu) pour les stats/artéfacts affichés. **Tous** les
-   exemplaires comptent comme « à soi » pour l'exclusion (voir plus bas).
-   ⚠️ **Changer de monstre réinitialise « Critères de recherche » et les
-   résultats affichés** (set, statistique principale imposée, objectif,
+1. **Source, puis sélecteur de monstre** — un **sélecteur de source** (Box,
+   par défaut / RTA / Défenses siège / Offenses siège) accolé au titre,
+   au-dessus du champ de recherche. ⚠️ **Le champ de recherche cherche PARMI
+   les entrées de la source active** — EXACTEMENT le même mécanisme que
+   « Exclure les runes d'un monstre » plus bas (même composant de rangée de
+   résultat, `ExclusionCandidateRow` : portrait, nom, compte de runes, et
+   pour le siège le numéro d'équipe + ses coéquipiers, un même monstre
+   pouvant apparaître dans plusieurs équipes indiscernables par le seul
+   nom) — pas un sélecteur d'espèce suivi d'un second choix d'exemplaire :
+   **choisir un résultat fixe directement l'exemplaire optimisé**, en un
+   seul geste. Pour Box, un monstre nu (sans aucune rune) reste
+   recherchable : construire un build depuis rien est un cas d'usage normal
+   de l'outil. Pour RTA/siège, seules les entrées **avec au moins une rune
+   équipée** apparaissent (rien à optimiser sur un slot vide de ces sources).
+   ⚠️ **Changer de SOURCE vide le choix précédent** — un exemplaire d'une
+   autre source n'a aucun sens une fois basculé, mieux vaut repartir d'un
+   choix franc que d'un résidu ; la fiche repasse alors à vide (comme si
+   aucun monstre n'était choisi) jusqu'au prochain choix explicite dans
+   cette source. **Changer d'ESPÈCE** (un monstre différent, dans n'importe
+   quelle source) réinitialise en plus « Critères de recherche » et les
+   résultats affichés (set, statistique principale imposée, objectif,
    artéfacts, conditions min/max, tri, pagination) — des critères posés pour
-   l'ancien monstre n'ont pas de raison de valoir pour le nouveau, et
-   d'anciens résultats affichés resteraient trompeurs (mauvais monstre).
-   Re-choisir le même monstre déjà sélectionné n'efface rien. Les
-   **réglages avancés** (préfiltrage, exclusions, recherche exhaustive…) ne
-   sont PAS concernés : ce sont des préférences générales, pas des critères
-   propres à un monstre. **Importer un nouveau compte** (bouton global
-   « Importer un JSON ») déclenche la même réinitialisation, pour la même
-   raison (autre box, autre pool de runes possible) — même en étant sur un
-   autre onglet au moment de l'import.
+   l'ancien monstre n'ont pas de raison de valoir pour le nouveau. Re-choisir
+   le même exemplaire déjà sélectionné n'efface rien ; choisir un AUTRE
+   exemplaire de la MÊME espèce non plus (seuls les critères propres à
+   l'équipement changent, pas ceux propres à l'espèce). Les **réglages
+   avancés** (préfiltrage, exclusions, recherche exhaustive…) ne sont PAS
+   concernés : ce sont des préférences générales, pas des critères propres à
+   un monstre. **Importer un nouveau compte** (bouton global « Importer un
+   JSON ») déclenche la réinitialisation complète, pour la même raison
+   (autre box, autre pool de runes possible) — même en étant sur un autre
+   onglet au moment de l'import.
 2. **Équipement actuel** — **le composant `MonsterGear`, réutilisé tel quel**
    (pas réimplémenté), le même qu'en RTA/Siège quand on clique un monstre :
    stats base/bonus, artéfacts, roue de runes et relique **tels
-   qu'ACTUELLEMENT équipés** — sur l'**exemplaire** choisi par le
-   **sélecteur de runage** (Box, par défaut / RTA / Défenses siège / Offenses
-   siège) accolé au titre, réinitialisé à **Box** à chaque changement de
-   monstre. ⚠️ **C'est bien CET exemplaire que la recherche optimise** — pas
-   systématiquement la box : changer d'onglet change à la fois ce qui est
-   affiché et ce que l'Optimizer part optimiser (base, runes déjà équipées,
-   artéfacts, relique). Choisir RTA/Défenses siège/Offenses siège **liste les
-   exemplaires disponibles** pour ce monstre dans cette source — même
-   présentation que « Exclure les runes d'un monstre » plus bas, équipe
-   complète affichée pour le siège (un même monstre peut apparaître dans
-   plusieurs équipes) — retenu automatiquement s'il n'y en a qu'un, à choisir
-   explicitement sinon (jamais deviné en silence). Un monstre absent de la
-   source choisie affiche la fiche vide, avec une note — rien à optimiser
-   dans ce cas (traité comme un monstre nu, déjà pris en charge ailleurs dans
-   l'app). ⚠️ **Limite connue** : ce choix d'exemplaire ne fait PAS encore
-   partie de la recette exportée (`OptimizerRecipe` ne porte que l'espèce,
-   `monsterCom2usId`) — réimporter une recette lancée sur un exemplaire
-   RTA/siège retombe sur la box par défaut. Chacun de ses éléments reste **cliquable**
+   qu'ACTUELLEMENT équipés** sur l'exemplaire choisi ci-dessus — **c'est
+   CET exemplaire que la recherche optimise**, pas systématiquement la box.
+   Tant qu'aucun exemplaire n'a encore été choisi DANS LA SOURCE ACTIVE
+   depuis le dernier montage de la page : repli sur le meilleur exemplaire
+   box de l'espèce affichée la dernière fois (continuité au retour sur
+   l'onglet) si la source active est Box, fiche vide sinon (RTA/siège
+   n'ont pas d'équivalent « toujours un choix par défaut sensé », l'espèce
+   peut apparaître dans plusieurs équipes). ⚠️ **Limite connue** : ce choix
+   d'exemplaire ne fait PAS partie de la recette exportée (`OptimizerRecipe`
+   ne porte que l'espèce, `monsterCom2usId`) — réimporter une recette lancée
+   sur un exemplaire RTA/siège retombe sur la box par défaut. Chacun de ses éléments reste **cliquable**
    pour ouvrir son détail complet (`RuneDetailBox`/`ArtifactDetailBox`/
    `RelicDetailBox`, tous dans [MonsterGear.tsx](src/components/MonsterGear.tsx)),
    affiché en **popover flottant** ancré sur l'élément cliqué — même

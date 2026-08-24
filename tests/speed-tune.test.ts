@@ -25,7 +25,7 @@ import {
   ArtefactRequis,
 } from '../src/lib/speedTune';
 import { deckPourSpeedTune } from '../src/lib/speedTuneDeck';
-import { leadsDeVitesse } from '../src/lib/speed';
+import { LeadInfo, leadsDeVitesse } from '../src/lib/speed';
 import { kitVitesse, sortsVitesse, SortVitesse, BUFF_SPD_JEU } from '../src/lib/speedTuneKit';
 import { passifsVitesse, pointsDeGain } from '../src/lib/speedTunePassif';
 import {
@@ -1844,6 +1844,36 @@ export function testSpeedTuneModele() {
     egal(ref.runeSpeed, 150, 'elle copie la vitesse de runes');
     egal(ref.artefactBuff, 12, "l'artéfact");
     egal(JSON.stringify(ref.sets), '["swift","will"]', 'et les sets — sans quoi elle serait plus lente que son modèle');
+  }
+
+  // ⚠️ **La référence court EXACTEMENT aussi vite que le monstre qu'elle copie**,
+  // lead d'élément compris. C'est toute sa raison d'être : « est-ce que mon
+  // équipe joue avant un monstre aussi rapide que mon plus rapide ? ». Un repère
+  // plus lent que son modèle déclare tuné à peu près n'importe quoi — et c'est
+  // ce qui arrivait quand le camp d'en face gardait son propre lead.
+  {
+    const eau = {
+      id: 30,
+      com2usId: 30,
+      name: 'Ondine',
+      element: 'water',
+      stats: { speed: 100 },
+    } as unknown as Monster;
+    const modele: Ligne = { ...ligneVierge(eau, 'allie'), runeSpeed: 150 };
+    const lead: LeadInfo = { amount: 33, area: 'Element', element: 'water' };
+    const ref = ligneReference(modele, [modele], vide);
+
+    // Le camp d'en face a repris MON lead (ce que fait l'analyse).
+    egal(
+      combatDeLigne(ref, lead, vide),
+      combatDeLigne(modele, lead, vide),
+      'même lead des deux côtés → la référence vaut son modèle'
+    );
+    // Et sans cela, elle est plus lente : le verdict serait faux dans le bon sens.
+    ok(
+      (combatDeLigne(ref, null, vide) ?? 0) < (combatDeLigne(modele, lead, vide) ?? 0),
+      "sans reprendre le lead, elle traîne — et l'outil déclarerait tuné à tort"
+    );
   }
 
   // Ce que l'analyse écrit atterrit bien sur les lignes.

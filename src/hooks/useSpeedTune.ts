@@ -339,9 +339,18 @@ export function useSpeedTune({
     // que son modèle déclarerait tuné n'importe quoi. Reste modifiable — c'est un
     // point de départ, pas un verrou.
     //
+    // ⚠️ **`poserLead`, pas `setLeadEnnemi`** : c'est un CHOIX, et il doit être
+    // marqué comme tel. Écrit directement, le défaut « lead présent dans
+    // l'équipe » le reprenait au rendu suivant — la référence retombait au lead
+    // de son camp d'accueil (souvent aucun) et devenait plus lente que le
+    // monstre qu'elle copie. L'outil déclarait alors tuné à peu près n'importe
+    // quoi.
+    //
     // ⚠️ Pas quand une VRAIE composition est en face : elle a son propre lead,
     // l'écraser recalculerait des adversaires réels avec le mien.
-    if (!lignesVisibles.some((l) => l.camp === 'ennemi' && !l.reference)) setLeadEnnemi(leadAllie);
+    if (!lignesVisibles.some((l) => l.camp === 'ennemi' && !l.reference)) {
+      poserLead('ennemi')(leadAllie);
+    }
     const ref = { ...ligneReference(modele), ...(mods ?? {}) };
     setLignes((prev) => [...prev.filter((l) => !l.reference && l.uid !== ref.uid), ref]);
   }

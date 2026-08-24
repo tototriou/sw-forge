@@ -131,6 +131,12 @@ trois vitesses de runes. Calcul pur dans
   restent modifiables. ⚠️ **Sauf si une vraie composition est en face** : elle a
   son propre lead, et l'écraser recalculerait de vrais adversaires avec le tien.
 
+  > ⚠️ Ce lead hérité est marqué comme **CHOISI**. Simplement écrit, le défaut
+  > « lead présent dans l'équipe » le reprenait au rendu suivant : la référence
+  > retombait au lead de son camp d'accueil — souvent aucun —, devenait plus
+  > lente que le monstre qu'elle copie, et l'outil déclarait tuné à peu près
+  > n'importe quoi.
+
 - **L'artéfact « Effet aug. VIT » est repris** du `gear` du slot (code `206`
   dans `ARTIFACT_SUB`, sommé sur les deux artéfacts) : c'est lui qui amplifie le
   buff de vitesse, il n'a pas à être ressaisi.

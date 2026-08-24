@@ -110,7 +110,13 @@ sont les deux racines ; dessous : `RunesList`, `RunesSummary`, `RunesCurve` +
 `workers/runeBuildOptim.worker.ts` et `workers/buildHalf.worker.ts`.
 ⚠️ Jamais audité en mobile.
 
-**Speed tuning** — `outils/SpeedTuningSection.tsx` (racine). Calcul pur
+**Speed tuning** — `outils/SpeedTuningSection.tsx` (racine) ne fait que
+**rendre** : aucune règle métier n'y vit. Le modèle de l'écran (une `Ligne` =
+un monstre posé dans un camp, et tout ce qu'on en déduit — vitesse de combat,
+sort actif, entrée du moteur, référence, estimations) est dans
+`lib/speedTuneLignes.ts` ; l'état, les actions et les dérivées sont dans
+`hooks/useSpeedTune.ts`. Un champ qui manque à l'un des deux écrans se voit
+donc en test, pas à l'œil. Calcul pur
 `lib/speedTune.ts` (règle des ticks, simulation « un seul monstre par tick » et
 verdict de chaîne « le combo passe-t-il ? » + vitesses requises, testé dans
 `tests/speed-tune.test.ts`), vitesse de combat via `lib/speed.ts`.

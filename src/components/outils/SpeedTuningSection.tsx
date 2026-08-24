@@ -19,6 +19,33 @@ import {
   ModParTick,
 } from '../../lib/speedTune';
 import { deckPourSpeedTune } from '../../lib/speedTuneDeck';
+import {
+  Ligne,
+  Leads,
+  aLaMain,
+  ampliDe as ampliDeLignes,
+  appliquerMods,
+  combatDe as combatDeLigne,
+  duCamp,
+  entreeDe as entreeDeLigne,
+  estimerCumuls,
+  gainPassifDe as gainPassifDeLigne,
+  leadDe as leadDeCamp,
+  ligneReference as ligneReferenceDe,
+  ligneVierge,
+  lignesDeDeck,
+  majMod,
+  oublierCamp,
+  passifActifDe as passifActifDeLigne,
+  passifDe as passifDeLigne,
+  plusRapideAllie as plusRapideAllieDe,
+  sortActif as sortActifDe,
+  sortSecondDe,
+  sortsDe as sortsDeLigne,
+  tuneDe,
+  uidDe,
+  visibles,
+} from '../../lib/speedTuneLignes';
 import { prendreDeck } from '../../lib/speedTuneHandoff';
 import { kitVitesse, sortsVitesse, KitVitesse, SortVitesse, KIT_VIDE } from '../../lib/speedTuneKit';
 import { passifsVitesse, pointsDeGain, PassifVitesse } from '../../lib/speedTunePassif';
@@ -27,6 +54,7 @@ import { chargerDetail } from '../../lib/monsterSkills';
 import { teamSummary } from '../../lib/recoFromSiege';
 import { formesJouables } from '../../lib/monsterForms';
 import { useComboboxNav } from '../../hooks/useComboboxNav';
+import { useSpeedTune, DeckDispo, ChampMod } from '../../hooks/useSpeedTune';
 import { useAdversaireReference } from '../../hooks/useAdversaireReference';
 import { useStickyState } from '../../hooks/useStickyState';
 import MonsterAvatar from '../MonsterAvatar';
@@ -68,63 +96,7 @@ interface Props {
   siegeOffenseTeams: SiegeTeam[];
 }
 
-// Un deck proposé à l'import : une équipe de siège et le camp d'où elle vient.
-interface DeckDispo {
-  cle: string;
-  source: 'defense' | 'offense';
-  team: SiegeTeam;
-  libelle: string;
-  monstres: Monster[];
-}
 
-// Une ligne : un monstre ajouté, sa vitesse de runes, son camp, et ses deux
-// grilles de modificateurs indexées par tick. `uid = camp:id` → un même monstre
-// peut figurer des DEUX côtés, pas deux fois dans le même camp.
-interface Ligne {
-  uid: string;
-  monster: Monster;
-  runeSpeed: number | null;
-  camp: Camp;
-  atbMod: ModParTick;
-  speedMod: ModParTick;
-  // Bonus d'artéfact « augmente l'effet du buff de vitesse » (%). Renseigné pour
-  // les alliés seulement (on ne connaît pas les artéfacts d'en face).
-  artefactBuff: number | null;
-  // Le monstre porte le set RAPIDITÉ (Swift). ⚠️ Ce n'est pas un détail : ses
-  // 25 % entrent dans la somme des pourcentages (totem + lead + swift) alors que
-  // la « SPD runes » saisie les porte déjà à plat — d'où un écart d'UN point sur
-  // la vitesse de combat, et un point suffit à rater un tick.
-  swift?: boolean;
-  // Les sets du monstre, quand ils viennent d'un deck importé : la Volonté et le
-  // Bouclier posent des buffs, que certains passifs comptent (Chilling).
-  sets?: string[];
-  // Combien de fois le gain de son PASSIF s'est déclenché (buffs portés, tours
-  // adverses passés, attaques…). ⚠️ La VALEUR du gain est lue dans son kit ; ce
-  // qui dépend du combat, c'est le nombre de fois — c'est donc la seule chose
-  // qu'on demande.
-  cumulsPassif?: number | null;
-  // Le gain du passif est-il pris en compte ? Actif par défaut (`undefined`) :
-  // un passif est toujours en vigueur en jeu.
-  passifActif?: boolean;
-  // Adversaire de RÉFÉRENCE posé par l'analyse automatique (copie du monstre le
-  // plus rapide de l'équipe au moment du clic).
-  //
-  // ⚠️ **L'analyse est un INSTANTANÉ, pas un abonnement.** Changer de deck
-  // l'ARRÊTE : la référence est retirée et il faut recliquer sur « Lancer
-  // l'analyse » — un adversaire copié d'une équipe qu'on vient de remplacer ne
-  // veut plus rien dire, et le verdict aurait l'air juste sans l'être.
-  //
-  // Le premier réglage à la main retire aussi le drapeau : la ligne devient un
-  // adversaire ordinaire, qu'on garde tel quel.
-  reference?: boolean;
-  // Masqué : gardé dans la liste (avec sa config) mais retiré des calculs et des
-  // tableaux — pour tester une composition sans perdre le réglage d'un monstre.
-  masque: boolean;
-}
-
-type ChampMod = 'atbMod' | 'speedMod';
-
-const uidDe = (camp: Camp, id: string) => `${camp}:${id}`;
 
 // Un modificateur signé, tel qu'il se lit dans une grille : « +45 », « −50 ».
 // ⚠️ Les effets posés par les compétences peuvent être NÉGATIFS (une barre
@@ -209,651 +181,108 @@ function TeteTicks({ premiere }: { premiere: string }) {
 }
 
 export default function SpeedTuningSection({ allMonsters, siegeDefenseTeams, siegeOffenseTeams }: Props) {
-  const [lignes, setLignes] = useStickyState<Ligne[]>('speedTune.lignes', []);
-  const [leadAllie, setLeadAllie] = useStickyState<number>('speedTune.leadAllie', 0);
-  const [leadEnnemi, setLeadEnnemi] = useStickyState<number>('speedTune.leadEnnemi', 0);
+  // ⚠️ **Ce composant NE CALCULE RIEN.** Tout le métier — vitesses, sorts,
+  // analyse, adversaire de référence — vit dans `useSpeedTune` et les libs
+  // qu'il appelle. Ne restent ici que le rendu et ce qui n'a de sens qu'à
+  // l'écran : le défilement synchronisé des tableaux et les pastilles.
+  const {
+    aAllie,
+    aEnnemi,
+    nomDe,
+    parTick,
+    rien,
+    rienVisible,
+    runesPour,
+    ajouter,
+    alliesVisibles,
+    ampliDe,
+    analyseAuto,
+    analyser,
+    arrivee,
+    arteParUid,
+    arteRequis,
+    auto,
+    basculerMasque,
+    basculerPassif,
+    basculerSwift,
+    chaine,
+    choisirCible,
+    choisirSecond,
+    choisirSort,
+    choixSorts,
+    cibleFenetre,
+    cibleSort,
+    combatDe,
+    decks,
+    deplacer,
+    donneesKit,
+    entreeDe,
+    fenetreArteParUid,
+    fenetreParUid,
+    fenetres,
+    fenetresArte,
+    gainPassifDe,
+    importerDeck,
+    jouables,
+    kits,
+    leadAllie,
+    leadDe,
+    leadEnnemi,
+    leads,
+    ligneParUid,
+    ligneReference,
+    lignes,
+    lignesTableau,
+    lignesVisibles,
+    monsterById,
+    montrerAnalyse,
+    numAction,
+    ordreRange,
+    ordreVoulu,
+    passifActifDe,
+    passifDe,
+    passifs,
+    plusRapideAllie,
+    poussee,
+    premiereSignature,
+    premiers,
+    problemeParUid,
+    requis,
+    requisParUid,
+    retirer,
+    sequence,
+    setArtefact,
+    setAuto,
+    setCibleSort,
+    setCumuls,
+    setKits,
+    setLeadAllie,
+    setLeadEnnemi,
+    setLignes,
+    setMod,
+    setModEquipe,
+    setMontrerAnalyse,
+    setOrdreRange,
+    setOrdreVoulu,
+    setPassifs,
+    setPoussee,
+    setRuneSpeed,
+    setSortChoisi,
+    setSortChoisi2,
+    setSorts,
+    sim,
+    sortActif,
+    sortAuto,
+    sortChoisi,
+    sortChoisi2,
+    sortSecond,
+    sorts,
+    sortsDe,
+    sortsSignature,
+    toujoursReference,
+    tune,
+  } = useSpeedTune({ allMonsters, siegeDefenseTeams, siegeOffenseTeams });
 
-  const jouables = useMemo(() => formesJouables(allMonsters), [allMonsters]);
-  // Réglage d'application : poser l'adversaire de référence à CHAQUE analyse,
-  // même face à une composition importée (voir useAdversaireReference).
-  const toujoursReference = useAdversaireReference();
-
-  // Ce que le KIT de chaque monstre pose sur son camp (barre d'attaque de zone,
-  // buff de vitesse de zone), lu dans les compétences pré-générées. Sert à
-  // pré-remplir les deux champs de la card — l'utilisateur n'a pas à aller
-  // chercher lui-même ce que fait le monstre — et à dire d'où vient la valeur.
-  const [kits, setKits] = useState<Map<number, KitVitesse>>(new Map());
-  // Les sorts de zone de chaque monstre (analyse poussée) : même lecture, même
-  // chargement — on ne repasse pas deux fois sur les mêmes fichiers.
-  const [sorts, setSorts] = useState<Map<number, SortVitesse[]>>(new Map());
-  const [passifs, setPassifs] = useState<Map<number, PassifVitesse[]>>(new Map());
-
-  // Analyse poussée : l'ordre des tours VOULU (uids, du premier au dernier) et,
-  // par monstre, le sort qu'il lance à son tour ('' = aucun ; absent = celui que
-  // la lecture du kit a retenu).
-  // ⚠️ L'analyse AUTOMATIQUE, c'est TOUT ce que l'outil fait de lui-même, et la
-  // couper coupe tout : l'adversaire de référence posé en face, les compétences
-  // lues dans les kits qui remplissent les deux grilles, et **l'analyse poussée**
-  // (ordre imposé + sort désigné), qui en est un raffinement et non un mode à
-  // part. Coupée, la simulation n'obéit plus qu'à ce qu'on a saisi — c'est le
-  // but : « je regarde ce que ça donne, puis je fais ce que je veux ».
-  //
-  // ⚠️ **L'analyse ÉCRIT, elle ne recouvre pas.** Elle lit les kits une fois, pose
-  // ce qu'ils donnent DANS les grilles — exactement comme si on les avait
-  // remplies à la main — et s'arrête là. Ensuite tout est modifiable sans que
-  // rien ne repasse dessus. C'est ce qui remplace l'ancien « mode » vivant, où
-  // les valeurs affichées n'existaient nulle part et se recalculaient sans
-  // arrêt : impossible d'y toucher, et impossible de savoir ce qui venait de
-  // l'outil ou de soi.
-  //
-  // Ce drapeau ne dit qu'une chose : une analyse a déjà été appliquée. Il sert à
-  // la REJOUER quand on change un sort — le seul changement qui la rend fausse.
-  const [auto, setAuto] = useStickyState<boolean>('speedTune.auto', false);
-  // Affichage de la card « Ordre des sorts ». ⚠️ Ce n'est QUE de l'affichage :
-  // les sorts déjà choisis continuent de compter, refermer la card ne défait
-  // rien. Sinon ce serait un piège — on masque pour gagner de la place, pas pour
-  // annuler un réglage.
-  const [poussee, setPoussee] = useStickyState<boolean>('speedTune.poussee', true);
-  // Affichage de la card d'analyse — même mécanique que celle de l'ordre des
-  // sorts : ⚠️ replier n'annule rien, c'est de la place qu'on gagne, pas un
-  // réglage qu'on défait.
-  const [montrerAnalyse, setMontrerAnalyse] = useStickyState<boolean>('speedTune.montrer', true);
-  const [ordreVoulu, setOrdreVoulu] = useStickyState<string[]>('speedTune.ordre', []);
-  // ⚠️ Tant qu'on n'a rien rangé à la main, l'ordre voulu SUIT les vitesses :
-  // c'est le point de départ évident (« voilà l'ordre que tu as aujourd'hui »),
-  // et il se recale quand une vitesse change. Le premier ▲▼ le fige — à partir
-  // de là c'est un choix, et le réécrire serait une perte.
-  const [ordreRange, setOrdreRange] = useStickyState<boolean>('speedTune.ordreRange', false);
-  const [sortChoisi, setSortChoisi] = useStickyState<Record<string, string>>('speedTune.sorts', {});
-  // Le sort du SECOND tour, pour ceux dont la compétence leur rend leur tour
-  // (Kroa) : on ne devine pas ce qu'ils lancent ensuite, c'est à désigner.
-  const [sortChoisi2, setSortChoisi2] = useStickyState<Record<string, string>>('speedTune.sorts2', {});
-  // L'allié VISÉ par un sort qui n'en touche qu'un (S3 de Sapsaree). Vide = la
-  // barre la plus basse, le défaut du moteur.
-  const [cibleSort, setCibleSort] = useStickyState<Record<string, string>>('speedTune.cibles', {});
-
-  // Les données de kit sous la forme que la lib partagée attend.
-  const donneesKit = useMemo(() => ({ kits, sorts, passifs }), [kits, sorts, passifs]);
-
-  const entreeDe = (l: Ligne): EntreeAuto => ({
-    id: l.uid,
-    monster: l.monster,
-    runeSpeed: l.runeSpeed,
-    swift: l.swift,
-    sets: l.sets,
-    artefactBuff: l.artefactBuff,
-    cumulsPassif: l.cumulsPassif,
-    passifActif: l.passifActif,
-  });
-
-  // ⚠️ **Le compte de buffs se pose tout seul** (Chilling : +20 par buff porté).
-  // Sans ça, une équipe arrivée du siège affichait une vitesse différente ici et
-  // là-bas : le siège l'estimait, l'outil partait de zéro. On ne remplit qu'une
-  // case JAMAIS touchée — `undefined` ; une case vidée à la main (`null`) est un
-  // choix, et l'estimation ne repasse pas dessus.
-  useEffect(() => {
-    setLignes((prev) => {
-      let change = false;
-      const next = prev.map((l) => {
-        if (l.cumulsPassif !== undefined || l.masque) return l;
-        const p = passifDe(l);
-        if (!p?.gain?.parCumul) return l;
-        const camp = prev.filter((x) => x.camp === l.camp && !x.masque).map(entreeDe);
-        const n = cumulsEstimes(entreeDe(l), camp, donneesKit);
-        if (n <= 0) return l;
-        change = true;
-        return { ...l, cumulsPassif: n };
-      });
-      return change ? next : prev;
-    });
-  }, [lignes, donneesKit]);
-
-  // ⚠️ **Arrivée depuis le siège** (« voir le speed tune » sur une équipe) : le
-  // message est consommé UNE fois, à l'ouverture, et l'équipe est importée dans
-  // « Ton équipe ». On ne relance pas l'analyse tout seul — c'est un geste, et
-  // l'utilisateur vient peut-être régler autre chose d'abord.
-  const arrivee = useRef(false);
-  useEffect(() => {
-    if (arrivee.current) return;
-    const passe = prendreDeck();
-    if (!passe) return;
-    arrivee.current = true;
-    const teams = passe.source === 'defense' ? siegeDefenseTeams : siegeOffenseTeams;
-    const team = teams[Number(passe.teamId)] ?? teams.find((t) => t.id === passe.teamId);
-    if (team) importerDeck('allie', team);
-  }, [siegeDefenseTeams, siegeOffenseTeams]);
-
-  // ⚠️ Rien n'est écrit dans les lignes : ce qu'un monstre fait se DÉDUIT de son
-  // kit à l'affichage. Une valeur recopiée dans l'état aurait vieilli au premier
-  // changement de sort, et il aurait fallu la protéger de l'écrasement.
-  useEffect(() => {
-    const ids = [
-      ...new Set(
-        lignes.map((l) => l.monster.com2usId).filter((id): id is number => id != null && !kits.has(id))
-      ),
-    ];
-    if (ids.length === 0) return;
-    let annule = false;
-    Promise.all(
-      ids.map(
-        (id) => chargerDetail(id).then((d) => [id, kitVitesse(d), sortsVitesse(d), passifsVitesse(d)] as const)
-      )
-    ).then((paires) => {
-      if (annule) return;
-      setKits((prev) => new Map([...prev, ...paires.map(([id, kit]) => [id, kit] as const)]));
-      setSorts((prev) => new Map([...prev, ...paires.map(([id, , liste]) => [id, liste] as const)]));
-      setPassifs((prev) => new Map([...prev, ...paires.map(([id, , , ps]) => [id, ps] as const)]));
-    });
-    return () => {
-      annule = true;
-    };
-  }, [lignes, kits]);
-  const monsterById = useMemo(
-    () => new Map(allMonsters.map((m) => [String(m.id), m])),
-    [allMonsters]
-  );
-
-  // Decks importables : les équipes de siège du compte qui portent au moins un
-  // monstre connu. `cle` porte la source, jamais `team.id` seul — deux équipes
-  // de listes différentes peuvent partager un id (voir OptimizerSection.tsx).
-  const decks = useMemo<DeckDispo[]>(() => {
-    const out: DeckDispo[] = [];
-    const ajouter = (source: 'defense' | 'offense', teams: SiegeTeam[]) => {
-      teams.forEach((team, i) => {
-        const monstres = team.slots
-          .map((sl) => (sl.monsterId ? monsterById.get(sl.monsterId) : null))
-          .filter((m): m is Monster => !!m);
-        if (monstres.length === 0) return;
-        out.push({ cle: `${source}:${i}`, source, team, libelle: teamSummary(team, monsterById), monstres });
-      });
-    };
-    ajouter('defense', siegeDefenseTeams);
-    ajouter('offense', siegeOffenseTeams);
-    return out;
-  }, [siegeDefenseTeams, siegeOffenseTeams, monsterById]);
-
-  function ajouter(camp: Camp, id: string) {
-    const uid = uidDe(camp, id);
-    if (lignes.some((l) => l.uid === uid)) return;
-    const monster = allMonsters.find((m) => String(m.id) === id);
-    if (!monster) return;
-    setLignes((prev) => [
-      ...prev,
-      {
-        uid,
-        monster,
-        runeSpeed: null,
-        camp,
-        atbMod: {},
-        speedMod: {},
-        artefactBuff: null,
-        masque: false,
-      },
-    ]);
-  }
-  // Import d'un deck de siège dans un camp : le deck REMPLACE la composition de
-  // ce camp — un deck est une équipe, pas une liste de monstres à empiler. Sans
-  // ça, importer une deuxième défense entassait six monstres du même côté.
-  //
-  // ⚠️ **Ce qui était dans ce camp est perdu** (vitesses corrigées à la main,
-  // modificateurs, compétences retouchées). C'est le prix du geste demandé, et
-  // il ne touche QUE le camp visé : l'autre garde tout. Le deck reste dans
-  // Siège, réimportable à volonté.
-  //
-  // Les deux camps y ont droit : une défense de siège se joue aussi bien depuis
-  // l'autre bord, et c'est même là qu'on la connaît le mieux (on l'a affrontée).
-  function importerDeck(camp: Camp, team: SiegeTeam) {
-    const { monstres, lead } = deckPourSpeedTune(team, monsterById);
-    if (monstres.length === 0) return;
-    // ⚠️ Changer de deck OUBLIE l'analyse précédente : elle portait sur une autre
-    // composition, et la relancer toute seule écrirait par-dessus un réglage
-    // qu'on vient d'importer. On reclique quand on veut.
-    setAuto(false);
-    // ⚠️ **Les sorts choisis du camp s'en vont avec la composition.** Ils sont
-    // rangés par monstre (`camp:id`) et survivaient donc à un import : on
-    // rejouait le choix fait pour l'équipe PRÉCÉDENTE — y compris un sort qu'une
-    // version antérieure avait posé d'office. L'outil comptait alors un effet
-    // que le siège, lui, écarte : deux verdicts sur la même équipe.
-    const oublier = (m: Record<string, string>) =>
-      Object.fromEntries(Object.entries(m).filter(([uid]) => !uid.startsWith(`${camp}:`)));
-    setSortChoisi(oublier);
-    setSortChoisi2(oublier);
-    setCibleSort(oublier);
-    setLignes((prev) => [
-      // ⚠️ La référence saute AUSSI quand on importe dans l'autre camp : elle
-      // copiait une équipe qui vient de changer.
-      ...prev.filter((l) => l.camp !== camp && !l.reference),
-      ...monstres.map(({ monster, runeSpeed, artefactBuff, swift, sets }) => ({
-        uid: uidDe(camp, String(monster.id)),
-        monster,
-        runeSpeed,
-        camp,
-        atbMod: {},
-        speedMod: {},
-        artefactBuff,
-        swift,
-        sets,
-        // Les compétences se relisent dans le kit (voir l'effet plus haut).
-        masque: false,
-      })),
-    ]);
-    // Le lead du leader du deck, s'il vaut pour tout le camp (voir
-    // speedTuneDeck.ts).
-    //
-    // ⚠️ **Toujours écrit, « Sans » compris.** Un deck sans lead de vitesse
-    // laissait en place celui du deck précédent : on calculait la nouvelle
-    // équipe avec un +28 % qui n'existait plus, et le siège — qui lit `lead ?? 0`
-    // — répondait autre chose que l'outil sur la même compo. Importer un deck,
-    // c'est importer TOUT ce qui fait ses vitesses.
-    (camp === 'allie' ? setLeadAllie : setLeadEnnemi)(lead ?? 0);
-  }
-
-  // Analyse automatique : quand « En face » est VIDE, on n'a rien à devancer —
-  // l'outil se donne alors un adversaire de référence, la copie du monstre le
-  // plus rapide de l'équipe (même lead, même vitesse de runes). Autrement dit :
-  // « est-ce que toute mon équipe joue avant un monstre aussi rapide que mon
-  // plus rapide ? » — le point de départ d'un speed tune quand on ne sait pas
-  // encore qui on affronte. Le monstre est AJOUTÉ en face, donc réglable et
-  // retirable comme n'importe quel autre.
-  // Le monstre le plus rapide de l'équipe (visible, vitesse connue) : le modèle
-  // de l'adversaire de référence.
-  function plusRapideAllie(): Ligne | null {
-    const candidats = lignesVisibles
-      .filter((l) => l.camp === 'allie')
-      .map((l) => ({ l, combat: combatDe(l) }))
-      .filter((x): x is { l: Ligne; combat: number } => x.combat != null && x.combat > 0)
-      .sort((a, b) => b.combat - a.combat);
-    return candidats[0]?.l ?? null;
-  }
-
-  // La ligne « adversaire de référence » construite à partir d'un modèle allié.
-  function ligneReference(modele: Ligne): Ligne {
-    return {
-      uid: uidDe('ennemi', String(modele.monster.id)),
-      monster: modele.monster,
-      runeSpeed: modele.runeSpeed,
-      camp: 'ennemi',
-      atbMod: {},
-      speedMod: {},
-      artefactBuff: modele.artefactBuff,
-      swift: modele.swift,
-      // ⚠️ **Les sets ET le compte de buffs EFFECTIF**, pas seulement ce que le
-      // modèle porte dans son état : la référence vit dans l'autre camp, où
-      // l'estimation des buffs ne verrait qu'elle-même. Recopier le compte déjà
-      // calculé garantit qu'elle a exactement la vitesse de son modèle — sans
-      // quoi elle était plus lente, et l'équipe « passait » à tort.
-      sets: modele.sets,
-      cumulsPassif:
-        modele.cumulsPassif ??
-        cumulsEstimes(
-          entreeDe(modele),
-          lignesVisibles.filter((l) => l.camp === modele.camp).map(entreeDe),
-          donneesKit
-        ),
-      passifActif: modele.passifActif,
-      reference: true,
-      masque: false,
-    };
-  }
-
-  // `mods` : ce que l'analyse a écrit POUR la référence. Elle le porte dès sa
-  // création — une ligne posée sans ses modificateurs afficherait une grille qui
-  // ment sur ce qui est calculé.
-  function analyseAuto(mods?: { atbMod: ModParTick; speedMod: ModParTick }) {
-    const modele = plusRapideAllie();
-    if (!modele) return;
-    setLeadEnnemi(leadAllie); // même lead : on compare des vitesses comparables
-    const ref = { ...ligneReference(modele), ...(mods ?? {}) };
-    setLignes((prev) => [...prev.filter((l) => !l.reference && l.uid !== ref.uid), ref]);
-  }
-
-  function retirer(uid: string) {
-    setLignes((prev) => prev.filter((l) => l.uid !== uid));
-  }
-  function basculerMasque(uid: string) {
-    setLignes((prev) => prev.map((l) => (l.uid === uid ? { ...l, masque: !l.masque } : l)));
-  }
-  // ⚠️ Toute saisie sur une ligne lui retire le drapeau « référence » : à partir
-  // du moment où on la règle, elle n'est plus une copie qui suit l'équipe mais un
-  // adversaire à part entière — et l'écraser au prochain changement serait une
-  // perte de travail silencieuse.
-  const aLaMain = (l: Ligne): Ligne => (l.reference ? { ...l, reference: false } : l);
-
-  function setRuneSpeed(uid: string, v: number | null) {
-    setLignes((prev) => prev.map((l) => (l.uid === uid ? { ...aLaMain(l), runeSpeed: v } : l)));
-  }
-  function basculerPassif(uid: string) {
-    setLignes((prev) =>
-      prev.map((l) => (l.uid === uid ? { ...aLaMain(l), passifActif: l.passifActif === false } : l))
-    );
-  }
-  function setCumuls(uid: string, v: number | null) {
-    setLignes((prev) => prev.map((l) => (l.uid === uid ? { ...aLaMain(l), cumulsPassif: v } : l)));
-  }
-  function basculerSwift(uid: string) {
-    setLignes((prev) => prev.map((l) => (l.uid === uid ? { ...aLaMain(l), swift: !l.swift } : l)));
-  }
-  function setArtefact(uid: string, v: number | null) {
-    setLignes((prev) => prev.map((l) => (l.uid === uid ? { ...aLaMain(l), artefactBuff: v } : l)));
-  }
-
-  // Écrit une valeur dans la grille `champ`, pour un tick donné.
-  //
-  // ⚠️ **0 est une VALEUR, pas un effacement.** Une case à 0 annule ce que la
-  // compétence pose à ce tick — c'est tout l'intérêt : écarter un effet
-  // aléatoire (réduction d'ATB à 70 % de chances) dont un tune ne doit pas
-  // dépendre. Seule une case VIDE (`null`) rend la main à la compétence.
-  const majMap = (m: ModParTick, tick: number, v: number | null): ModParTick => {
-    const next = { ...m };
-    if (v == null) delete next[tick];
-    else next[tick] = v;
-    return next;
-  };
-  function setMod(champ: ChampMod, uid: string, tick: number, v: number | null) {
-    setLignes((prev) =>
-      prev.map((l) => (l.uid === uid ? { ...aLaMain(l), [champ]: majMap(l[champ], tick, v) } : l))
-    );
-  }
-  function setModEquipe(champ: ChampMod, camp: Camp, tick: number, v: number | null) {
-    setLignes((prev) => prev.map((l) => (l.camp === camp ? { ...l, [champ]: majMap(l[champ], tick, v) } : l)));
-  }
-
-  const leadDe = (camp: Camp) => (camp === 'allie' ? leadAllie : leadEnnemi);
-
-  // Vitesse de combat de base (base + runes + totem 15 % + lead) via speed.ts.
-  // `null` si la base est inconnue. Les buffs de vitesse sont appliqués PAR TICK
-  // dans la simulation, pas ici.
-  // Le passif de vitesse du monstre (le premier qui en porte un).
-  //
-  // ⚠️ **Ce n'est PAS une déduction de l'analyse, mais un réglage de la card** —
-  // comme le set Swift. Le bouton est donc là dès que le monstre a un passif qui
-  // touche la vitesse, analyse lancée ou non : c'est une propriété du monstre,
-  // pas une hypothèse sur le combat.
-  const passifDe = (l: Ligne): PassifVitesse | null => {
-    if (l.monster.com2usId == null) return null;
-    return (passifs.get(l.monster.com2usId) ?? []).find((p) => p.gain || p.inconnu || p.amplifieBuff) ?? null;
-  };
-
-  // ⚠️ **L'amplification des buffs d'un CAMP** (Miriam : « increasing effects …
-  // that allies receive by 35% »). C'est le même levier que l'artéfact « spd
-  // buff effect », mais porté par un monstre pour tout son camp : on l'AJOUTE
-  // donc au bonus d'artéfact de chacun, plutôt que d'ouvrir un second chemin
-  // dans le moteur — deux mécaniques pour un même effet finiraient par diverger.
-  //
-  // ⚠️ « The same skill effects do not stack » : deux Miriam ne se cumulent pas,
-  // on garde la plus forte.
-  const ampliDe = (camp: Camp): number => {
-    let max = 0;
-    for (const l of lignesVisibles) {
-      if (l.camp !== camp || !passifActifDe(l)) continue;
-      const a = passifDe(l)?.amplifieBuff;
-      if (a?.equipe && a.valeur > max) max = a.valeur;
-    }
-    return max;
-  };
-
-  // Actif par défaut : un passif est toujours en vigueur en jeu. On peut le
-  // couper pour voir ce que vaut le tune sans lui.
-  const passifActifDe = (l: Ligne): boolean => l.passifActif !== false;
-
-  const gainPassifDe = (l: Ligne): number => {
-    const p = passifDe(l);
-    if (!p?.gain || !passifActifDe(l)) return 0;
-    return pointsDeGain(p.gain, l.monster.stats.speed, l.cumulsPassif ?? 0);
-  };
-
-  const combatDe = (l: Ligne): number | null => {
-    const base = combatSpeed(l.monster.stats.speed, l.runeSpeed, leadDe(l.camp), l.swift ?? false);
-    return base == null ? null : base + gainPassifDe(l);
-  };
-
-  // Monstres visibles (non masqués) : seuls eux entrent dans les calculs et les
-  // tableaux. Les masqués restent affichés dans leur camp pour être réaffichés.
-  const lignesVisibles = useMemo(() => lignes.filter((l) => !l.masque), [lignes]);
-
-  // Le sort qu'un monstre lance à son tour. Hors analyse poussée (ou sans choix
-  // explicite), c'est celui que la lecture du kit a retenu ; en analyse poussée,
-  // celui qu'on lui a désigné — '' voulant dire « il ne lance rien de tout ça ».
-  const sortsDe = (l: Ligne): SortVitesse[] =>
-    (l.monster.com2usId != null ? sorts.get(l.monster.com2usId) : null) ?? [];
-
-  // Le sort effectivement lancé au premier tour. Hors analyse poussée, c'est
-  // celui que la lecture du kit a retenu ; en analyse poussée, celui qu'on a
-  // désigné — '' voulant dire « il ne lance rien de tout ça ».
-  // ⚠️ **Plus rien n'est deviné à la volée** : le sort lancé est celui qui a été
-  // ÉCRIT (par l'analyse, ou à la main dans l'ordre des sorts). Sans écriture,
-  // le monstre ne lance rien — l'outil ne suppose pas à la place de qui règle.
-  const sortActif = (l: Ligne, choix: Record<string, string> = sortChoisi): SortVitesse | null => {
-    const nom = choix[l.uid];
-    if (!nom) return null;
-    return sortsDe(l).find((x) => x.nom === nom) ?? null;
-  };
-
-  // Ce que la lecture du kit retient pour ce monstre.
-  //
-  // ⚠️ **La MÊME sélection que la lib** (`sortRetenu`), pas une seconde règle :
-  // l'écran choisissait « le sort qui remplit la barre du camp, sinon celui qui
-  // la buffe » et ignorait donc un sort qui se buffe soi-même ET rend son tour
-  // (Power of Mirkwood, Legolas). Le siège et l'outil désignaient alors des
-  // sorts différents pour le même monstre — donc deux verdicts.
-  const sortAuto = (l: Ligne): SortVitesse | null => sortRetenu(entreeDe(l), donneesKit);
-
-  // Le second sort : celui qu'on a désigné, sinon celui que la lib retiendrait —
-  // sans quoi un monstre qui rejoue passait son tour supplémentaire à ne rien
-  // faire dans l'outil, et à agir au siège.
-  const sortSecond = (l: Ligne): SortVitesse | null => {
-    const choisi = sortChoisi2[l.uid];
-    if (choisi !== undefined) return sortsDe(l).find((x) => x.nom === choisi) ?? null;
-    return sortSecondRetenu(entreeDe(l), donneesKit);
-  };
-
-  // Entrée du moteur : les monstres visibles dont la vitesse est connue.
-  // Partagée par la simulation ET par le diagnostic de chaîne.
-  const tune = useMemo(() => {
-    const out: TuneMonstre[] = [];
-    for (const l of lignesVisibles) {
-      const c = combatDe(l);
-      const actif = sortActif(l);
-      if (c != null && c > 0)
-        out.push({
-          id: l.uid,
-          combat: c,
-          camp: l.camp,
-          atbMod: l.atbMod,
-          speedMod: l.speedMod,
-          // ⚠️ L'amplification d'un allié (Miriam) entre ICI AUSSI, pas seulement
-          // dans la simulation de l'analyse : c'est ce tune-là qui alimente les
-          // tableaux et le verdict. L'oublier faisait un outil qui tenait compte
-          // de Miriam pour écrire dans les grilles, mais pas pour dire si le
-          // combo passe — deux réponses différentes sur le même écran.
-          artefactBuff: (l.artefactBuff ?? 0) + ampliDe(l.camp),
-          // Le rechargement voyage avec l'effet : c'est lui qui dit à quelle
-          // fréquence le sort peut repartir (voir speedTune.ts).
-          sort: actif ? { ...actif.effet, cooldown: actif.cooldown } : undefined,
-          rejoue: actif?.rejoue ?? false,
-          sort2: actif?.rejoue
-            ? (() => {
-                const second = sortSecond(l);
-                return second ? { ...second.effet, cooldown: second.cooldown } : undefined;
-              })()
-            : undefined,
-        });
-    }
-    return out;
-  }, [lignes, leadAllie, leadEnnemi, auto, sortChoisi, sortChoisi2, cibleSort, sorts, kits, passifs]);
-
-  // Simulation multi-tours (40 ticks) avec les modificateurs.
-  const sim = useMemo(() => simuler(tune, HORIZON_TICKS), [tune]);
-
-  // L'ANALYSE : elle lit les kits, puis POSE le résultat dans les grilles, comme
-  // si on les avait remplies à la main. Après quoi elle ne repasse plus.
-  //
-  // ⚠️ **Tout le calcul vient de `analyseAutomatique`** (lib/speedTuneAuto.ts),
-  // celui-là même qu'utilise la card de siège. L'écran avait sa propre pipeline :
-  // deux chemins pour une même question, et ils ont fini par se contredire — une
-  // équipe déclarée « pas speed tune » au siège et « speed tune » dans l'outil.
-  // Un seul calcul, une seule réponse.
-  function analyser() {
-    // ⚠️ **L'analyse remplit AUSSI l'ordre des sorts** : elle y pose l'ordre que
-    // les vitesses produisent et, pour chacun, le sort que son kit a retenu.
-    // Un sort déjà CHOISI n'est jamais réécrit (sinon le choix se
-    // réinitialiserait sous les doigts, la relance étant déclenchée par le
-    // changement lui-même) ; une chaîne vide est un choix, pas une absence.
-    //
-    // ⚠️ **L'adversaire de RÉFÉRENCE est écarté** : dans la lib il ne lance
-    // rien — c'est un repère de vitesse, pas un monstre qui joue son kit. Lui
-    // donner un sort ici aurait suffi à faire diverger les deux écrans.
-    const choix: Record<string, string> = { ...sortChoisi };
-    for (const l of lignesVisibles) {
-      if (l.reference || choix[l.uid] !== undefined) continue;
-      const detecte = sortAuto(l);
-      if (detecte) choix[l.uid] = detecte.nom;
-    }
-    setSortChoisi(choix);
-
-    const allies = lignesVisibles.filter((l) => l.camp === 'allie');
-    // ⚠️ **Les sorts DÉSIGNÉS passent à l'analyse**, et l'adversaire de référence
-    // porte l'identifiant de SA ligne : sans ça, ce que l'analyse lui écrivait
-    // n'atterrissait nulle part, et la grille montrait autre chose que ce qui
-    // était calculé. Un modificateur invisible mais appliqué est la pire erreur
-    // possible ici — on ne peut plus vérifier un seul chiffre de l'écran.
-    const modele = plusRapideAllie();
-    const uidRef = modele ? uidDe('ennemi', String(modele.monster.id)) : undefined;
-    const resultat = analyseAutomatique(allies.map(entreeDe), leadAllie, donneesKit, {
-      choix: { sort: choix, sort2: sortChoisi2, cible: cibleSort },
-      idReference: uidRef,
-    });
-
-    if (!ordreRange) {
-      const parVitesse = resultat.ordre.map((a) => a.id);
-      const ids = allies.map((l) => l.uid);
-      setOrdreVoulu([
-        ...parVitesse.filter((id) => ids.includes(id)),
-        ...ids.filter((id) => !parVitesse.includes(id)),
-      ]);
-    }
-    // Ce qu'on vient d'écrire ne doit pas déclencher une relance en boucle.
-    premiereSignature.current = JSON.stringify([choix, sortChoisi2]);
-
-    setAuto(true);
-    setLignes((prev) =>
-      prev.map((l) => {
-        const mods = resultat.mods.get(l.uid);
-        return mods ? { ...l, atbMod: mods.atbMod, speedMod: mods.speedMod } : l;
-      })
-    );
-
-    // ⚠️ **L'adversaire de référence est REPOSÉ à chaque analyse**, sur le plus
-    // rapide du MOMENT : un passif appliqué (Chilling, +20 par buff) change qui
-    // l'est, et une référence figée comparait l'équipe à un monstre qui ne
-    // l'était plus. Un VRAI adversaire, lui, n'est jamais remplacé — c'est une
-    // composition qu'on affronte, pas un repère.
-    const vraiEnnemi = lignesVisibles.some((l) => l.camp === 'ennemi' && !l.reference);
-    if (!vraiEnnemi || toujoursReference) analyseAuto(resultat.mods.get(uidRef ?? ''));
-  }
-
-  // ⚠️ Le SEUL changement qui rende une analyse fausse : le sort lancé. Tout le
-  // reste (vitesses, artéfacts, cases des grilles) est un réglage de
-  // l'utilisateur, et l'automatisation n'y revient jamais.
-  const sortsSignature = JSON.stringify([sortChoisi, sortChoisi2]);
-  const premiereSignature = useRef(sortsSignature);
-  useEffect(() => {
-    if (!auto || premiereSignature.current === sortsSignature) {
-      premiereSignature.current = sortsSignature;
-      return;
-    }
-    premiereSignature.current = sortsSignature;
-    analyser();
-  }, [sortsSignature, auto]);
-
-  // Chaîne d'ouverture : toute l'équipe joue-t-elle avant le premier adverse ?
-  // Et sinon, quelle vitesse de combat faut-il à ceux qui sont coupés.
-  const chaine = useMemo(() => diagnostiquerChaine(tune, HORIZON_TICKS), [tune]);
-  const requis = useMemo(
-    () => (chaine.ok ? [] : vitessesRequises(tune, HORIZON_TICKS)),
-    [tune, chaine]
-  );
-  // L'AUTRE levier quand un buff de vitesse est en jeu : monter l'artéfact
-  // « Effet aug. VIT », qui l'amplifie. Vide s'il n'y a rien à en attendre.
-  const arteRequis = useMemo(
-    () => (chaine.ok ? [] : artefactsRequis(tune, HORIZON_TICKS)),
-    [tune, chaine]
-  );
-
-  // Premiers tours (ordre de tour) et numéro d'action par (monstre, tick).
-  const premiers = useMemo(() => premiersTours(sim), [sim]);
-  const numAction = useMemo(() => {
-    const m = new Map<string, number>();
-    // ⚠️ Un tour RENDU tombe au même tick que celui qui l'a déclenché : on garde
-    // le premier, c'est lui que la case du tableau annonce.
-    for (const a of sim.actions) {
-      const cle = `${a.id}@${a.tick}`;
-      if (!m.has(cle)) m.set(cle, a.ordre);
-    }
-    return m;
-  }, [sim]);
-
-  // Lignes du tableau des barres, triées par ordre de PREMIER tour (celles qui
-  // n'agissent jamais en fin de liste), pour lire l'enchaînement de haut en bas.
-  const lignesTableau = useMemo(() => {
-    const rang = new Map(premiers.map((a, i) => [a.id, i]));
-    return [...sim.lignes].sort(
-      (a, b) => (rang.get(a.id) ?? Infinity) - (rang.get(b.id) ?? Infinity)
-    );
-  }, [sim, premiers]);
-
-  const ligneParUid = useMemo(() => new Map(lignes.map((l) => [l.uid, l])), [lignes]);
-
-  // L'ordre voulu suit la composition : un allié ajouté entre à la fin, un allié
-  // retiré en sort. ⚠️ Il n'est PAS réordonné tout seul ensuite — c'est le choix
-  // de l'utilisateur, pas un reflet de la simulation.
-  const alliesVisibles = useMemo(
-    () => lignesVisibles.filter((l) => l.camp === 'allie').map((l) => l.uid),
-    [lignesVisibles]
-  );
-  useEffect(() => {
-    if (!ordreRange) {
-      // Ordre des vitesses : celui que la simulation produit aujourd'hui, les
-      // alliés qui n'agissent pas (vitesse inconnue) à la fin.
-      const parVitesse = premiers.filter((a) => a.camp === 'allie').map((a) => a.id);
-      const attendu = [
-        ...parVitesse.filter((id) => alliesVisibles.includes(id)),
-        ...alliesVisibles.filter((id) => !parVitesse.includes(id)),
-      ];
-      if (attendu.join('|') !== ordreVoulu.join('|')) setOrdreVoulu(attendu);
-      return;
-    }
-    const garde = ordreVoulu.filter((id) => alliesVisibles.includes(id));
-    const manquants = alliesVisibles.filter((id) => !garde.includes(id));
-    if (manquants.length === 0 && garde.length === ordreVoulu.length) return;
-    setOrdreVoulu([...garde, ...manquants]);
-  }, [alliesVisibles, ordreVoulu, setOrdreVoulu, ordreRange, premiers]);
-
-  // Verdict de l'analyse poussée : l'ordre est-il tenu, et quelle FENÊTRE de
-  // vitesse laisse chaque rang (un rang se rate aussi en étant trop rapide).
-  const sequence = useMemo(
-    () => diagnostiquerSequence(tune, ordreVoulu, HORIZON_TICKS),
-    [tune, ordreVoulu]
-  );
-  const fenetres = useMemo(
-    () => fenetresRequises(tune, ordreVoulu, HORIZON_TICKS),
-    [tune, ordreVoulu]
-  );
-  // Le même calcul sur l'autre levier : l'artéfact qui amplifie le buff reçu.
-  const fenetresArte = useMemo(
-    () => fenetresRequises(tune, ordreVoulu, HORIZON_TICKS, 'artefactBuff'),
-    [tune, ordreVoulu]
-  );
-  const fenetreParUid = useMemo(() => new Map(fenetres.map((f) => [f.id, f])), [fenetres]);
-  const fenetreArteParUid = useMemo(() => new Map(fenetresArte.map((f) => [f.id, f])), [fenetresArte]);
-  const problemeParUid = useMemo(
-    () => new Map(sequence.problemes.map((p) => [p.id, p])),
-    [sequence]
-  );
-
-  // Ce qu'il manque à un monstre, en une pastille : les points de vitesse de
-  // runes, ou — si un buff de vitesse court sur son camp — les points d'artéfact
-  // « Effet aug. VIT » qui feraient la même chose. Rien d'autre.
   function besoin(l: Ligne, combatCible: number | null, arteCible: number | null, arteActuel: number) {
     const runes = combatCible == null ? null : runesPour(l, combatCible);
     const arte = arteCible == null ? null : arteCible - arteActuel;
@@ -883,58 +312,6 @@ export default function SpeedTuningSection({ allMonsters, siegeDefenseTeams, sie
   // La borne à viser sur une fenêtre, ou `null` si la vitesse actuelle la tient
   // déjà — et `undefined` si la fenêtre est VIDE (les bornes se croisent : on ne
   // s'en sortira pas sans toucher aux autres).
-  function cibleFenetre(f: Fenetre | undefined): number | null | undefined {
-    if (!f) return undefined;
-    if (f.min == null || f.max == null || f.min > f.max) return undefined;
-    if (f.combatActuel < f.min) return f.min;
-    if (f.combatActuel > f.max) return f.max;
-    return null;
-  }
-
-  function choisirSort(uid: string, valeur: string) {
-    setSortChoisi((prev) => {
-      const next = { ...prev };
-      if (valeur === '__auto') delete next[uid];
-      else next[uid] = valeur;
-      return next;
-    });
-  }
-
-  // L'allié visé par un sort mono-cible. '' = le défaut (barre la plus basse).
-  function choisirCible(uid: string, valeur: string) {
-    setCibleSort((prev) => ({ ...prev, [uid]: valeur }));
-  }
-
-  function choisirSecond(uid: string, valeur: string) {
-    setSortChoisi2((prev) => {
-      const next = { ...prev };
-      if (valeur === '') delete next[uid];
-      else next[uid] = valeur;
-      return next;
-    });
-  }
-
-  function deplacer(uid: string, sens: -1 | 1) {
-    setOrdreRange(true); // à partir d'ici, l'ordre est un CHOIX : il ne suit plus les vitesses
-    setOrdreVoulu((prev) => {
-      const i = prev.indexOf(uid);
-      const j = i + sens;
-      if (i < 0 || j < 0 || j >= prev.length) return prev;
-      const next = [...prev];
-      [next[i], next[j]] = [next[j], next[i]];
-      return next;
-    });
-  }
-
-  const requisParUid = useMemo(() => new Map(requis.map((r) => [r.id, r])), [requis]);
-  const arteParUid = useMemo(() => new Map(arteRequis.map((r) => [r.id, r])), [arteRequis]);
-  const nomDe = (uid: string) => ligneParUid.get(uid)?.monster.name ?? '?';
-  // Vitesse de runes qu'il MANQUE pour atteindre une vitesse de combat cible.
-  const runesPour = (l: Ligne, combatCible: number): number | null => {
-    const besoin = runeSpeedForTarget(l.monster.stats.speed, leadDe(l.camp), combatCible, false);
-    return besoin == null ? null : besoin - (l.runeSpeed ?? 0);
-  };
-
   // Défilement horizontal SYNCHRONISÉ entre les trois tableaux : bouger l'un
   // aligne les deux autres, pour que la colonne d'un tick reste sous la même.
   const conteneurs = useRef<HTMLDivElement[]>([]);
@@ -948,24 +325,6 @@ export default function SpeedTuningSection({ allMonsters, siegeDefenseTeams, sie
     }
   };
 
-  // Regroupement par tick NATUREL (vitesse seule, sans modificateur) pour poser
-  // le portrait dans la case du repère qui correspond à la vitesse du monstre.
-  const parTick = useMemo(() => {
-    const map = new Map<number, Ligne[]>();
-    for (const l of lignesVisibles) {
-      const c = combatDe(l);
-      if (c == null || c <= 0) continue;
-      const n = Math.ceil(10000 / (7 * c));
-      (map.get(n) ?? map.set(n, []).get(n)!).push(l);
-    }
-    return map;
-  }, [lignes, leadAllie, leadEnnemi]);
-
-  const rien = lignes.length === 0;
-  const rienVisible = lignesVisibles.length === 0;
-  // Grilles et repère ne comptent que les visibles.
-  const aAllie = lignesVisibles.some((l) => l.camp === 'allie');
-  const aEnnemi = lignesVisibles.some((l) => l.camp === 'ennemi');
 
   return (
     <div className="space-y-4">

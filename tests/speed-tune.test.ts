@@ -28,6 +28,19 @@ import { deckPourSpeedTune } from '../src/lib/speedTuneDeck';
 import { kitVitesse, sortsVitesse, SortVitesse, BUFF_SPD_JEU } from '../src/lib/speedTuneKit';
 import { passifsVitesse, pointsDeGain } from '../src/lib/speedTunePassif';
 import {
+  Ligne,
+  ampliDe,
+  appliquerMods,
+  combatDe as combatDeLigne,
+  estimerCumuls,
+  ligneReference,
+  ligneVierge,
+  majMod,
+  oublierCamp,
+  plusRapideAllie,
+  tuneDe,
+} from '../src/lib/speedTuneLignes';
+import {
   analyseAutomatique,
   cumulsEstimes,
   sortRetenu,
@@ -1599,5 +1612,148 @@ export function testSpeedTuneAuto() {
     const r = analyseAutomatique([], 0, vide);
     egal(r.reference, null, 'aucune référence sans équipe');
     ok(r.verdict.ok, 'et rien à signaler');
+  }
+}
+
+/* ------------------------------------- Modèle de l'écran (lignes) -------- */
+
+// ⚠️ Ce que l'écran calculait AVANT dans le composant, donc sans filet. Les deux
+// écarts entre le siège et l'outil venaient d'ici : un `TuneMonstre` construit
+// deux fois, et une estimation de buffs qui ne voyait pas le bon camp.
+export function testSpeedTuneModele() {
+  titre('Speed tuning — modèle de l’écran');
+
+  const monstre = (id: number, nom: string, spd: number): Monster =>
+    ({ id, com2usId: id, name: nom, stats: { speed: spd } }) as unknown as Monster;
+  const vide: DonneesKit = { kits: new Map(), sorts: new Map(), passifs: new Map() };
+  const leads = { allie: 28, ennemi: 0 };
+
+  // `uid = camp:id` : le même monstre peut tenir les deux camps.
+  {
+    const m = monstre(1, 'Bella', 100);
+    egal(ligneVierge(m, 'allie').uid, 'allie:1', "l'identifiant porte le camp");
+    egal(ligneVierge(m, 'ennemi').uid, 'ennemi:1', 'et le même monstre en face a le sien');
+  }
+
+  // Une case de grille : 0 est une VALEUR, seul `null` efface.
+  {
+    egal(JSON.stringify(majMod({}, 3, 40)), '{"3":40}', 'une valeur s’écrit');
+    egal(JSON.stringify(majMod({ 3: 40 }, 3, 0)), '{"3":0}', '0 reste — il ANNULE le sort, il n’efface pas');
+    egal(JSON.stringify(majMod({ 3: 40 }, 3, null)), '{}', 'seul le vide efface');
+  }
+
+  // ⚠️ L'entrée du moteur : un seul constructeur, et il n'oublie personne.
+  {
+    const miriam: Ligne = {
+      ...ligneVierge(monstre(25812, 'Miriam', 103), 'allie'),
+      runeSpeed: 100,
+    };
+    const allie: Ligne = { ...ligneVierge(monstre(2, 'Allié', 100), 'allie'), runeSpeed: 120 };
+    const donnees: DonneesKit = {
+      kits: new Map(),
+      sorts: new Map(),
+      passifs: new Map([
+        [
+          25812,
+          [
+            {
+              nom: 'Blacksmith',
+              texte: '',
+              amplifieBuff: { valeur: 35, equipe: true },
+              gain: null,
+              buff: false,
+              barre: null,
+              tourSupp: false,
+              inconnu: false,
+            },
+          ],
+        ],
+      ]),
+    };
+    const lignes = [miriam, allie];
+    egal(ampliDe(lignes, 'allie', donnees), 35, "l'amplification de Miriam vaut pour son camp");
+    egal(ampliDe(lignes, 'ennemi', donnees), 0, "et pas pour l'autre");
+    const tune = tuneDe(lignes, leads, donnees, {});
+    egal(
+      tune.every((m) => m.artefactBuff === 35),
+      true,
+      'TOUS les alliés la reçoivent dans l’entrée du moteur — la moitié seulement, et les deux écrans divergent'
+    );
+  }
+
+  // Le plus rapide, et la référence qui le copie.
+  {
+    const lent: Ligne = { ...ligneVierge(monstre(3, 'Lent', 100), 'allie'), runeSpeed: 50 };
+    const vif: Ligne = {
+      ...ligneVierge(monstre(4, 'Vif', 100), 'allie'),
+      runeSpeed: 150,
+      swift: true,
+      sets: ['swift', 'will'],
+      artefactBuff: 12,
+    };
+    const lignes = [lent, vif];
+    egal(plusRapideAllie(lignes, leads, vide)?.uid, 'allie:4', 'le plus rapide est repéré');
+    const ref = ligneReference(vif, lignes, vide);
+    egal(ref.camp, 'ennemi', 'la référence se pose en face');
+    egal(ref.reference, true, 'et se signale comme telle');
+    egal(ref.runeSpeed, 150, 'elle copie la vitesse de runes');
+    egal(ref.artefactBuff, 12, "l'artéfact");
+    egal(JSON.stringify(ref.sets), '["swift","will"]', 'et les sets — sans quoi elle serait plus lente que son modèle');
+  }
+
+  // Ce que l'analyse écrit atterrit bien sur les lignes.
+  {
+    const l: Ligne = ligneVierge(monstre(5, 'Cible', 100), 'allie');
+    const mods = new Map([['allie:5', { atbMod: { 6: 45 }, speedMod: { 7: 30 } }]]);
+    const [apres] = appliquerMods([l], mods);
+    egal(JSON.stringify(apres.atbMod), '{"6":45}', 'la grille des barres reçoit ce qui a été calculé');
+    egal(JSON.stringify(apres.speedMod), '{"7":30}', 'et celle des buffs aussi');
+  }
+
+  // Les sorts d'un camp s'en vont avec sa composition.
+  {
+    const choix = { 'allie:1': 'A', 'ennemi:2': 'B' };
+    egal(JSON.stringify(oublierCamp(choix, 'allie')), '{"ennemi:2":"B"}', "l'import d'un deck oublie les sorts du camp");
+  }
+
+  // Une vitesse de combat inconnue (base absente) ne casse rien.
+  {
+    const sansBase: Ligne = ligneVierge({ id: 9, com2usId: 9, name: '?', stats: {} } as unknown as Monster, 'allie');
+    egal(combatDeLigne(sansBase, 0, vide), null, 'pas de base → pas de vitesse, et surtout pas 0');
+    egal(tuneDe([sansBase], leads, vide, {}).length, 0, 'il est écarté du moteur');
+  }
+
+  // L'estimation des buffs ne touche pas une case déjà remplie.
+  {
+    const chilling: Ligne = {
+      ...ligneVierge(monstre(20711, 'Chilling', 101), 'allie'),
+      runeSpeed: 100,
+      sets: ['will'],
+      cumulsPassif: 1,
+    };
+    const donnees: DonneesKit = {
+      kits: new Map(),
+      sorts: new Map(),
+      passifs: new Map([
+        [
+          20711,
+          [
+            {
+              nom: 'The Cunning',
+              texte: '',
+              amplifieBuff: null,
+              gain: { valeur: 20, pourcent: false, plafond: null, parCumul: true, releve: true },
+              buff: false,
+              barre: null,
+              tourSupp: false,
+              inconnu: false,
+            },
+          ],
+        ],
+      ]),
+    };
+    egal(estimerCumuls([chilling], donnees)[0].cumulsPassif, 1, 'un compte saisi reste intact');
+    const vierge = { ...chilling, cumulsPassif: undefined };
+    egal(estimerCumuls([vierge], donnees)[0].cumulsPassif, 1, "une case jamais touchée reçoit l'estimation (Volonté)");
   }
 }

@@ -482,6 +482,19 @@ Le cœur de l'outil, dans `simulerOrdre` (speedTune.ts), **testé**
 
 ## Écran
 
+⚠️ **L'écran ne calcule rien.** `SpeedTuningSection.tsx` ne contient que du
+rendu ; toute la logique est ailleurs, et c'est ce qui garantit que l'outil et
+le siège répondent la MÊME chose :
+
+- `lib/speedTuneLignes.ts` — le modèle, pur et testé : la `Ligne` (un monstre
+  posé dans un camp), sa vitesse de combat, son sort actif, la **seule**
+  fabrique de l'entrée du moteur (`tuneDe` — c'est là, et nulle part ailleurs,
+  qu'on ajoute un champ comme l'amplification de Miriam, sinon un des deux
+  écrans l'oublie), la référence copiée sur le plus rapide, l'écriture des
+  résultats dans les grilles, l'oubli d'un camp à l'import d'un deck.
+- `hooks/useSpeedTune.ts` — l'état (persistant), les actions et les dérivées.
+  Ne rend aucun JSX.
+
 De haut en bas :
 
 1. **Repère des ticks** — bandeau : la vitesse de combat mini pour agir à chaque

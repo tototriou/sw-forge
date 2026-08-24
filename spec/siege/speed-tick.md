@@ -45,6 +45,13 @@ combat = base + runes + ceil( base × (15 + lead) / 100 )
 - Migration : l'ancien tick d'équipe est repris comme tick par défaut de chaque
   slot au chargement.
 
+⚠️ **La vitesse de combat affichée est celle de l'outil** (`combatAuto`) : elle
+ajoute au calcul de base (runes + lead + Swift) le **gain du passif** du monstre —
+Shumar +15 en permanence, Chilling +20 par buff porté. Le siège les ignorait, et
+montrait donc un nombre que l'outil corrigeait aussitôt : deux vitesses pour un
+même monstre selon l'écran. La carte compacte et la carte dépliée lisent
+maintenant la même valeur, calculée une seule fois.
+
 ## Aura de statut (au tick / à corriger)
 
 > ⚠️ **Conditionnée au mode « Vérifier mes tick ATB »** (bouton de la barre

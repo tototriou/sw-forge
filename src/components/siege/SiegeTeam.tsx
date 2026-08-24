@@ -16,7 +16,7 @@ import MonsterPicker from '../MonsterPicker';
 import ElementIcon from '../ElementIcon';
 import RuneIcon from '../RuneIcon';
 import MonsterGear from '../MonsterGear';
-import { analyseAutomatique, EntreeAuto } from '../../lib/speedTuneAuto';
+import { analyseAutomatique, combatAuto, EntreeAuto } from '../../lib/speedTuneAuto';
 import { deckPourSpeedTune } from '../../lib/speedTuneDeck';
 import { useDonneesKit } from '../../hooks/useDonneesKit';
 import NumberField from '../../ui/NumberField';
@@ -112,14 +112,44 @@ export default function SiegeTeam({
   //  - vert   : au tick (aucun monstre mal calé) OU recommandation ignorée
   //  - orange : pas au tick mais les monstres hors-tick sont en Swift (on veut du speed)
   //  - rouge  : pas au tick et pas en Swift → à corriger
-  const slotInfos = team.slots.map((slot) => {
+  const donneesKitSlots = useDonneesKit(
+    team.slots.map((sl) => (sl.monsterId ? (monsterById.get(sl.monsterId) ?? null) : null))
+  );
+
+  // ⚠️ **La MÊME vitesse de combat que l'outil**, `combatAuto` : elle ajoute au
+  // calcul de base (runes + lead + Swift) le **gain du passif** du monstre —
+  // Shumar +15 en permanence, Chilling +20 par buff porté. Le siège les ignorait,
+  // et affichait donc une vitesse que l'outil corrigeait aussitôt : deux nombres
+  // pour un même monstre, sur deux écrans.
+  const slotInfos = team.slots.map((slot, i) => {
     const m = slot.monsterId ? monsterById.get(slot.monsterId) ?? null : null;
-    // Le Swift entre dans la SOMME des %, il ne s'ajoute pas à côté (voir speed.ts).
-    const swift = (slot.sets ?? []).includes('swift');
-    const combat = m
-      ? combatSpeed(m.stats.speed, slot.runeSpeed, siegeLeadFor(leadInfo, m.element), swift)
-      : null;
-    return { monster: m, combat };
+    if (!m) return { monster: null, combat: null };
+    const entree: EntreeAuto = {
+      id: `${i}`,
+      monster: m,
+      runeSpeed: slot.runeSpeed,
+      // Le Swift entre dans la SOMME des %, il ne s'ajoute pas à côté (voir speed.ts).
+      swift: (slot.sets ?? []).includes('swift'),
+      sets: slot.sets ?? [],
+    };
+    const equipe = team.slots.flatMap((sl, j) => {
+      const autre = sl.monsterId ? monsterById.get(sl.monsterId) : null;
+      return autre
+        ? [
+            {
+              id: `${j}`,
+              monster: autre,
+              runeSpeed: sl.runeSpeed,
+              swift: (sl.sets ?? []).includes('swift'),
+              sets: sl.sets ?? [],
+            } as EntreeAuto,
+          ]
+        : [];
+    });
+    return {
+      monster: m,
+      combat: combatAuto(entree, siegeLeadFor(leadInfo, m.element), donneesKitSlots, equipe),
+    };
   });
   const slotDangers = slotInfos.map(({ combat }) => tickDanger(combat));
   const hasMonsters = slotInfos.some((s) => s.monster);
@@ -138,7 +168,7 @@ export default function SiegeTeam({
   // la réponse ici doit être EXACTEMENT celle qu'on obtiendrait en ouvrant le
   // speed tuning et en cliquant sur « Analyser ». Deux implémentations auraient
   // donné deux verdicts sur la même équipe.
-  const donneesKit = useDonneesKit(slotInfos.map((x) => x.monster));
+  const donneesKit = donneesKitSlots;
 
   // ⚠️ **Les mêmes ENTRÉES que l'outil**, pas des entrées reconstruites : on
   // passe par `deckPourSpeedTune`, la fonction qu'il utilise lui-même pour
@@ -340,6 +370,7 @@ export default function SiegeTeam({
                 idx={idx}
                 isLeader={idx === 0}
                 leadInfo={leadInfo}
+                combat={slotInfos[idx].combat}
                 monsters={monsters}
                 usedIds={usedIds}
                 onPick={(id) => onPickMonster(team.id, idx, id)}
@@ -637,6 +668,10 @@ interface SlotProps {
   idx: number;
   isLeader: boolean;
   leadInfo: LeadInfo | null;
+  // ⚠️ La vitesse de combat vient du PARENT, qui la calcule comme l'outil
+  // (`combatAuto`, passif compris). La recalculer ici en repartait sans le
+  // passif : la carte dépliée affichait un autre nombre que la carte compacte.
+  combat: number | null;
   monsters: Monster[];
   usedIds: Set<string>;
   onPick: (id: string) => void;
@@ -654,6 +689,7 @@ function SlotContent({
   idx,
   isLeader,
   leadInfo,
+  combat,
   monsters,
   usedIds,
   onPick,
@@ -693,7 +729,6 @@ function SlotContent({
 
   const base = monster.stats.speed;
   const lead = siegeLeadFor(leadInfo, monster.element);
-  const combat = combatSpeed(base, slot.runeSpeed, lead, (slot.sets ?? []).includes('swift'));
   const tick = slot.tick;
 
   // Écart au tick : négatif = il manque de la vitesse, positif = surplus.

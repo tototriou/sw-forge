@@ -318,6 +318,21 @@ Détecté dans le kit par l'effet `Additional Turn` (`rejoue` sur `SortVitesse`)
   ne bougent pas.
 - Dans le tableau des barres, la case du tick garde le badge du **premier** tour.
 
+### Rechargement des compétences
+
+⚠️ **Un sort ne repart pas à chaque tour.** Le rechargement (`cooldown` sur
+`EffetSort`) se compte en **tours du lanceur** : un sort à 3 tours lancé à son
+premier tour ne revient qu'au quatrième — entre les deux, le monstre joue autre
+chose (son S1, dont on ne sait rien, donc rien du tout). Sans ça, la simulation
+relançait le S3 à **chaque** tour et l'équipe montait bien plus vite qu'en jeu.
+
+- La valeur retenue est celle de la compétence **MAXÉE** (`paliersRechargement`,
+  dernier palier) : même convention que le gain de barre, on joue maxé.
+- Le premier tour n'est jamais bloqué : c'est le tour qui compte pour l'ouverture,
+  et c'est celui que le verdict regarde.
+- Le menu de l'analyse poussée annonce le rechargement (« recharge 3 tours »).
+- Le **second sort** d'un monstre qui rejoue a son propre rechargement.
+
 ## Règle « un seul monstre par tick »
 
 Le cœur de l'outil, dans `simulerOrdre` (speedTune.ts), **testé**
@@ -396,8 +411,8 @@ De haut en bas :
 
    Le bouton est **désactivé** sans équipe, ou quand « En face » porte un
    **vrai** adversaire (l'analyse s'y recalcule à chaque changement, il n'y a
-   rien à relancer). Une référence seule ne le désactive pas : c'est ce qui
-   permet de la reposer après un changement d'équipe.
+   rien à relancer). Une référence seule ne le désactive pas : c'est ce qui permet de la
+   reposer après un changement d'équipe.
 4. **Analyse poussée** (repliée par défaut) — ouverte par le bouton du verdict,
    elle se pose **sous** lui (le bouton ne bouge pas au clic). Pour les combos
    construits, où l'on veut un **ordre précis de sorts** : voir « Analyse poussée »

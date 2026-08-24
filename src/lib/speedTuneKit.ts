@@ -6,7 +6,7 @@
 // Calcul PUR : la fonction prend le détail déjà chargé, elle ne va rien chercher.
 // Voir spec/outils/speed-tuning.md, « Compétences ».
 
-import { Competence, DetailMonstre } from './monsterSkills';
+import { Competence, DetailMonstre, paliersRechargement } from './monsterSkills';
 import { EffetSort } from './speedTune';
 
 // Le buff de vitesse du jeu vaut toujours +30 % ; les données SWARFARM ne
@@ -76,6 +76,11 @@ export interface SortVitesse {
   effet: EffetSort;
   // Ce que la compétence rend au lanceur : un tour de plus, aussitôt.
   rejoue: boolean;
+  // Rechargement de la compétence MAXÉE, en tours du lanceur (0 = aucun, elle
+  // repart à chaque tour). ⚠️ Le `cooldown` de SWARFARM est celui du niveau 1 ;
+  // les « Cooltime Turn -1 » le réduisent (voir `paliersRechargement`), et c'est
+  // maxée qu'on la joue.
+  cooldown: number;
   // Détail du remplissage de barre pour l'écran : valeur au niveau 1 et apport
   // des skill-ups (« Attack Bar Recovery +N% »).
   atbNiveau1: number;
@@ -195,6 +200,10 @@ export function sortsVitesse(detail: DetailMonstre | null): SortVitesse[] {
       nom: c.nom,
       slot: c.slot,
       icone: c.icone,
+      cooldown: (() => {
+        const paliers = paliersRechargement(c);
+        return paliers.length > 0 ? paliers[paliers.length - 1] : 0;
+      })(),
       effet,
       rejoue: c.effets.some((e) => e.nom === EFFET_REJOUE),
       atbNiveau1,

@@ -689,6 +689,43 @@ export function testSpeedTuneChaine() {
     egal(sans.effetSpeed[3] ?? 0, 0, '0 dans la case annule le buff pour ce tick-là');
   }
 
+  // ⚠️ RECHARGEMENT : un sort à 3 tours ne repart qu'au 4ᵉ tour du lanceur.
+  // Sans ça, la simulation relançait le S3 à chaque tour et l'équipe montait
+  // bien plus vite qu'en jeu.
+  {
+    const sansCd = simuler([{ id: 'b', combat: 300, camp: 'allie', sort: { atbEquipe: 30 } }], 40);
+    const avecCd = simuler(
+      [{ id: 'b', combat: 300, camp: 'allie', sort: { atbEquipe: 30, cooldown: 3 } }],
+      40
+    );
+    const ticksDeSort = (sim: Simulation) =>
+      Object.keys(sim.lignes[0].effetAtb)
+        .map(Number)
+        .sort((x, y) => x - y);
+    ok(ticksDeSort(sansCd).length > ticksDeSort(avecCd).length, 'un rechargement espace les lancers');
+
+    // Un tour sur trois, précisément : les tours 1, 4, 7… du LANCEUR.
+    // ⚠️ Les ticks se lisent dans la simulation AVEC rechargement : sans lui, le
+    // monstre se boostant lui-même joue plus souvent, ses tours ne tombent donc
+    // pas aux mêmes ticks — comparer d'une simulation à l'autre n'aurait aucun
+    // sens.
+    const tours = avecCd.actions.map((a) => a.tick);
+    const lances = ticksDeSort(avecCd);
+    egal(lances[0], tours[0], 'le premier tour lance le sort');
+    egal(lances[1], tours[3], 'le suivant tombe au 4ᵉ tour du lanceur (3 tours de rechargement)');
+    egal(lances[2], tours[6], 'puis au 7ᵉ');
+  }
+
+  // Un sort sans rechargement repart à chaque tour.
+  {
+    const sim = simuler([{ id: 'b', combat: 300, camp: 'allie', sort: { atbEquipe: 10 } }], 20);
+    egal(
+      Object.keys(sim.lignes[0].effetAtb).length,
+      sim.actions.length,
+      'sans rechargement, le sort part à chacun de ses tours'
+    );
+  }
+
   // ⚠️ TOUR SUPPLÉMENTAIRE (Kroa : Owl's Hoot buffe toute l'équipe et lui rend
   // son tour). Il tombe AU MÊME TICK : aucune horloge ne tourne entre les deux.
   {

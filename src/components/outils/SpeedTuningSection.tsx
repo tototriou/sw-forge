@@ -129,6 +129,7 @@ function libelleSort(x: SortVitesse): string {
   if (e.buffSoi) bouts.push('buff VIT sur soi');
   if (e.ralenti) bouts.push(`ralenti adv${e.ralentiTous ? ' (tous)' : ''}`);
   if (x.rejoue) bouts.push('rejoue');
+  if (x.cooldown > 0) bouts.push(`recharge ${x.cooldown} tours`);
   if (x.chance != null) bouts.push(`${x.chance} %`);
   const quoi = bouts.length ? bouts.join(' · ') : 'sans effet sur la vitesse';
   return `${x.slot ? `S${x.slot} ` : ''}${x.nom} — ${quoi}`;
@@ -464,9 +465,16 @@ export default function SpeedTuningSection({ allMonsters, siegeDefenseTeams, sie
           atbMod: l.atbMod,
           speedMod: l.speedMod,
           artefactBuff: l.artefactBuff ?? 0,
-          sort: actif?.effet,
+          // Le rechargement voyage avec l'effet : c'est lui qui dit à quelle
+          // fréquence le sort peut repartir (voir speedTune.ts).
+          sort: actif ? { ...actif.effet, cooldown: actif.cooldown } : undefined,
           rejoue: actif?.rejoue ?? false,
-          sort2: actif?.rejoue ? (sortSecond(l)?.effet ?? undefined) : undefined,
+          sort2: actif?.rejoue
+            ? (() => {
+                const second = sortSecond(l);
+                return second ? { ...second.effet, cooldown: second.cooldown } : undefined;
+              })()
+            : undefined,
         });
     }
     return out;

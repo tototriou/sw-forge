@@ -65,6 +65,12 @@ export interface EffetSort {
   buffSoi?: number;
   ralenti?: number; // posé sur l'adverse
   ralentiTous?: boolean;
+  // ⚠️ **RECHARGEMENT**, en tours du lanceur (0 = aucun). Un sort à 3 tours de
+  // rechargement lancé au 1ᵉʳ tour ne repart qu'au 4ᵉ : entre les deux, le
+  // monstre joue autre chose (son S1, dont on ne sait rien — donc rien du tout).
+  // Sans ça, la simulation relançait le S3 à CHAQUE tour et l'équipe montait
+  // bien plus vite qu'en jeu.
+  cooldown?: number;
 }
 
 // La vitesse de combat de base (base + runes + totem + lead), calculée par
@@ -182,6 +188,10 @@ export function simuler(monstres: TuneMonstre[], horizon = HORIZON_TICKS): Simul
   const buffCamp: Record<Camp, number> = { allie: 0, ennemi: 0 };
   const ralentiCamp: Record<Camp, number> = { allie: 0, ennemi: 0 };
   const buffSoi: Record<string, number> = {};
+  // Rechargement : combien de tours ce monstre a joués, et à quel tour chacun de
+  // ses deux sorts a été lancé pour la dernière fois.
+  const tours: Record<string, number> = {};
+  const dernier: Record<string, number> = {};
 
   for (let tick = 1; tick <= horizon; tick++) {
     for (const m of etat) {
@@ -245,8 +255,20 @@ export function simuler(monstres: TuneMonstre[], horizon = HORIZON_TICKS): Simul
       m.effetAtb[tick] = (m.effetAtb[tick] ?? 0) + v;
       majTraj(m);
     };
-    const poser = (sort: EffetSort | undefined) => {
+    // Le sort est-il disponible ? Un rechargement se compte en TOURS DU
+    // LANCEUR : lancé à son tour n, un sort à 3 tours revient à son tour n+3.
+    const disponible = (sort: EffetSort | undefined, cle: string): boolean => {
+      const cd = sort?.cooldown ?? 0;
+      if (cd <= 0) return true;
+      const precedent = dernier[cle];
+      return precedent === undefined || tours[gagnant.id] - precedent >= cd;
+    };
+    const poser = (sort: EffetSort | undefined, cle?: string) => {
       if (!sort) return;
+      if (cle) {
+        if (!disponible(sort, cle)) return;
+        dernier[cle] = tours[gagnant.id];
+      }
       const camp = gagnant.camp;
       const adverse: Camp = camp === 'allie' ? 'ennemi' : 'allie';
       if (sort.atbEquipe) for (const m of etat) if (m.camp === camp) ajouter(m, sort.atbEquipe);
@@ -276,7 +298,8 @@ export function simuler(monstres: TuneMonstre[], horizon = HORIZON_TICKS): Simul
       if (sort.buffSoi && sort.buffSoi > (buffSoi[gagnant.id] ?? 0)) buffSoi[gagnant.id] = sort.buffSoi;
       if (sort.ralenti && sort.ralenti > ralentiCamp[adverse]) ralentiCamp[adverse] = sort.ralenti;
     };
-    poser(gagnant.sort);
+    tours[gagnant.id] = (tours[gagnant.id] ?? 0) + 1;
+    poser(gagnant.sort, `${gagnant.id}#1`);
 
     // ⚠️ Tour SUPPLÉMENTAIRE : il rejoue AU MÊME TICK, sans qu'aucune horloge ne
     // tourne — les autres ne gagnent donc rien entre les deux. Son second tour
@@ -284,7 +307,7 @@ export function simuler(monstres: TuneMonstre[], horizon = HORIZON_TICKS): Simul
     // on ne devine pas.
     if (gagnant.rejoue) {
       actions.push({ id: gagnant.id, camp: gagnant.camp, tick, ordre: actions.length + 1, rejoue: true });
-      poser(gagnant.sort2);
+      poser(gagnant.sort2, `${gagnant.id}#2`);
       gagnant.atb = 0;
     }
   }

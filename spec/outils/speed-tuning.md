@@ -188,6 +188,12 @@ exactement comme elle écrit dans les grilles. Ces choix deviennent alors des
 choix comme les autres : on les corrige, et **y toucher relance l'écriture**
 (c'est le seul changement qui la relance).
 
+⚠️ **Mais un sort déjà choisi n'est JAMAIS réécrit** : l'analyse ne remplit que
+les cases vides. Sans ça, changer un sort relançait l'analyse, qui reposait
+aussitôt celui du kit — le choix se réinitialisait sous les doigts et le réglage
+était impossible. Une chaîne vide (« Aucun sort ») est un **choix**, pas une
+absence : elle est préservée comme les autres.
+
 ⚠️ **Plus rien n'est deviné à la volée** : le sort lancé est celui qui a été
 ÉCRIT. Sans analyse, personne ne lance rien — l'outil ne suppose pas à la place
 de qui règle. Le menu n'a donc plus d'entrée « Sort détecté » : il n'y a que des

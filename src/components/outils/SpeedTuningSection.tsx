@@ -597,11 +597,18 @@ export default function SpeedTuningSection({ allMonsters, siegeDefenseTeams, sie
     // les vitesses produisent et, pour chacun, le sort que son kit a retenu.
     // Après quoi ces choix sont des choix comme les autres — c'est le même
     // principe que les grilles : l'outil écrit, l'utilisateur corrige.
+    // ⚠️ **Un sort déjà CHOISI n'est jamais réécrit.** L'analyse ne remplit que
+    // les cases vides. Sans ça, changer un sort relançait l'analyse, qui
+    // reposait aussitôt celui du kit : le choix se réinitialisait sous les
+    // doigts, et le réglage était impossible.
+    //
+    // Une chaîne vide (« Aucun sort ») est un CHOIX, pas une absence : elle est
+    // donc préservée comme les autres.
     const choix: Record<string, string> = { ...sortChoisi };
     for (const l of lignesVisibles) {
+      if (choix[l.uid] !== undefined) continue;
       const detecte = sortAuto(l);
       if (detecte) choix[l.uid] = detecte.nom;
-      else delete choix[l.uid];
     }
     setSortChoisi(choix);
     if (!ordreRange) {

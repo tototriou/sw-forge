@@ -25,6 +25,7 @@ import { chargerDetail } from '../../lib/monsterSkills';
 import { teamSummary } from '../../lib/recoFromSiege';
 import { formesJouables } from '../../lib/monsterForms';
 import { useComboboxNav } from '../../hooks/useComboboxNav';
+import { useAdversaireReference } from '../../hooks/useAdversaireReference';
 import { useStickyState } from '../../hooks/useStickyState';
 import MonsterAvatar from '../MonsterAvatar';
 import {
@@ -207,6 +208,9 @@ export default function SpeedTuningSection({ allMonsters, siegeDefenseTeams, sie
   const [leadEnnemi, setLeadEnnemi] = useStickyState<number>('speedTune.leadEnnemi', 0);
 
   const jouables = useMemo(() => formesJouables(allMonsters), [allMonsters]);
+  // Réglage d'application : poser l'adversaire de référence à CHAQUE analyse,
+  // même face à une composition importée (voir useAdversaireReference).
+  const toujoursReference = useAdversaireReference();
 
   // Ce que le KIT de chaque monstre pose sur son camp (barre d'attaque de zone,
   // buff de vitesse de zone), lu dans les compétences pré-générées. Sert à
@@ -637,7 +641,7 @@ export default function SpeedTuningSection({ allMonsters, siegeDefenseTeams, sie
     // Un VRAI adversaire (saisi ou importé), lui, n'est jamais remplacé : c'est
     // une composition qu'on affronte, pas un repère.
     const vraiEnnemi = lignesVisibles.some((l) => l.camp === 'ennemi' && !l.reference);
-    if (!vraiEnnemi) analyseAuto();
+    if (!vraiEnnemi || toujoursReference) analyseAuto();
   }
 
   // ⚠️ Le SEUL changement qui rende une analyse fausse : le sort lancé. Tout le

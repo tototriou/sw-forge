@@ -487,7 +487,9 @@ De haut en bas :
      de compter, refermer ne défait rien. On masque pour gagner de la place, pas
      pour annuler un réglage.
    - ⚠️ **« Analyser » REPOSE l'adversaire de référence** sur le plus rapide du
-     moment, à chaque fois. Il n'était posé qu'en l'absence de tout adversaire :
+     moment, à chaque fois — dès qu'il n'y a **pas** de vrai adversaire, ou
+     **toujours** si le réglage d'application « Adversaire de référence » est
+     activé (menu ⚙, voir [../README.md](../README.md)). Il n'était posé qu'en l'absence de tout adversaire :
      une fois là, il ne bougeait plus jamais — appliquer un passif (Chilling, +20
      par buff) pouvait changer qui est le plus rapide sans que la référence le
      sache, et on se comparait à un monstre qui ne l'était plus. Un **vrai**

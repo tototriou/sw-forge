@@ -1,7 +1,7 @@
 import { useEffect, useId, useMemo, useRef, useState } from 'react';
 import { Search, Plus, Timer, Users, Swords, X, Zap, Gauge, Eye, EyeOff, Download, Check, Scissors, Play, ChevronUp, ChevronDown, Sparkles } from 'lucide-react';
-import { LeaderSkill, Monster, SiegeTeam } from '../../types';
-import { combatSpeed, runeSpeedForTarget, SPEED_LEADS, SIEGE_TICKS } from '../../lib/speed';
+import { ELEMENTS, ElementKey, Monster, SiegeTeam } from '../../types';
+import { LeadInfo, combatSpeed, runeSpeedForTarget, SPEED_LEADS, SIEGE_TICKS } from '../../lib/speed';
 import {
   simuler,
   premiersTours,
@@ -256,9 +256,7 @@ export default function SpeedTuningSection({
     kits,
     leadAllie,
     leadDe,
-    leadElement,
     leadEnnemi,
-    retirerLeadElement,
     leads,
     ligneParUid,
     ligneReference,
@@ -418,8 +416,6 @@ export default function SpeedTuningSection({
           titre="Ton équipe"
           icone={<Users size={15} />}
           lead={leadAllie}
-          leadElement={leadElement.allie}
-          onRetirerLeadElement={() => retirerLeadElement('allie')}
           onLead={setLeadAllie}
           lignes={lignes.filter((l) => l.camp === 'allie')}
           jouables={jouables}
@@ -444,8 +440,6 @@ export default function SpeedTuningSection({
           titre="En face"
           icone={<Swords size={15} />}
           lead={leadEnnemi}
-          leadElement={leadElement.ennemi}
-          onRetirerLeadElement={() => retirerLeadElement('ennemi')}
           onLead={setLeadEnnemi}
           lignes={lignes.filter((l) => l.camp === 'ennemi')}
           jouables={jouables}
@@ -862,13 +856,8 @@ interface CampProps {
   camp: Camp;
   titre: string;
   icone: React.ReactNode;
-  lead: number;
-  onLead: (v: number) => void;
-  // Le lead d'ÉLÉMENT importé avec un deck : il prend la place du sélecteur dans
-  // l'encart « Lead » (voir plus bas), parce que celui-ci ne sait pas dire
-  // « seulement les alliés Eau ».
-  leadElement: LeaderSkill | null;
-  onRetirerLeadElement: () => void;
+  lead: LeadInfo | null;
+  onLead: (v: LeadInfo | null) => void;
   lignes: Ligne[];
   jouables: Monster[];
   combatDe: (l: Ligne) => number | null;
@@ -923,8 +912,6 @@ function CampPanneau({
   onArtefact,
   decks,
   onImporterDeck,
-  leadElement,
-  onRetirerLeadElement,
 }: CampProps) {
   const adv = camp === 'ennemi';
   const dejaAjoutes = useMemo(() => new Set(lignes.map((l) => String(l.monster.id))), [lignes]);
@@ -932,10 +919,21 @@ function CampPanneau({
   // Le lead importé d'un deck peut ne pas figurer dans les raccourcis
   // (SPEED_LEADS n'est pas exhaustive, voir speed.ts) : on l'ajoute à la liste,
   // sinon le menu afficherait une valeur qu'il ne contient pas.
+  const montant = lead?.amount ?? 0;
   const leads = useMemo(
-    () => (lead > 0 && !SPEED_LEADS.includes(lead) ? [...SPEED_LEADS, lead].sort((a, b) => b - a) : SPEED_LEADS),
-    [lead]
+    () =>
+      montant > 0 && !SPEED_LEADS.includes(montant)
+        ? [...SPEED_LEADS, montant].sort((a, b) => b - a)
+        : SPEED_LEADS,
+    [montant]
   );
+
+  // ⚠️ **TOUS les leads du jeu se disent ici**, pas seulement les globaux : un
+  // montant ET une portée. « +33 % » et « +33 % alliés Eau » sont deux leads
+  // différents, et les decks imposent l'un comme l'autre — n'offrir que le
+  // montant obligeait à trafiquer les lignes une par une.
+  const poser = (amount: number, element: ElementKey | null) =>
+    onLead(amount > 0 ? { amount, area: element ? 'Element' : 'General', element } : null);
 
   return (
     <section className="min-w-[280px] flex-1 rounded-lg border border-border bg-panel">
@@ -951,32 +949,41 @@ function CampPanneau({
               alliés Eau seulement ». Il cède donc sa place — deux contrôles de
               lead côte à côte laisseraient croire qu'ils s'additionnent. Le
               calcul, lui, passe par le lead que chaque monstre porte. */}
-          {leadElement ? (
-            <span className="flex items-center gap-1">
-              {/* ⚠️ **La MÊME pastille que dans les decks** (`LeadPill`) : icône
-                  officielle du jeu, montant, icône d'élément. En redessiner une
-                  ici aurait donné deux façons d'afficher un lead dans la même
-                  app, pour la même donnée. */}
-              <LeadPill ls={leadElement} />
-              <BoutonIcone
-                taille="serre"
-                onClick={onRetirerLeadElement}
-                libelle={`Retirer le lead d'élément — ${titre}`}
-                icone={<X size={13} />}
-              />
-            </span>
-          ) : (
+          {/* ⚠️ **La MÊME pastille que dans les decks** (`LeadPill`) : icône
+              officielle du jeu, montant, icône d'élément. En redessiner une ici
+              aurait donné deux façons d'afficher un lead dans la même app, pour
+              la même donnée. Elle ne s'affiche que s'il y a un lead — un
+              emplacement vide n'apprend rien. */}
+          {lead && <LeadPill ls={{ stat: 'Attack Speed', ...lead }} />}
+          <Selecteur
+            taille="sm"
+            pleineLargeur={false}
+            value={montant}
+            onChange={(e) => poser(Number(e.target.value), lead?.element ?? null)}
+            aria-label={`Lead de vitesse — ${titre}`}
+          >
+            <option value={0}>Sans</option>
+            {leads.map((v) => (
+              <option key={v} value={v}>
+                +{v}%
+              </option>
+            ))}
+          </Selecteur>
+          {/* La PORTÉE du lead, à côté de son montant : sans elle, « +33 % » ne
+              dit pas à qui. Masquée quand il n'y a pas de lead — il n'y a alors
+              rien à porter. */}
+          {montant > 0 && (
             <Selecteur
               taille="sm"
               pleineLargeur={false}
-              value={lead}
-              onChange={(e) => onLead(Number(e.target.value))}
-              aria-label={`Lead de vitesse — ${titre}`}
+              value={lead?.element ?? ''}
+              onChange={(e) => poser(montant, (e.target.value || null) as ElementKey | null)}
+              aria-label={`Portée du lead — ${titre}`}
             >
-              <option value={0}>Sans</option>
-              {leads.map((v) => (
-                <option key={v} value={v}>
-                  +{v}%
+              <option value="">Tous</option>
+              {ELEMENTS.filter((el) => el.key !== 'unknown').map((el) => (
+                <option key={el.key} value={el.key}>
+                  {el.label}
                 </option>
               ))}
             </Selecteur>

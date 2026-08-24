@@ -212,7 +212,10 @@ export default function SiegeTeam({
   const speedTune = useMemo(
     () =>
       equipeAuto.length >= 2 && teamHasSwift
-        ? analyseAutomatique(equipeAuto, deck.lead ?? 0, donneesKit)
+        ? // Le lead voyage dans chaque entrée (`EntreeAuto.lead`, calculé par
+          // `siegeLeadFor`) : un lead d'ÉLÉMENT ne se dit pas avec un seul
+          // nombre. Le second argument n'est que le repli.
+          analyseAutomatique(equipeAuto, 0, donneesKit)
         : null,
     [equipeAuto, deck.lead, teamHasSwift, donneesKit]
   );

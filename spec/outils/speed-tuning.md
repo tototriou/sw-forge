@@ -95,26 +95,26 @@ trois vitesses de runes. Calcul pur dans
   connu n'y figure pas.
 - **Toujours affiché, désactivé** sans compte chargé (aucune équipe) : son
   `title` dit pourquoi.
-- ⚠️ **Le lead d'ÉLÉMENT descend monstre par monstre.** Le sélecteur d'un camp
-  n'a qu'une valeur : il ne sait pas dire « +21 % pour les alliés Feu
-  seulement ». Chaque monstre importé porte donc **son** lead (`Ligne.lead`,
-  calculé par le même `siegeLeadFor` que la card de siège), et **l'encart
-  « Lead » du camp l'affiche à la place du sélecteur** : la **même pastille que
-  dans les decks** (`LeadPill` — icône officielle du jeu, montant, icône
-  d'élément), suivie d'une croix pour le retirer et reprendre la main. ⚠️ Pas une
-  pastille redessinée : deux façons d'afficher un lead pour la même donnée, et
-  elles finissent par ne plus dire la même chose. ⚠️ Le sélecteur **cède sa place**
-  au lieu de cohabiter : deux contrôles de lead côte à côte laisseraient croire
-  qu'ils s'additionnent. Retirer le lead d'élément efface aussi celui que chaque
-  monstre portait — sinon l'encart annoncerait une valeur que les vitesses ne
-  suivraient pas.
+- ⚠️ **Le lead du camp est un LEAD DE JEU, pas un pourcentage.** Il porte sa
+  **portée** : l'encart « Lead » a donc **deux** sélecteurs — le montant, et
+  « Tous / Feu / Eau / Vent / Lumière / Ténèbres » — plus la **pastille des
+  decks** (`LeadPill`, icône officielle du jeu comprise) dès qu'un lead est posé.
+  Tous les leads du jeu se disent ainsi, et un deck importé remplit les deux.
 
-  > ⚠️ **C'est la correction d'un écart entre les deux écrans.** La card de siège
-  > affichait la vitesse lead d'élément COMPRIS, le speed tune la recalculait
-  > SANS : deux nombres pour un même monstre, et un « il manque X de VIT »
-  > portant sur une vitesse que personne n'avait sous les yeux. Un lead
-  > General/Guild, lui, reste au sélecteur du camp — sinon le sélecteur
-  > deviendrait décoratif, et un deck sans lead figerait tout le monde à 0.
+  > ⚠️ **Deux détours essayés avant, tous deux faux.** Ne garder que le montant
+  > perdait les leads d'élément : le speed tune calculait plus lent que la card
+  > de siège, qui les compte — un « il manque X de VIT » portant sur une vitesse
+  > que personne n'avait sous les yeux. Les recopier ensuite sur chaque monstre
+  > (`Ligne.lead`) rendait le sélecteur du camp décoratif et obligeait à
+  > trafiquer les lignes une par une. Le camp porte le lead entier ; chaque
+  > monstre en reçoit ce qui lui revient, via le `siegeLeadFor` du siège.
+
+- ⚠️ **En lançant l'analyse, le camp d'en face prend le lead du tien**, portée
+  comprise. L'adversaire de référence est une **copie** de ton monstre le plus
+  rapide : un repère qui court moins vite que son modèle déclarerait tuné
+  n'importe quoi. C'est un point de départ, pas un verrou — les deux encarts
+  restent modifiables. ⚠️ **Sauf si une vraie composition est en face** : elle a
+  son propre lead, et l'écraser recalculerait de vrais adversaires avec le tien.
 
 - **L'artéfact « Effet aug. VIT » est repris** du `gear` du slot (code `206`
   dans `ARTIFACT_SUB`, sommé sur les deux artéfacts) : c'est lui qui amplifie le

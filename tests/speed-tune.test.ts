@@ -246,7 +246,8 @@ export function testSpeedTuneDeck() {
     egal(d.monstres[0].monster.name, 'Trevor', 'le leader (slot 0) reste en tête');
     egal(d.monstres[0].runeSpeed, 155, 'la vitesse de runes du slot est reprise');
     egal(d.monstres[2].runeSpeed, null, 'un slot sans vitesse de runes reste vide');
-    egal(d.lead, 24, 'un lead de guilde vaut pour tout le camp → appliqué');
+    egal(d.lead?.amount, 24, 'un lead de guilde vaut pour tout le camp → appliqué');
+    egal(d.lead?.area, 'Guild', 'avec sa portée : le camp porte le lead ENTIER, pas un pourcentage');
   }
 
   // Slots vides et monstres absents des données : écartés, sans casser le deck.
@@ -317,14 +318,12 @@ export function testSpeedTuneDeck() {
       ]),
       avecElements
     );
-    egal(d.lead, null, 'le lead du CAMP reste vide : le sélecteur ne sait pas dire « seulement l’Eau »');
-    egal(d.leadParMonstre, true, 'mais le deck signale que son lead se lit monstre par monstre');
-    // ⚠️ C'est ce que l'encart « Lead » du camp affiche : la valeur ET l'élément.
-    // ⚠️ La compétence ENTIÈRE : l'encart montre la même pastille que les decks
-    // (`LeadPill`), qui a besoin de l'icône, du montant et de l'élément.
-    egal(d.leadElement?.amount, 33, "l'encart reçoit le lead du leader tel quel");
-    egal(d.leadElement?.element, 'water', "avec l'élément qu'il favorise");
-    egal(d.leadElement?.area, 'Element', "et sa portée — c'est elle qui dessine la pastille");
+    // ⚠️ Le camp porte le lead ENTIER, portée comprise : c'est ce qui permet à
+    // l'encart de le dire (pastille + sélecteur de portée) et au calcul de ne le
+    // donner qu'aux ayants droit.
+    egal(d.lead?.amount, 33, 'le camp reçoit le lead du leader');
+    egal(d.lead?.area, 'Element', "avec sa portée — sans elle, « +33 % » ne dit pas à qui");
+    egal(d.lead?.element, 'water', "et l'élément qu'il favorise");
     egal(d.monstres[0].lead, 33, 'le leader Eau en profite');
     egal(d.monstres[1].lead, 33, "l'allié Eau aussi");
     egal(d.monstres[2].lead, 0, "l'allié Feu, lui, n'a rien — c'est tout l'intérêt du champ");
@@ -355,16 +354,15 @@ export function testSpeedTuneDeck() {
   // Un lead qui vaut pour TOUS reste au camp : le sélecteur garde la main.
   {
     const d = deckPourSpeedTune(equipe([{ monsterId: '1', runeSpeed: 100 }]), parId);
-    egal(d.lead, 24, 'lead de guilde → au camp');
-    egal(d.leadParMonstre, false, 'et pas monstre par monstre');
-    egal(d.leadElement, null, "l'encart garde alors son sélecteur : il sait dire un lead qui vaut pour tous");
+    egal(d.lead?.amount, 24, 'lead de guilde → au camp');
+    egal(d.lead?.element, null, 'sans élément : il vaut pour tout le monde');
   }
 
   {
     egal(
-      deckPourSpeedTune(equipe([{ monsterId: '4', runeSpeed: 100 }]), parId).lead,
-      null,
-      'lead d\'élément → le camp garde son lead saisi'
+      deckPourSpeedTune(equipe([{ monsterId: '4', runeSpeed: 100 }]), parId).lead?.area,
+      'Element',
+      "lead d'élément → repris tel quel, portée comprise (le camp sait la dire)"
     );
     egal(
       deckPourSpeedTune(equipe([{ monsterId: '5', runeSpeed: 100 }]), parId).lead,

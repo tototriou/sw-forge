@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { LeaderSkill, Monster, SiegeTeam } from '../types';
-import { runeSpeedForTarget } from '../lib/speed';
+import { Monster, SiegeTeam } from '../types';
+import { LeadInfo, runeSpeedForTarget } from '../lib/speed';
 import {
   ArtefactRequis,
   Camp,
@@ -27,6 +27,7 @@ import {
   estimerCumuls,
   gainPassifDe as gainPassifDeLigne,
   leadDe as leadDeCamp,
+  leadPour,
   ligneReference as ligneReferenceDe,
   ligneVierge,
   lignesDeDeck,
@@ -91,15 +92,15 @@ export function useSpeedTune({
   deckInitial?: DeckInitial | null;
 }) {
   const [lignes, setLignes] = useStickyState<Ligne[]>('speedTune.lignes', []);
-  const [leadAllie, setLeadAllie] = useStickyState<number>('speedTune.leadAllie', 0);
-  const [leadEnnemi, setLeadEnnemi] = useStickyState<number>('speedTune.leadEnnemi', 0);
-  // Le lead d'ÉLÉMENT importé avec un deck, camp par camp. ⚠️ Le sélecteur du
-  // camp n'a qu'une valeur : il ne sait pas dire « +33 % pour les alliés Eau ».
-  // C'est donc ce champ que l'encart « Lead » affiche à sa place — et le calcul,
-  // lui, passe par le lead que chaque monstre porte (`Ligne.lead`).
-  const [leadElement, setLeadElement] = useStickyState<Record<Camp, LeaderSkill | null>>(
-    'speedTune.leadElement',
-    { allie: null, ennemi: null }
+  // ⚠️ **Le lead d'un camp est un LEAD DE JEU, portée comprise** — pas un
+  // pourcentage. « +33 % pour tous » et « +33 % pour les alliés Eau » ne se
+  // disent pas avec le même nombre, et un deck peut imposer l'un comme l'autre.
+  // C'est ce qui permet à l'encart de proposer TOUS les leads, et au calcul de
+  // ne donner le bonus qu'à ceux qui y ont droit.
+  const [leadAllie, setLeadAllie] = useStickyState<LeadInfo | null>('speedTune.leadAllie', null);
+  const [leadEnnemi, setLeadEnnemi] = useStickyState<LeadInfo | null>(
+    'speedTune.leadEnnemi',
+    null
   );
 
   const jouables = useMemo(() => formesJouables(allMonsters), [allMonsters]);
@@ -296,11 +297,7 @@ export function useSpeedTune({
     // équipe avec un +28 % qui n'existait plus, et le siège — qui lit `lead ?? 0`
     // — répondait autre chose que l'outil sur la même compo. Importer un deck,
     // c'est importer TOUT ce qui fait ses vitesses.
-    (camp === 'allie' ? setLeadAllie : setLeadEnnemi)(deck.lead ?? 0);
-    // ⚠️ Écrit dans TOUS les cas, `null` compris : un deck sans lead d'élément
-    // laissait sinon celui du deck précédent affiché dans l'encart, sur une
-    // équipe qui ne le porte plus.
-    setLeadElement((m) => ({ ...m, [camp]: deck.leadElement }));
+    (camp === 'allie' ? setLeadAllie : setLeadEnnemi)(deck.lead);
     return true;
   }
 
@@ -322,17 +319,16 @@ export function useSpeedTune({
   function analyseAuto(mods?: { atbMod: ModParTick; speedMod: ModParTick }) {
     const modele = plusRapideAllie();
     if (!modele) return;
-    setLeadEnnemi(leadAllie); // même lead : on compare des vitesses comparables
+    // ⚠️ **Le camp d'en face prend MON lead**, portée comprise : la référence est
+    // une COPIE de mon monstre le plus rapide, et un repère qui court moins vite
+    // que son modèle déclarerait tuné n'importe quoi. Reste modifiable — c'est un
+    // point de départ, pas un verrou.
+    //
+    // ⚠️ Pas quand une VRAIE composition est en face : elle a son propre lead,
+    // l'écraser recalculerait des adversaires réels avec le mien.
+    if (!lignesVisibles.some((l) => l.camp === 'ennemi' && !l.reference)) setLeadEnnemi(leadAllie);
     const ref = { ...ligneReference(modele), ...(mods ?? {}) };
     setLignes((prev) => [...prev.filter((l) => !l.reference && l.uid !== ref.uid), ref]);
-  }
-
-  // ⚠️ **Retirer le lead d'élément rend la main au sélecteur du camp** : on
-  // efface le lead que chaque monstre portait, sinon l'encart afficherait une
-  // valeur que les vitesses ne suivraient pas.
-  function retirerLeadElement(camp: Camp) {
-    setLeadElement((m) => ({ ...m, [camp]: null }));
-    setLignes((prev) => prev.map((l) => (l.camp === camp ? { ...l, lead: undefined } : l)));
   }
 
   function retirer(uid: string) {
@@ -447,7 +443,10 @@ export function useSpeedTune({
     // possible ici — on ne peut plus vérifier un seul chiffre de l'écran.
     const modele = plusRapideAllie();
     const uidRef = modele ? uidDe('ennemi', String(modele.monster.id)) : undefined;
-    const resultat = analyseAutomatique(allies.map(entreeDe), leadAllie, donneesKit, {
+    // ⚠️ Le lead voyage DANS chaque entrée (`EntreeAuto.lead`) : c'est la seule
+    // façon de dire « +33 % pour les alliés Eau seulement ». Le second argument
+    // n'est plus que le repli d'un monstre qui n'en porterait pas.
+    const resultat = analyseAutomatique(allies.map(entreeDe), 0, donneesKit, {
       choix: { sort: choix, sort2: sortChoisi2, cible: cibleSort },
       idReference: uidRef,
     });
@@ -674,7 +673,12 @@ export function useSpeedTune({
   const nomDe = (uid: string) => ligneParUid.get(uid)?.monster.name ?? '?';
   // Vitesse de runes qu'il MANQUE pour atteindre une vitesse de combat cible.
   const runesPour = (l: Ligne, combatCible: number): number | null => {
-    const besoin = runeSpeedForTarget(l.monster.stats.speed, leadDe(l.camp), combatCible, false);
+    const besoin = runeSpeedForTarget(
+      l.monster.stats.speed,
+      leadPour(leadDe(l.camp), l),
+      combatCible,
+      false
+    );
     return besoin == null ? null : besoin - (l.runeSpeed ?? 0);
   };
 
@@ -721,9 +725,7 @@ export function useSpeedTune({
     kits,
     leadAllie,
     leadDe,
-    leadElement,
     leadEnnemi,
-    retirerLeadElement,
     leads,
     ligneParUid,
     ligneReference,

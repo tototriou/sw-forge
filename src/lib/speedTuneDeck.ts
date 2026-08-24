@@ -4,8 +4,8 @@
 //
 // Voir spec/outils/speed-tuning.md, « Importer un deck de siège ».
 
-import { LeaderSkill, Monster, SiegeSlot, SiegeTeam } from '../types';
-import { siegeLeadFor, speedLeadOf } from './speed';
+import { Monster, SiegeSlot, SiegeTeam } from '../types';
+import { LeadInfo, isSiegeLeadActive, siegeLeadFor, speedLeadOf } from './speed';
 
 // Propriété d'artéfact « Effet aug. VIT » (code 206 dans ARTIFACT_SUB) : elle
 // AMPLIFIE le buff de vitesse, c'est exactement ce que le speed tuning appelle
@@ -49,30 +49,15 @@ export interface DeckImporte {
     // yeux.
     lead: number;
   }[];
-  // Lead à appliquer au CAMP, ou `null` si le deck n'en impose pas.
+  // Le lead du leader, **portée comprise** (`LeadInfo`), ou `null` si le deck
+  // n'en impose pas — ou s'il est sans effet en siège (arène, donjon).
   //
-  // ⚠️ Un lead d'ÉLÉMENT ne s'y transpose pas : le sélecteur de camp n'a qu'une
-  // valeur, l'appliquer à tout le monde gonflerait la vitesse des monstres d'un
-  // autre élément. Il passe donc **monstre par monstre** (`monstres[].lead`), et
-  // `leadParMonstre` dit qu'il faut le lire là plutôt qu'ici. Seuls les leads
-  // qui valent pour TOUS (General / Guild) remplissent ce champ.
-  lead: number | null;
-  // Le lead du deck se lit-il monstre par monstre ? Vrai pour un lead d'ÉLÉMENT,
-  // que le sélecteur de camp ne sait pas dire.
-  leadParMonstre: boolean;
-  // Le lead d'ÉLÉMENT du deck, **tel que le leader le porte**, pour l'afficher
-  // dans l'encart « Lead » du camp. `null` quand il n'y en a pas.
-  //
-  // ⚠️ **La compétence entière, pas un résumé.** L'encart montre la MÊME
-  // pastille que les decks (`LeadPill`) : icône officielle du jeu, montant,
-  // icône d'élément. Elle a besoin du `LeaderSkill`, et le réduire à
-  // `{ valeur, element }` obligeait à le reconstruire — donc à redessiner une
-  // pastille à côté de celle qui existe.
-  //
-  // ⚠️ Il est LU sur le leader, pas déduit des monstres : un deck dont aucun
-  // allié n'est de l'élément du leader impose quand même ce lead — il ne profite
-  // simplement à personne, et l'encart doit le dire quand même.
-  leadElement: LeaderSkill | null;
+  // ⚠️ **Portée comprise, justement.** Réduit à un pourcentage, un lead
+  // d'ÉLÉMENT était soit perdu — le speed tune calculait plus lent que la card
+  // de siège, qui le comptait —, soit recopié sur chaque monstre, ce qui rendait
+  // le sélecteur du camp décoratif. Le camp porte le lead entier ; chaque
+  // monstre en reçoit ce qui lui revient (`siegeLeadFor`).
+  lead: LeadInfo | null;
 }
 
 export function deckPourSpeedTune(team: SiegeTeam, monsterById: Map<string, Monster>): DeckImporte {
@@ -103,13 +88,5 @@ export function deckPourSpeedTune(team: SiegeTeam, monsterById: Map<string, Mons
     });
   }
 
-  const lead = info && (info.area === 'General' || info.area === 'Guild') ? info.amount : null;
-
-  const parElement = info?.area === 'Element';
-  return {
-    monstres,
-    lead,
-    leadParMonstre: parElement,
-    leadElement: parElement ? (leader?.leaderSkill ?? null) : null,
-  };
+  return { monstres, lead: isSiegeLeadActive(info) ? info : null };
 }

@@ -29,12 +29,20 @@ export function speedForTick(n: number): number {
 export type Camp = 'allie' | 'ennemi';
 
 // Modificateurs saisis dans les deux grilles éditables, indexés PAR TICK.
-//   - atbMod[t]   : modification PONCTUELLE de la barre au tick t (+% pour
-//                   remplir, −% pour vider). La barre ne descend jamais sous 0.
-//   - speedMod[t] : buff/ralenti de VITESSE appliqué **UNIQUEMENT au tick t**.
-//                   ⚠️ **Pas de report** : les ticks non marqués calculent l'ATB
-//                   à la vitesse de base. Un buff qui dure plusieurs ticks se
-//                   marque sur chacun des ticks où il est actif.
+//   - atbMod[t]   : modification de la barre au tick t (+% pour remplir, −% pour
+//                   vider). La barre ne descend jamais sous 0.
+//   - speedMod[t] : buff/ralenti de VITESSE au tick t.
+//
+// ⚠️ **Ce sont des REMPLACEMENTS, pas des ajouts.** Une valeur posée dans une
+// case REMPLACE ce que les compétences y mettent pour ce monstre et ce tick —
+// **0 ANNULE** l'effet du sort. Sans ça, on ne pouvait qu'ajouter par-dessus :
+// impossible d'écarter une réduction d'ATB à 70 % de chances, alors qu'un tune
+// solide ne doit justement pas en dépendre. Une case VIDE laisse la compétence
+// faire (et la grille montre en repère ce qu'elle y met).
+//
+// ⚠️ **Pas de report d'un tick sur l'autre** pour ce qui est saisi : les ticks
+// non marqués retombent sur ce que les compétences donnent, sinon sur la vitesse
+// de base. Un buff saisi qui dure plusieurs ticks se marque sur chacun d'eux.
 export type ModParTick = Record<number, number>;
 
 // Ce qu'une compétence FAIT à la barre d'action et à la vitesse, cible par
@@ -177,16 +185,14 @@ export function simuler(monstres: TuneMonstre[], horizon = HORIZON_TICKS): Simul
 
   for (let tick = 1; tick <= horizon; tick++) {
     for (const m of etat) {
-      // Buff de vitesse : celui des compétences (camp ou personnel) et celui
-      // saisi à la main sur ce tick, qui ne s'empilent pas non plus.
-      const manuel = m.speedMod?.[tick] ?? 0;
-      const positif = Math.max(manuel > 0 ? manuel : 0, buffCamp[m.camp], buffSoi[m.id] ?? 0);
-      const negatif = Math.max(manuel < 0 ? -manuel : 0, ralentiCamp[m.camp]);
-      const buffBase = positif - negatif;
-      // La part qui vient des COMPÉTENCES (sans la saisie manuelle) : c'est elle
-      // que la grille montre en repère.
+      // Ce que les COMPÉTENCES donnent à ce monstre ce tick-ci : le plus fort
+      // buff d'un côté, le plus fort ralenti de l'autre (ils ne s'empilent pas),
+      // les deux se compensant.
       const parSort = Math.max(buffCamp[m.camp], buffSoi[m.id] ?? 0) - ralentiCamp[m.camp];
-      if (parSort !== 0) m.effetSpeed[tick] = parSort;
+      // ⚠️ La saisie de la grille REMPLACE cette part (0 = on annule le sort).
+      const saisi = m.speedMod?.[tick];
+      const buffBase = saisi ?? parSort;
+      if (buffBase !== 0) m.effetSpeed[tick] = buffBase;
       // Un buff (> 0) est amplifié par le bonus d'artéfact, additivement ; un
       // ralenti (< 0) n'est pas concerné.
       // ⚠️ **La valeur du buff est un ENTIER de pourcentage.** Le jeu affiche
@@ -199,13 +205,23 @@ export function simuler(monstres: TuneMonstre[], horizon = HORIZON_TICKS): Simul
       const buff =
         buffBase > 0 ? Math.floor(buffBase * (1 + (m.artefactBuff ?? 0) / 100)) : buffBase;
       m.atb += atbParTick((m.combat * (100 + buff)) / 100);
-      const boost = m.atbMod?.[tick] ?? 0;
-      if (boost) m.atb += boost;
       if (m.atb < 0) m.atb = 0;
       // On enregistre AVANT la remise à zéro : la case du tour montre la barre
       // pleine (≥ 100) qui a déclenché l'action.
       m.traj.push(m.atb);
     }
+    // ⚠️ La barre saisie dans la grille est posée AVANT l'arbitrage du tick :
+    // c'est elle qui décide qui a la barre pleine, comme un sort lancé au tick
+    // précédent l'aurait fait.
+    for (const m of etat) {
+      const saisi = m.atbMod?.[tick];
+      if (saisi === undefined || saisi === 0) continue;
+      m.atb += saisi;
+      if (m.atb < 0) m.atb = 0;
+      m.effetAtb[tick] = saisi;
+      m.traj[m.traj.length - 1] = m.atb;
+    }
+
     const prets = etat.filter((m) => m.atb >= 100);
     if (prets.length === 0) continue;
     prets.sort((a, b) => b.atb - a.atb || b.combat - a.combat || a.placement - b.placement);
@@ -220,6 +236,10 @@ export function simuler(monstres: TuneMonstre[], horizon = HORIZON_TICKS): Simul
       if (m !== gagnant) m.traj[m.traj.length - 1] = m.atb;
     };
     const ajouter = (m: (typeof etat)[number], v: number) => {
+      // ⚠️ Une case SAISIE pour ce monstre et ce tick a le dernier mot : le sort
+      // ne s'y ajoute pas (0 saisi = sort annulé, cas d'un effet aléatoire dont
+      // on ne veut pas dépendre).
+      if (m.atbMod?.[tick] !== undefined) return;
       m.atb += v;
       if (m.atb < 0) m.atb = 0;
       m.effetAtb[tick] = (m.effetAtb[tick] ?? 0) + v;

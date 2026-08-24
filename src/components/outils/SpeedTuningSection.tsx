@@ -387,11 +387,15 @@ export default function SpeedTuningSection({ allMonsters, siegeDefenseTeams, sie
     setLignes((prev) => prev.map((l) => (l.uid === uid ? { ...aLaMain(l), artefactBuff: v } : l)));
   }
 
-  // Écrit une valeur de modificateur dans la grille `champ`, pour un tick donné.
-  // 0/null efface l'entrée (une case vide = pas de modificateur).
+  // Écrit une valeur dans la grille `champ`, pour un tick donné.
+  //
+  // ⚠️ **0 est une VALEUR, pas un effacement.** Une case à 0 annule ce que la
+  // compétence pose à ce tick — c'est tout l'intérêt : écarter un effet
+  // aléatoire (réduction d'ATB à 70 % de chances) dont un tune ne doit pas
+  // dépendre. Seule une case VIDE (`null`) rend la main à la compétence.
   const majMap = (m: ModParTick, tick: number, v: number | null): ModParTick => {
     const next = { ...m };
-    if (v == null || v === 0) delete next[tick];
+    if (v == null) delete next[tick];
     else next[tick] = v;
     return next;
   };
@@ -1119,7 +1123,7 @@ export default function SpeedTuningSection({ allMonsters, siegeDefenseTeams, sie
             champ="atbMod"
             mode="nombre"
             titre="Modification de barre d'attaque"
-            sousTitre="à un tick précis : +% pour remplir, −% pour vider la barre (jamais sous 0)"
+            sousTitre="ce qu'une compétence pose s'affiche en repère — une valeur saisie le REMPLACE, 0 l'annule (un effet à 70 % de chances, on ne compte pas dessus)"
             icone={<Zap size={15} />}
             lignes={lignesVisibles}
             aAllie={aAllie}
@@ -1136,7 +1140,7 @@ export default function SpeedTuningSection({ allMonsters, siegeDefenseTeams, sie
             champ="speedMod"
             mode="buff"
             titre="Buff de vitesse"
-            sousTitre="icône SPD = buff +30 % d'un clic, ou saisis une valeur — appliqué seulement aux ticks marqués (la vitesse, pas la barre)"
+            sousTitre="icône SPD = buff +30 % d'un clic, ou saisis une valeur — elle REMPLACE ce que la compétence donne à ce tick, 0 l'annule"
             icone={<Gauge size={15} />}
             lignes={lignesVisibles}
             aAllie={aAllie}
@@ -1459,9 +1463,11 @@ function GrilleMod({
   // Valeur commune d'un camp à un tick (pour la ligne « Toute l'équipe ») :
   // la valeur partagée si tous l'ont, sinon null (mélange).
   const valeurEquipe = (camp: Camp, tick: number): number | null => {
-    const vals = lignes.filter((l) => l.camp === camp).map((l) => l[champ][tick] ?? 0);
+    // ⚠️ `undefined` (case vide, la compétence décide) et `0` (compétence
+    // annulée) sont DEUX états distincts : les confondre effaçait l'annulation.
+    const vals = lignes.filter((l) => l.camp === camp).map((l) => l[champ][tick]);
     if (vals.length === 0) return null;
-    return vals.every((v) => v === vals[0]) ? vals[0] || null : null;
+    return vals.every((v) => v === vals[0]) ? (vals[0] ?? null) : null;
   };
 
   const camps: { camp: Camp; label: string; present: boolean }[] = [

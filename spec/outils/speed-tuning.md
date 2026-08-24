@@ -37,7 +37,9 @@ vitesse_combat = base + runes + ⌈ base × (15 + lead) / 100 ⌉
   (« Lent » en siège), **286 au tick 5** (« Rapide »), 477 au tick 3.
 
 Deux **modificateurs par tick** (saisis dans les grilles, voir plus bas) entrent
-dans la simulation :
+dans la simulation. ⚠️ **Une valeur saisie REMPLACE ce que les compétences
+posent** pour ce monstre et ce tick — **0 annule** l'effet du sort, une case
+**vide** lui rend la main :
 
 - **Modification de barre d'attaque** (`atbMod[t]`) : variation **ponctuelle** de
   la barre au tick `t` — **positive** pour remplir (compétence de boost,
@@ -417,17 +419,20 @@ De haut en bas :
    tick visé), puis une ligne par monstre. Cellules = `NumberField sansBoutons`
    (axe dense de la lib, voir [../shared/librairie-ui.md](../shared/librairie-ui.md)) ;
    valeur **positive pour remplir, négative pour vider** (la barre reste ≥ 0) ;
-   une case vide = pas de modificateur. ⚠️ Une case vide **couverte par une
-   compétence** affiche sa valeur en repère (`+35`) : elle dit où le boost tombe,
-   sans être une saisie.
+   une case vide = la **compétence décide** (sa valeur s'affiche en repère,
+   signée). ⚠️ **Saisir REMPLACE, et 0 ANNULE** : c'est ainsi qu'on écarte une
+   réduction d'ATB à 70 % de chances — un lead tune ne doit pas dépendre d'un
+   effet qui peut se louper, mais l'effet reste posé par défaut, puisque le plus
+   souvent il passe. ⚠️ **`0` et « vide » sont deux états distincts** : `0`
+   annule, vide rend la main.
 7. **Buff de vitesse** — même grille, mais chaque cellule combine un **raccourci**
    et un **champ** : un bouton à l'icône SPD du jeu (celle des cartes RTA/Siège)
    pose/retire le buff **+30 %** d'un clic — c'est presque toujours celui-là — et
    un `NumberField` à côté permet de saisir une autre valeur (33 %, un ralenti
    −30 %…). La ligne équipe agit sur tout le camp. `speedMod` s'applique **au seul
    tick marqué** (pas de report) : un buff qui dure se marque sur chaque tick.
-   Comme pour le boost, une case vide couverte par une **compétence** affiche sa
-   valeur en repère.
+   Comme pour le boost, une case vide laisse la **compétence** décider (valeur en
+   repère), une valeur saisie la remplace et `0` l'annule.
 8. **Ordre de tour** — jetons entrelaçant les deux camps, chacun avec son rang et
    son tick.
 

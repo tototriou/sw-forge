@@ -19,6 +19,7 @@ import {
   PASSES_MAX,
   HORIZON_TICKS,
   TuneMonstre,
+  ModParTick,
   Simulation,
   VitesseRequise,
   ArtefactRequis,
@@ -628,21 +629,64 @@ export function testSpeedTuneChaine() {
     ok(tickDe(avec, 'e') > tickDe(sans, 'e'), "un ralenti repousse le tour de l'adverse");
   }
 
-  // Buff et ralenti se COMPENSENT (ils ne s'empilent pas chacun de leur côté).
+  // Buff et ralenti de COMPÉTENCES se compensent (ils ne s'empilent pas chacun
+  // de leur côté) : +30 posé sur une cible ralentie de 30 la ramène à sa base.
   {
-    const base = m('cible', 200, 'ennemi');
-    const neutre = simuler([base]).lignes[0].trajectoire[0];
-    // Le ralentisseur joue au tick 1 (vitesse maximale) : son ralenti court donc
-    // dès le tick 2, et le buff saisi à la main le compense exactement.
-    const compense = simuler([
-      { ...m('moi', COMBAT_MAX, 'allie'), sort: { ralenti: 30 } },
-      { ...base, speedMod: { 2: 30, 3: 30, 4: 30, 5: 30 } },
-    ]).lignes.find((l) => l.id === 'cible')!;
+    const gainDe = (ms: TuneMonstre[]) => {
+      const l = simuler(ms, 6).lignes.find((x) => x.id === 'cible')!;
+      return l.trajectoire[3] - l.trajectoire[2];
+    };
+    const seul = gainDe([{ id: 'cible', combat: 200, camp: 'allie' }]);
+    const buffEtRalenti = gainDe([
+      { id: 'cible', combat: 200, camp: 'allie' },
+      { id: 'buffeur', combat: COMBAT_MAX, camp: 'allie', sort: { buffEquipe: 30 } },
+      { id: 'ralentisseur', combat: COMBAT_MAX, camp: 'ennemi', sort: { ralenti: 30, ralentiTous: true } },
+    ]);
     egal(
-      (compense.trajectoire[2] - compense.trajectoire[1]).toFixed(2),
-      neutre.toFixed(2),
+      buffEtRalenti.toFixed(3),
+      seul.toFixed(3),
       'un buff +30 sur une cible ralentie de 30 la ramène à sa vitesse de base'
     );
+  }
+
+  // ⚠️ LA GRILLE REMPLACE, elle n'ajoute pas. C'est ce qui permet d'écarter un
+  // effet aléatoire (réduction d'ATB à 70 % de chances) dont un tune ne doit pas
+  // dépendre : on pose 0 dans la case et le sort ne compte plus.
+  {
+    const scenario = (atbMod?: ModParTick) => [
+      { id: 'moi', combat: 300, camp: 'allie' as const, sort: { atbEnnemi: 50 } },
+      { id: 'e', combat: 200, camp: 'ennemi' as const, atbMod },
+    ];
+    const avecSort = simuler(scenario(), 10).lignes.find((l) => l.id === 'e')!;
+    const tickDuSort = Object.keys(avecSort.effetAtb).map(Number)[0];
+    egal(avecSort.effetAtb[tickDuSort], -50, "le sort retire bien 50 % à l'adverse");
+
+    const annule = simuler(scenario({ [tickDuSort]: 0 }), 10).lignes.find((l) => l.id === 'e')!;
+    egal(annule.effetAtb[tickDuSort] ?? 0, 0, '0 dans la case ANNULE le retrait du sort');
+    const sansSort = simuler([{ id: 'e', combat: 200, camp: 'ennemi' }], 10).lignes[0];
+    egal(
+      annule.trajectoire.slice(0, 8).map((v) => v.toFixed(3)).join(),
+      sansSort.trajectoire.slice(0, 8).map((v) => v.toFixed(3)).join(),
+      'annulé, tout se passe comme si le sort n’existait pas'
+    );
+
+    const remplace = simuler(scenario({ [tickDuSort]: -20 }), 10).lignes.find((l) => l.id === 'e')!;
+    egal(remplace.effetAtb[tickDuSort], -20, 'une valeur saisie REMPLACE celle du sort (−20 au lieu de −50)');
+  }
+
+  // Même règle sur la vitesse : la case remplace ce que le sort donne.
+  {
+    const base = [
+      { id: 'buffeur', combat: COMBAT_MAX, camp: 'allie' as const, sort: { buffEquipe: 30 } },
+      { id: 'moi', combat: 200, camp: 'allie' as const },
+    ];
+    const avec = simuler(base, 6).lignes.find((l) => l.id === 'moi')!;
+    egal(avec.effetSpeed[3], 30, 'le buff du sort court sur les ticks suivants');
+    const sans = simuler(
+      [base[0], { ...base[1], speedMod: { 3: 0 } }],
+      6
+    ).lignes.find((l) => l.id === 'moi')!;
+    egal(sans.effetSpeed[3] ?? 0, 0, '0 dans la case annule le buff pour ce tick-là');
   }
 
   // ⚠️ TOUR SUPPLÉMENTAIRE (Kroa : Owl's Hoot buffe toute l'équipe et lui rend

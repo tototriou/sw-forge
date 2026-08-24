@@ -170,6 +170,34 @@ if (recipe.objective === 'degats_reels') {
   }
 }
 
+// Runes IMPOSÉES (`requirement.lockedRunes`) : un `runeId` est propre à un
+// compte. Rejouer ici une recette exportée depuis un AUTRE compte (ou un
+// export antérieur au re-runage) laisserait un verrou pointant dans le vide
+// — le pool du slot tomberait à zéro et la recherche renverrait 0 build sans
+// que rien ne l'explique. L'écran, lui, purge ces verrous à l'import (voir
+// OptimizerSection.tsx) ; en CLI on AVERTIT plutôt que de modifier
+// silencieusement la recette qu'on est censé rejouer telle quelle.
+{
+  const locks = recipe.requirement.lockedRunes ?? {};
+  const entrees = Object.entries(locks).filter(([, id]) => id != null);
+  if (entrees.length > 0) {
+    const dispo = new Set(loaded.allRunes.map((r) => r.id));
+    const absentes = entrees.filter(([, id]) => !dispo.has(id as number));
+    console.log(
+      `Runes imposées : ${entrees.map(([slot, id]) => `slot ${slot} → rune ${id}`).join(', ')} ` +
+        `(le pool de ces emplacements tombe à 1).`
+    );
+    if (absentes.length > 0) {
+      console.warn(
+        `⚠️ ${absentes.length} rune(s) imposée(s) ABSENTE(S) de l'inventaire chargé (${absentes
+          .map(([slot]) => `slot ${slot}`)
+          .join(', ')}) — le pool de ces emplacements sera VIDE et la recherche renverra 0 build. ` +
+          `Une recette portant des runes imposées n'est rejouable que sur le compte qui l'a exportée.`
+      );
+    }
+  }
+}
+
 const params = recipeToSearchParams(recipe, loaded, exclusionData);
 
 console.log('\nRecherche en cours (avec escalade du budget, comme l\'app réelle — peut prendre plusieurs minutes)…');

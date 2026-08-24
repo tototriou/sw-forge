@@ -16,7 +16,8 @@ import {
 } from 'lucide-react';
 import { ArtifactDetail, ARTIFACT_KINDS, GearSet, RECO_STATS, RuneDetail, Monster, RtaEntry, SiegeTeam } from '../../types';
 import { BoxItem } from '../../lib/applyAccount';
-import { ARTIFACT_MAIN, CAPPED_STATS, RUNE_EFFECT, StatKey, runeEfficiency } from '../../lib/effects';
+import { ARTIFACT_MAIN, CAPPED_STATS, RUNE_EFFECT, StatKey, runeEfficiency, runeSetIconFilter } from '../../lib/effects';
+import RuneIcon from '../RuneIcon';
 import {
   BuildRequirement,
   SLOT_MAIN_OPTIONS,
@@ -181,6 +182,8 @@ export default function OptimizerSection({ box, runes, optimizer, allMonsters, r
     setArtifactMainByKind,
     mainStatsBySlot,
     setMainStatsBySlot,
+    lockedRunes,
+    setLockedRunes,
     objective,
     setObjective,
     damageSetup,
@@ -531,8 +534,8 @@ export default function OptimizerSection({ box, runes, optimizer, allMonsters, r
       const codes = mainStatsBySlot[slot];
       if (codes && codes.length > 0) mainStatsReq[slot] = codes;
     }
-    return { sets: comboSets, minStats, maxStats, mainStats: mainStatsReq };
-  }, [comboSets, minStats, maxStats, mainStatsBySlot]);
+    return { sets: comboSets, minStats, maxStats, mainStats: mainStatsReq, lockedRunes };
+  }, [comboSets, minStats, maxStats, mainStatsBySlot, lockedRunes]);
 
   // Indication du nombre de builds qui vont être testés — un ORDRE DE
   // GRANDEUR (le produit des pools filtrés par emplacement), pas le nombre
@@ -689,6 +692,22 @@ export default function OptimizerSection({ box, runes, optimizer, allMonsters, r
       setMinStats(recipe.requirement.minStats);
       setMaxStats(recipe.requirement.maxStats ?? {});
       setMainStatsBySlot(recipe.requirement.mainStats ?? {});
+      // ⚠️ **Runes imposées : gardées SEULEMENT si elles existent dans CET
+      // inventaire.** Un `runeId` est propre à un compte — une recette reçue
+      // d'un autre joueur en porte forcément d'inconnus, et les garder
+      // viderait le pool du slot concerné (donc zéro résultat) sans que rien
+      // n'explique pourquoi. Même tolérance que `excludedSelectors` : ce qui
+      // ne se résout pas est ignoré, jamais une erreur d'import — mais on le
+      // DIT (voir le message plus bas), contrairement aux sélecteurs
+      // d'exclusion dont la perte est sans conséquence sur le résultat.
+      const locksRecus = recipe.requirement.lockedRunes ?? {};
+      const locksValides: Partial<Record<number, number>> = {};
+      let locksIgnores = 0;
+      for (const [slot, runeId] of Object.entries(locksRecus)) {
+        if (runeId != null && runeById.has(runeId)) locksValides[Number(slot)] = runeId;
+        else locksIgnores++;
+      }
+      setLockedRunes(locksValides);
       // ⚠️ Repli sur l'objectif « Dégâts » : `speed_nuker` a été RETIRÉ
       // (branche forge/calcul-degats-reels), remplacé par « Dégâts réels ».
       // Une recette exportée pendant sa courte durée de vie (v1.8.1) porte
@@ -728,13 +747,17 @@ export default function OptimizerSection({ box, runes, optimizer, allMonsters, r
       setIgnoreArtifacts(recipe.ignoreArtifacts);
       setArtifactMainByKind(recipe.artifactMainByKind);
 
+      // Les runes imposées ignorées (voir plus haut) sont signalées en
+      // SUFFIXE du message d'import — un verrou perdu change réellement le
+      // résultat, contrairement à un sélecteur d'exclusion introuvable.
+      const suffixeLocks = locksIgnores > 0 ? ` ${locksIgnores} rune(s) imposée(s) ignorée(s) : absentes de ton inventaire.` : '';
       const match = gearedMonsters.find((g) => g.monster.com2usId === recipe.monsterCom2usId);
       if (match) {
         setSelectedId(String(match.monster.id));
-        setImportMsg({ text: `Réglages importés pour ${recipe.monsterName} — monstre sélectionné automatiquement.` });
+        setImportMsg({ text: `Réglages importés pour ${recipe.monsterName} — monstre sélectionné automatiquement.${suffixeLocks}` });
       } else {
         setImportMsg({
-          text: `Réglages importés (${recipe.monsterName}), mais ce monstre n'est pas dans ta box — choisis-en un manuellement.`,
+          text: `Réglages importés (${recipe.monsterName}), mais ce monstre n'est pas dans ta box — choisis-en un manuellement.${suffixeLocks}`,
         });
       }
     });
@@ -1115,6 +1138,74 @@ export default function OptimizerSection({ box, runes, optimizer, allMonsters, r
           ))}
         </div>
       </div>
+      </div>
+
+      {/* ⚠️ **Runes imposées** — verrouille un emplacement sur UNE rune
+          précise : ce slot n'a plus qu'un seul candidat, les cinq autres
+          restent optimisés normalement. Le cas d'usage réel est « je garde
+          CETTE rune, cherche les cinq autres autour » — d'où un choix
+          limité aux runes que le monstre PORTE DÉJÀ (celles de l'exemplaire
+          affiché juste au-dessus), et non un second sélecteur parmi les
+          milliers de runes de l'inventaire : désigner une rune qu'on ne
+          porte pas n'a pas de sens pour ce geste-là.
+          ⚠️ Techniquement une RÉDUCTION DE POOL, pas une contrainte de plus
+          — voir `BuildRequirement.lockedRunes` (runeBuildOptim.ts) : le
+          moteur n'a rien appris de la notion de verrou, il travaille juste
+          sur un pool où ce slot ne contient plus qu'une rune. */}
+      <div>
+        <div className="mb-2.5 flex items-center gap-1.5">
+          <p className="label">Runes imposées</p>
+          <HelpPopover title="Runes imposées">
+            Verrouille un emplacement sur la rune que le monstre porte déjà : la recherche gardera
+            <b className="text-ink"> exactement cette rune</b> et n'optimisera que les autres. Utile pour
+            conserver une rune que tu ne veux pas déruner. Les emplacements laissés libres sont optimisés
+            normalement.
+          </HelpPopover>
+        </div>
+        {!selected || selected.gear.runes.length === 0 ? (
+          <p className="text-micro text-ink-dim">
+            Aucune rune équipée sur cet exemplaire — rien à imposer.
+          </p>
+        ) : (
+          <div className="flex flex-wrap gap-1.5">
+            {[1, 2, 3, 4, 5, 6].map((slot) => {
+              const portee = selected.gear.runes.find((r) => r.slot === slot);
+              const verrouille = lockedRunes[slot] != null;
+              if (!portee) {
+                return (
+                  <span
+                    key={slot}
+                    className="rounded-full border border-border bg-panel2 px-2.5 py-1 text-micro text-ink-dimmer opacity-50"
+                    title={`Aucune rune en emplacement ${slot}`}
+                  >
+                    Slot {slot} —
+                  </span>
+                );
+              }
+              return (
+                <Pastille
+                  key={slot}
+                  actif={verrouille}
+                  onClick={() =>
+                    setLockedRunes((prev) => {
+                      const next = { ...prev };
+                      if (next[slot] != null) delete next[slot];
+                      else next[slot] = portee.id;
+                      return next;
+                    })
+                  }
+                  icone={<RuneIcon setKey={portee.set} size={13} filter={runeSetIconFilter(verrouille)} />}
+                  libelle={`Slot ${slot} · ${RUNE_EFFECT[portee.main.code]?.label ?? portee.main.code}`}
+                  title={
+                    verrouille
+                      ? `Libérer l'emplacement ${slot}`
+                      : `Imposer cette rune en emplacement ${slot} (le pool de ce slot tombe à 1)`
+                  }
+                />
+              );
+            })}
+          </div>
+        )}
       </div>
 
       <div>

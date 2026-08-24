@@ -71,6 +71,26 @@ export interface BuildRequirement {
   // Statistiques principales AUTORISÉES sur les slots 2/4/6 (codes RUNE_EFFECT,
   // voir SLOT_MAIN_OPTIONS). Absent/vide pour un slot = pas de contrainte.
   mainStats?: Partial<Record<2 | 4 | 6, number[]>>;
+  // Runes IMPOSÉES, par emplacement (1..6) : `lockedRunes[slot] = runeId`
+  // force CE slot à n'avoir qu'un seul candidat — la rune choisie. Absent
+  // pour un slot = emplacement libre, comportement inchangé.
+  //
+  // ⚠️ **Une RÉDUCTION de pool, pas une contrainte de plus.** Le verrou est
+  // appliqué tout en amont (`mainStatFilteredBySlot`, voir son
+  // implémentation), avant dominance/faisabilité/pré-filtrage : le slot
+  // n'a plus qu'un candidat, et TOUT le reste du moteur continue de
+  // travailler exactement comme avant sur un pool simplement plus petit.
+  // Aucun élagage n'a besoin de connaître la notion de verrou — c'est ce
+  // qui rend cette fonctionnalité sûre par construction (elle ne peut pas
+  // provoquer de faux rejet, elle retire des candidats que l'utilisateur a
+  // explicitement écartés lui-même).
+  //
+  // ⚠️ Une rune verrouillée dont l'emplacement RÉEL ne correspond pas au
+  // slot demandé, ou absente du pool (exclue par ailleurs, compte
+  // différent), rend la recherche VIDE pour ce slot — donc zéro résultat.
+  // C'est le comportement voulu : mieux vaut zéro build qu'un build qui
+  // ignore silencieusement le verrou posé.
+  lockedRunes?: Partial<Record<number, number>>;
 }
 
 export interface BuildCandidate {
@@ -2065,6 +2085,17 @@ export function mainStatFilteredBySlot(pool: RuneDetail[], requirement: BuildReq
   const bySlot: RuneDetail[][] = [[], [], [], [], [], []];
   for (const r of pool) {
     if (r.slot < 1 || r.slot > 6) continue;
+    // ⚠️ **Verrou de rune, appliqué ICI et nulle part ailleurs** — le point
+    // le plus AMONT du pipeline, traversé par TOUS les chemins (recherche
+    // réelle, estimation du pool affichée avant de lancer, diagnostics de
+    // faisabilité) : un seul endroit à toucher, aucun risque qu'un chemin
+    // l'oublie et travaille sur un pool différent de celui annoncé.
+    // Le slot verrouillé ne garde QUE la rune choisie ; tout le reste du
+    // moteur (dominance, faisabilité, pré-filtrage, meet-in-the-middle)
+    // continue sur un pool simplement plus petit, sans rien savoir de la
+    // notion de verrou.
+    const locked = requirement.lockedRunes?.[r.slot];
+    if (locked != null && r.id !== locked) continue;
     const allowed = requirement.mainStats?.[r.slot as 2 | 4 | 6];
     if (allowed && allowed.length > 0 && !allowed.includes(r.main.code)) continue;
     bySlot[r.slot - 1].push(r);

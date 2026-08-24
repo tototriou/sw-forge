@@ -55,6 +55,15 @@ export interface OptimizerState {
   setArtifactMainByKind: Dispatch<SetStateAction<Partial<Record<ArtifactKind, ArtifactMainChoice>>>>;
   mainStatsBySlot: Partial<Record<2 | 4 | 6, number[]>>;
   setMainStatsBySlot: Dispatch<SetStateAction<Partial<Record<2 | 4 | 6, number[]>>>>;
+  // Runes IMPOSÉES par emplacement (1..6) — `lockedRunes[slot] = runeId`.
+  // Réduit le pool de CE slot à cette seule rune (voir
+  // `BuildRequirement.lockedRunes`, runeBuildOptim.ts). Vide = aucun
+  // emplacement verrouillé, comportement inchangé.
+  // ⚠️ Fait partie des CRITÈRES (remis à zéro par `resetSearch` au
+  // changement de monstre) et non des réglages avancés : une rune précise
+  // n'a de sens que pour le monstre pour lequel on l'a choisie.
+  lockedRunes: Partial<Record<number, number>>;
+  setLockedRunes: Dispatch<SetStateAction<Partial<Record<number, number>>>>;
   objective: Objective;
   setObjective: Dispatch<SetStateAction<Objective>>;
   // Réglage de l'objectif « Dégâts réels » (voir spec/outils/degats-reels.md) :
@@ -157,6 +166,7 @@ export function useOptimizerState(): OptimizerState {
   const [ignoreArtifacts, setIgnoreArtifacts] = useState(false);
   const [artifactMainByKind, setArtifactMainByKind] = useState<Partial<Record<ArtifactKind, ArtifactMainChoice>>>({});
   const [mainStatsBySlot, setMainStatsBySlot] = useState<Partial<Record<2 | 4 | 6, number[]>>>({});
+  const [lockedRunes, setLockedRunes] = useState<Partial<Record<number, number>>>({});
   const [objective, setObjective] = useState<Objective>('efficience');
   const [damageSetup, setDamageSetup] = useState<DamageSetup>(DEFAULT_DAMAGE_SETUP);
   const [excludeUsedRunes, setExcludeUsedRunes] = useState(false);
@@ -182,6 +192,10 @@ export function useOptimizerState(): OptimizerState {
     setIgnoreArtifacts(false);
     setArtifactMainByKind({});
     setMainStatsBySlot({});
+    // ⚠️ Une rune imposée référence un `runeId` PRÉCIS, choisi pour l'ancien
+    // monstre — le garder verrouillerait la recherche du nouveau sur une
+    // rune qui n'a plus rien à voir (et la rendrait probablement vide).
+    setLockedRunes({});
     setObjective('efficience');
     // ⚠️ Réinitialisé AVEC les autres critères : `skillCom2usId` désigne un
     // sort du monstre PRÉCÉDENT, qui n'existe pas chez le nouveau — le
@@ -213,6 +227,8 @@ export function useOptimizerState(): OptimizerState {
     setArtifactMainByKind,
     mainStatsBySlot,
     setMainStatsBySlot,
+    lockedRunes,
+    setLockedRunes,
     objective,
     setObjective,
     damageSetup,

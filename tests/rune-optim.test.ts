@@ -77,6 +77,56 @@ export default function testRuneOptim() {
     );
   }
 
+  // ── Runes IMPOSÉES (`requirement.lockedRunes`) ───────────────────────
+  // ⚠️ Vérifie que le verrou est bien une RÉDUCTION DE POOL et rien d'autre :
+  // il doit se comporter EXACTEMENT comme si le slot n'avait jamais contenu
+  // que cette rune. Sans test, un verrou pourrait être appliqué trop tard
+  // dans le pipeline (après dominance/pré-filtrage) et se faire écarter
+  // silencieusement — un build « optimal » ignorant la rune imposée, sans
+  // aucun signal.
+  {
+    // Le pool n'a qu'UNE rune par slot : verrouiller celle qui est déjà la
+    // seule possible ne doit RIEN changer au résultat.
+    const res = searchBuilds({
+      base: ZERO_BASE,
+      artifacts: [],
+      pool: poolViolentWill(),
+      requirement: { sets: ['violent', 'will'], minStats: {}, lockedRunes: { 3: 3 } },
+      metric: 'eff',
+    });
+    egal(res.candidates.length, 1, 'rune imposée déjà seule candidate de son slot → résultat inchangé');
+    egal(res.candidates[0]?.runeIds.includes(3), true, 'la rune imposée est bien dans la combinaison retenue');
+  }
+  {
+    // Verrou sur une rune qui n'existe PAS dans le pool (id inconnu) : le
+    // slot devient vide, donc AUCUN build — jamais un repli silencieux qui
+    // ignorerait le verrou posé.
+    const res = searchBuilds({
+      base: ZERO_BASE,
+      artifacts: [],
+      pool: poolViolentWill(),
+      requirement: { sets: ['violent', 'will'], minStats: {}, lockedRunes: { 3: 999 } },
+      metric: 'eff',
+    });
+    egal(res.candidates.length, 0, 'rune imposée absente du pool → aucune combinaison, jamais un verrou ignoré');
+  }
+  {
+    // Deux runes possibles en slot 1, verrou sur la seconde : la recherche
+    // doit retenir CELLE-LÀ, même si l'autre est meilleure en efficience.
+    const pool = poolViolentWill();
+    const rivale = rune(99, 1, 'violent', 8, 20); // même slot/set, MEILLEURE valeur
+    const res = searchBuilds({
+      base: ZERO_BASE,
+      artifacts: [],
+      pool: [...pool, rivale],
+      requirement: { sets: ['violent', 'will'], minStats: {}, lockedRunes: { 1: 1 } },
+      metric: 'eff',
+    });
+    egal(res.candidates.length, 1, 'slot verrouillé → une seule combinaison possible');
+    egal(res.candidates[0]?.runeIds.includes(1), true, 'la rune IMPOSÉE est retenue');
+    egal(res.candidates[0]?.runeIds.includes(99), false, 'la rune concurrente, pourtant meilleure, est écartée');
+  }
+
   // Même pool, mais combo demandant 2× Will (4 pièces) : le pool n'en a que 2.
   {
     const res = searchBuilds({

@@ -53,8 +53,8 @@ carte à part entière (PAS un champ dans « Critères de recherche » : il se
 choisit avant même de composer le set, ce n'est pas un critère de plus
 parmi d'autres) ; 3) composer les **Critères de recherche**, dans cet
 ordre : Set de runes recherché → Statistique principale imposée (slots
-2/4/6) → Artéfacts → Conditions ; puis, optionnellement et en dernier,
-**Exclusion de runes** et **Réglages avancés**.
+2/4/6) → Runes imposées → Artéfacts → Conditions ; puis, optionnellement et
+en dernier, **Exclusion de runes** et **Réglages avancés**.
 
 Depuis `xl`, **une seule grille** (deux colonnes, quatre rangées) porte tout
 l'écran de réglages, organisée en **deux paires** plutôt qu'en un seul bloc
@@ -324,7 +324,29 @@ retour.
    s'applique **avant** tout le reste, dans la construction même du pool par
    slot — il réduit donc le nombre de candidats réellement considérés dès le
    départ.
-6. **Artéfacts** — interrupteur **« Ignorer les statistiques des
+6. **Runes imposées** — verrouille un emplacement sur **une rune précise** :
+   ce slot n'a plus qu'un seul candidat, les cinq autres restent optimisés
+   normalement. Une pastille par emplacement (1 à 6), montrant le set et la
+   statistique principale de la rune que l'exemplaire affiché porte déjà ;
+   un emplacement sans rune est montré grisé plutôt qu'absent.
+   ⚠️ **Choix limité aux runes DÉJÀ PORTÉES** par l'exemplaire sélectionné —
+   le cas d'usage est « je garde cette rune, cherche les cinq autres
+   autour ». Désigner une rune qu'on ne porte pas n'a pas de sens pour ce
+   geste, et aurait demandé un second sélecteur parmi des milliers de runes.
+   ⚠️ **Techniquement une RÉDUCTION DE POOL, pas une contrainte de plus** :
+   le verrou s'applique tout en amont (`mainStatFilteredBySlot`), avant
+   dominance/faisabilité/pré-filtrage. Le moteur ne connaît pas la notion de
+   verrou — il travaille sur un pool où ce slot ne contient plus qu'une
+   rune, ce qui rend la fonctionnalité **sûre par construction** (elle ne
+   peut pas provoquer de faux rejet : elle ne retire que des candidats
+   explicitement écartés par l'utilisateur).
+   ⚠️ **Un `runeId` est propre à un compte.** Une recette importée d'un
+   autre joueur porte des runes imposées inconnues ici : elles sont
+   **ignorées à l'import**, avec le nombre signalé dans le message — les
+   garder viderait le pool du slot (zéro résultat) sans rien expliquer. En
+   ligne de commande, le script **avertit** au lieu de purger : il est censé
+   rejouer la recette telle quelle.
+7. **Artéfacts** — interrupteur **« Ignorer les statistiques des
    artéfacts »**, **décoché par défaut** (les artéfacts réellement équipés
    comptent). Décoché, deux listes déroulantes (Attribut, Type) proposent :
    **« Comme équipé »** (défaut, reprend l'artéfact du build de BASE),
@@ -336,7 +358,7 @@ retour.
    explicite permet d'hypothéquer l'artéfact d'un autre contexte sans changer
    de monstre affiché. Ces stats deviennent le PLANCHER des conditions
    ci-dessous.
-7. **Conditions** — les 8 stats (PV, ATQ, DEF, VIT, Taux Crit, Dmg Crit, RES,
+8. **Conditions** — les 8 stats (PV, ATQ, DEF, VIT, Taux Crit, Dmg Crit, RES,
    Précision). Chaque stat porte **deux champs, minimum et maximum**, tous
    deux facultatifs — champ vide = pas de contrainte.
    - **Interrupteur « Stats de base exclues »**, activé par défaut : n'affecte
@@ -351,9 +373,9 @@ retour.
      précision/résistance adverse reste un résultat légitime).
    - **« Réinitialiser les conditions »** vide les 16 champs sans toucher aux
      autres réglages de l'écran.
-8. **« Utiliser tout l'inventaire »** — case à cocher, **cochée par défaut**
+9. **« Utiliser tout l'inventaire »** — case à cocher, **cochée par défaut**
    (voir « Exclusion des runes » ci-dessous).
-9. **« Réglages avancés »** (repliés par défaut) : **pré-filtrage par
+10. **« Réglages avancés »** (repliés par défaut) : **pré-filtrage par
    emplacement**, en **presets** plutôt qu'un curseur libre — Bas / Moyen
    (défaut) / Haut / Extrême, du plus rapide au plus large (et donc plus
    lent, mais capable de retrouver un build sur un très gros compte),
@@ -400,7 +422,7 @@ retour.
      peut retrouver un build qu'une recherche normale rate, au prix d'une
      recherche plus longue. Fait partie des réglages exportés/importés dans
      une recette (voir plus bas).
-10. **Estimation du pool retenu** — dès qu'un monstre et un set sont choisis,
+11. **Estimation du pool retenu** — dès qu'un monstre et un set sont choisis,
     une ligne affiche le nombre **exact** de runes gardées après
     pré-filtrage, détaillé par emplacement (une **somme**, pas un produit),
     recalculée en direct à chaque changement de critère. ⚠️ **Le pool, pas
@@ -409,7 +431,7 @@ retour.
     éloigné du nombre réel de demi-builds construits ou de paires visitées
     par le meet-in-the-middle pour servir de repère — seul le pool retenu,
     lui, est un nombre exact et directement lisible.
-11. **« Rechercher »** — lance le calcul. Changer un des critères ci-dessus
+12. **« Rechercher »** — lance le calcul. Changer un des critères ci-dessus
     ne relance rien automatiquement : il faut recliquer. Un bouton
     **« Arrêter »** apparaît pendant le calcul — il interrompt la recherche
     et garde le **meilleur trouvé jusque-là**, plutôt que de tout perdre
@@ -421,12 +443,12 @@ retour.
     entre joueurs. L'import remplit tous les réglages et sélectionne
     automatiquement le monstre de la box courante si son `com2usId` s'y
     trouve.
-12. **Barre de progression** — se remplit progressivement (pas une roue qui
+13. **Barre de progression** — se remplit progressivement (pas une roue qui
     tourne), avec le nombre de combinaisons déjà examinées et déjà trouvées,
     suivi d'un message **en gras, couleur dorée** (même que le rang `#X`
     d'un résultat) : « Attendez la fin de la recherche pour être sûr de
     trouver votre build optimal ».
-13. **Résultats** — jusqu'à 20 combinaisons affichées, chacune : rang, les
+14. **Résultats** — jusqu'à 20 combinaisons affichées, chacune : rang, les
     sets obtenus, le **panneau de stats** (`StatPanel.tsx`, le même composant
     que dans « Équipement actuel ») et les artéfacts + les 6 runes sur une
     roue à échelle réduite (`BuildCandidateCard.tsx`), tous deux cliquables

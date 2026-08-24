@@ -366,6 +366,12 @@ export default function SpeedTuningSection({ allMonsters, siegeDefenseTeams, sie
     setLignes((prev) => [...prev.filter((l) => !l.reference && l.uid !== ref.uid), ref]);
   }
 
+  // Arrêter l'analyse : l'adversaire de référence s'en va, le reste ne bouge
+  // pas. On regarde ce que l'analyse donne, puis on reprend la main.
+  function arreterAnalyse() {
+    setLignes((prev) => prev.filter((l) => !l.reference));
+  }
+
   function retirer(uid: string) {
     setLignes((prev) => prev.filter((l) => l.uid !== uid));
   }
@@ -695,6 +701,7 @@ export default function SpeedTuningSection({ allMonsters, siegeDefenseTeams, sie
   // qu'il n'y a que lui en face, « Lancer l'analyse » reste actif — c'est ce qui
   // permet de la relancer après avoir changé d'équipe.
   const aVraiEnnemi = lignesVisibles.some((l) => l.camp === 'ennemi' && !l.reference);
+  const aReference = lignes.some((l) => l.reference);
 
   return (
     <div className="space-y-4">
@@ -900,18 +907,24 @@ export default function SpeedTuningSection({ allMonsters, siegeDefenseTeams, sie
               {/* L'analyse se recalcule seule à chaque changement : ce bouton
                   sert au cas où il n'y a personne à devancer — il pose en face
                   un adversaire de référence. */}
+              {/* ⚠️ Bouton à DEUX temps : il pose l'adversaire de référence,
+                  puis il le retire. On lance l'analyse, on regarde, et on la
+                  coupe pour reprendre la main sans perdre le reste du réglage. */}
               <Bouton
                 icone={<Play size={14} />}
-                libelle="Lancer l'analyse"
+                libelle={aReference ? "Arrêter l'analyse" : "Lancer l'analyse"}
+                actif={aReference || undefined}
                 disabled={!aAllie || aVraiEnnemi}
                 title={
                   !aAllie
                     ? "Ajoute d'abord des monstres à ton équipe."
                     : aVraiEnnemi
                       ? "L'analyse est déjà faite sur les monstres d'en face : elle se recalcule à chaque changement."
-                      : 'Pose en face une copie de ton monstre le plus rapide (même lead, même vitesse de runes) et vérifie que toute ton équipe joue avant lui.'
+                      : aReference
+                        ? "Retire l'adversaire de référence : le reste de ton réglage ne bouge pas."
+                        : 'Pose en face une copie de ton monstre le plus rapide (même lead, même vitesse de runes) et vérifie que toute ton équipe joue avant lui.'
                 }
-                onClick={analyseAuto}
+                onClick={aReference ? arreterAnalyse : analyseAuto}
               />
               {/* ⚠️ Ce qui s'ouvre est posé SOUS ce bouton (section suivante) :
                   le bouton lui-même ne bouge pas d'un pixel quand on bascule. */}

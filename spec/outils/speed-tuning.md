@@ -409,9 +409,13 @@ De haut en bas :
    artéfact, ou une cellule de grille) : elle devient un adversaire ordinaire,
    qu'on ne réécrit plus — écraser un réglage serait une perte silencieuse.
 
-   Le bouton est **désactivé** sans équipe, ou quand « En face » porte un
-   **vrai** adversaire (l'analyse s'y recalcule à chaque changement, il n'y a
-   rien à relancer). Une référence seule ne le désactive pas : c'est ce qui permet de la
+   ⚠️ **Le bouton a DEUX temps** : « Lancer l'analyse » pose la référence,
+   « Arrêter l'analyse » la retire — le reste du réglage ne bouge pas. On regarde
+   ce que l'analyse donne, puis on reprend la main.
+
+   Il est **désactivé** sans équipe, ou quand « En face » porte un **vrai**
+   adversaire (l'analyse s'y recalcule à chaque changement, il n'y a rien à
+   lancer). Une référence seule ne le désactive pas : c'est ce qui permet de la
    reposer après un changement d'équipe.
 4. **Analyse poussée** (repliée par défaut) — ouverte par le bouton du verdict,
    elle se pose **sous** lui (le bouton ne bouge pas au clic). Pour les combos

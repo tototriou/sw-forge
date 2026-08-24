@@ -328,6 +328,20 @@ Détecté dans le kit par l'effet `Additional Turn` (`rejoue` sur `SortVitesse`)
   ne bougent pas.
 - Dans le tableau des barres, la case du tick garde le badge du **premier** tour.
 
+### ⚠️ Ce qu'un PASSIF fait, l'outil ne le voit pas
+
+Un passif ne part pas au tour du monstre : la simulation l'écarte (voir plus
+haut). Or certains pèsent lourd sur un tune — **Shumar** gagne **+15 de vitesse
+en permanence**, **Chilling** et **Elsharion** en gagnent selon leurs buffs,
+d'autres remplissent leur barre quand on les frappe.
+
+L'inventaire complet, **généré** depuis les données de compétences, vit dans
+[passifs-vitesse.md](passifs-vitesse.md) (`node scripts/passifs-vitesse.mjs`) :
+il classe ce qui n'est pas modélisé par nature de l'effet — vitesse en dur,
+vitesse sous condition, tour supplémentaire, barre gagnée ou retirée hors de son
+tour. **Seule la première catégorie est réglable une fois pour toutes** ; le
+reste dépend de ce qui se passe en combat, et se pose à la main dans les grilles.
+
 ### Rechargement des compétences
 
 ⚠️ **Un sort ne repart pas à chaque tour.** Le rechargement (`cooldown` sur

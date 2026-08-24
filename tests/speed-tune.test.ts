@@ -27,6 +27,7 @@ import {
 import { deckPourSpeedTune } from '../src/lib/speedTuneDeck';
 import { kitVitesse, sortsVitesse, BUFF_SPD_JEU } from '../src/lib/speedTuneKit';
 import { passifsVitesse, pointsDeGain } from '../src/lib/speedTunePassif';
+import { analyseAutomatique, EntreeAuto, DonneesKit } from '../src/lib/speedTuneAuto';
 import { DetailMonstre, Competence, EffetCompetence } from '../src/lib/monsterSkills';
 import { Monster, SiegeTeam } from '../src/types';
 import { combatSpeed } from '../src/lib/speed';
@@ -1226,4 +1227,118 @@ export function testSpeedTunePassif() {
   // Un monstre sans passif de vitesse ne remonte rien.
   egal(passifsVitesse(passif('Bouclier (Passive)', 'Creates a shield.')).length, 0, 'aucun passif de vitesse → rien');
   egal(passifsVitesse(null).length, 0, 'aucune fiche → rien');
+}
+
+/* ------------------------------------- Analyse automatique (partagée) ---- */
+
+// ⚠️ Le siège et l'outil doivent répondre EXACTEMENT la même chose sur la même
+// équipe : c'est cette fonction qu'ils partagent. Ce qui est vérifié ici, c'est
+// l'enchaînement des étapes — vitesse (Swift + passif), amplification d'équipe,
+// sort du kit, adversaire de référence, et le verdict qui en sort.
+export function testSpeedTuneAuto() {
+  titre('Speed tuning — analyse automatique partagée');
+
+  const monstre = (id: number, nom: string, spd: number): Monster =>
+    ({ id, com2usId: id, name: nom, stats: { speed: spd } }) as unknown as Monster;
+
+  const vide: DonneesKit = { kits: new Map(), sorts: new Map(), passifs: new Map() };
+
+  // Sans kit ni passif : la vitesse de combat est celle de speed.ts, et le plus
+  // rapide sert de référence.
+  {
+    const equipe: EntreeAuto[] = [
+      { id: 'a', monster: monstre(1, 'Adriana', 111), runeSpeed: 228, swift: true },
+      { id: 'b', monster: monstre(2, 'Sonia', 119), runeSpeed: 203, swift: true },
+    ];
+    const r = analyseAutomatique(equipe, 28, vide);
+    egal(r.combats.get('a'), 387, 'Adriana : 387 (Swift compris)');
+    egal(r.combats.get('b'), 373, 'Sonia : 373');
+    egal(r.reference?.id, 'a', 'le plus rapide sert de référence');
+    // La référence étant une COPIE du plus rapide, elle joue avant les autres :
+    // toute l'équipe ne peut pas passer devant elle.
+    ok(!r.verdict.ok, "on ne devance pas une copie de son propre plus rapide");
+    ok(r.requis.length > 0, 'et l’outil dit ce qu’il manque');
+  }
+
+  // Le PASSIF entre dans la vitesse — et il peut changer qui est le plus rapide.
+  {
+    const shumar: Monster = monstre(10615, 'Shumar', 115);
+    const donnees: DonneesKit = {
+      kits: new Map(),
+      sorts: new Map(),
+      passifs: new Map([
+        [
+          10615,
+          [
+            {
+              nom: 'Spurt (Passive)',
+              texte: '',
+              amplifieBuff: null,
+              gain: { valeur: 15, pourcent: false, plafond: null, parCumul: false, releve: false },
+              buff: false,
+              barre: null,
+              tourSupp: false,
+              inconnu: false,
+            },
+          ],
+        ],
+      ]),
+    };
+    const equipe: EntreeAuto[] = [
+      { id: 'shumar', monster: shumar, runeSpeed: 100 },
+      { id: 'autre', monster: monstre(2, 'Autre', 115), runeSpeed: 108 },
+    ];
+    const sans = analyseAutomatique(equipe, 0, vide);
+    const avec = analyseAutomatique(equipe, 0, donnees);
+    egal(avec.combats.get('shumar')! - sans.combats.get('shumar')!, 15, 'le passif ajoute ses 15');
+    egal(sans.reference?.id, 'autre', 'sans le passif, c’est l’autre le plus rapide');
+    egal(avec.reference?.id, 'shumar', 'avec, Shumar passe devant et devient la référence');
+  }
+
+  // L'amplification d'un allié (Miriam) profite à TOUTE l'équipe, pas à la
+  // référence — elle est en face.
+  {
+    const miriam = monstre(25812, 'Miriam', 103);
+    const donnees: DonneesKit = {
+      kits: new Map(),
+      sorts: new Map(),
+      passifs: new Map([
+        [
+          25812,
+          [
+            {
+              nom: "Blacksmith's Technique (Passive)",
+              texte: '',
+              amplifieBuff: { valeur: 35, equipe: true },
+              gain: null,
+              buff: false,
+              barre: null,
+              tourSupp: false,
+              inconnu: false,
+            },
+          ],
+        ],
+      ]),
+    };
+    const equipe: EntreeAuto[] = [
+      { id: 'miriam', monster: miriam, runeSpeed: 100 },
+      { id: 'allie', monster: monstre(3, 'Allié', 100), runeSpeed: 120 },
+    ];
+    ok(
+      analyseAutomatique(equipe, 0, donnees).verdict !== null,
+      'une équipe avec Miriam se calcule sans erreur'
+    );
+    egal(
+      analyseAutomatique(equipe, 0, donnees).combats.get('allie'),
+      analyseAutomatique(equipe, 0, vide).combats.get('allie'),
+      "l'amplification ne change AUCUNE vitesse de combat : elle amplifie un buff"
+    );
+  }
+
+  // Une équipe vide ne casse rien, et ne pose pas de référence.
+  {
+    const r = analyseAutomatique([], 0, vide);
+    egal(r.reference, null, 'aucune référence sans équipe');
+    ok(r.verdict.ok, 'et rien à signaler');
+  }
 }

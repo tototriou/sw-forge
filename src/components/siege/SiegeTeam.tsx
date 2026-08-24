@@ -16,7 +16,8 @@ import MonsterPicker from '../MonsterPicker';
 import ElementIcon from '../ElementIcon';
 import RuneIcon from '../RuneIcon';
 import MonsterGear from '../MonsterGear';
-import { premiersTours, simuler, TuneMonstre } from '../../lib/speedTune';
+import { analyseAutomatique, EntreeAuto } from '../../lib/speedTuneAuto';
+import { useDonneesKit } from '../../hooks/useDonneesKit';
 import NumberField from '../../ui/NumberField';
 import LeadPill, { LeadBadge } from './LeadPill';
 import { ConfirmDialog } from '../../ui/Dialogs';
@@ -127,26 +128,40 @@ export default function SiegeTeam({
   const hasLeo = slotInfos.some(({ monster }) => monster?.name === 'Leo');
   const anyOffTick = slotDangers.some(Boolean);
 
-  // ⚠️ **Une équipe Swift se VÉRIFIE, elle aussi.** Elle n'a pas de tick à
-  // viser — mais elle a un ORDRE, et c'est tout ce qui compte pour elle : qui
-  // joue avant qui. Dire « Vérifier le speed tuning » et s'arrêter là revenait à
-  // renvoyer l'utilisateur faire à la main un calcul que l'app sait faire.
+  // ⚠️ **Une équipe Swift ne se juge pas au tick, elle se SPEED TUNE.** Elle n'a
+  // aucun tick à viser : ce qui compte, c'est que toute l'équipe joue avant que
+  // l'adversaire ne s'intercale. Dire « Vérifier le speed tuning » et s'arrêter
+  // là renvoyait l'utilisateur faire à la main un calcul que l'app sait faire.
   //
-  // Même moteur que l'outil (règle des ticks, un seul monstre par tick), donc
-  // même réponse — voir lib/speedTune.ts.
-  const ordreSwift = useMemo(() => {
-    const tune: TuneMonstre[] = [];
-    for (const [i, { monster, combat }] of slotInfos.entries()) {
-      if (monster && combat != null && combat > 0)
-        tune.push({ id: `${i}`, combat, camp: 'allie' });
-    }
-    if (tune.length < 2) return [];
-    return premiersTours(simuler(tune)).map((a) => ({
-      nom: slotInfos[Number(a.id)].monster?.name ?? '?',
-      tick: a.tick,
-    }));
+  // ⚠️ **Même code que l'outil** (`analyseAutomatique`, lib/speedTuneAuto.ts) :
+  // la réponse ici doit être EXACTEMENT celle qu'on obtiendrait en ouvrant le
+  // speed tuning et en cliquant sur « Analyser ». Deux implémentations auraient
+  // donné deux verdicts sur la même équipe.
+  const donneesKit = useDonneesKit(slotInfos.map((x) => x.monster));
+  const equipeAuto = useMemo<EntreeAuto[]>(
+    () =>
+      slotInfos.flatMap(({ monster }, i) =>
+        monster
+          ? [
+              {
+                id: `${i}`,
+                monster,
+                runeSpeed: team.slots[i].runeSpeed,
+                swift: (team.slots[i].sets ?? []).includes('swift'),
+              },
+            ]
+          : []
+      ),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [JSON.stringify(slotInfos.map((x) => [x.monster?.id ?? null, x.combat]))]);
+    [JSON.stringify(team.slots.map((sl) => [sl.monsterId, sl.runeSpeed, sl.sets]))]
+  );
+  const speedTune = useMemo(
+    () =>
+      equipeAuto.length >= 2 && teamHasSwift
+        ? analyseAutomatique(equipeAuto, siegeLeadFor(leadInfo, equipeAuto[0].monster.element), donneesKit)
+        : null,
+    [equipeAuto, teamHasSwift, leadInfo, donneesKit]
+  );
 
   const validated = team.tickAlertDismissed; // recommandation écartée par l'utilisateur
 
@@ -492,16 +507,27 @@ export default function SiegeTeam({
             <span className={`text-xs ${status === 'red' ? 'text-fire' : 'text-warn'}`}>
               {status === 'red' ? (
                 (messageTick ?? "Ton équipe n'est pas au tick.")
-              ) : ordreSwift.length > 0 ? (
-                <>
-                  Équipe speed : elle joue dans cet ordre —{' '}
-                  <span className="font-semibold text-ink">
-                    {ordreSwift.map((o) => o.nom).join(' → ')}
-                  </span>
-                  <span className="ml-1 font-mono text-micro text-ink-dim">
-                    (ticks {ordreSwift.map((o) => o.tick).join(' · ')})
-                  </span>
-                </>
+              ) : speedTune ? (
+                speedTune.verdict.ok ? (
+                  <span className="text-good">Équipe speed : elle est speed tune.</span>
+                ) : (
+                  <>
+                    Équipe speed :{' '}
+                    <span className="font-semibold text-ink">
+                      {speedTune.requis.length === 0
+                        ? 'elle ne passe pas devant un monstre aussi rapide que le tien'
+                        : speedTune.requis
+                            .map((r) => {
+                              const i = Number(r.id);
+                              const nom = slotInfos[i]?.monster?.name ?? 'Ce monstre';
+                              return r.combatRequis == null
+                                ? `${nom} (hors de portée)`
+                                : `${nom} +${r.combatRequis - r.combatActuel} VIT`;
+                            })
+                            .join(', ')}
+                    </span>
+                  </>
+                )
               ) : (
                 'Équipe speed : pas de tick à viser.'
               )}

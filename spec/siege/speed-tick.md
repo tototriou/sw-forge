@@ -76,14 +76,24 @@ par équipe (aura = bordure + halo, + point dans l'en-tête) :
 | Vert | `emerald` | (Sans Swift) **tous au tick**, **ou** recommandation ignorée | — |
 | — | neutre | Équipe **vide** ou avec **Leo** | — |
 
-### ⚠️ Une équipe Swift se vérifie AUSSI
+### ⚠️ Une équipe Swift ne se juge pas au tick : elle se SPEED TUNE
 
-Elle n'a pas de tick à viser — mais elle a un **ordre**, et c'est tout ce qui
-compte pour elle : qui joue avant qui. L'app le **calcule** et l'affiche
-(« Équipe speed : elle joue dans cet ordre — Bernard → Tiana → Loren (ticks
-4 · 5 · 7) »), avec le **même moteur que l'outil** ([speedTune.ts](src/lib/speedTune.ts)),
-donc la même réponse. Afficher « Vérifier le speed tuning » et s'arrêter là
-renvoyait l'utilisateur faire à la main un calcul que l'app sait faire.
+Elle n'a aucun tick à viser. Ce qui compte pour elle, c'est que **toute l'équipe
+joue avant que l'adversaire ne s'intercale** — la question de l'outil, pas celle
+des ticks. Afficher « Vérifier le speed tuning » et s'arrêter là renvoyait
+l'utilisateur faire à la main un calcul que l'app sait faire.
+
+La card affiche donc le **verdict** : « Équipe speed : elle est speed tune. », ou
+ce qui manque, monstre par monstre (« Bella +71 VIT »).
+
+⚠️ **C'est le MÊME code que l'outil** — `analyseAutomatique`
+([speedTuneAuto.ts](src/lib/speedTuneAuto.ts)), partagé par les deux écrans : la
+réponse du siège est **exactement** celle qu'on obtiendrait en ouvrant le speed
+tuning et en cliquant sur « Analyser ». Deux implémentations auraient donné deux
+verdicts sur la même équipe, et c'est le genre d'écart qu'on ne voit qu'en le
+cherchant. La suite d'étapes (vitesse Swift + passif → amplification d'équipe →
+sort du kit → adversaire de référence → écriture des effets décalée d'un tick →
+verdict) est **testée** dans [tests/speed-tune.test.ts](tests/speed-tune.test.ts).
 
 **DEUX boutons sur orange/rouge**, pas un seul : écarter le conseil, ou aller le
 vérifier. ⚠️ Ne proposer que « Ignorer » revenait à ne laisser que la porte de

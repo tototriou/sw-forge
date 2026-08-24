@@ -1,0 +1,185 @@
+// L'ANALYSE AUTOMATIQUE d'une équipe, telle que l'outil la produit — mais
+// utilisable ailleurs.
+//
+// ⚠️ **UN SEUL endroit pour cette suite d'étapes.** Le siège doit répondre
+// EXACTEMENT ce que répondrait l'outil si on l'ouvrait et qu'on cliquait sur
+// « Analyser » : deux implémentations donneraient deux verdicts sur la même
+// équipe, et c'est le genre d'écart qu'on ne voit qu'en le cherchant.
+//
+// Les étapes, dans l'ordre — chacune compte, changer l'ordre change le résultat :
+//   1. vitesse de combat de chacun (runes + lead + Swift + gain de passif) ;
+//   2. amplification des buffs apportée par un allié (Miriam) ;
+//   3. sort retenu dans le kit de chacun, avec son rechargement ;
+//   4. adversaire de RÉFÉRENCE : une copie du plus rapide, en face ;
+//   5. simulation, puis RÉÉCRITURE des effets dans les grilles (décalés d'un
+//      tick, voir plus bas), puis SECONDE simulation — c'est celle-là qui donne
+//      le verdict, exactement comme à l'écran.
+
+import { Monster } from '../types';
+import { combatSpeed } from './speed';
+import {
+  ArtefactRequis,
+  Coupure,
+  HORIZON_TICKS,
+  ModParTick,
+  TuneMonstre,
+  VitesseRequise,
+  artefactsRequis,
+  diagnostiquerChaine,
+  premiersTours,
+  simuler,
+  vitessesRequises,
+} from './speedTune';
+import { KitVitesse, SortVitesse } from './speedTuneKit';
+import { PassifVitesse, pointsDeGain } from './speedTunePassif';
+
+// Un monstre de l'équipe, tel que l'écran le connaît.
+export interface EntreeAuto {
+  id: string;
+  monster: Monster;
+  runeSpeed: number | null;
+  swift?: boolean;
+  artefactBuff?: number | null;
+  // Déclenchements du gain de passif (buffs portés, tours adverses…).
+  cumulsPassif?: number | null;
+  passifActif?: boolean;
+}
+
+// Ce que les kits pré-générés donnent, déjà chargé par l'appelant.
+export interface DonneesKit {
+  kits: Map<number, KitVitesse>;
+  sorts: Map<number, SortVitesse[]>;
+  passifs: Map<number, PassifVitesse[]>;
+}
+
+export interface ResultatAuto {
+  // Vitesse de combat retenue pour chacun (passif compris).
+  combats: Map<string, number>;
+  // L'allié copié en face comme repère, `null` si l'équipe est vide.
+  reference: EntreeAuto | null;
+  verdict: Coupure;
+  requis: VitesseRequise[];
+  arte: ArtefactRequis[];
+  // L'ordre des premiers tours, alliés seulement.
+  ordre: { id: string; tick: number }[];
+}
+
+const kitDe = (e: EntreeAuto, d: DonneesKit) =>
+  e.monster.com2usId != null ? (d.kits.get(e.monster.com2usId) ?? null) : null;
+
+const passifDe = (e: EntreeAuto, d: DonneesKit): PassifVitesse | null => {
+  if (e.monster.com2usId == null || e.passifActif === false) return null;
+  return (d.passifs.get(e.monster.com2usId) ?? []).find((p) => p.gain || p.amplifieBuff) ?? null;
+};
+
+// Le sort que la lecture du kit retient pour ce monstre.
+export function sortRetenu(e: EntreeAuto, d: DonneesKit): SortVitesse | null {
+  const kit = kitDe(e, d);
+  const nom = kit?.atbCompetence ?? kit?.buffCompetence ?? null;
+  if (!nom || e.monster.com2usId == null) return null;
+  return (d.sorts.get(e.monster.com2usId) ?? []).find((x) => x.nom === nom) ?? null;
+}
+
+// Vitesse de combat d'un monstre, gain de passif compris.
+export function combatAuto(e: EntreeAuto, lead: number, d: DonneesKit): number | null {
+  const base = combatSpeed(e.monster.stats.speed, e.runeSpeed, lead, e.swift ?? false);
+  if (base == null) return null;
+  const p = passifDe(e, d);
+  return base + pointsDeGain(p?.gain ?? null, e.monster.stats.speed, e.cumulsPassif ?? 0);
+}
+
+// L'amplification des buffs apportée à TOUT le camp (Miriam). Ne s'empile pas :
+// on garde la plus forte.
+export function ampliCamp(equipe: EntreeAuto[], d: DonneesKit): number {
+  let max = 0;
+  for (const e of equipe) {
+    const a = passifDe(e, d)?.amplifieBuff;
+    if (a?.equipe && a.valeur > max) max = a.valeur;
+  }
+  return max;
+}
+
+export function analyseAutomatique(
+  equipe: EntreeAuto[],
+  lead: number,
+  donnees: DonneesKit,
+  horizon = HORIZON_TICKS
+): ResultatAuto {
+  const combats = new Map<string, number>();
+  for (const e of equipe) {
+    const c = combatAuto(e, lead, donnees);
+    if (c != null && c > 0) combats.set(e.id, c);
+  }
+
+  const ampli = ampliCamp(equipe, donnees);
+  const vus = equipe.filter((e) => combats.has(e.id));
+
+  // 4. L'adversaire de référence : une copie du plus rapide. ⚠️ Il ne reçoit PAS
+  // l'amplification de l'équipe — il est en face.
+  const modele = vus.reduce<EntreeAuto | null>(
+    (a, b) => (a == null || combats.get(b.id)! > combats.get(a.id)! ? b : a),
+    null
+  );
+
+  const avecSorts: TuneMonstre[] = vus.map((e) => {
+    const sort = sortRetenu(e, donnees);
+    return {
+      id: e.id,
+      combat: combats.get(e.id)!,
+      camp: 'allie',
+      artefactBuff: (e.artefactBuff ?? 0) + ampli,
+      sort: sort ? { ...sort.effet, cooldown: sort.cooldown } : undefined,
+      rejoue: sort?.rejoue ?? false,
+    };
+  });
+  if (modele) {
+    avecSorts.push({
+      id: `ref:${modele.id}`,
+      combat: combats.get(modele.id)!,
+      camp: 'ennemi',
+      artefactBuff: modele.artefactBuff ?? 0,
+    });
+  }
+
+  // 5. Ce que les sorts posent est ÉCRIT dans les grilles, puis rejoué.
+  //
+  // ⚠️ **Décalé d'un tick.** Dans le moteur, ce qu'une compétence pose arrive
+  // APRÈS l'arbitrage du tick (le lanceur vient de jouer) ; une case de grille,
+  // elle, est posée AVANT. Sur le même tick, un allié boosté volerait le tour du
+  // lanceur. C'est exactement ce que fait l'écran — les deux doivent coïncider.
+  const pose = simuler(avecSorts, horizon);
+  const parId = new Map(pose.lignes.map((l) => [l.id, l]));
+  const final: TuneMonstre[] = avecSorts.map((m) => {
+    const l = parId.get(m.id);
+    const atbMod: ModParTick = {};
+    const speedMod: ModParTick = {};
+    if (l) {
+      for (const [tick, v] of Object.entries(l.effetAtb)) {
+        const suivant = Number(tick) + 1;
+        if (v !== 0 && suivant <= horizon) atbMod[suivant] = v;
+      }
+      for (const [tick, v] of Object.entries(l.effetSpeed)) if (v !== 0) speedMod[Number(tick)] = v;
+    }
+    return {
+      id: m.id,
+      combat: m.combat,
+      camp: m.camp,
+      artefactBuff: m.artefactBuff,
+      rejoue: m.rejoue,
+      atbMod,
+      speedMod,
+    };
+  });
+
+  const verdict = diagnostiquerChaine(final, horizon);
+  return {
+    combats,
+    reference: modele,
+    verdict,
+    requis: verdict.ok ? [] : vitessesRequises(final, horizon),
+    arte: verdict.ok ? [] : artefactsRequis(final, horizon),
+    ordre: premiersTours(simuler(final, horizon))
+      .filter((a) => a.camp === 'allie')
+      .map((a) => ({ id: a.id, tick: a.tick })),
+  };
+}

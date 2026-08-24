@@ -10,6 +10,11 @@ sont regroupés par passive — les cinq éléments d'une même famille la parta
 ⚠️ Les noms viennent des données brutes : quelques monstres récents n'y figurent
 qu'en coréen.
 
+## AMPLIFIE les buffs reçus (même levier que le spd buff effect) — 2 monstre(s)
+
+- **Blacksmith's Technique (Passive) — +35 % d'effet de buff sur tout son camp**
+  - Miriam, Rune Blacksmith
+
 ## Gain de vitesse PROPRE (ni dispellable, ni amplifié par le spd buff effect) — 52 monstre(s)
 
 - **Backsteps (Passive) — +15 % de vitesse par déclenchement, plafonné à 150 %**
@@ -73,7 +78,7 @@ qu'en coréen.
 - **Spear of Penetration (Passive) — pose le buff de vitesse du jeu (+30 %)**
   - Agrius, Centaur Knight
 
-## Tour supplémentaire hors de son tour — 77 monstre(s)
+## Tour supplémentaire hors de son tour — 75 monstre(s)
 
 - **Addicted Power (Passive) — tour supplémentaire hors de son tour**
   - Magic Order Guardian, Valdemar
@@ -83,8 +88,6 @@ qu'en coréen.
   - DHALSIM, 달심(물)
 - **Annihilate (Passive) — tour supplémentaire hors de son tour**
   - Inugami, Raoq
-- **Blacksmith's Technique (Passive) — tour supplémentaire hors de son tour**
-  - Miriam, Rune Blacksmith
 - **Burning Touch (Passive) — tour supplémentaire hors de son tour**
   - Triss, 트리스(빛)
 - **Chain Reaction (Passive) — tour supplémentaire hors de son tour**

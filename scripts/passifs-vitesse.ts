@@ -19,9 +19,17 @@ const monstres = new Map<number, { name: string }>(
     .map((m: { com2usId: number; name: string }) => [m.com2usId, m])
 );
 
-type Categorie = 'gain' | 'gain-inconnu' | 'buff' | 'tour' | 'barre-gagnee' | 'barre-retiree';
+type Categorie =
+  | 'ampli'
+  | 'gain'
+  | 'gain-inconnu'
+  | 'buff'
+  | 'tour'
+  | 'barre-gagnee'
+  | 'barre-retiree';
 
 const LIBELLE: Record<Categorie, string> = {
+  ampli: "AMPLIFIE les buffs reçus (même levier que le spd buff effect)",
   gain: "Gain de vitesse PROPRE (ni dispellable, ni amplifié par le spd buff effect)",
   'gain-inconnu': 'Gain de vitesse propre, montant introuvable',
   buff: 'BUFF de vitesse du jeu (+30 %, amplifié par le spd buff effect)',
@@ -30,10 +38,17 @@ const LIBELLE: Record<Categorie, string> = {
   'barre-retiree': "Barre d'attaque retirée hors de son tour",
 };
 
-const ORDRE: Categorie[] = ['gain', 'gain-inconnu', 'buff', 'tour', 'barre-gagnee', 'barre-retiree'];
+const ORDRE: Categorie[] = ['ampli', 'gain', 'gain-inconnu', 'buff', 'tour', 'barre-gagnee', 'barre-retiree'];
 
 // Comment se lit un passif, en une ligne.
 function resume(p: PassifVitesse): [Categorie, string] {
+  // ⚠️ En PREMIER : amplifier un buff n'est ni un gain de vitesse ni un buff.
+  // Sans ce test, Miriam tombait dans « tour supplémentaire » par défaut.
+  if (p.amplifieBuff)
+    return [
+      'ampli',
+      `+${p.amplifieBuff.valeur} % d'effet de buff ${p.amplifieBuff.equipe ? 'sur tout son camp' : 'sur lui'}`,
+    ];
   if (p.gain) {
     const g = p.gain;
     const unite = g.pourcent ? ' %' : '';

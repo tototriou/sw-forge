@@ -133,18 +133,29 @@ Réunis, ils se lisent d'un coup : **l'état à gauche, les actions à droite**.
 - **« Voir le speed tune » y est TOUJOURS**, quel que soit le statut. ⚠️ Ce n'est
   pas une réponse à une alerte : c'est une question qu'on se pose sur n'importe
   quel deck — y compris celui qui va bien, pour voir **de combien** il passe. En
-  retrait (`fond="vide"`) : c'est une sortie vers un autre écran, pas une action
-  sur l'équipe.
+  retrait (`fond="vide"`) : c'est une question qu'on ouvre, pas une action sur
+  l'équipe.
 
-Il pose l'équipe dans
-[speedTuneHandoff.ts](src/lib/speedTuneHandoff.ts) et ouvre
-`#/outils/speed-tuning`, où elle arrive **déjà chargée** dans « Ton équipe ».
-⚠️ Le message passe par `sessionStorage` et n'est lu **qu'une fois** : c'est un
-message d'un écran à l'autre, pas un état — durable, il serait revenu à chaque
-visite de l'outil. Il ne porte que l'**identifiant** de l'équipe, jamais ses
-monstres : l'équipe vit dans `useSiegeState`, une copie en aurait fait une
-deuxième source de vérité. ⚠️ L'arrivée **ne lance pas** l'analyse : c'est un
-geste, et on vient peut-être régler autre chose d'abord.
+Il ouvre l'outil **en modale par-dessus le deck**
+([SpeedTuneModale.tsx](src/components/outils/SpeedTuneModale.tsx)), équipe
+**déjà chargée** dans « Ton équipe » — l'identifiant lui est passé en simple
+prop (`deckInitial`).
+
+> ⚠️ **Une modale, pas un changement de page.** Le bouton envoyait sur
+> `#/outils/speed-tuning` : il fallait alors déposer l'équipe dans
+> `sessionStorage`, la reprendre à l'arrivée, retenir d'où l'on venait et
+> ajouter un bouton « retour » — quatre mécanismes pour revenir à un écran
+> qu'on n'avait aucune raison de quitter. La page du siège reste là, dessous,
+> avec son défilement et ses équipes dépliées : **fermer suffit**.
+
+⚠️ **C'est tout l'outil, pas une version réduite** : le même composant, les
+mêmes réglages persistants. Ce qu'on change dans la modale se retrouve dans la
+page d'outil, et l'inverse — deux vues d'un seul état. Seul l'en-tête de page
+tombe (`entete={false}`) : la modale porte déjà le titre et le rappel de la
+règle des ticks.
+
+⚠️ L'ouverture **ne lance pas** l'analyse : c'est un geste, et on vient
+peut-être régler autre chose d'abord.
 
 **« Ignorer la recommandation »** →
 `dismissTickAlert(teamId, true)` : l'équipe passe au **vert**

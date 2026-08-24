@@ -1124,6 +1124,8 @@ export default function App() {
             tab={siegeTab}
             siege={siegeTab === 'offense' ? siegeOff : siegeDef}
             offense={siegeOff}
+            siegeDefenseTeams={siegeDef.state.teams}
+            siegeOffenseTeams={siegeOff.state.teams}
             recos={recos}
             builds={ownedBuilds}
             teams={ownedTeams}

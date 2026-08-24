@@ -1,4 +1,4 @@
-import { Monster, ElementKey } from '../types';
+import { Monster, ElementKey, SiegeTeam as SiegeTeamData } from '../types';
 import { LoadState } from '../hooks/useMonsters';
 import { SiegeSide, UseSiegeState } from '../hooks/useSiegeState';
 import { UseRecoState } from '../hooks/useSiegeRecos';
@@ -19,6 +19,10 @@ interface Props {
   copies6: Map<number, number>;
   teams: OwnedTeam[];
   monsters: Monster[];
+  // Relayées jusqu'au board : l'outil de speed tuning ouvert depuis une équipe
+  // propose les decks des DEUX camps.
+  siegeDefenseTeams: SiegeTeamData[];
+  siegeOffenseTeams: SiegeTeamData[];
   loadState: LoadState;
   onCreateMonster: (name: string, element: ElementKey, speed: number, lead?: CustomLead | null) => Monster;
   customMonsters: Monster[];

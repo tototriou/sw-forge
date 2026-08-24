@@ -120,6 +120,9 @@ donc en test, pas à l'œil. Calcul pur
 `lib/speedTune.ts` (règle des ticks, simulation « un seul monstre par tick » et
 verdict de chaîne « le combo passe-t-il ? » + vitesses requises, testé dans
 `tests/speed-tune.test.ts`), vitesse de combat via `lib/speed.ts`.
+S'ouvre aussi **en modale depuis un deck de siège**
+(`outils/SpeedTuneModale.tsx`, monté par `siege/SiegeBoard.tsx`) : même
+composant, mêmes réglages — la page dessous ne bouge pas, fermer rend sa place.
 Ne dépend pas d'un compte importé — mais sait **importer une équipe de siège**
 dans « Ton équipe » (`lib/speedTuneDeck.ts`) et **lire le kit** des monstres pour
 en déduire boosts de barre et buffs de vitesse (`lib/speedTuneKit.ts`, d'après

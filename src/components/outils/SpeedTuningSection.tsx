@@ -46,7 +46,6 @@ import {
   uidDe,
   visibles,
 } from '../../lib/speedTuneLignes';
-import { prendreDeck } from '../../lib/speedTuneHandoff';
 import { kitVitesse, sortsVitesse, KitVitesse, SortVitesse, KIT_VIDE } from '../../lib/speedTuneKit';
 import { passifsVitesse, pointsDeGain, PassifVitesse } from '../../lib/speedTunePassif';
 import { analyseAutomatique, cumulsEstimes, sortRetenu, sortSecondRetenu, EntreeAuto } from '../../lib/speedTuneAuto';
@@ -54,7 +53,7 @@ import { chargerDetail } from '../../lib/monsterSkills';
 import { teamSummary } from '../../lib/recoFromSiege';
 import { formesJouables } from '../../lib/monsterForms';
 import { useComboboxNav } from '../../hooks/useComboboxNav';
-import { useSpeedTune, DeckDispo, ChampMod } from '../../hooks/useSpeedTune';
+import { useSpeedTune, DeckDispo, ChampMod, DeckInitial } from '../../hooks/useSpeedTune';
 import { useAdversaireReference } from '../../hooks/useAdversaireReference';
 import { useStickyState } from '../../hooks/useStickyState';
 import MonsterAvatar from '../MonsterAvatar';
@@ -94,7 +93,25 @@ interface Props {
   // l'outil marche sans.
   siegeDefenseTeams: SiegeTeam[];
   siegeOffenseTeams: SiegeTeam[];
+  // Équipe chargée d'office à l'ouverture — l'outil ouvert DEPUIS un deck (voir
+  // SpeedTuneModale). Absent sur la page d'outil, qui s'ouvre sur ce qu'on y a
+  // laissé.
+  deckInitial?: DeckInitial | null;
+  // L'en-tête de la page (titre + rappel de la règle des ticks). ⚠️ Coupé en
+  // modale, qui porte déjà les deux : deux titres « Speed tuning » l'un sous
+  // l'autre, et on cherche lequel des deux se ferme.
+  entete?: boolean;
 }
+
+// Le rappel de la règle, en une phrase. ⚠️ Écrit UNE fois : la page le met sous
+// son titre, la modale sous le sien — il ne doit pas exister deux versions qui
+// se mettent à diverger.
+export const REGLE_TICKS = (
+  <>
+    À chaque tick, la barre d'action monte de <span className="text-ink">vitesse × 7 %</span> ; un seul monstre
+    agit par tick. Ajoute tes monstres et ceux d'en face pour voir qui joue avant qui.
+  </>
+);
 
 
 
@@ -184,7 +201,13 @@ function TeteTicks({ premiere }: { premiere: string }) {
   );
 }
 
-export default function SpeedTuningSection({ allMonsters, siegeDefenseTeams, siegeOffenseTeams }: Props) {
+export default function SpeedTuningSection({
+  allMonsters,
+  siegeDefenseTeams,
+  siegeOffenseTeams,
+  deckInitial,
+  entete = true,
+}: Props) {
   // ⚠️ **Ce composant NE CALCULE RIEN.** Tout le métier — vitesses, sorts,
   // analyse, adversaire de référence — vit dans `useSpeedTune` et les libs
   // qu'il appelle. Ne restent ici que le rendu et ce qui n'a de sens qu'à
@@ -285,7 +308,7 @@ export default function SpeedTuningSection({ allMonsters, siegeDefenseTeams, sie
     sortsSignature,
     toujoursReference,
     tune,
-  } = useSpeedTune({ allMonsters, siegeDefenseTeams, siegeOffenseTeams });
+  } = useSpeedTune({ allMonsters, siegeDefenseTeams, siegeOffenseTeams, deckInitial });
 
   function besoin(l: Ligne, combatCible: number | null, arteCible: number | null, arteActuel: number) {
     const runes = combatCible == null ? null : runesPour(l, combatCible);
@@ -332,18 +355,17 @@ export default function SpeedTuningSection({ allMonsters, siegeDefenseTeams, sie
 
   return (
     <div className="space-y-4">
-      <header className="flex items-start gap-3">
-        <span className="flex h-8 w-8 flex-none items-center justify-center rounded bg-accent-soft text-accent">
-          <Timer size={18} />
-        </span>
-        <div>
-          <h1 className="text-lg font-semibold leading-tight">Speed tuning</h1>
-          <p className="mt-0.5 text-sm text-ink-dim">
-            À chaque tick, la barre d'action monte de <span className="text-ink">vitesse × 7 %</span> ; un seul
-            monstre agit par tick. Ajoute tes monstres et ceux d'en face pour voir qui joue avant qui.
-          </p>
-        </div>
-      </header>
+      {entete && (
+        <header className="flex items-start gap-3">
+          <span className="flex h-8 w-8 flex-none items-center justify-center rounded bg-accent-soft text-accent">
+            <Timer size={18} />
+          </span>
+          <div>
+            <h1 className="text-lg font-semibold leading-tight">Speed tuning</h1>
+            <p className="mt-0.5 text-sm text-ink-dim">{REGLE_TICKS}</p>
+          </div>
+        </header>
+      )}
 
       {/* Repère des ticks */}
       <section className="rounded-lg border border-border bg-panel">

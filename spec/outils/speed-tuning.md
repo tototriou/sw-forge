@@ -75,6 +75,11 @@ posent** pour ce monstre et ce tick — **0 annule** l'effet du sort, une case
 
 ## Importer un deck de siège
 
+⚠️ **L'autre sens existe aussi** : depuis un deck de siège, « Voir le speed
+tune » ouvre **cet outil en modale** par-dessus la page du siège, équipe déjà
+chargée dans « Ton équipe » (`deckInitial`, `entete={false}` — la modale porte
+déjà le titre). Voir [../siege/speed-tick.md](../siege/speed-tick.md).
+
 Reprendre une composition déjà réglée plutôt que retaper trois monstres et
 trois vitesses de runes. Calcul pur dans
 [speedTuneDeck.ts](src/lib/speedTuneDeck.ts), **testé**

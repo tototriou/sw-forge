@@ -42,7 +42,6 @@ import {
   uidDe,
   visibles,
 } from '../lib/speedTuneLignes';
-import { prendreDeck } from '../lib/speedTuneHandoff';
 import { kitVitesse, sortsVitesse, KitVitesse, SortVitesse } from '../lib/speedTuneKit';
 import { passifsVitesse, PassifVitesse } from '../lib/speedTunePassif';
 import { analyseAutomatique, sortRetenu } from '../lib/speedTuneAuto';
@@ -63,6 +62,12 @@ export interface DeckDispo {
 
 export type ChampMod = 'atbMod' | 'speedMod';
 
+// L'équipe de siège avec laquelle l'outil s'ouvre, et le camp d'où elle vient.
+export interface DeckInitial {
+  source: 'defense' | 'offense';
+  teamId: string;
+}
+
 // TOUT l'état et toutes les actions de l'écran de speed tuning.
 //
 // ⚠️ **La page ne fait que rendre.** Ce qui décide vit ici et dans les libs que
@@ -76,10 +81,14 @@ export function useSpeedTune({
   allMonsters,
   siegeDefenseTeams,
   siegeOffenseTeams,
+  deckInitial,
 }: {
   allMonsters: Monster[];
   siegeDefenseTeams: SiegeTeam[];
   siegeOffenseTeams: SiegeTeam[];
+  // L'équipe à charger dans « Ton équipe » à l'ouverture — l'outil ouvert
+  // DEPUIS un deck. ⚠️ Une PROP, pas un message stocké : voir l'effet plus bas.
+  deckInitial?: DeckInitial | null;
 }) {
   const [lignes, setLignes] = useStickyState<Ligne[]>('speedTune.lignes', []);
   const [leadAllie, setLeadAllie] = useStickyState<number>('speedTune.leadAllie', 0);
@@ -156,20 +165,26 @@ export function useSpeedTune({
     setLignes((prev) => estimerCumuls(prev, donneesKit));
   }, [lignes, donneesKit, setLignes]);
 
-  // ⚠️ **Arrivée depuis le siège** (« voir le speed tune » sur une équipe) : le
-  // message est consommé UNE fois, à l'ouverture, et l'équipe est importée dans
-  // « Ton équipe ». On ne relance pas l'analyse tout seul — c'est un geste, et
-  // l'utilisateur vient peut-être régler autre chose d'abord.
+  // ⚠️ **Ouverture DEPUIS un deck** (« voir le speed tune » sur une équipe) :
+  // l'équipe est importée dans « Ton équipe » une seule fois, à l'ouverture. On
+  // ne relance pas l'analyse tout seul — c'est un geste, et l'utilisateur vient
+  // peut-être régler autre chose d'abord.
+  //
+  // ⚠️ **Une prop, plus un message dans `sessionStorage`.** L'outil s'ouvrait en
+  // CHANGEANT DE PAGE : il fallait donc déposer l'équipe quelque part, la
+  // reprendre à l'arrivée, et se souvenir d'où l'on venait pour offrir un
+  // retour. Il s'ouvre maintenant en MODALE par-dessus le deck : la page dessous
+  // n'a pas bougé, fermer suffit, et l'équipe se passe comme n'importe quelle
+  // autre donnée — de parent à enfant.
   const arrivee = useRef(false);
   useEffect(() => {
-    if (arrivee.current) return;
-    const passe = prendreDeck();
-    if (!passe) return;
+    if (arrivee.current || !deckInitial) return;
     arrivee.current = true;
-    const teams = passe.source === 'defense' ? siegeDefenseTeams : siegeOffenseTeams;
-    const team = teams[Number(passe.teamId)] ?? teams.find((t) => t.id === passe.teamId);
+    const teams = deckInitial.source === 'defense' ? siegeDefenseTeams : siegeOffenseTeams;
+    const team =
+      teams.find((t) => t.id === deckInitial.teamId) ?? teams[Number(deckInitial.teamId)];
     if (team) importerDeck('allie', team);
-  }, [siegeDefenseTeams, siegeOffenseTeams]);
+  }, [deckInitial, siegeDefenseTeams, siegeOffenseTeams]);
 
   // ⚠️ Rien n'est écrit dans les lignes : ce qu'un monstre fait se DÉDUIT de son
   // kit à l'affichage. Une valeur recopiée dans l'état aurait vieilli au premier

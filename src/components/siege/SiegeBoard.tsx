@@ -1,11 +1,11 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Plus, Castle, Trash2, Gauge } from 'lucide-react';
-import { Monster, ElementKey } from '../../types';
+import { Monster, ElementKey, SiegeTeam as SiegeTeamData } from '../../types';
 import { LoadState } from '../../hooks/useMonsters';
 import { SiegeSide, UseSiegeState } from '../../hooks/useSiegeState';
 import { useStickyState } from '../../hooks/useStickyState';
-import { poserDeck } from '../../lib/speedTuneHandoff';
 import SiegeTeam from './SiegeTeam';
+import SpeedTuneModale from '../outils/SpeedTuneModale';
 import CreateMonster from '../CreateMonster';
 import { ConfirmDialog } from '../../ui/Dialogs';
 import MobileSheet from '../../ui/MobileSheet';
@@ -16,6 +16,11 @@ interface Props {
   side: SiegeSide;
   siege: UseSiegeState;
   monsters: Monster[];
+  // Les équipes des DEUX camps : l'outil de speed tuning, ouvert en modale
+  // depuis une équipe, propose d'importer n'importe quel deck — pas seulement
+  // ceux du côté qu'on regarde.
+  siegeDefenseTeams: SiegeTeamData[];
+  siegeOffenseTeams: SiegeTeamData[];
   loadState: LoadState;
   onCreateMonster: (name: string, element: ElementKey, speed: number, lead?: CustomLead | null) => Monster;
   customMonsters: Monster[];
@@ -33,6 +38,8 @@ export default function SiegeBoard({
   side,
   siege,
   monsters,
+  siegeDefenseTeams,
+  siegeOffenseTeams,
   loadState,
   onCreateMonster,
   customMonsters,
@@ -48,13 +55,14 @@ export default function SiegeBoard({
 
   const noun = side === 'defense' ? 'défense' : 'attaque';
 
-  // « Voir le speed tune » : on passe l'équipe à l'outil et on y va. ⚠️ Le
-  // message ne porte que l'identifiant (voir speedTuneHandoff.ts) — l'équipe
-  // elle-même vit dans `useSiegeState`, que l'outil relit.
-  function voirSpeedTune(teamId: string) {
-    poserDeck(side, teamId);
-    window.location.hash = '#/outils/speed-tuning';
-  }
+  // « Voir le speed tune » : l'outil s'ouvre EN MODALE par-dessus le deck.
+  //
+  // ⚠️ **On ne change pas de page.** Y aller déposait l'équipe dans
+  // `sessionStorage`, obligeait à retenir d'où l'on venait et à offrir un
+  // « retour » — pour revenir à un écran qu'on n'avait pas de raison de quitter.
+  // La page reste là, dessous : fermer la modale rend exactement sa place, son
+  // défilement et ses équipes dépliées.
+  const [speedTune, setSpeedTune] = useState<string | null>(null);
 
   // Mode vérification des ticks : désactivé par défaut (équipes neutres), on
   // l'active volontairement pour faire passer les auras de couleur.
@@ -248,7 +256,7 @@ export default function SiegeBoard({
               monsters={monsters}
               monsterById={monsterById}
               checkTicks={checkTicks}
-              onVoirSpeedTune={voirSpeedTune}
+              onVoirSpeedTune={setSpeedTune}
               expanded={expandedIds.has(team.id)}
               onToggleExpand={toggleExpand}
               onRemoveTeam={siege.removeTeam}
@@ -262,6 +270,18 @@ export default function SiegeBoard({
             </div>
           ))}
         </div>
+      )}
+
+      {/* L'outil de speed tuning, par-dessus le deck. ⚠️ Monté seulement quand
+          on le demande : il charge les kits des monstres à l'ouverture. */}
+      {speedTune && (
+        <SpeedTuneModale
+          deck={{ source: side, teamId: speedTune }}
+          allMonsters={monsters}
+          siegeDefenseTeams={siegeDefenseTeams}
+          siegeOffenseTeams={siegeOffenseTeams}
+          onClose={() => setSpeedTune(null)}
+        />
       )}
     </div>
   );

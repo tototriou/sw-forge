@@ -1811,7 +1811,7 @@ function GrilleMod({
   // une autre valeur (33 %, un ralenti −30 %…).
   const cellule = (value: number | null, onChange: (v: number | null) => void, aria: string) =>
     mode === 'buff' ? (
-      <div className="mx-auto flex w-[78px] items-center gap-1">
+      <div className="mx-auto flex w-[86px] items-center gap-1">
         <BoutonIcone
           cadre
           actif={!!value}
@@ -1826,8 +1826,12 @@ function GrilleMod({
           value={value}
           onChange={onChange}
           allowEmpty
-          boxWidth="w-11"
+          boxWidth="w-14"
+          suffix="%"
           placeholder="·"
+          // Un buff est un gain, un ralenti une perte : même lecture que la
+          // grille des barres.
+          ton={value == null || value === 0 ? 'neutre' : value > 0 ? 'good' : 'bad'}
           ariaLabel={`${aria} — valeur`}
         />
       </div>
@@ -1845,7 +1849,10 @@ function GrilleMod({
         allowEmpty
         min={-100}
         max={100}
-        boxWidth="w-14"
+        // ⚠️ Élargi d'un cran avec le suffixe : « −100 % » doit tenir sans que
+        // le champ ne rétrécisse le chiffre. La colonne fait 92 px, on y est.
+        boxWidth="w-16"
+        suffix="%"
         placeholder="·"
         ton={value == null || value === 0 ? 'neutre' : value > 0 ? 'good' : 'bad'}
         ariaLabel={aria}

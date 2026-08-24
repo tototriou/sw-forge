@@ -540,7 +540,8 @@ De haut en bas :
    (axe dense de la lib, voir [../shared/librairie-ui.md](../shared/librairie-ui.md)) ;
    valeur **positive pour remplir, négative pour vider** (la barre reste ≥ 0),
    la cellule prenant le **ton** de sa valeur — vert pour un gain, rouge pour un
-   retrait (axe `ton` de `NumberField`) ;
+   retrait (axe `ton` de `NumberField`) — et portant son **`%`** (axe `suffix`) :
+   ce sont des pourcentages de barre, pas des points ;
    une case vide = aucun modificateur. ⚠️ **C'est ici que l'analyse écrit** : les
    valeurs qu'elle pose sont des valeurs comme les autres, qu'on corrige ou qu'on
    efface — c'est ainsi qu'on écarte une réduction d'ATB à 70 % de chances dont
@@ -551,7 +552,9 @@ De haut en bas :
    un `NumberField` à côté permet de saisir une autre valeur (33 %, un ralenti
    −30 %…). La ligne équipe agit sur tout le camp. `speedMod` s'applique **au seul
    tick marqué** (pas de report) : un buff qui dure se marque sur chaque tick —
-   et c'est exactement ce que l'analyse écrit quand un sort buffe l'équipe.
+   et c'est exactement ce que l'analyse écrit quand un sort buffe l'équipe. Même
+   habillage que la grille des barres : **`%`** en suffixe, et le **ton** de la
+   valeur (un buff est vert, un ralenti rouge).
    Comme pour le boost, une case vide laisse la **compétence** décider (valeur en
    repère), une valeur saisie la remplace et `0` l'annule.
 8. **Ordre de tour** — jetons entrelaçant les deux camps, chacun avec son rang et

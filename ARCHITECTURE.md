@@ -187,6 +187,9 @@ jeu** (halo, éclat) et en sont exemptés.
 | `useClavierOuvert` | clavier virtuel déployé ? via `visualViewport` |
 | `useRecalageEcran` | ramène dans l'écran un flottant qui déborde par la droite |
 | `useComboboxNav` | ↑/↓/Entrée/Échap des barres de recherche à suggestions |
+| `useSpeedTune` | ⚠️ **tout** l'état, les actions et les dérivées du speed tuning — la page ne fait que rendre |
+| `useDonneesKit` | charge kits, sorts et passifs d'une poignée de monstres (outil **et** siège, un seul chemin) |
+| `useAdversaireReference` | réglage global : toujours poser l'adversaire de référence en face |
 
 ---
 
@@ -198,6 +201,7 @@ dans un composant.
 | Domaine | Fichiers |
 |---|---|
 | Vitesse & stats | `speed.ts` (source de vérité), `stats.ts` |
+| Speed tuning | `speedTune.ts` (moteur de ticks), `speedTuneLignes.ts` (modèle de l'écran), `speedTuneAuto.ts` (analyse partagée outil/siège), `speedTuneKit.ts` + `speedTunePassif.ts` (lecture des kits), `speedTuneDeck.ts` (import d'un deck), `siegeStatut.ts` (statut d'une équipe de siège) |
 | Runes | `runeOptim.ts`, `runeBuildOptim.ts`, `runeSort.ts`, `runeCurveShare.ts` |
 | Artéfacts | `artifacts.ts` |
 | Import de compte | `importAccount.ts` (parse SWEX), `applyAccount.ts` (→ états), `accountStore.ts` (IndexedDB), `accountViews.ts` |

@@ -32,7 +32,6 @@ import {
   Champ,
   Flottant,
   NumberField,
-  Option,
   Selecteur,
   BoutonIcone,
   Jeton,
@@ -1667,11 +1666,15 @@ function ChoixSort({
           role="listbox"
           aria-label={`Sort lancé par ${nomMonstre}`}
         >
+          {/* ⚠️ Des RANGÉES à plat, pas des cartes : `Option` porte son propre
+              cadre arrondi, fait pour un choix empilé dans un dialogue. Dans une
+              surface flottante, l'app pose des rangées qui touchent les bords —
+              même grammaire que l'import de deck et la recherche de monstre. */}
           {auto && (
-            <Option
-              icone={icone(auto, 20)}
+            <Rangee
+              icone={icone(auto, 22)}
               titre="Sort détecté"
-              description={`Celui que son kit a retenu : ${auto.nom}`}
+              detail={`Celui que son kit a retenu : ${auto.nom}`}
               actif={valeur === '__auto'}
               onClick={() => {
                 onChoisir('__auto');
@@ -1679,10 +1682,10 @@ function ChoixSort({
               }}
             />
           )}
-          <Option
-            icone={<Sparkles size={20} className="text-ink-dimmer" />}
+          <Rangee
+            icone={<Sparkles size={22} className="text-ink-dimmer" />}
             titre="Aucun sort"
-            description="Il joue, mais rien qui touche la vitesse"
+            detail="Il joue, mais rien qui touche la vitesse"
             actif={valeur === ''}
             onClick={() => {
               onChoisir('');
@@ -1690,11 +1693,11 @@ function ChoixSort({
             }}
           />
           {sorts.map((x) => (
-            <Option
+            <Rangee
               key={x.nom}
-              icone={icone(x, 20)}
+              icone={icone(x, 22)}
               titre={`${x.slot ? `S${x.slot} · ` : ''}${x.nom}`}
-              description={libelleSort(x).split(' — ')[1]}
+              detail={libelleSort(x).split(' — ')[1]}
               actif={valeur === x.nom}
               onClick={() => {
                 onChoisir(x.nom);
@@ -1705,6 +1708,42 @@ function ChoixSort({
         </Flottant>
       )}
     </div>
+  );
+}
+
+// Une rangée de liste flottante : icône, titre, et ce que ça fait en dessous.
+// Sans cadre ni coins arrondis — c'est la surface flottante qui porte la forme,
+// les rangées la remplissent bord à bord.
+function Rangee({
+  icone,
+  titre,
+  detail,
+  actif,
+  onClick,
+}: {
+  icone: React.ReactNode;
+  titre: string;
+  detail?: string;
+  actif?: boolean;
+  onClick: () => void;
+}) {
+  return (
+    <ZoneCliquable
+      role="option"
+      aria-selected={actif}
+      onClick={onClick}
+      className={`flex w-full items-center gap-2.5 border-b border-border-soft px-3 py-2 text-left last:border-b-0 hoverable:bg-accent-soft ${
+        actif ? 'bg-accent-soft' : ''
+      }`}
+    >
+      <span className="flex-none">{icone}</span>
+      <span className="min-w-0 flex-1">
+        <span className={`block truncate text-sm ${actif ? 'font-semibold text-accent' : 'font-medium'}`}>
+          {titre}
+        </span>
+        {detail && <span className="block truncate text-micro text-ink-dim">{detail}</span>}
+      </span>
+    </ZoneCliquable>
   );
 }
 

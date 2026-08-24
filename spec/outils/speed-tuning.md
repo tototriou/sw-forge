@@ -183,7 +183,12 @@ et [speedTuneKit.ts](src/lib/speedTuneKit.ts) (`sortsVitesse`), **testés**.
 - **Sort par monstre**, choisi dans une liste à **icônes** — ⚠️ un joueur
   reconnaît une compétence à son icône avant d'en lire le nom, et un `<select>`
   natif ne montre que du texte : c'est donc la grammaire Bouton + `Flottant` +
-  `Option` de la librairie, celle de l'import de deck. Le bouton porte l'icône du
+  **rangées à plat** de la librairie, celle de l'import de deck et de la
+  recherche de monstre. ⚠️ **Pas des cartes `Option`** : elles portent leur propre
+  cadre arrondi, fait pour un choix empilé dans un dialogue — posées dans une
+  surface flottante déjà arrondie, elles font des coins dans des coins. Dans un
+  flottant, c'est la surface qui porte la forme et les rangées la remplissent
+  bord à bord. Le bouton porte l'icône du
   sort retenu. Trois familles d'entrées : « Sort détecté » (celui que la lecture
   du kit a retenu),
   « Aucun sort », ou **n'importe quelle compétence** du kit — ⚠️ **toutes** sont

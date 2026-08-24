@@ -177,6 +177,35 @@ Trois catégories, sur la seule question « quand ce passif compte-t-il ? » :
 | `bonus` | Bouton, désactivé par défaut ; une fois activé, majore la contribution **du passif seul** de `pct` % (jamais le sort de base) | Dominic/Weapon Master (Improvisation, +100 % si PV > 50 %) |
 | `conditionnel` | Bouton, désactivé par défaut ; activé, le passif compte à 100 % comme un second sort | Roid (Slash Waves/Slash Wind) |
 
+⚠️ **Deux propriétés du calcul lui-même, orthogonales aux trois catégories
+ci-dessus** — quand ce passif compte n'est pas la même question que comment
+il se calcule. Ni SWARFARM ni la formule ne les portent : résolues au cas
+par cas dans `PASSIFS_OFFENSIFS_CONNUS`, **jamais un défaut générique
+appliqué à toute la liste**, chacune confirmée par l'utilisateur pour
+l'entrée où elle est posée :
+- **`critique`** (défaut `true`) — cette contribution peut-elle critiquer ?
+  `false` force le mode « Non critique » pour ELLE SEULE, quel que soit le
+  mode choisi par ailleurs pour le sort actif. Confirmé `false` sur Winds
+  and Clouds (Feng Yan) : le bonus proportionnel à la DEF ne critique
+  jamais en jeu, alors que sa formule (`1.6*{DEF}`) ne porte aucun marqueur
+  `(Fixed)` qui l'exprimerait automatiquement.
+- **`coupsDuSortActif`** (défaut `false`, une seule instance par tour) —
+  `true` fait suivre le nombre d'instances aux coups du **sort actif
+  choisi**, pas une instance fixe. Confirmé `true` sur Winds and Clouds : le
+  bonus DEF s'ajoute à CHAQUE coup du sort utilisé (3 coups pour un sort à
+  3 coups, pas 1).
+
+⚠️ **Les améliorations « Damage +X% » d'un passif comptent, exactement comme
+sur un sort actif** (`skillupDamagePct`, même lecture de
+`Competence.ameliorations`) — une hypothèse antérieure les ignorait pour
+tout passif (« n'existent que pour les sorts actifs »), fausse : Winds and
+Clouds en porte 4 (5+5+10+15 = 35 %, `1.6 × 1,35`), trouvée en vérifiant les
+données brutes plutôt qu'en la supposant. Les autres entrées de la liste
+n'ont **pas** été vérifiées individuellement pour `critique`/
+`coupsDuSortActif` (restent aux défauts ci-dessus, potentiellement faux pour
+tel ou tel monstre) — seule Winds and Clouds a été confirmée par
+l'utilisateur à ce jour.
+
 ⚠️ **Jamais déduit d'un réglage d'écran existant, même quand un réglage
 équivalent existe déjà** (ex. le bouton « Réduction de DEF »). Cas identifié
 par l'utilisateur : Roid peut lui-même poser la réduction de DEF via son

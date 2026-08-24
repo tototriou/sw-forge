@@ -395,12 +395,31 @@ interface PassifOffensifConnu {
   // SANS porter le marqueur `(Fixed)` que `skillDamageProfile` sait détecter
   // seul dans `formule` — à préciser à la main pour ces deux-là.
   ignoreDef?: boolean;
+  // Cette partie peut-elle critiquer ? Défaut `true` (comme un sort normal).
+  // `false` = confirmé par l'utilisateur que le jeu EXCLUT le critique pour
+  // ce passif précis — ni SWARFARM ni `formule` ne portent cette info,
+  // aucun marqueur automatique possible.
+  critique?: boolean;
+  // Le nombre d'instances suit-il les COUPS DU SORT ACTIF (`true`), ou
+  // reste-t-il une seule instance par tour quel que soit le sort choisi
+  // (`false`/absent, comportement historique) ? Confirmé au cas par cas —
+  // ne PAS généraliser sans vérification, voir Winds and Clouds.
+  coupsDuSortActif?: boolean;
   categorie: PassifOffensifCategorie;
 }
 
 const PASSIFS_OFFENSIFS_CONNUS: PassifOffensifConnu[] = [
   // — Toujours actifs —
-  { nom: 'Winds and Clouds (Passive)', categorie: { type: 'toujours' } }, // Feng Yan, Panda Warrior
+  // ⚠️ Confirmé par l'utilisateur (joueur, pas une déduction de texte) : le
+  // bonus proportionnel à la DEF s'ajoute à CHAQUE hit du sort utilisé — pas
+  // une seule fois par tour — et cette partie ne peut JAMAIS critiquer,
+  // quel que soit le mode choisi.
+  {
+    nom: 'Winds and Clouds (Passive)',
+    critique: false,
+    coupsDuSortActif: true,
+    categorie: { type: 'toujours' },
+  }, // Feng Yan, Panda Warrior
   { nom: 'Great Friends (Passive)', categorie: { type: 'toujours' } }, // Sia
   { nom: 'Final Strike (Passive)', ignoreDef: true, categorie: { type: 'toujours' } }, // Weapon Master, Benedict
   { nom: 'Jet Engine (Passive)', ignoreDef: true, categorie: { type: 'toujours' } }, // Sky Surfer, Miles
@@ -462,6 +481,10 @@ export interface PassifOffensifProfile {
   // quel à côté de la condition CURÉE ci-dessus — au joueur de confronter
   // les deux, jamais reformulé.
   description: string | null;
+  // Voir `PassifOffensifConnu` — résolus depuis la liste curée, jamais
+  // déduits de la formule.
+  critique: boolean;
+  coupsDuSortActif: boolean;
   categorie: PassifOffensifCategorie;
   profile: SkillDamageProfile;
 }
@@ -485,10 +508,22 @@ export function monsterOffensivePassives(detail: DetailMonstre | null): PassifOf
     const fixed = RE_FIXED.test(brut);
     const analyse = analyser(brut.replace(RE_FIXED, '').trim());
     if (!analyse || !analyse.variables.some((v) => VARIABLE_STAT[v])) continue;
+    // ⚠️ Un passif PEUT porter des améliorations « Damage +X% » — vu sur
+    // Winds and Clouds (Feng Yan : 5+5+10+15 = 35 %, confirmé par
+    // l'utilisateur), contrairement à une hypothèse antérieure fausse. Même
+    // lecture que `skillDamageProfile` pour un sort actif, jamais une valeur
+    // à part pour les passifs.
+    let skillupDamagePct = 0;
+    for (const a of c.ameliorations) {
+      const m = RE_DAMAGE_UP.exec(a.trim());
+      if (m) skillupDamagePct += Number(m[1]);
+    }
     out.push({
       skillCom2usId: c.com2usId,
       nom: c.nom,
       description: c.description,
+      critique: connu.critique ?? true,
+      coupsDuSortActif: connu.coupsDuSortActif ?? false,
       categorie: connu.categorie,
       profile: {
         skillCom2usId: c.com2usId,
@@ -505,10 +540,7 @@ export function monsterOffensivePassives(detail: DetailMonstre | null): PassifOf
         aoe: c.aoe,
         ignoreDef: connu.ignoreDef ?? c.effets.some((e) => e.nom === 'Ignore DEF'),
         fixed,
-        // Les améliorations de compétence (« Damage +X% ») n'existent que
-        // pour les sorts ACTIFS dans ce corpus — jamais rencontrées sur un
-        // passif de cette liste.
-        skillupDamagePct: 0,
+        skillupDamagePct,
         variables: analyse.variables,
         noeud: analyse.noeud,
       },
@@ -727,11 +759,18 @@ function passifActif(p: PassifOffensifProfile, setup: DamageSetup): boolean {
  * offensifs de ce monstre actuellement retenus (voir `passifActif`).
  *
  * ⚠️ **Chaque passif recalculé par `computeSkillDamage`, jamais une formule
- * séparée** — même équation de spec/mecaniques.md, même adversaire, même
- * mode de critique : un passif reste « une attaque de plus », pas un
- * mécanisme à part. Compté en UNE instance par passif (`hits: 1`, voir
- * `monsterOffensivePassives`), additionné au sort choisi — jamais multiplié
- * par le nombre de coups du sort choisi, qui n'a rien à voir avec lui.
+ * séparée** — même équation de spec/mecaniques.md, même adversaire : un
+ * passif reste « une attaque de plus », pas un mécanisme à part. DEUX
+ * exceptions, résolues au cas par cas dans `PASSIFS_OFFENSIFS_CONNUS`
+ * (jamais un défaut générique) :
+ * - `critique: false` — force le mode « Non critique » pour CE composant,
+ *   quel que soit le mode choisi par ailleurs (ex. Winds and Clouds : le
+ *   bonus proportionnel à la DEF ne peut jamais critiquer, confirmé par
+ *   l'utilisateur, alors que la formule elle-même n'a aucun marqueur
+ *   `(Fixed)` qui l'exprimerait automatiquement).
+ * - `coupsDuSortActif: true` — le nombre d'instances suit celui du SORT
+ *   ACTIF choisi (`profile.hits`), pas une instance unique par tour ; défaut
+ *   `false` = une seule instance (`hits: 1`, voir `monsterOffensivePassives`).
  *
  * ⚠️ **Le bonus `bonus` s'applique SEULEMENT à la contribution du passif
  * concerné**, jamais au total : « +100 % si cible Lumière » double les
@@ -747,7 +786,9 @@ export function computeTotalDamage(
   let total = computeSkillDamage(profile, stats, setup, element);
   for (const p of passifs) {
     if (!passifActif(p, setup)) continue;
-    let contribution = computeSkillDamage(p.profile, stats, setup, element);
+    const profilPassif = p.coupsDuSortActif ? { ...p.profile, hits: profile.hits } : p.profile;
+    const setupPassif = p.critique ? setup : { ...setup, critMode: 'normal' as const };
+    let contribution = computeSkillDamage(profilPassif, stats, setupPassif, element);
     if (p.categorie.type === 'bonus') contribution *= 1 + p.categorie.pct / 100;
     total += contribution;
   }
@@ -796,7 +837,7 @@ export function damageRelevantStats(
   for (const p of passifs) {
     if (!passifActif(p, setup)) continue;
     ajouter(p.profile.variables);
-    if (!p.profile.fixed) peutCriter = true;
+    if (!p.profile.fixed && p.critique) peutCriter = true;
   }
   if (peutCriter) keys.push('cd');
   return keys;

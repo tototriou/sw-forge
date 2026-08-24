@@ -239,19 +239,48 @@ export default function testDegats() {
   // elle-même — l'ajout d'un monstre à la liste n'a pas à faire échouer ceci.
 
   // Feng Yan — « Winds and Clouds (Passive) », classé « toujours » : aucun
-  // bouton, s'ajoute d'office au sort choisi.
+  // bouton, s'ajoute d'office au sort choisi. Trois particularités
+  // CONFIRMÉES PAR L'UTILISATEUR (aucune n'est déductible de la formule
+  // seule) : le bonus proportionnel à la DEF (`1.6*{DEF}`) ne peut JAMAIS
+  // critiquer, s'ajoute à CHAQUE coup du sort actif (pas une fois par tour),
+  // et ses 4 améliorations « Damage +X% » (5+5+10+15 = 35 %) comptent bien
+  // (une hypothèse antérieure fausse les ignorait pour tout passif).
   const fengYan = fiche(21213);
   const fyBase = defaultDamageSkill(monsterDamageSkills(fengYan));
   ok(fyBase !== null, 'Feng Yan : un sort de dégâts par défaut est trouvé');
   const fyPassifs = monsterOffensivePassives(fengYan);
   egal(fyPassifs.length, 1, 'Feng Yan : un seul passif offensif reconnu (Winds and Clouds)');
   egal(fyPassifs[0]?.categorie.type, 'toujours', 'Winds and Clouds est classé « toujours »');
+  egal(fyPassifs[0]?.critique, false, 'Winds and Clouds ne peut jamais critiquer');
+  egal(fyPassifs[0]?.coupsDuSortActif, true, 'le bonus DEF suit les coups du sort actif, pas une instance fixe');
+  egal(
+    fyPassifs[0]?.profile.skillupDamagePct,
+    35,
+    'les 4 améliorations « Damage +X% » de Winds and Clouds sont sommées (5+5+10+15), pas ignorées'
+  );
   const fySetup: DamageSetup = { ...DEFAULT_DAMAGE_SETUP, skillCom2usId: fyBase!.skillCom2usId, summonerSkills: 'aucune' };
   const fyStats = stats({ atk: 2000, cd: 200, cr: 100, hp: 20000, def: 900 });
-  egal(
-    computeTotalDamage(fyBase!, fyPassifs, fyStats, fySetup, null),
-    computeSkillDamage(fyBase!, fyStats, fySetup, null) + computeSkillDamage(fyPassifs[0]!.profile, fyStats, fySetup, null),
-    'un passif « toujours » s’ajoute intégralement, sans qu’aucun bouton n’existe pour le couper'
+
+  const fyContributionReelle =
+    computeTotalDamage(fyBase!, fyPassifs, fyStats, fySetup, null) - computeSkillDamage(fyBase!, fyStats, fySetup, null);
+  const fyContributionUnitaire = computeSkillDamage(
+    { ...fyPassifs[0]!.profile, hits: 1 },
+    fyStats,
+    { ...fySetup, critMode: 'normal' },
+    null
+  );
+  ok(
+    Math.abs(fyContributionReelle - fyContributionUnitaire * fyBase!.hits) < 1e-6,
+    'le bonus DEF de Winds and Clouds s’applique à CHAQUE coup du sort actif, pas une fois par tour'
+  );
+
+  const fyTotalCrit = computeTotalDamage(fyBase!, fyPassifs, fyStats, { ...fySetup, critMode: 'crit' }, null);
+  const fyTotalNormal = computeTotalDamage(fyBase!, fyPassifs, fyStats, { ...fySetup, critMode: 'normal' }, null);
+  const fyBaseCrit = computeSkillDamage(fyBase!, fyStats, { ...fySetup, critMode: 'crit' }, null);
+  const fyBaseNormal = computeSkillDamage(fyBase!, fyStats, { ...fySetup, critMode: 'normal' }, null);
+  ok(
+    Math.abs(fyTotalCrit - fyTotalNormal - (fyBaseCrit - fyBaseNormal)) < 1e-6,
+    'le passif de Feng Yan ne varie jamais avec le mode critique — seul le sort de base y répond'
   );
 
   // Roid — « Slash Waves »/« Slash Wind » (Passive), classés « conditionnel » :

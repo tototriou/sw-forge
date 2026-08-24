@@ -4,7 +4,7 @@
 //
 // Voir spec/outils/speed-tuning.md, « Importer un deck de siège ».
 
-import { Monster, SiegeSlot, SiegeTeam } from '../types';
+import { ElementKey, Monster, SiegeSlot, SiegeTeam } from '../types';
 import { siegeLeadFor, speedLeadOf } from './speed';
 
 // Propriété d'artéfact « Effet aug. VIT » (code 206 dans ARTIFACT_SUB) : elle
@@ -23,6 +23,12 @@ function arteBuffDeSlot(slot: SiegeSlot): number | null {
     }
   }
   return total > 0 ? total : null;
+}
+
+// Un lead d'ÉLÉMENT : ce qu'il donne, et à quel élément.
+export interface LeadElement {
+  valeur: number;
+  element: ElementKey;
 }
 
 export interface DeckImporte {
@@ -60,6 +66,13 @@ export interface DeckImporte {
   // Le lead du deck se lit-il monstre par monstre ? Vrai pour un lead d'ÉLÉMENT,
   // que le sélecteur de camp ne sait pas dire.
   leadParMonstre: boolean;
+  // Le lead d'ÉLÉMENT du deck, pour l'AFFICHER dans l'encart « Lead » du camp :
+  // sa valeur et l'élément qu'il favorise. `null` quand il n'y en a pas.
+  //
+  // ⚠️ Il est LU sur le leader, pas déduit des monstres : un deck dont aucun
+  // allié n'est de l'élément du leader impose quand même ce lead — il ne profite
+  // simplement à personne, et l'encart doit le dire quand même.
+  leadElement: LeadElement | null;
 }
 
 export function deckPourSpeedTune(team: SiegeTeam, monsterById: Map<string, Monster>): DeckImporte {
@@ -91,5 +104,12 @@ export function deckPourSpeedTune(team: SiegeTeam, monsterById: Map<string, Mons
 
   const lead = info && (info.area === 'General' || info.area === 'Guild') ? info.amount : null;
 
-  return { monstres, lead, leadParMonstre: info?.area === 'Element' };
+  const parElement = info?.area === 'Element';
+  return {
+    monstres,
+    lead,
+    leadParMonstre: parElement,
+    leadElement:
+      parElement && info.element ? { valeur: info.amount, element: info.element } : null,
+  };
 }

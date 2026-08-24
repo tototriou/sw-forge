@@ -1,6 +1,6 @@
 import { useEffect, useId, useMemo, useRef, useState } from 'react';
 import { Search, Plus, Timer, Users, Swords, X, Zap, Gauge, Eye, EyeOff, Download, Check, Scissors, Play, ChevronUp, ChevronDown, Sparkles } from 'lucide-react';
-import { Monster, SiegeTeam } from '../../types';
+import { ELEMENTS, ElementKey, Monster, SiegeTeam } from '../../types';
 import { combatSpeed, runeSpeedForTarget, SPEED_LEADS, SIEGE_TICKS } from '../../lib/speed';
 import {
   simuler,
@@ -54,6 +54,7 @@ import { teamSummary } from '../../lib/recoFromSiege';
 import { formesJouables } from '../../lib/monsterForms';
 import { useComboboxNav } from '../../hooks/useComboboxNav';
 import { useSpeedTune, DeckDispo, ChampMod, DeckInitial } from '../../hooks/useSpeedTune';
+import { LeadElement } from '../../lib/speedTuneDeck';
 import { useAdversaireReference } from '../../hooks/useAdversaireReference';
 import { useStickyState } from '../../hooks/useStickyState';
 import MonsterAvatar from '../MonsterAvatar';
@@ -119,6 +120,9 @@ export const REGLE_TICKS = (
 // ⚠️ Les effets posés par les compétences peuvent être NÉGATIFS (une barre
 // vidée, un ralenti) — « +-50 » serait illisible.
 const signe = (v: number) => (v > 0 ? `+${v}` : `−${Math.abs(v)}`);
+
+// Le nom français d'un élément — celui du jeu, comme partout ailleurs.
+const elementLabel = (e: ElementKey) => ELEMENTS.find((x) => x.key === e)?.label ?? '—';
 
 // Ce qu'un sort fait, en une ligne, pour le menu de l'analyse poussée. Un sort
 // sans effet sur la vitesse reste proposable — c'est un tour où l'on ne fait
@@ -254,7 +258,9 @@ export default function SpeedTuningSection({
     kits,
     leadAllie,
     leadDe,
+    leadElement,
     leadEnnemi,
+    retirerLeadElement,
     leads,
     ligneParUid,
     ligneReference,
@@ -414,6 +420,8 @@ export default function SpeedTuningSection({
           titre="Ton équipe"
           icone={<Users size={15} />}
           lead={leadAllie}
+          leadElement={leadElement.allie}
+          onRetirerLeadElement={() => retirerLeadElement('allie')}
           onLead={setLeadAllie}
           lignes={lignes.filter((l) => l.camp === 'allie')}
           jouables={jouables}
@@ -438,6 +446,8 @@ export default function SpeedTuningSection({
           titre="En face"
           icone={<Swords size={15} />}
           lead={leadEnnemi}
+          leadElement={leadElement.ennemi}
+          onRetirerLeadElement={() => retirerLeadElement('ennemi')}
           onLead={setLeadEnnemi}
           lignes={lignes.filter((l) => l.camp === 'ennemi')}
           jouables={jouables}
@@ -856,6 +866,11 @@ interface CampProps {
   icone: React.ReactNode;
   lead: number;
   onLead: (v: number) => void;
+  // Le lead d'ÉLÉMENT importé avec un deck : il prend la place du sélecteur dans
+  // l'encart « Lead » (voir plus bas), parce que celui-ci ne sait pas dire
+  // « seulement les alliés Eau ».
+  leadElement: LeadElement | null;
+  onRetirerLeadElement: () => void;
   lignes: Ligne[];
   jouables: Monster[];
   combatDe: (l: Ligne) => number | null;
@@ -910,6 +925,8 @@ function CampPanneau({
   onArtefact,
   decks,
   onImporterDeck,
+  leadElement,
+  onRetirerLeadElement,
 }: CampProps) {
   const adv = camp === 'ennemi';
   const dejaAjoutes = useMemo(() => new Set(lignes.map((l) => String(l.monster.id))), [lignes]);
@@ -929,23 +946,45 @@ function CampPanneau({
           <span className={adv ? 'text-bad' : 'text-accent'}>{icone}</span>
           {titre}
         </span>
-        <label className="ml-auto flex items-center gap-1.5">
+        <span className="ml-auto flex items-center gap-1.5">
           <span className="text-micro font-semibold uppercase tracking-wide text-ink-dimmer">Lead</span>
-          <Selecteur
-            taille="sm"
-            pleineLargeur={false}
-            value={lead}
-            onChange={(e) => onLead(Number(e.target.value))}
-            aria-label={`Lead de vitesse — ${titre}`}
-          >
-            <option value={0}>Sans</option>
-            {leads.map((v) => (
-              <option key={v} value={v}>
-                +{v}%
-              </option>
-            ))}
-          </Selecteur>
-        </label>
+          {/* ⚠️ **Un lead d'ÉLÉMENT s'affiche ICI, pas sur chaque monstre.** Le
+              sélecteur n'a qu'une valeur : il ne sait pas dire « +33 % pour les
+              alliés Eau seulement ». Il cède donc sa place — deux contrôles de
+              lead côte à côte laisseraient croire qu'ils s'additionnent. Le
+              calcul, lui, passe par le lead que chaque monstre porte. */}
+          {leadElement ? (
+            <span className="flex items-center gap-1">
+              <span
+                className="rounded border border-border bg-panel2 px-1.5 py-0.5 text-xs font-semibold text-ink"
+                title={`Lead importé du deck : +${leadElement.valeur} % de vitesse pour les alliés ${elementLabel(leadElement.element)} seulement. Les autres n'ont aucun bonus. Retire-le pour reprendre la main sur le lead du camp.`}
+              >
+                +{leadElement.valeur}% · {elementLabel(leadElement.element)}
+              </span>
+              <BoutonIcone
+                taille="serre"
+                onClick={onRetirerLeadElement}
+                libelle={`Retirer le lead d'élément — ${titre}`}
+                icone={<X size={13} />}
+              />
+            </span>
+          ) : (
+            <Selecteur
+              taille="sm"
+              pleineLargeur={false}
+              value={lead}
+              onChange={(e) => onLead(Number(e.target.value))}
+              aria-label={`Lead de vitesse — ${titre}`}
+            >
+              <option value={0}>Sans</option>
+              {leads.map((v) => (
+                <option key={v} value={v}>
+                  +{v}%
+                </option>
+              ))}
+            </Selecteur>
+          )}
+        </span>
       </div>
 
       {lignes.length > 0 && (
@@ -992,21 +1031,6 @@ function CampPanneau({
                     <div className="min-w-0 flex-1">
                       <div className="flex items-center gap-1.5">
                         <span className="truncate text-sm font-semibold">{l.monster.name}</span>
-                        {/* ⚠️ **Un lead que le sélecteur du camp ne dit pas.**
-                            Il vient d'un deck dont le leader porte un lead
-                            d'ÉLÉMENT : il ne vaut que pour les alliés de cet
-                            élément. Il entre DANS la vitesse de combat affichée
-                            à droite — le taire laisserait un chiffre
-                            inexplicable, et c'est précisément l'écart qui faisait
-                            répondre autre chose au siège qu'ici. */}
-                        {l.lead != null && (
-                          <span
-                            className="flex-none rounded border border-border px-1 text-micro font-bold uppercase tracking-wide text-ink-dim"
-                            title={`Lead d'élément importé du deck : ${l.lead > 0 ? `+${l.lead} % de vitesse pour ${l.monster.name}` : `aucun bonus pour ${l.monster.name}, qui n'est pas de l'élément du leader`}. Il remplace le lead du camp pour ce monstre.`}
-                          >
-                            lead {l.lead > 0 ? `+${l.lead}%` : 'sans'}
-                          </span>
-                        )}
                         {l.reference && (
                           <span
                             className="flex-none rounded border border-border px-1 text-micro font-bold uppercase tracking-wide text-ink-dim"

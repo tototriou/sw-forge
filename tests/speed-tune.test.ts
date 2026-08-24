@@ -319,6 +319,9 @@ export function testSpeedTuneDeck() {
     );
     egal(d.lead, null, 'le lead du CAMP reste vide : le sélecteur ne sait pas dire « seulement l’Eau »');
     egal(d.leadParMonstre, true, 'mais le deck signale que son lead se lit monstre par monstre');
+    // ⚠️ C'est ce que l'encart « Lead » du camp affiche : la valeur ET l'élément.
+    egal(d.leadElement?.valeur, 33, "l'encart reçoit la valeur du lead d'élément");
+    egal(d.leadElement?.element, 'water', "et l'élément qu'il favorise — sans quoi il ne saurait pas quoi écrire");
     egal(d.monstres[0].lead, 33, 'le leader Eau en profite');
     egal(d.monstres[1].lead, 33, "l'allié Eau aussi");
     egal(d.monstres[2].lead, 0, "l'allié Feu, lui, n'a rien — c'est tout l'intérêt du champ");
@@ -351,6 +354,7 @@ export function testSpeedTuneDeck() {
     const d = deckPourSpeedTune(equipe([{ monsterId: '1', runeSpeed: 100 }]), parId);
     egal(d.lead, 24, 'lead de guilde → au camp');
     egal(d.leadParMonstre, false, 'et pas monstre par monstre');
+    egal(d.leadElement, null, "l'encart garde alors son sélecteur : il sait dire un lead qui vaut pour tous");
   }
 
   {

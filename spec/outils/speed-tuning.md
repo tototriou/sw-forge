@@ -98,9 +98,13 @@ trois vitesses de runes. Calcul pur dans
 - ⚠️ **Le lead d'ÉLÉMENT descend monstre par monstre.** Le sélecteur d'un camp
   n'a qu'une valeur : il ne sait pas dire « +21 % pour les alliés Feu
   seulement ». Chaque monstre importé porte donc **son** lead (`Ligne.lead`,
-  calculé par le même `siegeLeadFor` que la card de siège) et une pastille
-  « lead +21 % » / « lead sans » le dit sur sa card — le chiffre de la vitesse de
-  combat serait sinon inexplicable.
+  calculé par le même `siegeLeadFor` que la card de siège), et **l'encart
+  « Lead » du camp l'affiche à la place du sélecteur** : `+33 % · Eau`, avec une
+  croix pour le retirer et reprendre la main. ⚠️ Le sélecteur **cède sa place**
+  au lieu de cohabiter : deux contrôles de lead côte à côte laisseraient croire
+  qu'ils s'additionnent. Retirer le lead d'élément efface aussi celui que chaque
+  monstre portait — sinon l'encart annoncerait une valeur que les vitesses ne
+  suivraient pas.
 
   > ⚠️ **C'est la correction d'un écart entre les deux écrans.** La card de siège
   > affichait la vitesse lead d'élément COMPRIS, le speed tune la recalculait

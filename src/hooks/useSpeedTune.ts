@@ -16,7 +16,7 @@ import {
   simuler,
   vitessesRequises,
 } from '../lib/speedTune';
-import { deckPourSpeedTune } from '../lib/speedTuneDeck';
+import { deckPourSpeedTune, LeadElement } from '../lib/speedTuneDeck';
 import {
   Ligne,
   Leads,
@@ -93,6 +93,14 @@ export function useSpeedTune({
   const [lignes, setLignes] = useStickyState<Ligne[]>('speedTune.lignes', []);
   const [leadAllie, setLeadAllie] = useStickyState<number>('speedTune.leadAllie', 0);
   const [leadEnnemi, setLeadEnnemi] = useStickyState<number>('speedTune.leadEnnemi', 0);
+  // Le lead d'ÉLÉMENT importé avec un deck, camp par camp. ⚠️ Le sélecteur du
+  // camp n'a qu'une valeur : il ne sait pas dire « +33 % pour les alliés Eau ».
+  // C'est donc ce champ que l'encart « Lead » affiche à sa place — et le calcul,
+  // lui, passe par le lead que chaque monstre porte (`Ligne.lead`).
+  const [leadElement, setLeadElement] = useStickyState<Record<Camp, LeadElement | null>>(
+    'speedTune.leadElement',
+    { allie: null, ennemi: null }
+  );
 
   const jouables = useMemo(() => formesJouables(allMonsters), [allMonsters]);
   // Réglage d'application : poser l'adversaire de référence à CHAQUE analyse,
@@ -289,6 +297,10 @@ export function useSpeedTune({
     // — répondait autre chose que l'outil sur la même compo. Importer un deck,
     // c'est importer TOUT ce qui fait ses vitesses.
     (camp === 'allie' ? setLeadAllie : setLeadEnnemi)(deck.lead ?? 0);
+    // ⚠️ Écrit dans TOUS les cas, `null` compris : un deck sans lead d'élément
+    // laissait sinon celui du deck précédent affiché dans l'encart, sur une
+    // équipe qui ne le porte plus.
+    setLeadElement((m) => ({ ...m, [camp]: deck.leadElement }));
     return true;
   }
 
@@ -313,6 +325,14 @@ export function useSpeedTune({
     setLeadEnnemi(leadAllie); // même lead : on compare des vitesses comparables
     const ref = { ...ligneReference(modele), ...(mods ?? {}) };
     setLignes((prev) => [...prev.filter((l) => !l.reference && l.uid !== ref.uid), ref]);
+  }
+
+  // ⚠️ **Retirer le lead d'élément rend la main au sélecteur du camp** : on
+  // efface le lead que chaque monstre portait, sinon l'encart afficherait une
+  // valeur que les vitesses ne suivraient pas.
+  function retirerLeadElement(camp: Camp) {
+    setLeadElement((m) => ({ ...m, [camp]: null }));
+    setLignes((prev) => prev.map((l) => (l.camp === camp ? { ...l, lead: undefined } : l)));
   }
 
   function retirer(uid: string) {
@@ -701,7 +721,9 @@ export function useSpeedTune({
     kits,
     leadAllie,
     leadDe,
+    leadElement,
     leadEnnemi,
+    retirerLeadElement,
     leads,
     ligneParUid,
     ligneReference,

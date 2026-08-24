@@ -409,6 +409,16 @@ export default function SpeedTuningSection({ allMonsters, siegeDefenseTeams, sie
     // composition, et la relancer toute seule écrirait par-dessus un réglage
     // qu'on vient d'importer. On reclique quand on veut.
     setAuto(false);
+    // ⚠️ **Les sorts choisis du camp s'en vont avec la composition.** Ils sont
+    // rangés par monstre (`camp:id`) et survivaient donc à un import : on
+    // rejouait le choix fait pour l'équipe PRÉCÉDENTE — y compris un sort qu'une
+    // version antérieure avait posé d'office. L'outil comptait alors un effet
+    // que le siège, lui, écarte : deux verdicts sur la même équipe.
+    const oublier = (m: Record<string, string>) =>
+      Object.fromEntries(Object.entries(m).filter(([uid]) => !uid.startsWith(`${camp}:`)));
+    setSortChoisi(oublier);
+    setSortChoisi2(oublier);
+    setCibleSort(oublier);
     setLignes((prev) => [
       // ⚠️ La référence saute AUSSI quand on importe dans l'autre camp : elle
       // copiait une équipe qui vient de changer.

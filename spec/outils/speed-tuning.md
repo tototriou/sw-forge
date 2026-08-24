@@ -91,6 +91,10 @@ trois vitesses de runes. Calcul pur dans
 - **L'artéfact « Effet aug. VIT » est repris** du `gear` du slot (code `206`
   dans `ARTIFACT_SUB`, sommé sur les deux artéfacts) : c'est lui qui amplifie le
   buff de vitesse, il n'a pas à être ressaisi.
+- ⚠️ **Les sorts choisis du camp sont OUBLIÉS** : ils sont rangés par monstre
+  (`camp:id`) et survivaient donc à un import — on rejouait le choix fait pour
+  l'équipe précédente, et l'outil comptait un effet que le siège écarte. Deux
+  verdicts sur la même équipe.
 - ⚠️ **Le deck REMPLACE la composition du camp** où l'on a cliqué : un deck est
   une équipe, pas une liste de monstres à empiler — sans ça, importer une
   deuxième défense entassait six monstres du même côté. Ce qui était dans **ce

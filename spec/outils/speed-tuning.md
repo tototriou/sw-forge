@@ -418,11 +418,16 @@ De haut en bas :
    artéfact, ou une cellule de grille) : elle devient un adversaire ordinaire,
    qu'on ne réécrit plus — écraser un réglage serait une perte silencieuse.
 
-   ⚠️ **Le bouton a DEUX temps** : **« Analyse automatique »** pose la référence,
-   **« Cacher l'analyse »** la met de côté — elle est **masquée**, pas supprimée
-   (même état que l'œil d'une card) : elle quitte les calculs et les tableaux,
-   le réglage ne bouge pas, et un clic la repose. On regarde ce que l'analyse
-   donne, puis on travaille tranquille.
+   ⚠️ **Le bouton a DEUX temps, et il coupe DEUX choses à la fois.** « Analyse
+   automatique » lit les kits (les deux grilles se remplissent toutes seules) et
+   pose l'adversaire de référence si personne n'est en face ; **« Cacher
+   l'analyse »** coupe les deux : les compétences ne sont plus déduites, les
+   grilles n'obéissent plus qu'à ce qu'on y saisit, et la référence passe de côté
+   (**masquée**, pas supprimée — même état que l'œil d'une card). Ce qu'on a
+   saisi reste. On regarde ce que l'analyse donne, puis on fait ce qu'on veut.
+
+   ⚠️ **Un sort DÉSIGNÉ dans l'analyse poussée continue de s'appliquer**, analyse
+   coupée ou non : ce n'est plus une déduction de l'outil, c'est un choix.
 
    Il est **désactivé** sans équipe, ou quand « En face » porte un **vrai**
    adversaire (l'analyse s'y recalcule à chaque changement, il n'y a rien à

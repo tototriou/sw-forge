@@ -210,6 +210,15 @@ export default function SpeedTuningSection({ allMonsters, siegeDefenseTeams, sie
   // Analyse poussée : l'ordre des tours VOULU (uids, du premier au dernier) et,
   // par monstre, le sort qu'il lance à son tour ('' = aucun ; absent = celui que
   // la lecture du kit a retenu).
+  // ⚠️ L'analyse AUTOMATIQUE, c'est deux choses à la fois, et la couper doit
+  // couper les deux : l'adversaire de référence posé en face, ET les compétences
+  // que l'outil lit dans les kits pour remplir les grilles tout seul. Coupée, la
+  // simulation n'obéit plus qu'à ce qu'on a saisi — c'est bien le but : « je
+  // regarde ce que ça donne, puis je fais ce que je veux ».
+  //
+  // Un sort DÉSIGNÉ dans l'analyse poussée reste appliqué : ce n'est plus une
+  // déduction de l'outil, c'est un choix.
+  const [auto, setAuto] = useStickyState<boolean>('speedTune.auto', true);
   const [poussee, setPoussee] = useStickyState<boolean>('speedTune.poussee', false);
   const [ordreVoulu, setOrdreVoulu] = useStickyState<string[]>('speedTune.ordre', []);
   // ⚠️ Tant qu'on n'a rien rangé à la main, l'ordre voulu SUIT les vitesses :
@@ -370,7 +379,16 @@ export default function SpeedTuningSection({ allMonsters, siegeDefenseTeams, sie
   // quel monstre qu'on met de côté (icône œil). On regarde ce que l'analyse
   // donne, on la cache pour travailler tranquille, et on la rappelle d'un clic.
   function cacherAnalyse() {
+    setAuto(false);
     setLignes((prev) => prev.map((l) => (l.reference ? { ...l, masque: true } : l)));
+  }
+
+  // Rallumer : les kits reparlent, et si personne n'est en face on repose
+  // l'adversaire de référence.
+  function relancerAnalyse() {
+    setAuto(true);
+    if (!aEnnemi) analyseAuto();
+    else setLignes((prev) => prev.map((l) => (l.reference ? { ...l, masque: false } : l)));
   }
 
   function retirer(uid: string) {
@@ -442,6 +460,7 @@ export default function SpeedTuningSection({ allMonsters, siegeDefenseTeams, sie
     const choix = poussee ? sortChoisi[l.uid] : undefined;
     if (choix === '') return null;
     if (choix != null) return liste.find((x) => x.nom === choix) ?? null;
+    if (!auto) return null; // analyse coupée : plus rien n'est déduit du kit
     const kit = l.monster.com2usId != null ? kits.get(l.monster.com2usId) : null;
     const nom = kit?.atbCompetence ?? kit?.buffCompetence ?? null;
     return liste.find((x) => x.nom === nom) ?? null;
@@ -485,7 +504,7 @@ export default function SpeedTuningSection({ allMonsters, siegeDefenseTeams, sie
         });
     }
     return out;
-  }, [lignes, leadAllie, leadEnnemi, poussee, sortChoisi, sortChoisi2, sorts, kits]);
+  }, [lignes, leadAllie, leadEnnemi, auto, poussee, sortChoisi, sortChoisi2, sorts, kits]);
 
   // Simulation multi-tours (40 ticks) avec les modificateurs.
   const sim = useMemo(() => simuler(tune, HORIZON_TICKS), [tune]);
@@ -699,12 +718,6 @@ export default function SpeedTuningSection({ allMonsters, siegeDefenseTeams, sie
   // Grilles et repère ne comptent que les visibles.
   const aAllie = lignesVisibles.some((l) => l.camp === 'allie');
   const aEnnemi = lignesVisibles.some((l) => l.camp === 'ennemi');
-  // Un adversaire de RÉFÉRENCE ne compte pas comme un vrai adversaire : tant
-  // qu'il n'y a que lui en face, « Lancer l'analyse » reste actif — c'est ce qui
-  // permet de la relancer après avoir changé d'équipe.
-  const aVraiEnnemi = lignesVisibles.some((l) => l.camp === 'ennemi' && !l.reference);
-  // Une référence MASQUÉE ne compte pas : le bouton repropose alors l'analyse.
-  const aReference = lignesVisibles.some((l) => l.reference);
 
   return (
     <div className="space-y-4">
@@ -871,19 +884,17 @@ export default function SpeedTuningSection({ allMonsters, siegeDefenseTeams, sie
                   réglage n'est perdu entre-temps. */}
               <Bouton
                 icone={<Play size={14} />}
-                libelle={aReference ? "Cacher l'analyse" : 'Analyse automatique'}
-                actif={aReference || undefined}
-                disabled={!aAllie || aVraiEnnemi}
+                libelle={auto ? "Cacher l'analyse" : 'Analyse automatique'}
+                actif={auto || undefined}
+                disabled={!aAllie}
                 title={
                   !aAllie
                     ? "Ajoute d'abord des monstres à ton équipe."
-                    : aVraiEnnemi
-                      ? "L'analyse est déjà faite sur les monstres d'en face : elle se recalcule à chaque changement."
-                      : aReference
-                        ? "Met l'adversaire de référence de côté : il quitte les calculs, ton réglage ne bouge pas, et il revient d'un clic."
-                        : 'Pose en face une copie de ton monstre le plus rapide (même lead, même vitesse de runes) et vérifie que toute ton équipe joue avant lui.'
+                    : auto
+                      ? "Coupe l'analyse : les grilles cessent de se remplir toutes seules et l'adversaire de référence passe de côté. Ce que tu as saisi reste."
+                      : "Reprend la lecture des kits (les grilles se remplissent à nouveau) et, si personne n'est en face, pose une copie de ton monstre le plus rapide."
                 }
-                onClick={aReference ? cacherAnalyse : analyseAuto}
+                onClick={auto ? cacherAnalyse : relancerAnalyse}
               />
               {/* ⚠️ Ce qui s'ouvre est posé SOUS ce bouton (section suivante) :
                   le bouton lui-même ne bouge pas d'un pixel quand on bascule. */}
@@ -1109,7 +1120,11 @@ export default function SpeedTuningSection({ allMonsters, siegeDefenseTeams, sie
             champ="atbMod"
             mode="nombre"
             titre="Modification de barre d'attaque"
-            sousTitre="ce qu'une compétence pose s'affiche en repère — une valeur saisie le REMPLACE, 0 l'annule (un effet à 70 % de chances, on ne compte pas dessus)"
+            sousTitre={
+              auto
+                ? "ce qu'une compétence pose s'affiche en repère — une valeur saisie le REMPLACE, 0 l'annule (un effet à 70 % de chances, on ne compte pas dessus)"
+                : "analyse coupée : plus rien ne se remplit tout seul, la grille n'obéit qu'à ce que tu saisis"
+            }
             icone={<Zap size={15} />}
             lignes={lignesVisibles}
             aAllie={aAllie}
@@ -1126,7 +1141,11 @@ export default function SpeedTuningSection({ allMonsters, siegeDefenseTeams, sie
             champ="speedMod"
             mode="buff"
             titre="Buff de vitesse"
-            sousTitre="icône SPD = buff +30 % d'un clic, ou saisis une valeur — elle REMPLACE ce que la compétence donne à ce tick, 0 l'annule"
+            sousTitre={
+              auto
+                ? "icône SPD = buff +30 % d'un clic, ou saisis une valeur — elle REMPLACE ce que la compétence donne à ce tick, 0 l'annule"
+                : "analyse coupée : plus rien ne se remplit tout seul, la grille n'obéit qu'à ce que tu saisis"
+            }
             icone={<Gauge size={15} />}
             lignes={lignesVisibles}
             aAllie={aAllie}

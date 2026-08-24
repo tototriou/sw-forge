@@ -477,7 +477,13 @@ De haut en bas :
    **masqué** reste dans son camp (grisé) mais quitte les calculs et les trois
    tableaux — pour tester une compo sans perdre son réglage ; on le réaffiche
    d'un clic sur l'œil.
-3. **Analyse automatique** — ⚠️ **Elle ÉCRIT, elle ne recouvre pas.** Un clic sur
+3. **Analyse automatique** — ⚠️ **Un SEUL calcul pour toute l'app** :
+   `analyseAutomatique` ([speedTuneAuto.ts](src/lib/speedTuneAuto.ts)), celui-là
+   même qu'utilise la card de siège. L'écran a longtemps eu sa propre pipeline —
+   deux chemins pour une même question, qui ont fini par se contredire : une
+   équipe déclarée « pas speed tune » au siège et « speed tune » dans l'outil.
+   Un seul calcul, une seule réponse.
+   ⚠️ **Elle ÉCRIT, elle ne recouvre pas.** Un clic sur
    **« Analyser »** lit les kits, simule, et **pose le résultat DANS les grilles**
    — exactement comme si on les avait remplies à la main : buff de vitesse
    activé, valeurs dans les cases. Puis elle s'arrête. Tout reste modifiable
@@ -512,6 +518,11 @@ De haut en bas :
      — verdict d'un côté, liste des sorts de l'autre : ce qui est écrit continue
      de compter, refermer ne défait rien. On masque pour gagner de la place, pas
      pour annuler un réglage.
+   - ⚠️ **L'adversaire de référence ne lance RIEN** : c'est un repère de
+     vitesse, pas un monstre qui joue son kit. Il recopie en revanche tout ce qui
+     fait la vitesse de son modèle — lead, runes, Swift, artéfact, sets et
+     **compte de buffs effectif** : dans l'autre camp, l'estimation des buffs ne
+     verrait que lui, il serait plus lent, et l'équipe « passerait » à tort.
    - ⚠️ **« Analyser » REPOSE l'adversaire de référence** sur le plus rapide du
      moment, à chaque fois — dès qu'il n'y a **pas** de vrai adversaire, ou
      **toujours** si le réglage d'application « Adversaire de référence » est

@@ -67,6 +67,11 @@ export interface ResultatAuto {
   arte: ArtefactRequis[];
   // L'ordre des premiers tours, alliés seulement.
   ordre: { id: string; tick: number }[];
+  // Ce que les sorts posent, prêt à être ÉCRIT dans les grilles de l'écran
+  // (déjà décalé d'un tick, voir plus bas). L'outil s'en sert pour remplir ses
+  // cases : c'est la MÊME source que le verdict, donc les deux ne peuvent pas
+  // se contredire.
+  mods: Map<string, { atbMod: ModParTick; speedMod: ModParTick }>;
 }
 
 const kitDe = (e: EntreeAuto, d: DonneesKit) =>
@@ -208,7 +213,9 @@ export function analyseAutomatique(
   });
 
   const verdict = diagnostiquerChaine(final, horizon);
+  const mods = new Map(final.map((m) => [m.id, { atbMod: m.atbMod ?? {}, speedMod: m.speedMod ?? {} }]));
   return {
+    mods,
     combats,
     reference: modele,
     verdict,

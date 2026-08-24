@@ -22,7 +22,7 @@ import { deckPourSpeedTune } from '../../lib/speedTuneDeck';
 import { prendreDeck } from '../../lib/speedTuneHandoff';
 import { kitVitesse, sortsVitesse, KitVitesse, SortVitesse, KIT_VIDE } from '../../lib/speedTuneKit';
 import { passifsVitesse, pointsDeGain, PassifVitesse } from '../../lib/speedTunePassif';
-import { cumulsEstimes, EntreeAuto } from '../../lib/speedTuneAuto';
+import { analyseAutomatique, cumulsEstimes, EntreeAuto } from '../../lib/speedTuneAuto';
 import { chargerDetail } from '../../lib/monsterSkills';
 import { teamSummary } from '../../lib/recoFromSiege';
 import { formesJouables } from '../../lib/monsterForms';
@@ -460,7 +460,19 @@ export default function SpeedTuningSection({ allMonsters, siegeDefenseTeams, sie
       speedMod: {},
       artefactBuff: modele.artefactBuff,
       swift: modele.swift,
-      cumulsPassif: modele.cumulsPassif,
+      // ⚠️ **Les sets ET le compte de buffs EFFECTIF**, pas seulement ce que le
+      // modèle porte dans son état : la référence vit dans l'autre camp, où
+      // l'estimation des buffs ne verrait qu'elle-même. Recopier le compte déjà
+      // calculé garantit qu'elle a exactement la vitesse de son modèle — sans
+      // quoi elle était plus lente, et l'équipe « passait » à tort.
+      sets: modele.sets,
+      cumulsPassif:
+        modele.cumulsPassif ??
+        cumulsEstimes(
+          entreeDe(modele),
+          lignesVisibles.filter((l) => l.camp === modele.camp).map(entreeDe),
+          donneesKit
+        ),
       passifActif: modele.passifActif,
       reference: true,
       masque: false,
@@ -645,97 +657,59 @@ export default function SpeedTuningSection({ allMonsters, siegeDefenseTeams, sie
   // Simulation multi-tours (40 ticks) avec les modificateurs.
   const sim = useMemo(() => simuler(tune, HORIZON_TICKS), [tune]);
 
-  // ⚠️ La simulation de l'ANALYSE, celle qui fait parler les kits. Elle ne sert
-  // qu'à produire ce qu'on va ÉCRIRE dans les grilles — elle n'alimente ni les
-  // tableaux ni le verdict, qui obéissent, eux, à l'état de la page.
-  function simulerAvecSorts(choix: Record<string, string> = sortChoisi) {
-    const avec: TuneMonstre[] = [];
-    for (const l of lignesVisibles) {
-      const c = combatDe(l);
-      if (c == null || c <= 0) continue;
-      const actif = sortActif(l, choix);
-      const second = sortSecond(l);
-      avec.push({
-        id: l.uid,
-        combat: c,
-        camp: l.camp,
-        artefactBuff: (l.artefactBuff ?? 0) + ampliDe(l.camp),
-        sort: actif
-          ? { ...actif.effet, cooldown: actif.cooldown, cibleAllie: cibleSort[l.uid] || undefined }
-          : undefined,
-        rejoue: actif?.rejoue ?? false,
-        sort2:
-          actif?.rejoue && second
-            ? { ...second.effet, cooldown: second.cooldown, cibleAllie: cibleSort[l.uid] || undefined }
-            : undefined,
-      });
-    }
-    return simuler(avec, HORIZON_TICKS);
-  }
-
   // L'ANALYSE : elle lit les kits, puis POSE le résultat dans les grilles, comme
   // si on les avait remplies à la main. Après quoi elle ne repasse plus.
   //
-  // ⚠️ **Un effet de sort est écrit au tick SUIVANT celui où il est lancé.** Dans
-  // le moteur, ce qu'une compétence pose arrive APRÈS l'arbitrage du tick (le
-  // lanceur vient de prendre son tour) ; une case de grille, elle, est posée
-  // AVANT. L'écrire sur le même tick aurait laissé un allié boosté voler le tour
-  // du lanceur. Décalé d'un tick, il agit exactement au moment où il comptait.
+  // ⚠️ **Tout le calcul vient de `analyseAutomatique`** (lib/speedTuneAuto.ts),
+  // celui-là même qu'utilise la card de siège. L'écran avait sa propre pipeline :
+  // deux chemins pour une même question, et ils ont fini par se contredire — une
+  // équipe déclarée « pas speed tune » au siège et « speed tune » dans l'outil.
+  // Un seul calcul, une seule réponse.
   function analyser() {
     // ⚠️ **L'analyse remplit AUSSI l'ordre des sorts** : elle y pose l'ordre que
     // les vitesses produisent et, pour chacun, le sort que son kit a retenu.
-    // Après quoi ces choix sont des choix comme les autres — c'est le même
-    // principe que les grilles : l'outil écrit, l'utilisateur corrige.
-    // ⚠️ **Un sort déjà CHOISI n'est jamais réécrit.** L'analyse ne remplit que
-    // les cases vides. Sans ça, changer un sort relançait l'analyse, qui
-    // reposait aussitôt celui du kit : le choix se réinitialisait sous les
-    // doigts, et le réglage était impossible.
+    // Un sort déjà CHOISI n'est jamais réécrit (sinon le choix se
+    // réinitialiserait sous les doigts, la relance étant déclenchée par le
+    // changement lui-même) ; une chaîne vide est un choix, pas une absence.
     //
-    // Une chaîne vide (« Aucun sort ») est un CHOIX, pas une absence : elle est
-    // donc préservée comme les autres.
+    // ⚠️ **L'adversaire de RÉFÉRENCE est écarté** : dans la lib il ne lance
+    // rien — c'est un repère de vitesse, pas un monstre qui joue son kit. Lui
+    // donner un sort ici aurait suffi à faire diverger les deux écrans.
     const choix: Record<string, string> = { ...sortChoisi };
     for (const l of lignesVisibles) {
-      if (choix[l.uid] !== undefined) continue;
+      if (l.reference || choix[l.uid] !== undefined) continue;
       const detecte = sortAuto(l);
       if (detecte) choix[l.uid] = detecte.nom;
     }
     setSortChoisi(choix);
+
+    const allies = lignesVisibles.filter((l) => l.camp === 'allie');
+    const resultat = analyseAutomatique(allies.map(entreeDe), leadAllie, donneesKit);
+
     if (!ordreRange) {
-      const parVitesse = premiers.filter((a) => a.camp === 'allie').map((a) => a.id);
-      const allies = lignesVisibles.filter((l) => l.camp === 'allie').map((l) => l.uid);
+      const parVitesse = resultat.ordre.map((a) => a.id);
+      const ids = allies.map((l) => l.uid);
       setOrdreVoulu([
-        ...parVitesse.filter((id) => allies.includes(id)),
-        ...allies.filter((id) => !parVitesse.includes(id)),
+        ...parVitesse.filter((id) => ids.includes(id)),
+        ...ids.filter((id) => !parVitesse.includes(id)),
       ]);
     }
     // Ce qu'on vient d'écrire ne doit pas déclencher une relance en boucle.
     premiereSignature.current = JSON.stringify([choix, sortChoisi2]);
 
-    const resultat = simulerAvecSorts(choix);
-    const parId = new Map(resultat.lignes.map((x) => [x.id, x]));
     setAuto(true);
     setLignes((prev) =>
       prev.map((l) => {
-        const sim = parId.get(l.uid);
-        if (!sim) return l;
-        const atbMod: ModParTick = {};
-        for (const [tick, v] of Object.entries(sim.effetAtb)) {
-          const suivant = Number(tick) + 1;
-          if (v !== 0 && suivant <= HORIZON_TICKS) atbMod[suivant] = v;
-        }
-        const speedMod: ModParTick = {};
-        for (const [tick, v] of Object.entries(sim.effetSpeed)) if (v !== 0) speedMod[Number(tick)] = v;
-        return { ...l, atbMod, speedMod };
+        const mods = resultat.mods.get(l.uid);
+        return mods ? { ...l, atbMod: mods.atbMod, speedMod: mods.speedMod } : l;
       })
     );
+
     // ⚠️ **L'adversaire de référence est REPOSÉ à chaque analyse**, sur le plus
-    // rapide du moment. Il n'était posé que lorsque personne n'était en face :
-    // une fois là, il ne bougeait donc plus jamais — un passif appliqué (Chilling
-    // +20 par buff) pouvait changer qui est le plus rapide sans que la référence
-    // le sache, et on se comparait à un monstre qui ne l'était plus.
-    //
-    // Un VRAI adversaire (saisi ou importé), lui, n'est jamais remplacé : c'est
-    // une composition qu'on affronte, pas un repère.
+    // rapide du MOMENT : un passif appliqué (Chilling, +20 par buff) change qui
+    // l'est, et une référence figée comparait l'équipe à un monstre qui ne
+    // l'était plus. Un VRAI adversaire, lui, n'est jamais remplacé — c'est une
+    // composition qu'on affronte, pas un repère.
     const vraiEnnemi = lignesVisibles.some((l) => l.camp === 'ennemi' && !l.reference);
     if (!vraiEnnemi || toujoursReference) analyseAuto();
   }

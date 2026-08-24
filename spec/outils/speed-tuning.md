@@ -468,10 +468,12 @@ De haut en bas :
      — un autre sort ne pose pas la même chose. Vitesses, artéfacts, sets, cases
      des grilles : ce sont des réglages, l'automatisation n'y revient jamais.
      « Relancer » réécrit tout depuis les kits, et écrase donc les corrections.
-   - **En-tête** : le titre et un **interrupteur « Analyser »**. L'allumer écrit ;
-     l'éteindre ne défait rien — ce qui a été écrit reste (grilles, ordre des
-     sorts, adversaire de référence). ⚠️ **Aucune phrase d'explication** : le
-     titre suffit.
+   - **En-tête** : le titre, le bouton **« Analyser »** (« Relancer » ensuite) et
+     un **interrupteur « Afficher »**.
+     ⚠️ **Une ACTION et un AFFICHAGE, pas le même objet** : « Analyser » écrit,
+     l'interrupteur replie. Les confondre faisait d'un repliage une réécriture —
+     donc l'écrasement des corrections qu'on venait d'apporter.
+     ⚠️ **Aucune phrase d'explication** : le titre suffit.
    - **Corps** : rien d'autre que le **verdict**. Vert, il tient en quatre mots —
      **« Ta team est speed tune. »** Rouge, il nomme **l'adverse qui coupe**
      (sans son tick) puis donne **une ligne par allié coupé** : son nom et **le
@@ -480,9 +482,10 @@ De haut en bas :
      un panneau qu'on ouvre depuis l'analyse : elle est là comme les grilles.
      L'analyse **la remplit**, mais les deux se lisent et se règlent séparément.
    - Les deux cards sont **l'une sous l'autre**, chacune sur toute la largeur, et
-     **chacune porte son interrupteur** : « Analyser » ici, « Afficher » sur
-     l'ordre des sorts. ⚠️ Celui de l'ordre des sorts ne fait que **replier la
-     liste** — les sorts choisis continuent de compter, refermer ne défait rien.
+     **chacune porte son interrupteur « Afficher »**. ⚠️ Il ne fait que **replier**
+     — verdict d'un côté, liste des sorts de l'autre : ce qui est écrit continue
+     de compter, refermer ne défait rien. On masque pour gagner de la place, pas
+     pour annuler un réglage.
    - ⚠️ **« Analyser » REPOSE l'adversaire de référence** sur le plus rapide du
      moment, à chaque fois. Il n'était posé qu'en l'absence de tout adversaire :
      une fois là, il ne bougeait plus jamais — appliquer un passif (Chilling, +20

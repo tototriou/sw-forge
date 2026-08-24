@@ -244,6 +244,10 @@ export default function SpeedTuningSection({ allMonsters, siegeDefenseTeams, sie
   // rien. Sinon ce serait un piège — on masque pour gagner de la place, pas pour
   // annuler un réglage.
   const [poussee, setPoussee] = useStickyState<boolean>('speedTune.poussee', true);
+  // Affichage de la card d'analyse — même mécanique que celle de l'ordre des
+  // sorts : ⚠️ replier n'annule rien, c'est de la place qu'on gagne, pas un
+  // réglage qu'on défait.
+  const [montrerAnalyse, setMontrerAnalyse] = useStickyState<boolean>('speedTune.montrer', true);
   const [ordreVoulu, setOrdreVoulu] = useStickyState<string[]>('speedTune.ordre', []);
   // ⚠️ Tant qu'on n'a rien rangé à la main, l'ordre voulu SUIT les vitesses :
   // c'est le point de départ évident (« voilà l'ordre que tu as aujourd'hui »),

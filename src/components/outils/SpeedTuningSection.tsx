@@ -618,8 +618,16 @@ export default function SpeedTuningSection({ allMonsters, siegeDefenseTeams, sie
         return { ...l, atbMod, speedMod };
       })
     );
-    // Personne en face : on pose l'adversaire de référence pour avoir un repère.
-    if (!aEnnemi) analyseAuto();
+    // ⚠️ **L'adversaire de référence est REPOSÉ à chaque analyse**, sur le plus
+    // rapide du moment. Il n'était posé que lorsque personne n'était en face :
+    // une fois là, il ne bougeait donc plus jamais — un passif appliqué (Chilling
+    // +20 par buff) pouvait changer qui est le plus rapide sans que la référence
+    // le sache, et on se comparait à un monstre qui ne l'était plus.
+    //
+    // Un VRAI adversaire (saisi ou importé), lui, n'est jamais remplacé : c'est
+    // une composition qu'on affronte, pas un repère.
+    const vraiEnnemi = lignesVisibles.some((l) => l.camp === 'ennemi' && !l.reference);
+    if (!vraiEnnemi) analyseAuto();
   }
 
   // ⚠️ Le SEUL changement qui rende une analyse fausse : le sort lancé. Tout le

@@ -358,10 +358,9 @@ L'outil les **lit et les applique** : [speedTunePassif.ts](src/lib/speedTunePass
   lancée ou non : c'est une **propriété du monstre**, comme le set Swift, pas une
   hypothèse de l'analyse. Actif par défaut — un passif est toujours en vigueur en
   jeu — et on le coupe pour voir ce que vaut le tune sans lui.
-- ⚠️ **Un passif change QUI est le plus rapide** : tant que l'analyse tourne,
-  l'adversaire de référence se recale sur le plus rapide du moment (et recopie
-  son set, son artéfact et son passif). Il s'arrête net dès que l'analyse est
-  coupée.
+- ⚠️ **Un passif change QUI est le plus rapide** : c'est pour ça que « Analyser »
+  repose l'adversaire de référence sur le plus rapide du moment, en recopiant son
+  set, son artéfact et son passif.
 - **Plafonds respectés** (`up to 100`, `up to 150 %`) ; ⚠️ « up to 10 **times** »
   est un nombre de cumuls, pas un plafond de vitesse.
 - Un gain en **pourcentage** se compte sur la vitesse de **base**, comme le totem
@@ -489,8 +488,13 @@ De haut en bas :
      minimale par card (280 / 380 px) **sans breakpoint**, comme les deux camps :
      elles s'empilent dès qu'il n'y a plus la place. `items-start`, pour que la
      petite ne soit pas étirée à la hauteur de la grande.
-   - Sans personne en face, « Analyser » pose en plus l'**adversaire de
-     référence**.
+   - ⚠️ **« Analyser » REPOSE l'adversaire de référence** sur le plus rapide du
+     moment, à chaque fois. Il n'était posé qu'en l'absence de tout adversaire :
+     une fois là, il ne bougeait plus jamais — appliquer un passif (Chilling, +20
+     par buff) pouvait changer qui est le plus rapide sans que la référence le
+     sache, et on se comparait à un monstre qui ne l'était plus. Un **vrai**
+     adversaire (saisi ou importé), lui, n'est jamais remplacé : c'est une
+     composition qu'on affronte, pas un repère.
 4. **Ordre des sorts** — card à part (voir « Ordre des sorts » plus bas).
 5. **Barre d'action par tick** (lecture seule) — tableau : lignes triées par
    ordre de tour, colonnes = ticks. Chaque cellule = `% rempli` — la

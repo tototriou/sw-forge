@@ -57,6 +57,11 @@ export interface EffetSort {
   // Barre d'action, en % (positif = on remplit).
   atbEquipe?: number; // tout son camp, lui compris
   atbAllie?: number; // UN allié : celui dont la barre est la plus basse
+  // ⚠️ **L'allié VISÉ**, quand on le désigne. Certains sorts laissent le joueur
+  // choisir sa cible (« increases the Attack Bar of the target ally », le S3 de
+  // Sapsaree) : la barre la plus basse est un défaut raisonnable, pas une règle
+  // du jeu. `undefined` = on retombe sur ce défaut.
+  cibleAllie?: string;
   atbSoi?: number; // lui seul
   atbEnnemi?: number; // RETIRÉ à l'adverse (valeur positive = retrait)
   atbEnnemiTous?: boolean; // le retrait touche tout le camp adverse
@@ -274,14 +279,14 @@ export function simuler(monstres: TuneMonstre[], horizon = HORIZON_TICKS): Simul
       if (sort.atbEquipe) for (const m of etat) if (m.camp === camp) ajouter(m, sort.atbEquipe);
       if (sort.atbSoi) ajouter(gagnant, sort.atbSoi);
       if (sort.atbAllie) {
-        // ⚠️ **Le lanceur est EXCLU** : sa barre vient de retomber à 0, il serait
-        // systématiquement « celui qui l'a la plus basse » et se rendrait à
-        // lui-même un boost dont personne ne compte.
+        // ⚠️ **Le lanceur est EXCLU** du choix par défaut : sa barre vient de
+        // retomber à 0, il serait systématiquement « celui qui l'a la plus
+        // basse » et se rendrait à lui-même un boost dont personne ne compte.
         const cibles = etat.filter((m) => m.camp === camp && m !== gagnant);
-        if (cibles.length > 0) {
-          const cible = cibles.reduce((a, b) => (b.atb < a.atb ? b : a));
-          ajouter(cible, sort.atbAllie);
-        }
+        // Une cible DÉSIGNÉE l'emporte : c'est le joueur qui vise, en jeu.
+        const visee = sort.cibleAllie ? cibles.find((m) => m.id === sort.cibleAllie) : undefined;
+        const cible = visee ?? (cibles.length > 0 ? cibles.reduce((a, b) => (b.atb < a.atb ? b : a)) : null);
+        if (cible) ajouter(cible, sort.atbAllie);
       }
       if (sort.atbEnnemi) {
         const ennemis = etat.filter((m) => m.camp === adverse);

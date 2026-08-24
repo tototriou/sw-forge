@@ -262,6 +262,9 @@ export default function SpeedTuningSection({ allMonsters, siegeDefenseTeams, sie
   // Le sort du SECOND tour, pour ceux dont la compétence leur rend leur tour
   // (Kroa) : on ne devine pas ce qu'ils lancent ensuite, c'est à désigner.
   const [sortChoisi2, setSortChoisi2] = useStickyState<Record<string, string>>('speedTune.sorts2', {});
+  // L'allié VISÉ par un sort qui n'en touche qu'un (S3 de Sapsaree). Vide = la
+  // barre la plus basse, le défaut du moteur.
+  const [cibleSort, setCibleSort] = useStickyState<Record<string, string>>('speedTune.cibles', {});
 
   // ⚠️ Rien n'est écrit dans les lignes : ce qu'un monstre fait se DÉDUIT de son
   // kit à l'affichage. Une valeur recopiée dans l'état aurait vieilli au premier
@@ -576,9 +579,14 @@ export default function SpeedTuningSection({ allMonsters, siegeDefenseTeams, sie
         combat: c,
         camp: l.camp,
         artefactBuff: l.artefactBuff ?? 0,
-        sort: actif ? { ...actif.effet, cooldown: actif.cooldown } : undefined,
+        sort: actif
+          ? { ...actif.effet, cooldown: actif.cooldown, cibleAllie: cibleSort[l.uid] || undefined }
+          : undefined,
         rejoue: actif?.rejoue ?? false,
-        sort2: actif?.rejoue && second ? { ...second.effet, cooldown: second.cooldown } : undefined,
+        sort2:
+          actif?.rejoue && second
+            ? { ...second.effet, cooldown: second.cooldown, cibleAllie: cibleSort[l.uid] || undefined }
+            : undefined,
       });
     }
     return simuler(avec, HORIZON_TICKS);
@@ -797,6 +805,11 @@ export default function SpeedTuningSection({ allMonsters, siegeDefenseTeams, sie
       else next[uid] = valeur;
       return next;
     });
+  }
+
+  // L'allié visé par un sort mono-cible. '' = le défaut (barre la plus basse).
+  function choisirCible(uid: string, valeur: string) {
+    setCibleSort((prev) => ({ ...prev, [uid]: valeur }));
   }
 
   function choisirSecond(uid: string, valeur: string) {
@@ -1126,6 +1139,32 @@ export default function SpeedTuningSection({ allMonsters, siegeDefenseTeams, sie
                                     onChoisir={(v) => choisirSort(uid, v)}
                                     nomMonstre={l.monster.name}
                                   />
+                                  {/* ⚠️ Certains sorts ne touchent QU'UN allié et
+                                      laissent le joueur viser (S3 de Sapsaree :
+                                      « the target ally »). La barre la plus basse
+                                      est un défaut raisonnable, pas une règle du
+                                      jeu : on doit pouvoir désigner. */}
+                                  {sortActif(l)?.effet.atbAllie && (
+                                    <label className="flex items-center gap-1.5">
+                                      <span className="text-micro uppercase tracking-wide text-ink-dimmer">sur</span>
+                                      <Selecteur
+                                        taille="sm"
+                                        pleineLargeur={false}
+                                        value={cibleSort[uid] ?? ''}
+                                        onChange={(e) => choisirCible(uid, e.target.value)}
+                                        aria-label={`Allié visé par le sort de ${l.monster.name}`}
+                                      >
+                                        <option value="">barre la plus basse</option>
+                                        {lignesVisibles
+                                          .filter((x) => x.camp === l.camp && x.uid !== uid)
+                                          .map((x) => (
+                                            <option key={x.uid} value={x.uid}>
+                                              {x.monster.name}
+                                            </option>
+                                          ))}
+                                      </Selecteur>
+                                    </label>
+                                  )}
                                   {/* ⚠️ Sa compétence lui REND son tour (Kroa) : il
                                       rejoue au même tick, et lance autre chose. */}
                                   {sortActif(l)?.rejoue && (

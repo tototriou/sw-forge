@@ -605,6 +605,24 @@ export function testSpeedTuneChaine() {
     egal(tickDe(t, 'rapide'), tickDe(sans, 'rapide'), "il ne va PAS à toute l'équipe");
   }
 
+  // ⚠️ Une cible DÉSIGNÉE l'emporte sur la barre la plus basse : certains sorts
+  // laissent le joueur viser (« the target ally », S3 de Sapsaree).
+  {
+    const equipe = (cible?: string) => [
+      { ...m('lanceur', 300, 'allie'), sort: { atbAllie: 40, cibleAllie: cible } },
+      m('bas', 100, 'allie'),
+      m('haut', 240, 'allie'),
+    ];
+    const gainDe = (sim: Simulation, id: string) => Object.values(sim.lignes.find((l) => l.id === id)!.effetAtb);
+    const defaut = simuler(equipe(), 12);
+    egal(gainDe(defaut, 'bas')[0], 40, 'sans cible désignée, la barre la plus basse reçoit');
+    egal(gainDe(defaut, 'haut').length, 0, "et l'autre ne reçoit rien");
+
+    const visee = simuler(equipe('haut'), 12);
+    egal(gainDe(visee, 'haut')[0], 40, "la cible désignée reçoit, même si sa barre n'est pas la plus basse");
+    egal(gainDe(visee, 'bas').length, 0, 'et la plus basse ne reçoit plus rien');
+  }
+
   // Vider la barre de l'adverse est l'autre façon de passer devant lui.
   {
     // ⚠️ Il faut jouer AVANT lui pour lui retirer quoi que ce soit : un retrait

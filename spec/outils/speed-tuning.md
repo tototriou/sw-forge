@@ -317,6 +317,10 @@ aide tout autant à passer devant lui. D'où `EffetSort`
 - ⚠️ **`atbAllie` exclut le LANCEUR** : sa barre vient de retomber à 0, il serait
   systématiquement « celui qui l'a la plus basse » et se rendrait à lui-même un
   boost dont personne ne compte.
+- ⚠️ **La cible se DÉSIGNE** (`cibleAllie`) quand le sort laisse viser — « increases
+  the Attack Bar of **the target ally** », le S3 de Sapsaree. La barre la plus
+  basse n'est qu'un **défaut raisonnable**, pas une règle du jeu : l'ordre des
+  sorts porte donc un « sur : … » à côté du sort, listant les alliés du lanceur.
 - ⚠️ **Un retrait de barre ou un ralenti vise l'adverse le plus AVANCÉ** : c'est
   lui qu'on cherche à retarder, et c'est ce qu'un joueur vise.
 - ⚠️ **Buffs et ralentis ne s'empilent pas** (le jeu n'en garde qu'un de chaque) :

@@ -409,9 +409,11 @@ De haut en bas :
    artéfact, ou une cellule de grille) : elle devient un adversaire ordinaire,
    qu'on ne réécrit plus — écraser un réglage serait une perte silencieuse.
 
-   ⚠️ **Le bouton a DEUX temps** : « Lancer l'analyse » pose la référence,
-   « Arrêter l'analyse » la retire — le reste du réglage ne bouge pas. On regarde
-   ce que l'analyse donne, puis on reprend la main.
+   ⚠️ **Le bouton a DEUX temps** : **« Analyse automatique »** pose la référence,
+   **« Cacher l'analyse »** la met de côté — elle est **masquée**, pas supprimée
+   (même état que l'œil d'une card) : elle quitte les calculs et les tableaux,
+   le réglage ne bouge pas, et un clic la repose. On regarde ce que l'analyse
+   donne, puis on travaille tranquille.
 
    Il est **désactivé** sans équipe, ou quand « En face » porte un **vrai**
    adversaire (l'analyse s'y recalcule à chaque changement, il n'y a rien à

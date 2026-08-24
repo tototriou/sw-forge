@@ -721,7 +721,18 @@ export default function SpeedTuningSection({
                     const adv = e.camp === 'ennemi';
                     return (
                       <tr key={e.id} className="border-b border-border-soft">
-                        <th className="sticky left-0 z-[2] border-r border-border-soft bg-panel px-3 py-1.5 text-left font-normal">
+                        {/* ⚠️ **La colonne des noms porte le camp.** C'est la
+                            seule qui reste à l'écran quand on défile les 40
+                            ticks : sans elle, on lit une ligne de chiffres sans
+                            savoir si elle est à soi ou en face. Fond SOLIDE
+                            (`-soft`), jamais une transparence — la colonne est
+                            collante et passe par-dessus le tableau qui défile
+                            dessous. */}
+                        <th
+                          className={`sticky left-0 z-[2] border-r border-border-soft px-3 py-1.5 text-left font-normal ${
+                            adv ? 'bg-bad-soft' : 'bg-accent-soft'
+                          }`}
+                        >
                           <span className="flex items-center gap-2">
                             <MonsterAvatar monster={l.monster} size={24} element={false} />
                             <span className="min-w-0 flex-1">
@@ -933,8 +944,20 @@ function CampPanneau({
   );
 
   return (
-    <section className="min-w-[280px] flex-1 rounded-lg border border-border bg-panel">
-      <div className="flex items-center gap-2 border-b border-border-soft px-3.5 py-2.5">
+    // ⚠️ **Le contour REMPLACE celui du panneau, il ne s'y ajoute pas** : un
+    // cadre de camp par-dessus le cadre neutre ferait deux contours
+    // concentriques, ce que la charte interdit. Même règle pour le bandeau, qui
+    // teinte une bande existante au lieu d'en ajouter une.
+    <section
+      className={`min-w-[280px] flex-1 rounded-lg border bg-panel ${
+        adv ? 'border-bad/45' : 'border-accent/45'
+      }`}
+    >
+      <div
+        className={`flex items-center gap-2 border-b px-3.5 py-2.5 ${
+          adv ? 'border-bad/30 bg-bad-soft' : 'border-accent/30 bg-accent-soft'
+        }`}
+      >
         <span className={`flex items-center gap-1.5 text-sm font-bold ${adv ? 'text-bad' : 'text-ink'}`}>
           <span className={adv ? 'text-bad' : 'text-accent'}>{icone}</span>
           {titre}
@@ -1317,7 +1340,11 @@ function GrilleMod({
                 <FragmentCamp key={camp}>
                   {/* Ligne équipe */}
                   <tr className="border-b border-border-soft bg-panel2/40">
-                    <th className="sticky left-0 z-[2] border-r border-border-soft bg-panel2 px-3 py-1.5 text-left">
+                    <th
+                      className={`sticky left-0 z-[2] border-r border-border-soft px-3 py-1.5 text-left ${
+                        adv ? 'bg-bad-soft' : 'bg-accent-soft'
+                      }`}
+                    >
                       <span className={`flex items-center gap-1.5 text-xs font-bold ${adv ? 'text-bad' : 'text-accent'}`}>
                         <span className={`h-2 w-2 rounded-full ${adv ? 'bg-bad' : 'bg-accent'}`} />
                         {label}
@@ -1336,7 +1363,13 @@ function GrilleMod({
                   {/* Lignes monstres */}
                   {monstres.map((l) => (
                     <tr key={l.uid} className="border-b border-border-soft">
-                      <th className="sticky left-0 z-[2] border-r border-border-soft bg-panel px-3 py-1.5 text-left font-normal">
+                      {/* Même repère que dans le tableau des barres : la colonne
+                          collante dit à quel camp la ligne appartient. */}
+                      <th
+                        className={`sticky left-0 z-[2] border-r border-border-soft px-3 py-1.5 text-left font-normal ${
+                          adv ? 'bg-bad-soft' : 'bg-accent-soft'
+                        }`}
+                      >
                         <span className="flex items-center gap-2">
                           <MonsterAvatar monster={l.monster} size={22} element={false} />
                           <span className="text-sm">{l.monster.name}</span>

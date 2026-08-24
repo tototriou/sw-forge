@@ -50,6 +50,12 @@
   /* `warn` et `star` portent des CHIFFRES qu'on lit (max d'efficience). */
   --warn: 138 87 12;
   --bad: 176 28 28;
+  /* Fond doux de `bad` — même construction que `--accent-soft` et les fonds
+     d'élément : la teinte fondue dans la surface. ⚠️ Il manquait un AXE, pas une
+     variante : l'accent et les éléments avaient leur `-soft`, la sémantique non.
+     Il porte le camp ADVERSE du speed tuning, en face de `--accent-soft` qui
+     porte le tien. */
+  --bad-soft: 250 230 230;
 
   /* Éléments — teinte conservée, SATURATION poussée.
      ⚠️ Le ratio WCAG mesure la luminance, pas la présence d'une couleur : à
@@ -174,6 +180,7 @@
   --forge-warn: 217 164 65;
   /* Éclairci : `bad` passait sous 4.0 sur panel2, or il porte les alertes. */
   --forge-bad: 226 116 104;
+  --forge-bad-soft: 48 28 32;
 
   /* Fonds doux — la teinte fondue dans `--forge-panel` (25 26 38), la même
      construction que `--forge-accent-soft` (48 38 34), qui est le cuivre fondu
@@ -232,6 +239,7 @@
     --good: var(--forge-good);
     --warn: var(--forge-warn);
     --bad: var(--forge-bad);
+    --bad-soft: var(--forge-bad-soft);
     --el-fire: var(--forge-el-fire);
     --el-water: var(--forge-el-water);
     --el-wind: var(--forge-el-wind);
@@ -281,6 +289,7 @@
   --good: var(--forge-good);
   --warn: var(--forge-warn);
   --bad: var(--forge-bad);
+  --bad-soft: var(--forge-bad-soft);
   --el-fire: var(--forge-el-fire);
   --el-water: var(--forge-el-water);
   --el-wind: var(--forge-el-wind);

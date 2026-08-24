@@ -553,6 +553,24 @@ Le cœur de l'outil, dans `simulerOrdre` (speedTune.ts), **testé**
   laissé pour plus tard.
 - Vitesse ≤ 0 (base inconnue, aucune runes) → n'agit jamais, écarté de l'ordre.
 
+## Les deux camps se voient
+
+⚠️ **Ton équipe et « En face » se distinguent à la COULEUR, pas à la position.**
+`accent` pour le tien, `bad` pour l'adverse — la sémantique de l'app, où `bad`
+dit déjà « ce qui te coupe ».
+
+- **Le panneau d'un camp** porte son contour (`border-accent/45` /
+  `border-bad/45`) et son bandeau de titre (`accent-soft` / `bad-soft`).
+  ⚠️ Le contour **remplace** celui du panneau au lieu de s'y ajouter : deux
+  contours concentriques sont interdits par la charte.
+- **La colonne des noms** des trois tableaux porte la même teinte. C'est la seule
+  qui reste à l'écran quand on défile les 40 ticks : sans elle, on lit une ligne
+  de chiffres sans savoir si elle est à soi ou en face. ⚠️ Fond **solide**
+  (`-soft`), jamais une transparence — la colonne est collante et passe
+  par-dessus le tableau qui défile dessous.
+- Le repère des ticks garde son contour `bad` sur les portraits adverses, et la
+  pastille « adv » reste : une couleur seule ne se lit pas en niveaux de gris.
+
 ## Écran
 
 ⚠️ **L'écran ne calcule rien.** `SpeedTuningSection.tsx` ne contient que du

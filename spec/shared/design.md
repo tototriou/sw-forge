@@ -71,6 +71,13 @@ hexadécimal.
 | `good` | `#7fbe7f` | `#2f855a` | Au tick, gain, succès |
 | `warn` | `#d9a441` | `#b7791f` | Avertissement |
 | `bad` | `#cf5b4e` | `#c53030` | Hors tick, destructif, erreur |
+| `bad-soft` | `#301c20` | `#fae6e6` | Fond doux de `bad` — le pendant d'`accent-soft` |
+
+⚠️ **`bad-soft` comble un AXE, pas une variante de plus** : l'accent et les
+éléments avaient leur fond doux, la sémantique non. Il sert à **opposer deux
+camps** (speed tuning : `accent-soft` = ton équipe, `bad-soft` = en face) là où
+une transparence ne convient pas — une colonne collante passe par-dessus le
+tableau qui défile dessous, il lui faut un fond SOLIDE.
 
 ⚠️ **La sémantique n'est pas l'accent.** `good`/`warn`/`bad` disent un état des
 données ; `accent` dit « ceci est actif ou sélectionné ». Les confondre rend un

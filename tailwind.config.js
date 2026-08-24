@@ -39,6 +39,9 @@ export default {
         good: 'rgb(var(--good) / <alpha-value>)',
         warn: 'rgb(var(--warn) / <alpha-value>)',
         bad: 'rgb(var(--bad) / <alpha-value>)',
+        // Fond doux de `bad` : le pendant de `accent-soft`. Le speed tuning s'en
+        // sert pour opposer « en face » à « ton équipe » d'un coup d'œil.
+        'bad-soft': 'rgb(var(--bad-soft) / <alpha-value>)',
 
         // Éléments — vocabulaire Summoners War. Deux valeurs par élément
         // (voir design.md) : le Vent et la Lumière sont illisibles sur clair.

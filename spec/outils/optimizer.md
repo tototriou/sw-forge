@@ -63,7 +63,8 @@ Depuis `xl`, **une seule grille** (deux colonnes, quatre rangées) porte tout
 l'écran de réglages, organisée en **paires** plutôt qu'en un seul bloc
 continu — demande explicite de l'utilisateur :
 
-1. **Rangée 1 : Monstre & équipement, à côté d'Exclusion de runes.**
+1. **Rangées 1-2 : Monstre & équipement, à côté d'Exclusion de runes +
+   Réglages avancés.**
    « Monstre & équipement » : recherche à **gauche** (`lg:flex-1`, GRANDIT
    pour occuper l'espace libéré par la fiche d'équipement, désormais serrée
    sur son propre contenu — demande explicite d'utiliser l'espace libre
@@ -94,11 +95,12 @@ continu — demande explicite de l'utilisateur :
    roue vide) tant qu'aucun monstre n'est choisi, plutôt que de n'apparaître
    qu'au clic — l'espace qu'elle occupe est réservé d'avance (voir
    [shared/design.md](shared/design.md), « un clic ne déplace jamais ce
-   qu'on vient de cliquer »). À sa droite : **Exclusion de runes**, qui
+   qu'on vient de cliquer »). À sa droite : **Exclusion de runes**
+   (rangée 1) puis **Réglages avancés** (rangée 2), empilés — Exclusion
    regroupe désormais aussi **Runes imposées** (verrouiller un emplacement
    sur une rune précise — déplacé depuis « Critères de recherche », même
    thème : agir sur le pool de runes à partir de l'exemplaire recherché).
-2. **Rangée 2 : Critères de recherche, à côté d'Objectif de recherche.**
+2. **Rangée 3 : Critères de recherche, à côté d'Objectif de recherche.**
    « Critères de recherche » est **compactée au maximum** (`w-fit` — la
    carte hugs son contenu plutôt que de s'étirer sur toute la largeur de sa
    colonne) pour laisser de la place, visuellement, à « Objectif de
@@ -119,17 +121,25 @@ continu — demande explicite de l'utilisateur :
    l'autre. Le **set principal** (4 pièces) s'affiche sur **deux lignes de
    trois** en permanence (comme au doigt), pour laisser plus de largeur au
    set secondaire.
-3. **Rangée 3 : Réglages avancés, SEUL** (rien en face côté Monstre/
-   Critères) — placement délibéré. ⚠️ Dérouler cet accordéon (repliés par
-   défaut) grandit sa propre rangée SANS jamais affecter le départ d'aucune
-   rangée antérieure : demande explicite (« la partie critères de recherche
-   ne doit pas se déplacer vers le bas lorsqu'on déroule réglages avancés »)
-   après qu'un empilement précédent (Monstre en `row-span-2` face à
-   Exclusion+Avancés) faisait dépendre la position de « Critères » de la
-   hauteur d'un accordéon sans rapport.
-4. **Rangée 4 : ligne d'estimation**, pleine largeur (`col-span-2`) — après
-   tout le reste ; seule à pouvoir être poussée par l'accordéon Réglages
-   avancés (sans conséquence, un simple texte informatif).
+3. **Rangée 4 : ligne d'estimation**, pleine largeur (`col-span-2`) — ni
+   dans l'une ni l'autre paire.
+
+⚠️ **« Réglages avancés » ne pousse plus jamais rien en se dépliant** —
+demande explicite (« la partie critères de recherche ne doit pas se
+déplacer vers le bas lorsqu'on déroule réglages avancés »), et « reste
+toujours sous Exclusion de runes » (donc sans déplacer LE BLOC lui-même,
+contrairement à une tentative précédente qui l'avait isolé en dernière
+rangée pour contourner le même symptôme). Son contenu déplié n'est plus un
+bloc **inline** qui grandissait la carte (donc la rangée 2 partagée avec
+« Monstre & équipement », donc le départ de la rangée 3) — c'est un
+**`FlottantAuto`** ancré à la carte, qui flotte PAR-DESSUS la page :
+la carte garde TOUJOURS sa hauteur repliée, aucune rangée ne peut plus
+bouger. Un panneau replié par défaut ne peut pas réserver sa place à
+l'avance sans perdre l'intérêt d'être replié — il sort donc du flux
+(flottant), l'autre option prévue par
+[shared/design.md](shared/design.md), « un clic ne déplace jamais ce
+qu'on vient de cliquer ». Ferme au clic extérieur, même patron que
+`HelpPopover.tsx`.
 
 ⚠️ **Placement explicite (`col-start`/`row-start`) sur CHAQUE bloc, jamais
 un réordonnancement de la source** : l'ordre du DOM reste celui de l'ordre
@@ -188,8 +198,14 @@ retour.
    recherche peut être lent sur des critères serrés ou manquer un build sur
    un cas inhabituel, et qu'il faut vérifier le résultat avant de re-runer.
 1. **Source, puis sélecteur de monstre** — un **sélecteur de source** (Box,
-   par défaut / RTA / Défenses siège / Offenses siège) accolé au titre,
-   au-dessus du champ de recherche. ⚠️ **Le champ de recherche cherche PARMI
+   par défaut / RTA / Défenses siège / Offenses siège) entre le libellé
+   « Monstre à optimiser » et son champ de recherche — c'est le premier
+   choix à faire, avant même de taper un nom. ⚠️ **Même hauteur et même
+   répartition que le sélecteur de source d'« Exclure les runes d'un
+   monstre »** (`Segmented size="lg"` : pleine largeur, les 4 options
+   réparties à égalité, un **séparateur vertical** entre chacune) —
+   auparavant un sélecteur compact (`dense` seul), disproportionné avec
+   celui d'« Exclure les runes d'un monstre ». ⚠️ **Le champ de recherche cherche PARMI
    les entrées de la source active** — EXACTEMENT le même mécanisme que
    « Exclure les runes d'un monstre » plus bas (même composant de rangée de
    résultat, `ExclusionCandidateRow` : portrait, nom, compte de runes, et
@@ -382,8 +398,16 @@ retour.
      autres réglages de l'écran.
 8. **« Utiliser tout l'inventaire »** — case à cocher, **cochée par défaut**
    (voir « Exclusion des runes » ci-dessous).
-9. **« Réglages avancés »** (repliés par défaut) : **pré-filtrage par
-   emplacement**, en **presets** plutôt qu'un curseur libre — Bas / Moyen
+9. **« Réglages avancés »** (repliés par défaut). ⚠️ **Au bureau, un
+   `FlottantAuto`** (`shared/librairie-ui.md`), PAS un bloc qui grandit la
+   carte — dépliée, la carte reste sous « Exclusion de runes » (rangée 1-2
+   du duo Monstre & équipement, voir plus haut) à sa hauteur repliée, le
+   contenu flotte par-dessus le reste de la page ; ferme au clic extérieur.
+   Un panneau replié par défaut ne peut pas réserver sa place à l'avance
+   sans perdre l'intérêt d'être replié — voir
+   [shared/design.md](shared/design.md), « un clic ne déplace jamais ce
+   qu'on vient de cliquer ». **Pré-filtrage par emplacement**, en
+   **presets** plutôt qu'un curseur libre — Bas / Moyen
    (défaut) / Haut / Extrême, du plus rapide au plus large (et donc plus
    lent, mais capable de retrouver un build sur un très gros compte),
    **séparés par un liseré vertical** (même patron que `Segmented.tsx`,

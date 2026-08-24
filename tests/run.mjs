@@ -45,7 +45,10 @@ try {
 }
 
 const code = await new Promise((resolve) => {
-  const p = spawn(process.execPath, [sortie], { stdio: 'inherit' });
+  // Les arguments sont transmis au bundle : ils servent à ne lancer QUE les
+  // vérifications qui touchent la zone modifiée (voir tests/index.ts et
+  // CLAUDE.md). Sans argument, tout tourne.
+  const p = spawn(process.execPath, [sortie, ...process.argv.slice(2)], { stdio: 'inherit' });
   p.on('close', resolve);
 });
 

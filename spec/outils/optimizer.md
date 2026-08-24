@@ -350,11 +350,12 @@ retour.
        [degats-reels.md](degats-reels.md)). Un passif **toujours actif** (le
        texte du jeu ne pose aucune condition) apparaît en jeton simple, sans
        bouton. Un passif **bonus** ou **conditionnel** apparaît en bouton,
-       **désactivé par défaut**, avec le texte exact de la condition du jeu
-       dans son infobulle — jamais déduit d'un autre réglage de l'écran
-       (⚠️ le passif d'un monstre peut dépendre de l'état posé par son
+       **désactivé par défaut**. ⚠️ **Jamais déduit d'un autre réglage de
+       l'écran** (le passif d'un monstre peut dépendre de l'état posé par son
        **propre** sort, avant même que ce sort ne soit lancé : aucun réglage
-       existant ne peut trancher ça à sa place).
+       existant ne peut trancher ça à sa place) — la condition et le texte du
+       jeu (`Competence.description`) sont affichés **en clair sous chaque
+       passif**, pas seulement au survol, pour que le joueur juge lui-même.
      - **Adversaire** — PV et DEF. ⚠️ Les **PV ne classent rien** : ils ne
        servent qu'à lire le résultat (« 42 % des PV », « tue la cible »).
        Un champ **PV restants** n'apparaît que pour les sorts dont la

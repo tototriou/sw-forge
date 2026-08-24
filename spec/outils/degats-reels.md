@@ -183,12 +183,13 @@ par l'utilisateur : Roid peut lui-même poser la réduction de DEF via son
 propre S1, et la condition de son passif porte sur l'état **avant** ce sort
 précis — un réglage de combat global ne peut pas savoir « avant » ou
 « après » lequel des sorts du même monstre. D'où un **bouton indépendant par
-passif**, jamais rattaché à un réglage existant, avec le texte exact de la
-condition du jeu affiché dans son infobulle (`DamageSetupCard.tsx`) — c'est au
-joueur de juger, pas à l'app de deviner. Conséquence volontaire : oublier
-d'activer un bouton ne peut que **sous-estimer** les dégâts, jamais les
-surestimer — un défaut d'usage sans risque de classement erroné dans le sens
-dangereux.
+passif**, jamais rattaché à un réglage existant, avec la condition CURÉE et
+le texte SWARFARM brut du passif (`Competence.description`, jamais
+reformulé) affichés en clair **sous chaque passif** — pas seulement dans une
+infobulle au survol, invisible au doigt — c'est au joueur de juger, pas à
+l'app de deviner. Conséquence volontaire : oublier d'activer un bouton ne
+peut que **sous-estimer** les dégâts, jamais les surestimer — un défaut
+d'usage sans risque de classement erroné dans le sens dangereux.
 
 `DamageSetup.passifsOffensifs` (`Record<com2usId du passif, boolean>`, clé
 absente = désactivé) porte l'état des boutons ; une recette exportée avant

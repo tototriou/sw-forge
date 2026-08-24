@@ -458,6 +458,10 @@ export interface PassifOffensifProfile {
   // `DamageSetup.passifsOffensifs`, stable pour CE monstre.
   skillCom2usId: number;
   nom: string;
+  // Texte SWARFARM brut du passif (`Competence.description`), affiché tel
+  // quel à côté de la condition CURÉE ci-dessus — au joueur de confronter
+  // les deux, jamais reformulé.
+  description: string | null;
   categorie: PassifOffensifCategorie;
   profile: SkillDamageProfile;
 }
@@ -484,6 +488,7 @@ export function monsterOffensivePassives(detail: DetailMonstre | null): PassifOf
     out.push({
       skillCom2usId: c.com2usId,
       nom: c.nom,
+      description: c.description,
       categorie: connu.categorie,
       profile: {
         skillCom2usId: c.com2usId,

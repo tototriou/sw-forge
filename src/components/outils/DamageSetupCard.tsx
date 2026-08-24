@@ -180,19 +180,21 @@ export default function DamageSetupCard({ skills, resolved, passifs, setup, setS
               en plus du sort choisi ci-dessus. <b className="text-ink">Toujours actif</b> : le texte du jeu ne
               pose aucune condition de combat, compté d&apos;office. <b className="text-ink">Bouton</b> :
               une condition à juger toi-même (cible, PV, effet déjà présent…) — désactivé par défaut,
-              jamais deviné. Le texte exact de la condition est dans l&apos;infobulle de chaque bouton.
+              jamais deviné. La condition et le texte du jeu sont affichés sous chaque passif.
             </HelpPopover>
           </div>
-          <div className="flex flex-wrap gap-1.5">
+          <div className="space-y-2">
             {passifs.map((p) => {
               if (p.categorie.type === 'toujours') {
                 return (
-                  <Jeton
-                    key={p.skillCom2usId}
-                    icone={p.profile.icone ? <img src={p.profile.icone} alt="" className="h-4 w-4 rounded" loading="lazy" /> : undefined}
-                    libelle={p.nom.replace(/\s*\(Passive\)\s*$/i, '')}
-                    detail="toujours actif"
-                  />
+                  <div key={p.skillCom2usId}>
+                    <Jeton
+                      icone={p.profile.icone ? <img src={p.profile.icone} alt="" className="h-4 w-4 rounded" loading="lazy" /> : undefined}
+                      libelle={p.nom.replace(/\s*\(Passive\)\s*$/i, '')}
+                      detail="toujours actif"
+                    />
+                    {p.description && <p className="mt-1 text-xs leading-snug text-ink-dim">{p.description}</p>}
+                  </div>
                 );
               }
               const actif = setup.passifsOffensifs?.[p.skillCom2usId] ?? false;
@@ -200,23 +202,27 @@ export default function DamageSetupCard({ skills, resolved, passifs, setup, setS
                 p.categorie.type === 'bonus'
                   ? `${p.nom.replace(/\s*\(Passive\)\s*$/i, '')} (+${p.categorie.pct} %)`
                   : p.nom.replace(/\s*\(Passive\)\s*$/i, '');
+              const condition = `${p.categorie.condition[0].toUpperCase()}${p.categorie.condition.slice(1)}`;
               return (
-                <Pastille
-                  key={p.skillCom2usId}
-                  actif={actif}
-                  onClick={() =>
-                    maj({ passifsOffensifs: { ...(setup.passifsOffensifs ?? {}), [p.skillCom2usId]: !actif } })
-                  }
-                  icone={
-                    p.profile.icone ? (
-                      <img src={p.profile.icone} alt="" className="h-4 w-4 rounded" loading="lazy" />
-                    ) : undefined
-                  }
-                  libelle={libelle}
-                  title={`${p.categorie.condition[0].toUpperCase()}${p.categorie.condition.slice(1)}${
-                    actif ? ' (activé)' : ' — désactivé par défaut'
-                  }`}
-                />
+                <div key={p.skillCom2usId}>
+                  <Pastille
+                    actif={actif}
+                    onClick={() =>
+                      maj({ passifsOffensifs: { ...(setup.passifsOffensifs ?? {}), [p.skillCom2usId]: !actif } })
+                    }
+                    icone={
+                      p.profile.icone ? (
+                        <img src={p.profile.icone} alt="" className="h-4 w-4 rounded" loading="lazy" />
+                      ) : undefined
+                    }
+                    libelle={libelle}
+                    title={`${condition}${actif ? ' (activé)' : ' — désactivé par défaut'}`}
+                  />
+                  <p className="mt-1 text-xs leading-snug text-ink-dim">
+                    {condition}
+                    {p.description && ` — texte du jeu : « ${p.description} »`}
+                  </p>
+                </div>
               );
             })}
           </div>

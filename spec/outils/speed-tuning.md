@@ -369,7 +369,9 @@ L'outil les **lit et les applique** : [speedTunePassif.ts](src/lib/speedTunePass
   personnelle (elle protège son porteur), le Bouclier ne l'est pas — un seul
   monstre en Bouclier dans l'équipe, et **tout le monde** en porte un.
   Chilling avec la Volonté dans une équipe qui pose un bouclier et un buff de
-  vitesse porte donc **3 buffs → +60 de vitesse**. C'est une **estimation**, pas
+  vitesse porte donc **3 buffs → +60 de vitesse**. ⚠️ **L'outil le pose tout
+  seul** dans la case « cumuls » d'une ligne jamais touchée — sans quoi une
+  équipe arrivée du siège affichait une vitesse ici et une autre là-bas. C'est une **estimation**, pas
   une vérité : elle suppose ces buffs posés au moment où le passif compte, et un
   chiffre **saisi n'est jamais écrasé**.
 - **Une rangée à part sur la card**, sous les réglages : bouton **« Passif »**,

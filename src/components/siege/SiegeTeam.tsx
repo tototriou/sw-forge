@@ -496,38 +496,46 @@ export default function SiegeTeam({
         </div>
       )}
 
-      {/* Message sous les monstres : l'équipe n'est pas au tick.
-          ⚠️ Le bouton dit « Ignorer la recommandation », et non « Valider
-          l'équipe » : l'app n'a aucun moyen de savoir si le tune est bon, elle
-          constate seulement qu'il s'écarte des ticks. « Valider » laissait
-          croire à une approbation de l'outil, alors que c'est l'utilisateur qui
-          écarte un conseil dont il assume la responsabilité. */}
-      {(status === 'orange' || status === 'red') && (
-        // ⚠️ **Empilé au DOIGT, en ligne à la souris.** Le message peut nommer
-        // deux monstres (« Morris dépasse le tick 286 et ROBO-F29 dépasse le
-        // tick 286 ») : sur une seule ligne étroite, il se compressait contre
-        // le bouton et les deux se lisaient de travers. Empilé, le texte prend
-        // toute la largeur pour se plier proprement, et le bouton — seul, en
-        // dessous — se tasse à droite plutôt que de rester centré au milieu
-        // d'une ligne vide.
+      {/* ⚠️ **UN SEUL pied de card**, pas trois blocs empilés. Il portait
+          successivement : un encadré d'alerte teinté, une ligne verte, un
+          bouton flottant à droite — trois objets pour une seule idée (« où en
+          est cette équipe, et que puis-je en faire »). Réunis, ils se lisent
+          d'un coup : l'état à gauche, les actions à droite.
+
+          ⚠️ Le pied prend la teinte du statut (rouge / orange) et se cale sur
+          les bords de la card (marges négatives) : c'est une BANDE, pas une
+          boîte dans une boîte — un cadre de plus à l'intérieur d'un cadre
+          faisait deux contours concentriques, ce que la charte interdit.
+
+          ⚠️ `flex-wrap` : le message peut nommer deux monstres. Sur un écran
+          étroit, il passe au-dessus des boutons plutôt que de se comprimer. */}
+      {(hasMonsters || status !== 'neutral') && (
         <div
-          className={`mt-3 flex flex-col gap-2 rounded-lg border px-3 py-2
-            sm:flex-row sm:items-center ${
-            status === 'red' ? 'border-fire/40 bg-fire/10' : 'border-warn/40 bg-warn/10'
-          }`}
+          className={`-mx-4 -mb-4 mt-3 flex flex-wrap items-center gap-x-3 gap-y-2 rounded-b-2xl border-t px-4 py-2.5
+            compact:-mx-2.5 compact:-mb-2.5 compact:px-2.5 ${
+              status === 'red'
+                ? 'border-fire/40 bg-fire/10'
+                : status === 'orange'
+                  ? 'border-warn/40 bg-warn/10'
+                  : 'border-border-soft'
+            }`}
         >
-          <div className="flex items-start gap-2">
-            <AlertTriangle
-              size={15}
-              className={`mt-px flex-none ${status === 'red' ? 'text-fire' : 'text-warn'}`}
-            />
-            <span className={`text-xs ${status === 'red' ? 'text-fire' : 'text-warn'}`}>
+          <span className="flex min-w-0 flex-1 items-start gap-2">
+            {(status === 'red' || status === 'orange') && (
+              <AlertTriangle
+                size={15}
+                className={`mt-px flex-none ${status === 'red' ? 'text-fire' : 'text-warn'}`}
+              />
+            )}
+            <span
+              className={`text-xs ${
+                status === 'red' ? 'text-fire' : status === 'orange' ? 'text-warn' : 'text-ink-dim'
+              }`}
+            >
               {status === 'red' ? (
                 (messageTick ?? "Ton équipe n'est pas au tick.")
-              ) : speedTune ? (
-                speedTune.verdict.ok ? (
-                  <span className="text-good">Équipe speed : elle est speed tune.</span>
-                ) : (
+              ) : status === 'orange' ? (
+                speedTune ? (
                   <>
                     Équipe speed :{' '}
                     <span className="font-semibold text-ink">
@@ -545,62 +553,52 @@ export default function SiegeTeam({
                             .join(', ')}
                     </span>
                   </>
+                ) : (
+                  'Équipe speed : pas de tick à viser.'
                 )
-              ) : (
-                'Équipe speed : pas de tick à viser.'
-              )}
+              ) : status === 'green' && validated ? (
+                <button
+                  onClick={() => onDismissAlert(team.id, false)}
+                  className="text-good hoverable:text-ink transition"
+                  title="Réafficher la recommandation"
+                >
+                  ✓ Recommandation ignorée ·{' '}
+                  <span className="underline underline-offset-2">rétablir</span>
+                </button>
+              ) : status === 'green' ? (
+                <span className="text-good">
+                  ✓ {speedTune?.verdict.ok ? 'Équipe speed : elle est speed tune' : 'Tous au tick'}
+                </span>
+              ) : null}
             </span>
-          </div>
-          <Bouton
-            onClick={() => onDismissAlert(team.id, true)}
-            taille="sm"
-            libelle="Ignorer la recommandation"
-            className="flex-none self-end sm:ml-auto sm:self-auto"
-          />
-        </div>
-      )}
-      {/* ⚠️ Pas un `Bouton` de la librairie : le vert ici est SÉMANTIQUE (l'état
-          « recommandation écartée »), pas un ton d'action — même distinction que
-          les pastilles manque/surplus plus bas, en `text-fire`/`text-water`. Un
-          ton de la librairie (accent, neutre…) dirait autre chose.
-          ⚠️ **Le SOULIGNEMENT se pose sur « rétablir » seul**, pas sur la
-          ligne entière : « Recommandation ignorée » est un ÉTAT, à lire ; c'est
-          « rétablir » qui est l'ACTION, à cliquer. Toute la phrase reste dans
-          le même `<button>` — cible et infobulle ne changent pas —, mais le
-          trait dit où regarder pour comprendre que ça se clique. Même
-          convention que les liens de RecoBoard/RecoCard. */}
-      {/* ⚠️ Le vert d'une équipe Swift se DIT : sans un mot, on ne sait pas si
-          la vérification a tourné ou si l'app n'avait rien à dire. Même
-          grammaire que « Recommandation ignorée » juste en dessous. */}
-      {status === 'green' && !validated && speedTune?.verdict.ok && (
-        <p className="mt-3 text-micro text-good">✓ Équipe speed : elle est speed tune</p>
-      )}
-      {status === 'green' && validated && (
-        <button
-          onClick={() => onDismissAlert(team.id, false)}
-          className="mt-3 text-micro text-good hoverable:text-ink transition"
-          title="Réafficher la recommandation"
-        >
-          ✓ Recommandation ignorée · <span className="underline underline-offset-2">rétablir</span>
-        </button>
-      )}
+          </span>
 
-      {/* ⚠️ TOUJOURS là, quelle que soit l'équipe : le speed tune n'est pas une
-          réponse à une alerte, c'est une question qu'on se pose sur n'importe
-          quel deck — y compris celui qui va bien, pour voir de combien il passe.
-          Rangé en pied de card, à droite : c'est une sortie vers un autre écran,
-          pas une action sur l'équipe. */}
-      {hasMonsters && (
-        <div className="mt-3 flex justify-end">
-          <Bouton
-            onClick={() => onVoirSpeedTune(team.id)}
-            taille="sm"
-            fond="vide"
-            trait="aucun"
-            icone={<Timer size={14} />}
-            libelle="Voir le speed tune"
-            title="Ouvre le speed tuning avec cette équipe déjà chargée"
-          />
+          <span className="flex flex-none flex-wrap items-center gap-2">
+            {(status === 'red' || status === 'orange') && (
+              <Bouton
+                onClick={() => onDismissAlert(team.id, true)}
+                taille="sm"
+                libelle="Ignorer la recommandation"
+                libelleCourt="Ignorer"
+              />
+            )}
+            {/* ⚠️ TOUJOURS là, quelle que soit l'équipe : le speed tune n'est pas
+                une réponse à une alerte, c'est une question qu'on se pose sur
+                n'importe quel deck — y compris celui qui va bien, pour voir de
+                combien il passe. */}
+            {hasMonsters && (
+              <Bouton
+                onClick={() => onVoirSpeedTune(team.id)}
+                taille="sm"
+                fond="vide"
+                trait="aucun"
+                icone={<Timer size={14} />}
+                libelle="Voir le speed tune"
+                libelleCourt="Speed tune"
+                title="Ouvre le speed tuning avec cette équipe déjà chargée"
+              />
+            )}
+          </span>
         </div>
       )}
     </section>

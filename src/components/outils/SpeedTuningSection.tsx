@@ -22,6 +22,7 @@ import { deckPourSpeedTune } from '../../lib/speedTuneDeck';
 import { prendreDeck } from '../../lib/speedTuneHandoff';
 import { kitVitesse, sortsVitesse, KitVitesse, SortVitesse, KIT_VIDE } from '../../lib/speedTuneKit';
 import { passifsVitesse, pointsDeGain, PassifVitesse } from '../../lib/speedTunePassif';
+import { cumulsEstimes, EntreeAuto } from '../../lib/speedTuneAuto';
 import { chargerDetail } from '../../lib/monsterSkills';
 import { teamSummary } from '../../lib/recoFromSiege';
 import { formesJouables } from '../../lib/monsterForms';
@@ -94,6 +95,9 @@ interface Ligne {
   // la « SPD runes » saisie les porte déjà à plat — d'où un écart d'UN point sur
   // la vitesse de combat, et un point suffit à rater un tick.
   swift?: boolean;
+  // Les sets du monstre, quand ils viennent d'un deck importé : la Volonté et le
+  // Bouclier posent des buffs, que certains passifs comptent (Chilling).
+  sets?: string[];
   // Combien de fois le gain de son PASSIF s'est déclenché (buffs portés, tours
   // adverses passés, attaques…). ⚠️ La VALEUR du gain est lue dans son kit ; ce
   // qui dépend du combat, c'est le nombre de fois — c'est donc la seule chose
@@ -268,6 +272,42 @@ export default function SpeedTuningSection({ allMonsters, siegeDefenseTeams, sie
   // barre la plus basse, le défaut du moteur.
   const [cibleSort, setCibleSort] = useStickyState<Record<string, string>>('speedTune.cibles', {});
 
+  // Les données de kit sous la forme que la lib partagée attend.
+  const donneesKit = useMemo(() => ({ kits, sorts, passifs }), [kits, sorts, passifs]);
+
+  const entreeDe = (l: Ligne): EntreeAuto => ({
+    id: l.uid,
+    monster: l.monster,
+    runeSpeed: l.runeSpeed,
+    swift: l.swift,
+    sets: l.sets,
+    artefactBuff: l.artefactBuff,
+    cumulsPassif: l.cumulsPassif,
+    passifActif: l.passifActif,
+  });
+
+  // ⚠️ **Le compte de buffs se pose tout seul** (Chilling : +20 par buff porté).
+  // Sans ça, une équipe arrivée du siège affichait une vitesse différente ici et
+  // là-bas : le siège l'estimait, l'outil partait de zéro. On ne remplit qu'une
+  // case JAMAIS touchée — `undefined` ; une case vidée à la main (`null`) est un
+  // choix, et l'estimation ne repasse pas dessus.
+  useEffect(() => {
+    setLignes((prev) => {
+      let change = false;
+      const next = prev.map((l) => {
+        if (l.cumulsPassif !== undefined || l.masque) return l;
+        const p = passifDe(l);
+        if (!p?.gain?.parCumul) return l;
+        const camp = prev.filter((x) => x.camp === l.camp && !x.masque).map(entreeDe);
+        const n = cumulsEstimes(entreeDe(l), camp, donneesKit);
+        if (n <= 0) return l;
+        change = true;
+        return { ...l, cumulsPassif: n };
+      });
+      return change ? next : prev;
+    });
+  }, [lignes, donneesKit]);
+
   // ⚠️ **Arrivée depuis le siège** (« voir le speed tune » sur une équipe) : le
   // message est consommé UNE fois, à l'ouverture, et l'équipe est importée dans
   // « Ton équipe ». On ne relance pas l'analyse tout seul — c'est un geste, et
@@ -373,7 +413,7 @@ export default function SpeedTuningSection({ allMonsters, siegeDefenseTeams, sie
       // ⚠️ La référence saute AUSSI quand on importe dans l'autre camp : elle
       // copiait une équipe qui vient de changer.
       ...prev.filter((l) => l.camp !== camp && !l.reference),
-      ...monstres.map(({ monster, runeSpeed, artefactBuff, swift }) => ({
+      ...monstres.map(({ monster, runeSpeed, artefactBuff, swift, sets }) => ({
         uid: uidDe(camp, String(monster.id)),
         monster,
         runeSpeed,
@@ -382,6 +422,7 @@ export default function SpeedTuningSection({ allMonsters, siegeDefenseTeams, sie
         speedMod: {},
         artefactBuff,
         swift,
+        sets,
         // Les compétences se relisent dans le kit (voir l'effet plus haut).
         masque: false,
       })),

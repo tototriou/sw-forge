@@ -106,11 +106,24 @@ cherchant. La suite d'étapes (vitesse Swift + passif → amplification d'équip
 sort du kit → adversaire de référence → écriture des effets décalée d'un tick →
 verdict) est **testée** dans [tests/speed-tune.test.ts](tests/speed-tune.test.ts).
 
-**« Voir le speed tune » est en pied de CHAQUE équipe**, quel que soit son
-statut. ⚠️ Ce n'est pas une réponse à une alerte : c'est une question qu'on se
-pose sur n'importe quel deck — y compris celui qui va bien, pour voir **de
-combien** il passe. Rangé à droite, en retrait (`fond="vide"`) : c'est une sortie
-vers un autre écran, pas une action sur l'équipe.
+### Le PIED de card
+
+⚠️ **Un seul bloc**, pas trois empilés. La card portait successivement un encadré
+d'alerte teinté, une ligne verte et un bouton flottant à droite — trois objets
+pour une seule idée : *où en est cette équipe, et qu'est-ce que j'en fais*.
+Réunis, ils se lisent d'un coup : **l'état à gauche, les actions à droite**.
+
+- Le pied **prend la teinte du statut** (rouge / orange) et se cale sur les bords
+  de la card (marges négatives, coins bas arrondis) : ⚠️ c'est une **bande**, pas
+  une boîte dans une boîte — un cadre de plus à l'intérieur d'un cadre faisait
+  deux contours concentriques, ce que la charte interdit.
+- `flex-wrap` : le message peut nommer deux monstres ; sur un écran étroit il
+  passe **au-dessus** des boutons plutôt que de se comprimer.
+- **« Voir le speed tune » y est TOUJOURS**, quel que soit le statut. ⚠️ Ce n'est
+  pas une réponse à une alerte : c'est une question qu'on se pose sur n'importe
+  quel deck — y compris celui qui va bien, pour voir **de combien** il passe. En
+  retrait (`fond="vide"`) : c'est une sortie vers un autre écran, pas une action
+  sur l'équipe.
 
 Il pose l'équipe dans
 [speedTuneHandoff.ts](src/lib/speedTuneHandoff.ts) et ouvre

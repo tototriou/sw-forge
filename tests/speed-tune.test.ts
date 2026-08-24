@@ -1201,6 +1201,20 @@ export function testSpeedTunePassif() {
     egal(p.gain?.releve, true, 'et marqué comme relevé, pas comme donnée');
   }
 
+  // Miriam : elle n'accélère personne, elle AMPLIFIE les buffs que son camp
+  // reçoit — le même levier que l'artéfact « spd buff effect ».
+  {
+    const [p] = passifsVitesse(
+      passif(
+        "Blacksmith's Technique (Passive)",
+        'Increases the increasing effects of Attack Power, Defense and Attack Speed that allies receive by 35%. The same skill effects do not stack with each other.'
+      )
+    );
+    egal(p.amplifieBuff?.valeur, 35, "Miriam : +35 % d'effet de buff");
+    egal(p.amplifieBuff?.equipe, true, "et c'est pour tout le camp, pas pour elle seule");
+    egal(p.gain, null, "ce n'est PAS un gain de vitesse : elle ne va pas plus vite");
+  }
+
   // Leshen : une baisse sur l'ADVERSE n'est pas un gain.
   {
     const [p] = passifsVitesse(

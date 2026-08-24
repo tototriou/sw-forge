@@ -53,6 +53,12 @@ export interface GainVitesse {
 export interface PassifVitesse {
   nom: string;
   texte: string;
+  // ⚠️ **Amplification des BUFFS reçus** — « Increases the increasing effects of
+  // Attack Power, Defense and Attack Speed that allies receive by 35% » (Miriam).
+  // C'est le même levier que l'artéfact « spd buff effect », mais porté par un
+  // monstre et appliqué à TOUT SON CAMP. `equipe` dit s'il vaut pour les alliés
+  // ou seulement pour lui.
+  amplifieBuff: { valeur: number; equipe: boolean } | null;
   // Gain de vitesse PROPRE, le seul qu'on puisse appliquer soi-même.
   gain: GainVitesse | null;
   // Le passif pose le BUFF de vitesse du jeu (+30 %), sous condition.
@@ -138,11 +144,19 @@ function lirePassif(c: Competence): PassifVitesse | null {
         ? { sens: 'retiree', valeur: quantite(c, 'Decrease ATB') }
         : null;
 
+  // ⚠️ « increasing effectS » (le pluriel) et « the effect of » se disent tous
+  // les deux : on accepte les deux tournures, sans quoi le passif de Miriam
+  // passait inaperçu — et c'est un des rares qui change un tune d'équipe.
+  const ampli = /increases? the (?:increasing effects?|effects? of)[^.]*attack speed[^.]*?by (\d+)\s*%/i.exec(texte);
+  const amplifieBuff = ampli
+    ? { valeur: Number(ampli[1]), equipe: /all(y|ies)|team/i.test(ampli[0]) }
+    : null;
+
   const tourSupp = a('Additional Turn') || /another turn|gains? a turn/i.test(texte);
   const inconnu = (gainFlou && !gain) || (barre != null && barre.valeur == null);
 
-  if (!gain && !buff && !barre && !tourSupp && !inconnu) return null;
-  return { nom: c.nom, texte, gain, buff, barre, tourSupp, inconnu };
+  if (!gain && !buff && !barre && !tourSupp && !inconnu && !amplifieBuff) return null;
+  return { nom: c.nom, texte, amplifieBuff, gain, buff, barre, tourSupp, inconnu };
 }
 
 // Les passifs d'un monstre qui pèsent sur un speed tune. Vide s'il n'en a aucun.

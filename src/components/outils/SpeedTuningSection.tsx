@@ -482,7 +482,25 @@ export default function SpeedTuningSection({ allMonsters, siegeDefenseTeams, sie
   // pas une hypothèse sur le combat.
   const passifDe = (l: Ligne): PassifVitesse | null => {
     if (l.monster.com2usId == null) return null;
-    return (passifs.get(l.monster.com2usId) ?? []).find((p) => p.gain || p.inconnu) ?? null;
+    return (passifs.get(l.monster.com2usId) ?? []).find((p) => p.gain || p.inconnu || p.amplifieBuff) ?? null;
+  };
+
+  // ⚠️ **L'amplification des buffs d'un CAMP** (Miriam : « increasing effects …
+  // that allies receive by 35% »). C'est le même levier que l'artéfact « spd
+  // buff effect », mais porté par un monstre pour tout son camp : on l'AJOUTE
+  // donc au bonus d'artéfact de chacun, plutôt que d'ouvrir un second chemin
+  // dans le moteur — deux mécaniques pour un même effet finiraient par diverger.
+  //
+  // ⚠️ « The same skill effects do not stack » : deux Miriam ne se cumulent pas,
+  // on garde la plus forte.
+  const ampliDe = (camp: Camp): number => {
+    let max = 0;
+    for (const l of lignesVisibles) {
+      if (l.camp !== camp || !passifActifDe(l)) continue;
+      const a = passifDe(l)?.amplifieBuff;
+      if (a?.equipe && a.valeur > max) max = a.valeur;
+    }
+    return max;
   };
 
   // Actif par défaut : un passif est toujours en vigueur en jeu. On peut le
@@ -579,7 +597,7 @@ export default function SpeedTuningSection({ allMonsters, siegeDefenseTeams, sie
         id: l.uid,
         combat: c,
         camp: l.camp,
-        artefactBuff: l.artefactBuff ?? 0,
+        artefactBuff: (l.artefactBuff ?? 0) + ampliDe(l.camp),
         sort: actif
           ? { ...actif.effet, cooldown: actif.cooldown, cibleAllie: cibleSort[l.uid] || undefined }
           : undefined,
@@ -1595,8 +1613,8 @@ function CampPanneau({
                         taille="sm"
                         icone={<Zap size={12} />}
                         libelle="Passif"
-                        actif={!!passif.gain && passifActif}
-                        disabled={!passif.gain}
+                        actif={(!!passif.gain || !!passif.amplifieBuff) && passifActif}
+                        disabled={!passif.gain && !passif.amplifieBuff}
                         title={
                           passif.gain
                             ? `${passif.nom} — ${passif.texte}`
@@ -1604,6 +1622,12 @@ function CampPanneau({
                         }
                         onClick={() => onPassif(l.uid)}
                       />
+                      {passif.amplifieBuff && (
+                        <span className="font-mono text-micro text-ink-dim">
+                          +{passif.amplifieBuff.valeur} % d'effet de buff
+                          {passif.amplifieBuff.equipe ? " sur l'équipe" : ' sur lui'}
+                        </span>
+                      )}
                       {passif.gain ? (
                         <>
                           <span className="font-mono text-micro text-ink-dim">
@@ -1631,7 +1655,7 @@ function CampPanneau({
                             {gainPassif > 0 ? `+${gainPassif} VIT` : '—'}
                           </span>
                         </>
-                      ) : (
+                      ) : passif.amplifieBuff ? null : (
                         <span className="min-w-0 flex-1 text-micro leading-snug text-warn">
                           valeur inconnue — à poser à la main dans les grilles
                         </span>

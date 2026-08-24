@@ -73,7 +73,7 @@ qu'en coréen.
 - **Spear of Penetration (Passive) — pose le buff de vitesse du jeu (+30 %)**
   - Agrius, Centaur Knight
 
-## Tour supplémentaire hors de son tour — 75 monstre(s)
+## Tour supplémentaire hors de son tour — 77 monstre(s)
 
 - **Addicted Power (Passive) — tour supplémentaire hors de son tour**
   - Magic Order Guardian, Valdemar
@@ -83,6 +83,8 @@ qu'en coréen.
   - DHALSIM, 달심(물)
 - **Annihilate (Passive) — tour supplémentaire hors de son tour**
   - Inugami, Raoq
+- **Blacksmith's Technique (Passive) — tour supplémentaire hors de son tour**
+  - Miriam, Rune Blacksmith
 - **Burning Touch (Passive) — tour supplémentaire hors de son tour**
   - Triss, 트리스(빛)
 - **Chain Reaction (Passive) — tour supplémentaire hors de son tour**
@@ -419,4 +421,4 @@ faire, ça se pose à la main dans les grilles. Les entrées **AUCUNE donnée
 
 ---
 
-Total : **382** entrées, dont **32** au montant introuvable.
+Total : **384** entrées, dont **32** au montant introuvable.

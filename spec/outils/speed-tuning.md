@@ -342,6 +342,12 @@ vitesse sous condition, tour supplémentaire, barre gagnée ou retirée hors de 
 tour. **Seule la première catégorie est réglable une fois pour toutes** ; le
 reste dépend de ce qui se passe en combat, et se pose à la main dans les grilles.
 
+⚠️ Le document se termine par la liste la plus utile : **« Montant INCONNU »** —
+les passives dont **ni le texte ni les données d'effet** ne chiffrent la
+modification (**51 monstres**, dont Chilling). Aucun calcul ne peut les reprendre :
+c'est la liste à connaître avant de faire confiance à un verdict sur une équipe
+qui en contient un.
+
 ### Rechargement des compétences
 
 ⚠️ **Un sort ne repart pas à chaque tour.** Le rechargement (`cooldown` sur

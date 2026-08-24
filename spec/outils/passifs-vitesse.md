@@ -25,46 +25,46 @@ compétences — une formulation inhabituelle peut donc tomber dans « Autre ».
 
 - **Backsteps (Passive) — +15 % de vitesse, mais SOUS CONDITION**
   - Taebaek
-- **Caffeine (Passive) — vitesse gagnée sans montant chiffré dans le texte**
+- **Caffeine (Passive) — vitesse gagnée, montant NON chiffré dans les données**
   - Espresso Cookie, 에스프레소맛 쿠키(바람)
-- **Evasive Maneuver(Passive) — vitesse gagnée sans montant chiffré dans le texte**
+- **Evasive Maneuver(Passive) — vitesse gagnée, montant NON chiffré dans les données**
   - Elven Ranger, Erwin
 - **Fast Charge (Passive) — +100 % de vitesse, mais SOUS CONDITION**
   - Dr. Plasma, Dr. Richard
-- **Flash Step (Passive) — vitesse gagnée sans montant chiffré dans le texte**
+- **Flash Step (Passive) — vitesse gagnée, montant NON chiffré dans les données**
   - Ciri, 시리(빛)
 - **Gold Headband (Passive) — +12 % de vitesse, mais SOUS CONDITION**
   - Mei Hou Wang, Monkey King
 - **Jet Engine (Passive) — +5 % de vitesse, mais SOUS CONDITION**
   - Miles, Sky Surfer
-- **Long Waiting (Passive) — vitesse gagnée sans montant chiffré dans le texte**
+- **Long Waiting (Passive) — vitesse gagnée, montant NON chiffré dans les données**
   - Jack-o'-lantern, Misty
-- **Loss of Cause and Effect (Passive) — vitesse gagnée sans montant chiffré dans le texte**
+- **Loss of Cause and Effect (Passive) — vitesse gagnée, montant NON chiffré dans les données**
   - Juno, Oracle
 - **Master of Magic Power (Passive) — +5 de vitesse, en dur, mais SOUS CONDITION**
   - Elsharion, Ifrit
-- **Mind and Body Rest (Passive) — vitesse gagnée sans montant chiffré dans le texte**
+- **Mind and Body Rest (Passive) — vitesse gagnée, montant NON chiffré dans les données**
   - Black Tea Bunny, Chamomile
 - **Punch Parry (Passive) — +15 % de vitesse, mais SOUS CONDITION**
   - Hwoarang, 화랑(빛)
 - **Revengeful Thought (Passive) — +15 % de vitesse, mais SOUS CONDITION**
   - Barbara, Beast Rider, Masha, Narsha, Savannah, Xiana
-- **Spear of Penetration (Passive) — vitesse gagnée sans montant chiffré dans le texte**
+- **Spear of Penetration (Passive) — vitesse gagnée, montant NON chiffré dans les données**
   - Agrius, Centaur Knight
-- **Strange Reversible Reaction (Passive) — vitesse gagnée sans montant chiffré dans le texte**
+- **Strange Reversible Reaction (Passive) — vitesse gagnée, montant NON chiffré dans les données**
   - Crane, Frankenstein, 프랑켄 2차 각성 보스(바람)
-- **The Cunning (Passive) — vitesse gagnée sans montant chiffré dans le texte**
+- **The Cunning (Passive) — vitesse gagnée, montant NON chiffré dans les données**
   - Chilling, Jack-o'-lantern
-- **Turning Slash (Passive) — vitesse gagnée sans montant chiffré dans le texte**
+- **Turning Slash (Passive) — vitesse gagnée, montant NON chiffré dans les données**
   - Birgitta, Magic Order Swordsinger
-- **Wild Chase (Passive) — vitesse gagnée sans montant chiffré dans le texte**
+- **Wild Chase (Passive) — vitesse gagnée, montant NON chiffré dans les données**
   - Beast Rider, Narsha
-- **Wild Steps (Passive) — vitesse gagnée sans montant chiffré dans le texte**
+- **Wild Steps (Passive) — vitesse gagnée, montant NON chiffré dans les données**
   - Beast Rider, Masha
 
 ## Buff de vitesse déclenché — 2 monstre(s)
 
-- **The Bravest Cookie (Passive) — vitesse gagnée sans montant chiffré dans le texte**
+- **The Bravest Cookie (Passive) — vitesse gagnée, montant NON chiffré dans les données**
   - GingerBrave, 용감한 쿠키
 
 ## Tour supplémentaire — 91 monstre(s)
@@ -148,222 +148,226 @@ compétences — une formulation inhabituelle peut donc tomber dans « Autre ».
 
 ## Barre d'attaque gagnée hors de son tour — 196 monstre(s)
 
-- **Adrenaline Activation (Passive) — remplit sa barre (ou celle des alliés) hors de son tour**
+- **Adrenaline Activation (Passive) — +50 % de barre, hors de son tour**
   - Lars, Magic Order Guardian
-- **Adrenaline Rush (Passive) — remplit sa barre (ou celle des alliés) hors de son tour**
+- **Adrenaline Rush (Passive) — +50 % de barre, hors de son tour**
   - Geralt, 게롤트(빛)
-- **Almighty Mask (Passive) — remplit sa barre (ou celle des alliés) hors de son tour**
+- **Almighty Mask (Passive) — remplit une barre hors de son tour, montant NON chiffré**
   - Cayde, Poison Master
-- **Art of Blank Space (Passive) — remplit sa barre (ou celle des alliés) hors de son tour**
+- **Art of Blank Space (Passive) — +20 % de barre, hors de son tour**
   - Art Master, Haegang
-- **Assassination Arts (Passive) — remplit sa barre (ou celle des alliés) hors de son tour**
+- **Assassination Arts (Passive) — +100 % de barre, hors de son tour**
   - Nina Williams, 니나 윌리엄스(물)
-- **Black Moons (Passive) — remplit sa barre (ou celle des alliés) hors de son tour**
+- **Black Moons (Passive) — +20 % de barre, hors de son tour**
   - M. BISON, 바이슨(어둠)
-- **Blessing of Pain (Passive) — remplit sa barre (ou celle des alliés) hors de son tour**
+- **Blessing of Pain (Passive) — +20 % de barre, hors de son tour**
   - Mortera, Specter Princess
-- **Boiling Blood (Passive) — remplit sa barre (ou celle des alliés) hors de son tour**
+- **Boiling Blood (Passive) — +20 % de barre, hors de son tour**
   - Verdehile
-- **Bow of the Stag King (Passive) — remplit sa barre (ou celle des alliés) hors de son tour**
+- **Bow of the Stag King (Passive) — +15 % de barre, hors de son tour**
   - Elder Horn
-- **Cascading Attacks (Passive) — remplit sa barre (ou celle des alliés) hors de son tour**
+- **Cascading Attacks (Passive) — +50 % de barre, hors de son tour**
   - Jin Kazama, 카자마 진(빛)
-- **Clear Water (Passive) — remplit sa barre (ou celle des alliés) hors de son tour**
+- **Clear Water (Passive) — +20 % de barre, hors de son tour**
   - Imperfect Ninja, Ninja, Susano
-- **Collect Weapons (Passive) — remplit sa barre (ou celle des alliés) hors de son tour**
+- **Collect Weapons (Passive) — +75 % de barre, hors de son tour**
   - Carlos, Weapon Master
-- **Comeuppance (Passive) — remplit sa barre (ou celle des alliés) hors de son tour**
+- **Comeuppance (Passive) — +35 % de barre, hors de son tour**
   - Giou, Onmyouji
-- **Conversion of Magic (Passive) — remplit sa barre (ou celle des alliés) hors de son tour**
+- **Conversion of Magic (Passive) — +15 % de barre, hors de son tour**
   - Ifrit, Veromos
-- **Deadly Seduction(Passive) — remplit sa barre (ou celle des alliés) hors de son tour**
+- **Deadly Seduction(Passive) — +15 % de barre, hors de son tour**
   - Assassin, Lexy
-- **Deer Steps (Passive) — remplit sa barre (ou celle des alliés) hors de son tour**
+- **Deer Steps (Passive) — +10 % de barre, hors de son tour**
   - Elder Horn
-- **Discernment (Passive) — remplit sa barre (ou celle des alliés) hors de son tour**
+- **Discernment (Passive) — +10 % de barre, hors de son tour**
   - Fairy King, Nyx
-- **Druid's Agility (Passive) — remplit sa barre (ou celle des alliés) hors de son tour**
+- **Druid's Agility (Passive) — +20 % de barre, hors de son tour**
   - Valantis
-- **Druid's Proficiency (Passive) — remplit sa barre (ou celle des alliés) hors de son tour**
+- **Druid's Proficiency (Passive) — +25 % de barre, hors de son tour**
   - Bellenus
-- **Druid's Wisdom (Passive) — remplit sa barre (ou celle des alliés) hors de son tour**
+- **Druid's Wisdom (Passive) — +20 % de barre, hors de son tour**
   - Pater
-- **Druid's Wit (Passive) — remplit sa barre (ou celle des alliés) hors de son tour**
+- **Druid's Wit (Passive) — remplit une barre hors de son tour, montant NON chiffré**
   - Abellio
-- **Duty of the Monarch(Passive) — remplit sa barre (ou celle des alliés) hors de son tour**
+- **Duty of the Monarch(Passive) — +10 % de barre, hors de son tour**
   - Horus, Wedjat
-- **Elemental King (Passive) — remplit sa barre (ou celle des alliés) hors de son tour**
+- **Elemental King (Passive) — +30 % de barre, hors de son tour**
   - Ifrit, Theomars
-- **End of Evolution (Passive) — remplit sa barre (ou celle des alliés) hors de son tour**
+- **End of Evolution (Passive) — +25 % de barre, hors de son tour**
   - Lich, Rigel
-- **Endurance of Beast (Passive) — remplit sa barre (ou celle des alliés) hors de son tour**
+- **Endurance of Beast (Passive) — +15 % de barre, hors de son tour**
   - Abellio
-- **Energy Release (Passive) — remplit sa barre (ou celle des alliés) hors de son tour**
+- **Energy Release (Passive) — +50 % de barre, hors de son tour**
   - ROBO, ROBO-E65
-- **Eternal Flame (Passive) — remplit sa barre (ou celle des alliés) hors de son tour**
+- **Eternal Flame (Passive) — +20 % de barre, hors de son tour**
   - Helena, Unicorn
-- **Evasion (Passive) — remplit sa barre (ou celle des alliés) hors de son tour**
+- **Evasion (Passive) — +50 % de barre, hors de son tour**
   - Battle Angel, Sonia
-- **Exorcist's Pride (Passive) — remplit sa barre (ou celle des alliés) hors de son tour**
+- **Exorcist's Pride (Passive) — remplit une barre hors de son tour, montant NON chiffré**
   - Tetsuya
-- **Extraordinary Hearing (Passive) — remplit sa barre (ou celle des alliés) hors de son tour**
+- **Extraordinary Hearing (Passive) — +50 % de barre, hors de son tour**
   - Zenitsu Agatsuma, 아가츠마 젠이츠(빛)
-- **Eye For An Eye (Passive) — remplit sa barre (ou celle des alliés) hors de son tour**
-  - Martial Cat, Martial Cat 2A, Miho
-- **Feast of Blood (Passive) — remplit sa barre (ou celle des alliés) hors de son tour**
+- **Eye For An Eye (Passive) — +30 % de barre, hors de son tour**
+  - Martial Cat 2A
+- **Eye For An Eye (Passive) — +40 % de barre, hors de son tour**
+  - Martial Cat, Miho
+- **Feast of Blood (Passive) — +30 % de barre, hors de son tour**
   - Cadiz, Vampire
-- **Feast(Passive) — remplit sa barre (ou celle des alliés) hors de son tour**
+- **Feast(Passive) — +50 % de barre, hors de son tour**
   - Charger Shark, Rumicus
-- **Final Strike (Passive) — remplit sa barre (ou celle des alliés) hors de son tour**
+- **Final Strike (Passive) — +30 % de barre, hors de son tour**
   - Benedict, Weapon Master
-- **Galadhrim Bow (Passive) — remplit sa barre (ou celle des alliés) hors de son tour**
+- **Galadhrim Bow (Passive) — +15 % de barre, hors de son tour**
   - Legolas
-- **God's Shield (Passive) — remplit sa barre (ou celle des alliés) hors de son tour**
+- **God's Shield (Passive) — +5 % de barre, hors de son tour**
   - Akroma, Valkyrja
-- **Great Friends (Passive) — remplit sa barre (ou celle des alliés) hors de son tour**
+- **Great Friends (Passive) — +10 % de barre, hors de son tour**
   - Sia
-- **Half Asleep (Passive) — remplit sa barre (ou celle des alliés) hors de son tour**
+- **Half Asleep (Passive) — +50 % de barre, hors de son tour**
   - Birman, Hypnomeow
-- **Hidden Sense of Justice (Passive) — remplit sa barre (ou celle des alliés) hors de son tour**
+- **Hidden Sense of Justice (Passive) — +10 % de barre, hors de son tour**
   - Zenitsu Agatsuma, 아가츠마 젠이츠(어둠)
-- **Honored One (Passive) — remplit sa barre (ou celle des alliés) hors de son tour**
+- **Honored One (Passive) — +30 % de barre, hors de son tour**
   - Werner
-- **Hostility (Passive) — remplit sa barre (ou celle des alliés) hors de son tour**
+- **Hostility (Passive) — +30 % de barre, hors de son tour**
   - Kumae
-- **Hot-blooded Destroyer (Passive) — remplit sa barre (ou celle des alliés) hors de son tour**
+- **Hot-blooded Destroyer (Passive) — +30 % de barre, hors de son tour**
   - Paul Phoenix, 폴 피닉스(바람)
-- **Judge (Passive) — remplit sa barre (ou celle des alliés) hors de son tour**
+- **Judge (Passive) — +10 % de barre, hors de son tour**
   - Archangel, Artamiel
-- **Lethal Intent (Passive) — remplit sa barre (ou celle des alliés) hors de son tour**
+- **Lethal Intent (Passive) — +10 % de barre, hors de son tour**
   - Qilin Slasher
-- **Lonely Fight (Passive) — remplit sa barre (ou celle des alliés) hors de son tour**
-  - Martial Cat, Martial Cat 2A, Xiao Ling
-- **Magic Control (Passive) — remplit sa barre (ou celle des alliés) hors de son tour**
+- **Lonely Fight (Passive) — +20 % de barre, hors de son tour**
+  - Martial Cat, Xiao Ling
+- **Lonely Fight (Passive) — +50 % de barre, hors de son tour**
+  - Martial Cat 2A, Xiao Ling
+- **Magic Control (Passive) — +20 % de barre, hors de son tour**
   - Yennefer, 예니퍼(빛)
-- **Magic Mastery (Passive) — remplit sa barre (ou celle des alliés) hors de son tour**
+- **Magic Mastery (Passive) — +20 % de barre, hors de son tour**
   - Arcana, Magic Order Enchantress
-- **Marionette (Passive) — remplit sa barre (ou celle des alliés) hors de son tour**
+- **Marionette (Passive) — +30 % de barre, hors de son tour**
   - Puppeteer, Zenisek
-- **Messenger of the Wind (Passive) — remplit sa barre (ou celle des alliés) hors de son tour**
+- **Messenger of the Wind (Passive) — remplit une barre hors de son tour, montant NON chiffré**
   - Diana, Unicorn
-- **Might · Resurrection (Passive) — remplit sa barre (ou celle des alliés) hors de son tour**
+- **Might · Resurrection (Passive) — +15 % de barre, hors de son tour**
   - Parjanya
-- **Mind's Eye (Passive) — remplit sa barre (ou celle des alliés) hors de son tour**
+- **Mind's Eye (Passive) — remplit une barre hors de son tour, montant NON chiffré**
   - RYU, 류(물)
-- **Mischievous Curse (Passive) — remplit sa barre (ou celle des alliés) hors de son tour**
+- **Mischievous Curse (Passive) — +20 % de barre, hors de son tour**
   - Devil Maiden, Layla
-- **Narrow Escape (Passive) — remplit sa barre (ou celle des alliés) hors de son tour**
+- **Narrow Escape (Passive) — +50 % de barre, hors de son tour**
   - Garo, Ninja
-- **Nasty Strike (Passive) — remplit sa barre (ou celle des alliés) hors de son tour**
+- **Nasty Strike (Passive) — +50 % de barre, hors de son tour**
   - Gollum
-- **Overdrive (Passive) — remplit sa barre (ou celle des alliés) hors de son tour**
+- **Overdrive (Passive) — remplit une barre hors de son tour, montant NON chiffré**
   - Moore, Striker
-- **Path of the Brave Warrior (Passive) — remplit sa barre (ou celle des alliés) hors de son tour**
+- **Path of the Brave Warrior (Passive) — remplit une barre hors de son tour, montant NON chiffré**
   - Deragron, Drakan Warrior
-- **Poison Immunity (Passive) — remplit sa barre (ou celle des alliés) hors de son tour**
+- **Poison Immunity (Passive) — +30 % de barre, hors de son tour**
   - Yuji Itadori, 이타도리 유지(빛)
-- **Power Charge (Passive) — remplit sa barre (ou celle des alliés) hors de son tour**
+- **Power Charge (Passive) — +25 % de barre, hors de son tour**
   - ROBO, ROBO-P27
-- **Price of Pain (Passive) — remplit sa barre (ou celle des alliés) hors de son tour**
+- **Price of Pain (Passive) — +100 % de barre, hors de son tour**
   - Specter Princess, Velaska
-- **Pride of the Sorcerer (Passive) — remplit sa barre (ou celle des alliés) hors de son tour**
+- **Pride of the Sorcerer (Passive) — remplit une barre hors de son tour, montant NON chiffré**
   - Megumi Fushiguro, 후시구로 메구미(불)
-- **Purgatory (Passive) — remplit sa barre (ou celle des alliés) hors de son tour**
+- **Purgatory (Passive) — +100 % de barre, hors de son tour**
   - Beelzebub, Demon, 데몬(어둠)
-- **Qualities of a King (Passive) — remplit sa barre (ou celle des alliés) hors de son tour**
+- **Qualities of a King (Passive) — +10 % de barre, hors de son tour**
   - Aragorn
-- **Qualities of an Alpha (Passive) — remplit sa barre (ou celle des alliés) hors de son tour**
+- **Qualities of an Alpha (Passive) — +10 % de barre, hors de son tour**
   - Night Fang
-- **Quality of Phantom (Passive) — remplit sa barre (ou celle des alliés) hors de son tour**
+- **Quality of Phantom (Passive) — +50 % de barre, hors de son tour**
   - Jean, Phantom Thief
-- **Quick Steps (Passive) — remplit sa barre (ou celle des alliés) hors de son tour**
+- **Quick Steps (Passive) — +10 % de barre, hors de son tour**
   - Legolas
-- **Red Battlefield (Passive) — remplit sa barre (ou celle des alliés) hors de son tour**
+- **Red Battlefield (Passive) — remplit une barre hors de son tour, montant NON chiffré**
   - Demon, Lucifer
-- **Relentless Momentum (Passive) — remplit sa barre (ou celle des alliés) hors de son tour**
+- **Relentless Momentum (Passive) — +35 % de barre, hors de son tour**
   - Qilin Slasher
-- **Reloading (Passive) — remplit sa barre (ou celle des alliés) hors de son tour**
+- **Reloading (Passive) — +50 % de barre, hors de son tour**
   - Dragunov, Sniper Mk.I
-- **Repeated Nightmare (Passive) — remplit sa barre (ou celle des alliés) hors de son tour**
+- **Repeated Nightmare (Passive) — +100 % de barre, hors de son tour**
   - 데몬(물)
-- **Reversed Momentum (Passive) — remplit sa barre (ou celle des alliés) hors de son tour**
+- **Reversed Momentum (Passive) — +50 % de barre, hors de son tour**
   - Qilin Slasher
-- **Rule Breaker (Passive) — remplit sa barre (ou celle des alliés) hors de son tour**
+- **Rule Breaker (Passive) — +30 % de barre, hors de son tour**
   - Duke
-- **Ruler of Pain (Passive) — remplit sa barre (ou celle des alliés) hors de son tour**
+- **Ruler of Pain (Passive) — +20 % de barre, hors de son tour**
   - Gurkha, Slayer
-- **Sand Blade (Passive) — remplit sa barre (ou celle des alliés) hors de son tour**
+- **Sand Blade (Passive) — +10 % de barre, hors de son tour**
   - Desert Warrior, Shahat
-- **Sapsaree Is My Friend (Passive) — remplit sa barre (ou celle des alliés) hors de son tour**
+- **Sapsaree Is My Friend (Passive) — +30 % de barre, hors de son tour**
   - Damee and Sapsaree, Dokkaebi Princess and Sapsaree
-- **Shadow Arts (Passive) — remplit sa barre (ou celle des alliés) hors de son tour**
+- **Shadow Arts (Passive) — +100 % de barre, hors de son tour**
   - Shasha
-- **Shadow Trap (Passive) — remplit sa barre (ou celle des alliés) hors de son tour**
+- **Shadow Trap (Passive) — +50 % de barre, hors de son tour**
   - Ritsu, Shadowcaster
-- **Sickle Blade (Passive) — remplit sa barre (ou celle des alliés) hors de son tour**
+- **Sickle Blade (Passive) — +10 % de barre, hors de son tour**
   - Bayek, 바예크(바람)
-- **Six Eyes (Passive) — remplit sa barre (ou celle des alliés) hors de son tour**
+- **Six Eyes (Passive) — +30 % de barre, hors de son tour**
   - Satoru Gojo, 고죠 사토루(물)
-- **Snipe Preparation (Passive) — remplit sa barre (ou celle des alliés) hors de son tour**
+- **Snipe Preparation (Passive) — +25 % de barre, hors de son tour**
   - Magnum, Sniper Mk.I
-- **Soaring Wings (Passive) — remplit sa barre (ou celle des alliés) hors de son tour**
+- **Soaring Wings (Passive) — +25 % de barre, hors de son tour**
   - Alexandra, Diana, Helena
-- **Strong Energy (Passive) — remplit sa barre (ou celle des alliés) hors de son tour**
+- **Strong Energy (Passive) — +15 % de barre, hors de son tour**
   - Panda Warrior, Tian Lang
-- **Synergistic Effect (Passive) — remplit sa barre (ou celle des alliés) hors de son tour**
+- **Synergistic Effect (Passive) — +50 % de barre, hors de son tour**
   - Jackson, Sky Surfer
-- **Tip of the Spear(Passive) — remplit sa barre (ou celle des alliés) hors de son tour**
+- **Tip of the Spear(Passive) — +25 % de barre, hors de son tour**
   - Amduat, Horus
-- **To Live or To Die (Passive) — remplit sa barre (ou celle des alliés) hors de son tour**
+- **To Live or To Die (Passive) — remplit une barre hors de son tour, montant NON chiffré**
   - Dice Magician, Morris
-- **Tooth For a Tooth (Passive) — remplit sa barre (ou celle des alliés) hors de son tour**
+- **Tooth For a Tooth (Passive) — +15 % de barre, hors de son tour**
   - Dragon Knight, Ragdoll
-- **Twisted Senses (Passive) — remplit sa barre (ou celle des alliés) hors de son tour**
+- **Twisted Senses (Passive) — +30 % de barre, hors de son tour**
   - Frankenstein, Tractor, 프랑켄 2차 각성 보스(물)
-- **Unconscious Self (Passive) — remplit sa barre (ou celle des alliés) hors de son tour**
+- **Unconscious Self (Passive) — +35 % de barre, hors de son tour**
   - Zenitsu Agatsuma, 아가츠마 젠이츠(물)
-- **Underworld King's Return(Passive) — remplit sa barre (ou celle des alliés) hors de son tour**
+- **Underworld King's Return(Passive) — +100 % de barre, hors de son tour**
   - Anubis, Iunu
-- **Unique Constitution (Passive) — remplit sa barre (ou celle des alliés) hors de son tour**
+- **Unique Constitution (Passive) — +30 % de barre, hors de son tour**
   - Rick
-- **Veteran (Passive) — remplit sa barre (ou celle des alliés) hors de son tour**
+- **Veteran (Passive) — +100 % de barre, hors de son tour**
   - Carbine, Sniper Mk.I
-- **Wanderer (Passive) — remplit sa barre (ou celle des alliés) hors de son tour**
+- **Wanderer (Passive) — +30 % de barre, hors de son tour**
   - Jubelle
-- **Wave Attack (Passive) — remplit sa barre (ou celle des alliés) hors de son tour**
+- **Wave Attack (Passive) — +50 % de barre, hors de son tour**
   - Kai
-- **Winds and Clouds (Passive) — remplit sa barre (ou celle des alliés) hors de son tour**
+- **Winds and Clouds (Passive) — +20 % de barre, hors de son tour**
   - Feng Yan, Panda Warrior
-- **Yoga's Arcana (Passive) — remplit sa barre (ou celle des alliés) hors de son tour**
+- **Yoga's Arcana (Passive) — remplit une barre hors de son tour, montant NON chiffré**
   - DHALSIM, 달심(어둠)
 
 ## Barre d'attaque retirée hors de son tour — 26 monstre(s)
 
-- **Burning Whip (Passive) — vide la barre adverse hors de son tour**
+- **Burning Whip (Passive) — −25 % de barre adverse, hors de son tour**
   - Hwa, Rakshasa
-- **Chain Effect (Passive) — vide la barre adverse hors de son tour**
+- **Chain Effect (Passive) — −10 % de barre adverse, hors de son tour**
   - Vendhan
-- **Chaser (Passive) — vide la barre adverse hors de son tour**
+- **Chaser (Passive) — −20 % de barre adverse, hors de son tour**
   - Cow Girl, Loren
-- **Cold Brew (Passive) — vide la barre adverse hors de son tour**
+- **Cold Brew (Passive) — −30 % de barre adverse, hors de son tour**
   - Espresso Cookie, 에스프레소맛 쿠키(물)
-- **Dreamy Leader (Passive) — vide la barre adverse hors de son tour**
+- **Dreamy Leader (Passive) — −30 % de barre adverse, hors de son tour**
   - Celia, Harp Magician
-- **Energy Shield (Passive) — vide la barre adverse hors de son tour**
+- **Energy Shield (Passive) — vide une barre adverse, montant NON chiffré**
   - Arcane Weapon, Christine
-- **Eye of the Storm (Passive) — vide la barre adverse hors de son tour**
+- **Eye of the Storm (Passive) — −15 % de barre adverse, hors de son tour**
   - Dragon Knight, Leo
-- **Iced Tea (Passive) — vide la barre adverse hors de son tour**
+- **Iced Tea (Passive) — −30 % de barre adverse, hors de son tour**
   - Black Tea Bunny, Rosemary
-- **Learn Knowledge (Passive) — vide la barre adverse hors de son tour**
+- **Learn Knowledge (Passive) — −1 % de barre adverse, hors de son tour**
   - Geldnir, Lightning Emperor
-- **Magic Diffusion (Passive) — vide la barre adverse hors de son tour**
+- **Magic Diffusion (Passive) — −15 % de barre adverse, hors de son tour**
   - Magic Order Enchantress, Tarnisha
-- **Magic Resonance (Passive) — vide la barre adverse hors de son tour**
+- **Magic Resonance (Passive) — −15 % de barre adverse, hors de son tour**
   - Yennefer, 예니퍼(불)
-- **Slash Wind (Passive) — vide la barre adverse hors de son tour**
+- **Slash Wind (Passive) — −100 % de barre adverse, hors de son tour**
   - Roid
-- **Ventriloquism (Passive) — vide la barre adverse hors de son tour**
+- **Ventriloquism (Passive) — −30 % de barre adverse, hors de son tour**
   - Puppeteer, Smicer
 
 ## Autre mention de la vitesse (souvent des dégâts qui en dépendent) — 82 monstre(s)
@@ -435,4 +439,66 @@ compétences — une formulation inhabituelle peut donc tomber dans « Autre ».
 
 ---
 
-Total : **449** entrées de monstre, 199 passives distinctes.
+Total : **449** entrées de monstre, 201 passives distinctes.
+
+## ⚠️ Montant INCONNU — 51 monstre(s)
+
+Ni le texte de la compétence ni les données d'effet ne chiffrent la modification :
+aucun calcul ne peut la reprendre telle quelle, elle se pose à la main dans les
+grilles. C'est la liste à connaître avant de faire confiance à un verdict sur une
+équipe qui en contient un.
+
+- **Almighty Mask (Passive) — remplit une barre hors de son tour, montant NON chiffré**
+  - Cayde, Poison Master
+- **Caffeine (Passive) — vitesse gagnée, montant NON chiffré dans les données**
+  - Espresso Cookie, 에스프레소맛 쿠키(바람)
+- **Druid's Wit (Passive) — remplit une barre hors de son tour, montant NON chiffré**
+  - Abellio
+- **Energy Shield (Passive) — vide une barre adverse, montant NON chiffré**
+  - Arcane Weapon, Christine
+- **Evasive Maneuver(Passive) — vitesse gagnée, montant NON chiffré dans les données**
+  - Elven Ranger, Erwin
+- **Exorcist's Pride (Passive) — remplit une barre hors de son tour, montant NON chiffré**
+  - Tetsuya
+- **Flash Step (Passive) — vitesse gagnée, montant NON chiffré dans les données**
+  - Ciri, 시리(빛)
+- **Long Waiting (Passive) — vitesse gagnée, montant NON chiffré dans les données**
+  - Jack-o'-lantern, Misty
+- **Loss of Cause and Effect (Passive) — vitesse gagnée, montant NON chiffré dans les données**
+  - Juno, Oracle
+- **Messenger of the Wind (Passive) — remplit une barre hors de son tour, montant NON chiffré**
+  - Diana, Unicorn
+- **Mind and Body Rest (Passive) — vitesse gagnée, montant NON chiffré dans les données**
+  - Black Tea Bunny, Chamomile
+- **Mind's Eye (Passive) — remplit une barre hors de son tour, montant NON chiffré**
+  - RYU, 류(물)
+- **Overdrive (Passive) — remplit une barre hors de son tour, montant NON chiffré**
+  - Moore, Striker
+- **Path of the Brave Warrior (Passive) — remplit une barre hors de son tour, montant NON chiffré**
+  - Deragron, Drakan Warrior
+- **Pride of the Sorcerer (Passive) — remplit une barre hors de son tour, montant NON chiffré**
+  - Megumi Fushiguro, 후시구로 메구미(불)
+- **Red Battlefield (Passive) — remplit une barre hors de son tour, montant NON chiffré**
+  - Demon, Lucifer
+- **Spear of Penetration (Passive) — vitesse gagnée, montant NON chiffré dans les données**
+  - Agrius, Centaur Knight
+- **Strange Reversible Reaction (Passive) — vitesse gagnée, montant NON chiffré dans les données**
+  - Crane, Frankenstein, 프랑켄 2차 각성 보스(바람)
+- **The Bravest Cookie (Passive) — vitesse gagnée, montant NON chiffré dans les données**
+  - GingerBrave, 용감한 쿠키
+- **The Cunning (Passive) — vitesse gagnée, montant NON chiffré dans les données**
+  - Chilling, Jack-o'-lantern
+- **To Live or To Die (Passive) — remplit une barre hors de son tour, montant NON chiffré**
+  - Dice Magician, Morris
+- **Turning Slash (Passive) — vitesse gagnée, montant NON chiffré dans les données**
+  - Birgitta, Magic Order Swordsinger
+- **Wild Chase (Passive) — vitesse gagnée, montant NON chiffré dans les données**
+  - Beast Rider, Narsha
+- **Wild Steps (Passive) — vitesse gagnée, montant NON chiffré dans les données**
+  - Beast Rider, Masha
+- **Yoga's Arcana (Passive) — remplit une barre hors de son tour, montant NON chiffré**
+  - DHALSIM, 달심(어둠)
+
+---
+
+Total : **449** entrées, dont **51** au montant inconnu.

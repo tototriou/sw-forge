@@ -1,4 +1,5 @@
 import { useRef, useState } from 'react';
+import { Ban } from 'lucide-react';
 import { GearSet, RelicDetail } from '../types';
 import { computeStats } from '../lib/stats';
 import { formatRelicMain } from '../lib/effects';
@@ -195,8 +196,14 @@ export default function MonsterGear({ gear, spdCible = null, scale }: Props) {
           les emplacements d'artéfacts, qui font de même.
           ⚠️ Resserrée sous `sm` : elle partage la rangée avec les artéfacts et
           la roue, et son rembourrage de 10 px de chaque côté était le plus
-          facile à rendre — le contenu, lui, ne se réduit pas. */}
-      {gear.relic && (
+          facile à rendre — le contenu, lui, ne se réduit pas.
+          ⚠️ **Emplacement TOUJOURS affiché**, grisé quand le monstre n'a pas de
+          relique — jamais absent (demande explicite) : même principe que
+          `ArtifactSlots` (toujours 2 emplacements, un vide grisé à l'icône
+          `Ban`) et la roue de runes (toujours rendue, même à 0 rune). Sans
+          relique, la case n'a rien à ouvrir : pas de `ZoneCliquable`/
+          `FlottantAuto`, juste un cadre statique. */}
+      {gear.relic ? (
         // ⚠️ `relative` : c'est l'ancre du flottant, qui s'y place en `absolute`.
         // Et `z-10` quand elle est ouverte, comme les emplacements d'artéfacts —
         // sans quoi la roue juste à côté recouvrirait le détail.
@@ -230,6 +237,17 @@ export default function MonsterGear({ gear, spdCible = null, scale }: Props) {
               <RelicDetailBox relic={gear.relic} encadre={false} />
             </FlottantAuto>
           )}
+        </div>
+      ) : (
+        <div
+          title="Aucune relique équipée"
+          className="rounded-lg border border-border bg-panel/60 px-2.5 py-2 text-center opacity-40 compact:px-1.5 compact:py-1.5"
+        >
+          <div className="label">Relique</div>
+          <div className="mt-0.5 flex items-center justify-center">
+            <Ban size={16} className="text-ink-dim compact:hidden" />
+            <Ban size={13} className="hidden text-ink-dim compact:block" />
+          </div>
         </div>
       )}
       </div>

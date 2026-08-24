@@ -70,9 +70,9 @@ Comme en **vue compacte du siège**, le panneau de détail (`MonsterGear`) s'ouv
   `runes.length > 0`. Un monstre ajouté à la prépa mais jamais runé peut
   quand même porter des **artéfacts** (voire une relique) — `MonsterGear`
   gère déjà 0 rune sans problème (panneau de stats, emplacements
-  d'artéfacts et roue toujours rendus ; relique seulement s'il y en a).
-  Exiger des runes rendait la carte ENTIÈRE non cliquable et cachait ces
-  artéfacts pourtant réels. Bug trouvé sur un compte réel (3 monstres
+  d'artéfacts, roue ET emplacement de relique TOUJOURS rendus, voir plus
+  bas). Exiger des runes rendait la carte ENTIÈRE non cliquable et cachait
+  ces artéfacts pourtant réels. Bug trouvé sur un compte réel (3 monstres
   « Non classé », 2 artéfacts chacun mais 0 rune, tous les trois inertes).
 - **Artéfacts : toujours 2 emplacements affichés** (Attribut puis Type — voir
   `ARTIFACT_KINDS` dans [types.ts](src/types.ts)), même si le monstre n'en
@@ -100,6 +100,18 @@ Comme en **vue compacte du siège**, le panneau de détail (`MonsterGear`) s'ouv
   `MonsterGear` : s'applique aussi en Siège et dans l'Optimizer. Même
   principe que les 2 emplacements d'`ArtifactSlots` toujours affichés
   ci-dessus.
+- **Relique : emplacement TOUJOURS affiché, même absente** — demande
+  explicite : « l'emplacement pour la relique doit toujours être prévu et
+  présent, exactement comme pour les runes ou les artéfacts, même si un
+  monstre n'en possède pas ». Avant cette correction, le bloc relique de
+  `MonsterGear.tsx` était conditionné sur `gear.relic &&` — la SEULE des
+  trois pièces d'équipement à disparaître entièrement plutôt que montrer un
+  emplacement vide, contrairement à la règle déjà appliquée aux 2
+  emplacements d'artéfacts et à la roue de runes. Corrigé : un cadre grisé
+  (`opacity-40`, icône `Ban`, même traitement visuel que l'emplacement
+  d'artéfact vide) s'affiche à la place, non cliquable (pas de
+  `ZoneCliquable`/`FlottantAuto` — rien à ouvrir). Comportement partagé par
+  `MonsterGear` : s'applique aussi en Siège et dans l'Optimizer.
 - **L'encadré de stats entier est cliquable** (`role="button"`, pas un bouton
   séparé) et bascule entre deux affichages du même tableau :
   - **Base + bonus** (par défaut) : base en blanc, bonus en **vert**

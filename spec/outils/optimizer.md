@@ -278,7 +278,9 @@ retour.
    modifiés par la recherche (voir « Algorithme »). ⚠️ **Artéfacts : toujours
    2 emplacements affichés** (Attribut puis Type), même si le monstre choisi
    n'en porte qu'un seul ou aucun — un emplacement vide est montré grisé
-   plutôt que simplement absent. ⚠️ **L'encadré de stats bascule base+bonus
+   plutôt que simplement absent. ⚠️ **Relique : emplacement TOUJOURS affiché
+   de la même façon**, même absente — grisé plutôt que simplement absent
+   (demande explicite), comportement partagé avec RTA et Siège. ⚠️ **L'encadré de stats bascule base+bonus
    ↔ total au clic**, comportement propre à `MonsterGear`, partagé avec RTA
    et Siège (voir [rta/sections-runes.md](../rta/sections-runes.md)).
    ⚠️ **Affiché à DROITE de la recherche, TOUJOURS** — vide (stats à zéro,

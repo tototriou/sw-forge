@@ -221,6 +221,11 @@ d'un tableau (les mods de speed tuning) : les boutons disparaissent, il ne reste
 que le champ (on saisit au pavé numérique). Deux boutons de 24 px par cellule
 rendraient la grille illisible ; le cadre et la logique de frappe restent ceux du
 composant, ce n'est pas un input nu.
+⚠️ Axe **`ton`** (`neutre` / `good` / `bad`) : ce que la valeur **veut dire**, pas
+un habillage. Une grille de modificateurs mêle des gains et des pertes, et le
+signe seul — en mono 12 px au milieu de quarante colonnes — ne saute pas aux
+yeux. Il teinte le **texte et le contour**, jamais le fond : un fond plein par
+cellule ferait un damier, et ces tableaux portent déjà des surlignages.
 
 **`Selecteur`** — liste déroulante. ⚠️ `appearance-none` + notre propre chevron :
 le contrôle natif dessine sa flèche avec les couleurs du **système**, qui ne

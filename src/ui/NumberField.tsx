@@ -57,6 +57,16 @@ interface Props {
   // saisit la valeur au clavier/pavé numérique. Le cadre et la logique de
   // frappe restent ceux du composant — ce n'est pas un input nu.
   sansBoutons?: boolean;
+  // ⚠️ **Axe SÉMANTIQUE de la valeur** : ce que le nombre VEUT DIRE, pas un
+  // habillage. Une grille de modificateurs mélange des gains et des pertes —
+  // « +40 » et « −50 » se lisent d'un coup si le signe a une couleur, et se
+  // confondent sinon (le signe seul, en mono 12 px, ne saute pas aux yeux).
+  //
+  // Teinte le TEXTE et le contour, jamais le fond : un fond plein par cellule
+  // ferait un damier, et le tableau porte déjà des surlignages (la case où un
+  // monstre agit). `neutre` par défaut — l'écrasante majorité des champs de
+  // l'app n'ont rien à dire de leur valeur.
+  ton?: 'neutre' | 'good' | 'bad';
 }
 
 export default function NumberField({
@@ -67,6 +77,7 @@ export default function NumberField({
   max,
   width = 'w-16',
   boxWidth,
+  ton = 'neutre',
   placeholder = '0',
   allowEmpty = false,
   title,
@@ -195,10 +206,15 @@ export default function NumberField({
   const btn =
     'flex h-7 w-6 flex-none touch-none select-none items-center justify-center text-ink-dim transition hoverable:text-ink hoverable:bg-panel2 disabled:opacity-30';
 
+  // Le ton se pose sur le contour et sur le texte — voir l'axe `ton`.
+  const contour =
+    ton === 'good' ? 'border-good/50' : ton === 'bad' ? 'border-bad/50' : 'border-border';
+  const encre = ton === 'good' ? 'text-good' : ton === 'bad' ? 'text-bad' : 'text-ink';
+
   return (
     <div
-      className={`inline-flex h-7 items-center overflow-hidden rounded-lg border border-border bg-panel
-                 focus-within:border-accent ${boxWidth ?? ''} ${disabled ? 'opacity-40' : ''}`}
+      className={`inline-flex h-7 items-center overflow-hidden rounded-lg border bg-panel
+                 focus-within:border-accent ${contour} ${boxWidth ?? ''} ${disabled ? 'opacity-40' : ''}`}
       title={title}
     >
       {!sansBoutons && (
@@ -252,7 +268,7 @@ export default function NumberField({
         }}
         // ⚠️ Un cran plus bas au doigt : 13 px, ce champ pesait plus lourd que
         // le nom du monstre à côté duquel il vit.
-        className={`${boxWidth ? 'flex-1' : width} min-w-0 bg-transparent px-1 text-center font-mono text-sm compact:text-xs text-ink
+        className={`${boxWidth ? 'flex-1' : width} min-w-0 bg-transparent px-1 text-center font-mono text-sm compact:text-xs ${encre}
                     outline-none placeholder:text-ink-dim disabled:cursor-not-allowed`}
       />
 

@@ -1834,6 +1834,10 @@ function GrilleMod({
     ) : (
       // Boost d'ATB : positif pour remplir, négatif pour vider (la barre ne
       // descend jamais sous 0, garanti par la simulation). Bornes ±100.
+      //
+      // ⚠️ La cellule porte le TON de sa valeur : une grille mêle des gains et
+      // des pertes, et le signe seul — en mono 12 px, au milieu de quarante
+      // colonnes — ne saute pas aux yeux.
       <NumberField
         sansBoutons
         value={value}
@@ -1843,6 +1847,7 @@ function GrilleMod({
         max={100}
         boxWidth="w-14"
         placeholder="·"
+        ton={value == null || value === 0 ? 'neutre' : value > 0 ? 'good' : 'bad'}
         ariaLabel={aria}
       />
     );

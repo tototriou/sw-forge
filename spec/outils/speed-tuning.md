@@ -538,7 +538,9 @@ De haut en bas :
    équipe » / « Tout en face »** (écrit la même valeur sur tous ses monstres au
    tick visé), puis une ligne par monstre. Cellules = `NumberField sansBoutons`
    (axe dense de la lib, voir [../shared/librairie-ui.md](../shared/librairie-ui.md)) ;
-   valeur **positive pour remplir, négative pour vider** (la barre reste ≥ 0) ;
+   valeur **positive pour remplir, négative pour vider** (la barre reste ≥ 0),
+   la cellule prenant le **ton** de sa valeur — vert pour un gain, rouge pour un
+   retrait (axe `ton` de `NumberField`) ;
    une case vide = aucun modificateur. ⚠️ **C'est ici que l'analyse écrit** : les
    valeurs qu'elle pose sont des valeurs comme les autres, qu'on corrige ou qu'on
    efface — c'est ainsi qu'on écarte une réduction d'ATB à 70 % de chances dont

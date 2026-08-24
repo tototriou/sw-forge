@@ -58,6 +58,80 @@ export const CHANGE_META: Record<ChangeKind, { label: string; color: string }> =
 // Si une ligne dépasse ~15 mots, c'est qu'elle raconte l'implémentation.
 export const RELEASES: Release[] = [
   {
+    // ⚠️ Numéro pas encore tranché : il s'écrit au moment de publier, ici et
+    // dans package.json (voir spec/releases.md, étape 4).
+    version: null,
+    date: '2026-08-25',
+    title: 'Speed tuning : sais qui joue avant qui, tick par tick',
+    highlights: [
+      'Un nouvel outil de speed tuning, tick par tick',
+      'Il lit les kits tout seul : boosts de barre, buffs de vitesse, passifs',
+      'Tes decks de siège disent s’ils sont speed tune',
+    ],
+    changes: [
+      {
+        kind: 'feat',
+        scope: 'Outils',
+        text: 'Nouvel outil « Speed tuning » : vois tick par tick qui remplit sa barre d’action en premier.',
+      },
+      {
+        kind: 'feat',
+        scope: 'Speed tuning',
+        text: 'Importe un deck de siège dans ton équipe ou en face, avec ses runes et ses artéfacts.',
+      },
+      {
+        kind: 'feat',
+        scope: 'Speed tuning',
+        text: 'L’analyse dit si toute ton équipe joue avant l’adversaire, et ce qu’il manque de vitesse sinon.',
+      },
+      {
+        kind: 'feat',
+        scope: 'Speed tuning',
+        text: 'Les kits sont lus pour toi : boosts de barre, buffs de vitesse, tours supplémentaires et passifs.',
+      },
+      {
+        kind: 'feat',
+        scope: 'Speed tuning',
+        text: 'Range tes monstres dans l’ordre voulu et choisis le sort de chacun : l’outil donne la fenêtre de vitesse de chaque rang.',
+      },
+      {
+        kind: 'feat',
+        scope: 'Speed tuning',
+        text: 'Sans adversaire en face, l’outil pose une copie de ton monstre le plus rapide comme repère.',
+      },
+      {
+        kind: 'feat',
+        scope: 'Siège',
+        text: 'Une équipe en Rapidité est jugée sur son speed tune, plus sur ses ticks : verte quand elle passe.',
+      },
+      {
+        kind: 'feat',
+        scope: 'Siège',
+        text: '« Voir le speed tune » ouvre l’outil par-dessus ton deck, déjà chargé — ferme et tu es revenu.',
+      },
+      {
+        kind: 'feat',
+        scope: 'Siège',
+        text: 'Le bouton « Vérifier mes speed » remplace « Vérifier mes tick ATB » : il couvre les deux façons de juger une équipe.',
+      },
+      {
+        kind: 'fix',
+        scope: 'Speed tuning',
+        text: 'L’artéfact « Effet aug. VIT » multiplie le buff de vitesse au lieu de s’y ajouter — les valeurs changent.',
+      },
+      {
+        kind: 'fix',
+        scope: 'Siège',
+        text: 'La vitesse affichée sur un deck est exactement celle du speed tune, lead d’élément compris.',
+      },
+      {
+        kind: 'fix',
+        scope: 'Speed tuning',
+        text: 'Un retrait de barre adverse ne compte jamais dans un speed tune : ton équipe doit passer sans lui.',
+      },
+    ],
+  },
+  {
     version: '1.8.1',
     date: '2026-08-21',
     title: 'Nouvel objectif Speed nuker, et un bug de clics sur mobile corrigé',

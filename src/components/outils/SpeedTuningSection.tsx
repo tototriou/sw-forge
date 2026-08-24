@@ -213,6 +213,11 @@ export default function SpeedTuningSection({ allMonsters, siegeDefenseTeams, sie
   // la lecture du kit a retenu).
   const [poussee, setPoussee] = useStickyState<boolean>('speedTune.poussee', false);
   const [ordreVoulu, setOrdreVoulu] = useStickyState<string[]>('speedTune.ordre', []);
+  // ⚠️ Tant qu'on n'a rien rangé à la main, l'ordre voulu SUIT les vitesses :
+  // c'est le point de départ évident (« voilà l'ordre que tu as aujourd'hui »),
+  // et il se recale quand une vitesse change. Le premier ▲▼ le fige — à partir
+  // de là c'est un choix, et le réécrire serait une perte.
+  const [ordreRange, setOrdreRange] = useStickyState<boolean>('speedTune.ordreRange', false);
   const [sortChoisi, setSortChoisi] = useStickyState<Record<string, string>>('speedTune.sorts', {});
   // Le sort du SECOND tour, pour ceux dont la compétence leur rend leur tour
   // (Kroa) : on ne devine pas ce qu'ils lancent ensuite, c'est à désigner.
@@ -513,11 +518,22 @@ export default function SpeedTuningSection({ allMonsters, siegeDefenseTeams, sie
     [lignesVisibles]
   );
   useEffect(() => {
+    if (!ordreRange) {
+      // Ordre des vitesses : celui que la simulation produit aujourd'hui, les
+      // alliés qui n'agissent pas (vitesse inconnue) à la fin.
+      const parVitesse = premiers.filter((a) => a.camp === 'allie').map((a) => a.id);
+      const attendu = [
+        ...parVitesse.filter((id) => alliesVisibles.includes(id)),
+        ...alliesVisibles.filter((id) => !parVitesse.includes(id)),
+      ];
+      if (attendu.join('|') !== ordreVoulu.join('|')) setOrdreVoulu(attendu);
+      return;
+    }
     const garde = ordreVoulu.filter((id) => alliesVisibles.includes(id));
     const manquants = alliesVisibles.filter((id) => !garde.includes(id));
     if (manquants.length === 0 && garde.length === ordreVoulu.length) return;
     setOrdreVoulu([...garde, ...manquants]);
-  }, [alliesVisibles, ordreVoulu, setOrdreVoulu]);
+  }, [alliesVisibles, ordreVoulu, setOrdreVoulu, ordreRange, premiers]);
 
   // Verdict de l'analyse poussée : l'ordre est-il tenu, et quelle FENÊTRE de
   // vitesse laisse chaque rang (un rang se rate aussi en étant trop rapide).
@@ -599,6 +615,7 @@ export default function SpeedTuningSection({ allMonsters, siegeDefenseTeams, sie
   }
 
   function deplacer(uid: string, sens: -1 | 1) {
+    setOrdreRange(true); // à partir d'ici, l'ordre est un CHOIX : il ne suit plus les vitesses
     setOrdreVoulu((prev) => {
       const i = prev.indexOf(uid);
       const j = i + sens;

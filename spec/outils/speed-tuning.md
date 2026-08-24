@@ -172,10 +172,14 @@ il faut savoir **quel sort** chacun lance. Moteur dans
 [speedTune.ts](src/lib/speedTune.ts) (`diagnostiquerSequence`, `fenetresRequises`)
 et [speedTuneKit.ts](src/lib/speedTuneKit.ts) (`sortsVitesse`), **testés**.
 
-- **Ordre voulu** : les alliés se rangent à la main (▲▼), un numéro par rang. La
-  liste suit la composition (un allié ajouté entre à la fin, un retiré en sort)
-  mais ⚠️ **ne se réordonne jamais toute seule** — c'est un choix, pas un reflet
-  de la simulation.
+- **Ordre voulu** : au départ, c'est **celui des vitesses** — l'ordre que la
+  simulation produit aujourd'hui, les alliés sans vitesse connue à la fin. C'est
+  le point de départ évident (« voilà ce que tu as »), et il se recale tant qu'on
+  n'y a pas touché.
+  ⚠️ **Le premier ▲▼ le FIGE** (`ordreRange`) : à partir de là c'est un choix, la
+  liste ne suit plus les vitesses et se contente de suivre la composition (un
+  allié ajouté entre à la fin, un retiré en sort). Le réécrire après coup serait
+  une perte silencieuse.
 - **Sort par monstre**, choisi dans une liste à **icônes** — ⚠️ un joueur
   reconnaît une compétence à son icône avant d'en lire le nom, et un `<select>`
   natif ne montre que du texte : c'est donc la grammaire Bouton + `Flottant` +

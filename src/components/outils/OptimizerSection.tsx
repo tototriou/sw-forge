@@ -61,7 +61,6 @@ import { buildOptimizerRecipe, parseOptimizerRecipe } from '../../lib/optimizerR
 import { ArtifactMainChoice, OptimizerState, OptimizerSortKey } from '../../hooks/useOptimizerState';
 import { useRuneMetric } from '../../hooks/useRuneMetric';
 import { useMediaQuery, SOUS_SM } from '../../hooks/useMediaQuery';
-import { useDebordement } from '../../hooks/useDebordement';
 import GameIcon from '../GameIcon';
 import MonsterAvatar from '../MonsterAvatar';
 import MonsterGear from '../MonsterGear';
@@ -171,11 +170,11 @@ function download(filename: string, text: string) {
 // minimums de stats donnés. Voir spec/outils/optimizer/.
 export default function OptimizerSection({ box, runes, optimizer, allMonsters, rtaEntries, siegeDefenseTeams, siegeOffenseTeams, menuOuvert, onFermerMenu }: Props) {
   const metric = useRuneMetric();
-  // ⚠️ Sous `sm`, les `Segmented` pleine largeur à libellés longs (l'objectif :
-  // « PV effectifs ») débordent leur quart de rangée que `whitespace-nowrap`
-  // interdit de couper. `dense` (texte réduit, retour à la ligne) est le
-  // mécanisme prévu pour ça — activé seulement au format étroit, le bureau garde
-  // le rendu normal.
+  // ⚠️ Ne sert PLUS aux `Segmented` — ils se resserrent désormais tout seuls
+  // en mesurant la place qu'ils reçoivent (voir `Segmented.tsx`), ce qu'un
+  // seuil de FENÊTRE ne pouvait pas voir. Reste utilisé par les vignettes
+  // d'effet de `DamageSetupCard`, dont la disposition (et pas seulement la
+  // taille du texte) change au format étroit.
   const etroit = useMediaQuery(SOUS_SM);
   const {
     selectedId,
@@ -705,21 +704,6 @@ export default function OptimizerSection({ box, runes, optimizer, allMonsters, r
     return () => document.removeEventListener('mousedown', onDown);
   }, [showAdvanced, setShowAdvanced]);
 
-  // ⚠️ Sélecteur de source (« Monstre à optimiser ») : `dense` piloté par la
-  // largeur RÉELLE de sa colonne (`useDebordement`), pas par `useMediaQuery`
-  // (fenêtre) — cette colonne (`lg:flex-1`) partage l'espace avec la fiche
-  // d'équipement juste à côté (`lg:flex-none`), qui prend sa part en
-  // premier ; la colonne peut donc rester étroite MÊME sur un grand écran
-  // (1080p signalé), selon ce que la fiche consomme. Signalement direct :
-  // « Offenses siège » débordait à 1080p alors que `SOUS_SM` (639px de
-  // FENÊTRE) ne se déclenchait jamais à cette résolution. `mesureRef` est un
-  // clone invisible du même `Segmented`, toujours en mode NON compact,
-  // servant à connaître sa largeur naturelle sans la deviner en pixels
-  // (fragile — dépend de la police, et des libellés eux-mêmes).
-  const sourceSelectorRef = useRef<HTMLDivElement>(null);
-  const sourceSelectorMesureRef = useRef<HTMLDivElement>(null);
-  const sourceSelectorDense = useDebordement(sourceSelectorRef, sourceSelectorMesureRef);
-
   function importRecipe(file: File) {
     file.text().then((text) => {
       const { recipe, error } = parseOptimizerRecipe(text);
@@ -996,20 +980,17 @@ export default function OptimizerSection({ box, runes, optimizer, allMonsters, r
                 chacune, même hauteur — demande explicite de cohérence) que
                 la source d'« Exclure les runes d'un monstre » plus bas —
                 `SOURCE_OPTIONS`, remonté dans optimizerExclusion.ts pour ne
-                pas dupliquer ces 4 libellés. ⚠️ **`dense={sourceSelectorDense}`,
-                PAS `dense={etroit}`** — cette colonne partage l'espace avec
-                la fiche d'équipement juste à côté (`lg:flex-1` face à
-                `lg:flex-none`) : sa largeur RÉELLE peut rester étroite MÊME
-                sur un grand écran (« Offenses siège » débordait à 1080p,
-                signalement direct, alors que `useMediaQuery(SOUS_SM)` — la
-                largeur de la FENÊTRE — ne s'y déclenchait jamais). Voir
-                `useDebordement` (nouveau hook) : mesure la largeur
-                DISPONIBLE de cette colonne précise via `ResizeObserver`,
-                comparée à la largeur NATURELLE du sélecteur (le clone
-                invisible juste en dessous). Entre le libellé et le champ de
-                recherche (demande explicite) : c'est le PREMIER choix à
-                faire, avant même de taper un nom — chercher « dans quelle
-                source » avant « quel monstre ». ⚠️ **NE vide PLUS
+                pas dupliquer ces 4 libellés. ⚠️ **Aucun `dense` passé ici** :
+                `Segmented` se resserre TOUT SEUL quand la place manque (voir
+                son en-tête) — cette colonne partage l'espace avec la fiche
+                d'équipement juste à côté (`lg:flex-1` face à `lg:flex-none`),
+                donc sa largeur RÉELLE peut rester étroite MÊME sur un grand
+                écran (« Offenses siège » débordait à 1080p, signalement
+                direct, alors que `useMediaQuery(SOUS_SM)` — la largeur de la
+                FENÊTRE — ne s'y déclenchait jamais). Entre le libellé et le
+                champ de recherche (demande explicite) : c'est le PREMIER
+                choix à faire, avant même de taper un nom — chercher « dans
+                quelle source » avant « quel monstre ». ⚠️ **NE vide PLUS
                 `sourceSelector`** : purement le filtre de la LISTE DE
                 RECHERCHE (`sourceSearchCandidates`), pas de l'exemplaire
                 déjà actif — bug trouvé et corrigé (signalement direct) :
@@ -1019,35 +1000,13 @@ export default function OptimizerSection({ box, runes, optimizer, allMonsters, r
                 Le monstre actif ne change QUE quand un résultat est
                 explicitement cliqué dans la liste ci-dessous (voir
                 `onPick`), jamais par le simple fait de changer d'onglet. */}
-            <div ref={sourceSelectorRef} className="relative">
-              {/* ⚠️ Clone invisible, sert uniquement à mesurer la largeur
-                  NATURELLE du sélecteur en mode non compact
-                  (`useDebordement`). `absolute` : ne pèse pas sur la mise en
-                  page réelle, qui ne voit que le sélecteur visible juste en
-                  dessous. `invisible` (pas `hidden`/`display:none`) : un
-                  élément non affiché n'a aucune dimension à mesurer.
-                  ⚠️ **`size="md"`, PAS `size="lg"`** — même rembourrage/texte
-                  que `lg` (`large = size==='lg' || size==='md'` dans
-                  Segmented.tsx), mais `flex-none` au lieu de `w-full`/
-                  `flex-1` : un `w-full` PREND la largeur de son parent, il
-                  ne peut jamais RAPPORTER une largeur naturelle — posé dans
-                  un conteneur `absolute` sans largeur propre (shrink-to-fit),
-                  ça crée une dépendance circulaire dont le résultat n'est
-                  pas garanti par la spec CSS. `flex-none` mesure sans
-                  ambiguïté. Léger écart (3 traits séparateurs de `lg`, ~3px,
-                  absents en `md`) — négligeable pour cet usage. */}
-              <div ref={sourceSelectorMesureRef} aria-hidden className="invisible absolute left-0 top-0 -z-10">
-                <Segmented options={SOURCE_OPTIONS} value={gearSource} onChange={() => {}} size="md" />
-              </div>
-              <Segmented
-                options={SOURCE_OPTIONS}
-                value={gearSource}
-                onChange={setGearSource}
-                className="mb-2"
-                size="lg"
-                dense={sourceSelectorDense}
-              />
-            </div>
+            <Segmented
+              options={SOURCE_OPTIONS}
+              value={gearSource}
+              onChange={setGearSource}
+              className="mb-2"
+              size="lg"
+            />
             {/* ⚠️ **Exactement le même mécanisme que « Exclure les runes
                 d'un monstre »** (demande explicite de cohérence) :
                 `MonsterSourcePicker` cherche par nom PARMI les candidats de
@@ -1425,7 +1384,7 @@ export default function OptimizerSection({ box, runes, optimizer, allMonsters, r
             contre un adversaire configuré.
           </HelpPopover>
         </div>
-        <Segmented options={OBJECTIVE_LABELS} value={objective} onChange={setObjective} size="lg" dense={etroit} />
+        <Segmented options={OBJECTIVE_LABELS} value={objective} onChange={setObjective} size="lg" />
         {/* ⚠️ Le réglage vit SOUS l'objectif qui l'active, pas dans une
             section séparée plus bas : c'est le choix « Dégâts réels » qui
             rend ces champs pertinents, et rien d'autre à l'écran ne les
@@ -1597,12 +1556,13 @@ export default function OptimizerSection({ box, runes, optimizer, allMonsters, r
         // Choisir un monstre ici, dans n'importe laquelle des 4 sources,
         // retire ses runes ACTUELLEMENT équipées du pool considéré, en plus
         // de l'exclusion automatique éventuelle.
-        // ⚠️ `dansPanneau` : dans le panneau resserré, les 4 onglets de
-        // source (Box/RTA/Défenses siège/Offenses siège) restent sur UNE
-        // seule ligne mais en texte/rembourrage réduits (voir
-        // Segmented.tsx `dense`) — au bureau, la carte a la largeur pour le
-        // rendu normal.
-        const monstrePrecisBlock = (dansPanneau: boolean) => (
+        // ⚠️ **Plus de paramètre `dansPanneau`** : il ne servait qu'à
+        // resserrer les 4 onglets de source dans le panneau « Options »
+        // (`denseSourceTabs`, retiré) — `Segmented` mesure désormais lui-même
+        // la place qu'il reçoit et se resserre tout seul, au bureau comme au
+        // doigt (voir Segmented.tsx). Le bloc est donc identique dans les
+        // deux rendus.
+        const monstrePrecisBlock = (
           <div>
             <div className="mb-2.5 flex items-center gap-1.5">
               {/* Même icône que « Monstre & équipement » (GameIcon
@@ -1630,7 +1590,6 @@ export default function OptimizerSection({ box, runes, optimizer, allMonsters, r
               excludeOwnCom2usId={selected?.monster.com2usId ?? null}
               selected={excludedSelectors}
               onChange={setExcludedSelectors}
-              denseSourceTabs={dansPanneau}
             />
           </div>
         );
@@ -1724,7 +1683,7 @@ export default function OptimizerSection({ box, runes, optimizer, allMonsters, r
               // `[data-tiroir]`, `align-items: flex-start` raboterait ces deux
               // blocs — et donc leurs contrôles pleine largeur — à leur contenu.
               <div className="space-y-4">
-                {monstrePrecisBlock(true)}
+                {monstrePrecisBlock}
                 {dejaUtiliseesBlock}
               </div>
             ) : (
@@ -1740,7 +1699,7 @@ export default function OptimizerSection({ box, runes, optimizer, allMonsters, r
               // (recherche + liste), pas un 50/50 aveugle.
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-[minmax(200px,260px)_1fr] sm:gap-5">
                 <div className="sm:border-r sm:border-border-soft sm:pr-5">{dejaUtiliseesBlock}</div>
-                {monstrePrecisBlock(false)}
+                {monstrePrecisBlock}
               </div>
             )}
 

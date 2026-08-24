@@ -28,10 +28,6 @@ interface Props {
   excludeOwnCom2usId: number | null;
   selected: ExclusionSelector[];
   onChange: (next: ExclusionSelector[]) => void;
-  // ⚠️ Panneau « Options » mobile, resserré : texte/rembourrage réduits pour
-  // que les 4 options tiennent sur UNE seule ligne malgré « Défenses siège »/
-  // « Offenses siège » — voir Segmented.tsx, prop `dense`.
-  denseSourceTabs?: boolean;
 }
 
 // Même étiquette que le comptage « Défense N »/« Offense N » déjà utilisé
@@ -51,7 +47,7 @@ function sourceLabel(sel: ExclusionSelector, data: ExclusionSourceData): string 
 // défense/offense), une entrée précise par choix (pas juste un monstre :
 // voir optimizerExclusion.ts). Même grammaire de navigation clavier que
 // MonsterGearPicker (choix du monstre à optimiser).
-export default function RuneExclusionPicker({ data, excludeOwnUnitKey, excludeOwnCom2usId, selected, onChange, denseSourceTabs = false }: Props) {
+export default function RuneExclusionPicker({ data, excludeOwnUnitKey, excludeOwnCom2usId, selected, onChange }: Props) {
   const [activeSource, setActiveSource] = useState<ExclusionSource>('box');
   const [query, setQuery] = useState('');
   const idBase = useId();
@@ -92,7 +88,6 @@ export default function RuneExclusionPicker({ data, excludeOwnUnitKey, excludeOw
         onChange={setActiveSource}
         className="mb-2"
         size="lg"
-        dense={denseSourceTabs}
       />
 
       <div className="relative">

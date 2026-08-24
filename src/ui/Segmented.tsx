@@ -1,3 +1,5 @@
+import { useLayoutEffect, useRef, useState } from 'react';
+
 // Contrôle générique à **choix unique** : des options côte à côte dans un même
 // cadre, dont une seule est enfoncée.
 //
@@ -11,6 +13,20 @@
 // usage plutôt que recopié — deux copies auraient divergé, comme les chips
 // d'élément avant [elementStyles.ts](src/components/elementStyles.ts) — puis ici
 // dans la librairie une fois ses neuf appelants avérés.
+
+// Rembourrage/texte d'une option, par cran. Extrait en constantes parce que la
+// COPIE DE MESURE (voir le composant) doit les reproduire à l'identique : deux
+// listes de classes qui divergeraient donneraient une mesure fausse, donc un
+// mode compact déclenché trop tôt ou trop tard.
+//
+// ⚠️ `dense` NE force PAS `whitespace-nowrap` : à 4 options longues sur une
+// seule ligne, même à `nano` (10 px) le texte se chevauchait faute de place —
+// le libellé passe sur deux lignes plutôt que déborder. Les autres crans
+// gardent `whitespace-nowrap`, ils ont la place.
+const CRAN_DENSE = 'px-1 py-1 text-nano leading-tight';
+const CRAN_LARGE = 'px-3 py-1.5 text-xs whitespace-nowrap';
+const CRAN_PETIT = 'px-2 py-1 text-micro whitespace-nowrap';
+
 export default function Segmented<T extends string>({
   options,
   value,
@@ -18,7 +34,7 @@ export default function Segmented<T extends string>({
   className = '',
   size = 'sm',
   disabled = false,
-  dense = false,
+  dense,
 }: {
   options: { key: T; label: string; hint?: string; icon?: React.ReactNode; suffix?: React.ReactNode }[];
   value: T;
@@ -37,22 +53,99 @@ export default function Segmented<T extends string>({
   // cliquable ni atteignable au clavier tant qu'un réglage parent (ex. « Exclure
   // les runes déjà utilisées ») n'est pas actif — voir OptimizerSection.tsx.
   disabled?: boolean;
-  // ⚠️ **Une seule ligne, texte resserré.** `lg` force toutes les options
-  // sur une ligne, mais avec 4 options à libellé long (« Défenses siège »)
-  // dans un panneau mobile resserré, le rembourrage/texte normal de `lg`
-  // les coupait. `dense` garde tout sur une seule ligne, pleine largeur
-  // (jamais empilé), avec un rembourrage/texte réduits (`nano`, le cran de
-  // secours des rendus contraints — voir tailwind.config.js) plutôt que de
-  // passer à deux lignes.
+  // **Une seule ligne, texte resserré.** `lg` force toutes les options sur une
+  // ligne, mais à 4 options à libellé long (« Défenses siège ») dans une
+  // colonne étroite, le rembourrage/texte normal les coupait. `dense` garde
+  // tout sur une seule ligne, pleine largeur (jamais empilé), avec un
+  // rembourrage/texte réduits (`nano`, le cran de secours des rendus
+  // contraints — voir tailwind.config.js) plutôt que de passer à deux lignes.
+  //
+  // ⚠️ **Laisser `undefined` = AUTOMATIQUE** (le défaut, et le bon choix dans
+  // presque tous les cas) : le contrôle mesure lui-même s'il tient dans la
+  // place qu'on lui donne, et se resserre uniquement quand il déborderait.
+  // Passer `true`/`false` FORCE le rendu — à réserver aux cas où l'on sait
+  // mieux que la mesure (voir `AncientFilter.tsx`, qui resserre par cohérence
+  // avec une rangée voisine, pas par manque de place).
   dense?: boolean;
 }) {
   const large = size === 'lg' || size === 'md';
+  // ⚠️ **Mesure de la place RÉELLEMENT disponible, pas de la largeur de la
+  // FENÊTRE** — `useMediaQuery(SOUS_SM)` était utilisé pour ça avant : un
+  // seuil de fenêtre (639 px) ne dit RIEN de la largeur d'un contrôle posé
+  // dans une colonne qui partage son espace avec un voisin. Un sélecteur
+  // pouvait déborder sur un écran 1080p (signalement direct) sans que le
+  // seuil ne se déclenche jamais. Ici, `clientWidth` de la racine est la
+  // place réellement reçue, quelle que soit la résolution.
+  const racineRef = useRef<HTMLDivElement>(null);
+  const mesureRef = useRef<HTMLDivElement>(null);
+  const [serre, setSerre] = useState(false);
+  const auto = dense === undefined;
+
+  // ⚠️ `useLayoutEffect` et non `useEffect` : mesurer AVANT que le navigateur
+  // peigne évite d'afficher un instant le rendu non resserré (donc débordant)
+  // avant correction. Même discipline que `FlottantAuto.tsx`.
+  useLayoutEffect(() => {
+    if (!auto) return;
+    const racine = racineRef.current;
+    const mesure = mesureRef.current;
+    if (!racine || !mesure) return;
+    // ⚠️ Comparaison contre la COPIE DE MESURE (toujours au cran NORMAL), pas
+    // contre le contenu réel : mesurer le contenu réel oscillerait sans fin
+    // — une fois resserré il ne déborde plus, donc on repasserait au cran
+    // normal, donc il déborderait de nouveau. La copie, elle, garde toujours
+    // la même largeur naturelle, indépendante de l'état courant.
+    const verifier = () => setSerre(mesure.scrollWidth > racine.clientWidth);
+    verifier();
+    const ro = new ResizeObserver(verifier);
+    // Les DEUX : la racine (la place disponible change) ET la copie (les
+    // libellés eux-mêmes peuvent changer — options remplacées, traduction).
+    ro.observe(racine);
+    ro.observe(mesure);
+    return () => ro.disconnect();
+  }, [auto]);
+
+  const compact = dense ?? serre;
+
   return (
     <div
-      className={`flex items-center ${
+      ref={racineRef}
+      // `relative` : contexte de positionnement de la copie de mesure
+      // ci-dessous, qui doit sortir du flux sans peser sur la mise en page.
+      className={`relative flex items-center ${
         size === 'lg' ? 'w-full gap-0' : 'gap-0.5 flex-none'
       } bg-panel2 border border-border rounded-lg p-0.5 ${disabled ? 'opacity-40' : ''} ${className}`}
     >
+      {/* ⚠️ **Copie de MESURE, jamais affichée** — sert uniquement à connaître
+          la largeur NATURELLE du contrôle au cran normal (voir l'effet
+          ci-dessus). `flex-none w-max` : elle rapporte sa largeur au lieu de
+          la subir — une copie en `w-full`/`flex-1` PRENDRAIT la largeur de son
+          parent au lieu de la RAPPORTER, ce qui, dans un conteneur `absolute`
+          sans largeur propre, crée une dépendance circulaire dont le résultat
+          n'est pas garanti par la spec CSS. `invisible` et non `hidden` : un
+          élément non affiché n'a aucune dimension à mesurer. */}
+      {auto && (
+        <div
+          ref={mesureRef}
+          aria-hidden
+          className="pointer-events-none invisible absolute left-0 top-0 flex w-max flex-none items-center gap-0"
+        >
+          {options.map((o, i) => (
+            <div key={o.key} className="flex flex-none items-stretch">
+              {size === 'lg' && i > 0 && <span className="w-px self-stretch" />}
+              <span
+                className={`flex flex-none items-center justify-center gap-1.5 font-semibold ${
+                  large ? CRAN_LARGE : CRAN_PETIT
+                }`}
+              >
+                {o.icon}
+                {o.label}
+                {o.suffix}
+              </span>
+            </div>
+          ))}
+        </div>
+      )}
+
       {options.map((o, i) => {
         const active = value === o.key;
         return (
@@ -71,17 +164,7 @@ export default function Segmented<T extends string>({
               aria-pressed={active}
               className={`flex flex-1 items-center justify-center gap-1.5 rounded-md font-semibold text-center
                           transition disabled:cursor-not-allowed ${
-                            // ⚠️ `dense` NE force PAS `whitespace-nowrap` : à 4
-                            // options longues sur une seule ligne, même à
-                            // `nano` (10 px) le texte se chevauchait faute de
-                            // place — le libellé passe sur deux lignes plutôt
-                            // que déborder. Les trois autres tailles gardent
-                            // `whitespace-nowrap`, elles ont la place.
-                            dense
-                              ? 'px-1 py-1 text-nano leading-tight'
-                              : large
-                                ? 'px-3 py-1.5 text-xs whitespace-nowrap'
-                                : 'px-2 py-1 text-micro whitespace-nowrap'
+                            compact ? CRAN_DENSE : large ? CRAN_LARGE : CRAN_PETIT
                           } ${
                             // ⚠️ Le fond SEUL marque le cran posé — pas d'ombre
                             // en plus, elle faisait décoller le bouton de son

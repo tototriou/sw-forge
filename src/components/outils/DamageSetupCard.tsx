@@ -272,7 +272,6 @@ export default function DamageSetupCard({ skills, resolved, setup, setSetup, cha
           value={setup.summonerSkills}
           onChange={(v) => maj({ summonerSkills: v })}
           size="lg"
-          dense={etroit}
         />
       </div>
 
@@ -292,7 +291,6 @@ export default function DamageSetupCard({ skills, resolved, setup, setSetup, cha
             value={setup.critMode}
             onChange={(v) => maj({ critMode: v })}
             size="lg"
-            dense={etroit}
           />
         </div>
       )}

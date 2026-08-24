@@ -461,6 +461,13 @@ interface PassifOffensifConnu {
   // reste-t-il fixe quel que soit le sort choisi (`false`/absent) ? Confirmé
   // au cas par cas — ne PAS généraliser, voir Winds and Clouds.
   coupsDuSortActif?: boolean;
+  // Majoration acquise quand les PV de la cible sont TOMBÉS à `seuilPct` % ou
+  // moins AU MOMENT où le passif frappe — c'est-à-dire APRÈS le sort actif,
+  // dont les coups viennent de creuser la cible (voir
+  // `computeSkillDamageDetail`, simulation coup par coup). Entièrement
+  // déduite, aucun bouton : contrairement à un attribut de cible, l'app
+  // connaît exactement les PV restants qu'elle vient de calculer.
+  bonusPvCible?: { seuilPct: number; pct: number };
   categorie: PassifOffensifCategorie;
 }
 
@@ -481,7 +488,15 @@ const PASSIFS_OFFENSIFS_CONNUS: PassifOffensifConnu[] = [
   { nom: 'Great Friends (Passive)', categorie: { type: 'toujours' } }, // Sia
   // ⚠️ Confirmé : l'attaque supplémentaire ignore la DEF **et** peut
   // critiquer normalement — les deux ne vont pas ensemble d'office.
-  { nom: 'Final Strike (Passive)', ignoreDef: true, categorie: { type: 'toujours' } }, // Weapon Master, Benedict
+  // « deals 20 % increased damage if [the enemy's HP] is 30 % or below » :
+  // évalué sur les PV RESTANTS après le sort actif, que la simulation coup
+  // par coup vient justement de calculer — rien à cocher.
+  {
+    nom: 'Final Strike (Passive)',
+    ignoreDef: true,
+    bonusPvCible: { seuilPct: 30, pct: 20 },
+    categorie: { type: 'toujours' },
+  }, // Weapon Master, Benedict
   { nom: 'Jet Engine (Passive)', ignoreDef: true, critique: 'jamais', categorie: { type: 'toujours' } }, // Sky Surfer, Miles
   { nom: 'Eagle Deception (Passive)', categorie: { type: 'toujours' } }, // Bayek
   // ⚠️ Le texte dit « a random enemy » : confirmé qu'on le compte sur la
@@ -567,6 +582,7 @@ export interface PassifOffensifProfile {
   // déduits de la formule.
   critique: PassifCritique;
   coupsDuSortActif: boolean;
+  bonusPvCible?: { seuilPct: number; pct: number };
   categorie: PassifOffensifCategorie;
   profile: SkillDamageProfile;
 }
@@ -606,6 +622,7 @@ export function monsterOffensivePassives(detail: DetailMonstre | null): PassifOf
       description: c.description,
       critique: connu.critique ?? 'suit',
       coupsDuSortActif: connu.coupsDuSortActif ?? false,
+      bonusPvCible: connu.bonusPvCible,
       categorie: connu.categorie,
       profile: {
         skillCom2usId: c.com2usId,
@@ -798,23 +815,37 @@ export function resolvedHits(profile: SkillDamageProfile, setup: DamageSetup): n
 }
 
 /**
- * Dégâts totaux du sort (tous coups confondus) pour un build donné.
+ * Dégâts totaux du sort (tous coups confondus) pour un build donné, ET les PV
+ * restants de la cible une fois le sort encaissé.
  *
  * Suit l'équation de spec/mecaniques.md :
  *   `(Mult × Crit × FacteurDéf + Additionnel) × Réductions`
  * — `DMG%` et `Variance` valent 1 en v1 (voir l'en-tête du fichier), et un
  * sort à dégâts FIXES passe par la branche « Additionnel » : ni critique, ni
  * facteur de défense.
+ *
+ * ⚠️ **Les coups sont simulés UN PAR UN quand la formule lit les PV courants
+ * de la cible** (`{Target Current HP %}`, ex. Benedict/Dominic — Weakness
+ * Shot, `{ATK}*(3.1 - 1.2*{Target Current HP %})`, 4 coups) : chaque coup
+ * creuse les PV, donc le coup suivant frappe une cible plus basse et son
+ * ratio monte. Multiplier un seul coup par `hits` sous-estimait sévèrement
+ * ces sorts — le 4ᵉ coup de Weakness Shot vaut bien plus que le 1ᵉʳ.
+ * Les sorts qui n'en dépendent pas gardent le chemin court (une seule
+ * évaluation × `hits`), au coût identique à avant.
  */
-export function computeSkillDamage(
+export function computeSkillDamageDetail(
   profile: SkillDamageProfile,
   stats: StatRow[],
   setup: DamageSetup,
   // Élément du monstre optimisé — décide de la compétence « Puis. d'att. de
   // <élément> ». `null`/omis = aucune compétence élémentaire comptée (monstre
   // perso, élément inconnu).
-  element: ElementKey | null = null
-): number {
+  element: ElementKey | null = null,
+  // PV de la cible AU DÉBUT de ce sort, en % de son maximum. Omis = ceux du
+  // réglage. Sert à enchaîner un passif APRÈS le sort actif, sur une cible
+  // déjà entamée (voir `computeTotalDamage`).
+  pvCiblePctDepart?: number
+): { total: number; pvRestantsPct: number } {
   const bonus = summonerSkillBonus(setup.summonerSkills, element);
   // Compétences d'invocateur : un POURCENTAGE de la stat de BASE, ajouté au
   // total — même modèle que le totem de vitesse déjà en place (voir
@@ -830,19 +861,20 @@ export function computeSkillDamage(
   };
   const buff = (valeur: number, actif: boolean, pct: number) => (actif ? (valeur * (100 + pct)) / 100 : valeur);
 
+  const pvMax = Math.max(0, setup.enemyHp);
+  const pctDepart = Math.min(100, Math.max(0, pvCiblePctDepart ?? setup.enemyHpPct));
+
   const valeurs: Record<DamageVariable, number> = {
     ATK: buff(avecInvocateur('atk'), setup.atkBuff, ATK_BUFF_PCT),
     DEF: buff(avecInvocateur('def'), setup.defBuff, DEF_BUFF_PCT),
     SPD: buff(avecInvocateur('spd'), setup.spdBuff, SPD_BUFF_PCT),
     'MAX HP': avecInvocateur('hp'),
-    'Target MAX HP': Math.max(0, setup.enemyHp),
+    'Target MAX HP': pvMax,
     // Exprimé en FRACTION (0-1) : le corpus l'écrit toujours multiplié par un
     // coefficient (`{ATK}*(2-1*{Target Current HP %})`), jamais en points.
-    'Target Current HP %': Math.min(100, Math.max(0, setup.enemyHpPct)) / 100,
+    // Réécrit à CHAQUE coup dans la boucle ci-dessous quand le sort en dépend.
+    'Target Current HP %': pctDepart / 100,
   };
-
-  const mult = evaluer(profile.noeud, valeurs);
-  if (mult <= 0) return 0;
 
   // Terme de dégâts critiques. Les améliorations de compétence s'y ajoutent
   // (elles s'appliquent que le coup soit critique ou non) — voir
@@ -861,7 +893,46 @@ export function computeSkillDamage(
 
   const reductions = 1 + (setup.brand ? BRAND_BONUS_PCT / 100 : 0);
 
-  return mult * critTerm * mitigation * reductions * resolvedHits(profile, setup);
+  const horsCoup = critTerm * mitigation * reductions;
+  const coups = resolvedHits(profile, setup);
+  // Les PV ne peuvent pas descendre sous zéro, et une cible à 0 PV max (cas
+  // dégénéré d'un réglage vidé) ne se creuse pas : on renvoie alors le
+  // pourcentage de départ inchangé plutôt que de diviser par zéro.
+  const creuse = (degats: number, pvCourant: number) => (pvMax > 0 ? Math.max(0, pvCourant - degats) : pvCourant);
+
+  // Chemin COURT — le ratio ne dépend pas des PV de la cible : une seule
+  // évaluation, exactement comme avant l'ajout de la simulation.
+  if (!profile.variables.includes('Target Current HP %')) {
+    const mult = evaluer(profile.noeud, valeurs);
+    if (mult <= 0) return { total: 0, pvRestantsPct: pctDepart };
+    const totalDegats = mult * horsCoup * coups;
+    const pvApres = creuse(totalDegats, (pctDepart / 100) * pvMax);
+    return { total: totalDegats, pvRestantsPct: pvMax > 0 ? (pvApres / pvMax) * 100 : pctDepart };
+  }
+
+  // Chemin SÉQUENTIEL — chaque coup frappe une cible plus basse que le
+  // précédent, donc avec un ratio plus élevé.
+  let pvCourant = (pctDepart / 100) * pvMax;
+  let totalDegats = 0;
+  for (let i = 0; i < coups; i++) {
+    valeurs['Target Current HP %'] = pvMax > 0 ? pvCourant / pvMax : pctDepart / 100;
+    const mult = evaluer(profile.noeud, valeurs);
+    if (mult <= 0) continue;
+    const degatsCoup = mult * horsCoup;
+    totalDegats += degatsCoup;
+    pvCourant = creuse(degatsCoup, pvCourant);
+  }
+  return { total: totalDegats, pvRestantsPct: pvMax > 0 ? (pvCourant / pvMax) * 100 : pctDepart };
+}
+
+/** Dégâts seuls — voir `computeSkillDamageDetail` pour les PV restants. */
+export function computeSkillDamage(
+  profile: SkillDamageProfile,
+  stats: StatRow[],
+  setup: DamageSetup,
+  element: ElementKey | null = null
+): number {
+  return computeSkillDamageDetail(profile, stats, setup, element).total;
 }
 
 // Un passif de `passifs` doit-il compter dans le total, selon l'état des
@@ -939,7 +1010,13 @@ export function computeTotalDamage(
   setup: DamageSetup,
   element: ElementKey | null = null
 ): number {
-  let total = computeSkillDamage(profile, stats, setup, element);
+  // ⚠️ Les PV de la cible sont ENCHAÎNÉS du sort actif vers les passifs :
+  // ceux-ci frappent après lui, sur une cible déjà entamée. C'est ce qui
+  // permet à un bonus « si les PV sont tombés sous X % » (Final Strike) de
+  // se déduire tout seul, sans rien demander à l'utilisateur.
+  const sort = computeSkillDamageDetail(profile, stats, setup, element);
+  let total = sort.total;
+  let pvCiblePct = sort.pvRestantsPct;
   for (const p of passifs) {
     if (!passifActif(p, setup)) continue;
     // `hitsRange: undefined` : `hits` est déjà la valeur RÉSOLUE du sort
@@ -954,7 +1031,13 @@ export function computeTotalDamage(
       ...(p.critique === 'jamais' ? { critMode: 'normal' as const } : {}),
       ...(p.critique === 'toujours' ? { critMode: 'crit' as const } : {}),
     };
-    let contribution = computeSkillDamage(profilPassif, stats, setupPassif, element);
+    // Le seuil se juge sur les PV AVANT que ce passif ne frappe — c'est bien
+    // l'état de la cible au moment où le jeu évalue la condition.
+    const seuilAtteint = p.bonusPvCible != null && pvCiblePct <= p.bonusPvCible.seuilPct;
+    const detail = computeSkillDamageDetail(profilPassif, stats, setupPassif, element, pvCiblePct);
+    pvCiblePct = detail.pvRestantsPct;
+    let contribution = detail.total;
+    if (seuilAtteint && p.bonusPvCible) contribution *= 1 + p.bonusPvCible.pct / 100;
     if (bonusPassifActif(p, setup) && p.categorie.type === 'bonus') {
       contribution *= 1 + p.categorie.pct / 100;
     }

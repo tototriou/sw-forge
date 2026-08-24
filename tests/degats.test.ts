@@ -29,6 +29,7 @@ import {
   DamageSetup,
   SkillDamageProfile,
   computeSkillDamage,
+  computeSkillDamageDetail,
   computeTotalDamage,
   damageRelevantStats,
   defaultDamageSkill,
@@ -453,9 +454,10 @@ export default function testDegats() {
     computeTotalDamage(ezioBase!, ezioPassifs, ezioStats, ezioSansBonus, null) -
     computeSkillDamage(ezioBase!, ezioStats, ezioSansBonus, null);
   ok(contributionSansBonus > 0, 'bouton éteint : la BASE du passif est quand même comptée, jamais zéro');
-  egal(
-    contributionSansBonus,
-    computeSkillDamage(ezioPassifs[0]!.profile, ezioStats, { ...ezioSansBonus, critMode: 'crit' }, null),
+  ok(
+    Math.abs(
+      contributionSansBonus - computeSkillDamage(ezioPassifs[0]!.profile, ezioStats, { ...ezioSansBonus, critMode: 'crit' }, null)
+    ) < 1e-6,
     'et elle est calculée en coup CRITIQUE alors que l’écran est en « Non critique »'
   );
   const ezioAvecBonus: DamageSetup = {
@@ -472,10 +474,77 @@ export default function testDegats() {
 
   // Benedict — confirmé : l'attaque supplémentaire ignore la DEF **et** peut
   // critiquer. Les deux ne vont pas ensemble d'office, d'où le test.
-  const benedictPassifs = monsterOffensivePassives(fiche(25714));
+  const benedict = fiche(25714);
+  const benedictPassifs = monsterOffensivePassives(benedict);
   egal(benedictPassifs.length, 1, 'Benedict : un seul passif reconnu (Final Strike)');
   ok(benedictPassifs[0]!.profile.ignoreDef, 'Final Strike ignore la défense');
   egal(benedictPassifs[0]?.critique, 'suit', 'Final Strike peut critiquer normalement');
+  egal(
+    benedictPassifs[0]?.bonusPvCible,
+    { seuilPct: 30, pct: 20 },
+    'Final Strike porte son seuil de PV (+20 % sous 30 %), déduit sans bouton'
+  );
+
+  titre('Dégâts réels — PV de la cible creusés coup par coup');
+
+  // ⚠️ Weakness Shot (Benedict/Dominic S2) : `{ATK}*(3.1 - 1.2*{Target
+  // Current HP %})`, 4 coups. Le ratio MONTE à mesure que la cible descend —
+  // multiplier un seul coup par 4 sous-estimait donc lourdement le sort.
+  const weakness = monsterDamageSkills(benedict).filter(estPrisEnCharge).find((s) => s.nom === 'Weakness Shot')!;
+  ok(weakness != null, 'Benedict : « Weakness Shot » est calculable');
+  egal(weakness.hits, 4, 'Weakness Shot frappe 4 fois');
+  ok(weakness.variables.includes('Target Current HP %'), 'sa formule lit bien les PV courants de la cible');
+
+  const wStats = stats({ atk: 2000, cd: 200, cr: 100 });
+  const wSetup: DamageSetup = {
+    ...DEFAULT_DAMAGE_SETUP,
+    skillCom2usId: weakness.skillCom2usId,
+    summonerSkills: 'aucune',
+    enemyHp: 30000,
+    enemyHpPct: 100,
+  };
+  const wDetail = computeSkillDamageDetail(weakness, wStats, wSetup, null);
+  // Le premier coup frappe une cible PLEINE ; s'il n'y avait pas de
+  // creusement, les 4 coups vaudraient exactement 4 fois ce premier coup.
+  const premierCoup = computeSkillDamageDetail({ ...weakness, hits: 1, hitsRange: undefined }, wStats, wSetup, null).total;
+  ok(
+    wDetail.total > premierCoup * 4,
+    'les 4 coups rapportent PLUS que 4 fois le premier — chaque coup creuse la cible et fait monter le ratio suivant'
+  );
+  ok(wDetail.pvRestantsPct < 100, 'et les PV restants de la cible ont bien baissé');
+
+  // Une cible DÉJÀ entamée donne un ratio de départ plus élevé : le même
+  // sort, sur une cible à 50 %, frappe plus fort.
+  const wDejaEntame = computeSkillDamageDetail(weakness, wStats, { ...wSetup, enemyHpPct: 50 }, null).total;
+  ok(wDejaEntame > wDetail.total, 'sur une cible déjà à 50 % de PV, le même sort inflige davantage');
+
+  // Un sort SANS variable de PV n'est pas affecté par la simulation : son
+  // total reste strictement `un coup × hits` (chemin court préservé).
+  const glaive = monsterDamageSkills(benedict).filter(estPrisEnCharge).find((s) => s.nom === 'Glaive Slash')!;
+  const glaiveUn = computeSkillDamageDetail({ ...glaive, hits: 1, hitsRange: undefined }, wStats, wSetup, null).total;
+  ok(
+    Math.abs(computeSkillDamage(glaive, wStats, wSetup, null) - glaiveUn * glaive.hits) < 1e-6,
+    'un sort qui ne lit pas les PV de la cible garde exactement l’ancien calcul (un coup × hits)'
+  );
+
+  // Le seuil de Final Strike se juge sur les PV APRÈS le sort actif — donc
+  // il s'active tout seul quand le sort a suffisamment entamé la cible, sans
+  // que l'utilisateur ait quoi que ce soit à cocher.
+  const bStats = stats({ atk: 2000, cd: 200, cr: 100 });
+  const bSetupPleine: DamageSetup = { ...wSetup, enemyHp: 200000, enemyHpPct: 100 };
+  const bSetupBasse: DamageSetup = { ...wSetup, enemyHp: 200000, enemyHpPct: 25 };
+  const ratioPleine =
+    (computeTotalDamage(weakness, benedictPassifs, bStats, bSetupPleine, null) -
+      computeSkillDamageDetail(weakness, bStats, bSetupPleine, null).total) /
+    computeSkillDamageDetail(benedictPassifs[0]!.profile, bStats, bSetupPleine, null).total;
+  const ratioBasse =
+    (computeTotalDamage(weakness, benedictPassifs, bStats, bSetupBasse, null) -
+      computeSkillDamageDetail(weakness, bStats, bSetupBasse, null).total) /
+    computeSkillDamageDetail(benedictPassifs[0]!.profile, bStats, bSetupBasse, null).total;
+  ok(Math.abs(ratioPleine - 1) < 1e-6, 'cible restée au-dessus de 30 % : Final Strike ne prend PAS son bonus');
+  ok(Math.abs(ratioBasse - 1.2) < 1e-6, 'cible tombée sous 30 % : Final Strike prend exactement ses +20 %');
+
+  titre('Dégâts réels — passifs offensifs (suite)');
 
   // Birgitta / Silver : nombre de coups annoncé en PROSE, que
   // `Competence.coups` contredit — c'est la prose qui fait foi, curée à la

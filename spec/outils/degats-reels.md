@@ -268,6 +268,36 @@ du jeu de chaque entrée) :
 non invocable** (Living Armor 2A) : retirée, elle ne pouvait jamais
 apparaître dans la box d'un joueur.
 
+### Les PV de la cible se creusent COUP PAR COUP
+
+⚠️ Un sort dont la formule lit `{Target Current HP %}` (Benedict/Dominic —
+Weakness Shot, `{ATK}*(3.1 - 1.2*{Target Current HP %})`, 4 coups) voit son
+ratio **monter à mesure que la cible descend**. `computeSkillDamageDetail`
+simule donc les coups **un par un** : chaque coup retire ses dégâts des PV
+courants, et le coup suivant est réévalué sur la cible entamée. Multiplier un
+seul coup par `hits` sous-estimait lourdement ces sorts — le 4ᵉ coup de
+Weakness Shot vaut bien plus que le 1ᵉʳ.
+
+Un sort qui ne lit PAS cette variable garde le chemin court (une évaluation
+× `hits`), au coût et au résultat strictement identiques à avant.
+
+`computeSkillDamageDetail` renvoie donc `{ total, pvRestantsPct }`, et
+`computeTotalDamage` **enchaîne** ces PV du sort actif vers les passifs, qui
+frappent après lui sur une cible déjà entamée. C'est ce qui permet à
+`bonusPvCible` de se déduire tout seul :
+
+- **Final Strike** (Benedict, Weapon Master) — « deals 20 % increased damage
+  if [the enemy's HP] is 30 % or below ». Aucun bouton : le seuil est jugé
+  sur les PV que la simulation vient de calculer, à l'instant où le passif
+  frappe.
+
+⚠️ **Conséquence assumée** : les PV de l'adversaire ne sont plus purement
+décoratifs. Pour un sort ou un passif qui en dépend, `enemyHp` et
+`enemyHpPct` changent le classement des builds — alors que pour tous les
+autres, ils ne servent toujours qu'à lire le résultat. Le champ « PV
+restants » s'affiche donc aussi dès qu'un passif porte un `bonusPvCible`,
+pas seulement quand la formule du sort lit les PV courants.
+
 ### Coups variables — un sort/passif qui frappe un nombre de fois qui change en jeu
 
 Certains sorts et passifs infligent un nombre de coups qui **varie** en jeu

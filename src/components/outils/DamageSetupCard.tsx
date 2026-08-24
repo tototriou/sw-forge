@@ -244,6 +244,12 @@ export default function DamageSetupCard({ skills, resolved, passifs, setup, setS
                         Se déclenche si {p.categorie.condition}.
                       </p>
                     )}
+                    {p.bonusPvCible && (
+                      <p className="mt-1 text-xs leading-snug text-ink-dim">
+                        +{p.bonusPvCible.pct} % si les PV de la cible sont tombés à {p.bonusPvCible.seuilPct} % ou
+                        moins au moment où ce passif frappe — déduit des coups du sort ci-dessus, rien à cocher.
+                      </p>
+                    )}
                     {texteJeu}
                     {declenche && champCoupsVariables(p.profile, setup, maj)}
                   </div>
@@ -319,9 +325,11 @@ export default function DamageSetupCard({ skills, resolved, passifs, setup, setS
               />
             </label>
           )}
-          {/* Uniquement pour les sorts dont la formule lit les PV COURANTS de
-              la cible (ex. « dégâts proportionnels aux PV perdus »). */}
-          {utilise('Target Current HP %') && (
+          {/* Pour les sorts dont la formule lit les PV COURANTS de la cible
+              (« dégâts proportionnels aux PV perdus ») — mais AUSSI quand un
+              passif porte un seuil de PV (Final Strike : +20 % sous 30 %),
+              puisque les coups du sort creusent la cible avant qu'il frappe. */}
+          {(utilise('Target Current HP %') || passifs.some((p) => p.bonusPvCible)) && (
             <label className="flex items-center gap-2">
               <span className="text-xs text-ink-dim">PV restants</span>
               <NumberField

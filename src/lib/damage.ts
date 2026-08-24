@@ -136,19 +136,34 @@ export function summonerSkillBonus(
 // (`{Relative SPD}`, `{Attacker's Level}`, `ABSORPTION_TOT_CNT`…) rend le
 // sort NON PRIS EN CHARGE — mieux vaut le dire que produire un nombre
 // plausible mais faux.
-export type DamageVariable = 'ATK' | 'DEF' | 'SPD' | 'MAX HP' | 'Target MAX HP' | 'Target Current HP %';
+// ⚠️ `Relative SPD` — `(Ta VIT totale − VIT totale de la cible) / VIT totale
+// de la cible`, confirmée par l'utilisateur. Dépend de la VIT de
+// l'ADVERSAIRE (`DamageSetup.enemySpd`, saisie manuelle comme `enemyDef`),
+// pas seulement de la sienne — d'où sa présence ici plutôt qu'un simple
+// alias de `SPD`.
+export type DamageVariable = 'ATK' | 'DEF' | 'SPD' | 'MAX HP' | 'Target MAX HP' | 'Target Current HP %' | 'Relative SPD';
 
-const SUPPORTED_VARIABLES: DamageVariable[] = ['ATK', 'DEF', 'SPD', 'MAX HP', 'Target MAX HP', 'Target Current HP %'];
+const SUPPORTED_VARIABLES: DamageVariable[] = [
+  'ATK',
+  'DEF',
+  'SPD',
+  'MAX HP',
+  'Target MAX HP',
+  'Target Current HP %',
+  'Relative SPD',
+];
 
 // Stat de l'attaquant derrière chaque variable qui en est une — sert à savoir
 // quelles stats du build la recherche doit privilégier (voir
 // `damageRelevantStats`). Les variables de CIBLE n'y figurent pas : elles ne
-// dépendent pas des runes.
+// dépendent pas des runes. `Relative SPD` dépend de SA PROPRE vitesse (plus
+// elle est haute, plus le ratio monte) — 'spd', comme `SPD`.
 const VARIABLE_STAT: Partial<Record<DamageVariable, StatKey>> = {
   ATK: 'atk',
   DEF: 'def',
   SPD: 'spd',
   'MAX HP': 'hp',
+  'Relative SPD': 'spd',
 };
 
 type Noeud =
@@ -287,6 +302,13 @@ export interface SkillDamageProfile {
   // critiques et ne passent PAS par le facteur de défense (voir
   // spec/mecaniques.md, terme « Additionnel »).
   fixed: boolean;
+  // Ignore une FRACTION de la DEF adverse, proportionnelle à l'écart de VIT
+  // avec elle — distinct d'`ignoreDef` (tout ou rien). `ecartMax` = l'écart
+  // de VIT (points) au-delà duquel l'ignore atteint 100 % ; 0 % si la cible
+  // est aussi rapide ou plus. Curé à la main (`IGNORE_DEF_SELON_VIT_CONNUS`),
+  // même discipline que les autres tables de ce fichier — confirmé par
+  // l'utilisateur sur Rigna (126 points, donnée communautaire SWGT).
+  ignoreDefSelonVit?: { ecartMax: number };
   // Somme des « Damage +X% » des améliorations de compétence, en points de
   // pourcentage — la compétence est supposée MAXÉE, comme partout ailleurs
   // dans l'app (voir `paliersRechargement`, même parti pris).
@@ -294,6 +316,15 @@ export interface SkillDamageProfile {
   variables: DamageVariable[];
   noeud: Noeud;
 }
+
+// Sorts où le pourcentage de DEF ignorée dépend de l'écart de VIT avec la
+// cible — jamais déduit du texte libre (« up to 100% according to the
+// difference… » ne dit pas le seuil), curé depuis une donnée communautaire
+// confirmée par l'utilisateur.
+const IGNORE_DEF_SELON_VIT_CONNUS: Record<string, { ecartMax: number }> = {
+  'Concentrated Stab': { ecartMax: 126 }, // Rigna, Birgitta, Magic Order Swordsinger
+  'Charge Attack': { ecartMax: 126 }, // Ciri
+};
 
 // Un sort qu'on sait afficher mais pas calculer — l'écran le montre grisé
 // avec sa raison, plutôt que de le faire disparaître sans explication.
@@ -352,6 +383,15 @@ export function skillDamageProfile(c: Competence): SkillDamageProfile | SkillDam
   }
 
   const coupsVariables = COUPS_VARIABLES_CONNUS[c.nom];
+  const ignoreDefSelonVit = IGNORE_DEF_SELON_VIT_CONNUS[c.nom];
+  // La VIT du monstre optimisé pèse sur ce sort MÊME si sa formule ne lit
+  // aucune variable de VIT (`4.7*{ATK}` seul) — l'ignore-DEF, lui, en
+  // dépend. `Relative SPD` ajoutée à `variables` fait suivre ça partout
+  // (champ « VIT adversaire » à l'écran, `damageRelevantStats`) sans
+  // dupliquer la logique.
+  const variables = ignoreDefSelonVit
+    ? Array.from(new Set([...analyse.variables, 'Relative SPD' as const]))
+    : analyse.variables;
   return {
     ...entete,
     icone: c.icone,
@@ -363,11 +403,17 @@ export function skillDamageProfile(c: Competence): SkillDamageProfile | SkillDam
     hits: coupsVariables ? coupsVariables.min : c.coups && c.coups > 0 ? c.coups : 1,
     hitsRange: coupsVariables,
     aoe: c.aoe,
-    ignoreDef: c.effets.some((e) => e.nom === 'Ignore DEF'),
+    // ⚠️ `ignoreDefSelonVit` prévaut : SWARFARM tague Concentrated Stab d'un
+    // effet « Ignore DEF » PLEIN (`quantite: 100`), la nuance « selon l'écart
+    // de VIT » vivant uniquement dans son champ `note` en texte libre, jamais
+    // lu ailleurs. Sans ce garde-fou, ce booléen aurait fait ignorer 100 % de
+    // la DEF EN PERMANENCE, y compris face à une cible plus rapide.
+    ignoreDef: !ignoreDefSelonVit && c.effets.some((e) => e.nom === 'Ignore DEF'),
+    ignoreDefSelonVit,
     appliqueDefBreak: c.effets.some((e) => e.nom === 'Decrease DEF' && !e.surSoi),
     fixed,
     skillupDamagePct,
-    variables: analyse.variables,
+    variables,
     noeud: analyse.noeud,
   };
 }
@@ -729,6 +775,11 @@ export interface DamageSetup {
   enemyDef: number;
   enemyHp: number;
   enemyHpPct: number;
+  // VIT totale de l'adversaire (buffs compris) — saisie manuelle, comme
+  // `enemyDef`. Ne sert QUE si le sort/passif lit `{Relative SPD}`. Optionnel
+  // : une recette exportée avant ce champ n'en a aucun, `resolvedEnemySpd`
+  // retombe alors sur `DEFAULT_DAMAGE_SETUP.enemySpd`.
+  enemySpd?: number;
   atkBuff: boolean;
   defBuff: boolean;
   spdBuff: boolean;
@@ -777,6 +828,11 @@ export const DEFAULT_DAMAGE_SETUP: DamageSetup = {
   enemyDef: 1000,
   enemyHp: 30000,
   enemyHpPct: 100,
+  // ⚠️ Contrairement à `enemyDef`/`enemyHp`, PAS recoupé avec un outil de
+  // référence de la communauté — une VIT de base plate, à ajuster au cas par
+  // cas (les 20 sorts qui en dépendent ciblent presque tous une AUTRE cible
+  // que « arène/siège ordinaire »).
+  enemySpd: 100,
   atkBuff: false,
   defBuff: false,
   spdBuff: false,
@@ -864,12 +920,20 @@ export function computeSkillDamageDetail(
   const pvMax = Math.max(0, setup.enemyHp);
   const pctDepart = Math.min(100, Math.max(0, pvCiblePctDepart ?? setup.enemyHpPct));
 
+  const maVit = buff(avecInvocateur('spd'), setup.spdBuff, SPD_BUFF_PCT);
+  // ⚠️ Bornée à 1 : une VIT adverse ≤ 0 ferait diverger le ratio (division
+  // par zéro ou par un nombre négatif), un réglage vidé ne doit jamais casser
+  // le calcul plutôt que produire `Infinity`/`NaN`.
+  const vitEnnemie = Math.max(1, setup.enemySpd ?? DEFAULT_DAMAGE_SETUP.enemySpd!);
+
   const valeurs: Record<DamageVariable, number> = {
     ATK: buff(avecInvocateur('atk'), setup.atkBuff, ATK_BUFF_PCT),
     DEF: buff(avecInvocateur('def'), setup.defBuff, DEF_BUFF_PCT),
-    SPD: buff(avecInvocateur('spd'), setup.spdBuff, SPD_BUFF_PCT),
+    SPD: maVit,
     'MAX HP': avecInvocateur('hp'),
     'Target MAX HP': pvMax,
+    // `(Ta VIT − VIT cible) / VIT cible` — confirmé par l'utilisateur.
+    'Relative SPD': (maVit - vitEnnemie) / vitEnnemie,
     // Exprimé en FRACTION (0-1) : le corpus l'écrit toujours multiplié par un
     // coefficient (`{ATK}*(2-1*{Target Current HP %})`), jamais en points.
     // Réécrit à CHAQUE coup dans la boucle ci-dessous quand le sort en dépend.
@@ -888,7 +952,16 @@ export function computeSkillDamageDetail(
   const partCrit = profile.fixed ? 0 : setup.critMode === 'crit' ? 1 : setup.critMode === 'normal' ? 0 : cr;
   const critTerm = 1 + profile.skillupDamagePct / 100 + partCrit * cd;
 
-  const defEff = profile.ignoreDef ? 0 : Math.max(0, setup.enemyDef) * (setup.defBreak ? DEF_BREAK_FACTOR : 1);
+  // Ignore une fraction de la DEF, proportionnelle à l'écart de VIT — 0 % si
+  // la cible est aussi rapide ou plus, 100 % à `ecartMax` points d'écart ou
+  // plus. Multiplicative avec la réduction de Défense (`defBreak`), jamais
+  // substituée à elle : les deux réduisent la même DEF effective.
+  const fractionIgnoree = profile.ignoreDefSelonVit
+    ? Math.min(1, Math.max(0, (maVit - vitEnnemie) / profile.ignoreDefSelonVit.ecartMax))
+    : 0;
+  const defEff = profile.ignoreDef
+    ? 0
+    : Math.max(0, setup.enemyDef) * (setup.defBreak ? DEF_BREAK_FACTOR : 1) * (1 - fractionIgnoree);
   const mitigation = profile.fixed ? 1 : defenseFactor(defEff);
 
   const reductions = 1 + (setup.brand ? BRAND_BONUS_PCT / 100 : 0);

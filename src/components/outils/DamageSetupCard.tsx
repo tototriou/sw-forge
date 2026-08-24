@@ -7,6 +7,7 @@ import {
   CritMode,
   DamageSetup,
   DamageVariable,
+  DEFAULT_DAMAGE_SETUP,
   DEF_BREAK_ICON,
   DEF_BUFF_ICON,
   PassifOffensifProfile,
@@ -81,6 +82,7 @@ function resumeSort(p: SkillDamageProfile, setup: DamageSetup): { ratio: string 
   const bouts: string[] = [`${hits} coup${hits > 1 ? 's' : ''}${p.hitsRange ? ' (variable)' : ''}`];
   bouts.push(p.aoe ? 'Zone' : 'Cible unique');
   if (p.ignoreDef) bouts.push('Ignore la DEF');
+  if (p.ignoreDefSelonVit) bouts.push(`Ignore la DEF selon l'écart de VIT (100 % à ${p.ignoreDefSelonVit.ecartMax}+ pts)`);
   if (p.fixed) bouts.push('Dégâts fixes');
   if (p.skillupDamagePct > 0) bouts.push(`+${p.skillupDamagePct} % (compétence maxée)`);
   return { ratio: formuleLisible(p.formule), reste: bouts.join(' · ') };
@@ -341,6 +343,22 @@ export default function DamageSetupCard({ skills, resolved, passifs, setup, setS
                 suffix="%"
                 boxWidth="w-32"
                 ariaLabel="Pourcentage de PV restants de l'adversaire"
+              />
+            </label>
+          )}
+          {/* Uniquement pour un sort dont la formule lit `{Relative SPD}`
+              (« Ta VIT − VIT cible / VIT cible ») — la quasi-totalité des
+              autres sorts n'en dépendent jamais. */}
+          {utilise('Relative SPD') && (
+            <label className="flex items-center gap-2">
+              <span className="text-xs text-ink-dim">VIT adversaire</span>
+              <NumberField
+                value={setup.enemySpd ?? DEFAULT_DAMAGE_SETUP.enemySpd!}
+                onChange={(v) => maj({ enemySpd: v ?? 0 })}
+                step={10}
+                min={1}
+                boxWidth="w-32"
+                ariaLabel="Vitesse totale de l'adversaire"
               />
             </label>
           )}

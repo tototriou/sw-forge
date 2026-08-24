@@ -42,20 +42,23 @@ Un analyseur descendant récursif sur une grammaire minuscule
 (`+ - * /`, parenthèses, nombres, variables `{…}`).
 
 **Variables reconnues** : `{ATK}`, `{DEF}`, `{SPD}`, `{MAX HP}` (l'attaquant,
-buffs compris), `{Target MAX HP}`, `{Target Current HP %}` (la cible).
+buffs compris), `{Target MAX HP}`, `{Target Current HP %}` (la cible),
+`{Relative SPD}` (voir « VIT de l'adversaire » plus bas).
 
 ⚠️ **Le moindre jeton non compris fait refuser le sort ENTIER**, avec un
 motif affiché — jamais une lecture partielle. Une formule
-`0.15*{ATK}*({Relative SPD}+1)` dont on ne lirait que `0.15*{ATK}`
+`0.15*{ATK}*({Attacker's Level}+1)` dont on ne lirait que `0.15*{ATK}`
 produirait un nombre parfaitement plausible, donc jamais remarqué, et
 l'Optimizer classerait les builds sur une base fausse. C'est la seule
 propriété de ce module qui serait **grave et invisible** — d'où le balayage
 du corpus **réel** en test, pas seulement des cas écrits à la main.
 
-Couverture mesurée sur le corpus complet : **5 861 sorts offensifs
-calculables, 207 refusés explicitement** (variables hors modèle —
-`{Relative SPD}`, `{Attacker's Level}`, `ABSORPTION_TOT_CNT`… — ou formules
-hors grammaire).
+Couverture mesurée sur le corpus complet : **5 881 sorts offensifs
+calculables, 187 refusés explicitement** (variables hors modèle —
+`{Attacker's Level}`, `ABSORPTION_TOT_CNT`… — ou formules hors grammaire).
+`{Relative SPD}` a longtemps fait partie des variables refusées (20 sorts,
+Beast Rider ×10 formes/éléments, Barbara, Masha, Savannah, Narsha, Xiana) —
+reconnue depuis confirmation de sa formule par l'utilisateur.
 
 Un sort dont la formule ne dépend d'**aucune** statistique de l'attaquant
 (dégâts purement fixes) est refusé lui aussi : il est calculable, mais
@@ -326,19 +329,19 @@ régénération des données SWARFARM) et remplace `profile.hits` partout où le
 calcul en a besoin (`computeSkillDamage`, et `computeTotalDamage` pour la
 propagation `coupsDuSortActif`).
 
-⚠️ **Jamais déduit d'un réglage d'écran existant, même quand un réglage
-équivalent existe déjà** (ex. le bouton « Réduction de DEF »). Cas identifié
-par l'utilisateur : Roid peut lui-même poser la réduction de DEF via son
-propre S1, et la condition de son passif porte sur l'état **avant** ce sort
-précis — un réglage de combat global ne peut pas savoir « avant » ou
-« après » lequel des sorts du même monstre. D'où un **bouton indépendant par
-passif**, jamais rattaché à un réglage existant, avec la condition CURÉE et
-le texte SWARFARM brut du passif (`Competence.description`, jamais
-reformulé) affichés en clair **sous chaque passif** — pas seulement dans une
-infobulle au survol, invisible au doigt — c'est au joueur de juger, pas à
-l'app de deviner. Conséquence volontaire : oublier d'activer un bouton ne
-peut que **sous-estimer** les dégâts, jamais les surestimer — un défaut
-d'usage sans risque de classement erroné dans le sens dangereux.
+⚠️ **Un bouton `bonus`/`conditionnel`, quand il en reste un, n'est JAMAIS
+déduit d'un réglage d'écran existant**, même quand un réglage équivalent
+existe déjà — c'est précisément ce qui a fait passer Roid/Silver de
+`conditionnel` (bouton) à `defBreak` (déduit), voir plus haut : leur
+condition SE modélisait entièrement, elle n'avait donc plus besoin d'un
+bouton. Pour un bouton qui reste (`bonus` aujourd'hui), la condition CURÉE
+et le texte SWARFARM brut du passif (`Competence.description`, jamais
+reformulé) restent affichés en clair **sous chaque passif** — pas
+seulement dans une infobulle au survol, invisible au doigt — c'est au
+joueur de juger, pas à l'app de deviner. Conséquence volontaire : oublier
+d'activer un bouton ne peut que **sous-estimer** les dégâts, jamais les
+surestimer — un défaut d'usage sans risque de classement erroné dans le
+sens dangereux.
 
 `DamageSetup.passifsOffensifs` (`Record<com2usId du passif, boolean>`, clé
 absente = désactivé) porte l'état des boutons ; une recette exportée avant
@@ -350,6 +353,42 @@ jamais supposé présent).
 n'ajoute aucune stat au pré-filtrage, un passif actif y ajoute les siennes —
 les deux fonctions doivent s'accorder EXACTEMENT, sinon la recherche
 privilégierait des stats qu'un score différent ignore (ou l'inverse).
+
+### VIT de l'adversaire — `{Relative SPD}` et l'ignore-DEF proportionnel
+
+`DamageSetup.enemySpd` (VIT totale de l'adversaire, buffs compris — saisie
+manuelle, comme `enemyDef`) sert **deux** mécaniques distinctes, confirmées
+par l'utilisateur, ni l'une ni l'autre déductible du texte du jeu seul :
+
+- **`{Relative SPD}`** — `(Ta VIT − VIT cible) / VIT cible`. 20 sorts du
+  corpus en dépendent (Beast Rider ×10, Barbara, Masha, Savannah, Narsha,
+  Xiana), tous sur `2.0*{ATK}*({Relative SPD}+1)` — **rejetés avant cette
+  confirmation**, faute de variable reconnue.
+- **Ignore-DEF proportionnel à l'écart de VIT** (Rigna/Birgitta/Magic Order
+  Swordsinger — Concentrated Stab, Ciri — Charge Attack, `4.7*{ATK}` seul) —
+  donnée **communautaire** (SWGT), pas le texte du jeu lui-même (« ignores
+  its Defense up to 100 % according to the difference… » ne donne aucun
+  seuil) : **126 points d'écart de VIT = 100 % de la DEF ignorée**, linéaire
+  en-dessous, **0 % si la cible est aussi rapide ou plus**. Curé dans
+  `IGNORE_DEF_SELON_VIT_CONNUS` (`{ ecartMax }`), `SkillDamageProfile.
+  ignoreDefSelonVit`, appliqué en amont du facteur de défense — multiplicatif
+  avec la réduction de Défense (`defBreak`), jamais substitué à elle.
+  ⚠️ **`ignoreDefSelonVit` prévaut sur l'effet `Ignore DEF` détecté
+  automatiquement** : SWARFARM tague Concentrated Stab d'un effet plein
+  (`quantite: 100`), la nuance vivant uniquement dans son champ `note`
+  (« according to the difference between the target's and your Attack
+  Speed »), jamais lu ailleurs — sans ce garde-fou, ce sort aurait ignoré
+  100 % de la DEF EN PERMANENCE, y compris face à une cible plus rapide.
+- **`Relative SPD` ajoutée à `variables` même quand la FORMULE ne la lit
+  pas** (Concentrated Stab est `4.7*{ATK}` nu) : c'est le mécanisme
+  d'ignore-DEF qui en dépend, pas la formule — sans cet ajout, ni le champ
+  « VIT adversaire » ni la VIT dans le pré-filtrage (`damageRelevantStats`)
+  n'apparaîtraient pour ces sorts.
+
+⚠️ **Non couvert, faute de formule confirmée** : le crit garanti « quand tu
+es plus rapide que la cible » (Ciri Eau, Rigna, Magic Order Swordsinger,
+passif sans formule) — touche TOUS les dégâts du monstre, pas un passif
+offensif isolé, donc hors périmètre de `PASSIFS_OFFENSIFS_CONNUS` tel quel.
 
 ## Stats à privilégier dans la recherche
 

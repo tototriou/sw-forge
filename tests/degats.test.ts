@@ -3,11 +3,11 @@
 //
 // ⚠️ Ce qui serait GRAVE ET INVISIBLE ici (le critère de tests/README.md) :
 // une formule à moitié lue. Le parseur doit refuser tout ce qu'il ne
-// comprend pas ENTIÈREMENT — un `0.15*{ATK}*({Relative SPD}+1)` dont on ne
-// lirait que `0.15*{ATK}` produirait un nombre parfaitement plausible, donc
-// jamais remarqué, et l'Optimizer classerait les builds sur une base fausse.
-// D'où le balayage du corpus RÉEL en fin de fichier, pas seulement des cas
-// écrits à la main.
+// comprend pas ENTIÈREMENT — un `0.15*{ATK}*({Attacker's Level}+1)` dont on
+// ne lirait que `0.15*{ATK}` produirait un nombre parfaitement plausible,
+// donc jamais remarqué, et l'Optimizer classerait les builds sur une base
+// fausse. D'où le balayage du corpus RÉEL en fin de fichier, pas seulement
+// des cas écrits à la main.
 
 import { readFileSync, readdirSync } from 'fs';
 import { resolve } from 'path';
@@ -105,7 +105,7 @@ export default function testDegats() {
 
   // ⚠️ Le cœur du fichier : tout ce qui n'est pas COMPLÈTEMENT compris est
   // refusé, jamais tronqué silencieusement.
-  ok(profil('0.15*{ATK}*({Relative SPD}+1)') === null, 'une variable inconnue fait refuser tout le sort');
+  ok(profil("0.15*{ATK}*({Attacker's Level}+1)") === null, 'une variable inconnue fait refuser tout le sort');
   ok(profil('{ATK}*(1.5*1.5**(1*TARGET_{DEF})+1)') === null, 'une formule hors grammaire est refusée');
   ok(profil('1.2*{ATK}*ABSORPTION_TOT_CNT') === null, 'un identifiant nu est refusé');
   ok(profil('3.6*{ATK} garbage') === null, 'du texte résiduel fait refuser le sort');
@@ -221,6 +221,87 @@ export default function testDegats() {
     Math.abs(avecCombat / sansInvoc - ((attenduAtk * (1 + 0.3 + 0.5 * 2.25)) / (2000 * (1 + 0.3 + 0.5 * 2.0)))) < 1e-9,
     'le bonus porte sur la BASE (800), pas sur le total runé (2000)'
   );
+
+  titre('Dégâts réels — VIT de l’adversaire ({Relative SPD})');
+
+  // ⚠️ « (Ta VIT totale − VIT totale de la cible) / VIT totale de la cible »
+  // — confirmé par l'utilisateur. Beast Rider S1 (« Spear of Protector »,
+  // `2.0*{ATK}*({Relative SPD}+1)`) était REJETÉ avant cette confirmation :
+  // 20 sorts du corpus en dépendent, tous sur cette même formule.
+  ok(profil('2.0*{ATK}*({Relative SPD}+1)') !== null, '{Relative SPD} est maintenant une variable reconnue');
+  const beastRider = fiche(23504);
+  const spearOfProtector = monsterDamageSkills(beastRider).filter(estPrisEnCharge).find((s) => s.nom === 'Spear of Protector')!;
+  ok(spearOfProtector != null, 'Beast Rider : « Spear of Protector » est désormais calculable');
+  egal(spearOfProtector.variables, ['ATK', 'Relative SPD'], 'sa formule dépend bien de ATQ et de Relative SPD');
+
+  const brStats = stats({ atk: 2000, cd: 200, cr: 100, spd: 150 });
+  const brSetup: DamageSetup = {
+    ...DEFAULT_DAMAGE_SETUP,
+    skillCom2usId: spearOfProtector.skillCom2usId,
+    summonerSkills: 'aucune',
+    critMode: 'normal',
+  };
+  // Comparés en RATIO (pas en valeur absolue) : le facteur de défense et la
+  // mitigation sont constants entre ces trois appels, seul {Relative SPD}
+  // varie — le ratio isole exactement sa contribution, sans avoir à
+  // reproduire le reste de l'équation à la main.
+  // Même VIT que l'adversaire → Relative SPD = 0 → le facteur (…+1) vaut 1.
+  const memeVit = computeSkillDamage(spearOfProtector, brStats, { ...brSetup, enemySpd: 150 });
+  // Deux fois plus rapide → Relative SPD = 1 → coefficient × 2.
+  const deuxFoisPlusRapide = computeSkillDamage(spearOfProtector, brStats, { ...brSetup, enemySpd: 75 });
+  ok(Math.abs(deuxFoisPlusRapide / memeVit - 2) < 1e-9, 'deux fois plus rapide que l’adversaire : les dégâts doublent');
+  // Deux fois plus LENT → Relative SPD = -0,5 → coefficient × 0,5.
+  const deuxFoisPlusLent = computeSkillDamage(spearOfProtector, brStats, { ...brSetup, enemySpd: 300 });
+  ok(Math.abs(deuxFoisPlusLent / memeVit - 0.5) < 1e-9, 'deux fois plus lent que l’adversaire : les dégâts sont réduits de moitié');
+  ok(memeVit > 0 && deuxFoisPlusRapide > memeVit && memeVit > deuxFoisPlusLent, 'plus on est rapide face à l’adversaire, plus les dégâts montent');
+
+  // VIT adverse ≤ 0 : bornée à 1, jamais une division par zéro qui casse le calcul.
+  ok(Number.isFinite(computeSkillDamage(spearOfProtector, brStats, { ...brSetup, enemySpd: 0 })), 'VIT adverse à 0 : pas de division par zéro');
+  ok(Number.isFinite(computeSkillDamage(spearOfProtector, brStats, { ...brSetup, enemySpd: -50 })), 'VIT adverse négative : bornée, pas de NaN');
+
+  ok(damageRelevantStats(spearOfProtector).includes('spd'), 'Relative SPD fait travailler la VIT du monstre optimisé, comme SPD');
+
+  // Rigna — « Concentrated Stab » (S2, `4.7*{ATK}`) : ignore une FRACTION de
+  // la DEF, proportionnelle à l'écart de VIT — donnée communautaire
+  // confirmée par l'utilisateur (SWGT) : 126 points d'écart = 100 % ignoré,
+  // linéaire en-dessous, 0 % si la cible est aussi rapide ou plus.
+  const rigna = fiche(29711);
+  const concentratedStab = monsterDamageSkills(rigna).filter(estPrisEnCharge).find((s) => s.nom === 'Concentrated Stab')!;
+  ok(concentratedStab != null, 'Rigna : « Concentrated Stab » est calculable');
+  egal(concentratedStab.ignoreDef, false, 'ce n’est PAS un ignore total — distinct du booléen `ignoreDef`');
+  egal(concentratedStab.ignoreDefSelonVit, { ecartMax: 126 }, 'la plage curée (126 points) est bien portée par le profil');
+  ok(
+    concentratedStab.variables.includes('Relative SPD'),
+    'Relative SPD est injectée dans `variables` même si la FORMULE (4.7×ATQ) ne la lit pas — c’est l’ignore-DEF qui en dépend'
+  );
+
+  const rignaStats = stats({ atk: 2000, cd: 200, cr: 100, spd: 200 });
+  const rignaSetup: DamageSetup = {
+    ...DEFAULT_DAMAGE_SETUP,
+    skillCom2usId: concentratedStab.skillCom2usId,
+    summonerSkills: 'aucune',
+    critMode: 'normal',
+    enemyDef: 1000,
+  };
+  // Cible aussi rapide : écart nul, la DEF s'applique intégralement — même
+  // résultat qu'un sort ordinaire sur cette DEF.
+  const ecartNul = computeSkillDamage(concentratedStab, rignaStats, { ...rignaSetup, enemySpd: 200 });
+  const sansIgnore = computeSkillDamage({ ...concentratedStab, ignoreDefSelonVit: undefined }, rignaStats, rignaSetup);
+  egal(ecartNul, sansIgnore, 'cible aussi rapide : aucune DEF ignorée, comme un sort qui ne connaît pas ce mécanisme');
+  // Cible PLUS rapide : écart négatif, borné à 0 % ignoré (jamais un ignore négatif).
+  const cibleReste = computeSkillDamage(concentratedStab, rignaStats, { ...rignaSetup, enemySpd: 260 });
+  egal(cibleReste, sansIgnore, 'cible plus rapide que Rigna : le bonus tombe à 0 %, pas de DEF ignorée');
+  // Écart de 63 (la moitié de 126) → 50 % de la DEF ignorée.
+  const demiEcart = computeSkillDamage(concentratedStab, rignaStats, { ...rignaSetup, enemySpd: 137 });
+  const demiDef = computeSkillDamage({ ...concentratedStab, ignoreDefSelonVit: undefined }, rignaStats, { ...rignaSetup, enemyDef: 500 });
+  egal(demiEcart, demiDef, 'écart de 63 points (la moitié de 126) : exactement 50 % de la DEF est ignorée');
+  // Écart ≥ 126 → 100 % ignoré, comme un `ignoreDef` classique.
+  const ecartMax = computeSkillDamage(concentratedStab, rignaStats, { ...rignaSetup, enemySpd: 74 });
+  const ecartAuDela = computeSkillDamage(concentratedStab, rignaStats, { ...rignaSetup, enemySpd: 10 });
+  const ignoreTotal = computeSkillDamage({ ...concentratedStab, ignoreDef: true, ignoreDefSelonVit: undefined }, rignaStats, rignaSetup);
+  egal(ecartMax, ignoreTotal, 'écart de 126 points pile : 100 % de la DEF ignorée, comme ignoreDef=true');
+  egal(ecartAuDela, ignoreTotal, 'écart AU-DELÀ de 126 : plafonné à 100 %, jamais plus');
+  ok(ecartNul < demiEcart && demiEcart < ecartMax, 'plus l’écart de VIT grandit, plus la DEF ignorée augmente');
 
   titre('Dégâts réels — stats à privilégier dans la recherche');
 

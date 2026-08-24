@@ -498,7 +498,16 @@ function resoudreNaif(monstres: TuneMonstre[], axe: Axe, horizon = HORIZON_TICKS
       if (trouve > depart) out.push({ id: m.id, actuel: depart, requis: trouve });
     }
   }
-  return out;
+  // ⚠️ **La référence range aussi par ORDRE DE JEU** : c'est une clause du
+  // contrat, pas un détail d'affichage — une liste de problèmes se lit dans la
+  // chronologie, sinon il faut la reconstruire de tête. Elle le fait à sa façon
+  // (tri explicite sur la simulation de départ), pas en appelant l'helper du
+  // code testé : une référence qui emprunte le code qu'elle vérifie ne vérifie
+  // plus rien.
+  const jeu = new Map(
+    premiersTours(simuler(monstres, horizon)).map((a) => [a.id, a.tick] as const)
+  );
+  return out.sort((a, b) => (jeu.get(a.id) ?? Infinity) - (jeu.get(b.id) ?? Infinity));
 }
 
 function vitessesRequisesNaif(monstres: TuneMonstre[], horizon = HORIZON_TICKS): VitesseRequise[] {
@@ -1630,6 +1639,48 @@ export function testSpeedTuneAuto() {
       sortSecondRetenu(e, campDabord),
       null,
       "et sans tour rendu, il n'y a pas de second sort"
+    );
+  }
+
+  // ⚠️ **Ce qui manque se lit dans l'ORDRE DE JEU**, pas dans celui des slots.
+  // Une liste de problèmes rangée par slot oblige à reconstruire la chronologie
+  // de tête pour comprendre qui coupe qui — alors que c'est la question posée.
+  {
+    // Trois alliés dans un ordre de slots qui n'est PAS leur ordre de jeu, et un
+    // adverse assez rapide pour tous les couper.
+    const equipe: TuneMonstre[] = [
+      { id: 'lent', combat: 150, camp: 'allie' },
+      { id: 'vif', combat: 260, camp: 'allie' },
+      { id: 'moyen', combat: 200, camp: 'allie' },
+      { id: 'adverse', combat: 1000, camp: 'ennemi' },
+    ];
+    egal(
+      diagnostiquerChaine(equipe).coupes.map((c) => c.id),
+      ['vif', 'moyen', 'lent'],
+      'les coupés sortent du plus rapide au plus lent, pas dans l’ordre des slots'
+    );
+    egal(
+      vitessesRequises(equipe).map((r) => r.id),
+      ['vif', 'moyen', 'lent'],
+      'et les vitesses requises suivent la même chronologie'
+    );
+    egal(
+      artefactsRequis(equipe).map((r) => r.id),
+      ['vif', 'moyen', 'lent'],
+      'les artéfacts requis aussi — une seule règle pour toutes les listes'
+    );
+    // Celui qui n'agit pas du tout passe en DERNIER : il ne s'insère nulle part
+    // dans la chronologie, et le mettre en tête le ferait passer pour le plus
+    // rapide.
+    const avecMuet: TuneMonstre[] = [
+      { id: 'muet', combat: 1, camp: 'allie' },
+      { id: 'vif', combat: 260, camp: 'allie' },
+      { id: 'adverse', combat: 1000, camp: 'ennemi' },
+    ];
+    egal(
+      diagnostiquerChaine(avecMuet).coupes.map((c) => c.id),
+      ['vif', 'muet'],
+      'celui qui n’agit pas ferme la marche'
     );
   }
 

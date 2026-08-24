@@ -166,6 +166,14 @@ trois vitesses de runes. Calcul pur dans
 
 ## Le combo passe-t-il ? (chaîne d'ouverture)
 
+⚠️ **Toute liste de problèmes sort dans l'ORDRE DE JEU** — coupés
+(`diagnostiquerChaine`), vitesses requises (`vitessesRequises`), artéfacts
+requis (`artefactsRequis`), et le message de tick du siège. Rangée par slot,
+elle oblige à reconstruire la chronologie de tête pour comprendre qui coupe
+qui, alors que c'est exactement la question posée. Celui qui **n'agit pas** dans
+l'horizon ferme la marche : il ne s'insère nulle part, et le mettre en tête le
+ferait passer pour le plus rapide.
+
 Le speed tune sert à ça : que **tous** les monstres de l'équipe jouent **avant**
 que l'adversaire ne s'intercale. Un seul adverse qui passe au milieu — souvent
 une grosse vitesse de base qui remplit la barre des siens — coupe le combo.

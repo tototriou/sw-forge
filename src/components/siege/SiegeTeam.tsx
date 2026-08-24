@@ -224,8 +224,19 @@ export default function SiegeTeam({
 
   // Message d'alerte, construit dans speed.ts : c'est de la logique de tick, pas
   // de l'affichage — et elle mérite d'être vérifiable.
+  // ⚠️ **Dans l'ordre où les monstres JOUENT**, pas dans celui des slots : ici
+  // aucun effet de barre n'entre en jeu, donc le plus rapide joue le premier —
+  // un tri sur la vitesse de combat suffit, et un monstre sans vitesse connue
+  // passe en dernier. Même règle que pour les vitesses requises du speed tune
+  // (`ordreDeJeu`) : une liste de problèmes se lit dans la chronologie.
   const messageTick = tickTeamMessage(
-    slotInfos.map(({ monster }, i) => ({ nom: monster?.name ?? 'Ce monstre', danger: slotDangers[i] }))
+    slotInfos
+      .map(({ monster, combat }, i) => ({
+        nom: monster?.name ?? 'Ce monstre',
+        danger: slotDangers[i],
+        combat,
+      }))
+      .sort((a, b) => (b.combat ?? -Infinity) - (a.combat ?? -Infinity))
   );
 
   // ⚠️ **La décision n'est plus écrite ici** : elle vit dans

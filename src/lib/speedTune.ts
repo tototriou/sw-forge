@@ -399,6 +399,26 @@ export interface Coupure {
   ok: boolean;
 }
 
+// L'ordre dans lequel les monstres VONT JOUER : id → tick de leur premier tour.
+// Ceux qui n'agissent pas dans l'horizon n'y figurent pas.
+//
+// ⚠️ **Tout ce qui énumère des monstres s'y range.** Une liste de problèmes
+// donnée dans l'ordre des slots oblige à reconstruire mentalement la chronologie
+// pour comprendre qui coupe qui — alors que c'est précisément la question. Dans
+// l'ordre de jeu, on lit la chaîne comme elle se déroule.
+export function ordreDeJeu(monstres: TuneMonstre[], horizon = HORIZON_TICKS): Map<string, number> {
+  return new Map(premiersTours(simuler(monstres, horizon)).map((a) => [a.id, a.tick]));
+}
+
+// Trie une liste de monstres par ordre de jeu. Celui qui n'agit pas passe en
+// DERNIER : il ne s'insère nulle part dans la chronologie, et le mettre en tête
+// (tick « 0 » implicite) le ferait passer pour le plus rapide.
+function rangerParJeu<T extends { id: string }>(liste: T[], ordre: Map<string, number>): T[] {
+  return [...liste].sort(
+    (a, b) => (ordre.get(a.id) ?? Infinity) - (ordre.get(b.id) ?? Infinity)
+  );
+}
+
 export function diagnostiquerChaine(monstres: TuneMonstre[], horizon = HORIZON_TICKS): Coupure {
   const sim = simuler(monstres, horizon);
   const premiers = premiersTours(sim);
@@ -412,7 +432,10 @@ export function diagnostiquerChaine(monstres: TuneMonstre[], horizon = HORIZON_T
     if (!mien) coupes.push({ id: l.id, tick: null });
     else if (mien.tick > coupeur.tick) coupes.push({ id: l.id, tick: mien.tick });
   }
-  return { coupeur, coupes, ok: coupes.length === 0 };
+  // Dans l'ordre où ils jouent, pas dans celui des slots : c'est la chronologie
+  // qu'on lit quand on cherche ce qui coupe le combo.
+  const ordre = new Map(premiers.map((a) => [a.id, a.tick]));
+  return { coupeur, coupes: rangerParJeu(coupes, ordre), ok: coupes.length === 0 };
 }
 
 // Un allié coupé et la vitesse de combat qui le ferait passer avant le coupeur.
@@ -522,7 +545,9 @@ function resoudre(monstres: TuneMonstre[], horizon: number, axe: Axe): Resolutio
   }
 
   // Verdict final sur les valeurs retenues : ce qui reste coupé est déclaré hors
-  // de portée, le reste porte la valeur trouvée.
+  // de portée, le reste porte la valeur trouvée. ⚠️ Rendu dans l'ORDRE DE JEU —
+  // celui de DÉPART, pas celui d'arrivée : on lit ce qui manque à une équipe
+  // telle qu'elle est aujourd'hui.
   const fin = diagnostiquerChaine(courant, horizon);
   const coupesFin = new Set(fin.coupes.map((c) => c.id));
   const out: Resolution[] = [];
@@ -535,7 +560,7 @@ function resoudre(monstres: TuneMonstre[], horizon: number, axe: Axe): Resolutio
       if (trouve > depart) out.push({ id: m.id, actuel: depart, requis: trouve });
     }
   }
-  return out;
+  return rangerParJeu(out, ordreDeJeu(monstres, horizon));
 }
 
 export function vitessesRequises(monstres: TuneMonstre[], horizon = HORIZON_TICKS): VitesseRequise[] {

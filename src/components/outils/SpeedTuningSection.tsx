@@ -216,7 +216,12 @@ export default function SpeedTuningSection({ allMonsters, siegeDefenseTeams, sie
   // (ordre imposé + sort désigné), qui en est un raffinement et non un mode à
   // part. Coupée, la simulation n'obéit plus qu'à ce qu'on a saisi — c'est le
   // but : « je regarde ce que ça donne, puis je fais ce que je veux ».
-  const [auto, setAuto] = useStickyState<boolean>('speedTune.auto', true);
+  //
+  // ⚠️ **Coupée par défaut** : l'analyse se lance À LA MAIN, à chaque fois. Elle
+  // porte sur une composition donnée — l'allumer d'office reviendrait à poser un
+  // verdict sur une équipe qu'on est en train de monter, et à remplir les
+  // grilles avant qu'on ait demandé quoi que ce soit.
+  const [auto, setAuto] = useStickyState<boolean>('speedTune.auto', false);
   const [poussee, setPoussee] = useStickyState<boolean>('speedTune.poussee', false);
   const [ordreVoulu, setOrdreVoulu] = useStickyState<string[]>('speedTune.ordre', []);
   // ⚠️ Tant qu'on n'a rien rangé à la main, l'ordre voulu SUIT les vitesses :

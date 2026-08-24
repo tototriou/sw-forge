@@ -54,7 +54,7 @@ qu'en coréen.
 - **Wild Steps (Passive) — +10 % de vitesse par déclenchement, plafonné à 50 %**
   - Beast Rider, Masha
 
-## Gain de vitesse propre, montant introuvable — 7 monstre(s)
+## Gain de vitesse propre, montant introuvable — 8 monstre(s)
 
 - **Atrocity (Passive) — gain de vitesse — AUCUNE donnée, ni fiche ni relevé (vérifié)**
   - Contaminated Dragon
@@ -78,7 +78,7 @@ qu'en coréen.
 - **Spear of Penetration (Passive) — pose le buff de vitesse du jeu (+30 %)**
   - Agrius, Centaur Knight
 
-## Tour supplémentaire hors de son tour — 75 monstre(s)
+## Tour supplémentaire hors de son tour — 77 monstre(s)
 
 - **Addicted Power (Passive) — tour supplémentaire hors de son tour**
   - Magic Order Guardian, Valdemar
@@ -100,6 +100,8 @@ qu'en coréen.
   - Arcane Weapon, Cynthia
 - **Enrage (Passive) — tour supplémentaire hors de son tour**
   - Gamir
+- **Fatal Cleave (Passive) — tour supplémentaire hors de son tour**
+  - Solide
 - **Flying (Passive) — tour supplémentaire hors de son tour**
   - Griffin
 - **God of Wrath (Passive) — tour supplémentaire hors de son tour**
@@ -141,12 +143,14 @@ qu'en coréen.
 - **Weight of Death (Passive) — tour supplémentaire hors de son tour**
   - Giant Warrior, Trasar
 
-## Barre d'attaque gagnée hors de son tour — 212 monstre(s)
+## Barre d'attaque gagnée hors de son tour — 232 monstre(s)
 
 - **Adrenaline Activation (Passive) — +50 % de barre, hors de son tour**
   - Lars, Magic Order Guardian
 - **Adrenaline Rush (Passive) — +50 % de barre, hors de son tour**
   - Geralt, 게롤트(빛)
+- **Ally Cover (Passive) — +15 % de barre, hors de son tour**
+  - Fern
 - **Almighty Mask (Passive) — remplit une barre hors de son tour, montant introuvable**
   - Cayde, Poison Master
 - **Art of Blank Space (Passive) — +20 % de barre, hors de son tour**
@@ -159,6 +163,8 @@ qu'en coréen.
   - Mortera, Specter Princess
 - **Boiling Blood (Passive) — +20 % de barre, hors de son tour**
   - Verdehile
+- **Bone Throw (Passive) — +50 % de barre, hors de son tour**
+  - Lob Ear
 - **Bow of the Stag King (Passive) — +15 % de barre, hors de son tour**
   - Elder Horn
 - **Cascading Attacks (Passive) — +50 % de barre, hors de son tour**
@@ -175,6 +181,8 @@ qu'en coréen.
   - Assassin, Lexy
 - **Deer Steps (Passive) — +10 % de barre, hors de son tour**
   - Elder Horn
+- **Defensive Magic (Passive) — +50 % de barre, hors de son tour**
+  - Fern
 - **Discernment (Passive) — +10 % de barre, hors de son tour**
   - Fairy King, Nyx
 - **Dokkaebi's Secret Spell (Passive) — +10 % de barre, hors de son tour**
@@ -231,6 +239,8 @@ qu'en coréen.
   - Kumae
 - **Hot-blooded Destroyer (Passive) — +30 % de barre, hors de son tour**
   - Paul Phoenix, 폴 피닉스(바람)
+- **Inheriting Master's Will (Passive) — +20 % de barre, hors de son tour**
+  - Stark
 - **Judge (Passive) — +10 % de barre, hors de son tour**
   - Archangel, Artamiel
 - **Lethal Intent (Passive) — +10 % de barre, hors de son tour**
@@ -241,6 +251,8 @@ qu'en coréen.
   - Martial Cat 2A, Xiao Ling
 - **Magic Control (Passive) — +20 % de barre, hors de son tour**
   - Yennefer, 예니퍼(빛)
+- **Magic Interpretation (Passive) — +10 % de barre, hors de son tour**
+  - Frieren
 - **Magic Mastery (Passive) — +20 % de barre, hors de son tour**
   - Arcana, Magic Order Enchantress
 - **Maia's Authority (Passive) — +10 % de barre, hors de son tour**
@@ -259,6 +271,8 @@ qu'en coréen.
   - Garo, Ninja
 - **Nasty Strike (Passive) — +50 % de barre, hors de son tour**
   - Gollum
+- **One Step Ahead (Passive) — +20 % de barre, hors de son tour**
+  - Stark
 - **Outlaw (Passive) — +10 % de barre, hors de son tour**
   - Berghild, Mercenary Queen
 - **Overdrive (Passive) — remplit une barre hors de son tour, montant introuvable**
@@ -381,7 +395,7 @@ qu'en coréen.
 - **Ventriloquism (Passive) — −30 % de barre, hors de son tour**
   - Puppeteer, Smicer
 
-## ⚠️ Montant introuvable — 32 monstre(s)
+## ⚠️ Montant introuvable — 33 monstre(s)
 
 Ni le texte ni les données d'effet ne le chiffrent : l'outil ne peut rien en
 faire, ça se pose à la main dans les grilles. Les entrées **AUCUNE donnée
@@ -424,4 +438,4 @@ faire, ça se pose à la main dans les grilles. Les entrées **AUCUNE donnée
 
 ---
 
-Total : **384** entrées, dont **32** au montant introuvable.
+Total : **407** entrées, dont **33** au montant introuvable.

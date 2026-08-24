@@ -209,6 +209,49 @@ const BONUS_DEGATS_SELON_VIT_CONNUS: Record<string, { ecartMax: number; pctMax: 
   'Evasion (Passive)': { ecartMax: 50, pctMax: 50 }, // Sonia, Battle Angel
 };
 
+// Info d'AFFICHAGE seule des deux modificateurs ci-dessus (nom, description,
+// icône SWARFARM du passif) — jamais utilisée par le calcul, qui reste sur
+// `monsterCritSiPlusRapide`/`monsterBonusDegatsSelonVit`. Sert à les montrer
+// dans « Passifs offensifs » exactement comme un `PassifOffensifProfile`
+// (Feng Yan, Dominic…), corrigeant un oubli signalé par l'utilisateur : ces
+// deux-là étaient calculés mais jamais AFFICHÉS, contrairement aux passifs à
+// formule.
+export interface ModificateurVitAffichage {
+  skillCom2usId: number;
+  nom: string;
+  description: string | null;
+  icone: string | null;
+  detail: string;
+}
+
+export function monsterModificateursVit(detail: DetailMonstre | null): ModificateurVitAffichage[] {
+  if (!detail) return [];
+  const out: ModificateurVitAffichage[] = [];
+  for (const c of detail.competences) {
+    if (!c.passif || c.com2usId == null) continue;
+    if (CRIT_SI_PLUS_RAPIDE_CONNUS.has(c.nom)) {
+      out.push({
+        skillCom2usId: c.com2usId,
+        nom: c.nom,
+        description: c.description,
+        icone: c.icone,
+        detail: 'toujours actif — critique garanti si plus rapide que la cible',
+      });
+    }
+    const bonus = BONUS_DEGATS_SELON_VIT_CONNUS[c.nom];
+    if (bonus) {
+      out.push({
+        skillCom2usId: c.com2usId,
+        nom: c.nom,
+        description: c.description,
+        icone: c.icone,
+        detail: `toujours actif — jusqu'à +${bonus.pctMax} % de dégâts à ${bonus.ecartMax} pts d'écart de VIT`,
+      });
+    }
+  }
+  return out;
+}
+
 export function monsterBonusDegatsSelonVit(detail: DetailMonstre | null): { ecartMax: number; pctMax: number } | null {
   if (!detail) return null;
   for (const c of detail.competences) {
@@ -216,6 +259,46 @@ export function monsterBonusDegatsSelonVit(detail: DetailMonstre | null): { ecar
     if (trouve) return trouve;
   }
   return null;
+}
+
+// Passifs qui majorent TOUS les dégâts du monstre d'un pourcentage qui
+// S'ACCUMULE en combat (Momo/Mage — « Secret Book (Passive) » : « increases
+// the damage by 10% each, up to 200%, whenever an ally attacks » — encore un
+// MODIFICATEUR sans formule ni dégâts propres, PAS un
+// `PASSIFS_OFFENSIFS_CONNUS`). ⚠️ Contrairement à `critSiPlusRapide`/
+// `BONUS_DEGATS_SELON_VIT_CONNUS`, RIEN ici ne se déduit d'un état déjà
+// connu de l'app (le nombre d'attaques alliées déjà portées dans le combat
+// n'est pas simulé) : l'utilisateur choisit lui-même le niveau de stack
+// actuel, via `DamageSetup.stackPersonnalise`.
+const BONUS_DEGATS_STACKABLE_CONNUS: Record<string, { pctParStack: number; pctMax: number }> = {
+  'Secret Book (Passive)': { pctParStack: 10, pctMax: 200 }, // Momo, Mage
+};
+
+export interface BonusDegatsStackableProfile {
+  skillCom2usId: number;
+  nom: string;
+  description: string | null;
+  icone: string | null;
+  pctParStack: number;
+  pctMax: number;
+}
+
+export function monsterBonusDegatsStackable(detail: DetailMonstre | null): BonusDegatsStackableProfile | null {
+  if (!detail) return null;
+  for (const c of detail.competences) {
+    if (!c.passif || c.com2usId == null) continue;
+    const config = BONUS_DEGATS_STACKABLE_CONNUS[c.nom];
+    if (config) return { skillCom2usId: c.com2usId, nom: c.nom, description: c.description, icone: c.icone, ...config };
+  }
+  return null;
+}
+
+// Le pourcentage de stack ACTUELLEMENT choisi pour `p`, borné à `pctMax` —
+// même discipline défensive que `resolvedHits` (une recette écrite avant une
+// régénération des données, ou un stack saisi puis un monstre différent
+// chargé, ne doivent jamais produire une valeur hors plage).
+export function resolvedStackPct(p: BonusDegatsStackableProfile, setup: DamageSetup): number {
+  return Math.min(p.pctMax, Math.max(0, setup.stackPersonnalise?.[p.skillCom2usId] ?? 0));
 }
 
 type Noeud =
@@ -880,6 +963,12 @@ export interface DamageSetup {
   // `passifsOffensifs`). Absent = repli sur `hitsRange.min`, voir
   // `resolvedHits`. Sans effet sur un sort dont `hitsRange` est absent.
   coupsPersonnalises?: Record<number, number>;
+  // Pourcentage de stack CHOISI par l'utilisateur pour un passif à bonus
+  // ACCUMULABLE en combat (Momo/Mage — « Secret Book »), clé =
+  // `skillCom2usId` du passif, même espace de clés que `passifsOffensifs`.
+  // Absent = 0 % (rien à supposer, comme partout ailleurs — voir
+  // `resolvedStackPct`).
+  stackPersonnalise?: Record<number, number>;
 }
 
 // Adversaire de référence : ni un boss ni une cible nue. 1000 DEF et 30 000
@@ -1183,6 +1272,14 @@ export function bonusPassifActif(p: PassifOffensifProfile, setup: DamageSetup): 
  * par l'utilisateur : 50 pts = +50 %, 3 pts = +3 %). Multiplicatif sur le
  * TOTAL (sort + tous les passifs), après coup — pas une contribution isolée
  * comme `bonusPvCible`.
+ *
+ * ⚠️ **`bonusDegatsStack`** (Momo, Mage — « Secret Book (Passive) », voir
+ * `monsterBonusDegatsStackable`) : même famille encore (multiplicatif sur le
+ * TOTAL, après coup), mais la source du pourcentage n'est NI une formule NI
+ * la VIT — un état de combat (nombre d'attaques alliées déjà portées) que
+ * l'app ne simule pas. L'utilisateur choisit lui-même le stack actuel
+ * (`setup.stackPersonnalise`, voir `resolvedStackPct`) ; défaut 0 % —
+ * jamais un stack deviné actif.
  */
 export function computeTotalDamage(
   profile: SkillDamageProfile,
@@ -1196,7 +1293,11 @@ export function computeTotalDamage(
   critSiPlusRapide = false,
   // Sonia/Battle Angel (« Evasion (Passive) ») — voir
   // `monsterBonusDegatsSelonVit`. `null` = comportement inchangé.
-  bonusDegatsSelonVit: { ecartMax: number; pctMax: number } | null = null
+  bonusDegatsSelonVit: { ecartMax: number; pctMax: number } | null = null,
+  // Momo/Mage (« Secret Book (Passive) ») — voir `monsterBonusDegatsStackable`.
+  // Le pourcentage EFFECTIF est lu directement dans `setup.stackPersonnalise`
+  // (`resolvedStackPct`), pas passé ici : `null` = comportement inchangé.
+  bonusDegatsStack: BonusDegatsStackableProfile | null = null
 ): number {
   const ecartVit = maVitCombat(stats, setup, element, ampliVitPct) - Math.max(1, setup.enemySpd ?? DEFAULT_DAMAGE_SETUP.enemySpd!);
   const forceCrit = critSiPlusRapide && ecartVit > 0;
@@ -1243,6 +1344,10 @@ export function computeTotalDamage(
     const pct = Math.min(bonusDegatsSelonVit.pctMax, Math.max(0, ecartVit)) * (bonusDegatsSelonVit.pctMax / bonusDegatsSelonVit.ecartMax);
     total *= 1 + pct / 100;
   }
+  // Même famille que `bonusDegatsSelonVit` (multiplicatif sur le TOTAL,
+  // après coup) — seule la SOURCE du pourcentage change : saisie par
+  // l'utilisateur (`resolvedStackPct`) plutôt que déduite de la VIT.
+  if (bonusDegatsStack) total *= 1 + resolvedStackPct(bonusDegatsStack, setup) / 100;
   return total;
 }
 

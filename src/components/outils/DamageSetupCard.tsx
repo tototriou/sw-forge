@@ -3,6 +3,7 @@ import { Check } from 'lucide-react';
 import {
   ATK_BUFF_ICON,
   BRAND_ICON,
+  BonusDegatsStackableProfile,
   CRIT_MODE_LABELS,
   CritMode,
   DamageSetup,
@@ -10,6 +11,7 @@ import {
   DEFAULT_DAMAGE_SETUP,
   DEF_BREAK_ICON,
   DEF_BUFF_ICON,
+  ModificateurVitAffichage,
   PassifOffensifProfile,
   SPD_BUFF_ICON,
   SUMMONER_SKILLS_LABELS,
@@ -19,6 +21,7 @@ import {
   estPrisEnCharge,
   passifActif,
   resolvedHits,
+  resolvedStackPct,
 } from '../../lib/damage';
 import { formuleLisible } from '../../lib/monsterSkills';
 import Jeton from '../../ui/Jeton';
@@ -62,6 +65,11 @@ interface Props {
   // damage.ts) — indépendants du sort choisi, voir la section dédiée
   // plus bas. Vide = rien à afficher (la plupart des monstres).
   passifs: PassifOffensifProfile[];
+  // Modificateurs monstre-wide liés à la VIT SANS formule propre
+  // (`monsterModificateursVit`, damage.ts — Ciri Eau, Rigna, Sonia…),
+  // affichés dans la MÊME liste que `passifs` — corrige un oubli signalé
+  // par l'utilisateur (Sonia/Ciri absentes, contrairement à Feng Yan/Dominic).
+  modificateursVit: ModificateurVitAffichage[];
   setup: DamageSetup;
   setSetup: Dispatch<SetStateAction<DamageSetup>>;
   // `true` tant que la fiche du monstre n'est pas arrivée.
@@ -79,6 +87,10 @@ interface Props {
   // `critSiPlusRapide` pour l'affichage des champs liés à la VIT — `null` =
   // aucun effet.
   bonusDegatsSelonVit: { ecartMax: number; pctMax: number } | null;
+  // Ce monstre porte-t-il un bonus de dégâts ACCUMULABLE en combat (Momo —
+  // `monsterBonusDegatsStackable`, damage.ts) ? Le POURCENTAGE actuel, lui,
+  // est saisi ici même (`setup.stackPersonnalise`) — `null` = pas ce passif.
+  bonusDegatsStack: BonusDegatsStackableProfile | null;
   // Somme des lignes d'artéfact « Effet aug. VIT » ÉQUIPÉES
   // (`speedBuffAmpliPct`, damage.ts) — DÉDUIT, jamais saisi ici ; affiché en
   // clair pour que la VIT calculée ne semble pas sortie de nulle part.
@@ -131,12 +143,14 @@ export default function DamageSetupCard({
   skills,
   resolved,
   passifs,
+  modificateursVit,
   setup,
   setSetup,
   chargement,
   etroit,
   critSiPlusRapide,
   bonusDegatsSelonVit,
+  bonusDegatsStack,
   ampliVitPct,
 }: Props) {
   const maj = (patch: Partial<DamageSetup>) => setSetup((prev) => ({ ...prev, ...patch }));
@@ -231,7 +245,7 @@ export default function DamageSetupCard({
           monstres) : rien ne s'affiche, pas même un « aucun passif connu »
           — un panneau qui parle d'une absence à chaque monstre serait plus
           bruyant qu'utile. */}
-      {passifs.length > 0 && (
+      {(passifs.length > 0 || modificateursVit.length > 0 || bonusDegatsStack) && (
         <div>
           <div className="mb-2 flex items-center gap-1.5">
             <p className="label">Passifs offensifs</p>
@@ -247,6 +261,66 @@ export default function DamageSetupCard({
             </HelpPopover>
           </div>
           <div className="space-y-2">
+            {/* Ciri (Eau)/Rigna/Magic Order Swordsinger (crit garanti si plus
+                rapide) et Sonia/Battle Angel (bonus continu selon l'écart de
+                VIT) : des MODIFICATEURS, pas des passifs à formule — sans
+                bouton (entièrement automatiques dès que la VIT le permet),
+                mais affichés ici comme n'importe quel passif « toujours
+                actif » (Feng Yan, Dominic…), ce qu'ils n'étaient PAS avant —
+                signalé par l'utilisateur. */}
+            {modificateursVit.map((m) => (
+              <div key={`vit-${m.skillCom2usId}`}>
+                <Jeton
+                  icone={m.icone ? <img src={m.icone} alt="" className="h-4 w-4 rounded" loading="lazy" /> : undefined}
+                  libelle={m.nom.replace(/\s*\(Passive\)\s*$/i, '')}
+                  detail="toujours actif"
+                />
+                <p className="mt-1 text-xs leading-snug text-ink-dim">{m.detail}</p>
+                {m.description && <p className="mt-1 text-xs leading-snug text-ink-dim">{m.description}</p>}
+              </div>
+            ))}
+            {/* Momo/Mage (« Secret Book ») : un bonus qui S'ACCUMULE en
+                combat (nombre d'attaques alliées déjà portées) — rien que
+                l'app ne simule, donc un champ pour que le joueur indique
+                lui-même où en est le stack, plutôt qu'un bouton ou une
+                valeur devinée. */}
+            {bonusDegatsStack && (
+              <div key={`stack-${bonusDegatsStack.skillCom2usId}`}>
+                <Jeton
+                  icone={
+                    bonusDegatsStack.icone ? (
+                      <img src={bonusDegatsStack.icone} alt="" className="h-4 w-4 rounded" loading="lazy" />
+                    ) : undefined
+                  }
+                  libelle={bonusDegatsStack.nom.replace(/\s*\(Passive\)\s*$/i, '')}
+                  detail="toujours actif"
+                />
+                {bonusDegatsStack.description && (
+                  <p className="mt-1 text-xs leading-snug text-ink-dim">{bonusDegatsStack.description}</p>
+                )}
+                <label className="mt-1 flex items-center gap-2">
+                  <span className="text-xs text-ink-dim">Stack actuel</span>
+                  <NumberField
+                    value={resolvedStackPct(bonusDegatsStack, setup)}
+                    onChange={(v) =>
+                      maj({
+                        stackPersonnalise: {
+                          ...(setup.stackPersonnalise ?? {}),
+                          [bonusDegatsStack.skillCom2usId]: v ?? 0,
+                        },
+                      })
+                    }
+                    step={bonusDegatsStack.pctParStack}
+                    min={0}
+                    max={bonusDegatsStack.pctMax}
+                    suffix="%"
+                    boxWidth="w-28"
+                    title="Ce que l'app ne peut pas savoir (le nombre d'attaques alliées déjà portées ce combat) — à toi de le renseigner, désactivé (0 %) par défaut"
+                    ariaLabel="Pourcentage de stack actuel du bonus de dégâts"
+                  />
+                </label>
+              </div>
+            )}
             {passifs.map((p) => {
               const nom = p.nom.replace(/\s*\(Passive\)\s*$/i, '');
               const icone = p.profile.icone ? (
@@ -406,18 +480,14 @@ export default function DamageSetupCard({
                   ariaLabel="Bonus de VIT en pourcentage du leader skill de l'équipe"
                 />
               </label>
+              {/* ⚠️ Pas de rappel de `critSiPlusRapide`/`bonusDegatsSelonVit`
+                  ici : ces deux modificateurs apparaissent maintenant dans
+                  « Passifs offensifs » ci-dessus (icône + description),
+                  plus complet qu'une ligne de texte — les dupliquer ferait
+                  redite. */}
               {ampliVitPct > 0 && (
                 <span className="text-xs text-ink-dim">
                   + artéfact « Effet aug. VIT » : le buff de VIT est amplifié de {ampliVitPct} %
-                </span>
-              )}
-              {critSiPlusRapide && (
-                <span className="text-xs text-ink-dim">Critique garanti si plus rapide que l'adversaire</span>
-              )}
-              {bonusDegatsSelonVit && (
-                <span className="text-xs text-ink-dim">
-                  +{bonusDegatsSelonVit.pctMax} % de dégâts à {bonusDegatsSelonVit.ecartMax} points d'écart de VIT ou
-                  plus (linéaire en-dessous)
                 </span>
               )}
             </>

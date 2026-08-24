@@ -460,6 +460,44 @@ au pré-filtrage MÊME si aucun sort actif de Sonia n'en dépend directement
 (`Guard Crush` : `3.5*{ATK}` nu) — vérifié sur un compte réel : « stats
 privilégiées [atk, spd, cd] ».
 
+### Les modificateurs monstre-wide s'affichent maintenant dans « Passifs offensifs »
+
+⚠️ **Bug signalé par l'utilisateur** : `critSiPlusRapide` (Ciri Eau, Rigna,
+Magic Order Swordsinger) et `bonusDegatsSelonVit` (Sonia, Battle Angel)
+étaient CALCULÉS mais jamais AFFICHÉS — contrairement à Feng Yan ou Dominic
+(des vrais `PASSIFS_OFFENSIFS_CONNUS`), rien dans « Passifs offensifs » ne
+signalait leur existence, seule une ligne de texte discrète près du champ
+« VIT adversaire » en parlait.
+
+`monsterModificateursVit(detail)` (nouvelle fonction d'AFFICHAGE seule,
+jamais utilisée par le calcul) renvoie nom/description/icône SWARFARM de
+ces passifs, réutilisés dans la MÊME liste que `passifs`, avec le même rendu
+« toujours actif » (Jeton, pas de bouton — rien à cocher, entièrement
+automatique dès que la VIT le permet). La ligne de texte près du champ VIT
+adversaire est retirée : la liste, plus complète, ferait redite.
+
+### Bonus de dégâts ACCUMULABLE en combat (Momo, Mage)
+
+Momo/Mage (`Secret Book (Passive)`, sans formule ni dégâts propres — même
+famille que les modificateurs ci-dessus) : « increases the damage by 10%
+each, up to 200%, whenever an ally attacks an enemy ». ⚠️ **Contrairement à
+`bonusDegatsSelonVit`, RIEN ici ne se déduit d'un état déjà connu de
+l'app** — le nombre d'attaques alliées déjà portées ce combat n'est simulé
+nulle part. L'utilisateur choisit lui-même le niveau de stack ACTUEL, via un
+champ numérique (0 à 200 %, pas de 10) qui apparaît dans « Passifs
+offensifs » à côté du Jeton du passif — désactivé (0 %) par défaut, jamais
+un stack deviné.
+
+Curé dans `BONUS_DEGATS_STACKABLE_CONNUS` (`{ pctParStack, pctMax }`),
+détecté par `monsterBonusDegatsStackable(detail)`. `DamageSetup.
+stackPersonnalise` (`Record<skillCom2usId, number>`, même espace de clés
+que `passifsOffensifs`/`coupsPersonnalises`) porte le choix ;
+`resolvedStackPct(profil, setup)` le résout, borné à `pctMax` (même
+discipline défensive que `resolvedHits`). `computeTotalDamage(...,
+bonusDegatsStack)` l'applique multiplicativement sur le TOTAL, après coup —
+même famille que `bonusDegatsSelonVit`, seule la SOURCE du pourcentage
+change (saisie plutôt que déduite de la VIT).
+
 ## Stats à privilégier dans la recherche
 
 `damageRelevantStats(profil)` renvoie les statistiques que le sort fait

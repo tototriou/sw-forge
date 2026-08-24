@@ -38,12 +38,15 @@ import {
   estPrisEnCharge,
   maVitCombat,
   monsterBonusDegatsSelonVit,
+  monsterBonusDegatsStackable,
   monsterCritSiPlusRapide,
   monsterDamageSkills,
+  monsterModificateursVit,
   monsterOffensivePassives,
   passifActif,
   resolveDamageSkill,
   resolvedHits,
+  resolvedStackPct,
   skillDamageProfile,
   speedBuffAmpliPct,
   summonerSkillBonus,
@@ -421,6 +424,82 @@ export default function testDegats() {
   ok(
     damageRelevantStats(soniaBase, [], soniaSetup, false, soniaConfig).includes('spd'),
     'la VIT est privilégiée au pré-filtrage même si AUCUN sort de Sonia ne la lit directement'
+  );
+
+  // `monsterModificateursVit` — AFFICHAGE seul (icône/nom/description) des
+  // deux modificateurs, pour qu'ils apparaissent dans « Passifs offensifs »
+  // comme Feng Yan/Dominic — signalé absent par l'utilisateur.
+  const modifSonia = monsterModificateursVit(sonia);
+  egal(modifSonia.length, 1, 'Sonia : un seul modificateur affiché (Evasion)');
+  egal(modifSonia[0]?.nom, 'Evasion (Passive)', 'nom exact du passif, pour l’icône/la recherche SWARFARM');
+  ok(modifSonia[0]?.detail.includes('+50 %'), 'le détail affiché mentionne le plafond');
+  const modifRigna = monsterModificateursVit(rigna);
+  egal(modifRigna.length, 1, 'Rigna : un seul modificateur affiché (Speed Difference)');
+  ok(modifRigna[0]?.detail.includes('critique garanti'), 'le détail affiché de Rigna mentionne le critique, pas un bonus de dégâts');
+  egal(monsterModificateursVit(fiche(LUSHEN)).length, 0, 'Lushen : aucun modificateur');
+  egal(monsterModificateursVit(null).length, 0, 'fiche absente : liste vide, jamais une exception');
+
+  titre('Dégâts réels — bonus de dégâts ACCUMULABLE (Momo)');
+
+  // Momo — « Secret Book (Passive) » : « increases the damage by 10% each,
+  // up to 200%, whenever an ally attacks » — RIEN que l'app ne simule (le
+  // nombre d'attaques alliées portées ce combat), donc un champ saisi par
+  // l'utilisateur plutôt qu'un état déduit.
+  const momo = fiche(25213);
+  const momoBase = defaultDamageSkill(monsterDamageSkills(momo));
+  ok(momoBase !== null, 'Momo : un sort de dégâts par défaut est trouvé');
+  egal(monsterOffensivePassives(momo).length, 0, 'Secret Book N’EST PAS un passif offensif : aucune formule, aucun dégât propre');
+  const stackMomo = monsterBonusDegatsStackable(momo)!;
+  ok(stackMomo != null, 'Momo porte bien le bonus accumulable');
+  egal(stackMomo.pctParStack, 10, '10 % par stack, confirmé par le texte du jeu');
+  egal(stackMomo.pctMax, 200, 'plafonné à 200 %, confirmé par le texte du jeu');
+  ok(!monsterBonusDegatsStackable(fiche(LUSHEN)), 'Lushen n’a pas ce mécanisme');
+  ok(!monsterBonusDegatsStackable(null), 'fiche absente : null, jamais une exception');
+
+  const momoStats = stats({ atk: 2000, cd: 200, cr: 100 });
+  const momoSetupSansStack: DamageSetup = {
+    ...DEFAULT_DAMAGE_SETUP,
+    skillCom2usId: momoBase!.skillCom2usId,
+    summonerSkills: 'aucune',
+    critMode: 'normal',
+  };
+  egal(resolvedStackPct(stackMomo, momoSetupSansStack), 0, 'sans réglage utilisateur, le stack retombe sur 0 % — jamais deviné actif');
+  const momoSansStack = computeSkillDamage(momoBase!, momoStats, momoSetupSansStack, null);
+  const totalSansStack = computeTotalDamage(momoBase!, [], momoStats, momoSetupSansStack, null, 0, false, null, stackMomo);
+  egal(totalSansStack, momoSansStack, 'stack à 0 % : aucun effet sur les dégâts');
+
+  const momoSetup50: DamageSetup = {
+    ...momoSetupSansStack,
+    stackPersonnalise: { [stackMomo.skillCom2usId]: 50 },
+  };
+  egal(resolvedStackPct(stackMomo, momoSetup50), 50, 'le stack saisi (50 %) est bien repris');
+  const momoTotal50 = computeTotalDamage(momoBase!, [], momoStats, momoSetup50, null, 0, false, null, stackMomo);
+  ok(Math.abs(momoTotal50 / momoSansStack - 1.5) < 1e-9, '50 % de stack : exactement +50 % de dégâts');
+
+  // Hors plage — jamais laissé tel quel (recette écrite pour une autre
+  // version des données, ou stack saisi puis monstre différent chargé).
+  const momoSetupTropHaut: DamageSetup = {
+    ...momoSetupSansStack,
+    stackPersonnalise: { [stackMomo.skillCom2usId]: 350 },
+  };
+  egal(resolvedStackPct(stackMomo, momoSetupTropHaut), 200, 'un stack saisi AU-DELÀ de 200 % est borné, jamais plus');
+  const totalTropHaut = computeTotalDamage(momoBase!, [], momoStats, momoSetupTropHaut, null, 0, false, null, stackMomo);
+  const total200 = computeTotalDamage(
+    momoBase!,
+    [],
+    momoStats,
+    { ...momoSetupSansStack, stackPersonnalise: { [stackMomo.skillCom2usId]: 200 } },
+    null,
+    0,
+    false,
+    null,
+    stackMomo
+  );
+  egal(totalTropHaut, total200, '350 % saisi ou 200 % pile : même résultat, le plafond fait foi');
+
+  ok(
+    computeTotalDamage(momoBase!, [], momoStats, momoSetup50, null, 0, false, null, null) === momoSansStack,
+    'bonusDegatsStack=null (monstre sans ce passif) : le champ stackPersonnalise de la recette est ignoré'
   );
 
   titre('Dégâts réels — stats à privilégier dans la recherche');

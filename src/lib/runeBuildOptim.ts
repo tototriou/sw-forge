@@ -47,7 +47,15 @@ import { MAX_SET_PIECES, RUNE_EFFECT, SET_STAT_BONUS, StatKey, activeSets, runeE
 import { computeStats, StatRow } from './stats';
 import { missingSets } from './recoMatch';
 import { OptimMetric } from './runeOptim';
-import { DEF_FACTOR_CONST, DEF_FACTOR_COEF, DamageSetup, PassifOffensifProfile, SkillDamageProfile, computeTotalDamage } from './damage';
+import {
+  DEF_FACTOR_CONST,
+  DEF_FACTOR_COEF,
+  BonusDegatsStackableProfile,
+  DamageSetup,
+  PassifOffensifProfile,
+  SkillDamageProfile,
+  computeTotalDamage,
+} from './damage';
 
 // Statistiques principales possibles, par emplacement — RÈGLES DU JEU. Les
 // slots 1/3/5 ont une principale FIXE (ATQ plat / DEF plat / PV plat) : pas
@@ -336,6 +344,11 @@ export interface RealDamageContext {
   // voir `monsterBonusDegatsSelonVit`) ? Déduit de la fiche, jamais saisi.
   // `null` = comportement inchangé.
   bonusDegatsSelonVit: { ecartMax: number; pctMax: number } | null;
+  // Ce monstre porte-t-il un bonus de dégâts ACCUMULABLE (Momo — voir
+  // `monsterBonusDegatsStackable`) ? Déduit de la fiche ; le POURCENTAGE,
+  // lui, est saisi par l'utilisateur (`setup.stackPersonnalise`). `null` =
+  // comportement inchangé.
+  bonusDegatsStack: BonusDegatsStackableProfile | null;
 }
 
 export function objectiveScore(candidate: BuildCandidate, objective: Objective, realDamage?: RealDamageContext): number {
@@ -360,7 +373,8 @@ export function objectiveScore(candidate: BuildCandidate, objective: Objective, 
       realDamage.element,
       realDamage.ampliVitPct,
       realDamage.critSiPlusRapide,
-      realDamage.bonusDegatsSelonVit
+      realDamage.bonusDegatsSelonVit,
+      realDamage.bonusDegatsStack
     );
   }
   if (objective === 'degats') {

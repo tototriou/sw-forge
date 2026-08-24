@@ -41,8 +41,10 @@ import {
   computeTotalDamage,
   damageRelevantStats,
   monsterBonusDegatsSelonVit,
+  monsterBonusDegatsStackable,
   monsterCritSiPlusRapide,
   monsterDamageSkills,
+  monsterModificateursVit,
   monsterOffensivePassives,
   resolveDamageSkill,
   speedBuffAmpliPct,
@@ -312,6 +314,13 @@ export default function OptimizerSection({ box, runes, optimizer, allMonsters, r
   // pour un sort dont la formule ne la lit pas (voir `damageRelevantStats`).
   const critSiPlusRapide = useMemo(() => monsterCritSiPlusRapide(skillDetail), [skillDetail]);
   const bonusDegatsSelonVit = useMemo(() => monsterBonusDegatsSelonVit(skillDetail), [skillDetail]);
+  // Momo/Mage — le pourcentage EFFECTIF vit dans `damageSetup.stackPersonnalise`
+  // (saisi par l'utilisateur), pas ici : ceci ne porte que la DÉTECTION du
+  // passif (nom/plafond), comme les deux modificateurs ci-dessus.
+  const bonusDegatsStack = useMemo(() => monsterBonusDegatsStackable(skillDetail), [skillDetail]);
+  // Affichage seul (icône/nom/description) des deux modificateurs VIT
+  // ci-dessus, pour « Passifs offensifs » — voir `DamageSetupCard.tsx`.
+  const modificateursVit = useMemo(() => monsterModificateursVit(skillDetail), [skillDetail]);
   // Stats que le pré-filtrage doit privilégier — `undefined` hors de cet
   // objectif, auquel cas le moteur retombe sur `OBJECTIVE_RELEVANT_STATS`
   // (comportement strictement inchangé pour les cinq autres objectifs).
@@ -559,9 +568,19 @@ export default function OptimizerSection({ box, runes, optimizer, allMonsters, r
             ampliVitPct,
             critSiPlusRapide,
             bonusDegatsSelonVit,
+            bonusDegatsStack,
           }
         : null,
-    [resolvedSkill, damageSetup, speciesSelected?.monster.element, offensivePassives, ampliVitPct, critSiPlusRapide, bonusDegatsSelonVit]
+    [
+      resolvedSkill,
+      damageSetup,
+      speciesSelected?.monster.element,
+      offensivePassives,
+      ampliVitPct,
+      critSiPlusRapide,
+      bonusDegatsSelonVit,
+      bonusDegatsStack,
+    ]
   );
 
   // Ce que le moteur reçoit réellement — partagé entre la recherche et
@@ -1437,12 +1456,14 @@ export default function OptimizerSection({ box, runes, optimizer, allMonsters, r
               skills={damageSkills}
               resolved={resolvedSkill}
               passifs={offensivePassives}
+              modificateursVit={modificateursVit}
               setup={damageSetup}
               setSetup={setDamageSetup}
               chargement={skillLoading}
               etroit={etroit}
               critSiPlusRapide={critSiPlusRapide}
               bonusDegatsSelonVit={bonusDegatsSelonVit}
+              bonusDegatsStack={bonusDegatsStack}
               ampliVitPct={ampliVitPct}
             />
           </div>
@@ -2196,7 +2217,8 @@ export default function OptimizerSection({ box, runes, optimizer, allMonsters, r
                           realDamage.element,
                           realDamage.ampliVitPct,
                           realDamage.critSiPlusRapide,
-                          realDamage.bonusDegatsSelonVit
+                          realDamage.bonusDegatsSelonVit,
+                          realDamage.bonusDegatsStack
                         );
                         return { total, partPvCible: damageSetup.enemyHp > 0 ? (total / damageSetup.enemyHp) * 100 : 0 };
                       })()

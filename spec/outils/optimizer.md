@@ -351,17 +351,23 @@ retour.
        pour ces sorts-là. Détail : [degats-reels.md](degats-reels.md),
        « Coups variables ».
      - **Passifs offensifs** — n'apparaît que si le monstre en a un
-       (Feng Yan, Sia, Roid, Dominic…) : des dégâts **en plus** du sort
-       choisi ci-dessus, via un passif reconnu (liste à la main, voir
+       (Feng Yan, Sia, Roid, Dominic, Ciri, Sonia, Momo…) : des dégâts **en
+       plus** du sort choisi ci-dessus, OU un modificateur sur l'ensemble de
+       ses dégâts, via un passif reconnu (liste à la main, voir
        [degats-reels.md](degats-reels.md)). Un passif **toujours actif** (le
        texte du jeu ne pose aucune condition) apparaît en jeton simple, sans
-       bouton. Un passif **bonus** ou **conditionnel** apparaît en bouton,
-       **désactivé par défaut**. ⚠️ **Jamais déduit d'un autre réglage de
-       l'écran** (le passif d'un monstre peut dépendre de l'état posé par son
-       **propre** sort, avant même que ce sort ne soit lancé : aucun réglage
-       existant ne peut trancher ça à sa place) — la condition et le texte du
-       jeu (`Competence.description`) sont affichés **en clair sous chaque
-       passif**, pas seulement au survol, pour que le joueur juge lui-même.
+       bouton — y compris un modificateur sans formule propre (crit garanti
+       si plus rapide, bonus continu selon l'écart de VIT). Un passif
+       **bonus** ou **conditionnel** apparaît en bouton, **désactivé par
+       défaut** ; un passif dont le bonus S'ACCUMULE en combat sans que
+       l'app ne puisse le savoir (Momo) apparaît avec un **champ numérique**
+       (0 % par défaut) plutôt qu'un bouton. ⚠️ **Jamais déduit d'un autre
+       réglage de l'écran** (le passif d'un monstre peut dépendre de l'état
+       posé par son **propre** sort, avant même que ce sort ne soit lancé :
+       aucun réglage existant ne peut trancher ça à sa place) — la condition
+       et le texte du jeu (`Competence.description`) sont affichés **en
+       clair sous chaque passif**, pas seulement au survol, pour que le
+       joueur juge lui-même.
      - **Adversaire** — PV et DEF. ⚠️ Les **PV ne classent rien** : ils ne
        servent qu'à lire le résultat (« 42 % des PV », « tue la cible »).
        Un champ **PV restants** n'apparaît que pour les sorts dont la

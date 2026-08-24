@@ -32,12 +32,14 @@ import {
   bonusPassifActif,
   damageRelevantStats,
   monsterBonusDegatsSelonVit,
+  monsterBonusDegatsStackable,
   monsterCritSiPlusRapide,
   monsterDamageSkills,
   monsterOffensivePassives,
   passifActif,
   resolveDamageSkill,
   resolvedHits,
+  resolvedStackPct,
   speedBuffAmpliPct,
 } from '../src/lib/damage';
 import { runSearchToCompletion } from './lib/runSearch';
@@ -198,6 +200,13 @@ if (recipe.objective === 'degats_reels') {
     if (bonusVit) {
       console.log(
         `Ce monstre majore tous ses dégâts selon l'écart de VIT : +${bonusVit.pctMax} % à ${bonusVit.ecartMax} points d'écart ou plus (VIT adverse : ${s.enemySpd ?? DEFAULT_DAMAGE_SETUP.enemySpd}).`
+      );
+    }
+    const bonusStack = monsterBonusDegatsStackable(detail);
+    if (bonusStack) {
+      const pct = resolvedStackPct(bonusStack, s);
+      console.log(
+        `Ce monstre porte un bonus de dégâts accumulable (« ${bonusStack.nom} », jusqu'à +${bonusStack.pctMax} %) — stack de la recette : +${pct} %.`
       );
     }
     if (passifs.length > 0) {

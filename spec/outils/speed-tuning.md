@@ -482,8 +482,13 @@ De haut en bas :
      chiffre qui manque**, rien de plus.
    - ⚠️ **« Ordre des sorts » est une card INDÉPENDANTE**, pas un sous-bloc et pas
      un panneau qu'on ouvre depuis l'analyse : elle est là comme les grilles.
-     L'analyse **la remplit**, mais les deux se lisent et se règlent séparément —
-     l'une se lit, l'autre se règle.
+     L'analyse **la remplit**, mais les deux se lisent et se règlent séparément.
+   - ⚠️ **Les deux cards sont CÔTE À CÔTE** : celle de l'analyse tient en deux
+     lignes, la laisser seule sur toute la largeur gaspillait l'écran et
+     éloignait le verdict du réglage qui y répond. `flex-wrap` + une largeur
+     minimale par card (280 / 380 px) **sans breakpoint**, comme les deux camps :
+     elles s'empilent dès qu'il n'y a plus la place. `items-start`, pour que la
+     petite ne soit pas étirée à la hauteur de la grande.
    - Sans personne en face, « Analyser » pose en plus l'**adversaire de
      référence**.
 4. **Ordre des sorts** — card à part (voir « Ordre des sorts » plus bas).

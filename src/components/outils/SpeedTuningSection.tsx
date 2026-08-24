@@ -949,197 +949,205 @@ export default function SpeedTuningSection({ allMonsters, siegeDefenseTeams, sie
         </div>
       ) : (
         <>
-          {/* ⚠️ UNE SEULE card pour tout ce que l'outil fait de lui-même : le
-              verdict, ses deux boutons, et l'ordre des sorts. Ils étaient dans
-              deux cadres séparés, ce qui laissait croire à deux outils — alors
-              que « Cacher » les coupe ensemble. */}
-          <section className="rounded-lg border border-border bg-panel">
-            <div className="flex flex-wrap items-center gap-x-3 gap-y-2 border-b border-border-soft px-4 py-2.5">
-              <span className="text-micro font-semibold uppercase tracking-wider text-ink-dimmer">
-                Analyse automatique
-              </span>
-              <span className="ml-auto flex flex-wrap items-center gap-2">
-                {/* ⚠️ Une ACTION, pas un mode : l'analyse ÉCRIT dans les grilles
-                    puis s'arrête. Un interrupteur laissait croire à une couche
-                    qui tourne en fond et qui repasserait sur ce qu'on règle. */}
-                <Bouton
-                  icone={<Play size={14} />}
-                  libelle={auto ? 'Relancer' : 'Analyser'}
-                  disabled={!aAllie}
-                  title={
-                    !aAllie
-                      ? "Ajoute d'abord des monstres à ton équipe."
-                      : "Lit les kits et POSE le résultat dans les grilles, comme si tu les remplissais à la main. Ensuite tout est modifiable : l'analyse ne repasse plus, sauf si tu changes un sort."
-                  }
-                  onClick={analyser}
-                />
-              </span>
-            </div>
-            {/* ⚠️ Sans adversaire, il n'y a pas de verdict — et rien à dire :
-                le corps ne s'affiche pas du tout plutôt que de porter une phrase
-                qui explique l'évidence. */}
-            {(!aAllie || chaine.coupeur) && (
-              <div className="px-4 py-3.5">
-                  {!aAllie ? (
-                    <p className="text-sm text-ink-dim">
-                      Ajoute des monstres à ton équipe pour vérifier que rien ne la coupe.
-                    </p>
-                  ) : chaine.ok ? (
-                    <p className="flex items-center gap-2 text-sm font-semibold text-good">
-                      <Check size={16} className="flex-none" />
-                      Ta team est speed tune.
-                    </p>
-                  ) : (
-                    <>
-                      <p className="flex items-center gap-2 text-sm font-semibold text-bad">
-                        <Scissors size={16} className="flex-none" />
-                        {chaine.coupeur ? nomDe(chaine.coupeur.id) : 'Un adverse'} coupe ton combo.
-                      </p>
-                      {/* ⚠️ Une ligne = un nom et le chiffre à trouver, rien de
-                          plus : ce qu'on vient chercher ici, c'est « combien il me
-                          manque », pas un récit. */}
-                      <ul className="mt-2.5 flex flex-wrap gap-x-4 gap-y-1.5">
-                        {chaine.coupes.map((c) => {
-                          const l = ligneParUid.get(c.id);
-                          if (!l) return null;
-                          const cible = requisParUid.get(c.id)?.combatRequis ?? null;
-                          const a = arteParUid.get(c.id);
-                          const arte = a?.artefactRequis ?? null;
-                          return (
-                            <li key={c.id} className="flex items-center gap-2 text-sm">
-                              <MonsterAvatar monster={l.monster} size={22} element={false} />
-                              <span className="font-semibold">{l.monster.name}</span>
-                              {besoin(l, cible, arte, a?.artefactActuel ?? 0)}
-                            </li>
-                          );
-                        })}
-                      </ul>
-                    </>
-                  )}
-              </div>
-            )}
-          </section>
-
-          {/* ⚠️ Une card INDÉPENDANTE : elle ne s'ouvre ni ne se ferme depuis
-              l'analyse, elle est là comme les grilles. L'analyse la REMPLIT — elle
-              y écrit l'ordre des vitesses et le sort de chacun — mais les deux
-              se lisent et se règlent séparément. */}
-          <section className="rounded-lg border border-border bg-panel">
-              <div className="border-b border-border-soft px-4 py-2.5 text-micro font-semibold uppercase tracking-wider text-ink-dimmer">
-                Ordre des sorts
-                <span className="ml-2 font-normal normal-case tracking-normal text-ink-dimmer">
-                  · range tes monstres dans l'ordre voulu et dis ce que chacun lance
+          {/* ⚠️ CÔTE À CÔTE : la card d'analyse tient en deux lignes, la laisser
+              seule sur toute la largeur gaspillait l'écran et éloignait le
+              verdict du réglage qui y répond. `flex-wrap` + une largeur minimale
+              par card, sans breakpoint : elles s'empilent dès qu'il n'y a plus
+              la place, comme les deux camps. `items-start` pour que la petite ne
+              soit pas étirée à la hauteur de la grande. */}
+          <div className="flex flex-wrap items-start gap-4">
+            {/* ⚠️ UNE SEULE card pour tout ce que l'outil fait de lui-même : le
+                verdict, ses deux boutons, et l'ordre des sorts. Ils étaient dans
+                deux cadres séparés, ce qui laissait croire à deux outils — alors
+                que « Cacher » les coupe ensemble. */}
+            <section className="min-w-[280px] flex-1 rounded-lg border border-border bg-panel">
+              <div className="flex flex-wrap items-center gap-x-3 gap-y-2 border-b border-border-soft px-4 py-2.5">
+                <span className="text-micro font-semibold uppercase tracking-wider text-ink-dimmer">
+                  Analyse automatique
+                </span>
+                <span className="ml-auto flex flex-wrap items-center gap-2">
+                  {/* ⚠️ Une ACTION, pas un mode : l'analyse ÉCRIT dans les grilles
+                      puis s'arrête. Un interrupteur laissait croire à une couche
+                      qui tourne en fond et qui repasserait sur ce qu'on règle. */}
+                  <Bouton
+                    icone={<Play size={14} />}
+                    libelle={auto ? 'Relancer' : 'Analyser'}
+                    disabled={!aAllie}
+                    title={
+                      !aAllie
+                        ? "Ajoute d'abord des monstres à ton équipe."
+                        : "Lit les kits et POSE le résultat dans les grilles, comme si tu les remplissais à la main. Ensuite tout est modifiable : l'analyse ne repasse plus, sauf si tu changes un sort."
+                    }
+                    onClick={analyser}
+                  />
                 </span>
               </div>
-              <div className="px-4 py-3.5">
-                    {ordreVoulu.length === 0 ? (
-                      <p className="text-sm text-ink-dim">Ajoute des monstres à ton équipe pour composer un ordre.</p>
+              {/* ⚠️ Sans adversaire, il n'y a pas de verdict — et rien à dire :
+                  le corps ne s'affiche pas du tout plutôt que de porter une phrase
+                  qui explique l'évidence. */}
+              {(!aAllie || chaine.coupeur) && (
+                <div className="px-4 py-3.5">
+                    {!aAllie ? (
+                      <p className="text-sm text-ink-dim">
+                        Ajoute des monstres à ton équipe pour vérifier que rien ne la coupe.
+                      </p>
+                    ) : chaine.ok ? (
+                      <p className="flex items-center gap-2 text-sm font-semibold text-good">
+                        <Check size={16} className="flex-none" />
+                        Ta team est speed tune.
+                      </p>
                     ) : (
                       <>
-                        <p
-                          className={`flex items-center gap-2 text-sm font-semibold ${
-                            sequence.ok ? 'text-good' : 'text-bad'
-                          }`}
-                        >
-                          {sequence.ok ? <Check size={16} /> : <Scissors size={16} />}
-                          {sequence.ok
-                            ? "L'ordre demandé est bien celui que produisent tes vitesses."
-                            : "Tes vitesses ne produisent pas cet ordre."}
+                        <p className="flex items-center gap-2 text-sm font-semibold text-bad">
+                          <Scissors size={16} className="flex-none" />
+                          {chaine.coupeur ? nomDe(chaine.coupeur.id) : 'Un adverse'} coupe ton combo.
                         </p>
-                        <ul className="mt-3 space-y-2">
-                          {ordreVoulu.map((uid, i) => {
-                            const l = ligneParUid.get(uid);
+                        {/* ⚠️ Une ligne = un nom et le chiffre à trouver, rien de
+                            plus : ce qu'on vient chercher ici, c'est « combien il me
+                            manque », pas un récit. */}
+                        <ul className="mt-2.5 flex flex-wrap gap-x-4 gap-y-1.5">
+                          {chaine.coupes.map((c) => {
+                            const l = ligneParUid.get(c.id);
                             if (!l) return null;
-                            const p = problemeParUid.get(uid);
-                            const f = fenetreParUid.get(uid);
-                            const liste = sortsDe(l);
-                            const choix = sortChoisi[uid];
+                            const cible = requisParUid.get(c.id)?.combatRequis ?? null;
+                            const a = arteParUid.get(c.id);
+                            const arte = a?.artefactRequis ?? null;
                             return (
-                              <li
-                                key={uid}
-                                className="flex flex-wrap items-center gap-x-2.5 gap-y-2 rounded-lg border border-border bg-panel2 px-2.5 py-2"
-                              >
-                                <span className="flex flex-none items-center gap-1">
-                                  <BoutonIcone
-                                    taille="serre"
-                                    onClick={() => deplacer(uid, -1)}
-                                    disabled={i === 0}
-                                    libelle={`Monter ${l.monster.name}`}
-                                    icone={<ChevronUp size={13} />}
-                                  />
-                                  <BoutonIcone
-                                    taille="serre"
-                                    onClick={() => deplacer(uid, 1)}
-                                    disabled={i === ordreVoulu.length - 1}
-                                    libelle={`Descendre ${l.monster.name}`}
-                                    icone={<ChevronDown size={13} />}
-                                  />
-                                </span>
-                                <span className="flex h-5 w-5 flex-none items-center justify-center rounded-full bg-accent text-micro font-bold text-bg">
-                                  {i + 1}
-                                </span>
-                                <MonsterAvatar monster={l.monster} size={24} element={false} />
-                                <span className="min-w-0 flex-1 truncate text-sm font-semibold">{l.monster.name}</span>
-                                {/* Ce qu'il LANCE à son tour : la détection propose,
-                                    ici on tranche (un sort du kit, ou aucun). */}
-                                <ChoixSort
-                                  sorts={liste}
-                                  valeur={choix ?? ''}
-                                  onChoisir={(v) => choisirSort(uid, v)}
-                                  nomMonstre={l.monster.name}
-                                />
-                                {/* ⚠️ Sa compétence lui REND son tour (Kroa) : il
-                                    rejoue au même tick, et lance autre chose. On ne
-                                    devine pas quoi — à désigner. */}
-                                {sortActif(l)?.rejoue && (
-                                  <span className="flex items-center gap-1.5">
-                                    <span
-                                      className="flex-none rounded border border-accent/50 px-1 text-micro font-bold uppercase tracking-wide text-accent"
-                                      title="Cette compétence lui rend son tour : il rejoue aussitôt, au même tick."
-                                    >
-                                      rejoue
-                                    </span>
-                                    <ChoixSort
-                                      sorts={liste.filter((x) => x.nom !== sortActif(l)?.nom)}
-                                      valeur={sortChoisi2[uid] ?? ''}
-                                      onChoisir={(v) => choisirSecond(uid, v)}
-                                      prefixe="puis : "
-                                      nomMonstre={l.monster.name}
-                                    />
-                                  </span>
-                                )}
-                                <span className="w-full sm:w-auto sm:flex-none">
-                                  {p ? (
-                                    <span className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs">
-                                      <span className="font-semibold text-bad">{LIBELLE_RAISON[p.raison]}</span>
-                                      {(() => {
-                                        const cible = cibleFenetre(f);
-                                        const arte = cibleFenetre(fenetreArteParUid.get(uid));
-                                        return besoin(
-                                          l,
-                                          cible ?? null,
-                                          arte ?? null,
-                                          fenetreArteParUid.get(uid)?.combatActuel ?? 0
-                                        );
-                                      })()}
-                                    </span>
-                                  ) : (
-                                    <Check size={13} className="text-good" />
-                                  )}
-                                </span>
+                              <li key={c.id} className="flex items-center gap-2 text-sm">
+                                <MonsterAvatar monster={l.monster} size={22} element={false} />
+                                <span className="font-semibold">{l.monster.name}</span>
+                                {besoin(l, cible, arte, a?.artefactActuel ?? 0)}
                               </li>
                             );
                           })}
                         </ul>
-                        <p className="mt-2.5 text-xs text-ink-dim">
-                          ⚠️ Une fenêtre se lit <span className="text-ink">les autres inchangés</span> : elle dit ce que
-                          ce rang laisse à CE monstre aujourd'hui. Corriger un monstre déplace celles des voisins — on
-                          règle un ordre un monstre à la fois.
-                        </p>
                       </>
                     )}
-            </div>
-          </section>
+                </div>
+              )}
+            </section>
+
+            {/* ⚠️ Une card INDÉPENDANTE : elle ne s'ouvre ni ne se ferme depuis
+                l'analyse, elle est là comme les grilles. L'analyse la REMPLIT — elle
+                y écrit l'ordre des vitesses et le sort de chacun — mais les deux
+                se lisent et se règlent séparément. */}
+            <section className="min-w-[380px] flex-[2] rounded-lg border border-border bg-panel">
+                <div className="border-b border-border-soft px-4 py-2.5 text-micro font-semibold uppercase tracking-wider text-ink-dimmer">
+                  Ordre des sorts
+                  <span className="ml-2 font-normal normal-case tracking-normal text-ink-dimmer">
+                    · range tes monstres dans l'ordre voulu et dis ce que chacun lance
+                  </span>
+                </div>
+                <div className="px-4 py-3.5">
+                      {ordreVoulu.length === 0 ? (
+                        <p className="text-sm text-ink-dim">Ajoute des monstres à ton équipe pour composer un ordre.</p>
+                      ) : (
+                        <>
+                          <p
+                            className={`flex items-center gap-2 text-sm font-semibold ${
+                              sequence.ok ? 'text-good' : 'text-bad'
+                            }`}
+                          >
+                            {sequence.ok ? <Check size={16} /> : <Scissors size={16} />}
+                            {sequence.ok
+                              ? "L'ordre demandé est bien celui que produisent tes vitesses."
+                              : "Tes vitesses ne produisent pas cet ordre."}
+                          </p>
+                          <ul className="mt-3 space-y-2">
+                            {ordreVoulu.map((uid, i) => {
+                              const l = ligneParUid.get(uid);
+                              if (!l) return null;
+                              const p = problemeParUid.get(uid);
+                              const f = fenetreParUid.get(uid);
+                              const liste = sortsDe(l);
+                              const choix = sortChoisi[uid];
+                              return (
+                                <li
+                                  key={uid}
+                                  className="flex flex-wrap items-center gap-x-2.5 gap-y-2 rounded-lg border border-border bg-panel2 px-2.5 py-2"
+                                >
+                                  <span className="flex flex-none items-center gap-1">
+                                    <BoutonIcone
+                                      taille="serre"
+                                      onClick={() => deplacer(uid, -1)}
+                                      disabled={i === 0}
+                                      libelle={`Monter ${l.monster.name}`}
+                                      icone={<ChevronUp size={13} />}
+                                    />
+                                    <BoutonIcone
+                                      taille="serre"
+                                      onClick={() => deplacer(uid, 1)}
+                                      disabled={i === ordreVoulu.length - 1}
+                                      libelle={`Descendre ${l.monster.name}`}
+                                      icone={<ChevronDown size={13} />}
+                                    />
+                                  </span>
+                                  <span className="flex h-5 w-5 flex-none items-center justify-center rounded-full bg-accent text-micro font-bold text-bg">
+                                    {i + 1}
+                                  </span>
+                                  <MonsterAvatar monster={l.monster} size={24} element={false} />
+                                  <span className="min-w-0 flex-1 truncate text-sm font-semibold">{l.monster.name}</span>
+                                  {/* Ce qu'il LANCE à son tour : la détection propose,
+                                      ici on tranche (un sort du kit, ou aucun). */}
+                                  <ChoixSort
+                                    sorts={liste}
+                                    valeur={choix ?? ''}
+                                    onChoisir={(v) => choisirSort(uid, v)}
+                                    nomMonstre={l.monster.name}
+                                  />
+                                  {/* ⚠️ Sa compétence lui REND son tour (Kroa) : il
+                                      rejoue au même tick, et lance autre chose. On ne
+                                      devine pas quoi — à désigner. */}
+                                  {sortActif(l)?.rejoue && (
+                                    <span className="flex items-center gap-1.5">
+                                      <span
+                                        className="flex-none rounded border border-accent/50 px-1 text-micro font-bold uppercase tracking-wide text-accent"
+                                        title="Cette compétence lui rend son tour : il rejoue aussitôt, au même tick."
+                                      >
+                                        rejoue
+                                      </span>
+                                      <ChoixSort
+                                        sorts={liste.filter((x) => x.nom !== sortActif(l)?.nom)}
+                                        valeur={sortChoisi2[uid] ?? ''}
+                                        onChoisir={(v) => choisirSecond(uid, v)}
+                                        prefixe="puis : "
+                                        nomMonstre={l.monster.name}
+                                      />
+                                    </span>
+                                  )}
+                                  <span className="w-full sm:w-auto sm:flex-none">
+                                    {p ? (
+                                      <span className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs">
+                                        <span className="font-semibold text-bad">{LIBELLE_RAISON[p.raison]}</span>
+                                        {(() => {
+                                          const cible = cibleFenetre(f);
+                                          const arte = cibleFenetre(fenetreArteParUid.get(uid));
+                                          return besoin(
+                                            l,
+                                            cible ?? null,
+                                            arte ?? null,
+                                            fenetreArteParUid.get(uid)?.combatActuel ?? 0
+                                          );
+                                        })()}
+                                      </span>
+                                    ) : (
+                                      <Check size={13} className="text-good" />
+                                    )}
+                                  </span>
+                                </li>
+                              );
+                            })}
+                          </ul>
+                          <p className="mt-2.5 text-xs text-ink-dim">
+                            ⚠️ Une fenêtre se lit <span className="text-ink">les autres inchangés</span> : elle dit ce que
+                            ce rang laisse à CE monstre aujourd'hui. Corriger un monstre déplace celles des voisins — on
+                            règle un ordre un monstre à la fois.
+                          </p>
+                        </>
+                      )}
+              </div>
+            </section>
+          </div>
 
           {/* Barre d'action par tick (résultat, lecture seule) */}
           <section className="rounded-lg border border-border bg-panel">

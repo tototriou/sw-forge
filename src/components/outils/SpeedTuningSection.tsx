@@ -871,12 +871,14 @@ export default function SpeedTuningSection({ allMonsters, siegeDefenseTeams, sie
                 />
               </span>
             </div>
+            {/* ⚠️ Sans adversaire, il n'y a pas de verdict — et rien à dire :
+                le corps ne s'affiche pas du tout plutôt que de porter une phrase
+                qui explique l'évidence. */}
+            {(!aAllie || chaine.coupeur) && (
             <div className="px-4 py-3.5">
-              {!aAllie || !chaine.coupeur ? (
+              {!aAllie ? (
                 <p className="text-sm text-ink-dim">
-                  {aAllie
-                    ? "Ajoute un monstre en face pour voir s'il coupe ton combo."
-                    : 'Ajoute des monstres à ton équipe pour vérifier que rien ne la coupe.'}
+                  Ajoute des monstres à ton équipe pour vérifier que rien ne la coupe.
                 </p>
               ) : chaine.ok ? (
                 <p className="flex items-center gap-2 text-sm font-semibold text-good">
@@ -887,7 +889,7 @@ export default function SpeedTuningSection({ allMonsters, siegeDefenseTeams, sie
                 <>
                   <p className="flex items-center gap-2 text-sm font-semibold text-bad">
                     <Scissors size={16} className="flex-none" />
-                    {nomDe(chaine.coupeur.id)} coupe ton combo.
+                    {chaine.coupeur ? nomDe(chaine.coupeur.id) : 'Un adverse'} coupe ton combo.
                   </p>
                   {/* ⚠️ Une ligne = un nom et le chiffre à trouver, rien de
                       plus : ce qu'on vient chercher ici, c'est « combien il me
@@ -911,6 +913,7 @@ export default function SpeedTuningSection({ allMonsters, siegeDefenseTeams, sie
                 </>
               )}
             </div>
+            )}
 
             {/* Ordre des sorts — DANS la même card, séparé d'un filet : c'est le
                 même travail, en plus fin. */}

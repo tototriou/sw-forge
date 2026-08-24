@@ -1,5 +1,5 @@
 import { useRef, useState } from 'react';
-import { Crown, X, GripVertical, Trash2, AlertTriangle, Pencil } from 'lucide-react';
+import { Crown, X, GripVertical, Trash2, AlertTriangle, Pencil, Timer } from 'lucide-react';
 
 const SPD_ICON = `${import.meta.env.BASE_URL}stats/spd.png`; // icône vitesse du jeu (SWARFARM)
 import { Monster, SiegeTeam as SiegeTeamType } from '../../types';
@@ -48,7 +48,6 @@ interface Props {
   index: number;
   monsters: Monster[];
   monsterById: Map<string, Monster>;
-  checkTicks: boolean; // mode « Vérifier mes tick ATB » : sans lui, aucune aura de couleur
   expanded: boolean; // vue détaillée (édition) — piloté par le board (pleine largeur)
   onToggleExpand: (teamId: string) => void;
   onRemoveTeam: (id: string) => void;
@@ -57,6 +56,7 @@ interface Props {
   onSlotRune: (teamId: string, idx: number, value: number | null) => void;
   onSlotTick: (teamId: string, idx: number, tick: number) => void;
   onDismissAlert: (teamId: string, dismissed: boolean) => void;
+  onVoirSpeedTune: (teamId: string) => void;
   onSwap: (teamId: string, from: number, to: number) => void;
 }
 
@@ -65,7 +65,6 @@ export default function SiegeTeam({
   index,
   monsters,
   monsterById,
-  checkTicks,
   expanded,
   onToggleExpand,
   onRemoveTeam,
@@ -74,6 +73,7 @@ export default function SiegeTeam({
   onSlotRune,
   onSlotTick,
   onDismissAlert,
+  onVoirSpeedTune,
   onSwap,
 }: Props) {
   const [dragFrom, setDragFrom] = useState<number | null>(null);
@@ -97,8 +97,10 @@ export default function SiegeTeam({
   const leaderMonster = leaderId ? monsterById.get(leaderId) ?? null : null;
   const leadInfo = speedLeadOf(leaderMonster);
 
-  // Statut de l'équipe vis-à-vis des ticks — calculé seulement en mode
-  // « Vérifier mes tick ATB » (sinon `neutral` : équipes affichées telles quelles) :
+  // Statut de l'équipe vis-à-vis des ticks. ⚠️ **Calculé TOUJOURS**, sans mode à
+  // activer : une équipe mal calée l'est qu'on ait cliqué ou non, et le bouton
+  // « Vérifier mes tick ATB » ne faisait que retarder la réponse — il fallait
+  // savoir que l'outil existait pour voir un problème qu'on ne cherchait pas.
   //  - vert   : au tick (aucun monstre mal calé) OU recommandation ignorée
   //  - orange : pas au tick mais les monstres hors-tick sont en Swift (on veut du speed)
   //  - rouge  : pas au tick et pas en Swift → à corriger
@@ -128,7 +130,7 @@ export default function SiegeTeam({
   );
 
   const status: 'neutral' | 'green' | 'orange' | 'red' =
-    !checkTicks || !hasMonsters || hasLeo
+    !hasMonsters || hasLeo
       ? 'neutral'
       : validated
         ? 'green'
@@ -466,12 +468,25 @@ export default function SiegeTeam({
                 : 'Vérifier le speed tuning'}
             </span>
           </div>
-          <Bouton
-            onClick={() => onDismissAlert(team.id, true)}
-            taille="sm"
-            libelle="Ignorer la recommandation"
-            className="flex-none self-end sm:ml-auto sm:self-auto"
-          />
+          {/* ⚠️ DEUX sorties, pas une : écarter le conseil, ou aller le vérifier.
+              Ne proposer que « Ignorer » revenait à ne laisser que la porte de
+              sortie — alors que l'outil qui répond à la question existe, et que
+              l'équipe s'y ouvre déjà chargée. */}
+          <span className="flex flex-none flex-wrap items-center gap-2 self-end sm:ml-auto sm:self-auto">
+            <Bouton
+              onClick={() => onDismissAlert(team.id, true)}
+              taille="sm"
+              libelle="Ignorer la recommandation"
+            />
+            <Bouton
+              onClick={() => onVoirSpeedTune(team.id)}
+              taille="sm"
+              ton="accent"
+              icone={<Timer size={14} />}
+              libelle="Voir le speed tune"
+              title="Ouvre le speed tuning avec cette équipe déjà chargée"
+            />
+          </span>
         </div>
       )}
       {/* ⚠️ Pas un `Bouton` de la librairie : le vert ici est SÉMANTIQUE (l'état

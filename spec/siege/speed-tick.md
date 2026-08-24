@@ -47,11 +47,10 @@ combat = base + runes + ceil( base × (15 + lead) / 100 )
 
 ## Aura de statut (au tick / à corriger)
 
-> ⚠️ **Conditionnée au mode « Vérifier mes tick ATB »** (bouton de la barre
-> d'actions, voir [README.md](README.md)). Tant qu'il est **désactivé** — l'état
-> par défaut — le statut de **toute** équipe est forcé à `neutral` : pas d'aura,
-> pas de point, pas d'anneau rouge, pas de message. Tout ce qui suit ne
-> s'applique donc qu'en mode vérification.
+> ⚠️ **Toujours calculée, sans mode à activer.** Le bouton « Vérifier mes tick
+> ATB » a été retiré : une équipe mal calée l'est qu'on ait cliqué ou non, et il
+> fallait savoir que l'outil existait pour voir un problème qu'on ne cherchait
+> pas. Une équipe sans monstre, ou avec **Leo**, reste `neutral`.
 
 Détection « mal calé sur un tick » par monstre, via `tickDanger(combat)`
 ([speed.ts](src/lib/speed.ts)) :
@@ -73,9 +72,23 @@ par équipe (aura = bordure + halo, + point dans l'en-tête) :
 | Orange | `amber` | Équipe avec **≥1 Swift** (pas de tick à viser) | « Vérifier le speed tuning » |
 | Rouge | `fire` | (Sans Swift) un monstre **pas au tick** (anneau rouge sur le slot fautif) | une phrase par monstre fautif, voir ci-dessous |
 | Vert | `emerald` | (Sans Swift) **tous au tick**, **ou** recommandation ignorée | — |
-| — | neutre | **Mode vérification désactivé**, équipe vide **ou avec Leo** | — |
+| — | neutre | Équipe **vide** ou avec **Leo** | — |
 
-**Bouton « Ignorer la recommandation »** (sur orange/rouge) →
+**DEUX boutons sur orange/rouge**, pas un seul : écarter le conseil, ou aller le
+vérifier. ⚠️ Ne proposer que « Ignorer » revenait à ne laisser que la porte de
+sortie, alors que l'outil qui répond à la question existe.
+
+**« Voir le speed tune »** → pose l'équipe dans
+[speedTuneHandoff.ts](src/lib/speedTuneHandoff.ts) et ouvre
+`#/outils/speed-tuning`, où elle arrive **déjà chargée** dans « Ton équipe ».
+⚠️ Le message passe par `sessionStorage` et n'est lu **qu'une fois** : c'est un
+message d'un écran à l'autre, pas un état — durable, il serait revenu à chaque
+visite de l'outil. Il ne porte que l'**identifiant** de l'équipe, jamais ses
+monstres : l'équipe vit dans `useSiegeState`, une copie en aurait fait une
+deuxième source de vérité. ⚠️ L'arrivée **ne lance pas** l'analyse : c'est un
+geste, et on vient peut-être régler autre chose d'abord.
+
+**« Ignorer la recommandation »** →
 `dismissTickAlert(teamId, true)` : l'équipe passe au **vert**
 (`SiegeTeam.tickAlertDismissed`), et affiche « ✓ Recommandation ignorée ·
 rétablir ». **Réinitialisé automatiquement** dès qu'un slot change (rune,

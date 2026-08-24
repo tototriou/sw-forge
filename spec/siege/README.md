@@ -73,20 +73,17 @@ pas touchées. Voir la convention des modales dans le [README](README.md).
 Même règle pour les **decks de recommandation** et les recommandations
 elles-mêmes (voir [recommandations.md](recommandations.md)).
 
-### Bouton « Vérifier mes tick ATB »
+### ⚠️ La vérification des ticks est AUTOMATIQUE
 
-Interrupteur de la barre d'actions (icône jauge) qui **active les auras de
-couleur** des équipes (vert / orange / rouge, voir [speed-tick.md](speed-tick.md)).
+Il y avait un interrupteur « Vérifier mes tick ATB » (icône jauge, désactivé par
+défaut) qui allumait les auras de couleur. **Il a été retiré** : une équipe mal
+calée l'est qu'on ait cliqué ou non, et il fallait savoir que l'outil existait
+pour voir un problème qu'on ne cherchait pas.
 
-- **Désactivé par défaut** : les équipes sont affichées **telles quelles**, en
-  neutre — aucune aura, aucun point de statut, aucun anneau rouge sur les slots,
-  aucun message « pas au tick » / « Ignorer la recommandation ».
-- **Activé** : tous les statuts sont calculés et affichés normalement.
-- **Par côté** (défense / offense indépendants) et **non persisté sur disque** :
-  `useStickyState` — l'état survit à la navigation, se remet à `false` au reload.
-- Le bouton n'apparaît que s'il y a **au moins une équipe**.
-- Les **boutons de tick** de chaque monstre restent disponibles dans les deux
-  cas : c'est un réglage, pas un affichage de statut.
+Les statuts sont donc **toujours calculés et affichés** (voir
+[speed-tick.md](speed-tick.md)) ; seules une équipe **vide** ou contenant **Leo**
+restent neutres. Les **boutons de tick** de chaque monstre n'ont jamais dépendu
+de ce mode : c'est un réglage, pas un affichage de statut.
 
 L'**import est global** (bouton « Importer mon compte » dans la barre de nav) :
 il remplit défense **et** offense **et** RTA d'un coup — pas de bouton d'import

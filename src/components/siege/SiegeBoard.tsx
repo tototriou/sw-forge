@@ -1,9 +1,9 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Plus, Castle, Trash2, Gauge } from 'lucide-react';
+import { Plus, Castle, Trash2 } from 'lucide-react';
 import { Monster, ElementKey } from '../../types';
 import { LoadState } from '../../hooks/useMonsters';
 import { SiegeSide, UseSiegeState } from '../../hooks/useSiegeState';
-import { useStickyState } from '../../hooks/useStickyState';
+import { poserDeck } from '../../lib/speedTuneHandoff';
 import SiegeTeam from './SiegeTeam';
 import CreateMonster from '../CreateMonster';
 import { ConfirmDialog } from '../../ui/Dialogs';
@@ -41,9 +41,16 @@ export default function SiegeBoard({
 }: Props) {
   const noun = side === 'defense' ? 'défense' : 'attaque';
 
+  // « Voir le speed tune » : on passe l'équipe à l'outil et on y va. ⚠️ Le
+  // message ne porte que l'identifiant (voir speedTuneHandoff.ts) — l'équipe
+  // elle-même vit dans `useSiegeState`, que l'outil relit.
+  function voirSpeedTune(teamId: string) {
+    poserDeck(side, teamId);
+    window.location.hash = '#/outils/speed-tuning';
+  }
+
   // Mode vérification des ticks : désactivé par défaut (équipes neutres), on
   // l'active volontairement pour faire passer les auras de couleur.
-  const [checkTicks, setCheckTicks] = useStickyState(`siege.checkTicks.${side}`, false);
 
   // Équipes en cours d'édition : remontées ici pour que la grille leur donne la
   // pleine largeur (les 3 slots seraient trop à l'étroit sur une demi-colonne).
@@ -135,23 +142,6 @@ export default function SiegeBoard({
         libelleCourt="Équipe"
       />
 
-      {/* ⚠️ Toujours affiché, désactivé sans équipe — même règle que
-          « Tout effacer » juste au-dessus. */}
-      <Bouton
-        onClick={() => setCheckTicks((v) => !v)}
-        actif={checkTicks}
-        disabled={siege.state.teams.length === 0}
-        title={
-          siege.state.teams.length === 0
-            ? 'Aucune équipe à vérifier'
-            : checkTicks
-              ? 'Masquer les auras de vérification'
-              : 'Colorer les équipes selon leur calage sur les ticks ATB'
-        }
-        icone={<Gauge size={15} />}
-        libelle="Vérifier mes tick ATB"
-        libelleCourt="Ticks"
-      />
 
       {/* En dernier des actions : c'est le geste le plus rare. */}
       <CreateMonster
@@ -230,7 +220,7 @@ export default function SiegeBoard({
               index={i}
               monsters={monsters}
               monsterById={monsterById}
-              checkTicks={checkTicks}
+              onVoirSpeedTune={voirSpeedTune}
               expanded={expandedIds.has(team.id)}
               onToggleExpand={toggleExpand}
               onRemoveTeam={siege.removeTeam}

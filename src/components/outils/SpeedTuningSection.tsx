@@ -19,6 +19,7 @@ import {
   ModParTick,
 } from '../../lib/speedTune';
 import { deckPourSpeedTune } from '../../lib/speedTuneDeck';
+import { prendreDeck } from '../../lib/speedTuneHandoff';
 import { kitVitesse, sortsVitesse, KitVitesse, SortVitesse, KIT_VIDE } from '../../lib/speedTuneKit';
 import { passifsVitesse, pointsDeGain, PassifVitesse } from '../../lib/speedTunePassif';
 import { chargerDetail } from '../../lib/monsterSkills';
@@ -266,6 +267,21 @@ export default function SpeedTuningSection({ allMonsters, siegeDefenseTeams, sie
   // L'allié VISÉ par un sort qui n'en touche qu'un (S3 de Sapsaree). Vide = la
   // barre la plus basse, le défaut du moteur.
   const [cibleSort, setCibleSort] = useStickyState<Record<string, string>>('speedTune.cibles', {});
+
+  // ⚠️ **Arrivée depuis le siège** (« voir le speed tune » sur une équipe) : le
+  // message est consommé UNE fois, à l'ouverture, et l'équipe est importée dans
+  // « Ton équipe ». On ne relance pas l'analyse tout seul — c'est un geste, et
+  // l'utilisateur vient peut-être régler autre chose d'abord.
+  const arrivee = useRef(false);
+  useEffect(() => {
+    if (arrivee.current) return;
+    const passe = prendreDeck();
+    if (!passe) return;
+    arrivee.current = true;
+    const teams = passe.source === 'defense' ? siegeDefenseTeams : siegeOffenseTeams;
+    const team = teams[Number(passe.teamId)] ?? teams.find((t) => t.id === passe.teamId);
+    if (team) importerDeck('allie', team);
+  }, [siegeDefenseTeams, siegeOffenseTeams]);
 
   // ⚠️ Rien n'est écrit dans les lignes : ce qu'un monstre fait se DÉDUIT de son
   // kit à l'affichage. Une valeur recopiée dans l'état aurait vieilli au premier

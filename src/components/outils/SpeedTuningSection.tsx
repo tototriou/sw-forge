@@ -564,7 +564,12 @@ export default function SpeedTuningSection({ allMonsters, siegeDefenseTeams, sie
           camp: l.camp,
           atbMod: l.atbMod,
           speedMod: l.speedMod,
-          artefactBuff: l.artefactBuff ?? 0,
+          // ⚠️ L'amplification d'un allié (Miriam) entre ICI AUSSI, pas seulement
+          // dans la simulation de l'analyse : c'est ce tune-là qui alimente les
+          // tableaux et le verdict. L'oublier faisait un outil qui tenait compte
+          // de Miriam pour écrire dans les grilles, mais pas pour dire si le
+          // combo passe — deux réponses différentes sur le même écran.
+          artefactBuff: (l.artefactBuff ?? 0) + ampliDe(l.camp),
           // Le rechargement voyage avec l'effet : c'est lui qui dit à quelle
           // fréquence le sort peut repartir (voir speedTune.ts).
           sort: actif ? { ...actif.effet, cooldown: actif.cooldown } : undefined,
@@ -578,7 +583,7 @@ export default function SpeedTuningSection({ allMonsters, siegeDefenseTeams, sie
         });
     }
     return out;
-  }, [lignes, leadAllie, leadEnnemi, auto, sortChoisi, sortChoisi2, sorts, kits, passifs]);
+  }, [lignes, leadAllie, leadEnnemi, auto, sortChoisi, sortChoisi2, cibleSort, sorts, kits, passifs]);
 
   // Simulation multi-tours (40 ticks) avec les modificateurs.
   const sim = useMemo(() => simuler(tune, HORIZON_TICKS), [tune]);

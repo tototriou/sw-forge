@@ -385,10 +385,50 @@ par l'utilisateur, ni l'une ni l'autre déductible du texte du jeu seul :
   « VIT adversaire » ni la VIT dans le pré-filtrage (`damageRelevantStats`)
   n'apparaîtraient pour ces sorts.
 
-⚠️ **Non couvert, faute de formule confirmée** : le crit garanti « quand tu
-es plus rapide que la cible » (Ciri Eau, Rigna, Magic Order Swordsinger,
-passif sans formule) — touche TOUS les dégâts du monstre, pas un passif
-offensif isolé, donc hors périmètre de `PASSIFS_OFFENSIFS_CONNUS` tel quel.
+### « Ta VIT totale » — ce que `maVitCombat` additionne
+
+Confirmé par l'utilisateur (« il faut prendre en compte les runes, le totem
+de vitesse, mais aussi la présence éventuelle d'un buff speed ainsi que les
+artefacts… ainsi que le leader skill éventuel de vitesse ») : `maVitCombat`
+(damage.ts) est la source UNIQUE de « ta VIT totale » pour les trois
+mécaniques ci-dessus ET pour `{SPD}` lui-même :
+
+1. **Runes + totem** — déjà comptés (`stats`/`summonerSkillBonus`, +15 % de
+   « Combat », voir plus haut).
+2. **Buff de VIT** (`setup.spdBuff`, +30 %) — éventuellement **amplifié**
+   par un artéfact « Effet aug. VIT +X% » (code 206, voir `ARTIFACT_SUB`,
+   effects.ts) : `speedBuffAmpliPct(artifacts)` somme cette ligne sur tous
+   les artéfacts ÉQUIPÉS (`SearchParams.artifacts` — fixes pour toute une
+   recherche, l'Optimizer n'optimise que les runes) et amplifie
+   MULTIPLICATIVEMENT le pourcentage du buff (`30 % × (1 + X/100)`), jamais
+   la VIT plate elle-même.
+3. **Leader skill d'ÉQUIPE** (`setup.leaderSpeedPct`, saisie manuelle) — le
+   sien n'agit jamais sur lui-même, contrairement au totem.
+
+Les pourcentages de buff (amplifié) et de leader sont SOMMÉS puis appliqués
+en une seule fois, comme les autres buffs de ce module (`buff()`).
+
+### Crit garanti si plus rapide que la cible
+
+Ciri (Eau), Rigna, Magic Order Swordsinger portent un passif **sans formule
+ni dégâts propres** (« Lady of Space and Time (Passive) » / « Speed
+Difference (Passive)) qui force le critique sur **tous** les dégâts du
+monstre quand `maVitCombat(...) > VIT adverse`. ⚠️ **Ce n'est PAS un
+`PASSIFS_OFFENSIFS_CONNUS`** — confirmé par l'utilisateur : « le passif en
+lui-même ne fait pas de dégâts, ne fait pas de coup et n'a pas de ratio,
+c'est lui qui force le Crit ». Table séparée
+(`CRIT_SI_PLUS_RAPIDE_CONNUS`), détectée par `monsterCritSiPlusRapide(detail)`.
+
+`computeTotalDamage(..., ampliVitPct, critSiPlusRapide)` force `critMode:
+'crit'` sur le sort actif ET sur chaque passif dont `critique === 'suit'` —
+un passif avec son propre `'jamais'`/`'toujours'` (fait plus précis sur
+cette contribution précise) garde la priorité sur ce modificateur
+monstre-wide.
+
+⚠️ **Le champ « VIT adversaire » apparaît aussi quand `critSiPlusRapide` est
+vrai**, même si le sort ACTIF choisi ne lit pas `{Relative SPD}` (ex. Rigna
+S1 « Double Gash », qui ne lit que `{SPD}`) : la comparaison de vitesse a
+lieu indépendamment du sort sélectionné.
 
 ## Stats à privilégier dans la recherche
 

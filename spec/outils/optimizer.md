@@ -365,7 +365,15 @@ retour.
      - **Adversaire** — PV et DEF. ⚠️ Les **PV ne classent rien** : ils ne
        servent qu'à lire le résultat (« 42 % des PV », « tue la cible »).
        Un champ **PV restants** n'apparaît que pour les sorts dont la
-       formule lit les PV courants de la cible.
+       formule lit les PV courants de la cible. ⚠️ **VIT adversaire** +
+       **leader skill VIT** : apparaissent pour un sort/passif qui dépend de
+       l'écart de vitesse (`{Relative SPD}`, ignore-DEF proportionnel à
+       l'écart, ou un monstre qui force le critique s'il est plus rapide —
+       même quand le sort CHOISI ne lit pas cette variable). Le leader skill
+       se saisit (le sien n'agit jamais sur lui-même) ; un artéfact « Effet
+       aug. VIT » équipé et un éventuel critique garanti sont, eux, **déduits
+       et affichés**, jamais redemandés. Détail :
+       [degats-reels.md](degats-reels.md), « VIT de l'adversaire ».
      - **Effets actifs** — buffs du monstre (ATQ +50 %, DEF +70 %, VIT
        +30 %) et effets subis par la cible (réduction de défense ×0,3,
        marque +25 %), chacun son **icône de jeu cliquable**, pas une case à

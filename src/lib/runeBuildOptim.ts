@@ -324,6 +324,14 @@ export interface RealDamageContext {
   // Vide = comportement strictement inchangé (aucun passif connu, ou fiche
   // absente).
   passifs: PassifOffensifProfile[];
+  // Somme des lignes d'artéfact « Effet aug. VIT » ÉQUIPÉES (voir
+  // `speedBuffAmpliPct`, damage.ts) — fixe pour toute une recherche
+  // (l'Optimizer n'optimise que les runes). 0 = comportement inchangé.
+  ampliVitPct: number;
+  // Ce monstre force-t-il le critique quand il est plus rapide que
+  // l'adversaire (voir `monsterCritSiPlusRapide`) ? Déduit de la fiche,
+  // jamais saisi. `false` = comportement inchangé.
+  critSiPlusRapide: boolean;
 }
 
 export function objectiveScore(candidate: BuildCandidate, objective: Objective, realDamage?: RealDamageContext): number {
@@ -340,7 +348,15 @@ export function objectiveScore(candidate: BuildCandidate, objective: Objective, 
     if (!realDamage) {
       throw new Error("objectiveScore : l'objectif « Dégâts réels » exige un contexte (sort + adversaire).");
     }
-    return computeTotalDamage(realDamage.profile, realDamage.passifs, stats, realDamage.setup, realDamage.element);
+    return computeTotalDamage(
+      realDamage.profile,
+      realDamage.passifs,
+      stats,
+      realDamage.setup,
+      realDamage.element,
+      realDamage.ampliVitPct,
+      realDamage.critSiPlusRapide
+    );
   }
   if (objective === 'degats') {
     const atk = statTotal(stats, 'atk');

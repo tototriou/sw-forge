@@ -24,6 +24,7 @@ import {
 } from '../src/lib/runeBuildOptim';
 import { buildOptimizerRecipe, parseOptimizerRecipe } from '../src/lib/optimizerRecipe';
 import { Competence, DetailMonstre } from '../src/lib/monsterSkills';
+import { ArtifactDetail } from '../src/types';
 import {
   DEFAULT_DAMAGE_SETUP,
   DamageSetup,
@@ -35,12 +36,15 @@ import {
   defaultDamageSkill,
   defenseFactor,
   estPrisEnCharge,
+  maVitCombat,
+  monsterCritSiPlusRapide,
   monsterDamageSkills,
   monsterOffensivePassives,
   passifActif,
   resolveDamageSkill,
   resolvedHits,
   skillDamageProfile,
+  speedBuffAmpliPct,
   summonerSkillBonus,
 } from '../src/lib/damage';
 
@@ -302,6 +306,76 @@ export default function testDegats() {
   egal(ecartMax, ignoreTotal, 'écart de 126 points pile : 100 % de la DEF ignorée, comme ignoreDef=true');
   egal(ecartAuDela, ignoreTotal, 'écart AU-DELÀ de 126 : plafonné à 100 %, jamais plus');
   ok(ecartNul < demiEcart && demiEcart < ecartMax, 'plus l’écart de VIT grandit, plus la DEF ignorée augmente');
+
+  titre('Dégâts réels — leader skill, artéfacts et crit garanti si plus rapide');
+
+  // « Ta VIT totale » (confirmé par l'utilisateur) = runes + totem (déjà
+  // dans les compétences d'invocateur) + buff VIT (éventuellement amplifié
+  // par un artéfact) + leader skill d'ÉQUIPE. `maVitCombat` les combine.
+  const vitNue = maVitCombat(rignaStats, rignaSetup, null);
+  const avecLeader = maVitCombat(rignaStats, { ...rignaSetup, leaderSpeedPct: 24 }, null);
+  ok(Math.abs(avecLeader / vitNue - 1.24) < 1e-9, 'un leader skill VIT +24 % ajoute exactement 24 % à la VIT de combat');
+
+  const setupAvecBuff: DamageSetup = { ...rignaSetup, spdBuff: true };
+  const vitBuffNu = maVitCombat(rignaStats, setupAvecBuff, null);
+  const vitBuffAmplifie = maVitCombat(rignaStats, setupAvecBuff, null, 50);
+  // Buff nu = +30 % (SPD_BUFF_PCT) ; amplifié de 50 % = +30%×1,5 = +45 %.
+  ok(Math.abs(vitBuffNu / vitNue - 1.3) < 1e-9, 'le buff de VIT nu ajoute +30 %, comme les autres buffs');
+  ok(
+    Math.abs(vitBuffAmplifie / vitNue - 1.45) < 1e-9,
+    'un artéfact « Effet aug. VIT +50 % » amplifie le buff (30 % → 45 %), jamais la VIT plate'
+  );
+  ok(
+    Math.abs(maVitCombat(rignaStats, rignaSetup, null, 50) / vitNue - 1) < 1e-9,
+    'sans buff de VIT actif, une amplification d’artéfact ne change rien (rien à amplifier)'
+  );
+
+  // `speedBuffAmpliPct` : somme le code 206 (« Effet aug. VIT ») sur tous les
+  // artéfacts équipés, ignore les autres codes, cumule s'il y en a plusieurs.
+  const artefactVit: ArtifactDetail = {
+    kind: 'element',
+    element: 'water',
+    level: 1,
+    rarity: 5,
+    main: { code: 100, value: 300 },
+    subs: [
+      { code: 206, value: 20 }, // Effet aug. VIT +20%
+      { code: 207, value: 15 }, // Effet aug. taux CRIT — pas le même code, ignoré
+    ],
+  };
+  const artefactSansVit: ArtifactDetail = { ...artefactVit, subs: [{ code: 207, value: 15 }] };
+  egal(speedBuffAmpliPct([]), 0, 'aucun artéfact : aucune amplification');
+  egal(speedBuffAmpliPct([artefactSansVit]), 0, 'un artéfact sans code 206 : aucune amplification');
+  egal(speedBuffAmpliPct([artefactVit]), 20, 'le code 206 (Effet aug. VIT) est bien lu, les autres codes ignorés');
+  egal(speedBuffAmpliPct([artefactVit, artefactVit]), 40, 'deux artéfacts avec la ligne se CUMULENT, comme en jeu');
+
+  // `monsterCritSiPlusRapide` : Rigna/Ciri Eau/Magic Order Swordsinger
+  // portent un passif SANS formule ni dégâts propres qui force le critique —
+  // confirmé par l'utilisateur : « ce n'est pas un PASSIFS_OFFENSIFS_CONNUS ».
+  ok(monsterCritSiPlusRapide(rigna), 'Rigna force le critique quand elle est plus rapide (Speed Difference)');
+  ok(!monsterCritSiPlusRapide(fiche(LUSHEN)), 'Lushen n’a pas ce mécanisme');
+  ok(!monsterCritSiPlusRapide(null), 'fiche absente : false, jamais une exception');
+  egal(
+    monsterOffensivePassives(rigna).length,
+    0,
+    'Speed Difference N’EST PAS un passif offensif : aucune formule, aucun dégât propre'
+  );
+
+  // Intégration dans `computeTotalDamage` : force le critique sur le sort
+  // actif (et sur un passif qui SUIT le réglage) uniquement quand Rigna est
+  // RÉELLEMENT plus rapide que la cible configurée.
+  const rignaSetupNonCrit: DamageSetup = { ...rignaSetup, critMode: 'normal' };
+  const totalPlusRapide = computeTotalDamage(concentratedStab, [], rignaStats, { ...rignaSetupNonCrit, enemySpd: 100 }, null, 0, true);
+  const totalMemeVit = computeTotalDamage(concentratedStab, [], rignaStats, { ...rignaSetupNonCrit, enemySpd: 200 }, null, 0, true);
+  const critForce = computeSkillDamage(concentratedStab, rignaStats, { ...rignaSetupNonCrit, critMode: 'crit', enemySpd: 100 }, null);
+  const sansCrit100 = computeSkillDamage(concentratedStab, rignaStats, { ...rignaSetupNonCrit, enemySpd: 100 }, null);
+  const sansCrit200 = computeSkillDamage(concentratedStab, rignaStats, { ...rignaSetupNonCrit, enemySpd: 200 }, null);
+  egal(totalPlusRapide, critForce, 'plus rapide que la cible : le critique est forcé, quel que soit le mode choisi');
+  egal(totalMemeVit, sansCrit200, 'aussi rapide (ou plus lent) que la cible : le mécanisme ne se déclenche pas');
+  ok(
+    computeTotalDamage(concentratedStab, [], rignaStats, { ...rignaSetupNonCrit, enemySpd: 100 }, null, 0, false) === sansCrit100,
+    '`critSiPlusRapide=false` (monstre sans ce passif) : aucun effet, même VIT identique'
+  );
 
   titre('Dégâts réels — stats à privilégier dans la recherche');
 

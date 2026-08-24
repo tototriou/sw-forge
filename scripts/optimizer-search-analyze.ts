@@ -24,7 +24,14 @@ import { activeSets } from '../src/lib/effects';
 import { RuneDetail } from '../src/types';
 import { loadMonsterSkills } from './lib/skillsData';
 import { loadMonstersList } from './lib/monstersData';
-import { DEFAULT_DAMAGE_SETUP, monsterDamageSkills, monsterOffensivePassives, resolveDamageSkill } from '../src/lib/damage';
+import {
+  DEFAULT_DAMAGE_SETUP,
+  monsterCritSiPlusRapide,
+  monsterDamageSkills,
+  monsterOffensivePassives,
+  resolveDamageSkill,
+  speedBuffAmpliPct,
+} from '../src/lib/damage';
 
 const [exportPath, recipePath, maxMsArg] = process.argv.slice(2);
 if (!exportPath || !recipePath) {
@@ -47,12 +54,17 @@ console.log(`minStats : ${JSON.stringify(recipe.requirement.minStats)}`);
 const loaded = loadBoxMonster(exportPath, recipe.monsterName);
 printMonsterSummary('box', loaded);
 
+const params = recipeToSearchParams(recipe, loaded);
+
 // ⚠️ `objectiveScore('degats_reels')` EXIGE ce contexte et lève sans lui
 // (même garde-fou que l'écran, voir src/lib/runeBuildOptim.ts) — construit
 // EXACTEMENT comme OptimizerSection.tsx (`realDamage`) et comme le résumé
 // console de scripts/optimizer-search.ts, jamais une reconstruction
 // approximative. `null` pour tout autre objectif : `objectiveScore` l'ignore
-// alors de toute façon.
+// alors de toute façon. `params.artifacts` — PAS `loaded.gear.artifacts` —
+// APRÈS `recipeToSearchParams` : ce sont ceux réellement envoyés au moteur
+// (réels, hypothétiques ou aucun selon la recette), même artéfacts que
+// `candidate.stats`, dont `ampliVitPct` doit rester solidaire.
 let realDamage: RealDamageContext | null = null;
 if (recipe.objective === 'degats_reels') {
   const detail = loadMonsterSkills(loaded.com2usId);
@@ -64,13 +76,13 @@ if (recipe.objective === 'degats_reels') {
       passifs: monsterOffensivePassives(detail),
       setup: recipe.damageSetup ?? DEFAULT_DAMAGE_SETUP,
       element,
+      ampliVitPct: speedBuffAmpliPct(params.artifacts),
+      critSiPlusRapide: monsterCritSiPlusRapide(detail),
     };
   } else {
     console.warn(`⚠️ Objectif « Dégâts réels » mais aucun sort calculable pour ${loaded.monsterName} — objectiveScore lèvera.`);
   }
 }
-
-const params = recipeToSearchParams(recipe, loaded);
 if (maxMsArg) {
   const override = Number(maxMsArg);
   console.log(`⚠️ maxMs FORCÉ à ${override}ms (au lieu de ${params.maxMs}ms) — tendance seulement, pas une preuve de complétude.`);

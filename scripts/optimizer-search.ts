@@ -24,18 +24,20 @@ import {
   loadSiegeTeamsForExclusion,
   printMonsterSummary,
 } from './lib/loadMonster';
-import { recipeToSearchParams } from './lib/recipeToSearchParams';
+import { recipeToSearchParams, resolveArtifacts } from './lib/recipeToSearchParams';
 import { loadMonsterSkills } from './lib/skillsData';
 import { loadMonstersList } from './lib/monstersData';
 import {
   DEFAULT_DAMAGE_SETUP,
   bonusPassifActif,
   damageRelevantStats,
+  monsterCritSiPlusRapide,
   monsterDamageSkills,
   monsterOffensivePassives,
   passifActif,
   resolveDamageSkill,
   resolvedHits,
+  speedBuffAmpliPct,
 } from '../src/lib/damage';
 import { runSearchToCompletion } from './lib/runSearch';
 import { ExclusionSourceData, autoExcludedRuneIds, resolveExcludedRuneIds } from '../src/lib/optimizerExclusion';
@@ -182,6 +184,15 @@ if (recipe.objective === 'degats_reels') {
         `comp. invocateur ${s.summonerSkills ?? DEFAULT_DAMAGE_SETUP.summonerSkills} (${monsterElement ?? 'élément inconnu'}) — ` +
         `stats privilégiées [${damageRelevantStats(profile, passifs, s).join(', ')}]`
     );
+    // `resolveArtifacts`, PAS `loaded.gear.artifacts` : ceux réellement
+    // envoyés au moteur (réels, hypothétiques ou aucun selon la recette) —
+    // même source que `params.artifacts` (défini plus bas dans ce fichier),
+    // recalculée ici pour ne pas réordonner tout le script.
+    const ampli = speedBuffAmpliPct(resolveArtifacts(recipe, loaded));
+    if (ampli > 0) console.log(`Effet aug. VIT (artéfacts) : +${ampli} % — amplifie le buff VIT s'il est actif.`);
+    if (monsterCritSiPlusRapide(detail)) {
+      console.log(`Ce monstre force le critique quand il est plus rapide que l'adversaire (VIT adverse : ${s.enemySpd ?? DEFAULT_DAMAGE_SETUP.enemySpd}).`);
+    }
     if (passifs.length > 0) {
       const detailPassifs = passifs
         .map((p) => {

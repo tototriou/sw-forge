@@ -67,6 +67,17 @@ interface Props {
   // `true` tant que la fiche du monstre n'est pas arrivée.
   chargement: boolean;
   etroit: boolean;
+  // Ce monstre force-t-il le critique quand il est plus rapide que
+  // l'adversaire (`monsterCritSiPlusRapide`, damage.ts) ? Indépendant du
+  // sort choisi — décide, avec `utilise('Relative SPD')`, si le champ
+  // « VIT adversaire » doit apparaître (un sort qui ne lit pas cette
+  // variable peut quand même avoir BESOIN de la VIT adverse si ce
+  // modificateur existe).
+  critSiPlusRapide: boolean;
+  // Somme des lignes d'artéfact « Effet aug. VIT » ÉQUIPÉES
+  // (`speedBuffAmpliPct`, damage.ts) — DÉDUIT, jamais saisi ici ; affiché en
+  // clair pour que la VIT calculée ne semble pas sortie de nulle part.
+  ampliVitPct: number;
 }
 
 // Ce que le sort nous apprend, en une ligne — l'inverse d'un formulaire.
@@ -111,7 +122,17 @@ function champCoupsVariables(profile: SkillDamageProfile, setup: DamageSetup, ma
   );
 }
 
-export default function DamageSetupCard({ skills, resolved, passifs, setup, setSetup, chargement, etroit }: Props) {
+export default function DamageSetupCard({
+  skills,
+  resolved,
+  passifs,
+  setup,
+  setSetup,
+  chargement,
+  etroit,
+  critSiPlusRapide,
+  ampliVitPct,
+}: Props) {
   const maj = (patch: Partial<DamageSetup>) => setSetup((prev) => ({ ...prev, ...patch }));
 
   if (chargement) {
@@ -346,21 +367,46 @@ export default function DamageSetupCard({ skills, resolved, passifs, setup, setS
               />
             </label>
           )}
-          {/* Uniquement pour un sort dont la formule lit `{Relative SPD}`
-              (« Ta VIT − VIT cible / VIT cible ») — la quasi-totalité des
-              autres sorts n'en dépendent jamais. */}
-          {utilise('Relative SPD') && (
-            <label className="flex items-center gap-2">
-              <span className="text-xs text-ink-dim">VIT adversaire</span>
-              <NumberField
-                value={setup.enemySpd ?? DEFAULT_DAMAGE_SETUP.enemySpd!}
-                onChange={(v) => maj({ enemySpd: v ?? 0 })}
-                step={10}
-                min={1}
-                boxWidth="w-32"
-                ariaLabel="Vitesse totale de l'adversaire"
-              />
-            </label>
+          {/* Pour un sort dont la formule lit `{Relative SPD}` (« Ta VIT −
+              VIT cible / VIT cible ») — OU quand ce monstre force le
+              critique s'il est plus rapide (`critSiPlusRapide`), même si le
+              sort CHOISI ne lit pas cette variable (ex. Rigna S1). */}
+          {(utilise('Relative SPD') || critSiPlusRapide) && (
+            <>
+              <label className="flex items-center gap-2">
+                <span className="text-xs text-ink-dim">VIT adversaire</span>
+                <NumberField
+                  value={setup.enemySpd ?? DEFAULT_DAMAGE_SETUP.enemySpd!}
+                  onChange={(v) => maj({ enemySpd: v ?? 0 })}
+                  step={10}
+                  min={1}
+                  boxWidth="w-32"
+                  ariaLabel="Vitesse totale de l'adversaire"
+                />
+              </label>
+              <label className="flex items-center gap-2">
+                <span className="text-xs text-ink-dim">Leader skill VIT</span>
+                <NumberField
+                  value={setup.leaderSpeedPct ?? 0}
+                  onChange={(v) => maj({ leaderSpeedPct: v ?? 0 })}
+                  step={1}
+                  min={0}
+                  max={50}
+                  suffix="%"
+                  boxWidth="w-24"
+                  title="Bonus de VIT % du leader skill de ton ÉQUIPE — jamais le sien, qui n'agit pas sur lui-même"
+                  ariaLabel="Bonus de VIT en pourcentage du leader skill de l'équipe"
+                />
+              </label>
+              {ampliVitPct > 0 && (
+                <span className="text-xs text-ink-dim">
+                  + artéfact « Effet aug. VIT » : le buff de VIT est amplifié de {ampliVitPct} %
+                </span>
+              )}
+              {critSiPlusRapide && (
+                <span className="text-xs text-ink-dim">Critique garanti si plus rapide que l'adversaire</span>
+              )}
+            </>
           )}
         </div>
       </div>

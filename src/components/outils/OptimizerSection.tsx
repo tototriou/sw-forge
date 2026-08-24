@@ -40,9 +40,11 @@ import {
   DEFAULT_DAMAGE_SETUP,
   computeTotalDamage,
   damageRelevantStats,
+  monsterCritSiPlusRapide,
   monsterDamageSkills,
   monsterOffensivePassives,
   resolveDamageSkill,
+  speedBuffAmpliPct,
 } from '../../lib/damage';
 import {
   AUTO_EXCLUSION_SCOPES,
@@ -309,22 +311,6 @@ export default function OptimizerSection({ box, runes, optimizer, allMonsters, r
     () => (objective === 'degats_reels' ? damageRelevantStats(resolvedSkill, offensivePassives, damageSetup) : undefined),
     [objective, resolvedSkill, offensivePassives, damageSetup]
   );
-  // Contexte de score, exigé par `objectiveScore` pour cet objectif — `null`
-  // si aucun sort n'est calculable, auquel cas l'écran ne propose jamais le
-  // tri « Dégâts réels » (voir `sortOptions`).
-  const realDamage = useMemo<RealDamageContext | null>(
-    () =>
-      resolvedSkill
-        ? {
-            profile: resolvedSkill,
-            setup: damageSetup,
-            element: speciesSelected?.monster.element ?? null,
-            passifs: offensivePassives,
-          }
-        : null,
-    [resolvedSkill, damageSetup, speciesSelected?.monster.element, offensivePassives]
-  );
-
   // Statistiques principales autorisées sur les slots 2/4/6 — vide = libre.
   // Voir spec/outils/optimizer/ : pour un Lushen, ATQ% en 2, Dmg Crit en 4,
   // ATQ% en 6 — sans cette contrainte, ces slots partent dans n'importe quel
@@ -544,6 +530,28 @@ export default function OptimizerSection({ box, runes, optimizer, allMonsters, r
     }
     return out;
   }, [selected, ignoreArtifacts, artifactMainByKind]);
+
+  // Contexte de score, exigé par `objectiveScore` pour cet objectif — `null`
+  // si aucun sort n'est calculable, auquel cas l'écran ne propose jamais le
+  // tri « Dégâts réels » (voir `sortOptions`). Après `searchArtifacts` :
+  // `ampliVitPct` en dépend (mêmes artéfacts que ceux réellement envoyés au
+  // moteur, hypothétiques compris — jamais `selected.gear.artifacts`).
+  const ampliVitPct = useMemo(() => speedBuffAmpliPct(searchArtifacts), [searchArtifacts]);
+  const critSiPlusRapide = useMemo(() => monsterCritSiPlusRapide(skillDetail), [skillDetail]);
+  const realDamage = useMemo<RealDamageContext | null>(
+    () =>
+      resolvedSkill
+        ? {
+            profile: resolvedSkill,
+            setup: damageSetup,
+            element: speciesSelected?.monster.element ?? null,
+            passifs: offensivePassives,
+            ampliVitPct,
+            critSiPlusRapide,
+          }
+        : null,
+    [resolvedSkill, damageSetup, speciesSelected?.monster.element, offensivePassives, ampliVitPct, critSiPlusRapide]
+  );
 
   // Ce que le moteur reçoit réellement — partagé entre la recherche et
   // l'estimation affichée avant de lancer quoi que ce soit (voir plus bas) :
@@ -1422,6 +1430,8 @@ export default function OptimizerSection({ box, runes, optimizer, allMonsters, r
               setSetup={setDamageSetup}
               chargement={skillLoading}
               etroit={etroit}
+              critSiPlusRapide={critSiPlusRapide}
+              ampliVitPct={ampliVitPct}
             />
           </div>
         )}
@@ -2171,7 +2181,9 @@ export default function OptimizerSection({ box, runes, optimizer, allMonsters, r
                           realDamage.passifs,
                           c.stats,
                           realDamage.setup,
-                          realDamage.element
+                          realDamage.element,
+                          realDamage.ampliVitPct,
+                          realDamage.critSiPlusRapide
                         );
                         return { total, partPvCible: damageSetup.enemyHp > 0 ? (total / damageSetup.enemyHp) * 100 : 0 };
                       })()

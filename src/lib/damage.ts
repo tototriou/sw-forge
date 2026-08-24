@@ -20,7 +20,7 @@
 // et les mécaniques propres à certains monstres (Deborah, Herteit…).
 
 import type { Competence, DetailMonstre } from './monsterSkills';
-import type { ElementKey } from '../types';
+import type { ArtifactDetail, ElementKey } from '../types';
 import { StatRow } from './stats';
 import { StatKey } from './effects';
 
@@ -165,6 +165,39 @@ const VARIABLE_STAT: Partial<Record<DamageVariable, StatKey>> = {
   'MAX HP': 'hp',
   'Relative SPD': 'spd',
 };
+
+// Code de substat d'artéfact « Effet aug. VIT +X% » (voir `ARTIFACT_SUB`,
+// effects.ts) — amplifie la MAGNITUDE d'un buff de VIT déjà actif
+// (`DamageSetup.spdBuff`), jamais la VIT plate elle-même. Additionné sur
+// tous les artéfacts ÉQUIPÉS (`SearchParams.artifacts` — fixes pour toute
+// une recherche, l'Optimizer n'optimise que les runes) : plusieurs lignes
+// identiques sur des artéfacts différents se cumulent, comme en jeu.
+const CODE_EFFET_AUG_VIT = 206;
+
+export function speedBuffAmpliPct(artifacts: ArtifactDetail[]): number {
+  let total = 0;
+  for (const a of artifacts) {
+    for (const s of a.subs) {
+      if (s.code === CODE_EFFET_AUG_VIT) total += s.value;
+    }
+  }
+  return total;
+}
+
+// Passifs qui forcent le coup CRITIQUE quand le monstre est plus rapide que
+// sa cible — Ciri (Eau), Rigna/Magic Order Swordsinger (Eau). ⚠️ Ces passifs
+// n'ont NI formule NI coups (`Competence.formule` vide) : ce ne sont PAS des
+// `PASSIFS_OFFENSIFS_CONNUS` (aucune contribution de dégâts propre), mais un
+// MODIFICATEUR sur l'ENSEMBLE des dégâts du monstre — confirmé par
+// l'utilisateur : « le passif en lui-même ne fait pas de dégâts... c'est lui
+// qui force le Crit ». Table séparée, même discipline de curation par nom
+// exact.
+const CRIT_SI_PLUS_RAPIDE_CONNUS = new Set(['Lady of Space and Time (Passive)', 'Speed Difference (Passive)']);
+
+export function monsterCritSiPlusRapide(detail: DetailMonstre | null): boolean {
+  if (!detail) return false;
+  return detail.competences.some((c) => c.passif && CRIT_SI_PLUS_RAPIDE_CONNUS.has(c.nom));
+}
 
 type Noeud =
   | { type: 'nombre'; valeur: number }
@@ -780,6 +813,13 @@ export interface DamageSetup {
   // : une recette exportée avant ce champ n'en a aucun, `resolvedEnemySpd`
   // retombe alors sur `DEFAULT_DAMAGE_SETUP.enemySpd`.
   enemySpd?: number;
+  // Bonus de VIT % d'un leader skill d'ÉQUIPE (pas le sien, qui n'agit jamais
+  // sur lui-même) — saisie manuelle, comme les leads de speed.ts
+  // (`SPEED_LEADS`), mais un champ libre ici plutôt qu'une rangée de
+  // boutons : ne sert QUE pour {Relative SPD}/l'ignore-DEF par écart de VIT.
+  // Absent/0 = aucun. Confirmé par l'utilisateur : entre dans « ta VIT
+  // totale » au même titre que les runes et le totem.
+  leaderSpeedPct?: number;
   atkBuff: boolean;
   defBuff: boolean;
   spdBuff: boolean;
@@ -833,6 +873,7 @@ export const DEFAULT_DAMAGE_SETUP: DamageSetup = {
   // cas (les 20 sorts qui en dépendent ciblent presque tous une AUTRE cible
   // que « arène/siège ordinaire »).
   enemySpd: 100,
+  leaderSpeedPct: 0,
   atkBuff: false,
   defBuff: false,
   spdBuff: false,
@@ -889,6 +930,27 @@ export function resolvedHits(profile: SkillDamageProfile, setup: DamageSetup): n
  * Les sorts qui n'en dépendent pas gardent le chemin court (une seule
  * évaluation × `hits`), au coût identique à avant.
  */
+/**
+ * VIT de combat effectivement utilisée pour `{Relative SPD}`, l'ignore-DEF
+ * par écart de VIT et le crit garanti si plus rapide (`monsterCritSiPlusRapide`)
+ * — confirmé par l'utilisateur : runes + totem (compris dans le pourcentage
+ * de compétence d'invocateur, comme les autres stats), buff de VIT
+ * (éventuellement AMPLIFIÉ par un artéfact « Effet aug. VIT », voir
+ * `speedBuffAmpliPct`), et un bonus de leader skill d'ÉQUIPE saisi à la main
+ * (`setup.leaderSpeedPct` — le sien n'agit jamais sur lui-même). Les deux
+ * derniers pourcentages sont SOMMÉS puis appliqués en une seule fois, comme
+ * les autres buffs de ce module (`buff()` plus bas) — pas composés en
+ * plusieurs étapes multiplicatives.
+ */
+export function maVitCombat(stats: StatRow[], setup: DamageSetup, element: ElementKey | null = null, ampliVitPct = 0): number {
+  const bonus = summonerSkillBonus(setup.summonerSkills, element);
+  const row = stats.find((s) => s.key === 'spd');
+  const base = row ? row.total + Math.ceil((row.base * bonus.pct.spd) / 100) : 0;
+  const pctBuff = setup.spdBuff ? SPD_BUFF_PCT * (1 + ampliVitPct / 100) : 0;
+  const pctLeader = setup.leaderSpeedPct ?? 0;
+  return (base * (100 + pctBuff + pctLeader)) / 100;
+}
+
 export function computeSkillDamageDetail(
   profile: SkillDamageProfile,
   stats: StatRow[],
@@ -900,7 +962,11 @@ export function computeSkillDamageDetail(
   // PV de la cible AU DÉBUT de ce sort, en % de son maximum. Omis = ceux du
   // réglage. Sert à enchaîner un passif APRÈS le sort actif, sur une cible
   // déjà entamée (voir `computeTotalDamage`).
-  pvCiblePctDepart?: number
+  pvCiblePctDepart?: number,
+  // Somme des lignes d'artéfact « Effet aug. VIT » équipées (voir
+  // `speedBuffAmpliPct`) — fixe pour toute une recherche (l'Optimizer
+  // n'optimise que les runes), calculée UNE fois par l'appelant.
+  ampliVitPct = 0
 ): { total: number; pvRestantsPct: number } {
   const bonus = summonerSkillBonus(setup.summonerSkills, element);
   // Compétences d'invocateur : un POURCENTAGE de la stat de BASE, ajouté au
@@ -920,7 +986,7 @@ export function computeSkillDamageDetail(
   const pvMax = Math.max(0, setup.enemyHp);
   const pctDepart = Math.min(100, Math.max(0, pvCiblePctDepart ?? setup.enemyHpPct));
 
-  const maVit = buff(avecInvocateur('spd'), setup.spdBuff, SPD_BUFF_PCT);
+  const maVit = maVitCombat(stats, setup, element, ampliVitPct);
   // ⚠️ Bornée à 1 : une VIT adverse ≤ 0 ferait diverger le ratio (division
   // par zéro ou par un nombre négatif), un réglage vidé ne doit jamais casser
   // le calcul plutôt que produire `Infinity`/`NaN`.
@@ -1075,19 +1141,37 @@ export function bonusPassifActif(p: PassifOffensifProfile, setup: DamageSetup): 
  * dégâts DE CE PASSIF précis, pas ceux du sort actif à côté. Et il ne
  * conditionne QUE le surplus — la formule de base d'un passif `bonus` est
  * comptée même bouton éteint (voir `bonusPassifActif`).
+ *
+ * ⚠️ **`critSiPlusRapide`** (Ciri Eau, Rigna, Magic Order Swordsinger — voir
+ * `monsterCritSiPlusRapide`) : contrairement aux `PASSIFS_OFFENSIFS_CONNUS`,
+ * ce n'est PAS un passif qui inflige des dégâts propres — confirmé par
+ * l'utilisateur (« le passif en lui-même ne fait pas de dégâts... c'est lui
+ * qui force le Crit »). Un MODIFICATEUR sur l'ensemble des dégâts du
+ * monstre : quand `maVitCombat(...) > VIT adverse`, force le critique sur le
+ * sort actif ET sur chaque passif dont `critique === 'suit'` — un passif
+ * avec son propre `'jamais'`/`'toujours'` (fait plus précis sur CETTE
+ * contribution précise) garde la priorité.
  */
 export function computeTotalDamage(
   profile: SkillDamageProfile,
   passifs: PassifOffensifProfile[],
   stats: StatRow[],
   setup: DamageSetup,
-  element: ElementKey | null = null
+  element: ElementKey | null = null,
+  // Somme des lignes d'artéfact « Effet aug. VIT » équipées — voir
+  // `speedBuffAmpliPct`, fixe pour toute une recherche.
+  ampliVitPct = 0,
+  critSiPlusRapide = false
 ): number {
+  const forceCrit =
+    critSiPlusRapide &&
+    maVitCombat(stats, setup, element, ampliVitPct) > Math.max(1, setup.enemySpd ?? DEFAULT_DAMAGE_SETUP.enemySpd!);
+  const setupSort = forceCrit ? { ...setup, critMode: 'crit' as const } : setup;
   // ⚠️ Les PV de la cible sont ENCHAÎNÉS du sort actif vers les passifs :
   // ceux-ci frappent après lui, sur une cible déjà entamée. C'est ce qui
   // permet à un bonus « si les PV sont tombés sous X % » (Final Strike) de
   // se déduire tout seul, sans rien demander à l'utilisateur.
-  const sort = computeSkillDamageDetail(profile, stats, setup, element);
+  const sort = computeSkillDamageDetail(profile, stats, setupSort, element, undefined, ampliVitPct);
   let total = sort.total;
   let pvCiblePct = sort.pvRestantsPct;
   for (const p of passifs) {
@@ -1101,13 +1185,14 @@ export function computeTotalDamage(
     const setupPassif: DamageSetup = {
       ...setup,
       defBreak: defBreakApres(setup),
+      ...(forceCrit && p.critique === 'suit' ? { critMode: 'crit' as const } : {}),
       ...(p.critique === 'jamais' ? { critMode: 'normal' as const } : {}),
       ...(p.critique === 'toujours' ? { critMode: 'crit' as const } : {}),
     };
     // Le seuil se juge sur les PV AVANT que ce passif ne frappe — c'est bien
     // l'état de la cible au moment où le jeu évalue la condition.
     const seuilAtteint = p.bonusPvCible != null && pvCiblePct <= p.bonusPvCible.seuilPct;
-    const detail = computeSkillDamageDetail(profilPassif, stats, setupPassif, element, pvCiblePct);
+    const detail = computeSkillDamageDetail(profilPassif, stats, setupPassif, element, pvCiblePct, ampliVitPct);
     pvCiblePct = detail.pvRestantsPct;
     let contribution = detail.total;
     if (seuilAtteint && p.bonusPvCible) contribution *= 1 + p.bonusPvCible.pct / 100;

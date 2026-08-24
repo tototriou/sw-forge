@@ -16,6 +16,7 @@ import {
   SkillDamageUnsupported,
   SummonerSkills,
   estPrisEnCharge,
+  resolvedHits,
 } from '../../lib/damage';
 import { formuleLisible } from '../../lib/monsterSkills';
 import Jeton from '../../ui/Jeton';
@@ -74,13 +75,37 @@ interface Props {
 // (monsterSkills.ts, déjà utilisée par la fiche de monstre) — qui TRADUIT
 // les noms de stats (`{ATK}` → ATQ) sans réécrire la formule, précisément
 // pour garder cette correspondance.
-function resumeSort(p: SkillDamageProfile): { ratio: string | null; reste: string } {
-  const bouts: string[] = [`${p.hits} coup${p.hits > 1 ? 's' : ''}`];
+function resumeSort(p: SkillDamageProfile, setup: DamageSetup): { ratio: string | null; reste: string } {
+  const hits = resolvedHits(p, setup);
+  const bouts: string[] = [`${hits} coup${hits > 1 ? 's' : ''}${p.hitsRange ? ' (variable)' : ''}`];
   bouts.push(p.aoe ? 'Zone' : 'Cible unique');
   if (p.ignoreDef) bouts.push('Ignore la DEF');
   if (p.fixed) bouts.push('Dégâts fixes');
   if (p.skillupDamagePct > 0) bouts.push(`+${p.skillupDamagePct} % (compétence maxée)`);
   return { ratio: formuleLisible(p.formule), reste: bouts.join(' · ') };
+}
+
+// Champ « nombre de coups » d'un sort/passif à coups VARIABLES en jeu (Sia,
+// Okeanos S3…) — absent si `profile.hitsRange` ne l'autorise pas. Partagé
+// entre le sort actif et un passif : même mécanisme, même champ.
+function champCoupsVariables(profile: SkillDamageProfile, setup: DamageSetup, maj: (patch: Partial<DamageSetup>) => void) {
+  if (!profile.hitsRange) return null;
+  return (
+    <div className="mt-1 flex items-center gap-2">
+      <span className="text-xs text-ink-dim">
+        Coups réellement infligés (variable en jeu, {profile.hitsRange.min} à {profile.hitsRange.max}) :
+      </span>
+      <NumberField
+        value={resolvedHits(profile, setup)}
+        onChange={(v) =>
+          v != null &&
+          maj({ coupsPersonnalises: { ...(setup.coupsPersonnalises ?? {}), [profile.skillCom2usId]: v } })
+        }
+        min={profile.hitsRange.min}
+        max={profile.hitsRange.max}
+      />
+    </div>
+  );
 }
 
 export default function DamageSetupCard({ skills, resolved, passifs, setup, setSetup, chargement, etroit }: Props) {
@@ -146,7 +171,7 @@ export default function DamageSetupCard({ skills, resolved, passifs, setup, setS
                 description={
                   pris ? (
                     (() => {
-                      const { ratio, reste } = resumeSort(s);
+                      const { ratio, reste } = resumeSort(s, setup);
                       return (
                         <>
                           {ratio && <span className="font-mono text-ink">{ratio}</span>}
@@ -163,6 +188,7 @@ export default function DamageSetupCard({ skills, resolved, passifs, setup, setS
             );
           })}
         </div>
+        {champCoupsVariables(resolved, setup, maj)}
       </div>
 
       {/* ⚠️ **Indépendant du sort choisi ci-dessus** — un passif s'applique
@@ -194,6 +220,7 @@ export default function DamageSetupCard({ skills, resolved, passifs, setup, setS
                       detail="toujours actif"
                     />
                     {p.description && <p className="mt-1 text-xs leading-snug text-ink-dim">{p.description}</p>}
+                    {champCoupsVariables(p.profile, setup, maj)}
                   </div>
                 );
               }
@@ -222,6 +249,7 @@ export default function DamageSetupCard({ skills, resolved, passifs, setup, setS
                     {condition}
                     {p.description && ` — texte du jeu : « ${p.description} »`}
                   </p>
+                  {champCoupsVariables(p.profile, setup, maj)}
                 </div>
               );
             })}

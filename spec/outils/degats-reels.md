@@ -203,8 +203,37 @@ Clouds en porte 4 (5+5+10+15 = 35 %, `1.6 × 1,35`), trouvée en vérifiant les
 données brutes plutôt qu'en la supposant. Les autres entrées de la liste
 n'ont **pas** été vérifiées individuellement pour `critique`/
 `coupsDuSortActif` (restent aux défauts ci-dessus, potentiellement faux pour
-tel ou tel monstre) — seule Winds and Clouds a été confirmée par
-l'utilisateur à ce jour.
+tel ou tel monstre) — seules Winds and Clouds (`critique: false,
+coupsDuSortActif: true`) et Great Friends (`critique: true`, défaut — Sia
+critique normalement) ont été confirmées par l'utilisateur à ce jour.
+
+### Coups variables — un sort/passif qui frappe un nombre de fois qui change en jeu
+
+Certains sorts et passifs infligent un nombre de coups qui **varie** en jeu
+(« 2 à 3 fois de plus », Sia — Great Friends ; « 3 à 5 fois », Okeanos S3).
+`Competence.coups` (donnée SWARFARM) ne porte qu'**un seul nombre**, pas
+toujours cohérent avec le texte du jeu (ex. Rain of Fire : `coups=6` en
+donnée, « 3 à 5 fois » dans le texte — ni l'un ni l'autre) : aucune
+extraction automatique fiable n'est possible.
+
+⚠️ **Même discipline de curation que `PASSIFS_OFFENSIFS_CONNUS`** —
+`COUPS_VARIABLES_CONNUS` ([damage.ts](src/lib/damage.ts)) associe un
+`Competence.nom` exact à une plage `{ min, max }`, à la main, jamais déduite
+du texte anglais libre. Sert aussi bien un sort actif
+(`skillDamageProfile`) qu'un passif (`monsterOffensivePassives`) — même
+table, même clé. `SkillDamageProfile.hitsRange` porte la plage quand elle
+est connue ; `hits` retombe alors sur son **minimum**, jamais une
+surestimation par défaut.
+
+L'écran affiche un champ numérique (borné à la plage) partout où un tel
+sort/passif apparaît — la recherche ET l'affichage utilisent la valeur
+choisie. `DamageSetup.coupsPersonnalises` (`Record<skillCom2usId, number>`,
+même espace de clés que `passifsOffensifs` : sort actif ET passifs
+confondus) porte le choix ; `resolvedHits(profile, setup)` le résout
+(bornée à `hitsRange` par sécurité, ex. recette écrite avant une
+régénération des données SWARFARM) et remplace `profile.hits` partout où le
+calcul en a besoin (`computeSkillDamage`, et `computeTotalDamage` pour la
+propagation `coupsDuSortActif`).
 
 ⚠️ **Jamais déduit d'un réglage d'écran existant, même quand un réglage
 équivalent existe déjà** (ex. le bouton « Réduction de DEF »). Cas identifié

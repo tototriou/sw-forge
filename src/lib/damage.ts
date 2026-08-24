@@ -266,7 +266,14 @@ export interface SkillDamageProfile {
   nom: string;
   icone: string | null;
   formule: string;
+  // Nombre de coups RETENU pour le calcul — le minimum de `hitsRange` s'il
+  // est présent (jamais une surestimation par défaut), sinon `Competence.coups`.
   hits: number;
+  // Présent = ce sort/passif inflige un nombre de coups qui VARIE en jeu
+  // (« 2 à 3 fois », voir `COUPS_VARIABLES_CONNUS`) — l'écran propose alors un
+  // champ pour choisir la valeur réellement utilisée dans le calcul
+  // (`DamageSetup.coupsPersonnalises`, voir `resolvedHits`).
+  hitsRange?: { min: number; max: number };
   aoe: boolean;
   ignoreDef: boolean;
   // Dégâts FIXES (marqueur `(Fixed)` de SWARFARM) : ne peuvent pas être
@@ -293,6 +300,20 @@ export interface SkillDamageUnsupported {
 const RE_DAMAGE_UP = /^Damage \+(\d+)%$/i;
 // ⚠️ `(Fixed)` colle au dernier terme (`1500(Fixed)`, `0.3*{MAX HP}(Fixed)`).
 const RE_FIXED = /\(Fixed\)\s*$/i;
+
+// Sorts/passifs dont le nombre de coups VARIE en jeu (« 2 à 3 fois », « 3 à
+// 5 fois »…) — `Competence.coups` ne porte qu'UN SEUL nombre, pas toujours
+// cohérent avec le texte (ex. Rain of Fire : `coups=6` en donnée, « 3 à 5
+// fois » dans le texte — ni l'un ni l'autre). Curation à la main, exactement
+// comme `PASSIFS_OFFENSIFS_CONNUS` : jamais une extraction automatique du
+// texte anglais libre. Sert AUSSI bien un sort actif (`skillDamageProfile`)
+// qu'un passif (`monsterOffensivePassives`), même table, même clé
+// (`Competence.nom` exact).
+const COUPS_VARIABLES_CONNUS: Record<string, { min: number; max: number }> = {
+  'Great Friends (Passive)': { min: 2, max: 3 }, // Sia — confirmé par l'utilisateur
+  'Rain of Stones': { min: 3, max: 5 }, // Okeanos S3
+  'Ray Spears': { min: 2, max: 3 }, // Amber S2
+};
 
 /**
  * Profil de dégâts d'une compétence, ou `null` si elle n'inflige pas de
@@ -323,13 +344,17 @@ export function skillDamageProfile(c: Competence): SkillDamageProfile | SkillDam
     if (m) skillupDamagePct += Number(m[1]);
   }
 
+  const coupsVariables = COUPS_VARIABLES_CONNUS[c.nom];
   return {
     ...entete,
     icone: c.icone,
     formule: brut,
     // `coups` vaut `null` sur quelques fiches : un sort qui inflige des
-    // dégâts en frappe au moins une fois.
-    hits: c.coups && c.coups > 0 ? c.coups : 1,
+    // dégâts en frappe au moins une fois. Un sort à coups VARIABLES connu
+    // retombe sur son minimum — jamais une surestimation par défaut, comme
+    // partout ailleurs dans ce module.
+    hits: coupsVariables ? coupsVariables.min : c.coups && c.coups > 0 ? c.coups : 1,
+    hitsRange: coupsVariables,
     aoe: c.aoe,
     ignoreDef: c.effets.some((e) => e.nom === 'Ignore DEF'),
     fixed,
@@ -531,12 +556,15 @@ export function monsterOffensivePassives(detail: DetailMonstre | null): PassifOf
         nom: c.nom,
         icone: c.icone,
         formule: brut,
-        // ⚠️ **Toujours 1**, jamais `c.coups` : un passif qui « attaque 2 à 3
-        // fois de plus » (Great Friends) reste compté comme UNE instance de
-        // dégâts — plancher délibéré (voir l'en-tête du fichier, « jamais un
-        // nombre plausible mais faux ») plutôt que de deviner un nombre de
-        // coups réel que le texte donne parfois en fourchette.
-        hits: 1,
+        // ⚠️ **Jamais `c.coups`**, qui ne représente rien de fiable pour un
+        // passif (Great Friends porte `coups=0` ou `1` en donnée pour un
+        // texte qui dit « 2 à 3 fois de plus »). Un passif à coups VARIABLES
+        // connu (`COUPS_VARIABLES_CONNUS`) retombe sur son minimum et gagne
+        // un champ de réglage ; sinon, **1 seule instance** reste le
+        // plancher délibéré pour tout le reste de la liste, jamais un
+        // nombre inventé dans une fourchette non confirmée.
+        hits: COUPS_VARIABLES_CONNUS[c.nom]?.min ?? 1,
+        hitsRange: COUPS_VARIABLES_CONNUS[c.nom],
         aoe: c.aoe,
         ignoreDef: connu.ignoreDef ?? c.effets.some((e) => e.nom === 'Ignore DEF'),
         fixed,
@@ -644,6 +672,12 @@ export interface DamageSetup {
   // complet par ailleurs mais sans cette clé — jamais supposé présent en
   // lecture (`?.`), voir `passifActif`.
   passifsOffensifs?: Record<number, boolean>;
+  // Nombre de coups choisi par l'utilisateur pour un sort/passif à coups
+  // VARIABLES (`SkillDamageProfile.hitsRange`) — clé = `skillCom2usId` DU
+  // SORT/PASSIF concerné (sort actif ou passif, même espace de clés que
+  // `passifsOffensifs`). Absent = repli sur `hitsRange.min`, voir
+  // `resolvedHits`. Sans effet sur un sort dont `hitsRange` est absent.
+  coupsPersonnalises?: Record<number, number>;
 }
 
 // Adversaire de référence : ni un boss ni une cible nue. 1000 DEF et 30 000
@@ -667,12 +701,28 @@ export const DEFAULT_DAMAGE_SETUP: DamageSetup = {
   // des dégâts que personne n'observe réellement.
   summonerSkills: 'combat',
   passifsOffensifs: {},
+  coupsPersonnalises: {},
 };
 
 // ── Le calcul ────────────────────────────────────────────────────────────
 
 function total(stats: StatRow[], key: StatKey): number {
   return stats.find((s) => s.key === key)?.total ?? 0;
+}
+
+/**
+ * Le nombre de coups RÉELLEMENT retenu pour `profile` : la valeur choisie
+ * par l'utilisateur (`setup.coupsPersonnalises`) si `profile.hitsRange`
+ * l'autorise, sinon `profile.hits` (déjà le minimum de la plage quand elle
+ * existe — jamais une surestimation par défaut). Bornée à `hitsRange` par
+ * sécurité, au cas où la clé viendrait d'une recette écrite pour une autre
+ * plage (régénération des données SWARFARM, par exemple).
+ */
+export function resolvedHits(profile: SkillDamageProfile, setup: DamageSetup): number {
+  if (!profile.hitsRange) return profile.hits;
+  const choisi = setup.coupsPersonnalises?.[profile.skillCom2usId];
+  if (choisi == null) return profile.hits;
+  return Math.min(profile.hitsRange.max, Math.max(profile.hitsRange.min, choisi));
 }
 
 /**
@@ -739,7 +789,7 @@ export function computeSkillDamage(
 
   const reductions = 1 + (setup.brand ? BRAND_BONUS_PCT / 100 : 0);
 
-  return mult * critTerm * mitigation * reductions * profile.hits;
+  return mult * critTerm * mitigation * reductions * resolvedHits(profile, setup);
 }
 
 // Un passif de `passifs` doit-il compter dans le total, selon l'état des
@@ -768,9 +818,11 @@ function passifActif(p: PassifOffensifProfile, setup: DamageSetup): boolean {
  *   bonus proportionnel à la DEF ne peut jamais critiquer, confirmé par
  *   l'utilisateur, alors que la formule elle-même n'a aucun marqueur
  *   `(Fixed)` qui l'exprimerait automatiquement).
- * - `coupsDuSortActif: true` — le nombre d'instances suit celui du SORT
- *   ACTIF choisi (`profile.hits`), pas une instance unique par tour ; défaut
- *   `false` = une seule instance (`hits: 1`, voir `monsterOffensivePassives`).
+ * - `coupsDuSortActif: true` — le nombre d'instances suit celui RÉELLEMENT
+ *   retenu pour le sort ACTIF (`resolvedHits(profile, setup)`, qui respecte
+ *   lui-même un éventuel réglage manuel de coups variables), pas une
+ *   instance unique par tour ; défaut `false` = une seule instance (`hits: 1`,
+ *   voir `monsterOffensivePassives`).
  *
  * ⚠️ **Le bonus `bonus` s'applique SEULEMENT à la contribution du passif
  * concerné**, jamais au total : « +100 % si cible Lumière » double les
@@ -786,7 +838,12 @@ export function computeTotalDamage(
   let total = computeSkillDamage(profile, stats, setup, element);
   for (const p of passifs) {
     if (!passifActif(p, setup)) continue;
-    const profilPassif = p.coupsDuSortActif ? { ...p.profile, hits: profile.hits } : p.profile;
+    // `hitsRange: undefined` : `hits` est déjà la valeur RÉSOLUE du sort
+    // actif, `resolvedHits` ne doit pas la re-résoudre une seconde fois via
+    // un éventuel `coupsPersonnalises[p.skillCom2usId]` sans rapport.
+    const profilPassif = p.coupsDuSortActif
+      ? { ...p.profile, hits: resolvedHits(profile, setup), hitsRange: undefined }
+      : p.profile;
     const setupPassif = p.critique ? setup : { ...setup, critMode: 'normal' as const };
     let contribution = computeSkillDamage(profilPassif, stats, setupPassif, element);
     if (p.categorie.type === 'bonus') contribution *= 1 + p.categorie.pct / 100;

@@ -343,7 +343,13 @@ retour.
        fixes et bonus des améliorations sont lus dans la fiche du sort. Par
        défaut, le dernier slot calculable (S3 avant S2 avant S1). Un sort
        dont la formule sort du modèle reste **affiché, grisé, avec son
-       motif** — jamais absent sans explication.
+       motif** — jamais absent sans explication. ⚠️ **Coups variables** (« 2
+       à 3 fois », Sia — Great Friends ; « 3 à 5 fois », Okeanos S3) : un
+       champ numérique borné apparaît sous le sort choisi (ou sous le passif
+       concerné) pour choisir la valeur réellement utilisée par le calcul —
+       `Competence.coups` ne porte qu'un seul nombre en donnée, pas fiable
+       pour ces sorts-là. Détail : [degats-reels.md](degats-reels.md),
+       « Coups variables ».
      - **Passifs offensifs** — n'apparaît que si le monstre en a un
        (Feng Yan, Sia, Roid, Dominic…) : des dégâts **en plus** du sort
        choisi ci-dessus, via un passif reconnu (liste à la main, voir

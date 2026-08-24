@@ -37,6 +37,7 @@ import {
   monsterDamageSkills,
   monsterOffensivePassives,
   resolveDamageSkill,
+  resolvedHits,
   skillDamageProfile,
   summonerSkillBonus,
 } from '../src/lib/damage';
@@ -281,6 +282,58 @@ export default function testDegats() {
   ok(
     Math.abs(fyTotalCrit - fyTotalNormal - (fyBaseCrit - fyBaseNormal)) < 1e-6,
     'le passif de Feng Yan ne varie jamais avec le mode critique — seul le sort de base y répond'
+  );
+
+  // Sia — « Great Friends (Passive) », coups VARIABLES (« 2 à 3 fois de
+  // plus », confirmé par l'utilisateur : critique normalement, contrairement
+  // à Winds and Clouds). `Competence.coups` ne porte qu'UN SEUL nombre, pas
+  // fiable pour ce genre de sort — d'où un champ de réglage plutôt qu'une
+  // valeur devinée.
+  const sia = fiche(12134);
+  const siaBase = defaultDamageSkill(monsterDamageSkills(sia));
+  ok(siaBase !== null, 'Sia : un sort de dégâts par défaut est trouvé');
+  const siaPassifs = monsterOffensivePassives(sia);
+  egal(siaPassifs.length, 1, 'Sia : un seul passif offensif reconnu (Great Friends)');
+  egal(siaPassifs[0]?.critique, true, 'Great Friends peut critiquer normalement, contrairement à Winds and Clouds');
+  egal(
+    siaPassifs[0]?.profile.hitsRange,
+    { min: 2, max: 3 },
+    'Great Friends a une plage de coups CONNUE (2 à 3), pas un nombre fixe deviné'
+  );
+  egal(
+    siaPassifs[0]?.profile.hits,
+    2,
+    'sans réglage utilisateur, le nombre de coups retombe sur le MINIMUM de la plage — jamais une surestimation par défaut'
+  );
+  const siaSetup: DamageSetup = { ...DEFAULT_DAMAGE_SETUP, skillCom2usId: siaBase!.skillCom2usId, summonerSkills: 'aucune' };
+  const siaStats = stats({ atk: 2000, cd: 200, cr: 100 });
+  egal(
+    resolvedHits(siaPassifs[0]!.profile, siaSetup),
+    2,
+    'sans clé dans coupsPersonnalises, resolvedHits retombe sur le minimum'
+  );
+  const siaSetup3Coups: DamageSetup = {
+    ...siaSetup,
+    coupsPersonnalises: { [siaPassifs[0]!.skillCom2usId]: 3 },
+  };
+  egal(resolvedHits(siaPassifs[0]!.profile, siaSetup3Coups), 3, 'le réglage utilisateur est bien pris en compte');
+  const siaSetupHorsPlage: DamageSetup = {
+    ...siaSetup,
+    coupsPersonnalises: { [siaPassifs[0]!.skillCom2usId]: 99 },
+  };
+  egal(
+    resolvedHits(siaPassifs[0]!.profile, siaSetupHorsPlage),
+    3,
+    'une valeur hors plage (ex. recette écrite pour une autre version des données) est BORNÉE, jamais laissée telle quelle'
+  );
+  const siaContribution2 =
+    computeTotalDamage(siaBase!, siaPassifs, siaStats, siaSetup, null) - computeSkillDamage(siaBase!, siaStats, siaSetup, null);
+  const siaContribution3 =
+    computeTotalDamage(siaBase!, siaPassifs, siaStats, siaSetup3Coups, null) -
+    computeSkillDamage(siaBase!, siaStats, siaSetup3Coups, null);
+  ok(
+    Math.abs(siaContribution3 / siaContribution2 - 1.5) < 1e-9,
+    'passer de 2 à 3 coups multiplie la contribution du passif par 3/2, exactement'
   );
 
   // Roid — « Slash Waves »/« Slash Wind » (Passive), classés « conditionnel » :

@@ -33,6 +33,7 @@ import {
   monsterDamageSkills,
   monsterOffensivePassives,
   resolveDamageSkill,
+  resolvedHits,
 } from '../src/lib/damage';
 import { runSearchToCompletion } from './lib/runSearch';
 import { ExclusionSourceData, autoExcludedRuneIds, resolveExcludedRuneIds } from '../src/lib/optimizerExclusion';
@@ -164,7 +165,8 @@ if (recipe.objective === 'degats_reels') {
       console.warn(`⚠️ Sort ${s.skillCom2usId} de la recette introuvable ici — repli sur « ${profile.nom} ».`);
     }
     console.log(
-      `Dégâts réels : sort « ${profile.nom} » (S${profile.slot}, ${profile.hits} coup(s)` +
+      `Dégâts réels : sort « ${profile.nom} » (S${profile.slot}, ${resolvedHits(profile, s)} coup(s)` +
+        `${profile.hitsRange ? ` [variable ${profile.hitsRange.min}-${profile.hitsRange.max}]` : ''}` +
         `${profile.aoe ? ', zone' : ''}${profile.ignoreDef ? ', ignore la DEF' : ''}` +
         `${profile.skillupDamagePct ? `, +${profile.skillupDamagePct} % d'améliorations` : ''}) — ` +
         `cible ${s.enemyHp} PV / ${s.enemyDef} DEF — crit ${s.critMode}` +
@@ -178,9 +180,10 @@ if (recipe.objective === 'degats_reels') {
     if (passifs.length > 0) {
       const detailPassifs = passifs
         .map((p) => {
-          if (p.categorie.type === 'toujours') return `${p.nom} (toujours actif)`;
+          const coups = p.profile.hitsRange ? ` [${resolvedHits(p.profile, s)} coup(s)]` : '';
+          if (p.categorie.type === 'toujours') return `${p.nom} (toujours actif)${coups}`;
           const actif = s.passifsOffensifs?.[p.skillCom2usId] ?? false;
-          return `${p.nom} (${p.categorie.type}, ${actif ? 'activé' : 'désactivé par défaut'})`;
+          return `${p.nom} (${p.categorie.type}, ${actif ? 'activé' : 'désactivé par défaut'})${coups}`;
         })
         .join(', ');
       console.log(`Passifs offensifs pris en compte : ${detailPassifs}`);

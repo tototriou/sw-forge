@@ -49,6 +49,10 @@ export interface EntreeAuto {
   // (`will`) en pose un dès le début du combat (Immunité 1 tour).
   sets?: string[];
   passifActif?: boolean;
+  // Le lead PROPRE à ce monstre (lead d'ÉLÉMENT), quand le lead de camp ne sait
+  // pas le dire. Absent = il suit celui du camp. ⚠️ Sans lui, la vitesse
+  // affichée sur la card de siège et celle du verdict n'étaient pas la même.
+  lead?: number | null;
 }
 
 // Ce que les kits pré-générés donnent, déjà chargé par l'appelant.
@@ -159,7 +163,7 @@ export function combatAuto(
   d: DonneesKit,
   equipe: EntreeAuto[] = [e]
 ): number | null {
-  const base = combatSpeed(e.monster.stats.speed, e.runeSpeed, lead, e.swift ?? false);
+  const base = combatSpeed(e.monster.stats.speed, e.runeSpeed, e.lead ?? lead, e.swift ?? false);
   if (base == null) return null;
   const p = passifDe(e, d);
   const cumuls = e.cumulsPassif ?? cumulsEstimes(e, equipe, d);

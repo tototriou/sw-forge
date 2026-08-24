@@ -260,8 +260,8 @@ export function useSpeedTune({
   // Rend `true` si l'équipe a bien été importée — un deck dont aucun monstre
   // n'est connu ne change rien, et l'appelant ne doit pas croire le contraire.
   function importerDeck(camp: Camp, team: SiegeTeam): boolean {
-    const { monstres, lead } = deckPourSpeedTune(team, monsterById);
-    if (monstres.length === 0) return false;
+    const deck = deckPourSpeedTune(team, monsterById);
+    if (deck.monstres.length === 0) return false;
     // ⚠️ Changer de deck OUBLIE l'analyse précédente : elle portait sur une autre
     // composition, et la relancer toute seule écrirait par-dessus un réglage
     // qu'on vient d'importer. On reclique quand on veut.
@@ -278,7 +278,7 @@ export function useSpeedTune({
       // ⚠️ La référence saute AUSSI quand on importe dans l'autre camp : elle
       // copiait une équipe qui vient de changer.
       ...prev.filter((l) => l.camp !== camp && !l.reference),
-      ...lignesDeDeck({ monstres, lead }, camp),
+      ...lignesDeDeck(deck, camp),
     ]);
     // Le lead du leader du deck, s'il vaut pour tout le camp (voir
     // speedTuneDeck.ts).
@@ -288,7 +288,7 @@ export function useSpeedTune({
     // équipe avec un +28 % qui n'existait plus, et le siège — qui lit `lead ?? 0`
     // — répondait autre chose que l'outil sur la même compo. Importer un deck,
     // c'est importer TOUT ce qui fait ses vitesses.
-    (camp === 'allie' ? setLeadAllie : setLeadEnnemi)(lead ?? 0);
+    (camp === 'allie' ? setLeadAllie : setLeadEnnemi)(deck.lead ?? 0);
     return true;
   }
 

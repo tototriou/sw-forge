@@ -42,6 +42,7 @@ import {
 } from '../src/lib/speedTuneLignes';
 import {
   analyseAutomatique,
+  combatAuto,
   cumulsEstimes,
   sortRetenu,
   sortSecondRetenu,
@@ -291,7 +292,67 @@ export function testSpeedTuneDeck() {
     egal(d.monstres[2].artefactBuff, null, 'aucun artéfact porteur → rien à reprendre');
   }
 
-  // ⚠️ Un lead d'ÉLÉMENT ne se transpose pas au modèle « un lead par camp ».
+  // ⚠️ Un lead d'ÉLÉMENT ne se transpose pas au modèle « un lead par camp » —
+  // il descend MONSTRE PAR MONSTRE.
+  //
+  // ⚠️ **C'est la correction d'un écart entre les deux écrans.** La card de
+  // siège affichait la vitesse lead d'élément compris, le speed tune la
+  // recalculait sans : deux nombres pour un même monstre, et un « il manque X de
+  // VIT » portant sur une vitesse que personne n'avait sous les yeux.
+  {
+    // Fran (leader) porte « +33 % VIT alliés Eau » ; on lui adjoint un allié Eau
+    // et un allié d'un autre élément.
+    const eau = { id: '6', name: 'Ondine', stats: { speed: 100 }, element: 'water' } as unknown as Monster;
+    const feu = { id: '7', name: 'Braise', stats: { speed: 100 }, element: 'fire' } as unknown as Monster;
+    const avecElements = new Map(parId);
+    avecElements.set('6', eau);
+    avecElements.set('7', feu);
+    avecElements.set('4', { ...fran, element: 'water' } as unknown as Monster);
+
+    const d = deckPourSpeedTune(
+      equipe([
+        { monsterId: '4', runeSpeed: 100 },
+        { monsterId: '6', runeSpeed: 100 },
+        { monsterId: '7', runeSpeed: 100 },
+      ]),
+      avecElements
+    );
+    egal(d.lead, null, 'le lead du CAMP reste vide : le sélecteur ne sait pas dire « seulement l’Eau »');
+    egal(d.leadParMonstre, true, 'mais le deck signale que son lead se lit monstre par monstre');
+    egal(d.monstres[0].lead, 33, 'le leader Eau en profite');
+    egal(d.monstres[1].lead, 33, "l'allié Eau aussi");
+    egal(d.monstres[2].lead, 0, "l'allié Feu, lui, n'a rien — c'est tout l'intérêt du champ");
+
+    // Et la vitesse de combat SUIT, sans qu'un lead de camp soit passé.
+    const combatDe = (i: number) =>
+      combatAuto(
+        { id: `${i}`, monster: d.monstres[i].monster, runeSpeed: 100, lead: d.monstres[i].lead },
+        0,
+        { kits: new Map(), sorts: new Map(), passifs: new Map() }
+      );
+    ok(
+      (combatDe(1) ?? 0) > (combatDe(2) ?? 0),
+      "l'allié Eau est plus rapide que l'allié Feu à runes égales : le lead est VRAIMENT entré dans le calcul"
+    );
+    egal(
+      combatDe(2),
+      combatSpeed(100, 100, 0, false),
+      "et l'allié Feu vaut exactement ce qu'il vaudrait sans aucun lead (le totem, lui, y est toujours)"
+    );
+    egal(
+      combatDe(1),
+      combatSpeed(100, 100, 33, false),
+      "quand l'allié Eau vaut exactement ce que donne le lead de 33 %"
+    );
+  }
+
+  // Un lead qui vaut pour TOUS reste au camp : le sélecteur garde la main.
+  {
+    const d = deckPourSpeedTune(equipe([{ monsterId: '1', runeSpeed: 100 }]), parId);
+    egal(d.lead, 24, 'lead de guilde → au camp');
+    egal(d.leadParMonstre, false, 'et pas monstre par monstre');
+  }
+
   {
     egal(
       deckPourSpeedTune(equipe([{ monsterId: '4', runeSpeed: 100 }]), parId).lead,

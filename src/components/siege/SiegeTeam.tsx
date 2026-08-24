@@ -132,6 +132,12 @@ export default function SiegeTeam({
       // Le Swift entre dans la SOMME des %, il ne s'ajoute pas à côté (voir speed.ts).
       swift: (slot.sets ?? []).includes('swift'),
       sets: slot.sets ?? [],
+      // ⚠️ **Le lead de CE monstre**, lead d'élément compris — et c'est la même
+      // valeur que celle qui part au verdict (`deckPourSpeedTune` appelle le
+      // même `siegeLeadFor`). Auparavant la card affichait la vitesse avec le
+      // lead d'élément et le speed tune la recalculait sans : deux nombres pour
+      // un même monstre, et un « il manque X de VIT » sur une vitesse invisible.
+      lead: siegeLeadFor(leadInfo, m.element),
     };
     const equipe = team.slots.flatMap((sl, j) => {
       const autre = sl.monsterId ? monsterById.get(sl.monsterId) : null;
@@ -143,13 +149,16 @@ export default function SiegeTeam({
               runeSpeed: sl.runeSpeed,
               swift: (sl.sets ?? []).includes('swift'),
               sets: sl.sets ?? [],
+              lead: siegeLeadFor(leadInfo, autre.element),
             } as EntreeAuto,
           ]
         : [];
     });
     return {
       monster: m,
-      combat: combatAuto(entree, siegeLeadFor(leadInfo, m.element), donneesKitSlots, equipe),
+      // Le lead voyage DANS l'entrée (`entree.lead`) : le second argument n'est
+      // que le repli pour un monstre qui n'en porte pas.
+      combat: combatAuto(entree, 0, donneesKitSlots, equipe),
     };
   });
   const slotDangers = slotInfos.map(({ combat }) => tickDanger(combat));
@@ -194,6 +203,9 @@ export default function SiegeTeam({
         swift: m.swift,
         sets: m.sets,
         artefactBuff: m.artefactBuff,
+        // ⚠️ Le lead d'ÉLÉMENT entre ici : le verdict se prononce sur la vitesse
+        // que la card affiche, pas sur une autre.
+        lead: m.lead,
       })),
     [deck]
   );

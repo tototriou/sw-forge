@@ -45,6 +45,15 @@ export interface Ligne {
   // Les sets du monstre, quand ils viennent d'un deck importé : la Volonté et le
   // Bouclier posent des buffs, que certains passifs comptent (Chilling).
   sets?: string[];
+  // Le lead PROPRE à ce monstre, quand celui du camp ne sait pas le dire — un
+  // lead d'ÉLÉMENT (« +21 % VIT alliés Feu ») importé d'un deck : 21 pour les
+  // alliés Feu, 0 pour les autres. Absent = le monstre suit le lead du camp.
+  //
+  // ⚠️ **C'est la correction d'un écart entre les deux écrans** : la card de
+  // siège affichait la vitesse lead d'élément COMPRIS, le speed tune la
+  // recalculait sans — deux nombres pour un même monstre, et un « il manque X de
+  // VIT » portant sur une vitesse que personne n'avait sous les yeux.
+  lead?: number | null;
   // Combien de fois le gain de son PASSIF s'est déclenché (buffs portés, tours
   // adverses passés, attaques…). ⚠️ La VALEUR du gain est lue dans son kit ; ce
   // qui dépend du combat, c'est le nombre de fois — c'est donc la seule chose
@@ -88,12 +97,17 @@ export function ligneVierge(monster: Monster, camp: Camp): Ligne {
 // Les lignes d'un deck importé. ⚠️ Elles REMPLACENT la composition du camp : un
 // deck est une équipe, pas une liste de monstres à empiler.
 export function lignesDeDeck(deck: DeckImporte, camp: Camp): Ligne[] {
-  return deck.monstres.map(({ monster, runeSpeed, artefactBuff, swift, sets }) => ({
+  return deck.monstres.map(({ monster, runeSpeed, artefactBuff, swift, sets, lead }) => ({
     ...ligneVierge(monster, camp),
     runeSpeed,
     artefactBuff,
     swift,
     sets,
+    // ⚠️ **Seulement pour un lead d'ÉLÉMENT.** Un lead General/Guild va dans le
+    // sélecteur du camp, qui reste alors maître : figer sa valeur sur chaque
+    // monstre rendrait le sélecteur décoratif, et un deck SANS lead figerait
+    // tout le monde à 0.
+    lead: deck.leadParMonstre ? lead : undefined,
   }));
 }
 
@@ -104,6 +118,7 @@ export const entreeDe = (l: Ligne): EntreeAuto => ({
   runeSpeed: l.runeSpeed,
   swift: l.swift,
   sets: l.sets,
+  lead: l.lead,
   artefactBuff: l.artefactBuff,
   cumulsPassif: l.cumulsPassif,
   passifActif: l.passifActif,
@@ -144,7 +159,10 @@ export function combatDe(l: Ligne, lead: number, d: DonneesKit): number | null {
   // ⚠️ `combatSpeed` ne rend `null` que sur un `null` franc : une base absente
   // (monstre sans stats) le traverse et ressort en NaN, que le moteur avalerait
   // comme une vitesse valable. On refuse tout ce qui n'est pas un nombre.
-  const base = combatSpeed(l.monster.stats.speed ?? null, l.runeSpeed, lead, l.swift ?? false);
+  // ⚠️ Le lead du monstre l'emporte sur celui du camp quand il en porte un : le
+  // sélecteur de camp ne sait pas dire « seulement les alliés Feu ».
+  const sien = l.lead ?? lead;
+  const base = combatSpeed(l.monster.stats.speed ?? null, l.runeSpeed, sien, l.swift ?? false);
   if (base == null || !Number.isFinite(base)) return null;
   return base + gainPassifDe(l, d);
 }

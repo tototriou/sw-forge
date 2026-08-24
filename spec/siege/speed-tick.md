@@ -169,6 +169,16 @@ inchangée (on y compare des compositions, et une analyse qui repasse écrirait
 par-dessus les grilles qu'on règle). Les deux gestes n'ont pas la même
 intention.
 
+### Le lead, une seule fois
+
+⚠️ **La vitesse affichée sur un slot et celle du verdict sortent du MÊME lead.**
+`deckPourSpeedTune` calcule, pour chaque monstre, le lead qui lui revient
+(`siegeLeadFor` — le même appel que la card), et il voyage dans l'entrée
+(`EntreeAuto.lead`) jusqu'au moteur. La card affichait auparavant la vitesse
+lead d'ÉLÉMENT compris tandis que le speed tune la recalculait sans : deux
+nombres pour un même monstre, et un « il manque X de VIT » portant sur une
+vitesse que personne n'avait sous les yeux.
+
 ### Le statut d'une équipe
 
 ⚠️ **La décision vit dans [siegeStatut.ts](src/lib/siegeStatut.ts)**, pas dans la

@@ -5,7 +5,7 @@
 // Voir spec/outils/speed-tuning.md, « Importer un deck de siège ».
 
 import { Monster, SiegeSlot, SiegeTeam } from '../types';
-import { speedLeadOf } from './speed';
+import { siegeLeadFor, speedLeadOf } from './speed';
 
 // Propriété d'artéfact « Effet aug. VIT » (code 206 dans ARTIFACT_SUB) : elle
 // AMPLIFIE le buff de vitesse, c'est exactement ce que le speed tuning appelle
@@ -38,17 +38,36 @@ export interface DeckImporte {
     // vitesse de combat ; les autres servent au comptage des buffs portés
     // (Volonté, Bouclier — voir speedTuneAuto.ts).
     sets: string[];
+    // Le lead qui s'applique VRAIMENT à CE monstre (`siegeLeadFor`) : 21 pour un
+    // allié Feu sous un lead « VIT alliés Feu », 0 pour ses camarades d'un autre
+    // élément.
+    //
+    // ⚠️ **Sans lui, l'écran et le verdict divergeaient.** La card de siège
+    // affichait la vitesse avec le lead d'élément, le speed tune la recalculait
+    // sans (voir `lead` plus bas) : deux nombres pour un même monstre, et un
+    // verdict « il manque X de VIT » sur une vitesse que personne n'a sous les
+    // yeux.
+    lead: number;
   }[];
   // Lead à appliquer au CAMP, ou `null` si le deck n'en impose pas.
   //
-  // ⚠️ Un lead d'ÉLÉMENT ne se transpose pas : le speed tuning n'a qu'un lead
-  // par camp, l'appliquer à tout le monde gonflerait la vitesse des monstres
-  // d'un autre élément. Dans ce cas on ne touche à rien — c'est à la saisie de
-  // trancher. Seuls les leads qui valent pour TOUS (General / Guild) passent.
+  // ⚠️ Un lead d'ÉLÉMENT ne s'y transpose pas : le sélecteur de camp n'a qu'une
+  // valeur, l'appliquer à tout le monde gonflerait la vitesse des monstres d'un
+  // autre élément. Il passe donc **monstre par monstre** (`monstres[].lead`), et
+  // `leadParMonstre` dit qu'il faut le lire là plutôt qu'ici. Seuls les leads
+  // qui valent pour TOUS (General / Guild) remplissent ce champ.
   lead: number | null;
+  // Le lead du deck se lit-il monstre par monstre ? Vrai pour un lead d'ÉLÉMENT,
+  // que le sélecteur de camp ne sait pas dire.
+  leadParMonstre: boolean;
 }
 
 export function deckPourSpeedTune(team: SiegeTeam, monsterById: Map<string, Monster>): DeckImporte {
+  // Le leader est le slot 0 (convention du siège), pas `team.lead`. Lu AVANT la
+  // boucle : chaque monstre a besoin de savoir ce que le lead lui donne, à lui.
+  const leaderId = team.slots[0]?.monsterId ?? null;
+  const info = speedLeadOf(leaderId ? monsterById.get(leaderId) : null);
+
   const monstres: DeckImporte['monstres'] = [];
   for (const slot of team.slots) {
     const monster = slot.monsterId ? monsterById.get(slot.monsterId) : null;
@@ -63,13 +82,14 @@ export function deckPourSpeedTune(team: SiegeTeam, monsterById: Map<string, Mons
       // rater un tick.
       swift: (slot.sets ?? []).includes('swift'),
       sets: slot.sets ?? [],
+      // ⚠️ **La même fonction que la card de siège** (`siegeLeadFor`) : c'est ce
+      // qui garantit que la vitesse affichée et celle du verdict sont le même
+      // nombre. Deux calculs de lead, et l'écart revient.
+      lead: siegeLeadFor(info, monster.element),
     });
   }
 
-  // Le leader est le slot 0 (convention du siège), pas `team.lead`.
-  const leaderId = team.slots[0]?.monsterId ?? null;
-  const info = speedLeadOf(leaderId ? monsterById.get(leaderId) : null);
   const lead = info && (info.area === 'General' || info.area === 'Guild') ? info.amount : null;
 
-  return { monstres, lead };
+  return { monstres, lead, leadParMonstre: info?.area === 'Element' };
 }

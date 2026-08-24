@@ -95,6 +95,20 @@ trois vitesses de runes. Calcul pur dans
   connu n'y figure pas.
 - **Toujours affiché, désactivé** sans compte chargé (aucune équipe) : son
   `title` dit pourquoi.
+- ⚠️ **Le lead d'ÉLÉMENT descend monstre par monstre.** Le sélecteur d'un camp
+  n'a qu'une valeur : il ne sait pas dire « +21 % pour les alliés Feu
+  seulement ». Chaque monstre importé porte donc **son** lead (`Ligne.lead`,
+  calculé par le même `siegeLeadFor` que la card de siège) et une pastille
+  « lead +21 % » / « lead sans » le dit sur sa card — le chiffre de la vitesse de
+  combat serait sinon inexplicable.
+
+  > ⚠️ **C'est la correction d'un écart entre les deux écrans.** La card de siège
+  > affichait la vitesse lead d'élément COMPRIS, le speed tune la recalculait
+  > SANS : deux nombres pour un même monstre, et un « il manque X de VIT »
+  > portant sur une vitesse que personne n'avait sous les yeux. Un lead
+  > General/Guild, lui, reste au sélecteur du camp — sinon le sélecteur
+  > deviendrait décoratif, et un deck sans lead figerait tout le monde à 0.
+
 - **L'artéfact « Effet aug. VIT » est repris** du `gear` du slot (code `206`
   dans `ARTIFACT_SUB`, sommé sur les deux artéfacts) : c'est lui qui amplifie le
   buff de vitesse, il n'a pas à être ressaisi.

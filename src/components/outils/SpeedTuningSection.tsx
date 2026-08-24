@@ -992,6 +992,21 @@ function CampPanneau({
                     <div className="min-w-0 flex-1">
                       <div className="flex items-center gap-1.5">
                         <span className="truncate text-sm font-semibold">{l.monster.name}</span>
+                        {/* ⚠️ **Un lead que le sélecteur du camp ne dit pas.**
+                            Il vient d'un deck dont le leader porte un lead
+                            d'ÉLÉMENT : il ne vaut que pour les alliés de cet
+                            élément. Il entre DANS la vitesse de combat affichée
+                            à droite — le taire laisserait un chiffre
+                            inexplicable, et c'est précisément l'écart qui faisait
+                            répondre autre chose au siège qu'ici. */}
+                        {l.lead != null && (
+                          <span
+                            className="flex-none rounded border border-border px-1 text-micro font-bold uppercase tracking-wide text-ink-dim"
+                            title={`Lead d'élément importé du deck : ${l.lead > 0 ? `+${l.lead} % de vitesse pour ${l.monster.name}` : `aucun bonus pour ${l.monster.name}, qui n'est pas de l'élément du leader`}. Il remplace le lead du camp pour ce monstre.`}
+                          >
+                            lead {l.lead > 0 ? `+${l.lead}%` : 'sans'}
+                          </span>
+                        )}
                         {l.reference && (
                           <span
                             className="flex-none rounded border border-border px-1 text-micro font-bold uppercase tracking-wide text-ink-dim"

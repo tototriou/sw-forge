@@ -444,30 +444,36 @@ De haut en bas :
    **masqué** reste dans son camp (grisé) mais quitte les calculs et les trois
    tableaux — pour tester une compo sans perdre son réglage ; on le réaffiche
    d'un clic sur l'œil.
-3. **Analyse automatique** — ⚠️ **UNE SEULE card** pour tout ce que l'outil fait
-   de lui-même. Elle était en deux cadres séparés (le verdict d'un côté, l'ordre
-   des sorts de l'autre), ce qui laissait croire à deux outils alors qu'un seul
-   bouton les coupe ensemble.
-   - **En-tête** : le titre, et les **deux commandes** côte à côte — un
-     **interrupteur « Analyser »** et le bouton **« Ordre des sorts »**. Elles
-     pilotent la même chose, et ce qu'elles ouvrent est posé **dessous** : elles
-     ne bougent pas d'un pixel.
-     ⚠️ **Un interrupteur, pas un bouton dont le libellé bascule** : l'analyse
-     n'est pas une action qu'on déclenche, c'est un **mode** qui reste allumé.
-     « Lancer » puis « Cacher » obligeait à lire le libellé pour savoir dans quel
-     état on se trouvait ; un interrupteur le montre.
-     ⚠️ **Aucune phrase d'explication dans l'en-tête** : le titre suffit, et la
-     question à laquelle l'outil répond est déjà celle de la page.
-   - **Corps** : le verdict. Vert, il tient en quatre mots — **« Ta team est
-     speed tune. »** ⚠️ Quand c'est bon, il n'y a rien à ajouter : ni le nom de
-     l'adverse devancé, ni son tick. Rouge, il nomme **l'adverse qui coupe**
-     (toujours sans son tick) puis donne **une ligne par allié coupé** : son nom
-     et **le chiffre qui manque**, rien de plus.
+3. **Analyse automatique** — ⚠️ **Elle ÉCRIT, elle ne recouvre pas.** Un clic sur
+   **« Analyser »** lit les kits, simule, et **pose le résultat DANS les grilles**
+   — exactement comme si on les avait remplies à la main : buff de vitesse
+   activé, valeurs dans les cases. Puis elle s'arrête. Tout reste modifiable
+   ensuite, et **rien ne repasse dessus**.
+   - **Pourquoi** : la version précédente affichait des valeurs qui n'existaient
+     nulle part et se recalculaient sans cesse. On ne pouvait ni les corriger, ni
+     savoir ce qui venait de l'outil et ce qui venait de soi.
+   - ⚠️ **Un effet est écrit au tick SUIVANT celui où il est lancé.** Dans le
+     moteur, ce qu'une compétence pose arrive APRÈS l'arbitrage du tick (le
+     lanceur vient de jouer) ; une case de grille, elle, est posée AVANT.
+     L'écrire sur le même tick aurait laissé un allié boosté voler le tour du
+     lanceur.
+   - ⚠️ **Le SEUL déclencheur d'une nouvelle écriture, c'est le choix d'un sort**
+     — un autre sort ne pose pas la même chose. Vitesses, artéfacts, sets, cases
+     des grilles : ce sont des réglages, l'automatisation n'y revient jamais.
+     « Relancer » réécrit tout depuis les kits, et écrase donc les corrections.
+   - **En-tête** : le titre et les deux commandes — **« Analyser »** et
+     **« Ordre des sorts »**. ⚠️ Une **action**, pas un interrupteur : un
+     interrupteur laissait croire à une couche qui tourne en fond et repasserait
+     sur ce qu'on règle. ⚠️ **Aucune phrase d'explication** : le titre suffit.
+   - **Corps** : rien d'autre que **le RÉSULTAT**. Vert, il tient en quatre mots
+     — **« Ta team est speed tune. »** Rouge, il nomme **l'adverse qui coupe**
+     (sans son tick) puis donne **une ligne par allié coupé** : son nom et **le
+     chiffre qui manque**, rien de plus.
    - **Sous-bloc** (bouton « Ordre des sorts ») : l'ordre imposé et le sort de
-     chacun, **dans la même card**, séparé d'un simple filet — c'est le même
-     travail, en plus fin. Voir « Analyse poussée ».
-
-   Le bouton **« Lancer » / « Cacher »** commande **tout** : voir plus bas.
+     chacun, dans la même card, séparé d'un filet. C'est l'**entrée** de
+     l'automatisation — d'où le fait qu'y toucher relance l'écriture.
+   - Sans personne en face, « Analyser » pose en plus l'**adversaire de
+     référence**.
 4. **Barre d'action par tick** (lecture seule) — tableau : lignes triées par
    ordre de tour, colonnes = ticks. Chaque cellule = `% rempli` — la
    **trajectoire réelle** renvoyée par la simulation (`OrdreEntree.trajectoire`),
@@ -485,18 +491,17 @@ De haut en bas :
    tick visé), puis une ligne par monstre. Cellules = `NumberField sansBoutons`
    (axe dense de la lib, voir [../shared/librairie-ui.md](../shared/librairie-ui.md)) ;
    valeur **positive pour remplir, négative pour vider** (la barre reste ≥ 0) ;
-   une case vide = la **compétence décide** (sa valeur s'affiche en repère,
-   signée). ⚠️ **Saisir REMPLACE, et 0 ANNULE** : c'est ainsi qu'on écarte une
-   réduction d'ATB à 70 % de chances — un lead tune ne doit pas dépendre d'un
-   effet qui peut se louper, mais l'effet reste posé par défaut, puisque le plus
-   souvent il passe. ⚠️ **`0` et « vide » sont deux états distincts** : `0`
-   annule, vide rend la main.
+   une case vide = aucun modificateur. ⚠️ **C'est ici que l'analyse écrit** : les
+   valeurs qu'elle pose sont des valeurs comme les autres, qu'on corrige ou qu'on
+   efface — c'est ainsi qu'on écarte une réduction d'ATB à 70 % de chances dont
+   un lead tune ne doit pas dépendre.
 6. **Buff de vitesse** — même grille, mais chaque cellule combine un **raccourci**
    et un **champ** : un bouton à l'icône SPD du jeu (celle des cartes RTA/Siège)
    pose/retire le buff **+30 %** d'un clic — c'est presque toujours celui-là — et
    un `NumberField` à côté permet de saisir une autre valeur (33 %, un ralenti
    −30 %…). La ligne équipe agit sur tout le camp. `speedMod` s'applique **au seul
-   tick marqué** (pas de report) : un buff qui dure se marque sur chaque tick.
+   tick marqué** (pas de report) : un buff qui dure se marque sur chaque tick —
+   et c'est exactement ce que l'analyse écrit quand un sort buffe l'équipe.
    Comme pour le boost, une case vide laisse la **compétence** décider (valeur en
    repère), une valeur saisie la remplace et `0` l'annule.
 7. **Ordre de tour** — jetons entrelaçant les deux camps, chacun avec son rang et

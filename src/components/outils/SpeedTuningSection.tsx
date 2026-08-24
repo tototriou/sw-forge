@@ -1,5 +1,5 @@
 import { useEffect, useId, useMemo, useRef, useState } from 'react';
-import { Search, Plus, Timer, Users, Swords, X, Zap, Gauge, Eye, EyeOff, Download, Check, Scissors, ListOrdered, ChevronUp, ChevronDown, Sparkles } from 'lucide-react';
+import { Search, Plus, Timer, Users, Swords, X, Zap, Gauge, Eye, EyeOff, Download, Check, Scissors, Play, ListOrdered, ChevronUp, ChevronDown, Sparkles } from 'lucide-react';
 import { Monster, SiegeTeam } from '../../types';
 import { combatSpeed, runeSpeedForTarget, SPEED_LEADS, SIEGE_TICKS } from '../../lib/speed';
 import {
@@ -30,7 +30,6 @@ import MonsterAvatar from '../MonsterAvatar';
 import {
   Bouton,
   Champ,
-  Interrupteur,
   Flottant,
   NumberField,
   Selecteur,
@@ -228,10 +227,16 @@ export default function SpeedTuningSection({ allMonsters, siegeDefenseTeams, sie
   // part. Coupée, la simulation n'obéit plus qu'à ce qu'on a saisi — c'est le
   // but : « je regarde ce que ça donne, puis je fais ce que je veux ».
   //
-  // ⚠️ **Coupée par défaut** : l'analyse se lance À LA MAIN, à chaque fois. Elle
-  // porte sur une composition donnée — l'allumer d'office reviendrait à poser un
-  // verdict sur une équipe qu'on est en train de monter, et à remplir les
-  // grilles avant qu'on ait demandé quoi que ce soit.
+  // ⚠️ **L'analyse ÉCRIT, elle ne recouvre pas.** Elle lit les kits une fois, pose
+  // ce qu'ils donnent DANS les grilles — exactement comme si on les avait
+  // remplies à la main — et s'arrête là. Ensuite tout est modifiable sans que
+  // rien ne repasse dessus. C'est ce qui remplace l'ancien « mode » vivant, où
+  // les valeurs affichées n'existaient nulle part et se recalculaient sans
+  // arrêt : impossible d'y toucher, et impossible de savoir ce qui venait de
+  // l'outil ou de soi.
+  //
+  // Ce drapeau ne dit qu'une chose : une analyse a déjà été appliquée. Il sert à
+  // la REJOUER quand on change un sort — le seul changement qui la rend fausse.
   const [auto, setAuto] = useStickyState<boolean>('speedTune.auto', false);
   const [poussee, setPoussee] = useStickyState<boolean>('speedTune.poussee', false);
   const [ordreVoulu, setOrdreVoulu] = useStickyState<string[]>('speedTune.ordre', []);
@@ -398,54 +403,6 @@ export default function SpeedTuningSection({ allMonsters, siegeDefenseTeams, sie
     setLignes((prev) => [...prev.filter((l) => !l.reference && l.uid !== ref.uid), ref]);
   }
 
-  // Cacher l'analyse : l'adversaire de référence est MASQUÉ, pas supprimé — il
-  // quitte les calculs et les tableaux mais reste dans son camp, comme n'importe
-  // quel monstre qu'on met de côté (icône œil). On regarde ce que l'analyse
-  // donne, on la cache pour travailler tranquille, et on la rappelle d'un clic.
-  // Couper l'analyse arrête ce que l'outil DÉDUIT — les kits, l'ordre des sorts,
-  // le recalage de la référence. ⚠️ **Les monstres d'en face restent**, référence
-  // comprise : ce sont des monstres comme les autres une fois posés, et les
-  // effacer ferait perdre un réglage qu'on vient justement de vouloir garder
-  // sous les yeux pour travailler dessus.
-  function cacherAnalyse() {
-    setAuto(false);
-    setPoussee(false); // l'analyse poussée fait partie de l'automatique
-  }
-
-  // Rallumer : les kits reparlent, et si personne n'est en face on repose
-  // l'adversaire de référence. S'il y en a déjà un, on le réaffiche au cas où il
-  // aurait été mis de côté à la main.
-  function relancerAnalyse() {
-    setAuto(true);
-    if (!aEnnemi) analyseAuto();
-    else setLignes((prev) => prev.map((l) => (l.reference ? { ...l, masque: false } : l)));
-  }
-
-  // ⚠️ **Un passif change qui est le plus rapide.** Tant que l'analyse tourne, la
-  // référence se recale donc sur le plus rapide du MOMENT — sinon on compare son
-  // équipe à une copie d'un monstre qui ne l'est plus. Elle s'arrête net dès que
-  // l'analyse est coupée (import de deck, bouton « Cacher »).
-  useEffect(() => {
-    if (!auto) return;
-    const ref = lignes.find((l) => l.reference);
-    if (!ref) return;
-    const modele = plusRapideAllie();
-    if (!modele) return;
-    const cible = ligneReference(modele);
-    const identique =
-      ref.uid === cible.uid &&
-      ref.runeSpeed === cible.runeSpeed &&
-      ref.artefactBuff === cible.artefactBuff &&
-      ref.swift === cible.swift &&
-      ref.cumulsPassif === cible.cumulsPassif &&
-      ref.passifActif === cible.passifActif;
-    if (identique) return;
-    setLignes((prev) => [
-      ...prev.filter((l) => !l.reference && l.uid !== cible.uid),
-      { ...cible, masque: ref.masque },
-    ]);
-  }, [lignes, leadAllie, auto]);
-
   function retirer(uid: string) {
     setLignes((prev) => prev.filter((l) => l.uid !== uid));
   }
@@ -546,7 +503,6 @@ export default function SpeedTuningSection({ allMonsters, siegeDefenseTeams, sie
     const choix = poussee ? sortChoisi[l.uid] : undefined;
     if (choix === '') return null;
     if (choix != null) return liste.find((x) => x.nom === choix) ?? null;
-    if (!auto) return null; // analyse coupée : plus rien n'est déduit du kit
     const kit = l.monster.com2usId != null ? kits.get(l.monster.com2usId) : null;
     const nom = kit?.atbCompetence ?? kit?.buffCompetence ?? null;
     return liste.find((x) => x.nom === nom) ?? null;
@@ -594,6 +550,73 @@ export default function SpeedTuningSection({ allMonsters, siegeDefenseTeams, sie
 
   // Simulation multi-tours (40 ticks) avec les modificateurs.
   const sim = useMemo(() => simuler(tune, HORIZON_TICKS), [tune]);
+
+  // ⚠️ La simulation de l'ANALYSE, celle qui fait parler les kits. Elle ne sert
+  // qu'à produire ce qu'on va ÉCRIRE dans les grilles — elle n'alimente ni les
+  // tableaux ni le verdict, qui obéissent, eux, à l'état de la page.
+  function simulerAvecSorts() {
+    const avec: TuneMonstre[] = [];
+    for (const l of lignesVisibles) {
+      const c = combatDe(l);
+      if (c == null || c <= 0) continue;
+      const actif = sortActif(l);
+      const second = sortSecond(l);
+      avec.push({
+        id: l.uid,
+        combat: c,
+        camp: l.camp,
+        artefactBuff: l.artefactBuff ?? 0,
+        sort: actif ? { ...actif.effet, cooldown: actif.cooldown } : undefined,
+        rejoue: actif?.rejoue ?? false,
+        sort2: actif?.rejoue && second ? { ...second.effet, cooldown: second.cooldown } : undefined,
+      });
+    }
+    return simuler(avec, HORIZON_TICKS);
+  }
+
+  // L'ANALYSE : elle lit les kits, puis POSE le résultat dans les grilles, comme
+  // si on les avait remplies à la main. Après quoi elle ne repasse plus.
+  //
+  // ⚠️ **Un effet de sort est écrit au tick SUIVANT celui où il est lancé.** Dans
+  // le moteur, ce qu'une compétence pose arrive APRÈS l'arbitrage du tick (le
+  // lanceur vient de prendre son tour) ; une case de grille, elle, est posée
+  // AVANT. L'écrire sur le même tick aurait laissé un allié boosté voler le tour
+  // du lanceur. Décalé d'un tick, il agit exactement au moment où il comptait.
+  function analyser() {
+    const resultat = simulerAvecSorts();
+    const parId = new Map(resultat.lignes.map((x) => [x.id, x]));
+    setAuto(true);
+    setLignes((prev) =>
+      prev.map((l) => {
+        const sim = parId.get(l.uid);
+        if (!sim) return l;
+        const atbMod: ModParTick = {};
+        for (const [tick, v] of Object.entries(sim.effetAtb)) {
+          const suivant = Number(tick) + 1;
+          if (v !== 0 && suivant <= HORIZON_TICKS) atbMod[suivant] = v;
+        }
+        const speedMod: ModParTick = {};
+        for (const [tick, v] of Object.entries(sim.effetSpeed)) if (v !== 0) speedMod[Number(tick)] = v;
+        return { ...l, atbMod, speedMod };
+      })
+    );
+    // Personne en face : on pose l'adversaire de référence pour avoir un repère.
+    if (!aEnnemi) analyseAuto();
+  }
+
+  // ⚠️ Le SEUL changement qui rende une analyse fausse : le sort lancé. Tout le
+  // reste (vitesses, artéfacts, cases des grilles) est un réglage de
+  // l'utilisateur, et l'automatisation n'y revient jamais.
+  const sortsSignature = JSON.stringify([sortChoisi, sortChoisi2]);
+  const premiereSignature = useRef(sortsSignature);
+  useEffect(() => {
+    if (!auto || premiereSignature.current === sortsSignature) {
+      premiereSignature.current = sortsSignature;
+      return;
+    }
+    premiereSignature.current = sortsSignature;
+    analyser();
+  }, [sortsSignature, auto]);
 
   // Chaîne d'ouverture : toute l'équipe joue-t-elle avant le premier adverse ?
   // Et sinon, quelle vitesse de combat faut-il à ceux qui sont coupés.
@@ -750,20 +773,6 @@ export default function SpeedTuningSection({ allMonsters, siegeDefenseTeams, sie
     });
   }
 
-  // Ce que les COMPÉTENCES ont posé, tel que la SIMULATION le rapporte : on ne
-  // le reconstitue plus ici. Elle seule sait quel allié avait la barre la plus
-  // basse quand Breeze est partie, ou quel adverse Wood Vine a visé — un boost
-  // sur un seul allié apparaît donc sur SA ligne, à SON tick, et un retrait de
-  // barre adverse sur la ligne de l'adverse, en négatif.
-  const derives = useMemo(() => {
-    const atb = new Map<string, ModParTick>();
-    const spd = new Map<string, ModParTick>();
-    for (const l of sim.lignes) {
-      atb.set(l.id, l.effetAtb);
-      spd.set(l.id, l.effetSpeed);
-    }
-    return { atbMod: atb, speedMod: spd };
-  }, [sim]);
   const requisParUid = useMemo(() => new Map(requis.map((r) => [r.id, r])), [requis]);
   const arteParUid = useMemo(() => new Map(arteRequis.map((r) => [r.id, r])), [arteRequis]);
   const nomDe = (uid: string) => ligneParUid.get(uid)?.monster.name ?? '?';
@@ -932,37 +941,29 @@ export default function SpeedTuningSection({ allMonsters, siegeDefenseTeams, sie
                 Analyse automatique
               </span>
               <span className="ml-auto flex flex-wrap items-center gap-2">
-                {/* ⚠️ Un INTERRUPTEUR, pas un bouton dont le libellé bascule :
-                    l'analyse n'est pas une action qu'on déclenche, c'est un MODE
-                    qui reste allumé — « Lancer » puis « Cacher » forçait à lire
-                    le libellé pour savoir dans quel état on était, quand un
-                    interrupteur le montre. Les deux commandes sont dans
-                    l'en-tête, et ce qu'elles ouvrent est posé dessous : elles ne
-                    bougent pas d'un pixel. */}
-                <Interrupteur
-                  actif={auto}
-                  onChange={(v) => (v ? relancerAnalyse() : cacherAnalyse())}
+                {/* ⚠️ Une ACTION, pas un mode : l'analyse ÉCRIT dans les grilles
+                    puis s'arrête. Un interrupteur laissait croire à une couche
+                    qui tourne en fond et qui repasserait sur ce qu'on règle. */}
+                <Bouton
+                  icone={<Play size={14} />}
+                  libelle={auto ? 'Relancer' : 'Analyser'}
                   disabled={!aAllie}
-                  libelle={<span className="text-xs font-semibold">Analyser</span>}
                   title={
                     !aAllie
                       ? "Ajoute d'abord des monstres à ton équipe."
-                      : auto
-                        ? "Coupe l'analyse : les grilles cessent de se remplir toutes seules et l'ordre des sorts se referme. Ce que tu as saisi, et les monstres d'en face, restent."
-                        : "Lit les kits, remplit les grilles, et pose une copie de ton monstre le plus rapide si personne n'est en face."
+                      : "Lit les kits et POSE le résultat dans les grilles, comme si tu les remplissais à la main. Ensuite tout est modifiable : l'analyse ne repasse plus, sauf si tu changes un sort."
                   }
+                  onClick={analyser}
                 />
                 <Bouton
                   icone={<ListOrdered size={14} />}
                   libelle="Ordre des sorts"
                   actif={poussee}
-                  disabled={!aAllie || !auto}
+                  disabled={!aAllie}
                   title={
                     !aAllie
                       ? "Ajoute d'abord des monstres à ton équipe."
-                      : !auto
-                        ? "L'analyse est coupée : relance-la pour régler l'ordre et les sorts."
-                        : "Imposer l'ordre des tours et le sort lancé par chacun, puis voir la fenêtre de vitesse que chaque rang laisse."
+                      : "Imposer l'ordre des tours et le sort lancé par chacun. ⚠️ Changer un sort est la SEULE chose qui relance l'analyse."
                   }
                   onClick={() => setPoussee((v) => !v)}
                 />
@@ -1014,7 +1015,7 @@ export default function SpeedTuningSection({ allMonsters, siegeDefenseTeams, sie
 
             {/* Ordre des sorts — DANS la même card, séparé d'un filet : c'est le
                 même travail, en plus fin. */}
-            {auto && poussee && (
+            {poussee && (
               <div className="border-t border-border-soft">
                 <div className="border-b border-border-soft px-4 py-2 text-micro font-semibold uppercase tracking-wider text-ink-dimmer">
                   Ordre des sorts
@@ -1221,18 +1222,13 @@ export default function SpeedTuningSection({ allMonsters, siegeDefenseTeams, sie
             champ="atbMod"
             mode="nombre"
             titre="Modification de barre d'attaque"
-            sousTitre={
-              auto
-                ? "ce qu'une compétence pose s'affiche en repère — une valeur saisie le REMPLACE, 0 l'annule (un effet à 70 % de chances, on ne compte pas dessus)"
-                : "analyse coupée : plus rien ne se remplit tout seul, la grille n'obéit qu'à ce que tu saisis"
-            }
+            sousTitre="à un tick précis : +% pour remplir, −% pour vider la barre (jamais sous 0) — l'analyse écrit ici, tu corriges par-dessus"
             icone={<Zap size={15} />}
             lignes={lignesVisibles}
             aAllie={aAllie}
             aEnnemi={aEnnemi}
             onSet={setMod}
             onSetEquipe={setModEquipe}
-            derives={derives.atbMod}
             refConteneur={enregistrer(1)}
             onScrollSync={synchro}
           />
@@ -1242,18 +1238,13 @@ export default function SpeedTuningSection({ allMonsters, siegeDefenseTeams, sie
             champ="speedMod"
             mode="buff"
             titre="Buff de vitesse"
-            sousTitre={
-              auto
-                ? "icône SPD = buff +30 % d'un clic, ou saisis une valeur — elle REMPLACE ce que la compétence donne à ce tick, 0 l'annule"
-                : "analyse coupée : plus rien ne se remplit tout seul, la grille n'obéit qu'à ce que tu saisis"
-            }
+            sousTitre="icône SPD = buff +30 % d'un clic, ou saisis une valeur — l'analyse écrit ici, tu corriges par-dessus"
             icone={<Gauge size={15} />}
             lignes={lignesVisibles}
             aAllie={aAllie}
             aEnnemi={aEnnemi}
             onSet={setMod}
             onSetEquipe={setModEquipe}
-            derives={derives.speedMod}
             refConteneur={enregistrer(2)}
             onScrollSync={synchro}
           />
@@ -1611,9 +1602,6 @@ interface GrilleModProps {
   aEnnemi: boolean;
   onSet: (champ: ChampMod, uid: string, tick: number, v: number | null) => void;
   onSetEquipe: (champ: ChampMod, camp: Camp, tick: number, v: number | null) => void;
-  // Ce que les compétences posent d'elles-mêmes, par monstre et par tick :
-  // affiché en repère dans la cellule vide, jamais écrit dans l'état.
-  derives: Map<string, ModParTick>;
   refConteneur: (el: HTMLDivElement | null) => void;
   onScrollSync: (e: React.UIEvent<HTMLDivElement>) => void;
 }
@@ -1632,7 +1620,6 @@ function GrilleMod({
   aEnnemi,
   onSet,
   onSetEquipe,
-  derives,
   refConteneur,
   onScrollSync,
 }: GrilleModProps) {
@@ -1654,12 +1641,7 @@ function GrilleMod({
   // Une cellule. Boost d'ATB : simple champ numérique. Buff de vitesse : le
   // raccourci (icône SPD, pose/retire +30 % d'un clic) ET le champ pour saisir
   // une autre valeur (33 %, un ralenti −30 %…).
-  const cellule = (
-    value: number | null,
-    onChange: (v: number | null) => void,
-    aria: string,
-    derive?: number
-  ) =>
+  const cellule = (value: number | null, onChange: (v: number | null) => void, aria: string) =>
     mode === 'buff' ? (
       <div className="mx-auto flex w-[78px] items-center gap-1">
         <BoutonIcone
@@ -1677,9 +1659,8 @@ function GrilleMod({
           onChange={onChange}
           allowEmpty
           boxWidth="w-11"
-          placeholder={derive ? signe(derive) : '·'}
+          placeholder="·"
           ariaLabel={`${aria} — valeur`}
-          title={derive ? `Posé par une compétence : ${signe(derive)} % de vitesse` : undefined}
         />
       </div>
     ) : (
@@ -1693,9 +1674,8 @@ function GrilleMod({
         min={-100}
         max={100}
         boxWidth="w-14"
-        placeholder={derive ? signe(derive) : '·'}
+        placeholder="·"
         ariaLabel={aria}
-        title={derive ? `Posé par une compétence : ${signe(derive)} % de barre` : undefined}
       />
     );
 
@@ -1752,8 +1732,7 @@ function GrilleMod({
                           {cellule(
                             l[champ][t] ?? null,
                             (v) => onSet(champ, l.uid, t, v),
-                            `${l.monster.name} — tick ${t}`,
-                            derives.get(l.uid)?.[t]
+                            `${l.monster.name} — tick ${t}`
                           )}
                         </td>
                       ))}

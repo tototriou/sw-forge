@@ -93,6 +93,16 @@ const RELEVE_EN_JEU = {
   'The Cunning (Passive)': '+20 de vitesse par buff porté (relevé en jeu)',
 };
 
+// ⚠️ Ceux-là n'ont **aucune donnée**, ni dans les fiches ni en jeu — vérifié avec
+// l'utilisateur le 2026-08-24. Les marquer évite de repartir les chercher à
+// chaque passe : ce sont des trous DÉFINITIFS, pas des trous à combler.
+const SANS_DONNEE = new Set([
+  'Atrocity (Passive)', // Contaminated Dragon
+  'Beast Man (Passive)', // Grotau, Minotauros
+  'Sugar Booster (Passive)', // Lollipop Warrior, Thomas
+  'The Bravest Cookie (Passive)', // GingerBrave
+]);
+
 function classer(c) {
   const t = (c.description ?? '').replace(/\s+/g, ' ');
   const effets = c.effets.map((e) => e.nom);
@@ -129,9 +139,14 @@ function classer(c) {
   if (gain) return ['gain-spd', gain, true];
   if (gainFlou) {
     const releve = RELEVE_EN_JEU[c.nom];
-    return releve
-      ? ['gain-spd', `${releve} — absent des données, relevé à la main`, true]
-      : ['gain-spd-inconnu', 'gain de vitesse PROPRE, montant absent des données', false];
+    if (releve) return ['gain-spd', `${releve} — absent des données, relevé à la main`, true];
+    return [
+      'gain-spd-inconnu',
+      SANS_DONNEE.has(c.nom)
+        ? 'gain de vitesse PROPRE — AUCUNE donnée, ni fiche ni relevé (vérifié)'
+        : 'gain de vitesse PROPRE, montant absent des données',
+      false,
+    ];
   }
   if (buff) return ['buff-spd', buff, true];
   if (a('Accumulate SPD')) return ['gain-spd-inconnu', 'gain de vitesse PROPRE, montant absent des données', false];
@@ -263,6 +278,11 @@ md += `aucun calcul ne peut la reprendre telle quelle, elle se pose à la main d
 md += `grilles. C'est la liste à connaître avant de faire confiance à un verdict sur une
 `;
 md += `équipe qui en contient un.
+
+`;
+md += `⚠️ Celles marquées **AUCUNE donnée (vérifié)** sont des trous DÉFINITIFS : la
+`;
+md += `valeur n'existe ni dans les fiches ni en jeu. Inutile de repartir les chercher.
 
 `;
 for (const [cle, ms] of entreesSansValeur) {

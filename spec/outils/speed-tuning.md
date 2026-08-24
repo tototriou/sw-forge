@@ -355,10 +355,15 @@ Le discriminant est dans le texte : un **montant** (« by N ») = gain propre, u
 **durée** seule (« for N turns ») = buff.
 
 ⚠️ Le document se termine par **« Montant INCONNU »** — les passives dont ni le
-texte ni les données ne chiffrent la modification. Une table
-`RELEVE_EN_JEU` permet d'y verser ce qu'on a mesuré soi-même (Chilling : +20 de
-vitesse par buff porté) : mieux vaut une valeur assumée « relevée à la main »
-qu'un trou silencieux.
+texte ni les données ne chiffrent la modification. Deux tables les traitent :
+- `RELEVE_EN_JEU` accueille ce qu'on a mesuré soi-même (Chilling : **+20 de
+  vitesse par buff porté**) — mieux vaut une valeur assumée « relevée à la main »
+  qu'un trou silencieux ;
+- `SANS_DONNEE` marque les trous **DÉFINITIFS** : *Atrocity* (Contaminated
+  Dragon), *Beast Man* (Grotau, Minotauros), *Sugar Booster* (Lollipop Warrior,
+  Thomas) et *The Bravest Cookie* (GingerBrave) n'ont **aucune valeur**, ni dans
+  les fiches ni en jeu (vérifié le 2026-08-24). ⚠️ Les marquer évite de repartir
+  les chercher à chaque passe.
 
 ⚠️ **Une barre « remplie » vaut 100 %** — le texte ne le chiffre pas parce que
 remplir, c'est remplir. Ces passifs comptent surtout comme des **coupeurs** : un

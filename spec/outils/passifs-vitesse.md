@@ -55,13 +55,13 @@ compétences — une formulation inhabituelle peut donc tomber dans « Autre ».
 
 ## Gain de vitesse propre, montant absent des données — 7 monstre(s)
 
-- **Atrocity (Passive) — gain de vitesse PROPRE, montant absent des données**
+- **Atrocity (Passive) — gain de vitesse PROPRE — AUCUNE donnée, ni fiche ni relevé (vérifié)**
   - Contaminated Dragon
-- **Beast Man (Passive) — gain de vitesse PROPRE, montant absent des données**
+- **Beast Man (Passive) — gain de vitesse PROPRE — AUCUNE donnée, ni fiche ni relevé (vérifié)**
   - Grotau, Minotauros
-- **Sugar Booster (Passive) — gain de vitesse PROPRE, montant absent des données**
+- **Sugar Booster (Passive) — gain de vitesse PROPRE — AUCUNE donnée, ni fiche ni relevé (vérifié)**
   - Lollipop Warrior, Thomas
-- **The Bravest Cookie (Passive) — gain de vitesse PROPRE, montant absent des données**
+- **The Bravest Cookie (Passive) — gain de vitesse PROPRE — AUCUNE donnée, ni fiche ni relevé (vérifié)**
   - GingerBrave, 용감한 쿠키
 
 ## BUFF de vitesse du jeu (+30 %, amplifié par le spd buff effect) — 10 monstre(s)
@@ -448,11 +448,14 @@ aucun calcul ne peut la reprendre telle quelle, elle se pose à la main dans les
 grilles. C'est la liste à connaître avant de faire confiance à un verdict sur une
 équipe qui en contient un.
 
+⚠️ Celles marquées **AUCUNE donnée (vérifié)** sont des trous DÉFINITIFS : la
+valeur n'existe ni dans les fiches ni en jeu. Inutile de repartir les chercher.
+
 - **Almighty Mask (Passive) — remplit une barre hors de son tour, montant NON chiffré**
   - Cayde, Poison Master
-- **Atrocity (Passive) — gain de vitesse PROPRE, montant absent des données**
+- **Atrocity (Passive) — gain de vitesse PROPRE — AUCUNE donnée, ni fiche ni relevé (vérifié)**
   - Contaminated Dragon
-- **Beast Man (Passive) — gain de vitesse PROPRE, montant absent des données**
+- **Beast Man (Passive) — gain de vitesse PROPRE — AUCUNE donnée, ni fiche ni relevé (vérifié)**
   - Grotau, Minotauros
 - **Druid's Wit (Passive) — remplit une barre hors de son tour, montant NON chiffré**
   - Abellio
@@ -468,9 +471,9 @@ grilles. C'est la liste à connaître avant de faire confiance à un verdict sur
   - Megumi Fushiguro, 후시구로 메구미(불)
 - **Red Battlefield (Passive) — remplit une barre hors de son tour, montant NON chiffré**
   - Demon, Lucifer
-- **Sugar Booster (Passive) — gain de vitesse PROPRE, montant absent des données**
+- **Sugar Booster (Passive) — gain de vitesse PROPRE — AUCUNE donnée, ni fiche ni relevé (vérifié)**
   - Lollipop Warrior, Thomas
-- **The Bravest Cookie (Passive) — gain de vitesse PROPRE, montant absent des données**
+- **The Bravest Cookie (Passive) — gain de vitesse PROPRE — AUCUNE donnée, ni fiche ni relevé (vérifié)**
   - GingerBrave, 용감한 쿠키
 - **To Live or To Die (Passive) — remplit une barre hors de son tour, montant NON chiffré**
   - Dice Magician, Morris

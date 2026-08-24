@@ -957,7 +957,10 @@ function CampPanneau({
       }`}
     >
       <div
-        className={`flex items-center gap-2 border-b px-3.5 py-2.5 ${
+        // ⚠️ `rounded-t-lg-inner` : le fond du bandeau débordait dans l'arrondi
+        // du panneau et lui redonnait des coins carrés. Le rayon intérieur vaut
+        // celui du panneau MOINS son contour d'un pixel (voir tailwind.config).
+        className={`flex items-center gap-2 rounded-t-lg-inner border-b px-3.5 py-2.5 ${
           adv ? 'border-bad/30 bg-bad-soft' : 'border-good/30 bg-good-soft'
         }`}
       >
@@ -1327,7 +1330,14 @@ function GrilleMod({
         <span className="text-micro font-semibold uppercase tracking-wider text-ink-dimmer">{titre}</span>
         <span className="text-xs font-normal text-ink-dimmer">· {sousTitre}</span>
       </div>
-      <div className="overflow-x-auto" ref={refConteneur} onScroll={onScrollSync}>
+      {/* ⚠️ Même arrondi intérieur qu'en haut du panneau : la colonne des noms a
+          un fond SOLIDE et c'est elle qui touche le coin bas-gauche de la card.
+          Sans ça, le coin redevient carré sous l'arrondi du contour. */}
+      <div
+        className="overflow-x-auto rounded-b-lg-inner"
+        ref={refConteneur}
+        onScroll={onScrollSync}
+      >
         <table
           className="table-fixed border-collapse [font-variant-numeric:tabular-nums]"
           style={{ width: LARGEUR_TABLE }}

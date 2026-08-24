@@ -90,6 +90,21 @@ thème Forge il est cuivre : « ton équipe » y virait à l'orange, à un cheve
 données ; `accent` dit « ceci est actif ou sélectionné ». Les confondre rend un
 filtre actif indiscernable d'une alerte.
 
+### Rayon intérieur : `rounded-lg-inner`
+
+⚠️ **Un enfant à FOND PLEIN collé au bord d'un panneau arrondi doit rentrer d'un
+pixel.** À rayon égal, son fond déborde dans l'arrondi et le coin redevient
+carré — c'est visible dès que l'enfant est teinté (bandeau de titre d'une carte,
+colonne collante d'un tableau).
+
+`rounded-lg-inner` vaut `calc(var(--radius-lg) - 1px)` : le rayon du panneau
+moins son contour. Il suit les deux thèmes tout seul (7 px en Atelier, 6 px en
+Forge).
+
+⚠️ **`overflow-hidden` sur le parent n'est PAS la solution** : il règle le coin
+mais coupe les menus flottants, qui se placent en `absolute` à l'intérieur du
+panneau.
+
 ### UN SEUL marqueur de sélection
 
 ⚠️ **Un élément sélectionné porte UN marqueur, jamais deux.** L'app cumulait

@@ -99,6 +99,13 @@ export default {
       borderRadius: {
         DEFAULT: 'var(--radius)',
         lg: 'var(--radius-lg)',
+        // ⚠️ Rayon INTÉRIEUR d'un panneau `rounded-lg` à contour 1 px : un
+        // enfant collé au bord doit rentrer d'un pixel, sinon son fond déborde
+        // dans l'arrondi et le coin redevient carré. Cas typique : le bandeau
+        // de titre teinté d'une carte. Un `rounded-lg` sur l'enfant laisse
+        // dépasser un cheveu ; `overflow-hidden` sur le parent réglerait le
+        // coin mais couperait les menus flottants, qui sont en `absolute`.
+        'lg-inner': 'calc(var(--radius-lg) - 1px)',
       },
 
       transitionTimingFunction: {

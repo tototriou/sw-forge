@@ -61,13 +61,12 @@ fait `width: auto` même en `display: flex`. Sans lui, les trois entrées à
 sous-section étaient larges comme leur texte et leur fond au survol s'arrêtait au
 milieu de la barre.
 
-⚠️ **Le retour « ‹ Siège » aussi, et BORD À BORD.** Il avait échappé à la règle :
-sa zone cliquable s'arrêtait au milieu de la barre, et rien ne disait où viser.
-C'est la **sortie du niveau**, pas une destination de plus — il prend donc toute
-la largeur, sans marge ni coins arrondis. Un rectangle arrondi posé DANS la barre
-se lit comme une pastille parmi d'autres, alors que la cible **est** la barre.
-(Sa marge horizontale devient un rembourrage : une marge aurait débordé du
-parent, `w-full` ne la déduisant pas.)
+⚠️ **Le retour « ‹ Siège » aussi.** Il avait échappé à la règle : sa zone
+cliquable s'arrêtait au milieu de la barre, et rien ne disait où viser. Il occupe
+maintenant toute la largeur utile, **avec le gabarit exact des entrées** —
+rembourrage du conteneur, `rounded-md`, même rembourrage interne. Ce qui le
+distingue reste son chevron vers la gauche et son titre, pas une forme à part :
+la barre n'a qu'un seul gabarit de cible.
 
 ### L'entrée active — contour + fond, le marqueur unique de l'app
 

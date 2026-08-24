@@ -271,39 +271,36 @@ export default function Sidebar({
                     barre, il ne quitte pas la page. Il pointait vers `#/` et
                     ramenait à l'accueil — on perdait son écran pour consulter
                     un menu. La page ne change qu'au clic sur une destination. */}
-                <button
-                  type="button"
-                  onClick={() => setOuverte(null)}
-                  title={`${niveauDeux.titre} — revenir à toutes les sections`}
-                  // ⚠️ **Toute la largeur de la barre**, bord à bord. C'est la
-                  // SORTIE du niveau, pas une destination de plus : à la
-                  // largeur de son libellé, la zone cliquable s'arrêtait au
-                  // milieu de la barre et rien ne disait où viser. Un
-                  // `<button>` fait `width: auto` même en `display: flex` —
-                  // d'où le `w-full` explicite, et la marge horizontale qui
-                  // devient un rembourrage (une marge aurait débordé de la
-                  // largeur du parent).
-                  // ⚠️ Plus de coins arrondis : ils dessinent une pastille
-                  // posée DANS la barre, alors que la cible EST la barre.
-                  className={`group mb-1 flex w-full items-center py-1.5
-                              transition-colors hoverable:bg-panel2 ${
-                                retractee ? 'justify-center px-0' : 'gap-1.5 px-2.5'
-                              }`}
-                >
-                  <ChevronLeft
-                    size={retractee ? 17 : 16}
-                    className="flex-none text-ink-dim transition-transform
-                               group-hoverable:-translate-x-0.5 group-hoverable:text-ink"
-                  />
-                  {!retractee && (
-                    <>
-                      <span className="flex-none text-ctx">{niveauDeux.icon}</span>
-                      <span className="truncate font-display text-base tracking-wide text-ink">
-                        {niveauDeux.titre}
-                      </span>
-                    </>
-                  )}
-                </button>
+                {/* ⚠️ **Le même gabarit que les entrées de la barre** : le
+                    rembourrage du conteneur (`px-2.5`) + `rounded-md` + `px-2`
+                    sur la cible. Il occupe donc toute la largeur utile comme
+                    elles, pas la largeur de son libellé — un `<button>` fait
+                    `width: auto` même en `display: flex`, d'où le `w-full`. */}
+                <div className={`mb-1 ${retractee ? 'px-1.5' : 'px-2.5'}`}>
+                  <button
+                    type="button"
+                    onClick={() => setOuverte(null)}
+                    title={`${niveauDeux.titre} — revenir à toutes les sections`}
+                    className={`group flex w-full items-center rounded-md py-1.5
+                                transition-colors hoverable:bg-panel2 ${
+                                  retractee ? 'justify-center px-0' : 'gap-1.5 px-2'
+                                }`}
+                  >
+                    <ChevronLeft
+                      size={retractee ? 17 : 16}
+                      className="flex-none text-ink-dim transition-transform
+                                 group-hoverable:-translate-x-0.5 group-hoverable:text-ink"
+                    />
+                    {!retractee && (
+                      <>
+                        <span className="flex-none text-ctx">{niveauDeux.icon}</span>
+                        <span className="truncate font-display text-base tracking-wide text-ink">
+                          {niveauDeux.titre}
+                        </span>
+                      </>
+                    )}
+                  </button>
+                </div>
                 <nav
                   className={`flex flex-col gap-0.5 border-t border-border-soft pb-2 pt-2 ${
                     retractee ? 'mt-2 px-1.5' : 'px-2.5'

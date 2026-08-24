@@ -131,6 +131,23 @@ Comme en **vue compacte du siège**, le panneau de détail (`MonsterGear`) s'ouv
   la relique, que le prop ne sait pas atteindre. Une boîte de réserve porte
   les dimensions réduites, sans quoi un `transform` (qui ne touche pas au
   layout) laisserait derrière lui le vide de la taille pleine.
+  ⚠️ **`w-max` sur le groupe — la VRAIE cause d'une saccade signalée en
+  usage réel.** Le groupe (`display:flex`, largeur `auto`) est un enfant
+  BLOC normal de la boîte de réserve — sans `w-max`, dès que cette boîte
+  reçoit une largeur explicite plus étroite (le premier rétrécissement),
+  `width:auto` se met à REMPLIR cette largeur réduite au lieu de garder la
+  largeur NATURELLE de son contenu. La mesure suivante
+  (`groupe.offsetWidth`) rapporte alors cette largeur DÉJÀ rétrécie, pas la
+  largeur naturelle — l'échelle recalculée dessus revient près de 1, la
+  boîte de réserve se rétablit à une largeur proche de sa taille pleine, ce
+  qui la fait déborder/repasser à la ligne, ce qui change la hauteur de la
+  racine observée, ce qui redéclenche la mesure : la mesure se corrompt
+  elle-même à chaque passage. `w-max` (`width: max-content`) force le
+  groupe à toujours se dimensionner sur son contenu, jamais sur la largeur
+  de son parent — même leçon que la copie de mesure de
+  [shared/librairie-ui.md](../shared/librairie-ui.md) (`Segmented`, où
+  `w-full` créait la même dépendance circulaire), pas généralisée ici à
+  l'époque.
   ⚠️ **À l'échelle 1 — le cas de très loin le plus courant — aucun style
   n'est posé** : le rendu est alors strictement identique à ce qu'il était
   avant l'ajout de cette mesure.

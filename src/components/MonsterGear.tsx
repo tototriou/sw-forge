@@ -232,8 +232,33 @@ export default function MonsterGear({ gear, spdCible = null, scale }: Props) {
         // occuper toute la largeur de sa propre ligne, EXACTEMENT ce qui
         // l'empêchait de rester à côté du panneau de stats au doigt. La mise
         // à l'échelle ci-dessus s'en charge désormais.
+        //
+        // ⚠️ **`w-max`, LA VRAIE cause de la saccade signalée** (le plancher
+        // continu de la révision précédente n'y était pour rien). Sans lui,
+        // `groupe` (`display:flex`, largeur `auto`) est un enfant BLOC
+        // normal de la boîte de réserve juste au-dessus — dès que CETTE
+        // boîte reçoit une largeur explicite plus étroite (le premier
+        // rétrécissement), `width:auto` se met à REMPLIR cette largeur plus
+        // étroite au lieu de garder la largeur NATURELLE de son contenu. La
+        // mesure suivante (`groupe.offsetWidth`) rapporte alors cette
+        // largeur déjà rétrécie, PAS la largeur naturelle — l'échelle
+        // recalculée dessus revient alors près de 1, la boîte de réserve
+        // se rétablit à une largeur proche de sa taille pleine, ce qui la
+        // fait déborder/repasser à la ligne, ce qui change la hauteur de la
+        // racine observée, ce qui redéclenche la mesure : la mesure se
+        // corrompt elle-même à chaque passage, un aller-retour sans fin dès
+        // que la moindre réduction s'applique — exactement le seuil net
+        // rapporté (« dès que la largeur d'écran est inférieure à
+        // 555px », le point où l'échelle cesse de valoir 1 pour la première
+        // fois). `w-max` (`width: max-content`) force `groupe` à TOUJOURS se
+        // dimensionner sur son contenu, jamais sur la largeur de son
+        // parent — la mesure reste stable quelle que soit la largeur déjà
+        // appliquée à la boîte de réserve. Même leçon déjà tirée pour la
+        // copie de mesure de `Segmented.tsx` (`w-full` y créait la même
+        // dépendance circulaire) — non généralisée ici à l'époque, l'erreur
+        // qui a produit ce bug.
         style={reduit ? { transform: `scale(${mesure!.s})`, transformOrigin: 'top left' } : undefined}
-        className="flex flex-none items-center justify-center gap-2 compact:gap-1.5"
+        className="flex w-max flex-none items-center justify-center gap-2 compact:gap-1.5"
       >
       {/* Artéfacts — détail dans un flottant ANCRÉ à l'emplacement (souris) ou
           en ligne sous la roue (doigt) : voir `detail` plus haut.

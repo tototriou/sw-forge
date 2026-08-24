@@ -13,7 +13,6 @@ import {
   fenetresRequises,
   RaisonOrdre,
   Fenetre,
-  COMBAT_MAX,
   HORIZON_TICKS,
   Camp,
   TuneMonstre,
@@ -564,57 +563,58 @@ export default function SpeedTuningSection({ allMonsters, siegeDefenseTeams, sie
     () => (poussee ? fenetresRequises(tune, ordreVoulu, HORIZON_TICKS) : []),
     [poussee, tune, ordreVoulu]
   );
+  // Le même calcul sur l'autre levier : l'artéfact qui amplifie le buff reçu.
+  const fenetresArte = useMemo(
+    () => (poussee ? fenetresRequises(tune, ordreVoulu, HORIZON_TICKS, 'artefactBuff') : []),
+    [poussee, tune, ordreVoulu]
+  );
   const fenetreParUid = useMemo(() => new Map(fenetres.map((f) => [f.id, f])), [fenetres]);
+  const fenetreArteParUid = useMemo(() => new Map(fenetresArte.map((f) => [f.id, f])), [fenetresArte]);
   const problemeParUid = useMemo(
     () => new Map(sequence.problemes.map((p) => [p.id, p])),
     [sequence]
   );
 
-  // Les bornes d'une fenêtre, en vitesse de combat : « 214 → 231 », « ≥ 240 »,
-  // « ≤ 198 ». `null` des deux côtés = rien à respecter.
-  function bornesLisibles(f: Fenetre): string {
-    const bas = f.min != null && f.min > 1 ? f.min : null;
-    const haut = f.max != null && f.max < COMBAT_MAX ? f.max : null;
-    if (bas == null && haut == null) return '';
-    if (bas != null && haut != null) return ` (${bas} → ${haut})`;
-    return bas != null ? ` (≥ ${bas})` : ` (≤ ${haut})`;
-  }
-
-  // Ce qu'il faut faire à ce monstre pour qu'il tienne son rang : viser la borne
-  // qu'il dépasse, et ce que ça fait en vitesse de runes. Une fenêtre VIDE (les
-  // bornes se croisent) veut dire qu'on ne s'en sortira pas sans toucher aux
-  // autres — l'écran le dit plutôt que d'inventer un chiffre.
-  function fenetreLisible(l: Ligne, f: Fenetre | undefined) {
-    if (!f) return null;
-    const vide = f.min == null || f.max == null || f.min > f.max;
-    if (vide) {
-      return (
-        <span className="text-ink-dim">
-          — impossible à ce rang sans toucher aux autres.
-        </span>
-      );
+  // Ce qu'il manque à un monstre, en une pastille : les points de vitesse de
+  // runes, ou — si un buff de vitesse court sur son camp — les points d'artéfact
+  // « Effet aug. VIT » qui feraient la même chose. Rien d'autre.
+  function besoin(l: Ligne, combatCible: number | null, arteCible: number | null, arteActuel: number) {
+    const runes = combatCible == null ? null : runesPour(l, combatCible);
+    const arte = arteCible == null ? null : arteCible - arteActuel;
+    if (runes == null && arte == null) {
+      return <span className="text-xs text-ink-dim">hors de portée</span>;
     }
-    const cible = f.combatActuel < f.min! ? f.min! : f.combatActuel > f.max! ? f.max! : null;
-    if (cible == null) return <span className="text-ink-dim">{bornesLisibles(f)}</span>;
-    const runes = runesPour(l, cible);
     return (
-      <span className="flex items-center gap-2">
-        <span className="text-ink-dimmer">→</span>
-        <span className="font-mono text-xs">
-          {cible} <span className="text-ink-dim">de vitesse de combat</span>
-        </span>
+      <span className="flex items-center gap-1.5">
         {runes != null && (
           <span className="rounded border border-accent/50 px-1.5 py-0.5 font-mono text-micro font-bold text-accent">
-            {runes > 0 ? `+${runes}` : runes} SPD de runes
+            {signe(runes)} SPD
           </span>
         )}
-        <span className="text-ink-dim">{bornesLisibles(f)}</span>
+        {runes != null && arte != null && <span className="text-micro text-ink-dim">ou</span>}
+        {arte != null && (
+          <span
+            className="rounded border border-accent/50 px-1.5 py-0.5 font-mono text-micro font-bold text-accent"
+            title="Artéfact « Effet aug. VIT » : il amplifie le buff de vitesse reçu"
+          >
+            {signe(arte)} arté
+          </span>
+        )}
       </span>
     );
   }
 
-  // '__auto' = on s'en remet à ce que la lecture du kit a retenu : la clé
-  // disparaît de l'état plutôt que d'y rester à `undefined`.
+  // La borne à viser sur une fenêtre, ou `null` si la vitesse actuelle la tient
+  // déjà — et `undefined` si la fenêtre est VIDE (les bornes se croisent : on ne
+  // s'en sortira pas sans toucher aux autres).
+  function cibleFenetre(f: Fenetre | undefined): number | null | undefined {
+    if (!f) return undefined;
+    if (f.min == null || f.max == null || f.min > f.max) return undefined;
+    if (f.combatActuel < f.min) return f.min;
+    if (f.combatActuel > f.max) return f.max;
+    return null;
+  }
+
   function choisirSort(uid: string, valeur: string) {
     setSortChoisi((prev) => {
       const next = { ...prev };
@@ -840,70 +840,25 @@ export default function SpeedTuningSection({ allMonsters, siegeDefenseTeams, sie
                     <Scissors size={16} className="flex-none" />
                     {nomDe(chaine.coupeur.id)} coupe ton combo.
                   </p>
-                  <ul className="mt-2.5 space-y-1.5">
+                  {/* ⚠️ Une ligne = un nom et le chiffre à trouver, rien de
+                      plus : ce qu'on vient chercher ici, c'est « combien il me
+                      manque », pas un récit. */}
+                  <ul className="mt-2.5 flex flex-wrap gap-x-4 gap-y-1.5">
                     {chaine.coupes.map((c) => {
                       const l = ligneParUid.get(c.id);
                       if (!l) return null;
-                      const r = requisParUid.get(c.id);
-                      const cible = r?.combatRequis ?? null;
-                      const runes = cible == null ? null : runesPour(l, cible);
+                      const cible = requisParUid.get(c.id)?.combatRequis ?? null;
                       const a = arteParUid.get(c.id);
                       const arte = a?.artefactRequis ?? null;
-                      const arteDelta = arte == null ? null : arte - (a?.artefactActuel ?? 0);
                       return (
-                        <li key={c.id} className="flex flex-wrap items-center gap-x-2.5 gap-y-1 text-sm">
-                          <MonsterAvatar monster={l.monster} size={24} element={false} />
+                        <li key={c.id} className="flex items-center gap-2 text-sm">
+                          <MonsterAvatar monster={l.monster} size={22} element={false} />
                           <span className="font-semibold">{l.monster.name}</span>
-                          <span className="font-mono text-xs text-ink-dim">
-                            {c.tick == null ? "n'agit pas" : `joue au tick ${c.tick}`}
-                          </span>
-                          {cible == null && arte == null ? (
-                            <span className="text-xs text-ink-dim">
-                              — hors de portée : un seul monstre agit par tick, ils ne tiennent pas tous avant lui.
-                            </span>
-                          ) : (
-                            <span className="flex flex-wrap items-center gap-x-2 gap-y-1">
-                              <span className="text-ink-dimmer">→</span>
-                              {cible != null && (
-                                <span className="flex items-center gap-2">
-                                  <span className="font-mono text-xs">
-                                    {cible} <span className="text-ink-dim">de vitesse de combat</span>
-                                  </span>
-                                  {runes != null && (
-                                    <span className="rounded border border-accent/50 px-1.5 py-0.5 font-mono text-micro font-bold text-accent">
-                                      {runes > 0 ? `+${runes}` : runes} SPD de runes
-                                    </span>
-                                  )}
-                                </span>
-                              )}
-                              {/* L'autre levier : amplifier le buff de vitesse
-                                  qu'il reçoit déjà, au lieu de gagner de la
-                                  vitesse de runes. Absent s'il n'y a pas de buff. */}
-                              {arte != null && (
-                                <span className="flex items-center gap-2">
-                                  {cible != null && <span className="text-ink-dim">ou</span>}
-                                  <span className="font-mono text-xs">
-                                    {arte} % <span className="text-ink-dim">d'« Effet aug. VIT »</span>
-                                  </span>
-                                  <span
-                                    className="rounded border border-accent/50 px-1.5 py-0.5 font-mono text-micro font-bold text-accent"
-                                    title="Artéfact « Effet aug. VIT » : il amplifie le buff de vitesse que ce monstre reçoit"
-                                  >
-                                    {arteDelta! > 0 ? `+${arteDelta}` : arteDelta} d'artéfact
-                                  </span>
-                                </span>
-                              )}
-                            </span>
-                          )}
+                          {besoin(l, cible, arte, a?.artefactActuel ?? 0)}
                         </li>
                       );
                     })}
                   </ul>
-                  <p className="mt-2.5 text-xs text-ink-dim">
-                    Les vitesses proposées tiennent compte des compétences, des boosts de barre et des buffs déjà
-                    posés, et se lisent ENSEMBLE : un seul monstre agit par tick, corriger l'un change ce qu'il faut
-                    aux autres.
-                  </p>
                 </>
               )}
               </div>
@@ -1039,13 +994,19 @@ export default function SpeedTuningSection({ allMonsters, siegeDefenseTeams, sie
                               {p ? (
                                 <span className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs">
                                   <span className="font-semibold text-bad">{LIBELLE_RAISON[p.raison]}</span>
-                                  {fenetreLisible(l, f)}
+                                  {(() => {
+                                    const cible = cibleFenetre(f);
+                                    const arte = cibleFenetre(fenetreArteParUid.get(uid));
+                                    return besoin(
+                                      l,
+                                      cible ?? null,
+                                      arte ?? null,
+                                      fenetreArteParUid.get(uid)?.combatActuel ?? 0
+                                    );
+                                  })()}
                                 </span>
                               ) : (
-                                <span className="flex items-center gap-1.5 text-xs text-good">
-                                  <Check size={13} /> à sa place
-                                  {f && <span className="text-ink-dim">{bornesLisibles(f)}</span>}
-                                </span>
+                                <Check size={13} className="text-good" />
                               )}
                             </span>
                           </li>

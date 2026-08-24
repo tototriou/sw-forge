@@ -119,6 +119,10 @@ Calcul dans [speedTune.ts](src/lib/speedTune.ts), **testé**
   monstre à désigner : c'est la condition la plus stricte, et celle qui n'oblige
   à rien saisir. Sont **coupés** les alliés dont le PREMIER tour tombe après lui
   (ou qui n'agissent pas dans les 40 ticks).
+- ⚠️ **Le verdict tient en une ligne par monstre** : son nom et **le chiffre qui
+  manque**, rien d'autre. Pas de tick, pas de vitesse de combat cible, pas de
+  phrase d'explication — ce qu'on vient chercher ici, c'est « combien il me
+  manque ». Le détail se lit dans les tableaux, juste en dessous.
 - **DEUX leviers proposés**, pour chaque allié coupé :
   - **la vitesse à trouver** (`vitessesRequises`) — la **vitesse de combat
     minimale** qui le fait passer avant, traduite à l'écran en points de
@@ -129,8 +133,9 @@ Calcul dans [speedTune.ts](src/lib/speedTune.ts), **testé**
     (un proc vaut au mieux 6 %, une ligne encaisse 5 procs, un monstre porte deux
     artéfacts). ⚠️ **Rien n'est proposé sans buff** : l'artéfact n'amplifie que
     ce qui existe — c'est ce que dit `artefactRequis: null`.
-  L'écran affiche « 251 de vitesse de combat (+71 SPD de runes) **ou** 18 %
-  d'« Effet aug. VIT » (+18 d'artéfact) » ; l'un OU l'autre suffit.
+  L'écran affiche « **+71 SPD** ou **+18 arté** » — l'un OU l'autre suffit ; la
+  pastille d'artéfact n'apparaît que si un buff de vitesse court sur son camp.
+  Rien à trouver et rien à en attendre → « hors de portée ».
 
 ### Comment la vitesse requise est cherchée
 
@@ -215,9 +220,11 @@ et [speedTuneKit.ts](src/lib/speedTuneKit.ts) (`sortsVitesse`), **testés**.
 
 ⚠️ **Ici, un monstre peut avoir besoin d'être RALENTI.** Tenir un rang, ce n'est
 pas seulement jouer assez tôt, c'est aussi jouer assez tard. Chaque rang donne
-donc une **fenêtre** `min → max` (affichée « 214 → 231 », « ≥ 240 », « ≤ 198 »),
-et l'écran propose la borne à viser plus les points de vitesse de runes que ça
-représente — **négatifs** s'il faut en retirer.
+donc une **fenêtre** `min → max`, dont l'écran ne montre **que ce qui manque** :
+la borne à viser traduite en points de vitesse de runes, **négatifs** s'il faut
+en retirer — et, comme le verdict, l'alternative en **artéfact** quand un buff de
+vitesse court (`fenetresRequises` prend l'axe en paramètre : même méthode, même
+garanties). Un rang tenu n'affiche qu'une coche.
 
 - Les deux bornes se cherchent par **dichotomie sur des prédicats monotones de
   sens opposés** : « avant son successeur / avant l'adverse » se gagne en

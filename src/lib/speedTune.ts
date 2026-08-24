@@ -637,23 +637,32 @@ export interface Fenetre {
 export function fenetresRequises(
   monstres: TuneMonstre[],
   ordre: string[],
-  horizon = HORIZON_TICKS
+  horizon = HORIZON_TICKS,
+  // Sur quel levier chercher : la vitesse de combat, ou l'artéfact qui amplifie
+  // le buff de vitesse reçu (voir `artefactsRequis`). Même méthode, même
+  // garanties — seule la grandeur cherchée change.
+  axe: 'combat' | 'artefactBuff' = 'combat'
 ): Fenetre[] {
   const out: Fenetre[] = [];
+  const plafond = axe === 'combat' ? COMBAT_MAX : ARTE_MAX;
 
   for (const id of ordre) {
     const original = monstres.find((m) => m.id === id);
     if (!original) continue;
-    const depart = original.combat;
+    const depart = axe === 'combat' ? original.combat : (original.artefactBuff ?? 0);
 
     // Copie de travail : on ne bouge QUE lui.
     const essai = monstres.map((m) => ({ ...m }));
     const moi = essai.find((m) => m.id === id)!;
+    const poser = (v: number) => {
+      if (axe === 'combat') moi.combat = v;
+      else moi.artefactBuff = v;
+    };
     const avant = ordre[ordre.indexOf(id) - 1] ?? null;
     const apres = ordre[ordre.indexOf(id) + 1] ?? null;
 
     const positions = (v: number) => {
-      moi.combat = v;
+      poser(v);
       const premiers = premiersTours(simuler(essai, horizon));
       const t = (x: string | null) => (x == null ? null : (premiers.find((a) => a.id === x)?.tick ?? null));
       return {
@@ -682,10 +691,10 @@ export function fenetresRequises(
     };
 
     let min: number | null = null;
-    if (assezRapide(1)) min = 1;
-    else if (assezRapide(COMBAT_MAX)) {
-      let bas = 2;
-      let haut = COMBAT_MAX;
+    if (assezRapide(0)) min = 0;
+    else if (assezRapide(plafond)) {
+      let bas = 1;
+      let haut = plafond;
       while (bas < haut) {
         const milieu = Math.floor((bas + haut) / 2);
         if (assezRapide(milieu)) haut = milieu;
@@ -695,10 +704,10 @@ export function fenetresRequises(
     }
 
     let max: number | null = null;
-    if (assezLent(COMBAT_MAX)) max = COMBAT_MAX;
-    else if (assezLent(1)) {
-      let bas = 1;
-      let haut = COMBAT_MAX - 1;
+    if (assezLent(plafond)) max = plafond;
+    else if (assezLent(0)) {
+      let bas = 0;
+      let haut = plafond - 1;
       while (bas < haut) {
         const milieu = Math.ceil((bas + haut) / 2);
         if (assezLent(milieu)) bas = milieu;
@@ -707,9 +716,9 @@ export function fenetresRequises(
       max = bas;
     }
 
-    moi.combat = depart;
+    poser(depart);
     const ok = assezRapide(depart) && assezLent(depart);
-    moi.combat = depart;
+    poser(depart);
     out.push({ id, combatActuel: depart, min, max, ok });
   }
 

@@ -61,6 +61,7 @@ import { buildOptimizerRecipe, parseOptimizerRecipe } from '../../lib/optimizerR
 import { ArtifactMainChoice, OptimizerState, OptimizerSortKey } from '../../hooks/useOptimizerState';
 import { useRuneMetric } from '../../hooks/useRuneMetric';
 import { useMediaQuery, SOUS_SM } from '../../hooks/useMediaQuery';
+import { useDebordement } from '../../hooks/useDebordement';
 import GameIcon from '../GameIcon';
 import MonsterAvatar from '../MonsterAvatar';
 import MonsterGear from '../MonsterGear';
@@ -704,6 +705,21 @@ export default function OptimizerSection({ box, runes, optimizer, allMonsters, r
     return () => document.removeEventListener('mousedown', onDown);
   }, [showAdvanced, setShowAdvanced]);
 
+  // ⚠️ Sélecteur de source (« Monstre à optimiser ») : `dense` piloté par la
+  // largeur RÉELLE de sa colonne (`useDebordement`), pas par `useMediaQuery`
+  // (fenêtre) — cette colonne (`lg:flex-1`) partage l'espace avec la fiche
+  // d'équipement juste à côté (`lg:flex-none`), qui prend sa part en
+  // premier ; la colonne peut donc rester étroite MÊME sur un grand écran
+  // (1080p signalé), selon ce que la fiche consomme. Signalement direct :
+  // « Offenses siège » débordait à 1080p alors que `SOUS_SM` (639px de
+  // FENÊTRE) ne se déclenchait jamais à cette résolution. `mesureRef` est un
+  // clone invisible du même `Segmented`, toujours en mode NON compact,
+  // servant à connaître sa largeur naturelle sans la deviner en pixels
+  // (fragile — dépend de la police, et des libellés eux-mêmes).
+  const sourceSelectorRef = useRef<HTMLDivElement>(null);
+  const sourceSelectorMesureRef = useRef<HTMLDivElement>(null);
+  const sourceSelectorDense = useDebordement(sourceSelectorRef, sourceSelectorMesureRef);
+
   function importRecipe(file: File) {
     file.text().then((text) => {
       const { recipe, error } = parseOptimizerRecipe(text);
@@ -980,24 +996,58 @@ export default function OptimizerSection({ box, runes, optimizer, allMonsters, r
                 chacune, même hauteur — demande explicite de cohérence) que
                 la source d'« Exclure les runes d'un monstre » plus bas —
                 `SOURCE_OPTIONS`, remonté dans optimizerExclusion.ts pour ne
-                pas dupliquer ces 4 libellés. `dense={etroit}` : même
-                mécanisme que le Segmented « Objectif de recherche » plus
-                bas — sous `sm`, 4 libellés dont « Défenses siège » sur une
-                largeur de téléphone déborderaient sans le texte/rembourrage
-                réduits. Entre le libellé et le champ de recherche (demande
-                explicite) : c'est le PREMIER choix à faire, avant même de
-                taper un nom — chercher « dans quelle source » avant « quel
-                monstre ». ⚠️ **NE vide PLUS `sourceSelector`** : purement le
-                filtre de la LISTE DE RECHERCHE (`sourceSearchCandidates`),
-                pas de l'exemplaire déjà actif — bug trouvé et corrigé
-                (signalement direct) : vider `sourceSelector` ici faisait
-                disparaître le monstre affiché (et ses « Runes imposées »)
-                au moindre clic d'onglet, alors qu'aucun nouveau monstre
-                n'avait été choisi. Le monstre actif ne change QUE quand un
-                résultat est explicitement cliqué dans la liste ci-dessous
-                (voir `onPick`), jamais par le simple fait de changer
-                d'onglet. */}
-            <Segmented options={SOURCE_OPTIONS} value={gearSource} onChange={setGearSource} className="mb-2" size="lg" dense={etroit} />
+                pas dupliquer ces 4 libellés. ⚠️ **`dense={sourceSelectorDense}`,
+                PAS `dense={etroit}`** — cette colonne partage l'espace avec
+                la fiche d'équipement juste à côté (`lg:flex-1` face à
+                `lg:flex-none`) : sa largeur RÉELLE peut rester étroite MÊME
+                sur un grand écran (« Offenses siège » débordait à 1080p,
+                signalement direct, alors que `useMediaQuery(SOUS_SM)` — la
+                largeur de la FENÊTRE — ne s'y déclenchait jamais). Voir
+                `useDebordement` (nouveau hook) : mesure la largeur
+                DISPONIBLE de cette colonne précise via `ResizeObserver`,
+                comparée à la largeur NATURELLE du sélecteur (le clone
+                invisible juste en dessous). Entre le libellé et le champ de
+                recherche (demande explicite) : c'est le PREMIER choix à
+                faire, avant même de taper un nom — chercher « dans quelle
+                source » avant « quel monstre ». ⚠️ **NE vide PLUS
+                `sourceSelector`** : purement le filtre de la LISTE DE
+                RECHERCHE (`sourceSearchCandidates`), pas de l'exemplaire
+                déjà actif — bug trouvé et corrigé (signalement direct) :
+                vider `sourceSelector` ici faisait disparaître le monstre
+                affiché (et ses « Runes imposées ») au moindre clic
+                d'onglet, alors qu'aucun nouveau monstre n'avait été choisi.
+                Le monstre actif ne change QUE quand un résultat est
+                explicitement cliqué dans la liste ci-dessous (voir
+                `onPick`), jamais par le simple fait de changer d'onglet. */}
+            <div ref={sourceSelectorRef} className="relative">
+              {/* ⚠️ Clone invisible, sert uniquement à mesurer la largeur
+                  NATURELLE du sélecteur en mode non compact
+                  (`useDebordement`). `absolute` : ne pèse pas sur la mise en
+                  page réelle, qui ne voit que le sélecteur visible juste en
+                  dessous. `invisible` (pas `hidden`/`display:none`) : un
+                  élément non affiché n'a aucune dimension à mesurer.
+                  ⚠️ **`size="md"`, PAS `size="lg"`** — même rembourrage/texte
+                  que `lg` (`large = size==='lg' || size==='md'` dans
+                  Segmented.tsx), mais `flex-none` au lieu de `w-full`/
+                  `flex-1` : un `w-full` PREND la largeur de son parent, il
+                  ne peut jamais RAPPORTER une largeur naturelle — posé dans
+                  un conteneur `absolute` sans largeur propre (shrink-to-fit),
+                  ça crée une dépendance circulaire dont le résultat n'est
+                  pas garanti par la spec CSS. `flex-none` mesure sans
+                  ambiguïté. Léger écart (3 traits séparateurs de `lg`, ~3px,
+                  absents en `md`) — négligeable pour cet usage. */}
+              <div ref={sourceSelectorMesureRef} aria-hidden className="invisible absolute left-0 top-0 -z-10">
+                <Segmented options={SOURCE_OPTIONS} value={gearSource} onChange={() => {}} size="md" />
+              </div>
+              <Segmented
+                options={SOURCE_OPTIONS}
+                value={gearSource}
+                onChange={setGearSource}
+                className="mb-2"
+                size="lg"
+                dense={sourceSelectorDense}
+              />
+            </div>
             {/* ⚠️ **Exactement le même mécanisme que « Exclure les runes
                 d'un monstre »** (demande explicite de cohérence) :
                 `MonsterSourcePicker` cherche par nom PARMI les candidats de

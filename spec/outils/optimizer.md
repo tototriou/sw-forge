@@ -220,7 +220,18 @@ retour.
    monstre »** (`Segmented size="lg"` : pleine largeur, les 4 options
    réparties à égalité, un **séparateur vertical** entre chacune) —
    auparavant un sélecteur compact (`dense` seul), disproportionné avec
-   celui d'« Exclure les runes d'un monstre ». ⚠️ **Le champ de recherche cherche PARMI
+   celui d'« Exclure les runes d'un monstre ».
+   ⚠️ **Mode compact déclenché par la largeur RÉELLE de sa colonne, pas par
+   celle de la fenêtre** — cette colonne (`lg:flex-1`) partage l'espace avec
+   la fiche d'équipement juste à côté (`lg:flex-none`, qui prend sa part en
+   premier) : elle peut rester étroite MÊME sur un grand écran (signalement
+   direct : « Offenses siège » débordait à 1080p). `useDebordement`
+   (nouveau hook, `src/hooks/`) mesure via `ResizeObserver` la largeur
+   disponible de cette colonne précise, comparée à la largeur naturelle du
+   sélecteur (un clone invisible, toujours en mode plein) — contrairement
+   au Segmented « Objectif de recherche » plus bas, dont le mode compact
+   suit la largeur de la FENÊTRE (`useMediaQuery`, adapté puisqu'il occupe
+   toute sa colonne de grille sans partager l'espace avec un voisin). ⚠️ **Le champ de recherche cherche PARMI
    les entrées de la source active** — EXACTEMENT le même mécanisme que
    « Exclure les runes d'un monstre » plus bas (même composant de rangée de
    résultat, `ExclusionCandidateRow` : portrait, nom, compte de runes, et

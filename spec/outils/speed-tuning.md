@@ -176,7 +176,12 @@ et [speedTuneKit.ts](src/lib/speedTuneKit.ts) (`sortsVitesse`), **testés**.
   liste suit la composition (un allié ajouté entre à la fin, un retiré en sort)
   mais ⚠️ **ne se réordonne jamais toute seule** — c'est un choix, pas un reflet
   de la simulation.
-- **Sort par monstre** : « Sort détecté » (celui que la lecture du kit a retenu),
+- **Sort par monstre**, choisi dans une liste à **icônes** — ⚠️ un joueur
+  reconnaît une compétence à son icône avant d'en lire le nom, et un `<select>`
+  natif ne montre que du texte : c'est donc la grammaire Bouton + `Flottant` +
+  `Option` de la librairie, celle de l'import de deck. Le bouton porte l'icône du
+  sort retenu. Trois familles d'entrées : « Sort détecté » (celui que la lecture
+  du kit a retenu),
   « Aucun sort », ou **n'importe quelle compétence** du kit — ⚠️ **toutes** sont
   proposées, y compris celles qui ne touchent ni la barre ni la vitesse : on doit
   pouvoir dire « à ce tour-là il lance son S1 », c'est le sens même d'un ordre de

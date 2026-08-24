@@ -1,5 +1,5 @@
 import { useEffect, useId, useMemo, useRef, useState } from 'react';
-import { Search, Plus, Timer, Users, Swords, X, Zap, Gauge, Eye, EyeOff, Download, Check, Scissors, Play, ListOrdered, ChevronUp, ChevronDown } from 'lucide-react';
+import { Search, Plus, Timer, Users, Swords, X, Zap, Gauge, Eye, EyeOff, Download, Check, Scissors, Play, ListOrdered, ChevronUp, ChevronDown, Sparkles } from 'lucide-react';
 import { Monster, SiegeTeam } from '../../types';
 import { combatSpeed, runeSpeedForTarget, SPEED_LEADS, SIEGE_TICKS } from '../../lib/speed';
 import {
@@ -27,7 +27,17 @@ import { formesJouables } from '../../lib/monsterForms';
 import { useComboboxNav } from '../../hooks/useComboboxNav';
 import { useStickyState } from '../../hooks/useStickyState';
 import MonsterAvatar from '../MonsterAvatar';
-import { Bouton, Champ, Flottant, NumberField, Selecteur, BoutonIcone, Jeton, ZoneCliquable } from '../../ui';
+import {
+  Bouton,
+  Champ,
+  Flottant,
+  NumberField,
+  Option,
+  Selecteur,
+  BoutonIcone,
+  Jeton,
+  ZoneCliquable,
+} from '../../ui';
 
 // Icône de vitesse du jeu, celle des cartes RTA/Siège. Sert de repère au buff
 // de vitesse dans la grille dédiée.
@@ -419,6 +429,13 @@ export default function SpeedTuningSection({ allMonsters, siegeDefenseTeams, sie
     const kit = l.monster.com2usId != null ? kits.get(l.monster.com2usId) : null;
     const nom = kit?.atbCompetence ?? kit?.buffCompetence ?? null;
     return liste.find((x) => x.nom === nom) ?? null;
+  };
+
+  // Ce que la lecture du kit a retenu pour ce monstre — le « Sort détecté ».
+  const sortAuto = (l: Ligne): SortVitesse | null => {
+    const kit = l.monster.com2usId != null ? kits.get(l.monster.com2usId) : null;
+    const nom = kit?.atbCompetence ?? kit?.buffCompetence ?? null;
+    return sortsDe(l).find((x) => x.nom === nom) ?? null;
   };
 
   const sortSecond = (l: Ligne): SortVitesse | null =>
@@ -945,21 +962,13 @@ export default function SpeedTuningSection({ allMonsters, siegeDefenseTeams, sie
                             <span className="min-w-0 flex-1 truncate text-sm font-semibold">{l.monster.name}</span>
                             {/* Ce qu'il LANCE à son tour : la détection propose,
                                 ici on tranche (un sort du kit, ou aucun). */}
-                            <Selecteur
-                              taille="sm"
-                              pleineLargeur={false}
-                              value={choix ?? '__auto'}
-                              onChange={(e) => choisirSort(uid, e.target.value)}
-                              aria-label={`Sort lancé par ${l.monster.name}`}
-                            >
-                              <option value="__auto">Sort détecté</option>
-                              <option value="">Aucun sort</option>
-                              {liste.map((x) => (
-                                <option key={x.nom} value={x.nom}>
-                                  {libelleSort(x)}
-                                </option>
-                              ))}
-                            </Selecteur>
+                            <ChoixSort
+                              sorts={liste}
+                              valeur={choix ?? '__auto'}
+                              onChoisir={(v) => choisirSort(uid, v)}
+                              auto={sortAuto(l)}
+                              nomMonstre={l.monster.name}
+                            />
                             {/* ⚠️ Sa compétence lui REND son tour (Kroa) : il
                                 rejoue au même tick, et lance autre chose. On ne
                                 devine pas quoi — à désigner. */}
@@ -971,22 +980,14 @@ export default function SpeedTuningSection({ allMonsters, siegeDefenseTeams, sie
                                 >
                                   rejoue
                                 </span>
-                                <Selecteur
-                                  taille="sm"
-                                  pleineLargeur={false}
-                                  value={sortChoisi2[uid] ?? ''}
-                                  onChange={(e) => choisirSecond(uid, e.target.value)}
-                                  aria-label={`Sort du second tour de ${l.monster.name}`}
-                                >
-                                  <option value="">puis : rien</option>
-                                  {liste
-                                    .filter((x) => x.nom !== sortActif(l)?.nom)
-                                    .map((x) => (
-                                      <option key={x.nom} value={x.nom}>
-                                        puis : {libelleSort(x)}
-                                      </option>
-                                    ))}
-                                </Selecteur>
+                                <ChoixSort
+                                  sorts={liste.filter((x) => x.nom !== sortActif(l)?.nom)}
+                                  valeur={sortChoisi2[uid] ?? ''}
+                                  onChoisir={(v) => choisirSecond(uid, v === '__auto' ? '' : v)}
+                                  auto={null}
+                                  prefixe="puis : "
+                                  nomMonstre={l.monster.name}
+                                />
                               </span>
                             )}
                             <span className="w-full sm:w-auto sm:flex-none">
@@ -1574,6 +1575,120 @@ function GrilleMod({
 // romprait la grille visuelle).
 function FragmentCamp({ children }: { children: React.ReactNode }) {
   return <>{children}</>;
+}
+
+/* ------------------------------------------------------- Choix du sort --- */
+
+// Choisir le sort qu'un monstre lance, AVEC son icône — un joueur reconnaît une
+// compétence à son icône avant d'en lire le nom.
+//
+// ⚠️ Pas un `Selecteur` : un `<select>` natif ne montre que du texte. D'où la
+// même grammaire que l'import de deck (Bouton + Flottant + `Option`), qui est
+// déjà celle de l'app pour une liste ancrée à ce qui l'ouvre.
+function ChoixSort({
+  sorts,
+  valeur,
+  onChoisir,
+  auto,
+  prefixe,
+  nomMonstre,
+}: {
+  sorts: SortVitesse[];
+  // '__auto' = celui du kit, '' = aucun, sinon le nom du sort.
+  valeur: string;
+  onChoisir: (v: string) => void;
+  // Le sort que la lecture du kit a retenu, pour l'afficher derrière « détecté ».
+  auto: SortVitesse | null;
+  prefixe?: string;
+  nomMonstre: string;
+}) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    if (!open) return;
+    const onDown = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+    };
+    const onEsc = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setOpen(false);
+    };
+    document.addEventListener('mousedown', onDown);
+    document.addEventListener('keydown', onEsc);
+    return () => {
+      document.removeEventListener('mousedown', onDown);
+      document.removeEventListener('keydown', onEsc);
+    };
+  }, [open]);
+
+  const choisi = valeur === '__auto' ? auto : valeur === '' ? null : (sorts.find((x) => x.nom === valeur) ?? null);
+  const libelle =
+    valeur === '' ? 'Aucun sort' : (choisi?.nom ?? (valeur === '__auto' ? 'Sort détecté' : valeur));
+
+  const icone = (x: SortVitesse | null, taille: number) =>
+    x?.icone ? (
+      <img src={x.icone} alt="" width={taille} height={taille} className="rounded-sm" loading="lazy" />
+    ) : (
+      <Sparkles size={taille} className="text-ink-dimmer" />
+    );
+
+  return (
+    <div ref={ref} className="relative">
+      <Bouton
+        taille="sm"
+        icone={icone(choisi, 16)}
+        libelle={`${prefixe ?? ''}${libelle}`}
+        aria-expanded={open}
+        title={choisi ? libelleSort(choisi) : `Sort lancé par ${nomMonstre}`}
+        onClick={() => setOpen((v) => !v)}
+      />
+      {open && (
+        <Flottant
+          rembourrage="aucun"
+          largeur="w-[290px]"
+          className="max-h-[320px] overflow-y-auto"
+          role="listbox"
+          aria-label={`Sort lancé par ${nomMonstre}`}
+        >
+          {auto && (
+            <Option
+              icone={icone(auto, 20)}
+              titre="Sort détecté"
+              description={`Celui que son kit a retenu : ${auto.nom}`}
+              actif={valeur === '__auto'}
+              onClick={() => {
+                onChoisir('__auto');
+                setOpen(false);
+              }}
+            />
+          )}
+          <Option
+            icone={<Sparkles size={20} className="text-ink-dimmer" />}
+            titre="Aucun sort"
+            description="Il joue, mais rien qui touche la vitesse"
+            actif={valeur === ''}
+            onClick={() => {
+              onChoisir('');
+              setOpen(false);
+            }}
+          />
+          {sorts.map((x) => (
+            <Option
+              key={x.nom}
+              icone={icone(x, 20)}
+              titre={`${x.slot ? `S${x.slot} · ` : ''}${x.nom}`}
+              description={libelleSort(x).split(' — ')[1]}
+              actif={valeur === x.nom}
+              onClick={() => {
+                onChoisir(x.nom);
+                setOpen(false);
+              }}
+            />
+          ))}
+        </Flottant>
+      )}
+    </div>
+  );
 }
 
 /* ------------------------------------------------------- Import deck ----- */

@@ -70,6 +70,9 @@ export interface KitVitesse {
 export interface SortVitesse {
   nom: string;
   slot: number | null;
+  // Icône de la compétence, servie par SWARFARM (même source que la fiche
+  // monstre). `null` quand les données ne l'ont pas.
+  icone: string | null;
   effet: EffetSort;
   // Ce que la compétence rend au lanceur : un tour de plus, aussitôt.
   rejoue: boolean;
@@ -191,6 +194,7 @@ export function sortsVitesse(detail: DetailMonstre | null): SortVitesse[] {
     out.push({
       nom: c.nom,
       slot: c.slot,
+      icone: c.icone,
       effet,
       rejoue: c.effets.some((e) => e.nom === EFFET_REJOUE),
       atbNiveau1,

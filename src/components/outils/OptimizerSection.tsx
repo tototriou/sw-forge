@@ -73,7 +73,6 @@ import {
   Interrupteur,
   MobileSheet,
   NumberField,
-  Option,
   Pastille,
   Selecteur,
   ZoneCliquable,
@@ -909,24 +908,63 @@ export default function OptimizerSection({ box, runes, optimizer, allMonsters, r
             par le seul nom). Affichée même à UN SEUL candidat (auto-retenu,
             voir l'effet plus haut) : on voit toujours QUELLE entrée a été
             choisie. */}
+        {/* ⚠️ **Exactement la MÊME rangée que les résultats de
+            `RuneExclusionPicker`** (demande explicite : « doit se comporter
+            exactement comme exclure les runes d'un monstre ») — portrait à
+            gauche (46 px en siège, 28 sinon), nom + compte de runes, puis le
+            numéro d'équipe et SES COÉQUIPIERS à 34 px. Une première version
+            utilisait `Option` (la case de choix riche de `src/ui/`) : ses
+            cartes pleine largeur donnaient des blocs démesurés dès qu'une
+            source de siège listait plusieurs équipes. La liste est ici
+            PERMANENTE (pas un `Flottant` de combobox) : le monstre est déjà
+            choisi, il ne reste qu'à désigner lequel de SES exemplaires —
+            il n'y a rien à filtrer par nom. */}
         {gearSource !== 'box' && sourceCandidates.length > 0 && (
-          <div className="mb-3 flex flex-col gap-1.5">
+          <div className="mb-3 overflow-hidden rounded-lg border border-border-soft bg-panel2/40">
             {sourceCandidates.map((c) => {
               const key = exclusionSelectorKey(c.selector);
               const actif = !!sourceSelector && exclusionSelectorKey(sourceSelector) === key;
               return (
-                <Option
+                <ZoneCliquable
                   key={key}
-                  actif={actif}
                   onClick={() => setSourceSelector(c.selector)}
-                  icone={<MonsterAvatar monster={c.monster} size={28} />}
-                  titre={c.teamContext ? `Équipe ${c.teamContext.teamNumber}` : c.monster.name}
-                  description={
-                    c.teamContext
-                      ? c.teamContext.slots.map((m) => m?.name ?? '—').join(' · ')
-                      : undefined
-                  }
-                />
+                  aria-pressed={actif}
+                  className={`flex w-full items-center gap-3 px-3 text-left transition ${
+                    c.teamContext ? 'py-1' : 'py-1.5'
+                  } ${actif ? 'bg-accent-soft' : 'hoverable:bg-panel2'}`}
+                >
+                  <MonsterAvatar monster={c.monster} size={c.teamContext ? 46 : 28} className="flex-none" />
+                  <div className="min-w-0 flex-1 flex flex-col justify-center gap-0.5">
+                    <div className="flex items-center gap-2.5">
+                      <span className="text-[13px] font-medium truncate flex-1">{c.monster.name}</span>
+                      <span className="font-mono text-[11px] text-ink-dim flex-none">
+                        {c.gear.runes.length} rune{c.gear.runes.length > 1 ? 's' : ''}
+                      </span>
+                    </div>
+                    {/* Siège UNIQUEMENT — un même monstre peut apparaître dans
+                        PLUSIEURS équipes, indiscernables par le seul portrait
+                        (même espèce) : le vrai repère est le NUMÉRO d'équipe et
+                        SES COÉQUIPIERS. Même rendu que RuneExclusionPicker. */}
+                    {c.teamContext && (
+                      <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-[11px] text-ink-dim">
+                        <span className="flex-none">Équipe {c.teamContext.teamNumber}</span>
+                        <span className="flex flex-wrap items-center gap-2.5 min-w-0">
+                          {c.teamContext.slots.map((m, slotIdx) => {
+                            const estSlotCourant = 'slotIndex' in c.selector && c.selector.slotIndex === slotIdx;
+                            return (
+                              <span key={slotIdx} className="flex items-center gap-1.5 flex-none">
+                                <MonsterAvatar monster={m} element={false} size={34} className="flex-none" />
+                                <span className={`whitespace-nowrap ${estSlotCourant ? 'text-ink font-medium' : ''}`}>
+                                  {m?.name ?? '—'}
+                                </span>
+                              </span>
+                            );
+                          })}
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                </ZoneCliquable>
               );
             })}
           </div>

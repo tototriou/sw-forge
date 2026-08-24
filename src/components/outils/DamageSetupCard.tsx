@@ -16,6 +16,7 @@ import {
   SummonerSkills,
   estPrisEnCharge,
 } from '../../lib/damage';
+import { formuleLisible } from '../../lib/monsterSkills';
 import NumberField from '../../ui/NumberField';
 import Option from '../../ui/Option';
 import Segmented from '../../ui/Segmented';
@@ -59,13 +60,20 @@ interface Props {
 }
 
 // Ce que le sort nous apprend, en une ligne — l'inverse d'un formulaire.
-function resumeSort(p: SkillDamageProfile): string {
+//
+// ⚠️ **Le RATIO DE DÉGÂTS en tête** (demande explicite) : c'est le
+// coefficient qui décide de tout le reste du calcul, et le repère que le
+// joueur retrouve sur les sites de référence. Rendu par `formuleLisible`
+// (monsterSkills.ts, déjà utilisée par la fiche de monstre) — qui TRADUIT
+// les noms de stats (`{ATK}` → ATQ) sans réécrire la formule, précisément
+// pour garder cette correspondance.
+function resumeSort(p: SkillDamageProfile): { ratio: string | null; reste: string } {
   const bouts: string[] = [`${p.hits} coup${p.hits > 1 ? 's' : ''}`];
   bouts.push(p.aoe ? 'Zone' : 'Cible unique');
   if (p.ignoreDef) bouts.push('Ignore la DEF');
   if (p.fixed) bouts.push('Dégâts fixes');
   if (p.skillupDamagePct > 0) bouts.push(`+${p.skillupDamagePct} % (compétence maxée)`);
-  return bouts.join(' · ');
+  return { ratio: formuleLisible(p.formule), reste: bouts.join(' · ') };
 }
 
 export default function DamageSetupCard({ skills, resolved, setup, setSetup, chargement, etroit }: Props) {
@@ -128,7 +136,22 @@ export default function DamageSetupCard({ skills, resolved, setup, setSetup, cha
                 }
                 // Un sort refusé affiche POURQUOI plutôt que de disparaître :
                 // sans ça, l'absence du sort n°2 passerait pour un oubli.
-                description={pris ? resumeSort(s) : s.raison}
+                description={
+                  pris ? (
+                    (() => {
+                      const { ratio, reste } = resumeSort(s);
+                      return (
+                        <>
+                          {ratio && <span className="font-mono text-ink">{ratio}</span>}
+                          {ratio && ' · '}
+                          {reste}
+                        </>
+                      );
+                    })()
+                  ) : (
+                    s.raison
+                  )
+                }
               />
             );
           })}

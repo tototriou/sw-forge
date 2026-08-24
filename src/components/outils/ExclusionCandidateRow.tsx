@@ -1,5 +1,7 @@
 import { ReactNode } from 'react';
 import MonsterAvatar from '../MonsterAvatar';
+import RuneIcon from '../RuneIcon';
+import { activeSets } from '../../lib/effects';
 import { ExclusionCandidate } from '../../lib/optimizerExclusion';
 
 interface Props {
@@ -17,12 +19,30 @@ interface Props {
 // (choisir le monstre à optimiser) affichent désormais EXACTEMENT la même
 // rangée, demande explicite de cohérence entre les deux écrans.
 export default function ExclusionCandidateRow({ candidate: c, suffixe }: Props) {
+  // ⚠️ `activeSets`, PAS un simple `Set` des `rune.set` présents — SEULE
+  // source de vérité pour « quels sets sont actifs » (voir son en-tête,
+  // effects.ts) : un set 4 pièces à 3 runes n'est pas actif, une rune
+  // Intangible peut compléter le set incomplet le plus proche. Recompter à
+  // côté (ex. `swiftCount >= 4`) a déjà fait diverger un affichage d'un cas
+  // réel — voir `swiftActive` dans importAccount.ts pour l'incident. Même
+  // fonction que `RtaEntry.sets` (calculée à l'import) et que les icônes de
+  // `RtaCard.tsx`, ici recalculée à la volée : ces candidats (n'importe quel
+  // monstre du compte, pas seulement les favoris RTA) n'ont pas cette valeur
+  // déjà posée quelque part.
+  const sets = activeSets(c.gear.runes.map((r) => r.set));
   return (
     <>
       <MonsterAvatar monster={c.monster} size={c.teamContext ? 46 : 28} className="flex-none" />
       <div className="min-w-0 flex-1 flex flex-col justify-center gap-0.5">
         <div className="flex items-center gap-2.5">
           <span className="text-[13px] font-medium truncate flex-1">{c.monster.name}</span>
+          {sets.length > 0 && (
+            <span className="flex flex-none items-center gap-1">
+              {sets.map((s, i) => (
+                <RuneIcon key={i} setKey={s} size={14} className="flex-none" />
+              ))}
+            </span>
+          )}
           <span className="font-mono text-[11px] text-ink-dim flex-none">
             {c.gear.runes.length} rune{c.gear.runes.length > 1 ? 's' : ''}
           </span>

@@ -243,10 +243,11 @@ retour.
    `dense` à la main depuis un seuil de fenêtre. ⚠️ **Le champ de recherche cherche PARMI
    les entrées de la source active** — EXACTEMENT le même mécanisme que
    « Exclure les runes d'un monstre » plus bas (même composant de rangée de
-   résultat, `ExclusionCandidateRow` : portrait, nom, compte de runes, et
-   pour le siège le numéro d'équipe + ses coéquipiers, un même monstre
-   pouvant apparaître dans plusieurs équipes indiscernables par le seul
-   nom) — pas un sélecteur d'espèce suivi d'un second choix d'exemplaire :
+   résultat, `ExclusionCandidateRow` : portrait, nom, **icônes des sets
+   actifs** puis compte de runes, et pour le siège le numéro d'équipe + ses
+   coéquipiers, un même monstre pouvant apparaître dans plusieurs équipes
+   indiscernables par le seul nom) — pas un sélecteur d'espèce suivi d'un
+   second choix d'exemplaire :
    **choisir un résultat fixe directement l'exemplaire optimisé**, en un
    seul geste. Pour Box, un monstre nu (sans aucune rune) reste
    recherchable : construire un build depuis rien est un cas d'usage normal
@@ -604,11 +605,13 @@ panneau « Options » au doigt (c'est le réglage le plus utilisé sur cet
 écran) ; à **droite**, côte à côte, au bureau (voir la carte ci-dessus).
 
 ⚠️ **Les quatre onglets de source restent sur UNE seule ligne au doigt**,
-texte/rembourrage réduits (`Segmented.tsx`, prop `dense`) — à 4 options
-aussi longues que « Défenses siège », même resserré, le libellé passe sur
-DEUX lignes DANS le bouton plutôt que déborder (`dense` ne force pas
-`whitespace-nowrap`, contrairement aux autres tailles). Au bureau, rendu
-normal, une ligne, texte sur une ligne.
+texte/rembourrage réduits — à 4 options aussi longues que « Défenses
+siège », même resserré, le libellé passe sur DEUX lignes DANS le bouton
+plutôt que déborder (le cran resserré ne force pas `whitespace-nowrap`,
+contrairement aux autres). `Segmented` (`src/ui/`) mesure lui-même la place
+qu'il reçoit et bascule seul entre les deux rendus (voir
+[shared/librairie-ui.md](../shared/librairie-ui.md)) — aucun réglage à
+poser depuis cet écran.
 
 ⚠️ **L'équipe complète d'un résultat de siège reste visible sans défiler**
 (`c.teamContext`, résultats de recherche par nom) : les coéquipiers passent
@@ -628,6 +631,16 @@ En Siège défense/offense, un même monstre peut apparaître dans plusieurs
 portrait). Chaque résultat de recherche affiche donc le **numéro d'équipe et
 les portraits des 3 coéquipiers** (slot vide = tiret), à la même échelle que
 l'écran Siège, pour lever l'ambiguïté sans avoir à cliquer.
+
+⚠️ **Chaque résultat affiche aussi les icônes des sets ACTIFS** de
+l'équipement montré, entre le nom et le compte de runes — pas un simple
+comptage des sets présents parmi les runes portées : `activeSets`
+(`lib/effects.ts`), la SEULE source de vérité de l'app pour « quels sets
+sont actifs » (un set 4 pièces à 3 runes n'est pas actif, une rune
+Intangible peut compléter le set incomplet le plus proche — recompter à
+côté a déjà fait diverger un affichage sur un cas réel, voir
+`swiftActive`). Même fonction que celle qui alimente les icônes de set
+affichées sur les cartes de « Mon compte » → RTA.
 
 Fait partie des réglages exportés/importés dans une recette : ce qui est
 exporté, ce sont des **identifiants** (quel monstre, quelle source), jamais

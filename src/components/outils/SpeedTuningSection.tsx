@@ -498,14 +498,13 @@ export default function SpeedTuningSection({ allMonsters, siegeDefenseTeams, sie
   // Le sort effectivement lancé au premier tour. Hors analyse poussée, c'est
   // celui que la lecture du kit a retenu ; en analyse poussée, celui qu'on a
   // désigné — '' voulant dire « il ne lance rien de tout ça ».
-  const sortActif = (l: Ligne): SortVitesse | null => {
-    const liste = sortsDe(l);
-    const choix = poussee ? sortChoisi[l.uid] : undefined;
-    if (choix === '') return null;
-    if (choix != null) return liste.find((x) => x.nom === choix) ?? null;
-    const kit = l.monster.com2usId != null ? kits.get(l.monster.com2usId) : null;
-    const nom = kit?.atbCompetence ?? kit?.buffCompetence ?? null;
-    return liste.find((x) => x.nom === nom) ?? null;
+  // ⚠️ **Plus rien n'est deviné à la volée** : le sort lancé est celui qui a été
+  // ÉCRIT (par l'analyse, ou à la main dans l'ordre des sorts). Sans écriture,
+  // le monstre ne lance rien — l'outil ne suppose pas à la place de qui règle.
+  const sortActif = (l: Ligne, choix: Record<string, string> = sortChoisi): SortVitesse | null => {
+    const nom = choix[l.uid];
+    if (!nom) return null;
+    return sortsDe(l).find((x) => x.nom === nom) ?? null;
   };
 
   // Ce que la lecture du kit a retenu pour ce monstre — le « Sort détecté ».
@@ -554,12 +553,12 @@ export default function SpeedTuningSection({ allMonsters, siegeDefenseTeams, sie
   // ⚠️ La simulation de l'ANALYSE, celle qui fait parler les kits. Elle ne sert
   // qu'à produire ce qu'on va ÉCRIRE dans les grilles — elle n'alimente ni les
   // tableaux ni le verdict, qui obéissent, eux, à l'état de la page.
-  function simulerAvecSorts() {
+  function simulerAvecSorts(choix: Record<string, string> = sortChoisi) {
     const avec: TuneMonstre[] = [];
     for (const l of lignesVisibles) {
       const c = combatDe(l);
       if (c == null || c <= 0) continue;
-      const actif = sortActif(l);
+      const actif = sortActif(l, choix);
       const second = sortSecond(l);
       avec.push({
         id: l.uid,
@@ -583,7 +582,30 @@ export default function SpeedTuningSection({ allMonsters, siegeDefenseTeams, sie
   // AVANT. L'écrire sur le même tick aurait laissé un allié boosté voler le tour
   // du lanceur. Décalé d'un tick, il agit exactement au moment où il comptait.
   function analyser() {
-    const resultat = simulerAvecSorts();
+    // ⚠️ **L'analyse remplit AUSSI l'ordre des sorts** : elle y pose l'ordre que
+    // les vitesses produisent et, pour chacun, le sort que son kit a retenu.
+    // Après quoi ces choix sont des choix comme les autres — c'est le même
+    // principe que les grilles : l'outil écrit, l'utilisateur corrige.
+    const choix: Record<string, string> = { ...sortChoisi };
+    for (const l of lignesVisibles) {
+      const detecte = sortAuto(l);
+      if (detecte) choix[l.uid] = detecte.nom;
+      else delete choix[l.uid];
+    }
+    setSortChoisi(choix);
+    setPoussee(true);
+    if (!ordreRange) {
+      const parVitesse = premiers.filter((a) => a.camp === 'allie').map((a) => a.id);
+      const allies = lignesVisibles.filter((l) => l.camp === 'allie').map((l) => l.uid);
+      setOrdreVoulu([
+        ...parVitesse.filter((id) => allies.includes(id)),
+        ...allies.filter((id) => !parVitesse.includes(id)),
+      ]);
+    }
+    // Ce qu'on vient d'écrire ne doit pas déclencher une relance en boucle.
+    premiereSignature.current = JSON.stringify([choix, sortChoisi2]);
+
+    const resultat = simulerAvecSorts(choix);
     const parId = new Map(resultat.lignes.map((x) => [x.id, x]));
     setAuto(true);
     setLignes((prev) =>
@@ -969,14 +991,11 @@ export default function SpeedTuningSection({ allMonsters, siegeDefenseTeams, sie
                 />
               </span>
             </div>
-            {/* ⚠️ DEUX COLONNES : le résultat d'un côté, l'ordre des sorts de
-                l'autre — l'un se lit, l'autre se règle. `flex-wrap` sans
-                breakpoint de largeur, comme les deux camps : elles passent l'une
-                sous l'autre dès qu'il n'y a plus la place. */}
-            {((!aAllie || chaine.coupeur) || poussee) && (
-              <div className="flex flex-wrap gap-x-6 gap-y-4 px-4 py-3.5">
-                {(!aAllie || chaine.coupeur) && (
-                  <div className="min-w-[260px] flex-1">
+            {/* ⚠️ Sans adversaire, il n'y a pas de verdict — et rien à dire :
+                le corps ne s'affiche pas du tout plutôt que de porter une phrase
+                qui explique l'évidence. */}
+            {(!aAllie || chaine.coupeur) && (
+              <div className="px-4 py-3.5">
                   {!aAllie ? (
                     <p className="text-sm text-ink-dim">
                       Ajoute des monstres à ton équipe pour vérifier que rien ne la coupe.
@@ -1013,17 +1032,23 @@ export default function SpeedTuningSection({ allMonsters, siegeDefenseTeams, sie
                       </ul>
                     </>
                   )}
-                  </div>
-                )}
+              </div>
+            )}
+          </section>
 
-                {poussee && (
-                  <div className="min-w-[320px] flex-1">
-                    <div className="mb-2 text-micro font-semibold uppercase tracking-wider text-ink-dimmer">
-                      Ordre des sorts
-                      <span className="ml-2 font-normal normal-case tracking-normal text-ink-dimmer">
-                        · range-les et dis ce que chacun lance
-                      </span>
-                    </div>
+          {/* ⚠️ Une card À PART, pas un sous-bloc : l'analyse se LIT, l'ordre des
+              sorts se RÈGLE. Ce sont deux objets, et l'analyse REMPLIT le second
+              — elle y écrit l'ordre des vitesses et le sort de chacun, comme
+              elle écrit dans les grilles. */}
+          {poussee && (
+            <section className="rounded-lg border border-border bg-panel">
+              <div className="border-b border-border-soft px-4 py-2.5 text-micro font-semibold uppercase tracking-wider text-ink-dimmer">
+                Ordre des sorts
+                <span className="ml-2 font-normal normal-case tracking-normal text-ink-dimmer">
+                  · range tes monstres dans l'ordre voulu et dis ce que chacun lance
+                </span>
+              </div>
+              <div className="px-4 py-3.5">
                     {ordreVoulu.length === 0 ? (
                       <p className="text-sm text-ink-dim">Ajoute des monstres à ton équipe pour composer un ordre.</p>
                     ) : (
@@ -1076,9 +1101,8 @@ export default function SpeedTuningSection({ allMonsters, siegeDefenseTeams, sie
                                     ici on tranche (un sort du kit, ou aucun). */}
                                 <ChoixSort
                                   sorts={liste}
-                                  valeur={choix ?? '__auto'}
+                                  valeur={choix ?? ''}
                                   onChoisir={(v) => choisirSort(uid, v)}
-                                  auto={sortAuto(l)}
                                   nomMonstre={l.monster.name}
                                 />
                                 {/* ⚠️ Sa compétence lui REND son tour (Kroa) : il
@@ -1095,8 +1119,7 @@ export default function SpeedTuningSection({ allMonsters, siegeDefenseTeams, sie
                                     <ChoixSort
                                       sorts={liste.filter((x) => x.nom !== sortActif(l)?.nom)}
                                       valeur={sortChoisi2[uid] ?? ''}
-                                      onChoisir={(v) => choisirSecond(uid, v === '__auto' ? '' : v)}
-                                      auto={null}
+                                      onChoisir={(v) => choisirSecond(uid, v)}
                                       prefixe="puis : "
                                       nomMonstre={l.monster.name}
                                     />
@@ -1132,11 +1155,9 @@ export default function SpeedTuningSection({ allMonsters, siegeDefenseTeams, sie
                         </p>
                       </>
                     )}
-                  </div>
-                )}
               </div>
-            )}
-          </section>
+            </section>
+          )}
 
           {/* Barre d'action par tick (résultat, lecture seule) */}
           <section className="rounded-lg border border-border bg-panel">
@@ -1767,16 +1788,13 @@ function ChoixSort({
   sorts,
   valeur,
   onChoisir,
-  auto,
   prefixe,
   nomMonstre,
 }: {
   sorts: SortVitesse[];
-  // '__auto' = celui du kit, '' = aucun, sinon le nom du sort.
+  // '' = aucun sort, sinon le nom du sort lancé.
   valeur: string;
   onChoisir: (v: string) => void;
-  // Le sort que la lecture du kit a retenu, pour l'afficher derrière « détecté ».
-  auto: SortVitesse | null;
   prefixe?: string;
   nomMonstre: string;
 }) {
@@ -1799,7 +1817,7 @@ function ChoixSort({
     };
   }, [open]);
 
-  const choisi = valeur === '__auto' ? auto : valeur === '' ? null : (sorts.find((x) => x.nom === valeur) ?? null);
+  const choisi = valeur === '' ? null : (sorts.find((x) => x.nom === valeur) ?? null);
   // ⚠️ « Sort détecté » ne veut rien dire quand RIEN n'a été détecté : ce qui
   // compte, c'est ce que le monstre lance — et il ne lance rien.
   const libelle = choisi?.nom ?? 'Aucun sort';
@@ -1833,18 +1851,6 @@ function ChoixSort({
               cadre arrondi, fait pour un choix empilé dans un dialogue. Dans une
               surface flottante, l'app pose des rangées qui touchent les bords —
               même grammaire que l'import de deck et la recherche de monstre. */}
-          {auto && (
-            <Rangee
-              icone={icone(auto, 22)}
-              titre="Sort détecté"
-              detail={`Celui que son kit a retenu : ${auto.nom}`}
-              actif={valeur === '__auto'}
-              onClick={() => {
-                onChoisir('__auto');
-                setOpen(false);
-              }}
-            />
-          )}
           <Rangee
             icone={<Sparkles size={22} className="text-ink-dimmer" />}
             titre="Aucun sort"

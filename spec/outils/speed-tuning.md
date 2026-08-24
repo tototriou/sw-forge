@@ -182,6 +182,17 @@ il faut savoir **quel sort** chacun lance. Moteur dans
 [speedTune.ts](src/lib/speedTune.ts) (`diagnostiquerSequence`, `fenetresRequises`)
 et [speedTuneKit.ts](src/lib/speedTuneKit.ts) (`sortsVitesse`), **testés**.
 
+⚠️ **C'est l'analyse qui la remplit.** Cliquer sur « Analyser » y écrit l'ordre
+que les vitesses produisent et, pour chacun, le sort que son kit a retenu —
+exactement comme elle écrit dans les grilles. Ces choix deviennent alors des
+choix comme les autres : on les corrige, et **y toucher relance l'écriture**
+(c'est le seul changement qui la relance).
+
+⚠️ **Plus rien n'est deviné à la volée** : le sort lancé est celui qui a été
+ÉCRIT. Sans analyse, personne ne lance rien — l'outil ne suppose pas à la place
+de qui règle. Le menu n'a donc plus d'entrée « Sort détecté » : il n'y a que des
+sorts, et « Aucun sort ».
+
 - **Ordre voulu** : au départ, c'est **celui des vitesses** — l'ordre que la
   simulation produit aujourd'hui, les alliés sans vitesse connue à la fin. C'est
   le point de départ évident (« voilà ce que tu as »), et il se recale tant qu'on
@@ -465,17 +476,13 @@ De haut en bas :
      **« Ordre des sorts »**. ⚠️ Une **action**, pas un interrupteur : un
      interrupteur laissait croire à une couche qui tourne en fond et repasserait
      sur ce qu'on règle. ⚠️ **Aucune phrase d'explication** : le titre suffit.
-   - **Corps : DEUX COLONNES** — le **résultat** à gauche, l'**ordre des sorts** à
-     droite. L'un se lit, l'autre se règle.
-     ⚠️ `flex-wrap` **sans breakpoint de largeur**, comme les deux camps : elles
-     passent l'une sous l'autre dès qu'il n'y a plus la place.
-   - **Colonne « résultat »** : rien d'autre que le verdict. Vert, il tient en
-     quatre mots — **« Ta team est speed tune. »** Rouge, il nomme **l'adverse
-     qui coupe** (sans son tick) puis donne **une ligne par allié coupé** : son
-     nom et **le chiffre qui manque**, rien de plus.
-   - **Colonne « ordre des sorts »** (bouton du même nom) : l'ordre imposé et le
-     sort de chacun. C'est l'**entrée** de l'automatisation — d'où le fait qu'y
-     toucher relance l'écriture.
+   - **Corps** : rien d'autre que le **verdict**. Vert, il tient en quatre mots —
+     **« Ta team est speed tune. »** Rouge, il nomme **l'adverse qui coupe**
+     (sans son tick) puis donne **une ligne par allié coupé** : son nom et **le
+     chiffre qui manque**, rien de plus.
+   - ⚠️ **« Ordre des sorts » est une card À PART**, pas un sous-bloc : l'analyse
+     **se lit**, l'ordre des sorts **se règle**. Ce sont deux objets, et le
+     second est **rempli par le premier** (voir plus bas).
    - Sans personne en face, « Analyser » pose en plus l'**adversaire de
      référence**.
 4. **Barre d'action par tick** (lecture seule) — tableau : lignes triées par

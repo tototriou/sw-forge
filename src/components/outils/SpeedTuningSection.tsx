@@ -1,5 +1,5 @@
 import { useEffect, useId, useMemo, useRef, useState } from 'react';
-import { Search, Plus, Timer, Users, Swords, X, Zap, Gauge, Eye, EyeOff, Download, Check, Scissors, Play, ListOrdered, ChevronUp, ChevronDown, Sparkles } from 'lucide-react';
+import { Search, Plus, Timer, Users, Swords, X, Zap, Gauge, Eye, EyeOff, Download, Check, Scissors, ListOrdered, ChevronUp, ChevronDown, Sparkles } from 'lucide-react';
 import { Monster, SiegeTeam } from '../../types';
 import { combatSpeed, runeSpeedForTarget, SPEED_LEADS, SIEGE_TICKS } from '../../lib/speed';
 import {
@@ -30,6 +30,7 @@ import MonsterAvatar from '../MonsterAvatar';
 import {
   Bouton,
   Champ,
+  Interrupteur,
   Flottant,
   NumberField,
   Selecteur,
@@ -929,27 +930,27 @@ export default function SpeedTuningSection({ allMonsters, siegeDefenseTeams, sie
             <div className="flex flex-wrap items-center gap-x-3 gap-y-2 border-b border-border-soft px-4 py-2.5">
               <span className="text-micro font-semibold uppercase tracking-wider text-ink-dimmer">
                 Analyse automatique
-                <span className="ml-2 font-normal normal-case tracking-normal text-ink-dimmer">
-                  · toute ton équipe doit jouer AVANT le premier adverse
-                </span>
               </span>
               <span className="ml-auto flex flex-wrap items-center gap-2">
-                {/* ⚠️ Les deux commandes sont dans l'EN-TÊTE, côte à côte : elles
-                    pilotent la même chose, et ce qu'elles ouvrent est posé
-                    dessous — elles-mêmes ne bougent pas d'un pixel. */}
-                <Bouton
-                  icone={<Play size={14} />}
-                  libelle={auto ? 'Cacher' : 'Lancer'}
-                  actif={auto || undefined}
+                {/* ⚠️ Un INTERRUPTEUR, pas un bouton dont le libellé bascule :
+                    l'analyse n'est pas une action qu'on déclenche, c'est un MODE
+                    qui reste allumé — « Lancer » puis « Cacher » forçait à lire
+                    le libellé pour savoir dans quel état on était, quand un
+                    interrupteur le montre. Les deux commandes sont dans
+                    l'en-tête, et ce qu'elles ouvrent est posé dessous : elles ne
+                    bougent pas d'un pixel. */}
+                <Interrupteur
+                  actif={auto}
+                  onChange={(v) => (v ? relancerAnalyse() : cacherAnalyse())}
                   disabled={!aAllie}
+                  libelle={<span className="text-xs font-semibold">Analyser</span>}
                   title={
                     !aAllie
                       ? "Ajoute d'abord des monstres à ton équipe."
                       : auto
-                        ? "Coupe l'analyse : les grilles cessent de se remplir toutes seules, l'ordre des sorts se referme et l'adversaire de référence passe de côté. Ce que tu as saisi reste."
-                        : "Reprend la lecture des kits (les grilles se remplissent à nouveau) et, si personne n'est en face, pose une copie de ton monstre le plus rapide."
+                        ? "Coupe l'analyse : les grilles cessent de se remplir toutes seules et l'ordre des sorts se referme. Ce que tu as saisi, et les monstres d'en face, restent."
+                        : "Lit les kits, remplit les grilles, et pose une copie de ton monstre le plus rapide si personne n'est en face."
                   }
-                  onClick={auto ? cacherAnalyse : relancerAnalyse}
                 />
                 <Bouton
                   icone={<ListOrdered size={14} />}

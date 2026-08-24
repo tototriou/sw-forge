@@ -448,9 +448,16 @@ De haut en bas :
    de lui-même. Elle était en deux cadres séparés (le verdict d'un côté, l'ordre
    des sorts de l'autre), ce qui laissait croire à deux outils alors qu'un seul
    bouton les coupe ensemble.
-   - **En-tête** : le titre, et les **deux commandes** côte à côte — **« Lancer »
-     / « Cacher »** et **« Ordre des sorts »**. Elles pilotent la même chose, et
-     ce qu'elles ouvrent est posé **dessous** : elles ne bougent pas d'un pixel.
+   - **En-tête** : le titre, et les **deux commandes** côte à côte — un
+     **interrupteur « Analyser »** et le bouton **« Ordre des sorts »**. Elles
+     pilotent la même chose, et ce qu'elles ouvrent est posé **dessous** : elles
+     ne bougent pas d'un pixel.
+     ⚠️ **Un interrupteur, pas un bouton dont le libellé bascule** : l'analyse
+     n'est pas une action qu'on déclenche, c'est un **mode** qui reste allumé.
+     « Lancer » puis « Cacher » obligeait à lire le libellé pour savoir dans quel
+     état on se trouvait ; un interrupteur le montre.
+     ⚠️ **Aucune phrase d'explication dans l'en-tête** : le titre suffit, et la
+     question à laquelle l'outil répond est déjà celle de la page.
    - **Corps** : le verdict. Vert, il tient en quatre mots — **« Ta team est
      speed tune. »** ⚠️ Quand c'est bon, il n'y a rien à ajouter : ni le nom de
      l'adverse devancé, ni son tick. Rouge, il nomme **l'adverse qui coupe**

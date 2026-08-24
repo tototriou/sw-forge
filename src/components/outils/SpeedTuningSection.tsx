@@ -401,14 +401,19 @@ export default function SpeedTuningSection({ allMonsters, siegeDefenseTeams, sie
   // quitte les calculs et les tableaux mais reste dans son camp, comme n'importe
   // quel monstre qu'on met de côté (icône œil). On regarde ce que l'analyse
   // donne, on la cache pour travailler tranquille, et on la rappelle d'un clic.
+  // Couper l'analyse arrête ce que l'outil DÉDUIT — les kits, l'ordre des sorts,
+  // le recalage de la référence. ⚠️ **Les monstres d'en face restent**, référence
+  // comprise : ce sont des monstres comme les autres une fois posés, et les
+  // effacer ferait perdre un réglage qu'on vient justement de vouloir garder
+  // sous les yeux pour travailler dessus.
   function cacherAnalyse() {
     setAuto(false);
     setPoussee(false); // l'analyse poussée fait partie de l'automatique
-    setLignes((prev) => prev.map((l) => (l.reference ? { ...l, masque: true } : l)));
   }
 
   // Rallumer : les kits reparlent, et si personne n'est en face on repose
-  // l'adversaire de référence.
+  // l'adversaire de référence. S'il y en a déjà un, on le réaffiche au cas où il
+  // aurait été mis de côté à la main.
   function relancerAnalyse() {
     setAuto(true);
     if (!aEnnemi) analyseAuto();

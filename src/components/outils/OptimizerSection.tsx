@@ -1066,20 +1066,15 @@ export default function OptimizerSection({ box, runes, optimizer, allMonsters, r
           </div>
           <p className="text-[13.5px] font-bold text-ink">Critères de recherche</p>
         </div>
-        {/* ⚠️ `space-y-4` restaure l'espacement entre blocs (Set/Statistique
-            principale/Artéfacts/Conditions) — ces blocs comptaient sur le
-            `space-y-5` du CONTENEUR DE PAGE avant leur regroupement dans
-            cette carte ; devenus des enfants directs de la carte, ils en
-            ont hérité aucun espacement propre sans ce wrapper. */}
+        {/* ⚠️ `space-y-4` restaure l'espacement entre blocs (Set de runes
+            recherché / Artéfacts / Conditions / Statistique principale
+            imposée — cet ORDRE, demande explicite : Statistique principale
+            intervertie avec Artéfacts+Conditions, en dernier plutôt qu'en
+            tête à côté de Set) — ces blocs comptaient sur le `space-y-5` du
+            CONTENEUR DE PAGE avant leur regroupement dans cette carte ;
+            devenus des enfants directs de la carte, ils en ont hérité aucun
+            espacement propre sans ce wrapper. */}
         <div className="space-y-4">
-      {/* ⚠️ **Set de runes recherché et Statistique principale imposée CÔTE
-          À CÔTE** (demande explicite) à partir de `lg` — les deux sont les
-          contraintes qu'on pose sur les runes elles-mêmes, avant les
-          artéfacts et les conditions de stats ; empilés, ils étalaient la
-          carte en hauteur pour rien. `items-start` : la colonne la plus
-          courte ne s'étire pas à la hauteur de l'autre. Sous `lg`, retour à
-          l'empilement (ordre du DOM inchangé). */}
-      <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:gap-6">
       {/* ⚠️ `max-w-md` EN PLUS du `w-fit` de la carte (ceinture et
           bretelles) : `fit-content` se laisse pousser jusqu'à la largeur
           disponible de la piste de grille si le contenu peut la remplir sans
@@ -1106,38 +1101,6 @@ export default function OptimizerSection({ box, runes, optimizer, allMonsters, r
             Sélectionne au moins un set avant de lancer la recherche.
           </p>
         )}
-      </div>
-
-      {/* `flex-none` : se serre sur ses trois rangées de pastilles plutôt
-          que d'absorber l'espace restant de la rangée. */}
-      <div className="lg:flex-none">
-        <div className="mb-2.5 flex items-center gap-1.5">
-          <p className="label">Statistique principale imposée (slots pairs)</p>
-          <HelpPopover title="Statistique principale imposée (slots pairs)">
-            Aucune coche sur un slot = pas de contrainte. Pour un{' '}
-            <b className="text-ink">Lushen</b> classique par exemple : <b className="text-ink">ATQ%</b> en 2,{' '}
-            <b className="text-ink">Dmg Crit</b> en 4, <b className="text-ink">ATQ%</b> en 6.
-          </HelpPopover>
-        </div>
-        <div className="flex flex-col gap-1.5">
-          {CONFIGURABLE_SLOTS.map((slot) => (
-            <div key={slot} className="flex items-center gap-2 flex-wrap">
-              <span className="text-micro text-ink-dim w-14">Slot {slot}</span>
-              {SLOT_MAIN_OPTIONS[slot].map((code) => {
-                const active = (mainStatsBySlot[slot] ?? []).includes(code);
-                return (
-                  <Pastille
-                    key={code}
-                    actif={active}
-                    onClick={() => toggleMainStat(slot, code)}
-                    libelle={RUNE_EFFECT[code]?.label ?? code}
-                  />
-                );
-              })}
-            </div>
-          ))}
-        </div>
-      </div>
       </div>
 
       <div>
@@ -1328,6 +1291,38 @@ export default function OptimizerSection({ box, runes, optimizer, allMonsters, r
             libelle="Réinitialiser les conditions"
             className="text-ink-dim hoverable:text-bad"
           />
+        </div>
+      </div>
+
+      {/* Statistique principale imposée — demande explicite : intervertie
+          avec Artéfacts+Conditions, désormais en DERNIER plutôt qu'en tête
+          à côté de Set de runes recherché. */}
+      <div>
+        <div className="mb-2.5 flex items-center gap-1.5">
+          <p className="label">Statistique principale imposée (slots pairs)</p>
+          <HelpPopover title="Statistique principale imposée (slots pairs)">
+            Aucune coche sur un slot = pas de contrainte. Pour un{' '}
+            <b className="text-ink">Lushen</b> classique par exemple : <b className="text-ink">ATQ%</b> en 2,{' '}
+            <b className="text-ink">Dmg Crit</b> en 4, <b className="text-ink">ATQ%</b> en 6.
+          </HelpPopover>
+        </div>
+        <div className="flex flex-col gap-1.5">
+          {CONFIGURABLE_SLOTS.map((slot) => (
+            <div key={slot} className="flex items-center gap-2 flex-wrap">
+              <span className="text-micro text-ink-dim w-14">Slot {slot}</span>
+              {SLOT_MAIN_OPTIONS[slot].map((code) => {
+                const active = (mainStatsBySlot[slot] ?? []).includes(code);
+                return (
+                  <Pastille
+                    key={code}
+                    actif={active}
+                    onClick={() => toggleMainStat(slot, code)}
+                    libelle={RUNE_EFFECT[code]?.label ?? code}
+                  />
+                );
+              })}
+            </div>
+          ))}
         </div>
       </div>
         </div>

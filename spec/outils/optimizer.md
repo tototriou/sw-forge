@@ -54,8 +54,8 @@ dans le DOM** — demande directe de l'utilisateur : 1) choisir un monstre
 carte à part entière (PAS un champ dans « Critères de recherche » : il se
 choisit avant même de composer le set, ce n'est pas un critère de plus
 parmi d'autres) ; 3) composer les **Critères de recherche**, dans cet
-ordre : Set de runes recherché → Statistique principale imposée (slots
-2/4/6) → Artéfacts → Conditions ; puis, optionnellement et en dernier,
+ordre : Set de runes recherché → Artéfacts → Conditions → Statistique
+principale imposée (slots 2/4/6) ; puis, optionnellement et en dernier,
 **Exclusion de runes** (Runes imposées y compris, voir plus bas) et
 **Réglages avancés**.
 
@@ -105,11 +105,11 @@ continu — demande explicite de l'utilisateur :
    « Critères de recherche » est **compactée au maximum** (`w-fit` — la
    carte hugs son contenu plutôt que de s'étirer sur toute la largeur de sa
    colonne) pour laisser de la place, visuellement, à « Objectif de
-   recherche » à sa droite. Son contenu : **Set de runes recherché et
-   Statistique principale imposée CÔTE À CÔTE** à partir de `lg` (les deux
-   contraintes qui portent sur les runes elles-mêmes ; empilés, ils
-   étalaient la carte en hauteur pour rien), puis **Artéfacts**, puis
-   **Conditions**.
+   recherche » à sa droite. Son contenu, dans cet ordre : **Set de runes
+   recherché**, puis **Artéfacts**, puis **Conditions**, puis
+   **Statistique principale imposée** en dernier — demande explicite
+   d'intervertir cette dernière avec le duo Artéfacts+Conditions (elle
+   vivait auparavant CÔTE À CÔTE avec Set de runes recherché, en tête).
    ⚠️ **Densité — deux plafonds de largeur en plus du `w-fit` de la
    carte** : le **set de runes recherché** (`max-w-md`, ceinture et
    bretelles — `fit-content` peut encore grandir jusqu'à la largeur
@@ -362,19 +362,7 @@ retour.
    tenter de lancer une recherche sans set sélectionné met cette zone en
    **surbrillance rouge marquée** au lieu de silencieusement ne rien faire —
    on montre OÙ agir. Repasse normale dès qu'un set est ajouté.
-5. **Statistique principale imposée (slots pairs)** — pour chacun des slots
-   **2, 4 et 6** (les seuls dont la statistique principale n'est **pas**
-   fixée par les règles du jeu — 1/3/5 sont toujours ATQ/DEF/PV plats), une
-   rangée de puces à cocher :
-   - slot 2 : PV% · ATQ% · DEF% · VIT
-   - slot 4 : PV% · ATQ% · DEF% · Taux Crit · Dmg Crit
-   - slot 6 : PV% · ATQ% · DEF% · RES · Précision
-   Multi-sélection ; **aucune coche = pas de contrainte** sur ce slot. Exemple
-   donné pour un Lushen : ATQ% en 2, Dmg Crit en 4, ATQ% en 6. Ce filtre
-   s'applique **avant** tout le reste, dans la construction même du pool par
-   slot — il réduit donc le nombre de candidats réellement considérés dès le
-   départ.
-6. **Artéfacts** — interrupteur **« Ignorer les statistiques des
+5. **Artéfacts** — interrupteur **« Ignorer les statistiques des
    artéfacts »**, **décoché par défaut** (les artéfacts réellement équipés
    comptent). Décoché, deux listes déroulantes (Attribut, Type) proposent :
    **« Comme équipé »** (défaut, reprend l'artéfact du build de BASE),
@@ -386,7 +374,7 @@ retour.
    explicite permet d'hypothéquer l'artéfact d'un autre contexte sans changer
    de monstre affiché. Ces stats deviennent le PLANCHER des conditions
    ci-dessous.
-7. **Conditions** — les 8 stats (PV, ATQ, DEF, VIT, Taux Crit, Dmg Crit, RES,
+6. **Conditions** — les 8 stats (PV, ATQ, DEF, VIT, Taux Crit, Dmg Crit, RES,
    Précision). Chaque stat porte **deux champs, minimum et maximum**, tous
    deux facultatifs — champ vide = pas de contrainte.
    - **Interrupteur « Stats de base exclues »**, activé par défaut : n'affecte
@@ -401,6 +389,21 @@ retour.
      précision/résistance adverse reste un résultat légitime).
    - **« Réinitialiser les conditions »** vide les 16 champs sans toucher aux
      autres réglages de l'écran.
+7. **Statistique principale imposée (slots pairs)** — pour chacun des slots
+   **2, 4 et 6** (les seuls dont la statistique principale n'est **pas**
+   fixée par les règles du jeu — 1/3/5 sont toujours ATQ/DEF/PV plats), une
+   rangée de puces à cocher :
+   - slot 2 : PV% · ATQ% · DEF% · VIT
+   - slot 4 : PV% · ATQ% · DEF% · Taux Crit · Dmg Crit
+   - slot 6 : PV% · ATQ% · DEF% · RES · Précision
+   Multi-sélection ; **aucune coche = pas de contrainte** sur ce slot. Exemple
+   donné pour un Lushen : ATQ% en 2, Dmg Crit en 4, ATQ% en 6. ⚠️ **Placée en
+   DERNIER** dans la carte (intervertie avec Artéfacts+Conditions, demande
+   explicite) — elle vivait auparavant en tête, CÔTE À CÔTE avec Set de
+   runes recherché. Ce filtre s'applique **avant** tout le reste, dans la
+   construction même du pool par slot — il réduit donc le nombre de
+   candidats réellement considérés dès le départ, quelle que soit sa
+   position dans l'écran.
 8. **« Utiliser tout l'inventaire »** — case à cocher, **cochée par défaut**
    (voir « Exclusion des runes » ci-dessous).
 9. **« Réglages avancés »** (repliés par défaut). ⚠️ **Au bureau, un

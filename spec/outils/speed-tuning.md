@@ -170,10 +170,10 @@ agir dès le tick 1 — au-delà il n'y a plus rien à gagner).
   (voir plus bas) ; un adverse très rapide qui rejouerait une deuxième fois
   avant la fin de la chaîne n'est pas compté comme une coupure supplémentaire.
 
-## Analyse poussée (ordre imposé + sort de chacun)
+## Ordre des sorts (analyse poussée)
 
-⚠️ **Elle fait partie de l'analyse automatique** : c'est le même travail, en plus
-fin. Couper l'analyse la coupe aussi (bouton désactivé, panneau refermé).
+⚠️ **C'est un SOUS-BLOC de la card « Analyse automatique »**, pas un écran à
+part : même cadre, même bouton de coupure. Couper l'analyse le referme.
 
 L'analyse simple répond à « est-ce que tout le monde joue avant l'adverse ». Un
 combo construit demande plus : **un ordre précis** — celui qui remplit la barre
@@ -395,54 +395,22 @@ De haut en bas :
    **masqué** reste dans son camp (grisé) mais quitte les calculs et les trois
    tableaux — pour tester une compo sans perdre son réglage ; on le réaffiche
    d'un clic sur l'œil.
-3. **Le combo passe-t-il ?** — le verdict, posé AVANT les tableaux : c'est la
-   question à laquelle sert l'outil. Vert quand toute l'équipe joue avant le
-   premier adverse (il est **nommé** ; ⚠️ **sans son tick** — le numéro n'apprend
-   rien de plus que le nom, et le tableau des barres le donne déjà) ; rouge
-   sinon — l'adverse qui coupe, puis **une ligne par allié coupé** : son tick, la **vitesse de combat**
-   à atteindre et les **points de vitesse de runes** qui manquent
-   (`runeSpeedForTarget`). Sans adverse (ou sans allié), une phrase neutre le
-   dit — la section garde sa place, elle ne surgit pas sous le clic.
-   Un bouton **« Lancer l'analyse »** y est **toujours affiché** : il sert quand
-   « En face » est **vide** — il y pose alors un **adversaire de référence**, la
-   copie du monstre le **plus rapide** de l'équipe (**même lead**, même vitesse
-   de runes, **même artéfact « Effet aug. VIT »**). La question devient « toute mon équipe joue-t-elle avant un monstre
-   aussi rapide que mon plus rapide ? », le point de départ d'un speed tune quand
-   on ne sait pas encore qui on affronte. Ce monstre est **ajouté** en face,
-   marqué d'un badge **« réf »**, réglable et retirable comme un autre.
+3. **Analyse automatique** — ⚠️ **UNE SEULE card** pour tout ce que l'outil fait
+   de lui-même. Elle était en deux cadres séparés (le verdict d'un côté, l'ordre
+   des sorts de l'autre), ce qui laissait croire à deux outils alors qu'un seul
+   bouton les coupe ensemble.
+   - **En-tête** : le titre, et les **deux commandes** côte à côte — **« Lancer »
+     / « Cacher »** et **« Ordre des sorts »**. Elles pilotent la même chose, et
+     ce qu'elles ouvrent est posé **dessous** : elles ne bougent pas d'un pixel.
+   - **Corps** : le verdict — vert quand toute l'équipe joue avant le premier
+     adverse (il est **nommé** ; ⚠️ **sans son tick**), rouge sinon, avec **une
+     ligne par allié coupé** : son nom et **le chiffre qui manque**, rien de plus.
+   - **Sous-bloc** (bouton « Ordre des sorts ») : l'ordre imposé et le sort de
+     chacun, **dans la même card**, séparé d'un simple filet — c'est le même
+     travail, en plus fin. Voir « Analyse poussée ».
 
-   ⚠️ **L'analyse est un INSTANTANÉ, pas un abonnement : importer un deck
-   l'ARRÊTE.** La référence est retirée — des deux camps, quel que soit celui où
-   l'on importe — et il faut **recliquer** sur « Lancer l'analyse ». Sans ça,
-   l'analyse continuait sur le monstre le plus rapide de l'**ancien** deck : le
-   verdict paraissait juste et ne l'était plus.
-
-   ⚠️ **Le premier réglage à la main lui retire le drapeau** (vitesse de runes,
-   artéfact, ou une cellule de grille) : elle devient un adversaire ordinaire,
-   qu'on ne réécrit plus — écraser un réglage serait une perte silencieuse.
-
-   ⚠️ **« Analyse automatique » désigne TOUT ce que l'outil fait de lui-même**, et
-   « Cacher l'analyse » coupe tout d'un coup :
-   - les **compétences lues dans les kits** — les deux grilles cessent de se
-     remplir toutes seules et n'obéissent plus qu'à ce qu'on y saisit ;
-   - l'**adversaire de référence**, mis de côté (**masqué**, pas supprimé — même
-     état que l'œil d'une card) ;
-   - l'**analyse poussée**, qui en est un raffinement et non un mode à part : son
-     bouton se désactive et son panneau se referme, donc l'ordre imposé et les
-     sorts désignés ne pèsent plus rien.
-
-   Ce qu'on a **saisi** reste, dans les deux grilles comme sur les cards. On
-   regarde ce que l'analyse donne, puis on fait ce qu'on veut.
-
-   Il est **désactivé** sans équipe, ou quand « En face » porte un **vrai**
-   adversaire (l'analyse s'y recalcule à chaque changement, il n'y a rien à
-   lancer). Une référence seule ne le désactive pas : c'est ce qui permet de la
-   reposer après un changement d'équipe.
-4. **Analyse poussée** (repliée par défaut) — ouverte par le bouton du verdict,
-   elle se pose **sous** lui (le bouton ne bouge pas au clic). Pour les combos
-   construits, où l'on veut un **ordre précis de sorts** : voir « Analyse poussée »
-   plus bas.
-5. **Barre d'action par tick** (lecture seule) — tableau : lignes triées par
+   Le bouton **« Lancer » / « Cacher »** commande **tout** : voir plus bas.
+4. **Barre d'action par tick** (lecture seule) — tableau : lignes triées par
    ordre de tour, colonnes = ticks. Chaque cellule = `% rempli` — la
    **trajectoire réelle** renvoyée par la simulation (`OrdreEntree.trajectoire`),
    affichée à **trois décimales** — ⚠️ à deux, une barre à 99,996 % s'affichait
@@ -453,7 +421,7 @@ De haut en bas :
    contour de plus par-dessus la grille) ; les ticks après l'action restent
    vides. Adversaires en teinte `bad`, alliés en `accent`. Colonne de gauche
    figée, défilement horizontal.
-6. **Modification de barre d'attaque** — grille **éditable**, même rendu que le
+5. **Modification de barre d'attaque** — grille **éditable**, même rendu que le
    tableau ci-dessus. Chaque camp présent ouvre sur une ligne **« Toute ton
    équipe » / « Tout en face »** (écrit la même valeur sur tous ses monstres au
    tick visé), puis une ligne par monstre. Cellules = `NumberField sansBoutons`
@@ -465,7 +433,7 @@ De haut en bas :
    effet qui peut se louper, mais l'effet reste posé par défaut, puisque le plus
    souvent il passe. ⚠️ **`0` et « vide » sont deux états distincts** : `0`
    annule, vide rend la main.
-7. **Buff de vitesse** — même grille, mais chaque cellule combine un **raccourci**
+6. **Buff de vitesse** — même grille, mais chaque cellule combine un **raccourci**
    et un **champ** : un bouton à l'icône SPD du jeu (celle des cartes RTA/Siège)
    pose/retire le buff **+30 %** d'un clic — c'est presque toujours celui-là — et
    un `NumberField` à côté permet de saisir une autre valeur (33 %, un ralenti
@@ -473,7 +441,7 @@ De haut en bas :
    tick marqué** (pas de report) : un buff qui dure se marque sur chaque tick.
    Comme pour le boost, une case vide laisse la **compétence** décider (valeur en
    repère), une valeur saisie la remplace et `0` l'annule.
-8. **Ordre de tour** — jetons entrelaçant les deux camps, chacun avec son rang et
+7. **Ordre de tour** — jetons entrelaçant les deux camps, chacun avec son rang et
    son tick.
 
 Les trois tableaux **partagent les mêmes colonnes de ticks** (1 → au moins 12,

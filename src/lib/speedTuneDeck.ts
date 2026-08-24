@@ -29,7 +29,16 @@ export interface DeckImporte {
   // Dans l'ordre des slots (0 = leader), slots vides et monstres inconnus
   // écartés. `runeSpeed` vient du slot de siège : d'après la convention de
   // l'app, il contient DÉJÀ le Swift à plat (voir spec/shared/calcul-vitesse.md).
-  monstres: { monster: Monster; runeSpeed: number | null; artefactBuff: number | null; swift: boolean }[];
+  monstres: {
+    monster: Monster;
+    runeSpeed: number | null;
+    artefactBuff: number | null;
+    swift: boolean;
+    // Les sets ACTIFS du slot. Le Swift a sa propre case parce qu'il change la
+    // vitesse de combat ; les autres servent au comptage des buffs portés
+    // (Volonté, Bouclier — voir speedTuneAuto.ts).
+    sets: string[];
+  }[];
   // Lead à appliquer au CAMP, ou `null` si le deck n'en impose pas.
   //
   // ⚠️ Un lead d'ÉLÉMENT ne se transpose pas : le speed tuning n'a qu'un lead
@@ -53,6 +62,7 @@ export function deckPourSpeedTune(team: SiegeTeam, monsterById: Map<string, Mons
       // (voir combatSpeed). L'écart n'est que d'un point, mais un point suffit à
       // rater un tick.
       swift: (slot.sets ?? []).includes('swift'),
+      sets: slot.sets ?? [],
     });
   }
 

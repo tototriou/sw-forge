@@ -111,7 +111,12 @@ export function combatAuto(
 // posés au moment où le passif compte. Le chiffre reste modifiable — un nombre
 // saisi n'est jamais écrasé.
 export function cumulsEstimes(e: EntreeAuto, equipe: EntreeAuto[], d: DonneesKit): number {
-  let n = (e.sets ?? []).includes('will') ? 1 : 0;
+  // ⚠️ La **Volonté** est personnelle (elle protège CELUI qui la porte), le
+  // **Bouclier** ne l'est pas : un seul monstre en Bouclier dans l'équipe, et
+  // TOUT LE MONDE porte un bouclier au premier tour. Les traiter pareil aurait
+  // sous-compté les buffs de toute l'équipe sauf un.
+  const bouclierEquipe = equipe.some((m) => (m.sets ?? []).includes('shield'));
+  let n = ((e.sets ?? []).includes('will') ? 1 : 0) + (bouclierEquipe ? 1 : 0);
   for (const autre of equipe) {
     if (autre.id === e.id) continue;
     n += sortRetenu(autre, d)?.buffsEquipe ?? 0;

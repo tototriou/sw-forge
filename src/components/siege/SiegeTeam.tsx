@@ -17,6 +17,7 @@ import ElementIcon from '../ElementIcon';
 import RuneIcon from '../RuneIcon';
 import MonsterGear from '../MonsterGear';
 import { analyseAutomatique, EntreeAuto } from '../../lib/speedTuneAuto';
+import { deckPourSpeedTune } from '../../lib/speedTuneDeck';
 import { useDonneesKit } from '../../hooks/useDonneesKit';
 import NumberField from '../../ui/NumberField';
 import LeadPill, { LeadBadge } from './LeadPill';
@@ -138,33 +139,39 @@ export default function SiegeTeam({
   // speed tuning et en cliquant sur « Analyser ». Deux implémentations auraient
   // donné deux verdicts sur la même équipe.
   const donneesKit = useDonneesKit(slotInfos.map((x) => x.monster));
+
+  // ⚠️ **Les mêmes ENTRÉES que l'outil**, pas des entrées reconstruites : on
+  // passe par `deckPourSpeedTune`, la fonction qu'il utilise lui-même pour
+  // importer une équipe de siège (vitesse de runes, artéfact « Effet aug. VIT »
+  // lu sur le gear, Swift, sets). Sinon le siège aurait répondu sur une équipe
+  // légèrement différente — un artéfact oublié, et le verdict change.
+  //
+  // Le LEAD suit la même règle que l'import : celui du leader s'il vaut pour
+  // tout le monde (General/Guild), sinon aucun — un lead d'élément ne se
+  // transpose pas au modèle « un lead par camp » de l'outil.
+  const deck = useMemo(
+    () => deckPourSpeedTune(team, monsterById),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [JSON.stringify(team.slots.map((sl) => [sl.monsterId, sl.runeSpeed, sl.sets, !!sl.gear]))]
+  );
   const equipeAuto = useMemo<EntreeAuto[]>(
     () =>
-      slotInfos.flatMap(({ monster }, i) =>
-        monster
-          ? [
-              {
-                id: `${i}`,
-                monster,
-                runeSpeed: team.slots[i].runeSpeed,
-                swift: (team.slots[i].sets ?? []).includes('swift'),
-                // ⚠️ Les sets entiers, pas seulement le Swift : la Volonté pose
-                // un buff dès le premier tour, et certains passifs comptent les
-                // buffs portés (Chilling).
-                sets: team.slots[i].sets ?? [],
-              },
-            ]
-          : []
-      ),
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [JSON.stringify(team.slots.map((sl) => [sl.monsterId, sl.runeSpeed, sl.sets]))]
+      deck.monstres.map((m, i) => ({
+        id: `${i}`,
+        monster: m.monster,
+        runeSpeed: m.runeSpeed,
+        swift: m.swift,
+        sets: m.sets,
+        artefactBuff: m.artefactBuff,
+      })),
+    [deck]
   );
   const speedTune = useMemo(
     () =>
       equipeAuto.length >= 2 && teamHasSwift
-        ? analyseAutomatique(equipeAuto, siegeLeadFor(leadInfo, equipeAuto[0].monster.element), donneesKit)
+        ? analyseAutomatique(equipeAuto, deck.lead ?? 0, donneesKit)
         : null,
-    [equipeAuto, teamHasSwift, leadInfo, donneesKit]
+    [equipeAuto, deck.lead, teamHasSwift, donneesKit]
   );
 
   const validated = team.tickAlertDismissed; // recommandation écartée par l'utilisateur
@@ -528,8 +535,9 @@ export default function SiegeTeam({
                         ? 'elle ne passe pas devant un monstre aussi rapide que le tien'
                         : speedTune.requis
                             .map((r) => {
-                              const i = Number(r.id);
-                              const nom = slotInfos[i]?.monster?.name ?? 'Ce monstre';
+                              // ⚠️ Les identifiants de l'analyse indexent l'ÉQUIPE
+                              // (slots vides écartés), pas les trois slots.
+                              const nom = equipeAuto[Number(r.id)]?.monster.name ?? 'Ce monstre';
                               return r.combatRequis == null
                                 ? `${nom} (hors de portée)`
                                 : `${nom} +${r.combatRequis - r.combatActuel} VIT`;
@@ -543,25 +551,12 @@ export default function SiegeTeam({
               )}
             </span>
           </div>
-          {/* ⚠️ DEUX sorties, pas une : écarter le conseil, ou aller le vérifier.
-              Ne proposer que « Ignorer » revenait à ne laisser que la porte de
-              sortie — alors que l'outil qui répond à la question existe, et que
-              l'équipe s'y ouvre déjà chargée. */}
-          <span className="flex flex-none flex-wrap items-center gap-2 self-end sm:ml-auto sm:self-auto">
-            <Bouton
-              onClick={() => onDismissAlert(team.id, true)}
-              taille="sm"
-              libelle="Ignorer la recommandation"
-            />
-            <Bouton
-              onClick={() => onVoirSpeedTune(team.id)}
-              taille="sm"
-              ton="accent"
-              icone={<Timer size={14} />}
-              libelle="Voir le speed tune"
-              title="Ouvre le speed tuning avec cette équipe déjà chargée"
-            />
-          </span>
+          <Bouton
+            onClick={() => onDismissAlert(team.id, true)}
+            taille="sm"
+            libelle="Ignorer la recommandation"
+            className="flex-none self-end sm:ml-auto sm:self-auto"
+          />
         </div>
       )}
       {/* ⚠️ Pas un `Bouton` de la librairie : le vert ici est SÉMANTIQUE (l'état
@@ -588,6 +583,25 @@ export default function SiegeTeam({
         >
           ✓ Recommandation ignorée · <span className="underline underline-offset-2">rétablir</span>
         </button>
+      )}
+
+      {/* ⚠️ TOUJOURS là, quelle que soit l'équipe : le speed tune n'est pas une
+          réponse à une alerte, c'est une question qu'on se pose sur n'importe
+          quel deck — y compris celui qui va bien, pour voir de combien il passe.
+          Rangé en pied de card, à droite : c'est une sortie vers un autre écran,
+          pas une action sur l'équipe. */}
+      {hasMonsters && (
+        <div className="mt-3 flex justify-end">
+          <Bouton
+            onClick={() => onVoirSpeedTune(team.id)}
+            taille="sm"
+            fond="vide"
+            trait="aucun"
+            icone={<Timer size={14} />}
+            libelle="Voir le speed tune"
+            title="Ouvre le speed tuning avec cette équipe déjà chargée"
+          />
+        </div>
       )}
     </section>
   );

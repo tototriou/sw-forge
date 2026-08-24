@@ -90,6 +90,13 @@ La card affiche donc le **verdict**, et sa couleur le suit :
   la vérification a tourné ou si l'app n'avait rien à dire ;
 - **orange** sinon, avec ce qui manque monstre par monstre (« Bella +71 VIT »).
 
+⚠️ **Et les MÊMES ENTRÉES** : l'équipe est passée à l'analyse par
+`deckPourSpeedTune` — la fonction que l'outil utilise lui-même pour importer une
+équipe de siège (vitesse de runes, artéfact « Effet aug. VIT » lu sur le gear,
+Swift, sets) — avec le **lead de la même règle** (celui du leader s'il vaut pour
+tout le monde). Reconstruire ces entrées à la main aurait fait répondre le siège
+sur une équipe légèrement différente : un artéfact oublié, et le verdict change.
+
 ⚠️ **C'est le MÊME code que l'outil** — `analyseAutomatique`
 ([speedTuneAuto.ts](src/lib/speedTuneAuto.ts)), partagé par les deux écrans : la
 réponse du siège est **exactement** celle qu'on obtiendrait en ouvrant le speed
@@ -99,11 +106,13 @@ cherchant. La suite d'étapes (vitesse Swift + passif → amplification d'équip
 sort du kit → adversaire de référence → écriture des effets décalée d'un tick →
 verdict) est **testée** dans [tests/speed-tune.test.ts](tests/speed-tune.test.ts).
 
-**DEUX boutons sur orange/rouge**, pas un seul : écarter le conseil, ou aller le
-vérifier. ⚠️ Ne proposer que « Ignorer » revenait à ne laisser que la porte de
-sortie, alors que l'outil qui répond à la question existe.
+**« Voir le speed tune » est en pied de CHAQUE équipe**, quel que soit son
+statut. ⚠️ Ce n'est pas une réponse à une alerte : c'est une question qu'on se
+pose sur n'importe quel deck — y compris celui qui va bien, pour voir **de
+combien** il passe. Rangé à droite, en retrait (`fond="vide"`) : c'est une sortie
+vers un autre écran, pas une action sur l'équipe.
 
-**« Voir le speed tune »** → pose l'équipe dans
+Il pose l'équipe dans
 [speedTuneHandoff.ts](src/lib/speedTuneHandoff.ts) et ouvre
 `#/outils/speed-tuning`, où elle arrive **déjà chargée** dans « Ton équipe ».
 ⚠️ Le message passe par `sessionStorage` et n'est lu **qu'une fois** : c'est un

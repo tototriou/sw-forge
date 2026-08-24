@@ -1390,6 +1390,24 @@ export function testSpeedTuneAuto() {
       { id: 'donneur', monster: donneur, runeSpeed: 100 },
     ];
     egal(cumulsEstimes(equipe[0], equipe, donnees), 3, 'Volonté (1) + les deux buffs de son allié (2) → 3');
+
+    // ⚠️ Le set BOUCLIER n'est pas personnel : un seul porteur, et TOUT LE MONDE
+    // a un bouclier au premier tour — Volonté et Bouclier ne se comptent donc
+    // pas de la même façon.
+    const avecBouclier: EntreeAuto[] = [
+      { ...equipe[0] },
+      { ...equipe[1], sets: ['shield'] },
+    ];
+    egal(
+      cumulsEstimes(avecBouclier[0], avecBouclier, donnees),
+      4,
+      'le bouclier de son allié compte AUSSI pour lui : 3 + 1'
+    );
+    egal(
+      cumulsEstimes(avecBouclier[1], avecBouclier, donnees),
+      1,
+      "et le porteur du bouclier en profite lui-même, sans compter ses propres sorts"
+    );
     egal(
       cumulsEstimes(equipe[1], equipe, donnees),
       0,

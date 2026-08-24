@@ -361,10 +361,13 @@ L'outil les **lit et les applique** : [speedTunePassif.ts](src/lib/speedTunePass
   (Shumar) entre tout seul dans la vitesse de combat ; un gain « par
   déclenchement » (buffs portés, tours adverses, attaques) demande un chiffre —
   c'est la seule chose que les données ne peuvent pas savoir.
-- ⚠️ **Sauf pour les BUFFS PORTÉS, qui s'estiment** (`cumulsEstimes`) : deux
+- ⚠️ **Sauf pour les BUFFS PORTÉS, qui s'estiment** (`cumulsEstimes`) : trois
   sources se connaissent d'avance — la **Volonté** (elle pose une Immunité dès le
-  premier tour) et les **buffs de zone que les alliés lancent** (bouclier,
-  immunité, ATQ/DEF, buff de vitesse), comptés sur le sort retenu de chacun.
+  premier tour), le **Bouclier** et les **buffs de zone que les alliés lancent**
+  (immunité, ATQ/DEF, buff de vitesse), comptés sur le sort retenu de chacun.
+  ⚠️ **Volonté et Bouclier ne se comptent pas pareil** : la Volonté est
+  personnelle (elle protège son porteur), le Bouclier ne l'est pas — un seul
+  monstre en Bouclier dans l'équipe, et **tout le monde** en porte un.
   Chilling avec la Volonté dans une équipe qui pose un bouclier et un buff de
   vitesse porte donc **3 buffs → +60 de vitesse**. C'est une **estimation**, pas
   une vérité : elle suppose ces buffs posés au moment où le passif compte, et un

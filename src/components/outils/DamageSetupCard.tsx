@@ -434,7 +434,15 @@ export default function DamageSetupCard({
           {utilise('DEF') && (
             <EffetVignette icone={DEF_BUFF_ICON} libelle="Buff DEF" onClick={() => maj({ defBuff: !setup.defBuff })} actif={setup.defBuff} etroit={etroit} />
           )}
-          {utilise('SPD') && (
+          {/* ⚠️ PAS seulement `utilise('SPD')` : `{Relative SPD}` (Beast
+              Rider, Concentrated Stab…) et le modificateur monstre-wide
+              `critSiPlusRapide` (Ciri Eau, Rigna, Magic Order Swordsinger)
+              dépendent EUX AUSSI de `maVitCombat`, qui inclut ce buff — même
+              quand la formule du sort choisi ne lit ni {SPD} ni
+              {Relative SPD} directement (Rigna S1 « Double Gash » en lit
+              une, mais un monstre à `critSiPlusRapide` pourrait très bien
+              n'avoir AUCUN sort qui en dépend). */}
+          {(utilise('SPD') || utilise('Relative SPD') || critSiPlusRapide) && (
             <EffetVignette icone={SPD_BUFF_ICON} libelle="Buff VIT" onClick={() => maj({ spdBuff: !setup.spdBuff })} actif={setup.spdBuff} etroit={etroit} />
           )}
           {montreDefEnnemie && (

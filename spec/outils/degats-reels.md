@@ -429,6 +429,30 @@ vrai**, même si le sort ACTIF choisi ne lit pas `{Relative SPD}` (ex. Rigna
 S1 « Double Gash », qui ne lit que `{SPD}`) : la comparaison de vitesse a
 lieu indépendamment du sort sélectionné.
 
+⚠️ **Même chose pour le bouton « Buff VIT »**, trouvé après coup (question
+directe de l'utilisateur) : gaté sur `utilise('SPD')` seul, il n'apparaissait
+ni pour `{Relative SPD}` (Concentrated Stab/Charge Attack, `4.7*{ATK}`
+nu — la variable n'est pas `SPD`) ni pour `critSiPlusRapide` — alors que le
+buff influence `maVitCombat` dans les DEUX cas, exactement comme pour le
+champ « VIT adversaire ». Gating corrigé à l'identique :
+`utilise('SPD') || utilise('Relative SPD') || critSiPlusRapide`.
+
+### Troisième mécanique dépendante de la VIT, PAS ENCORE modélisée : Sonia
+
+Sonia (`Evasion (Passive)`, sans formule) : « The faster you are than the
+enemy… **the damage dealt increases by up to 50%** » — un TROISIÈME
+mécanisme, distinct des deux ci-dessus : ni `{Relative SPD}` (une formule de
+dégâts), ni un critique garanti (`critSiPlusRapide`), mais un **bonus de
+dégâts continu** qui monte avec l'écart de VIT, plafonné à +50 %. Comme pour
+l'ignore-DEF proportionnel de Rigna, le texte du jeu ne donne AUCUN seuil
+numérique (« up to 50% » seul) — **non implémenté, faute de formule
+confirmée** (à quel écart de VIT atteint-on les +50 % ? linéaire comme
+Rigna ?). Le bouton « Buff VIT »/« VIT adversaire » ne s'affiche donc PAS
+encore pour Sonia : aucun de ses sorts actifs (`1.9*{ATK}`, `3.5*{ATK}`) ne
+lit de variable de VIT, et rien ne modélise encore sa contribution — un
+champ visible mais sans effet serait pire qu'absent (même principe que
+partout ailleurs dans ce panneau).
+
 ## Stats à privilégier dans la recherche
 
 `damageRelevantStats(profil)` renvoie les statistiques que le sort fait

@@ -465,13 +465,17 @@ De haut en bas :
      **« Ordre des sorts »**. ⚠️ Une **action**, pas un interrupteur : un
      interrupteur laissait croire à une couche qui tourne en fond et repasserait
      sur ce qu'on règle. ⚠️ **Aucune phrase d'explication** : le titre suffit.
-   - **Corps** : rien d'autre que **le RÉSULTAT**. Vert, il tient en quatre mots
-     — **« Ta team est speed tune. »** Rouge, il nomme **l'adverse qui coupe**
-     (sans son tick) puis donne **une ligne par allié coupé** : son nom et **le
-     chiffre qui manque**, rien de plus.
-   - **Sous-bloc** (bouton « Ordre des sorts ») : l'ordre imposé et le sort de
-     chacun, dans la même card, séparé d'un filet. C'est l'**entrée** de
-     l'automatisation — d'où le fait qu'y toucher relance l'écriture.
+   - **Corps : DEUX COLONNES** — le **résultat** à gauche, l'**ordre des sorts** à
+     droite. L'un se lit, l'autre se règle.
+     ⚠️ `flex-wrap` **sans breakpoint de largeur**, comme les deux camps : elles
+     passent l'une sous l'autre dès qu'il n'y a plus la place.
+   - **Colonne « résultat »** : rien d'autre que le verdict. Vert, il tient en
+     quatre mots — **« Ta team est speed tune. »** Rouge, il nomme **l'adverse
+     qui coupe** (sans son tick) puis donne **une ligne par allié coupé** : son
+     nom et **le chiffre qui manque**, rien de plus.
+   - **Colonne « ordre des sorts »** (bouton du même nom) : l'ordre imposé et le
+     sort de chacun. C'est l'**entrée** de l'automatisation — d'où le fait qu'y
+     toucher relance l'écriture.
    - Sans personne en face, « Analyser » pose en plus l'**adversaire de
      référence**.
 4. **Barre d'action par tick** (lecture seule) — tableau : lignes triées par

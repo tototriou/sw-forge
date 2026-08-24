@@ -59,7 +59,7 @@ interface Props {
   onClearSlot: (teamId: string, idx: number) => void;
   onSlotRune: (teamId: string, idx: number, value: number | null) => void;
   onSlotTick: (teamId: string, idx: number, tick: number) => void;
-  // Mode « Vérifier mes tick ATB » (bouton de la barre d'actions, éteint par
+  // Mode « Vérifier mes speed » (bouton de la barre d'actions, éteint par
   // défaut) : sans lui, toutes les équipes restent neutres.
   checkTicks: boolean;
   onDismissAlert: (teamId: string, dismissed: boolean) => void;
@@ -105,8 +105,8 @@ export default function SiegeTeam({
   const leaderMonster = leaderId ? monsterById.get(leaderId) ?? null : null;
   const leadInfo = speedLeadOf(leaderMonster);
 
-  // Statut de l'équipe vis-à-vis des ticks — calculé en mode « Vérifier mes tick
-  // ATB » (sinon `neutral` : équipes affichées telles quelles).
+  // Statut de l'équipe vis-à-vis de sa vitesse — calculé en mode
+  // « Vérifier mes speed » (sinon `neutral` : équipes affichées telles quelles).
   // ⚠️ Une fois ce mode allumé, TOUT est automatique : statut, message nommant
   // les monstres fautifs, et l'ordre de tours d'une équipe Swift. Le bouton dit
   // quand on veut voir, il ne demande pas de calculer soi-même.
@@ -616,7 +616,7 @@ export default function SiegeTeam({
                 </span>
               ) : (
                 // ⚠️ Le mode allumé RÉPOND toujours : un statut neutre muet, et
-                // le bouton « Vérifier mes tick ATB » semble ne rien faire.
+                // le bouton « Vérifier mes speed » semble ne rien faire.
                 sansVerdict
               )}
             </span>

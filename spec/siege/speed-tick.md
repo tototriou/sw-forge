@@ -54,7 +54,7 @@ maintenant la même valeur, calculée une seule fois.
 
 ## Aura de statut (au tick / à corriger)
 
-> ⚠️ **Conditionnée au mode « Vérifier mes tick ATB »** (bouton de la barre
+> ⚠️ **Conditionnée au mode « Vérifier mes speed »** (bouton de la barre
 > d'actions, éteint par défaut — voir [README.md](README.md)). Tant qu'il est
 > éteint, le statut de **toute** équipe est forcé à `neutral`.
 > ⚠️ **Mais une fois allumé, rien ne se demande** : statut, message et ordre

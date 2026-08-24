@@ -1,6 +1,6 @@
 import { ResultatAuto } from './speedTuneAuto';
 
-// Le STATUT d'une équipe de siège en mode « Vérifier mes tick ATB », et ce que
+// Le STATUT d'une équipe de siège en mode « Vérifier mes speed », et ce que
 // la card en dit.
 //
 // ⚠️ **Métier, pas affichage.** Cette décision vivait dans `SiegeTeam.tsx`, en
@@ -11,7 +11,7 @@ import { ResultatAuto } from './speedTuneAuto';
 export type StatutEquipe = 'neutre' | 'vert' | 'orange' | 'rouge';
 
 export interface EntreeStatut {
-  // Le mode est-il allumé (bouton « Vérifier mes tick ATB ») ?
+  // Le mode est-il allumé (bouton « Vérifier mes speed ») ?
   verifier: boolean;
   // Au moins un monstre posé dans l'équipe.
   desMonstres: boolean;

@@ -171,11 +171,15 @@ export default function SiegeBoard({
             ? 'Aucune équipe à vérifier'
             : checkTicks
               ? 'Masquer les auras de vérification'
-              : 'Colorer les équipes selon leur calage sur les ticks ATB'
+              : // ⚠️ Le bouton couvre les DEUX questions : une équipe Swift se
+                // juge sur son speed tune, les autres sur leur tick. « Vérifier
+                // mes tick ATB » n'en nommait qu'une, et pas celle qui compte
+                // pour les équipes speed.
+                'Colorer les équipes selon leur vitesse : speed tune pour une équipe Swift, calage sur les ticks ATB pour les autres'
         }
         icone={<Gauge size={15} />}
-        libelle="Vérifier mes tick ATB"
-        libelleCourt="Ticks"
+        libelle="Vérifier mes speed"
+        libelleCourt="Speed"
       />
 
       {/* En dernier des actions : c'est le geste le plus rare. */}

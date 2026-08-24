@@ -14,58 +14,68 @@ qu'en coréen, et le classement est fait à partir du TEXTE anglais des
 compétences — une formulation inhabituelle peut donc tomber dans « Autre ».
 
 
-## Vitesse en dur (permanente) — 4 monstre(s)
+## Gain de vitesse PROPRE (pas un buff : ni dispellable, ni amplifié par l'artéfact) — 52 monstre(s)
 
-- **Spurt (Passive) — +15 de vitesse, en dur, en permanence**
-  - Hellhound, Shumar
-- **Spurt (Passive) — +25 de vitesse, en dur, en permanence**
-  - Shumar
-
-## Vitesse qui monte selon une condition — 48 monstre(s)
-
-- **Backsteps (Passive) — +15 % de vitesse, mais SOUS CONDITION**
+- **Backsteps (Passive) — +15 % de vitesse, gain propre, plafonné à 150 % (sous condition)**
   - Taebaek
-- **Caffeine (Passive) — vitesse gagnée, montant NON chiffré dans les données**
-  - Espresso Cookie, 에스프레소맛 쿠키(바람)
-- **Evasive Maneuver(Passive) — vitesse gagnée, montant NON chiffré dans les données**
-  - Elven Ranger, Erwin
-- **Fast Charge (Passive) — +100 % de vitesse, mais SOUS CONDITION**
+- **Fast Charge (Passive) — +100 % de vitesse, gain propre (sous condition)**
   - Dr. Plasma, Dr. Richard
-- **Flash Step (Passive) — vitesse gagnée, montant NON chiffré dans les données**
+- **Flash Step (Passive) — +50 de vitesse, gain propre, plafonné à 250 (sous condition)**
   - Ciri, 시리(빛)
-- **Gold Headband (Passive) — +12 % de vitesse, mais SOUS CONDITION**
+- **Foresight Dream (Passive) — +30 % de vitesse, gain propre (sous condition)**
+  - Hypnomeow, Nebelung, Siamese
+- **Gold Headband (Passive) — +12 % de vitesse, gain propre, jusqu'à 10 cumuls (sous condition)**
   - Mei Hou Wang, Monkey King
-- **Jet Engine (Passive) — +5 % de vitesse, mais SOUS CONDITION**
+- **Jet Engine (Passive) — +5 % de vitesse, gain propre, plafonné à 100 % (sous condition)**
   - Miles, Sky Surfer
-- **Long Waiting (Passive) — vitesse gagnée, montant NON chiffré dans les données**
+- **Long Waiting (Passive) — +15 % de vitesse, gain propre, plafonné à 150 % (sous condition)**
   - Jack-o'-lantern, Misty
-- **Loss of Cause and Effect (Passive) — vitesse gagnée, montant NON chiffré dans les données**
-  - Juno, Oracle
-- **Master of Magic Power (Passive) — +5 de vitesse, en dur, mais SOUS CONDITION**
+- **Master of Magic Power (Passive) — +5 de vitesse, gain propre, plafonné à 100 (sous condition)**
   - Elsharion, Ifrit
-- **Mind and Body Rest (Passive) — vitesse gagnée, montant NON chiffré dans les données**
-  - Black Tea Bunny, Chamomile
-- **Punch Parry (Passive) — +15 % de vitesse, mais SOUS CONDITION**
+- **Punch Parry (Passive) — +15 % de vitesse, gain propre, plafonné à 150 % (sous condition)**
   - Hwoarang, 화랑(빛)
-- **Revengeful Thought (Passive) — +15 % de vitesse, mais SOUS CONDITION**
+- **Revengeful Thought (Passive) — +15 % de vitesse, gain propre (sous condition)**
   - Barbara, Beast Rider, Masha, Narsha, Savannah, Xiana
-- **Spear of Penetration (Passive) — vitesse gagnée, montant NON chiffré dans les données**
-  - Agrius, Centaur Knight
-- **Strange Reversible Reaction (Passive) — vitesse gagnée, montant NON chiffré dans les données**
+- **Sleep Talk (Passive) — +30 % de vitesse, gain propre (sous condition)**
+  - Birman, Bombay, Hypnomeow, Manx
+- **Spurt (Passive) — +15 de vitesse, gain propre (en permanence)**
+  - Hellhound, Shumar
+- **Spurt (Passive) — +25 de vitesse, gain propre (en permanence)**
+  - Shumar
+- **Strange Reversible Reaction (Passive) — +25 de vitesse, gain propre (sous condition)**
   - Crane, Frankenstein, 프랑켄 2차 각성 보스(바람)
-- **The Cunning (Passive) — vitesse gagnée, montant NON chiffré dans les données**
+- **The Cunning (Passive) — +20 de vitesse par buff porté (relevé en jeu) — absent des données, relevé à la main**
   - Chilling, Jack-o'-lantern
-- **Turning Slash (Passive) — vitesse gagnée, montant NON chiffré dans les données**
+- **Turning Slash (Passive) — +50 de vitesse, gain propre, plafonné à 250 (sous condition)**
   - Birgitta, Magic Order Swordsinger
-- **Wild Chase (Passive) — vitesse gagnée, montant NON chiffré dans les données**
+- **Wild Chase (Passive) — +20 % de vitesse, gain propre, jusqu'à 5 cumuls (sous condition)**
   - Beast Rider, Narsha
-- **Wild Steps (Passive) — vitesse gagnée, montant NON chiffré dans les données**
+- **Wild Steps (Passive) — +10 % de vitesse, gain propre, jusqu'à 5 cumuls (sous condition)**
   - Beast Rider, Masha
 
-## Buff de vitesse déclenché — 2 monstre(s)
+## Gain de vitesse propre, montant absent des données — 7 monstre(s)
 
-- **The Bravest Cookie (Passive) — vitesse gagnée, montant NON chiffré dans les données**
+- **Atrocity (Passive) — gain de vitesse PROPRE, montant absent des données**
+  - Contaminated Dragon
+- **Beast Man (Passive) — gain de vitesse PROPRE, montant absent des données**
+  - Grotau, Minotauros
+- **Sugar Booster (Passive) — gain de vitesse PROPRE, montant absent des données**
+  - Lollipop Warrior, Thomas
+- **The Bravest Cookie (Passive) — gain de vitesse PROPRE, montant absent des données**
   - GingerBrave, 용감한 쿠키
+
+## BUFF de vitesse du jeu (+30 %, amplifié par le spd buff effect) — 10 monstre(s)
+
+- **Caffeine (Passive) — buff de vitesse du jeu (+30 %), 2 tours**
+  - Espresso Cookie, 에스프레소맛 쿠키(바람)
+- **Evasive Maneuver(Passive) — buff de vitesse du jeu (+30 %), 1 tours**
+  - Elven Ranger, Erwin
+- **Loss of Cause and Effect (Passive) — buff de vitesse du jeu (+30 %), 2 tours**
+  - Juno, Oracle
+- **Mind and Body Rest (Passive) — buff de vitesse du jeu (+30 %), 2 tours**
+  - Black Tea Bunny, Chamomile
+- **Spear of Penetration (Passive) — buff de vitesse du jeu (+30 %), 1 tours**
+  - Agrius, Centaur Knight
 
 ## Tour supplémentaire — 91 monstre(s)
 
@@ -252,7 +262,7 @@ compétences — une formulation inhabituelle peut donc tomber dans « Autre ».
   - Diana, Unicorn
 - **Might · Resurrection (Passive) — +15 % de barre, hors de son tour**
   - Parjanya
-- **Mind's Eye (Passive) — remplit une barre hors de son tour, montant NON chiffré**
+- **Mind's Eye (Passive) — +100 % de barre, hors de son tour**
   - RYU, 류(물)
 - **Mischievous Curse (Passive) — +20 % de barre, hors de son tour**
   - Devil Maiden, Layla
@@ -260,7 +270,7 @@ compétences — une formulation inhabituelle peut donc tomber dans « Autre ».
   - Garo, Ninja
 - **Nasty Strike (Passive) — +50 % de barre, hors de son tour**
   - Gollum
-- **Overdrive (Passive) — remplit une barre hors de son tour, montant NON chiffré**
+- **Overdrive (Passive) — +100 % de barre, hors de son tour**
   - Moore, Striker
 - **Path of the Brave Warrior (Passive) — remplit une barre hors de son tour, montant NON chiffré**
   - Deragron, Drakan Warrior
@@ -370,14 +380,10 @@ compétences — une formulation inhabituelle peut donc tomber dans « Autre ».
 - **Ventriloquism (Passive) — −30 % de barre adverse, hors de son tour**
   - Puppeteer, Smicer
 
-## Autre mention de la vitesse (souvent des dégâts qui en dépendent) — 82 monstre(s)
+## Autre mention de la vitesse (souvent des dégâts qui en dépendent) — 67 monstre(s)
 
 - **Accelerando (Passive) — Your Attack Power increases in proportion to the Attack Speed. Grants Beneficial Effects Blocked for 2 turns t**
   - Blade Dancer, Cordelia
-- **Atrocity (Passive) — Increases your Attack Bar by 25% every time you're attacked and your attack speed increases greatly if your HP**
-  - Contaminated Dragon
-- **Beast Man (Passive) — Recovers by 10% every turn and your attack speed increases as your HP decreases. [Automatic Effect]**
-  - Grotau, Minotauros
 - **Blacksmith's Discernment (Passive) — Increases the decreasing effects of Attack Power, Defense, and Attack Speed that enemies receive by 30% (15% i**
   - Deborah, Rune Blacksmith
 - **Blacksmith's Technique (Passive) — Increases the increasing effects of Attack Power, Defense and Attack Speed that allies receive by 35%. The sam**
@@ -386,8 +392,6 @@ compétences — une formulation inhabituelle peut donc tomber dans « Autre ».
   - Angelmon, Devilmon, Rainbowmon
 - **Defense Stance (Passive) — Decreases the boss' Attack Speed by half and gains immunity against harmful effects and Attack Bar decrease du**
   - Legion Commander of Judgment
-- **Foresight Dream (Passive) — You can use skills while sleeping. Your Attack Speed is increased by 30% and recovers HP of all allies by 20% **
-  - Hypnomeow, Nebelung, Siamese
 - **Glacier Armor (Passive) — Gains immunity against Continuous Damage and decreases the attacker's Attack Speed for 2 turns with a 50% chan**
   - Living Armor, Nickel
 - **Glacier Armor (Passive) — Gains immunity against inability and Continuous Damage effects. In addition, removes 1 beneficial effect grant**
@@ -420,14 +424,10 @@ compétences — une formulation inhabituelle peut donc tomber dans « Autre ».
   - CHUN-LI, 춘리(바람)
 - **Root Prison (Passive) — Decreases the stunned enemy's Attack Speed by 90%. [Automatic Effect]**
   - Leshen
-- **Sleep Talk (Passive) — You can use skills while sleeping. Your Attack Speed is increased by 30% and the damage is increased by 100% w**
-  - Birman, Bombay, Hypnomeow, Manx
 - **Speed Difference (Passive) — Your attacks always land as a Critical Hit when you attack the enemy with a slower Attack Speed than you. Crit**
   - Magic Order Swordsinger, Rigna
 - **Start of Pain (Passive) — When you get your turn, grants one of the following harmful effects that the enemies do not have for 2 turns e**
   - Kiki, Mage
-- **Sugar Booster (Passive) — Your Attack Speed increases as your HP condition is better, and your Attack Power increases as your HP conditi**
-  - Lollipop Warrior, Thomas
 - **The Time of the Dead(Passive) — The Attack Speed of all enemies and allies is suppressed and cannot exceed a certain cap. Also, all skill effe**
   - Abyssal Ancient Lich King, Ancient Lich King
 - **Turn Out (Passive) — The damage increases up to 200% as your Attack Speed is faster than the enemy's Attack Speed. [Automatic Effec**
@@ -441,7 +441,7 @@ compétences — une formulation inhabituelle peut donc tomber dans « Autre ».
 
 Total : **449** entrées de monstre, 201 passives distinctes.
 
-## ⚠️ Montant INCONNU — 51 monstre(s)
+## ⚠️ Montant INCONNU — 26 monstre(s)
 
 Ni le texte de la compétence ni les données d'effet ne chiffrent la modification :
 aucun calcul ne peut la reprendre telle quelle, elle se pose à la main dans les
@@ -450,55 +450,33 @@ grilles. C'est la liste à connaître avant de faire confiance à un verdict sur
 
 - **Almighty Mask (Passive) — remplit une barre hors de son tour, montant NON chiffré**
   - Cayde, Poison Master
-- **Caffeine (Passive) — vitesse gagnée, montant NON chiffré dans les données**
-  - Espresso Cookie, 에스프레소맛 쿠키(바람)
+- **Atrocity (Passive) — gain de vitesse PROPRE, montant absent des données**
+  - Contaminated Dragon
+- **Beast Man (Passive) — gain de vitesse PROPRE, montant absent des données**
+  - Grotau, Minotauros
 - **Druid's Wit (Passive) — remplit une barre hors de son tour, montant NON chiffré**
   - Abellio
 - **Energy Shield (Passive) — vide une barre adverse, montant NON chiffré**
   - Arcane Weapon, Christine
-- **Evasive Maneuver(Passive) — vitesse gagnée, montant NON chiffré dans les données**
-  - Elven Ranger, Erwin
 - **Exorcist's Pride (Passive) — remplit une barre hors de son tour, montant NON chiffré**
   - Tetsuya
-- **Flash Step (Passive) — vitesse gagnée, montant NON chiffré dans les données**
-  - Ciri, 시리(빛)
-- **Long Waiting (Passive) — vitesse gagnée, montant NON chiffré dans les données**
-  - Jack-o'-lantern, Misty
-- **Loss of Cause and Effect (Passive) — vitesse gagnée, montant NON chiffré dans les données**
-  - Juno, Oracle
 - **Messenger of the Wind (Passive) — remplit une barre hors de son tour, montant NON chiffré**
   - Diana, Unicorn
-- **Mind and Body Rest (Passive) — vitesse gagnée, montant NON chiffré dans les données**
-  - Black Tea Bunny, Chamomile
-- **Mind's Eye (Passive) — remplit une barre hors de son tour, montant NON chiffré**
-  - RYU, 류(물)
-- **Overdrive (Passive) — remplit une barre hors de son tour, montant NON chiffré**
-  - Moore, Striker
 - **Path of the Brave Warrior (Passive) — remplit une barre hors de son tour, montant NON chiffré**
   - Deragron, Drakan Warrior
 - **Pride of the Sorcerer (Passive) — remplit une barre hors de son tour, montant NON chiffré**
   - Megumi Fushiguro, 후시구로 메구미(불)
 - **Red Battlefield (Passive) — remplit une barre hors de son tour, montant NON chiffré**
   - Demon, Lucifer
-- **Spear of Penetration (Passive) — vitesse gagnée, montant NON chiffré dans les données**
-  - Agrius, Centaur Knight
-- **Strange Reversible Reaction (Passive) — vitesse gagnée, montant NON chiffré dans les données**
-  - Crane, Frankenstein, 프랑켄 2차 각성 보스(바람)
-- **The Bravest Cookie (Passive) — vitesse gagnée, montant NON chiffré dans les données**
+- **Sugar Booster (Passive) — gain de vitesse PROPRE, montant absent des données**
+  - Lollipop Warrior, Thomas
+- **The Bravest Cookie (Passive) — gain de vitesse PROPRE, montant absent des données**
   - GingerBrave, 용감한 쿠키
-- **The Cunning (Passive) — vitesse gagnée, montant NON chiffré dans les données**
-  - Chilling, Jack-o'-lantern
 - **To Live or To Die (Passive) — remplit une barre hors de son tour, montant NON chiffré**
   - Dice Magician, Morris
-- **Turning Slash (Passive) — vitesse gagnée, montant NON chiffré dans les données**
-  - Birgitta, Magic Order Swordsinger
-- **Wild Chase (Passive) — vitesse gagnée, montant NON chiffré dans les données**
-  - Beast Rider, Narsha
-- **Wild Steps (Passive) — vitesse gagnée, montant NON chiffré dans les données**
-  - Beast Rider, Masha
 - **Yoga's Arcana (Passive) — remplit une barre hors de son tour, montant NON chiffré**
   - DHALSIM, 달심(어둠)
 
 ---
 
-Total : **449** entrées, dont **51** au montant inconnu.
+Total : **449** entrées, dont **26** au montant inconnu.

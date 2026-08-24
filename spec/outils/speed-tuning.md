@@ -342,11 +342,27 @@ vitesse sous condition, tour supplémentaire, barre gagnée ou retirée hors de 
 tour. **Seule la première catégorie est réglable une fois pour toutes** ; le
 reste dépend de ce qui se passe en combat, et se pose à la main dans les grilles.
 
-⚠️ Le document se termine par la liste la plus utile : **« Montant INCONNU »** —
-les passives dont **ni le texte ni les données d'effet** ne chiffrent la
-modification (**51 monstres**, dont Chilling). Aucun calcul ne peut les reprendre :
-c'est la liste à connaître avant de faire confiance à un verdict sur une équipe
-qui en contient un.
+⚠️ **Deux choses très différentes se cachent derrière « attack speed »** dans les
+textes, et les confondre fausse tout :
+- « Increases your Attack Speed **for 2 turns** » (Juno, Oracle) → le monstre
+  gagne le **BUFF** du jeu : +30 %, dispellable, **amplifié par le spd buff
+  effect** ;
+- « increases your Attack Speed **by 5** for each… » (Elsharion), « Your Attack
+  Speed **is increased by 15 %** » (Misty) → un **gain propre**, ni dispellable
+  ni amplifié par l'artéfact.
+
+Le discriminant est dans le texte : un **montant** (« by N ») = gain propre, une
+**durée** seule (« for N turns ») = buff.
+
+⚠️ Le document se termine par **« Montant INCONNU »** — les passives dont ni le
+texte ni les données ne chiffrent la modification. Une table
+`RELEVE_EN_JEU` permet d'y verser ce qu'on a mesuré soi-même (Chilling : +20 de
+vitesse par buff porté) : mieux vaut une valeur assumée « relevée à la main »
+qu'un trou silencieux.
+
+⚠️ **Une barre « remplie » vaut 100 %** — le texte ne le chiffre pas parce que
+remplir, c'est remplir. Ces passifs comptent surtout comme des **coupeurs** : un
+adverse qui remplit sa barre hors de son tour joue au milieu du combo.
 
 ### Rechargement des compétences
 

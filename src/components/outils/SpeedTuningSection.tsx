@@ -427,8 +427,15 @@ export default function SpeedTuningSection({ allMonsters, siegeDefenseTeams, sie
         masque: false,
       })),
     ]);
-    // Le lead du leader du deck, s'il vaut pour tout le camp (voir speedTuneDeck.ts).
-    if (lead != null) (camp === 'allie' ? setLeadAllie : setLeadEnnemi)(lead);
+    // Le lead du leader du deck, s'il vaut pour tout le camp (voir
+    // speedTuneDeck.ts).
+    //
+    // ⚠️ **Toujours écrit, « Sans » compris.** Un deck sans lead de vitesse
+    // laissait en place celui du deck précédent : on calculait la nouvelle
+    // équipe avec un +28 % qui n'existait plus, et le siège — qui lit `lead ?? 0`
+    // — répondait autre chose que l'outil sur la même compo. Importer un deck,
+    // c'est importer TOUT ce qui fait ses vitesses.
+    (camp === 'allie' ? setLeadAllie : setLeadEnnemi)(lead ?? 0);
   }
 
   // Analyse automatique : quand « En face » est VIDE, on n'a rien à devancer —

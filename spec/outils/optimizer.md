@@ -115,7 +115,15 @@ continu — demande explicite de l'utilisateur :
    à **droite**, **Artéfacts** puis **Conditions**. `items-start` : la
    colonne la plus courte ne s'étire pas à la hauteur de l'autre ; sous
    `lg`, retour à l'empilement (ordre du DOM inchangé : Set, Statistique
-   principale, Artéfacts, Conditions).
+   principale, Artéfacts, Conditions). ⚠️ **Traits de séparation** (demande
+   explicite, capture d'écran à l'appui) : un **trait vertical** entre les
+   deux colonnes (`lg:border-r`, posé sur la colonne de gauche uniquement —
+   jamais deux traits à 1 px l'un de l'autre, voir
+   [shared/design.md](shared/design.md)), UNIQUEMENT à partir de `lg` (sous
+   ce seuil les colonnes s'empilent, un trait vertical n'y aurait aucun
+   sens) ; un **trait horizontal** dans chaque colonne, entre Set de runes
+   recherché et Statistique principale imposée, et entre Artéfacts et
+   Conditions — quel que soit le format, y compris au doigt.
    ⚠️ **Densité — deux plafonds de largeur en plus du `w-fit` de la
    carte** : le **set de runes recherché** (`max-w-md`, ceinture et
    bretelles — `fit-content` peut encore grandir jusqu'à la largeur

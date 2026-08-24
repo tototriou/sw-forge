@@ -1076,12 +1076,16 @@ export default function OptimizerSection({ box, runes, optimizer, allMonsters, r
             Sous `lg`, retour à l'empilement (ordre du DOM inchangé : Set,
             Statistique principale, Artéfacts, Conditions). */}
         <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:gap-6">
-        {/* ⚠️ `space-y-4` restaure l'espacement entre les deux blocs de
-            cette colonne — ils comptaient sur le `space-y-5` du CONTENEUR
-            DE PAGE avant leur regroupement dans cette carte ; devenus des
-            enfants directs, ils en ont hérité aucun espacement propre sans
-            ce wrapper. */}
-        <div className="space-y-4">
+        {/* ⚠️ **Trait vertical entre les deux colonnes** (demande explicite,
+            capture d'écran à l'appui) — `lg:border-r` posé sur la colonne de
+            GAUCHE uniquement (pas de `border-l` en plus sur la droite : deux
+            traits à 1 px l'un de l'autre se liraient comme un contour flou,
+            voir spec/shared/design.md). `lg:pr-6` : le trait respire du même
+            écart que `lg:gap-6` sur le conteneur, sans quoi il collerait au
+            texte de gauche. UNIQUEMENT à partir de `lg` — sous ce seuil, les
+            deux « colonnes » s'empilent (`flex-col`), un trait vertical n'y
+            aurait aucun sens. */}
+        <div className="lg:border-r lg:border-border-soft lg:pr-6">
       {/* ⚠️ `max-w-md` EN PLUS du `w-fit` de la carte (ceinture et
           bretelles) : `fit-content` se laisse pousser jusqu'à la largeur
           disponible de la piste de grille si le contenu peut la remplir sans
@@ -1110,7 +1114,12 @@ export default function OptimizerSection({ box, runes, optimizer, allMonsters, r
         )}
       </div>
 
-      <div>
+      {/* ⚠️ Trait horizontal entre Set de runes recherché et Statistique
+          principale imposée (demande explicite) — `mt-4 border-t pt-4`
+          remplace le `space-y-4` qu'avait le conteneur parent (sinon la
+          marge automatique ET la bordure s'additionneraient, doublant
+          l'écart visuel). */}
+      <div className="mt-4 border-t border-border-soft pt-4">
         <div className="mb-2.5 flex items-center gap-1.5">
           <p className="label">Statistique principale imposée (slots pairs)</p>
           <HelpPopover title="Statistique principale imposée (slots pairs)">
@@ -1140,7 +1149,7 @@ export default function OptimizerSection({ box, runes, optimizer, allMonsters, r
       </div>
         </div>
 
-        <div className="space-y-4">
+        <div>
       <div>
         <div className="flex items-center justify-between mb-2 flex-wrap gap-2">
           <div className="flex items-center gap-1.5">
@@ -1197,7 +1206,10 @@ export default function OptimizerSection({ box, runes, optimizer, allMonsters, r
         )}
       </div>
 
-      <div>
+      {/* Trait horizontal entre Artéfacts et Conditions (demande explicite)
+          — même patron que celui entre Set de runes recherché et
+          Statistique principale imposée, colonne de gauche. */}
+      <div className="mt-4 border-t border-border-soft pt-4">
         <div className="flex items-center justify-between mb-2 flex-wrap gap-2">
           <p className="label">Conditions</p>
           <div className="flex items-center gap-1.5">

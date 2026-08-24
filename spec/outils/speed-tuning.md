@@ -99,8 +99,11 @@ trois vitesses de runes. Calcul pur dans
   n'a qu'une valeur : il ne sait pas dire « +21 % pour les alliés Feu
   seulement ». Chaque monstre importé porte donc **son** lead (`Ligne.lead`,
   calculé par le même `siegeLeadFor` que la card de siège), et **l'encart
-  « Lead » du camp l'affiche à la place du sélecteur** : `+33 % · Eau`, avec une
-  croix pour le retirer et reprendre la main. ⚠️ Le sélecteur **cède sa place**
+  « Lead » du camp l'affiche à la place du sélecteur** : la **même pastille que
+  dans les decks** (`LeadPill` — icône officielle du jeu, montant, icône
+  d'élément), suivie d'une croix pour le retirer et reprendre la main. ⚠️ Pas une
+  pastille redessinée : deux façons d'afficher un lead pour la même donnée, et
+  elles finissent par ne plus dire la même chose. ⚠️ Le sélecteur **cède sa place**
   au lieu de cohabiter : deux contrôles de lead côte à côte laisseraient croire
   qu'ils s'additionnent. Retirer le lead d'élément efface aussi celui que chaque
   monstre portait — sinon l'encart annoncerait une valeur que les vitesses ne

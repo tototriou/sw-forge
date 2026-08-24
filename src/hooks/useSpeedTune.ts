@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Monster, SiegeTeam } from '../types';
+import { LeaderSkill, Monster, SiegeTeam } from '../types';
 import { runeSpeedForTarget } from '../lib/speed';
 import {
   ArtefactRequis,
@@ -16,7 +16,7 @@ import {
   simuler,
   vitessesRequises,
 } from '../lib/speedTune';
-import { deckPourSpeedTune, LeadElement } from '../lib/speedTuneDeck';
+import { deckPourSpeedTune } from '../lib/speedTuneDeck';
 import {
   Ligne,
   Leads,
@@ -97,7 +97,7 @@ export function useSpeedTune({
   // camp n'a qu'une valeur : il ne sait pas dire « +33 % pour les alliés Eau ».
   // C'est donc ce champ que l'encart « Lead » affiche à sa place — et le calcul,
   // lui, passe par le lead que chaque monstre porte (`Ligne.lead`).
-  const [leadElement, setLeadElement] = useStickyState<Record<Camp, LeadElement | null>>(
+  const [leadElement, setLeadElement] = useStickyState<Record<Camp, LeaderSkill | null>>(
     'speedTune.leadElement',
     { allie: null, ennemi: null }
   );

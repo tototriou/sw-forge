@@ -1,6 +1,6 @@
 import { useEffect, useId, useMemo, useRef, useState } from 'react';
 import { Search, Plus, Timer, Users, Swords, X, Zap, Gauge, Eye, EyeOff, Download, Check, Scissors, Play, ChevronUp, ChevronDown, Sparkles } from 'lucide-react';
-import { ELEMENTS, ElementKey, Monster, SiegeTeam } from '../../types';
+import { LeaderSkill, Monster, SiegeTeam } from '../../types';
 import { combatSpeed, runeSpeedForTarget, SPEED_LEADS, SIEGE_TICKS } from '../../lib/speed';
 import {
   simuler,
@@ -52,9 +52,10 @@ import { analyseAutomatique, cumulsEstimes, sortRetenu, sortSecondRetenu, Entree
 import { chargerDetail } from '../../lib/monsterSkills';
 import { teamSummary } from '../../lib/recoFromSiege';
 import { formesJouables } from '../../lib/monsterForms';
+import LeadPill from '../siege/LeadPill';
 import { useComboboxNav } from '../../hooks/useComboboxNav';
 import { useSpeedTune, DeckDispo, ChampMod, DeckInitial } from '../../hooks/useSpeedTune';
-import { LeadElement } from '../../lib/speedTuneDeck';
+
 import { useAdversaireReference } from '../../hooks/useAdversaireReference';
 import { useStickyState } from '../../hooks/useStickyState';
 import MonsterAvatar from '../MonsterAvatar';
@@ -120,9 +121,6 @@ export const REGLE_TICKS = (
 // ⚠️ Les effets posés par les compétences peuvent être NÉGATIFS (une barre
 // vidée, un ralenti) — « +-50 » serait illisible.
 const signe = (v: number) => (v > 0 ? `+${v}` : `−${Math.abs(v)}`);
-
-// Le nom français d'un élément — celui du jeu, comme partout ailleurs.
-const elementLabel = (e: ElementKey) => ELEMENTS.find((x) => x.key === e)?.label ?? '—';
 
 // Ce qu'un sort fait, en une ligne, pour le menu de l'analyse poussée. Un sort
 // sans effet sur la vitesse reste proposable — c'est un tour où l'on ne fait
@@ -869,7 +867,7 @@ interface CampProps {
   // Le lead d'ÉLÉMENT importé avec un deck : il prend la place du sélecteur dans
   // l'encart « Lead » (voir plus bas), parce que celui-ci ne sait pas dire
   // « seulement les alliés Eau ».
-  leadElement: LeadElement | null;
+  leadElement: LeaderSkill | null;
   onRetirerLeadElement: () => void;
   lignes: Ligne[];
   jouables: Monster[];
@@ -955,12 +953,11 @@ function CampPanneau({
               calcul, lui, passe par le lead que chaque monstre porte. */}
           {leadElement ? (
             <span className="flex items-center gap-1">
-              <span
-                className="rounded border border-border bg-panel2 px-1.5 py-0.5 text-xs font-semibold text-ink"
-                title={`Lead importé du deck : +${leadElement.valeur} % de vitesse pour les alliés ${elementLabel(leadElement.element)} seulement. Les autres n'ont aucun bonus. Retire-le pour reprendre la main sur le lead du camp.`}
-              >
-                +{leadElement.valeur}% · {elementLabel(leadElement.element)}
-              </span>
+              {/* ⚠️ **La MÊME pastille que dans les decks** (`LeadPill`) : icône
+                  officielle du jeu, montant, icône d'élément. En redessiner une
+                  ici aurait donné deux façons d'afficher un lead dans la même
+                  app, pour la même donnée. */}
+              <LeadPill ls={leadElement} />
               <BoutonIcone
                 taille="serre"
                 onClick={onRetirerLeadElement}

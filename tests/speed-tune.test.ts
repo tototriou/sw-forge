@@ -320,8 +320,11 @@ export function testSpeedTuneDeck() {
     egal(d.lead, null, 'le lead du CAMP reste vide : le sélecteur ne sait pas dire « seulement l’Eau »');
     egal(d.leadParMonstre, true, 'mais le deck signale que son lead se lit monstre par monstre');
     // ⚠️ C'est ce que l'encart « Lead » du camp affiche : la valeur ET l'élément.
-    egal(d.leadElement?.valeur, 33, "l'encart reçoit la valeur du lead d'élément");
-    egal(d.leadElement?.element, 'water', "et l'élément qu'il favorise — sans quoi il ne saurait pas quoi écrire");
+    // ⚠️ La compétence ENTIÈRE : l'encart montre la même pastille que les decks
+    // (`LeadPill`), qui a besoin de l'icône, du montant et de l'élément.
+    egal(d.leadElement?.amount, 33, "l'encart reçoit le lead du leader tel quel");
+    egal(d.leadElement?.element, 'water', "avec l'élément qu'il favorise");
+    egal(d.leadElement?.area, 'Element', "et sa portée — c'est elle qui dessine la pastille");
     egal(d.monstres[0].lead, 33, 'le leader Eau en profite');
     egal(d.monstres[1].lead, 33, "l'allié Eau aussi");
     egal(d.monstres[2].lead, 0, "l'allié Feu, lui, n'a rien — c'est tout l'intérêt du champ");

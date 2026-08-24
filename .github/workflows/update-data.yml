@@ -74,6 +74,17 @@ jobs:
             exit 0
           fi
 
+          # ⚠️ **Le rapport se calcule AVANT le commit** : il compare le disque à
+          # la version commitée. Après, il n'y aurait plus rien à comparer.
+          #
+          # ⚠️ Sans lui, la PR n'est pas relisable : le diff fait des milliers de
+          # lignes de JSON où personne ne voit qu'une collaboration est arrivée,
+          # ni qu'une VITESSE DE BASE a bougé — or celle-là déplace des ticks et
+          # peut décaler un speed tune réglé au point près.
+          CORPS="$RUNNER_TEMP/corps-pr.md"
+          node scripts/rapport-donnees.mjs "$CORPS"
+          cat "$CORPS"
+
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git switch -c "$BRANCHE"
@@ -86,21 +97,16 @@ jobs:
           # Une PR déjà ouverte a été mise à jour par le push : on ne la double
           # pas. `gh pr list` plutôt que `gh pr create || true`, qui masquerait
           # une VRAIE erreur de création.
-          if [ -n "$(gh pr list --head "$BRANCHE" --state open --json number --jq '.[0].number')" ]; then
-            echo "PR déjà ouverte, mise à jour par le push."
+          #
+          # ⚠️ Son CORPS est réécrit : la branche repart de `main` à chaque
+          # exécution, donc le rapport porte sur l'écart complet. Laisser celui
+          # de la semaine dernière annoncerait des monstres déjà fusionnés et
+          # tairait les nouveaux.
+          NUM="$(gh pr list --head "$BRANCHE" --state open --json number --jq '.[0].number')"
+          if [ -n "$NUM" ]; then
+            echo "PR #$NUM déjà ouverte : mise à jour par le push, corps réécrit."
+            gh pr edit "$NUM" --body-file "$CORPS"
             exit 0
           fi
 
-          # Le corps passe par un FICHIER : écrit en ligne, il faut échapper des
-          # retours à la ligne dans une commande shell elle-même imbriquée dans
-          # un bloc YAML — trois niveaux d'échappement pour trois phrases.
-          cat > /tmp/corps-pr.md <<'CORPS'
-          Rafraîchissement automatique de `public/data/` (monstres, compétences,
-          liens de collaboration), par le cron hebdomadaire — voir
-          `.github/workflows/update-data.yml`.
-
-          ⚠️ À relire avant fusion : un changement de stats côté SWARFARM déplace
-          des vitesses de combat, donc des ticks.
-          CORPS
-
-          gh pr create --base main --head "$BRANCHE" --title 'Actualisation des données SWARFARM' --body-file /tmp/corps-pr.md
+          gh pr create --base main --head "$BRANCHE" --title 'Actualisation des données SWARFARM' --body-file "$CORPS"

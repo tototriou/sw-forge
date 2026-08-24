@@ -46,7 +46,15 @@ RTA et Siège.
 - Rafraîchissement planifié via GitHub Actions (cron hebdo + manuel) → **PR**
   ouverte sur `forge/donnees-swarfarm` → redéploiement Vercel à la fusion.
   ⚠️ **Une PR, pas un commit sur `main`** : la branche est protégée, le job y
-  poussait directement et échouait en silence toutes les semaines.
+  poussait directement et échouait en silence toutes les semaines. Le job
+  n'ouvre **que** la PR — il ne fusionne rien, et son token n'en a pas le droit.
+- ⚠️ **Le corps de la PR est un RAPPORT de ce qui a changé**
+  ([rapport-donnees.mjs](scripts/rapport-donnees.mjs)) : les **vitesses de base
+  modifiées d'abord** — ce sont elles qui déplacent des ticks et peuvent décaler
+  un speed tune réglé au point près —, puis les monstres ajoutés, puis les
+  disparus, signalés comme **suspects** (SWARFARM n'en retire pas : c'est plus
+  vraisemblablement une moisson partielle). Sans lui, la PR est un diff JSON de
+  milliers de lignes où personne ne voit qu'une collaboration est arrivée.
 
 ### ⚠️ La pagination de l'API, et comment elle nous a coûté une collaboration
 

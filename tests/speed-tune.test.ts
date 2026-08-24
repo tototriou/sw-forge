@@ -1509,6 +1509,91 @@ export function testSpeedTuneAuto() {
     );
   }
 
+  // ⚠️ **Ce qui est calculé doit pouvoir être MONTRÉ.** L'analyse rend les
+  // modificateurs de CHACUN, adversaire de référence compris : un effet appliqué
+  // dans la simulation mais absent des grilles serait invérifiable à l'écran.
+  {
+    const videur = monstre(40001, 'Videur', 100);
+    const lent = monstre(40002, 'Lent', 100);
+    const sortVideur = {
+      nom: 'Vide la barre',
+      slot: 2,
+      icone: null,
+      effet: { atbEnnemi: 40 },
+      rejoue: false,
+      cooldown: 0,
+      atbNiveau1: 0,
+      atbSkillUp: 0,
+      chance: null,
+      neutre: false,
+      buffsEquipe: 0,
+    } as SortVitesse;
+    const donnees: DonneesKit = {
+      kits: new Map(),
+      sorts: new Map([[40001, [sortVideur]]]),
+      passifs: new Map(),
+    };
+    const equipe: EntreeAuto[] = [
+      { id: 'videur', monster: videur, runeSpeed: 200 },
+      { id: 'lent', monster: lent, runeSpeed: 100 },
+    ];
+    // Le sort n'est pas retenu d'office (il vide une barre) : on le DÉSIGNE.
+    const r = analyseAutomatique(equipe, 0, donnees, {
+      choix: { sort: { videur: 'Vide la barre' } },
+      idReference: 'monRef',
+    });
+    const modsRef = r.mods.get('monRef');
+    ok(!!modsRef, "l'adversaire de référence porte l'identifiant demandé");
+    ok(
+      Object.values(modsRef?.atbMod ?? {}).some((v) => v === -40),
+      "et la grille montre le −40 % qu'il subit : rien d'appliqué ne reste invisible"
+    );
+  }
+
+  // Un sort DÉSIGNÉ l'emporte sur celui du kit.
+  {
+    const m1 = monstre(40010, 'Choix', 100);
+    const donnees: DonneesKit = {
+      kits: new Map(),
+      sorts: new Map([
+        [
+          40010,
+          [
+            { nom: 'Camp', effet: { atbEquipe: 30 } },
+            { nom: 'Soi', effet: { atbSoi: 50 } },
+          ].map((x) => ({
+            ...x,
+            slot: null,
+            icone: null,
+            rejoue: false,
+            cooldown: 0,
+            atbNiveau1: 0,
+            atbSkillUp: 0,
+            chance: null,
+            neutre: false,
+            buffsEquipe: 0,
+          })) as SortVitesse[],
+        ],
+      ]),
+      passifs: new Map(),
+    };
+    const equipe: EntreeAuto[] = [
+      { id: 'a', monster: m1, runeSpeed: 200 },
+      { id: 'b', monster: monstre(40011, 'Autre', 100), runeSpeed: 100 },
+    ];
+    const auto = analyseAutomatique(equipe, 0, donnees);
+    const impose = analyseAutomatique(equipe, 0, donnees, { choix: { sort: { a: 'Soi' } } });
+    ok(
+      Object.keys(auto.mods.get('b')?.atbMod ?? {}).length > 0,
+      "par défaut le sort de camp est lancé : son allié en profite"
+    );
+    egal(
+      Object.keys(impose.mods.get('b')?.atbMod ?? {}).length,
+      0,
+      'le sort DÉSIGNÉ (sur soi) remplace celui du kit : son allié ne reçoit plus rien'
+    );
+  }
+
   // Une équipe vide ne casse rien, et ne pose pas de référence.
   {
     const r = analyseAutomatique([], 0, vide);

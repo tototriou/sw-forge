@@ -496,11 +496,14 @@ export default function SpeedTuningSection({ allMonsters, siegeDefenseTeams, sie
     };
   }
 
-  function analyseAuto() {
+  // `mods` : ce que l'analyse a écrit POUR la référence. Elle le porte dès sa
+  // création — une ligne posée sans ses modificateurs afficherait une grille qui
+  // ment sur ce qui est calculé.
+  function analyseAuto(mods?: { atbMod: ModParTick; speedMod: ModParTick }) {
     const modele = plusRapideAllie();
     if (!modele) return;
     setLeadEnnemi(leadAllie); // même lead : on compare des vitesses comparables
-    const ref = ligneReference(modele);
+    const ref = { ...ligneReference(modele), ...(mods ?? {}) };
     setLignes((prev) => [...prev.filter((l) => !l.reference && l.uid !== ref.uid), ref]);
   }
 
@@ -709,7 +712,17 @@ export default function SpeedTuningSection({ allMonsters, siegeDefenseTeams, sie
     setSortChoisi(choix);
 
     const allies = lignesVisibles.filter((l) => l.camp === 'allie');
-    const resultat = analyseAutomatique(allies.map(entreeDe), leadAllie, donneesKit);
+    // ⚠️ **Les sorts DÉSIGNÉS passent à l'analyse**, et l'adversaire de référence
+    // porte l'identifiant de SA ligne : sans ça, ce que l'analyse lui écrivait
+    // n'atterrissait nulle part, et la grille montrait autre chose que ce qui
+    // était calculé. Un modificateur invisible mais appliqué est la pire erreur
+    // possible ici — on ne peut plus vérifier un seul chiffre de l'écran.
+    const modele = plusRapideAllie();
+    const uidRef = modele ? uidDe('ennemi', String(modele.monster.id)) : undefined;
+    const resultat = analyseAutomatique(allies.map(entreeDe), leadAllie, donneesKit, {
+      choix: { sort: choix, sort2: sortChoisi2, cible: cibleSort },
+      idReference: uidRef,
+    });
 
     if (!ordreRange) {
       const parVitesse = resultat.ordre.map((a) => a.id);
@@ -736,7 +749,7 @@ export default function SpeedTuningSection({ allMonsters, siegeDefenseTeams, sie
     // l'était plus. Un VRAI adversaire, lui, n'est jamais remplacé — c'est une
     // composition qu'on affronte, pas un repère.
     const vraiEnnemi = lignesVisibles.some((l) => l.camp === 'ennemi' && !l.reference);
-    if (!vraiEnnemi || toujoursReference) analyseAuto();
+    if (!vraiEnnemi || toujoursReference) analyseAuto(resultat.mods.get(uidRef ?? ''));
   }
 
   // ⚠️ Le SEUL changement qui rende une analyse fausse : le sort lancé. Tout le

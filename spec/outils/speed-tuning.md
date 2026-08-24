@@ -514,7 +514,15 @@ De haut en bas :
    **masqué** reste dans son camp (grisé) mais quitte les calculs et les trois
    tableaux — pour tester une compo sans perdre son réglage ; on le réaffiche
    d'un clic sur l'œil.
-3. **Analyse automatique** — ⚠️ **Un SEUL calcul pour toute l'app** :
+3. **Analyse automatique** — ⚠️⚠️ **RIEN D'APPLIQUÉ NE RESTE INVISIBLE.** Tout ce
+   que la simulation applique doit se retrouver dans les grilles, y compris sur
+   l'adversaire de référence : un modificateur qui agit sans s'afficher rend
+   **tout l'écran invérifiable** — on ne peut plus recouper un seul chiffre. Deux
+   manquements à cette règle ont été corrigés : l'analyse ne reportait pas ce
+   qu'elle écrivait pour la référence (identifiants différents de part et
+   d'autre), et elle **ignorait les sorts désignés** dans « Ordre des sorts » —
+   on choisissait un sort, et le verdict n'en savait rien.
+   ⚠️ **Un SEUL calcul pour toute l'app** :
    `analyseAutomatique` ([speedTuneAuto.ts](src/lib/speedTuneAuto.ts)), celui-là
    même qu'utilise la card de siège. L'écran a longtemps eu sa propre pipeline —
    deux chemins pour une même question, qui ont fini par se contredire : une

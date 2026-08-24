@@ -201,12 +201,49 @@ export function ampliCamp(equipe: EntreeAuto[], d: DonneesKit): number {
   return max;
 }
 
+// Les sorts DÉSIGNÉS par l'utilisateur, quand il y en a : ils l'emportent sur ce
+// que le kit retiendrait. ⚠️ Sans ça, l'écran affichait un ordre des sorts dont
+// personne ne tenait compte — on choisissait un sort, et le verdict n'en savait
+// rien.
+export interface ChoixSorts {
+  sort?: Record<string, string>;
+  sort2?: Record<string, string>;
+  cible?: Record<string, string>;
+}
+
+export interface OptionsAuto {
+  horizon?: number;
+  choix?: ChoixSorts;
+  // L'identifiant à donner à l'adversaire de référence. Par défaut `ref:<id du
+  // modèle>` ; l'écran y met l'identifiant de SA ligne, pour pouvoir y reporter
+  // ce que l'analyse écrit — un monstre dont on ne voit pas les modificateurs
+  // est un monstre dont on ne peut pas vérifier le calcul.
+  idReference?: string;
+}
+
 export function analyseAutomatique(
   equipe: EntreeAuto[],
   lead: number,
   donnees: DonneesKit,
-  horizon = HORIZON_TICKS
+  options: OptionsAuto = {}
 ): ResultatAuto {
+  const { horizon = HORIZON_TICKS, choix, idReference } = options;
+
+  // Le sort effectivement lancé : celui qu'on a désigné, sinon celui du kit.
+  const sortDe = (e: EntreeAuto): SortVitesse | null => {
+    const nom = choix?.sort?.[e.id];
+    if (nom === '') return null;
+    if (nom != null && e.monster.com2usId != null)
+      return (donnees.sorts.get(e.monster.com2usId) ?? []).find((x) => x.nom === nom) ?? null;
+    return sortRetenu(e, donnees);
+  };
+  const secondDe = (e: EntreeAuto): SortVitesse | null => {
+    const nom = choix?.sort2?.[e.id];
+    if (nom === '') return null;
+    if (nom != null && e.monster.com2usId != null)
+      return (donnees.sorts.get(e.monster.com2usId) ?? []).find((x) => x.nom === nom) ?? null;
+    return sortSecondRetenu(e, donnees);
+  };
   const combats = new Map<string, number>();
   for (const e of equipe) {
     const c = combatAuto(e, lead, donnees, equipe);
@@ -224,21 +261,22 @@ export function analyseAutomatique(
   );
 
   const avecSorts: TuneMonstre[] = vus.map((e) => {
-    const sort = sortRetenu(e, donnees);
-    const second = sortSecondRetenu(e, donnees);
+    const sort = sortDe(e);
+    const second = sortDe(e)?.rejoue ? secondDe(e) : null;
+    const cible = choix?.cible?.[e.id] || undefined;
     return {
       id: e.id,
       combat: combats.get(e.id)!,
       camp: 'allie',
       artefactBuff: (e.artefactBuff ?? 0) + ampli,
-      sort: sort ? { ...sort.effet, cooldown: sort.cooldown } : undefined,
+      sort: sort ? { ...sort.effet, cooldown: sort.cooldown, cibleAllie: cible } : undefined,
       rejoue: sort?.rejoue ?? false,
-      sort2: second ? { ...second.effet, cooldown: second.cooldown } : undefined,
+      sort2: second ? { ...second.effet, cooldown: second.cooldown, cibleAllie: cible } : undefined,
     };
   });
   if (modele) {
     avecSorts.push({
-      id: `ref:${modele.id}`,
+      id: idReference ?? `ref:${modele.id}`,
       combat: combats.get(modele.id)!,
       camp: 'ennemi',
       artefactBuff: modele.artefactBuff ?? 0,

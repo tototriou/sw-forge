@@ -577,9 +577,13 @@ const PASSIFS_OFFENSIFS_CONNUS: PassifOffensifConnu[] = [
     categorie: { type: 'toujours' },
   }, // Weapon Master, Benedict
   { nom: 'Jet Engine (Passive)', ignoreDef: true, critique: 'jamais', categorie: { type: 'toujours' } }, // Sky Surfer, Miles
-  { nom: 'Eagle Deception (Passive)', categorie: { type: 'toujours' } }, // Bayek
   // ⚠️ Le texte dit « a random enemy » : confirmé qu'on le compte sur la
   // SEULE cible configurée (l'écran n'a qu'un adversaire), pas une moyenne.
+  // Confirmé sur Salah (Eye of the Desert) ET étendu à Bayek (Eagle
+  // Deception) — même monstre, même passif : Bayek est la version
+  // collaboration, Salah sa version SW native, « exactement la même
+  // logique » (utilisateur).
+  { nom: 'Eagle Deception (Passive)', categorie: { type: 'toujours' } }, // Bayek
   { nom: 'Eye of the Desert (Passive)', categorie: { type: 'toujours' } }, // Desert Warrior, Salah
   // ⚠️ Ces deux-là ont une magnitude qui CROÎT quand les PV de la cible
   // baissent, jamais chiffrée par SWARFARM (la formule `1.3*{ATK}` ne porte

@@ -259,13 +259,12 @@ du jeu de chaque entrée) :
 | Great Friends | Sia | critique normalement, 2 à 3 coups (variable) |
 | Final Strike | Weapon Master, Benedict | ignore la DEF **et** critique normalement |
 | Jet Engine | Sky Surfer, Miles | ignore la DEF, **ne critique jamais** |
-| Eye of the Desert | Desert Warrior, Salah | compté sur la seule cible configurée malgré « random enemy » |
+| Eye of the Desert / Eagle Deception | Desert Warrior/Salah, Bayek | compté sur la seule cible configurée malgré « random enemy » — même monstre, même passif (Bayek = version collaboration, Salah = version SW native), confirmation étendue de l'un à l'autre |
 | Turning Slash / Flash Step | Birgitta, Ciri (Lumière), Magic Order Swordsinger | **2 coups** (prose) ; magnitude croissante avec les PV bas NON modélisée → plancher |
 | Hidden Gun / Meticulous Attack | Ezio, Evan, Steel Commander | **critique toujours** ; base inconditionnelle, seul le +100 % dépend du bouton |
 | Improvisation | Dominic, Weapon Master | condition de PV **ignorée**, compté d'office |
 | Ruins | Silver | **3 coups**, critique normalement, déclenchement `defBreak` |
 | Slash Waves / Slash Wind | Roid | déclenchement `defBreak` (2 coups pour Slash Waves) |
-| Eagle Deception | Bayek | **pas encore vérifié** — défauts |
 
 ⚠️ Une entrée « Ruins » sans suffixe `(Passive)` visait un **boss de donjon
 non invocable** (Living Armor 2A) : retirée, elle ne pouvait jamais

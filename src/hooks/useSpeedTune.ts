@@ -166,9 +166,9 @@ export function useSpeedTune({
   }, [lignes, donneesKit, setLignes]);
 
   // ⚠️ **Ouverture DEPUIS un deck** (« voir le speed tune » sur une équipe) :
-  // l'équipe est importée dans « Ton équipe » une seule fois, à l'ouverture. On
-  // ne relance pas l'analyse tout seul — c'est un geste, et l'utilisateur vient
-  // peut-être régler autre chose d'abord.
+  // l'équipe est importée dans « Ton équipe » une seule fois, à l'ouverture, et
+  // l'analyse part **toute seule** dans la foulée (voir l'effet qui suit
+  // `analyser`).
   //
   // ⚠️ **Une prop, plus un message dans `sessionStorage`.** L'outil s'ouvrait en
   // CHANGEANT DE PAGE : il fallait donc déposer l'équipe quelque part, la
@@ -177,14 +177,17 @@ export function useSpeedTune({
   // n'a pas bougé, fermer suffit, et l'équipe se passe comme n'importe quelle
   // autre donnée — de parent à enfant.
   const arrivee = useRef(false);
+  const [analyseALOuverture, setAnalyseALOuverture] = useState(false);
   useEffect(() => {
     if (arrivee.current || !deckInitial) return;
     arrivee.current = true;
     const teams = deckInitial.source === 'defense' ? siegeDefenseTeams : siegeOffenseTeams;
     const team =
       teams.find((t) => t.id === deckInitial.teamId) ?? teams[Number(deckInitial.teamId)];
-    if (team) importerDeck('allie', team);
+    if (team && importerDeck('allie', team)) setAnalyseALOuverture(true);
   }, [deckInitial, siegeDefenseTeams, siegeOffenseTeams]);
+
+
 
   // ⚠️ Rien n'est écrit dans les lignes : ce qu'un monstre fait se DÉDUIT de son
   // kit à l'affichage. Une valeur recopiée dans l'état aurait vieilli au premier
@@ -254,9 +257,11 @@ export function useSpeedTune({
   //
   // Les deux camps y ont droit : une défense de siège se joue aussi bien depuis
   // l'autre bord, et c'est même là qu'on la connaît le mieux (on l'a affrontée).
-  function importerDeck(camp: Camp, team: SiegeTeam) {
+  // Rend `true` si l'équipe a bien été importée — un deck dont aucun monstre
+  // n'est connu ne change rien, et l'appelant ne doit pas croire le contraire.
+  function importerDeck(camp: Camp, team: SiegeTeam): boolean {
     const { monstres, lead } = deckPourSpeedTune(team, monsterById);
-    if (monstres.length === 0) return;
+    if (monstres.length === 0) return false;
     // ⚠️ Changer de deck OUBLIE l'analyse précédente : elle portait sur une autre
     // composition, et la relancer toute seule écrirait par-dessus un réglage
     // qu'on vient d'importer. On reclique quand on veut.
@@ -284,6 +289,7 @@ export function useSpeedTune({
     // — répondait autre chose que l'outil sur la même compo. Importer un deck,
     // c'est importer TOUT ce qui fait ses vitesses.
     (camp === 'allie' ? setLeadAllie : setLeadEnnemi)(lead ?? 0);
+    return true;
   }
 
   // Analyse automatique : quand « En face » est VIDE, on n'a rien à devancer —
@@ -467,6 +473,30 @@ export function useSpeedTune({
     premiereSignature.current = sortsSignature;
     analyser();
   }, [sortsSignature, auto]);
+
+  // ⚠️ **L'analyse part TOUTE SEULE quand on arrive depuis un deck** — et
+  // seulement là. La question est déjà posée : on a cliqué « voir le speed tune »
+  // sur une équipe précise, et la carte du siège venait d'y répondre. Faire
+  // recliquer « Analyser » pour obtenir cette même réponse serait un geste pour
+  // rien.
+  //
+  // ⚠️ L'import d'un deck FAIT DANS l'outil, lui, ne relance rien (voir
+  // `importerDeck`) : on y compare des compositions, et une analyse qui repasse
+  // écrirait par-dessus les grilles qu'on est en train de régler. Les deux
+  // gestes n'ont pas la même intention.
+  //
+  // ⚠️ **On attend les KITS.** Ils se chargent en asynchrone : analyser avant
+  // qu'ils soient là donnerait une équipe sans ses sorts — donc sans les boosts
+  // de barre et les buffs de vitesse, donc un verdict faux, écrit dans les
+  // grilles comme s'il était sûr.
+  useEffect(() => {
+    if (!analyseALOuverture) return;
+    const allies = lignesVisibles.filter((l) => l.camp === 'allie');
+    if (allies.length === 0) return;
+    if (!allies.every((l) => l.monster.com2usId == null || kits.has(l.monster.com2usId))) return;
+    setAnalyseALOuverture(false);
+    analyser();
+  }, [analyseALOuverture, lignesVisibles, kits]);
 
   // Chaîne d'ouverture : toute l'équipe joue-t-elle avant le premier adverse ?
   // Et sinon, quelle vitesse de combat faut-il à ceux qui sont coupés.

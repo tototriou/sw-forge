@@ -154,8 +154,20 @@ page d'outil, et l'inverse — deux vues d'un seul état. Seul l'en-tête de pag
 tombe (`entete={false}`) : la modale porte déjà le titre et le rappel de la
 règle des ticks.
 
-⚠️ L'ouverture **ne lance pas** l'analyse : c'est un geste, et on vient
-peut-être régler autre chose d'abord.
+⚠️ **L'analyse part toute seule à l'ouverture** — et seulement dans ce sens-là.
+La question est déjà posée : on a cliqué « voir le speed tune » sur une équipe
+précise, et la card venait d'y répondre. Faire recliquer « Analyser » pour
+obtenir cette même réponse serait un geste pour rien.
+
+⚠️ Elle **attend que les kits soient chargés** (lecture asynchrone) : analyser
+avant donnerait une équipe sans ses sorts — donc sans ses boosts de barre ni ses
+buffs de vitesse — et écrirait ce verdict faux dans les grilles comme s'il était
+sûr.
+
+⚠️ L'import d'un deck fait **DANS l'outil** ne relance rien, lui : décision
+inchangée (on y compare des compositions, et une analyse qui repasse écrirait
+par-dessus les grilles qu'on règle). Les deux gestes n'ont pas la même
+intention.
 
 **« Ignorer la recommandation »** →
 `dismissTickAlert(teamId, true)` : l'équipe passe au **vert**

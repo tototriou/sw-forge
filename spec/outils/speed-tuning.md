@@ -78,7 +78,9 @@ posent** pour ce monstre et ce tick — **0 annule** l'effet du sort, une case
 ⚠️ **L'autre sens existe aussi** : depuis un deck de siège, « Voir le speed
 tune » ouvre **cet outil en modale** par-dessus la page du siège, équipe déjà
 chargée dans « Ton équipe » (`deckInitial`, `entete={false}` — la modale porte
-déjà le titre). Voir [../siege/speed-tick.md](../siege/speed-tick.md).
+déjà le titre) **et l'analyse lancée d'office** (une fois les kits chargés).
+⚠️ Ne pas confondre avec le bouton « Importer un deck » ci-dessous, qui lui ne
+relance rien. Voir [../siege/speed-tick.md](../siege/speed-tick.md).
 
 Reprendre une composition déjà réglée plutôt que retaper trois monstres et
 trois vitesses de runes. Calcul pur dans

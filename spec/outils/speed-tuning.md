@@ -228,10 +228,14 @@ Trois règles de terrain le cadrent :
   c'est la seule issue** : le verdict est alors « hors de portée », ce qui est la
   vérité pour ce joueur-là. La contrainte ne vaut que sur l'axe vitesse : un
   artéfact, ça se change.
-- ⚠️ **L'ORDRE DE JEU DES ALLIÉS EST CONSERVÉ.** Celui qui remplit la barre doit
-  rester devant ceux qu'il pousse : s'ils le doublent, ils jouent **avant** le
-  boost et le combo tombe. Changer d'ordre relève de l'analyse poussée
-  (`fenetresRequises`).
+- ⚠️ **PERSONNE NE DOUBLE LE PREMIER** — et c'est la seule contrainte d'ordre.
+  Celui qui ouvre remplit la barre : le doubler ferait jouer les boostés **avant**
+  le boost, et le combo tombe. En revanche l'ordre **entre les suivants est
+  libre** ici : un seul monstre joue par tick, il suffit que chacun se case entre
+  le premier et l'adverse. C'est la section « Ordre des sorts » qui fixe cet
+  ordre-là quand on le veut (`fenetresRequises`) — pas l'analyse simple.
+  ⚠️ Protéger TOUT l'ordre de jeu refusait des réglages que la méthode à la main
+  trouve : c'est ce que le contrôle P4 a fait apparaître.
 - ⚠️ **LES MONSTRES FONT LA QUEUE.** Deux barres pleines au même tick jouent
   l'une après l'autre (la plus haute d'abord) : un allié peut donc jouer au tick
   7 en étant **prêt au 6**. Le dernier de l'équipe attend derrière tous les
@@ -284,6 +288,17 @@ fixe, dans [tests/speed-tune.test.ts](tests/speed-tune.test.ts) :
 | **P1 justesse** | la proposition, appliquée, fait tenir le tune **sans changer l'ordre de jeu** |
 | **P2 minimalité** | un seul point de moins sur n'importe quelle valeur proposée et le tune tombe |
 | **P3 complétude** | « hors de portée » n'est prononcé que si la référence n'en trouve pas non plus |
+| **P4 méthode à la main** | sur une équipe de trois alliés, le solveur fait **aussi bien ou mieux** que le joueur qui règle à la main, et n'est jamais bredouille là où la main trouve |
+
+⚠️ **P4 est la référence qui vaut le plus** : elle ne vient pas du code mais du
+terrain — la façon dont un joueur règle un tune, rejouée par balayage linéaire.
+1) la vitesse du 1er est une donnée ; 2) le 2e n'est pas le point limitant, on le
+« colle » au 1er ; 3) on cherche à quelle vitesse le **dernier** doit être pour
+que la chaîne tienne — c'est lui qui décide ; 4) on redescend le 2e au minimum,
+puisqu'il suffit qu'il soit entre le 1er et le dernier. On compare le **coût en
+points**, pas le chiffre au point près : la main redescend jusqu'au premier
+refus et s'arrête parfois un cran trop haut, le domaine n'étant pas un
+intervalle.
 
 ⚠️ **La référence de P3 n'est complète que sur les équipes de DEUX alliés** — le
 premier étant figé, il ne reste qu'une inconnue, et elle balaie alors **tous** les

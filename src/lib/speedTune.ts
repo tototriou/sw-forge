@@ -570,13 +570,17 @@ function resoudre(monstres: TuneMonstre[], horizon: number, axe: Axe): Resolutio
     for (const a of premiers) {
       if (a.camp === 'allie' && (!adverse || a.tick < adverse.tick)) passent.add(a.id);
     }
-    const vu = courant
-      .filter((m) => m.camp === 'allie')
-      .map((m, placement) => ({ id: m.id, t: tick.get(m.id) ?? Infinity, placement }))
-      .sort((a, b) => a.t - b.t || a.placement - b.placement)
-      .map((x) => x.id);
+    // ⚠️ **Seul le PREMIER est protégé, pas tout l'ordre.** Ce qui casse un combo,
+    // c'est de doubler celui qui ouvre : les boostés joueraient AVANT le boost.
+    // Entre les suivants, l'ordre est libre — un seul monstre joue par tick, il
+    // suffit que chacun se case entre le premier et l'adverse. Protéger tout
+    // l'ordre refusait des réglages que la méthode à la main trouve.
+    const tPremier = tick.get(ordre[0]) ?? Infinity;
+    const premierTenu = ordre
+      .slice(1)
+      .every((id) => (tick.get(id) ?? Infinity) > tPremier);
     return {
-      ordreTenu: vu.join('>') === ordre.join('>'),
+      ordreTenu: premierTenu,
       passent,
       tick,
       ok: passent.size === ordre.length,

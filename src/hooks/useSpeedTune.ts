@@ -475,7 +475,13 @@ export function useSpeedTune({
     // ⚠️ Le lead voyage DANS chaque entrée (`EntreeAuto.lead`) : c'est la seule
     // façon de dire « +33 % pour les alliés Eau seulement ». Le second argument
     // n'est plus que le repli d'un monstre qui n'en porterait pas.
-    const resultat = analyseAutomatique(allies.map(entreeDe), 0, donneesKit, {
+    // ⚠️ **LE PLATEAU ENTIER, pas seulement ton camp.** Un adverse occupe des
+    // ticks : sans lui, l'analyse plaçait les tours alliés un cran trop tôt dès
+    // qu'il coupait, et ce qu'elle écrivait dans les grilles ne tombait plus au
+    // tick suivant le lanceur. L'ordre d'affichage est conservé — c'est lui qui
+    // départage deux barres pleines à vitesse égale.
+    const plateau = lignesVisibles.map((l) => ({ ...entreeDe(l), camp: l.camp }));
+    const resultat = analyseAutomatique(plateau, 0, donneesKit, {
       choix: { sort: choix, sort2: sortChoisi2, cible: cibleSort },
       idReference: uidRef,
     });

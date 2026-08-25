@@ -1706,6 +1706,102 @@ export function testSpeedTuneAuto() {
     ok(r.requis.length > 0, 'et l’outil dit ce qu’il manque');
   }
 
+  // ⚠️ **UN ADVERSE QUI COUPE DÉCALE TOUT — l'analyse doit le voir.** Elle ne
+  // recevait que les alliés : elle les plaçait donc sur un plateau où personne
+  // n'occupait de tick en face. Dès qu'un adverse en prenait un, tous les tours
+  // alliés glissaient d'un cran à l'écran, et ce que l'analyse avait écrit dans
+  // les grilles ne tombait plus au tick SUIVANT le lanceur mais sur son tour
+  // même. Règle : un sort lancé au tick 4 est actif au tick 5, pour tout le camp.
+  {
+    const sort = (effet: Record<string, number>, nom: string) => ({
+      nom,
+      slot: 3,
+      icone: null,
+      effet,
+      rejoue: false,
+      cooldown: 0,
+      atbNiveau1: 0,
+      atbSkillUp: 0,
+      chance: null,
+      neutre: false,
+      buffsEquipe: 1,
+    });
+
+    for (const [libelle, effet, grille] of [
+      ['buff de vitesse', { buffEquipe: 30 }, 'speedMod'],
+      ['boost de barre', { atbEquipe: 30 }, 'atbMod'],
+    ] as const) {
+      const donnees: DonneesKit = {
+        kits: new Map(),
+        sorts: new Map([[100, [sort(effet, libelle)]]]),
+        passifs: new Map(),
+      };
+      // L'adverse est assez rapide pour prendre un tick AVANT le lanceur.
+      const plateau: EntreeAuto[] = [
+        { id: 'allie:100', monster: monstre(100, 'Lanceur', 111), runeSpeed: 170, camp: 'allie' },
+        { id: 'allie:2', monster: monstre(2, 'Lent', 100), runeSpeed: 90, camp: 'allie' },
+        { id: 'ennemi:9', monster: monstre(9, 'Coupeur', 120), runeSpeed: 180, camp: 'ennemi' },
+      ];
+      const r = analyseAutomatique(plateau, 0, donnees);
+
+      // Le plateau tel que l'ÉCRAN le rejoue : les grilles écrites, aucun effet
+      // de sort rappliqué (c'est le contrat de `tuneDe`).
+      const affichage: TuneMonstre[] = plateau.map((e) => ({
+        id: e.id,
+        combat: r.combats.get(e.id)!,
+        camp: e.camp!,
+        atbMod: r.mods.get(e.id)?.atbMod,
+        speedMod: r.mods.get(e.id)?.speedMod,
+      }));
+      const tours = premiersTours(simuler(affichage));
+      const tCoupeur = tours.find((a) => a.id === 'ennemi:9')?.tick ?? 0;
+      const tLanceur = tours.find((a) => a.id === 'allie:100')!.tick;
+      ok(tCoupeur < tLanceur, `${libelle} : l'adverse coupe bien avant le lanceur (t${tCoupeur} < t${tLanceur})`);
+
+      const pose = Object.keys(
+        (grille === 'speedMod' ? r.mods.get('allie:2')!.speedMod : r.mods.get('allie:2')!.atbMod) as Record<string, number>
+      )
+        .map(Number)
+        .sort((a, b) => a - b)[0];
+      egal(
+        pose - tLanceur,
+        1,
+        `${libelle} : actif au tick SUIVANT le tour du lanceur (lanceur t${tLanceur}, effet t${pose})`
+      );
+    }
+
+    // ⚠️ **Rien n'est écrit dans les grilles d'un adverse RÉEL.** L'analyse n'y
+    // pose rien — il ne lance pas son kit —, et lui renvoyer une grille vide
+    // effacerait ce que l'utilisateur y a saisi à la main.
+    {
+      const donnees: DonneesKit = { kits: new Map(), sorts: new Map(), passifs: new Map() };
+      const plateau: EntreeAuto[] = [
+        { id: 'allie:1', monster: monstre(1, 'Allié', 110), runeSpeed: 150, camp: 'allie' },
+        {
+          id: 'ennemi:9',
+          monster: monstre(9, 'Adverse', 120),
+          runeSpeed: 150,
+          camp: 'ennemi',
+          atbMod: { 3: 40 },
+        },
+      ];
+      const r = analyseAutomatique(plateau, 0, donnees);
+      egal(r.mods.has('ennemi:9'), false, 'aucune grille rendue pour un adverse réel');
+      // Et sa saisie est bien PRISE EN COMPTE : elle avance son tour.
+      const sans = analyseAutomatique(
+        plateau.map((e) => ({ ...e, atbMod: undefined })),
+        0,
+        donnees
+      );
+      const tourAdverse = (x: typeof r) =>
+        x.verdict.coupeur?.tick ?? Infinity;
+      ok(
+        tourAdverse(r) < tourAdverse(sans),
+        `la barre saisie à la main sur l'adverse avance son tour (t${tourAdverse(r)} contre t${tourAdverse(sans)})`
+      );
+    }
+  }
+
   // ⚠️ **« Aucun sort » est un CHOIX, pas l'absence de choix.** Le cas Kroa : son
   // premier sort lui rend son tour, et le kit lui donne d'office un second sort
   // qui remplit la barre d'un allié. Dire « Aucun sort » pour ce second tour

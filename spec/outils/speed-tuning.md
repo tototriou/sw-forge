@@ -796,11 +796,34 @@ De haut en bas :
    - **Pourquoi** : la version précédente affichait des valeurs qui n'existaient
      nulle part et se recalculaient sans cesse. On ne pouvait ni les corriger, ni
      savoir ce qui venait de l'outil et ce qui venait de soi.
-   - ⚠️ **Un effet est écrit au tick SUIVANT celui où il est lancé.** Dans le
-     moteur, ce qu'une compétence pose arrive APRÈS l'arbitrage du tick (le
-     lanceur vient de jouer) ; une case de grille, elle, est posée AVANT.
-     L'écrire sur le même tick aurait laissé un allié boosté voler le tour du
-     lanceur.
+   - ⚠️ **Un effet est écrit au tick SUIVANT celui où il est lancé.** Un sort
+     lancé au tick 4 est actif au tick 5, pour tout le camp. Dans le moteur, ce
+     qu'une compétence pose arrive APRÈS l'arbitrage du tick (le lanceur vient de
+     jouer) ; une case de grille, elle, est posée AVANT. L'écrire sur le même
+     tick aurait laissé un allié boosté voler le tour du lanceur.
+   - ⚠️⚠️ **L'ANALYSE SIMULE LE PLATEAU ENTIER, pas seulement ton camp.** Elle ne
+     recevait que les alliés : elle les plaçait donc sur un plateau où personne
+     n'occupait de tick en face. **Dès qu'un adverse coupe**, il prend un tick, et
+     un seul monstre agit par tick : tous les tours alliés glissent d'un cran à
+     l'écran. Ce que l'analyse avait écrit ne tombait alors plus au tick suivant
+     le lanceur mais **sur son tour même, ou deux ticks plus loin** — signalé sur
+     Bastet, puis sur les buffs de vitesse. Contrôlé par un test qui rejoue
+     l'enchaînement complet : analyse, écriture des grilles, simulation
+     d'affichage des deux camps.
+     - **Les adverses ne lancent RIEN** dans cette simulation : ce sont leurs
+       **ticks** qui comptent. Leur kit reste hors du calcul — un speed tune est
+       ce qui tient sans rien attendre de ce que fait l'autre (voir « Ce qu'on
+       retire à l'adverse »).
+     - **Ce qui est saisi À LA MAIN sur eux est repris** : c'est une saisie, pas
+       une déduction, et l'ignorer déplaçait leur tour.
+     - ⚠️ **Aucune grille n'est écrite sur un adverse RÉEL** : l'analyse n'y pose
+       rien, et lui renvoyer une grille vide effacerait la saisie de
+       l'utilisateur. L'adversaire de **référence**, lui, en reçoit une — il est
+       là pour être vérifié comme les autres.
+     - ⚠️ **L'ordre d'affichage est conservé** dans l'entrée du moteur : c'est lui
+       qui départage deux barres pleines à vitesse égale (`placement`). Trier par
+       camp aurait fait diverger l'analyse et l'écran sur les égalités exactes —
+       le cas même que le réglage d'équipe produit à longueur de temps.
    - ⚠️ **Le SEUL déclencheur d'une nouvelle écriture, c'est le choix d'un sort**
      — un autre sort ne pose pas la même chose. Vitesses, artéfacts, sets, cases
      des grilles : ce sont des réglages, l'automatisation n'y revient jamais.

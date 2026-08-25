@@ -19,6 +19,7 @@ import { Monster } from '../types';
 import { combatSpeed } from './speed';
 import {
   ArtefactRequis,
+  Camp,
   Coupure,
   HORIZON_TICKS,
   ModParTick,
@@ -53,6 +54,19 @@ export interface EntreeAuto {
   // pas le dire. Absent = il suit celui du camp. ⚠️ Sans lui, la vitesse
   // affichée sur la card de siège et celle du verdict n'étaient pas la même.
   lead?: number | null;
+  // ⚠️ **LE CAMP, et il compte pour le CALCUL.** L'analyse ne voyait que les
+  // alliés : elle plaçait donc leurs tours sur un plateau où personne n'occupait
+  // de tick en face. Dès qu'un adverse en prend un — c'est-à-dire dès qu'il
+  // COUPE — tous les tours alliés glissaient d'un cran à l'écran, et ce que
+  // l'analyse avait écrit dans les grilles ne tombait plus au tick suivant le
+  // lanceur. Absent = allié.
+  camp?: Camp;
+  // Ce que l'utilisateur a posé À LA MAIN dans les grilles. ⚠️ **Lu pour le camp
+  // d'EN FACE seulement** : l'analyse ÉCRIT les grilles de ton camp, les lui
+  // redonner en entrée compterait deux fois ce que les sorts posent. Celles d'en
+  // face, elle n'y touche jamais — et les ignorer déplaçait le tour de l'adverse.
+  atbMod?: ModParTick;
+  speedMod?: ModParTick;
 }
 
 // Ce que les kits pré-générés donnent, déjà chargé par l'appelant.
@@ -277,14 +291,34 @@ export function analyseAutomatique(
       return (donnees.sorts.get(e.monster.com2usId) ?? []).find((x) => x.nom === nom) ?? null;
     return sortSecondRetenu(e, donnees);
   };
+  // ⚠️ **LES DEUX CAMPS, dans l'ordre où ils sont donnés.** `equipe` est le
+  // PLATEAU, pas seulement ton côté : un adverse occupe des ticks, et un seul
+  // monstre agit par tick. L'analyse ne voyait que les alliés — elle les plaçait
+  // donc sur un plateau vide en face, et dès qu'un adverse coupait, tous les
+  // tours alliés glissaient d'un cran à l'écran. Ce qu'elle avait écrit dans les
+  // grilles ne tombait alors plus au tick suivant le lanceur, mais sur son tour
+  // même, ou plus loin.
+  //
+  // ⚠️ **L'ordre du tableau est CONSERVÉ** : c'est lui qui départage deux barres
+  // pleines à vitesse égale (`placement`, voir `simuler`). Trier par camp ici
+  // aurait fait diverger l'analyse et l'écran sur les égalités exactes — le cas
+  // même que le réglage d'équipe produit à longueur de temps.
+  const campDe = (e: EntreeAuto): Camp => e.camp ?? 'allie';
+  const allies = equipe.filter((e) => campDe(e) === 'allie');
+  const adverses = equipe.filter((e) => campDe(e) === 'ennemi');
+
   const combats = new Map<string, number>();
   for (const e of equipe) {
-    const c = combatAuto(e, lead, donnees, equipe);
+    // ⚠️ Chaque monstre est compté DANS SON CAMP : les buffs qu'on estime pour
+    // son passif (Chilling) sont ceux que son propre camp lui donne.
+    const c = combatAuto(e, lead, donnees, campDe(e) === 'allie' ? allies : adverses);
     if (c != null && c > 0) combats.set(e.id, c);
   }
 
-  const ampli = ampliCamp(equipe, donnees);
-  const vus = equipe.filter((e) => combats.has(e.id));
+  // L'amplification de buff est une affaire de camp, elle aussi.
+  const ampli = ampliCamp(allies, donnees);
+  const ampliAdverse = ampliCamp(adverses, donnees);
+  const vus = allies.filter((e) => combats.has(e.id));
 
   // 4. L'adversaire de référence : une copie du plus rapide. ⚠️ Il ne reçoit PAS
   // l'amplification de l'équipe — il est en face.
@@ -293,25 +327,48 @@ export function analyseAutomatique(
     null
   );
 
-  const avecSorts: TuneMonstre[] = vus.map((e) => {
-    const sort = sortDe(e);
-    const second = sortDe(e)?.rejoue ? secondDe(e) : null;
-    const cible = choix?.cible?.[e.id] || undefined;
-    return {
-      id: e.id,
-      combat: combats.get(e.id)!,
-      camp: 'allie',
-      artefactBuff: (e.artefactBuff ?? 0) + ampli,
-      sort: sort
-        ? { ...sansReductionAdverse(sort.effet), cooldown: sort.cooldown, cibleAllie: cible }
-        : undefined,
-      rejoue: sort?.rejoue ?? false,
-      sort2: second
-        ? { ...sansReductionAdverse(second.effet), cooldown: second.cooldown, cibleAllie: cible }
-        : undefined,
-    };
-  });
-  if (modele) {
+  // ⚠️ **Le PLATEAU, dans l'ordre donné** — allié ou adverse, chacun à sa place :
+  // c'est cet ordre qui départage deux barres pleines à vitesse égale.
+  const avecSorts: TuneMonstre[] = equipe
+    .filter((e) => combats.has(e.id))
+    .map((e) => {
+      // ⚠️ **Les adverses réels entrent dans la simulation, mais ne lancent
+      // rien.** Ce sont leurs TICKS qui comptent : un tour pris en face décale
+      // tous les suivants. Leur kit reste hors du calcul — un speed tune est ce
+      // qui tient sans rien attendre de ce que fait l'autre (voir « Ce qu'on
+      // retire à l'adverse »). Ce que l'utilisateur a posé À LA MAIN sur eux est
+      // repris, en revanche : c'est une saisie, pas une déduction, et l'ignorer
+      // déplaçait leur tour.
+      if (campDe(e) === 'ennemi') {
+        return {
+          id: e.id,
+          combat: combats.get(e.id)!,
+          camp: 'ennemi' as Camp,
+          artefactBuff: (e.artefactBuff ?? 0) + ampliAdverse,
+          atbMod: e.atbMod,
+          speedMod: e.speedMod,
+        };
+      }
+      const sort = sortDe(e);
+      const second = sortDe(e)?.rejoue ? secondDe(e) : null;
+      const cible = choix?.cible?.[e.id] || undefined;
+      return {
+        id: e.id,
+        combat: combats.get(e.id)!,
+        camp: 'allie' as Camp,
+        artefactBuff: (e.artefactBuff ?? 0) + ampli,
+        sort: sort
+          ? { ...sansReductionAdverse(sort.effet), cooldown: sort.cooldown, cibleAllie: cible }
+          : undefined,
+        rejoue: sort?.rejoue ?? false,
+        sort2: second
+          ? { ...sansReductionAdverse(second.effet), cooldown: second.cooldown, cibleAllie: cible }
+          : undefined,
+      };
+    });
+  // L'adversaire de RÉFÉRENCE ne s'ajoute que s'il n'y a personne en face :
+  // c'est un repère faute d'adversaire, pas un adversaire de plus.
+  if (modele && adverses.length === 0) {
     avecSorts.push({
       id: idReference ?? `ref:${modele.id}`,
       combat: combats.get(modele.id)!,
@@ -351,7 +408,16 @@ export function analyseAutomatique(
   });
 
   const verdict = diagnostiquerChaine(final, horizon);
-  const mods = new Map(final.map((m) => [m.id, { atbMod: m.atbMod ?? {}, speedMod: m.speedMod ?? {} }]));
+  // ⚠️ **Aucune grille n'est écrite sur un adverse RÉEL.** L'analyse n'y pose
+  // rien (il ne lance pas son kit) : lui renvoyer une grille vide effacerait ce
+  // que l'utilisateur y a saisi à la main. L'adversaire de RÉFÉRENCE, lui, en
+  // reçoit une — il est là pour être vérifié comme les autres.
+  const reels = new Set(adverses.map((e) => e.id));
+  const mods = new Map(
+    final
+      .filter((m) => !reels.has(m.id))
+      .map((m) => [m.id, { atbMod: m.atbMod ?? {}, speedMod: m.speedMod ?? {} }])
+  );
   return {
     mods,
     combats,

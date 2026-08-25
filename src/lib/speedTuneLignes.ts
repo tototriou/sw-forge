@@ -107,6 +107,12 @@ export const entreeDe = (l: Ligne): EntreeAuto => ({
   artefactBuff: l.artefactBuff,
   cumulsPassif: l.cumulsPassif,
   passifActif: l.passifActif,
+  camp: l.camp,
+  // ⚠️ Les grilles voyagent, mais l'analyse ne les lit QUE pour le camp d'en
+  // face : elle écrit celles de ton camp, les lui redonner compterait deux fois
+  // ce que les sorts posent. Voir `EntreeAuto`.
+  atbMod: l.atbMod,
+  speedMod: l.speedMod,
 });
 
 // ⚠️ **L'ORDRE DE L'ÉQUIPE EST UNE DONNÉE DU CALCUL, pas une présentation.**

@@ -188,7 +188,9 @@ Calcul dans [speedTune.ts](src/lib/speedTune.ts), **testé**
   manque**, rien d'autre. Pas de tick, pas de vitesse de combat cible, pas de
   phrase d'explication — ce qu'on vient chercher ici, c'est « combien il me
   manque ». Le détail se lit dans les tableaux, juste en dessous.
-- **DEUX leviers proposés**, pour chaque allié coupé :
+- **DEUX leviers proposés**, pour chaque allié **à qui le réglage demande
+  quelque chose** — pas forcément un allié coupé, voir « Comment le réglage est
+  cherché » :
   - **la vitesse à trouver** (`vitessesRequises`) — la **vitesse de combat
     minimale** qui le fait passer avant, traduite à l'écran en points de
     **vitesse de runes** manquants ;
@@ -200,37 +202,92 @@ Calcul dans [speedTune.ts](src/lib/speedTune.ts), **testé**
     ce qui existe — c'est ce que dit `artefactRequis: null`.
   L'écran affiche « **+71 SPD** ou **+18 spd buff effect** » — l'un OU l'autre suffit ; la
   pastille d'artéfact n'apparaît que si un buff de vitesse court sur son camp.
-  Rien à trouver et rien à en attendre → « hors de portée ».
+  Aucun des deux leviers n'y change rien → « hors de portée ».
+  ⚠️ **Les lignes se lisent ENSEMBLE** : c'est un réglage d'équipe, pas une
+  liste de corrections indépendantes dont on piocherait une seule.
 
-### Comment la vitesse requise est cherchée
+### Comment le réglage est cherché
 
-⚠️ **Pas de formule fermée.** La règle « un seul monstre par tick », les boosts
-de barre et les buffs de vitesse par tick se mêlent : la vitesse requise se
-cherche par **dichotomie sur la vitesse de combat, avec re-simulation à chaque
-essai**, entre la vitesse actuelle et `COMBAT_MAX` (= `speedForTick(1)` = 1429,
-agir dès le tick 1 — au-delà il n'y a plus rien à gagner).
+⚠️ **C'est le VÉRIFICATEUR RETOURNÉ.** Même critère que `diagnostiquerChaine` —
+tout le monde avant le premier adverse — mais on cherche les vitesses au lieu de
+les juger. Pas de formule fermée : la règle « un seul monstre par tick », les
+boosts de barre et les buffs par tick se mêlent, chaque essai se re-simule.
 
-- **Ce qui rend la dichotomie valide** : le prédicat « cet allié joue avant le
-  premier adverse » est **monotone sur les deux axes** (plus vite, ou buff plus
-  amplifié = barre plus haute à chaque tick = tour plus tôt, et l'adverse ne peut
-  qu'être repoussé). Vérifié par **test différentiel** contre une référence naïve
-  (balayage linéaire exhaustif), **sur les deux axes**, sur 24 scénarios
-  aléatoires **avec compétences** à seed fixe — voir le skill `algo-verify`.
-- ⚠️ **Les alliés sont traités du plus rapide au plus lent, et chaque vitesse
-  trouvée est CONSERVÉE pour les suivants** : les ticks avant l'adverse sont une
-  ressource partagée (un seul monstre par tick), donc corriger un allié change
-  ce qu'il faut aux autres. Les vitesses proposées se lisent **ensemble**, ce
-  n'est pas une somme de corrections indépendantes.
-- **« Hors de portée »** (`combatRequis: null`) : même à `COMBAT_MAX` l'allié
-  reste coupé — typiquement plus d'alliés que de ticks disponibles avant
-  l'adverse. L'écran le dit au lieu d'afficher un chiffre inatteignable.
-- ⚠️ **Plusieurs PASSES** (`PASSES_MAX = 4`) : corriger un allié peut lui faire
-  prendre le tick d'un autre, ou déplacer le tour de celui qui remplit la barre
-  de l'équipe. On repasse tant que ça avance ; ce qui reste coupé au bout est
-  déclaré hors de portée.
-- **Coût** : ~11 simulations de 40 ticks par allié coupé et par passe, recalculé
-  à chaque frappe. Négligeable à cette échelle (une poignée de monstres) — aucun budget
-  ni cache n'a été nécessaire.
+⚠️ **C'est un RÉGLAGE D'ÉQUIPE, pas une somme de corrections individuelles.**
+Occuper les ticks de tête **repousse l'adverse** et libère de la place pour les
+suivants — mais le tick gagné ne se paie pas au même prix des deux côtés :
+l'adverse rapide encaisse ~25 d'ATB par tick et **garde son dépassement**
+au-dessus de 100, quand le dernier de l'équipe, lent, en encaisse ~7. Retarder
+l'adverse ne suffit donc pas : il faut monter **toute l'équipe** jusqu'au point
+où le dernier convertit réellement les ticks gagnés. C'est pour ça que le
+solveur demande parfois des points à un monstre **qui passe déjà** — celui qui
+remplit la barre, accéléré pour acheter un tick au suivant — et rien du tout à
+un monstre coupé que la correction d'un autre sauve. **L'écran liste donc ce que
+le solveur demande, pas ce qui est coupé** : lister les coupés masquait la
+moitié de la solution, qui ne tenait pas une fois appliquée.
+
+⚠️ **L'ORDRE DE JEU DES ALLIÉS EST CONSERVÉ.** Celui qui remplit la barre doit
+rester devant ceux qu'il pousse : s'ils le doublent, ils jouent **avant** le
+boost et le combo tombe. Aucune vitesse proposée ne fait doubler un allié —
+l'ordre de départ est une contrainte au même titre que « passer avant
+l'adverse ». Changer d'ordre relève de l'analyse poussée (`fenetresRequises`).
+
+La recherche se fait en deux temps, sur chacun des deux leviers :
+
+- **1. Candidat** — la liste des cibles possibles, de la moins chère à la plus
+  chère, et on garde la première qui fait tenir le tune.
+  - Sur l'axe **vitesse** : toutes les affectations allié → tick (ticks
+    strictement croissants, `TICKS_SOLVEUR = 12`), rangées de la plus serrée à
+    la plus lâche. La plus serrée — le rang k au tick k — répond dans l'immense
+    majorité des cas, en une simulation. ⚠️ Le tassement maximal **n'est pas
+    toujours** la bonne réponse : un allié peut convenir au tick 3 et au tick 5
+    mais pas au 4 (il y percute un autre), et un tick tardif revient à ne rien
+    lui demander — « ne pas l'accélérer » est donc dans la liste, ce qui compte,
+    car accélérer peut **nuire**.
+  - Sur l'axe **artéfact** : les sous-ensembles d'alliés poussés au plafond, du
+    plus petit au plus grand. ⚠️ **Surtout pas « tout le monde au maximum »** :
+    amplifier le buff de celui qui remplit la barre avance son **second** tour,
+    ce qui libère le tick où il barrait la route à l'adverse. Mesuré — c'est ce
+    qui faisait déclarer « rien à proposer » un artéfact qui suffisait.
+- **2. Redescente** — chaque allié ramené à la plus petite valeur qui préserve
+  le résultat du candidat, du dernier au premier, **jusqu'au point fixe**
+  (`DESCENTES_MAX = 4` : baisser un allié de devant rend du mou à celui de
+  derrière, déjà posé). Sans ça on afficherait « 1429 » là où 715 suffit, et des
+  points de runes à trouver pour rien.
+  - ⚠️ **Balayage ascendant, pas dichotomie** : le domaine des vitesses valides
+    d'un allié **n'est pas un intervalle** (il tient au tick 3 et au tick 5, pas
+    au 4) ; une dichotomie s'arrête au bord de la mauvaise fenêtre et surévalue.
+  - ⚠️ **Par PALIERS DE TICK**, pas point par point : essayer les ~1 200 points
+    un par un coûtait ~90 ms par frappe. On essaie le **bas** de chaque palier
+    (trouvé par dichotomie sur *son* tick, qui lui est monotone), puis, si le
+    **haut** du palier tient alors que le bas ne tenait pas, on cherche par
+    dichotomie **dans le palier** le point où l'égalité bascule — à tick
+    constant, seul le dépassement d'ATB change, et il ne fait que départager les
+    barres pleines.
+- **« Hors de portée »** (`combatRequis: null`) : **aucun** candidat ne le fait
+  passer. C'est la course au dépassement — l'adverse qui attend accumule
+  au-dessus de 100 quand un allié plafonne à 100,03, et finit par ne plus se
+  laisser repousser. Rare : le verdict tombait auparavant deux fois sur trois à
+  tort, faute de chercher un réglage d'équipe.
+
+**Vérification** (skill `algo-verify`) — ⚠️ **la référence de contrôle ne doit
+partager NI la stratégie NI la recherche du code testé.** La précédente rejouait
+la stratégie « le minimum pour chaque monstre coupé » et validait donc son angle
+mort (ne jamais accélérer un allié qui passe déjà, alors que c'est lui qui achète
+les ticks des suivants). Trois propriétés sont contrôlées sur scénarios
+aléatoires à seed fixe, dans [tests/speed-tune.test.ts](tests/speed-tune.test.ts) :
+
+| | ce qui est vérifié |
+|---|---|
+| **P1 justesse** | la proposition, appliquée, fait tenir le tune **sans changer l'ordre de jeu** |
+| **P2 minimalité** | un seul point de moins sur n'importe quelle valeur proposée et le tune tombe |
+| **P3 complétude** | « hors de portée » n'est prononcé que si le **balayage exhaustif** des affectations allié → tick, à ordre constant, n'en trouve pas non plus |
+
+**Coût mesuré** (les deux axes, à chaque frappe) : **2,9 ms** sur un tune 4v4
+courant avec boost d'ATB, **35 ms** dans le pire cas (équipe insoluble, où la
+liste des candidats est parcourue entière). Aucun budget ni cache n'a été
+nécessaire.
+
 - **Limite héritée du modèle** : le verdict repose sur les **premiers tours**
   (voir plus bas) ; un adverse très rapide qui rejouerait une deuxième fois
   avant la fin de la chaîne n'est pas compté comme une coupure supplémentaire.

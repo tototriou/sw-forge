@@ -378,9 +378,6 @@ export function premiersTours(sim: Simulation): Action[] {
 // le tick 1 (`speedForTick(1)` = 1429). Sert de borne haute à la recherche.
 export const COMBAT_MAX = speedForTick(1);
 
-// Nombre maximal de passes du solveur (voir `vitessesRequises`) : corriger un
-// allié change ce qu'il faut aux autres, on repasse tant que ça avance.
-export const PASSES_MAX = 4;
 
 // Plafond de l'artéfact « Effet aug. VIT » (code 206) : un proc vaut au mieux
 // 6 % (voir PROC dans artifacts.ts), une ligne encaisse au plus 5 procs (le
@@ -438,32 +435,49 @@ export function diagnostiquerChaine(monstres: TuneMonstre[], horizon = HORIZON_T
   return { coupeur, coupes: rangerParJeu(coupes, ordre), ok: coupes.length === 0 };
 }
 
+// Ce qu'il faut trouver, allié par allié, pour que TOUTE l'équipe joue avant le
+// premier adverse. C'est le VÉRIFICATEUR RETOURNÉ : même critère que
+// `diagnostiquerChaine` — la chaîne tient — mais on cherche les vitesses au lieu
+// de les juger.
+//
+// ⚠️ **C'est un RÉGLAGE D'ÉQUIPE, pas une somme de corrections individuelles.**
+// Un seul monstre agit par tick : occuper les ticks de tête REPOUSSE l'adverse
+// et libère de la place pour les suivants. Mais le tick gagné ne se paie pas au
+// même prix des deux côtés — l'adverse rapide encaisse ~25 d'ATB par tick et
+// **garde son dépassement** au-dessus de 100, quand le dernier de l'équipe, lent,
+// n'en encaisse ~7. Retarder l'adverse ne suffit donc pas : il faut monter TOUTE
+// l'équipe jusqu'au point où le dernier convertit réellement les ticks gagnés.
+//
+// ⚠️ **L'ORDRE DE JEU DES ALLIÉS EST CONSERVÉ.** Celui qui remplit la barre doit
+// rester devant ceux qu'il pousse : s'ils le doublent, ils jouent AVANT le boost
+// et le combo tombe. La recherche ne propose donc jamais une vitesse qui ferait
+// doubler un allié — l'ordre de départ est une contrainte, au même titre que
+// « passer avant l'adverse ». Changer d'ordre relève de l'analyse poussée
+// (`fenetresRequises`), pas d'ici.
+//
+// Méthode, en deux temps :
+//   1. **Candidat tassé** — chaque allié monté au plus haut que son rang permet
+//      (le 1er au tick 1, le 2e au tick 2..., via `speedForTick`, sans jamais
+//      doubler celui d'avant). C'est le maximum atteignable à ordre constant :
+//      ce qui reste coupé là est vraiment hors de portée.
+//   2. **Redescente** — chaque allié ramené par dichotomie à la plus petite
+//      valeur qui PRÉSERVE le résultat du candidat tassé, du dernier au premier.
+//      Sans ça on afficherait « 1429 » là où 715 suffit.
+//
+// Le prédicat de chaque redescente est monotone (plus vite = barre plus haute à
+// chaque tick = tour plus tôt), ce qui rend la dichotomie valide ; c'est vérifié
+// par test différentiel (tests/speed-tune.test.ts) contre une référence qui
+// n'emprunte NI la stratégie NI la recherche du code testé — balayage exhaustif
+// des affectations allié -> tick à ordre constant.
+
 // Un allié coupé et la vitesse de combat qui le ferait passer avant le coupeur.
 export interface VitesseRequise {
   id: string;
   combatActuel: number;
-  // `null` = même à `COMBAT_MAX`, il reste coupé (trop d'alliés à caser avant
-  // l'adverse : un seul agit par tick).
+  // `null` = même l'équipe entière tassée au maximum le laisse coupé (l'adverse
+  // accumule plus vite que lui : les ticks gagnés ne se convertissent pas).
   combatRequis: number | null;
 }
-
-// Ce qu'il faut trouver, allié par allié, pour que TOUTE l'équipe joue avant le
-// premier adverse.
-//
-// Recherche DICHOTOMIQUE sur l'axe demandé, avec re-simulation à chaque essai —
-// pas de formule fermée : la règle « un seul monstre par tick », les compétences,
-// les boosts de barre et les buffs par tick s'y mêlent. Le prédicat « cet allié
-// joue avant le premier adverse » est MONOTONE sur les deux axes (plus vite, ou
-// buff plus amplifié = barre plus haute à chaque tick = tour plus tôt, et
-// l'adverse ne peut qu'être repoussé), ce qui rend la dichotomie valide ; c'est
-// vérifié par test différentiel contre un balayage linéaire exhaustif, sur les
-// DEUX axes (tests/speed-tune.test.ts).
-//
-// ⚠️ Les alliés sont traités du PLUS RAPIDE au plus lent, et chaque valeur
-// trouvée est CONSERVÉE pour les suivants : les ticks avant l'adverse sont une
-// ressource partagée (un seul monstre par tick), donc corriger un allié change
-// ce qu'il faut aux autres. Le résultat est un jeu cohérent, pas une somme de
-// corrections indépendantes.
 
 // L'AXE sur lequel on cherche : la vitesse de combat, ou le bonus d'artéfact
 // « Effet aug. VIT ». Deux leviers pour le même but — passer avant l'adverse —
@@ -479,13 +493,83 @@ interface Resolution {
   requis: number | null;
 }
 
-// Cœur commun aux deux solveurs. Voir le commentaire de `vitessesRequises` pour
-// la méthode (dichotomie + passes) : seul l'axe cherché change.
+// Jusqu'où le balayage des affectations va chercher un tick. Au-delà, un allié
+// jouerait si tard qu'aucun adverse jouable ne serait encore derrière lui.
+const TICKS_SOLVEUR = 12;
+
+// Nombre maximal de passes de redescente (voir `resoudre`) : baisser un allié
+// peut rendre du mou à un autre, on repasse tant que ça baisse.
+const DESCENTES_MAX = 4;
+
+// Les CANDIDATS à essayer, du moins coûteux au plus coûteux — la valeur visée
+// pour chaque allié, dans l'ordre de jeu.
+//
+// - Sur l'axe VITESSE : toutes les affectations allié -> tick, ticks
+//   STRICTEMENT croissants (l'ordre de jeu est conservé, un seul monstre par
+//   tick), rangées de la plus serrée à la plus lâche. Un tick très tardif
+//   revient à ne pas toucher l'allié — « ne rien lui demander » est donc dans la
+//   liste, ce qui compte : accélérer quelqu'un peut NUIRE.
+// - Sur l'axe ARTÉFACT : les sous-ensembles d'alliés poussés au plafond, du plus
+//   petit au plus grand. ⚠️ **Pas « tout le monde au maximum »** : amplifier le
+//   buff de celui qui remplit la barre avance son SECOND tour, ce qui libère le
+//   tick où il barrait la route à l'adverse — mesuré, et c'est ce qui faisait
+//   déclarer « rien à proposer » un artéfact qui suffisait.
+function candidats(axe: Axe, n: number, source: number[]): number[][] {
+  if (axe === 'artefactBuff') {
+    const masques: number[][] = [];
+    for (let masque = 0; masque < 1 << n; masque++) {
+      const vals = source.map((v, i) => ((masque >> i) & 1 ? ARTE_MAX : v));
+      masques.push(vals);
+    }
+    return masques.sort(
+      (a, b) => a.reduce((s2, x) => s2 + x, 0) - b.reduce((s2, x) => s2 + x, 0)
+    );
+  }
+  const ticks: number[][] = [];
+  const construire = (debut: number, acc: number[]) => {
+    if (acc.length === n) {
+      ticks.push([...acc]);
+      return;
+    }
+    for (let t = debut; t <= TICKS_SOLVEUR; t++) construire(t + 1, [...acc, t]);
+  };
+  construire(1, []);
+  return ticks
+    .sort((a, b) => a.reduce((s2, x) => s2 + x, 0) - b.reduce((s2, x) => s2 + x, 0))
+    .map((tk) => tk.map((t) => speedForTick(t)));
+}
+
+// L'ordre de jeu des ALLIÉS, du premier au dernier. Celui qui n'agit pas dans
+// l'horizon ferme la marche (il ne s'insère nulle part).
+function ordreAllies(monstres: TuneMonstre[], horizon: number): string[] {
+  const premiers = premiersTours(simuler(monstres, horizon));
+  const tick = new Map(premiers.map((a) => [a.id, a.tick] as const));
+  return monstres
+    .filter((m) => m.camp === 'allie')
+    .map((m, placement) => ({ id: m.id, t: tick.get(m.id) ?? Infinity, placement }))
+    .sort((a, b) => a.t - b.t || a.placement - b.placement)
+    .map((x) => x.id);
+}
+
+// Les alliés qui jouent avant le premier adverse, dans l'état donné.
+function passants(monstres: TuneMonstre[], horizon: number): Set<string> {
+  const premiers = premiersTours(simuler(monstres, horizon));
+  const adverse = premiers.find((a) => a.camp === 'ennemi');
+  const out = new Set<string>();
+  for (const a of premiers) {
+    if (a.camp !== 'allie') continue;
+    if (!adverse || a.tick < adverse.tick) out.add(a.id);
+  }
+  return out;
+}
+
+// Cœur commun aux deux solveurs. Voir le commentaire au-dessus pour la méthode :
+// seul l'axe cherché change.
 //
 // ⚠️ Sur l'axe `artefactBuff`, un allié qui ne reçoit AUCUN buff de vitesse est
-// insensible au levier (l'artéfact n'amplifie que le buff) : la dichotomie
-// échoue jusqu'au plafond et renvoie `null` — c'est le comportement attendu, il
-// n'y a rien à proposer de ce côté-là.
+// insensible au levier (l'artéfact n'amplifie que le buff) : le tasser ne change
+// rien et il ressort `null` — c'est le comportement attendu, il n'y a rien à
+// proposer de ce côté-là.
 function resoudre(monstres: TuneMonstre[], horizon: number, axe: Axe): Resolution[] {
   const valeur = (m: TuneMonstre): number => (axe === 'combat' ? m.combat : (m.artefactBuff ?? 0));
   const poser = (m: TuneMonstre, v: number) => {
@@ -493,71 +577,190 @@ function resoudre(monstres: TuneMonstre[], horizon: number, axe: Axe): Resolutio
     else m.artefactBuff = v;
   };
 
+  const initial = diagnostiquerChaine(monstres, horizon);
+  if (initial.ok || !initial.coupeur) return [];
+
+  const ordre = ordreAllies(monstres, horizon);
   const courant = monstres.map((m) => ({ ...m }));
   const parId = new Map(courant.map((m) => [m.id, m]));
+  const source = new Map(monstres.map((m) => [m.id, valeur(m)] as const));
 
-  const passeAvant = (id: string): boolean => {
+  // ⚠️ **UNE SEULE simulation par essai.** Ordre de jeu, alliés qui passent et
+  // verdict se lisent tous les trois dans les mêmes premiers tours : les
+  // recalculer séparément triplait le coût d'une recherche déjà appelée à chaque
+  // frappe.
+  interface Etat {
+    ordreTenu: boolean;
+    passent: Set<string>;
+    tick: Map<string, number>;
+    ok: boolean;
+  }
+  const etat = (): Etat => {
     const premiers = premiersTours(simuler(courant, horizon));
+    const tick = new Map(premiers.map((a) => [a.id, a.tick] as const));
     const adverse = premiers.find((a) => a.camp === 'ennemi');
-    const mien = premiers.find((a) => a.id === id);
-    if (!mien) return false;
-    return !adverse || mien.tick < adverse.tick;
+    const passent = new Set<string>();
+    for (const a of premiers) {
+      if (a.camp === 'allie' && (!adverse || a.tick < adverse.tick)) passent.add(a.id);
+    }
+    const vu = courant
+      .filter((m) => m.camp === 'allie')
+      .map((m, placement) => ({ id: m.id, t: tick.get(m.id) ?? Infinity, placement }))
+      .sort((a, b) => a.t - b.t || a.placement - b.placement)
+      .map((x) => x.id);
+    return {
+      ordreTenu: vu.join('>') === ordre.join('>'),
+      passent,
+      tick,
+      ok: passent.size === ordre.length,
+    };
+  };
+  // Le tune tient-il ? C'est le VÉRIFICATEUR, appelé ici à l'envers : on cherche
+  // les valeurs qui le satisfont.
+  const tuneTient = () => {
+    const e = etat();
+    return e.ok && e.ordreTenu;
   };
 
-  for (let passe = 0; passe < PASSES_MAX; passe++) {
-    const diag = diagnostiquerChaine(courant, horizon);
-    if (diag.ok || !diag.coupeur) break;
+  // Pose un candidat : chaque allié monté à la valeur visée — jamais descendu
+  // sous la sienne, on ne propose que des gains.
+  const poserValeurs = (vals: number[]) => {
+    ordre.forEach((id, i) => {
+      const m = parId.get(id);
+      if (!m) return;
+      poser(m, Math.min(PLAFOND[axe], Math.max(source.get(id) ?? 0, vals[i])));
+    });
+  };
 
-    // Du PLUS RAPIDE au plus lent : les ticks avant l'adverse sont une ressource
-    // partagée (un seul monstre par tick), les plus rapides prennent les leurs
-    // d'abord. Chaque valeur trouvée est conservée pour les suivants.
-    const aTraiter = diag.coupes
-      .map((c) => parId.get(c.id))
-      .filter((m): m is (typeof courant)[number] => !!m)
-      .sort((a, b) => b.combat - a.combat);
-
-    let progres = false;
-    for (const m of aTraiter) {
-      if (passeAvant(m.id)) continue; // déjà réglé par la correction d'un autre
-      const depart = valeur(m);
-      let bas = depart + 1;
-      let haut = PLAFOND[axe];
-      if (bas > haut) continue; // déjà au plafond de cet axe
-      poser(m, haut);
-      if (!passeAvant(m.id)) {
-        poser(m, depart); // insoluble pour lui : on le laisse tel quel
-        continue;
-      }
-      // Dichotomie sur ]depart, plafond] : la plus petite valeur qui passe.
-      while (bas < haut) {
-        const milieu = Math.floor((bas + haut) / 2);
-        poser(m, milieu);
-        if (passeAvant(m.id)) haut = milieu;
-        else bas = milieu + 1;
-      }
-      poser(m, bas);
-      progres = true;
+  // 1. CANDIDAT : le premier de la liste qui fait tenir le tune. Le plus serré
+  //    vient en tête et suffit dans l'immense majorité des cas — une simulation.
+  //    ⚠️ Si AUCUN ne tient, on retient celui qui fait passer le plus de monde :
+  //    c'est lui qui départage « il lui manque X » de « hors de portée ».
+  const liste = candidats(
+    axe,
+    ordre.length,
+    ordre.map((id) => source.get(id) ?? 0)
+  );
+  let meilleur: number[] = liste[0];
+  let mieux = -1;
+  for (const vals of liste) {
+    poserValeurs(vals);
+    const e = etat();
+    if (!e.ordreTenu) continue;
+    if (e.ok) {
+      meilleur = vals;
+      break;
     }
-    // ⚠️ Une passe ne suffit pas toujours : accélérer un allié peut lui faire
-    // prendre le tick d'un autre, ou déplacer le tour de celui qui remplit la
-    // barre de l'équipe. On repasse tant que ça avance, dans une limite fixe.
-    if (!progres) break;
+    if (e.passent.size > mieux) {
+      mieux = e.passent.size;
+      meilleur = vals;
+    }
+  }
+  poserValeurs(meilleur);
+
+  // Ce que ce candidat atteint : au-delà, personne ne passera de plus.
+  const cible = etat().passent;
+  const tenu = (e: Etat = etat()) => {
+    if (!e.ordreTenu) return false;
+    for (const id of cible) if (!e.passent.has(id)) return false;
+    return true;
+  };
+
+  // 2. REDESCENTE, du DERNIER au premier : le dernier est contraint par
+  //    l'adverse, ceux de devant ne servent qu'à lui acheter des ticks — c'est
+  //    donc à eux qu'il reste le plus à rendre une fois lui posé.
+  //
+  // ⚠️ **Balayage ascendant, pas dichotomie.** Le domaine des valeurs valides
+  // d'un allié n'est pas un intervalle (voir plus haut) : une dichotomie
+  // s'arrête au bord de la mauvaise fenêtre et surévalue la vitesse annoncée.
+  // On prend la PREMIÈRE valeur qui tient en partant de la vitesse actuelle —
+  // donc le vrai minimum.
+  //
+  // ⚠️ **Par PALIERS DE TICK, pas point par point.** Entre deux valeurs qui
+  // laissent l'allié au même tick, seul son dépassement d'ATB change (il ne
+  // départage que les égalités) : essayer les 1 200 points un par un coûtait
+  // ~90 ms par frappe. On essaie donc le BAS de chaque palier — la plus petite
+  // valeur qui l'amène à ce tick, trouvée par dichotomie sur SON tick, qui lui
+  // est bien monotone — et le HAUT du palier, qui est le cas où il gagne une
+  // égalité. Le vrai minimum est toujours l'un des deux.
+  const sonTick = (id: string, e: Etat = etat()) => e.tick.get(id) ?? Infinity;
+  for (let tour = 0; tour < DESCENTES_MAX; tour++) {
+    let baisse = false;
+    for (let i = ordre.length - 1; i >= 0; i--) {
+      const id = ordre[i];
+      const m = parId.get(id);
+      if (!m) continue;
+      const haut = valeur(m);
+      const bas = source.get(id) ?? haut;
+      if (bas >= haut) continue;
+
+      // La plus petite valeur de [lo, haut] qui amène l'allié au tick `cibleT`
+      // ou avant (son propre tick est monotone en sa propre valeur).
+      const seuil = (cibleT: number, lo: number): number => {
+        let a = lo;
+        let b = haut;
+        while (a < b) {
+          const mi = Math.floor((a + b) / 2);
+          poser(m, mi);
+          if (sonTick(id) <= cibleT) b = mi;
+          else a = mi + 1;
+        }
+        return a;
+      };
+
+      let v = bas;
+      let trouve = haut;
+      while (v <= haut) {
+        poser(m, v);
+        const e = etat();
+        if (tenu(e)) {
+          trouve = v;
+          break;
+        }
+        const t = sonTick(id, e);
+        // Début du palier suivant : la plus petite valeur qui le fait jouer plus
+        // tôt. Au-dessus de tout palier utile, il n'y a plus rien à essayer.
+        const suivant = t === Infinity ? seuil(horizon, v + 1) : seuil(t - 1, v + 1);
+        if (suivant > haut) break;
+        // Le HAUT du palier courant : même tick, dépassement d'ATB maximal. S'il
+        // tient alors que le bas ne tenait pas, c'est qu'une ÉGALITÉ bascule
+        // quelque part dans le palier — le dépassement départage les barres
+        // pleines. On va chercher ce point par dichotomie : à tick constant,
+        // monter ne peut que lui faire gagner des égalités, jamais en perdre.
+        if (suivant - 1 > v) {
+          poser(m, suivant - 1);
+          if (tenu()) {
+            let a = v + 1;
+            let b = suivant - 1;
+            while (a < b) {
+              const mi = Math.floor((a + b) / 2);
+              poser(m, mi);
+              if (tenu()) b = mi;
+              else a = mi + 1;
+            }
+            trouve = a;
+            break;
+          }
+        }
+        v = suivant;
+      }
+      poser(m, trouve);
+      if (trouve < haut) baisse = true;
+    }
+    if (!baisse) break;
   }
 
-  // Verdict final sur les valeurs retenues : ce qui reste coupé est déclaré hors
-  // de portée, le reste porte la valeur trouvée. ⚠️ Rendu dans l'ORDRE DE JEU —
-  // celui de DÉPART, pas celui d'arrivée : on lit ce qui manque à une équipe
-  // telle qu'elle est aujourd'hui.
-  const fin = diagnostiquerChaine(courant, horizon);
-  const coupesFin = new Set(fin.coupes.map((c) => c.id));
+  // Verdict : ce qui reste coupé au maximum atteignable est hors de portée, le
+  // reste porte la valeur retenue. ⚠️ Rendu dans l'ORDRE DE JEU de DÉPART — on
+  // lit ce qui manque à une équipe telle qu'elle est aujourd'hui.
   const out: Resolution[] = [];
   for (const m of monstres) {
     if (m.camp !== 'allie') continue;
-    const depart = valeur(m);
-    if (coupesFin.has(m.id)) out.push({ id: m.id, actuel: depart, requis: null });
+    const dep = valeur(m);
+    if (!cible.has(m.id)) out.push({ id: m.id, actuel: dep, requis: null });
     else {
       const trouve = valeur(parId.get(m.id) ?? m);
-      if (trouve > depart) out.push({ id: m.id, actuel: depart, requis: trouve });
+      if (trouve > dep) out.push({ id: m.id, actuel: dep, requis: trouve });
     }
   }
   return rangerParJeu(out, ordreDeJeu(monstres, horizon));

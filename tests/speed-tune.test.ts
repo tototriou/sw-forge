@@ -16,7 +16,6 @@ import {
   fenetresRequises,
   COMBAT_MAX,
   ARTE_MAX,
-  PASSES_MAX,
   HORIZON_TICKS,
   TuneMonstre,
   ModParTick,
@@ -436,94 +435,95 @@ function mulberry32(seed: number) {
   };
 }
 
-// RÉFÉRENCE DE CONTRÔLE (algo-verify) : même raisonnement que
-// `vitessesRequises`, mais la vitesse minimale se cherche par BALAYAGE LINÉAIRE
-// exhaustif au lieu d'une dichotomie. Volontairement naïve et lente — elle
-// définit « la bonne réponse » pour le test différentiel.
 type Axe = 'combat' | 'artefactBuff';
 
-// RÉFÉRENCE DE CONTRÔLE (algo-verify) : même raisonnement que le solveur, mais
-// la valeur minimale se cherche par BALAYAGE LINÉAIRE exhaustif au lieu d'une
-// dichotomie. Volontairement naïve et lente — elle définit « la bonne réponse »
-// pour le test différentiel, sur les DEUX axes.
-function resoudreNaif(monstres: TuneMonstre[], axe: Axe, horizon = HORIZON_TICKS) {
-  const plafond = axe === 'combat' ? COMBAT_MAX : ARTE_MAX;
-  const valeur = (m: TuneMonstre) => (axe === 'combat' ? m.combat : (m.artefactBuff ?? 0));
-  const poser = (m: TuneMonstre, v: number) => {
-    if (axe === 'combat') m.combat = v;
-    else m.artefactBuff = v;
-  };
-  const courant = monstres.map((m) => ({ ...m }));
-  const parId = new Map(courant.map((m) => [m.id, m]));
-  const passeAvant = (id: string): boolean => {
-    const premiers = premiersTours(simuler(courant, horizon));
-    const adverse = premiers.find((a) => a.camp === 'ennemi');
-    const mien = premiers.find((a) => a.id === id);
-    if (!mien) return false;
-    return !adverse || mien.tick < adverse.tick;
-  };
-  for (let passe = 0; passe < PASSES_MAX; passe++) {
-    const diag = diagnostiquerChaine(courant, horizon);
-    if (diag.ok || !diag.coupeur) break;
-    const aTraiter = diag.coupes
-      .map((c) => parId.get(c.id))
-      .filter((m): m is (typeof courant)[number] => !!m)
-      .sort((a, b) => b.combat - a.combat);
-    let progres = false;
-    for (const m of aTraiter) {
-      if (passeAvant(m.id)) continue;
-      const depart = valeur(m);
-      let trouve: number | null = null;
-      for (let v = depart + 1; v <= plafond; v++) {
-        poser(m, v);
-        if (passeAvant(m.id)) {
-          trouve = v;
-          break;
-        }
-      }
-      poser(m, trouve ?? depart);
-      if (trouve != null) progres = true;
-    }
-    if (!progres) break;
-  }
-  const fin = diagnostiquerChaine(courant, horizon);
-  const coupesFin = new Set(fin.coupes.map((c) => c.id));
-  const out: { id: string; actuel: number; requis: number | null }[] = [];
-  for (const m of monstres) {
-    if (m.camp !== 'allie') continue;
-    const depart = valeur(m);
-    if (coupesFin.has(m.id)) out.push({ id: m.id, actuel: depart, requis: null });
-    else {
-      const trouve = valeur(parId.get(m.id) ?? m);
-      if (trouve > depart) out.push({ id: m.id, actuel: depart, requis: trouve });
-    }
-  }
-  // ⚠️ **La référence range aussi par ORDRE DE JEU** : c'est une clause du
-  // contrat, pas un détail d'affichage — une liste de problèmes se lit dans la
-  // chronologie, sinon il faut la reconstruire de tête. Elle le fait à sa façon
-  // (tri explicite sur la simulation de départ), pas en appelant l'helper du
-  // code testé : une référence qui emprunte le code qu'elle vérifie ne vérifie
-  // plus rien.
-  const jeu = new Map(
-    premiersTours(simuler(monstres, horizon)).map((a) => [a.id, a.tick] as const)
+// L'ordre de jeu des alliés, recalculé ICI (la référence n'emprunte pas les
+// helpers du code testé).
+function ordreAlliesRef(monstres: TuneMonstre[], horizon = HORIZON_TICKS): string[] {
+  const premiers = premiersTours(simuler(monstres, horizon));
+  const tick = new Map(premiers.map((a) => [a.id, a.tick] as const));
+  return monstres
+    .filter((m) => m.camp === 'allie')
+    .map((m, placement) => ({ id: m.id, t: tick.get(m.id) ?? Infinity, placement }))
+    .sort((a, b) => a.t - b.t || a.placement - b.placement)
+    .map((x) => x.id);
+}
+
+// Le tune tient-il ? Tous les alliés avant le premier adverse, ET l'ordre de jeu
+// des alliés inchangé (le boost de barre doit rester devant ceux qu'il pousse).
+function tuneTient(essai: TuneMonstre[], ordre: string[], horizon = HORIZON_TICKS): boolean {
+  const premiers = premiersTours(simuler(essai, horizon));
+  const adverse = premiers.find((a) => a.camp === 'ennemi');
+  const nbAllies = essai.filter((m) => m.camp === 'allie').length;
+  const passent = premiers.filter(
+    (a) => a.camp === 'allie' && (!adverse || a.tick < adverse.tick)
   );
-  return out.sort((a, b) => (jeu.get(a.id) ?? Infinity) - (jeu.get(b.id) ?? Infinity));
+  if (passent.length !== nbAllies) return false;
+  return ordreAlliesRef(essai, horizon).join('>') === ordre.join('>');
 }
 
-function vitessesRequisesNaif(monstres: TuneMonstre[], horizon = HORIZON_TICKS): VitesseRequise[] {
-  return resoudreNaif(monstres, 'combat', horizon).map((r) => ({
-    id: r.id,
-    combatActuel: r.actuel,
-    combatRequis: r.requis,
-  }));
+const poserAxe = (m: TuneMonstre, axe: Axe, v: number) => {
+  if (axe === 'combat') m.combat = v;
+  else m.artefactBuff = v;
+};
+const lireAxe = (m: TuneMonstre, axe: Axe) => (axe === 'combat' ? m.combat : (m.artefactBuff ?? 0));
+
+// RÉFÉRENCE DE CONTRÔLE (algo-verify) : « une solution existe-t-elle ? », par
+// BALAYAGE EXHAUSTIF des affectations allié -> tick à ORDRE CONSTANT. Elle
+// n'emprunte NI la stratégie NI la recherche du solveur — c'est tout l'intérêt :
+// la référence précédente rejouait la stratégie « minimum pour chaque monstre
+// coupé » du code testé, et validait donc son angle mort (ne jamais accélérer un
+// allié qui passe déjà, alors que c'est lui qui achète les ticks des suivants).
+//
+// Volontairement lente : n alliés × toutes les combinaisons croissantes de ticks
+// dans 1..TICKS_REF, une simulation chacune.
+const TICKS_REF = 10;
+function solutionExisteRef(monstres: TuneMonstre[], axe: Axe): boolean {
+  const ordre = ordreAlliesRef(monstres);
+  if (axe === 'artefactBuff') {
+    // Pas de « tick visé » sur cet axe : le levier est un pourcentage borné, on
+    // balaie tout le produit cartésien par pas de 1 sur chaque allié — mais
+    // seulement le maximum suffit à répondre « existe-t-il une solution ? »,
+    // l'axe étant monotone et sans effet d'ordre à budget égal.
+    const essai = monstres.map((m) => ({ ...m }));
+    for (const m of essai) if (m.camp === 'allie') poserAxe(m, axe, ARTE_MAX);
+    return tuneTient(essai, ordre);
+  }
+  const n = ordre.length;
+  const combinaisons: number[][] = [];
+  const construire = (debut: number, acc: number[]) => {
+    if (acc.length === n) {
+      combinaisons.push([...acc]);
+      return;
+    }
+    for (let t = debut; t <= TICKS_REF; t++) construire(t + 1, [...acc, t]);
+  };
+  construire(1, []);
+  for (const ticks of combinaisons) {
+    const essai = monstres.map((m) => ({ ...m }));
+    const parId = new Map(essai.map((m) => [m.id, m]));
+    ordre.forEach((id, i) => {
+      const m = parId.get(id);
+      if (m) poserAxe(m, axe, Math.max(lireAxe(m, axe), speedForTick(ticks[i])));
+    });
+    if (tuneTient(essai, ordre)) return true;
+  }
+  return false;
 }
 
-function artefactsRequisNaif(monstres: TuneMonstre[], horizon = HORIZON_TICKS): ArtefactRequis[] {
-  return resoudreNaif(monstres, 'artefactBuff', horizon).map((r) => ({
-    id: r.id,
-    artefactActuel: r.actuel,
-    artefactRequis: r.requis,
-  }));
+// Applique ce que le solveur propose et rend l'équipe corrigée.
+function appliquer(
+  monstres: TuneMonstre[],
+  axe: Axe,
+  valeurs: { id: string; requis: number | null }[]
+): TuneMonstre[] {
+  const essai = monstres.map((m) => ({ ...m }));
+  const parId = new Map(essai.map((m) => [m.id, m]));
+  for (const v of valeurs) {
+    const m = parId.get(v.id);
+    if (m && v.requis != null) poserAxe(m, axe, v.requis);
+  }
+  return essai;
 }
 
 // Cas de terrain (deck Mihyang / Adriana / Sonia, lead 28 %, tous en Swift) :
@@ -695,9 +695,16 @@ export function testSpeedTuneChaine() {
     const sans = vitessesRequises(base);
     const avec = vitessesRequises(avecSkill);
     ok(sans.length > 0, 'sans compétence, un allié est coupé');
+    // ⚠️ **Le coût se lit sur l'ÉQUIPE, pas sur un monstre.** La compétence peut
+    // déplacer la correction d'un allié à l'autre : ici, accélérer le PORTEUR du
+    // boost de 26 points revient moins cher que d'en trouver 80 sur celui qu'il
+    // pousse. Comparer « la vitesse du premier de la liste » ne veut donc plus
+    // rien dire — c'est le total des points à trouver qui doit baisser.
+    const cout = (rs: VitesseRequise[]) =>
+      rs.reduce((t, r) => t + ((r.combatRequis ?? r.combatActuel) - r.combatActuel), 0);
     ok(
-      avec.length === 0 || (avec[0].combatRequis ?? 0) < (sans[0].combatRequis ?? 0),
-      "la compétence d'un allié abaisse (ou supprime) la vitesse à trouver"
+      avec.length === 0 || cout(avec) < cout(sans),
+      `la compétence d'un allié abaisse le total à trouver (${cout(avec)} contre ${cout(sans)})`
     );
   }
 
@@ -913,15 +920,27 @@ export function testSpeedTuneChaine() {
     ok(tickDe(avecSecond) < tickDe(base), 'le boost de son second tour profite bien à son camp');
   }
 
-  // TEST DIFFÉRENTIEL (algo-verify) : la dichotomie retrouve EXACTEMENT ce que
-  // trouve le balayage linéaire exhaustif, sur des scénarios aléatoires à seed
-  // fixe (alliés/adverses, vitesses, boosts d'ATB et buffs de vitesse).
+  // TEST DIFFÉRENTIEL (algo-verify) : le solveur est le VÉRIFICATEUR RETOURNÉ —
+  // on ne compare donc pas à un miroir de sa stratégie (l'ancienne référence en
+  // était un, et validait son angle mort), on contrôle TROIS propriétés, sur des
+  // scénarios aléatoires à seed fixe :
+  //   P1 JUSTESSE     — ce qu'il propose, appliqué, fait tenir le tune (tous les
+  //                     alliés avant l'adverse) SANS changer leur ordre de jeu ;
+  //   P2 MINIMALITÉ   — un seul point de moins sur n'importe laquelle des
+  //                     valeurs proposées et le tune ne tient plus ;
+  //   P3 COMPLÉTUDE   — « hors de portée » n'est prononcé que si le balayage
+  //                     exhaustif des affectations allié -> tick, à ordre
+  //                     constant, n'en trouve pas non plus.
   {
-    let identiques = 0;
-    const scenarios = 24;
+    let justesse = 0;
+    let minimalite = 0;
+    let complets = 0;
+    let solubles = 0;
+    let horsPortee = 0;
+    const scenarios = 40;
     for (let s = 0; s < scenarios; s++) {
       const rng = mulberry32(7000 + s * 97);
-      const nbAllies = 1 + Math.floor(rng() * 3);
+      const nbAllies = 2 + Math.floor(rng() * 3);
       const nbEnnemis = 1 + Math.floor(rng() * 2);
       const monstres: TuneMonstre[] = [];
       const tirer = (camp: 'allie' | 'ennemi', i: number): TuneMonstre => {
@@ -937,14 +956,52 @@ export function testSpeedTuneChaine() {
       };
       for (let i = 0; i < nbAllies; i++) monstres.push(tirer('allie', i));
       for (let i = 0; i < nbEnnemis; i++) monstres.push(tirer('ennemi', i));
-      const a = JSON.stringify([vitessesRequises(monstres), artefactsRequis(monstres)]);
-      const b = JSON.stringify([vitessesRequisesNaif(monstres), artefactsRequisNaif(monstres)]);
-      if (a === b) identiques++;
-      else ok(false, `scénario ${s} : dichotomie ${a} ≠ balayage exhaustif ${b}`);
+      if (diagnostiquerChaine(monstres).ok) continue;
+
+      const ordre = ordreAlliesRef(monstres);
+      const req = vitessesRequises(monstres).map((r) => ({ id: r.id, requis: r.combatRequis }));
+      const bloque = req.some((r) => r.requis === null);
+
+      if (bloque) {
+        horsPortee++;
+        // P3 : personne d'autre ne fait mieux.
+        if (!solutionExisteRef(monstres, 'combat')) complets++;
+        else ok(false, `scénario ${s} : « hors de portée » alors qu'une solution existe`);
+        continue;
+      }
+      solubles++;
+
+      // P1 : la proposition tient.
+      const corrige = appliquer(monstres, 'combat', req);
+      if (tuneTient(corrige, ordre)) justesse++;
+      else ok(false, `scénario ${s} : la proposition ${JSON.stringify(req)} ne fait pas tenir le tune`);
+
+      // P2 : chaque valeur proposée est la plus petite qui tienne.
+      let serre = true;
+      for (const r of req) {
+        if (r.requis == null) continue;
+        const moins = appliquer(monstres, 'combat', [
+          ...req.filter((x) => x.id !== r.id),
+          { id: r.id, requis: r.requis - 1 },
+        ]);
+        if (tuneTient(moins, ordre)) {
+          serre = false;
+          ok(false, `scénario ${s} : ${r.id} tient encore à ${r.requis - 1}, ${r.requis} est de trop`);
+        }
+      }
+      if (serre) minimalite++;
     }
     ok(
-      identiques === scenarios,
-      `dichotomie identique au balayage linéaire exhaustif — vitesse ET artéfact — sur ${scenarios} scénarios aléatoires avec compétences (seed fixe)`
+      justesse > 0 && justesse === solubles,
+      `P1 — la proposition fait tenir le tune, ordre de jeu conservé (${justesse} scénarios)`
+    );
+    ok(
+      minimalite === solubles,
+      `P2 — aucune valeur proposée n'est surévaluée d'un seul point (${minimalite} scénarios)`
+    );
+    ok(
+      complets === horsPortee,
+      `P3 — « hors de portée » confirmé par le balayage exhaustif à ordre constant (${horsPortee} scénarios)`
     );
   }
 }

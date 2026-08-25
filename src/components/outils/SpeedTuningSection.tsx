@@ -278,7 +278,6 @@ export default function SpeedTuningSection({
     premiers,
     problemeParUid,
     requis,
-    requisParUid,
     retirer,
     sequence,
     setArtefact,
@@ -520,12 +519,20 @@ export default function SpeedTuningSection({
                         </p>
                         {/* ⚠️ Une ligne = un nom et le chiffre à trouver, rien de
                             plus : ce qu'on vient chercher ici, c'est « combien il me
-                            manque », pas un récit. */}
+                            manque », pas un récit.
+                            ⚠️ **On liste ce que le solveur DEMANDE, pas ce qui est
+                            coupé.** Le réglage est un jeu de vitesses cohérent : il
+                            demande parfois des points à un monstre qui passe déjà
+                            (celui qui remplit la barre, à accélérer pour qu'il
+                            achète un tick au suivant), et il ne demande rien à un
+                            monstre coupé que la correction d'un autre suffit à
+                            sauver. Lister `chaine.coupes` masquait la moitié de la
+                            solution — appliquée telle quelle, elle ne tenait pas. */}
                         <ul className="mt-2.5 flex flex-wrap gap-x-4 gap-y-1.5">
-                          {chaine.coupes.map((c) => {
+                          {requis.map((c) => {
                             const l = ligneParUid.get(c.id);
                             if (!l) return null;
-                            const cible = requisParUid.get(c.id)?.combatRequis ?? null;
+                            const cible = c.combatRequis;
                             const a = arteParUid.get(c.id);
                             const arte = a?.artefactRequis ?? null;
                             return (

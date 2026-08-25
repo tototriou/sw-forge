@@ -642,11 +642,6 @@ export default function SpeedTuningSection({
                               );
                             })}
                           </ul>
-                          <p className="mt-2.5 text-xs text-ink-dim">
-                            ⚠️ Une fenêtre se lit <span className="text-ink">les autres inchangés</span> : elle dit ce que
-                            ce rang laisse à CE monstre aujourd'hui. Corriger un monstre déplace celles des voisins — on
-                            règle un ordre un monstre à la fois.
-                          </p>
                         </>
                       )}
               </div>

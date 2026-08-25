@@ -421,6 +421,10 @@ garanties). Un rang tenu n'affiche qu'une coche.
 - ⚠️ **Une fenêtre se lit « les autres inchangés »** — contrairement à
   `vitessesRequises`, qui empile ses corrections. C'est voulu : un ordre se règle
   un monstre à la fois, et corriger l'un déplace les fenêtres des voisins.
+  ⚠️ **Ça ne s'écrit PAS sous la liste.** Un paragraphe le disait, et il ne se
+  lisait pas : trois lignes de théorie sous une liste de chiffres qu'on vient
+  consulter, à relire à chaque passage sans jamais rien y changer. La règle reste
+  vraie et vit ici ; l'écran, lui, montre les fenêtres.
 
 ## Compétences (déclenchées par le tour)
 

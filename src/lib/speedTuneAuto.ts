@@ -412,7 +412,10 @@ export function analyseAutomatique(
   // rien (il ne lance pas son kit) : lui renvoyer une grille vide effacerait ce
   // que l'utilisateur y a saisi à la main. L'adversaire de RÉFÉRENCE, lui, en
   // reçoit une — il est là pour être vérifié comme les autres.
-  const reels = new Set(adverses.map((e) => e.id));
+  // ⚠️ La RÉFÉRENCE n'est pas un adverse réel : elle vit dans le camp d'en face
+  // mais c'est l'outil qui la pose, et elle doit rester vérifiable comme les
+  // autres. Elle garde donc sa grille.
+  const reels = new Set(adverses.filter((e) => e.id !== idReference).map((e) => e.id));
   const mods = new Map(
     final
       .filter((m) => !reels.has(m.id))

@@ -406,7 +406,11 @@ retour.
        [degats-reels.md](degats-reels.md).
      - **Coup critique** — Moyenne (défaut, espérance sur le Taux Crit
        réellement atteint — le seul mode où le Taux Crit pèse sur le
-       classement) / Critique / Non critique.
+       classement) / Critique / Non critique. ⚠️ Sous **Moyenne**
+       uniquement, un avertissement rappelle que la valeur affichée est une
+       ESPÉRANCE théorique, pas ce qu'un combat réel (tour par tour) produit
+       coup après coup — absent des deux autres modes, qui sont déjà des
+       bornes littérales.
      ⚠️ **On n'affiche que ce que le sort CONSOMME** : un sort qui ignore la
      défense ne montre ni la DEF ennemie ni la réduction de défense ; un
      sort qui ne dépend pas de la VIT ne montre pas le buff de vitesse. Un

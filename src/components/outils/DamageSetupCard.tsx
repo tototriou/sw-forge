@@ -681,6 +681,17 @@ export default function DamageSetupCard({
             onChange={(v) => maj({ critMode: v })}
             size="lg"
           />
+          {/* « Moyenne » est une ESPÉRANCE (pondérée par le Taux Crit) —
+              jamais ce qu'un combat réel, tour par tour, produit coup après
+              coup. Demande explicite de l'utilisateur : le dire, UNIQUEMENT
+              sous ce mode (Critique/Non critique sont déjà des bornes
+              littérales, pas une moyenne, rien à nuancer). */}
+          {setup.critMode === 'moyenne' && (
+            <p className="mt-1.5 text-xs text-warn">
+              Attention, la valeur affichée est purement théorique et ne correspond pas à la réalité d&apos;un jeu au
+              tour par tour.
+            </p>
+          )}
         </div>
       )}
     </div>

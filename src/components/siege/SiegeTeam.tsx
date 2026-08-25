@@ -250,6 +250,12 @@ export default function SiegeTeam({
     swift: teamHasSwift,
     speedTune,
     horsTick: anyOffTick,
+    // ⚠️ Les slots REMPLIS d'un côté, les monstres RECONNUS de l'autre
+    // (`deckPourSpeedTune` écarte un slot dont le monstre n'est pas encore dans
+    // le catalogue). Les deux diffèrent le temps du chargement, et c'est
+    // exactement ce que la card doit savoir pour ne pas accuser à tort.
+    slotsRemplis: team.slots.filter((sl) => sl?.monsterId).length,
+    monstresConnus: equipeAuto.length,
   };
   const statut = statutEquipe(entreeStatut);
   // Ce qu'on dit quand le mode est allumé mais qu'il n'y a pas de verdict : sans

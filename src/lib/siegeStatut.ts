@@ -23,6 +23,14 @@ export interface EntreeStatut {
   swift: boolean;
   // Le verdict de speed tune, quand il est calculable.
   speedTune: ResultatAuto | null;
+  // ⚠️ **Deux comptes, pas un.** Les SLOTS remplis (un monstre y est posé) et
+  // les monstres RECONNUS (retrouvés dans le catalogue). Ils diffèrent tant que
+  // les données ne sont pas chargées — au rechargement de la page, typiquement.
+  // Sans cette distinction, la card disait « il faut au moins deux monstres » à
+  // une équipe qui en a quatre : le message accusait l'utilisateur d'un défaut
+  // qui n'était pas le sien, et lui demandait de corriger ce qui était déjà bon.
+  slotsRemplis: number;
+  monstresConnus: number;
   // Au moins un monstre mal calé sur un tick (équipes non-Swift).
   horsTick: boolean;
 }
@@ -48,6 +56,12 @@ export function raisonSansVerdict(e: EntreeStatut): string | null {
   if (!e.verifier || statutEquipe(e) !== 'neutre') return null;
   if (!e.desMonstres) return 'Équipe vide.';
   if (e.leo) return 'Leo est dans l\u2019équipe : elle ne se juge pas au tick.';
+  // ⚠️ **Les données ne sont pas encore là.** L'équipe a de quoi être jugée, ce
+  // sont ses monstres qui ne sont pas encore reconnus (catalogue en cours de
+  // chargement, juste après un rechargement de page). Dire « il faut au moins
+  // deux monstres » à une équipe qui en a quatre envoyait corriger un défaut
+  // inexistant. Rien à faire : ça se résout tout seul.
+  if (e.slotsRemplis >= 2 && e.monstresConnus < 2) return 'Vitesses en cours de chargement…';
   // Swift sans verdict : l'analyse demande au moins deux monstres connus.
   return 'Équipe speed : il faut au moins deux monstres pour calculer le speed tune.';
 }

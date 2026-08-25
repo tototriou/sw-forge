@@ -92,10 +92,25 @@ par équipe :
 | Statut | Couleur | Condition | Message sous les monstres |
 |--------|---------|-----------|---------------------------|
 | Orange | `amber` | Équipe avec **≥1 Swift** qui **n'est PAS speed tune** | ce qui manque, monstre par monstre |
-| — | neutre | Équipe Swift dont le speed tune **ne peut pas encore être calculé** (kits en cours de chargement, un seul monstre renseigné) | — |
+| — | neutre | Équipe Swift dont le speed tune **ne peut pas encore être calculé** (données en cours de chargement, un seul monstre renseigné) | la RAISON, et pas n'importe laquelle — voir ci-dessous |
 | Rouge | `fire` | (Sans Swift) un monstre **pas au tick** (anneau rouge sur le slot fautif) | une phrase par monstre fautif, voir ci-dessous |
 | Vert | `emerald` | (Sans Swift) **tous au tick** · **ou** équipe Swift **speed tune** · **ou** recommandation ignorée | « ✓ Équipe speed : elle est speed tune » pour le cas Swift |
 | — | neutre | Équipe **vide** ou avec **Leo** | — |
+
+⚠️ **Sans verdict, la card dit POURQUOI — et la bonne raison.** Deux cas se
+ressemblent et ne se disent pas pareil :
+
+- **Données en cours de chargement** (au rechargement de la page, le catalogue de
+  monstres n'est pas encore là) : les slots sont remplis, les monstres pas encore
+  reconnus. → « Vitesses en cours de chargement… ». Rien à faire, ça se résout
+  seul.
+- **Équipe vraiment trop courte** (un seul monstre renseigné) → « il faut au
+  moins deux monstres pour calculer le speed tune ».
+
+⚠️ Les confondre disait « il faut au moins deux monstres » à une équipe qui en a
+**quatre** : le message accusait l'utilisateur d'un défaut qui n'était pas le
+sien et l'envoyait corriger ce qui était déjà bon. D'où **deux comptes** dans
+`EntreeStatut`, `slotsRemplis` et `monstresConnus` — et non un seul.
 
 ### ⚠️ Une équipe Swift ne se juge pas au tick : elle se SPEED TUNE
 

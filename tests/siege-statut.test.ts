@@ -22,6 +22,8 @@ export default function testSiegeStatut() {
     swift: false,
     speedTune: null,
     horsTick: false,
+    slotsRemplis: 4,
+    monstresConnus: 4,
   };
 
   // Le mode éteint : les équipes s'affichent telles quelles.
@@ -75,4 +77,29 @@ export default function testSiegeStatut() {
     (raisonSansVerdict({ ...base, swift: true, speedTune: null }) ?? '').length > 0,
     'Swift sans verdict : la card dit pourquoi, au lieu de rester grise et muette'
   );
+
+  // ⚠️ **Ne pas accuser l'utilisateur d'un défaut qui n'est pas le sien.** Au
+  // rechargement de la page, le catalogue de monstres n'est pas encore là : les
+  // slots sont remplis, les monstres pas encore reconnus. La card disait alors
+  // « il faut au moins deux monstres » à une équipe qui en a quatre — et
+  // envoyait corriger ce qui était déjà bon.
+  {
+    const enChargement = { ...base, swift: true, speedTune: null, slotsRemplis: 4, monstresConnus: 0 };
+    const vraimentCourte = { ...base, swift: true, speedTune: null, slotsRemplis: 1, monstresConnus: 1 };
+    const m1 = raisonSansVerdict(enChargement) ?? '';
+    const m2 = raisonSansVerdict(vraimentCourte) ?? '';
+    ok(m1.length > 0 && m2.length > 0, 'les deux cas disent quelque chose');
+    ok(
+      m1 !== m2,
+      'chargement en cours et équipe trop courte ne se disent PAS de la même façon'
+    );
+    ok(
+      !m1.includes('au moins deux monstres'),
+      "une équipe de quatre monstres ne s'entend pas dire qu'il en faut deux"
+    );
+    ok(
+      m2.includes('au moins deux monstres'),
+      'une équipe qui en a vraiment un seul, si'
+    );
+  }
 }

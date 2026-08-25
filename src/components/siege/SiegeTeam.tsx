@@ -266,18 +266,25 @@ export default function SiegeTeam({
   // des monstres si.
   const monstresDeLEquipe = slotInfos.map(({ monster }) => monster?.name).filter(Boolean) as string[];
 
-  // ⚠️ Les halos passent par `shadow-<token>` + `shadow-color` plutôt que par un
-  // `rgba()` figé : un halo orange vif sur fond clair était criard et ne suivait
-  // pas le thème. Le fond monte à /10 en compensation — sur clair, un /5 ne se
-  // voit pas.
+  // ⚠️ **Le statut se dit par le CONTOUR et la PASTILLE, pas par le fond.**
+  // Teinter toute la surface faisait de la couleur le sujet de la card : huit
+  // équipes empilées donnaient huit aplats colorés, et le contenu — les
+  // monstres, les vitesses, ce qu'on vient vraiment lire — passait derrière. Le
+  // contour suffit à porter l'état, la pastille le nomme pour qui ne distingue
+  // pas les teintes.
+  //
+  // ⚠️ Le FOND reste celui de toutes les cards, statut ou non : c'est ce qui
+  // rend la couleur du contour lisible, et ce qui fait qu'une équipe au tick et
+  // une équipe à corriger se comparent d'un coup d'œil au lieu de sauter aux
+  // yeux l'une après l'autre.
   const sectionClass =
     statut === 'rouge'
-      ? 'border-fire bg-fire/10'
+      ? 'border-fire'
       : statut === 'orange'
-        ? 'border-warn bg-warn/10'
+        ? 'border-warn'
         : statut === 'vert'
-          ? 'border-good/70 bg-good/10'
-          : 'border-border bg-panel/50';
+          ? 'border-good/70'
+          : 'border-border';
   const dotClass =
     statut === 'rouge' ? 'bg-fire' : statut === 'orange' ? 'bg-warn' : statut === 'vert' ? 'bg-good' : '';
 
@@ -285,7 +292,7 @@ export default function SiegeTeam({
     // ⚠️ `p-2.5` sous `sm` : la page empile jusqu'à huit équipes, et chaque
     // `p-4` coûte 32 px de haut multipliés par ce nombre — deux écrans de vide
     // sur un téléphone.
-    <section className={`rounded-2xl border p-4 compact:p-2.5 transition-colors ${sectionClass}`}>
+    <section className={`rounded-2xl border bg-panel/50 p-4 compact:p-2.5 transition-colors ${sectionClass}`}>
       {/* ⚠️ `gap-3` sous `sm` autour des deux icônes nues : sans cadre, elles se
           distinguent par l'espace. */}
       <div className="mb-3 flex flex-wrap items-center gap-2 compact:mb-2 compact:gap-3">

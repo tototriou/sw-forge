@@ -75,8 +75,9 @@ elles-mêmes (voir [recommandations.md](recommandations.md)).
 
 ### Bouton « Vérifier mes speed »
 
-Interrupteur de la barre d'actions (icône jauge) qui **active les auras de
-couleur** des équipes (vert / orange / rouge, voir [speed-tick.md](speed-tick.md)).
+Interrupteur de la barre d'actions (icône jauge) qui **colore le statut** des
+équipes (vert / orange / rouge, voir [speed-tick.md](speed-tick.md)) — ⚠️ par le
+**contour et la pastille** de l'en-tête, jamais par le fond de la card.
 
 ⚠️ **« mes speed », pas « mes tick ATB ».** Le bouton couvre les DEUX questions :
 une équipe **Swift** se juge sur son **speed tune**, les autres sur leur
@@ -84,7 +85,7 @@ une équipe **Swift** se juge sur son **speed tune**, les autres sur leur
 les équipes speed. L'infobulle dit les deux.
 
 - **Désactivé par défaut** : les équipes sont affichées **telles quelles**, en
-  neutre — aucune aura, aucun point de statut, aucun anneau rouge sur les slots,
+  neutre — contour neutre, aucun point de statut, aucun anneau rouge sur les slots,
   aucun message, donc aucune des deux actions (« Valider le speed tune » / « Valider
   le tick », « Voir le speed tune »).
 - ⚠️ **Une fois allumé, TOUT est automatique** : statut, message nommant les

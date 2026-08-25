@@ -52,7 +52,19 @@ montrait donc un nombre que l'outil corrigeait aussitôt : deux vitesses pour un
 même monstre selon l'écran. La carte compacte et la carte dépliée lisent
 maintenant la même valeur, calculée une seule fois.
 
-## Aura de statut (au tick / à corriger)
+## Statut d'une équipe (au tick / à corriger)
+
+⚠️ **Le statut se dit par le CONTOUR et la PASTILLE, jamais par le fond de la
+card.** Teinter toute la surface faisait de la couleur le sujet : huit équipes
+empilées donnaient huit aplats colorés, et le contenu — les monstres, les
+vitesses, ce qu'on vient vraiment lire — passait derrière. Le contour suffit à
+porter l'état ; la pastille le nomme pour qui ne distingue pas les teintes
+(**une couleur seule ne se lit pas en niveaux de gris**, règle de la charte).
+Le fond reste celui de toutes les cards : c'est lui qui rend la couleur du
+contour lisible, et qui permet de comparer deux équipes d'un coup d'œil au lieu
+de les subir l'une après l'autre.
+
+⚠️ Le **pied** de la card, lui, garde sa teinte : c'est un message, pas la card.
 
 > ⚠️ **Conditionnée au mode « Vérifier mes speed »** (bouton de la barre
 > d'actions, éteint par défaut — voir [README.md](README.md)). Tant qu'il est
@@ -70,11 +82,12 @@ Détection « mal calé sur un tick » par monstre, via `tickDanger(combat)`
 - Tune propre = **pile sur un tick ou 0–15 au-dessus**, ou volontairement **sous
   tous les ticks** → pas d'alerte.
 
-Chaque équipe a un **statut coloré** (aura = bordure + halo, + point dans l'en-tête) :
+Chaque équipe a un **statut coloré** — ⚠️ **contour + pastille dans l'en-tête, et
+RIEN D'AUTRE** :
 
 **Tous les sets doivent viser un tick, SAUF si l'équipe contient au moins un
 Swift** (équipe speed) — dans ce cas toute l'équipe est exemptée (orange). Statut
-par équipe (aura = bordure + halo, + point dans l'en-tête) :
+par équipe :
 
 | Statut | Couleur | Condition | Message sous les monstres |
 |--------|---------|-----------|---------------------------|

@@ -82,6 +82,12 @@ déjà le titre) **et l'analyse lancée d'office** (une fois les kits chargés).
 ⚠️ Ne pas confondre avec le bouton « Importer un deck » ci-dessous, qui lui ne
 relance rien. Voir [../siege/speed-tick.md](../siege/speed-tick.md).
 
+⚠️ **Bandes `compactes` et AUCUN pied** : c'est une modale de consultation — on
+n'y valide rien, on lit un outil. Un « Fermer » en bas ferait doublon avec la
+croix et coûterait ~50 px, soit deux lignes du tableau de ticks sur une modale
+qui prend déjà 90 % de la hauteur. Voir [../shared/design.md](../shared/design.md),
+« Les deux bandes d'une modale ».
+
 Reprendre une composition déjà réglée plutôt que retaper trois monstres et
 trois vitesses de runes. Calcul pur dans
 [speedTuneDeck.ts](src/lib/speedTuneDeck.ts), **testé**

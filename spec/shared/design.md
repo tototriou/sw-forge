@@ -767,9 +767,16 @@ n'indique par où sortir, et on cherche.
 
 `Modale` porte donc une **croix optionnelle** (`croix`), posée en coin :
 
-- ⚠️ **Sur les modales de CONSULTATION** — la fiche d'un monstre, d'une rune.
-  Elles ne demandent rien, donc elles n'ont aucun bouton, donc aucune sortie
-  visible.
+- ⚠️ **Sur les modales de CONSULTATION** — la fiche d'un monstre, d'une rune,
+  un outil ouvert par-dessus une page. Elles ne demandent rien, donc elles n'ont
+  aucun bouton, donc aucune sortie visible.
+- ⚠️ **Et alors elles n'ont PAS de pied non plus.** Un « Fermer » en bas à droite
+  ferait doublon avec la croix — deux portes pour la même sortie — et coûterait
+  une **bande entière**, soit ~50 px. Sur une modale qui prend 90 % de la hauteur
+  d'écran pour montrer un tableau, ce sont deux lignes de données en moins au
+  profit d'un bouton qui ne dit rien de plus que la croix. La croix reste à sa
+  place habituelle, en haut à droite : on ne la déplace pas en bas sous prétexte
+  qu'on a retiré le pied.
 - ⚠️ **Pas sur les CONFIRMATIONS ni les boîtes de choix** : leur « Annuler »
   **est** la sortie. Une croix à côté ferait deux portes pour une décision qui
   n'en a qu'une, et on hésiterait sur ce qu'elle ferme — abandon, ou simple

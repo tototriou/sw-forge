@@ -1,6 +1,5 @@
 import { Monster, SiegeTeam } from '../../types';
 import { DeckInitial } from '../../hooks/useSpeedTune';
-import { Bouton } from '../../ui';
 import { Modale } from '../../ui/Dialogs';
 import SpeedTuningSection, { REGLE_TICKS } from './SpeedTuningSection';
 
@@ -47,7 +46,13 @@ export default function SpeedTuneModale({
       // pris par les deux bandes est une ligne de tableau en moins sur les
       // 90 % de hauteur d écran. Les bandes se serrent, le corps garde son air.
       bandes="compactes"
-      actions={<Bouton onClick={onClose} libelle="Fermer" />}
+      // ⚠️ **Aucun pied.** « Fermer » faisait doublon avec la croix et coûtait
+      // une bande entière — ~50 px sur une modale qui prend 90 % de la hauteur,
+      // soit deux lignes du tableau de ticks. On ne VALIDE rien ici : on
+      // consulte un outil. Même convention que les autres modales de
+      // consultation de l'app (fiche d'un monstre, recherche de sub, sauvegarde
+      // RTA), où la croix est la seule sortie — et elle reste à sa place
+      // habituelle, en haut à droite.
     >
       <SpeedTuningSection
         allMonsters={allMonsters}

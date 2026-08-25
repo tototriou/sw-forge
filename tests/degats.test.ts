@@ -26,8 +26,16 @@ import { buildOptimizerRecipe, parseOptimizerRecipe } from '../src/lib/optimizer
 import { Competence, DetailMonstre } from '../src/lib/monsterSkills';
 import { ArtifactDetail } from '../src/types';
 import {
+  ATK_BUFF_PCT,
+  BRAND_BONUS_PCT,
+  DEBORAH_AMPLIFY,
+  DEF_BREAK_FACTOR,
   DEFAULT_DAMAGE_SETUP,
   DamageSetup,
+  EULDONG_CD_POINTS,
+  MIRIAM_AMPLIFY_PCT,
+  MIRINAE_BONUS_PCT,
+  SPD_BUFF_PCT,
   SkillDamageProfile,
   computeSkillDamage,
   computeSkillDamageDetail,
@@ -500,6 +508,91 @@ export default function testDegats() {
   ok(
     computeTotalDamage(momoBase!, [], momoStats, momoSetup50, null, 0, false, null, null) === momoSansStack,
     'bonusDegatsStack=null (monstre sans ce passif) : le champ stackPersonnalise de la recette est ignoré'
+  );
+
+  titre('Dégâts réels — effets d’ÉQUIPE (Euldong, Mirinae, Deborah, Miriam)');
+
+  // Quatre effets portés par un AUTRE monstre que celui optimisé, demandés
+  // sélectionnables dans « Effets actifs » comme un buff ATQ, portrait du
+  // monstre en icône.
+  const equipeStats = stats({ atk: 2000, cd: 100, cr: 100 });
+  const equipeSetup: DamageSetup = { ...DEFAULT_DAMAGE_SETUP, skillCom2usId: s3!.skillCom2usId, summonerSkills: 'aucune' };
+
+  // Euldong — +100 POINTS de Dgts Crit (pas un facteur ×2), confirmé par
+  // l'utilisateur. En mode Critique garanti, critTerm = 1 + skillup% + cd —
+  // le ratio isole exactement l'effet, indépendamment du reste de l'équation.
+  const euldongOff = computeTotalDamage(s3!, [], equipeStats, { ...equipeSetup, critMode: 'crit' }, null);
+  const euldongOn = computeTotalDamage(s3!, [], equipeStats, { ...equipeSetup, critMode: 'crit', euldongActif: true }, null);
+  const critTermSansEuldong = 1 + s3!.skillupDamagePct / 100 + 1 * (100 / 100);
+  const critTermAvecEuldong = 1 + s3!.skillupDamagePct / 100 + 1 * ((100 + EULDONG_CD_POINTS) / 100);
+  ok(
+    Math.abs(euldongOn / euldongOff - critTermAvecEuldong / critTermSansEuldong) < 1e-9,
+    'Euldong ajoute exactement 100 points à la stat Dgts Crit utilisée par le critTerm'
+  );
+
+  // Mirinae — +30 % additif dans les Réductions, même famille que la Marque.
+  const mirinaeOff = computeTotalDamage(s3!, [], equipeStats, equipeSetup, null);
+  const mirinaeOn = computeTotalDamage(s3!, [], equipeStats, { ...equipeSetup, mirinaeActif: true }, null);
+  ok(Math.abs(mirinaeOn / mirinaeOff - (1 + MIRINAE_BONUS_PCT / 100)) < 1e-9, 'Mirinae ajoute exactement +30 % au total, comme la Marque');
+  const mirinaeEtBrand = computeTotalDamage(s3!, [], equipeStats, { ...equipeSetup, mirinaeActif: true, brand: true }, null);
+  ok(
+    Math.abs(mirinaeEtBrand / mirinaeOff - (1 + MIRINAE_BONUS_PCT / 100 + BRAND_BONUS_PCT / 100)) < 1e-9,
+    'Mirinae et la Marque s’ADDITIONNENT (confirmé : « stacks additively »), ne se multiplient pas entre elles'
+  );
+
+  // Deborah — amplifie la RÉDUCTION d'une réduction de DEF déjà active :
+  // 91 % de DEF effective en moins (0,7 × 1,30) avec `defBreak` ET Deborah,
+  // contre 70 % (`DEF_BREAK_FACTOR` seul) sans elle. `s1p` (déjà défini plus
+  // haut, n'ignore PAS la défense) — comparé via `defenseFactor`, seule la
+  // mitigation change entre les deux calculs.
+  const deborahBase: DamageSetup = { ...DEFAULT_DAMAGE_SETUP, skillCom2usId: s1p.skillCom2usId, summonerSkills: 'aucune', defBreak: true };
+  const deborahOff = computeTotalDamage(s1p, [], equipeStats, deborahBase, null);
+  const deborahOn = computeTotalDamage(s1p, [], equipeStats, { ...deborahBase, deborahActif: true }, null);
+  const mitigationSansDeborah = defenseFactor(1000 * DEF_BREAK_FACTOR);
+  const mitigationAvecDeborah = defenseFactor(1000 * (1 - (1 - DEF_BREAK_FACTOR) * DEBORAH_AMPLIFY));
+  ok(
+    Math.abs(deborahOn / deborahOff - mitigationAvecDeborah / mitigationSansDeborah) < 1e-9,
+    'Deborah amplifie la réduction de DEF de 30 % (70 % → 91 % de DEF en moins), jamais une réduction à elle seule'
+  );
+  const deborahSansDefBreak = computeTotalDamage(
+    s1p,
+    [],
+    equipeStats,
+    { ...DEFAULT_DAMAGE_SETUP, skillCom2usId: s1p.skillCom2usId, summonerSkills: 'aucune', defBreak: false, deborahActif: true },
+    null
+  );
+  const sansRienDuTout = computeTotalDamage(
+    s1p,
+    [],
+    equipeStats,
+    { ...DEFAULT_DAMAGE_SETUP, skillCom2usId: s1p.skillCom2usId, summonerSkills: 'aucune', defBreak: false },
+    null
+  );
+  egal(deborahSansDefBreak, sansRienDuTout, 'Deborah SANS def break actif : rien à amplifier, aucun effet');
+
+  // Miriam — amplifie la MAGNITUDE des buffs ATQ/DEF/VIT déjà actifs de
+  // 35 %, jamais leur simple présence. `s3` ne dépend que de l'ATQ
+  // (`variables === ['ATK']`) : le ratio isole exactement l'amplification.
+  const miriamOff = computeTotalDamage(s3!, [], equipeStats, { ...equipeSetup, atkBuff: true }, null);
+  const miriamOn = computeTotalDamage(s3!, [], equipeStats, { ...equipeSetup, atkBuff: true, miriamActif: true }, null);
+  const buffAtkSansMiriam = 1 + ATK_BUFF_PCT / 100;
+  const buffAtkAvecMiriam = 1 + (ATK_BUFF_PCT * (1 + MIRIAM_AMPLIFY_PCT / 100)) / 100;
+  ok(
+    Math.abs(miriamOn / miriamOff - buffAtkAvecMiriam / buffAtkSansMiriam) < 1e-9,
+    'Miriam amplifie le buff ATQ de 35 % (+50 % devient +67,5 %), pas la stat plate'
+  );
+  const miriamSansBuff = computeTotalDamage(s3!, [], equipeStats, { ...equipeSetup, miriamActif: true }, null);
+  const sansMiriamNiBuff = computeTotalDamage(s3!, [], equipeStats, equipeSetup, null);
+  egal(miriamSansBuff, sansMiriamNiBuff, 'Miriam SANS aucun buff actif : rien à amplifier, aucun effet');
+  // VIT aussi (via maVitCombat, déjà responsable de speedBuffAmpliPct) — stats
+  // dédiées avec une VIT non nulle, `equipeStats` n'en porte pas.
+  const statsAvecVit = stats({ atk: 2000, cd: 100, cr: 100, spd: 100 });
+  const vitSansMiriam = maVitCombat(statsAvecVit, { ...equipeSetup, spdBuff: true }, null);
+  const vitAvecMiriam = maVitCombat(statsAvecVit, { ...equipeSetup, spdBuff: true, miriamActif: true }, null);
+  ok(
+    Math.abs(vitAvecMiriam / vitSansMiriam - (1 + (SPD_BUFF_PCT * (1 + MIRIAM_AMPLIFY_PCT / 100)) / 100) / (1 + SPD_BUFF_PCT / 100)) <
+      1e-9,
+    'Miriam amplifie aussi le buff de VIT, comme un artéfact « Effet aug. VIT »'
   );
 
   titre('Dégâts réels — stats à privilégier dans la recherche');

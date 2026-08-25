@@ -387,7 +387,11 @@ retour.
        cocher séparée. ⚠️ **Grisée au repos, en couleurs + coche une fois
        activée** — l'état se lit sur l'icône elle-même, sans avoir à cliquer
        pour comprendre la légende (au repos, tout est grisé : rien n'est
-       encore choisi).
+       encore choisi). **Quatre effets d'ÉQUIPE** (Euldong, Mirinae, Deborah,
+       Miriam — un AUTRE monstre que celui optimisé), même contrôle mais
+       **portrait du monstre** en icône plutôt qu'une icône de buff
+       générique. Détail des mécaniques :
+       [degats-reels.md](degats-reels.md), « Effets d'équipe ».
      - **Compétences d'invocateur** — **Aucune** / **Combat** (défaut) /
        **Combat + Guilde**. Remplacent les anciens totems et drapeaux,
        toujours supposées maxées. ⚠️ **Un choix unique, pas deux cases** :

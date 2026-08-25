@@ -498,6 +498,56 @@ bonusDegatsStack)` l'applique multiplicativement sur le TOTAL, après coup —
 même famille que `bonusDegatsSelonVit`, seule la SOURCE du pourcentage
 change (saisie plutôt que déduite de la VIT).
 
+## Effets d'ÉQUIPE (Euldong, Mirinae, Deborah, Miriam)
+
+Quatre effets **portés par un AUTRE monstre que celui optimisé** — leur
+présence dépend de la composition d'équipe, pas du monstre en cours
+d'optimisation. Demande explicite de l'utilisateur : sélectionnables dans
+« Effets actifs » comme un buff ATQ, avec le **portrait du monstre** en
+icône plutôt qu'une icône de buff générique (`EULDONG_ICON`/`MIRINAE_ICON`/
+`DEBORAH_ICON`/`MIRIAM_ICON`, URLs `Monster.image` — pas `buffs/…` comme les
+icônes de buff). Contrairement à `critSiPlusRapide`/`bonusDegatsSelonVit`/
+`bonusDegatsStack` (déduits du monstre OPTIMISÉ, `RealDamageContext`), ces
+quatre sont de purs choix utilisateur : quatre champs booléens de
+`DamageSetup` (`euldongActif`/`mirinaeActif`/`deborahActif`/`miriamActif`),
+lus directement dans `computeSkillDamageDetail` — aucune détection de
+monstre, aucun `RealDamageContext` supplémentaire.
+
+- **Euldong** (« Triumph Over Evil », passif — Dokkaebi Lord Euldong) :
+  confirmé par l'utilisateur, ajoute **100 POINTS** à la stat Dgts Crit
+  (130 % → 230 %), pas un facteur ×2 — même famille que les points plats des
+  compétences d'invocateur. `EULDONG_CD_POINTS = 100`, gaté sur `montreCrit`
+  (un sort à dégâts fixes ne crite jamais, rien à amplifier). ⚠️ Le texte du
+  jeu précise que cet effet ne cumule pas avec un AUTRE effet
+  d'augmentation de Dgts Crit — aucun de modélisé ici pour l'instant, donc
+  sans conséquence actuellement.
+- **Mirinae** (S3, « Cursed Music ») : confirmé par l'utilisateur, « works
+  as 30% negative damage resistance. It stacks additively with -DMG%
+  artifacts ». Même famille que la Marque (+25 %, additif dans le terme
+  « Réductions ») — les deux s'ADDITIONNENT, ne se multiplient pas entre
+  elles. `MIRINAE_BONUS_PCT = 30`, non gaté (comme la Marque, aucun sort ne
+  l'ignore).
+- **Deborah** (passif, « Blacksmith's Discernment ») : confirmé par
+  l'utilisateur — « modeled through the effective DEF break… Effective DEF
+  break is 91% with deborah passive and a defense break ». Amplifie la
+  RÉDUCTION de DEF d'une réduction de défense déjà active
+  (`setup.defBreak`), jamais une réduction à elle seule :
+  `1 − (1 − DEF_BREAK_FACTOR) × DEBORAH_AMPLIFY` = `1 − 0,7 × 1,3 = 0,91`.
+  `DEBORAH_AMPLIFY = 1.3`, gaté sur `montreDefEnnemie` (même condition que
+  le toggle « Def break »). ⚠️ Le texte précise « 15% if it's the boss » —
+  comme partout ailleurs dans l'outil, aucune notion de boss n'est modélisée
+  ; seul le cas non-boss (30 %) l'est.
+- **Miriam** (passif, « Blacksmith's Technique ») : confirmé par
+  l'utilisateur — « augmente l'effet du buff ATQ, du buff vitesse et du
+  buff defense de 35% ». Amplifie la MAGNITUDE des trois buffs déjà actifs,
+  jamais leur simple présence : généralise à ATQ/DEF le mécanisme déjà en
+  place pour la VIT via un artéfact « Effet aug. VIT »
+  (`speedBuffAmpliPct`), mais Miriam est un TOGGLE (un monstre dans
+  l'équipe ou non), pas une somme de lignes d'artéfact — les deux sources
+  s'ADDITIONNENT avant d'amplifier, comme plusieurs lignes d'artéfact
+  identiques le font déjà. `MIRIAM_AMPLIFY_PCT = 35`, gaté sur l'union des
+  conditions déjà utilisées pour les toggles ATQ/DEF/VIT ci-dessus.
+
 ## Stats à privilégier dans la recherche
 
 `damageRelevantStats(profil)` renvoie les statistiques que le sort fait

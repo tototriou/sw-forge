@@ -9,8 +9,12 @@ import {
   DamageSetup,
   DamageVariable,
   DEFAULT_DAMAGE_SETUP,
+  DEBORAH_ICON,
   DEF_BREAK_ICON,
   DEF_BUFF_ICON,
+  EULDONG_ICON,
+  MIRIAM_ICON,
+  MIRINAE_ICON,
   ModificateurVitAffichage,
   PassifOffensifProfile,
   SPD_BUFF_ICON,
@@ -556,6 +560,53 @@ export default function DamageSetupCard({
             />
           )}
           <EffetVignette icone={BRAND_ICON} libelle="Marque" onClick={() => maj({ brand: !setup.brand })} actif={setup.brand} etroit={etroit} />
+          {/* Quatre effets portés par un AUTRE monstre que celui optimisé
+              (demande explicite de l'utilisateur) — portrait du monstre en
+              icône plutôt qu'une icône de buff générique, mais le même
+              contrôle « Vignette » que les effets ci-dessus : un monstre
+              dans l'équipe reste un choix de l'utilisateur, pas une donnée
+              déduite du monstre optimisé lui-même. Voir les constantes
+              `EULDONG_CD_POINTS`/`MIRINAE_BONUS_PCT`/`DEBORAH_AMPLIFY`/
+              `MIRIAM_AMPLIFY_PCT` (damage.ts) pour le détail des mécaniques. */}
+          {montreCrit && (
+            <EffetVignette
+              icone={EULDONG_ICON}
+              libelle="Euldong"
+              onClick={() => maj({ euldongActif: !setup.euldongActif })}
+              actif={setup.euldongActif ?? false}
+              etroit={etroit}
+            />
+          )}
+          <EffetVignette
+            icone={MIRINAE_ICON}
+            libelle="Mirinae"
+            onClick={() => maj({ mirinaeActif: !setup.mirinaeActif })}
+            actif={setup.mirinaeActif ?? false}
+            etroit={etroit}
+          />
+          {montreDefEnnemie && (
+            <EffetVignette
+              icone={DEBORAH_ICON}
+              libelle="Deborah"
+              onClick={() => maj({ deborahActif: !setup.deborahActif })}
+              actif={setup.deborahActif ?? false}
+              etroit={etroit}
+            />
+          )}
+          {(utilise('ATK') ||
+            utilise('DEF') ||
+            utilise('SPD') ||
+            utilise('Relative SPD') ||
+            critSiPlusRapide ||
+            bonusDegatsSelonVit) && (
+            <EffetVignette
+              icone={MIRIAM_ICON}
+              libelle="Miriam"
+              onClick={() => maj({ miriamActif: !setup.miriamActif })}
+              actif={setup.miriamActif ?? false}
+              etroit={etroit}
+            />
+          )}
         </div>
       </div>
 

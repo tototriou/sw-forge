@@ -65,6 +65,55 @@ export const DEF_BREAK_ICON = 'https://swarfarm.com/static/herders/images/buffs/
 export const BRAND_BONUS_PCT = 25;
 export const BRAND_ICON = 'https://swarfarm.com/static/herders/images/buffs/debuff_brand.png';
 
+// ── Effets d'ÉQUIPE (portés par un AUTRE monstre que celui optimisé) ────
+// Contrairement à `PASSIFS_OFFENSIFS_CONNUS`/aux modificateurs monstre-wide
+// plus haut, ceux-ci ne dépendent PAS du monstre optimisé — n'importe quel
+// monstre peut en bénéficier si l'un de ces quatre est dans son équipe.
+// Demande explicite de l'utilisateur : sélectionnables dans « Effets actifs »
+// comme un buff ATQ, avec le PORTRAIT du monstre en icône plutôt qu'une
+// icône de buff générique — d'où des URLs de PORTRAIT (`Monster.image`,
+// swarfarm.com/.../monsters/…), pas `buffs/…` comme les icônes ci-dessus.
+//
+// Euldong — « Triumph Over Evil (Passive) » : « Increases the Critical
+// Damage by 100% when an ally attacks the enemy ». Confirmé par
+// l'utilisateur : ajoute 100 POINTS à la stat Dgts Crit (130 % → 230 %),
+// comme les points plats des compétences d'invocateur (`cdPoints`) — pas un
+// facteur ×2. ⚠️ Le texte du jeu précise que cet effet ne cumule pas avec
+// un AUTRE effet d'augmentation de Dgts Crit — aucun de modélisé ici pour
+// l'instant, donc sans conséquence actuellement.
+export const EULDONG_CD_POINTS = 100;
+export const EULDONG_ICON = 'https://swarfarm.com/static/herders/images/monsters/unit_icon_0133_1_4.png';
+
+// Mirinae — S3 « Cursed Music » : « increases the damage of all allies and
+// enemies by 30% until your next turn starts ». Même famille que la Marque
+// (+25 %, additif dans le terme « Réductions ») — confirmé par
+// l'utilisateur : « stacks additively with -DMG% artifacts ».
+export const MIRINAE_BONUS_PCT = 30;
+export const MIRINAE_ICON = 'https://swarfarm.com/static/herders/images/monsters/unit_icon_0057_1_5.png';
+
+// Deborah — S3 « Blacksmith's Discernment (Passive) » : « Increases the
+// decreasing effects of Attack Power, Defense, and Attack Speed that
+// enemies receive by 30% ». Amplifie la RÉDUCTION de DEF d'une réduction de
+// défense déjà active (`setup.defBreak`), jamais une réduction à elle
+// seule — confirmé par l'utilisateur : « Effective DEF break is 91% with
+// deborah passive and a defense break », soit
+// `1 − (1 − DEF_BREAK_FACTOR) × 1,30 = 1 − 0,7×1,30 = 1 − 0,91 = 0,09`.
+// ⚠️ Le texte précise « 15% if it's the boss » — aucune notion de boss dans
+// cet outil (comme partout ailleurs), seul le cas non-boss (30 %) est
+// modélisé.
+export const DEBORAH_AMPLIFY = 1.3;
+export const DEBORAH_ICON = 'https://swarfarm.com/static/herders/images/monsters/unit_icon_0081_1_5.png';
+
+// Miriam — S3 « Blacksmith's Technique (Passive) » : « Increases the
+// increasing effects of Attack Power, Defense and Attack Speed that allies
+// receive by 35% » — amplifie la MAGNITUDE des trois buffs (ATQ/DEF/VIT)
+// déjà actifs, jamais leur simple présence. Généralise à ATQ/DEF le
+// mécanisme déjà en place pour la VIT via un artéfact « Effet aug. VIT »
+// (`speedBuffAmpliPct`) — mais Miriam, elle, est un TOGGLE (un monstre dans
+// l'équipe ou non), pas une somme de lignes d'artéfact.
+export const MIRIAM_AMPLIFY_PCT = 35;
+export const MIRIAM_ICON = 'https://swarfarm.com/static/herders/images/monsters/unit_icon_0081_1_2.png';
+
 // ── Compétences d'invocateur ─────────────────────────────────────────────
 // Remplacent les anciens TOTEMS de guilde (onglet « Combat ») et DRAPEAUX de
 // Guerre de Guilde (onglet « Guilde ») — le jeu a fusionné les deux systèmes
@@ -941,6 +990,14 @@ export interface DamageSetup {
   // l'écran ne l'affiche que dans ce cas. Optionnel (compatibilité arrière).
   defBreakParLeSort?: boolean;
   brand: boolean;
+  // Effets d'ÉQUIPE (un autre monstre que celui optimisé) — voir les
+  // constantes `EULDONG_CD_POINTS`/`MIRINAE_BONUS_PCT`/`DEBORAH_AMPLIFY`/
+  // `MIRIAM_AMPLIFY_PCT` plus haut. Optionnels : absents/`false` sur une
+  // recette exportée avant ces champs, comportement strictement inchangé.
+  euldongActif?: boolean;
+  mirinaeActif?: boolean;
+  deborahActif?: boolean;
+  miriamActif?: boolean;
   critMode: CritMode;
   // Compétences d'invocateur prises en compte (ex-totems/drapeaux) — voir
   // `SummonerSkills`. ⚠️ Ne porte QUE le choix : l'élément du monstre, dont
@@ -992,6 +1049,10 @@ export const DEFAULT_DAMAGE_SETUP: DamageSetup = {
   defBreak: false,
   defBreakParLeSort: false,
   brand: false,
+  euldongActif: false,
+  mirinaeActif: false,
+  deborahActif: false,
+  miriamActif: false,
   critMode: 'moyenne',
   // ⚠️ « Combat » par défaut, pas « Aucune » : ces compétences sont
   // PERMANENTES en jeu dès qu'elles sont montées, et le sont chez à peu près
@@ -1058,7 +1119,12 @@ export function maVitCombat(stats: StatRow[], setup: DamageSetup, element: Eleme
   const bonus = summonerSkillBonus(setup.summonerSkills, element);
   const row = stats.find((s) => s.key === 'spd');
   const base = row ? row.total + Math.ceil((row.base * bonus.pct.spd) / 100) : 0;
-  const pctBuff = setup.spdBuff ? SPD_BUFF_PCT * (1 + ampliVitPct / 100) : 0;
+  // Miriam (« Blacksmith's Technique ») amplifie AUSSI le buff de VIT, en
+  // plus d'un éventuel artéfact « Effet aug. VIT » (`ampliVitPct`) — les
+  // deux sources se SOMMENT avant d'amplifier, comme plusieurs lignes
+  // d'artéfact identiques le font déjà (voir `speedBuffAmpliPct`).
+  const ampliMiriam = setup.miriamActif ? MIRIAM_AMPLIFY_PCT : 0;
+  const pctBuff = setup.spdBuff ? SPD_BUFF_PCT * (1 + (ampliVitPct + ampliMiriam) / 100) : 0;
   const pctLeader = setup.leaderSpeedPct ?? 0;
   return (base * (100 + pctBuff + pctLeader)) / 100;
 }
@@ -1104,9 +1170,14 @@ export function computeSkillDamageDetail(
   // le calcul plutôt que produire `Infinity`/`NaN`.
   const vitEnnemie = Math.max(1, setup.enemySpd ?? DEFAULT_DAMAGE_SETUP.enemySpd!);
 
+  // Miriam (« Blacksmith's Technique ») amplifie la MAGNITUDE des trois
+  // buffs déjà actifs — jamais leur simple présence (`buff()` reste
+  // conditionné à `setup.atkBuff`/`defBuff` ; `maVitCombat` fait de même en
+  // interne pour la VIT).
+  const ampliMiriam = setup.miriamActif ? MIRIAM_AMPLIFY_PCT : 0;
   const valeurs: Record<DamageVariable, number> = {
-    ATK: buff(avecInvocateur('atk'), setup.atkBuff, ATK_BUFF_PCT),
-    DEF: buff(avecInvocateur('def'), setup.defBuff, DEF_BUFF_PCT),
+    ATK: buff(avecInvocateur('atk'), setup.atkBuff, ATK_BUFF_PCT * (1 + ampliMiriam / 100)),
+    DEF: buff(avecInvocateur('def'), setup.defBuff, DEF_BUFF_PCT * (1 + ampliMiriam / 100)),
     SPD: maVit,
     'MAX HP': avecInvocateur('hp'),
     'Target MAX HP': pvMax,
@@ -1122,7 +1193,9 @@ export function computeSkillDamageDetail(
   // (elles s'appliquent que le coup soit critique ou non) — voir
   // spec/mecaniques.md, terme « Crit ». Les Dgts Crit d'invocateur sont des
   // POINTS ajoutés à la stat, pas un pourcentage de celle-ci.
-  const cd = (total(stats, 'cd') + bonus.cdPoints) / 100;
+  // Euldong (« Triumph Over Evil ») ajoute 100 POINTS à la stat, comme les
+  // points plats des compétences d'invocateur.
+  const cd = (total(stats, 'cd') + bonus.cdPoints + (setup.euldongActif ? EULDONG_CD_POINTS : 0)) / 100;
   // ⚠️ Taux Crit PLAFONNÉ à 100 % : `computeStats` renvoie volontairement le
   // total BRUT (un dépassement reste une marge légitime contre la résistance
   // adverse), mais au-delà de 100 % il ne rapporte plus aucun dégât en jeu.
@@ -1137,12 +1210,21 @@ export function computeSkillDamageDetail(
   const fractionIgnoree = profile.ignoreDefSelonVit
     ? Math.min(1, Math.max(0, (maVit - vitEnnemie) / profile.ignoreDefSelonVit.ecartMax))
     : 0;
-  const defEff = profile.ignoreDef
-    ? 0
-    : Math.max(0, setup.enemyDef) * (setup.defBreak ? DEF_BREAK_FACTOR : 1) * (1 - fractionIgnoree);
+  // Deborah (« Blacksmith's Discernment ») amplifie la RÉDUCTION d'une
+  // réduction de DEF déjà active — jamais une réduction à elle seule (sans
+  // `defBreak`, rien à amplifier). `1 − (1 − DEF_BREAK_FACTOR) × 1,30`,
+  // confirmé par l'utilisateur : 91 % de DEF effective en moins avec les
+  // deux actifs (0,7 × 1,30 = 0,91), contre 70 % (`DEF_BREAK_FACTOR` seul).
+  const facteurDefBreak = setup.defBreak
+    ? 1 - (1 - DEF_BREAK_FACTOR) * (setup.deborahActif ? DEBORAH_AMPLIFY : 1)
+    : 1;
+  const defEff = profile.ignoreDef ? 0 : Math.max(0, setup.enemyDef) * facteurDefBreak * (1 - fractionIgnoree);
   const mitigation = profile.fixed ? 1 : defenseFactor(defEff);
 
-  const reductions = 1 + (setup.brand ? BRAND_BONUS_PCT / 100 : 0);
+  // Mirinae (S3 « Cursed Music ») : même famille que la Marque, additive
+  // avec elle — confirmé par l'utilisateur.
+  const reductions =
+    1 + (setup.brand ? BRAND_BONUS_PCT / 100 : 0) + (setup.mirinaeActif ? MIRINAE_BONUS_PCT / 100 : 0);
 
   const horsCoup = critTerm * mitigation * reductions;
   const coups = resolvedHits(profile, setup);

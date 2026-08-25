@@ -605,23 +605,24 @@ export default function SiegeTeam({
                 (messageTick ?? "Ton équipe n'est pas au tick.")
               ) : statut === 'orange' ? (
                 speedTune ? (
-                  <>
-                    Équipe speed :{' '}
-                    <span className="font-semibold text-ink">
-                      {speedTune.requis.length === 0
-                        ? 'elle ne passe pas devant un monstre aussi rapide que le tien'
-                        : speedTune.requis
-                            .map((r) => {
-                              // ⚠️ Les identifiants de l'analyse indexent l'ÉQUIPE
-                              // (slots vides écartés), pas les trois slots.
-                              const nom = equipeAuto[Number(r.id)]?.monster.name ?? 'Ce monstre';
-                              return r.combatRequis == null
-                                ? `${nom} (hors de portée)`
-                                : `${nom} +${r.combatRequis - r.combatActuel} VIT`;
-                            })
-                            .join(', ')}
-                    </span>
-                  </>
+                  // ⚠️ **Rien que ce qui ne va pas.** « Équipe speed : » ouvrait
+                  // la phrase et ne disait rien de plus que le pictogramme et le
+                  // contour : on le relisait à chaque équipe pour arriver au
+                  // seul morceau utile, le nom et le chiffre qui manque.
+                  <span className="font-semibold text-ink">
+                    {speedTune.requis.length === 0
+                      ? 'Elle ne passe pas devant un monstre aussi rapide que le tien'
+                      : speedTune.requis
+                          .map((r) => {
+                            // ⚠️ Les identifiants de l'analyse indexent l'ÉQUIPE
+                            // (slots vides écartés), pas les trois slots.
+                            const nom = equipeAuto[Number(r.id)]?.monster.name ?? 'Ce monstre';
+                            return r.combatRequis == null
+                              ? `${nom} (hors de portée)`
+                              : `${nom} +${r.combatRequis - r.combatActuel} VIT`;
+                          })
+                          .join(', ')}
+                  </span>
                 ) : null
               ) : statut === 'vert' && validated ? (
                 <button

@@ -95,11 +95,16 @@ par équipe :
 
 | Statut | Couleur | Condition | Message sous les monstres |
 |--------|---------|-----------|---------------------------|
-| Orange | `amber` | Équipe avec **≥1 Swift** qui **n'est PAS speed tune** | ce qui manque, monstre par monstre |
+| Orange | `amber` | Équipe avec **≥1 Swift** qui **n'est PAS speed tune** | ⚠️ **RIEN QUE ce qui manque**, monstre par monstre (« Susano +14 VIT ») |
 | — | neutre | Équipe Swift dont le speed tune **ne peut pas encore être calculé** (données en cours de chargement, un seul monstre renseigné) | la RAISON, et pas n'importe laquelle — voir ci-dessous |
 | Rouge | `fire` | (Sans Swift) un monstre **pas au tick** (anneau rouge sur le slot fautif) | une phrase par monstre fautif, voir ci-dessous |
 | Vert | `emerald` | (Sans Swift) **tous au tick** · **ou** équipe Swift **speed tune** · **ou** recommandation ignorée | « ✓ Équipe speed : elle est speed tune » pour le cas Swift |
 | — | neutre | Équipe **vide** ou avec **Leo** | — |
+
+⚠️ **Le message orange n'a pas d'introduction.** Il disait « Équipe speed : … »,
+ce que le pictogramme d'alerte et le contour disaient déjà : on relisait la même
+amorce à chaque équipe pour arriver au seul morceau utile — le nom et le chiffre
+qui manque. Le message EST ce qui ne va pas.
 
 ⚠️ **Sans verdict, la card dit POURQUOI — et la bonne raison.** Deux cas se
 ressemblent et ne se disent pas pareil :

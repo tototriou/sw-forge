@@ -349,7 +349,11 @@ retour.
        concerné) pour choisir la valeur réellement utilisée par le calcul —
        `Competence.coups` ne porte qu'un seul nombre en donnée, pas fiable
        pour ces sorts-là. Détail : [degats-reels.md](degats-reels.md),
-       « Coups variables ».
+       « Coups variables ». Un champ **Attaques reçues avant ce sort**
+       (0 par défaut) n'apparaît que pour l'unique sort connu dont le
+       coefficient dépend d'un compteur de combat (Crawler/Frankenstein —
+       « Hammer Punch »). Détail : [degats-reels.md](degats-reels.md),
+       « formule bespoke selon un compteur ».
      - **Passifs offensifs** — n'apparaît que si le monstre en a un
        (Feng Yan, Sia, Roid, Dominic, Ciri, Sonia, Momo, Chun-Li, Lizardman,
        Jin Kazama…) : des dégâts **en plus** du sort choisi ci-dessus, OU un

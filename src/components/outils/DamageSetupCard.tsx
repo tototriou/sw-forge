@@ -278,6 +278,27 @@ export default function DamageSetupCard({
           })}
         </div>
         {champCoupsVariables(resolved, setup, maj)}
+        {/* Crawler/Frankenstein (« Rage Charge ») : le compteur d'attaques
+            reçues n'est pas un état que l'app simule — saisi ici, à côté
+            du sort dont il modifie directement la formule. */}
+        {resolved.bonusCoefficientParCompteur && (
+          <div className="mt-1 flex items-center gap-2">
+            <span className="text-xs text-ink-dim">{resolved.bonusCoefficientParCompteur.label}</span>
+            <NumberField
+              value={setup.compteurPersonnalise?.[resolved.skillCom2usId] ?? 0}
+              onChange={(v) =>
+                maj({
+                  compteurPersonnalise: { ...(setup.compteurPersonnalise ?? {}), [resolved.skillCom2usId]: v ?? 0 },
+                })
+              }
+              min={0}
+              max={9999}
+              boxWidth="w-24"
+              title="Ce que l'app ne peut pas savoir (l'état de combat réel) — à toi de le renseigner, 0 par défaut"
+              ariaLabel={resolved.bonusCoefficientParCompteur.label}
+            />
+          </div>
+        )}
       </div>
 
       {/* ⚠️ **Indépendant du sort choisi ci-dessus** — un passif s'applique

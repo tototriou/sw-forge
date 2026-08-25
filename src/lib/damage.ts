@@ -504,6 +504,14 @@ export function resolvedEffetsCibleCount(profile: SkillDamageProfile, setup: Dam
   return Math.max(0, setup.effetsCibleCount?.[profile.skillCom2usId] ?? 0);
 }
 
+// Le compteur ACTUELLEMENT saisi pour `profile` (Crawler/Frankenstein —
+// nombre d'attaques reçues) — 0 si rien de saisi. Borné à 9999, la plage
+// confirmée par l'utilisateur, au cas où une saisie hors plage viendrait
+// d'une recette écrite pour une autre règle.
+export function resolvedCompteurPersonnalise(profile: SkillDamageProfile, setup: DamageSetup): number {
+  return Math.min(9999, Math.max(0, setup.compteurPersonnalise?.[profile.skillCom2usId] ?? 0));
+}
+
 // Passifs qui majorent TOUS les dégâts du monstre d'un pourcentage FIXE
 // sous une condition que l'app ne peut PAS déduire (état de PV propre au
 // monstre, comparaison avec la cible, état d'un allié, tour précédent…) —
@@ -742,6 +750,18 @@ export interface SkillDamageProfile {
   // l'utilisateur, même famille que `coupsPersonnalises`/`stackPersonnalise`
   // (0 par défaut, jamais deviné).
   bonusParEffetCible?: { pct: number; inclutDebuffs: boolean };
+  // Ajoute `coeffParPoint × {variable} × compteur` au MULTIPLICATEUR déjà
+  // évalué de la formule — Crawler/Frankenstein (« Rage Charge (Passive) »
+  // sur « Hammer Punch » S1) : « Your damage is increased according to the
+  // number of attacks you have received. » Curé (`BONUS_COEFFICIENT_PAR_
+  // COMPTEUR_CONNUS`), pas un pourcentage MULTIPLICATIF comme
+  // `bonusParEffetCible` : le texte du jeu confirmé donne un terme ADDITIF
+  // à la formule elle-même (`2,04×DEF` devient `2,04×DEF + N×0,20×DEF`),
+  // jamais une réécriture de `formule` (interdit, voir plus haut) —
+  // recalculé à partir de la même variable déjà évaluée dans `valeurs`.
+  // `DamageSetup.compteurPersonnalise` porte le compte SAISI (0 par
+  // défaut, aucun état de combat simulé).
+  bonusCoefficientParCompteur?: { coeffParPoint: number; variable: DamageVariable; label: string };
   variables: DamageVariable[];
   noeud: Noeud;
 }
@@ -760,6 +780,25 @@ export interface SkillDamageProfile {
 const BONUS_PAR_EFFET_CIBLE_CONNUS: Record<string, { pct: number; inclutDebuffs: boolean }> = {
   'Thousand Shots': { pct: 50, inclutDebuffs: false }, // Julie, Pierrette — « for each beneficial effect »
   'Massacre Dance': { pct: 10, inclutDebuffs: true }, // Melissa, Chakram Dancer — « beneficial AND harmful »
+};
+
+// Formule exacte confirmée par l'utilisateur, avec démonstration algébrique :
+// « Si Crawler subit N attaques avant de lancer son S1 (qui frappe
+// normalement 2 fois à 2,04×Défense par coup), les dégâts par coup
+// s'expriment ainsi : (2,04×Défense) + (N×0,20×Défense). Compteur
+// configurable de 0 à 9999. » Vérifié : « Hammer Punch » (S1 de
+// Frankenstein/Crawler, EXCLUSIF à cette famille dans tout le corpus,
+// 20 fiches) porte `2.04*{DEF}` sur les formes Crawler (`20831-20835`,
+// `48201-48205`) et `1.8*{DEF}` sur les formes Frankenstein classiques
+// (`20801-20815`) — les DEUX portent « Rage Charge (Passive) » avec le
+// MÊME texte, donc le MÊME terme additif `+0,20×DEF` par attaque reçue,
+// appliqué aux deux (l'utilisateur n'a chiffré que le cas Crawler, mais le
+// mécanisme — comme sa description — est partagé).
+const BONUS_COEFFICIENT_PAR_COMPTEUR_CONNUS: Record<
+  string,
+  { coeffParPoint: number; variable: DamageVariable; label: string }
+> = {
+  'Hammer Punch': { coeffParPoint: 0.2, variable: 'DEF', label: 'Attaques reçues avant ce sort' }, // Frankenstein, Crawler
 };
 
 // Sorts où le pourcentage de DEF ignorée dépend de l'écart de VIT avec la
@@ -796,6 +835,11 @@ const COUPS_VARIABLES_CONNUS: Record<string, { min: number; max: number }> = {
   'Great Friends (Passive)': { min: 2, max: 3 }, // Sia — confirmé par l'utilisateur
   'Rain of Stones': { min: 3, max: 5 }, // Okeanos S3
   'Ray Spears': { min: 2, max: 3 }, // Amber S2
+  // « Attacks 6 times when this attack is used with full HP » — confirmé
+  // par l'utilisateur : 4 à 6 coups si Julie N'EST PAS à pleine vie, 6
+  // pile sinon. `Competence.coups` (6) ne porte QUE le cas pleine vie,
+  // exactement le piège que cette table existe pour corriger.
+  'Thousand Shots': { min: 4, max: 6 }, // Julie, Pierrette
 };
 
 /**
@@ -859,6 +903,7 @@ export function skillDamageProfile(c: Competence): SkillDamageProfile | SkillDam
     fixed,
     skillupDamagePct,
     bonusParEffetCible: BONUS_PAR_EFFET_CIBLE_CONNUS[c.nom],
+    bonusCoefficientParCompteur: BONUS_COEFFICIENT_PAR_COMPTEUR_CONNUS[c.nom],
     variables,
     noeud: analyse.noeud,
   };
@@ -1328,6 +1373,12 @@ export interface DamageSetup {
   // réel sur l'adversaire (contrairement à ses PV) : absent = 0, jamais
   // deviné.
   effetsCibleCount?: Record<number, number>;
+  // Compteur saisi par l'utilisateur pour un sort à `bonusCoefficientParCompteur`
+  // (Crawler/Frankenstein — nombre d'attaques reçues avant de lancer ce
+  // sort), clé = `skillCom2usId` DU SORT, même espace de clés que
+  // `coupsPersonnalises`/`effetsCibleCount`. Aucun état de combat simulé :
+  // absent = 0, jamais deviné.
+  compteurPersonnalise?: Record<number, number>;
 }
 
 // Adversaire de référence : ni un boss ni une cible nue. 1000 DEF et 30 000
@@ -1626,6 +1677,16 @@ export function computeSkillDamageDetail(
 
   const horsCoup = critTerm * mitigation * reductions * facteurEffetCible;
   const coups = resolvedHits(profile, setup);
+  // Crawler/Frankenstein (« Rage Charge ») : `+coeffParPoint × {variable} ×
+  // compteur` s'ajoute au MULTIPLICATEUR de la formule (jamais une
+  // réécriture de `formule` elle-même) — recalculé à partir de la MÊME
+  // variable déjà évaluée dans `valeurs`, jamais une seconde lecture des
+  // stats. Constant sur toute la durée du sort (la variable concernée,
+  // DEF, ne varie jamais coup par coup, contrairement aux PV de la cible).
+  const bonusCompteur = profile.bonusCoefficientParCompteur;
+  const ajoutCompteur = bonusCompteur
+    ? bonusCompteur.coeffParPoint * resolvedCompteurPersonnalise(profile, setup) * (valeurs[bonusCompteur.variable] ?? 0)
+    : 0;
   // Les PV ne peuvent pas descendre sous zéro, et une cible à 0 PV max (cas
   // dégénéré d'un réglage vidé) ne se creuse pas : on renvoie alors le
   // pourcentage de départ inchangé plutôt que de diviser par zéro.
@@ -1634,7 +1695,7 @@ export function computeSkillDamageDetail(
   // Chemin COURT — le ratio ne dépend pas des PV de la cible : une seule
   // évaluation, exactement comme avant l'ajout de la simulation.
   if (!profile.variables.includes('Target Current HP %')) {
-    const mult = evaluer(profile.noeud, valeurs);
+    const mult = evaluer(profile.noeud, valeurs) + ajoutCompteur;
     if (mult <= 0) return { total: 0, pvRestantsPct: pctDepart };
     const totalDegats = mult * horsCoup * coups;
     const pvApres = creuse(totalDegats, (pctDepart / 100) * pvMax);
@@ -1647,7 +1708,7 @@ export function computeSkillDamageDetail(
   let totalDegats = 0;
   for (let i = 0; i < coups; i++) {
     valeurs['Target Current HP %'] = pvMax > 0 ? pvCourant / pvMax : pctDepart / 100;
-    const mult = evaluer(profile.noeud, valeurs);
+    const mult = evaluer(profile.noeud, valeurs) + ajoutCompteur;
     if (mult <= 0) continue;
     const degatsCoup = mult * horsCoup;
     totalDegats += degatsCoup;

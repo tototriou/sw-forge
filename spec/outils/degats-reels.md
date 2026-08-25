@@ -334,11 +334,13 @@ pas seulement quand la formule du sort lit les PV courants.
 ### Coups variables — un sort/passif qui frappe un nombre de fois qui change en jeu
 
 Certains sorts et passifs infligent un nombre de coups qui **varie** en jeu
-(« 2 à 3 fois de plus », Sia — Great Friends ; « 3 à 5 fois », Okeanos S3).
-`Competence.coups` (donnée SWARFARM) ne porte qu'**un seul nombre**, pas
-toujours cohérent avec le texte du jeu (ex. Rain of Fire : `coups=6` en
-donnée, « 3 à 5 fois » dans le texte — ni l'un ni l'autre) : aucune
-extraction automatique fiable n'est possible.
+(« 2 à 3 fois de plus », Sia — Great Friends ; « 3 à 5 fois », Okeanos S3 ;
+« 4 à 6 fois », Julie — Thousand Shots, 6 pile à pleine vie). `Competence.
+coups` (donnée SWARFARM) ne porte qu'**un seul nombre**, pas toujours
+cohérent avec le texte du jeu (ex. Rain of Fire : `coups=6` en donnée,
+« 3 à 5 fois » dans le texte — ni l'un ni l'autre ; Julie : `coups=6`,
+mais 6 n'est que le cas pleine vie) : aucune extraction automatique fiable
+n'est possible.
 
 ⚠️ **Même discipline de curation que `PASSIFS_OFFENSIFS_CONNUS`** —
 `COUPS_VARIABLES_CONNUS` ([damage.ts](src/lib/damage.ts)) associe un
@@ -634,18 +636,38 @@ implémenter la table de stack serait sans effet tant que la formule
 elle-même reste hors modèle. À reprendre seulement si `{Alive Enemies}`
 est un jour ajouté à la grammaire.
 
-⚠️ **Point 25 (Crawler, « Rage Charge ») — réponse complète reçue, non
-implémenté : mécanisme différent des quatre catégories ci-dessus.**
-L'utilisateur a fourni la formule exacte : le S1 de Crawler
-(`Hammer Punch`, `2,04×{DEF}` confirmé sur `com2usId 20835`) gagne
-`N × 0,20 × {DEF}` par coup, N = nombre d'attaques reçues avant de lancer
-ce sort, configurable 0 à 9999. Ce n'est PAS un modificateur générique sur
-le TOTAL comme les quatre familles ci-dessus : c'est une correction du
-COEFFICIENT d'UN sort actif précis, selon un compteur — un mécanisme encore
-différent, qui demanderait soit un champ de formule par `skillCom2usId`
-(inédit), soit d'exprimer la formule autrement. Volontairement laissé pour
-une passe dédiée plutôt que forcé dans un mécanisme qui ne lui correspond
-pas.
+### Quatrième vague — point 25 : formule bespoke selon un compteur (Crawler)
+
+Rupture avec toutes les familles précédentes : ni un modificateur sur le
+TOTAL (monstre-wide), ni un pourcentage multiplicatif sur un sort — un
+terme ADDITIF sur le COEFFICIENT d'UN sort actif précis, selon un
+compteur. Formule exacte fournie par l'utilisateur, avec démonstration
+algébrique : « Si Crawler subit N attaques avant de lancer son S1 (qui
+frappe normalement 2 fois à 2,04×Défense par coup), les dégâts par coup
+s'expriment ainsi : (2,04×Défense)+(N×0,20×Défense). Compteur configurable
+de 0 à 9999. »
+
+`SkillDamageProfile.bonusCoefficientParCompteur?: { coeffParPoint: number;
+variable: DamageVariable; label: string }`, curé dans `BONUS_COEFFICIENT_
+PAR_COMPTEUR_CONNUS` (clé = `Competence.nom`, « Hammer Punch » — EXCLUSIF
+à la famille Frankenstein/Crawler dans tout le corpus, 20 fiches
+vérifiées). `2,04×{DEF}` (formes Crawler) et `1,8×{DEF}` (formes
+Frankenstein classiques) portent TOUTES deux « Rage Charge (Passive) »
+avec le même texte — même mécanisme, `+0,2×DEF` par attaque reçue,
+appliqué aux deux (confirmé partagé par l'utilisateur, l'énoncé initial ne
+chiffrant que le cas Crawler).
+
+⚠️ **Jamais une réécriture de `formule`** (l'invariant central de ce
+fichier) : le terme additif est recalculé à partir de la MÊME variable
+déjà évaluée dans `valeurs` (`ajoutCompteur = coeffParPoint × compteur ×
+valeurs[variable]`), ajouté au multiplicateur `evaluer(profile.noeud,
+valeurs)` juste après son évaluation — dans les DEUX chemins de calcul
+(court et séquentiel). `DamageSetup.compteurPersonnalise?:
+Record<skillCom2usId, number>` (même espace de clés que
+`coupsPersonnalises`) porte le compte SAISI, borné à 9999
+(`resolvedCompteurPersonnalise`) — 0 par défaut, aucun état de combat
+simulé. Champ affiché à côté du sort choisi (« Compétence utilisée »),
+gaté sur `resolved.bonusCoefficientParCompteur`.
 
 ### Troisième vague — points 4 et 5 : bonus selon les effets sur la CIBLE
 
@@ -658,12 +680,14 @@ bonusParEffetCible?: { pct: number; inclutDebuffs: boolean }`, curé dans
 - **Julie/Pierrette** (« Thousand Shots », S3) : « The damage increases by
   50% for each beneficial effect on the enemies. » `+50 %` confirmé
   DIRECTEMENT dans les données SWARFARM (`quantite: 50` sur l'effet
-  « Buff Bonus Damage »), pas seulement la prose libre. ⚠️ Les 6 coups
-  annoncés (« Attacks 6 times when this attack is used with full HP ») sont
-  DÉJÀ la valeur de `Competence.coups` (6) — comme pour tout sort actif,
-  l'app ne simule pas les PV du monstre optimisé pour en déduire un nombre
-  de coups réduit hors pleine vie ; le cas pleine vie (6 coups) est celui
-  utilisé, sans nouveau champ.
+  « Buff Bonus Damage »), pas seulement la prose libre. ⚠️ Les coups sont
+  eux-mêmes VARIABLES — confirmé par l'utilisateur : **4 à 6 coups** (6
+  pile à pleine vie, « Attacks 6 times when this attack is used with full
+  HP »). Ajoutée à `COUPS_VARIABLES_CONNUS` (même mécanisme qu'Okeanos S3/
+  Amber S2, voir « Coups variables » plus haut) : `Competence.coups` (6)
+  ne portait QUE le cas pleine vie, exactement le piège que cette table
+  existe pour corriger — le minimum (4) est retenu par défaut, jamais une
+  surestimation.
 - **Melissa/Chakram Dancer** (« Massacre Dance », S3) : « increases the
   damage by 10% each according to the number of beneficial AND harmful
   effects granted on the target » — BUFFS **ET** DEBUFFS, contrairement à

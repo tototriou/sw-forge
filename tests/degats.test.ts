@@ -60,6 +60,7 @@ import {
   monsterOffensivePassives,
   passifActif,
   resolveDamageSkill,
+  resolvedCompteurPersonnalise,
   resolvedEffetsCibleCount,
   resolvedHits,
   resolvedStackPct,
@@ -933,16 +934,18 @@ export default function testDegats() {
   // Julie/Pierrette — « Thousand Shots » : « The damage increases by 50%
   // for each beneficial effect on the enemies. » Confirmé dans les données
   // SWARFARM elles-mêmes (`quantite: 50` sur l'effet « Buff Bonus
-  // Damage ») — pas seulement la prose. `coups: 6` déjà en donnée
-  // (correspond au cas pleine vie, jamais un état de PV simulé pour un
-  // sort actif) : rien à curer côté coups, seul le bonus par effet manquait.
+  // Damage ») — pas seulement la prose. ⚠️ Les coups sont VARIABLES (4 à 6,
+  // 6 pile à pleine vie, confirmé par l'utilisateur) — même mécanisme que
+  // Okeanos S3/Amber S2 (`COUPS_VARIABLES_CONNUS`), min retenu par défaut
+  // (4), jamais une surestimation.
   const julie = fiche(13911);
   const julieSkills = monsterDamageSkills(julie);
   const thousandShots = julieSkills.find((s) => estPrisEnCharge(s) && s.nom === 'Thousand Shots');
   ok(thousandShots != null && estPrisEnCharge(thousandShots), 'Thousand Shots : profil calculable trouvé');
   const thousandShotsProfile = thousandShots as SkillDamageProfile;
   egal(thousandShotsProfile.bonusParEffetCible, { pct: 50, inclutDebuffs: false }, 'Julie : +50 % par effet BÉNÉFIQUE uniquement, confirmé par les données');
-  egal(thousandShotsProfile.hits, 6, 'les 6 coups viennent des données (cas pleine vie), jamais un état de PV simulé');
+  egal(thousandShotsProfile.hitsRange, { min: 4, max: 6 }, 'Julie : coups variables, 4 à 6 (6 à pleine vie)');
+  egal(thousandShotsProfile.hits, 4, 'le minimum (4) est retenu par défaut, jamais une surestimation');
   const julieStats = stats({ atk: 2000, cd: 200, cr: 100 });
   const julieSetup: DamageSetup = { ...DEFAULT_DAMAGE_SETUP, skillCom2usId: thousandShotsProfile.skillCom2usId, summonerSkills: 'aucune', critMode: 'normal' };
   egal(resolvedEffetsCibleCount(thousandShotsProfile, julieSetup), 0, 'sans réglage utilisateur, 0 effet — jamais deviné');
@@ -982,6 +985,64 @@ export default function testDegats() {
   const covenant = fiche(22711);
   const suppressiveFire = monsterDamageSkills(covenant).find((s) => estPrisEnCharge(s) && s.nom === 'Suppressive Fire');
   ok(suppressiveFire != null && estPrisEnCharge(suppressiveFire) && !(suppressiveFire as SkillDamageProfile).bonusParEffetCible, 'Covenant : aucun pourcentage confirmé, mécanisme non modélisé');
+
+  titre('Dégâts réels — formule bespoke selon un compteur (Crawler, Frankenstein)');
+
+  // Crawler — « Hammer Punch » (S1), « Rage Charge (Passive) » : formule
+  // exacte fournie par l'utilisateur, avec démonstration algébrique — « Si
+  // Crawler subit N attaques avant de lancer son S1 (2,04×Défense/coup),
+  // les dégâts par coup s'expriment ainsi : (2,04×Défense)+(N×0,20×Défense).
+  // Compteur configurable de 0 à 9999. »
+  const crawler = fiche(20835);
+  const crawlerSkills = monsterDamageSkills(crawler);
+  const hammerPunchCrawler = crawlerSkills.find((s) => estPrisEnCharge(s) && s.nom === 'Hammer Punch');
+  ok(hammerPunchCrawler != null && estPrisEnCharge(hammerPunchCrawler), 'Crawler : Hammer Punch calculable');
+  const hammerPunchCrawlerProfile = hammerPunchCrawler as SkillDamageProfile;
+  egal(
+    hammerPunchCrawlerProfile.bonusCoefficientParCompteur?.coeffParPoint,
+    0.2,
+    'Crawler : +0,2 × DEF par attaque reçue, confirmé par l’utilisateur'
+  );
+  egal(hammerPunchCrawlerProfile.bonusCoefficientParCompteur?.variable, 'DEF', 'le terme additif porte sur la DEF, même variable que la formule de base');
+  const crawlerStats = stats({ atk: 2000, def: 1000, cd: 200, cr: 100 });
+  const crawlerSetup: DamageSetup = { ...DEFAULT_DAMAGE_SETUP, skillCom2usId: hammerPunchCrawlerProfile.skillCom2usId, summonerSkills: 'aucune', critMode: 'normal' };
+  egal(resolvedCompteurPersonnalise(hammerPunchCrawlerProfile, crawlerSetup), 0, 'sans réglage utilisateur, 0 attaque reçue — jamais deviné');
+  const crawlerSansCompteur = computeSkillDamage(hammerPunchCrawlerProfile, crawlerStats, crawlerSetup);
+  const crawlerAvec10 = computeSkillDamage(hammerPunchCrawlerProfile, crawlerStats, {
+    ...crawlerSetup,
+    compteurPersonnalise: { [hammerPunchCrawlerProfile.skillCom2usId]: 10 },
+  });
+  // (2,04×1000 + 10×0,2×1000) / (2,04×1000) = 4040 / 2040
+  ok(Math.abs(crawlerAvec10 / crawlerSansCompteur - 4040 / 2040) < 1e-9, '10 attaques reçues : le ratio suit exactement (2,04+10×0,2)/2,04');
+
+  // Hors plage — jamais laissé tel quel (recette écrite pour une autre
+  // règle), même discipline que `resolvedStackPct`.
+  egal(
+    resolvedCompteurPersonnalise(hammerPunchCrawlerProfile, {
+      ...crawlerSetup,
+      compteurPersonnalise: { [hammerPunchCrawlerProfile.skillCom2usId]: 50000 },
+    }),
+    9999,
+    'un compteur saisi AU-DELÀ de 9999 est borné, jamais plus'
+  );
+
+  // Frankenstein « classique » (coefficient 1,8×DEF, pas 2,04) porte le
+  // MÊME passif « Rage Charge (Passive) » avec le même texte : le terme
+  // additif +0,2×DEF s'applique aussi, l'utilisateur n'ayant chiffré que
+  // le cas Crawler mais le mécanisme étant partagé (même nom de sort ET de
+  // passif dans les données).
+  const frankenstein = fiche(20805);
+  const hammerPunchFrankenstein = monsterDamageSkills(frankenstein).find((s) => estPrisEnCharge(s) && s.nom === 'Hammer Punch');
+  ok(hammerPunchFrankenstein != null && estPrisEnCharge(hammerPunchFrankenstein), 'Frankenstein : Hammer Punch calculable');
+  egal(
+    (hammerPunchFrankenstein as SkillDamageProfile).bonusCoefficientParCompteur?.coeffParPoint,
+    0.2,
+    'Frankenstein classique porte le même mécanisme que Crawler'
+  );
+
+  // Un sort SANS ce mécanisme (Lushen S3) n'y est jamais sensible.
+  ok(!s3!.bonusCoefficientParCompteur, 'Lushen S3 ne porte pas ce mécanisme');
+  egal(resolvedCompteurPersonnalise(s3!, { ...DEFAULT_DAMAGE_SETUP, compteurPersonnalise: { [s3!.skillCom2usId]: 999 } }), 999, 'le compteur se résout normalement même sans mécanisme associé (jamais utilisé dans ce cas)');
 
   titre('Dégâts réels — stats à privilégier dans la recherche');
 

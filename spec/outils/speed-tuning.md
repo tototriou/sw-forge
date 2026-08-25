@@ -790,7 +790,13 @@ De haut en bas :
    - ⚠️ **La vitesse de combat garde sa taille et sa place**, à droite : c'est le
      chiffre qu'on vient lire. On gagne de la hauteur en resserrant ce qui
      l'entoure, jamais en rendant illisible l'objet de l'écran.
-3. **Analyse automatique** — ⚠️⚠️ **RIEN D'APPLIQUÉ NE RESTE INVISIBLE.** Tout ce
+3. **Ordre des sorts** — card à part (voir « Ordre des sorts » plus bas).
+   ⚠️ **Elle passe AVANT l'analyse** : c'est l'ordre de la cause et de l'effet.
+   On désigne ici ce que chacun lance, et le verdict de l'analyse en découle —
+   changer un sort est d'ailleurs le SEUL geste qui relance l'écriture des
+   grilles. Lire le verdict d'abord obligeait à remonter pour comprendre d'où il
+   sortait.
+4. **Analyse automatique** — ⚠️⚠️ **RIEN D'APPLIQUÉ NE RESTE INVISIBLE.** Tout ce
    que la simulation applique doit se retrouver dans les grilles, y compris sur
    l'adversaire de référence : un modificateur qui agit sans s'afficher rend
    **tout l'écran invérifiable** — on ne peut plus recouper un seul chiffre. Deux
@@ -915,7 +921,6 @@ De haut en bas :
      sache, et on se comparait à un monstre qui ne l'était plus. Un **vrai**
      adversaire (saisi ou importé), lui, n'est jamais remplacé : c'est une
      composition qu'on affronte, pas un repère.
-4. **Ordre des sorts** — card à part (voir « Ordre des sorts » plus bas).
 5. **Barre d'action par tick** (lecture seule) — tableau : lignes triées par
    ordre de tour, colonnes = ticks. Chaque cellule = `% rempli` — la
    **trajectoire réelle** renvoyée par la simulation (`OrdreEntree.trajectoire`),

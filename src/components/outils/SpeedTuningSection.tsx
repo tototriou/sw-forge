@@ -476,89 +476,12 @@ export default function SpeedTuningSection({
         </div>
       ) : (
         <>
-            {/* ⚠️ UNE SEULE card pour tout ce que l'outil fait de lui-même : le
-                verdict, ses deux boutons, et l'ordre des sorts. Ils étaient dans
-                deux cadres séparés, ce qui laissait croire à deux outils — alors
-                que « Cacher » les coupe ensemble. */}
-          <section className="rounded-lg border border-border bg-panel">
-              <div className="flex flex-wrap items-center gap-x-3 gap-y-2 border-b border-border-soft px-4 py-2.5">
-                <span className="text-micro font-semibold uppercase tracking-wider text-ink-dimmer">
-                  Analyse automatique
-                </span>
-                <span className="ml-auto flex flex-wrap items-center gap-2">
-                  {/* ⚠️ Une ACTION, pas un mode : l'analyse ÉCRIT dans les grilles
-                      puis s'arrête. Un interrupteur laissait croire à une couche
-                      qui tourne en fond et qui repasserait sur ce qu'on règle. */}
-                  <Bouton
-                    icone={<Play size={14} />}
-                    libelle={auto ? 'Relancer' : 'Analyser'}
-                    disabled={!aAllie}
-                    title={
-                      !aAllie
-                        ? "Ajoute d'abord des monstres à ton équipe."
-                        : "Lit les kits et POSE le résultat dans les grilles, comme si tu les remplissais à la main. Ensuite tout est modifiable : l'analyse ne repasse plus, sauf si tu changes un sort."
-                    }
-                    onClick={analyser}
-                  />
-                </span>
-              </div>
-              {/* ⚠️ Sans adversaire, il n'y a pas de verdict — et rien à dire :
-                  le corps ne s'affiche pas du tout plutôt que de porter une phrase
-                  qui explique l'évidence. */}
-              {(!aAllie || chaine.coupeur) && (
-                <div className="px-4 py-3.5">
-                    {!aAllie ? (
-                      <p className="text-sm text-ink-dim">
-                        Ajoute des monstres à ton équipe pour vérifier que rien ne la coupe.
-                      </p>
-                    ) : chaine.ok ? (
-                      <p className="flex items-center gap-2 text-sm font-semibold text-good">
-                        <Check size={16} className="flex-none" />
-                        Ta team est speed tune.
-                      </p>
-                    ) : (
-                      <>
-                        <p className="flex items-center gap-2 text-sm font-semibold text-bad">
-                          <Scissors size={16} className="flex-none" />
-                          {chaine.coupeur ? nomDe(chaine.coupeur.id) : 'Un adverse'} coupe ton combo.
-                        </p>
-                        {/* ⚠️ Une ligne = un nom et le chiffre à trouver, rien de
-                            plus : ce qu'on vient chercher ici, c'est « combien il me
-                            manque », pas un récit.
-                            ⚠️ **On liste ce que le solveur DEMANDE, pas ce qui est
-                            coupé.** Le réglage est un jeu de vitesses cohérent : il
-                            demande parfois des points à un monstre qui passe déjà
-                            (celui qui remplit la barre, à accélérer pour qu'il
-                            achète un tick au suivant), et il ne demande rien à un
-                            monstre coupé que la correction d'un autre suffit à
-                            sauver. Lister `chaine.coupes` masquait la moitié de la
-                            solution — appliquée telle quelle, elle ne tenait pas. */}
-                        <ul className="mt-2.5 flex flex-wrap gap-x-4 gap-y-1.5">
-                          {requis.map((c) => {
-                            const l = ligneParUid.get(c.id);
-                            if (!l) return null;
-                            const cible = c.combatRequis;
-                            const a = arteParUid.get(c.id);
-                            const arte = a?.artefactRequis ?? null;
-                            return (
-                              <li key={c.id} className="flex items-center gap-2 text-sm">
-                                <MonsterAvatar monster={l.monster} size={22} element={false} />
-                                <span className="font-semibold">{l.monster.name}</span>
-                                {besoin(l, cible, arte, a?.artefactActuel ?? 0)}
-                              </li>
-                            );
-                          })}
-                        </ul>
-                      </>
-                    )}
-                </div>
-              )}
-            </section>
-
             {/* ⚠️ Une card INDÉPENDANTE : elle ne s'ouvre ni ne se ferme depuis
                 l'analyse, elle est là comme les grilles. L'analyse la REMPLIT — elle
                 y écrit l'ordre des vitesses et le sort de chacun — mais les deux
-                se lisent et se règlent séparément. */}
+                se lisent et se règlent séparément.
+                ⚠️ **Et elle passe EN PREMIER** : c'est ici qu'on désigne ce que
+                chacun lance, et le verdict de l'analyse en découle. */}
           <section className="rounded-lg border border-border bg-panel">
                 <div className="flex flex-wrap items-center gap-x-3 gap-y-2 border-b border-border-soft px-4 py-2.5">
                   <span className="text-micro font-semibold uppercase tracking-wider text-ink-dimmer">
@@ -708,6 +631,86 @@ export default function SpeedTuningSection({
                         </>
                       )}
               </div>
+              )}
+            </section>
+
+            {/* ⚠️ **L'analyse vient APRÈS l'ordre des sorts**, parce que c'est
+                l'ordre de la CAUSE et de l'effet : on désigne ce que chacun
+                lance, et le verdict en découle. Changer un sort est d'ailleurs
+                le seul geste qui relance l'écriture des grilles. Lire le verdict
+                d'abord obligeait à remonter pour comprendre d'où il sortait. */}
+          <section className="rounded-lg border border-border bg-panel">
+              <div className="flex flex-wrap items-center gap-x-3 gap-y-2 border-b border-border-soft px-4 py-2.5">
+                <span className="text-micro font-semibold uppercase tracking-wider text-ink-dimmer">
+                  Analyse automatique
+                </span>
+                <span className="ml-auto flex flex-wrap items-center gap-2">
+                  {/* ⚠️ Une ACTION, pas un mode : l'analyse ÉCRIT dans les grilles
+                      puis s'arrête. Un interrupteur laissait croire à une couche
+                      qui tourne en fond et qui repasserait sur ce qu'on règle. */}
+                  <Bouton
+                    icone={<Play size={14} />}
+                    libelle={auto ? 'Relancer' : 'Analyser'}
+                    disabled={!aAllie}
+                    title={
+                      !aAllie
+                        ? "Ajoute d'abord des monstres à ton équipe."
+                        : "Lit les kits et POSE le résultat dans les grilles, comme si tu les remplissais à la main. Ensuite tout est modifiable : l'analyse ne repasse plus, sauf si tu changes un sort."
+                    }
+                    onClick={analyser}
+                  />
+                </span>
+              </div>
+              {/* ⚠️ Sans adversaire, il n'y a pas de verdict — et rien à dire :
+                  le corps ne s'affiche pas du tout plutôt que de porter une phrase
+                  qui explique l'évidence. */}
+              {(!aAllie || chaine.coupeur) && (
+                <div className="px-4 py-3.5">
+                    {!aAllie ? (
+                      <p className="text-sm text-ink-dim">
+                        Ajoute des monstres à ton équipe pour vérifier que rien ne la coupe.
+                      </p>
+                    ) : chaine.ok ? (
+                      <p className="flex items-center gap-2 text-sm font-semibold text-good">
+                        <Check size={16} className="flex-none" />
+                        Ta team est speed tune.
+                      </p>
+                    ) : (
+                      <>
+                        <p className="flex items-center gap-2 text-sm font-semibold text-bad">
+                          <Scissors size={16} className="flex-none" />
+                          {chaine.coupeur ? nomDe(chaine.coupeur.id) : 'Un adverse'} coupe ton combo.
+                        </p>
+                        {/* ⚠️ Une ligne = un nom et le chiffre à trouver, rien de
+                            plus : ce qu'on vient chercher ici, c'est « combien il me
+                            manque », pas un récit.
+                            ⚠️ **On liste ce que le solveur DEMANDE, pas ce qui est
+                            coupé.** Le réglage est un jeu de vitesses cohérent : il
+                            demande parfois des points à un monstre qui passe déjà
+                            (celui qui remplit la barre, à accélérer pour qu'il
+                            achète un tick au suivant), et il ne demande rien à un
+                            monstre coupé que la correction d'un autre suffit à
+                            sauver. Lister `chaine.coupes` masquait la moitié de la
+                            solution — appliquée telle quelle, elle ne tenait pas. */}
+                        <ul className="mt-2.5 flex flex-wrap gap-x-4 gap-y-1.5">
+                          {requis.map((c) => {
+                            const l = ligneParUid.get(c.id);
+                            if (!l) return null;
+                            const cible = c.combatRequis;
+                            const a = arteParUid.get(c.id);
+                            const arte = a?.artefactRequis ?? null;
+                            return (
+                              <li key={c.id} className="flex items-center gap-2 text-sm">
+                                <MonsterAvatar monster={l.monster} size={22} element={false} />
+                                <span className="font-semibold">{l.monster.name}</span>
+                                {besoin(l, cible, arte, a?.artefactActuel ?? 0)}
+                              </li>
+                            );
+                          })}
+                        </ul>
+                      </>
+                    )}
+                </div>
               )}
             </section>
 

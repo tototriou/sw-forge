@@ -995,10 +995,14 @@ export function resolveDamageSkill(
 //  - `'crit'` / `'normal'` : le plafond haut / le plancher d'un coup unique.
 export type CritMode = 'moyenne' | 'crit' | 'normal';
 
+// ⚠️ Ordre d'AFFICHAGE (demande explicite) : Moyenne tout à droite — les deux
+// bornes littérales (Critique/Non critique) d'abord, l'espérance théorique en
+// dernier. N'affecte QUE `Segmented`, pas le type `CritMode` ni sa valeur par
+// défaut (voir `DEFAULT_DAMAGE_SETUP.critMode`, ci-dessous : `'crit'`).
 export const CRIT_MODE_LABELS: { key: CritMode; label: string }[] = [
-  { key: 'moyenne', label: 'Moyenne' },
   { key: 'crit', label: 'Critique' },
   { key: 'normal', label: 'Non critique' },
+  { key: 'moyenne', label: 'Moyenne' },
 ];
 
 // ⚠️ Sérialisable et STABLE : ce réglage part dans `OptimizerRecipe` (fichier
@@ -1107,7 +1111,12 @@ export const DEFAULT_DAMAGE_SETUP: DamageSetup = {
   mirinaeActif: false,
   deborahActif: false,
   miriamActif: false,
-  critMode: 'moyenne',
+  // ⚠️ Demande explicite de l'utilisateur : « critique » comme valeur par
+  // défaut — le plafond d'un coup isolé, pas l'espérance « Moyenne »
+  // (repositionnée tout à droite dans `CRIT_MODE_LABELS`, jugée trop
+  // théorique comme défaut — voir l'avertissement affiché sous ce mode
+  // dans DamageSetupCard.tsx).
+  critMode: 'crit',
   // ⚠️ « Combat » par défaut, pas « Aucune » : ces compétences sont
   // PERMANENTES en jeu dès qu'elles sont montées, et le sont chez à peu près
   // tout joueur qui utilise un optimiseur. Partir d'« Aucune » afficherait

@@ -185,8 +185,13 @@ export default function testDegats() {
 
   // Taux Crit plafonné à 100 % : `computeStats` renvoie le total brut, mais
   // au-delà de 100 % il ne rapporte plus rien en jeu.
-  const cr100 = computeSkillDamage(s3!, stats({ atk: 2000, cd: 200, cr: 100 }), DEFAULT_DAMAGE_SETUP);
-  const cr130 = computeSkillDamage(s3!, stats({ atk: 2000, cd: 200, cr: 130 }), DEFAULT_DAMAGE_SETUP);
+  // ⚠️ `critMode: 'moyenne'` EXPLICITE — seul mode où le Taux Crit pèse sur
+  // le résultat (`crit`/`normal` l'ignorent entièrement) ; s'appuyer sur le
+  // défaut de l'écran (désormais « crit ») rendrait ce test VACUEUX : il
+  // passerait toujours, mais plus pour la raison qu'il prétend vérifier.
+  const critModeMoyenne: DamageSetup = { ...DEFAULT_DAMAGE_SETUP, critMode: 'moyenne' };
+  const cr100 = computeSkillDamage(s3!, stats({ atk: 2000, cd: 200, cr: 100 }), critModeMoyenne);
+  const cr130 = computeSkillDamage(s3!, stats({ atk: 2000, cd: 200, cr: 130 }), critModeMoyenne);
   egal(cr130, cr100, 'au-delà de 100 % de Taux Crit, plus aucun dégât supplémentaire');
 
   // Ignore défense : la DEF de la cible et la réduction de défense n’y
@@ -253,8 +258,11 @@ export default function testDegats() {
   const buildInvoc: StatRow[] = stats({ atk: 2000, cd: 200, cr: 50 }).map((r) =>
     r.key === 'atk' ? { ...r, base: 800, bonus: 1200, total: 2000 } : r
   );
-  const sansInvoc = computeSkillDamage(s3!, buildInvoc, { ...DEFAULT_DAMAGE_SETUP, summonerSkills: 'aucune' });
-  const avecCombat = computeSkillDamage(s3!, buildInvoc, { ...DEFAULT_DAMAGE_SETUP, summonerSkills: 'combat' }, 'wind');
+  // ⚠️ `critMode: 'moyenne'` EXPLICITE — le ratio attendu ci-dessous suppose
+  // `partCrit = cr` (0,5), vrai UNIQUEMENT sous ce mode (`crit`, le défaut de
+  // l'écran, donnerait `partCrit = 1` et casserait le calcul).
+  const sansInvoc = computeSkillDamage(s3!, buildInvoc, { ...DEFAULT_DAMAGE_SETUP, critMode: 'moyenne', summonerSkills: 'aucune' });
+  const avecCombat = computeSkillDamage(s3!, buildInvoc, { ...DEFAULT_DAMAGE_SETUP, critMode: 'moyenne', summonerSkills: 'combat' }, 'wind');
   ok(avecCombat > sansInvoc, 'activer les compétences de Combat augmente les dégâts');
   // 800 de base × 41 % = 328 (arrondi supérieur) — sur la BASE, pas sur 2000.
   const attenduAtk = 2000 + Math.ceil((800 * 41) / 100);

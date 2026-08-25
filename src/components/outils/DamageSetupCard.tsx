@@ -695,6 +695,11 @@ function EffetVignette({
       onClick={onClick}
       largeur="w-16"
       aria-label={`${libelle} — ${actif ? 'actif' : 'inactif'}`}
+      // ⚠️ `libelle` est tronqué (`truncate`, `Vignette.tsx`) à cette largeur
+      // fixe — « Ce sort pose le def break » devient « Ce sort... », illisible
+      // sans un moyen de retrouver le texte complet. `title` affiche le
+      // libellé ENTIER au survol, natif, sans changer la mise en page.
+      title={libelle}
       contenu={<img src={icone} alt="" className={`h-7 w-7 transition ${actif ? '' : 'grayscale'}`} loading="lazy" />}
       libelle={libelle}
       // ⚠️ Coche masquée au DOIGT (même raison que CategoryBar) : à cette

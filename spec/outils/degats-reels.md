@@ -590,10 +590,10 @@ donc jamais des `PASSIFS_OFFENSIFS_CONNUS`) :
   quatre autres formes portent un passif différent (Rankyaku, une formule
   propre à ATQ selon la VIT, hors du périmètre de cette famille).
 - **Bonus conditionnel à bouton** (`BONUS_DEGATS_CONDITIONNEL_CONNUS`,
-  `monsterBonusDegatsConditionnel`) — douze entrées vérifiées, une
+  `monsterBonusDegatsConditionnel`) — treize entrées vérifiées, une
   condition binaire que l'app ne peut PAS déduire (PV propres au monstre,
-  comparaison de PV avec la cible, état d'un allié, tour précédent…),
-  toujours « +X % au total, désactivé par défaut » :
+  comparaison de PV avec la cible, état d'un allié, tour précédent, pose
+  active…), toujours « +X % au total, désactivé par défaut » :
 
   | Passif | Monstre(s) | Condition | Bonus |
   |---|---|---|---|
@@ -604,6 +604,17 @@ donc jamais des `PASSIFS_OFFENSIFS_CONNUS`) :
   | Strategic Advantage / Infinity / Magic Resistance | Kyle, Satoru Gojo (Feu), Werner (Feu) | pas attaqué depuis ton dernier tour | +100 % |
   | Protective Power / Retributive Power | Zenitsu Agatsuma (Feu), Qilin Slasher (Feu) | un allié est sous incapacité | +50 % |
   | Almighty Strength | Panda Warrior (Ténèbres), Mi Ying | ton ATQ > celui de l'adversaire | +50 % |
+  | Hidden Aim | Sniper Mk.I, Carcano, Carbine, Dragunov (3 éléments × 2 stades d'éveil) | tu es dans la pose Hidden Aim | +200 % |
+
+  ⚠️ **Hidden Aim n'est PAS un passif** (S2 actif, `formule` vide dans les
+  données SWARFARM) — c'est une exception au reste de cette famille,
+  demandée explicitement par l'utilisateur pour Carcano malgré ça :
+  `monsterBonusDegatsConditionnel` ne filtre plus sur `c.passif` (les autres
+  entrées, toutes passives, ne changent pas de comportement). Nom curé
+  exclusif à cette famille de monstre dans tout le corpus — les douze fiches
+  (base + éveillé × 3 éléments × 2 stades) partagent le texte mot pour mot,
+  couvertes sans code supplémentaire par la curation par nom exact, même
+  mécanisme que « Ray Spears ».
 
   ⚠️ **Self Repair simplifié en binaire** : le texte du jeu dit « increases
   the damage by up to 100% according to your HP condition » — un scaling

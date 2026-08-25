@@ -693,6 +693,13 @@ export default function testDegats() {
     [32912, 'Retributive Power (Passive)', 50], // Qilin Slasher (Feu)
     [21205, 'Almighty Strength (Passive)', 50], // Panda Warrior (Ténèbres)
     [21215, 'Almighty Strength (Passive)', 50], // Mi Ying
+    // « Hidden Aim » : demandé explicitement par l'utilisateur (interrupteur
+    // pour Carcano) alors que ce n'est PAS un passif (S2 actif, formule
+    // vide — voir le filtre relâché dans `monsterBonusDegatsConditionnel`).
+    // Même nom partagé par TOUTE la famille Sniper Mk.I/Carcano/Carbine/
+    // Dragunov (3 éléments × 2 stades d'éveil) sans code supplémentaire,
+    // même mécanisme de curation par nom exact que « Ray Spears ».
+    [22712, 'Hidden Aim', 200], // Carcano (Feu)
   ];
   for (const [id, nom, pct] of conditionnelAttendus) {
     const p = monsterBonusDegatsConditionnel(fiche(id));

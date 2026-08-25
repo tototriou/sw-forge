@@ -565,6 +565,16 @@ const BONUS_DEGATS_CONDITIONNEL_CONNUS: Record<string, { pct: number; condition:
   // lower than yours. » — l'app connaît TON ATQ mais ne modélise pas celle
   // de l'adversaire (aucun champ `enemyAtk`).
   'Almighty Strength (Passive)': { pct: 50, condition: 'ton ATQ dépasse celui de l’adversaire' }, // Panda Warrior (Ténèbres), Mi Ying
+  // Carcano — « Strikes the [Hidden Aim] pose. Increases the damage dealing
+  // to an enemy by 200% while in this pose... The [Hidden Aim] pose
+  // disables after you attack on your turn. » ⚠️ Ce n'est PAS un passif
+  // (`c.passif: false` dans les données SWARFARM, formule vide « » — c'est
+  // le S2, une pose auto-buff, pas une compétence qui inflige elle-même des
+  // dégâts) : demandé explicitement par l'utilisateur comme interrupteur
+  // malgré ça, cf. `monsterBonusDegatsConditionnel` qui ne filtre plus sur
+  // `c.passif`. Nom vérifié exclusif à Carcano (toutes ses formes
+  // élémentaires) dans tout le corpus.
+  'Hidden Aim': { pct: 200, condition: 'tu es dans la pose Hidden Aim (activée par ce sort, désactivée après ta prochaine attaque)' }, // Carcano
 };
 
 export interface BonusDegatsConditionnelProfile {
@@ -579,7 +589,13 @@ export interface BonusDegatsConditionnelProfile {
 export function monsterBonusDegatsConditionnel(detail: DetailMonstre | null): BonusDegatsConditionnelProfile | null {
   if (!detail) return null;
   for (const c of detail.competences) {
-    if (!c.passif || c.com2usId == null) continue;
+    // ⚠️ Pas de filtre sur `c.passif` : la quasi-totalité des entrées de
+    // `BONUS_DEGATS_CONDITIONNEL_CONNUS` sont des passifs, mais « Hidden
+    // Aim » (Carcano) est un S2 actif à formule vide — le mécanisme
+    // lui-même (un bouton qui multiplie le TOTAL) ne dépend en rien de la
+    // nature passive/active de la compétence source, seulement de son nom
+    // curé et de son `skillCom2usId` pour l'affichage/le stockage.
+    if (c.com2usId == null) continue;
     const config = BONUS_DEGATS_CONDITIONNEL_CONNUS[c.nom];
     if (config) return { skillCom2usId: c.com2usId, nom: c.nom, description: c.description, icone: c.icone, ...config };
   }

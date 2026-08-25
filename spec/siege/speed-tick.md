@@ -64,7 +64,11 @@ Le fond reste celui de toutes les cards : c'est lui qui rend la couleur du
 contour lisible, et qui permet de comparer deux équipes d'un coup d'œil au lieu
 de les subir l'une après l'autre.
 
-⚠️ Le **pied** de la card, lui, garde sa teinte : c'est un message, pas la card.
+⚠️ **Le pied non plus ne prend pas la teinte.** Un bandeau ambré pleine largeur
+sous chaque équipe repeignait la page à la place du contenu, et faisait passer
+une simple correction de vitesse pour une avarie. Le **pictogramme d'alerte**
+reste, lui : c'est le porteur non coloré de l'information, celui qui distingue un
+avertissement d'une note — la charte interdit qu'une couleur seule ait à le dire.
 
 > ⚠️ **Conditionnée au mode « Vérifier mes speed »** (bouton de la barre
 > d'actions, éteint par défaut — voir [README.md](README.md)). Tant qu'il est
@@ -152,7 +156,7 @@ d'alerte teinté, une ligne verte et un bouton flottant à droite — trois obje
 pour une seule idée : *où en est cette équipe, et qu'est-ce que j'en fais*.
 Réunis, ils se lisent d'un coup : **l'état à gauche, les actions à droite**.
 
-- Le pied **prend la teinte du statut** (rouge / orange) et se cale sur les bords
+- Le pied **ne prend PAS la teinte du statut** (voir plus haut) et se cale sur les bords
   de la card (marges négatives, coins bas arrondis) : ⚠️ c'est une **bande**, pas
   une boîte dans une boîte — un cadre de plus à l'intérieur d'un cadre faisait
   deux contours concentriques, ce que la charte interdit.

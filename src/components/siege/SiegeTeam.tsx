@@ -582,14 +582,13 @@ export default function SiegeTeam({
           étroit, il passe au-dessus des boutons plutôt que de se comprimer. */}
       {(hasMonsters || statut !== 'neutre') && (
         <div
-          className={`-mx-4 -mb-4 mt-3 flex flex-wrap items-center gap-x-3 gap-y-2 rounded-b-2xl border-t px-4 py-2.5
-            compact:-mx-2.5 compact:-mb-2.5 compact:px-2.5 ${
-              statut === 'rouge'
-                ? 'border-fire/40 bg-fire/10'
-                : statut === 'orange'
-                  ? 'border-warn/40 bg-warn/10'
-                  : 'border-border-soft'
-            }`}
+          // ⚠️ **Le pied ne prend PAS la teinte du statut.** Comme la card
+          // elle-même : la couleur se dit par le contour et la pastille, et rien
+          // d'autre. Un bandeau ambré pleine largeur sous chaque équipe
+          // repeignait la page à la place du contenu, et faisait passer une
+          // simple correction de vitesse pour une avarie.
+          className="-mx-4 -mb-4 mt-3 flex flex-wrap items-center gap-x-3 gap-y-2 rounded-b-2xl border-t border-border-soft px-4 py-2.5
+            compact:-mx-2.5 compact:-mb-2.5 compact:px-2.5"
         >
           <span className="flex min-w-0 flex-1 items-start gap-2">
             {(statut === 'rouge' || statut === 'orange') && (
@@ -598,11 +597,10 @@ export default function SiegeTeam({
                 className={`mt-px flex-none ${statut === 'rouge' ? 'text-fire' : 'text-warn'}`}
               />
             )}
-            <span
-              className={`text-xs ${
-                statut === 'rouge' ? 'text-fire' : statut === 'orange' ? 'text-warn' : 'text-ink-dim'
-              }`}
-            >
+            {/* ⚠️ Le TEXTE reste neutre lui aussi : ce qu'il dit est déjà
+                porté par le pictogramme d'alerte à sa gauche, et le chiffre à
+                trouver, lui, est en gras — c'est lui qu'on vient lire. */}
+            <span className="text-xs text-ink-dim">
               {statut === 'rouge' ? (
                 (messageTick ?? "Ton équipe n'est pas au tick.")
               ) : statut === 'orange' ? (

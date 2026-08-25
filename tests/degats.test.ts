@@ -197,6 +197,20 @@ export default function testDegats() {
     computeSkillDamage(s3!, build, DEFAULT_DAMAGE_SETUP),
     'un sort qui ignore la défense ne réagit pas à la DEF ennemie'
   );
+  // ⚠️ Question directe de l'utilisateur : le def break (posé AVANT le
+  // sort, `setup.defBreak`) n'y change rien NON PLUS — `defEff =
+  // profile.ignoreDef ? 0 : …` court-circuite `facteurDefBreak` avant même
+  // de l'évaluer, que Deborah l'amplifie ou non.
+  egal(
+    computeSkillDamage(s3!, build, { ...DEFAULT_DAMAGE_SETUP, defBreak: true }),
+    computeSkillDamage(s3!, build, DEFAULT_DAMAGE_SETUP),
+    'un sort qui ignore la défense ne réagit pas non plus au def break'
+  );
+  egal(
+    computeSkillDamage(s3!, build, { ...DEFAULT_DAMAGE_SETUP, defBreak: true, deborahActif: true }),
+    computeSkillDamage(s3!, build, DEFAULT_DAMAGE_SETUP),
+    'ni au def break amplifié par Deborah — rien à amplifier, la DEF effective est déjà à 0'
+  );
 
   // Sur un sort qui NE l’ignore pas, en revanche, tout doit bouger.
   const s1p = s1!;

@@ -390,10 +390,12 @@ retour.
        cocher séparée. ⚠️ **Grisée au repos, en couleurs + coche une fois
        activée** — l'état se lit sur l'icône elle-même, sans avoir à cliquer
        pour comprendre la légende (au repos, tout est grisé : rien n'est
-       encore choisi). **Quatre effets d'ÉQUIPE** (Euldong, Mirinae, Deborah,
-       Miriam — un AUTRE monstre que celui optimisé), même contrôle mais
-       **portrait du monstre** en icône plutôt qu'une icône de buff
-       générique. Détail des mécaniques :
+       encore choisi). **Six effets d'ÉQUIPE** (Euldong, Mirinae, Deborah,
+       Miriam, Dr. Matteo, Velaska — un AUTRE monstre que celui optimisé),
+       même contrôle mais **portrait du monstre** en icône plutôt qu'une
+       icône de buff générique. ⚠️ Velaska porte en plus un **champ
+       numérique** (% de PV perdus, 0 par défaut) qui n'apparaît que si son
+       effet est activé. Détail des mécaniques :
        [degats-reels.md](degats-reels.md), « Effets d'équipe ». **Leader
        skill d'équipe** — type (PV/ATQ/DEF/VIT/Taux Crit/Dégâts Crit, icône
        officielle du jeu réutilisée depuis le Siège) puis valeur (paliers

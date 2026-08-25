@@ -191,7 +191,7 @@ if (recipe.objective === 'degats_reels') {
         `${s.atkBuff ? ' — buff ATQ' : ''}${s.defBuff ? ' — buff DEF' : ''}${s.spdBuff ? ' — buff VIT' : ''}` +
         `${s.defBreak ? ' — def break avant' : ''}${s.defBreakParLeSort ? ' — def break posé par le sort' : ''}` +
         `${s.brand ? ' — marque' : ''}` +
-        `${s.euldongActif ? ' — Euldong' : ''}${s.mirinaeActif ? ' — Mirinae' : ''}${s.deborahActif ? ' — Deborah' : ''}${s.miriamActif ? ' — Miriam' : ''}` +
+        `${s.euldongActif ? ' — Euldong' : ''}${s.mirinaeActif ? ' — Mirinae' : ''}${s.deborahActif ? ' — Deborah' : ''}${s.miriamActif ? ' — Miriam' : ''}${s.transmissionActif ? ' — Dr. Matteo' : ''}${s.velaskaActif ? ` — Velaska (${s.velaskaPvPerduPct ?? 0}% PV perdus)` : ''}` +
         `${lead ? ` — lead ${lead.stat} +${lead.pct}%` : ''}` +
         `${bonusConditionnel && bonusDegatsConditionnelActif(bonusConditionnel, s) ? ` — ${bonusConditionnel.nom.replace(/\s*\(Passive\)\s*$/i, '')} (+${bonusConditionnel.pct}%)` : ''} — ` +
         // ⚠️ `?? DEFAULT` : une recette exportée AVANT ce champ n'en a pas.

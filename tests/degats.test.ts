@@ -37,6 +37,8 @@ import {
   MIRIAM_AMPLIFY_PCT,
   MIRINAE_BONUS_PCT,
   SPD_BUFF_PCT,
+  TRANSMISSION_BONUS_PCT,
+  VELASKA_PCT_PAR_PV_PERDU,
   SkillDamageProfile,
   bonusDegatsConditionnelActif,
   computeSkillDamage,
@@ -791,6 +793,22 @@ export default function testDegats() {
     'bonusDegatsStack=null (monstre sans ce passif) : le champ stackPersonnalise de la recette est ignoré'
   );
 
+  // Trois nouvelles entrées, MÊME mécanisme que Momo (aucun nouveau code,
+  // juste des paliers curés) — réponses de l'utilisateur au catalogue
+  // « passifs non implémentés ».
+  const dominatorFermion = monsterBonusDegatsStackable(fiche(17015));
+  egal(dominatorFermion?.nom, 'Dominator (Passive)', 'Fermion : nom exact du passif détecté');
+  egal(dominatorFermion?.pctParStack, 10, 'Fermion : +10 % par allié mort');
+  egal(dominatorFermion?.pctMax, 30, 'Fermion : plafonné à +30 % (3 morts)');
+  const rollAgainLudo = monsterBonusDegatsStackable(fiche(21312));
+  egal(rollAgainLudo?.nom, 'Roll Again (Passive)', 'Ludo : nom exact du passif détecté');
+  egal(rollAgainLudo?.pctParStack, 20, 'Ludo : paliers de 20 % (jet de dé)');
+  egal(rollAgainLudo?.pctMax, 100, 'Ludo : plafonné à 100 %');
+  const absorbShadowMartina = monsterBonusDegatsStackable(fiche(22015));
+  egal(absorbShadowMartina?.nom, 'Absorb Shadow (Passive)', 'Martina : nom exact du passif détecté');
+  egal(absorbShadowMartina?.pctParStack, 10, 'Martina : +10 % par vol d’effet');
+  egal(absorbShadowMartina?.pctMax, 150, 'Martina : plafonné à +150 % (15 fois)');
+
   titre('Dégâts réels — effets d’ÉQUIPE (Euldong, Mirinae, Deborah, Miriam)');
 
   // Quatre effets portés par un AUTRE monstre que celui optimisé, demandés
@@ -874,6 +892,39 @@ export default function testDegats() {
     Math.abs(vitAvecMiriam / vitSansMiriam - (1 + (SPD_BUFF_PCT * (1 + MIRIAM_AMPLIFY_PCT / 100)) / 100) / (1 + SPD_BUFF_PCT / 100)) <
       1e-9,
     'Miriam amplifie aussi le buff de VIT, comme un artéfact « Effet aug. VIT »'
+  );
+
+  // Dr. Matteo (« Transmission ») — même famille que Mirinae (formulation
+  // identique dans le texte du jeu), additif dans le terme Réductions.
+  const transmissionOff = computeTotalDamage(s3!, [], equipeStats, equipeSetup, null);
+  const transmissionOn = computeTotalDamage(s3!, [], equipeStats, { ...equipeSetup, transmissionActif: true }, null);
+  ok(
+    Math.abs(transmissionOn / transmissionOff - (1 + TRANSMISSION_BONUS_PCT / 100)) < 1e-9,
+    'Dr. Matteo ajoute exactement +20 % au total'
+  );
+  const transmissionEtMirinae = computeTotalDamage(
+    s3!,
+    [],
+    equipeStats,
+    { ...equipeSetup, transmissionActif: true, mirinaeActif: true },
+    null
+  );
+  ok(
+    Math.abs(transmissionEtMirinae / transmissionOff - (1 + TRANSMISSION_BONUS_PCT / 100 + MIRINAE_BONUS_PCT / 100)) < 1e-9,
+    'Dr. Matteo et Mirinae s’ADDITIONNENT, ne se multiplient pas entre eux (même terme Réductions)'
+  );
+
+  // Velaska (« Price of Pain ») — +0,5 % de dégâts par point de % de PV
+  // perdu SAISI (l'app ne simule pas les PV réels du monstre optimisé).
+  const velaskaSetupInactif: DamageSetup = { ...equipeSetup, velaskaActif: false, velaskaPvPerduPct: 40 };
+  const velaskaInactif = computeTotalDamage(s3!, [], equipeStats, velaskaSetupInactif, null);
+  egal(velaskaInactif, transmissionOff, 'velaskaActif=false : le % de PV perdus saisi est ignoré, même sans le remettre à 0');
+  const velaskaSans0 = computeTotalDamage(s3!, [], equipeStats, { ...equipeSetup, velaskaActif: true }, null);
+  egal(velaskaSans0, transmissionOff, 'velaskaActif=true mais 0 % de PV perdus (défaut) : aucun effet');
+  const velaska40 = computeTotalDamage(s3!, [], equipeStats, { ...equipeSetup, velaskaActif: true, velaskaPvPerduPct: 40 }, null);
+  ok(
+    Math.abs(velaska40 / transmissionOff - (1 + (VELASKA_PCT_PAR_PV_PERDU * 40) / 100)) < 1e-9,
+    '40 % de PV perdus : exactement +20 % de dégâts (0,5 % × 40)'
   );
 
   titre('Dégâts réels — stats à privilégier dans la recherche');

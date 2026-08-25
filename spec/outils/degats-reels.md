@@ -533,6 +533,16 @@ bonusDegatsStack)` l'applique multiplicativement sur le TOTAL, après coup —
 même famille que `bonusDegatsSelonVit`, seule la SOURCE du pourcentage
 change (saisie plutôt que déduite de la VIT).
 
+Trois entrées de plus (réponses au catalogue « passifs non implémentés »,
+même mécanisme, aucun nouveau code) : **Fermion** (« Dominator », +10 % par
+allié mort, jusqu'à +30 % — `quantite` ABSENT des données SWARFARM,
+confirmé par l'utilisateur malgré le silence de la donnée brute) ;
+**Ludo** (« Roll Again », +20 % par palier, jusqu'à 100 % — un jet de dé
+1-6 au début du combat puis à chaque tour, aucun RNG in-app donc saisi
+manuellement, ⚠️ le texte porte AUSSI une réduction des dégâts SUBIS,
+hors modèle comme partout ailleurs) ; **Martina** (« Absorb Shadow », +10 %
+par vol d'effet bénéfique, jusqu'à +150 %, 15 fois).
+
 ### Catalogue « passifs non implémentés » — première vague
 
 Une recherche large des flags `Increase Damage`/`Increase Critical Damage`/
@@ -604,36 +614,68 @@ donc jamais des `PASSIFS_OFFENSIFS_CONNUS`) :
   même famille que `bonusDegatsSelonVit`/`bonusDegatsStack` — seule la
   SOURCE change (un bouton plutôt qu'une valeur saisie ou déduite de la VIT).
 
-⚠️ **Réponses données par l'utilisateur pour les points 4 à 26 non
-implémentées ici** : les points 4 à 6 (Julie, Melissa, Covenant) exigent un
+### Deuxième vague — points 16 à 25
+
+Trois entrées de plus tenaient dans les mécanismes déjà en place, sans
+nouveau code (voir `BONUS_DEGATS_STACKABLE_CONNUS` plus haut) — Fermion
+(point 16), Ludo (point 23), Martina (point 24). Deux autres ont demandé un
+CINQUIÈME/SIXIÈME effet d'équipe — Dr. Matteo (point 20, « Transmission »)
+et Velaska (point 18, « Price of Pain », le seul à porter une DEUXIÈME
+donnée en plus du toggle — voir « Effets d'équipe » plus bas).
+
+⚠️ **Point 17 (Trasar, « Weight of Death ») — BLOQUÉ, pas seulement
+différé.** Le texte confirme +15 %/mort jusqu'à +30 %, mais cette
+augmentation ne porte que sur UN sort précis (« Atlas Stone », S2), dont la
+formule (`{MAX HP}/{Alive Enemies} (Fixed)`) utilise `{Alive Enemies}` — une
+variable qu'`analyser` (damage.ts) ne reconnaît PAS
+(`DamageVariable` ne la liste pas). Ce sort est donc déjà REJETÉ par le
+parseur (« tout ou rien »), avant même de songer à lui appliquer un bonus :
+implémenter la table de stack serait sans effet tant que la formule
+elle-même reste hors modèle. À reprendre seulement si `{Alive Enemies}`
+est un jour ajouté à la grammaire.
+
+⚠️ **Point 25 (Crawler, « Rage Charge ») — réponse complète reçue, non
+implémenté : mécanisme différent des quatre catégories ci-dessus.**
+L'utilisateur a fourni la formule exacte : le S1 de Crawler
+(`Hammer Punch`, `2,04×{DEF}` confirmé sur `com2usId 20835`) gagne
+`N × 0,20 × {DEF}` par coup, N = nombre d'attaques reçues avant de lancer
+ce sort, configurable 0 à 9999. Ce n'est PAS un modificateur générique sur
+le TOTAL comme les quatre familles ci-dessus : c'est une correction du
+COEFFICIENT d'UN sort actif précis, selon un compteur — un mécanisme encore
+différent, qui demanderait soit un champ de formule par `skillCom2usId`
+(inédit), soit d'exprimer la formule autrement. Volontairement laissé pour
+une passe dédiée plutôt que forcé dans un mécanisme qui ne lui correspond
+pas.
+
+⚠️ **Réponses données par l'utilisateur pour les points restants, non
+implémentés ici** : les points 4 à 6 (Julie, Melissa, Covenant) exigent un
 NOUVEAU champ « nombre d'effets bénéfiques/néfastes sur la cible » —
 mécanisme jamais construit, et le nombre de coups de Julie hors pleine vie
 reste non chiffré (« à implémenter » seul, sans le chiffre manquant) ;
-les points 16 à 20 (Fermion, Trasar, Velaska, Zenitsu Ténèbres, Dr.
-Plasma/Matteo) dépendent d'un ÉTAT D'ÉQUIPE (compteur de morts, PV perdus
-d'un allié) nécessitant un champ configurable dédié, pas encore construit ;
-les points 23-24 (Ludo, Martina) nécessitent un champ RNG/stack dédié ; le
-point 25 (Crawler) porte une formule bespoke sur SA PROPRE compétence
-active (`2,04×DEF + N×0,20×DEF` par coup, N configurable 0-9999) plutôt
-qu'un modificateur générique ; le point 26 (Aragorn/Night Fang) n'a pas
-reçu de réponse. Points 10-12 (Karakum, Nezuko, formules à ratio inconnu) :
-explicitement laissés de côté par l'utilisateur (formule inconnue,
-monstres jamais joués). Aucun de ces cas n'est implémenté — à reprendre
-sur une demande dédiée plutôt qu'en marge de cette vague.
+le point 19 est déjà implémenté (Protective Power/Retributive Power, voir
+plus haut) ; le point 26 (Aragorn/Night Fang) n'a en réalité **pas reçu de
+réponse** — la réponse fournie sous ce numéro dans le fichier couvrait le
+point 25 (Crawler) par un décalage d'un cran. Points 10-12 (Karakum,
+Nezuko, formules à ratio inconnu) : explicitement laissés de côté par
+l'utilisateur (formule inconnue, monstres jamais joués). Aucun de ces cas
+n'est implémenté — à reprendre sur une demande dédiée plutôt qu'en marge de
+cette vague.
 
-## Effets d'ÉQUIPE (Euldong, Mirinae, Deborah, Miriam)
+## Effets d'ÉQUIPE (Euldong, Mirinae, Deborah, Miriam, Dr. Matteo, Velaska)
 
-Quatre effets **portés par un AUTRE monstre que celui optimisé** — leur
+Six effets **portés par un AUTRE monstre que celui optimisé** — leur
 présence dépend de la composition d'équipe, pas du monstre en cours
 d'optimisation. Demande explicite de l'utilisateur : sélectionnables dans
 « Effets actifs » comme un buff ATQ, avec le **portrait du monstre** en
 icône plutôt qu'une icône de buff générique (`EULDONG_ICON`/`MIRINAE_ICON`/
-`DEBORAH_ICON`/`MIRIAM_ICON`, URLs `Monster.image` — pas `buffs/…` comme les
-icônes de buff). Contrairement à `critSiPlusRapide`/`bonusDegatsSelonVit`/
-`bonusDegatsStack` (déduits du monstre OPTIMISÉ, `RealDamageContext`), ces
-quatre sont de purs choix utilisateur : quatre champs booléens de
-`DamageSetup` (`euldongActif`/`mirinaeActif`/`deborahActif`/`miriamActif`),
-lus directement dans `computeSkillDamageDetail` — aucune détection de
+`DEBORAH_ICON`/`MIRIAM_ICON`/`TRANSMISSION_ICON`/`VELASKA_ICON`, URLs
+`Monster.image` — pas `buffs/…` comme les icônes de buff). Contrairement à
+`critSiPlusRapide`/`bonusDegatsSelonVit`/`bonusDegatsStack` (déduits du
+monstre OPTIMISÉ, `RealDamageContext`), ces six sont de purs choix
+utilisateur : des champs booléens de `DamageSetup`
+(`euldongActif`/`mirinaeActif`/`deborahActif`/`miriamActif`/
+`transmissionActif`/`velaskaActif`), lus directement dans
+`computeSkillDamageDetail`/`computeTotalDamage` — aucune détection de
 monstre, aucun `RealDamageContext` supplémentaire.
 
 - **Euldong** (« Triumph Over Evil », passif — Dokkaebi Lord Euldong) :
@@ -670,6 +712,24 @@ monstre, aucun `RealDamageContext` supplémentaire.
   s'ADDITIONNENT avant d'amplifier, comme plusieurs lignes d'artéfact
   identiques le font déjà. `MIRIAM_AMPLIFY_PCT = 35`, gaté sur l'union des
   conditions déjà utilisées pour les toggles ATQ/DEF/VIT ci-dessus.
+- **Dr. Matteo** (S3, « Transmission ») : « increases the damage that
+  allies deal to enemies by 20% while you are under an inability effect ».
+  ⚠️ Formulation IDENTIQUE à Mirinae (« increases the damage… by X% ») mais
+  **jamais confirmée séparément comme additive** avec la Marque/Mirinae —
+  traitée PAR ANALOGIE de formulation dans le même terme « Réductions »
+  (`TRANSMISSION_BONUS_PCT = 20`), non gaté. Condition (« pendant que
+  Dr. Matteo est sous incapacité ») non déductible, comme les autres : un
+  toggle, désactivé par défaut.
+- **Velaska** (S3, « Price of Pain ») : « When an ally with reduced HP
+  attacks the enemy, the damage dealt increases in proportion to the
+  amount of HP lost. » Confirmé par l'utilisateur : scaling **linéaire**,
+  **+0,5 % de dégâts par point de % de PV perdu**
+  (`VELASKA_PCT_PAR_PV_PERDU = 0.5`). ⚠️ **Seul effet d'équipe à porter une
+  DEUXIÈME donnée** en plus du toggle : l'app ne simule pas les PV réels du
+  monstre optimisé (`setup.velaskaPvPerduPct`, 0-100, 0 par défaut = aucun
+  bonus). Un champ numérique dédié apparaît sous la grille d'icônes
+  UNIQUEMENT quand `velaskaActif` est coché — même discipline que le champ
+  « Stack actuel » de Momo, jamais un état deviné.
 
 ## Leader skill d'équipe
 

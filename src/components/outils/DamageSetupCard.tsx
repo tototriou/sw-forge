@@ -25,6 +25,8 @@ import {
   SkillDamageProfile,
   SkillDamageUnsupported,
   SummonerSkills,
+  TRANSMISSION_ICON,
+  VELASKA_ICON,
   bonusDegatsConditionnelActif,
   estPrisEnCharge,
   passifActif,
@@ -693,7 +695,41 @@ export default function DamageSetupCard({
               etroit={etroit}
             />
           )}
+          <EffetVignette
+            icone={TRANSMISSION_ICON}
+            libelle="Dr. Matteo"
+            onClick={() => maj({ transmissionActif: !setup.transmissionActif })}
+            actif={setup.transmissionActif ?? false}
+            etroit={etroit}
+          />
+          <EffetVignette
+            icone={VELASKA_ICON}
+            libelle="Velaska"
+            onClick={() => maj({ velaskaActif: !setup.velaskaActif })}
+            actif={setup.velaskaActif ?? false}
+            etroit={etroit}
+          />
         </div>
+        {/* Velaska (« Price of Pain ») a besoin d'une VALEUR en plus du
+            toggle — l'app ne simule pas les PV réellement perdus par le
+            monstre optimisé, contrairement aux quatre autres effets
+            d'équipe (un simple oui/non suffit). Même discipline que le
+            stack de Momo : un champ à part, 0 % par défaut. */}
+        {setup.velaskaActif && (
+          <div className="mt-2 flex items-center gap-2">
+            <span className="text-xs text-ink-dim">Velaska — % de PV perdus</span>
+            <NumberField
+              value={setup.velaskaPvPerduPct ?? 0}
+              onChange={(v) => maj({ velaskaPvPerduPct: v ?? 0 })}
+              min={0}
+              max={100}
+              suffix="%"
+              boxWidth="w-24"
+              title="Ce que l'app ne peut pas savoir (les PV réellement perdus par le monstre optimisé) — à toi de le renseigner, 0 % par défaut"
+              ariaLabel="Pourcentage de PV perdus pour l'effet de Velaska"
+            />
+          </div>
+        )}
         <LeaderSkillPicker setup={setup} maj={maj} />
       </div>
 

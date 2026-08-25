@@ -114,6 +114,27 @@ export const DEBORAH_ICON = 'https://swarfarm.com/static/herders/images/monsters
 export const MIRIAM_AMPLIFY_PCT = 35;
 export const MIRIAM_ICON = 'https://swarfarm.com/static/herders/images/monsters/unit_icon_0081_1_2.png';
 
+// Dr. Matteo — S3 « Transmission (Passive) » : « increases the damage that
+// allies deal to enemies by 20% while you are under an inability effect ».
+// ⚠️ Formulation IDENTIQUE à Mirinae (« increases the damage… by X% »),
+// jamais confirmée séparément comme additive avec la Marque — traitée par
+// ANALOGIE de formulation, même terme « Réductions ». Condition (« pendant
+// que Dr. Matteo est sous incapacité ») non déductible : toggle, désactivé
+// par défaut.
+export const TRANSMISSION_BONUS_PCT = 20;
+export const TRANSMISSION_ICON = 'https://swarfarm.com/static/herders/images/monsters/unit_icon_0214_1_2.png';
+
+// Velaska — S3 « Price of Pain (Passive) » : « When an ally with reduced
+// HP attacks the enemy, the damage dealt increases in proportion to the
+// amount of HP lost. » Confirmé par l'utilisateur : scaling LINÉAIRE,
+// +0,5 % de dégâts par point de % de PV perdu. ⚠️ Contrairement aux quatre
+// autres effets d'équipe (un simple toggle), l'app ne peut pas savoir de
+// COMBIEN de PV le monstre optimisé a effectivement écopé — un second
+// réglage (`velaskaPvPerduPct`, 0 par défaut) porte la valeur, à côté du
+// toggle « Velaska dans l'équipe ».
+export const VELASKA_PCT_PAR_PV_PERDU = 0.5;
+export const VELASKA_ICON = 'https://swarfarm.com/static/herders/images/monsters/unit_icon_0175_1_5.png';
+
 // ── Leader skill d'ÉQUIPE (choisi par l'utilisateur) ─────────────────────
 // Généralise l'ancien `leaderSpeedPct` (un seul pourcentage de VIT nu) à
 // TOUTE stat de lead — demande explicite : « choisir un leader skill…
@@ -428,6 +449,23 @@ export function monsterBonusDegatsSelonVit(detail: DetailMonstre | null): { ecar
 // actuel, via `DamageSetup.stackPersonnalise`.
 const BONUS_DEGATS_STACKABLE_CONNUS: Record<string, { pctParStack: number; pctMax: number }> = {
   'Secret Book (Passive)': { pctParStack: 10, pctMax: 200 }, // Momo, Mage
+  // « the damage you inflict increases as more allies die » — `quantite`
+  // ABSENT des données SWARFARM (`null` sur les deux effets), confirmé par
+  // l'utilisateur : +10 % par allié mort, jusqu'à +30 % (3 morts). Même
+  // état non simulé que Momo (le nombre d'alliés morts ce combat) — même
+  // champ NUMÉRIQUE plutôt qu'un état déduit.
+  'Dominator (Passive)': { pctParStack: 10, pctMax: 30 }, // Archangel, Fermion
+  // « The damage you inflict to the enemy increases by up to 100% the
+  // larger the number on the dice » — un jet de dé (1 à 6) au début du
+  // combat puis à chaque tour, confirmé par l'utilisateur : paliers de
+  // 20 %, jamais un état simulé (aucun RNG in-app). ⚠️ Le texte porte AUSSI
+  // une réduction des dégâts SUBIS (« the smaller the number ») — hors
+  // modèle comme partout ailleurs (jamais les effets défensifs).
+  'Roll Again (Passive)': { pctParStack: 20, pctMax: 100 }, // Dice Magician, Ludo
+  // « The damage will be increased by 10% each up to 15 times whenever
+  // this effect occurs » — confirmé par l'utilisateur : identique à Momo,
+  // paliers de 10 %, plafond 150 % (15 stacks).
+  'Absorb Shadow (Passive)': { pctParStack: 10, pctMax: 150 }, // Boomerang Warrior (Ténèbres), Martina
 };
 
 export interface BonusDegatsStackableProfile {
@@ -1206,12 +1244,20 @@ export interface DamageSetup {
   brand: boolean;
   // Effets d'ÉQUIPE (un autre monstre que celui optimisé) — voir les
   // constantes `EULDONG_CD_POINTS`/`MIRINAE_BONUS_PCT`/`DEBORAH_AMPLIFY`/
-  // `MIRIAM_AMPLIFY_PCT` plus haut. Optionnels : absents/`false` sur une
-  // recette exportée avant ces champs, comportement strictement inchangé.
+  // `MIRIAM_AMPLIFY_PCT`/`TRANSMISSION_BONUS_PCT`/`VELASKA_PCT_PAR_PV_PERDU`
+  // plus haut. Optionnels : absents/`false` sur une recette exportée avant
+  // ces champs, comportement strictement inchangé.
   euldongActif?: boolean;
   mirinaeActif?: boolean;
   deborahActif?: boolean;
   miriamActif?: boolean;
+  transmissionActif?: boolean;
+  velaskaActif?: boolean;
+  // % de PV PERDUS du monstre optimisé, saisi par l'utilisateur — l'app ne
+  // simule pas les PV du monstre en combat (voir `bonusDegatsConditionnel`,
+  // même limite pour Indomitable Will/Self Repair). Sans effet si
+  // `velaskaActif` est faux. 0 par défaut = aucun bonus, jamais deviné.
+  velaskaPvPerduPct?: number;
   critMode: CritMode;
   // Compétences d'invocateur prises en compte (ex-totems/drapeaux) — voir
   // `SummonerSkills`. ⚠️ Ne porte QUE le choix : l'élément du monstre, dont
@@ -1266,6 +1312,8 @@ export const DEFAULT_DAMAGE_SETUP: DamageSetup = {
   mirinaeActif: false,
   deborahActif: false,
   miriamActif: false,
+  transmissionActif: false,
+  velaskaActif: false,
   // ⚠️ Demande explicite de l'utilisateur : « critique » comme valeur par
   // défaut — le plafond d'un coup isolé, pas l'espérance « Moyenne »
   // (repositionnée tout à droite dans `CRIT_MODE_LABELS`, jugée trop
@@ -1517,9 +1565,14 @@ export function computeSkillDamageDetail(
   const mitigation = profile.fixed ? 1 : defenseFactor(defEff);
 
   // Mirinae (S3 « Cursed Music ») : même famille que la Marque, additive
-  // avec elle — confirmé par l'utilisateur.
+  // avec elle — confirmé par l'utilisateur. Dr. Matteo (« Transmission »)
+  // : formulation identique, traité PAR ANALOGIE dans le même terme (non
+  // confirmé séparément comme additif, voir la constante plus haut).
   const reductions =
-    1 + (setup.brand ? BRAND_BONUS_PCT / 100 : 0) + (setup.mirinaeActif ? MIRINAE_BONUS_PCT / 100 : 0);
+    1 +
+    (setup.brand ? BRAND_BONUS_PCT / 100 : 0) +
+    (setup.mirinaeActif ? MIRINAE_BONUS_PCT / 100 : 0) +
+    (setup.transmissionActif ? TRANSMISSION_BONUS_PCT / 100 : 0);
 
   const horsCoup = critTerm * mitigation * reductions;
   const coups = resolvedHits(profile, setup);
@@ -1754,6 +1807,13 @@ export function computeTotalDamage(
   // propres, état d'un allié, tour précédent…).
   if (bonusDegatsConditionnel && bonusDegatsConditionnelActif(bonusDegatsConditionnel, setup)) {
     total *= 1 + bonusDegatsConditionnel.pct / 100;
+  }
+  // Velaska (« Price of Pain ») — effet d'ÉQUIPE, encore la même famille :
+  // +0,5 % de dégâts par point de % de PV perdu SAISI (l'app ne simule pas
+  // les PV du monstre optimisé en combat). Sans effet si `velaskaActif` est
+  // faux, ou si `velaskaPvPerduPct` est absent/nul.
+  if (setup.velaskaActif) {
+    total *= 1 + (VELASKA_PCT_PAR_PV_PERDU * (setup.velaskaPvPerduPct ?? 0)) / 100;
   }
   return total;
 }

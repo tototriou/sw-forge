@@ -41,8 +41,16 @@ import {
   computeTotalDamage,
   damageRelevantStats,
   monsterBonusDegatsConditionnel,
+  monsterBonusDegatsSelonCr,
+  monsterBonusDegatsSelonDef,
   monsterBonusDegatsSelonVit,
   monsterBonusDegatsStackable,
+  monsterBonusEcartDef,
+  monsterBonusFixeCiblePvMax,
+  monsterBonusFixeMaxHpPropre,
+  monsterBonusParEffetCible,
+  monsterBonusParEffetPropre,
+  monsterBonusSacrifice,
   monsterBonusStatFixe,
   monsterCritRateSelonVit,
   monsterCritSiPlusRapide,
@@ -328,9 +336,39 @@ export default function OptimizerSection({ box, runes, optimizer, allMonsters, r
   // `computeTotalDamage`/`computeSkillDamageDetail` (voir `monsterWide`).
   const critRateSelonVit = useMemo(() => monsterCritRateSelonVit(skillDetail), [skillDetail]);
   const bonusStatFixe = useMemo(() => monsterBonusStatFixe(skillDetail), [skillDetail]);
+  // Spear of Tenacity/Martial Arts Specialist/Sickle Blade/Sand Blade/
+  // Calculated Sacrifice — modificateurs ADDITIFS au multiplicateur du sort
+  // choisi, toujours actifs (aucun bouton), déduits du passif comme les deux
+  // ci-dessus. Backup Code/Blessing of Curse — MULTIPLICATIFS selon un
+  // compte d'effets (cible/soi) saisi par l'utilisateur, même famille que
+  // `bonusParEffetCible` propre à un sort mais MONSTRE-WIDE ici.
+  const bonusFixeCiblePvMax = useMemo(() => monsterBonusFixeCiblePvMax(skillDetail), [skillDetail]);
+  const bonusEcartDef = useMemo(() => monsterBonusEcartDef(skillDetail), [skillDetail]);
+  const bonusFixeMaxHpPropre = useMemo(() => monsterBonusFixeMaxHpPropre(skillDetail), [skillDetail]);
+  const bonusSacrifice = useMemo(() => monsterBonusSacrifice(skillDetail), [skillDetail]);
+  const bonusParEffetCibleMonstre = useMemo(() => monsterBonusParEffetCible(skillDetail), [skillDetail]);
+  const bonusParEffetPropre = useMemo(() => monsterBonusParEffetPropre(skillDetail), [skillDetail]);
   const monsterWide = useMemo(
-    () => ({ critRateSelonVit: critRateSelonVit ?? undefined, bonusStatFixe: bonusStatFixe ?? undefined }),
-    [critRateSelonVit, bonusStatFixe]
+    () => ({
+      critRateSelonVit: critRateSelonVit ?? undefined,
+      bonusStatFixe: bonusStatFixe ?? undefined,
+      bonusFixeCiblePvMax: bonusFixeCiblePvMax ?? undefined,
+      bonusEcartDef: bonusEcartDef ?? undefined,
+      bonusFixeMaxHpPropre: bonusFixeMaxHpPropre ?? undefined,
+      bonusSacrifice: bonusSacrifice ?? undefined,
+      bonusParEffetCible: bonusParEffetCibleMonstre ?? undefined,
+      bonusParEffetPropre: bonusParEffetPropre ?? undefined,
+    }),
+    [
+      critRateSelonVit,
+      bonusStatFixe,
+      bonusFixeCiblePvMax,
+      bonusEcartDef,
+      bonusFixeMaxHpPropre,
+      bonusSacrifice,
+      bonusParEffetCibleMonstre,
+      bonusParEffetPropre,
+    ]
   );
   // Bonus conditionnel à bouton (Jin Kazama, Cyborg, Brownie Magician,
   // Astar, Jean, Kyle, Satoru Gojo, Werner, Zenitsu, Qilin Slasher, Panda
@@ -338,6 +376,13 @@ export default function OptimizerSection({ box, runes, optimizer, allMonsters, r
   // propres, état d'un allié, tour précédent…), toggle dans `damageSetup.
   // passifsOffensifs` comme un passif `bonus`/`conditionnel` classique.
   const bonusDegatsConditionnel = useMemo(() => monsterBonusDegatsConditionnel(skillDetail), [skillDetail]);
+  // Zenitsu Agatsuma (Ténèbres)/Qilin Slasher (Ténèbres) — même famille que
+  // `bonusDegatsSelonVit`, mais selon le Taux Crit BRUT (voir
+  // `monsterBonusDegatsSelonCr`).
+  const bonusDegatsSelonCr = useMemo(() => monsterBonusDegatsSelonCr(skillDetail), [skillDetail]);
+  // Gideon (« Aegis Shell ») — même famille ENCORE, mais selon TA PROPRE DEF
+  // (voir `monsterBonusDegatsSelonDef`).
+  const bonusDegatsSelonDef = useMemo(() => monsterBonusDegatsSelonDef(skillDetail), [skillDetail]);
   // Affichage seul (icône/nom/description) des deux modificateurs VIT
   // ci-dessus, pour « Passifs offensifs » — voir `DamageSetupCard.tsx`.
   const modificateursVit = useMemo(() => monsterModificateursVit(skillDetail), [skillDetail]);
@@ -347,9 +392,33 @@ export default function OptimizerSection({ box, runes, optimizer, allMonsters, r
   const objectiveStats = useMemo(
     () =>
       objective === 'degats_reels'
-        ? damageRelevantStats(resolvedSkill, offensivePassives, damageSetup, critSiPlusRapide, bonusDegatsSelonVit, critRateSelonVit)
+        ? damageRelevantStats(
+            resolvedSkill,
+            offensivePassives,
+            damageSetup,
+            critSiPlusRapide,
+            bonusDegatsSelonVit,
+            critRateSelonVit,
+            bonusEcartDef,
+            bonusFixeMaxHpPropre != null || bonusSacrifice != null,
+            bonusDegatsSelonCr,
+            bonusDegatsSelonDef
+          )
         : undefined,
-    [objective, resolvedSkill, offensivePassives, damageSetup, critSiPlusRapide, bonusDegatsSelonVit, critRateSelonVit]
+    [
+      objective,
+      resolvedSkill,
+      offensivePassives,
+      damageSetup,
+      critSiPlusRapide,
+      bonusDegatsSelonVit,
+      critRateSelonVit,
+      bonusEcartDef,
+      bonusFixeMaxHpPropre,
+      bonusSacrifice,
+      bonusDegatsSelonCr,
+      bonusDegatsSelonDef,
+    ]
   );
   // Statistiques principales autorisées sur les slots 2/4/6 — vide = libre.
   // Voir spec/outils/optimizer/ : pour un Lushen, ATQ% en 2, Dmg Crit en 4,
@@ -591,6 +660,8 @@ export default function OptimizerSection({ box, runes, optimizer, allMonsters, r
             bonusDegatsStack,
             monsterWide,
             bonusDegatsConditionnel,
+            bonusDegatsSelonCr,
+            bonusDegatsSelonDef,
           }
         : null,
     [
@@ -604,6 +675,8 @@ export default function OptimizerSection({ box, runes, optimizer, allMonsters, r
       bonusDegatsStack,
       monsterWide,
       bonusDegatsConditionnel,
+      bonusDegatsSelonCr,
+      bonusDegatsSelonDef,
     ]
   );
 
@@ -1490,6 +1563,9 @@ export default function OptimizerSection({ box, runes, optimizer, allMonsters, r
               bonusDegatsStack={bonusDegatsStack}
               critRateSelonVit={critRateSelonVit}
               bonusDegatsConditionnel={bonusDegatsConditionnel}
+              bonusParEffetCibleMonstre={bonusParEffetCibleMonstre}
+              bonusParEffetPropre={bonusParEffetPropre}
+              bonusSacrifice={bonusSacrifice}
               ampliVitPct={ampliVitPct}
             />
           </div>
@@ -2246,7 +2322,9 @@ export default function OptimizerSection({ box, runes, optimizer, allMonsters, r
                           realDamage.bonusDegatsSelonVit,
                           realDamage.bonusDegatsStack,
                           realDamage.monsterWide,
-                          realDamage.bonusDegatsConditionnel
+                          realDamage.bonusDegatsConditionnel,
+                          realDamage.bonusDegatsSelonCr,
+                          realDamage.bonusDegatsSelonDef
                         );
                         return { total, partPvCible: damageSetup.enemyHp > 0 ? (total / damageSetup.enemyHp) * 100 : 0 };
                       })()

@@ -12,7 +12,12 @@ import { OptimizerRecipe } from '../../src/lib/optimizerRecipe';
 import {
   DEFAULT_DAMAGE_SETUP,
   damageRelevantStats,
+  monsterBonusDegatsSelonCr,
+  monsterBonusDegatsSelonDef,
   monsterBonusDegatsSelonVit,
+  monsterBonusEcartDef,
+  monsterBonusFixeMaxHpPropre,
+  monsterBonusSacrifice,
   monsterCritRateSelonVit,
   monsterCritSiPlusRapide,
   monsterDamageSkills,
@@ -121,7 +126,11 @@ export function resolveObjectiveStats(recipe: OptimizerRecipe, loaded: LoadedMon
     recipe.damageSetup ?? DEFAULT_DAMAGE_SETUP,
     monsterCritSiPlusRapide(detail),
     monsterBonusDegatsSelonVit(detail),
-    monsterCritRateSelonVit(detail)
+    monsterCritRateSelonVit(detail),
+    monsterBonusEcartDef(detail),
+    monsterBonusFixeMaxHpPropre(detail) != null || monsterBonusSacrifice(detail) != null,
+    monsterBonusDegatsSelonCr(detail),
+    monsterBonusDegatsSelonDef(detail)
   );
 }
 

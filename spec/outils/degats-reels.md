@@ -693,9 +693,13 @@ gaté sur `resolved.bonusCoefficientParCompteur`.
 
 Contrairement aux familles précédentes (qui majorent le TOTAL, monstre-wide),
 celle-ci est propre à UN SORT ACTIF précis : `SkillDamageProfile.
-bonusParEffetCible?: { pct: number; inclutDebuffs: boolean }`, curé dans
-`BONUS_PAR_EFFET_CIBLE_CONNUS` (clé = `Competence.nom`, même discipline que
-`IGNORE_DEF_SELON_VIT_CONNUS`/`COUPS_VARIABLES_CONNUS`).
+bonusParEffetCible?: { pct: number; source: 'buffs' | 'debuffs' |
+'buffsEtDebuffs' }`, curé dans `BONUS_PAR_EFFET_CIBLE_CONNUS` (clé =
+`Competence.nom`, même discipline que `IGNORE_DEF_SELON_VIT_CONNUS`/
+`COUPS_VARIABLES_CONNUS`). ⚠️ `source` remplace l'ancien `inclutDebuffs:
+boolean` (cinquième vague, plus bas) : un booléen ne pouvait exprimer que
+« buffs seuls » / « buffs et débuffs », jamais « débuffs seuls » (Backup
+Code).
 
 - **Julie/Pierrette** (« Thousand Shots », S3) : « The damage increases by
   50% for each beneficial effect on the enemies. » `+50 %` confirmé
@@ -748,6 +752,179 @@ Points 10-12 (Karakum, Nezuko, formules à ratio inconnu) : explicitement
 laissés de côté par l'utilisateur (formule inconnue, monstres jamais
 joués). Aucun de ces cas n'est implémenté — à reprendre sur une demande
 dédiée plutôt qu'en marge de cette vague.
+
+### Cinquième vague — points 9, 10 et 26 à 43
+
+Un second fichier de réponses, sur les points restants du catalogue
+original (dont deux trous du premier lot, jamais câblés malgré une réponse
+déjà donnée) plus dix-sept points nouveaux (27-43).
+
+**Trous comblés du premier lot** — `BONUS_DEGATS_CONDITIONNEL_CONNUS` :
+
+- **Idunn's Heart/Eivor (Feu)** et **Innate Physical/Solveig** (point 9) :
+  « if you have taken less than 20% of your MAX HP as damage during the
+  previous turn, increases the damage dealt this turn by 100% » — `+100 %`,
+  toggle. ⚠️ Nom RÉEL vérifié par grep exhaustif du corpus avant de curer :
+  « Idunn's Heart » est sur la forme **Feu** d'Eivor, pas Eau (piège
+  identique pour « Cold Brew », plus bas).
+- **Brawler's Will/Neostone Fighter, Trevor** (point 10) : « increases the
+  damage dealt... as your HP decreases » (`quantite: null`) — confirmé
+  +2 %/point de % de PV PROPRES perdus, jusqu'à +200 %. Réutilise
+  `BONUS_DEGATS_STACKABLE_CONNUS` (même mécanisme de saisie manuelle que
+  Momo), aucun code nouveau.
+
+**Nouveaux `BONUS_DEGATS_CONDITIONNEL_CONNUS`** (toggle, +X % au total,
+condition non déductible) :
+
+- **Path of the Brave Warrior/Deragron** (point 39) : « up to 200%, on the
+  next turn » après un soin reçu — simplifié en binaire (0/200 %), comme
+  Self Repair.
+- **Female Warrior/Sabrina** (point 40) : « 20% more damage on enemies with
+  no beneficial effects » — inverse conceptuel de Julie (bonus si la cible
+  N'A PAS d'effet, pas selon son nombre). ⚠️ **Écart entre données et
+  réponse utilisateur** : `quantite: 20` confirmé dans SWARFARM, mais la
+  réponse parlait de « jusqu'à 200 % » — très probablement une confusion
+  avec Cold Brew/Iced Tea juste en dessous (même lot de réponses). Les
+  données réelles ont prévalu (20 %, pas 200 %).
+- **Cold Brew/Espresso Cookie (Eau)** et **Iced Tea/Black Tea Bunny (Eau),
+  Rosemary** (point 43) : « +200% if you attack the frozen enemy on your
+  turn » — confirmé en données (`quantite: 200`).
+
+**Nouveau `PASSIFS_OFFENSIFS_CONNUS` `conditionnel`** (toggle, formule
+PROPRE au passif, pas un % du total) :
+
+- **Internal Force/Paladin, Leona** (point 28) : « Creates a Shield equal
+  to your Defense... Increases the damage dealt by 50% when you have a
+  Shield. » `formule: 2.0*{DEF}` EST le Bouclier — ce n'est PAS un % du
+  total (contrairement à ce que le catalogue laissait supposer), c'est une
+  source de dégâts À PART ENTIÈRE gatée par un bouton, exactement comme
+  Roid. Le +50 % du texte s'applique aux dégâts que le Bouclier ABSORBE
+  (défensif, hors modèle).
+- ⚠️ **Comeuppance/Onmyouji, Giou** (point 41) — **NON implémenté** malgré
+  une formule connue (`0.2*{Target MAX HP}`) : elle ne dépend QUE de la
+  cible, aucune stat de l'attaquant — `monsterOffensivePassives` filtre déjà
+  ce cas (même règle que `skillDamageProfile` pour un sort actif hors
+  modèle). Une entrée dans la table n'aurait donc jamais été détectée.
+  Optimiser les runes dessus n'aurait de toute façon aucun sens.
+
+**Nouveau `BONUS_DEGATS_STACKABLE_CONNUS`** (compteur saisi manuellement, 0
+par défaut, même mécanisme que Momo) :
+
+- **Sleep Talk/Hypnomeow, Birman, Manx, Bombay** (point 30c) : « +100%
+  while sleeping... +200% on the next turn » (au réveil) — DEUX états
+  distincts, confirmé par l'utilisateur comme « toggle entre 0 %, 100 % et
+  200 % » — `{pctParStack: 100, pctMax: 200}` donne exactement ces trois
+  paliers.
+- **Destroyer of Battlefield/Slayer, Borgnine** (point 31a) et **Fire
+  Bead/Dokkaebi Lord (Feu), Moogwang** (point 31b) : « damage... increases
+  proportionate to the enemy's DESTROYED HP » (`quantite: 0`) — confirmé
+  +0,5 %/point pour Borgnine (jusqu'à +30 %), +1 %/point pour Moogwang
+  (jusqu'à +60 %). Le « point » représente 1 % de PV cible DÉTRUITS (pas
+  perdus normalement), saisi manuellement.
+
+**Modificateurs MONSTRE-WIDE ADDITIFS** (nouveaux, s'ajoutent au
+MULTIPLICATEUR du sort choisi comme `bonusCoefficientParCompteur`/Crawler,
+mais déduits d'un passif sans formule plutôt que propres à un sort — voir
+`computeSkillDamageDetail`, paramètre `monsterWide` étendu) :
+
+- **Spear of Tenacity/Centaur Knight, Pholus** (point 38) : « damage...
+  proportionate to the enemy's MAX HP » — confirmé +2 %. Toujours actif,
+  soumis au critique/à la défense comme le reste du sort.
+- **Martial Arts Specialist/Martial Artist, Sin** (point 37) : « additional
+  damage proportionate to your Defense if your Defense is higher than the
+  opponent » — confirmé 50 % de l'écart, à CHAQUE coup, jamais négatif
+  (`max(0, DEF − DEF cible)`).
+- **Sickle Blade/Bayek (Vent)** et **Sand Blade/Desert Warrior (Vent),
+  Shahat** (point 35) : « additional damage that's 7% of your MAX HP when
+  you attack on your turn » — confirmé (`quantite: 7`). ⚠️ **UNE SEULE
+  FOIS par sort, pas par coup** (confirmé par l'utilisateur) — ajouté
+  APRÈS le `×coups`, contrairement à Spear of Tenacity/Martial Arts
+  Specialist.
+- **Calculated Sacrifice/Onimusha, Fuuki** (point 27) : « Decreases your
+  current HP by 20% at the start of each turn and inflicts additional
+  damage by 15% of the lost HP when you attack... Cannot Critical Hit. »
+  Confirmé en données (`quantite: 20`/`15`). L'app ne simule pas la
+  compression des PV tour après tour : `DamageSetup.
+  pvActuelsAvantSacrificePct` (défaut **100**, PREMIER tour — seule
+  exception « défaut non nul » de tout ce module, avec `defaut: 6` de
+  Julie) porte les PV ACTUELS saisis par l'utilisateur. ⚠️ « Cannot
+  Critical Hit » n'est PAS appliqué automatiquement (aucun mécanisme
+  monstre-wide de blocage du critique) — à sélectionner manuellement via
+  le mode de critique « Normal » pour ce monstre.
+
+**Modificateurs MONSTRE-WIDE MULTIPLICATIFS selon un compte d'effets**
+(même mécanisme que Julie/Melissa mais MONSTRE-WIDE — majore le sort choisi
+quel qu'il soit, pas un sort précis) :
+
+- **Backup Code/Hacker, 570RM** (point 33) : « damage increases by 20% for
+  each harmful effect granted on target » — confirmé (`quantite: 20`).
+  PREMIER cas « débuffs SEULS » du fichier (`source: 'debuffs'`).
+- **Blessing of Curse/Devil Maiden, Jessica** (point 34) : « For every
+  harmful effect granted on YOURSELF, the damage dealt is increased by
+  20% » — confirmé. Compte les débuffs sur SOI (`DamageSetup.
+  effetsPropresCount`, stockage séparé de `effetsCibleCount`).
+
+**Bouton restreint à UN SORT** (nouveau : `SkillDamageProfile.
+bonusConditionnelPropre?: { pct: number; condition: string }`) :
+
+- **Emergency Drive/Cynthia, Arcane Weapon** (point 32) : « deal 50%
+  increased damage » UNIQUEMENT « While in the mechanical frame state », un
+  état qui force l'usage de **Rending Claw** (S2) — un bouton monstre-wide
+  aurait été faux dès qu'un AUTRE sort est sélectionné à l'écran. Le bouton
+  ne majore donc QUE Rending Claw, jamais Mechanical Fist (S1).
+
+**QUATRIÈME et CINQUIÈME mécanique liée à une stat** (multiplicatif sur le
+TOTAL, linéaire, plafonné, toujours actif — même famille que Sonia/écart de
+VIT, source différente) :
+
+- **Hidden Sense of Justice/Zenitsu Agatsuma (Ténèbres)** et **Lethal
+  Intent/Qilin Slasher (Ténèbres)** (point 29) : « increases the damage
+  dealt according to your Critical Rate » (`quantite: 0`) — confirmé
+  linéaire, +0,8 % de dégâts par point de Taux Crit BRUT (avant plafond à
+  100 % — cohérent avec Wolf School Training, qui traite déjà ce nombre
+  comme significatif au-delà de 100 %). SEUL cas du fichier où le Taux
+  Crit devient une stat à privilégier au pré-filtrage.
+- **Aegis Shell/Beetle Guardian, Gideon** (point 30a) : « increases the
+  damage you deal to enemies by up to 100% in proportion to your Defense »
+  (`quantite: 100`) — confirmé 100 % à 5000 DEF (« y compris lead, buff
+  DEF »). Distinct de Martial Arts Specialist : ici c'est la DEF PROPRE,
+  sans comparaison avec la cible.
+
+⚠️ **Régression trouvée EN COURS d'implémentation de Gideon (pas signalée
+par l'utilisateur)** : la formule linéaire-plafonnée partagée par toute
+cette famille (Sonia, Chun-Li/Leah…) clampait `Math.min(pctMax, écart)` —
+correct UNIQUEMENT quand `ecartMax == pctMax` (Sonia : 50/50, coïncidence).
+Pour Chun-Li/Leah (`ecartMax: 150, pctMax: 200`, valeurs DIFFÉRENTES), un
+écart de VIT au-delà de 150 points donnait ~267 % au lieu de rester
+plafonné à 200 %. Corrigé (`Math.min(ecartMax, écart)`) et testé au-delà du
+plafond, jamais vérifié jusque-là.
+
+⚠️ **Point 30b (Might of the Mercenary/Mercenary Queen, Brita) — NON
+implémenté, écart non résolu.** La réponse de l'utilisateur décrit un seuil
+de VIT (« +633 de vitesse ») déclenchant un bonus de dégâts, mais les
+données réelles montrent un mécanisme différent : « Grants up to 3 effects
+of Might of the Mercenary according to your stats... (Attack Power:
+Increases the damage dealt to enemies by 100%, Defense: Decreases the
+damage received from enemies by 30%, Attack Speed: Removes 1 beneficial
+effect granted on the enemy with a 50% chance) » — le bonus de DÉGÂTS
+(+100 %) est lié à la clause **Attack Power**, pas Attack Speed/VIT. À
+clarifier avec l'utilisateur avant d'implémenter quoi que ce soit.
+
+**Brandia (« Touch of Mercy »)** — signalée par l'utilisateur (« augmente
+ses dégâts selon le nombre d'effets néfastes sur l'ennemi »), absente de
+TOUTES les tables existantes. Cause trouvée : le catalogue original (65
+entrées) ne cherchait que les flags SWARFARM « Increase Damage »/« Increase
+Critical Damage »/« Buff Bonus Damage » — Brandia porte « Debuff Bonus
+Damage », jamais cherché. « The inflicted damage is increased by 40% for
+each harmful effect OR beneficial effect of the enemy » (`quantite: 40`,
+confirmé) — BUFFS ET DEBUFFS comptés ensemble (comme Melissa), pas
+« débuffs seuls » malgré la description du signalement. Ajoutée à
+`BONUS_PAR_EFFET_CIBLE_CONNUS` (sort actif, S3).
+
+⚠️ **Cette découverte révèle ~24 AUTRES sorts/passifs portant le flag
+« Debuff Bonus Damage »**, jamais examinés (recherche corpus-wide faite
+après coup, catalogue séparé préparé pour l'utilisateur) — aucun
+implémenté à l'aveugle dans cette vague.
 
 ## Effets d'ÉQUIPE (Euldong, Mirinae, Deborah, Miriam, Dr. Matteo, Velaska)
 

@@ -27,8 +27,16 @@ import { loadMonstersList } from './lib/monstersData';
 import {
   DEFAULT_DAMAGE_SETUP,
   monsterBonusDegatsConditionnel,
+  monsterBonusDegatsSelonCr,
+  monsterBonusDegatsSelonDef,
   monsterBonusDegatsSelonVit,
   monsterBonusDegatsStackable,
+  monsterBonusEcartDef,
+  monsterBonusFixeCiblePvMax,
+  monsterBonusFixeMaxHpPropre,
+  monsterBonusParEffetCible,
+  monsterBonusParEffetPropre,
+  monsterBonusSacrifice,
   monsterBonusStatFixe,
   monsterCritRateSelonVit,
   monsterCritSiPlusRapide,
@@ -88,8 +96,16 @@ if (recipe.objective === 'degats_reels') {
       monsterWide: {
         critRateSelonVit: monsterCritRateSelonVit(detail) ?? undefined,
         bonusStatFixe: monsterBonusStatFixe(detail) ?? undefined,
+        bonusFixeCiblePvMax: monsterBonusFixeCiblePvMax(detail) ?? undefined,
+        bonusEcartDef: monsterBonusEcartDef(detail) ?? undefined,
+        bonusFixeMaxHpPropre: monsterBonusFixeMaxHpPropre(detail) ?? undefined,
+        bonusSacrifice: monsterBonusSacrifice(detail) ?? undefined,
+        bonusParEffetCible: monsterBonusParEffetCible(detail) ?? undefined,
+        bonusParEffetPropre: monsterBonusParEffetPropre(detail) ?? undefined,
       },
       bonusDegatsConditionnel: monsterBonusDegatsConditionnel(detail),
+      bonusDegatsSelonCr: monsterBonusDegatsSelonCr(detail),
+      bonusDegatsSelonDef: monsterBonusDegatsSelonDef(detail),
     };
   } else {
     console.warn(`⚠️ Objectif « Dégâts réels » mais aucun sort calculable pour ${loaded.monsterName} — objectiveScore lèvera.`);

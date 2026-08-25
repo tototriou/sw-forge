@@ -353,10 +353,25 @@ export interface RealDamageContext {
   // Ciri (Feu)/MOS (Feu)/Reyka et Lizardman/Glinodon — voir
   // `monsterCritRateSelonVit`/`monsterBonusStatFixe`. `{}` = comportement
   // inchangé.
-  monsterWide: { critRateSelonVit?: { ptsParVit: number }; bonusStatFixe?: { cr: number; cd: number } };
+  monsterWide: {
+    critRateSelonVit?: { ptsParVit: number };
+    bonusStatFixe?: { cr: number; cd: number };
+    bonusFixeCiblePvMax?: { pct: number };
+    bonusEcartDef?: { coeff: number };
+    bonusFixeMaxHpPropre?: { pct: number };
+    bonusSacrifice?: { skillCom2usId: number; pctPerte: number; pctSurPerte: number };
+    bonusParEffetCible?: { skillCom2usId: number; pct: number; source: 'buffs' | 'debuffs' | 'buffsEtDebuffs' };
+    bonusParEffetPropre?: { skillCom2usId: number; pct: number };
+  };
   // Bonus conditionnel à bouton (Jin Kazama, Cyborg, Brownie Magician…) —
   // voir `monsterBonusDegatsConditionnel`. `null` = comportement inchangé.
   bonusDegatsConditionnel: BonusDegatsConditionnelProfile | null;
+  // Zenitsu Agatsuma (Ténèbres)/Qilin Slasher (Ténèbres) — voir
+  // `monsterBonusDegatsSelonCr`. `null` = comportement inchangé.
+  bonusDegatsSelonCr: { ratio: number } | null;
+  // Gideon (« Aegis Shell ») — voir `monsterBonusDegatsSelonDef`. `null` =
+  // comportement inchangé.
+  bonusDegatsSelonDef: { defMax: number; pctMax: number } | null;
 }
 
 export function objectiveScore(candidate: BuildCandidate, objective: Objective, realDamage?: RealDamageContext): number {
@@ -384,7 +399,9 @@ export function objectiveScore(candidate: BuildCandidate, objective: Objective, 
       realDamage.bonusDegatsSelonVit,
       realDamage.bonusDegatsStack,
       realDamage.monsterWide,
-      realDamage.bonusDegatsConditionnel
+      realDamage.bonusDegatsConditionnel,
+      realDamage.bonusDegatsSelonCr,
+      realDamage.bonusDegatsSelonDef
     );
   }
   if (objective === 'degats') {

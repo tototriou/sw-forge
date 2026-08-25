@@ -425,6 +425,61 @@ export function monsterModificateursVit(detail: DetailMonstre | null): Modificat
         detail: `toujours actif — +${statFixe.cr} pts de Taux Crit, +${statFixe.cd} pts de Dgts Crit`,
       });
     }
+    const selonCr = BONUS_DEGATS_SELON_CR_CONNUS[c.nom];
+    if (selonCr) {
+      out.push({
+        skillCom2usId: c.com2usId,
+        nom: c.nom,
+        description: c.description,
+        icone: c.icone,
+        detail: `toujours actif — +${selonCr.ratio} % de dégâts par point de Taux Crit`,
+      });
+    }
+    const selonDef = BONUS_DEGATS_SELON_DEF_CONNUS[c.nom];
+    if (selonDef) {
+      out.push({
+        skillCom2usId: c.com2usId,
+        nom: c.nom,
+        description: c.description,
+        icone: c.icone,
+        detail: `toujours actif — jusqu'à +${selonDef.pctMax} % de dégâts à ${selonDef.defMax} DEF`,
+      });
+    }
+    // ⚠️ Malgré son nom, cette fonction affiche tout modificateur MONSTRE-WIDE
+    // TOUJOURS ACTIF (aucun bouton, rien à saisir) — voir `BONUS_STAT_FIXE_CONNUS`
+    // juste au-dessus, déjà hors VIT. Les trois ci-dessous (Spear of
+    // Tenacity/Martial Arts Specialist/Sickle Blade/Sand Blade) suivent le
+    // même principe.
+    const ciblePvMax = BONUS_FIXE_CIBLE_PVMAX_CONNUS[c.nom];
+    if (ciblePvMax) {
+      out.push({
+        skillCom2usId: c.com2usId,
+        nom: c.nom,
+        description: c.description,
+        icone: c.icone,
+        detail: `toujours actif — +${ciblePvMax.pct} % des PV max de la cible ajoutés au multiplicateur`,
+      });
+    }
+    const ecartDef = BONUS_ECART_DEF_CONNUS[c.nom];
+    if (ecartDef) {
+      out.push({
+        skillCom2usId: c.com2usId,
+        nom: c.nom,
+        description: c.description,
+        icone: c.icone,
+        detail: `toujours actif — +${ecartDef.coeff * 100} % de l'écart de DEF (toi − cible) ajoutés au multiplicateur, à chaque coup`,
+      });
+    }
+    const maxHpPropre = BONUS_FIXE_MAXHP_PROPRE_CONNUS[c.nom];
+    if (maxHpPropre) {
+      out.push({
+        skillCom2usId: c.com2usId,
+        nom: c.nom,
+        description: c.description,
+        icone: c.icone,
+        detail: `toujours actif — +${maxHpPropre.pct} % de tes PV max, UNE FOIS par sort (pas par coup)`,
+      });
+    }
   }
   return out;
 }
@@ -433,6 +488,48 @@ export function monsterBonusDegatsSelonVit(detail: DetailMonstre | null): { ecar
   if (!detail) return null;
   for (const c of detail.competences) {
     const trouve = c.passif && BONUS_DEGATS_SELON_VIT_CONNUS[c.nom];
+    if (trouve) return trouve;
+  }
+  return null;
+}
+
+// « Additionally, increases the damage dealt according to your Critical
+// Rate. » `quantite: 0`/`null` dans les données SWARFARM — confirmé par
+// l'utilisateur : « 1% de Taux critique = 0,8% de dégâts supplémentaire »,
+// linéaire, sans plafond annoncé. Même famille que `BONUS_DEGATS_SELON_VIT_CONNUS`
+// (multiplicatif sur le TOTAL, toujours actif, aucun bouton), mais la
+// source est le Taux Crit BRUT (`crBrutEffectif`, AVANT plafond à 100 % —
+// cohérent avec Wolf School Training, qui traite déjà ce même nombre comme
+// significatif au-delà de 100 %) plutôt que l'écart de VIT.
+const BONUS_DEGATS_SELON_CR_CONNUS: Record<string, { ratio: number }> = {
+  'Hidden Sense of Justice (Passive)': { ratio: 0.8 }, // Zenitsu Agatsuma (Ténèbres)
+  'Lethal Intent (Passive)': { ratio: 0.8 }, // Qilin Slasher (Ténèbres)
+};
+
+export function monsterBonusDegatsSelonCr(detail: DetailMonstre | null): { ratio: number } | null {
+  if (!detail) return null;
+  for (const c of detail.competences) {
+    const trouve = c.passif && BONUS_DEGATS_SELON_CR_CONNUS[c.nom];
+    if (trouve) return trouve;
+  }
+  return null;
+}
+
+// « Increases the damage you deal to enemies by up to 100% in proportion to
+// your Defense. » `quantite: 100` confirmé en données — confirmé par
+// l'utilisateur : 100 % à 5000 DEF (« y compris lead, buff DEF... »).
+// ⚠️ Distinct de `bonusEcartDef` (Martial Arts Specialist) : ici c'est TA
+// PROPRE DEF, sans comparaison avec la cible — même famille que
+// `BONUS_DEGATS_SELON_VIT_CONNUS`/`BONUS_DEGATS_SELON_CR_CONNUS`
+// (multiplicatif sur le TOTAL, linéaire, plafonné, toujours actif).
+const BONUS_DEGATS_SELON_DEF_CONNUS: Record<string, { defMax: number; pctMax: number }> = {
+  'Aegis Shell (Passive)': { defMax: 5000, pctMax: 100 }, // Beetle Guardian, Gideon
+};
+
+export function monsterBonusDegatsSelonDef(detail: DetailMonstre | null): { defMax: number; pctMax: number } | null {
+  if (!detail) return null;
+  for (const c of detail.competences) {
+    const trouve = c.passif && BONUS_DEGATS_SELON_DEF_CONNUS[c.nom];
     if (trouve) return trouve;
   }
   return null;
@@ -466,6 +563,32 @@ const BONUS_DEGATS_STACKABLE_CONNUS: Record<string, { pctParStack: number; pctMa
   // this effect occurs » — confirmé par l'utilisateur : identique à Momo,
   // paliers de 10 %, plafond 150 % (15 stacks).
   'Absorb Shadow (Passive)': { pctParStack: 10, pctMax: 150 }, // Boomerang Warrior (Ténèbres), Martina
+  // « Increases damage by 100% while sleeping... increases the damage by
+  // 200% on the next turn » (au réveil suite à des dégâts) — DEUX états
+  // distincts qui se prêtent au même contrôle « valeur choisie parmi un
+  // petit nombre de paliers » que Momo/Ludo, confirmé par l'utilisateur :
+  // « toggle entre 0 %, 100 % et 200 % ». `pctParStack: 100` donne
+  // exactement ces trois paliers (0/100/200), pas un « stack » au sens de
+  // Momo (attaques alliées comptées) mais la MÊME mécanique de stockage.
+  'Sleep Talk (Passive)': { pctParStack: 100, pctMax: 200 }, // Hypnomeow, Birman, Manx, Bombay
+  // « Destroys the enemy's MAX HP... Allies... deal more damage
+  // proportionate to the enemy target's destroyed HP. » `quantite: 0` en
+  // données (comme Covenant) — confirmé par l'utilisateur : Borgnine
+  // +0,5 %/point de PV DÉTRUIT (pas perdu par les dégâts normaux, par la
+  // destruction propre à ce passif) jusqu'à +30 % (60 points) ; « stack »
+  // ici représente 1 point de PV cible détruit, saisi manuellement (l'app
+  // ne simule pas la destruction cumulative de PV sur plusieurs tours).
+  'Destroyer of Battlefield (Passive)': { pctParStack: 0.5, pctMax: 30 }, // Slayer, Borgnine
+  // Même mécanisme texte pour texte (« Destroy HP »/« Increase Damage »,
+  // `quantite: 0`), confirmé par l'utilisateur avec un ratio DIFFÉRENT :
+  // Moogwang +1 %/point de PV cible détruit, jusqu'à +60 % (60 points).
+  'Fire Bead (Passive)': { pctParStack: 1, pctMax: 60 }, // Dokkaebi Lord (Feu), Moogwang
+  // « Inflicts additional damage proportionate to your HP as it decreases »
+  // (`quantite: null`) — confirmé par l'utilisateur : +2 %/point de % de PV
+  // PERSONNELS perdus, jusqu'à +200 % (100 points = PV à 0 %). Même
+  // mécanisme de saisie manuelle que ci-dessus, source différente (ses
+  // propres PV perdus, pas ceux détruits sur la cible).
+  "Brawler's Will (Passive)": { pctParStack: 2, pctMax: 200 }, // Neostone Fighter, Trevor
 };
 
 export interface BonusDegatsStackableProfile {
@@ -510,6 +633,211 @@ export function resolvedEffetsCibleCount(profile: SkillDamageProfile, setup: Dam
 // d'une recette écrite pour une autre règle.
 export function resolvedCompteurPersonnalise(profile: SkillDamageProfile, setup: DamageSetup): number {
   return Math.min(9999, Math.max(0, setup.compteurPersonnalise?.[profile.skillCom2usId] ?? 0));
+}
+
+// Même discipline que `resolvedEffetsCibleCount`, mais sur SOI (Blessing of
+// Curse) — stockage séparé (`DamageSetup.effetsPropresCount`), jamais
+// confondu avec les effets sur la cible. Prend directement le
+// `skillCom2usId` (celui du PASSIF détecteur, `monsterBonusParEffetPropre`)
+// plutôt qu'un `SkillDamageProfile` — ce modificateur est MONSTRE-WIDE, pas
+// rattaché à un sort actif précis (voir plus bas dans ce fichier).
+export function resolvedEffetsPropresCount(skillCom2usId: number, setup: DamageSetup): number {
+  return Math.max(0, setup.effetsPropresCount?.[skillCom2usId] ?? 0);
+}
+
+// Le bouton de `bonusConditionnelPropre` est-il activé ? Même stockage que
+// `passifsOffensifs`/`bonusDegatsConditionnelActif`, mais la clé est celle
+// DU SORT lui-même (pas d'un passif à part) — Emergency Drive n'a pas
+// d'entrée `PASSIFS_OFFENSIFS_CONNUS`/`BONUS_DEGATS_CONDITIONNEL_CONNUS` à
+// elle, le bouton vit directement sur le sort qu'il concerne.
+export function bonusConditionnelPropreActif(profile: SkillDamageProfile, setup: DamageSetup): boolean {
+  return setup.passifsOffensifs?.[profile.skillCom2usId] ?? false;
+}
+
+// Bonus à bouton RESTREINT À CE SORT — voir `SkillDamageProfile.
+// bonusConditionnelPropre`. Clé = `Competence.nom` DU SORT ACTIF (pas d'un
+// passif séparé), contrairement à `BONUS_DEGATS_CONDITIONNEL_CONNUS`.
+const BONUS_CONDITIONNEL_PROPRE_CONNUS: Record<string, { pct: number; condition: string }> = {
+  // « While in the mechanical frame state... deal 50% increased damage. »
+  // (Emergency Drive, un PASSIF sans formule) — mais l'état ne s'obtient
+  // qu'en usant automatiquement de [Rending Claw] (« Uses [Rending Claw] on
+  // all enemies when you gain a turn » pendant l'état), qui porte donc CE
+  // bonus, pas le TOTAL du monstre (un autre sort choisi dans l'écran
+  // n'aurait aucun sens pendant cet état). `quantite: 50` confirmé en
+  // données. Nom vérifié exclusif à la famille Arcane Weapon.
+  'Rending Claw': { pct: 50, condition: 'tu es en Mechanical Frame State (Emergency Drive)' }, // Cynthia, Arcane Weapon
+};
+
+// ── Modificateurs MONSTRE-WIDE additifs (passif sans formule, TOUJOURS
+// actif, s'ajoutent au MULTIPLICATEUR du sort actif choisi — quel qu'il
+// soit) ────────────────────────────────────────────────────────────────
+// Même esprit que `BONUS_DEGATS_SELON_VIT_CONNUS`/`monsterBonusDegatsSelonVit`
+// (détecté par scan des passifs, jamais un bouton — inconditionnel), mais
+// ADDITIF au multiplicateur (comme `ajoutCompteur`/Crawler) plutôt que
+// MULTIPLICATIF sur le total.
+
+const BONUS_FIXE_CIBLE_PVMAX_CONNUS: Record<string, { pct: number }> = {
+  // « Increases the damage dealt in proportion to the enemy's MAX HP. »
+  // `quantite: null` en données — confirmé par l'utilisateur : 2 %. ⚠️ Une
+  // SECONDE clause du texte (« +50% dans les combats de boss ») est hors
+  // modèle, aucune notion de « combat de boss » dans cet outil — même limite
+  // que Comeuppance (Onmyouji/Giou, voir le commentaire à la fin de
+  // `PASSIFS_OFFENSIFS_CONNUS`, plus haut : NON ajoutée, sa formule ne
+  // dépend d'ailleurs d'aucune stat de l'attaquant).
+  'Spear of Tenacity (Passive)': { pct: 2 }, // Centaur Knight, Pholus
+};
+
+export function monsterBonusFixeCiblePvMax(detail: DetailMonstre | null): { pct: number } | null {
+  if (!detail) return null;
+  for (const c of detail.competences) {
+    const trouve = c.passif && BONUS_FIXE_CIBLE_PVMAX_CONNUS[c.nom];
+    if (trouve) return trouve;
+  }
+  return null;
+}
+
+const BONUS_ECART_DEF_CONNUS: Record<string, { coeff: number }> = {
+  // « Inflicts additional damage proportionate to your Defense if your
+  // Defense is higher than the opponent. » `quantite: 0` en données —
+  // confirmé par l'utilisateur : 50 % de l'écart, à chaque coup.
+  'Martial Arts Specialist (Passive)': { coeff: 0.5 }, // Martial Artist, Sin
+};
+
+export function monsterBonusEcartDef(detail: DetailMonstre | null): { coeff: number } | null {
+  if (!detail) return null;
+  for (const c of detail.competences) {
+    const trouve = c.passif && BONUS_ECART_DEF_CONNUS[c.nom];
+    if (trouve) return trouve;
+  }
+  return null;
+}
+
+// Celui-ci s'ajoute UNE SEULE FOIS par sort (pas `×coups`) — voir
+// `computeSkillDamageDetail`.
+const BONUS_FIXE_MAXHP_PROPRE_CONNUS: Record<string, { pct: number }> = {
+  // « Inflicts additional damage that's 7% of your MAX HP when you attack
+  // on your turn. » `quantite: 7` confirmé en données, texte identique mot
+  // pour mot sur les deux — noms DIFFÉRENTS (pas de partage cross-monstre
+  // automatique ici, contrairement à « Destroyer of Battlefield »).
+  'Sickle Blade (Passive)': { pct: 7 }, // Bayek (Vent)
+  'Sand Blade (Passive)': { pct: 7 }, // Desert Warrior (Vent), Shahat
+};
+
+export function monsterBonusFixeMaxHpPropre(detail: DetailMonstre | null): { pct: number } | null {
+  if (!detail) return null;
+  for (const c of detail.competences) {
+    const trouve = c.passif && BONUS_FIXE_MAXHP_PROPRE_CONNUS[c.nom];
+    if (trouve) return trouve;
+  }
+  return null;
+}
+
+// Ajout FIXE, UNE FOIS par sort, dérivé d'une saisie manuelle (contrairement
+// aux trois précédents, entièrement déduits) — porte son PROPRE
+// `skillCom2usId` (celui du PASSIF) pour clé de `DamageSetup.
+// pvActuelsAvantSacrificePct`, l'entrée n'étant rattachée à aucun sort actif
+// en particulier.
+export interface BonusSacrificeProfile {
+  skillCom2usId: number;
+  nom: string;
+  description: string | null;
+  icone: string | null;
+  pctPerte: number;
+  pctSurPerte: number;
+}
+
+const BONUS_SACRIFICE_CONNUS: Record<string, { pctPerte: number; pctSurPerte: number }> = {
+  // « Decreases your current HP by 20% at the start of each turn and
+  // inflicts additional damage by 15% of the lost HP when you attack on
+  // your turn. Critical Hits won't occur when attacking the enemy. »
+  // `quantite: 20` (Self-Harm) / `15` (Increase Damage, note « Based on
+  // Self-Harm ») confirmés en données. ⚠️ « Cannot Critical Hit » n'est PAS
+  // appliqué automatiquement ici (aucun mécanisme monstre-wide de blocage du
+  // critique dans ce fichier) — documenté, à sélectionner manuellement via
+  // `DamageSetup.critMode = 'normal'` (jamais critique) pour ce monstre.
+  'Calculated Sacrifice (Passive)': { pctPerte: 20, pctSurPerte: 15 }, // Onimusha, Fuuki
+};
+
+export function monsterBonusSacrifice(detail: DetailMonstre | null): BonusSacrificeProfile | null {
+  if (!detail) return null;
+  for (const c of detail.competences) {
+    if (!c.passif || c.com2usId == null) continue;
+    const config = BONUS_SACRIFICE_CONNUS[c.nom];
+    if (config) return { skillCom2usId: c.com2usId, nom: c.nom, description: c.description, icone: c.icone, ...config };
+  }
+  return null;
+}
+
+// PV ACTUELS (%) juste avant le déclenchement d'un sacrifice — défaut 100
+// (premier tour, PLEINE vie) : contrairement aux autres résolveurs de ce
+// fichier (0 par défaut, jamais deviné), 0 serait FAUX pour un premier tour
+// normal — même logique que `defaut: 6` de Julie (`COUPS_VARIABLES_CONNUS`).
+// Prend directement le `skillCom2usId` (celui du PASSIF détecteur,
+// `monsterBonusSacrifice`) plutôt qu'un profil complet — ce modificateur est
+// MONSTRE-WIDE, jamais rattaché à un sort actif précis.
+export function resolvedPvActuelsAvantSacrificePctMonstre(skillCom2usId: number, setup: DamageSetup): number {
+  const v = setup.pvActuelsAvantSacrificePct?.[skillCom2usId];
+  return Math.min(100, Math.max(0, v ?? 100));
+}
+
+// ── Modificateurs MONSTRE-WIDE MULTIPLICATIFS selon un compte d'effets —
+// même esprit que `BONUS_PAR_EFFET_CIBLE_CONNUS`/`bonusParEffetCible`, mais
+// la source est un PASSIF sans formule (`formule: ""`) qui majore N'IMPORTE
+// QUEL sort choisi, pas un sort actif précis. ─────────────────────────────
+
+export interface BonusMonstreParEffetProfile {
+  skillCom2usId: number;
+  nom: string;
+  description: string | null;
+  icone: string | null;
+  pct: number;
+  source: 'buffs' | 'debuffs' | 'buffsEtDebuffs';
+}
+
+const BONUS_MONSTRE_PAR_EFFET_CIBLE_CONNUS: Record<string, { pct: number; source: 'buffs' | 'debuffs' | 'buffsEtDebuffs' }> = {
+  // « damage increases by 20% for each harmful effect granted on target
+  // whenever you attack the enemy. » `quantite: 20` confirmé en données.
+  // Passif sans formule (`Backup Code (Passive)`) — majore le sort ACTIF
+  // choisi, quel qu'il soit, contrairement à Touch of Mercy/Brandia
+  // (`BONUS_PAR_EFFET_CIBLE_CONNUS`, un sort actif précis).
+  'Backup Code (Passive)': { pct: 20, source: 'debuffs' }, // Hacker, 570RM
+};
+
+export function monsterBonusParEffetCible(detail: DetailMonstre | null): BonusMonstreParEffetProfile | null {
+  if (!detail) return null;
+  for (const c of detail.competences) {
+    if (!c.passif || c.com2usId == null) continue;
+    const config = BONUS_MONSTRE_PAR_EFFET_CIBLE_CONNUS[c.nom];
+    if (config) return { skillCom2usId: c.com2usId, nom: c.nom, description: c.description, icone: c.icone, ...config };
+  }
+  return null;
+}
+
+const BONUS_MONSTRE_PAR_EFFET_PROPRE_CONNUS: Record<string, { pct: number }> = {
+  // « For every harmful effect granted on yourself, the damage dealt is
+  // increased by 20%... » `quantite: 20` confirmé en données. Le texte
+  // porte AUSSI une réduction des dégâts SUBIS (5 %/débuff) — hors modèle
+  // comme partout ailleurs (jamais les effets défensifs). Toujours des
+  // DÉBUFFS uniquement (aucun cas connu de « bonus par BUFF sur soi »).
+  'Blessing of Curse (Passive)': { pct: 20 }, // Devil Maiden, Jessica
+};
+
+export interface BonusMonstreParEffetPropreProfile {
+  skillCom2usId: number;
+  nom: string;
+  description: string | null;
+  icone: string | null;
+  pct: number;
+}
+
+export function monsterBonusParEffetPropre(detail: DetailMonstre | null): BonusMonstreParEffetPropreProfile | null {
+  if (!detail) return null;
+  for (const c of detail.competences) {
+    if (!c.passif || c.com2usId == null) continue;
+    const config = BONUS_MONSTRE_PAR_EFFET_PROPRE_CONNUS[c.nom];
+    if (config) return { skillCom2usId: c.com2usId, nom: c.nom, description: c.description, icone: c.icone, ...config };
+  }
+  return null;
 }
 
 // Passifs qui majorent TOUS les dégâts du monstre d'un pourcentage FIXE
@@ -575,6 +903,37 @@ const BONUS_DEGATS_CONDITIONNEL_CONNUS: Record<string, { pct: number; condition:
   // `c.passif`. Nom vérifié exclusif à Carcano (toutes ses formes
   // élémentaires) dans tout le corpus.
   'Hidden Aim': { pct: 200, condition: 'tu es dans la pose Hidden Aim (activée par ce sort, désactivée après ta prochaine attaque)' }, // Carcano
+  // « Recovers your HP by 20% each turn and if you have taken less than 20%
+  // of your MAX HP as damage during the previous turn, increases the damage
+  // dealt this turn by 100%. » — état du TOUR PRÉCÉDENT (dégâts subis),
+  // jamais trackable. Nom RÉEL vérifié dans le corpus : « Idunn's Heart »
+  // n'est PAS sur la forme Eau d'Eivor (contrairement à ce que le catalogue
+  // laissait supposer) mais sur sa forme FEU (`27712`) — confirmé par un
+  // grep exhaustif du corpus avant de curer, pas une supposition d'élément.
+  "Idunn's Heart (Passive)": { pct: 100, condition: 'tu as pris moins de 20 % de tes PV max en dégâts au tour précédent' }, // Eivor (Feu)
+  'Innate Physical (Passive)': { pct: 100, condition: 'tu as pris moins de 20 % de tes PV max en dégâts au tour précédent' }, // Solveig — texte identique mot pour mot
+  // « When you receive HP recovery... increases the damage dealt to the
+  // enemy, up to 200%, on the next turn. » ⚠️ Simplifié en BINAIRE (0 %/200 %)
+  // comme Self Repair/Dominic — le « up to » suggère un scaling selon les PV
+  // soignés, non chiffré : demande explicite de l'utilisateur (« activable
+  // via toggle comme Dominic »).
+  'Path of the Brave Warrior (Passive)': { pct: 200, condition: 'tu as reçu un soin au tour précédent' }, // Drakan Warrior, Deragron
+  // « Inflicts 20% more damage on enemies with no beneficial effects. »
+  // `quantite: 20` confirmé en données — inverse conceptuel de Julie/Small
+  // Grudge (bonus si la cible N'A PAS d'effet bénéfique, pas selon son
+  // nombre). ⚠️ La réponse de l'utilisateur (« jusqu'à 200 % ») ne
+  // correspond PAS à cette entrée : les données SWARFARM sont formelles
+  // (`quantite: 20`, texte fixe, aucun scaling) — retenu tel quel, écart
+  // signalé plutôt que suivi à l'aveugle (le 200 % vient très probablement
+  // d'une confusion avec Cold Brew/Iced Tea, juste en dessous, répondues
+  // dans le même lot).
+  'Female Warrior (Passive)': { pct: 20, condition: "la cible n'a aucun effet bénéfique" }, // Boomerang Warrior (Eau), Sabrina
+  // « If you attack the frozen enemy on your turn, the damage dealt will be
+  // increased by 200%. » `quantite: 200` confirmé en données. Nom RÉEL :
+  // « Cold Brew » est sur la forme EAU d'Espresso Cookie (`26511`), pas la
+  // forme Feu — même correction de méthode qu'Idunn's Heart ci-dessus.
+  'Cold Brew (Passive)': { pct: 200, condition: 'la cible est gelée' }, // Espresso Cookie (Eau)
+  'Iced Tea (Passive)': { pct: 200, condition: 'la cible est gelée' }, // Black Tea Bunny (Eau), Rosemary — texte identique mot pour mot
 };
 
 export interface BonusDegatsConditionnelProfile {
@@ -757,15 +1116,43 @@ export interface SkillDamageProfile {
   // pourcentage — la compétence est supposée MAXÉE, comme partout ailleurs
   // dans l'app (voir `paliersRechargement`, même parti pris).
   skillupDamagePct: number;
-  // +`pct` % de dégâts par effet (bénéfique, et néfaste si `inclutDebuffs`)
-  // présent sur la CIBLE au moment de l'attaque — Julie (« Thousand
-  // Shots »)/Melissa (« Massacre Dance »). Curé (`BONUS_PAR_EFFET_CIBLE_
-  // CONNUS`) : le TEXTE dit « per beneficial/harmful effect », jamais un
-  // chiffre déductible d'ailleurs, et l'app ne simule aucun effet réel sur
-  // l'adversaire — `DamageSetup.effetsCibleCount` porte le compte saisi par
-  // l'utilisateur, même famille que `coupsPersonnalises`/`stackPersonnalise`
-  // (0 par défaut, jamais deviné).
-  bonusParEffetCible?: { pct: number; inclutDebuffs: boolean };
+  // +`pct` % de dégâts par effet présent sur la CIBLE au moment de
+  // l'attaque — Julie (« Thousand Shots »)/Melissa (« Massacre Dance »).
+  // `source` distingue CE QUI compte : `'buffs'` (Julie/Covenant — le texte
+  // ne parle que d'effets bénéfiques), `'buffsEtDebuffs'` (Melissa/Brandia —
+  // « beneficial AND/OR harmful », un SEUL compte combiné), `'debuffs'`
+  // (aucun sort ACTIF connu à ce jour, mais le modificateur MONSTRE-WIDE
+  // équivalent — Backup Code, voir plus bas — en a besoin ; généralisation
+  // ajoutée pour ce cas, `inclutDebuffs: boolean` d'origine ne pouvait pas
+  // exprimer « débuffs SEULS »). Curé
+  // (`BONUS_PAR_EFFET_CIBLE_CONNUS`) : le TEXTE dit « per beneficial/harmful
+  // effect », jamais un chiffre déductible d'ailleurs, et l'app ne simule
+  // aucun effet réel sur l'adversaire — `DamageSetup.effetsCibleCount` porte
+  // le compte saisi par l'utilisateur, même famille que
+  // `coupsPersonnalises`/`stackPersonnalise` (0 par défaut, jamais deviné).
+  bonusParEffetCible?: { pct: number; source: 'buffs' | 'debuffs' | 'buffsEtDebuffs' };
+  // Bonus à bouton comme `BONUS_DEGATS_CONDITIONNEL_CONNUS`, mais restreint
+  // à CE SORT plutôt qu'au TOTAL — Emergency Drive (Cynthia/Arcane Weapon) :
+  // « deal 50% increased damage » UNIQUEMENT « While in the mechanical frame
+  // state », un état qui force l'usage de [Rending Claw] (le sort qui porte
+  // ce champ) — appliquer le bonus au TOTAL quel que soit le sort choisi
+  // aurait été faux dès qu'un autre sort est sélectionné. Stockage : même
+  // Record que `passifsOffensifs` (clé = `skillCom2usId` DE CE SORT, pas
+  // d'un passif à part).
+  //
+  // ⚠️ Blessing of Curse (par effet sur SOI), Backup Code (par effet sur la
+  // cible, débuffs seuls) et les quatre autres candidats initialement prévus
+  // ici (Spear of Tenacity, Martial Arts Specialist, Sickle Blade/Sand
+  // Blade, Calculated Sacrifice) ont TOUS `passif: true` avec `formule: ""`
+  // dans les données réelles — CE fichier ne construit un `SkillDamageProfile`
+  // QUE pour un sort actif à formule (`skillDamageProfile` retourne `null`
+  // dès `c.passif`, voir plus bas) : une entrée keyée sur leur nom ici
+  // n'aurait jamais été lue. Déplacés en modificateurs MONSTRE-WIDE (comme
+  // `BONUS_DEGATS_CONDITIONNEL_CONNUS`/`BONUS_DEGATS_SELON_VIT_CONNUS`),
+  // détectés par un scan des PASSIFS et appliqués via le paramètre
+  // `monsterWide` de `computeSkillDamageDetail`/`computeTotalDamage` — voir
+  // plus bas dans ce fichier.
+  bonusConditionnelPropre?: { pct: number; condition: string };
   // Ajoute `coeffParPoint × {variable} × compteur` au MULTIPLICATEUR déjà
   // évalué de la formule — Crawler/Frankenstein (« Rage Charge (Passive) »
   // sur « Hammer Punch » S1) : « Your damage is increased according to the
@@ -788,9 +1175,9 @@ export interface SkillDamageProfile {
 // Julie/Melissa sont directement dans les données SWARFARM (`quantite` des
 // effets `Buff Bonus Damage`/`Debuff Bonus Damage`), pas seulement dans la
 // prose libre — vérifiés avant d'être curés ici.
-const BONUS_PAR_EFFET_CIBLE_CONNUS: Record<string, { pct: number; inclutDebuffs: boolean }> = {
-  'Thousand Shots': { pct: 50, inclutDebuffs: false }, // Julie, Pierrette — « for each beneficial effect »
-  'Massacre Dance': { pct: 10, inclutDebuffs: true }, // Melissa, Chakram Dancer — « beneficial AND harmful »
+const BONUS_PAR_EFFET_CIBLE_CONNUS: Record<string, { pct: number; source: 'buffs' | 'debuffs' | 'buffsEtDebuffs' }> = {
+  'Thousand Shots': { pct: 50, source: 'buffs' }, // Julie, Pierrette — « for each beneficial effect »
+  'Massacre Dance': { pct: 10, source: 'buffsEtDebuffs' }, // Melissa, Chakram Dancer — « beneficial AND harmful »
   // « Removes all beneficial effects granted on the enemy target with a
   // 70% chance, and deals damage that increases according [to] the number
   // of beneficial effects removed. » `quantite: 0` dans les données
@@ -801,7 +1188,21 @@ const BONUS_PAR_EFFET_CIBLE_CONNUS: Record<string, { pct: number; inclutDebuffs:
   // ⚠️ Le compteur saisi représente les effets RETIRÉS (70 % de chance
   // chacun), pas nécessairement tous ceux présents — à l'utilisateur de
   // renseigner le nombre RÉELLEMENT retiré, l'app ne simule pas ce tirage.
-  'Suppressive Fire': { pct: 100, inclutDebuffs: false }, // Covenant, Sniper Mk.I
+  'Suppressive Fire': { pct: 100, source: 'buffs' }, // Covenant, Sniper Mk.I
+  // Trouvé en cherchant la raison pour laquelle Brandia (signalée par
+  // l'utilisateur, « augmente ses dégâts selon le nombre d'effets néfastes
+  // sur l'ennemi ») n'apparaissait dans AUCUNE des tables existantes : le
+  // catalogue original (65 entrées) ne cherchait QUE les flags « Increase
+  // Damage »/« Increase Critical Damage »/« Buff Bonus Damage » — Brandia
+  // porte le flag « Debuff Bonus Damage », jamais cherché. « The inflicted
+  // damage is increased by 40% for each harmful effect OR beneficial effect
+  // of the enemy. » `quantite: 40` confirmé en données — BUFFS ET DEBUFFS
+  // comptés ensemble comme Melissa, PAS « débuffs seuls » malgré la
+  // description du signalement (le texte réel du jeu compte les deux).
+  // ⚠️ Cette découverte révèle ~24 AUTRES sorts/passifs portant ce même
+  // flag « Debuff Bonus Damage », jamais examinés — catalogue séparé
+  // préparé pour l'utilisateur, PAS implémentés à l'aveugle ici.
+  'Touch of Mercy': { pct: 40, source: 'buffsEtDebuffs' }, // Brandia
 };
 
 // Formule exacte confirmée par l'utilisateur, avec démonstration algébrique :
@@ -937,6 +1338,7 @@ export function skillDamageProfile(c: Competence): SkillDamageProfile | SkillDam
     fixed,
     skillupDamagePct,
     bonusParEffetCible: BONUS_PAR_EFFET_CIBLE_CONNUS[c.nom],
+    bonusConditionnelPropre: BONUS_CONDITIONNEL_PROPRE_CONNUS[c.nom],
     bonusCoefficientParCompteur: BONUS_COEFFICIENT_PAR_COMPTEUR_CONNUS[c.nom],
     variables,
     noeud: analyse.noeud,
@@ -1155,7 +1557,29 @@ const PASSIFS_OFFENSIFS_CONNUS: PassifOffensifConnu[] = [
       condition: "la cible N'AVAIT PAS de réduction de Défense avant ce sort",
     },
   }, // Roid
+  // — Conditionnel, formule PROPRE (compte à 100 % activé, 0 % éteint) —
+  // « Creates a Shield equal to your Defense for 2 turns when you are
+  // attacked. Increases the damage dealt by 50% when you have a Shield. »
+  // `formule: 2.0*{DEF}` EST le Bouclier lui-même — ce n'est PAS un bonus en
+  // % du total (contrairement à ce que le catalogue laissait supposer),
+  // c'est une SOURCE DE DÉGÂTS À PART ENTIÈRE (comme Winds and Clouds/Final
+  // Strike), juste gatée par un bouton plutôt que « toujours ». Le +50 %
+  // décrit dans le texte s'applique aux dégâts que le Bouclier absorbe (hors
+  // modèle, défensif) — PAS un second multiplicateur à ajouter ici. Balance
+  // ATQ/DEF au début du combat (« the value of the lower stat will equal
+  // that of the higher ») laissée hors modèle (état de combat non simulé).
+  { nom: 'Internal Force (Passive)', categorie: { type: 'conditionnel', condition: 'tu as un Bouclier actif' } }, // Paladin, Leona
 ];
+// ⚠️ Comeuppance (Onmyouji/Giou) — « Deals additional damage that's
+// proportional to the enemy's MAX HP... » (`0.2*{Target MAX HP}`), demandé
+// comme un bouton — NON AJOUTÉ ci-dessus, volontairement : sa formule ne
+// dépend QUE de la cible (`Target MAX HP`), AUCUNE stat de l'attaquant
+// (`{Target MAX HP}` n'est pas dans `VARIABLE_STAT`). `monsterOffensivePassives`
+// filtre déjà ce cas (`!analyse.variables.some((v) => VARIABLE_STAT[v])`,
+// exactement la même règle que `skillDamageProfile` pour un sort actif « ne
+// dépend d'aucune statistique du monstre ») — une entrée ici n'aurait donc
+// JAMAIS été détectée, silencieusement. Optimiser les runes dessus n'aurait
+// de toute façon aucun sens (même chiffre quelle que soit la combinaison).
 
 // Profil de dégâts d'un passif offensif CONNU (voir la liste ci-dessus),
 // prêt à passer par `computeSkillDamage` comme n'importe quel sort actif.
@@ -1413,6 +1837,16 @@ export interface DamageSetup {
   // `coupsPersonnalises`/`effetsCibleCount`. Aucun état de combat simulé :
   // absent = 0, jamais deviné.
   compteurPersonnalise?: Record<number, number>;
+  // Nombre de débuffs actuellement présents sur SOI (Blessing of Curse —
+  // `bonusParEffetPropre`), clé = `skillCom2usId` DU SORT, même espace de
+  // clés que les autres compteurs. Absent = 0, jamais deviné.
+  effetsPropresCount?: Record<number, number>;
+  // PV ACTUELS (%) juste avant le déclenchement d'un sacrifice (Calculated
+  // Sacrifice — `bonusSacrifice`), clé = `skillCom2usId` DU SORT. Absent =
+  // 100 (premier tour) — voir `resolvedPvActuelsAvantSacrificePct`, SEUL
+  // compteur de ce fichier dont le défaut n'est pas 0 (même exception que
+  // `defaut: 6` de Julie, un point de départ représentatif).
+  pvActuelsAvantSacrificePct?: Record<number, number>;
 }
 
 // Adversaire de référence : ni un boss ni une cible nue. 1000 DEF et 30 000
@@ -1545,6 +1979,44 @@ export function maVitCombat(stats: StatRow[], setup: DamageSetup, element: Eleme
   return (base * (100 + pctBuff)) / 100;
 }
 
+// DEF de combat (base + rune + lead, PUIS le buff de combat sur le total) —
+// même structure que `maVitCombat`, pour DEF plutôt que VIT. ⚠️ Réplique
+// SANS LA PARTAGER la portion DEF du calcul déjà fait dans
+// `computeSkillDamageDetail` (`avecInvocateur('def', …)`/`valeurs.DEF`) —
+// non factorisée avec elle par prudence (ce chemin est fortement couplé à
+// celui d'ATK dans la même fonction, déjà éprouvé par les tests existants) ;
+// gardée IDENTIQUE à dessein pour `monsterBonusDegatsSelonDef` (Gideon —
+// « selon TA Défense », pas un écart avec la cible comme `bonusEcartDef`).
+function defCombat(stats: StatRow[], setup: DamageSetup, element: ElementKey | null = null): number {
+  const bonus = summonerSkillBonus(setup.summonerSkills, element);
+  const row = stats.find((s) => s.key === 'def');
+  const leader = resolvedLeaderSkill(setup);
+  const pctLeaderDefBase = leader?.stat === 'Defense' ? leader.pct : 0;
+  const defAvecLead = row ? row.total + Math.ceil((row.base * (bonus.pct.def + pctLeaderDefBase)) / 100) : 0;
+  const ampliMiriam = setup.miriamActif ? MIRIAM_AMPLIFY_PCT : 0;
+  const pctDefBuff = setup.defBuff ? DEF_BUFF_PCT * (1 + ampliMiriam / 100) : 0;
+  return (defAvecLead * (100 + pctDefBuff)) / 100;
+}
+
+// Taux Crit BRUT (avant plafond à 100 %) — leader Taux Crit + les deux
+// modificateurs `monsterWide` qui le touchent directement (`bonusStatFixe`/
+// `critRateSelonVit`, voir Lizardman/Glinodon et Ciri Feu/MOS Feu/Reyka) +
+// la stat elle-même. Factorisé pour que `monsterBonusDegatsSelonCr`
+// (Zenitsu Ténèbres/Qilin Slasher Ténèbres — « selon ton Taux Critique »,
+// voir plus bas) et `computeSkillDamageDetail` lisent EXACTEMENT le même
+// nombre, jamais deux formules qui pourraient diverger silencieusement.
+function crBrutEffectif(
+  stats: StatRow[],
+  setup: DamageSetup,
+  maVit: number,
+  monsterWide: { critRateSelonVit?: { ptsParVit: number }; bonusStatFixe?: { cr: number; cd: number } }
+): number {
+  const leader = resolvedLeaderSkill(setup);
+  const pctLeaderCr = leader?.stat === 'Critical Rate' ? leader.pct : 0;
+  const crDepuisVit = monsterWide.critRateSelonVit ? Math.floor(maVit / monsterWide.critRateSelonVit.ptsParVit) : 0;
+  return total(stats, 'cr') + (monsterWide.bonusStatFixe?.cr ?? 0) + pctLeaderCr + crDepuisVit;
+}
+
 export function computeSkillDamageDetail(
   profile: SkillDamageProfile,
   stats: StatRow[],
@@ -1567,7 +2039,21 @@ export function computeSkillDamageDetail(
   // paramètre plutôt que deux de plus : cette fonction n'est appelée que
   // depuis `damage.ts` (jamais directement par l'écran/les scripts), le
   // risque d'oubli à un site d'appel externe est nul.
-  monsterWide: { critRateSelonVit?: { ptsParVit: number }; bonusStatFixe?: { cr: number; cd: number } } = {}
+  monsterWide: {
+    critRateSelonVit?: { ptsParVit: number };
+    bonusStatFixe?: { cr: number; cd: number };
+    // Voir « Modificateurs MONSTRE-WIDE additifs » plus haut — `skillCom2usId`
+    // porté par `bonusSacrifice`/`bonusParEffetCible`/`bonusParEffetPropre`
+    // (pas par `bonusFixeCiblePvMax`/`bonusEcartDef`, entièrement déduits,
+    // aucune saisie à retrouver) sert de clé pour lire la saisie manuelle
+    // correspondante dans `setup`.
+    bonusFixeCiblePvMax?: { pct: number };
+    bonusEcartDef?: { coeff: number };
+    bonusFixeMaxHpPropre?: { pct: number };
+    bonusSacrifice?: { skillCom2usId: number; pctPerte: number; pctSurPerte: number };
+    bonusParEffetCible?: { skillCom2usId: number; pct: number; source: 'buffs' | 'debuffs' | 'buffsEtDebuffs' };
+    bonusParEffetPropre?: { skillCom2usId: number; pct: number };
+  } = {}
 ): { total: number; pvRestantsPct: number } {
   const bonus = summonerSkillBonus(setup.summonerSkills, element);
   // Compétences d'invocateur : un POURCENTAGE de la stat de BASE, ajouté au
@@ -1646,20 +2132,18 @@ export function computeSkillDamageDetail(
   // total BRUT (un dépassement reste une marge légitime contre la résistance
   // adverse), mais au-delà de 100 % il ne rapporte plus aucun dégât en jeu.
   // Detect Weakspot (Lizardman/Glinodon) ajoute des points FLATS aux DEUX
-  // stats, inconditionnellement — voir `monsterBonusStatFixe`.
-  const pctLeaderCr = leader?.stat === 'Critical Rate' ? leader.pct : 0;
-  // Wolf School Training/Quick Execution (Ciri Feu, MOS Feu, Reyka) :
-  // 1 point de Taux Crit tous les `ptsParVit` points de VIT de combat
-  // (arrondi vers le bas), calculé sur LE TAUX CRIT BRUT (avant plafond à
-  // 100 %) — c'est le SURPLUS au-delà de 100 % qui se reverse en Dgts Crit,
-  // 1 pour 1, y compris le surplus apporté par ce même passif. Voir
-  // `monsterCritRateSelonVit`.
+  // stats, inconditionnellement — voir `monsterBonusStatFixe`. Wolf School
+  // Training/Quick Execution (Ciri Feu, MOS Feu, Reyka) : 1 point de Taux
+  // Crit tous les `ptsParVit` points de VIT de combat (arrondi vers le bas),
+  // calculé sur LE TAUX CRIT BRUT (avant plafond à 100 %) — c'est le SURPLUS
+  // au-delà de 100 % qui se reverse en Dgts Crit, 1 pour 1, y compris le
+  // surplus apporté par ce même passif. Voir `monsterCritRateSelonVit`.
   // ⚠️ Le renversement du surplus en Dgts Crit est un mécanisme PROPRE à ce
   // passif — jamais universel. Un monstre SANS lui qui dépasse 100 % de
   // Taux Crit (runes très généreuses) est plafonné, un point c'est tout,
-  // exactement comme avant cette fonctionnalité.
-  const crDepuisVit = monsterWide.critRateSelonVit ? Math.floor(maVit / monsterWide.critRateSelonVit.ptsParVit) : 0;
-  const crBrut = total(stats, 'cr') + (monsterWide.bonusStatFixe?.cr ?? 0) + pctLeaderCr + crDepuisVit;
+  // exactement comme avant cette fonctionnalité. Voir `crBrutEffectif`
+  // (factorisée, réutilisée aussi par `monsterBonusDegatsSelonCr`).
+  const crBrut = crBrutEffectif(stats, setup, maVit, monsterWide);
   const overflowVersCd = monsterWide.critRateSelonVit ? Math.max(0, crBrut - 100) : 0;
   const cr = Math.min(crBrut, 100) / 100;
   const cd =
@@ -1708,8 +2192,30 @@ export function computeSkillDamageDetail(
   const facteurEffetCible = profile.bonusParEffetCible
     ? 1 + (profile.bonusParEffetCible.pct * resolvedEffetsCibleCount(profile, setup)) / 100
     : 1;
+  // Backup Code (« Increase Damage », débuffs sur la CIBLE) — MONSTRE-WIDE,
+  // majore le sort ACTIF choisi quel qu'il soit (voir `monsterBonusParEffetCible`,
+  // distinct de `bonusParEffetCible`, propre à un sort précis type Julie).
+  const facteurEffetCibleMonstre = monsterWide.bonusParEffetCible
+    ? 1 +
+      (monsterWide.bonusParEffetCible.pct *
+        Math.max(0, setup.effetsCibleCount?.[monsterWide.bonusParEffetCible.skillCom2usId] ?? 0)) /
+        100
+    : 1;
+  // Blessing of Curse (« Increase Damage », débuffs sur SOI) — même famille,
+  // stockage séparé (`effetsPropresCount`).
+  const facteurEffetPropre = monsterWide.bonusParEffetPropre
+    ? 1 + (monsterWide.bonusParEffetPropre.pct * resolvedEffetsPropresCount(monsterWide.bonusParEffetPropre.skillCom2usId, setup)) / 100
+    : 1;
+  // Emergency Drive (Cynthia/Arcane Weapon) : bouton restreint à CE SORT
+  // (« Rending Claw »), voir `SkillDamageProfile.bonusConditionnelPropre` —
+  // même stockage/logique que `bonusPassifActif` mais propre au sort choisi,
+  // pas à un passif séparé.
+  const facteurConditionnelPropre = profile.bonusConditionnelPropre && bonusConditionnelPropreActif(profile, setup)
+    ? 1 + profile.bonusConditionnelPropre.pct / 100
+    : 1;
 
-  const horsCoup = critTerm * mitigation * reductions * facteurEffetCible;
+  const horsCoup =
+    critTerm * mitigation * reductions * facteurEffetCible * facteurEffetCibleMonstre * facteurEffetPropre * facteurConditionnelPropre;
   const coups = resolvedHits(profile, setup);
   // Crawler/Frankenstein (« Rage Charge ») : `+coeffParPoint × {variable} ×
   // compteur` s'ajoute au MULTIPLICATEUR de la formule (jamais une
@@ -1721,6 +2227,31 @@ export function computeSkillDamageDetail(
   const ajoutCompteur = bonusCompteur
     ? bonusCompteur.coeffParPoint * resolvedCompteurPersonnalise(profile, setup) * (valeurs[bonusCompteur.variable] ?? 0)
     : 0;
+  // Spear of Tenacity — `pct/100 × {Target MAX HP}`, toujours actif, ajouté
+  // au même titre qu'`ajoutCompteur` (MONSTRE-WIDE plutôt que propre à un
+  // sort, mais même traitement : soumis au critique/à la défense).
+  const ajoutCiblePvMax = monsterWide.bonusFixeCiblePvMax ? (monsterWide.bonusFixeCiblePvMax.pct / 100) * pvMax : 0;
+  // Martial Arts Specialist — `coeff × max(0, DEF_propre − DEF_cible)`,
+  // toujours actif, à CHAQUE coup (confirmé par l'utilisateur), donc dans ce
+  // même terme PAR-COUP plutôt que hors du `×coups` plus bas.
+  const ajoutEcartDef = monsterWide.bonusEcartDef
+    ? monsterWide.bonusEcartDef.coeff * Math.max(0, valeurs.DEF - Math.max(0, setup.enemyDef))
+    : 0;
+  const ajoutParCoup = ajoutCompteur + ajoutCiblePvMax + ajoutEcartDef;
+  // Sickle Blade/Sand Blade — `pct/100 × {MAX HP}` propre, UNE FOIS par
+  // sort (pas `×coups`, confirmé par l'utilisateur) : additionné APRÈS le
+  // `×coups`, mais toujours multiplié par `horsCoup` (même critique/défense
+  // que le reste de l'attaque).
+  const ajoutMaxHpPropre = monsterWide.bonusFixeMaxHpPropre ? (monsterWide.bonusFixeMaxHpPropre.pct / 100) * valeurs['MAX HP'] : 0;
+  // Calculated Sacrifice — dérivé d'une saisie manuelle (`pvActuelsAvantSacrificePct`,
+  // défaut 100 = premier tour), UNE FOIS par sort comme Sickle Blade.
+  const ajoutSacrifice = monsterWide.bonusSacrifice
+    ? (monsterWide.bonusSacrifice.pctSurPerte / 100) *
+      (monsterWide.bonusSacrifice.pctPerte / 100) *
+      (resolvedPvActuelsAvantSacrificePctMonstre(monsterWide.bonusSacrifice.skillCom2usId, setup) / 100) *
+      valeurs['MAX HP']
+    : 0;
+  const ajoutUneFois = ajoutMaxHpPropre + ajoutSacrifice;
   // Les PV ne peuvent pas descendre sous zéro, et une cible à 0 PV max (cas
   // dégénéré d'un réglage vidé) ne se creuse pas : on renvoie alors le
   // pourcentage de départ inchangé plutôt que de diviser par zéro.
@@ -1729,9 +2260,9 @@ export function computeSkillDamageDetail(
   // Chemin COURT — le ratio ne dépend pas des PV de la cible : une seule
   // évaluation, exactement comme avant l'ajout de la simulation.
   if (!profile.variables.includes('Target Current HP %')) {
-    const mult = evaluer(profile.noeud, valeurs) + ajoutCompteur;
-    if (mult <= 0) return { total: 0, pvRestantsPct: pctDepart };
-    const totalDegats = mult * horsCoup * coups;
+    const mult = evaluer(profile.noeud, valeurs) + ajoutParCoup;
+    if (mult <= 0 && ajoutUneFois <= 0) return { total: 0, pvRestantsPct: pctDepart };
+    const totalDegats = (Math.max(0, mult) * coups + ajoutUneFois) * horsCoup;
     const pvApres = creuse(totalDegats, (pctDepart / 100) * pvMax);
     return { total: totalDegats, pvRestantsPct: pvMax > 0 ? (pvApres / pvMax) * 100 : pctDepart };
   }
@@ -1742,12 +2273,13 @@ export function computeSkillDamageDetail(
   let totalDegats = 0;
   for (let i = 0; i < coups; i++) {
     valeurs['Target Current HP %'] = pvMax > 0 ? pvCourant / pvMax : pctDepart / 100;
-    const mult = evaluer(profile.noeud, valeurs) + ajoutCompteur;
+    const mult = evaluer(profile.noeud, valeurs) + ajoutParCoup;
     if (mult <= 0) continue;
     const degatsCoup = mult * horsCoup;
     totalDegats += degatsCoup;
     pvCourant = creuse(degatsCoup, pvCourant);
   }
+  totalDegats += ajoutUneFois * horsCoup;
   return { total: totalDegats, pvRestantsPct: pvMax > 0 ? (pvCourant / pvMax) * 100 : pctDepart };
 }
 
@@ -1882,14 +2414,33 @@ export function computeTotalDamage(
   // le Taux Crit/Dgts Crit à CHAQUE instance (sort ET passifs), donc
   // transmis tels quels à `computeSkillDamageDetail`. `{}` = comportement
   // inchangé.
-  monsterWide: { critRateSelonVit?: { ptsParVit: number }; bonusStatFixe?: { cr: number; cd: number } } = {},
+  monsterWide: {
+    critRateSelonVit?: { ptsParVit: number };
+    bonusStatFixe?: { cr: number; cd: number };
+    bonusFixeCiblePvMax?: { pct: number };
+    bonusEcartDef?: { coeff: number };
+    bonusFixeMaxHpPropre?: { pct: number };
+    bonusSacrifice?: { skillCom2usId: number; pctPerte: number; pctSurPerte: number };
+    bonusParEffetCible?: { skillCom2usId: number; pct: number; source: 'buffs' | 'debuffs' | 'buffsEtDebuffs' };
+    bonusParEffetPropre?: { skillCom2usId: number; pct: number };
+  } = {},
   // Bonus conditionnel à bouton (Jin Kazama, Cyborg, Brownie Magician,
   // Astar, Jean, Kyle, Satoru Gojo, Werner, Zenitsu, Qilin Slasher, Panda
   // Warrior, Mi Ying…) — voir `monsterBonusDegatsConditionnel`. `null` =
   // comportement inchangé.
-  bonusDegatsConditionnel: BonusDegatsConditionnelProfile | null = null
+  bonusDegatsConditionnel: BonusDegatsConditionnelProfile | null = null,
+  // Zenitsu Agatsuma (Ténèbres)/Qilin Slasher (Ténèbres) — voir
+  // `monsterBonusDegatsSelonCr`. Même famille que `bonusDegatsSelonVit`
+  // (multiplicatif sur le TOTAL), mais selon le Taux Crit BRUT plutôt que
+  // l'écart de VIT. `null` = comportement inchangé.
+  bonusDegatsSelonCr: { ratio: number } | null = null,
+  // Gideon (« Aegis Shell ») — voir `monsterBonusDegatsSelonDef`. Même
+  // famille ENCORE, mais selon TA PROPRE DEF (pas un écart avec la cible).
+  // `null` = comportement inchangé.
+  bonusDegatsSelonDef: { defMax: number; pctMax: number } | null = null
 ): number {
-  const ecartVit = maVitCombat(stats, setup, element, ampliVitPct) - Math.max(1, setup.enemySpd ?? DEFAULT_DAMAGE_SETUP.enemySpd!);
+  const maVit = maVitCombat(stats, setup, element, ampliVitPct);
+  const ecartVit = maVit - Math.max(1, setup.enemySpd ?? DEFAULT_DAMAGE_SETUP.enemySpd!);
   const forceCrit = critSiPlusRapide && ecartVit > 0;
   const setupSort = forceCrit ? { ...setup, critMode: 'crit' as const } : setup;
   // ⚠️ Les PV de la cible sont ENCHAÎNÉS du sort actif vers les passifs :
@@ -1939,7 +2490,27 @@ export function computeTotalDamage(
   // ce que le monstre inflige, pas une contribution à part (contrairement à
   // `bonusPvCible`/`bonus`, propres à UN passif précis).
   if (bonusDegatsSelonVit) {
-    const pct = Math.min(bonusDegatsSelonVit.pctMax, Math.max(0, ecartVit)) * (bonusDegatsSelonVit.pctMax / bonusDegatsSelonVit.ecartMax);
+    // ⚠️ RÉGRESSION CORRIGÉE (trouvée en implémentant Gideon, pas signalée
+    // par l'utilisateur) : le plafond doit porter sur L'ÉCART (`ecartMax`,
+    // en points de VIT), PAS sur `pctMax` (en points de %) — les deux
+    // n'étaient identiques QUE pour Sonia (50/50), jamais vérifié au-delà
+    // pour Chun-Li/Leah (150 pts d'écart, 200 % de plafond) : un écart de
+    // 200+ points y donnait ~267 % au lieu de rester plafonné à 200 %.
+    const pct = Math.min(bonusDegatsSelonVit.ecartMax, Math.max(0, ecartVit)) * (bonusDegatsSelonVit.pctMax / bonusDegatsSelonVit.ecartMax);
+    total *= 1 + pct / 100;
+  }
+  // Même famille, source différente ENCORE : le Taux Crit BRUT plutôt que
+  // l'écart de VIT — même helper `crBrutEffectif` que `computeSkillDamageDetail`,
+  // aucune divergence possible entre les deux.
+  if (bonusDegatsSelonCr) {
+    const crBrut = crBrutEffectif(stats, setup, maVit, monsterWide);
+    total *= 1 + (crBrut * bonusDegatsSelonCr.ratio) / 100;
+  }
+  // Gideon (« Aegis Shell ») — linéaire, plafonné, même forme que
+  // `bonusDegatsSelonVit`/`bonusDegatsSelonCr`, source = TA PROPRE DEF.
+  if (bonusDegatsSelonDef) {
+    const def = defCombat(stats, setup, element);
+    const pct = Math.min(bonusDegatsSelonDef.defMax, Math.max(0, def)) * (bonusDegatsSelonDef.pctMax / bonusDegatsSelonDef.defMax);
     total *= 1 + pct / 100;
   }
   // Même famille que `bonusDegatsSelonVit` (multiplicatif sur le TOTAL,
@@ -1995,7 +2566,24 @@ export function damageRelevantStats(
   // Ciri (Feu)/MOS (Feu)/Reyka — voir `monsterCritRateSelonVit`. Même
   // raison que les deux précédents : le Taux Crit dépend de la VIT même si
   // aucun sort/passif compté n'en lit une variable.
-  critRateSelonVit: { ptsParVit: number } | null = null
+  critRateSelonVit: { ptsParVit: number } | null = null,
+  // Martial Arts Specialist (Sin) — voir `monsterBonusEcartDef`. Fait
+  // travailler la DEF même pour un sort dont la formule ne la lit pas
+  // (Roundhouse Kick, `3.9*{ATK}` seul) : le bonus, lui, en dépend.
+  bonusEcartDef: { coeff: number } | null = null,
+  // Sickle Blade/Sand Blade/Calculated Sacrifice — voir
+  // `monsterBonusFixeMaxHpPropre`/`monsterBonusSacrifice`. Même raison,
+  // pour les PV MAX propres.
+  bonusHpPropre = false,
+  // Zenitsu Agatsuma (Ténèbres)/Qilin Slasher (Ténèbres) — voir
+  // `monsterBonusDegatsSelonCr`. ⚠️ SEUL cas de ce fichier où le Taux Crit
+  // devient une stat à privilégier : partout ailleurs il est plafonné à
+  // 100 % en jeu (une CONDITION, pas une cible à maximiser), mais ce
+  // passif-ci en fait directement une source de dégâts.
+  bonusDegatsSelonCr: { ratio: number } | null = null,
+  // Gideon (« Aegis Shell ») — voir `monsterBonusDegatsSelonDef`. Fait
+  // travailler la DEF même pour un sort qui ne la lit pas.
+  bonusDegatsSelonDef: { defMax: number; pctMax: number } | null = null
 ): StatKey[] {
   // Sans sort résolu (fiche absente, sort non pris en charge), on retombe sur
   // le biais de l'objectif « Dégâts » — le cas de très loin le plus fréquent.
@@ -2022,6 +2610,10 @@ export function damageRelevantStats(
   if (critSiPlusRapide || bonusDegatsSelonVit || critRateSelonVit) {
     if (!keys.includes('spd')) keys.push('spd');
   }
+  if (bonusEcartDef && !keys.includes('def')) keys.push('def');
+  if (bonusHpPropre && !keys.includes('hp')) keys.push('hp');
+  if (bonusDegatsSelonCr && !keys.includes('cr')) keys.push('cr');
+  if (bonusDegatsSelonDef && !keys.includes('def')) keys.push('def');
   // Le critique forcé change la donne — mais SEULEMENT lui : le bonus continu
   // de Sonia multiplie le total quel que soit son mode de critique, il ne le
   // FORCE pas.

@@ -33,8 +33,16 @@ import {
   bonusPassifActif,
   damageRelevantStats,
   monsterBonusDegatsConditionnel,
+  monsterBonusDegatsSelonCr,
+  monsterBonusDegatsSelonDef,
   monsterBonusDegatsSelonVit,
   monsterBonusDegatsStackable,
+  monsterBonusEcartDef,
+  monsterBonusFixeCiblePvMax,
+  monsterBonusFixeMaxHpPropre,
+  monsterBonusParEffetCible,
+  monsterBonusParEffetPropre,
+  monsterBonusSacrifice,
   monsterBonusStatFixe,
   monsterCritRateSelonVit,
   monsterCritSiPlusRapide,
@@ -180,6 +188,14 @@ if (recipe.objective === 'degats_reels') {
     const bonusConditionnel = monsterBonusDegatsConditionnel(detail);
     const bonusStatFixe = monsterBonusStatFixe(detail);
     const critRateSelonVit = monsterCritRateSelonVit(detail);
+    const bonusEcartDef = monsterBonusEcartDef(detail);
+    const bonusFixeCiblePvMax = monsterBonusFixeCiblePvMax(detail);
+    const bonusFixeMaxHpPropre = monsterBonusFixeMaxHpPropre(detail);
+    const bonusSacrifice = monsterBonusSacrifice(detail);
+    const bonusEffetCibleMonstre = monsterBonusParEffetCible(detail);
+    const bonusEffetPropre = monsterBonusParEffetPropre(detail);
+    const bonusSelonCr = monsterBonusDegatsSelonCr(detail);
+    const bonusSelonDef = monsterBonusDegatsSelonDef(detail);
     console.log(
       `Dégâts réels : sort « ${profile.nom} » (S${profile.slot}, ${resolvedHits(profile, s)} coup(s)` +
         `${profile.hitsRange ? ` [variable ${profile.hitsRange.min}-${profile.hitsRange.max}]` : ''}` +
@@ -197,13 +213,53 @@ if (recipe.objective === 'degats_reels') {
         // ⚠️ `?? DEFAULT` : une recette exportée AVANT ce champ n'en a pas.
         // L'élément vient du monstre CHARGÉ, jamais de la recette.
         `comp. invocateur ${s.summonerSkills ?? DEFAULT_DAMAGE_SETUP.summonerSkills} (${monsterElement ?? 'élément inconnu'}) — ` +
-        `stats privilégiées [${damageRelevantStats(profile, passifs, s, monsterCritSiPlusRapide(detail), monsterBonusDegatsSelonVit(detail), monsterCritRateSelonVit(detail)).join(', ')}]`
+        `stats privilégiées [${damageRelevantStats(
+          profile,
+          passifs,
+          s,
+          monsterCritSiPlusRapide(detail),
+          monsterBonusDegatsSelonVit(detail),
+          monsterCritRateSelonVit(detail),
+          bonusEcartDef,
+          bonusFixeMaxHpPropre != null || bonusSacrifice != null,
+          bonusSelonCr,
+          bonusSelonDef
+        ).join(', ')}]`
     );
     if (bonusStatFixe) {
       console.log(`Ce monstre ajoute +${bonusStatFixe.cr} pts de Taux Crit et +${bonusStatFixe.cd} pts de Dgts Crit, toujours (Detect Weakspot).`);
     }
     if (critRateSelonVit) {
       console.log(`Ce monstre convertit sa VIT en Taux Crit (1 pt tous les ${critRateSelonVit.ptsParVit} pts), le surplus au-delà de 100 % en Dgts Crit.`);
+    }
+    if (bonusFixeCiblePvMax) {
+      console.log(`Ce monstre ajoute +${bonusFixeCiblePvMax.pct} % des PV max de la cible au multiplicateur, toujours (Spear of Tenacity).`);
+    }
+    if (bonusEcartDef) {
+      console.log(`Ce monstre ajoute ${bonusEcartDef.coeff * 100} % de son écart de DEF avec la cible au multiplicateur, toujours (Martial Arts Specialist).`);
+    }
+    if (bonusFixeMaxHpPropre) {
+      console.log(`Ce monstre ajoute +${bonusFixeMaxHpPropre.pct} % de ses PV max, UNE FOIS par sort (Sickle Blade/Sand Blade).`);
+    }
+    if (bonusSacrifice) {
+      const pv = Math.min(100, Math.max(0, s.pvActuelsAvantSacrificePct?.[bonusSacrifice.skillCom2usId] ?? 100));
+      console.log(
+        `Ce monstre se sacrifie ${bonusSacrifice.pctPerte} % de ses PV actuels chaque tour, +${bonusSacrifice.pctSurPerte} % de la perte en dégâts — PV actuels de la recette : ${pv} %.`
+      );
+    }
+    if (bonusEffetCibleMonstre) {
+      const c = s.effetsCibleCount?.[bonusEffetCibleMonstre.skillCom2usId] ?? 0;
+      console.log(`Ce monstre ajoute +${bonusEffetCibleMonstre.pct} % par effet ${bonusEffetCibleMonstre.source} sur la cible — compte de la recette : ${c}.`);
+    }
+    if (bonusEffetPropre) {
+      const c = s.effetsPropresCount?.[bonusEffetPropre.skillCom2usId] ?? 0;
+      console.log(`Ce monstre ajoute +${bonusEffetPropre.pct} % par débuff sur lui-même — compte de la recette : ${c}.`);
+    }
+    if (bonusSelonCr) {
+      console.log(`Ce monstre ajoute +${bonusSelonCr.ratio} % de dégâts par point de Taux Crit, toujours (Hidden Sense of Justice/Lethal Intent).`);
+    }
+    if (bonusSelonDef) {
+      console.log(`Ce monstre majore ses dégâts selon sa DEF propre : +${bonusSelonDef.pctMax} % à ${bonusSelonDef.defMax} DEF ou plus (Aegis Shell).`);
     }
     // `resolveArtifacts`, PAS `loaded.gear.artifacts` : ceux réellement
     // envoyés au moteur (réels, hypothétiques ou aucun selon la recette) —

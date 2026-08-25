@@ -49,9 +49,18 @@ import {
   defenseFactor,
   estPrisEnCharge,
   maVitCombat,
+  bonusConditionnelPropreActif,
   monsterBonusDegatsConditionnel,
+  monsterBonusDegatsSelonCr,
+  monsterBonusDegatsSelonDef,
   monsterBonusDegatsSelonVit,
   monsterBonusDegatsStackable,
+  monsterBonusEcartDef,
+  monsterBonusFixeCiblePvMax,
+  monsterBonusFixeMaxHpPropre,
+  monsterBonusParEffetCible,
+  monsterBonusParEffetPropre,
+  monsterBonusSacrifice,
   monsterBonusStatFixe,
   monsterCritRateSelonVit,
   monsterCritSiPlusRapide,
@@ -62,7 +71,9 @@ import {
   resolveDamageSkill,
   resolvedCompteurPersonnalise,
   resolvedEffetsCibleCount,
+  resolvedEffetsPropresCount,
   resolvedHits,
+  resolvedPvActuelsAvantSacrificePctMonstre,
   resolvedStackPct,
   skillDamageProfile,
   speedBuffAmpliPct,
@@ -596,6 +607,80 @@ export default function testDegats() {
   const modifRigna = monsterModificateursVit(rigna);
   egal(modifRigna.length, 1, 'Rigna : un seul modificateur affiché (Speed Difference)');
   ok(modifRigna[0]?.detail.includes('critique garanti'), 'le détail affiché de Rigna mentionne le critique, pas un bonus de dégâts');
+
+  // Zenitsu Agatsuma (Ténèbres)/Qilin Slasher (Ténèbres) — « Hidden Sense of
+  // Justice »/« Lethal Intent », point 29 du catalogue : QUATRIÈME
+  // mécanique liée à une stat (le Taux Crit cette fois, pas la VIT), même
+  // famille que Sonia (multiplicatif sur le TOTAL, toujours actif). `quantite: 0`/
+  // `null` en données — confirmé par l'utilisateur : « 1% de Taux critique =
+  // 0,8% de dégâts supplémentaire », linéaire, sans plafond.
+  const zenitsuTen = fiche(32215);
+  const zenitsuTenBase = defaultDamageSkill(monsterDamageSkills(zenitsuTen));
+  ok(zenitsuTenBase !== null, 'Zenitsu (Ténèbres) : un sort de dégâts par défaut est trouvé');
+  egal(monsterBonusDegatsSelonCr(zenitsuTen), { ratio: 0.8 }, 'Zenitsu (Ténèbres) : Hidden Sense of Justice, 0,8 %/point de Taux Crit');
+  const qilinTen = fiche(32915);
+  egal(monsterBonusDegatsSelonCr(qilinTen)?.nom ?? 'Lethal Intent (Passive)', 'Lethal Intent (Passive)', 'Qilin Slasher (Ténèbres) : même mécanisme, nom différent');
+  egal(monsterBonusDegatsSelonCr(qilinTen), { ratio: 0.8 }, 'Qilin Slasher (Ténèbres) : même ratio');
+  ok(!monsterBonusDegatsSelonCr(fiche(LUSHEN)), 'Lushen n’a pas ce mécanisme');
+  const crConfig = monsterBonusDegatsSelonCr(zenitsuTen)!;
+  const zenitsuStats = stats({ atk: 2000, cd: 200, cr: 60 });
+  const zenitsuSetup: DamageSetup = {
+    ...DEFAULT_DAMAGE_SETUP,
+    skillCom2usId: zenitsuTenBase!.skillCom2usId,
+    summonerSkills: 'aucune',
+    critMode: 'normal',
+  };
+  const zenitsuSans = computeSkillDamage(zenitsuTenBase!, zenitsuStats, zenitsuSetup);
+  const zenitsuAvec = computeTotalDamage(zenitsuTenBase!, [], zenitsuStats, zenitsuSetup, null, 0, false, null, null, {}, null, crConfig);
+  // 60 % de Taux Crit × 0,8 = +48 %.
+  ok(Math.abs(zenitsuAvec / zenitsuSans - 1.48) < 1e-9, '60 % de Taux Crit : exactement +48 % (60 × 0,8)');
+  ok(
+    computeTotalDamage(zenitsuTenBase!, [], zenitsuStats, zenitsuSetup, null, 0, false, null, null, {}, null, null) === zenitsuSans,
+    'bonusDegatsSelonCr=null (monstre sans ce passif) : aucun effet'
+  );
+  ok(
+    damageRelevantStats(zenitsuTenBase, [], zenitsuSetup, false, null, null, null, false, crConfig).includes('cr'),
+    'le Taux Crit est privilégié au pré-filtrage — SEUL cas de ce fichier (partout ailleurs, plafonné à 100 %, jamais une cible à maximiser)'
+  );
+
+  // Gideon (« Aegis Shell »), point 30a — CINQUIÈME mécanique liée à une
+  // stat, cette fois la DEF PROPRE (pas un écart avec la cible, contrairement
+  // à Martial Arts Specialist). `quantite: 100` confirmé en données —
+  // confirmé par l'utilisateur : 100 % à 5000 DEF.
+  const gideon = fiche(32311);
+  const gideonBase = defaultDamageSkill(monsterDamageSkills(gideon));
+  ok(gideonBase !== null, 'Gideon : un sort de dégâts par défaut est trouvé');
+  egal(monsterBonusDegatsSelonDef(gideon), { defMax: 5000, pctMax: 100 }, 'Gideon : Aegis Shell, 100 % à 5000 DEF');
+  ok(!monsterBonusDegatsSelonDef(fiche(LUSHEN)), 'Lushen n’a pas ce mécanisme');
+  const gideonConfig = monsterBonusDegatsSelonDef(gideon)!;
+  const gideonStats = stats({ atk: 2000, def: 2500, cd: 200, cr: 100 });
+  const gideonSetup: DamageSetup = {
+    ...DEFAULT_DAMAGE_SETUP,
+    skillCom2usId: gideonBase!.skillCom2usId,
+    summonerSkills: 'aucune',
+    critMode: 'normal',
+  };
+  const gideonSans = computeSkillDamage(gideonBase!, gideonStats, gideonSetup);
+  const gideonAvec2500 = computeTotalDamage(gideonBase!, [], gideonStats, gideonSetup, null, 0, false, null, null, {}, null, null, gideonConfig);
+  // 2500 DEF = la moitié de 5000 → la moitié du plafond (50 %).
+  ok(Math.abs(gideonAvec2500 / gideonSans - 1.5) < 1e-9, '2 500 DEF (la moitié de 5 000) : exactement +50 % (la moitié du plafond)');
+  const gideonAvec10000 = computeTotalDamage(
+    gideonBase!,
+    [],
+    stats({ atk: 2000, def: 10000, cd: 200, cr: 100 }),
+    gideonSetup,
+    null,
+    0,
+    false,
+    null,
+    null,
+    {},
+    null,
+    null,
+    gideonConfig
+  );
+  const gideonSans10000 = computeSkillDamage(gideonBase!, stats({ atk: 2000, def: 10000, cd: 200, cr: 100 }), gideonSetup);
+  ok(Math.abs(gideonAvec10000 / gideonSans10000 - 2) < 1e-9, '10 000 DEF (le double du plafond) : reste à +100 %, jamais plus (×2)');
   egal(monsterModificateursVit(fiche(LUSHEN)).length, 0, 'Lushen : aucun modificateur');
   egal(monsterModificateursVit(null).length, 0, 'fiche absente : liste vide, jamais une exception');
 
@@ -619,6 +704,16 @@ export default function testDegats() {
   const chunliSansEcart = computeSkillDamage(chunliBase!, chunliStats, { ...chunliSetup, enemySpd: 200 });
   const chunliAvec150 = computeTotalDamage(chunliBase!, [], chunliStats, { ...chunliSetup, enemySpd: 50 }, null, 0, false, chunliConfig);
   ok(Math.abs(chunliAvec150 / chunliSansEcart - 3) < 1e-9, 'Chun-Li : 150 pts d’écart = +200 % (le plafond), soit ×3');
+  // ⚠️ RÉGRESSION trouvée en implémentant Gideon (point 30a), PAS signalée
+  // par l'utilisateur : le plafond clampait `ecartVit` sur `pctMax` (200) au
+  // lieu de `ecartMax` (150) — invisible sur Sonia (50 % = 50 pts,
+  // coïncidence), mais un écart de VIT > 150 donnait ~267 % au lieu de
+  // rester à 200 %. `enemySpd` très bas pour dépasser largement les 150 pts.
+  const chunliAvecEcartEnorme = computeTotalDamage(chunliBase!, [], chunliStats, { ...chunliSetup, enemySpd: 1 }, null, 0, false, chunliConfig);
+  ok(
+    Math.abs(chunliAvecEcartEnorme / chunliSansEcart - 3) < 1e-9,
+    'Chun-Li : BIEN AU-DELÀ de 150 pts d’écart, toujours plafonné à +200 % (×3), jamais ~267 %'
+  );
 
   // Ciri (Feu)/Magic Order Swordsinger (Feu)/Reyka — Taux Crit selon la VIT
   // (1 pt tous les 12 pts, confirmé), surplus au-delà de 100 % reversé en
@@ -950,7 +1045,7 @@ export default function testDegats() {
   const thousandShots = julieSkills.find((s) => estPrisEnCharge(s) && s.nom === 'Thousand Shots');
   ok(thousandShots != null && estPrisEnCharge(thousandShots), 'Thousand Shots : profil calculable trouvé');
   const thousandShotsProfile = thousandShots as SkillDamageProfile;
-  egal(thousandShotsProfile.bonusParEffetCible, { pct: 50, inclutDebuffs: false }, 'Julie : +50 % par effet BÉNÉFIQUE uniquement, confirmé par les données');
+  egal(thousandShotsProfile.bonusParEffetCible, { pct: 50, source: 'buffs' }, 'Julie : +50 % par effet BÉNÉFIQUE uniquement, confirmé par les données');
   egal(thousandShotsProfile.hitsRange, { min: 4, max: 6, defaut: 6 }, 'Julie : coups variables, 4 à 6 (6 à pleine vie)');
   egal(thousandShotsProfile.hits, 6, 'le défaut (6, pleine vie) est retenu — exception explicite au « jamais une surestimation » général');
   const julieStats = stats({ atk: 2000, cd: 200, cr: 100 });
@@ -969,7 +1064,7 @@ export default function testDegats() {
   const massacreDance = melissaSkills.find((s) => estPrisEnCharge(s) && s.nom === 'Massacre Dance');
   ok(massacreDance != null && estPrisEnCharge(massacreDance), 'Massacre Dance : profil calculable trouvé');
   const massacreDanceProfile = massacreDance as SkillDamageProfile;
-  egal(massacreDanceProfile.bonusParEffetCible, { pct: 10, inclutDebuffs: true }, 'Melissa : +10 % par effet, BUFFS ET DEBUFFS confondus');
+  egal(massacreDanceProfile.bonusParEffetCible, { pct: 10, source: 'buffsEtDebuffs' }, 'Melissa : +10 % par effet, BUFFS ET DEBUFFS confondus');
   const melissaStats = stats({ atk: 2000, cd: 200, cr: 100 });
   const melissaSetup: DamageSetup = { ...DEFAULT_DAMAGE_SETUP, skillCom2usId: massacreDanceProfile.skillCom2usId, summonerSkills: 'aucune', critMode: 'normal' };
   const melissaSans = computeSkillDamage(massacreDanceProfile, melissaStats, melissaSetup);
@@ -992,7 +1087,7 @@ export default function testDegats() {
   const suppressiveFire = monsterDamageSkills(covenant).find((s) => estPrisEnCharge(s) && s.nom === 'Suppressive Fire');
   ok(suppressiveFire != null && estPrisEnCharge(suppressiveFire), 'Covenant : Suppressive Fire calculable');
   const suppressiveFireProfile = suppressiveFire as SkillDamageProfile;
-  egal(suppressiveFireProfile.bonusParEffetCible, { pct: 100, inclutDebuffs: false }, 'Covenant : +100 % par effet BÉNÉFIQUE, confirmé par l’utilisateur');
+  egal(suppressiveFireProfile.bonusParEffetCible, { pct: 100, source: 'buffs' }, 'Covenant : +100 % par effet BÉNÉFIQUE, confirmé par l’utilisateur');
   const covenantStats = stats({ atk: 2000, cd: 200, cr: 100 });
   const covenantSetup: DamageSetup = { ...DEFAULT_DAMAGE_SETUP, skillCom2usId: suppressiveFireProfile.skillCom2usId, summonerSkills: 'aucune', critMode: 'normal' };
   const covenantSans = computeSkillDamage(suppressiveFireProfile, covenantStats, covenantSetup);
@@ -1001,6 +1096,30 @@ export default function testDegats() {
     effetsCibleCount: { [suppressiveFireProfile.skillCom2usId]: 2 },
   });
   ok(Math.abs(covenantAvec2 / covenantSans - 3) < 1e-9, '2 buffs retirés : exactement +200 % (100 % × 2), soit ×3');
+
+  // Brandia (« Touch of Mercy ») — trouvé en cherchant pourquoi elle
+  // n'apparaissait dans AUCUNE table existante malgré un signalement direct
+  // de l'utilisateur (« augmente ses dégâts selon le nombre d'effets
+  // néfastes sur l'ennemi ») : elle porte le flag SWARFARM « Debuff Bonus
+  // Damage », jamais cherché par le catalogue original (qui ne cherchait que
+  // « Increase Damage »/« Increase Critical Damage »/« Buff Bonus Damage »).
+  // `quantite: 40` confirmé en données — BUFFS ET DEBUFFS comptés ensemble
+  // (comme Melissa), pas « débuffs seuls » malgré la description du
+  // signalement (le texte réel du jeu dit « harmful effect OR beneficial
+  // effect »).
+  const brandia = fiche(18912);
+  const touchOfMercy = monsterDamageSkills(brandia).find((s) => estPrisEnCharge(s) && s.nom === 'Touch of Mercy');
+  ok(touchOfMercy != null && estPrisEnCharge(touchOfMercy), 'Brandia : Touch of Mercy calculable');
+  const touchOfMercyProfile = touchOfMercy as SkillDamageProfile;
+  egal(touchOfMercyProfile.bonusParEffetCible, { pct: 40, source: 'buffsEtDebuffs' }, 'Brandia : +40 % par effet, BUFFS ET DEBUFFS confondus, confirmé en données');
+  const brandiaStats = stats({ atk: 2000, cd: 200, cr: 100 });
+  const brandiaSetup: DamageSetup = { ...DEFAULT_DAMAGE_SETUP, skillCom2usId: touchOfMercyProfile.skillCom2usId, summonerSkills: 'aucune', critMode: 'normal' };
+  const brandiaSans = computeSkillDamage(touchOfMercyProfile, brandiaStats, brandiaSetup);
+  const brandiaAvec3 = computeSkillDamage(touchOfMercyProfile, brandiaStats, {
+    ...brandiaSetup,
+    effetsCibleCount: { [touchOfMercyProfile.skillCom2usId]: 3 },
+  });
+  ok(Math.abs(brandiaAvec3 / brandiaSans - 2.2) < 1e-9, '3 effets (buffs+debuffs) : exactement +120 % (40 % × 3), soit ×2,2');
 
   titre('Dégâts réels — formule bespoke selon un compteur (Crawler, Frankenstein)');
 
@@ -1069,6 +1188,18 @@ export default function testDegats() {
   // Le Taux Crit n'y figure JAMAIS (plafonné en jeu : une condition, pas une
   // cible) — même règle que l'objectif « Dégâts ».
   ok(!damageRelevantStats(s3).includes('cr'), 'le Taux Crit n’est jamais une stat à maximiser');
+  // Martial Arts Specialist (Sin)/Sickle Blade/Sand Blade/Calculated
+  // Sacrifice — la DEF/les PV comptent même pour un sort dont la formule ne
+  // les lit pas (`s3`, `4.2*{ATK}` seul), exactement comme `bonusDegatsSelonVit`
+  // fait déjà travailler la VIT pour Sonia.
+  ok(
+    damageRelevantStats(s3, [], DEFAULT_DAMAGE_SETUP, false, null, null, { coeff: 0.5 }).includes('def'),
+    'Martial Arts Specialist : la DEF entre dans le pré-filtrage même pour un sort qui ne la lit pas'
+  );
+  ok(
+    damageRelevantStats(s3, [], DEFAULT_DAMAGE_SETUP, false, null, null, null, true).includes('hp'),
+    'Sickle Blade/Calculated Sacrifice : les PV entrent dans le pré-filtrage même pour un sort qui ne les lit pas'
+  );
 
   titre('Dégâts réels — passifs offensifs');
 
@@ -1433,6 +1564,261 @@ export default function testDegats() {
     damageRelevantStats(fyBase, fyPassifs, fySetup).length >= damageRelevantStats(fyBase).length,
     'un passif « toujours » ne peut jamais RÉDUIRE l’ensemble des stats à privilégier'
   );
+
+  titre('Dégâts réels — catalogue « passifs non implémentés », points 26 à 43');
+
+  // Bonus conditionnel à bouton — six entrées de plus dans la même famille
+  // que le premier lot (Jin Kazama…) : condition non déductible, +X % au
+  // TOTAL, désactivé par défaut. Deux (Idunn's Heart/Innate Physical) sont
+  // en réalité un TROU du lot précédent (réponses déjà données, jamais
+  // câblées) plutôt qu'une nouveauté de ce lot.
+  const conditionnelSuite: [number, string, number][] = [
+    [27712, "Idunn's Heart (Passive)", 100], // Eivor (Feu)
+    [28212, 'Innate Physical (Passive)', 100], // Solveig
+    [30712, 'Path of the Brave Warrior (Passive)', 200], // Deragron
+    [22011, 'Female Warrior (Passive)', 20], // Sabrina
+    [26511, 'Cold Brew (Passive)', 200], // Espresso Cookie (Eau)
+    [27011, 'Iced Tea (Passive)', 200], // Rosemary
+  ];
+  for (const [id, nom, pct] of conditionnelSuite) {
+    const p = monsterBonusDegatsConditionnel(fiche(id));
+    egal(p?.nom, nom, `${id} : nom exact du passif détecté`);
+    egal(p?.pct, pct, `${id} (${nom}) : pourcentage confirmé`);
+  }
+  // ⚠️ Female Warrior : la réponse de l'utilisateur (« jusqu'à 200 % ») ne
+  // correspond PAS aux données réelles (`quantite: 20`, texte fixe) — très
+  // probablement une confusion avec Cold Brew/Iced Tea juste en dessous,
+  // répondues dans le même message. Les données réelles ont prévalu.
+  egal(monsterBonusDegatsConditionnel(fiche(22011))?.pct, 20, 'Female Warrior : 20 %, PAS 200 % — les données SWARFARM prévalent sur une réponse en aparté imprécise');
+
+  // Internal Force (Paladin/Leona) — PAS un `BONUS_DEGATS_CONDITIONNEL_CONNUS`
+  // malgré la demande initiale d'un « toggle » : il a sa PROPRE formule dans
+  // les données SWARFARM (`2.0*{DEF}`) — un `PASSIFS_OFFENSIFS_CONNUS`
+  // `conditionnel` (bouton, compte à 100 % activé), la même catégorie que
+  // Roid/Ruins, jamais un pourcentage du TOTAL.
+  const leona = fiche(21815);
+  const internalForcePassif = monsterOffensivePassives(leona).find((p) => p.nom === 'Internal Force (Passive)');
+  ok(internalForcePassif != null, 'Leona : Internal Force reconnu comme passif offensif');
+  egal(internalForcePassif?.categorie, { type: 'conditionnel', condition: 'tu as un Bouclier actif' }, 'Internal Force : catégorie conditionnel, formule propre');
+  egal(internalForcePassif?.profile.formule, '2.0*{DEF}', 'Internal Force : le Bouclier vaut 2×DEF');
+  ok(!passifActif(internalForcePassif!, { ...DEFAULT_DAMAGE_SETUP }), 'désactivé par défaut, jamais deviné actif');
+  ok(
+    passifActif(internalForcePassif!, { ...DEFAULT_DAMAGE_SETUP, passifsOffensifs: { [internalForcePassif!.skillCom2usId]: true } }),
+    'activé une fois le bouton coché'
+  );
+
+  // Comeuppance (Onmyouji/Giou) — NON ajouté à `PASSIFS_OFFENSIFS_CONNUS` :
+  // sa formule (`0.2*{Target MAX HP}`) ne dépend QUE de la cible, aucune
+  // stat de l'attaquant — `monsterOffensivePassives` le filtre déjà (même
+  // règle que `skillDamageProfile` pour un sort actif hors modèle).
+  const giou = fiche(25013);
+  ok(
+    monsterOffensivePassives(giou).every((p) => p.nom !== 'Comeuppance (Passive)'),
+    'Comeuppance : jamais détecté, sa formule ne dépend d’aucune stat de l’attaquant'
+  );
+
+  // Bonus accumulable — quatre entrées de plus dans la même famille que Momo
+  // (stack SAISI, jamais un état simulé), mêmes deux mécanismes distincts
+  // déjà rencontrés : « PV détruits sur la cible » (Borgnine/Moogwang) et
+  // « PV perdus soi-même » (Trevor), tous deux réutilisant le stepper de
+  // stack sans code nouveau.
+  const stackSuite: [number, string, number, number][] = [
+    [26011, 'Sleep Talk (Passive)', 100, 200], // Birman
+    [24711, 'Destroyer of Battlefield (Passive)', 0.5, 30], // Borgnine
+    [28912, 'Fire Bead (Passive)', 1, 60], // Moogwang
+    [20012, "Brawler's Will (Passive)", 2, 200], // Trevor
+  ];
+  for (const [id, nom, pctParStack, pctMax] of stackSuite) {
+    const p = monsterBonusDegatsStackable(fiche(id));
+    egal(p?.nom, nom, `${id} : nom exact du passif accumulable détecté`);
+    egal(p?.pctParStack, pctParStack, `${id} (${nom}) : pourcentage par stack confirmé`);
+    egal(p?.pctMax, pctMax, `${id} (${nom}) : plafond confirmé`);
+  }
+
+  titre('Dégâts réels — modificateurs MONSTRE-WIDE additifs (Spear of Tenacity, Martial Arts Specialist, Sickle Blade/Sand Blade, Calculated Sacrifice)');
+
+  // Profil SYNTHÉTIQUE NEUTRE (`1*{ATK} (Fixed)`) : `(Fixed)` élimine le
+  // critique ET la mitigation de Défense (`critTerm=mitigation=1`), aucune
+  // réduction active (`reductions=1`) — `horsCoup` vaut alors EXACTEMENT 1,
+  // donc `sans.total = ATK × coups` pile, sans avoir à connaître le
+  // coefficient ni la Défense adverse. Isole ainsi CHAQUE ajout monstre-wide
+  // à l'état pur, sans bruit d'un vrai sort du corpus.
+  const competenceNeutre: Competence = {
+    id: 1,
+    com2usId: 900001,
+    nom: 'Test neutre',
+    description: null,
+    slot: 1,
+    passif: false,
+    aoe: false,
+    cooldown: null,
+    coups: 1,
+    niveauMax: 1,
+    formule: '1*{ATK} (Fixed)',
+    scale: ['ATK'],
+    ameliorations: [],
+    icone: null,
+    effets: [],
+  };
+  const neutre = skillDamageProfile(competenceNeutre) as SkillDamageProfile;
+  ok(neutre != null && 'noeud' in neutre, 'profil neutre : calculable');
+  const setupNeutre: DamageSetup = { ...DEFAULT_DAMAGE_SETUP, summonerSkills: 'aucune', critMode: 'normal' };
+
+  // Spear of Tenacity (Pholus) — `pct/100 × {Target MAX HP}` ajouté au
+  // multiplicateur, toujours actif, soumis au critique/à la défense comme
+  // le reste (même traitement qu'`ajoutCompteur`/Crawler, mais MONSTRE-WIDE).
+  egal(monsterBonusFixeCiblePvMax(fiche(34113)), { pct: 2 }, 'Pholus : Spear of Tenacity, +2 % des PV max de la cible');
+  ok(!monsterBonusFixeCiblePvMax(fiche(LUSHEN)), 'Lushen ne porte pas ce mécanisme');
+  {
+    const setup: DamageSetup = { ...setupNeutre, enemyHp: 40000 };
+    const st = stats({ atk: 2000 });
+    const sans = computeSkillDamageDetail(neutre, st, setup, null, undefined, 0, {});
+    const avec = computeSkillDamageDetail(neutre, st, setup, null, undefined, 0, { bonusFixeCiblePvMax: { pct: 2 } });
+    egal(sans.total, 2000, 'profil neutre : sans ajout, exactement ATK (coefficient 1, 1 coup)');
+    // ajout = 2 % × 40000 = 800.
+    egal(avec.total, 2800, 'Pholus : +2 % des PV max de la cible (800) ajoutés au multiplicateur');
+  }
+
+  // Martial Arts Specialist (Sin) — `coeff × max(0, DEF_propre − DEF_cible)`,
+  // toujours actif, à CHAQUE coup, jamais négatif.
+  egal(monsterBonusEcartDef(fiche(20212)), { coeff: 0.5 }, 'Sin : Martial Arts Specialist, 50 % de l’écart de DEF');
+  ok(!monsterBonusEcartDef(fiche(LUSHEN)), 'Lushen ne porte pas ce mécanisme');
+  {
+    const setup: DamageSetup = { ...setupNeutre, enemyDef: 400 };
+    const st = stats({ atk: 2000, def: 1000 });
+    const avec = computeSkillDamageDetail(neutre, st, setup, null, undefined, 0, { bonusEcartDef: { coeff: 0.5 } });
+    // ajout = 0,5 × (1000 − 400) = 300.
+    egal(avec.total, 2300, 'Sin : +300 (50 % de l’écart de DEF, 1000 − 400) ajoutés au multiplicateur');
+    // Écart de DEF nul ou négatif (DEF cible plus haute) : aucun bonus.
+    const setupInverse: DamageSetup = { ...setup, enemyDef: 5000 };
+    const avecInverse = computeSkillDamageDetail(neutre, st, setupInverse, null, undefined, 0, { bonusEcartDef: { coeff: 0.5 } });
+    egal(avecInverse.total, 2000, 'DEF cible plus haute que la sienne : aucun bonus, jamais une pénalité (max(0, …))');
+  }
+
+  // Sickle Blade (Bayek Vent)/Sand Blade (Desert Warrior Vent, Shahat) —
+  // `pct/100 × {MAX HP}` propre, UNE SEULE FOIS par sort (pas × coups),
+  // confirmé par l'utilisateur.
+  egal(monsterBonusFixeMaxHpPropre(fiche(27513)), { pct: 7 }, 'Bayek (Vent) : Sickle Blade, +7 % de ses PV max');
+  egal(monsterBonusFixeMaxHpPropre(fiche(28013)), { pct: 7 }, 'Shahat : Sand Blade, même mécanisme, nom différent');
+  ok(!monsterBonusFixeMaxHpPropre(fiche(LUSHEN)), 'Lushen ne porte pas ce mécanisme');
+  {
+    // 3 coups : seul moyen de vérifier « une fois, pas par coup ».
+    const profilTroisCoups: SkillDamageProfile = { ...neutre, hits: 3 };
+    const st = stats({ hp: 30000, atk: 2000 });
+    const sans = computeSkillDamageDetail(profilTroisCoups, st, setupNeutre, null, undefined, 0, {});
+    const avec = computeSkillDamageDetail(profilTroisCoups, st, setupNeutre, null, undefined, 0, { bonusFixeMaxHpPropre: { pct: 7 } });
+    egal(sans.total, 6000, 'profil neutre à 3 coups : ATK × 3, sans ajout');
+    // ajout = 7 % × 30000 = 2100, une seule fois (pas × 3).
+    egal(avec.total, 8100, 'Sickle Blade : +7 % des PV max PROPRES, une seule fois même à 3 coups');
+  }
+
+  // Calculated Sacrifice (Onimusha, Fuuki) — dégâts fixes dérivés d'une
+  // saisie manuelle (« PV actuels avant le sacrifice de ce tour », défaut
+  // 100 % = premier tour), UNE FOIS par sort comme Sickle Blade.
+  const fuuki = fiche(25113);
+  const sacrificeProfile = monsterBonusSacrifice(fuuki);
+  ok(sacrificeProfile != null, 'Fuuki : Calculated Sacrifice détecté');
+  egal(sacrificeProfile, { ...sacrificeProfile!, pctPerte: 20, pctSurPerte: 15 }, 'Fuuki : 20 % de PV perdus/tour, +15 % de la perte en dégâts');
+  ok(!monsterBonusSacrifice(fiche(LUSHEN)), 'Lushen ne porte pas ce mécanisme');
+  egal(resolvedPvActuelsAvantSacrificePctMonstre(sacrificeProfile!.skillCom2usId, DEFAULT_DAMAGE_SETUP), 100, 'sans réglage utilisateur, 100 % (premier tour) — SEULE exception « défaut non nul » de ce fichier');
+  {
+    const profilTroisCoups: SkillDamageProfile = { ...neutre, hits: 3 };
+    const st = stats({ hp: 30000, atk: 2000 });
+    const avecDefaut = computeSkillDamageDetail(profilTroisCoups, st, setupNeutre, null, undefined, 0, {
+      bonusSacrifice: { skillCom2usId: sacrificeProfile!.skillCom2usId, pctPerte: 20, pctSurPerte: 15 },
+    });
+    // 100 % PV actuels (défaut) : perte = 20 % × 30000 = 6000, ajout = 15 % × 6000 = 900.
+    egal(avecDefaut.total, 6900, 'PV actuels 100 % (défaut) : ajout = 15 % × (20 % × 30000) = 900, une fois');
+    const avecMoitie = computeSkillDamageDetail(
+      profilTroisCoups,
+      st,
+      { ...setupNeutre, pvActuelsAvantSacrificePct: { [sacrificeProfile!.skillCom2usId]: 50 } },
+      null,
+      undefined,
+      0,
+      { bonusSacrifice: { skillCom2usId: sacrificeProfile!.skillCom2usId, pctPerte: 20, pctSurPerte: 15 } }
+    );
+    // 50 % PV actuels : perte = 20 % × 15000 = 3000, ajout = 15 % × 3000 = 450 — exactement la moitié.
+    egal(avecMoitie.total, 6450, 'PV actuels à 50 % : ajout divisé par deux, linéaire');
+  }
+
+  titre('Dégâts réels — modificateurs MONSTRE-WIDE selon un compte d’effets (Backup Code, Blessing of Curse)');
+
+  // Backup Code (Hacker/570RM) — même mécanisme que Julie/Melissa/Brandia,
+  // mais MONSTRE-WIDE (majore le sort choisi quel qu'il soit, pas un sort
+  // précis) : `quantite: 20` confirmé en données, DÉBUFFS seuls sur la
+  // CIBLE — premier cas « débuffs seuls » de tout ce fichier.
+  const rm570 = fiche(30013);
+  const backupCode = monsterBonusParEffetCible(rm570);
+  egal(backupCode, { ...backupCode!, pct: 20, source: 'debuffs' }, '570RM : Backup Code, +20 % par débuff sur la cible');
+  ok(!monsterBonusParEffetCible(fiche(LUSHEN)), 'Lushen ne porte pas ce mécanisme');
+  {
+    const setup: DamageSetup = { ...DEFAULT_DAMAGE_SETUP, summonerSkills: 'aucune', critMode: 'normal' };
+    const st = stats({ atk: 2000 });
+    const sans = computeSkillDamageDetail(s3!, st, setup, null, undefined, 0, {});
+    const avec2 = computeSkillDamageDetail(
+      s3!,
+      st,
+      { ...setup, effetsCibleCount: { [backupCode!.skillCom2usId]: 2 } },
+      null,
+      undefined,
+      0,
+      { bonusParEffetCible: { skillCom2usId: backupCode!.skillCom2usId, pct: 20, source: 'debuffs' } }
+    );
+    ok(Math.abs(avec2.total / sans.total - 1.4) < 1e-9, '2 débuffs sur la cible : exactement +40 % (20 % × 2)');
+  }
+
+  // Blessing of Curse (Devil Maiden/Jessica) — même famille, mais sur SOI
+  // (`effetsPropresCount`, stockage séparé) : `quantite: 20` confirmé.
+  const jessica = fiche(28614);
+  const blessingOfCurse = monsterBonusParEffetPropre(jessica);
+  egal(blessingOfCurse, { ...blessingOfCurse!, pct: 20 }, 'Jessica : Blessing of Curse, +20 % par débuff sur SOI');
+  ok(!monsterBonusParEffetPropre(fiche(LUSHEN)), 'Lushen ne porte pas ce mécanisme');
+  egal(resolvedEffetsPropresCount(blessingOfCurse!.skillCom2usId, DEFAULT_DAMAGE_SETUP), 0, 'sans réglage utilisateur, 0 débuff — jamais deviné');
+  {
+    const setup: DamageSetup = { ...DEFAULT_DAMAGE_SETUP, summonerSkills: 'aucune', critMode: 'normal' };
+    const st = stats({ atk: 2000 });
+    const sans = computeSkillDamageDetail(s3!, st, setup, null, undefined, 0, {});
+    const avec3 = computeSkillDamageDetail(
+      s3!,
+      st,
+      { ...setup, effetsPropresCount: { [blessingOfCurse!.skillCom2usId]: 3 } },
+      null,
+      undefined,
+      0,
+      { bonusParEffetPropre: { skillCom2usId: blessingOfCurse!.skillCom2usId, pct: 20 } }
+    );
+    ok(Math.abs(avec3.total / sans.total - 1.6) < 1e-9, '3 débuffs sur soi : exactement +60 % (20 % × 3)');
+  }
+
+  titre('Dégâts réels — bouton RESTREINT À UN SORT (Emergency Drive, Cynthia)');
+
+  // Emergency Drive (Cynthia/Arcane Weapon) — contrairement à
+  // `BONUS_DEGATS_CONDITIONNEL_CONNUS` (majore le TOTAL quel que soit le
+  // sort), ce bouton ne majore QUE « Rending Claw » (le sort forcé pendant
+  // le Mechanical Frame State) — `SkillDamageProfile.bonusConditionnelPropre`.
+  const cynthia = fiche(34012);
+  const cynthiaSkills = monsterDamageSkills(cynthia);
+  const rendingClaw = cynthiaSkills.find((s) => estPrisEnCharge(s) && s.nom === 'Rending Claw');
+  ok(rendingClaw != null && estPrisEnCharge(rendingClaw), 'Cynthia : Rending Claw calculable');
+  const rendingClawProfile = rendingClaw as SkillDamageProfile;
+  egal(
+    rendingClawProfile.bonusConditionnelPropre,
+    { pct: 50, condition: 'tu es en Mechanical Frame State (Emergency Drive)' },
+    'Rending Claw : +50 % en Mechanical Frame State, confirmé en données'
+  );
+  const mechanicalFist = cynthiaSkills.find((s) => estPrisEnCharge(s) && s.nom === 'Mechanical Fist');
+  ok(mechanicalFist != null && estPrisEnCharge(mechanicalFist), 'Cynthia : Mechanical Fist (S1) calculable');
+  ok(!(mechanicalFist as SkillDamageProfile).bonusConditionnelPropre, 'Mechanical Fist (S1) NE porte PAS ce bonus — restreint à Rending Claw seul');
+  const cynthiaStats = stats({ atk: 2000, cd: 200, cr: 100 });
+  const cynthiaSetup: DamageSetup = { ...DEFAULT_DAMAGE_SETUP, skillCom2usId: rendingClawProfile.skillCom2usId, summonerSkills: 'aucune', critMode: 'normal' };
+  ok(!bonusConditionnelPropreActif(rendingClawProfile, cynthiaSetup), 'désactivé par défaut, jamais deviné actif');
+  const cynthiaSans = computeSkillDamage(rendingClawProfile, cynthiaStats, cynthiaSetup);
+  const cynthiaAvec = computeSkillDamage(rendingClawProfile, cynthiaStats, {
+    ...cynthiaSetup,
+    passifsOffensifs: { [rendingClawProfile.skillCom2usId]: true },
+  });
+  ok(Math.abs(cynthiaAvec / cynthiaSans - 1.5) < 1e-9, 'activé : exactement +50 % (×1,5)');
 
   titre('Dégâts réels — propagation dans la recherche');
 

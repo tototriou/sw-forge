@@ -5,6 +5,9 @@ import {
   BRAND_ICON,
   BonusDegatsConditionnelProfile,
   BonusDegatsStackableProfile,
+  BonusMonstreParEffetProfile,
+  BonusMonstreParEffetPropreProfile,
+  BonusSacrificeProfile,
   CRIT_MODE_LABELS,
   CritMode,
   DamageSetup,
@@ -27,10 +30,13 @@ import {
   SummonerSkills,
   TRANSMISSION_ICON,
   VELASKA_ICON,
+  bonusConditionnelPropreActif,
   bonusDegatsConditionnelActif,
   estPrisEnCharge,
   passifActif,
+  resolvedEffetsPropresCount,
   resolvedHits,
+  resolvedPvActuelsAvantSacrificePctMonstre,
   resolvedStackPct,
 } from '../../lib/damage';
 import { formuleLisible } from '../../lib/monsterSkills';
@@ -115,6 +121,18 @@ interface Props {
   // Warrior, Mi Ying…) — `monsterBonusDegatsConditionnel`, damage.ts.
   // `null` = pas ce genre de passif sur ce monstre.
   bonusDegatsConditionnel: BonusDegatsConditionnelProfile | null;
+  // Backup Code (Hacker/570RM) — bonus MONSTRE-WIDE selon un compte d'effets
+  // sur la CIBLE, `monsterBonusParEffetCible` (damage.ts). Distinct de
+  // `resolved.bonusParEffetCible` (propre à UN sort, type Julie) : celui-ci
+  // majore le sort choisi quel qu'il soit. `null` = pas ce passif.
+  bonusParEffetCibleMonstre: BonusMonstreParEffetProfile | null;
+  // Blessing of Curse (Devil Maiden/Jessica) — même famille, mais sur SOI
+  // (`monsterBonusParEffetPropre`). `null` = pas ce passif.
+  bonusParEffetPropre: BonusMonstreParEffetPropreProfile | null;
+  // Calculated Sacrifice (Onimusha, Fuuki) — dégâts fixes selon une saisie
+  // de PV actuels avant le sacrifice (`monsterBonusSacrifice`). `null` = pas
+  // ce passif.
+  bonusSacrifice: BonusSacrificeProfile | null;
   // Somme des lignes d'artéfact « Effet aug. VIT » ÉQUIPÉES
   // (`speedBuffAmpliPct`, damage.ts) — DÉDUIT, jamais saisi ici ; affiché en
   // clair pour que la VIT calculée ne semble pas sortie de nulle part.
@@ -141,6 +159,20 @@ interface Props {
 // `monsterOffensivePassives`) — l'appelant passe alors `resolvedHits(sort
 // actif, setup)` plutôt que de laisser cette fonction relire les coups du
 // passif lui-même, qui donnerait un chiffre trompeur.
+// Libellé FR de `bonusParEffetCible.source`/`monsterBonusParEffetCible(...).source`
+// — factorisé, utilisé aux trois emplacements qui affichent ce type d'effet
+// (résumé du sort, libellé du champ, infobulle/aria-label).
+function libelleSourceEffet(source: 'buffs' | 'debuffs' | 'buffsEtDebuffs'): string {
+  switch (source) {
+    case 'buffs':
+      return 'bénéfiques';
+    case 'debuffs':
+      return 'néfastes';
+    case 'buffsEtDebuffs':
+      return 'bénéfiques et néfastes';
+  }
+}
+
 function resumeSort(p: SkillDamageProfile, setup: DamageSetup, hitsOverride?: number): { ratio: string | null; reste: string } {
   const hits = hitsOverride ?? resolvedHits(p, setup);
   const bouts: string[] = [`${hits} coup${hits > 1 ? 's' : ''}${p.hitsRange && hitsOverride == null ? ' (variable)' : ''}`];
@@ -150,7 +182,7 @@ function resumeSort(p: SkillDamageProfile, setup: DamageSetup, hitsOverride?: nu
   if (p.fixed) bouts.push('Dégâts fixes');
   if (p.skillupDamagePct > 0) bouts.push(`+${p.skillupDamagePct} % (compétence maxée)`);
   if (p.bonusParEffetCible) {
-    bouts.push(`+${p.bonusParEffetCible.pct} % par effet ${p.bonusParEffetCible.inclutDebuffs ? 'sur la cible' : 'bénéfique sur la cible'}`);
+    bouts.push(`+${p.bonusParEffetCible.pct} % par effet ${libelleSourceEffet(p.bonusParEffetCible.source)} sur la cible`);
   }
   return { ratio: formuleLisible(p.formule), reste: bouts.join(' · ') };
 }
@@ -192,6 +224,9 @@ export default function DamageSetupCard({
   bonusDegatsStack,
   critRateSelonVit,
   bonusDegatsConditionnel,
+  bonusParEffetCibleMonstre,
+  bonusParEffetPropre,
+  bonusSacrifice,
   ampliVitPct,
 }: Props) {
   const maj = (patch: Partial<DamageSetup>) => setSetup((prev) => ({ ...prev, ...patch }));
@@ -307,7 +342,13 @@ export default function DamageSetupCard({
           monstres) : rien ne s'affiche, pas même un « aucun passif connu »
           — un panneau qui parle d'une absence à chaque monstre serait plus
           bruyant qu'utile. */}
-      {(passifs.length > 0 || modificateursVit.length > 0 || bonusDegatsStack || bonusDegatsConditionnel) && (
+      {(passifs.length > 0 ||
+        modificateursVit.length > 0 ||
+        bonusDegatsStack ||
+        bonusDegatsConditionnel ||
+        bonusParEffetCibleMonstre ||
+        bonusParEffetPropre ||
+        bonusSacrifice) && (
         <div>
           <div className="mb-2 flex items-center gap-1.5">
             <p className="label">Passifs offensifs</p>
@@ -417,6 +458,124 @@ export default function DamageSetupCard({
                 {bonusDegatsConditionnel.description && (
                   <p className="mt-1 text-xs leading-snug text-ink-dim">{bonusDegatsConditionnel.description}</p>
                 )}
+              </div>
+            )}
+            {/* Backup Code (Hacker/570RM) — même compte que
+                `resolved.bonusParEffetCible` (Julie…), mais MONSTRE-WIDE :
+                majore le sort choisi quel qu'il soit, pas un sort précis.
+                Stockage PARTAGÉ (`setup.effetsCibleCount`, clé =
+                `skillCom2usId` du PASSIF ici plutôt que du sort actif). */}
+            {bonusParEffetCibleMonstre && (
+              <div key={`effet-cible-monstre-${bonusParEffetCibleMonstre.skillCom2usId}`}>
+                <Jeton
+                  icone={
+                    bonusParEffetCibleMonstre.icone ? (
+                      <img src={bonusParEffetCibleMonstre.icone} alt="" className="h-4 w-4 rounded" loading="lazy" />
+                    ) : undefined
+                  }
+                  libelle={bonusParEffetCibleMonstre.nom.replace(/\s*\(Passive\)\s*$/i, '')}
+                  detail="toujours actif"
+                />
+                {bonusParEffetCibleMonstre.description && (
+                  <p className="mt-1 text-xs leading-snug text-ink-dim">{bonusParEffetCibleMonstre.description}</p>
+                )}
+                <label className="mt-1 flex items-center gap-2">
+                  <span className="text-xs text-ink-dim">Effets {libelleSourceEffet(bonusParEffetCibleMonstre.source)} sur la cible</span>
+                  <NumberField
+                    value={setup.effetsCibleCount?.[bonusParEffetCibleMonstre.skillCom2usId] ?? 0}
+                    onChange={(v) =>
+                      maj({
+                        effetsCibleCount: {
+                          ...(setup.effetsCibleCount ?? {}),
+                          [bonusParEffetCibleMonstre.skillCom2usId]: v ?? 0,
+                        },
+                      })
+                    }
+                    min={0}
+                    boxWidth="w-24"
+                    title="Ce que l'app ne peut pas savoir (les effets réellement présents sur la cible) — à toi de le renseigner, 0 par défaut"
+                    ariaLabel={`Nombre d'effets ${libelleSourceEffet(bonusParEffetCibleMonstre.source)} sur la cible`}
+                  />
+                </label>
+              </div>
+            )}
+            {/* Blessing of Curse (Devil Maiden/Jessica) — même mécanisme,
+                mais compte les débuffs sur SOI (stockage séparé,
+                `setup.effetsPropresCount`). */}
+            {bonusParEffetPropre && (
+              <div key={`effet-propre-${bonusParEffetPropre.skillCom2usId}`}>
+                <Jeton
+                  icone={
+                    bonusParEffetPropre.icone ? (
+                      <img src={bonusParEffetPropre.icone} alt="" className="h-4 w-4 rounded" loading="lazy" />
+                    ) : undefined
+                  }
+                  libelle={bonusParEffetPropre.nom.replace(/\s*\(Passive\)\s*$/i, '')}
+                  detail="toujours actif"
+                />
+                {bonusParEffetPropre.description && (
+                  <p className="mt-1 text-xs leading-snug text-ink-dim">{bonusParEffetPropre.description}</p>
+                )}
+                <label className="mt-1 flex items-center gap-2">
+                  <span className="text-xs text-ink-dim">Débuffs sur toi-même</span>
+                  <NumberField
+                    value={resolvedEffetsPropresCount(bonusParEffetPropre.skillCom2usId, setup)}
+                    onChange={(v) =>
+                      maj({
+                        effetsPropresCount: {
+                          ...(setup.effetsPropresCount ?? {}),
+                          [bonusParEffetPropre.skillCom2usId]: v ?? 0,
+                        },
+                      })
+                    }
+                    min={0}
+                    boxWidth="w-24"
+                    title="Ce que l'app ne peut pas savoir (tes débuffs réellement actifs) — à toi de le renseigner, 0 par défaut"
+                    ariaLabel="Nombre de débuffs actuellement sur toi-même"
+                  />
+                </label>
+              </div>
+            )}
+            {/* Calculated Sacrifice (Onimusha, Fuuki) — dégâts fixes selon
+                un sacrifice de PV chaque tour ; l'app ne simule pas la
+                compression des PV tour après tour, l'utilisateur indique ses
+                PV ACTUELS juste avant le déclenchement (défaut 100 % —
+                premier tour, seule exception « défaut non nul » de cette
+                section, voir `resolvedPvActuelsAvantSacrificePctMonstre`). */}
+            {bonusSacrifice && (
+              <div key={`sacrifice-${bonusSacrifice.skillCom2usId}`}>
+                <Jeton
+                  icone={
+                    bonusSacrifice.icone ? (
+                      <img src={bonusSacrifice.icone} alt="" className="h-4 w-4 rounded" loading="lazy" />
+                    ) : undefined
+                  }
+                  libelle={bonusSacrifice.nom.replace(/\s*\(Passive\)\s*$/i, '')}
+                  detail="toujours actif"
+                />
+                {bonusSacrifice.description && (
+                  <p className="mt-1 text-xs leading-snug text-ink-dim">{bonusSacrifice.description}</p>
+                )}
+                <label className="mt-1 flex items-center gap-2">
+                  <span className="text-xs text-ink-dim">PV actuels avant le sacrifice de ce tour</span>
+                  <NumberField
+                    value={resolvedPvActuelsAvantSacrificePctMonstre(bonusSacrifice.skillCom2usId, setup)}
+                    onChange={(v) =>
+                      maj({
+                        pvActuelsAvantSacrificePct: {
+                          ...(setup.pvActuelsAvantSacrificePct ?? {}),
+                          [bonusSacrifice.skillCom2usId]: v ?? 100,
+                        },
+                      })
+                    }
+                    min={0}
+                    max={100}
+                    suffix="%"
+                    boxWidth="w-28"
+                    title="L'app ne simule pas la baisse de PV tour après tour — à toi de renseigner tes PV juste avant ce sacrifice, 100 % (premier tour) par défaut"
+                    ariaLabel="PV actuels (%) avant le sacrifice de ce tour"
+                  />
+                </label>
               </div>
             )}
             {passifs.map((p) => {
@@ -575,9 +734,7 @@ export default function DamageSetupCard({
               à tout le monstre. */}
           {resolved.bonusParEffetCible && (
             <label className="flex items-center gap-2">
-              <span className="text-xs text-ink-dim">
-                Effets {resolved.bonusParEffetCible.inclutDebuffs ? '' : 'bénéfiques '}sur la cible
-              </span>
+              <span className="text-xs text-ink-dim">Effets {libelleSourceEffet(resolved.bonusParEffetCible.source)} sur la cible</span>
               <NumberField
                 value={setup.effetsCibleCount?.[resolved.skillCom2usId] ?? 0}
                 onChange={(v) =>
@@ -587,12 +744,27 @@ export default function DamageSetupCard({
                 }
                 min={0}
                 boxWidth="w-24"
-                title={`Ce que l'app ne peut pas savoir (les effets ${
-                  resolved.bonusParEffetCible.inclutDebuffs ? 'bénéfiques ET néfastes' : 'bénéfiques'
-                } réellement présents sur la cible) — à toi de le renseigner, 0 par défaut`}
-                ariaLabel={`Nombre d'effets ${resolved.bonusParEffetCible.inclutDebuffs ? 'bénéfiques et néfastes' : 'bénéfiques'} sur la cible`}
+                title={`Ce que l'app ne peut pas savoir (les effets ${libelleSourceEffet(
+                  resolved.bonusParEffetCible.source
+                )} réellement présents sur la cible) — à toi de le renseigner, 0 par défaut`}
+                ariaLabel={`Nombre d'effets ${libelleSourceEffet(resolved.bonusParEffetCible.source)} sur la cible`}
               />
             </label>
+          )}
+          {/* Emergency Drive (Cynthia/Arcane Weapon) — bonus à bouton
+              RESTREINT à CE SORT (« Rending Claw »), contrairement à
+              `bonusDegatsConditionnel` qui majore le TOTAL quel que soit le
+              sort choisi — voir `SkillDamageProfile.bonusConditionnelPropre`. */}
+          {resolved.bonusConditionnelPropre && (
+            <PassifInterrupteur
+              actif={bonusConditionnelPropreActif(resolved, setup)}
+              onChange={(v) => maj({ passifsOffensifs: { ...(setup.passifsOffensifs ?? {}), [resolved.skillCom2usId]: v } })}
+              icone={resolved.icone ? <img src={resolved.icone} alt="" className="h-4 w-4 rounded" loading="lazy" /> : undefined}
+              libelle={`${resolved.nom} (+${resolved.bonusConditionnelPropre.pct} %)`}
+              title={`${resolved.bonusConditionnelPropre.condition}${
+                bonusConditionnelPropreActif(resolved, setup) ? ' (activé)' : ' — désactivé par défaut'
+              }`}
+            />
           )}
           {/* Pour un sort dont la formule lit `{Relative SPD}` (« Ta VIT −
               VIT cible / VIT cible ») — OU quand ce monstre force le

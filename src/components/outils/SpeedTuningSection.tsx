@@ -157,8 +157,13 @@ const LIBELLE_RAISON: Record<RaisonOrdre, string> = {
 };
 
 // Repère des ticks en tête : vitesse de combat minimale pour agir à chaque tick.
-// Plage utile en jeu (11→3), les deux ticks siège (239/286) marqués en couleur.
-const RULER_TICKS = [11, 10, 9, 8, 7, 6, 5, 4, 3];
+// Plage utile en jeu, les deux ticks siège (239/286) marqués en couleur.
+//
+// ⚠️ **Dans le SENS CROISSANT des ticks (3 → 11)**, comme les trois tableaux qui
+// suivent et comme le temps lui-même. Il descendait (11 → 3) pour aller du plus
+// lent au plus rapide : on lisait donc l'écran dans un sens en haut et dans
+// l'autre en dessous, et il fallait retourner sa lecture à chaque aller-retour.
+const RULER_TICKS = [3, 4, 5, 6, 7, 8, 9, 10, 11];
 const TICKS_SIEGE = new Set(SIEGE_TICKS.map((t) => t.value));
 
 // ⚠️ **Les barres se lisent à TROIS décimales.** À deux, une barre à 99,996 %
@@ -374,7 +379,7 @@ export default function SpeedTuningSection({
 
       {/* Repère des ticks */}
       <section className="rounded-lg border border-border bg-panel">
-        <div className="border-b border-border-soft px-4 py-2.5 text-micro font-semibold uppercase tracking-wider text-ink-dimmer">
+        <div className="border-b border-border-soft px-4 py-2 text-micro font-semibold uppercase tracking-wider text-ink-dimmer">
           Vitesse de combat pour agir au tick
           <span className="ml-2 font-normal normal-case tracking-normal text-ink-dimmer">· repère de speed tune</span>
         </div>
@@ -386,20 +391,25 @@ export default function SpeedTuningSection({
             return (
               <div
                 key={n}
-                className={`flex-1 basis-[74px] px-2 py-2.5 text-center ${i > 0 ? 'border-l border-border-soft' : ''} ${
+                className={`flex-1 basis-[74px] px-2 py-1.5 text-center ${i > 0 ? 'border-l border-border-soft' : ''} ${
                   siege ? 'bg-accent-soft' : ''
                 }`}
               >
-                {/* Ticks siège (239 / 286) : couleur seule, sans libellé. */}
-                <div className={`font-mono text-sm font-bold ${siege ? 'text-accent' : 'text-ink'}`}>{n}</div>
-                <div className={`font-mono text-micro ${siege ? 'text-accent' : 'text-ink-dim'}`}>{sp}</div>
+                {/* ⚠️ Tick et vitesse sur UNE ligne : deux lignes empilées
+                    coûtaient la hauteur d'un portrait pour deux nombres courts,
+                    en tête d'un écran qui manque de place. Ticks siège
+                    (239 / 286) : couleur seule, sans libellé. */}
+                <div className="flex items-baseline justify-center gap-1">
+                  <span className={`font-mono text-sm font-bold ${siege ? 'text-accent' : 'text-ink'}`}>{n}</span>
+                  <span className={`font-mono text-micro ${siege ? 'text-accent/70' : 'text-ink-dim'}`}>{sp}</span>
+                </div>
                 {ici.length > 0 && (
-                  <div className="mt-1.5 flex flex-wrap justify-center gap-1">
+                  <div className="mt-1 flex flex-wrap justify-center gap-1">
                     {ici.map((l) => (
                       <MonsterAvatar
                         key={l.uid}
                         monster={l.monster}
-                        size={22}
+                        size={20}
                         element={false}
                         className={l.camp === 'ennemi' ? 'rounded-sm ring-1 ring-bad' : ''}
                       />

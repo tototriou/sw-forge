@@ -744,7 +744,13 @@ le siège répondent la MÊME chose :
 De haut en bas :
 
 1. **Repère des ticks** — bandeau : la vitesse de combat mini pour agir à chaque
-   tick (11→3). Les deux ticks canoniques du siège (286 et 239) sont marqués par
+   tick, **dans le sens croissant (3 → 11)**.
+   ⚠️ Comme les trois tableaux qui suivent, et comme le temps. Il descendait
+   (11 → 3) pour aller du plus lent au plus rapide : on lisait l'écran dans un
+   sens en haut et dans l'autre en dessous, et il fallait retourner sa lecture à
+   chaque aller-retour.
+   ⚠️ **Tick et vitesse sur UNE ligne** : empilés, ils coûtaient la hauteur d'un
+   portrait pour deux nombres courts, en tête d'un écran qui manque de place. Les deux ticks canoniques du siège (286 et 239) sont marqués par
    la **couleur seule** (fond d'accent + chiffres en accent), **sans libellé** ;
    **pas de dégradé arc-en-ciel** (couleurs = tokens uniquement, voir
    [../shared/design.md](../shared/design.md)). **Chaque monstre

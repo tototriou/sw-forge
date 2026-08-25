@@ -495,6 +495,15 @@ export function resolvedStackPct(p: BonusDegatsStackableProfile, setup: DamageSe
   return Math.min(p.pctMax, Math.max(0, setup.stackPersonnalise?.[p.skillCom2usId] ?? 0));
 }
 
+// Le nombre d'effets sur la cible ACTUELLEMENT saisi pour `profile` — 0 si
+// rien de saisi (jamais deviné), même discipline défensive que
+// `resolvedStackPct`/`resolvedHits`. Aucun plafond : contrairement au Taux
+// Crit ou à un stack de passif, le jeu ne pose pas de maximum universel de
+// buffs/debuffs simultanés que cet outil pourrait connaître à l'avance.
+export function resolvedEffetsCibleCount(profile: SkillDamageProfile, setup: DamageSetup): number {
+  return Math.max(0, setup.effetsCibleCount?.[profile.skillCom2usId] ?? 0);
+}
+
 // Passifs qui majorent TOUS les dégâts du monstre d'un pourcentage FIXE
 // sous une condition que l'app ne peut PAS déduire (état de PV propre au
 // monstre, comparaison avec la cible, état d'un allié, tour précédent…) —
@@ -724,9 +733,34 @@ export interface SkillDamageProfile {
   // pourcentage — la compétence est supposée MAXÉE, comme partout ailleurs
   // dans l'app (voir `paliersRechargement`, même parti pris).
   skillupDamagePct: number;
+  // +`pct` % de dégâts par effet (bénéfique, et néfaste si `inclutDebuffs`)
+  // présent sur la CIBLE au moment de l'attaque — Julie (« Thousand
+  // Shots »)/Melissa (« Massacre Dance »). Curé (`BONUS_PAR_EFFET_CIBLE_
+  // CONNUS`) : le TEXTE dit « per beneficial/harmful effect », jamais un
+  // chiffre déductible d'ailleurs, et l'app ne simule aucun effet réel sur
+  // l'adversaire — `DamageSetup.effetsCibleCount` porte le compte saisi par
+  // l'utilisateur, même famille que `coupsPersonnalises`/`stackPersonnalise`
+  // (0 par défaut, jamais deviné).
+  bonusParEffetCible?: { pct: number; inclutDebuffs: boolean };
   variables: DamageVariable[];
   noeud: Noeud;
 }
+
+// « Deals increased damage per positive effect on target monster »/
+// « per debuff on the target » — un pourcentage de dégâts par effet PRÉSENT
+// sur la cible (pas un état simulé, saisi par l'utilisateur). Les DEUX
+// chiffres ci-dessous sont directement dans les données SWARFARM
+// (`quantite` des effets `Buff Bonus Damage`/`Debuff Bonus Damage`), pas
+// seulement dans la prose libre — vérifiés avant d'être curés ici.
+//
+// ⚠️ Covenant (« Suppressive Fire », même famille de texte) volontairement
+// ABSENT : `quantite: 0` dans les données SWARFARM (contrairement à Julie
+// et Melissa), et la réponse de l'utilisateur ne fournit pas non plus le
+// pourcentage — jamais un nombre plausible mais faux.
+const BONUS_PAR_EFFET_CIBLE_CONNUS: Record<string, { pct: number; inclutDebuffs: boolean }> = {
+  'Thousand Shots': { pct: 50, inclutDebuffs: false }, // Julie, Pierrette — « for each beneficial effect »
+  'Massacre Dance': { pct: 10, inclutDebuffs: true }, // Melissa, Chakram Dancer — « beneficial AND harmful »
+};
 
 // Sorts où le pourcentage de DEF ignorée dépend de l'écart de VIT avec la
 // cible — jamais déduit du texte libre (« up to 100% according to the
@@ -824,6 +858,7 @@ export function skillDamageProfile(c: Competence): SkillDamageProfile | SkillDam
     appliqueDefBreak: c.effets.some((e) => e.nom === 'Decrease DEF' && !e.surSoi),
     fixed,
     skillupDamagePct,
+    bonusParEffetCible: BONUS_PAR_EFFET_CIBLE_CONNUS[c.nom],
     variables,
     noeud: analyse.noeud,
   };
@@ -1286,6 +1321,13 @@ export interface DamageSetup {
   // Absent = 0 % (rien à supposer, comme partout ailleurs — voir
   // `resolvedStackPct`).
   stackPersonnalise?: Record<number, number>;
+  // Nombre d'effets (bénéfiques, et néfastes selon le sort — voir
+  // `BONUS_PAR_EFFET_CIBLE_CONNUS`) actuellement présents sur la CIBLE, clé
+  // = `skillCom2usId` DU SORT concerné (même espace de clés que
+  // `coupsPersonnalises`/`stackPersonnalise`). L'app ne simule aucun effet
+  // réel sur l'adversaire (contrairement à ses PV) : absent = 0, jamais
+  // deviné.
+  effetsCibleCount?: Record<number, number>;
 }
 
 // Adversaire de référence : ni un boss ni une cible nue. 1000 DEF et 30 000
@@ -1574,7 +1616,15 @@ export function computeSkillDamageDetail(
     (setup.mirinaeActif ? MIRINAE_BONUS_PCT / 100 : 0) +
     (setup.transmissionActif ? TRANSMISSION_BONUS_PCT / 100 : 0);
 
-  const horsCoup = critTerm * mitigation * reductions;
+  // Julie (« Thousand Shots »)/Melissa (« Massacre Dance ») : +pct % par
+  // effet SAISI sur la cible — propre à CE sort (`profile.
+  // bonusParEffetCible`), pas un modificateur monstre-wide comme les
+  // termes ci-dessus.
+  const facteurEffetCible = profile.bonusParEffetCible
+    ? 1 + (profile.bonusParEffetCible.pct * resolvedEffetsCibleCount(profile, setup)) / 100
+    : 1;
+
+  const horsCoup = critTerm * mitigation * reductions * facteurEffetCible;
   const coups = resolvedHits(profile, setup);
   // Les PV ne peuvent pas descendre sous zéro, et une cible à 0 PV max (cas
   // dégénéré d'un réglage vidé) ne se creuse pas : on renvoie alors le

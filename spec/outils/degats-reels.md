@@ -647,19 +647,56 @@ différent, qui demanderait soit un champ de formule par `skillCom2usId`
 une passe dédiée plutôt que forcé dans un mécanisme qui ne lui correspond
 pas.
 
+### Troisième vague — points 4 et 5 : bonus selon les effets sur la CIBLE
+
+Contrairement aux familles précédentes (qui majorent le TOTAL, monstre-wide),
+celle-ci est propre à UN SORT ACTIF précis : `SkillDamageProfile.
+bonusParEffetCible?: { pct: number; inclutDebuffs: boolean }`, curé dans
+`BONUS_PAR_EFFET_CIBLE_CONNUS` (clé = `Competence.nom`, même discipline que
+`IGNORE_DEF_SELON_VIT_CONNUS`/`COUPS_VARIABLES_CONNUS`).
+
+- **Julie/Pierrette** (« Thousand Shots », S3) : « The damage increases by
+  50% for each beneficial effect on the enemies. » `+50 %` confirmé
+  DIRECTEMENT dans les données SWARFARM (`quantite: 50` sur l'effet
+  « Buff Bonus Damage »), pas seulement la prose libre. ⚠️ Les 6 coups
+  annoncés (« Attacks 6 times when this attack is used with full HP ») sont
+  DÉJÀ la valeur de `Competence.coups` (6) — comme pour tout sort actif,
+  l'app ne simule pas les PV du monstre optimisé pour en déduire un nombre
+  de coups réduit hors pleine vie ; le cas pleine vie (6 coups) est celui
+  utilisé, sans nouveau champ.
+- **Melissa/Chakram Dancer** (« Massacre Dance », S3) : « increases the
+  damage by 10% each according to the number of beneficial AND harmful
+  effects granted on the target » — BUFFS **ET** DEBUFFS, contrairement à
+  Julie. `+10 %` confirmé sur LES DEUX effets SWARFARM (« Buff Bonus
+  Damage » et « Debuff Bonus Damage », `quantite: 10` chacun).
+
+`DamageSetup.effetsCibleCount?: Record<skillCom2usId, number>` (même espace
+de clés que `coupsPersonnalises`/`stackPersonnalise`) porte le compte SAISI
+par l'utilisateur — l'app ne simule aucun effet réel sur l'adversaire (0 par
+défaut, jamais deviné). `resolvedEffetsCibleCount(profile, setup)` le
+résout ; `computeSkillDamageDetail` l'applique multiplicativement
+(`1 + pct × compte / 100`) dans le terme `horsCoup`, aux côtés de
+`reductions` — propre au sort qui le porte, contrairement aux modificateurs
+monstre-wide. Champ affiché dans « Adversaire » (comme PV/VIT de la cible),
+libellé « Effets bénéfiques sur la cible » (Julie) ou « Effets sur la
+cible » (Melissa, sans distinction buff/debuff).
+
+⚠️ **Point 6 (Covenant, « Suppressive Fire ») volontairement ABSENT** —
+même famille de texte (« damage that increases according [to] the number
+of beneficial effects removed »), mais `quantite: 0` dans les données
+SWARFARM (contrairement à Julie et Melissa) et aucun pourcentage fourni non
+plus par l'utilisateur : jamais un nombre plausible mais faux. À reprendre
+si un chiffre est un jour confirmé.
+
 ⚠️ **Réponses données par l'utilisateur pour les points restants, non
-implémentés ici** : les points 4 à 6 (Julie, Melissa, Covenant) exigent un
-NOUVEAU champ « nombre d'effets bénéfiques/néfastes sur la cible » —
-mécanisme jamais construit, et le nombre de coups de Julie hors pleine vie
-reste non chiffré (« à implémenter » seul, sans le chiffre manquant) ;
-le point 19 est déjà implémenté (Protective Power/Retributive Power, voir
-plus haut) ; le point 26 (Aragorn/Night Fang) n'a en réalité **pas reçu de
-réponse** — la réponse fournie sous ce numéro dans le fichier couvrait le
-point 25 (Crawler) par un décalage d'un cran. Points 10-12 (Karakum,
-Nezuko, formules à ratio inconnu) : explicitement laissés de côté par
-l'utilisateur (formule inconnue, monstres jamais joués). Aucun de ces cas
-n'est implémenté — à reprendre sur une demande dédiée plutôt qu'en marge de
-cette vague.
+implémentés ici** : le point 19 est déjà implémenté (Protective Power/
+Retributive Power, voir plus haut) ; le point 26 (Aragorn/Night Fang) n'a
+en réalité **pas reçu de réponse** — la réponse fournie sous ce numéro dans
+le fichier couvrait le point 25 (Crawler) par un décalage d'un cran.
+Points 10-12 (Karakum, Nezuko, formules à ratio inconnu) : explicitement
+laissés de côté par l'utilisateur (formule inconnue, monstres jamais
+joués). Aucun de ces cas n'est implémenté — à reprendre sur une demande
+dédiée plutôt qu'en marge de cette vague.
 
 ## Effets d'ÉQUIPE (Euldong, Mirinae, Deborah, Miriam, Dr. Matteo, Velaska)
 

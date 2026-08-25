@@ -149,6 +149,9 @@ function resumeSort(p: SkillDamageProfile, setup: DamageSetup, hitsOverride?: nu
   if (p.ignoreDefSelonVit) bouts.push(`Ignore la DEF selon l'écart de VIT (100 % à ${p.ignoreDefSelonVit.ecartMax}+ pts)`);
   if (p.fixed) bouts.push('Dégâts fixes');
   if (p.skillupDamagePct > 0) bouts.push(`+${p.skillupDamagePct} % (compétence maxée)`);
+  if (p.bonusParEffetCible) {
+    bouts.push(`+${p.bonusParEffetCible.pct} % par effet ${p.bonusParEffetCible.inclutDebuffs ? 'sur la cible' : 'bénéfique sur la cible'}`);
+  }
   return { ratio: formuleLisible(p.formule), reste: bouts.join(' · ') };
 }
 
@@ -545,6 +548,32 @@ export default function DamageSetupCard({
                 suffix="%"
                 boxWidth="w-32"
                 ariaLabel="Pourcentage de PV restants de l'adversaire"
+              />
+            </label>
+          )}
+          {/* Julie (« Thousand Shots »)/Melissa (« Massacre Dance ») :
+              +pct % par effet PRÉSENT sur la cible — l'app ne simule aucun
+              effet réel de l'adversaire, saisi par l'utilisateur, 0 par
+              défaut. Propre à CE sort (`resolved.bonusParEffetCible`), pas
+              à tout le monstre. */}
+          {resolved.bonusParEffetCible && (
+            <label className="flex items-center gap-2">
+              <span className="text-xs text-ink-dim">
+                Effets {resolved.bonusParEffetCible.inclutDebuffs ? '' : 'bénéfiques '}sur la cible
+              </span>
+              <NumberField
+                value={setup.effetsCibleCount?.[resolved.skillCom2usId] ?? 0}
+                onChange={(v) =>
+                  maj({
+                    effetsCibleCount: { ...(setup.effetsCibleCount ?? {}), [resolved.skillCom2usId]: v ?? 0 },
+                  })
+                }
+                min={0}
+                boxWidth="w-24"
+                title={`Ce que l'app ne peut pas savoir (les effets ${
+                  resolved.bonusParEffetCible.inclutDebuffs ? 'bénéfiques ET néfastes' : 'bénéfiques'
+                } réellement présents sur la cible) — à toi de le renseigner, 0 par défaut`}
+                ariaLabel={`Nombre d'effets ${resolved.bonusParEffetCible.inclutDebuffs ? 'bénéfiques et néfastes' : 'bénéfiques'} sur la cible`}
               />
             </label>
           )}

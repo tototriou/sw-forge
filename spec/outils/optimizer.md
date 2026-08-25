@@ -375,7 +375,12 @@ retour.
      - **Adversaire** — PV et DEF. ⚠️ Les **PV ne classent rien** : ils ne
        servent qu'à lire le résultat (« 42 % des PV », « tue la cible »).
        Un champ **PV restants** n'apparaît que pour les sorts dont la
-       formule lit les PV courants de la cible. ⚠️ **VIT adversaire** +
+       formule lit les PV courants de la cible. Un champ **Effets sur la
+       cible** (0 par défaut) n'apparaît que pour les rares sorts dont les
+       dégâts augmentent par effet présent sur l'adversaire (Julie, Melissa)
+       — l'app ne simule aucun effet réel sur la cible. Détail :
+       [degats-reels.md](degats-reels.md), « bonus selon les effets sur la
+       CIBLE ». ⚠️ **VIT adversaire** +
        **leader skill VIT** : apparaissent pour un sort/passif qui dépend de
        l'écart de vitesse (`{Relative SPD}`, ignore-DEF proportionnel à
        l'écart, un monstre qui force le critique s'il est plus rapide, ou

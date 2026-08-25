@@ -60,6 +60,7 @@ import {
   monsterOffensivePassives,
   passifActif,
   resolveDamageSkill,
+  resolvedEffetsCibleCount,
   resolvedHits,
   resolvedStackPct,
   skillDamageProfile,
@@ -926,6 +927,61 @@ export default function testDegats() {
     Math.abs(velaska40 / transmissionOff - (1 + (VELASKA_PCT_PAR_PV_PERDU * 40) / 100)) < 1e-9,
     '40 % de PV perdus : exactement +20 % de dégâts (0,5 % × 40)'
   );
+
+  titre('Dégâts réels — bonus de dégâts selon les effets sur la CIBLE (Julie, Melissa)');
+
+  // Julie/Pierrette — « Thousand Shots » : « The damage increases by 50%
+  // for each beneficial effect on the enemies. » Confirmé dans les données
+  // SWARFARM elles-mêmes (`quantite: 50` sur l'effet « Buff Bonus
+  // Damage ») — pas seulement la prose. `coups: 6` déjà en donnée
+  // (correspond au cas pleine vie, jamais un état de PV simulé pour un
+  // sort actif) : rien à curer côté coups, seul le bonus par effet manquait.
+  const julie = fiche(13911);
+  const julieSkills = monsterDamageSkills(julie);
+  const thousandShots = julieSkills.find((s) => estPrisEnCharge(s) && s.nom === 'Thousand Shots');
+  ok(thousandShots != null && estPrisEnCharge(thousandShots), 'Thousand Shots : profil calculable trouvé');
+  const thousandShotsProfile = thousandShots as SkillDamageProfile;
+  egal(thousandShotsProfile.bonusParEffetCible, { pct: 50, inclutDebuffs: false }, 'Julie : +50 % par effet BÉNÉFIQUE uniquement, confirmé par les données');
+  egal(thousandShotsProfile.hits, 6, 'les 6 coups viennent des données (cas pleine vie), jamais un état de PV simulé');
+  const julieStats = stats({ atk: 2000, cd: 200, cr: 100 });
+  const julieSetup: DamageSetup = { ...DEFAULT_DAMAGE_SETUP, skillCom2usId: thousandShotsProfile.skillCom2usId, summonerSkills: 'aucune', critMode: 'normal' };
+  egal(resolvedEffetsCibleCount(thousandShotsProfile, julieSetup), 0, 'sans réglage utilisateur, 0 effet — jamais deviné');
+  const julieSans = computeSkillDamage(thousandShotsProfile, julieStats, julieSetup);
+  const julieAvec3 = computeSkillDamage(thousandShotsProfile, julieStats, { ...julieSetup, effetsCibleCount: { [thousandShotsProfile.skillCom2usId]: 3 } });
+  ok(Math.abs(julieAvec3 / julieSans - 2.5) < 1e-9, '3 effets bénéfiques sur la cible : exactement +150 % (50 % × 3), soit ×2,5');
+
+  // Melissa/Chakram Dancer — « Massacre Dance » : « increases the damage by
+  // 10% each according to the number of beneficial AND harmful effects » —
+  // BUFFS ET DEBUFFS, contrairement à Julie. `quantite: 10` confirmé sur
+  // LES DEUX effets (« Buff Bonus Damage » ET « Debuff Bonus Damage »).
+  const melissa = fiche(21913);
+  const melissaSkills = monsterDamageSkills(melissa);
+  const massacreDance = melissaSkills.find((s) => estPrisEnCharge(s) && s.nom === 'Massacre Dance');
+  ok(massacreDance != null && estPrisEnCharge(massacreDance), 'Massacre Dance : profil calculable trouvé');
+  const massacreDanceProfile = massacreDance as SkillDamageProfile;
+  egal(massacreDanceProfile.bonusParEffetCible, { pct: 10, inclutDebuffs: true }, 'Melissa : +10 % par effet, BUFFS ET DEBUFFS confondus');
+  const melissaStats = stats({ atk: 2000, cd: 200, cr: 100 });
+  const melissaSetup: DamageSetup = { ...DEFAULT_DAMAGE_SETUP, skillCom2usId: massacreDanceProfile.skillCom2usId, summonerSkills: 'aucune', critMode: 'normal' };
+  const melissaSans = computeSkillDamage(massacreDanceProfile, melissaStats, melissaSetup);
+  const melissaAvec5 = computeSkillDamage(massacreDanceProfile, melissaStats, { ...melissaSetup, effetsCibleCount: { [massacreDanceProfile.skillCom2usId]: 5 } });
+  ok(Math.abs(melissaAvec5 / melissaSans - 1.5) < 1e-9, '5 effets (buffs+debuffs confondus) : exactement +50 % (10 % × 5)');
+
+  // Un sort SANS ce mécanisme (Lushen S3) n'y est jamais sensible, même si
+  // `effetsCibleCount` porte une valeur pour une autre clé.
+  ok(!s3!.bonusParEffetCible, 'Lushen S3 ne porte pas ce mécanisme');
+  egal(
+    computeSkillDamage(s3!, julieStats, { ...DEFAULT_DAMAGE_SETUP, summonerSkills: 'aucune', effetsCibleCount: { 999: 10 } }),
+    computeSkillDamage(s3!, julieStats, { ...DEFAULT_DAMAGE_SETUP, summonerSkills: 'aucune' }),
+    'un effetsCibleCount saisi pour un AUTRE sort n’a aucun effet ici'
+  );
+
+  // Covenant (« Suppressive Fire ») — délibérément ABSENT de
+  // `BONUS_PAR_EFFET_CIBLE_CONNUS` : `quantite: 0` dans les données
+  // SWARFARM (contrairement à Julie/Melissa), aucun pourcentage confirmé
+  // nulle part — jamais un nombre plausible mais faux.
+  const covenant = fiche(22711);
+  const suppressiveFire = monsterDamageSkills(covenant).find((s) => estPrisEnCharge(s) && s.nom === 'Suppressive Fire');
+  ok(suppressiveFire != null && estPrisEnCharge(suppressiveFire) && !(suppressiveFire as SkillDamageProfile).bonusParEffetCible, 'Covenant : aucun pourcentage confirmé, mécanisme non modélisé');
 
   titre('Dégâts réels — stats à privilégier dans la recherche');
 

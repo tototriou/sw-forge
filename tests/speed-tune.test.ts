@@ -57,6 +57,8 @@ import {
   DonneesKit,
 } from '../src/lib/speedTuneAuto';
 import { DetailMonstre, Competence, EffetCompetence } from '../src/lib/monsterSkills';
+import { readFileSync } from 'fs';
+import { PREFIXE_SPEED_TUNE } from '../src/hooks/useSpeedTune';
 import { Monster, SiegeTeam } from '../src/types';
 import { combatSpeed } from '../src/lib/speed';
 import { egal, ok, titre } from './outils';
@@ -1746,6 +1748,28 @@ export function testSpeedTuneAuto() {
     // toute l'équipe ne peut pas passer devant elle.
     ok(!r.verdict.ok, "on ne devance pas une copie de son propre plus rapide");
     ok(r.requis.length > 0, 'et l’outil dit ce qu’il manque');
+  }
+
+  // ⚠️ **AUCUNE clé collante de l'outil n'échappe au préfixe.** Importer le JSON
+  // d'un AUTRE compte réinitialise tout le speed tuning d'un coup, par préfixe
+  // (`reinitialiserSticky`, App.tsx) : son équipe, ses vitesses de runes, ses
+  // artéfacts et ses grilles décrivent des monstres qui ne sont plus là. Une clé
+  // ajoutée en dehors du préfixe survivrait au changement de compte — l'écran
+  // resterait plein, crédible, et faux.
+  //
+  // ⚠️ Le contrôle lit le SOURCE du hook : c'est la seule façon de voir une clé
+  // qu'on vient d'ajouter. Un test qui n'appellerait que les clés connues
+  // validerait exactement ce qu'on lui a dit, et manquerait la suivante.
+  {
+    const source = readFileSync('src/hooks/useSpeedTune.ts', 'utf8');
+    const cles = [...source.matchAll(/useStickyState[^(]*\(\s*'([^']+)'/g)].map((m) => m[1]);
+    ok(cles.length >= 10, `${cles.length} clés collantes trouvées dans le hook`);
+    const horsPrefixe = cles.filter((c) => !c.startsWith(PREFIXE_SPEED_TUNE));
+    egal(
+      horsPrefixe.join(', '),
+      '',
+      `toutes portent le préfixe « ${PREFIXE_SPEED_TUNE} » — sinon elles survivraient au changement de compte`
+    );
   }
 
   // ⚠️⚠️ **L'ANALYSE ET L'AFFICHAGE DOIVENT VOIR LES MÊMES MONSTRES.** Deux

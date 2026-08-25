@@ -965,6 +965,26 @@ vitesses de runes, leads, boosts d'ATB, buffs de vitesse, artéfacts, état
 masqué, compétences) vivent en `useStickyState` : conservés le temps de la session (survivent
 à la navigation), remis à zéro au rechargement.
 
+⚠️ **Importer le JSON d'un AUTRE compte remet tout le speed tuning à zéro.** Son
+équipe, ses vitesses de runes, ses artéfacts et ses grilles décrivent des
+**monstres**, pas des réglages : sur un autre compte, ils parlent de monstres qui
+ne sont plus là, et l'écran resterait plein, crédible, et faux.
+
+- ⚠️ **Un simple RÉEXPORT du même compte ne touche à rien** (même `wizard_id`) —
+  même distinction que l'exclusion manuelle de runes de l'Optimizer. Le speed
+  tuning est un **plan de travail** : on y saisit souvent des vitesses qu'on
+  **vise** et qu'on n'a pas encore. L'effacer à chaque réexport serait une perte
+  sèche.
+- ⚠️ **Toutes les clés collantes de l'outil portent le préfixe
+  `speedTune.`** (`PREFIXE_SPEED_TUNE`), sans exception : c'est lui qui permet de
+  tout réinitialiser d'un coup. Une clé ajoutée en dehors survivrait au
+  changement de compte — **un test lit le SOURCE du hook** pour l'interdire, ce
+  qu'une liste de clés écrite à la main ne saurait pas faire.
+- ⚠️ **Le magasin ET les hooks montés** sont réinitialisés
+  (`reinitialiserSticky`). Vider le premier seul laisserait un écran affiché sur
+  ses anciennes valeurs, qu'il réécrirait aussitôt dans le magasin : la remise à
+  zéro serait annulée par le composant lui-même.
+
 ## Cas de contrôle
 
 Un **deck réel** (Mihyang / Adriana / Sonia, lead 28 %, tous en Swift) est figé

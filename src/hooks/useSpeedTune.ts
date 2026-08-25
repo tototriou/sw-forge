@@ -81,6 +81,8 @@ export interface DeckInitial {
 //
 // ⚠️ Le hook n'expose AUCUN JSX : ce qui se dessine (pastilles, tableaux) reste
 // dans le composant, ce qui se calcule reste ici.
+export const PREFIXE_SPEED_TUNE = 'speedTune.';
+
 export function useSpeedTune({
   allMonsters,
   siegeDefenseTeams,
@@ -94,6 +96,11 @@ export function useSpeedTune({
   // DEPUIS un deck. ⚠️ Une PROP, pas un message stocké : voir l'effet plus bas.
   deckInitial?: DeckInitial | null;
 }) {
+  // ⚠️ **TOUTES les clés collantes de l'outil portent ce préfixe**, sans
+  // exception : c'est lui qui permet de tout réinitialiser d'un coup quand on
+  // importe le JSON d'un AUTRE compte (voir App.tsx). Une clé ajoutée en dehors
+  // survivrait au changement de compte et parlerait de monstres disparus — un
+  // test le vérifie sur le SOURCE de ce fichier.
   const [lignes, setLignes] = useStickyState<Ligne[]>('speedTune.lignes', []);
   // ⚠️ **Le lead d'un camp est un LEAD DE JEU, portée comprise** — pas un
   // pourcentage. « +33 % pour tous » et « +33 % pour les alliés Eau » ne se

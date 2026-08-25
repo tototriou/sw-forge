@@ -78,6 +78,8 @@ import {
   parseWizardId,
 } from './lib/importAccount';
 import { mapRtaItems, mapSiegeTeams, mapBoxMonsters, BoxItem } from './lib/applyAccount';
+import { reinitialiserSticky } from './hooks/useStickyState';
+import { PREFIXE_SPEED_TUNE } from './hooks/useSpeedTune';
 import { VUES_INVENTAIRE, hashVue, vueValide } from './lib/accountViews';
 
 const DISCORD_INVITE = 'https://discord.gg/R2Fe4GJZET';
@@ -546,6 +548,14 @@ export default function App() {
     const wizardId = parseWizardId(data);
     if (wizardIdRef.current !== null && wizardId !== null && wizardIdRef.current !== wizardId) {
       optimizer.setExcludedSelectors([]);
+      // ⚠️ **Le speed tuning parle de MONSTRES**, pas de réglages : son équipe,
+      // les vitesses de runes qu'elle porte, ses artéfacts, ses grilles. Sur un
+      // AUTRE compte, tout cela décrit des monstres qui ne sont plus là —
+      // l'écran resterait plein, crédible, et faux. Même distinction que
+      // l'exclusion de runes ci-dessus : un simple réexport du MÊME compte, lui,
+      // ne touche à rien — c'est un plan de travail, souvent des vitesses qu'on
+      // VISE et qu'on n'a pas encore, et l'effacer serait une perte sèche.
+      reinitialiserSticky(PREFIXE_SPEED_TUNE);
     }
     wizardIdRef.current = wizardId;
 

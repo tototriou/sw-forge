@@ -288,17 +288,28 @@ fixe, dans [tests/speed-tune.test.ts](tests/speed-tune.test.ts) :
 | **P1 justesse** | la proposition, appliquée, fait tenir le tune **sans changer l'ordre de jeu** |
 | **P2 minimalité** | un seul point de moins sur n'importe quelle valeur proposée et le tune tombe |
 | **P3 complétude** | « hors de portée » n'est prononcé que si la référence n'en trouve pas non plus |
-| **P4 méthode à la main** | sur une équipe de trois alliés, le solveur fait **aussi bien ou mieux** que le joueur qui règle à la main, et n'est jamais bredouille là où la main trouve |
+| **P4 méthode à la main** | à **trois ET quatre** alliés, le solveur fait **aussi bien ou mieux** que le joueur qui règle à la main, et n'est jamais bredouille là où la main trouve |
 
 ⚠️ **P4 est la référence qui vaut le plus** : elle ne vient pas du code mais du
 terrain — la façon dont un joueur règle un tune, rejouée par balayage linéaire.
 1) la vitesse du 1er est une donnée ; 2) le 2e n'est pas le point limitant, on le
-« colle » au 1er ; 3) on cherche à quelle vitesse le **dernier** doit être pour
-que la chaîne tienne — c'est lui qui décide ; 4) on redescend le 2e au minimum,
-puisqu'il suffit qu'il soit entre le 1er et le dernier. On compare le **coût en
-points**, pas le chiffre au point près : la main redescend jusqu'au premier
-refus et s'arrête parfois un cran trop haut, le domaine n'étant pas un
-intervalle.
+« colle » devant ; 3) on cherche à quelle vitesse le **dernier** doit être pour
+que la chaîne tienne — c'est lui qui décide ; 4) on redescend les intermédiaires
+au minimum, du dernier vers l'avant, puisqu'il suffit que chacun soit entre celui
+qui le précède et celui qui le suit. On compare le **coût en points**, pas le
+chiffre au point près : la main redescend jusqu'au premier refus et s'arrête
+parfois un cran trop haut, le domaine n'étant pas un intervalle.
+
+⚠️ **C'est P4 qui a imposé l'ordre d'essai des sous-ensembles** : en commençant
+par les PETITS, le solveur retenait la première solution trouvée et non la moins
+chère (136 points là où la main en demandait 85). On essaie donc le plus grand
+d'abord — pousser tout le monde puis redescendre, exactement la méthode à la
+main — et les petits ensuite, pour le cas où pousser nuit.
+
+⚠️ **LE SOLVEUR EST FIGÉ À TROIS ALLIÉS.** Cinq compos concrètes en fixent les
+chiffres EXACTS dans les tests (« figé — … »), et chaque chiffre figé est
+re-vérifié : appliqué, le tune doit tenir. Toute évolution qui les déplace doit
+échouer là et être justifiée — c'est un contrat, pas une photo.
 
 ⚠️ **La référence de P3 n'est complète que sur les équipes de DEUX alliés** — le
 premier étant figé, il ne reste qu'une inconnue, et elle balaie alors **tous** les
@@ -308,8 +319,8 @@ produit cartésien est hors d'atteinte ; elle balaie les affectations allié →
 assumé** : il peut rater une solution, jamais en inventer une — un échec est donc
 toujours un vrai défaut.
 
-**Coût mesuré** (les deux axes, à chaque frappe) : **1,6 ms** sur un tune à 3
-alliés avec boost d'ATB, **4,4 ms** à 4 alliés, **14 ms** à 5. Aucun budget ni
+**Coût mesuré** (les deux axes, à chaque frappe) : **1,9 ms** sur un tune à 3
+alliés avec boost d'ATB, **4,9 ms** à 4 alliés, **9,5 ms** à 5. Aucun budget ni
 cache n'a été nécessaire.
 
 - **Limite héritée du modèle** : le verdict repose sur les **premiers tours**

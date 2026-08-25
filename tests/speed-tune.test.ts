@@ -21,6 +21,7 @@ import {
   ModParTick,
   Simulation,
   VitesseRequise,
+  EffetSort,
   ArtefactRequis,
 } from '../src/lib/speedTune';
 import { deckPourSpeedTune } from '../src/lib/speedTuneDeck';
@@ -1043,107 +1044,210 @@ export function testSpeedTuneChaine() {
     );
   }
 
+  // ⚠️ **LE SOLVEUR EST FIGÉ À TROIS ALLIÉS.** Ce cas-là est validé : la méthode
+  // à la main et le solveur tombent d'accord (P4), et ces cinq compos en
+  // rendent les chiffres EXACTS. Toute évolution qui les déplace doit échouer
+  // ici et être justifiée — c'est le contrat, pas une simple photo.
+  {
+    const b = (id: string, combat: number, camp: 'allie' | 'ennemi', sort?: EffetSort): TuneMonstre => ({
+      id,
+      combat,
+      camp,
+      ...(sort ? { sort } : {}),
+    });
+    const figes: [string, TuneMonstre[], Record<string, number | null>][] = [
+      [
+        'booster + 2, adverse rapide',
+        [
+          b('booster', 300, 'allie', { atbEquipe: 30 }),
+          b('a2', 220, 'allie'),
+          b('a3', 150, 'allie'),
+          b('e1', 240, 'ennemi'),
+          b('e2', 200, 'ennemi'),
+        ],
+        { a3: 179 },
+      ],
+      [
+        'booster + 2, un seul adverse',
+        [
+          b('booster', 280, 'allie', { atbEquipe: 40 }),
+          b('a2', 200, 'allie'),
+          b('a3', 120, 'allie'),
+          b('e1', 230, 'ennemi'),
+        ],
+        { a3: 159 },
+      ],
+      [
+        // Les trois finissent à la même vitesse : ils sont prêts au même tick et
+        // FONT LA QUEUE, un par tick, devant un adverse de même vitesse.
+        'sans boost, le dernier fait la queue',
+        [
+          b('a1', 260, 'allie'),
+          b('a2', 170, 'allie'),
+          b('a3', 165, 'allie'),
+          b('e1', 250, 'ennemi'),
+        ],
+        { a2: 250, a3: 250 },
+      ],
+      [
+        'buff de vitesse d’équipe',
+        [
+          b('a1', 270, 'allie', { buffEquipe: 30 }),
+          b('a2', 210, 'allie'),
+          b('a3', 140, 'allie'),
+          b('e1', 245, 'ennemi'),
+        ],
+        { a2: 235, a3: 228 },
+      ],
+      [
+        // Le premier joue APRÈS l'adverse et sa vitesse est intouchable : il n'y
+        // a rien à proposer à personne, et le dire est la seule réponse juste.
+        'premier trop lent : rien à faire',
+        [
+          b('a1', 150, 'allie'),
+          b('a2', 140, 'allie'),
+          b('a3', 130, 'allie'),
+          b('e1', 400, 'ennemi'),
+        ],
+        { a1: null, a2: null, a3: null },
+      ],
+    ];
+
+    for (const [nom, equipe, attendu] of figes) {
+      const obtenu = Object.fromEntries(
+        vitessesRequises(equipe).map((r) => [r.id, r.combatRequis])
+      );
+      egal(JSON.stringify(obtenu), JSON.stringify(attendu), `figé — ${nom}`);
+      // ⚠️ Et le chiffre figé DOIT marcher : un contrat qui n'est plus qu'une
+      // photo ne protège de rien.
+      if (Object.values(attendu).every((v) => v !== null)) {
+        const corrige = equipe.map((m) =>
+          attendu[m.id] != null ? { ...m, combat: attendu[m.id]! } : m
+        );
+        ok(diagnostiquerChaine(corrige).ok, `figé — ${nom} : appliqué, le tune tient`);
+      }
+    }
+  }
+
   // P4 — LA MÉTHODE À LA MAIN (algo-verify). La meilleure référence de contrôle
   // n'est pas une variante du code : c'est la façon dont un joueur règle un tune
   // à la main, décrite telle quelle et rejouée par BALAYAGE LINÉAIRE.
   //
   //   1. la vitesse du 1er est une donnée (le meilleur Swift du compte) ;
-  //   2. le 2e n'est pas le point limitant : on le « colle » au 1er, la plus
-  //      grande vitesse qui ne le double pas ;
+  //   2. les intermédiaires ne sont pas le point limitant : on les « colle »
+  //      devant, chacun à la plus grande vitesse qui ne double pas celui d'avant ;
   //   3. on cherche alors à quelle vitesse le DERNIER doit être pour que la
   //      chaîne tienne — c'est lui qui décide ;
-  //   4. on redescend le 2e au minimum : un seul monstre joue par tick, il suffit
-  //      qu'il soit entre le 1er et le dernier.
+  //   4. on redescend les intermédiaires au minimum, du dernier vers l'avant : un
+  //      seul monstre joue par tick, il suffit que chacun soit entre celui qui le
+  //      précède et celui qui le suit.
   //
-  // Sur des équipes de trois alliés (le cas où la méthode se décrit sans
-  // ambiguïté), le solveur doit trouver EXACTEMENT les mêmes vitesses.
+  // ⚠️ Vérifié à TROIS **et à QUATRE** alliés : à trois, il n'y a qu'un
+  // intermédiaire à recaser et la méthode ne peut pas se tromper d'ordre ; à
+  // quatre, il y en a deux, et c'est là que le solveur pourrait diverger.
   {
-    let identiques = 0;
-    let compares = 0;
-    const scenarios = 120;
-    for (let s = 0; s < scenarios; s++) {
-      const rng = mulberry32(4200 + s * 131);
-      const monstres: TuneMonstre[] = [];
-      for (let i = 0; i < 3; i++) {
-        const mm: TuneMonstre = { id: `allie${i}`, combat: 120 + Math.floor(rng() * 200), camp: 'allie' };
-        if (rng() < 0.5) mm.sort = { atbEquipe: 10 + Math.floor(rng() * 40) };
-        monstres.push(mm);
-      }
-      for (let i = 0; i < 1 + Math.floor(rng() * 2); i++) {
-        monstres.push({ id: `ennemi${i}`, combat: 150 + Math.floor(rng() * 200), camp: 'ennemi' });
-      }
-      if (diagnostiquerChaine(monstres).ok) continue;
-
-      const ordre = ordreAlliesRef(monstres);
-      if (ordre.length !== 3) continue;
-      const [p1, p2, p3] = ordre;
+    const aLaMain = (monstres: TuneMonstre[], ordre: string[]): number | null => {
+      const p1 = ordre[0];
+      const dernier = ordre[ordre.length - 1];
       const vitesse = (ms: TuneMonstre[], id: string) => ms.find((m) => m.id === id)!.combat;
       const poser = (ms: TuneMonstre[], id: string, v: number) =>
         ms.map((m) => (m.id === id ? { ...m, combat: v } : m));
       const tickDe = (ms: TuneMonstre[], id: string) =>
         premiersTours(simuler(ms)).find((a) => a.id === id)?.tick ?? Infinity;
-
-      // 2. Le 2e collé au 1er.
-      let etat = monstres.map((m) => ({ ...m }));
-      let colle = vitesse(etat, p2);
-      for (let v = colle; v <= COMBAT_MAX; v++) {
-        etat = poser(etat, p2, v);
-        if (tickDe(etat, p2) <= tickDe(etat, p1)) break;
-        colle = v;
-      }
-      etat = poser(etat, p2, colle);
-
-      // 3. La vitesse du dernier. ⚠️ **Sans doubler le premier** : le combo
-      //    tombe si un boosté joue avant le boost. La méthode à la main le sait,
-      //    le joueur ne l'écrit pas — il faut le dire à la référence.
+      // ⚠️ Le joueur applique cette règle sans l'écrire : personne ne double
+      // celui qui ouvre, sinon les boostés jouent AVANT le boost.
       const premierTient = (ms: TuneMonstre[]) => ordreAlliesRef(ms)[0] === p1;
-      let v3: number | null = null;
-      for (let v = vitesse(etat, p3); v <= COMBAT_MAX; v++) {
-        etat = poser(etat, p3, v);
+
+      let etat = monstres.map((m) => ({ ...m }));
+      // 2. Les intermédiaires collés devant.
+      for (let i = 1; i < ordre.length - 1; i++) {
+        let colle = vitesse(etat, ordre[i]);
+        for (let v = colle; v <= COMBAT_MAX; v++) {
+          etat = poser(etat, ordre[i], v);
+          if (tickDe(etat, ordre[i]) <= tickDe(etat, ordre[i - 1])) break;
+          colle = v;
+        }
+        etat = poser(etat, ordre[i], colle);
+      }
+      // 3. La vitesse du dernier — c'est lui qui décide.
+      let trouve = false;
+      for (let v = vitesse(etat, dernier); v <= COMBAT_MAX; v++) {
+        etat = poser(etat, dernier, v);
         if (!premierTient(etat)) break; // au-delà il double le premier
         if (diagnostiquerChaine(etat).ok) {
-          v3 = v;
+          trouve = true;
           break;
         }
       }
-      const sol = vitessesRequises(monstres);
-      if (v3 == null) continue; // la main non plus n'y arrive pas : rien à comparer
-
-      // 4. Le 2e redescendu au minimum.
-      let bas = vitesse(etat, p2);
-      for (let v = bas; v >= 1; v--) {
-        etat = poser(etat, p2, v);
-        if (!diagnostiquerChaine(etat).ok) break;
-        bas = v;
+      if (!trouve) return null;
+      // 4. Les intermédiaires redescendus au minimum, du dernier vers l'avant.
+      for (let i = ordre.length - 2; i >= 1; i--) {
+        let bas = vitesse(etat, ordre[i]);
+        for (let v = bas; v >= 1; v--) {
+          etat = poser(etat, ordre[i], v);
+          if (!diagnostiquerChaine(etat).ok) break;
+          bas = v;
+        }
+        etat = poser(etat, ordre[i], bas);
       }
-      etat = poser(etat, p2, bas);
+      return ordre.reduce((t, id) => t + Math.max(0, vitesse(etat, id) - vitesse(monstres, id)), 0);
+    };
 
-      // ⚠️ **On compare le COÛT, pas le chiffre au point près.** La méthode à la
-      // main redescend le 2e jusqu'au premier refus ; le domaine n'étant pas un
-      // intervalle, elle s'arrête parfois un cran trop haut. Le solveur a le
-      // droit d'être MEILLEUR — jamais moins bon, et jamais bredouille là où la
-      // main trouve.
-      const points = (paires: [string, number][]) =>
-        paires.reduce((t, [id, v]) => t + Math.max(0, v - vitesse(monstres, id)), 0);
-      const coutMain = points([
-        [p2, bas],
-        [p3, v3],
-      ]);
-      const bredouille = sol.some((r) => r.combatRequis === null);
-      const coutSolveur = points(
-        sol.filter((r) => r.combatRequis != null).map((r) => [r.id, r.combatRequis!] as [string, number])
+    for (const nbAllies of [3, 4]) {
+      let identiques = 0;
+      let compares = 0;
+      const scenarios = 120;
+      for (let s = 0; s < scenarios; s++) {
+        const rng = mulberry32(4200 + s * 131 + nbAllies * 7919);
+        const monstres: TuneMonstre[] = [];
+        for (let i = 0; i < nbAllies; i++) {
+          const mm: TuneMonstre = {
+            id: `allie${i}`,
+            combat: 120 + Math.floor(rng() * 200),
+            camp: 'allie',
+          };
+          if (rng() < 0.5) mm.sort = { atbEquipe: 10 + Math.floor(rng() * 40) };
+          monstres.push(mm);
+        }
+        for (let i = 0; i < 1 + Math.floor(rng() * 2); i++) {
+          monstres.push({ id: `ennemi${i}`, combat: 150 + Math.floor(rng() * 200), camp: 'ennemi' });
+        }
+        if (diagnostiquerChaine(monstres).ok) continue;
+        const ordre = ordreAlliesRef(monstres);
+        if (ordre.length !== nbAllies) continue;
+
+        const coutMain = aLaMain(monstres, ordre);
+        if (coutMain === null) continue; // la main non plus n'y arrive pas
+
+        const sol = vitessesRequises(monstres);
+        const bredouille = sol.some((r) => r.combatRequis === null);
+        const coutSolveur = sol.reduce(
+          (t, r) => t + (r.combatRequis == null ? 0 : r.combatRequis - r.combatActuel),
+          0
+        );
+        compares++;
+        // ⚠️ **On compare le COÛT, pas le chiffre au point près.** La méthode à
+        // la main redescend jusqu'au premier refus ; le domaine n'étant pas un
+        // intervalle, elle s'arrête parfois un cran trop haut. Le solveur a le
+        // droit d'être MEILLEUR — jamais moins bon, et jamais bredouille là où
+        // la main trouve.
+        if (!bredouille && coutSolveur <= coutMain) identiques++;
+        else if (bredouille)
+          ok(
+            false,
+            `${nbAllies} alliés, scénario ${s} : « hors de portée » alors que la main trouve (${coutMain} points)`
+          );
+        else
+          ok(
+            false,
+            `${nbAllies} alliés, scénario ${s} : solveur ${coutSolveur} points, à la main ${coutMain}`
+          );
+      }
+      ok(
+        compares > 0 && identiques === compares,
+        `P4 — à ${nbAllies} alliés, le solveur fait aussi bien ou mieux que la méthode à la main, jamais bredouille (${compares} équipes)`
       );
-      compares++;
-      if (!bredouille && coutSolveur <= coutMain) identiques++;
-      else if (bredouille)
-        ok(false, `scénario ${s} : « hors de portée » alors que la main trouve (${coutMain} points)`);
-      else
-        ok(false, `scénario ${s} : solveur ${coutSolveur} points, à la main ${coutMain}`);
     }
-    ok(
-      compares > 0 && identiques === compares,
-      `P4 — le solveur fait aussi bien ou mieux que la méthode à la main, jamais bredouille (${compares} équipes de trois alliés)`
-    );
   }
 }
 

@@ -634,7 +634,13 @@ function resoudre(monstres: TuneMonstre[], horizon: number, axe: Axe): Resolutio
     for (let i = 0; i < poussables.length; i++) if ((masque >> i) & 1) sous.push(i + 1);
     sousEnsembles.push(sous);
   }
-  sousEnsembles.sort((a, b) => a.length - b.length);
+  // ⚠️ **Du PLUS GRAND au plus petit** : la méthode à la main pousse TOUT le
+  // monde devant, puis redescend — et c'est ce qui donne le réglage le moins
+  // cher, parce que la redescente rend ensuite à chacun ce dont il n'a pas
+  // besoin. Commencer par les petits sous-ensembles faisait retenir la première
+  // solution TROUVÉE, pas la moins chère : 136 points là où la main en demandait
+  // 85. Les petits restent essayés ensuite, pour le cas où pousser NUIT.
+  sousEnsembles.sort((a, b) => b.length - a.length);
 
   let meilleur: number[] = [];
   let mieux = -1;

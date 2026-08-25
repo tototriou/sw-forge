@@ -797,6 +797,12 @@ De haut en bas :
      chiffre qu'on vient lire. On gagne de la hauteur en resserrant ce qui
      l'entoure, jamais en rendant illisible l'objet de l'écran.
 3. **Ordre des sorts** — card à part (voir « Ordre des sorts » plus bas).
+   ⚠️ **Côte à côte avec l'analyse quand il y a la place**, empilées sinon —
+   même idiome que les deux camps (`flex-wrap` + largeur plancher), et pour la
+   même raison : il suit la place **réelle** (pleine page ou modale), là où un
+   point de rupture ne connaît que la fenêtre. L'ordre des sorts reste **à
+   gauche** — la cause avant l'effet, comme empilées. `items-start`, sinon la
+   card courte s'étire à la hauteur de la longue et laisse un grand vide encadré.
    ⚠️ **Elle passe AVANT l'analyse** : c'est l'ordre de la cause et de l'effet.
    On désigne ici ce que chacun lance, et le verdict de l'analyse en découle —
    changer un sort est d'ailleurs le SEUL geste qui relance l'écriture des

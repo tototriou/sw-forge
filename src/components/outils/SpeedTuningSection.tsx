@@ -486,13 +486,22 @@ export default function SpeedTuningSection({
         </div>
       ) : (
         <>
+            {/* ⚠️ **Côte à côte quand il y a la place, empilées sinon** — même
+                idiome que les deux camps plus haut, et pour la même raison : un
+                `flex-wrap` avec une largeur plancher suit la place RÉELLE
+                (pleine page, ou modale), là où un point de rupture ne connaît
+                que la fenêtre. L'ordre des sorts reste à GAUCHE : c'est la
+                cause, l'analyse à droite en est l'effet.
+                ⚠️ `items-start` : sans lui, la card courte s'étirerait à la
+                hauteur de la longue et laisserait un grand vide encadré. */}
+            <div className="flex flex-wrap items-start gap-4">
             {/* ⚠️ Une card INDÉPENDANTE : elle ne s'ouvre ni ne se ferme depuis
                 l'analyse, elle est là comme les grilles. L'analyse la REMPLIT — elle
                 y écrit l'ordre des vitesses et le sort de chacun — mais les deux
                 se lisent et se règlent séparément.
                 ⚠️ **Et elle passe EN PREMIER** : c'est ici qu'on désigne ce que
                 chacun lance, et le verdict de l'analyse en découle. */}
-          <section className="rounded-lg border border-border bg-panel">
+          <section className="min-w-[440px] flex-1 rounded-lg border border-border bg-panel">
                 <div className="flex flex-wrap items-center gap-x-3 gap-y-2 border-b border-border-soft px-4 py-2.5">
                   <span className="text-micro font-semibold uppercase tracking-wider text-ink-dimmer">
                     Ordre des sorts
@@ -649,7 +658,7 @@ export default function SpeedTuningSection({
                 lance, et le verdict en découle. Changer un sort est d'ailleurs
                 le seul geste qui relance l'écriture des grilles. Lire le verdict
                 d'abord obligeait à remonter pour comprendre d'où il sortait. */}
-          <section className="rounded-lg border border-border bg-panel">
+          <section className="min-w-[440px] flex-1 rounded-lg border border-border bg-panel">
               <div className="flex flex-wrap items-center gap-x-3 gap-y-2 border-b border-border-soft px-4 py-2.5">
                 <span className="text-micro font-semibold uppercase tracking-wider text-ink-dimmer">
                   Analyse automatique
@@ -723,6 +732,7 @@ export default function SpeedTuningSection({
                 </div>
               )}
             </section>
+            </div>
 
           {/* Barre d'action par tick (résultat, lecture seule) */}
           <section className="rounded-lg border border-border bg-panel">

@@ -344,12 +344,21 @@ n'est possible.
 
 ⚠️ **Même discipline de curation que `PASSIFS_OFFENSIFS_CONNUS`** —
 `COUPS_VARIABLES_CONNUS` ([damage.ts](src/lib/damage.ts)) associe un
-`Competence.nom` exact à une plage `{ min, max }`, à la main, jamais déduite
-du texte anglais libre. Sert aussi bien un sort actif
+`Competence.nom` exact à une plage `{ min, max, defaut? }`, à la main,
+jamais déduite du texte anglais libre. Sert aussi bien un sort actif
 (`skillDamageProfile`) qu'un passif (`monsterOffensivePassives`) — même
 table, même clé. `SkillDamageProfile.hitsRange` porte la plage quand elle
 est connue ; `hits` retombe alors sur son **minimum**, jamais une
-surestimation par défaut.
+surestimation par défaut — **sauf `defaut` explicitement curé** (Julie :
+6, le cas pleine vie, sur demande directe de l'utilisateur — la seule
+exception à ce jour).
+
+⚠️ **« Ray Spears » (Amber/Veronica S2, aussi Battle Angel) partagé entre
+QUATRE fiches distinctes** (`com2usId` 26101/26104/26111/26114), même
+formule (`1.68*{ATK}`) partout — confirmé par l'utilisateur, vérifié sur
+les données : la curation PAR NOM couvre déjà les quatre sans code
+supplémentaire, exactement le principe que cette table applique partout
+ailleurs.
 
 L'écran affiche un champ numérique (borné à la plage) partout où un tel
 sort/passif apparaît — la recherche ET l'affichage utilisent la valeur
@@ -686,13 +695,27 @@ bonusParEffetCible?: { pct: number; inclutDebuffs: boolean }`, curé dans
   HP »). Ajoutée à `COUPS_VARIABLES_CONNUS` (même mécanisme qu'Okeanos S3/
   Amber S2, voir « Coups variables » plus haut) : `Competence.coups` (6)
   ne portait QUE le cas pleine vie, exactement le piège que cette table
-  existe pour corriger — le minimum (4) est retenu par défaut, jamais une
-  surestimation.
+  existe pour corriger. ⚠️ **`defaut: 6`, PAS le minimum** — exception
+  explicite à la règle générale (« jamais une surestimation, retombe sur le
+  minimum ») : demande directe de l'utilisateur, le cas pleine vie étant le
+  plus représentatif d'un début de combat. Nouveau champ optionnel
+  `COUPS_VARIABLES_CONNUS[nom].defaut` (absent = comportement inchangé,
+  retombe sur `min` comme avant pour Sia/Okeanos/Amber).
 - **Melissa/Chakram Dancer** (« Massacre Dance », S3) : « increases the
   damage by 10% each according to the number of beneficial AND harmful
   effects granted on the target » — BUFFS **ET** DEBUFFS, contrairement à
   Julie. `+10 %` confirmé sur LES DEUX effets SWARFARM (« Buff Bonus
   Damage » et « Debuff Bonus Damage », `quantite: 10` chacun).
+- **Covenant/Sniper Mk.I** (« Suppressive Fire », S2) : « Removes all
+  beneficial effects granted on the enemy target with a 70% chance, and
+  deals damage that increases according [to] the number of beneficial
+  effects removed. » `quantite: 0` dans les données SWARFARM — d'abord
+  laissé de côté pour cette raison (voir la vague précédente). Confirmé
+  ensuite par l'utilisateur, en aparté : « chaque buff sur l'ennemi rajoute
+  100% au ratio du sort » — `+100 %`, BUFFS seuls comme Julie. ⚠️ Le compte
+  saisi représente les effets RÉELLEMENT RETIRÉS (chacun à 70 % de chance),
+  pas le nombre présent avant l'attaque — à l'utilisateur de le renseigner,
+  l'app ne simule pas ce tirage.
 
 `DamageSetup.effetsCibleCount?: Record<skillCom2usId, number>` (même espace
 de clés que `coupsPersonnalises`/`stackPersonnalise`) porte le compte SAISI
@@ -704,13 +727,6 @@ résout ; `computeSkillDamageDetail` l'applique multiplicativement
 monstre-wide. Champ affiché dans « Adversaire » (comme PV/VIT de la cible),
 libellé « Effets bénéfiques sur la cible » (Julie) ou « Effets sur la
 cible » (Melissa, sans distinction buff/debuff).
-
-⚠️ **Point 6 (Covenant, « Suppressive Fire ») volontairement ABSENT** —
-même famille de texte (« damage that increases according [to] the number
-of beneficial effects removed »), mais `quantite: 0` dans les données
-SWARFARM (contrairement à Julie et Melissa) et aucun pourcentage fourni non
-plus par l'utilisateur : jamais un nombre plausible mais faux. À reprendre
-si un chiffre est un jour confirmé.
 
 ⚠️ **Réponses données par l'utilisateur pour les points restants, non
 implémentés ici** : le point 19 est déjà implémenté (Protective Power/

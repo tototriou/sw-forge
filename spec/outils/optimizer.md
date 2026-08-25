@@ -366,10 +366,14 @@ retour.
        Crit/Dgts Crit). Un passif **bonus** ou **conditionnel**, ou un
        modificateur sans formule propre soumis à une condition que l'app ne
        peut pas déduire (PV propres, état d'un allié, tour précédent…),
-       apparaît en bouton, **désactivé par défaut** ; un passif dont le
-       bonus S'ACCUMULE en combat sans que l'app ne puisse le savoir (Momo)
-       apparaît avec un **champ numérique** (0 % par défaut) plutôt qu'un
-       bouton. ⚠️ **Jamais déduit d'un autre
+       apparaît en **interrupteur** (glissière, comme « Stats de base
+       exclues »), **désactivé par défaut** — signalé par l'utilisateur :
+       une pilule cliquable (`Pastille`) ne distinguait pas assez la CIBLE
+       du clic (l'icône + le libellé) du paragraphe de condition juste en
+       dessous, purement informatif. Un passif dont le bonus S'ACCUMULE en
+       combat sans que l'app ne puisse le savoir (Momo) apparaît avec un
+       **champ numérique** (0 % par défaut) plutôt qu'un interrupteur.
+       ⚠️ **Jamais déduit d'un autre
        réglage de l'écran** (le passif d'un monstre peut dépendre de l'état
        posé par son **propre** sort, avant même que ce sort ne soit lancé :
        aucun réglage existant ne peut trancher ça à sa place) — la condition

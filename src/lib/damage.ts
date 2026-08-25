@@ -768,18 +768,24 @@ export interface SkillDamageProfile {
 
 // « Deals increased damage per positive effect on target monster »/
 // « per debuff on the target » — un pourcentage de dégâts par effet PRÉSENT
-// sur la cible (pas un état simulé, saisi par l'utilisateur). Les DEUX
-// chiffres ci-dessous sont directement dans les données SWARFARM
-// (`quantite` des effets `Buff Bonus Damage`/`Debuff Bonus Damage`), pas
-// seulement dans la prose libre — vérifiés avant d'être curés ici.
-//
-// ⚠️ Covenant (« Suppressive Fire », même famille de texte) volontairement
-// ABSENT : `quantite: 0` dans les données SWARFARM (contrairement à Julie
-// et Melissa), et la réponse de l'utilisateur ne fournit pas non plus le
-// pourcentage — jamais un nombre plausible mais faux.
+// sur la cible (pas un état simulé, saisi par l'utilisateur). Les chiffres
+// Julie/Melissa sont directement dans les données SWARFARM (`quantite` des
+// effets `Buff Bonus Damage`/`Debuff Bonus Damage`), pas seulement dans la
+// prose libre — vérifiés avant d'être curés ici.
 const BONUS_PAR_EFFET_CIBLE_CONNUS: Record<string, { pct: number; inclutDebuffs: boolean }> = {
   'Thousand Shots': { pct: 50, inclutDebuffs: false }, // Julie, Pierrette — « for each beneficial effect »
   'Massacre Dance': { pct: 10, inclutDebuffs: true }, // Melissa, Chakram Dancer — « beneficial AND harmful »
+  // « Removes all beneficial effects granted on the enemy target with a
+  // 70% chance, and deals damage that increases according [to] the number
+  // of beneficial effects removed. » `quantite: 0` dans les données
+  // SWARFARM (contrairement à Julie/Melissa) — d'abord laissé de côté pour
+  // cette raison. Confirmé ensuite par l'utilisateur : « chaque buff sur
+  // l'ennemi rajoute 100% au ratio du sort » — comme Julie, BUFFS
+  // uniquement (le texte du jeu ne parle que de « beneficial effects »).
+  // ⚠️ Le compteur saisi représente les effets RETIRÉS (70 % de chance
+  // chacun), pas nécessairement tous ceux présents — à l'utilisateur de
+  // renseigner le nombre RÉELLEMENT retiré, l'app ne simule pas ce tirage.
+  'Suppressive Fire': { pct: 100, inclutDebuffs: false }, // Covenant, Sniper Mk.I
 };
 
 // Formule exacte confirmée par l'utilisateur, avec démonstration algébrique :
@@ -831,15 +837,26 @@ const RE_FIXED = /\(Fixed\)\s*$/i;
 // texte anglais libre. Sert AUSSI bien un sort actif (`skillDamageProfile`)
 // qu'un passif (`monsterOffensivePassives`), même table, même clé
 // (`Competence.nom` exact).
-const COUPS_VARIABLES_CONNUS: Record<string, { min: number; max: number }> = {
+// ⚠️ `defaut` : la valeur RETENUE par défaut avant tout choix de
+// l'utilisateur — `min` si absent (discipline générale, « jamais une
+// surestimation »). Julie fait exception sur demande EXPLICITE de
+// l'utilisateur : le cas pleine vie (6, le maximum de sa plage) est le
+// défaut le plus représentatif d'un début de combat, pas le minimum.
+const COUPS_VARIABLES_CONNUS: Record<string, { min: number; max: number; defaut?: number }> = {
   'Great Friends (Passive)': { min: 2, max: 3 }, // Sia — confirmé par l'utilisateur
   'Rain of Stones': { min: 3, max: 5 }, // Okeanos S3
-  'Ray Spears': { min: 2, max: 3 }, // Amber S2
+  // Confirmé partagé par l'utilisateur — vérifié sur les données : « Ray
+  // Spears » (S2) est EXACTEMENT le même sort sur les quatre fiches
+  // com2usId 26101/26104 (Battle Angel) et 26111/26114 (Amber/Veronica),
+  // même formule (`1.68*{ATK}`) partout. La curation par NOM couvre déjà
+  // les quatre sans code supplémentaire.
+  'Ray Spears': { min: 2, max: 3 }, // Amber, Veronica, Battle Angel (S2)
   // « Attacks 6 times when this attack is used with full HP » — confirmé
   // par l'utilisateur : 4 à 6 coups si Julie N'EST PAS à pleine vie, 6
   // pile sinon. `Competence.coups` (6) ne porte QUE le cas pleine vie,
-  // exactement le piège que cette table existe pour corriger.
-  'Thousand Shots': { min: 4, max: 6 }, // Julie, Pierrette
+  // exactement le piège que cette table existe pour corriger. `defaut: 6`
+  // (le MAXIMUM, pas le minimum) : demande explicite de l'utilisateur.
+  'Thousand Shots': { min: 4, max: 6, defaut: 6 }, // Julie, Pierrette
 };
 
 /**
@@ -888,8 +905,9 @@ export function skillDamageProfile(c: Competence): SkillDamageProfile | SkillDam
     // `coups` vaut `null` sur quelques fiches : un sort qui inflige des
     // dégâts en frappe au moins une fois. Un sort à coups VARIABLES connu
     // retombe sur son minimum — jamais une surestimation par défaut, comme
-    // partout ailleurs dans ce module.
-    hits: coupsVariables ? coupsVariables.min : c.coups && c.coups > 0 ? c.coups : 1,
+    // partout ailleurs dans ce module — SAUF `defaut` explicitement curé
+    // (Julie : voir `COUPS_VARIABLES_CONNUS`).
+    hits: coupsVariables ? coupsVariables.defaut ?? coupsVariables.min : c.coups && c.coups > 0 ? c.coups : 1,
     hitsRange: coupsVariables,
     aoe: c.aoe,
     // ⚠️ `ignoreDefSelonVit` prévaut : SWARFARM tague Concentrated Stab d'un
@@ -1194,7 +1212,7 @@ export function monsterOffensivePassives(detail: DetailMonstre | null): PassifOf
         // l'ordre : plage VARIABLE connue (donne un champ de réglage), puis
         // nombre FIXE curé depuis la prose, puis 1 par défaut — jamais un
         // nombre deviné.
-        hits: COUPS_VARIABLES_CONNUS[c.nom]?.min ?? connu.coups ?? 1,
+        hits: COUPS_VARIABLES_CONNUS[c.nom]?.defaut ?? COUPS_VARIABLES_CONNUS[c.nom]?.min ?? connu.coups ?? 1,
         hitsRange: COUPS_VARIABLES_CONNUS[c.nom],
         aoe: c.aoe,
         ignoreDef: connu.ignoreDef ?? c.effets.some((e) => e.nom === 'Ignore DEF'),

@@ -1,4 +1,4 @@
-import { Dispatch, SetStateAction } from 'react';
+import { Dispatch, ReactNode, SetStateAction } from 'react';
 import { Check } from 'lucide-react';
 import {
   ATK_BUFF_ICON,
@@ -35,10 +35,10 @@ import {
 } from '../../lib/damage';
 import { formuleLisible } from '../../lib/monsterSkills';
 import { leadIconUrl, STAT_LABEL } from '../siege/LeadPill';
+import Interrupteur from '../../ui/Interrupteur';
 import Jeton from '../../ui/Jeton';
 import NumberField from '../../ui/NumberField';
 import Option from '../../ui/Option';
-import Pastille from '../../ui/Pastille';
 import Segmented from '../../ui/Segmented';
 import Selecteur from '../../ui/Selecteur';
 import Vignette from '../../ui/Vignette';
@@ -385,22 +385,20 @@ export default function DamageSetupCard({
             )}
             {/* Bonus conditionnel à bouton (Jin Kazama, Cyborg, Brownie
                 Magician, Astar, Jean, Kyle, Satoru Gojo, Werner, Zenitsu,
-                Qilin Slasher, Panda Warrior, Mi Ying…) — même rendu (Pastille,
-                désactivé par défaut) que les passifs `bonus`/`conditionnel`
+                Qilin Slasher, Panda Warrior, Mi Ying…) — interrupteur
+                (`PassifInterrupteur`, voir plus bas), désactivé par défaut,
+                même famille que les passifs `bonus`/`conditionnel`
                 ci-dessous, mais SANS formule propre : le bouton majore le
                 TOTAL du monstre, pas la contribution d'un passif précis. Même
                 stockage que `passifsOffensifs` (clé = `skillCom2usId` de CE
                 modificateur) — voir `bonusDegatsConditionnelActif`. */}
             {bonusDegatsConditionnel && (
               <div key={`conditionnel-${bonusDegatsConditionnel.skillCom2usId}`}>
-                <Pastille
+                <PassifInterrupteur
                   actif={bonusDegatsConditionnelActif(bonusDegatsConditionnel, setup)}
-                  onClick={() =>
+                  onChange={(v) =>
                     maj({
-                      passifsOffensifs: {
-                        ...(setup.passifsOffensifs ?? {}),
-                        [bonusDegatsConditionnel.skillCom2usId]: !bonusDegatsConditionnelActif(bonusDegatsConditionnel, setup),
-                      },
+                      passifsOffensifs: { ...(setup.passifsOffensifs ?? {}), [bonusDegatsConditionnel.skillCom2usId]: v },
                     })
                   }
                   icone={
@@ -496,11 +494,9 @@ export default function DamageSetupCard({
                   : `${cat.type === 'bonus' ? 'Dégâts de base toujours comptés ; +' + cat.pct + ' % si ' : 'Se déclenche si '}${cat.condition}.`;
               return (
                 <div key={p.skillCom2usId}>
-                  <Pastille
+                  <PassifInterrupteur
                     actif={actif}
-                    onClick={() =>
-                      maj({ passifsOffensifs: { ...(setup.passifsOffensifs ?? {}), [p.skillCom2usId]: !actif } })
-                    }
+                    onChange={(v) => maj({ passifsOffensifs: { ...(setup.passifsOffensifs ?? {}), [p.skillCom2usId]: v } })}
                     icone={icone}
                     libelle={libelle}
                     title={`${condition}${actif ? ' (activé)' : ' — désactivé par défaut'}`}
@@ -767,7 +763,7 @@ export default function DamageSetupCard({
             stack de Momo : un champ à part, 0 % par défaut. */}
         {setup.velaskaActif && (
           <div className="mt-2 flex items-center gap-2">
-            <span className="text-xs text-ink-dim">Velaska — % de PV perdus</span>
+            <span className="text-xs text-ink-dim">Passif de Velaska — % de PV perdus</span>
             <NumberField
               value={setup.velaskaPvPerduPct ?? 0}
               onChange={(v) => maj({ velaskaPvPerduPct: v ?? 0 })}
@@ -979,6 +975,40 @@ function LeaderSkillPicker({ setup, maj }: { setup: DamageSetup; maj: (patch: Pa
           />
         </>
       )}
+    </div>
+  );
+}
+
+// Le bouton d'un passif `bonus`/`conditionnel` (Dominic, Ezio, Evan…) ou
+// d'un modificateur conditionnel sans formule propre (Jin Kazama, Cyborg,
+// Astar, Jean…) — un INTERRUPTEUR (`Interrupteur`, même composant que
+// « Stats de base exclues », Critères de recherche), pas une `Pastille`.
+//
+// ⚠️ **Signalé par l'utilisateur : cliquer sur la DESCRIPTION du passif ne
+// faisait rien** — la `Pastille` précédente (une pilule cliquable) portait
+// l'icône ET le libellé comme SEULE cible de clic, sans lien visuel évident
+// avec le paragraphe de condition juste en dessous. `Interrupteur` porte sa
+// propre glissière (état visible sans avoir à cliquer pour le découvrir,
+// `role="switch"`/`aria-checked`) — plus proche, dans l'esprit du composant
+// lui-même (voir Interrupteur.tsx), d'un réglage SEUL avec une phrase à
+// côté que d'une rangée de pastilles de filtre.
+function PassifInterrupteur({
+  icone,
+  libelle,
+  actif,
+  onChange,
+  title,
+}: {
+  icone: ReactNode;
+  libelle: string;
+  actif: boolean;
+  onChange: (actif: boolean) => void;
+  title?: string;
+}) {
+  return (
+    <div className="flex items-center gap-1.5">
+      {icone}
+      <Interrupteur actif={actif} onChange={onChange} libelle={libelle} title={title} aria-label={libelle} />
     </div>
   );
 }

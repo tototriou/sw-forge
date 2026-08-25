@@ -944,8 +944,8 @@ export default function testDegats() {
   ok(thousandShots != null && estPrisEnCharge(thousandShots), 'Thousand Shots : profil calculable trouvé');
   const thousandShotsProfile = thousandShots as SkillDamageProfile;
   egal(thousandShotsProfile.bonusParEffetCible, { pct: 50, inclutDebuffs: false }, 'Julie : +50 % par effet BÉNÉFIQUE uniquement, confirmé par les données');
-  egal(thousandShotsProfile.hitsRange, { min: 4, max: 6 }, 'Julie : coups variables, 4 à 6 (6 à pleine vie)');
-  egal(thousandShotsProfile.hits, 4, 'le minimum (4) est retenu par défaut, jamais une surestimation');
+  egal(thousandShotsProfile.hitsRange, { min: 4, max: 6, defaut: 6 }, 'Julie : coups variables, 4 à 6 (6 à pleine vie)');
+  egal(thousandShotsProfile.hits, 6, 'le défaut (6, pleine vie) est retenu — exception explicite au « jamais une surestimation » général');
   const julieStats = stats({ atk: 2000, cd: 200, cr: 100 });
   const julieSetup: DamageSetup = { ...DEFAULT_DAMAGE_SETUP, skillCom2usId: thousandShotsProfile.skillCom2usId, summonerSkills: 'aucune', critMode: 'normal' };
   egal(resolvedEffetsCibleCount(thousandShotsProfile, julieSetup), 0, 'sans réglage utilisateur, 0 effet — jamais deviné');
@@ -978,13 +978,22 @@ export default function testDegats() {
     'un effetsCibleCount saisi pour un AUTRE sort n’a aucun effet ici'
   );
 
-  // Covenant (« Suppressive Fire ») — délibérément ABSENT de
-  // `BONUS_PAR_EFFET_CIBLE_CONNUS` : `quantite: 0` dans les données
-  // SWARFARM (contrairement à Julie/Melissa), aucun pourcentage confirmé
-  // nulle part — jamais un nombre plausible mais faux.
+  // Covenant (« Suppressive Fire ») — `quantite: 0` dans les données
+  // SWARFARM, mais confirmé par l'utilisateur en aparté : « chaque buff sur
+  // l'ennemi rajoute 100% au ratio du sort » — comme Julie, BUFFS seuls.
   const covenant = fiche(22711);
   const suppressiveFire = monsterDamageSkills(covenant).find((s) => estPrisEnCharge(s) && s.nom === 'Suppressive Fire');
-  ok(suppressiveFire != null && estPrisEnCharge(suppressiveFire) && !(suppressiveFire as SkillDamageProfile).bonusParEffetCible, 'Covenant : aucun pourcentage confirmé, mécanisme non modélisé');
+  ok(suppressiveFire != null && estPrisEnCharge(suppressiveFire), 'Covenant : Suppressive Fire calculable');
+  const suppressiveFireProfile = suppressiveFire as SkillDamageProfile;
+  egal(suppressiveFireProfile.bonusParEffetCible, { pct: 100, inclutDebuffs: false }, 'Covenant : +100 % par effet BÉNÉFIQUE, confirmé par l’utilisateur');
+  const covenantStats = stats({ atk: 2000, cd: 200, cr: 100 });
+  const covenantSetup: DamageSetup = { ...DEFAULT_DAMAGE_SETUP, skillCom2usId: suppressiveFireProfile.skillCom2usId, summonerSkills: 'aucune', critMode: 'normal' };
+  const covenantSans = computeSkillDamage(suppressiveFireProfile, covenantStats, covenantSetup);
+  const covenantAvec2 = computeSkillDamage(suppressiveFireProfile, covenantStats, {
+    ...covenantSetup,
+    effetsCibleCount: { [suppressiveFireProfile.skillCom2usId]: 2 },
+  });
+  ok(Math.abs(covenantAvec2 / covenantSans - 3) < 1e-9, '2 buffs retirés : exactement +200 % (100 % × 2), soit ×3');
 
   titre('Dégâts réels — formule bespoke selon un compteur (Crawler, Frankenstein)');
 

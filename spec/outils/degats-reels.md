@@ -431,12 +431,16 @@ mécaniques ci-dessus ET pour `{SPD}` lui-même :
    les artéfacts ÉQUIPÉS (`SearchParams.artifacts` — fixes pour toute une
    recherche, l'Optimizer n'optimise que les runes) et amplifie
    MULTIPLICATIVEMENT le pourcentage du buff (`30 % × (1 + X/100)`), jamais
-   la VIT plate elle-même.
-3. **Leader skill d'ÉQUIPE** (`setup.leaderSpeedPct`, saisie manuelle) — le
-   sien n'agit jamais sur lui-même, contrairement au totem.
+   la VIT plate elle-même. Porte sur le **TOTAL** (base + rune + lead déjà
+   posés) — mécanique différente du lead, voir plus bas.
+3. **Leader skill d'ÉQUIPE** (`setup.leaderSkill`, type VIT — voir « Leader
+   skill d'équipe » plus bas) — le sien n'agit jamais sur lui-même,
+   contrairement au totem. ⚠️ Porte sur la VIT de **BASE**, pas sur le total
+   runé — signalé par l'utilisateur, incident détaillé ci-dessous.
 
-Les pourcentages de buff (amplifié) et de leader sont SOMMÉS puis appliqués
-en une seule fois, comme les autres buffs de ce module (`buff()`).
+Le buff de VIT (%TOTAL) s'applique donc APRÈS le lead (%BASE) déjà posé,
+jamais sommé avec lui dans la même étape — voir « Leader skill d'équipe »
+pour la correction et sa justification complète.
 
 ### Crit garanti si plus rapide que la cible
 
@@ -578,6 +582,64 @@ monstre, aucun `RealDamageContext` supplémentaire.
   s'ADDITIONNENT avant d'amplifier, comme plusieurs lignes d'artéfact
   identiques le font déjà. `MIRIAM_AMPLIFY_PCT = 35`, gaté sur l'union des
   conditions déjà utilisées pour les toggles ATQ/DEF/VIT ci-dessus.
+
+## Leader skill d'équipe
+
+Généralise l'ancien champ VIT-only (`leaderSpeedPct`) à **toute** stat de
+lead — demande explicite de l'utilisateur : « choisir un leader skill…
+implémenter les leader skill de PV, d'ATQ, de DEF, de VIT, de Taux Crit et
+de dégâts crit ». Sélection dans « Effets actifs » : un type d'abord (avec
+l'icône OFFICIELLE du jeu, réutilisée depuis `siege/LeadPill.tsx` —
+`leadIconUrl`/`STAT_LABEL`, jamais dupliquée), puis une valeur — un palier
+réel du jeu proposé dans une liste déroulante, ou une saisie libre
+(`DamageSetup.leaderSkill: { stat, pct }`).
+
+Paliers réels, confirmés par l'utilisateur (`LEADER_SKILL_PRESETS`,
+damage.ts) — jamais une progression régulière déduite d'une stat à
+l'autre :
+
+| Stat | Paliers |
+|---|---|
+| PV / ATQ / DEF | 28, 33, 38, 40, 44, 50 % |
+| VIT | 21, 24, 28, 30, 33 % |
+| Taux Crit | 21, 24, 28, 33, 38 % |
+| Dégâts Crit | 25 % (un seul palier connu) |
+
+⚠️ **Deux familles de mécaniques, jamais confondues** :
+- **PV/ATQ/DEF/VIT** — un pourcentage MULTIPLICATIF de la stat de **BASE**
+  (voir l'incident ci-dessous), ajouté comme des points FLATS au total
+  runé — exactement `avecInvocateur`/`pctSpeedBonus` (speed.ts, page RTA).
+- **Taux Crit/Dégâts Crit** — des points FLATS ajoutés DIRECTEMENT à la
+  stat, même famille que les compétences d'invocateur (`cdPoints`) et
+  Euldong — jamais un pourcentage de quoi que ce soit.
+
+### ⚠️ Incident : un lead porte sur la stat de BASE, pas le total runé
+
+Signalé par l'utilisateur : « les leaderskill s'appliquent sur les
+statistiques de base. Tu as un exemple d'utilisation des leader skill (de
+VIT) dans la page RTA. » Un premier jet appliquait le pourcentage du lead
+au **total runé** — exactement l'erreur que `combatSpeed`/`pctSpeedBonus`
+(speed.ts) évitent déjà pour la VIT en siège/RTA :
+`base + rune + ceil(base × (totem+lead+swift)/100)`, le pourcentage ne
+portant QUE sur `base`, jamais sur `base + rune`. Corrigé pour toutes les
+stats concernées (`avecInvocateur` gagne un second paramètre
+`extraBasePct`, sommé à la compétence d'invocateur — même nature — AVANT
+le `ceil` UNIQUE, jamais un second `ceil` séparé qui reproduirait l'écart
+d'un point déjà documenté et corrigé une fois dans `pctSpeedBonus`, « ne
+jamais arrondir bonus par bonus »).
+
+Le buff de combat (`atkBuff`/`defBuff`/`spdBuff`), lui, reste %TOTAL — une
+mécanique DIFFÉRENTE, pas la même formule : il s'applique donc APRÈS le
+lead déjà posé, jamais sommé avec lui dans la même étape.
+
+### Compatibilité arrière
+
+Une recette exportée AVANT cette généralisation ne porte que l'ancien
+`leaderSpeedPct` (un pourcentage de VIT nu, sans type). `resolvedLeaderSkill`
+(damage.ts) traduit explicitement : `leaderSkill` si présent, sinon
+`{ stat: 'Attack Speed', pct: leaderSpeedPct }` — jamais un défaut générique
+qui perdrait la valeur déjà saisie. Le champ legacy n'est plus jamais
+ÉCRIT depuis l'écran (marqué `@deprecated`), seulement lu.
 
 ## Stats à privilégier dans la recherche
 

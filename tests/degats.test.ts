@@ -33,6 +33,7 @@ import {
   DEFAULT_DAMAGE_SETUP,
   DamageSetup,
   EULDONG_CD_POINTS,
+  LEADER_SKILL_PRESETS,
   MIRIAM_AMPLIFY_PCT,
   MIRINAE_BONUS_PCT,
   SPD_BUFF_PCT,
@@ -79,6 +80,16 @@ function stats(valeurs: Partial<Record<StatKey, number>>): StatRow[] {
     total: valeurs[key] ?? 0,
     suffix: '',
   }));
+}
+
+// `stats()` fixe `base=0` pour tout — sans conséquence pour la plupart des
+// tests (les compétences d'invocateur, seules à lire `base` avant cette
+// section, sont testées avec `summonerSkills: 'aucune'`), mais un leader
+// skill PORTE PRÉCISÉMENT sur cette base (voir `avecInvocateur`,
+// `maVitCombat`) — la tester exige une base RÉELLEMENT non nulle, distincte
+// du total runé.
+function statsAvecBase(cle: StatKey, base: number, total: number, autres: Partial<Record<StatKey, number>> = {}): StatRow[] {
+  return stats(autres).map((r) => (r.key === cle ? { ...r, base, total } : r));
 }
 
 // Compétence synthétique — pour exercer le parseur sur des formes que le
@@ -325,8 +336,6 @@ export default function testDegats() {
   // dans les compétences d'invocateur) + buff VIT (éventuellement amplifié
   // par un artéfact) + leader skill d'ÉQUIPE. `maVitCombat` les combine.
   const vitNue = maVitCombat(rignaStats, rignaSetup, null);
-  const avecLeader = maVitCombat(rignaStats, { ...rignaSetup, leaderSpeedPct: 24 }, null);
-  ok(Math.abs(avecLeader / vitNue - 1.24) < 1e-9, 'un leader skill VIT +24 % ajoute exactement 24 % à la VIT de combat');
 
   const setupAvecBuff: DamageSetup = { ...rignaSetup, spdBuff: true };
   const vitBuffNu = maVitCombat(rignaStats, setupAvecBuff, null);
@@ -360,6 +369,119 @@ export default function testDegats() {
   egal(speedBuffAmpliPct([artefactSansVit]), 0, 'un artéfact sans code 206 : aucune amplification');
   egal(speedBuffAmpliPct([artefactVit]), 20, 'le code 206 (Effet aug. VIT) est bien lu, les autres codes ignorés');
   egal(speedBuffAmpliPct([artefactVit, artefactVit]), 40, 'deux artéfacts avec la ligne se CUMULENT, comme en jeu');
+
+  titre('Dégâts réels — leader skill généralisé (PV, ATQ, DEF, VIT, Taux Crit, Dégâts Crit)');
+
+  // ⚠️ Signalé par l'utilisateur : « les leaderskill s'appliquent sur les
+  // statistiques de BASE », exactement comme `pctSpeedBonus`/`combatSpeed`
+  // (speed.ts, page RTA) : `base + rune + ceil(base × pct/100)`, jamais un
+  // pourcentage du total runé. `stats()` fixe `base=0` pour tout — d'où
+  // `statsAvecBase` pour ces tests, seul moyen de distinguer base et total.
+
+  // VIT — remplace l'ancien test qui pinçait à tort le total runé.
+  const vitStatsBase = statsAvecBase('spd', 120, 200, { atk: 2000, cd: 200, cr: 100 });
+  const vitSetupSansLead: DamageSetup = { ...DEFAULT_DAMAGE_SETUP, summonerSkills: 'aucune' };
+  const vitSansLead = maVitCombat(vitStatsBase, vitSetupSansLead, null);
+  egal(vitSansLead, 200, 'sans lead : la VIT de combat est le total runé (base ne joue aucun rôle sans lead ni invocateur)');
+  const vitAvecLead = maVitCombat(vitStatsBase, { ...vitSetupSansLead, leaderSkill: { stat: 'Attack Speed', pct: 24 } }, null);
+  egal(
+    vitAvecLead,
+    200 + Math.ceil((120 * 24) / 100),
+    'le lead VIT porte sur la VIT de BASE (120 → +29), PAS sur le total runé (200 → aurait donné +48)'
+  );
+  const vitAvecLegacy = maVitCombat(vitStatsBase, { ...vitSetupSansLead, leaderSpeedPct: 24 }, null);
+  egal(vitAvecLegacy, vitAvecLead, 'compatibilité arrière : `leaderSpeedPct` (recette pré-généralisation) résout au même calcul que `leaderSkill` VIT');
+
+  // ATQ — Lushen S3 ne dépend que de l'ATQ (`variables === ['ATK']`), le
+  // ratio isole exactement la contribution du lead.
+  const atkStatsBase = statsAvecBase('atk', 1000, 2000, { cd: 200, cr: 100 });
+  const setupLeadSansCrit: DamageSetup = { ...DEFAULT_DAMAGE_SETUP, critMode: 'normal', summonerSkills: 'aucune' };
+  const atkSansLead = computeSkillDamage(s3!, atkStatsBase, setupLeadSansCrit);
+  const atkAvecLead44 = computeSkillDamage(s3!, atkStatsBase, { ...setupLeadSansCrit, leaderSkill: { stat: 'Attack Power', pct: 44 } });
+  const atkEffectifAvecLead = 2000 + Math.ceil((1000 * 44) / 100); // 2000 + 440 = 2440
+  ok(
+    Math.abs(atkAvecLead44 / atkSansLead - atkEffectifAvecLead / 2000) < 1e-9,
+    'le lead ATQ porte sur l’ATQ de BASE (1000 → +440), pas sur le total runé (2000 → aurait donné +880)'
+  );
+  // Le buff ATQ, LUI, porte sur le TOTAL — s'applique donc APRÈS le lead déjà
+  // relevé, jamais sommé avec lui dans la même étape.
+  const atkAvecLeadEtBuff = computeSkillDamage(
+    s3!,
+    atkStatsBase,
+    { ...setupLeadSansCrit, atkBuff: true, leaderSkill: { stat: 'Attack Power', pct: 44 } }
+  );
+  const atkEffectifAvecLeadEtBuff = (atkEffectifAvecLead * (100 + ATK_BUFF_PCT)) / 100;
+  ok(
+    Math.abs(atkAvecLeadEtBuff / atkSansLead - atkEffectifAvecLeadEtBuff / 2000) < 1e-9,
+    'le buff ATQ (%TOTAL) s’applique APRÈS le lead ATQ (%BASE) déjà posé, jamais sommé avec lui'
+  );
+  // Un lead sur une AUTRE stat que celle du sort n'a aucun effet.
+  egal(
+    computeSkillDamage(s3!, atkStatsBase, { ...setupLeadSansCrit, leaderSkill: { stat: 'Defense', pct: 50 } }),
+    atkSansLead,
+    'un lead DEF ne change rien à un sort qui ne dépend que de l’ATQ'
+  );
+
+  // DEF et PV — aucun sort du corpus utilisé ailleurs dans ce fichier n'en
+  // dépend : formules synthétiques via `profil`, même patron que le reste
+  // du fichier pour exercer une variable hors des sorts réels disponibles.
+  const defProfil = profil('1.0*{DEF}');
+  ok(defProfil !== null, 'formule DEF synthétique acceptée par le parseur');
+  const defStatsBase = statsAvecBase('def', 500, 1200);
+  const defSansLead = computeSkillDamage(defProfil!, defStatsBase, setupLeadSansCrit);
+  const defAvecLead38 = computeSkillDamage(defProfil!, defStatsBase, { ...setupLeadSansCrit, leaderSkill: { stat: 'Defense', pct: 38 } });
+  const defEffectifAvecLead = 1200 + Math.ceil((500 * 38) / 100); // 1200 + 190 = 1390
+  ok(
+    Math.abs(defAvecLead38 / defSansLead - defEffectifAvecLead / 1200) < 1e-9,
+    'le lead DEF porte sur la DEF de BASE (500 → +190), pas sur le total runé (1200)'
+  );
+
+  const hpProfil = profil('1.0*{MAX HP}');
+  ok(hpProfil !== null, 'formule PV synthétique acceptée par le parseur');
+  const hpStatsBase = statsAvecBase('hp', 8000, 20000);
+  const hpSansLead = computeSkillDamage(hpProfil!, hpStatsBase, setupLeadSansCrit);
+  const hpAvecLead50 = computeSkillDamage(hpProfil!, hpStatsBase, { ...setupLeadSansCrit, leaderSkill: { stat: 'HP', pct: 50 } });
+  const hpEffectifAvecLead = 20000 + Math.ceil((8000 * 50) / 100); // 20000 + 4000 = 24000
+  ok(
+    Math.abs(hpAvecLead50 / hpSansLead - hpEffectifAvecLead / 20000) < 1e-9,
+    'le lead PV porte sur les PV de BASE (8000 → +4000), pas sur le total runé (20000)'
+  );
+
+  // Taux Crit / Dégâts Crit — des POINTS FLATS ajoutés à la stat, jamais un
+  // pourcentage de la base : même famille que les compétences d'invocateur
+  // et Euldong, PAS la même famille que PV/ATQ/DEF/VIT ci-dessus.
+  const crSetup: DamageSetup = { ...DEFAULT_DAMAGE_SETUP, critMode: 'moyenne', summonerSkills: 'aucune' };
+  const crStats = stats({ atk: 2000, cd: 200, cr: 50 });
+  const crSansLead = computeSkillDamage(s3!, crStats, crSetup);
+  const crAvecLead38 = computeSkillDamage(s3!, crStats, { ...crSetup, leaderSkill: { stat: 'Critical Rate', pct: 38 } });
+  const skillup = s3!.skillupDamagePct / 100;
+  const critTermCrSans = 1 + skillup + 0.5 * 2.0;
+  const critTermCrAvec = 1 + skillup + Math.min(1, (50 + 38) / 100) * 2.0;
+  ok(
+    Math.abs(crAvecLead38 / crSansLead - critTermCrAvec / critTermCrSans) < 1e-9,
+    'un lead Taux Crit ajoute 38 POINTS à la stat (50 % → 88 %), jamais un pourcentage de la base'
+  );
+
+  const cdSetup: DamageSetup = { ...DEFAULT_DAMAGE_SETUP, critMode: 'crit', summonerSkills: 'aucune' };
+  const cdStats = stats({ atk: 2000, cd: 100, cr: 100 });
+  const cdSansLead = computeSkillDamage(s3!, cdStats, cdSetup);
+  const cdAvecLead25 = computeSkillDamage(s3!, cdStats, { ...cdSetup, leaderSkill: { stat: 'Critical DMG', pct: 25 } });
+  const critTermCdSans = 1 + skillup + 1 * (100 / 100);
+  const critTermCdAvec = 1 + skillup + 1 * ((100 + 25) / 100);
+  ok(
+    Math.abs(cdAvecLead25 / cdSansLead - critTermCdAvec / critTermCdSans) < 1e-9,
+    'un lead Dégâts Crit ajoute 25 POINTS à la stat, même famille qu’Euldong'
+  );
+
+  // Paliers réels du jeu, confirmés par l'utilisateur — jamais une formule
+  // générique, ces paliers ne suivent pas une progression régulière d'une
+  // stat à l'autre.
+  egal(LEADER_SKILL_PRESETS.HP, [28, 33, 38, 40, 44, 50], 'paliers PV');
+  egal(LEADER_SKILL_PRESETS['Attack Power'], [28, 33, 38, 40, 44, 50], 'paliers ATQ');
+  egal(LEADER_SKILL_PRESETS.Defense, [28, 33, 38, 40, 44, 50], 'paliers DEF');
+  egal(LEADER_SKILL_PRESETS['Attack Speed'], [21, 24, 28, 30, 33], 'paliers VIT');
+  egal(LEADER_SKILL_PRESETS['Critical Rate'], [21, 24, 28, 33, 38], 'paliers Taux Crit');
+  egal(LEADER_SKILL_PRESETS['Critical DMG'], [25], 'palier Dégâts Crit — un seul connu');
 
   // `monsterCritSiPlusRapide` : Rigna/Ciri Eau/Magic Order Swordsinger
   // portent un passif SANS formule ni dégâts propres qui force le critique —
@@ -823,6 +945,15 @@ export default function testDegats() {
     ) < 1e-9,
     'bouton décoché (par défaut) : la contribution est DIVISÉE par 2, retombant au cas de base (1.0 × ATQ)'
   );
+  // Question directe de l'utilisateur : les dégâts de ce passif (`(Fixed)`)
+  // sont-ils bien insensibles à la DEF adverse ? Oui — et PLUS FORT qu'un
+  // simple `ignoreDef` : `mitigation = profile.fixed ? 1 : defenseFactor(…)`
+  // saute ENTIÈREMENT le facteur de défense (aucune réduction, même pas le
+  // plancher `defenseFactor(0) ≈ 0,877` qu'`ignoreDef` laisserait subsister).
+  ok(dominicPassifs[0]!.profile.ignoreDef === false, 'le passif ne porte PAS le marqueur ignoreDef — sa neutralité à la DEF vient de `fixed`, un mécanisme différent');
+  const dominicDefNulle = computeSkillDamage(dominicPassifs[0]!.profile, dominicStats, { ...dominicSetup, enemyDef: 0 });
+  const dominicDefEnorme = computeSkillDamage(dominicPassifs[0]!.profile, dominicStats, { ...dominicSetup, enemyDef: 999999 });
+  egal(dominicDefNulle, dominicDefEnorme, 'la DEF adverse (0 à 999999) ne change RIEN au passif (Fixed) — le facteur de défense est sauté, pas juste plafonné à 0');
 
   // Ezio — « Hidden Gun (Passive) », `bonus` : le bouton ne porte QUE le
   // surplus. ⚠️ Les dégâts de BASE du passif sont comptés même bouton

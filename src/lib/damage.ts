@@ -114,6 +114,40 @@ export const DEBORAH_ICON = 'https://swarfarm.com/static/herders/images/monsters
 export const MIRIAM_AMPLIFY_PCT = 35;
 export const MIRIAM_ICON = 'https://swarfarm.com/static/herders/images/monsters/unit_icon_0081_1_2.png';
 
+// ── Leader skill d'ÉQUIPE (choisi par l'utilisateur) ─────────────────────
+// Généralise l'ancien `leaderSpeedPct` (un seul pourcentage de VIT nu) à
+// TOUTE stat de lead — demande explicite : « choisir un leader skill…
+// implémenter les leader skill de PV, d'ATQ, de DEF, de VIT, de Taux Crit
+// et de dégâts crit ». Un CHOIX de l'utilisateur (comme les quatre effets
+// d'équipe plus haut), jamais déduit d'un monstre — le lead vient d'un
+// AUTRE monstre de l'équipe, potentiellement pas encore modélisé ici.
+//
+// ⚠️ **Vocabulaire SWARFARM, pas un vocabulaire maison** (`'Attack Power'`,
+// pas `'atk'`) : ce sont EXACTEMENT les clés de `LeaderSkill.stat`
+// (types.ts) et de `STAT_LABEL`/`leadIconUrl` (siege/LeadPill.tsx, déjà
+// utilisées pour l'icône OFFICIELLE d'un lead ET son libellé court) —
+// réutilisées telles quelles plutôt que dupliquées, exactement la mise en
+// garde déjà écrite dans LeadPill.tsx (« deux tables de libellés
+// auraient divergé »). `leadIconUrl` exige `area`/`element` (portée d'un
+// VRAI lead de monstre) que ce choix utilisateur n'a pas : un lead choisi
+// ici est toujours traité comme portée `'General'`, sans élément — direct
+// dans `STAT_LABEL` mais pas dans `leadIconUrl`, il faut lui fournir un
+// objet `LeaderSkill` minimal côté écran (voir DamageSetupCard.tsx).
+export type LeaderSkillStat = 'HP' | 'Attack Power' | 'Defense' | 'Attack Speed' | 'Critical Rate' | 'Critical DMG';
+
+// Valeurs de palier RÉELLES du jeu (nat 3 → nat 5+2A), confirmées par
+// l'utilisateur — jamais une formule générique, ces paliers ne suivent pas
+// une progression régulière d'une stat à l'autre. Dégâts Crit n'a qu'un
+// seul palier connu.
+export const LEADER_SKILL_PRESETS: Record<LeaderSkillStat, number[]> = {
+  HP: [28, 33, 38, 40, 44, 50],
+  'Attack Power': [28, 33, 38, 40, 44, 50],
+  Defense: [28, 33, 38, 40, 44, 50],
+  'Attack Speed': [21, 24, 28, 30, 33],
+  'Critical Rate': [21, 24, 28, 33, 38],
+  'Critical DMG': [25],
+};
+
 // ── Compétences d'invocateur ─────────────────────────────────────────────
 // Remplacent les anciens TOTEMS de guilde (onglet « Combat ») et DRAPEAUX de
 // Guerre de Guilde (onglet « Guilde ») — le jeu a fusionné les deux systèmes
@@ -983,12 +1017,18 @@ export interface DamageSetup {
   // : une recette exportée avant ce champ n'en a aucun, `resolvedEnemySpd`
   // retombe alors sur `DEFAULT_DAMAGE_SETUP.enemySpd`.
   enemySpd?: number;
-  // Bonus de VIT % d'un leader skill d'ÉQUIPE (pas le sien, qui n'agit jamais
-  // sur lui-même) — saisie manuelle, comme les leads de speed.ts
-  // (`SPEED_LEADS`), mais un champ libre ici plutôt qu'une rangée de
-  // boutons : ne sert QUE pour {Relative SPD}/l'ignore-DEF par écart de VIT.
-  // Absent/0 = aucun. Confirmé par l'utilisateur : entre dans « ta VIT
-  // totale » au même titre que les runes et le totem.
+  // Leader skill d'ÉQUIPE (pas le sien, qui n'agit jamais sur lui-même) —
+  // choisi dans « Effets actifs », voir `LeaderSkillStat`/
+  // `LEADER_SKILL_PRESETS` plus haut. Absent = aucun. ⚠️ Généralise
+  // l'ancien `leaderSpeedPct` (un pourcentage de VIT nu, sans type) — une
+  // recette exportée avant cette généralisation n'a QUE ce champ legacy,
+  // jamais `leaderSkill` ; `resolvedLeaderSkill` traduit explicitement
+  // l'un vers l'autre (lead VIT), jamais un défaut générique qui perdrait
+  // l'information déjà saisie.
+  leaderSkill?: { stat: LeaderSkillStat; pct: number };
+  /** @deprecated Remplacé par `leaderSkill` (lead VIT). Conservé UNIQUEMENT
+   * pour la lecture d'une recette exportée avant la généralisation — voir
+   * `resolvedLeaderSkill`. Ne jamais écrire ce champ depuis l'écran. */
   leaderSpeedPct?: number;
   atkBuff: boolean;
   defBuff: boolean;
@@ -1057,7 +1097,6 @@ export const DEFAULT_DAMAGE_SETUP: DamageSetup = {
   // cas (les 20 sorts qui en dépendent ciblent presque tous une AUTRE cible
   // que « arène/siège ordinaire »).
   enemySpd: 100,
-  leaderSpeedPct: 0,
   atkBuff: false,
   defBuff: false,
   spdBuff: false,
@@ -1082,6 +1121,18 @@ export const DEFAULT_DAMAGE_SETUP: DamageSetup = {
 
 function total(stats: StatRow[], key: StatKey): number {
   return stats.find((s) => s.key === key)?.total ?? 0;
+}
+
+/**
+ * Le leader skill RÉELLEMENT retenu — `setup.leaderSkill` si présent,
+ * sinon traduit l'ancien `leaderSpeedPct` (nu, sans type) en lead VIT
+ * plutôt qu'un défaut générique qui perdrait la valeur déjà saisie par
+ * l'utilisateur avant la généralisation. `null` = aucun lead choisi.
+ */
+export function resolvedLeaderSkill(setup: DamageSetup): { stat: LeaderSkillStat; pct: number } | null {
+  if (setup.leaderSkill) return setup.leaderSkill;
+  const legacy = setup.leaderSpeedPct;
+  return legacy ? { stat: 'Attack Speed', pct: legacy } : null;
 }
 
 /**
@@ -1125,7 +1176,7 @@ export function resolvedHits(profile: SkillDamageProfile, setup: DamageSetup): n
  * de compétence d'invocateur, comme les autres stats), buff de VIT
  * (éventuellement AMPLIFIÉ par un artéfact « Effet aug. VIT », voir
  * `speedBuffAmpliPct`), et un bonus de leader skill d'ÉQUIPE saisi à la main
- * (`setup.leaderSpeedPct` — le sien n'agit jamais sur lui-même). Les deux
+ * (`setup.leaderSkill` — le sien n'agit jamais sur lui-même). Les deux
  * derniers pourcentages sont SOMMÉS puis appliqués en une seule fois, comme
  * les autres buffs de ce module (`buff()` plus bas) — pas composés en
  * plusieurs étapes multiplicatives.
@@ -1133,15 +1184,26 @@ export function resolvedHits(profile: SkillDamageProfile, setup: DamageSetup): n
 export function maVitCombat(stats: StatRow[], setup: DamageSetup, element: ElementKey | null = null, ampliVitPct = 0): number {
   const bonus = summonerSkillBonus(setup.summonerSkills, element);
   const row = stats.find((s) => s.key === 'spd');
-  const base = row ? row.total + Math.ceil((row.base * bonus.pct.spd) / 100) : 0;
+  // ⚠️ Un leader skill de VIT porte sur la VIT de BASE, pas sur le total
+  // runé — EXACTEMENT `pctSpeedBonus`/`combatSpeed` (speed.ts, page RTA) :
+  // `base + rune + ceil(base × (totem+lead+swift)/100)`, jamais un
+  // pourcentage appliqué au total. Sommé avec la compétence d'invocateur
+  // (même nature : un pourcentage de la BASE) AVANT le seul `ceil`, comme
+  // `pctSpeedBonus` le fait pour totem+lead+swift — « ne jamais arrondir
+  // bonus par bonus », l'écart d'un point déjà documenté et corrigé une
+  // fois dans speed.ts ne doit pas resurgir ici.
+  const leader = resolvedLeaderSkill(setup);
+  const pctLeaderBase = leader?.stat === 'Attack Speed' ? leader.pct : 0;
+  const base = row ? row.total + Math.ceil((row.base * (bonus.pct.spd + pctLeaderBase)) / 100) : 0;
   // Miriam (« Blacksmith's Technique ») amplifie AUSSI le buff de VIT, en
   // plus d'un éventuel artéfact « Effet aug. VIT » (`ampliVitPct`) — les
   // deux sources se SOMMENT avant d'amplifier, comme plusieurs lignes
-  // d'artéfact identiques le font déjà (voir `speedBuffAmpliPct`).
+  // d'artéfact identiques le font déjà (voir `speedBuffAmpliPct`). Un buff
+  // de combat, LUI, porte sur le TOTAL (base+rune+lead déjà posés), pas sur
+  // la seule base — mécanique différente du lead, jamais la même formule.
   const ampliMiriam = setup.miriamActif ? MIRIAM_AMPLIFY_PCT : 0;
   const pctBuff = setup.spdBuff ? SPD_BUFF_PCT * (1 + (ampliVitPct + ampliMiriam) / 100) : 0;
-  const pctLeader = setup.leaderSpeedPct ?? 0;
-  return (base * (100 + pctBuff + pctLeader)) / 100;
+  return (base * (100 + pctBuff)) / 100;
 }
 
 export function computeSkillDamageDetail(
@@ -1169,12 +1231,15 @@ export function computeSkillDamageDetail(
   // ⚠️ Ajouté APRÈS coup plutôt que fondu dans le `Σ%` de `computeStats` (qui
   // a déjà rendu ses totaux) : l'écart tient au double arrondi supérieur, au
   // plus 1 point sur la stat, sans effet sur un classement de builds.
-  const avecInvocateur = (key: 'atk' | 'def' | 'hp' | 'spd') => {
+  // `extraBasePct` : un AUTRE pourcentage de la BASE à sommer AVANT le seul
+  // `ceil` (leader skill — voir plus bas) — jamais un second `ceil` séparé,
+  // qui reproduirait l'écart d'un point déjà documenté et corrigé une fois
+  // dans `pctSpeedBonus` (speed.ts, « ne jamais arrondir bonus par bonus »).
+  const avecInvocateur = (key: 'atk' | 'def' | 'hp' | 'spd', extraBasePct = 0) => {
     const row = stats.find((s) => s.key === key);
     if (!row) return 0;
-    return row.total + Math.ceil((row.base * bonus.pct[key]) / 100);
+    return row.total + Math.ceil((row.base * (bonus.pct[key] + extraBasePct)) / 100);
   };
-  const buff = (valeur: number, actif: boolean, pct: number) => (actif ? (valeur * (100 + pct)) / 100 : valeur);
 
   const pvMax = Math.max(0, setup.enemyHp);
   const pctDepart = Math.min(100, Math.max(0, pvCiblePctDepart ?? setup.enemyHpPct));
@@ -1186,15 +1251,31 @@ export function computeSkillDamageDetail(
   const vitEnnemie = Math.max(1, setup.enemySpd ?? DEFAULT_DAMAGE_SETUP.enemySpd!);
 
   // Miriam (« Blacksmith's Technique ») amplifie la MAGNITUDE des trois
-  // buffs déjà actifs — jamais leur simple présence (`buff()` reste
-  // conditionné à `setup.atkBuff`/`defBuff` ; `maVitCombat` fait de même en
+  // buffs déjà actifs — jamais leur simple présence (conditionné à
+  // `setup.atkBuff`/`defBuff` ci-dessous ; `maVitCombat` fait de même en
   // interne pour la VIT).
   const ampliMiriam = setup.miriamActif ? MIRIAM_AMPLIFY_PCT : 0;
+  // ⚠️ Leader skill d'ÉQUIPE choisi par l'utilisateur (voir `LeaderSkillStat`
+  // plus haut) — PV/ATQ/DEF portent sur la stat de BASE, exactement comme
+  // VIT (`maVitCombat`) : sommé à la compétence d'invocateur (même nature)
+  // AVANT le `ceil` unique d'`avecInvocateur`, PUIS le buff de combat
+  // (`atkBuff`/`defBuff`, %TOTAL cette fois — base+rune+lead déjà posés)
+  // s'applique par-dessus. Les deux mécaniques ne se somment PAS entre
+  // elles : le lead est acquis même buff éteint, contrairement au surplus
+  // du buff — jamais une seule formule additive comme avant correction.
+  const leader = resolvedLeaderSkill(setup);
+  const pctLeaderAtkBase = leader?.stat === 'Attack Power' ? leader.pct : 0;
+  const pctLeaderDefBase = leader?.stat === 'Defense' ? leader.pct : 0;
+  const pctLeaderHpBase = leader?.stat === 'HP' ? leader.pct : 0;
+  const atkAvecLead = avecInvocateur('atk', pctLeaderAtkBase);
+  const defAvecLead = avecInvocateur('def', pctLeaderDefBase);
+  const pctAtkBuff = setup.atkBuff ? ATK_BUFF_PCT * (1 + ampliMiriam / 100) : 0;
+  const pctDefBuff = setup.defBuff ? DEF_BUFF_PCT * (1 + ampliMiriam / 100) : 0;
   const valeurs: Record<DamageVariable, number> = {
-    ATK: buff(avecInvocateur('atk'), setup.atkBuff, ATK_BUFF_PCT * (1 + ampliMiriam / 100)),
-    DEF: buff(avecInvocateur('def'), setup.defBuff, DEF_BUFF_PCT * (1 + ampliMiriam / 100)),
+    ATK: (atkAvecLead * (100 + pctAtkBuff)) / 100,
+    DEF: (defAvecLead * (100 + pctDefBuff)) / 100,
     SPD: maVit,
-    'MAX HP': avecInvocateur('hp'),
+    'MAX HP': avecInvocateur('hp', pctLeaderHpBase),
     'Target MAX HP': pvMax,
     // `(Ta VIT − VIT cible) / VIT cible` — confirmé par l'utilisateur.
     'Relative SPD': (maVit - vitEnnemie) / vitEnnemie,
@@ -1210,11 +1291,17 @@ export function computeSkillDamageDetail(
   // POINTS ajoutés à la stat, pas un pourcentage de celle-ci.
   // Euldong (« Triumph Over Evil ») ajoute 100 POINTS à la stat, comme les
   // points plats des compétences d'invocateur.
-  const cd = (total(stats, 'cd') + bonus.cdPoints + (setup.euldongActif ? EULDONG_CD_POINTS : 0)) / 100;
+  // Un lead Dégâts Crit ajoute lui aussi des POINTS, exactement comme les
+  // compétences d'invocateur et Euldong — c'est ainsi que le jeu affiche un
+  // lead Taux Crit/Dégâts Crit dans la fiche stats (contrairement à un lead
+  // PV/ATQ/DEF/VIT, un pourcentage MULTIPLICATIF de la stat de base).
+  const pctLeaderCd = leader?.stat === 'Critical DMG' ? leader.pct : 0;
+  const cd = (total(stats, 'cd') + bonus.cdPoints + (setup.euldongActif ? EULDONG_CD_POINTS : 0) + pctLeaderCd) / 100;
   // ⚠️ Taux Crit PLAFONNÉ à 100 % : `computeStats` renvoie volontairement le
   // total BRUT (un dépassement reste une marge légitime contre la résistance
   // adverse), mais au-delà de 100 % il ne rapporte plus aucun dégât en jeu.
-  const cr = Math.min(total(stats, 'cr'), 100) / 100;
+  const pctLeaderCr = leader?.stat === 'Critical Rate' ? leader.pct : 0;
+  const cr = Math.min(total(stats, 'cr') + pctLeaderCr, 100) / 100;
   const partCrit = profile.fixed ? 0 : setup.critMode === 'crit' ? 1 : setup.critMode === 'normal' ? 0 : cr;
   const critTerm = 1 + profile.skillupDamagePct / 100 + partCrit * cd;
 

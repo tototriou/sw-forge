@@ -13,6 +13,8 @@ import {
   DEF_BREAK_ICON,
   DEF_BUFF_ICON,
   EULDONG_ICON,
+  LEADER_SKILL_PRESETS,
+  LeaderSkillStat,
   MIRIAM_ICON,
   MIRINAE_ICON,
   ModificateurVitAffichage,
@@ -28,11 +30,13 @@ import {
   resolvedStackPct,
 } from '../../lib/damage';
 import { formuleLisible } from '../../lib/monsterSkills';
+import { leadIconUrl, STAT_LABEL } from '../siege/LeadPill';
 import Jeton from '../../ui/Jeton';
 import NumberField from '../../ui/NumberField';
 import Option from '../../ui/Option';
 import Pastille from '../../ui/Pastille';
 import Segmented from '../../ui/Segmented';
+import Selecteur from '../../ui/Selecteur';
 import Vignette from '../../ui/Vignette';
 import HelpPopover from '../HelpPopover';
 
@@ -507,23 +511,14 @@ export default function DamageSetupCard({
                   ariaLabel="Vitesse totale de l'adversaire"
                 />
               </label>
-              <label className="flex items-center gap-2">
-                <span className="text-xs text-ink-dim">Leader skill VIT</span>
-                <NumberField
-                  value={setup.leaderSpeedPct ?? 0}
-                  onChange={(v) => maj({ leaderSpeedPct: v ?? 0 })}
-                  step={1}
-                  min={0}
-                  max={50}
-                  suffix="%"
-                  boxWidth="w-24"
-                  title="Bonus de VIT % du leader skill de ton ÉQUIPE — jamais le sien, qui n'agit pas sur lui-même"
-                  ariaLabel="Bonus de VIT en pourcentage du leader skill de l'équipe"
-                />
-              </label>
-              {/* ⚠️ Pas de rappel de `critSiPlusRapide`/`bonusDegatsSelonVit`
-                  ici : ces deux modificateurs apparaissent maintenant dans
-                  « Passifs offensifs » ci-dessus (icône + description),
+              {/* ⚠️ Pas de champ « Leader skill VIT » ici : généralisé au
+                  contrôle unique de « Effets actifs » (`LeaderSkillPicker`,
+                  demande explicite de l'utilisateur), qui couvre les 6
+                  stats — PV/ATQ/DEF/VIT/Taux Crit/Dégâts Crit — plutôt qu'un
+                  champ dédié à la seule VIT ici.
+                  Pas de rappel de `critSiPlusRapide`/`bonusDegatsSelonVit`
+                  non plus : ces deux modificateurs apparaissent maintenant
+                  dans « Passifs offensifs » ci-dessus (icône + description),
                   plus complet qu'une ligne de texte — les dupliquer ferait
                   redite. */}
               {ampliVitPct > 0 && (
@@ -645,6 +640,7 @@ export default function DamageSetupCard({
             />
           )}
         </div>
+        <LeaderSkillPicker setup={setup} maj={maj} />
       </div>
 
       <div>
@@ -752,5 +748,86 @@ function EffetVignette({
         ) : undefined
       }
     />
+  );
+}
+
+const LEADER_SKILL_STATS: LeaderSkillStat[] = ['HP', 'Attack Power', 'Defense', 'Attack Speed', 'Critical Rate', 'Critical DMG'];
+
+// Leader skill d'ÉQUIPE — demande explicite : « choisir un leader skill…
+// PV, ATQ, DEF, VIT, Taux Crit, Dégâts Crit. Il choisira d'abord le TYPE
+// (avec actualisation de l'icône), puis la VALEUR ». Un CHOIX de
+// l'utilisateur, comme les quatre effets d'équipe ci-dessus — jamais déduit
+// d'un monstre chargé ici (le lead vient d'un AUTRE monstre de l'équipe).
+//
+// ⚠️ Icône et libellés RÉUTILISÉS depuis `siege/LeadPill.tsx`
+// (`leadIconUrl`/`STAT_LABEL`, déjà l'icône OFFICIELLE du jeu pour un lead
+// de monstre) plutôt que dupliqués — la mise en garde de ce fichier
+// (« deux tables de libellés auraient divergé ») s'applique aussi ici.
+// `leadIconUrl` attend un objet `LeaderSkill` complet (portée/élément) que
+// ce choix utilisateur n'a pas : traité comme portée `'General'`, sans
+// élément, pour obtenir l'icône DE BASE (non déclinée par portée).
+function LeaderSkillPicker({ setup, maj }: { setup: DamageSetup; maj: (patch: Partial<DamageSetup>) => void }) {
+  const lead = setup.leaderSkill;
+  const icone = lead ? leadIconUrl({ stat: lead.stat, amount: lead.pct, area: 'General', element: null }) : null;
+  const presets = lead ? LEADER_SKILL_PRESETS[lead.stat] : [];
+
+  return (
+    <div className="mt-2 flex flex-wrap items-center gap-2">
+      <span className="text-xs text-ink-dim">Leader skill</span>
+      {icone && <img src={icone} alt="" className="h-6 w-6" loading="lazy" />}
+      <Selecteur
+        value={lead?.stat ?? ''}
+        onChange={(e) => {
+          const stat = e.target.value as LeaderSkillStat | '';
+          // Type changé : repart sur le premier palier connu de CE type —
+          // jamais garder l'ancien pourcentage, qui n'a de sens que pour
+          // l'ancien type (44 % ATQ n'est pas un palier de Taux Crit).
+          maj({ leaderSkill: stat ? { stat, pct: LEADER_SKILL_PRESETS[stat][0] } : undefined });
+        }}
+        taille="sm"
+        pleineLargeur={false}
+        aria-label="Type de leader skill"
+      >
+        <option value="">Aucun</option>
+        {LEADER_SKILL_STATS.map((stat) => (
+          <option key={stat} value={stat}>
+            {STAT_LABEL[stat] ?? stat}
+          </option>
+        ))}
+      </Selecteur>
+      {lead && (
+        <>
+          <Selecteur
+            value={presets.includes(lead.pct) ? String(lead.pct) : 'autre'}
+            onChange={(e) => {
+              if (e.target.value === 'autre') return; // le champ numérique prend le relais
+              maj({ leaderSkill: { stat: lead.stat, pct: Number(e.target.value) } });
+            }}
+            taille="sm"
+            pleineLargeur={false}
+            aria-label="Palier de leader skill"
+          >
+            {presets.map((v) => (
+              <option key={v} value={v}>
+                {v} %
+              </option>
+            ))}
+            {!presets.includes(lead.pct) && <option value="autre">{lead.pct} % (personnalisé)</option>}
+          </Selecteur>
+          {/* Saisie libre TOUJOURS disponible, pas seulement derrière
+              « personnalisé » — demande explicite : « l'utilisateur doit
+              pouvoir rentrer manuellement une autre valeur ». */}
+          <NumberField
+            value={lead.pct}
+            onChange={(v) => maj({ leaderSkill: { stat: lead.stat, pct: v ?? 0 } })}
+            min={0}
+            max={100}
+            suffix="%"
+            boxWidth="w-20"
+            ariaLabel="Pourcentage du leader skill"
+          />
+        </>
+      )}
+    </div>
   );
 }

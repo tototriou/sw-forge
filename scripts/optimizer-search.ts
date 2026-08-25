@@ -39,6 +39,7 @@ import {
   passifActif,
   resolveDamageSkill,
   resolvedHits,
+  resolvedLeaderSkill,
   resolvedStackPct,
   speedBuffAmpliPct,
 } from '../src/lib/damage';
@@ -171,6 +172,7 @@ if (recipe.objective === 'degats_reels') {
     if (s.skillCom2usId != null && s.skillCom2usId !== profile.skillCom2usId) {
       console.warn(`⚠️ Sort ${s.skillCom2usId} de la recette introuvable ici — repli sur « ${profile.nom} ».`);
     }
+    const lead = resolvedLeaderSkill(s);
     console.log(
       `Dégâts réels : sort « ${profile.nom} » (S${profile.slot}, ${resolvedHits(profile, s)} coup(s)` +
         `${profile.hitsRange ? ` [variable ${profile.hitsRange.min}-${profile.hitsRange.max}]` : ''}` +
@@ -182,7 +184,8 @@ if (recipe.objective === 'degats_reels') {
         `${s.atkBuff ? ' — buff ATQ' : ''}${s.defBuff ? ' — buff DEF' : ''}${s.spdBuff ? ' — buff VIT' : ''}` +
         `${s.defBreak ? ' — def break avant' : ''}${s.defBreakParLeSort ? ' — def break posé par le sort' : ''}` +
         `${s.brand ? ' — marque' : ''}` +
-        `${s.euldongActif ? ' — Euldong' : ''}${s.mirinaeActif ? ' — Mirinae' : ''}${s.deborahActif ? ' — Deborah' : ''}${s.miriamActif ? ' — Miriam' : ''} — ` +
+        `${s.euldongActif ? ' — Euldong' : ''}${s.mirinaeActif ? ' — Mirinae' : ''}${s.deborahActif ? ' — Deborah' : ''}${s.miriamActif ? ' — Miriam' : ''}` +
+        `${lead ? ` — lead ${lead.stat} +${lead.pct}%` : ''} — ` +
         // ⚠️ `?? DEFAULT` : une recette exportée AVANT ce champ n'en a pas.
         // L'élément vient du monstre CHARGÉ, jamais de la recette.
         `comp. invocateur ${s.summonerSkills ?? DEFAULT_DAMAGE_SETUP.summonerSkills} (${monsterElement ?? 'élément inconnu'}) — ` +

@@ -376,11 +376,10 @@ retour.
        l'écart de vitesse (`{Relative SPD}`, ignore-DEF proportionnel à
        l'écart, un monstre qui force le critique s'il est plus rapide, ou
        majore tous ses dégâts selon cet écart — même quand le sort CHOISI ne
-       lit pas cette variable, ex. n'importe quel sort de Sonia). Le leader
-       skill se saisit (le sien n'agit jamais sur lui-même) ; un artéfact
-       « Effet aug. VIT » équipé et un éventuel critique/bonus de dégâts
-       garanti sont, eux, **déduits et affichés**, jamais redemandés. Détail :
-       [degats-reels.md](degats-reels.md), « VIT de l'adversaire ».
+       lit pas cette variable, ex. n'importe quel sort de Sonia) ; un
+       artéfact « Effet aug. VIT » équipé et un éventuel critique/bonus de
+       dégâts garanti sont, eux, **déduits et affichés**, jamais redemandés.
+       Détail : [degats-reels.md](degats-reels.md), « VIT de l'adversaire ».
      - **Effets actifs** — buffs du monstre (ATQ +50 %, DEF +70 %, VIT
        +30 %) et effets subis par la cible (réduction de défense ×0,3,
        marque +25 %), chacun son **icône de jeu cliquable**, pas une case à
@@ -391,7 +390,12 @@ retour.
        Miriam — un AUTRE monstre que celui optimisé), même contrôle mais
        **portrait du monstre** en icône plutôt qu'une icône de buff
        générique. Détail des mécaniques :
-       [degats-reels.md](degats-reels.md), « Effets d'équipe ».
+       [degats-reels.md](degats-reels.md), « Effets d'équipe ». **Leader
+       skill d'équipe** — type (PV/ATQ/DEF/VIT/Taux Crit/Dégâts Crit, icône
+       officielle du jeu réutilisée depuis le Siège) puis valeur (paliers
+       réels du jeu ou saisie libre) ; remplace l'ancien champ VIT-only.
+       Détail : [degats-reels.md](degats-reels.md), « Leader skill
+       d'équipe ».
      - **Compétences d'invocateur** — **Aucune** / **Combat** (défaut) /
        **Combat + Guilde**. Remplacent les anciens totems et drapeaux,
        toujours supposées maxées. ⚠️ **Un choix unique, pas deux cases** :

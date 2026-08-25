@@ -33,6 +33,7 @@ import {
   ampliDe,
   appliquerMods,
   combatDe as combatDeLigne,
+  deplacerDansCamp,
   estimerCumuls,
   leadPresent,
   ligneReference,
@@ -2131,6 +2132,53 @@ export function testSpeedTuneModele() {
     const m = monstre(1, 'Bella', 100);
     egal(ligneVierge(m, 'allie').uid, 'allie:1', "l'identifiant porte le camp");
     egal(ligneVierge(m, 'ennemi').uid, 'ennemi:1', 'et le même monstre en face a le sien');
+  }
+
+  // ⚠️ **L'ORDRE DE L'ÉQUIPE DÉPARTAGE LES VITESSES ÉGALES** — et il est
+  // modifiable. Deux monstres à la même vitesse de combat jouent dans l'ordre de
+  // la liste : c'est le seul levier quand un réglage les fait finir à égalité,
+  // et il était subi jusqu'ici.
+  {
+    const a = { ...ligneVierge(monstre(1, 'Premier', 100), 'allie'), runeSpeed: 100 };
+    const b = { ...ligneVierge(monstre(2, 'Second', 100), 'allie'), runeSpeed: 100 };
+    const face = { ...ligneVierge(monstre(3, 'Face', 60), 'ennemi'), runeSpeed: 0 };
+    const sansLead = { allie: 0, ennemi: 0 };
+    const qui = (l: Ligne[]) =>
+      premiersTours(simuler(tuneDe(l, sansLead, vide, {}))).map((x) => x.id);
+
+    egal(combatDeLigne(a, sansLead, vide), combatDeLigne(b, sansLead, vide), 'les deux ont EXACTEMENT la même vitesse de combat');
+    egal(qui([a, b, face])[0], 'allie:1', 'à vitesse égale, le premier de la liste joue le premier');
+
+    const permute = deplacerDansCamp([a, b, face], 'allie:2', -1);
+    egal(qui(permute)[0], 'allie:2', 'monté d’un cran, c’est lui qui passe devant');
+    egal(permute.map((l) => l.uid).join(' '), 'allie:2 allie:1 ennemi:3', 'seuls les deux voisins ont échangé leur place');
+
+    // ⚠️ L'échange ne saute PAS par-dessus l'autre camp : on ne déplace un
+    // monstre qu'au sein du sien.
+    const melange = [a, face, b];
+    egal(
+      deplacerDansCamp(melange, 'allie:2', -1).map((l) => l.uid).join(' '),
+      'allie:2 ennemi:3 allie:1',
+      'le voisin est celui du MÊME camp, pas la ligne juste au-dessus'
+    );
+
+    // Au bout de la liste, rien ne bouge — c'est le bouton qui est désactivé,
+    // pas la fonction qui invente un tour.
+    egal(
+      deplacerDansCamp([a, b, face], 'allie:1', -1).map((l) => l.uid).join(' '),
+      'allie:1 allie:2 ennemi:3',
+      'déjà en tête : la liste est rendue telle quelle'
+    );
+    egal(
+      deplacerDansCamp([a, b, face], 'allie:2', 1).map((l) => l.uid).join(' '),
+      'allie:1 allie:2 ennemi:3',
+      'déjà en queue : idem'
+    );
+    egal(
+      deplacerDansCamp([a, b, face], 'allie:404', -1).map((l) => l.uid).join(' '),
+      'allie:1 allie:2 ennemi:3',
+      'un uid inconnu ne casse rien'
+    );
   }
 
   // Une case de grille : 0 est une VALEUR, seul `null` efface.

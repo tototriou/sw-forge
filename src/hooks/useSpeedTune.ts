@@ -27,6 +27,7 @@ import {
   estimerCumuls,
   gainPassifDe as gainPassifDeLigne,
   leadDe as leadDeCamp,
+  deplacerDansCamp,
   leadPour,
   leadPresent,
   ligneReference as ligneReferenceDe,
@@ -357,6 +358,10 @@ export function useSpeedTune({
 
   function retirer(uid: string) {
     setLignes((prev) => prev.filter((l) => l.uid !== uid));
+  }
+  // L'ordre de l'équipe départage les vitesses égales : voir `deplacerDansCamp`.
+  function deplacerLigne(uid: string, sens: -1 | 1) {
+    setLignes((prev) => deplacerDansCamp(prev, uid, sens));
   }
   function basculerMasque(uid: string) {
     setLignes((prev) => prev.map((l) => (l.uid === uid ? { ...l, masque: !l.masque } : l)));
@@ -787,6 +792,7 @@ export function useSpeedTune({
     problemeParUid,
     requis,
     requisParUid,
+    deplacerLigne,
     retirer,
     sequence,
     setArtefact,

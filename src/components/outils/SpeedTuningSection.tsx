@@ -278,6 +278,7 @@ export default function SpeedTuningSection({
     premiers,
     problemeParUid,
     requis,
+    deplacerLigne,
     retirer,
     sequence,
     setArtefact,
@@ -423,6 +424,7 @@ export default function SpeedTuningSection({
           onAjouter={(id) => ajouter('allie', id)}
           onRetirer={retirer}
           onMasquer={basculerMasque}
+          onDeplacer={deplacerLigne}
           onRuneSpeed={setRuneSpeed}
           onSwift={basculerSwift}
           onCumuls={setCumuls}
@@ -447,6 +449,7 @@ export default function SpeedTuningSection({
           onAjouter={(id) => ajouter('ennemi', id)}
           onRetirer={retirer}
           onMasquer={basculerMasque}
+          onDeplacer={deplacerLigne}
           onRuneSpeed={setRuneSpeed}
           onSwift={basculerSwift}
           onCumuls={setCumuls}
@@ -886,6 +889,7 @@ interface CampProps {
   onAjouter: (id: string) => void;
   onRetirer: (uid: string) => void;
   onMasquer: (uid: string) => void;
+  onDeplacer: (uid: string, sens: -1 | 1) => void;
   onRuneSpeed: (uid: string, v: number | null) => void;
   onSwift: (uid: string) => void;
   onCumuls: (uid: string, v: number | null) => void;
@@ -923,6 +927,7 @@ function CampPanneau({
   onAjouter,
   onRetirer,
   onMasquer,
+  onDeplacer,
   onRuneSpeed,
   onSwift,
   onCumuls,
@@ -1024,7 +1029,7 @@ function CampPanneau({
 
       {lignes.length > 0 && (
         <div className="space-y-2 p-2.5 pb-0">
-          {lignes.map((l) => {
+          {lignes.map((l, index) => {
             const combat = combatDe(l);
             const masque = l.masque;
             // ⚠️ Ce que le monstre pose sur son camp (barre d'attaque, buff de
@@ -1038,11 +1043,42 @@ function CampPanneau({
             return (
               <div
                 key={l.uid}
-                className="relative rounded-lg border border-border bg-panel2 px-3 py-2.5 pr-12"
+                className="relative rounded-lg border border-border bg-panel2 px-3 py-2.5 pr-24"
               >
-                {/* Cluster en haut à droite de la card : masquer + supprimer,
-                    la croix à sa place habituelle dans l'app. */}
+                {/* Cluster en haut à droite de la card : monter/descendre,
+                    masquer, supprimer — la croix à sa place habituelle dans
+                    l'app.
+                    ⚠️ **L'ordre de l'équipe n'est pas décoratif** : deux monstres
+                    à la même vitesse de combat sont départagés par leur place
+                    dans la liste, le premier joue le premier. C'est le levier
+                    qu'on cherche quand un tune fait finir deux monstres à la même
+                    vitesse.
+                    ⚠️ Les flèches restent AFFICHÉES aux extrémités, désactivées :
+                    un bouton qui disparaît selon les données fait sauter le
+                    cluster d'une card à l'autre. */}
                 <div className="absolute right-1 top-1 flex items-center gap-0.5">
+                  <BoutonIcone
+                    taille="serre"
+                    disabled={index === 0}
+                    onClick={() => onDeplacer(l.uid, -1)}
+                    libelle={
+                      index === 0
+                        ? `${l.monster.name} joue déjà en premier à vitesse égale`
+                        : `Monter ${l.monster.name} : à vitesse égale, il jouera avant`
+                    }
+                    icone={<ChevronUp size={13} />}
+                  />
+                  <BoutonIcone
+                    taille="serre"
+                    disabled={index === lignes.length - 1}
+                    onClick={() => onDeplacer(l.uid, 1)}
+                    libelle={
+                      index === lignes.length - 1
+                        ? `${l.monster.name} joue déjà en dernier à vitesse égale`
+                        : `Descendre ${l.monster.name} : à vitesse égale, il jouera après`
+                    }
+                    icone={<ChevronDown size={13} />}
+                  />
                   <BoutonIcone
                     taille="serre"
                     actif={masque}

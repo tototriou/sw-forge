@@ -109,6 +109,25 @@ export const entreeDe = (l: Ligne): EntreeAuto => ({
   passifActif: l.passifActif,
 });
 
+// ⚠️ **L'ORDRE DE L'ÉQUIPE EST UNE DONNÉE DU CALCUL, pas une présentation.**
+// Deux monstres à la MÊME vitesse de combat sont départagés par leur place dans
+// l'équipe (`placement`, voir `simuler`) : le premier de la liste joue le
+// premier. C'est exactement le levier qu'on cherche quand un réglage fait finir
+// deux monstres à la même vitesse — sans lui, le départage était subi.
+//
+// L'échange se fait avec le voisin DU MÊME CAMP, tel qu'il est affiché (masqués
+// compris) : ce qu'on voit bouger est ce qui bouge. Au bout de la liste, rien ne
+// bouge — c'est le bouton qui est désactivé, pas la fonction qui invente un tour.
+export function deplacerDansCamp(lignes: Ligne[], uid: string, sens: -1 | 1): Ligne[] {
+  const ligne = lignes.find((l) => l.uid === uid);
+  if (!ligne) return lignes;
+  const duMemeCamp = lignes.filter((l) => l.camp === ligne.camp);
+  const i = duMemeCamp.findIndex((l) => l.uid === uid);
+  const voisin = duMemeCamp[i + sens];
+  if (!voisin) return lignes;
+  return lignes.map((l) => (l.uid === uid ? voisin : l.uid === voisin.uid ? ligne : l));
+}
+
 export const visibles = (lignes: Ligne[]) => lignes.filter((l) => !l.masque);
 export const duCamp = (lignes: Ligne[], camp: Camp) => visibles(lignes).filter((l) => l.camp === camp);
 

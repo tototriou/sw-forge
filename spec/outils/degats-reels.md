@@ -176,9 +176,9 @@ Quatre catégories, sur la seule question « quand ce passif compte-t-il ? » :
 
 | Catégorie | Comportement | Exemple |
 |---|---|---|
-| `toujours` | S'ajoute d'office, aucun bouton — le texte du jeu ne pose aucune condition de combat | Feng Yan (Winds and Clouds), Sia (Great Friends), Benedict (Final Strike), Dominic (Improvisation) |
+| `toujours` | S'ajoute d'office, aucun bouton — le texte du jeu ne pose aucune condition de combat | Feng Yan (Winds and Clouds), Sia (Great Friends), Benedict (Final Strike) |
 | `defBreak` | **Aucun bouton non plus** : le déclenchement est ENTIÈREMENT déduit des deux réglages de réduction de Défense (voir ci-dessous) | Roid (Slash Waves / Slash Wind), Silver (Ruins) |
-| `bonus` | Les dégâts de base sont comptés **dans tous les cas** ; le bouton (désactivé par défaut) ne conditionne QUE le surplus de `pct` %, et seulement sur la contribution de ce passif | Ezio (Hidden Gun, +100 % si cible Lumière) |
+| `bonus` | Les dégâts de base sont comptés **dans tous les cas** ; le bouton (désactivé par défaut) ne conditionne QUE le surplus de `pct` %, et seulement sur la contribution de ce passif | Ezio (Hidden Gun, +100 % si cible Lumière), Dominic (Improvisation, +100 % si PV > 50 %) |
 | `conditionnel` | Bouton, désactivé par défaut ; activé, le passif compte à 100 % comme un second sort. Réservé aux conditions qui ne se modélisent PAS | (aucune entrée aujourd'hui) |
 
 ⚠️ **`bonus` ne met plus toute la contribution à zéro quand le bouton est
@@ -187,6 +187,37 @@ INCONDITIONNELLE (« Attacks additionally … when you attack the enemy on your
 turn »), dont seule la magnitude est conditionnée. Les confondre
 sous-estimait la base à chaque fois que la condition n'était pas remplie —
 corrigé après relecture du texte du jeu entrée par entrée.
+
+⚠️ **`dejaInclus` (Dominic — Improvisation) : la formule elle-même porte le
+cas MAJORÉ, pas le cas de base.** `Competence.formule` vaut `2.0*{ATK}
+(Fixed)` — 100 % de base × (1 + 100 % si PV > 50 %) — sans formule séparée
+pour le cas de base. Demande explicite de l'utilisateur : un bouton comme
+Hidden Gun (« pouvoir activer ou non l'augmentation… comme le passif de
+Ezio ») ; Dominic était d'abord passé de `bonus` à `toujours` précisément
+parce qu'un bouton `bonus` NAÏF aurait doublé une seconde fois une valeur
+déjà majorée. `categorie: { type: 'bonus', pct: 100, dejaInclus: true,
+condition: 'tes PV dépassent 50 %' }` inverse le sens de l'opération plutôt
+que de réécrire la formule (interdit, voir plus haut) : bouton décoché (par
+défaut, jamais deviné), la contribution est **divisée** par `1 + pct/100`
+pour retomber au cas de base — bouton coché, elle reste telle que parsée
+(le cas majoré). Le ratio affiché à l'écran (voir ci-dessous) reste donc
+`2.0 × ATQ`, le cas majoré, dans les deux états — c'est le texte de
+condition qui précise que le cas de base, lui, vaut la moitié.
+
+### Le ratio de dégâts, affiché pour CHAQUE passif
+
+Comme pour le sort actif choisi (« Compétence utilisée »), l'écran affiche
+le **ratio parsé** (`formuleLisible`, ex. `1.9 × ATQ`) et le résumé (nombre
+de coups, Zone/Cible unique, Ignore la DEF, améliorations) de chaque passif
+de `PASSIFS_OFFENSIFS_CONNUS` — demande explicite de l'utilisateur, gap
+d'affichage repéré après l'ajout du toggle de Dominic. Aucune information
+manquante à combler : `monsterOffensivePassives` n'inclut déjà QUE les
+passifs dont la formule est analysable (voir plus haut, « Curation à la
+main… ») — tous les passifs affichés ont donc TOUJOURS un ratio à montrer.
+⚠️ Le nombre de coups affiché suit la même règle que le calcul : pour un
+passif `coupsDuSortActif` (Feng Yan, Roid…), c'est le nombre RÉELLEMENT
+retenu pour le sort actif qui s'affiche, jamais le nombre propre — souvent
+non fiable — du passif lui-même.
 
 ### La réduction de Défense : « avant » n'est pas « après »
 
@@ -262,7 +293,7 @@ du jeu de chaque entrée) :
 | Eye of the Desert / Eagle Deception | Desert Warrior/Salah, Bayek | compté sur la seule cible configurée malgré « random enemy » — même monstre, même passif (Bayek = version collaboration, Salah = version SW native), confirmation étendue de l'un à l'autre |
 | Turning Slash / Flash Step | Birgitta, Ciri (Lumière), Magic Order Swordsinger | **2 coups** (prose) ; magnitude croissante avec les PV bas NON modélisée → plancher |
 | Hidden Gun / Meticulous Attack | Ezio, Evan, Steel Commander | **critique toujours** ; base inconditionnelle, seul le +100 % dépend du bouton |
-| Improvisation | Dominic, Weapon Master | condition de PV **ignorée**, compté d'office |
+| Improvisation | Dominic, Weapon Master | bouton `bonus`/`dejaInclus` (+100 % si PV > 50 %, formule déjà majorée) |
 | Ruins | Silver | **3 coups**, critique normalement, déclenchement `defBreak` |
 | Slash Waves / Slash Wind | Roid | déclenchement `defBreak` (2 coups pour Slash Waves) |
 

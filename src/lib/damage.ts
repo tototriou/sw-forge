@@ -634,6 +634,15 @@ export function estPrisEnCharge(p: SkillDamageProfile | SkillDamageUnsupported):
 // - `bonus` : la formule de base est TOUJOURS acquise, mais le texte ajoute
 //   un pourcentage de dégâts FIXE sous condition (« +100% si cible
 //   Lumière ») — un bouton bascule CE bonus précis, désactivé par défaut.
+//   ⚠️ **`dejaInclus`** : sur certains passifs, `Competence.formule` porte
+//   directement le cas MAJORÉ (le bonus déjà appliqué), pas le cas de base —
+//   Dominic/Weapon Master (« Improvisation ») : `2.0*{ATK} (Fixed)` = 100 %
+//   de base × (1 + 100 % si PV > 50 %), aucune formule séparée pour le cas de
+//   base. Décoché par défaut (même discipline pessimiste que les autres
+//   `bonus`), la contribution est alors DIVISÉE par `1 + pct/100` plutôt que
+//   MULTIPLIÉE — l'inverse de l'opération habituelle, jamais une réécriture
+//   de `formule` (qui reste, comme toujours, EXACTEMENT ce que SWARFARM
+//   donne — voir plus haut).
 // - `conditionnel` : le texte pose une condition sur le DÉCLENCHEMENT
 //   lui-même, pas seulement sa magnitude — un bouton pour le passif entier,
 //   désactivé par défaut, quand la condition ne se modélise PAS (attribut de
@@ -656,7 +665,7 @@ export function estPrisEnCharge(p: SkillDamageProfile | SkillDamageUnsupported):
 //   passif AVEC réduction » décrit par l'utilisateur.
 export type PassifOffensifCategorie =
   | { type: 'toujours' }
-  | { type: 'bonus'; pct: number; condition: string }
+  | { type: 'bonus'; pct: number; condition: string; dejaInclus?: boolean }
   | { type: 'conditionnel'; condition: string }
   | { type: 'defBreak'; moment: 'avant' | 'apres'; exige: boolean; condition: string };
 
@@ -743,12 +752,18 @@ const PASSIFS_OFFENSIFS_CONNUS: PassifOffensifConnu[] = [
   // (annoncés en prose, `Competence.coups` vaut 1 à tort).
   { nom: 'Turning Slash (Passive)', coups: 2, categorie: { type: 'toujours' } }, // Magic Order Swordsinger, Birgitta
   { nom: 'Flash Step (Passive)', coups: 2, categorie: { type: 'toujours' } }, // Ciri (Lumière)
-  // ⚠️ Passé de `bonus` à `toujours` : confirmé qu'on IGNORE la condition de
-  // PV de l'attaquant et qu'on compte le passif d'office. Sa formule
-  // `2.0*{ATK} (Fixed)` correspond déjà au cas majoré (« 100 % de l'ATQ »,
-  // « +100 % si tes PV dépassent 50 % ») — un bouton `bonus` par-dessus
-  // aurait doublé une seconde fois. `(Fixed)` : ni critique ni facteur DEF.
-  { nom: 'Improvisation (Passive)', categorie: { type: 'toujours' } }, // Weapon Master, Dominic
+  // ⚠️ D'abord passé de `bonus` à `toujours` (condition de PV de l'attaquant
+  // ignorée, comptée d'office) — la formule `2.0*{ATK} (Fixed)` correspond
+  // au cas MAJORÉ (« 100 % de l'ATQ », « +100 % si tes PV dépassent 50 % »),
+  // un bouton `bonus` naïf par-dessus aurait doublé une seconde fois. Repassé
+  // en `bonus` avec `dejaInclus: true` (demande explicite de l'utilisateur :
+  // « pouvoir activer ou non l'augmentation… comme le passif de Ezio ») —
+  // voir `PassifOffensifCategorie` plus haut : la MÊME formule majorée reste
+  // la SOURCE, mais décoché (par défaut, jamais deviné), la contribution est
+  // DIVISÉE par 2 plutôt que multipliée, retrouvant le cas de base (100 %
+  // de l'ATQ) sans jamais réécrire `formule`. `(Fixed)` : ni critique ni
+  // facteur DEF.
+  { nom: 'Improvisation (Passive)', categorie: { type: 'bonus', pct: 100, condition: 'tes PV dépassent 50 %', dejaInclus: true } }, // Weapon Master, Dominic
   // — Bonus conditionnel à pourcentage fixe —
   // ⚠️ `critique: 'toujours'` : « The additional attack ALWAYS LANDS AS A
   // CRITICAL HIT » — l'inverse de Winds and Clouds, et indépendant du mode
@@ -1334,7 +1349,10 @@ export function bonusPassifActif(p: PassifOffensifProfile, setup: DamageSetup): 
  * concerné**, jamais au total : « +100 % si cible Lumière » double les
  * dégâts DE CE PASSIF précis, pas ceux du sort actif à côté. Et il ne
  * conditionne QUE le surplus — la formule de base d'un passif `bonus` est
- * comptée même bouton éteint (voir `bonusPassifActif`).
+ * comptée même bouton éteint (voir `bonusPassifActif`). ⚠️ **Sauf
+ * `dejaInclus`** (Dominic — « Improvisation ») : `formule` porte déjà le cas
+ * majoré, donc c'est l'INVERSE — bouton éteint, la contribution est DIVISÉE
+ * par `1 + pct/100` pour retomber au cas de base, jamais multipliée.
  *
  * ⚠️ **`critSiPlusRapide`** (Ciri Eau, Rigna, Magic Order Swordsinger — voir
  * `monsterCritSiPlusRapide`) : contrairement aux `PASSIFS_OFFENSIFS_CONNUS`,
@@ -1413,8 +1431,16 @@ export function computeTotalDamage(
     pvCiblePct = detail.pvRestantsPct;
     let contribution = detail.total;
     if (seuilAtteint && p.bonusPvCible) contribution *= 1 + p.bonusPvCible.pct / 100;
-    if (bonusPassifActif(p, setup) && p.categorie.type === 'bonus') {
-      contribution *= 1 + p.categorie.pct / 100;
+    if (p.categorie.type === 'bonus') {
+      const actif = bonusPassifActif(p, setup);
+      // ⚠️ `dejaInclus` (Dominic — voir `PassifOffensifCategorie`) : `formule`
+      // porte déjà le cas MAJORÉ, donc l'opération s'inverse — décoché, on
+      // DIVISE pour retrouver le cas de base, jamais l'inverse.
+      if (p.categorie.dejaInclus) {
+        if (!actif) contribution /= 1 + p.categorie.pct / 100;
+      } else if (actif) {
+        contribution *= 1 + p.categorie.pct / 100;
+      }
     }
     total += contribution;
   }

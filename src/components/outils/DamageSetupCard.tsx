@@ -101,17 +101,29 @@ interface Props {
   ampliVitPct: number;
 }
 
-// Ce que le sort nous apprend, en une ligne — l'inverse d'un formulaire.
+// Ce que le sort — ou le PASSIF (voir plus bas) — nous apprend, en une
+// ligne, plutôt qu'un formulaire.
 //
 // ⚠️ **Le RATIO DE DÉGÂTS en tête** (demande explicite) : c'est le
 // coefficient qui décide de tout le reste du calcul, et le repère que le
 // joueur retrouve sur les sites de référence. Rendu par `formuleLisible`
 // (monsterSkills.ts, déjà utilisée par la fiche de monstre) — qui TRADUIT
 // les noms de stats (`{ATK}` → ATQ) sans réécrire la formule, précisément
-// pour garder cette correspondance.
-function resumeSort(p: SkillDamageProfile, setup: DamageSetup): { ratio: string | null; reste: string } {
-  const hits = resolvedHits(p, setup);
-  const bouts: string[] = [`${hits} coup${hits > 1 ? 's' : ''}${p.hitsRange ? ' (variable)' : ''}`];
+// pour garder cette correspondance. Réutilisée pour CHAQUE passif offensif
+// affiché (demande explicite de l'utilisateur : « affiche bien les ratios
+// de dégâts des passifs quand tu as l'information via Swarfarm ») — un
+// passif de `PASSIFS_OFFENSIFS_CONNUS` a TOUJOURS une formule analysable
+// (`monsterOffensivePassives` l'exige, voir damage.ts), rien à deviner.
+//
+// ⚠️ `hitsOverride` : un passif `coupsDuSortActif` (Feng Yan, Roid…) suit le
+// nombre de coups RÉELLEMENT retenu pour le SORT ACTIF, pas le nombre écrit
+// sur sa propre fiche (souvent 0/1, non fiable pour un passif — voir
+// `monsterOffensivePassives`) — l'appelant passe alors `resolvedHits(sort
+// actif, setup)` plutôt que de laisser cette fonction relire les coups du
+// passif lui-même, qui donnerait un chiffre trompeur.
+function resumeSort(p: SkillDamageProfile, setup: DamageSetup, hitsOverride?: number): { ratio: string | null; reste: string } {
+  const hits = hitsOverride ?? resolvedHits(p, setup);
+  const bouts: string[] = [`${hits} coup${hits > 1 ? 's' : ''}${p.hitsRange && hitsOverride == null ? ' (variable)' : ''}`];
   bouts.push(p.aoe ? 'Zone' : 'Cible unique');
   if (p.ignoreDef) bouts.push('Ignore la DEF');
   if (p.ignoreDefSelonVit) bouts.push(`Ignore la DEF selon l'écart de VIT (100 % à ${p.ignoreDefSelonVit.ecartMax}+ pts)`);
@@ -333,6 +345,20 @@ export default function DamageSetupCard({
               const texteJeu = p.description ? (
                 <p className="mt-1 text-xs leading-snug text-ink-dim">{p.description}</p>
               ) : null;
+              // Voir `resumeSort` : un passif `coupsDuSortActif` suit les coups
+              // du SORT ACTIF, jamais les siens propres.
+              const { ratio, reste } = resumeSort(
+                p.profile,
+                setup,
+                p.coupsDuSortActif && resolved ? resolvedHits(resolved, setup) : undefined
+              );
+              const resume = (
+                <p className="mt-1 text-xs leading-snug text-ink-dim">
+                  {ratio && <span className="font-mono text-ink">{ratio}</span>}
+                  {ratio && ' · '}
+                  {reste}
+                </p>
+              );
 
               // Déclenchement ENTIÈREMENT déduit (`defBreak`) ou inconditionnel
               // (`toujours`) : pas de bouton, on montre juste l'état courant et
@@ -346,6 +372,7 @@ export default function DamageSetupCard({
                       libelle={nom}
                       detail={p.categorie.type === 'toujours' ? 'toujours actif' : declenche ? 'déclenché' : 'non déclenché'}
                     />
+                    {resume}
                     {p.categorie.type === 'defBreak' && (
                       <p className="mt-1 text-xs leading-snug text-ink-dim">
                         Se déclenche si {p.categorie.condition}.
@@ -369,6 +396,20 @@ export default function DamageSetupCard({
               const cat = p.categorie;
               const libelle = cat.type === 'bonus' ? `${nom} (+${cat.pct} %)` : nom;
               const condition = `${cat.condition[0].toUpperCase()}${cat.condition.slice(1)}`;
+              // ⚠️ `dejaInclus` (Dominic) : le ratio affiché ci-dessus EST déjà
+              // le cas majoré — décocher ne l'ajoute pas, il le RETIRE (voir
+              // computeTotalDamage, damage.ts). Texte distinct, sinon « Dégâts
+              // de base toujours comptés ; +100 % si… » laisserait croire que
+              // le ratio, lui, est encore le cas de base.
+              const texteCondition =
+                cat.type === 'bonus' && cat.dejaInclus
+                  ? `Le ratio ci-dessus suppose déjà que ${cat.condition} — décoché par défaut, la contribution retombe au cas de base (÷ ${(
+                      (100 + cat.pct) /
+                      100
+                    )
+                      .toFixed(2)
+                      .replace(/\.?0+$/, '')}).`
+                  : `${cat.type === 'bonus' ? 'Dégâts de base toujours comptés ; +' + cat.pct + ' % si ' : 'Se déclenche si '}${cat.condition}.`;
               return (
                 <div key={p.skillCom2usId}>
                   <Pastille
@@ -380,12 +421,8 @@ export default function DamageSetupCard({
                     libelle={libelle}
                     title={`${condition}${actif ? ' (activé)' : ' — désactivé par défaut'}`}
                   />
-                  <p className="mt-1 text-xs leading-snug text-ink-dim">
-                    {cat.type === 'bonus'
-                      ? `Dégâts de base toujours comptés ; +${cat.pct} % si `
-                      : 'Se déclenche si '}
-                    {cat.condition}.
-                  </p>
+                  {resume}
+                  <p className="mt-1 text-xs leading-snug text-ink-dim">{texteCondition}</p>
                   {texteJeu}
                   {champCoupsVariables(p.profile, setup, maj)}
                 </div>

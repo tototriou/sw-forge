@@ -783,15 +783,19 @@ export default function testDegats() {
     'poser la réduction avec le sort augmente donc bien le total'
   );
 
-  // Dominic — « Improvisation (Passive) », passé de `bonus` à `toujours` : la
-  // condition de PV de l'attaquant est IGNORÉE, le passif compte d'office
-  // (sa formule `(Fixed)` correspond déjà au cas majoré).
+  // Dominic — « Improvisation (Passive) » : `bonus` avec `dejaInclus: true`
+  // (demande explicite de l'utilisateur : un bouton, comme Hidden Gun/Ezio).
+  // La formule `(Fixed)` porte le cas MAJORÉ (`2.0*{ATK}` = 100 % de base ×
+  // (1 + 100 % si PV > 50 %)) — décoché (par défaut), la contribution est
+  // DIVISÉE par 2 pour retomber au cas de base, jamais multipliée.
   const dominic = fiche(25713);
   const dominicBase = defaultDamageSkill(monsterDamageSkills(dominic));
   ok(dominicBase !== null, 'Dominic : un sort de dégâts par défaut est trouvé');
   const dominicPassifs = monsterOffensivePassives(dominic);
   egal(dominicPassifs.length, 1, 'Dominic : un seul passif reconnu (Improvisation)');
-  egal(dominicPassifs[0]?.categorie.type, 'toujours', 'Improvisation est désormais « toujours », plus « bonus »');
+  const dominicCat = dominicPassifs[0]!.categorie;
+  egal(dominicCat.type, 'bonus', 'Improvisation est un « bonus » à bouton, plus « toujours »');
+  ok(dominicCat.type === 'bonus' && dominicCat.dejaInclus === true, 'dejaInclus : la formule (Fixed) porte déjà le cas majoré');
   ok(dominicPassifs[0]!.profile.fixed, 'sa formule porte (Fixed) : ni critique ni facteur de défense');
   const dominicStats = stats({ atk: 2000, cd: 200, cr: 100, hp: 20000 });
   const dominicSetup: DamageSetup = {
@@ -799,11 +803,25 @@ export default function testDegats() {
     skillCom2usId: dominicBase!.skillCom2usId,
     summonerSkills: 'aucune',
   };
+  const dominicSort = computeSkillDamage(dominicBase!, dominicStats, dominicSetup, null);
+  const dominicPassifMajore = computeSkillDamage(dominicPassifs[0]!.profile, dominicStats, dominicSetup, null);
   egal(
-    computeTotalDamage(dominicBase!, dominicPassifs, dominicStats, dominicSetup, null),
-    computeSkillDamage(dominicBase!, dominicStats, dominicSetup, null) +
-      computeSkillDamage(dominicPassifs[0]!.profile, dominicStats, dominicSetup, null),
-    'le passif de Dominic est compté d’office, sans aucun bouton ni condition de PV'
+    computeTotalDamage(
+      dominicBase!,
+      dominicPassifs,
+      dominicStats,
+      { ...dominicSetup, passifsOffensifs: { [dominicPassifs[0]!.skillCom2usId]: true } },
+      null
+    ),
+    dominicSort + dominicPassifMajore,
+    'bouton coché : la contribution du passif est le cas MAJORÉ tel que parsé (2.0 × ATQ)'
+  );
+  ok(
+    Math.abs(
+      computeTotalDamage(dominicBase!, dominicPassifs, dominicStats, dominicSetup, null) -
+        (dominicSort + dominicPassifMajore / 2)
+    ) < 1e-9,
+    'bouton décoché (par défaut) : la contribution est DIVISÉE par 2, retombant au cas de base (1.0 × ATQ)'
   );
 
   // Ezio — « Hidden Gun (Passive) », `bonus` : le bouton ne porte QUE le

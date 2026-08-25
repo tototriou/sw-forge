@@ -477,18 +477,41 @@ const lireAxe = (m: TuneMonstre, axe: Axe) => (axe === 'combat' ? m.combat : (m.
 //
 // Volontairement lente : n alliés × toutes les combinaisons croissantes de ticks
 // dans 1..TICKS_REF, une simulation chacune.
-const TICKS_REF = 10;
+const TICKS_REF = 12;
 function solutionExisteRef(monstres: TuneMonstre[], axe: Axe): boolean {
   const ordre = ordreAlliesRef(monstres);
-  if (axe === 'artefactBuff') {
-    // Pas de « tick visé » sur cet axe : le levier est un pourcentage borné, on
-    // balaie tout le produit cartésien par pas de 1 sur chaque allié — mais
-    // seulement le maximum suffit à répondre « existe-t-il une solution ? »,
-    // l'axe étant monotone et sans effet d'ordre à budget égal.
+  // ⚠️ **La vitesse du PREMIER est une donnée, pas une inconnue** : il porte le
+  // meilleur Swift du compte. La référence doit résoudre LE MÊME problème que le
+  // solveur, contrainte comprise — sinon elle réclame des solutions injouables.
+  const premier = ordre[0];
+  const plafond = axe === 'combat' ? COMBAT_MAX : ARTE_MAX;
+
+  const essayer = (vals: Map<string, number>): boolean => {
     const essai = monstres.map((m) => ({ ...m }));
-    for (const m of essai) if (m.camp === 'allie') poserAxe(m, axe, ARTE_MAX);
+    for (const m of essai) {
+      const v = vals.get(m.id);
+      if (v !== undefined) poserAxe(m, axe, v);
+    }
     return tuneTient(essai, ordre);
+  };
+
+  // ⚠️ **EXHAUSTIF ET COMPLET quand il n'y a qu'une inconnue** (2 alliés, le
+  // premier figé) : tous les points de 0 à COMBAT_MAX, un par un. C'est la seule
+  // forme de contrôle qui ne suppose RIEN du modèle — ni « un allié par tick »,
+  // ni des valeurs remarquables. Elle a valeur de preuve.
+  if (ordre.length === 2) {
+    const cible = ordre[1];
+    const dep = lireAxe(monstres.find((m) => m.id === cible)!, axe);
+    for (let v = dep; v <= plafond; v++) if (essayer(new Map([[cible, v]]))) return true;
+    return false;
   }
+
+  // Au-delà, le produit cartésien est hors d'atteinte : on balaie les
+  // affectations allié -> tick, ticks NON DÉCROISSANTS (⚠️ deux alliés peuvent
+  // être prêts au MÊME tick et faire la queue — le supposer strictement croissant
+  // était justement l'angle mort du solveur), aux deux bords de chaque palier.
+  // ⚠️ **Contrôle INCOMPLET, assumé** : il peut rater une solution, jamais en
+  // inventer une. Un échec est donc toujours un vrai défaut du solveur.
   const n = ordre.length;
   const combinaisons: number[][] = [];
   const construire = (debut: number, acc: number[]) => {
@@ -496,17 +519,29 @@ function solutionExisteRef(monstres: TuneMonstre[], axe: Axe): boolean {
       combinaisons.push([...acc]);
       return;
     }
-    for (let t = debut; t <= TICKS_REF; t++) construire(t + 1, [...acc, t]);
+    for (let t = debut; t <= TICKS_REF; t++) construire(t, [...acc, t]);
   };
   construire(1, []);
   for (const ticks of combinaisons) {
-    const essai = monstres.map((m) => ({ ...m }));
-    const parId = new Map(essai.map((m) => [m.id, m]));
-    ordre.forEach((id, i) => {
-      const m = parId.get(id);
-      if (m) poserAxe(m, axe, Math.max(lireAxe(m, axe), speedForTick(ticks[i])));
-    });
-    if (tuneTient(essai, ordre)) return true;
+    for (const bord of ['bas', 'haut'] as const) {
+      const vals = new Map<string, number>();
+      let interdit = false;
+      ordre.forEach((id, i) => {
+        const src = lireAxe(monstres.find((m) => m.id === id)!, axe);
+        const t = ticks[i];
+        const brut =
+          axe !== 'combat'
+            ? ARTE_MAX
+            : bord === 'bas'
+              ? speedForTick(t)
+              : t <= 1
+                ? COMBAT_MAX
+                : Math.min(COMBAT_MAX, speedForTick(t - 1) - 1);
+        if (id === premier && brut > src) interdit = true;
+        vals.set(id, Math.max(src, brut));
+      });
+      if (!interdit && essayer(vals)) return true;
+    }
   }
   return false;
 }

@@ -493,51 +493,18 @@ interface Resolution {
   requis: number | null;
 }
 
-// Jusqu'où le balayage des affectations va chercher un tick. Au-delà, un allié
-// jouerait si tard qu'aucun adverse jouable ne serait encore derrière lui.
-const TICKS_SOLVEUR = 12;
-
 // Nombre maximal de passes de redescente (voir `resoudre`) : baisser un allié
 // peut rendre du mou à un autre, on repasse tant que ça baisse.
 const DESCENTES_MAX = 4;
 
-// Les CANDIDATS à essayer, du moins coûteux au plus coûteux — la valeur visée
-// pour chaque allié, dans l'ordre de jeu.
+// ⚠️ **LA VITESSE DU PREMIER DE L'ÉQUIPE EST INTOUCHABLE.** Celui qui ouvre le
+// combo porte déjà le meilleur Swift du compte : lui demander des points de
+// vitesse, c'est proposer ce que le joueur ne peut pas faire. Aucun candidat ne
+// le monte — même quand c'est la seule issue : le verdict est alors « hors de
+// portée », ce qui est la vérité pour le joueur.
 //
-// - Sur l'axe VITESSE : toutes les affectations allié -> tick, ticks
-//   STRICTEMENT croissants (l'ordre de jeu est conservé, un seul monstre par
-//   tick), rangées de la plus serrée à la plus lâche. Un tick très tardif
-//   revient à ne pas toucher l'allié — « ne rien lui demander » est donc dans la
-//   liste, ce qui compte : accélérer quelqu'un peut NUIRE.
-// - Sur l'axe ARTÉFACT : les sous-ensembles d'alliés poussés au plafond, du plus
-//   petit au plus grand. ⚠️ **Pas « tout le monde au maximum »** : amplifier le
-//   buff de celui qui remplit la barre avance son SECOND tour, ce qui libère le
-//   tick où il barrait la route à l'adverse — mesuré, et c'est ce qui faisait
-//   déclarer « rien à proposer » un artéfact qui suffisait.
-function candidats(axe: Axe, n: number, source: number[]): number[][] {
-  if (axe === 'artefactBuff') {
-    const masques: number[][] = [];
-    for (let masque = 0; masque < 1 << n; masque++) {
-      const vals = source.map((v, i) => ((masque >> i) & 1 ? ARTE_MAX : v));
-      masques.push(vals);
-    }
-    return masques.sort(
-      (a, b) => a.reduce((s2, x) => s2 + x, 0) - b.reduce((s2, x) => s2 + x, 0)
-    );
-  }
-  const ticks: number[][] = [];
-  const construire = (debut: number, acc: number[]) => {
-    if (acc.length === n) {
-      ticks.push([...acc]);
-      return;
-    }
-    for (let t = debut; t <= TICKS_SOLVEUR; t++) construire(t + 1, [...acc, t]);
-  };
-  construire(1, []);
-  return ticks
-    .sort((a, b) => a.reduce((s2, x) => s2 + x, 0) - b.reduce((s2, x) => s2 + x, 0))
-    .map((tk) => tk.map((t) => speedForTick(t)));
-}
+// ⚠️ La contrainte ne vaut QUE sur l'axe vitesse. Un artéfact se change ; le
+// meilleur Swift du compte, non.
 
 // L'ordre de jeu des ALLIÉS, du premier au dernier. Celui qui n'agit pas dans
 // l'horizon ferme la marche (il ne s'insère nulle part).
@@ -622,41 +589,75 @@ function resoudre(monstres: TuneMonstre[], horizon: number, axe: Axe): Resolutio
     return e.ok && e.ordreTenu;
   };
 
-  // Pose un candidat : chaque allié monté à la valeur visée — jamais descendu
-  // sous la sienne, on ne propose que des gains.
-  const poserValeurs = (vals: number[]) => {
-    ordre.forEach((id, i) => {
-      const m = parId.get(id);
-      if (!m) return;
-      poser(m, Math.min(PLAFOND[axe], Math.max(source.get(id) ?? 0, vals[i])));
-    });
+  // 1. CANDIDAT. ⚠️ **On place les alliés, on n'énumère pas des ticks.** Les
+  //    monstres FONT LA QUEUE : deux barres pleines au même tick jouent l'une
+  //    après l'autre (la plus haute d'abord). Un allié peut donc jouer au tick 7
+  //    en étant prêt au 6 — c'est même le cas courant juste derrière celui qui
+  //    ouvre. Raisonner « un allié par palier de tick » manquait ces
+  //    placements-là et déclarait « hors de portée » des équipes réglables.
+  //
+  //    Chaque allié retenu est poussé AU PLUS TÔT : la plus grande vitesse qui
+  //    ne lui fait pas doubler celui qui joue devant lui. C'est ce qui achète un
+  //    tick à ceux de derrière — le dernier de l'équipe est celui qui décide.
+  //
+  //    ⚠️ On essaie les SOUS-ENSEMBLES d'alliés à pousser, du plus petit au plus
+  //    grand, parce que **pousser quelqu'un peut NUIRE** : avancer un monstre
+  //    libère le tick où il barrait la route à l'adverse.
+  const auPlusTot = (m: TuneMonstre) => {
+    const min = source.get(m.id) ?? valeur(m);
+    let a = min;
+    let b = PLAFOND[axe];
+    while (a < b) {
+      const mi = Math.ceil((a + b) / 2);
+      poser(m, mi);
+      if (etat().ordreTenu) a = mi;
+      else b = mi - 1;
+    }
+    poser(m, a);
   };
+  const remettre = () => {
+    for (const [id, v] of source) {
+      const m = parId.get(id);
+      if (m) poser(m, v);
+    }
+  };
+  // ⚠️ **Le premier n'est jamais du lot** (indice 0) : il porte le meilleur Swift
+  // du compte, on ne peut rien lui trouver de plus.
+  const poussables = ordre.slice(1);
+  const sousEnsembles: number[][] = [];
+  for (let masque = 0; masque < 1 << poussables.length; masque++) {
+    const sous: number[] = [];
+    for (let i = 0; i < poussables.length; i++) if ((masque >> i) & 1) sous.push(i + 1);
+    sousEnsembles.push(sous);
+  }
+  sousEnsembles.sort((a, b) => a.length - b.length);
 
-  // 1. CANDIDAT : le premier de la liste qui fait tenir le tune. Le plus serré
-  //    vient en tête et suffit dans l'immense majorité des cas — une simulation.
-  //    ⚠️ Si AUCUN ne tient, on retient celui qui fait passer le plus de monde :
-  //    c'est lui qui départage « il lui manque X » de « hors de portée ».
-  const liste = candidats(
-    axe,
-    ordre.length,
-    ordre.map((id) => source.get(id) ?? 0)
-  );
-  let meilleur: number[] = liste[0];
+  let meilleur: number[] = [];
   let mieux = -1;
-  for (const vals of liste) {
-    poserValeurs(vals);
+  for (const sous of sousEnsembles) {
+    remettre();
+    // Dans l'ordre de jeu : chacun se place derrière celui déjà posé.
+    for (const i of sous) {
+      const m = parId.get(ordre[i]);
+      if (m) auPlusTot(m);
+    }
     const e = etat();
     if (!e.ordreTenu) continue;
     if (e.ok) {
-      meilleur = vals;
+      meilleur = sous;
+      mieux = ordre.length;
       break;
     }
     if (e.passent.size > mieux) {
       mieux = e.passent.size;
-      meilleur = vals;
+      meilleur = sous;
     }
   }
-  poserValeurs(meilleur);
+  remettre();
+  for (const i of meilleur) {
+    const m = parId.get(ordre[i]);
+    if (m) auPlusTot(m);
+  }
 
   // Ce que ce candidat atteint : au-delà, personne ne passera de plus.
   const cible = etat().passent;

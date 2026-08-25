@@ -214,81 +214,91 @@ les juger. Pas de formule fermée : la règle « un seul monstre par tick », le
 boosts de barre et les buffs par tick se mêlent, chaque essai se re-simule.
 
 ⚠️ **C'est un RÉGLAGE D'ÉQUIPE, pas une somme de corrections individuelles.**
-Occuper les ticks de tête **repousse l'adverse** et libère de la place pour les
-suivants — mais le tick gagné ne se paie pas au même prix des deux côtés :
-l'adverse rapide encaisse ~25 d'ATB par tick et **garde son dépassement**
-au-dessus de 100, quand le dernier de l'équipe, lent, en encaisse ~7. Retarder
-l'adverse ne suffit donc pas : il faut monter **toute l'équipe** jusqu'au point
-où le dernier convertit réellement les ticks gagnés. C'est pour ça que le
-solveur demande parfois des points à un monstre **qui passe déjà** — celui qui
-remplit la barre, accéléré pour acheter un tick au suivant — et rien du tout à
-un monstre coupé que la correction d'un autre sauve. **L'écran liste donc ce que
-le solveur demande, pas ce qui est coupé** : lister les coupés masquait la
+Le solveur demande donc parfois des points à un monstre **qui passe déjà** —
+accéléré, il joue plus tôt et **achète un tick** à celui de derrière — et rien du
+tout à un monstre coupé que la correction d'un autre sauve. **L'écran liste ce
+que le solveur demande, pas ce qui est coupé** : lister les coupés masquait la
 moitié de la solution, qui ne tenait pas une fois appliquée.
 
-⚠️ **L'ORDRE DE JEU DES ALLIÉS EST CONSERVÉ.** Celui qui remplit la barre doit
-rester devant ceux qu'il pousse : s'ils le doublent, ils jouent **avant** le
-boost et le combo tombe. Aucune vitesse proposée ne fait doubler un allié —
-l'ordre de départ est une contrainte au même titre que « passer avant
-l'adverse ». Changer d'ordre relève de l'analyse poussée (`fenetresRequises`).
+Trois règles de terrain le cadrent :
+
+- ⚠️ **LA VITESSE DU PREMIER EST INTOUCHABLE.** Celui qui ouvre le combo porte
+  déjà le meilleur Swift du compte : lui demander des points, c'est proposer ce
+  que le joueur ne peut pas faire. Aucune proposition ne le monte — **même quand
+  c'est la seule issue** : le verdict est alors « hors de portée », ce qui est la
+  vérité pour ce joueur-là. La contrainte ne vaut que sur l'axe vitesse : un
+  artéfact, ça se change.
+- ⚠️ **L'ORDRE DE JEU DES ALLIÉS EST CONSERVÉ.** Celui qui remplit la barre doit
+  rester devant ceux qu'il pousse : s'ils le doublent, ils jouent **avant** le
+  boost et le combo tombe. Changer d'ordre relève de l'analyse poussée
+  (`fenetresRequises`).
+- ⚠️ **LES MONSTRES FONT LA QUEUE.** Deux barres pleines au même tick jouent
+  l'une après l'autre (la plus haute d'abord) : un allié peut donc jouer au tick
+  7 en étant **prêt au 6**. Le dernier de l'équipe attend derrière tous les
+  autres — **un tick à trois alliés, deux à quatre**, et ainsi de suite. C'est
+  lui la contrainte qui décide ; les intermédiaires se casent ensuite entre le
+  premier et lui.
 
 La recherche se fait en deux temps, sur chacun des deux leviers :
 
-- **1. Candidat** — la liste des cibles possibles, de la moins chère à la plus
-  chère, et on garde la première qui fait tenir le tune.
-  - Sur l'axe **vitesse** : toutes les affectations allié → tick (ticks
-    strictement croissants, `TICKS_SOLVEUR = 12`), rangées de la plus serrée à
-    la plus lâche. La plus serrée — le rang k au tick k — répond dans l'immense
-    majorité des cas, en une simulation. ⚠️ Le tassement maximal **n'est pas
-    toujours** la bonne réponse : un allié peut convenir au tick 3 et au tick 5
-    mais pas au 4 (il y percute un autre), et un tick tardif revient à ne rien
-    lui demander — « ne pas l'accélérer » est donc dans la liste, ce qui compte,
-    car accélérer peut **nuire**.
-  - Sur l'axe **artéfact** : les sous-ensembles d'alliés poussés au plafond, du
-    plus petit au plus grand. ⚠️ **Surtout pas « tout le monde au maximum »** :
-    amplifier le buff de celui qui remplit la barre avance son **second** tour,
-    ce qui libère le tick où il barrait la route à l'adverse. Mesuré — c'est ce
-    qui faisait déclarer « rien à proposer » un artéfact qui suffisait.
-- **2. Redescente** — chaque allié ramené à la plus petite valeur qui préserve
-  le résultat du candidat, du dernier au premier, **jusqu'au point fixe**
+- **1. Candidat** — ⚠️ **on PLACE des alliés, on n'énumère pas des ticks.**
+  Chaque allié retenu est poussé **au plus tôt** : la plus grande valeur qui ne
+  lui fait pas doubler celui qui joue devant lui (dichotomie ; monter ne peut que
+  l'avancer). C'est ce qui achète un tick à ceux de derrière.
+  ⚠️ On essaie les **sous-ensembles** d'alliés à pousser, du plus petit au plus
+  grand, parce que **pousser quelqu'un peut NUIRE** : l'avancer libère le tick où
+  il barrait la route à l'adverse. C'est mesuré des deux côtés — sur l'axe
+  artéfact, amplifier le buff de celui qui remplit la barre avance son **second**
+  tour et fait passer l'adverse ; « tout le monde au maximum » faisait déclarer
+  « rien à proposer » un artéfact qui suffisait.
+  ⚠️ Une version précédente énumérait des affectations allié → tick strictement
+  croissantes. Elle **ignorait la file d'attente** et déclarait « hors de portée »
+  des équipes réglables : le bon chiffre est parfois celui qui rend un allié prêt
+  au **même** tick qu'un autre, pour jouer juste derrière lui (250, quand les
+  seuils de tick sont 239 et 286).
+- **2. Redescente** — chaque allié ramené à la plus petite valeur qui préserve le
+  résultat du candidat, du dernier au premier, **jusqu'au point fixe**
   (`DESCENTES_MAX = 4` : baisser un allié de devant rend du mou à celui de
-  derrière, déjà posé). Sans ça on afficherait « 1429 » là où 715 suffit, et des
-  points de runes à trouver pour rien.
+  derrière, déjà posé). Sans ça on afficherait des points de runes à trouver pour
+  rien.
   - ⚠️ **Balayage ascendant, pas dichotomie** : le domaine des vitesses valides
     d'un allié **n'est pas un intervalle** (il tient au tick 3 et au tick 5, pas
     au 4) ; une dichotomie s'arrête au bord de la mauvaise fenêtre et surévalue.
-  - ⚠️ **Par PALIERS DE TICK**, pas point par point : essayer les ~1 200 points
-    un par un coûtait ~90 ms par frappe. On essaie le **bas** de chaque palier
-    (trouvé par dichotomie sur *son* tick, qui lui est monotone), puis, si le
-    **haut** du palier tient alors que le bas ne tenait pas, on cherche par
-    dichotomie **dans le palier** le point où l'égalité bascule — à tick
-    constant, seul le dépassement d'ATB change, et il ne fait que départager les
-    barres pleines.
-- **« Hors de portée »** (`combatRequis: null`) : **aucun** candidat ne le fait
-  passer. C'est la course au dépassement — l'adverse qui attend accumule
-  au-dessus de 100 quand un allié plafonne à 100,03, et finit par ne plus se
-  laisser repousser. Rare : le verdict tombait auparavant deux fois sur trois à
-  tort, faute de chercher un réglage d'équipe.
+  - ⚠️ **Par PALIERS DE TICK**, pas point par point : essayer les ~1 200 points un
+    par un coûtait ~90 ms par frappe. On essaie le **bas** de chaque palier (par
+    dichotomie sur *son* tick, qui lui est monotone), puis, si le **haut** du
+    palier tient alors que le bas ne tenait pas, on cherche par dichotomie **dans
+    le palier** le point où l'égalité bascule — à tick constant, seul le
+    dépassement d'ATB change, et il ne fait que départager les barres pleines.
+- **« Hors de portée »** (`combatRequis: null`) : aucun placement ne le fait
+  passer, le premier restant à sa vitesse.
 
 **Vérification** (skill `algo-verify`) — ⚠️ **la référence de contrôle ne doit
-partager NI la stratégie NI la recherche du code testé.** La précédente rejouait
-la stratégie « le minimum pour chaque monstre coupé » et validait donc son angle
-mort (ne jamais accélérer un allié qui passe déjà, alors que c'est lui qui achète
-les ticks des suivants). Trois propriétés sont contrôlées sur scénarios
-aléatoires à seed fixe, dans [tests/speed-tune.test.ts](tests/speed-tune.test.ts) :
+partager NI la stratégie NI la recherche du code testé.** La toute première
+rejouait la stratégie « le minimum pour chaque monstre coupé » et validait donc
+son angle mort. Trois propriétés sont contrôlées sur scénarios aléatoires à seed
+fixe, dans [tests/speed-tune.test.ts](tests/speed-tune.test.ts) :
 
 | | ce qui est vérifié |
 |---|---|
 | **P1 justesse** | la proposition, appliquée, fait tenir le tune **sans changer l'ordre de jeu** |
 | **P2 minimalité** | un seul point de moins sur n'importe quelle valeur proposée et le tune tombe |
-| **P3 complétude** | « hors de portée » n'est prononcé que si le **balayage exhaustif** des affectations allié → tick, à ordre constant, n'en trouve pas non plus |
+| **P3 complétude** | « hors de portée » n'est prononcé que si la référence n'en trouve pas non plus |
 
-**Coût mesuré** (les deux axes, à chaque frappe) : **2,9 ms** sur un tune 4v4
-courant avec boost d'ATB, **35 ms** dans le pire cas (équipe insoluble, où la
-liste des candidats est parcourue entière). Aucun budget ni cache n'a été
-nécessaire.
+⚠️ **La référence de P3 n'est complète que sur les équipes de DEUX alliés** — le
+premier étant figé, il ne reste qu'une inconnue, et elle balaie alors **tous** les
+points un par un : ça vaut preuve, sans rien supposer du modèle. Au-delà, le
+produit cartésien est hors d'atteinte ; elle balaie les affectations allié → tick
+(non décroissantes, aux deux bords de chaque palier). **Contrôle incomplet,
+assumé** : il peut rater une solution, jamais en inventer une — un échec est donc
+toujours un vrai défaut.
+
+**Coût mesuré** (les deux axes, à chaque frappe) : **1,6 ms** sur un tune à 3
+alliés avec boost d'ATB, **4,4 ms** à 4 alliés, **14 ms** à 5. Aucun budget ni
+cache n'a été nécessaire.
 
 - **Limite héritée du modèle** : le verdict repose sur les **premiers tours**
+
   (voir plus bas) ; un adverse très rapide qui rejouerait une deuxième fois
   avant la fin de la chaîne n'est pas compté comme une coupure supplémentaire.
 

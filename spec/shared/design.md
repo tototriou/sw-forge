@@ -808,6 +808,11 @@ bande, et on ne sait plus si elle est tronquée ou si c'est la fin de la liste.
   Une confirmation garde l'air par défaut. `compactes` **remplace** le
   rembourrage des bandes au lieu de s'y ajouter, et suppose donc le `padding` par
   défaut pour l'axe horizontal.
+  - ⚠️ **Le rythme d'une bande n'est pas celui du corps.** Une bande ne porte
+    qu'une ligne de texte ou un bouton : lui donner les 16 px du corps lui fait
+    manger la hauteur d'une ligne de tableau pour rien. `compactes` la met à
+    **8 px** — et le sous-titre y passe en `leading-snug`, une interligne de
+    lecture longue n'ayant pas de sens sur une phrase unique.
 
 ### Cibles tactiles — 40 px au doigt
 

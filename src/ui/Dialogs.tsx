@@ -136,6 +136,13 @@ export function Modale({
   // au-dessus / en dessous », pas une décoration : posé en permanence, il
   // mentirait sur une modale dont tout le contenu tient à l'écran, et alourdirait
   // les confirmations.
+  // ⚠️ **Le rythme des BANDES est plus serré que celui du CORPS.** Une bande ne
+  // porte qu'une ligne de texte ou un bouton : lui donner le même rembourrage
+  // que le corps (16 px) lui fait manger la hauteur d'une ligne de tableau pour
+  // rien. `compactes` la met à 8 px, le corps garde ses 16.
+  const serre = bandes === 'compactes';
+  const bandeHaut = serre ? 'px-4 pt-2' : padding;
+  const bandeBas = serre ? 'px-4 pb-2' : padding;
   const corps = useRef<HTMLDivElement>(null);
   const [cacheHaut, setCacheHaut] = useState(false);
   const [cacheBas, setCacheBas] = useState(false);
@@ -281,12 +288,12 @@ export function Modale({
             className={`flex flex-none items-start gap-3 ${
               // `compactes` remplace le rembourrage de la bande (voir la prop) —
               // il ne s'y ajoute pas.
-              bandes === 'compactes' ? 'px-4 pt-3' : padding
+              bandeHaut
             } ${
               // Sans titre, la bande ne porte que la croix : elle n'a donc pas à
               // réserver de hauteur, et le contenu remonte contre le haut de la
               // boîte. `h-0` la fait flotter dans le rembourrage du corps.
-              titre ? (bandes === 'compactes' ? 'pb-2.5' : 'pb-2') : 'h-0 py-0'
+              titre ? 'pb-2' : 'h-0 py-0'
             } ${
               // Le trait n'apparaît que si du contenu passe dessous — et jamais
               // sur une bande en `h-0`, qui n'a pas de bord à souligner.
@@ -306,7 +313,7 @@ export function Modale({
               )}
               {sousTitre && (
                 <p
-                  className={`${bandes === 'compactes' ? 'mt-0.5' : 'mt-1.5'} text-xs leading-relaxed text-ink-dim`}
+                  className={`${serre ? 'mt-0.5 leading-snug' : 'mt-1.5 leading-relaxed'} text-xs text-ink-dim`}
                 >
                   {sousTitre}
                 </p>
@@ -355,8 +362,8 @@ export function Modale({
             // ⚠️ Le corps reprend son propre rembourrage haut dès qu'un TRAIT le
             // sépare de l'en-tête : sans lui, le contenu viendrait toucher le
             // trait, et une bordure collée à une card en fait deux superposées.
-            titre ? (cacheHaut ? 'pt-3' : 'pt-0') : ''
-          } ${actions ? (cacheBas ? 'pb-3' : 'pb-2') : ''} ${
+            titre ? (cacheHaut ? (serre ? 'pt-2' : 'pt-3') : 'pt-0') : ''
+          } ${actions ? (cacheBas ? (serre ? 'pb-2' : 'pb-3') : 'pb-2') : ''} ${
             // ⚠️ **`items-stretch` explicite, et non un variant arbitraire.**
             // J'avais écrit `[&>*]:w-full` : Tailwind ne l'a JAMAIS émis, parce
             // qu'il lit le source comme du texte et n'y reconnaît pas `>` et `*`
@@ -383,8 +390,8 @@ export function Modale({
             sinon les boutons touchent le message. */}
         {actions && (
           <div
-            className={`flex-none ${bandes === 'compactes' ? 'px-4 pb-3' : padding} ${
-              children != null ? (cacheBas ? (bandes === 'compactes' ? 'pt-2.5' : 'pt-3') : 'pt-0') : 'pt-3'
+            className={`flex-none ${bandeBas} ${
+              children != null ? (cacheBas ? (serre ? 'pt-2' : 'pt-3') : 'pt-0') : 'pt-3'
             } ${cacheBas ? 'border-t border-border' : ''}`}
           >
             <PiedDeDialogue className="mt-0" empile={actionsEmpilees}>

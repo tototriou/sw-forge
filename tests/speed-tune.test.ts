@@ -1747,6 +1747,114 @@ export function testSpeedTuneAuto() {
     ok(r.requis.length > 0, 'et l’outil dit ce qu’il manque');
   }
 
+  // ⚠️⚠️ **INVARIANT : ce qu'un monstre lance est actif au tick SUIVANT son
+  // tour.** Pas « à peu près », pas « sauf quand un adverse coupe » : toujours.
+  // C'est la règle du jeu, et c'est ce qui rend l'écran vérifiable — on doit
+  // pouvoir poser le doigt sur la case du tour, glisser d'une colonne, et y
+  // trouver l'effet.
+  //
+  // ⚠️ **Contrôlé sur l'enchaînement COMPLET**, pas sur `analyseAutomatique`
+  // seule : analyse → écriture des grilles → simulation d'AFFICHAGE des deux
+  // camps. C'est cette dernière que l'utilisateur regarde, et c'est là que les
+  // deux défauts signalés se voyaient — la fonction, elle, semblait juste. La
+  // référence est POSÉE comme une ligne du camp d'en face, comme le fait
+  // l'écran : l'oublier fausse le contrôle lui-même (elle prend un tick).
+  {
+    const sortDe = (effet: Record<string, number>, cooldown: number) => ({
+      nom: 'Sort',
+      slot: 3,
+      icone: null,
+      effet,
+      rejoue: false,
+      cooldown,
+      atbNiveau1: 0,
+      atbSkillUp: 0,
+      chance: null,
+      neutre: false,
+      buffsEquipe: 1,
+    });
+    // Les quatre formes d'effet, parce qu'elles empruntent des chemins
+    // différents dans le moteur — tout le camp, un allié, soi, et la vitesse.
+    const formes = [
+      ['barre de tout le camp', { atbEquipe: 30 }, 'atbMod'],
+      ['buff de vitesse', { buffEquipe: 30 }, 'speedMod'],
+      ['barre d’UN allié', { atbAllie: 25 }, 'atbMod'],
+      ['sa propre barre', { atbSoi: 25 }, 'atbMod'],
+    ] as const;
+
+    let controles = 0;
+    let fautes = 0;
+    let exemple = '';
+    for (let seed = 1; seed <= 120; seed++) {
+      const rng = mulberry32(9100 + seed * 61);
+      for (const [nom, effet, champ] of formes) {
+        for (const cd of [0, 3]) {
+          const nbAllies = 2 + Math.floor(rng() * 3);
+          const nbEnnemis = Math.floor(rng() * 3);
+          const donnees: DonneesKit = {
+            kits: new Map(),
+            sorts: new Map([[100, [sortDe(effet, cd)]]]),
+            passifs: new Map(),
+          };
+          // UN seul lanceur : ce qu'on lit dans les grilles lui est alors
+          // attribuable sans ambiguïté.
+          const plateau: EntreeAuto[] = [
+            { id: 'allie:100', monster: monstre(100, 'Lanceur', 100), runeSpeed: 60 + Math.floor(rng() * 220), camp: 'allie' },
+          ];
+          for (let i = 1; i < nbAllies; i++)
+            plateau.push({ id: `allie:${i}`, monster: monstre(i, `A${i}`, 100), runeSpeed: 40 + Math.floor(rng() * 220), camp: 'allie' });
+          for (let i = 0; i < nbEnnemis; i++)
+            plateau.push({ id: `ennemi:${i}`, monster: monstre(50 + i, `E${i}`, 100), runeSpeed: 40 + Math.floor(rng() * 220), camp: 'ennemi' });
+
+          const res = analyseAutomatique(plateau, 0, donnees);
+          const affichage: TuneMonstre[] = plateau
+            .filter((e) => res.combats.has(e.id))
+            .map((e) => ({
+              id: e.id,
+              combat: res.combats.get(e.id)!,
+              camp: e.camp!,
+              atbMod: res.mods.get(e.id)?.atbMod,
+              speedMod: res.mods.get(e.id)?.speedMod,
+            }));
+          if (nbEnnemis === 0 && res.reference) {
+            const id = `ref:${res.reference.id}`;
+            affichage.push({
+              id,
+              combat: res.combats.get(res.reference.id)!,
+              camp: 'ennemi',
+              atbMod: res.mods.get(id)?.atbMod,
+              speedMod: res.mods.get(id)?.speedMod,
+            });
+          }
+          if (!affichage.some((m) => m.id === 'allie:100')) continue;
+
+          const tours = simuler(affichage).actions.filter((a) => a.id === 'allie:100').map((a) => a.tick);
+          const poses = new Set<number>();
+          for (const m of affichage) {
+            const g = (champ === 'atbMod' ? res.mods.get(m.id)?.atbMod : res.mods.get(m.id)?.speedMod) ?? {};
+            for (const t of Object.keys(g)) poses.add(Number(t));
+          }
+          if (poses.size === 0) continue;
+          controles++;
+          // ⚠️ Un BUFF dure : seul son DÉBUT tombe au tick suivant le tour. Un
+          // boost de barre, lui, est ponctuel — chacun de ses ticks doit suivre
+          // un tour du lanceur.
+          const aVerifier = champ === 'speedMod' ? [Math.min(...poses)] : [...poses];
+          for (const p of aVerifier) {
+            if (tours.includes(p - 1)) continue;
+            fautes++;
+            if (!exemple)
+              exemple = `${nom} (cd=${cd}, seed ${seed}) : effet t${p}, tours du lanceur [${tours.join(',')}]`;
+          }
+        }
+      }
+    }
+    ok(
+      controles > 200 && fautes === 0,
+      `l’effet d’un sort tombe au tick SUIVANT le tour de son lanceur — ${controles} plateaux, quatre formes d’effet${exemple ? ` ; faute : ${exemple}` : ''}`
+    );
+  }
+
   // ⚠️ **UN ADVERSE QUI COUPE DÉCALE TOUT — l'analyse doit le voir.** Elle ne
   // recevait que les alliés : elle les plaçait donc sur un plateau où personne
   // n'occupait de tick en face. Dès qu'un adverse en prenait un, tous les tours

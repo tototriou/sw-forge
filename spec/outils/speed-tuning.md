@@ -812,11 +812,33 @@ De haut en bas :
    - **Pourquoi** : la version précédente affichait des valeurs qui n'existaient
      nulle part et se recalculaient sans cesse. On ne pouvait ni les corriger, ni
      savoir ce qui venait de l'outil et ce qui venait de soi.
-   - ⚠️ **Un effet est écrit au tick SUIVANT celui où il est lancé.** Un sort
-     lancé au tick 4 est actif au tick 5, pour tout le camp. Dans le moteur, ce
-     qu'une compétence pose arrive APRÈS l'arbitrage du tick (le lanceur vient de
-     jouer) ; une case de grille, elle, est posée AVANT. L'écrire sur le même
-     tick aurait laissé un allié boosté voler le tour du lanceur.
+   - ⚠️⚠️ **INVARIANT — un effet est actif au tick SUIVANT le tour de son
+     lanceur.** Un sort lancé au tick 4 est actif au tick 5, pour tout le camp.
+     Pas « à peu près », pas « sauf quand un adverse coupe » : **toujours**. C'est
+     ce qui rend l'écran vérifiable — on pose le doigt sur la case du tour, on
+     glisse d'une colonne, l'effet y est.
+     Dans le moteur, ce qu'une compétence pose arrive APRÈS l'arbitrage du tick
+     (le lanceur vient de jouer) ; une case de grille, elle, est posée AVANT.
+     L'écrire sur le même tick laisserait un allié boosté voler le tour du
+     lanceur.
+     - ⚠️ **Gardé par un contrôle de propriété** ([tests](tests/speed-tune.test.ts)),
+       pas par des cas isolés : ~960 plateaux tirés au hasard, les **quatre
+       formes d'effet** (barre de tout le camp, barre d'UN allié, sa propre
+       barre, buff de vitesse), avec et sans rechargement, de 0 à 2 adverses.
+     - ⚠️ **Sur l'enchaînement COMPLET** — analyse, écriture des grilles,
+       simulation d'AFFICHAGE des deux camps —, jamais sur `analyseAutomatique`
+       seule : c'est l'affichage que l'utilisateur regarde, et les deux défauts
+       signalés (Bastet, puis les buffs quand l'adverse coupe) ne se voyaient QUE
+       là ; la fonction, prise à part, semblait juste.
+     - ⚠️ **La référence est posée comme une ligne du camp d'en face** dans ce
+       contrôle, comme le fait l'écran. L'oublier fausse le contrôle lui-même —
+       elle prend un tick, donc elle décale tout : c'est l'erreur qui m'a fait
+       croire à huit fautes inexistantes.
+     - Un **buff dure** : seul son DÉBUT tombe au tick suivant le tour. Un boost
+       de barre est ponctuel — chacun de ses ticks doit suivre un tour du lanceur.
+     Le contrôle attrape les deux dérives possibles : l'adverse ignoré (l'effet
+     part deux ticks trop loin) et le décalage supprimé (l'effet tombe sur le
+     tour même).
    - ⚠️⚠️ **L'ANALYSE SIMULE LE PLATEAU ENTIER, pas seulement ton camp.** Elle ne
      recevait que les alliés : elle les plaçait donc sur un plateau où personne
      n'occupait de tick en face. **Dès qu'un adverse coupe**, il prend un tick, et

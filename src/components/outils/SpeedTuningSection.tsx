@@ -59,6 +59,8 @@ import { useSpeedTune, DeckDispo, ChampMod, DeckInitial } from '../../hooks/useS
 import { useAdversaireReference } from '../../hooks/useAdversaireReference';
 import { useStickyState } from '../../hooks/useStickyState';
 import MonsterAvatar from '../MonsterAvatar';
+import RuneIcon from '../RuneIcon';
+import { runeSetIconFilter } from '../../lib/effects';
 import {
   Bouton,
   Champ,
@@ -1043,7 +1045,7 @@ function CampPanneau({
             return (
               <div
                 key={l.uid}
-                className="relative rounded-lg border border-border bg-panel2 px-3 py-2.5 pr-24"
+                className="relative rounded-lg border border-border bg-panel2 px-3 py-2 pr-24"
               >
                 {/* Cluster en haut à droite de la card : monter/descendre,
                     masquer, supprimer — la croix à sa place habituelle dans
@@ -1096,27 +1098,37 @@ function CampPanneau({
                 </div>
 
                 <div className={masque ? 'opacity-45' : ''}>
-                  {/* En-tête : portrait + nom + base. */}
-                  <div className="flex items-center gap-2.5">
-                    <MonsterAvatar monster={l.monster} size={34} />
-                    <div className="min-w-0 flex-1">
-                      <div className="flex items-center gap-1.5">
-                        <span className="truncate text-sm font-semibold">{l.monster.name}</span>
-                        {l.reference && (
-                          <span
-                            className="flex-none rounded border border-border px-1 text-micro font-bold uppercase tracking-wide text-ink-dim"
-                            title="Adversaire de référence : copie de ton monstre le plus rapide au moment de l'analyse. Changer de deck l'arrête — il faut relancer l'analyse. Un réglage à la main en fait un adversaire ordinaire."
-                          >
-                            réf
-                          </span>
-                        )}
+                  {/* ⚠️ **UNE SEULE RANGÉE**, portrait compris. Le nom et les
+                      trois réglages tenaient sur deux lignes empilées alors que
+                      la card est large : l'en-tête laissait toute sa droite vide
+                      et coûtait 44 px par monstre, soit une ligne du tableau de
+                      ticks par card. `flex-wrap` rend l'empilement au format
+                      étroit — le mobile retrouve exactement la mise en page
+                      d'avant, il n'y perd rien.
+                      ⚠️ `items-end` : tout s'aligne sur le BAS des champs. Les
+                      libellés des réglages sont au-dessus de leur champ, le nom
+                      n'en a pas — les aligner par le haut décalerait le nom d'une
+                      ligne au-dessus du portrait. */}
+                  <div className="flex flex-wrap items-end gap-x-3 gap-y-2">
+                    <div className="flex min-w-0 items-center gap-2">
+                      <MonsterAvatar monster={l.monster} size={30} />
+                      <div className="flex min-w-0 flex-col">
+                        <div className="flex items-center gap-1.5">
+                          <span className="truncate text-sm font-semibold">{l.monster.name}</span>
+                          {l.reference && (
+                            <span
+                              className="flex-none rounded border border-border px-1 text-micro font-bold uppercase tracking-wide text-ink-dim"
+                              title="Adversaire de référence : copie de ton monstre le plus rapide au moment de l'analyse. Changer de deck l'arrête — il faut relancer l'analyse. Un réglage à la main en fait un adversaire ordinaire."
+                            >
+                              réf
+                            </span>
+                          )}
+                        </div>
+                        <div className="font-mono text-micro leading-tight text-ink-dim">
+                          base {l.monster.stats.speed ?? '—'}
+                        </div>
                       </div>
-                      <div className="font-mono text-micro text-ink-dim">base {l.monster.stats.speed ?? '—'}</div>
                     </div>
-                  </div>
-
-                  {/* Réglages + vitesse de combat, alignée à droite. */}
-                  <div className="mt-2 flex flex-wrap items-end gap-x-3 gap-y-2">
                     <label className="flex flex-col gap-0.5">
                       <span className="text-micro font-semibold uppercase tracking-wide text-ink-dimmer">Runes</span>
                       <NumberField
@@ -1137,11 +1149,20 @@ function CampPanneau({
                       <span className="text-micro font-semibold uppercase tracking-wide text-ink-dimmer">
                         Set
                       </span>
+                      {/* ⚠️ **L'ICÔNE DU SET, pas le mot.** C'est comme ça qu'un
+                          joueur reconnaît Rapidité — instantanément, comme dans
+                          le jeu et comme partout ailleurs dans l'app (filtre de
+                          sets, choix de combo). Le mot « Swift » demandait de
+                          lire là où un dessin suffit, et prenait trois fois la
+                          largeur sur une rangée qu'on cherche justement à
+                          resserrer. Le libellé de la colonne (« Set ») reste
+                          au-dessus, et l'infobulle dit ce que ça change. */}
                       <Bouton
                         taille="sm"
                         actif={!!l.swift}
                         onClick={() => onSwift(l.uid)}
-                        libelle="Swift"
+                        icone={<RuneIcon setKey="swift" size={16} filter={runeSetIconFilter(!!l.swift)} />}
+                        aria-label={`Set Rapidité porté par ${l.monster.name}`}
                         title="Le monstre porte le set Rapidité (VIT +25 %) — sa vitesse de combat se calcule alors autrement (d'un point près)."
                       />
                     </label>
@@ -1163,6 +1184,10 @@ function CampPanneau({
                         ariaLabel={`Bonus d'artéfact au buff de vitesse de ${l.monster.name}`}
                       />
                     </label>
+                    {/* ⚠️ La vitesse de combat est le CHIFFRE de la card : elle
+                        garde sa taille et sa place à droite. On gagne de la
+                        hauteur en resserrant ce qui l'entoure, pas en rendant
+                        illisible ce qu'on vient lire. */}
                     <div className="ml-auto text-right">
                       <div className={`font-mono text-lg font-black leading-none ${adv ? 'text-bad' : 'text-ink'}`}>
                         {combat ?? '—'}
@@ -1177,7 +1202,7 @@ function CampPanneau({
                       vitesse : on doit pouvoir l'appliquer, ou l'écarter pour
                       voir ce que vaut le tune sans lui. */}
                   {passif && (
-                    <div className="mt-2 flex flex-wrap items-center gap-x-2 gap-y-1.5 rounded border border-border-soft bg-panel px-2 py-1.5">
+                    <div className="mt-1.5 flex flex-wrap items-center gap-x-2 gap-y-1.5 rounded border border-border-soft bg-panel px-2 py-1">
                       <Bouton
                         taille="sm"
                         icone={<Zap size={12} />}

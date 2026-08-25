@@ -736,10 +736,27 @@ De haut en bas :
    figurer des DEUX côtés (`uid = camp:id`), pas deux fois dans le même camp.
    **Chaque camp** porte sous sa barre de recherche un bouton **« Importer un
    deck de siège »** (voir plus bas). Chaque monstre est une **card** avec, en **haut à droite** (convention app),
-   l'**œil** (masquer / afficher) et la **croix** de suppression. Un monstre
-   **masqué** reste dans son camp (grisé) mais quitte les calculs et les trois
-   tableaux — pour tester une compo sans perdre son réglage ; on le réaffiche
-   d'un clic sur l'œil.
+   les **flèches** (monter / descendre dans l'équipe), l'**œil** (masquer /
+   afficher) et la **croix** de suppression. Un monstre **masqué** reste dans son
+   camp (grisé) mais quitte les calculs et les trois tableaux — pour tester une
+   compo sans perdre son réglage ; on le réaffiche d'un clic sur l'œil.
+   - ⚠️ **La card tient sur UNE rangée** : portrait, nom, les trois réglages et
+     la vitesse de combat. Elle en occupait deux, alors que l'en-tête laissait
+     toute sa droite vide — 44 px par monstre, soit une ligne du tableau de ticks
+     par card. `flex-wrap` rend l'empilement au format étroit : **le mobile
+     retrouve exactement la mise en page d'avant**, il n'y perd rien.
+   - ⚠️ **Tout s'aligne sur le BAS des champs** (`items-end`). Les réglages
+     portent leur libellé au-dessus, le nom n'en a pas : aligner par le haut
+     décalerait le nom d'une ligne au-dessus du portrait.
+   - ⚠️ **Le set Rapidité se montre par son ICÔNE**, pas par le mot « Swift » —
+     c'est ainsi qu'on le reconnaît dans le jeu et partout ailleurs dans l'app
+     (filtre de sets, choix de combo). Le mot demandait de lire là où un dessin
+     suffit, et prenait trois fois la largeur sur la rangée qu'on resserre. Le
+     libellé de colonne (« Set ») reste au-dessus, l'infobulle dit ce que ça
+     change.
+   - ⚠️ **La vitesse de combat garde sa taille et sa place**, à droite : c'est le
+     chiffre qu'on vient lire. On gagne de la hauteur en resserrant ce qui
+     l'entoure, jamais en rendant illisible l'objet de l'écran.
 3. **Analyse automatique** — ⚠️⚠️ **RIEN D'APPLIQUÉ NE RESTE INVISIBLE.** Tout ce
    que la simulation applique doit se retrouver dans les grilles, y compris sur
    l'adversaire de référence : un modificateur qui agit sans s'afficher rend

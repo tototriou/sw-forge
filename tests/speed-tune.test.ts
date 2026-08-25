@@ -47,8 +47,11 @@ import {
   analyseAutomatique,
   combatAuto,
   cumulsEstimes,
+  noterChoix,
   sortRetenu,
   sortSecondRetenu,
+  AUTO,
+  ChoixSorts,
   EntreeAuto,
   DonneesKit,
 } from '../src/lib/speedTuneAuto';
@@ -1701,6 +1704,88 @@ export function testSpeedTuneAuto() {
     // toute l'équipe ne peut pas passer devant elle.
     ok(!r.verdict.ok, "on ne devance pas une copie de son propre plus rapide");
     ok(r.requis.length > 0, 'et l’outil dit ce qu’il manque');
+  }
+
+  // ⚠️ **« Aucun sort » est un CHOIX, pas l'absence de choix.** Le cas Kroa : son
+  // premier sort lui rend son tour, et le kit lui donne d'office un second sort
+  // qui remplit la barre d'un allié. Dire « Aucun sort » pour ce second tour
+  // EFFAÇAIT le choix au lieu de l'enregistrer — et le kit rappliquait son
+  // boost, exactement ce qu'on venait d'écarter. Choisir un AUTRE sort marchait,
+  // ce qui rendait le défaut d'autant plus retors.
+  {
+    const kroa = monstre(30002, 'Kroa', 120);
+    const lent = monstre(30003, 'Lent', 100);
+    const donnees: DonneesKit = {
+      kits: new Map(),
+      sorts: new Map([
+        [
+          30002,
+          [
+            {
+              nom: "Owl's Hoot",
+              slot: 2,
+              icone: null,
+              effet: {},
+              rejoue: true,
+              cooldown: 0,
+              atbNiveau1: 0,
+              atbSkillUp: 0,
+              chance: null,
+              neutre: false,
+              buffsEquipe: 0,
+            },
+            {
+              nom: 'Breeze',
+              slot: 1,
+              icone: null,
+              effet: { atbAllie: 15 },
+              rejoue: false,
+              cooldown: 0,
+              atbNiveau1: 0,
+              atbSkillUp: 0,
+              chance: null,
+              neutre: false,
+              buffsEquipe: 0,
+            },
+          ],
+        ],
+      ]),
+      passifs: new Map(),
+    };
+    const equipe: EntreeAuto[] = [
+      { id: 'allie:30002', monster: kroa, runeSpeed: 180 },
+      { id: 'allie:30003', monster: lent, runeSpeed: 60 },
+    ];
+    // Ce que le second tour de Kroa pose sur son camp, tick par tick.
+    const boostPose = (choix: ChoixSorts | undefined) => {
+      const r = analyseAutomatique(equipe, 0, donnees, { choix });
+      return JSON.stringify(r.mods.get('allie:30003')?.atbMod ?? {});
+    };
+
+    const dOffice = boostPose(undefined);
+    ok(dOffice !== '{}', "d'office, le second sort du kit remplit bien la barre de l'allié");
+
+    // ⚠️ Le cœur du test : le choix ENREGISTRÉ par l'écran, tel que le hook
+    // l'écrit — pas une main posée à la main dans le bon format.
+    const apresClic = noterChoix({}, 'allie:30002', '');
+    egal(
+      JSON.stringify(apresClic),
+      '{"allie:30002":""}',
+      '« Aucun sort » s’ENREGISTRE — l’effacer ferait retomber sur le sort du kit'
+    );
+    egal(boostPose({ sort2: apresClic }), '{}', 'et alors le boost du kit n’est plus appliqué');
+
+    // L'autre convention, elle, efface bien : c'est « laisser le kit décider ».
+    egal(
+      JSON.stringify(noterChoix({ 'allie:30002': '' }, 'allie:30002', AUTO)),
+      '{}',
+      'AUTO retire l’entrée : le sort du kit reprend la main'
+    );
+    egal(
+      boostPose({ sort2: noterChoix({ 'allie:30002': '' }, 'allie:30002', AUTO) }),
+      dOffice,
+      'et on retrouve exactement le comportement d’office'
+    );
   }
 
   // Le PASSIF entre dans la vitesse — et il peut changer qui est le plus rapide.

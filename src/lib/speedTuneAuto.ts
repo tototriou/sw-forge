@@ -210,6 +210,34 @@ export function ampliCamp(equipe: EntreeAuto[], d: DonneesKit): number {
 // que le kit retiendrait. ⚠️ Sans ça, l'écran affichait un ordre des sorts dont
 // personne ne tenait compte — on choisissait un sort, et le verdict n'en savait
 // rien.
+// ⚠️ **« Aucun sort » est un CHOIX, l'absence de choix en est un autre.** Les
+// deux se sont longtemps écrits pareil, et c'est ce qui a produit le bug : la
+// chaîne rendait le boost de barre d'un monstre à qui on venait justement de
+// dire de ne rien lancer.
+//
+//   - `''`      → « Aucun sort » : il joue, mais rien qui touche la vitesse.
+//                 C'est une VALEUR, elle s'enregistre.
+//   - `AUTO`    → « laisser le kit décider » : on RETIRE l'entrée, et le sort du
+//                 kit reprend la main.
+//
+// ⚠️ **Une seule fonction pour les deux sorts.** Le premier réservait la
+// suppression à `AUTO` (juste), le second supprimait sur `''` (faux) : deux
+// conventions pour la même chose, écrites à deux endroits. Choisir « Aucun sort »
+// en second tour effaçait donc le choix, et le kit rappliquait son sort — le
+// +15 % de barre de Kroa revenait alors qu'on venait de l'écarter.
+export const AUTO = '__auto';
+
+export function noterChoix(
+  prev: Record<string, string>,
+  uid: string,
+  valeur: string
+): Record<string, string> {
+  const next = { ...prev };
+  if (valeur === AUTO) delete next[uid];
+  else next[uid] = valeur;
+  return next;
+}
+
 export interface ChoixSorts {
   sort?: Record<string, string>;
   sort2?: Record<string, string>;

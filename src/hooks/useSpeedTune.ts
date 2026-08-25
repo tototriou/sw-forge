@@ -47,7 +47,7 @@ import {
 } from '../lib/speedTuneLignes';
 import { kitVitesse, sortsVitesse, KitVitesse, SortVitesse } from '../lib/speedTuneKit';
 import { passifsVitesse, PassifVitesse } from '../lib/speedTunePassif';
-import { analyseAutomatique, sortRetenu } from '../lib/speedTuneAuto';
+import { analyseAutomatique, noterChoix, sortRetenu } from '../lib/speedTuneAuto';
 import { chargerDetail } from '../lib/monsterSkills';
 import { teamSummary } from '../lib/recoFromSiege';
 import { formesJouables } from '../lib/monsterForms';
@@ -657,13 +657,11 @@ export function useSpeedTune({
     return null;
   }
 
+  // ⚠️ Les deux sorts passent par la MÊME fonction : voir `noterChoix`. Écrites
+  // séparément, elles avaient divergé — et « Aucun sort » en second tour
+  // effaçait le choix au lieu de l'enregistrer.
   function choisirSort(uid: string, valeur: string) {
-    setSortChoisi((prev) => {
-      const next = { ...prev };
-      if (valeur === '__auto') delete next[uid];
-      else next[uid] = valeur;
-      return next;
-    });
+    setSortChoisi((prev) => noterChoix(prev, uid, valeur));
   }
 
   // L'allié visé par un sort mono-cible. '' = le défaut (barre la plus basse).
@@ -672,12 +670,7 @@ export function useSpeedTune({
   }
 
   function choisirSecond(uid: string, valeur: string) {
-    setSortChoisi2((prev) => {
-      const next = { ...prev };
-      if (valeur === '') delete next[uid];
-      else next[uid] = valeur;
-      return next;
-    });
+    setSortChoisi2((prev) => noterChoix(prev, uid, valeur));
   }
 
   function deplacer(uid: string, sens: -1 | 1) {

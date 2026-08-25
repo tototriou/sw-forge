@@ -600,6 +600,23 @@ Et **deux exclusions**, qui ont chacune fait mentir un verdict :
 Les deux restent **choisissables à la main** dans l'ordre des sorts, en
 connaissance de cause — le menu affiche l'effet et le taux.
 
+⚠️ **« Aucun sort » est un CHOIX, pas l'absence de choix.** Les deux se disent
+dans le même Record, et les confondre a fait mentir l'écran :
+
+| valeur | sens | effet sur le Record |
+|--------|------|---------------------|
+| `''` | **Aucun sort** — il joue, mais rien qui touche la vitesse | **enregistrée** |
+| `AUTO` | laisser le **kit** décider | l'entrée est **retirée** |
+
+⚠️ **Une seule fonction pour les deux sorts** (`noterChoix`,
+[speedTuneAuto.ts](src/lib/speedTuneAuto.ts)). Écrites séparément, elles avaient
+divergé : le premier sort réservait la suppression à `AUTO` (juste), le second
+supprimait sur `''` (faux). Dire « Aucun sort » au **second tour** effaçait donc
+le choix, et le kit rappliquait son sort — le +15 % de barre de Kroa revenait
+alors qu'on venait précisément de l'écarter, tick après tick. Choisir un AUTRE
+sort marchait, ce qui rendait le défaut d'autant plus retors : seul le cas « rien »
+était touché.
+
 ### Ce qu'on retire à l'adverse
 
 ⚠️ **Aucun retrait de barre ni ralenti n'entre dans le calcul du tune, jamais,

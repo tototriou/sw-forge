@@ -40,8 +40,11 @@ import {
   DEFAULT_DAMAGE_SETUP,
   computeTotalDamage,
   damageRelevantStats,
+  monsterBonusDegatsConditionnel,
   monsterBonusDegatsSelonVit,
   monsterBonusDegatsStackable,
+  monsterBonusStatFixe,
+  monsterCritRateSelonVit,
   monsterCritSiPlusRapide,
   monsterDamageSkills,
   monsterModificateursVit,
@@ -318,6 +321,23 @@ export default function OptimizerSection({ box, runes, optimizer, allMonsters, r
   // (saisi par l'utilisateur), pas ici : ceci ne porte que la DÉTECTION du
   // passif (nom/plafond), comme les deux modificateurs ci-dessus.
   const bonusDegatsStack = useMemo(() => monsterBonusDegatsStackable(skillDetail), [skillDetail]);
+  // Ciri (Feu)/MOS (Feu)/Reyka — Taux Crit selon la VIT, avec surplus
+  // reversé en Dgts Crit. Lizardman/Glinodon — points flats de Taux
+  // Crit/Dgts Crit, inconditionnels. Les deux touchent directement le
+  // Taux/Dgts Crit à chaque instance, groupés en un seul objet pour
+  // `computeTotalDamage`/`computeSkillDamageDetail` (voir `monsterWide`).
+  const critRateSelonVit = useMemo(() => monsterCritRateSelonVit(skillDetail), [skillDetail]);
+  const bonusStatFixe = useMemo(() => monsterBonusStatFixe(skillDetail), [skillDetail]);
+  const monsterWide = useMemo(
+    () => ({ critRateSelonVit: critRateSelonVit ?? undefined, bonusStatFixe: bonusStatFixe ?? undefined }),
+    [critRateSelonVit, bonusStatFixe]
+  );
+  // Bonus conditionnel à bouton (Jin Kazama, Cyborg, Brownie Magician,
+  // Astar, Jean, Kyle, Satoru Gojo, Werner, Zenitsu, Qilin Slasher, Panda
+  // Warrior, Mi Ying…) — condition que l'app ne peut pas déduire (PV
+  // propres, état d'un allié, tour précédent…), toggle dans `damageSetup.
+  // passifsOffensifs` comme un passif `bonus`/`conditionnel` classique.
+  const bonusDegatsConditionnel = useMemo(() => monsterBonusDegatsConditionnel(skillDetail), [skillDetail]);
   // Affichage seul (icône/nom/description) des deux modificateurs VIT
   // ci-dessus, pour « Passifs offensifs » — voir `DamageSetupCard.tsx`.
   const modificateursVit = useMemo(() => monsterModificateursVit(skillDetail), [skillDetail]);
@@ -327,9 +347,9 @@ export default function OptimizerSection({ box, runes, optimizer, allMonsters, r
   const objectiveStats = useMemo(
     () =>
       objective === 'degats_reels'
-        ? damageRelevantStats(resolvedSkill, offensivePassives, damageSetup, critSiPlusRapide, bonusDegatsSelonVit)
+        ? damageRelevantStats(resolvedSkill, offensivePassives, damageSetup, critSiPlusRapide, bonusDegatsSelonVit, critRateSelonVit)
         : undefined,
-    [objective, resolvedSkill, offensivePassives, damageSetup, critSiPlusRapide, bonusDegatsSelonVit]
+    [objective, resolvedSkill, offensivePassives, damageSetup, critSiPlusRapide, bonusDegatsSelonVit, critRateSelonVit]
   );
   // Statistiques principales autorisées sur les slots 2/4/6 — vide = libre.
   // Voir spec/outils/optimizer/ : pour un Lushen, ATQ% en 2, Dmg Crit en 4,
@@ -569,6 +589,8 @@ export default function OptimizerSection({ box, runes, optimizer, allMonsters, r
             critSiPlusRapide,
             bonusDegatsSelonVit,
             bonusDegatsStack,
+            monsterWide,
+            bonusDegatsConditionnel,
           }
         : null,
     [
@@ -580,6 +602,8 @@ export default function OptimizerSection({ box, runes, optimizer, allMonsters, r
       critSiPlusRapide,
       bonusDegatsSelonVit,
       bonusDegatsStack,
+      monsterWide,
+      bonusDegatsConditionnel,
     ]
   );
 
@@ -1464,6 +1488,8 @@ export default function OptimizerSection({ box, runes, optimizer, allMonsters, r
               critSiPlusRapide={critSiPlusRapide}
               bonusDegatsSelonVit={bonusDegatsSelonVit}
               bonusDegatsStack={bonusDegatsStack}
+              critRateSelonVit={critRateSelonVit}
+              bonusDegatsConditionnel={bonusDegatsConditionnel}
               ampliVitPct={ampliVitPct}
             />
           </div>
@@ -2218,7 +2244,9 @@ export default function OptimizerSection({ box, runes, optimizer, allMonsters, r
                           realDamage.ampliVitPct,
                           realDamage.critSiPlusRapide,
                           realDamage.bonusDegatsSelonVit,
-                          realDamage.bonusDegatsStack
+                          realDamage.bonusDegatsStack,
+                          realDamage.monsterWide,
+                          realDamage.bonusDegatsConditionnel
                         );
                         return { total, partPvCible: damageSetup.enemyHp > 0 ? (total / damageSetup.enemyHp) * 100 : 0 };
                       })()

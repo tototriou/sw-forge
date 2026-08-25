@@ -351,17 +351,21 @@ retour.
        pour ces sorts-là. Détail : [degats-reels.md](degats-reels.md),
        « Coups variables ».
      - **Passifs offensifs** — n'apparaît que si le monstre en a un
-       (Feng Yan, Sia, Roid, Dominic, Ciri, Sonia, Momo…) : des dégâts **en
-       plus** du sort choisi ci-dessus, OU un modificateur sur l'ensemble de
-       ses dégâts, via un passif reconnu (liste à la main, voir
-       [degats-reels.md](degats-reels.md)). Un passif **toujours actif** (le
-       texte du jeu ne pose aucune condition) apparaît en jeton simple, sans
-       bouton — y compris un modificateur sans formule propre (crit garanti
-       si plus rapide, bonus continu selon l'écart de VIT). Un passif
-       **bonus** ou **conditionnel** apparaît en bouton, **désactivé par
-       défaut** ; un passif dont le bonus S'ACCUMULE en combat sans que
-       l'app ne puisse le savoir (Momo) apparaît avec un **champ numérique**
-       (0 % par défaut) plutôt qu'un bouton. ⚠️ **Jamais déduit d'un autre
+       (Feng Yan, Sia, Roid, Dominic, Ciri, Sonia, Momo, Chun-Li, Lizardman,
+       Jin Kazama…) : des dégâts **en plus** du sort choisi ci-dessus, OU un
+       modificateur sur l'ensemble de ses dégâts, via un passif reconnu
+       (liste à la main, voir [degats-reels.md](degats-reels.md)). Un passif
+       **toujours actif** (le texte du jeu ne pose aucune condition)
+       apparaît en jeton simple, sans bouton — y compris un modificateur
+       sans formule propre (crit garanti si plus rapide, bonus continu
+       selon l'écart de VIT, Taux Crit selon la VIT, bonus flat de Taux
+       Crit/Dgts Crit). Un passif **bonus** ou **conditionnel**, ou un
+       modificateur sans formule propre soumis à une condition que l'app ne
+       peut pas déduire (PV propres, état d'un allié, tour précédent…),
+       apparaît en bouton, **désactivé par défaut** ; un passif dont le
+       bonus S'ACCUMULE en combat sans que l'app ne puisse le savoir (Momo)
+       apparaît avec un **champ numérique** (0 % par défaut) plutôt qu'un
+       bouton. ⚠️ **Jamais déduit d'un autre
        réglage de l'écran** (le passif d'un monstre peut dépendre de l'état
        posé par son **propre** sort, avant même que ce sort ne soit lancé :
        aucun réglage existant ne peut trancher ça à sa place) — la condition

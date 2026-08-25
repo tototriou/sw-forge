@@ -50,6 +50,7 @@ import { OptimMetric } from './runeOptim';
 import {
   DEF_FACTOR_CONST,
   DEF_FACTOR_COEF,
+  BonusDegatsConditionnelProfile,
   BonusDegatsStackableProfile,
   DamageSetup,
   PassifOffensifProfile,
@@ -349,6 +350,13 @@ export interface RealDamageContext {
   // lui, est saisi par l'utilisateur (`setup.stackPersonnalise`). `null` =
   // comportement inchangé.
   bonusDegatsStack: BonusDegatsStackableProfile | null;
+  // Ciri (Feu)/MOS (Feu)/Reyka et Lizardman/Glinodon — voir
+  // `monsterCritRateSelonVit`/`monsterBonusStatFixe`. `{}` = comportement
+  // inchangé.
+  monsterWide: { critRateSelonVit?: { ptsParVit: number }; bonusStatFixe?: { cr: number; cd: number } };
+  // Bonus conditionnel à bouton (Jin Kazama, Cyborg, Brownie Magician…) —
+  // voir `monsterBonusDegatsConditionnel`. `null` = comportement inchangé.
+  bonusDegatsConditionnel: BonusDegatsConditionnelProfile | null;
 }
 
 export function objectiveScore(candidate: BuildCandidate, objective: Objective, realDamage?: RealDamageContext): number {
@@ -374,7 +382,9 @@ export function objectiveScore(candidate: BuildCandidate, objective: Objective, 
       realDamage.ampliVitPct,
       realDamage.critSiPlusRapide,
       realDamage.bonusDegatsSelonVit,
-      realDamage.bonusDegatsStack
+      realDamage.bonusDegatsStack,
+      realDamage.monsterWide,
+      realDamage.bonusDegatsConditionnel
     );
   }
   if (objective === 'degats') {

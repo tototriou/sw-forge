@@ -29,10 +29,14 @@ import { loadMonsterSkills } from './lib/skillsData';
 import { loadMonstersList } from './lib/monstersData';
 import {
   DEFAULT_DAMAGE_SETUP,
+  bonusDegatsConditionnelActif,
   bonusPassifActif,
   damageRelevantStats,
+  monsterBonusDegatsConditionnel,
   monsterBonusDegatsSelonVit,
   monsterBonusDegatsStackable,
+  monsterBonusStatFixe,
+  monsterCritRateSelonVit,
   monsterCritSiPlusRapide,
   monsterDamageSkills,
   monsterOffensivePassives,
@@ -173,6 +177,9 @@ if (recipe.objective === 'degats_reels') {
       console.warn(`⚠️ Sort ${s.skillCom2usId} de la recette introuvable ici — repli sur « ${profile.nom} ».`);
     }
     const lead = resolvedLeaderSkill(s);
+    const bonusConditionnel = monsterBonusDegatsConditionnel(detail);
+    const bonusStatFixe = monsterBonusStatFixe(detail);
+    const critRateSelonVit = monsterCritRateSelonVit(detail);
     console.log(
       `Dégâts réels : sort « ${profile.nom} » (S${profile.slot}, ${resolvedHits(profile, s)} coup(s)` +
         `${profile.hitsRange ? ` [variable ${profile.hitsRange.min}-${profile.hitsRange.max}]` : ''}` +
@@ -185,12 +192,19 @@ if (recipe.objective === 'degats_reels') {
         `${s.defBreak ? ' — def break avant' : ''}${s.defBreakParLeSort ? ' — def break posé par le sort' : ''}` +
         `${s.brand ? ' — marque' : ''}` +
         `${s.euldongActif ? ' — Euldong' : ''}${s.mirinaeActif ? ' — Mirinae' : ''}${s.deborahActif ? ' — Deborah' : ''}${s.miriamActif ? ' — Miriam' : ''}` +
-        `${lead ? ` — lead ${lead.stat} +${lead.pct}%` : ''} — ` +
+        `${lead ? ` — lead ${lead.stat} +${lead.pct}%` : ''}` +
+        `${bonusConditionnel && bonusDegatsConditionnelActif(bonusConditionnel, s) ? ` — ${bonusConditionnel.nom.replace(/\s*\(Passive\)\s*$/i, '')} (+${bonusConditionnel.pct}%)` : ''} — ` +
         // ⚠️ `?? DEFAULT` : une recette exportée AVANT ce champ n'en a pas.
         // L'élément vient du monstre CHARGÉ, jamais de la recette.
         `comp. invocateur ${s.summonerSkills ?? DEFAULT_DAMAGE_SETUP.summonerSkills} (${monsterElement ?? 'élément inconnu'}) — ` +
-        `stats privilégiées [${damageRelevantStats(profile, passifs, s, monsterCritSiPlusRapide(detail), monsterBonusDegatsSelonVit(detail)).join(', ')}]`
+        `stats privilégiées [${damageRelevantStats(profile, passifs, s, monsterCritSiPlusRapide(detail), monsterBonusDegatsSelonVit(detail), monsterCritRateSelonVit(detail)).join(', ')}]`
     );
+    if (bonusStatFixe) {
+      console.log(`Ce monstre ajoute +${bonusStatFixe.cr} pts de Taux Crit et +${bonusStatFixe.cd} pts de Dgts Crit, toujours (Detect Weakspot).`);
+    }
+    if (critRateSelonVit) {
+      console.log(`Ce monstre convertit sa VIT en Taux Crit (1 pt tous les ${critRateSelonVit.ptsParVit} pts), le surplus au-delà de 100 % en Dgts Crit.`);
+    }
     // `resolveArtifacts`, PAS `loaded.gear.artifacts` : ceux réellement
     // envoyés au moteur (réels, hypothétiques ou aucun selon la recette) —
     // même source que `params.artifacts` (défini plus bas dans ce fichier),

@@ -533,6 +533,94 @@ bonusDegatsStack)` l'applique multiplicativement sur le TOTAL, après coup —
 même famille que `bonusDegatsSelonVit`, seule la SOURCE du pourcentage
 change (saisie plutôt que déduite de la VIT).
 
+### Catalogue « passifs non implémentés » — première vague
+
+Une recherche large des flags `Increase Damage`/`Increase Critical Damage`/
+`Buff Bonus Damage` sur tout le corpus avait remonté ~65 entrées non
+modélisées (catalogue livré à part). L'utilisateur a répondu question par
+question sur les 26 premières ; quatre nouvelles familles de modificateurs
+en sont sorties, toutes de la MÊME nature que `bonusDegatsSelonVit`/
+`bonusDegatsStack` ci-dessus (`formule: ""` sur les 26 entrées vérifiées,
+donc jamais des `PASSIFS_OFFENSIFS_CONNUS`) :
+
+- **Taux Crit selon la VIT** (`CRIT_RATE_SELON_VIT_CONNUS`,
+  `monsterCritRateSelonVit`) — Ciri (Feu, « Wolf School Training »), Magic
+  Order Swordsinger (Feu) et Reyka (« Quick Execution ») : « Your Critical
+  Rate increases in proportion to your Attack Speed. Additionally, if your
+  Critical Rate exceeds 100%, your Critical Damage increases by the
+  exceeded amount. » Confirmé par l'utilisateur : **1 point de Taux Crit
+  tous les 12 points de VIT** (arrondi vers le bas), le SURPLUS au-delà de
+  100 % se reversant en Dgts Crit **1 pour 1**, y compris le surplus
+  apporté par ce même passif. ⚠️ Le reversement est un mécanisme PROPRE à
+  ce passif — un monstre sans lui qui dépasse 100 % de Taux Crit (runes
+  très généreuses) reste simplement plafonné, comme avant cette
+  fonctionnalité (régression trouvée et corrigée en cours de route, voir
+  le test dédié).
+- **Bonus flat de Taux Crit/Dgts Crit** (`BONUS_STAT_FIXE_CONNUS`,
+  `monsterBonusStatFixe`) — Lizardman (Lumière)/Glinodon, « Detect
+  Weakspot » : « Increases your Critical Rate by 20% and the damage of
+  your Critical Hits by 20% », `[Automatic Effect]` sans la moindre
+  condition, toujours actif.
+- **Extension de `BONUS_DEGATS_SELON_VIT_CONNUS`** — Chun-Li (Lumière),
+  « Heavenly Kicks », et Leah (Lumière), « Turn Out » : texte identique mot
+  pour mot à Sonia, seuls les paliers changent (**max 200 % à +150 points
+  d'écart de VIT**, confirmé par l'utilisateur, contre 50/50 pour Sonia).
+  ⚠️ Heavenly Kicks n'existe que sur la forme Lumière de Chun-Li — ses
+  quatre autres formes portent un passif différent (Rankyaku, une formule
+  propre à ATQ selon la VIT, hors du périmètre de cette famille).
+- **Bonus conditionnel à bouton** (`BONUS_DEGATS_CONDITIONNEL_CONNUS`,
+  `monsterBonusDegatsConditionnel`) — douze entrées vérifiées, une
+  condition binaire que l'app ne peut PAS déduire (PV propres au monstre,
+  comparaison de PV avec la cible, état d'un allié, tour précédent…),
+  toujours « +X % au total, désactivé par défaut » :
+
+  | Passif | Monstre(s) | Condition | Bonus |
+  |---|---|---|---|
+  | Indomitable Will / Martial Artist's Will | Jin Kazama, Kai | PV ≤ 23,5 % | +100 % |
+  | Self Repair | Cyborg (Vent), Eliza | PV > 50 % | +100 % (simplifié binaire) |
+  | Small Grudge | Brownie Magician (Lumière), Gemini | tes PV % < ceux de la cible | +100 % |
+  | Vengeful Fire / Quality of Phantom | Astar, Jean | la cible a plus de PV % que toi | +100 % |
+  | Strategic Advantage / Infinity / Magic Resistance | Kyle, Satoru Gojo (Feu), Werner (Feu) | pas attaqué depuis ton dernier tour | +100 % |
+  | Protective Power / Retributive Power | Zenitsu Agatsuma (Feu), Qilin Slasher (Feu) | un allié est sous incapacité | +50 % |
+  | Almighty Strength | Panda Warrior (Ténèbres), Mi Ying | ton ATQ > celui de l'adversaire | +50 % |
+
+  ⚠️ **Self Repair simplifié en binaire** : le texte du jeu dit « increases
+  the damage by up to 100% according to your HP condition » — un scaling
+  CONTINU entre 50 % et 100 % de PV, sans pente confirmée. L'utilisateur a
+  lui-même comparé ce cas à Dominic (binaire) plutôt que de faire deviner
+  une courbe — retenu tel quel (0 % / 100 %), documenté comme une
+  simplification, pas une confirmation de linéarité.
+  ⚠️ **Vengeful Fire porte une SECONDE clause non modélisée** (« increases
+  your Attack Power by 150% until the next turn if you receive damage from
+  an enemy ») — état de combat séquentiel (a-t-on subi une attaque ce
+  tour), hors de portée d'un calcul instantané ; seule la clause dégâts est
+  modélisée.
+
+  Stockage : **même `Record` que `passifsOffensifs`** (clé =
+  `skillCom2usId` de CE modificateur) — pas un nouveau champ dans
+  `DamageSetup`, ces modificateurs n'ont pas de formule propre à
+  additionner mais ont bien une compétence à eux. `bonusDegatsConditionnelActif(p,
+  setup)` lit ce même Record. Appliqué multiplicativement sur le TOTAL,
+  même famille que `bonusDegatsSelonVit`/`bonusDegatsStack` — seule la
+  SOURCE change (un bouton plutôt qu'une valeur saisie ou déduite de la VIT).
+
+⚠️ **Réponses données par l'utilisateur pour les points 4 à 26 non
+implémentées ici** : les points 4 à 6 (Julie, Melissa, Covenant) exigent un
+NOUVEAU champ « nombre d'effets bénéfiques/néfastes sur la cible » —
+mécanisme jamais construit, et le nombre de coups de Julie hors pleine vie
+reste non chiffré (« à implémenter » seul, sans le chiffre manquant) ;
+les points 16 à 20 (Fermion, Trasar, Velaska, Zenitsu Ténèbres, Dr.
+Plasma/Matteo) dépendent d'un ÉTAT D'ÉQUIPE (compteur de morts, PV perdus
+d'un allié) nécessitant un champ configurable dédié, pas encore construit ;
+les points 23-24 (Ludo, Martina) nécessitent un champ RNG/stack dédié ; le
+point 25 (Crawler) porte une formule bespoke sur SA PROPRE compétence
+active (`2,04×DEF + N×0,20×DEF` par coup, N configurable 0-9999) plutôt
+qu'un modificateur générique ; le point 26 (Aragorn/Night Fang) n'a pas
+reçu de réponse. Points 10-12 (Karakum, Nezuko, formules à ratio inconnu) :
+explicitement laissés de côté par l'utilisateur (formule inconnue,
+monstres jamais joués). Aucun de ces cas n'est implémenté — à reprendre
+sur une demande dédiée plutôt qu'en marge de cette vague.
+
 ## Effets d'ÉQUIPE (Euldong, Mirinae, Deborah, Miriam)
 
 Quatre effets **portés par un AUTRE monstre que celui optimisé** — leur

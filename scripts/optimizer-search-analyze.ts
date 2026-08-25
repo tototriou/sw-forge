@@ -26,8 +26,11 @@ import { loadMonsterSkills } from './lib/skillsData';
 import { loadMonstersList } from './lib/monstersData';
 import {
   DEFAULT_DAMAGE_SETUP,
+  monsterBonusDegatsConditionnel,
   monsterBonusDegatsSelonVit,
   monsterBonusDegatsStackable,
+  monsterBonusStatFixe,
+  monsterCritRateSelonVit,
   monsterCritSiPlusRapide,
   monsterDamageSkills,
   monsterOffensivePassives,
@@ -82,6 +85,11 @@ if (recipe.objective === 'degats_reels') {
       critSiPlusRapide: monsterCritSiPlusRapide(detail),
       bonusDegatsSelonVit: monsterBonusDegatsSelonVit(detail),
       bonusDegatsStack: monsterBonusDegatsStackable(detail),
+      monsterWide: {
+        critRateSelonVit: monsterCritRateSelonVit(detail) ?? undefined,
+        bonusStatFixe: monsterBonusStatFixe(detail) ?? undefined,
+      },
+      bonusDegatsConditionnel: monsterBonusDegatsConditionnel(detail),
     };
   } else {
     console.warn(`⚠️ Objectif « Dégâts réels » mais aucun sort calculable pour ${loaded.monsterName} — objectiveScore lèvera.`);

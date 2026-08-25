@@ -38,6 +38,7 @@ import {
   MIRINAE_BONUS_PCT,
   SPD_BUFF_PCT,
   SkillDamageProfile,
+  bonusDegatsConditionnelActif,
   computeSkillDamage,
   computeSkillDamageDetail,
   computeTotalDamage,
@@ -46,8 +47,11 @@ import {
   defenseFactor,
   estPrisEnCharge,
   maVitCombat,
+  monsterBonusDegatsConditionnel,
   monsterBonusDegatsSelonVit,
   monsterBonusDegatsStackable,
+  monsterBonusStatFixe,
+  monsterCritRateSelonVit,
   monsterCritSiPlusRapide,
   monsterDamageSkills,
   monsterModificateursVit,
@@ -590,6 +594,139 @@ export default function testDegats() {
   ok(modifRigna[0]?.detail.includes('critique garanti'), 'le détail affiché de Rigna mentionne le critique, pas un bonus de dégâts');
   egal(monsterModificateursVit(fiche(LUSHEN)).length, 0, 'Lushen : aucun modificateur');
   egal(monsterModificateursVit(null).length, 0, 'fiche absente : liste vide, jamais une exception');
+
+  titre('Dégâts réels — catalogue « passifs non implémentés », réponses jusqu’au point 26');
+
+  // Chun-Li (Lumière)/Leah (Lumière) — même mécanisme que Sonia, seuls les
+  // paliers changent (confirmé par l'utilisateur : max 200 % à 150 pts
+  // d'écart, contre 50/50 pour Sonia).
+  const chunli = fiche(24414);
+  const chunliBase = defaultDamageSkill(monsterDamageSkills(chunli));
+  ok(chunliBase !== null, 'Chun-Li (Lumière) : un sort de dégâts par défaut est trouvé');
+  egal(monsterBonusDegatsSelonVit(chunli), { ecartMax: 150, pctMax: 200 }, 'Chun-Li (Lumière) : paliers confirmés par l’utilisateur');
+  const leah = fiche(24914);
+  const leahBase = defaultDamageSkill(monsterDamageSkills(leah));
+  ok(leahBase !== null, 'Leah (Lumière) : un sort de dégâts par défaut est trouvé');
+  egal(monsterBonusDegatsSelonVit(leah), { ecartMax: 150, pctMax: 200 }, 'Leah (Lumière) : mêmes paliers');
+  ok(!monsterBonusDegatsSelonVit(fiche(24413)), 'Chun-Li (Vent) porte un passif différent (Rankyaku), pas ce mécanisme');
+  const chunliStats = stats({ atk: 2000, cd: 200, cr: 100, spd: 200 });
+  const chunliSetup: DamageSetup = { ...DEFAULT_DAMAGE_SETUP, skillCom2usId: chunliBase!.skillCom2usId, summonerSkills: 'aucune', critMode: 'normal' };
+  const chunliConfig = monsterBonusDegatsSelonVit(chunli)!;
+  const chunliSansEcart = computeSkillDamage(chunliBase!, chunliStats, { ...chunliSetup, enemySpd: 200 });
+  const chunliAvec150 = computeTotalDamage(chunliBase!, [], chunliStats, { ...chunliSetup, enemySpd: 50 }, null, 0, false, chunliConfig);
+  ok(Math.abs(chunliAvec150 / chunliSansEcart - 3) < 1e-9, 'Chun-Li : 150 pts d’écart = +200 % (le plafond), soit ×3');
+
+  // Ciri (Feu)/Magic Order Swordsinger (Feu)/Reyka — Taux Crit selon la VIT
+  // (1 pt tous les 12 pts, confirmé), surplus au-delà de 100 % reversé en
+  // Dgts Crit 1 pour 1 (y compris le surplus apporté par ce même passif).
+  egal(monsterCritRateSelonVit(fiche(29312)), { ptsParVit: 12 }, 'Ciri (Feu)');
+  egal(monsterCritRateSelonVit(fiche(29702)), { ptsParVit: 12 }, 'Magic Order Swordsinger (Feu)');
+  egal(monsterCritRateSelonVit(fiche(29712)), { ptsParVit: 12 }, 'Reyka');
+  ok(!monsterCritRateSelonVit(fiche(LUSHEN)), 'Lushen n’a pas ce mécanisme');
+  ok(!monsterCritRateSelonVit(null), 'fiche absente : null, jamais une exception');
+  const critVitConfig = { critRateSelonVit: { ptsParVit: 12 } };
+  // maVit = 240 (spd runé, aucune compétence d'invocateur) → crDepuisVit =
+  // floor(240/12) = 20 pts.
+  const critVitStatsSansOverflow = stats({ atk: 2000, cd: 100, cr: 40, spd: 240 });
+  const critVitSetup: DamageSetup = { ...DEFAULT_DAMAGE_SETUP, critMode: 'moyenne', summonerSkills: 'aucune' };
+  const skillupS3 = s3!.skillupDamagePct / 100;
+  const detailAvecVit = computeSkillDamageDetail(s3!, critVitStatsSansOverflow, critVitSetup, null, undefined, 0, critVitConfig);
+  const detailSansVit = computeSkillDamageDetail(s3!, critVitStatsSansOverflow, critVitSetup, null, undefined, 0, {});
+  ok(
+    Math.abs(detailAvecVit.total / detailSansVit.total - (1 + skillupS3 + 0.6 * 1.0) / (1 + skillupS3 + 0.4 * 1.0)) < 1e-9,
+    '20 pts de Taux Crit ajoutés par la VIT (40 % → 60 %), sans dépasser 100 % : aucun reversement en Dgts Crit'
+  );
+  // Même stats mais cr=90 : crBrut = 90+20 = 110 → 10 pts de surplus
+  // reversés en Dgts Crit, cr plafonné à 100 %.
+  const critVitStatsOverflow = stats({ atk: 2000, cd: 100, cr: 90, spd: 240 });
+  const detailOverflow = computeSkillDamageDetail(s3!, critVitStatsOverflow, critVitSetup, null, undefined, 0, critVitConfig);
+  const detailOverflowSansPassif = computeSkillDamageDetail(s3!, critVitStatsOverflow, critVitSetup, null, undefined, 0, {});
+  ok(
+    Math.abs(
+      detailOverflow.total / detailOverflowSansPassif.total -
+        (1 + skillupS3 + 1 * 1.1) / (1 + skillupS3 + 0.9 * 1.0)
+    ) < 1e-9,
+    'le surplus de Taux Crit au-delà de 100 % (10 pts) se reverse en Dgts Crit, 1 pour 1'
+  );
+  // ⚠️ Régression ciblée : SANS le passif, un Taux Crit BRUT > 100 % (runes
+  // très généreuses) doit rester simplement plafonné, jamais reversé.
+  const sansVitCr130 = computeSkillDamageDetail(s3!, stats({ atk: 2000, cd: 100, cr: 130, spd: 240 }), critVitSetup, null, undefined, 0, {});
+  const sansVitCr100 = computeSkillDamageDetail(s3!, stats({ atk: 2000, cd: 100, cr: 100, spd: 240 }), critVitSetup, null, undefined, 0, {});
+  egal(sansVitCr130.total, sansVitCr100.total, 'un monstre SANS ce passif reste simplement plafonné à 100 %, aucun reversement');
+
+  // Lizardman (Lumière)/Glinodon — « Detect Weakspot » : +20 pts de Taux
+  // Crit et +20 pts de Dgts Crit, inconditionnels (« Automatic Effect »).
+  egal(monsterBonusStatFixe(fiche(17804)), { cr: 20, cd: 20 }, 'Lizardman (Lumière)');
+  egal(monsterBonusStatFixe(fiche(17814)), { cr: 20, cd: 20 }, 'Glinodon');
+  ok(!monsterBonusStatFixe(fiche(17801)), 'Lizardman (Eau) porte un passif différent (Bloody Skin), pas Detect Weakspot');
+  ok(!monsterBonusStatFixe(fiche(LUSHEN)), 'Lushen n’a pas ce mécanisme');
+  const fixeStats = stats({ atk: 2000, cd: 100, cr: 50, spd: 100 });
+  const detailAvecFixe = computeSkillDamageDetail(s3!, fixeStats, critVitSetup, null, undefined, 0, { bonusStatFixe: { cr: 20, cd: 20 } });
+  const detailSansFixe = computeSkillDamageDetail(s3!, fixeStats, critVitSetup, null, undefined, 0, {});
+  ok(
+    Math.abs(
+      detailAvecFixe.total / detailSansFixe.total - (1 + skillupS3 + 0.7 * 1.2) / (1 + skillupS3 + 0.5 * 1.0)
+    ) < 1e-9,
+    'Detect Weakspot : +20 pts de Taux Crit ET +20 pts de Dgts Crit, toujours actif'
+  );
+
+  // Bonus conditionnel à bouton — douze passifs sans formule propre,
+  // condition que l'app ne peut pas déduire (PV propres, comparaison avec
+  // la cible, état d'un allié, tour précédent…). Détection un par un,
+  // contre le texte SWARFARM réel (pas la paraphrase d'une recherche).
+  const conditionnelAttendus: [number, string, number][] = [
+    [33111, 'Indomitable Will (Passive)', 100], // Jin Kazama
+    [33601, "Martial Artist's Will (Passive)", 100], // Kai
+    [30103, 'Self Repair (Passive)', 100], // Cyborg (Vent)
+    [18004, 'Small Grudge (Passive)', 100], // Brownie Magician (Lumière)
+    [18014, 'Small Grudge (Passive)', 100], // Gemini
+    [19812, 'Vengeful Fire(Passive)', 100], // Astar
+    [14112, 'Quality of Phantom (Passive)', 100], // Jean
+    [24811, 'Strategic Advantage (Passive)', 100], // Kyle
+    [30312, 'Infinity (Passive)', 100], // Satoru Gojo (Feu)
+    [30902, 'Magic Resistance (Passive)', 100], // Werner (Feu)
+    [32212, 'Protective Power (Passive)', 50], // Zenitsu Agatsuma (Feu)
+    [32912, 'Retributive Power (Passive)', 50], // Qilin Slasher (Feu)
+    [21205, 'Almighty Strength (Passive)', 50], // Panda Warrior (Ténèbres)
+    [21215, 'Almighty Strength (Passive)', 50], // Mi Ying
+  ];
+  for (const [id, nom, pct] of conditionnelAttendus) {
+    const p = monsterBonusDegatsConditionnel(fiche(id));
+    egal(p?.nom, nom, `${id} : nom exact du passif détecté`);
+    egal(p?.pct, pct, `${id} (${nom}) : pourcentage confirmé`);
+  }
+  ok(!monsterBonusDegatsConditionnel(fiche(LUSHEN)), 'Lushen ne porte aucun de ces modificateurs');
+  ok(!monsterBonusDegatsConditionnel(null), 'fiche absente : null, jamais une exception');
+
+  // Profondeur numérique sur UN cas représentatif (Jin Kazama) : le bouton
+  // (désactivé par défaut) multiplie le TOTAL par exactement 1+pct/100.
+  const jinKazama = fiche(33111);
+  const jkBase = defaultDamageSkill(monsterDamageSkills(jinKazama));
+  ok(jkBase !== null, 'Jin Kazama : un sort de dégâts par défaut est trouvé');
+  const jkStats = stats({ atk: 2000, cd: 200, cr: 100 });
+  const jkSetup: DamageSetup = { ...DEFAULT_DAMAGE_SETUP, skillCom2usId: jkBase!.skillCom2usId, summonerSkills: 'aucune' };
+  const jkConfig = monsterBonusDegatsConditionnel(jinKazama)!;
+  egal(bonusDegatsConditionnelActif(jkConfig, jkSetup), false, 'désactivé par défaut, jamais deviné actif');
+  const jkSansToggle = computeTotalDamage(jkBase!, [], jkStats, jkSetup, null, 0, false, null, null, {}, jkConfig);
+  const jkAvecToggle = computeTotalDamage(
+    jkBase!,
+    [],
+    jkStats,
+    { ...jkSetup, passifsOffensifs: { [jkConfig.skillCom2usId]: true } },
+    null,
+    0,
+    false,
+    null,
+    null,
+    {},
+    jkConfig
+  );
+  ok(Math.abs(jkAvecToggle / jkSansToggle - 2) < 1e-9, 'Indomitable Will activé : exactement +100 % (×2)');
+  egal(
+    computeTotalDamage(jkBase!, [], jkStats, jkSetup, null, 0, false, null, null, {}, null),
+    jkSansToggle,
+    'bonusDegatsConditionnel=null (monstre sans ce passif) : aucun effet, même réglages identiques'
+  );
 
   titre('Dégâts réels — bonus de dégâts ACCUMULABLE (Momo)');
 

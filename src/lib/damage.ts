@@ -290,7 +290,60 @@ export function monsterCritSiPlusRapide(detail: DetailMonstre | null): boolean {
 // points d'écart = +50 %, 3 points = +3 %, 42 points = +42 %.
 const BONUS_DEGATS_SELON_VIT_CONNUS: Record<string, { ecartMax: number; pctMax: number }> = {
   'Evasion (Passive)': { ecartMax: 50, pctMax: 50 }, // Sonia, Battle Angel
+  // Confirmé par l'utilisateur : scaling linéaire, maximum de 200 % atteint
+  // à +150 points d'écart de VIT — même mécanisme que Sonia, seuls les
+  // paliers changent. Vérifié sur les données réelles : `formule: ""` sur
+  // les deux (aucune contribution propre), texte SWARFARM identique mot
+  // pour mot (« The damage increases up to 200% as your Attack Speed is
+  // faster than the enemy's Attack Speed »). ⚠️ Heavenly Kicks n'existe que
+  // sur Chun-Li (Lumière) — ses 4 autres formes élémentaires portent un
+  // passif différent (Rankyaku).
+  'Heavenly Kicks (Passive)': { ecartMax: 150, pctMax: 200 }, // Chun-Li (Lumière)
+  'Turn Out (Passive)': { ecartMax: 150, pctMax: 200 }, // Leah (Lumière)
 };
+
+// Passifs qui augmentent le Taux Crit en proportion de la VIT de combat —
+// Ciri (Feu, « Wolf School Training ») et Magic Order Swordsinger (Feu) /
+// Reyka (« Quick Execution ») : « Your Critical Rate increases in
+// proportion to your Attack Speed. Additionally, if your Critical Rate
+// exceeds 100%, your Critical Damage increases by the exceeded amount. »
+// `formule: ""` sur les trois — encore un MODIFICATEUR, pas un
+// `PASSIFS_OFFENSIFS_CONNUS`. Confirmé par l'utilisateur : 1 point de Taux
+// Crit tous les 12 points de VIT (arrondi vers le bas), et le SURPLUS
+// au-delà de 100 % de Taux Crit se reverse en points de Dgts Crit, 1 pour 1
+// (y compris le surplus apporté par ce même passif).
+const CRIT_RATE_SELON_VIT_CONNUS: Record<string, { ptsParVit: number }> = {
+  'Wolf School Training (Passive)': { ptsParVit: 12 }, // Ciri (Feu)
+  'Quick Execution (Passive)': { ptsParVit: 12 }, // Magic Order Swordsinger (Feu), Reyka
+};
+
+export function monsterCritRateSelonVit(detail: DetailMonstre | null): { ptsParVit: number } | null {
+  if (!detail) return null;
+  for (const c of detail.competences) {
+    const trouve = c.passif && CRIT_RATE_SELON_VIT_CONNUS[c.nom];
+    if (trouve) return trouve;
+  }
+  return null;
+}
+
+// Passifs qui ajoutent des POINTS FLATS, inconditionnels, au Taux Crit ET
+// aux Dgts Crit — Lizardman/Glinodon (« Detect Weakspot ») : « Increases
+// your Critical Rate by 20% and the damage of your Critical Hits by 20%. »
+// `formule: ""` — encore un MODIFICATEUR pur, `[Automatic Effect]` sans la
+// moindre condition (contrairement à tout ce qui suit) : toujours actif,
+// aucun bouton.
+const BONUS_STAT_FIXE_CONNUS: Record<string, { cr: number; cd: number }> = {
+  'Detect Weakspot (Passive)': { cr: 20, cd: 20 }, // Lizardman, Glinodon
+};
+
+export function monsterBonusStatFixe(detail: DetailMonstre | null): { cr: number; cd: number } | null {
+  if (!detail) return null;
+  for (const c of detail.competences) {
+    const trouve = c.passif && BONUS_STAT_FIXE_CONNUS[c.nom];
+    if (trouve) return trouve;
+  }
+  return null;
+}
 
 // Info d'AFFICHAGE seule des deux modificateurs ci-dessus (nom, description,
 // icône SWARFARM du passif) — jamais utilisée par le calcul, qui reste sur
@@ -329,6 +382,26 @@ export function monsterModificateursVit(detail: DetailMonstre | null): Modificat
         description: c.description,
         icone: c.icone,
         detail: `toujours actif — jusqu'à +${bonus.pctMax} % de dégâts à ${bonus.ecartMax} pts d'écart de VIT`,
+      });
+    }
+    const critVit = CRIT_RATE_SELON_VIT_CONNUS[c.nom];
+    if (critVit) {
+      out.push({
+        skillCom2usId: c.com2usId,
+        nom: c.nom,
+        description: c.description,
+        icone: c.icone,
+        detail: `toujours actif — +1 pt de Taux Crit tous les ${critVit.ptsParVit} pts de VIT, le surplus au-delà de 100 % se reverse en Dgts Crit`,
+      });
+    }
+    const statFixe = BONUS_STAT_FIXE_CONNUS[c.nom];
+    if (statFixe) {
+      out.push({
+        skillCom2usId: c.com2usId,
+        nom: c.nom,
+        description: c.description,
+        icone: c.icone,
+        detail: `toujours actif — +${statFixe.cr} pts de Taux Crit, +${statFixe.cd} pts de Dgts Crit`,
       });
     }
   }
@@ -382,6 +455,88 @@ export function monsterBonusDegatsStackable(detail: DetailMonstre | null): Bonus
 // chargé, ne doivent jamais produire une valeur hors plage).
 export function resolvedStackPct(p: BonusDegatsStackableProfile, setup: DamageSetup): number {
   return Math.min(p.pctMax, Math.max(0, setup.stackPersonnalise?.[p.skillCom2usId] ?? 0));
+}
+
+// Passifs qui majorent TOUS les dégâts du monstre d'un pourcentage FIXE
+// sous une condition que l'app ne peut PAS déduire (état de PV propre au
+// monstre, comparaison avec la cible, état d'un allié, tour précédent…) —
+// encore des MODIFICATEURS sans formule propre (`formule: ""` sur les
+// douze), donc PAS des `PASSIFS_OFFENSIFS_CONNUS`. Même famille que
+// `BONUS_DEGATS_SELON_VIT_CONNUS`/`BONUS_DEGATS_STACKABLE_CONNUS`
+// (multiplicatif sur le TOTAL, après coup), mais la condition est binaire
+// et purement DÉCLARATIVE — un bouton, désactivé par défaut, jamais deviné
+// (même discipline que `passifsOffensifs`, dont la Record est d'ailleurs
+// RÉUTILISÉE comme stockage : ces modificateurs n'ont pas de `formule`
+// propre à additionner, mais ils ont bien un `skillCom2usId` de compétence
+// à eux, la même clé que `PassifOffensifConnu.categorie: 'bonus'/
+// 'conditionnel'` utilise déjà).
+//
+// ⚠️ Texte du jeu vérifié un par un (pas la paraphrase d'une recherche
+// automatisée) avant d'ajouter chaque entrée ci-dessous :
+const BONUS_DEGATS_CONDITIONNEL_CONNUS: Record<string, { pct: number; condition: string }> = {
+  // « Decreases the damage taken by 50% and increases the damage dealt by
+  // 100% when your HP is at 23.5% or below. » — seule la partie DÉGÂTS est
+  // modélisée (la réduction de dégâts subis est hors du modèle, comme
+  // partout ailleurs dans ce fichier).
+  'Indomitable Will (Passive)': { pct: 100, condition: 'tes PV sont à 23,5 % ou moins' }, // Jin Kazama
+  "Martial Artist's Will (Passive)": { pct: 100, condition: 'tes PV sont à 23,5 % ou moins' }, // Kai
+  // « Increases the damage by up to 100% according to your HP condition if
+  // you attack the enemy while having more than 50% HP. » ⚠️ Simplifié en
+  // BINAIRE (0 % / 100 %) — le « up to… according to your HP condition »
+  // suggère un scaling continu entre 50 % et 100 % de PV, mais aucune pente
+  // n'est confirmée ; l'utilisateur a lui-même comparé ce cas à Dominic
+  // (binaire), retenu tel quel plutôt que d'inventer une courbe.
+  'Self Repair (Passive)': { pct: 100, condition: 'tes PV dépassent 50 %' }, // Cyborg, Eliza
+  // « Increases the damage by 100% if your HP condition is worse than the
+  // enemy's HP condition. » / « if the enemy has more HP than you » /
+  // « if the enemy's HP is higher than your HP » — trois formulations du
+  // MÊME sens (tes PV % < ceux de la cible), non déduit : l'app ne connaît
+  // pas les PV du monstre optimisé lui-même (seulement ceux de la cible).
+  'Small Grudge (Passive)': { pct: 100, condition: 'tes PV (en %) sont inférieurs à ceux de la cible' }, // Brownie Magician, Gemini
+  'Vengeful Fire(Passive)': { pct: 100, condition: 'la cible a plus de PV (en %) que toi' }, // Astar
+  'Quality of Phantom (Passive)': { pct: 100, condition: 'la cible a plus de PV (en %) que toi' }, // Jean
+  // « Increases the damage you deal by 100% if you get a turn without
+  // getting attacked for 1 turn. » — état du TOUR PRÉCÉDENT, jamais
+  // trackable par un calcul instantané.
+  'Strategic Advantage (Passive)': { pct: 100, condition: "tu n'as pas été attaqué depuis ton dernier tour" }, // Kyle
+  'Infinity (Passive)': { pct: 100, condition: "tu n'as pas été attaqué depuis ton dernier tour" }, // Satoru Gojo
+  'Magic Resistance (Passive)': { pct: 100, condition: "tu n'as pas été attaqué depuis ton dernier tour" }, // Werner
+  // « Increases the damage by 50% if there is an ally under an inability
+  // effect when you attack on your turn. » — état d'ÉQUIPE, hors de portée
+  // d'un optimiseur mono-monstre sans le déclarer manuellement.
+  'Protective Power (Passive)': { pct: 50, condition: 'un allié est sous un effet d’incapacité' }, // Zenitsu Agatsuma (Feu)
+  'Retributive Power (Passive)': { pct: 50, condition: 'un allié est sous un effet d’incapacité' }, // Qilin Slasher
+  // « increases the damage dealt by 50% if the enemy's Attack Power is
+  // lower than yours. » — l'app connaît TON ATQ mais ne modélise pas celle
+  // de l'adversaire (aucun champ `enemyAtk`).
+  'Almighty Strength (Passive)': { pct: 50, condition: 'ton ATQ dépasse celui de l’adversaire' }, // Panda Warrior (Ténèbres), Mi Ying
+};
+
+export interface BonusDegatsConditionnelProfile {
+  skillCom2usId: number;
+  nom: string;
+  description: string | null;
+  icone: string | null;
+  pct: number;
+  condition: string;
+}
+
+export function monsterBonusDegatsConditionnel(detail: DetailMonstre | null): BonusDegatsConditionnelProfile | null {
+  if (!detail) return null;
+  for (const c of detail.competences) {
+    if (!c.passif || c.com2usId == null) continue;
+    const config = BONUS_DEGATS_CONDITIONNEL_CONNUS[c.nom];
+    if (config) return { skillCom2usId: c.com2usId, nom: c.nom, description: c.description, icone: c.icone, ...config };
+  }
+  return null;
+}
+
+// Le bouton de `p` est-il activé ? Même stockage que
+// `passifsOffensifs`/`PassifOffensifCategorie` (clé = `skillCom2usId`) —
+// ce modificateur N'A PAS de formule propre à additionner, mais il a bien
+// un `skillCom2usId` de compétence, la même nature de clé.
+export function bonusDegatsConditionnelActif(p: BonusDegatsConditionnelProfile, setup: DamageSetup): boolean {
+  return setup.passifsOffensifs?.[p.skillCom2usId] ?? false;
 }
 
 type Noeud =
@@ -1230,7 +1385,14 @@ export function computeSkillDamageDetail(
   // Somme des lignes d'artéfact « Effet aug. VIT » équipées (voir
   // `speedBuffAmpliPct`) — fixe pour toute une recherche (l'Optimizer
   // n'optimise que les runes), calculée UNE fois par l'appelant.
-  ampliVitPct = 0
+  ampliVitPct = 0,
+  // Modificateurs monstre-wide qui touchent directement le Taux Crit/Dgts
+  // Crit — DÉDUITS de la fiche (`monsterCritRateSelonVit`/
+  // `monsterBonusStatFixe`, plus haut), jamais saisis. Regroupés en UN seul
+  // paramètre plutôt que deux de plus : cette fonction n'est appelée que
+  // depuis `damage.ts` (jamais directement par l'écran/les scripts), le
+  // risque d'oubli à un site d'appel externe est nul.
+  monsterWide: { critRateSelonVit?: { ptsParVit: number }; bonusStatFixe?: { cr: number; cd: number } } = {}
 ): { total: number; pvRestantsPct: number } {
   const bonus = summonerSkillBonus(setup.summonerSkills, element);
   // Compétences d'invocateur : un POURCENTAGE de la stat de BASE, ajouté au
@@ -1305,12 +1467,34 @@ export function computeSkillDamageDetail(
   // lead Taux Crit/Dégâts Crit dans la fiche stats (contrairement à un lead
   // PV/ATQ/DEF/VIT, un pourcentage MULTIPLICATIF de la stat de base).
   const pctLeaderCd = leader?.stat === 'Critical DMG' ? leader.pct : 0;
-  const cd = (total(stats, 'cd') + bonus.cdPoints + (setup.euldongActif ? EULDONG_CD_POINTS : 0) + pctLeaderCd) / 100;
   // ⚠️ Taux Crit PLAFONNÉ à 100 % : `computeStats` renvoie volontairement le
   // total BRUT (un dépassement reste une marge légitime contre la résistance
   // adverse), mais au-delà de 100 % il ne rapporte plus aucun dégât en jeu.
+  // Detect Weakspot (Lizardman/Glinodon) ajoute des points FLATS aux DEUX
+  // stats, inconditionnellement — voir `monsterBonusStatFixe`.
   const pctLeaderCr = leader?.stat === 'Critical Rate' ? leader.pct : 0;
-  const cr = Math.min(total(stats, 'cr') + pctLeaderCr, 100) / 100;
+  // Wolf School Training/Quick Execution (Ciri Feu, MOS Feu, Reyka) :
+  // 1 point de Taux Crit tous les `ptsParVit` points de VIT de combat
+  // (arrondi vers le bas), calculé sur LE TAUX CRIT BRUT (avant plafond à
+  // 100 %) — c'est le SURPLUS au-delà de 100 % qui se reverse en Dgts Crit,
+  // 1 pour 1, y compris le surplus apporté par ce même passif. Voir
+  // `monsterCritRateSelonVit`.
+  // ⚠️ Le renversement du surplus en Dgts Crit est un mécanisme PROPRE à ce
+  // passif — jamais universel. Un monstre SANS lui qui dépasse 100 % de
+  // Taux Crit (runes très généreuses) est plafonné, un point c'est tout,
+  // exactement comme avant cette fonctionnalité.
+  const crDepuisVit = monsterWide.critRateSelonVit ? Math.floor(maVit / monsterWide.critRateSelonVit.ptsParVit) : 0;
+  const crBrut = total(stats, 'cr') + (monsterWide.bonusStatFixe?.cr ?? 0) + pctLeaderCr + crDepuisVit;
+  const overflowVersCd = monsterWide.critRateSelonVit ? Math.max(0, crBrut - 100) : 0;
+  const cr = Math.min(crBrut, 100) / 100;
+  const cd =
+    (total(stats, 'cd') +
+      bonus.cdPoints +
+      (setup.euldongActif ? EULDONG_CD_POINTS : 0) +
+      pctLeaderCd +
+      (monsterWide.bonusStatFixe?.cd ?? 0) +
+      overflowVersCd) /
+    100;
   const partCrit = profile.fixed ? 0 : setup.critMode === 'crit' ? 1 : setup.critMode === 'normal' ? 0 : cr;
   const critTerm = 1 + profile.skillupDamagePct / 100 + partCrit * cd;
 
@@ -1493,7 +1677,19 @@ export function computeTotalDamage(
   // Momo/Mage (« Secret Book (Passive) ») — voir `monsterBonusDegatsStackable`.
   // Le pourcentage EFFECTIF est lu directement dans `setup.stackPersonnalise`
   // (`resolvedStackPct`), pas passé ici : `null` = comportement inchangé.
-  bonusDegatsStack: BonusDegatsStackableProfile | null = null
+  bonusDegatsStack: BonusDegatsStackableProfile | null = null,
+  // Ciri (Feu)/MOS (Feu)/Reyka (« Wolf School Training »/« Quick Execution »)
+  // et Lizardman/Glinodon (« Detect Weakspot ») — voir
+  // `monsterCritRateSelonVit`/`monsterBonusStatFixe`. Touchent directement
+  // le Taux Crit/Dgts Crit à CHAQUE instance (sort ET passifs), donc
+  // transmis tels quels à `computeSkillDamageDetail`. `{}` = comportement
+  // inchangé.
+  monsterWide: { critRateSelonVit?: { ptsParVit: number }; bonusStatFixe?: { cr: number; cd: number } } = {},
+  // Bonus conditionnel à bouton (Jin Kazama, Cyborg, Brownie Magician,
+  // Astar, Jean, Kyle, Satoru Gojo, Werner, Zenitsu, Qilin Slasher, Panda
+  // Warrior, Mi Ying…) — voir `monsterBonusDegatsConditionnel`. `null` =
+  // comportement inchangé.
+  bonusDegatsConditionnel: BonusDegatsConditionnelProfile | null = null
 ): number {
   const ecartVit = maVitCombat(stats, setup, element, ampliVitPct) - Math.max(1, setup.enemySpd ?? DEFAULT_DAMAGE_SETUP.enemySpd!);
   const forceCrit = critSiPlusRapide && ecartVit > 0;
@@ -1502,7 +1698,7 @@ export function computeTotalDamage(
   // ceux-ci frappent après lui, sur une cible déjà entamée. C'est ce qui
   // permet à un bonus « si les PV sont tombés sous X % » (Final Strike) de
   // se déduire tout seul, sans rien demander à l'utilisateur.
-  const sort = computeSkillDamageDetail(profile, stats, setupSort, element, undefined, ampliVitPct);
+  const sort = computeSkillDamageDetail(profile, stats, setupSort, element, undefined, ampliVitPct, monsterWide);
   let total = sort.total;
   let pvCiblePct = sort.pvRestantsPct;
   for (const p of passifs) {
@@ -1523,7 +1719,7 @@ export function computeTotalDamage(
     // Le seuil se juge sur les PV AVANT que ce passif ne frappe — c'est bien
     // l'état de la cible au moment où le jeu évalue la condition.
     const seuilAtteint = p.bonusPvCible != null && pvCiblePct <= p.bonusPvCible.seuilPct;
-    const detail = computeSkillDamageDetail(profilPassif, stats, setupPassif, element, pvCiblePct, ampliVitPct);
+    const detail = computeSkillDamageDetail(profilPassif, stats, setupPassif, element, pvCiblePct, ampliVitPct, monsterWide);
     pvCiblePct = detail.pvRestantsPct;
     let contribution = detail.total;
     if (seuilAtteint && p.bonusPvCible) contribution *= 1 + p.bonusPvCible.pct / 100;
@@ -1552,6 +1748,13 @@ export function computeTotalDamage(
   // après coup) — seule la SOURCE du pourcentage change : saisie par
   // l'utilisateur (`resolvedStackPct`) plutôt que déduite de la VIT.
   if (bonusDegatsStack) total *= 1 + resolvedStackPct(bonusDegatsStack, setup) / 100;
+  // Encore la même famille — seule la source change ENCORE : un bouton
+  // (`bonusDegatsConditionnelActif`) plutôt qu'une valeur saisie ou déduite
+  // de la VIT, pour une condition que l'app ne peut pas connaître (PV
+  // propres, état d'un allié, tour précédent…).
+  if (bonusDegatsConditionnel && bonusDegatsConditionnelActif(bonusDegatsConditionnel, setup)) {
+    total *= 1 + bonusDegatsConditionnel.pct / 100;
+  }
   return total;
 }
 
@@ -1583,7 +1786,11 @@ export function damageRelevantStats(
   // exemple aucun sort dont la formule dépend de la VIT, mais son bonus de
   // dégâts continu en dépend quand même. Voir `computeTotalDamage`.
   critSiPlusRapide = false,
-  bonusDegatsSelonVit: { ecartMax: number; pctMax: number } | null = null
+  bonusDegatsSelonVit: { ecartMax: number; pctMax: number } | null = null,
+  // Ciri (Feu)/MOS (Feu)/Reyka — voir `monsterCritRateSelonVit`. Même
+  // raison que les deux précédents : le Taux Crit dépend de la VIT même si
+  // aucun sort/passif compté n'en lit une variable.
+  critRateSelonVit: { ptsParVit: number } | null = null
 ): StatKey[] {
   // Sans sort résolu (fiche absente, sort non pris en charge), on retombe sur
   // le biais de l'objectif « Dégâts » — le cas de très loin le plus fréquent.
@@ -1607,7 +1814,7 @@ export function damageRelevantStats(
     // Dgts Crit pèsent sur lui plus encore que sur un sort ordinaire.
     if (!p.profile.fixed && p.critique !== 'jamais') peutCriter = true;
   }
-  if (critSiPlusRapide || bonusDegatsSelonVit) {
+  if (critSiPlusRapide || bonusDegatsSelonVit || critRateSelonVit) {
     if (!keys.includes('spd')) keys.push('spd');
   }
   // Le critique forcé change la donne — mais SEULEMENT lui : le bonus continu

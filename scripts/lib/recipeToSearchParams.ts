@@ -13,6 +13,7 @@ import {
   DEFAULT_DAMAGE_SETUP,
   damageRelevantStats,
   monsterBonusDegatsSelonVit,
+  monsterCritRateSelonVit,
   monsterCritSiPlusRapide,
   monsterDamageSkills,
   monsterOffensivePassives,
@@ -119,7 +120,8 @@ export function resolveObjectiveStats(recipe: OptimizerRecipe, loaded: LoadedMon
     passifs,
     recipe.damageSetup ?? DEFAULT_DAMAGE_SETUP,
     monsterCritSiPlusRapide(detail),
-    monsterBonusDegatsSelonVit(detail)
+    monsterBonusDegatsSelonVit(detail),
+    monsterCritRateSelonVit(detail)
   );
 }
 

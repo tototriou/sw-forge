@@ -3,6 +3,7 @@ import { Check } from 'lucide-react';
 import {
   ATK_BUFF_ICON,
   BRAND_ICON,
+  BonusDegatsConditionnelProfile,
   BonusDegatsStackableProfile,
   CRIT_MODE_LABELS,
   CritMode,
@@ -24,6 +25,7 @@ import {
   SkillDamageProfile,
   SkillDamageUnsupported,
   SummonerSkills,
+  bonusDegatsConditionnelActif,
   estPrisEnCharge,
   passifActif,
   resolvedHits,
@@ -99,6 +101,18 @@ interface Props {
   // `monsterBonusDegatsStackable`, damage.ts) ? Le POURCENTAGE actuel, lui,
   // est saisi ici même (`setup.stackPersonnalise`) — `null` = pas ce passif.
   bonusDegatsStack: BonusDegatsStackableProfile | null;
+  // Ciri (Feu)/MOS (Feu)/Reyka — Taux Crit selon la VIT
+  // (`monsterCritRateSelonVit`, damage.ts). S'affiche via `modificateursVit`
+  // (étendu côté damage.ts) — présent ici pour la même raison que
+  // `critSiPlusRapide`/`bonusDegatsSelonVit` : décider si le bouton
+  // « Buff VIT » doit apparaître même quand le sort choisi ne lit ni {SPD}
+  // ni {Relative SPD} (le Taux Crit, lui, en dépend quand même).
+  critRateSelonVit: { ptsParVit: number } | null;
+  // Bonus conditionnel à bouton (Jin Kazama, Cyborg, Brownie Magician,
+  // Astar, Jean, Kyle, Satoru Gojo, Werner, Zenitsu, Qilin Slasher, Panda
+  // Warrior, Mi Ying…) — `monsterBonusDegatsConditionnel`, damage.ts.
+  // `null` = pas ce genre de passif sur ce monstre.
+  bonusDegatsConditionnel: BonusDegatsConditionnelProfile | null;
   // Somme des lignes d'artéfact « Effet aug. VIT » ÉQUIPÉES
   // (`speedBuffAmpliPct`, damage.ts) — DÉDUIT, jamais saisi ici ; affiché en
   // clair pour que la VIT calculée ne semble pas sortie de nulle part.
@@ -171,6 +185,8 @@ export default function DamageSetupCard({
   critSiPlusRapide,
   bonusDegatsSelonVit,
   bonusDegatsStack,
+  critRateSelonVit,
+  bonusDegatsConditionnel,
   ampliVitPct,
 }: Props) {
   const maj = (patch: Partial<DamageSetup>) => setSetup((prev) => ({ ...prev, ...patch }));
@@ -265,7 +281,7 @@ export default function DamageSetupCard({
           monstres) : rien ne s'affiche, pas même un « aucun passif connu »
           — un panneau qui parle d'une absence à chaque monstre serait plus
           bruyant qu'utile. */}
-      {(passifs.length > 0 || modificateursVit.length > 0 || bonusDegatsStack) && (
+      {(passifs.length > 0 || modificateursVit.length > 0 || bonusDegatsStack || bonusDegatsConditionnel) && (
         <div>
           <div className="mb-2 flex items-center gap-1.5">
             <p className="label">Passifs offensifs</p>
@@ -339,6 +355,44 @@ export default function DamageSetupCard({
                     ariaLabel="Pourcentage de stack actuel du bonus de dégâts"
                   />
                 </label>
+              </div>
+            )}
+            {/* Bonus conditionnel à bouton (Jin Kazama, Cyborg, Brownie
+                Magician, Astar, Jean, Kyle, Satoru Gojo, Werner, Zenitsu,
+                Qilin Slasher, Panda Warrior, Mi Ying…) — même rendu (Pastille,
+                désactivé par défaut) que les passifs `bonus`/`conditionnel`
+                ci-dessous, mais SANS formule propre : le bouton majore le
+                TOTAL du monstre, pas la contribution d'un passif précis. Même
+                stockage que `passifsOffensifs` (clé = `skillCom2usId` de CE
+                modificateur) — voir `bonusDegatsConditionnelActif`. */}
+            {bonusDegatsConditionnel && (
+              <div key={`conditionnel-${bonusDegatsConditionnel.skillCom2usId}`}>
+                <Pastille
+                  actif={bonusDegatsConditionnelActif(bonusDegatsConditionnel, setup)}
+                  onClick={() =>
+                    maj({
+                      passifsOffensifs: {
+                        ...(setup.passifsOffensifs ?? {}),
+                        [bonusDegatsConditionnel.skillCom2usId]: !bonusDegatsConditionnelActif(bonusDegatsConditionnel, setup),
+                      },
+                    })
+                  }
+                  icone={
+                    bonusDegatsConditionnel.icone ? (
+                      <img src={bonusDegatsConditionnel.icone} alt="" className="h-4 w-4 rounded" loading="lazy" />
+                    ) : undefined
+                  }
+                  libelle={`${bonusDegatsConditionnel.nom.replace(/\s*\(Passive\)\s*$/i, '')} (+${bonusDegatsConditionnel.pct} %)`}
+                  title={`${bonusDegatsConditionnel.condition}${
+                    bonusDegatsConditionnelActif(bonusDegatsConditionnel, setup) ? ' (activé)' : ' — désactivé par défaut'
+                  }`}
+                />
+                <p className="mt-1 text-xs leading-snug text-ink-dim">
+                  Se déclenche si {bonusDegatsConditionnel.condition}.
+                </p>
+                {bonusDegatsConditionnel.description && (
+                  <p className="mt-1 text-xs leading-snug text-ink-dim">{bonusDegatsConditionnel.description}</p>
+                )}
               </div>
             )}
             {passifs.map((p) => {
@@ -562,7 +616,7 @@ export default function DamageSetupCard({
               {Relative SPD} directement (Rigna S1 « Double Gash » en lit
               une, mais un monstre à `critSiPlusRapide` pourrait très bien
               n'avoir AUCUN sort qui en dépend). */}
-          {(utilise('SPD') || utilise('Relative SPD') || critSiPlusRapide || bonusDegatsSelonVit) && (
+          {(utilise('SPD') || utilise('Relative SPD') || critSiPlusRapide || bonusDegatsSelonVit || critRateSelonVit) && (
             <EffetVignette icone={SPD_BUFF_ICON} libelle="Buff VIT" onClick={() => maj({ spdBuff: !setup.spdBuff })} actif={setup.spdBuff} etroit={etroit} />
           )}
           {montreDefEnnemie && (

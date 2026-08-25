@@ -109,9 +109,14 @@ export const KIT_VIDE: KitVitesse = {
   rejoue: false,
 };
 
-// ⚠️ **Seuls les effets DE ZONE sur les alliés** (`aoe`) sont retenus : le
-// modèle de l'outil applique un effet à tout le camp, y poser un « remplit TA
-// barre » (`surSoi`) ou un boost sur UN allié gonflerait toute l'équipe.
+// ⚠️ **Seuls les effets DE ZONE** (`aoe`) sont retenus : le modèle de l'outil
+// applique un effet à tout le camp, y poser un « remplit TA barre » ou un boost
+// sur UN allié gonflerait toute l'équipe.
+//
+// ⚠️⚠️ **`aoe` et `surSoi` ne s'excluent PAS.** `aoe + surSoi` veut dire « tout le
+// camp, LUI COMPRIS » — c'est le cas normal d'un boost d'équipe. Écarter tout ce
+// qui portait `surSoi` faisait manquer le S3 de Jeogun, qui remplit la barre de
+// tous les alliés.
 //
 // ⚠️ **Les compétences PASSIVES sont écartées** : elles ne se déclenchent pas au
 // tour du monstre mais sur une condition (quand il est attaqué, à la mort d'un
@@ -127,7 +132,7 @@ export function kitVitesse(detail: DetailMonstre | null): KitVitesse {
     if (c.passif) continue;
     const rejoue = c.effets.some((e) => e.nom === EFFET_REJOUE);
     for (const e of c.effets) {
-      if (!e.aoe || e.surSoi) continue;
+      if (!e.aoe) continue;
       if (e.nom === EFFET_ATB) {
         const niveau1 = e.quantite ?? 0;
         const skillUp = bonusSkillUp(c);
@@ -161,9 +166,16 @@ function lireEffet(c: Competence): { effet: EffetSort; atbNiveau1: number; atbSk
       case EFFET_ATB: {
         // ⚠️ Trois cibles bien différentes : tout le camp, UN allié (Breeze de
         // Kroa : celui dont la barre est la plus basse), ou soi-même.
+        //
+        // ⚠️⚠️ **`aoe` SE LIT EN PREMIER, `surSoi` seulement ensuite.** Les deux
+        // ne s'excluent pas : `aoe + surSoi` veut dire « tout le camp, LUI
+        // COMPRIS » — c'est le cas normal d'un boost d'équipe, pas un boost sur
+        // soi. Tester `surSoi` d'abord rangeait le S3 de Jeogun (« increases …
+        // their Attack Bar by 10% » pour tous les alliés) dans « lui seul » : le
+        // reste de l'équipe ne recevait rien.
         const v = q + skillUp;
         atbNiveau1 = Math.max(atbNiveau1, q);
-        if (e.aoe && !e.surSoi) effet.atbEquipe = Math.max(effet.atbEquipe ?? 0, v);
+        if (e.aoe) effet.atbEquipe = Math.max(effet.atbEquipe ?? 0, v);
         else if (e.surSoi) effet.atbSoi = Math.max(effet.atbSoi ?? 0, v);
         else effet.atbAllie = Math.max(effet.atbAllie ?? 0, v);
         chance = e.chance && e.chance > 0 && e.chance < 100 ? e.chance : chance;
@@ -175,7 +187,8 @@ function lireEffet(c: Competence): { effet: EffetSort; atbNiveau1: number; atbSk
         chance = e.chance && e.chance > 0 && e.chance < 100 ? e.chance : chance;
         break;
       case EFFET_SPD:
-        if (e.aoe && !e.surSoi) effet.buffEquipe = BUFF_SPD_JEU;
+        // Même règle que pour la barre : de zone = tout le camp, lui compris.
+        if (e.aoe) effet.buffEquipe = BUFF_SPD_JEU;
         else effet.buffSoi = BUFF_SPD_JEU;
         break;
       case EFFET_SPD_MOINS:
@@ -215,7 +228,10 @@ export function sortsVitesse(detail: DetailMonstre | null): SortVitesse[] {
       atbSkillUp,
       chance,
       neutre,
-      buffsEquipe: c.effets.filter((e) => e.bonus && e.aoe && !e.surSoi).length,
+      // ⚠️ `bonus && aoe` suffit : un effet BÉNÉFIQUE de zone va sur les alliés,
+      // que le lanceur en profite (`surSoi`) ou non. Exclure `surSoi` faisait
+      // manquer les buffs d'équipe les plus courants au comptage du passif.
+      buffsEquipe: c.effets.filter((e) => e.bonus && e.aoe).length,
     });
   }
   return out;

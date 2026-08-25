@@ -481,6 +481,22 @@ aide tout autant à passer devant lui. D'où `EffetSort`
 | `buffEquipe` / `buffSoi` | +30 % de vitesse, à partir du tick **suivant** |
 | `ralenti` / `ralentiTous` | −30 % de vitesse sur l'adverse (le plus avancé, ou tous) |
 
+- ⚠️⚠️ **`aoe` ET `surSoi` NE S'EXCLUENT PAS**, dans les données du jeu. `aoe +
+  surSoi` veut dire « **tout le camp, lui compris** » — c'est la forme NORMALE
+  d'un boost d'équipe, pas un boost sur soi. La lecture testait `surSoi` en
+  premier : le S3 de **Jeogun** (*Blossom Painting* — « increases the Attack Power
+  of all allies for 2 turns and their Attack Bar by 10% ») tombait dans « lui
+  seul », et le reste de l'équipe ne recevait rien. La règle, dans cet ordre :
+
+  | drapeaux | cible |
+  |---|---|
+  | `aoe` | **tout le camp**, `surSoi` ou non |
+  | `surSoi` sans `aoe` | lui seul |
+  | ni l'un ni l'autre | **UN** allié (la barre la plus basse) |
+
+  Même règle pour le buff de vitesse et pour le **comptage des buffs d'équipe**
+  (`buffsEquipe`, qui nourrit l'estimation des passifs à cumuls) : un effet
+  **bénéfique** de zone va sur les alliés, que le lanceur en profite ou non.
 - ⚠️ **`atbAllie` exclut le LANCEUR** : sa barre vient de retomber à 0, il serait
   systématiquement « celui qui l'a la plus basse » et se rendrait à lui-même un
   boost dont personne ne compte.

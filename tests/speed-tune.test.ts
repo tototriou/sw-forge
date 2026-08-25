@@ -1315,6 +1315,47 @@ export function testSpeedTuneKit() {
       competences,
     }) as DetailMonstre;
 
+  // ⚠️⚠️ **`aoe` ET `surSoi` NE S'EXCLUENT PAS.** `aoe + surSoi` veut dire « tout
+  // le camp, LUI COMPRIS » — c'est la forme NORMALE d'un boost d'équipe, pas un
+  // boost sur soi. Le cas de terrain : le S3 de Jeogun (« Blossom Painting »),
+  // « increases the Attack Power of all allies for 2 turns and their Attack Bar
+  // by 10% », porte les deux drapeaux. Tester `surSoi` d'abord le rangeait dans
+  // « lui seul » : le reste de l'équipe ne recevait rien.
+  {
+    const blossom = comp('Blossom Painting', [
+      effet('Increase ATB', 10, true, true),
+      effet('Increase ATK', 2, true, true),
+    ]);
+    const [sort] = sortsVitesse(detail([blossom]));
+    egal(
+      JSON.stringify(sort.effet),
+      JSON.stringify({ atbEquipe: 10 }),
+      'de zone + sur soi = TOUT LE CAMP, lui compris (et non « lui seul »)'
+    );
+    egal(sort.buffsEquipe, 2, 'les deux buffs de zone sont comptés, `surSoi` ou non');
+    egal(kitVitesse(detail([blossom])).atb, 10, 'et le kit le retient comme boost d’équipe');
+
+    // Les deux autres cibles restent distinctes — c'est tout l'intérêt.
+    egal(
+      JSON.stringify(sortsVitesse(detail([comp('Sur soi', [effet('Increase ATB', 30, false, true)])]))[0].effet),
+      JSON.stringify({ atbSoi: 30 }),
+      'sans zone, `surSoi` reste « lui seul »'
+    );
+    egal(
+      JSON.stringify(sortsVitesse(detail([comp('Un allié', [effet('Increase ATB', 30, false, false)])]))[0].effet),
+      JSON.stringify({ atbAllie: 30 }),
+      'ni zone ni soi = UN allié (Breeze de Kroa)'
+    );
+    // Même règle pour le buff de vitesse, qu'aucune donnée ne déclenche
+    // aujourd'hui — mais la logique était la même, donc le défaut aussi.
+    egal(
+      JSON.stringify(sortsVitesse(detail([comp('Buff', [effet('Increase ATK SPD', 0, true, true)])]))[0].effet),
+      JSON.stringify({ buffEquipe: BUFF_SPD_JEU }),
+      'un buff de vitesse de zone vaut pour le camp, `surSoi` ou non'
+    );
+  }
+
+
   egal(kitVitesse(null).atb, 0, 'aucune fiche → rien de détecté');
 
   // Barre d'attaque de zone : détectée, avec la compétence d'où elle vient.

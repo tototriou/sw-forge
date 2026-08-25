@@ -839,6 +839,23 @@ De haut en bas :
      Le contrôle attrape les deux dérives possibles : l'adverse ignoré (l'effet
      part deux ticks trop loin) et le décalage supprimé (l'effet tombe sur le
      tour même).
+   - ⚠️⚠️ **L'ANALYSE ET L'AFFICHAGE DOIVENT VOIR LES MÊMES MONSTRES.** Deux
+     constructeurs pour deux entrées — `plateauDeLignes` pour l'analyse, `tuneDe`
+     pour le moteur d'affichage — et rien n'obligeait le premier à porter ce que
+     le second applique. **`EntreeAuto.lead` n'était rempli nulle part** dans
+     l'écran : l'analyse calculait TOUTES les vitesses **sans le lead**,
+     l'affichage avec. Un lead de +28 % suffit à décaler un tour d'un tick, et
+     l'effet écrit dans les grilles partait alors un tick trop loin. C'est le
+     défaut qui a **survécu à deux corrections** — chacune visait le décalage,
+     aucune ne voyait que les **vitesses elles-mêmes** divergeaient.
+     - **Un seul constructeur** pour l'entrée de l'analyse, à côté de `tuneDe` :
+       écrite au fil de l'eau chez l'appelant, elle finit toujours par oublier un
+       champ que personne ne voit manquer (voir « Conventions communes » dans
+       [../README.md](../README.md)).
+     - **Gardé** : le même monstre doit avoir la **même vitesse de combat** des
+       deux côtés — lead de camp, lead d'ÉLÉMENT (qui ne vaut que pour certains),
+       Swift, passif. Le contrôle vérifie en plus que le lead **change** bien la
+       vitesse, sans quoi il passerait pour de mauvaises raisons.
    - ⚠️⚠️ **L'ANALYSE SIMULE LE PLATEAU ENTIER, pas seulement ton camp.** Elle ne
      recevait que les alliés : elle les plaçait donc sur un plateau où personne
      n'occupait de tick en face. **Dès qu'un adverse coupe**, il prend un tick, et

@@ -218,6 +218,30 @@ export const leadDe = (leads: Leads, camp: Camp) => (camp === 'allie' ? leads.al
 export const leadPour = (lead: LeadInfo | null, l: Ligne) =>
   siegeLeadFor(lead, l.monster.element);
 
+// ⚠️ **L'ENTRÉE DE L'ANALYSE, en un seul endroit** — le pendant de `tuneDe`, et
+// pour la même raison : écrite au fil de l'eau chez l'appelant, elle finit par
+// oublier un champ que personne ne voit manquer.
+//
+// ⚠️⚠️ **LE LEAD EN FAIT PARTIE.** `EntreeAuto.lead` n'était rempli nulle part
+// dans l'écran, et le hook passait `lead: 0` : l'analyse calculait donc TOUTES
+// les vitesses **sans le lead**, quand l'affichage, lui, l'appliquait. Les deux
+// simulations ne parlaient pas des mêmes monstres — un lead de +28 % suffit à
+// décaler un tour d'un tick, et l'effet écrit dans les grilles partait alors un
+// tick trop loin. C'est le défaut qui a survécu à deux corrections : chacune
+// visait le décalage, aucune ne voyait que les vitesses elles-mêmes divergeaient.
+//
+// ⚠️ **Le camp voyage aussi** : un adverse occupe des ticks, et l'analyse doit
+// les voir (voir `analyseAutomatique`).
+export function plateauDeLignes(lignes: Ligne[], leads: Leads): EntreeAuto[] {
+  return visibles(lignes).map((l) => ({
+    ...entreeDe(l),
+    camp: l.camp,
+    // Exactement ce que l'affichage applique (`combatDe`) : le lead du camp,
+    // filtré par l'élément du monstre.
+    lead: leadPour(leadDe(leads, l.camp), l),
+  }));
+}
+
 // ⚠️ **L'ENTRÉE DU MOTEUR, en un seul endroit.** Elle a été écrite deux fois dans
 // l'écran (une pour les tableaux, une pour l'analyse) et les deux ont divergé :
 // l'amplification de Miriam n'entrait que dans l'une — l'outil en tenait compte

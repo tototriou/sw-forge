@@ -24,6 +24,7 @@ import {
   ampliDe as ampliDeLignes,
   combatDe as combatDeLigne,
   entreeDe as entreeDeLigne,
+  plateauDeLignes,
   estimerCumuls,
   gainPassifDe as gainPassifDeLigne,
   leadDe as leadDeCamp,
@@ -480,7 +481,7 @@ export function useSpeedTune({
     // qu'il coupait, et ce qu'elle écrivait dans les grilles ne tombait plus au
     // tick suivant le lanceur. L'ordre d'affichage est conservé — c'est lui qui
     // départage deux barres pleines à vitesse égale.
-    const plateau = lignesVisibles.map((l) => ({ ...entreeDe(l), camp: l.camp }));
+    const plateau = plateauDeLignes(lignes, leads);
     const resultat = analyseAutomatique(plateau, 0, donneesKit, {
       choix: { sort: choix, sort2: sortChoisi2, cible: cibleSort },
       idReference: uidRef,

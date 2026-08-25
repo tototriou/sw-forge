@@ -38,6 +38,7 @@ import {
   leadPresent,
   ligneReference,
   ligneVierge,
+  plateauDeLignes,
   majMod,
   oublierCamp,
   plusRapideAllie,
@@ -1745,6 +1746,66 @@ export function testSpeedTuneAuto() {
     // toute l'équipe ne peut pas passer devant elle.
     ok(!r.verdict.ok, "on ne devance pas une copie de son propre plus rapide");
     ok(r.requis.length > 0, 'et l’outil dit ce qu’il manque');
+  }
+
+  // ⚠️⚠️ **L'ANALYSE ET L'AFFICHAGE DOIVENT VOIR LES MÊMES MONSTRES.** Deux
+  // constructeurs pour deux entrées — `plateauDeLignes` pour l'analyse, `tuneDe`
+  // pour le moteur d'affichage — et rien n'obligeait le premier à porter ce que
+  // le second applique. `EntreeAuto.lead` n'était rempli nulle part : l'analyse
+  // calculait TOUTES les vitesses sans le lead, l'affichage avec. Un lead de
+  // +28 % suffit à décaler un tour d'un tick, et l'effet écrit dans les grilles
+  // partait alors un tick trop loin — le défaut qui a survécu à deux
+  // corrections, parce que chacune visait le décalage sans voir que les vitesses
+  // elles-mêmes divergeaient.
+  //
+  // Le contrôle porte sur la SEULE chose qui compte : le même monstre doit avoir
+  // la même vitesse de combat des deux côtés. Lead de camp, lead d'ÉLÉMENT
+  // (qui ne vaut que pour certains), Swift, passif — tout ce qui la compose.
+  {
+    const eau = (id: number, nom: string, spd: number): Monster =>
+      ({ id, com2usId: id, name: nom, element: 'water', stats: { speed: spd } }) as unknown as Monster;
+    const feu = (id: number, nom: string, spd: number): Monster =>
+      ({ id, com2usId: id, name: nom, element: 'fire', stats: { speed: spd } }) as unknown as Monster;
+
+    const lignesTest: Ligne[] = [
+      { ...ligneVierge(eau(1, 'Eau alliée', 111), 'allie'), runeSpeed: 170 },
+      { ...ligneVierge(feu(2, 'Feu allié', 104), 'allie'), runeSpeed: 150, swift: true },
+      { ...ligneVierge(eau(3, 'Eau adverse', 120), 'ennemi'), runeSpeed: 160 },
+    ];
+    // Un lead d'ÉLÉMENT : il ne vaut QUE pour les alliés Eau. C'est le cas qui
+    // sépare vraiment les deux calculs — un lead global se rattraperait par
+    // hasard, celui-ci non.
+    const leadsTest: Leads = {
+      allie: { amount: 28, area: 'Element', element: 'water' } as LeadInfo,
+      ennemi: { amount: 24, area: 'General', element: null } as LeadInfo,
+    };
+    const vide2: DonneesKit = { kits: new Map(), sorts: new Map(), passifs: new Map() };
+
+    const duMoteur = new Map(tuneDe(lignesTest, leadsTest, vide2, {}).map((m) => [m.id, m.combat]));
+    const delAnalyse = analyseAutomatique(plateauDeLignes(lignesTest, leadsTest), 0, vide2).combats;
+    for (const l of lignesTest) {
+      egal(
+        delAnalyse.get(l.uid),
+        duMoteur.get(l.uid),
+        `${l.monster.name} : même vitesse de combat pour l’analyse et pour l’affichage`
+      );
+    }
+    // Et le lead compte VRAIMENT : sans lui, les chiffres seraient autres —
+    // sinon le contrôle ci-dessus passerait pour de mauvaises raisons.
+    const sansLead = analyseAutomatique(
+      plateauDeLignes(lignesTest, { allie: null, ennemi: null }),
+      0,
+      vide2
+    ).combats;
+    ok(
+      sansLead.get(lignesTest[0].uid) !== delAnalyse.get(lignesTest[0].uid),
+      'le lead change bien la vitesse — le contrôle ne passe pas à vide'
+    );
+    egal(
+      sansLead.get(lignesTest[1].uid),
+      delAnalyse.get(lignesTest[1].uid),
+      'et le lead d’ÉLÉMENT ne touche pas l’allié d’un autre élément'
+    );
   }
 
   // ⚠️⚠️ **INVARIANT : ce qu'un monstre lance est actif au tick SUIVANT son

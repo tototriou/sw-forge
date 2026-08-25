@@ -43,6 +43,10 @@ export default function SpeedTuneModale({
       // côtés. On prend l'écran, en gardant la marge du voile.
       largeur="max-w-[min(1400px,95vw)]"
       padding="p-4"
+      // ⚠️ **La modale contient un OUTIL entier**, pas un message : chaque pixel
+      // pris par les deux bandes est une ligne de tableau en moins sur les
+      // 90 % de hauteur d écran. Les bandes se serrent, le corps garde son air.
+      bandes="compactes"
       actions={<Bouton onClick={onClose} libelle="Fermer" />}
     >
       <SpeedTuningSection

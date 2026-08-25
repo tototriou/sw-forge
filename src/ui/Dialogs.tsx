@@ -33,6 +33,7 @@ export function Modale({
   icone,
   actions,
   actionsEmpilees = false,
+  bandes = 'normales',
   noteFinale,
   corpsCentre = false,
   largeur = 'max-w-[400px]',
@@ -61,6 +62,16 @@ export function Modale({
   // Les boutons du pied s'EMPILENT au doigt, pleine largeur. ⚠️ Pour des
   // libellés qui sont des PHRASES et non des verbes — voir PiedDeDialogue.
   actionsEmpilees?: boolean;
+  // ⚠️ **DENSITÉ des deux bandes**, en-tête et pied — un axe, pas une variante.
+  // `compactes` leur retire de la hauteur SANS toucher au corps : c'est ce qu'il
+  // faut à une modale qui contient un OUTIL entier (le speed tuning prend
+  // `max-h-[90dvh]`), où chaque bande prise sur la hauteur est une ligne de
+  // tableau en moins. Une confirmation, elle, garde l'air par défaut.
+  //
+  // ⚠️ `compactes` REMPLACE le rembourrage des bandes au lieu de s'y ajouter, et
+  // suppose donc le `padding` par défaut (`p-4`) pour l'axe horizontal. Une
+  // modale à un autre rembourrage garderait des bandes désalignées de son corps.
+  bandes?: 'normales' | 'compactes';
   // Phrase posée SOUS les boutons, centrée et discrète.
   //
   // ⚠️ Elle ne se lit qu'APRÈS avoir vu les choix, et c'est sa place qui lui
@@ -117,6 +128,17 @@ export function Modale({
   // Le portail règle aussi deux choses au passage : plus de contexte
   // d'empilement parent qui puisse coincer le `z-index`, et plus de découpage par
   // un `overflow: hidden` d'ancêtre.
+  // ⚠️ **Les bandes ne se détachent QUE si du contenu passe dessous.** Sans
+  // trait, le corps qui défile se glissait sous l'en-tête et sous le pied sans
+  // rien pour dire où l'un finissait et l'autre commençait — une card coupée en
+  // deux au bord de la bande, et on ne sait plus si elle est tronquée ou si
+  // c'est la fin. Le trait est donc l'INFORMATION « il y a autre chose
+  // au-dessus / en dessous », pas une décoration : posé en permanence, il
+  // mentirait sur une modale dont tout le contenu tient à l'écran, et alourdirait
+  // les confirmations.
+  const corps = useRef<HTMLDivElement>(null);
+  const [cacheHaut, setCacheHaut] = useState(false);
+  const [cacheBas, setCacheBas] = useState(false);
   const [cible] = useState(() => (typeof document === 'undefined' ? null : document.body));
 
   // La modale est toujours ouverte quand elle est montée : le verrou vaut donc
@@ -131,6 +153,26 @@ export function Modale({
   //     invisible et toujours cliquable ;
   //  3. la page derrière ne DÉFILE plus (par `useScrollBloque` — voir le hook :
   //     une modale peut s'ouvrir depuis un panneau, qui bloque déjà).
+  // Le corps peut changer de taille sans défiler (un panneau qui s'ouvre, une
+  // liste qui se remplit) : on écoute le défilement ET le redimensionnement.
+  useEffect(() => {
+    const el = corps.current;
+    if (!el) return;
+    const mesurer = () => {
+      setCacheHaut(el.scrollTop > 1);
+      setCacheBas(el.scrollTop + el.clientHeight < el.scrollHeight - 1);
+    };
+    mesurer();
+    el.addEventListener('scroll', mesurer, { passive: true });
+    const obs = new ResizeObserver(mesurer);
+    obs.observe(el);
+    for (const enfant of Array.from(el.children)) obs.observe(enfant);
+    return () => {
+      el.removeEventListener('scroll', mesurer);
+      obs.disconnect();
+    };
+  }, [children]);
+
   useEffect(() => {
     const ouvreur = document.activeElement as HTMLElement | null;
 
@@ -236,11 +278,19 @@ export function Modale({
             ⚠️ `flex-none` : l'en-tête ne défile pas et ne se comprime pas. */}
         {(titre || croix) && (
           <div
-            className={`flex flex-none items-start gap-3 ${padding} ${
+            className={`flex flex-none items-start gap-3 ${
+              // `compactes` remplace le rembourrage de la bande (voir la prop) —
+              // il ne s'y ajoute pas.
+              bandes === 'compactes' ? 'px-4 pt-3' : padding
+            } ${
               // Sans titre, la bande ne porte que la croix : elle n'a donc pas à
               // réserver de hauteur, et le contenu remonte contre le haut de la
               // boîte. `h-0` la fait flotter dans le rembourrage du corps.
-              titre ? 'pb-2' : 'h-0 py-0'
+              titre ? (bandes === 'compactes' ? 'pb-2.5' : 'pb-2') : 'h-0 py-0'
+            } ${
+              // Le trait n'apparaît que si du contenu passe dessous — et jamais
+              // sur une bande en `h-0`, qui n'a pas de bord à souligner.
+              cacheHaut && titre ? 'border-b border-border' : ''
             }`}
           >
             {icone}
@@ -255,7 +305,11 @@ export function Modale({
                 </h2>
               )}
               {sousTitre && (
-                <p className="mt-1.5 text-xs leading-relaxed text-ink-dim">{sousTitre}</p>
+                <p
+                  className={`${bandes === 'compactes' ? 'mt-0.5' : 'mt-1.5'} text-xs leading-relaxed text-ink-dim`}
+                >
+                  {sousTitre}
+                </p>
               )}
             </div>
             {/* Croix NUE : ni cadre, ni fond — c'est le défaut de BoutonIcone.
@@ -296,9 +350,13 @@ export function Modale({
             en haut). */}
         {children != null && (
         <div
+          ref={corps}
           className={`flex min-h-0 flex-1 flex-col overflow-y-auto ${padding} ${
-            titre ? 'pt-0' : ''
-          } ${actions ? 'pb-2' : ''} ${
+            // ⚠️ Le corps reprend son propre rembourrage haut dès qu'un TRAIT le
+            // sépare de l'en-tête : sans lui, le contenu viendrait toucher le
+            // trait, et une bordure collée à une card en fait deux superposées.
+            titre ? (cacheHaut ? 'pt-3' : 'pt-0') : ''
+          } ${actions ? (cacheBas ? 'pb-3' : 'pb-2') : ''} ${
             // ⚠️ **`items-stretch` explicite, et non un variant arbitraire.**
             // J'avais écrit `[&>*]:w-full` : Tailwind ne l'a JAMAIS émis, parce
             // qu'il lit le source comme du texte et n'y reconnaît pas `>` et `*`
@@ -324,7 +382,11 @@ export function Modale({
             et une phrase), le pied doit reprendre son propre rembourrage haut,
             sinon les boutons touchent le message. */}
         {actions && (
-          <div className={`flex-none ${padding} ${children != null ? 'pt-0' : 'pt-3'}`}>
+          <div
+            className={`flex-none ${bandes === 'compactes' ? 'px-4 pb-3' : padding} ${
+              children != null ? (cacheBas ? (bandes === 'compactes' ? 'pt-2.5' : 'pt-3') : 'pt-0') : 'pt-3'
+            } ${cacheBas ? 'border-t border-border' : ''}`}
+          >
             <PiedDeDialogue className="mt-0" empile={actionsEmpilees}>
               {actions}
             </PiedDeDialogue>

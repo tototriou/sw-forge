@@ -786,6 +786,29 @@ n'indique par où sortir, et on cherche.
 - Elle vit **dans la coquille**, pas dans chaque fiche : posée au cas par cas,
   elle aurait fini à trois endroits différents selon la modale.
 
+### Les deux bandes d'une modale : un trait, et seulement s'il dit quelque chose
+
+L'en-tête et le pied ne défilent pas ; le corps, si. Sans rien entre les deux, le
+contenu se glisse **sous** les bandes : une card coupée en deux au bord de la
+bande, et on ne sait plus si elle est tronquée ou si c'est la fin de la liste.
+
+- ⚠️ **Le trait est une INFORMATION, pas une décoration** : « il y a autre chose
+  au-dessus / en dessous ». Il n'apparaît donc que lorsque du contenu passe
+  réellement derrière la bande — mesuré au défilement **et** au redimensionnement
+  du corps (un panneau qui s'ouvre change la donne sans qu'on ait défilé). Posé
+  en permanence, il mentirait sur une modale dont tout tient à l'écran, et
+  alourdirait les confirmations.
+- **1 px, `border-border`, un seul** — comme partout. Quand il apparaît, le corps
+  reprend son rembourrage haut (ou bas) : sinon une card viendrait toucher le
+  trait, ce qui ferait **deux contours superposés**.
+- ⚠️ **Densité (`bandes`) : c'est un AXE, pas une variante.** `compactes` retire
+  de la hauteur aux deux bandes **sans toucher au corps**. C'est ce qu'il faut à
+  une modale qui contient un **outil entier** (le speed tuning prend 90 % de la
+  hauteur d'écran) : chaque pixel de bande y est une ligne de tableau en moins.
+  Une confirmation garde l'air par défaut. `compactes` **remplace** le
+  rembourrage des bandes au lieu de s'y ajouter, et suppose donc le `padding` par
+  défaut pour l'axe horizontal.
+
 ### Cibles tactiles — 40 px au doigt
 
 ```css

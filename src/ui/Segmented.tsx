@@ -36,7 +36,9 @@ export default function Segmented<T extends string>({
   disabled = false,
   dense,
 }: {
-  options: { key: T; label: string; hint?: string; icon?: React.ReactNode; suffix?: React.ReactNode }[];
+  // `disabled` par option : voir le `disabled` du contrôle entier plus bas
+  // pour la distinction entre les deux axes.
+  options: { key: T; label: string; hint?: string; icon?: React.ReactNode; suffix?: React.ReactNode; disabled?: boolean }[];
   value: T;
   onChange: (v: T) => void;
   className?: string;
@@ -52,6 +54,12 @@ export default function Segmented<T extends string>({
   // Un vrai `disabled` sur chaque bouton (pas juste grisé en CSS) : ni
   // cliquable ni atteignable au clavier tant qu'un réglage parent (ex. « Exclure
   // les runes déjà utilisées ») n'est pas actif — voir OptimizerSection.tsx.
+  // ⚠️ AXE DISTINCT de `options[i].disabled` (voir plus haut) : CE `disabled`
+  // coupe TOUT le contrôle (ex. rien à choisir du tout), quand une option
+  // individuelle peut être indisponible sans que les autres le soient (ex.
+  // « Monstre & équipement » de l'Optimizer — un monstre possédé en Box mais
+  // jamais mis en RTA désactive SEULEMENT la puce RTA). Les deux se cumulent
+  // (`disabled={disabled || o.disabled}` sur chaque bouton).
   disabled?: boolean;
   // **Une seule ligne, texte resserré.** `lg` force toutes les options sur une
   // ligne, mais à 4 options à libellé long (« Défenses siège ») dans une
@@ -159,20 +167,26 @@ export default function Segmented<T extends string>({
             {size === 'lg' && i > 0 && <span className="w-px self-stretch bg-border" />}
             <button
               onClick={() => onChange(o.key)}
-              disabled={disabled}
+              disabled={disabled || o.disabled}
               title={o.hint}
               aria-pressed={active}
               className={`flex flex-1 items-center justify-center gap-1.5 rounded-md font-semibold text-center
                           transition disabled:cursor-not-allowed ${
                             compact ? CRAN_DENSE : large ? CRAN_LARGE : CRAN_PETIT
                           } ${
-                            // ⚠️ Le fond SEUL marque le cran posé — pas d'ombre
-                            // en plus, elle faisait décoller le bouton de son
-                            // propre cadre : deux signaux pour un seul état, et
-                            // une élévation qui ne veut rien dire ici (le cran
-                            // ne flotte pas au-dessus du contrôle qui le
-                            // contient). Voir spec/shared/design.md.
-                            active
+                            // ⚠️ `o.disabled` (grisage PAR OPTION) s'applique
+                            // même si le contrôle entier ne l'est pas — le
+                            // `opacity-40` posé sur la racine (voir plus haut)
+                            // ne couvre que le cas `disabled` global.
+                            o.disabled
+                              ? 'opacity-40 text-ink-dim'
+                              : // ⚠️ Le fond SEUL marque le cran posé — pas d'ombre
+                              // en plus, elle faisait décoller le bouton de son
+                              // propre cadre : deux signaux pour un seul état, et
+                              // une élévation qui ne veut rien dire ici (le cran
+                              // ne flotte pas au-dessus du contrôle qui le
+                              // contient). Voir spec/shared/design.md.
+                              active
                               ? 'bg-accent-soft text-ink'
                               : 'text-ink-dim hoverable:text-ink'
                           }`}

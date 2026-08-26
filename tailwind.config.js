@@ -41,6 +41,7 @@ export default {
         // dans le speed tuning.
         'good-soft': 'rgb(var(--good-soft) / <alpha-value>)',
         warn: 'rgb(var(--warn) / <alpha-value>)',
+        'warn-soft': 'rgb(var(--warn-soft) / <alpha-value>)',
         bad: 'rgb(var(--bad) / <alpha-value>)',
         // Fond doux de `bad` : le pendant de `accent-soft`. Le speed tuning s'en
         // sert pour opposer « en face » à « ton équipe » d'un coup d'œil.

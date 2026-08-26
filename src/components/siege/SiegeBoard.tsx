@@ -164,7 +164,8 @@ export default function SiegeBoard({
           setCheckTicks((v) => !v);
           onFermerMenu();
         }}
-        actif={checkTicks}
+        actif={checkTicks || undefined}
+        ton={checkTicks ? 'accent' : 'neutre'}
         disabled={siege.state.teams.length === 0}
         title={
           siege.state.teams.length === 0

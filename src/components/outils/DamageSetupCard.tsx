@@ -396,7 +396,7 @@ export default function DamageSetupCard({
                     ) : undefined
                   }
                   libelle={bonusDegatsStack.nom.replace(/\s*\(Passive\)\s*$/i, '')}
-                  detail="toujours actif"
+                  detail={`+${bonusDegatsStack.pctParStack} % par palier, jusqu'à +${bonusDegatsStack.pctMax} %`}
                 />
                 {bonusDegatsStack.description && (
                   <p className="mt-1 text-xs leading-snug text-ink-dim">{bonusDegatsStack.description}</p>
@@ -474,7 +474,7 @@ export default function DamageSetupCard({
                     ) : undefined
                   }
                   libelle={bonusParEffetCibleMonstre.nom.replace(/\s*\(Passive\)\s*$/i, '')}
-                  detail="toujours actif"
+                  detail={`+${bonusParEffetCibleMonstre.pct} % par effet ${libelleSourceEffet(bonusParEffetCibleMonstre.source)}`}
                 />
                 {bonusParEffetCibleMonstre.description && (
                   <p className="mt-1 text-xs leading-snug text-ink-dim">{bonusParEffetCibleMonstre.description}</p>
@@ -511,7 +511,7 @@ export default function DamageSetupCard({
                     ) : undefined
                   }
                   libelle={bonusParEffetPropre.nom.replace(/\s*\(Passive\)\s*$/i, '')}
-                  detail="toujours actif"
+                  detail={`+${bonusParEffetPropre.pct} % par débuff sur toi-même`}
                 />
                 {bonusParEffetPropre.description && (
                   <p className="mt-1 text-xs leading-snug text-ink-dim">{bonusParEffetPropre.description}</p>
@@ -551,7 +551,7 @@ export default function DamageSetupCard({
                     ) : undefined
                   }
                   libelle={bonusSacrifice.nom.replace(/\s*\(Passive\)\s*$/i, '')}
-                  detail="toujours actif"
+                  detail={`sacrifie ${bonusSacrifice.pctPerte} % de tes PV/tour, +${bonusSacrifice.pctSurPerte} % de la perte en dégâts`}
                 />
                 {bonusSacrifice.description && (
                   <p className="mt-1 text-xs leading-snug text-ink-dim">{bonusSacrifice.description}</p>

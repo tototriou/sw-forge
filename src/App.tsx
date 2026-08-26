@@ -63,6 +63,8 @@ import { useRtaState } from './hooks/useRtaState';
 import { useSiegeState } from './hooks/useSiegeState';
 import { useSiegeRecos } from './hooks/useSiegeRecos';
 import { useOptimizerState } from './hooks/useOptimizerState';
+import { useOptimizerValidatedBuilds } from './hooks/useOptimizerValidatedBuilds';
+import { ExclusionSourceData, revalidateBuilds } from './lib/optimizerExclusion';
 import { collectOwnedBuilds, collectOwnedTeams, countCopiesByCom2us } from './lib/ownedBuilds';
 import {
   BoxMonster,
@@ -237,6 +239,10 @@ export default function App() {
   const siegeOff = useSiegeState('offense');
   const recos = useSiegeRecos();
   const optimizer = useOptimizerState();
+  // « Monstres déjà runés » (Lot 2) — SÉPARÉ de `useOptimizerState`, voir
+  // useOptimizerValidatedBuilds.ts : c'est la seule part de l'écran
+  // Optimizer qui persiste sur disque.
+  const validatedBuilds = useOptimizerValidatedBuilds();
 
   // Compte (box + inventaire runes/artéfacts). En mémoire, et **conservé sur
   // l'appareil** si l'utilisateur l'a demandé dans le menu ⚙ (voir
@@ -263,6 +269,36 @@ export default function App() {
       return;
     }
     optimizer.resetSearch();
+
+    // « Monstres déjà runés » (Lot 2) — un build validé porte un
+    // INSTANTANÉ de runes (voir ValidatedBuild, optimizerExclusion.ts), pas
+    // une référence recalculée : un réimport (même compte réexporté, runes
+    // déplacées/vendues entre-temps) peut le rendre périmé. Revérifié à
+    // CHAQUE réimport (pas seulement sur un wizard_id différent, contrairement
+    // à `excludedSelectors` plus bas — ici on veut justement détecter « mon
+    // propre compte a changé depuis », voir le point bloquant 4 du cadrage).
+    // ⚠️ Jamais silencieux : averti dans `importMsg`, jamais juste retiré.
+    if (validatedBuilds.builds.length > 0) {
+      const monsterById = new Map<string, Monster>();
+      for (const mon of allMonsters) monsterById.set(String(mon.id), mon);
+      const data: ExclusionSourceData = {
+        box,
+        rtaEntries: rta.state.entries,
+        siegeDefenseTeams: siegeDef.state.teams,
+        siegeOffenseTeams: siegeOff.state.teams,
+        monsterById,
+      };
+      const { kept, droppedCount } = revalidateBuilds(validatedBuilds.builds, data);
+      if (droppedCount > 0) {
+        validatedBuilds.replaceAll(kept);
+        setImportMsg((prev) => ({
+          ok: prev?.ok ?? true,
+          text:
+            `${prev?.text ?? ''} ⚠️ ${droppedCount} monstre(s) « déjà runé(s) » libéré(s) automatiquement : ` +
+            `leurs runes validées ne sont plus toutes sur cet exemplaire dans le compte réimporté.`,
+        }));
+      }
+    }
   }, [box]);
 
   // Identité du DERNIER compte importé cette session (`wizard_id`, voir
@@ -1184,6 +1220,7 @@ export default function App() {
             rtaEntries={rta.state.entries}
             siegeDefenseTeams={siegeDef.state.teams}
             siegeOffenseTeams={siegeOff.state.teams}
+            validated={validatedBuilds}
             menuOuvert={menuPageOuvert}
             onFermerMenu={() => setMenuPageOuvert(false)}
           />

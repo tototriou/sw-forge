@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { CheckCircle2 } from 'lucide-react';
 import { ArtifactDetail, RuneDetail, RUNE_SETS } from '../../types';
 import { BuildCandidate, candidateMetricTotal } from '../../lib/runeBuildOptim';
 import { activeSets } from '../../lib/effects';
@@ -8,7 +9,7 @@ import RuneWheel from '../RuneWheel';
 import ArtifactSlots from '../ArtifactSlots';
 import StatPanel from '../StatPanel';
 import { COMPACT, useMediaQuery } from '../../hooks/useMediaQuery';
-import { FlottantAuto } from '../../ui';
+import { Bouton, FlottantAuto } from '../../ui';
 
 interface Props {
   rank: number;
@@ -33,6 +34,16 @@ interface Props {
   // n'a aucune raison de connaître le modèle de dégâts, et le parent trie
   // déjà sur exactement la même valeur.
   degatsReels?: { total: number; partPvCible: number };
+  // Bouton « Valider » (Lot 2 — réservation des 6 runes de CE build, voir
+  // spec/outils/optimizer/historique-import-monstres-a-optimiser.md).
+  // `undefined` : aucun bouton — cas d'un monstre non réellement possédé
+  // (repli stats de base, voir OptimizerSection.tsx), rien à réserver sur un
+  // exemplaire qui n'existe pas dans le compte.
+  onValidate?: () => void;
+  // Ce candidat EST le build ACTUELLEMENT validé pour ce monstre (mêmes 6
+  // runeIds, comparaison faite par le parent) — bouton désactivé, libellé
+  // « Validé » plutôt que « Valider ».
+  validated?: boolean;
 }
 
 // ⚠️ Même FORME que l'affichage de l'équipement actuellement équipé (RTA/
@@ -57,6 +68,8 @@ export default function BuildCandidateCard({
   openRuneKey,
   onToggleRune,
   degatsReels,
+  onValidate,
+  validated,
 }: Props) {
   const runes = candidate.runeIds.map((id) => runeById.get(id)).filter((r): r is RuneDetail => !!r);
   const sets = activeSets(runes.map((r) => r.set));
@@ -198,6 +211,25 @@ export default function BuildCandidateCard({
           {openArtifact && <ArtifactDetailBox artifact={openArtifact} />}
           {openRune && <RuneDetailBox rune={openRune} />}
         </div>
+      )}
+
+      {/* « Valider » (Lot 2) — réserve les 6 runes de CE build (bloquées
+          pour les recherches des AUTRES monstres de « Monstres déjà runés »,
+          voir OptimizerSection.tsx). Absent (`onValidate` non fourni) pour
+          un monstre non réellement possédé — rien à réserver sur un
+          exemplaire qui n'existe pas dans le compte. */}
+      {onValidate && (
+        <Bouton
+          onClick={onValidate}
+          disabled={validated}
+          ton={validated ? 'accent' : 'neutre'}
+          fond={validated ? 'doux' : 'plein'}
+          taille="sm"
+          pleineLargeur
+          icone={validated ? <CheckCircle2 size={14} /> : undefined}
+          libelle={validated ? 'Validé' : 'Valider ce build'}
+          className="mt-2.5"
+        />
       )}
     </div>
   );

@@ -249,3 +249,69 @@ export function autoExcludedRuneIds(scope: AutoExclusionScope, data: ExclusionSo
   return out;
 }
 
+/* --------------------------------------------------------------------------
+ * Runes VALIDÉES — « Monstres déjà runés » (Lot 2, voir spec/outils/
+ * optimizer/historique-import-monstres-a-optimiser.md). 3ᵉ mécanisme
+ * d'exclusion, distinct des deux ci-dessus : ni un périmètre entier (AUTO),
+ * ni une entrée du compte lue dynamiquement (MANUEL, `ExclusionSelector`
+ * résolu à chaque calcul contre le gear ACTUEL) — un build qu'on vient de
+ * TROUVER par la recherche, dont les 6 `runeIds` sont un INSTANTANÉ figé au
+ * moment de la validation (voir `BuildCandidate.runeIds`, runeBuildOptim.ts),
+ * pas re-dérivés du gear courant de l'exemplaire.
+ * ----------------------------------------------------------------------- */
+export interface ValidatedBuild {
+  // Exemplaire précis (même granularité que ExclusionSelector) sur lequel ce
+  // build a été validé — Box par `unitKey`, RTA/siège par espèce/slot.
+  selector: ExclusionSelector;
+  // Les 6 runes RÉELLEMENT possédées composant le build validé — un
+  // INSTANTANÉ (voir l'en-tête), pas une référence recalculée : c'est
+  // justement ce qui permet à `otherValidatedRuneIds` de bloquer ces runes
+  // pour les AUTRES recherches sans dépendre de ce que porte CET exemplaire
+  // dans le compte en ce moment (il n'a pas été réellement réruné en jeu).
+  runeIds: number[];
+}
+
+// Runes validées de TOUS LES AUTRES exemplaires que celui recherché
+// actuellement — jamais les siennes propres (auto-exemption, même principe
+// que `resolveExcludedRuneIds`/`autoExcludedRuneIds`) : sans cette exemption,
+// relancer une recherche sur un monstre déjà validé s'auto-bloquerait avec
+// ses propres runes.
+export function otherValidatedRuneIds(validated: ValidatedBuild[], ownSelectorKey: string | null): Set<number> {
+  const out = new Set<number>();
+  for (const v of validated) {
+    if (ownSelectorKey != null && exclusionSelectorKey(v.selector) === ownSelectorKey) continue;
+    for (const id of v.runeIds) out.add(id);
+  }
+  return out;
+}
+
+// Le build validé de CET exemplaire précis, s'il en a un — sert à savoir
+// s'il faut afficher le badge « validé » (RuneExclusionPicker n'a pas
+// d'équivalent : rien à valider côté exclusion) et à substituer les runes
+// affichées dans la fiche (voir OptimizerSection.tsx, `selected`).
+export function findValidatedBuild(validated: ValidatedBuild[], selectorKey: string | null): ValidatedBuild | undefined {
+  if (selectorKey == null) return undefined;
+  return validated.find((v) => exclusionSelectorKey(v.selector) === selectorKey);
+}
+
+// Revérifie chaque build validé contre le compte ACTUELLEMENT chargé (après
+// réimport, voir App.tsx) — un sélecteur qui ne résout plus (monstre
+// fusionné/retiré de RTA/deck modifié) OU dont les runes validées ne sont
+// plus TOUTES portées par cet exemplaire (runes déplacées, vendues, reforgées
+// ailleurs depuis) est abandonné : le garder afficherait un build « validé »
+// qui n'a plus rien à voir avec le compte réel. ⚠️ Jamais silencieux — voir
+// son appelant (App.tsx), qui avertit l'utilisateur du nombre abandonné
+// plutôt que de les perdre sans un mot (point bloquant 4 du cadrage).
+export function revalidateBuilds(validated: ValidatedBuild[], data: ExclusionSourceData): { kept: ValidatedBuild[]; droppedCount: number } {
+  const kept: ValidatedBuild[] = [];
+  let droppedCount = 0;
+  for (const v of validated) {
+    const resolved = resolveExclusionEntry(v.selector, data);
+    const currentIds = new Set((resolved?.gear.runes ?? []).map((r) => r.id));
+    const stillValid = resolved != null && v.runeIds.every((id) => currentIds.has(id));
+    if (stillValid) kept.push(v);
+    else droppedCount++;
+  }
+  return { kept, droppedCount };
+}
+

@@ -3,6 +3,7 @@ import { RuneDetail, Monster, RtaEntry, SiegeTeam } from '../types';
 import { BoxItem } from '../lib/applyAccount';
 import { LoadState } from '../hooks/useMonsters';
 import { OptimizerState } from '../hooks/useOptimizerState';
+import { UseOptimizerValidatedBuilds } from '../hooks/useOptimizerValidatedBuilds';
 import { ToolSub } from '../App';
 import OptimizerSection from '../components/outils/OptimizerSection';
 
@@ -17,6 +18,7 @@ interface Props {
   rtaEntries: Record<string, RtaEntry>;
   siegeDefenseTeams: SiegeTeam[];
   siegeOffenseTeams: SiegeTeam[];
+  validated: UseOptimizerValidatedBuilds;
   // Panneau « Options » mobile — voir App.tsx (pageAPanneau) et
   // OptimizerSection.tsx. Simple relais : ce shell ne connaît pas son
   // contenu, seul l'outil actif (Optimizer aujourd'hui) le remplit.
@@ -27,7 +29,7 @@ interface Props {
 // Shell fin, miroir d'AccountPage.tsx : un seul outil aujourd'hui
 // (Optimizer), structuré pour en accueillir d'autres sans retoucher la nav
 // ni ce fichier (ajouter une branche = ajouter un outil).
-export default function OutilsPage({ sub, box, runes, loadState, hydrating, optimizer, allMonsters, rtaEntries, siegeDefenseTeams, siegeOffenseTeams, menuOuvert, onFermerMenu }: Props) {
+export default function OutilsPage({ sub, box, runes, loadState, hydrating, optimizer, allMonsters, rtaEntries, siegeDefenseTeams, siegeOffenseTeams, validated, menuOuvert, onFermerMenu }: Props) {
   const empty = box.length === 0;
 
   if (empty && hydrating) {
@@ -64,6 +66,7 @@ export default function OutilsPage({ sub, box, runes, loadState, hydrating, opti
           rtaEntries={rtaEntries}
           siegeDefenseTeams={siegeDefenseTeams}
           siegeOffenseTeams={siegeOffenseTeams}
+          validated={validated}
           menuOuvert={menuOuvert}
           onFermerMenu={onFermerMenu}
         />

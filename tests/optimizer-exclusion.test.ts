@@ -8,11 +8,15 @@ import { BoxItem } from '../src/lib/applyAccount';
 import { GearSet, Monster, RtaEntry, RuneDetail, SiegeTeam } from '../src/types';
 import {
   ExclusionSourceData,
+  ValidatedBuild,
   autoExcludedRuneIds,
   exclusionCandidatesFor,
   exclusionSelectorKey,
+  findValidatedBuild,
+  otherValidatedRuneIds,
   resolveExcludedRuneIds,
   resolveExclusionEntry,
+  revalidateBuilds,
 } from '../src/lib/optimizerExclusion';
 import { egal, ok, titre } from './outils';
 
@@ -320,5 +324,54 @@ export default function testOptimizerExclusion() {
       [201, 202, 203, 204, 205, 206, 301, 302, 303, 304, 305, 306],
       'aucun monstre "à soi" (com2usId null) : rien ne peut être reconnu comme le sien, tout le périmètre est exclu'
     );
+  }
+
+  // ── Runes VALIDÉES (Lot 2, « Monstres déjà runés ») — 3ᵉ mécanisme
+  // d'exclusion : un INSTANTANÉ de runeIds, pas une entrée relue
+  // dynamiquement. ──
+  {
+    const validated: ValidatedBuild[] = [
+      { selector: { source: 'box', unitKey: 'unit-camilla' }, runeIds: [1, 2, 3, 4, 5, 6] },
+      { selector: { source: 'rta', monsterId: String(lushen.id) }, runeIds: [101, 102, 103, 104, 105, 106] },
+    ];
+    const ownKey = exclusionSelectorKey({ source: 'box', unitKey: 'unit-camilla' });
+
+    egal(
+      [...otherValidatedRuneIds(validated, ownKey)].sort((a, b) => a - b),
+      [101, 102, 103, 104, 105, 106],
+      'runes validées : les AUTRES exemplaires bloquent leurs runes, jamais les siennes propres (auto-exemption)'
+    );
+    egal(
+      [...otherValidatedRuneIds(validated, null)].sort((a, b) => a - b),
+      [1, 2, 3, 4, 5, 6, 101, 102, 103, 104, 105, 106],
+      'runes validées : aucun exemplaire actif (ownSelectorKey=null) → TOUTES les runes validées bloquent'
+    );
+
+    egal(
+      findValidatedBuild(validated, ownKey)?.runeIds,
+      [1, 2, 3, 4, 5, 6],
+      'findValidatedBuild : retrouve le build de CET exemplaire précis'
+    );
+    egal(findValidatedBuild(validated, 'clé-inconnue'), undefined, 'findValidatedBuild : aucun match → undefined');
+    egal(findValidatedBuild(validated, null), undefined, 'findValidatedBuild : selectorKey null → jamais de faux positif');
+  }
+
+  // ── revalidateBuilds — revérification au réimport (point bloquant 4 du
+  // cadrage) : un sélecteur introuvable OU une rune validée qui n'est plus
+  // TOUTE sur l'exemplaire (déplacée/vendue/reforgée depuis) est abandonné,
+  // jamais silencieusement gardé. ──
+  {
+    const validated: ValidatedBuild[] = [
+      { selector: { source: 'box', unitKey: 'unit-camilla' }, runeIds: [1, 2, 3, 4, 5, 6] }, // toujours intact → conservé
+      { selector: { source: 'box', unitKey: 'unit-jamais-vu' }, runeIds: [1, 2, 3, 4, 5, 6] }, // sélecteur introuvable → abandonné
+      { selector: { source: 'rta', monsterId: String(camilla.id) }, runeIds: [101, 102, 103, 104, 105, 999] }, // 999 absente de cet exemplaire → abandonné
+    ];
+    const { kept, droppedCount } = revalidateBuilds(validated, data);
+    egal(droppedCount, 2, 'revalidateBuilds : les 2 builds périmés (sélecteur introuvable, rune manquante) sont comptés');
+    egal(kept.length, 1, 'revalidateBuilds : le build encore intact (box Camilla) est conservé');
+    egal(kept[0]?.selector, { source: 'box', unitKey: 'unit-camilla' }, 'revalidateBuilds : conserve le bon sélecteur');
+
+    const allValid = revalidateBuilds([validated[0]], data);
+    egal(allValid.droppedCount, 0, 'revalidateBuilds : rien de périmé → droppedCount à 0, pas juste kept correct');
   }
 }

@@ -14,6 +14,7 @@ import {
   SlidersHorizontal,
   Wrench,
   Plus,
+  CheckCircle2,
 } from 'lucide-react';
 import { ArtifactDetail, ARTIFACT_KINDS, GearSet, RECO_STATS, RuneDetail, Monster, RtaEntry, SiegeTeam } from '../../types';
 import { BoxItem } from '../../lib/applyAccount';
@@ -71,14 +72,18 @@ import {
   ExclusionSource,
   ExclusionSourceData,
   SOURCE_OPTIONS,
+  ValidatedBuild,
   autoExcludedRuneIds,
   exclusionCandidatesFor,
   exclusionSelectorKey,
+  findValidatedBuild,
+  otherValidatedRuneIds,
   resolveExcludedRuneIds,
   resolveExclusionEntry,
 } from '../../lib/optimizerExclusion';
 import { buildOptimizerRecipe, parseOptimizerRecipe } from '../../lib/optimizerRecipe';
 import { ArtifactMainChoice, OptimizerState, OptimizerSortKey } from '../../hooks/useOptimizerState';
+import { UseOptimizerValidatedBuilds } from '../../hooks/useOptimizerValidatedBuilds';
 import { useRuneMetric } from '../../hooks/useRuneMetric';
 import { useMediaQuery, SOUS_SM } from '../../hooks/useMediaQuery';
 import GameIcon from '../GameIcon';
@@ -91,6 +96,7 @@ import {
   Bouton,
   BoutonIcone,
   Champ,
+  ConfirmDialog,
   Flottant,
   FlottantAuto,
   Interrupteur,
@@ -121,6 +127,11 @@ interface Props {
   rtaEntries: Record<string, RtaEntry>;
   siegeDefenseTeams: SiegeTeam[];
   siegeOffenseTeams: SiegeTeam[];
+  // « Monstres déjà runés » (Lot 2) — remonté dans App.tsx pour les mêmes
+  // raisons qu'`optimizer` (survit au démontage) ET pour persister sur
+  // disque (voir useOptimizerValidatedBuilds.ts), ce qu'`optimizer`
+  // lui-même ne fait délibérément pas.
+  validated: UseOptimizerValidatedBuilds;
   // Panneau d'actions mobile « Options » — piloté par le bouton de la barre
   // de nav (voir App.tsx), même patron que RunesOptim.tsx. Réglages avancés
   // et Exclusion de runes y vivent au doigt ; en ligne (cartes) au bureau.
@@ -177,6 +188,18 @@ function speciesCandidatesBySource(
   };
 }
 
+// Deux builds portent-ils EXACTEMENT le même jeu de 6 runes (peu importe
+// l'ordre) ? Sert à repérer, parmi les candidats affichés, celui qui EST le
+// build déjà validé pour ce monstre (Lot 2) — un simple `===` sur les
+// tableaux ne suffirait pas, `runeIds` n'est jamais garanti dans le même
+// ordre d'un calcul à l'autre.
+function sameRuneIds(a: number[], b: number[]): boolean {
+  if (a.length !== b.length) return false;
+  const sa = [...a].sort((x, y) => x - y);
+  const sb = [...b].sort((x, y) => x - y);
+  return sa.every((v, i) => v === sb[i]);
+}
+
 // Équipement NUL, affiché tant qu'aucun monstre n'est choisi — demande
 // explicite de l'utilisateur : la fiche (stats, artéfacts, roue, relique)
 // reste TOUJOURS visible, vide plutôt qu'absente, pour que choisir un
@@ -211,7 +234,7 @@ function download(filename: string, text: string) {
 // Outil « Optimizer » : cherche, parmi les runes du compte, la (les)
 // meilleure(s) combinaison(s) de 6 pour un monstre, un combo de sets et des
 // minimums de stats donnés. Voir spec/outils/optimizer/.
-export default function OptimizerSection({ box, runes, optimizer, allMonsters, rtaEntries, siegeDefenseTeams, siegeOffenseTeams, menuOuvert, onFermerMenu }: Props) {
+export default function OptimizerSection({ box, runes, optimizer, allMonsters, rtaEntries, siegeDefenseTeams, siegeOffenseTeams, validated, menuOuvert, onFermerMenu }: Props) {
   const metric = useRuneMetric();
   // ⚠️ Ne sert PLUS aux `Segmented` — ils se resserrent désormais tout seuls
   // en mesurant la place qu'ils reçoivent (voir `Segmented.tsx`), ce qu'un
@@ -601,6 +624,12 @@ export default function OptimizerSection({ box, runes, optimizer, allMonsters, r
   // en ligne, voir le rendu plus bas).
   const [zoneCOpen, setZoneCOpen] = useState(false);
 
+  // Confirmation avant de libérer un build validé (Lot 2) — demande
+  // explicite de l'utilisateur, seule étape de confirmation de cet écran :
+  // porte le SÉLECTEUR de l'entrée à libérer (`null` = dialogue fermé), pas
+  // juste un booléen, pour savoir LAQUELLE confirmer.
+  const [releaseConfirm, setReleaseConfirm] = useState<ExclusionSelector | null>(null);
+
   // L'exemplaire RÉELLEMENT optimisé — l'entrée choisie explicitement (ou
   // résolue sans ambiguïté, voir `pickSource`/l'initialisation paresseuse
   // ci-dessus) via `sourceSelector`. ⚠️ Repli sur l'ESPÈCE SEULE (stats de
@@ -610,14 +639,34 @@ export default function OptimizerSection({ box, runes, optimizer, allMonsters, r
   // pas », Question 4 du cadrage) OU que la source active en propose
   // PLUSIEURS sans qu'un choix ait encore été fait (zone D ouverte). `null`
   // UNIQUEMENT si aucune espèce n'est choisie du tout (recherche vide).
+  // Clé du sélecteur ACTIF — sert d'auto-exemption pour les runes validées
+  // (voir `otherValidatedRuneIds` plus bas) et à retrouver si CET exemplaire
+  // a déjà un build validé (Lot 2, `findValidatedBuild`).
+  const ownSelectorKey = sourceSelector ? exclusionSelectorKey(sourceSelector) : null;
+  const ownValidatedBuild = findValidatedBuild(validated.builds, ownSelectorKey);
+
   const selected = useMemo(() => {
     if (sourceSelector) {
       const resolved = resolveExclusionEntry(sourceSelector, exclusionData);
-      if (resolved) return resolved;
+      if (resolved) {
+        // ⚠️ **Runes VALIDÉES affichées comme équipées** (Lot 2) — un build
+        // trouvé par la recherche puis validé n'est PAS réellement reruné en
+        // jeu ; substituer seulement `runes` (base/artéfacts/relique restent
+        // ceux réellement équipés, voir spec/outils/optimizer/historique-
+        // import-monstres-a-optimiser.md) donne l'illusion voulue « ce
+        // monstre porte déjà ce build » sans toucher au reste de la fiche.
+        if (ownValidatedBuild) {
+          const validatedRunes = ownValidatedBuild.runeIds
+            .map((id) => runeById.get(id))
+            .filter((r): r is RuneDetail => !!r);
+          return { monster: resolved.monster, gear: { ...resolved.gear, runes: validatedRunes } };
+        }
+        return resolved;
+      }
     }
     if (!speciesMonster) return null;
     return { monster: speciesMonster, gear: { base: monsterBaseStats(speciesMonster), runes: [], artifacts: [] } };
-  }, [sourceSelector, exclusionData, speciesMonster]);
+  }, [sourceSelector, exclusionData, speciesMonster, ownValidatedBuild, runeById]);
 
   // `unitKey` (box) de l'entrée à protéger contre sa propre exclusion —
   // seulement quand l'exemplaire RÉELLEMENT résolu est un exemplaire Box
@@ -636,14 +685,19 @@ export default function OptimizerSection({ box, runes, optimizer, allMonsters, r
     // Se SUPERPOSENT, ne se remplacent pas : `excludeUsedRunes` l'exclusion
     // automatique (un périmètre entier, RTA/Défenses siège/Box),
     // `excludedSelectors` l'exclusion manuelle en plus (entrée par entrée,
-    // n'importe laquelle des 4 sources) — voir optimizerExclusion.ts.
+    // n'importe laquelle des 4 sources), `validated.builds` les runes déjà
+    // VALIDÉES pour un AUTRE monstre de « Monstres déjà runés » (Lot 2) —
+    // voir optimizerExclusion.ts. Jamais les siennes propres (`ownSelectorKey`) :
+    // sans cette exemption, relancer une recherche sur un monstre déjà
+    // validé s'auto-bloquerait avec ses propres runes.
     const auto = excludeUsedRunes
       ? autoExcludedRuneIds(excludeUsedScope, exclusionData, selected.monster.com2usId)
       : new Set<number>();
     const manual = resolveExcludedRuneIds(excludedSelectors, exclusionData, selectedUnitKey, selected.monster.com2usId);
-    if (auto.size === 0 && manual.size === 0) return runes;
-    return runes.filter((r) => !auto.has(r.id) && !manual.has(r.id));
-  }, [selected, selectedUnitKey, excludeUsedRunes, excludeUsedScope, excludedSelectors, exclusionData, runes]);
+    const reserved = otherValidatedRuneIds(validated.builds, ownSelectorKey);
+    if (auto.size === 0 && manual.size === 0 && reserved.size === 0) return runes;
+    return runes.filter((r) => !auto.has(r.id) && !manual.has(r.id) && !reserved.has(r.id));
+  }, [selected, selectedUnitKey, excludeUsedRunes, excludeUsedScope, excludedSelectors, exclusionData, runes, validated.builds, ownSelectorKey]);
 
   // ⚠️ Purge les sélecteurs d'exclusion manuelle devenus AUTO-exclusion
   // depuis un changement de monstre recherché — `resolveExcludedRuneIds`
@@ -1970,6 +2024,86 @@ export default function OptimizerSection({ box, runes, optimizer, allMonsters, r
           </div>
         );
 
+        // « Monstres déjà runés » (Lot 2, voir spec/outils/optimizer/
+        // historique-import-monstres-a-optimiser.md) — un monstre dont un
+        // build a été VALIDÉ (bouton sous une carte de résultat) a ses 6
+        // runes réservées : sorties du pool des AUTRES monstres, jamais du
+        // sien propre (voir `otherValidatedRuneIds`, `pool` plus haut).
+        // Portrait cliquable = rappelle l'exemplaire (espèce + source +
+        // sélecteur précis), sans rien libérer — juste `selected`/`selected.
+        // gear.runes` qui suivent alors ce build validé (voir `selected`
+        // plus haut). Bouton « validé » séparé = libère directement, avec
+        // confirmation (demande explicite), sans changer le monstre affiché.
+        const monstresDejaRunesBlock = (
+          <div>
+            <div className="mb-2.5 flex items-center gap-1.5">
+              <div className="flex h-6 w-6 flex-none items-center justify-center rounded-md border border-border-soft bg-panel2">
+                <CheckCircle2 size={13} className="text-accent" />
+              </div>
+              <span className="text-[12.5px] font-semibold text-ink-dim">Monstres déjà runés</span>
+              <HelpPopover title="Monstres déjà runés">
+                Valider un build (bouton sous un résultat de recherche) réserve ses 6 runes : elles sortent du
+                pool pour les AUTRES monstres de cette liste, jusqu'à ce que tu les libères ici.
+              </HelpPopover>
+            </div>
+            {validated.builds.length === 0 ? (
+              <p className="text-micro text-ink-dim">Aucun monstre validé pour l'instant.</p>
+            ) : (
+              <div className="space-y-1.5">
+                {validated.builds.map((v) => {
+                  const resolved = resolveExclusionEntry(v.selector, exclusionData);
+                  const key = exclusionSelectorKey(v.selector);
+                  // ⚠️ Runes VALIDÉES substituées à celles réellement
+                  // équipées (même principe que `selected`, plus haut) —
+                  // cette rangée doit refléter le build RÉSERVÉ, pas
+                  // l'équipement actuel de l'exemplaire.
+                  const candidate: ExclusionCandidate | null = resolved
+                    ? {
+                        selector: v.selector,
+                        monster: resolved.monster,
+                        gear: {
+                          ...resolved.gear,
+                          runes: v.runeIds.map((id) => runeById.get(id)).filter((r): r is RuneDetail => !!r),
+                        },
+                      }
+                    : null;
+                  return (
+                    <div key={key} className="flex items-center gap-2 rounded-lg border border-border-soft bg-panel2/60 px-2 py-1.5">
+                      <ZoneCliquable
+                        imbrique
+                        disabled={!resolved}
+                        onClick={() => {
+                          if (!resolved) return;
+                          const id = String(resolved.monster.id);
+                          if (id !== selectedId) resetSearch();
+                          setSelectedId(id);
+                          setGearSource(v.selector.source);
+                          setSourceSelector(v.selector);
+                          setZoneDOpen(false);
+                        }}
+                        className="flex min-w-0 flex-1 items-center gap-3 text-left"
+                      >
+                        {candidate ? (
+                          <ExclusionCandidateRow candidate={candidate} />
+                        ) : (
+                          <span className="text-micro italic text-ink-dim">Monstre introuvable (compte modifié depuis)</span>
+                        )}
+                      </ZoneCliquable>
+                      <BoutonIcone
+                        cadre
+                        libelle="Libérer ces runes"
+                        icone={<CheckCircle2 size={16} className="text-accent" />}
+                        onClick={() => setReleaseConfirm(v.selector)}
+                        className="h-7 w-7 flex-none"
+                      />
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        );
+
         // ⚠️ `dansPanneau` : dans le panneau, « Exclure les runes d'un
         // monstre » passe AU-DESSUS de « Exclure les runes déjà utilisées »
         // (demande explicite — c'est le réglage le plus utilisé au doigt),
@@ -2009,6 +2143,7 @@ export default function OptimizerSection({ box, runes, optimizer, allMonsters, r
             )}
 
             <div className="mt-4 border-t border-border-soft pt-4">{runesImposeesBlock}</div>
+            <div className="mt-4 border-t border-border-soft pt-4">{monstresDejaRunesBlock}</div>
           </>
         );
 
@@ -2468,6 +2603,13 @@ export default function OptimizerSection({ box, runes, optimizer, allMonsters, r
                       })()
                     : undefined
                 }
+                // « Valider » (Lot 2) — réserve les 6 runes de CE candidat
+                // pour l'exemplaire RÉELLEMENT résolu (`sourceSelector`) ;
+                // absent pour un monstre non possédé (repli stats de base,
+                // `sourceSelector` alors `null`) — rien à réserver sur un
+                // exemplaire qui n'existe pas dans le compte.
+                onValidate={sourceSelector ? () => validated.validate(sourceSelector, c.runeIds) : undefined}
+                validated={ownValidatedBuild ? sameRuneIds(ownValidatedBuild.runeIds, c.runeIds) : false}
               />
             ))}
           </div>
@@ -2532,6 +2674,23 @@ export default function OptimizerSection({ box, runes, optimizer, allMonsters, r
             </div>
           )}
         </div>
+      )}
+
+      {/* Confirmation avant de libérer un build validé (Lot 2) — demande
+          explicite de l'utilisateur, seule confirmation de tout cet écran.
+          `Modale` est portalisée : sa position dans l'arbre n'a pas
+          d'importance pour son rendu. */}
+      {releaseConfirm && (
+        <ConfirmDialog
+          titre="Libérer les runes validées ?"
+          message="Ces 6 runes redeviendront disponibles pour les recherches des autres monstres de la liste."
+          libelleAction="Libérer"
+          onConfirm={() => {
+            validated.release(releaseConfirm);
+            setReleaseConfirm(null);
+          }}
+          onCancel={() => setReleaseConfirm(null)}
+        />
       )}
     </div>
   );

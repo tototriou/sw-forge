@@ -303,6 +303,31 @@ export function monsterCritSiPlusRapide(detail: DetailMonstre | null): boolean {
   return detail.competences.some((c) => c.passif && CRIT_SI_PLUS_RAPIDE_CONNUS.has(c.nom));
 }
 
+// Brita (« Might of the Mercenary ») — la branche « Attack Power » de ce
+// passif accorde +100 % de dégâts une fois un SEUIL d'ATQ atteint (les deux
+// autres branches, Defense/Attack Speed, sont défensives ou hors dégâts —
+// hors modèle). ⚠️ Confirmé par l'utilisateur : « s'active à partir de
+// +633 d'ATQ, sans lead attaque, en ne prenant en compte que les
+// compétences d'invocateur combat » — `+633` est un ÉCART au-dessus de la
+// BASE (comme tous les seuils de ce fichier, jamais un total absolu : la
+// base de Brita seule, 736, dépasse déjà 633, ce qui rendrait un seuil
+// absolu toujours vrai). Seuil réel = BASE ATQ + 633, comparé à
+// `atkSansLeadCombat` (même discipline que `defCombat`, non partagée avec
+// le calcul de `computeSkillDamageDetail`). Entièrement DÉDUIT, aucun
+// bouton — même famille que `critSiPlusRapide`.
+const BONUS_SI_ATQ_SEUIL_CONNUS: Record<string, { seuilDelta: number; pct: number }> = {
+  'Might of the Mercenary (Passive)': { seuilDelta: 633, pct: 100 }, // Mercenary Queen, Brita
+};
+
+export function monsterBonusSiAtqSeuil(detail: DetailMonstre | null): { seuilDelta: number; pct: number } | null {
+  if (!detail) return null;
+  for (const c of detail.competences) {
+    const trouve = c.passif && BONUS_SI_ATQ_SEUIL_CONNUS[c.nom];
+    if (trouve) return trouve;
+  }
+  return null;
+}
+
 // Passifs qui majorent TOUS les dégâts du monstre proportionnellement à
 // l'écart de VIT avec la cible, plafonné à `pctMax` à `ecartMax` points
 // d'écart ou plus — Sonia/Battle Angel (« Evasion (Passive) », sans formule
@@ -393,6 +418,16 @@ export function monsterModificateursVit(detail: DetailMonstre | null): Modificat
         description: c.description,
         icone: c.icone,
         detail: 'toujours actif — critique garanti si plus rapide que la cible',
+      });
+    }
+    const atqSeuil = BONUS_SI_ATQ_SEUIL_CONNUS[c.nom];
+    if (atqSeuil) {
+      out.push({
+        skillCom2usId: c.com2usId,
+        nom: c.nom,
+        description: c.description,
+        icone: c.icone,
+        detail: `toujours actif — +${atqSeuil.pct} % de dégâts si ton ATQ (sans lead) atteint la base +${atqSeuil.seuilDelta}`,
       });
     }
     const bonus = BONUS_DEGATS_SELON_VIT_CONNUS[c.nom];
@@ -681,9 +716,9 @@ const BONUS_FIXE_CIBLE_PVMAX_CONNUS: Record<string, { pct: number }> = {
   // `quantite: null` en données — confirmé par l'utilisateur : 2 %. ⚠️ Une
   // SECONDE clause du texte (« +50% dans les combats de boss ») est hors
   // modèle, aucune notion de « combat de boss » dans cet outil — même limite
-  // que Comeuppance (Onmyouji/Giou, voir le commentaire à la fin de
-  // `PASSIFS_OFFENSIFS_CONNUS`, plus haut : NON ajoutée, sa formule ne
-  // dépend d'ailleurs d'aucune stat de l'attaquant).
+  // que Comeuppance (Onmyouji/Giou, `PASSIFS_OFFENSIFS_CONNUS`, plus haut :
+  // sa propre SECONDE clause, +50 % en combat de boss, hors modèle pour la
+  // même raison).
   'Spear of Tenacity (Passive)': { pct: 2 }, // Centaur Knight, Pholus
 };
 
@@ -1569,17 +1604,19 @@ const PASSIFS_OFFENSIFS_CONNUS: PassifOffensifConnu[] = [
   // ATQ/DEF au début du combat (« the value of the lower stat will equal
   // that of the higher ») laissée hors modèle (état de combat non simulé).
   { nom: 'Internal Force (Passive)', categorie: { type: 'conditionnel', condition: 'tu as un Bouclier actif' } }, // Paladin, Leona
+  // « Deals additional damage that's proportional to the enemy's MAX HP...
+  // when attacking the suppressed Monster. » `formule: 0.2*{Target MAX HP}`
+  // confirmé (capture du panneau de compétence, bestiaire) — ne dépend QUE
+  // de la cible, AUCUNE stat de l'attaquant. ⚠️ D'ABORD exclu à tort de
+  // cette table par analogie avec `skillDamageProfile` (qui rejette un sort
+  // ACTIF stat-indépendant, car inutile comme RÉFÉRENCE DE CLASSEMENT des
+  // builds) — mais `monsterOffensivePassives` sert un rôle différent
+  // (sommer une contribution RÉELLE au total affiché, pas classer des
+  // builds) : le filtre correspondant y a été retiré (voir
+  // `monsterOffensivePassives`, plus bas). Jamais critique, condition
+  // "Suppressed" non précisée par le texte — bouton, comme demandé.
+  { nom: 'Comeuppance (Passive)', critique: 'jamais', categorie: { type: 'conditionnel', condition: 'tu attaques la cible « Suppressed » (texte du jeu, condition non davantage précisée)' } }, // Onmyouji, Giou
 ];
-// ⚠️ Comeuppance (Onmyouji/Giou) — « Deals additional damage that's
-// proportional to the enemy's MAX HP... » (`0.2*{Target MAX HP}`), demandé
-// comme un bouton — NON AJOUTÉ ci-dessus, volontairement : sa formule ne
-// dépend QUE de la cible (`Target MAX HP`), AUCUNE stat de l'attaquant
-// (`{Target MAX HP}` n'est pas dans `VARIABLE_STAT`). `monsterOffensivePassives`
-// filtre déjà ce cas (`!analyse.variables.some((v) => VARIABLE_STAT[v])`,
-// exactement la même règle que `skillDamageProfile` pour un sort actif « ne
-// dépend d'aucune statistique du monstre ») — une entrée ici n'aurait donc
-// JAMAIS été détectée, silencieusement. Optimiser les runes dessus n'aurait
-// de toute façon aucun sens (même chiffre quelle que soit la combinaison).
 
 // Profil de dégâts d'un passif offensif CONNU (voir la liste ci-dessus),
 // prêt à passer par `computeSkillDamage` comme n'importe quel sort actif.
@@ -1619,7 +1656,15 @@ export function monsterOffensivePassives(detail: DetailMonstre | null): PassifOf
     const brut = c.formule.trim();
     const fixed = RE_FIXED.test(brut);
     const analyse = analyser(brut.replace(RE_FIXED, '').trim());
-    if (!analyse || !analyse.variables.some((v) => VARIABLE_STAT[v])) continue;
+    // ⚠️ Contrairement à `skillDamageProfile` (le sort ACTIF choisi comme
+    // référence de classement des builds), un passif dont la formule ne
+    // dépend QUE de la cible (Comeuppance/Giou, `0.2*{Target MAX HP}`)
+    // N'EST PAS exclu ici : il reste une contribution RÉELLE et calculable
+    // au total affiché (juste invariable d'un build de runes à l'autre,
+    // comme le confirme le bestiaire — signalé par l'utilisateur, capture
+    // du panneau de compétence à l'appui). Seule une formule VRAIMENT
+    // illisible (`!analyse`) est rejetée.
+    if (!analyse) continue;
     // ⚠️ Un passif PEUT porter des améliorations « Damage +X% » — vu sur
     // Winds and Clouds (Feng Yan : 5+5+10+15 = 35 %, confirmé par
     // l'utilisateur), contrairement à une hypothèse antérieure fausse. Même
@@ -1996,6 +2041,19 @@ function defCombat(stats: StatRow[], setup: DamageSetup, element: ElementKey | n
   const ampliMiriam = setup.miriamActif ? MIRIAM_AMPLIFY_PCT : 0;
   const pctDefBuff = setup.defBuff ? DEF_BUFF_PCT * (1 + ampliMiriam / 100) : 0;
   return (defAvecLead * (100 + pctDefBuff)) / 100;
+}
+
+// ATQ de combat SANS le lead (base + rune + compétence d'invocateur
+// UNIQUEMENT) — Brita (« Might of the Mercenary »), voir
+// `monsterBonusSiAtqSeuil` : confirmé par l'utilisateur, « sans lead
+// attaque, en ne prenant en compte que les compétences d'invocateur
+// combat ». Pas de buff ATQ (`atkBuff`) ni de Miriam : la stat AFFICHÉE
+// hors combat, pas un instantané de tour. Même prudence que `defCombat`
+// (non partagée avec `avecInvocateur('atk', …)` de `computeSkillDamageDetail`).
+function atkSansLeadCombat(stats: StatRow[], setup: DamageSetup, element: ElementKey | null = null): number {
+  const bonus = summonerSkillBonus(setup.summonerSkills, element);
+  const row = stats.find((s) => s.key === 'atk');
+  return row ? row.total + Math.ceil((row.base * bonus.pct.atk) / 100) : 0;
 }
 
 // Taux Crit BRUT (avant plafond à 100 %) — leader Taux Crit + les deux
@@ -2437,7 +2495,11 @@ export function computeTotalDamage(
   // Gideon (« Aegis Shell ») — voir `monsterBonusDegatsSelonDef`. Même
   // famille ENCORE, mais selon TA PROPRE DEF (pas un écart avec la cible).
   // `null` = comportement inchangé.
-  bonusDegatsSelonDef: { defMax: number; pctMax: number } | null = null
+  bonusDegatsSelonDef: { defMax: number; pctMax: number } | null = null,
+  // Brita (« Might of the Mercenary ») — voir `monsterBonusSiAtqSeuil`.
+  // Entièrement DÉDUIT (comme `critSiPlusRapide`), aucun bouton. `null` =
+  // comportement inchangé.
+  bonusSiAtqSeuil: { seuilDelta: number; pct: number } | null = null
 ): number {
   const maVit = maVitCombat(stats, setup, element, ampliVitPct);
   const ecartVit = maVit - Math.max(1, setup.enemySpd ?? DEFAULT_DAMAGE_SETUP.enemySpd!);
@@ -2513,6 +2575,16 @@ export function computeTotalDamage(
     const pct = Math.min(bonusDegatsSelonDef.defMax, Math.max(0, def)) * (bonusDegatsSelonDef.pctMax / bonusDegatsSelonDef.defMax);
     total *= 1 + pct / 100;
   }
+  // Brita (« Might of the Mercenary ») — SEUIL absolu (pas linéaire) :
+  // +pct % dès que l'ATQ (sans lead, avec compétence d'invocateur) atteint
+  // la base + seuilDelta, rien avant. Entièrement déduit.
+  if (bonusSiAtqSeuil) {
+    const rowAtk = stats.find((s) => s.key === 'atk');
+    const seuil = (rowAtk?.base ?? 0) + bonusSiAtqSeuil.seuilDelta;
+    if (atkSansLeadCombat(stats, setup, element) >= seuil) {
+      total *= 1 + bonusSiAtqSeuil.pct / 100;
+    }
+  }
   // Même famille que `bonusDegatsSelonVit` (multiplicatif sur le TOTAL,
   // après coup) — seule la SOURCE du pourcentage change : saisie par
   // l'utilisateur (`resolvedStackPct`) plutôt que déduite de la VIT.
@@ -2583,7 +2655,12 @@ export function damageRelevantStats(
   bonusDegatsSelonCr: { ratio: number } | null = null,
   // Gideon (« Aegis Shell ») — voir `monsterBonusDegatsSelonDef`. Fait
   // travailler la DEF même pour un sort qui ne la lit pas.
-  bonusDegatsSelonDef: { defMax: number; pctMax: number } | null = null
+  bonusDegatsSelonDef: { defMax: number; pctMax: number } | null = null,
+  // Brita (« Might of the Mercenary ») — voir `monsterBonusSiAtqSeuil`.
+  // Fait travailler l'ATQ même pour un sort qui ne la lit pas directement
+  // (rare : la plupart des sorts en dépendent déjà, mais un sort à `{DEF}`
+  // seul ne la privilégierait pas sinon).
+  bonusSiAtqSeuil: { seuilDelta: number; pct: number } | null = null
 ): StatKey[] {
   // Sans sort résolu (fiche absente, sort non pris en charge), on retombe sur
   // le biais de l'objectif « Dégâts » — le cas de très loin le plus fréquent.
@@ -2614,6 +2691,7 @@ export function damageRelevantStats(
   if (bonusHpPropre && !keys.includes('hp')) keys.push('hp');
   if (bonusDegatsSelonCr && !keys.includes('cr')) keys.push('cr');
   if (bonusDegatsSelonDef && !keys.includes('def')) keys.push('def');
+  if (bonusSiAtqSeuil && !keys.includes('atk')) keys.push('atk');
   // Le critique forcé change la donne — mais SEULEMENT lui : le bonus continu
   // de Sonia multiplie le total quel que soit son mode de critique, il ne le
   // FORCE pas.

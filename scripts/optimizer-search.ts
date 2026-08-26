@@ -36,6 +36,7 @@ import {
   monsterBonusDegatsSelonCr,
   monsterBonusDegatsSelonDef,
   monsterBonusDegatsSelonVit,
+  monsterBonusSiAtqSeuil,
   monsterBonusDegatsStackable,
   monsterBonusEcartDef,
   monsterBonusFixeCiblePvMax,
@@ -196,6 +197,7 @@ if (recipe.objective === 'degats_reels') {
     const bonusEffetPropre = monsterBonusParEffetPropre(detail);
     const bonusSelonCr = monsterBonusDegatsSelonCr(detail);
     const bonusSelonDef = monsterBonusDegatsSelonDef(detail);
+    const bonusAtqSeuil = monsterBonusSiAtqSeuil(detail);
     console.log(
       `Dégâts réels : sort « ${profile.nom} » (S${profile.slot}, ${resolvedHits(profile, s)} coup(s)` +
         `${profile.hitsRange ? ` [variable ${profile.hitsRange.min}-${profile.hitsRange.max}]` : ''}` +
@@ -223,7 +225,8 @@ if (recipe.objective === 'degats_reels') {
           bonusEcartDef,
           bonusFixeMaxHpPropre != null || bonusSacrifice != null,
           bonusSelonCr,
-          bonusSelonDef
+          bonusSelonDef,
+          bonusAtqSeuil
         ).join(', ')}]`
     );
     if (bonusStatFixe) {
@@ -260,6 +263,12 @@ if (recipe.objective === 'degats_reels') {
     }
     if (bonusSelonDef) {
       console.log(`Ce monstre majore ses dégâts selon sa DEF propre : +${bonusSelonDef.pctMax} % à ${bonusSelonDef.defMax} DEF ou plus (Aegis Shell).`);
+    }
+    if (bonusAtqSeuil) {
+      const baseAtq = loadMonstersList().find((m) => m.com2usId === loaded.com2usId)?.stats.attack ?? 0;
+      console.log(
+        `Ce monstre ajoute +${bonusAtqSeuil.pct} % de dégâts si son ATQ (sans lead) atteint ${baseAtq + bonusAtqSeuil.seuilDelta} (base ${baseAtq} + ${bonusAtqSeuil.seuilDelta}), toujours (Might of the Mercenary).`
+      );
     }
     // `resolveArtifacts`, PAS `loaded.gear.artifacts` : ceux réellement
     // envoyés au moteur (réels, hypothétiques ou aucun selon la recette) —

@@ -30,6 +30,7 @@ import {
   monsterBonusDegatsSelonCr,
   monsterBonusDegatsSelonDef,
   monsterBonusDegatsSelonVit,
+  monsterBonusSiAtqSeuil,
   monsterBonusDegatsStackable,
   monsterBonusEcartDef,
   monsterBonusFixeCiblePvMax,
@@ -106,6 +107,7 @@ if (recipe.objective === 'degats_reels') {
       bonusDegatsConditionnel: monsterBonusDegatsConditionnel(detail),
       bonusDegatsSelonCr: monsterBonusDegatsSelonCr(detail),
       bonusDegatsSelonDef: monsterBonusDegatsSelonDef(detail),
+      bonusSiAtqSeuil: monsterBonusSiAtqSeuil(detail),
     };
   } else {
     console.warn(`⚠️ Objectif « Dégâts réels » mais aucun sort calculable pour ${loaded.monsterName} — objectiveScore lèvera.`);

@@ -44,6 +44,7 @@ import {
   monsterBonusDegatsSelonCr,
   monsterBonusDegatsSelonDef,
   monsterBonusDegatsSelonVit,
+  monsterBonusSiAtqSeuil,
   monsterBonusDegatsStackable,
   monsterBonusEcartDef,
   monsterBonusFixeCiblePvMax,
@@ -383,6 +384,10 @@ export default function OptimizerSection({ box, runes, optimizer, allMonsters, r
   // Gideon (« Aegis Shell ») — même famille ENCORE, mais selon TA PROPRE DEF
   // (voir `monsterBonusDegatsSelonDef`).
   const bonusDegatsSelonDef = useMemo(() => monsterBonusDegatsSelonDef(skillDetail), [skillDetail]);
+  // Brita (« Might of the Mercenary ») — même famille que `critSiPlusRapide`
+  // (entièrement déduit, aucun bouton), mais un SEUIL d'ATQ plutôt qu'un
+  // écart de VIT (voir `monsterBonusSiAtqSeuil`).
+  const bonusSiAtqSeuil = useMemo(() => monsterBonusSiAtqSeuil(skillDetail), [skillDetail]);
   // Affichage seul (icône/nom/description) des deux modificateurs VIT
   // ci-dessus, pour « Passifs offensifs » — voir `DamageSetupCard.tsx`.
   const modificateursVit = useMemo(() => monsterModificateursVit(skillDetail), [skillDetail]);
@@ -402,7 +407,8 @@ export default function OptimizerSection({ box, runes, optimizer, allMonsters, r
             bonusEcartDef,
             bonusFixeMaxHpPropre != null || bonusSacrifice != null,
             bonusDegatsSelonCr,
-            bonusDegatsSelonDef
+            bonusDegatsSelonDef,
+            bonusSiAtqSeuil
           )
         : undefined,
     [
@@ -418,6 +424,7 @@ export default function OptimizerSection({ box, runes, optimizer, allMonsters, r
       bonusSacrifice,
       bonusDegatsSelonCr,
       bonusDegatsSelonDef,
+      bonusSiAtqSeuil,
     ]
   );
   // Statistiques principales autorisées sur les slots 2/4/6 — vide = libre.
@@ -662,6 +669,7 @@ export default function OptimizerSection({ box, runes, optimizer, allMonsters, r
             bonusDegatsConditionnel,
             bonusDegatsSelonCr,
             bonusDegatsSelonDef,
+            bonusSiAtqSeuil,
           }
         : null,
     [
@@ -677,6 +685,7 @@ export default function OptimizerSection({ box, runes, optimizer, allMonsters, r
       bonusDegatsConditionnel,
       bonusDegatsSelonCr,
       bonusDegatsSelonDef,
+      bonusSiAtqSeuil,
     ]
   );
 
@@ -2324,7 +2333,8 @@ export default function OptimizerSection({ box, runes, optimizer, allMonsters, r
                           realDamage.monsterWide,
                           realDamage.bonusDegatsConditionnel,
                           realDamage.bonusDegatsSelonCr,
-                          realDamage.bonusDegatsSelonDef
+                          realDamage.bonusDegatsSelonDef,
+                          realDamage.bonusSiAtqSeuil
                         );
                         return { total, partPvCible: damageSetup.enemyHp > 0 ? (total / damageSetup.enemyHp) * 100 : 0 };
                       })()

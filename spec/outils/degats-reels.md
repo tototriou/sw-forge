@@ -800,12 +800,17 @@ PROPRE au passif, pas un % du total) :
   source de dégâts À PART ENTIÈRE gatée par un bouton, exactement comme
   Roid. Le +50 % du texte s'applique aux dégâts que le Bouclier ABSORBE
   (défensif, hors modèle).
-- ⚠️ **Comeuppance/Onmyouji, Giou** (point 41) — **NON implémenté** malgré
-  une formule connue (`0.2*{Target MAX HP}`) : elle ne dépend QUE de la
-  cible, aucune stat de l'attaquant — `monsterOffensivePassives` filtre déjà
-  ce cas (même règle que `skillDamageProfile` pour un sort actif hors
-  modèle). Une entrée dans la table n'aurait donc jamais été détectée.
-  Optimiser les runes dessus n'aurait de toute façon aucun sens.
+- **Comeuppance/Onmyouji, Giou** (point 41) : `formule: 0.2*{Target MAX HP}`
+  confirmée (capture du bestiaire à l'appui — d'abord exclue à tort par
+  analogie avec `skillDamageProfile`, qui rejette un sort ACTIF
+  stat-indépendant parce qu'INUTILE comme référence de classement des
+  builds ; une raison qui ne s'applique PAS à `monsterOffensivePassives`,
+  qui somme une contribution RÉELLE au total affiché, jamais utilisée pour
+  classer). Le filtre correspondant a été RETIRÉ de
+  `monsterOffensivePassives` (seule une formule vraiment illisible reste
+  rejetée) — aucune autre entrée de la table n'est affectée, toutes
+  dépendaient déjà d'au moins une stat de l'attaquant. `critique: 'jamais'`,
+  catégorie `conditionnel` (bouton, comme Internal Force).
 
 **Nouveau `BONUS_DEGATS_STACKABLE_CONNUS`** (compteur saisi manuellement, 0
 par défaut, même mécanisme que Momo) :
@@ -875,7 +880,8 @@ bonusConditionnelPropre?: { pct: number; condition: string }`) :
 
 **QUATRIÈME et CINQUIÈME mécanique liée à une stat** (multiplicatif sur le
 TOTAL, linéaire, plafonné, toujours actif — même famille que Sonia/écart de
-VIT, source différente) :
+VIT, source différente) ; une SIXIÈME, de forme différente (seuil ABSOLU,
+pas linéaire), suit juste après :
 
 - **Hidden Sense of Justice/Zenitsu Agatsuma (Ténèbres)** et **Lethal
   Intent/Qilin Slasher (Ténèbres)** (point 29) : « increases the damage
@@ -899,16 +905,26 @@ Pour Chun-Li/Leah (`ecartMax: 150, pctMax: 200`, valeurs DIFFÉRENTES), un
 plafonné à 200 %. Corrigé (`Math.min(ecartMax, écart)`) et testé au-delà du
 plafond, jamais vérifié jusque-là.
 
-⚠️ **Point 30b (Might of the Mercenary/Mercenary Queen, Brita) — NON
-implémenté, écart non résolu.** La réponse de l'utilisateur décrit un seuil
-de VIT (« +633 de vitesse ») déclenchant un bonus de dégâts, mais les
-données réelles montrent un mécanisme différent : « Grants up to 3 effects
-of Might of the Mercenary according to your stats... (Attack Power:
-Increases the damage dealt to enemies by 100%, Defense: Decreases the
-damage received from enemies by 30%, Attack Speed: Removes 1 beneficial
-effect granted on the enemy with a 50% chance) » — le bonus de DÉGÂTS
-(+100 %) est lié à la clause **Attack Power**, pas Attack Speed/VIT. À
-clarifier avec l'utilisateur avant d'implémenter quoi que ce soit.
+**Might of the Mercenary/Mercenary Queen, Brita** (point 30b) — SIXIÈME
+mécanique liée à une stat, mais d'une forme NOUVELLE : un SEUIL ABSOLU
+(binaire), pas un scaling linéaire comme les cinq précédentes. « Grants up
+to 3 effects of Might of the Mercenary according to your stats...
+(Attack Power: Increases the damage dealt to enemies by 100%, Defense:
+Decreases the damage received from enemies by 30%, Attack Speed: Removes
+1 beneficial effect granted on the enemy with a 50% chance) » — seule la
+branche **Attack Power** porte un bonus de DÉGÂTS ; les deux autres sont
+défensives/hors modèle. ⚠️ Une première réponse de l'utilisateur (« +633 de
+vitesse ») ne correspondait pas aux données (aucune clause VIT ne porte de
+bonus de dégâts) — corrigée ensuite : « s'active à partir de +633 d'ATQ,
+sans lead attaque, en ne prenant en compte que les compétences
+d'invocateur combat ». `+633` est un ÉCART au-dessus de la BASE (comme
+tous les seuils de ce fichier, jamais un total absolu — la base d'ATQ de
+Brita seule, 736, dépasse déjà 633, ce qui rendrait un seuil absolu
+toujours vrai). Seuil réel = BASE ATQ + 633, comparé à `atkSansLeadCombat`
+(nouvelle fonction, même prudence que `defCombat` : non partagée avec le
+calcul de `computeSkillDamageDetail`). Entièrement DÉDUIT, aucun bouton —
+même famille que `critSiPlusRapide`, mais un seuil sur l'ATQ propre plutôt
+qu'une comparaison de VIT avec la cible.
 
 **Brandia (« Touch of Mercy »)** — signalée par l'utilisateur (« augmente
 ses dégâts selon le nombre d'effets néfastes sur l'ennemi »), absente de

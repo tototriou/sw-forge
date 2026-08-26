@@ -15,6 +15,7 @@ import {
   monsterBonusDegatsSelonCr,
   monsterBonusDegatsSelonDef,
   monsterBonusDegatsSelonVit,
+  monsterBonusSiAtqSeuil,
   monsterBonusEcartDef,
   monsterBonusFixeMaxHpPropre,
   monsterBonusSacrifice,
@@ -130,7 +131,8 @@ export function resolveObjectiveStats(recipe: OptimizerRecipe, loaded: LoadedMon
     monsterBonusEcartDef(detail),
     monsterBonusFixeMaxHpPropre(detail) != null || monsterBonusSacrifice(detail) != null,
     monsterBonusDegatsSelonCr(detail),
-    monsterBonusDegatsSelonDef(detail)
+    monsterBonusDegatsSelonDef(detail),
+    monsterBonusSiAtqSeuil(detail)
   );
 }
 

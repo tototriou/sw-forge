@@ -54,6 +54,7 @@ import {
   monsterBonusDegatsSelonCr,
   monsterBonusDegatsSelonDef,
   monsterBonusDegatsSelonVit,
+  monsterBonusSiAtqSeuil,
   monsterBonusDegatsStackable,
   monsterBonusEcartDef,
   monsterBonusFixeCiblePvMax,
@@ -681,6 +682,81 @@ export default function testDegats() {
   );
   const gideonSans10000 = computeSkillDamage(gideonBase!, stats({ atk: 2000, def: 10000, cd: 200, cr: 100 }), gideonSetup);
   ok(Math.abs(gideonAvec10000 / gideonSans10000 - 2) < 1e-9, '10 000 DEF (le double du plafond) : reste à +100 %, jamais plus (×2)');
+
+  // Brita (« Might of the Mercenary »), point 30b — SEUIL absolu d'ATQ
+  // (pas linéaire, contrairement aux quatre précédents) : « s'active à
+  // partir de +633 d'ATQ, sans lead attaque, en ne prenant en compte que
+  // les compétences d'invocateur combat » — confirmé après une première
+  // réponse (« +633 de vitesse ») qui ne correspondait pas aux données
+  // réelles. `+633` est un ÉCART au-dessus de la BASE (736 pour Brita) :
+  // un seuil ABSOLU de 633 serait toujours vrai (la base seule le dépasse
+  // déjà), donc jamais un total brut.
+  const brita = fiche(28211);
+  const britaBase = defaultDamageSkill(monsterDamageSkills(brita));
+  ok(britaBase !== null, 'Brita : un sort de dégâts par défaut est trouvé');
+  egal(monsterBonusSiAtqSeuil(brita), { seuilDelta: 633, pct: 100 }, 'Brita : Might of the Mercenary, seuil +633 au-dessus de la base');
+  ok(!monsterBonusSiAtqSeuil(fiche(LUSHEN)), 'Lushen n’a pas ce mécanisme');
+  const britaSetup: DamageSetup = {
+    ...DEFAULT_DAMAGE_SETUP,
+    skillCom2usId: britaBase!.skillCom2usId,
+    summonerSkills: 'combat',
+    critMode: 'normal',
+  };
+  const britaConfig = monsterBonusSiAtqSeuil(brita)!;
+  // Base 736 (Eau) + compétence d'invocateur combat (+20 % + 21 % élément
+  // Eau = 41 % de la base, arrondi au-dessus) = 736 + 302 = 1038 sans
+  // aucune rune. Seuil réel = 736 + 633 = 1369, donc 1369 − 1038 = 331
+  // points d'ATQ de RUNES nécessaires (`row.total`, le champ AVANT
+  // compétence d'invocateur) pour l'atteindre pile.
+  const britaStatsJusteSous = statsAvecBase('atk', 736, 736 + 330, { cd: 200, cr: 100 });
+  const britaStatsPile = statsAvecBase('atk', 736, 736 + 331, { cd: 200, cr: 100 });
+  const britaSansJusteSous = computeSkillDamage(britaBase!, britaStatsJusteSous, britaSetup, 'water');
+  // ⚠️ Comparé à un SANS-bonus calculé sur LES MÊMES stats (+331) — 331
+  // points d'ATQ de runes changent aussi légèrement le dégât DE BASE (l'ATQ
+  // est une variable de la formule), pas seulement le déclenchement du
+  // seuil : isoler le ×2 exige de garder les stats identiques des deux
+  // côtés de la comparaison.
+  const britaSansPile = computeSkillDamage(britaBase!, britaStatsPile, britaSetup, 'water');
+  const britaJusteSous = computeTotalDamage(britaBase!, [], britaStatsJusteSous, britaSetup, 'water', 0, false, null, null, {}, null, null, null, britaConfig);
+  const britaPile = computeTotalDamage(britaBase!, [], britaStatsPile, britaSetup, 'water', 0, false, null, null, {}, null, null, null, britaConfig);
+  egal(britaJusteSous, britaSansJusteSous, '330 points de runes ATQ : un point sous le seuil, aucun bonus');
+  ok(Math.abs(britaPile / britaSansPile - 2) < 1e-9, '331 points de runes ATQ : le seuil est atteint pile, +100 % (×2)');
+  // Un lead ATQ ne doit JAMAIS aider à atteindre ce seuil (« sans lead
+  // attaque », confirmé explicitement) — même 330 points de runes (sous le
+  // seuil) avec un lead ATQ généreux ne déclenchent rien.
+  const britaAvecLeadSousLeSeuil = computeTotalDamage(
+    britaBase!,
+    [],
+    britaStatsJusteSous,
+    { ...britaSetup, leaderSkill: { stat: 'Attack Power', pct: 50 } },
+    'water',
+    0,
+    false,
+    null,
+    null,
+    {},
+    null,
+    null,
+    null,
+    britaConfig
+  );
+  const britaSansLeadMemeReglage = computeTotalDamage(
+    britaBase!,
+    [],
+    britaStatsJusteSous,
+    { ...britaSetup, leaderSkill: { stat: 'Attack Power', pct: 50 } },
+    'water',
+    0,
+    false,
+    null,
+    null,
+    {},
+    null,
+    null,
+    null,
+    null
+  );
+  egal(britaAvecLeadSousLeSeuil, britaSansLeadMemeReglage, 'un lead ATQ généreux ne fait JAMAIS franchir le seuil — exclu du calcul, confirmé par l’utilisateur');
   egal(monsterModificateursVit(fiche(LUSHEN)).length, 0, 'Lushen : aucun modificateur');
   egal(monsterModificateursVit(null).length, 0, 'fiche absente : liste vide, jamais une exception');
 
@@ -1607,14 +1683,47 @@ export default function testDegats() {
     'activé une fois le bouton coché'
   );
 
-  // Comeuppance (Onmyouji/Giou) — NON ajouté à `PASSIFS_OFFENSIFS_CONNUS` :
-  // sa formule (`0.2*{Target MAX HP}`) ne dépend QUE de la cible, aucune
-  // stat de l'attaquant — `monsterOffensivePassives` le filtre déjà (même
-  // règle que `skillDamageProfile` pour un sort actif hors modèle).
+  // Comeuppance (Onmyouji/Giou) — D'ABORD exclu à tort de
+  // `PASSIFS_OFFENSIFS_CONNUS` (sa formule, `0.2*{Target MAX HP}`, ne
+  // dépend QUE de la cible) par analogie avec `skillDamageProfile`, qui
+  // rejette un sort ACTIF stat-indépendant — mais RECONSIDÉRÉ après un
+  // signalement de l'utilisateur (capture du bestiaire confirmant le
+  // ratio) : `skillDamageProfile` rejette parce qu'un sort stat-indépendant
+  // est INUTILE comme référence de classement des builds, une raison qui
+  // ne s'applique PAS à `monsterOffensivePassives` (sommer une contribution
+  // RÉELLE au total affiché, jamais utilisée pour classer). Le filtre
+  // correspondant a été retiré dans `monsterOffensivePassives`.
   const giou = fiche(25013);
+  const comeuppancePassif = monsterOffensivePassives(giou).find((p) => p.nom === 'Comeuppance (Passive)');
+  ok(comeuppancePassif != null, 'Giou : Comeuppance reconnu comme passif offensif');
+  egal(comeuppancePassif?.profile.formule, '0.2*{Target MAX HP}', 'Comeuppance : 20 % des PV max de la cible');
+  egal(comeuppancePassif?.critique, 'jamais', 'Comeuppance ne critique jamais, confirmé par l’utilisateur');
+  egal(comeuppancePassif?.categorie.type, 'conditionnel', 'Comeuppance : catégorie conditionnel, comme Internal Force');
+  ok(!passifActif(comeuppancePassif!, { ...DEFAULT_DAMAGE_SETUP }), 'désactivé par défaut, jamais deviné actif');
   ok(
-    monsterOffensivePassives(giou).every((p) => p.nom !== 'Comeuppance (Passive)'),
-    'Comeuppance : jamais détecté, sa formule ne dépend d’aucune stat de l’attaquant'
+    passifActif(comeuppancePassif!, { ...DEFAULT_DAMAGE_SETUP, passifsOffensifs: { [comeuppancePassif!.skillCom2usId]: true } }),
+    'activé une fois le bouton coché'
+  );
+  const giouBase = defaultDamageSkill(monsterDamageSkills(giou));
+  ok(giouBase !== null, 'Giou : un sort de dégâts par défaut est trouvé');
+  const giouStats = stats({ atk: 2000, def: 900, cd: 200, cr: 100 });
+  const giouSetupOff: DamageSetup = {
+    ...DEFAULT_DAMAGE_SETUP,
+    skillCom2usId: giouBase!.skillCom2usId,
+    summonerSkills: 'aucune',
+    critMode: 'normal',
+    enemyHp: 40000,
+    enemyDef: 1000,
+  };
+  const giouTotalOff = computeTotalDamage(giouBase!, [comeuppancePassif!], giouStats, giouSetupOff);
+  const giouTotalOn = computeTotalDamage(giouBase!, [comeuppancePassif!], giouStats, {
+    ...giouSetupOff,
+    passifsOffensifs: { [comeuppancePassif!.skillCom2usId]: true },
+  });
+  const attendue = 0.2 * 40000 * defenseFactor(1000);
+  ok(
+    Math.abs(giouTotalOn - giouTotalOff - attendue) < 1e-6,
+    'Comeuppance activé : contribution exacte 0,2 × PV max cible × facteur de défense (jamais de critique)'
   );
 
   // Bonus accumulable — quatre entrées de plus dans la même famille que Momo

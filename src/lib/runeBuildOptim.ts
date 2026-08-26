@@ -372,6 +372,9 @@ export interface RealDamageContext {
   // Gideon (« Aegis Shell ») — voir `monsterBonusDegatsSelonDef`. `null` =
   // comportement inchangé.
   bonusDegatsSelonDef: { defMax: number; pctMax: number } | null;
+  // Brita (« Might of the Mercenary ») — voir `monsterBonusSiAtqSeuil`.
+  // `null` = comportement inchangé.
+  bonusSiAtqSeuil: { seuilDelta: number; pct: number } | null;
 }
 
 export function objectiveScore(candidate: BuildCandidate, objective: Objective, realDamage?: RealDamageContext): number {
@@ -401,7 +404,8 @@ export function objectiveScore(candidate: BuildCandidate, objective: Objective, 
       realDamage.monsterWide,
       realDamage.bonusDegatsConditionnel,
       realDamage.bonusDegatsSelonCr,
-      realDamage.bonusDegatsSelonDef
+      realDamage.bonusDegatsSelonDef,
+      realDamage.bonusSiAtqSeuil
     );
   }
   if (objective === 'degats') {

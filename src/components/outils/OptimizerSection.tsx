@@ -589,19 +589,20 @@ export default function OptimizerSection({ box, runes, optimizer, allMonsters, r
 
   // Choisit l'ESPÈCE (recherche bestiaire, voir `MonsterSourcePicker mode=
   // "bestiary"` plus bas) — remet TOUJOURS la source à Box (valeur par
-  // défaut de la maquette du cadrage) et tente la même résolution
-  // silencieuse qu'au montage (un seul exemplaire Box → résolu ; plusieurs
-  // ou aucun → repli sur les stats de base seules, jamais la
-  // désambiguïsation ouverte automatiquement : un clic sur la recherche ne
-  // doit pas faire surgir un panneau qu'on n'a pas demandé, voir
-  // spec/shared/design.md).
+  // défaut de la maquette du cadrage) et résout directement le PREMIER
+  // exemplaire Box (demande explicite : plutôt qu'ouvrir la désambiguïsation
+  // dès qu'il y en a plusieurs, choisir un exemplaire par défaut — l'utilisateur
+  // reste libre de changer via la zone D). Aucun exemplaire Box → repli sur
+  // les stats de base seules, jamais la désambiguïsation ouverte
+  // automatiquement : un clic sur la recherche ne doit pas faire surgir un
+  // panneau qu'on n'a pas demandé, voir spec/shared/design.md.
   function pickSpecies(monster: Monster) {
     const id = String(monster.id);
     if (id !== selectedId) resetSearch();
     setSelectedId(id);
     setGearSource('box');
     const boxCandidates = speciesCandidatesBySource(monster.com2usId, box, exclusionData).box;
-    setSourceSelector(boxCandidates.length === 1 ? boxCandidates[0].selector : null);
+    setSourceSelector(boxCandidates[0]?.selector ?? null);
     setZoneDOpen(false);
   }
 

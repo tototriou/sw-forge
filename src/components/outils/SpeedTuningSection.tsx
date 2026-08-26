@@ -521,22 +521,10 @@ export default function SpeedTuningSection({
                         <p className="text-sm text-ink-dim">Ajoute des monstres à ton équipe pour composer un ordre.</p>
                       ) : (
                         <>
-                          <p
-                            className={`flex items-center gap-2 text-sm font-semibold ${
-                              sequence.ok ? 'text-good' : 'text-bad'
-                            }`}
-                          >
-                            {sequence.ok ? <Check size={16} /> : <Scissors size={16} />}
-                            {sequence.ok
-                              ? "L'ordre demandé est bien celui que produisent tes vitesses."
-                              : "Tes vitesses ne produisent pas cet ordre."}
-                          </p>
-                          <ul className="mt-3 space-y-2">
+                          <ul className="space-y-2">
                             {ordreVoulu.map((uid, i) => {
                               const l = ligneParUid.get(uid);
                               if (!l) return null;
-                              const p = problemeParUid.get(uid);
-                              const f = fenetreParUid.get(uid);
                               const liste = sortsDe(l);
                               const choix = sortChoisi[uid];
                               return (
@@ -619,25 +607,6 @@ export default function SpeedTuningSection({
                                       />
                                     </span>
                                   )}
-                                  <span className="w-full sm:w-auto sm:flex-none">
-                                    {p ? (
-                                      <span className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs">
-                                        <span className="font-semibold text-bad">{LIBELLE_RAISON[p.raison]}</span>
-                                        {(() => {
-                                          const cible = cibleFenetre(f);
-                                          const arte = cibleFenetre(fenetreArteParUid.get(uid));
-                                          return besoin(
-                                            l,
-                                            cible ?? null,
-                                            arte ?? null,
-                                            fenetreArteParUid.get(uid)?.combatActuel ?? 0
-                                          );
-                                        })()}
-                                      </span>
-                                    ) : (
-                                      <Check size={13} className="text-good" />
-                                    )}
-                                  </span>
                                 </li>
                               );
                             })}
@@ -656,7 +625,7 @@ export default function SpeedTuningSection({
           <section className="min-w-[440px] flex-1 rounded-lg border border-border bg-panel">
               <div className="flex flex-wrap items-center gap-x-3 gap-y-2 border-b border-border-soft px-4 py-2.5">
                 <span className="text-micro font-semibold uppercase tracking-wider text-ink-dimmer">
-                  Analyse automatique
+                  Analyse
                 </span>
                 <span className="ml-auto flex flex-wrap items-center gap-2">
                   {/* ⚠️ Une ACTION, pas un mode : l'analyse ÉCRIT dans les grilles
@@ -675,38 +644,54 @@ export default function SpeedTuningSection({
                   />
                 </span>
               </div>
-              {/* ⚠️ Sans adversaire, il n'y a pas de verdict — et rien à dire :
-                  le corps ne s'affiche pas du tout plutôt que de porter une phrase
-                  qui explique l'évidence. */}
-              {(!aAllie || chaine.coupeur) && (
-                <div className="px-4 py-3.5">
-                    {!aAllie ? (
-                      <p className="text-sm text-ink-dim">
-                        Ajoute des monstres à ton équipe pour vérifier que rien ne la coupe.
-                      </p>
-                    ) : chaine.ok ? (
-                      <p className="flex items-center gap-2 text-sm font-semibold text-good">
-                        <Check size={16} className="flex-none" />
-                        Ta team est speed tune.
-                      </p>
-                    ) : (
+              <div className="px-4 py-3.5 space-y-3">
+                {!auto ? null : !aAllie ? (
+                  <p className="text-sm text-ink-dim">
+                    Ajoute des monstres à ton équipe pour vérifier que rien ne la coupe.
+                  </p>
+                ) : (
+                  <>
+                    {ordreVoulu.length > 0 && !sequence.ok ? (
                       <>
                         <p className="flex items-center gap-2 text-sm font-semibold text-bad">
                           <Scissors size={16} className="flex-none" />
-                          {chaine.coupeur ? nomDe(chaine.coupeur.id) : 'Un adverse'} coupe ton combo.
+                          Les vitesses de tes monstres ne permettent pas de jouer dans l'ordre demandé.
                         </p>
-                        {/* ⚠️ Une ligne = un nom et le chiffre à trouver, rien de
-                            plus : ce qu'on vient chercher ici, c'est « combien il me
-                            manque », pas un récit.
-                            ⚠️ **On liste ce que le solveur DEMANDE, pas ce qui est
-                            coupé.** Le réglage est un jeu de vitesses cohérent : il
-                            demande parfois des points à un monstre qui passe déjà
-                            (celui qui remplit la barre, à accélérer pour qu'il
-                            achète un tick au suivant), et il ne demande rien à un
-                            monstre coupé que la correction d'un autre suffit à
-                            sauver. Lister `chaine.coupes` masquait la moitié de la
-                            solution — appliquée telle quelle, elle ne tenait pas. */}
-                        <ul className="mt-2.5 flex flex-wrap gap-x-4 gap-y-1.5">
+                        <ul className="flex flex-col gap-y-1.5">
+                          {ordreVoulu.map((uid) => {
+                            const l = ligneParUid.get(uid);
+                            if (!l) return null;
+                            const p = problemeParUid.get(uid);
+                            if (!p) return null;
+                            const f = fenetreParUid.get(uid);
+                            const cible = cibleFenetre(f);
+                            const arte = cibleFenetre(fenetreArteParUid.get(uid));
+                            const runes = cible != null ? runesPour(l, cible) : null;
+                            const arteActuel = fenetreArteParUid.get(uid)?.combatActuel ?? 0;
+                            const verdict = p.raison === 'trop-tot' ? 'est trop rapide' : 'est trop lent';
+                            const peutCalculer = runes != null || arte != null;
+                            return (
+                              <li key={uid} className="flex flex-wrap items-center gap-x-2 gap-y-1 text-sm">
+                                <MonsterAvatar monster={l.monster} size={22} element={false} />
+                                <span className="font-semibold">{l.monster.name}</span>
+                                <span className="text-ink-dim">{verdict}</span>
+                                {peutCalculer && besoin(l, cible ?? null, arte ?? null, arteActuel)}
+                              </li>
+                            );
+                          })}
+                        </ul>
+                      </>
+                    ) : !chaine.ok ? (
+                      <>
+                        <p className="flex items-center gap-2 text-sm font-semibold text-bad">
+                          <Scissors size={16} className="flex-none" />
+                          Les vitesses de tes monstres ne sont pas suffisantes pour être speed tune.
+                        </p>
+                        {/* ⚠️ On liste ce que le solveur DEMANDE, pas ce qui est
+                            coupé — un monstre qui passe déjà peut recevoir une
+                            demande (il achète un tick au suivant), un monstre coupé
+                            peut n'en recevoir aucune (un autre le sauve). */}
+                        <ul className="flex flex-col gap-y-1.5">
                           {requis.map((c) => {
                             const l = ligneParUid.get(c.id);
                             if (!l) return null;
@@ -714,18 +699,26 @@ export default function SpeedTuningSection({
                             const a = arteParUid.get(c.id);
                             const arte = a?.artefactRequis ?? null;
                             return (
-                              <li key={c.id} className="flex items-center gap-2 text-sm">
+                              <li key={c.id} className="flex flex-wrap items-center gap-x-2 gap-y-1 text-sm">
                                 <MonsterAvatar monster={l.monster} size={22} element={false} />
                                 <span className="font-semibold">{l.monster.name}</span>
+                                <span className="text-ink-dim">manque</span>
                                 {besoin(l, cible, arte, a?.artefactActuel ?? 0)}
+                                <span className="text-ink-dim">pour ne pas se faire cut</span>
                               </li>
                             );
                           })}
                         </ul>
                       </>
+                    ) : (
+                      <p className="flex items-center gap-2 text-sm font-semibold text-good">
+                        <Check size={16} className="flex-none" />
+                        Ta team est speed tune.
+                      </p>
                     )}
-                </div>
-              )}
+                  </>
+                )}
+              </div>
             </section>
             </div>
 

@@ -262,6 +262,20 @@ export default function SiegeTeam({
   // ça, la card ne bouge pas et le bouton semble ne rien faire.
   const sansVerdict = raisonSansVerdict(entreeStatut);
 
+  // Validation d'équipement — indépendante du mode « Vérifier mes speed ».
+  // Seuls les slots AVEC données importées (`gear` présent) sont contrôlés :
+  // l'absence de gear signifie que le compte n'a pas été importé, pas que le
+  // monstre n'est pas équipé.
+  const gearIncomplet = team.slots.flatMap((slot) => {
+    const monster = slot.monsterId ? monsterById.get(slot.monsterId) ?? null : null;
+    if (!monster || !slot.gear) return [];
+    const manqueRunes = slot.gear.runes.length < 6;
+    const manqueArtes = slot.gear.artifacts.length < 2;
+    if (!manqueRunes && !manqueArtes) return [];
+    return [{ id: slot.monsterId!, monster, manqueRunes, manqueArtes }];
+  });
+  const aGearIncomplet = gearIncomplet.length > 0;
+
   function handleDrop(to: number) {
     if (dragFrom !== null && dragFrom !== to) onSwap(team.id, dragFrom, to);
     setDragFrom(null);
@@ -278,21 +292,23 @@ export default function SiegeTeam({
   // `--siege-card-*` apportent un fond coloré EN CLAIR SEULEMENT — les deux
   // déclencheurs dark de `index.css` les ramènent à la couleur du panel, ce
   // qui les rend invisibles (= contour seul en sombre, contour + fond en clair).
-  const sectionClass =
-    statut === 'rouge'
-      ? 'border-fire'
-      : statut === 'orange'
-        ? 'border-warn'
-        : statut === 'vert'
-          ? 'border-good'
-          : 'border-border';
+  const sectionClass = aGearIncomplet || statut === 'rouge'
+    ? 'border-fire'
+    : statut === 'orange'
+      ? 'border-warn'
+      : statut === 'vert'
+        ? 'border-good'
+        : 'border-border';
   const sectionBg =
-    statut === 'vert' ? { backgroundColor: 'var(--siege-card-vert)' } :
+    aGearIncomplet || statut === 'rouge' ? { backgroundColor: 'var(--siege-card-rouge)' } :
     statut === 'orange' ? { backgroundColor: 'var(--siege-card-orange)' } :
-    statut === 'rouge' ? { backgroundColor: 'var(--siege-card-rouge)' } :
+    statut === 'vert' ? { backgroundColor: 'var(--siege-card-vert)' } :
     undefined;
   const dotClass =
-    statut === 'rouge' ? 'bg-fire' : statut === 'orange' ? 'bg-warn' : statut === 'vert' ? 'bg-good' : '';
+    aGearIncomplet || statut === 'rouge' ? 'bg-fire'
+    : statut === 'orange' ? 'bg-warn'
+    : statut === 'vert' ? 'bg-good'
+    : '';
 
   return (
     // ⚠️ `p-2.5` sous `sm` : la page empile jusqu'à huit équipes, et chaque
@@ -580,42 +596,44 @@ export default function SiegeTeam({
 
           ⚠️ `flex-wrap` : le message peut nommer deux monstres. Sur un écran
           étroit, il passe au-dessus des boutons plutôt que de se comprimer. */}
-      {(hasMonsters || statut !== 'neutre') && (
+      {(hasMonsters || statut !== 'neutre' || aGearIncomplet) && (
         <div
-          // ⚠️ **Le pied ne prend PAS la teinte du statut.** Comme la card
-          // elle-même : la couleur se dit par le contour et la pastille, et rien
-          // d'autre. Un bandeau ambré pleine largeur sous chaque équipe
-          // repeignait la page à la place du contenu, et faisait passer une
-          // simple correction de vitesse pour une avarie.
           className="-mx-4 -mb-4 mt-3 flex flex-wrap items-center gap-x-3 gap-y-2 rounded-b-2xl border-t border-border-soft px-4 py-2.5
             compact:-mx-2.5 compact:-mb-2.5 compact:px-2.5"
         >
           <span className="flex min-w-0 flex-1 items-start gap-2">
-            {(statut === 'rouge' || statut === 'orange') && (
+            {(aGearIncomplet || statut === 'rouge' || statut === 'orange') && (
               <AlertTriangle
                 size={15}
-                className={`mt-px flex-none ${statut === 'rouge' ? 'text-fire' : 'text-warn'}`}
+                className={`mt-px flex-none ${aGearIncomplet || statut === 'rouge' ? 'text-fire' : 'text-warn'}`}
               />
             )}
-            {/* ⚠️ Le TEXTE reste neutre lui aussi : ce qu'il dit est déjà
-                porté par le pictogramme d'alerte à sa gauche, et le chiffre à
-                trouver, lui, est en gras — c'est lui qu'on vient lire. */}
             <span className="text-xs text-ink-dim">
-              {statut === 'rouge' ? (
+              {aGearIncomplet ? (
+                // L'équipement est incomplet — plus urgent que les vitesses.
+                // Pas de bouton « Valider » : ce n'est pas un écart à accepter.
+                <span className="space-y-0.5">
+                  {gearIncomplet.map(({ id, monster, manqueRunes, manqueArtes }) => (
+                    <span key={id} className="block">
+                      <span className="font-semibold">{monster.name}</span>
+                      {' '}
+                      {manqueRunes && manqueArtes
+                        ? "n'a pas toutes ses runes ni tous ses artefacts"
+                        : manqueRunes
+                          ? "n'a pas toutes ses runes"
+                          : "n'a pas tous ses artefacts"}
+                    </span>
+                  ))}
+                </span>
+              ) : statut === 'rouge' ? (
                 (messageTick ?? "Ton équipe n'est pas au tick.")
               ) : statut === 'orange' ? (
                 speedTune ? (
-                  // ⚠️ **Rien que ce qui ne va pas.** « Équipe speed : » ouvrait
-                  // la phrase et ne disait rien de plus que le pictogramme et le
-                  // contour : on le relisait à chaque équipe pour arriver au
-                  // seul morceau utile, le nom et le chiffre qui manque.
                   <span className="font-semibold text-ink">
                     {speedTune.requis.length === 0
                       ? 'Elle ne passe pas devant un monstre aussi rapide que le tien'
                       : speedTune.requis
                           .map((r) => {
-                            // ⚠️ Les identifiants de l'analyse indexent l'ÉQUIPE
-                            // (slots vides écartés), pas les trois slots.
                             const nom = equipeAuto[Number(r.id)]?.monster.name ?? 'Ce monstre';
                             return r.combatRequis == null
                               ? `${nom} (hors de portée)`
@@ -638,19 +656,13 @@ export default function SiegeTeam({
                   ✓ {speedTune?.verdict.ok ? 'Équipe speed : elle est speed tune' : 'Tous au tick'}
                 </span>
               ) : (
-                // ⚠️ Le mode allumé RÉPOND toujours : un statut neutre muet, et
-                // le bouton « Vérifier mes speed » semble ne rien faire.
                 sansVerdict
               )}
             </span>
           </span>
 
           <span className="flex flex-none flex-wrap items-center gap-2">
-            {(statut === 'rouge' || statut === 'orange') && (
-              // ⚠️ **Le libellé nomme ce qu'on valide, pas un conseil qu'on
-              // écarte.** Une équipe Swift se juge sur son SPEED TUNE, les
-              // autres sur leur TICK : dire « la recommandation » obligeait à
-              // remonter au message pour savoir de quoi il s'agissait.
+            {!aGearIncomplet && (statut === 'rouge' || statut === 'orange') && (
               <Bouton
                 onClick={() => onDismissAlert(team.id, true)}
                 taille="sm"
@@ -659,7 +671,7 @@ export default function SiegeTeam({
                 title={
                   teamHasSwift
                     ? "Tu prends la responsabilité de ce speed tune : l'équipe passe au vert."
-                    : 'Tu prends la responsabilité de ce calage : l’équipe passe au vert.'
+                    : "Tu prends la responsabilité de ce calage : l'équipe passe au vert."
                 }
               />
             )}

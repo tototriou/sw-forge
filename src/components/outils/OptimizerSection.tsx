@@ -1371,8 +1371,20 @@ export default function OptimizerSection({ box, runes, optimizer, allMonsters, r
       </p>
 
       {/* ── UNE SEULE grille, à partir de `xl`, pour tout l'écran de
-          réglages (Monstre, Exclusion/Réglages avancés, Critères,
-          Objectif) ────────────────────────────────────────────────────
+          réglages (Monstre, Critères, Objectif, Réglages avancés,
+          Exclusion) ────────────────────────────────────────────────────
+          ⚠️ **Disposition ACTUELLE** (après le repositionnement demandé
+          suite au Lot 3) : rangée 1 = Monstre & équipement, PLEINE
+          LARGEUR (`xl:col-span-2`). Rangées 2-3, colonne 1 = Critères de
+          recherche (`row-span-2`, même patron que l'ancien Monstre ci-
+          dessous). Rangée 2, colonne 2 = Objectif de recherche (à droite
+          de Critères, demande explicite). Rangée 3, colonne 2 = Réglages
+          avancés (sous Objectif). Rangée 4, colonne 2 = Exclusion de
+          runes (sous Réglages avancés). Rangée 5, pleine largeur =
+          estimation. Le paragraphe qui suit décrit la disposition
+          ANTÉRIEURE (avant Lot 3) — gardé pour la narration chronologique
+          de `row-span-2`/`FlottantAuto`, toujours d'actualité sur le
+          PRINCIPE (juste plus sur les mêmes blocs).
           ⚠️ **Placement EXPLICITE (`col-start`/`row-start`/`row-span`) sur
           CHAQUE bloc** — l'ordre du DOM peut alors rester celui de l'ordre
           d'USAGE (1. monstre, 2. objectif, 3. critères, puis
@@ -1593,12 +1605,15 @@ export default function OptimizerSection({ box, runes, optimizer, allMonsters, r
 
       {/* Étape 3 — carte compactée AU MAXIMUM (`w-fit`, voir plus bas) pour
           laisser de la place visuelle à « Objectif de recherche » à sa
-          droite — demande explicite. `xl:row-start-3` : troisième rangée de
-          la grille, sous le duo Monstre/Exclusion+Réglages avancés
-          (rangées 1-2) — jamais affectée par le dépliement de « Réglages
-          avancés », désormais un `FlottantAuto` qui ne grandit plus sa
-          carte (voir le commentaire d'ouverture de la grille). */}
-      <div className="w-fit rounded-xl border border-border bg-panel p-3 xl:col-start-1 xl:row-start-3">
+          droite — demande explicite. ⚠️ Repositionnée : `xl:row-start-2
+          xl:row-span-2` (rangées 2-3, à la place de « Monstre & équipement »
+          qui occupe désormais la rangée 1 en pleine largeur, voir le
+          commentaire d'ouverture de la grille) — même patron que l'ancien
+          `row-span-2` de « Monstre & équipement » (carte haute à gauche,
+          cartes plus courtes empilées à sa droite). « Exclusion de
+          runes »/« Réglages avancés », qui vivaient ici, descendent sous
+          « Objectif de recherche » (colonne 2, rangées 3-4). */}
+      <div className="w-fit rounded-xl border border-border bg-panel p-3 xl:col-start-1 xl:row-start-2 xl:row-span-2">
         <div className="mb-3 flex items-center gap-2">
           {/* Curseurs de réglage, colorés (accent) — plus parlant qu'une
               cible générique pour « plusieurs critères ajustables », et
@@ -1894,13 +1909,16 @@ export default function OptimizerSection({ box, runes, optimizer, allMonsters, r
       {/* Étape 2 de l'ordre d'usage voulu — une carte À PART, PAS un bloc
           DANS « Critères de recherche » : l'objectif se choisit avant même
           de composer le set recherché, ce n'est pas un critère de plus
-          parmi d'autres. Placée en TROISIÈME rangée (aux côtés de « Critères
-          de recherche », compactée juste au-dessus) : demande explicite —
-          « à droite des critères de recherche ». `1fr`, colonne large :
-          contrairement à Critères (compactée au maximum), Objectif profite
-          de tout l'espace restant — utile une fois « Dégâts réels » choisi
-          (`DamageSetupCard` a besoin de place pour ses vignettes d'effet). */}
-      <div className="rounded-xl border border-border bg-panel p-3 xl:col-start-2 xl:row-start-3">
+          parmi d'autres. Aux côtés de « Critères de recherche » : demande
+          explicite — « à droite des critères de recherche ». ⚠️
+          Repositionnée en DEUXIÈME rangée avec elle (`xl:row-start-2`, plus
+          `row-start-3` — voir le commentaire de « Critères de recherche »)
+          : reste à sa droite, seule la rangée commune a changé. `1fr`,
+          colonne large : contrairement à Critères (compactée au maximum),
+          Objectif profite de tout l'espace restant — utile une fois
+          « Dégâts réels » choisi (`DamageSetupCard` a besoin de place pour
+          ses vignettes d'effet). */}
+      <div className="rounded-xl border border-border bg-panel p-3 xl:col-start-2 xl:row-start-2">
         <div className="mb-3 flex items-center gap-2">
           <div className="flex h-6 w-6 flex-none items-center justify-center rounded-md border border-accent/40 bg-accent-soft">
             <Target size={13} className="text-accent" />
@@ -2268,27 +2286,16 @@ export default function OptimizerSection({ box, runes, optimizer, allMonsters, r
 
         return (
           <>
-            {/* Bureau : « Exclusion de runes » en rangée 2, colonne 1 — Lot
-                3 : « Monstre & équipement » occupe désormais la rangée 1 EN
-                PLEINE LARGEUR (voir son commentaire d'ouverture), donc
-                « Exclusion de runes »/« Réglages avancés » descendent d'une
-                rangée, côte à côte au lieu d'empilés. Masquée au doigt (voir
-                le panneau plus bas). */}
-            <div className="hidden lg:block rounded-xl border border-accent/50 bg-panel p-3 xl:col-start-1 xl:row-start-2">
-              <div className="mb-0.5 flex items-center gap-2">{exclusionRunesTitre}</div>
-              {exclusionRunesInner(false)}
-            </div>
-
-            {/* Rangée 2, colonne 2 : « Réglages avancés », à DROITE
-                d'« Exclusion de runes » (voir le commentaire ci-dessus).
-                ⚠️ **`relative`** : ancre du `FlottantAuto` ci-dessous, qui se
-                positionne en `absolute` par rapport à CETTE carte, pas à la
-                page. La carte elle-même ne change JAMAIS de hauteur au
-                dépliement — son contenu déplié flotte par-dessus, il ne
-                s'ajoute plus au DOM en flux normal. */}
+            {/* Bureau : « Réglages avancés », colonne 2, rangée 3 — SOUS
+                « Objectif de recherche » (même colonne, rangée 2, voir son
+                commentaire) — ⚠️ **`relative`** : ancre du `FlottantAuto`
+                ci-dessous, qui se positionne en `absolute` par rapport à
+                CETTE carte, pas à la page. La carte elle-même ne change
+                JAMAIS de hauteur au dépliement — son contenu déplié flotte
+                par-dessus, il ne s'ajoute plus au DOM en flux normal. */}
             <div
               ref={avancesRef}
-              className="hidden lg:block relative rounded-xl border border-border bg-panel p-3 xl:col-start-2 xl:row-start-2"
+              className="hidden lg:block relative rounded-xl border border-border bg-panel p-3 xl:col-start-2 xl:row-start-3"
             >
               <ZoneCliquable
                 onClick={() => setShowAdvanced((v) => !v)}
@@ -2312,15 +2319,23 @@ export default function OptimizerSection({ box, runes, optimizer, allMonsters, r
               </FlottantAuto>
             </div>
 
-            {/* ⚠️ Placée en rangée 4 (`xl:col-span-2`, pleine largeur) : ni
-                dans la paire Monstre/Exclusion+Avancés (rangées 1-2) ni dans
-                la paire Critères/Objectif (rangée 3), cette ligne
+            {/* Bureau : « Exclusion de runes », colonne 2, rangée 4 — SOUS
+                « Réglages avancés » (demande explicite). Masquée au doigt
+                (voir le panneau plus bas). */}
+            <div className="hidden lg:block rounded-xl border border-accent/50 bg-panel p-3 xl:col-start-2 xl:row-start-4">
+              <div className="mb-0.5 flex items-center gap-2">{exclusionRunesTitre}</div>
+              {exclusionRunesInner(false)}
+            </div>
+
+            {/* ⚠️ Placée en rangée 5 (`xl:col-span-2`, pleine largeur) : ni
+                dans la paire Critères/Objectif (rangée 2) ni dans la colonne
+                Objectif/Avancés/Exclusion (rangées 2-4), cette ligne
                 d'estimation n'a pas sa place dans une cellule précise —
                 simple info sous tout le reste. Ne bouge plus JAMAIS au
                 dépliement de Réglages avancés, désormais un flottant hors
                 flux plutôt qu'un bloc qui poussait tout ce qui suivait. */}
             {estimate && (
-              <p className="font-mono text-micro text-ink-dim xl:col-span-2 xl:row-start-4">
+              <p className="font-mono text-micro text-ink-dim xl:col-span-2 xl:row-start-5">
                 {formatBig(estimate.perSlot.reduce((a, b) => a + b, 0))} runes gardées après pré-filtrage
                 (pool par emplacement : {estimate.perSlot.join(' + ')})
               </p>

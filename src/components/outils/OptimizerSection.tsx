@@ -1464,8 +1464,15 @@ export default function OptimizerSection({ box, runes, optimizer, allMonsters, r
             stats/artéfacts/roue/relique, déplacée ici SOUS les puces
             (colonne de droite), tienne sur une seule ligne sans repasser à
             la ligne (gabarit réel : ~200px stats + ~60px artéfacts + ~210px
-            roue + ~60px relique). */}
-        <div className="hidden lg:grid lg:grid-cols-2 lg:items-start lg:gap-6">
+            roue + ~60px relique).
+            ⚠️ **`lg:grid-cols-[1.35fr_1fr]`, PAS `lg:grid-cols-2`** (demande
+            explicite) : la séparation entre « Monstre à optimiser » et
+            « Exemplaire » s'aligne ainsi avec celle des deux colonnes
+            PRINCIPALES de la grille (`xl:grid-cols-[1.35fr_1fr]`, voir le
+            commentaire d'ouverture de la grille) — un seul ratio de
+            colonnes pour tout l'écran, pas deux proportions différentes
+            qui se contrediraient visuellement l'une sous l'autre. */}
+        <div className="hidden lg:grid lg:grid-cols-[1.35fr_1fr] lg:items-start lg:gap-6">
           {/* Zone A (recherche — résout une ESPÈCE dans tout le bestiaire,
               possédée ou non, voir Question 1 du cadrage) + liste active
               (Lot 3) + zone C (monstres de cette liste), à GAUCHE. */}
@@ -1603,17 +1610,15 @@ export default function OptimizerSection({ box, runes, optimizer, allMonsters, r
         </div>
       </div>
 
-      {/* Étape 3 — carte compactée AU MAXIMUM (`w-fit`, voir plus bas) pour
-          laisser de la place visuelle à « Objectif de recherche » à sa
-          droite — demande explicite. ⚠️ Repositionnée : `xl:row-start-2
-          xl:row-span-2` (rangées 2-3, à la place de « Monstre & équipement »
-          qui occupe désormais la rangée 1 en pleine largeur, voir le
-          commentaire d'ouverture de la grille) — même patron que l'ancien
-          `row-span-2` de « Monstre & équipement » (carte haute à gauche,
-          cartes plus courtes empilées à sa droite). « Exclusion de
-          runes »/« Réglages avancés », qui vivaient ici, descendent sous
-          « Objectif de recherche » (colonne 2, rangées 3-4). */}
-      <div className="w-fit rounded-xl border border-border bg-panel p-3 xl:col-start-1 xl:row-start-2 xl:row-span-2">
+      {/* Étape 3. ⚠️ **`w-fit` RETIRÉ, `xl:row-span-3`** (demande explicite) :
+          la carte occupe maintenant TOUTE la hauteur de la colonne 2
+          (Objectif/Exclusion/Réglages avancés empilés sur 3 rangées, voir
+          plus bas) — même patron que l'ancien `row-span-2` de « Monstre &
+          équipement » avant le Lot 3 (carte haute à gauche, PLEINE LARGEUR
+          de sa colonne, cartes plus courtes empilées à sa droite) : sans
+          `w-fit`, elle profite de toute la largeur de la colonne 1 comme
+          Monstre le faisait, plutôt que de se serrer sur son contenu. */}
+      <div className="rounded-xl border border-border bg-panel p-3 xl:col-start-1 xl:row-start-2 xl:row-span-3">
         <div className="mb-3 flex items-center gap-2">
           {/* Curseurs de réglage, colorés (accent) — plus parlant qu'une
               cible générique pour « plusieurs critères ajustables », et
@@ -1644,11 +1649,11 @@ export default function OptimizerSection({ box, runes, optimizer, allMonsters, r
             deux « colonnes » s'empilent (`flex-col`), un trait vertical n'y
             aurait aucun sens. */}
         <div className="lg:border-r lg:border-border-soft lg:pr-6">
-      {/* ⚠️ `max-w-md` EN PLUS du `w-fit` de la carte (ceinture et
-          bretelles) : `fit-content` se laisse pousser jusqu'à la largeur
-          disponible de la piste de grille si le contenu peut la remplir sans
-          repasser à la ligne — ce plafond garantit que le set reste compact
-          même dans ce cas. */}
+      {/* ⚠️ `max-w-md` — SEUL rempart désormais (la carte elle-même a
+          perdu son `w-fit` en repositionnant « Critères de recherche »,
+          voir le commentaire d'ouverture de cette carte) : sans lui, ce
+          bloc se laisserait pousser jusqu'à la largeur disponible de la
+          piste de grille, beaucoup plus large que ce set n'en a besoin. */}
       <div
         ref={setPickerSectionRef}
         className={`max-w-md ${
@@ -2286,16 +2291,17 @@ export default function OptimizerSection({ box, runes, optimizer, allMonsters, r
 
         return (
           <>
-            {/* Bureau : « Réglages avancés », colonne 2, rangée 3 — SOUS
-                « Objectif de recherche » (même colonne, rangée 2, voir son
-                commentaire) — ⚠️ **`relative`** : ancre du `FlottantAuto`
-                ci-dessous, qui se positionne en `absolute` par rapport à
-                CETTE carte, pas à la page. La carte elle-même ne change
-                JAMAIS de hauteur au dépliement — son contenu déplié flotte
-                par-dessus, il ne s'ajoute plus au DOM en flux normal. */}
+            {/* Bureau : « Réglages avancés », colonne 2, rangée 4 — SOUS
+                « Exclusion de runes » (ordre inversé sur demande explicite,
+                voir le commentaire d'Exclusion ci-dessous) — ⚠️ **`relative`**
+                : ancre du `FlottantAuto` ci-dessous, qui se positionne en
+                `absolute` par rapport à CETTE carte, pas à la page. La carte
+                elle-même ne change JAMAIS de hauteur au dépliement — son
+                contenu déplié flotte par-dessus, il ne s'ajoute plus au DOM
+                en flux normal. */}
             <div
               ref={avancesRef}
-              className="hidden lg:block relative rounded-xl border border-border bg-panel p-3 xl:col-start-2 xl:row-start-3"
+              className="hidden lg:block relative rounded-xl border border-border bg-panel p-3 xl:col-start-2 xl:row-start-4"
             >
               <ZoneCliquable
                 onClick={() => setShowAdvanced((v) => !v)}
@@ -2319,10 +2325,12 @@ export default function OptimizerSection({ box, runes, optimizer, allMonsters, r
               </FlottantAuto>
             </div>
 
-            {/* Bureau : « Exclusion de runes », colonne 2, rangée 4 — SOUS
-                « Réglages avancés » (demande explicite). Masquée au doigt
-                (voir le panneau plus bas). */}
-            <div className="hidden lg:block rounded-xl border border-accent/50 bg-panel p-3 xl:col-start-2 xl:row-start-4">
+            {/* Bureau : « Exclusion de runes », colonne 2, rangée 3 — SOUS
+                « Objectif de recherche » (même colonne, rangée 2, voir son
+                commentaire) — ordre inversé avec « Réglages avancés » sur
+                demande explicite. Masquée au doigt (voir le panneau plus
+                bas). */}
+            <div className="hidden lg:block rounded-xl border border-accent/50 bg-panel p-3 xl:col-start-2 xl:row-start-3">
               <div className="mb-0.5 flex items-center gap-2">{exclusionRunesTitre}</div>
               {exclusionRunesInner(false)}
             </div>

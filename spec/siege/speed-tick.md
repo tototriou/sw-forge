@@ -54,15 +54,28 @@ maintenant la même valeur, calculée une seule fois.
 
 ## Statut d'une équipe (au tick / à corriger)
 
-⚠️ **Le statut se dit par le CONTOUR et la PASTILLE, jamais par le fond de la
-card.** Teinter toute la surface faisait de la couleur le sujet : huit équipes
-empilées donnaient huit aplats colorés, et le contenu — les monstres, les
-vitesses, ce qu'on vient vraiment lire — passait derrière. Le contour suffit à
-porter l'état ; la pastille le nomme pour qui ne distingue pas les teintes
-(**une couleur seule ne se lit pas en niveaux de gris**, règle de la charte).
-Le fond reste celui de toutes les cards : c'est lui qui rend la couleur du
-contour lisible, et qui permet de comparer deux équipes d'un coup d'œil au lieu
-de les subir l'une après l'autre.
+⚠️ **Le statut se dit par le CONTOUR et la PASTILLE.** Teinter toute la surface
+faisait de la couleur le sujet : huit équipes empilées donnaient huit aplats
+colorés, et le contenu — les monstres, les vitesses, ce qu'on vient vraiment
+lire — passait derrière. Le contour porte l'état ; la pastille le nomme pour qui
+ne distingue pas les teintes (**une couleur seule ne se lit pas en niveaux de
+gris**, règle de la charte).
+
+⚠️ **Le fond, lui, dépend du THÈME — et c'est le contour qui décide, pas
+l'inverse.** En sombre, un contour clair sur fond profond se voit seul : le fond
+reste celui de toutes les cards. En clair, un trait d'un pixel sur du blanc ne
+se distingue pas d'une card neutre — on ne voyait plus quelle équipe allait mal.
+Les trois tokens `--siege-card-vert` / `-orange` / `-rouge`
+([index.css](src/index.css)) portent donc un fond doux **en clair seulement**
+(`good-soft` / `warn-soft` / `el-fire-soft`) et retombent à la couleur du panel
+sous les **deux** déclencheurs sombres — d'où : *contour seul en sombre, contour
++ fond en clair*.
+
+⚠️ **Ce fond est un fond DOUX, pas un aplat.** La première tentative posait des
+opacités de 5 à 10 % : imperceptibles sur blanc, elles donnaient l'impression
+que la vérification n'avait pas tourné. Les teintes sont fondues dans le fond de
+page (tokens `*-soft`), assez pour comparer deux équipes d'un coup d'œil, pas
+assez pour qu'on les subisse l'une après l'autre.
 
 ⚠️ **Le pied non plus ne prend pas la teinte.** Un bandeau ambré pleine largeur
 sous chaque équipe repeignait la page à la place du contenu, et faisait passer

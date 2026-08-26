@@ -589,10 +589,14 @@ export default function SiegeTeam({
           est cette équipe, et que puis-je en faire »). Réunis, ils se lisent
           d'un coup : l'état à gauche, les actions à droite.
 
-          ⚠️ Le pied prend la teinte du statut (rouge / orange) et se cale sur
-          les bords de la card (marges négatives) : c'est une BANDE, pas une
-          boîte dans une boîte — un cadre de plus à l'intérieur d'un cadre
-          faisait deux contours concentriques, ce que la charte interdit.
+          ⚠️ **Le pied ne prend PAS la teinte du statut.** Comme la card
+          elle-même : la couleur se dit par le contour et la pastille. Un
+          bandeau ambré pleine largeur sous chaque équipe repeignait la page à
+          la place du contenu, et faisait passer une simple correction de
+          vitesse pour une avarie. Il se cale sur les bords de la card (marges
+          négatives) : c'est une BANDE, pas une boîte dans une boîte — un cadre
+          de plus à l'intérieur d'un cadre faisait deux contours concentriques,
+          ce que la charte interdit.
 
           ⚠️ `flex-wrap` : le message peut nommer deux monstres. Sur un écran
           étroit, il passe au-dessus des boutons plutôt que de se comprimer. */}
@@ -608,6 +612,9 @@ export default function SiegeTeam({
                 className={`mt-px flex-none ${aGearIncomplet || statut === 'rouge' ? 'text-fire' : 'text-warn'}`}
               />
             )}
+            {/* ⚠️ Le TEXTE reste neutre lui aussi : ce qu'il dit est déjà porté
+                par le pictogramme d'alerte à sa gauche, et le chiffre à
+                trouver, lui, est en gras — c'est lui qu'on vient lire. */}
             <span className="text-xs text-ink-dim">
               {aGearIncomplet ? (
                 // L'équipement est incomplet — plus urgent que les vitesses.
@@ -629,11 +636,17 @@ export default function SiegeTeam({
                 (messageTick ?? "Ton équipe n'est pas au tick.")
               ) : statut === 'orange' ? (
                 speedTune ? (
+                  // ⚠️ **Rien que ce qui ne va pas.** « Équipe speed : » ouvrait
+                  // la phrase et ne disait rien de plus que le pictogramme et le
+                  // contour : on le relisait à chaque équipe pour arriver au
+                  // seul morceau utile, le nom et le chiffre qui manque.
                   <span className="font-semibold text-ink">
                     {speedTune.requis.length === 0
                       ? 'Elle ne passe pas devant un monstre aussi rapide que le tien'
                       : speedTune.requis
                           .map((r) => {
+                            // ⚠️ Les identifiants de l'analyse indexent
+                            // l'ÉQUIPE (slots vides écartés), pas les 3 slots.
                             const nom = equipeAuto[Number(r.id)]?.monster.name ?? 'Ce monstre';
                             return r.combatRequis == null
                               ? `${nom} (hors de portée)`

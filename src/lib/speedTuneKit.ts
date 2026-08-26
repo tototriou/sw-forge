@@ -173,8 +173,14 @@ function lireEffet(c: Competence): { effet: EffetSort; atbNiveau1: number; atbSk
         // soi. Tester `surSoi` d'abord rangeait le S3 de Jeogun (« increases …
         // their Attack Bar by 10% » pour tous les alliés) dans « lui seul » : le
         // reste de l'équipe ne recevait rien.
-        const v = q + skillUp;
-        atbNiveau1 = Math.max(atbNiveau1, q);
+        //
+        // ⚠️ **`quantite = 0` = remplit à 100 %** : convention SWARFARM pour les
+        // sorts qui remplissent la barre entièrement (ex. Rabbit's Agility de
+        // Dova). Stocker 0 rendrait le champ falsy et la simulation ignorerait
+        // complètement le remplissage.
+        const qEff = q === 0 ? 100 : q;
+        const v = qEff + skillUp;
+        atbNiveau1 = Math.max(atbNiveau1, qEff);
         if (e.aoe) effet.atbEquipe = Math.max(effet.atbEquipe ?? 0, v);
         else if (e.surSoi) effet.atbSoi = Math.max(effet.atbSoi ?? 0, v);
         else effet.atbAllie = Math.max(effet.atbAllie ?? 0, v);
@@ -188,8 +194,11 @@ function lireEffet(c: Competence): { effet: EffetSort; atbNiveau1: number; atbSk
         break;
       case EFFET_SPD:
         // Même règle que pour la barre : de zone = tout le camp, lui compris.
+        // ⚠️ `aoe=false, surSoi=false` = buff sur UN allié ciblé (ex. Rabbit's
+        // Agility de Dova) — la simulation ne modélise pas ce cas, on l'ignore
+        // plutôt que de l'attribuer à tort au lanceur via `buffSoi`.
         if (e.aoe) effet.buffEquipe = BUFF_SPD_JEU;
-        else effet.buffSoi = BUFF_SPD_JEU;
+        else if (e.surSoi) effet.buffSoi = BUFF_SPD_JEU;
         break;
       case EFFET_SPD_MOINS:
         effet.ralenti = RALENTI_SPD_JEU;

@@ -105,6 +105,8 @@ export interface UseOptimizerLists {
   deleteList: (id: string) => void;
   members: OptimizerListMember[];
   addMember: (listId: string, selector: ExclusionSelector) => void;
+  /** Retire un monstre de la liste — libère AUSSI son build validé s'il en avait un (jamais de réservation orpheline, invisible dans « Monstres de la liste »). */
+  removeMember: (listId: string, selector: ExclusionSelector) => void;
   validated: ValidatedBuild[];
   /** Valide un build pour cet exemplaire DANS cette liste — REMPLACE l'entrée existante pour la même paire (liste, sélecteur) s'il y en a une. */
   validateBuild: (listId: string, selector: ExclusionSelector, runeIds: number[]) => void;
@@ -154,6 +156,15 @@ export function useOptimizerLists(): UseOptimizerLists {
     });
   }, []);
 
+  const removeMember = useCallback((listId: string, selector: ExclusionSelector) => {
+    const key = exclusionSelectorKey(selector);
+    setState((s) => ({
+      ...s,
+      members: s.members.filter((m) => !(m.listId === listId && exclusionSelectorKey(m.selector) === key)),
+      validated: s.validated.filter((v) => !(v.listId === listId && exclusionSelectorKey(v.selector) === key)),
+    }));
+  }, []);
+
   const validateBuild = useCallback((listId: string, selector: ExclusionSelector, runeIds: number[]) => {
     const key = exclusionSelectorKey(selector);
     setState((s) => ({
@@ -195,6 +206,7 @@ export function useOptimizerLists(): UseOptimizerLists {
     deleteList,
     members: state.members,
     addMember,
+    removeMember,
     validated: state.validated,
     validateBuild,
     releaseBuild,

@@ -16,6 +16,7 @@ import {
   Plus,
   CheckCircle2,
   Unlock,
+  Trash2,
 } from 'lucide-react';
 import { ArtifactDetail, ARTIFACT_KINDS, GearSet, RECO_STATS, RuneDetail, Monster, RtaEntry, SiegeTeam } from '../../types';
 import { BoxItem } from '../../lib/applyAccount';
@@ -636,6 +637,11 @@ export default function OptimizerSection({ box, runes, optimizer, allMonsters, r
   // Confirmation avant de libérer TOUTES les runes validées d'une liste
   // d'un coup (Lot 3) — porte l'id de la liste concernée.
   const [releaseAllConfirm, setReleaseAllConfirm] = useState<string | null>(null);
+  // Confirmation avant de retirer un monstre DÉJÀ VALIDÉ de la liste — le
+  // retrait libère aussi ses runes (voir `removeMember`), donc destructif
+  // comme `releaseConfirm` ; un monstre PAS ENCORE validé se retire sans
+  // rien demander (rien à perdre).
+  const [removeMemberConfirm, setRemoveMemberConfirm] = useState<{ listId: string; selector: ExclusionSelector } | null>(null);
   // Ouvre la saisie du nom quand on veut ajouter le monstre courant à la
   // liste alors qu'aucune liste n'est encore active — crée la liste ET y
   // ajoute le monstre dans le même geste (voir `handleAddToList` plus bas).
@@ -1323,6 +1329,17 @@ export default function OptimizerSection({ box, runes, optimizer, allMonsters, r
                 ) : (
                   <span className="flex-none text-[10.5px] text-ink-dimmer">pas encore validé</span>
                 )}
+                <BoutonIcone
+                  cadre
+                  libelle="Retirer de la liste"
+                  icone={<Trash2 size={14} className="text-ink-dim" />}
+                  onClick={() =>
+                    build
+                      ? setRemoveMemberConfirm({ listId: m.listId, selector: m.selector })
+                      : lists.removeMember(m.listId, m.selector)
+                  }
+                  className="h-6 w-6 flex-none"
+                />
               </div>
             );
           })}
@@ -2842,6 +2859,19 @@ export default function OptimizerSection({ box, runes, optimizer, allMonsters, r
             setReleaseAllConfirm(null);
           }}
           onCancel={() => setReleaseAllConfirm(null)}
+        />
+      )}
+      {removeMemberConfirm && (
+        <ConfirmDialog
+          titre="Retirer ce monstre de la liste ?"
+          message="Ses runes validées seront aussi libérées — elles redeviennent disponibles pour les recherches des autres monstres de cette liste."
+          libelleAction="Retirer"
+          destructif
+          onConfirm={() => {
+            lists.removeMember(removeMemberConfirm.listId, removeMemberConfirm.selector);
+            setRemoveMemberConfirm(null);
+          }}
+          onCancel={() => setRemoveMemberConfirm(null)}
         />
       )}
       {addListPromptOpen && (

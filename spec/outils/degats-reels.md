@@ -547,8 +547,8 @@ champ numérique (0 à 200 %, pas de 10) qui apparaît dans « Passifs
 offensifs » à côté du Jeton du passif — désactivé (0 %) par défaut, jamais
 un stack deviné.
 
-Curé dans `BONUS_DEGATS_STACKABLE_CONNUS` (`{ pctParStack, pctMax }`),
-détecté par `monsterBonusDegatsStackable(detail)`. `DamageSetup.
+Curé dans `BONUS_DEGATS_STACKABLE_CONNUS` (`{ pctParStack, pctMax, label,
+aide }`), détecté par `monsterBonusDegatsStackable(detail)`. `DamageSetup.
 stackPersonnalise` (`Record<skillCom2usId, number>`, même espace de clés
 que `passifsOffensifs`/`coupsPersonnalises`) porte le choix ;
 `resolvedStackPct(profil, setup)` le résout, borné à `pctMax` (même
@@ -556,6 +556,15 @@ discipline défensive que `resolvedHits`). `computeTotalDamage(...,
 bonusDegatsStack)` l'applique multiplicativement sur le TOTAL, après coup —
 même famille que `bonusDegatsSelonVit`, seule la SOURCE du pourcentage
 change (saisie plutôt que déduite de la VIT).
+
+⚠️ **`label`/`aide` — un texte PAR ENTRÉE, jamais un texte générique
+partagé.** Signalé par l'utilisateur (incohérence trouvée sur le champ de
+Trevor : libellé « Stack actuel » et infobulle « nombre d'attaques
+alliées » — un texte écrit pour Momo, sans rapport avec Trevor qui compte
+ses PROPRES PV perdus). Chaque entrée de la table décrit maintenant EXACTEMENT
+ce qu'elle compte (« Attaques alliées », « Alliés morts », « Résultat du
+dé », « Vols de PV », « État », « PV cible détruits (%) », « PV perdus
+(%) »), affiché à côté du champ ET dans son infobulle.
 
 Trois entrées de plus (réponses au catalogue « passifs non implémentés »,
 même mécanisme, aucun nouveau code) : **Fermion** (« Dominator », +10 % par

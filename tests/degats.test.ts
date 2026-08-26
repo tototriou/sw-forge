@@ -1785,6 +1785,28 @@ export default function testDegats() {
     egal(p?.pctMax, pctMax, `${id} (${nom}) : plafond confirmé`);
   }
 
+  // ⚠️ Signalé par l'utilisateur : le champ de saisie de Trevor affichait
+  // « Stack actuel » avec une infobulle écrite pour Momo (« nombre
+  // d'attaques alliées ») — incohérent, Trevor compte ses PROPRES PV
+  // perdus, pas des attaques. Chaque entrée porte désormais son propre
+  // `label`/`aide` — vérifié qu'ils sont bien DISTINCTS entre deux
+  // mécanismes différents (Momo vs Trevor), pas un texte générique partagé.
+  const stackMomoLabels = monsterBonusDegatsStackable(momo)!;
+  const trevor = fiche(20012);
+  const stackTrevor = monsterBonusDegatsStackable(trevor)!;
+  ok(stackMomoLabels.label !== stackTrevor.label, 'Momo et Trevor ont des libellés de champ DIFFÉRENTS');
+  ok(stackMomoLabels.aide !== stackTrevor.aide, 'Momo et Trevor ont des infobulles DIFFÉRENTES');
+  egal(stackTrevor.label, 'PV perdus (%)', 'Trevor : le champ parle de PV perdus, pas de « stack »');
+  ok(!/attaque/i.test(stackTrevor.aide), "Trevor : l'infobulle ne mentionne PAS les attaques alliées (texte de Momo)");
+  egal(stackMomoLabels.label, 'Attaques alliées', 'Momo : le champ garde son texte d’origine, inchangé');
+  // Borgnine et Moogwang (« PV cible détruits ») partagent le MÊME libellé
+  // entre eux (même nature de compteur), mais restent DIFFÉRENTS de Trevor
+  // (PV PROPRES, pas ceux de la cible).
+  const stackBorgnine = monsterBonusDegatsStackable(fiche(24711))!;
+  const stackMoogwang = monsterBonusDegatsStackable(fiche(28912))!;
+  egal(stackBorgnine.label, stackMoogwang.label, 'Borgnine et Moogwang : même nature de compteur (PV cible détruits), même libellé');
+  ok(stackBorgnine.label !== stackTrevor.label, 'Borgnine (cible) et Trevor (soi-même) restent distincts');
+
   titre('Dégâts réels — modificateurs MONSTRE-WIDE additifs (Spear of Tenacity, Martial Arts Specialist, Sickle Blade/Sand Blade, Calculated Sacrifice)');
 
   // Profil SYNTHÉTIQUE NEUTRE (`1*{ATK} (Fixed)`) : `(Fixed)` élimine le

@@ -586,25 +586,53 @@ export function monsterBonusDegatsSelonDef(detail: DetailMonstre | null): { defM
 // connu de l'app (le nombre d'attaques alliées déjà portées dans le combat
 // n'est pas simulé) : l'utilisateur choisit lui-même le niveau de stack
 // actuel, via `DamageSetup.stackPersonnalise`.
-const BONUS_DEGATS_STACKABLE_CONNUS: Record<string, { pctParStack: number; pctMax: number }> = {
-  'Secret Book (Passive)': { pctParStack: 10, pctMax: 200 }, // Momo, Mage
+// ⚠️ `label`/`aide` — CHAQUE entrée compte une chose RÉELLEMENT différente
+// (attaques alliées, alliés morts, résultat d'un dé, PV détruits sur la
+// cible, PV perdus sur SOI, un état à 3 paliers…) : un texte unique
+// « Stack actuel »/écrit pour Momo (attaques alliées) n'a AUCUN sens pour
+// Trevor (PV perdus) — signalé par l'utilisateur, incohérence trouvée en
+// passant la souris sur le champ de Trevor. Chaque entrée porte donc son
+// PROPRE libellé de champ et sa PROPRE description d'infobulle, jamais un
+// texte générique partagé.
+const BONUS_DEGATS_STACKABLE_CONNUS: Record<string, { pctParStack: number; pctMax: number; label: string; aide: string }> = {
+  'Secret Book (Passive)': {
+    pctParStack: 10,
+    pctMax: 200,
+    label: 'Attaques alliées',
+    aide: "le nombre d'attaques alliées déjà portées ce combat",
+  }, // Momo, Mage
   // « the damage you inflict increases as more allies die » — `quantite`
   // ABSENT des données SWARFARM (`null` sur les deux effets), confirmé par
   // l'utilisateur : +10 % par allié mort, jusqu'à +30 % (3 morts). Même
   // état non simulé que Momo (le nombre d'alliés morts ce combat) — même
   // champ NUMÉRIQUE plutôt qu'un état déduit.
-  'Dominator (Passive)': { pctParStack: 10, pctMax: 30 }, // Archangel, Fermion
+  'Dominator (Passive)': {
+    pctParStack: 10,
+    pctMax: 30,
+    label: 'Alliés morts',
+    aide: "le nombre d'alliés morts ce combat",
+  }, // Archangel, Fermion
   // « The damage you inflict to the enemy increases by up to 100% the
   // larger the number on the dice » — un jet de dé (1 à 6) au début du
   // combat puis à chaque tour, confirmé par l'utilisateur : paliers de
   // 20 %, jamais un état simulé (aucun RNG in-app). ⚠️ Le texte porte AUSSI
   // une réduction des dégâts SUBIS (« the smaller the number ») — hors
   // modèle comme partout ailleurs (jamais les effets défensifs).
-  'Roll Again (Passive)': { pctParStack: 20, pctMax: 100 }, // Dice Magician, Ludo
+  'Roll Again (Passive)': {
+    pctParStack: 20,
+    pctMax: 100,
+    label: 'Résultat du dé',
+    aide: 'le résultat du dé (1 à 6) — un jet in-app, aucun RNG simulé ici',
+  }, // Dice Magician, Ludo
   // « The damage will be increased by 10% each up to 15 times whenever
   // this effect occurs » — confirmé par l'utilisateur : identique à Momo,
   // paliers de 10 %, plafond 150 % (15 stacks).
-  'Absorb Shadow (Passive)': { pctParStack: 10, pctMax: 150 }, // Boomerang Warrior (Ténèbres), Martina
+  'Absorb Shadow (Passive)': {
+    pctParStack: 10,
+    pctMax: 150,
+    label: 'Vols de PV',
+    aide: 'le nombre de fois où ce passif a volé des PV ce combat',
+  }, // Boomerang Warrior (Ténèbres), Martina
   // « Increases damage by 100% while sleeping... increases the damage by
   // 200% on the next turn » (au réveil suite à des dégâts) — DEUX états
   // distincts qui se prêtent au même contrôle « valeur choisie parmi un
@@ -612,7 +640,12 @@ const BONUS_DEGATS_STACKABLE_CONNUS: Record<string, { pctParStack: number; pctMa
   // « toggle entre 0 %, 100 % et 200 % ». `pctParStack: 100` donne
   // exactement ces trois paliers (0/100/200), pas un « stack » au sens de
   // Momo (attaques alliées comptées) mais la MÊME mécanique de stockage.
-  'Sleep Talk (Passive)': { pctParStack: 100, pctMax: 200 }, // Hypnomeow, Birman, Manx, Bombay
+  'Sleep Talk (Passive)': {
+    pctParStack: 100,
+    pctMax: 200,
+    label: 'État',
+    aide: 'si tu es endormi (100 %) ou viens de te réveiller sous dégâts ce tour (200 %)',
+  }, // Hypnomeow, Birman, Manx, Bombay
   // « Destroys the enemy's MAX HP... Allies... deal more damage
   // proportionate to the enemy target's destroyed HP. » `quantite: 0` en
   // données (comme Covenant) — confirmé par l'utilisateur : Borgnine
@@ -620,17 +653,32 @@ const BONUS_DEGATS_STACKABLE_CONNUS: Record<string, { pctParStack: number; pctMa
   // destruction propre à ce passif) jusqu'à +30 % (60 points) ; « stack »
   // ici représente 1 point de PV cible détruit, saisi manuellement (l'app
   // ne simule pas la destruction cumulative de PV sur plusieurs tours).
-  'Destroyer of Battlefield (Passive)': { pctParStack: 0.5, pctMax: 30 }, // Slayer, Borgnine
+  'Destroyer of Battlefield (Passive)': {
+    pctParStack: 0.5,
+    pctMax: 30,
+    label: 'PV cible détruits (%)',
+    aide: 'le pourcentage de PV max de la cible déjà DÉTRUITS par ce passif (pas perdus par les dégâts normaux)',
+  }, // Slayer, Borgnine
   // Même mécanisme texte pour texte (« Destroy HP »/« Increase Damage »,
   // `quantite: 0`), confirmé par l'utilisateur avec un ratio DIFFÉRENT :
   // Moogwang +1 %/point de PV cible détruit, jusqu'à +60 % (60 points).
-  'Fire Bead (Passive)': { pctParStack: 1, pctMax: 60 }, // Dokkaebi Lord (Feu), Moogwang
+  'Fire Bead (Passive)': {
+    pctParStack: 1,
+    pctMax: 60,
+    label: 'PV cible détruits (%)',
+    aide: 'le pourcentage de PV max de la cible déjà DÉTRUITS par ce passif (pas perdus par les dégâts normaux)',
+  }, // Dokkaebi Lord (Feu), Moogwang
   // « Inflicts additional damage proportionate to your HP as it decreases »
   // (`quantite: null`) — confirmé par l'utilisateur : +2 %/point de % de PV
   // PERSONNELS perdus, jusqu'à +200 % (100 points = PV à 0 %). Même
   // mécanisme de saisie manuelle que ci-dessus, source différente (ses
   // propres PV perdus, pas ceux détruits sur la cible).
-  "Brawler's Will (Passive)": { pctParStack: 2, pctMax: 200 }, // Neostone Fighter, Trevor
+  "Brawler's Will (Passive)": {
+    pctParStack: 2,
+    pctMax: 200,
+    label: 'PV perdus (%)',
+    aide: 'le pourcentage de TES PROPRES PV max déjà perdus (pas ceux détruits sur la cible)',
+  }, // Neostone Fighter, Trevor
 };
 
 export interface BonusDegatsStackableProfile {
@@ -640,6 +688,8 @@ export interface BonusDegatsStackableProfile {
   icone: string | null;
   pctParStack: number;
   pctMax: number;
+  label: string;
+  aide: string;
 }
 
 export function monsterBonusDegatsStackable(detail: DetailMonstre | null): BonusDegatsStackableProfile | null {

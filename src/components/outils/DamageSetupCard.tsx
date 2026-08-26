@@ -382,11 +382,16 @@ export default function DamageSetupCard({
                 {m.description && <p className="mt-1 text-xs leading-snug text-ink-dim">{m.description}</p>}
               </div>
             ))}
-            {/* Momo/Mage (« Secret Book ») : un bonus qui S'ACCUMULE en
-                combat (nombre d'attaques alliées déjà portées) — rien que
-                l'app ne simule, donc un champ pour que le joueur indique
-                lui-même où en est le stack, plutôt qu'un bouton ou une
-                valeur devinée. */}
+            {/* Momo/Mage (« Secret Book »), Fermion, Ludo, Martina, Sleep
+                Talk, Borgnine/Moogwang, Trevor… : un bonus qui S'ACCUMULE en
+                combat — rien que l'app ne simule, donc un champ pour que le
+                joueur indique lui-même où il en est, plutôt qu'un bouton ou
+                une valeur devinée. ⚠️ Chaque passif compte une chose
+                RÉELLEMENT différente (attaques alliées, PV détruits sur la
+                cible, PV perdus sur SOI…) — `label`/`aide` (curés dans
+                `BONUS_DEGATS_STACKABLE_CONNUS`) évitent un texte unique
+                écrit pour Momo qui n'aurait aucun sens pour Trevor,
+                incohérence signalée par l'utilisateur. */}
             {bonusDegatsStack && (
               <div key={`stack-${bonusDegatsStack.skillCom2usId}`}>
                 <Jeton
@@ -402,7 +407,7 @@ export default function DamageSetupCard({
                   <p className="mt-1 text-xs leading-snug text-ink-dim">{bonusDegatsStack.description}</p>
                 )}
                 <label className="mt-1 flex items-center gap-2">
-                  <span className="text-xs text-ink-dim">Stack actuel</span>
+                  <span className="text-xs text-ink-dim">{bonusDegatsStack.label}</span>
                   <NumberField
                     value={resolvedStackPct(bonusDegatsStack, setup)}
                     onChange={(v) =>
@@ -418,8 +423,8 @@ export default function DamageSetupCard({
                     max={bonusDegatsStack.pctMax}
                     suffix="%"
                     boxWidth="w-28"
-                    title="Ce que l'app ne peut pas savoir (le nombre d'attaques alliées déjà portées ce combat) — à toi de le renseigner, désactivé (0 %) par défaut"
-                    ariaLabel="Pourcentage de stack actuel du bonus de dégâts"
+                    title={`Ce que l'app ne peut pas savoir (${bonusDegatsStack.aide}) — à toi de le renseigner, désactivé (0 %) par défaut`}
+                    ariaLabel={`${bonusDegatsStack.label} — pourcentage actuel du bonus de dégâts`}
                   />
                 </label>
               </div>

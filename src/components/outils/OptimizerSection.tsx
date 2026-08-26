@@ -1021,16 +1021,19 @@ export default function OptimizerSection({ box, runes, optimizer, allMonsters, r
         else locksIgnores++;
       }
       setLockedRunes(locksValides);
-      // ⚠️ Repli sur l'objectif « Dégâts » : `speed_nuker` a été RETIRÉ
-      // (branche forge/calcul-degats-reels), remplacé par « Dégâts réels ».
-      // Une recette exportée pendant sa courte durée de vie (v1.8.1) porte
-      // encore cette valeur — `parseOptimizerRecipe` ne valide pas
+      // ⚠️ Repli sur « Efficience » pour DEUX valeurs devenues invalides :
+      // `speed_nuker` (retiré, remplacé par « Dégâts réels ») et `degats`
+      // (formule générique sans sort ni adversaire, retirée le 2026-08-27 —
+      // approximation strictement inférieure de « Dégâts réels » une fois
+      // celle-ci mature). Une recette exportée avant l'un ou l'autre retrait
+      // porte encore ces valeurs — `parseOptimizerRecipe` ne valide pas
       // `objective` contre le type, donc sans ce repli l'état affiché
-      // porterait une valeur qu'aucun bouton ne peut représenter. « Dégâts »
-      // est le choix le plus proche : c'est la formule que `speed_nuker`
-      // réutilisait déjà lui-même au tri (voir historique).
+      // porterait une valeur qu'aucun bouton ne peut représenter. « Efficience »,
+      // pas « Dégâts réels » : celle-ci EXIGE un sort/adversaire résolus
+      // (`objectiveScore` lève sans contexte, voir runeBuildOptim.ts) — une
+      // recette ancienne n'en a pas forcément un valide pour CE compte-ci.
       const legacyObjective = recipe.objective as unknown as string;
-      setObjective(legacyObjective === 'speed_nuker' ? 'degats' : recipe.objective);
+      setObjective(legacyObjective === 'speed_nuker' || legacyObjective === 'degats' ? 'efficience' : recipe.objective);
       // ⚠️ `?? DEFAULT_DAMAGE_SETUP` : une recette exportée AVANT ce champ n'a
       // pas de `damageSetup`. Le `skillCom2usId` qu'elle porte, lui, peut
       // désigner un sort d'un AUTRE monstre que celui de cette box — c'est
@@ -1128,7 +1131,7 @@ export default function OptimizerSection({ box, runes, optimizer, allMonsters, r
       if (realDamage) {
         list.sort((a, b) => objectiveScore(b, sortBy, realDamage) - objectiveScore(a, sortBy, realDamage));
       }
-    } else if (sortBy === 'degats' || sortBy === 'ehp' || sortBy === 'vitesse') {
+    } else if (sortBy === 'ehp' || sortBy === 'vitesse') {
       list.sort((a, b) => objectiveScore(b, sortBy) - objectiveScore(a, sortBy));
     } else {
       list.sort((a, b) => statTotal(b.stats, sortBy) - statTotal(a.stats, sortBy));
@@ -1924,21 +1927,20 @@ export default function OptimizerSection({ box, runes, optimizer, allMonsters, r
           « Dégâts réels » choisi (`DamageSetupCard` a besoin de place pour
           ses vignettes d'effet). */}
       <div className="rounded-xl border border-border bg-panel p-3 xl:col-start-2 xl:row-start-2">
-        <div className="mb-3 flex items-center gap-2">
+        {/* ⚠️ Point d'interrogation JUSTE À DROITE du titre (demande
+            explicite) — même rangée que l'icône et le texte, pas sur sa
+            propre ligne en dessous. */}
+        <div className="mb-3 flex items-center gap-1.5">
           <div className="flex h-6 w-6 flex-none items-center justify-center rounded-md border border-accent/40 bg-accent-soft">
             <Target size={13} className="text-accent" />
           </div>
           <p className="text-[13.5px] font-bold text-ink">Objectif de recherche</p>
-        </div>
-        <div className="mb-2.5 flex items-center gap-1.5">
           <HelpPopover title="Objectif de recherche">
             Élargit la sélection de runes candidates pour ses stats dès le pré-filtrage, avant même de
             lancer la recherche — les minimums posés plus bas (Conditions) restent ce qui décide quels
-            demi-builds sont conservés pendant la recherche elle-même. <b className="text-ink">Dégâts</b> considère{' '}
-            <b className="text-ink">ATQ</b>, <b className="text-ink">Taux Crit</b> et{' '}
-            <b className="text-ink">Dgts Crit</b> ensemble (espérance moyenne).{' '}
-            <b className="text-ink">Dégâts réels</b> va plus loin : la vraie formule d&apos;un sort précis
-            contre un adversaire configuré.
+            demi-builds sont conservés pendant la recherche elle-même. <b className="text-ink">Dégâts réels</b>{' '}
+            va plus loin que les autres : la vraie formule d&apos;un sort précis contre un adversaire
+            configuré.
           </HelpPopover>
         </div>
         <Segmented options={OBJECTIVE_LABELS} value={objective} onChange={setObjective} size="lg" />
@@ -1946,7 +1948,7 @@ export default function OptimizerSection({ box, runes, optimizer, allMonsters, r
             section séparée plus bas : c'est le choix « Dégâts réels » qui
             rend ces champs pertinents, et rien d'autre à l'écran ne les
             concerne. Un panneau permanent à moitié grisé aurait alourdi les
-            cinq autres objectifs pour rien. */}
+            trois autres objectifs pour rien. */}
         {objective === 'degats_reels' && (
           <div className="mt-2.5">
             <DamageSetupCard

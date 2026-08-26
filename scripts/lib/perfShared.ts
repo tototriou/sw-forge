@@ -8,7 +8,7 @@
 // `process.exit()` de l'orchestrateur dans un fil qui ne les attend pas.
 
 import { computeStats } from '../../src/lib/stats';
-import { activeSets } from '../../src/lib/effects';
+import { activeSets, StatKey } from '../../src/lib/effects';
 import {
   BuildRequirement,
   SearchParams,
@@ -29,6 +29,12 @@ export interface Case {
   defense: boolean;
   statKeys: string[];
   objective: Objective | undefined;
+  // ⚠️ `'degats'` retiré de `Objective` (2026-08-27, voir runeBuildOptim.ts)
+  // — les cas qui en dépendaient pour privilégier ATQ/Dgts Crit au
+  // pré-filtrage passent par CET override explicite à la place
+  // (`objective: 'efficience'` + `objectiveStats` ci-dessous), pour mesurer
+  // EXACTEMENT le même biais qu'avant, sans dépendre d'un objectif retiré.
+  objectiveStats?: StatKey[];
   // Sinon, les sets RÉELLEMENT actifs sur le monstre (le cas courant).
   setsOverride?: string[];
 }
@@ -39,12 +45,12 @@ export interface Case {
 // spec/outils/optimizer/) — l'inclure ralentirait cette batterie à
 // chaque exécution sans mesurer ce qu'on cherche à suivre ici.
 export const CASES: Case[] = [
-  { label: 'Lushen d15 (Rage+Blade, reel)', exportPath: 'ß☆Enzo-6399149.json', deckId: 15, monsterName: 'Lushen', defense: false, statKeys: ['atk', 'cr', 'cd'], objective: 'degats' },
-  { label: 'Lushen d15 (Rage seul, relache)', exportPath: 'ß☆Enzo-6399149.json', deckId: 15, monsterName: 'Lushen', defense: false, statKeys: ['atk', 'cr', 'cd'], objective: 'degats', setsOverride: ['rage'] },
-  { label: 'Lushen d10 (tototriou)', exportPath: 'tototriou-12889591.json', deckId: 10, monsterName: 'Lushen', defense: false, statKeys: ['atk', 'cr', 'cd'], objective: 'degats' },
-  { label: 'Lushen d11 (tototriou)', exportPath: 'tototriou-12889591.json', deckId: 11, monsterName: 'Lushen', defense: false, statKeys: ['atk', 'cr', 'cd'], objective: 'degats' },
-  { label: 'Sonia d6 (tototriou)', exportPath: 'tototriou-12889591.json', deckId: 6, monsterName: 'Sonia', defense: false, statKeys: ['atk', 'spd', 'cr', 'cd'], objective: 'degats' },
-  { label: 'Sonia d14 (Enzo)', exportPath: 'ß☆Enzo-6399149.json', deckId: 14, monsterName: 'Sonia', defense: false, statKeys: ['atk', 'cr', 'cd', 'spd'], objective: 'degats' },
+  { label: 'Lushen d15 (Rage+Blade, reel)', exportPath: 'ß☆Enzo-6399149.json', deckId: 15, monsterName: 'Lushen', defense: false, statKeys: ['atk', 'cr', 'cd'], objective: 'efficience', objectiveStats: ['atk', 'cd'] },
+  { label: 'Lushen d15 (Rage seul, relache)', exportPath: 'ß☆Enzo-6399149.json', deckId: 15, monsterName: 'Lushen', defense: false, statKeys: ['atk', 'cr', 'cd'], objective: 'efficience', objectiveStats: ['atk', 'cd'], setsOverride: ['rage'] },
+  { label: 'Lushen d10 (tototriou)', exportPath: 'tototriou-12889591.json', deckId: 10, monsterName: 'Lushen', defense: false, statKeys: ['atk', 'cr', 'cd'], objective: 'efficience', objectiveStats: ['atk', 'cd'] },
+  { label: 'Lushen d11 (tototriou)', exportPath: 'tototriou-12889591.json', deckId: 11, monsterName: 'Lushen', defense: false, statKeys: ['atk', 'cr', 'cd'], objective: 'efficience', objectiveStats: ['atk', 'cd'] },
+  { label: 'Sonia d6 (tototriou)', exportPath: 'tototriou-12889591.json', deckId: 6, monsterName: 'Sonia', defense: false, statKeys: ['atk', 'spd', 'cr', 'cd'], objective: 'efficience', objectiveStats: ['atk', 'cd'] },
+  { label: 'Sonia d14 (Enzo)', exportPath: 'ß☆Enzo-6399149.json', deckId: 14, monsterName: 'Sonia', defense: false, statKeys: ['atk', 'cr', 'cd', 'spd'], objective: 'efficience', objectiveStats: ['atk', 'cd'] },
   { label: 'Ciri defense eq.3 (Enzo)', exportPath: 'ß☆Enzo-6399149.json', deckId: 32732517, monsterName: 'Ciri', defense: true, statKeys: ['hp', 'def', 'spd', 'acc'], objective: 'ehp' },
 ];
 
@@ -89,7 +95,7 @@ export function checkMonotonicityForCase(c: Case): MonotonicityRow[] {
   for (const preset of SLOT_FILTER_PRESETS) {
     const params: SearchParams = {
       base: gear.base, artifacts: gear.artifacts, relic: gear.relic, pool: allRunes, requirement,
-      metric: 'eff', objective: c.objective, maxMs: MONOTONICITY_MAX_MS, slotFilterCap: preset.cap,
+      metric: 'eff', objective: c.objective, objectiveStats: c.objectiveStats, maxMs: MONOTONICITY_MAX_MS, slotFilterCap: preset.cap,
       // ⚠️ Pas de `bucketCap` ici : on veut vérifier la résolution PAR
       // DÉFAUT (`bucketCapFor`), le vrai chemin de production.
     };

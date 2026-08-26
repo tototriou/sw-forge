@@ -2070,17 +2070,19 @@ export default function testDegats() {
   for (const o of OBJECTIVE_LABELS) {
     egal(objectiveKeysOf(o.key, undefined), OBJECTIVE_RELEVANT_STATS[o.key], `sans override, « ${o.label} » garde ses stats d'origine`);
   }
-  egal(objectiveKeysOf('degats', ['spd']), ['spd'], "l'override remplace la table, il ne s'y ajoute pas");
+  egal(objectiveKeysOf('ehp', ['spd']), ['spd'], "l'override remplace la table, il ne s'y ajoute pas");
   egal(objectiveKeysOf(undefined, undefined), [], 'aucun objectif, aucun override → aucun biais');
   // ⚠️ Un override VIDE doit rester un override (« ce sort ne privilégie
   // rien »), pas retomber sur la table — un `??`/`||` mal placé confondrait
   // les deux, sans que rien ne le signale.
-  egal(objectiveKeysOf('degats', []), [], 'un override vide reste un override');
-  // ⚠️ `speed_nuker` retiré (v1.8.1 → forge/calcul-degats-reels) : une
-  // recette exportée pendant sa courte durée de vie porte encore cette
-  // valeur, jamais validée par `parseOptimizerRecipe`. Sans repli, le spread
-  // sur `undefined` plus haut dans la pile lève une TypeError.
+  egal(objectiveKeysOf('ehp', []), [], 'un override vide reste un override');
+  // ⚠️ `speed_nuker` retiré (v1.8.1 → forge/calcul-degats-reels) et `degats`
+  // retiré (2026-08-27 → approximation devenue redondante avec « Dégâts
+  // réels ») : une recette exportée pendant leur durée de vie porte encore
+  // ces valeurs, jamais validées par `parseOptimizerRecipe`. Sans repli, le
+  // spread sur `undefined` plus haut dans la pile lève une TypeError.
   egal(objectiveKeysOf('speed_nuker' as unknown as Objective, undefined), [], 'un objectif retiré (recette ancienne) dégrade vers aucun biais, sans lever');
+  egal(objectiveKeysOf('degats' as unknown as Objective, undefined), [], "« degats », retiré à son tour, dégrade pareillement");
 
   // Sans contexte, le score échoue BRUYAMMENT — jamais un repli silencieux
   // sur une autre formule que celle affichée à l'utilisateur.

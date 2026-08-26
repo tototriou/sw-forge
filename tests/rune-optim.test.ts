@@ -18,12 +18,10 @@ import {
   prepareSearch,
   rankBlockingConditions,
   excludedRuneIds,
-  objectiveScore,
   searchBuilds,
   totalPairCount,
 } from '../src/lib/runeBuildOptim';
 import { StatKey, runeEfficiency, runeScore } from '../src/lib/effects';
-import { StatRow } from '../src/lib/stats';
 import { egal, ok, titre } from './outils';
 
 const ZERO_BASE: BaseStats = { hp: 1000, atk: 100, def: 100, spd: 100, cr: 15, cd: 50, res: 15, acc: 0 };
@@ -703,46 +701,6 @@ export default function testRuneOptim() {
       res.explored,
       3,
       'exactement 3 paires explorées — la preuve que les 17 candidats hors de portée ont été écartés AVANT la recherche, pas juste ignorés au tri final'
-    );
-  }
-
-  titre('Optimizer · objectif Dégâts — Taux Crit plafonné à 100 %');
-
-  // `objectiveScore` opère sur un candidat déjà calculé (stats + effTotal),
-  // pas besoin de faire tourner la recherche pour ce test.
-  {
-    function statRow(key: StatKey, total: number): StatRow {
-      return { key, label: '', base: 0, bonus: 0, total, suffix: '' };
-    }
-    function candidateAvecCr(cr: number): BuildCandidate {
-      return {
-        runeIds: [1, 2, 3, 4, 5, 6],
-        stats: [
-          statRow('hp', 1),
-          statRow('atk', 1000),
-          statRow('def', 1),
-          statRow('spd', 1),
-          statRow('cr', cr),
-          statRow('cd', 100),
-          statRow('res', 1),
-          statRow('acc', 1),
-        ],
-        effTotal: 0,
-      };
-    }
-
-    const a100 = objectiveScore(candidateAvecCr(100), 'degats');
-    const a110 = objectiveScore(candidateAvecCr(110), 'degats');
-    egal(
-      a110,
-      a100,
-      '110% de Taux Crit ne rapporte pas plus de dégâts espérés que 100% — plafonné dans la formule, comme en jeu'
-    );
-
-    const a90 = objectiveScore(candidateAvecCr(90), 'degats');
-    ok(
-      a90 < a100,
-      'en-dessous de 100%, plus de Taux Crit augmente bien les dégâts espérés — le plafond ne coupe pas prématurément'
     );
   }
 

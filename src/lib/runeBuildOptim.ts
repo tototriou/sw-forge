@@ -179,7 +179,7 @@ export interface SearchResult {
 // un grand bouton à choix unique — pour orienter le type de rune étudié dès
 // le pré-filtrage, pas seulement trier les résultats après coup.
 // `'degats_reels'` : les dégâts d'un SORT précis contre un adversaire
-// configuré (voir spec/outils/degats-reels.md). Contrairement aux trois
+// configuré (voir spec/outils/degats-reels.md). Contrairement aux deux
 // autres, ses stats pertinentes ne sont PAS fixes — elles dépendent du sort
 // choisi (`{ATK}`, `{ATK}*({SPD}+70)/30`, `0.2*{MAX HP}`…). L'écran les
 // calcule via `damageRelevantStats` et les transmet dans
@@ -189,11 +189,16 @@ export interface SearchResult {
 // ATQ+Dmg Crit+VIT, retiré : cet objectif calcule la VRAIE formule d'un sort
 // qui dépend de VIT — ex. Lagmaron, `ATQ×(VIT+70)/30` — plutôt qu'une
 // approximation qui ignorait VIT au tri final ; voir historique).
-export type Objective = 'efficience' | 'degats' | 'ehp' | 'vitesse' | 'degats_reels';
+// ⚠️ `'degats'` (formule générique ATQ×(1+TC×DC), sans sort ni adversaire) a
+// été RETIRÉ (2026-08-27) : une fois `'degats_reels'` mature, c'était une
+// approximation strictement inférieure du même besoin — garder les deux
+// faisait hésiter sur laquelle choisir. Une recette qui la porte encore
+// retombe sur `'degats_reels'` à l'import (voir `parseOptimizerRecipe`),
+// même repli que l'ancien `'speed_nuker'`.
+export type Objective = 'efficience' | 'ehp' | 'vitesse' | 'degats_reels';
 
 export const OBJECTIVE_LABELS: { key: Objective; label: string }[] = [
   { key: 'efficience', label: 'Efficience' },
-  { key: 'degats', label: 'Dégâts' },
   { key: 'degats_reels', label: 'Dégâts réels' },
   { key: 'ehp', label: 'PV effectifs' },
   { key: 'vitesse', label: 'Vitesse' },
@@ -266,7 +271,6 @@ export const ARTIFACT_MAIN_OPTIONS: { code: 100 | 101 | 102; label: string }[] =
 // pour un potentiel TC qui ne sert à rien une fois le plafond atteint.
 export const OBJECTIVE_RELEVANT_STATS: Record<Objective, StatKey[]> = {
   efficience: [],
-  degats: ['atk', 'cd'],
   // ⚠️ REPLI seulement — les vraies stats de « Dégâts réels » dépendent du
   // sort choisi et arrivent par `SearchParams.objectiveStats` (voir
   // `objectiveKeysOf` juste en dessous). Cette entrée sert quand aucun sort
@@ -288,10 +292,10 @@ export const OBJECTIVE_RELEVANT_STATS: Record<Objective, StatKey[]> = {
 export function objectiveKeysOf(objective: Objective | undefined, override: StatKey[] | undefined): StatKey[] {
   if (override) return override;
   // ⚠️ `?? []`, pas un accès direct : `objective` peut porter une valeur
-  // ABSENTE de la table — une recette exportée pendant la courte durée de vie
-  // d'un objectif depuis retiré (ex. `speed_nuker`, v1.8.1) est du JSON non
-  // validé, `parseOptimizerRecipe` ne vérifie pas que `objective` fait partie
-  // du type. Sans ce repli, `[...objectiveKeysOf(...)]` plus haut dans la
+  // ABSENTE de la table — une recette exportée pendant la durée de vie
+  // d'un objectif depuis retiré (ex. `speed_nuker`, v1.8.1 ; `degats`,
+  // 2026-08-27) est du JSON non validé, `parseOptimizerRecipe` ne vérifie
+  // pas que `objective` fait partie du type. Sans ce repli, `[...objectiveKeysOf(...)]` plus haut dans la
   // pile lève une `TypeError` (spread sur `undefined`) au lieu de dégrader
   // proprement vers « aucun biais » — même esprit de tolérance que le reste
   // de ce fichier de recette (un identifiant introuvable est ignoré, jamais
@@ -382,9 +386,9 @@ export function objectiveScore(candidate: BuildCandidate, objective: Objective, 
   const { stats } = candidate;
   if (objective === 'vitesse') return statTotal(stats, 'spd');
   if (objective === 'degats_reels') {
-    // ⚠️ Sans contexte, on ÉCHOUE bruyamment plutôt que de retomber sur la
-    // formule « Dégâts » générique : un score plausible mais calculé sur un
-    // autre modèle que celui affiché à l'utilisateur serait invisible. Même
+    // ⚠️ Sans contexte, on ÉCHOUE bruyamment plutôt que de retomber sur EHP
+    // ou une autre formule : un score plausible mais calculé sur un autre
+    // modèle que celui affiché à l'utilisateur serait invisible. Même
     // garde-fou que la branche finale de cette fonction, qui a justement
     // rendu visible un trou réel (voir spec/outils/optimizer/, revue de code
     // externe).
@@ -407,17 +411,6 @@ export function objectiveScore(candidate: BuildCandidate, objective: Objective, 
       realDamage.bonusDegatsSelonDef,
       realDamage.bonusSiAtqSeuil
     );
-  }
-  if (objective === 'degats') {
-    const atk = statTotal(stats, 'atk');
-    // ⚠️ Le Taux Crit est PLAFONNÉ à 100 % dans le jeu — passer 100 % ne
-    // rapporte plus rien (la formule utiliserait sinon une chance de critique
-    // > 100 %, gonflant les dégâts espérés d'un build dont le total brut
-    // dépasse 100 % au-delà de ce qu'il apporte réellement en jeu). `computeStats`
-    // n'écrête jamais rien lui-même (voir Conditions) : c'est ICI, au moment
-    // de transformer une stat en dégâts, que le plafond compte.
-    const cr = Math.min(statTotal(stats, 'cr'), 100);
-    return atk * (1 + (cr / 100) * (statTotal(stats, 'cd') / 100));
   }
   // Filet de sécurité : tout objectif futur sans branche dédiée ci-dessus
   // échoue bruyamment plutôt que de retomber silencieusement sur EHP (voir

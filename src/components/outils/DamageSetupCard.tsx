@@ -826,8 +826,20 @@ export default function DamageSetupCard({
           <HelpPopover title="Effets actifs">
             Buffs sur le monstre (<b className="text-ink">ATQ +50 %</b>, <b className="text-ink">DEF +70 %</b>,{' '}
             <b className="text-ink">VIT +30 %</b>) et effets subis par la cible (
-            <b className="text-ink">réduction de défense ×0,3</b>, <b className="text-ink">marque +25 %</b>).
-            Seuls ceux qui changent quelque chose pour ce sort sont proposés.
+            <b className="text-ink">réduction de défense ×0,3</b>, <b className="text-ink">marque +25 %</b>,{' '}
+            <b className="text-ink">ce sort pose le def break</b> — distingue « attaque une cible déjà réduite » de
+            « réduit puis frappe », les deux mitigations ne sont pas identiques). Seuls ceux qui changent
+            quelque chose pour ce sort sont proposés.
+            <br />
+            <br />
+            Effets d&apos;ÉQUIPE (un autre monstre que celui optimisé, présent ou non) :{' '}
+            <b className="text-ink">Euldong</b> (+100 pts de Dégâts Critiques),{' '}
+            <b className="text-ink">Mirinae</b> (+30 % de dégâts infligés, cumulable avec la marque),{' '}
+            <b className="text-ink">Deborah</b> (amplifie ×1,3 la réduction de défense active),{' '}
+            <b className="text-ink">Miriam</b> (+35 % sur les stats qui comptent pour ce sort),{' '}
+            <b className="text-ink">Dr. Matteo</b> (+20 % de dégâts infligés tant qu'il est sous
+            incapacité) et <b className="text-ink">Velaska</b> (multiplie les dégâts selon le % de PV
+            perdus par le monstre optimisé — champ dédié juste en dessous).
           </HelpPopover>
         </div>
         {/* ⚠️ L'ICÔNE est le contrôle — pas une icône décorative à côté

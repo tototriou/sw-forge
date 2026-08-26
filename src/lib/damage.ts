@@ -604,9 +604,25 @@ export function monsterBonusDegatsSelonDef(detail: DetailMonstre | null): { defM
 // détruits sur la cible, PV perdus sur SOI…), jamais un texte générique
 // partagé (déjà signalé une première fois sur le texte, ici sur les
 // PLAGES elles-mêmes).
+// ⚠️ `offset` (0 par défaut, ABSENT pour toutes les entrées sauf Ludo) —
+// certains déclencheurs ont un minimum RÉEL supérieur à 0 (un dé ne peut
+// pas tomber sur 0, seulement 1 à 6) : `pct = max(0, trigger − offset) ×
+// ratio`. Signalé par l'utilisateur sur Ludo : le résultat 1 (le minimum
+// RÉEL du dé) doit donner 0 % de bonus, pas 20 % — `offset: 1` décale la
+// PENTE (pas la plage saisie, qui reste 0-6 : 0 reste le défaut « rien
+// saisi », distinct du vrai minimum du dé mais traité pareil, 0 %).
 const BONUS_DEGATS_STACKABLE_CONNUS: Record<
   string,
-  { triggerMax: number; triggerStep: number; ratio: number; pctMax: number; label: string; aide: string; suffix: string }
+  {
+    triggerMax: number;
+    triggerStep: number;
+    ratio: number;
+    pctMax: number;
+    label: string;
+    aide: string;
+    suffix: string;
+    offset?: number;
+  }
 > = {
   'Secret Book (Passive)': {
     triggerMax: 20,
@@ -634,17 +650,22 @@ const BONUS_DEGATS_STACKABLE_CONNUS: Record<
   // « The damage you inflict to the enemy increases by up to 100% the
   // larger the number on the dice » — un jet de dé (1 à 6) au début du
   // combat puis à chaque tour, confirmé par l'utilisateur : le dé va de 1 à
-  // 6, le bonus de 0 à 100 % (20 %/point — 5 suffit à plafonner, 6 reste au
-  // même plafond). Jamais un état simulé (aucun RNG in-app). ⚠️ Le texte
-  // porte AUSSI une réduction des dégâts SUBIS (« the smaller the number »)
-  // — hors modèle comme partout ailleurs (jamais les effets défensifs).
+  // 6, le bonus de 0 à 100 %. ⚠️ Un dé ne tombe JAMAIS sur 0 — signalé par
+  // l'utilisateur : le résultat 1 (le VRAI minimum du dé) doit donner 0 %
+  // de bonus, pas 20 %. `offset: 1` décale la pente
+  // (`max(0, trigger − 1) × 20`) : 1→0 %, 2→20 %, …, 6→100 % (5 points
+  // d'écart réel entre le minimum et le maximum du dé, pas 6). Jamais un
+  // état simulé (aucun RNG in-app). ⚠️ Le texte porte AUSSI une réduction
+  // des dégâts SUBIS (« the smaller the number ») — hors modèle comme
+  // partout ailleurs (jamais les effets défensifs).
   'Roll Again (Passive)': {
     triggerMax: 6,
     triggerStep: 1,
     ratio: 20,
     pctMax: 100,
+    offset: 1,
     label: 'Résultat du dé',
-    aide: 'le résultat du dé (1 à 6) — un jet in-app, aucun RNG simulé ici',
+    aide: 'le résultat du dé (1 à 6, 0 = rien saisi) — un jet in-app, aucun RNG simulé ici',
     suffix: '',
   }, // Dice Magician, Ludo
   // « Steals 1 of the beneficial effects granted on the enemy with every
@@ -734,6 +755,9 @@ export interface BonusDegatsStackableProfile {
   label: string;
   aide: string;
   suffix: string;
+  // Voir `BONUS_DEGATS_STACKABLE_CONNUS` — absent/0 pour toutes les
+  // entrées SAUF Ludo (le dé ne tombe jamais sur 0, seulement 1 à 6).
+  offset?: number;
 }
 
 export function monsterBonusDegatsStackable(detail: DetailMonstre | null): BonusDegatsStackableProfile | null {
@@ -765,7 +789,8 @@ export function resolvedStackTrigger(p: BonusDegatsStackableProfile, setup: Dama
 // bug signalé par l'utilisateur sur Borgnine/Trevor) — désormais deux
 // fonctions séparées.
 export function resolvedStackPct(p: BonusDegatsStackableProfile, setup: DamageSetup): number {
-  return Math.min(p.pctMax, resolvedStackTrigger(p, setup) * p.ratio);
+  const ecart = resolvedStackTrigger(p, setup) - (p.offset ?? 0);
+  return Math.min(p.pctMax, Math.max(0, ecart) * p.ratio);
 }
 
 // Le nombre d'effets sur la cible ACTUELLEMENT saisi pour `profile` — 0 si

@@ -578,7 +578,10 @@ d'attaques alliées » — un texte écrit pour Momo, sans rapport avec Trevor
 qui compte ses PROPRES PV perdus). Chaque entrée de la table décrit
 maintenant EXACTEMENT ce qu'elle compte : « Attaques alliées » (Momo),
 « Alliés morts » (Fermion), « Résultat du dé » (Ludo, 1 à 6 confirmé par
-l'utilisateur), « Buffs volés » (Martina — corrigé : effet SWARFARM
+l'utilisateur — ⚠️ un dé ne tombe JAMAIS sur 0 : `offset: 1` décale la
+pente du bonus, `max(0, trigger − 1) × ratio`, pour que le résultat 1
+donne bien 0 % et non 20 %, seule entrée de la table à porter un
+`offset`), « Buffs volés » (Martina — corrigé : effet SWARFARM
 « Steal Buff », PAS un vol de PV comme documenté d'abord), « État »
 (Sleep Talk), « PV cible détruits » (Borgnine/Moogwang), « PV perdus »
 (Trevor — CAPÉ à 100 % côté déclencheur, confirmé par l'utilisateur ; les

@@ -1816,6 +1816,16 @@ export default function testDegats() {
   const stackLudo = monsterBonusDegatsStackable(fiche(21312))!;
   egal(stackLudo.triggerMax, 6, 'Ludo : le dé va de 1 à 6 (confirmé par l’utilisateur), pas un pourcentage');
   egal(stackLudo.pctMax, 100, 'Ludo : les dégâts vont de 0 à 100 %, confirmé par l’utilisateur');
+  // ⚠️ Un dé ne tombe JAMAIS sur 0 — signalé par l'utilisateur : le
+  // résultat 1 (le VRAI minimum du dé) doit donner 0 % de bonus, pas
+  // 20 %. `offset: 1` décale la pente ; 0 (rien saisi) et 1 (le minimum
+  // réel) donnent tous les deux 0 %, jamais négatif.
+  egal(stackLudo.offset, 1, 'Ludo : offset de 1, seule entrée de la table à en porter un');
+  const ludoSetupSansOffset: DamageSetup = { ...DEFAULT_DAMAGE_SETUP };
+  egal(resolvedStackPct(stackLudo, { ...ludoSetupSansOffset, stackPersonnalise: { [stackLudo.skillCom2usId]: 0 } }), 0, 'Ludo : 0 (rien saisi) → 0 % de dégâts');
+  egal(resolvedStackPct(stackLudo, { ...ludoSetupSansOffset, stackPersonnalise: { [stackLudo.skillCom2usId]: 1 } }), 0, 'Ludo : résultat 1 (minimum réel du dé) → 0 % de dégâts, PAS 20 %');
+  egal(resolvedStackPct(stackLudo, { ...ludoSetupSansOffset, stackPersonnalise: { [stackLudo.skillCom2usId]: 2 } }), 20, 'Ludo : résultat 2 → 20 % de dégâts');
+  egal(resolvedStackPct(stackLudo, { ...ludoSetupSansOffset, stackPersonnalise: { [stackLudo.skillCom2usId]: 6 } }), 100, 'Ludo : résultat 6 (maximum) → 100 % de dégâts (le plafond)');
 
   // Profondeur numérique sur Borgnine : 40 % de PV détruits (déclencheur)
   // doit donner exactement 20 % de dégâts (40 × 0,5), PAS 40 % — la

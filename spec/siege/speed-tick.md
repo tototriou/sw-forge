@@ -113,6 +113,7 @@ par équipe :
 | Rouge | `fire` | (Sans Swift) un monstre **pas au tick** (anneau rouge sur le slot fautif) | une phrase par monstre fautif, voir ci-dessous |
 | Vert | `emerald` | (Sans Swift) **tous au tick** · **ou** équipe Swift **speed tune** · **ou** recommandation ignorée | « ✓ Équipe speed : elle est speed tune » pour le cas Swift |
 | — | neutre | Équipe **vide** ou avec **Leo** | — |
+| Rouge | `fire` | **Équipement incomplet** (< 6 runes ou < 2 artéfacts sur un monstre importé) — prime sur tous les autres cas | une phrase par monstre, voir ci-dessous |
 
 ⚠️ **Le message orange n'a pas d'introduction.** Il disait « Équipe speed : … »,
 ce que le pictogramme d'alerte et le contour disaient déjà : on relisait la même
@@ -133,6 +134,26 @@ ressemblent et ne se disent pas pareil :
 **quatre** : le message accusait l'utilisateur d'un défaut qui n'était pas le
 sien et l'envoyait corriger ce qui était déjà bon. D'où **deux comptes** dans
 `EntreeStatut`, `slotsRemplis` et `monstresConnus` — et non un seul.
+
+### Équipement incomplet — avant toute question de vitesse
+
+Un monstre importé qui porte **moins de 6 runes** ou **moins de 2 artéfacts**
+rend l'équipe **rouge** (contour, pastille, pictogramme d'alerte), et le pied
+nomme chaque monstre concerné : « X n'a pas toutes ses runes » / « … tous ses
+artefacts » / « … toutes ses runes ni tous ses artefacts ».
+
+- ⚠️ **Indépendant du mode « Vérifier mes speed ».** Ce n'est pas un réglage à
+  vérifier, c'est une donnée manquante : elle fausse la vitesse de combat, donc
+  tout ce que l'écran dit ensuite. On ne la découvre pas en activant un mode.
+- ⚠️ **Ça passe AVANT le message de vitesse**, et le remplace. Dire « Susano
+  +14 VIT » à un monstre à qui il manque deux runes envoie corriger un chiffre
+  qui va bouger tout seul dès qu'il sera équipé.
+- ⚠️ **Pas de bouton « Valider ».** Les alertes de tick et de speed tune en ont
+  un — on prend la responsabilité d'un écart assumé. Ici il n'y a pas d'écart à
+  assumer : l'équipement manque ou non, ça ne se décrète pas.
+- ⚠️ **Seuls les slots AVEC `gear` sont contrôlés.** L'absence de `gear` veut
+  dire « compte non importé », pas « monstre nu » : sans cette garde, un monstre
+  ajouté à la main serait accusé de n'avoir aucune rune.
 
 ### ⚠️ Une équipe Swift ne se juge pas au tick : elle se SPEED TUNE
 

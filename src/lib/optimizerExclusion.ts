@@ -250,16 +250,47 @@ export function autoExcludedRuneIds(scope: AutoExclusionScope, data: ExclusionSo
 }
 
 /* --------------------------------------------------------------------------
- * Runes VALIDÉES — « Monstres déjà runés » (Lot 2, voir spec/outils/
- * optimizer/historique-import-monstres-a-optimiser.md). 3ᵉ mécanisme
- * d'exclusion, distinct des deux ci-dessus : ni un périmètre entier (AUTO),
- * ni une entrée du compte lue dynamiquement (MANUEL, `ExclusionSelector`
- * résolu à chaque calcul contre le gear ACTUEL) — un build qu'on vient de
- * TROUVER par la recherche, dont les 6 `runeIds` sont un INSTANTANÉ figé au
- * moment de la validation (voir `BuildCandidate.runeIds`, runeBuildOptim.ts),
- * pas re-dérivés du gear courant de l'exemplaire.
+ * Listes de travail (Lot 3, voir spec/outils/optimizer/historique-import-
+ * monstres-a-optimiser.md) — conteneurs LIBRES créés par l'utilisateur, PAS
+ * de liste fixe (Box/RTA/Défense siège ne sont plus des cas spéciaux : c'est
+ * l'utilisateur qui décide quels monstres partagent un même pool de runes,
+ * ex. une liste par deck d'offense siège, une pour tout son RTA…). Une liste
+ * n'a que ce que le joueur y met : rien n'est pré-rempli à la création.
+ * ----------------------------------------------------------------------- */
+export interface OptimizerList {
+  id: string;
+  name: string;
+}
+
+// Un exemplaire ajouté à une liste (« Inclure à la liste ») — indépendant de
+// savoir s'il a déjà un build VALIDÉ (voir ValidatedBuild plus bas) : on peut
+// suivre un monstre dans une liste avant même d'avoir lancé une recherche
+// pour lui.
+export interface OptimizerListMember {
+  listId: string;
+  selector: ExclusionSelector;
+}
+
+/* --------------------------------------------------------------------------
+ * Runes VALIDÉES — « Monstres déjà runés » (fusionné dans la zone C d'une
+ * liste, Lot 3). 3ᵉ mécanisme d'exclusion, distinct des deux ci-dessus : ni
+ * un périmètre entier (AUTO), ni une entrée du compte lue dynamiquement
+ * (MANUEL, `ExclusionSelector` résolu à chaque calcul contre le gear ACTUEL)
+ * — un build qu'on vient de TROUVER par la recherche, dont les 6 `runeIds`
+ * sont un INSTANTANÉ figé au moment de la validation (voir
+ * `BuildCandidate.runeIds`, runeBuildOptim.ts), pas re-dérivés du gear
+ * courant de l'exemplaire.
+ * ⚠️ **Scopé PAR LISTE** (`listId`) — une rune physique ne peut être portée
+ * que par UN monstre à la fois, mais SEULEMENT au sein d'un même pool réel
+ * (une même liste). Deux decks d'offense siège sont deux presets appliqués
+ * MOMENTANÉMENT, jamais simultanément : leurs runes validées ne se bloquent
+ * pas entre elles (voir « Suite — cadrage du Lot 3 » pour le détail complet
+ * du modèle de rareté). Upsert par PAIRE `(listId, selector)`, pas par
+ * `selector` seul : le même exemplaire peut porter un build validé DIFFÉRENT
+ * dans deux listes différentes.
  * ----------------------------------------------------------------------- */
 export interface ValidatedBuild {
+  listId: string;
   // Exemplaire précis (même granularité que ExclusionSelector) sur lequel ce
   // build a été validé — Box par `unitKey`, RTA/siège par espèce/slot.
   selector: ExclusionSelector;
@@ -271,27 +302,30 @@ export interface ValidatedBuild {
   runeIds: number[];
 }
 
-// Runes validées de TOUS LES AUTRES exemplaires que celui recherché
-// actuellement — jamais les siennes propres (auto-exemption, même principe
-// que `resolveExcludedRuneIds`/`autoExcludedRuneIds`) : sans cette exemption,
+// Runes validées de TOUS LES AUTRES exemplaires de LA MÊME LISTE — jamais
+// les siennes propres (auto-exemption, même principe que
+// `resolveExcludedRuneIds`/`autoExcludedRuneIds`), jamais celles d'une AUTRE
+// liste (pools indépendants, voir l'en-tête) : sans l'auto-exemption,
 // relancer une recherche sur un monstre déjà validé s'auto-bloquerait avec
-// ses propres runes.
-export function otherValidatedRuneIds(validated: ValidatedBuild[], ownSelectorKey: string | null): Set<number> {
+// ses propres runes. `listId` null (aucune liste active) → rien à bloquer.
+export function otherValidatedRuneIds(validated: ValidatedBuild[], listId: string | null, ownSelectorKey: string | null): Set<number> {
   const out = new Set<number>();
+  if (listId == null) return out;
   for (const v of validated) {
+    if (v.listId !== listId) continue;
     if (ownSelectorKey != null && exclusionSelectorKey(v.selector) === ownSelectorKey) continue;
     for (const id of v.runeIds) out.add(id);
   }
   return out;
 }
 
-// Le build validé de CET exemplaire précis, s'il en a un — sert à savoir
-// s'il faut afficher le badge « validé » (RuneExclusionPicker n'a pas
-// d'équivalent : rien à valider côté exclusion) et à substituer les runes
-// affichées dans la fiche (voir OptimizerSection.tsx, `selected`).
-export function findValidatedBuild(validated: ValidatedBuild[], selectorKey: string | null): ValidatedBuild | undefined {
-  if (selectorKey == null) return undefined;
-  return validated.find((v) => exclusionSelectorKey(v.selector) === selectorKey);
+// Le build validé de CET exemplaire précis DANS CETTE LISTE, s'il en a un —
+// sert à savoir s'il faut afficher le badge « validé » et à substituer les
+// runes affichées dans la fiche (voir OptimizerSection.tsx, `selected`).
+// `listId` null → jamais de résultat (rien n'est validé hors d'une liste).
+export function findValidatedBuild(validated: ValidatedBuild[], listId: string | null, selectorKey: string | null): ValidatedBuild | undefined {
+  if (listId == null || selectorKey == null) return undefined;
+  return validated.find((v) => v.listId === listId && exclusionSelectorKey(v.selector) === selectorKey);
 }
 
 // Revérifie chaque build validé contre le compte ACTUELLEMENT chargé (après
@@ -310,6 +344,21 @@ export function revalidateBuilds(validated: ValidatedBuild[], data: ExclusionSou
     const currentIds = new Set((resolved?.gear.runes ?? []).map((r) => r.id));
     const stillValid = resolved != null && v.runeIds.every((id) => currentIds.has(id));
     if (stillValid) kept.push(v);
+    else droppedCount++;
+  }
+  return { kept, droppedCount };
+}
+
+// Même principe que `revalidateBuilds`, mais pour l'appartenance à une liste
+// (`OptimizerListMember`) — plus léger : seul le sélecteur doit encore
+// résoudre, aucune rune à comparer (être MEMBRE d'une liste n'implique pas
+// d'avoir un build validé, voir OptimizerListMember). Réutilisée telle
+// quelle par App.tsx au réimport, à côté de `revalidateBuilds`.
+export function revalidateMembers(members: OptimizerListMember[], data: ExclusionSourceData): { kept: OptimizerListMember[]; droppedCount: number } {
+  const kept: OptimizerListMember[] = [];
+  let droppedCount = 0;
+  for (const m of members) {
+    if (resolveExclusionEntry(m.selector, data)) kept.push(m);
     else droppedCount++;
   }
   return { kept, droppedCount };

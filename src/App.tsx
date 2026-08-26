@@ -63,8 +63,8 @@ import { useRtaState } from './hooks/useRtaState';
 import { useSiegeState } from './hooks/useSiegeState';
 import { useSiegeRecos } from './hooks/useSiegeRecos';
 import { useOptimizerState } from './hooks/useOptimizerState';
-import { useOptimizerValidatedBuilds } from './hooks/useOptimizerValidatedBuilds';
-import { ExclusionSourceData, revalidateBuilds } from './lib/optimizerExclusion';
+import { useOptimizerLists } from './hooks/useOptimizerLists';
+import { ExclusionSourceData, revalidateBuilds, revalidateMembers } from './lib/optimizerExclusion';
 import { collectOwnedBuilds, collectOwnedTeams, countCopiesByCom2us } from './lib/ownedBuilds';
 import {
   BoxMonster,
@@ -239,10 +239,10 @@ export default function App() {
   const siegeOff = useSiegeState('offense');
   const recos = useSiegeRecos();
   const optimizer = useOptimizerState();
-  // « Monstres déjà runés » (Lot 2) — SÉPARÉ de `useOptimizerState`, voir
-  // useOptimizerValidatedBuilds.ts : c'est la seule part de l'écran
-  // Optimizer qui persiste sur disque.
-  const validatedBuilds = useOptimizerValidatedBuilds();
+  // Listes de travail de l'Optimizer (Lot 3) — SÉPARÉES de `useOptimizerState`,
+  // voir useOptimizerLists.ts : c'est la seule part de l'écran Optimizer qui
+  // persiste sur disque.
+  const optimizerLists = useOptimizerLists();
 
   // Compte (box + inventaire runes/artéfacts). En mémoire, et **conservé sur
   // l'appareil** si l'utilisateur l'a demandé dans le menu ⚙ (voir
@@ -270,15 +270,17 @@ export default function App() {
     }
     optimizer.resetSearch();
 
-    // « Monstres déjà runés » (Lot 2) — un build validé porte un
-    // INSTANTANÉ de runes (voir ValidatedBuild, optimizerExclusion.ts), pas
-    // une référence recalculée : un réimport (même compte réexporté, runes
-    // déplacées/vendues entre-temps) peut le rendre périmé. Revérifié à
-    // CHAQUE réimport (pas seulement sur un wizard_id différent, contrairement
-    // à `excludedSelectors` plus bas — ici on veut justement détecter « mon
+    // Listes de travail (Lot 3) — un build validé porte un INSTANTANÉ de
+    // runes (voir ValidatedBuild, optimizerExclusion.ts), pas une référence
+    // recalculée : un réimport (même compte réexporté, runes déplacées/
+    // vendues entre-temps) peut le rendre périmé — même chose pour la simple
+    // APPARTENANCE à une liste (`OptimizerListMember`, un sélecteur qui ne
+    // résout plus si le monstre a été fusionné/retiré). Revérifié à CHAQUE
+    // réimport (pas seulement sur un wizard_id différent, contrairement à
+    // `excludedSelectors` plus bas — ici on veut justement détecter « mon
     // propre compte a changé depuis », voir le point bloquant 4 du cadrage).
     // ⚠️ Jamais silencieux : averti dans `importMsg`, jamais juste retiré.
-    if (validatedBuilds.builds.length > 0) {
+    if (optimizerLists.members.length > 0 || optimizerLists.validated.length > 0) {
       const monsterById = new Map<string, Monster>();
       for (const mon of allMonsters) monsterById.set(String(mon.id), mon);
       const data: ExclusionSourceData = {
@@ -288,14 +290,16 @@ export default function App() {
         siegeOffenseTeams: siegeOff.state.teams,
         monsterById,
       };
-      const { kept, droppedCount } = revalidateBuilds(validatedBuilds.builds, data);
+      const membersResult = revalidateMembers(optimizerLists.members, data);
+      const buildsResult = revalidateBuilds(optimizerLists.validated, data);
+      const droppedCount = membersResult.droppedCount + buildsResult.droppedCount;
       if (droppedCount > 0) {
-        validatedBuilds.replaceAll(kept);
+        optimizerLists.replaceMembersAndValidated(membersResult.kept, buildsResult.kept);
         setImportMsg((prev) => ({
           ok: prev?.ok ?? true,
           text:
-            `${prev?.text ?? ''} ⚠️ ${droppedCount} monstre(s) « déjà runé(s) » libéré(s) automatiquement : ` +
-            `leurs runes validées ne sont plus toutes sur cet exemplaire dans le compte réimporté.`,
+            `${prev?.text ?? ''} ⚠️ ${droppedCount} monstre(s) retiré(s) de tes listes de travail : ` +
+            `exemplaire introuvable ou runes validées qui ne s'y trouvent plus, dans le compte réimporté.`,
         }));
       }
     }
@@ -1220,7 +1224,7 @@ export default function App() {
             rtaEntries={rta.state.entries}
             siegeDefenseTeams={siegeDef.state.teams}
             siegeOffenseTeams={siegeOff.state.teams}
-            validated={validatedBuilds}
+            lists={optimizerLists}
             menuOuvert={menuPageOuvert}
             onFermerMenu={() => setMenuPageOuvert(false)}
           />

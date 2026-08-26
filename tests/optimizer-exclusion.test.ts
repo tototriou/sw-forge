@@ -8,6 +8,7 @@ import { BoxItem } from '../src/lib/applyAccount';
 import { GearSet, Monster, RtaEntry, RuneDetail, SiegeTeam } from '../src/types';
 import {
   ExclusionSourceData,
+  OptimizerListMember,
   ValidatedBuild,
   autoExcludedRuneIds,
   exclusionCandidatesFor,
@@ -17,6 +18,7 @@ import {
   resolveExcludedRuneIds,
   resolveExclusionEntry,
   revalidateBuilds,
+  revalidateMembers,
 } from '../src/lib/optimizerExclusion';
 import { egal, ok, titre } from './outils';
 
@@ -326,34 +328,50 @@ export default function testOptimizerExclusion() {
     );
   }
 
-  // ── Runes VALIDÉES (Lot 2, « Monstres déjà runés ») — 3ᵉ mécanisme
+  // ── Runes VALIDÉES (Lot 3, « Monstres de la liste ») — 3ᵉ mécanisme
   // d'exclusion : un INSTANTANÉ de runeIds, pas une entrée relue
-  // dynamiquement. ──
+  // dynamiquement, scopé PAR LISTE (deux listes ne se bloquent jamais entre
+  // elles — un deck d'offense siège est un preset appliqué momentanément,
+  // jamais simultanément à un autre). ──
   {
     const validated: ValidatedBuild[] = [
-      { selector: { source: 'box', unitKey: 'unit-camilla' }, runeIds: [1, 2, 3, 4, 5, 6] },
-      { selector: { source: 'rta', monsterId: String(lushen.id) }, runeIds: [101, 102, 103, 104, 105, 106] },
+      { listId: 'deck-a', selector: { source: 'box', unitKey: 'unit-camilla' }, runeIds: [1, 2, 3, 4, 5, 6] },
+      { listId: 'deck-a', selector: { source: 'rta', monsterId: String(lushen.id) }, runeIds: [101, 102, 103, 104, 105, 106] },
+      // Même sélecteur que Camilla ci-dessus, mais dans une AUTRE liste — ne
+      // doit JAMAIS être compté comme une auto-exemption ni bloquer deck-a.
+      { listId: 'deck-b', selector: { source: 'box', unitKey: 'unit-camilla' }, runeIds: [21, 22, 23, 24, 25, 26] },
     ];
     const ownKey = exclusionSelectorKey({ source: 'box', unitKey: 'unit-camilla' });
 
     egal(
-      [...otherValidatedRuneIds(validated, ownKey)].sort((a, b) => a - b),
+      [...otherValidatedRuneIds(validated, 'deck-a', ownKey)].sort((a, b) => a - b),
       [101, 102, 103, 104, 105, 106],
-      'runes validées : les AUTRES exemplaires bloquent leurs runes, jamais les siennes propres (auto-exemption)'
+      "runes validées : les AUTRES exemplaires de LA MÊME LISTE bloquent leurs runes, jamais les siennes propres (auto-exemption), jamais celles d'une AUTRE liste"
     );
     egal(
-      [...otherValidatedRuneIds(validated, null)].sort((a, b) => a - b),
+      [...otherValidatedRuneIds(validated, 'deck-a', null)].sort((a, b) => a - b),
       [1, 2, 3, 4, 5, 6, 101, 102, 103, 104, 105, 106],
-      'runes validées : aucun exemplaire actif (ownSelectorKey=null) → TOUTES les runes validées bloquent'
+      'runes validées : aucun exemplaire actif (ownSelectorKey=null) → TOUTES les runes validées de CETTE liste bloquent'
     );
+    egal(
+      [...otherValidatedRuneIds(validated, 'deck-b', null)].sort((a, b) => a - b),
+      [21, 22, 23, 24, 25, 26],
+      'runes validées : deck-b ignore totalement ce qui est validé dans deck-a — pools indépendants'
+    );
+    egal([...otherValidatedRuneIds(validated, null, null)], [], 'runes validées : aucune liste active → rien à bloquer');
 
     egal(
-      findValidatedBuild(validated, ownKey)?.runeIds,
+      findValidatedBuild(validated, 'deck-a', ownKey)?.runeIds,
       [1, 2, 3, 4, 5, 6],
-      'findValidatedBuild : retrouve le build de CET exemplaire précis'
+      'findValidatedBuild : retrouve le build de CET exemplaire précis DANS CETTE liste'
     );
-    egal(findValidatedBuild(validated, 'clé-inconnue'), undefined, 'findValidatedBuild : aucun match → undefined');
-    egal(findValidatedBuild(validated, null), undefined, 'findValidatedBuild : selectorKey null → jamais de faux positif');
+    egal(
+      findValidatedBuild(validated, 'deck-b', ownKey)?.runeIds,
+      [21, 22, 23, 24, 25, 26],
+      'findValidatedBuild : le MÊME sélecteur porte un build DIFFÉRENT dans une autre liste'
+    );
+    egal(findValidatedBuild(validated, 'deck-a', 'clé-inconnue'), undefined, 'findValidatedBuild : aucun match → undefined');
+    egal(findValidatedBuild(validated, null, ownKey), undefined, 'findValidatedBuild : listId null → jamais de faux positif');
   }
 
   // ── revalidateBuilds — revérification au réimport (point bloquant 4 du
@@ -362,9 +380,9 @@ export default function testOptimizerExclusion() {
   // jamais silencieusement gardé. ──
   {
     const validated: ValidatedBuild[] = [
-      { selector: { source: 'box', unitKey: 'unit-camilla' }, runeIds: [1, 2, 3, 4, 5, 6] }, // toujours intact → conservé
-      { selector: { source: 'box', unitKey: 'unit-jamais-vu' }, runeIds: [1, 2, 3, 4, 5, 6] }, // sélecteur introuvable → abandonné
-      { selector: { source: 'rta', monsterId: String(camilla.id) }, runeIds: [101, 102, 103, 104, 105, 999] }, // 999 absente de cet exemplaire → abandonné
+      { listId: 'deck-a', selector: { source: 'box', unitKey: 'unit-camilla' }, runeIds: [1, 2, 3, 4, 5, 6] }, // toujours intact → conservé
+      { listId: 'deck-a', selector: { source: 'box', unitKey: 'unit-jamais-vu' }, runeIds: [1, 2, 3, 4, 5, 6] }, // sélecteur introuvable → abandonné
+      { listId: 'deck-a', selector: { source: 'rta', monsterId: String(camilla.id) }, runeIds: [101, 102, 103, 104, 105, 999] }, // 999 absente de cet exemplaire → abandonné
     ];
     const { kept, droppedCount } = revalidateBuilds(validated, data);
     egal(droppedCount, 2, 'revalidateBuilds : les 2 builds périmés (sélecteur introuvable, rune manquante) sont comptés');
@@ -373,5 +391,19 @@ export default function testOptimizerExclusion() {
 
     const allValid = revalidateBuilds([validated[0]], data);
     egal(allValid.droppedCount, 0, 'revalidateBuilds : rien de périmé → droppedCount à 0, pas juste kept correct');
+  }
+
+  // ── revalidateMembers (Lot 3) — même principe que revalidateBuilds, mais
+  // pour la simple appartenance à une liste : seul le sélecteur doit encore
+  // résoudre, aucune rune à comparer. ──
+  {
+    const members: OptimizerListMember[] = [
+      { listId: 'deck-a', selector: { source: 'box', unitKey: 'unit-camilla' } }, // résout toujours → conservé
+      { listId: 'deck-a', selector: { source: 'box', unitKey: 'unit-jamais-vu' } }, // sélecteur introuvable → abandonné
+    ];
+    const { kept, droppedCount } = revalidateMembers(members, data);
+    egal(droppedCount, 1, 'revalidateMembers : le membre au sélecteur introuvable est abandonné');
+    egal(kept.length, 1, 'revalidateMembers : le membre encore valide est conservé');
+    egal(kept[0]?.selector, { source: 'box', unitKey: 'unit-camilla' }, 'revalidateMembers : conserve le bon sélecteur');
   }
 }

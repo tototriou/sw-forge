@@ -105,11 +105,13 @@ sont les deux racines ; dessous : `RunesList`, `RunesSummary`, `RunesCurve` +
 `accountViews`, `runeSort`, `runeOptim`, `monsterSort`, `crafts`.
 
 **Optimiseur** — `outils/OptimizerSection.tsx` (racine), `MonsterSourcePicker`
-(recherche — deux modes, bestiaire/compte réel), `SetComboPicker`,
-`BuildCandidateCard`. Hooks `useOptimizerState` + `useBuildOptimSearch` (saisie
-et recherche, jamais persistées) et `useOptimizerValidatedBuilds` (« Monstres
-déjà runés », Lot 2 — seul état PERSISTÉ de l'écran). Moteur
-`lib/runeBuildOptim.ts`, exécuté dans `workers/runeBuildOptim.worker.ts` et
+(recherche — deux modes, bestiaire/compte réel), `OptimizerListPicker`
+(listes de travail, Lot 3), `SetComboPicker`, `BuildCandidateCard`. Hooks
+`useOptimizerState` + `useBuildOptimSearch` (saisie et recherche, jamais
+persistées) et `useOptimizerLists` (listes de travail créées par
+l'utilisateur + runes validées scopées par liste, Lot 3 — seul état PERSISTÉ
+de l'écran). Moteur `lib/runeBuildOptim.ts`, exécuté dans
+`workers/runeBuildOptim.worker.ts` et
 `workers/buildHalf.worker.ts`. ⚠️ Disposition mobile dédiée pour « Monstre &
 équipement » seul (Lot 1) — le reste de l'écran n'est pas encore audité en
 mobile.
@@ -162,7 +164,7 @@ jeu** (halo, éclat) et en sont exemptés.
 | `useRtaState`, `useRtaCategories`, `useRtaBackup` | état de la prépa RTA |
 | `useSiegeState`, `useSiegeRecos` | défense/offense, recommandations |
 | `useOptimizerState`, `useBuildOptimSearch` | réglages et recherche de l'Optimiseur |
-| `useOptimizerValidatedBuilds` | « Monstres déjà runés » (Lot 2) — SEUL état de l'Optimiseur qui persiste sur disque, contrairement à `useOptimizerState` |
+| `useOptimizerLists` | Listes de travail + runes validées (Lot 3) — SEUL état de l'Optimiseur qui persiste sur disque, contrairement à `useOptimizerState` |
 | `usePersistence` | **un seul interrupteur** pour toute conservation ; ⚠️ aucun hook n'appelle `localStorage.setItem` directement |
 | `useStickyState` | état conservé en mémoire à travers la navigation, sans persister |
 | `useRuneMetric`, `useOvercapDisplay`, `useTheme` | réglages globaux (menu ⚙) |

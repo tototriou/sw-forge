@@ -39,7 +39,12 @@ export default function Segmented<T extends string>({
   // `disabled` par option : voir le `disabled` du contrôle entier plus bas
   // pour la distinction entre les deux axes.
   options: { key: T; label: string; hint?: string; icon?: React.ReactNode; suffix?: React.ReactNode; disabled?: boolean }[];
-  value: T;
+  // `null` : AUCUNE option active — distinct de choisir une des options. Sert
+  // quand la valeur actuellement affichée par l'appelant ne correspond à
+  // AUCUN des choix proposés (ex. l'Optimizer affiche un build VALIDÉ plutôt
+  // que celui d'une source réelle : aucune des 4 puces Box/RTA/Défenses
+  // siège/Offenses siège ne doit alors s'allumer, voir OptimizerSection.tsx).
+  value: T | null;
   onChange: (v: T) => void;
   className?: string;
   // 'lg' : chaque option se partage la largeur à égalité, sur une seule

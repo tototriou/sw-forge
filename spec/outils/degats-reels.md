@@ -219,6 +219,19 @@ passif `coupsDuSortActif` (Feng Yan, Roid…), c'est le nombre RÉELLEMENT
 retenu pour le sort actif qui s'affiche, jamais le nombre propre — souvent
 non fiable — du passif lui-même.
 
+⚠️ **Même exigence étendue aux modificateurs SANS formule propre** (les
+familles introduites dans les vagues suivantes — `BONUS_DEGATS_STACKABLE_
+CONNUS`, les comptes d'effets monstre-wide, Calculated Sacrifice…) —
+demande explicite de l'utilisateur : « affiche les ratios et formules des
+passifs/sorts pour lesquels je t'ai fourni l'information ». Quatre blocs
+affichaient encore juste « toujours actif » sans le pourcentage/formule
+confirmé par l'utilisateur (le nombre restait visible uniquement dans le
+texte anglais brut du jeu, en dessous) : Momo/Fermion/Ludo/Martina/
+Borgnine/Moogwang/Trevor (`+X %/palier, jusqu'à +Y %`), Backup Code
+(`+X %/effet`), Blessing of Curse (`+X %/débuff sur soi`), Calculated
+Sacrifice (`sacrifie X %/tour, +Y % de la perte`) — corrigé, le ratio
+apparaît maintenant à côté du nom, comme pour tous les autres.
+
 ### La réduction de Défense : « avant » n'est pas « après »
 
 Le problème signalé à l'origine (Roid pose lui-même la réduction que son
@@ -905,25 +918,36 @@ Pour Chun-Li/Leah (`ecartMax: 150, pctMax: 200`, valeurs DIFFÉRENTES), un
 plafonné à 200 %. Corrigé (`Math.min(ecartMax, écart)`) et testé au-delà du
 plafond, jamais vérifié jusque-là.
 
-**Might of the Mercenary/Mercenary Queen, Brita** (point 30b) — SIXIÈME
-mécanique liée à une stat, mais d'une forme NOUVELLE : un SEUIL ABSOLU
-(binaire), pas un scaling linéaire comme les cinq précédentes. « Grants up
-to 3 effects of Might of the Mercenary according to your stats...
-(Attack Power: Increases the damage dealt to enemies by 100%, Defense:
-Decreases the damage received from enemies by 30%, Attack Speed: Removes
-1 beneficial effect granted on the enemy with a 50% chance) » — seule la
-branche **Attack Power** porte un bonus de DÉGÂTS ; les deux autres sont
-défensives/hors modèle. ⚠️ Une première réponse de l'utilisateur (« +633 de
-vitesse ») ne correspondait pas aux données (aucune clause VIT ne porte de
-bonus de dégâts) — corrigée ensuite : « s'active à partir de +633 d'ATQ,
-sans lead attaque, en ne prenant en compte que les compétences
-d'invocateur combat ». `+633` est un ÉCART au-dessus de la BASE (comme
-tous les seuils de ce fichier, jamais un total absolu — la base d'ATQ de
-Brita seule, 736, dépasse déjà 633, ce qui rendrait un seuil absolu
-toujours vrai). Seuil réel = BASE ATQ + 633, comparé à `atkSansLeadCombat`
-(nouvelle fonction, même prudence que `defCombat` : non partagée avec le
-calcul de `computeSkillDamageDetail`). Entièrement DÉDUIT, aucun bouton —
-même famille que `critSiPlusRapide`, mais un seuil sur l'ATQ propre plutôt
+**Might of the Mercenary/Mercenary Queen, Brita** (point 30b) / **Might of
+the Clan/Eivor (Eau)** — SIXIÈME mécanique liée à une stat, mais d'une
+forme NOUVELLE : un SEUIL ABSOLU (binaire), pas un scaling linéaire comme
+les cinq précédentes. « Grants up to 3 effects... according to your
+stats... (Attack Power: Increases the damage dealt to enemies by 100%,
+Defense: Decreases the damage received from enemies by 30%, Attack Speed:
+Removes 1 beneficial effect granted on the enemy with a 50% chance) » —
+seule la branche **Attack Power** porte un bonus de DÉGÂTS ; les deux
+autres sont défensives/hors modèle. Brita et Eivor (Eau) sont des JUMEAUX
+DE COLLABORATION (`jumeauCollab`, mêmes stats et compétences sous deux
+habillages) — même mécanisme, deux noms de passif différents.
+
+⚠️ **Deux réponses successives de l'utilisateur, réconciliées après coup.**
+Une première (Brita, « +633 de vitesse ») ne correspondait pas aux données
+(aucune clause VIT ne porte de bonus de dégâts) — corrigée en « +633
+d'ATQ, sans lead attaque, en ne prenant en compte que les compétences
+d'invocateur combat », d'abord interprétée comme un ÉCART au-dessus de la
+seule BASE (736 + 633 = 1369). Une seconde réponse (Eivor, même mécanique
+confirmée indépendamment) a donné le seuil directement en TOTAL ABSOLU :
+« 1671, toute source confondue (ATQ de base + rune + lead + compétence
+d'invocateur) ». Les deux se recoupent exactement : 736 (base) + 302
+(compétence d'invocateur combat, 41 % de la base, arrondie au-dessus) +
+633 (rune) = **1671** — confirmant que `+633` désignait la part RUNE
+seule, pas un écart sur la base entière. Seuil réel = **1671, un total
+ABSOLU** (contrairement à tous les autres seuils/plafonds de ce fichier,
+qui sont des écarts) — et INCLUT le lead cette fois, contrairement à la
+première interprétation. Comparé à `atkCombatComplet` (nouvelle fonction,
+même prudence que `defCombat` : non partagée avec le calcul de
+`computeSkillDamageDetail`). Entièrement DÉDUIT, aucun bouton — même
+famille que `critSiPlusRapide`, mais un seuil sur l'ATQ propre plutôt
 qu'une comparaison de VIT avec la cible.
 
 **Brandia (« Touch of Mercy »)** — signalée par l'utilisateur (« augmente

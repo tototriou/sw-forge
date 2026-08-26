@@ -683,19 +683,27 @@ export default function testDegats() {
   const gideonSans10000 = computeSkillDamage(gideonBase!, stats({ atk: 2000, def: 10000, cd: 200, cr: 100 }), gideonSetup);
   ok(Math.abs(gideonAvec10000 / gideonSans10000 - 2) < 1e-9, '10 000 DEF (le double du plafond) : reste à +100 %, jamais plus (×2)');
 
-  // Brita (« Might of the Mercenary »), point 30b — SEUIL absolu d'ATQ
-  // (pas linéaire, contrairement aux quatre précédents) : « s'active à
-  // partir de +633 d'ATQ, sans lead attaque, en ne prenant en compte que
-  // les compétences d'invocateur combat » — confirmé après une première
-  // réponse (« +633 de vitesse ») qui ne correspondait pas aux données
-  // réelles. `+633` est un ÉCART au-dessus de la BASE (736 pour Brita) :
-  // un seuil ABSOLU de 633 serait toujours vrai (la base seule le dépasse
-  // déjà), donc jamais un total brut.
+  // Brita (« Might of the Mercenary »)/Eivor Eau (« Might of the Clan »),
+  // point 30b — jumeaux de COLLABORATION (`jumeauCollab`, mêmes stats/
+  // compétences), SEUIL absolu d'ATQ (pas linéaire, contrairement aux
+  // quatre précédents). Deux réponses successives de l'utilisateur,
+  // reconciliées : la première (Brita, « +633 d'ATQ, sans lead ») avait
+  // été mal interprétée comme un écart sur la BASE seule (736+633=1369) ;
+  // la seconde (Eivor, même mécanique confirmée indépendamment) donne le
+  // total ABSOLU directement : « 1671, toute source confondue (base + rune
+  // + lead + compétence d'invocateur) ». Les deux se recoupent EXACTEMENT :
+  // 736 (base) + 302 (compétence d'invocateur combat, 41 % de la base) +
+  // 633 (rune) = 1671 — confirme que `+633` désignait la part RUNE seule,
+  // pas un écart sur la base entière. Seuil = 1671, ABSOLU (contrairement
+  // à tous les autres seuils de ce fichier, des écarts), et INCLUT le lead
+  // cette fois (contrairement à la première interprétation).
   const brita = fiche(28211);
   const britaBase = defaultDamageSkill(monsterDamageSkills(brita));
   ok(britaBase !== null, 'Brita : un sort de dégâts par défaut est trouvé');
-  egal(monsterBonusSiAtqSeuil(brita), { seuilDelta: 633, pct: 100 }, 'Brita : Might of the Mercenary, seuil +633 au-dessus de la base');
+  egal(monsterBonusSiAtqSeuil(brita), { seuil: 1671, pct: 100 }, 'Brita : Might of the Mercenary, seuil ABSOLU 1671');
   ok(!monsterBonusSiAtqSeuil(fiche(LUSHEN)), 'Lushen n’a pas ce mécanisme');
+  const eivorEau = fiche(27711);
+  egal(monsterBonusSiAtqSeuil(eivorEau), { seuil: 1671, pct: 100 }, 'Eivor (Eau) : Might of the Clan, même mécanisme, nom différent (jumeaux de collaboration)');
   const britaSetup: DamageSetup = {
     ...DEFAULT_DAMAGE_SETUP,
     skillCom2usId: britaBase!.skillCom2usId,
@@ -705,30 +713,33 @@ export default function testDegats() {
   const britaConfig = monsterBonusSiAtqSeuil(brita)!;
   // Base 736 (Eau) + compétence d'invocateur combat (+20 % + 21 % élément
   // Eau = 41 % de la base, arrondi au-dessus) = 736 + 302 = 1038 sans
-  // aucune rune. Seuil réel = 736 + 633 = 1369, donc 1369 − 1038 = 331
-  // points d'ATQ de RUNES nécessaires (`row.total`, le champ AVANT
-  // compétence d'invocateur) pour l'atteindre pile.
-  const britaStatsJusteSous = statsAvecBase('atk', 736, 736 + 330, { cd: 200, cr: 100 });
-  const britaStatsPile = statsAvecBase('atk', 736, 736 + 331, { cd: 200, cr: 100 });
+  // aucune rune. Seuil = 1671, donc 1671 − 1038 = 633 points d'ATQ de
+  // RUNES nécessaires (`row.total`, le champ AVANT compétence
+  // d'invocateur) pour l'atteindre pile — exactement le chiffre donné par
+  // l'utilisateur pour Brita, confirmé être la part RUNE plutôt qu'un
+  // écart sur la base.
+  const britaStatsJusteSous = statsAvecBase('atk', 736, 736 + 632, { cd: 200, cr: 100 });
+  const britaStatsPile = statsAvecBase('atk', 736, 736 + 633, { cd: 200, cr: 100 });
   const britaSansJusteSous = computeSkillDamage(britaBase!, britaStatsJusteSous, britaSetup, 'water');
-  // ⚠️ Comparé à un SANS-bonus calculé sur LES MÊMES stats (+331) — 331
-  // points d'ATQ de runes changent aussi légèrement le dégât DE BASE (l'ATQ
+  // ⚠️ Comparé à un SANS-bonus calculé sur LES MÊMES stats (+633) — un
+  // point d'ATQ de runes change aussi légèrement le dégât DE BASE (l'ATQ
   // est une variable de la formule), pas seulement le déclenchement du
   // seuil : isoler le ×2 exige de garder les stats identiques des deux
   // côtés de la comparaison.
   const britaSansPile = computeSkillDamage(britaBase!, britaStatsPile, britaSetup, 'water');
   const britaJusteSous = computeTotalDamage(britaBase!, [], britaStatsJusteSous, britaSetup, 'water', 0, false, null, null, {}, null, null, null, britaConfig);
   const britaPile = computeTotalDamage(britaBase!, [], britaStatsPile, britaSetup, 'water', 0, false, null, null, {}, null, null, null, britaConfig);
-  egal(britaJusteSous, britaSansJusteSous, '330 points de runes ATQ : un point sous le seuil, aucun bonus');
-  ok(Math.abs(britaPile / britaSansPile - 2) < 1e-9, '331 points de runes ATQ : le seuil est atteint pile, +100 % (×2)');
-  // Un lead ATQ ne doit JAMAIS aider à atteindre ce seuil (« sans lead
-  // attaque », confirmé explicitement) — même 330 points de runes (sous le
-  // seuil) avec un lead ATQ généreux ne déclenchent rien.
+  egal(britaJusteSous, britaSansJusteSous, '632 points de runes ATQ : un point sous le seuil, aucun bonus');
+  ok(Math.abs(britaPile / britaSansPile - 2) < 1e-9, '633 points de runes ATQ : le seuil est atteint pile, +100 % (×2)');
+  // Un lead ATQ DOIT maintenant aider à atteindre ce seuil (« toute source
+  // confondue », confirmé explicitement — contrairement à la première
+  // interprétation) : 632 points de runes (sous le seuil sans lead) avec
+  // un lead ATQ +15 % pousse au-delà.
   const britaAvecLeadSousLeSeuil = computeTotalDamage(
     britaBase!,
     [],
     britaStatsJusteSous,
-    { ...britaSetup, leaderSkill: { stat: 'Attack Power', pct: 50 } },
+    { ...britaSetup, leaderSkill: { stat: 'Attack Power', pct: 15 } },
     'water',
     0,
     false,
@@ -744,7 +755,7 @@ export default function testDegats() {
     britaBase!,
     [],
     britaStatsJusteSous,
-    { ...britaSetup, leaderSkill: { stat: 'Attack Power', pct: 50 } },
+    { ...britaSetup, leaderSkill: { stat: 'Attack Power', pct: 15 } },
     'water',
     0,
     false,
@@ -756,7 +767,10 @@ export default function testDegats() {
     null,
     null
   );
-  egal(britaAvecLeadSousLeSeuil, britaSansLeadMemeReglage, 'un lead ATQ généreux ne fait JAMAIS franchir le seuil — exclu du calcul, confirmé par l’utilisateur');
+  ok(
+    Math.abs(britaAvecLeadSousLeSeuil / britaSansLeadMemeReglage - 2) < 1e-9,
+    '632 points de runes ATQ SOUS le seuil sans lead, mais un lead ATQ +15 % pousse au-delà — le seuil est franchi, +100 % (×2)'
+  );
   egal(monsterModificateursVit(fiche(LUSHEN)).length, 0, 'Lushen : aucun modificateur');
   egal(monsterModificateursVit(null).length, 0, 'fiche absente : liste vide, jamais une exception');
 

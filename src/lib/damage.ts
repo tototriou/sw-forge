@@ -303,23 +303,30 @@ export function monsterCritSiPlusRapide(detail: DetailMonstre | null): boolean {
   return detail.competences.some((c) => c.passif && CRIT_SI_PLUS_RAPIDE_CONNUS.has(c.nom));
 }
 
-// Brita (« Might of the Mercenary ») — la branche « Attack Power » de ce
-// passif accorde +100 % de dégâts une fois un SEUIL d'ATQ atteint (les deux
-// autres branches, Defense/Attack Speed, sont défensives ou hors dégâts —
-// hors modèle). ⚠️ Confirmé par l'utilisateur : « s'active à partir de
-// +633 d'ATQ, sans lead attaque, en ne prenant en compte que les
-// compétences d'invocateur combat » — `+633` est un ÉCART au-dessus de la
-// BASE (comme tous les seuils de ce fichier, jamais un total absolu : la
-// base de Brita seule, 736, dépasse déjà 633, ce qui rendrait un seuil
-// absolu toujours vrai). Seuil réel = BASE ATQ + 633, comparé à
-// `atkSansLeadCombat` (même discipline que `defCombat`, non partagée avec
-// le calcul de `computeSkillDamageDetail`). Entièrement DÉDUIT, aucun
-// bouton — même famille que `critSiPlusRapide`.
-const BONUS_SI_ATQ_SEUIL_CONNUS: Record<string, { seuilDelta: number; pct: number }> = {
-  'Might of the Mercenary (Passive)': { seuilDelta: 633, pct: 100 }, // Mercenary Queen, Brita
+// Brita (« Might of the Mercenary ») / Eivor, Eau (« Might of the Clan »)
+// — jumeaux de COLLABORATION (`jumeauCollab`, mêmes stats/compétences sous
+// deux habillages), même mécanisme confirmé DEUX FOIS indépendamment par
+// l'utilisateur : la branche « Attack Power » de ce passif accorde +100 %
+// de dégâts une fois un SEUIL d'ATQ atteint (les deux autres branches,
+// Defense/Attack Speed, sont défensives ou hors dégâts — hors modèle).
+// ⚠️ Une PREMIÈRE réponse (Brita, « +633 d'ATQ, sans lead ») avait été mal
+// interprétée comme un écart au-dessus de la seule BASE (736+633=1369).
+// La réponse suivante (Eivor, même mécanique) a donné le total ABSOLU
+// directement : « 1671, toute source confondue (ATQ de base + rune + lead
+// + compétence d'invocateur) » — et 736 (base) + 302 (compétence
+// d'invocateur combat, 41 % de la base) + 633 (rune) = 1671 EXACTEMENT :
+// confirme que `+633` représentait la part RUNE seule, pas un écart sur la
+// base entière. Seuil réel = 1671, un TOTAL ABSOLU (contrairement à tous
+// les autres seuils de ce fichier, qui sont des écarts) — INCLUT le lead
+// cette fois (`atkCombatComplet`, la même grandeur que `valeurs.ATK` de
+// `computeSkillDamageDetail`, non partagée par prudence). Entièrement
+// DÉDUIT, aucun bouton — même famille que `critSiPlusRapide`.
+const BONUS_SI_ATQ_SEUIL_CONNUS: Record<string, { seuil: number; pct: number }> = {
+  'Might of the Mercenary (Passive)': { seuil: 1671, pct: 100 }, // Mercenary Queen, Brita
+  'Might of the Clan (Passive)': { seuil: 1671, pct: 100 }, // Eivor (Eau)
 };
 
-export function monsterBonusSiAtqSeuil(detail: DetailMonstre | null): { seuilDelta: number; pct: number } | null {
+export function monsterBonusSiAtqSeuil(detail: DetailMonstre | null): { seuil: number; pct: number } | null {
   if (!detail) return null;
   for (const c of detail.competences) {
     const trouve = c.passif && BONUS_SI_ATQ_SEUIL_CONNUS[c.nom];
@@ -427,7 +434,7 @@ export function monsterModificateursVit(detail: DetailMonstre | null): Modificat
         nom: c.nom,
         description: c.description,
         icone: c.icone,
-        detail: `toujours actif — +${atqSeuil.pct} % de dégâts si ton ATQ (sans lead) atteint la base +${atqSeuil.seuilDelta}`,
+        detail: `toujours actif — +${atqSeuil.pct} % de dégâts si ton ATQ totale (avec lead) atteint ${atqSeuil.seuil}`,
       });
     }
     const bonus = BONUS_DEGATS_SELON_VIT_CONNUS[c.nom];
@@ -2053,17 +2060,19 @@ function defCombat(stats: StatRow[], setup: DamageSetup, element: ElementKey | n
   return (defAvecLead * (100 + pctDefBuff)) / 100;
 }
 
-// ATQ de combat SANS le lead (base + rune + compétence d'invocateur
-// UNIQUEMENT) — Brita (« Might of the Mercenary »), voir
-// `monsterBonusSiAtqSeuil` : confirmé par l'utilisateur, « sans lead
-// attaque, en ne prenant en compte que les compétences d'invocateur
-// combat ». Pas de buff ATQ (`atkBuff`) ni de Miriam : la stat AFFICHÉE
-// hors combat, pas un instantané de tour. Même prudence que `defCombat`
-// (non partagée avec `avecInvocateur('atk', …)` de `computeSkillDamageDetail`).
-function atkSansLeadCombat(stats: StatRow[], setup: DamageSetup, element: ElementKey | null = null): number {
+// ATQ de combat COMPLÈTE (base + rune + lead + compétence d'invocateur) —
+// Brita/Eivor (Eau), voir `monsterBonusSiAtqSeuil` : confirmé par
+// l'utilisateur, « toute source confondue (ATQ de base + rune + lead +
+// compétence d'invocateur) ». Pas de buff ATQ (`atkBuff`) ni de Miriam : la
+// stat AFFICHÉE hors combat, pas un instantané de tour. Même prudence que
+// `defCombat` (non partagée avec `avecInvocateur('atk', …)` de
+// `computeSkillDamageDetail`).
+function atkCombatComplet(stats: StatRow[], setup: DamageSetup, element: ElementKey | null = null): number {
   const bonus = summonerSkillBonus(setup.summonerSkills, element);
   const row = stats.find((s) => s.key === 'atk');
-  return row ? row.total + Math.ceil((row.base * bonus.pct.atk) / 100) : 0;
+  const leader = resolvedLeaderSkill(setup);
+  const pctLeaderAtkBase = leader?.stat === 'Attack Power' ? leader.pct : 0;
+  return row ? row.total + Math.ceil((row.base * (bonus.pct.atk + pctLeaderAtkBase)) / 100) : 0;
 }
 
 // Taux Crit BRUT (avant plafond à 100 %) — leader Taux Crit + les deux
@@ -2506,10 +2515,10 @@ export function computeTotalDamage(
   // famille ENCORE, mais selon TA PROPRE DEF (pas un écart avec la cible).
   // `null` = comportement inchangé.
   bonusDegatsSelonDef: { defMax: number; pctMax: number } | null = null,
-  // Brita (« Might of the Mercenary ») — voir `monsterBonusSiAtqSeuil`.
-  // Entièrement DÉDUIT (comme `critSiPlusRapide`), aucun bouton. `null` =
-  // comportement inchangé.
-  bonusSiAtqSeuil: { seuilDelta: number; pct: number } | null = null
+  // Brita/Eivor (Eau) — voir `monsterBonusSiAtqSeuil`. Entièrement DÉDUIT
+  // (comme `critSiPlusRapide`), aucun bouton. `null` = comportement
+  // inchangé.
+  bonusSiAtqSeuil: { seuil: number; pct: number } | null = null
 ): number {
   const maVit = maVitCombat(stats, setup, element, ampliVitPct);
   const ecartVit = maVit - Math.max(1, setup.enemySpd ?? DEFAULT_DAMAGE_SETUP.enemySpd!);
@@ -2585,15 +2594,11 @@ export function computeTotalDamage(
     const pct = Math.min(bonusDegatsSelonDef.defMax, Math.max(0, def)) * (bonusDegatsSelonDef.pctMax / bonusDegatsSelonDef.defMax);
     total *= 1 + pct / 100;
   }
-  // Brita (« Might of the Mercenary ») — SEUIL absolu (pas linéaire) :
-  // +pct % dès que l'ATQ (sans lead, avec compétence d'invocateur) atteint
-  // la base + seuilDelta, rien avant. Entièrement déduit.
-  if (bonusSiAtqSeuil) {
-    const rowAtk = stats.find((s) => s.key === 'atk');
-    const seuil = (rowAtk?.base ?? 0) + bonusSiAtqSeuil.seuilDelta;
-    if (atkSansLeadCombat(stats, setup, element) >= seuil) {
-      total *= 1 + bonusSiAtqSeuil.pct / 100;
-    }
+  // Brita/Eivor (Eau) — SEUIL absolu (pas linéaire) : +pct % dès que l'ATQ
+  // totale (avec lead, compétence d'invocateur) atteint `seuil`, rien
+  // avant. Entièrement déduit.
+  if (bonusSiAtqSeuil && atkCombatComplet(stats, setup, element) >= bonusSiAtqSeuil.seuil) {
+    total *= 1 + bonusSiAtqSeuil.pct / 100;
   }
   // Même famille que `bonusDegatsSelonVit` (multiplicatif sur le TOTAL,
   // après coup) — seule la SOURCE du pourcentage change : saisie par
@@ -2666,11 +2671,11 @@ export function damageRelevantStats(
   // Gideon (« Aegis Shell ») — voir `monsterBonusDegatsSelonDef`. Fait
   // travailler la DEF même pour un sort qui ne la lit pas.
   bonusDegatsSelonDef: { defMax: number; pctMax: number } | null = null,
-  // Brita (« Might of the Mercenary ») — voir `monsterBonusSiAtqSeuil`.
-  // Fait travailler l'ATQ même pour un sort qui ne la lit pas directement
-  // (rare : la plupart des sorts en dépendent déjà, mais un sort à `{DEF}`
-  // seul ne la privilégierait pas sinon).
-  bonusSiAtqSeuil: { seuilDelta: number; pct: number } | null = null
+  // Brita/Eivor (Eau) — voir `monsterBonusSiAtqSeuil`. Fait travailler
+  // l'ATQ même pour un sort qui ne la lit pas directement (rare : la
+  // plupart des sorts en dépendent déjà, mais un sort à `{DEF}` seul ne la
+  // privilégierait pas sinon).
+  bonusSiAtqSeuil: { seuil: number; pct: number } | null = null
 ): StatKey[] {
   // Sans sort résolu (fiche absente, sort non pris en charge), on retombe sur
   // le biais de l'objectif « Dégâts » — le cas de très loin le plus fréquent.

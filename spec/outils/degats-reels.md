@@ -542,29 +542,47 @@ famille que les modificateurs ci-dessus) : « increases the damage by 10%
 each, up to 200%, whenever an ally attacks an enemy ». ⚠️ **Contrairement à
 `bonusDegatsSelonVit`, RIEN ici ne se déduit d'un état déjà connu de
 l'app** — le nombre d'attaques alliées déjà portées ce combat n'est simulé
-nulle part. L'utilisateur choisit lui-même le niveau de stack ACTUEL, via un
-champ numérique (0 à 200 %, pas de 10) qui apparaît dans « Passifs
-offensifs » à côté du Jeton du passif — désactivé (0 %) par défaut, jamais
-un stack deviné.
+nulle part. L'utilisateur choisit lui-même le niveau du DÉCLENCHEUR ACTUEL
+(nombre d'attaques alliées, 0 à 20, pas de 1), via un champ qui apparaît
+dans « Passifs offensifs » à côté du Jeton du passif — désactivé (0) par
+défaut, jamais un déclencheur deviné.
 
-Curé dans `BONUS_DEGATS_STACKABLE_CONNUS` (`{ pctParStack, pctMax, label,
-aide }`), détecté par `monsterBonusDegatsStackable(detail)`. `DamageSetup.
-stackPersonnalise` (`Record<skillCom2usId, number>`, même espace de clés
-que `passifsOffensifs`/`coupsPersonnalises`) porte le choix ;
-`resolvedStackPct(profil, setup)` le résout, borné à `pctMax` (même
-discipline défensive que `resolvedHits`). `computeTotalDamage(...,
-bonusDegatsStack)` l'applique multiplicativement sur le TOTAL, après coup —
-même famille que `bonusDegatsSelonVit`, seule la SOURCE du pourcentage
-change (saisie plutôt que déduite de la VIT).
+⚠️ **Le DÉCLENCHEUR et le BONUS DE DÉGÂTS qui en résulte sont DEUX NOMBRES
+DIFFÉRENTS, jamais confondus.** Signalé par l'utilisateur sur Borgnine :
+« si l'utilisateur renseigne le % de PV cible détruit, alors il doit
+pouvoir renseigner une valeur entre 0 et 60 % par palier de 1 %, par
+contre l'augmentation de dégâts qui s'ensuit va de 0 à 30 % par palier de
+0,5 % ». Le champ demandait jusque-là de saisir DIRECTEMENT le bonus
+(0 à 30 %, pas de 0,5) — l'utilisateur devait faire la conversion
+mentalement, et le libellé du champ ne correspondait plus à la plage
+affichée. Curé dans `BONUS_DEGATS_STACKABLE_CONNUS` (`{ triggerMax,
+triggerStep, ratio, pctMax, label, aide, suffix }`) — `triggerMax`/
+`triggerStep` décrivent la plage du DÉCLENCHEUR saisi, `ratio` (dégâts %
+par unité) et `pctMax` (plafond de dégâts) décrivent le BONUS qui en
+résulte. `DamageSetup.stackPersonnalise` (`Record<skillCom2usId, number>`,
+même espace de clés que `passifsOffensifs`/`coupsPersonnalises`) porte
+désormais le DÉCLENCHEUR brut, jamais le bonus directement.
+`resolvedStackTrigger(profil, setup)` le résout, borné à `triggerMax` ;
+`resolvedStackPct(profil, setup)` calcule le bonus qui en résulte
+(`trigger × ratio`, borné à `pctMax` par sécurité) — c'est CE nombre que
+`computeTotalDamage(..., bonusDegatsStack)` applique multiplicativement
+sur le TOTAL, après coup (même famille que `bonusDegatsSelonVit`, seule la
+SOURCE du pourcentage change). Le bonus résultant s'affiche EN CLAIR à
+côté du champ (« → +20 % de dégâts »), jamais seulement dans la tête du
+joueur.
 
-⚠️ **`label`/`aide` — un texte PAR ENTRÉE, jamais un texte générique
-partagé.** Signalé par l'utilisateur (incohérence trouvée sur le champ de
-Trevor : libellé « Stack actuel » et infobulle « nombre d'attaques
-alliées » — un texte écrit pour Momo, sans rapport avec Trevor qui compte
-ses PROPRES PV perdus). Chaque entrée de la table décrit maintenant EXACTEMENT
-ce qu'elle compte (« Attaques alliées », « Alliés morts », « Résultat du
-dé », « Vols de PV », « État », « PV cible détruits (%) », « PV perdus
-(%) »), affiché à côté du champ ET dans son infobulle.
+⚠️ **`label`/`aide`/`suffix` — un texte PAR ENTRÉE, jamais un texte
+générique partagé.** Signalé par l'utilisateur (incohérence trouvée sur le
+champ de Trevor : libellé « Stack actuel » et infobulle « nombre
+d'attaques alliées » — un texte écrit pour Momo, sans rapport avec Trevor
+qui compte ses PROPRES PV perdus). Chaque entrée de la table décrit
+maintenant EXACTEMENT ce qu'elle compte : « Attaques alliées » (Momo),
+« Alliés morts » (Fermion), « Résultat du dé » (Ludo, 1 à 6 confirmé par
+l'utilisateur), « Buffs volés » (Martina — corrigé : effet SWARFARM
+« Steal Buff », PAS un vol de PV comme documenté d'abord), « État »
+(Sleep Talk), « PV cible détruits » (Borgnine/Moogwang), « PV perdus »
+(Trevor — CAPÉ à 100 % côté déclencheur, confirmé par l'utilisateur ; les
+dégâts, eux, vont bien jusqu'à 200 %, `ratio: 2`).
 
 Trois entrées de plus (réponses au catalogue « passifs non implémentés »,
 même mécanisme, aucun nouveau code) : **Fermion** (« Dominator », +10 % par

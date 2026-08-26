@@ -38,6 +38,7 @@ import {
   resolvedHits,
   resolvedPvActuelsAvantSacrificePctMonstre,
   resolvedStackPct,
+  resolvedStackTrigger,
 } from '../../lib/damage';
 import { formuleLisible } from '../../lib/monsterSkills';
 import { leadIconUrl, STAT_LABEL } from '../siege/LeadPill';
@@ -391,7 +392,15 @@ export default function DamageSetupCard({
                 cible, PV perdus sur SOI…) — `label`/`aide` (curés dans
                 `BONUS_DEGATS_STACKABLE_CONNUS`) évitent un texte unique
                 écrit pour Momo qui n'aurait aucun sens pour Trevor,
-                incohérence signalée par l'utilisateur. */}
+                incohérence signalée par l'utilisateur.
+                ⚠️ **Le DÉCLENCHEUR saisi (`resolvedStackTrigger`, ex. « PV
+                cible détruits », 0 à 60 %) et le BONUS DE DÉGÂTS qui en
+                résulte (`resolvedStackPct`, ex. 0 à 30 %) sont DEUX NOMBRES
+                DIFFÉRENTS** — confondus jusque-là (le champ demandait le
+                bonus directement), corrigé après un signalement de
+                l'utilisateur : le champ saisit maintenant le déclencheur
+                (`triggerMax`/`triggerStep`), le bonus résultant s'affiche à
+                côté, jamais l'inverse. */}
             {bonusDegatsStack && (
               <div key={`stack-${bonusDegatsStack.skillCom2usId}`}>
                 <Jeton
@@ -401,7 +410,7 @@ export default function DamageSetupCard({
                     ) : undefined
                   }
                   libelle={bonusDegatsStack.nom.replace(/\s*\(Passive\)\s*$/i, '')}
-                  detail={`+${bonusDegatsStack.pctParStack} % par palier, jusqu'à +${bonusDegatsStack.pctMax} %`}
+                  detail={`+${bonusDegatsStack.ratio} % de dégâts par ${bonusDegatsStack.suffix === '%' ? 'point' : 'unité'}, jusqu'à +${bonusDegatsStack.pctMax} %`}
                 />
                 {bonusDegatsStack.description && (
                   <p className="mt-1 text-xs leading-snug text-ink-dim">{bonusDegatsStack.description}</p>
@@ -409,7 +418,7 @@ export default function DamageSetupCard({
                 <label className="mt-1 flex items-center gap-2">
                   <span className="text-xs text-ink-dim">{bonusDegatsStack.label}</span>
                   <NumberField
-                    value={resolvedStackPct(bonusDegatsStack, setup)}
+                    value={resolvedStackTrigger(bonusDegatsStack, setup)}
                     onChange={(v) =>
                       maj({
                         stackPersonnalise: {
@@ -418,14 +427,15 @@ export default function DamageSetupCard({
                         },
                       })
                     }
-                    step={bonusDegatsStack.pctParStack}
+                    step={bonusDegatsStack.triggerStep}
                     min={0}
-                    max={bonusDegatsStack.pctMax}
-                    suffix="%"
+                    max={bonusDegatsStack.triggerMax}
+                    suffix={bonusDegatsStack.suffix}
                     boxWidth="w-28"
-                    title={`Ce que l'app ne peut pas savoir (${bonusDegatsStack.aide}) — à toi de le renseigner, désactivé (0 %) par défaut`}
-                    ariaLabel={`${bonusDegatsStack.label} — pourcentage actuel du bonus de dégâts`}
+                    title={`Ce que l'app ne peut pas savoir (${bonusDegatsStack.aide}) — à toi de le renseigner, désactivé (0) par défaut`}
+                    ariaLabel={`${bonusDegatsStack.label} — déclencheur actuel du bonus de dégâts`}
                   />
+                  <span className="text-xs text-ink-dim">→ +{resolvedStackPct(bonusDegatsStack, setup)} % de dégâts</span>
                 </label>
               </div>
             )}

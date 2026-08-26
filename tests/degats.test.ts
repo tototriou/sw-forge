@@ -76,6 +76,7 @@ import {
   resolvedHits,
   resolvedPvActuelsAvantSacrificePctMonstre,
   resolvedStackPct,
+  resolvedStackTrigger,
   skillDamageProfile,
   speedBuffAmpliPct,
   summonerSkillBonus,
@@ -936,8 +937,9 @@ export default function testDegats() {
   egal(monsterOffensivePassives(momo).length, 0, 'Secret Book N’EST PAS un passif offensif : aucune formule, aucun dégât propre');
   const stackMomo = monsterBonusDegatsStackable(momo)!;
   ok(stackMomo != null, 'Momo porte bien le bonus accumulable');
-  egal(stackMomo.pctParStack, 10, '10 % par stack, confirmé par le texte du jeu');
-  egal(stackMomo.pctMax, 200, 'plafonné à 200 %, confirmé par le texte du jeu');
+  egal(stackMomo.ratio, 10, '+10 % de dégâts par attaque alliée, confirmé par le texte du jeu');
+  egal(stackMomo.triggerMax, 20, 'plafond DÉCLENCHEUR : 20 attaques (20 × 10 % = 200 %)');
+  egal(stackMomo.pctMax, 200, 'plafond de DÉGÂTS : 200 %, confirmé par le texte du jeu');
   ok(!monsterBonusDegatsStackable(fiche(LUSHEN)), 'Lushen n’a pas ce mécanisme');
   ok(!monsterBonusDegatsStackable(null), 'fiche absente : null, jamais une exception');
 
@@ -948,42 +950,51 @@ export default function testDegats() {
     summonerSkills: 'aucune',
     critMode: 'normal',
   };
-  egal(resolvedStackPct(stackMomo, momoSetupSansStack), 0, 'sans réglage utilisateur, le stack retombe sur 0 % — jamais deviné actif');
+  egal(resolvedStackTrigger(stackMomo, momoSetupSansStack), 0, 'sans réglage utilisateur, le déclencheur retombe sur 0 — jamais deviné actif');
+  egal(resolvedStackPct(stackMomo, momoSetupSansStack), 0, 'donc 0 % de dégâts');
   const momoSansStack = computeSkillDamage(momoBase!, momoStats, momoSetupSansStack, null);
   const totalSansStack = computeTotalDamage(momoBase!, [], momoStats, momoSetupSansStack, null, 0, false, null, stackMomo);
-  egal(totalSansStack, momoSansStack, 'stack à 0 % : aucun effet sur les dégâts');
+  egal(totalSansStack, momoSansStack, 'déclencheur à 0 : aucun effet sur les dégâts');
 
-  const momoSetup50: DamageSetup = {
+  // ⚠️ Le DÉCLENCHEUR (nombre d'attaques alliées, ici 5) et le BONUS DE
+  // DÉGÂTS qui en résulte (5 × 10 % = 50 %) sont DEUX NOMBRES DIFFÉRENTS —
+  // `stackPersonnalise` porte désormais le DÉCLENCHEUR, jamais le bonus
+  // directement (bug corrigé, signalé par l'utilisateur sur Borgnine/Trevor).
+  const momoSetup5Attaques: DamageSetup = {
     ...momoSetupSansStack,
-    stackPersonnalise: { [stackMomo.skillCom2usId]: 50 },
+    stackPersonnalise: { [stackMomo.skillCom2usId]: 5 },
   };
-  egal(resolvedStackPct(stackMomo, momoSetup50), 50, 'le stack saisi (50 %) est bien repris');
-  const momoTotal50 = computeTotalDamage(momoBase!, [], momoStats, momoSetup50, null, 0, false, null, stackMomo);
-  ok(Math.abs(momoTotal50 / momoSansStack - 1.5) < 1e-9, '50 % de stack : exactement +50 % de dégâts');
+  egal(resolvedStackTrigger(stackMomo, momoSetup5Attaques), 5, 'le déclencheur saisi (5 attaques) est bien repris');
+  egal(resolvedStackPct(stackMomo, momoSetup5Attaques), 50, '5 attaques × 10 % = exactement 50 % de dégâts, jamais le déclencheur brut');
+  const momoTotal50 = computeTotalDamage(momoBase!, [], momoStats, momoSetup5Attaques, null, 0, false, null, stackMomo);
+  ok(Math.abs(momoTotal50 / momoSansStack - 1.5) < 1e-9, '5 attaques : exactement +50 % de dégâts');
 
   // Hors plage — jamais laissé tel quel (recette écrite pour une autre
-  // version des données, ou stack saisi puis monstre différent chargé).
+  // version des données, ou déclencheur saisi puis monstre différent
+  // chargé) : le déclencheur lui-même est borné à `triggerMax` (20), pas
+  // seulement le résultat.
   const momoSetupTropHaut: DamageSetup = {
     ...momoSetupSansStack,
-    stackPersonnalise: { [stackMomo.skillCom2usId]: 350 },
+    stackPersonnalise: { [stackMomo.skillCom2usId]: 35 },
   };
-  egal(resolvedStackPct(stackMomo, momoSetupTropHaut), 200, 'un stack saisi AU-DELÀ de 200 % est borné, jamais plus');
+  egal(resolvedStackTrigger(stackMomo, momoSetupTropHaut), 20, 'un déclencheur saisi AU-DELÀ de 20 attaques est borné à 20, jamais plus');
+  egal(resolvedStackPct(stackMomo, momoSetupTropHaut), 200, 'donc 200 % de dégâts, jamais plus');
   const totalTropHaut = computeTotalDamage(momoBase!, [], momoStats, momoSetupTropHaut, null, 0, false, null, stackMomo);
-  const total200 = computeTotalDamage(
+  const total20 = computeTotalDamage(
     momoBase!,
     [],
     momoStats,
-    { ...momoSetupSansStack, stackPersonnalise: { [stackMomo.skillCom2usId]: 200 } },
+    { ...momoSetupSansStack, stackPersonnalise: { [stackMomo.skillCom2usId]: 20 } },
     null,
     0,
     false,
     null,
     stackMomo
   );
-  egal(totalTropHaut, total200, '350 % saisi ou 200 % pile : même résultat, le plafond fait foi');
+  egal(totalTropHaut, total20, '35 attaques saisies ou 20 pile : même résultat, le plafond du déclencheur fait foi');
 
   ok(
-    computeTotalDamage(momoBase!, [], momoStats, momoSetup50, null, 0, false, null, null) === momoSansStack,
+    computeTotalDamage(momoBase!, [], momoStats, momoSetup5Attaques, null, 0, false, null, null) === momoSansStack,
     'bonusDegatsStack=null (monstre sans ce passif) : le champ stackPersonnalise de la recette est ignoré'
   );
 
@@ -992,15 +1003,18 @@ export default function testDegats() {
   // « passifs non implémentés ».
   const dominatorFermion = monsterBonusDegatsStackable(fiche(17015));
   egal(dominatorFermion?.nom, 'Dominator (Passive)', 'Fermion : nom exact du passif détecté');
-  egal(dominatorFermion?.pctParStack, 10, 'Fermion : +10 % par allié mort');
-  egal(dominatorFermion?.pctMax, 30, 'Fermion : plafonné à +30 % (3 morts)');
+  egal(dominatorFermion?.ratio, 10, 'Fermion : +10 % par allié mort');
+  egal(dominatorFermion?.triggerMax, 3, 'Fermion : plafond déclencheur, 3 alliés morts');
+  egal(dominatorFermion?.pctMax, 30, 'Fermion : plafonné à +30 % de dégâts');
   const rollAgainLudo = monsterBonusDegatsStackable(fiche(21312));
   egal(rollAgainLudo?.nom, 'Roll Again (Passive)', 'Ludo : nom exact du passif détecté');
-  egal(rollAgainLudo?.pctParStack, 20, 'Ludo : paliers de 20 % (jet de dé)');
-  egal(rollAgainLudo?.pctMax, 100, 'Ludo : plafonné à 100 %');
+  egal(rollAgainLudo?.ratio, 20, 'Ludo : +20 % de dégâts par point du dé');
+  egal(rollAgainLudo?.triggerMax, 6, 'Ludo : le dé va de 1 à 6, confirmé par l’utilisateur');
+  egal(rollAgainLudo?.pctMax, 100, 'Ludo : plafonné à 100 % de dégâts');
   const absorbShadowMartina = monsterBonusDegatsStackable(fiche(22015));
   egal(absorbShadowMartina?.nom, 'Absorb Shadow (Passive)', 'Martina : nom exact du passif détecté');
-  egal(absorbShadowMartina?.pctParStack, 10, 'Martina : +10 % par vol d’effet');
+  egal(absorbShadowMartina?.ratio, 10, 'Martina : +10 % par vol de BUFF (pas de PV, corrigé)');
+  egal(absorbShadowMartina?.label, 'Buffs volés', 'Martina : « Steal Buff » en données SWARFARM, pas un vol de PV');
   egal(absorbShadowMartina?.pctMax, 150, 'Martina : plafonné à +150 % (15 fois)');
 
   titre('Dégâts réels — effets d’ÉQUIPE (Euldong, Mirinae, Deborah, Miriam)');
@@ -1773,36 +1787,78 @@ export default function testDegats() {
   // « PV perdus soi-même » (Trevor), tous deux réutilisant le stepper de
   // stack sans code nouveau.
   const stackSuite: [number, string, number, number][] = [
-    [26011, 'Sleep Talk (Passive)', 100, 200], // Birman
+    [26011, 'Sleep Talk (Passive)', 1, 200], // Birman
     [24711, 'Destroyer of Battlefield (Passive)', 0.5, 30], // Borgnine
     [28912, 'Fire Bead (Passive)', 1, 60], // Moogwang
     [20012, "Brawler's Will (Passive)", 2, 200], // Trevor
   ];
-  for (const [id, nom, pctParStack, pctMax] of stackSuite) {
+  for (const [id, nom, ratio, pctMax] of stackSuite) {
     const p = monsterBonusDegatsStackable(fiche(id));
     egal(p?.nom, nom, `${id} : nom exact du passif accumulable détecté`);
-    egal(p?.pctParStack, pctParStack, `${id} (${nom}) : pourcentage par stack confirmé`);
-    egal(p?.pctMax, pctMax, `${id} (${nom}) : plafond confirmé`);
+    egal(p?.ratio, ratio, `${id} (${nom}) : ratio dégâts/déclencheur confirmé`);
+    egal(p?.pctMax, pctMax, `${id} (${nom}) : plafond de DÉGÂTS confirmé`);
   }
 
-  // ⚠️ Signalé par l'utilisateur : le champ de saisie de Trevor affichait
-  // « Stack actuel » avec une infobulle écrite pour Momo (« nombre
-  // d'attaques alliées ») — incohérent, Trevor compte ses PROPRES PV
-  // perdus, pas des attaques. Chaque entrée porte désormais son propre
-  // `label`/`aide` — vérifié qu'ils sont bien DISTINCTS entre deux
-  // mécanismes différents (Momo vs Trevor), pas un texte générique partagé.
+  // ⚠️ Signalé par l'utilisateur (DEUXIÈME incohérence, après le texte) :
+  // le DÉCLENCHEUR (ce que l'utilisateur saisit) et le BONUS DE DÉGÂTS qui
+  // en résulte sont deux plages DIFFÉRENTES, jamais confondues. Borgnine :
+  // 0 à 60 % de PV cible détruits (pas de 1 %), dégâts 0 à 30 % (pas de
+  // 0,5 %). Trevor : PV perdus CAPÉS à 100 % (pas 200), dégâts jusqu'à
+  // 200 %.
+  const stackBorgnine = monsterBonusDegatsStackable(fiche(24711))!;
+  egal(stackBorgnine.triggerMax, 60, 'Borgnine : le DÉCLENCHEUR (PV cible détruits) va jusqu’à 60 %, pas 30');
+  egal(stackBorgnine.triggerStep, 1, 'Borgnine : pas de 1 % sur le déclencheur');
+  egal(stackBorgnine.ratio, 0.5, 'Borgnine : 60 % de déclencheur × 0,5 = 30 % de dégâts (le plafond)');
+  const stackTrevor = monsterBonusDegatsStackable(fiche(20012))!;
+  egal(stackTrevor.triggerMax, 100, 'Trevor : le DÉCLENCHEUR (PV perdus) est CAPÉ à 100 %, pas 200');
+  egal(stackTrevor.ratio, 2, 'Trevor : 100 % de déclencheur × 2 = 200 % de dégâts (le plafond)');
+  egal(stackTrevor.pctMax, 200, 'Trevor : les DÉGÂTS, eux, vont bien jusqu’à 200 %');
+  const stackLudo = monsterBonusDegatsStackable(fiche(21312))!;
+  egal(stackLudo.triggerMax, 6, 'Ludo : le dé va de 1 à 6 (confirmé par l’utilisateur), pas un pourcentage');
+  egal(stackLudo.pctMax, 100, 'Ludo : les dégâts vont de 0 à 100 %, confirmé par l’utilisateur');
+
+  // Profondeur numérique sur Borgnine : 40 % de PV détruits (déclencheur)
+  // doit donner exactement 20 % de dégâts (40 × 0,5), PAS 40 % — la
+  // confusion exacte signalée par l'utilisateur.
+  const borgnine = fiche(24711);
+  const borgnineBase = defaultDamageSkill(monsterDamageSkills(borgnine));
+  ok(borgnineBase !== null, 'Borgnine : un sort de dégâts par défaut est trouvé');
+  const borgnineStats = stats({ atk: 2000, cd: 200, cr: 100 });
+  const borgnineSetup: DamageSetup = {
+    ...DEFAULT_DAMAGE_SETUP,
+    skillCom2usId: borgnineBase!.skillCom2usId,
+    summonerSkills: 'aucune',
+    critMode: 'normal',
+    stackPersonnalise: { [stackBorgnine.skillCom2usId]: 40 },
+  };
+  egal(resolvedStackTrigger(stackBorgnine, borgnineSetup), 40, 'Borgnine : le déclencheur saisi (40 % de PV détruits) est repris tel quel');
+  egal(resolvedStackPct(stackBorgnine, borgnineSetup), 20, 'Borgnine : 40 % × 0,5 = 20 % de dégâts, JAMAIS 40 % (l’ancienne confusion)');
+  const borgnineSans = computeSkillDamage(borgnineBase!, borgnineStats, { ...borgnineSetup, stackPersonnalise: {} });
+  const borgnineAvec = computeTotalDamage(borgnineBase!, [], borgnineStats, borgnineSetup, null, 0, false, null, stackBorgnine);
+  ok(Math.abs(borgnineAvec / borgnineSans - 1.2) < 1e-9, 'Borgnine : 40 % de PV détruits → exactement +20 % de dégâts (×1,2)');
+
+  // ⚠️ Signalé par l'utilisateur (PREMIÈRE incohérence, sur le texte) : le
+  // champ de saisie de Trevor affichait « Stack actuel » avec une infobulle
+  // écrite pour Momo (« nombre d'attaques alliées ») — incohérent, Trevor
+  // compte ses PROPRES PV perdus, pas des attaques. Chaque entrée porte
+  // désormais son propre `label`/`aide` — vérifié qu'ils sont bien
+  // DISTINCTS entre deux mécanismes différents (Momo vs Trevor), pas un
+  // texte générique partagé.
   const stackMomoLabels = monsterBonusDegatsStackable(momo)!;
-  const trevor = fiche(20012);
-  const stackTrevor = monsterBonusDegatsStackable(trevor)!;
   ok(stackMomoLabels.label !== stackTrevor.label, 'Momo et Trevor ont des libellés de champ DIFFÉRENTS');
   ok(stackMomoLabels.aide !== stackTrevor.aide, 'Momo et Trevor ont des infobulles DIFFÉRENTES');
-  egal(stackTrevor.label, 'PV perdus (%)', 'Trevor : le champ parle de PV perdus, pas de « stack »');
+  egal(stackTrevor.label, 'PV perdus', 'Trevor : le champ parle de PV perdus, pas de « stack »');
   ok(!/attaque/i.test(stackTrevor.aide), "Trevor : l'infobulle ne mentionne PAS les attaques alliées (texte de Momo)");
   egal(stackMomoLabels.label, 'Attaques alliées', 'Momo : le champ garde son texte d’origine, inchangé');
+  // Absorb Shadow (Martina) — deuxième correction signalée : « ce n'est pas
+  // un vol de PV mais un vol de buff » (confirmé par l'effet SWARFARM
+  // « Steal Buff », voir plus haut).
+  const stackMartina = monsterBonusDegatsStackable(fiche(22015))!;
+  egal(stackMartina.label, 'Buffs volés', 'Martina : « vol de buff », PAS « vol de PV » (corrigé)');
+  ok(!/PV/i.test(stackMartina.label) && !/PV/.test(stackMartina.aide), "Martina : ni le libellé ni l'infobulle ne mentionnent des PV");
   // Borgnine et Moogwang (« PV cible détruits ») partagent le MÊME libellé
   // entre eux (même nature de compteur), mais restent DIFFÉRENTS de Trevor
   // (PV PROPRES, pas ceux de la cible).
-  const stackBorgnine = monsterBonusDegatsStackable(fiche(24711))!;
   const stackMoogwang = monsterBonusDegatsStackable(fiche(28912))!;
   egal(stackBorgnine.label, stackMoogwang.label, 'Borgnine et Moogwang : même nature de compteur (PV cible détruits), même libellé');
   ok(stackBorgnine.label !== stackTrevor.label, 'Borgnine (cible) et Trevor (soi-même) restent distincts');

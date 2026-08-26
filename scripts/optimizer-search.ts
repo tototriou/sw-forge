@@ -54,6 +54,7 @@ import {
   resolvedHits,
   resolvedLeaderSkill,
   resolvedStackPct,
+  resolvedStackTrigger,
   speedBuffAmpliPct,
 } from '../src/lib/damage';
 import { runSearchToCompletion } from './lib/runSearch';
@@ -286,9 +287,10 @@ if (recipe.objective === 'degats_reels') {
     }
     const bonusStack = monsterBonusDegatsStackable(detail);
     if (bonusStack) {
+      const trigger = resolvedStackTrigger(bonusStack, s);
       const pct = resolvedStackPct(bonusStack, s);
       console.log(
-        `Ce monstre porte un bonus de dégâts accumulable (« ${bonusStack.nom} », jusqu'à +${bonusStack.pctMax} %) — stack de la recette : +${pct} %.`
+        `Ce monstre porte un bonus de dégâts accumulable (« ${bonusStack.nom} », ${bonusStack.label} : jusqu'à ${bonusStack.triggerMax}${bonusStack.suffix}, +${bonusStack.ratio} % de dégâts par unité, plafond +${bonusStack.pctMax} %) — ${bonusStack.label} de la recette : ${trigger}${bonusStack.suffix} → +${pct} % de dégâts.`
       );
     }
     if (passifs.length > 0) {

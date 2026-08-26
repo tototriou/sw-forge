@@ -584,100 +584,141 @@ export function monsterBonusDegatsSelonDef(detail: DetailMonstre | null): { defM
 // `PASSIFS_OFFENSIFS_CONNUS`). ⚠️ Contrairement à `critSiPlusRapide`/
 // `BONUS_DEGATS_SELON_VIT_CONNUS`, RIEN ici ne se déduit d'un état déjà
 // connu de l'app (le nombre d'attaques alliées déjà portées dans le combat
-// n'est pas simulé) : l'utilisateur choisit lui-même le niveau de stack
-// actuel, via `DamageSetup.stackPersonnalise`.
-// ⚠️ `label`/`aide` — CHAQUE entrée compte une chose RÉELLEMENT différente
-// (attaques alliées, alliés morts, résultat d'un dé, PV détruits sur la
-// cible, PV perdus sur SOI, un état à 3 paliers…) : un texte unique
-// « Stack actuel »/écrit pour Momo (attaques alliées) n'a AUCUN sens pour
-// Trevor (PV perdus) — signalé par l'utilisateur, incohérence trouvée en
-// passant la souris sur le champ de Trevor. Chaque entrée porte donc son
-// PROPRE libellé de champ et sa PROPRE description d'infobulle, jamais un
-// texte générique partagé.
-const BONUS_DEGATS_STACKABLE_CONNUS: Record<string, { pctParStack: number; pctMax: number; label: string; aide: string }> = {
+// n'est pas simulé) : l'utilisateur choisit lui-même le niveau du
+// DÉCLENCHEUR actuel, via `DamageSetup.stackPersonnalise`.
+//
+// ⚠️ **Le DÉCLENCHEUR et le BONUS DE DÉGÂTS sont DEUX NOMBRES DIFFÉRENTS,
+// jamais confondus** — bug trouvé par l'utilisateur : le champ demandait
+// jusque-là de saisir directement le bonus (ex. Borgnine : 0 à 30 %, par
+// pas de 0,5) alors qu'il aurait dû demander le déclencheur RÉEL (les PV
+// cible détruits, 0 à 60 %, par pas de 1) puis calculer le bonus lui-même
+// (`ratio`). L'utilisateur devait faire la conversion mentalement, et le
+// libellé du champ (« PV cible détruits (%) ») ne correspondait déjà plus
+// à la plage affichée. `triggerMax`/`triggerStep` décrivent maintenant la
+// plage du DÉCLENCHEUR saisi ; `ratio` (dégâts % par unité de déclencheur)
+// et `pctMax` (plafond de dégâts, `= triggerMax × ratio`, gardé explicite
+// par sécurité) décrivent le BONUS qui en résulte — jamais mélangés.
+// `label`/`aide` décrivent le DÉCLENCHEUR (ce que l'utilisateur saisit),
+// PAS le bonus — chaque entrée compte une chose réellement différente
+// (attaques alliées, alliés morts, résultat d'un dé, buffs volés, PV
+// détruits sur la cible, PV perdus sur SOI…), jamais un texte générique
+// partagé (déjà signalé une première fois sur le texte, ici sur les
+// PLAGES elles-mêmes).
+const BONUS_DEGATS_STACKABLE_CONNUS: Record<
+  string,
+  { triggerMax: number; triggerStep: number; ratio: number; pctMax: number; label: string; aide: string; suffix: string }
+> = {
   'Secret Book (Passive)': {
-    pctParStack: 10,
+    triggerMax: 20,
+    triggerStep: 1,
+    ratio: 10,
     pctMax: 200,
     label: 'Attaques alliées',
     aide: "le nombre d'attaques alliées déjà portées ce combat",
-  }, // Momo, Mage
+    suffix: '',
+  }, // Momo, Mage — « +10 % par attaque, jusqu'à +200 % » = 20 attaques
   // « the damage you inflict increases as more allies die » — `quantite`
   // ABSENT des données SWARFARM (`null` sur les deux effets), confirmé par
   // l'utilisateur : +10 % par allié mort, jusqu'à +30 % (3 morts). Même
   // état non simulé que Momo (le nombre d'alliés morts ce combat) — même
   // champ NUMÉRIQUE plutôt qu'un état déduit.
   'Dominator (Passive)': {
-    pctParStack: 10,
+    triggerMax: 3,
+    triggerStep: 1,
+    ratio: 10,
     pctMax: 30,
     label: 'Alliés morts',
     aide: "le nombre d'alliés morts ce combat",
+    suffix: '',
   }, // Archangel, Fermion
   // « The damage you inflict to the enemy increases by up to 100% the
   // larger the number on the dice » — un jet de dé (1 à 6) au début du
-  // combat puis à chaque tour, confirmé par l'utilisateur : paliers de
-  // 20 %, jamais un état simulé (aucun RNG in-app). ⚠️ Le texte porte AUSSI
-  // une réduction des dégâts SUBIS (« the smaller the number ») — hors
-  // modèle comme partout ailleurs (jamais les effets défensifs).
+  // combat puis à chaque tour, confirmé par l'utilisateur : le dé va de 1 à
+  // 6, le bonus de 0 à 100 % (20 %/point — 5 suffit à plafonner, 6 reste au
+  // même plafond). Jamais un état simulé (aucun RNG in-app). ⚠️ Le texte
+  // porte AUSSI une réduction des dégâts SUBIS (« the smaller the number »)
+  // — hors modèle comme partout ailleurs (jamais les effets défensifs).
   'Roll Again (Passive)': {
-    pctParStack: 20,
+    triggerMax: 6,
+    triggerStep: 1,
+    ratio: 20,
     pctMax: 100,
     label: 'Résultat du dé',
     aide: 'le résultat du dé (1 à 6) — un jet in-app, aucun RNG simulé ici',
+    suffix: '',
   }, // Dice Magician, Ludo
-  // « The damage will be increased by 10% each up to 15 times whenever
-  // this effect occurs » — confirmé par l'utilisateur : identique à Momo,
-  // paliers de 10 %, plafond 150 % (15 stacks).
+  // « Steals 1 of the beneficial effects granted on the enemy with every
+  // attack. The damage will be increased by 10% each up to 15 times
+  // whenever this effect occurs. » — effet SWARFARM « Steal Buff », PAS un
+  // vol de PV (corrigé après un signalement de l'utilisateur : « ce n'est
+  // pas un vol de PV mais un vol de buff »). +10 %/vol, jusqu'à +150 %.
   'Absorb Shadow (Passive)': {
-    pctParStack: 10,
+    triggerMax: 15,
+    triggerStep: 1,
+    ratio: 10,
     pctMax: 150,
-    label: 'Vols de PV',
-    aide: 'le nombre de fois où ce passif a volé des PV ce combat',
+    label: 'Buffs volés',
+    aide: 'le nombre de buffs déjà volés sur la cible ce combat',
+    suffix: '',
   }, // Boomerang Warrior (Ténèbres), Martina
   // « Increases damage by 100% while sleeping... increases the damage by
   // 200% on the next turn » (au réveil suite à des dégâts) — DEUX états
-  // distincts qui se prêtent au même contrôle « valeur choisie parmi un
-  // petit nombre de paliers » que Momo/Ludo, confirmé par l'utilisateur :
-  // « toggle entre 0 %, 100 % et 200 % ». `pctParStack: 100` donne
-  // exactement ces trois paliers (0/100/200), pas un « stack » au sens de
-  // Momo (attaques alliées comptées) mais la MÊME mécanique de stockage.
+  // distincts, confirmé par l'utilisateur : « toggle entre 0 %, 100 % et
+  // 200 % ». Ici, contrairement aux autres entrées, le déclencheur EST
+  // directement le bonus (`ratio: 1`) — aucun état intermédiaire à
+  // convertir, juste un choix parmi 3 paliers (`triggerStep: 100`).
   'Sleep Talk (Passive)': {
-    pctParStack: 100,
+    triggerMax: 200,
+    triggerStep: 100,
+    ratio: 1,
     pctMax: 200,
     label: 'État',
     aide: 'si tu es endormi (100 %) ou viens de te réveiller sous dégâts ce tour (200 %)',
+    suffix: '%',
   }, // Hypnomeow, Birman, Manx, Bombay
   // « Destroys the enemy's MAX HP... Allies... deal more damage
   // proportionate to the enemy target's destroyed HP. » `quantite: 0` en
-  // données (comme Covenant) — confirmé par l'utilisateur : Borgnine
-  // +0,5 %/point de PV DÉTRUIT (pas perdu par les dégâts normaux, par la
-  // destruction propre à ce passif) jusqu'à +30 % (60 points) ; « stack »
-  // ici représente 1 point de PV cible détruit, saisi manuellement (l'app
-  // ne simule pas la destruction cumulative de PV sur plusieurs tours).
+  // données (comme Covenant) — confirmé par l'utilisateur : le déclencheur
+  // (PV cible DÉTRUITS, pas perdus par les dégâts normaux) va de 0 à 60 %
+  // par pas de 1 %, le bonus de dégâts qui en résulte de 0 à 30 % par pas
+  // de 0,5 % (`ratio: 0.5`) — DEUX plages différentes, jamais confondues
+  // (bug corrigé, voir la note en tête de table).
   'Destroyer of Battlefield (Passive)': {
-    pctParStack: 0.5,
+    triggerMax: 60,
+    triggerStep: 1,
+    ratio: 0.5,
     pctMax: 30,
-    label: 'PV cible détruits (%)',
+    label: 'PV cible détruits',
     aide: 'le pourcentage de PV max de la cible déjà DÉTRUITS par ce passif (pas perdus par les dégâts normaux)',
+    suffix: '%',
   }, // Slayer, Borgnine
   // Même mécanisme texte pour texte (« Destroy HP »/« Increase Damage »,
   // `quantite: 0`), confirmé par l'utilisateur avec un ratio DIFFÉRENT :
-  // Moogwang +1 %/point de PV cible détruit, jusqu'à +60 % (60 points).
+  // Moogwang +1 %/point de PV cible détruit (0-60 %), jusqu'à +60 %.
   'Fire Bead (Passive)': {
-    pctParStack: 1,
+    triggerMax: 60,
+    triggerStep: 1,
+    ratio: 1,
     pctMax: 60,
-    label: 'PV cible détruits (%)',
+    label: 'PV cible détruits',
     aide: 'le pourcentage de PV max de la cible déjà DÉTRUITS par ce passif (pas perdus par les dégâts normaux)',
+    suffix: '%',
   }, // Dokkaebi Lord (Feu), Moogwang
   // « Inflicts additional damage proportionate to your HP as it decreases »
-  // (`quantite: null`) — confirmé par l'utilisateur : +2 %/point de % de PV
-  // PERSONNELS perdus, jusqu'à +200 % (100 points = PV à 0 %). Même
-  // mécanisme de saisie manuelle que ci-dessus, source différente (ses
-  // propres PV perdus, pas ceux détruits sur la cible).
+  // (`quantite: null`) — confirmé par l'utilisateur, puis CORRIGÉ : le
+  // déclencheur (PV PERSONNELS perdus) est CAPÉ à 100 % (pas 200), le bonus
+  // de dégâts qui en résulte va bien jusqu'à 200 % (`ratio: 2` — 100 % de
+  // PV perdus × 2 = 200 %). Même mécanisme de saisie manuelle que
+  // ci-dessus, source différente (ses propres PV perdus, pas ceux détruits
+  // sur la cible).
   "Brawler's Will (Passive)": {
-    pctParStack: 2,
+    triggerMax: 100,
+    triggerStep: 1,
+    ratio: 2,
     pctMax: 200,
-    label: 'PV perdus (%)',
+    label: 'PV perdus',
     aide: 'le pourcentage de TES PROPRES PV max déjà perdus (pas ceux détruits sur la cible)',
+    suffix: '%',
   }, // Neostone Fighter, Trevor
 };
 
@@ -686,10 +727,13 @@ export interface BonusDegatsStackableProfile {
   nom: string;
   description: string | null;
   icone: string | null;
-  pctParStack: number;
+  triggerMax: number;
+  triggerStep: number;
+  ratio: number;
   pctMax: number;
   label: string;
   aide: string;
+  suffix: string;
 }
 
 export function monsterBonusDegatsStackable(detail: DetailMonstre | null): BonusDegatsStackableProfile | null {
@@ -702,12 +746,26 @@ export function monsterBonusDegatsStackable(detail: DetailMonstre | null): Bonus
   return null;
 }
 
-// Le pourcentage de stack ACTUELLEMENT choisi pour `p`, borné à `pctMax` —
-// même discipline défensive que `resolvedHits` (une recette écrite avant une
-// régénération des données, ou un stack saisi puis un monstre différent
-// chargé, ne doivent jamais produire une valeur hors plage).
+// La valeur BRUTE du DÉCLENCHEUR actuellement saisie pour `p` (attaques
+// alliées, PV cible détruits, résultat du dé…) — 0 par défaut, jamais
+// deviné, bornée à `triggerMax` — même discipline défensive que
+// `resolvedHits` (une recette écrite avant une régénération des données,
+// ou une saisie puis un monstre différent chargé, ne doivent jamais
+// produire une valeur hors plage). C'est CE nombre que `DamageSetupCard.tsx`
+// affiche/fait saisir, PAS `resolvedStackPct` (le bonus qui en résulte).
+export function resolvedStackTrigger(p: BonusDegatsStackableProfile, setup: DamageSetup): number {
+  return Math.min(p.triggerMax, Math.max(0, setup.stackPersonnalise?.[p.skillCom2usId] ?? 0));
+}
+
+// Le pourcentage de dégâts qui RÉSULTE du déclencheur ci-dessus
+// (`resolvedStackTrigger(...) × p.ratio`, borné à `pctMax` par sécurité) —
+// c'est CE nombre que `computeTotalDamage` applique au TOTAL, jamais le
+// déclencheur brut directement. ⚠️ Les deux ont longtemps été confondus
+// (le déclencheur ÉTAIT directement saisi comme un pourcentage de dégâts,
+// bug signalé par l'utilisateur sur Borgnine/Trevor) — désormais deux
+// fonctions séparées.
 export function resolvedStackPct(p: BonusDegatsStackableProfile, setup: DamageSetup): number {
-  return Math.min(p.pctMax, Math.max(0, setup.stackPersonnalise?.[p.skillCom2usId] ?? 0));
+  return Math.min(p.pctMax, resolvedStackTrigger(p, setup) * p.ratio);
 }
 
 // Le nombre d'effets sur la cible ACTUELLEMENT saisi pour `profile` — 0 si

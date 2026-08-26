@@ -701,6 +701,16 @@ const BONUS_CONDITIONNEL_PROPRE_CONNUS: Record<string, { pct: number; condition:
   // n'aurait aucun sens pendant cet état). `quantite: 50` confirmé en
   // données. Nom vérifié exclusif à la famille Arcane Weapon.
   'Rending Claw': { pct: 50, condition: 'tu es en Mechanical Frame State (Emergency Drive)' }, // Cynthia, Arcane Weapon
+  // Brandia (« Touch of Mercy ») — SECONDE clause de ce sort, distincte du
+  // `bonusParEffetCible` (+40 %/effet) déjà curé : « Targets that have
+  // immunity against sleep will be inflicted with 50% more damage. »
+  // Aucun `effet` SWARFARM dédié (seuls « Sleep » et « Debuff Bonus Damage »
+  // sont listés) — signalé par l'utilisateur, `pct` confirmé directement
+  // par lui (50 %). Condition (« la cible est immunisée au sommeil ») que
+  // l'app ne peut pas déduire — bouton, comme demandé. Restreint à CE SORT
+  // (pas monstre-wide) : le texte ne décrit que l'attaque qui vient de
+  // poser Sleep elle-même, pas un bonus général du monstre.
+  'Touch of Mercy': { pct: 50, condition: "la cible est immunisée au sommeil" }, // Brandia, Polar Queen
 };
 
 // ── Modificateurs MONSTRE-WIDE additifs (passif sans formule, TOUJOURS

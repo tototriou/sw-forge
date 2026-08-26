@@ -937,6 +937,18 @@ confirmé) — BUFFS ET DEBUFFS comptés ensemble (comme Melissa), pas
 « débuffs seuls » malgré la description du signalement. Ajoutée à
 `BONUS_PAR_EFFET_CIBLE_CONNUS` (sort actif, S3).
 
+⚠️ **Touch of Mercy porte une SECONDE clause**, signalée séparément par
+l'utilisateur : « Targets that have immunity against sleep will be
+inflicted with 50% more damage. » Aucun effet SWARFARM dédié (seuls
+« Sleep »/« Debuff Bonus Damage » sont listés dans les données) — condition
+que l'app ne peut pas déduire, `+50 %` confirmé par l'utilisateur. Bouton
+RESTREINT À CE SORT (`SkillDamageProfile.bonusConditionnelPropre`, même
+mécanisme qu'Emergency Drive/Rending Claw), PAS monstre-wide : le texte ne
+décrit que cette attaque précise, pas un bonus général du monstre. Les
+deux clauses de Touch of Mercy (par effet, immunité au sommeil) se
+COMPOSENT multiplicativement quand les deux sont actives, comme partout
+ailleurs dans ce fichier.
+
 ⚠️ **Cette découverte révèle ~24 AUTRES sorts/passifs portant le flag
 « Debuff Bonus Damage »**, jamais examinés (recherche corpus-wide faite
 après coup, catalogue séparé préparé pour l'utilisateur) — aucun

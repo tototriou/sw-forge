@@ -1197,6 +1197,33 @@ export default function testDegats() {
   });
   ok(Math.abs(brandiaAvec3 / brandiaSans - 2.2) < 1e-9, '3 effets (buffs+debuffs) : exactement +120 % (40 % × 3), soit ×2,2');
 
+  // Brandia — SECONDE clause de « Touch of Mercy », signalée séparément par
+  // l'utilisateur : « Targets that have immunity against sleep will be
+  // inflicted with 50% more damage. » Aucun effet SWARFARM dédié (seuls
+  // « Sleep »/« Debuff Bonus Damage » sont listés) — condition que l'app ne
+  // peut pas déduire, bouton RESTREINT À CE SORT (comme Emergency Drive),
+  // PAS monstre-wide : le texte ne décrit que cette attaque précise.
+  egal(
+    touchOfMercyProfile.bonusConditionnelPropre,
+    { pct: 50, condition: 'la cible est immunisée au sommeil' },
+    'Brandia : +50 % si la cible est immunisée au sommeil, confirmé par l’utilisateur'
+  );
+  ok(!bonusConditionnelPropreActif(touchOfMercyProfile, brandiaSetup), 'désactivé par défaut, jamais deviné actif');
+  const brandiaAvecImmunite = computeSkillDamage(touchOfMercyProfile, brandiaStats, {
+    ...brandiaSetup,
+    passifsOffensifs: { [touchOfMercyProfile.skillCom2usId]: true },
+  });
+  ok(Math.abs(brandiaAvecImmunite / brandiaSans - 1.5) < 1e-9, 'activé seul (0 effet sur la cible) : exactement +50 % (×1,5)');
+  // Les deux clauses se COMPOSENT (multiplicatives, comme partout ailleurs
+  // dans ce fichier) : 3 effets (+120 %) ET cible immunisée (+50 %) à la
+  // fois donne ×2,2 × ×1,5, pas une simple somme des pourcentages.
+  const brandiaAvecLesDeux = computeSkillDamage(touchOfMercyProfile, brandiaStats, {
+    ...brandiaSetup,
+    effetsCibleCount: { [touchOfMercyProfile.skillCom2usId]: 3 },
+    passifsOffensifs: { [touchOfMercyProfile.skillCom2usId]: true },
+  });
+  ok(Math.abs(brandiaAvecLesDeux / brandiaSans - 2.2 * 1.5) < 1e-9, 'les deux clauses actives ensemble : ×2,2 × ×1,5, multiplicatif pas additif');
+
   titre('Dégâts réels — formule bespoke selon un compteur (Crawler, Frankenstein)');
 
   // Crawler — « Hammer Punch » (S1), « Rage Charge (Passive) » : formule

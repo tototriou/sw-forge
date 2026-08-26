@@ -71,8 +71,16 @@ hexadécimal.
 | `good` | `#7fbe7f` | `#2f855a` | Au tick, gain, succès — et **ton camp** |
 | `good-soft` | `#1b2a21` | `#e2f4e9` | Fond doux de `good` |
 | `warn` | `#d9a441` | `#b7791f` | Avertissement |
+| `warn-soft` | `#322a14` | `#ffecb5` | Fond doux de `warn` |
 | `bad` | `#cf5b4e` | `#c53030` | Hors tick, destructif, erreur |
 | `bad-soft` | `#301c20` | `#fae6e6` | Fond doux de `bad` — le pendant d'`accent-soft` |
+
+⚠️ **`warn-soft` ferme le trio, il ne l'ouvre pas.** `good-soft` et `bad-soft`
+existaient, l'ambre non : toute surface qui voulait dire « à corriger » devait
+donc soit emprunter `bad-soft` (et faire passer un avertissement pour une
+erreur), soit poser une opacité en dur. Les trois états sémantiques ont
+maintenant chacun leur fond doux, construits pareil — la teinte fondue dans le
+fond de page, pas une transparence.
 
 ⚠️ **`good-soft` et `bad-soft` comblent un AXE, pas une variante de plus** :
 l'accent et les éléments avaient leur fond doux, la sémantique non. Ils vont par

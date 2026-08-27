@@ -1655,6 +1655,35 @@ export function testSpeedTuneSequence() {
     );
   }
 
+  // ⚠️ **LES FENÊTRES CONNAISSENT LES OCCURRENCES.** Un voisin nommé
+  // `allie:12#2` était introuvable via `premiersTours` : la contrainte « joue
+  // avant lui » tombait SANS BRUIT, la fenêtre annonçait une vitesse trop basse
+  // pendant que `diagnostiquerSequence` déclarait l'ordre cassé — deux réponses
+  // opposées sur le même écran.
+  {
+    const combo: TuneMonstre[] = [
+      { id: 'a', combat: 300, camp: 'allie', sort: { atbSoi: 100, cooldown: 3 } },
+      m('c', 120, 'allie'),
+    ];
+    const ordre = ['a', 'a#2', 'c'];
+    // Le voisin de `c` est le 2ᵉ tour de `a` : il doit être VU.
+    const f = fenetresRequises(combo, ordre).find((x) => x.id === 'c')!;
+    ok(f.max != null, 'la borne haute de `c` existe — son prédécesseur est une occurrence');
+
+    // ⚠️ Et elle est JUSTE : à cette vitesse l'ordre tient, un point au-dessus
+    // il casse. Sans quoi le test passerait sur une borne inventée.
+    const pose = (v: number) => combo.map((x) => (x.id === 'c' ? { ...x, combat: v } : x));
+    ok(diagnostiquerSequence(pose(f.max!), ordre).ok, 'à la borne haute, l’ordre est tenu');
+    ok(
+      !diagnostiquerSequence(pose(f.max! + 1), ordre).ok,
+      'un point de plus et `c` double le 2ᵉ tour de `a` — la borne est serrée'
+    );
+    // Une occurrence supplémentaire ne se règle pas par une vitesse à elle :
+    // c'est le même monstre.
+    const f2 = fenetresRequises(combo, ordre).find((x) => x.id === 'a#2')!;
+    egal(f2.min, null, 'un tour supplémentaire n’annonce pas de vitesse à lui');
+  }
+
   // ⚠️ CE QU'IL LANCE À SON Nᵉ TOUR. Le moteur relançait le MÊME sort à chaque
   // tour : dès que le rechargement l'en empêchait, le monstre ne faisait plus
   // rien, et un combo « S2 puis S1 » était impossible à décrire.
@@ -1990,8 +2019,23 @@ export function testSpeedTuneAuto() {
     const etats = [...memo![1].matchAll(/:\s*([A-Za-z0-9_]+)/g)].map((x) => x[1]);
     ok(etats.length >= 3, `${etats.length} entrées passées à l’analyse`);
 
-    const sig = /const sortsSignature = JSON\.stringify\(\[([^\]]*)\]\)/.exec(source);
+    const sig = /const sortsSignature = signatureDes\(([^)]*)\)/.exec(source);
     ok(!!sig, 'la signature qui relance l’analyse est trouvée');
+
+    // ⚠️ **Le GARDE-FOU doit se construire pareil.** `analyser()` réécrit la
+    // signature après avoir rempli les sorts manquants ; si les deux
+    // constructions divergent, les chaînes ne coïncident jamais et `analyser()`
+    // repart une seconde fois — sur des lignes qui portent déjà ses grilles,
+    // donc en comptant les sorts DEUX FOIS. C'est arrivé en ajoutant la cible
+    // d'un seul côté. Une seule fonction, appelée aux deux endroits.
+    // `signatureDes(` ne matche que les APPELS : la définition s'écrit
+    // `signatureDes = (`, avec une espace.
+    const appels = [...source.matchAll(/signatureDes\(/g)].length;
+    egal(appels, 2, 'la même fonction construit la signature AUX DEUX endroits');
+    ok(
+      !/JSON\.stringify\(\[\s*(choix|sortChoisi)/.test(source),
+      'aucune signature n’est reconstruite à la main à côté de la fonction'
+    );
     // Les noms tels quels, pas un regex : la signature est une liste littérale.
     const dansLaSignature = sig![1].split(`,`).map((x) => x.trim());
     const oublies = etats.filter((e) => !dansLaSignature.includes(e));

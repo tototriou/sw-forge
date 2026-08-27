@@ -505,7 +505,9 @@ export function useSpeedTune({
       ]);
     }
     // Ce qu'on vient d'écrire ne doit pas déclencher une relance en boucle.
-    premiereSignature.current = JSON.stringify([choix, sortChoisi2]);
+    // ⚠️ `choix` prend la place de `sortChoisi` : c'est la valeur qu'on vient de
+    // poser par `setSortChoisi`, celle que la signature vaudra au rendu suivant.
+    premiereSignature.current = signatureDes(choix, sortChoisi2, cibleSort);
 
     setAuto(true);
     setLignes((prev) =>
@@ -539,7 +541,20 @@ export function useSpeedTune({
   // ⚠️ Cette liste doit rester le MIROIR de `choixSorts` (l'objet passé à
   // `analyseAutomatique`). Une entrée ajoutée là et oubliée ici retombe dans le
   // même défaut ; un contrôle de source le vérifie (tests/speed-tune.test.ts).
-  const sortsSignature = JSON.stringify([sortChoisi, sortChoisi2, cibleSort]);
+  //
+  // ⚠️⚠️ **UNE SEULE construction, pour les DEUX usages.** La signature est
+  // comparée ici, et RÉÉCRITE par `analyser()` juste après qu'il a rempli les
+  // sorts manquants. Écrites séparément, les deux ont divergé : en ajoutant la
+  // cible à celle-ci, l'autre est restée à deux entrées, et les chaînes ne
+  // pouvaient plus jamais coïncider. Le garde-fou ne gardait donc plus rien —
+  // `analyser()` repartait une seconde fois, cette fois sur des lignes qui
+  // PORTAIENT DÉJÀ ses grilles, et les sorts étaient comptés deux fois.
+  const signatureDes = (
+    sorts: Record<string, string>,
+    seconds: Record<string, string>,
+    cibles: Record<string, string>
+  ) => JSON.stringify([sorts, seconds, cibles]);
+  const sortsSignature = signatureDes(sortChoisi, sortChoisi2, cibleSort);
   const premiereSignature = useRef(sortsSignature);
   useEffect(() => {
     if (!auto || premiereSignature.current === sortsSignature) {

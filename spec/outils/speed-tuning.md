@@ -384,9 +384,18 @@ comme avant tant qu'aucun tour n'est ajouté. Côté moteur, `sortsParTour` et
 `EffetSort.cle` (l'horloge de rechargement, **par sort** et non par tour — sans
 quoi deux sorts sur deux tours la partageraient et le second serait bloqué).
 
-⚠️ **Une fenêtre de vitesse n'est PAS calculée pour un tour supplémentaire**
-(`fenetresRequises` ne connaît que les monstres) : la ligne dit que le tour
-n'a pas lieu, sans chiffrer ce qu'il manque. À faire si le besoin s'en montre.
+⚠️ **Un tour supplémentaire n'annonce pas de vitesse à lui** : c'est le même
+monstre, il n'a qu'une vitesse. La ligne dit que le tour n'a pas lieu, sans
+chiffrer — annoncer deux vitesses différentes pour un seul monstre serait pire
+que de se taire.
+
+⚠️⚠️ **Mais les fenêtres CONNAISSENT les occurrences.** Un voisin nommé
+`allie:12#2` restait introuvable tant que les ticks se lisaient par
+`premiersTours` : la contrainte « joue avant lui » tombait **sans bruit**, la
+fenêtre annonçait une vitesse trop basse pendant que `diagnostiquerSequence`
+déclarait l'ordre cassé — **deux réponses opposées sur le même écran**. Les ticks
+se lisent donc par `ticksParOccurrence`, et le monstre se retrouve par la base de
+sa clé.
 
 ⚠️ **À ne pas confondre avec `rejoue`** (Kroa), qui est un tour pris au **même
 tick**, sans qu'aucune horloge ne tourne : celui-là garde son champ `sort2` et

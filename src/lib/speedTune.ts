@@ -1010,16 +1010,24 @@ function borneBasse(
   plafond: number
 ): number | null {
   const essai = monstres.map((m) => ({ ...m }));
-  const moi = essai.find((m) => m.id === id);
+  // ⚠️ Le MONSTRE se retrouve par la base de la clé ; les TICKS se lisent par
+  // occurrence. Chercher `allie:12#2` parmi les monstres ne rendait rien.
+  const moi = essai.find((m) => m.id === litOccurrence(id).id);
   if (!moi) return null;
   const apres = ordre[ordre.indexOf(id) + 1] ?? null;
   const assezRapide = (v: number) => {
     Object.assign(moi, champ(axe, v));
-    const premiers = premiersTours(simuler(essai, horizon));
-    const t = (x: string | null) => (x == null ? null : (premiers.find((a) => a.id === x)?.tick ?? null));
+    // ⚠️ **Par OCCURRENCE.** Avec `premiersTours`, un successeur nommé
+    // `allie:12#2` restait introuvable : la contrainte « joue avant lui »
+    // disparaissait SANS BRUIT, et la fenêtre annonçait une vitesse trop basse
+    // pendant que le diagnostic déclarait l'ordre cassé. Deux réponses opposées
+    // sur le même écran.
+    const sim = simuler(essai, horizon);
+    const ticks = ticksParOccurrence(sim);
+    const t = (x: string | null) => (x == null ? null : (ticks.get(x) ?? null));
     const tMoi = t(id);
     if (tMoi == null) return false;
-    const adverse = premiers.find((a) => a.camp === 'ennemi')?.tick ?? null;
+    const adverse = sim.actions.find((a) => a.camp === 'ennemi')?.tick ?? null;
     if (adverse != null && tMoi > adverse) return false;
     const tApres = t(apres);
     if (tApres != null && tMoi > tApres) return false;
@@ -1120,7 +1128,7 @@ export function fenetresRequises(
     : monstres;
 
   for (const id of ordre) {
-    const original = monstres.find((m) => m.id === id);
+    const original = monstres.find((m) => m.id === litOccurrence(id).id);
     if (!original) continue;
     // ⚠️ La vitesse RÉELLE, jamais la corrigée : « combatActuel » dit ce que
     // l'utilisateur a aujourd'hui, sinon l'écart affiché serait faux.
@@ -1128,7 +1136,7 @@ export function fenetresRequises(
 
     // Copie de travail : on ne bouge QUE lui.
     const essai = base.map((m) => ({ ...m }));
-    const moi = essai.find((m) => m.id === id)!;
+    const moi = essai.find((m) => m.id === litOccurrence(id).id)!;
     const poser = (v: number) => {
       if (axe === 'combat') moi.combat = v;
       else moi.artefactBuff = v;
@@ -1138,13 +1146,16 @@ export function fenetresRequises(
 
     const positions = (v: number) => {
       poser(v);
-      const premiers = premiersTours(simuler(essai, horizon));
-      const t = (x: string | null) => (x == null ? null : (premiers.find((a) => a.id === x)?.tick ?? null));
+      const sim = simuler(essai, horizon);
+      // ⚠️ **Par OCCURRENCE** : un voisin nommé `allie:12#2` était introuvable
+      // via `premiersTours`, et sa contrainte tombait sans bruit.
+      const ticks = ticksParOccurrence(sim);
+      const t = (x: string | null) => (x == null ? null : (ticks.get(x) ?? null));
       return {
         moi: t(id),
         avant: t(avant),
         apres: t(apres),
-        adverse: premiers.find((a) => a.camp === 'ennemi')?.tick ?? null,
+        adverse: sim.actions.find((a) => a.camp === 'ennemi')?.tick ?? null,
       };
     };
 
@@ -1194,6 +1205,13 @@ export function fenetresRequises(
     poser(depart);
     const ok = assezRapide(depart) && assezLent(depart);
     poser(depart);
+    // ⚠️ Une occurrence SUPPLÉMENTAIRE ne se règle pas par une vitesse à elle :
+    // c'est le même monstre. On la déclare sans bornes plutôt que d'annoncer
+    // deux vitesses différentes pour un seul monstre.
+    if (litOccurrence(id).n > 1) {
+      out.push({ id, combatActuel: depart, min: null, max: null, ok });
+      continue;
+    }
     out.push({ id, combatActuel: depart, min, max, ok });
 
   }

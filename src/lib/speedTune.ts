@@ -61,6 +61,10 @@ export interface EffetSort {
   // choisir sa cible (« increases the Attack Bar of the target ally », le S3 de
   // Sapsaree) : la barre la plus basse est un défaut raisonnable, pas une règle
   // du jeu. `undefined` = on retombe sur ce défaut.
+  //
+  // ⚠️ **Le lanceur est une cible comme une autre.** Le jeu autorise à se viser
+  // soi-même avec un sort « sur un allié » — se rendre son propre tour est un
+  // geste courant. Il n'était pas désignable du tout.
   cibleAllie?: string;
   atbSoi?: number; // lui seul
   atbEnnemi?: number; // RETIRÉ à l'adverse (valeur positive = retrait)
@@ -301,12 +305,17 @@ export function simuler(monstres: TuneMonstre[], horizon = HORIZON_TICKS): Simul
       if (sort.atbEquipe) for (const m of etat) if (m.camp === camp) ajouter(m, sort.atbEquipe);
       if (sort.atbSoi) ajouter(gagnant, sort.atbSoi);
       if (sort.atbAllie) {
-        // ⚠️ **Le lanceur est EXCLU** du choix par défaut : sa barre vient de
+        // ⚠️ **Une cible DÉSIGNÉE l'emporte, le LANCEUR COMPRIS** : c'est le
+        // joueur qui vise, en jeu, et le jeu l'autorise à se viser lui-même.
+        // On cherche donc dans TOUT le camp, pas dans le camp moins lui.
+        const visee = sort.cibleAllie
+          ? etat.find((m) => m.camp === camp && m.id === sort.cibleAllie)
+          : undefined;
+        // ⚠️ **Mais il reste EXCLU du choix PAR DÉFAUT** : sa barre vient de
         // retomber à 0, il serait systématiquement « celui qui l'a la plus
         // basse » et se rendrait à lui-même un boost dont personne ne compte.
+        // Se viser soi-même doit être un geste, jamais le défaut.
         const cibles = etat.filter((m) => m.camp === camp && m !== gagnant);
-        // Une cible DÉSIGNÉE l'emporte : c'est le joueur qui vise, en jeu.
-        const visee = sort.cibleAllie ? cibles.find((m) => m.id === sort.cibleAllie) : undefined;
         const cible = visee ?? (cibles.length > 0 ? cibles.reduce((a, b) => (b.atb < a.atb ? b : a)) : null);
         if (cible) ajouter(cible, sort.atbAllie);
       }

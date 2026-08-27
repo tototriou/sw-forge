@@ -817,6 +817,25 @@ export function testSpeedTuneChaine() {
     egal(gainDe(visee, 'bas').length, 0, 'et la plus basse ne reçoit plus rien');
   }
 
+  // ⚠️ SE VISER SOI-MÊME. Le jeu autorise un sort « sur un allié » à prendre son
+  // lanceur pour cible — se rendre son propre tour est un geste courant. Le
+  // lanceur était absent de la liste des cibles.
+  {
+    const equipe = (cible?: string) => [
+      { ...m('lanceur', 300, 'allie'), sort: { atbAllie: 40, cibleAllie: cible } },
+      m('bas', 100, 'allie'),
+    ];
+    const gainDe = (sim: Simulation, id: string) => Object.values(sim.lignes.find((l) => l.id === id)!.effetAtb);
+    const soi = simuler(equipe('lanceur'), 12);
+    egal(gainDe(soi, 'lanceur')[0], 40, 'le lanceur peut se désigner lui-même');
+    egal(gainDe(soi, 'bas').length, 0, "et l'allié à la barre basse ne reçoit alors rien");
+
+    // ⚠️ Mais JAMAIS par défaut : sa barre vient de retomber à 0, il serait
+    // systématiquement « celui qui l'a la plus basse » et se boosterait seul.
+    const defaut = simuler(equipe(), 12);
+    egal(gainDe(defaut, 'lanceur').length, 0, "sans désignation, le lanceur ne se vise pas lui-même");
+  }
+
   // Vider la barre de l'adverse est l'autre façon de passer devant lui.
   {
     // ⚠️ Il faut jouer AVANT lui pour lui retirer quoi que ce soit : un retrait

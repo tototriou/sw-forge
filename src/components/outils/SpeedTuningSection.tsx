@@ -578,11 +578,18 @@ export default function SpeedTuningSection({
                                         aria-label={`Allié visé par le sort de ${l.monster.name}`}
                                       >
                                         <option value="">barre la plus basse</option>
+                                        {/* ⚠️ **Le lanceur EST dans la liste.** Le jeu
+                                            autorise à se viser soi-même avec un sort
+                                            « sur un allié » : se rendre son propre tour
+                                            est un geste courant. Il reste hors du DÉFAUT
+                                            « barre la plus basse » — la sienne vient de
+                                            retomber à 0, il gagnerait toujours. */}
                                         {lignesVisibles
-                                          .filter((x) => x.camp === l.camp && x.uid !== uid)
+                                          .filter((x) => x.camp === l.camp)
                                           .map((x) => (
                                             <option key={x.uid} value={x.uid}>
                                               {x.monster.name}
+                                              {x.uid === uid ? ' (lui-même)' : ''}
                                             </option>
                                           ))}
                                       </Selecteur>

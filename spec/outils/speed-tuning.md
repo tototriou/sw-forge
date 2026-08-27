@@ -501,13 +501,17 @@ aide tout autant à passer devant lui. D'où `EffetSort`
   Même règle pour le buff de vitesse et pour le **comptage des buffs d'équipe**
   (`buffsEquipe`, qui nourrit l'estimation des passifs à cumuls) : un effet
   **bénéfique** de zone va sur les alliés, que le lanceur en profite ou non.
-- ⚠️ **`atbAllie` exclut le LANCEUR** : sa barre vient de retomber à 0, il serait
-  systématiquement « celui qui l'a la plus basse » et se rendrait à lui-même un
-  boost dont personne ne compte.
 - ⚠️ **La cible se DÉSIGNE** (`cibleAllie`) quand le sort laisse viser — « increases
   the Attack Bar of **the target ally** », le S3 de Sapsaree. La barre la plus
   basse n'est qu'un **défaut raisonnable**, pas une règle du jeu : l'ordre des
   sorts porte donc un « sur : … » à côté du sort, listant les alliés du lanceur.
+- ⚠️ **Le lanceur PEUT se viser lui-même**, et figure dans cette liste, marqué
+  « (lui-même) ». Le jeu l'autorise, et se rendre son propre tour est un geste
+  courant. Il n'était désignable nulle part.
+- ⚠️ **Mais jamais PAR DÉFAUT** : sa barre vient de retomber à 0, il serait
+  systématiquement « celui qui l'a la plus basse » et se rendrait à lui-même un
+  boost dont personne ne compte. Se viser soi-même est un **geste**, pas le
+  défaut.
 - ⚠️ **Un retrait de barre et un ralenti ne sont JAMAIS appliqués
   automatiquement** — voir « Ce qu'on retire à l'adverse » ci-dessous. Le moteur
   sait les jouer (`atbEnnemi`, `ralenti`, sur l'adverse le plus AVANCÉ, celui

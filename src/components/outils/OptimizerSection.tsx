@@ -1310,7 +1310,29 @@ export default function OptimizerSection({ box, runes, optimizer, allMonsters, r
   // runes) le bouton affiche « Validé » (identique à `BuildCandidateCard`)
   // plutôt que de re-valider inutilement les mêmes runes.
   const displayedRuneIds = selected?.gear.runes.map((r) => r.id) ?? [];
-  const canValidateDisplayed = !!sourceSelector && displayedRuneIds.length === 6;
+  // ⚠️ Jamais valider une rune déjà réservée pour un AUTRE monstre de LA
+  // MÊME liste active — demande explicite. Contrairement à un résultat de
+  // recherche (dont le pool exclut déjà `otherValidatedRuneIds`, voir
+  // `pool` plus bas), les runes AFFICHÉES ici viennent de l'équipement
+  // réel de l'exemplaire (ou d'un build déjà validé) : rien n'empêche
+  // structurellement qu'elles chevauchent une réservation posée APRÈS coup
+  // pour un autre monstre. `otherValidatedBuilds` (pas juste l'ensemble des
+  // ids, voir `reservedByOthers`) sert aussi à nommer le monstre concerné
+  // dans le message.
+  const otherValidatedBuilds = useMemo(
+    () => (lists.activeListId ? lists.validated.filter((v) => v.listId === lists.activeListId && exclusionSelectorKey(v.selector) !== ownSelectorKey) : []),
+    [lists.validated, lists.activeListId, ownSelectorKey]
+  );
+  const displayedRuneConflicts = displayedRuneIds
+    .map((id) => {
+      const build = otherValidatedBuilds.find((v) => v.runeIds.includes(id));
+      if (!build) return null;
+      const rune = runeById.get(id);
+      const monsterName = resolveExclusionEntry(build.selector, exclusionData)?.monster.name ?? 'un autre monstre';
+      return { slot: rune?.slot ?? null, monsterName };
+    })
+    .filter((c): c is { slot: number | null; monsterName: string } => c != null);
+  const canValidateDisplayed = !!sourceSelector && displayedRuneIds.length === 6 && displayedRuneConflicts.length === 0;
   function handleValidateDisplayed() {
     if (!sourceSelector || !canValidateDisplayed) return;
     if (!lists.activeListId) {
@@ -1335,21 +1357,41 @@ export default function OptimizerSection({ box, runes, optimizer, allMonsters, r
   // Même bouton que sur une carte de résultat (`BuildCandidateCard`), sous
   // la fiche cette fois — demande explicite : valider un runage déjà
   // composé (en jeu ou planifié) sans passer par une recherche. `disabled`
-  // dès qu'il n'y a rien de validable (pas 6 runes affichées) OU que c'est
-  // déjà EXACTEMENT le build validé (`ownValidatedBuild` — `selected.gear
-  // .runes` le reflète alors déjà, voir son commentaire plus haut).
+  // dès qu'il n'y a rien de validable (pas 6 runes affichées, OU au moins
+  // une rune déjà réservée pour un autre monstre de la liste — voir
+  // `displayedRuneConflicts`) OU que c'est déjà EXACTEMENT le build validé
+  // (`ownValidatedBuild` — `selected.gear.runes` le reflète alors déjà,
+  // voir son commentaire plus haut).
   const validateBuildButton = (
-    <Bouton
-      onClick={handleValidateDisplayed}
-      disabled={!canValidateDisplayed || !!ownValidatedBuild}
-      ton={ownValidatedBuild ? 'accent' : 'neutre'}
-      fond={ownValidatedBuild ? 'doux' : 'plein'}
-      taille="sm"
-      pleineLargeur
-      icone={ownValidatedBuild ? <CheckCircle2 size={14} /> : undefined}
-      libelle={ownValidatedBuild ? 'Validé' : 'Valider ce build'}
-      className="mt-2.5"
-    />
+    <>
+      <Bouton
+        onClick={handleValidateDisplayed}
+        disabled={!canValidateDisplayed || !!ownValidatedBuild}
+        ton={ownValidatedBuild ? 'accent' : 'neutre'}
+        fond={ownValidatedBuild ? 'doux' : 'plein'}
+        taille="sm"
+        pleineLargeur
+        icone={ownValidatedBuild ? <CheckCircle2 size={14} /> : undefined}
+        libelle={ownValidatedBuild ? 'Validé' : 'Valider ce build'}
+        className="mt-2.5"
+      />
+      {/* Message listant les runes déjà utilisées — demande explicite,
+          « il faut afficher quelles runes sont déjà utilisées dans la
+          liste ». Absent si déjà validé (le bandeau `validatedBadge`
+          suffit alors, ce build EST la réservation). */}
+      {displayedRuneConflicts.length > 0 && !ownValidatedBuild && (
+        <p className="mt-1.5 text-[11px] text-warn">
+          Déjà réservées dans cette liste :{' '}
+          {displayedRuneConflicts.map((c, i) => (
+            <span key={i}>
+              {i > 0 && ', '}
+              {c.slot != null ? `emplacement ${c.slot}` : 'une rune'} ({c.monsterName})
+            </span>
+          ))}
+          .
+        </p>
+      )}
+    </>
   );
 
   const zoneCContent = (

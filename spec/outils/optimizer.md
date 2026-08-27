@@ -704,7 +704,16 @@ jeu, n'ont RIEN à voir l'un avec l'autre.
   exemplaire partiellement runé ou nu. Affiche « Validé » (désactivé,
   coche) si c'est déjà EXACTEMENT le build validé de cet exemplaire. Sans
   liste active, ouvre le même prompt de création que « Ajouter à la
-  liste » (crée la liste ET valide dans le même geste).
+  liste » (crée la liste ET valide dans le même geste). ⚠️ **Bloqué si UNE
+  SEULE des 6 runes affichées est déjà réservée pour un AUTRE monstre de la
+  MÊME liste** (demande explicite) — contrairement à un résultat de
+  recherche (dont le pool exclut déjà les runes réservées ailleurs dans la
+  liste), les runes affichées ici viennent de l'équipement RÉEL de
+  l'exemplaire : rien n'empêche structurellement qu'elles chevauchent une
+  réservation posée depuis pour un autre monstre. Message explicite listant
+  quelles runes et pour quel monstre (« Déjà réservées dans cette liste :
+  emplacement 2 (Camilla) »), pas juste un bouton désactivé sans
+  explication.
 - **Persisté**, contrairement au reste de la saisie de l'écran (voir plus
   haut, « Survit à un changement d'onglet ») — un flux de plusieurs
   dizaines de minutes à travers toute une liste ne doit pas perdre le

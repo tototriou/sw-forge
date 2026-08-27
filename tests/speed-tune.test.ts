@@ -3149,6 +3149,49 @@ export function testSpeedTuneModele() {
       "sans reprendre le lead, elle traîne — et l'outil déclarerait tuné à tort"
     );
 
+    // ⚠️⚠️ **ELLE EST REPOSÉE AVANT L'ANALYSE, PAS APRÈS.** Elle ne l'était
+    // qu'à la fin d'`analyser()` : l'analyse tournait donc contre la référence
+    // de la fois PRÉCÉDENTE, et le verdict avait une analyse de retard. Cas
+    // observé : Chilling à +220 des deux côtés, on monte à +221, on analyse, on
+    // redescend à +220 — la référence restait à +221, jouait devant nous, et le
+    // buff de vitesse était écrit un tick trop loin. Un SECOND clic sur
+    // « Relancer », sans rien changer, donnait la bonne réponse.
+    {
+      // Une référence PÉRIMÉE : son modèle a changé de vitesse depuis.
+      const perimee: Ligne = { ...ligneReference(modele, [modele], vide), runeSpeed: 200 };
+      const aJour: Ligne = { ...modele, runeSpeed: 150 };
+      ok(
+        combatDeLigne(perimee, null, vide) !== combatDeLigne(aJour, null, vide),
+        'une référence périmée ne vaut PLUS son modèle — c’est ce qui faussait le verdict'
+      );
+      // Rebâtie sur le modèle du moment, elle le vaut à nouveau.
+      const rebatie = ligneReference(aJour, [aJour], vide);
+      egal(
+        combatDeLigne(rebatie, null, vide),
+        combatDeLigne(aJour, null, vide),
+        'rebâtie sur le modèle du MOMENT, elle vaut exactement son modèle'
+      );
+    }
+
+    // ⚠️ Et l'analyse doit recevoir CETTE liste-là. Contrôle de source : c'est
+    // la seule façon de voir la régression revenir, `analyser()` étant un
+    // callback de hook que le dépôt ne sait pas monter.
+    {
+      const source = readFileSync('src/hooks/useSpeedTune.ts', 'utf8');
+      ok(
+        /const plateau = plateauDeLignes\(lignesAnalysees, leads\)/.test(source),
+        'l’analyse reçoit la liste où la référence vient d’être rebâtie, pas `lignes` tel quel'
+      );
+      // ⚠️ Et elle est posée EN FIN de liste, comme le fait `analyseAuto` : à
+      // vitesse égale c'est l'ordre du tableau qui départage, et le cas qui a
+      // révélé le défaut est précisément une égalité. Deux placements
+      // différents trancheraient l'égalité dans deux sens.
+      ok(
+        /lignes\.filter\(\(l\) => !l\.reference && l\.uid !== uidRef\), ligneReference\(modele\)\]/.test(source),
+        'la référence rebâtie est posée en FIN de liste, comme le fait `analyseAuto`'
+      );
+    }
+
     // ⚠️⚠️ **SON IDENTIFIANT NE PEUT PAS ÊTRE CELUI D'UN VRAI ADVERSE.** Elle
     // portait l'uid ordinaire de son monstre : quand le plus rapide de ton
     // équipe se retrouvait aussi en face (un miroir, cas courant), poser la

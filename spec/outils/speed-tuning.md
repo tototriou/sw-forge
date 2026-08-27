@@ -685,6 +685,22 @@ L'outil les **lit et les applique** : [speedTunePassif.ts](src/lib/speedTunePass
 - ⚠️ **Un passif change QUI est le plus rapide** : c'est pour ça que « Analyser »
   repose l'adversaire de référence sur le plus rapide du moment, en recopiant son
   set, son artéfact et son passif.
+- ⚠️⚠️ **ELLE EST REPOSÉE AVANT L'ANALYSE, PAS APRÈS.** Elle ne l'était qu'à la
+  fin d'`analyser()` : l'analyse tournait donc contre la référence de la fois
+  **précédente**, et le verdict avait systématiquement **une analyse de retard**.
+  - Le cas qui l'a révélé : Chilling à **+220** des deux côtés, speed tune. On
+    monte à **+221** et on analyse — la référence suit et coupe. On redescend à
+    +220 : l'écran replace bien nos tours **en direct**, mais la référence reste
+    à +221. « Relancer » calculait alors un adverse à +221 contre un allié à
+    +220, le plaçait au tick 4 devant nous au 5, et écrivait le buff de vitesse
+    **un tick trop loin**. Un **second** clic sur « Relancer », sans rien
+    changer, donnait la bonne réponse — la référence ayant enfin rattrapé son
+    modèle.
+  - ⚠️ **La PLACE compte autant que la vitesse** : à vitesse égale, c'est l'ordre
+    du tableau qui départage (`placement`, voir `simuler`) — et ce cas est
+    précisément une égalité. La référence est donc posée **en fin de liste**,
+    exactement comme le fait `analyseAuto` ; sinon les deux chemins
+    trancheraient l'égalité dans deux sens.
 - ⚠️⚠️ **LA RÉFÉRENCE A SON PROPRE ESPACE DE NOMS** (`uidReference`,
   [speedTuneLignes.ts](src/lib/speedTuneLignes.ts) → `ennemi:ref:<id>`). Elle
   portait l'uid ordinaire de son monstre — exactement celui qu'aurait une VRAIE

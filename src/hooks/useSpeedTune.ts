@@ -494,7 +494,31 @@ export function useSpeedTune({
     // qu'il coupait, et ce qu'elle écrivait dans les grilles ne tombait plus au
     // tick suivant le lanceur. L'ordre d'affichage est conservé — c'est lui qui
     // départage deux barres pleines à vitesse égale.
-    const plateau = plateauDeLignes(lignes, leads);
+    // ⚠️⚠️ **LA RÉFÉRENCE EST REPOSÉE AVANT L'ANALYSE, PAS APRÈS.**
+    //
+    // Elle ne l'était qu'à la toute fin (`analyseAuto`, plus bas) : l'analyse
+    // tournait donc contre la référence de la fois PRÉCÉDENTE, et le verdict
+    // avait systématiquement une analyse de retard. Le cas qui l'a fait voir :
+    // Chilling à +220 des deux côtés, on monte à +221, on analyse (la référence
+    // suit et coupe), on redescend à +220 — l'écran replace bien nos tours en
+    // direct, mais la référence reste à +221. « Relancer » calculait alors avec
+    // un adverse à +221 contre un allié à +220, le plaçait au tick 4 devant nous
+    // au 5, et écrivait le buff de vitesse un tick trop loin. Un SECOND clic sur
+    // « Relancer », sans rien changer, donnait la bonne réponse — la référence
+    // ayant enfin rattrapé son modèle.
+    //
+    // ⚠️ **La PLACE compte autant que la vitesse** : à vitesse égale, c'est
+    // l'ordre du tableau qui départage (`placement`, voir `simuler`) — et le cas
+    // ci-dessus est précisément une égalité. La référence est donc posée EN FIN
+    // de liste, exactement comme le fait `analyseAuto` ; sinon les deux chemins
+    // trancheraient l'égalité dans deux sens.
+    const vraiEnnemi = lignesVisibles.some((l) => l.camp === 'ennemi' && !l.reference);
+    const poseReference = !vraiEnnemi || toujoursReference;
+    const lignesAnalysees =
+      poseReference && modele
+        ? [...lignes.filter((l) => !l.reference && l.uid !== uidRef), ligneReference(modele)]
+        : lignes;
+    const plateau = plateauDeLignes(lignesAnalysees, leads);
     const resultat = analyseAutomatique(plateau, 0, donneesKit, {
       choix: { sort: choix, sort2: sortChoisi2, cible: cibleSort },
       idReference: uidRef,
@@ -526,8 +550,7 @@ export function useSpeedTune({
     // l'est, et une référence figée comparait l'équipe à un monstre qui ne
     // l'était plus. Un VRAI adversaire, lui, n'est jamais remplacé — c'est une
     // composition qu'on affronte, pas un repère.
-    const vraiEnnemi = lignesVisibles.some((l) => l.camp === 'ennemi' && !l.reference);
-    if (!vraiEnnemi || toujoursReference) analyseAuto(resultat.mods.get(uidRef ?? ''));
+    if (poseReference) analyseAuto(resultat.mods.get(uidRef ?? ''));
   }
 
   // ⚠️ **TOUT ce qui entre dans `choix` rend l'analyse fausse en changeant** —

@@ -40,6 +40,7 @@ import {
   estimerCumuls,
   leadPresent,
   ligneReference,
+  uidReference,
   ligneVierge,
   plateauDeLignes,
   majMod,
@@ -3146,6 +3147,23 @@ export function testSpeedTuneModele() {
     ok(
       (combatDeLigne(ref, null, vide) ?? 0) < (combatDeLigne(modele, lead, vide) ?? 0),
       "sans reprendre le lead, elle traîne — et l'outil déclarerait tuné à tort"
+    );
+
+    // ⚠️⚠️ **SON IDENTIFIANT NE PEUT PAS ÊTRE CELUI D'UN VRAI ADVERSE.** Elle
+    // portait l'uid ordinaire de son monstre : quand le plus rapide de ton
+    // équipe se retrouvait aussi en face (un miroir, cas courant), poser la
+    // référence SUPPRIMAIT la ligne du vrai adverse et la remplaçait par une
+    // copie de ton allié. Le verdict portait alors sur un plateau qui n'était
+    // pas le tien, sans un mot à l'écran.
+    const vraiAdverse = ligneVierge(eau, 'ennemi');
+    ok(ref.uid !== vraiAdverse.uid, 'la référence et un vrai adverse du même monstre ont deux uid');
+    egal(ref.uid, uidReference(eau.id), 'et c’est le constructeur partagé qui le donne');
+    // ⚠️ Le MÊME constructeur des deux côtés : l'écran passe cet uid à
+    // l'analyse (`idReference`), et ce qu'elle écrit doit retomber sur cette
+    // ligne. Deux constructions séparées, et le résultat n'atterrit nulle part.
+    ok(
+      /uidReference\(/.test(readFileSync('src/hooks/useSpeedTune.ts', 'utf8')),
+      'l’écran passe à l’analyse l’uid construit par la même fonction'
     );
   }
 

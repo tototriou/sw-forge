@@ -685,6 +685,18 @@ L'outil les **lit et les applique** : [speedTunePassif.ts](src/lib/speedTunePass
 - ⚠️ **Un passif change QUI est le plus rapide** : c'est pour ça que « Analyser »
   repose l'adversaire de référence sur le plus rapide du moment, en recopiant son
   set, son artéfact et son passif.
+- ⚠️⚠️ **LA RÉFÉRENCE A SON PROPRE ESPACE DE NOMS** (`uidReference`,
+  [speedTuneLignes.ts](src/lib/speedTuneLignes.ts) → `ennemi:ref:<id>`). Elle
+  portait l'uid ordinaire de son monstre — exactement celui qu'aurait une VRAIE
+  ligne adverse pour ce même monstre. Quand le plus rapide de ton équipe se
+  retrouve aussi en face (un **miroir**, cas courant en siège), poser la
+  référence **supprimait la ligne du vrai adverse** et la remplaçait par une
+  copie de ton allié : le verdict portait alors sur un plateau qui n'était pas
+  le tien, **sans un mot à l'écran**.
+  - **Un seul constructeur**, utilisé par `ligneReference` ET par l'écran qui
+    passe `idReference` à l'analyse. Écrits séparément, les deux divergeraient et
+    ce que l'analyse écrit n'atterrirait nulle part — un modificateur appliqué
+    mais invisible, la faute que cette page interdit partout ailleurs.
 - **Plafonds respectés** (`up to 100`, `up to 150 %`) ; ⚠️ « up to 10 **times** »
   est un nombre de cumuls, pas un plafond de vitesse.
 - Un gain en **pourcentage** se compte sur la vitesse de **base**, comme le totem

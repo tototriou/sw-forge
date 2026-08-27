@@ -46,6 +46,7 @@ import {
   sortsDe as sortsDeLigne,
   tuneDe,
   uidDe,
+  uidReference,
   visibles,
 } from '../lib/speedTuneLignes';
 import { kitVitesse, sortsVitesse, KitVitesse, SortVitesse } from '../lib/speedTuneKit';
@@ -481,7 +482,10 @@ export function useSpeedTune({
     // était calculé. Un modificateur invisible mais appliqué est la pire erreur
     // possible ici — on ne peut plus vérifier un seul chiffre de l'écran.
     const modele = plusRapideAllie();
-    const uidRef = modele ? uidDe('ennemi', String(modele.monster.id)) : undefined;
+    // ⚠️ Le MÊME constructeur que `ligneReference` (voir speedTuneLignes.ts) :
+    // la référence a son propre espace de noms pour ne pas écraser un vrai
+    // adverse portant le même monstre.
+    const uidRef = modele ? uidReference(modele.monster.id) : undefined;
     // ⚠️ Le lead voyage DANS chaque entrée (`EntreeAuto.lead`) : c'est la seule
     // façon de dire « +33 % pour les alliés Eau seulement ». Le second argument
     // n'est plus que le repli d'un monstre qui n'en porterait pas.

@@ -72,6 +72,18 @@ export interface Ligne {
 // fois dans le même camp.
 export const uidDe = (camp: Camp, id: string | number) => `${camp}:${id}`;
 
+// ⚠️⚠️ **L'ADVERSAIRE DE RÉFÉRENCE A SON PROPRE ESPACE DE NOMS.** Il portait
+// l'uid ordinaire de son monstre (`ennemi:123`) — exactement celui qu'aurait une
+// VRAIE ligne adverse pour ce même monstre. Quand le plus rapide de ton équipe
+// se retrouvait aussi en face (le cas courant d'un miroir), poser la référence
+// SUPPRIMAIT le vrai adverse et le remplaçait par une copie de ton allié : le
+// verdict portait alors sur un plateau qui n'était pas le tien, sans un mot.
+//
+// ⚠️ **Un seul constructeur**, utilisé par `ligneReference` ET par l'écran qui
+// passe `idReference` à l'analyse : écrits séparément, les deux divergeraient et
+// ce que l'analyse écrit n'atterrirait nulle part.
+export const uidReference = (id: string | number) => uidDe('ennemi', `ref:${id}`);
+
 export function ligneVierge(monster: Monster, camp: Camp): Ligne {
   return {
     uid: uidDe(camp, String(monster.id)),
@@ -310,6 +322,8 @@ export function plusRapideAllie(lignes: Ligne[], leads: Leads, d: DonneesKit): L
 export function ligneReference(modele: Ligne, lignes: Ligne[], d: DonneesKit): Ligne {
   return {
     ...ligneVierge(modele.monster, 'ennemi'),
+    // ⚠️ Après `ligneVierge`, qui pose l'uid ordinaire du monstre.
+    uid: uidReference(modele.monster.id),
     runeSpeed: modele.runeSpeed,
     artefactBuff: modele.artefactBuff,
     swift: modele.swift,

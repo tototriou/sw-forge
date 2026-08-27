@@ -193,8 +193,14 @@ export interface SearchResult {
 // été RETIRÉ (2026-08-27) : une fois `'degats_reels'` mature, c'était une
 // approximation strictement inférieure du même besoin — garder les deux
 // faisait hésiter sur laquelle choisir. Une recette qui la porte encore
-// retombe sur `'degats_reels'` à l'import (voir `parseOptimizerRecipe`),
-// même repli que l'ancien `'speed_nuker'`.
+// retombe sur **`'efficience'`** à l'import — même repli que l'ancien
+// `'speed_nuker'`, et aux TROIS points d'import (l'écran, `optimizer-search`
+// et `optimizer-search-analyze`).
+// ⚠️ **Pas `'degats_reels'`**, contrairement à ce que ce commentaire a annoncé :
+// « Dégâts réels » exige un sort résolu et un adversaire saisis, qu'une vieille
+// recette ne porte pas. Replier dessus aurait fait mesurer autre chose que ce
+// que la recette demandait, en silence. `'efficience'` est le repli SANS BIAIS,
+// donc le seul honnête ici.
 export type Objective = 'efficience' | 'ehp' | 'vitesse' | 'degats_reels';
 
 export const OBJECTIVE_LABELS: { key: Objective; label: string }[] = [

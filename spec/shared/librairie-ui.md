@@ -253,6 +253,35 @@ découvrir.
 > a la place de dessiner son état, et le mouvement du curseur dit dans quel sens
 > on va.
 
+**`Segmented`** — choix UNIQUE, options côte à côte dans un même cadre, une
+seule enfoncée. À préférer à une rangée de pastilles quand les options
+**s'excluent** : des pastilles indépendantes se lisent comme des filtres
+cumulables, rien dans leur forme ne dit qu'en activer une désactive les
+autres — le cadre commun le dit sans un mot.
+
+> ⚠️ **Il se resserre TOUT SEUL** (`dense` laissé à `undefined`, le défaut) :
+> le contrôle mesure la place qu'il reçoit **réellement** et bascule en texte/
+> rembourrage réduits uniquement quand il déborderait. Ce fut d'abord un
+> `dense={etroit}` piloté par un seuil de **fenêtre**
+> (`useMediaQuery(SOUS_SM)`, 639 px) — faux dès qu'un contrôle vit dans une
+> colonne qui partage son espace avec un voisin : un sélecteur à 4 options
+> longues débordait sur un écran **1080p** sans que le seuil ne se déclenche
+> jamais, la fenêtre étant large alors que sa colonne ne l'était pas. La
+> largeur de la FENÊTRE ne dit rien de la largeur d'un CONTENEUR.
+>
+> ⚠️ **Pourquoi une copie de mesure invisible, et pas `scrollWidth` du contenu
+> réel** : une fois resserré, le contenu réel ne déborde plus — on repasserait
+> au cran normal, donc il déborderait de nouveau, sans fin. La copie reste
+> toujours au cran NORMAL : sa largeur naturelle ne dépend pas de l'état
+> courant, donc la comparaison est stable. Elle est `flex-none w-max` et non
+> `w-full` : une copie en `w-full` PREND la largeur de son parent au lieu de la
+> RAPPORTER — dans un conteneur `absolute` sans largeur propre, c'est une
+> dépendance circulaire dont la spec CSS ne garantit pas le résultat.
+>
+> Passer `dense={true|false}` **force** le rendu, à réserver aux cas où l'on
+> sait mieux que la mesure — `AncientFilter` resserre par cohérence avec une
+> rangée voisine, pas par manque de place.
+
 **`Pastille`** — pilule de filtre à deux états, posée en RANGÉE de critères :
 l'élément, la rareté naturelle, les doublons de la box (les mêmes au Bestiaire).
 On l'enclenche pour restreindre une liste, et plusieurs le sont souvent à la

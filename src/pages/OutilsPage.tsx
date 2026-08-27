@@ -3,6 +3,7 @@ import { RuneDetail, Monster, RtaEntry, SiegeTeam } from '../types';
 import { BoxItem } from '../lib/applyAccount';
 import { LoadState } from '../hooks/useMonsters';
 import { OptimizerState } from '../hooks/useOptimizerState';
+import { UseOptimizerLists } from '../hooks/useOptimizerLists';
 import { ToolSub } from '../App';
 import OptimizerSection from '../components/outils/OptimizerSection';
 import SpeedTuningSection from '../components/outils/SpeedTuningSection';
@@ -18,6 +19,7 @@ interface Props {
   rtaEntries: Record<string, RtaEntry>;
   siegeDefenseTeams: SiegeTeam[];
   siegeOffenseTeams: SiegeTeam[];
+  lists: UseOptimizerLists;
   // Panneau « Options » mobile — voir App.tsx (pageAPanneau) et
   // OptimizerSection.tsx. Simple relais : ce shell ne connaît pas son
   // contenu, seul l'outil actif (Optimizer aujourd'hui) le remplit.
@@ -28,7 +30,7 @@ interface Props {
 // Shell fin, miroir d'AccountPage.tsx : un seul outil aujourd'hui
 // (Optimizer), structuré pour en accueillir d'autres sans retoucher la nav
 // ni ce fichier (ajouter une branche = ajouter un outil).
-export default function OutilsPage({ sub, box, runes, loadState, hydrating, optimizer, allMonsters, rtaEntries, siegeDefenseTeams, siegeOffenseTeams, menuOuvert, onFermerMenu }: Props) {
+export default function OutilsPage({ sub, box, runes, loadState, hydrating, optimizer, allMonsters, rtaEntries, siegeDefenseTeams, siegeOffenseTeams, lists, menuOuvert, onFermerMenu }: Props) {
   // Speed tuning ne dépend PAS d'un compte importé : on ajoute n'importe quel
   // monstre du bestiaire et on saisit sa vitesse de runes à la main. Il passe
   // donc AVANT la garde « aucune donnée de compte » (propre à l'Optimizer).
@@ -78,6 +80,7 @@ export default function OutilsPage({ sub, box, runes, loadState, hydrating, opti
           rtaEntries={rtaEntries}
           siegeDefenseTeams={siegeDefenseTeams}
           siegeOffenseTeams={siegeOffenseTeams}
+          lists={lists}
           menuOuvert={menuOuvert}
           onFermerMenu={onFermerMenu}
         />

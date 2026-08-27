@@ -70,9 +70,9 @@ Comme en **vue compacte du siège**, le panneau de détail (`MonsterGear`) s'ouv
   `runes.length > 0`. Un monstre ajouté à la prépa mais jamais runé peut
   quand même porter des **artéfacts** (voire une relique) — `MonsterGear`
   gère déjà 0 rune sans problème (panneau de stats, emplacements
-  d'artéfacts et roue toujours rendus ; relique seulement s'il y en a).
-  Exiger des runes rendait la carte ENTIÈRE non cliquable et cachait ces
-  artéfacts pourtant réels. Bug trouvé sur un compte réel (3 monstres
+  d'artéfacts, roue ET emplacement de relique TOUJOURS rendus, voir plus
+  bas). Exiger des runes rendait la carte ENTIÈRE non cliquable et cachait
+  ces artéfacts pourtant réels. Bug trouvé sur un compte réel (3 monstres
   « Non classé », 2 artéfacts chacun mais 0 rune, tous les trois inertes).
 - **Artéfacts : toujours 2 emplacements affichés** (Attribut puis Type — voir
   `ARTIFACT_KINDS` dans [types.ts](src/types.ts)), même si le monstre n'en
@@ -100,6 +100,81 @@ Comme en **vue compacte du siège**, le panneau de détail (`MonsterGear`) s'ouv
   `MonsterGear` : s'applique aussi en Siège et dans l'Optimizer. Même
   principe que les 2 emplacements d'`ArtifactSlots` toujours affichés
   ci-dessus.
+- **Relique : emplacement TOUJOURS affiché, même absente** — demande
+  explicite : « l'emplacement pour la relique doit toujours être prévu et
+  présent, exactement comme pour les runes ou les artéfacts, même si un
+  monstre n'en possède pas ». Avant cette correction, le bloc relique de
+  `MonsterGear.tsx` était conditionné sur `gear.relic &&` — la SEULE des
+  trois pièces d'équipement à disparaître entièrement plutôt que montrer un
+  emplacement vide, contrairement à la règle déjà appliquée aux 2
+  emplacements d'artéfacts et à la roue de runes. Corrigé : un cadre grisé
+  (`opacity-40`, icône `Ban`, même traitement visuel que l'emplacement
+  d'artéfact vide) s'affiche à la place, non cliquable (pas de
+  `ZoneCliquable`/`FlottantAuto` — rien à ouvrir). Comportement partagé par
+  `MonsterGear` : s'applique aussi en Siège et dans l'Optimizer.
+- **Le groupe artéfacts + roue + relique se met à l'échelle de la largeur
+  REÇUE.** Son adaptation n'a longtemps eu qu'un seul ressort : `COMPACT`
+  (`pointer: coarse`) réduisait artéfacts et roue à 0,72 au doigt — une
+  question de POINTEUR, jamais de place. Sur un bureau, le même groupe posé
+  dans une colonne étroite gardait donc sa taille pleine et débordait. Même
+  classe de défaut que le `dense` des `Segmented` piloté par un seuil de
+  FENÊTRE (voir [shared/librairie-ui.md](../shared/librairie-ui.md)) : ni le
+  pointeur ni la fenêtre ne disent quoi que ce soit de la largeur d'un
+  CONTENEUR. `MonsterGear` mesure désormais (`ResizeObserver`) la largeur
+  qu'il reçoit et réduit le groupe juste ce qu'il faut.
+  ⚠️ **Par `transform: scale()`, pas par le prop `scale`** d'`ArtifactSlots`/
+  `RuneWheel`. Deux raisons : le prop change la taille de LAYOUT, donc une
+  fois réduit le groupe ne déborde plus et on repasserait à l'échelle 1 —
+  l'oscillation sans fin que `Segmented` évite avec une copie de mesure,
+  impossible ici sans dupliquer roue et images ; et le `transform` met à
+  l'échelle TOUT le groupe d'un coup, y compris le rembourrage et le texte de
+  la relique, que le prop ne sait pas atteindre. Une boîte de réserve porte
+  les dimensions réduites, sans quoi un `transform` (qui ne touche pas au
+  layout) laisserait derrière lui le vide de la taille pleine.
+  ⚠️ **`w-max` sur le groupe — la VRAIE cause d'une saccade signalée en
+  usage réel.** Le groupe (`display:flex`, largeur `auto`) est un enfant
+  BLOC normal de la boîte de réserve — sans `w-max`, dès que cette boîte
+  reçoit une largeur explicite plus étroite (le premier rétrécissement),
+  `width:auto` se met à REMPLIR cette largeur réduite au lieu de garder la
+  largeur NATURELLE de son contenu. La mesure suivante
+  (`groupe.offsetWidth`) rapporte alors cette largeur DÉJÀ rétrécie, pas la
+  largeur naturelle — l'échelle recalculée dessus revient près de 1, la
+  boîte de réserve se rétablit à une largeur proche de sa taille pleine, ce
+  qui la fait déborder/repasser à la ligne, ce qui change la hauteur de la
+  racine observée, ce qui redéclenche la mesure : la mesure se corrompt
+  elle-même à chaque passage. `w-max` (`width: max-content`) force le
+  groupe à toujours se dimensionner sur son contenu, jamais sur la largeur
+  de son parent — même leçon que la copie de mesure de
+  [shared/librairie-ui.md](../shared/librairie-ui.md) (`Segmented`, où
+  `w-full` créait la même dépendance circulaire), pas généralisée ici à
+  l'époque.
+  ⚠️ **À l'échelle 1 — le cas de très loin le plus courant — aucun style
+  n'est posé** : le rendu est alors strictement identique à ce qu'il était
+  avant l'ajout de cette mesure.
+  ⚠️ **Au DOIGT, la fiche de stats reste sur la MÊME ligne que le groupe**
+  (demande explicite : « que la fiche de stats, les artéfacts, les runes
+  ainsi que la relique tiennent alignés ensemble pour gagner de l'espace ») —
+  auparavant forcée sur sa propre ligne au-dessus (`compact:flex-col`),
+  retiré. La place disponible pour le groupe se calcule alors DIFFÉREMMENT
+  du bureau : largeur de la racine **moins** la fiche de stats (largeur
+  FIXE, jamais réduite — voir `StatPanel.tsx`) et l'écart entre les deux
+  (8px), pas la largeur de la racine entière — sans quoi le groupe
+  s'afficherait à sa taille naturelle (elle tient dans la racine pleine
+  largeur) sans jamais tenir compte de la place déjà prise par la fiche sur
+  la MÊME ligne, et le vrai `flex-wrap` du navigateur le renverrait à la
+  ligne suivante.
+  ⚠️ **Plancher de lisibilité (0,55) CONTINU, jamais un saut entre deux
+  formules.** Une première version, sous ce plancher, repassait entièrement
+  au calcul du bureau (racine entière) — signalée en usage réel comme un
+  comportement de SACCADE : si le ratio `dispo/naturelW` frôle le seuil, un
+  écart de mesure d'à peine 1px (arrondi de `offsetWidth`) suffit à faire
+  basculer d'un côté du seuil puis de l'autre, et chaque bascule change la
+  présentation du groupe (minuscule ↔ pleine taille passée à la ligne),
+  donc la HAUTEUR de la racine, donc redéclenche l'observateur sur cette
+  même hauteur — un aller-retour sans fin, pas un cas rare. Remplacé par un
+  simple plancher (`Math.max`) sur le calcul déjà en place : la formule
+  reste continue quel que soit l'écart à la place disponible, jamais deux
+  branches qui se disputent le même seuil.
 - **L'encadré de stats entier est cliquable** (`role="button"`, pas un bouton
   séparé) et bascule entre deux affichages du même tableau :
   - **Base + bonus** (par défaut) : base en blanc, bonus en **vert**

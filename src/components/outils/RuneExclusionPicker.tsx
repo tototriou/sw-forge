@@ -1,6 +1,7 @@
 import { useId, useMemo, useState } from 'react';
 import { Search } from 'lucide-react';
 import MonsterAvatar from '../MonsterAvatar';
+import ExclusionCandidateRow from './ExclusionCandidateRow';
 import { Champ, Flottant, Jeton } from '../../ui';
 import Segmented from '../../ui/Segmented';
 import { useComboboxNav } from '../../hooks/useComboboxNav';
@@ -10,6 +11,7 @@ import {
   ExclusionSelector,
   ExclusionSource,
   ExclusionSourceData,
+  SOURCE_OPTIONS,
   exclusionCandidatesFor,
   exclusionSelectorKey,
   resolveExclusionEntry,
@@ -26,18 +28,7 @@ interface Props {
   excludeOwnCom2usId: number | null;
   selected: ExclusionSelector[];
   onChange: (next: ExclusionSelector[]) => void;
-  // ⚠️ Panneau « Options » mobile, resserré : texte/rembourrage réduits pour
-  // que les 4 options tiennent sur UNE seule ligne malgré « Défenses siège »/
-  // « Offenses siège » — voir Segmented.tsx, prop `dense`.
-  denseSourceTabs?: boolean;
 }
-
-const SOURCE_OPTIONS: { key: ExclusionSource; label: string }[] = [
-  { key: 'box', label: 'Box' },
-  { key: 'rta', label: 'RTA' },
-  { key: 'siege-defense', label: 'Défenses siège' },
-  { key: 'siege-offense', label: 'Offenses siège' },
-];
 
 // Même étiquette que le comptage « Défense N »/« Offense N » déjà utilisé
 // ailleurs (voir ownedBuilds.ts, SOURCE_LABEL) — recalculée ici plutôt que
@@ -45,6 +36,11 @@ const SOURCE_OPTIONS: { key: ExclusionSource; label: string }[] = [
 function sourceLabel(sel: ExclusionSelector, data: ExclusionSourceData): string {
   if (sel.source === 'box') return 'Box';
   if (sel.source === 'rta') return 'RTA';
+  // ⚠️ `unowned` n'apparaît JAMAIS ici en pratique — ce picker ne propose
+  // que des candidats `exclusionCandidatesFor` (box/RTA/siège), jamais un
+  // sélecteur `unowned` (voir optimizerExclusion.ts) — branche purement
+  // défensive pour l'exhaustivité du type.
+  if (sel.source === 'unowned') return 'Non possédé';
   const teams = sel.source === 'siege-defense' ? data.siegeDefenseTeams : data.siegeOffenseTeams;
   const idx = teams.findIndex((t) => t.id === sel.teamId);
   const base = sel.source === 'siege-defense' ? 'Défenses siège' : 'Offenses siège';
@@ -56,7 +52,7 @@ function sourceLabel(sel: ExclusionSelector, data: ExclusionSourceData): string 
 // défense/offense), une entrée précise par choix (pas juste un monstre :
 // voir optimizerExclusion.ts). Même grammaire de navigation clavier que
 // MonsterGearPicker (choix du monstre à optimiser).
-export default function RuneExclusionPicker({ data, excludeOwnUnitKey, excludeOwnCom2usId, selected, onChange, denseSourceTabs = false }: Props) {
+export default function RuneExclusionPicker({ data, excludeOwnUnitKey, excludeOwnCom2usId, selected, onChange }: Props) {
   const [activeSource, setActiveSource] = useState<ExclusionSource>('box');
   const [query, setQuery] = useState('');
   const idBase = useId();
@@ -97,7 +93,6 @@ export default function RuneExclusionPicker({ data, excludeOwnUnitKey, excludeOw
         onChange={setActiveSource}
         className="mb-2"
         size="lg"
-        dense={denseSourceTabs}
       />
 
       <div className="relative">
@@ -141,47 +136,10 @@ export default function RuneExclusionPicker({ data, excludeOwnUnitKey, excludeOw
                       ${dejaChoisi ? 'opacity-40 cursor-default' : 'cursor-pointer'}
                       ${estActif && !dejaChoisi ? 'bg-accent-soft' : ''}`}
                   >
-                    <MonsterAvatar monster={c.monster} size={c.teamContext ? 46 : 28} className="flex-none" />
-                    <div className="min-w-0 flex-1 flex flex-col justify-center gap-0.5">
-                      <div className="flex items-center gap-2.5">
-                        <span className="text-[13px] font-medium truncate flex-1">{c.monster.name}</span>
-                        <span className="font-mono text-[11px] text-ink-dim flex-none">
-                          {c.gear.runes.length} rune{c.gear.runes.length > 1 ? 's' : ''}
-                        </span>
-                        {dejaChoisi && <span className="text-[11px] text-ink-dim flex-none">déjà exclu</span>}
-                      </div>
-                      {/* ⚠️ Siège UNIQUEMENT — un même monstre peut apparaître
-                          dans PLUSIEURS équipes, indiscernables par le seul nom
-                          (deux « Tractor » d'équipes différentes) : le vrai
-                          repère n'est PAS le portrait du monstre lui-même (même
-                          espèce = même portrait dans les deux équipes), mais le
-                          NUMÉRO d'équipe et SES COÉQUIPIERS — signalé
-                          directement, à une échelle proche de celle de l'écran
-                          Siège (pas de simples pastilles). ⚠️ `flex-wrap`, PAS
-                          `overflow-x-auto` : un glissement horizontal dans un
-                          panneau déjà scrollable verticalement est
-                          quasi-inutilisable au doigt (les deux gestes se
-                          concurrencent) — l'équipe entière doit rester visible
-                          d'un coup, quitte à passer sur une deuxième ligne. */}
-                      {c.teamContext && (
-                        <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-[11px] text-ink-dim">
-                          <span className="flex-none">Équipe {c.teamContext.teamNumber}</span>
-                          <span className="flex flex-wrap items-center gap-2.5 min-w-0">
-                            {c.teamContext.slots.map((m, slotIdx) => {
-                              const estSlotCourant = 'slotIndex' in c.selector && c.selector.slotIndex === slotIdx;
-                              return (
-                                <span key={slotIdx} className="flex items-center gap-1.5 flex-none">
-                                  <MonsterAvatar monster={m} element={false} size={34} className="flex-none" />
-                                  <span className={`whitespace-nowrap ${estSlotCourant ? 'text-ink font-medium' : ''}`}>
-                                    {m?.name ?? '—'}
-                                  </span>
-                                </span>
-                              );
-                            })}
-                          </span>
-                        </div>
-                      )}
-                    </div>
+                    <ExclusionCandidateRow
+                      candidate={c}
+                      suffixe={dejaChoisi && <span className="text-[11px] text-ink-dim flex-none">déjà exclu</span>}
+                    />
                   </div>
                 );
               })

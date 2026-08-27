@@ -25,6 +25,16 @@ qui est propre à l'Optimizer.
 La sous-section courante est déduite du hash (`parseHash` dans
 [App.tsx](src/App.tsx)) et passée en prop `sub`.
 
+## Briques de calcul
+
+Pas une page : un modèle de calcul partagé, documenté à part parce qu'il
+dépasse l'écran qui le consomme aujourd'hui.
+
+- [degats-reels.md](degats-reels.md) — dégâts d'un **sort précis** contre un
+  adversaire configuré ([damage.ts](src/lib/damage.ts)). Alimente l'objectif
+  de recherche « Dégâts réels » de l'Optimizer, et porte la **source unique**
+  du facteur de défense pour toute l'app.
+
 ## État & persistance
 
 Aucune. Les choix de recherche (monstre, combo, minimums) sont des

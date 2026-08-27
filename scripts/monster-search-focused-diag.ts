@@ -9,6 +9,7 @@
 //
 // Usage : monster-search-focused-diag.ts <export.json> <deckId> <nomMonstre> [statKeys=atk,spd,cr,cd] [objective=none] [slotFilterCap=80] [--explore-all]
 
+import { resolveObjectifCli } from './lib/objectifCli';
 import { computeStats } from '../src/lib/stats';
 import { activeSets } from '../src/lib/effects';
 import { searchBuilds, excludedRuneIds, BuildRequirement, SearchParams, adaptiveMaxNodes, Objective, prepareSearch, buildBuckets, totalPairCount } from '../src/lib/runeBuildOptim';
@@ -24,7 +25,7 @@ const args = parseDeckMonsterArgs(process.argv.slice(2).filter((a) => a !== '--e
 const statKeysArg = args.rest[0] ?? 'atk,spd,cr,cd';
 const statKeys = statKeysArg.split(',').map((s) => s.trim());
 const objectiveArg = args.rest[1] ?? 'none';
-const objective = (objectiveArg === 'none' ? undefined : objectiveArg) as Objective | undefined;
+const { objective, objectiveStats } = resolveObjectifCli(objectiveArg);
 // ⚠️ Défaut à 80 (preset « Moyen », le vrai défaut de l'app) — PAS 40
 // (MAX_PER_SLOT_MATCH, le défaut interne du moteur QUAND l'appelant ne
 // précise rien) ni 300 — voir monster-search-pipeline-diag.ts.

@@ -4,8 +4,9 @@ import { Monster } from '../types';
 // Filtre par nom (sous-chaîne, insensible à la casse), plafonné à
 // `maxResults` — même logique que MonsterGearPicker.tsx/RuneExclusionPicker.tsx
 // avaient chacun réimplémentée à l'identique (revue de code externe,
-// duplication). Générique sur tout item portant un `.monster` (les deux
-// items concernés, `GearedMonster` et `ExclusionCandidate`, en ont un).
+// duplication). Générique sur tout item portant un `.monster` — `Exclusion
+// Candidate` (compte réel) et un `Monster` nu enrobé en `{ monster }` (mode
+// bestiaire, voir MonsterSourcePicker.tsx) s'y prêtent tous les deux.
 // Requête vide → aucun résultat (pas « tout » — même comportement que les
 // deux pickers avant extraction, la liste ne s'ouvre qu'une fois une saisie
 // commencée).

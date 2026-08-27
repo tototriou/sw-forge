@@ -1,4 +1,5 @@
-import { useRef, useState } from 'react';
+import { useLayoutEffect, useRef, useState } from 'react';
+import { Ban } from 'lucide-react';
 import { GearSet, RelicDetail } from '../types';
 import { computeStats } from '../lib/stats';
 import { formatRelicMain } from '../lib/effects';
@@ -34,9 +35,19 @@ interface Props {
   // plus à cet équipement : on l'affiche en rouge sur la ligne VIT, pour donner
   // directement la valeur à atteindre. `null` quand tout concorde.
   spdCible?: number | null;
+  // ⚠️ Répercutée UNIQUEMENT sur `ArtifactSlots`/`RuneWheel` — les deux
+  // composants qui l'exposent déjà nativement (voir leurs propres fichiers,
+  // déjà utilisés à échelle réduite par `BuildCandidateCard.tsx`). `StatPanel`
+  // reste à sa largeur FIXE (`w-[200px]`, voir son commentaire de tête) : elle
+  // ne bouge JAMAIS, quel que soit l'appelant — un panneau qui rétrécirait ici
+  // recréerait exactement le déplacement au clic base+bonus↔total que sa
+  // largeur fixe existe pour empêcher. `undefined` = taille normale
+  // (comportement historique inchangé pour RTA/Siège, seuls appelants avant
+  // l'Optimizer).
+  scale?: number;
 }
 
-export default function MonsterGear({ gear, spdCible = null }: Props) {
+export default function MonsterGear({ gear, spdCible = null, scale }: Props) {
   const stats = computeStats(gear);
   const [sel, setSel] = useState<Selected>(null);
   const auDoigt = useMediaQuery(COMPACT);
@@ -51,6 +62,100 @@ export default function MonsterGear({ gear, spdCible = null }: Props) {
     sel.kind === s.kind &&
     (sel.kind === 'relic' || (s as { i: number }).i === (sel as { i: number }).i);
   const toggle = (s: Exclude<Selected, null>) => setSel((cur) => (isSel(s) ? null : s));
+
+  // ── Mise à l'échelle du groupe artéfacts + roue + relique ─────────────
+  // ⚠️ **Sur la largeur RÉELLEMENT reçue, pas sur le type de pointeur.**
+  // L'adaptation de ce groupe n'a longtemps eu qu'un seul ressort : `COMPACT`
+  // (`pointer: coarse`) réduisait artéfacts et roue à 0,72 au doigt — une
+  // question de POINTEUR, jamais de place. Même classe de défaut que le
+  // `dense` des `Segmented` piloté par un seuil de FENÊTRE (voir
+  // Segmented.tsx) : ni le pointeur ni la fenêtre ne disent quoi que ce soit
+  // de la largeur d'un CONTENEUR.
+  //
+  // ⚠️ **`transform: scale()` et non le prop `scale` d'ArtifactSlots/RuneWheel.**
+  // Deux raisons. 1) Le prop change la taille de LAYOUT : une fois réduit, le
+  // groupe ne déborde plus, donc on repasserait à l'échelle 1, donc il
+  // déborderait de nouveau — l'oscillation que `Segmented` évite avec une
+  // copie de mesure, ici impossible sans dupliquer roue et images. Un
+  // `transform` ne touche PAS au layout : `offsetWidth` reste la largeur
+  // naturelle, la mesure est donc stable par construction. 2) Il met à
+  // l'échelle TOUT le groupe d'un coup — y compris le rembourrage et le texte
+  // de la relique, que le prop `scale` ne sait pas atteindre (il ne va qu'aux
+  // deux composants qui l'exposent).
+  const racineRef = useRef<HTMLDivElement>(null);
+  const statPanelRef = useRef<HTMLDivElement>(null);
+  const groupeRef = useRef<HTMLDivElement>(null);
+  // ⚠️ **UN SEUL état, et une garde d'égalité qui renvoie `prev` à
+  // l'identique** — indispensable, pas une optimisation. La boîte de réserve
+  // (plus bas) prend la largeur qu'on calcule ici, ce qui change la largeur
+  // de CONTENU de la carte parente, donc la place disponible, donc la
+  // mesure : la boucle est réelle. Elle CONVERGE (chaque tour réduit l'écart,
+  // 3 à 4 tours suffisent), mais seulement si un état inchangé cesse de
+  // provoquer un rendu — trois `useState` séparés, ou un objet reconstruit à
+  // chaque mesure, tourneraient sans fin même une fois la valeur stabilisée.
+  // L'arrondi de l'échelle sert le même but : sans lui, deux mesures
+  // équivalentes à 10⁻¹⁵ près relanceraient un tour.
+  const [mesure, setMesure] = useState<{ w: number; h: number; s: number } | null>(null);
+
+  useLayoutEffect(() => {
+    const racine = racineRef.current;
+    const groupe = groupeRef.current;
+    if (!racine || !groupe) return;
+    const verifier = () => {
+      // ⚠️ `offsetWidth`/`offsetHeight` et NON `getBoundingClientRect()` : le
+      // premier rend la boîte de LAYOUT, insensible au `transform` qu'on
+      // applique nous-mêmes juste en dessous — le second l'inclurait, et la
+      // mesure se mordrait la queue.
+      const naturelW = groupe.offsetWidth;
+      const naturelH = groupe.offsetHeight;
+      // ⚠️ **Deux façons de calculer la place disponible, format par format —
+      // demande explicite au doigt (« la fiche de stats, les artéfacts, les
+      // runes ainsi que la relique tiennent alignés ensemble »), jamais
+      // touché sur bureau (voir CLAUDE.md, deux formats de premier rang).
+      // - **Bureau (inchangé)** : la largeur de la RACINE entière. Un groupe
+      //   trop large pour tenir à côté du panneau de stats passe à la ligne
+      //   suivante (le VRAI `flex-wrap` du navigateur en décide, pas ce
+      //   calcul), où il reçoit alors toute la largeur de la racine —
+      //   comparer à la racine couvre donc les deux cas (côte à côte, ou
+      //   passé à la ligne) d'une seule mesure.
+      // - **Au doigt** : la largeur de la racine MOINS le panneau de stats
+      //   (largeur FIXE, jamais réduite — voir StatPanel.tsx) et l'écart
+      //   entre les deux (`gap-2` du conteneur, 8px). Comparer à la racine
+      //   entière, comme au bureau, aurait laissé le groupe s'afficher à sa
+      //   taille naturelle (elle tient dans la racine PLEINE largeur) sans
+      //   jamais tenir compte de la place déjà prise par le panneau de
+      //   stats sur LA MÊME ligne — le vrai `flex-wrap` l'aurait alors
+      //   renvoyé à la ligne suivante, l'empêchant justement de rester
+      //   aligné avec panneau/artéfacts/roue/relique.
+      const dispo = auDoigt ? racine.clientWidth - (statPanelRef.current?.offsetWidth ?? 0) - 8 : racine.clientWidth;
+      if (naturelW <= 0 || dispo <= 0) return;
+      // ⚠️ **Formule CONTINUE, sans branche — un saut entre deux calculs
+      // (« serré à côté » / « repli pleine largeur ») a été tenté puis
+      // RETIRÉ : signalé en usage réel comme un comportement de SACCADE.
+      // Cause : si le ratio `dispo/naturelW` frôle le seuil du saut, un écart
+      // de mesure d'à peine 1px (arrondi de `offsetWidth`) suffit à faire
+      // basculer d'un côté puis de l'autre du seuil — chaque bascule change
+      // la présentation du groupe (minuscule ↔ pleine taille + passé à la
+      // ligne), donc la HAUTEUR de la racine, donc redéclenche l'observateur
+      // sur cette même hauteur : un aller-retour sans fin, pas un cas rare.
+      // Un simple `Math.max` (plancher) est CONTINU — jamais deux branches de
+      // calcul qui se disputent le même seuil, jamais de saut.
+      const s = Math.round(Math.max(auDoigt ? 0.55 : 0, Math.min(1, dispo / naturelW)) * 1000) / 1000;
+      setMesure((prev) =>
+        prev && prev.w === naturelW && prev.h === naturelH && prev.s === s ? prev : { w: naturelW, h: naturelH, s }
+      );
+    };
+    verifier();
+    const ro = new ResizeObserver(verifier);
+    ro.observe(racine);
+    ro.observe(groupe);
+    return () => ro.disconnect();
+  }, [auDoigt]);
+
+  // ⚠️ À l'échelle 1 (le cas de très loin le plus courant), AUCUN style n'est
+  // posé : le rendu reste alors strictement identique à ce qu'il était avant
+  // l'ajout de cette mesure.
+  const reduit = mesure !== null && mesure.s < 1;
 
   // ⚠️ **Deux placements du détail, selon le POINTEUR.**
   //
@@ -76,21 +181,85 @@ export default function MonsterGear({ gear, spdCible = null }: Props) {
     ) : null;
 
   return (
-    <div className="flex flex-row flex-wrap items-center justify-center gap-2 compact:flex-col">
+    <div ref={racineRef} className="flex flex-row flex-wrap items-center justify-center gap-2">
       {/* Panneau de stats — voir StatPanel.tsx (base+bonus ↔ total au clic,
           largeur fixe pour ne jamais déplacer artéfacts/roue/relique).
-          ⚠️ Sur sa PROPRE ligne sous `sm`. À 200 px il occupait plus de la
-          moitié des 348 px utiles et poussait la roue à la ligne suivante,
-          laissant les artéfacts seuls à côté de lui : l'équipement se lisait en
-          trois morceaux séparés, alors qu'on le compare d'un coup d'œil. */}
-      <StatPanel stats={stats} spdCible={spdCible} />
+          ⚠️ **Reste sur la MÊME ligne qu'artéfacts/roue/relique, même au
+          doigt** (demande explicite : « la fiche de stats, les artéfacts,
+          les runes ainsi que la relique tiennent alignés ensemble pour
+          gagner de l'espace ») — le groupe voisin s'adapte à la place
+          restante APRÈS ce panneau (voir la mesure ci-dessus), plutôt que
+          l'inverse : ce panneau ne rétrécit JAMAIS (largeur fixe
+          délibérée), c'est lui qui fixe la contrainte. `ref` : sert à
+          mesurer sa largeur réelle pour le calcul ci-dessus plutôt que de
+          recopier sa constante ici, qui pourrait diverger un jour. */}
+      <div ref={statPanelRef} className="flex-none">
+        <StatPanel stats={stats} spdCible={spdCible} />
+      </div>
 
       {/* ⚠️ Artéfacts, roue et relique sur UNE SEULE ligne, quelle que soit la
           largeur : ce sont les trois faces d'un même équipement. Séparés, on
-          perd la vue d'ensemble qu'on vient chercher. Ils tiennent sur 348 px
-          une fois le panneau de stats sorti de la rangée — voir les tailles
-          réduites de chaque bloc sous `sm`. */}
-      <div className="contents compact:flex compact:w-full compact:items-center compact:justify-center compact:gap-1.5">
+          perd la vue d'ensemble qu'on vient chercher. */}
+      {/* ⚠️ **Un SEUL groupe insécable** (`flex-none`, aucun `flex-wrap` à
+          l'intérieur) — artéfacts, roue ET relique. Le `contents` du bureau
+          en faisait trois items INDÉPENDANTS du conteneur `flex-wrap`
+          ci-dessus : dans une colonne étroite, la roue puis la relique
+          passaient seules à la ligne suivante, et la relique pouvait finir
+          hors du champ visible (signalé en usage réel — « les reliques ont
+          disparu » : elles n'avaient pas disparu des DONNÉES, seulement du
+          cadre). Groupés, ils se déplacent ensemble ou pas du tout, ce que
+          disait déjà l'intention d'origine juste au-dessus. */}
+      {/* ⚠️ Boîte qui RÉSERVE la place du groupe à l'échelle appliquée. Un
+          `transform` ne change pas la boîte de layout : sans elle, un groupe
+          réduit laisserait derrière lui le vide de sa taille pleine. Aucun
+          style tant que rien n'est réduit (voir `reduit`). */}
+      <div
+        className="flex-none"
+        style={
+          reduit
+            ? { width: Math.round(mesure!.w * mesure!.s), height: Math.round(mesure!.h * mesure!.s) }
+            : undefined
+        }
+      >
+      <div
+        ref={groupeRef}
+        // `origin-top-left` : le groupe réduit reste calé sur le coin de la
+        // boîte ci-dessus, dont les dimensions sont calculées depuis ce même
+        // coin — un `transform-origin` centré l'en décalerait de la moitié de
+        // ce qu'il a perdu.
+        //
+        // ⚠️ **Plus de `compact:w-full`** — cette classe forçait le groupe à
+        // occuper toute la largeur de sa propre ligne, EXACTEMENT ce qui
+        // l'empêchait de rester à côté du panneau de stats au doigt. La mise
+        // à l'échelle ci-dessus s'en charge désormais.
+        //
+        // ⚠️ **`w-max`, LA VRAIE cause de la saccade signalée** (le plancher
+        // continu de la révision précédente n'y était pour rien). Sans lui,
+        // `groupe` (`display:flex`, largeur `auto`) est un enfant BLOC
+        // normal de la boîte de réserve juste au-dessus — dès que CETTE
+        // boîte reçoit une largeur explicite plus étroite (le premier
+        // rétrécissement), `width:auto` se met à REMPLIR cette largeur plus
+        // étroite au lieu de garder la largeur NATURELLE de son contenu. La
+        // mesure suivante (`groupe.offsetWidth`) rapporte alors cette
+        // largeur déjà rétrécie, PAS la largeur naturelle — l'échelle
+        // recalculée dessus revient alors près de 1, la boîte de réserve
+        // se rétablit à une largeur proche de sa taille pleine, ce qui la
+        // fait déborder/repasser à la ligne, ce qui change la hauteur de la
+        // racine observée, ce qui redéclenche la mesure : la mesure se
+        // corrompt elle-même à chaque passage, un aller-retour sans fin dès
+        // que la moindre réduction s'applique — exactement le seuil net
+        // rapporté (« dès que la largeur d'écran est inférieure à
+        // 555px », le point où l'échelle cesse de valoir 1 pour la première
+        // fois). `w-max` (`width: max-content`) force `groupe` à TOUJOURS se
+        // dimensionner sur son contenu, jamais sur la largeur de son
+        // parent — la mesure reste stable quelle que soit la largeur déjà
+        // appliquée à la boîte de réserve. Même leçon déjà tirée pour la
+        // copie de mesure de `Segmented.tsx` (`w-full` y créait la même
+        // dépendance circulaire) — non généralisée ici à l'époque, l'erreur
+        // qui a produit ce bug.
+        style={reduit ? { transform: `scale(${mesure!.s})`, transformOrigin: 'top left' } : undefined}
+        className="flex w-max flex-none items-center justify-center gap-2 compact:gap-1.5"
+      >
       {/* Artéfacts — détail dans un flottant ANCRÉ à l'emplacement (souris) ou
           en ligne sous la roue (doigt) : voir `detail` plus haut.
           ⚠️ **`ArtifactSlots` et non une boucle sur `gear.artifacts`.** Ce
@@ -102,6 +271,7 @@ export default function MonsterGear({ gear, spdCible = null }: Props) {
           C'est le même composant que l'Optimiseur utilise déjà. */}
       <ArtifactSlots
         artifacts={gear.artifacts}
+        scale={scale}
         isSelected={(_a, i) => isSel({ kind: 'artifact', i })}
         onSelectArtifact={(_a, i) => toggle({ kind: 'artifact', i })}
         // ⚠️ Aucun flottant au DOIGT : le bloc en ligne s'en charge. Rendre les
@@ -142,6 +312,7 @@ export default function MonsterGear({ gear, spdCible = null }: Props) {
           emplacements d'`ArtifactSlots` toujours affichés au-dessus. */}
       <RuneWheel
         runes={gear.runes}
+        scale={scale}
         isSelected={(_r, i) => isSel({ kind: 'rune', i })}
         onSelectRune={(_r, i) => toggle({ kind: 'rune', i })}
         renderOverlay={
@@ -174,8 +345,14 @@ export default function MonsterGear({ gear, spdCible = null }: Props) {
           les emplacements d'artéfacts, qui font de même.
           ⚠️ Resserrée sous `sm` : elle partage la rangée avec les artéfacts et
           la roue, et son rembourrage de 10 px de chaque côté était le plus
-          facile à rendre — le contenu, lui, ne se réduit pas. */}
-      {gear.relic && (
+          facile à rendre — le contenu, lui, ne se réduit pas.
+          ⚠️ **Emplacement TOUJOURS affiché**, grisé quand le monstre n'a pas de
+          relique — jamais absent (demande explicite) : même principe que
+          `ArtifactSlots` (toujours 2 emplacements, un vide grisé à l'icône
+          `Ban`) et la roue de runes (toujours rendue, même à 0 rune). Sans
+          relique, la case n'a rien à ouvrir : pas de `ZoneCliquable`/
+          `FlottantAuto`, juste un cadre statique. */}
+      {gear.relic ? (
         // ⚠️ `relative` : c'est l'ancre du flottant, qui s'y place en `absolute`.
         // Et `z-10` quand elle est ouverte, comme les emplacements d'artéfacts —
         // sans quoi la roue juste à côté recouvrirait le détail.
@@ -210,7 +387,19 @@ export default function MonsterGear({ gear, spdCible = null }: Props) {
             </FlottantAuto>
           )}
         </div>
+      ) : (
+        <div
+          title="Aucune relique équipée"
+          className="rounded-lg border border-border bg-panel/60 px-2.5 py-2 text-center opacity-40 compact:px-1.5 compact:py-1.5"
+        >
+          <div className="label">Relique</div>
+          <div className="mt-0.5 flex items-center justify-center">
+            <Ban size={16} className="text-ink-dim compact:hidden" />
+            <Ban size={13} className="hidden text-ink-dim compact:block" />
+          </div>
+        </div>
       )}
+      </div>
       </div>
 
       {/* Au DOIGT : le détail sur sa propre ligne, sous la roue — voir plus

@@ -9,6 +9,7 @@
 //
 // Usage : monster-search-validate.ts <export.json> <deckId> <nomMonstre> [--defense] [statKeys=atk,cr,cd] [objective=degats] [slotFilterCap=80] [bucketCap] [maxNodes] [maxMs=180000]
 
+import { resolveObjectifCli } from './lib/objectifCli';
 import { computeStats } from '../src/lib/stats';
 import { activeSets, StatKey } from '../src/lib/effects';
 import { BuildRequirement, SearchParams, Objective, prepareSearch, buildBuckets, pairBuckets, totalPairCount, NodeBudget, CHECKPOINT_EVERY } from '../src/lib/runeBuildOptim';
@@ -22,7 +23,7 @@ const args = parseDeckMonsterArgs(process.argv.slice(2), USAGE);
 const statKeysArg = args.rest[0] ?? 'atk,cr,cd';
 const statKeys = statKeysArg.split(',').map((s) => s.trim()) as StatKey[];
 const objectiveArg = args.rest[1] ?? 'degats';
-const objective = (objectiveArg === 'none' ? undefined : objectiveArg) as Objective | undefined;
+const { objective, objectiveStats } = resolveObjectifCli(objectiveArg);
 // ⚠️ Défaut à 80 (preset « Moyen », le vrai défaut de l'app) — PAS 300
 // (« Extrême ») comme les premières versions de ce script : un utilisateur
 // réel qui n'a pas touché au pré-filtrage tourne à 80, pas 300, et NE
@@ -70,6 +71,7 @@ const params: SearchParams = {
   requirement,
   metric: 'eff',
   objective,
+  objectiveStats,
   slotFilterCap,
   maxMs: args.rest[5] ? Number(args.rest[5]) : 180_000,
   bucketCap: args.rest[3] ? Number(args.rest[3]) : undefined,

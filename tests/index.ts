@@ -21,6 +21,7 @@ import testRtaPartage from './rta-partage.test';
 import testCouleursCourbes from './courbe-couleurs.test';
 import testRechargement from './rechargement.test';
 import testCollabPaires from './collab-paires.test';
+import testDegats from './degats.test';
 import testRuneOptim from './rune-optim.test';
 import testRuneOptimDifferential from './rune-optim-differential.test';
 import testRuneOptimScaleMonotonicity from './rune-optim-scale-monotonicity.test';
@@ -75,6 +76,7 @@ const VERIFICATIONS: [string, () => void | Promise<void>][] = [
   ['testCouleursCourbes', testCouleursCourbes],
   ['testRechargement', testRechargement],
   ['testCollabPaires', testCollabPaires],
+  ['testDegats', testDegats],
   ['testRuneOptim', testRuneOptim],
   ['testRuneOptimDifferential', testRuneOptimDifferential],
   ['testRuneOptimScaleMonotonicity', testRuneOptimScaleMonotonicity],

@@ -13,10 +13,20 @@ Fichiers : [OptimizerSection.tsx](src/components/outils/OptimizerSection.tsx) ·
 [runeBuildOptim.worker.ts](src/workers/runeBuildOptim.worker.ts) (Worker) ·
 [useBuildOptimSearch.ts](src/hooks/useBuildOptimSearch.ts) (cycle de vie du
 Worker) · [useOptimizerState.ts](src/hooks/useOptimizerState.ts) (toute la
-saisie de l'écran, remontée dans App.tsx) ·
-[MonsterGearPicker.tsx](src/components/outils/MonsterGearPicker.tsx) ·
+saisie de l'écran, remontée dans App.tsx, JAMAIS écrite sur disque) ·
+[useOptimizerLists.ts](src/hooks/useOptimizerLists.ts) (listes de travail,
+membres, builds validés — PERSISTÉ, voir « Listes de travail et réservation
+de runes ») ·
+[OptimizerListPicker.tsx](src/components/outils/OptimizerListPicker.tsx) ·
+[MonsterSourcePicker.tsx](src/components/outils/MonsterSourcePicker.tsx)
+(mode `bestiary` pour « Monstre à optimiser », mode `account` ailleurs) ·
+[ExclusionCandidateRow.tsx](src/components/outils/ExclusionCandidateRow.tsx)
+(partagé avec [RuneExclusionPicker.tsx](src/components/outils/RuneExclusionPicker.tsx)) ·
 [SetComboPicker.tsx](src/components/outils/SetComboPicker.tsx) ·
 [BuildCandidateCard.tsx](src/components/outils/BuildCandidateCard.tsx) ·
+[DamageSetupCard.tsx](src/components/outils/DamageSetupCard.tsx) +
+[damage.ts](src/lib/damage.ts) (objectif « Dégâts réels », voir
+[degats-reels.md](degats-reels.md)) ·
 [StatPanel.tsx](src/components/StatPanel.tsx) ·
 [ArtifactSlots.tsx](src/components/ArtifactSlots.tsx) ·
 [RuneWheel.tsx](src/components/RuneWheel.tsx) — ces trois derniers
@@ -35,6 +45,117 @@ la lib). La grille de sets à ajouter est en `BoutonIcone cadre`, ses symboles
 colorisés par le **filtre doré partagé** `runeSetIconFilter` (effects.ts) — le
 même que les barres de filtre par set (`SetFilter`), pour que l'icône ressorte
 sur les deux thèmes au lieu de se fondre, en clair, dans le panneau.
+
+⚠️ **Largeur de l'écran — pleine largeur, en deux temps.** L'Optimizer était
+le seul écran de l'app à s'imposer une colonne bornée (768 px), et empilait
+~2 000 px de réglages à faire défiler sur un écran large resté à moitié
+vide. **La barre d'actions, la progression et les résultats restent pleine
+largeur** — la grille de cartes de résultat, elle, profite directement de
+la largeur (davantage de cartes par ligne).
+
+⚠️ **L'ordre d'usage voulu, explicite dans la mise en page, pas seulement
+dans le DOM** — demande directe de l'utilisateur : 1) choisir un monstre
+(**Monstre & équipement**) ; 2) choisir l'**Objectif de recherche**, une
+carte à part entière (PAS un champ dans « Critères de recherche » : il se
+choisit avant même de composer le set, ce n'est pas un critère de plus
+parmi d'autres) ; 3) composer les **Critères de recherche**, en DEUX
+colonnes internes à la carte (demande explicite) : à **gauche**, Set de
+runes recherché puis Statistique principale imposée (slots 2/4/6) — les
+deux contraintes qui portent sur les runes elles-mêmes ; à **droite**,
+Artéfacts puis Conditions ; puis, optionnellement et en dernier,
+**Exclusion de runes** (Runes imposées y compris, voir plus bas) et
+**Réglages avancés**.
+
+Depuis `xl`, **une seule grille** (deux colonnes, cinq rangées) porte tout
+l'écran de réglages, en placement EXPLICITE (`col-start`/`row-start`/
+`row-span` sur chaque bloc, indépendant de l'ordre du DOM — qui reste
+l'ordre d'usage 1-2-3 ci-dessus) :
+
+1. **Rangée 1, pleine largeur (`xl:col-span-2`) : Monstre & équipement.**
+   Recherche à **gauche**, fiche d'équipement (stats, artéfacts, roue,
+   relique) à **droite**, **côte à côte sur la même ligne** — la carte a
+   besoin des DEUX colonnes de la page pour tenir sans repasser à la ligne
+   (gabarit ≈ recherche 224 + stats 200 + artéfacts 58 + roue 208 + relique
+   ≈ 800 px). Sa grille interne (`lg:grid-cols-[1.35fr_1fr]`) reprend le
+   MÊME ratio que la grille principale de la page, pour que la séparation
+   entre « Monstre à optimiser » et la fiche d'équipement s'aligne
+   visuellement avec celle des deux colonnes principales, une rangée plus
+   bas. ⚠️ **Artéfacts, roue et relique forment un groupe INSÉCABLE** : la
+   roue se lit collée à la droite des emplacements d'artéfacts, la relique
+   juste après — séparés, ils passaient à la ligne dans une colonne
+   étroite. Un **sélecteur de source** (Box / RTA / Défenses siège /
+   Offenses siège, même contrôle qu'« Exclure les runes d'un monstre » plus
+   bas) apparaît entre le libellé « Monstre à optimiser » et son champ de
+   recherche — mais **désambiguïse un EXEMPLAIRE, pas un premier choix
+   obligatoire** : voir « Écran », étape 1, la recherche résout d'abord une
+   ESPÈCE dans tout le bestiaire. ⚠️ **La fiche reste TOUJOURS affichée**,
+   vide (stats à zéro, artéfacts grisés, roue vide) tant qu'aucun monstre
+   n'est choisi, plutôt que de n'apparaître qu'au clic — l'espace qu'elle
+   occupe est réservé d'avance (voir [shared/design.md](shared/design.md),
+   « un clic ne déplace jamais ce qu'on vient de cliquer »). Juste en
+   dessous des puces de source : **zone C**, « Monstres de la liste » — voir
+   « Listes de travail et réservation de runes ».
+2. **Rangée 2 : Critères de recherche (colonne 1, `row-span-3` — occupe
+   aussi les rangées 3 et 4), à côté d'Objectif de recherche (colonne 2).**
+   « Objectif de recherche » à la **droite** de « Critères de recherche »
+   (demande explicite : l'objectif se choisit avant même de composer le
+   set, ce n'est pas un critère de plus). Le contenu de « Critères de
+   recherche », en **DEUX colonnes internes** (demande explicite) : à
+   **gauche**, **Set de runes recherché** puis **Statistique principale
+   imposée** (les deux contraintes qui portent sur les runes elles-mêmes) ;
+   à **droite**, **Artéfacts** puis **Conditions**. `items-start` : la
+   colonne la plus courte ne s'étire pas à la hauteur de l'autre ; sous
+   `lg`, retour à l'empilement (ordre du DOM inchangé : Set, Statistique
+   principale, Artéfacts, Conditions). ⚠️ **Traits de séparation** (demande
+   explicite, capture d'écran à l'appui) : un **trait vertical** entre les
+   deux colonnes (`lg:border-r`, posé sur la colonne de gauche uniquement —
+   jamais deux traits à 1 px l'un de l'autre, voir
+   [shared/design.md](shared/design.md)), UNIQUEMENT à partir de `lg` ; un
+   **trait horizontal** dans chaque colonne, entre Set de runes recherché
+   et Statistique principale imposée, et entre Artéfacts et Conditions —
+   quel que soit le format, y compris au doigt.
+   ⚠️ **Densité** : le **set de runes recherché** (`max-w-md`) et la
+   **grille Conditions** (`w-fit` propre) restent plafonnés en largeur —
+   sans quoi Min et Max de la grille Conditions s'étireraient à des
+   dizaines de pixels l'un de l'autre (colonnes `auto` qui se partagent
+   l'espace libre restant dès qu'aucune piste n'est en `fr`). Le **set
+   principal** (4 pièces) s'affiche sur **deux lignes de trois** en
+   permanence (comme au doigt), pour laisser plus de largeur au set
+   secondaire.
+3. **Rangée 3, colonne 2 : Exclusion de runes** (carte à bordure
+   accentuée, fonctionnalité vedette — regroupe aussi **Runes imposées**,
+   voir plus bas).
+4. **Rangée 4, colonne 2 : Réglages avancés** — SOUS Exclusion de runes,
+   pas au-dessus (ordre inversé sur demande explicite après une première
+   disposition).
+5. **Rangée 5, pleine largeur : ligne d'estimation** — ni dans la colonne
+   1 ni dans la colonne 2, cette ligne n'a pas sa place dans une cellule
+   précise.
+
+⚠️ **« Réglages avancés » ne pousse plus jamais rien en se dépliant** —
+demande explicite (« la partie critères de recherche ne doit pas se
+déplacer vers le bas lorsqu'on déroule réglages avancés »), et « reste
+toujours sous Exclusion de runes » (donc sans déplacer LE BLOC lui-même,
+contrairement à une tentative précédente qui l'avait isolé en dernière
+rangée pour contourner le même symptôme). Son contenu déplié n'est plus un
+bloc **inline** qui grandissait la carte (donc toute la colonne 2, qui
+partage ses pistes de rangée avec la colonne 1) — c'est un
+**`FlottantAuto`** ancré à la carte, qui flotte PAR-DESSUS la page :
+la carte garde TOUJOURS sa hauteur repliée, aucune rangée ne peut plus
+bouger. Un panneau replié par défaut ne peut pas réserver sa place à
+l'avance sans perdre l'intérêt d'être replié — il sort donc du flux
+(flottant), l'autre option prévue par
+[shared/design.md](shared/design.md), « un clic ne déplace jamais ce
+qu'on vient de cliquer ». Ferme au clic extérieur, même patron que
+`HelpPopover.tsx`.
+
+⚠️ **Placement explicite (`col-start`/`row-start`) sur CHAQUE bloc, jamais
+un réordonnancement de la source** : l'ordre du DOM reste celui de l'ordre
+d'USAGE (1. monstre, 2. objectif, 3. critères, puis optionnellement
+exclusion/réglages avancés) — c'est le placement CSS, pas le DOM, qui
+organise l'écran en paires. Sous `xl`, une seule colonne : aucune de ces
+classes ne s'applique, et l'ordre du DOM (= l'ordre d'usage) redevient
+l'ordre de lecture.
 
 ⚠️ **Responsive — pas de débordement, et les contrôles du panneau prennent
 toute la largeur.** Points tenus au format étroit (l'écran n'avait jamais été
@@ -84,30 +205,68 @@ retour.
    reste vrai tant que l'outil est en rodage). Rappelle que le moteur de
    recherche peut être lent sur des critères serrés ou manquer un build sur
    un cas inhabituel, et qu'il faut vérifier le résultat avant de re-runer.
-1. **Sélecteur de monstre** — recherche parmi **tous** les monstres 6★ de la
-   box importée (même liste que « Mon compte » → Monstres), **avec ou sans
-   runes actuellement équipées** : un monstre nu se recherche tout aussi bien
-   (même grammaire que [MonsterPicker](../shared/recherche-clavier.md)).
-   Plusieurs exemplaires du même monstre → **une seule entrée** ; on retient
-   l'exemplaire au meilleur équipement (somme d'efficience la plus haute,
-   0 pour un monstre nu) pour les stats/artéfacts affichés. **Tous** les
-   exemplaires comptent comme « à soi » pour l'exclusion (voir plus bas).
-   ⚠️ **Changer de monstre réinitialise « Critères de recherche » et les
-   résultats affichés** (set, statistique principale imposée, objectif,
-   artéfacts, conditions min/max, tri, pagination) — des critères posés pour
-   l'ancien monstre n'ont pas de raison de valoir pour le nouveau, et
-   d'anciens résultats affichés resteraient trompeurs (mauvais monstre).
-   Re-choisir le même monstre déjà sélectionné n'efface rien. Les
-   **réglages avancés** (préfiltrage, exclusions, recherche exhaustive…) ne
-   sont PAS concernés : ce sont des préférences générales, pas des critères
-   propres à un monstre. **Importer un nouveau compte** (bouton global
-   « Importer un JSON ») déclenche la même réinitialisation, pour la même
-   raison (autre box, autre pool de runes possible) — même en étant sur un
-   autre onglet au moment de l'import.
+1. **Recherche bestiaire, puis puces d'exemplaire** — la recherche
+   « Monstre à optimiser » résout d'abord une **ESPÈCE** (nom, icône, stats
+   de base 6★ niveau max, sorts) dans **TOUT le bestiaire**, possédé ou
+   non — pas seulement les monstres du compte (`MonsterSourcePicker
+   mode="bestiary"`, même filtre `formesJouables` que les autres pickers de
+   l'app). Un **sélecteur de source** (Box, par défaut / RTA / Défenses
+   siège / Offenses siège, `Segmented size="lg"` — même contrôle qu'« Exclure
+   les runes d'un monstre » plus bas) apparaît entre le libellé et le champ
+   de recherche, mais ne filtre plus la recherche elle-même : il choisit
+   dans QUELLE source résoudre l'**exemplaire**, une fois l'espèce trouvée.
+   ⚠️ **Mode compact déclenché par la largeur RÉELLE de sa colonne, pas par
+   celle de la fenêtre** — `Segmented` mesure lui-même la place qu'il reçoit
+   et se resserre tout seul (voir
+   [shared/librairie-ui.md](../shared/librairie-ui.md)), comportement commun
+   à TOUS les sélecteurs de l'app. **Une puce grisée** signale que l'espèce
+   choisie n'a aucun exemplaire dans cette source.
+   ⚠️ **Choisir une espèce résout automatiquement le PREMIER exemplaire
+   Box** dès qu'il y en a au moins un (demande explicite : éviter de rouvrir
+   la désambiguïsation pour tout monstre possédé en double) — la fiche
+   d'équipement affiche directement ce build, prête à optimiser sans clic
+   de plus. Aucun exemplaire Box : repli sur les stats de base 6★ seules
+   (monstre non possédé, ou possédé sans jamais avoir été équipé).
+   **Cliquer une puce** (`pickSource`) résout l'unique candidat de cette
+   source s'il n'y en a qu'un, sinon ouvre la **zone D** — un panneau
+   flottant (bureau) / bloc en ligne (mobile) listant chaque candidat
+   (`ExclusionCandidateRow` : portrait, nom, icônes des sets actifs, compte
+   de runes, et pour le siège le numéro d'équipe + coéquipiers) — jamais de
+   résolution automatique dès qu'il y a un choix réel à cet endroit
+   (contrairement à la recherche bestiaire, un clic de puce est un geste de
+   désambiguïsation volontaire). **Un exemplaire NU (sans aucune rune) reste
+   sélectionnable, dans TOUTE source** — Box (construire un build depuis
+   rien) comme RTA/siège (un monstre assigné à un favori RTA ou un deck de
+   siège mais jamais runé, ex. juste obtenu et pas encore équipé) : seul un
+   **slot RÉELLEMENT vide** (aucun monstre assigné) est absent des
+   candidats, pas un monstre présent sans rune.
+   **Choisir un résultat fixe l'exemplaire RÉELLEMENT optimisé** — pas
+   seulement prévisualisé. **Changer d'ESPÈCE** réinitialise « Critères de
+   recherche » et les résultats affichés (set, statistique principale
+   imposée, objectif, artéfacts, conditions min/max, tri, pagination) — des
+   critères posés pour l'ancien monstre n'ont pas de raison de valoir pour
+   le nouveau. Re-choisir le même exemplaire, ou un AUTRE exemplaire de la
+   MÊME espèce, n'efface rien (seuls les critères propres à l'équipement
+   changent, pas ceux propres à l'espèce). Les **réglages avancés**
+   (préfiltrage, exclusions, recherche exhaustive…) ne sont jamais
+   concernés : préférences générales, pas critères propres à un monstre.
+   **Importer un nouveau compte** déclenche la réinitialisation complète,
+   pour la même raison (autre box, autre pool de runes possible) — même en
+   étant sur un autre onglet au moment de l'import.
 2. **Équipement actuel** — **le composant `MonsterGear`, réutilisé tel quel**
    (pas réimplémenté), le même qu'en RTA/Siège quand on clique un monstre :
    stats base/bonus, artéfacts, roue de runes et relique **tels
-   qu'ACTUELLEMENT équipés** sur le monstre choisi, chacun **cliquable**
+   qu'ACTUELLEMENT équipés** sur l'exemplaire choisi ci-dessus — **c'est
+   CET exemplaire que la recherche optimise**, pas systématiquement la box.
+   Tant qu'aucun exemplaire n'a encore été choisi DANS LA SOURCE ACTIVE
+   depuis le dernier montage de la page : repli sur le meilleur exemplaire
+   box de l'espèce affichée la dernière fois (continuité au retour sur
+   l'onglet) si la source active est Box, fiche vide sinon (RTA/siège
+   n'ont pas d'équivalent « toujours un choix par défaut sensé », l'espèce
+   peut apparaître dans plusieurs équipes). ⚠️ **Limite connue** : ce choix
+   d'exemplaire ne fait PAS partie de la recette exportée (`OptimizerRecipe`
+   ne porte que l'espèce, `monsterCom2usId`) — réimporter une recette lancée
+   sur un exemplaire RTA/siège retombe sur la box par défaut. Chacun de ses éléments reste **cliquable**
    pour ouvrir son détail complet (`RuneDetailBox`/`ArtifactDetailBox`/
    `RelicDetailBox`, tous dans [MonsterGear.tsx](src/components/MonsterGear.tsx)),
    affiché en **popover flottant** ancré sur l'élément cliqué — même
@@ -118,18 +277,238 @@ retour.
    modifiés par la recherche (voir « Algorithme »). ⚠️ **Artéfacts : toujours
    2 emplacements affichés** (Attribut puis Type), même si le monstre choisi
    n'en porte qu'un seul ou aucun — un emplacement vide est montré grisé
-   plutôt que simplement absent. ⚠️ **L'encadré de stats bascule base+bonus
+   plutôt que simplement absent. ⚠️ **Relique : emplacement TOUJOURS affiché
+   de la même façon**, même absente — grisé plutôt que simplement absent
+   (demande explicite), comportement partagé avec RTA et Siège. ⚠️ **L'encadré de stats bascule base+bonus
    ↔ total au clic**, comportement propre à `MonsterGear`, partagé avec RTA
    et Siège (voir [rta/sections-runes.md](../rta/sections-runes.md)).
-3. **Set de runes recherché** — **un seul combo** (contrairement aux
+   ⚠️ **Affiché à DROITE de la recherche, TOUJOURS** — vide (stats à zéro,
+   emplacements grisés, roue sans rune) tant qu'aucun monstre n'est choisi,
+   plutôt que de n'apparaître qu'au clic. C'est un `GearSet` NUL construit
+   en local (`EMPTY_GEAR`, [OptimizerSection.tsx](src/components/outils/OptimizerSection.tsx)),
+   pas une variante de `MonsterGear` : le composant partagé n'a besoin
+   d'aucune adaptation, `computeStats` sur une base à zéro renvoie déjà des
+   lignes à zéro, et `ArtifactSlots`/`RuneWheel` gèrent nativement un
+   tableau vide.
+3. **Objectif de recherche** — une **carte à part**, entre « Monstre &amp;
+   équipement » et « Critères de recherche » (pas un champ dans cette
+   dernière) : demande explicite de l'utilisateur pour que l'ordre d'usage
+   soit clair — l'objectif se choisit avant même de composer le set
+   recherché, ce n'est pas un critère de plus parmi d'autres. **Un bouton à
+   choix unique** (`<Segmented
+   size="lg">`), choisi **avant** de lancer la recherche, pas seulement un tri
+   après coup :
+   ⚠️⚠️ **ON NE REVALIDE JAMAIS LES LISTES CONTRE UN COMPTE VIDE**
+   (`comptePeutJuger`, [optimizerExclusion.ts](src/lib/optimizerExclusion.ts)).
+   La revérification répond à « mon compte a-t-il changé depuis » ; face à un
+   compte sans monstre ni rune, elle ne peut répondre qu'une chose — plus rien
+   ne résout, donc **tout est jeté** — et cette réponse-là n'est jamais la
+   bonne : un compte vide veut dire « pas encore chargé », pas « tes monstres
+   ont disparu ». Le résultat étant **écrit sur disque**, la perte est
+   définitive.
+   - Symptôme observé : à **chaque rechargement de page**, les listes
+     survivaient mais leur CONTENU disparaissait — `replaceMembersAndValidated`
+     vide les membres et les builds sans toucher aux listes elles-mêmes.
+   - Cause : `React.StrictMode` monte le composant **deux fois** en
+     développement. Le garde-fou d'`App.tsx` (`boxMountedRef`) ne protège que
+     le PREMIER passage de l'effet ; le second revalidait avec `box` et `runes`
+     encore vides.
+   - ⚠️ **La garde vit sur la DONNÉE, pas sur un compteur de rendus.** Un
+     garde-fou qui compte les passages d'un effet est battu par StrictMode, par
+     un remontage, ou par le prochain qui réorganise les effets. Celui-ci tient
+     quoi qu'il arrive en amont — et il est **testable**, donc testé (dont le
+     contrôle qui montre que sans lui, tout part).
+   - ⚠️⚠️ **« Le compte » = LA BOX ET LES RUNES, jamais RTA ni le siège.** Une
+     première version acceptait « n'importe quelle source non vide » — elle
+     passait donc toujours : RTA et le siège sont des états persistés **à part**,
+     rendus dès le premier rendu, tandis que le compte se relit en **asynchrone**
+     (`loadAccount()`). Mesuré sur le cas réel, au second passage d'effet de
+     StrictMode :
+
+     ```
+     revalidation lancée — box=0 runes=0 rta=40 siegeDef=3 siegeOff=49 membres=1
+     ```
+
+     Le garde-fou laissait passer, la revérification jetait le membre, et
+     l'écriture suivante le perdait pour de bon. C'est bien contre la **box**
+     que les sélecteurs se résolvent, et contre les **runes** que les builds se
+     vérifient : une source annexe chargée ne dit rien de la disponibilité de
+     celles-là.
+
+   ⚠️⚠️ **UN OBJECTIF RETIRÉ SURVIT DANS LES SCRIPTS.** `'degats'` a été sorti
+   d'`Objective`, mais il restait le DÉFAUT de dix scripts CLI/diag, en cast
+   `as Objective`. Or `objectiveKeysOf` retombe sur `[]` pour une valeur absente
+   de la table : ces scripts mesuraient donc **sans aucun biais de
+   pré-filtrage**, alors qu'ils sont précisément là pour le mesurer — le
+   validateur différentiel comparait deux moteurs dans des conditions qui
+   n'étaient plus celles de l'app, et **rien ne le disait**.
+   - Le repli vit en **un seul endroit** (`scripts/lib/objectifCli.ts`) et
+     **reproduit l'ancien comportement** : `'degats'` → `efficience` +
+     `objectiveStats: ['atk', 'cd']`, l'équivalence déjà retenue par
+     `perfShared.ts`. Mesurer « sans biais » aurait changé la question posée,
+     silencieusement.
+   - La valeur reste acceptée **en ligne de commande** : c'est une compatibilité
+     d'argument, pas un objectif de l'app.
+   - ⚠️⚠️ **`tsconfig.json` n'inclut que `src`** : `tsc --noEmit` ne voit RIEN de
+     `scripts/`. C'est ce qui a laissé passer les dix casts — et le code le
+     savait déjà (`filterSlot` porte l'avertissement « incident déjà vécu deux
+     fois »). Ça vient de se reproduire une troisième. Tant que le périmètre
+     n'est pas élargi, **tout changement de type partagé avec `scripts/` se
+     vérifie à la main** (`grep` du nom, puis un bundle esbuild de contrôle).
+
+   - **Efficience** (par défaut) — pas de biais particulier, la mesure
+     choisie globalement (Efficience ou Score SW, voir
+     [compte/runes.md](../compte/runes.md)).
+   - **PV effectifs** — considère PV et DEF ensemble.
+   - **Vitesse** — VIT seule.
+   - **Dégâts réels** — la **vraie formule d'un sort précis** contre un
+     adversaire configuré, pas une espérance générique. Modèle de calcul
+     détaillé : [degats-reels.md](degats-reels.md). Choisir cet objectif
+     déplie, **juste en dessous**, son propre réglage
+     ([DamageSetupCard.tsx](src/components/outils/DamageSetupCard.tsx)) —
+     et rien ailleurs à l'écran ne change :
+     - **Compétence utilisée** — les sorts offensifs du monstre, chacun
+       accompagné de ce que ses données disent déjà (« 3 coups · Zone ·
+       Ignore la DEF · +30 % (compétence maxée) »). ⚠️ **Rien de tout cela
+       ne se saisit** : coefficient, coups, portée, ignore défense, dégâts
+       fixes et bonus des améliorations sont lus dans la fiche du sort. Par
+       défaut, le dernier slot calculable (S3 avant S2 avant S1). Un sort
+       dont la formule sort du modèle reste **affiché, grisé, avec son
+       motif** — jamais absent sans explication. ⚠️ **Coups variables** (« 2
+       à 3 fois », Sia — Great Friends ; « 3 à 5 fois », Okeanos S3) : un
+       champ numérique borné apparaît sous le sort choisi (ou sous le passif
+       concerné) pour choisir la valeur réellement utilisée par le calcul —
+       `Competence.coups` ne porte qu'un seul nombre en donnée, pas fiable
+       pour ces sorts-là. Détail : [degats-reels.md](degats-reels.md),
+       « Coups variables ». Un champ **Attaques reçues avant ce sort**
+       (0 par défaut) n'apparaît que pour l'unique sort connu dont le
+       coefficient dépend d'un compteur de combat (Crawler/Frankenstein —
+       « Hammer Punch »). Détail : [degats-reels.md](degats-reels.md),
+       « formule bespoke selon un compteur ».
+     - **Passifs offensifs** — n'apparaît que si le monstre en a un
+       (Feng Yan, Sia, Roid, Dominic, Ciri, Sonia, Momo, Chun-Li, Lizardman,
+       Jin Kazama…) : des dégâts **en plus** du sort choisi ci-dessus, OU un
+       modificateur sur l'ensemble de ses dégâts, via un passif reconnu
+       (liste à la main, voir [degats-reels.md](degats-reels.md)). Un passif
+       **toujours actif** (le texte du jeu ne pose aucune condition)
+       apparaît en jeton simple, sans bouton — y compris un modificateur
+       sans formule propre (crit garanti si plus rapide, bonus continu
+       selon l'écart de VIT, Taux Crit selon la VIT, bonus flat de Taux
+       Crit/Dgts Crit). Un passif **bonus** ou **conditionnel**, ou un
+       modificateur sans formule propre soumis à une condition que l'app ne
+       peut pas déduire (PV propres, état d'un allié, tour précédent…),
+       apparaît en **interrupteur** (glissière, comme « Stats de base
+       exclues »), **désactivé par défaut** — signalé par l'utilisateur :
+       une pilule cliquable (`Pastille`) ne distinguait pas assez la CIBLE
+       du clic (l'icône + le libellé) du paragraphe de condition juste en
+       dessous, purement informatif. Un passif dont le bonus S'ACCUMULE en
+       combat sans que l'app ne puisse le savoir (Momo) apparaît avec un
+       **champ numérique** (0 % par défaut) plutôt qu'un interrupteur.
+       ⚠️ **Jamais déduit d'un autre
+       réglage de l'écran** (le passif d'un monstre peut dépendre de l'état
+       posé par son **propre** sort, avant même que ce sort ne soit lancé :
+       aucun réglage existant ne peut trancher ça à sa place) — la condition
+       et le texte du jeu (`Competence.description`) sont affichés **en
+       clair sous chaque passif**, pas seulement au survol, pour que le
+       joueur juge lui-même.
+     - **Adversaire** — PV et DEF. ⚠️ Les **PV ne classent rien** : ils ne
+       servent qu'à lire le résultat (« 42 % des PV », « tue la cible »).
+       Un champ **PV restants** n'apparaît que pour les sorts dont la
+       formule lit les PV courants de la cible. Un champ **Effets sur la
+       cible** (0 par défaut) n'apparaît que pour les rares sorts dont les
+       dégâts augmentent par effet présent sur l'adversaire (Julie, Melissa)
+       — l'app ne simule aucun effet réel sur la cible. Détail :
+       [degats-reels.md](degats-reels.md), « bonus selon les effets sur la
+       CIBLE ». ⚠️ **VIT adversaire** +
+       **leader skill VIT** : apparaissent pour un sort/passif qui dépend de
+       l'écart de vitesse (`{Relative SPD}`, ignore-DEF proportionnel à
+       l'écart, un monstre qui force le critique s'il est plus rapide, ou
+       majore tous ses dégâts selon cet écart — même quand le sort CHOISI ne
+       lit pas cette variable, ex. n'importe quel sort de Sonia) ; un
+       artéfact « Effet aug. VIT » équipé et un éventuel critique/bonus de
+       dégâts garanti sont, eux, **déduits et affichés**, jamais redemandés.
+       Détail : [degats-reels.md](degats-reels.md), « VIT de l'adversaire ».
+     - **Effets actifs** — buffs du monstre (ATQ +50 %, DEF +70 %, VIT
+       +30 %) et effets subis par la cible (réduction de défense ×0,3,
+       marque +25 %, « ce sort pose le def break » — distingue « attaque une
+       cible déjà réduite » de « réduit puis frappe », les deux mitigations
+       ne sont pas identiques), chacun son **icône de jeu cliquable**, pas
+       une case à cocher séparée. ⚠️ **Grisée au repos, en couleurs + coche
+       une fois
+       activée** — l'état se lit sur l'icône elle-même, sans avoir à cliquer
+       pour comprendre la légende (au repos, tout est grisé : rien n'est
+       encore choisi). **Six effets d'ÉQUIPE** (Euldong, Mirinae, Deborah,
+       Miriam, Dr. Matteo, Velaska — un AUTRE monstre que celui optimisé),
+       même contrôle mais **portrait du monstre** en icône plutôt qu'une
+       icône de buff générique. ⚠️ Velaska porte en plus un **champ
+       numérique** (% de PV perdus, 0 par défaut) qui n'apparaît que si son
+       effet est activé. Détail des mécaniques :
+       [degats-reels.md](degats-reels.md), « Effets d'équipe ». **Leader
+       skill d'équipe** — type (PV/ATQ/DEF/VIT/Taux Crit/Dégâts Crit, icône
+       officielle du jeu réutilisée depuis le Siège) puis valeur (paliers
+       réels du jeu ou saisie libre) ; remplace l'ancien champ VIT-only.
+       Détail : [degats-reels.md](degats-reels.md), « Leader skill
+       d'équipe ».
+     - **Compétences d'invocateur** — **Aucune** / **Combat** (défaut) /
+       **Combat + Guilde**. Remplacent les anciens totems et drapeaux,
+       toujours supposées maxées. ⚠️ **Un choix unique, pas deux cases** :
+       l'onglet Guilde ne s'applique qu'en contenu de guilde, où Combat
+       compte aussi — « Guilde » implique donc toujours « Combat ». La
+       compétence « Puis. d'att. de <élément> » suit l'élément du monstre,
+       sans rien demander. Détail des valeurs :
+       [degats-reels.md](degats-reels.md).
+     - **Coup critique** — Critique (défaut, le plafond d'un coup isolé) /
+       Non critique (le plancher) / Moyenne (espérance sur le Taux Crit
+       réellement atteint — le seul mode où le Taux Crit pèse sur le
+       classement), rangée volontairement tout à droite. ⚠️ Sous
+       **Moyenne** uniquement, un avertissement rappelle que la valeur
+       affichée est une ESPÉRANCE théorique, pas ce qu'un combat réel (tour
+       par tour) produit coup après coup — absent des deux autres modes,
+       qui sont déjà des bornes littérales.
+     ⚠️ **On n'affiche que ce que le sort CONSOMME** : un sort qui ignore la
+     défense ne montre ni la DEF ennemie ni la réduction de défense ; un
+     sort qui ne dépend pas de la VIT ne montre pas le buff de vitesse. Un
+     champ visible mais sans effet est pire qu'un champ absent — il fait
+     croire à une action.
+     ⚠️ Contrairement aux trois autres objectifs, ses stats pertinentes
+     **dépendent du sort** (`{ATK}`, `{ATK}×({SPD}+70)/30`, `0.2×{MAX HP}`…)
+     et ne tiennent donc pas dans une table statique : l'écran les calcule
+     (`damageRelevantStats`) et les transmet au moteur via
+     `SearchParams.objectiveStats`. Le moteur, lui, reste générique — il
+     reçoit « ces stats comptent plus », jamais la notion de sort.
+     ⚠️ **Aucun sort calculable** (monstre perso, fiche absente, formules
+     hors modèle) : l'option « Dégâts réels » **disparaît purement et
+     simplement** du bouton à choix unique (`OBJECTIVE_LABELS` filtré sur
+     `realDamage`, résolu) — jamais proposée puis désactivée, ni de repli
+     silencieux vers un autre objectif ; il reste Efficience/PV
+     effectifs/Vitesse.
+   ⚠️ **« Speed nuker » a été retiré** (remplacé par « Dégâts réels »), et
+   **« Dégâts » (formule générique `ATQ × (1 + TC × DC)`, sans sort ni
+   adversaire) l'a été à son tour** une fois « Dégâts réels » mature —
+   approximation devenue strictement inférieure du même besoin, un choix
+   supplémentaire qui faisait juste hésiter entre les deux pour un objectif
+   offensif. « Dégâts réels » répond mieux à ce besoin quand le sort
+   utilisé dépend effectivement de VIT (ex. Lagmaron, `ATQ × (VIT + 70) /
+   30`) : la vraie formule, VIT comprise, sert alors au tri — pas seulement
+   au pré-filtrage. Une recette exportée pendant la durée de vie de l'un ou
+   l'autre objectif porte encore sa valeur retirée — traduite à l'import
+   vers « Efficience » (jamais « Dégâts réels », qui exige un sort et un
+   adversaire résolus, hors de portée d'un simple import).
+   ⚠️ L'objectif choisi oriente le **pré-filtrage** (quelles runes ont une
+   vraie chance d'être considérées) et le **tri par défaut** des résultats
+   (modifiable ensuite) — il **n'influence pas** le classement des candidats
+   pendant la recherche elle-même : seuls les minimums/maximums posés
+   ci-dessous en décident, quel que soit l'objectif choisi.
+4. **Set de runes recherché** — **un seul combo** (contrairement aux
    recommandations de siège, qui proposent plusieurs possibilités au choix) :
    grille d'icônes de sets, jamais un menu déroulant (`SetComboPicker.tsx`,
    même comportement que le picker de `RecoCard.tsx` réécrit en plus simple).
    Compteur `N/6 runes`, sets qui ne rentrent plus grisés. ⚠️ **Obligatoire** :
    tenter de lancer une recherche sans set sélectionné met cette zone en
    **surbrillance rouge marquée** au lieu de silencieusement ne rien faire —
-   on montre OÙ agir. Repasse normale dès qu'un set est ajouté.
-4. **Statistique principale imposée (slots pairs)** — pour chacun des slots
+   on montre OÙ agir. Repasse normale dès qu'un set est ajouté. **Colonne
+   GAUCHE** de la carte (demande explicite), avec le point suivant.
+5. **Statistique principale imposée (slots pairs)** — pour chacun des slots
    **2, 4 et 6** (les seuls dont la statistique principale n'est **pas**
    fixée par les règles du jeu — 1/3/5 sont toujours ATQ/DEF/PV plats), une
    rangée de puces à cocher :
@@ -137,33 +516,12 @@ retour.
    - slot 4 : PV% · ATQ% · DEF% · Taux Crit · Dmg Crit
    - slot 6 : PV% · ATQ% · DEF% · RES · Précision
    Multi-sélection ; **aucune coche = pas de contrainte** sur ce slot. Exemple
-   donné pour un Lushen : ATQ% en 2, Dmg Crit en 4, ATQ% en 6. Ce filtre
-   s'applique **avant** tout le reste, dans la construction même du pool par
-   slot — il réduit donc le nombre de candidats réellement considérés dès le
-   départ.
-5. **Objectif de recherche** — **un bouton à choix unique** (`<Segmented
-   size="lg">`), choisi **avant** de lancer la recherche, pas seulement un tri
-   après coup :
-   - **Efficience** (par défaut) — pas de biais particulier, la mesure
-     choisie globalement (Efficience ou Score SW, voir
-     [compte/runes.md](../compte/runes.md)).
-   - **Dégâts** — considère ATQ, Taux Crit et Dmg Crit **ensemble** (une
-     seule formule d'espérance) : `ATQ × (1 + (Taux Crit/100) × (Dgts
-     Crit/100))`. Taux Crit plafonné à 100 % **dans la formule**, même si le
-     total brut d'un build le dépasse — au-delà, le surplus ne rapporte plus
-     rien en jeu, donc pas plus de dégâts espérés dans ce calcul non plus.
-   - **PV effectifs** — considère PV et DEF ensemble.
-   - **Vitesse** — VIT seule.
-   - **Speed nuker** — pré-filtrage/rétention élargis sur ATQ, Dmg Crit **et**
-     VIT ensemble (archétype « passe avant l'ennemi, tape fort »). ⚠️ Le
-     **tri**, lui, réutilise pour l'instant la même formule que Dégâts (VIT
-     n'y participe pas) — une formule de dégâts par monstre/sort (ex.
-     Lagmaron : `ATQ × (VIT + 70) / 30`) remplacera ce placeholder plus tard.
-   ⚠️ L'objectif choisi oriente le **pré-filtrage** (quelles runes ont une
-   vraie chance d'être considérées) et le **tri par défaut** des résultats
-   (modifiable ensuite) — il **n'influence pas** le classement des candidats
-   pendant la recherche elle-même : seuls les minimums/maximums posés
-   ci-dessous en décident, quel que soit l'objectif choisi.
+   donné pour un Lushen : ATQ% en 2, Dmg Crit en 4, ATQ% en 6. **Colonne
+   GAUCHE**, sous Set de runes recherché (demande explicite : les deux
+   contraintes qui portent sur les runes elles-mêmes, groupées ensemble). Ce
+   filtre s'applique **avant** tout le reste, dans la construction même du
+   pool par slot — il réduit donc le nombre de candidats réellement
+   considérés dès le départ.
 6. **Artéfacts** — interrupteur **« Ignorer les statistiques des
    artéfacts »**, **décoché par défaut** (les artéfacts réellement équipés
    comptent). Décoché, deux listes déroulantes (Attribut, Type) proposent :
@@ -175,10 +533,11 @@ retour.
    l'Optimizer n'expose que le build de base ; choisir une statistique
    explicite permet d'hypothéquer l'artéfact d'un autre contexte sans changer
    de monstre affiché. Ces stats deviennent le PLANCHER des conditions
-   ci-dessous.
+   ci-dessous. **Colonne DROITE** de la carte, avec le point suivant.
 7. **Conditions** — les 8 stats (PV, ATQ, DEF, VIT, Taux Crit, Dmg Crit, RES,
    Précision). Chaque stat porte **deux champs, minimum et maximum**, tous
-   deux facultatifs — champ vide = pas de contrainte.
+   deux facultatifs — champ vide = pas de contrainte. **Colonne DROITE**,
+   sous Artéfacts.
    - **Interrupteur « Stats de base exclues »**, activé par défaut : n'affecte
      que PV, ATQ, DEF et VIT — ces 4 stats ont une base qui grandit avec le
      niveau/l'éveil ; activé, le champ porte sur ce que l'**équipement**
@@ -193,8 +552,16 @@ retour.
      autres réglages de l'écran.
 8. **« Utiliser tout l'inventaire »** — case à cocher, **cochée par défaut**
    (voir « Exclusion des runes » ci-dessous).
-9. **« Réglages avancés »** (repliés par défaut) : **pré-filtrage par
-   emplacement**, en **presets** plutôt qu'un curseur libre — Bas / Moyen
+9. **« Réglages avancés »** (repliés par défaut). ⚠️ **Au bureau, un
+   `FlottantAuto`** (`shared/librairie-ui.md`), PAS un bloc qui grandit la
+   carte — dépliée, la carte reste sous « Exclusion de runes » (rangée 1-2
+   du duo Monstre & équipement, voir plus haut) à sa hauteur repliée, le
+   contenu flotte par-dessus le reste de la page ; ferme au clic extérieur.
+   Un panneau replié par défaut ne peut pas réserver sa place à l'avance
+   sans perdre l'intérêt d'être replié — voir
+   [shared/design.md](shared/design.md), « un clic ne déplace jamais ce
+   qu'on vient de cliquer ». **Pré-filtrage par emplacement**, en
+   **presets** plutôt qu'un curseur libre — Bas / Moyen
    (défaut) / Haut / Extrême, du plus rapide au plus large (et donc plus
    lent, mais capable de retrouver un build sur un très gros compte),
    **séparés par un liseré vertical** (même patron que `Segmented.tsx`,
@@ -284,11 +651,163 @@ retour.
     pré-filtrage plus large. Un sélecteur **« Trier par »** re-trie **côté
     client, instantanément**, sans relancer la recherche : le moteur a déjà
     calculé les stats complètes de chaque combinaison retenue. Deux groupes
-    d'options — les 8 stats brutes, et les 4 mêmes objectifs qu'à l'étape 5.
+    d'options — les 8 stats brutes, et les mêmes objectifs qu'à l'étape 3
+    (« Dégâts réels » n'y figure que si un sort est réellement calculable
+    pour ce monstre).
+    ⚠️ **Objectif « Dégâts réels »** : chaque carte affiche en tête le
+    **nombre de dégâts** qui a servi à la classer, et la part des PV de la
+    cible qu'il emporte (« tue la cible » au-delà de 100 %). Visible dès que
+    ce critère ordonne la liste — que ce soit l'objectif de la recherche ou
+    un tri choisi après coup.
+    ⚠️ **« Valider ce build »**, sur chaque carte — réserve les 6 runes de CE
+    résultat (elles n'apparaissent plus dans les recherches suivantes de la
+    même liste de travail), jusqu'à libération explicite : voir « Listes de
+    travail et réservation de runes ».
 
 ⚠️ **Rien n'est appliqué au compte.** L'outil est en lecture seule et
 purement indicatif, comme le reste de SW Forge (aucune écriture vers le
 jeu) : c'est au joueur de re-runer dans Summoners War.
+
+## Listes de travail et réservation de runes
+
+Un 3ᵉ mécanisme d'exclusion, distinct des deux ci-dessous : ni
+l'automatique (« Exclure les runes déjà utilisées ») ni le manuel
+(« Exclure les runes d'un monstre ») ne savent exclure les runes d'un build
+qui n'existe **pas encore** dans le compte — le résultat d'une recherche.
+Résout un vrai problème de rareté : optimiser plusieurs monstres d'affilée
+sans que chaque nouvelle recherche re-propose les runes déjà attribuées au
+monstre précédent.
+
+⚠️ **Pourquoi des LISTES, et plusieurs à la fois** — le modèle de rareté
+réel du jeu ne connaît pas un seul pool global : Box et RTA sont des pools
+de runes **totalement séparés** ; chaque **deck d'offense siège** est un
+préréglage momentané indépendant des autres (exclusivité seulement ENTRE
+les 3 monstres d'un même deck) ; la **défense siège**, elle, est **un seul
+pool partagé** entre TOUTES les équipes 1 à 10 (une rune n'y sert qu'à UNE
+équipe à la fois, tout runage siège confondu). Un pool de réservation
+unique aurait fait fuiter des réservations entre des contextes qui, en
+jeu, n'ont RIEN à voir l'un avec l'autre.
+
+- **Aucune liste fixe** — l'utilisateur en crée, renomme et supprime
+  librement (`OptimizerListPicker.tsx`, menu déroulant : crayon de
+  renommage, corbeille de suppression par ligne, « + Nouvelle liste » en
+  bas). Supprimer une liste efface son appartenance et ses runes
+  validées — **jamais les runes elles-mêmes**, toujours réelles dans le
+  compte. Navigable à tout moment ; changer de liste active change
+  instantanément les runes réservées vues par la recherche.
+- **« Valider ce build »**, sur chaque carte de résultat — réserve les 6
+  runes de CE résultat dans la liste active : elles n'apparaissent plus
+  dans les recherches suivantes de la MÊME liste (les autres listes n'en
+  savent rien), jusqu'à libération explicite. Valider un NOUVEAU build
+  pour un monstre déjà validé **remplace** l'ancien (les runes de l'ancien
+  se libèrent automatiquement). ⚠️ **Jamais de perte silencieuse** :
+  libérer un build déjà validé demande toujours confirmation (« Ces 6 runes
+  redeviendront disponibles pour les recherches des autres monstres de
+  cette liste »).
+
+  ⚠️⚠️ **LA GARDE ANTI-DOUBLE-RÉSERVATION EST SUR LES DEUX CHEMINS.** Elle
+  n'existait que sous la **fiche** (`displayedRuneConflicts`) ; la carte de
+  résultat, elle, ne vérifiait rien — au motif que le pool de recherche exclut
+  déjà les runes réservées. C'est vrai **au moment de la recherche seulement** :
+  des résultats affichés avant un changement de liste active, ou avant qu'un
+  autre monstre ne réserve, permettaient de réserver **deux fois la même rune**
+  dans une même liste. **La garde va là où l'on valide, pas là où l'on
+  cherche** — un seul calcul (`conflitsDeRunes`), utilisé par les deux.
+
+  ⚠️ Le bouton reste **affiché et désactivé**, libellé « Rune déjà réservée » et
+  infobulle nommant le monstre qui la retient : le retirer laisserait croire que
+  ce build n'est pas validable du tout, alors qu'il le redevient dès qu'on
+  libère la rune.
+- **Zone C, « Monstres de la liste »** — juste sous les puces de source
+  dans « Monstre & équipement » : chaque monstre de la liste active, son
+  statut (« Validé » + bouton libérer, ou « pas encore validé »), cliquable
+  pour rappeler son exemplaire dans la recherche. **Corbeille** à droite de
+  chaque ligne pour retirer un monstre de la liste — sans confirmation s'il
+  n'est pas encore validé (rien à perdre), avec confirmation s'il l'est (le
+  retrait libère aussi ses runes). Bouton **« Ajouter à la liste »**, dont
+  le libellé change selon le contexte (aucun monstre choisi → désactivé ;
+  déjà dans la liste active → désactivé ; sinon → « Ajouter <monstre> à
+  « <liste> » », suffixé « (non possédé) » pour une espèce sans exemplaire
+  réel, voir plus bas). Sans liste active, l'ajout crée une liste (prompt
+  du nom) ET y ajoute le monstre dans le même geste. Bouton **« Libérer
+  toutes les runes de cette liste »** (visible dès qu'au moins un build y
+  est validé), avec sa propre confirmation dédiée.
+- ⚠️ **Ajouter un monstre qu'on ne possède PAS** — demande explicite : « le
+  joueur a obtenu le monstre et veut essayer des runages de teams sans
+  avoir mis à jour son json ». Une ESPÈCE choisie via la recherche
+  bestiaire (voir « Écran », étape 1) mais absente des 4 sources du compte
+  reste ajoutable à une liste ET « validable » exactement comme un
+  exemplaire réel — un sélecteur `unowned` (`ExclusionSelector`, distinct
+  des 4 sources réelles) porte cette entrée, sur ses stats de base 6★
+  niveau max, sans rune ni artéfact. ⚠️ **Les runes trouvées par la
+  recherche restent de VRAIES runes du compte** : « Valider ce build »
+  fonctionne à l'identique, réservant réellement ces 6 runes pour les
+  autres monstres de la MÊME liste — c'est justement ce qui permet
+  d'essayer un runage d'ÉQUIPE (plusieurs monstres, certains possédés,
+  certains non) sans qu'un même jeu de runes soit proposé deux fois. Ne
+  s'affiche QUE quand l'espèce n'a d'exemplaire dans AUCUNE des 4 sources
+  — possédée ne serait-ce que quelque part (même ambiguë), la
+  désambiguïsation normale (zone D / puces) garde toujours la main, jamais
+  masquée par ce sélecteur. Aucune puce ne s'allume pour ce cas (comme un
+  build validé, voir plus haut). ⚠️ Revérification au réimport (comme tout
+  le reste de cette section) : un build validé sur un monstre non possédé
+  reste valable tant que ses runes existent encore QUELQUE PART dans le
+  compte réimporté (pas nécessairement encore équipées sur un exemplaire
+  précis, puisqu'il n'y en a pas) — vérification plus faible que pour un
+  exemplaire réel, limite assumée.
+- **Auto-exemption de la liste ACTIVE** — chercher à nouveau le même
+  monstre dans la MÊME liste exempte automatiquement SES PROPRES runes déjà
+  validées (sans quoi la recherche se trouverait bloquée par ses propres
+  runes réservées) ; les runes validées des AUTRES monstres de cette liste
+  restent, elles, indisponibles. Aucune des 4 puces Box/RTA/Défenses siège/
+  Offenses siège ne s'allume quand la fiche affiche un build VALIDÉ plutôt
+  que le runage réellement équipé d'une source réelle — un build validé
+  n'est ni du Box ni du RTA tel qu'actuellement équipé, juste une
+  réservation. ⚠️ **Signal explicite en plus des puces grisées** (demande
+  explicite) : un bandeau dans la fiche elle-même (« Build validé affiché —
+  pas l'équipement réellement porté ») s'affiche dans ce cas, pour ne
+  jamais laisser croire que ce qui est montré est réellement équipé en jeu.
+  ⚠️ **Bascule vers l'équipement réel, sans quitter la liste** (demande
+  explicite : « on ne peut plus voir à quoi ressemblait le runage précédent
+  tant qu'on est dans la liste ») — une icône dans ce même bandeau («
+  Voir le runage réellement porté ») affiche l'équipement RÉEL de
+  l'exemplaire à la place du build validé, sans changer d'exemplaire ni
+  quitter la liste ; le bandeau change alors de message (« Équipement
+  réellement porté affiché ») et une puce s'allume normalement si ce
+  runage correspond bien à l'une des 4 sources. Réinitialisée à chaque
+  changement d'exemplaire — revenir sur ce monstre plus tard réaffiche le
+  build validé par défaut.
+- **« Valider ce build » sous la fiche**, sans passer par une recherche
+  (demande explicite) — un second bouton, identique à celui d'une carte de
+  résultat, juste sous la fiche stats/artéfacts/runes/relique : valide
+  directement les runes ACTUELLEMENT affichées sur l'exemplaire (un runage
+  déjà composé en jeu, ou déjà planifié). Exige exactement 6 runes
+  affichées (comme un build trouvé par la recherche) — désactivé sur un
+  exemplaire partiellement runé ou nu. Affiche « Validé » (désactivé,
+  coche) si c'est déjà EXACTEMENT le build validé de cet exemplaire. Sans
+  liste active, ouvre le même prompt de création que « Ajouter à la
+  liste » (crée la liste ET valide dans le même geste). ⚠️ **Bloqué si UNE
+  SEULE des 6 runes affichées est déjà réservée pour un AUTRE monstre de la
+  MÊME liste** (demande explicite) — contrairement à un résultat de
+  recherche (dont le pool exclut déjà les runes réservées ailleurs dans la
+  liste), les runes affichées ici viennent de l'équipement RÉEL de
+  l'exemplaire : rien n'empêche structurellement qu'elles chevauchent une
+  réservation posée depuis pour un autre monstre. Message explicite listant
+  quelles runes et pour quel monstre (« Rune déjà réservée dans cette
+  liste : emplacement 2 (Camilla) », accordé en nombre — « Runes déjà
+  réservées » dès qu'il y en a plusieurs), pas juste un bouton désactivé
+  sans explication.
+- **Persisté**, contrairement au reste de la saisie de l'écran (voir plus
+  haut, « Survit à un changement d'onglet ») — un flux de plusieurs
+  dizaines de minutes à travers toute une liste ne doit pas perdre le
+  travail déjà fait à un simple rechargement de page. Même statut que la
+  prépa RTA et les équipes de siège (voir
+  [usePersistence](src/hooks/usePersistence.ts)) : soumis au même
+  interrupteur global de conservation.
+- ⚠️ **Limite connue** : l'ajout à une liste se fait **un monstre à la
+  fois** — aucun import en masse depuis un deck de siège ou une prépa RTA
+  entière, aucun workflow qui enchaîne automatiquement au monstre suivant
+  après validation.
 
 ## Exclusion des runes déjà portées ailleurs
 
@@ -339,11 +858,13 @@ panneau « Options » au doigt (c'est le réglage le plus utilisé sur cet
 écran) ; à **droite**, côte à côte, au bureau (voir la carte ci-dessus).
 
 ⚠️ **Les quatre onglets de source restent sur UNE seule ligne au doigt**,
-texte/rembourrage réduits (`Segmented.tsx`, prop `dense`) — à 4 options
-aussi longues que « Défenses siège », même resserré, le libellé passe sur
-DEUX lignes DANS le bouton plutôt que déborder (`dense` ne force pas
-`whitespace-nowrap`, contrairement aux autres tailles). Au bureau, rendu
-normal, une ligne, texte sur une ligne.
+texte/rembourrage réduits — à 4 options aussi longues que « Défenses
+siège », même resserré, le libellé passe sur DEUX lignes DANS le bouton
+plutôt que déborder (le cran resserré ne force pas `whitespace-nowrap`,
+contrairement aux autres). `Segmented` (`src/ui/`) mesure lui-même la place
+qu'il reçoit et bascule seul entre les deux rendus (voir
+[shared/librairie-ui.md](../shared/librairie-ui.md)) — aucun réglage à
+poser depuis cet écran.
 
 ⚠️ **L'équipe complète d'un résultat de siège reste visible sans défiler**
 (`c.teamContext`, résultats de recherche par nom) : les coéquipiers passent
@@ -364,6 +885,16 @@ portrait). Chaque résultat de recherche affiche donc le **numéro d'équipe et
 les portraits des 3 coéquipiers** (slot vide = tiret), à la même échelle que
 l'écran Siège, pour lever l'ambiguïté sans avoir à cliquer.
 
+⚠️ **Chaque résultat affiche aussi les icônes des sets ACTIFS** de
+l'équipement montré, entre le nom et le compte de runes — pas un simple
+comptage des sets présents parmi les runes portées : `activeSets`
+(`lib/effects.ts`), la SEULE source de vérité de l'app pour « quels sets
+sont actifs » (un set 4 pièces à 3 runes n'est pas actif, une rune
+Intangible peut compléter le set incomplet le plus proche — recompter à
+côté a déjà fait diverger un affichage sur un cas réel, voir
+`swiftActive`). Même fonction que celle qui alimente les icônes de set
+affichées sur les cartes de « Mon compte » → RTA.
+
 Fait partie des réglages exportés/importés dans une recette : ce qui est
 exporté, ce sont des **identifiants** (quel monstre, quelle source), jamais
 les runes elles-mêmes — re-résolus contre le compte de qui importe la
@@ -379,6 +910,33 @@ Distingué par l'identité STABLE du compte (`wizard_id`), pas la date
 d'export (qui change à chaque réexport) : réimporter son propre compte,
 même après des heures de jeu, garde les sélections ; importer le fichier
 d'un autre joueur les efface.
+
+### Runes imposées — verrouiller un emplacement sur une rune précise
+
+**Regroupée dans la même carte** que les deux exclusions ci-dessus — même
+thème (agir sur le pool de runes à partir de l'exemplaire recherché),
+mécanisme distinct : ce n'est pas une exclusion mais un **verrou**. Une
+pastille par emplacement (1 à 6) portant une rune sur l'exemplaire de
+« Monstre & équipement » ; cliquer verrouille ce slot sur **exactement
+cette rune** — son pool tombe à 1, les cinq autres emplacements restent
+optimisés normalement. Cas d'usage : « je garde cette rune, cherche les
+cinq autres autour » — d'où un choix limité aux runes que l'exemplaire
+**porte déjà**, plutôt qu'un second sélecteur parmi des milliers de runes.
+Un emplacement sans rune est montré grisé plutôt qu'absent.
+
+⚠️ **Techniquement une RÉDUCTION DE POOL, pas une contrainte de plus** : le
+verrou s'applique tout en amont (avant dominance/faisabilité/pré-filtrage).
+Le moteur ne connaît pas la notion de verrou — il travaille sur un pool où
+ce slot ne contient plus qu'une rune, ce qui rend la fonctionnalité **sûre
+par construction** (elle ne peut pas provoquer de faux rejet, elle ne
+retire que des candidats explicitement écartés par l'utilisateur).
+
+⚠️ **Un `runeId` est propre à un compte.** Une recette importée d'un autre
+joueur porte des runes imposées inconnues ici : elles sont **ignorées à
+l'import**, avec le nombre signalé dans le message — les garder viderait le
+pool du slot (zéro résultat) sans rien expliquer. En ligne de commande, le
+script **avertit** au lieu de purger : il est censé rejouer la recette
+telle quelle.
 
 ## Interruption — filet de temps, pré-filtrage et arrêt manuel
 
@@ -525,7 +1083,7 @@ plusieurs milliers de runes.
 ## Limites connues
 
 - **L'objectif de recherche n'affecte QUE le pré-filtrage**, jamais le
-  classement pendant la recherche elle-même — voir « Écran », étape 5.
+  classement pendant la recherche elle-même — voir « Écran », étape 3.
 - **Pré-filtrage heuristique par emplacement** : au-delà du budget de
   recherche, le résultat est « le meilleur trouvé », pas une preuve
   d'optimalité globale absolue sur l'inventaire entier. Sur une recherche à
@@ -534,8 +1092,11 @@ plusieurs milliers de runes.
   pas retouché depuis.
 - Artéfacts et relique du monstre restent fixes ; l'outil ne travaille que
   sur les runes.
-- L'exclusion v1 ne connaît que la **box** (6★ équipés) ; RTA, Siège et
-  l'exclusion ciblée par monstre/rune sont prévus mais pas construits.
+- **L'ajout à une liste de travail se fait UN monstre à la fois** (« Ajouter
+  à la liste », voir « Listes de travail et réservation de runes ») —
+  l'import en masse depuis un deck de siège/une prépa RTA entière n'est pas
+  construit, ni un workflow qui enchaîne automatiquement au monstre suivant
+  après validation.
 - Le preset de pré-filtrage par emplacement et le filet de temps (« Réglages
   avancés ») sont réglables ; le plafond de candidats collectés et le
   budget de paires restent des paramètres internes du moteur, non exposés
@@ -552,5 +1113,11 @@ plusieurs milliers de runes.
   set** — un demi-build à joker médiocre en sous-stats brutes mais qui
   complète un set précieux peut ne pas recevoir l'avantage de classement
   qu'il mériterait. Piste connue, pas encore corrigée dans tous les cas.
-- L'objectif « Dégâts » est une **formule communautaire prédictive**, comme
-  celles de la page Mécaniques — pas une simulation de combat réel.
+- **« Dégâts réels » est une formule communautaire prédictive**, comme
+  celles de la page Mécaniques — vraie formule du sort, vrai adversaire,
+  mais pas une simulation de combat réel. Restent **hors modèle**, et
+  jamais approximés en silence : variance, avantage élémentaire et glancing,
+  lignes de dégâts d'artéfact, réductions autres que la marque, mécaniques
+  propres à certains monstres. Environ **200 sorts du corpus** (sur ~6 000)
+  ont une formule hors modèle et sont refusés explicitement plutôt que
+  calculés de travers — détail dans [degats-reels.md](degats-reels.md).

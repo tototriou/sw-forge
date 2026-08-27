@@ -42,11 +42,21 @@
 // du potentiel restant, qui écarterait à tort une combinaison réellement
 // valable) plutôt que maximalement serrées.
 
-import { ArtifactDetail, BaseStats, GearSet, RelicDetail, RuneDetail } from '../types';
+import { ArtifactDetail, BaseStats, ElementKey, GearSet, RelicDetail, RuneDetail } from '../types';
 import { MAX_SET_PIECES, RUNE_EFFECT, SET_STAT_BONUS, StatKey, activeSets, runeEfficiency, runeScore, setPieces, setsCost } from './effects';
 import { computeStats, StatRow } from './stats';
 import { missingSets } from './recoMatch';
 import { OptimMetric } from './runeOptim';
+import {
+  DEF_FACTOR_CONST,
+  DEF_FACTOR_COEF,
+  BonusDegatsConditionnelProfile,
+  BonusDegatsStackableProfile,
+  DamageSetup,
+  PassifOffensifProfile,
+  SkillDamageProfile,
+  computeTotalDamage,
+} from './damage';
 
 // Statistiques principales possibles, par emplacement — RÈGLES DU JEU. Les
 // slots 1/3/5 ont une principale FIXE (ATQ plat / DEF plat / PV plat) : pas
@@ -70,6 +80,26 @@ export interface BuildRequirement {
   // Statistiques principales AUTORISÉES sur les slots 2/4/6 (codes RUNE_EFFECT,
   // voir SLOT_MAIN_OPTIONS). Absent/vide pour un slot = pas de contrainte.
   mainStats?: Partial<Record<2 | 4 | 6, number[]>>;
+  // Runes IMPOSÉES, par emplacement (1..6) : `lockedRunes[slot] = runeId`
+  // force CE slot à n'avoir qu'un seul candidat — la rune choisie. Absent
+  // pour un slot = emplacement libre, comportement inchangé.
+  //
+  // ⚠️ **Une RÉDUCTION de pool, pas une contrainte de plus.** Le verrou est
+  // appliqué tout en amont (`mainStatFilteredBySlot`, voir son
+  // implémentation), avant dominance/faisabilité/pré-filtrage : le slot
+  // n'a plus qu'un candidat, et TOUT le reste du moteur continue de
+  // travailler exactement comme avant sur un pool simplement plus petit.
+  // Aucun élagage n'a besoin de connaître la notion de verrou — c'est ce
+  // qui rend cette fonctionnalité sûre par construction (elle ne peut pas
+  // provoquer de faux rejet, elle retire des candidats que l'utilisateur a
+  // explicitement écartés lui-même).
+  //
+  // ⚠️ Une rune verrouillée dont l'emplacement RÉEL ne correspond pas au
+  // slot demandé, ou absente du pool (exclue par ailleurs, compte
+  // différent), rend la recherche VIDE pour ce slot — donc zéro résultat.
+  // C'est le comportement voulu : mieux vaut zéro build qu'un build qui
+  // ignore silencieusement le verrou posé.
+  lockedRunes?: Partial<Record<number, number>>;
 }
 
 export interface BuildCandidate {
@@ -110,6 +140,14 @@ export interface SearchParams {
   // en plus de servir de tri par défaut des résultats. Absent = aucun biais
   // (le pré-filtrage ne suit que minStats/maxStats/l'efficience générale).
   objective?: Objective;
+  // ⚠️ IMPOSE les stats à privilégier au pré-filtrage/à la rétention, en
+  // remplacement de `OBJECTIVE_RELEVANT_STATS[objective]` (voir
+  // `objectiveKeysOf`). Existe pour l'objectif « Dégâts réels », dont les
+  // stats pertinentes dépendent du SORT choisi et ne peuvent donc pas être
+  // écrites dans une table statique — l'écran les calcule via
+  // `damageRelevantStats` (damage.ts) et les transmet ici. Absent =
+  // comportement inchangé.
+  objectiveStats?: StatKey[];
   // Bouton « Prioriser les stats les plus difficiles » (OptimizerSection.tsx)
   // — piste B, spec/outils/optimizer/ « Suite — piste B gatée derrière un
   // paramètre ». `false`/absent (défaut, bouton « Rechercher » normal) :
@@ -140,27 +178,36 @@ export interface SearchResult {
 // Objectifs : choisis AVANT de lancer la recherche (OptimizerSection.tsx),
 // un grand bouton à choix unique — pour orienter le type de rune étudié dès
 // le pré-filtrage, pas seulement trier les résultats après coup.
-// `'speed_nuker'` : archétype « passe avant l'ennemi, tape fort » (ATQ+Dmg
-// Crit+VIT). Le pré-filtrage/rétention (`OBJECTIVE_RELEVANT_STATS`) est
-// resté câblé tel quel depuis une sonde expérimentale antérieure (voir
-// spec/outils/optimizer/, « Piste écartée — un objectif de recherche mieux
-// aligné » : cette sonde a été écartée comme correctif de `bucketCap`, mais
-// le câblage lui-même restait correct et neutre). Le TRI des résultats,
-// lui, réutilise directement la formule de `'degats'` (voir `objectiveScore`
-// ci-dessous) plutôt qu'une formule dédiée : VIT ne sert qu'à orienter QUELS
-// candidats la recherche retient, jamais à les départager entre eux au tri
-// final — cohérent avec l'intention de remplacer un jour la formule Dégâts
-// standard par une formule personnalisée par monstre (sort utilisé,
-// conditions de jeu), qui bénéficiera alors aussi à cet objectif sans
-// modification supplémentaire.
-export type Objective = 'efficience' | 'degats' | 'ehp' | 'vitesse' | 'speed_nuker';
+// `'degats_reels'` : les dégâts d'un SORT précis contre un adversaire
+// configuré (voir spec/outils/degats-reels.md). Contrairement aux deux
+// autres, ses stats pertinentes ne sont PAS fixes — elles dépendent du sort
+// choisi (`{ATK}`, `{ATK}*({SPD}+70)/30`, `0.2*{MAX HP}`…). L'écran les
+// calcule via `damageRelevantStats` et les transmet dans
+// `SearchParams.objectiveStats` ; l'entrée ci-dessous n'est que le repli
+// utilisé tant qu'aucun sort n'est résolu (fiche absente — monstre perso —
+// ou formule hors modèle). ⚠️ Remplace `'speed_nuker'` (archétype générique
+// ATQ+Dmg Crit+VIT, retiré : cet objectif calcule la VRAIE formule d'un sort
+// qui dépend de VIT — ex. Lagmaron, `ATQ×(VIT+70)/30` — plutôt qu'une
+// approximation qui ignorait VIT au tri final ; voir historique).
+// ⚠️ `'degats'` (formule générique ATQ×(1+TC×DC), sans sort ni adversaire) a
+// été RETIRÉ (2026-08-27) : une fois `'degats_reels'` mature, c'était une
+// approximation strictement inférieure du même besoin — garder les deux
+// faisait hésiter sur laquelle choisir. Une recette qui la porte encore
+// retombe sur **`'efficience'`** à l'import — même repli que l'ancien
+// `'speed_nuker'`, et aux TROIS points d'import (l'écran, `optimizer-search`
+// et `optimizer-search-analyze`).
+// ⚠️ **Pas `'degats_reels'`**, contrairement à ce que ce commentaire a annoncé :
+// « Dégâts réels » exige un sort résolu et un adversaire saisis, qu'une vieille
+// recette ne porte pas. Replier dessus aurait fait mesurer autre chose que ce
+// que la recette demandait, en silence. `'efficience'` est le repli SANS BIAIS,
+// donc le seul honnête ici.
+export type Objective = 'efficience' | 'ehp' | 'vitesse' | 'degats_reels';
 
 export const OBJECTIVE_LABELS: { key: Objective; label: string }[] = [
   { key: 'efficience', label: 'Efficience' },
-  { key: 'degats', label: 'Dégâts' },
+  { key: 'degats_reels', label: 'Dégâts réels' },
   { key: 'ehp', label: 'PV effectifs' },
   { key: 'vitesse', label: 'Vitesse' },
-  { key: 'speed_nuker', label: 'Speed nuker' },
 ];
 
 // ⚠️ Constantes de RÈGLE DU JEU (pas d'affichage) déplacées ici depuis
@@ -230,11 +277,37 @@ export const ARTIFACT_MAIN_OPTIONS: { code: 100 | 101 | 102; label: string }[] =
 // pour un potentiel TC qui ne sert à rien une fois le plafond atteint.
 export const OBJECTIVE_RELEVANT_STATS: Record<Objective, StatKey[]> = {
   efficience: [],
-  degats: ['atk', 'cd'],
+  // ⚠️ REPLI seulement — les vraies stats de « Dégâts réels » dépendent du
+  // sort choisi et arrivent par `SearchParams.objectiveStats` (voir
+  // `objectiveKeysOf` juste en dessous). Cette entrée sert quand aucun sort
+  // n'est résolu (fiche du monstre absente, formule non prise en charge).
+  degats_reels: ['atk', 'cd'],
   ehp: ['hp', 'def'],
   vitesse: ['spd'],
-  speed_nuker: ['atk', 'cd', 'spd'],
 };
+
+// Les stats à privilégier au pré-filtrage/à la rétention, avec la
+// possibilité de les IMPOSER indépendamment de l'objectif nommé.
+//
+// ⚠️ **Le moteur reste générique** : il ne sait pas ce qu'est un sort ni
+// comment on calcule des dégâts réels — seulement « ces stats-là comptent
+// plus que les autres pour cette recherche ». C'est ce qui permet à
+// `damage.ts` de rester la seule source du raisonnement métier, sans que ce
+// fichier ait à en dépendre (même principe que `pool`, déjà filtré en amont
+// sans que le moteur connaisse les périmètres d'exclusion).
+export function objectiveKeysOf(objective: Objective | undefined, override: StatKey[] | undefined): StatKey[] {
+  if (override) return override;
+  // ⚠️ `?? []`, pas un accès direct : `objective` peut porter une valeur
+  // ABSENTE de la table — une recette exportée pendant la durée de vie
+  // d'un objectif depuis retiré (ex. `speed_nuker`, v1.8.1 ; `degats`,
+  // 2026-08-27) est du JSON non validé, `parseOptimizerRecipe` ne vérifie
+  // pas que `objective` fait partie du type. Sans ce repli, `[...objectiveKeysOf(...)]` plus haut dans la
+  // pile lève une `TypeError` (spread sur `undefined`) au lieu de dégrader
+  // proprement vers « aucun biais » — même esprit de tolérance que le reste
+  // de ce fichier de recette (un identifiant introuvable est ignoré, jamais
+  // une exception).
+  return objective ? (OBJECTIVE_RELEVANT_STATS[objective] ?? []) : [];
+}
 
 export function statTotal(stats: StatRow[], key: StatKey): number {
   return stats.find((s) => s.key === key)?.total ?? 0;
@@ -253,30 +326,97 @@ export function statTotal(stats: StatRow[], key: StatKey): number {
 //    moyenne sur beaucoup de coups.
 //  - PV effectifs : réutilise le facteur de défense déjà documenté dans
 //    spec/mecaniques.md (1000 / (1140 + 3,5 × DEF)), pas une formule maison.
-export function objectiveScore(candidate: BuildCandidate, objective: Objective): number {
+// Contexte supplémentaire exigé par « Dégâts réels » : contrairement aux
+// autres objectifs, son score ne se déduit PAS des seules stats du candidat —
+// il faut le sort visé et l'adversaire configuré. Passé par l'appelant qui
+// les possède (l'écran, ou un script rejouant une recette).
+export interface RealDamageContext {
+  profile: SkillDamageProfile;
+  setup: DamageSetup;
+  // Élément du monstre optimisé — décide de la compétence d'invocateur
+  // « Puis. d'att. de <élément> ». Déduit du monstre, jamais saisi, donc
+  // hors de `setup` (qui ne porte que de la saisie, pour rester partageable
+  // dans une recette).
+  element: ElementKey | null;
+  // Passifs offensifs de CE monstre (voir `monsterOffensivePassives`,
+  // damage.ts) — additionnés au sort choisi selon `setup.passifsOffensifs`.
+  // Vide = comportement strictement inchangé (aucun passif connu, ou fiche
+  // absente).
+  passifs: PassifOffensifProfile[];
+  // Somme des lignes d'artéfact « Effet aug. VIT » ÉQUIPÉES (voir
+  // `speedBuffAmpliPct`, damage.ts) — fixe pour toute une recherche
+  // (l'Optimizer n'optimise que les runes). 0 = comportement inchangé.
+  ampliVitPct: number;
+  // Ce monstre force-t-il le critique quand il est plus rapide que
+  // l'adversaire (voir `monsterCritSiPlusRapide`) ? Déduit de la fiche,
+  // jamais saisi. `false` = comportement inchangé.
+  critSiPlusRapide: boolean;
+  // Ce monstre majore-t-il TOUS ses dégâts selon l'écart de VIT (Sonia —
+  // voir `monsterBonusDegatsSelonVit`) ? Déduit de la fiche, jamais saisi.
+  // `null` = comportement inchangé.
+  bonusDegatsSelonVit: { ecartMax: number; pctMax: number } | null;
+  // Ce monstre porte-t-il un bonus de dégâts ACCUMULABLE (Momo — voir
+  // `monsterBonusDegatsStackable`) ? Déduit de la fiche ; le POURCENTAGE,
+  // lui, est saisi par l'utilisateur (`setup.stackPersonnalise`). `null` =
+  // comportement inchangé.
+  bonusDegatsStack: BonusDegatsStackableProfile | null;
+  // Ciri (Feu)/MOS (Feu)/Reyka et Lizardman/Glinodon — voir
+  // `monsterCritRateSelonVit`/`monsterBonusStatFixe`. `{}` = comportement
+  // inchangé.
+  monsterWide: {
+    critRateSelonVit?: { ptsParVit: number };
+    bonusStatFixe?: { cr: number; cd: number };
+    bonusFixeCiblePvMax?: { pct: number };
+    bonusEcartDef?: { coeff: number };
+    bonusFixeMaxHpPropre?: { pct: number };
+    bonusSacrifice?: { skillCom2usId: number; pctPerte: number; pctSurPerte: number };
+    bonusParEffetCible?: { skillCom2usId: number; pct: number; source: 'buffs' | 'debuffs' | 'buffsEtDebuffs' };
+    bonusParEffetPropre?: { skillCom2usId: number; pct: number };
+  };
+  // Bonus conditionnel à bouton (Jin Kazama, Cyborg, Brownie Magician…) —
+  // voir `monsterBonusDegatsConditionnel`. `null` = comportement inchangé.
+  bonusDegatsConditionnel: BonusDegatsConditionnelProfile | null;
+  // Zenitsu Agatsuma (Ténèbres)/Qilin Slasher (Ténèbres) — voir
+  // `monsterBonusDegatsSelonCr`. `null` = comportement inchangé.
+  bonusDegatsSelonCr: { ratio: number } | null;
+  // Gideon (« Aegis Shell ») — voir `monsterBonusDegatsSelonDef`. `null` =
+  // comportement inchangé.
+  bonusDegatsSelonDef: { defMax: number; pctMax: number } | null;
+  // Brita/Eivor (Eau) — voir `monsterBonusSiAtqSeuil`. `null` =
+  // comportement inchangé.
+  bonusSiAtqSeuil: { seuil: number; pct: number } | null;
+}
+
+export function objectiveScore(candidate: BuildCandidate, objective: Objective, realDamage?: RealDamageContext): number {
   if (objective === 'efficience') return candidate.effTotal;
   const { stats } = candidate;
   if (objective === 'vitesse') return statTotal(stats, 'spd');
-  if (objective === 'degats' || objective === 'speed_nuker') {
-    // ⚠️ `speed_nuker` réutilise ICI la même formule que `degats` — PLACEHOLDER
-    // assumé, pas une formule dédiée. Pour un vrai speed nuker (ex. Lagmaron,
-    // sort n°2 : Multiplier = ATQ×(VIT+70)/30), VIT participe RÉELLEMENT au
-    // multiplicateur de dégâts du sort — cette formule générique l'ignore
-    // totalement ici. VIT reste pris en compte en amont, dans le
-    // pré-filtrage/la rétention (voir `OBJECTIVE_RELEVANT_STATS.speed_nuker`),
-    // juste pas dans CE score. À remplacer quand une formule de dégâts
-    // personnalisée par monstre/sort existera (projet plus large, pas encore
-    // construit) — ce jour-là, `speed_nuker` en bénéficiera automatiquement
-    // sans modification supplémentaire de cette fonction.
-    const atk = statTotal(stats, 'atk');
-    // ⚠️ Le Taux Crit est PLAFONNÉ à 100 % dans le jeu — passer 100 % ne
-    // rapporte plus rien (la formule utiliserait sinon une chance de critique
-    // > 100 %, gonflant les dégâts espérés d'un build dont le total brut
-    // dépasse 100 % au-delà de ce qu'il apporte réellement en jeu). `computeStats`
-    // n'écrête jamais rien lui-même (voir Conditions) : c'est ICI, au moment
-    // de transformer une stat en dégâts, que le plafond compte.
-    const cr = Math.min(statTotal(stats, 'cr'), 100);
-    return atk * (1 + (cr / 100) * (statTotal(stats, 'cd') / 100));
+  if (objective === 'degats_reels') {
+    // ⚠️ Sans contexte, on ÉCHOUE bruyamment plutôt que de retomber sur EHP
+    // ou une autre formule : un score plausible mais calculé sur un autre
+    // modèle que celui affiché à l'utilisateur serait invisible. Même
+    // garde-fou que la branche finale de cette fonction, qui a justement
+    // rendu visible un trou réel (voir spec/outils/optimizer/, revue de code
+    // externe).
+    if (!realDamage) {
+      throw new Error("objectiveScore : l'objectif « Dégâts réels » exige un contexte (sort + adversaire).");
+    }
+    return computeTotalDamage(
+      realDamage.profile,
+      realDamage.passifs,
+      stats,
+      realDamage.setup,
+      realDamage.element,
+      realDamage.ampliVitPct,
+      realDamage.critSiPlusRapide,
+      realDamage.bonusDegatsSelonVit,
+      realDamage.bonusDegatsStack,
+      realDamage.monsterWide,
+      realDamage.bonusDegatsConditionnel,
+      realDamage.bonusDegatsSelonCr,
+      realDamage.bonusDegatsSelonDef,
+      realDamage.bonusSiAtqSeuil
+    );
   }
   // Filet de sécurité : tout objectif futur sans branche dédiée ci-dessus
   // échoue bruyamment plutôt que de retomber silencieusement sur EHP (voir
@@ -287,7 +427,12 @@ export function objectiveScore(candidate: BuildCandidate, objective: Objective):
   }
   const hp = statTotal(stats, 'hp');
   const def = statTotal(stats, 'def');
-  return (hp * (1140 + 3.5 * def)) / 1000;
+  // ⚠️ Constantes importées de damage.ts, seule source du facteur de défense
+  // pour toute l'app — l'arithmétique reste écrite TELLE QUELLE (et non
+  // `hp / defenseFactor(def)`, pourtant mathématiquement identique) : passer
+  // par la division changerait les derniers bits du résultat, donc l'ordre de
+  // deux candidats à égalité près, pour zéro bénéfice.
+  return (hp * (DEF_FACTOR_CONST + DEF_FACTOR_COEF * def)) / 1000;
 }
 
 // Efficience/Score total d'un candidat, recalculé À LA DEMANDE à partir des
@@ -673,7 +818,13 @@ export function filterSlot(
   base: BaseStats,
   matchCap = MAX_PER_SLOT_MATCH,
   fillCap = MAX_PER_SLOT_FILL,
-  objective?: Objective
+  objective?: Objective,
+  // ⚠️ Paramètre AJOUTÉ en fin de liste, jamais un changement de type de
+  // `objective` : les ~7 scripts de diagnostic qui appellent cette fonction
+  // vivent hors du périmètre de `tsconfig.json` — `tsc --noEmit` ne verrait
+  // pas leur rupture (incident déjà vécu deux fois, voir
+  // spec/outils/optimizer/). Omis = comportement strictement inchangé.
+  objectiveStats?: StatKey[]
 ): RuneDetail[] {
   const requiredKeys = new Set(requirement.sets);
   // ⚠️ Élagage SÛR, pas une heuristique : combo à coût COMPLET
@@ -745,7 +896,7 @@ export function filterSlot(
   // (`runeContributionAllKeys`), pas rappelée 8× via `runeContribution` —
   // voir son commentaire pour le motif (même bug que `precomputeSlot`
   // ailleurs dans ce fichier, jamais corrigé ici avant).
-  const objectiveKeys = objective ? OBJECTIVE_RELEVANT_STATS[objective] : [];
+  const objectiveKeys = objectiveKeysOf(objective, objectiveStats);
   const contribByRune = pool.map((r) => ({ r, c: runeContributionAllKeys(r) }));
   for (const k of ALL_STAT_KEYS) {
     const keepN = objectiveKeys.includes(k) ? PER_STAT_KEEP_OBJECTIVE : PER_STAT_KEEP;
@@ -2004,6 +2155,17 @@ export function mainStatFilteredBySlot(pool: RuneDetail[], requirement: BuildReq
   const bySlot: RuneDetail[][] = [[], [], [], [], [], []];
   for (const r of pool) {
     if (r.slot < 1 || r.slot > 6) continue;
+    // ⚠️ **Verrou de rune, appliqué ICI et nulle part ailleurs** — le point
+    // le plus AMONT du pipeline, traversé par TOUS les chemins (recherche
+    // réelle, estimation du pool affichée avant de lancer, diagnostics de
+    // faisabilité) : un seul endroit à toucher, aucun risque qu'un chemin
+    // l'oublie et travaille sur un pool différent de celui annoncé.
+    // Le slot verrouillé ne garde QUE la rune choisie ; tout le reste du
+    // moteur (dominance, faisabilité, pré-filtrage, meet-in-the-middle)
+    // continue sur un pool simplement plus petit, sans rien savoir de la
+    // notion de verrou.
+    const locked = requirement.lockedRunes?.[r.slot];
+    if (locked != null && r.id !== locked) continue;
     const allowed = requirement.mainStats?.[r.slot as 2 | 4 | 6];
     if (allowed && allowed.length > 0 && !allowed.includes(r.main.code)) continue;
     bySlot[r.slot - 1].push(r);
@@ -2024,10 +2186,11 @@ function buildFilteredBySlot(
   requirement: BuildRequirement,
   base: BaseStats,
   slotCap: number,
-  objective?: Objective
+  objective?: Objective,
+  objectiveStats?: StatKey[]
 ): RuneDetail[][] {
   const bySlot = mainStatFilteredBySlot(pool, requirement);
-  return bySlot.map((list) => filterSlot(list, requirement, base, slotCap, slotCap, objective));
+  return bySlot.map((list) => filterSlot(list, requirement, base, slotCap, slotCap, objective, objectiveStats));
 }
 
 // Estimation, AVANT de lancer la recherche, du nombre de combinaisons brutes
@@ -2041,9 +2204,10 @@ export function estimateSearchSpace(
   requirement: BuildRequirement,
   base: BaseStats,
   slotCap: number,
-  objective?: Objective
+  objective?: Objective,
+  objectiveStats?: StatKey[]
 ): { perSlot: number[]; product: number } {
-  const filtered = buildFilteredBySlot(pool, requirement, base, slotCap, objective);
+  const filtered = buildFilteredBySlot(pool, requirement, base, slotCap, objective, objectiveStats);
   const perSlot = filtered.map((l) => l.length);
   const product = perSlot.reduce((a, b) => a * b, 1);
   return { perSlot, product };
@@ -2085,10 +2249,15 @@ export function estimateSearchSpace(
 // atteinte en usage courant — voir spec/outils/optimizer/, « BUCKET_CAP mis
 // à l'échelle ». Le nombre affiché à l'écran doit rester lisible comme
 // « au pire », pas comme une prédiction.
-export function estimatePairBound(requirement: BuildRequirement, slotFilterCap: number, objective?: Objective): number {
+export function estimatePairBound(
+  requirement: BuildRequirement,
+  slotFilterCap: number,
+  objective?: Objective,
+  objectiveStats?: StatKey[]
+): number {
   const bucketCap = bucketCapFor(slotFilterCap);
   const minKeys = ALL_STAT_KEYS.filter((k) => (requirement.minStats[k] ?? 0) > 0);
-  const retentionKeys = Array.from(new Set<StatKey>([...minKeys, ...(objective ? OBJECTIVE_RELEVANT_STATS[objective] : [])]));
+  const retentionKeys = Array.from(new Set<StatKey>([...minKeys, ...objectiveKeysOf(objective, objectiveStats)]));
   const numHeaps = 1 + (minKeys.length > 0 ? 1 : 0) + retentionKeys.length;
   const maxPerBucket = bucketCap * numHeaps;
 
@@ -2460,7 +2629,7 @@ export function adaptiveMaxNodes(params: SearchParams): number {
     .map((k) => ({ k, min: params.requirement.minStats[k] }))
     .filter((e): e is { k: StatKey; min: number } => e.min != null && e.min > 0);
   const retentionKeys = Array.from(
-    new Set<StatKey>([...minEntries.map((e) => e.k), ...(params.objective ? OBJECTIVE_RELEVANT_STATS[params.objective] : [])])
+    new Set<StatKey>([...minEntries.map((e) => e.k), ...objectiveKeysOf(params.objective, params.objectiveStats)])
   );
   const sliceCount = 1 + (minEntries.length > 0 ? 1 : 0) + retentionKeys.length;
   const ADAPTIVE_ANCHOR_SLICE_COUNT = 5;
@@ -2530,7 +2699,7 @@ export function prepareSearch(params: SearchParams): PreparedSearch | null {
   // proches du plafond, pas les plus basses. Se limiter aux minimums garde
   // la protection strictement sûre.
   const retentionKeys = Array.from(
-    new Set<StatKey>([...minEntries.map((e) => e.k), ...(params.objective ? OBJECTIVE_RELEVANT_STATS[params.objective] : [])])
+    new Set<StatKey>([...minEntries.map((e) => e.k), ...objectiveKeysOf(params.objective, params.objectiveStats)])
   );
   // PROTOTYPE (forge/order-as-weight-contrib, combosOrderMode='objective') —
   // UNIQUEMENT les stats de l'objectif choisi, contrairement à
@@ -2538,7 +2707,7 @@ export function prepareSearch(params: SearchParams): PreparedSearch | null {
   // hors sujet par rapport à l'objectif). Vide si aucun objectif choisi
   // (« Efficience ») — voir objectiveRetentionScore, qui retombe alors sur
   // relevanceScore.
-  const objectiveKeys: StatKey[] = params.objective ? OBJECTIVE_RELEVANT_STATS[params.objective] : [];
+  const objectiveKeys: StatKey[] = objectiveKeysOf(params.objective, params.objectiveStats);
 
   const distinctKeys = Array.from(new Set(requirement.sets));
 
@@ -2557,7 +2726,7 @@ export function prepareSearch(params: SearchParams): PreparedSearch | null {
   let bySlot = mainStatFilteredBySlot(pool, requirement);
   bySlot = bySlot.map((list) => pruneDominated(list, requiredKeys, maxKeys));
   bySlot = eliminateInfeasible(bySlot, minEntries, maxEntries, constrainedKeys, guaranteed, artFlat, relPct, totalOf, guaranteedMin);
-  const filtered = bySlot.map((list) => filterSlot(list, requirement, base, slotCap, slotCap, params.objective));
+  const filtered = bySlot.map((list) => filterSlot(list, requirement, base, slotCap, slotCap, params.objective, params.objectiveStats));
   if (filtered.some((list) => list.length === 0)) {
     return null;
   }

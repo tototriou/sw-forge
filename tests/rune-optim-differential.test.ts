@@ -253,6 +253,75 @@ export default function testRuneOptimDifferential() {
     }
   }
 
+  // ⚠️ **Runes IMPOSÉES (`requirement.lockedRunes`), balayage aléatoire** —
+  // revue de code externe : ce chantier a ajouté `lockedRunes` (verrou de
+  // rune, `mainStatFilteredBySlot`) et `objectiveStats` (pool de
+  // pré-filtrage IMPOSÉ) à `runeBuildOptim.ts` (~270 lignes de diff sur
+  // toute la branche) sans qu'aucun différentiel dédié ne les exerce sur
+  // des données ALÉATOIRES — seulement des cas écrits à la main
+  // (`tests/rune-optim.test.ts`). Un verrou est SÛR PAR CONSTRUCTION selon
+  // sa propre documentation (réduit le pool tout en amont, avant
+  // dominance/faisabilité/pré-filtrage — rien en aval ne connaît la notion
+  // de verrou), mais « sûr par construction d'après la doc » n'est pas
+  // « vérifié » : ce balayage referme ce trou en appliquant EXACTEMENT le
+  // même filtre par avance sur la référence brute-force (`applyLockToPool`,
+  // ci-dessous) plutôt que de faire confiance à l'argument. ──
+  function applyLockToPool(p: RuneDetail[], lockedRunes: Record<number, number>): RuneDetail[] {
+    return p.filter((r) => {
+      const locked = lockedRunes[r.slot];
+      return locked == null || r.id === locked;
+    });
+  }
+
+  const LOCK_SCENARIOS = 10;
+  for (let s = 0; s < LOCK_SCENARIOS; s++) {
+    const rng = mulberry32(5000 + s);
+    const pool = randomPool(rng, 3);
+
+    const wantSets = rng() < 0.7;
+    const sets = wantSets
+      ? [SET_KEYS[Math.floor(rng() * (SET_KEYS.length - 1))], SET_KEYS[Math.floor(rng() * (SET_KEYS.length - 1))]]
+      : [];
+    const minStats: BuildRequirement['minStats'] = {};
+    if (rng() < 0.5) minStats.spd = 100 + Math.floor(rng() * 60);
+
+    // Verrouille une rune RÉELLEMENT présente dans le pool, sur son propre
+    // emplacement — même geste que l'écran (le choix se limite aux runes
+    // déjà portées par l'exemplaire, jamais une rune arbitraire).
+    const lockTarget = pool[Math.floor(rng() * pool.length)];
+    const lockedRunes = { [lockTarget.slot]: lockTarget.id };
+    const requirement: BuildRequirement = { sets, minStats, lockedRunes };
+
+    const poolFiltre = applyLockToPool(pool, lockedRunes);
+    const ref = bruteForce(poolFiltre, BASE, requirement);
+    const res = searchBuilds({ base: BASE, artifacts: [], pool, requirement, metric: 'eff' });
+
+    egal(
+      res.candidates.length > 0,
+      ref.count > 0,
+      `verrou ${s} (slot ${lockTarget.slot}→rune ${lockTarget.id}) : faisabilité identique (référence ${ref.count}, moteur ${res.candidates.length})`
+    );
+
+    if (res.candidates.length > 0 && ref.count > 0 && !res.truncated) {
+      const bestFound = Math.max(...res.candidates.map((c) => c.effTotal));
+      ok(
+        Math.abs(bestFound - ref.best) < 1e-6,
+        `verrou ${s} : meilleure valeur trouvée par le moteur (${bestFound.toFixed(2)}) = référence (${ref.best.toFixed(2)})`
+      );
+    }
+
+    // Chaque candidat renvoyé doit RÉELLEMENT porter la rune imposée sur le
+    // bon emplacement — pas seulement « un build valide quelconque ».
+    if (res.candidates.length > 0) {
+      const byId = new Map(pool.map((r) => [r.id, r]));
+      const tousVerrouilles = res.candidates.every((c) => {
+        const runeSurCeSlot = c.runeIds.map((id) => byId.get(id)!).find((r) => r.slot === lockTarget.slot);
+        return runeSurCeSlot?.id === lockTarget.id;
+      });
+      ok(tousVerrouilles, `verrou ${s} : chaque candidat porte bien la rune imposée sur l'emplacement ${lockTarget.slot}`);
+    }
+  }
+
   // ⚠️ Scénario DÉDIÉ (pas aléatoire) — vérifie le correctif du cas limite
   // documenté dans spec/outils/optimizer/, « Suite — bonus de set NON
   // demandé anticipé dès le pré-filtrage » : `guaranteedSetBonus` ne compte

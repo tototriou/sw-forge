@@ -23,7 +23,7 @@
 //    conditionnels et n'entrent pas dans les stats de base ;
 //  - relique : stat principale en % (PV%/ATQ%/DEF%).
 
-import { GearSet } from '../types';
+import { BaseStats, GearSet, Monster } from '../types';
 import { RUNE_EFFECT, ARTIFACT_MAIN, RELIC_MAIN, StatKey, SET_STAT_BONUS, activeSets } from './effects';
 
 export interface StatRow {
@@ -110,4 +110,25 @@ export function computeStats(gear: GearSet): StatRow[] {
     }
     return { key, label, base: baseVal[key], bonus: total - baseVal[key], total, suffix };
   });
+}
+
+// Stats de base (niveau/étoiles max, SANS rune) d'un monstre du BESTIAIRE —
+// pour afficher/optimiser un monstre non possédé (voir spec/outils/optimizer/
+// historique-import-monstres-a-optimiser.md, Question 4). `Monster.stats`
+// porte déjà les valeurs `max_lvl_*` de SWARFARM (voir fetch-monsters.mjs),
+// il ne manque qu'un renommage de champs vers `BaseStats` — un champ absent
+// (`null`) vaut 0, même repli que `baseStatsOf` (importAccount.ts) pour un
+// champ manquant côté import réel.
+export function monsterBaseStats(monster: Monster): BaseStats {
+  const s = monster.stats;
+  return {
+    hp: s.hp ?? 0,
+    atk: s.attack ?? 0,
+    def: s.defense ?? 0,
+    spd: s.speed ?? 0,
+    cr: s.critRate ?? 0,
+    cd: s.critDamage ?? 0,
+    res: s.resistance ?? 0,
+    acc: s.accuracy ?? 0,
+  };
 }

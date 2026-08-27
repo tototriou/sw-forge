@@ -10,6 +10,7 @@
 //
 // Usage : monster-search-buildbuckets-diag.ts <export.json> <deckId> <nomMonstre> [--defense] [statKeys=atk,cr,cd] [objective=degats] [slotFilterCap=80] [bucketCap=3000]
 
+import { resolveObjectifCli } from './lib/objectifCli';
 import { activeSets, setPieces, StatKey } from '../src/lib/effects';
 import { computeStats } from '../src/lib/stats';
 import {
@@ -38,7 +39,7 @@ const args = parseDeckMonsterArgs(process.argv.slice(2), USAGE);
 const statKeysArg = args.rest[0] ?? 'atk,cr,cd';
 const statKeys = statKeysArg.split(',').map((s) => s.trim()) as StatKey[];
 const objectiveArg = args.rest[1] ?? 'degats';
-const objective = (objectiveArg === 'none' ? undefined : objectiveArg) as Objective | undefined;
+const { objective, objectiveStats } = resolveObjectifCli(objectiveArg);
 const slotFilterCap = args.rest[2] ? Number(args.rest[2]) : 80;
 const bucketCap = args.rest[3] ? Number(args.rest[3]) : 3000;
 

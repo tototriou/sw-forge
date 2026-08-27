@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { CheckCircle2 } from 'lucide-react';
 import { ArtifactDetail, RuneDetail, RUNE_SETS } from '../../types';
 import { BuildCandidate, candidateMetricTotal } from '../../lib/runeBuildOptim';
 import { activeSets } from '../../lib/effects';
@@ -8,7 +9,7 @@ import RuneWheel from '../RuneWheel';
 import ArtifactSlots from '../ArtifactSlots';
 import StatPanel from '../StatPanel';
 import { COMPACT, useMediaQuery } from '../../hooks/useMediaQuery';
-import { FlottantAuto } from '../../ui';
+import { Bouton, FlottantAuto } from '../../ui';
 
 interface Props {
   rank: number;
@@ -27,6 +28,28 @@ interface Props {
   // autre rune, même dans une autre carte, ferme le popover déjà ouvert.
   openRuneKey: string | null;
   onToggleRune: (key: string) => void;
+  // Dégâts du sort visé pour CE candidat, quand l'objectif « Dégâts réels »
+  // est actif — `undefined` sinon. ⚠️ Calculé par le PARENT (qui détient le
+  // sort résolu et l'adversaire) plutôt que reconstruit ici : cette carte
+  // n'a aucune raison de connaître le modèle de dégâts, et le parent trie
+  // déjà sur exactement la même valeur.
+  degatsReels?: { total: number; partPvCible: number };
+  // Bouton « Valider » (Lot 2 — réservation des 6 runes de CE build, voir
+  // spec/outils/optimizer/historique-import-monstres-a-optimiser.md).
+  // `undefined` : aucun bouton — cas d'un monstre non réellement possédé
+  // (repli stats de base, voir OptimizerSection.tsx), rien à réserver sur un
+  // exemplaire qui n'existe pas dans le compte.
+  onValidate?: () => void;
+  // Ce candidat EST le build ACTUELLEMENT validé pour ce monstre (mêmes 6
+  // runeIds, comparaison faite par le parent) — bouton désactivé, libellé
+  // « Validé » plutôt que « Valider ».
+  validated?: boolean;
+  // ⚠️ **Une rune de ce build est DÉJÀ RÉSERVÉE** pour un autre monstre de la
+  // liste active : le bouton reste AFFICHÉ mais désactivé, et dit pourquoi.
+  // Le retirer laisserait croire que ce build n'est pas validable du tout,
+  // alors qu'il le redeviendra dès qu'on libère la rune. `null` = aucun
+  // conflit. Le texte nomme le monstre concerné, comme le fait la fiche.
+  conflit?: string | null;
 }
 
 // ⚠️ Même FORME que l'affichage de l'équipement actuellement équipé (RTA/
@@ -50,6 +73,10 @@ export default function BuildCandidateCard({
   metric,
   openRuneKey,
   onToggleRune,
+  degatsReels,
+  onValidate,
+  conflit,
+  validated,
 }: Props) {
   const runes = candidate.runeIds.map((id) => runeById.get(id)).filter((r): r is RuneDetail => !!r);
   const sets = activeSets(runes.map((r) => r.set));
@@ -96,6 +123,23 @@ export default function BuildCandidateCard({
           {metric === 'eff' ? 'Efficience moyenne' : 'Score moyen'} : {formatRuneMetric(liveTotal / 6, metric)}
         </span>
       </div>
+
+      {/* ⚠️ Le chiffre qui a servi à CLASSER ce candidat passe devant la
+          mesure par rune : quand on optimise des dégâts, c'est lui qu'on
+          compare d'une carte à l'autre. La part des PV de la cible le rend
+          lisible sans calcul mental (« ça tue ou pas »), le seul rôle des PV
+          adverses saisis — ils n'entrent jamais dans le classement. */}
+      {degatsReels && (
+        <p className="mb-2 flex flex-wrap items-baseline justify-between gap-x-2 rounded-lg border border-border-soft bg-panel2 px-2 py-1">
+          <span className="text-micro text-ink-dim">Dégâts</span>
+          <span className="font-mono text-sm font-bold text-star">
+            {Math.round(degatsReels.total).toLocaleString('fr-FR')}
+            <span className="ml-1.5 font-normal text-micro text-ink-dim">
+              {degatsReels.partPvCible >= 100 ? 'tue la cible' : `${Math.round(degatsReels.partPvCible)} % des PV`}
+            </span>
+          </span>
+        </p>
+      )}
 
       {sets.length > 0 && (
         <p className="mb-2 flex flex-wrap items-center gap-1 text-micro text-ink-dim">
@@ -174,6 +218,26 @@ export default function BuildCandidateCard({
           {openArtifact && <ArtifactDetailBox artifact={openArtifact} />}
           {openRune && <RuneDetailBox rune={openRune} />}
         </div>
+      )}
+
+      {/* « Valider » (Lot 2) — réserve les 6 runes de CE build (bloquées
+          pour les recherches des AUTRES monstres de « Monstres déjà runés »,
+          voir OptimizerSection.tsx). Absent (`onValidate` non fourni) pour
+          un monstre non réellement possédé — rien à réserver sur un
+          exemplaire qui n'existe pas dans le compte. */}
+      {onValidate && (
+        <Bouton
+          onClick={onValidate}
+          disabled={validated || !!conflit}
+          title={conflit ?? undefined}
+          ton={validated ? 'accent' : 'neutre'}
+          fond={validated ? 'doux' : 'plein'}
+          taille="sm"
+          pleineLargeur
+          icone={validated ? <CheckCircle2 size={14} /> : undefined}
+          libelle={validated ? 'Validé' : conflit ? 'Rune déjà réservée' : 'Valider ce build'}
+          className="mt-2.5"
+        />
       )}
     </div>
   );

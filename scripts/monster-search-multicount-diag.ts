@@ -9,6 +9,7 @@
 //
 // Usage : monster-search-multicount-diag.ts <export.json> <nomMonstre> [objective=degats]
 
+import { resolveObjectifCli } from './lib/objectifCli';
 import {
   BuildRequirement,
   SearchParams,
@@ -28,7 +29,7 @@ if (!exportPath || !monsterName) {
   console.error('Usage: monster-search-multicount-diag.ts <export.json> <nomMonstre> [objective=degats]');
   process.exit(1);
 }
-const objective = (objectiveArg ?? 'degats') as Objective;
+const { objective, objectiveStats } = resolveObjectifCli(objectiveArg ?? 'degats');
 
 const sonia = loadBoxMonster(exportPath, monsterName);
 // ⚠️ « Exclure les runes déjà utilisées » (excludeUsedRunes) est DÉCOCHÉ

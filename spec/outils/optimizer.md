@@ -298,6 +298,27 @@ retour.
    choix unique** (`<Segmented
    size="lg">`), choisi **avant** de lancer la recherche, pas seulement un tri
    après coup :
+   ⚠️⚠️ **UN OBJECTIF RETIRÉ SURVIT DANS LES SCRIPTS.** `'degats'` a été sorti
+   d'`Objective`, mais il restait le DÉFAUT de dix scripts CLI/diag, en cast
+   `as Objective`. Or `objectiveKeysOf` retombe sur `[]` pour une valeur absente
+   de la table : ces scripts mesuraient donc **sans aucun biais de
+   pré-filtrage**, alors qu'ils sont précisément là pour le mesurer — le
+   validateur différentiel comparait deux moteurs dans des conditions qui
+   n'étaient plus celles de l'app, et **rien ne le disait**.
+   - Le repli vit en **un seul endroit** (`scripts/lib/objectifCli.ts`) et
+     **reproduit l'ancien comportement** : `'degats'` → `efficience` +
+     `objectiveStats: ['atk', 'cd']`, l'équivalence déjà retenue par
+     `perfShared.ts`. Mesurer « sans biais » aurait changé la question posée,
+     silencieusement.
+   - La valeur reste acceptée **en ligne de commande** : c'est une compatibilité
+     d'argument, pas un objectif de l'app.
+   - ⚠️⚠️ **`tsconfig.json` n'inclut que `src`** : `tsc --noEmit` ne voit RIEN de
+     `scripts/`. C'est ce qui a laissé passer les dix casts — et le code le
+     savait déjà (`filterSlot` porte l'avertissement « incident déjà vécu deux
+     fois »). Ça vient de se reproduire une troisième. Tant que le périmètre
+     n'est pas élargi, **tout changement de type partagé avec `scripts/` se
+     vérifie à la main** (`grep` du nom, puis un bundle esbuild de contrôle).
+
    - **Efficience** (par défaut) — pas de biais particulier, la mesure
      choisie globalement (Efficience ou Score SW, voir
      [compte/runes.md](../compte/runes.md)).

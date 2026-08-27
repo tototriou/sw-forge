@@ -24,6 +24,7 @@
 //
 // Usage : bucket-cap-scaling-diag.ts <export.json>
 
+import { resolveObjectifCli } from './lib/objectifCli';
 import { BuildRequirement, SearchParams, prepareSearch, buildBuckets, SLOT_FILTER_PRESETS } from '../src/lib/runeBuildOptim';
 import { ArtifactDetail } from '../src/types';
 import { drain } from './lib/drain';
@@ -50,6 +51,10 @@ const requirement: BuildRequirement = {
   mainStats: { 2: [8], 4: [9], 6: [4] },
 };
 
+// ⚠️ `'degats'` a été RETIRÉ d'`Objective` : conservé ici comme LIBELLÉ de cas,
+// il est traduit en `efficience` + `objectiveStats: ['atk','cd']` au moment de
+// lancer la recherche (`resolveObjectifCli`) — sinon `objectiveKeysOf` rendrait
+// `[]` et cette batterie mesurerait sans le biais qu'elle est là pour mesurer.
 const REFERENCES: { label: string; objective: 'degats' | 'vitesse'; adaptiveTrancheWeighting: boolean; builds: number[][] }[] = [
   {
     label: 'Dégâts, piste B off',
@@ -88,13 +93,14 @@ const FORMULAS: Formula[] = [
 function checkRetention(
   slotFilterCap: number,
   bucketCap: number,
-  objective: 'degats' | 'vitesse',
+  objectifCas: 'degats' | 'vitesse',
   adaptiveTrancheWeighting: boolean,
   builds: number[][]
 ): { survivedA: number; survivedB: number; buildMs: number } {
+  const { objective, objectiveStats } = resolveObjectifCli(objectifCas);
   const params: SearchParams = {
     base: sonia.gear.base, artifacts, relic: sonia.gear.relic, pool, requirement, metric: 'eff',
-    objective, maxMs: 10 * 60 * 1000, slotFilterCap, bucketCap, adaptiveTrancheWeighting,
+    objective, objectiveStats, maxMs: 10 * 60 * 1000, slotFilterCap, bucketCap, adaptiveTrancheWeighting,
   };
   const prepared = prepareSearch(params)!;
   const t0 = performance.now();

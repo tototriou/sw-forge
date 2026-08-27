@@ -6,6 +6,7 @@
 //
 // Usage : monster-search-filterslot-diag.ts <export.json> <deckId> <nomMonstre> <slot 1-6> [--defense] [statKeys=atk,cr,cd] [objective=degats] [slotFilterCap=80]
 
+import { resolveObjectifCli } from './lib/objectifCli';
 import { activeSets, StatKey } from '../src/lib/effects';
 import { computeStats } from '../src/lib/stats';
 import {
@@ -19,6 +20,7 @@ import {
   relevance,
   runeContribution,
   Objective,
+  objectiveKeysOf,
 } from '../src/lib/runeBuildOptim';
 import { BaseStats } from '../src/types';
 import { loadDeckMonster, parseDeckMonsterArgs } from './lib/deckMonster';
@@ -34,7 +36,7 @@ if (!Number.isFinite(targetSlot) || targetSlot < 1 || targetSlot > 6) {
 const statKeysArg = args.rest[1] ?? 'atk,cr,cd';
 const statKeys = statKeysArg.split(',').map((s) => s.trim()) as StatKey[];
 const objectiveArg = args.rest[2] ?? 'degats';
-const objective = (objectiveArg === 'none' ? undefined : objectiveArg) as Objective | undefined;
+const { objective, objectiveStats } = resolveObjectifCli(objectiveArg);
 const slotFilterCap = args.rest[3] ? Number(args.rest[3]) : 80;
 // Mêmes constantes que filterSlot (privées à runeBuildOptim.ts, dupliquées
 // ici pour ce diagnostic — voir PER_STAT_KEEP/PER_STAT_KEEP_OBJECTIVE).
@@ -81,7 +83,10 @@ const relRank = scored.findIndex((s) => s.r.id === targetRune.id) + 1;
 console.log(`\nrelevance() combinée (matchCap/fillCap=${slotFilterCap}) : rang #${relRank} / ${pool.length}`);
 console.log(`  score cible=${scored[relRank - 1]?.s.toFixed(3)}, meilleur=${scored[0]?.s.toFixed(3)}`);
 
-const objectiveKeys = objective ? (objective === 'degats' ? ['atk', 'cd'] : objective === 'ehp' ? ['hp', 'def'] : objective === 'vitesse' ? ['spd'] : []) : [];
+// ⚠️ La MÊME résolution que le moteur (`objectiveKeysOf`), override compris :
+// une table recopiée ici connaissait encore `'degats'`, retiré du type, et
+// divergeait donc de ce que la recherche applique réellement.
+const objectiveKeys: string[] = objectiveKeysOf(objective, objectiveStats);
 console.log('\nPar stat individuelle :');
 for (const k of ALL_STAT_KEYS) {
   const keepN = objectiveKeys.includes(k) ? PER_STAT_KEEP_OBJECTIVE : PER_STAT_KEEP;

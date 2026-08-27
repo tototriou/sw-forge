@@ -665,13 +665,18 @@ export function useSpeedTune({
     () => diagnostiquerSequence(tune, ordreVoulu, HORIZON_TICKS),
     [tune, ordreVoulu]
   );
+  // ⚠️ **ENCHAÎNÉES** : chaque fenêtre suppose les autres corrigées. Calculées
+  // indépendamment, deux monstres trop lents à la suite en rendaient une VIDE
+  // (« min 286, max 151 ») — l'écran disait « trop lent » SANS DIRE DE COMBIEN,
+  // précisément sur le monstre qu'on cherchait à régler. C'est la question qu'on
+  // pose ici : quelles vitesses pour que TOUT passe.
   const fenetres = useMemo(
-    () => fenetresRequises(tune, ordreVoulu, HORIZON_TICKS),
+    () => fenetresRequises(tune, ordreVoulu, HORIZON_TICKS, 'combat', true),
     [tune, ordreVoulu]
   );
   // Le même calcul sur l'autre levier : l'artéfact qui amplifie le buff reçu.
   const fenetresArte = useMemo(
-    () => fenetresRequises(tune, ordreVoulu, HORIZON_TICKS, 'artefactBuff'),
+    () => fenetresRequises(tune, ordreVoulu, HORIZON_TICKS, 'artefactBuff', true),
     [tune, ordreVoulu]
   );
   const fenetreParUid = useMemo(() => new Map(fenetres.map((f) => [f.id, f])), [fenetres]);

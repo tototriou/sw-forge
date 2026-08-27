@@ -469,6 +469,36 @@ en retirer — et, comme le verdict, l'alternative en **artéfact** quand un buf
 vitesse court (`fenetresRequises` prend l'axe en paramètre : même méthode, même
 garanties). Un rang tenu n'affiche qu'une coche.
 
+⚠️⚠️ **DANS L'ÉCRAN, LES FENÊTRES SONT ENCHAÎNÉES** — chacune suppose les autres
+corrigées (`fenetresRequises`, drapeau `enchainer`). Calculées indépendamment,
+**deux monstres trop lents à la suite** rendent la fenêtre du dernier **VIDE** :
+il ne doit pas passer devant son prédécesseur, un prédécesseur qu'on sait déjà
+cassé. Sur Tiana / Galleon / Zaiross, Zaiross sortait `min 286, max 151` —
+l'écran disait « est trop lent » **sans dire de combien**, précisément sur le
+monstre qu'on cherchait à régler. Or c'est la question qu'on pose ici : *quelles
+vitesses pour que TOUT passe*.
+
+⚠️ **La chaîne se résout PAR LA FIN, et il faut ITÉRER.** Corriger le 2ᵉ puis
+lire le 3ᵉ ne marche pas : posé à SON minimum, le 2ᵉ ne laisse plus la place au
+3ᵉ. Une seule passe arrière ne suffit pas non plus, parce que les exigences sont
+**mutuellement dépendantes** — tant que Galleon traîne, Zaiross n'a qu'à prendre
+le tick que l'adverse laisse ; dès que Galleon est corrigé et occupe ce tick,
+Zaiross doit à son tour passer devant l'adverse, et sa borne monte de 286 à 296.
+On itère donc jusqu'au **point fixe** : les corrections ne font que MONTER et
+sont bornées par le plafond, la terminaison est acquise. ⚠️ **Un seul monstre
+agit par tick** — corriger l'un DÉPLACE les autres : c'est ce couplage qui rend
+l'itération nécessaire, pas un raffinement.
+
+⚠️ **Les bornes annoncées sont VÉRIFIÉES, pas déduites** : le test repose les
+vitesses trouvées, contrôle que l'ordre demandé est tenu, puis qu'**un seul point
+de moins le casse** — la borne est le minimum, pas une marge. Une borne affichée
+sans avoir été rejouée enverrait régler une équipe sur un chiffre faux. Coût
+mesuré : ~6 ms pour une équipe de trois.
+
+⚠️ Le mode **indépendant** reste le défaut de la fonction : régler un ordre un
+monstre à la fois, en voyant ce que ça laisse aux autres, est ce qu'on veut quand
+tout le reste tient.
+
 - Les deux bornes se cherchent par **dichotomie sur des prédicats monotones de
   sens opposés** : « avant son successeur / avant l'adverse » se gagne en
   accélérant, « après son prédécesseur » se perd en accélérant.

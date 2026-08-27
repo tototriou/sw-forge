@@ -1570,6 +1570,59 @@ export function testSpeedTuneSequence() {
     egal(d.problemes.find((p) => p.id === 'lent')?.raison, 'apres-adverse', "coupé par l'adverse d'abord");
   }
 
+  // ⚠️⚠️ **DEUX MONSTRES TROP LENTS À LA SUITE : les deux doivent avoir un
+  // chiffre.** Calculées indépendamment (« toutes choses égales par ailleurs »),
+  // la fenêtre du dernier sort VIDE — il ne doit pas passer devant son
+  // prédécesseur, un prédécesseur qu'on sait déjà cassé. L'écran disait alors
+  // « trop lent » sans dire de combien, sur le monstre même qu'on réglait.
+  {
+    const plateau: TuneMonstre[] = [
+      // Le 1ᵉʳ remplit la barre de tout le camp : c'est le cas qui intéresse —
+      // « avec un boost d'ATB, quelles vitesses pour que tout le monde joue ».
+      { id: 'boost', combat: 357, camp: 'allie', sort: { atbEquipe: 30, cooldown: 4 } },
+      { id: 'deuxieme', combat: 151, camp: 'allie' },
+      { id: 'dernier', combat: 137, camp: 'allie' },
+      { id: 'adv', combat: 357, camp: 'ennemi' },
+    ];
+    const ordre = ['boost', 'deuxieme', 'dernier'];
+
+    // Le défaut, tel qu'il se voyait : la fenêtre du dernier est VIDE.
+    const seules = fenetresRequises(plateau, ordre);
+    const dernierSeul = seules.find((f) => f.id === 'dernier')!;
+    ok(
+      dernierSeul.min != null && dernierSeul.max != null && dernierSeul.min > dernierSeul.max,
+      'indépendantes, la fenêtre du dernier est vide — aucun chiffre à afficher'
+    );
+
+    // Enchaînées, les deux ont une borne basse utilisable.
+    const suite = fenetresRequises(plateau, ordre, HORIZON_TICKS, 'combat', true);
+    const deuxieme = suite.find((f) => f.id === 'deuxieme')!;
+    const dernier = suite.find((f) => f.id === 'dernier')!;
+    ok(deuxieme.min != null, 'enchaînées, le 2ᵉ a une borne basse');
+    ok(dernier.min != null, 'et le DERNIER aussi — c’est tout l’objet');
+    ok(
+      dernier.max != null && dernier.min! <= dernier.max,
+      'sa fenêtre n’est plus vide'
+    );
+
+    // ⚠️ **Et ces vitesses MARCHENT vraiment.** Une borne qu'on affiche sans
+    // l'avoir vérifiée enverrait régler une équipe sur un chiffre faux.
+    const pose = (g: number, z: number): TuneMonstre[] =>
+      plateau.map((m) =>
+        m.id === 'deuxieme' ? { ...m, combat: g } : m.id === 'dernier' ? { ...m, combat: z } : m
+      );
+    ok(
+      diagnostiquerSequence(pose(deuxieme.min!, dernier.min!), ordre).ok,
+      'aux bornes annoncées, l’ordre demandé est tenu'
+    );
+    // Un cran en dessous sur le dernier, et il ne l'est plus : la borne est
+    // bien le MINIMUM, pas une marge confortable.
+    ok(
+      !diagnostiquerSequence(pose(deuxieme.min!, dernier.min! - 1), ordre).ok,
+      'un point de moins sur le dernier et l’ordre casse — la borne est serrée'
+    );
+  }
+
   // ⚠️ UN MONSTRE QUI JOUE DEUX FOIS. Racuni se vise lui-même au S2 (barre
   // pleine → il rejoue au tick suivant) puis enchaîne son S1 : l'ordre voulu
   // doit pouvoir le nommer deux fois, sinon le combo n'est pas descriptible.

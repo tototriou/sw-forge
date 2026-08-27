@@ -989,6 +989,54 @@ export interface Fenetre {
 // accélérant, « joue après son prédécesseur » se perd en accélérant. Vérifié par
 // test différentiel contre un balayage exhaustif, qui contrôle en plus que
 // l'ensemble des vitesses valides est bien un INTERVALLE (tests/speed-tune.test.ts).
+// Le champ que l'axe désigne, sous forme d'objet à fusionner.
+function champ(axe: 'combat' | 'artefactBuff', v: number) {
+  return axe === 'combat' ? { combat: v } : { artefactBuff: v };
+}
+function valeurDe(m: TuneMonstre | undefined, axe: 'combat' | 'artefactBuff'): number | null {
+  if (!m) return null;
+  return axe === 'combat' ? m.combat : (m.artefactBuff ?? 0);
+}
+
+// La borne BASSE seule : « assez rapide pour passer avant son successeur et
+// avant l'adverse ». Extraite pour que la passe en arrière s'en serve sans
+// recalculer la borne haute, qui n'a pas encore de sens à ce moment-là.
+function borneBasse(
+  monstres: TuneMonstre[],
+  ordre: string[],
+  id: string,
+  horizon: number,
+  axe: 'combat' | 'artefactBuff',
+  plafond: number
+): number | null {
+  const essai = monstres.map((m) => ({ ...m }));
+  const moi = essai.find((m) => m.id === id);
+  if (!moi) return null;
+  const apres = ordre[ordre.indexOf(id) + 1] ?? null;
+  const assezRapide = (v: number) => {
+    Object.assign(moi, champ(axe, v));
+    const premiers = premiersTours(simuler(essai, horizon));
+    const t = (x: string | null) => (x == null ? null : (premiers.find((a) => a.id === x)?.tick ?? null));
+    const tMoi = t(id);
+    if (tMoi == null) return false;
+    const adverse = premiers.find((a) => a.camp === 'ennemi')?.tick ?? null;
+    if (adverse != null && tMoi > adverse) return false;
+    const tApres = t(apres);
+    if (tApres != null && tMoi > tApres) return false;
+    return true;
+  };
+  if (assezRapide(0)) return 0;
+  if (!assezRapide(plafond)) return null;
+  let bas = 1;
+  let haut = plafond;
+  while (bas < haut) {
+    const milieu = Math.floor((bas + haut) / 2);
+    if (assezRapide(milieu)) haut = milieu;
+    else bas = milieu + 1;
+  }
+  return bas;
+}
+
 export function fenetresRequises(
   monstres: TuneMonstre[],
   ordre: string[],
@@ -996,18 +1044,90 @@ export function fenetresRequises(
   // Sur quel levier chercher : la vitesse de combat, ou l'artéfact qui amplifie
   // le buff de vitesse reçu (voir `artefactsRequis`). Même méthode, même
   // garanties — seule la grandeur cherchée change.
-  axe: 'combat' | 'artefactBuff' = 'combat'
+  axe: 'combat' | 'artefactBuff' = 'combat',
+  // ⚠️ **ENCHAÎNER : chaque fenêtre suppose les PRÉCÉDENTES corrigées.**
+  //
+  // Sans ça, une fenêtre se lit « toutes choses égales par ailleurs », et deux
+  // monstres trop lents à la suite en rendent une VIDE : le dernier ne doit pas
+  // passer devant son prédécesseur — un prédécesseur qu'on sait déjà cassé. Sur
+  // Tiana / Galleon / Zaiross, Zaiross sortait `min 286, max 151`, donc aucun
+  // nombre affiché : l'écran signalait « trop lent » sans dire de combien, sur
+  // le monstre même qu'on cherchait à régler.
+  //
+  // Enchaîné, chaque monstre hors de sa fenêtre est **posé à son minimum** avant
+  // qu'on calcule le suivant — exactement le geste qu'on faisait à la main :
+  // corriger le 2ᵉ, puis relire le 3ᵉ.
+  //
+  // ⚠️ Le mode indépendant RESTE le défaut : régler un ordre un monstre à la
+  // fois, en voyant ce que ça laisse aux autres, est ce qu'on veut quand tout
+  // le reste tient. L'enchaînement répond à une autre question — « quelles
+  // vitesses pour que TOUT passe ».
+  enchainer = false
 ): Fenetre[] {
   const out: Fenetre[] = [];
   const plafond = axe === 'combat' ? COMBAT_MAX : ARTE_MAX;
+  // ⚠️ **La chaîne se résout PAR LA FIN.** Corriger d'abord le 2ᵉ, puis lire le
+  // 3ᵉ, ne marche pas : posé à SON minimum, le 2ᵉ ne laisse plus la place au
+  // 3ᵉ, qui doit être à la fois plus lent que lui et assez rapide pour couper
+  // l'adverse (sur Tiana/Galleon/Zaiross : `min 287, max 286`). C'est le
+  // DERNIER qui porte la contrainte dure — il doit battre l'adverse — et chaque
+  // prédécesseur doit ensuite passer devant son successeur déjà fixé.
+  //
+  // Deux passes, donc : une EN ARRIÈRE qui fixe les vitesses, une EN AVANT qui
+  // relit les fenêtres sur le plateau ainsi corrigé. Sans la seconde, les bornes
+  // hautes resteraient calculées contre des prédécesseurs encore cassés.
+  const corrige = new Map<string, number>();
+  if (enchainer) {
+    let plateau = monstres;
+    // ⚠️ **UNE SEULE PASSE NE SUFFIT PAS, et il faut le savoir.** Les exigences
+    // sont MUTUELLEMENT dépendantes : tant que Galleon traîne, Zaiross n'a qu'à
+    // prendre le tick que l'adverse laisse ; dès que Galleon est corrigé et
+    // occupe ce tick, Zaiross doit à son tour passer devant l'adverse — sa
+    // borne monte de 286 à ~300. On itère donc jusqu'au POINT FIXE.
+    //
+    // ⚠️ Un seul monstre agit par tick : corriger l'un DÉPLACE les autres. C'est
+    // ce couplage qui rend l'itération nécessaire, et non un raffinement.
+    //
+    // Le nombre de passes est borné par la longueur de l'ordre (chaque passe
+    // stabilise au moins un rang), plus une pour constater l'arrêt.
+    // ⚠️ La poursuite avance d'un cran à la fois : sur Tiana/Galleon/Zaiross il
+    // faut une dizaine de passes pour aller de 286 à 296. Un plafond calé sur la
+    // longueur de l'ordre s'arrêtait AVANT la convergence et rendait une fenêtre
+    // vide — le défaut qu'on corrige. La terminaison, elle, est garantie : les
+    // corrections ne font que MONTER et sont bornées par le plafond ; ce compteur
+    // n'est qu'un garde-fou. Coût mesuré : ~6 ms pour une équipe de trois.
+    for (let passe = 0; passe < 200; passe++) {
+      let bouge = false;
+      for (const id of [...ordre].reverse()) {
+        const v = borneBasse(plateau, ordre, id, horizon, axe, plafond);
+        if (v == null) continue;
+        const actuel = valeurDe(plateau.find((m) => m.id === id), axe);
+        // ⚠️ On ne REDESCEND jamais : une correction déjà posée reste acquise,
+        // sinon deux rangs se renvoient la balle d'une passe à l'autre sans
+        // jamais converger.
+        if (actuel != null && actuel >= v) continue;
+        corrige.set(id, v);
+        plateau = plateau.map((m) => (m.id === id ? { ...m, ...champ(axe, v) } : m));
+        bouge = true;
+      }
+      if (!bouge) break;
+    }
+  }
+  // Le plateau que voient les fenêtres : les AUTRES corrigés, chacun cherchant
+  // sa propre valeur.
+  const base = enchainer
+    ? monstres.map((m) => (corrige.has(m.id) ? { ...m, ...champ(axe, corrige.get(m.id)!) } : m))
+    : monstres;
 
   for (const id of ordre) {
     const original = monstres.find((m) => m.id === id);
     if (!original) continue;
+    // ⚠️ La vitesse RÉELLE, jamais la corrigée : « combatActuel » dit ce que
+    // l'utilisateur a aujourd'hui, sinon l'écart affiché serait faux.
     const depart = axe === 'combat' ? original.combat : (original.artefactBuff ?? 0);
 
     // Copie de travail : on ne bouge QUE lui.
-    const essai = monstres.map((m) => ({ ...m }));
+    const essai = base.map((m) => ({ ...m }));
     const moi = essai.find((m) => m.id === id)!;
     const poser = (v: number) => {
       if (axe === 'combat') moi.combat = v;
@@ -1075,6 +1195,7 @@ export function fenetresRequises(
     const ok = assezRapide(depart) && assezLent(depart);
     poser(depart);
     out.push({ id, combatActuel: depart, min, max, ok });
+
   }
 
   return out;

@@ -234,10 +234,12 @@ retour.
    de runes, et pour le siège le numéro d'équipe + coéquipiers) — jamais de
    résolution automatique dès qu'il y a un choix réel à cet endroit
    (contrairement à la recherche bestiaire, un clic de puce est un geste de
-   désambiguïsation volontaire). Pour Box, un exemplaire nu (sans aucune
-   rune) reste sélectionnable : construire un build depuis rien est un cas
-   d'usage normal. Pour RTA/siège, seules les entrées **avec au moins une
-   rune équipée** apparaissent (rien à optimiser sur un slot vide).
+   désambiguïsation volontaire). **Un exemplaire NU (sans aucune rune) reste
+   sélectionnable, dans TOUTE source** — Box (construire un build depuis
+   rien) comme RTA/siège (un monstre assigné à un favori RTA ou un deck de
+   siège mais jamais runé, ex. juste obtenu et pas encore équipé) : seul un
+   **slot RÉELLEMENT vide** (aucun monstre assigné) est absent des
+   candidats, pas un monstre présent sans rune.
    **Choisir un résultat fixe l'exemplaire RÉELLEMENT optimisé** — pas
    seulement prévisualisé. **Changer d'ESPÈCE** réinitialise « Critères de
    recherche » et les résultats affichés (set, statistique principale
@@ -689,7 +691,20 @@ jeu, n'ont RIEN à voir l'un avec l'autre.
   Offenses siège ne s'allume quand la fiche affiche un build VALIDÉ plutôt
   que le runage réellement équipé d'une source réelle — un build validé
   n'est ni du Box ni du RTA tel qu'actuellement équipé, juste une
-  réservation.
+  réservation. ⚠️ **Signal explicite en plus des puces grisées** (demande
+  explicite) : un bandeau dans la fiche elle-même (« Build validé affiché —
+  pas l'équipement réellement porté ») s'affiche dans ce cas, pour ne
+  jamais laisser croire que ce qui est montré est réellement équipé en jeu.
+- **« Valider ce build » sous la fiche**, sans passer par une recherche
+  (demande explicite) — un second bouton, identique à celui d'une carte de
+  résultat, juste sous la fiche stats/artéfacts/runes/relique : valide
+  directement les runes ACTUELLEMENT affichées sur l'exemplaire (un runage
+  déjà composé en jeu, ou déjà planifié). Exige exactement 6 runes
+  affichées (comme un build trouvé par la recherche) — désactivé sur un
+  exemplaire partiellement runé ou nu. Affiche « Validé » (désactivé,
+  coche) si c'est déjà EXACTEMENT le build validé de cet exemplaire. Sans
+  liste active, ouvre le même prompt de création que « Ajouter à la
+  liste » (crée la liste ET valide dans le même geste).
 - **Persisté**, contrairement au reste de la saisie de l'écran (voir plus
   haut, « Survit à un changement d'onglet ») — un flux de plusieurs
   dizaines de minutes à travers toute une liste ne doit pas perdre le

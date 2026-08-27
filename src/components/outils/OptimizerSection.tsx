@@ -668,10 +668,13 @@ export default function OptimizerSection({ box, runes, optimizer, allMonsters, r
   // comme `releaseConfirm` ; un monstre PAS ENCORE validé se retire sans
   // rien demander (rien à perdre).
   const [removeMemberConfirm, setRemoveMemberConfirm] = useState<{ listId: string; selector: ExclusionSelector } | null>(null);
-  // Ouvre la saisie du nom quand on veut ajouter le monstre courant à la
-  // liste alors qu'aucune liste n'est encore active — crée la liste ET y
-  // ajoute le monstre dans le même geste (voir `handleAddToList` plus bas).
-  const [addListPromptOpen, setAddListPromptOpen] = useState(false);
+  // Ouvre la saisie du nom quand on veut ajouter le monstre courant (ou
+  // valider son runage actuel) alors qu'aucune liste n'est encore active —
+  // crée la liste ET fait l'action d'origine dans le même geste. Porte
+  // laquelle des deux actions relancer une fois la liste créée (voir
+  // `handleAddToList`/`handleValidateDisplayed` plus bas), pas juste un
+  // booléen — les deux boutons partagent ce même prompt.
+  const [addListPromptOpen, setAddListPromptOpen] = useState<'add' | 'validate' | null>(null);
 
   // L'exemplaire RÉELLEMENT optimisé — l'entrée choisie explicitement (ou
   // résolue sans ambiguïté, voir `pickSource`/l'initialisation paresseuse
@@ -1281,7 +1284,7 @@ export default function OptimizerSection({ box, runes, optimizer, allMonsters, r
   function handleAddToList() {
     if (!sourceSelector) return;
     if (!lists.activeListId) {
-      setAddListPromptOpen(true);
+      setAddListPromptOpen('add');
       return;
     }
     lists.addMember(lists.activeListId, sourceSelector);
@@ -1294,6 +1297,60 @@ export default function OptimizerSection({ box, runes, optimizer, allMonsters, r
       : lists.activeListId
         ? `Ajouter ${selected.monster.name}${unowned ? ' (non possédé)' : ''} à « ${activeList?.name ?? ''} »`
         : `Créer une liste et y ajouter ${selected.monster.name}${unowned ? ' (non possédé)' : ''}`;
+
+  // « Valider ce build » (sous la fiche stats+artéfacts+runes+relique,
+  // demande explicite) — valide directement les runes ACTUELLEMENT
+  // affichées sur l'exemplaire, sans passer par une recherche : utile pour
+  // un runage déjà composé (en jeu ou dans le planning) qu'on veut juste
+  // RÉSERVER dans la liste. Exige exactement 6 runes affichées (même
+  // contrainte qu'un build trouvé par la recherche, `ValidatedBuild.
+  // runeIds` porte toujours 6 ids) — rien à valider sur un exemplaire
+  // partiellement runé ou nu (`unowned`, `EMPTY_GEAR`). ⚠️ Si `selected.gear
+  // .runes` reflète déjà un build VALIDÉ (voir `selected`, substitution des
+  // runes) le bouton affiche « Validé » (identique à `BuildCandidateCard`)
+  // plutôt que de re-valider inutilement les mêmes runes.
+  const displayedRuneIds = selected?.gear.runes.map((r) => r.id) ?? [];
+  const canValidateDisplayed = !!sourceSelector && displayedRuneIds.length === 6;
+  function handleValidateDisplayed() {
+    if (!sourceSelector || !canValidateDisplayed) return;
+    if (!lists.activeListId) {
+      setAddListPromptOpen('validate');
+      return;
+    }
+    lists.validateBuild(lists.activeListId, sourceSelector, displayedRuneIds);
+  }
+
+  // Bandeau « build validé » — demande explicite : en plus des 4 puces
+  // grisées (voir plus haut), un signal explicite dans la fiche elle-même,
+  // pour que ce qui est affiché (le build validé, PAS l'équipement
+  // réellement porté) ne prête jamais à confusion. Factorisé, réutilisé aux
+  // deux endroits où la fiche s'affiche (bureau/mobile).
+  const validatedBadge = ownValidatedBuild ? (
+    <div className="mb-2 flex items-center gap-1.5 rounded-lg bg-accent-soft px-2 py-1 text-[11px] font-semibold text-accent">
+      <CheckCircle2 size={13} className="flex-none" />
+      Build validé affiché — pas l&apos;équipement réellement porté
+    </div>
+  ) : null;
+
+  // Même bouton que sur une carte de résultat (`BuildCandidateCard`), sous
+  // la fiche cette fois — demande explicite : valider un runage déjà
+  // composé (en jeu ou planifié) sans passer par une recherche. `disabled`
+  // dès qu'il n'y a rien de validable (pas 6 runes affichées) OU que c'est
+  // déjà EXACTEMENT le build validé (`ownValidatedBuild` — `selected.gear
+  // .runes` le reflète alors déjà, voir son commentaire plus haut).
+  const validateBuildButton = (
+    <Bouton
+      onClick={handleValidateDisplayed}
+      disabled={!canValidateDisplayed || !!ownValidatedBuild}
+      ton={ownValidatedBuild ? 'accent' : 'neutre'}
+      fond={ownValidatedBuild ? 'doux' : 'plein'}
+      taille="sm"
+      pleineLargeur
+      icone={ownValidatedBuild ? <CheckCircle2 size={14} /> : undefined}
+      libelle={ownValidatedBuild ? 'Validé' : 'Valider ce build'}
+      className="mt-2.5"
+    />
+  );
 
   const zoneCContent = (
     <div className="rounded-lg border border-border-soft bg-panel2/60 p-2.5">
@@ -1606,7 +1663,9 @@ export default function OptimizerSection({ box, runes, optimizer, allMonsters, r
               )}
             </div>
             <div className="rounded-xl border border-border-soft bg-panel2/60 p-3">
+              {validatedBadge}
               <MonsterGear gear={selected?.gear ?? EMPTY_GEAR} />
+              {validateBuildButton}
             </div>
           </div>
         </div>
@@ -1657,7 +1716,7 @@ export default function OptimizerSection({ box, runes, optimizer, allMonsters, r
             <p className="label mb-1.5">Exemplaire</p>
             <Segmented
               options={sourceOptions}
-              value={ownValidatedBuild ? null : gearSource}
+              value={ownValidatedBuild || unowned ? null : gearSource}
               onChange={pickSource}
               disabled={allSourcesEmpty}
               size="lg"
@@ -1665,10 +1724,14 @@ export default function OptimizerSection({ box, runes, optimizer, allMonsters, r
             {zoneDOpen && <div className="mt-2 rounded-lg border border-border-soft overflow-hidden">{zoneDList}</div>}
           </div>
 
-          {/* Bloc 3 — fiche stats/artéfacts/runes/relique, contenu INCHANGÉ
-              (même composant `MonsterGear` que RTA/Siège). */}
+          {/* Bloc 3 — fiche stats/artéfacts/runes/relique (même composant
+              `MonsterGear` que RTA/Siège), bandeau « build validé » +
+              bouton « Valider ce build » en plus, voir leur commentaire
+              plus haut (`validatedBadge`/`validateBuildButton`). */}
           <div className="rounded-xl border border-border-soft bg-panel2/60 p-3">
+            {validatedBadge}
             <MonsterGear gear={selected?.gear ?? EMPTY_GEAR} />
+            {validateBuildButton}
           </div>
         </div>
       </div>
@@ -2925,15 +2988,20 @@ export default function OptimizerSection({ box, runes, optimizer, allMonsters, r
         <PromptDialog
           titre="Nouvelle liste"
           placeholder="ex. Deck A, Mon RTA…"
-          libelleAction="Créer et ajouter"
+          libelleAction={addListPromptOpen === 'validate' ? 'Créer et valider' : 'Créer et ajouter'}
           onValider={(valeur) => {
             const nom = valeur.trim();
-            setAddListPromptOpen(false);
+            const intent = addListPromptOpen;
+            setAddListPromptOpen(null);
             if (!nom || !sourceSelector) return;
             const id = lists.createList(nom);
-            lists.addMember(id, sourceSelector);
+            if (intent === 'validate') {
+              if (canValidateDisplayed) lists.validateBuild(id, sourceSelector, displayedRuneIds);
+            } else {
+              lists.addMember(id, sourceSelector);
+            }
           }}
-          onCancel={() => setAddListPromptOpen(false)}
+          onCancel={() => setAddListPromptOpen(null)}
         />
       )}
     </div>

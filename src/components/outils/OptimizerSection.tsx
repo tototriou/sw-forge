@@ -174,7 +174,13 @@ const CONFIGURABLE_SLOTS: (2 | 4 | 6)[] = [2, 4, 6];
 // ⚠️ Box : `item.gear` truthy suffit (PAS `item.gear.runes.length>0`,
 // contrairement à `exclusionCandidatesFor`) — un monstre possédé mais
 // totalement nu reste une entrée Box valide (cas « construire un build
-// depuis rien », déjà permis avant ce remaniement).
+// depuis rien », déjà permis avant ce remaniement). ⚠️ RTA/siège :
+// `requireRunes: false` (bug signalé — un monstre assigné à un deck
+// d'offense siège mais non runé ne voyait pas son exemplaire proposé ici,
+// alors que Box l'autorise juste au-dessus pour le même cas) — `exclusion
+// CandidatesFor` garde son défaut `requireRunes: true` pour SON autre
+// appelant (« Exclure les runes d'un monstre », où une entrée sans rune n'a
+// rien à exclure).
 function speciesCandidatesBySource(
   com2usId: number | null,
   box: BoxItem[],
@@ -186,9 +192,9 @@ function speciesCandidatesBySource(
     .map((item) => ({ selector: { source: 'box' as const, unitKey: item.key }, monster: item.monster, gear: item.gear! }));
   return {
     box: boxCandidates,
-    rta: exclusionCandidatesFor('rta', exclusionData, null, null).filter((c) => c.monster.com2usId === com2usId),
-    'siege-defense': exclusionCandidatesFor('siege-defense', exclusionData, null, null).filter((c) => c.monster.com2usId === com2usId),
-    'siege-offense': exclusionCandidatesFor('siege-offense', exclusionData, null, null).filter((c) => c.monster.com2usId === com2usId),
+    rta: exclusionCandidatesFor('rta', exclusionData, null, null, false).filter((c) => c.monster.com2usId === com2usId),
+    'siege-defense': exclusionCandidatesFor('siege-defense', exclusionData, null, null, false).filter((c) => c.monster.com2usId === com2usId),
+    'siege-offense': exclusionCandidatesFor('siege-offense', exclusionData, null, null, false).filter((c) => c.monster.com2usId === com2usId),
   };
 }
 

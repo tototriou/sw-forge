@@ -75,7 +75,25 @@ export default function testOptimizerExclusion() {
       ],
     },
   ];
-  const data: ExclusionSourceData = { box, rtaEntries, siegeDefenseTeams, siegeOffenseTeams: [], monsterById };
+  // Monstre ASSIGNÉ à un deck d'offense siège mais jamais runé — bug
+  // signalé : `slot.gear` existe toujours dès qu'un monstre est placé
+  // (`buildGear` renvoie `runes: []`, jamais `gear: undefined`), seul
+  // `runes.length` distingue « assigné, nu » de « slot vide ».
+  const nonRune = monster(4, 'NonRune');
+  monsterById.set(String(nonRune.id), nonRune);
+  const siegeOffenseTeams: SiegeTeam[] = [
+    {
+      id: 'off-1',
+      lead: 0,
+      tickAlertDismissed: false,
+      slots: [
+        { monsterId: String(nonRune.id), runeSpeed: null, tick: 0, gear: gear([]) },
+        { monsterId: null, runeSpeed: null, tick: 0 },
+        { monsterId: null, runeSpeed: null, tick: 0 },
+      ],
+    },
+  ];
+  const data: ExclusionSourceData = { box, rtaEntries, siegeDefenseTeams, siegeOffenseTeams, monsterById };
 
   // ── exclusionCandidatesFor ──────────────────────────────────────────
   {
@@ -99,7 +117,24 @@ export default function testOptimizerExclusion() {
     );
 
     const offCandidates = exclusionCandidatesFor('siege-offense', data, null, null);
-    egal(offCandidates.length, 0, 'siège offense : aucune équipe chargée, aucun candidat');
+    egal(offCandidates.length, 0, "siège offense : le seul monstre assigné (NonRune) n'a aucune rune — rien à exclure, par défaut (requireRunes)");
+
+    // ── Bug signalé : un monstre ASSIGNÉ à un deck d'offense siège mais
+    // jamais runé ne voyait pas son exemplaire proposé pour « Monstre à
+    // optimiser » (contrairement à Box, qui autorise déjà un exemplaire nu
+    // — « construire un build depuis rien »). `requireRunes: false`
+    // corrige : le monstre assigné redevient un candidat valide, gear
+    // toujours résolu (0 rune, pas absent). ──
+    const offCandidatesSansRunes = exclusionCandidatesFor('siege-offense', data, null, null, false);
+    egal(offCandidatesSansRunes.length, 1, 'siège offense (requireRunes:false) : le monstre assigné mais nu redevient un candidat');
+    egal(offCandidatesSansRunes[0]?.monster.name, 'NonRune', 'siège offense (requireRunes:false) : bon monstre résolu');
+    egal(offCandidatesSansRunes[0]?.gear.runes, [], 'siège offense (requireRunes:false) : gear résolu avec 0 rune, jamais absent');
+    // Même correctif pour RTA — même bug, même cause.
+    const rtaCandidatesSansRunes = exclusionCandidatesFor('rta', { ...data, rtaEntries: { ...rtaEntries, [String(nonRune.id)]: { monsterId: String(nonRune.id), section: 'violent', runeSpeed: null, gear: gear([]) } } }, null, null, false);
+    ok(
+      rtaCandidatesSansRunes.some((c) => c.monster.name === 'NonRune'),
+      'rta (requireRunes:false) : un favori RTA assigné mais nu redevient un candidat'
+    );
   }
 
   // ── Trou trouvé par une revue de code externe : `excludeOwnUnitKey`

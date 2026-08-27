@@ -95,9 +95,23 @@ export interface ExclusionSourceData {
   monsterById: Map<string, Monster>;
 }
 
-// Liste des monstres proposables à l'exclusion pour UNE source — filtre les
-// entrées sans runes équipées (rien à exclure) et le monstre actuellement
-// recherché (s'exclure soi-même n'a pas de sens).
+// Liste des monstres proposables pour UNE source — le monstre actuellement
+// recherché en est toujours retiré (s'exclure soi-même n'a pas de sens).
+//
+// ⚠️ `requireRunes` (défaut `true`, compatibilité arrière) — deux usages
+// bien distincts partagent cette fonction :
+// - « Exclure les runes d'un monstre » (`RuneExclusionPicker.tsx`) : une
+//   entrée SANS rune n'a rien à exclure, `requireRunes` reste `true`.
+// - Désambiguïsation d'exemplaire pour « Monstre à optimiser »
+//   (`speciesCandidatesBySource`, `OptimizerSection.tsx`) : `requireRunes:
+//   false` — BUG signalé (« un monstre dans un deck d'offense siège mais non
+//   runé ne voit pas son exemplaire affiché ») : un monstre ASSIGNÉ à un
+//   slot RTA/siège avec ZÉRO rune (`slot.gear` existe toujours dès qu'un
+//   monstre y est placé, voir `buildGear`/`importAccount.ts` — seul
+//   `runes.length` peut être 0) doit rester un exemplaire choisissable, même
+//   principe que Box qui autorise déjà « construire un build depuis rien »
+//   (voir le filtre Box séparé de `speciesCandidatesBySource`, jamais passé
+//   par CETTE fonction).
 //
 // ⚠️ Deux gardes DISTINCTES, une par granularité — trouvé manquant pour RTA/
 // siège par une revue de code externe (voir spec/outils/optimizer/
@@ -111,19 +125,19 @@ export interface ExclusionSourceData {
 //   principe que `autoExcludedRuneIds`/`isOwn` plus bas — RTA et un slot de
 //   siège n'ont qu'UNE seule entrée par monstre, donc la bonne granularité
 //   est directement l'espèce, pas une clé d'entrée qui n'existe pas ici.
-export function exclusionCandidatesFor(source: ExclusionSource, data: ExclusionSourceData, excludeOwnUnitKey: string | null, excludeOwnCom2usId: number | null): ExclusionCandidate[] {
+export function exclusionCandidatesFor(source: ExclusionSource, data: ExclusionSourceData, excludeOwnUnitKey: string | null, excludeOwnCom2usId: number | null, requireRunes = true): ExclusionCandidate[] {
   const out: ExclusionCandidate[] = [];
   if (source === 'box') {
     for (const item of data.box) {
       if (item.key === excludeOwnUnitKey) continue;
-      if (!item.gear || item.gear.runes.length === 0) continue;
+      if (!item.gear || (requireRunes && item.gear.runes.length === 0)) continue;
       out.push({ selector: { source: 'box', unitKey: item.key }, monster: item.monster, gear: item.gear });
     }
     return out;
   }
   if (source === 'rta') {
     for (const entry of Object.values(data.rtaEntries)) {
-      if (!entry.gear || entry.gear.runes.length === 0) continue;
+      if (!entry.gear || (requireRunes && entry.gear.runes.length === 0)) continue;
       const monster = data.monsterById.get(entry.monsterId);
       if (!monster) continue;
       if (excludeOwnCom2usId != null && monster.com2usId === excludeOwnCom2usId) continue;
@@ -139,7 +153,7 @@ export function exclusionCandidatesFor(source: ExclusionSource, data: ExclusionS
     const teamNumber = teamIndex + 1;
     const teamSlots = team.slots.map((s) => (s.monsterId ? (data.monsterById.get(s.monsterId) ?? null) : null));
     team.slots.forEach((slot, slotIndex) => {
-      if (!slot.gear || slot.gear.runes.length === 0) return;
+      if (!slot.gear || (requireRunes && slot.gear.runes.length === 0)) return;
       if (slot.monsterId == null) return;
       const monster = data.monsterById.get(slot.monsterId);
       if (!monster) return;

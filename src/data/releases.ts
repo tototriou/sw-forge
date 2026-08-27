@@ -58,12 +58,13 @@ export const CHANGE_META: Record<ChangeKind, { label: string; color: string }> =
 // Si une ligne dépasse ~15 mots, c'est qu'elle raconte l'implémentation.
 export const RELEASES: Release[] = [
   {
-    version: null,
-    date: '2026-08-23',
-    title: 'Optimiser sur les dégâts réels d’un sort',
+    version: '1.9.0',
+    date: '2026-08-27',
+    title: 'Dégâts réels, et des listes pour préparer toute une équipe',
     highlights: [
       'Nouvel objectif de recherche « Dégâts réels »',
-      'Le sort, l’adversaire et les buffs se règlent ; le reste est déduit',
+      'Des listes de travail réservent les runes déjà attribuées à un monstre',
+      'Recherche et prépare le runage de n’importe quel monstre, possédé ou non',
     ],
     changes: [
       {
@@ -89,7 +90,47 @@ export const RELEASES: Release[] = [
       {
         kind: 'feat',
         scope: 'Optimiseur',
-        text: 'Compte les compétences d’invocateur (Combat seul, ou Combat + Guilde) dans les dégâts.',
+        text: 'Compte les compétences d’invocateur et le leader skill d’équipe (PV, ATQ, DEF, VIT, Taux Crit, Dégâts Crit) dans les dégâts.',
+      },
+      {
+        kind: 'feat',
+        scope: 'Optimiseur',
+        text: 'Des dizaines de passifs et d’effets d’équipe comptent en plus dans le calcul (Euldong, Mirinae, Zaiross, et bien d’autres selon le monstre).',
+      },
+      {
+        kind: 'feat',
+        scope: 'Optimiseur',
+        text: 'Sur grand écran, les réglages s’organisent en deux colonnes — beaucoup moins de défilement.',
+      },
+      {
+        kind: 'feat',
+        scope: 'Optimiseur',
+        text: 'La recherche « Monstre à optimiser » couvre maintenant tout le bestiaire, possédé ou non.',
+      },
+      {
+        kind: 'feat',
+        scope: 'Optimiseur',
+        text: 'Valide un build trouvé par la recherche : ses runes ne seront plus proposées pour un autre monstre de la même liste.',
+      },
+      {
+        kind: 'feat',
+        scope: 'Optimiseur',
+        text: 'Crée plusieurs listes de travail (un deck de siège, ton RTA…), chacune avec ses propres runes réservées.',
+      },
+      {
+        kind: 'feat',
+        scope: 'Optimiseur',
+        text: 'Ajoute à une liste un monstre que tu ne possèdes pas encore, pour préparer son runage à l’avance.',
+      },
+      {
+        kind: 'feat',
+        scope: 'Optimiseur',
+        text: 'Valide directement le runage déjà équipé sur un monstre, sans lancer de recherche.',
+      },
+      {
+        kind: 'feat',
+        scope: 'Optimiseur',
+        text: 'Revois l’équipement réellement porté par un monstre, même après avoir validé un nouveau build pour lui.',
       },
       {
         kind: 'fix',
@@ -97,9 +138,19 @@ export const RELEASES: Release[] = [
         text: 'L’objectif « Speed nuker » est retiré : « Dégâts réels » couvre ce cas avec la vraie formule du sort.',
       },
       {
-        kind: 'feat',
+        kind: 'fix',
         scope: 'Optimiseur',
-        text: 'Sur grand écran, les réglages s’organisent en deux colonnes — beaucoup moins de défilement.',
+        text: 'L’objectif « Dégâts » (approximatif) est retiré à son tour, entièrement remplacé par « Dégâts réels ».',
+      },
+      {
+        kind: 'fix',
+        scope: 'Optimiseur',
+        text: 'Un monstre assigné à un deck de siège ou à un favori RTA mais pas encore runé apparaît maintenant comme un choix possible.',
+      },
+      {
+        kind: 'fix',
+        scope: 'Optimiseur',
+        text: 'Impossible de valider un build si une de ses runes est déjà réservée pour un autre monstre de la même liste — un message indique lesquelles.',
       },
       {
         kind: 'docs',

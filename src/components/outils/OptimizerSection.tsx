@@ -1381,7 +1381,7 @@ export default function OptimizerSection({ box, runes, optimizer, allMonsters, r
           suffit alors, ce build EST la réservation). */}
       {displayedRuneConflicts.length > 0 && !ownValidatedBuild && (
         <p className="mt-1.5 text-[11px] text-warn">
-          Déjà réservées dans cette liste :{' '}
+          {displayedRuneConflicts.length > 1 ? 'Runes déjà réservées' : 'Rune déjà réservée'} dans cette liste :{' '}
           {displayedRuneConflicts.map((c, i) => (
             <span key={i}>
               {i > 0 && ', '}

@@ -711,9 +711,10 @@ jeu, n'ont RIEN à voir l'un avec l'autre.
   liste), les runes affichées ici viennent de l'équipement RÉEL de
   l'exemplaire : rien n'empêche structurellement qu'elles chevauchent une
   réservation posée depuis pour un autre monstre. Message explicite listant
-  quelles runes et pour quel monstre (« Déjà réservées dans cette liste :
-  emplacement 2 (Camilla) »), pas juste un bouton désactivé sans
-  explication.
+  quelles runes et pour quel monstre (« Rune déjà réservée dans cette
+  liste : emplacement 2 (Camilla) », accordé en nombre — « Runes déjà
+  réservées » dès qu'il y en a plusieurs), pas juste un bouton désactivé
+  sans explication.
 - **Persisté**, contrairement au reste de la saisie de l'écran (voir plus
   haut, « Survit à un changement d'onglet ») — un flux de plusieurs
   dizaines de minutes à travers toute une liste ne doit pas perdre le

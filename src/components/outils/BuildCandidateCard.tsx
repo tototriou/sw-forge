@@ -44,6 +44,12 @@ interface Props {
   // runeIds, comparaison faite par le parent) — bouton désactivé, libellé
   // « Validé » plutôt que « Valider ».
   validated?: boolean;
+  // ⚠️ **Une rune de ce build est DÉJÀ RÉSERVÉE** pour un autre monstre de la
+  // liste active : le bouton reste AFFICHÉ mais désactivé, et dit pourquoi.
+  // Le retirer laisserait croire que ce build n'est pas validable du tout,
+  // alors qu'il le redeviendra dès qu'on libère la rune. `null` = aucun
+  // conflit. Le texte nomme le monstre concerné, comme le fait la fiche.
+  conflit?: string | null;
 }
 
 // ⚠️ Même FORME que l'affichage de l'équipement actuellement équipé (RTA/
@@ -69,6 +75,7 @@ export default function BuildCandidateCard({
   onToggleRune,
   degatsReels,
   onValidate,
+  conflit,
   validated,
 }: Props) {
   const runes = candidate.runeIds.map((id) => runeById.get(id)).filter((r): r is RuneDetail => !!r);
@@ -221,13 +228,14 @@ export default function BuildCandidateCard({
       {onValidate && (
         <Bouton
           onClick={onValidate}
-          disabled={validated}
+          disabled={validated || !!conflit}
+          title={conflit ?? undefined}
           ton={validated ? 'accent' : 'neutre'}
           fond={validated ? 'doux' : 'plein'}
           taille="sm"
           pleineLargeur
           icone={validated ? <CheckCircle2 size={14} /> : undefined}
-          libelle={validated ? 'Validé' : 'Valider ce build'}
+          libelle={validated ? 'Validé' : conflit ? 'Rune déjà réservée' : 'Valider ce build'}
           className="mt-2.5"
         />
       )}

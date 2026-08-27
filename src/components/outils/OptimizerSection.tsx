@@ -1349,15 +1349,25 @@ export default function OptimizerSection({ box, runes, optimizer, allMonsters, r
     () => (lists.activeListId ? lists.validated.filter((v) => v.listId === lists.activeListId && exclusionSelectorKey(v.selector) !== ownSelectorKey) : []),
     [lists.validated, lists.activeListId, ownSelectorKey]
   );
-  const displayedRuneConflicts = displayedRuneIds
-    .map((id) => {
-      const build = otherValidatedBuilds.find((v) => v.runeIds.includes(id));
-      if (!build) return null;
-      const rune = runeById.get(id);
-      const monsterName = resolveExclusionEntry(build.selector, exclusionData)?.monster.name ?? 'un autre monstre';
-      return { slot: rune?.slot ?? null, monsterName };
-    })
-    .filter((c): c is { slot: number | null; monsterName: string } => c != null);
+  // ⚠️ **Le même calcul pour la FICHE et pour les CARTES DE RÉSULTAT.** Il ne
+  // vivait qu'ici : « Valider » sur une carte de résultat ne vérifiait rien,
+  // en s'appuyant sur le fait que le pool de recherche exclut déjà
+  // `otherValidatedRuneIds`. Vrai AU MOMENT de la recherche seulement — des
+  // résultats affichés avant un changement de liste active, ou avant qu'un
+  // autre monstre ne réserve, permettaient de réserver DEUX FOIS la même rune
+  // dans une même liste. La garde doit être là où l'on valide, pas là où l'on
+  // cherche.
+  const conflitsDeRunes = (ids: number[]) =>
+    ids
+      .map((id) => {
+        const build = otherValidatedBuilds.find((v) => v.runeIds.includes(id));
+        if (!build) return null;
+        const rune = runeById.get(id);
+        const monsterName = resolveExclusionEntry(build.selector, exclusionData)?.monster.name ?? 'un autre monstre';
+        return { slot: rune?.slot ?? null, monsterName };
+      })
+      .filter((c): c is { slot: number | null; monsterName: string } => c != null);
+  const displayedRuneConflicts = conflitsDeRunes(displayedRuneIds);
   const canValidateDisplayed = !!sourceSelector && displayedRuneIds.length === 6 && displayedRuneConflicts.length === 0;
   function handleValidateDisplayed() {
     if (!sourceSelector || !canValidateDisplayed) return;
@@ -2957,10 +2967,21 @@ export default function OptimizerSection({ box, runes, optimizer, allMonsters, r
                 // `validateBuild`, useOptimizerLists.ts).
                 onValidate={
                   sourceSelector && lists.activeListId
-                    ? () => lists.validateBuild(lists.activeListId!, sourceSelector, c.runeIds)
+                    ? () => {
+                        // ⚠️ Garde de DERNIÈRE minute en plus du bouton
+                        // désactivé : le clic peut partir d'un rendu périmé.
+                        if (conflitsDeRunes(c.runeIds).length > 0) return;
+                        lists.validateBuild(lists.activeListId!, sourceSelector, c.runeIds);
+                      }
                     : undefined
                 }
                 validated={ownValidatedBuild ? sameRuneIds(ownValidatedBuild.runeIds, c.runeIds) : false}
+                conflit={(() => {
+                  const conflits = conflitsDeRunes(c.runeIds);
+                  if (conflits.length === 0) return null;
+                  const noms = [...new Set(conflits.map((x) => x.monsterName))];
+                  return `${conflits.length > 1 ? 'Runes déjà réservées' : 'Rune déjà réservée'} dans cette liste pour ${noms.join(', ')}`;
+                })()}
               />
             ))}
           </div>

@@ -667,6 +667,20 @@ jeu, n'ont RIEN à voir l'un avec l'autre.
   libérer un build déjà validé demande toujours confirmation (« Ces 6 runes
   redeviendront disponibles pour les recherches des autres monstres de
   cette liste »).
+
+  ⚠️⚠️ **LA GARDE ANTI-DOUBLE-RÉSERVATION EST SUR LES DEUX CHEMINS.** Elle
+  n'existait que sous la **fiche** (`displayedRuneConflicts`) ; la carte de
+  résultat, elle, ne vérifiait rien — au motif que le pool de recherche exclut
+  déjà les runes réservées. C'est vrai **au moment de la recherche seulement** :
+  des résultats affichés avant un changement de liste active, ou avant qu'un
+  autre monstre ne réserve, permettaient de réserver **deux fois la même rune**
+  dans une même liste. **La garde va là où l'on valide, pas là où l'on
+  cherche** — un seul calcul (`conflitsDeRunes`), utilisé par les deux.
+
+  ⚠️ Le bouton reste **affiché et désactivé**, libellé « Rune déjà réservée » et
+  infobulle nommant le monstre qui la retient : le retirer laisserait croire que
+  ce build n'est pas validable du tout, alors qu'il le redevient dès qu'on
+  libère la rune.
 - **Zone C, « Monstres de la liste »** — juste sous les puces de source
   dans « Monstre & équipement » : chaque monstre de la liste active, son
   statut (« Validé » + bouton libérer, ou « pas encore validé »), cliquable

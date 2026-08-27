@@ -413,6 +413,34 @@ export function revalidateBuilds(validated: ValidatedBuild[], data: ExclusionSou
 // résoudre, aucune rune à comparer (être MEMBRE d'une liste n'implique pas
 // d'avoir un build validé, voir OptimizerListMember). Réutilisée telle
 // quelle par App.tsx au réimport, à côté de `revalidateBuilds`.
+// ⚠️⚠️ **ON NE REVALIDE JAMAIS CONTRE UN COMPTE VIDE.**
+//
+// La revérification répond à « mon compte a-t-il changé depuis ». Face à un
+// compte SANS aucun monstre ni aucune rune, elle ne peut répondre qu'une seule
+// chose — plus rien ne résout, donc tout est jeté — et cette réponse-là n'est
+// jamais la bonne : un compte vide veut dire « pas encore chargé », pas « tes
+// monstres ont disparu ». Et le résultat est ÉCRIT sur disque, donc définitif.
+//
+// C'est exactement ce qui se produisait au rechargement : `React.StrictMode`
+// monte le composant DEUX FOIS en développement, le garde-fou d'App.tsx
+// (`boxMountedRef`) ne protégeait que le premier passage, et le second
+// revalidait avec `box = []` / `runes = []`. Les listes restaient, leur contenu
+// partait.
+//
+// ⚠️ **La garde vit sur la DONNÉE, pas sur un compteur de rendus.** Un
+// garde-fou qui compte les passages d'un effet est battu par StrictMode, par
+// un remontage, ou par le prochain qui réorganise les effets — celui-ci tient
+// quoi qu'il arrive en amont.
+export function comptePeutJuger(data: ExclusionSourceData, runeIds: Set<number>): boolean {
+  return (
+    data.box.length > 0 ||
+    runeIds.size > 0 ||
+    Object.keys(data.rtaEntries).length > 0 ||
+    data.siegeDefenseTeams.length > 0 ||
+    data.siegeOffenseTeams.length > 0
+  );
+}
+
 export function revalidateMembers(members: OptimizerListMember[], data: ExclusionSourceData): { kept: OptimizerListMember[]; droppedCount: number } {
   const kept: OptimizerListMember[] = [];
   let droppedCount = 0;

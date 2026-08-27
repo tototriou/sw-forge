@@ -298,6 +298,27 @@ retour.
    choix unique** (`<Segmented
    size="lg">`), choisi **avant** de lancer la recherche, pas seulement un tri
    après coup :
+   ⚠️⚠️ **ON NE REVALIDE JAMAIS LES LISTES CONTRE UN COMPTE VIDE**
+   (`comptePeutJuger`, [optimizerExclusion.ts](src/lib/optimizerExclusion.ts)).
+   La revérification répond à « mon compte a-t-il changé depuis » ; face à un
+   compte sans monstre ni rune, elle ne peut répondre qu'une chose — plus rien
+   ne résout, donc **tout est jeté** — et cette réponse-là n'est jamais la
+   bonne : un compte vide veut dire « pas encore chargé », pas « tes monstres
+   ont disparu ». Le résultat étant **écrit sur disque**, la perte est
+   définitive.
+   - Symptôme observé : à **chaque rechargement de page**, les listes
+     survivaient mais leur CONTENU disparaissait — `replaceMembersAndValidated`
+     vide les membres et les builds sans toucher aux listes elles-mêmes.
+   - Cause : `React.StrictMode` monte le composant **deux fois** en
+     développement. Le garde-fou d'`App.tsx` (`boxMountedRef`) ne protège que
+     le PREMIER passage de l'effet ; le second revalidait avec `box` et `runes`
+     encore vides.
+   - ⚠️ **La garde vit sur la DONNÉE, pas sur un compteur de rendus.** Un
+     garde-fou qui compte les passages d'un effet est battu par StrictMode, par
+     un remontage, ou par le prochain qui réorganise les effets. Celui-ci tient
+     quoi qu'il arrive en amont — et il est **testable**, donc testé (dont le
+     contrôle qui montre que sans lui, tout part).
+
    ⚠️⚠️ **UN OBJECTIF RETIRÉ SURVIT DANS LES SCRIPTS.** `'degats'` a été sorti
    d'`Objective`, mais il restait le DÉFAUT de dix scripts CLI/diag, en cast
    `as Objective`. Or `objectiveKeysOf` retombe sur `[]` pour une valeur absente

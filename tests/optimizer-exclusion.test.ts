@@ -8,6 +8,7 @@ import { readFileSync } from 'fs';
 import { BoxItem } from '../src/lib/applyAccount';
 import { GearSet, Monster, RtaEntry, RuneDetail, SiegeTeam } from '../src/types';
 import {
+  comptePeutJuger,
   ExclusionSourceData,
   OptimizerListMember,
   ValidatedBuild,
@@ -506,6 +507,42 @@ export default function testOptimizerExclusion() {
     egal(droppedCount, 1, 'revalidateMembers : le membre au sélecteur introuvable est abandonné');
     egal(kept.length, 1, 'revalidateMembers : le membre encore valide est conservé');
     egal(kept[0]?.selector, { source: 'box', unitKey: 'unit-camilla' }, 'revalidateMembers : conserve le bon sélecteur');
+  }
+
+  // ── ⚠️⚠️ ON NE REVALIDE JAMAIS CONTRE UN COMPTE VIDE ──
+  //
+  // Face à un compte sans monstre ni rune, la revérification ne peut répondre
+  // qu'une chose — plus rien ne résout, donc tout est jeté — et cette réponse
+  // n'est jamais la bonne : un compte vide veut dire « pas encore chargé », pas
+  // « tes monstres ont disparu ». Le résultat étant ÉCRIT sur disque, la perte
+  // est définitive. C'est ce qui se produisait à CHAQUE rechargement de page :
+  // `React.StrictMode` monte le composant deux fois, le garde-fou d'App.tsx ne
+  // protégeait que le premier passage, et le second revalidait sur du vide. Les
+  // listes restaient, leur contenu partait.
+  {
+    const vide: ExclusionSourceData = {
+      box: [],
+      rtaEntries: {},
+      siegeDefenseTeams: [],
+      siegeOffenseTeams: [],
+      monsterById: new Map(),
+    };
+    ok(!comptePeutJuger(vide, new Set()), 'un compte SANS rien ne peut juger personne');
+    // ⚠️ Une seule source suffit : le compte est « chargé », la revérification
+    // a de quoi répondre autre chose que « tout est faux ».
+    ok(comptePeutJuger(vide, new Set([1])), 'des runes seules suffisent à juger');
+    ok(comptePeutJuger({ ...vide, box: data.box }, new Set()), 'une box seule aussi');
+    ok(comptePeutJuger(data, new Set()), 'et le compte complet du scénario, évidemment');
+
+    // ⚠️ Le contrôle qui montre POURQUOI la garde existe : sans elle, tout part.
+    const membres: OptimizerListMember[] = [
+      { listId: 'deck-a', selector: { source: 'box', unitKey: 'unit-camilla' } },
+    ];
+    egal(
+      revalidateMembers(membres, vide).kept.length,
+      0,
+      'sur un compte vide, la revérification jetterait TOUT — d’où la garde en amont'
+    );
   }
 
   // ── ⚠️⚠️ L'IDENTITÉ D'UNE ÉQUIPE DE SIÈGE SURVIT AU RÉIMPORT ──

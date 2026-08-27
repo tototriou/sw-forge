@@ -64,7 +64,7 @@ import { useSiegeState } from './hooks/useSiegeState';
 import { useSiegeRecos } from './hooks/useSiegeRecos';
 import { useOptimizerState } from './hooks/useOptimizerState';
 import { useOptimizerLists } from './hooks/useOptimizerLists';
-import { ExclusionSourceData, revalidateBuilds, revalidateMembers } from './lib/optimizerExclusion';
+import { comptePeutJuger, ExclusionSourceData, revalidateBuilds, revalidateMembers } from './lib/optimizerExclusion';
 import { collectOwnedBuilds, collectOwnedTeams, countCopiesByCom2us } from './lib/ownedBuilds';
 import {
   BoxMonster,
@@ -310,8 +310,17 @@ export default function App() {
         siegeOffenseTeams: siegeOff.state.teams,
         monsterById,
       };
+      // ⚠️⚠️ **Rien à juger sur un compte vide** — voir `comptePeutJuger`. Le
+      // garde-fou `boxMountedRef` ci-dessus ne protège QUE le premier passage
+      // de l'effet : `React.StrictMode` monte le composant deux fois en
+      // développement, et le second revalidait avec `box`/`runes` encore
+      // vides. Plus rien ne résolvait, tout était jeté — puis ÉCRIT sur
+      // disque. Les listes restaient, leur contenu partait à chaque
+      // rechargement.
+      const runeIds = new Set(runes.map((r) => r.id));
+      if (!comptePeutJuger(data, runeIds)) return;
       const membersResult = revalidateMembers(optimizerLists.members, data);
-      const buildsResult = revalidateBuilds(optimizerLists.validated, data, new Set(runes.map((r) => r.id)));
+      const buildsResult = revalidateBuilds(optimizerLists.validated, data, runeIds);
       const droppedCount = membersResult.droppedCount + buildsResult.droppedCount;
       if (droppedCount > 0) {
         optimizerLists.replaceMembersAndValidated(membersResult.kept, buildsResult.kept);

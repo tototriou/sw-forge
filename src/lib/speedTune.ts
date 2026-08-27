@@ -1086,39 +1086,36 @@ export function fenetresRequises(
   // hautes resteraient calculées contre des prédécesseurs encore cassés.
   const corrige = new Map<string, number>();
   if (enchainer) {
+    // ⚠️⚠️ **ON NE CORRIGE QUE CE QUI EST ENCORE EN DÉFAUT**, un monstre à la
+    // fois, en rediagnostiquant après chaque correction.
+    //
+    // Une version précédente posait d'office CHAQUE monstre signalé à son
+    // minimum, en remontant l'ordre. Elle surestimait : sur
+    // Chilling / Carcano / Seren, Seren était signalé « trop lent », donc
+    // remonté — et Carcano, calculé contre un Seren corrigé plus rapide que le
+    // vrai, réclamait **+2** là où **+1** suffisait. Le défaut de Seren était en
+    // réalité une CONSÉQUENCE de la position de Carcano : une fois Carcano
+    // corrigé, Seren n'avait plus rien à faire.
+    //
+    // ⚠️ **Le PREMIER en défaut dans l'ordre**, jamais le dernier : c'est lui
+    // qui contraint ses successeurs. Corriger un successeur d'abord revient à
+    // le faire payer pour un prédécesseur mal placé.
+    //
+    // ⚠️ Les corrections ne font que MONTER et sont bornées par le plafond : la
+    // terminaison est acquise, ce compteur n'est qu'un garde-fou.
     let plateau = monstres;
-    // ⚠️ **UNE SEULE PASSE NE SUFFIT PAS, et il faut le savoir.** Les exigences
-    // sont MUTUELLEMENT dépendantes : tant que Galleon traîne, Zaiross n'a qu'à
-    // prendre le tick que l'adverse laisse ; dès que Galleon est corrigé et
-    // occupe ce tick, Zaiross doit à son tour passer devant l'adverse — sa
-    // borne monte de 286 à ~300. On itère donc jusqu'au POINT FIXE.
-    //
-    // ⚠️ Un seul monstre agit par tick : corriger l'un DÉPLACE les autres. C'est
-    // ce couplage qui rend l'itération nécessaire, et non un raffinement.
-    //
-    // Le nombre de passes est borné par la longueur de l'ordre (chaque passe
-    // stabilise au moins un rang), plus une pour constater l'arrêt.
-    // ⚠️ La poursuite avance d'un cran à la fois : sur Tiana/Galleon/Zaiross il
-    // faut une dizaine de passes pour aller de 286 à 296. Un plafond calé sur la
-    // longueur de l'ordre s'arrêtait AVANT la convergence et rendait une fenêtre
-    // vide — le défaut qu'on corrige. La terminaison, elle, est garantie : les
-    // corrections ne font que MONTER et sont bornées par le plafond ; ce compteur
-    // n'est qu'un garde-fou. Coût mesuré : ~6 ms pour une équipe de trois.
     for (let passe = 0; passe < 200; passe++) {
-      let bouge = false;
-      for (const id of [...ordre].reverse()) {
-        const v = borneBasse(plateau, ordre, id, horizon, axe, plafond);
-        if (v == null) continue;
-        const actuel = valeurDe(plateau.find((m) => m.id === id), axe);
-        // ⚠️ On ne REDESCEND jamais : une correction déjà posée reste acquise,
-        // sinon deux rangs se renvoient la balle d'une passe à l'autre sans
-        // jamais converger.
-        if (actuel != null && actuel >= v) continue;
-        corrige.set(id, v);
-        plateau = plateau.map((m) => (m.id === id ? { ...m, ...champ(axe, v) } : m));
-        bouge = true;
-      }
-      if (!bouge) break;
+      const d = diagnostiquerSequence(plateau, ordre, horizon);
+      if (d.ok) break;
+      const enDefaut = ordre.find((cle) => d.problemes.some((p) => p.id === cle));
+      if (enDefaut == null) break;
+      const v = borneBasse(plateau, ordre, enDefaut, horizon, axe, plafond);
+      if (v == null) break;
+      const actuel = valeurDe(plateau.find((m) => m.id === litOccurrence(enDefaut).id), axe);
+      // Rien à gagner : sa borne ne le fait pas monter, on ne bouclera pas.
+      if (actuel != null && actuel >= v) break;
+      corrige.set(litOccurrence(enDefaut).id, v);
+      plateau = plateau.map((m) => (m.id === litOccurrence(enDefaut).id ? { ...m, ...champ(axe, v) } : m));
     }
   }
   // Le plateau que voient les fenêtres : les AUTRES corrigés, chacun cherchant
@@ -1200,6 +1197,35 @@ export function fenetresRequises(
         else haut = milieu - 1;
       }
       max = bas;
+    }
+
+    // ⚠️⚠️ **LA BORNE ANNONCÉE EST VÉRIFIÉE, PAS DÉDUITE.**
+    //
+    // Les dichotomies cherchent chacune une condition (« avant son successeur »,
+    // « avant l'adverse »), et les corrections enchaînées supposent les autres
+    // réglés. Rien de tout ça ne garantit le PLUS PETIT point qui, en ne bougeant
+    // que CE monstre, fait tenir l'ordre — et c'est pourtant le seul geste que
+    // l'utilisateur fasse : il ajoute de la vitesse à un monstre et relance. Sur
+    // le cas remonté, l'écran annonçait +2 quand +1 suffisait.
+    //
+    // ⚠️ On BALAIE VERS LE HAUT depuis sa vitesse actuelle, on ne descend pas
+    // depuis la borne : « l'ordre tient » n'est pas monotone en vitesse (un seul
+    // monstre agit par tick, aller plus vite peut voler le tick d'un allié). Une
+    // dichotomie y trouverait n'importe quoi ; le premier point qui marche, lui,
+    // est le minimum par construction.
+    if (enchainer && min != null && min > depart) {
+      const avecMoi = (v: number) =>
+        monstres.map((m) => (m.id === litOccurrence(id).id ? { ...m, ...champ(axe, v) } : m));
+      // Seulement quand la borne suffit À ELLE SEULE : sinon elle vaut « les
+      // autres étant corrigés », et il n'y a pas de minimum individuel à chercher.
+      if (diagnostiquerSequence(avecMoi(min), ordre, horizon).ok) {
+        for (let v = depart + 1; v < min; v++) {
+          if (diagnostiquerSequence(avecMoi(v), ordre, horizon).ok) {
+            min = v;
+            break;
+          }
+        }
+      }
     }
 
     poser(depart);

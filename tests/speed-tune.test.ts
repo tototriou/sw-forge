@@ -1656,6 +1656,78 @@ export function testSpeedTuneSequence() {
     );
   }
 
+  // ⚠️⚠️ **ON NE CORRIGE QUE CE QUI EST ENCORE EN DÉFAUT.** Cas remonté, chiffres
+  // réels : Chilling 396 / Carcano 366 (artéfact 35) / Seren 354 (artéfact 42),
+  // référence Chilling 396 en face. L'écran annonçait « Carcano +2 SPD » alors
+  // que **+1 suffit** — et le rendait speed tune.
+  //
+  // Cause : Seren était lui aussi signalé « trop lent », donc remonté d'office à
+  // son minimum ; Carcano, calculé contre un Seren corrigé PLUS RAPIDE que le
+  // vrai, réclamait un point de plus. Or le défaut de Seren était une
+  // CONSÉQUENCE de la position de Carcano : une fois Carcano corrigé, Seren
+  // n'avait plus rien à faire.
+  {
+    const plateau = (carcano: number): TuneMonstre[] => [
+      { id: 'chilling', combat: 396, camp: 'allie', sort: { buffEquipe: 30, cooldown: 4 } },
+      { id: 'carcano', combat: carcano, camp: 'allie', artefactBuff: 35 },
+      { id: 'seren', combat: 354, camp: 'allie', artefactBuff: 42 },
+      { id: 'ref', combat: 396, camp: 'ennemi' },
+    ];
+    const ordre = ['chilling', 'carcano', 'seren'];
+
+    // Le fait de terrain, d'abord : +1 sur Carcano suffit.
+    ok(!diagnostiquerSequence(plateau(366), ordre).ok, 'à 366, l’ordre demandé ne tient pas');
+    ok(diagnostiquerSequence(plateau(367), ordre).ok, 'à 367 — UN point de plus — il tient');
+
+    const f = fenetresRequises(plateau(366), ordre, HORIZON_TICKS, 'combat', true).find((x) => x.id === 'carcano')!;
+    egal(f.min, 367, 'la borne annoncée est 367 (+1), pas 368 (+2)');
+    // ⚠️ Et Seren n'est PAS remonté au passage : sa correction n'a jamais eu
+    // lieu d'être, c'est ce que le défaut faisait à tort.
+    const fSeren = fenetresRequises(plateau(366), ordre, HORIZON_TICKS, 'combat', true).find((x) => x.id === 'seren')!;
+    ok(fSeren.max != null && fSeren.max >= 354, 'Seren garde une fenêtre qui contient sa vitesse actuelle');
+  }
+
+  // ⚠️ **PROPRIÉTÉ : une borne qui suffit à elle seule est la PLUS PETITE.**
+  // Une borne enchaînée peut légitimement ne pas suffire seule (elle suppose les
+  // autres corrigés). Mais quand elle suffit, elle ne doit JAMAIS dépasser d'un
+  // point — c'est exactement le défaut ci-dessus, et il ne se voyait que sur une
+  // configuration précise. Balayage déterministe.
+  {
+    let graine = 20260828;
+    const rnd = () => ((graine = (graine * 1103515245 + 12345) & 0x7fffffff) / 0x7fffffff);
+    const ent = (a: number, b: number) => a + Math.floor(rnd() * (b - a + 1));
+    let verifies = 0;
+    let fautes = 0;
+    let exemple = '';
+    for (let i = 0; i < 400; i++) {
+      const a = ent(200, 400), b = ent(200, 400), c = ent(200, 400), adv = ent(200, 400);
+      // ⚠️ L'artéfact se tire UNE FOIS, hors de `board` : tiré dedans, chaque
+      // appel construisait un plateau différent et le contrôle comparait deux
+      // configurations distinctes — il « trouvait » alors des fautes qui
+      // n'existaient pas.
+      const arte = ent(0, 50);
+      const board = (vb: number): TuneMonstre[] => [
+        { id: 'a', combat: a, camp: 'allie', sort: { buffEquipe: 30, cooldown: 4 } },
+        { id: 'b', combat: vb, camp: 'allie', artefactBuff: arte },
+        { id: 'c', combat: c, camp: 'allie' },
+        { id: 'adv', combat: adv, camp: 'ennemi' },
+      ];
+      const ordre = ['a', 'b', 'c'];
+      const f = fenetresRequises(board(b), ordre, HORIZON_TICKS, 'combat', true).find((x) => x.id === 'b');
+      if (!f || f.ok || f.min == null || f.min <= b) continue;
+      // La borne suffit-elle en ne bougeant QUE `b` ? Sinon elle suppose les
+      // autres corrigés, et il n'y a rien à vérifier ici.
+      if (!diagnostiquerSequence(board(f.min), ordre).ok) continue;
+      verifies++;
+      if (diagnostiquerSequence(board(f.min - 1), ordre).ok) {
+        fautes++;
+        if (!exemple) exemple = `a=${a} b=${b} c=${c} adv=${adv} annoncé=${f.min} mais ${f.min - 1} suffit`;
+      }
+    }
+    ok(verifies >= 20, `${verifies} bornes suffisantes à elles seules contrôlées`);
+    egal(fautes, 0, `aucune borne ne dépasse le minimum${exemple ? ` — faute : ${exemple}` : ''}`);
+  }
+
   // ⚠️ **LES FENÊTRES CONNAISSENT LES OCCURRENCES.** Un voisin nommé
   // `allie:12#2` était introuvable via `premiersTours` : la contrainte « joue
   // avant lui » tombait SANS BRUIT, la fenêtre annonçait une vitesse trop basse

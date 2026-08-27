@@ -498,6 +498,36 @@ sont bornées par le plafond, la terminaison est acquise. ⚠️ **Un seul monst
 agit par tick** — corriger l'un DÉPLACE les autres : c'est ce couplage qui rend
 l'itération nécessaire, pas un raffinement.
 
+⚠️⚠️ **ON NE CORRIGE QUE CE QUI EST ENCORE EN DÉFAUT**, un monstre à la fois, en
+rediagnostiquant après chaque correction — et **le premier en défaut dans
+l'ordre**, jamais le dernier : c'est lui qui contraint ses successeurs. Une
+version posait d'office chaque monstre signalé à son minimum, ce qui
+**surestimait** : sur Chilling 396 / Carcano 366 / Seren 354 (référence
+Chilling 396), Seren était signalé « trop lent », donc remonté — et Carcano,
+calculé contre un Seren corrigé plus rapide que le vrai, réclamait **+2** là où
+**+1** suffisait. Le défaut de Seren était une **conséquence** de la position de
+Carcano : une fois Carcano corrigé, Seren n'avait plus rien à faire.
+
+⚠️⚠️ **LA BORNE ANNONCÉE EST REJOUÉE.** Les dichotomies cherchent chacune une
+condition, et les corrections enchaînées supposent les autres réglés : rien de
+tout ça ne garantit le **plus petit point qui, en ne bougeant que CE monstre,
+fait tenir l'ordre** — et c'est pourtant le seul geste que l'utilisateur fasse.
+Quand la borne suffit **à elle seule**, on balaie donc **vers le haut** depuis sa
+vitesse actuelle et on annonce le premier point qui marche.
+
+- ⚠️ **Vers le haut, jamais une dichotomie** : « l'ordre tient » n'est **pas
+  monotone** en vitesse — un seul monstre agit par tick, donc aller plus vite
+  peut voler le tick d'un allié. Le premier point qui marche en partant du bas
+  est le minimum **par construction** ; une dichotomie y trouverait n'importe
+  quoi.
+- ⚠️ Seulement quand la borne suffit à elle seule : sinon elle vaut « les autres
+  étant corrigés », et il n'y a pas de minimum individuel à chercher.
+- Coût mesuré : **~2,4 ms** par appel, même avec des monstres très en retard.
+- **Gardé** par une propriété balayée : *toute borne qui suffit à elle seule est
+  la plus petite*. ⚠️ Le contrôle a d'abord menti — l'artéfact était tiré au sort
+  DANS le constructeur de plateau, donc chaque appel comparait une configuration
+  différente et « trouvait » des fautes inexistantes.
+
 ⚠️ **Les bornes annoncées sont VÉRIFIÉES, pas déduites** : le test repose les
 vitesses trouvées, contrôle que l'ordre demandé est tenu, puis qu'**un seul point
 de moins le casse** — la borne est le minimum, pas une marge. Une borne affichée

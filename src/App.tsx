@@ -263,9 +263,29 @@ export default function App() {
   // encore de valeur « précédente » à comparer, et l'Optimizer démarre de
   // toute façon déjà vide.
   const boxMountedRef = useRef(false);
+  // ⚠️ **BUG CORRIGÉ** (revue de code externe) : `boxMountedRef` ne protège QUE
+  // le tout premier rendu (`box` encore à `[]`) — la RELECTURE du compte
+  // conservé (voir l'effet d'hydratation plus bas, `setBox`/`setRunes` dans
+  // le `.then()` de `loadAccount()`) arrive forcément APRÈS ce premier rendu,
+  // donc APRÈS que `boxMountedRef.current` soit déjà passé à `true` : cet
+  // effet ne pouvait pas la distinguer d'un VRAI réimport. Résultat, à CHAQUE
+  // rechargement de page avec un compte conservé : `resetSearch()` + la
+  // revérification des listes de travail se déclenchaient pour de faux, avec
+  // le message « … dans le compte réimporté » alors qu'aucun réimport n'avait
+  // eu lieu — et pouvaient faire disparaître des builds validés (voir aussi le
+  // bug corrigé dans `revalidateBuilds`, optimizerExclusion.ts).
+  // `hydrationJustAppliedRef` : posé au moment précis où l'effet d'hydratation
+  // écrit `box`/`runes` depuis le stockage, consommé ICI — seule cette
+  // écriture-là doit être ignorée, un VRAI réimport (même juste après) continue
+  // de tout redéclencher normalement.
+  const hydrationJustAppliedRef = useRef(false);
   useEffect(() => {
     if (!boxMountedRef.current) {
       boxMountedRef.current = true;
+      return;
+    }
+    if (hydrationJustAppliedRef.current) {
+      hydrationJustAppliedRef.current = false;
       return;
     }
     optimizer.resetSearch();
@@ -457,6 +477,9 @@ export default function App() {
       if (annule) return;
       // L'utilisateur a déposé un fichier pendant la lecture : son geste prime.
       if (rec && !importedManuallyRef.current) {
+        // Consommé par l’effet de revalidation des listes de travail
+        // ci-dessus — cette écriture est une RELECTURE, pas un réimport.
+        hydrationJustAppliedRef.current = true;
         rawBoxRef.current = rec.box;
         setBox(mapBoxMonsters(rec.box, monsterByCom2us));
         setRunes(rec.runes);

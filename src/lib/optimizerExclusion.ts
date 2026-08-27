@@ -371,33 +371,37 @@ export function findValidatedBuild(validated: ValidatedBuild[], listId: string |
 
 // Revérifie chaque build validé contre le compte ACTUELLEMENT chargé (après
 // réimport, voir App.tsx) — un sélecteur qui ne résout plus (monstre
-// fusionné/retiré de RTA/deck modifié) OU dont les runes validées ne sont
-// plus TOUTES portées par cet exemplaire (runes déplacées, vendues, reforgées
-// ailleurs depuis) est abandonné : le garder afficherait un build « validé »
-// qui n'a plus rien à voir avec le compte réel. ⚠️ Jamais silencieux — voir
-// son appelant (App.tsx), qui avertit l'utilisateur du nombre abandonné
-// plutôt que de les perdre sans un mot (point bloquant 4 du cadrage).
+// fusionné/retiré de RTA/deck modifié) OU dont une rune validée n'existe
+// PLUS DU TOUT dans le compte (vendue, reforgée, décomposée depuis) est
+// abandonné : le garder afficherait un build « validé » qui n'a plus rien à
+// voir avec le compte réel. ⚠️ Jamais silencieux — voir son appelant
+// (App.tsx), qui avertit l'utilisateur du nombre abandonné plutôt que de les
+// perdre sans un mot (point bloquant 4 du cadrage).
+// ⚠️ **BUG CORRIGÉ** (revue de code externe) : la version précédente exigeait,
+// pour un exemplaire RÉEL (box/RTA/siège), que les runes validées soient
+// ENCORE PORTÉES par CET exemplaire (`resolved.gear.runes`) — contradiction
+// directe avec la définition même d'un build validé (« n'est PAS réellement
+// reruné en jeu », voir l'en-tête de `ValidatedBuild` plus haut) : ce
+// build-là n'est justement PAS censé être déjà équipé. Résultat, en
+// pratique : quasiment TOUT build validé sur un exemplaire réel échouait
+// cette vérification et se faisait abandonner dès la revérification
+// suivante (silencieusement, sauf le message d'avertissement) — perte de
+// données pure, pas une correction légitime.
 // ⚠️ `allRuneIds` (le POOL COMPLET du compte, équipé et non équipé — voir
-// OptimizerSection.tsx, `runes`) — nécessaire UNIQUEMENT pour un sélecteur
-// `unowned` : son `gear.runes` résolu est TOUJOURS vide (pas d'exemplaire
-// réel à comparer), donc la question posée diffère de celle des exemplaires
-// réels — pas « ces runes sont-elles encore PORTÉES par lui », mais « ces
-// runes EXISTENT-elles encore dans le compte » (ni vendues ni reforgées
-// depuis). Plus faible que la vérification « toujours porté » d'un
-// exemplaire réel (ne détecte pas une rune réattribuée à un AUTRE monstre
-// réel depuis) — limite assumée, documentée dans spec/outils/optimizer/.
+// OptimizerSection.tsx, `runes`) — LA seule question qui a un sens pour un
+// build validé, qu'il soit `unowned` ou un exemplaire réel : pas « ces runes
+// sont-elles encore PORTÉES par lui », mais « ces runes EXISTENT-elles
+// encore dans le compte ». Plus faible qu'une vérification « toujours porté
+// par CE monstre » aurait pu l'être (ne détecte pas une rune réattribuée à
+// un AUTRE monstre réel depuis la validation) — limite assumée, documentée
+// dans spec/outils/optimizer/, pas une régression : rien dans ce fichier
+// n'a jamais pu détecter correctement ce cas plus fin.
 export function revalidateBuilds(validated: ValidatedBuild[], data: ExclusionSourceData, allRuneIds: Set<number>): { kept: ValidatedBuild[]; droppedCount: number } {
   const kept: ValidatedBuild[] = [];
   let droppedCount = 0;
   for (const v of validated) {
     const resolved = resolveExclusionEntry(v.selector, data);
-    const stillValid =
-      v.selector.source === 'unowned'
-        ? resolved != null && v.runeIds.every((id) => allRuneIds.has(id))
-        : (() => {
-            const currentIds = new Set((resolved?.gear.runes ?? []).map((r) => r.id));
-            return resolved != null && v.runeIds.every((id) => currentIds.has(id));
-          })();
+    const stillValid = resolved != null && v.runeIds.every((id) => allRuneIds.has(id));
     if (stillValid) kept.push(v);
     else droppedCount++;
   }

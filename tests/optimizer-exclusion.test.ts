@@ -410,14 +410,16 @@ export default function testOptimizerExclusion() {
   }
 
   // ── revalidateBuilds — revérification au réimport (point bloquant 4 du
-  // cadrage) : un sélecteur introuvable OU une rune validée qui n'est plus
-  // TOUTE sur l'exemplaire (déplacée/vendue/reforgée depuis) est abandonné,
-  // jamais silencieusement gardé. ──
+  // cadrage) : un sélecteur introuvable OU une rune validée qui n'EXISTE
+  // PLUS DU TOUT dans le compte (vendue/reforgée depuis) est abandonné,
+  // jamais silencieusement gardé — mais rester PAS ENCORE équipée sur
+  // l'exemplaire ne suffit PAS à l'abandonner (voir le cas dédié plus bas,
+  // bug corrigé). ──
   {
     const validated: ValidatedBuild[] = [
       { listId: 'deck-a', selector: { source: 'box', unitKey: 'unit-camilla' }, runeIds: [1, 2, 3, 4, 5, 6] }, // toujours intact → conservé
       { listId: 'deck-a', selector: { source: 'box', unitKey: 'unit-jamais-vu' }, runeIds: [1, 2, 3, 4, 5, 6] }, // sélecteur introuvable → abandonné
-      { listId: 'deck-a', selector: { source: 'rta', monsterId: String(camilla.id) }, runeIds: [101, 102, 103, 104, 105, 999] }, // 999 absente de cet exemplaire → abandonné
+      { listId: 'deck-a', selector: { source: 'rta', monsterId: String(camilla.id) }, runeIds: [101, 102, 103, 104, 105, 999] }, // 999 absente du compte entier → abandonné
     ];
     const allRuneIds = new Set(box.flatMap((b) => b.gear!.runes.map((r) => r.id)).concat(
       Object.values(rtaEntries).flatMap((e) => e.gear?.runes.map((r) => r.id) ?? []),
@@ -430,6 +432,25 @@ export default function testOptimizerExclusion() {
 
     const allValid = revalidateBuilds([validated[0]], data, allRuneIds);
     egal(allValid.droppedCount, 0, 'revalidateBuilds : rien de périmé → droppedCount à 0, pas juste kept correct');
+
+    // ── BUG CORRIGÉ (revue de code externe) : un build validé n'est PAS
+    // censé être déjà équipé sur l'exemplaire (voir ValidatedBuild, tête de
+    // fichier) — un build validé sur Lushen mais composé des runes
+    // ACTUELLEMENT portées par Camilla (pas les siennes, [7..12]) doit
+    // rester valide tant que ces runes existent QUELQUE PART dans le
+    // compte. L'ancienne version exigeait « encore portées par CET
+    // exemplaire » — elle aurait abandonné ce build à tort, silencieusement
+    // (perte de données sur pratiquement TOUT build validé réel). ──
+    const validatedPasEncoreEquipe: ValidatedBuild[] = [
+      { listId: 'deck-a', selector: { source: 'box', unitKey: 'unit-lushen' }, runeIds: [1, 2, 3, 4, 5, 6] },
+    ];
+    const pasEncoreEquipeResult = revalidateBuilds(validatedPasEncoreEquipe, data, allRuneIds);
+    egal(
+      pasEncoreEquipeResult.droppedCount,
+      0,
+      'revalidateBuilds : un build validé PAS ENCORE équipé sur son exemplaire reste valide tant que ses runes existent dans le compte'
+    );
+    egal(pasEncoreEquipeResult.kept.length, 1, 'revalidateBuilds : conservé, pas abandonné à tort');
 
     // ── Sélecteur `unowned` (« ajouter un monstre qu'on ne possède pas ») —
     // son `gear.runes` résolu est TOUJOURS vide (pas d'exemplaire réel), donc

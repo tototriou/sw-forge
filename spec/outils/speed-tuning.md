@@ -483,6 +483,7 @@ aide tout autant à passer devant lui. D'où `EffetSort`
 | `atbSoi` | +% sur **sa** barre |
 | `atbEnnemi` / `atbEnnemiTous` | −% de barre à l'adverse (le plus avancé), ou à tous |
 | `buffEquipe` / `buffSoi` | +30 % de vitesse, à partir du tick **suivant** |
+| `buffAllie` | +30 % de vitesse à l'allié **visé** — la même cible qu'`atbAllie` |
 | `ralenti` / `ralentiTous` | −30 % de vitesse sur l'adverse (le plus avancé, ou tous) |
 
 - ⚠️⚠️ **`aoe` ET `surSoi` NE S'EXCLUENT PAS**, dans les données du jeu. `aoe +
@@ -498,6 +499,11 @@ aide tout autant à passer devant lui. D'où `EffetSort`
   | `surSoi` sans `aoe` | lui seul |
   | ni l'un ni l'autre | **UN** allié (la barre la plus basse) |
 
+  ⚠️ Cette dernière ligne vaut aussi pour le **buff de vitesse** : `aoe=false,
+  surSoi=false` sur un *Increase ATK SPD*, c'est un buff sur l'allié VISÉ, donc
+  `buffAllie`. Il est passé par deux erreurs successives — rangé dans `buffSoi`
+  (le lanceur héritait d'un buff qu'il **donne**), puis purement ignoré.
+
   Même règle pour le buff de vitesse et pour le **comptage des buffs d'équipe**
   (`buffsEquipe`, qui nourrit l'estimation des passifs à cumuls) : un effet
   **bénéfique** de zone va sur les alliés, que le lanceur en profite ou non.
@@ -505,9 +511,15 @@ aide tout autant à passer devant lui. D'où `EffetSort`
   the Attack Bar of **the target ally** », le S3 de Sapsaree. La barre la plus
   basse n'est qu'un **défaut raisonnable**, pas une règle du jeu : l'ordre des
   sorts porte donc un « sur : … » à côté du sort, listant les alliés du lanceur.
-- ⚠️ **Le lanceur PEUT se viser lui-même**, et figure dans cette liste, marqué
-  « (lui-même) ». Le jeu l'autorise, et se rendre son propre tour est un geste
-  courant. Il n'était désignable nulle part.
+  Il s'affiche dès que le sort porte `atbAllie` **ou** `buffAllie` : un sort qui
+  ne fait que buffer vise lui aussi.
+- ⚠️ **UNE cible pour le sort, pas une par effet.** `atbAllie` et `buffAllie`
+  sortent du même sort : ils sont résolus **une seule fois**, ensemble. Les
+  résoudre séparément aurait rempli la barre de l'un et buffé l'autre.
+- ⚠️ **Le lanceur PEUT se viser lui-même** — le jeu l'autorise, et c'est le geste
+  recherché quand le sort porte un buff de vitesse : *Rabbit's Agility* (Racuni,
+  Harg, Dova) rend son tour au lanceur **et** l'accélère de 30 %. Il figure donc
+  dans la liste des cibles, marqué « (lui-même) ».
 - ⚠️ **Mais jamais PAR DÉFAUT** : sa barre vient de retomber à 0, il serait
   systématiquement « celui qui l'a la plus basse » et se rendrait à lui-même un
   boost dont personne ne compte. Se viser soi-même est un **geste**, pas le

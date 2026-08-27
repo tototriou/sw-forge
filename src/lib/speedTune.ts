@@ -63,8 +63,8 @@ export interface EffetSort {
   // du jeu. `undefined` = on retombe sur ce défaut.
   //
   // ⚠️ **Le lanceur est une cible comme une autre.** Le jeu autorise à se viser
-  // soi-même avec un sort « sur un allié » — se rendre son propre tour est un
-  // geste courant. Il n'était pas désignable du tout.
+  // soi-même avec un sort « sur un allié », et c'est même l'usage recherché
+  // quand le sort porte un buff de vitesse (Rabbit's Agility de Racuni / Harg).
   cibleAllie?: string;
   atbSoi?: number; // lui seul
   atbEnnemi?: number; // RETIRÉ à l'adverse (valeur positive = retrait)
@@ -72,6 +72,11 @@ export interface EffetSort {
   // Vitesse, en % (le jeu : +30 en buff, −30 en ralenti).
   buffEquipe?: number;
   buffSoi?: number;
+  // ⚠️ **Le buff de vitesse posé sur l'allié VISÉ** — la même cible que
+  // `atbAllie`, parce que c'est le même sort. Rabbit's Agility remplit une barre
+  // ET donne +30 % de vitesse : n'en garder que la barre plaçait bien le tour
+  // suivant de la cible, et tous les autres trop tard.
+  buffAllie?: number;
   ralenti?: number; // posé sur l'adverse
   ralentiTous?: boolean;
   // ⚠️ **RECHARGEMENT**, en tours du lanceur (0 = aucun). Un sort à 3 tours de
@@ -218,7 +223,11 @@ export function simuler(monstres: TuneMonstre[], horizon = HORIZON_TICKS): Simul
   // deux, et non un maximum global.
   const buffCamp: Record<Camp, number> = { allie: 0, ennemi: 0 };
   const ralentiCamp: Record<Camp, number> = { allie: 0, ennemi: 0 };
-  const buffSoi: Record<string, number> = {};
+  // ⚠️ **Un buff INDIVIDUEL, quelle qu'en soit la source** : posé sur soi
+  // (`buffSoi`) ou reçu d'un allié qui vous vise (`buffAllie`). Les deux
+  // aboutissent au même endroit — c'est le monstre buffé qui compte, pas qui
+  // l'a buffé.
+  const buffIndiv: Record<string, number> = {};
   // Rechargement : combien de tours ce monstre a joués, et à quel tour chacun de
   // ses deux sorts a été lancé pour la dernière fois.
   const tours: Record<string, number> = {};
@@ -229,7 +238,7 @@ export function simuler(monstres: TuneMonstre[], horizon = HORIZON_TICKS): Simul
       // Ce que les COMPÉTENCES donnent à ce monstre ce tick-ci : le plus fort
       // buff d'un côté, le plus fort ralenti de l'autre (ils ne s'empilent pas),
       // les deux se compensant.
-      const parSort = Math.max(buffCamp[m.camp], buffSoi[m.id] ?? 0) - ralentiCamp[m.camp];
+      const parSort = Math.max(buffCamp[m.camp], buffIndiv[m.id] ?? 0) - ralentiCamp[m.camp];
       // ⚠️ La saisie de la grille REMPLACE cette part (0 = on annule le sort).
       const saisi = m.speedMod?.[tick];
       const buffBase = saisi ?? parSort;
@@ -304,21 +313,26 @@ export function simuler(monstres: TuneMonstre[], horizon = HORIZON_TICKS): Simul
       const adverse: Camp = camp === 'allie' ? 'ennemi' : 'allie';
       if (sort.atbEquipe) for (const m of etat) if (m.camp === camp) ajouter(m, sort.atbEquipe);
       if (sort.atbSoi) ajouter(gagnant, sort.atbSoi);
-      if (sort.atbAllie) {
-        // ⚠️ **Une cible DÉSIGNÉE l'emporte, le LANCEUR COMPRIS** : c'est le
+      // La cible d'un sort « sur un allié », résolue UNE FOIS : la barre et le
+      // buff de vitesse partent du même sort, donc sur le même monstre. Les
+      // résoudre séparément aurait permis de remplir la barre de l'un et de
+      // buffer l'autre.
+      const cibleAlliee = (() => {
+        if (!sort.atbAllie && !sort.buffAllie) return null;
+        // ⚠️ **Une cible DÉSIGNÉE l'emporte, le lanceur COMPRIS.** C'est le
         // joueur qui vise, en jeu, et le jeu l'autorise à se viser lui-même.
-        // On cherche donc dans TOUT le camp, pas dans le camp moins lui.
-        const visee = sort.cibleAllie
-          ? etat.find((m) => m.camp === camp && m.id === sort.cibleAllie)
-          : undefined;
-        // ⚠️ **Mais il reste EXCLU du choix PAR DÉFAUT** : sa barre vient de
-        // retomber à 0, il serait systématiquement « celui qui l'a la plus
+        if (sort.cibleAllie) {
+          const visee = etat.find((m) => m.camp === camp && m.id === sort.cibleAllie);
+          if (visee) return visee;
+        }
+        // ⚠️ **Mais le lanceur est EXCLU du choix PAR DÉFAUT** : sa barre vient
+        // de retomber à 0, il serait systématiquement « celui qui l'a la plus
         // basse » et se rendrait à lui-même un boost dont personne ne compte.
         // Se viser soi-même doit être un geste, jamais le défaut.
         const cibles = etat.filter((m) => m.camp === camp && m !== gagnant);
-        const cible = visee ?? (cibles.length > 0 ? cibles.reduce((a, b) => (b.atb < a.atb ? b : a)) : null);
-        if (cible) ajouter(cible, sort.atbAllie);
-      }
+        return cibles.length > 0 ? cibles.reduce((a, b) => (b.atb < a.atb ? b : a)) : null;
+      })();
+      if (sort.atbAllie && cibleAlliee) ajouter(cibleAlliee, sort.atbAllie);
       if (sort.atbEnnemi) {
         const ennemis = etat.filter((m) => m.camp === adverse);
         // ⚠️ Cible d'un retrait de barre : celui qui est le PLUS AVANCÉ — c'est
@@ -331,7 +345,9 @@ export function simuler(monstres: TuneMonstre[], horizon = HORIZON_TICKS): Simul
         for (const m of cibles) ajouter(m, -sort.atbEnnemi);
       }
       if (sort.buffEquipe && sort.buffEquipe > buffCamp[camp]) buffCamp[camp] = sort.buffEquipe;
-      if (sort.buffSoi && sort.buffSoi > (buffSoi[gagnant.id] ?? 0)) buffSoi[gagnant.id] = sort.buffSoi;
+      if (sort.buffSoi && sort.buffSoi > (buffIndiv[gagnant.id] ?? 0)) buffIndiv[gagnant.id] = sort.buffSoi;
+      if (sort.buffAllie && cibleAlliee && sort.buffAllie > (buffIndiv[cibleAlliee.id] ?? 0))
+        buffIndiv[cibleAlliee.id] = sort.buffAllie;
       if (sort.ralenti && sort.ralenti > ralentiCamp[adverse]) ralentiCamp[adverse] = sort.ralenti;
     };
     tours[gagnant.id] = (tours[gagnant.id] ?? 0) + 1;

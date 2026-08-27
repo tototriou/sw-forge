@@ -129,7 +129,8 @@ function valeurPourLeTune(x: SortVitesse): number {
   if (e.buffEquipe) return 5;
   if (x.rejoue) return 4;
   if (e.buffSoi || e.atbSoi) return 3;
-  if (e.atbAllie) return 2;
+  // Un sort qui ne touche QU'UN allié — sa barre, sa vitesse, ou les deux.
+  if (e.atbAllie || e.buffAllie) return 2;
   return 0;
 }
 

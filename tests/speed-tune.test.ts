@@ -818,8 +818,8 @@ export function testSpeedTuneChaine() {
   }
 
   // ⚠️ SE VISER SOI-MÊME. Le jeu autorise un sort « sur un allié » à prendre son
-  // lanceur pour cible — se rendre son propre tour est un geste courant. Le
-  // lanceur était absent de la liste des cibles.
+  // lanceur pour cible, et c'est le geste recherché quand il porte un buff de
+  // vitesse (Rabbit's Agility). Le lanceur était exclu de la liste des cibles.
   {
     const equipe = (cible?: string) => [
       { ...m('lanceur', 300, 'allie'), sort: { atbAllie: 40, cibleAllie: cible } },
@@ -834,6 +834,60 @@ export function testSpeedTuneChaine() {
     // systématiquement « celui qui l'a la plus basse » et se boosterait seul.
     const defaut = simuler(equipe(), 12);
     egal(gainDe(defaut, 'lanceur').length, 0, "sans désignation, le lanceur ne se vise pas lui-même");
+  }
+
+  // ⚠️ BUFF DE VITESSE SUR L'ALLIÉ VISÉ. Rabbit's Agility remplit une barre ET
+  // donne +30 % de vitesse. Le buff était jeté : la cible allait moins vite que
+  // dans le jeu, donc tous ses tours suivants tombaient trop tard.
+  {
+    const toursDe = (sim: Simulation, id: string) =>
+      sim.actions.filter((a) => a.id === id).map((a) => a.tick);
+
+    // ⚠️ Testé SANS remplissage de barre. Avec `atbAllie: 100`, le lanceur
+    // relance chaque tour et remet la cible à 100 % : ce sont ses remplissages
+    // qui fixent les tours de la cible, et le buff n'y change plus rien — le
+    // test passait au vert quoi qu'on code.
+    const equipe = (sort?: EffetSort) => [
+      { ...m('lanceur', 300, 'allie'), sort },
+      m('cible', 150, 'allie'),
+    ];
+    const sans = simuler(equipe(), 40);
+    const avec = simuler(equipe({ buffAllie: 30, cibleAllie: 'cible' }), 40);
+    ok(
+      toursDe(avec, 'cible')[1] < toursDe(sans, 'cible')[1],
+      "buffée, la cible revient plus tôt à son tour suivant"
+    );
+    // Et le buff va bien à la CIBLE, pas au lanceur qui le donne.
+    // ⚠️ Se lit sur `effetSpeed`, PAS en comparant les tours du lanceur : la
+    // simulation n'accorde qu'une action par tick, donc une cible devenue plus
+    // rapide lui dispute des ticks et décale les siens pour de bon. Ce décalage
+    // est correct — le confondre avec « il a hérité du buff » ferait échouer un
+    // code juste.
+    const ligne = (sim: Simulation, id: string) => sim.lignes.find((l) => l.id === id)!;
+    ok(Object.keys(ligne(avec, 'cible').effetSpeed).length > 0, 'le buff est posé sur la cible');
+    egal(
+      Object.keys(ligne(avec, 'lanceur').effetSpeed).length,
+      0,
+      "le lanceur n'hérite pas du buff qu'il donne"
+    );
+  }
+
+  // ⚠️ La barre et le buff d'un MÊME sort partent sur la MÊME cible — les
+  // résoudre séparément aurait rempli la barre de l'un et buffé l'autre.
+  {
+    const sim = simuler(
+      [
+        { ...m('lanceur', 300, 'allie'), sort: { atbAllie: 40, buffAllie: 30, cibleAllie: 'haut' } },
+        m('bas', 100, 'allie'),
+        m('haut', 240, 'allie'),
+      ],
+      12
+    );
+    const ligne = (id: string) => sim.lignes.find((l) => l.id === id)!;
+    ok(Object.keys(ligne('haut').effetAtb).length > 0, 'la cible désignée reçoit la barre');
+    ok(Object.keys(ligne('haut').effetSpeed).length > 0, 'et le buff de vitesse');
+    ok(Object.keys(ligne('bas').effetAtb).length === 0, "la barre la plus basse ne reçoit ni l'un");
+    ok(Object.keys(ligne('bas').effetSpeed).length === 0, "ni l'autre");
   }
 
   // Vider la barre de l'adverse est l'autre façon de passer devant lui.

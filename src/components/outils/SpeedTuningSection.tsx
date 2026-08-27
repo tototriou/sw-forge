@@ -140,6 +140,7 @@ function libelleSort(x: SortVitesse): string {
     bouts.push(`−${e.atbEnnemi} % barre adv${e.atbEnnemiTous ? ' (tous)' : ''} (non compté)`);
   if (e.buffEquipe) bouts.push('buff VIT équipe');
   if (e.buffSoi) bouts.push('buff VIT sur soi');
+  if (e.buffAllie) bouts.push('buff VIT 1 allié');
   if (e.ralenti) bouts.push(`ralenti adv${e.ralentiTous ? ' (tous)' : ''} (non compté)`);
   if (x.rejoue) bouts.push('rejoue');
   if (x.cooldown > 0) bouts.push(`recharge ${x.cooldown} tours`);
@@ -566,8 +567,12 @@ export default function SpeedTuningSection({
                                       laissent le joueur viser (S3 de Sapsaree :
                                       « the target ally »). La barre la plus basse
                                       est un défaut raisonnable, pas une règle du
-                                      jeu : on doit pouvoir désigner. */}
-                                  {sortActif(l)?.effet.atbAllie && (
+                                      jeu : on doit pouvoir désigner.
+
+                                      ⚠️ Affiché aussi pour un sort qui ne fait que
+                                      BUFFER un allié : lui aussi vise, et c'est la
+                                      même cible que la barre — un seul sort. */}
+                                  {(sortActif(l)?.effet.atbAllie || sortActif(l)?.effet.buffAllie) && (
                                     <label className="flex items-center gap-1.5">
                                       <span className="text-micro uppercase tracking-wide text-ink-dimmer">sur</span>
                                       <Selecteur
@@ -580,8 +585,9 @@ export default function SpeedTuningSection({
                                         <option value="">barre la plus basse</option>
                                         {/* ⚠️ **Le lanceur EST dans la liste.** Le jeu
                                             autorise à se viser soi-même avec un sort
-                                            « sur un allié » : se rendre son propre tour
-                                            est un geste courant. Il reste hors du DÉFAUT
+                                            « sur un allié », et c'est même le geste
+                                            recherché quand il porte un buff de vitesse
+                                            (Rabbit's Agility). Il reste hors du DÉFAUT
                                             « barre la plus basse » — la sienne vient de
                                             retomber à 0, il gagnerait toujours. */}
                                         {lignesVisibles

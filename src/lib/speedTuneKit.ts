@@ -194,11 +194,17 @@ function lireEffet(c: Competence): { effet: EffetSort; atbNiveau1: number; atbSk
         break;
       case EFFET_SPD:
         // Même règle que pour la barre : de zone = tout le camp, lui compris.
-        // ⚠️ `aoe=false, surSoi=false` = buff sur UN allié ciblé (ex. Rabbit's
-        // Agility de Dova) — la simulation ne modélise pas ce cas, on l'ignore
-        // plutôt que de l'attribuer à tort au lanceur via `buffSoi`.
+        //
+        // ⚠️ `aoe=false, surSoi=false` = buff sur UN allié CIBLÉ (Rabbit's
+        // Agility de Racuni / Harg / Dova). Il allait d'abord dans `buffSoi`,
+        // à tort — le lanceur héritait d'un buff qu'il donnait — puis a été
+        // purement ignoré. Les deux étaient faux : le sort remplit la barre de
+        // sa cible ET la buffe, et `buffAllie` part sur la MÊME cible que
+        // `atbAllie`. L'ignorer plaçait bien le tour suivant de la cible, et
+        // tous les autres trop tard.
         if (e.aoe) effet.buffEquipe = BUFF_SPD_JEU;
         else if (e.surSoi) effet.buffSoi = BUFF_SPD_JEU;
+        else effet.buffAllie = BUFF_SPD_JEU;
         break;
       case EFFET_SPD_MOINS:
         effet.ralenti = RALENTI_SPD_JEU;

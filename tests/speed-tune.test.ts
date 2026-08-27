@@ -1917,6 +1917,38 @@ export function testSpeedTuneAuto() {
     );
   }
 
+  // ⚠️⚠️ **TOUT CE QUI ENTRE DANS L'ANALYSE DOIT LA RELANCER.** L'analyse écrit
+  // dans les grilles puis ne repasse plus : ce qui la rend fausse doit donc la
+  // redéclencher. La CIBLE d'un sort y manquait — désigner « sur : lui-même »
+  // change qui reçoit la barre, qui reçoit le buff, et à quel tick chacun joue
+  // ensuite, mais ne relançait rien. Les grilles gardaient les valeurs de la
+  // cible PRÉCÉDENTE : un buff tombait au mauvais tick sur un écran par ailleurs
+  // cohérent — le pire cas, parce que rien n'a l'air cassé.
+  //
+  // ⚠️ Le contrôle lit le SOURCE, comme celui des clés collantes : c'est la
+  // seule façon de voir une entrée qu'on vient d'ajouter à `choixSorts` et
+  // d'oublier dans la signature. Un test qui n'appellerait que les entrées
+  // connues validerait exactement ce qu'on lui a dit.
+  {
+    const source = readFileSync('src/hooks/useSpeedTune.ts', 'utf8');
+    const memo = /const choixSorts = useMemo\(\s*\(\)\s*=>\s*\(\{([^}]*)\}\)/.exec(source);
+    ok(!!memo, 'l’objet `choixSorts` passé à l’analyse est trouvé dans le source');
+    // « sort: sortChoisi, sort2: sortChoisi2, cible: cibleSort » → les états.
+    const etats = [...memo![1].matchAll(/:\s*([A-Za-z0-9_]+)/g)].map((x) => x[1]);
+    ok(etats.length >= 3, `${etats.length} entrées passées à l’analyse`);
+
+    const sig = /const sortsSignature = JSON\.stringify\(\[([^\]]*)\]\)/.exec(source);
+    ok(!!sig, 'la signature qui relance l’analyse est trouvée');
+    // Les noms tels quels, pas un regex : la signature est une liste littérale.
+    const dansLaSignature = sig![1].split(`,`).map((x) => x.trim());
+    const oublies = etats.filter((e) => !dansLaSignature.includes(e));
+    egal(
+      oublies.join(', '),
+      '',
+      'toute entrée de l’analyse figure dans la signature qui la relance — sinon la grille reste sur la valeur précédente'
+    );
+  }
+
   // ⚠️⚠️ **L'ANALYSE ET L'AFFICHAGE DOIVENT VOIR LES MÊMES MONSTRES.** Deux
   // constructeurs pour deux entrées — `plateauDeLignes` pour l'analyse, `tuneDe`
   // pour le moteur d'affichage — et rien n'obligeait le premier à porter ce que

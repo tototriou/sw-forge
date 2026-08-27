@@ -349,8 +349,21 @@ et [speedTuneKit.ts](src/lib/speedTuneKit.ts) (`sortsVitesse`), **testés**.
 ⚠️ **C'est l'analyse qui la remplit.** Cliquer sur « Analyser » y écrit l'ordre
 que les vitesses produisent et, pour chacun, le sort que son kit a retenu —
 exactement comme elle écrit dans les grilles. Ces choix deviennent alors des
-choix comme les autres : on les corrige, et **y toucher relance l'écriture**
-(c'est le seul changement qui la relance).
+choix comme les autres : on les corrige, et **y toucher relance l'écriture**.
+
+⚠️ **Ce qui relance l'analyse, c'est TOUT ce qui entre dans son `choix`** — le
+sort du 1ᵉʳ tour, celui du second, **et la CIBLE**. Le reste (vitesses,
+artéfacts, cases des grilles) est un réglage de l'utilisateur, où
+l'automatisation ne revient jamais.
+
+⚠️ **La cible y manquait**, et c'est le pire défaut possible ici : désigner
+« sur : lui-même » change qui reçoit la barre, qui reçoit le buff, et donc à quel
+tick chacun joue ensuite — mais ne relançait rien. Les grilles gardaient les
+valeurs de la cible **précédente**, et on lisait un buff tombé au mauvais tick
+sur un écran par ailleurs cohérent : rien n'avait l'air cassé. Un **contrôle de
+source** ([tests/speed-tune.test.ts](tests/speed-tune.test.ts)) vérifie
+désormais que la signature de relance est le miroir de l'objet passé à
+l'analyse — une entrée ajoutée à l'un et oubliée dans l'autre échoue.
 
 ⚠️ **Mais un sort déjà choisi n'est JAMAIS réécrit** : l'analyse ne remplit que
 les cases vides. Sans ça, changer un sort relançait l'analyse, qui reposait
@@ -846,8 +859,8 @@ De haut en bas :
    card courte s'étire à la hauteur de la longue et laisse un grand vide encadré.
    ⚠️ **Elle passe AVANT l'analyse** : c'est l'ordre de la cause et de l'effet.
    On désigne ici ce que chacun lance, et le verdict de l'analyse en découle —
-   changer un sort est d'ailleurs le SEUL geste qui relance l'écriture des
-   grilles. Lire le verdict d'abord obligeait à remonter pour comprendre d'où il
+   y changer un sort ou une cible est d'ailleurs le seul geste qui relance
+   l'écriture des grilles. Lire le verdict d'abord obligeait à remonter pour comprendre d'où il
    sortait.
 4. **Analyse automatique** — ⚠️⚠️ **RIEN D'APPLIQUÉ NE RESTE INVISIBLE.** Tout ce
    que la simulation applique doit se retrouver dans les grilles, y compris sur

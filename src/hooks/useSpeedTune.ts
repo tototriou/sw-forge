@@ -522,10 +522,22 @@ export function useSpeedTune({
     if (!vraiEnnemi || toujoursReference) analyseAuto(resultat.mods.get(uidRef ?? ''));
   }
 
-  // ⚠️ Le SEUL changement qui rende une analyse fausse : le sort lancé. Tout le
-  // reste (vitesses, artéfacts, cases des grilles) est un réglage de
-  // l'utilisateur, et l'automatisation n'y revient jamais.
-  const sortsSignature = JSON.stringify([sortChoisi, sortChoisi2]);
+  // ⚠️ **TOUT ce qui entre dans `choix` rend l'analyse fausse en changeant** —
+  // pas seulement le sort. Le reste (vitesses, artéfacts, cases des grilles) est
+  // un réglage de l'utilisateur, et l'automatisation n'y revient jamais.
+  //
+  // ⚠️ **La CIBLE en fait partie, et elle y manquait.** Désigner « sur :
+  // lui-même » change complètement ce que l'analyse écrit — qui reçoit la barre,
+  // qui reçoit le buff, et donc à quel tick chacun joue ensuite. Sans elle dans
+  // la signature, changer la cible ne relançait rien : les grilles gardaient les
+  // valeurs calculées pour la cible PRÉCÉDENTE. On voyait donc un buff tomber
+  // au mauvais tick, sur un écran par ailleurs cohérent — le pire cas, parce que
+  // rien n'a l'air cassé.
+  //
+  // ⚠️ Cette liste doit rester le MIROIR de `choixSorts` (l'objet passé à
+  // `analyseAutomatique`). Une entrée ajoutée là et oubliée ici retombe dans le
+  // même défaut ; un contrôle de source le vérifie (tests/speed-tune.test.ts).
+  const sortsSignature = JSON.stringify([sortChoisi, sortChoisi2, cibleSort]);
   const premiereSignature = useRef(sortsSignature);
   useEffect(() => {
     if (!auto || premiereSignature.current === sortsSignature) {

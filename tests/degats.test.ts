@@ -1340,9 +1340,10 @@ export default function testDegats() {
   egal(damageRelevantStats(s3), ['atk', 'cd'], 'un sort ATQ fait travailler ATQ et Dgts Crit');
   egal(damageRelevantStats(profil('{ATK}*({SPD}+70)/30')), ['atk', 'spd', 'cd'], 'un sort VIT y ajoute la VIT');
   egal(damageRelevantStats(profil('0.2*{MAX HP}')), ['hp', 'cd'], 'un sort PV fait travailler les PV');
-  egal(damageRelevantStats(null), ['atk', 'cd'], 'sans sort résolu, on retombe sur le biais « Dégâts »');
-  // Le Taux Crit n'y figure JAMAIS (plafonné en jeu : une condition, pas une
-  // cible) — même règle que l'objectif « Dégâts ».
+  egal(damageRelevantStats(null), ['atk', 'cd'], 'sans sort résolu, on retombe sur ATQ + Dgts Crit');
+  // Le Taux Crit n'y figure JAMAIS ici (plafonné en jeu : une condition, pas
+  // une cible), sauf via `bonusDegatsSelonCr` (Zenitsu/Qilin, testé plus
+  // bas) où il devient directement une source de dégâts.
   ok(!damageRelevantStats(s3).includes('cr'), 'le Taux Crit n’est jamais une stat à maximiser');
   // Martial Arts Specialist (Sin)/Sickle Blade/Sand Blade/Calculated
   // Sacrifice — la DEF/les PV comptent même pour un sort dont la formule ne
@@ -1355,6 +1356,24 @@ export default function testDegats() {
   ok(
     damageRelevantStats(s3, [], DEFAULT_DAMAGE_SETUP, false, null, null, null, true).includes('hp'),
     'Sickle Blade/Calculated Sacrifice : les PV entrent dans le pré-filtrage même pour un sort qui ne les lit pas'
+  );
+
+  // ── BUG CORRIGÉ (revue de code externe, perf) : le mode « Non critique »
+  // (`critMode: 'normal'`) annule TOUJOURS la part critique dans le calcul
+  // réel (`partCrit` vaut 0, voir `computeSkillDamageDetail`) — Dégâts Crit
+  // ne devrait donc PLUS être retenu au pré-filtrage dans ce mode, sauf
+  // `critSiPlusRapide` qui force un critique garanti et passe outre. ──
+  ok(
+    !damageRelevantStats(s3, [], { ...DEFAULT_DAMAGE_SETUP, critMode: 'normal' }).includes('cd'),
+    "« Non critique » : Dégâts Crit ne pèse plus sur aucun dégât, donc plus retenu au pré-filtrage"
+  );
+  ok(
+    damageRelevantStats(s3, [], { ...DEFAULT_DAMAGE_SETUP, critMode: 'moyenne' }).includes('cd'),
+    '« Moyenne » (espérance) : Dégâts Crit compte toujours, contrairement à « Non critique »'
+  );
+  ok(
+    damageRelevantStats(s3, [], { ...DEFAULT_DAMAGE_SETUP, critMode: 'normal' }, true).includes('cd'),
+    "critSiPlusRapide force un critique garanti — Dégâts Crit reste retenu MÊME en « Non critique »"
   );
 
   titre('Dégâts réels — passifs offensifs');

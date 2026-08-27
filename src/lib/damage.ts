@@ -2836,7 +2836,9 @@ export function damageRelevantStats(
   bonusSiAtqSeuil: { seuil: number; pct: number } | null = null
 ): StatKey[] {
   // Sans sort résolu (fiche absente, sort non pris en charge), on retombe sur
-  // le biais de l'objectif « Dégâts » — le cas de très loin le plus fréquent.
+  // ATQ + Dgts Crit (même repli que l'ancien objectif « Dégâts », retiré —
+  // reste la meilleure approximation générique quand aucun sort n'est
+  // calculable) — le cas de très loin le plus fréquent.
   if (!profile) return ['atk', 'cd'];
   const keys: StatKey[] = [];
   const ajouter = (variables: DamageVariable[]) => {
@@ -2869,6 +2871,17 @@ export function damageRelevantStats(
   // de Sonia multiplie le total quel que soit son mode de critique, il ne le
   // FORCE pas.
   if (critSiPlusRapide) peutCriter = true;
+  // ⚠️ **BUG CORRIGÉ** (revue de code externe, perf) : le mode « Non
+  // critique » (`setup.critMode === 'normal'`) annule TOUJOURS la part
+  // critique dans `computeSkillDamageDetail` (`partCrit` vaut 0, quel que
+  // soit `profile.fixed` — voir sa définition) — SAUF `critSiPlusRapide`,
+  // qui force un critique garanti et passe outre ce mode (voir
+  // `computeTotalDamage`, `forceCrit`). Sans cette garde, Dégâts Crit
+  // restait retenu au pré-filtrage même en « Non critique », où il ne pèse
+  // pourtant sur AUCUN dégât — gaspillant du budget de rétention sur des
+  // runes bonnes en Dgts Crit au détriment de stats qui comptent réellement
+  // pour ce mode.
+  if (setup.critMode === 'normal' && !critSiPlusRapide) peutCriter = false;
   if (peutCriter) keys.push('cd');
   return keys;
 }

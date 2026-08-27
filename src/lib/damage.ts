@@ -2502,7 +2502,19 @@ export function computeSkillDamageDetail(
     totalDegats += degatsCoup;
     pvCourant = creuse(degatsCoup, pvCourant);
   }
-  totalDegats += ajoutUneFois * horsCoup;
+  // ⚠️ **BUG CORRIGÉ** (revue de code externe) : `ajoutUneFois` (Sickle
+  // Blade/Sand Blade, Calculated Sacrifice — voir plus haut) était ajouté à
+  // `totalDegats` (donc au `.total` retourné) mais JAMAIS retranché de
+  // `pvCourant` — contrairement au chemin COURT juste au-dessus, qui
+  // l'inclut dans la même quantité créusée que celle retournée. Résultat :
+  // `pvRestantsPct` (transmis au(x) passif(s) suivant(s) par
+  // `computeTotalDamage`, voir `pvCiblePct`) restait SURESTIMÉ dès qu'un
+  // sort au chemin séquentiel portait aussi un `ajoutUneFois` — un seuil de
+  // passif du type « bonus si PV restants ≤ X % » (Final Strike, Benedict)
+  // pouvait manquer sa cible alors qu'il aurait dû se déclencher.
+  const degatsUneFois = ajoutUneFois * horsCoup;
+  totalDegats += degatsUneFois;
+  pvCourant = creuse(degatsUneFois, pvCourant);
   return { total: totalDegats, pvRestantsPct: pvMax > 0 ? (pvCourant / pvMax) * 100 : pctDepart };
 }
 

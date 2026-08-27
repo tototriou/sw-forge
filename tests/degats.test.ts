@@ -1665,6 +1665,28 @@ export default function testDegats() {
   );
   ok(wDetail.pvRestantsPct < 100, 'et les PV restants de la cible ont bien baissé');
 
+  // ── BUG CORRIGÉ (revue de code externe) : le chemin SÉQUENTIEL ajoutait
+  // `ajoutUneFois` (Sickle Blade/Sand Blade, Calculated Sacrifice — un
+  // modificateur monstre-wide UNE FOIS par sort) au `.total` retourné, mais
+  // JAMAIS au `pvCourant` utilisé pour calculer `pvRestantsPct` — contraire
+  // au chemin COURT, qui les créuse ensemble. `pvRestantsPct` restait donc
+  // SURESTIMÉ dès qu'un sort au chemin séquentiel portait aussi un
+  // `ajoutUneFois`, faussant tout seuil de passif suivant basé sur les PV
+  // restants (Final Strike/Benedict). ──
+  const wStatsAvecHp = stats({ atk: 2000, cd: 200, cr: 100, hp: 10000 });
+  const sansAjoutUneFois = computeSkillDamageDetail(weakness, wStatsAvecHp, wSetup, null, undefined, 0, {});
+  const avecAjoutUneFois = computeSkillDamageDetail(weakness, wStatsAvecHp, wSetup, null, undefined, 0, {
+    bonusFixeMaxHpPropre: { pct: 50 },
+  });
+  ok(
+    avecAjoutUneFois.total > sansAjoutUneFois.total,
+    "l'ajout ponctuel (bonusFixeMaxHpPropre) augmente bien les dégâts totaux"
+  );
+  ok(
+    avecAjoutUneFois.pvRestantsPct < sansAjoutUneFois.pvRestantsPct,
+    'et les PV restants reflètent cet ajout — pas seulement les dégâts par coup (chemin séquentiel)'
+  );
+
   // Une cible DÉJÀ entamée donne un ratio de départ plus élevé : le même
   // sort, sur une cible à 50 %, frappe plus fort.
   const wDejaEntame = computeSkillDamageDetail(weakness, wStats, { ...wSetup, enemyHpPct: 50 }, null).total;

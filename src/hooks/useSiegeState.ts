@@ -167,7 +167,7 @@ export function useSiegeState(side: SiegeSide): UseSiegeState {
       teams: { slots: { monsterId: string | null; runeSpeed: number | null; sets?: string[]; tick?: number; gear?: GearSet }[] }[]
     ) => {
       setState((s) => {
-        const built: SiegeTeam[] = teams.map((t) => {
+        const built: SiegeTeam[] = teams.map((t, i) => {
           const slots: SiegeSlot[] = [0, 1, 2].map((i) => {
             const sl = t.slots[i];
             return {
@@ -178,7 +178,20 @@ export function useSiegeState(side: SiegeSide): UseSiegeState {
               gear: sl && sl.gear && typeof sl.gear === 'object' ? sl.gear : undefined,
             };
           });
-          return { id: newId(), slots, lead: 0, tickAlertDismissed: false };
+          // ⚠️⚠️ **L'IDENTITÉ D'UNE ÉQUIPE SURVIT AU RÉIMPORT.** Elle était
+          // régénérée à chaque fois (`newId()`), alors que les listes de travail
+          // de l'Optimizer désignent un monstre par `{ teamId, slotIndex }` :
+          // plus aucun sélecteur ne résolvait après un import, et la
+          // revérification supprimait DÉFINITIVEMENT tous les membres et builds
+          // validés venus du siège — sur le geste même qu'elle est censée
+          // servir. Ce n'était pas « mon compte a changé », c'était l'identifiant
+          // qui avait changé sous eux.
+          //
+          // ⚠️ **L'identité, c'est la POSITION** : un export de compte remplace
+          // le siège en bloc, et la Nᵉ équipe reste la Nᵉ. Ce qui a vraiment
+          // bougé (un monstre retiré du deck) est justement ce que
+          // `revalidateMembers` va voir, sur des sélecteurs qui résolvent encore.
+          return { id: s.teams[i]?.id ?? newId(), slots, lead: 0, tickAlertDismissed: false };
         });
         return { teams: built };
       });

@@ -4,6 +4,7 @@
 // résolution exclut les mauvaises runes, ou n'exclut rien, sans qu'aucune
 // erreur ne le signale à l'écran).
 
+import { readFileSync } from 'fs';
 import { BoxItem } from '../src/lib/applyAccount';
 import { GearSet, Monster, RtaEntry, RuneDetail, SiegeTeam } from '../src/types';
 import {
@@ -496,5 +497,31 @@ export default function testOptimizerExclusion() {
     egal(droppedCount, 1, 'revalidateMembers : le membre au sélecteur introuvable est abandonné');
     egal(kept.length, 1, 'revalidateMembers : le membre encore valide est conservé');
     egal(kept[0]?.selector, { source: 'box', unitKey: 'unit-camilla' }, 'revalidateMembers : conserve le bon sélecteur');
+  }
+
+  // ── ⚠️⚠️ L'IDENTITÉ D'UNE ÉQUIPE DE SIÈGE SURVIT AU RÉIMPORT ──
+  //
+  // Un sélecteur siège désigne un monstre par `{ teamId, slotIndex }`. Tant que
+  // `importTeams` régénérait les ids (`newId()`), plus aucun ne résolvait après
+  // un import : `revalidateMembers` supprimait DÉFINITIVEMENT tous les membres
+  // et builds venus du siège — sur le geste même qu'elle est censée servir. Ce
+  // n'était pas « mon compte a changé », c'était l'identifiant qui avait changé
+  // sous eux.
+  //
+  // ⚠️ Contrôle de SOURCE, comme celui des clés collantes : `importTeams` est un
+  // callback de hook React, et le dépôt ne teste pas les composants. C'est la
+  // seule façon de voir la régression revenir.
+  {
+    const source = readFileSync('src/hooks/useSiegeState.ts', 'utf8');
+    const ligne = /return \{ id: ([^,]+), slots, lead: 0/.exec(source);
+    ok(!!ligne, 'la construction d’une équipe importée est trouvée dans le source');
+    ok(
+      /s\.teams\[i\]\?\.id/.test(ligne![1]),
+      'une équipe importée REPREND l’id de celle qui occupait sa position — sinon les sélecteurs siège meurent au réimport'
+    );
+    ok(
+      /newId\(\)/.test(ligne![1]),
+      'et retombe sur un id neuf quand il n’y avait pas d’équipe à cette position'
+    );
   }
 }

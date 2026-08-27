@@ -457,9 +457,18 @@ export default function testOptimizerExclusion() {
     // son `gear.runes` résolu est TOUJOURS vide (pas d'exemplaire réel), donc
     // la question posée diffère : « ces runes existent-elles encore dans le
     // compte », pas « sont-elles encore PORTÉES par lui ». ──
-    const zaiross = monster(4, 'Zaiross'); // absent de box/rta/siège — possédé nulle part
+    // ⚠️ **Un id LIBRE, vérifié.** Il valait 4 — déjà pris par `NonRune`, posé
+    // en offense siège, et par `Fran` : le monstre n'était donc PAS « possédé
+    // nulle part », et `dataAvecZaiross` écrasait l'entrée 4 de `monsterById`.
+    // Le scénario ne testait pas ce qu'il annonce, et polluait le reste.
+    const zaiross = monster(9, 'Zaiross'); // absent de box/rta/siège — possédé nulle part
     const dataAvecZaiross: ExclusionSourceData = { ...data, monsterById: new Map([...monsterById, [String(zaiross.id), zaiross]]) };
     const unownedSelector = { source: 'unowned' as const, monsterId: String(zaiross.id) };
+    // Le contrôle qui rend le scénario honnête : l'id doit être VRAIMENT libre.
+    ok(
+      !monsterById.has(String(zaiross.id)),
+      'l’espèce du scénario « possédé nulle part » n’est pas déjà l’un des monstres du compte'
+    );
     egal(exclusionSelectorKey(unownedSelector), `unowned:${zaiross.id}`, 'exclusionSelectorKey : clé stable pour unowned');
     const resolvedUnowned = resolveExclusionEntry(unownedSelector, dataAvecZaiross);
     ok(resolvedUnowned != null, 'resolveExclusionEntry : une espèce absente des 4 sources résout quand même (bestiaire entier)');

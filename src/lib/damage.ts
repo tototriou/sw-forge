@@ -851,6 +851,19 @@ const BONUS_CONDITIONNEL_PROPRE_CONNUS: Record<string, { pct: number; condition:
   // (pas monstre-wide) : le texte ne décrit que l'attaque qui vient de
   // poser Sleep elle-même, pas un bonus général du monstre.
   'Touch of Mercy': { pct: 50, condition: "la cible est immunisée au sommeil" }, // Brandia, Polar Queen
+  // Zaiross (« Fiery Breath ») — « if the enemy's Attack Power is half or
+  // less than your Attack Power, the attack always lands as a Critical Hit
+  // and increases the damage dealt against the enemy by 50%. » Demande
+  // explicite : seule la clause de DÉGÂTS (+50 %) est modélisée ici — l'ATQ
+  // de l'adversaire n'est pas une donnée que l'app connaît, condition non
+  // déductible, bouton comme Touch of Mercy/Rending Claw. ⚠️ La clause
+  // « critique garanti » du même texte reste HORS MODÈLE (pas de mécanisme
+  // pour un crit garanti conditionnel à ce sort précis, distinct de
+  // `critSiPlusRapide` qui dépend de la VIT, pas de l'ATQ adverse) — même
+  // limite que les clauses « combat de boss » déjà laissées de côté
+  // ailleurs dans ce fichier. Skill partagé tel quel par le Dragon Feu 5★
+  // pré-éveillé (même `com2usId` 2912) — le bouton s'applique aux deux.
+  'Fiery Breath': { pct: 50, condition: "l'ATQ de la cible est ≤ la moitié de la tienne" }, // Zaiross, Dragon
 };
 
 // ── Modificateurs MONSTRE-WIDE additifs (passif sans formule, TOUJOURS

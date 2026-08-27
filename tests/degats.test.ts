@@ -1237,6 +1237,31 @@ export default function testDegats() {
     'Brandia : +50 % si la cible est immunisée au sommeil, confirmé par l’utilisateur'
   );
   ok(!bonusConditionnelPropreActif(touchOfMercyProfile, brandiaSetup), 'désactivé par défaut, jamais deviné actif');
+
+  // Zaiross (« Fiery Breath ») — demande explicite : « if the enemy's Attack
+  // Power is half or less than your Attack Power, ... increases the damage
+  // dealt against the enemy by 50%. » Condition (ATQ adverse) que l'app ne
+  // peut pas déduire — bouton RESTREINT À CE SORT, même patron que Touch of
+  // Mercy/Rending Claw. La clause « critique garanti » du même texte reste
+  // hors modèle (non demandée).
+  const zaiross = fiche(14412);
+  const fieryBreath = monsterDamageSkills(zaiross).find((s) => estPrisEnCharge(s) && s.nom === 'Fiery Breath');
+  ok(fieryBreath != null && estPrisEnCharge(fieryBreath), 'Zaiross : Fiery Breath calculable');
+  const fieryBreathProfile = fieryBreath as SkillDamageProfile;
+  egal(
+    fieryBreathProfile.bonusConditionnelPropre,
+    { pct: 50, condition: "l'ATQ de la cible est ≤ la moitié de la tienne" },
+    'Zaiross : +50 % si l’ATQ adverse est ≤ la moitié de la sienne'
+  );
+  const zairossStats = stats({ atk: 2000, cd: 200, cr: 100 });
+  const zairossSetup: DamageSetup = { ...DEFAULT_DAMAGE_SETUP, skillCom2usId: fieryBreathProfile.skillCom2usId, summonerSkills: 'aucune', critMode: 'normal' };
+  ok(!bonusConditionnelPropreActif(fieryBreathProfile, zairossSetup), 'désactivé par défaut, jamais deviné actif');
+  const zairossSans = computeSkillDamage(fieryBreathProfile, zairossStats, zairossSetup);
+  const zairossAvec = computeSkillDamage(fieryBreathProfile, zairossStats, {
+    ...zairossSetup,
+    passifsOffensifs: { [fieryBreathProfile.skillCom2usId]: true },
+  });
+  ok(Math.abs(zairossAvec / zairossSans - 1.5) < 1e-9, 'activé : exactement ×1,5, ni plus ni moins');
   const brandiaAvecImmunite = computeSkillDamage(touchOfMercyProfile, brandiaStats, {
     ...brandiaSetup,
     passifsOffensifs: { [touchOfMercyProfile.skillCom2usId]: true },

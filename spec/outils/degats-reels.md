@@ -1008,6 +1008,21 @@ ailleurs dans ce fichier.
 après coup, catalogue séparé préparé pour l'utilisateur) — aucun
 implémenté à l'aveugle dans cette vague.
 
+**Zaiross (« Fiery Breath »)** — demande explicite. « Attacks all enemies
+and puts their skills on MAX cooldown. [...] Additionally, if the enemy's
+Attack Power is half or less than your Attack Power, the attack always
+lands as a Critical Hit and increases the damage dealt against the enemy
+by 50%. » L'ATQ de l'adversaire n'est pas une donnée que l'app connaît —
+condition non déductible, bouton RESTREINT À CE SORT
+(`SkillDamageProfile.bonusConditionnelPropre`, même mécanisme que Touch of
+Mercy/Emergency Drive), `+50 %` sur les dégâts. ⚠️ **Seule la clause de
+DÉGÂTS est modélisée** (demande explicite) — la clause « critique garanti
+sous la même condition » reste HORS MODÈLE : aucun mécanisme dans ce
+fichier pour un crit garanti conditionné à l'ATQ adverse (`critSiPlusRapide`
+compare la VIT, pas l'ATQ). Skill partagé tel quel (même `com2usId`) par le
+Dragon Feu 5★ pré-éveillé — le bouton s'applique aux deux formes sans code
+séparé.
+
 ## Effets d'ÉQUIPE (Euldong, Mirinae, Deborah, Miriam, Dr. Matteo, Velaska)
 
 Six effets **portés par un AUTRE monstre que celui optimisé** — leur

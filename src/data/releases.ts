@@ -58,10 +58,8 @@ export const CHANGE_META: Record<ChangeKind, { label: string; color: string }> =
 // Si une ligne dépasse ~15 mots, c'est qu'elle raconte l'implémentation.
 export const RELEASES: Release[] = [
   {
-    // ⚠️ Numéro pas encore tranché : il s'écrit au moment de publier, ici et
-    // dans package.json (voir spec/releases.md, étape 4).
-    version: null,
-    date: '2026-08-25',
+    version: '1.10.0',
+    date: '2026-08-28',
     title: 'Speed tuning : sais qui joue avant qui, tick par tick',
     highlights: [
       'Un nouvel outil de speed tuning, tick par tick',
@@ -128,6 +126,46 @@ export const RELEASES: Release[] = [
         kind: 'fix',
         scope: 'Speed tuning',
         text: 'Un retrait de barre adverse ne compte jamais dans un speed tune : ton équipe doit passer sans lui.',
+      },
+      {
+        kind: 'feat',
+        scope: 'Speed tuning',
+        text: 'Un monstre peut jouer plusieurs fois dans l’ordre des sorts, avec un sort par tour.',
+      },
+      {
+        kind: 'feat',
+        scope: 'Speed tuning',
+        text: 'Un sort qui vise un allié peut se lancer sur soi-même, comme dans le jeu.',
+      },
+      {
+        kind: 'fix',
+        scope: 'Speed tuning',
+        text: 'Le buff de vitesse posé sur l’allié visé compte enfin : Racuni, Harg, Dova et huit autres.',
+      },
+      {
+        kind: 'fix',
+        scope: 'Speed tuning',
+        text: 'À force égale, l’analyse retient le sort le plus fort : quatorze monstres changent.',
+      },
+      {
+        kind: 'fix',
+        scope: 'Speed tuning',
+        text: 'Deux monstres trop lents à la suite ont chacun leur vitesse à atteindre, et elle est exacte.',
+      },
+      {
+        kind: 'feat',
+        scope: 'Siège',
+        text: 'Un deck dit si un monstre n’a pas toutes ses runes ou tous ses artéfacts.',
+      },
+      {
+        kind: 'feat',
+        scope: 'Siège',
+        text: 'Quand le résultat dépend de la cible d’un sort, la card ne tranche pas et t’envoie vérifier.',
+      },
+      {
+        kind: 'fix',
+        scope: 'Siège',
+        text: 'Le statut d’une équipe se voit aussi en mode clair, pas seulement en sombre.',
       },
     ],
   },

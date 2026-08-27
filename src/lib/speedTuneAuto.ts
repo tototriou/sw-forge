@@ -21,11 +21,14 @@ import {
   ArtefactRequis,
   Camp,
   Coupure,
+  EffetSort,
   HORIZON_TICKS,
   ModParTick,
   TuneMonstre,
   VitesseRequise,
   artefactsRequis,
+  cleOccurrence,
+  litOccurrence,
   diagnostiquerChaine,
   premiersTours,
   sansReductionAdverse,
@@ -307,6 +310,27 @@ export function analyseAutomatique(
       return (donnees.sorts.get(e.monster.com2usId) ?? []).find((x) => x.nom === nom) ?? null;
     return sortRetenu(e, donnees);
   };
+  // ⚠️ **Le sort d'un tour SUPPLÉMENTAIRE se désigne, il ne se devine pas.** Un
+  // combo fait jouer le même monstre deux fois avant l'adverse (Racuni se vise
+  // au S2, sa barre se remplit, il rejoue et enchaîne son S1). Les tours au-delà
+  // du premier portent une clé d'occurrence (`id#2`) dans les mêmes Records —
+  // la 1ʳᵉ occurrence garde l'identifiant nu, donc rien ne change pour un
+  // monstre qui ne joue qu'une fois.
+  const sortDOccurrence = (e: EntreeAuto, n: number): SortVitesse | null => {
+    if (n <= 1) return sortDe(e);
+    const nom = choix?.sort?.[cleOccurrence(e.id, n)];
+    if (!nom || e.monster.com2usId == null) return null;
+    return (donnees.sorts.get(e.monster.com2usId) ?? []).find((x) => x.nom === nom) ?? null;
+  };
+  // Le plus grand rang d'occurrence désigné pour ce monstre.
+  const derniereOccurrence = (e: EntreeAuto): number => {
+    let max = 1;
+    for (const cle of Object.keys(choix?.sort ?? {})) {
+      const { id, n } = litOccurrence(cle);
+      if (id === e.id && n > max) max = n;
+    }
+    return max;
+  };
   const secondDe = (e: EntreeAuto): SortVitesse | null => {
     const nom = choix?.sort2?.[e.id];
     if (nom === '') return null;
@@ -375,18 +399,41 @@ export function analyseAutomatique(
       const sort = sortDe(e);
       const second = sortDe(e)?.rejoue ? secondDe(e) : null;
       const cible = choix?.cible?.[e.id] || undefined;
+      // ⚠️ **La clé de rechargement est le NOM du sort.** Tant qu'un monstre
+      // relançait toujours le même, l'horloge par tour suffisait ; dès qu'il en
+      // lance deux, les deux la partageraient et le second serait bloqué.
+      const enEffet = (x: SortVitesse | null, n: number): EffetSort | undefined =>
+        x
+          ? {
+              ...sansReductionAdverse(x.effet),
+              cooldown: x.cooldown,
+              cle: x.nom,
+              // ⚠️ **La cible appartient au couple (tour, sort), pas au
+              // monstre.** Un tour supplémentaire ne reprend PAS la cible du
+              // premier : enchaîner Breeze après un Rabbit's Agility visé sur
+              // soi aurait visé le lanceur une seconde fois, sans qu'on l'ait
+              // demandé. Chaque tour part du défaut et se désigne à part.
+              cibleAllie: choix?.cible?.[cleOccurrence(e.id, n)] || (n === 1 ? cible : undefined),
+            }
+          : undefined;
+      // Rien tant qu'aucun tour supplémentaire n'est désigné : le moteur
+      // retombe alors sur `sort`, exactement comme avant.
+      const dernier = derniereOccurrence(e);
+      const sortsParTour =
+        dernier > 1
+          ? Array.from({ length: dernier }, (_, i) => enEffet(sortDOccurrence(e, i + 1), i + 1))
+          : undefined;
       return {
         id: e.id,
         combat: combats.get(e.id)!,
         camp: 'allie' as Camp,
         artefactBuff: (e.artefactBuff ?? 0) + ampli,
-        sort: sort
-          ? { ...sansReductionAdverse(sort.effet), cooldown: sort.cooldown, cibleAllie: cible }
-          : undefined,
+        sort: enEffet(sort, 1),
         rejoue: sort?.rejoue ?? false,
         sort2: second
-          ? { ...sansReductionAdverse(second.effet), cooldown: second.cooldown, cibleAllie: cible }
+          ? { ...sansReductionAdverse(second.effet), cooldown: second.cooldown, cle: second.nom, cibleAllie: cible }
           : undefined,
+        sortsParTour,
       };
     });
   // L'adversaire de RÉFÉRENCE ne s'ajoute que s'il n'y a personne en face :

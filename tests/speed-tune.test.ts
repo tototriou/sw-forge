@@ -2117,6 +2117,71 @@ export function testSpeedTuneAuto() {
     );
   }
 
+  // ⚠️ **UN COMBO : le même monstre joue DEUX FOIS, et lance autre chose.**
+  // Racuni se vise lui-même au S2 (barre pleine → il rejoue), puis enchaîne son
+  // S1. Les tours au-delà du premier portent une clé d'occurrence (`id#2`) dans
+  // les mêmes Records — sans quoi le combo n'est ni descriptible ni vérifiable.
+  {
+    const sort = (nom: string, effet: Record<string, unknown>, cooldown = 0) => ({
+      nom,
+      slot: 1,
+      icone: null,
+      effet,
+      rejoue: false,
+      cooldown,
+      atbNiveau1: 0,
+      atbSkillUp: 0,
+      chance: null,
+      neutre: false,
+      buffsEquipe: 0,
+    });
+    const donnees: DonneesKit = {
+      kits: new Map(),
+      sorts: new Map([
+        [
+          100,
+          // S2 : remplit la barre d'un allié (donc la sienne s'il se vise).
+          // S1 : boost de tout le camp — visible sur l'autre monstre.
+          [sort('S2', { atbAllie: 100 }, 3), sort('S1', { atbEquipe: 30 })] as any,
+        ],
+      ]),
+      passifs: new Map(),
+    };
+    const equipe: EntreeAuto[] = [
+      { id: 'a', monster: monstre(100, 'Combo', 100), runeSpeed: 160 },
+      { id: 'b', monster: monstre(101, 'Autre', 100), runeSpeed: 10 },
+    ];
+    const avec = analyseAutomatique(equipe, 0, donnees, {
+      choix: { sort: { a: 'S2', 'a#2': 'S1', b: '' }, sort2: {}, cible: { a: 'a' } },
+    });
+    const gainsDe = (r: typeof avec, id: string) => Object.values(r.mods.get(id)?.atbMod ?? {});
+    ok(gainsDe(avec, 'a').includes(100), 'son 1ᵉʳ tour se remplit sa propre barre');
+    ok(gainsDe(avec, 'b').includes(30), 'et son 2ᵉ tour lance bien l’AUTRE sort');
+
+    // ⚠️ Sans le tour désigné, le moteur relance le MÊME sort — bloqué par son
+    // rechargement. Sans ce contrôle, le test ci-dessus passerait tout seul.
+    const sans = analyseAutomatique(equipe, 0, donnees, {
+      choix: { sort: { a: 'S2', b: '' }, sort2: {}, cible: { a: 'a' } },
+    });
+    ok(!gainsDe(sans, 'b').includes(30), 'sans tour désigné, le second sort ne part pas');
+
+    // ⚠️ **La cible ne se transmet PAS d'un tour à l'autre.** Elle appartient au
+    // couple (tour, sort) : enchaîner un sort mono-cible après un sort visé sur
+    // soi aurait visé le lanceur une seconde fois, sans qu'on l'ait demandé.
+    const donnees2: DonneesKit = {
+      kits: new Map(),
+      sorts: new Map([[100, [sort('S2', { atbAllie: 100 }, 3), sort('S1b', { atbAllie: 15 })] as any]]),
+      passifs: new Map(),
+    };
+    const r2 = analyseAutomatique(equipe, 0, donnees2, {
+      choix: { sort: { a: 'S2', 'a#2': 'S1b', b: '' }, sort2: {}, cible: { a: 'a' } },
+    });
+    ok(
+      Object.values(r2.mods.get('b')?.atbMod ?? {}).includes(15),
+      'le 2ᵉ tour repart du défaut (barre la plus basse), il n’hérite pas de « sur lui-même »'
+    );
+  }
+
   // ⚠️ **UN ADVERSE QUI COUPE DÉCALE TOUT — l'analyse doit le voir.** Elle ne
   // recevait que les alliés : elle les plaçait donc sur un plateau où personne
   // n'occupait de tick en face. Dès qu'un adverse en prenait un, tous les tours

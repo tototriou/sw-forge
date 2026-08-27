@@ -15,6 +15,8 @@ import {
   premiersTours,
   simuler,
   vitessesRequises,
+  cleOccurrence,
+  litOccurrence,
 } from '../lib/speedTune';
 import { deckPourSpeedTune } from '../lib/speedTuneDeck';
 import {
@@ -644,7 +646,14 @@ export function useSpeedTune({
       if (attendu.join('|') !== ordreVoulu.join('|')) setOrdreVoulu(attendu);
       return;
     }
-    const garde = ordreVoulu.filter((id) => alliesVisibles.includes(id));
+    // ⚠️ **On garde une ligne selon SON MONSTRE, pas selon sa clé.** Une
+    // occurrence supplémentaire (`allie:12#2`) ne figure évidemment pas dans la
+    // liste des alliés visibles : filtrer sur la clé nue l'aurait effacée à
+    // chaque rendu, aussitôt ajoutée.
+    const garde = ordreVoulu.filter((cle) => alliesVisibles.includes(litOccurrence(cle).id));
+    // Un allié ABSENT de l'ordre y entre — mais une occurrence supplémentaire ne
+    // rend pas son monstre « présent » par elle-même : c'est bien le 1ᵉʳ tour
+    // qu'on cherche.
     const manquants = alliesVisibles.filter((id) => !garde.includes(id));
     if (manquants.length === 0 && garde.length === ordreVoulu.length) return;
     setOrdreVoulu([...garde, ...manquants]);
@@ -693,6 +702,52 @@ export function useSpeedTune({
   // L'allié visé par un sort mono-cible. '' = le défaut (barre la plus basse).
   function choisirCible(uid: string, valeur: string) {
     setCibleSort((prev) => ({ ...prev, [uid]: valeur }));
+  }
+
+  // ⚠️ **UN TOUR DE PLUS pour un monstre déjà là.** Un combo le fait jouer deux
+  // fois avant l'adverse (Racuni se vise au S2, sa barre se remplit, il rejoue
+  // et enchaîne son S1) : sans cette ligne, le combo n'est ni descriptible ni
+  // vérifiable.
+  //
+  // ⚠️ **Ajouter une ligne RANGE l'ordre** (`ordreRange`). Sans ça, la
+  // resynchronisation sur les vitesses reconstruit la liste à partir de la
+  // simulation et l'occurrence disparaît dans la foulée — un clic sans effet
+  // visible. Poser un combo EST un choix d'ordre : c'est le même geste que
+  // monter ou descendre une ligne.
+  function ajouterOccurrence(uid: string) {
+    const base = litOccurrence(uid).id;
+    setOrdreRange(true);
+    setOrdreVoulu((prev) => {
+      const rangs = prev.map((c) => litOccurrence(c)).filter((o) => o.id === base).map((o) => o.n);
+      const cle = cleOccurrence(base, Math.max(0, ...rangs) + 1);
+      // Juste APRÈS la dernière ligne de ce monstre : un tour de plus se joue à
+      // sa suite, pas en fin de liste derrière tout le monde.
+      let i = -1;
+      prev.forEach((c, j) => {
+        if (litOccurrence(c).id === base) i = j;
+      });
+      const out = [...prev];
+      out.splice(i + 1, 0, cle);
+      return out;
+    });
+  }
+
+  // ⚠️ **Le 1ᵉʳ tour ne se retire pas** : il n'est pas un ajout, c'est la
+  // présence du monstre dans l'ordre. Le retirer devrait le sortir de l'équipe,
+  // et ce n'est pas ce que la croix d'une ligne veut dire.
+  function retirerOccurrence(cle: string) {
+    if (litOccurrence(cle).n <= 1) return;
+    setOrdreVoulu((prev) => prev.filter((c) => c !== cle));
+    // Ce qui était désigné pour ce tour-là part avec lui : le laisser ferait
+    // ressusciter un sort sur la prochaine occurrence qui reprendrait la clé.
+    setSortChoisi((prev) => {
+      const { [cle]: _, ...reste } = prev;
+      return reste;
+    });
+    setCibleSort((prev) => {
+      const { [cle]: _, ...reste } = prev;
+      return reste;
+    });
   }
 
   function choisirSecond(uid: string, valeur: string) {
@@ -768,6 +823,8 @@ export function useSpeedTune({
     basculerSwift,
     chaine,
     choisirCible,
+    ajouterOccurrence,
+    retirerOccurrence,
     choisirSecond,
     choisirSort,
     choixSorts,

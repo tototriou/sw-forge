@@ -17,6 +17,7 @@ import {
   Camp,
   TuneMonstre,
   ModParTick,
+  litOccurrence,
 } from '../../lib/speedTune';
 import { deckPourSpeedTune } from '../../lib/speedTuneDeck';
 import {
@@ -244,6 +245,8 @@ export default function SpeedTuningSection({
     basculerSwift,
     chaine,
     choisirCible,
+    ajouterOccurrence,
+    retirerOccurrence,
     choisirSecond,
     choisirSort,
     choixSorts,
@@ -523,27 +526,39 @@ export default function SpeedTuningSection({
                       ) : (
                         <>
                           <ul className="space-y-2">
-                            {ordreVoulu.map((uid, i) => {
+                            {ordreVoulu.map((cle, i) => {
+                              // ⚠️ Une ligne est une OCCURRENCE (« le 2ᵉ tour de
+                              // Racuni »), pas un monstre : la clé porte le rang,
+                              // le monstre se retrouve par sa base. La 1ʳᵉ garde
+                              // l'identifiant nu, donc rien ne change pour qui ne
+                              // joue qu'une fois.
+                              const { id: uid, n: rang } = litOccurrence(cle);
                               const l = ligneParUid.get(uid);
                               if (!l) return null;
                               const liste = sortsDe(l);
-                              const choix = sortChoisi[uid];
+                              const choix = sortChoisi[cle];
+                              // ⚠️ `sortActif` lit le sort du 1ᵉʳ tour. Pour un
+                              // tour supplémentaire, c'est la clé d'occurrence
+                              // qui fait foi — sinon la ligne du 2ᵉ tour
+                              // affichait les options du 1ᵉʳ.
+                              const sortDeLaLigne =
+                                rang > 1 ? liste.find((x) => x.nom === choix) ?? null : sortActif(l);
                               return (
                                 <li
-                                  key={uid}
+                                  key={cle}
                                   className="flex flex-wrap items-center gap-x-2.5 gap-y-2 rounded-lg border border-border bg-panel2 px-2.5 py-2"
                                 >
                                   <span className="flex flex-none items-center gap-1">
                                     <BoutonIcone
                                       taille="serre"
-                                      onClick={() => deplacer(uid, -1)}
+                                      onClick={() => deplacer(cle, -1)}
                                       disabled={i === 0}
                                       libelle={`Monter ${l.monster.name}`}
                                       icone={<ChevronUp size={13} />}
                                     />
                                     <BoutonIcone
                                       taille="serre"
-                                      onClick={() => deplacer(uid, 1)}
+                                      onClick={() => deplacer(cle, 1)}
                                       disabled={i === ordreVoulu.length - 1}
                                       libelle={`Descendre ${l.monster.name}`}
                                       icone={<ChevronDown size={13} />}
@@ -553,14 +568,24 @@ export default function SpeedTuningSection({
                                     {i + 1}
                                   </span>
                                   <MonsterAvatar monster={l.monster} size={24} element={false} />
-                                  <span className="min-w-0 flex-1 truncate text-sm font-semibold">{l.monster.name}</span>
+                                  <span className="min-w-0 flex-1 truncate text-sm font-semibold">
+                                    {l.monster.name}
+                                    {/* ⚠️ Sans ce rang, deux lignes identiques se
+                                        suivent et on ne sait plus laquelle on
+                                        règle. Le libellé dit le TOUR, pas le rang
+                                        dans la liste — celui-ci est déjà dans la
+                                        pastille à gauche. */}
+                                    {rang > 1 && (
+                                      <span className="ml-1.5 font-normal text-ink-dim">· {rang}ᵉ tour</span>
+                                    )}
+                                  </span>
                                   {/* Ce qu'il LANCE à son tour, dans un menu à
                                       icônes : la ligne reste lisible d'un coup
                                       d'œil, et le détail s'ouvre à la demande. */}
                                   <ChoixSort
                                     sorts={liste}
                                     valeur={choix ?? ''}
-                                    onChoisir={(v) => choisirSort(uid, v)}
+                                    onChoisir={(v) => choisirSort(cle, v)}
                                     nomMonstre={l.monster.name}
                                   />
                                   {/* ⚠️ Certains sorts ne touchent QU'UN allié et
@@ -572,14 +597,14 @@ export default function SpeedTuningSection({
                                       ⚠️ Affiché aussi pour un sort qui ne fait que
                                       BUFFER un allié : lui aussi vise, et c'est la
                                       même cible que la barre — un seul sort. */}
-                                  {(sortActif(l)?.effet.atbAllie || sortActif(l)?.effet.buffAllie) && (
+                                  {(sortDeLaLigne?.effet.atbAllie || sortDeLaLigne?.effet.buffAllie) && (
                                     <label className="flex items-center gap-1.5">
                                       <span className="text-micro uppercase tracking-wide text-ink-dimmer">sur</span>
                                       <Selecteur
                                         taille="sm"
                                         pleineLargeur={false}
-                                        value={cibleSort[uid] ?? ''}
-                                        onChange={(e) => choisirCible(uid, e.target.value)}
+                                        value={cibleSort[cle] ?? ''}
+                                        onChange={(e) => choisirCible(cle, e.target.value)}
                                         aria-label={`Allié visé par le sort de ${l.monster.name}`}
                                       >
                                         <option value="">barre la plus basse</option>
@@ -603,7 +628,31 @@ export default function SpeedTuningSection({
                                   )}
                                   {/* ⚠️ Sa compétence lui REND son tour (Kroa) : il
                                       rejoue au même tick, et lance autre chose. */}
-                                  {sortActif(l)?.rejoue && (
+                                  {/* ⚠️ **UN TOUR DE PLUS**, sur la ligne du monstre
+                                      concerné : la nouvelle ligne naît JUSTE EN
+                                      DESSOUS, là où le tour se joue. Un « + » en
+                                      pied de liste aurait demandé de rechoisir le
+                                      monstre, puis de remonter la ligne à sa
+                                      place — deux gestes pour un. */}
+                                  <BoutonIcone
+                                    taille="serre"
+                                    onClick={() => ajouterOccurrence(cle)}
+                                    libelle={`${l.monster.name} joue un tour de plus — ajoute une ligne pour désigner ce qu'il y lance`}
+                                    icone={<Plus size={13} />}
+                                  />
+                                  {/* ⚠️ Seul un tour AJOUTÉ se retire. Le 1ᵉʳ n'est
+                                      pas un ajout : c'est la présence du monstre
+                                      dans l'ordre, et la retirer voudrait dire le
+                                      sortir de l'équipe. */}
+                                  {rang > 1 && (
+                                    <BoutonIcone
+                                      taille="serre"
+                                      onClick={() => retirerOccurrence(cle)}
+                                      libelle={`Retirer le ${rang}ᵉ tour de ${l.monster.name} de l'ordre`}
+                                      icone={<X size={13} />}
+                                    />
+                                  )}
+                                  {rang === 1 && sortActif(l)?.rejoue && (
                                     <span className="flex items-center gap-1.5">
                                       <span
                                         className="flex-none rounded border border-accent/50 px-1 text-micro font-bold uppercase tracking-wide text-accent"
@@ -671,22 +720,43 @@ export default function SpeedTuningSection({
                           Les vitesses de tes monstres ne permettent pas de jouer dans l'ordre demandé.
                         </p>
                         <ul className="flex flex-col gap-y-1.5">
-                          {ordreVoulu.map((uid) => {
+                          {ordreVoulu.map((cle) => {
+                            // ⚠️ Le monstre se retrouve par la BASE de la clé :
+                            // un tour supplémentaire (`allie:12#2`) n'a pas de
+                            // ligne à lui. Chercher la clé nue rendait `null`, et
+                            // le problème disparaissait sans un mot — un ordre
+                            // impossible passait alors pour tenu.
+                            const { id: uid, n: rang } = litOccurrence(cle);
                             const l = ligneParUid.get(uid);
                             if (!l) return null;
-                            const p = problemeParUid.get(uid);
+                            const p = problemeParUid.get(cle);
                             if (!p) return null;
-                            const f = fenetreParUid.get(uid);
+                            const f = fenetreParUid.get(cle);
                             const cible = cibleFenetre(f);
-                            const arte = cibleFenetre(fenetreArteParUid.get(uid));
+                            const arte = cibleFenetre(fenetreArteParUid.get(cle));
                             const runes = cible != null ? runesPour(l, cible) : null;
-                            const arteActuel = fenetreArteParUid.get(uid)?.combatActuel ?? 0;
-                            const verdict = p.raison === 'trop-tot' ? 'est trop rapide' : 'est trop lent';
+                            const arteActuel = fenetreArteParUid.get(cle)?.combatActuel ?? 0;
+                            // ⚠️ **Un tour qui n'a pas lieu ne se dit pas « trop
+                            // lent ».** Le combo demandé ne se produit pas du
+                            // tout : ce n'est pas un rang raté de peu, et
+                            // envoyer corriger une vitesse serait un faux
+                            // conseil.
+                            const verdict =
+                              p.raison === 'nagit-pas'
+                                ? rang > 1
+                                  ? `ne joue pas une ${rang}ᵉ fois`
+                                  : "n'agit pas"
+                                : p.raison === 'trop-tot'
+                                  ? 'est trop rapide'
+                                  : 'est trop lent';
                             const peutCalculer = runes != null || arte != null;
                             return (
-                              <li key={uid} className="flex flex-wrap items-center gap-x-2 gap-y-1 text-sm">
+                              <li key={cle} className="flex flex-wrap items-center gap-x-2 gap-y-1 text-sm">
                                 <MonsterAvatar monster={l.monster} size={22} element={false} />
-                                <span className="font-semibold">{l.monster.name}</span>
+                                <span className="font-semibold">
+                                  {l.monster.name}
+                                  {rang > 1 && <span className="ml-1 font-normal text-ink-dim">· {rang}ᵉ tour</span>}
+                                </span>
                                 <span className="text-ink-dim">{verdict}</span>
                                 {peutCalculer && besoin(l, cible ?? null, arte ?? null, arteActuel)}
                               </li>

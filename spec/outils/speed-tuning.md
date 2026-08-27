@@ -346,6 +346,52 @@ il faut savoir **quel sort** chacun lance. Moteur dans
 [speedTune.ts](src/lib/speedTune.ts) (`diagnostiquerSequence`, `fenetresRequises`)
 et [speedTuneKit.ts](src/lib/speedTuneKit.ts) (`sortsVitesse`), **testés**.
 
+### Un monstre qui joue PLUSIEURS FOIS
+
+⚠️ **Un combo fait jouer le même monstre deux fois avant l'adverse** — Racuni se
+vise lui-même au S2 (barre pleine → il rejoue au tick suivant) puis enchaîne son
+S1. L'ordre doit pouvoir le dire, sinon le combo n'est ni descriptible ni
+vérifiable : le moteur relançait le MÊME sort à chaque tour, donc **rien du
+tout** dès que le rechargement l'en empêchait.
+
+- Un **`+`** sur chaque ligne ajoute un tour à ce monstre. ⚠️ La nouvelle ligne
+  naît **juste en dessous**, là où le tour se joue — un `+` en pied de liste
+  aurait demandé de rechoisir le monstre puis de remonter la ligne à sa place,
+  deux gestes pour un.
+- Chaque ligne a **son sort et sa cible**. ⚠️ La cible appartient au couple
+  (tour, sort), **pas au monstre** : un tour supplémentaire repart du défaut
+  (barre la plus basse). Enchaîner Breeze après un *Rabbit's Agility* visé sur
+  soi aurait visé le lanceur une seconde fois sans qu'on l'ait demandé.
+- ⚠️ **Rien n'est deviné pour un tour supplémentaire.** L'analyse remplit les
+  sorts manquants du 1ᵉʳ tour, jamais ceux d'un tour ajouté : c'est un combo
+  qu'on décrit, pas un défaut qu'on suppose.
+- Une croix retire un tour ajouté. ⚠️ **Le 1ᵉʳ ne se retire pas** : il n'est pas
+  un ajout, c'est la présence du monstre dans l'ordre.
+- ⚠️ **Ajouter une ligne RANGE l'ordre** (`ordreRange`). Sans ça, la
+  resynchronisation sur les vitesses reconstruit la liste depuis la simulation
+  et l'occurrence disparaît dans la foulée — un clic sans effet visible.
+
+⚠️ **La ligne RESTE quand le combo ne tient pas**, signalée en rouge (« ne joue
+pas une 2ᵉ fois ») — comme un rang qu'on réclame sans l'avoir. La faire
+disparaître toute seule effacerait la question qu'on vient de poser. Le message
+est **distinct** de « trop lent » : le tour n'a pas lieu du tout, ce n'est pas un
+rang raté de peu, et envoyer corriger une vitesse serait un faux conseil.
+
+⚠️ **Aucune migration.** La **1ʳᵉ occurrence garde l'identifiant nu**
+(`allie:12`), seules les suivantes portent un suffixe (`allie:12#2`) : un ordre
+déjà enregistré, une grille ou un sort choisi restent valides, et tout se lit
+comme avant tant qu'aucun tour n'est ajouté. Côté moteur, `sortsParTour` et
+`EffetSort.cle` (l'horloge de rechargement, **par sort** et non par tour — sans
+quoi deux sorts sur deux tours la partageraient et le second serait bloqué).
+
+⚠️ **Une fenêtre de vitesse n'est PAS calculée pour un tour supplémentaire**
+(`fenetresRequises` ne connaît que les monstres) : la ligne dit que le tour
+n'a pas lieu, sans chiffrer ce qu'il manque. À faire si le besoin s'en montre.
+
+⚠️ **À ne pas confondre avec `rejoue`** (Kroa), qui est un tour pris au **même
+tick**, sans qu'aucune horloge ne tourne : celui-là garde son champ `sort2` et
+son marqueur « rejoue » sur la ligne du 1ᵉʳ tour.
+
 ⚠️ **C'est l'analyse qui la remplit.** Cliquer sur « Analyser » y écrit l'ordre
 que les vitesses produisent et, pour chacun, le sort que son kit a retenu —
 exactement comme elle écrit dans les grilles. Ces choix deviennent alors des

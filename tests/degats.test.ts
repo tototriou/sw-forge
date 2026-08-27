@@ -1375,6 +1375,32 @@ export default function testDegats() {
     damageRelevantStats(s3, [], { ...DEFAULT_DAMAGE_SETUP, critMode: 'normal' }, true).includes('cd'),
     "critSiPlusRapide force un critique garanti — Dégâts Crit reste retenu MÊME en « Non critique »"
   );
+  // ⚠️⚠️ **ET UN PASSIF `'toujours'` AUSSI** (Hidden Gun, Meticulous Attack) :
+  // `computeTotalDamage` lui impose `critMode: 'crit'` pour sa propre
+  // contribution, quel que soit le mode choisi. La garde n'exceptait d'abord
+  // que `critSiPlusRapide` et retirait donc les Dgts Crit à un monstre dont un
+  // composant crit pourtant à coup sûr — le remède pire que le mal.
+  {
+    // ⚠️ `categorie` est OBLIGATOIRE : `passifActif` la lit d'abord. Un faux
+    // passif sans elle plante avant d'atteindre ce qu'on veut vérifier.
+    // `type: 'bonus'` = toujours actif, comme Hidden Gun.
+    const toujours: PassifOffensifProfile = {
+      nom: 'Coup garanti',
+      profile: profil('1.0*{ATK}'),
+      critique: 'toujours',
+      categorie: { type: 'bonus', pct: 100, condition: 'test' },
+    } as unknown as PassifOffensifProfile;
+    const jamais: PassifOffensifProfile = { ...toujours, nom: 'Sans crit', critique: 'jamais' };
+    ok(
+      damageRelevantStats(s3, [toujours], { ...DEFAULT_DAMAGE_SETUP, critMode: 'normal' }).includes('cd'),
+      "un passif `'toujours'` crit quoi qu'il arrive — Dégâts Crit reste retenu en « Non critique »"
+    );
+    // Le contrôle qui empêche le test de passer pour de mauvaises raisons.
+    ok(
+      !damageRelevantStats(s3, [jamais], { ...DEFAULT_DAMAGE_SETUP, critMode: 'normal' }).includes('cd'),
+      "un passif qui ne crit jamais ne rattrape rien — Dégâts Crit reste écarté"
+    );
+  }
 
   titre('Dégâts réels — passifs offensifs');
 

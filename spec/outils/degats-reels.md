@@ -408,6 +408,20 @@ n'ajoute aucune stat au pré-filtrage, un passif actif y ajoute les siennes —
 les deux fonctions doivent s'accorder EXACTEMENT, sinon la recherche
 privilégierait des stats qu'un score différent ignore (ou l'inverse).
 
+⚠️⚠️ **En mode « Non critique », Dgts Crit sort du pré-filtrage — SAUF quand un
+critique est GARANTI.** Le mode annule la part critique du sort, donc retenir
+Dgts Crit gaspillait du budget de rétention sur une stat qui ne pèse sur aucun
+dégât. Mais il y a **deux** exceptions, pas une :
+
+- `critSiPlusRapide` (Ciri Eau, Rigna, MOS) — un critique forcé par la vitesse ;
+- ⚠️ un passif `critique: 'toujours'` (**Hidden Gun**, **Meticulous Attack**) :
+  `computeTotalDamage` lui impose `critMode: 'crit'` pour sa **propre**
+  contribution, quel que soit le mode choisi à l'écran.
+
+N'excepter que la première retirait les Dgts Crit à un monstre dont un composant
+crit pourtant à coup sûr — **le remède pire que le mal qu'il corrige**. Les deux
+sens sont testés (`'toujours'` retient, `'jamais'` ne rattrape rien).
+
 ### VIT de l'adversaire — `{Relative SPD}` et l'ignore-DEF proportionnel
 
 `DamageSetup.enemySpd` (VIT totale de l'adversaire, buffs compris — saisie

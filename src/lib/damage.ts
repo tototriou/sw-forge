@@ -2852,12 +2852,18 @@ export function damageRelevantStats(
   // mais si UN SEUL des composants comptés (sort ou passif actif) peut
   // criter, les Dgts Crit restent pertinents pour le TOTAL.
   let peutCriter = !profile.fixed;
+  // ⚠️ Un passif `'toujours'` critique QUOI QU'IL ARRIVE : `computeTotalDamage`
+  // lui impose `critMode: 'crit'` pour sa propre contribution, sans regarder le
+  // mode choisi. Il faut le savoir plus bas, pour ne pas lui retirer les Dgts
+  // Crit en mode « Non critique ».
+  let critGarantiParPassif = false;
   for (const p of passifs) {
     if (!passifActif(p, setup)) continue;
     ajouter(p.profile.variables);
     // `'toujours'` compte AUSSI : ce composant critique à coup sûr, donc les
     // Dgts Crit pèsent sur lui plus encore que sur un sort ordinaire.
     if (!p.profile.fixed && p.critique !== 'jamais') peutCriter = true;
+    if (!p.profile.fixed && p.critique === 'toujours') critGarantiParPassif = true;
   }
   if (critSiPlusRapide || bonusDegatsSelonVit || critRateSelonVit) {
     if (!keys.includes('spd')) keys.push('spd');
@@ -2881,7 +2887,14 @@ export function damageRelevantStats(
   // pourtant sur AUCUN dégât — gaspillant du budget de rétention sur des
   // runes bonnes en Dgts Crit au détriment de stats qui comptent réellement
   // pour ce mode.
-  if (setup.critMode === 'normal' && !critSiPlusRapide) peutCriter = false;
+  //
+  // ⚠️⚠️ **DEUX exceptions, pas une.** `critSiPlusRapide` force un critique
+  // garanti — mais un passif `critique: 'toujours'` aussi (Hidden Gun,
+  // Meticulous Attack) : `computeTotalDamage` lui impose `critMode: 'crit'`
+  // pour sa propre contribution, quel que soit le mode choisi. N'excepter que
+  // le premier retirait les Dgts Crit à un monstre dont un composant crit
+  // pourtant à coup sûr — le remède devenait pire que le mal qu'il corrige.
+  if (setup.critMode === 'normal' && !critSiPlusRapide && !critGarantiParPassif) peutCriter = false;
   if (peutCriter) keys.push('cd');
   return keys;
 }

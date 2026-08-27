@@ -623,7 +623,28 @@ coefficients inventés ne se vérifient nulle part. Du plus large au plus étroi
 2. **buffer la vitesse** de tout le camp ;
 3. **se rendre son propre tour** (*Power of Mirkwood*, Legolas) ;
 4. se buffer / se remplir **soi-même** ;
-5. remplir la barre d'**un** allié.
+5. remplir la barre d'**un** allié — ou seulement **buffer sa vitesse**.
+
+⚠️ **À rang ÉGAL, c'est le montant qui départage** — pas l'ordre des slots. Le
+rang dit QUI est touché, jamais COMBIEN : Racuni porte deux sorts « sur un
+allié », *Breeze* (+15 % de barre) et *Rabbit's Agility* (barre **pleine** +
+30 % de vitesse). Les deux valant 5, c'est le **premier rencontré** qui gagnait,
+donc le S1 : l'analyse retenait le plus faible des deux, et le monstre visé
+n'avait ni sa barre remplie ni son buff. Le départage additionne le remplissage
+et le buff de vitesse — à remplissage égal, celui qui buffe **en plus** l'emporte
+(*Clear Blue Sky* de Tanjiro vent contre *Dancing Flash* : 50 % tous les deux,
+seul le premier buffe).
+
+⚠️ **Le rang PRIME toujours** : le montant ne fait pas remonter un sort d'un
+cran. Un boost d'équipe minuscule reste au-dessus d'un gros boost sur un seul
+allié — sans quoi la priorité ne serait plus une priorité, mais le score pondéré
+qu'on a refusé.
+
+⚠️ Ce départage change le sort retenu de **14 monstres sur 2411**, et chaque
+bascule va vers le sort strictement plus fort : Racuni / Harg (feu et lumière) /
+Dova (15 % → barre pleine + buff), Twin Angels et Jaduel et Aepiah (10 % →
+100 %), Dr. Plasma / Dr. Felix (10 % → 20 %), Fern (30 % → 35 %), Azure Dragon
+Swordsman et Tanjiro vent (50 % → 50 % **plus** le buff).
 
 Et **deux exclusions**, qui ont chacune fait mentir un verdict :
 

@@ -134,9 +134,25 @@ function valeurPourLeTune(x: SortVitesse): number {
   return 0;
 }
 
+// ⚠️ **À RANG ÉGAL, ce que le sort DÉLIVRE.** Le rang dit QUI est touché (tout
+// le camp, un allié, soi) ; il ne dit pas COMBIEN. Racuni porte deux sorts « sur
+// un allié » : *Breeze* (+15 % de barre) et *Rabbit's Agility* (barre PLEINE +
+// 30 % de vitesse). Les deux valant 2, c'est le premier RENCONTRÉ qui gagnait —
+// donc le S1, et l'analyse retenait le plus faible des deux. Le monstre visé
+// n'avait alors ni sa barre remplie ni son buff de vitesse.
+function poidsDansLeRang(x: SortVitesse): number {
+  const e = x.effet;
+  // Une seule de ces trois cases est remplie : le rang a déjà tranché la cible.
+  const barre = e.atbEquipe ?? e.atbAllie ?? e.atbSoi ?? 0;
+  // Un buff de vitesse EN PLUS vaut mieux que le même remplissage sans lui.
+  const buff = e.buffEquipe ?? e.buffSoi ?? e.buffAllie ?? 0;
+  return barre + buff;
+}
+
 function meilleurSort(liste: SortVitesse[], exclu?: string): SortVitesse | null {
   let meilleur: SortVitesse | null = null;
   let rang = 0;
+  let poids = 0;
   for (const x of liste) {
     if (x.nom === exclu) continue;
     // ⚠️ **Un sort à TAUX DE RÉUSSITE n'est jamais retenu d'office.** Un tune ne
@@ -147,8 +163,14 @@ function meilleurSort(liste: SortVitesse[], exclu?: string): SortVitesse | null 
     // menu affiche le taux).
     if (x.chance != null) continue;
     const v = valeurPourLeTune(x);
-    if (v > rang) {
+    if (v === 0) continue;
+    const p = poidsDansLeRang(x);
+    // ⚠️ Le rang PRIME toujours : un boost d'équipe reste au-dessus d'un boost
+    // sur un allié, quels que soient les montants. Le poids ne départage QU'À
+    // rang égal — il ne fait pas remonter un sort d'un cran.
+    if (v > rang || (v === rang && p > poids)) {
       rang = v;
+      poids = p;
       meilleur = x;
     }
   }

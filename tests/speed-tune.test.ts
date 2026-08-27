@@ -2399,6 +2399,62 @@ export function testSpeedTuneAuto() {
       'Rejoue',
       'se rendre son tour passe avant remplir la barre d’un seul allié'
     );
+    // ⚠️ À RANG ÉGAL, c'est le MONTANT qui départage — pas l'ordre des slots.
+    // Racuni porte deux sorts « sur un allié » : Breeze (+15 %) et Rabbit's
+    // Agility (barre pleine + 30 % de vitesse). Le premier rencontré gagnait,
+    // donc le S1 : l'analyse retenait le plus faible des deux, et le monstre
+    // visé n'avait ni sa barre remplie ni son buff.
+    egal(
+      sortRetenu(
+        e,
+        sorts([
+          { nom: 'Breeze', effet: { atbAllie: 15 } },
+          { nom: 'Agility', effet: { atbAllie: 100, buffAllie: 30 } },
+        ])
+      )?.nom,
+      'Agility',
+      'entre deux sorts sur un allié, le plus fort est retenu — même en second'
+    );
+    // Et dans l'autre sens, pour que le test ne passe pas par accident d'ordre.
+    egal(
+      sortRetenu(
+        e,
+        sorts([
+          { nom: 'Agility', effet: { atbAllie: 100, buffAllie: 30 } },
+          { nom: 'Breeze', effet: { atbAllie: 15 } },
+        ])
+      )?.nom,
+      'Agility',
+      "l'ordre de la liste n'y change rien"
+    );
+    // ⚠️ À remplissage ÉGAL, le buff de vitesse en plus l'emporte (Tanjiro vent :
+    // Dancing Flash et Clear Blue Sky remplissent 50 %, seul le second buffe).
+    egal(
+      sortRetenu(
+        e,
+        sorts([
+          { nom: 'Sec', effet: { atbSoi: 50 } },
+          { nom: 'Buffe', effet: { atbSoi: 50, buffSoi: 30 } },
+        ])
+      )?.nom,
+      'Buffe',
+      'à remplissage égal, celui qui buffe aussi la vitesse est retenu'
+    );
+    // ⚠️ Mais le RANG prime toujours : le montant ne fait pas remonter un sort
+    // d'un cran. Un boost d'équipe minuscule reste au-dessus d'un gros boost sur
+    // un seul allié.
+    egal(
+      sortRetenu(
+        e,
+        sorts([
+          { nom: 'UnAllie', effet: { atbAllie: 100 } },
+          { nom: 'Camp', effet: { atbEquipe: 5 } },
+        ])
+      )?.nom,
+      'Camp',
+      'le montant ne fait pas remonter un sort au-dessus de son rang'
+    );
+
     // ⚠️ Les deux exclusions, qui ont chacune fait mentir un verdict.
     egal(
       sortRetenu(e, sorts([{ nom: 'Videur', effet: { atbEnnemi: 50 } }])),

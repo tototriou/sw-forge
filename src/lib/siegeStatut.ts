@@ -42,6 +42,16 @@ export function statutEquipe(e: EntreeStatut): StatutEquipe {
   // toute l'équipe joue avant que l'adverse ne s'intercale.
   if (e.swift) {
     if (!e.speedTune) return 'neutre';
+    // ⚠️ **Le siège NE TRANCHE PAS quand la cible décide.** Un sort retenu qui
+    // ne touche qu'UN allié (Rabbit's Agility, Resurge…) donne un résultat
+    // différent selon qui on vise — et ce choix n'appartient qu'au joueur. Le
+    // siège retombe sur « la barre la plus basse » : un défaut raisonnable pour
+    // CALCULER, jamais assez pour DÉCLARER une équipe speed tune ou non.
+    //
+    // ⚠️ L'orange vaut dans les DEUX sens : un « il manque +14 VIT » calculé sur
+    // une cible devinée serait tout aussi faux qu'un vert. Ce n'est pas un
+    // verdict tiède, c'est l'absence de verdict.
+    if (e.speedTune.cibleIndecise) return 'orange';
     return e.speedTune.verdict.ok ? 'vert' : 'orange';
   }
   return e.horsTick ? 'rouge' : 'vert';

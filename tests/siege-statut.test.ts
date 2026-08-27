@@ -11,8 +11,8 @@ import { ResultatAuto } from '../src/lib/speedTuneAuto';
 export default function testSiegeStatut() {
   titre('Siège — statut d’une équipe');
 
-  const tune = (ok: boolean) =>
-    ({ verdict: { ok }, requis: [], arte: [], ordre: [], combats: new Map(), reference: null, mods: new Map() }) as unknown as ResultatAuto;
+  const tune = (ok: boolean, cibleIndecise = false) =>
+    ({ verdict: { ok }, requis: [], arte: [], ordre: [], combats: new Map(), reference: null, mods: new Map(), cibleIndecise }) as unknown as ResultatAuto;
 
   const base: EntreeStatut = {
     verifier: true,
@@ -44,6 +44,38 @@ export default function testSiegeStatut() {
     statutEquipe({ ...base, swift: true, horsTick: false, speedTune: tune(false) }),
     'orange',
     'Swift pas tune → orange, même si tout le monde est au tick'
+  );
+
+  // ⚠️ **QUAND LA CIBLE DÉCIDE, le siège ne tranche pas.** Un sort retenu qui ne
+  // touche qu'UN allié donne un résultat différent selon qui on vise, et ce
+  // choix n'appartient qu'au joueur : le siège retombe sur « la barre la plus
+  // basse » pour CALCULER, ce qui ne suffit pas pour DÉCLARER.
+  egal(
+    statutEquipe({ ...base, swift: true, speedTune: tune(true, true) }),
+    'orange',
+    'cible indécise → orange, MÊME quand le verdict deviné est bon'
+  );
+  // ⚠️ Dans l'autre sens aussi : un « il manque tant » calculé sur une cible
+  // devinée est aussi faux qu'un vert. Ce n'est pas un verdict tiède, c'est
+  // l'absence de verdict.
+  egal(
+    statutEquipe({ ...base, swift: true, speedTune: tune(false, true) }),
+    'orange',
+    'et orange aussi quand il est mauvais — on ne dit pas de combien'
+  );
+  // Le contrôle qui empêche le test de passer pour de mauvaises raisons : sans
+  // l'indécision, le vert revient.
+  egal(
+    statutEquipe({ ...base, swift: true, speedTune: tune(true, false) }),
+    'vert',
+    'cible désignée ou sort de camp → le verdict se dit comme avant'
+  );
+  // ⚠️ Une équipe SANS Swift se juge au tick : les sorts n'y changent rien, donc
+  // l'indécision ne la concerne pas.
+  egal(
+    statutEquipe({ ...base, swift: false, horsTick: false, speedTune: tune(true, true) }),
+    'vert',
+    'une équipe jugée au tick ignore l’indécision de cible'
   );
 
   // Ce qu'on écarte à la main prime sur tout le reste.

@@ -165,7 +165,31 @@ joue avant que l'adversaire ne s'intercale** — la question de l'outil, pas cel
 des ticks. Afficher « Vérifier le speed tuning » et s'arrêter là renvoyait
 l'utilisateur faire à la main un calcul que l'app sait faire.
 
-La card affiche donc le **verdict**, et sa couleur le suit :
+⚠️⚠️ **MAIS LE SIÈGE NE TRANCHE PAS QUAND LA CIBLE DÉCIDE.** Un sort retenu qui
+ne touche qu'**UN allié** (`atbAllie` / `buffAllie` — *Rabbit's Agility*,
+*Resurge*, *Breeze*…) donne un résultat différent selon qui on vise, et **ce
+choix n'appartient qu'au joueur**. L'analyse retombe sur « la barre la plus
+basse » : un défaut raisonnable pour **calculer**, jamais assez pour
+**déclarer**. L'équipe reste donc **orange**, et la card dit seulement
+« **Vérifier le speed tuning** » — « Voir le speed tune », juste à côté, ouvre
+l'outil où la cible se désigne (`ResultatAuto.cibleIndecise`).
+
+⚠️ **L'orange vaut dans les DEUX sens.** Un « il manque +14 VIT » calculé sur une
+cible devinée est aussi faux qu'un vert : on n'affiche donc **aucun chiffre**.
+Ce n'est pas un verdict tiède, c'est l'**absence** de verdict.
+
+⚠️ **Cette exception ne rouvre PAS la porte au renvoi systématique.** Afficher
+« Vérifier le speed tuning » à toute équipe Swift renverrait l'utilisateur faire
+à la main un calcul que l'app sait faire — c'est le défaut corrigé plus haut, et
+il tient toujours. Ici l'app ne le sait justement PAS : il lui manque une
+décision qui n'est pas la sienne.
+
+⚠️ Une équipe **sans Swift** se juge au **tick** : les sorts n'y changent rien,
+donc l'indécision ne la concerne pas. Et dans l'**outil**, la question ne se pose
+plus — la cible s'y désigne.
+
+La card affiche donc le **verdict** — quand elle en a un —, et sa couleur le
+suit :
 - **verte** quand l'équipe est speed tune — ⚠️ c'est sa façon d'être « au tick » à
   elle ; la laisser orange signalait un problème qui n'existe pas. Le vert **se
   dit** (« ✓ Équipe speed : elle est speed tune »), sans quoi on ne sait pas si

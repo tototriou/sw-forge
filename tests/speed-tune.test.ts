@@ -2170,6 +2170,50 @@ export function testSpeedTuneAuto() {
     );
   }
 
+  // ⚠️ **L'ANALYSE DIT QUAND ELLE A VISÉ À TA PLACE.** Un sort qui ne touche
+  // qu'UN allié donne un résultat différent selon la cible ; sans désignation,
+  // l'analyse retombe sur « la barre la plus basse ». C'est assez pour CALCULER,
+  // jamais pour que le siège DÉCLARE une équipe speed tune (voir siegeStatut).
+  {
+    const sort = (nom: string, effet: Record<string, unknown>) => ({
+      nom, slot: 3, icone: null, effet, rejoue: false, cooldown: 0,
+      atbNiveau1: 0, atbSkillUp: 0, chance: null, neutre: false, buffsEquipe: 0,
+    });
+    const avec = (effet: Record<string, unknown>): DonneesKit => ({
+      kits: new Map(),
+      sorts: new Map([[100, [sort('S', effet)] as any]]),
+      passifs: new Map(),
+    });
+    const equipe: EntreeAuto[] = [
+      { id: 'a', monster: monstre(100, 'Viseur', 100), runeSpeed: 160 },
+      { id: 'b', monster: monstre(101, 'Autre', 100), runeSpeed: 90 },
+    ];
+
+    ok(
+      analyseAutomatique(equipe, 0, avec({ atbAllie: 100 })).cibleIndecise,
+      'un sort qui remplit la barre d’UN allié, sans cible désignée → indécis'
+    );
+    ok(
+      analyseAutomatique(equipe, 0, avec({ buffAllie: 30 })).cibleIndecise,
+      'un buff de vitesse sur UN allié aussi'
+    );
+    // ⚠️ Les contrôles qui empêchent le drapeau d'être toujours levé.
+    ok(
+      !analyseAutomatique(equipe, 0, avec({ atbEquipe: 30 })).cibleIndecise,
+      'un boost de TOUT le camp ne vise personne en particulier → décidé'
+    );
+    ok(
+      !analyseAutomatique(equipe, 0, avec({ atbSoi: 50 })).cibleIndecise,
+      'un boost sur soi non plus'
+    );
+    ok(
+      !analyseAutomatique(equipe, 0, avec({ atbAllie: 100 }), {
+        choix: { sort: { a: 'S', b: '' }, sort2: {}, cible: { a: 'b' } },
+      }).cibleIndecise,
+      'et une cible DÉSIGNÉE lève l’indécision — c’est le joueur qui a tranché'
+    );
+  }
+
   // ⚠️ **UN COMBO : le même monstre joue DEUX FOIS, et lance autre chose.**
   // Racuni se vise lui-même au S2 (barre pleine → il rejoue), puis enchaîne son
   // S1. Les tours au-delà du premier portent une clé d'occurrence (`id#2`) dans

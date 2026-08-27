@@ -94,6 +94,15 @@ export interface ResultatAuto {
   // cases : c'est la MÊME source que le verdict, donc les deux ne peuvent pas
   // se contredire.
   mods: Map<string, { atbMod: ModParTick; speedMod: ModParTick }>;
+  // ⚠️ **Le verdict repose sur une CIBLE que l'app a choisie à ta place.** Au
+  // moins un sort retenu ne touche qu'UN allié (`atbAllie` / `buffAllie`) et
+  // personne ne lui a désigné de cible : l'analyse retombe alors sur « la barre
+  // la plus basse », un défaut raisonnable — mais viser quelqu'un d'autre change
+  // le résultat, et ce choix-là n'appartient qu'au joueur.
+  //
+  // ⚠️ Le siège s'en sert pour ne PAS trancher (voir siegeStatut.ts). L'outil,
+  // lui, l'ignore : on y désigne la cible, donc la question ne se pose plus.
+  cibleIndecise: boolean;
 }
 
 const kitDe = (e: EntreeAuto, d: DonneesKit) =>
@@ -376,6 +385,7 @@ export function analyseAutomatique(
 
   // ⚠️ **Le PLATEAU, dans l'ordre donné** — allié ou adverse, chacun à sa place :
   // c'est cet ordre qui départage deux barres pleines à vitesse égale.
+  let indecise = false;
   const avecSorts: TuneMonstre[] = equipe
     .filter((e) => combats.has(e.id))
     .map((e) => {
@@ -418,6 +428,9 @@ export function analyseAutomatique(
           : undefined;
       // Rien tant qu'aucun tour supplémentaire n'est désigné : le moteur
       // retombe alors sur `sort`, exactement comme avant.
+      // Un sort mono-cible SANS cible désignée : le verdict dépend alors d'un
+      // choix que l'app a fait à la place du joueur.
+      if ((sort?.effet.atbAllie || sort?.effet.buffAllie) && !cible) indecise = true;
       const dernier = derniereOccurrence(e);
       const sortsParTour =
         dernier > 1
@@ -501,5 +514,6 @@ export function analyseAutomatique(
     ordre: premiersTours(simuler(final, horizon))
       .filter((a) => a.camp === 'allie')
       .map((a) => ({ id: a.id, tick: a.tick })),
+    cibleIndecise: indecise,
   };
 }

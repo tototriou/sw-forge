@@ -635,7 +635,15 @@ export default function SiegeTeam({
               ) : statut === 'rouge' ? (
                 (messageTick ?? "Ton équipe n'est pas au tick.")
               ) : statut === 'orange' ? (
-                speedTune ? (
+                speedTune?.cibleIndecise ? (
+                  // ⚠️ **Pas de chiffre ici, et c'est le sujet.** Un sort retenu
+                  // ne touche qu'UN allié : le résultat dépend de qui on vise,
+                  // et l'app a visé à ta place. Annoncer « +14 VIT » sur une
+                  // cible devinée enverrait régler une équipe sur un chiffre qui
+                  // n'est pas le sien. « Voir le speed tune », juste à droite,
+                  // ouvre l'outil où la cible se désigne.
+                  <span className="font-semibold text-ink">Vérifier le speed tuning</span>
+                ) : speedTune ? (
                   // ⚠️ **Rien que ce qui ne va pas.** « Équipe speed : » ouvrait
                   // la phrase et ne disait rien de plus que le pictogramme et le
                   // contour : on le relisait à chaque équipe pour arriver au

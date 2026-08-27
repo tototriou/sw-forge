@@ -85,6 +85,14 @@ export interface EffetSort {
   // Sans ça, la simulation relançait le S3 à CHAQUE tour et l'équipe montait
   // bien plus vite qu'en jeu.
   cooldown?: number;
+  // ⚠️ **L'IDENTITÉ du sort, pour son horloge de rechargement.** Le moteur
+  // comptait le rechargement par TOUR (`id#1`), ce qui allait tant qu'un monstre
+  // relançait toujours le même sort. Dès qu'un combo lui en fait lancer DEUX
+  // (S2 puis S1), les deux partageaient la même horloge : le second héritait du
+  // rechargement du premier. Deux sorts distincts ont deux clés distinctes ; le
+  // même sort relancé à deux tours garde la sienne. Absent = comportement
+  // d'avant (une horloge par tour).
+  cle?: string;
 }
 
 // La vitesse de combat de base (base + runes + totem + lead), calculée par
@@ -110,6 +118,17 @@ export interface TuneMonstre {
   sort?: EffetSort;
   rejoue?: boolean;
   sort2?: EffetSort;
+  // ⚠️ **Ce qu'il lance à son Nᵉ tour** (index 0 = son 1ᵉʳ tour), quand un combo
+  // le fait jouer plusieurs fois dans la fenêtre : Racuni se vise lui-même au S2
+  // (barre pleine → il rejoue au tick suivant) puis enchaîne son S1. Sans ça, le
+  // moteur relançait le MÊME sort à chaque tour — donc rien du tout dès que le
+  // rechargement l'en empêchait, et le combo était invisible.
+  //
+  // ⚠️ Une case vide (`undefined`) ou un tour au-delà de la liste retombent sur
+  // `sort` : le défaut reste « il relance ce qu'il lance ».
+  // ⚠️ À ne pas confondre avec `sort2`, qui est le tour SUPPLÉMENTAIRE pris au
+  // MÊME tick (`rejoue`) — celui-là ne fait pas avancer le compteur de tours.
+  sortsParTour?: (EffetSort | undefined)[];
   // Bonus d'artéfact « Effet aug. VIT » (%), actif UNIQUEMENT quand un buff de
   // vitesse (> 0) est présent ce tick-là (il n'a rien à amplifier sinon, et il ne
   // s'applique pas à un ralenti).
@@ -303,8 +322,10 @@ export function simuler(monstres: TuneMonstre[], horizon = HORIZON_TICKS): Simul
       const precedent = dernier[cle];
       return precedent === undefined || tours[gagnant.id] - precedent >= cd;
     };
-    const poser = (sort: EffetSort | undefined, cle?: string) => {
+    const poser = (sort: EffetSort | undefined, cleParDefaut?: string) => {
       if (!sort) return;
+      // L'horloge du SORT quand il se nomme, celle du TOUR sinon.
+      const cle = sort.cle ? `${gagnant.id}@${sort.cle}` : cleParDefaut;
       if (cle) {
         if (!disponible(sort, cle)) return;
         dernier[cle] = tours[gagnant.id];
@@ -351,7 +372,11 @@ export function simuler(monstres: TuneMonstre[], horizon = HORIZON_TICKS): Simul
       if (sort.ralenti && sort.ralenti > ralentiCamp[adverse]) ralentiCamp[adverse] = sort.ralenti;
     };
     tours[gagnant.id] = (tours[gagnant.id] ?? 0) + 1;
-    poser(gagnant.sort, `${gagnant.id}#1`);
+    // Le sort de CE tour-ci : celui qu'on a désigné pour son Nᵉ tour, sinon son
+    // sort par défaut. ⚠️ Le compteur vient d'être incrémenté, donc le 1ᵉʳ tour
+    // est l'index 0.
+    const sortDuTour = gagnant.sortsParTour?.[tours[gagnant.id] - 1] ?? gagnant.sort;
+    poser(sortDuTour, `${gagnant.id}#1`);
 
     // ⚠️ Tour SUPPLÉMENTAIRE : il rejoue AU MÊME TICK, sans qu'aucune horloge ne
     // tourne — les autres ne gagnent donc rien entre les deux. Son second tour
@@ -866,14 +891,53 @@ export interface DiagnosticSequence {
 // différentiel des fenêtres l'a attrapé (les deux critères ne décrivaient pas la
 // même chose). Ce qui compte est local : je joue APRÈS mon prédécesseur et
 // AVANT mon successeur.
+/* ------------------------------------------------------- Occurrences ---- */
+
+// ⚠️ **Un monstre peut figurer PLUSIEURS FOIS dans l'ordre voulu.** Un combo le
+// fait jouer deux fois avant l'adverse (Racuni se vise au S2, sa barre se
+// remplit, il rejoue et enchaîne son S1) : l'ordre doit pouvoir le dire, sinon
+// le combo n'est ni descriptible ni vérifiable.
+//
+// ⚠️ **La 1ᵉʳᵉ occurrence garde l'identifiant NU.** C'est ce qui rend la
+// nouveauté invisible pour tout ce qui existait : un ordre déjà enregistré, une
+// grille, un sort choisi — tous keyés sur l'uid — continuent de valoir sans
+// migration. Seules les occurrences SUPPLÉMENTAIRES portent un suffixe.
+// (`uid` vaut `allie:123` : le `#` n'y apparaît jamais.)
+export function cleOccurrence(id: string, n: number): string {
+  return n <= 1 ? id : `${id}#${n}`;
+}
+
+export function litOccurrence(cle: string): { id: string; n: number } {
+  const i = cle.lastIndexOf('#');
+  if (i < 0) return { id: cle, n: 1 };
+  const n = Number(cle.slice(i + 1));
+  return Number.isInteger(n) && n > 1 ? { id: cle.slice(0, i), n } : { id: cle, n: 1 };
+}
+
+// Le tick de chaque OCCURRENCE : `allie:12` → son 1ᵉʳ tour, `allie:12#2` → son
+// 2ᵉ. ⚠️ Les tours pris au même tick par `rejoue` comptent : c'est bien un tour
+// de plus, et le combo qu'on décrit passe souvent par lui.
+export function ticksParOccurrence(sim: Simulation): Map<string, number> {
+  const vus = new Map<string, number>();
+  const out = new Map<string, number>();
+  for (const a of sim.actions) {
+    const n = (vus.get(a.id) ?? 0) + 1;
+    vus.set(a.id, n);
+    out.set(cleOccurrence(a.id, n), a.tick);
+  }
+  return out;
+}
+
 export function diagnostiquerSequence(
   monstres: TuneMonstre[],
   ordre: string[],
   horizon = HORIZON_TICKS
 ): DiagnosticSequence {
-  const premiers = premiersTours(simuler(monstres, horizon));
-  const coupeur = premiers.find((a) => a.camp === 'ennemi') ?? null;
-  const tickDe = new Map(premiers.map((a) => [a.id, a.tick]));
+  const sim = simuler(monstres, horizon);
+  const coupeur = sim.actions.find((a) => a.camp === 'ennemi') ?? null;
+  // ⚠️ Par OCCURRENCE, pas par monstre : un id nu reste son 1ᵉʳ tour, donc un
+  // ordre sans occurrence supplémentaire se lit exactement comme avant.
+  const tickDe = ticksParOccurrence(sim);
 
   // Rang RÉELLEMENT obtenu parmi les alliés listés — pour l'affichage (« il joue
   // 3ᵉ alors que tu le veux 2ᵉ »), pas pour le verdict.

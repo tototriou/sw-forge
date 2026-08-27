@@ -13,6 +13,9 @@ import {
   vitessesRequises,
   artefactsRequis,
   diagnostiquerSequence,
+  cleOccurrence,
+  litOccurrence,
+  ticksParOccurrence,
   fenetresRequises,
   COMBAT_MAX,
   ARTE_MAX,
@@ -1565,6 +1568,75 @@ export function testSpeedTuneSequence() {
     const monstres = [m('a', 300, 'allie'), m('lent', 120, 'allie'), m('e', 250, 'ennemi')];
     const d = diagnostiquerSequence(monstres, ['a', 'lent']);
     egal(d.problemes.find((p) => p.id === 'lent')?.raison, 'apres-adverse', "coupé par l'adverse d'abord");
+  }
+
+  // ⚠️ UN MONSTRE QUI JOUE DEUX FOIS. Racuni se vise lui-même au S2 (barre
+  // pleine → il rejoue au tick suivant) puis enchaîne son S1 : l'ordre voulu
+  // doit pouvoir le nommer deux fois, sinon le combo n'est pas descriptible.
+  {
+    egal(cleOccurrence('allie:12', 1), 'allie:12', 'la 1ʳᵉ occurrence garde l’identifiant NU');
+    egal(cleOccurrence('allie:12', 2), 'allie:12#2', 'les suivantes portent un suffixe');
+    egal(litOccurrence('allie:12').n, 1, 'un identifiant nu se lit comme la 1ʳᵉ occurrence');
+    egal(litOccurrence('allie:12#3').id, 'allie:12', 'et le suffixe se retire proprement');
+    egal(litOccurrence('allie:12#3').n, 3, 'avec son rang');
+
+    // Il se remplit sa propre barre : il joue, puis rejoue juste après.
+    const combo: TuneMonstre[] = [
+      { id: 'racuni', combat: 200, camp: 'allie', sort: { atbSoi: 100, cooldown: 3 } },
+      m('autre', 150, 'allie'),
+    ];
+    const ticks = ticksParOccurrence(simuler(combo, 40));
+    ok(ticks.has('racuni#2'), 'sa 2ᵉ occurrence existe');
+    ok(ticks.get('racuni#2')! > ticks.get('racuni')!, 'et tombe après la 1ʳᵉ');
+
+    // L'ordre « Racuni, Racuni, autre » est tenu — et se vérifie comme un autre.
+    const d = diagnostiquerSequence(combo, ['racuni', 'racuni#2', 'autre']);
+    ok(d.ok, 'un ordre qui nomme deux fois le même monstre est vérifié comme les autres');
+
+    // ⚠️ Et il se signale FAUX quand les vitesses ne le produisent pas : sans
+    // quoi le test ci-dessus passerait pour de mauvaises raisons.
+    const sansCombo: TuneMonstre[] = [m('racuni', 200, 'allie'), m('autre', 150, 'allie')];
+    ok(
+      !diagnostiquerSequence(sansCombo, ['racuni', 'racuni#2', 'autre']).ok,
+      "sans le remplissage, il ne joue pas deux fois et l'ordre est signalé"
+    );
+  }
+
+  // ⚠️ CE QU'IL LANCE À SON Nᵉ TOUR. Le moteur relançait le MÊME sort à chaque
+  // tour : dès que le rechargement l'en empêchait, le monstre ne faisait plus
+  // rien, et un combo « S2 puis S1 » était impossible à décrire.
+  {
+    const combo: TuneMonstre[] = [
+      {
+        id: 'racuni',
+        combat: 200,
+        camp: 'allie',
+        sort: { atbSoi: 100, cooldown: 3, cle: 'S2' },
+        // 1ᵉʳ tour : il se remplit (comme `sort`). 2ᵉ tour : il boostte son camp.
+        sortsParTour: [{ atbSoi: 100, cooldown: 3, cle: 'S2' }, { atbEquipe: 40, cle: 'S1' }],
+      },
+      m('allie2', 150, 'allie'),
+    ];
+    const sim = simuler(combo, 40);
+    const gains = sim.lignes.find((l) => l.id === 'allie2')!.effetAtb;
+    ok(Object.values(gains).includes(40), "son 2ᵉ tour lance bien l'AUTRE sort");
+
+    // ⚠️ Chaque sort a son PROPRE rechargement : le S1 (sans rechargement) ne
+    // doit pas hériter de celui du S2. Sans clé distincte, il partageait son
+    // horloge et se trouvait bloqué.
+    const sansCle: TuneMonstre[] = [
+      {
+        ...combo[0],
+        sort: { atbSoi: 100, cooldown: 3 },
+        sortsParTour: [{ atbSoi: 100, cooldown: 3 }, { atbEquipe: 40, cooldown: 3 }],
+      },
+      m('allie2', 150, 'allie'),
+    ];
+    const gainsSansCle = simuler(sansCle, 40).lignes.find((l) => l.id === 'allie2')!.effetAtb;
+    ok(
+      !Object.values(gainsSansCle).includes(40),
+      'sans clé, deux sorts à rechargement partagent une horloge — le second est bloqué'
+    );
   }
 
   // ⚠️ Le cas qui n'existait pas dans l'analyse simple : pour tenir le SECOND

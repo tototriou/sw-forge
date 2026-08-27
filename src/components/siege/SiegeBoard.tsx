@@ -1,10 +1,11 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Plus, Castle, Trash2, Gauge } from 'lucide-react';
-import { Monster, ElementKey } from '../../types';
+import { Monster, ElementKey, SiegeTeam as SiegeTeamData } from '../../types';
 import { LoadState } from '../../hooks/useMonsters';
 import { SiegeSide, UseSiegeState } from '../../hooks/useSiegeState';
 import { useStickyState } from '../../hooks/useStickyState';
 import SiegeTeam from './SiegeTeam';
+import SpeedTuneModale from '../outils/SpeedTuneModale';
 import CreateMonster from '../CreateMonster';
 import { ConfirmDialog } from '../../ui/Dialogs';
 import MobileSheet from '../../ui/MobileSheet';
@@ -15,6 +16,11 @@ interface Props {
   side: SiegeSide;
   siege: UseSiegeState;
   monsters: Monster[];
+  // Les équipes des DEUX camps : l'outil de speed tuning, ouvert en modale
+  // depuis une équipe, propose d'importer n'importe quel deck — pas seulement
+  // ceux du côté qu'on regarde.
+  siegeDefenseTeams: SiegeTeamData[];
+  siegeOffenseTeams: SiegeTeamData[];
   loadState: LoadState;
   onCreateMonster: (name: string, element: ElementKey, speed: number, lead?: CustomLead | null) => Monster;
   customMonsters: Monster[];
@@ -32,6 +38,8 @@ export default function SiegeBoard({
   side,
   siege,
   monsters,
+  siegeDefenseTeams,
+  siegeOffenseTeams,
   loadState,
   onCreateMonster,
   customMonsters,
@@ -39,11 +47,25 @@ export default function SiegeBoard({
   menuOuvert,
   onFermerMenu,
 }: Props) {
+  // ⚠️ **Éteint par défaut** : les équipes s'affichent telles quelles, et c'est
+  // un geste délibéré qui demande la vérification. Tout ce que l'app calcule
+  // ensuite est automatique — statut, message, ordre d'une équipe Swift : le
+  // bouton dit QUAND on veut voir, pas ce qu'il faut recalculer soi-même.
+  const [checkTicks, setCheckTicks] = useStickyState(`siege.checkTicks.${side}`, false);
+
   const noun = side === 'defense' ? 'défense' : 'attaque';
+
+  // « Voir le speed tune » : l'outil s'ouvre EN MODALE par-dessus le deck.
+  //
+  // ⚠️ **On ne change pas de page.** Y aller déposait l'équipe dans
+  // `sessionStorage`, obligeait à retenir d'où l'on venait et à offrir un
+  // « retour » — pour revenir à un écran qu'on n'avait pas de raison de quitter.
+  // La page reste là, dessous : fermer la modale rend exactement sa place, son
+  // défilement et ses équipes dépliées.
+  const [speedTune, setSpeedTune] = useState<string | null>(null);
 
   // Mode vérification des ticks : désactivé par défaut (équipes neutres), on
   // l'active volontairement pour faire passer les auras de couleur.
-  const [checkTicks, setCheckTicks] = useStickyState(`siege.checkTicks.${side}`, false);
 
   // Équipes en cours d'édition : remontées ici pour que la grille leur donne la
   // pleine largeur (les 3 slots seraient trop à l'étroit sur une demi-colonne).
@@ -136,21 +158,29 @@ export default function SiegeBoard({
       />
 
       {/* ⚠️ Toujours affiché, désactivé sans équipe — même règle que
-          « Tout effacer » juste au-dessus. */}
+          « Tout effacer ». */}
       <Bouton
-        onClick={() => setCheckTicks((v) => !v)}
-        actif={checkTicks}
+        onClick={() => {
+          setCheckTicks((v) => !v);
+          onFermerMenu();
+        }}
+        actif={checkTicks || undefined}
+        ton={checkTicks ? 'accent' : 'neutre'}
         disabled={siege.state.teams.length === 0}
         title={
           siege.state.teams.length === 0
             ? 'Aucune équipe à vérifier'
             : checkTicks
               ? 'Masquer les auras de vérification'
-              : 'Colorer les équipes selon leur calage sur les ticks ATB'
+              : // ⚠️ Le bouton couvre les DEUX questions : une équipe Swift se
+                // juge sur son speed tune, les autres sur leur tick. « Vérifier
+                // mes tick ATB » n'en nommait qu'une, et pas celle qui compte
+                // pour les équipes speed.
+                'Colorer les équipes selon leur vitesse : speed tune pour une équipe Swift, calage sur les ticks ATB pour les autres'
         }
         icone={<Gauge size={15} />}
-        libelle="Vérifier mes tick ATB"
-        libelleCourt="Ticks"
+        libelle="Vérifier mes speed"
+        libelleCourt="Speed"
       />
 
       {/* En dernier des actions : c'est le geste le plus rare. */}
@@ -231,6 +261,7 @@ export default function SiegeBoard({
               monsters={monsters}
               monsterById={monsterById}
               checkTicks={checkTicks}
+              onVoirSpeedTune={setSpeedTune}
               expanded={expandedIds.has(team.id)}
               onToggleExpand={toggleExpand}
               onRemoveTeam={siege.removeTeam}
@@ -244,6 +275,18 @@ export default function SiegeBoard({
             </div>
           ))}
         </div>
+      )}
+
+      {/* L'outil de speed tuning, par-dessus le deck. ⚠️ Monté seulement quand
+          on le demande : il charge les kits des monstres à l'ouverture. */}
+      {speedTune && (
+        <SpeedTuneModale
+          deck={{ source: side, teamId: speedTune }}
+          allMonsters={monsters}
+          siegeDefenseTeams={siegeDefenseTeams}
+          siegeOffenseTeams={siegeOffenseTeams}
+          onClose={() => setSpeedTune(null)}
+        />
       )}
     </div>
   );

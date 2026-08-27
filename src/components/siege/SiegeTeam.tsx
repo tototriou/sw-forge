@@ -1,5 +1,5 @@
-import { useRef, useState } from 'react';
-import { Crown, X, GripVertical, Trash2, AlertTriangle, Pencil } from 'lucide-react';
+import { useMemo, useRef, useState } from 'react';
+import { Crown, X, GripVertical, Trash2, AlertTriangle, Pencil, Timer } from 'lucide-react';
 
 const SPD_ICON = `${import.meta.env.BASE_URL}stats/spd.png`; // icône vitesse du jeu (SWARFARM)
 import { Monster, SiegeTeam as SiegeTeamType } from '../../types';
@@ -16,6 +16,10 @@ import MonsterPicker from '../MonsterPicker';
 import ElementIcon from '../ElementIcon';
 import RuneIcon from '../RuneIcon';
 import MonsterGear from '../MonsterGear';
+import { statutEquipe, raisonSansVerdict } from '../../lib/siegeStatut';
+import { analyseAutomatique, combatAuto, EntreeAuto } from '../../lib/speedTuneAuto';
+import { deckPourSpeedTune } from '../../lib/speedTuneDeck';
+import { useDonneesKit } from '../../hooks/useDonneesKit';
 import NumberField from '../../ui/NumberField';
 import LeadPill, { LeadBadge } from './LeadPill';
 import { ConfirmDialog } from '../../ui/Dialogs';
@@ -48,7 +52,6 @@ interface Props {
   index: number;
   monsters: Monster[];
   monsterById: Map<string, Monster>;
-  checkTicks: boolean; // mode « Vérifier mes tick ATB » : sans lui, aucune aura de couleur
   expanded: boolean; // vue détaillée (édition) — piloté par le board (pleine largeur)
   onToggleExpand: (teamId: string) => void;
   onRemoveTeam: (id: string) => void;
@@ -56,7 +59,11 @@ interface Props {
   onClearSlot: (teamId: string, idx: number) => void;
   onSlotRune: (teamId: string, idx: number, value: number | null) => void;
   onSlotTick: (teamId: string, idx: number, tick: number) => void;
+  // Mode « Vérifier mes speed » (bouton de la barre d'actions, éteint par
+  // défaut) : sans lui, toutes les équipes restent neutres.
+  checkTicks: boolean;
   onDismissAlert: (teamId: string, dismissed: boolean) => void;
+  onVoirSpeedTune: (teamId: string) => void;
   onSwap: (teamId: string, from: number, to: number) => void;
 }
 
@@ -65,7 +72,6 @@ export default function SiegeTeam({
   index,
   monsters,
   monsterById,
-  checkTicks,
   expanded,
   onToggleExpand,
   onRemoveTeam,
@@ -73,7 +79,9 @@ export default function SiegeTeam({
   onClearSlot,
   onSlotRune,
   onSlotTick,
+  checkTicks,
   onDismissAlert,
+  onVoirSpeedTune,
   onSwap,
 }: Props) {
   const [dragFrom, setDragFrom] = useState<number | null>(null);
@@ -97,19 +105,61 @@ export default function SiegeTeam({
   const leaderMonster = leaderId ? monsterById.get(leaderId) ?? null : null;
   const leadInfo = speedLeadOf(leaderMonster);
 
-  // Statut de l'équipe vis-à-vis des ticks — calculé seulement en mode
-  // « Vérifier mes tick ATB » (sinon `neutral` : équipes affichées telles quelles) :
+  // Statut de l'équipe vis-à-vis de sa vitesse — calculé en mode
+  // « Vérifier mes speed » (sinon `neutral` : équipes affichées telles quelles).
+  // ⚠️ Une fois ce mode allumé, TOUT est automatique : statut, message nommant
+  // les monstres fautifs, et l'ordre de tours d'une équipe Swift. Le bouton dit
+  // quand on veut voir, il ne demande pas de calculer soi-même.
   //  - vert   : au tick (aucun monstre mal calé) OU recommandation ignorée
   //  - orange : pas au tick mais les monstres hors-tick sont en Swift (on veut du speed)
   //  - rouge  : pas au tick et pas en Swift → à corriger
-  const slotInfos = team.slots.map((slot) => {
+  const donneesKitSlots = useDonneesKit(
+    team.slots.map((sl) => (sl.monsterId ? (monsterById.get(sl.monsterId) ?? null) : null))
+  );
+
+  // ⚠️ **La MÊME vitesse de combat que l'outil**, `combatAuto` : elle ajoute au
+  // calcul de base (runes + lead + Swift) le **gain du passif** du monstre —
+  // Shumar +15 en permanence, Chilling +20 par buff porté. Le siège les ignorait,
+  // et affichait donc une vitesse que l'outil corrigeait aussitôt : deux nombres
+  // pour un même monstre, sur deux écrans.
+  const slotInfos = team.slots.map((slot, i) => {
     const m = slot.monsterId ? monsterById.get(slot.monsterId) ?? null : null;
-    // Le Swift entre dans la SOMME des %, il ne s'ajoute pas à côté (voir speed.ts).
-    const swift = (slot.sets ?? []).includes('swift');
-    const combat = m
-      ? combatSpeed(m.stats.speed, slot.runeSpeed, siegeLeadFor(leadInfo, m.element), swift)
-      : null;
-    return { monster: m, combat };
+    if (!m) return { monster: null, combat: null };
+    const entree: EntreeAuto = {
+      id: `${i}`,
+      monster: m,
+      runeSpeed: slot.runeSpeed,
+      // Le Swift entre dans la SOMME des %, il ne s'ajoute pas à côté (voir speed.ts).
+      swift: (slot.sets ?? []).includes('swift'),
+      sets: slot.sets ?? [],
+      // ⚠️ **Le lead de CE monstre**, lead d'élément compris — et c'est la même
+      // valeur que celle qui part au verdict (`deckPourSpeedTune` appelle le
+      // même `siegeLeadFor`). Auparavant la card affichait la vitesse avec le
+      // lead d'élément et le speed tune la recalculait sans : deux nombres pour
+      // un même monstre, et un « il manque X de VIT » sur une vitesse invisible.
+      lead: siegeLeadFor(leadInfo, m.element),
+    };
+    const equipe = team.slots.flatMap((sl, j) => {
+      const autre = sl.monsterId ? monsterById.get(sl.monsterId) : null;
+      return autre
+        ? [
+            {
+              id: `${j}`,
+              monster: autre,
+              runeSpeed: sl.runeSpeed,
+              swift: (sl.sets ?? []).includes('swift'),
+              sets: sl.sets ?? [],
+              lead: siegeLeadFor(leadInfo, autre.element),
+            } as EntreeAuto,
+          ]
+        : [];
+    });
+    return {
+      monster: m,
+      // Le lead voyage DANS l'entrée (`entree.lead`) : le second argument n'est
+      // que le repli pour un monstre qui n'en porte pas.
+      combat: combatAuto(entree, 0, donneesKitSlots, equipe),
+    };
   });
   const slotDangers = slotInfos.map(({ combat }) => tickDanger(combat));
   const hasMonsters = slotInfos.some((s) => s.monster);
@@ -119,24 +169,112 @@ export default function SiegeTeam({
   const hasLeo = slotInfos.some(({ monster }) => monster?.name === 'Leo');
   const anyOffTick = slotDangers.some(Boolean);
 
+  // ⚠️ **Une équipe Swift ne se juge pas au tick, elle se SPEED TUNE.** Elle n'a
+  // aucun tick à viser : ce qui compte, c'est que toute l'équipe joue avant que
+  // l'adversaire ne s'intercale. Dire « Vérifier le speed tuning » et s'arrêter
+  // là renvoyait l'utilisateur faire à la main un calcul que l'app sait faire.
+  //
+  // ⚠️ **Même code que l'outil** (`analyseAutomatique`, lib/speedTuneAuto.ts) :
+  // la réponse ici doit être EXACTEMENT celle qu'on obtiendrait en ouvrant le
+  // speed tuning et en cliquant sur « Analyser ». Deux implémentations auraient
+  // donné deux verdicts sur la même équipe.
+  const donneesKit = donneesKitSlots;
+
+  // ⚠️ **Les mêmes ENTRÉES que l'outil**, pas des entrées reconstruites : on
+  // passe par `deckPourSpeedTune`, la fonction qu'il utilise lui-même pour
+  // importer une équipe de siège (vitesse de runes, artéfact « Effet aug. VIT »
+  // lu sur le gear, Swift, sets). Sinon le siège aurait répondu sur une équipe
+  // légèrement différente — un artéfact oublié, et le verdict change.
+  //
+  // Le LEAD suit la même règle que l'import : celui du leader s'il vaut pour
+  // tout le monde (General/Guild), sinon aucun — un lead d'élément ne se
+  // transpose pas au modèle « un lead par camp » de l'outil.
+  const deck = useMemo(
+    () => deckPourSpeedTune(team, monsterById),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [JSON.stringify(team.slots.map((sl) => [sl.monsterId, sl.runeSpeed, sl.sets, !!sl.gear]))]
+  );
+  const equipeAuto = useMemo<EntreeAuto[]>(
+    () =>
+      deck.monstres.map((m, i) => ({
+        id: `${i}`,
+        monster: m.monster,
+        runeSpeed: m.runeSpeed,
+        swift: m.swift,
+        sets: m.sets,
+        artefactBuff: m.artefactBuff,
+        // ⚠️ Le lead d'ÉLÉMENT entre ici : le verdict se prononce sur la vitesse
+        // que la card affiche, pas sur une autre.
+        lead: m.lead,
+      })),
+    [deck]
+  );
+  const speedTune = useMemo(
+    () =>
+      equipeAuto.length >= 2 && teamHasSwift
+        ? // Le lead voyage dans chaque entrée (`EntreeAuto.lead`, calculé par
+          // `siegeLeadFor`) : un lead d'ÉLÉMENT ne se dit pas avec un seul
+          // nombre. Le second argument n'est que le repli.
+          analyseAutomatique(equipeAuto, 0, donneesKit)
+        : null,
+    [equipeAuto, deck.lead, teamHasSwift, donneesKit]
+  );
+
   const validated = team.tickAlertDismissed; // recommandation écartée par l'utilisateur
 
   // Message d'alerte, construit dans speed.ts : c'est de la logique de tick, pas
   // de l'affichage — et elle mérite d'être vérifiable.
+  // ⚠️ **Dans l'ordre où les monstres JOUENT**, pas dans celui des slots : ici
+  // aucun effet de barre n'entre en jeu, donc le plus rapide joue le premier —
+  // un tri sur la vitesse de combat suffit, et un monstre sans vitesse connue
+  // passe en dernier. Même règle que pour les vitesses requises du speed tune
+  // (`ordreDeJeu`) : une liste de problèmes se lit dans la chronologie.
   const messageTick = tickTeamMessage(
-    slotInfos.map(({ monster }, i) => ({ nom: monster?.name ?? 'Ce monstre', danger: slotDangers[i] }))
+    slotInfos
+      .map(({ monster, combat }, i) => ({
+        nom: monster?.name ?? 'Ce monstre',
+        danger: slotDangers[i],
+        combat,
+      }))
+      .sort((a, b) => (b.combat ?? -Infinity) - (a.combat ?? -Infinity))
   );
 
-  const status: 'neutral' | 'green' | 'orange' | 'red' =
-    !checkTicks || !hasMonsters || hasLeo
-      ? 'neutral'
-      : validated
-        ? 'green'
-        : teamHasSwift
-          ? 'orange' // au moins un Swift → équipe speed, pas de tick à viser
-          : anyOffTick
-            ? 'red' // un monstre pas au tick
-            : 'green'; // tous au tick
+  // ⚠️ **La décision n'est plus écrite ici** : elle vit dans
+  // `lib/siegeStatut.ts`, où chaque cas est testé. En ternaires imbriqués dans
+  // ce composant, elle n'était vérifiable qu'à l'œil, sur ses propres équipes.
+  const entreeStatut = {
+    verifier: checkTicks,
+    desMonstres: hasMonsters,
+    leo: hasLeo,
+    ignoree: validated,
+    swift: teamHasSwift,
+    speedTune,
+    horsTick: anyOffTick,
+    // ⚠️ Les slots REMPLIS d'un côté, les monstres RECONNUS de l'autre
+    // (`deckPourSpeedTune` écarte un slot dont le monstre n'est pas encore dans
+    // le catalogue). Les deux diffèrent le temps du chargement, et c'est
+    // exactement ce que la card doit savoir pour ne pas accuser à tort.
+    slotsRemplis: team.slots.filter((sl) => sl?.monsterId).length,
+    monstresConnus: equipeAuto.length,
+  };
+  const statut = statutEquipe(entreeStatut);
+  // Ce qu'on dit quand le mode est allumé mais qu'il n'y a pas de verdict : sans
+  // ça, la card ne bouge pas et le bouton semble ne rien faire.
+  const sansVerdict = raisonSansVerdict(entreeStatut);
+
+  // Validation d'équipement — indépendante du mode « Vérifier mes speed ».
+  // Seuls les slots AVEC données importées (`gear` présent) sont contrôlés :
+  // l'absence de gear signifie que le compte n'a pas été importé, pas que le
+  // monstre n'est pas équipé.
+  const gearIncomplet = team.slots.flatMap((slot) => {
+    const monster = slot.monsterId ? monsterById.get(slot.monsterId) ?? null : null;
+    if (!monster || !slot.gear) return [];
+    const manqueRunes = slot.gear.runes.length < 6;
+    const manqueArtes = slot.gear.artifacts.length < 2;
+    if (!manqueRunes && !manqueArtes) return [];
+    return [{ id: slot.monsterId!, monster, manqueRunes, manqueArtes }];
+  });
+  const aGearIncomplet = gearIncomplet.length > 0;
 
   function handleDrop(to: number) {
     if (dragFrom !== null && dragFrom !== to) onSwap(team.id, dragFrom, to);
@@ -148,26 +286,35 @@ export default function SiegeTeam({
   // des monstres si.
   const monstresDeLEquipe = slotInfos.map(({ monster }) => monster?.name).filter(Boolean) as string[];
 
-  // ⚠️ Les halos passent par `shadow-<token>` + `shadow-color` plutôt que par un
-  // `rgba()` figé : un halo orange vif sur fond clair était criard et ne suivait
-  // pas le thème. Le fond monte à /10 en compensation — sur clair, un /5 ne se
-  // voit pas.
-  const sectionClass =
-    status === 'red'
-      ? 'border-fire bg-fire/10'
-      : status === 'orange'
-        ? 'border-warn bg-warn/10'
-        : status === 'green'
-          ? 'border-good/70 bg-good/10'
-          : 'border-border bg-panel/50';
+  // ⚠️ **Le statut se dit par le CONTOUR et la PASTILLE.** En mode sombre, un
+  // contour coloré lumineux sur fond profond suffit. En mode clair, le fond
+  // blanc rend un contour d'un pixel difficile à voir : les tokens
+  // `--siege-card-*` apportent un fond coloré EN CLAIR SEULEMENT — les deux
+  // déclencheurs dark de `index.css` les ramènent à la couleur du panel, ce
+  // qui les rend invisibles (= contour seul en sombre, contour + fond en clair).
+  const sectionClass = aGearIncomplet || statut === 'rouge'
+    ? 'border-fire'
+    : statut === 'orange'
+      ? 'border-warn'
+      : statut === 'vert'
+        ? 'border-good'
+        : 'border-border';
+  const sectionBg =
+    aGearIncomplet || statut === 'rouge' ? { backgroundColor: 'var(--siege-card-rouge)' } :
+    statut === 'orange' ? { backgroundColor: 'var(--siege-card-orange)' } :
+    statut === 'vert' ? { backgroundColor: 'var(--siege-card-vert)' } :
+    undefined;
   const dotClass =
-    status === 'red' ? 'bg-fire' : status === 'orange' ? 'bg-warn' : status === 'green' ? 'bg-good' : '';
+    aGearIncomplet || statut === 'rouge' ? 'bg-fire'
+    : statut === 'orange' ? 'bg-warn'
+    : statut === 'vert' ? 'bg-good'
+    : '';
 
   return (
     // ⚠️ `p-2.5` sous `sm` : la page empile jusqu'à huit équipes, et chaque
     // `p-4` coûte 32 px de haut multipliés par ce nombre — deux écrans de vide
     // sur un téléphone.
-    <section className={`rounded-2xl border p-4 compact:p-2.5 transition-colors ${sectionClass}`}>
+    <section className={`rounded-2xl border bg-panel/50 p-4 compact:p-2.5 transition-colors ${sectionClass}`} style={sectionBg}>
       {/* ⚠️ `gap-3` sous `sm` autour des deux icônes nues : sans cadre, elles se
           distinguent par l'espace. */}
       <div className="mb-3 flex flex-wrap items-center gap-2 compact:mb-2 compact:gap-3">
@@ -241,7 +388,7 @@ export default function SiegeTeam({
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
         {team.slots.map((slot, idx) => {
           const monster = slot.monsterId ? monsterById.get(slot.monsterId) ?? null : null;
-          const slotDanger = status === 'red' ? slotDangers[idx] : null;
+          const slotDanger = statut === 'rouge' ? slotDangers[idx] : null;
           return (
             <div
               key={idx}
@@ -258,7 +405,7 @@ export default function SiegeTeam({
                 overIdx === idx
                   ? 'border-accent bg-panel2'
                   : slotDanger
-                    ? 'border-fire/70 bg-fire/5'
+                    ? 'border-fire bg-fire/20'
                     : 'border-border bg-panel2/60'
               }`}
               title={
@@ -275,6 +422,7 @@ export default function SiegeTeam({
                 idx={idx}
                 isLeader={idx === 0}
                 leadInfo={leadInfo}
+                combat={slotInfos[idx].combat}
                 monsters={monsters}
                 usedIds={usedIds}
                 onPick={(id) => onPickMonster(team.id, idx, id)}
@@ -300,7 +448,7 @@ export default function SiegeTeam({
            les trois tiennent sur 348 px. */
         <div className="flex flex-row gap-1.5 compact:gap-1">
           {slotInfos.map(({ monster, combat }, idx) => {
-            const danger = status === 'red' ? slotDangers[idx] : null;
+            const danger = statut === 'rouge' ? slotDangers[idx] : null;
             const sets = team.slots[idx].sets ?? [];
             const slotGear = team.slots[idx].gear;
             const canDetail = !!slotGear && slotGear.runes.length > 0;
@@ -327,7 +475,7 @@ export default function SiegeTeam({
                     ? // Bordure seule, sans anneau superposé — voir design.md.
                       'border-accent bg-panel2'
                     : danger
-                      ? 'border-fire/70 bg-fire/5'
+                      ? 'border-fire bg-fire/20'
                       : 'border-border bg-panel2/60'
                 }`}
               >
@@ -435,63 +583,137 @@ export default function SiegeTeam({
         </div>
       )}
 
-      {/* Message sous les monstres : l'équipe n'est pas au tick.
-          ⚠️ Le bouton dit « Ignorer la recommandation », et non « Valider
-          l'équipe » : l'app n'a aucun moyen de savoir si le tune est bon, elle
-          constate seulement qu'il s'écarte des ticks. « Valider » laissait
-          croire à une approbation de l'outil, alors que c'est l'utilisateur qui
-          écarte un conseil dont il assume la responsabilité. */}
-      {(status === 'orange' || status === 'red') && (
-        // ⚠️ **Empilé au DOIGT, en ligne à la souris.** Le message peut nommer
-        // deux monstres (« Morris dépasse le tick 286 et ROBO-F29 dépasse le
-        // tick 286 ») : sur une seule ligne étroite, il se compressait contre
-        // le bouton et les deux se lisaient de travers. Empilé, le texte prend
-        // toute la largeur pour se plier proprement, et le bouton — seul, en
-        // dessous — se tasse à droite plutôt que de rester centré au milieu
-        // d'une ligne vide.
+      {/* ⚠️ **UN SEUL pied de card**, pas trois blocs empilés. Il portait
+          successivement : un encadré d'alerte teinté, une ligne verte, un
+          bouton flottant à droite — trois objets pour une seule idée (« où en
+          est cette équipe, et que puis-je en faire »). Réunis, ils se lisent
+          d'un coup : l'état à gauche, les actions à droite.
+
+          ⚠️ **Le pied ne prend PAS la teinte du statut.** Comme la card
+          elle-même : la couleur se dit par le contour et la pastille. Un
+          bandeau ambré pleine largeur sous chaque équipe repeignait la page à
+          la place du contenu, et faisait passer une simple correction de
+          vitesse pour une avarie. Il se cale sur les bords de la card (marges
+          négatives) : c'est une BANDE, pas une boîte dans une boîte — un cadre
+          de plus à l'intérieur d'un cadre faisait deux contours concentriques,
+          ce que la charte interdit.
+
+          ⚠️ `flex-wrap` : le message peut nommer deux monstres. Sur un écran
+          étroit, il passe au-dessus des boutons plutôt que de se comprimer. */}
+      {(hasMonsters || statut !== 'neutre' || aGearIncomplet) && (
         <div
-          className={`mt-3 flex flex-col gap-2 rounded-lg border px-3 py-2
-            sm:flex-row sm:items-center ${
-            status === 'red' ? 'border-fire/40 bg-fire/10' : 'border-warn/40 bg-warn/10'
-          }`}
+          className="-mx-4 -mb-4 mt-3 flex flex-wrap items-center gap-x-3 gap-y-2 rounded-b-2xl border-t border-border-soft px-4 py-2.5
+            compact:-mx-2.5 compact:-mb-2.5 compact:px-2.5"
         >
-          <div className="flex items-start gap-2">
-            <AlertTriangle
-              size={15}
-              className={`mt-px flex-none ${status === 'red' ? 'text-fire' : 'text-warn'}`}
-            />
-            <span className={`text-xs ${status === 'red' ? 'text-fire' : 'text-warn'}`}>
-              {status === 'red'
-                ? messageTick ?? "Ton équipe n'est pas au tick."
-                : 'Vérifier le speed tuning'}
+          <span className="flex min-w-0 flex-1 items-start gap-2">
+            {(aGearIncomplet || statut === 'rouge' || statut === 'orange') && (
+              <AlertTriangle
+                size={15}
+                className={`mt-px flex-none ${aGearIncomplet || statut === 'rouge' ? 'text-fire' : 'text-warn'}`}
+              />
+            )}
+            {/* ⚠️ Le TEXTE reste neutre lui aussi : ce qu'il dit est déjà porté
+                par le pictogramme d'alerte à sa gauche, et le chiffre à
+                trouver, lui, est en gras — c'est lui qu'on vient lire. */}
+            <span className="text-xs text-ink-dim">
+              {aGearIncomplet ? (
+                // L'équipement est incomplet — plus urgent que les vitesses.
+                // Pas de bouton « Valider » : ce n'est pas un écart à accepter.
+                <span className="space-y-0.5">
+                  {gearIncomplet.map(({ id, monster, manqueRunes, manqueArtes }) => (
+                    <span key={id} className="block">
+                      <span className="font-semibold">{monster.name}</span>
+                      {' '}
+                      {manqueRunes && manqueArtes
+                        ? "n'a pas toutes ses runes ni tous ses artefacts"
+                        : manqueRunes
+                          ? "n'a pas toutes ses runes"
+                          : "n'a pas tous ses artefacts"}
+                    </span>
+                  ))}
+                </span>
+              ) : statut === 'rouge' ? (
+                (messageTick ?? "Ton équipe n'est pas au tick.")
+              ) : statut === 'orange' ? (
+                speedTune?.cibleIndecise ? (
+                  // ⚠️ **Pas de chiffre ici, et c'est le sujet.** Un sort retenu
+                  // ne touche qu'UN allié : le résultat dépend de qui on vise,
+                  // et l'app a visé à ta place. Annoncer « +14 VIT » sur une
+                  // cible devinée enverrait régler une équipe sur un chiffre qui
+                  // n'est pas le sien. « Voir le speed tune », juste à droite,
+                  // ouvre l'outil où la cible se désigne.
+                  <span className="font-semibold text-ink">Vérifier le speed tuning</span>
+                ) : speedTune ? (
+                  // ⚠️ **Rien que ce qui ne va pas.** « Équipe speed : » ouvrait
+                  // la phrase et ne disait rien de plus que le pictogramme et le
+                  // contour : on le relisait à chaque équipe pour arriver au
+                  // seul morceau utile, le nom et le chiffre qui manque.
+                  <span className="font-semibold text-ink">
+                    {speedTune.requis.length === 0
+                      ? 'Elle ne passe pas devant un monstre aussi rapide que le tien'
+                      : speedTune.requis
+                          .map((r) => {
+                            // ⚠️ Les identifiants de l'analyse indexent
+                            // l'ÉQUIPE (slots vides écartés), pas les 3 slots.
+                            const nom = equipeAuto[Number(r.id)]?.monster.name ?? 'Ce monstre';
+                            return r.combatRequis == null
+                              ? `${nom} (hors de portée)`
+                              : `${nom} +${r.combatRequis - r.combatActuel} VIT`;
+                          })
+                          .join(', ')}
+                  </span>
+                ) : null
+              ) : statut === 'vert' && validated ? (
+                <button
+                  onClick={() => onDismissAlert(team.id, false)}
+                  className="text-good hoverable:text-ink transition"
+                  title="Revenir sur cette validation et réafficher la recommandation"
+                >
+                  ✓ {teamHasSwift ? 'Speed tune validé' : 'Tick validé'} ·{' '}
+                  <span className="underline underline-offset-2">rétablir</span>
+                </button>
+              ) : statut === 'vert' ? (
+                <span className="text-good">
+                  ✓ {speedTune?.verdict.ok ? 'Équipe speed : elle est speed tune' : 'Tous au tick'}
+                </span>
+              ) : (
+                sansVerdict
+              )}
             </span>
-          </div>
-          <Bouton
-            onClick={() => onDismissAlert(team.id, true)}
-            taille="sm"
-            libelle="Ignorer la recommandation"
-            className="flex-none self-end sm:ml-auto sm:self-auto"
-          />
+          </span>
+
+          <span className="flex flex-none flex-wrap items-center gap-2">
+            {!aGearIncomplet && (statut === 'rouge' || statut === 'orange') && (
+              <Bouton
+                onClick={() => onDismissAlert(team.id, true)}
+                taille="sm"
+                libelle={teamHasSwift ? 'Valider le speed tune' : 'Valider le tick'}
+                libelleCourt="Valider"
+                title={
+                  teamHasSwift
+                    ? "Tu prends la responsabilité de ce speed tune : l'équipe passe au vert."
+                    : "Tu prends la responsabilité de ce calage : l'équipe passe au vert."
+                }
+              />
+            )}
+            {/* ⚠️ TOUJOURS là, quelle que soit l'équipe : le speed tune n'est pas
+                une réponse à une alerte, c'est une question qu'on se pose sur
+                n'importe quel deck — y compris celui qui va bien, pour voir de
+                combien il passe. */}
+            {hasMonsters && (
+              <Bouton
+                onClick={() => onVoirSpeedTune(team.id)}
+                taille="sm"
+                fond="vide"
+                trait="aucun"
+                icone={<Timer size={14} />}
+                libelle="Voir le speed tune"
+                libelleCourt="Speed tune"
+                title="Ouvre le speed tuning avec cette équipe déjà chargée"
+              />
+            )}
+          </span>
         </div>
-      )}
-      {/* ⚠️ Pas un `Bouton` de la librairie : le vert ici est SÉMANTIQUE (l'état
-          « recommandation écartée »), pas un ton d'action — même distinction que
-          les pastilles manque/surplus plus bas, en `text-fire`/`text-water`. Un
-          ton de la librairie (accent, neutre…) dirait autre chose.
-          ⚠️ **Le SOULIGNEMENT se pose sur « rétablir » seul**, pas sur la
-          ligne entière : « Recommandation ignorée » est un ÉTAT, à lire ; c'est
-          « rétablir » qui est l'ACTION, à cliquer. Toute la phrase reste dans
-          le même `<button>` — cible et infobulle ne changent pas —, mais le
-          trait dit où regarder pour comprendre que ça se clique. Même
-          convention que les liens de RecoBoard/RecoCard. */}
-      {status === 'green' && validated && (
-        <button
-          onClick={() => onDismissAlert(team.id, false)}
-          className="mt-3 text-micro text-good hoverable:text-ink transition"
-          title="Réafficher la recommandation"
-        >
-          ✓ Recommandation ignorée · <span className="underline underline-offset-2">rétablir</span>
-        </button>
       )}
     </section>
   );
@@ -527,6 +749,10 @@ interface SlotProps {
   idx: number;
   isLeader: boolean;
   leadInfo: LeadInfo | null;
+  // ⚠️ La vitesse de combat vient du PARENT, qui la calcule comme l'outil
+  // (`combatAuto`, passif compris). La recalculer ici en repartait sans le
+  // passif : la carte dépliée affichait un autre nombre que la carte compacte.
+  combat: number | null;
   monsters: Monster[];
   usedIds: Set<string>;
   onPick: (id: string) => void;
@@ -544,6 +770,7 @@ function SlotContent({
   idx,
   isLeader,
   leadInfo,
+  combat,
   monsters,
   usedIds,
   onPick,
@@ -583,7 +810,6 @@ function SlotContent({
 
   const base = monster.stats.speed;
   const lead = siegeLeadFor(leadInfo, monster.element);
-  const combat = combatSpeed(base, slot.runeSpeed, lead, (slot.sets ?? []).includes('swift'));
   const tick = slot.tick;
 
   // Écart au tick : négatif = il manque de la vitesse, positif = surplus.

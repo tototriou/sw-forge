@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Minus, Plus } from 'lucide-react';
 
 // Champ numérique de l'app : **deux boutons − / +** encadrant la valeur.
@@ -51,6 +51,22 @@ interface Props {
   ariaLabel?: string;
   suffix?: string; // affiché statiquement après la valeur, ex. « % »
   disabled?: boolean; // grisé et non interactif — la valeur reste affichée
+  // ⚠️ **Axe pour les GRILLES DENSES** (une cellule par case d'un tableau, ex.
+  // les mods de speed tuning) : masque les deux boutons − / +, ne laisse que le
+  // champ. Deux boutons de 24 px par cellule feraient un tableau illisible ; on
+  // saisit la valeur au clavier/pavé numérique. Le cadre et la logique de
+  // frappe restent ceux du composant — ce n'est pas un input nu.
+  sansBoutons?: boolean;
+  // ⚠️ **Axe SÉMANTIQUE de la valeur** : ce que le nombre VEUT DIRE, pas un
+  // habillage. Une grille de modificateurs mélange des gains et des pertes —
+  // « +40 » et « −50 » se lisent d'un coup si le signe a une couleur, et se
+  // confondent sinon (le signe seul, en mono 12 px, ne saute pas aux yeux).
+  //
+  // Teinte le TEXTE et le contour, jamais le fond : un fond plein par cellule
+  // ferait un damier, et le tableau porte déjà des surlignages (la case où un
+  // monstre agit). `neutre` par défaut — l'écrasante majorité des champs de
+  // l'app n'ont rien à dire de leur valeur.
+  ton?: 'neutre' | 'good' | 'bad';
 }
 
 export default function NumberField({
@@ -61,12 +77,14 @@ export default function NumberField({
   max,
   width = 'w-16',
   boxWidth,
+  ton = 'neutre',
   placeholder = '0',
   allowEmpty = false,
   title,
   ariaLabel,
   suffix,
   disabled = false,
+  sansBoutons = false,
 }: Props) {
   const borne = (n: number) => {
     let v = n;
@@ -74,6 +92,15 @@ export default function NumberField({
     if (max != null && v > max) v = max;
     return v;
   };
+
+  // ⚠️ **Brouillon transitoire pour la saisie d'un négatif.** La valeur est un
+  // `number | null` : elle ne peut pas retenir un « - » seul, tapé avant le
+  // premier chiffre. Sans ça, la frappe « - » était rejetée (regex sans chiffre)
+  // et le champ revenait aussitôt à sa valeur — impossible d'écrire « -30 ». Le
+  // brouillon ne vit QUE le temps de cette saisie incomplète, puis s'efface dès
+  // qu'un nombre valide est parsé ou à la sortie du champ.
+  const [brouillon, setBrouillon] = useState<string | null>(null);
+  const affiche = brouillon ?? (value == null ? '' : String(value));
 
   // ⚠️ **La valeur courante est tenue dans une `ref`, pas lue dans la closure.**
   // La répétition vit dans un `setTimeout` : la fonction qu'il rappelle a
@@ -179,34 +206,50 @@ export default function NumberField({
   const btn =
     'flex h-7 w-6 flex-none touch-none select-none items-center justify-center text-ink-dim transition hoverable:text-ink hoverable:bg-panel2 disabled:opacity-30';
 
+  // Le ton se pose sur le contour et sur le texte — voir l'axe `ton`.
+  const contour =
+    ton === 'good' ? 'border-good/50' : ton === 'bad' ? 'border-bad/50' : 'border-border';
+  const encre = ton === 'good' ? 'text-good' : ton === 'bad' ? 'text-bad' : 'text-ink';
+
   return (
     <div
-      className={`inline-flex h-7 items-center overflow-hidden rounded-lg border border-border bg-panel
-                 focus-within:border-accent ${boxWidth ?? ''} ${disabled ? 'opacity-40' : ''}`}
+      className={`inline-flex h-7 items-center overflow-hidden rounded-lg border bg-panel
+                 focus-within:border-accent ${contour} ${boxWidth ?? ''} ${disabled ? 'opacity-40' : ''}`}
       title={title}
     >
-      <button
-        type="button"
-        {...gestes(-step)}
-        disabled={disabled || (min != null && (value ?? 0) <= min)}
-        data-cible-fine
-        className={`${btn} border-r border-border`}
-        aria-label="Diminuer"
-        tabIndex={-1}
-      >
-        <Minus size={12} />
-      </button>
+      {!sansBoutons && (
+        <button
+          type="button"
+          {...gestes(-step)}
+          disabled={disabled || (min != null && (value ?? 0) <= min)}
+          data-cible-fine
+          className={`${btn} border-r border-border`}
+          aria-label="Diminuer"
+          tabIndex={-1}
+        >
+          <Minus size={12} />
+        </button>
+      )}
 
       <input
         type="text"
         inputMode="numeric"
-        value={value ?? ''}
+        value={affiche}
         placeholder={placeholder}
         aria-label={ariaLabel}
         disabled={disabled}
         onChange={(e) => {
           const brut = e.target.value.trim();
-          if (brut === '') return onChange(allowEmpty ? null : 0);
+          if (brut === '') {
+            setBrouillon(null);
+            return onChange(allowEmpty ? null : 0);
+          }
+          // « - » seul : négatif en cours de frappe, on le garde à l'écran sans
+          // encore produire de valeur (voir `brouillon`).
+          if (brut === '-') {
+            setBrouillon('-');
+            return;
+          }
           if (!/^-?\d+$/.test(brut)) return; // frappe invalide ignorée
           // ⚠️ PAS de `borne()` ici : borner CHAQUE frappe casse la saisie dès
           // qu'un `min` positif dépasse un chiffre isolé. Exemple vécu : min 15,
@@ -214,32 +257,36 @@ export default function NumberField({
           // saute à 100. On ne peut alors plus jamais écrire « 50 ». La borne
           // s'applique donc seulement en sortie de champ (`onBlur`) et sur les
           // boutons ± (des pas discrets, pas de composition de chiffres).
+          setBrouillon(null);
           onChange(Number(brut));
         }}
         onBlur={() => {
+          setBrouillon(null); // un « - » resté seul disparaît, le champ suit la valeur
           if (value == null) return; // vide autorisé : rien à borner
           const b = borne(value);
           if (b !== value) onChange(b);
         }}
         // ⚠️ Un cran plus bas au doigt : 13 px, ce champ pesait plus lourd que
         // le nom du monstre à côté duquel il vit.
-        className={`${boxWidth ? 'flex-1' : width} min-w-0 bg-transparent px-1 text-center font-mono text-sm compact:text-xs text-ink
+        className={`${boxWidth ? 'flex-1' : width} min-w-0 bg-transparent px-1 text-center font-mono text-sm compact:text-xs ${encre}
                     outline-none placeholder:text-ink-dim disabled:cursor-not-allowed`}
       />
 
       {suffix && <span className="pr-1.5 font-mono text-xs text-ink-dim">{suffix}</span>}
 
-      <button
-        type="button"
-        {...gestes(step)}
-        disabled={disabled || (max != null && (value ?? 0) >= max)}
-        data-cible-fine
-        className={`${btn} border-l border-border`}
-        aria-label="Augmenter"
-        tabIndex={-1}
-      >
-        <Plus size={12} />
-      </button>
+      {!sansBoutons && (
+        <button
+          type="button"
+          {...gestes(step)}
+          disabled={disabled || (max != null && (value ?? 0) >= max)}
+          data-cible-fine
+          className={`${btn} border-l border-border`}
+          aria-label="Augmenter"
+          tabIndex={-1}
+        >
+          <Plus size={12} />
+        </button>
+      )}
     </div>
   );
 }

@@ -181,6 +181,39 @@ export function siegeLeadFor(lead: LeadInfo | null, element: ElementKey): number
   return 0;
 }
 
+// TOUS les leads de vitesse qui existent dans le jeu et comptent en siège, lus
+// dans les données des monstres — jamais une liste écrite à la main.
+//
+// ⚠️ **Une constante inventée aurait menti.** `SPEED_LEADS` (33/28/24/21/19) est
+// une poignée de raccourcis, pas l'inventaire : le jeu a aussi des +10, +15,
+// +16, +17, et des leads d'ÉLÉMENT à +23 et +30 qu'aucun pourcentage seul ne
+// sait dire. Choisir un lead qu'un monstre porte vraiment ne doit pas dépendre
+// de ce qu'on a pensé à recopier.
+//
+// ⚠️ Les portées **Arène** et **Donjon** sont écartées : elles ne s'appliquent
+// pas au contenu de guilde (voir `isSiegeLeadActive`). Les portées General et
+// Guild sont fondues : en siège, toutes deux valent pour TOUT le monde.
+//
+// Trié du plus fort au plus faible, les leads d'élément après les globaux.
+export function leadsDeVitesse(monstres: Monster[]): LeadInfo[] {
+  const vus = new Map<string, LeadInfo>();
+  for (const m of monstres) {
+    const l = speedLeadOf(m);
+    if (!isSiegeLeadActive(l) || !l) continue;
+    const element = l.area === 'Element' ? l.element : null;
+    const cle = `${l.amount}|${element ?? ''}`;
+    if (!vus.has(cle)) {
+      vus.set(cle, { amount: l.amount, area: element ? 'Element' : 'General', element });
+    }
+  }
+  return [...vus.values()].sort(
+    (a, b) =>
+      Number(!!a.element) - Number(!!b.element) ||
+      (a.element ?? '').localeCompare(b.element ?? '') ||
+      b.amount - a.amount
+  );
+}
+
 // Le lead est-il actif en siège (indépendamment de l'élément de l'allié) ?
 export function isSiegeLeadActive(lead: LeadInfo | null): boolean {
   return !!lead && (lead.area === 'General' || lead.area === 'Guild' || lead.area === 'Element');

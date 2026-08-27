@@ -37,8 +37,15 @@ export default {
 
         // Sémantique : un état des DONNÉES, jamais « ceci est sélectionné ».
         good: 'rgb(var(--good) / <alpha-value>)',
+        // Fond doux de `good` : avec `bad-soft`, la paire qui oppose deux camps
+        // dans le speed tuning.
+        'good-soft': 'rgb(var(--good-soft) / <alpha-value>)',
         warn: 'rgb(var(--warn) / <alpha-value>)',
+        'warn-soft': 'rgb(var(--warn-soft) / <alpha-value>)',
         bad: 'rgb(var(--bad) / <alpha-value>)',
+        // Fond doux de `bad` : le pendant de `accent-soft`. Le speed tuning s'en
+        // sert pour opposer « en face » à « ton équipe » d'un coup d'œil.
+        'bad-soft': 'rgb(var(--bad-soft) / <alpha-value>)',
 
         // Éléments — vocabulaire Summoners War. Deux valeurs par élément
         // (voir design.md) : le Vent et la Lumière sont illisibles sur clair.
@@ -93,6 +100,13 @@ export default {
       borderRadius: {
         DEFAULT: 'var(--radius)',
         lg: 'var(--radius-lg)',
+        // ⚠️ Rayon INTÉRIEUR d'un panneau `rounded-lg` à contour 1 px : un
+        // enfant collé au bord doit rentrer d'un pixel, sinon son fond déborde
+        // dans l'arrondi et le coin redevient carré. Cas typique : le bandeau
+        // de titre teinté d'une carte. Un `rounded-lg` sur l'enfant laisse
+        // dépasser un cheveu ; `overflow-hidden` sur le parent réglerait le
+        // coin mais couperait les menus flottants, qui sont en `absolute`.
+        'lg-inner': 'calc(var(--radius-lg) - 1px)',
       },
 
       transitionTimingFunction: {

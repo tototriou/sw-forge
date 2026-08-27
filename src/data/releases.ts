@@ -58,6 +58,118 @@ export const CHANGE_META: Record<ChangeKind, { label: string; color: string }> =
 // Si une ligne dépasse ~15 mots, c'est qu'elle raconte l'implémentation.
 export const RELEASES: Release[] = [
   {
+    version: '1.10.0',
+    date: '2026-08-28',
+    title: 'Speed tuning : sais qui joue avant qui, tick par tick',
+    highlights: [
+      'Un nouvel outil de speed tuning, tick par tick',
+      'Il lit les kits tout seul : boosts de barre, buffs de vitesse, passifs',
+      'Tes decks de siège disent s’ils sont speed tune',
+    ],
+    changes: [
+      {
+        kind: 'feat',
+        scope: 'Outils',
+        text: 'Nouvel outil « Speed tuning » : vois tick par tick qui remplit sa barre d’action en premier.',
+      },
+      {
+        kind: 'feat',
+        scope: 'Speed tuning',
+        text: 'Importe un deck de siège dans ton équipe ou en face, avec ses runes et ses artéfacts.',
+      },
+      {
+        kind: 'feat',
+        scope: 'Speed tuning',
+        text: 'L’analyse dit si toute ton équipe joue avant l’adversaire, et ce qu’il manque de vitesse sinon.',
+      },
+      {
+        kind: 'feat',
+        scope: 'Speed tuning',
+        text: 'Les kits sont lus pour toi : boosts de barre, buffs de vitesse, tours supplémentaires et passifs.',
+      },
+      {
+        kind: 'feat',
+        scope: 'Speed tuning',
+        text: 'Range tes monstres dans l’ordre voulu et choisis le sort de chacun : l’outil donne la fenêtre de vitesse de chaque rang.',
+      },
+      {
+        kind: 'feat',
+        scope: 'Speed tuning',
+        text: 'Sans adversaire en face, l’outil pose une copie de ton monstre le plus rapide comme repère.',
+      },
+      {
+        kind: 'feat',
+        scope: 'Siège',
+        text: 'Une équipe en Rapidité est jugée sur son speed tune, plus sur ses ticks : verte quand elle passe.',
+      },
+      {
+        kind: 'feat',
+        scope: 'Siège',
+        text: '« Voir le speed tune » ouvre l’outil par-dessus ton deck, déjà chargé — ferme et tu es revenu.',
+      },
+      {
+        kind: 'feat',
+        scope: 'Siège',
+        text: 'Le bouton « Vérifier mes speed » remplace « Vérifier mes tick ATB » : il couvre les deux façons de juger une équipe.',
+      },
+      {
+        kind: 'fix',
+        scope: 'Speed tuning',
+        text: 'L’artéfact « Effet aug. VIT » multiplie le buff de vitesse au lieu de s’y ajouter — les valeurs changent.',
+      },
+      {
+        kind: 'fix',
+        scope: 'Siège',
+        text: 'La vitesse affichée sur un deck est exactement celle du speed tune, lead d’élément compris.',
+      },
+      {
+        kind: 'fix',
+        scope: 'Speed tuning',
+        text: 'Un retrait de barre adverse ne compte jamais dans un speed tune : ton équipe doit passer sans lui.',
+      },
+      {
+        kind: 'feat',
+        scope: 'Speed tuning',
+        text: 'Un monstre peut jouer plusieurs fois dans l’ordre des sorts, avec un sort par tour.',
+      },
+      {
+        kind: 'feat',
+        scope: 'Speed tuning',
+        text: 'Un sort qui vise un allié peut se lancer sur soi-même, comme dans le jeu.',
+      },
+      {
+        kind: 'fix',
+        scope: 'Speed tuning',
+        text: 'Le buff de vitesse posé sur l’allié visé compte enfin : Racuni, Harg, Dova et huit autres.',
+      },
+      {
+        kind: 'fix',
+        scope: 'Speed tuning',
+        text: 'À force égale, l’analyse retient le sort le plus fort : quatorze monstres changent.',
+      },
+      {
+        kind: 'fix',
+        scope: 'Speed tuning',
+        text: 'Deux monstres trop lents à la suite ont chacun leur vitesse à atteindre, et elle est exacte.',
+      },
+      {
+        kind: 'feat',
+        scope: 'Siège',
+        text: 'Un deck dit si un monstre n’a pas toutes ses runes ou tous ses artéfacts.',
+      },
+      {
+        kind: 'feat',
+        scope: 'Siège',
+        text: 'Quand le résultat dépend de la cible d’un sort, la card ne tranche pas et t’envoie vérifier.',
+      },
+      {
+        kind: 'fix',
+        scope: 'Siège',
+        text: 'Le statut d’une équipe se voit aussi en mode clair, pas seulement en sombre.',
+      },
+    ],
+  },
+  {
     version: '1.9.0',
     date: '2026-08-27',
     title: 'Dégâts réels, et des listes pour préparer toute une équipe',

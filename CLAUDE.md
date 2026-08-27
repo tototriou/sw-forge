@@ -16,8 +16,10 @@ ouvrir. Ne pas explorer `src/` à l'aveugle.
   — c'est là que vivent les conventions produit détaillées (interface,
   persistance, releases…), pas ici : ce fichier-ci reste le résumé chargé
   automatiquement à chaque session.
-- **Tests ciblés** (`node tests/run.mjs`) pendant le travail. La suite complète
-  seulement au moment de publier une version.
+- **Pendant le travail, on ne lance QUE les vérifications de la zone touchée** :
+  `node tests/run.mjs <filtre>` (ex. `node tests/run.mjs speed-tune`, plusieurs
+  filtres possibles). La **suite complète** (`npm test`) est obligatoire **avant
+  une fusion sur `main`** — et **seulement là**. Détail dans « Vérifier ».
 - **Branches `forge/<sujet>`**, jamais `release/x.y.z` : le numéro se décide à la
   fusion.
 - **Toute page ou section ajoutée / renommée / supprimée** se répercute sur
@@ -71,10 +73,24 @@ Vérification standard avant de considérer un changement de code terminé,
 dans cet ordre :
 
 ```
-npx tsc --noEmit     # types
-npm test              # vérifications ciblées
-npm run build         # Tailwind n'émet que ce qu'il trouve dans le SOURCE
+npx tsc --noEmit                  # types
+node tests/run.mjs <filtre>       # SEULEMENT la zone touchée (ex. speed-tune)
+npm run build                     # Tailwind n'émet que ce qu'il trouve dans le SOURCE
 ```
+
+⚠️ **La suite complète ne se lance qu'avant une fusion sur `main`** :
+
+```
+npm test                          # les 38 vérifications, rien de moins
+```
+
+Le filtre se compare au nom de la vérification, mis à plat (`speed-tune`,
+`speedtune` et `SpeedTune` marchent tous) ; sans argument, tout tourne. Le
+registre des noms vit dans [tests/index.ts](tests/index.ts), et un filtre qui ne
+correspond à rien échoue en listant ce qui existe — jamais en ne testant rien.
+⚠️ Lancer la suite entière à chaque changement coûte des minutes pour une
+information qu'on a déjà : ce qui compte pendant le travail, c'est la zone qu'on
+touche. Ce qui compte avant de fusionner, c'est **tout**.
 
 ⚠️ Une classe Tailwind « correcte » dans le TSX peut n'être **jamais émise**
 (`[&>*]:w-full` ne l'a pas été). Quand un style ne s'applique pas, vérifier dans

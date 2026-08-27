@@ -4,6 +4,7 @@ import { RUNE_METRICS, setRuneMetric, useRuneMetric } from '../hooks/useRuneMetr
 import { setPersistence, storageAvailable, usePersistence } from '../hooks/usePersistence';
 import { THEME_CHOICES, setTheme, useTheme } from '../hooks/useTheme';
 import { setOvercapDisplay, useOvercapDisplay } from '../hooks/useOvercapDisplay';
+import { setAdversaireReference, useAdversaireReference } from '../hooks/useAdversaireReference';
 import AccountFreshness from './AccountFreshness';
 import Segmented from '../ui/Segmented';
 import Switch from './Switch';
@@ -53,6 +54,7 @@ export function SettingsList({
   const storageOk = storageAvailable();
   const theme = useTheme();
   const overcap = useOvercapDisplay();
+  const adversaireRef = useAdversaireReference();
   return (
     <div>
       {/* Le réglage le plus global de tous : il change l'app entière, il vient
@@ -76,6 +78,17 @@ export function SettingsList({
           checked={overcap}
           onChange={setOvercapDisplay}
           label="Afficher le total au-delà de 100 % pour Taux Crit, RES et Précision"
+        />
+      </Setting>
+
+      <Setting
+        title="Adversaire de référence (speed tuning)"
+        hint="À chaque analyse, l'outil pose en face une copie de ton monstre le plus rapide — même lead, même vitesse de runes, même set, même passif. On tune alors contre soi-même : « est-ce que toute mon équipe joue avant un monstre aussi rapide que mon plus rapide ? » Sans ce réglage, il n'est posé que si personne n'est en face."
+      >
+        <Switch
+          checked={adversaireRef}
+          onChange={setAdversaireReference}
+          label="Toujours ajouter en face mon monstre le plus rapide"
         />
       </Setting>
 

@@ -1217,6 +1217,13 @@ monstre est indisponible : les deux sont bloquants.
   vides**, aura de la carte SEULE (voir `AURA` dans RecoCard.tsx) — le résumé en
   mots ne vit plus qu'à l'encart de synthèse, voir plus haut :
 
+⚠️ **L'aura se règle sur le MODE CLAIR, pas sur le sombre.** Les opacités
+tenaient à 5–10 % (et jusqu'à 4 % pour `DECK_AURA`) : lisibles sur fond profond,
+invisibles sur blanc — la carte y paraissait neutre alors qu'elle signalait un
+deck bloqué. Elles sont montées à **20–45 % selon la teinte et la surface**
+(l'ambre, plus pâle, en demande plus que le vert et le rouge). Une valeur qui
+« se voit » en sombre ne prouve rien : c'est le clair qui fixe le plancher.
+
 | Statut | Couleur | Condition |
 |--------|---------|-----------|
 | `ok` | `emerald` | **tous** les decks jouables |

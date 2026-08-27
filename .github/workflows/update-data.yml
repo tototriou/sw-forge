@@ -1,8 +1,17 @@
 name: Actualiser les données (SWARFARM)
 
 # Récupère les données SWARFARM (côté CI, pas de navigateur => pas de CORS) et
-# committe public/data/monsters.json s'il a changé. Le commit déclenche
-# automatiquement un déploiement Vercel — pas besoin d'étape de déploiement ici.
+# OUVRE UNE PR si `public/data/` a changé.
+#
+# ⚠️ **Une PR, pas un commit sur `main`.** Le job poussait directement sur
+# `main` ; depuis que la branche est protégée, le push est refusé
+# (« push declined due to repository rule violations ») et le cron échouait en
+# silence toutes les semaines — les données n'étaient plus rafraîchies du tout.
+# La règle vaut pour tout le monde, y compris un bot : il passe donc par une PR
+# comme n'importe quel changement.
+#
+# Le déploiement Vercel se déclenche à la FUSION de la PR, plus au commit du
+# job.
 
 on:
   workflow_dispatch: {}
@@ -11,7 +20,8 @@ on:
     - cron: '0 6 * * 1'
 
 permissions:
-  contents: write # committer public/data/monsters.json
+  contents: write # pousser la branche de données
+  pull-requests: write # ouvrir (ou mettre à jour) la PR
 
 concurrency:
   group: update-data
@@ -48,14 +58,55 @@ jobs:
       - name: Relier les monstres de collaboration
         run: node scripts/link-collabs.mjs
 
-      - name: Commit si changement
+      # ⚠️ **Une seule branche, réutilisée** (`forge/donnees-swarfarm`, la
+      # convention du dépôt : un SUJET, jamais un numéro ni une date). Une
+      # branche neuve par semaine accumulerait des PR quasi identiques que
+      # personne ne fermerait ; ici la PR ouverte se met à jour toute seule
+      # jusqu'à ce qu'on la fusionne.
+      - name: Ouvrir une PR si changement
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          BRANCHE: forge/donnees-swarfarm
         run: |
+          set -euo pipefail
+          if [ -z "$(git status --porcelain public/data/)" ]; then
+            echo "Aucun changement : ni branche, ni PR."
+            exit 0
+          fi
+
+          # ⚠️ **Le rapport se calcule AVANT le commit** : il compare le disque à
+          # la version commitée. Après, il n'y aurait plus rien à comparer.
+          #
+          # ⚠️ Sans lui, la PR n'est pas relisable : le diff fait des milliers de
+          # lignes de JSON où personne ne voit qu'une collaboration est arrivée,
+          # ni qu'une VITESSE DE BASE a bougé — or celle-là déplace des ticks et
+          # peut décaler un speed tune réglé au point près.
+          CORPS="$RUNNER_TEMP/corps-pr.md"
+          node scripts/rapport-donnees.mjs "$CORPS"
+          cat "$CORPS"
+
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          if git diff --quiet -- public/data/ && [ -z "$(git status --porcelain public/data/)" ]; then
-            echo "Aucun changement, rien à committer."
-          else
-            git add public/data/
-            git commit -m "chore: actualisation automatique des données monstres et compétences"
-            git push
+          git switch -c "$BRANCHE"
+          git add public/data/
+          git commit -m "chore(donnees): actualisation SWARFARM (monstres et compétences)"
+          # `--force` : la branche est repartie de `main` à chaque exécution, son
+          # historique précédent n'a plus de sens.
+          git push --force -u origin "$BRANCHE"
+
+          # Une PR déjà ouverte a été mise à jour par le push : on ne la double
+          # pas. `gh pr list` plutôt que `gh pr create || true`, qui masquerait
+          # une VRAIE erreur de création.
+          #
+          # ⚠️ Son CORPS est réécrit : la branche repart de `main` à chaque
+          # exécution, donc le rapport porte sur l'écart complet. Laisser celui
+          # de la semaine dernière annoncerait des monstres déjà fusionnés et
+          # tairait les nouveaux.
+          NUM="$(gh pr list --head "$BRANCHE" --state open --json number --jq '.[0].number')"
+          if [ -n "$NUM" ]; then
+            echo "PR #$NUM déjà ouverte : mise à jour par le push, corps réécrit."
+            gh pr edit "$NUM" --body-file "$CORPS"
+            exit 0
           fi
+
+          gh pr create --base main --head "$BRANCHE" --title 'Actualisation des données SWARFARM' --body-file "$CORPS"

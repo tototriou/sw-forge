@@ -11,7 +11,17 @@ const API_BASE = 'https://swarfarm.com/api/v2/monsters/?limit=200';
 // `fileURLToPath` (et non `.pathname`) : sous Windows, `.pathname` donne
 // « /C:/… » que `mkdir` interprète en « C:\C:\… ».
 const OUTPUT_PATH = fileURLToPath(new URL('../public/data/monsters.json', import.meta.url));
-const MAX_PAGES = 30;
+// ⚠️ **Simple garde-fou anti-boucle, PAS une limite de données.** À 30, il
+// coupait pile à 3 000 monstres (30 pages × 100) alors que l'API en a 3 089 : la
+// DERNIÈRE page manquait, donc les monstres les plus récemment ajoutés — toute
+// la collaboration Frieren (Himmel, Frieren, Fern, Stark, Übel) était absente du
+// bestiaire, et un compte qui les possède affichait des monstres inconnus.
+//
+// ⚠️ **L'API plafonne une page à 100**, quel que soit le `limit` demandé. Elle
+// truque même le lien `next` de la première page (`?limit=1&page=2`) : le
+// `limit` de l'URL ne veut rien dire, seul `page` compte. On ne peut donc pas
+// déduire le nombre de pages de `limit`.
+const MAX_PAGES = 100;
 
 function normalizeElement(raw) {
   if (raw === undefined || raw === null) return 'unknown';

@@ -25,7 +25,7 @@ ce qu'il peut faire, et les règles de calcul appliquées.
 | RTA — Préparation | `#/rta` | Live | [rta/README.md](rta/README.md) |
 | Siège (Défense / Offense / Recommandations) | `#/siege/defense`, `#/siege/offense`, `#/siege/recommandations` | Live | [siege/README.md](siege/README.md) |
 | Mon compte | `#/compte`, `#/compte/runes`, `#/compte/artefacts` | Live | [compte/README.md](compte/README.md) |
-| Outils | `#/outils/optimizer` | Live | [outils/README.md](outils/README.md) |
+| Outils (Optimizer / Speed tuning) | `#/outils/optimizer`, `#/outils/speed-tuning` | Live | [outils/README.md](outils/README.md) |
 | Arène | `#/arene` | À venir | [arene.md](arene.md) |
 | Bestiaire | `#/bestiary` | Live | [bestiaire.md](bestiaire.md) |
 | Mécaniques | `#/mecaniques` | Live | [mecaniques.md](mecaniques.md) |
@@ -237,6 +237,13 @@ Concepts partagés par plusieurs pages, documentés une seule fois :
       RTA/Siège/Optimizer, résultats de l'Optimizer) — **pas** aux exigences
       des recommandations de siège, qui restent un objectif à atteindre, pas
       un total déjà calculé ;
+    - **Adversaire de référence (speed tuning)** → un interrupteur (`<Switch>`),
+      **désactivé par défaut** — l'activer AJOUTE un monstre en face, et rien ne
+      doit apparaître dans une composition sans qu'on l'ait demandé. Activé,
+      chaque analyse du speed tuning pose en face une **copie du monstre le plus
+      rapide de l'équipe** (même lead, vitesse de runes, set et passif) : on tune
+      alors contre soi-même. Sans lui, la copie n'est posée que si personne n'est
+      en face. Voir [outils/speed-tuning.md](outils/speed-tuning.md).
     - **Mes données** → « Tout supprimer ».
 - **Import de compte global** : un seul bouton invariant « Importer mon compte »
   dans la barre de nav remplit RTA + siège défense + offense **+ « Mon compte »**

@@ -1,11 +1,15 @@
 # Outils (`#/outils`)
 
 Boîte à outils de calcul, distincte de « Mon compte » (qui explore le
-compte) et du Siège/RTA (qui préparent des équipes). Un seul outil pour
-l'instant, structuré pour en accueillir d'autres sans retoucher la nav.
+compte) et du Siège/RTA (qui préparent des équipes). Structurée pour
+accueillir plusieurs outils sans retoucher la nav (ajouter une branche =
+ajouter un outil).
 
 Fichier racine : [OutilsPage.tsx](src/pages/OutilsPage.tsx). Données passées
-en prop depuis [App.tsx](src/App.tsx) : `box` (6★), `runes`.
+en prop depuis [App.tsx](src/App.tsx) : `box` (6★), `runes`, `allMonsters`.
+⚠️ **Speed tuning ne dépend pas d'un compte importé** (il lit `allMonsters`
+et la vitesse se saisit) : il passe AVANT la garde « aucune donnée de compte »,
+qui est propre à l'Optimizer.
 
 ## Navigation par dropdown
 
@@ -16,6 +20,7 @@ en prop depuis [App.tsx](src/App.tsx) : `box` (6★), `runes`.
 | Sous-section | Route | Spec |
 |--------------|-------|------|
 | Optimizer | `#/outils/optimizer` | [optimizer.md](optimizer.md) |
+| Speed tuning | `#/outils/speed-tuning` | [speed-tuning.md](speed-tuning.md) |
 
 La sous-section courante est déduite du hash (`parseHash` dans
 [App.tsx](src/App.tsx)) et passée en prop `sub`.

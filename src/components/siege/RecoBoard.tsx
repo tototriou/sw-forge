@@ -901,7 +901,7 @@ function ValidationReport({ report, onClose }: { report: ImportReport; onClose: 
   return (
     <div
       className={`mt-3 rounded-xl border px-3 py-2.5 ${
-        bloque ? 'border-fire/50 bg-fire/5' : 'border-warn/40 bg-warn/5'
+        bloque ? 'border-fire bg-fire/20' : 'border-warn bg-warn/35'
       }`}
     >
       <div className="flex items-center gap-2 mb-1.5">

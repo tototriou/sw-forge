@@ -45,13 +45,50 @@ combat = base + runes + ceil( base × (15 + lead) / 100 )
 - Migration : l'ancien tick d'équipe est repris comme tick par défaut de chaque
   slot au chargement.
 
-## Aura de statut (au tick / à corriger)
+⚠️ **La vitesse de combat affichée est celle de l'outil** (`combatAuto`) : elle
+ajoute au calcul de base (runes + lead + Swift) le **gain du passif** du monstre —
+Shumar +15 en permanence, Chilling +20 par buff porté. Le siège les ignorait, et
+montrait donc un nombre que l'outil corrigeait aussitôt : deux vitesses pour un
+même monstre selon l'écran. La carte compacte et la carte dépliée lisent
+maintenant la même valeur, calculée une seule fois.
 
-> ⚠️ **Conditionnée au mode « Vérifier mes tick ATB »** (bouton de la barre
-> d'actions, voir [README.md](README.md)). Tant qu'il est **désactivé** — l'état
-> par défaut — le statut de **toute** équipe est forcé à `neutral` : pas d'aura,
-> pas de point, pas d'anneau rouge, pas de message. Tout ce qui suit ne
-> s'applique donc qu'en mode vérification.
+## Statut d'une équipe (au tick / à corriger)
+
+⚠️ **Le statut se dit par le CONTOUR et la PASTILLE.** Teinter toute la surface
+faisait de la couleur le sujet : huit équipes empilées donnaient huit aplats
+colorés, et le contenu — les monstres, les vitesses, ce qu'on vient vraiment
+lire — passait derrière. Le contour porte l'état ; la pastille le nomme pour qui
+ne distingue pas les teintes (**une couleur seule ne se lit pas en niveaux de
+gris**, règle de la charte).
+
+⚠️ **Le fond, lui, dépend du THÈME — et c'est le contour qui décide, pas
+l'inverse.** En sombre, un contour clair sur fond profond se voit seul : le fond
+reste celui de toutes les cards. En clair, un trait d'un pixel sur du blanc ne
+se distingue pas d'une card neutre — on ne voyait plus quelle équipe allait mal.
+Les trois tokens `--siege-card-vert` / `-orange` / `-rouge`
+([index.css](src/index.css)) portent donc un fond doux **en clair seulement**
+(`good-soft` / `warn-soft` / `el-fire-soft`) et retombent à la couleur du panel
+sous les **deux** déclencheurs sombres — d'où : *contour seul en sombre, contour
++ fond en clair*.
+
+⚠️ **Ce fond est un fond DOUX, pas un aplat.** La première tentative posait des
+opacités de 5 à 10 % : imperceptibles sur blanc, elles donnaient l'impression
+que la vérification n'avait pas tourné. Les teintes sont fondues dans le fond de
+page (tokens `*-soft`), assez pour comparer deux équipes d'un coup d'œil, pas
+assez pour qu'on les subisse l'une après l'autre.
+
+⚠️ **Le pied non plus ne prend pas la teinte.** Un bandeau ambré pleine largeur
+sous chaque équipe repeignait la page à la place du contenu, et faisait passer
+une simple correction de vitesse pour une avarie. Le **pictogramme d'alerte**
+reste, lui : c'est le porteur non coloré de l'information, celui qui distingue un
+avertissement d'une note — la charte interdit qu'une couleur seule ait à le dire.
+
+> ⚠️ **Conditionnée au mode « Vérifier mes speed »** (bouton de la barre
+> d'actions, éteint par défaut — voir [README.md](README.md)). Tant qu'il est
+> éteint, le statut de **toute** équipe est forcé à `neutral`.
+> ⚠️ **Mais une fois allumé, rien ne se demande** : statut, message et ordre
+> d'une équipe Swift sont calculés d'office. Une équipe sans monstre, ou avec
+> **Leo**, reste `neutral`.
 
 Détection « mal calé sur un tick » par monstre, via `tickDanger(combat)`
 ([speed.ts](src/lib/speed.ts)) :
@@ -62,31 +99,219 @@ Détection « mal calé sur un tick » par monstre, via `tickDanger(combat)`
 - Tune propre = **pile sur un tick ou 0–15 au-dessus**, ou volontairement **sous
   tous les ticks** → pas d'alerte.
 
-Chaque équipe a un **statut coloré** (aura = bordure + halo, + point dans l'en-tête) :
+Chaque équipe a un **statut coloré** — ⚠️ **contour + pastille dans l'en-tête, et
+RIEN D'AUTRE** :
 
 **Tous les sets doivent viser un tick, SAUF si l'équipe contient au moins un
 Swift** (équipe speed) — dans ce cas toute l'équipe est exemptée (orange). Statut
-par équipe (aura = bordure + halo, + point dans l'en-tête) :
+par équipe :
 
 | Statut | Couleur | Condition | Message sous les monstres |
 |--------|---------|-----------|---------------------------|
-| Orange | `amber` | Équipe avec **≥1 Swift** (pas de tick à viser) | « Vérifier le speed tuning » |
+| Orange | `amber` | Équipe avec **≥1 Swift** qui **n'est PAS speed tune** | ⚠️ **RIEN QUE ce qui manque**, monstre par monstre (« Susano +14 VIT ») |
+| — | neutre | Équipe Swift dont le speed tune **ne peut pas encore être calculé** (données en cours de chargement, un seul monstre renseigné) | la RAISON, et pas n'importe laquelle — voir ci-dessous |
 | Rouge | `fire` | (Sans Swift) un monstre **pas au tick** (anneau rouge sur le slot fautif) | une phrase par monstre fautif, voir ci-dessous |
-| Vert | `emerald` | (Sans Swift) **tous au tick**, **ou** recommandation ignorée | — |
-| — | neutre | **Mode vérification désactivé**, équipe vide **ou avec Leo** | — |
+| Vert | `emerald` | (Sans Swift) **tous au tick** · **ou** équipe Swift **speed tune** · **ou** recommandation ignorée | « ✓ Équipe speed : elle est speed tune » pour le cas Swift |
+| — | neutre | Équipe **vide** ou avec **Leo** | — |
+| Rouge | `fire` | **Équipement incomplet** (< 6 runes ou < 2 artéfacts sur un monstre importé) — prime sur tous les autres cas | une phrase par monstre, voir ci-dessous |
 
-**Bouton « Ignorer la recommandation »** (sur orange/rouge) →
+⚠️ **Le message orange n'a pas d'introduction.** Il disait « Équipe speed : … »,
+ce que le pictogramme d'alerte et le contour disaient déjà : on relisait la même
+amorce à chaque équipe pour arriver au seul morceau utile — le nom et le chiffre
+qui manque. Le message EST ce qui ne va pas.
+
+⚠️ **Sans verdict, la card dit POURQUOI — et la bonne raison.** Deux cas se
+ressemblent et ne se disent pas pareil :
+
+- **Données en cours de chargement** (au rechargement de la page, le catalogue de
+  monstres n'est pas encore là) : les slots sont remplis, les monstres pas encore
+  reconnus. → « Vitesses en cours de chargement… ». Rien à faire, ça se résout
+  seul.
+- **Équipe vraiment trop courte** (un seul monstre renseigné) → « il faut au
+  moins deux monstres pour calculer le speed tune ».
+
+⚠️ Les confondre disait « il faut au moins deux monstres » à une équipe qui en a
+**quatre** : le message accusait l'utilisateur d'un défaut qui n'était pas le
+sien et l'envoyait corriger ce qui était déjà bon. D'où **deux comptes** dans
+`EntreeStatut`, `slotsRemplis` et `monstresConnus` — et non un seul.
+
+### Équipement incomplet — avant toute question de vitesse
+
+Un monstre importé qui porte **moins de 6 runes** ou **moins de 2 artéfacts**
+rend l'équipe **rouge** (contour, pastille, pictogramme d'alerte), et le pied
+nomme chaque monstre concerné : « X n'a pas toutes ses runes » / « … tous ses
+artefacts » / « … toutes ses runes ni tous ses artefacts ».
+
+- ⚠️ **Indépendant du mode « Vérifier mes speed ».** Ce n'est pas un réglage à
+  vérifier, c'est une donnée manquante : elle fausse la vitesse de combat, donc
+  tout ce que l'écran dit ensuite. On ne la découvre pas en activant un mode.
+- ⚠️ **Ça passe AVANT le message de vitesse**, et le remplace. Dire « Susano
+  +14 VIT » à un monstre à qui il manque deux runes envoie corriger un chiffre
+  qui va bouger tout seul dès qu'il sera équipé.
+- ⚠️ **Pas de bouton « Valider ».** Les alertes de tick et de speed tune en ont
+  un — on prend la responsabilité d'un écart assumé. Ici il n'y a pas d'écart à
+  assumer : l'équipement manque ou non, ça ne se décrète pas.
+- ⚠️ **Seuls les slots AVEC `gear` sont contrôlés.** L'absence de `gear` veut
+  dire « compte non importé », pas « monstre nu » : sans cette garde, un monstre
+  ajouté à la main serait accusé de n'avoir aucune rune.
+
+### ⚠️ Une équipe Swift ne se juge pas au tick : elle se SPEED TUNE
+
+Elle n'a aucun tick à viser — **et on ne lui en parle plus jamais** : ni statut
+rouge, ni anneau sur un slot, ni phrase de repli (« pas de tick à viser »).
+Quand la réponse n'est pas encore calculable, la card reste **neutre** plutôt que
+de dire quelque chose sur une question qu'on ne lui pose plus. Ce qui compte pour elle, c'est que **toute l'équipe
+joue avant que l'adversaire ne s'intercale** — la question de l'outil, pas celle
+des ticks. Afficher « Vérifier le speed tuning » et s'arrêter là renvoyait
+l'utilisateur faire à la main un calcul que l'app sait faire.
+
+⚠️⚠️ **MAIS LE SIÈGE NE TRANCHE PAS QUAND LA CIBLE DÉCIDE.** Un sort retenu qui
+ne touche qu'**UN allié** (`atbAllie` / `buffAllie` — *Rabbit's Agility*,
+*Resurge*, *Breeze*…) donne un résultat différent selon qui on vise, et **ce
+choix n'appartient qu'au joueur**. L'analyse retombe sur « la barre la plus
+basse » : un défaut raisonnable pour **calculer**, jamais assez pour
+**déclarer**. L'équipe reste donc **orange**, et la card dit seulement
+« **Vérifier le speed tuning** » — « Voir le speed tune », juste à côté, ouvre
+l'outil où la cible se désigne (`ResultatAuto.cibleIndecise`).
+
+⚠️ **L'orange vaut dans les DEUX sens.** Un « il manque +14 VIT » calculé sur une
+cible devinée est aussi faux qu'un vert : on n'affiche donc **aucun chiffre**.
+Ce n'est pas un verdict tiède, c'est l'**absence** de verdict.
+
+⚠️ **Cette exception ne rouvre PAS la porte au renvoi systématique.** Afficher
+« Vérifier le speed tuning » à toute équipe Swift renverrait l'utilisateur faire
+à la main un calcul que l'app sait faire — c'est le défaut corrigé plus haut, et
+il tient toujours. Ici l'app ne le sait justement PAS : il lui manque une
+décision qui n'est pas la sienne.
+
+⚠️ Une équipe **sans Swift** se juge au **tick** : les sorts n'y changent rien,
+donc l'indécision ne la concerne pas. Et dans l'**outil**, la question ne se pose
+plus — la cible s'y désigne.
+
+La card affiche donc le **verdict** — quand elle en a un —, et sa couleur le
+suit :
+- **verte** quand l'équipe est speed tune — ⚠️ c'est sa façon d'être « au tick » à
+  elle ; la laisser orange signalait un problème qui n'existe pas. Le vert **se
+  dit** (« ✓ Équipe speed : elle est speed tune »), sans quoi on ne sait pas si
+  la vérification a tourné ou si l'app n'avait rien à dire ;
+- **orange** sinon, avec ce qui manque monstre par monstre (« Bella +71 VIT »).
+
+⚠️ **Et les MÊMES ENTRÉES** : l'équipe est passée à l'analyse par
+`deckPourSpeedTune` — la fonction que l'outil utilise lui-même pour importer une
+équipe de siège (vitesse de runes, artéfact « Effet aug. VIT » lu sur le gear,
+Swift, sets) — avec le **lead de la même règle** (celui du leader s'il vaut pour
+tout le monde). Reconstruire ces entrées à la main aurait fait répondre le siège
+sur une équipe légèrement différente : un artéfact oublié, et le verdict change.
+
+⚠️ **C'est le MÊME code que l'outil** — `analyseAutomatique`
+([speedTuneAuto.ts](src/lib/speedTuneAuto.ts)), partagé par les deux écrans : la
+réponse du siège est **exactement** celle qu'on obtiendrait en ouvrant le speed
+tuning et en cliquant sur « Analyser ». Deux implémentations auraient donné deux
+verdicts sur la même équipe, et c'est le genre d'écart qu'on ne voit qu'en le
+cherchant. La suite d'étapes (vitesse Swift + passif → amplification d'équipe →
+sort du kit → adversaire de référence → écriture des effets décalée d'un tick →
+verdict) est **testée** dans [tests/speed-tune.test.ts](tests/speed-tune.test.ts).
+
+### Le PIED de card
+
+⚠️ **Un seul bloc**, pas trois empilés. La card portait successivement un encadré
+d'alerte teinté, une ligne verte et un bouton flottant à droite — trois objets
+pour une seule idée : *où en est cette équipe, et qu'est-ce que j'en fais*.
+Réunis, ils se lisent d'un coup : **l'état à gauche, les actions à droite**.
+
+- Le pied **ne prend PAS la teinte du statut** (voir plus haut) et se cale sur les bords
+  de la card (marges négatives, coins bas arrondis) : ⚠️ c'est une **bande**, pas
+  une boîte dans une boîte — un cadre de plus à l'intérieur d'un cadre faisait
+  deux contours concentriques, ce que la charte interdit.
+- `flex-wrap` : le message peut nommer deux monstres ; sur un écran étroit il
+  passe **au-dessus** des boutons plutôt que de se comprimer.
+- **« Voir le speed tune » y est TOUJOURS**, quel que soit le statut. ⚠️ Ce n'est
+  pas une réponse à une alerte : c'est une question qu'on se pose sur n'importe
+  quel deck — y compris celui qui va bien, pour voir **de combien** il passe. En
+  retrait (`fond="vide"`) : c'est une question qu'on ouvre, pas une action sur
+  l'équipe.
+
+Il ouvre l'outil **en modale par-dessus le deck**
+([SpeedTuneModale.tsx](src/components/outils/SpeedTuneModale.tsx)), équipe
+**déjà chargée** dans « Ton équipe » — l'identifiant lui est passé en simple
+prop (`deckInitial`).
+
+> ⚠️ **Une modale, pas un changement de page.** Le bouton envoyait sur
+> `#/outils/speed-tuning` : il fallait alors déposer l'équipe dans
+> `sessionStorage`, la reprendre à l'arrivée, retenir d'où l'on venait et
+> ajouter un bouton « retour » — quatre mécanismes pour revenir à un écran
+> qu'on n'avait aucune raison de quitter. La page du siège reste là, dessous,
+> avec son défilement et ses équipes dépliées : **fermer suffit**.
+
+⚠️ **C'est tout l'outil, pas une version réduite** : le même composant, les
+mêmes réglages persistants. Ce qu'on change dans la modale se retrouve dans la
+page d'outil, et l'inverse — deux vues d'un seul état. Seul l'en-tête de page
+tombe (`entete={false}`) : la modale porte déjà le titre et le rappel de la
+règle des ticks.
+
+⚠️ **L'analyse part toute seule à l'ouverture** — et seulement dans ce sens-là.
+La question est déjà posée : on a cliqué « voir le speed tune » sur une équipe
+précise, et la card venait d'y répondre. Faire recliquer « Analyser » pour
+obtenir cette même réponse serait un geste pour rien.
+
+⚠️ Elle **attend que les kits soient chargés** (lecture asynchrone) : analyser
+avant donnerait une équipe sans ses sorts — donc sans ses boosts de barre ni ses
+buffs de vitesse — et écrirait ce verdict faux dans les grilles comme s'il était
+sûr.
+
+⚠️ L'import d'un deck fait **DANS l'outil** ne relance rien, lui : décision
+inchangée (on y compare des compositions, et une analyse qui repasse écrirait
+par-dessus les grilles qu'on règle). Les deux gestes n'ont pas la même
+intention.
+
+### Le lead, une seule fois
+
+⚠️ **La vitesse affichée sur un slot et celle du verdict sortent du MÊME lead.**
+`deckPourSpeedTune` calcule, pour chaque monstre, le lead qui lui revient
+(`siegeLeadFor` — le même appel que la card), et il voyage dans l'entrée
+(`EntreeAuto.lead`) jusqu'au moteur. La card affichait auparavant la vitesse
+lead d'ÉLÉMENT compris tandis que le speed tune la recalculait sans : deux
+nombres pour un même monstre, et un « il manque X de VIT » portant sur une
+vitesse que personne n'avait sous les yeux.
+
+### Le statut d'une équipe
+
+⚠️ **La décision vit dans [siegeStatut.ts](src/lib/siegeStatut.ts)**, pas dans la
+card : `statutEquipe` rend `neutre` / `vert` / `orange` / `rouge`, et chaque cas
+est **testé** ([tests/siege-statut.test.ts](tests/siege-statut.test.ts)). En
+ternaires imbriqués dans le composant, elle n'était vérifiable qu'à l'œil, sur
+ses propres équipes, en cliquant — le jour où le mode a semblé « ne plus rien
+faire », rien ne permettait de dire quel cas répondait quoi.
+
+Dans l'ordre : mode éteint / équipe vide / **Leo** → neutre ; recommandation
+**ignorée** → vert ; équipe **Swift** → son speed tune (vert si tune, orange
+sinon), **jamais** le tick ; sinon le tick (rouge si un monstre est mal calé).
+
+⚠️ **Le mode allumé RÉPOND toujours quelque chose** (`raisonSansVerdict`) : une
+card qui reste grise et muette après qu'on a demandé une vérification, c'est
+exactement « le bouton ne fait rien ». Quand il n'y a pas de verdict, elle dit
+**pourquoi** — équipe vide, Leo, ou moins de deux monstres pour calculer un
+speed tune.
+
+**« Valider le speed tune » / « Valider le tick »** →
 `dismissTickAlert(teamId, true)` : l'équipe passe au **vert**
-(`SiegeTeam.tickAlertDismissed`), et affiche « ✓ Recommandation ignorée ·
-rétablir ». **Réinitialisé automatiquement** dès qu'un slot change (rune,
-monstre, position…) : le conseil écarté portait sur l'ancienne composition.
+(`SiegeTeam.tickAlertDismissed`), et affiche « ✓ Speed tune validé · rétablir »
+ou « ✓ Tick validé · rétablir ». **Réinitialisé automatiquement** dès qu'un slot
+change (rune, monstre, position…) : la validation portait sur l'ancienne
+composition.
 
-> ⚠️ **Le libellé dit « ignorer », pas « valider ».** L'app n'a aucun moyen de
-> savoir si un tune est bon — elle constate seulement qu'il s'écarte des ticks
-> connus. « Valider l'équipe » laissait croire à une approbation de l'outil,
-> alors que c'est l'utilisateur qui écarte un conseil et en assume la
-> responsabilité. Le vert qui suit ne dit pas « c'est juste », il dit « tu as
-> tranché ».
+> ⚠️ **Le libellé nomme CE QU'ON VALIDE**, pas un conseil qu'on écarte. Une
+> équipe Swift se juge sur son **speed tune**, les autres sur leur **tick** :
+> « ignorer la recommandation » obligeait à remonter au message pour savoir de
+> quoi il s'agissait, et le même mot couvrait deux questions différentes.
+>
+> ⚠️ **Ceci renverse un choix antérieur**, qui disait « ignorer » précisément
+> pour ne pas laisser croire à une approbation de l'outil. L'argument tenait
+> quand l'app ne savait que constater un écart aux ticks connus ; elle calcule
+> désormais le speed tune d'une équipe Swift et sait donc de quoi elle parle. Le
+> vert reste ce qu'il était : il ne dit pas « c'est juste », il dit « tu as
+> tranché » — l'infobulle le formule (« tu prends la responsabilité de ce speed
+> tune »).
 
 ### ⚠️ Le message NOMME chaque monstre fautif
 

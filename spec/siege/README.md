@@ -73,15 +73,25 @@ pas touchées. Voir la convention des modales dans le [README](README.md).
 Même règle pour les **decks de recommandation** et les recommandations
 elles-mêmes (voir [recommandations.md](recommandations.md)).
 
-### Bouton « Vérifier mes tick ATB »
+### Bouton « Vérifier mes speed »
 
-Interrupteur de la barre d'actions (icône jauge) qui **active les auras de
-couleur** des équipes (vert / orange / rouge, voir [speed-tick.md](speed-tick.md)).
+Interrupteur de la barre d'actions (icône jauge) qui **colore le statut** des
+équipes (vert / orange / rouge, voir [speed-tick.md](speed-tick.md)) — ⚠️ par le
+**contour et la pastille** de l'en-tête, jamais par le fond de la card.
+
+⚠️ **« mes speed », pas « mes tick ATB ».** Le bouton couvre les DEUX questions :
+une équipe **Swift** se juge sur son **speed tune**, les autres sur leur
+**tick**. L'ancien libellé n'en nommait qu'une — et pas celle qui compte pour
+les équipes speed. L'infobulle dit les deux.
 
 - **Désactivé par défaut** : les équipes sont affichées **telles quelles**, en
-  neutre — aucune aura, aucun point de statut, aucun anneau rouge sur les slots,
-  aucun message « pas au tick » / « Ignorer la recommandation ».
-- **Activé** : tous les statuts sont calculés et affichés normalement.
+  neutre — contour neutre, aucun point de statut, aucun anneau rouge sur les slots,
+  aucun message, donc aucune des deux actions (« Valider le speed tune » / « Valider
+  le tick », « Voir le speed tune »).
+- ⚠️ **Une fois allumé, TOUT est automatique** : statut, message nommant les
+  monstres fautifs, et **l'ordre de tours d'une équipe Swift** (voir
+  [speed-tick.md](speed-tick.md)). Le bouton dit **quand on veut voir**, il ne
+  demande jamais de refaire un calcul soi-même.
 - **Par côté** (défense / offense indépendants) et **non persisté sur disque** :
   `useStickyState` — l'état survit à la navigation, se remet à `false` au reload.
 - Le bouton n'apparaît que s'il y a **au moins une équipe**.

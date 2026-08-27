@@ -65,7 +65,7 @@ fait apparaître les 16 dans n'importe quelle analyse de dépendances.
 | **RTA** | `#/rta` | `pages/RtaPage.tsx` | tout `components/rta/` | `spec/rta/` |
 | **Siège** | `#/siege/defense`, `/offense`, `/recommandations` | `pages/SiegePage.tsx` | tout `components/siege/` | `spec/siege/` |
 | **Mon compte** | `#/compte`, `/runes`, `/artefacts` | `pages/AccountPage.tsx` | tout `components/account/` | `spec/compte/` |
-| **Outils / Optimiseur** | `#/outils/optimizer` | `pages/OutilsPage.tsx` | tout `components/outils/` | `spec/outils/` |
+| **Outils** | `#/outils/optimizer`, `/speed-tuning` | `pages/OutilsPage.tsx` | tout `components/outils/` | `spec/outils/` |
 | Bestiaire | `#/bestiary` | `pages/BestiaryPage.tsx` | `MonsterGrid`, `FilterBar`, `SearchBar`, `MonsterDetailDialog`, `account/Pager` | `spec/bestiaire.md` |
 | Paramètres | `#/parametres` | `pages/SettingsPage.tsx` | `SettingsMenu`, `AccountImportControl` | `spec/shared/navigation.md` |
 | Mécaniques | `#/mecaniques` | `pages/MechanicsPage.tsx` | — (page statique) | `spec/mecaniques.md` |
@@ -95,7 +95,9 @@ Lib : `rtaShare`, `speed`, `stats`, `gearSync`, `artifacts`, `monsterForms`.
 **Siège** — `siege/SiegeBoard.tsx` (défense/offense), `siege/SiegeTeam.tsx`,
 `siege/RecoBoard.tsx` + `siege/RecoCard.tsx` (recommandations),
 `siege/LeadPill.tsx`. Hooks `useSiegeState`, `useSiegeRecos`. Lib `recoMatch`,
-`recoSearch`, `recoShare`, `recoFromSiege`, `ownedBuilds`.
+`recoSearch`, `recoShare`, `recoFromSiege`, `ownedBuilds`, **`siegeStatut`**
+(le statut vert/orange/rouge d'une équipe en mode « Vérifier mes tick ATB » —
+pur et testé, il ne vit pas dans la card).
 
 **Mon compte** — `account/RunesSection.tsx` et `account/ArtifactsSection.tsx`
 sont les deux racines ; dessous : `RunesList`, `RunesSummary`, `RunesCurve` +
@@ -115,6 +117,25 @@ de l'écran). Moteur `lib/runeBuildOptim.ts`, exécuté dans
 `workers/buildHalf.worker.ts`. ⚠️ Disposition mobile dédiée pour « Monstre &
 équipement » seul (Lot 1) — le reste de l'écran n'est pas encore audité en
 mobile.
+
+**Speed tuning** — `outils/SpeedTuningSection.tsx` (racine) ne fait que
+**rendre** : aucune règle métier n'y vit. Le modèle de l'écran (une `Ligne` =
+un monstre posé dans un camp, et tout ce qu'on en déduit — vitesse de combat,
+sort actif, entrée du moteur, référence, estimations) est dans
+`lib/speedTuneLignes.ts` ; l'état, les actions et les dérivées sont dans
+`hooks/useSpeedTune.ts`. Un champ qui manque à l'un des deux écrans se voit
+donc en test, pas à l'œil. Calcul pur
+`lib/speedTune.ts` (règle des ticks, simulation « un seul monstre par tick » et
+verdict de chaîne « le combo passe-t-il ? » + vitesses requises, testé dans
+`tests/speed-tune.test.ts`), vitesse de combat via `lib/speed.ts`.
+S'ouvre aussi **en modale depuis un deck de siège**
+(`outils/SpeedTuneModale.tsx`, monté par `siege/SiegeBoard.tsx`) : même
+composant, mêmes réglages — la page dessous ne bouge pas, fermer rend sa place.
+Ne dépend pas d'un compte importé — mais sait **importer une équipe de siège**
+dans « Ton équipe » (`lib/speedTuneDeck.ts`) et **lire le kit** des monstres pour
+en déduire boosts de barre et buffs de vitesse (`lib/speedTuneKit.ts`, d'après
+`public/data/skills`). Analyse poussée (ordre imposé + sort de chacun) dans le
+même moteur. Tout est testé dans `tests/speed-tune.test.ts`.
 
 ---
 
@@ -173,6 +194,9 @@ jeu** (halo, éclat) et en sont exemptés.
 | `useClavierOuvert` | clavier virtuel déployé ? via `visualViewport` |
 | `useRecalageEcran` | ramène dans l'écran un flottant qui déborde par la droite |
 | `useComboboxNav` | ↑/↓/Entrée/Échap des barres de recherche à suggestions |
+| `useSpeedTune` | ⚠️ **tout** l'état, les actions et les dérivées du speed tuning — la page ne fait que rendre |
+| `useDonneesKit` | charge kits, sorts et passifs d'une poignée de monstres (outil **et** siège, un seul chemin) |
+| `useAdversaireReference` | réglage global : toujours poser l'adversaire de référence en face |
 
 ---
 
@@ -184,6 +208,7 @@ dans un composant.
 | Domaine | Fichiers |
 |---|---|
 | Vitesse & stats | `speed.ts` (source de vérité), `stats.ts` |
+| Speed tuning | `speedTune.ts` (moteur de ticks), `speedTuneLignes.ts` (modèle de l'écran), `speedTuneAuto.ts` (analyse partagée outil/siège), `speedTuneKit.ts` + `speedTunePassif.ts` (lecture des kits), `speedTuneDeck.ts` (import d'un deck), `siegeStatut.ts` (statut d'une équipe de siège) |
 | Runes | `runeOptim.ts`, `runeBuildOptim.ts`, `runeSort.ts`, `runeCurveShare.ts` |
 | Artéfacts | `artifacts.ts` |
 | Import de compte | `importAccount.ts` (parse SWEX), `applyAccount.ts` (→ états), `accountStore.ts` (IndexedDB), `accountViews.ts` |

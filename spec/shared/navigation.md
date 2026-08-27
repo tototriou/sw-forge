@@ -56,9 +56,17 @@ Ouvrir et remonter sont donc des **`<button>`**, pas des `<a>` : ils ne vont
 nulle part, ils n'ont rien à faire dans l'historique ni dans un « ouvrir dans un
 nouvel onglet ». Le type l'impose — `hash` **ou** `ouvre`, jamais les deux.
 
-⚠️ **`w-full` sur l'entrée** : un `<button>` ne s'étire pas comme un `<a>`. Sans
-lui, les trois entrées à sous-section étaient larges comme leur texte et leur
-fond au survol s'arrêtait au milieu de la barre.
+⚠️ **`w-full` sur l'entrée** : un `<button>` ne s'étire pas comme un `<a>` — il
+fait `width: auto` même en `display: flex`. Sans lui, les trois entrées à
+sous-section étaient larges comme leur texte et leur fond au survol s'arrêtait au
+milieu de la barre.
+
+⚠️ **Le retour « ‹ Siège » aussi.** Il avait échappé à la règle : sa zone
+cliquable s'arrêtait au milieu de la barre, et rien ne disait où viser. Il occupe
+maintenant toute la largeur utile, **avec le gabarit exact des entrées** —
+rembourrage du conteneur, `rounded-md`, même rembourrage interne. Ce qui le
+distingue reste son chevron vers la gauche et son titre, pas une forme à part :
+la barre n'a qu'un seul gabarit de cible.
 
 ### L'entrée active — contour + fond, le marqueur unique de l'app
 
@@ -232,8 +240,7 @@ endroits où les deux se séparent (voir
   Répéter « Mon compte » ou « Siège » faisait **doublon avec la navigation** —
   l'onglet de la barre du bas au doigt, l'en-tête de section de la barre latérale
   à la souris. Nommer la sous-section apprend **où l'on est** au lieu de répéter
-  le niveau au-dessus. (Outils n'a qu'une sous-section pour l'instant —
-  même règle le moment venu.)
+  le niveau au-dessus. (Outils — Optimizer / Speed tuning — suit la même règle.)
 - ⚠️ `PageHeader` a disparu avec elle : chaque page portait son titre, et les
   garder aurait fait deux fois le même à 60 px d'écart.
 
@@ -281,8 +288,7 @@ s'orienter.
 
 - ⚠️ **Un seul temps quand il n'y a rien à trancher.** « Siège » n'a qu'un
   groupe, sans intitulé : ses trois vues s'affichent directement. Faire choisir
-  un groupe unique ajoute un geste sans rien donner à décider — la même règle qui
-  laisse « Outils » en simple lien dans la barre d'onglets.
+  un groupe unique ajoute un geste sans rien donner à décider.
 - ⚠️ **Un groupe à VUE UNIQUE mène directement à elle.** « Monstres » n'a que
   « Ma box » : il devient un lien, sans chevron. Il garde le libellé du
   **groupe** — c'est la liste des inventaires qu'on lit, et « Ma box » n'y aurait
@@ -375,8 +381,9 @@ Le reste :
 - ⚠️ Un onglet qui ouvre une section est un **`<button>`**, pas un `<a>` : il ne
   va nulle part, il n'a rien à faire dans l'historique. Même distinction que la
   barre latérale.
-- ⚠️ **« Outils » reste un LIEN** : une seule sous-section. Un panneau pour un
-  seul choix ajoute un geste sans rien donner à décider.
+- ⚠️ **« Outils » OUVRE ses sous-sections** (Optimizer, Speed tuning), comme
+  Siège et Compte. Tant qu'il n'y en avait qu'une, il restait un lien direct — un
+  panneau pour un seul choix n'ajoutait qu'un geste.
 - ⚠️ **La barre d'onglets RESTE VISIBLE sous le panneau** — l'inverse du panneau
   d'actions, qui la recouvre à dessein (`z-50` contre son `z-40`) parce qu'elle
   mène ailleurs alors qu'on règle la page où l'on est. Ici le panneau **est** la

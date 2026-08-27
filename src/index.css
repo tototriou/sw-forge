@@ -47,9 +47,31 @@
   --accent: 43 54 165;
   --accent-soft: 226 229 247;
   --good: 20 106 65;
+  /* Fond doux de `good`, même construction que `--bad-soft` : la teinte fondue
+     dans la surface. Ils vont par PAIRE — le speed tuning oppose ton équipe
+     (`good`) au camp d'en face (`bad`). */
+  --good-soft: 226 244 233;
   /* `warn` et `star` portent des CHIFFRES qu'on lit (max d'efficience). */
   --warn: 138 87 12;
+  /* Fond doux de `warn` — même construction que `--good-soft` : l'ambre fondu
+     dans la surface. `255 236 181` : assez chaud pour être lu comme « alerte »
+     sur blanc, assez pâle pour ne pas occulter le contenu. */
+  --warn-soft: 255 236 181;
+  /* ⚠️ Ces tokens sont EXCLUSIVEMENT pour le fond des cards de siège en mode
+     clair — le statut d'équipe doit être visible sans fond coloré en sombre. En
+     sombre les deux déclencheurs ci-dessous les remettent à la couleur du panel
+     (invisible = contours seuls). */
+  --siege-card-vert:   rgb(var(--good-soft));
+  --siege-card-orange: rgb(var(--warn-soft));
+  --siege-card-rouge:  rgb(var(--el-fire-soft));
+
   --bad: 176 28 28;
+  /* Fond doux de `bad` — même construction que `--accent-soft` et les fonds
+     d'élément : la teinte fondue dans la surface. ⚠️ Il manquait un AXE, pas une
+     variante : l'accent et les éléments avaient leur `-soft`, la sémantique non.
+     Il porte le camp ADVERSE du speed tuning, en face de `--accent-soft` qui
+     porte le tien. */
+  --bad-soft: 250 230 230;
 
   /* Éléments — teinte conservée, SATURATION poussée.
      ⚠️ Le ratio WCAG mesure la luminance, pas la présence d'une couleur : à
@@ -171,9 +193,12 @@
   --forge-accent: 210 122 66;
   --forge-accent-soft: 48 38 34;
   --forge-good: 127 190 127;
+  --forge-good-soft: 27 42 33;
   --forge-warn: 217 164 65;
+  --forge-warn-soft: 50 42 20;
   /* Éclairci : `bad` passait sous 4.0 sur panel2, or il porte les alertes. */
   --forge-bad: 226 116 104;
+  --forge-bad-soft: 48 28 32;
 
   /* Fonds doux — la teinte fondue dans `--forge-panel` (25 26 38), la même
      construction que `--forge-accent-soft` (48 38 34), qui est le cuivre fondu
@@ -219,6 +244,9 @@
 /* Le bloc appliqué par les deux déclencheurs. Une seule liste à maintenir. */
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme='light']) {
+    --siege-card-vert:   rgb(var(--forge-panel) / 0.5);
+    --siege-card-orange: rgb(var(--forge-panel) / 0.5);
+    --siege-card-rouge:  rgb(var(--forge-panel) / 0.5);
     --bg: var(--forge-bg);
     --panel: var(--forge-panel);
     --panel2: var(--forge-panel2);
@@ -230,8 +258,11 @@
     --accent: var(--forge-accent);
     --accent-soft: var(--forge-accent-soft);
     --good: var(--forge-good);
+    --good-soft: var(--forge-good-soft);
     --warn: var(--forge-warn);
+    --warn-soft: var(--forge-warn-soft);
     --bad: var(--forge-bad);
+    --bad-soft: var(--forge-bad-soft);
     --el-fire: var(--forge-el-fire);
     --el-water: var(--forge-el-water);
     --el-wind: var(--forge-el-wind);
@@ -268,6 +299,9 @@
    tu ajoutes un token, ajoute-le AUX DEUX. Une divergence est déjà survenue :
    le thème forcé gardait des couleurs sous le seuil de contraste. */
 :root[data-theme='dark'] {
+  --siege-card-vert:   rgb(var(--forge-panel) / 0.5);
+  --siege-card-orange: rgb(var(--forge-panel) / 0.5);
+  --siege-card-rouge:  rgb(var(--forge-panel) / 0.5);
   --bg: var(--forge-bg);
   --panel: var(--forge-panel);
   --panel2: var(--forge-panel2);
@@ -279,8 +313,11 @@
   --accent: var(--forge-accent);
   --accent-soft: var(--forge-accent-soft);
   --good: var(--forge-good);
+  --good-soft: var(--forge-good-soft);
   --warn: var(--forge-warn);
+  --warn-soft: var(--forge-warn-soft);
   --bad: var(--forge-bad);
+  --bad-soft: var(--forge-bad-soft);
   --el-fire: var(--forge-el-fire);
   --el-water: var(--forge-el-water);
   --el-wind: var(--forge-el-wind);

@@ -68,13 +68,50 @@ hexadécimal.
 |-------|-------|---------|------|
 | `accent` | `#d2723a` | `#3f4bb8` | Accent unique : état actif, focus, lien |
 | `accent-soft` | `#d2723a1f` | `#3f4bb812` | Fond d'un élément actif |
-| `good` | `#7fbe7f` | `#2f855a` | Au tick, gain, succès |
+| `good` | `#7fbe7f` | `#2f855a` | Au tick, gain, succès — et **ton camp** |
+| `good-soft` | `#1b2a21` | `#e2f4e9` | Fond doux de `good` |
 | `warn` | `#d9a441` | `#b7791f` | Avertissement |
+| `warn-soft` | `#322a14` | `#ffecb5` | Fond doux de `warn` |
 | `bad` | `#cf5b4e` | `#c53030` | Hors tick, destructif, erreur |
+| `bad-soft` | `#301c20` | `#fae6e6` | Fond doux de `bad` — le pendant d'`accent-soft` |
+
+⚠️ **`warn-soft` ferme le trio, il ne l'ouvre pas.** `good-soft` et `bad-soft`
+existaient, l'ambre non : toute surface qui voulait dire « à corriger » devait
+donc soit emprunter `bad-soft` (et faire passer un avertissement pour une
+erreur), soit poser une opacité en dur. Les trois états sémantiques ont
+maintenant chacun leur fond doux, construits pareil — la teinte fondue dans le
+fond de page, pas une transparence.
+
+⚠️ **`good-soft` et `bad-soft` comblent un AXE, pas une variante de plus** :
+l'accent et les éléments avaient leur fond doux, la sémantique non. Ils vont par
+PAIRE et servent à **opposer deux camps** (speed tuning : `good` = ton équipe,
+`bad` = en face) là où une transparence ne convient pas — une colonne collante
+passe par-dessus le tableau qui défile dessous, il lui faut un fond SOLIDE.
+
+⚠️ **Deux camps, c'est de la SÉMANTIQUE, pas de l'accent.** L'accent dit « ceci
+est actif ou sélectionné » — il ne dit pas à qui appartient une ligne. Et sur le
+thème Forge il est cuivre : « ton équipe » y virait à l'orange, à un cheveu du
+`warn` d'à côté. `good`/`bad` disent l'état de la donnée, et `bad` portait déjà
+« ce qui te coupe » : la paire se referme d'elle-même.
 
 ⚠️ **La sémantique n'est pas l'accent.** `good`/`warn`/`bad` disent un état des
 données ; `accent` dit « ceci est actif ou sélectionné ». Les confondre rend un
 filtre actif indiscernable d'une alerte.
+
+### Rayon intérieur : `rounded-lg-inner`
+
+⚠️ **Un enfant à FOND PLEIN collé au bord d'un panneau arrondi doit rentrer d'un
+pixel.** À rayon égal, son fond déborde dans l'arrondi et le coin redevient
+carré — c'est visible dès que l'enfant est teinté (bandeau de titre d'une carte,
+colonne collante d'un tableau).
+
+`rounded-lg-inner` vaut `calc(var(--radius-lg) - 1px)` : le rayon du panneau
+moins son contour. Il suit les deux thèmes tout seul (7 px en Atelier, 6 px en
+Forge).
+
+⚠️ **`overflow-hidden` sur le parent n'est PAS la solution** : il règle le coin
+mais coupe les menus flottants, qui se placent en `absolute` à l'intérieur du
+panneau.
 
 ### UN SEUL marqueur de sélection
 
@@ -738,9 +775,16 @@ n'indique par où sortir, et on cherche.
 
 `Modale` porte donc une **croix optionnelle** (`croix`), posée en coin :
 
-- ⚠️ **Sur les modales de CONSULTATION** — la fiche d'un monstre, d'une rune.
-  Elles ne demandent rien, donc elles n'ont aucun bouton, donc aucune sortie
-  visible.
+- ⚠️ **Sur les modales de CONSULTATION** — la fiche d'un monstre, d'une rune,
+  un outil ouvert par-dessus une page. Elles ne demandent rien, donc elles n'ont
+  aucun bouton, donc aucune sortie visible.
+- ⚠️ **Et alors elles n'ont PAS de pied non plus.** Un « Fermer » en bas à droite
+  ferait doublon avec la croix — deux portes pour la même sortie — et coûterait
+  une **bande entière**, soit ~50 px. Sur une modale qui prend 90 % de la hauteur
+  d'écran pour montrer un tableau, ce sont deux lignes de données en moins au
+  profit d'un bouton qui ne dit rien de plus que la croix. La croix reste à sa
+  place habituelle, en haut à droite : on ne la déplace pas en bas sous prétexte
+  qu'on a retiré le pied.
 - ⚠️ **Pas sur les CONFIRMATIONS ni les boîtes de choix** : leur « Annuler »
   **est** la sortie. Une croix à côté ferait deux portes pour une décision qui
   n'en a qu'une, et on hésiterait sur ce qu'elle ferme — abandon, ou simple
@@ -756,6 +800,34 @@ n'indique par où sortir, et on cherche.
   négatifs : elle se pose dans le padding sans pousser le contenu d'une ligne.
 - Elle vit **dans la coquille**, pas dans chaque fiche : posée au cas par cas,
   elle aurait fini à trois endroits différents selon la modale.
+
+### Les deux bandes d'une modale : un trait, et seulement s'il dit quelque chose
+
+L'en-tête et le pied ne défilent pas ; le corps, si. Sans rien entre les deux, le
+contenu se glisse **sous** les bandes : une card coupée en deux au bord de la
+bande, et on ne sait plus si elle est tronquée ou si c'est la fin de la liste.
+
+- ⚠️ **Le trait est une INFORMATION, pas une décoration** : « il y a autre chose
+  au-dessus / en dessous ». Il n'apparaît donc que lorsque du contenu passe
+  réellement derrière la bande — mesuré au défilement **et** au redimensionnement
+  du corps (un panneau qui s'ouvre change la donne sans qu'on ait défilé). Posé
+  en permanence, il mentirait sur une modale dont tout tient à l'écran, et
+  alourdirait les confirmations.
+- **1 px, `border-border`, un seul** — comme partout. Quand il apparaît, le corps
+  reprend son rembourrage haut (ou bas) : sinon une card viendrait toucher le
+  trait, ce qui ferait **deux contours superposés**.
+- ⚠️ **Densité (`bandes`) : c'est un AXE, pas une variante.** `compactes` retire
+  de la hauteur aux deux bandes **sans toucher au corps**. C'est ce qu'il faut à
+  une modale qui contient un **outil entier** (le speed tuning prend 90 % de la
+  hauteur d'écran) : chaque pixel de bande y est une ligne de tableau en moins.
+  Une confirmation garde l'air par défaut. `compactes` **remplace** le
+  rembourrage des bandes au lieu de s'y ajouter, et suppose donc le `padding` par
+  défaut pour l'axe horizontal.
+  - ⚠️ **Le rythme d'une bande n'est pas celui du corps.** Une bande ne porte
+    qu'une ligne de texte ou un bouton : lui donner les 16 px du corps lui fait
+    manger la hauteur d'une ligne de tableau pour rien. `compactes` la met à
+    **8 px** — et le sous-titre y passe en `leading-snug`, une interligne de
+    lecture longue n'ayant pas de sens sur une phrase unique.
 
 ### Cibles tactiles — 40 px au doigt
 

@@ -133,9 +133,9 @@ interface Props {
 // ⚠️ Fonds à /10 et non /5 : sur fond clair, un aplat à 5 % ne se distingue pas
 // du panneau. Même langage visuel que SiegeTeam.
 const AURA: Record<string, string> = {
-  ok: 'border-good/70 bg-good/10',
-  partial: 'border-warn bg-warn/10',
-  missing: 'border-fire bg-fire/10',
+  ok: 'border-good bg-good/30',
+  partial: 'border-warn bg-warn/45',
+  missing: 'border-fire bg-fire/25',
   unknown: 'border-border bg-panel/50',
 };
 
@@ -750,7 +750,7 @@ const VERDICTS: {
     statuts: ['ok'],
     dot: 'bg-good',
     texte: 'text-good',
-    actif: 'border-good bg-good/10 text-ink',
+    actif: 'border-good bg-good/30 text-ink',
     rang: 3,
   },
   {
@@ -759,7 +759,7 @@ const VERDICTS: {
     statuts: ['nodeck'],
     dot: 'bg-warn',
     texte: 'text-warn',
-    actif: 'border-warn bg-warn/10 text-ink',
+    actif: 'border-warn bg-warn/45 text-ink',
     rang: 2,
   },
   {
@@ -768,7 +768,7 @@ const VERDICTS: {
     statuts: ['ko'],
     dot: 'bg-fire',
     texte: 'text-fire',
-    actif: 'border-fire bg-fire/10 text-ink',
+    actif: 'border-fire bg-fire/25 text-ink',
     rang: 1,
   },
   {
@@ -784,7 +784,7 @@ const VERDICTS: {
     // introduire une cinquième couleur qui mentirait sur la gravité.
     dot: 'border border-fire',
     texte: 'text-fire',
-    actif: 'border-fire bg-fire/10 text-ink',
+    actif: 'border-fire bg-fire/25 text-ink',
     rang: 0,
   },
 ];
@@ -882,7 +882,7 @@ function AnalysisSummary({
   return (
     <div
       className={`mb-3 rounded-lg border px-3 py-2 ${
-        toutPasse ? 'border-good/40 bg-good/10' : 'border-warn/40 bg-warn/5'
+        toutPasse ? 'border-good bg-good/30' : 'border-warn bg-warn/40'
       }`}
     >
       <div className="flex items-center gap-2">
@@ -1041,11 +1041,11 @@ const DOT: Record<string, string> = {
 };
 
 const DECK_AURA: Record<string, string> = {
-  ok: 'border-good/40 bg-good/[0.04]',
-  nodeck: 'border-warn/50 bg-warn/[0.04]',
-  ko: 'border-fire/50 bg-fire/[0.04]',
-  missing: 'border-fire/50 bg-fire/[0.04]',
-  partial: 'border-warn/50 bg-warn/[0.04]',
+  ok: 'border-good/70 bg-good/20',
+  nodeck: 'border-warn/70 bg-warn/35',
+  ko: 'border-fire/70 bg-fire/20',
+  missing: 'border-fire/70 bg-fire/20',
+  partial: 'border-warn/70 bg-warn/35',
   unknown: 'border-border bg-panel2/40',
 };
 
@@ -1242,9 +1242,9 @@ function DeckBlock({
               className={`min-w-0 rounded-xl border p-2.5 compact:p-2 ${
                 // Indisponible ET stats insuffisantes sont tous deux bloquants → rouge.
                 sm?.status === 'absent' || sm?.status === 'ko'
-                  ? 'border-fire/70 bg-fire/5'
+                  ? 'border-fire bg-fire/20'
                   : sm?.status === 'ok'
-                    ? 'border-good/50 bg-good/[0.04]'
+                    ? 'border-good/70 bg-good/20'
                     : 'border-border bg-panel2/60'
               } ${
                 // ⚠️ Le monstre CHERCHÉ prend un fond d'accent léger, jamais une
@@ -2378,8 +2378,8 @@ function ArtifactList({
                     ok === null
                       ? 'border-border bg-panel'
                       : ok
-                        ? 'border-good/50 bg-good/10'
-                        : 'border-fire/50 bg-fire/10'
+                        ? 'border-good bg-good/25'
+                        : 'border-fire bg-fire/20'
                   }`}
                 >
                   <span className={`text-micro ${ok === false ? 'text-fire' : 'text-ink'}`}>
@@ -2441,8 +2441,8 @@ function SetList({ options, sm }: { options: string[][]; sm: SlotMatch | null })
                         ok === null
                           ? 'border-border bg-panel'
                           : ok
-                            ? 'border-good/50 bg-good/10'
-                            : 'border-fire/50 bg-fire/10'
+                            ? 'border-good/70 bg-good/20'
+                            : 'border-fire/70 bg-fire/20'
                       }`}
                     >
                       <RuneIcon setKey={key} size={14} />

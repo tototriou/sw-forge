@@ -996,6 +996,17 @@ De haut en bas :
      Le contrôle attrape les deux dérives possibles : l'adverse ignoré (l'effet
      part deux ticks trop loin) et le décalage supprimé (l'effet tombe sur le
      tour même).
+   - ⚠️⚠️ **LE DÉCALAGE NE VAUT QUE POUR CE QU'UN SORT POSE.** Une case **saisie
+     à la main** reste à SON tick. `simuler` réenregistre la saisie dans
+     `effetAtb` — c'est la même piste que les effets de sorts —, et la réécriture
+     la décalait comme le reste : un −50 % tapé sur un adverse au tick 5 était
+     jugé au **6** par l'analyse, quand le tableau de l'écran le jugeait toujours
+     au **5**. Deux plateaux pour une seule équipe, **aucun signe à l'écran** — et
+     le verdict lui-même (`diagnostiquerChaine`) tombait du mauvais côté, puisque
+     c'est ce plateau-là qu'il juge. La distinction se lit sur `atbMod` : une
+     valeur que l'utilisateur a posée y figure déjà, celles d'un sort non.
+     **Gardé** : l'analyse doit dater la case saisie au **même tick** que
+     `simuler`, et le test échoue bien quand on supprime la distinction.
    - ⚠️⚠️ **L'ANALYSE ET L'AFFICHAGE DOIVENT VOIR LES MÊMES MONSTRES.** Deux
      constructeurs pour deux entrées — `plateauDeLignes` pour l'analyse, `tuneDe`
      pour le moteur d'affichage — et rien n'obligeait le premier à porter ce que

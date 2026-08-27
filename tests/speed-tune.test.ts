@@ -2412,6 +2412,24 @@ export function testSpeedTuneAuto() {
       );
       const tourAdverse = (x: typeof r) =>
         x.verdict.coupeur?.tick ?? Infinity;
+      // ⚠️⚠️ **ET AU MÊME TICK QUE L'ÉCRAN.** La case saisie est réenregistrée
+      // dans `effetAtb` par `simuler` (c'est la même piste que les effets de
+      // sorts), et la réécriture la décalait d'un tick comme un sort : un −50 %
+      // tapé au tick 5 était jugé au 6 par l'analyse, quand le tableau le
+      // jugeait toujours au 5. Deux plateaux, aucun signe à l'écran — et le
+      // verdict tombait du mauvais côté.
+      const aLaMain = simuler(
+        [
+          { id: 'allie:1', combat: r.combats.get('allie:1')!, camp: 'allie' },
+          { id: 'ennemi:9', combat: r.combats.get('ennemi:9')!, camp: 'ennemi', atbMod: { 3: 40 } },
+        ],
+        HORIZON_TICKS
+      );
+      egal(
+        r.verdict.coupeur?.tick,
+        aLaMain.actions.find((a) => a.id === 'ennemi:9')?.tick,
+        'l’analyse juge la case saisie au MÊME tick que le tableau de l’écran'
+      );
       ok(
         tourAdverse(r) < tourAdverse(sans),
         `la barre saisie à la main sur l'adverse avance son tour (t${tourAdverse(r)} contre t${tourAdverse(sans)})`

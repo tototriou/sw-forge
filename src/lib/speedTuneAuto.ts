@@ -474,8 +474,20 @@ export function analyseAutomatique(
     const speedMod: ModParTick = {};
     if (l) {
       for (const [tick, v] of Object.entries(l.effetAtb)) {
-        const suivant = Number(tick) + 1;
-        if (v !== 0 && suivant <= horizon) atbMod[suivant] = v;
+        const t = Number(tick);
+        // ⚠️⚠️ **UNE CASE SAISIE RESTE À SON TICK.** Le décalage ne vaut que
+        // pour ce qu'un SORT pose : dans le moteur, l'effet d'une compétence
+        // arrive APRÈS l'arbitrage du tick (le lanceur vient de jouer), alors
+        // qu'une case de grille est posée AVANT. Mais `simuler` réenregistre
+        // aussi la case saisie dans `effetAtb` (c'est la même piste), et la
+        // décaler la déplaçait d'un tick à chaque analyse : un −50 % tapé sur un
+        // adverse au tick 5 était jugé au 6, quand le tableau de l'écran le
+        // jugeait toujours au 5. Deux plateaux différents, aucun signe à
+        // l'écran — et le verdict lui-même (`diagnostiquerChaine`) tombait du
+        // mauvais côté.
+        const saisi = m.atbMod?.[t] !== undefined;
+        const cible = saisi ? t : t + 1;
+        if (v !== 0 && cible <= horizon) atbMod[cible] = v;
       }
       for (const [tick, v] of Object.entries(l.effetSpeed)) if (v !== 0) speedMod[Number(tick)] = v;
     }

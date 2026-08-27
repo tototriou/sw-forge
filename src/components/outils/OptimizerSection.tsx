@@ -1800,7 +1800,7 @@ export default function OptimizerSection({ box, runes, optimizer, allMonsters, r
             <p className="label mb-1.5">Exemplaire</p>
             <Segmented
               options={sourceOptions}
-              value={ownValidatedBuild || unowned ? null : gearSource}
+              value={matchesValidatedBuild || unowned ? null : gearSource}
               onChange={pickSource}
               disabled={allSourcesEmpty}
               size="lg"

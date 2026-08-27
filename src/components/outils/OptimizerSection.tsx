@@ -192,6 +192,21 @@ function speciesCandidatesBySource(
   };
 }
 
+// Un sélecteur `unowned` pour une espèce absente des 4 sources du compte —
+// demande explicite (« ajouter un monstre qu'on ne possède pas dans une
+// liste : le joueur a obtenu le monstre et veut essayer des runages de
+// teams sans avoir mis à jour son json »). `null` dès que l'espèce est
+// possédée QUELQUE PART (même une seule source, même ambiguë) : ne
+// masque JAMAIS un exemplaire réel derrière un sélecteur `unowned` — la
+// désambiguïsation normale (zone D / clic sur une puce) garde la main.
+// Factorisé : utilisé aux 3 points d'entrée qui choisissent une espèce
+// (recherche bestiaire, continuité au montage, import de recette).
+function unownedSelectorIfNoneOwned(monster: Monster, box: BoxItem[], exclusionData: ExclusionSourceData): ExclusionSelector | null {
+  const candidates = speciesCandidatesBySource(monster.com2usId, box, exclusionData);
+  const possedeQuelquePart = Object.values(candidates).some((list) => list.length > 0);
+  return possedeQuelquePart ? null : { source: 'unowned', monsterId: String(monster.id) };
+}
+
 // Deux builds portent-ils EXACTEMENT le même jeu de 6 runes (peu importe
 // l'ordre) ? Sert à repérer, parmi les candidats affichés, celui qui EST le
 // build déjà validé pour ce monstre (Lot 2) — un simple `===` sur les
@@ -558,8 +573,9 @@ export default function OptimizerSection({ box, runes, optimizer, allMonsters, r
   const [sourceSelector, setSourceSelector] = useState<ExclusionSelector | null>(() => {
     if (!selectedId) return null;
     const species = monsterById.get(selectedId);
-    const boxCandidates = speciesCandidatesBySource(species?.com2usId ?? null, box, exclusionData).box;
-    return boxCandidates.length === 1 ? boxCandidates[0].selector : null;
+    if (!species) return null;
+    const boxCandidates = speciesCandidatesBySource(species.com2usId, box, exclusionData).box;
+    return boxCandidates.length === 1 ? boxCandidates[0].selector : unownedSelectorIfNoneOwned(species, box, exclusionData);
   });
   // Zone D — désambiguïsation d'exemplaire (plusieurs candidats dans la
   // source active pour l'espèce choisie, ex. 2 équipes de siège) : un
@@ -592,17 +608,20 @@ export default function OptimizerSection({ box, runes, optimizer, allMonsters, r
   // défaut de la maquette du cadrage) et résout directement le PREMIER
   // exemplaire Box (demande explicite : plutôt qu'ouvrir la désambiguïsation
   // dès qu'il y en a plusieurs, choisir un exemplaire par défaut — l'utilisateur
-  // reste libre de changer via la zone D). Aucun exemplaire Box → repli sur
-  // les stats de base seules, jamais la désambiguïsation ouverte
-  // automatiquement : un clic sur la recherche ne doit pas faire surgir un
-  // panneau qu'on n'a pas demandé, voir spec/shared/design.md.
+  // reste libre de changer via la zone D). Aucun exemplaire Box, mais possédée
+  // ailleurs (RTA/siège) : repli sur `null`, jamais la désambiguïsation
+  // ouverte automatiquement — un clic sur la recherche ne doit pas faire
+  // surgir un panneau qu'on n'a pas demandé, voir spec/shared/design.md.
+  // ⚠️ Possédée NULLE PART : `unownedSelectorIfNoneOwned` — permet
+  // « Ajouter à la liste »/« Valider ce build » sur ses stats de base 6★
+  // seules (demande explicite, voir ExclusionSelector « unowned »).
   function pickSpecies(monster: Monster) {
     const id = String(monster.id);
     if (id !== selectedId) resetSearch();
     setSelectedId(id);
     setGearSource('box');
     const boxCandidates = speciesCandidatesBySource(monster.com2usId, box, exclusionData).box;
-    setSourceSelector(boxCandidates[0]?.selector ?? null);
+    setSourceSelector(boxCandidates[0]?.selector ?? unownedSelectorIfNoneOwned(monster, box, exclusionData));
     setZoneDOpen(false);
   }
 
@@ -651,12 +670,16 @@ export default function OptimizerSection({ box, runes, optimizer, allMonsters, r
   // L'exemplaire RÉELLEMENT optimisé — l'entrée choisie explicitement (ou
   // résolue sans ambiguïté, voir `pickSource`/l'initialisation paresseuse
   // ci-dessus) via `sourceSelector`. ⚠️ Repli sur l'ESPÈCE SEULE (stats de
-  // base 6★ niveau max, `monsterBaseStats`, sans rune ni artéfact) tant
-  // qu'aucun exemplaire n'est résolu — que l'espèce ne soit possédée dans
-  // AUCUNE source (voir « comment optimiser un monstre qu'on ne possède
-  // pas », Question 4 du cadrage) OU que la source active en propose
-  // PLUSIEURS sans qu'un choix ait encore été fait (zone D ouverte). `null`
-  // UNIQUEMENT si aucune espèce n'est choisie du tout (recherche vide).
+  // base 6★ niveau max, `monsterBaseStats`, sans rune ni artéfact) — deux
+  // chemins DISTINCTS y mènent : `sourceSelector` porte un sélecteur
+  // `unowned` (espèce possédée dans AUCUNE des 4 sources, voir
+  // `unownedSelectorIfNoneOwned` — même stats de base, mais un sélecteur
+  // RÉEL, ajoutable à une liste/validable comme un exemplaire) ; OU
+  // `sourceSelector` reste `null` (repli tout en bas de ce `useMemo`) parce
+  // que la source active propose PLUSIEURS candidats sans qu'un choix ait
+  // encore été fait (zone D ouverte) — possédée quelque part, juste pas
+  // encore désambiguïsée. `null` UNIQUEMENT si aucune espèce n'est choisie
+  // du tout (recherche vide).
   // Clé du sélecteur ACTIF — sert d'auto-exemption pour les runes validées
   // (voir `otherValidatedRuneIds` plus bas) et à retrouver si CET exemplaire
   // a déjà un build validé (Lot 2, `findValidatedBuild`).
@@ -1086,10 +1109,11 @@ export default function OptimizerSection({ box, runes, optimizer, allMonsters, r
         // exemplaire précis (voir le commentaire de `gearSource` plus haut) —
         // repli sur Box, comme si l'utilisateur venait de le choisir dans
         // cette source (résolution automatique si un seul exemplaire, sinon
-        // stats de base seules — même règle que `pickSource`).
+        // stats de base seules — même règle que `pickSource`) ; possédée
+        // NULLE PART → sélecteur `unowned`, même règle que `pickSpecies`.
         setGearSource('box');
         const boxCandidates = speciesCandidatesBySource(match.com2usId, box, exclusionData).box;
-        setSourceSelector(boxCandidates.length === 1 ? boxCandidates[0].selector : null);
+        setSourceSelector(boxCandidates.length === 1 ? boxCandidates[0].selector : unownedSelectorIfNoneOwned(match, box, exclusionData));
         setZoneDOpen(false);
         setSelectedId(String(match.id));
         setImportMsg({ text: `Réglages importés pour ${recipe.monsterName} — monstre sélectionné automatiquement.${suffixeLocks}` });
@@ -1240,12 +1264,14 @@ export default function OptimizerSection({ box, runes, optimizer, allMonsters, r
   const alreadyMember = ownSelectorKey != null && activeMembers.some((m) => exclusionSelectorKey(m.selector) === ownSelectorKey);
   const listHasValidated = activeList != null && lists.validated.some((v) => v.listId === activeList.id);
 
-  // « Ajouter à la liste » — agit sur l'exemplaire RÉELLEMENT résolu
-  // (`sourceSelector`), jamais sur un repli stats de base (rien à suivre
-  // dans une liste pour un monstre qu'on ne possède pas réellement, même
-  // règle que « Valider ce build »). Sans liste active, crée-en une ET y
-  // ajoute le monstre dans le même geste plutôt que d'obliger un aller-
-  // retour par le menu déroulant.
+  // « Ajouter à la liste » — agit sur `sourceSelector`, qui porte soit un
+  // exemplaire RÉELLEMENT résolu, soit (demande explicite : « ajouter un
+  // monstre qu'on ne possède pas ») un sélecteur `unowned` quand l'espèce
+  // n'est possédée dans AUCUNE des 4 sources (voir `unownedSelectorIfNoneOwned`) —
+  // `null` seulement si aucune espèce n'est choisie, ou si elle est possédée
+  // mais pas encore désambiguïsée (zone D). Sans liste active, crée-en une
+  // ET y ajoute le monstre dans le même geste plutôt que d'obliger un
+  // aller-retour par le menu déroulant.
   function handleAddToList() {
     if (!sourceSelector) return;
     if (!lists.activeListId) {
@@ -1254,13 +1280,14 @@ export default function OptimizerSection({ box, runes, optimizer, allMonsters, r
     }
     lists.addMember(lists.activeListId, sourceSelector);
   }
+  const unowned = sourceSelector?.source === 'unowned';
   const addLabel = !selected || !sourceSelector
     ? 'Ajouter à la liste'
     : alreadyMember
       ? `Déjà dans « ${activeList?.name ?? ''} »`
       : lists.activeListId
-        ? `Ajouter ${selected.monster.name} à « ${activeList?.name ?? ''} »`
-        : `Créer une liste et y ajouter ${selected.monster.name}`;
+        ? `Ajouter ${selected.monster.name}${unowned ? ' (non possédé)' : ''} à « ${activeList?.name ?? ''} »`
+        : `Créer une liste et y ajouter ${selected.monster.name}${unowned ? ' (non possédé)' : ''}`;
 
   const zoneCContent = (
     <div className="rounded-lg border border-border-soft bg-panel2/60 p-2.5">
@@ -1302,7 +1329,11 @@ export default function OptimizerSection({ box, runes, optimizer, allMonsters, r
                     const id = String(resolved.monster.id);
                     if (id !== selectedId) resetSearch();
                     setSelectedId(id);
-                    setGearSource(m.selector.source);
+                    // ⚠️ `unowned` n'est PAS une `ExclusionSource` (pas une
+                    // des 4 puces) — `gearSource` reste sur sa dernière
+                    // valeur réelle, la puce active se désallume de toute
+                    // façon (`value={... || unowned ? null : gearSource}`).
+                    if (m.selector.source !== 'unowned') setGearSource(m.selector.source);
                     setSourceSelector(m.selector);
                     setZoneDOpen(false);
                   }}
@@ -1311,6 +1342,9 @@ export default function OptimizerSection({ box, runes, optimizer, allMonsters, r
                   <MonsterAvatar monster={resolved?.monster ?? null} size={24} className="flex-none" />
                   <span className="min-w-0 flex-1 truncate text-[12.5px] font-medium text-ink">
                     {resolved?.monster.name ?? 'Introuvable'}
+                    {m.selector.source === 'unowned' && (
+                      <span className="ml-1 text-[10px] font-normal text-ink-dimmer">(non possédé)</span>
+                    )}
                   </span>
                 </ZoneCliquable>
                 {build ? (
@@ -1546,13 +1580,15 @@ export default function OptimizerSection({ box, runes, optimizer, allMonsters, r
                   si elle ne l'est dans AUCUNE des 4 (Questions 2-3 du
                   cadrage) — voir l'axe `disabled` par option, ajouté à
                   Segmented.tsx pour ce cas précis. ⚠️ **`value={null}`
-                  quand un build VALIDÉ est affiché** (Lot 3) : ce runage
-                  n'est la source réelle d'AUCUNE des 4 puces (voir `selected`
-                  plus haut), aucune ne doit s'allumer — voir l'axe `value:
-                  T | null` ajouté à Segmented.tsx pour ce cas précis. */}
+                  quand un build VALIDÉ est affiché** (Lot 3) **ou quand
+                  `sourceSelector` est `unowned`** (monstre non possédé,
+                  demande explicite) : dans les deux cas, ce runage n'est la
+                  source réelle d'AUCUNE des 4 puces (voir `selected` plus
+                  haut), aucune ne doit s'allumer — voir l'axe `value: T |
+                  null` ajouté à Segmented.tsx pour ce cas précis. */}
               <Segmented
                 options={sourceOptions}
-                value={ownValidatedBuild ? null : gearSource}
+                value={ownValidatedBuild || unowned ? null : gearSource}
                 onChange={pickSource}
                 disabled={allSourcesEmpty}
                 size="lg"
@@ -2752,16 +2788,20 @@ export default function OptimizerSection({ box, runes, optimizer, allMonsters, r
                       })()
                     : undefined
                 }
-                // « Valider » (Lot 2) — réserve les 6 runes de CE candidat
-                // pour l'exemplaire RÉELLEMENT résolu (`sourceSelector`) ;
-                // absent pour un monstre non possédé (repli stats de base,
-                // `sourceSelector` alors `null`) — rien à réserver sur un
-                // exemplaire qui n'existe pas dans le compte.
-                // ⚠️ Exige un exemplaire RÉEL (`sourceSelector`) ET une
-                // liste active (Lot 3 — un build validé appartient
-                // TOUJOURS à une liste, voir ValidatedBuild). Valider
-                // ajoute aussi implicitement le monstre à la liste s'il n'y
-                // était pas déjà (voir `validateBuild`, useOptimizerLists.ts).
+                // « Valider » (Lot 2) — réserve les 6 runes RÉELLES de CE
+                // candidat pour `sourceSelector`, qu'il pointe un exemplaire
+                // réel OU un sélecteur `unowned` (monstre non possédé,
+                // demande explicite — « essayer des runages de teams sans
+                // avoir mis à jour son json » : les runes trouvées restent de
+                // VRAIES runes du compte, réservables comme n'importe quel
+                // autre build validé). Absent uniquement si `sourceSelector`
+                // est `null` (aucune espèce choisie, ou possédée ailleurs
+                // sans exemplaire encore désambiguïsé — zone D).
+                // ⚠️ Exige `sourceSelector` non nul ET une liste active (Lot
+                // 3 — un build validé appartient TOUJOURS à une liste, voir
+                // ValidatedBuild). Valider ajoute aussi implicitement le
+                // monstre à la liste s'il n'y était pas déjà (voir
+                // `validateBuild`, useOptimizerLists.ts).
                 onValidate={
                   sourceSelector && lists.activeListId
                     ? () => lists.validateBuild(lists.activeListId!, sourceSelector, c.runeIds)

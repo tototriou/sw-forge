@@ -36,6 +36,11 @@ interface Props {
 function sourceLabel(sel: ExclusionSelector, data: ExclusionSourceData): string {
   if (sel.source === 'box') return 'Box';
   if (sel.source === 'rta') return 'RTA';
+  // ⚠️ `unowned` n'apparaît JAMAIS ici en pratique — ce picker ne propose
+  // que des candidats `exclusionCandidatesFor` (box/RTA/siège), jamais un
+  // sélecteur `unowned` (voir optimizerExclusion.ts) — branche purement
+  // défensive pour l'exhaustivité du type.
+  if (sel.source === 'unowned') return 'Non possédé';
   const teams = sel.source === 'siege-defense' ? data.siegeDefenseTeams : data.siegeOffenseTeams;
   const idx = teams.findIndex((t) => t.id === sel.teamId);
   const base = sel.source === 'siege-defense' ? 'Défenses siège' : 'Offenses siège';

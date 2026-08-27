@@ -384,13 +384,48 @@ export default function testOptimizerExclusion() {
       { listId: 'deck-a', selector: { source: 'box', unitKey: 'unit-jamais-vu' }, runeIds: [1, 2, 3, 4, 5, 6] }, // sélecteur introuvable → abandonné
       { listId: 'deck-a', selector: { source: 'rta', monsterId: String(camilla.id) }, runeIds: [101, 102, 103, 104, 105, 999] }, // 999 absente de cet exemplaire → abandonné
     ];
-    const { kept, droppedCount } = revalidateBuilds(validated, data);
+    const allRuneIds = new Set(box.flatMap((b) => b.gear!.runes.map((r) => r.id)).concat(
+      Object.values(rtaEntries).flatMap((e) => e.gear?.runes.map((r) => r.id) ?? []),
+      siegeDefenseTeams.flatMap((t) => t.slots.flatMap((s) => s.gear?.runes.map((r) => r.id) ?? []))
+    ));
+    const { kept, droppedCount } = revalidateBuilds(validated, data, allRuneIds);
     egal(droppedCount, 2, 'revalidateBuilds : les 2 builds périmés (sélecteur introuvable, rune manquante) sont comptés');
     egal(kept.length, 1, 'revalidateBuilds : le build encore intact (box Camilla) est conservé');
     egal(kept[0]?.selector, { source: 'box', unitKey: 'unit-camilla' }, 'revalidateBuilds : conserve le bon sélecteur');
 
-    const allValid = revalidateBuilds([validated[0]], data);
+    const allValid = revalidateBuilds([validated[0]], data, allRuneIds);
     egal(allValid.droppedCount, 0, 'revalidateBuilds : rien de périmé → droppedCount à 0, pas juste kept correct');
+
+    // ── Sélecteur `unowned` (« ajouter un monstre qu'on ne possède pas ») —
+    // son `gear.runes` résolu est TOUJOURS vide (pas d'exemplaire réel), donc
+    // la question posée diffère : « ces runes existent-elles encore dans le
+    // compte », pas « sont-elles encore PORTÉES par lui ». ──
+    const zaiross = monster(4, 'Zaiross'); // absent de box/rta/siège — possédé nulle part
+    const dataAvecZaiross: ExclusionSourceData = { ...data, monsterById: new Map([...monsterById, [String(zaiross.id), zaiross]]) };
+    const unownedSelector = { source: 'unowned' as const, monsterId: String(zaiross.id) };
+    egal(exclusionSelectorKey(unownedSelector), `unowned:${zaiross.id}`, 'exclusionSelectorKey : clé stable pour unowned');
+    const resolvedUnowned = resolveExclusionEntry(unownedSelector, dataAvecZaiross);
+    ok(resolvedUnowned != null, 'resolveExclusionEntry : une espèce absente des 4 sources résout quand même (bestiaire entier)');
+    egal(resolvedUnowned?.gear.runes, [], 'resolveExclusionEntry : gear synthétique, jamais de rune propre');
+    ok(
+      resolveExclusionEntry({ source: 'unowned', monsterId: '999999' }, dataAvecZaiross) == null,
+      'resolveExclusionEntry : une espèce absente MÊME du bestiaire ne résout pas'
+    );
+    egal(
+      resolveExcludedRuneIds([unownedSelector], dataAvecZaiross, null, null).size,
+      0,
+      'resolveExcludedRuneIds : un sélecteur unowned ne fait jamais rien exclure'
+    );
+    const unownedValidated: ValidatedBuild[] = [
+      { listId: 'deck-a', selector: unownedSelector, runeIds: [1, 2, 3] }, // 1,2,3 existent dans le compte (box Camilla)
+    ];
+    const unownedKept = revalidateBuilds(unownedValidated, dataAvecZaiross, allRuneIds);
+    egal(unownedKept.droppedCount, 0, 'revalidateBuilds (unowned) : conservé si ses runes existent encore dans le compte, malgré gear.runes vide');
+    const unownedStale: ValidatedBuild[] = [
+      { listId: 'deck-a', selector: unownedSelector, runeIds: [1, 2, 999999] }, // 999999 n'existe nulle part
+    ];
+    const unownedDropped = revalidateBuilds(unownedStale, dataAvecZaiross, allRuneIds);
+    egal(unownedDropped.droppedCount, 1, "revalidateBuilds (unowned) : abandonné si une rune n'existe plus du tout dans le compte");
   }
 
   // ── revalidateMembers (Lot 3) — même principe que revalidateBuilds, mais

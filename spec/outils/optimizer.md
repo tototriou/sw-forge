@@ -651,13 +651,36 @@ jeu, n'ont RIEN à voir l'un avec l'autre.
   chaque ligne pour retirer un monstre de la liste — sans confirmation s'il
   n'est pas encore validé (rien à perdre), avec confirmation s'il l'est (le
   retrait libère aussi ses runes). Bouton **« Ajouter à la liste »**, dont
-  le libellé change selon le contexte (aucun monstre choisi / monstre non
-  réellement possédé → désactivé ; déjà dans la liste active → désactivé ;
-  sinon → « Ajouter <monstre> à « <liste> » »). Sans liste active,
-  l'ajout crée une liste (prompt du nom) ET y ajoute le monstre dans le
-  même geste. Bouton **« Libérer toutes les runes de cette liste »**
-  (visible dès qu'au moins un build y est validé), avec sa propre
-  confirmation dédiée.
+  le libellé change selon le contexte (aucun monstre choisi → désactivé ;
+  déjà dans la liste active → désactivé ; sinon → « Ajouter <monstre> à
+  « <liste> » », suffixé « (non possédé) » pour une espèce sans exemplaire
+  réel, voir plus bas). Sans liste active, l'ajout crée une liste (prompt
+  du nom) ET y ajoute le monstre dans le même geste. Bouton **« Libérer
+  toutes les runes de cette liste »** (visible dès qu'au moins un build y
+  est validé), avec sa propre confirmation dédiée.
+- ⚠️ **Ajouter un monstre qu'on ne possède PAS** — demande explicite : « le
+  joueur a obtenu le monstre et veut essayer des runages de teams sans
+  avoir mis à jour son json ». Une ESPÈCE choisie via la recherche
+  bestiaire (voir « Écran », étape 1) mais absente des 4 sources du compte
+  reste ajoutable à une liste ET « validable » exactement comme un
+  exemplaire réel — un sélecteur `unowned` (`ExclusionSelector`, distinct
+  des 4 sources réelles) porte cette entrée, sur ses stats de base 6★
+  niveau max, sans rune ni artéfact. ⚠️ **Les runes trouvées par la
+  recherche restent de VRAIES runes du compte** : « Valider ce build »
+  fonctionne à l'identique, réservant réellement ces 6 runes pour les
+  autres monstres de la MÊME liste — c'est justement ce qui permet
+  d'essayer un runage d'ÉQUIPE (plusieurs monstres, certains possédés,
+  certains non) sans qu'un même jeu de runes soit proposé deux fois. Ne
+  s'affiche QUE quand l'espèce n'a d'exemplaire dans AUCUNE des 4 sources
+  — possédée ne serait-ce que quelque part (même ambiguë), la
+  désambiguïsation normale (zone D / puces) garde toujours la main, jamais
+  masquée par ce sélecteur. Aucune puce ne s'allume pour ce cas (comme un
+  build validé, voir plus haut). ⚠️ Revérification au réimport (comme tout
+  le reste de cette section) : un build validé sur un monstre non possédé
+  reste valable tant que ses runes existent encore QUELQUE PART dans le
+  compte réimporté (pas nécessairement encore équipées sur un exemplaire
+  précis, puisqu'il n'y en a pas) — vérification plus faible que pour un
+  exemplaire réel, limite assumée.
 - **Auto-exemption de la liste ACTIVE** — chercher à nouveau le même
   monstre dans la MÊME liste exempte automatiquement SES PROPRES runes déjà
   validées (sans quoi la recherche se trouverait bloquée par ses propres

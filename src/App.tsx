@@ -291,7 +291,7 @@ export default function App() {
         monsterById,
       };
       const membersResult = revalidateMembers(optimizerLists.members, data);
-      const buildsResult = revalidateBuilds(optimizerLists.validated, data);
+      const buildsResult = revalidateBuilds(optimizerLists.validated, data, new Set(runes.map((r) => r.id)));
       const droppedCount = membersResult.droppedCount + buildsResult.droppedCount;
       if (droppedCount > 0) {
         optimizerLists.replaceMembersAndValidated(membersResult.kept, buildsResult.kept);
@@ -303,7 +303,7 @@ export default function App() {
         }));
       }
     }
-  }, [box]);
+  }, [box, runes]);
 
   // Identité du DERNIER compte importé cette session (`wizard_id`, voir
   // parseWizardId) — comparée dans `appliquerImport` pour réinitialiser

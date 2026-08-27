@@ -41,6 +41,7 @@ function isSelector(v: unknown): v is ExclusionSelector {
   if (s.source === 'siege-defense' || s.source === 'siege-offense') {
     return typeof s.teamId === 'string' && typeof s.slotIndex === 'number';
   }
+  if (s.source === 'unowned') return typeof s.monsterId === 'string';
   return false;
 }
 

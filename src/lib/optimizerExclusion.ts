@@ -21,6 +21,7 @@
 import { BoxItem } from './applyAccount';
 import { GearSet, Monster, RtaEntry, SiegeTeam } from '../types';
 import { excludedRuneIds } from './runeBuildOptim';
+import { monsterBaseStats } from './stats';
 
 export type ExclusionSource = 'box' | 'rta' | 'siege-defense' | 'siege-offense';
 
@@ -35,11 +36,25 @@ export const SOURCE_OPTIONS: { key: ExclusionSource; label: string }[] = [
   { key: 'siege-offense', label: 'Offenses siège' },
 ];
 
+// ⚠️ `'unowned'` — demande explicite (« ajouter un monstre qu'on ne possède
+// pas dans une liste : le joueur a obtenu le monstre et veut essayer des
+// runages de teams sans avoir mis à jour son json ») : une ESPÈCE choisie
+// via la recherche bestiaire (voir `MonsterSourcePicker mode="bestiary"`)
+// mais absente des 4 sources du compte — pas un exemplaire réel, juste une
+// espèce (`monsterId` = `String(Monster.id)`, même clé que `monsterById`,
+// PAS `com2usId` : une espèce précise, un élément/palier d'éveil précis,
+// pas toute la famille). N'a JAMAIS de runes propres (`resolveSelectorRaw`
+// renvoie toujours `runes: []`) — rien à exclure pour les autres, mais
+// « Ajouter à la liste »/« Valider ce build » fonctionnent identiquement à
+// un exemplaire réel : les RUNES trouvées par la recherche restent de
+// VRAIES runes du compte, réservables comme n'importe quel autre build
+// validé (voir ValidatedBuild plus bas).
 export type ExclusionSelector =
   | { source: 'box'; unitKey: string }
   | { source: 'rta'; monsterId: string }
   | { source: 'siege-defense'; teamId: string; slotIndex: number }
-  | { source: 'siege-offense'; teamId: string; slotIndex: number };
+  | { source: 'siege-offense'; teamId: string; slotIndex: number }
+  | { source: 'unowned'; monsterId: string };
 
 export interface ExclusionCandidate {
   selector: ExclusionSelector;
@@ -65,6 +80,8 @@ export function exclusionSelectorKey(sel: ExclusionSelector): string {
       return `siege-defense:${sel.teamId}:${sel.slotIndex}`;
     case 'siege-offense':
       return `siege-offense:${sel.teamId}:${sel.slotIndex}`;
+    case 'unowned':
+      return `unowned:${sel.monsterId}`;
   }
 }
 
@@ -148,6 +165,16 @@ function resolveSelectorRaw(sel: ExclusionSelector, data: ExclusionSourceData): 
     const entry = data.rtaEntries[sel.monsterId];
     const monster = entry ? data.monsterById.get(entry.monsterId) : undefined;
     return { monster, gear: entry?.gear };
+  }
+  if (sel.source === 'unowned') {
+    // `monsterById` couvre TOUT le bestiaire (voir OptimizerSection.tsx,
+    // construit depuis `allMonsters`, pas seulement les entrées possédées) —
+    // se résout donc quel que soit le compte chargé. Stats de base 6★ niveau
+    // max, sans rune ni artéfact — même construction que le repli « espèce
+    // seule » de `selected` (OptimizerSection.tsx), une seule source de
+    // vérité pour « à quoi ressemble un monstre non possédé ».
+    const monster = data.monsterById.get(sel.monsterId);
+    return { monster, gear: monster ? { base: monsterBaseStats(monster), runes: [], artifacts: [] } : undefined };
   }
   const teams = sel.source === 'siege-defense' ? data.siegeDefenseTeams : data.siegeOffenseTeams;
   const slot = teams.find((t) => t.id === sel.teamId)?.slots[sel.slotIndex];
@@ -336,13 +363,27 @@ export function findValidatedBuild(validated: ValidatedBuild[], listId: string |
 // qui n'a plus rien à voir avec le compte réel. ⚠️ Jamais silencieux — voir
 // son appelant (App.tsx), qui avertit l'utilisateur du nombre abandonné
 // plutôt que de les perdre sans un mot (point bloquant 4 du cadrage).
-export function revalidateBuilds(validated: ValidatedBuild[], data: ExclusionSourceData): { kept: ValidatedBuild[]; droppedCount: number } {
+// ⚠️ `allRuneIds` (le POOL COMPLET du compte, équipé et non équipé — voir
+// OptimizerSection.tsx, `runes`) — nécessaire UNIQUEMENT pour un sélecteur
+// `unowned` : son `gear.runes` résolu est TOUJOURS vide (pas d'exemplaire
+// réel à comparer), donc la question posée diffère de celle des exemplaires
+// réels — pas « ces runes sont-elles encore PORTÉES par lui », mais « ces
+// runes EXISTENT-elles encore dans le compte » (ni vendues ni reforgées
+// depuis). Plus faible que la vérification « toujours porté » d'un
+// exemplaire réel (ne détecte pas une rune réattribuée à un AUTRE monstre
+// réel depuis) — limite assumée, documentée dans spec/outils/optimizer/.
+export function revalidateBuilds(validated: ValidatedBuild[], data: ExclusionSourceData, allRuneIds: Set<number>): { kept: ValidatedBuild[]; droppedCount: number } {
   const kept: ValidatedBuild[] = [];
   let droppedCount = 0;
   for (const v of validated) {
     const resolved = resolveExclusionEntry(v.selector, data);
-    const currentIds = new Set((resolved?.gear.runes ?? []).map((r) => r.id));
-    const stillValid = resolved != null && v.runeIds.every((id) => currentIds.has(id));
+    const stillValid =
+      v.selector.source === 'unowned'
+        ? resolved != null && v.runeIds.every((id) => allRuneIds.has(id))
+        : (() => {
+            const currentIds = new Set((resolved?.gear.runes ?? []).map((r) => r.id));
+            return resolved != null && v.runeIds.every((id) => currentIds.has(id));
+          })();
     if (stillValid) kept.push(v);
     else droppedCount++;
   }

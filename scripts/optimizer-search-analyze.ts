@@ -59,6 +59,22 @@ if (!recipe) {
   process.exit(1);
 }
 
+// ⚠️ **BUG CORRIGÉ** (revue de code externe — piège « un type, plusieurs
+// constructeurs », CLAUDE.md) : `parseOptimizerRecipe` ne valide PAS
+// `objective` contre le type (JSON non validé) — une recette exportée
+// pendant la durée de vie d'un objectif depuis retiré (`speed_nuker`,
+// `degats`) porte encore cette valeur. L'ÉCRAN a un repli explicite
+// (`OptimizerSection.tsx`, `importRecipe` : legacyObjective === 'speed_nuker'
+// || 'degats' → 'efficience'), CE script ne l'avait pas — `objectiveScore`
+// (plus bas, via le tri) lève sur un objectif inconnu APRÈS avoir consommé
+// toute la recherche, pas avant. Même repli que l'écran, appliqué ici une
+// seule fois, avant toute autre lecture de `recipe.objective`.
+const legacyObjective = recipe.objective as unknown as string;
+if (legacyObjective === 'speed_nuker' || legacyObjective === 'degats') {
+  console.warn(`⚠️ Objectif retiré « ${legacyObjective} » dans la recette — repli sur « efficience » (comme l'écran).`);
+  recipe.objective = 'efficience';
+}
+
 console.log(
   `Recette : ${recipe.monsterName} — sets ${recipe.requirement.sets.join('+')} — objectif ${recipe.objective} — ` +
     `métrique ${recipe.metric} — préfiltrage ${recipe.slotFilterPreset}`

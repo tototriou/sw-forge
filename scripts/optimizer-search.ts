@@ -78,6 +78,17 @@ if (!recipe) {
   process.exit(1);
 }
 
+// ⚠️ Un objectif retiré (`speed_nuker`, `degats`) peut encore apparaître dans
+// une recette exportée avant son retrait (`parseOptimizerRecipe` ne valide
+// pas `objective` contre le type) — même repli que l'écran
+// (`OptimizerSection.tsx`, `importRecipe`), pour ne jamais faire diverger ce
+// script du chemin de prod sur une recette ancienne.
+const legacyObjective = recipe.objective as unknown as string;
+if (legacyObjective === 'speed_nuker' || legacyObjective === 'degats') {
+  console.warn(`⚠️ Objectif retiré « ${legacyObjective} » dans la recette — repli sur « efficience » (comme l'écran).`);
+  recipe.objective = 'efficience';
+}
+
 console.log(
   `Recette : ${recipe.monsterName} — sets ${recipe.requirement.sets.join('+')} — objectif ${recipe.objective} — ` +
     `métrique ${recipe.metric} — préfiltrage ${recipe.slotFilterPreset} — ` +
@@ -180,7 +191,7 @@ if (recipe.objective === 'degats_reels') {
   if (!profile) {
     console.warn(
       `⚠️ Objectif « Dégâts réels » mais AUCUN sort calculable pour ${loaded.monsterName} (fiche absente ou formules hors modèle) — ` +
-        `le pré-filtrage retombe sur le biais « Dégâts » (ATQ + Dgts Crit).`
+        `le pré-filtrage retombe sur OBJECTIVE_RELEVANT_STATS.degats_reels (ATQ + Dgts Crit), l'objectif « Dégâts » n'existe plus.`
     );
   } else {
     if (s.skillCom2usId != null && s.skillCom2usId !== profile.skillCom2usId) {

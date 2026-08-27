@@ -432,13 +432,21 @@ export function revalidateBuilds(validated: ValidatedBuild[], data: ExclusionSou
 // un remontage, ou par le prochain qui réorganise les effets — celui-ci tient
 // quoi qu'il arrive en amont.
 export function comptePeutJuger(data: ExclusionSourceData, runeIds: Set<number>): boolean {
-  return (
-    data.box.length > 0 ||
-    runeIds.size > 0 ||
-    Object.keys(data.rtaEntries).length > 0 ||
-    data.siegeDefenseTeams.length > 0 ||
-    data.siegeOffenseTeams.length > 0
-  );
+  // ⚠️⚠️ **LA BOX ET LES RUNES SEULES, jamais RTA ni le siège.**
+  //
+  // C'est LE COMPTE qui arrive en retard : il se relit en asynchrone
+  // (`loadAccount()`), tandis que RTA et le siège sont des états persistés à
+  // part, rendus dès le premier rendu. Une première version acceptait
+  // « n'importe quelle source non vide » — elle passait donc toujours, puisque
+  // RTA (40 entrées) et le siège (52 équipes) étaient déjà là quand la box
+  // valait encore `0`. Mesuré sur le cas réel :
+  //
+  //     revalidation lancée — box=0 runes=0 rta=40 siegeDef=3 siegeOff=49
+  //
+  // Or c'est bien contre la BOX que les sélecteurs se résolvent, et contre les
+  // RUNES que les builds se vérifient. Une source annexe chargée ne dit
+  // strictement rien sur la disponibilité de celles-là.
+  return data.box.length > 0 || runeIds.size > 0;
 }
 
 export function revalidateMembers(members: OptimizerListMember[], data: ExclusionSourceData): { kept: OptimizerListMember[]; droppedCount: number } {

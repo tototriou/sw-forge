@@ -534,6 +534,20 @@ export default function testOptimizerExclusion() {
     ok(comptePeutJuger({ ...vide, box: data.box }, new Set()), 'une box seule aussi');
     ok(comptePeutJuger(data, new Set()), 'et le compte complet du scénario, évidemment');
 
+    // ⚠️⚠️ **RTA ET LE SIÈGE NE COMPTENT PAS.** C'est LE COMPTE qui arrive en
+    // retard : il se relit en asynchrone, tandis que RTA et le siège sont des
+    // états persistés à part, présents dès le premier rendu. Une version de
+    // cette garde acceptait « n'importe quelle source non vide » — elle passait
+    // donc toujours, et la revérification tournait sur `box=0 runes=0` pendant
+    // que `rta=40` et `siege=52`. Tout était jeté, puis écrit sur disque.
+    ok(
+      !comptePeutJuger(
+        { ...vide, rtaEntries: data.rtaEntries, siegeDefenseTeams: data.siegeDefenseTeams, siegeOffenseTeams: data.siegeOffenseTeams },
+        new Set()
+      ),
+      'RTA et le siège chargés ne suffisent PAS : ils ne disent rien de la box'
+    );
+
     // ⚠️ Le contrôle qui montre POURQUOI la garde existe : sans elle, tout part.
     const membres: OptimizerListMember[] = [
       { listId: 'deck-a', selector: { source: 'box', unitKey: 'unit-camilla' } },

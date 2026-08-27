@@ -318,6 +318,22 @@ retour.
      un remontage, ou par le prochain qui réorganise les effets. Celui-ci tient
      quoi qu'il arrive en amont — et il est **testable**, donc testé (dont le
      contrôle qui montre que sans lui, tout part).
+   - ⚠️⚠️ **« Le compte » = LA BOX ET LES RUNES, jamais RTA ni le siège.** Une
+     première version acceptait « n'importe quelle source non vide » — elle
+     passait donc toujours : RTA et le siège sont des états persistés **à part**,
+     rendus dès le premier rendu, tandis que le compte se relit en **asynchrone**
+     (`loadAccount()`). Mesuré sur le cas réel, au second passage d'effet de
+     StrictMode :
+
+     ```
+     revalidation lancée — box=0 runes=0 rta=40 siegeDef=3 siegeOff=49 membres=1
+     ```
+
+     Le garde-fou laissait passer, la revérification jetait le membre, et
+     l'écriture suivante le perdait pour de bon. C'est bien contre la **box**
+     que les sélecteurs se résolvent, et contre les **runes** que les builds se
+     vérifient : une source annexe chargée ne dit rien de la disponibilité de
+     celles-là.
 
    ⚠️⚠️ **UN OBJECTIF RETIRÉ SURVIT DANS LES SCRIPTS.** `'degats'` a été sorti
    d'`Objective`, mais il restait le DÉFAUT de dix scripts CLI/diag, en cast

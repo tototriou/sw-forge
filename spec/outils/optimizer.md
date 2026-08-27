@@ -695,6 +695,16 @@ jeu, n'ont RIEN à voir l'un avec l'autre.
   explicite) : un bandeau dans la fiche elle-même (« Build validé affiché —
   pas l'équipement réellement porté ») s'affiche dans ce cas, pour ne
   jamais laisser croire que ce qui est montré est réellement équipé en jeu.
+  ⚠️ **Bascule vers l'équipement réel, sans quitter la liste** (demande
+  explicite : « on ne peut plus voir à quoi ressemblait le runage précédent
+  tant qu'on est dans la liste ») — une icône dans ce même bandeau («
+  Voir le runage réellement porté ») affiche l'équipement RÉEL de
+  l'exemplaire à la place du build validé, sans changer d'exemplaire ni
+  quitter la liste ; le bandeau change alors de message (« Équipement
+  réellement porté affiché ») et une puce s'allume normalement si ce
+  runage correspond bien à l'une des 4 sources. Réinitialisée à chaque
+  changement d'exemplaire — revenir sur ce monstre plus tard réaffiche le
+  build validé par défaut.
 - **« Valider ce build » sous la fiche**, sans passer par une recherche
   (demande explicite) — un second bouton, identique à celui d'une carte de
   résultat, juste sous la fiche stats/artéfacts/runes/relique : valide

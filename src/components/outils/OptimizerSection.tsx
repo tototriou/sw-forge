@@ -17,6 +17,7 @@ import {
   CheckCircle2,
   Unlock,
   Trash2,
+  Eye,
 } from 'lucide-react';
 import { ArtifactDetail, ARTIFACT_KINDS, GearSet, RECO_STATS, RuneDetail, Monster, RtaEntry, SiegeTeam } from '../../types';
 import { BoxItem } from '../../lib/applyAccount';
@@ -695,6 +696,20 @@ export default function OptimizerSection({ box, runes, optimizer, allMonsters, r
   const ownSelectorKey = sourceSelector ? exclusionSelectorKey(sourceSelector) : null;
   const ownValidatedBuild = findValidatedBuild(lists.validated, lists.activeListId, ownSelectorKey);
 
+  // Bascule d'affichage de la fiche quand un build VALIDÉ existe pour
+  // l'exemplaire actif — demande explicite : « une fois le runage validé,
+  // on ne peut plus voir à quoi ressemblait le runage précédent tant qu'on
+  // est dans la liste ». `false` = build validé (défaut, l'illusion
+  // habituelle) ; `true` = équipement RÉELLEMENT porté, celui qu'aurait
+  // affiché la fiche SANS validation. ⚠️ Réinitialisée à CHAQUE changement
+  // d'exemplaire (`ownSelectorKey`) — sans quoi choisir un autre monstre
+  // garderait « runage actuel » affiché pour un exemplaire dont ce n'est
+  // pas ce qu'on a demandé à voir.
+  const [showRealGear, setShowRealGear] = useState(false);
+  useEffect(() => {
+    setShowRealGear(false);
+  }, [ownSelectorKey]);
+
   const selected = useMemo(() => {
     if (sourceSelector) {
       const resolved = resolveExclusionEntry(sourceSelector, exclusionData);
@@ -705,7 +720,10 @@ export default function OptimizerSection({ box, runes, optimizer, allMonsters, r
         // ceux réellement équipés, voir spec/outils/optimizer/historique-
         // import-monstres-a-optimiser.md) donne l'illusion voulue « ce
         // monstre porte déjà ce build » sans toucher au reste de la fiche.
-        if (ownValidatedBuild) {
+        // `showRealGear` désactive CETTE substitution (mais pas la
+        // résolution elle-même) pour retrouver l'équipement réel sur
+        // demande.
+        if (ownValidatedBuild && !showRealGear) {
           const validatedRunes = ownValidatedBuild.runeIds
             .map((id) => runeById.get(id))
             .filter((r): r is RuneDetail => !!r);
@@ -716,7 +734,7 @@ export default function OptimizerSection({ box, runes, optimizer, allMonsters, r
     }
     if (!speciesMonster) return null;
     return { monster: speciesMonster, gear: { base: monsterBaseStats(speciesMonster), runes: [], artifacts: [] } };
-  }, [sourceSelector, exclusionData, speciesMonster, ownValidatedBuild, runeById]);
+  }, [sourceSelector, exclusionData, speciesMonster, ownValidatedBuild, runeById, showRealGear]);
 
   // `unitKey` (box) de l'entrée à protéger contre sa propre exclusion —
   // seulement quand l'exemplaire RÉELLEMENT résolu est un exemplaire Box
@@ -1310,6 +1328,14 @@ export default function OptimizerSection({ box, runes, optimizer, allMonsters, r
   // runes) le bouton affiche « Validé » (identique à `BuildCandidateCard`)
   // plutôt que de re-valider inutilement les mêmes runes.
   const displayedRuneIds = selected?.gear.runes.map((r) => r.id) ?? [];
+  // Les runes AFFICHÉES sont-elles EXACTEMENT le build validé ? Presque
+  // toujours équivalent à `!!ownValidatedBuild` (la substitution dans
+  // `selected` le garantit dès que `showRealGear` est `false`) — mais PAS
+  // quand `showRealGear` est `true` : la fiche montre alors l'équipement
+  // RÉEL, qui peut différer du build validé (c'est justement le but du
+  // bouton). Sert à distinguer « un build validé EXISTE pour cet
+  // exemplaire » de « ce qui est affiché EN CE MOMENT est ce build ».
+  const matchesValidatedBuild = !!ownValidatedBuild && sameRuneIds(ownValidatedBuild.runeIds, displayedRuneIds);
   // ⚠️ Jamais valider une rune déjà réservée pour un AUTRE monstre de LA
   // MÊME liste active — demande explicite. Contrairement à un résultat de
   // recherche (dont le pool exclut déjà `otherValidatedRuneIds`, voir
@@ -1342,15 +1368,28 @@ export default function OptimizerSection({ box, runes, optimizer, allMonsters, r
     lists.validateBuild(lists.activeListId, sourceSelector, displayedRuneIds);
   }
 
-  // Bandeau « build validé » — demande explicite : en plus des 4 puces
-  // grisées (voir plus haut), un signal explicite dans la fiche elle-même,
-  // pour que ce qui est affiché (le build validé, PAS l'équipement
-  // réellement porté) ne prête jamais à confusion. Factorisé, réutilisé aux
-  // deux endroits où la fiche s'affiche (bureau/mobile).
+  // Bandeau « build validé », devenu une BASCULE — demande explicite : en
+  // plus des 4 puces grisées (voir plus haut), un signal explicite dans la
+  // fiche elle-même, pour que ce qui est affiché (le build validé, PAS
+  // l'équipement réellement porté) ne prête jamais à confusion. ⚠️ Suite —
+  // « on ne peut plus voir à quoi ressemblait le runage précédent tant
+  // qu'on est dans la liste » : `showRealGear` (voir `selected`) permet de
+  // rebasculer vers l'équipement RÉEL sans quitter la liste ni changer
+  // d'exemplaire. Factorisé, réutilisé aux deux endroits où la fiche
+  // s'affiche (bureau/mobile).
   const validatedBadge = ownValidatedBuild ? (
     <div className="mb-2 flex items-center gap-1.5 rounded-lg bg-accent-soft px-2 py-1 text-[11px] font-semibold text-accent">
       <CheckCircle2 size={13} className="flex-none" />
-      Build validé affiché — pas l&apos;équipement réellement porté
+      <span className="flex-1">
+        {showRealGear ? "Équipement réellement porté affiché" : "Build validé affiché — pas l'équipement réellement porté"}
+      </span>
+      <BoutonIcone
+        cadre
+        libelle={showRealGear ? 'Revoir le build validé' : "Voir le runage réellement porté"}
+        icone={showRealGear ? <CheckCircle2 size={13} /> : <Eye size={13} />}
+        onClick={() => setShowRealGear((v) => !v)}
+        className="h-6 w-6 flex-none"
+      />
     </div>
   ) : null;
 
@@ -1360,26 +1399,26 @@ export default function OptimizerSection({ box, runes, optimizer, allMonsters, r
   // dès qu'il n'y a rien de validable (pas 6 runes affichées, OU au moins
   // une rune déjà réservée pour un autre monstre de la liste — voir
   // `displayedRuneConflicts`) OU que c'est déjà EXACTEMENT le build validé
-  // (`ownValidatedBuild` — `selected.gear.runes` le reflète alors déjà,
-  // voir son commentaire plus haut).
+  // (`matchesValidatedBuild` — PAS `ownValidatedBuild` seul, qui reste vrai
+  // même en vue « runage réellement porté », voir son commentaire).
   const validateBuildButton = (
     <>
       <Bouton
         onClick={handleValidateDisplayed}
-        disabled={!canValidateDisplayed || !!ownValidatedBuild}
-        ton={ownValidatedBuild ? 'accent' : 'neutre'}
-        fond={ownValidatedBuild ? 'doux' : 'plein'}
+        disabled={!canValidateDisplayed || matchesValidatedBuild}
+        ton={matchesValidatedBuild ? 'accent' : 'neutre'}
+        fond={matchesValidatedBuild ? 'doux' : 'plein'}
         taille="sm"
         pleineLargeur
-        icone={ownValidatedBuild ? <CheckCircle2 size={14} /> : undefined}
-        libelle={ownValidatedBuild ? 'Validé' : 'Valider ce build'}
+        icone={matchesValidatedBuild ? <CheckCircle2 size={14} /> : undefined}
+        libelle={matchesValidatedBuild ? 'Validé' : 'Valider ce build'}
         className="mt-2.5"
       />
       {/* Message listant les runes déjà utilisées — demande explicite,
           « il faut afficher quelles runes sont déjà utilisées dans la
           liste ». Absent si déjà validé (le bandeau `validatedBadge`
           suffit alors, ce build EST la réservation). */}
-      {displayedRuneConflicts.length > 0 && !ownValidatedBuild && (
+      {displayedRuneConflicts.length > 0 && !matchesValidatedBuild && (
         <p className="mt-1.5 text-[11px] text-warn">
           {displayedRuneConflicts.length > 1 ? 'Runes déjà réservées' : 'Rune déjà réservée'} dans cette liste :{' '}
           {displayedRuneConflicts.map((c, i) => (
@@ -1685,15 +1724,18 @@ export default function OptimizerSection({ box, runes, optimizer, allMonsters, r
                   si elle ne l'est dans AUCUNE des 4 (Questions 2-3 du
                   cadrage) — voir l'axe `disabled` par option, ajouté à
                   Segmented.tsx pour ce cas précis. ⚠️ **`value={null}`
-                  quand un build VALIDÉ est affiché** (Lot 3) **ou quand
+                  quand le build VALIDÉ est ACTUELLEMENT affiché**
+                  (`matchesValidatedBuild`, PAS `ownValidatedBuild` seul —
+                  la bascule « voir le runage réellement porté »,
+                  `showRealGear`, peut en montrer l'équipement réel, qui
+                  LUI reste la source réelle d'une puce) **ou quand
                   `sourceSelector` est `unowned`** (monstre non possédé,
-                  demande explicite) : dans les deux cas, ce runage n'est la
-                  source réelle d'AUCUNE des 4 puces (voir `selected` plus
-                  haut), aucune ne doit s'allumer — voir l'axe `value: T |
-                  null` ajouté à Segmented.tsx pour ce cas précis. */}
+                  demande explicite) : dans les deux cas, aucune puce ne
+                  doit s'allumer — voir l'axe `value: T | null` ajouté à
+                  Segmented.tsx pour ce cas précis. */}
               <Segmented
                 options={sourceOptions}
-                value={ownValidatedBuild || unowned ? null : gearSource}
+                value={matchesValidatedBuild || unowned ? null : gearSource}
                 onChange={pickSource}
                 disabled={allSourcesEmpty}
                 size="lg"

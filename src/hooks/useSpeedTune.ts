@@ -800,7 +800,12 @@ export function useSpeedTune({
       (map.get(n) ?? map.set(n, []).get(n)!).push(l);
     }
     return map;
-  }, [lignes, leadAllie, leadEnnemi]);
+    // ⚠️ **`donneesKit` EN FAIT PARTIE.** `combatDe` y lit le gain de passif
+    // (Shumar +15, Chilling +20 par buff) : les kits se chargeant en asynchrone,
+    // sans cette dépendance les repères restaient calculés SANS le gain une fois
+    // les données arrivées — et contredisaient la card et le tableau, qui eux le
+    // comptaient. Un écran qui se contredit sur la même vitesse.
+  }, [lignes, leadAllie, leadEnnemi, donneesKit]);
 
   const rien = lignes.length === 0;
   const rienVisible = lignesVisibles.length === 0;
